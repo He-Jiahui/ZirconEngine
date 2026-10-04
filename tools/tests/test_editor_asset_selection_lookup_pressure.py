@@ -1,3 +1,4 @@
+# 核对资产选择和菜单压力模型复用标识及选中索引，避免扫描可见表。
 import importlib.util
 import sys
 import unittest
@@ -5,7 +6,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-TOOL = ROOT / "tools" / "editor_asset_selection_lookup_pressure.py"
+TOOL = ROOT / "tools" / "performance" / "editor" / "editor_asset_selection_lookup_pressure.py"
 SELECTION = ROOT / "zircon_editor/src/ui/layouts/views/asset_browser/selection_text.rs"
 CONTEXT_MENU = ROOT / (
     "zircon_editor/src/ui/retained_host/app/asset_content_pointer/context_menu.rs"

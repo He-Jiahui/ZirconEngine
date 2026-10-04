@@ -2,8 +2,8 @@ use thiserror::Error;
 use zircon_runtime_interface::reflect::ReflectError;
 
 use crate::scene::{
-    EntityId,
     ecs::{EntityRegistryError, ObserverId, StorageError},
+    EntityId,
 };
 
 pub type SceneResult<T> = std::result::Result<T, SceneError>;
@@ -39,6 +39,8 @@ pub enum SceneError {
     MissingParent { child: EntityId, parent: EntityId },
     #[error("reparenting entity {child} under parent {parent} would create a hierarchy cycle")]
     HierarchyCycle { child: EntityId, parent: EntityId },
+    #[error("existing parent chain from entity {start} contains a cycle at entity {repeated}")]
+    HierarchyParentChainCycle { start: EntityId, repeated: EntityId },
     #[error("entity {entity} cannot become Dynamic while it owns Static children")]
     DynamicMobilityWithStaticChildren { entity: EntityId },
     #[error("entity {entity} cannot become Static under Dynamic parent {parent}")]
@@ -47,6 +49,16 @@ pub enum SceneError {
     StaticTransformMutation { entity: EntityId },
     #[error("static entity {entity} cannot be reparented during runtime mutation")]
     StaticReparentMutation { entity: EntityId },
+    #[error("cannot {operation} World-owned derived component {component}")]
+    ProtectedDerivedComponentMutation {
+        component: &'static str,
+        operation: &'static str,
+    },
+    #[error("cannot {operation} Scene-owned authored component {component}")]
+    ProtectedAuthoredComponentMutation {
+        component: &'static str,
+        operation: &'static str,
+    },
     #[error(transparent)]
     EntityRegistry(#[from] EntityRegistryError),
     #[error(transparent)]
@@ -151,6 +163,17 @@ pub enum SceneError {
     BundleTransactionInvariant { reason: &'static str },
     #[error("detached entity batch invariant failed: {reason}")]
     DetachedEntityBatchInvariant { reason: &'static str },
+    #[error("detached entity preparation belongs to a different World")]
+    DetachedEntityPreparationWorldMismatch,
+    #[error(
+        "detached entity preparation is stale: prepared generation {prepared_generation}, current generation {current_generation}"
+    )]
+    DetachedEntityPreparationStale {
+        prepared_generation: u64,
+        current_generation: u64,
+    },
+    #[error("cannot prepare detached entities after World generation is exhausted")]
+    DetachedEntityPreparationGenerationExhausted,
     #[error("{0}")]
     Message(String),
 }

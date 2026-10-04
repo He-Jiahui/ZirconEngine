@@ -4,7 +4,7 @@ use std::sync::{Arc, Condvar, Mutex};
 use zircon_runtime::plugin::PluginModuleId;
 
 #[cfg(test)]
-#[path = "execution_gate/canonical_owner_tests.rs"]
+#[path = "execution_gate/tests/canonical_owner_tests.rs"]
 mod canonical_owner_tests;
 
 #[derive(Clone, Debug, Default)]
@@ -71,6 +71,7 @@ impl BehaviorNodeExecutionGate {
         }
     }
 
+    // 撤销期间拒绝新执行并等待在途租约归零；guard 存活期间注册仍需等待。
     pub(super) fn revoke_and_wait(&self, owner: PluginModuleId) -> BehaviorNodeRevocationGuard {
         let mut state = self
             .inner
@@ -129,6 +130,7 @@ fn release_owners(state: &mut ExecutionGateState, owners: &[PluginModuleId]) -> 
     revoking_owner_became_idle
 }
 
+// 每个 owner 只计一次在途租约；单一提供者走截断路径，混合列表排序去重。
 fn canonicalize_owners(owners: &mut Vec<PluginModuleId>) {
     if owners.len() < 2 {
         return;

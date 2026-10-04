@@ -44,7 +44,11 @@ pub(super) fn runtime_profile_compiled_plan_availability(
         descriptors.iter(),
         plan.completed_manifest(),
         plan.linked_provider_package_ids(),
-        plan.native_dynamic_provider_package_ids(),
+        // A compiled plan records the requested NativeDynamic packaging, but it does not carry
+        // the native loader's authenticated authority receipt. Treating those IDs as providers
+        // here would let an unadmitted/expired artifact make a required plugin appear Ready.
+        // Native IDs can be supplied only by a future authority-backed availability bridge.
+        std::iter::empty::<String>(),
     )
 }
 

@@ -21,10 +21,18 @@ fn event_bus_and_config_store_roundtrip() {
     let runtime = CoreRuntime::new();
     let events = runtime
         .handle()
-        .subscribe_events("editor.selection", EngineEventDeliveryPolicy::Lossless);
-    runtime.publish_event("editor.selection", serde_json::json!({ "node": 7 }));
+        .subscribe_events(
+            "editor.selection",
+            EngineEventDeliveryPolicy::Reliable {
+                limits: crate::core::framework::events::EventRetentionLimits::default(),
+            },
+        )
+        .expect("bounded subscription");
+    runtime
+        .try_publish_event("editor.selection", serde_json::json!({ "node": 7 }))
+        .expect("event admission");
     let event = events.recv().unwrap();
-    assert_eq!(event.payload["node"], 7);
+    assert_eq!(event.decode_payload().unwrap()["node"], 7);
 
     runtime
         .handle()
@@ -37,44 +45,66 @@ fn event_bus_and_config_store_roundtrip() {
 #[test]
 fn event_bus_prunes_closed_subscribers_after_snapshot_publish() {
     let bus = EventBus::default();
-    let closed_events = bus.subscribe("runtime.tick", EngineEventDeliveryPolicy::Lossless);
-    let live_events = bus.subscribe("runtime.tick", EngineEventDeliveryPolicy::Lossless);
+    let closed_events = bus
+        .subscribe(
+            "runtime.tick",
+            EngineEventDeliveryPolicy::Reliable {
+                limits: crate::core::framework::events::EventRetentionLimits::default(),
+            },
+        )
+        .expect("bounded subscription");
+    let live_events = bus
+        .subscribe(
+            "runtime.tick",
+            EngineEventDeliveryPolicy::Reliable {
+                limits: crate::core::framework::events::EventRetentionLimits::default(),
+            },
+        )
+        .expect("bounded subscription");
     drop(closed_events);
 
-    bus.publish(EngineEvent {
+    bus.try_publish(EngineEvent {
         topic: "runtime.tick".to_string(),
         payload: serde_json::json!({ "frame": 1 }),
-    });
+    })
+    .expect("event admission");
     let event = live_events.recv().unwrap();
-    assert_eq!(event.payload["frame"], 1);
+    assert_eq!(event.decode_payload().unwrap()["frame"], 1);
 
-    bus.publish(EngineEvent {
+    bus.try_publish(EngineEvent {
         topic: "runtime.tick".to_string(),
         payload: serde_json::json!({ "frame": 2 }),
-    });
+    })
+    .expect("event admission");
     let event = live_events.recv().unwrap();
-    assert_eq!(event.payload["frame"], 2);
+    assert_eq!(event.decode_payload().unwrap()["frame"], 2);
 }
 
 #[test]
 fn event_bus_bounded_drop_oldest_caps_paused_subscriber_and_reports_drop() {
     let bus = EventBus::default();
-    let events = bus.subscribe(
-        "runtime.tick",
-        EngineEventDeliveryPolicy::BoundedDropOldest {
-            capacity: NonZeroUsize::new(2).unwrap(),
-        },
-    );
+    let events = bus
+        .subscribe(
+            "runtime.tick",
+            EngineEventDeliveryPolicy::DropOldest {
+                limits: crate::core::framework::events::EventRetentionLimits {
+                    max_events: NonZeroUsize::new(2).unwrap(),
+                    max_bytes: NonZeroUsize::new(8 * 1024 * 1024).unwrap(),
+                },
+            },
+        )
+        .expect("bounded subscription");
 
     for frame in 1..=3 {
-        bus.publish(EngineEvent {
+        bus.try_publish(EngineEvent {
             topic: "runtime.tick".to_string(),
             payload: serde_json::json!({ "frame": frame }),
-        });
+        })
+        .expect("event admission");
     }
 
-    assert_eq!(events.recv().unwrap().payload["frame"], 2);
-    assert_eq!(events.recv().unwrap().payload["frame"], 3);
+    assert_eq!(events.recv().unwrap().decode_payload().unwrap()["frame"], 2);
+    assert_eq!(events.recv().unwrap().decode_payload().unwrap()["frame"], 3);
     assert_eq!(events.try_recv(), Err(EngineEventTryReceiveError::Empty));
     let report = bus.diagnostic_report();
     assert_eq!(report.published, 3);
@@ -89,18 +119,27 @@ fn event_bus_fanout_shares_one_payload_for_1_2_5_100_subscribers() {
     for subscriber_count in [1, 2, 5, 100] {
         let bus = EventBus::default();
         let subscriptions = (0..subscriber_count)
-            .map(|_| bus.subscribe("runtime.snapshot", EngineEventDeliveryPolicy::Lossless))
+            .map(|_| {
+                bus.subscribe(
+                    "runtime.snapshot",
+                    EngineEventDeliveryPolicy::Reliable {
+                        limits: crate::core::framework::events::EventRetentionLimits::default(),
+                    },
+                )
+                .expect("bounded subscription")
+            })
             .collect::<Vec<_>>();
 
-        bus.publish(EngineEvent {
+        bus.try_publish(EngineEvent {
             topic: "runtime.snapshot".to_string(),
             payload: serde_json::json!({ "nodes": [1, 2, 3, 4], "blob": "x".repeat(4096) }),
-        });
+        })
+        .expect("event admission");
 
         let first = subscriptions[0].recv().unwrap();
         for subscription in subscriptions.iter().skip(1) {
             let event = subscription.recv().unwrap();
-            assert!(Arc::ptr_eq(&first, &event));
+            assert!(first.shares_payload_with(&event));
         }
         assert_eq!(bus.diagnostic_report().delivered, subscriber_count as u64);
     }
@@ -109,16 +148,27 @@ fn event_bus_fanout_shares_one_payload_for_1_2_5_100_subscribers() {
 #[test]
 fn event_bus_latest_policy_coalesces_to_the_newest_event() {
     let bus = EventBus::default();
-    let events = bus.subscribe("runtime.cursor", EngineEventDeliveryPolicy::Latest);
+    let events = bus
+        .subscribe(
+            "runtime.cursor",
+            EngineEventDeliveryPolicy::Latest {
+                max_retained_bytes: NonZeroUsize::new(8 * 1024 * 1024).unwrap(),
+            },
+        )
+        .expect("bounded subscription");
 
     for sample in 1..=64 {
-        bus.publish(EngineEvent {
+        bus.try_publish(EngineEvent {
             topic: "runtime.cursor".to_string(),
             payload: serde_json::json!({ "sample": sample }),
-        });
+        })
+        .expect("event admission");
     }
 
-    assert_eq!(events.recv().unwrap().payload["sample"], 64);
+    assert_eq!(
+        events.recv().unwrap().decode_payload().unwrap()["sample"],
+        64
+    );
     assert_eq!(events.try_recv(), Err(EngineEventTryReceiveError::Empty));
     assert_eq!(bus.diagnostic_report().dropped, 63);
 }
@@ -127,7 +177,14 @@ fn event_bus_latest_policy_coalesces_to_the_newest_event() {
 #[test]
 fn event_bus_capacity_one_peak_never_exceeds_the_physical_queue_capacity() {
     let bus = Arc::new(EventBus::default());
-    let events = bus.subscribe("runtime.capacity", EngineEventDeliveryPolicy::Latest);
+    let events = bus
+        .subscribe(
+            "runtime.capacity",
+            EngineEventDeliveryPolicy::Latest {
+                max_retained_bytes: NonZeroUsize::new(8 * 1024 * 1024).unwrap(),
+            },
+        )
+        .expect("bounded subscription");
     let publishing = Arc::new(AtomicBool::new(true));
     let consumer_publishing = Arc::clone(&publishing);
     let consumer = std::thread::spawn(move || {
@@ -141,10 +198,25 @@ fn event_bus_capacity_one_peak_never_exceeds_the_physical_queue_capacity() {
     });
 
     for sequence in 0..4_096 {
-        bus.publish(EngineEvent {
-            topic: "runtime.capacity".to_string(),
+        let mut event = EngineEvent {
+            topic: "runtime.capacity".into(),
             payload: serde_json::json!({ "sequence": sequence }),
-        });
+        };
+        let deadline = Instant::now() + Duration::from_secs(5);
+        loop {
+            match bus.try_publish(event) {
+                Ok(_) => break,
+                Err(rejected) => {
+                    assert!(matches!(rejected.reason, crate::core::framework::events::EngineEventPublishRejection::Backpressured { .. }));
+                    assert!(
+                        Instant::now() < deadline,
+                        "retained consumer handle did not release budget"
+                    );
+                    event = rejected.event;
+                    std::thread::yield_now();
+                }
+            }
+        }
     }
     publishing.store(false, Ordering::Release);
     consumer.join().unwrap();
@@ -155,19 +227,30 @@ fn event_bus_capacity_one_peak_never_exceeds_the_physical_queue_capacity() {
 }
 
 #[test]
-fn event_bus_lossless_policy_preserves_same_topic_publish_order() {
+fn event_bus_reliable_policy_preserves_same_topic_publish_order() {
     let bus = EventBus::default();
-    let events = bus.subscribe("runtime.sequence", EngineEventDeliveryPolicy::Lossless);
+    let events = bus
+        .subscribe(
+            "runtime.sequence",
+            EngineEventDeliveryPolicy::Reliable {
+                limits: crate::core::framework::events::EventRetentionLimits::default(),
+            },
+        )
+        .expect("bounded subscription");
 
     for sequence in 0..256 {
-        bus.publish(EngineEvent {
+        bus.try_publish(EngineEvent {
             topic: "runtime.sequence".to_string(),
             payload: serde_json::json!({ "sequence": sequence }),
-        });
+        })
+        .expect("event admission");
     }
 
     for expected in 0..256 {
-        assert_eq!(events.recv().unwrap().payload["sequence"], expected);
+        assert_eq!(
+            events.recv().unwrap().decode_payload().unwrap()["sequence"],
+            expected
+        );
     }
     assert_eq!(bus.diagnostic_report().dropped, 0);
 }
@@ -175,11 +258,19 @@ fn event_bus_lossless_policy_preserves_same_topic_publish_order() {
 #[test]
 fn event_bus_reports_queue_age_when_a_paused_consumer_resumes() {
     let bus = EventBus::new(EventBusDiagnosticsMode::Enabled);
-    let events = bus.subscribe("runtime.age", EngineEventDeliveryPolicy::Lossless);
-    bus.publish(EngineEvent {
+    let events = bus
+        .subscribe(
+            "runtime.age",
+            EngineEventDeliveryPolicy::Reliable {
+                limits: crate::core::framework::events::EventRetentionLimits::default(),
+            },
+        )
+        .expect("bounded subscription");
+    bus.try_publish(EngineEvent {
         topic: "runtime.age".to_string(),
         payload: Value::Null,
-    });
+    })
+    .expect("event admission");
 
     std::thread::sleep(Duration::from_millis(5));
     events.recv().unwrap();
@@ -196,12 +287,20 @@ fn event_bus_default_samples_routine_timings_but_keeps_exact_counters() {
     const EVENT_COUNT: u64 = 129;
 
     let bus = EventBus::default();
-    let events = bus.subscribe("runtime.sampled", EngineEventDeliveryPolicy::Lossless);
+    let events = bus
+        .subscribe(
+            "runtime.sampled",
+            EngineEventDeliveryPolicy::Reliable {
+                limits: crate::core::framework::events::EventRetentionLimits::default(),
+            },
+        )
+        .expect("bounded subscription");
     for sequence in 0..EVENT_COUNT {
-        bus.publish(EngineEvent {
+        bus.try_publish(EngineEvent {
             topic: "runtime.sampled".to_string(),
             payload: serde_json::json!({ "sequence": sequence }),
-        });
+        })
+        .expect("event admission");
         events.recv().unwrap();
     }
 
@@ -223,12 +322,20 @@ fn event_bus_explicit_sampling_uses_independent_publish_and_queue_sequences() {
     let bus = EventBus::new(EventBusDiagnosticsMode::Sampled {
         every: NonZeroU64::new(2).unwrap(),
     });
-    let events = bus.subscribe("runtime.sampled", EngineEventDeliveryPolicy::Lossless);
+    let events = bus
+        .subscribe(
+            "runtime.sampled",
+            EngineEventDeliveryPolicy::Reliable {
+                limits: crate::core::framework::events::EventRetentionLimits::default(),
+            },
+        )
+        .expect("bounded subscription");
     for _ in 0..5 {
-        bus.publish(EngineEvent {
+        bus.try_publish(EngineEvent {
             topic: "runtime.sampled".to_string(),
             payload: Value::Null,
-        });
+        })
+        .expect("event admission");
         events.recv().unwrap();
     }
 
@@ -242,8 +349,22 @@ fn event_bus_explicit_sampling_uses_independent_publish_and_queue_sequences() {
 #[test]
 fn event_subscription_disconnects_when_the_last_event_bus_owner_drops() {
     let bus = EventBus::default();
-    let polling = bus.subscribe("runtime.shutdown", EngineEventDeliveryPolicy::Lossless);
-    let blocking = bus.subscribe("runtime.shutdown", EngineEventDeliveryPolicy::Lossless);
+    let polling = bus
+        .subscribe(
+            "runtime.shutdown",
+            EngineEventDeliveryPolicy::Reliable {
+                limits: crate::core::framework::events::EventRetentionLimits::default(),
+            },
+        )
+        .expect("bounded subscription");
+    let blocking = bus
+        .subscribe(
+            "runtime.shutdown",
+            EngineEventDeliveryPolicy::Reliable {
+                limits: crate::core::framework::events::EventRetentionLimits::default(),
+            },
+        )
+        .expect("bounded subscription");
     let ready = Arc::new(Barrier::new(2));
     let waiter_ready = Arc::clone(&ready);
     let waiter = std::thread::spawn(move || {
@@ -279,7 +400,14 @@ fn event_subscription_disconnects_when_the_last_event_bus_owner_drops() {
 #[test]
 fn event_subscription_overflowing_timeout_waits_until_an_event_arrives() {
     let bus = EventBus::default();
-    let events = bus.subscribe("runtime.long_wait", EngineEventDeliveryPolicy::Lossless);
+    let events = bus
+        .subscribe(
+            "runtime.long_wait",
+            EngineEventDeliveryPolicy::Reliable {
+                limits: crate::core::framework::events::EventRetentionLimits::default(),
+            },
+        )
+        .expect("bounded subscription");
     let waiter = std::thread::spawn(move || events.recv_timeout(Duration::MAX));
     let deadline = Instant::now() + Duration::from_secs(1);
     while bus.diagnostic_report().waiting_receivers != 1 {
@@ -290,16 +418,18 @@ fn event_subscription_overflowing_timeout_waits_until_an_event_arrives() {
         std::thread::yield_now();
     }
 
-    bus.publish(EngineEvent {
+    bus.try_publish(EngineEvent {
         topic: "runtime.long_wait".to_string(),
         payload: serde_json::json!({ "arrived": true }),
-    });
+    })
+    .expect("event admission");
     assert_eq!(
         waiter
             .join()
             .expect("long-timeout waiter should exit")
             .expect("long-timeout waiter should receive the event")
-            .payload["arrived"],
+            .decode_payload()
+            .unwrap()["arrived"],
         true
     );
 }
@@ -307,8 +437,17 @@ fn event_subscription_overflowing_timeout_waits_until_an_event_arrives() {
 #[test]
 fn core_runtime_exposes_its_live_event_bus_diagnostics() {
     let runtime = CoreRuntime::new();
-    let events = runtime.subscribe_events("runtime.metrics", EngineEventDeliveryPolicy::Lossless);
-    runtime.publish_event("runtime.metrics", serde_json::json!({ "frame": 1 }));
+    let events = runtime
+        .subscribe_events(
+            "runtime.metrics",
+            EngineEventDeliveryPolicy::Reliable {
+                limits: crate::core::framework::events::EventRetentionLimits::default(),
+            },
+        )
+        .expect("bounded subscription");
+    runtime
+        .try_publish_event("runtime.metrics", serde_json::json!({ "frame": 1 }))
+        .expect("event admission");
 
     let queued = runtime.event_bus_diagnostics();
     assert_eq!(queued.topics, 1);
@@ -324,11 +463,19 @@ fn core_runtime_exposes_its_live_event_bus_diagnostics() {
 #[test]
 fn event_bus_disabled_diagnostics_skip_timing_and_counter_collection() {
     let bus = EventBus::new(EventBusDiagnosticsMode::Disabled);
-    let events = bus.subscribe("runtime.silent", EngineEventDeliveryPolicy::Lossless);
-    bus.publish(EngineEvent {
+    let events = bus
+        .subscribe(
+            "runtime.silent",
+            EngineEventDeliveryPolicy::Reliable {
+                limits: crate::core::framework::events::EventRetentionLimits::default(),
+            },
+        )
+        .expect("bounded subscription");
+    bus.try_publish(EngineEvent {
         topic: "runtime.silent".to_string(),
         payload: Value::Null,
-    });
+    })
+    .expect("event admission");
     events.recv().unwrap();
 
     let report = bus.diagnostic_report();
@@ -347,12 +494,20 @@ fn event_bus_disabled_diagnostics_skip_timing_and_counter_collection() {
 #[test]
 fn event_bus_uncontended_publish_does_not_report_delivery_lock_wait() {
     let bus = EventBus::default();
-    let events = bus.subscribe("runtime.uncontended", EngineEventDeliveryPolicy::Lossless);
+    let events = bus
+        .subscribe(
+            "runtime.uncontended",
+            EngineEventDeliveryPolicy::Reliable {
+                limits: crate::core::framework::events::EventRetentionLimits::default(),
+            },
+        )
+        .expect("bounded subscription");
 
-    bus.publish(EngineEvent {
+    bus.try_publish(EngineEvent {
         topic: "runtime.uncontended".to_string(),
         payload: Value::Null,
-    });
+    })
+    .expect("event admission");
     events.recv().unwrap();
 
     let report = bus.diagnostic_report();
@@ -365,7 +520,14 @@ fn event_bus_uncontended_publish_does_not_report_delivery_lock_wait() {
 #[test]
 fn event_bus_reports_same_topic_publisher_delivery_lock_wait() {
     let bus = Arc::new(EventBus::default());
-    let events = bus.subscribe("runtime.contended", EngineEventDeliveryPolicy::Lossless);
+    let events = bus
+        .subscribe(
+            "runtime.contended",
+            EngineEventDeliveryPolicy::Reliable {
+                limits: crate::core::framework::events::EventRetentionLimits::default(),
+            },
+        )
+        .expect("bounded subscription");
     let lock_entered = Arc::new(Barrier::new(2));
     let release_lock = Arc::new(Barrier::new(2));
     let holder_bus = Arc::clone(&bus);
@@ -381,10 +543,12 @@ fn event_bus_reports_same_topic_publisher_delivery_lock_wait() {
 
     let publisher_bus = Arc::clone(&bus);
     let publisher = std::thread::spawn(move || {
-        publisher_bus.publish(EngineEvent {
-            topic: "runtime.contended".to_string(),
-            payload: Value::Null,
-        });
+        publisher_bus
+            .try_publish(EngineEvent {
+                topic: "runtime.contended".to_string(),
+                payload: Value::Null,
+            })
+            .expect("event admission");
     });
     let deadline = Instant::now() + Duration::from_secs(1);
     while bus.diagnostic_report().waiting_publishers != 1 {
@@ -414,8 +578,22 @@ fn event_bus_concurrent_same_topic_publishers_share_one_exact_fanout_interleavin
     const EVENTS_PER_PUBLISHER: usize = 128;
 
     let bus = Arc::new(EventBus::default());
-    let first_events = bus.subscribe("runtime.concurrent", EngineEventDeliveryPolicy::Lossless);
-    let second_events = bus.subscribe("runtime.concurrent", EngineEventDeliveryPolicy::Lossless);
+    let first_events = bus
+        .subscribe(
+            "runtime.concurrent",
+            EngineEventDeliveryPolicy::Reliable {
+                limits: crate::core::framework::events::EventRetentionLimits::default(),
+            },
+        )
+        .expect("bounded subscription");
+    let second_events = bus
+        .subscribe(
+            "runtime.concurrent",
+            EngineEventDeliveryPolicy::Reliable {
+                limits: crate::core::framework::events::EventRetentionLimits::default(),
+            },
+        )
+        .expect("bounded subscription");
     let start = Arc::new(Barrier::new(PUBLISHER_COUNT + 1));
     let publishers = (0..PUBLISHER_COUNT)
         .map(|producer| {
@@ -424,13 +602,14 @@ fn event_bus_concurrent_same_topic_publishers_share_one_exact_fanout_interleavin
             std::thread::spawn(move || {
                 start.wait();
                 for sequence in 0..EVENTS_PER_PUBLISHER {
-                    bus.publish(EngineEvent {
+                    bus.try_publish(EngineEvent {
                         topic: "runtime.concurrent".to_string(),
                         payload: serde_json::json!({
                             "producer": producer,
                             "sequence": sequence,
                         }),
-                    });
+                    })
+                    .expect("event admission");
                 }
             })
         })
@@ -447,8 +626,12 @@ fn event_bus_concurrent_same_topic_publishers_share_one_exact_fanout_interleavin
                     .recv_timeout(Duration::from_secs(5))
                     .expect("concurrent publisher event should arrive");
                 (
-                    event.payload["producer"].as_u64().unwrap(),
-                    event.payload["sequence"].as_u64().unwrap(),
+                    event.decode_payload().unwrap()["producer"]
+                        .as_u64()
+                        .unwrap(),
+                    event.decode_payload().unwrap()["sequence"]
+                        .as_u64()
+                        .unwrap(),
                 )
             })
             .collect::<Vec<_>>()
@@ -482,8 +665,22 @@ fn event_bus_concurrent_same_topic_publishers_share_one_exact_fanout_interleavin
 #[test]
 fn event_bus_allows_another_topic_to_progress_while_subscribe_waits_on_delivery() {
     let bus = Arc::new(EventBus::default());
-    let blocked_events = bus.subscribe("runtime.blocked", EngineEventDeliveryPolicy::Lossless);
-    let free_events = bus.subscribe("runtime.free", EngineEventDeliveryPolicy::Lossless);
+    let blocked_events = bus
+        .subscribe(
+            "runtime.blocked",
+            EngineEventDeliveryPolicy::Reliable {
+                limits: crate::core::framework::events::EventRetentionLimits::default(),
+            },
+        )
+        .expect("bounded subscription");
+    let free_events = bus
+        .subscribe(
+            "runtime.free",
+            EngineEventDeliveryPolicy::Reliable {
+                limits: crate::core::framework::events::EventRetentionLimits::default(),
+            },
+        )
+        .expect("bounded subscription");
     let lock_entered = Arc::new(Barrier::new(2));
     let release_lock = Arc::new(Barrier::new(2));
     let reservation_reached = Arc::new(Barrier::new(2));
@@ -501,23 +698,29 @@ fn event_bus_allows_another_topic_to_progress_while_subscribe_waits_on_delivery(
     let subscribe_bus = Arc::clone(&bus);
     let subscribe_reserved = Arc::clone(&reservation_reached);
     let subscriber = std::thread::spawn(move || {
-        subscribe_bus.subscribe_after_reservation_for_test(
-            "runtime.blocked",
-            EngineEventDeliveryPolicy::Lossless,
-            || {
-                subscribe_reserved.wait();
-            },
-        )
+        subscribe_bus
+            .subscribe_after_reservation_for_test(
+                "runtime.blocked",
+                EngineEventDeliveryPolicy::Reliable {
+                    limits: crate::core::framework::events::EventRetentionLimits::default(),
+                },
+                || {
+                    subscribe_reserved.wait();
+                },
+            )
+            .expect("bounded subscription")
     });
     reservation_reached.wait();
 
     let (progress_sender, progress_receiver) = mpsc::channel();
     let free_bus = Arc::clone(&bus);
     let free_publisher = std::thread::spawn(move || {
-        free_bus.publish(EngineEvent {
-            topic: "runtime.free".to_string(),
-            payload: serde_json::json!({ "progress": true }),
-        });
+        free_bus
+            .try_publish(EngineEvent {
+                topic: "runtime.free".to_string(),
+                payload: serde_json::json!({ "progress": true }),
+            })
+            .expect("event admission");
         progress_sender.send(()).unwrap();
     });
     let progress = progress_receiver.recv_timeout(Duration::from_secs(1));
@@ -526,35 +729,56 @@ fn event_bus_allows_another_topic_to_progress_while_subscribe_waits_on_delivery(
     let added_events = subscriber.join().unwrap();
     free_publisher.join().unwrap();
     progress.expect("unrelated topic must progress while subscribe waits on another topic");
-    assert_eq!(free_events.recv().unwrap().payload["progress"], true);
+    assert_eq!(
+        free_events.recv().unwrap().decode_payload().unwrap()["progress"],
+        true
+    );
 
-    bus.publish(EngineEvent {
+    bus.try_publish(EngineEvent {
         topic: "runtime.blocked".to_string(),
         payload: serde_json::json!({ "released": true }),
-    });
-    assert_eq!(blocked_events.recv().unwrap().payload["released"], true);
-    assert_eq!(added_events.recv().unwrap().payload["released"], true);
+    })
+    .expect("event admission");
+    assert_eq!(
+        blocked_events.recv().unwrap().decode_payload().unwrap()["released"],
+        true
+    );
+    assert_eq!(
+        added_events.recv().unwrap().decode_payload().unwrap()["released"],
+        true
+    );
 }
 
 // 新订阅的预留必须阻止最后一个旧订阅删除主题，否则新句柄会留在已脱离主题表的对象上。
 #[test]
 fn event_bus_reservation_prevents_last_drop_from_orphaning_a_new_subscription() {
     let bus = Arc::new(EventBus::default());
-    let anchor = bus.subscribe("runtime.race", EngineEventDeliveryPolicy::Lossless);
+    let anchor = bus
+        .subscribe(
+            "runtime.race",
+            EngineEventDeliveryPolicy::Reliable {
+                limits: crate::core::framework::events::EventRetentionLimits::default(),
+            },
+        )
+        .expect("bounded subscription");
     let reserved = Arc::new(Barrier::new(2));
     let continue_subscription = Arc::new(Barrier::new(2));
     let subscribe_bus = Arc::clone(&bus);
     let subscribe_reserved = Arc::clone(&reserved);
     let subscribe_continue = Arc::clone(&continue_subscription);
     let subscriber = std::thread::spawn(move || {
-        subscribe_bus.subscribe_after_reservation_for_test(
-            "runtime.race",
-            EngineEventDeliveryPolicy::Lossless,
-            || {
-                subscribe_reserved.wait();
-                subscribe_continue.wait();
-            },
-        )
+        subscribe_bus
+            .subscribe_after_reservation_for_test(
+                "runtime.race",
+                EngineEventDeliveryPolicy::Reliable {
+                    limits: crate::core::framework::events::EventRetentionLimits::default(),
+                },
+                || {
+                    subscribe_reserved.wait();
+                    subscribe_continue.wait();
+                },
+            )
+            .expect("bounded subscription")
     });
 
     reserved.wait();
@@ -564,15 +788,17 @@ fn event_bus_reservation_prevents_last_drop_from_orphaning_a_new_subscription() 
     continue_subscription.wait();
 
     let events = subscriber.join().unwrap();
-    bus.publish(EngineEvent {
+    bus.try_publish(EngineEvent {
         topic: "runtime.race".to_string(),
         payload: serde_json::json!({ "iteration": 1 }),
-    });
+    })
+    .expect("event admission");
     assert_eq!(
         events
             .recv_timeout(Duration::from_secs(1))
             .expect("reserved subscription must remain registered")
-            .payload["iteration"],
+            .decode_payload()
+            .unwrap()["iteration"],
         1
     );
 }

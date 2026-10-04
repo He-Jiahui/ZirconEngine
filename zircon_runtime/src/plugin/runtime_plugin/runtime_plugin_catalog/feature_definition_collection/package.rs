@@ -1,19 +1,28 @@
 use std::collections::{HashMap, HashSet};
 
 use super::super::feature_definitions::FeatureDefinition;
-use super::super::package_feature_definitions::package_feature_definitions;
+use super::super::package_feature_definitions::visit_package_feature_definitions;
 use super::super::RuntimePluginRegistrationReport;
 
-fn package_feature_declaration_capacity(
+pub(super) fn package_feature_declaration_capacity(
     registrations: &[RuntimePluginRegistrationReport],
 ) -> usize {
-    registrations.iter().fold(0, |capacity, registration| {
-        capacity
-            .saturating_add(registration.package_manifest.optional_features.len())
-            .saturating_add(registration.package_manifest.feature_extensions.len())
-    })
+    registrations
+        .iter()
+        .filter(|registration| {
+            registration
+                .package_manifest
+                .package_role
+                .is_product_catalog_eligible()
+        })
+        .fold(0, |capacity, registration| {
+            capacity
+                .saturating_add(registration.package_manifest.optional_features.len())
+                .saturating_add(registration.package_manifest.feature_extensions.len())
+        })
 }
 
+// carrier 包仍可保留供检查，但在创建产品特性定义前跳过；每个普通包按 optional-first 顺序检测重复并保留首次次序。
 pub(super) fn merge_package_feature_definitions(
     registrations: &[RuntimePluginRegistrationReport],
     definitions: &mut HashMap<String, FeatureDefinition>,
@@ -23,7 +32,15 @@ pub(super) fn merge_package_feature_definitions(
     let mut declared_feature_ids =
         HashSet::with_capacity(package_feature_declaration_capacity(registrations));
     for registration in registrations {
-        for feature_definition in package_feature_definitions(&registration.package_manifest) {
+        // Carrier packages remain inspectable, but cannot define product catalog features.
+        if !registration
+            .package_manifest
+            .package_role
+            .is_product_catalog_eligible()
+        {
+            continue;
+        }
+        visit_package_feature_definitions(&registration.package_manifest, |feature_definition| {
             let key = feature_definition.key.clone();
             declared_feature_ids.insert(key.clone());
             if definitions
@@ -37,11 +54,11 @@ pub(super) fn merge_package_feature_definitions(
             } else {
                 definition_order.push(key);
             }
-        }
+        });
     }
     declared_feature_ids
 }
 
 #[cfg(test)]
-#[path = "package/capacity_tests.rs"]
+#[path = "package/tests/capacity_tests.rs"]
 mod capacity_tests;

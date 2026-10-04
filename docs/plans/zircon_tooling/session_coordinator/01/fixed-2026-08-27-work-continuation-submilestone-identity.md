@@ -10,8 +10,6 @@ origin_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/work_continuations.py
-  - tools/session_coordinator/tests/test_control_snapshot.py
 tests:
   - python -B -m unittest tools.session_coordinator.tests.test_control_snapshot.ControlSnapshotTests.test_continuation_preserves_the_exact_submilestone_identity -v
   - python -B -m unittest tools.session_coordinator.tests.test_control_snapshot.ControlSnapshotTests.test_continuation_preserves_implementation_context_through_nested_headings -v

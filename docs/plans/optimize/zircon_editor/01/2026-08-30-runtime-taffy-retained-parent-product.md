@@ -2,17 +2,19 @@
 
 Date: 2026-08-30
 
-Status: architecture decision and measurement plan; production cutover not yet accepted
+Status: M1 retained topology, M2 exact child-contract receipts, and M3 exact solve/output reuse implemented; managed Rust and product acceptance pending
 
 Source binding used for this review:
 
-- revision: `f31fd06f69fdaedb70a0a56fe6d0268de1af83a6`
-- worktree: dirty, with concurrent owner changes in the Runtime UI layout paths
+- revision: `9963f8eb72e2d725d2536eb50b393b30387a1ffa`
+- worktree: dirty, with the scoped M1/M2 layout candidate and unrelated concurrent owner changes
 - validation restriction: no raw Cargo; product timing remains gated on a source-bound managed binary
 
 ## Outcome
 
-Zircon does not rebuild one global Taffy tree on every input event. It rebuilds a small Taffy tree for every visited auto-layout parent. The current bridge clears one reusable scratch tree, creates one Taffy leaf per visible direct child, creates the parent, solves the local tree, and reads every direct-child layout. For a set `P` of visited Taffy-owned parents, current topology construction work is:
+Zircon does not rebuild one global Taffy tree on every input event. Before M1 it rebuilt a small Taffy tree for every visited auto-layout parent: one leaf per visible direct child plus one parent. The M1 candidate now retains one independent Taffy product per supported parent in the surface-owned `UiLayoutSlotIndex`. Stable parents reuse all Taffy node identities, style changes call `set_style` only for exact differences, and insert/remove/reorder reconciles only the owning product.
+
+For a set `P` of visited Taffy-owned parents, the removed pre-M1 topology construction work was:
 
 ```text
 tree_builds = |P|
@@ -20,22 +22,24 @@ taffy_nodes_created = sum(parent in P, visible_children(parent) + 1)
 layout_reads = sum(parent in P, visible_children(parent))
 ```
 
-This is better than a global `O(all UI nodes)` rebuild, but it still discards Taffy's stable node identity and internal compute cache at every visited parent. A single changed child in a wide flex/grid/wrap parent recreates all sibling Taffy nodes. A changed descendant under nested auto-layout parents can repeat that cost at every propagated ancestor.
+The M1 candidate reduces this topology creation to zero after warmup when identity/order is stable, and to only newly inserted leaves during local structural reconciliation. M2 consumes the incremental layout context's exact required direct-child receipt: stable non-grid parents validate and rebuild styles only for those `K` children. Root resize with a stable child contract uses `K=0`. M3 now skips `compute_layout` only when the retained parent is clean and its exact available-size key matches. When parent frame and inherited clip also match the last publication, it publishes only the `K` required child frames; translation or clip changes still publish all `C` frames. These are source-bound structural claims, not product latency claims.
 
 The ordered-child lookup is no longer part of this defect. `UiLayoutSlotIndex` owns an `Arc<[UiNodeId]>` per parent, patches it from `layout_order_generation`, and returns the same allocation while order is stable. The warm-path model therefore records one retained-order lookup and zero child sorts per visited parent. The remaining topology cost begins after that lookup, inside the Taffy bridge.
 
-The selected direction is a retained, per-parent Taffy product cache. It preserves Zircon's existing recursive measure/arrange authority and uses Taffy only for the same direct-child allocation boundary that exists today. A single global Taffy mirror is rejected.
+The implementation preserves Zircon's existing recursive measure/arrange authority and uses Taffy only for the same direct-child allocation boundary that existed before M1. A single global Taffy mirror remains rejected.
 
 ## Current Source Evidence
 
-The current bridge behavior is explicit:
+The current retained bridge behavior is explicit:
 
-- `zircon_runtime/src/ui/layout/taffy_bridge/compute.rs:65` starts each parent by calling `begin_children`.
-- `compute.rs:116-117` clears the complete `TaffyTree`.
-- `compute.rs:98` creates a new leaf for each child.
-- `compute.rs:198` creates a new parent with those children.
-- `compute.rs:205` calls `compute_layout`.
-- `zircon_runtime/src/ui/layout/pass/taffy_arrange.rs:89-131` performs this sequence for each visited supported parent and then reads every child frame.
+- `zircon_runtime/src/ui/layout/taffy_bridge/product_cache.rs` owns the per-parent `TaffyTree`, stable parent node, ordered-child revision, `node_id -> child` index, and exact style snapshots.
+- `product_cache.rs` removes only the requested parent product from the map while updating it, so a failed partial update is discarded rather than published.
+- Stable exact receipts look up only changed child IDs and call `set_style` only when an exact style differs.
+- The retained product stores exact available size plus parent-local child frames; solve reuse requires both an unchanged available-size key and `TaffyTree::dirty(parent) == false`.
+- Exact output reuse additionally matches the last parent frame and inherited clip. A translated parent reuses Taffy solve work but republishes every child in the new absolute coordinate space.
+- Structural changes preserve matching child `NodeId` values, create only new leaves, call `set_children`, and remove retired leaves.
+- `zircon_runtime/src/ui/layout/taffy_bridge/compute.rs` materializes either the complete child contract or only the exact receipt into scratch buffers and delegates solve/output to the retained product.
+- `zircon_runtime/src/ui/layout/pass/taffy_arrange.rs` admits exact receipts only for stable non-grid membership and order revision; membership, order, Grid, missing-product and eligibility changes use the complete path.
 
 The current order authority is also explicit:
 
@@ -127,8 +131,8 @@ The product belongs to the retained surface/layout owner, not a thread-local scr
 2. If the child identity/order contract changed, reconcile nodes and call `set_children`; remove retired nodes from the product.
 3. Build the exact parent style. Call `set_style` only when it differs from the retained snapshot.
 4. For each live child, build the exact child style. Call `set_style` only for changed children.
-5. If the product is dirty or available size changed, call `compute_layout`; otherwise reuse the retained output.
-6. Read child frames only when the solve ran or the caller requires fresh materialization.
+5. If the product is dirty or available size changed, call `compute_layout`; otherwise reuse the retained solve.
+6. Read all Taffy child layouts only after a solve. With identical parent frame/clip, publish only the exact child receipt; otherwise synthesize every absolute child frame from retained parent-local output.
 7. Publish geometry through the existing Zircon layout cache and surface-frame path. Input never queries the Taffy cache directly.
 
 ### Lifecycle protocol
@@ -191,21 +195,56 @@ Parity tests must cover flex row/column, wrap, grid, block, hidden/collapsed chi
 
 ### M1: retained product data structure
 
-- Add the per-parent product behind the existing Taffy bridge boundary.
-- First preserve current behavior exactly: every visited parent may still solve and read all children, but topology creation becomes warm-cache work.
-- Add lifecycle, fallback, and parity regressions before enabling compute reuse.
+- Implemented in the current candidate behind the existing Taffy bridge boundary.
+- Every visited parent still solves and reads all children, while stable topology creation is now warm-cache work.
+- Lower regressions cover stable reuse, one-child style patching, and inserted-child-only creation. Fallback and lifecycle cleanup are encoded in the production owner; managed execution remains pending.
 
 ### M2: exact style/topology patching
 
-- Reconcile child order only on structural generation changes.
-- Patch exact changed parent/child styles.
-- Prove unrelated-parent work remains constant at 64, 1,000, and 10,000 unrelated parents.
+- Topology reconciliation and exact `set_style` suppression are implemented.
+- Exact direct-child contract/style materialization is implemented from the incremental required-child authority.
+- Lower source regressions cover `K=0` root resize, `K=1` child change, active-membership fallback and order-revision fallback; managed execution remains pending.
+- The deterministic forest scenario keeps 10,000 unrelated parents at zero visits.
+
+#### Accepted M2 receipt algorithm
+
+M2 must remove the two full direct-child contract walks that currently precede
+the retained Taffy update; merely suppressing `set_style` calls is insufficient.
+The incremental layout context already owns the required authority:
+
+- `layout_source_node_ids` identifies nodes whose layout inputs actually changed;
+- `required_children_by_parent` projects a descendant mutation to the exact
+  direct child whose desired-size contract may have changed;
+- `pending_mutation_node_ids` closes the lower-level mutation gap by projecting
+  every still-live mutation through the same direct-child receipt; an unknown
+  mutation on the parent itself rejects the fast path;
+- the retained ordered-child index publishes a parent-local monotonic revision
+  whenever child identity/order or slot order changes.
+
+For a retained non-grid parent, the fast path is admitted only when the parent
+is not itself a layout source, structure is stable, and the cached product's
+ordered-child revision equals the current revision. It validates visibility and
+eligibility only for the exact required direct children, rebuilds only those
+styles, and patches the matching retained Taffy leaves. An empty receipt during
+a root-size change performs zero child-contract/style visits; the parent style
+and available size still update and Taffy still solves and reads every child
+layout.
+
+Parent/container changes, Grid child-placement changes, order-revision
+mismatch, missing products, or a changed child's active/hidden membership select
+the existing full contract scan before mutation. The fallback is observable and
+must not silently publish a partially updated product. This preserves M1's
+conservative solve/output boundary while changing child-contract preparation
+from `O(C)` to `O(K log C)` for a stable parent, where `K` is the exact changed
+direct-child set. Taffy solve and output remain `O(C)` until M3 evidence proves a
+safe reuse condition.
 
 ### M3: compute and output reuse
 
-- Skip `compute_layout` only when Taffy's product is clean and available space is identical.
-- Reuse child frames only under the same exact contract.
-- Capture product CPU p50/p95/p99, allocations, RSS high-water, and input-to-present timing from a managed source-bound editor binary.
+- Implemented in the current static candidate: skip `compute_layout` only when Taffy's parent is clean and available space is identical.
+- Exact K-frame publication additionally requires unchanged parent frame and inherited clip; translation/clip changes retain full child publication.
+- Lower source regressions cover solve reuse with an unchanged child style, conservative full publication under translation, and mandatory recompute under resize.
+- Product CPU p50/p95/p99, allocations, RSS high-water, and input-to-present timing still require a managed source-bound editor binary.
 
 ### M4: invalidation-root refinement
 
@@ -213,65 +252,50 @@ Parity tests must cover flex row/column, wrap, grid, block, hidden/collapsed chi
 - Narrow ancestor work only where parent desired size and sibling placement dependencies prove it safe.
 - Keep a conservative slow path for structural mutation and unsupported contracts.
 
-## M0 Evidence
+## M0-M3 Evidence
 
 The current source-guarded work-count artifact is:
 
-- `E:\zircon-profiles\runtime-ui-taffy-parent-product-pressure-20260831-r2.json`
-- artifact SHA-256: `03CF55E7C53BBA4FBFAD5F0CF53CB75D67950BD7FF9DA6C1FB7D456B81489694`
-- schema: `zircon.runtime.ui_taffy_parent_product_pressure.v2`
-- critical source-set SHA-256: `11775770D3A7C3F1FA8404C768FF4F512611429A79E9198E0870611F9C97C34E`
-- critical sources: five, including the retained order index
+- `E:\zircon-profiles\runtime-ui-taffy-parent-product-pressure-20260901-r6.json`
+- artifact SHA-256: `B69FB16AF4EF13EC4D64F4120CCBB43A1DE7051BCFAC94785F0004FE49287B02`
+- schema: `zircon.runtime.ui_taffy_parent_product_pressure.v5`
+- critical source-set SHA-256: `8BA3F101E1AF843C1A9374E1369813A2EDFCCC5CEF47F687AA93FB28384F0D44`
+- critical sources: eight, including incremental receipt routing, retained order revision and parent-product implementation
 - source guard: ready
 - product timing: false
 
 Modeled measured-phase work after a successful warm product build:
 
-| Scenario | Warm order sorts | Current Taffy node creates | Retained creates | Conservatively retained solves | Conservatively retained child reads |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| 1,000 single-child changes in one 1,024-child parent | 0 | 1,025,000 | 0 | 1,000 | 1,024,000 |
-| 1,000 leaf changes through eight 8-child auto-layout ancestors | 0 | 72,000 | 0 | 8,000 | 64,000 |
-| 1,000 changes in one 64-child parent with 10,000 unrelated parents | 0 | 65,000 | 0 | 1,000 | 64,000 |
-| 120 resizes across 100 visible 16-child parents | 0 | 204,000 | 0 | 12,000 | 192,000 |
+| Scenario | M1 contract visits | M2 contract visits | Creates | M3 solves | Taffy reads | Published child frames |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1,000 single-child style changes in one 1,024-child parent | 1,024,000 | 1,000 | 0 | 1,000 | 1,024,000 | 1,024,000 |
+| 1,000 leaf changes through eight 8-child auto-layout ancestors | 64,000 | 8,000 | 0 | 8,000 | 64,000 | 64,000 |
+| 1,000 changes in one 64-child parent with 10,000 unrelated parents | 64,000 | 1,000 | 0 | 1,000 | 64,000 | 64,000 |
+| 120 resizes across 100 visible 16-child parents | 192,000 | 0 | 0 | 12,000 | 192,000 | 192,000 |
+| 1,000 subtree invalidations with unchanged child style in one 1,024-child parent | 1,024,000 | 1,000 | 0 | 0 | 0 | 1,000 |
+| 1,000 translations of one 1,024-child parent | 1,024,000 | 0 | 0 | 0 | 0 | 1,024,000 |
 
-The aggregate avoided topology creation count is 1,366,000. This establishes a structural opportunity, not a latency result. M1 acceptance still requires allocation and CPU evidence from the actual retained implementation.
+The aggregate avoided topology creation count is 3,416,000 for the six modeled warm scenarios. This describes the implemented structural delta, not a latency result. Acceptance still requires managed Rust execution plus allocation and CPU evidence from the actual editor binary.
 
 M0 validation on the bound source:
 
-- focused pressure-tool unit tests: 9/9 passed
-- Runtime UI performance contract suite: 191/191 passed
-- Python bytecode compilation: passed
-- owned-file trailing whitespace and final-newline checks: passed
+- focused pressure-tool unit tests: 12/12 passed
+- seven scoped Rust files pass standalone `rustfmt --check`
+- the ten owned source/report paths pass `git diff --check`
+- the repository UI architecture audit reports Taffy production hits/files
+  `242/16`, zero baseline mismatches, zero missing document anchors, and zero risks
+- the lower Rust and product suites have not run against M1-M3; earlier Runtime UI
+  results are not treated as current acceptance evidence
 - no Cargo command was run
 
 ## Current Gate
 
-Production layout files remain heavily modified by concurrent owners in this shared worktree. M0 is therefore isolated to new tooling and documentation. M1 is deferred while work continues on other non-overlapping UI authorities; it must begin with lower-layer parity tests and retain the current slot-order, incremental routing, fallback, and surface publication contracts.
+The M1-M3 source candidate is implemented without touching UI12's shared DPI work in `surface/rebuild.rs` or `runtime_window_input_pump/metrics_dirty.rs`. Seven owned Rust files pass standalone formatting, the combined source/report diff is whitespace-clean, and the source-bound Python pressure suite passes 12/12. The shared architecture-contract file has a pre-existing external rustfmt delta outside this candidate's local ownership assertion. No Cargo command was run.
 
-## Current-source static revalidation (2026-08-31)
+Managed lower-layer Rust tests, editor build, allocation/CPU/RSS capture, and input-to-present evidence remain gated on explicit managed validation authorization and a stable shared closure. The M3 candidate remains unaccepted until its exact dirty, available-size, frame, and clip contract runs in lower-layer and product tests.
 
-The M0 pressure suite passes 9/9 and its source guard is ready against current
-HEAD `f31fd06f69fdaedb70a0a56fe6d0268de1af83a6`. The exact five-source set is
-`11775770D3A7C3F1FA8404C768FF4F512611429A79E9198E0870611F9C97C34E`.
-The current artifact is
-`E:\zircon-profiles\runtime-ui-taffy-parent-product-pressure-20260831-r2.json`
-with SHA-256
-`03CF55E7C53BBA4FBFAD5F0CF53CB75D67950BD7FF9DA6C1FB7D456B81489694`.
+## Current-source static revalidation (2026-09-01)
 
-Current source still clears the Taffy tree and recreates leaf and parent nodes
-for every visited auto-layout parent before calling `compute_layout`. Across
-the four canonical scenarios, a retained parent product would avoid 1,366,000
-node creations after warmup. The model deliberately retains all required
-compute calls and child-layout reads: it does not infer cache hits or latency
-improvement from topology retention.
+The pressure suite is ready against current HEAD `9963f8eb72e2d725d2536eb50b393b30387a1ffa` plus the scoped dirty M1-M3 candidate. Its eight-source set is `8BA3F101E1AF843C1A9374E1369813A2EDFCCC5CEF47F687AA93FB28384F0D44`.
 
-Current source also proves that stable parent order does not sort on each
-visit. The pressure model records 1,000 retained-order lookups and zero sorts
-for the wide-parent scenario, followed by 1,025,000 Taffy node creations. This
-separates the completed order-cache work from the remaining topology defect.
-
-Together with the slot, edge-evidence and incremental-layout suites, the
-focused static layout total is 45/45. M1-M3 remain unimplemented and blocked by
-shared production ownership, not by missing architecture: per-parent product
-lifecycle, exact style/topology patching, compute reuse, parity tests and
-managed product CPU/allocation/RSS/input-to-present evidence are still needed.
+The current implementation and model agree on the conservative boundary: stable warm parents create zero Taffy nodes and exact receipts remove unrelated child-contract preparation. A changed child style still retains 1,000 solves and 1,024,000 child-layout reads in the wide-parent case; an unchanged style contract reduces both to zero and publishes only the 1,000 exact child frames. Translation also reduces solve/read work to zero but retains 1,024,000 frame publications because absolute geometry changed. Resize retains 12,000 solves and 192,000 reads/publications. Unrelated parents remain unvisited by the existing incremental routing authority.

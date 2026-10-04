@@ -21,6 +21,7 @@ mod task_pool_kind;
 mod task_state;
 mod task_status;
 mod thread_assignment;
+mod thread_completion;
 mod timer;
 
 use std::thread::{self, JoinHandle};
@@ -60,6 +61,7 @@ pub use diagnostics::{
     TASKS_SCHEDULED_DIAGNOSTIC,
 };
 pub use job_handle::JobHandle;
+pub(crate) use job_handle::TaskNode;
 pub use job_scheduler::JobScheduler;
 pub use parallel_for::parallel_for;
 pub use parallel_for::parallel_map_indices;
@@ -76,8 +78,9 @@ pub use task_descriptor::TaskDescriptor;
 pub use task_graph::{
     EngineTaskGraph, EngineTaskGraphInitError, EngineTaskGraphOptions, TaskCancellationToken,
     TaskGraphAdmissionError, TaskGraphScope, TaskGraphScopeCensus, TaskGraphScopeDescriptor,
-    TaskGraphShutdownError, TaskGraphShutdownReport, TaskGraphWorkerInventory,
-    TaskGraphWorkerShutdownCensus, TaskHandle, DEFAULT_TASK_GRAPH_SCOPE_TASK_CAPACITY,
+    TaskGraphShutdownError, TaskGraphShutdownReport, TaskGraphWorkerDomainInventory,
+    TaskGraphWorkerInventory, TaskGraphWorkerShutdownCensus, TaskHandle,
+    DEFAULT_TASK_GRAPH_SCOPE_TASK_CAPACITY,
 };
 pub use task_id::TaskId;
 pub use task_pool_descriptor::TaskPoolDescriptor;
@@ -85,6 +88,7 @@ pub use task_pool_kind::TaskPoolKind;
 pub use task_state::TaskState;
 pub use task_status::TaskStatus;
 pub use thread_assignment::{TaskPoolOptions, TaskPoolThreadAssignmentPolicy};
+pub use thread_completion::thread_is_join_ready;
 pub(crate) use timer::{TaskTimer, TaskTimerSubscription};
 
 pub fn spawn_named_thread<F, T>(name: impl Into<String>, task: F) -> CoreResult<JoinHandle<T>>

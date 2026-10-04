@@ -1,3 +1,4 @@
+//! 资产管线吸收后，门禁与镜像文档共同约束管理器、工作池和产物路径。通过源码文本核对父子路由、状态镜像和文件预算。
 const PARENT_SOURCE: &str = include_str!("../asset_pipeline.rs");
 const CARGO_GATE_SOURCE: &str = include_str!("cargo_gate.rs");
 const INVENTORY_SOURCE: &str = include_str!("inventory.rs");
@@ -9,7 +10,7 @@ const RUNTIME_15_OUTPUT_RECORDS: &str = include_str!(
     "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
 );
 const MODULE_CONVENTION_DOC: &str =
-    include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
+    include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 const FRAMEWORKS_02_OUTPUT_RECORDS: &str = include_str!(
     "../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
 );

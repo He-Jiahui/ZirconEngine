@@ -2,8 +2,10 @@ use std::path::{Path, PathBuf};
 
 use zircon_runtime::asset::project::ProjectPaths;
 use zircon_runtime::core::CoreError;
+use zircon_runtime::plugin::native::NativePluginArtifactAuthority;
 use zircon_runtime::{
     core::framework::project::ExportProfile, core::framework::project::ProjectPluginManifest,
+    plugin::PluginModuleKind, plugin::PluginPackageRole,
     plugin::RuntimePluginFeatureRegistrationReport, plugin::RuntimePluginRegistrationReport,
 };
 
@@ -12,6 +14,8 @@ use super::{EntryConfig, ProductComposition, ProductCompositionRequest, ProductR
 /// Admitted export configuration and its linked runtime plugin reports.
 #[derive(Clone, Debug)]
 pub struct ExportRuntimeBootstrapConfig {
+    native_plugin_artifact_authority: NativePluginArtifactAuthority,
+    config_file_path: Option<PathBuf>,
     /// Plugin selections serialized into the export receipt.
     pub project_plugins: ProjectPluginManifest,
     /// Target, runtime profile, and packaging identity for the exported product.
@@ -44,6 +48,16 @@ impl ExportRuntimePluginRegistrationProvider {
 pub struct ExportRuntimePluginFeatureRegistrationProvider {
     register: fn() -> RuntimePluginFeatureRegistrationReport,
     provider_package_id: Option<&'static str>,
+    admitted_source_identity: Option<AdmittedLinkedFeatureIdentity>,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct AdmittedLinkedFeatureIdentity {
+    feature_id: &'static str,
+    owner_plugin_id: &'static str,
+    provider_package_id: &'static str,
+    runtime_crate: &'static str,
+    package_role: PluginPackageRole,
 }
 
 impl ExportRuntimePluginFeatureRegistrationProvider {
@@ -52,6 +66,7 @@ impl ExportRuntimePluginFeatureRegistrationProvider {
         Self {
             register,
             provider_package_id: None,
+            admitted_source_identity: None,
         }
     }
 
@@ -61,12 +76,90 @@ impl ExportRuntimePluginFeatureRegistrationProvider {
         self
     }
 
+    /// Binds the admitted package role to the feature identity emitted by the linked crate.
+    pub const fn with_admitted_source_identity(
+        mut self,
+        feature_id: &'static str,
+        owner_plugin_id: &'static str,
+        provider_package_id: &'static str,
+        runtime_crate: &'static str,
+        package_role: PluginPackageRole,
+    ) -> Self {
+        self.admitted_source_identity = Some(AdmittedLinkedFeatureIdentity {
+            feature_id,
+            owner_plugin_id,
+            provider_package_id,
+            runtime_crate,
+            package_role,
+        });
+        self
+    }
+
     fn into_report(self) -> RuntimePluginFeatureRegistrationReport {
-        let report = (self.register)();
-        match self.provider_package_id {
+        let mut report = (self.register)();
+        let role = match self.admitted_source_identity {
+            Some(identity)
+                if identity.matches(&report)
+                    && self
+                        .provider_package_id
+                        .is_none_or(|id| id == identity.provider_package_id) =>
+            {
+                identity.package_role
+            }
+            Some(identity) => {
+                report.diagnostics.push(format!(
+                    "linked feature registration {} does not match admitted source identity {} owned by {} from {}",
+                    report.manifest.id,
+                    identity.feature_id,
+                    identity.owner_plugin_id,
+                    identity.runtime_crate
+                ));
+                PluginPackageRole::TestFixture
+            }
+            None => PluginPackageRole::TestFixture,
+        };
+        let provider_package_id = self
+            .admitted_source_identity
+            .map(|identity| identity.provider_package_id)
+            .or(self.provider_package_id);
+        let report = match provider_package_id {
             Some(provider_package_id) => report.with_provider_package_id(provider_package_id),
             None => report,
+        };
+        report.with_provider_package_role(role)
+    }
+}
+
+impl AdmittedLinkedFeatureIdentity {
+    fn matches(self, report: &RuntimePluginFeatureRegistrationReport) -> bool {
+        if report.manifest.id != self.feature_id
+            || report.manifest.owner_plugin_id != self.owner_plugin_id
+            || report
+                .provider_package_id
+                .as_deref()
+                .is_some_and(|provider| provider != self.provider_package_id)
+            || report
+                .manifest
+                .provider_package_id
+                .as_deref()
+                .is_some_and(|provider| provider != self.provider_package_id)
+            || report
+                .project_selection
+                .provider_package_id
+                .as_deref()
+                .is_some_and(|provider| provider != self.provider_package_id)
+        {
+            return false;
         }
+        let mut runtime_modules = report
+            .manifest
+            .modules
+            .iter()
+            .filter(|module| module.kind == PluginModuleKind::Runtime);
+        runtime_modules
+            .next()
+            .is_some_and(|module| module.crate_name == self.runtime_crate)
+            && runtime_modules.all(|module| module.crate_name == self.runtime_crate)
     }
 }
 
@@ -74,11 +167,28 @@ impl ExportRuntimeBootstrapConfig {
     /// Creates an export request from its single profile and plugin-manifest authority.
     pub fn new(project_plugins: ProjectPluginManifest, export_profile: ExportProfile) -> Self {
         Self {
+            native_plugin_artifact_authority: NativePluginArtifactAuthority::deny_all(),
+            config_file_path: None,
             project_plugins,
             export_profile,
             runtime_plugin_registrations: Vec::new(),
             runtime_plugin_feature_registrations: Vec::new(),
         }
+    }
+
+    /// Sets the host's authority for admitting native plugin artifacts.
+    pub fn with_native_plugin_artifact_authority(
+        mut self,
+        authority: NativePluginArtifactAuthority,
+    ) -> Self {
+        self.native_plugin_artifact_authority = authority;
+        self
+    }
+
+    /// Selects a host-owned Foundation config file for this composition.
+    pub fn with_config_file_path(mut self, path: PathBuf) -> Self {
+        self.config_file_path = Some(path);
+        self
     }
 
     /// Appends already materialized linked runtime plugin reports.
@@ -141,6 +251,7 @@ impl ExportRuntimeBootstrapConfig {
         EntryConfig,
         Vec<RuntimePluginRegistrationReport>,
         Vec<RuntimePluginFeatureRegistrationReport>,
+        Option<PathBuf>,
     ) {
         let product_role = ProductRoleRequest::from_export_profile(&self.export_profile);
         (
@@ -149,6 +260,7 @@ impl ExportRuntimeBootstrapConfig {
                 .with_export_profile(self.export_profile),
             self.runtime_plugin_registrations,
             self.runtime_plugin_feature_registrations,
+            self.config_file_path,
         )
     }
 }
@@ -156,23 +268,33 @@ impl ExportRuntimeBootstrapConfig {
 /// Composes a linked/static exported runtime and retains its complete owner set.
 pub fn bootstrap_export_runtime(
     config: ExportRuntimeBootstrapConfig,
-) -> Result<ProductComposition, CoreError> {
-    let (entry_config, registrations, feature_registrations) = config.into_parts();
-    ProductCompositionRequest::new(entry_config)
-        .with_runtime_plugin_and_feature_registrations(registrations, feature_registrations)
-        .compose()
+) -> Result<ProductComposition, crate::entry::ProductCompositionFailure> {
+    let (entry_config, registrations, feature_registrations, config_file_path) =
+        config.into_parts();
+    let mut request = ProductCompositionRequest::new(entry_config)
+        .with_runtime_plugin_and_feature_registrations(registrations, feature_registrations);
+    if let Some(path) = config_file_path {
+        request = request.with_config_file_path(path);
+    }
+    request.compose()
 }
 
 /// Composes an exported runtime with linked and native dynamic plugin reports.
 pub fn bootstrap_export_runtime_with_native_plugins_from_export_root(
     config: ExportRuntimeBootstrapConfig,
     export_root: impl AsRef<Path>,
-) -> Result<ProductComposition, CoreError> {
-    let (entry_config, registrations, feature_registrations) = config.into_parts();
-    ProductCompositionRequest::new(entry_config)
+) -> Result<ProductComposition, crate::entry::ProductCompositionFailure> {
+    let authority = config.native_plugin_artifact_authority.clone();
+    let (entry_config, registrations, feature_registrations, config_file_path) =
+        config.into_parts();
+    let mut request = ProductCompositionRequest::new(entry_config)
         .with_runtime_plugin_and_feature_registrations(registrations, feature_registrations)
         .with_native_plugins_from_export_root(export_root)
-        .compose()
+        .with_native_plugin_artifact_authority(authority);
+    if let Some(path) = config_file_path {
+        request = request.with_config_file_path(path);
+    }
+    request.compose()
 }
 
 /// Resolves the nearest export root visible from the executable or working directory.
@@ -207,71 +329,5 @@ fn discover_export_root_from_paths(
 }
 
 #[cfg(test)]
-mod tests {
-    use std::fs;
-    use std::path::{Path, PathBuf};
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    use zircon_runtime::asset::project::ProjectPaths;
-
-    use super::discover_export_root_from_paths;
-
-    #[cfg(any(unix, windows))]
-    #[test]
-    fn export_root_discovery_keeps_the_physical_identity_of_a_product_alias() {
-        let parent = unique_export_root("alias");
-        let physical_root = parent.join("physical-export");
-        fs::create_dir_all(physical_root.join("plugins")).unwrap();
-        fs::create_dir_all(physical_root.join("bin")).unwrap();
-        fs::write(physical_root.join("plugins/native_plugins.toml"), []).unwrap();
-        let alias = parent.join("export-alias");
-        create_directory_link(&physical_root, &alias);
-        let working_directory = parent.join("working-directory");
-        fs::create_dir_all(&working_directory).unwrap();
-
-        let actual = discover_export_root_from_paths(
-            &alias.join("bin/exported-product"),
-            &working_directory,
-        )
-        .expect("export root discovery should resolve the product alias");
-        let expected = ProjectPaths::resolve_existing_path(&physical_root).unwrap();
-
-        fs::remove_dir_all(&parent).unwrap();
-        assert_eq!(actual, expected);
-    }
-
-    fn unique_export_root(case_name: &str) -> PathBuf {
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!(
-            "zircon-export-bootstrap-{case_name}-{}-{timestamp}",
-            std::process::id()
-        ));
-        if path.exists() {
-            fs::remove_dir_all(&path).unwrap();
-        }
-        path
-    }
-
-    #[cfg(unix)]
-    fn create_directory_link(target: &Path, link: &Path) {
-        std::os::unix::fs::symlink(target, link).expect("create export-root alias fixture");
-    }
-
-    #[cfg(windows)]
-    fn create_directory_link(target: &Path, link: &Path) {
-        let command = format!(r#"mklink /J "{}" "{}""#, link.display(), target.display());
-        let output = std::process::Command::new("cmd")
-            .args(["/D", "/S", "/C"])
-            .arg(command)
-            .output()
-            .expect("start mklink for export-root alias fixture");
-        assert!(
-            output.status.success(),
-            "create export-root junction fixture failed: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-}
+#[path = "tests/export_bootstrap_unit.rs"]
+mod tests;

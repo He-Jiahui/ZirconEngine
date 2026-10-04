@@ -1,14 +1,15 @@
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::framework::scene::ScenePropertyValue;
-use crate::scene::EntityId;
 use crate::scene::components::{
     AnimationGraphPlayerComponent, AnimationPlayerComponent, AnimationSequencePlayerComponent,
     AnimationSkeletonComponent, AnimationStateMachinePlayerComponent,
 };
+use crate::scene::EntityId;
 
 use super::super::super::World;
 
 impl World {
+    // 访问器按组件存在性展开稳定字段，并通过 visitor 的返回值支持提前终止遍历。
     pub(super) fn visit_animation_property_entries<F>(
         &self,
         entity: EntityId,

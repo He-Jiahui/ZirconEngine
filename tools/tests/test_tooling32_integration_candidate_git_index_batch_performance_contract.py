@@ -1,3 +1,4 @@
+# 核对集成候选使用一次零分隔版本控制索引查询对齐树。
 from __future__ import annotations
 
 import inspect

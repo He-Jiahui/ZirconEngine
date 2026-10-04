@@ -4,24 +4,24 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PLUGIN_VALIDATE_FEATURE_PROVIDER = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider.py"
+    REPO_ROOT / "tools/export/plugin_validate_feature_provider.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_EXTENSION = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider_extension.py"
+    REPO_ROOT / "tools/export/plugin_validate_feature_provider_extension.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_MODULES = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider_modules.py"
+    REPO_ROOT / "tools/export/plugin_validate_feature_provider_modules.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_MODULE_SCHEMA = (
     REPO_ROOT
-    / "tools/zircon_export/plugin_validate_feature_provider_module_schema.py"
+    / "tools/export/plugin_validate_feature_provider_module_schema.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_MODULE_SCHEMA_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_plugin_validate_feature_provider_module_schema.py"
+    / "tools/export/tests/test_plugin_validate_feature_provider_module_schema.py"
 )
 
-
+# 验证校验特性提供者模块归属边界的职责切分：特性提供者模块位于模块归属，并特性提供者模块模式留在模式叶。
 class PluginValidateFeatureProviderModuleOwnerBoundaryTests(unittest.TestCase):
     def test_feature_provider_modules_lives_in_modules_owner(self):
         self.assertTrue(

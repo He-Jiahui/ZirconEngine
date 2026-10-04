@@ -1,18 +1,19 @@
+# 核对平台包报告的文件证据与阶段交接模块归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PLATFORM_BUNDLE_REPORT = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_platform_bundle.py"
+    REPO_ROOT / "tools/export/pipeline_report_platform_bundle.py"
 )
 PLATFORM_BUNDLE_FILE_EVIDENCE = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_platform_bundle_file_evidence.py"
+    REPO_ROOT / "tools/export/pipeline_report_platform_bundle_file_evidence.py"
 )
 PLATFORM_BUNDLE_STAGE_HANDOFF = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_platform_bundle_stage_handoff.py"
+    REPO_ROOT / "tools/export/pipeline_report_platform_bundle_stage_handoff.py"
 )
-PIPELINE_REPORT = REPO_ROOT / "tools/zircon_export/pipeline_report.py"
+PIPELINE_REPORT = REPO_ROOT / "tools/export/pipeline_report.py"
 
 
 class ZirconExportPlatformBundleReportOwnerBoundaryTests(unittest.TestCase):

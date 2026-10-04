@@ -3,6 +3,7 @@ export * from "./HubList";
 export * from "./HubPanel";
 export * from "./HubTreeView";
 export * from "./MetricCard";
+export * from "./PageHeader";
 export * from "./ProjectCard";
 export * from "./ProjectCardRail";
 export * from "./ProjectCover";

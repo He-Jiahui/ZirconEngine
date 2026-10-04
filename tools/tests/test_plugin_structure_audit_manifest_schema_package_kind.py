@@ -1,10 +1,10 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema import (
+from tools.audits.plugins.manifest_schema import (
     collect_manifest_schema_violations,
 )
 
-
+# 用插件清单夹具验证包类型：拒绝未知包类型，并拒绝特性扩展包类型不带行。
 class PluginStructureAuditManifestSchemaPackageKindTests(unittest.TestCase):
     def test_manifest_schema_rejects_unknown_package_kind(self):
         violations: list[str] = []

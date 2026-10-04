@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
 use std::sync::atomic::{AtomicU64, AtomicU8, AtomicUsize, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
@@ -19,11 +19,11 @@ use super::{
 
 mod contribution_lifecycle;
 mod execution_support;
-mod health;
+pub(crate) mod health;
 mod lifecycle;
-mod pending;
+pub(crate) mod pending;
 mod pump_execution;
-mod retention;
+pub(crate) mod retention;
 mod round_robin;
 
 pub(crate) use contribution_lifecycle::ContributionRetirementReport;
@@ -398,14 +398,16 @@ impl EditorRuntimeEventConsumerHost {
             return Err(error);
         }
 
-        let existing = self
-            .active
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .keys()
-            .cloned()
-            .collect::<BTreeSet<_>>();
-        let mut added = Vec::new();
+        let existing = {
+            let active = self
+                .active
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            let mut existing = HashSet::with_capacity(active.len());
+            existing.extend(active.keys().cloned());
+            existing
+        };
+        let mut added = Vec::with_capacity(desired.len());
         for (consumer_id, registration) in desired {
             if existing.contains(&consumer_id) {
                 continue;
@@ -938,36 +940,9 @@ fn next_consumer_generation(current: u64) -> Result<u64, EditorRuntimeEventConsu
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{next_consumer_generation, EditorRuntimeEventConsumerHost, QualifiedSubscription};
-    use crate::core::gateway::EditorRuntimeGatewayHandle;
-    use crate::core::runtime_event_consumer::EditorRuntimeEventConsumerError;
-    use zircon_runtime_interface::ZrRuntimePluginEventSubscriptionHandle;
+#[path = "host/tests/optimization_batch_iu_editor631_tests.rs"]
+mod optimization_batch_iu_editor631_tests;
 
-    #[test]
-    fn consumer_generation_exhaustion_is_typed() {
-        assert!(matches!(
-            next_consumer_generation(u64::MAX),
-            Err(EditorRuntimeEventConsumerError::ConsumerGenerationExhausted)
-        ));
-    }
-
-    #[test]
-    fn shutdown_flushes_pending_remote_cleanup_without_an_active_play_session() {
-        let gateway = EditorRuntimeGatewayHandle::detached();
-        let host = EditorRuntimeEventConsumerHost::new(gateway.clone());
-        let origin = gateway.current_lease().origin();
-        host.defer_remote_cleanup(
-            "deferred.consumer",
-            QualifiedSubscription::new(
-                ZrRuntimePluginEventSubscriptionHandle::new(11),
-                origin.identity().clone(),
-            ),
-            origin,
-        );
-
-        assert_eq!(host.pending_remote_cleanup_count(), 1);
-        assert!(host.shutdown().is_err());
-        assert_eq!(host.pending_remote_cleanup_count(), 0);
-    }
-}
+#[cfg(test)]
+#[path = "tests/host.rs"]
+mod tests;

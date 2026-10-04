@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::mesh::build_snapshot;
@@ -9,8 +9,8 @@ use crate::asset::assets::{AlphaMode, MaterialAsset, ShaderAsset, ShaderSourceLa
 use crate::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
 use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use crate::asset::{
-    AssetReference, AssetUri, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT, TextureAsset,
-    TextureAssetDescriptor,
+    AssetReference, AssetUri, TextureAsset, TextureAssetDescriptor, RGBA8_UNORM_FORMAT,
+    RGBA8_UNORM_SRGB_FORMAT,
 };
 use crate::core::framework::render::{
     RenderFrameExtract, RenderFramework, RenderImageColorSpace, RenderImageFallbackKind,

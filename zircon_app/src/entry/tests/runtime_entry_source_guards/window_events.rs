@@ -29,7 +29,7 @@ fn runtime_entry_window_event_dispatch_stays_in_child_module() {
         &[
             "fn window_event",
             "zircon_runtime::profile_scope!(\"app\", \"runtime_entry\", \"window_event\");",
-            "self.handle_window_event(event_loop, event);",
+            "self.handle_window_event(event_loop, window_id, event);",
         ],
         "ApplicationHandler::window_event should only profile and delegate concrete dispatch",
     );

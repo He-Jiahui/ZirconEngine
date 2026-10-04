@@ -9,6 +9,7 @@ use super::{SdfAtlasBake, SdfAtlasBakeReport, SdfAtlasSlot};
 pub(super) struct SdfPreparedAtlasCache {
     atlas_size: UVec2,
     slots: Vec<SdfAtlasSlot>,
+    retained_slot_product_generation: Option<u64>,
     bake: Option<SdfAtlasBake>,
     clean_dirty_pages: Arc<[super::SdfAtlasBakeDirtyPage]>,
 }
@@ -18,6 +19,7 @@ impl Default for SdfPreparedAtlasCache {
         Self {
             atlas_size: UVec2::default(),
             slots: Vec::new(),
+            retained_slot_product_generation: None,
             bake: None,
             clean_dirty_pages: Arc::from([]),
         }
@@ -33,12 +35,15 @@ impl SdfPreparedAtlasCache {
         &self,
         atlas_size: UVec2,
         slots: &[SdfAtlasSlot],
+        retained_slot_product_generation: Option<u64>,
         scheduler: SdfGenerationSchedulerDiagnostics,
         font_asset_cache_report: SdfFontAssetCacheReport,
     ) -> Option<SdfAtlasBake> {
         let cached = self.bake.as_ref()?;
+        let retained_product_matches = retained_slot_product_generation.is_some()
+            && self.retained_slot_product_generation == retained_slot_product_generation;
         if self.atlas_size != atlas_size
-            || self.slots.as_slice() != slots
+            || (!retained_product_matches && self.slots.as_slice() != slots)
             || cached
                 .generation_failures
                 .iter()
@@ -57,14 +62,20 @@ impl SdfPreparedAtlasCache {
         &mut self,
         atlas_size: UVec2,
         slots: &[SdfAtlasSlot],
+        retained_slot_product_generation: Option<u64>,
         bake: &SdfAtlasBake,
     ) {
         self.atlas_size = atlas_size;
         self.slots.clear();
         self.slots.extend_from_slice(slots);
+        self.retained_slot_product_generation = retained_slot_product_generation;
         self.bake = Some(bake.clone());
     }
 }
+
+#[cfg(test)]
+#[path = "tests/prepared_atlas.rs"]
+mod tests;
 
 fn generation_requires_retry(error: SdfGlyphGenerationError) -> bool {
     matches!(

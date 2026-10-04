@@ -1,3 +1,5 @@
+//! 输入外观在节点槽内垂直居中，最大高度来自宿主密度；保留 DPI 后小数坐标供最终像素阶段对齐。
+
 use super::super::super::data::FrameRect;
 use super::metrics::axis_value_field_metrics;
 
@@ -15,21 +17,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_fi
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn axis_field_preserves_fractional_post_dpi_geometry() {
-        let rect = axis_field_rect(&FrameRect {
-            x: 12.25,
-            y: 7.5,
-            width: 81.75,
-            height: 31.5,
-        });
-
-        assert_eq!(rect.x, 12.25);
-        assert_eq!(rect.width, 81.75);
-        assert!(rect.y.fract() != 0.0);
-        assert!(rect.height > 0.0);
-    }
-}
+#[path = "tests/geometry.rs"]
+mod tests;

@@ -4,29 +4,29 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PLUGIN_VALIDATE_FEATURE_PROVIDER = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider.py"
+    REPO_ROOT / "tools/export/plugin_validate_feature_provider.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_MANIFEST_SCHEMA = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider_manifest_schema.py"
+    REPO_ROOT / "tools/export/plugin_validate_feature_provider_manifest_schema.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_MANIFEST_DESCRIPTION = (
     REPO_ROOT
-    / "tools/zircon_export/plugin_validate_feature_provider_manifest_description.py"
+    / "tools/export/plugin_validate_feature_provider_manifest_description.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_MANIFEST_OWNER_METADATA = (
     REPO_ROOT
-    / "tools/zircon_export/plugin_validate_feature_provider_manifest_owner_metadata.py"
+    / "tools/export/plugin_validate_feature_provider_manifest_owner_metadata.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_MANIFEST_REQUIRED_METADATA = (
     REPO_ROOT
-    / "tools/zircon_export/plugin_validate_feature_provider_manifest_required_metadata.py"
+    / "tools/export/plugin_validate_feature_provider_manifest_required_metadata.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_MANIFEST_METADATA_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_plugin_validate_feature_provider_manifest_metadata.py"
+    / "tools/export/tests/test_plugin_validate_feature_provider_manifest_metadata.py"
 )
 
-
+# 验证校验特性提供者清单元数据归属边界的职责切分：特性提供者清单显示名称投影留在模式归属，并特性提供者清单描述投影留在描述归属。
 class PluginValidateFeatureProviderManifestMetadataOwnerBoundaryTests(
     unittest.TestCase
 ):
@@ -138,7 +138,7 @@ class PluginValidateFeatureProviderManifestMetadataOwnerBoundaryTests(
             "validate_plugin_feature_provider_manifest_owner_metadata",
             (
                 REPO_ROOT
-                / "tools/zircon_export/plugin_validate_feature_provider_extension.py"
+                / "tools/export/plugin_validate_feature_provider_extension.py"
             ).read_text(encoding="utf-8"),
         )
         self.assertIn(

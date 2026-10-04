@@ -146,3 +146,19 @@ fn pinch_zoom_ignores_jitter_and_preserves_direction() {
     assert!((pinch_zoom_delta(100.0, 150.0, None, None) + 1.33).abs() < 1.0e-9);
     assert!((pinch_zoom_delta(150.0, 100.0, None, None) - 1.33).abs() < 1.0e-9);
 }
+
+#[test]
+fn invalid_touch_values_fail_closed() {
+    assert!(!is_move_autorun_push(f64::NAN, 1.0));
+    assert!(!is_move_autorun_near(-1.0, f64::INFINITY));
+    assert_eq!(
+        map_touch_look_vector(f64::INFINITY, 0.0, None),
+        GamepadStickVector::default()
+    );
+    assert_eq!(
+        map_touch_look_vector(0.5, 0.0, Some(f64::NAN)),
+        GamepadStickVector::default()
+    );
+    assert_eq!(pinch_zoom_delta(f64::NAN, 100.0, None, None), 0.0);
+    assert_eq!(pinch_zoom_delta(100.0, 120.0, Some(-1.0), None), 0.0);
+}

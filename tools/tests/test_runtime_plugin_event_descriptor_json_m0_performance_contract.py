@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime/src/dynamic_api/session/event_mirror.rs"
 
-
+# 读取事件描述符 JSON 缓存，确认订阅状态持有预编码字节并由分页编码器直接写入。
 class RuntimePluginEventDescriptorJsonM0PerformanceContract(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

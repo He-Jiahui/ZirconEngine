@@ -18,6 +18,8 @@ export interface SourceEnginePopoverProps {
   activeEngineId?: string | null;
   settings: HubSettingsSummary;
   text: HubShellText;
+  id?: string;
+  ariaLabel?: string;
   onClose: () => void;
   onSelect: (engineId: string) => void;
   onManage: () => void;
@@ -30,6 +32,8 @@ export function SourceEnginePopover({
   activeEngineId,
   settings,
   text,
+  id,
+  ariaLabel,
   onClose,
   onSelect,
   onManage,
@@ -40,7 +44,7 @@ export function SourceEnginePopover({
   );
 
   return (
-    <HubPopover anchorEl={anchorEl} open={open} width={388} onClose={onClose}>
+    <HubPopover anchorEl={anchorEl} open={open} width={388} id={id} ariaLabel={ariaLabel} onClose={onClose}>
       <Typography variant="caption" sx={sectionLabelSx}>
         {text.activeEngine}
       </Typography>
@@ -112,6 +116,7 @@ function EngineRow({
 
   return (
     <ButtonBase
+      aria-pressed={active}
       onClick={() => onSelect(engine.id)}
       sx={{
         width: "100%",

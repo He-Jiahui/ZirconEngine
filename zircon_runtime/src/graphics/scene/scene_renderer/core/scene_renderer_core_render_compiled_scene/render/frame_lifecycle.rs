@@ -1,10 +1,10 @@
-use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 use crate::graphics::scene::scene_renderer::environment::{
     RealtimeIblPendingSubmission, RealtimeIblRuntime,
 };
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionResources, TransientResourcePool,
 };
+use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 use crate::graphics::types::GraphicsError;
 
 pub(super) fn ensure_compiled_scene_graph_resources(

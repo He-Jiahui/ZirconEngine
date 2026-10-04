@@ -166,12 +166,10 @@ fn read_only_text_input_focus_loss_cancels_preedit_without_commit_notification()
 
     assert_eq!(text_attr(&surface, "content"), "abc");
     assert_eq!(text_attr(&surface, "composition_text"), "");
-    assert!(
-        !result
-            .component_events
-            .iter()
-            .any(|report| matches!(&report.event, UiComponentEvent::Commit { .. }))
-    );
+    assert!(!result
+        .component_events
+        .iter()
+        .any(|report| matches!(&report.event, UiComponentEvent::Commit { .. })));
     assert!(has_input_method_host_request(
         &result,
         UiInputMethodRequestKind::Disable,
@@ -360,18 +358,16 @@ fn detached_text_input_cancels_preedit_before_recycling_and_disables_ime() {
         manager.drain_ime_host_requests(),
         vec![ImeHostRequest::Disable]
     );
-    assert!(
-        results
-            .iter()
-            .flat_map(|result| &result.component_events)
-            .any(|report| {
-                matches!(
-                    &report.event,
-                    UiComponentEvent::Commit { property, value }
-                        if property == "content" && value.display_text() == "abc"
-                )
-            })
-    );
+    assert!(results
+        .iter()
+        .flat_map(|result| &result.component_events)
+        .any(|report| {
+            matches!(
+                &report.event,
+                UiComponentEvent::Commit { property, value }
+                    if property == "content" && value.display_text() == "abc"
+            )
+        }));
 }
 
 #[test]
@@ -389,12 +385,10 @@ fn detached_unfocused_ime_owner_cancels_preedit_without_a_focus_commit() {
         manager.drain_ime_host_requests(),
         vec![ImeHostRequest::Disable]
     );
-    assert!(
-        !results
-            .iter()
-            .flat_map(|result| &result.component_events)
-            .any(|report| matches!(&report.event, UiComponentEvent::Commit { .. }))
-    );
+    assert!(!results
+        .iter()
+        .flat_map(|result| &result.component_events)
+        .any(|report| matches!(&report.event, UiComponentEvent::Commit { .. })));
 }
 
 fn has_input_method_host_request(

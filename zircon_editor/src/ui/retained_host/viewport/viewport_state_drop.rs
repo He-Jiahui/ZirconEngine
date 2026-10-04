@@ -8,8 +8,8 @@ impl Drop for ViewportState {
         if let (Some(jobs), Some(task)) = (&self.jobs, &self.render_framework_task) {
             jobs.cancel(task.id());
         }
-        if let Some(viewport) = self.viewport {
-            if let Ok(Some(render_framework)) = self.resolve_stored_render_framework() {
+        if let Ok(Some(render_framework)) = self.resolve_stored_render_framework() {
+            for viewport in self.viewports.values() {
                 let _ = render_framework.destroy_viewport(viewport.handle);
             }
         }

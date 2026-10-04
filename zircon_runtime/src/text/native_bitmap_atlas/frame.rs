@@ -27,10 +27,10 @@ use super::source_cache::{
     NativeBitmapAtlasSourceCacheFrameReport, NativeBitmapAtlasWorkerRequestStatus,
 };
 use super::source_image::{
-    NativeBitmapGlyphImage, glyph_atlas_bitmap_face_validity_for_epoch,
-    native_bitmap_atlas_background_color, native_bitmap_atlas_foreground_color,
-    native_bitmap_atlas_format, native_bitmap_atlas_format_requires_background_composite,
-    native_bitmap_atlas_screen_rect, native_bitmap_atlas_source_from_image,
+    glyph_atlas_bitmap_face_validity_for_epoch, native_bitmap_atlas_background_color,
+    native_bitmap_atlas_foreground_color, native_bitmap_atlas_format,
+    native_bitmap_atlas_format_requires_background_composite, native_bitmap_atlas_screen_rect,
+    native_bitmap_atlas_source_from_image, NativeBitmapGlyphImage,
 };
 use super::storage::{
     native_bitmap_atlas_has_mixed_storage_formats, native_bitmap_atlas_storage_resource_count,

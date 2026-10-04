@@ -1,0 +1,546 @@
+{
+  "schemaVersion": 1,
+  "state": "implemented-runtime-acceptance-pending",
+  "applied": true,
+  "scope": {
+    "topology": "single-host",
+    "multiSession": true,
+    "createWorktrees": false,
+    "createPerSessionCargoTargets": false,
+    "multiMachine": {
+      "state": "deferred",
+      "implementationEnabled": false,
+      "resumeAfter": [
+        "local-stage-execution-and-composition-accepted",
+        "single-host-conflict-recovery-and-resource-admission-accepted",
+        "artifact-reuse-and-incremental-pool-acceptance"
+      ]
+    }
+  },
+  "objective": "Minimize time to formal acceptance within CPU, memory and disk budgets while reducing duplicate artifacts.",
+  "storage": {
+    "buildRoot": "E:\\Git\\ZirconEngine\\.jenkins\\builds",
+    "namespace": "zircon-jenkins",
+    "absoluteBuildRoot": "E:\\Git\\ZirconEngine\\.jenkins\\builds\\zircon-jenkins",
+    "runtimeRoot": "E:\\Git\\ZirconEngine\\.jenkins",
+    "home": "E:\\Git\\ZirconEngine\\.jenkins\\jenkins_home",
+    "policyVersion": "2026-10-04-user-selected-project-local-build-root",
+    "historicalRoots": [
+      "D:\\cargo-targets",
+      "E:\\cargo-targets",
+      "F:\\cargo-targets"
+    ],
+    "historicalRootsUse": "preserved evidence only; never admit new Jenkins work"
+  },
+  "stageContract": {
+    "executionLibrary": "Scripted Pipeline with sealed-version workflow-cps load",
+    "composition": "validated dependency graph selected from change kind and required coverage",
+    "executionImplemented": true,
+    "identityFields": [
+      "sessionId",
+      "requestId",
+      "attemptId",
+      "generation",
+      "sourceInputDigest",
+      "coverageDigest",
+      "stageImplementationDigest"
+    ],
+    "terminalStates": [
+      "passed",
+      "reused",
+      "failed",
+      "cancelled"
+    ],
+    "skippedStageRequires": "policy decision and evidence that its coverage is unnecessary or already accepted",
+    "successRequires": "verified receipt from the authoritative owner",
+    "resumeRequires": "same sealed input, stage implementation, command and coverage; otherwise invalidate affected descendants",
+    "retries": "stage-scoped and idempotent; reconcile prior attempt before resubmitting",
+    "sideEffectsRequire": "persisted session authorization and exact action scope",
+    "queueWaitHoldsExecutor": false,
+    "queueWaitHoldsCpuReservation": false,
+    "nonterminalStates": [
+      "pending",
+      "ready",
+      "waiting",
+      "blocked",
+      "claimed",
+      "running",
+      "finalizing",
+      "reconciling"
+    ],
+    "reusedStateRequires": "verified exact-result reference; current coverage and freshness policy remain mandatory"
+  },
+  "stages": {
+    "patch": {
+      "title": "补丁",
+      "resourceClass": "checkout-write",
+      "owner": "tools/jenkins/patches.py and tools/jenkins/source/",
+      "requires": [
+        "owned-path-leases",
+        "before-content-hashes",
+        "sealed-patch-and-author"
+      ],
+      "receipt": "owned after-content hashes and patch identity",
+      "locks": [
+        "owned-paths"
+      ],
+      "mutation": "only owned patch; conflicting before-hash blocks and requests rebase",
+      "historicalOwnerReference": "tools/session_coordinator/patches.py"
+    },
+    "syntax": {
+      "title": "语法校验",
+      "resourceClass": "light-validation",
+      "owner": "planned tools/jenkins/source/",
+      "requires": [
+        "sealed-changed-inputs",
+        "registered-parser-and-version"
+      ],
+      "receipt": "parse result and parser identity",
+      "cargoCompilationRequired": false,
+      "missingParser": "blocked; never substitute an unrecorded build",
+      "validationMeaning": "syntax only; type checking belongs to managed build",
+      "historicalOwnerReference": "language-specific parser"
+    },
+    "format": {
+      "title": "格式校验",
+      "resourceClass": "light-validation",
+      "owner": "planned tools/jenkins/source/",
+      "requires": [
+        "sealed-changed-inputs",
+        "registered-formatter-and-version"
+      ],
+      "receipt": "format-check result",
+      "writeMode": false,
+      "automaticFix": "new owned patch invalidates affected receipts",
+      "historicalOwnerReference": "language-specific formatter"
+    },
+    "build": {
+      "title": "构建",
+      "resourceClass": "managed-compile",
+      "owner": "planned tools/jenkins/validation/",
+      "requires": [
+        "resolved-module-and-target-coverage",
+        "sealed-input-and-approved-recipe",
+        "verified-artifact-reference-or-managed-compile-plan"
+      ],
+      "receipt": "managed build receipt, physical target, artifact digests and native termination proof",
+      "locks": [
+        "compatible-pool-writer"
+      ],
+      "scope": "selected packages, necessary targets/features and dependency closure",
+      "inputSource": "immutable registered inputs in a stable new managed pool; no extra Git worktree",
+      "historicalOwnerReference": "tools/session_coordinator/cargo_jobs.py",
+      "compilationRequires": [
+        "exact-artifact-reuse-miss",
+        "fresh-complete-storage-admission",
+        "atomic-resource-and-pool-reservation"
+      ],
+      "artifactReuseHoldsCompilerWriter": false
+    },
+    "unit_test": {
+      "title": "单元测试",
+      "resourceClass": "managed-test",
+      "owner": "planned tools/jenkins/validation/",
+      "requires": [
+        "resolved-unit-test-coverage",
+        "compatible-test-artifacts-or-managed-compile-plan",
+        "cpu-memory-admission"
+      ],
+      "receipt": "test filters, per-test result and exact tested artifact identity",
+      "reuseTestCompilation": true,
+      "compilation": "managed test compilation on demand; no unconditional duplicate cargo build",
+      "historicalOwnerReference": "tools/session_coordinator/validation_tickets.py",
+      "executionResultReuseDefault": false,
+      "executionResultReuseRequires": "proven hermetic recipe with exact environment, coverage and validity policy",
+      "zeroMatchingTestsSatisfyRequiredCoverage": false
+    },
+    "integration_test": {
+      "title": "接口与集成测试",
+      "resourceClass": "managed-test",
+      "owner": "planned tools/jenkins/validation/",
+      "requires": [
+        "changed-boundary-and-reverse-dependency-coverage",
+        "matching-managed-artifacts"
+      ],
+      "receipt": "affected boundary and consumer regression receipts",
+      "historicalOwnerReference": "tools/session_coordinator/validation_tickets.py",
+      "requireFreshExecutionEvidence": true
+    },
+    "regression_test": {
+      "title": "失败回归",
+      "resourceClass": "managed-test",
+      "owner": "planned tools/jenkins/validation/",
+      "requires": [
+        "failure-ownership",
+        "lowest-broken-support-layer-fixed",
+        "recorded-failure-reproduction"
+      ],
+      "receipt": "original failing regression and affected upward validation",
+      "historicalOwnerReference": "tools/session_coordinator/validation_tickets.py",
+      "requireFreshExecutionEvidence": true
+    },
+    "acceptance": {
+      "title": "验收",
+      "resourceClass": "control",
+      "owner": "planned tools/jenkins/validation/",
+      "requires": [
+        "all-required-stage-receipts",
+        "exact-candidate-source-and-coverage-match",
+        "active-leases-and-source-attribution"
+      ],
+      "receipt": "formal acceptance bound to candidate and evidence",
+      "nonCompileFlow": "requires authoritative syntax/format/classification acceptance type; no fake compile receipt",
+      "batchFlow": "per-task author and union-tree dependency manifest; union success does not accept untested subsets",
+      "historicalOwnerReference": "existing source and managed validation authority"
+    },
+    "commit": {
+      "title": "Git 提交",
+      "resourceClass": "git-integration",
+      "owner": "planned tools/jenkins/gitops/",
+      "requires": [
+        "formal-acceptance",
+        "owned-sealed-Git-blobs",
+        "current-HEAD-reconciliation",
+        "commit-authorization"
+      ],
+      "receipt": "candidate identity and committed tree/SHA",
+      "locks": [
+        "repository-git-integration"
+      ],
+      "sideEffect": "authorized Git commit only",
+      "automaticNotificationAllowed": false,
+      "adapterRequirement": "new independent commit implementation without implicit legacy notification hooks",
+      "historicalOwnerReference": "tools/session_coordinator/integration_candidates.py"
+    },
+    "notify": {
+      "title": "推送消息",
+      "resourceClass": "notification",
+      "owner": "planned tools/jenkins/notifications/",
+      "requires": [
+        "committed-result-or-authorized-failure-event",
+        "notification-authorization",
+        "configured-destination"
+      ],
+      "receipt": "durable outbox event and delivery receipt",
+      "failureEffect": "retry notification only; preserve acceptance and commit",
+      "duplicatePolicy": "reconcile ambiguous delivery before retry; do not promise exactly-once external delivery",
+      "historicalOwnerReference": "tools/session_coordinator/notifications.py"
+    },
+    "gc": {
+      "title": "产物缓存清理",
+      "resourceClass": "managed-maintenance",
+      "owner": "planned tools/jenkins/artifacts/",
+      "requires": [
+        "fresh-index-and-reference-inventory",
+        "lease-aware-cleanup-plan",
+        "native-owner-liveness-proof",
+        "cleanup-scope-admission"
+      ],
+      "receipt": "managed cleanup receipt and actual reclaimed bytes",
+      "priority": "below acceptance work; admission relief may run before build",
+      "failureEffect": "record maintenance failure without undoing accepted source",
+      "deleteLiveOrReferencedArtifacts": false,
+      "historicalOwnerReference": "tools/session_coordinator/artifact_governance.py"
+    },
+    "rollback": {
+      "title": "失败回滚",
+      "resourceClass": "checkout-write",
+      "owner": "planned tools/jenkins/source/",
+      "requires": [
+        "failed-attempt-reconciled",
+        "affected-native-processes-terminated",
+        "owned-before-and-after-hashes",
+        "rollback-authorization-or-existing-scoped-patch-compensation"
+      ],
+      "receipt": "owned compensation receipt and preserved foreign changes",
+      "locks": [
+        "owned-paths",
+        "repository-git-integration-when-committed"
+      ],
+      "preCommit": "compensate owned files using before/after compare-and-swap; foreign or unproven hunk conflict blocks",
+      "postCommit": "authorized forward revert reconciled against current HEAD",
+      "forbidden": [
+        "reset shared HEAD",
+        "discard foreign edits",
+        "delete a live target pool"
+      ],
+      "implemented": false,
+      "historicalOwnerReference": "owned patch recovery adapter"
+    }
+  },
+  "templates": {
+    "comments_only": {
+      "stages": [
+        "patch",
+        "syntax",
+        "format",
+        "acceptance",
+        "commit"
+      ],
+      "selectionRequires": [
+        "trusted-classification-of-nonsemantic-comment-only-change",
+        "no-doctest-or-build-directive-change"
+      ],
+      "notifications": false,
+      "cacheCleanup": false
+    },
+    "module_unit": {
+      "stages": [
+        "patch",
+        "syntax",
+        "format",
+        "build",
+        "unit_test",
+        "acceptance",
+        "commit",
+        "notify",
+        "gc"
+      ],
+      "selectionRequires": [
+        "resolved-affected-package-and-unit-test-scope"
+      ]
+    },
+    "cross_module": {
+      "stages": [
+        "patch",
+        "syntax",
+        "format",
+        "build",
+        "unit_test",
+        "integration_test",
+        "acceptance",
+        "commit",
+        "notify",
+        "gc"
+      ],
+      "selectionRequires": [
+        "resolved-public-boundary-and-reverse-consumer-scope"
+      ]
+    },
+    "failure_repair": {
+      "stages": [
+        "patch",
+        "syntax",
+        "format",
+        "build",
+        "unit_test",
+        "regression_test",
+        "acceptance",
+        "commit",
+        "notify",
+        "gc"
+      ],
+      "selectionRequires": [
+        "recorded-owned-failure-and-support-layer-diagnosis"
+      ]
+    },
+    "cache_maintenance": {
+      "stages": [
+        "gc"
+      ],
+      "selectionRequires": [
+        "managed-inventory-and-eligible-cleanup-scope"
+      ],
+      "sourceAcceptanceChanged": false
+    }
+  },
+  "selection": {
+    "sessionSelfDeclaredChangeKindIsProof": false,
+    "commentsWithDoctestOrSemanticDirective": "resolve affected test/build coverage; disallow comments_only",
+    "unknownImpact": "resolve coverage before scheduling expensive work; do not silently skip or run the full workspace",
+    "manifestToolchainBuildScriptOrSharedRootChange": "derive affected dependency, profile and platform coverage; broader validation when required",
+    "independentStageExecution": "same identity, preconditions and authoritative receipt rules as a composed flow"
+  },
+  "coordination": {
+    "singleCheckout": "one shared development checkout; new local path-claim authority",
+    "conflictingPaths": "serialize application and rebase on hash mismatch",
+    "sameSealedInput": "one managed writer and consuming-task receipts",
+    "compatibleDistinctTasks": "batch on one immutable validation view after author and coverage reconciliation",
+    "incompatibleTasks": "queue by new validated compatibility and shared resource policy",
+    "independentModules": "parallel only with distinct permitted pools or read-only test artifacts and shared CPU-memory budget",
+    "batchFailure": "bounded failure localization; block dependent acceptance and compensate only owned failed work",
+    "gitIntegration": "serialize final tree construction and recheck tested source against integrated tree",
+    "lockAuthority": "new local state transactions and OS lifetime proof; Jenkins locks are optional projections",
+    "sharedExecutionJob": "zircon-execution owned by executionId, independent of consumer flow cancellation",
+    "consumerCancellation": "detach one consumer; cancel native execution only after all consumers release or an explicit execution abort",
+    "separateBatchCommits": "validate each actual candidate/prefix tree; one union receipt is insufficient"
+  },
+  "artifactPolicy": {
+    "exactResultIdentity": "complete immutable source, toolchain, configuration, command and coverage",
+    "incrementalPoolIdentity": "conservative PreparationKey toolchain/profile/target/dependency compatibility; source changes use Cargo invalidation",
+    "exactResultOwner": "planned tools/jenkins/artifacts/",
+    "preparationOwner": "planned tools/jenkins/artifacts/",
+    "batchOwner": "planned tools/jenkins/workflow/",
+    "targetSelection": "stable managed pools, not per-session or per-build directories",
+    "invalidation": "recompile affected graph; preserve verified compatible dependencies",
+    "reducedSize": [
+      "selected module/target/feature scope",
+      "existing accepted development-link and profile policy",
+      "no copied per-session compiler output",
+      "deduplicated accepted artifact references",
+      "cold unreferenced intermediates retired through managed GC"
+    ],
+    "incrementalTradeoff": "retain hot incremental state; measure space and rebuild cost before retiring cold state",
+    "acceptanceProfileMayBeSilentlyDowngraded": false,
+    "archiveCompilerProductsInsideRepository": false,
+    "historicalExactResultOwnerReference": "tools/session_coordinator/validation_reuse.py",
+    "historicalPreparationOwnerReference": "tools/session_coordinator/compiler_cache_preparation.py",
+    "historicalBatchOwnerReference": "tools/session_coordinator/validation_groups.py",
+    "testExecutionResultReuseDefault": false,
+    "oneAuthoritativePublishedObjectPerDigest": true,
+    "mutablePoolAndPublishedObjectMayBothReside": true,
+    "residentSpaceMustIncludeBothCopies": true
+  },
+  "localResourcePolicy": {
+    "allowedPhysicalRoots": [
+      "E:\\Git\\ZirconEngine\\.jenkins\\builds"
+    ],
+    "historicalAllowedRoots": [
+      "D:\\cargo-targets",
+      "E:\\cargo-targets",
+      "F:\\cargo-targets"
+    ],
+    "rootAdmission": {
+      "requireExactNamespace": "E:\\Git\\ZirconEngine\\.jenkins\\builds\\zircon-jenkins",
+      "reject": [
+        "C:",
+        "repository-local target",
+        "D/E/F drive-root cargo-targets",
+        "junction",
+        "symlink",
+        "nested lookalike",
+        "path alias"
+      ],
+      "noAutomaticDriveFallback": true
+    },
+    "admissionOwner": "planned tools/jenkins/resources atomic CPU-memory-disk-pool admission",
+    "priorityOwner": "planned tools/jenkins/resources persistent fairness and aging",
+    "priorities": [
+      "urgent",
+      "fix",
+      "ordinary"
+    ],
+    "fairness": "reuse persisted weighted selection and aging; blocked starts do not consume priority state",
+    "placementScoreInputs": [
+      "estimated-finish-time",
+      "cache-compatibility-and-warmth",
+      "incremental-disk-reservation",
+      "free-CPU-and-memory-budget",
+      "rebuild-cost"
+    ],
+    "fixedDriveOrHighestFreeSpaceOnly": false,
+    "noRunnablePlacement": "blocked; no unapproved path fallback",
+    "cpuBudget": "cap simultaneous Cargo jobs and test threads using shared CPU-memory reservations",
+    "forbidUnrecordedEnvironmentOverrides": true,
+    "reduceParallelismBeforeCreatingExtraPool": true,
+    "admissionAtomic": true,
+    "recheckAtSpawn": true,
+    "staleOrPartialInventoryAdmitsBuild": false,
+    "cleanupPreference": [
+      "unreferenced terminal scratch",
+      "expired unreferenced duplicate inputs or results",
+      "cold intermediates with lowest measured rebuild cost"
+    ],
+    "cleanEntireWarmPoolAfterEachBuild": false,
+    "historicalAdmissionOwnerReference": "existing managed Cargo storage and CPU reservation services",
+    "historicalPriorityOwnerReference": "tools/session_coordinator/validation_priority.py",
+    "placementCandidates": [
+      "verified exact artifact or permitted stage result",
+      "admissible compatible warm pool",
+      "new pool on another approved physical drive",
+      "bounded eligible cleanup followed by fresh re-admission"
+    ],
+    "placementSelection": "lowest estimated acceptance time among fair and admissible candidates; not a fixed drive or strict cleanup order",
+    "sealedJobsCapEnforced": true,
+    "resourceReservationRequiresAvailableAgent": true,
+    "diskReservationAccounting": "physical free bytes minus outstanding incremental reservations and safety margin; avoid counting existing bytes twice"
+  },
+  "failurePolicy": {
+    "syntaxFormatBuildOrTestFailure": "block dependent acceptance and commit; terminate attempt and invoke owned compensation policy",
+    "foreignLaterEditsDuringRollback": "block compensation and retain evidence; do not overwrite",
+    "restartedControllerOrAgent": "reconcile same attempt, native lifetime and receipts before resume",
+    "cancellation": "prove native terminal before releasing writers, CPU reservations or artifact leases",
+    "commitFailedOrAmbiguous": "reconcile candidate and HEAD before retry; never replay a blind Git commit",
+    "notificationOrPostAcceptanceGcFailure": "separate operational failure; no automatic source rollback",
+    "diagnosticsPreserved": true
+  },
+  "rollout": [
+    "stage contracts and trusted change classification",
+    "comment-only authoritative acceptance and commit without notification side effects",
+    "module-unit composition on new managed execution and immutable inputs",
+    "same-input result reuse and compatible incremental pools",
+    "single-host CPU-disk-memory scheduling and lease-aware cleanup",
+    "multi-session batching, failure localization, compensation and restart reconciliation"
+  ],
+  "acceptanceCases": [
+    "comments-only creates no Cargo job and performs exactly the selected stages",
+    "doctest or semantic directive is never admitted as comments-only",
+    "overlapping patch ownership blocks without altering foreign files",
+    "same exact input has one writer and per-session acceptance attribution",
+    "changed source reuses compatible preparation without reusing stale terminal success",
+    "module tests build required artifacts without an unconditional second compile",
+    "disk pressure waits or selects approved roots and never admits stale/partial capacity",
+    "CPU pressure lowers admitted work without oversubscription or priority starvation",
+    "rollback preserves later foreign changes and proves attempt termination",
+    "commit-only does not send a message; notify failure does not repeat commit",
+    "GC cannot delete live writers, accepted references or unproven owners",
+    "no new Git worktree, per-session target or remote machine is created",
+    "cancelling one consumer flow does not kill a shared execution still needed by another"
+  ],
+  "architectureSpecification": "docs/cli-and-tooling/jenkins-session-coordination-architecture.md",
+  "architectureVersion": 1,
+  "ownerBindingsImplemented": true,
+  "buildRootPolicy": {
+    "defaultFrom": "storage.absoluteBuildRoot",
+    "requestOverride": "buildRoot",
+    "allowedPhysicalRoots": [
+      "E:\\Git\\ZirconEngine\\.jenkins\\builds"
+    ],
+    "requiredNamespace": "zircon-jenkins",
+    "exactDefault": "E:\\Git\\ZirconEngine\\.jenkins\\builds\\zircon-jenkins",
+    "historicalRoots": [
+      "D:\\cargo-targets",
+      "E:\\cargo-targets",
+      "F:\\cargo-targets"
+    ],
+    "historicalRootsUse": "evidence-only",
+    "explicitRootFallbackAllowed": false,
+    "automaticDriveSelection": false
+  },
+  "patchIntake": {
+    "state": "implemented-runtime-acceptance-pending",
+    "runtimeAcceptance": false,
+    "format": "UTF-8 Git unified diff",
+    "parameter": "PATCH_REQUEST_REF",
+    "registrationOwner": "tools/jenkins/patches.py",
+    "registrationChangesCheckout": false,
+    "pipelinePreparation": "apply owned patch and seal before registering the final build request",
+    "completeJournalParameter": "PATCH_OPERATION_REF",
+    "sealedInputParameter": "SEALED_INPUT_REF",
+    "checks": ["immutable request and driver", "session action and path authorization", "exact before hashes", "Git HEAD and declared dependency hashes", "shared checkout process lock", "complete after hashes"],
+    "conflicts": "block without fuzz or guessed three-way resolution",
+    "partialFailure": "block sealing and build; reconcile owned hashes before a new request",
+    "preparedDispatchWindow": "retain source until the workflow dispatch is reconciled",
+    "gitCommit": "separate explicit authorization",
+    "tests": ["tools.jenkins.tests.test_unified_patch", "tools.jenkins.tests.test_patches", "tools.jenkins.tests.test_submission"]
+  },
+  "pluginCapabilities": {
+    "engine": "scripted",
+    "sharedLibraryAvailable": true,
+    "declarativeAvailable": true,
+    "pipelineBuildStepAvailable": true,
+    "sharedExecutionSubmission": "durable executionId plus authenticated parameterized API",
+    "inventoryAcceptanceRequired": true
+  },
+  "acceptanceStatus": {
+    "M0": "accepted",
+    "M1": "accepted",
+    "M2": "pending-runtime-refresh",
+    "M3": "accepted",
+    "M4": "accepted-bounded-fixture",
+    "M5": "pending-source-change-incremental-runtime",
+    "M6": "pending-independent-parallel-runtime",
+    "M7": "pending-joint-input-and-failure-recovery-runtime",
+    "M8": "pending-sole-entry-and-performance"
+  }
+}

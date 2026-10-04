@@ -1,3 +1,4 @@
+//! 给文档脏状态中的外部副作用建立有界、稳定的命名身份，供界面源缓冲区与动画会话声明必须保存的附加状态。名称校验的错误优先级是调用契约的一部分。
 use std::fmt::{Display, Formatter};
 
 use thiserror::Error;
@@ -111,5 +112,5 @@ pub enum DirtyExternalEffectIdError {
 }
 
 #[cfg(test)]
-#[path = "external_effect_id/single_pass_tests.rs"]
+#[path = "external_effect_id/tests/single_pass_tests.rs"]
 mod single_pass_tests;

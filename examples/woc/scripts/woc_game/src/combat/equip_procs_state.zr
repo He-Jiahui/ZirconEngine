@@ -1,4 +1,4 @@
-// Weapon-proc WOS decision plans. WOS owns content lookup, RNG, target order,
+// 装备触发的独立决策契约；当前只有叶子测试消费，若接入世界则由世界负责内容、随机与目标顺序。
 // float rounding, aura/damage writes, and emitted events; this module owns no state.
 var contract = %import("generated/equip_procs_contract");
 
@@ -30,6 +30,7 @@ pub class WeaponProcEffectPlan {
 
 // Call once per content proc in its authored order. A true result means WOS must
 // consume exactly one `proc.chance` RNG draw before it can inspect that proc's effects.
+/// 对单项装备触发做消费随机数之前的资格判定；只有返回 shouldDraw 的候选才应占用一次机会随机，效果计划本身不执行该抽取。
 pub weaponProcDrawPlan(targetDead: bool, hasMainhandItemId: bool, itemPresent: bool, itemIsWeapon: bool, itemHasWeaponProcs: bool, levelEligible: bool, procTrigger: string, trigger: string): WeaponProcDrawPlan {
     if (targetDead || !hasMainhandItemId || !itemPresent || !itemIsWeapon || !itemHasWeaponProcs || !levelEligible) {
         return new WeaponProcDrawPlan(false);

@@ -1,4 +1,5 @@
 use crate::core::framework::text::TextDirection;
+use crate::text::layout_geometry::{finite_sum, FiniteGeometryAccumulator};
 use crate::text::shaping::{TextLayoutOutcome, TextShapeRunProvider, TextShapingOutcome};
 use crate::text::{TextRange, TextStyle};
 
@@ -146,6 +147,7 @@ pub(crate) fn corrected_index_advance_with_provider<P>(
 where
     P: TextShapeRunProvider + ?Sized,
 {
+    // 长候选保留索引中的中段宽度，只重塑两端固定上下文；校正值作为结果返回，不改写索引。
     let metrics = index.metrics_in_range(start, end);
     let raw_advance = index.advance(start, end);
     let context_span = BOUNDARY_SHAPING_CONTEXT_GRAPHEMES.saturating_mul(2);
@@ -213,7 +215,7 @@ where
         let mut after_last = first;
         let mut raw_advance = 0.0_f32;
         while let Some(metric) = metrics.get(after_last) {
-            let next = raw_advance + finite_non_negative(metric.advance);
+            let next = finite_sum([raw_advance, finite_non_negative(metric.advance)]);
             if after_last > first && next > max_advance {
                 break;
             }
@@ -298,10 +300,7 @@ pub(crate) fn corrected_line_advance_with_provider<P>(
 where
     P: TextShapeRunProvider + ?Sized,
 {
-    let raw_advance = units
-        .iter()
-        .map(|unit| finite_non_negative(unit.advance))
-        .sum();
+    let raw_advance = finite_sum(units.iter().map(|unit| finite_non_negative(unit.advance)));
     let context_span = BOUNDARY_SHAPING_CONTEXT_GRAPHEMES.saturating_mul(2);
     if units.len() <= context_span {
         return corrected_bounded_advance_with_provider(
@@ -359,10 +358,11 @@ where
     };
     let (leading_text, leading_offsets) = collect_window(leading, None);
     let leading_end = leading_offsets[BOUNDARY_SHAPING_CONTEXT_GRAPHEMES];
-    let raw_leading = leading[..BOUNDARY_SHAPING_CONTEXT_GRAPHEMES]
-        .iter()
-        .map(|unit| finite_non_negative(unit.advance))
-        .sum::<f32>();
+    let raw_leading = finite_sum(
+        leading[..BOUNDARY_SHAPING_CONTEXT_GRAPHEMES]
+            .iter()
+            .map(|unit| finite_non_negative(unit.advance)),
+    );
     let shaped_leading =
         match shape_window_width(&leading_text, 0, leading_end, style, direction, provider) {
             TextShapingOutcome::Ready(advance) => advance,
@@ -375,10 +375,11 @@ where
     };
     let (trailing_text, trailing_offsets) = collect_window(trailing, break_suffix);
     let trailing_start = trailing_offsets[BOUNDARY_SHAPING_CONTEXT_GRAPHEMES];
-    let raw_trailing = trailing[BOUNDARY_SHAPING_CONTEXT_GRAPHEMES..]
-        .iter()
-        .map(|unit| finite_non_negative(unit.advance))
-        .sum::<f32>();
+    let raw_trailing = finite_sum(
+        trailing[BOUNDARY_SHAPING_CONTEXT_GRAPHEMES..]
+            .iter()
+            .map(|unit| finite_non_negative(unit.advance)),
+    );
     let shaped_trailing = match shape_window_width(
         &trailing_text,
         trailing_start,
@@ -392,9 +393,11 @@ where
         TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
     };
 
-    TextShapingOutcome::Ready(finite_non_negative(
-        raw_advance + (shaped_leading - raw_leading) + (shaped_trailing - raw_trailing),
-    ))
+    let mut corrected = FiniteGeometryAccumulator::default();
+    corrected.add(raw_advance);
+    corrected.add(shaped_leading - raw_leading);
+    corrected.add(shaped_trailing - raw_trailing);
+    TextShapingOutcome::Ready(finite_non_negative(corrected.value()))
 }
 
 fn collect_window(units: &[BoundaryAdvanceUnit<'_>], suffix: Option<&str>) -> (String, Vec<usize>) {
@@ -450,8 +453,13 @@ fn finite_non_negative(value: f32) -> f32 {
 }
 
 fn normalized_limit(value: f32) -> f32 {
-    if value.is_nan() { 0.0 } else { value.max(0.0) }
+    if value.is_nan() {
+        0.0
+    } else {
+        value.max(0.0)
+    }
 }
 
 #[cfg(test)]
+#[path = "boundary_correction/tests/cases.rs"]
 mod tests;

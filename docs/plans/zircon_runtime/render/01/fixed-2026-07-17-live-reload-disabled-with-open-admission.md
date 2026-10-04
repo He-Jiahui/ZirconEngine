@@ -9,14 +9,6 @@ origin_child_dir: docs/plans/zircon_runtime/render/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/supervision/service.py
-  - tools/session_coordinator/supervision/lifecycle.py
-  - tools/session_coordinator/control_plane/actions/catalog.py
-  - tools/session_coordinator/control_plane/actions/executor.py
-  - tools/session_coordinator/control_plane/actions/service.py
-  - tools/session_coordinator/migrations.py
-  - tools/session_coordinator/cli.py
 tests:
   - tools/session_coordinator/tests/test_supervision_actions.py::SupervisionActionTests::test_rollover_preserves_admission_and_unstarted_work_for_successor
   - tools/session_coordinator/tests/test_supervision_actions.py::SupervisionActionTests::test_rollover_rejects_a_live_managed_cargo_tree_without_draining

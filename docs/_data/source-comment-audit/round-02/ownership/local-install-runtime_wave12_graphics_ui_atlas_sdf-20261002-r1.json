@@ -1,0 +1,1120 @@
+{
+  "schema": 1,
+  "owner": "runtime_wave12_graphics_ui_atlas_sdf",
+  "sid": "source-audit-20260930-01a0f168",
+  "prepared_at_utc": "2026-10-02T22:46:19.032688+00:00",
+  "files": [
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/instance.rs",
+      "before_sha256": "4e76d32755afb55e70c236d2b94e5ec4ea691826be42d353cefc6890aced979b",
+      "after_sha256": "4e76d32755afb55e70c236d2b94e5ec4ea691826be42d353cefc6890aced979b",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/instance.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/instance.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "4e76d32755afb55e70c236d2b94e5ec4ea691826be42d353cefc6890aced979b",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/instance_buffer.rs",
+      "before_sha256": "9b7c079a83898b83511b13afe032bc129e68a8ed557fd728248f5ee1e0f7acaa",
+      "after_sha256": "ce236de59aba0f4cf6f008353031df5503ec61f93a0336a5e88e4ef10d16def9",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "index": 1,
+          "anchor": "            draw_pass.instance_buffer_payload_hash = Some(payload_hash);",
+          "comment": "            // 哈希表示已排入本帧上传批次；若帧未提交，父级上传事务会要求下帧全量重放。",
+          "reason": "queued_payload_is_not_submission",
+          "original_sha256": "9b7c079a83898b83511b13afe032bc129e68a8ed557fd728248f5ee1e0f7acaa",
+          "anchor_raw_base64": "ICAgICAgICAgICAgZHJhd19wYXNzLmluc3RhbmNlX2J1ZmZlcl9wYXlsb2FkX2hhc2ggPSBTb21lKHBheWxvYWRfaGFzaCk7Cg==",
+          "added_raw_base64": "ICAgICAgICAgICAgLy8g5ZOI5biM6KGo56S65bey5o6S5YWl5pys5bin5LiK5Lyg5om55qyh77yb6Iul5bin5pyq5o+Q5Lqk77yM54i257qn5LiK5Lyg5LqL5Yqh5Lya6KaB5rGC5LiL5bin5YWo6YeP6YeN5pS+44CCCg==",
+          "text": "            // 哈希表示已排入本帧上传批次；若帧未提交，父级上传事务会要求下帧全量重放。",
+          "insert_before": "            draw_pass.instance_buffer_payload_hash = Some(payload_hash);",
+          "anchor_preimage_line": 59
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/instance_buffer.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/instance_buffer.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "9b7c079a83898b83511b13afe032bc129e68a8ed557fd728248f5ee1e0f7acaa",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/mod.rs",
+      "before_sha256": "a913a6ea11cbf5b804f0152a16221ffc84fd1671ec73ff58d0b92a81bdc8296b",
+      "after_sha256": "a39860bb34185c2af07f8e54e8b37821fdac0bf58eac08f5260b8fab6f571e4a",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "index": 2,
+          "anchor": "mod instance;",
+          "comment": "//! 将位图字形计划映射到按格式驻留的 GPU 资源；上传只排队，shadow 状态由文字系统在帧提交成功后确认。",
+          "reason": "bitmap_gpu_owner_boundary",
+          "original_sha256": "a913a6ea11cbf5b804f0152a16221ffc84fd1671ec73ff58d0b92a81bdc8296b",
+          "anchor_raw_base64": "bW9kIGluc3RhbmNlOwo=",
+          "added_raw_base64": "Ly8hIOWwhuS9jeWbvuWtl+W9ouiuoeWIkuaYoOWwhOWIsOaMieagvOW8j+mpu+eVmeeahCBHUFUg6LWE5rqQ77yb5LiK5Lyg5Y+q5o6S6Zif77yMc2hhZG93IOeKtuaAgeeUseaWh+Wtl+ezu+e7n+WcqOW4p+aPkOS6pOaIkOWKn+WQjuehruiupOOAggo=",
+          "text": "//! 将位图字形计划映射到按格式驻留的 GPU 资源；上传只排队，shadow 状态由文字系统在帧提交成功后确认。",
+          "insert_before": "mod instance;",
+          "anchor_preimage_line": 1
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/mod.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/mod.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "a913a6ea11cbf5b804f0152a16221ffc84fd1671ec73ff58d0b92a81bdc8296b",
+          "attributed_at": "2026-09-27T14:28:09.407910+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/pipeline.rs",
+      "before_sha256": "161e0fbbc0dfbc47536dee52fe7379f326f67388942b098368739e8506ee49b5",
+      "after_sha256": "161e0fbbc0dfbc47536dee52fe7379f326f67388942b098368739e8506ee49b5",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/pipeline.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/pipeline.rs",
+          "session_id": "frameworks05-m3-text-hardcut-closeout-20260716",
+          "baseline_epoch": 147,
+          "content_hash": "77edc2600180ac41f11b1fa6053792b5793104427c4325e27cf0a5396bd3c64e",
+          "attributed_at": "2026-07-16T12:59:21.047764+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/product_framebuffer.rs",
+      "before_sha256": "0d05398977ff9586cc619947ea0fde885399f8c715190750c2d2b224e1efbf1b",
+      "after_sha256": "cb8df0b890ec6eb7b039bebb354d9d8884ed82e1299a33a7c522b9c8e4981920",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "index": 4,
+          "anchor": "                    matches!(letter, b'D' | b'd' | b'E' | b'e' | b'F' | b'f')",
+          "comment": "                    // BUG: [CR-R02-runtime_wave12_graphics_ui_atlas_sdf-0003] Windows 传入 D:\\targets 等禁用目录仍获批准；这里只核对盘符，未核对盘根 cargo-targets，导出前校验会误报目录合规。",
+          "reason": "target_guard_accepts_forbidden_root",
+          "original_sha256": "0d05398977ff9586cc619947ea0fde885399f8c715190750c2d2b224e1efbf1b",
+          "anchor_raw_base64": "ICAgICAgICAgICAgICAgICAgICBtYXRjaGVzIShsZXR0ZXIsIGInRCcgfCBiJ2QnIHwgYidFJyB8IGInZScgfCBiJ0YnIHwgYidmJykK",
+          "added_raw_base64": "ICAgICAgICAgICAgICAgICAgICAvLyBCVUc6IFtDUi1SMDItcnVudGltZV93YXZlMTJfZ3JhcGhpY3NfdWlfYXRsYXNfc2RmLTAwMDNdIFdpbmRvd3Mg5Lyg5YWlIEQ6XHRhcmdldHMg562J56aB55So55uu5b2V5LuN6I635om55YeG77yb6L+Z6YeM5Y+q5qC45a+555uY56ym77yM5pyq5qC45a+555uY5qC5IGNhcmdvLXRhcmdldHPvvIzlr7zlh7rliY3moKHpqozkvJror6/miqXnm67lvZXlkIjop4TjgIIK",
+          "text": "                    // BUG: [CR-R02-runtime_wave12_graphics_ui_atlas_sdf-0003] Windows 传入 D:\\targets 等禁用目录仍获批准；这里只核对盘符，未核对盘根 cargo-targets，导出前校验会误报目录合规。",
+          "insert_before": "                    matches!(letter, b'D' | b'd' | b'E' | b'e' | b'F' | b'f')",
+          "anchor_preimage_line": 414
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/product_framebuffer.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/product_framebuffer.rs",
+          "session_id": "failure-roll-01a07160-text04",
+          "baseline_epoch": 601,
+          "content_hash": "7eb64a778c8138ff5092d4e476eaa6216c90f214e5de5baab34307771cc5b7d7",
+          "attributed_at": "2026-09-08T07:03:29.345726+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs",
+      "before_sha256": "9a0b50aada3ee28829b85b64738e309b1c87cd730864675c9ceca8a4dd264a80",
+      "after_sha256": "ac54a37ef316583bdf9ebd39476d3314bd2a9e44737ffe370c3337093a15e14f",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "index": 5,
+          "anchor": "            for command in &draw_pass.draw_commands {",
+          "comment": "            // 保留原画家顺序并在相邻命令间切换图集；按格式重排会改变重叠字形的合成结果。",
+          "reason": "painter_order",
+          "original_sha256": "9a0b50aada3ee28829b85b64738e309b1c87cd730864675c9ceca8a4dd264a80",
+          "anchor_raw_base64": "ICAgICAgICAgICAgZm9yIGNvbW1hbmQgaW4gJmRyYXdfcGFzcy5kcmF3X2NvbW1hbmRzIHsK",
+          "added_raw_base64": "ICAgICAgICAgICAgLy8g5L+d55WZ5Y6f55S75a626aG65bqP5bm25Zyo55u46YK75ZG95Luk6Ze05YiH5o2i5Zu+6ZuG77yb5oyJ5qC85byP6YeN5o6S5Lya5pS55Y+Y6YeN5Y+g5a2X5b2i55qE5ZCI5oiQ57uT5p6c44CCCg==",
+          "text": "            // 保留原画家顺序并在相邻命令间切换图集；按格式重排会改变重叠字形的合成结果。",
+          "insert_before": "            for command in &draw_pass.draw_commands {",
+          "anchor_preimage_line": 262
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs",
+          "session_id": "text04-architecture-profile-audit-sol-20260824",
+          "baseline_epoch": 421,
+          "content_hash": "f9d95363a36f024ab244f802c261f0b5c60661f56fc9ae87287965502d4d5ac5",
+          "attributed_at": "2026-08-24T08:30:19.379869+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/resources.rs",
+      "before_sha256": "bbb8679399fd7f2c863b509097780640fdfd7e286b3be8fb2ca797e566c034ed",
+      "after_sha256": "bbb8679399fd7f2c863b509097780640fdfd7e286b3be8fb2ca797e566c034ed",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/resources.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/resources.rs",
+          "session_id": "frameworks05-m3-text-hardcut-closeout-20260716",
+          "baseline_epoch": 147,
+          "content_hash": "24b80d15e8529b0a42a20dda31b5416f0a102db7e2752083e90c336d0be8974f",
+          "attributed_at": "2026-07-16T12:59:21.047764+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/state.rs",
+      "before_sha256": "a4d9edbda6bde16db02a21a9528d1279e71a0cc42c6578001db84dd2fe5cd9dd",
+      "after_sha256": "a4d9edbda6bde16db02a21a9528d1279e71a0cc42c6578001db84dd2fe5cd9dd",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/state.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/state.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "a4d9edbda6bde16db02a21a9528d1279e71a0cc42c6578001db84dd2fe5cd9dd",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs",
+      "before_sha256": "2a10b759a8b04dec52937f7c2fbdc1fa8236e1ea5bcaa7a25aab5afdd31eec74",
+      "after_sha256": "2a10b759a8b04dec52937f7c2fbdc1fa8236e1ea5bcaa7a25aab5afdd31eec74",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs",
+          "session_id": "text04-architecture-profile-audit-sol-20260824",
+          "baseline_epoch": 421,
+          "content_hash": "3b1935e15e4fd29903c583059f9e9e831f9061323431e30371bc1af788d93e36",
+          "attributed_at": "2026-08-24T08:30:19.379869+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs",
+      "before_sha256": "ac78478866ccdde5e98112d4c7ea3b7fa39234954db9f9856d203eade70aed7f",
+      "after_sha256": "aae23aaf313d093ce75aed78f21fe2213d12f48d7cdad455468adf2a85486926",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "index": 9,
+          "anchor": "mod binding;",
+          "comment": "//! 核验位图 staging 与逐页上传请求，并准备统一资源上传批次；任一失败都拒绝整批及 shadow 提交。",
+          "reason": "upload_preparation_boundary",
+          "original_sha256": "ac78478866ccdde5e98112d4c7ea3b7fa39234954db9f9856d203eade70aed7f",
+          "anchor_raw_base64": "bW9kIGJpbmRpbmc7Cg==",
+          "added_raw_base64": "Ly8hIOaguOmqjOS9jeWbviBzdGFnaW5nIOS4jumAkOmhteS4iuS8oOivt+axgu+8jOW5tuWHhuWkh+e7n+S4gOi1hOa6kOS4iuS8oOaJueasoe+8m+S7u+S4gOWksei0pemDveaLkue7neaVtOaJueWPiiBzaGFkb3cg5o+Q5Lqk44CCCg==",
+          "text": "//! 核验位图 staging 与逐页上传请求，并准备统一资源上传批次；任一失败都拒绝整批及 shadow 提交。",
+          "insert_before": "mod binding;",
+          "anchor_preimage_line": 1
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs",
+          "session_id": "text04-architecture-profile-audit-sol-20260824",
+          "baseline_epoch": 421,
+          "content_hash": "fa741d8b9eddb18a728c70f7d5214977256d9a4a6d3a9b60ed947b07bb70040f",
+          "attributed_at": "2026-08-24T08:35:10.168165+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/binding.rs",
+      "before_sha256": "41cc3c99b86b03083007274fe22eb49985ebc0f7f54c5b7f47ffc74df1fc626f",
+      "after_sha256": "41cc3c99b86b03083007274fe22eb49985ebc0f7f54c5b7f47ffc74df1fc626f",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/binding.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/binding.rs",
+          "session_id": "root-runtime-editor-optimize-20260901-r6",
+          "baseline_epoch": 587,
+          "content_hash": "41cc3c99b86b03083007274fe22eb49985ebc0f7f54c5b7f47ffc74df1fc626f",
+          "attributed_at": "2026-09-01T12:17:19.536812+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs",
+      "before_sha256": "39a92ade2a5ab57611fa77c13761f9c38ac60f973a26c536732a6d9bb6d796ac",
+      "after_sha256": "39a92ade2a5ab57611fa77c13761f9c38ac60f973a26c536732a6d9bb6d796ac",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs",
+          "session_id": "text04-architecture-profile-audit-sol-20260824",
+          "baseline_epoch": 421,
+          "content_hash": "3775b43579c36289943d4c915a2e2c09988d67bb0dd613b0b76e8627f1ea7fea",
+          "attributed_at": "2026-08-24T08:35:10.168165+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/resource.rs",
+      "before_sha256": "d4c3ac56a9416f982b2999272db67432926681d3db5dadd39445df9d3bfb6634",
+      "after_sha256": "d4c3ac56a9416f982b2999272db67432926681d3db5dadd39445df9d3bfb6634",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/resource.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/resource.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "d4c3ac56a9416f982b2999272db67432926681d3db5dadd39445df9d3bfb6634",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/submission.rs",
+      "before_sha256": "f3a9cae92df2c6181c3da460d124097f678a0655866c7788e7bbae5634a48b2c",
+      "after_sha256": "f3a9cae92df2c6181c3da460d124097f678a0655866c7788e7bbae5634a48b2c",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/submission.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/submission.rs",
+          "session_id": "frameworks05-m3-text-hardcut-closeout-20260716",
+          "baseline_epoch": 147,
+          "content_hash": "db58d40256dfca76c52901f8cf0ec88b65ca8f396c5d454a789e63001a24a099",
+          "attributed_at": "2026-07-16T12:59:21.047764+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs",
+      "before_sha256": "4b4561bf62de8967d606f925a438337686845cbb438e4e94a4a12c7d7586484d",
+      "after_sha256": "4b4561bf62de8967d606f925a438337686845cbb438e4e94a4a12c7d7586484d",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs",
+          "session_id": "root-runtime-editor-optimize-20260901-r6",
+          "baseline_epoch": 587,
+          "content_hash": "0e85ca0ae1162f22e7d7598158390c3fd40bf47b562a2e67a13c1f4b6e3249ba",
+          "attributed_at": "2026-09-01T12:17:19.536812+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/write.rs",
+      "before_sha256": "79f83c9cd3066b7a0e1692fbda102957d6db718114258f6f4691e6a9f1f26465",
+      "after_sha256": "79f83c9cd3066b7a0e1692fbda102957d6db718114258f6f4691e6a9f1f26465",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/write.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/write.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "79f83c9cd3066b7a0e1692fbda102957d6db718114258f6f4691e6a9f1f26465",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs",
+      "before_sha256": "30c71a513d4a7460d3003f13407ce0fc0ec9e255b7e8c03b7a00816be1a3d540",
+      "after_sha256": "5171f1184497bbc27866cc5a55347743f49c0805d53d3212f3fcea9eca79bdbb",
+      "changed": true,
+      "added_comment_lines": 3,
+      "additions": [
+        {
+          "index": 16,
+          "anchor": "pub(super) struct ScreenSpaceUiSdfAtlas {",
+          "comment": "/// 维护字形槽布局与逐页脏区；像素由文字系统烘焙，调用者在上传成功后确认清脏。",
+          "reason": "atlas_layout_owner",
+          "original_sha256": "30c71a513d4a7460d3003f13407ce0fc0ec9e255b7e8c03b7a00816be1a3d540",
+          "anchor_raw_base64": "cHViKHN1cGVyKSBzdHJ1Y3QgU2NyZWVuU3BhY2VVaVNkZkF0bGFzIHsK",
+          "added_raw_base64": "Ly8vIOe7tOaKpOWtl+W9ouanveW4g+WxgOS4jumAkOmhteiEj+WMuu+8m+WDj+e0oOeUseaWh+Wtl+ezu+e7n+eDmOeEme+8jOiwg+eUqOiAheWcqOS4iuS8oOaIkOWKn+WQjuehruiupOa4heiEj+OAggo=",
+          "text": "/// 维护字形槽布局与逐页脏区；像素由文字系统烘焙，调用者在上传成功后确认清脏。",
+          "insert_before": "pub(super) struct ScreenSpaceUiSdfAtlas {",
+          "anchor_preimage_line": 93
+        },
+        {
+          "index": 16,
+          "anchor": "        self.rebuild_retained_frame(frame);",
+          "comment": "        // 局部路径失败前可能已修改槽或 run，必须立即完整重建以恢复相互匹配的索引与脏页。",
+          "reason": "failed_local_delta_rebuild",
+          "original_sha256": "30c71a513d4a7460d3003f13407ce0fc0ec9e255b7e8c03b7a00816be1a3d540",
+          "anchor_raw_base64": "ICAgICAgICBzZWxmLnJlYnVpbGRfcmV0YWluZWRfZnJhbWUoZnJhbWUpOwo=",
+          "added_raw_base64": "ICAgICAgICAvLyDlsYDpg6jot6/lvoTlpLHotKXliY3lj6/og73lt7Lkv67mlLnmp73miJYgcnVu77yM5b+F6aG756uL5Y2z5a6M5pW06YeN5bu65Lul5oGi5aSN55u45LqS5Yy56YWN55qE57Si5byV5LiO6ISP6aG144CCCg==",
+          "text": "        // 局部路径失败前可能已修改槽或 run，必须立即完整重建以恢复相互匹配的索引与脏页。",
+          "insert_before": "        self.rebuild_retained_frame(frame);",
+          "anchor_preimage_line": 221
+        },
+        {
+          "index": 16,
+          "anchor": "        if self.prepared_texts.matches_iter(texts.clone()) {",
+          "comment": "        // BUG: [CR-R02-runtime_wave12_graphics_ui_atlas_sdf-0002] 字体失效后尚未确认上传而再次准备相同文本时，此快路径返回空脏页；stable_cache_report 清空 dirty_pages，font_face_invalidation_rebuilds_stable_slots_as_dirty_pages 在再次准备后要求非空脏页，与此返回值矛盾。",
+          "reason": "pending_dirty_report_loss",
+          "original_sha256": "30c71a513d4a7460d3003f13407ce0fc0ec9e255b7e8c03b7a00816be1a3d540",
+          "anchor_raw_base64": "ICAgICAgICBpZiBzZWxmLnByZXBhcmVkX3RleHRzLm1hdGNoZXNfaXRlcih0ZXh0cy5jbG9uZSgpKSB7Cg==",
+          "added_raw_base64": "ICAgICAgICAvLyBCVUc6IFtDUi1SMDItcnVudGltZV93YXZlMTJfZ3JhcGhpY3NfdWlfYXRsYXNfc2RmLTAwMDJdIOWtl+S9k+WkseaViOWQjuWwmuacquehruiupOS4iuS8oOiAjOWGjeasoeWHhuWkh+ebuOWQjOaWh+acrOaXtu+8jOatpOW/q+i3r+W+hOi/lOWbnuepuuiEj+mhte+8m3N0YWJsZV9jYWNoZV9yZXBvcnQg5riF56m6IGRpcnR5X3BhZ2Vz77yMZm9udF9mYWNlX2ludmFsaWRhdGlvbl9yZWJ1aWxkc19zdGFibGVfc2xvdHNfYXNfZGlydHlfcGFnZXMg5Zyo5YaN5qyh5YeG5aSH5ZCO6KaB5rGC6Z2e56m66ISP6aG177yM5LiO5q2k6L+U5Zue5YC855+b55u+44CCCg==",
+          "text": "        // BUG: [CR-R02-runtime_wave12_graphics_ui_atlas_sdf-0002] 字体失效后尚未确认上传而再次准备相同文本时，此快路径返回空脏页；stable_cache_report 清空 dirty_pages，font_face_invalidation_rebuilds_stable_slots_as_dirty_pages 在再次准备后要求非空脏页，与此返回值矛盾。",
+          "insert_before": "        if self.prepared_texts.matches_iter(texts.clone()) {",
+          "anchor_preimage_line": 255
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs",
+          "session_id": "frameworks05-m3-text-hardcut-closeout-20260716",
+          "baseline_epoch": 147,
+          "content_hash": "9a1e1fdfa56a3c035e6e34d73c675a56c1ea4ce6d1eb4daa79da308b67140727",
+          "attributed_at": "2026-07-16T12:59:22.037496+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/generation_failures.rs",
+      "before_sha256": "93ccda391ac44073dadcb859ef62250b987b5bc981ce9cf71667614529295cd3",
+      "after_sha256": "80090b0bd07eba4bc0b23e5f6cb8c0f850ea7f629d8b7b75301f5bad065cfbd3",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "index": 17,
+          "anchor": "        assert!(!source.contains(\"run.glyph_generation_failures = run\"));",
+          "comment": "        // BUG: [CR-R02-runtime_wave12_graphics_ui_atlas_sdf-0001] 读取整个自身文件会包含本断言的禁用片段字面量，正常实现也在此失败；证据：include_str! 的输入与断言位于同一文件。",
+          "reason": "negative_guard_self_hit",
+          "original_sha256": "93ccda391ac44073dadcb859ef62250b987b5bc981ce9cf71667614529295cd3",
+          "anchor_raw_base64": "ICAgICAgICBhc3NlcnQhKCFzb3VyY2UuY29udGFpbnMoInJ1bi5nbHlwaF9nZW5lcmF0aW9uX2ZhaWx1cmVzID0gcnVuIikpOwo=",
+          "added_raw_base64": "ICAgICAgICAvLyBCVUc6IFtDUi1SMDItcnVudGltZV93YXZlMTJfZ3JhcGhpY3NfdWlfYXRsYXNfc2RmLTAwMDFdIOivu+WPluaVtOS4quiHqui6q+aWh+S7tuS8muWMheWQq+acrOaWreiogOeahOemgeeUqOeJh+auteWtl+mdoumHj++8jOato+W4uOWunueOsOS5n+WcqOatpOWksei0pe+8m+ivgeaNru+8mmluY2x1ZGVfc3RyISDnmoTovpPlhaXkuI7mlq3oqIDkvY3kuo7lkIzkuIDmlofku7bjgIIK",
+          "text": "        // BUG: [CR-R02-runtime_wave12_graphics_ui_atlas_sdf-0001] 读取整个自身文件会包含本断言的禁用片段字面量，正常实现也在此失败；证据：include_str! 的输入与断言位于同一文件。",
+          "insert_before": "        assert!(!source.contains(\"run.glyph_generation_failures = run\"));",
+          "anchor_preimage_line": 96
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/generation_failures.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/generation_failures.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "93ccda391ac44073dadcb859ef62250b987b5bc981ce9cf71667614529295cd3",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/prepared_texts.rs",
+      "before_sha256": "319a90fc8a24a4bd90aca17a7c90da6100a11893c537ef44d0054109d206991f",
+      "after_sha256": "9716fa8e82ed2c48276546fa37beeb0ca9793c27bcd3163d4cb298f688cb6b56",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "index": 18,
+          "anchor": "    glyph_artifact_identity: Option<ScreenSpaceUiGlyphArtifactCacheIdentity>,",
+          "comment": "    // TODO: [CR-R02-runtime_wave12_graphics_ui_atlas_sdf-0005] 快照仅存产物地址而不持有 Arc；尚缺跨帧地址不被复用的保活证据，需追踪父级引用并验证同代数产物替换后的缓存失效。",
+          "reason": "raw_identity_lifetime_contract",
+          "original_sha256": "319a90fc8a24a4bd90aca17a7c90da6100a11893c537ef44d0054109d206991f",
+          "anchor_raw_base64": "ICAgIGdseXBoX2FydGlmYWN0X2lkZW50aXR5OiBPcHRpb248U2NyZWVuU3BhY2VVaUdseXBoQXJ0aWZhY3RDYWNoZUlkZW50aXR5PiwK",
+          "added_raw_base64": "ICAgIC8vIFRPRE86IFtDUi1SMDItcnVudGltZV93YXZlMTJfZ3JhcGhpY3NfdWlfYXRsYXNfc2RmLTAwMDVdIOW/q+eFp+S7heWtmOS6p+eJqeWcsOWdgOiAjOS4jeaMgeaciSBBcmPvvJvlsJrnvLrot6jluKflnLDlnYDkuI3ooqvlpI3nlKjnmoTkv53mtLvor4Hmja7vvIzpnIDov73ouKrniLbnuqflvJXnlKjlubbpqozor4HlkIzku6PmlbDkuqfnianmm7/mjaLlkI7nmoTnvJPlrZjlpLHmlYjjgIIK",
+          "text": "    // TODO: [CR-R02-runtime_wave12_graphics_ui_atlas_sdf-0005] 快照仅存产物地址而不持有 Arc；尚缺跨帧地址不被复用的保活证据，需追踪父级引用并验证同代数产物替换后的缓存失效。",
+          "insert_before": "    glyph_artifact_identity: Option<ScreenSpaceUiGlyphArtifactCacheIdentity>,",
+          "anchor_preimage_line": 16
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/prepared_texts.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/prepared_texts.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "319a90fc8a24a4bd90aca17a7c90da6100a11893c537ef44d0054109d206991f",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/cache_report.rs",
+      "before_sha256": "6d9cc5c8ca3ccf50b04d2464570a8972de525d3c3a9726bea05071a8cd1d4ba5",
+      "after_sha256": "6d9cc5c8ca3ccf50b04d2464570a8972de525d3c3a9726bea05071a8cd1d4ba5",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/cache_report.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/cache_report.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "6d9cc5c8ca3ccf50b04d2464570a8972de525d3c3a9726bea05071a8cd1d4ba5",
+          "attributed_at": "2026-09-27T14:28:09.407910+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/mod.rs",
+      "before_sha256": "4f204aa4f02577ee59b36679e97dd5ef6c766fccaae0bb1f27cd365182a14fa2",
+      "after_sha256": "4f204aa4f02577ee59b36679e97dd5ef6c766fccaae0bb1f27cd365182a14fa2",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/mod.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/mod.rs",
+          "session_id": "frameworks05-m3-text-hardcut-closeout-20260716",
+          "baseline_epoch": 147,
+          "content_hash": "f5a2db950dc77cb3e59f70528fb0bfa7a3f7afea205c9da3f166a3bf1b75ba54",
+          "attributed_at": "2026-07-16T12:59:22.037496+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/plan.rs",
+      "before_sha256": "ea9e5bb0a08c8fd889b7155d3e24c8254f76854e523a5dd2d665197ac862d85e",
+      "after_sha256": "ea9e5bb0a08c8fd889b7155d3e24c8254f76854e523a5dd2d665197ac862d85e",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/plan.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/plan.rs",
+          "session_id": "failure-roll-01a07160-text05",
+          "baseline_epoch": 601,
+          "content_hash": "ea9e5bb0a08c8fd889b7155d3e24c8254f76854e523a5dd2d665197ac862d85e",
+          "attributed_at": "2026-09-08T06:43:24.645910+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/text_keys.rs",
+      "before_sha256": "65370a03dda5a419e00cf3817dc9d5cda9b98b266d4a5bd57ea3e606d1c682f8",
+      "after_sha256": "65370a03dda5a419e00cf3817dc9d5cda9b98b266d4a5bd57ea3e606d1c682f8",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/text_keys.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/text_keys.rs",
+          "session_id": "frameworks05-m3-text-hardcut-closeout-20260716",
+          "baseline_epoch": 147,
+          "content_hash": "92b16699df325f3d4a6aa10873370d3c50dd1f415573fad92e671f95c3c3416d",
+          "attributed_at": "2026-07-16T12:59:22.037496+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs",
+      "before_sha256": "c7ac63861b48620d1f7b909e29a1d8fc2ec54eeb1096c4ae25562412d3cd627f",
+      "after_sha256": "b23b406ee7230298222695b198a5dc4d83a2ba89b7cbcd0707435fac5c7ef912",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "index": 23,
+          "anchor": "use crate::core::math::UVec2;",
+          "comment": "//! 消费文字系统的槽计划和烘焙结果，保留距离场几何与材质并排入资源上传；提交确认由父级 UI 事务负责。",
+          "reason": "sdf_renderer_boundary",
+          "original_sha256": "c7ac63861b48620d1f7b909e29a1d8fc2ec54eeb1096c4ae25562412d3cd627f",
+          "anchor_raw_base64": "dXNlIGNyYXRlOjpjb3JlOjptYXRoOjpVVmVjMjsK",
+          "added_raw_base64": "Ly8hIOa2iOi0ueaWh+Wtl+ezu+e7n+eahOanveiuoeWIkuWSjOeDmOeEmee7k+aenO+8jOS/neeVmei3neemu+WcuuWHoOS9leS4juadkOi0qOW5tuaOkuWFpei1hOa6kOS4iuS8oO+8m+aPkOS6pOehruiupOeUseeItue6pyBVSSDkuovliqHotJ/otKPjgIIK",
+          "text": "//! 消费文字系统的槽计划和烘焙结果，保留距离场几何与材质并排入资源上传；提交确认由父级 UI 事务负责。",
+          "insert_before": "use crate::core::math::UVec2;",
+          "anchor_preimage_line": 1
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs",
+          "session_id": "frameworks05-m3-text-hardcut-closeout-20260716",
+          "baseline_epoch": 147,
+          "content_hash": "cc6cb2c6fe055cb0704700fd1f2c13ee121160f6ad160c774831ab3eb7c42da5",
+          "attributed_at": "2026-07-16T12:59:22.037496+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/artifact_vertices.rs",
+      "before_sha256": "d698d1f2574ffb459e797b0c0280406f7dd9550583648020a9c87beab8233090",
+      "after_sha256": "d698d1f2574ffb459e797b0c0280406f7dd9550583648020a9c87beab8233090",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/artifact_vertices.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/artifact_vertices.rs",
+          "session_id": "runtime-text-artifact-baseline-20260813",
+          "baseline_epoch": 266,
+          "content_hash": "d698d1f2574ffb459e797b0c0280406f7dd9550583648020a9c87beab8233090",
+          "attributed_at": "2026-08-13T03:49:39.008344+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/atlas_resources.rs",
+      "before_sha256": "57adf06d97b17b4265589c9d1ef11234b4d7eca73095a16e871ff9c3c2410ce8",
+      "after_sha256": "a2f309406c0f289e6ee963bd6b9f58f9c3c9ff7f321e9e5a82eda4d614965fb6",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "index": 25,
+          "anchor": "        texture_uploads.append(prepared_uploads);",
+          "comment": "        // 所有页先在局部批次完成校验，才合入帧上传包，避免后续页失败时留下部分上传。",
+          "reason": "all_pages_before_append",
+          "original_sha256": "57adf06d97b17b4265589c9d1ef11234b4d7eca73095a16e871ff9c3c2410ce8",
+          "anchor_raw_base64": "ICAgICAgICB0ZXh0dXJlX3VwbG9hZHMuYXBwZW5kKHByZXBhcmVkX3VwbG9hZHMpOwo=",
+          "added_raw_base64": "ICAgICAgICAvLyDmiYDmnInpobXlhYjlnKjlsYDpg6jmibnmrKHlrozmiJDmoKHpqozvvIzmiY3lkIjlhaXluKfkuIrkvKDljIXvvIzpgb/lhY3lkI7nu63pobXlpLHotKXml7bnlZnkuIvpg6jliIbkuIrkvKDjgIIK",
+          "text": "        // 所有页先在局部批次完成校验，才合入帧上传包，避免后续页失败时留下部分上传。",
+          "insert_before": "        texture_uploads.append(prepared_uploads);",
+          "anchor_preimage_line": 173
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/atlas_resources.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/atlas_resources.rs",
+          "session_id": "frameworks05-m3-text-hardcut-closeout-20260716",
+          "baseline_epoch": 147,
+          "content_hash": "65934d36fce835b62c13200a5214666c2a26bdc6a8ce6c37ef3e3995706533c7",
+          "attributed_at": "2026-07-16T12:59:22.037496+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/decorations.rs",
+      "before_sha256": "98dc74c2337aa5a349f79224efa45cacc977dcf2805366b02a5e80a766329e3c",
+      "after_sha256": "94a051a19f68aa55ca49b81d23c1b7a4ed68f4716b3d50234a9e8d49bb563724",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "index": 26,
+          "anchor": "    let clip = text",
+          "comment": "    // TODO: [CR-R02-runtime_wave12_graphics_ui_atlas_sdf-0004] 显式裁剪框与视口无交集时会退回整个视口；尚缺入口到装饰生成的离屏裁剪 fixture，需验证上游是否剔除该输入。",
+          "reason": "off_viewport_explicit_clip_contract",
+          "original_sha256": "98dc74c2337aa5a349f79224efa45cacc977dcf2805366b02a5e80a766329e3c",
+          "anchor_raw_base64": "ICAgIGxldCBjbGlwID0gdGV4dAo=",
+          "added_raw_base64": "ICAgIC8vIFRPRE86IFtDUi1SMDItcnVudGltZV93YXZlMTJfZ3JhcGhpY3NfdWlfYXRsYXNfc2RmLTAwMDRdIOaYvuW8j+ijgeWJquahhuS4juinhuWPo+aXoOS6pOmbhuaXtuS8mumAgOWbnuaVtOS4quinhuWPo++8m+Wwmue8uuWFpeWPo+WIsOijhemlsOeUn+aIkOeahOemu+Wxj+ijgeWJqiBmaXh0dXJl77yM6ZyA6aqM6K+B5LiK5ri45piv5ZCm5YmU6Zmk6K+l6L6T5YWl44CCCg==",
+          "text": "    // TODO: [CR-R02-runtime_wave12_graphics_ui_atlas_sdf-0004] 显式裁剪框与视口无交集时会退回整个视口；尚缺入口到装饰生成的离屏裁剪 fixture，需验证上游是否剔除该输入。",
+          "insert_before": "    let clip = text",
+          "anchor_preimage_line": 43
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/decorations.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/decorations.rs",
+          "session_id": "runtime-text-artifact-baseline-20260813",
+          "baseline_epoch": 266,
+          "content_hash": "698ce625cf2ff98dfbff81127cb1ef1a375a86bbfa273b23855ef8d733e49c75",
+          "attributed_at": "2026-08-13T03:49:39.008344+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/material.rs",
+      "before_sha256": "0d13a1abe8fd2455269d72c6c803734d9eda4bd35873848656af26bca2bbb156",
+      "after_sha256": "80488463b70a93f4cb25b6c7bccebe14bc79d996ae1f67793cd0d324e46a4d7e",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "index": 27,
+          "anchor": "        let uniform_stride = aligned_uniform_stride(",
+          "comment": "        // 动态 offset 的条目间距取设备对齐要求，不能直接把 Rust uniform 大小作为步长。",
+          "reason": "uniform_dynamic_alignment",
+          "original_sha256": "0d13a1abe8fd2455269d72c6c803734d9eda4bd35873848656af26bca2bbb156",
+          "anchor_raw_base64": "ICAgICAgICBsZXQgdW5pZm9ybV9zdHJpZGUgPSBhbGlnbmVkX3VuaWZvcm1fc3RyaWRlKAo=",
+          "added_raw_base64": "ICAgICAgICAvLyDliqjmgIEgb2Zmc2V0IOeahOadoeebrumXtOi3neWPluiuvuWkh+Wvuem9kOimgeaxgu+8jOS4jeiDveebtOaOpeaKiiBSdXN0IHVuaWZvcm0g5aSn5bCP5L2c5Li65q2l6ZW/44CCCg==",
+          "text": "        // 动态 offset 的条目间距取设备对齐要求，不能直接把 Rust uniform 大小作为步长。",
+          "insert_before": "        let uniform_stride = aligned_uniform_stride(",
+          "anchor_preimage_line": 251
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/material.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/material.rs",
+          "session_id": "frameworks05-m3-text-hardcut-closeout-20260716",
+          "baseline_epoch": 147,
+          "content_hash": "d8ff886caa60e2f59906ec7520f09876eb78451a3e4f157e9cd368eae7cbd67a",
+          "attributed_at": "2026-07-16T12:59:22.037496+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/shaped_advances.rs",
+      "before_sha256": "0235aaf44a5d0bdd7e8aaa4fa81949e18ffe27508cfc0fbce39c7c65dbeb4d55",
+      "after_sha256": "0235aaf44a5d0bdd7e8aaa4fa81949e18ffe27508cfc0fbce39c7c65dbeb4d55",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/shaped_advances.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/shaped_advances.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "0235aaf44a5d0bdd7e8aaa4fa81949e18ffe27508cfc0fbce39c7c65dbeb4d55",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/compiled_frame.rs",
+      "before_sha256": "2f34e3f3acb80645a1976e35f290a1a191dc38bc68adeb5c4c3827b87ad7cc83",
+      "after_sha256": "2f34e3f3acb80645a1976e35f290a1a191dc38bc68adeb5c4c3827b87ad7cc83",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/compiled_frame.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/compiled_frame.rs",
+          "session_id": "failure-roll-01a07160-text05",
+          "baseline_epoch": 601,
+          "content_hash": "2f34e3f3acb80645a1976e35f290a1a191dc38bc68adeb5c4c3827b87ad7cc83",
+          "attributed_at": "2026-09-08T06:43:24.645910+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/decoration_geometry.rs",
+      "before_sha256": "35ab1fd785a21e3e008279411a5187a6dc471c0931f1f162bbbad01497c596f9",
+      "after_sha256": "35ab1fd785a21e3e008279411a5187a6dc471c0931f1f162bbbad01497c596f9",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/decoration_geometry.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/decoration_geometry.rs",
+          "session_id": "runtime-text-artifact-baseline-20260813",
+          "baseline_epoch": 266,
+          "content_hash": "35ab1fd785a21e3e008279411a5187a6dc471c0931f1f162bbbad01497c596f9",
+          "attributed_at": "2026-08-13T03:49:39.008344+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/draw_plan.rs",
+      "before_sha256": "df2235f5cf0b469a76aa53bb72d030958c46d30a54728e95bd1efb1411609148",
+      "after_sha256": "df2235f5cf0b469a76aa53bb72d030958c46d30a54728e95bd1efb1411609148",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/draw_plan.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/draw_plan.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "df2235f5cf0b469a76aa53bb72d030958c46d30a54728e95bd1efb1411609148",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/layout_placement.rs",
+      "before_sha256": "d93975bcdeb23129080e104314cf02561735938dee4c202e856660c2cdb7df29",
+      "after_sha256": "d93975bcdeb23129080e104314cf02561735938dee4c202e856660c2cdb7df29",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/layout_placement.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/layout_placement.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "d93975bcdeb23129080e104314cf02561735938dee4c202e856660c2cdb7df29",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs",
+      "before_sha256": "3cc57b37ef18f894f254b911b751c329e0fc1de56b5ad09221410f31e4ef9e5e",
+      "after_sha256": "3cc57b37ef18f894f254b911b751c329e0fc1de56b5ad09221410f31e4ef9e5e",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs",
+          "session_id": "text01-font-artifact-service-20260825",
+          "baseline_epoch": 434,
+          "content_hash": "8c42683307f3268cde45a58f42a2d4a209c83ffc76ac88ed77e39c462b86c545",
+          "attributed_at": "2026-08-25T10:55:10.564251+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/prepare_report.rs",
+      "before_sha256": "ed848c4b3ec7d3a0ff6004e8acba29df4394f63632488d773f98acd40a65ef09",
+      "after_sha256": "ed848c4b3ec7d3a0ff6004e8acba29df4394f63632488d773f98acd40a65ef09",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/prepare_report.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/prepare_report.rs",
+          "session_id": "text01-font-artifact-service-20260825",
+          "baseline_epoch": 434,
+          "content_hash": "bb955911ba70569d96696f44b35bf8a908fe89e983cc1282ceb7108ec1d013be",
+          "attributed_at": "2026-08-25T10:55:10.564251+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/product_framebuffer/mod.rs",
+      "before_sha256": "3436eb5f6e463142d8e885796dea29878d65088ba2afacb1fe5293a5d9b1770b",
+      "after_sha256": "a53d6e2761362f57439562f64af87df9c69d4e477feff54c808468b464631204",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "index": 35,
+          "anchor": "                    matches!(letter, b'D' | b'd' | b'E' | b'e' | b'F' | b'f')",
+          "comment": "                    // BUG: [CR-R02-runtime_wave12_graphics_ui_atlas_sdf-0003] Windows 传入 D:\\targets 等禁用目录仍获批准；这里只核对盘符，未核对盘根 cargo-targets，导出前校验会误报目录合规。",
+          "reason": "target_guard_accepts_forbidden_root",
+          "original_sha256": "3436eb5f6e463142d8e885796dea29878d65088ba2afacb1fe5293a5d9b1770b",
+          "anchor_raw_base64": "ICAgICAgICAgICAgICAgICAgICBtYXRjaGVzIShsZXR0ZXIsIGInRCcgfCBiJ2QnIHwgYidFJyB8IGInZScgfCBiJ0YnIHwgYidmJykK",
+          "added_raw_base64": "ICAgICAgICAgICAgICAgICAgICAvLyBCVUc6IFtDUi1SMDItcnVudGltZV93YXZlMTJfZ3JhcGhpY3NfdWlfYXRsYXNfc2RmLTAwMDNdIFdpbmRvd3Mg5Lyg5YWlIEQ6XHRhcmdldHMg562J56aB55So55uu5b2V5LuN6I635om55YeG77yb6L+Z6YeM5Y+q5qC45a+555uY56ym77yM5pyq5qC45a+555uY5qC5IGNhcmdvLXRhcmdldHPvvIzlr7zlh7rliY3moKHpqozkvJror6/miqXnm67lvZXlkIjop4TjgIIK",
+          "text": "                    // BUG: [CR-R02-runtime_wave12_graphics_ui_atlas_sdf-0003] Windows 传入 D:\\targets 等禁用目录仍获批准；这里只核对盘符，未核对盘根 cargo-targets，导出前校验会误报目录合规。",
+          "insert_before": "                    matches!(letter, b'D' | b'd' | b'E' | b'e' | b'F' | b'f')",
+          "anchor_preimage_line": 431
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/product_framebuffer/mod.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/product_framebuffer/mod.rs",
+          "session_id": "frameworks05-m3-text-hardcut-closeout-20260716",
+          "baseline_epoch": 147,
+          "content_hash": "2235144b6071f2b9adb84cf9b745999f273ce997c8b961e7e02899dcd496c426",
+          "attributed_at": "2026-07-16T12:59:22.037496+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/shader_contract.rs",
+      "before_sha256": "6e28f2145f02527e0c7743923a1bde830dc95c092b5deaa717fe0dfd74566ac1",
+      "after_sha256": "6e28f2145f02527e0c7743923a1bde830dc95c092b5deaa717fe0dfd74566ac1",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/shader_contract.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/shader_contract.rs",
+          "session_id": "frameworks05-m3-text-hardcut-closeout-20260716",
+          "baseline_epoch": 147,
+          "content_hash": "6e28f2145f02527e0c7743923a1bde830dc95c092b5deaa717fe0dfd74566ac1",
+          "attributed_at": "2026-07-16T12:59:22.037496+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertices.rs",
+      "before_sha256": "abe6032ddb3ba8065c52c92c342a46695e77d2ca16ef69cff7619b35eb10599b",
+      "after_sha256": "cc5a2c807488917049d406f27f1841f2bedcf5ab5715a8b2b8ba52de80d4c407",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "index": 37,
+          "anchor": "#[repr(C)]",
+          "comment": "/// 与距离场 shader 的 location 0..7 成对维护；页号、解码模式和图元类型由 shader 按 flat 方式传递。",
+          "reason": "vertex_shader_contract",
+          "original_sha256": "abe6032ddb3ba8065c52c92c342a46695e77d2ca16ef69cff7619b35eb10599b",
+          "anchor_raw_base64": "I1tyZXByKEMpXQo=",
+          "added_raw_base64": "Ly8vIOS4jui3neemu+WcuiBzaGFkZXIg55qEIGxvY2F0aW9uIDAuLjcg5oiQ5a+557u05oqk77yb6aG15Y+344CB6Kej56CB5qih5byP5ZKM5Zu+5YWD57G75Z6L55SxIHNoYWRlciDmjIkgZmxhdCDmlrnlvI/kvKDpgJLjgIIK",
+          "text": "/// 与距离场 shader 的 location 0..7 成对维护；页号、解码模式和图元类型由 shader 按 flat 方式传递。",
+          "insert_before": "#[repr(C)]",
+          "anchor_preimage_line": 30
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertices.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertices.rs",
+          "session_id": "runtime-text-artifact-baseline-20260813",
+          "baseline_epoch": 266,
+          "content_hash": "12afa12ef5681c6ab990b905834a5f64d18c614cadd243136f73ad87b2798a26",
+          "attributed_at": "2026-08-13T03:49:39.008344+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertices/text.rs",
+      "before_sha256": "6bb7157d1bde359e69b712c65f0525dd45b1108d7db44beadf33dbe5b2de4ad2",
+      "after_sha256": "6bb7157d1bde359e69b712c65f0525dd45b1108d7db44beadf33dbe5b2de4ad2",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertices/text.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertices/text.rs",
+          "session_id": "runtime-text-artifact-baseline-20260813",
+          "baseline_epoch": 266,
+          "content_hash": "8d520ab5762152975696868bf06a585a89642fa10c022d53a3d797b8e2118c9d",
+          "attributed_at": "2026-08-13T03:49:39.008344+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    }
+  ],
+  "root_review_inputs": [
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\jobs\\runtime_wave12_graphics_ui_atlas_sdf.json",
+      "sha256": "369e5746d1103fcfd3aadfc5c6fd82bc2c26f5c101e6c9e22a05143ef24de191"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_ui_atlas_sdf-root-semantic-proof-20261002-r1.json",
+      "sha256": "c751aa25e753308259a2a7155a078448e5f34b47f9b5475255ef8c0b03d0c07a"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_ui_atlas_sdf-root-insertions-20261002-r3.json",
+      "sha256": "735190e3ebd87ba956674bd317f0f28287756d8bb73a5dd6b5548ee699455151"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_ui_atlas_sdf-root-issue-decisions-20261002-r1.json",
+      "sha256": "834bcb8c372065f51868ba0184a27abbfe2819f57067cbc9c8a16d8a4292d2a9"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_ui_atlas_sdf-root-private-candidate-check-20261002-r3.json",
+      "sha256": "50615a5cb830787f7481a88d6e5f3ffdadcd1a3e6ec6c35b58b51ba3291144b8"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\local_atlas_exact_20261002_r2.py",
+      "sha256": "de8fe59dce65e3644650b6bc2bce52719183bfc1b45ed9824229c44a189a995d"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave12-atlas-partial-upload-trace-20261002-r2\\raw-byte-seal.json",
+      "sha256": "2135eaa442206fb2b167e90ade52d40cab6d52634750395e2ff7350d794f43c6"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave12-atlas-instance-draw-trace-20261002-r3\\raw-byte-seal.json",
+      "sha256": "03e21b35a8ba36bae00bfb0b3749d5144a7e623a6aaa5431226968fba8d4f407"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave12-sdf-artifact-cache-trace-root-wrapper-20261002-r4\\raw-byte-seal.json",
+      "sha256": "894c99279a03e5155c5fc0d6f33bf39f6a61251d1de32b6069ddbec8d8a1f2eb"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave12-atlas-original-parser-artifact-verification-20261002-r1\\raw-byte-seal.json",
+      "sha256": "7a0e830883a7c761488ed65a7ad43645c81be260361dd81eef4d4ef6b3397b06"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave12-atlas-candidate-parse-20261002-r1\\raw-byte-seal.json",
+      "sha256": "0ad119adb2affd0f7b0dd2e1dc80345343586f2f4f7511df1826e60ff4d51fe0"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave12-atlas-candidate-parse-20261002-r2\\raw-byte-seal.json",
+      "sha256": "04508d50cb48d3fa512cc79bcf859dcb6fc85dbfb446559a0b8300eb284a49c7"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave12-atlas-candidate-parse-20261002-r1\\rustfmt-receipts.json",
+      "sha256": "c8fdd15c2525da65be913f82fa5620fc7ab7dd710a65a1ee9827ec3e41bafc0a"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave12-atlas-candidate-parse-20261002-r2\\rustfmt-receipts.json",
+      "sha256": "ef618f9966593f6ee5297acabfecf175c27d2a240505846ed4e7aa7cbdc3db04"
+    }
+  ],
+  "audit_only_diff": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-install-runtime_wave12_graphics_ui_atlas_sdf-20261002-r1\\audit-only.diff",
+    "sha256": "eb160cc78a34baadf959388d66e29231274f3e1361f1f5f2caa793adc28c1a7e"
+  },
+  "authority": {
+    "user_update": "目前协调器已经弃用，暂时自行维护",
+    "scope": "Exact16 new comment lines only",
+    "native_lease_or_ticket_claim": false
+  },
+  "all_removals_restore_exact_preimage": true,
+  "all_child_writers_terminal": true,
+  "source_writes": 14,
+  "canonical_writes": 0,
+  "business_edits": 0,
+  "whole_file_business_adoption": false,
+  "product_consent": false,
+  "status": "exact_comment_delta_installed",
+  "completed_at_utc": "2026-10-02T22:46:46.524985+00:00",
+  "intent": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-install-runtime_wave12_graphics_ui_atlas_sdf-20261002-r1\\intent.json",
+    "sha256": "e245851f77d9201dcc9abec906bfaf0df98e74458d48865acc5b458bdedf4810"
+  },
+  "added_comment_lines": 16,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "existing_source_authorship_preserved": true,
+  "future_source_edit_pending_paths": [],
+  "coverage_publication": "pending_separate_root_publication"
+}

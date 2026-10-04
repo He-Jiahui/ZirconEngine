@@ -4,6 +4,7 @@
 // hostility lookup and visual event publication remain WOS reducer inputs.
 var contract = %import("generated/pet_water_jet_contract");
 
+/// 命令与引导转换夹具，构造的可用宠物/目标是测试默认值；实际接入前须刷新世界谓词，附着布尔值不代表真实光环实例。
 pub class PetWaterJetState {
     // Authoritative predicates normally read from the world reducer.
     pub var ownerIsPetClass: bool;
@@ -120,6 +121,7 @@ pub setPetAutoWaterJet(state: PetWaterJetState, enabled: bool): void {
 // Top-of-pet-AI channel ownership: a live channel consumes the tick before
 // cooldown decay or normal pet target selection. Completion leaves the normal
 // duration-owned auras alone; only a broken connection removes them early.
+/// 引导中的返回真表示本步已被占用，即使该步恰好取消或自然结束；调用方不能在同一步再衰减共享冷却或执行普通攻击。
 pub updateWaterJetChannel(state: PetWaterJetState, dt: float): bool {
     if (!state.petCastingWaterJet) return false;
     if (dt < 0.0) throw "Pet Water Jet tick must be non-negative";

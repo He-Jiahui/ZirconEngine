@@ -1,12 +1,15 @@
+//! 将 SDK 包声明委托给运行时 descriptor builder，并从同一配置投影包清单。
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::core::{InitLevel, ModuleDependencySpec, ModuleDescriptor};
 use zircon_runtime::plugin::{
     CapabilityStatusManifest, PluginFeatureBundleManifest, PluginInterfaceManifest, PluginMaturity,
-    PluginPackageManifest, RuntimePluginDescriptor, RuntimePluginDescriptorBuilder,
+    PluginPackageManifest, PluginPackageRole, RuntimePluginDescriptor,
+    RuntimePluginDescriptorBuilder,
 };
 use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 #[derive(Clone, Debug)]
+/// 运行时插件 descriptor 的 fluent 声明包装，同时保留包清单投影入口。
 pub struct RuntimePluginDeclaration {
     builder: RuntimePluginDescriptorBuilder,
 }
@@ -122,58 +125,27 @@ impl RuntimePluginDeclaration {
         self
     }
 
+    pub fn with_package_role(mut self, package_role: PluginPackageRole) -> Self {
+        self.builder = self.builder.with_package_role(package_role);
+        self
+    }
+
+    /// 克隆 builder 后生成 descriptor，因此不会消耗当前声明。
     pub fn descriptor(&self) -> RuntimePluginDescriptor {
         self.builder.clone().build()
     }
 
+    /// 从与 descriptor 相同的 builder 状态生成包清单投影。
     pub fn package_manifest(&self) -> PluginPackageManifest {
         self.descriptor().package_manifest()
     }
 
+    /// 消耗声明并直接构建最终 descriptor。
     pub fn into_descriptor(self) -> RuntimePluginDescriptor {
         self.builder.build()
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn runtime_declaration_projects_descriptor_and_manifest_from_one_source() {
-        let declaration = RuntimePluginDeclaration::new(
-            "navigation",
-            "Navigation",
-            RuntimePluginId::Navigation,
-            "zircon_plugin_navigation_runtime",
-        )
-        .with_category("runtime")
-        .with_maturity(PluginMaturity::Beta)
-        .with_target_modes([
-            RuntimeTargetMode::ClientRuntime,
-            RuntimeTargetMode::ServerRuntime,
-        ])
-        .with_capability("runtime.plugin.navigation")
-        .with_system_anchors(["navigation.runtime.tick"]);
-
-        let descriptor = declaration.descriptor();
-        let manifest = declaration.package_manifest();
-
-        assert_eq!(descriptor.package_id(), "navigation");
-        assert_eq!(
-            descriptor.capabilities(),
-            ["runtime.plugin.navigation".to_string()]
-        );
-        assert_eq!(manifest.id, descriptor.package_id());
-        assert_eq!(manifest.category, descriptor.category());
-        assert_eq!(manifest.maturity, descriptor.maturity());
-        assert_eq!(manifest.supported_targets, descriptor.target_modes());
-        assert_eq!(manifest.capabilities, descriptor.capabilities());
-        assert!(manifest
-            .modules
-            .iter()
-            .any(|module| module.name == "navigation.runtime"
-                && module.crate_name == "zircon_plugin_navigation_runtime"
-                && module.system_anchors == ["navigation.runtime.tick".to_string()]));
-    }
-}
+#[path = "tests/runtime.rs"]
+mod tests;

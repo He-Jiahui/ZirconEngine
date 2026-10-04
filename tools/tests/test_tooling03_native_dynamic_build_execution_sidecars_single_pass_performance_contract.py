@@ -6,22 +6,22 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tools.zircon_export.pipeline_report_native_dynamic_build_audit_common import (
+from tools.export.pipeline_report_native_dynamic_build_audit_common import (
     string_array_unique_entries_schema_diagnostics,
 )
-from tools.zircon_export.pipeline_report_native_dynamic_build_execution_packages_schema import (
+from tools.export.pipeline_report_native_dynamic_build_execution_packages_schema import (
     native_dynamic_build_execution_copied_sidecars_value_diagnostics,
     native_dynamic_build_execution_package_path_scope_array_diagnostics,
     native_dynamic_build_execution_safe_relative_path_array_diagnostics,
 )
-from tools.zircon_export.pipeline_report_schema_string_array import (
+from tools.export.pipeline_report_schema_string_array import (
     string_array_no_blank_entries_schema_diagnostics,
     string_array_trimmed_non_empty_entries_schema_diagnostics,
 )
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-OWNER = REPO_ROOT / "tools/zircon_export/pipeline_report_native_dynamic_build_execution_packages_schema.py"
+OWNER = REPO_ROOT / "tools/export/pipeline_report_native_dynamic_build_execution_packages_schema.py"
 
 
 def _legacy(label: str, package: dict[str, object], values: object) -> list[str]:
@@ -62,7 +62,7 @@ class NativeDynamicBuildExecutionSidecarsSinglePassPerformanceContractTests(unit
             return value.replace("\\", "/")
 
         with patch(
-            "tools.zircon_export.pipeline_report_native_dynamic_build_execution_packages_schema.normalize_relative_path",
+            "tools.export.pipeline_report_native_dynamic_build_execution_packages_schema.normalize_relative_path",
             side_effect=counted,
         ):
             self.assertEqual(native_dynamic_build_execution_copied_sidecars_value_diagnostics("sidecars", package, values), [])

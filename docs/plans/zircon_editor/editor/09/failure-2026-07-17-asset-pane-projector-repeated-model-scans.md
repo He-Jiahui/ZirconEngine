@@ -71,3 +71,49 @@ Open state: `2026-07-19 generation-owned geometry/fixed+visible row plan、中�
 | 2026-08-25 | `OPEN / source-hardcut-static-verified / focused-rust-blocked-upstream-rhi / dynamic-baseline-blocked` | 重审后完成 generation-owned dense row descriptor、descriptor 驱动 content/header/grid/preview 与辅助 viewport 几何、以及必需 `transform_row` 合同；Activity/Browser projector 不再调用 `identity`、`is_scroll_node`、reference/source-tree parser 或 thumbnail `contains`。独立审查发现的虚拟缩略图重绑定子几何漂移已由 generation payload、materialized card frame 和共享纯函数修正，并新增深滚动长文件名/双行/宽徽标回归；修正后的独立复审为 `0 Critical / 0 Important`。Python 合同 `7/7`、`rustfmt --check`、scoped diff check 通过。Windows 受管 focused Cargo 终态 exit 101，停在既有 `zr_rhi_wgpu` 14 项诊断、未编译 `zircon_editor`；外部 RHI 仍阻断真实 1/1k/10k、CPU、alloc、GPU、功耗与像素基线，不将该静态修复标记为 fixed 或性能验收。 |
 | 2026-07-23 13:17 +08:00 | `OPEN / source_review_zero_validation_pending` | 独立复审 0/1/0：业务源码的 generation metadata、zero-stable-scan、visible-row plan 与旧 identity owner 删除均成立；唯一 Important 为 failure exact manifest 遗漏 `asset_content_layout/mod.rs`、asset-content `mod.rs`、template-node `transform.rs` 与 exact-row transform test。现已补齐并保留 `identity.rs` 作为待提交删除项，增量复审 0/0/0；Cargo、像素/规模/p95、fixed return 仍待。 |
 | 2026-07-19 15:02-15:22 +08:00 | `OPEN / source_complete_static_green_validation_pending` | 生成期 typed metadata、中立 generation input、DTO 共享保留、Activity/Browser 零扫描投影、精确可见行与旧 parser 删除已完成，静态 6/6、反向层级依赖 0；managed Cargo、产品等价、规模数据、独立 review 与 fixed return 尚未完成。 |
+
+## 2026-09-25 当前快照复核
+
+本轮 successor Session `failure-roll-01a084c8-editor09-asset-pane-r2` 仅持有本 failure 文档租约；没有接管或改写现有业务源码。11 个 `related_code` 路径均存在，当前 SHA256 与工作树归属如下：
+
+协调器 source snapshot `3809`（2026-09-25）冻结了下表 11 个源码路径；本记录正文由同一 successor 租约维护，未被纳入源码 manifest，避免记录自引用造成哈希漂移。
+
+| 路径 | 当前 SHA256 | 工作树归属 |
+|---|---|---|
+| `zircon_editor/src/ui/layouts/views/assets_activity.rs` | `ae345684f3d31cac5b14335e9f03e2d72960215f9ccbbb7d3c37ede31643e484` | clean |
+| `zircon_editor/src/ui/layouts/views/asset_browser.rs` | `55dd8c9cdad79d8040470b946866803148c672f587e774552cc61cc670b51451` | clean |
+| `zircon_editor/src/ui/retained_host/primitives.rs` | `af6cb7b626ac17b5c72b854fd5d8a636aeac5afa2b24381bcf291237ec1ab7fc` | foreign dirty; `ModelValues<T>::Clone` implementation only |
+| `zircon_editor/src/ui/retained_host/ui/pane_data_conversion/template_node_projection.rs` | `4ffccc30d802b85f7ad3ade7ed6f2149afd194ae11a7f750aa47002c1e2594ec` | clean |
+| `zircon_editor/src/ui/workbench/asset_content_layout/mod.rs` | `76af986b02fa0efc877f4760977f899315af46e8f175e1b77b03cc4a4aad1327` | clean |
+| `zircon_editor/src/ui/workbench/asset_content_layout/paint_metadata.rs` | `5b25032109e13c5e5d9f9393d3d0d410d2975066265c2087249cfdc8d8903e64` | foreign dirty; visible-group capacity helper/test module only |
+| `zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/projector.rs` | `80831bc90969bb3d2ef8d4e13d6689bd53877f587155bbba0b4263539795e7d6` | foreign dirty; `let-else` thumbnail slot guard only |
+| `zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/mod.rs` | `781835461ea4ce35736b23093869258a6cb18938e2f303ab5d72e4bf4540eee8` | clean |
+| `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline/transform.rs` | `c1af51d7204ac1dfd53a80c2abc243570c14826866f85f7d88cb2beac53901fe` | clean |
+| `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline/draw.rs` | `e08b7f8f1d460633d1d8e726c4aa26d68273136eade71a8fd0dcb19ad8db672a` | clean |
+| `zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/scrollbar/asset.rs` | `a2bae353b58ebb4969be8b8011ecab8359dc08b87da159e819ff642953ef46bb` | clean |
+
+The current static evidence was rerun against this same snapshot: `python -X utf8 -m unittest tools.tests.test_editor09_asset_content_generation_projection` passed `8/8`; `rustfmt --edition 2021 --check` over all 11 Rust paths passed; and `git diff --check` over the claimed paths passed (only the repository's LF/CRLF normalization warnings were emitted). The contract test now has eight methods; the historical `7/7` entry above is retained as provenance, not reused as current evidence.
+
+The exact Rust gates to execute after the lower `zr_rhi_wgpu` owner returns are:
+
+- `ui::workbench::asset_content_layout::tests::generation_metadata_reports_one_identity_parse_per_input_row`
+- `ui::workbench::asset_content_layout::tests::browser_generation_descriptors_own_content_and_auxiliary_viewport_geometry`
+- `ui::workbench::asset_content_layout::tests::ten_thousand_browser_nodes_project_only_the_visible_thumbnail_groups`
+- `ui::retained_host::host_contract::paint_workbench_renderer::docks::pane::template_nodes::asset_content::tests::projector_consumers_use_generation_metadata_without_model_scans_or_identity_parsing`
+- `ui::retained_host::host_contract::paint_workbench_renderer::docks::pane::template_nodes::asset_content::tests::browser_thumbnail_projector_rebinds_bounded_slots_after_a_deep_scroll`
+- `ui::retained_host::host_contract::paint_workbench_renderer::docks::pane::template_nodes::asset_content::tests::browser_thumbnail_virtual_rebind_reprojects_item_specific_child_geometry`
+- `ui::retained_host::host_contract::paint_template_nodes::template_node_pipeline::tests::transform::transform_exact_row_plan_skips_unselected_model_rows`
+
+Each filter must be run through the Windows managed `zircon_editor --lib --locked --jobs 1` wrapper with `--exact --test-threads=1`, followed by the lower RHI gate, the 1/1k/10k allocation/CPU baseline, product pixel equivalence, and upward acceptance. No dynamic test or performance result is claimed here: the last managed focused Cargo attempt exited 101 on 14 pre-existing `zr_rhi_wgpu` diagnostics before compiling `zircon_editor`, and the external `E:\Git\zr_vm` checkout is still dirty. Consequently this failure remains `open`; fixed return, review/closeout and WeCom notification are still pending.
+
+Independent review receipt (successor snapshot): reviewer confirmed all 11 hashes, the three foreign dirty diffs, the generation-owned descriptor hard cut, and the absence of stable-paint identity/parser/thumbnail-`contains` scans. Review result: `Critical=0, Important=0, Moderate=0`. The reviewer made no source or document edits. This receipt does not waive the pending managed Cargo/RHI, product-pixel, scale/performance, fixed-return, or closeout gates.
+
+## 2026-09-26 successor intake (failure-roll-01a084c8-editor09-asset-pane-r3)
+
+- The stale predecessor `failure-roll-01a084c8-editor09-asset-pane-r2` owned this same failure document and had no active lease; it was cancelled through the coordinator before successor registration. Its static snapshot 3809 and the lower `zr_rhi_wgpu` admission blocker remain provenance only. Successor r3 acquired the document lease against base SHA-256 `968dc9e74569bd778305e40f0d6edb81160b0b1ab090d65fdf103bfb9ffd927e`; no business source path is leased or edited.
+- The eleven related-code paths were rehashed before intake and match the current manifest: `assets_activity.rs` `ae345684f3d31cac5b14335e9f03e2d72960215f9ccbbb7d3c37ede31643e484`; `asset_browser.rs` `55dd8c9cdad79d8040470b946866803148c672f587e774552cc61cc670b51451`; retained-host `primitives.rs` `af6cb7b626ac17b5c72b854fd5d8a636aeac5afa2b24381bcf291237ec1ab7fc`; `template_node_projection.rs` `4ffccc30d802b85f7ad3ade7ed6f2149afd194ae11a7f750aa47002c1e2594ec`; `asset_content_layout/mod.rs` `76af986b02fa0efc877f4760977f899315af46e8f175e1b77b03cc4a4aad1327`; `paint_metadata.rs` `5b25032109e13c5e5d9f9393d3d0d410d2975066265c2087249cfdc8d8903e64`; asset-content `projector.rs` `80831bc90969bb3d2ef8d4e13d6689bd53877f587155bbba0b4263539795e7d6`; asset-content `mod.rs` `781835461ea4ce35736b23093869258a6cb18938e2f303ab5d72e4bf4540eee8`; pipeline `transform.rs` `c1af51d7204ac1dfd53a80c2abc243570c14826866f85f7d88cb2beac53901fe`; pipeline `draw.rs` `e08b7f8f1d460633d1d8e726c4aa26d68273136eade71a8fd0dcb19ad8db672a`; and scrollbar `asset.rs` `a2bae353b58ebb4969be8b8011ecab8359dc08b87da159e819ff642953ef46bb`. The three dirty paths (`retained_host/primitives.rs`, `asset_content_layout/paint_metadata.rs`, and asset-content `projector.rs`) retain foreign-only diffs; no source change is absorbed.
+- This is a static successor intake only. The existing Python 8/8 contract check, rustfmt/diff checks, and independent C/I/M=0/0/0 review are not promoted to dynamic acceptance. Managed Windows `zircon_editor --lib --locked --jobs 1` exact filters, lower RHI repair, 1/1k/10k allocation/CPU baselines, product pixel equivalence, fixed return, coordinator closeout, and WeCom notification remain pending. The failure stays open.
+
+### r3 successor independent review receipt
+
+Reviewer `/root/review_editor03_gizmo_private` re-read snapshot 3936 (SHA-256 `6e38f62242d2d521df49544bc98d6b9429423f8526ad5671aac741e60bf1622c`). The stale r2 cancellation and absence of an active lease, document base hash `968dc9e74569bd778305e40f0d6edb81160b0b1ab090d65fdf103bfb9ffd927e`, all eleven related-code hashes, and exactly three retained foreign dirty paths were confirmed. The static Python 8/8, rustfmt, diff, and source-review evidence is not dynamic acceptance; managed Editor Cargo, lower RHI, pixel/scale/performance, fixed return, closeout, and WeCom gates remain pending. Independent review result: **Critical=0 / Important=0 / Moderate=0**. The failure stays open.

@@ -1,4 +1,4 @@
-$script:LatencyEvidenceModule = Join-Path $PSScriptRoot '..\ui-profile-latency-evidence.ps1'
+$script:LatencyEvidenceModule = Join-Path $PSScriptRoot '..\profiling\ui\ui-profile-latency-evidence.ps1'
 . $script:LatencyEvidenceModule
 
 function New-ValidLatencyArtifact {
@@ -259,6 +259,35 @@ Describe 'ui profile latency evidence' {
         Write-LatencyArtifact -ProfileDir $profileDir -Artifact (New-ValidLatencyArtifact)
 
         (Test-ClickLatencyArtifact -ProfileDir $profileDir) | Should Be $true
+    }
+
+    It 'requires viewport pointer sweeps to satisfy the sequence-bound latency gate' {
+        $profileDir = Join-Path $TestDrive 'viewport-pointer'
+        $gate = {
+            Test-ZirconUiSurfaceLatencyEvidenceGate `
+                -ProfileDir $profileDir `
+                -ScenarioName 'viewport_pointer' `
+                -InteractionScenarioName 'idle_hover' `
+                -AutoClickCount 0 `
+                -AutoPointerMoveCount 16 `
+                -AutoWheelCount 0
+        }
+
+        (& $gate) | Should Be $false
+
+        $artifact = New-ValidLatencyArtifact
+        $artifact.input_to_present_samples = @(
+            [ordered]@{ sequence = 1; name = 'ui.idle_hover.input_to_present_us'; value = 3000; timestamp_us = 10 },
+            [ordered]@{ sequence = 2; name = 'ui.idle_hover.input_to_present_us'; value = 8500; timestamp_us = 20 }
+        )
+        Write-LatencyArtifact -ProfileDir $profileDir -Artifact $artifact
+        (& $gate) | Should Be $true
+
+        $artifact.input_to_present_p95_us = 9001
+        $artifact.input_to_present_p99_us = 9200
+        $artifact.input_to_present_max_us = 9500
+        Write-LatencyArtifact -ProfileDir $profileDir -Artifact $artifact
+        (& $gate) | Should Be $false
     }
 
     It 'requires native window resize to satisfy the same sequence-bound latency gate' {

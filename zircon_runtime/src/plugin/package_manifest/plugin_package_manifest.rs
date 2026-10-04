@@ -15,9 +15,11 @@ use crate::{
 use super::{
     PluginDependencyManifest, PluginDistributionManifest, PluginEventCatalogManifest,
     PluginFeatureBundleManifest, PluginInterfaceManifest, PluginInterfaceMethodManifest,
-    PluginModuleManifest, PluginOptionManifest, PluginPackageKind, PluginShaderPermutationManifest,
+    PluginModuleManifest, PluginOptionManifest, PluginPackageKind, PluginPackageRole,
+    PluginShaderPermutationManifest,
 };
 
+/// 插件包的 TOML/运行时共同清单；native registration、导出计划和安装服务都以此作为字段契约。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PluginPackageManifest {
     pub id: String,
@@ -32,6 +34,8 @@ pub struct PluginPackageManifest {
     pub package_name: String,
     #[serde(default)]
     pub package_kind: PluginPackageKind,
+    #[serde(default, skip_serializing_if = "PluginPackageRole::is_production")]
+    pub package_role: PluginPackageRole,
     pub display_name: String,
     #[serde(default = "default_plugin_category")]
     pub category: String,
@@ -81,6 +85,7 @@ pub struct PluginPackageManifest {
     )]
     pub shader_permutation: PluginShaderPermutationManifest,
     #[serde(default)]
+    /// 包级默认策略由 registration validation 检查，并由项目导出选择投影为 profile 策略。
     pub default_packaging: Vec<ExportPackagingStrategy>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub distribution: Option<PluginDistributionManifest>,
@@ -95,6 +100,7 @@ fn default_sdk_api_version() -> String {
 }
 
 impl PluginPackageManifest {
+    /// 返回用于安装、native artifact receipt 和桥接身份比对的完整包坐标；坐标不完整时回退到逻辑 id。
     pub fn package_id(&self) -> String {
         if self.package_prefix.is_empty()
             || self.package_company.is_empty()
@@ -113,6 +119,7 @@ impl PluginPackageManifest {
         package_id
     }
 
+    /// 为资产扫描提供至少一个根目录；清单未声明时使用包内相对的 `assets` 根。
     pub fn asset_roots_or_default(&self) -> Vec<String> {
         if self.asset_roots.is_empty() {
             return vec!["assets".to_string()];
@@ -126,6 +133,7 @@ impl PluginPackageManifest {
             .find(|interface| interface.id == interface_id)
     }
 
+    /// 展平接口与方法的有序视图；桥接绑定以该顺序分配描述符槽位并拒绝多余绑定。
     pub fn bridge_methods(
         &self,
     ) -> impl Iterator<Item = (&PluginInterfaceManifest, &PluginInterfaceMethodManifest)> {
@@ -139,17 +147,5 @@ impl PluginPackageManifest {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::PluginPackageManifest;
-
-    #[test]
-    fn exact_package_coordinate_id_preserves_qualified_and_fallback_identity() {
-        let qualified = PluginPackageManifest::new("legacy_weather", "Weather")
-            .with_package_identity("org", "zircon", "weather");
-        assert_eq!(qualified.package_id(), "org.zircon.weather");
-
-        let fallback = PluginPackageManifest::new("legacy_weather", "Weather")
-            .with_package_identity("", "zircon", "weather");
-        assert_eq!(fallback.package_id(), "legacy_weather");
-    }
-}
+#[path = "tests/plugin_package_manifest.rs"]
+mod tests;

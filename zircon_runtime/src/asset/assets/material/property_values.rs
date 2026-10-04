@@ -4,7 +4,7 @@ use crate::asset::{MaterialAsset, ShaderAsset, ShaderMaterialPropertyAsset};
 use crate::core::framework::render::{MaterialPropertyKind, RenderMaterialPropertyValue};
 
 #[cfg(test)]
-#[path = "property_values/schema_index_tests.rs"]
+#[path = "property_values/tests/schema_index_tests.rs"]
 mod schema_index_tests;
 
 pub fn shader_property_values_for_shader(
@@ -24,11 +24,12 @@ pub fn shader_property_values_for_shader(
         }
     }
     for (name, value) in material.shader_property_overrides() {
-        if values.contains_key(name) {
-            continue;
-        }
-        if let Some(value) = string_property_value(value) {
-            values.insert(name.clone(), value);
+        if let Some(value) = value.as_str() {
+            values
+                .entry(name.clone())
+                .or_insert_with(|| RenderMaterialPropertyValue::String {
+                    value: value.to_owned(),
+                });
         }
     }
     values

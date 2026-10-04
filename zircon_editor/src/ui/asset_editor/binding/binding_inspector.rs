@@ -21,6 +21,10 @@ use crate::ui::asset_editor::style::style_rule_declarations::parse_declaration_l
 mod payload_editing;
 #[path = "payload_suggestions.rs"]
 mod payload_suggestions;
+
+#[cfg(test)]
+#[path = "binding_inspector/tests/optimization_batch_jk_editor650_tests.rs"]
+mod optimization_batch_jk_editor650_tests;
 #[path = "schema_projection.rs"]
 mod schema_projection;
 
@@ -717,11 +721,12 @@ fn binding_payload_entries<'a>(
 }
 
 fn binding_payload_item_entries<'a>(binding: &'a UiBindingRef) -> Vec<(String, &'a Value)> {
-    let mut entries = Vec::new();
-    if let Some(action) = binding.action.as_ref() {
-        for (key, value) in &action.payload {
-            collect_binding_payload_item_entries(value, Some(key.as_str()), &mut entries);
-        }
+    let Some(action) = binding.action.as_ref() else {
+        return Vec::new();
+    };
+    let mut entries = Vec::with_capacity(action.payload.len());
+    for (key, value) in &action.payload {
+        collect_binding_payload_item_entries(value, Some(key.as_str()), &mut entries);
     }
     entries
 }

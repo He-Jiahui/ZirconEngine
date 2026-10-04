@@ -1,7 +1,9 @@
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use zircon_runtime_interface::ui::dispatch::{UiInputTimestamp, UiPointerInputEvent};
+use zircon_runtime_interface::ui::surface::UiPointerEventKind;
 
+use crate::ui::retained_host::host_contract::HierarchyPointerSource;
 use crate::ui::retained_host::host_contract::WorkbenchTooltipPointerTarget;
 use crate::ui::retained_host::UiHostContext;
 
@@ -10,9 +12,32 @@ use super::*;
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn observe_workbench_pointer_input(
         &mut self,
+        source: &HierarchyPointerSource,
         pointer: UiPointerInputEvent,
         tooltip_target: Option<WorkbenchTooltipPointerTarget>,
     ) {
+        if pointer.event.kind == UiPointerEventKind::Scroll {
+            let generation = self.ui.get_host_presentation_generation();
+            let point = pointer.event.point;
+            let structure = generation.structure();
+            let in_pane = crate::ui::retained_host::host_contract::componentized_workbench_regions::authored_panes(structure).iter().any(|pane| crate::ui::retained_host::host_contract::componentized_workbench_regions::point_in_frame(&pane.frame, point.x, point.y));
+            let in_tree = crate::ui::retained_host::host_contract::componentized_workbench_regions::authored_hierarchy(structure).is_some_and(|hierarchy| crate::ui::retained_host::host_contract::componentized_workbench_regions::point_in_frame(&hierarchy.viewport, point.x, point.y));
+            drop(generation);
+            if in_pane && !in_tree {
+                match callback_dispatch::dispatch_componentized_workbench_pointer_event(
+                    &self.runtime,
+                    &mut self.workbench_window_bridge,
+                    pointer.event.clone(),
+                ) {
+                    Some(Ok(effects)) => self.apply_dispatch_effects(effects),
+                    Some(Err(error)) => self.set_status_line(error),
+                    None => {}
+                }
+            }
+        }
+        if pointer.event.kind != UiPointerEventKind::Move {
+            self.observe_hierarchy_native_input(source, &pointer);
+        }
         if self
             .ui
             .global::<UiHostContext>()

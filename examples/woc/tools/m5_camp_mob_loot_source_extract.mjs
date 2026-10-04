@@ -1,5 +1,7 @@
+// 从固定版本 WOC 源码中提取营地怪物掉落项与组件标签，供 m5_camp_mob_loot_codegen.mjs 消费。
 const data = await import('wocgit:///src/sim/data.ts');
 
+// 按营地首次出现的顺序去重怪物模板，保持生成索引稳定。
 const ids = [];
 const seen = new Set();
 for (const camp of data.BUILTIN_WORLD.camps) {

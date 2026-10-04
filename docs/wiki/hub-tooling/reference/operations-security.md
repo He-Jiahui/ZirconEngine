@@ -4,17 +4,17 @@ related_code:
   - zircon_hub/src/service/storage/path_guard.rs
   - zircon_hub/src/process/child_supervisor.rs
   - zircon_hub/src/build/runner.rs
-  - tools/cargo-zircon/src/build/receipt
+  - tools/cargo/src/build/receipt
 implementation_files:
   - zircon_hub/src/service/storage
   - zircon_hub/src/process
-  - tools/cargo-zircon/src/build/receipt
+  - tools/cargo/src/build/receipt
 plan_sources:
   - docs/plans/optimize/zircon_tooling/26-security-principal-credential-trust-capability-cryptography-supply-chain-audit-review.md
 tests:
   - zircon_hub/src/service/storage
   - zircon_hub/src/process
-  - tools/cargo-zircon/src/build/receipt
+  - tools/cargo/src/build/receipt
 doc_type: operations-guide
 ---
 

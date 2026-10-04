@@ -6,7 +6,7 @@ use crate::scene::ecs::{
     IntoWorldlessSceneSystem, Schedule, ScheduleError, SystemParam, SystemStage,
     WorldlessSystemParam,
 };
-use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
+use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 
 impl World {
     pub fn schedule(&self) -> &Schedule {
@@ -117,6 +117,7 @@ impl World {
         true
     }
 
+    // 批次取出必须全部成功；任一项缺失或不支持无 World 执行时归还此前取出的系统，避免调用者执行残缺批次。
     pub(crate) fn take_worldless_native_scene_systems(
         &mut self,
         ids: &[&str],

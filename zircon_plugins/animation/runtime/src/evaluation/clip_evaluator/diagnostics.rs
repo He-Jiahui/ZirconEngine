@@ -1,3 +1,4 @@
+//! 剪辑评估错误先缓存在评估器中，再由帧管线按事件队列准入结果发布；延期实体必须保留待发布事件。
 use std::collections::BTreeSet;
 
 use zircon_runtime::scene::EntityId;
@@ -7,6 +8,7 @@ use crate::AnimationEvaluationDiagnostic;
 use super::{AnimationAssetRevision, AnimationClipEvaluator, AnimationEvaluationError};
 
 impl AnimationClipEvaluator {
+    // TODO: [CR-PLUGIN-ANIMATION-0001] 确认资源级去重是否允许抑制其他实体的诊断；去重键没有实体，而发布按实体准入；下一步覆盖同资源两个实体且首实体延期的测试。
     pub fn record_diagnostic(
         &mut self,
         entity: EntityId,
@@ -60,53 +62,5 @@ impl AnimationClipEvaluator {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::collections::BTreeSet;
-
-    use zircon_runtime::core::resource::ResourceId;
-
-    use super::{AnimationAssetRevision, AnimationClipEvaluator, AnimationEvaluationError};
-
-    #[test]
-    fn deferred_entity_diagnostic_remains_pending_until_admission() {
-        let skeleton = AnimationAssetRevision::new(
-            ResourceId::from_stable_label("animation.skeleton.diagnostic-retention"),
-            1,
-        );
-        let clip_a = AnimationAssetRevision::new(
-            ResourceId::from_stable_label("animation.clip.diagnostic-retention.a"),
-            1,
-        );
-        let clip_b = AnimationAssetRevision::new(
-            ResourceId::from_stable_label("animation.clip.diagnostic-retention.b"),
-            1,
-        );
-        let mut evaluator = AnimationClipEvaluator::default();
-        evaluator.record_diagnostic(
-            17,
-            skeleton,
-            clip_a,
-            AnimationEvaluationError::MissingPreparedClip {
-                skeleton: skeleton.id(),
-                clip: clip_a.id(),
-            },
-        );
-        evaluator.record_diagnostic(
-            18,
-            skeleton,
-            clip_b,
-            AnimationEvaluationError::MissingPreparedClip {
-                skeleton: skeleton.id(),
-                clip: clip_b.id(),
-            },
-        );
-
-        let admitted = evaluator.drain_diagnostics_excluding(&BTreeSet::from([18]));
-        assert_eq!(admitted.len(), 1);
-        assert_eq!(admitted[0].entity, 17);
-
-        let retried = evaluator.drain_diagnostics_excluding(&BTreeSet::new());
-        assert_eq!(retried.len(), 1);
-        assert_eq!(retried[0].entity, 18);
-    }
-}
+#[path = "tests/diagnostics.rs"]
+mod tests;

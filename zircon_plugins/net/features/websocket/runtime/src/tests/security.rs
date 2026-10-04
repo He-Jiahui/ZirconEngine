@@ -27,21 +27,25 @@ fn websocket_feature_manager_rejects_connections_that_violate_security_policy_be
                 .to_string(),
         }
     );
+
+    assert_eq!(net.diagnostics().open_websocket_connections, 0);
+    assert_eq!(net.diagnostics().queued_events, 0);
+    assert!(net.drain_events(usize::MAX).is_empty());
 }
 
 #[test]
-fn websocket_feature_manager_accepts_configured_certificate_pin_before_network_io() {
+fn websocket_feature_manager_rejects_malformed_custom_certificate_root_before_network_io() {
     let net = websocket_runtime_manager();
     let mut descriptor = NetWebSocketConnectDescriptor::new("wss://example.invalid/socket");
-    descriptor.security = NetSecurityPolicy::production_tls()
-        .with_certificate_pin("example.invalid", "sha256/example");
+    descriptor.security =
+        NetSecurityPolicy::production_tls().with_certificate_root_der(vec![1, 2, 3]);
 
     let error = net.connect_websocket(descriptor).unwrap_err();
-    assert_ne!(
-        error,
-        NetError::SecurityPolicyViolation {
-            reason: "WebSocket certificate pinning has no configured pin for host: example.invalid"
-                .to_string(),
-        }
+    assert!(
+        matches!(error, NetError::SecurityPolicyViolation { reason } if reason.contains("TLS root certificate rejected")),
+        "malformed custom roots must fail closed during TLS configuration: {error:?}"
     );
+    assert_eq!(net.diagnostics().open_websocket_connections, 0);
+    assert_eq!(net.diagnostics().queued_events, 0);
+    assert!(net.drain_events(usize::MAX).is_empty());
 }

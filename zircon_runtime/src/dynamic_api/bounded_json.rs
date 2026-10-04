@@ -4,6 +4,7 @@ mod preflight;
 mod writer;
 
 #[cfg(test)]
+#[path = "bounded_json/tests/cases.rs"]
 mod tests;
 
 use serde::de::DeserializeOwned;

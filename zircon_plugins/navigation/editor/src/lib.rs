@@ -8,6 +8,7 @@ mod runtime_mirror;
 mod viewport_overlay_provider;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 pub use bake_panel::{

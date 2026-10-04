@@ -6,6 +6,8 @@ use crate::core::framework::render::RenderWorldSnapshotHandle;
 use super::change_journal::RenderSceneChangeJournal;
 use super::scene::RenderSceneGeneration;
 
+/// 消费者对某个 world 已接受的场景代际；preflight 本身不推进游标。
+/// GPU Scene 在提交成功后才 commit，设备恢复可在同一代际重建设备驻留。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct RenderSceneJournalCursor {
     world: RenderWorldSnapshotHandle,
@@ -31,6 +33,7 @@ impl RenderSceneJournalCursor {
         self.applied_generation
     }
 
+    /// 验证日志世界身份与相邻代际；精确重放可跳过 staging，间隙则要求上游重新同步。
     pub(crate) fn preflight(
         &self,
         journal: &RenderSceneChangeJournal,
@@ -291,4 +294,5 @@ impl fmt::Display for RenderSceneJournalCursorError {
 impl Error for RenderSceneJournalCursorError {}
 
 #[cfg(test)]
+#[path = "journal_cursor/tests/cases.rs"]
 mod tests;

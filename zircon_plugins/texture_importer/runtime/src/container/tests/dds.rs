@@ -122,7 +122,6 @@ fn dds_dx10_container_importer_reads_cubemap_array_layers() {
             assert_eq!(descriptor.dimension, RenderImageDimension::D2);
             assert_eq!(descriptor.depth_or_array_layers, 12);
             assert_eq!(descriptor.mip_count, 5);
-            assert_eq!(descriptor.array_layer_count, 12);
             match texture.payload {
                 TexturePayload::Container {
                     format,
@@ -293,7 +292,6 @@ fn dds_dx10_container_importer_reads_misc_texturecube_flag() {
         ImportedAsset::Texture(texture) => {
             let descriptor = texture.render_image_descriptor();
             assert_eq!(descriptor.depth_or_array_layers, 12);
-            assert_eq!(descriptor.array_layer_count, 12);
             match texture.payload {
                 TexturePayload::Container { array_layers, .. } => {
                     assert_eq!(array_layers, 12);

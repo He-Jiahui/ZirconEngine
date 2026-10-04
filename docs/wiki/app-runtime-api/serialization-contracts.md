@@ -15,8 +15,8 @@ implementation_files:
   - zircon_runtime_interface/src/serialization/migration/mod.rs
 plan_sources:
   - user: 2026-09-09 为 ZirconEngine 构建引擎说明书级 Wiki
-  - docs/zircon_runtime_interface/serialization.md
-  - docs/zircon_runtime_interface/project.md
+  - docs/crates/zircon_runtime_interface/serialization.md
+  - docs/crates/zircon_runtime_interface/project.md
 tests:
   - zircon_runtime_interface/src/serialization/tests
   - zircon_runtime_interface/src/project/tests

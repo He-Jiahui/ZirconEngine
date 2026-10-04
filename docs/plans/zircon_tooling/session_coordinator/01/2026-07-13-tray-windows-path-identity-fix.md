@@ -3,7 +3,7 @@
 Plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
 Milestone: M6
 Status: completed
-Files: ["docs/cli-and-tooling/workflow-control-center.md", "docs/plans/zircon_tooling/session_coordinator/01/2026-07-13-tray-windows-path-identity-fix.md", "tools/session_tray/src/repository_identity.rs", "tools/session_tray/src/runtime_descriptor.rs"]
+Files: ["docs/tooling/workflow-control-center.md", "docs/plans/zircon_tooling/session_coordinator/01/2026-07-13-tray-windows-path-identity-fix.md", "tools/session_tray/src/repository_identity.rs", "tools/session_tray/src/runtime_descriptor.rs"]
 
 ## 状态与产出记录
 

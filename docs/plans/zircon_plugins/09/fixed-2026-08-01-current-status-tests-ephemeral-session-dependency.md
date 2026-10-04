@@ -11,9 +11,6 @@ fixing_child_dir: docs/plans/zircon_plugins/09
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/tests/plugin_status_document.py
-  - tools/tests/plugin_docs_current_status_source_template_compile_host_support.py
-  - tools/tests/test_plugin_docs_current_status_source_template_compile_host_owner_splits.py
   - tools/tests/test_tracked_tests_do_not_depend_on_codex_sessions.py
 tests:
   - python -m unittest tools.tests.test_plugin_docs_current_status_source_template_compile_host_owner_splits

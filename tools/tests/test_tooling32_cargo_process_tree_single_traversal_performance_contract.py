@@ -1,3 +1,4 @@
+# 核对受管构建进程树只遍历一次工具根与后代。
 from __future__ import annotations
 
 import inspect

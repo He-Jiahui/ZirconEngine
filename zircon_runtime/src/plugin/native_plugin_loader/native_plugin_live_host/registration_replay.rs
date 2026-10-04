@@ -143,6 +143,8 @@ impl NativePluginLiveHost {
         self.registration_replay_before_cache_test_hook.install()
     }
 
+    /// 把当前运行时插件的清单接入扩展注册表；单个插件失败记为 skipped 并继续其他插件。
+    /// 调用方应检查报告，尤其在重建 World 前确认需要的系统已注册。
     pub fn replay_runtime_registration_manifests_via_bridge(
         &self,
         registry: &mut RuntimeExtensionRegistry,
@@ -240,6 +242,8 @@ impl NativePluginLiveHost {
                 source: "non-empty registration manifest has no replay bridge context".to_string(),
             }
         })?;
+        // BUG: [CR-PLUGIN-NATIVE-0302] 后续系统注册失败会使本插件报告为 skipped，
+        // 但先前系统已留在传入的 registry；证据：逐项 register 后用 ? 提前返回。
         for (system, prepared) in manifest.systems.iter().zip(&generation.prepared_systems) {
             let system_report = self.replay_runtime_registration_system(
                 registry,
@@ -437,6 +441,7 @@ impl NativePluginLiveHost {
         true
     }
 
+    // 从同一个 loaded 保护期取得清单与回调权威；revision 阻止并发替换后发布旧代次。
     fn build_runtime_registration_replay_generation(
         &self,
         plugin_id: &str,
@@ -693,6 +698,7 @@ struct RuntimeRegistrationManifestSource {
     granted_capabilities: Vec<String>,
 }
 
+// 注册表在 World 构建时生成独立系统闭包；Arc 调用域固定槽位、桥接表和原生库代次。
 fn register_bridge_replay_system(
     registry: &mut RuntimeExtensionRegistry,
     plugin_id: &str,
@@ -749,6 +755,9 @@ fn register_bridge_replay_system(
                     let Some(call) = api.bridge.call else {
                         return;
                     };
+                    // SAFETY: call 是 scope.api() 的宿主桥接入口，handle 由同一 scope 生成；
+                    // 空输入为 null 加零长度，输出是 ABI 空缓冲。scope 持有方法及库代次，
+                    // 宿主入口校验句柄和槽位，并在进入原生方法前获取该代次回调租约。
                     let status = unsafe {
                         call(
                             bridge_call_scope.handle(),
@@ -759,6 +768,8 @@ fn register_bridge_replay_system(
                             ZrByteBufferRef::empty(),
                         )
                     };
+                    // BUG: [CR-PLUGIN-NATIVE-0301] 桥接方法返回非 Ok 时状态被丢弃，
+                    // 调度器仍把本次系统调用视为完成；证据：外部系统工厂只接受 FnMut()。
                     let _ = status.status_code() == ZrStatusCode::Ok;
                 }
             },
@@ -791,5 +802,5 @@ fn runtime_module_name(plugin_id: &str, module: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "registration_replay/optimization_tests.rs"]
+#[path = "registration_replay/tests/optimization_tests.rs"]
 mod optimization_tests;

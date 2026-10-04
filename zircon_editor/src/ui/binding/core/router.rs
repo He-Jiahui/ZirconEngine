@@ -5,7 +5,7 @@ use zircon_runtime_interface::ui::binding::UiEventPath;
 use super::Handler;
 
 #[cfg(test)]
-#[path = "router/hash_index_tests.rs"]
+#[path = "router/tests/hash_index_tests.rs"]
 mod hash_index_tests;
 
 pub struct EditorUiRouter<T> {

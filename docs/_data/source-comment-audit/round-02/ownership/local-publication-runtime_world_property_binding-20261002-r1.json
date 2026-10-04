@@ -1,0 +1,110 @@
+{
+  "schema": 1,
+  "owner": "runtime_world_property_binding",
+  "prepared_at_utc": "2026-10-02T08:35:38.739666+00:00",
+  "files": [
+    {
+      "path": "docs/_data/source-comment-audit/round-02/coverage/runtime_world_property_binding.jsonl",
+      "before_exists": false,
+      "before_sha256": null,
+      "after_sha256": "4a40d9477088d66e719ae219d02c6c7c08034c920df5dfaa3b30a51ad5c85b9f"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/issues/runtime_world_property_binding.jsonl",
+      "before_exists": false,
+      "before_sha256": null,
+      "after_sha256": "43dacad99f7a1c10af15f5d249c37c70ae22a3b4af73687d6039d95ad7ea554c"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/inventory.jsonl",
+      "before_exists": true,
+      "before_sha256": "11f6f47234e9809ce1b7f3ffe3061f4b308a8c59e2e9167bda140c7d8a7070e7",
+      "after_sha256": "6545fc45ff4a9a4cddfaf54cc611c2b2f6cf0eedb1cf0b10d39f9f7c01c8241e"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/batches.jsonl",
+      "before_exists": true,
+      "before_sha256": "3941d9e6a6e86b6003adebeac52c9df9774cdea2170b2a60fde6b6188d0fa358",
+      "after_sha256": "c2023d94a1873a804408dc6269dd3bd0ca0db7c6bbe7bccd75248b1c9c81228f"
+    }
+  ],
+  "source_hashes": {
+    "zircon_runtime/src/scene/tests/property_paths.rs": "4edbd3d389a7b48828b75530708d314d5d152ebef4d969bc2ee0851d46543b1a",
+    "zircon_runtime/src/scene/tests/property_paths/read_paths.rs": "c07d0581fb225749360bb275f041ad51adfcedcf66c9848b20f6537be22ebbac",
+    "zircon_runtime/src/scene/tests/property_paths/runtime_mutation.rs": "6342c8b8a2cf50b7411c72cdfed53b1decf324e44e40d27928cf5e6b7e62ffd1",
+    "zircon_runtime/src/scene/tests/property_paths/write_validation.rs": "5914937649357091107848e82eaefe19da8171547e85bfe8bfe71ace7f203a27",
+    "zircon_runtime/src/scene/world/compiled_binding/compiled_scene_camera_light_fields.rs": "3dd42e76b8ec7a2815fe226228f9f69540d4dc1275d9e9810e775b249f31c1ca",
+    "zircon_runtime/src/scene/world/compiled_binding/compiled_scene_light_writer.rs": "d0d73a6c0c424fc3017bbcc8faf58773ccd6bcb5a11fc11265615d953cfceaf9",
+    "zircon_runtime/src/scene/world/compiled_binding/generation.rs": "0203c4e3bf5d71a90bc099879a727f163d39b9225b57e4fc6a5784be059f0671",
+    "zircon_runtime/src/scene/world/compiled_binding/index.rs": "22fca38b20278349be727abc58c53a0927652ff45e7eaef2ba7fbe2e0094f87d",
+    "zircon_runtime/src/scene/world/compiled_binding/tests.rs": "4707e15f66efac0897872cb82eface220191fe9ac4154cdf7c799f2b68f11b15",
+    "zircon_runtime/src/scene/world/component_type_registry.rs": "774b9c3f370f205cd8b2fab990238da9e72373d13e5605ca077bd54e18e358ff",
+    "zircon_runtime/src/scene/world/component_type_registry/schema_generation_hash_tests.rs": "522f3a5a5ee96d4b6e1053f68f181c704b19ebab8c707f439934b0c1dc821755",
+    "zircon_runtime/src/scene/world/generation.rs": "60d2916c84a5a4c060de7b37bd3cfaaf2cab9eb284d24cece97132ed8010acf6",
+    "zircon_runtime/src/scene/world/generation/tests.rs": "992d4a762b419b996e074d8db82271884111cb4a4ddfa664cc08f37367061cae",
+    "zircon_runtime/src/scene/world/property_access/entries.rs": "401948d2f518bf405da3d024f098f37eeb95316e0ca06f87fd2967e3263004ff",
+    "zircon_runtime/src/scene/world/property_access/entries/physics.rs": "0aebc31fd851414ad1a48bf832c918ad806ed88bcaf239503bf4fea8e39691fa",
+    "zircon_runtime/src/scene/world/property_access/path_resolution.rs": "9f378a8635842211534f3a600ee6ca00e10c98a7bd65b8df831c495e23c80085",
+    "zircon_runtime/src/scene/world/property_access/read.rs": "69c6b5933c02a106787f926c127dfa366024af98f4b9f79eebfe2a9271bdd879",
+    "zircon_runtime/src/scene/world/property_access/value_conversion/domain.rs": "c54ea1ae3c51c9a98f9601a93cd9e5ca6ae5e7efd537576c0be97841f3b6ce70",
+    "zircon_runtime/src/scene/world/property_access/value_conversion/values.rs": "7c66adc5bd46ba7bbec1d3a08b0141f8b63d06090d68f23e33809de95b1f024a",
+    "zircon_runtime/src/scene/world/property_access/write.rs": "89d170c3c1f51332b5e4886cee89f41430a285df77cf6db2304638c831159b9c",
+    "zircon_runtime/src/scene/world/property_access/write/animation.rs": "c26027a7f147f8a20e93212b4c5a9fdae938d237aed32bd62c3bad71735ca47d",
+    "zircon_runtime/src/scene/world/property_access/write/camera.rs": "24d40950b33ba8405100ce19d41b9b124f265d03b79b74518c13d0caf95edae2",
+    "zircon_runtime/src/scene/world/property_access/write/lighting.rs": "d3d504dc94194c4d3ed52ca58836701803017778640a73095e288ebf37e5fd5b",
+    "zircon_runtime/src/scene/world/property_access/write/mesh.rs": "12c8c9fd7a8470df48e35cd59d561ce06bcb8de21201dc44dcad0bff914b762c",
+    "zircon_runtime/src/scene/world/property_access/write/physics.rs": "4c95e394413557c67edb67d3d36ed7278d1dbc8512064509b94e54394ffbbc47"
+  },
+  "installation": {
+    "path": "E:\\Git\\ZirconEngine\\docs\\cli-and-tooling\\source-comment-audit\\round-02\\ownership\\local-install-runtime_world_property_binding-20261002-r1.json",
+    "sha256": "84f03cec8ef028f0f10a07acf6dd3e2d0f524b886cad767f23b063dd0485d8b8"
+  },
+  "coverage_records": 25,
+  "new_issues": 10,
+  "historical_issue_references": 0,
+  "support_comment_lineage_at_publication": [
+    {
+      "path": "zircon_runtime/src/scene/world/typed_api.rs",
+      "frozen_support_sha256": "7699e52063d73fa265a7488ace0ccc511dae46ca197e88aa5665b2789998b8b8",
+      "current_sha256": "4ff7b190d86e998c0d998a691492371670ab3b4ddb88409a7eebcde76d8dd9f7",
+      "exact_comment_only_reconstruction": true,
+      "separate_installations": [
+        {
+          "path": "E:\\Git\\ZirconEngine\\docs\\cli-and-tooling\\source-comment-audit\\round-02\\ownership\\local-install-runtime_ecs_commands_bundle_commit-20261002-r1.json",
+          "sha256": "4dc222645c419c5c30ba776f6704445a94e1ee0766392f4d73add7ab227236ac"
+        }
+      ],
+      "new_semantic_evidence_or_authorship": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/typed_api.rs",
+      "frozen_support_sha256": "7699e52063d73fa265a7488ace0ccc511dae46ca197e88aa5665b2789998b8b8",
+      "current_sha256": "4ff7b190d86e998c0d998a691492371670ab3b4ddb88409a7eebcde76d8dd9f7",
+      "exact_comment_only_reconstruction": true,
+      "separate_installations": [
+        {
+          "path": "E:\\Git\\ZirconEngine\\docs\\cli-and-tooling\\source-comment-audit\\round-02\\ownership\\local-install-runtime_ecs_commands_bundle_commit-20261002-r1.json",
+          "sha256": "4dc222645c419c5c30ba776f6704445a94e1ee0766392f4d73add7ab227236ac"
+        }
+      ],
+      "new_semantic_evidence_or_authorship": false
+    }
+  ],
+  "source_writes": 0,
+  "canonical_writes": 0,
+  "status": "exact_final_coverage_published",
+  "completed_at_utc": "2026-10-02T08:38:09.255222+00:00",
+  "intent": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-publish-runtime_world_property_binding-20261002-r1\\intent.json",
+    "sha256": "d222413cfac3048442db2a2b09d2217d55e0a6f26da97d946c5fe8a57f02b6d4"
+  },
+  "inventory_reviewed_current_records": 3866,
+  "canonical_batch_records": 101,
+  "canonical_ledger_writes": 4,
+  "native_calls": 0,
+  "git_writes": 0,
+  "business_adoption": false,
+  "dynamic_acceptance": false,
+  "future_source_edit_pending": false,
+  "submission": "pending_index_ownership_resolution"
+}

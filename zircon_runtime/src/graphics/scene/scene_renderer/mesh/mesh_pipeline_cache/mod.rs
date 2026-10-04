@@ -1,3 +1,4 @@
+//! 管理网格各 pass 的管线准入、材质代际与提交引用；着色器装配和 ABI 校验由相邻模块实现。
 mod construct;
 mod ensure_depth_prepass_pipeline;
 mod ensure_gbuffer_pipeline;
@@ -21,6 +22,7 @@ mod mesh_shader_resource_contract_wgpu;
 mod mesh_shader_vertex_contract;
 mod mesh_shader_vertex_contract_wgpu;
 #[cfg(test)]
+#[path = "tests/pipeline_admission_contract_tests.rs"]
 mod pipeline_admission_contract_tests;
 mod pipeline_creation_diagnostics;
 mod pipeline_creation_metrics;
@@ -45,19 +47,14 @@ pub(in crate::graphics::scene::scene_renderer::mesh) use mesh_pipeline_cache::{
     MAX_ASYNC_SHADER_SOURCE_VALIDATIONS_IN_FLIGHT, MAX_PENDING_PIPELINE_CREATION_DIAGNOSTICS,
 };
 pub(crate) use mesh_pipeline_variant_registry::{
-    MeshPipelineVariantRegistry, MeshPipelineVariantResolver,
+    MeshPipelineResolverConfigurationEpoch, MeshPipelineVariantRegistry,
+    MeshPipelineVariantResolver,
 };
 pub use prewarm_manifest::{
     RuntimeShaderPipelinePrewarmFailure, RuntimeShaderPipelinePrewarmReport,
 };
 pub(crate) use prewarm_pipeline_validation::{
     create_mesh_prewarm_validation_pipeline_layout, validate_mesh_prewarm_request_render_pipeline,
-};
-pub(crate) use shader_source::{
-    MeshPipelineShaderSource, mesh_pipeline_standard_material_template_source,
-    mesh_pipeline_standard_material_template_source_for_geometry,
-    mesh_pipeline_standard_material_template_source_for_shader_pass,
-    mesh_pipeline_standard_material_template_source_for_shader_pass_and_descriptor,
 };
 #[cfg(test)]
 pub(in crate::graphics::scene::scene_renderer::mesh) use shader_source::{
@@ -67,4 +64,11 @@ pub(in crate::graphics::scene::scene_renderer::mesh) use shader_source::{
     mesh_pipeline_shadow_template_source_for_geometry,
     mesh_pipeline_taa_reactive_mask_template_source_for_geometry,
     mesh_pipeline_velocity_template_source_for_geometry,
+};
+pub(crate) use shader_source::{
+    mesh_pipeline_standard_material_template_source,
+    mesh_pipeline_standard_material_template_source_for_geometry,
+    mesh_pipeline_standard_material_template_source_for_shader_pass,
+    mesh_pipeline_standard_material_template_source_for_shader_pass_and_descriptor,
+    MeshPipelineShaderSource,
 };

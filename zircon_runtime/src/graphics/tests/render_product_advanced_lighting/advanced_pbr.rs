@@ -17,7 +17,7 @@ use crate::core::resource::{
 };
 use crate::graphics::WgpuRenderFramework;
 
-use super::{ProductRender, render_product_output_dir, write_side_by_side_png};
+use super::{render_product_output_dir, write_side_by_side_png, ProductRender};
 
 pub(super) const PRODUCT_SIZE: UVec2 = UVec2::new(640, 360);
 const ADVANCED_PBR_OPAQUE_PASS_NAME: &str = "advanced-pbr-opaque";

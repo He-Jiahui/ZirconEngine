@@ -117,7 +117,7 @@ should use a compact stable row key and retain parent/child adjacency directly.
 
 ## Deterministic pressure model
 
-`tools/editor_menu_interaction_projection_pressure.py` counts worst-case row
+`tools/analysis/performance/editor/editor_menu_interaction_projection_pressure.py` counts worst-case row
 accesses/materializations. It is not CPU or latency timing. The suite uses 1,000
 hover transitions, 1,000 keyboard events, 100 submenu transitions, depth four,
 and seven menu buttons.

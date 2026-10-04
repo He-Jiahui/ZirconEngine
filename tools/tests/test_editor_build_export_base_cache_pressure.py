@@ -1,9 +1,10 @@
+# 核对构建导出基础缓存以共享代际替代载荷克隆，并约束模型输入与结果。
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from tools.editor_build_export_base_cache_pressure import run, write_result
+from tools.analysis.performance.editor.editor_build_export_base_cache_pressure import run, write_result
 
 
 class EditorBuildExportBaseCachePressureTests(unittest.TestCase):
@@ -65,7 +66,7 @@ class EditorBuildExportBaseCachePressureTests(unittest.TestCase):
             preset_path_count=2,
             stable_cache_hit_count=3,
         )
-        with tempfile.TemporaryDirectory(dir=Path("E:/zircon-profiles")) as directory:
+        with tempfile.TemporaryDirectory(dir=Path(tempfile.gettempdir())) as directory:
             output = Path(directory) / "pressure.json"
             write_result(output, result)
 

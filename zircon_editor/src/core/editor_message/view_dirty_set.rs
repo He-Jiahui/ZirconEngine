@@ -1,10 +1,11 @@
 use std::collections::BTreeMap;
 
-use serde::{Deserialize, Serialize};
+use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
 
 use crate::core::editor_event::ViewInstanceId;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
+/// 视图需重新计算的工作类别；生产者按真实影响组合标志，消费者选择布局、反射或绘制路径。
 pub struct EditorViewInvalidationMask(u16);
 
 impl EditorViewInvalidationMask {
@@ -18,6 +19,16 @@ impl EditorViewInvalidationMask {
     pub const HIT_TEST: Self = Self(1 << 6);
     pub const WINDOW_METRICS: Self = Self(1 << 7);
     pub const RENDER: Self = Self(1 << 8);
+
+    const KNOWN_BITS: u16 = Self::LAYOUT.0
+        | Self::TREE_STRUCTURE.0
+        | Self::PRESENTATION_DATA.0
+        | Self::PAINT_ONLY.0
+        | Self::POINTER_HOVER.0
+        | Self::VIEWPORT_IMAGE.0
+        | Self::HIT_TEST.0
+        | Self::WINDOW_METRICS.0
+        | Self::RENDER.0;
 
     pub const fn bits(self) -> u16 {
         self.0
@@ -56,7 +67,23 @@ impl EditorViewInvalidationMask {
     }
 }
 
+impl<'de> Deserialize<'de> for EditorViewInvalidationMask {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let bits = u16::deserialize(deserializer)?;
+        if bits & !Self::KNOWN_BITS != 0 {
+            return Err(D::Error::custom(
+                "view invalidation mask contains unknown bits",
+            ));
+        }
+        Ok(Self(bits))
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// 按视图实例合并本轮失效请求；同一实例的标志取并集，排空后的新请求属于下一刷新轮。
 pub struct ViewDirtySet {
     views: BTreeMap<ViewInstanceId, EditorViewInvalidationMask>,
 }

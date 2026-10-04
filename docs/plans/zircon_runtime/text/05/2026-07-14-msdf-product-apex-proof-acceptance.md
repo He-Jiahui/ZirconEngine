@@ -3,7 +3,7 @@
 Plan: docs/plans/zircon_runtime/text/05-sdf-msdf-pipeline.md
 Milestone: M2
 Status: accepted
-Files: ["zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs", "zircon_runtime/tests/runtime_text_multilingual_product_framebuffer/proof_assertions.rs", "docs/zircon_runtime/graphics/text/sdf.md", "docs/plans/zircon_runtime/text/05/2026-07-09-sdf-msdf-pipeline-output-records.md", "docs/tests/runtime/text/runtime_text_multilingual_sdf_msdf_product_framebuffer_20260714.png"]
+Files: ["zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs", "zircon_runtime/tests/runtime_text_multilingual_product_framebuffer/proof_assertions.rs", "docs/crates/zircon_runtime/graphics/text/sdf.md", "docs/plans/zircon_runtime/text/05/2026-07-09-sdf-msdf-pipeline-output-records.md", "docs/tests/runtime/text/runtime_text_multilingual_sdf_msdf_product_framebuffer_20260714.png"]
 
 ## Scope delivered
 

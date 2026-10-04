@@ -5,6 +5,7 @@ use crate::graphics::backend::{
 use crate::graphics::scene::scene_renderer::graph_execution::FrameCommandEncoderSet;
 use crate::graphics::types::GraphicsError;
 
+/// 汇集图执行后才可确定的尾部工作；所有命令缓冲仍须由帧提交事务统一提交。
 pub(super) struct TerminalFramePacketContext<'frame, 'diagnostic, 'timer> {
     pub(super) device: &'frame wgpu::Device,
     pub(super) target: &'frame OffscreenTarget,
@@ -26,6 +27,8 @@ pub(super) struct PreparedTerminalFramePacket {
     pub(super) product_diagnostic_query_frame: Option<zr_rhi_wgpu::WgpuNativeDiagnosticQueryFrame>,
 }
 
+/// 在 submit 前封闭命令流：历史初始化先行，图命令保持拓扑顺序，诊断复制随后跟随场景输出。
+/// 此函数只准备 packet，不取得 queue 提交权。
 pub(super) fn prepare_terminal_frame_packet(
     mut context: TerminalFramePacketContext<'_, '_, '_>,
 ) -> Result<PreparedTerminalFramePacket, GraphicsError> {
@@ -48,6 +51,7 @@ pub(super) fn prepare_terminal_frame_packet(
         },
         None => None,
     };
+    // TODO: [CR-GRAPHICS-SCENECORE-0001] 确认 query 计划登记或 readback 准备失败是否需要上报诊断状态；当前 Err 被丢弃，调用方仍提交场景 packet，缺少失败可见性的契约测试。
     let product_diagnostic_query_frame =
         context
             .product_diagnostic_query_scope
@@ -85,33 +89,5 @@ fn defer_gpu_timers(context: &mut TerminalFramePacketContext<'_, '_, '_>) {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn terminal_tail_defers_surface_blit_to_the_compiled_graph() {
-        let source = include_str!("terminal_frame_packet.rs")
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("terminal packet test boundary");
-        let product = source
-            .find("viewport_product_copy.encode_copy(")
-            .expect("retained product copy");
-        let diagnostic = source.find("scope.prepare(").expect("copy diagnostic tail");
-        let finish = source
-            .find("context.command_encoders.finish()")
-            .expect("terminal packet finish");
-        let history_initialization = source
-            .find("command_buffers.insert(0, history_initialization)")
-            .expect("history initialization must lead the scene packet");
-
-        assert!(product < diagnostic);
-        assert!(diagnostic < finish);
-        assert!(finish < history_initialization);
-        assert!(source.contains("history_initialization_command_buffer"));
-        assert!(!source.contains("submit_graphics_command_buffers("));
-        assert!(!source.contains("record_frame_target_blit("));
-        assert!(!source.contains("encode_output_target_writeback("));
-        assert!(!source.contains("skip_output_target_writeback_after_direct_import("));
-        assert!(!source.contains("suppress_output_target_writeback("));
-        assert!(!source.contains("queue.submit("));
-    }
-}
+#[path = "tests/terminal_frame_packet.rs"]
+mod tests;

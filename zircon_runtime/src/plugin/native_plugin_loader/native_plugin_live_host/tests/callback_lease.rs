@@ -2,9 +2,7 @@ use super::super::super::benchmark_harness::{
     BenchmarkMeasurement, BenchmarkRunMetadata, BenchmarkWorkerCompletionGate,
     BenchmarkWorkerStartGate,
 };
-use super::runtime_behavior::{
-    callback_test_behavior, native_live_host_test_plugin_with_behavior, successful_runtime_command,
-};
+use super::runtime_behavior::{callback_test_behavior, successful_runtime_command};
 use super::*;
 use crate::plugin::native_plugin_loader::loaded_native_plugin::{
     NativePluginCallbackLeaseError, NativePluginLifecycleTransitionError,

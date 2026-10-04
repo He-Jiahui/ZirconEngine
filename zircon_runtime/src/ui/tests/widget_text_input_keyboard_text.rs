@@ -149,13 +149,11 @@ fn text_input_keyboard_text_payload_rejects_stale_disabled_focus_owner() {
     let result = dispatch_key_with_text(&mut surface, "Z", 90, Some("Z"), |_| {});
 
     assert_eq!(result.reply.disposition, UiDispatchDisposition::Unhandled);
-    assert!(
-        result
-            .diagnostics
-            .notes
-            .iter()
-            .any(|note| note == "owner route rejected")
-    );
+    assert!(result
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note == "owner route rejected"));
     assert_eq!(text_attr(&surface, "content"), "ab");
     assert_eq!(int_attr(&surface, "caret_offset"), 1);
     assert_eq!(int_attr(&surface, "selection_anchor"), 1);
@@ -180,13 +178,11 @@ fn text_input_keyboard_tab_does_not_insert_text_and_routes_navigation() {
         result.diagnostics.handled_phase.as_deref(),
         Some("keyboard.navigation")
     );
-    assert!(
-        result
-            .diagnostics
-            .notes
-            .iter()
-            .any(|note| note == "keyboard_navigation=Next")
-    );
+    assert!(result
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note == "keyboard_navigation=Next"));
     assert!(matches!(
         &result.applied_effects[0].effect,
         UiDispatchEffect::SetFocus { target, reason }

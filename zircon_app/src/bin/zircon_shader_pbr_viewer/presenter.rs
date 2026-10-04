@@ -1,3 +1,6 @@
+//! CPU 诊断与加载画面的窗口呈现适配。
+//! 原生场景表面接管后释放此 presenter，避免两条路径提交同一个窗口。
+
 use std::num::NonZeroU32;
 use std::sync::Arc;
 
@@ -6,6 +9,7 @@ use winit::window::Window;
 use zircon_runtime::core::math::UVec2;
 use zircon_runtime::graphics::ViewportFrame;
 
+/// 窗口启动画面与 CPU 诊断帧的呈现所有权；原生 Scene surface 接管后宿主应释放它。
 pub(crate) struct SoftbufferViewportPresenter {
     _context: Context<Arc<dyn Window>>,
     surface: Surface<Arc<dyn Window>, Arc<dyn Window>>,
@@ -32,6 +36,7 @@ impl SoftbufferViewportPresenter {
         Ok(())
     }
 
+    /// 呈现宿主准备的不透明 CPU 像素帧；随帧尺寸重建表面，短帧未覆盖区域清黑以免显示旧数据。
     pub(crate) fn present(
         &mut self,
         frame: &ViewportFrame,
@@ -88,26 +93,5 @@ fn non_zero(value: u32) -> NonZeroU32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::copy_rgba_to_xrgb;
-
-    #[test]
-    fn complete_rgba_frame_overwrites_the_surface_without_a_preclear() {
-        let mut surface = [0x00ff_00ff, 0x00ff_00ff];
-
-        let cleared = copy_rgba_to_xrgb(&mut surface, &[1, 2, 3, 255, 4, 5, 6, 255]);
-
-        assert!(!cleared);
-        assert_eq!(surface, [0x0001_0203, 0x0004_0506]);
-    }
-
-    #[test]
-    fn truncated_rgba_frame_clears_uncovered_surface_pixels() {
-        let mut surface = [0x00ff_00ff, 0x00ff_00ff];
-
-        let cleared = copy_rgba_to_xrgb(&mut surface, &[1, 2, 3, 255]);
-
-        assert!(cleared);
-        assert_eq!(surface, [0x0001_0203, 0]);
-    }
-}
+#[path = "tests/presenter.rs"]
+mod tests;

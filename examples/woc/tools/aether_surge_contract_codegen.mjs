@@ -1,3 +1,6 @@
+// 调用端：npm run generate:aether-surge-contract (tools/package.json)；职责：固化以太涌动层数上限、触发窗口和以太飞弹首次命中时的消耗规则。
+// 输入边界：src/sim/combat/chronomancy.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

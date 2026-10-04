@@ -1,4 +1,120 @@
+//! 事务恢复测试把 journal 视为非可信输入；Apply 可恢复，DryRun 仅报告且必须保持现有磁盘快照。
 use super::*;
+
+#[test]
+fn interrupted_recovery_accepts_valid_multiline_backup_and_converges() {
+    let root = fixture_root("transaction-valid-multiline-backup");
+    write_manifest(&root, &["assets"]);
+    let guid: AssetUuid = "f4111111-2222-4333-8444-555555555555".parse().unwrap();
+    write_registered_source(
+        &root,
+        "assets",
+        "shaders/pbr.zshader",
+        guid,
+        AssetKind::Shader,
+    );
+    let shader_directory = root.join("assets/shaders");
+    let material = root.join("assets/materials/quoted.zmaterial");
+    fs::create_dir_all(material.parent().unwrap()).unwrap();
+    let original = format!(
+        "version = 2\nname = \"\"\"a\"\"\"\"\n\n[shader]\nuuid = \"{guid}\"\nurl = \"res://shaders/pbr.zshader\"\n"
+    );
+    let original_value: toml::Value = toml::from_str(&original).unwrap();
+    assert_eq!(original_value["name"].as_str(), Some("a\""));
+    let original_digest = blake3::hash(original.as_bytes());
+    fs::write(&material, original.as_bytes()).unwrap();
+
+    // Derive the publication index from the normal plan: registered sidecars can also change.
+    let planned = migrate_project_assets(AssetMigrationOptions::new(
+        &root,
+        AssetMigrationMode::DryRun,
+    ))
+    .unwrap();
+    assert!(planned.succeeded());
+    let material_index = planned
+        .changed_files()
+        .iter()
+        .position(|change| change.path().file_name() == material.file_name())
+        .expect("the legacy material must appear in the normal publication plan");
+
+    let interrupted = migrate_project_assets_with_commit_window_fault(
+        AssetMigrationOptions::new(&root, AssetMigrationMode::Apply),
+        material_index,
+        false,
+    )
+    .unwrap_err();
+    match interrupted {
+        crate::asset::migration::AssetMigrationError::Transaction { phase, source, .. } => {
+            assert_eq!(phase, AssetMigrationTransactionPhase::Commit);
+            assert_eq!(source.kind(), std::io::ErrorKind::Interrupted);
+        }
+        other => panic!("expected the target-replacement interruption, found {other}"),
+    }
+    let replaced = fs::read(&material).unwrap();
+    assert_ne!(replaced, original.as_bytes());
+    let replaced_digest = blake3::hash(&replaced);
+    let backups = fs::read_dir(material.parent().unwrap())
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .filter(|path| {
+            path.file_name()
+                .unwrap()
+                .to_string_lossy()
+                .contains(".zr-migrate-backup-")
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(backups.len(), 1);
+    let backup_bytes = fs::read(&backups[0]).unwrap();
+    assert_eq!(backup_bytes, original.as_bytes());
+    assert_eq!(blake3::hash(&backup_bytes), original_digest);
+    let journal_directory = root.join(".zircon/asset-migration");
+    let assets_before = directory_snapshot(&shader_directory);
+    let artifacts_before = directory_snapshot(material.parent().unwrap());
+    let journals_before = directory_snapshot(&journal_directory);
+    assert!(!journals_before.is_empty());
+
+    let dry_run = migrate_project_assets(AssetMigrationOptions::new(
+        &root,
+        AssetMigrationMode::DryRun,
+    ))
+    .unwrap();
+    assert!(!dry_run.succeeded());
+    assert!(dry_run
+        .issues()
+        .iter()
+        .any(|issue| issue.kind() == AssetMigrationIssueKind::PendingRecovery));
+    assert_eq!(directory_snapshot(&shader_directory), assets_before);
+    assert_eq!(
+        directory_snapshot(material.parent().unwrap()),
+        artifacts_before
+    );
+    assert_eq!(directory_snapshot(&journal_directory), journals_before);
+
+    let report =
+        migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
+            .unwrap();
+    assert!(report.succeeded());
+    assert!(report.applied());
+    let migrated = fs::read(&material).unwrap();
+    assert_eq!(migrated, replaced);
+    assert_eq!(blake3::hash(&migrated), replaced_digest);
+    let migrated_value: toml::Value =
+        toml::from_str(std::str::from_utf8(&migrated).unwrap()).unwrap();
+    assert_eq!(migrated_value["name"].as_str(), Some("a\""));
+    assert_eq!(migrated_value["shader"]["kind"].as_str(), Some("project"));
+    assert_eq!(
+        migrated_value["shader"]["guid"].as_str(),
+        Some(guid.to_string().as_str())
+    );
+    assert_eq!(fs::read_dir(&journal_directory).unwrap().count(), 0);
+    for directory in [material.parent().unwrap(), shader_directory.as_path()] {
+        assert!(!fs::read_dir(directory)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name())
+            .any(|name| name.to_string_lossy().contains(".zr-migrate-")));
+    }
+    fs::remove_dir_all(root).unwrap();
+}
 
 #[test]
 fn commit_failure_rolls_back_every_document_and_cleans_transaction_files() {
@@ -100,6 +216,30 @@ fn dry_run_reports_pending_recovery_and_apply_converges_forward_without_backup_r
         journals_before_dry_run
     );
 
+    // Block the next migration so it cannot hide restoration by disk recovery.
+    let first_before_recovery = fs::read(&first).unwrap();
+    let second_before_recovery = fs::read(&second).unwrap();
+    let invalid_material = materials.join("blocked-recovery.zmaterial");
+    fs::write(&invalid_material, b"version = [\n").unwrap();
+
+    let blocked =
+        migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
+            .unwrap();
+    assert!(!blocked.succeeded());
+    assert!(blocked
+        .issues()
+        .iter()
+        .any(|issue| issue.kind() == AssetMigrationIssueKind::InvalidDocument));
+    assert_eq!(fs::read(&first).unwrap(), first_before_recovery);
+    assert_eq!(fs::read(&second).unwrap(), second_before_recovery);
+    assert_eq!(fs::read(&invalid_material).unwrap(), b"version = [\n");
+    assert_eq!(fs::read_dir(&journal_directory).unwrap().count(), 0);
+    assert!(!fs::read_dir(&materials)
+        .unwrap()
+        .filter_map(Result::ok)
+        .any(|entry| entry.file_name().to_string_lossy().contains("zr-migrate")));
+    fs::remove_file(&invalid_material).unwrap();
+
     let report =
         migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
             .unwrap();
@@ -114,6 +254,16 @@ fn dry_run_reports_pending_recovery_and_apply_converges_forward_without_backup_r
         .unwrap()
         .filter_map(Result::ok)
         .any(|entry| entry.file_name().to_string_lossy().contains("zr-migrate")));
+    let first_migrated = fs::read(&first).unwrap();
+    let second_migrated = fs::read(&second).unwrap();
+    let second_apply =
+        migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
+            .unwrap();
+    assert!(second_apply.succeeded());
+    assert!(second_apply.changed_files().is_empty());
+    assert_eq!(fs::read(&first).unwrap(), first_migrated);
+    assert_eq!(fs::read(&second).unwrap(), second_migrated);
+
     fs::remove_dir_all(root).unwrap();
 }
 
@@ -222,6 +372,7 @@ fn forged_new_target_journal_cannot_delete_an_arbitrary_root_file() {
     fs::remove_dir_all(root).unwrap();
 }
 
+// 恢复前仍须以扫描出的合法目标约束 journal；备份的摘要自洽不能赋予它覆盖现存文档的权限。
 #[test]
 fn forged_active_journal_cannot_overwrite_existing_target_from_backup() {
     let root = fixture_root("transaction-forged-existing-backup");

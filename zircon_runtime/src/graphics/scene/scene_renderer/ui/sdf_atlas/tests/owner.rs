@@ -1,5 +1,127 @@
 use super::*;
 
+fn retained_text_frame_generation(value: u64) -> ScreenSpaceUiTextFrameProductGeneration {
+    let mut counter = value.saturating_sub(1);
+    ScreenSpaceUiTextFrameProductGeneration::next(&mut counter)
+}
+
+fn retained_text_frame(
+    generation: ScreenSpaceUiTextFrameProductGeneration,
+    journal: crate::graphics::scene::scene_renderer::ui::text::ScreenSpaceUiTextFrameChangeJournal,
+    segments: &[&str],
+) -> crate::graphics::scene::scene_renderer::ui::text::ScreenSpaceUiTextFrameProduct {
+    crate::graphics::scene::scene_renderer::ui::text::ScreenSpaceUiTextFrameProduct::for_test_sdf_segments(
+        generation,
+        journal,
+        segments
+            .iter()
+            .enumerate()
+            .map(|(index, text)| {
+                vec![text_batch(
+                    text,
+                    UiFrame::new(0.0, index as f32 * 16.0, 48.0, 12.0),
+                )]
+            })
+            .collect(),
+    )
+}
+
+#[test]
+fn retained_frame_resident_glyph_delta_patches_only_the_changed_segment() {
+    let first_generation = retained_text_frame_generation(1);
+    let first = retained_text_frame(
+        first_generation,
+        crate::graphics::scene::scene_renderer::ui::text::ScreenSpaceUiTextFrameChangeJournal::for_test_initial(first_generation),
+        &["AB", "CD", "EF"],
+    );
+    let mut atlas = ScreenSpaceUiSdfAtlas::new();
+    atlas.prepare_retained_frame(&first);
+    let slot_storage = atlas.plan().slots.as_ptr();
+    let slot_product_generation = atlas.slot_product_generation();
+    let first_run = atlas.plan().runs[0].clone();
+    let last_run = atlas.plan().runs[2].clone();
+
+    let second_generation = retained_text_frame_generation(2);
+    let second = retained_text_frame(
+        second_generation,
+        crate::graphics::scene::scene_renderer::ui::text::ScreenSpaceUiTextFrameChangeJournal::for_test_local(
+            first_generation,
+            second_generation,
+            &[1],
+            0,
+            0,
+        ),
+        &["AB", "CF", "EF"],
+    );
+    atlas.prepare_retained_frame(&second);
+
+    assert_eq!(atlas.plan().slots.as_ptr(), slot_storage);
+    assert_eq!(atlas.slot_product_generation(), slot_product_generation);
+    assert_eq!(atlas.plan().runs[0], first_run);
+    assert_eq!(atlas.plan().runs[2], last_run);
+    assert_eq!(atlas.segment_product_visit_report(), (1, 2, 2, false));
+    assert_eq!(atlas.cache_report().added_slot_count, 0);
+    assert!(atlas.cache_report().dirty_pages.is_empty());
+}
+
+#[test]
+fn retained_frame_new_glyph_appends_without_relocating_existing_slots() {
+    let first_generation = retained_text_frame_generation(1);
+    let first = retained_text_frame(
+        first_generation,
+        crate::graphics::scene::scene_renderer::ui::text::ScreenSpaceUiTextFrameChangeJournal::for_test_initial(first_generation),
+        &["AB", "CD", "EF"],
+    );
+    let mut atlas = ScreenSpaceUiSdfAtlas::new();
+    atlas.prepare_retained_frame(&first);
+    let previous_slots = atlas.plan().slots.clone();
+    let previous_slot_product_generation = atlas.slot_product_generation();
+
+    let second_generation = retained_text_frame_generation(2);
+    let second = retained_text_frame(
+        second_generation,
+        crate::graphics::scene::scene_renderer::ui::text::ScreenSpaceUiTextFrameChangeJournal::for_test_local(
+            first_generation,
+            second_generation,
+            &[1],
+            0,
+            0,
+        ),
+        &["AB", "CZ", "EF"],
+    );
+    atlas.prepare_retained_frame(&second);
+
+    assert_eq!(
+        &atlas.plan().slots[..previous_slots.len()],
+        previous_slots.as_slice()
+    );
+    assert_eq!(atlas.plan().slots.len(), previous_slots.len() + 1);
+    assert_ne!(
+        atlas.slot_product_generation(),
+        previous_slot_product_generation
+    );
+    assert_eq!(atlas.segment_product_visit_report(), (1, 2, 2, false));
+    assert_eq!(atlas.cache_report().added_slot_count, 1);
+    assert_eq!(atlas.cache_report().relocated_slot_count, 0);
+}
+
+#[test]
+fn retained_frame_local_patch_has_no_all_segment_scan() {
+    let source = include_str!("../segment_product.rs");
+    let local_patch = source
+        .split("pub(super) fn apply_local")
+        .nth(1)
+        .expect("local segment patch")
+        .split("pub(super) fn active_keys")
+        .next()
+        .expect("local segment patch boundary");
+
+    assert!(!local_patch.contains("frame.segment_products().iter()"));
+    assert!(!local_patch.contains("self.products.iter()"));
+    assert!(local_patch.contains("journal.changed_segment_indices()"));
+    assert!(local_patch.contains("frame.segment_products()[appended_segment_start..]"));
+}
+
 #[test]
 fn sdf_atlas_owner_retains_inactive_slots_between_non_empty_frames() {
     let mut atlas = ScreenSpaceUiSdfAtlas::new();

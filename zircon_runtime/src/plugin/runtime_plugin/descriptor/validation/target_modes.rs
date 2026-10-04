@@ -1,5 +1,6 @@
 use super::DescriptorTargetMode;
 
+// 描述符目标模式决定内嵌模块与项目默认选择的可用范围，注册阶段要求至少一个且不得重复。
 pub(super) fn validate_runtime_plugin_descriptor_target_modes(
     target_modes: &[DescriptorTargetMode],
     diagnostics: &mut Vec<String>,
@@ -20,5 +21,5 @@ pub(super) fn validate_runtime_plugin_descriptor_target_modes(
 }
 
 #[cfg(test)]
-#[path = "target_modes/allocation_tests.rs"]
+#[path = "target_modes/tests/allocation_tests.rs"]
 mod allocation_tests;

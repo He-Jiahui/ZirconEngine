@@ -1,3 +1,4 @@
+# 核对外框模板控件与页面溢出查询复用借用索引，避免按标签重复扫描。
 from pathlib import Path
 import re
 import unittest

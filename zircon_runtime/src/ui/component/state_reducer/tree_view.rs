@@ -372,6 +372,8 @@ fn collect_tree_node_ids<'a>(
 ) {
     match value {
         UiValue::Array(values) => {
+            out.reserve(values.len());
+            seen.reserve(values.len());
             for value in values {
                 collect_tree_node_ids(value, out, seen);
             }
@@ -406,12 +408,16 @@ fn collect_borrowed_string_ids<'a>(
 ) {
     match value {
         UiValue::Array(values) => {
+            out.reserve(values.len());
+            seen.reserve(values.len());
             for value in values {
                 collect_borrowed_string_ids(value, out, seen);
             }
         }
         UiValue::String(value) | UiValue::Enum(value) => push_unique_borrowed(out, seen, value),
         UiValue::Flags(values) => {
+            out.reserve(values.len());
+            seen.reserve(values.len());
             for value in values {
                 push_unique_borrowed(out, seen, value);
             }
@@ -432,12 +438,16 @@ fn collect_owned_string_ids<'a>(
 ) {
     match value {
         UiValue::Array(values) => {
+            out.reserve(values.len());
+            seen.reserve(values.len());
             for value in values {
                 collect_owned_string_ids(value, out, seen);
             }
         }
         UiValue::String(value) | UiValue::Enum(value) => push_unique_owned(out, seen, value),
         UiValue::Flags(values) => {
+            out.reserve(values.len());
+            seen.reserve(values.len());
             for value in values {
                 push_unique_owned(out, seen, value);
             }
@@ -562,6 +572,7 @@ fn disabled_option_ids(state: &UiComponentState) -> HashSet<&str> {
 fn collect_disabled_option_ids<'a>(value: &'a UiValue, out: &mut HashSet<&'a str>) {
     match value {
         UiValue::Array(values) => {
+            out.reserve(values.len());
             for value in values {
                 collect_disabled_option_ids(value, out);
             }
@@ -570,6 +581,7 @@ fn collect_disabled_option_ids<'a>(value: &'a UiValue, out: &mut HashSet<&'a str
             out.insert(value);
         }
         UiValue::Flags(values) => {
+            out.reserve(values.len());
             out.extend(values.iter().map(String::as_str));
         }
         _ => {}
@@ -594,50 +606,5 @@ fn is_selected_control_property(property: &str) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::collections::HashSet;
-
-    use zircon_runtime_interface::ui::component::UiValue;
-
-    use super::{collect_disabled_option_ids, collect_tree_node_ids};
-
-    #[test]
-    fn ordered_tree_ids_borrow_first_occurrence_and_deduplicate_in_linear_index() {
-        let value = UiValue::Array(vec![
-            UiValue::String("root".to_string()),
-            UiValue::String("root".to_string()),
-            UiValue::Enum("child".to_string()),
-        ]);
-        let first_root = match &value {
-            UiValue::Array(values) => match &values[0] {
-                UiValue::String(value) => value.as_ptr(),
-                _ => unreachable!(),
-            },
-            _ => unreachable!(),
-        };
-        let mut ids = Vec::new();
-        let mut seen = HashSet::new();
-
-        collect_tree_node_ids(&value, &mut ids, &mut seen);
-
-        assert_eq!(ids, ["root", "child"]);
-        assert_eq!(ids[0].as_ptr(), first_root);
-    }
-
-    #[test]
-    fn disabled_option_index_preserves_array_enum_and_flags_membership() {
-        let value = UiValue::Array(vec![
-            UiValue::String("root".to_string()),
-            UiValue::Enum("child".to_string()),
-            UiValue::Flags(vec!["leaf".to_string(), "root".to_string()]),
-        ]);
-        let mut disabled = HashSet::new();
-
-        collect_disabled_option_ids(&value, &mut disabled);
-
-        assert_eq!(disabled.len(), 3);
-        assert!(disabled.contains("root"));
-        assert!(disabled.contains("child"));
-        assert!(disabled.contains("leaf"));
-    }
-}
+#[path = "tests/tree_view.rs"]
+mod tests;

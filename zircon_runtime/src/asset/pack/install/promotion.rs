@@ -1,206 +1,75 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
-#[cfg(test)]
-use std::cell::Cell;
-
-use crate::asset::pack::{ZrPackError, ZrPackReader};
-
-use super::{
-    file_io::{
-        copy_pack_file, optional_backup_path, read_pack_file, remove_pack_file, rename_pack_file,
-    },
-    ZrPackDeltaInstallError, ZrPackPromotionMethod, ZrPackPromotionReport,
+use crate::asset::pack::ZrPackReader;
+use crate::core::resource::io::transaction::{
+    commit_prepared_files, DurableCommitDisposition, DurableCommitReport, PreparedFileWrite,
+    TransactionFault,
 };
+
+use super::file_io::{optional_backup_path, read_pack_file};
+use super::promotion_journal::PromotionPaths;
+use super::{ZrPackDeltaInstallError, ZrPackPromotionMethod, ZrPackPromotionReport};
 
 pub(super) fn promote_staged_pack(
     staged_pack: &Path,
     installed_pack: &Path,
     backup_pack: Option<impl AsRef<Path>>,
 ) -> Result<ZrPackPromotionReport, ZrPackDeltaInstallError> {
-    promote_staged_pack_with_ops(
+    promote_with_fault(
         staged_pack,
         installed_pack,
-        optional_backup_path(backup_pack),
-        &FsPromotionFileOps,
+        optional_backup_path(backup_pack).as_deref(),
+        TransactionFault::None,
     )
 }
 
-#[cfg(test)]
-pub(super) fn promote_staged_pack_with_forced_staged_rename_failure(
+// 先恢复遗留 journal 并解析 staging；backup、installed 替换及带摘要校验的 staging 退休进入同一 durable transaction。
+pub(super) fn promote_with_fault(
     staged_pack: &Path,
     installed_pack: &Path,
-    backup_pack: Option<impl AsRef<Path>>,
+    backup_pack: Option<&Path>,
+    fault: TransactionFault,
 ) -> Result<ZrPackPromotionReport, ZrPackDeltaInstallError> {
-    let file_ops = ForcedStagedRenameFailureFileOps::new(staged_pack, installed_pack);
-    promote_staged_pack_with_ops(
-        staged_pack,
-        installed_pack,
-        optional_backup_path(backup_pack),
-        &file_ops,
-    )
-}
-
-fn promote_staged_pack_with_ops(
-    staged_pack: &Path,
-    installed_pack: &Path,
-    backup_pack: Option<PathBuf>,
-    file_ops: &impl PromotionFileOps,
-) -> Result<ZrPackPromotionReport, ZrPackDeltaInstallError> {
-    let staged_bytes = read_pack_file(staged_pack)?;
+    let paths = PromotionPaths::new(staged_pack, installed_pack, backup_pack)?;
+    paths.recover()?;
+    let staged_bytes = read_pack_file(&paths.staged)?;
+    let staged_size = staged_bytes.len() as u64;
+    let staged_digest = blake3::hash(&staged_bytes).to_hex().to_string();
     let staged_reader = ZrPackReader::from_bytes(staged_bytes)?;
-    let staged_size = u64::try_from(
-        std::fs::metadata(staged_pack)
-            .map_err(|error| ZrPackDeltaInstallError::ReadFailed {
-                path: staged_pack.to_path_buf(),
-                error: error.to_string(),
-            })?
-            .len(),
-    )
-    .map_err(|_| ZrPackError::SizeOverflow)?;
-
-    if let Some(backup_pack) = backup_pack.as_deref() {
-        file_ops.rename(installed_pack, backup_pack)?;
+    let installed_manifest = staged_reader.manifest().clone();
+    let mut writes = Vec::with_capacity(2);
+    if let Some(backup) = &paths.backup {
+        let old_bytes = read_pack_file(&paths.installed)?;
+        writes.push(PreparedFileWrite::new(backup, old_bytes));
     }
-    let promotion_method = promote_staged_to_installed(
-        staged_pack,
-        installed_pack,
-        staged_reader.manifest(),
-        staged_size,
-        file_ops,
+    writes.push(
+        PreparedFileWrite::new(&paths.installed, staged_reader.into_bytes())
+            .retiring_with_expected_digest(&paths.staged, staged_digest),
+    );
+    let mut report = DurableCommitReport::default();
+    let disposition = commit_prepared_files(
+        &paths.journal,
+        super::promotion_journal::TRANSACTION_TAG,
+        writes,
+        fault,
+        &mut report,
     )
-    .map_err(|error| {
-        restore_backup_after_failed_promotion(installed_pack, backup_pack.as_deref(), file_ops);
-        error
-    })?;
-
+    .map_err(|error| paths.transaction_error(error))?;
+    if disposition == DurableCommitDisposition::CommitRecoveryDeferred {
+        return Err(ZrPackDeltaInstallError::RecoveryRequired {
+            journal_directory: paths.journal,
+        });
+    }
     Ok(ZrPackPromotionReport {
         installed_pack: installed_pack.to_path_buf(),
-        backup_pack,
+        backup_pack: backup_pack.map(Path::to_path_buf),
         staged_pack: staged_pack.to_path_buf(),
-        installed_manifest: staged_reader.manifest().clone(),
+        installed_manifest,
         installed_size: staged_size,
-        promotion_method,
+        promotion_method: ZrPackPromotionMethod::AtomicReplacement,
     })
 }
 
-fn promote_staged_to_installed(
-    staged_pack: &Path,
-    installed_pack: &Path,
-    staged_manifest: &crate::asset::pack::ZrPackDocumentManifest,
-    staged_size: u64,
-    file_ops: &impl PromotionFileOps,
-) -> Result<ZrPackPromotionMethod, ZrPackDeltaInstallError> {
-    match file_ops.rename(staged_pack, installed_pack) {
-        Ok(()) => Ok(ZrPackPromotionMethod::Renamed),
-        Err(rename_error) => {
-            if installed_pack.exists() {
-                return Err(rename_error);
-            }
-            file_ops.copy(staged_pack, installed_pack)?;
-            validate_promoted_pack(installed_pack, staged_manifest, staged_size)?;
-            file_ops.remove(staged_pack)?;
-            Ok(ZrPackPromotionMethod::CopiedAfterRenameFailure)
-        }
-    }
-}
-
-fn validate_promoted_pack(
-    installed_pack: &Path,
-    staged_manifest: &crate::asset::pack::ZrPackDocumentManifest,
-    staged_size: u64,
-) -> Result<(), ZrPackDeltaInstallError> {
-    let installed_bytes = read_pack_file(installed_pack)?;
-    let installed_reader = ZrPackReader::from_bytes(installed_bytes)?;
-    if installed_reader.manifest() != staged_manifest {
-        return Err(ZrPackError::DeltaTargetManifestMismatch.into());
-    }
-    let installed_size = std::fs::metadata(installed_pack)
-        .map_err(|error| ZrPackDeltaInstallError::ReadFailed {
-            path: installed_pack.to_path_buf(),
-            error: error.to_string(),
-        })?
-        .len();
-    if installed_size != staged_size {
-        return Err(ZrPackError::DeltaTargetManifestMismatch.into());
-    }
-    Ok(())
-}
-
-fn restore_backup_after_failed_promotion(
-    installed_pack: &Path,
-    backup_pack: Option<&Path>,
-    file_ops: &impl PromotionFileOps,
-) {
-    let _ = file_ops.remove(installed_pack);
-    if let Some(backup_pack) = backup_pack {
-        let _ = file_ops.rename(backup_pack, installed_pack);
-    }
-}
-
-trait PromotionFileOps {
-    fn rename(&self, source: &Path, destination: &Path) -> Result<(), ZrPackDeltaInstallError>;
-    fn copy(&self, source: &Path, destination: &Path) -> Result<(), ZrPackDeltaInstallError>;
-    fn remove(&self, path: &Path) -> Result<(), ZrPackDeltaInstallError>;
-}
-
-#[derive(Clone, Copy, Debug, Default)]
-struct FsPromotionFileOps;
-
-impl PromotionFileOps for FsPromotionFileOps {
-    fn rename(&self, source: &Path, destination: &Path) -> Result<(), ZrPackDeltaInstallError> {
-        rename_pack_file(source, destination)
-    }
-
-    fn copy(&self, source: &Path, destination: &Path) -> Result<(), ZrPackDeltaInstallError> {
-        copy_pack_file(source, destination)
-    }
-
-    fn remove(&self, path: &Path) -> Result<(), ZrPackDeltaInstallError> {
-        remove_pack_file(path)
-    }
-}
-
 #[cfg(test)]
-#[derive(Debug)]
-struct ForcedStagedRenameFailureFileOps {
-    staged_pack: PathBuf,
-    installed_pack: PathBuf,
-    failed_staged_rename: Cell<bool>,
-}
-
-#[cfg(test)]
-impl ForcedStagedRenameFailureFileOps {
-    fn new(staged_pack: &Path, installed_pack: &Path) -> Self {
-        Self {
-            staged_pack: staged_pack.to_path_buf(),
-            installed_pack: installed_pack.to_path_buf(),
-            failed_staged_rename: Cell::new(false),
-        }
-    }
-}
-
-#[cfg(test)]
-impl PromotionFileOps for ForcedStagedRenameFailureFileOps {
-    fn rename(&self, source: &Path, destination: &Path) -> Result<(), ZrPackDeltaInstallError> {
-        if !self.failed_staged_rename.get()
-            && source == self.staged_pack
-            && destination == self.installed_pack
-        {
-            self.failed_staged_rename.set(true);
-            return Err(ZrPackDeltaInstallError::RenameFailed {
-                source: source.to_path_buf(),
-                destination: destination.to_path_buf(),
-                error: "forced staged rename failure".to_string(),
-            });
-        }
-        rename_pack_file(source, destination)
-    }
-
-    fn copy(&self, source: &Path, destination: &Path) -> Result<(), ZrPackDeltaInstallError> {
-        copy_pack_file(source, destination)
-    }
-
-    fn remove(&self, path: &Path) -> Result<(), ZrPackDeltaInstallError> {
-        remove_pack_file(path)
-    }
-}
+#[path = "tests/promotion_tests.rs"]
+mod tests;

@@ -6,6 +6,7 @@ mod snapshot;
 mod subscription;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 pub(super) use artifact::WorldInspectionArtifactCache;

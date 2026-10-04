@@ -10,9 +10,7 @@ origin_child_dir: docs/plans/optimize/zircon_tooling/15
 fixing_child_dir: docs/plans/optimize/zircon_tooling/15
 plan_link_mode: child_record_only
 related_code:
-  - .codex/sessions/tooling15-integrated-bootstrap.ps1
   - tools/mvp/MvpTestFixturePaths.psm1
-  - tools/tests/tooling15-integrated-bootstrap.Tests.ps1
 tests:
   - powershell -NoProfile -Command "Invoke-Pester -Script tools/tests/tooling15-integrated-bootstrap.Tests.ps1 -PassThru"
   - python -u -B -m unittest tools.session_coordinator.tests.test_artifact_governance.ArtifactGovernanceTests.test_fixture_release_requires_removal_and_does_not_exempt_recreation tools.session_coordinator.tests.test_artifact_governance.ArtifactGovernanceTests.test_require_clean_recovers_missing_artifact_reservations_online tools.session_coordinator.tests.test_artifact_governance.ArtifactGovernanceTests.test_require_clean_omits_recovered_reservations_from_rejection tools.session_coordinator.tests.test_artifact_governance.ArtifactGovernanceTests.test_require_clean_preserves_existing_artifact_reservation -v

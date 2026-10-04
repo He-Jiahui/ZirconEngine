@@ -1650,7 +1650,7 @@ The inventory below is generated from the exact current-source guard requirement
 - tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/row_ownership/folder_backed_rows/exports.rs
 - tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/row_ownership/folder_backed_rows/status_maps.rs
 - tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/row_ownership/status_current.rs
-- tools/zircon_build_shader_prewarm_written_variants.py
+- tools/build/zircon_build_shader_prewarm_written_variants.py
 - typed_error/map_rows.rs
 - typed_error/map_rows/budgets.rs
 - typed_error/map_rows/status_docs.rs

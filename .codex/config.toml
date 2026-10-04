@@ -1,7 +1,211 @@
+# Canonical ZirconEngine file-write allowlist. Paths not granted write stay read-only.
+# Select zircon-strict in the desktop permissions menu for existing chats.
 approval_policy = "never"
-
-sandbox_mode = "danger-full-access"
-
+default_permissions = "zircon-strict"
+allow_login_shell = false
 model_reasoning_summary = "none"
+
 [features]
 hooks = true
+
+[windows]
+sandbox = "elevated"
+
+# MCP servers and apps have independent execution boundaries.
+# Re-enable an entry only after its actual filesystem writes are confined.
+[mcp_servers.renderdoc]
+enabled = false
+
+[mcp_servers.cua_repl]
+enabled = false
+
+[apps._default]
+enabled = false
+
+[shell_environment_policy.set]
+TEMP = 'E:/cargo-targets/zircon-local/codex-temporary'
+TMP = 'E:/cargo-targets/zircon-local/codex-temporary'
+TMPDIR = 'E:/cargo-targets/zircon-local/codex-temporary'
+PYTHONDONTWRITEBYTECODE = '1'
+PYTHONPYCACHEPREFIX = 'E:/cargo-targets/zircon-local/codex-cache/python'
+PIP_CACHE_DIR = 'E:/cargo-targets/zircon-local/codex-cache/pip'
+npm_config_cache = 'E:/cargo-targets/zircon-local/codex-cache/npm'
+XDG_CACHE_HOME = 'E:/cargo-targets/zircon-local/codex-cache'
+XDG_STATE_HOME = 'E:/cargo-targets/zircon-local/codex-state'
+XDG_DATA_HOME = 'E:/cargo-targets/zircon-local/codex-data'
+CARGO_HOME = 'E:/cargo-targets/zircon-local/cache/cargo-home'
+CARGO_TARGET_DIR = 'E:/cargo-targets/zircon-local/win32/codex-default/target'
+CARGO_BUILD_BUILD_DIR = 'E:/cargo-targets/zircon-local/win32/codex-default/build'
+SCCACHE_DIR = 'E:/cargo-targets/zircon-local/cache/sccache'
+RUSTC_WRAPPER = ''
+RUSTC_WORKSPACE_WRAPPER = ''
+
+[permissions.zircon-strict]
+description = "ZirconEngine: only registered source, documentation, skills and zircon-local output paths are writable."
+extends = ":read-only"
+
+[permissions.zircon-strict.filesystem]
+# Reading an input never grants permission to modify, move or delete it.
+":root" = "read"
+":minimal" = "read"
+":tmpdir" = "read"
+":slash_tmp" = "read"
+# No :workspace_roots write grant: additional workspace/visualization roots stay read-only.
+
+# Source, documentation, fixtures and skill directories; this is a fixed list.
+'E:/Git/ZirconEngine/zircon_app/src' = "write"
+'E:/Git/ZirconEngine/zircon_app/tests' = "write"
+'E:/Git/ZirconEngine/zircon_editor/assets' = "write"
+'E:/Git/ZirconEngine/zircon_editor/docs' = "write"
+'E:/Git/ZirconEngine/zircon_editor/fixtures' = "write"
+'E:/Git/ZirconEngine/zircon_editor/src' = "write"
+'E:/Git/ZirconEngine/zircon_editor/tests' = "write"
+'E:/Git/ZirconEngine/zircon_editor/ui' = "write"
+'E:/Git/ZirconEngine/zircon_runtime/assets' = "write"
+'E:/Git/ZirconEngine/zircon_runtime/build' = "write"
+'E:/Git/ZirconEngine/zircon_runtime/crates' = "write"
+'E:/Git/ZirconEngine/zircon_runtime/reflection_macros' = "write"
+'E:/Git/ZirconEngine/zircon_runtime/src' = "write"
+'E:/Git/ZirconEngine/zircon_runtime/tests' = "write"
+'E:/Git/ZirconEngine/zircon_runtime/tools' = "write"
+'E:/Git/ZirconEngine/zircon_hub/assets' = "write"
+'E:/Git/ZirconEngine/zircon_hub/capabilities' = "write"
+'E:/Git/ZirconEngine/zircon_hub/icons' = "write"
+'E:/Git/ZirconEngine/zircon_hub/src' = "write"
+'E:/Git/ZirconEngine/zircon_hub/tests' = "write"
+'E:/Git/ZirconEngine/zircon_hub/web' = "write"
+'E:/Git/ZirconEngine/zircon_reflect_derive/src' = "write"
+'E:/Git/ZirconEngine/zircon_runtime_host/src' = "write"
+'E:/Git/ZirconEngine/zircon_runtime_interface/src' = "write"
+'E:/Git/ZirconEngine/zircon_runtime_interface/tests' = "write"
+'E:/Git/ZirconEngine/docs/assets-and-rendering' = "write"
+'E:/Git/ZirconEngine/docs/cli-and-tooling' = "write"
+'E:/Git/ZirconEngine/docs/editor-and-tooling' = "write"
+'E:/Git/ZirconEngine/docs/engine-architecture' = "write"
+'E:/Git/ZirconEngine/docs/layout' = "write"
+'E:/Git/ZirconEngine/docs/_data/layout' = "write"
+'E:/Git/ZirconEngine/docs/ui/zui' = "write"
+'E:/Git/ZirconEngine/docs/zui_layout' = "write"
+'E:/Git/ZirconEngine/docs/plans' = "write"
+'E:/Git/ZirconEngine/docs/runtime-plugins' = "write"
+'E:/Git/ZirconEngine/docs/superpowers' = "write"
+'E:/Git/ZirconEngine/docs/testing-and-validation' = "write"
+'E:/Git/ZirconEngine/docs/tests' = "write"
+'E:/Git/ZirconEngine/docs/tools' = "write"
+'E:/Git/ZirconEngine/docs/ui-and-layout' = "write"
+'E:/Git/ZirconEngine/docs/wiki' = "write"
+'E:/Git/ZirconEngine/docs/zircon_app' = "write"
+'E:/Git/ZirconEngine/docs/zircon_editor' = "write"
+'E:/Git/ZirconEngine/docs/zircon_hub' = "write"
+'E:/Git/ZirconEngine/docs/zircon_plugins' = "write"
+'E:/Git/ZirconEngine/docs/zircon_runtime' = "write"
+'E:/Git/ZirconEngine/docs/zircon_runtime_interface' = "write"
+'E:/Git/ZirconEngine/third_party/penpot' = "write"
+'E:/Git/ZirconEngine/tools' = "write"
+'E:/Git/ZirconEngine/.github' = "write"
+'E:/Git/ZirconEngine/examples/vampire' = "write"
+'E:/Git/ZirconEngine/examples/woc' = "write"
+'E:/Git/ZirconEngine/templates/projects' = "write"
+'E:/Git/ZirconEngine/tests/acceptance' = "write"
+'E:/Git/ZirconEngine/tests/fixtures' = "write"
+'E:/Git/ZirconEngine/.codex' = "read"
+'E:/Git/ZirconEngine/.codex/skills' = "write"
+'E:/Git/ZirconEngine/.opencode/skills' = "write"
+'E:/Git/ZirconEngine/.codex/sessions' = "write"
+'E:/Git/ZirconEngine/.codex/outbox' = "write"
+'E:/Git/ZirconEngine/.codex/state/local-validation' = "write"
+'E:/Git/ZirconEngine/.codex/state/sandbox-permissions' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/ai' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/animation' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/animation_graph' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/asset_importers' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/audio_importer' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/editor_build_export_desktop' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/editor_contribution_fixture' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/editor_support' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/first_party_editor_catalog' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/first_party_runtime_catalog' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/gltf_importer' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/hybrid_gi' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/material_editor' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/native_dynamic_fixture' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/native_window_hosting' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/navigation' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/net' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/neural' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/obj_importer' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/opus_importer' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/particles' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/physics' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/plugin_sdk' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/plugin_sdk_examples' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/prefab_tools' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/rendering' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/runtime_diagnostics' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/shader_wgsl_importer' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/solari' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/sound' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/terrain' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/texture' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/texture_importer' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/tilemap_2d' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/timeline_sequence' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/ui_asset_authoring' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/ui_document_importer' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/virtual_geometry' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/zr_vm_language' = "write"
+
+# Root files are granted individually; the checkout root remains read-only.
+'E:/Git/ZirconEngine/zircon_app/build.rs' = "write"
+'E:/Git/ZirconEngine/zircon_app/Cargo.toml' = "write"
+'E:/Git/ZirconEngine/zircon_editor/build.rs' = "write"
+'E:/Git/ZirconEngine/zircon_editor/Cargo.toml' = "write"
+'E:/Git/ZirconEngine/zircon_runtime/build.rs' = "write"
+'E:/Git/ZirconEngine/zircon_runtime/Cargo.toml' = "write"
+'E:/Git/ZirconEngine/zircon_runtime/runtime-feature-presets.toml' = "write"
+'E:/Git/ZirconEngine/zircon_hub/build.rs' = "write"
+'E:/Git/ZirconEngine/zircon_hub/Cargo.toml' = "write"
+'E:/Git/ZirconEngine/zircon_hub/hub.toml' = "write"
+'E:/Git/ZirconEngine/zircon_hub/package-lock.json' = "write"
+'E:/Git/ZirconEngine/zircon_hub/package.json' = "write"
+'E:/Git/ZirconEngine/zircon_hub/tauri.conf.json' = "write"
+'E:/Git/ZirconEngine/zircon_hub/tsconfig.json' = "write"
+'E:/Git/ZirconEngine/zircon_hub/tsconfig.node.json' = "write"
+'E:/Git/ZirconEngine/zircon_hub/vite.config.ts' = "write"
+'E:/Git/ZirconEngine/zircon_reflect_derive/Cargo.toml' = "write"
+'E:/Git/ZirconEngine/zircon_runtime_host/Cargo.toml' = "write"
+'E:/Git/ZirconEngine/zircon_runtime_interface/build.rs' = "write"
+'E:/Git/ZirconEngine/zircon_runtime_interface/Cargo.toml' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/Cargo.lock' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/Cargo.toml' = "write"
+'E:/Git/ZirconEngine/zircon_plugins/README.md' = "write"
+'E:/Git/ZirconEngine/dev' = "read"
+# Temporary Penpot migration write grants; remove after verified cleanup.
+'E:/Git/ZirconEngine/dev/penpot/plugins/apps/zircon-zui-plugin' = "write"
+'E:/Git/ZirconEngine/dev/penpot/plugins/tools/scripts/run-managed-zui-plugin-validation.ps1' = "write"
+'E:/Git/ZirconEngine/dev/penpot/plugins/angular.json' = "write"
+'E:/Git/ZirconEngine/dev/penpot/plugins/package.json' = "write"
+'E:/Git/ZirconEngine/dev/penpot/plugins/pnpm-lock.yaml' = "write"
+'E:/Git/ZirconEngine/dev/penpot/plugins/tools/scripts/build-plugin.mjs' = "write"
+
+'E:/Git/ZirconEngine/Cargo.toml' = "write"
+'E:/Git/ZirconEngine/Cargo.lock' = "write"
+'E:/Git/ZirconEngine/deny.toml' = "write"
+'E:/Git/ZirconEngine/mkdocs.yml' = "write"
+'E:/Git/ZirconEngine/requirements-docs.txt' = "write"
+'E:/Git/ZirconEngine/requirements-worker.txt' = "write"
+'E:/Git/ZirconEngine/LICENSE' = "write"
+'E:/Git/ZirconEngine/tests/test_execution_engine.py' = "write"
+
+# Compiler products, compiler caches, scratch, exports and generated evidence.
+# Cargo entry points retain their physical-path validation and native locks.
+'E:/Git/ZirconEngine/.git' = "write"
+'E:/Git/ZirconEngine/.jenkins' = "write"
+'D:/cargo-targets/zircon-local' = "write"
+'E:/cargo-targets/zircon-local' = "write"
+'F:/cargo-targets/zircon-local' = "write"
+
+# Control configuration, hooks, Git data, reference trees, worktrees, retired
+# coordinator data, user directories and system temp have no write grant.
+[permissions.zircon-strict.network]
+enabled = true

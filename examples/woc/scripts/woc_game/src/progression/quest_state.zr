@@ -8,6 +8,7 @@ var container = %import("zr.container");
 var catalog = %import("generated/m5_content_catalog");
 var MAX_SAFE_LIFETIME_XP = 9007199254740991;
 
+// 此类仅为双玩家两条任务的合同夹具；世界权威任务日志、库存及事件不在这里，调用方必须提供同一玩家的 NPC 距离、队伍和生死事实。
 class QuestState {
     pub var deadA: bool;
     pub var deadB: bool;
@@ -205,6 +206,7 @@ checkReady(state: QuestState, player: int, questId: string): void {
     }
 }
 
+// 收集任务进度取自当前背包快照；加物品、减物品和接任务都须经过此入口同步，移除后 ready 可回退为 active。
 syncCollect(state: QuestState, player: int): void {
     var current = stateFor(state, player, "q_boars");
     if (current != 1 && current != 2) { return; }
@@ -304,6 +306,7 @@ pub acceptQuest(state: QuestState, player: int, questId: string): bool {
     return true;
 }
 
+/// 分享接受绕过 NPC 距离，但仍要求同队和任务可接；随后与普通接受共用收集进度同步，分享通知只对成功接受计数。
 pub acceptLinkedQuest(state: QuestState, player: int, questId: string): bool {
     state.lastError = 0;
     if (!state.partyTogether) { state.lastError = -2; return false; }
@@ -344,6 +347,7 @@ pub creditKill(state: QuestState, player: int, mobId: string): bool {
     return true;
 }
 
+/// 交付先再次核验存活、接近 NPC、ready 与实物数量；扣除任务物品后才入账金币、经验与完成事件，避免已丢物品仍领奖。
 pub turnInQuest(state: QuestState, player: int, questId: string): bool {
     state.lastError = 0;
     var quest = questIndex(questId);

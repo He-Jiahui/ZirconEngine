@@ -15,6 +15,7 @@ pub class ProjectileStepResult {
     }
 }
 
+/// 已释放投射物的临时飞行投影；实体存活与当前位置每帧由世界重新提供，结算及待处理列表归调用方所有。
 pub class ProjectileTravelState {
     pub var x: float;
     pub var z: float;
@@ -105,6 +106,8 @@ pub stepProjectile(
 // Exact advance ordering from advancePendingProjectiles for one state item.
 // The owner discards on fizzle/impact and invokes the authoritative resolve
 // only for impact; `state` is updated only when the projectile keeps flying.
+/// 每帧只推进飞行或报告终态；命中或消散时不更新飞行字段，调用方须删除待处理项，并仅在命中时执行一次结算。
+/// 生存期限耗尽表示强制落地，不能因未追上移动目标而转换成消散。
 pub advanceProjectile(
     state: ProjectileTravelState,
     sourceLive: bool,

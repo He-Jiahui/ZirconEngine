@@ -12,7 +12,7 @@ SYSTEM_SOURCE = (
     / "zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/abi_decode/system.rs"
 )
 
-
+# 读取实现源码约束借用原生系统访问 UTF8：UTF8 读取器支持限定范围借用映射，并系统访问格式化直接来自借用 UTF8。
 class BorrowedNativeSystemAccessUtf8PerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

@@ -1,7 +1,7 @@
 import re
 import unittest
 from pathlib import Path
-
+# ECS 写访问利用先前读冲突探测得到的插入位置，维持写集合包含于读集合的不变量；检查 Rust 直接和合并路径的回归入口。
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 QUERY_ACCESS = (

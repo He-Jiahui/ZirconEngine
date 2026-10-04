@@ -28,12 +28,15 @@ class SharedZrVmHostCapabilitySetPerformanceContractTests(unittest.TestCase):
         cls.build = function_body(cls.source, "fn build_native_function(")
 
     def test_registration_clones_host_capabilities_once(self) -> None:
-        self.assertIn("let capabilities = Arc::new(host.capabilities.clone());", self.register)
-        self.assertEqual(self.register.count("host.capabilities.clone()"), 1)
+        self.assertIn(
+            "build_zr_vm_native_host_modules(&host.host_exports, &host.capabilities)",
+            self.register,
+        )
+        self.assertEqual(self.register.count("host.capabilities.clone()"), 0)
 
     def test_native_functions_capture_arc_capability_storage(self) -> None:
         self.assertIn("capabilities: Arc<CapabilitySet>", self.source)
-        self.assertIn("Arc::clone(&capabilities)", self.register)
+        self.assertIn("Arc::clone(&capabilities)", self.source)
         self.assertIn("use std::sync::Arc;", self.source)
 
     def test_function_call_borrows_shared_capability_set(self) -> None:

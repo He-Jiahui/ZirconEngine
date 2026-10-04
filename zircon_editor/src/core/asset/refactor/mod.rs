@@ -12,4 +12,5 @@ pub use deletion::{EditorAssetDeletionResult, EditorAssetDeletionTicket};
 pub use relocation::{EditorAssetRelocationResult, EditorAssetRelocationTicket};
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

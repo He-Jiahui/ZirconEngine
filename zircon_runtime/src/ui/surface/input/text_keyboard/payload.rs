@@ -20,6 +20,8 @@ pub(in crate::ui::surface::input) fn keyboard_requests_newline(
     keyboard.logical_key == "Enter" || keyboard.key_code == 13
 }
 
+/// 从普通键盘事件借用可提交文字，排除导航 Tab、命令修饰与控制字符。
+/// 专用文本/IME事件另走自己的入口，宿主应选择一致的输入源，避免同一文字重复提交。
 pub(in crate::ui::surface::input) fn keyboard_text_payload(
     keyboard: &UiKeyboardInputEvent,
 ) -> Option<&str> {
@@ -54,5 +56,5 @@ fn keyboard_text_contains_control(text: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "payload/byte_control_tests.rs"]
+#[path = "payload/tests/byte_control_tests.rs"]
 mod byte_control_tests;

@@ -78,3 +78,17 @@ defines both `compile_sequence_for_world` and `apply_compiled_sequence_to_world`
 `related_code` now names that existing owner. The dirty guard and Runtime/Plugin source
 bytes were not modified, and no fresh managed acceptance is added, so the failure
 remains open under its existing return conditions.
+
+## 2026-09-06 current-source guard evidence
+
+The current source guard was re-run without Cargo or the external `E:\Git\zr_vm`
+worktree. The exact focused command
+`python -m unittest tools.tests.test_frameworks_05_layer_direction.Frameworks05LayerDirectionTests.test_animation_manager_contract_does_not_mutate_scene_world -v`
+passed `1/1` in 37.010 seconds. The complete local Frameworks05 suite ran 28 tests:
+22 passed and 6 failed in unrelated current-source contracts for concrete
+`LevelManager` consumers, editor scene creation, versioned manager resolution,
+foundation module identity, manager-handle field visibility, and UI module identity.
+Those six failures are recorded as separate current-source drift and are not
+attributed to this stale-path guard. No managed Rust compile, Plugins04 gate,
+failure return, commit, or WeCom notification is claimed here; this handoff
+remains open.

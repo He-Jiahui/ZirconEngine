@@ -5,6 +5,14 @@ use super::super::super::super::data::{HostViewportImageData, HostViewportOverla
 use super::super::PaneSurfaceHostContext;
 
 impl PaneSurfaceHostContext<'_> {
+    pub(crate) fn set_scene_viewport_surface_key(&self, surface_key: &str) {
+        self.state.borrow_mut().set_scene_surface_key(surface_key);
+    }
+
+    pub(crate) fn scene_viewport_surface_key(&self) -> Option<String> {
+        self.state.borrow().scene_surface_key.clone()
+    }
+
     pub(crate) fn simulate_viewport_frame_identity(&self) -> Option<PlayPreviewFrameIdentity> {
         self.state
             .borrow()
@@ -41,6 +49,11 @@ impl PaneSurfaceHostContext<'_> {
         });
 
         dock_contains_pane
+            || scene.document_leaves.iter().any(|leaf| {
+                leaf.pane.kind.as_str() == pane_kind
+                    && leaf.content_frame.width > 0.0
+                    && leaf.content_frame.height > 0.0
+            })
             || scene
                 .floating_layer
                 .floating_windows
@@ -64,11 +77,38 @@ impl PaneSurfaceHostContext<'_> {
         self.state.borrow_mut().replace_scene_viewport_image(image)
     }
 
+    pub(crate) fn set_scene_viewport_capture_for_surface(
+        &self,
+        surface_key: &str,
+        viewport: RenderViewportHandle,
+        frame: CapturedFrame,
+    ) -> bool {
+        let Some(image) = HostViewportImageData::from_captured_frame(viewport, frame) else {
+            return false;
+        };
+        self.state
+            .borrow_mut()
+            .replace_scene_viewport_image_for_surface(surface_key, image)
+    }
+
     pub(crate) fn set_scene_viewport_product(&self, product: RenderViewportProduct) -> bool {
         let Some(image) = HostViewportImageData::from_viewport_product(product) else {
             return false;
         };
         self.state.borrow_mut().replace_scene_viewport_image(image)
+    }
+
+    pub(crate) fn set_scene_viewport_product_for_surface(
+        &self,
+        surface_key: &str,
+        product: RenderViewportProduct,
+    ) -> bool {
+        let Some(image) = HostViewportImageData::from_viewport_product(product) else {
+            return false;
+        };
+        self.state
+            .borrow_mut()
+            .replace_scene_viewport_image_for_surface(surface_key, image)
     }
 
     pub(crate) fn set_game_viewport_frame(&self, frame: PlayPreviewFrame) -> bool {
@@ -104,56 +144,5 @@ impl PaneSurfaceHostContext<'_> {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::cell::RefCell;
-    use std::rc::Rc;
-    use std::sync::Arc;
-
-    use crate::ui::retained_host::host_contract::data::HostWindowPresentationData;
-    use crate::ui::retained_host::host_contract::globals::{HostContractGlobal, HostContractState};
-    use crate::ui::retained_host::primitives::PhysicalSize;
-
-    use super::*;
-
-    #[test]
-    fn duplicate_viewport_capture_does_not_report_an_update() {
-        let state = Rc::new(RefCell::new(HostContractState::new(PhysicalSize::new(
-            640, 420,
-        ))));
-        let context = PaneSurfaceHostContext::from_state(state);
-
-        assert!(context.set_scene_viewport_capture(
-            RenderViewportHandle::new(3),
-            CapturedFrame::new(1, 1, vec![255, 0, 0, 255], 7),
-        ));
-        assert!(!context.set_scene_viewport_capture(
-            RenderViewportHandle::new(3),
-            CapturedFrame::new(1, 1, vec![255, 0, 0, 255], 7),
-        ));
-    }
-
-    #[test]
-    fn game_viewport_visibility_uses_the_active_pane_instead_of_tab_existence() {
-        let state = Rc::new(RefCell::new(HostContractState::new(PhysicalSize::new(
-            640, 420,
-        ))));
-        let context = PaneSurfaceHostContext::from_state(Rc::clone(&state));
-        assert!(!context.game_viewport_visible());
-
-        let mut presentation = HostWindowPresentationData::default();
-        presentation.host_scene_data.document_dock.pane.kind = "Game".into();
-        presentation
-            .host_scene_data
-            .document_dock
-            .content_frame
-            .width = 640.0;
-        presentation
-            .host_scene_data
-            .document_dock
-            .content_frame
-            .height = 360.0;
-        state.borrow_mut().host_presentation = Arc::new(presentation);
-
-        assert!(context.game_viewport_visible());
-    }
-}
+#[path = "tests/viewport.rs"]
+mod tests;

@@ -37,6 +37,7 @@ pub enum TextureNormalConvention {
     TangentSpaceGl,
 }
 
+/// 内容语义决定导入时的颜色空间、mip 滤波和压缩默认值；不等同于 GPU 读写用途位。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TextureUsageHint {
@@ -113,6 +114,8 @@ impl Default for SvtSettings {
     }
 }
 
+/// 随纹理资产从导入配置流向校验、构建与 GPU 上传的内容策略。
+/// 调用方应在构建前检查格式、采样器和 mip 策略的组合；结构本身允许尚未校验的值。
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TextureMetadata {
     pub color_space: RenderImageColorSpace,
@@ -186,40 +189,5 @@ const fn default_texture_streaming_enabled() -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn render_mip_streaming_metadata_defaults_enabled_and_exempts_ineligible_assets() {
-        let metadata = TextureMetadata::default();
-        assert!(metadata.streaming_enabled);
-        assert!(metadata.allows_mip_streaming(1024, 1024, 8));
-
-        let ui = TextureMetadata {
-            usage_hint: TextureUsageHint::Ui,
-            ..TextureMetadata::default()
-        };
-        assert!(!ui.allows_mip_streaming(1024, 1024, 8));
-
-        assert!(!metadata.allows_mip_streaming(128, 128, 8));
-        assert!(!metadata.allows_mip_streaming(1024, 1024, 1));
-
-        let disabled = TextureMetadata {
-            streaming_enabled: false,
-            ..TextureMetadata::default()
-        };
-        assert!(!disabled.allows_mip_streaming(1024, 1024, 8));
-
-        let generated = TextureMetadata {
-            mip_policy: TextureMipPolicy::GenerateRuntime,
-            ..TextureMetadata::default()
-        };
-        assert!(!generated.allows_mip_streaming(1024, 1024, 8));
-
-        let svt = TextureMetadata {
-            svt: Some(SvtSettings::default()),
-            ..TextureMetadata::default()
-        };
-        assert!(!svt.allows_mip_streaming(4096, 4096, 12));
-    }
-}
+#[path = "tests/metadata.rs"]
+mod tests;

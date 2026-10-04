@@ -3,7 +3,170 @@ $ErrorActionPreference = 'Stop'
 
 $moduleRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Import-Module (Join-Path $PSScriptRoot 'MvpProductInputManifest.psm1') -Force -ErrorAction Stop
-Import-Module (Join-Path $moduleRepoRoot 'tools\WindowsPathResolver.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $moduleRepoRoot 'tools\maintenance\WindowsPathResolver.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'RenderExtractSourceIdentity.psm1') -Force -ErrorAction Stop
+
+function Get-RenderExtractProfilingArtifact {
+    param(
+        [Parameter(Mandatory)]$Artifacts,
+        [Parameter(Mandatory)][string]$LogicalId,
+        [Parameter(Mandatory)][string]$ExpectedProduct,
+        [Parameter(Mandatory)][string]$ExpectedPackage,
+        [AllowNull()][string]$ExpectedBin,
+        [Parameter(Mandatory)][string]$ExpectedFeatures
+    )
+
+    $matches = @($Artifacts | Where-Object {
+            [string](Get-RenderExtractManifestProperty -Value $_ -Name 'logical_id' -Label 'Profiling input artifact') -eq $LogicalId
+        })
+    if ($matches.Count -ne 1) {
+        throw "Profiling input must contain exactly one '$LogicalId' artifact; found $($matches.Count)."
+    }
+    $artifact = $matches[0]
+    $product = [string](Get-RenderExtractManifestProperty -Value $artifact -Name 'product' -Label $LogicalId)
+    $package = [string](Get-RenderExtractManifestProperty -Value $artifact -Name 'package' -Label $LogicalId)
+    $features = [string](Get-RenderExtractManifestProperty -Value $artifact -Name 'features' -Label $LogicalId)
+    if ($product -ne $ExpectedProduct -or $package -ne $ExpectedPackage -or $features -ne $ExpectedFeatures) {
+        throw "Profiling input artifact '$LogicalId' does not match the declared $ExpectedProduct profiling contract."
+    }
+    $binProperty = $artifact.PSObject.Properties['bin']
+    $actualBin = if ($null -eq $binProperty -or $null -eq $binProperty.Value) { $null } else { [string]$binProperty.Value }
+    $binMatches = if ([string]::IsNullOrEmpty($ExpectedBin)) {
+        [string]::IsNullOrEmpty($actualBin)
+    }
+    else {
+        $actualBin -eq $ExpectedBin
+    }
+    if (-not $binMatches) {
+        throw "Profiling input artifact '$LogicalId' has unexpected bin '$actualBin'."
+    }
+
+    $path = [string](Get-RenderExtractManifestProperty -Value $artifact -Name 'path' -Label $LogicalId)
+    $resolution = Resolve-ZirconWindowsPath -Path $path
+    if (-not [IO.File]::Exists($resolution.OperationalPath)) {
+        throw "Profiling input artifact '$LogicalId' does not exist: $($resolution.DisplayPath)"
+    }
+    $expectedBytes = [Int64](Get-RenderExtractManifestProperty -Value $artifact -Name 'bytes' -Label $LogicalId)
+    $actualBytes = [IO.FileInfo]::new($resolution.OperationalPath).Length
+    if ($actualBytes -ne $expectedBytes) {
+        throw "Profiling input artifact '$LogicalId' byte length changed from $expectedBytes to $actualBytes."
+    }
+    $expectedHash = [string](Get-RenderExtractManifestProperty -Value $artifact -Name 'sha256' -Label $LogicalId)
+    $actualHash = Get-MvpProductInputFileSha256 -Path $resolution.OperationalPath
+    if (-not $actualHash.Equals($expectedHash, [StringComparison]::Ordinal)) {
+        throw "Profiling input artifact '$LogicalId' SHA-256 no longer matches its manifest."
+    }
+    return [pscustomobject]@{
+        OperationalPath = $resolution.OperationalPath
+        DisplayPath = $resolution.DisplayPath
+        Sha256 = $actualHash
+    }
+}
+
+function Resolve-RenderExtractProfilingInput {
+    param([Parameter(Mandatory)][string]$ManifestPath)
+
+    $sourceIdentity = Resolve-RenderExtractProfilingSourceIdentity -ManifestPath $ManifestPath
+    $manifest = $sourceIdentity.manifest
+    $manifestDirectory = $sourceIdentity.manifest_directory
+    $artifacts = @(Get-RenderExtractManifestProperty -Value $manifest -Name 'artifacts' -Label 'Profiling input manifest')
+    if ($artifacts.Count -ne 4) {
+        throw "Profiling input manifest must contain exactly four runtime/editor artifacts; found $($artifacts.Count)."
+    }
+    $runtimeFeatures = 'target-client,platform-winit,input-gamepad,gamepad-gilrs,profiling'
+    $editorFeatures = 'target-editor-host,profiling'
+    $runtimeExecutable = Get-RenderExtractProfilingArtifact `
+        -Artifacts $artifacts `
+        -LogicalId 'runtime-profile-executable' `
+        -ExpectedProduct 'runtime' `
+        -ExpectedPackage 'zircon_app' `
+        -ExpectedBin 'zircon_runtime' `
+        -ExpectedFeatures $runtimeFeatures
+    $runtimeLibrary = Get-RenderExtractProfilingArtifact `
+        -Artifacts $artifacts `
+        -LogicalId 'runtime-profile-library' `
+        -ExpectedProduct 'runtime' `
+        -ExpectedPackage 'zircon_runtime' `
+        -ExpectedBin $null `
+        -ExpectedFeatures $runtimeFeatures
+    $editorExecutable = Get-RenderExtractProfilingArtifact `
+        -Artifacts $artifacts `
+        -LogicalId 'editor-profile-executable' `
+        -ExpectedProduct 'editor' `
+        -ExpectedPackage 'zircon_app' `
+        -ExpectedBin 'zircon_editor' `
+        -ExpectedFeatures $editorFeatures
+    $editorLibrary = Get-RenderExtractProfilingArtifact `
+        -Artifacts $artifacts `
+        -LogicalId 'editor-profile-library' `
+        -ExpectedProduct 'editor' `
+        -ExpectedPackage 'zircon_runtime' `
+        -ExpectedBin $null `
+        -ExpectedFeatures $editorFeatures
+    foreach ($product in @(
+            [pscustomobject]@{ Name = 'runtime'; Executable = $runtimeExecutable; Library = $runtimeLibrary },
+            [pscustomobject]@{ Name = 'editor'; Executable = $editorExecutable; Library = $editorLibrary }
+        )) {
+        $executableDirectory = [IO.Path]::GetDirectoryName($product.Executable.OperationalPath)
+        $libraryDirectory = [IO.Path]::GetDirectoryName($product.Library.OperationalPath)
+        if (-not $executableDirectory.Equals($libraryDirectory, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Profiling input $($product.Name) executable and runtime library must be in the same directory for relative runtime loading."
+        }
+        $expectedDirectory = Join-ZirconWindowsPath -Path $manifestDirectory -ChildPath $product.Name
+        if (-not $executableDirectory.Equals($expectedDirectory, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Profiling input $($product.Name) pair must live in its managed product directory under the manifest."
+        }
+    }
+    return [pscustomobject]@{
+        manifest_path = $sourceIdentity.manifest_path
+        manifest_sha256 = $sourceIdentity.manifest_sha256
+        source_fingerprint = $sourceIdentity.source_fingerprint
+        build_set_id = $sourceIdentity.build_set_id
+        build_set_manifest_sha256 = $sourceIdentity.build_set_manifest_sha256
+        runtime = [pscustomobject]@{
+            executable_path = $runtimeExecutable.OperationalPath
+            executable_sha256 = $runtimeExecutable.Sha256
+            library_path = $runtimeLibrary.OperationalPath
+            library_sha256 = $runtimeLibrary.Sha256
+        }
+        editor = [pscustomobject]@{
+            executable_path = $editorExecutable.OperationalPath
+            executable_sha256 = $editorExecutable.Sha256
+            library_path = $editorLibrary.OperationalPath
+            library_sha256 = $editorLibrary.Sha256
+        }
+    }
+}
+
+function Assert-RenderExtractProfilingInputIdentity {
+    param(
+        [Parameter(Mandatory)]$Expected,
+        [Parameter(Mandatory)]$Actual
+    )
+
+    foreach ($name in @('manifest_path')) {
+        if (-not ([string]$Expected.$name).Equals([string]$Actual.$name, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Profiling input identity changed during baseline capture ('$name')."
+        }
+    }
+    foreach ($name in @('manifest_sha256', 'build_set_id', 'build_set_manifest_sha256')) {
+        if (-not ([string]$Expected.$name).Equals([string]$Actual.$name, [StringComparison]::Ordinal)) {
+            throw "Profiling input identity changed during baseline capture ('$name')."
+        }
+    }
+    foreach ($product in @('runtime', 'editor')) {
+        foreach ($name in @('executable_path', 'library_path')) {
+            if (-not ([string]$Expected.$product.$name).Equals([string]$Actual.$product.$name, [StringComparison]::OrdinalIgnoreCase)) {
+                throw "Profiling input identity changed during baseline capture ('$product.$name')."
+            }
+        }
+        foreach ($name in @('executable_sha256', 'library_sha256')) {
+            if (-not ([string]$Expected.$product.$name).Equals([string]$Actual.$product.$name, [StringComparison]::Ordinal)) {
+                throw "Profiling input identity changed during baseline capture ('$product.$name')."
+            }
+        }
+    }
+}
 
 function Get-RenderExtractBytesSha256 {
     param([Parameter(Mandatory)][byte[]]$Bytes)
@@ -317,6 +480,8 @@ function Assert-RenderExtractFrozenProductInput {
 }
 
 Export-ModuleMember -Function @(
+    'Resolve-RenderExtractProfilingInput',
+    'Assert-RenderExtractProfilingInputIdentity',
     'New-RenderExtractFrozenProfilingInput',
     'Assert-RenderExtractFrozenProductInput'
 )

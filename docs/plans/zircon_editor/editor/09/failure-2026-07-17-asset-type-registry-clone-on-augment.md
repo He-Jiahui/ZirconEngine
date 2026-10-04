@@ -10,7 +10,10 @@ fixing_child_dir: docs/plans/zircon_editor/editor/09
 plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/core/asset/type_registry/registry.rs
-  - zircon_editor/src/core/plugin/mod.rs
+  - zircon_editor/src/core/asset/type_registry/registry/batch.rs
+  - zircon_editor/src/core/asset/type_registry/registry/optimization_batch_ii_editor619_tests.rs
+  - zircon_editor/src/core/asset/type_registry/registry/optimization_batch_ij_editor620_tests.rs
+  - zircon_editor/src/core/plugin/extension_materialization.rs
 tests:
   - 1/100/10k/100k contribution post-extend collection length/sort/generation scaling benchmark
   - failed contribution atomicity and diagnostic-order parity
@@ -80,3 +83,59 @@ before the guard edit, so this repair does not depend on concurrent Editor
 worktree overlays. This is static guard maintenance only. The source-bound
 managed Cargo and performance evidence, independent review, failure return,
 and terminal integration remain required; this handoff stays `open`.
+
+## 2026-09-19 successor validation intake
+
+Successor Session `failure-roll-01a084c8-editor09-asset-registry-r1` reclaimed
+the exact source scope and sealed current bytes with coordinator request
+`failure-roll-01a084c8-editor09-asset-registry-20260919-r1`. Static
+current-source ticket `9b3d1197097d40ce9632d5e75472f716` is queued
+(`status=queued`, source-manifest hash
+`c37dbaa106122470c2f932aa60accf5180e3ba5208ca7047b837e12091d43797`). The
+parse checks the validate/stage batch owner, one generation publish, catalog
+materialization cache, failure-isolation/order anchors, and 1/100/10k/100k
+scale test contracts; it is not dynamic acceptance. Focused and upward
+managed Cargo, source-bound performance/F0/F4 reload evidence, independent
+C/I/M review, fixed return, and closeout remain pending; external
+`E:\Git\zr_vm` cleanliness is still required for immutable Cargo admission.
+
+## 2026-09-21 independent source review receipt
+
+- Reviewer Session `review-editor09-asset-registry-r1` inspected the seven current source/test paths and confirmed that every byte hash matches the sealed source manifest `61b1ee48f9033e6ec2cbc9cd910f3990428df214c6906ba738c68bedca264b18`.
+- `EDITOR09_RUSTFMT_PASS` and `EDITOR09_DIFF_CHECK_PASS` were recorded against the current checkout.
+- Independent probe `EDITOR09_ASSET_REGISTRY_INDEPENDENT_SOURCE_REVIEW_PASS` verified atomic contribution batching and generation publication, pending-entry finalization, one-sort accounting, absence of binary insertion, catalog-materialization reuse, failure visibility, scale/generation/consumer/no-clone regression anchors.
+- Independent C/I/M review is `0/0/0`; no foreign source change was absorbed.
+- This is static-only evidence. Fresh managed Editor09 focused Cargo, scale/reload, plugin/consumer/upward gates remain pending because `E:\Git\zr_vm` is dirty; canonical fixed return, managed closeout, and WeCom receipt remain pending.
+
+## 2026-09-27 same-plan registry dependency reconciliation
+
+The existing executable Editor09 primary `failure-roll-01a084c8-editor09-asset-pane-r3`
+now also owns this registry lifecycle through audited transfer
+`6141cf55f15268453fc4097e95c4d529d20559566f2807418b83ad12098e94e6`.
+Its original asset-pane scope and historical ticket identities are preserved. Registry and
+asset-pane remain separate failures with separate acceptance and closeout records.
+
+The current test compilation closure includes both owned registry implementation files and
+the Editor619/620 test modules mounted by them. Their prior owners were archived; hashes
+matched the transfer preview, and no overlapping live lease was present. Source behavior is
+retained: duplicate membership uses preallocated hash sets while validation still traverses the
+original ordered input, preserving the first conflicting owner and diagnostic order.
+The `related_code` links now name these real compile inputs and the catalog materialization owner.
+
+The stable Session retains pinned base `6b4bc86089cb4464f850136c8079e90cb6513ebc`
+and baseline epoch `611`; a lower ticket on that base cannot prove unrelated current consumer or
+configuration changes. The fresh lower batch must execute the six Editor619/620 regressions,
+including both 32,768-entry release benchmarks with 17 alternating sample pairs and their
+existing hash-P95-at-most-40%-of-ordered-P95 gates. Original registry 1/100/10k/100k scaling,
+failure atomicity, catalog/host generation consumers, F0/F4 reload and independent review remain
+required. No passing Cargo ticket or scoped integration is claimed by this ownership repair.
+
+This input is also a prerequisite for the current
+[Editor06 menu acceptance](../06/failure-2026-07-22-workbench-menu-control-generation.md).
+Editor06 may consume a compile-proven scoped integration after validation; it must not copy
+these dirty registry inputs under its own closeout. This failure remains `open`.
+
+Local Rust 1.94.1 formatting found one import-order mismatch in `registry/batch.rs`;
+that owned formatting gate was repaired. All four scoped Rust format checks and the scoped
+diff check then passed. The record's five source links, Editor06 dependency link and unchanged
+lifecycle fields passed structural checks. These checks do not execute the Rust regressions.

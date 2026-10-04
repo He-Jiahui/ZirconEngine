@@ -214,7 +214,7 @@ Runtime loader必须先用格式最小记录证明所有count可由section容纳
 - **P1-47**：没有liveness/memory planner、workspace budget、in-place eligibility、buffer reuse或persistent weight residency；每个intermediate使用永久化字符串身份。
 - **P1-48**：WGSL按operator重复生成并clone String，parameter Vec逐pass分配；没有compiled plan cache、specialization cache或source/artifact digest复用。
 - **P1-49**：shader全部F32/NCHW/标量路径，没有FP16/BF16/INT8、packed vector、tensor core/cooperative matrix、subgroup或布局特化；不能承担“优于Unreal”的性能目标。
-- **P1-50**：Conv/Pool/Upsample Z dispatch用`saturating_mul(batch, channels)`，overflow会静默变成`u32::MAX`而非admission error；dispatch与GPU limit也未比较。
+- **P1-50**：Conv/Pool/Upsample Z dispatch 曾用`saturating_mul(batch, channels)`，overflow 会静默变成`u32::MAX`而非 admission error；当前源码已改为 checked multiplication，并由`NnGraphExecutor::with_dispatch_limits`在调用方提供设备上限时对固定dispatch做fail-closed比较，返回带算子、groups和limits的typed error。设备探测、真实GPU执行与managed Cargo仍开放，因此该 finding 仍是`implemented_pending_validation`。
 - **P1-51**：没有resource barrier、queue ownership、external input/output state、history validity、device-loss generation、timestamp query或per-op diagnostics合同。
 - **P1-52**：GPU测试只比较descriptor字段和WGSL marker，不编译shader、不绑定真实buffer、不运行adapter、不读回数值，也无pixel/post-process E2E。
 
@@ -416,4 +416,5 @@ NNEDenoiser进一步表明后处理不是`Option<Model> + intensity`：它有mod
 | Product/capability反向consumer核对 | review_complete | 2026-08-16 | 包外0个Neural model/executor/settings业务consumer；runtime/post-process registration为空 |
 | 差距与重构路线 | review_complete | 2026-08-16 | 5 P0 / 60 P1 / 12 P2；M0-M11；G01-G32 |
 | Production修复 | pending | - | 本篇未修改production或tests |
+| P1-50 dispatch dimension admission | implemented_pending_validation | 2026-09-19 | `docs/plans/astra/optimize/01/2026-09-19-neural-dispatch-admission.md`；Conv/Pool/Upsample 的 batch×channels 溢出与调用方提供的 per-axis dispatch limit 均 fail-closed，设备探测、managed Cargo 和真实 GPU 验证仍开放 |
 | 动态验证 | blocked_by_existing_build | 2026-08-16 | 公共Editor test build既有239 errors/122 warnings；本轮未重复不可达lane |

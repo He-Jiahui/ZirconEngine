@@ -1,3 +1,5 @@
+//! 系统参数测试共享夹具；子模块分别核对命令屏障、事件游标、查询时间窗和状态生命周期。
+
 use crate::scene::components::Name;
 use crate::scene::ecs::{
     Added, Changed, CommandsParam, Component, EventReaderParam, EventWriterParam, Local,
@@ -48,6 +50,7 @@ fn expect_query_error<T>(result: Result<T, QueryEntityError>) -> QueryEntityErro
 mod commands;
 mod events;
 mod many_single_queries;
+mod param_set_commands;
 mod removal_local;
 mod run_window_filters;
 mod state_params;

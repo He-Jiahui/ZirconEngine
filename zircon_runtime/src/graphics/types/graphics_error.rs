@@ -1,3 +1,4 @@
+//! 图形后端把设备、帧提交、呈现和目标发布失败统一为可检查的错误回执。
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -90,6 +91,8 @@ pub enum GraphicsError {
     Channel(String),
     #[error("asset loading failed: {0}")]
     Asset(String),
+    #[error("render scene admission failed: {0}")]
+    RenderSceneAdmission(String),
     #[error("runtime service resolution failed: {0}")]
     RuntimeService(String),
     #[error("thread bootstrap failure: {0}")]
@@ -135,6 +138,7 @@ pub enum GraphicsError {
 }
 
 impl GraphicsError {
+    /// 仅在错误已携带场景提交票据时返回该票据，供失败收敛路径完成结算。
     pub(crate) const fn submitted_scene_submission(&self) -> Option<zr_rhi::SubmissionTicket> {
         match self {
             Self::FrameFailedAfterSceneSubmission {
@@ -144,6 +148,7 @@ impl GraphicsError {
         }
     }
 
+    /// 暴露事务 abort 产生的失败回执，调用方据此回滚 streamer 状态并保留提交证据。
     pub fn frame_submission_failure_receipt(
         &self,
     ) -> Option<&crate::core::framework::render::RenderFrameSubmissionFailureReceipt> {
@@ -153,6 +158,7 @@ impl GraphicsError {
         }
     }
 
+    /// 返回呈现或产品发布错误保留的场景回执，便于框架边界继续关联提交身份。
     pub fn frame_submission_receipt(
         &self,
     ) -> Option<&crate::core::framework::render::RenderFrameSubmissionReceipt> {

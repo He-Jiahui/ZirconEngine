@@ -5,8 +5,8 @@ use crate::asset::ProjectAssetManager;
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
 use super::{
-    DEFAULT_UI_FONT_ASSET, FontAssetUpdateReport, FontCollectionService, FontDatabaseError,
-    FontLoadError, LoadedTextFontSource, load_text_font_source,
+    load_text_font_source, FontAssetUpdateReport, FontCollectionService, FontDatabaseError,
+    FontLoadError, LoadedTextFontSource, DEFAULT_UI_FONT_ASSET,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -105,6 +105,7 @@ impl FontCollectionService {
             *count = count.saturating_add(1);
         }
 
+        // 只让最后一个 claim 释放的 owner 参与退库；退库与新字体准入共用一次快照发布。
         let mut unclaimed = Vec::new();
         for asset_ref in released {
             if let std::collections::hash_map::Entry::Occupied(mut claim) =
@@ -174,6 +175,20 @@ impl FontCollectionService {
 }
 
 impl RuntimeFontAssetClaimScope {
+    pub(crate) fn load_runtime_assets(
+        &mut self,
+        asset_refs: &[Arc<str>],
+    ) -> RuntimeFontAssetTransitionReport {
+        let admissions = asset_refs
+            .iter()
+            .map(|asset_ref| PreparedRuntimeFontAssetAdmission {
+                asset_ref: Arc::clone(asset_ref),
+                source: load_text_font_source(asset_ref, None),
+            })
+            .collect();
+        self.replace_shared_claims_with_admissions(asset_refs, admissions)
+    }
+
     pub(crate) fn replace_claims<I, S>(
         &mut self,
         asset_refs: I,

@@ -28,6 +28,7 @@ mod host_projection;
 mod hud_editor_menu;
 mod hud_workspace_state;
 mod icon_tooltip;
+mod inspector_component_source;
 mod inspector_filter;
 mod layout_frames;
 mod layout_menu;

@@ -33,12 +33,12 @@ pub struct ResolvedSettingsBatch {
 }
 
 impl ResolvedSettingsBatch {
-    pub(in crate::core::settings) fn from_registry(
+    pub(in crate::core::settings) fn from_registry<'a>(
         registry: &SettingsRegistry,
-        keys: &[SettingsKey],
+        keys: impl IntoIterator<Item = &'a SettingsKey>,
     ) -> Result<Self, SettingsError> {
         let values = keys
-            .iter()
+            .into_iter()
             .map(|key| {
                 let (value, source) = registry.resolve_with_source(key)?;
                 Ok(ResolvedSettingValue {

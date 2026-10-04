@@ -10,8 +10,8 @@ fixing_child_dir: docs/plans/zircon_plugins/13
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/zircon_export/plugin_validate_distribution_assets.py
-  - tools/zircon_export/plugin_validate_distribution_asset_matches.py
+  - tools/export/plugin_validate_distribution_assets.py
+  - tools/export/plugin_validate_distribution_asset_matches.py
 tests:
   - tools/tests/test_plugin_validate_distribution_owner_boundaries.py
   - tools/tests/test_plugin_validate_distribution_test_owner_boundaries.py

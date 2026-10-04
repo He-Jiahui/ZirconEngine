@@ -19,6 +19,10 @@ use super::compiler::UiAssetCompileCacheEvictionReport;
 use super::hot_reload_plan::UiAssetHotReloadPlan;
 use super::surface_index::UiAssetSurfaceHotReloadApplyReport;
 
+#[cfg(test)]
+#[path = "hot_reload_executor/tests/template_assets_capacity_tests.rs"]
+mod template_assets_capacity_tests;
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UiAssetHotReloadExecutionReport {
     pub cache_eviction: UiAssetCompileCacheEvictionReport,
@@ -284,14 +288,27 @@ fn template_assets_for_surface(
     surface_index: &UiAssetSurfaceIndex,
     tree_id: &UiTreeId,
 ) -> Vec<String> {
-    plan.template_rebuild_targets
-        .iter()
-        .chain(&plan.removed_compiled_assets)
-        .filter(|asset_id| {
-            surface_index
-                .surfaces_for_asset(asset_id)
-                .any(|surface_id| surface_id == tree_id)
-        })
-        .cloned()
-        .collect()
+    let mut template_assets = Vec::with_capacity(template_asset_capacity(
+        plan.template_rebuild_targets.len(),
+        plan.removed_compiled_assets.len(),
+    ));
+    template_assets.extend(
+        plan.template_rebuild_targets
+            .iter()
+            .chain(&plan.removed_compiled_assets)
+            .filter(|asset_id| {
+                surface_index
+                    .surfaces_for_asset(asset_id)
+                    .any(|surface_id| surface_id == tree_id)
+            })
+            .cloned(),
+    );
+    template_assets
+}
+
+fn template_asset_capacity(
+    template_rebuild_target_count: usize,
+    removed_compiled_asset_count: usize,
+) -> usize {
+    template_rebuild_target_count.saturating_add(removed_compiled_asset_count)
 }

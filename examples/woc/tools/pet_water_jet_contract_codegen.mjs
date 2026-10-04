@@ -1,3 +1,6 @@
+// 调用端：npm run generate:pet-water-jet-contract (tools/package.json)；职责：合并宠物水流喷射命令、宠物 AI 与法师宠物内容中的传输约定。
+// 输入边界：src/net/online.ts, server/game.ts, src/sim/pet/pet_commands.ts, src/sim/pet/pet_ai.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

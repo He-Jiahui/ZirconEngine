@@ -1,3 +1,4 @@
+//! 反射活动保留页面或浮窗中的标签顺序及宿主身份，供适配器生成可发现节点。
 use crate::ui::{
     EditorActivityHost, EditorActivityKind, EditorActivityReflection,
     EditorFloatingWindowReflectionModel,
@@ -13,9 +14,10 @@ use super::activity_actions::activity_actions_for_tab;
 use super::name_mapping::content_kind_name;
 
 #[cfg(test)]
-#[path = "activity_collection/single_pass_tests.rs"]
+#[path = "activity_collection/tests/single_pass_tests.rs"]
 mod single_pass_tests;
 
+/// 将文档树中的标签按原布局顺序归入给定宿主；split仅分组，不创造活动身份。
 pub(super) fn collect_workspace_activities(
     workspace: &DocumentWorkspaceSnapshot,
     host: EditorActivityHost,
@@ -63,6 +65,7 @@ pub(super) fn floating_window_model(
     }
 }
 
+/// 保留实例和描述符双重身份；占位仍可见，但不应作为可调用活动。
 pub(super) fn activity_from_tab(
     tab: &ViewTabSnapshot,
     host: EditorActivityHost,

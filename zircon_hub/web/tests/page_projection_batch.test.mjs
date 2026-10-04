@@ -45,11 +45,15 @@ test("source engine projection preserves selection precedence and caps fallbacks
   assert.deepEqual(missing.activeEngines, []);
   assert.deepEqual(missing.fallbackEngines.map((engine) => engine.id), ["engine-a", "engine-b"]);
 
+  const repeatedId = selectSourceEngineChoices([...engines, { id: "engine-b", active: false }], "engine-b");
+  assert.deepEqual(repeatedId.activeEngines.map((engine) => engine.id), ["engine-b", "engine-b"]);
+  assert.deepEqual(repeatedId.fallbackEngines.map((engine) => engine.id), ["engine-a", "engine-c"]);
+
   const noConfiguredActive = selectSourceEngineChoices(
     engines.map((engine) => ({ ...engine, active: false })),
   );
-  assert.deepEqual(noConfiguredActive.activeEngines.map((engine) => engine.id), ["engine-a"]);
-  assert.deepEqual(noConfiguredActive.fallbackEngines.map((engine) => engine.id), ["engine-b", "engine-c"]);
+  assert.deepEqual(noConfiguredActive.activeEngines, []);
+  assert.deepEqual(noConfiguredActive.fallbackEngines.map((engine) => engine.id), ["engine-a", "engine-b"]);
 });
 
 test("Cloud and Source Engine pages consume the bounded projections", async () => {

@@ -6,6 +6,7 @@ use zircon_runtime::scene::world::SceneProjectError;
 
 use super::constants::{EDITOR_LAYOUT_PRESET_DIR, EDITOR_LAYOUT_PRESET_SUFFIX};
 
+/// 通过项目source owner定位res资源；规范文件名可能与输入显示名不同。
 pub(in crate::ui::workbench::project) fn layout_preset_asset_path(
     project: &ProjectManager,
     name: &str,
@@ -20,6 +21,7 @@ pub(in crate::ui::workbench::project) fn layout_preset_asset_path(
     Ok(project.existing_or_primary_project_source_path_for_uri(&uri)?)
 }
 
+/// 维持历史文件名规则；不同原名可能归并到同一规范名，不能据原名认定文件唯一。
 fn sanitize_layout_preset_name(name: &str) -> String {
     let mut sanitized = String::with_capacity(name.len());
     let mut pending_hyphens = 0_usize;
@@ -48,5 +50,5 @@ fn sanitize_layout_preset_name(name: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "layout_preset_asset_path/single_buffer_sanitizer_tests.rs"]
+#[path = "layout_preset_asset_path/tests/single_buffer_sanitizer_tests.rs"]
 mod single_buffer_sanitizer_tests;

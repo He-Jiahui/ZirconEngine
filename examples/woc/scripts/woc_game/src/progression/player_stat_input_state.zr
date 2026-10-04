@@ -49,6 +49,7 @@ pub deriveBaseline(
     return formDerived.derive(baselineInput(classIndex, level, activeFormAbilityCode));
 }
 
+/// 先构造职业等级的起始表单输入，再叠加当前装备，避免把起始主手与持有主手同时计入；装备合法性应在世界状态存储边界先验证。
 pub baselineInputWithEquipment(
     classIndex: int, level: int, activeFormAbilityCode: uint,
     equipment: m5Equipment.M5EquipmentState
@@ -155,6 +156,7 @@ pub deriveBaselineWithTalents(
     return formDerived.derive(input);
 }
 
+/// world/state 的属性重算桥按起始值→装备→已提交天赋→形态派生的顺序调用；调用方提供同一实体行的等级、形态和持久天赋码。
 pub deriveBaselineWithTalentsAndEquipment(
     classIndex: int,
     level: int,

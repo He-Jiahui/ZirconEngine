@@ -10,37 +10,34 @@ use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
 };
 
-use super::{UiSurface, ui_surface_effective_disabled};
+use super::{ui_surface_effective_disabled, UiSurface};
 
 impl UiSurface {
+    /// 投影当前保留树、组件状态及已生成的渲染/命中计数，供快照比较与诊断使用；本身不创建 ECS 实体或执行调度。
     pub fn ui_ecs_projection(&self) -> UiEcsProjectionSnapshot {
         let render_counts = render_command_counts(self);
         let hit_counts = hit_entry_counts(self);
-        let nodes = self
-            .tree
-            .nodes
-            .iter()
-            .map(|(node_id, node)| {
-                let metadata = node.template_metadata.as_ref();
-                let component_state = self.component_states.get(*node_id);
-                let disabled = ui_surface_effective_disabled(self, *node_id, node, metadata);
-                UiEcsNodeProjection {
-                    node_id: *node_id,
-                    node_path: node.node_path.clone(),
-                    parent: node.parent,
-                    children: node.children.clone(),
-                    component: metadata
-                        .map(|metadata| metadata.component.clone())
-                        .unwrap_or_default(),
-                    control_id: metadata.and_then(|metadata| metadata.control_id.clone()),
-                    frame: node.layout_cache.frame,
-                    dirty: UiEcsDirtyDomains::from_dirty_flags(projection_dirty_flags(node)),
-                    interaction: ecs_interaction_state(self, *node_id, component_state, disabled),
-                    render_command_count: render_counts.get(node_id).copied().unwrap_or(0),
-                    hit_entry_count: hit_counts.get(node_id).copied().unwrap_or(0),
-                }
-            })
-            .collect();
+        let mut nodes = Vec::with_capacity(self.tree.nodes.len());
+        for (node_id, node) in self.tree.nodes.iter() {
+            let metadata = node.template_metadata.as_ref();
+            let component_state = self.component_states.get(*node_id);
+            let disabled = ui_surface_effective_disabled(self, *node_id, node, metadata);
+            nodes.push(UiEcsNodeProjection {
+                node_id: *node_id,
+                node_path: node.node_path.clone(),
+                parent: node.parent,
+                children: node.children.clone(),
+                component: metadata
+                    .map(|metadata| metadata.component.clone())
+                    .unwrap_or_default(),
+                control_id: metadata.and_then(|metadata| metadata.control_id.clone()),
+                frame: node.layout_cache.frame,
+                dirty: UiEcsDirtyDomains::from_dirty_flags(projection_dirty_flags(node)),
+                interaction: ecs_interaction_state(self, *node_id, component_state, disabled),
+                render_command_count: render_counts.get(node_id).copied().unwrap_or(0),
+                hit_entry_count: hit_counts.get(node_id).copied().unwrap_or(0),
+            });
+        }
 
         UiEcsProjectionSnapshot::from_nodes(
             self.tree.tree_id.clone(),
@@ -120,25 +117,24 @@ fn ecs_interaction_state(
     let Some(node) = surface.tree.nodes.get(&node_id) else {
         return UiEcsInteractionState::default();
     };
-    let flags = component_state
-        .map(|state| state.flags.clone())
-        .unwrap_or_default();
+    let flags = component_state.map(|state| &state.flags);
     UiEcsInteractionState {
         visible: node.is_render_visible(),
         enabled: !disabled,
         disabled,
-        focused: surface.focus.focused == Some(node_id) || flags.focused,
-        hovered: surface.focus.hovered.contains(&node_id) || flags.hovered,
-        pressed: surface.focus.pressed == Some(node_id) || flags.pressed,
+        focused: surface.focus.focused == Some(node_id) || flags.is_some_and(|flags| flags.focused),
+        hovered: surface.focus.hovered.contains(&node_id)
+            || flags.is_some_and(|flags| flags.hovered),
+        pressed: surface.focus.pressed == Some(node_id) || flags.is_some_and(|flags| flags.pressed),
         captured: surface.focus.captured == Some(node_id),
         focusable: node.state_flags.focusable || node.focus.focusable,
         clickable: node.state_flags.clickable,
         hoverable: node.state_flags.hoverable,
-        checked: node.state_flags.checked || flags.checked,
-        selected: flags.selected,
-        expanded: flags.expanded,
-        popup_open: flags.popup_open,
-        dragging: flags.dragging,
+        checked: node.state_flags.checked || flags.is_some_and(|flags| flags.checked),
+        selected: flags.is_some_and(|flags| flags.selected),
+        expanded: flags.is_some_and(|flags| flags.expanded),
+        popup_open: flags.is_some_and(|flags| flags.popup_open),
+        dragging: flags.is_some_and(|flags| flags.dragging),
     }
 }
 
@@ -169,3 +165,7 @@ fn projection_dirty_flags(
     }
     dirty
 }
+
+#[cfg(test)]
+#[path = "tests/ecs_projection_performance_tests.rs"]
+mod performance_tests;

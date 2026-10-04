@@ -790,4 +790,5 @@ struct ShaderSourceMetadata {
 }
 
 #[cfg(test)]
+#[path = "manifest/tests/cases.rs"]
 mod tests;

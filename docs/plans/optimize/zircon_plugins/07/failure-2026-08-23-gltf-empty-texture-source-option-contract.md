@@ -10,6 +10,7 @@ fixing_child_dir: docs/plans/optimize/zircon_plugins/07
 plan_link_mode: child_record_only
 related_code:
   - zircon_plugins/gltf_importer/runtime/src/subassets.rs
+  - zircon_runtime/src/asset/importer/gltf_texture_subassets.rs
 tests:
   - cargo +1.94.1 check -p zircon_plugin_gltf_importer_runtime --locked --jobs 1
   - cargo +1.94.1 test -p zircon_plugin_gltf_importer_runtime --locked --jobs 1 -- --test-threads=1
@@ -73,5 +74,14 @@ Coordinator ownership matrix request `0cea2d3236f74291835d5d083698f063` 记录 c
 
 ## 修复结果与回传
 
-- 当前状态保持 `open`：Plugins07 尚需完成 typed empty-source 修复、focused negative regression 与受管验证。
+- current HEAD 已将插件入口硬切到 `zircon_runtime::asset::importer::add_gltf_texture_subassets`；统一 helper
+  在发布循环前收集并校验全部 texture source，`None` 返回包含 texture index 的
+  `AssetImportError::Parse`，不会产生 partial texture entry。
+- Plugins07 已补充 focused negative regression，真实解析 `{ "textures": [{}] }`，断言 exact typed failure；
+  当前状态保持 `open`，等待该 immutable source/test snapshot 的受管 package 与 App upward gate。
+- Immutable copy `94682eba124745d7ae987c547c442edb` reached the current pinned planner and failed before
+  Cargo with `validation_copy_compile_time_source_total_too_large`; durable `errorPath` is
+  `zircon_runtime/src/ui/dispatch/input_manager/text_document_session/history.rs`. This is a
+  Coordinator compile-time closure budget boundary, not a glTF source/test result; no package or App
+  Cargo test executed and this handoff remains open pending the shared planner owner.
 - 修复方只有在上述架构验收全部通过后，才可将本记录转为 `fixed` 并向来源计划回传终态证据。

@@ -28,6 +28,7 @@ pub(crate) fn parse_value_path(path: &str) -> Option<Vec<UiAssetTomlPathSegment>
                     return None;
                 }
                 let parsed = trimmed[start..index].trim().parse::<usize>().ok()?;
+                reserve_first_segment_capacity(&mut segments, trimmed);
                 segments.push(UiAssetTomlPathSegment::Index(parsed));
                 index += 1;
             }
@@ -40,12 +41,27 @@ pub(crate) fn parse_value_path(path: &str) -> Option<Vec<UiAssetTomlPathSegment>
                 if value.is_empty() {
                     return None;
                 }
+                reserve_first_segment_capacity(&mut segments, trimmed);
                 segments.push(UiAssetTomlPathSegment::Key(value.to_string()));
             }
         }
     }
 
     (!segments.is_empty()).then_some(segments)
+}
+
+fn reserve_first_segment_capacity(segments: &mut Vec<UiAssetTomlPathSegment>, source: &str) {
+    if !segments.is_empty() {
+        return;
+    }
+
+    let bytes = source.as_bytes();
+    let capacity = bytes
+        .iter()
+        .filter(|&&byte| matches!(byte, b'.' | b'['))
+        .count()
+        .saturating_add(1);
+    segments.reserve(capacity);
 }
 
 pub(crate) fn get_value_at_path<'a>(
@@ -173,5 +189,9 @@ fn default_container_for(segment: Option<&UiAssetTomlPathSegment>) -> Option<Val
 }
 
 #[cfg(test)]
-#[path = "value_path/byte_slice_tests.rs"]
+#[path = "value_path/tests/byte_slice_tests.rs"]
 mod byte_slice_tests;
+
+#[cfg(test)]
+#[path = "value_path/tests/capacity_tests.rs"]
+mod capacity_tests;

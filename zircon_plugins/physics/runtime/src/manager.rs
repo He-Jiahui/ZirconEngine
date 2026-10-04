@@ -15,8 +15,10 @@ pub(crate) mod validation;
 mod world_sync;
 
 #[cfg(test)]
+#[path = "manager/tests/cases.rs"]
 mod tests;
 
+use zircon_runtime::core::framework::foundation::ConfigManager;
 use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::framework::{
     physics::{
@@ -25,6 +27,7 @@ use zircon_runtime::core::framework::{
     },
     scene::physics::PhysicsMaterialMetadata,
 };
+use zircon_runtime::core::manager::ManagerServiceHandle;
 use zircon_runtime::core::CoreWeak;
 
 use crate::backend::builtin::PhysicsTriggerPairMap;
@@ -39,6 +42,7 @@ pub type PhysicsTickPlan = PhysicsWorldStepPlan;
 pub struct DefaultPhysicsManager {
     // Shared managers may be registry-owned; retain only a weak runtime attachment.
     core: Arc<Mutex<Option<CoreWeak>>>,
+    config_manager: Arc<Mutex<Option<ManagerServiceHandle<dyn ConfigManager>>>>,
     settings: Arc<Mutex<PhysicsSettings>>,
     default_material: PhysicsMaterialMetadata,
     accumulators: Arc<Mutex<HashMap<WorldHandle, f32>>>,

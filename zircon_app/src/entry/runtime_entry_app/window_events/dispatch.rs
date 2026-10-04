@@ -1,5 +1,6 @@
-use winit::event::WindowEvent;
+use winit::event::{Ime, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
+use winit::window::WindowId;
 use zircon_runtime_interface::ZrRuntimeViewportSizeV1;
 
 use super::super::surface_present::surface_resize_changes_viewport;
@@ -9,8 +10,15 @@ impl RuntimeEntryApp {
     pub(in crate::entry::runtime_entry_app) fn handle_window_event(
         &mut self,
         event_loop: &dyn ActiveEventLoop,
+        window_id: WindowId,
         event: WindowEvent,
     ) {
+        if !window_event_belongs_to_primary(
+            self.window.as_ref().map(|window| window.id()),
+            window_id,
+        ) {
+            return;
+        }
         if window_event_requests_runtime_frame(&event, self.viewport_size) {
             self.request_runtime_frame();
         }
@@ -71,7 +79,7 @@ impl RuntimeEntryApp {
                 self.handle_keyboard_input(event_loop, event);
             }
             WindowEvent::Ime(ime) => {
-                self.handle_ime_input(event_loop, ime);
+                self.handle_window_ime_event(event_loop, ime);
             }
             WindowEvent::MouseWheel { delta, .. } => {
                 self.handle_mouse_wheel(event_loop, delta);
@@ -82,6 +90,32 @@ impl RuntimeEntryApp {
             _ => {}
         }
     }
+
+    /// The real Winit event-loop arm owns source arbitration. Native Windows IMM callbacks are
+    /// consumed here before the legacy V1 adapter, so production delivery cannot bypass the V2
+    /// producer through a helper-only test path or emit both streams for one composition.
+    fn handle_window_ime_event(&mut self, event_loop: &dyn ActiveEventLoop, ime: Ime) {
+        if native_ime_result_claims_event(self.handle_native_ime_window_event(event_loop, &ime)) {
+            if matches!(ime, Ime::Disabled) {
+                self.ime_input_admission.disable();
+            }
+            return;
+        }
+        self.handle_ime_input(event_loop, ime);
+    }
+}
+
+fn native_ime_result_claims_event(result: Option<bool>) -> bool {
+    // `Some(false)` means the requested V2 source attempted and failed dispatch. It still owns
+    // this composition, so replaying it through V1 would produce a duplicate or reordered event.
+    result.is_some()
+}
+
+fn window_event_belongs_to_primary<T: PartialEq>(
+    primary_window_id: Option<T>,
+    event_window_id: T,
+) -> bool {
+    primary_window_id.as_ref() == Some(&event_window_id)
 }
 
 fn window_event_requests_runtime_frame(
@@ -113,54 +147,5 @@ fn window_event_requests_runtime_frame(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::window_event_requests_runtime_frame;
-    use winit::{
-        dpi::{PhysicalPosition, PhysicalSize},
-        event::WindowEvent,
-    };
-    use zircon_runtime_interface::ZrRuntimeViewportSizeV1;
-
-    #[test]
-    fn redraw_delivery_does_not_schedule_another_reactive_frame() {
-        assert!(!window_event_requests_runtime_frame(
-            &WindowEvent::RedrawRequested,
-            ZrRuntimeViewportSizeV1::new(1280, 720),
-        ));
-    }
-
-    #[test]
-    fn unhandled_window_noise_does_not_schedule_a_reactive_frame() {
-        assert!(!window_event_requests_runtime_frame(
-            &WindowEvent::DragMoved {
-                position: PhysicalPosition::new(10.0, 20.0),
-            },
-            ZrRuntimeViewportSizeV1::new(1280, 720),
-        ));
-    }
-
-    #[test]
-    fn handled_window_events_schedule_frames_but_duplicate_resize_does_not() {
-        let viewport_size = ZrRuntimeViewportSizeV1::new(1280, 720);
-        assert!(window_event_requests_runtime_frame(
-            &WindowEvent::Moved(PhysicalPosition::new(20, 30)),
-            viewport_size,
-        ));
-        assert!(!window_event_requests_runtime_frame(
-            &WindowEvent::Focused(false),
-            viewport_size,
-        ));
-        assert!(!window_event_requests_runtime_frame(
-            &WindowEvent::Occluded(true),
-            viewport_size,
-        ));
-        assert!(!window_event_requests_runtime_frame(
-            &WindowEvent::SurfaceResized(PhysicalSize::new(1280, 720)),
-            viewport_size,
-        ));
-        assert!(window_event_requests_runtime_frame(
-            &WindowEvent::SurfaceResized(PhysicalSize::new(1281, 720)),
-            viewport_size,
-        ));
-    }
-}
+#[path = "tests/dispatch.rs"]
+mod tests;

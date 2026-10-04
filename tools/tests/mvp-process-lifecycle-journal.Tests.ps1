@@ -1,3 +1,4 @@
+# 进程生命周期日志支持中断后从最后完整事件恢复；夹具覆盖截断、非法编码和空日志，源码断言约束尾部缓冲、轮转与摘要计算。
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 

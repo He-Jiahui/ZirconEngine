@@ -17,5 +17,5 @@ pub(in crate::plugin::runtime_plugin::package_validation::coordinates) fn valida
 }
 
 #[cfg(test)]
-#[path = "segment/single_trim_tests.rs"]
+#[path = "segment/tests/single_trim_tests.rs"]
 mod single_trim_tests;

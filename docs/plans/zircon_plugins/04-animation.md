@@ -1,7 +1,7 @@
 # 04 · Animation 插件完善计划（骨骼 / Clips / 状态机 / GPU Skinning / Avatar Mask）
 
 > 状态：工程化细化版 v2 · 优先级：P1 · 前置：[01 插件架构核心](01-plugin-architecture-core.md) M1
-> 关联计划：`.codex/plans/Physics + Full Animation Support 新计划.md` · 现状文档：`docs/zircon_plugins/animation/runtime.md`
+> 关联计划：`.codex/plans/Physics + Full Animation Support 新计划.md` · 现状文档：`docs/crates/zircon_plugins/animation/runtime.md`
 > 参考实现：Bevy `bevy_animation`（AnimationGraph/AnimationTarget/mask 位掩码）、Fyrox ABSM（多层状态机 + Layer Mask）、Unreal AnimGraph（蒙太奇/同步组仅作形态参考）
 > 历史进度（2026-06-14 00:21 +08:00）：`runtime_physics_animation_tick_contract` 通过临时 manifest 与外部 target-dir 复跑，16 项全通过。该回执只描述当时快照，不代替当前受管验收。
 > 当前状态（2026-08-01）：`in_progress / resolving_failure`。M1-M6 的历史实现与验证证据仍有效，但协调器仍有 3 个开放 failure；在它们返回并完成当前源码受管验证前，不进入 closeout。

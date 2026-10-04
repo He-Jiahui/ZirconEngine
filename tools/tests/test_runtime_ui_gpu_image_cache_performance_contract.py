@@ -1,12 +1,12 @@
 from pathlib import Path
 import unittest
 
-from tools.runtime_ui_image_prepare_cache_pressure import run
+from tools.analysis.performance.runtime.runtime_ui_image_prepare_cache_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
 IMAGE = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs"
-IMAGE_TESTS = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/image/tests.rs"
+IMAGE_TESTS = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/image/tests/cases.rs"
 RENDER = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs"
 PLAN_CACHE = (
     ROOT
@@ -50,13 +50,13 @@ class RuntimeUiGpuImageCachePerformanceContract(unittest.TestCase):
         for identity in (
             "management_generation: Option<ResourceManagementGenerationIdentity>",
             "readiness_generation: Option<ResourceReadinessGenerationIdentity>",
-            "frame_prepare_epoch: Option<u64>",
+            "binding_product_generation: Option<u64>",
         ):
             self.assertIn(identity, source)
         for unchanged_identity in (
             "self.management_generation == management_generation",
             "self.readiness_generation == readiness_generation",
-            "self.frame_prepare_epoch == frame_prepare_epoch",
+            "self.binding_product_generation == binding_product_generation",
         ):
             self.assertIn(unchanged_identity, source)
         self.assertIn("prepared_textures.begin_prepare(", prepare)
@@ -96,8 +96,9 @@ class RuntimeUiGpuImageCachePerformanceContract(unittest.TestCase):
         self.assertIn("pub(super) fn image_batches(&self)", render_source)
         self.assertIn("ScreenSpaceUiImageSegmentCache", image_source)
         self.assertIn("Option<Weak<PlannedScreenSpaceUi>>", image_source)
-        self.assertIn("render_segments: &[Arc<PlannedScreenSpaceUi>]", image_source)
-        self.assertIn("&prepared.render_segments", record_source)
+        self.assertIn("prepared: &Arc<PreparedScreenSpaceUi>", image_source)
+        self.assertIn("let render_segments = prepared.render_segments()", image_source)
+        self.assertIn("prepared.render_segments.iter()", record_source)
         self.assertNotIn("let prepared_images =", record_source)
         self.assertIn("self.image_system.render(&mut pass);", record_source)
 

@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对渲染预热产品清单的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 const STATUS: &str = "render_plan08_staged_prewarm_product_sweep_wgpu_passed_renderdoc_deferred";
@@ -36,7 +37,7 @@ fn runtime_15_render_plan08_staged_prewarm_product_sweep_is_wired() {
         "graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/product_png.rs",
     );
     let ensure_pipeline = read_runtime_src(
-        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline/tests.rs",
+        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline/tests/cases.rs",
     );
     let plan_08 = read_repo(
         "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",

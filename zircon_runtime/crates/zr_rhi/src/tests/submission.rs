@@ -1,7 +1,11 @@
 use crate::{
-    DeviceGeneration, DeviceId, RenderQueueClass, SubmissionHistory, SubmissionLimits,
-    SubmissionStatus, SubmissionTicket,
+    DeviceGeneration, DeviceId, RenderQueueClass, RhiGraphAccessId, RhiGraphAccessRange,
+    RhiGraphExecutionAccess, RhiGraphExecutionPass, RhiGraphExecutionReceipt,
+    RhiGraphExecutionTransition, RhiGraphPhysicalResourceLease, RhiGraphQueueLane,
+    RhiGraphResourceAccessKind, RhiGraphResourceBounds, RhiGraphResourceId, RhiGraphResourceKind,
+    RhiGraphResourceState, SubmissionHistory, SubmissionLimits, SubmissionStatus, SubmissionTicket,
 };
+use std::sync::Arc;
 
 fn ticket(sequence: u64) -> SubmissionTicket {
     SubmissionTicket::new(
@@ -78,4 +82,288 @@ fn submission_history_terminal_ranges_stay_bounded_by_unresolved_gaps() {
     assert_eq!(history.terminal_range_count(), 1);
     assert!(history.is_terminal(ticket(31)));
     assert!(!history.is_terminal(first));
+}
+
+#[test]
+fn graph_submission_receipt_binds_exact_ordered_access_range_and_queue_transition() {
+    let device_id = DeviceId::new(41);
+    let generation = DeviceGeneration::initial();
+    let resource = RhiGraphResourceId::new(RhiGraphResourceKind::Buffer, 9, 77);
+    let range = RhiGraphAccessRange::buffer(32, 64);
+    let writer_id = RhiGraphAccessId::new(0, 77, 0);
+    let reader_id = RhiGraphAccessId::new(1, 77, 0);
+    let writer = RhiGraphExecutionAccess::new(
+        writer_id,
+        resource,
+        1,
+        RhiGraphResourceAccessKind::Write,
+        range,
+        RhiGraphResourceState::StorageBufferReadWrite,
+        RhiGraphQueueLane::AsyncCompute,
+        Some(3),
+        true,
+    );
+    let reader = RhiGraphExecutionAccess::new(
+        reader_id,
+        resource,
+        1,
+        RhiGraphResourceAccessKind::Read,
+        range,
+        RhiGraphResourceState::StorageBufferRead,
+        RhiGraphQueueLane::Graphics,
+        Some(3),
+        true,
+    );
+    let transition = RhiGraphExecutionTransition::new(
+        resource,
+        range,
+        writer_id,
+        reader_id,
+        RhiGraphResourceState::StorageBufferReadWrite,
+        RhiGraphResourceState::StorageBufferRead,
+        RhiGraphQueueLane::AsyncCompute,
+        RhiGraphQueueLane::Graphics,
+    );
+    let receipt = RhiGraphExecutionReceipt::new(
+        device_id,
+        generation,
+        12,
+        77,
+        RenderQueueClass::Graphics,
+        vec![
+            RhiGraphExecutionPass::new(
+                0,
+                0,
+                77,
+                RhiGraphQueueLane::AsyncCompute,
+                vec![writer],
+                vec![],
+            ),
+            RhiGraphExecutionPass::new(
+                1,
+                1,
+                77,
+                RhiGraphQueueLane::Graphics,
+                vec![reader],
+                vec![transition.clone()],
+            ),
+        ],
+        vec![
+            RhiGraphPhysicalResourceLease::new(
+                writer_id,
+                resource,
+                Some(3),
+                device_id,
+                generation,
+                RhiGraphResourceBounds::buffer(128).unwrap(),
+                Arc::new(()),
+            ),
+            RhiGraphPhysicalResourceLease::new(
+                reader_id,
+                resource,
+                Some(3),
+                device_id,
+                generation,
+                RhiGraphResourceBounds::buffer(128).unwrap(),
+                Arc::new(()),
+            ),
+        ],
+    )
+    .expect("receipt must preserve the exact producer-to-consumer device proof");
+
+    assert_eq!(receipt.frame_generation(), 12);
+    assert_eq!(receipt.device_id(), device_id);
+    assert_eq!(receipt.generation(), generation);
+    assert_eq!(receipt.passes().len(), 2);
+    assert_eq!(receipt.passes()[0].accesses()[0].range(), range);
+    assert_eq!(receipt.passes()[1].transitions_before(), &[transition]);
+    assert_eq!(receipt.physical_lease_count(), 2);
+}
+
+#[test]
+fn graph_submission_receipt_rejects_access_outside_physical_buffer_lease() {
+    let device_id = DeviceId::new(41);
+    let generation = DeviceGeneration::initial();
+    let resource = RhiGraphResourceId::new(RhiGraphResourceKind::Buffer, 9, 77);
+    let access_id = RhiGraphAccessId::new(0, 77, 0);
+    let access = RhiGraphExecutionAccess::new(
+        access_id,
+        resource,
+        1,
+        RhiGraphResourceAccessKind::Write,
+        RhiGraphAccessRange::buffer(96, 64),
+        RhiGraphResourceState::StorageBufferReadWrite,
+        RhiGraphQueueLane::Graphics,
+        Some(3),
+        true,
+    );
+
+    let error = RhiGraphExecutionReceipt::new(
+        device_id,
+        generation,
+        12,
+        77,
+        RenderQueueClass::Graphics,
+        vec![RhiGraphExecutionPass::new(
+            0,
+            0,
+            77,
+            RhiGraphQueueLane::Graphics,
+            vec![access],
+            vec![],
+        )],
+        vec![RhiGraphPhysicalResourceLease::new(
+            access_id,
+            resource,
+            Some(3),
+            device_id,
+            generation,
+            RhiGraphResourceBounds::buffer(128).unwrap(),
+            Arc::new(()),
+        )],
+    )
+    .expect_err("an out-of-range access must fail before device ticket admission");
+
+    assert!(error.to_string().contains("exceeds physical buffer lease"));
+}
+
+#[test]
+fn graph_submission_receipt_rejects_a_transition_whose_source_was_not_recorded_first() {
+    let device_id = DeviceId::new(41);
+    let generation = DeviceGeneration::initial();
+    let resource = RhiGraphResourceId::new(RhiGraphResourceKind::Buffer, 9, 77);
+    let range = RhiGraphAccessRange::buffer(32, 64);
+    let writer_id = RhiGraphAccessId::new(0, 77, 0);
+    let reader_id = RhiGraphAccessId::new(1, 77, 0);
+    let writer = RhiGraphExecutionAccess::new(
+        writer_id,
+        resource,
+        1,
+        RhiGraphResourceAccessKind::Write,
+        range,
+        RhiGraphResourceState::StorageBufferReadWrite,
+        RhiGraphQueueLane::AsyncCompute,
+        Some(3),
+        true,
+    );
+    let reader = RhiGraphExecutionAccess::new(
+        reader_id,
+        resource,
+        1,
+        RhiGraphResourceAccessKind::Read,
+        range,
+        RhiGraphResourceState::StorageBufferRead,
+        RhiGraphQueueLane::Graphics,
+        Some(3),
+        true,
+    );
+    let transition = RhiGraphExecutionTransition::new(
+        resource,
+        range,
+        writer_id,
+        reader_id,
+        RhiGraphResourceState::StorageBufferReadWrite,
+        RhiGraphResourceState::StorageBufferRead,
+        RhiGraphQueueLane::AsyncCompute,
+        RhiGraphQueueLane::Graphics,
+    );
+
+    let error = RhiGraphExecutionReceipt::new(
+        device_id,
+        generation,
+        12,
+        77,
+        RenderQueueClass::Graphics,
+        vec![
+            RhiGraphExecutionPass::new(
+                0,
+                1,
+                77,
+                RhiGraphQueueLane::Graphics,
+                vec![reader],
+                vec![transition],
+            ),
+            RhiGraphExecutionPass::new(
+                1,
+                0,
+                77,
+                RhiGraphQueueLane::AsyncCompute,
+                vec![writer],
+                vec![],
+            ),
+        ],
+        vec![
+            RhiGraphPhysicalResourceLease::new(
+                writer_id,
+                resource,
+                Some(3),
+                device_id,
+                generation,
+                RhiGraphResourceBounds::buffer(128).unwrap(),
+                Arc::new(()),
+            ),
+            RhiGraphPhysicalResourceLease::new(
+                reader_id,
+                resource,
+                Some(3),
+                device_id,
+                generation,
+                RhiGraphResourceBounds::buffer(128).unwrap(),
+                Arc::new(()),
+            ),
+        ],
+    )
+    .expect_err("queue lowering must not reorder a producer after its consumer");
+
+    assert!(error
+        .to_string()
+        .contains("source access must precede destination"));
+}
+
+#[test]
+fn graph_submission_receipt_rejects_stale_graph_generation() {
+    let device_id = DeviceId::new(41);
+    let generation = DeviceGeneration::initial();
+    let resource = RhiGraphResourceId::new(RhiGraphResourceKind::Buffer, 9, 77);
+    let access_id = RhiGraphAccessId::new(0, 78, 0);
+    let access = RhiGraphExecutionAccess::new(
+        access_id,
+        resource,
+        1,
+        RhiGraphResourceAccessKind::Write,
+        RhiGraphAccessRange::buffer(0, 16),
+        RhiGraphResourceState::StorageBufferReadWrite,
+        RhiGraphQueueLane::Graphics,
+        Some(3),
+        true,
+    );
+    let error = RhiGraphExecutionReceipt::new(
+        device_id,
+        generation,
+        12,
+        78,
+        RenderQueueClass::Graphics,
+        vec![RhiGraphExecutionPass::new(
+            0,
+            0,
+            78,
+            RhiGraphQueueLane::Graphics,
+            vec![access],
+            vec![],
+        )],
+        vec![RhiGraphPhysicalResourceLease::new(
+            access_id,
+            resource,
+            Some(3),
+            device_id,
+            generation,
+            RhiGraphResourceBounds::buffer(32).unwrap(),
+            Arc::new(()),
+        )],
+    )
+    .expect_err("a stale graph generation must fail before ticket admission");
+
+    assert!(error
+        .to_string()
+        .contains("graph resource generation does not match receipt"));
 }

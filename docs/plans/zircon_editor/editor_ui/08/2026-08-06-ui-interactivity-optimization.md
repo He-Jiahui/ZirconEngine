@@ -9,7 +9,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers
   - zircon_editor/src/ui/retained_host/host_contract/window/event_loop.rs
-  - zircon_editor/src/tests/ui/boundary/workbench_projection_cutover.rs
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/08/failure-2026-07-17-editor-event-full-reflection-rebuild.md
 ---
@@ -128,7 +127,7 @@ M1 的 immutable presentation authority 已以提交 `9c2592c4d` 收口：struct
 
 M4 的显式 profile artifact 导出已以提交 `ec26dc7ec` 移出 UI 线程：one-shot request 只向容量为 1 的后台 worker 投递 immutable payload，JSON/PNG 编码与文件写入不再发生在 present 回调内；稳定帧的 artifact export counter 保持为 0。
 
-最新共享工作区已通过 `tools/build-editor.ps1` 产出独立 bundle `C:\Users\HeJiahui\ZirconBuilds\editor-ui-optimized-20260807-1000`。脚本依次完成受管 `zircon_app --bin zircon_editor --features target-editor-host` 与 `zircon_runtime --features target-editor-host` 构建、资产复制和 `--help` smoke；`zircon_editor.exe` SHA-256 为 `837698900FE480CBBE3A5210C408DDC556872E6F5A702E653D1824F0BE2B3A70`，`zircon_runtime.dll` 为 `FB4F1E1E7FEB4CA888BD80AF45361DC667236EB34EB7C927B2242A7618864615`。随后真实 GUI 首帧完成窗口创建与 present，并在 25.1 秒内按 one-shot capture 合同以退出码 0 结束；`first-frame.png` SHA-256 为 `72FBC9D18B743D747AE83FCB57C7B433B49C14B2AA1100A00764C15D34D1278A`，目视复核 Workbench、Hierarchy、Inspector、Console、菜单与状态栏完整且无文本覆盖。
+最新共享工作区已通过 `tools/build/build-editor.ps1` 产出独立 bundle `C:\Users\HeJiahui\ZirconBuilds\editor-ui-optimized-20260807-1000`。脚本依次完成受管 `zircon_app --bin zircon_editor --features target-editor-host` 与 `zircon_runtime --features target-editor-host` 构建、资产复制和 `--help` smoke；`zircon_editor.exe` SHA-256 为 `837698900FE480CBBE3A5210C408DDC556872E6F5A702E653D1824F0BE2B3A70`，`zircon_runtime.dll` 为 `FB4F1E1E7FEB4CA888BD80AF45361DC667236EB34EB7C927B2242A7618864615`。随后真实 GUI 首帧完成窗口创建与 present，并在 25.1 秒内按 one-shot capture 合同以退出码 0 结束；`first-frame.png` SHA-256 为 `72FBC9D18B743D747AE83FCB57C7B433B49C14B2AA1100A00764C15D34D1278A`，目视复核 Workbench、Hierarchy、Inspector、Console、菜单与状态栏完整且无文本覆盖。
 
 独立 `integration_contracts` target 已恢复到真实执行并以提交 `266d305e4` 固化：fixture 硬切换到当前 `workbench_slot/default_presets` schema，autolayout 合同改用产品公开的 `build_with_context` 与显式 scale factor，floating chrome 合同验证 `$editor.*` token，viewport toolbar 合同对齐资产声明的 28px icon 布局。Windows 受管 `cargo test -p zircon_editor --features integration-contracts --test integration_contracts --locked` 通过，直接执行同一测试二进制确认 `31/31` 通过；这补齐 Workbench retained shell、window template/resize、native window host、viewport toolbar、floating design 与 autolayout 的产品边界验证。全量 `lib test` 的 148 个其他测试 API 漂移仍保持独立共享基线阻断。
 

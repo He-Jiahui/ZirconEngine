@@ -1,11 +1,12 @@
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
-use crate::scene::EntityId;
 use crate::scene::components::{
     AnimationGraphPlayerComponent, AnimationPlayerComponent, AnimationSequencePlayerComponent,
     AnimationStateMachinePlayerComponent,
 };
 use crate::scene::world::{SceneError, SceneResult, World};
+use crate::scene::EntityId;
 
+/// 编译绑定将这些运行时字段映射到动画组件；写入成功后由 World 统一标记节点缓存失效。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum CompiledAnimationRuntimeProperty {
     PlayerPlaybackSpeed,

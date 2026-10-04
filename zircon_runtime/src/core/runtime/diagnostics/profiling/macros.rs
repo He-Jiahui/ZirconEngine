@@ -1,4 +1,5 @@
 #[macro_export]
+/// 启用对应 feature 时分别展开 recorder RAII scope 与 Tracy span。
 macro_rules! profile_scope {
     ($stream:expr, $category:expr, $name:expr $(,)?) => {
         #[cfg(feature = "profiling")]
@@ -16,6 +17,7 @@ macro_rules! profile_scope {
 }
 
 #[macro_export]
+/// 普通 profiling 仅在采集活动时求值动态名称；Tracy 路径持有同一名称供两路记录复用。
 macro_rules! profile_dynamic_scope {
     ($stream:expr, $category:expr, $name:expr $(,)?) => {
         #[cfg(feature = "profiling-tracy")]
@@ -48,6 +50,7 @@ macro_rules! profile_dynamic_scope {
 }
 
 #[macro_export]
+/// recorder 帧作用域退出时收口；Tracy frame marker/span 是并行观测。
 macro_rules! profile_frame {
     ($stream:expr, $name:expr $(,)?) => {
         #[cfg(feature = "profiling")]
@@ -63,8 +66,9 @@ macro_rules! profile_frame {
 }
 
 #[macro_export]
+/// recorder 只在采集活动时接收计数；Tracy feature 还独立发出 tracing counter。
 macro_rules! profile_counter {
-    ($stream:expr, $name:expr, $value:expr $(,)?) => {
+    ($stream:expr, $name:expr, $value:expr $(,)?) => {{
         #[cfg(feature = "profiling-tracy")]
         let _zr_profile_counter_value = $value as f64;
         #[cfg(all(feature = "profiling", not(feature = "profiling-tracy")))]
@@ -86,9 +90,9 @@ macro_rules! profile_counter {
             name = $name,
             value = _zr_profile_counter_value,
         );
-    };
+    }};
 }
 
 #[cfg(test)]
-#[path = "macros/dynamic_name_handoff_tests.rs"]
+#[path = "macros/tests/dynamic_name_handoff_tests.rs"]
 mod dynamic_name_handoff_tests;

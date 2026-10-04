@@ -8,11 +8,11 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PACK_STAGE_SCHEMA = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_pack_stage_schema.py"
+    REPO_ROOT / "tools/export/pipeline_report_pack_stage_schema.py"
 )
 PACK_STAGE_REQUIRED_FIELDS = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_pack_stage_required_fields.py"
+    / "tools/export/pipeline_report_pack_stage_required_fields.py"
 )
 
 MOVED_CONSTANTS = (

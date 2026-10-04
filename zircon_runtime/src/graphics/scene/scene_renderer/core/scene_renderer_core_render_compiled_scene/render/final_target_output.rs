@@ -7,6 +7,7 @@ use crate::core::framework::render::{
 use crate::graphics::scene::resources::{OutputTargetTextureResource, ResourceStreamer};
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 
+/// 编译图对相机输出目标的单帧选择；直接导入和转换写回互斥。
 pub(super) struct FinalTargetOutputSelection {
     pub(super) direct_import: Option<Arc<OutputTargetTextureResource>>,
     pub(super) writeback: Option<Arc<OutputTargetTextureResource>>,
@@ -30,6 +31,8 @@ impl FinalTargetOutputSelection {
     }
 }
 
+/// 消费 ResourceStreamer 预先准备的目标计划；不能在绑定阶段重新决定格式或写回策略。
+/// 同一帧的 frame target 与计划不一致时应报错，防止把图输出写到错误的相机纹理。
 pub(super) fn select_final_target_output(
     streamer: &ResourceStreamer,
     frame: &ViewportRenderFrame,
@@ -100,16 +103,5 @@ pub(super) fn select_final_target_output(
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn final_target_selection_consumes_the_prepared_frame_plan_without_replanning() {
-        let source = include_str!("final_target_output.rs")
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("final target selection test boundary");
-
-        assert!(source.contains("streamer.output_target_frame_plan()"));
-        assert!(!source.contains(".graph_import_plan("));
-        assert!(!source.contains("frame.texture_writeback_plan("));
-    }
-}
+#[path = "tests/final_target_output.rs"]
+mod tests;

@@ -12,10 +12,14 @@ use validation::{
 mod validation;
 
 #[cfg(test)]
-#[path = "document/rename_single_pass_tests.rs"]
+#[path = "document/tests/rename_single_pass_tests.rs"]
 mod rename_single_pass_tests;
 
+/// 编辑器与资产校验共同使用的作者文档访问层，按作者节点标识查询根树及组件定义。
+/// 这里操作的是声明树，运行时控件标识和展开后的节点索引属于后续编译/表面阶段。
+/// 直接节点写入不自动保持全局标识唯一或重新编译；宿主在发布编辑结果前必须重新校验。
 pub trait UiAssetDocumentRuntimeExt {
+    /// 为加载和编译建立节点、样式表与规则标识及选择器的作者态约束；树与规则编辑后应再次执行。
     fn validate_tree_authority(&self) -> Result<(), UiAssetError>;
     fn root_node_id(&self) -> Option<&str>;
     fn contains_node(&self, node_id: &str) -> bool;
@@ -24,6 +28,7 @@ pub trait UiAssetDocumentRuntimeExt {
     fn style_rule(&self, rule_id: &str) -> Option<&UiStyleRule>;
     fn style_rule_mut(&mut self, rule_id: &str) -> Option<&mut UiStyleRule>;
     fn style_rule_position(&self, rule_id: &str) -> Option<UiStyleRulePosition<'_>>;
+    /// 新标识按整份文档去重；未找到目标返回假，同名重命名仍表示目标已命中，不能据此独立判断内容变化。
     fn rename_style_rule(&mut self, current_id: &str, new_id: &str) -> Result<bool, UiAssetError>;
     fn remove_style_rule(&mut self, rule_id: &str) -> Option<UiStyleRule>;
     fn insert_style_rule(
@@ -37,6 +42,7 @@ pub trait UiAssetDocumentRuntimeExt {
         rule_id: &str,
         replacement: UiStyleRule,
     ) -> Result<Option<UiStyleRule>, UiAssetError>;
+    /// 目标索引相对移除后的规则数组解释并限制到尾部；跨表移动仍保留全局规则身份。
     fn move_style_rule(
         &mut self,
         rule_id: &str,
@@ -48,6 +54,7 @@ pub trait UiAssetDocumentRuntimeExt {
     fn style_sheet_index(&self, stylesheet_id: &str) -> Option<usize>;
     fn rename_style_sheet(&mut self, current_id: &str, new_id: &str) -> Result<bool, UiAssetError>;
     fn remove_style_sheet(&mut self, stylesheet_id: &str) -> Option<UiStyleSheet>;
+    /// 在完整替代集合校验成功后才发布样式表，错误路径保留旧集合，供编辑与撤销事务安全使用。
     fn set_style_sheets(&mut self, stylesheets: Vec<UiStyleSheet>) -> Result<bool, UiAssetError>;
     fn insert_style_sheet(
         &mut self,
@@ -65,9 +72,12 @@ pub trait UiAssetDocumentRuntimeExt {
     fn child_mount(&self, child_id: &str) -> Option<&UiChildMount>;
     fn child_mount_mut(&mut self, child_id: &str) -> Option<&mut UiChildMount>;
     fn parent_of(&self, child_id: &str) -> Option<UiNodeParent<'_>>;
+    /// 按根树在先、组件名排序及各自孩子声明顺序借用先序节点，供报告生成维持稳定诊断顺序。
     fn iter_nodes(&self) -> UiAssetNodeIter<'_>;
+    /// 为命令差异提供拥有数据的节点快照；每项包含该节点的完整子树，调用方应限制为事务边界使用。
     fn node_map(&self) -> BTreeMap<String, UiNodeDefinition>;
     fn replace_node(&mut self, node_id: &str, replacement: UiNodeDefinition) -> bool;
+    /// 可以移除文档根或任意孩子；组件定义根需要按组件契约处理，不由这个孩子移除入口删除。
     fn remove_node(&mut self, node_id: &str) -> Option<UiNodeDefinition>;
     fn insert_child(&mut self, parent_id: &str, index: usize, child: UiChildMount) -> bool;
     fn push_child(&mut self, parent_id: &str, child: UiChildMount) -> bool;
@@ -600,6 +610,7 @@ fn scan_style_sheet_rename(
     scan
 }
 
+/// 作者树的借用先序游标；显式栈用于避免报告扫描受递归遍历深度约束。
 pub struct UiAssetNodeIter<'a> {
     stack: Vec<&'a UiNodeDefinition>,
 }
@@ -616,6 +627,7 @@ impl<'a> Iterator for UiAssetNodeIter<'a> {
     }
 }
 
+/// 给编辑器重挂载和样式检查器定位父级孩子槽；根节点没有这个父槽定位。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct UiNodeParent<'a> {
     pub parent_node_id: &'a str,
@@ -623,6 +635,7 @@ pub struct UiNodeParent<'a> {
     pub mount: Option<&'a str>,
 }
 
+/// 样式规则在当前作者集合中的借用位置，编辑后应重新查询，不能作为稳定身份长期缓存。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct UiStyleRulePosition<'a> {
     pub stylesheet_id: &'a str,

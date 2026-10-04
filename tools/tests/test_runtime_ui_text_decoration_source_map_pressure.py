@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from tools.runtime_ui_text_decoration_source_map_pressure import (
+from tools.analysis.performance.runtime.runtime_ui_text_decoration_source_map_pressure import (
     pressure_report,
     pressure_suite,
 )
@@ -31,6 +31,15 @@ class RuntimeUiTextDecorationSourceMapPressureTests(unittest.TestCase):
             report["eager_all_line_maps"]["line_range_probes"],
             report["lazy_touched_line_maps"]["line_range_probes"],
         )
+        self.assertEqual(
+            report["redundant_touched_line_checks"]["before_direct_for_line"],
+            3,
+        )
+        self.assertEqual(
+            report["redundant_touched_line_checks"]["after_direct_for_line"],
+            0,
+        )
+        self.assertEqual(report["avoided"]["redundant_touched_line_checks"], 3)
 
     def test_default_scale_suite_is_not_product_timing(self):
         suite = pressure_suite([128, 4096, 65_536], 1, 3, 32)
@@ -57,12 +66,20 @@ class RuntimeUiTextDecorationSourceMapPressureTests(unittest.TestCase):
 
         self.assertIn("maps:HashMap<usize,UiTextLineSourceMap<'a>>", compact)
         self.assertIn(
-            "range.start>=line.source_range.end||line.source_range.start>=range.end",
+            "decoration.range.start<line.source_range.end&&line.source_range.start<decoration.range.end",
             compact,
         )
         self.assertIn("self.maps.entry(line_index)", source)
         self.assertNotIn("self.maps.get(&line_index)", source)
         self.assertNotIn(".map(UiTextLineSourceMap::new)", source)
+        self.assertIn(
+            "source_maps.for_line(line_index)",
+            source,
+        )
+        self.assertNotIn(
+            "source_maps.for_source_range(line_index, decoration.range)",
+            source,
+        )
         self.assertIn(
             "localized_selection_and_preedit_share_one_intersecting_line_source_map",
             source,

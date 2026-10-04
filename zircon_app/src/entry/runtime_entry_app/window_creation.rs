@@ -1,3 +1,6 @@
+//! Winit 可创建表面回调中的主窗口与动态 Runtime surface 建立。
+//! 描述符可明确无主窗口；窗口 Arc 必须比已绑定的原生表面活得更久。
+
 use std::sync::Arc;
 
 use winit::event_loop::ActiveEventLoop;
@@ -8,6 +11,7 @@ use zircon_runtime_interface::ZrRuntimeViewportSizeV1;
 use super::{window_attributes::runtime_window_attributes, RuntimeEntryApp};
 
 impl RuntimeEntryApp {
+    /// 由 Winit 表面可用回调调用；无主窗口配置保持 headless，原生绑定失败形成产品诊断。
     pub(super) fn create_primary_window_surface(
         &mut self,
         event_loop: &dyn ActiveEventLoop,
@@ -21,6 +25,17 @@ impl RuntimeEntryApp {
         // Minimal/headless runtime sessions intentionally run without a concrete primary window.
         if self.window_descriptor.primary_window.is_none() {
             return true;
+        }
+
+        if let Err(error) = self.validate_native_ime_v2_request() {
+            self.report_fatal_failure(
+                "runtime_ime",
+                "native_app_session_v2",
+                error,
+                "disable native IME V2 or provide a registered IMM/TSF callback adapter",
+            );
+            event_loop.exit();
+            return false;
         }
 
         let window_attributes = runtime_window_attributes(&self.window_descriptor, event_loop);
@@ -68,7 +83,10 @@ impl RuntimeEntryApp {
                     "runtime_surface_present",
                     "runtime_bind_window_surface_degraded_reference_cpu",
                 );
-                self.enable_reference_cpu_presenter();
+                if !self.enable_reference_cpu_presenter() {
+                    event_loop.exit();
+                    return false;
+                }
             }
             Err(error) => {
                 self.report_fatal_failure(

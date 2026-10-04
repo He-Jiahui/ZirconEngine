@@ -1,27 +1,25 @@
 ---
 name: zircon-dev
-description: Use when building, testing, refactoring, or debugging the `zirconEngine` Rust workspace, especially for Rust code, Cargo manifests, workspace wiring, or cross-crate boundaries that touch the `zircon_app`/`zircon_runtime`/`zircon_editor` root packages or the runtime-internal `core/{runtime,framework,manager,math,resource}` spine.
+description: Edit ZirconEngine Rust code or Cargo configuration, and select scoped native validation when it is due.
 ---
 
 # Zircon Dev
 
-## Start Here
+Work from the repository root and follow [checkout ownership](references/main-branch-development-policy.md). Reuse [the delivery policy](../zircon-engineering/SKILL.md) when already read.
 
-- Work from the repository root.
-- Read `references/main-branch-development-policy.md` before starting. It overrides any generic skill advice about creating worktrees or feature branches.
-- Read `../zircon-engineering/SKILL.md` first for the standard delivery loop.
-- Read `../zircon-project-skills/milestone-first-workflow-policy.md` when selecting a milestone validation gate or planning a substantial change.
-- Read `workflow/SKILL.md` only for Rust workspace editing, refactors, crate boundaries, or test-tree organization.
-- Read `../zircon-project-skills/prefer-windows-validation/SKILL.md` and `references/cargo-target-disk-policy.md` immediately before a Cargo command. Windows-native validation is the default; WSL is a Linux-specific exception.
-- For cross-crate architecture convergence or crate-boundary changes, also read `../zircon-project-skills/zr-architecture-first-engineering/SKILL.md`.
-- Read `validation/SKILL.md` before claiming the workspace is green or entering a milestone testing stage.
-- Use `validation/SKILL.md` and `scripts/validate-matrix.ps1` for the selected milestone-stage Cargo batch. Do not run Cargo by default during implementation slices; use it early only for a blocker, public API/ABI change, unsafe code, persistence risk, or explicit user request.
-- Read `reporting.md` before closeout so validation and risk statements stay concrete.
+Inspect the current Cargo manifest and touched code to identify ownership. `zircon_app`, `zircon_runtime`, and `zircon_editor` are primary architectural roles; supporting packages retain their own contracts. Script and VM work is one subsystem of this workspace.
 
-## Structure Rules
+## Read for the current operation
 
-- Keep this root file short and navigational.
-- Treat the fixed repository root packages as `zircon_app`, `zircon_runtime`, and `zircon_editor`.
-- Treat `zircon_runtime::core` as the internal architecture spine for shared kernel, `framework`, `manager`, `math`, and `resource` responsibilities.
-- Treat script and VM/plugin runtime work as one subsystem inside `zirconEngine`, not as the identity of the whole repository.
-- Prefer loading only the child module that matches the current need instead of dragging the full workflow into context.
+| Operation | Guidance |
+| --- | --- |
+| Edit Rust modules or organize tests | [Editing guide](workflow/guide.md); select its relevant references |
+| Change subsystem ownership or a shared public boundary | [Architecture](../zircon-project-skills/zr-architecture-first-engineering/SKILL.md) |
+| Run Cargo or report a build/test result | [Validation](validation/guide.md) |
+| Report broader acceptance or pending evidence | [Reporting](reporting.md) |
+
+Ordinary implementation slices use formatting and structural checks. Run the scoped Cargo batch when its validation gate is due, or earlier for the exceptions in [the validation policy](../../../docs/plans/milestone-validation-policy.md). Use `tools/dev/local-cargo.ps1`; Windows is the default. Compilation products and compiler caches must physically remain below drive-root `D:\cargo-targets`, `E:\cargo-targets`, or `F:\cargo-targets`.
+
+Source snapshots and backup copies follow the [coordinator ownership policy](../jenkins-coordination/references/incremental-patch-validation.md): agents hand off patches and hashes; the independent Jenkins coordinator prepares the sources.
+
+Open only guidance needed by the changed behavior or boundary. A small local edit does not require loading every architecture, execution, review, or closeout guide.

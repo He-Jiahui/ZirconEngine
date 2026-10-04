@@ -1,0 +1,97 @@
+{
+  "schema": 1,
+  "owner": "runtime_wave12_graphics_renderer_overlay",
+  "prepared_at_utc": "2026-10-02T13:16:17.711881+00:00",
+  "files": [
+    {
+      "path": "docs/_data/source-comment-audit/round-02/coverage/runtime_wave12_graphics_renderer_overlay.jsonl",
+      "before_exists": false,
+      "before_sha256": null,
+      "after_sha256": "e9381d812a291f55de9c2277b9761db6ec2f50b7afaa1af0c58109b2861222a4"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/issues/runtime_wave12_graphics_renderer_overlay.jsonl",
+      "before_exists": false,
+      "before_sha256": null,
+      "after_sha256": "a4d8629554c8748b9fb4922ccae8f2cbab38e8d87e6fa6a76cb11d86a16af76b"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/inventory.jsonl",
+      "before_exists": true,
+      "before_sha256": "2eaf7822e92967743994ae54ca766bb1216594eb765295a3869c7ac6bb921be9",
+      "after_sha256": "106623d04dca5becc91b5fcbf91724a6094da008ca910811b21322ddd63cbd54"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/batches.jsonl",
+      "before_exists": true,
+      "before_sha256": "dbb25108857d9eb02ccf70ac13dc3c7dcdf9faf5745d6808f51e1743b14fde53",
+      "after_sha256": "5676e563c73a4d2b227dfc7b9a2e418c8cd509f66925a29bb5b70aabe0e98515"
+    }
+  ],
+  "source_hashes": {
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/icon_source/empty_viewport_icon_source.rs": "7c8e251fb583d3b077d834380dbb7d843b83687fb78d8d584c89a46c0e9edf98",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/icon_source/viewport_icon_source.rs": "acdd19b6c1dc2ca4dd3b23f08479045031fc1cba1f70870682cfb1c4c2ee7d5d",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/icons/icon_entry.rs": "9ed5d5e6f6b8b5e40e0ac6aea36cfe8002dd9fb07c0e64dd0dd3f71efff39011",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/icons/viewport_icon_atlas/create_sprite.rs": "e1d561b000e2dbc1bb0a6a2ca0cd6f136321664c386d3d59c437e1f4cf42640a",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/icons/viewport_icon_atlas/declaration.rs": "aea3770a2e8fc161327fea456049cdba601cd8a31d6ddd1b6e55d524509eeb2c",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/icons/viewport_icon_atlas/decode_icon_rgba.rs": "14c995863ce3980be3d18085ce76a68adc262b2586466b31f688c6b7e0a350fb",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/icons/viewport_icon_atlas/ensure.rs": "8c3a09cf401e348715a261987958277e32c0007013366fa07024a0b23d4f9d3c",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/icons/viewport_icon_sprite.rs": "46cc4b245b8d0a54fb24d034c7e16e3a7fb3b88423b396f5b788f62108d4ef40",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/base_scene_pass.rs": "e063811002c09687b3b2aa79861cfad44e912a0377091fa21d9ed41483d55677",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/grid_pass.rs": "c4c1c306ede36770c623f50711de77813d3456d9deeb0f1bde09860b33b3293c",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/handle_pass.rs": "6eb4bfd9bd2b707c02b16382e1a04b356dbe34271c56fa70e255e6f2cd13b6dc",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/line_pass.rs": "49e0b6ed2022fb6183a8db5ff0dad59d70815653df45267abbe293d87870d71e",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/pass_order.rs": "149a741acf952d489e0002dd97e335d75b55a0e896905ad22a57cc7a1cc9408e",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/preview_sky_pass.rs": "56a2efb068d376bc13b7d662821eeb2b50b8bd233716315deeb3131e1f70fe20",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/scene_gizmo_pass/commit_pending_icon_uploads.rs": "0a0ad69fcd4770ed0ec5311b44f757ad4769e63e045251cf944f184a38d3d1a5",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/scene_gizmo_pass/construct.rs": "cc86233432be5f9fa67f082b0c41a504e5d693f1b07ff23910709bb07d4d8d66",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/scene_gizmo_pass/prepare.rs": "99226b3d14aaa8f11962da462d6677c6bcd278cf27bf7ba1f436b7d3f3b65f4c",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/scene_gizmo_pass/scene_gizmo_pass.rs": "077eb79de32edb8aeddb86b7d775498133bbb4e01239eaaa5a10556ffe20b3f0",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/selection_outline_pass.rs": "89ee471b9f9ec4d304c99bc66a9f61a9accfe01219b4c008580cc0d9b73329de",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/wireframe_pass.rs": "3fe52b7e70783c5a783891d7bdeba1173a3372befde0ebe7e9cb87c90f5b939f",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/prepared/prepared_icon_draw.rs": "a0b6c82aaaa39c39373e44c5291b65a0897b539409f40b08341e81498b8b3afe",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/prepared/prepared_overlay_buffers.rs": "ea7f12746801e109d93931c1d07e9c6bfa3ccef1ecec496bee832cf01370fd6a",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/prepared/prepared_scene_gizmo_pass.rs": "9076e674f8b91d594592dded343b159f388eed8317166a478c7f4194641dc865",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/commit_pending_icon_uploads.rs": "025a7980a63f020bb6d4cd1a48414fd5721bafe8873acc9ac1cfaf09c270fd37",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/construct/construct.rs": "a6288fae14257699032fa965950d17c3c59bdbbdc5f63f8e014721f28c335d3b",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/construct/create_grid_buffer.rs": "f31cc44b9d89465b0ad8ff30238bc8fe6ca3872f9ad8f209ea238decc5249db5",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/construct/create_line_pipeline.rs": "c1b75c99c9f21b286b6f1b83bd8d58ee025c45ccee00e46613b7e9d9b4341645",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/construct/create_sky_pipeline.rs": "d618813c269d963e888b5b384022f893e67bc02fb9682a384dbb8fa4d1b7afc3",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/prepare_buffers/prepare_buffers.rs": "95f82e33d11cd8e450120c13f6998cf55f1c80f3f5ae2150ce0710496384fcc9",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/overlays/record_overlays.rs": "36dff5a7cedb84d3752710e4509b7f48e11b9dd99616beec18c930de52269570",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/record.rs": "1e27bf88d06b741202035024d9fba4a2a94f20db381d9472ea88be7bfd401cbc",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/scene_content/record_preview_sky.rs": "f5c04af2db40622ef64126e4944e7764a3054d9ad26ef77f26d81fa290781318",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/scene_content/record_scene_content.rs": "364468cce24dbef7b3e809137934588039983055dea022df95c313658946c618",
+    "zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/viewport_overlay_renderer.rs": "2a92d14e83425aa26e09df2ab07ae0939f7c17587ee6f74a0ef32f45647db940"
+  },
+  "installation": {
+    "path": "E:\\Git\\ZirconEngine\\docs\\cli-and-tooling\\source-comment-audit\\round-02\\ownership\\local-install-runtime_wave12_graphics_renderer_overlay-20261002-r1.json",
+    "sha256": "64f3e16947a834f8f6711cb6620b1cb49154c8f16de1c1c87246f715f9539ebb"
+  },
+  "root_semantic_proof": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_renderer_overlay-root-semantic-proof-20261002-r1.json",
+    "sha256": "e9a55c89212b6e825032804a3554ebff1671298ea318899e1847264b1d8e1bee"
+  },
+  "coverage_records": 34,
+  "reviewed_current_records": 34,
+  "new_issues": 2,
+  "historical_issue_references": 1,
+  "source_writes": 0,
+  "canonical_writes": 0,
+  "status": "final_coverage_published",
+  "completed_at_utc": "2026-10-02T13:17:06.990636+00:00",
+  "intent": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-publish-runtime_wave12_graphics_renderer_overlay-20261002-r1\\intent.json",
+    "sha256": "d2dc43e7b370fe0d4e81ef6bbcd8227cc46ddffe5c70b48ed26fa27009e9f3b1"
+  },
+  "inventory_reviewed_current_records": 4024,
+  "canonical_batch_records": 105,
+  "canonical_ledger_writes": 4,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "business_adoption": false,
+  "dynamic_acceptance": false,
+  "future_source_edit_pending_paths": [],
+  "submission": "pending_index_ownership_resolution"
+}

@@ -10,6 +10,7 @@ origin_child_dir: docs/plans/zircon_editor/editor_ui/12
 fixing_child_dir: docs/plans/optimize/zircon_runtime/74
 plan_link_mode: child_record_only
 related_code:
+  - zircon_runtime_interface/src/ui/template/document.rs
   - zircon_runtime_interface/src/ui/template/asset/compiler/binding_program.rs
   - zircon_runtime_interface/src/ui/template/asset/compiler/mod.rs
   - zircon_runtime_interface/src/ui/template/asset/mod.rs
@@ -35,7 +36,7 @@ related_code:
 
 ## 失败现象与复现证据
 
-- Managed command: `tools/build-editor.ps1 -OutputDirectory D:\ZirconBuilds\ui12-editor-aa-current-bee4c707-20260822`
+- Managed command: `tools/build/build-editor.ps1 -OutputDirectory D:\ZirconBuilds\ui12-editor-aa-current-bee4c707-20260822`
 - Managed Job: `47ed12d350d54373b1611878d573c5cc`
 - Result: released with exit code 1 at 2026-08-22 18:11:43 +08:00; no final bundle was published.
 - Production diagnostic: `E0432` at `zircon_runtime/src/ui/template/asset/compiler/binding_program.rs:6:35`, unresolved import `zircon_runtime_interface::ui::template::UiCompiledAssetId`.
@@ -99,8 +100,10 @@ helpers and must be re-evaluated after the import boundary is corrected.
   visible.
 - Re-run the persistent-target managed Editor build and advance past the three
   `component_instancer.rs` diagnostics.
-- Remove the obsolete `mode` initializers from all five leased Editor construction sites and
-  re-run the persistent-target build past the resulting `E0560` set.
+- Re-evaluate the historical `E0560` diagnostics against the current `UiBindingRef` declaration
+  before editing Editor constructors. The current declaration requires `mode`, and the current
+  constructors retain it; do not remove a required field to satisfy an older build snapshot.
+  Re-run a source-matched managed Editor build and repair only diagnostics that still reproduce.
 - Re-run the existing Runtime74 canonical-loader failure record separately; its test-only
   `UiAssetLoader::load_str` and inference errors are not accepted as part of this repair.
 
@@ -112,6 +115,14 @@ helpers and must be re-evaluated after the import boundary is corrected.
 
 ## 修复结果与回传
 
-Open state: the compiled-ID and component-param helper boundaries have advanced; five
-Runtime74-owned stale `UiBindingRef.mode` initializers remain pending owner repair and managed
-incremental validation.
+Open state: the current source forwards `UiCompiledAssetId` and the component-param helpers through
+their canonical namespaces. The historical five `E0560` diagnostics came from an intermediate
+snapshot: `UiBindingRef` now requires `mode`, three current Editor construction functions initialize
+it (with four initializer sites), and `scene_tree_rows.rs` no longer constructs `UiBindingRef`.
+Source-matched managed Editor build validation remains pending; the historical diagnostics above
+remain evidence of the earlier failed builds, not an instruction to delete current fields.
+
+Source reconciliation on 2026-09-27: `zircon_runtime_interface/src/ui/template/document.rs`
+(SHA-256 `7345bda8d6592c52803baab68e5f8e255d558dae69fcda1a9be62a02caf778b4`) declares
+`UiBindingRef.mode` at line 85. Current initializers are in `binding_inspector.rs`,
+`component_property_rows.rs` (two sites), and `workbench/reference/builder/nodes.rs`.

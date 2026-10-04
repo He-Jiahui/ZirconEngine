@@ -3,6 +3,7 @@ mod extension_ids;
 mod plugin;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 pub use capability::{EDITOR_CAPABILITIES, PLUGIN_ID, TEXTURE_AUTHORING_CAPABILITY};

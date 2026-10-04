@@ -22,7 +22,7 @@ tests:
   - zircon_runtime/src/dynamic_api/tests/api_table.rs
   - zircon_runtime/src/dynamic_api/tests/session_entry_points.rs
   - zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs
-  - zircon_runtime_interface/src/runtime_api/abi/api_shape_tests.rs
+  - zircon_runtime_interface/src/runtime_api/abi/tests/api_shape_tests.rs
 doc_type: module-detail
 ---
 

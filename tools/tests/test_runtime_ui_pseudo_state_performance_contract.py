@@ -5,7 +5,7 @@ import unittest
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 STYLE = REPO_ROOT / "zircon_runtime/src/ui/v2/style.rs"
 
-
+# 验证伪状态后代查询在空索引时跳过事实克隆，并借用树元数据完成匹配。
 class RuntimeUiPseudoStatePerformanceContractTests(unittest.TestCase):
     def test_descendant_probe_skips_selector_fact_clones_when_index_is_empty(self) -> None:
         source = STYLE.read_text(encoding="utf-8")

@@ -1,3 +1,4 @@
+# 核对渲染依赖增量证据要求完整局部计数及复用守恒。
 import importlib.util
 import math
 import sys
@@ -6,7 +7,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-TOOL_PATH = REPO_ROOT / "tools" / "ui_render_dependency_delta_evidence.py"
+TOOL_PATH = REPO_ROOT / "tools" / "performance" / "ui" / "ui_render_dependency_delta_evidence.py"
 
 
 def _load_tool():

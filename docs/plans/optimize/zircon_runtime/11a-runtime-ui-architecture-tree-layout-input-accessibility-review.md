@@ -232,6 +232,36 @@ Surface同时包含authoring/runtime mutable state，并通过serde跳过部分i
 
 Tab/方向/gamepad路径会递归构建`Vec<NavigationCandidate>`，多处sort；active modal又扫描全树。10k/100k节点界面中，按键成本随总节点增长。应在layout/focus generation发布focus graph、tab order和spatial index，局部visibility/focusability变化只patch相关scope。
 
+2026-09-13 current-source slice 已把已发布 tab candidate 的 base/group/MUI-root
+position lookup 从有序树改为 lookup-only `HashMap`，并在稳定 scope 上保留内外层
+bucket 容量；排序后的候选 `Vec` 仍是唯一顺序 authority，移除 scope 会被显式裁掉。
+随后 Runtime732/733 又让稳定 group bucket 先 `get_mut` 再插入，并在同一 retained-node
+stream 中直接归约每个 group 的首个 directional candidate，去掉稳定 key clone、临时
+candidate map 与第二次分组排序。Runtime734 再让 modal/MUI candidate vectors 在稳定
+scope 上清空并复用，只有新 scope 才克隆 group key 和创建首个 vector，并在发布前裁掉
+空的陈旧 scope。因此稳定 tab 查询的索引查找仍为 expected `O(1)`，重建的 group-first
+工作减少了临时 ownership。Runtime735 继续保留 first-group candidate 的稳定
+`UiNavigationGroupId` 键，以 `seen` 标记裁掉消失的 scope，避免每次 rebuild 重新分配
+group key；但 changed-node/scope patch、完整 focus graph、真实产品输入 storm 与 managed
+CPU/RSS/p95 仍未关闭，不能将 P1-14 标记为动态完成。
+
+2026-09-16 Runtime791 further reserves the `UiTree.nodes` upper bound before
+the legacy recursive focus-candidate collection. It removes avoidable output
+vector growth without adding a second traversal or changing root/child order;
+the bound can exceed reachable/focusable nodes and is intentionally only a
+capacity hint. The lower enabled-node order/capacity regression, source
+contract, and managed Release marker are recorded separately. This is not a
+compiled focus graph, changed-scope patch, or dynamic P1-14 completion.
+
+2026-09-17 Runtime792 extends the same bounded-allocation treatment to the
+hot-reload target projection boundary. `all_target_surfaces` and
+`all_target_nodes` reserve the saturating sum of their four category inputs
+before the existing borrowed-set deduplication; category order, first-seen
+semantics, and duplicate elimination remain unchanged. The lower order/capacity
+regressions, source contract, and managed Release marker are recorded
+separately. This reduces projection-vector growth only; it does not add a
+compiled focus graph, changed-scope patch, or dynamic P1-14 completion.
+
 ### P1-15：多个公开 focus/navigation 契约未被生产消费
 
 `UiFocusContract.restore_on_close` 只有声明；`UiNavigationBoundary`主要只在测试出现；group `parent`/`wrap`没有形成完整生产策略。interface的`focus_chain(tree)`与runtime navigation又是两套算法。必须收敛一份focus scope graph和restore stack，删除无消费者字段或完成产品语义。
@@ -244,9 +274,25 @@ Dialog/ConfirmDialog/Modal/Popover/Menu以及`open/popup_open`、camel/snake ali
 
 `compute_virtual_list_window`只按固定item extent算index。layout仍持有全部child，measure阶段先测量全部节点，arrange scrollable也为全部child算位置，再隐藏window外subtree。这不是data-source virtualization，无法承载10万/百万item、variable height、async data、anchor correction或focus/a11y虚拟集合。
 
+2026-09-13 的 Runtime11A 局部切片补强了现有物理 slot assignment 的热路：
+`UiVirtualListMaterializationIndex::reconcile` 现在为每个 owner 保留候选
+slot/key/generation 缓冲，以 `clone_from` 覆盖并在 protected-slot 校验后交换发布，
+不再在每次滚动请求中分配新的 slot map 和两个 assignment 向量。该改动只降低有界
+reconciliation 的暂态分配，未把 retained-child 裁剪误报为真实 data-source
+virtualization；P1-17 的 provider、variable extent、anchor、focus/a11y 与 100k/1M
+产品验收仍开放。
+
 ### P1-18：Node pool 没有成为通用运行时回收器
 
 当前pool主要由Editor virtual row bridge调用；key包含完整node path，使跨row复用非常窄；没有capacity/byte budget/eviction或resource generation。运行时surface set没有data provider/pool调用。应由virtual collection owner按template handle + item kind回收instance，状态重置和binding rebinding必须可验证。
+
+2026-09-13 的 Runtime11A 局部切片进一步收紧了 retained-child 复用查找和报告开销：
+`insert_or_reuse_pooled_child` 将已拥有的 desired node 交给 `take_owned`，临时移动
+component、control ID 与 node path 到键中，查找后恢复这些字段，避免每次命中/未命中都
+克隆三组字符串。既有 bucket/node 上限、回收键、状态重置和 public borrowed `take` 合同
+保持不变；residency report 也以一次 bucket 遍历同时取得 node/bucket 计数。这只是 P1-18
+的热路分配优化，provider、template handle、resource generation 和运行时 surface-set
+接入仍未完成。
 
 ### P1-19：Popup stack 同步仍需扫描Tree并识别字符串
 
@@ -266,7 +312,7 @@ dispatcher按node/kind保存`Arc`/closure，但没有unregister/owner generation
 
 ### P1-23：Reflection store 是可漂移的第二棵 UI 状态树
 
-`replace_tree`保存owned `UiReflectionSnapshot`，`set_property`只修改snapshot中的JSON值并广播diff，不会修改`UiSurface`。`rebuild_node_index`每次全扫所有tree。应只发布live surface generation的read-only reflection artifact；写操作解析到surface transaction，不能在mirror里成功后让产品画面不变。
+`replace_tree`保存owned `UiReflectionSnapshot`，`set_property`只修改snapshot中的JSON值并广播diff，不会修改`UiSurface`。`rebuild_node_index`仍按树和节点重建索引；2026-09-13 的窄切片已将只读路径索引改为容量复用的 `HashMap`，并保留有序树/节点遍历来维持重复路径 winner，但这只降低查询与暖重建分配开销，不改变第二棵状态树的 authority 缺口。应只发布live surface generation的read-only reflection artifact；写操作解析到surface transaction，不能在mirror里成功后让产品画面不变。
 
 ### P1-24：输入设备语义不足且adapter重复
 
@@ -527,3 +573,16 @@ Cargo/product and CPU/allocation/RSS/power gates remain open.
 | 11A-S2 | UiSurface property transaction responsibility owner split | runtime_09_15_ui_surface_property_transaction_owner_split_static_passed_cargo_profile_deferred | 2026-08-27 | Unreal Slate attribute descriptor/value-change/invalidation mapping复审；959-line root -> 483-line root + 485-line child；12/12 moved-item normalized SHA-256 equivalent；mutation/popup/text/focus algorithms and Cargo/profile/power remain open |
 | 11A-S3 | UI pointer component transient-state owner split | runtime_09_15_ui_pointer_component_state_owner_split_static_passed_cargo_profile_deferred | 2026-08-27 | Unreal `SlateApplication` routing vs `SWidget` hover/invalidation state复审；887-line root -> 674-line root + 226-line child；7/7 moved-item normalized SHA-256 equivalent；ancestor/style/dirty algorithms and Cargo/profile/power remain open |
 | 11A-P0-1A | Dynamic Runtime UI authored action Host delivery | runtime_ui_template_action_host_delivery_implemented_unvalidated / remaining_dispatch_receipts_open | 2026-08-28 | typed viewport/surface/tree/node/sequence/action delivery；256-row + 240 KiB aggregate + 64 KiB row + depth reserve；secure Change supersession/rejection revocation；Host output rollback stability；generic App payload-free bounded diagnostics；managed Cargo/product adapter pending |
+| 11A-P0-6A | Bounded hit-grid cell projection iterator | runtime_hit_grid_cell_iterator_static_implemented_managed_validation_pending | 2026-09-13 | Base and projected full rebuilds consume the shared bounded row-major iterator without per-entry index vectors; incremental patches explicitly collect only changed-entry memberships；iterator/row-major/invalid-span contracts and the 349-module/1341-test batch pass；managed Cargo, allocation, and input-latency evidence remain open |
+| 11A-P0-6B | Hit-grid reverse-map capacity reuse | runtime_hit_grid_reverse_map_reuse_static_implemented_managed_validation_pending | 2026-09-13 | `entry_cells` retains stable node-ID map entries and cell-vector capacity across rebuilds, inserting only missing IDs; capacity-preservation/source contracts and the batched Runtime/Editor result pass；managed Cargo, allocation, and input-latency evidence remain open |
+| 11A-P1-14A | Navigation tab position-map lookup and bucket reuse | runtime_navigation_position_map_reuse_static_implemented_managed_validation_pending | 2026-09-13 | Base/group/MUI-root position maps use reusable lookup-only `HashMap`s while sorted candidate vectors preserve deterministic order; source contract `7/7`, capacity/pruning regression, and batched `351`-module/`1347`-test Runtime/Editor pass；managed Cargo, allocation, and navigation-latency evidence remain open |
+| 11A-P1-14B | Navigation group position-map stable-key reuse | runtime_navigation_group_key_reuse_static_implemented_managed_validation_pending | 2026-09-13 | Existing nested group buckets are updated through `get_mut`; only newly admitted groups clone the owned `UiNavigationGroupId` key. Source contract `8/8` and batched UI contract `772/772` pass；managed Cargo, allocation, and navigation-latency evidence remain open |
+| 11A-P1-14C | Navigation first-group candidate streaming | runtime_navigation_first_group_candidate_static_implemented_managed_validation_pending | 2026-09-13 | First directional group targets are reduced during the retained-node stream without a temporary `BTreeMap<UiNavigationGroupId, Vec<UiNodeId>>`; source contract `9/9` and batched UI contract `772/772` pass；managed Cargo, allocation, and navigation-latency evidence remain open |
+| 11A-P1-14D | Navigation candidate bucket capacity/key reuse | runtime_navigation_candidate_bucket_reuse_static_implemented_managed_validation_pending | 2026-09-13 | Modal/MUI candidate vectors are cleared in place, stale empty scopes are pruned, and stable group appends borrow the existing key; source contract `11/11` and batched UI contract `772/772` pass；managed Cargo, allocation, and navigation-latency evidence remain open |
+| 11A-P1-14E | Navigation first-group candidate key retention | runtime_navigation_first_group_key_retention_static_implemented_managed_validation_pending | 2026-09-13 | `first_candidate_by_group` retains stable `HashMap` entries and owned group keys with a `seen` reset/prune lifecycle; source contract `12/12`, lower key-identity/capacity regression shape, and batched UI contracts `105/105` pass；managed Cargo, allocation, and navigation-latency evidence remain open |
+| 11A-P1-14F | Focus navigation output capacity | runtime_focus_navigation_capacity_static_implemented_managed_validation_pending | 2026-09-16 | Recursive focus candidate collection reserves the `UiTree.nodes` upper bound before root traversal, preserving enabled/visibility/root/child order; TDD source contract `3/3`, lower order/capacity regression, and `RUNTIME791_FOCUS_NAVIGATION_CAPACITY_BENCH_V1` are wired. The current Runtime/Editor source-contract batch passes `1978/1978` across 553 files; managed Cargo, allocation, and navigation-latency evidence remain open |
+| 11A-P1-14G | Surface-index hot-reload target projection capacity | runtime_surface_index_target_capacity_static_implemented_managed_validation_pending | 2026-09-17 | Surface and node target aggregation reserves the saturating sum of four category input lengths before borrowed-set deduplication, preserving category/first-seen order; TDD source contract `3/3`, lower order/capacity regressions, and `RUNTIME792_SURFACE_INDEX_TARGET_CAPACITY_BENCH_V1` are wired. The deterministic 16,384-target model removes 12 geometric growth events; managed Cargo, allocation, and hot-reload latency evidence remain open |
+| 11A-P1-17A | Virtual-list reconciliation candidate scratch reuse | runtime_virtual_list_reconciliation_scratch_reuse_static_implemented_managed_validation_pending | 2026-09-13 | Per-owner candidate slot/key/generation buffers use `clone_from` and swap only after protected-slot validation, removing warm scroll clone allocations while preserving atomic assignment semantics; RED/GREEN source contract and lower warm-capacity regression are recorded；batched managed Cargo/Release allocation and virtual-list latency evidence remain open |
+| 11A-P1-18A | Node-pool owned key lookup and one-pass residency reporting | runtime_node_pool_owned_key_lookup_static_implemented_managed_validation_pending | 2026-09-13 | Retained-child insertion moves and restores desired component/control-id/path fields around bucket lookup, removing per-attempt key clones; mutation reports aggregate node/bucket counts in one walk while preserving hit/miss identity and capacity semantics. Source contract, lower regressions, the 173-module/776-test UI pass, and the broader 548-module/2057-test Runtime/Editor performance-plus-pressure pass are green；managed Cargo, allocation, and node-pool/navigation latency evidence remain open |
+| 11A-P1-23A | Reflection node-index hash lookup and retained rebuild capacity | runtime_reflection_node_index_hash_lookup_static_implemented_managed_validation_pending | 2026-09-13 | Lookup-only `node_index` uses `HashMap`; rebuild reserves only missing capacity and keeps ordered tree/node insertion for duplicate-path precedence. Lower capacity/lookup/duplicate-winner regressions and focused `30/30` contracts pass; the broader same-source `548`-module/`2057/2057` static result remains green；managed Cargo, allocation, and reflection-query latency evidence remain open |
+| 11A-P1-20A | Pointer/navigation dispatch handler hash lookup | runtime_dispatch_handler_hash_lookup_static_implemented_managed_validation_pending | 2026-09-13 | Private exact-key handler tables use `HashMap`; per-key handler order and route/phase traversal remain authoritative, while pointer/navigation event kinds and dispatch phase retain `Ord` and add `Hash`. TDD source contract `4/4` passes；managed Cargo, allocation, and input-latency evidence remain open |

@@ -2,13 +2,13 @@ use super::*;
 
 use std::sync::Arc;
 
+use crate::core::editing::operation::EditOperationTarget;
 use crate::core::editing::operation::{
     DeferredOperationInvocation, OperationCommand, OperationCommandFactory,
     OperationCommandFactoryError, OperationCommandFactoryRegistration, PendingEditRetention,
 };
 use crate::core::editor_event::SelectionHostEvent;
 use crate::core::editor_operation::EditorOperationInvocation;
-use crate::core::editing::operation::EditOperationTarget;
 use crate::ui::binding::SelectionCommand;
 use crate::ui::host::{
     EditorEventBindingDispatchError, EditorEventDispatchError, EditorEventDispatcherError,
@@ -78,6 +78,7 @@ fn binding_dispatch_retains_event_execution_errors_until_the_trait_boundary() {
     assert_eq!(
         journal.records()[0].event,
         EditorEvent::Selection(SelectionHostEvent::SelectSceneNode {
+            world_domain: crate::core::play::WorldDomain::Edit,
             node_id: missing_node_id,
         })
     );

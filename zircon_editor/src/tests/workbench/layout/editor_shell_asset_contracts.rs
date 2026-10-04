@@ -215,6 +215,26 @@ fn chrome_token_asset_matches_the_runtime_interface_contract() {
             chrome.host_bar_height,
         ),
         (
+            "workbench_toolbar_height",
+            "editor.chrome.workbench_toolbar.height",
+            chrome.workbench_toolbar_height,
+        ),
+        (
+            "workbench_toolbar_command_row_height",
+            "editor.chrome.workbench_toolbar.command_row.height",
+            chrome.workbench_toolbar_command_row_height,
+        ),
+        (
+            "workbench_toolbar_popup_command_offset_y",
+            "editor.chrome.workbench_toolbar.popup.command_offset_y",
+            chrome.workbench_toolbar_popup_command_offset_y,
+        ),
+        (
+            "workbench_toolbar_popup_module_offset_y",
+            "editor.chrome.workbench_toolbar.popup.module_offset_y",
+            chrome.workbench_toolbar_popup_module_offset_y,
+        ),
+        (
             "status_bar_height",
             "editor.chrome.status_bar.height",
             chrome.status_bar_height,

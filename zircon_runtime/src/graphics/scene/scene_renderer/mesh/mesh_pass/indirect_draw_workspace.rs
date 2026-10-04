@@ -1,15 +1,15 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
 use crate::core::framework::render::RenderCapabilitySummary;
 use crate::graphics::scene::scene_renderer::mesh::build_mesh_draws::IndexedIndirectArgs;
 use zr_rhi_wgpu::WgpuBufferUploadBatch;
 
 use super::{
-    INDEXED_INDIRECT_ARGS_STRIDE_BYTES, MeshIndirectCompactionWorkspace, MeshIndirectDrawExecution,
+    grow_indirect_buffer_capacity, MeshIndirectCompactionWorkspace, MeshIndirectDrawExecution,
     MeshIndirectDrawPlan, MeshIndirectResourceIdentity, MeshPassIndirectDrawExecutions,
     MeshPassIndirectDrawPlans, PodRangeUploadCommit, PodRangeUploadShadow,
-    grow_indirect_buffer_capacity,
+    INDEXED_INDIRECT_ARGS_STRIDE_BYTES,
 };
 
 #[derive(Default)]
@@ -77,6 +77,7 @@ impl MeshIndirectWorkspacePreparedUpload {
         self.commits.len()
     }
 
+    // 成功帧提交上传后才推进 shadow；失败帧不确认本次范围，下一帧重新准备差异上传。
     pub(crate) fn commit(self, workspace: &mut MeshIndirectDrawWorkspace) -> u32 {
         assert!(
             self.appended_to_frame,
@@ -405,4 +406,5 @@ fn indirect_args_usage() -> wgpu::BufferUsages {
 }
 
 #[cfg(test)]
+#[path = "indirect_draw_workspace/tests/cases.rs"]
 mod tests;

@@ -17,6 +17,7 @@ mod payload_schema;
 mod session_profile;
 mod slot_catalog;
 mod target_model;
+mod trusted_host;
 mod validation_error;
 
 pub use artifact_identity::ZrRuntimeArtifactIdentityV1;
@@ -43,9 +44,16 @@ pub use slot_catalog::{
     ZR_RUNTIME_INTERFACE_SPEC_VERSION_V1,
 };
 pub use target_model::{ZrRuntimeEndianV1, ZrRuntimeTargetModelV1};
+pub use trusted_host::{
+    require_trusted_host_build_set_id, trusted_host_build_set_id,
+    ZrRuntimeTrustedHostBuildSetError, ZrRuntimeTrustedHostBuildSetMetadataV1,
+    ZR_RUNTIME_TRUSTED_HOST_BUILD_SET_METADATA_SCHEMA_V1,
+};
 pub use validation_error::ZrRuntimeArtifactManifestValidationError;
 
 #[cfg(test)]
+#[path = "tests/slot_catalog_build_tests.rs"]
 mod slot_catalog_build_tests;
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

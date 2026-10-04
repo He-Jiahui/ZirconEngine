@@ -1,4 +1,8 @@
-use super::*;
+use super::fixtures::LOW_SEMANTIC_COMPONENT_SLOT_LAYOUT_ASSET_TOML;
+use super::support::{preview_frame, select_palette_entry};
+use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorSession};
+use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use zircon_runtime_interface::ui::{layout::UiSize, template::UiAssetKind};
 
 #[test]
 fn ui_asset_editor_session_exposes_palette_drag_target_cycle_candidates_for_low_semantic_slots() {

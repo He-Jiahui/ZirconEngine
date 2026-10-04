@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f5_shader_prewarm_cli_typed_error_sweep_is_closed_at_run_boundary() {
     let args = include_str!("../../../../../bin/zircon_shader_prewarm/args.rs");
@@ -19,10 +20,12 @@ fn review_f5_shader_prewarm_cli_typed_error_sweep_is_closed_at_run_boundary() {
         include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let convention =
         include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
-    let render_doc =
-        include_str!("../../../../../../../docs/zircon_runtime/graphics/render-product-submit.md");
-    let module_doc =
-        include_str!("../../../../../../../docs/zircon_runtime/structure/module-convention.md");
+    let render_doc = include_str!(
+        "../../../../../../../docs/crates/zircon_runtime/graphics/render-product-submit.md"
+    );
+    let module_doc = include_str!(
+        "../../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
+    );
 
     for required in [
         "pub type ShaderPrewarmArgsResult",

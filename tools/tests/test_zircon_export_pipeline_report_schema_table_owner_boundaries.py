@@ -1,3 +1,4 @@
+# 核对报告模式表的字符串数组辅助函数归属。
 from __future__ import annotations
 
 import ast
@@ -6,7 +7,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-ZIRCON_EXPORT_DIR = REPO_ROOT / "tools/zircon_export"
+ZIRCON_EXPORT_DIR = REPO_ROOT / "tools/export"
 SCHEMA_TABLE = ZIRCON_EXPORT_DIR / "pipeline_report_schema_table.py"
 SCHEMA_STRING_ARRAY = ZIRCON_EXPORT_DIR / "pipeline_report_schema_string_array.py"
 

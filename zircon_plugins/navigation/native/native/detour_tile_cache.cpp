@@ -427,6 +427,7 @@ ZrNavDetourPathPoint* copy_straight_path(
 
 } // namespace
 
+// TileCache 从资产建立可变网格，障碍命令须在查询前刷新到 Detour 网格。
 extern "C" void zr_nav_tile_cache_create_query(
     const float* vertices,
     std::uint32_t vertex_count,

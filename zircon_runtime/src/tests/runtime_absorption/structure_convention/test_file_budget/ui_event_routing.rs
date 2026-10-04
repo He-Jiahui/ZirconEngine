@@ -3,7 +3,10 @@ use super::*;
 #[test]
 fn runtime_15_ui_event_routing_tests_are_folder_backed() {
     let parent = read_runtime_src("ui/tests/event_routing.rs");
+    let contracts = read_runtime_src("ui/tests/event_routing/contracts.rs");
     let component_events = read_runtime_src("ui/tests/event_routing/component_events.rs");
+    let scroll_defaults =
+        read_runtime_src("ui/tests/event_routing/component_events/scroll_defaults.rs");
     let dispatch_effects = read_runtime_src("ui/tests/event_routing/dispatch_effects.rs");
     let pointer_state = read_runtime_src("ui/tests/event_routing/pointer_state.rs");
     let shared_input = read_runtime_src("ui/tests/event_routing/shared_input.rs");
@@ -13,6 +16,7 @@ fn runtime_15_ui_event_routing_tests_are_folder_backed() {
         &parent,
         &[
             "mod component_events;",
+            "mod contracts;",
             "mod dispatch_effects;",
             "mod pointer_state;",
             "mod shared_input;",
@@ -33,12 +37,29 @@ fn runtime_15_ui_event_routing_tests_are_folder_backed() {
         "click_component_events_preserve_every_matching_binding_on_target",
         "dispatch_reply_applies_focus_capture_high_precision_and_release_effects",
         "shared_input_dispatch_routes_keyboard_text_ime_and_preserves_scroll_diagnostics",
+        "pointer_dispatch_does_not_clone_an_unused_hover_path",
+        "pointer_hot_path_reuses_hit_routes_and_skips_empty_handler_contexts",
+        "default_table_sort_borrows_common_scalar_text",
     ] {
         assert!(
             !parent.contains(moved_test),
             "moved UI event-routing test `{moved_test}` should not return to the parent"
         );
     }
+
+    assert_contains_all(
+        "UI event routing contracts child keeps all three existing source contracts",
+        &contracts,
+        &[
+            "fn pointer_dispatch_does_not_clone_an_unused_hover_path",
+            "fn pointer_hot_path_reuses_hit_routes_and_skips_empty_handler_contexts",
+            "fn default_table_sort_borrows_common_scalar_text",
+            "../../surface/surface/event_routing/pointer_ownership.rs",
+            "../../dispatch/pointer/dispatcher.rs",
+            "../../surface/surface/default_interactions/table/columns.rs",
+        ],
+    );
+    assert_eq!(contracts.matches("#[test]").count(), 3);
 
     assert_contains_all(
         "UI event routing pointer-state child owns pointer routing and dirty-state tests",
@@ -56,9 +77,20 @@ fn runtime_15_ui_event_routing_tests_are_folder_backed() {
         &[
             "fn click_component_events_preserve_every_matching_binding_on_target",
             "fn focus_component_events_emit_focus_and_blur_for_matching_bindings",
+            "mod scroll_defaults;",
+        ],
+    );
+    assert_contains_all(
+        "UI event routing scroll child preserves every default scroll contract",
+        &scroll_defaults,
+        &[
+            "fn scroll_fallback_reports_scroll_defaulted_when_unhandled",
+            "fn routed_pointer_input_preserves_scroll_delta_and_reuses_the_default_scroll_authority",
+            "fn scroll_fallback_does_not_handle_when_scroll_offset_is_unchanged",
             "fn scroll_fallback_continues_to_ancestor_when_nearest_scrollable_is_clamped",
         ],
     );
+    assert_eq!(scroll_defaults.matches("#[test]").count(), 4);
     assert_contains_all(
         "UI event routing dispatch-effects child owns host and focus effects",
         &dispatch_effects,
@@ -82,7 +114,9 @@ fn runtime_15_ui_event_routing_tests_are_folder_backed() {
     );
 
     let child_test_total = [
+        contracts.as_str(),
         component_events.as_str(),
+        scroll_defaults.as_str(),
         dispatch_effects.as_str(),
         pointer_state.as_str(),
         shared_input.as_str(),
@@ -91,12 +125,17 @@ fn runtime_15_ui_event_routing_tests_are_folder_backed() {
     .map(|source| source.matches("#[test]").count())
     .sum::<usize>();
     assert_eq!(
-        child_test_total, 27,
-        "UI event-routing children should preserve all 27 parent tests"
+        child_test_total, 46,
+        "UI event-routing children should preserve all 46 current tests"
     );
 
     for (path, source) in [
         ("ui/tests/event_routing.rs", parent.as_str()),
+        ("ui/tests/event_routing/contracts.rs", contracts.as_str()),
+        (
+            "ui/tests/event_routing/component_events/scroll_defaults.rs",
+            scroll_defaults.as_str(),
+        ),
         (
             "ui/tests/event_routing/component_events.rs",
             component_events.as_str(),

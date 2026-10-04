@@ -1,7 +1,8 @@
+# 核对按钮外观分类的候选扫描压力模型及其源码绑定。
 from pathlib import Path
 import unittest
 
-from tools.editor_button_appearance_classification_pressure import (
+from tools.analysis.performance.editor.editor_button_appearance_classification_pressure import (
     pressure_report,
     pressure_suite,
 )

@@ -349,5 +349,5 @@ fn new_child_mount(node: UiNodeDefinition) -> UiChildMount {
 }
 
 #[cfg(test)]
-#[path = "tree_editing/control_id_index_tests.rs"]
+#[path = "tree_editing/tests/control_id_index_tests.rs"]
 mod control_id_index_tests;

@@ -22,7 +22,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束完成归属特性选择快速路径：现有特性索引应为借用先于目录投影，并完成守卫匹配仅字段合并可填充。
 class CompletedOwnerFeatureSelectionFastPathPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

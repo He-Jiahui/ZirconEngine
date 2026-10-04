@@ -1,3 +1,6 @@
+//! 本帧编译图资源的唯一物理绑定表。
+//! 构建方在录制前导入外部目标并物化 transient，执行方只通过 pass 访问契约取用。
+
 mod access_bindings;
 mod binding;
 mod external_access_bindings;
@@ -8,6 +11,7 @@ mod reporting;
 mod texture_views;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 use std::collections::BTreeMap;

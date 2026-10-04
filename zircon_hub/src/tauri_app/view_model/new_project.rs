@@ -1,3 +1,6 @@
+//! 将保存的创建草稿和当前可选模板/引擎投影为跨端数据。
+//! 失效选项的后备只服务表单初值，不代替创建动作的准入校验。
+
 use serde::Serialize;
 
 use crate::projects::project_template_catalog;
@@ -5,6 +8,7 @@ use crate::state::HubSnapshot;
 
 use super::display::path_text;
 
+/// 创建草稿的跨端投影；模板和引擎选项会随当前注册表修正，原始草稿由会话持有。
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct HubNewProjectDraft {
@@ -14,6 +18,8 @@ pub(crate) struct HubNewProjectDraft {
     pub engine_id: Option<String>,
 }
 
+// TODO: [CR-HUBSTATE-0006] 确认持久化草稿的前端恢复意图；当前创建对话框只收默认目录/活动引擎，需检查重开及失败后字段恢复链路。
+/// 为跨端状态提供可选表单初值；本函数不保存草稿或验证项目能否创建。
 pub(super) fn new_project_draft(snapshot: &HubSnapshot) -> HubNewProjectDraft {
     HubNewProjectDraft {
         name: snapshot.new_project_name.clone(),
@@ -23,6 +29,7 @@ pub(super) fn new_project_draft(snapshot: &HubSnapshot) -> HubNewProjectDraft {
     }
 }
 
+// 历史配置可能引用已移除或禁用模板；表单初值只选当前可用条目。
 fn selected_template_id(snapshot: &HubSnapshot) -> String {
     let template_id = snapshot.selected_template_id.trim();
     if project_template_catalog()
@@ -39,6 +46,7 @@ fn selected_template_id(snapshot: &HubSnapshot) -> String {
         .unwrap_or_else(|| "renderable-empty".to_string())
 }
 
+// 优先保留有效草稿选择，再采用活动/首个已注册引擎；执行时仍须校验检出和产物。
 fn selected_engine_id(snapshot: &HubSnapshot) -> Option<String> {
     snapshot
         .new_project_engine_id
@@ -56,89 +64,5 @@ fn selected_engine_id(snapshot: &HubSnapshot) -> Option<String> {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::path::PathBuf;
-
-    use crate::{
-        engines::SourceEngineInstall,
-        settings::HubSettings,
-        state::{
-            HubPage, ProjectFilterMode, ProjectSortMode, ProjectSubpage, ProjectViewMode,
-            TaskStatus,
-        },
-        team::TeamOverview,
-    };
-
-    use super::*;
-
-    #[test]
-    fn draft_projects_runtime_name_location_template_and_engine() {
-        let snapshot = test_snapshot();
-
-        let draft = new_project_draft(&snapshot);
-
-        assert_eq!(draft.name, "Draft Game");
-        assert_eq!(draft.location, "E:/Drafts");
-        assert_eq!(draft.template, "renderable-empty");
-        assert_eq!(draft.engine_id.as_deref(), Some("engine-b"));
-    }
-
-    #[test]
-    fn draft_falls_back_when_persisted_template_or_engine_is_stale() {
-        let mut snapshot = test_snapshot();
-        snapshot.selected_template_id = "missing-template".to_string();
-        snapshot.new_project_engine_id = Some("missing-engine".to_string());
-
-        let draft = new_project_draft(&snapshot);
-
-        assert_eq!(draft.template, "renderable-empty");
-        assert_eq!(draft.engine_id.as_deref(), Some("engine-a"));
-    }
-
-    fn test_snapshot() -> HubSnapshot {
-        HubSnapshot {
-            selected_page: HubPage::Projects,
-            project_filter: ProjectFilterMode::All,
-            project_sort: ProjectSortMode::LastModified,
-            project_view_mode: ProjectViewMode::Grid,
-            project_subpage: ProjectSubpage::NewProject,
-            search_query: String::new(),
-            selected_project_path: None,
-            new_project_name: "Draft Game".to_string(),
-            selected_template_id: "renderable-empty".to_string(),
-            new_project_location: PathBuf::from("E:/Drafts"),
-            new_project_engine_id: Some("engine-b".to_string()),
-            pending_delete_project_path: None,
-            task_status: TaskStatus::idle(),
-            queued_background_actions: 0,
-            recent_projects: Vec::new(),
-            project_metadata: crate::projects::ProjectMetadataMap::new(),
-            assets: Vec::new(),
-            learn_resources: Vec::new(),
-            plugins: Vec::new(),
-            team: TeamOverview::empty(),
-            action_history: Vec::new(),
-            engines: vec![
-                SourceEngineInstall {
-                    id: "engine-a".to_string(),
-                    display_name: "Engine A".to_string(),
-                    source_dir: PathBuf::from("E:/EngineA"),
-                    output_dir: PathBuf::from("E:/EngineA/out"),
-                    last_build_unix_ms: None,
-                    build_history: Vec::new(),
-                },
-                SourceEngineInstall {
-                    id: "engine-b".to_string(),
-                    display_name: "Engine B".to_string(),
-                    source_dir: PathBuf::from("E:/EngineB"),
-                    output_dir: PathBuf::from("E:/EngineB/out"),
-                    last_build_unix_ms: None,
-                    build_history: Vec::new(),
-                },
-            ],
-            active_engine_id: Some("engine-a".to_string()),
-            settings: HubSettings::default(),
-            settings_draft: HubSettings::default(),
-        }
-    }
-}
+#[path = "tests/new_project.rs"]
+mod tests;

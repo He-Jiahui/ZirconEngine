@@ -17,7 +17,7 @@ PLUGIN_VALIDATE_FEATURE_PROVIDER_TEST = (
     REPO_ROOT / "tools/zircon_export/tests/test_plugin_validate_feature_provider.py"
 )
 
-
+# 验证校验分发测试归属边界的职责切分：分发契约测试位于分发契约测试归属，并分发资源测试位于分发资源测试归属。
 class PluginValidateDistributionTestOwnerBoundaryTests(unittest.TestCase):
     def test_distribution_contract_tests_live_in_distribution_contract_test_owner(
         self,

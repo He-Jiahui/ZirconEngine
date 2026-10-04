@@ -1,3 +1,4 @@
+// 动态 source marker 在静态强度场之后叠加；已选择状态影响标记大小/颜色而无需重新计算静态场。
 use crate::ui::weight_heatmap::WeightHeatmapSource;
 
 use super::super::super::data::FrameRect;
@@ -5,6 +6,7 @@ use super::super::render_commands::HostPaintCommand;
 use super::geometry::WeightHeatmapGeometry;
 use super::palette::{SELECTED_SOURCE, SOURCE_MARKER};
 
+/// source 列表来自已归一化 generation；只在 plot 可画时预留列表容量。单个标记的透明裁剪仍交给 HostPaintCommand。
 pub(super) fn push_heat_source_markers(
     commands: &mut Vec<HostPaintCommand>,
     sources: &[WeightHeatmapSource],
@@ -65,51 +67,9 @@ fn push_source_marker(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ui::retained_host::host_contract::data::FrameRect;
-
-    #[test]
-    fn each_source_marker_uses_one_paint_command() {
-        let mut commands = Vec::new();
-        let clip = FrameRect {
-            x: 0.0,
-            y: 0.0,
-            width: 20.0,
-            height: 20.0,
-        };
-
-        push_source_marker(&mut commands, 10.0, 10.0, 5.0, SOURCE_MARKER, &clip, 0, 1.0);
-
-        assert_eq!(commands.len(), 1);
-    }
-
-    #[test]
-    fn collapsed_heatmap_does_not_emit_source_markers() {
-        let geometry = WeightHeatmapGeometry::from_frame(
-            &FrameRect {
-                x: 0.0,
-                y: 0.0,
-                width: 0.0,
-                height: 32.0,
-            },
-            20.0,
-        );
-        let source = WeightHeatmapSource::new(0.5, 0.5, 1.0, false);
-        let clip = FrameRect {
-            x: 0.0,
-            y: 0.0,
-            width: 32.0,
-            height: 32.0,
-        };
-        let mut commands = Vec::new();
-
-        push_heat_source_markers(&mut commands, &[source], &geometry, &clip, 0, 1.0);
-
-        assert!(commands.is_empty());
-    }
-}
+#[path = "tests/markers.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "markers/capacity_tests.rs"]
+#[path = "markers/tests/capacity_tests.rs"]
 mod capacity_tests;

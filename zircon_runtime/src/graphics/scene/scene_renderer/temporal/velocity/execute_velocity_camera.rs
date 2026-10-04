@@ -12,6 +12,7 @@ use super::velocity_camera_params::VelocityCameraParams;
 
 impl ScenePostProcessResources {
     #[allow(clippy::too_many_arguments)]
+    /// 在图 pass 中生成相机运动向量；参数上传返回帧事务统一提交，避免写入先于图资源准备。
     pub(crate) fn execute_velocity_camera(
         &self,
         device: &wgpu::Device,
@@ -119,17 +120,5 @@ fn clear_velocity_target(
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn velocity_camera_params_are_returned_as_pre_submit_uploads() {
-        let source = include_str!("execute_velocity_camera.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("velocity camera production source");
-
-        assert!(!production.contains("queue.write_buffer"));
-        assert!(production.contains("WgpuBufferUpload::from_bytes("));
-        assert!(production.contains("WgpuBufferUploadBatch"));
-    }
-}
+#[path = "tests/execute_velocity_camera.rs"]
+mod tests;

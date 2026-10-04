@@ -1,3 +1,4 @@
+//! 实体组件存储与标识能力吸收后，核心拥有者和文档锚点需一致。通过源码文本核对父子路由、状态镜像和文件预算。
 const SLICE: &str = "Runtime 15 M3 ECS kernel data guard folder-backed split";
 const STATUS: &str = "runtime_15_ecs_kernel_data_guard_folder_backed_static_passed_cargo_deferred";
 const FRAMEWORKS_STATUS: &str =
@@ -99,7 +100,7 @@ fn runtime_15_ecs_kernel_data_guard_is_folder_backed() {
         ),
         (
             "module convention doc",
-            include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md"),
+            include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md"),
         ),
     ] {
         assert_contains_all(label, source, &[SLICE, STATUS, GUARD, CHILD_PATHS[6]]);

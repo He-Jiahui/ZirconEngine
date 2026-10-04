@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 后处理回退资源集合借用图节点名称并按图上界预留，同时维持节点执行次序与资源只准入一次。
 
 ROOT = Path(__file__).resolve().parents[2]
 EXECUTE_RS = ROOT / (

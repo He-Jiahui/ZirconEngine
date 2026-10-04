@@ -1,0 +1,1325 @@
+{
+  "batch": "w0-batch25",
+  "recorded_at_utc": "2026-10-03T14:33:58.400693+00:00",
+  "root_frozen_receipt": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0-b25-root-frozen-terminal-r2-r1\\root-frozen-receipt.json",
+  "root_frozen_receipt_sha256": "fb7356e5618859b4e89d11aebccb4a3b2d00a69a46f2e1716b8de0c886f227b1",
+  "raw_capture_inventory": [
+    {
+      "path": "captured-current/references/dev/bevy/crates/bevy_time/src/fixed.rs",
+      "bytes": 13890,
+      "sha256": "c3e4e4bee5d4cdde83d23e3016d7c8532b2ca00f98fbea93f34c23d316bfb963"
+    },
+    {
+      "path": "captured-current/references/dev/Fyrox/fyrox-animation/src/pose.rs",
+      "bytes": 5563,
+      "sha256": "c640e62427e24c1759449d46ff9953ce434479361ef33c28db305d0afac1ee5b"
+    },
+    {
+      "path": "captured-current/references/dev/Fyrox/fyrox-animation/src/track.rs",
+      "bytes": 7153,
+      "sha256": "14f7e170eb0bf047c79b3e4feee3739040a2956b734681c39e2263407e0798f4"
+    },
+    {
+      "path": "captured-current/references/dev/godot/scene/animation/animation_mixer.cpp",
+      "bytes": 96773,
+      "sha256": "6cd5958e2be86a7d345ec9f126bfdb13145220dcd63ea0008f87c6b043356832"
+    },
+    {
+      "path": "captured-current/references/dev/godot/servers/physics_3d/physics_server_3d.h",
+      "bytes": 22138,
+      "sha256": "65e18efdbbc0583b0344092fef7a2a240415633082375c9ca6cc090e9273e737"
+    },
+    {
+      "path": "captured-current/references/dev/UnrealEngine/Engine/Source/Runtime/Engine/Classes/Animation/AnimInstance.h",
+      "bytes": 100662,
+      "sha256": "79d66ad923c93a83442f579c264379ff3dd2df8bf888d77b4bbe8674539fad2e"
+    },
+    {
+      "path": "captured-current/references/dev/UnrealEngine/Engine/Source/Runtime/Engine/Classes/Animation/AnimNodeBase.h",
+      "bytes": 33414,
+      "sha256": "73d5bdb25a4b33db5e762f0671a7e9e6777ec33b654d258bc4ce6bb3c8e014d3"
+    },
+    {
+      "path": "captured-current/references/dev/UnrealEngine/Engine/Source/Runtime/Engine/Classes/Animation/AnimSequence.h",
+      "bytes": 41986,
+      "sha256": "fcf84df7779d2f2be19ce84d5428e9c8561f05d285de252fd467c4f4bcae1d94"
+    },
+    {
+      "path": "captured-current/references/dev/UnrealEngine/Engine/Source/Runtime/Engine/Classes/GameFramework/CharacterMovementComponent.h",
+      "bytes": 189458,
+      "sha256": "68c5cce04ff32958467ec59862542e5dc5c5bb1b9d9bcc8a4ec416e785bfdc55"
+    },
+    {
+      "path": "captured-current/references/dev/UnrealEngine/Engine/Source/Runtime/Engine/Classes/PhysicsEngine/BodyInstance.h",
+      "bytes": 81727,
+      "sha256": "22bf1bd9d2e3e55be117b5001fc24a5777c81a55258794f91e1eae23f40b1af6"
+    },
+    {
+      "path": "captured-current/references/dev/UnrealEngine/Engine/Source/Runtime/Engine/Classes/PhysicsEngine/PhysicsAsset.h",
+      "bytes": 19116,
+      "sha256": "fa7fc08baa12e8fc5ed5547a86143ea64bb4e218ef7a1db91edec05752fb3c1a"
+    },
+    {
+      "path": "captured-current/references/dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/Collision/WorldCollision.cpp",
+      "bytes": 28711,
+      "sha256": "cf0227e96078bc4cd84b410341111250faba082ca24eb727b101ee32eb7b842c"
+    },
+    {
+      "path": "captured-current/references/dev/UnrealEngine/Engine/Source/Runtime/Engine/Public/Animation/AnimInstanceProxy.h",
+      "bytes": 57526,
+      "sha256": "ad450bc860697d957dc1ed61bc52f5abbe0ff839bffa9b9cd098b5bb74f5e73f"
+    },
+    {
+      "path": "captured-current/references/dev/UnrealEngine/Engine/Source/Runtime/Engine/Public/BoneContainer.h",
+      "bytes": 25426,
+      "sha256": "9b99cad5fc28e5721c7e348d42f274e4d3a327c8ce00c7105c96c5cb8e421031"
+    },
+    {
+      "path": "captured-current/references/dev/UnrealEngine/Engine/Source/Runtime/Engine/Public/CollisionQueryParams.h",
+      "bytes": 20780,
+      "sha256": "adcc15fd148ee8ff6e3c435dbbda095a2f5a7a87537b0d4756e74f38b90972bd"
+    },
+    {
+      "path": "captured-current/references/dev/UnrealEngine/Engine/Source/Runtime/Engine/Public/GPUSkinVertexFactory.h",
+      "bytes": 32541,
+      "sha256": "4680b6aed63efe4a8f804104f5cadadc32093013dd0e2445bd56d8a2be5f65a6"
+    },
+    {
+      "path": "captured-current/references/dev/UnrealEngine/Engine/Source/Runtime/Experimental/Chaos/Public/PBDRigidsSolver.h",
+      "bytes": 22605,
+      "sha256": "e84b06d5bef8eee414d7ea8e0679f9a9ec1f55a0c84ae7c9c1a76941da94c28f"
+    },
+    {
+      "path": "captured-current/reports/08a-physics-runtime-review.md",
+      "bytes": 46072,
+      "sha256": "e00aebdd38b20fc6249369c5cf9e48674d1775aab6f9d62e01c61496c38d80ec"
+    },
+    {
+      "path": "captured-current/reports/08c-animation-runtime-review.md",
+      "bytes": 46556,
+      "sha256": "74c11de628f370303d3b588335835429e0fb38319ab6173fbe57dcfa26cd1d41"
+    },
+    {
+      "path": "captured-current/reports/219-runtime-physics-world-solver-jolt-shape-material-constraint-query-contact-trigger-character-vehicle-ragdoll-editor-product-current-working-tree-review.md",
+      "bytes": 30390,
+      "sha256": "c22157285953b2ea916c8bb3153032242892edc78f6b06520e2c2eb052f44cff"
+    },
+    {
+      "path": "captured-current/reports/221-runtime-animation-source-compiled-pose-skinning-ik-root-motion-event-editor-product-current-working-tree-review.md",
+      "bytes": 31456,
+      "sha256": "70acd16083cf1e4ea7f3cf264c8d19c26f74e18565f6ec2cbea69d48351fd489"
+    },
+    {
+      "path": "captured-current/reports/99zl-runtime-animation-skeleton-clip-pose-graph-state-machine-layer-mask-blend-ik-root-motion-event-extract-product-integration-current-source-review.md",
+      "bytes": 37916,
+      "sha256": "73714a8d966890fa1b2f10908f53b72642feb2816828d977ccd4996f3efe42e3"
+    },
+    {
+      "path": "captured-current/reports/99zm-physics-world-review.md",
+      "bytes": 55031,
+      "sha256": "ce02556651bb26e8ef56433906cfc5a526868ea27310fafb81c9320212bd20b7"
+    },
+    {
+      "path": "captured-current/source/zircon_editor/src/core/context/tool_scheduler.rs",
+      "bytes": 25059,
+      "sha256": "e068bb0e1eb69f59eebf371d43b05eb1fd490cb15cf72765d81dc548cbf87f9c"
+    },
+    {
+      "path": "captured-current/source/zircon_editor/src/core/editing/animation_document/compilation.rs",
+      "bytes": 2429,
+      "sha256": "e6012b02e73d8a0635e4b52864684869a2376ecd305187388ae827550ecc5245"
+    },
+    {
+      "path": "captured-current/source/zircon_editor/src/core/editing/animation_document/document.rs",
+      "bytes": 3964,
+      "sha256": "67cf53b6c5aa7c1a5d2a61406fc8a9257f7cfa3aad63abf19bfb7944cd306b95"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/ai/runtime/src/perception/scan.rs",
+      "bytes": 19460,
+      "sha256": "3d3f0ac5dfb0070980f5a473f8c62c2ed96addc448f7449806a3c0f6f2c65360"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/animation/editor/src/plugin.rs",
+      "bytes": 3855,
+      "sha256": "acd2b045c3e4fd0b485ef18741cf69889cda0aea60303329f58fadd6d4d286f4"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/animation/plugin.toml",
+      "bytes": 1945,
+      "sha256": "6e5271f41b08d6a343b75cbfb642e6cf239099533c633d6e7faa70a30f1f2af8"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/animation/runtime/src/evaluation/pipeline/events.rs",
+      "bytes": 9813,
+      "sha256": "69c86626000b0649ab2f0fd6880025bdd83ca9db5ee17ef2da8086fb0e09eff2"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_apply.rs",
+      "bytes": 5015,
+      "sha256": "f9b9e2353c7c46eeac8347db3e996374b762fc8c5d0cd4f95409e3bc1b78436e"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_target_binding.rs",
+      "bytes": 8818,
+      "sha256": "5c914074cefb2b4e73e9e6fab381f807eb6a06eeb82447e54f242089a8748dbf"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/animation/runtime/src/evaluation/pipeline/sequences.rs",
+      "bytes": 3867,
+      "sha256": "bfde820cdbc95be3088a214d7bc369b7eee992eed87b3fc46991b22f8e3d1746"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs",
+      "bytes": 21904,
+      "sha256": "b0950cf2f9f50eb79a5443365dd604f5a10c32032caee5ed4d6326637539ca26"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/animation/runtime/src/gpu_skinning/palette.rs",
+      "bytes": 9495,
+      "sha256": "9548cec35d0df892a3730e4d3d0716ee7cfd3467fb4d9ae41627b48a955e7e92"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/animation/runtime/src/lib.rs",
+      "bytes": 3463,
+      "sha256": "2245516615c310d40f31b75b91a2b0669c75501a122c9c1da7c2eeda17af728b"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/animation/runtime/src/module.rs",
+      "bytes": 2946,
+      "sha256": "3fc514c1ea4399a42da95bd44ca6ddb1b5798e4ae36bfd40c282df29218e0ac1"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/animation/runtime/src/runtime_system.rs",
+      "bytes": 2927,
+      "sha256": "9ba5835d353221b727b558dd8ddd4ce4884e3688f21eb773f342d7d60a817250"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/animation_graph/editor/src/plugin.rs",
+      "bytes": 11696,
+      "sha256": "a2eadce8cc7f740b8dc55eb945a91e439ee22a8c1a4e0925706aaf4bc985c75b"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/first_party_editor_catalog/src/catalog.rs",
+      "bytes": 1676,
+      "sha256": "1408aef04b44a4851ae143680fb68b91c3e807e8e144baf9f453fdb662dc5dd1"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/first_party_runtime_catalog/src/lib.rs",
+      "bytes": 5714,
+      "sha256": "1ebd17543a1986972aee39e72f2712c523f8342f84a4f7e1492adf8b8e35a704"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/physics/dist/src/lib.rs",
+      "bytes": 3866,
+      "sha256": "f7201446b8e76e98e10f03a341260fddceb725a3c7176694ad362834c6fed45f"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/physics/editor/src/plugin.rs",
+      "bytes": 9544,
+      "sha256": "e3b03dcf67193822f2519dc9afdfee19b3422494df4e61252c03b15ce0f41e56"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/physics/editor/src/viewport_overlay_provider.rs",
+      "bytes": 2090,
+      "sha256": "77d548d8382ae5cef95e8bcbc13882516e9349cb74117c7ac6fdcc4939c60ee1"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/physics/plugin.toml",
+      "bytes": 2939,
+      "sha256": "4f9aaf39ddcc2be20862c14b9a96a46c7ca63fff71a48766edbc71ef4af264f8"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/physics/runtime/src/backend/builtin/query_contact/contact.rs",
+      "bytes": 1789,
+      "sha256": "d70cbceccfcad457f75a86a4504fce66e862a793cb1c27bc8aa8e8b37d20b77c"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/physics/runtime/src/backend/builtin/runtime.rs",
+      "bytes": 15813,
+      "sha256": "510b8c1a1f00f26f3aa6e98660dddefa55f8dd51fea04f8f6cf7bb7bf5ad4ce9"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/physics/runtime/src/backend/builtin/trigger/scan.rs",
+      "bytes": 2042,
+      "sha256": "f54f292ca935ba461a4abb06833959eea800f51f1c9b88732d07fe0512e22765"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/physics/runtime/src/backend/jolt/layers.rs",
+      "bytes": 2291,
+      "sha256": "6059cca26ab28e8e2aba9fcb4b10dd290c9830178b87dc7e31e76f7f822a46ee"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/physics/runtime/src/backend/jolt/mesh_shape.rs",
+      "bytes": 7010,
+      "sha256": "09f849cf14c7e109c50b22a1dab7addd97b791403087fd4394b9287adbfb5c78"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/physics/runtime/src/backend/jolt/native_world.rs",
+      "bytes": 5992,
+      "sha256": "e5db53bdfcab1384e8e6acea78801cc38025edd9a5dbf584d82ed3813efeda26"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/physics/runtime/src/backend/jolt/runtime.rs",
+      "bytes": 23661,
+      "sha256": "105ae5da9faaa7711dcfa3b11bc347345a51ad5a23a578c62b30f7c3e8696c36"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/physics/runtime/src/backend/selection.rs",
+      "bytes": 4953,
+      "sha256": "1f66dcd84a27dcf4880de14b5043340e6f7750e700b6ed148bb84bd843c9ad2e"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/physics/runtime/src/constraint/projection.rs",
+      "bytes": 8684,
+      "sha256": "3c44c553c19db1fc618d908cd9eac78c4fd66c4aea41ad9fee5a376665223896"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/physics/runtime/src/lib.rs",
+      "bytes": 3658,
+      "sha256": "4e50a52002b2ecb5d29254f0f3eeaa2e228dc54d3a4ac8f2b31e922c7bfe09d9"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/physics/runtime/src/manager/clock.rs",
+      "bytes": 2383,
+      "sha256": "cdec3ca4155b1dc30138938f3a12a343cf8f85748908821af3dcec9977b8462a"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/physics/runtime/src/manager/query.rs",
+      "bytes": 2778,
+      "sha256": "1dba8a500275a29e45c978a94daee87a3186315e2020499e9c35844819db494d"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/physics/runtime/src/manager/service.rs",
+      "bytes": 9409,
+      "sha256": "23e440070bca62d0e39019b2549813195a42cd4d590b84ea4922f8b4a198c859"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/physics/runtime/src/manager/world_sync.rs",
+      "bytes": 14033,
+      "sha256": "3fe13312870c08ceb0bc275abb61a7039fca88c1fce48315612397fd4c3863fa"
+    },
+    {
+      "path": "captured-current/source/zircon_plugins/physics/runtime/src/runtime_system.rs",
+      "bytes": 7075,
+      "sha256": "7ea40e5d5f59012b15fec187e86c4005d983c0ae8f67db3048f2e1edf59ae79d"
+    },
+    {
+      "path": "captured-current/source/zircon_runtime/src/animation/manager/mod.rs",
+      "bytes": 5957,
+      "sha256": "242fcd12e65b3f156e44919693e76a222f00b04941da21c52a9bd09bb66bad64"
+    },
+    {
+      "path": "captured-current/source/zircon_runtime/src/animation/module.rs",
+      "bytes": 2940,
+      "sha256": "f3e0c80be90d58b4a7f9e21eb1a26319adb866c4348c2395dfb8bb8d16460806"
+    },
+    {
+      "path": "captured-current/source/zircon_runtime/src/animation/sequence/compiled.rs",
+      "bytes": 6648,
+      "sha256": "2b8871de1ab02ca0e8ca7dac8a5302180a32bb0a74a17c881ebf095c78eba1e1"
+    },
+    {
+      "path": "captured-current/source/zircon_runtime/src/asset/assets/physics_material.rs",
+      "bytes": 739,
+      "sha256": "f39a386796509a350548a98dd9916edea73035c25cd05e0e36d10a389bc9b351"
+    },
+    {
+      "path": "captured-current/source/zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets.rs",
+      "bytes": 32066,
+      "sha256": "27223e9a22966f23baaa87bec2886005b235e1abfbb59190615d23c1b355eec2"
+    },
+    {
+      "path": "captured-current/source/zircon_runtime/src/core/framework/animation/mod.rs",
+      "bytes": 3483,
+      "sha256": "39d33f7fa3ba553932ab7e44d263c6756a879145899978dd9b028a93a7b2c54c"
+    },
+    {
+      "path": "captured-current/source/zircon_runtime/src/core/framework/physics/contact_event.rs",
+      "bytes": 468,
+      "sha256": "9462dcc50aecc85b72155f82144238d327f72ec609bad809d333254d8e28c8f0"
+    },
+    {
+      "path": "captured-current/source/zircon_runtime/src/core/framework/physics/manager.rs",
+      "bytes": 2633,
+      "sha256": "cecc18d02bedace5609a97ec4e5d3189090243050675d2b11f7c280158aecca4"
+    },
+    {
+      "path": "captured-current/source/zircon_runtime/src/core/framework/physics/mod.rs",
+      "bytes": 2305,
+      "sha256": "db03cf9965e7d4e567c2a62f5e5977c179fee64dddecb76197ad323ab8c1d64e"
+    },
+    {
+      "path": "captured-current/source/zircon_runtime/src/core/framework/physics/query_interface.rs",
+      "bytes": 905,
+      "sha256": "34031be309be7568bafe662c1f3f09df82683c6f0bd20bccb859f63ffe550e65"
+    },
+    {
+      "path": "captured-current/source/zircon_runtime/src/core/framework/physics/settings.rs",
+      "bytes": 1118,
+      "sha256": "24dd07769d93eb478531cbdaa7a3f4a9f56788178c1a4e09d25ec3c1e049ce08"
+    },
+    {
+      "path": "captured-current/source/zircon_runtime/src/core/framework/physics/trigger_event.rs",
+      "bytes": 513,
+      "sha256": "fecc4ded55070ed986039d9faab4c972511abc591524b8aeed8be18e40139e36"
+    },
+    {
+      "path": "captured-current/source/zircon_runtime/src/core/framework/physics/world_sync_state.rs",
+      "bytes": 1005,
+      "sha256": "6b405b7c3c63809344d897903306691a227eb1b0ace0e57e210a84a0470973f4"
+    },
+    {
+      "path": "captured-current/source/zircon_runtime/src/graphics/scene/gpu_scene/skinned_palette_arena.rs",
+      "bytes": 8876,
+      "sha256": "936dbe2f2cb7790a46693969ccd01b22742b5a7248f1aa0499363b9256816e6b"
+    },
+    {
+      "path": "captured-current/source/zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs",
+      "bytes": 15774,
+      "sha256": "533233f48636d8c4900ed30b510a9c08d7fd70442f3635f8102427a92ad5b214"
+    },
+    {
+      "path": "captured-current/source/zircon_runtime/src/scene/level_system/animation_runtime.rs",
+      "bytes": 11954,
+      "sha256": "7a300de6bbf5f11e50a70781696279258d8b95b11193134083c5e8db93c11f10"
+    },
+    {
+      "path": "captured-current/source/zircon_runtime/src/scene/level_system/frame_state.rs",
+      "bytes": 12128,
+      "sha256": "576fbf3748eae4d3cc01bc1e60ca7d218fbb0abd074e2d8ce3616c42affb68da"
+    },
+    {
+      "path": "captured-current/source/zircon_runtime/src/scene/level_system/physics_runtime_enabled.rs",
+      "bytes": 8520,
+      "sha256": "1aa622635efcd2a888ac44b5ae70e405a8a49b98a8e6d84ed2b4213c1982eb27"
+    },
+    {
+      "path": "captured-current/source/zircon_runtime/src/scene/world/project_io/physics.rs",
+      "bytes": 5785,
+      "sha256": "580be319e4f00791699d15ce06403642eba0198384762749a770278e735452f3"
+    },
+    {
+      "path": "crosswalk.jsonl",
+      "bytes": 58460,
+      "sha256": "9ea5a3dd35c4db091000db811ed336694769f0d5bc9e52411e17ac780048f222"
+    },
+    {
+      "path": "erratum-r1.md",
+      "bytes": 2150,
+      "sha256": "a71925d2a9da561dd454401ac2e44c306c4b1aa43c7aeefc63910297a257e4ab"
+    },
+    {
+      "path": "gates.jsonl",
+      "bytes": 151480,
+      "sha256": "0525a4013864c675b354ca79a65e6b3c3abc6aff139f052cf4cc5ae07b2b68a0"
+    },
+    {
+      "path": "manifest.json",
+      "bytes": 78220,
+      "sha256": "41998effa9f96c4fc99406eecf4cd902c49b3fec3264ec2cf634ff565c08870f"
+    },
+    {
+      "path": "orig-gates.jsonl",
+      "bytes": 33737,
+      "sha256": "d712f9db7fd7f1f8cd1912496a7f2dd804605cfd367d06ce26a90c174da09b98"
+    },
+    {
+      "path": "refresh.jsonl",
+      "bytes": 44808,
+      "sha256": "e403ad7f519a6bc46dab683acb250d04c5e7a77808c1f7fb1b095ec1a21da74a"
+    },
+    {
+      "path": "review.jsonl",
+      "bytes": 546739,
+      "sha256": "6a74e21fc2011510ee14b9cfab0479d06ac7c86c466882367ac769f35ea6b736"
+    },
+    {
+      "path": "summary.json",
+      "bytes": 8036,
+      "sha256": "33a7fd10818d9fb9f5d3922e7724e5d8b4523748bb4342736d7e8c240349f11b"
+    },
+    {
+      "path": "summary.md",
+      "bytes": 866,
+      "sha256": "065800675938141b301f1730bcaf11d8436ae0ef49f963f4e49365f523d9a238"
+    }
+  ],
+  "raw_capture_root": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0-b25-root-frozen-terminal-r2-r1\\author-capture",
+  "sealed_author_manifest_sha256": "41998effa9f96c4fc99406eecf4cd902c49b3fec3264ec2cf634ff565c08870f",
+  "independent_review_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0-b25-root-independent-qualification-r1\\review.json",
+  "independent_review_sha256": "88474d1b4ee8700968fedec4acaf0502d5113d9f9870c359adf91cac3ca468b3",
+  "raw_report_hashes": {
+    "docs/plans/optimize/zircon_runtime/08a-physics-runtime-review.md": {
+      "report_id": "Runtime08a",
+      "realpath": "E:/Git/ZirconEngine/docs/plans/optimize/zircon_runtime/08a-physics-runtime-review.md",
+      "sha256": "e00aebdd38b20fc6249369c5cf9e48674d1775aab6f9d62e01c61496c38d80ec",
+      "bytes": 46072,
+      "lines": 389,
+      "captured_path": "C:/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/P/w0/batch25/terminal-r2/captured-current/reports/08a-physics-runtime-review.md",
+      "captured_sha256": "e00aebdd38b20fc6249369c5cf9e48674d1775aab6f9d62e01c61496c38d80ec",
+      "hash_match": true,
+      "source_sha256_after": "e00aebdd38b20fc6249369c5cf9e48674d1775aab6f9d62e01c61496c38d80ec",
+      "captured_sha256_after": "e00aebdd38b20fc6249369c5cf9e48674d1775aab6f9d62e01c61496c38d80ec",
+      "after_hash_match": true
+    },
+    "docs/plans/optimize/zircon_runtime/08c-animation-runtime-review.md": {
+      "report_id": "Runtime08c",
+      "realpath": "E:/Git/ZirconEngine/docs/plans/optimize/zircon_runtime/08c-animation-runtime-review.md",
+      "sha256": "74c11de628f370303d3b588335835429e0fb38319ab6173fbe57dcfa26cd1d41",
+      "bytes": 46556,
+      "lines": 397,
+      "captured_path": "C:/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/P/w0/batch25/terminal-r2/captured-current/reports/08c-animation-runtime-review.md",
+      "captured_sha256": "74c11de628f370303d3b588335835429e0fb38319ab6173fbe57dcfa26cd1d41",
+      "hash_match": true,
+      "source_sha256_after": "74c11de628f370303d3b588335835429e0fb38319ab6173fbe57dcfa26cd1d41",
+      "captured_sha256_after": "74c11de628f370303d3b588335835429e0fb38319ab6173fbe57dcfa26cd1d41",
+      "after_hash_match": true
+    },
+    "docs/plans/optimize/zircon_runtime/99zm-physics-world-review.md": {
+      "report_id": "Runtime138",
+      "realpath": "E:/Git/ZirconEngine/docs/plans/optimize/zircon_runtime/99zm-physics-world-review.md",
+      "sha256": "ce02556651bb26e8ef56433906cfc5a526868ea27310fafb81c9320212bd20b7",
+      "bytes": 55031,
+      "lines": 565,
+      "captured_path": "C:/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/P/w0/batch25/terminal-r2/captured-current/reports/99zm-physics-world-review.md",
+      "captured_sha256": "ce02556651bb26e8ef56433906cfc5a526868ea27310fafb81c9320212bd20b7",
+      "hash_match": true,
+      "source_sha256_after": "ce02556651bb26e8ef56433906cfc5a526868ea27310fafb81c9320212bd20b7",
+      "captured_sha256_after": "ce02556651bb26e8ef56433906cfc5a526868ea27310fafb81c9320212bd20b7",
+      "after_hash_match": true
+    },
+    "docs/plans/optimize/zircon_runtime/99zl-runtime-animation-skeleton-clip-pose-graph-state-machine-layer-mask-blend-ik-root-motion-event-extract-product-integration-current-source-review.md": {
+      "report_id": "Runtime137",
+      "realpath": "E:/Git/ZirconEngine/docs/plans/optimize/zircon_runtime/99zl-runtime-animation-skeleton-clip-pose-graph-state-machine-layer-mask-blend-ik-root-motion-event-extract-product-integration-current-source-review.md",
+      "sha256": "73714a8d966890fa1b2f10908f53b72642feb2816828d977ccd4996f3efe42e3",
+      "bytes": 37916,
+      "lines": 435,
+      "captured_path": "C:/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/P/w0/batch25/terminal-r2/captured-current/reports/99zl-runtime-animation-skeleton-clip-pose-graph-state-machine-layer-mask-blend-ik-root-motion-event-extract-product-integration-current-source-review.md",
+      "captured_sha256": "73714a8d966890fa1b2f10908f53b72642feb2816828d977ccd4996f3efe42e3",
+      "hash_match": true,
+      "source_sha256_after": "73714a8d966890fa1b2f10908f53b72642feb2816828d977ccd4996f3efe42e3",
+      "captured_sha256_after": "73714a8d966890fa1b2f10908f53b72642feb2816828d977ccd4996f3efe42e3",
+      "after_hash_match": true
+    },
+    "docs/plans/optimize/zircon_runtime/219-runtime-physics-world-solver-jolt-shape-material-constraint-query-contact-trigger-character-vehicle-ragdoll-editor-product-current-working-tree-review.md": {
+      "report_id": "Runtime219",
+      "realpath": "E:/Git/ZirconEngine/docs/plans/optimize/zircon_runtime/219-runtime-physics-world-solver-jolt-shape-material-constraint-query-contact-trigger-character-vehicle-ragdoll-editor-product-current-working-tree-review.md",
+      "sha256": "c22157285953b2ea916c8bb3153032242892edc78f6b06520e2c2eb052f44cff",
+      "bytes": 30390,
+      "lines": 304,
+      "captured_path": "C:/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/P/w0/batch25/terminal-r2/captured-current/reports/219-runtime-physics-world-solver-jolt-shape-material-constraint-query-contact-trigger-character-vehicle-ragdoll-editor-product-current-working-tree-review.md",
+      "captured_sha256": "c22157285953b2ea916c8bb3153032242892edc78f6b06520e2c2eb052f44cff",
+      "hash_match": true,
+      "source_sha256_after": "c22157285953b2ea916c8bb3153032242892edc78f6b06520e2c2eb052f44cff",
+      "captured_sha256_after": "c22157285953b2ea916c8bb3153032242892edc78f6b06520e2c2eb052f44cff",
+      "after_hash_match": true
+    },
+    "docs/plans/optimize/zircon_runtime/221-runtime-animation-source-compiled-pose-skinning-ik-root-motion-event-editor-product-current-working-tree-review.md": {
+      "report_id": "Runtime221",
+      "realpath": "E:/Git/ZirconEngine/docs/plans/optimize/zircon_runtime/221-runtime-animation-source-compiled-pose-skinning-ik-root-motion-event-editor-product-current-working-tree-review.md",
+      "sha256": "70acd16083cf1e4ea7f3cf264c8d19c26f74e18565f6ec2cbea69d48351fd489",
+      "bytes": 31456,
+      "lines": 276,
+      "captured_path": "C:/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/P/w0/batch25/terminal-r2/captured-current/reports/221-runtime-animation-source-compiled-pose-skinning-ik-root-motion-event-editor-product-current-working-tree-review.md",
+      "captured_sha256": "70acd16083cf1e4ea7f3cf264c8d19c26f74e18565f6ec2cbea69d48351fd489",
+      "hash_match": true,
+      "source_sha256_after": "70acd16083cf1e4ea7f3cf264c8d19c26f74e18565f6ec2cbea69d48351fd489",
+      "captured_sha256_after": "70acd16083cf1e4ea7f3cf264c8d19c26f74e18565f6ec2cbea69d48351fd489",
+      "after_hash_match": true
+    }
+  },
+  "selected_source_observations": [
+    {
+      "path": "zircon_runtime/src/core/framework/physics/mod.rs",
+      "kind": "source",
+      "captured_sha256": "db03cf9965e7d4e567c2a62f5e5977c179fee64dddecb76197ad323ab8c1d64e",
+      "root_current_sha256": "db03cf9965e7d4e567c2a62f5e5977c179fee64dddecb76197ad323ab8c1d64e",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/physics/manager.rs",
+      "kind": "source",
+      "captured_sha256": "cecc18d02bedace5609a97ec4e5d3189090243050675d2b11f7c280158aecca4",
+      "root_current_sha256": "cecc18d02bedace5609a97ec4e5d3189090243050675d2b11f7c280158aecca4",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/physics/world_sync_state.rs",
+      "kind": "source",
+      "captured_sha256": "6b405b7c3c63809344d897903306691a227eb1b0ace0e57e210a84a0470973f4",
+      "root_current_sha256": "6b405b7c3c63809344d897903306691a227eb1b0ace0e57e210a84a0470973f4",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/physics/query_interface.rs",
+      "kind": "source",
+      "captured_sha256": "34031be309be7568bafe662c1f3f09df82683c6f0bd20bccb859f63ffe550e65",
+      "root_current_sha256": "34031be309be7568bafe662c1f3f09df82683c6f0bd20bccb859f63ffe550e65",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/physics/settings.rs",
+      "kind": "source",
+      "captured_sha256": "24dd07769d93eb478531cbdaa7a3f4a9f56788178c1a4e09d25ec3c1e049ce08",
+      "root_current_sha256": "24dd07769d93eb478531cbdaa7a3f4a9f56788178c1a4e09d25ec3c1e049ce08",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/physics/contact_event.rs",
+      "kind": "source",
+      "captured_sha256": "9462dcc50aecc85b72155f82144238d327f72ec609bad809d333254d8e28c8f0",
+      "root_current_sha256": "9462dcc50aecc85b72155f82144238d327f72ec609bad809d333254d8e28c8f0",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/physics/trigger_event.rs",
+      "kind": "source",
+      "captured_sha256": "fecc4ded55070ed986039d9faab4c972511abc591524b8aeed8be18e40139e36",
+      "root_current_sha256": "fecc4ded55070ed986039d9faab4c972511abc591524b8aeed8be18e40139e36",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/scene/level_system/physics_runtime_enabled.rs",
+      "kind": "source",
+      "captured_sha256": "1aa622635efcd2a888ac44b5ae70e405a8a49b98a8e6d84ed2b4213c1982eb27",
+      "root_current_sha256": "1aa622635efcd2a888ac44b5ae70e405a8a49b98a8e6d84ed2b4213c1982eb27",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/scene/level_system/frame_state.rs",
+      "kind": "source",
+      "captured_sha256": "576fbf3748eae4d3cc01bc1e60ca7d218fbb0abd074e2d8ce3616c42affb68da",
+      "root_current_sha256": "576fbf3748eae4d3cc01bc1e60ca7d218fbb0abd074e2d8ce3616c42affb68da",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/project_io/physics.rs",
+      "kind": "source",
+      "captured_sha256": "580be319e4f00791699d15ce06403642eba0198384762749a770278e735452f3",
+      "root_current_sha256": "580be319e4f00791699d15ce06403642eba0198384762749a770278e735452f3",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/asset/assets/physics_material.rs",
+      "kind": "source",
+      "captured_sha256": "f39a386796509a350548a98dd9916edea73035c25cd05e0e36d10a389bc9b351",
+      "root_current_sha256": "f39a386796509a350548a98dd9916edea73035c25cd05e0e36d10a389bc9b351",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/physics/plugin.toml",
+      "kind": "source",
+      "captured_sha256": "4f9aaf39ddcc2be20862c14b9a96a46c7ca63fff71a48766edbc71ef4af264f8",
+      "root_current_sha256": "4f9aaf39ddcc2be20862c14b9a96a46c7ca63fff71a48766edbc71ef4af264f8",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/lib.rs",
+      "kind": "source",
+      "captured_sha256": "4e50a52002b2ecb5d29254f0f3eeaa2e228dc54d3a4ac8f2b31e922c7bfe09d9",
+      "root_current_sha256": "4e50a52002b2ecb5d29254f0f3eeaa2e228dc54d3a4ac8f2b31e922c7bfe09d9",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/runtime_system.rs",
+      "kind": "source",
+      "captured_sha256": "7ea40e5d5f59012b15fec187e86c4005d983c0ae8f67db3048f2e1edf59ae79d",
+      "root_current_sha256": "7ea40e5d5f59012b15fec187e86c4005d983c0ae8f67db3048f2e1edf59ae79d",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/manager/service.rs",
+      "kind": "source",
+      "captured_sha256": "23e440070bca62d0e39019b2549813195a42cd4d590b84ea4922f8b4a198c859",
+      "root_current_sha256": "23e440070bca62d0e39019b2549813195a42cd4d590b84ea4922f8b4a198c859",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/manager/world_sync.rs",
+      "kind": "source",
+      "captured_sha256": "3fe13312870c08ceb0bc275abb61a7039fca88c1fce48315612397fd4c3863fa",
+      "root_current_sha256": "3fe13312870c08ceb0bc275abb61a7039fca88c1fce48315612397fd4c3863fa",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/manager/clock.rs",
+      "kind": "source",
+      "captured_sha256": "cdec3ca4155b1dc30138938f3a12a343cf8f85748908821af3dcec9977b8462a",
+      "root_current_sha256": "cdec3ca4155b1dc30138938f3a12a343cf8f85748908821af3dcec9977b8462a",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/manager/query.rs",
+      "kind": "source",
+      "captured_sha256": "1dba8a500275a29e45c978a94daee87a3186315e2020499e9c35844819db494d",
+      "root_current_sha256": "1dba8a500275a29e45c978a94daee87a3186315e2020499e9c35844819db494d",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/backend/jolt/runtime.rs",
+      "kind": "source",
+      "captured_sha256": "105ae5da9faaa7711dcfa3b11bc347345a51ad5a23a578c62b30f7c3e8696c36",
+      "root_current_sha256": "105ae5da9faaa7711dcfa3b11bc347345a51ad5a23a578c62b30f7c3e8696c36",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/backend/jolt/native_world.rs",
+      "kind": "source",
+      "captured_sha256": "e5db53bdfcab1384e8e6acea78801cc38025edd9a5dbf584d82ed3813efeda26",
+      "root_current_sha256": "e5db53bdfcab1384e8e6acea78801cc38025edd9a5dbf584d82ed3813efeda26",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/backend/jolt/layers.rs",
+      "kind": "source",
+      "captured_sha256": "6059cca26ab28e8e2aba9fcb4b10dd290c9830178b87dc7e31e76f7f822a46ee",
+      "root_current_sha256": "6059cca26ab28e8e2aba9fcb4b10dd290c9830178b87dc7e31e76f7f822a46ee",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/backend/jolt/mesh_shape.rs",
+      "kind": "source",
+      "captured_sha256": "09f849cf14c7e109c50b22a1dab7addd97b791403087fd4394b9287adbfb5c78",
+      "root_current_sha256": "09f849cf14c7e109c50b22a1dab7addd97b791403087fd4394b9287adbfb5c78",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/backend/builtin/runtime.rs",
+      "kind": "source",
+      "captured_sha256": "510b8c1a1f00f26f3aa6e98660dddefa55f8dd51fea04f8f6cf7bb7bf5ad4ce9",
+      "root_current_sha256": "510b8c1a1f00f26f3aa6e98660dddefa55f8dd51fea04f8f6cf7bb7bf5ad4ce9",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/backend/builtin/query_contact/contact.rs",
+      "kind": "source",
+      "captured_sha256": "d70cbceccfcad457f75a86a4504fce66e862a793cb1c27bc8aa8e8b37d20b77c",
+      "root_current_sha256": "d70cbceccfcad457f75a86a4504fce66e862a793cb1c27bc8aa8e8b37d20b77c",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/backend/builtin/trigger/scan.rs",
+      "kind": "source",
+      "captured_sha256": "f54f292ca935ba461a4abb06833959eea800f51f1c9b88732d07fe0512e22765",
+      "root_current_sha256": "f54f292ca935ba461a4abb06833959eea800f51f1c9b88732d07fe0512e22765",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/constraint/projection.rs",
+      "kind": "source",
+      "captured_sha256": "3c44c553c19db1fc618d908cd9eac78c4fd66c4aea41ad9fee5a376665223896",
+      "root_current_sha256": "3c44c553c19db1fc618d908cd9eac78c4fd66c4aea41ad9fee5a376665223896",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/backend/selection.rs",
+      "kind": "source",
+      "captured_sha256": "1f66dcd84a27dcf4880de14b5043340e6f7750e700b6ed148bb84bd843c9ad2e",
+      "root_current_sha256": "1f66dcd84a27dcf4880de14b5043340e6f7750e700b6ed148bb84bd843c9ad2e",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/physics/editor/src/plugin.rs",
+      "kind": "source",
+      "captured_sha256": "e3b03dcf67193822f2519dc9afdfee19b3422494df4e61252c03b15ce0f41e56",
+      "root_current_sha256": "e3b03dcf67193822f2519dc9afdfee19b3422494df4e61252c03b15ce0f41e56",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/physics/editor/src/viewport_overlay_provider.rs",
+      "kind": "source",
+      "captured_sha256": "77d548d8382ae5cef95e8bcbc13882516e9349cb74117c7ac6fdcc4939c60ee1",
+      "root_current_sha256": "77d548d8382ae5cef95e8bcbc13882516e9349cb74117c7ac6fdcc4939c60ee1",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/physics/dist/src/lib.rs",
+      "kind": "source",
+      "captured_sha256": "f7201446b8e76e98e10f03a341260fddceb725a3c7176694ad362834c6fed45f",
+      "root_current_sha256": "f7201446b8e76e98e10f03a341260fddceb725a3c7176694ad362834c6fed45f",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/first_party_runtime_catalog/src/lib.rs",
+      "kind": "source",
+      "captured_sha256": "1ebd17543a1986972aee39e72f2712c523f8342f84a4f7e1492adf8b8e35a704",
+      "root_current_sha256": "1ebd17543a1986972aee39e72f2712c523f8342f84a4f7e1492adf8b8e35a704",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/first_party_editor_catalog/src/catalog.rs",
+      "kind": "source",
+      "captured_sha256": "1408aef04b44a4851ae143680fb68b91c3e807e8e144baf9f453fdb662dc5dd1",
+      "root_current_sha256": "1408aef04b44a4851ae143680fb68b91c3e807e8e144baf9f453fdb662dc5dd1",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/ai/runtime/src/perception/scan.rs",
+      "kind": "source",
+      "captured_sha256": "3d3f0ac5dfb0070980f5a473f8c62c2ed96addc448f7449806a3c0f6f2c65360",
+      "root_current_sha256": "3d3f0ac5dfb0070980f5a473f8c62c2ed96addc448f7449806a3c0f6f2c65360",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/animation/mod.rs",
+      "kind": "source",
+      "captured_sha256": "39d33f7fa3ba553932ab7e44d263c6756a879145899978dd9b028a93a7b2c54c",
+      "root_current_sha256": "39d33f7fa3ba553932ab7e44d263c6756a879145899978dd9b028a93a7b2c54c",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/animation/module.rs",
+      "kind": "source",
+      "captured_sha256": "f3e0c80be90d58b4a7f9e21eb1a26319adb866c4348c2395dfb8bb8d16460806",
+      "root_current_sha256": "f3e0c80be90d58b4a7f9e21eb1a26319adb866c4348c2395dfb8bb8d16460806",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/animation/manager/mod.rs",
+      "kind": "source",
+      "captured_sha256": "242fcd12e65b3f156e44919693e76a222f00b04941da21c52a9bd09bb66bad64",
+      "root_current_sha256": "242fcd12e65b3f156e44919693e76a222f00b04941da21c52a9bd09bb66bad64",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/animation/sequence/compiled.rs",
+      "kind": "source",
+      "captured_sha256": "2b8871de1ab02ca0e8ca7dac8a5302180a32bb0a74a17c881ebf095c78eba1e1",
+      "root_current_sha256": "2b8871de1ab02ca0e8ca7dac8a5302180a32bb0a74a17c881ebf095c78eba1e1",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/scene/level_system/animation_runtime.rs",
+      "kind": "source",
+      "captured_sha256": "7a300de6bbf5f11e50a70781696279258d8b95b11193134083c5e8db93c11f10",
+      "root_current_sha256": "7a300de6bbf5f11e50a70781696279258d8b95b11193134083c5e8db93c11f10",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets.rs",
+      "kind": "source",
+      "captured_sha256": "27223e9a22966f23baaa87bec2886005b235e1abfbb59190615d23c1b355eec2",
+      "root_current_sha256": "27223e9a22966f23baaa87bec2886005b235e1abfbb59190615d23c1b355eec2",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs",
+      "kind": "source",
+      "captured_sha256": "533233f48636d8c4900ed30b510a9c08d7fd70442f3635f8102427a92ad5b214",
+      "root_current_sha256": "533233f48636d8c4900ed30b510a9c08d7fd70442f3635f8102427a92ad5b214",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/gpu_scene/skinned_palette_arena.rs",
+      "kind": "source",
+      "captured_sha256": "936dbe2f2cb7790a46693969ccd01b22742b5a7248f1aa0499363b9256816e6b",
+      "root_current_sha256": "936dbe2f2cb7790a46693969ccd01b22742b5a7248f1aa0499363b9256816e6b",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/animation/plugin.toml",
+      "kind": "source",
+      "captured_sha256": "6e5271f41b08d6a343b75cbfb642e6cf239099533c633d6e7faa70a30f1f2af8",
+      "root_current_sha256": "6e5271f41b08d6a343b75cbfb642e6cf239099533c633d6e7faa70a30f1f2af8",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/lib.rs",
+      "kind": "source",
+      "captured_sha256": "2245516615c310d40f31b75b91a2b0669c75501a122c9c1da7c2eeda17af728b",
+      "root_current_sha256": "2245516615c310d40f31b75b91a2b0669c75501a122c9c1da7c2eeda17af728b",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/runtime_system.rs",
+      "kind": "source",
+      "captured_sha256": "9ba5835d353221b727b558dd8ddd4ce4884e3688f21eb773f342d7d60a817250",
+      "root_current_sha256": "9ba5835d353221b727b558dd8ddd4ce4884e3688f21eb773f342d7d60a817250",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/module.rs",
+      "kind": "source",
+      "captured_sha256": "3fc514c1ea4399a42da95bd44ca6ddb1b5798e4ae36bfd40c282df29218e0ac1",
+      "root_current_sha256": "3fc514c1ea4399a42da95bd44ca6ddb1b5798e4ae36bfd40c282df29218e0ac1",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs",
+      "kind": "source",
+      "captured_sha256": "b0950cf2f9f50eb79a5443365dd604f5a10c32032caee5ed4d6326637539ca26",
+      "root_current_sha256": "b0950cf2f9f50eb79a5443365dd604f5a10c32032caee5ed4d6326637539ca26",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/evaluation/pipeline/sequences.rs",
+      "kind": "source",
+      "captured_sha256": "bfde820cdbc95be3088a214d7bc369b7eee992eed87b3fc46991b22f8e3d1746",
+      "root_current_sha256": "bfde820cdbc95be3088a214d7bc369b7eee992eed87b3fc46991b22f8e3d1746",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_apply.rs",
+      "kind": "source",
+      "captured_sha256": "f9b9e2353c7c46eeac8347db3e996374b762fc8c5d0cd4f95409e3bc1b78436e",
+      "root_current_sha256": "f9b9e2353c7c46eeac8347db3e996374b762fc8c5d0cd4f95409e3bc1b78436e",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_target_binding.rs",
+      "kind": "source",
+      "captured_sha256": "5c914074cefb2b4e73e9e6fab381f807eb6a06eeb82447e54f242089a8748dbf",
+      "root_current_sha256": "5c914074cefb2b4e73e9e6fab381f807eb6a06eeb82447e54f242089a8748dbf",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/evaluation/pipeline/events.rs",
+      "kind": "source",
+      "captured_sha256": "69c86626000b0649ab2f0fd6880025bdd83ca9db5ee17ef2da8086fb0e09eff2",
+      "root_current_sha256": "69c86626000b0649ab2f0fd6880025bdd83ca9db5ee17ef2da8086fb0e09eff2",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/gpu_skinning/palette.rs",
+      "kind": "source",
+      "captured_sha256": "9548cec35d0df892a3730e4d3d0716ee7cfd3467fb4d9ae41627b48a955e7e92",
+      "root_current_sha256": "9548cec35d0df892a3730e4d3d0716ee7cfd3467fb4d9ae41627b48a955e7e92",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/animation/editor/src/plugin.rs",
+      "kind": "source",
+      "captured_sha256": "acd2b045c3e4fd0b485ef18741cf69889cda0aea60303329f58fadd6d4d286f4",
+      "root_current_sha256": "acd2b045c3e4fd0b485ef18741cf69889cda0aea60303329f58fadd6d4d286f4",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/animation_graph/editor/src/plugin.rs",
+      "kind": "source",
+      "captured_sha256": "a2eadce8cc7f740b8dc55eb945a91e439ee22a8c1a4e0925706aaf4bc985c75b",
+      "root_current_sha256": "a2eadce8cc7f740b8dc55eb945a91e439ee22a8c1a4e0925706aaf4bc985c75b",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_editor/src/core/editing/animation_document/document.rs",
+      "kind": "source",
+      "captured_sha256": "67cf53b6c5aa7c1a5d2a61406fc8a9257f7cfa3aad63abf19bfb7944cd306b95",
+      "root_current_sha256": "67cf53b6c5aa7c1a5d2a61406fc8a9257f7cfa3aad63abf19bfb7944cd306b95",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_editor/src/core/editing/animation_document/compilation.rs",
+      "kind": "source",
+      "captured_sha256": "e6012b02e73d8a0635e4b52864684869a2376ecd305187388ae827550ecc5245",
+      "root_current_sha256": "e6012b02e73d8a0635e4b52864684869a2376ecd305187388ae827550ecc5245",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_editor/src/core/context/tool_scheduler.rs",
+      "kind": "source",
+      "captured_sha256": "e068bb0e1eb69f59eebf371d43b05eb1fd490cb15cf72765d81dc548cbf87f9c",
+      "root_current_sha256": "e068bb0e1eb69f59eebf371d43b05eb1fd490cb15cf72765d81dc548cbf87f9c",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "dev/UnrealEngine/Engine/Source/Runtime/Engine/Classes/PhysicsEngine/BodyInstance.h",
+      "kind": "reference",
+      "captured_sha256": "22bf1bd9d2e3e55be117b5001fc24a5777c81a55258794f91e1eae23f40b1af6",
+      "root_current_sha256": "22bf1bd9d2e3e55be117b5001fc24a5777c81a55258794f91e1eae23f40b1af6",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "dev/UnrealEngine/Engine/Source/Runtime/Engine/Public/CollisionQueryParams.h",
+      "kind": "reference",
+      "captured_sha256": "adcc15fd148ee8ff6e3c435dbbda095a2f5a7a87537b0d4756e74f38b90972bd",
+      "root_current_sha256": "adcc15fd148ee8ff6e3c435dbbda095a2f5a7a87537b0d4756e74f38b90972bd",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/Collision/WorldCollision.cpp",
+      "kind": "reference",
+      "captured_sha256": "cf0227e96078bc4cd84b410341111250faba082ca24eb727b101ee32eb7b842c",
+      "root_current_sha256": "cf0227e96078bc4cd84b410341111250faba082ca24eb727b101ee32eb7b842c",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "dev/UnrealEngine/Engine/Source/Runtime/Experimental/Chaos/Public/PBDRigidsSolver.h",
+      "kind": "reference",
+      "captured_sha256": "e84b06d5bef8eee414d7ea8e0679f9a9ec1f55a0c84ae7c9c1a76941da94c28f",
+      "root_current_sha256": "e84b06d5bef8eee414d7ea8e0679f9a9ec1f55a0c84ae7c9c1a76941da94c28f",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "dev/UnrealEngine/Engine/Source/Runtime/Engine/Classes/PhysicsEngine/PhysicsAsset.h",
+      "kind": "reference",
+      "captured_sha256": "fa7fc08baa12e8fc5ed5547a86143ea64bb4e218ef7a1db91edec05752fb3c1a",
+      "root_current_sha256": "fa7fc08baa12e8fc5ed5547a86143ea64bb4e218ef7a1db91edec05752fb3c1a",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "dev/UnrealEngine/Engine/Source/Runtime/Engine/Classes/GameFramework/CharacterMovementComponent.h",
+      "kind": "reference",
+      "captured_sha256": "68c5cce04ff32958467ec59862542e5dc5c5bb1b9d9bcc8a4ec416e785bfdc55",
+      "root_current_sha256": "68c5cce04ff32958467ec59862542e5dc5c5bb1b9d9bcc8a4ec416e785bfdc55",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "dev/UnrealEngine/Engine/Source/Runtime/Engine/Classes/Animation/AnimInstance.h",
+      "kind": "reference",
+      "captured_sha256": "79d66ad923c93a83442f579c264379ff3dd2df8bf888d77b4bbe8674539fad2e",
+      "root_current_sha256": "79d66ad923c93a83442f579c264379ff3dd2df8bf888d77b4bbe8674539fad2e",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "dev/UnrealEngine/Engine/Source/Runtime/Engine/Classes/Animation/AnimNodeBase.h",
+      "kind": "reference",
+      "captured_sha256": "73d5bdb25a4b33db5e762f0671a7e9e6777ec33b654d258bc4ce6bb3c8e014d3",
+      "root_current_sha256": "73d5bdb25a4b33db5e762f0671a7e9e6777ec33b654d258bc4ce6bb3c8e014d3",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "dev/UnrealEngine/Engine/Source/Runtime/Engine/Classes/Animation/AnimSequence.h",
+      "kind": "reference",
+      "captured_sha256": "fcf84df7779d2f2be19ce84d5428e9c8561f05d285de252fd467c4f4bcae1d94",
+      "root_current_sha256": "fcf84df7779d2f2be19ce84d5428e9c8561f05d285de252fd467c4f4bcae1d94",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "dev/UnrealEngine/Engine/Source/Runtime/Engine/Public/Animation/AnimInstanceProxy.h",
+      "kind": "reference",
+      "captured_sha256": "ad450bc860697d957dc1ed61bc52f5abbe0ff839bffa9b9cd098b5bb74f5e73f",
+      "root_current_sha256": "ad450bc860697d957dc1ed61bc52f5abbe0ff839bffa9b9cd098b5bb74f5e73f",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "dev/UnrealEngine/Engine/Source/Runtime/Engine/Public/BoneContainer.h",
+      "kind": "reference",
+      "captured_sha256": "9b99cad5fc28e5721c7e348d42f274e4d3a327c8ce00c7105c96c5cb8e421031",
+      "root_current_sha256": "9b99cad5fc28e5721c7e348d42f274e4d3a327c8ce00c7105c96c5cb8e421031",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "dev/UnrealEngine/Engine/Source/Runtime/Engine/Public/GPUSkinVertexFactory.h",
+      "kind": "reference",
+      "captured_sha256": "4680b6aed63efe4a8f804104f5cadadc32093013dd0e2445bd56d8a2be5f65a6",
+      "root_current_sha256": "4680b6aed63efe4a8f804104f5cadadc32093013dd0e2445bd56d8a2be5f65a6",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "dev/bevy/crates/bevy_time/src/fixed.rs",
+      "kind": "reference",
+      "captured_sha256": "c3e4e4bee5d4cdde83d23e3016d7c8532b2ca00f98fbea93f34c23d316bfb963",
+      "root_current_sha256": "c3e4e4bee5d4cdde83d23e3016d7c8532b2ca00f98fbea93f34c23d316bfb963",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "dev/godot/servers/physics_3d/physics_server_3d.h",
+      "kind": "reference",
+      "captured_sha256": "65e18efdbbc0583b0344092fef7a2a240415633082375c9ca6cc090e9273e737",
+      "root_current_sha256": "65e18efdbbc0583b0344092fef7a2a240415633082375c9ca6cc090e9273e737",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "dev/godot/scene/animation/animation_mixer.cpp",
+      "kind": "reference",
+      "captured_sha256": "6cd5958e2be86a7d345ec9f126bfdb13145220dcd63ea0008f87c6b043356832",
+      "root_current_sha256": "6cd5958e2be86a7d345ec9f126bfdb13145220dcd63ea0008f87c6b043356832",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "dev/Fyrox/fyrox-animation/src/pose.rs",
+      "kind": "reference",
+      "captured_sha256": "c640e62427e24c1759449d46ff9953ce434479361ef33c28db305d0afac1ee5b",
+      "root_current_sha256": "c640e62427e24c1759449d46ff9953ce434479361ef33c28db305d0afac1ee5b",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "dev/Fyrox/fyrox-animation/src/track.rs",
+      "kind": "reference",
+      "captured_sha256": "14f7e170eb0bf047c79b3e4feee3739040a2956b734681c39e2263407e0798f4",
+      "root_current_sha256": "14f7e170eb0bf047c79b3e4feee3739040a2956b734681c39e2263407e0798f4",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    }
+  ],
+  "scope_rows": [
+    {
+      "record_type": "scope_row",
+      "batch": "w0-batch25",
+      "report_id": "Runtime08a",
+      "report": "docs/plans/optimize/zircon_runtime/08a-physics-runtime-review.md",
+      "report_realpath": "E:/Git/ZirconEngine/docs/plans/optimize/zircon_runtime/08a-physics-runtime-review.md",
+      "report_sha256": "e00aebdd38b20fc6249369c5cf9e48674d1775aab6f9d62e01c61496c38d80ec",
+      "bytes": 46072,
+      "lines": 389,
+      "literal_rows": 24,
+      "gate_rows": 8,
+      "refresh_rows": 0,
+      "role": "historical_original",
+      "domain": "physics",
+      "tests_run": 0,
+      "acceptance": "open"
+    },
+    {
+      "record_type": "scope_row",
+      "batch": "w0-batch25",
+      "report_id": "Runtime08c",
+      "report": "docs/plans/optimize/zircon_runtime/08c-animation-runtime-review.md",
+      "report_realpath": "E:/Git/ZirconEngine/docs/plans/optimize/zircon_runtime/08c-animation-runtime-review.md",
+      "report_sha256": "74c11de628f370303d3b588335835429e0fb38319ab6173fbe57dcfa26cd1d41",
+      "bytes": 46556,
+      "lines": 397,
+      "literal_rows": 25,
+      "gate_rows": 14,
+      "refresh_rows": 0,
+      "role": "historical_original",
+      "domain": "animation",
+      "tests_run": 0,
+      "acceptance": "open"
+    },
+    {
+      "record_type": "scope_row",
+      "batch": "w0-batch25",
+      "report_id": "Runtime138",
+      "report": "docs/plans/optimize/zircon_runtime/99zm-physics-world-review.md",
+      "report_realpath": "E:/Git/ZirconEngine/docs/plans/optimize/zircon_runtime/99zm-physics-world-review.md",
+      "report_sha256": "ce02556651bb26e8ef56433906cfc5a526868ea27310fafb81c9320212bd20b7",
+      "bytes": 55031,
+      "lines": 565,
+      "literal_rows": 60,
+      "gate_rows": 42,
+      "refresh_rows": 0,
+      "role": "current_canonical",
+      "domain": "physics",
+      "tests_run": 0,
+      "acceptance": "open"
+    },
+    {
+      "record_type": "scope_row",
+      "batch": "w0-batch25",
+      "report_id": "Runtime137",
+      "report": "docs/plans/optimize/zircon_runtime/99zl-runtime-animation-skeleton-clip-pose-graph-state-machine-layer-mask-blend-ik-root-motion-event-extract-product-integration-current-source-review.md",
+      "report_realpath": "E:/Git/ZirconEngine/docs/plans/optimize/zircon_runtime/99zl-runtime-animation-skeleton-clip-pose-graph-state-machine-layer-mask-blend-ik-root-motion-event-extract-product-integration-current-source-review.md",
+      "report_sha256": "73714a8d966890fa1b2f10908f53b72642feb2816828d977ccd4996f3efe42e3",
+      "bytes": 37916,
+      "lines": 435,
+      "literal_rows": 35,
+      "gate_rows": 32,
+      "refresh_rows": 0,
+      "role": "current_canonical",
+      "domain": "animation",
+      "tests_run": 0,
+      "acceptance": "open"
+    },
+    {
+      "record_type": "scope_row",
+      "batch": "w0-batch25",
+      "report_id": "Runtime219",
+      "report": "docs/plans/optimize/zircon_runtime/219-runtime-physics-world-solver-jolt-shape-material-constraint-query-contact-trigger-character-vehicle-ragdoll-editor-product-current-working-tree-review.md",
+      "report_realpath": "E:/Git/ZirconEngine/docs/plans/optimize/zircon_runtime/219-runtime-physics-world-solver-jolt-shape-material-constraint-query-contact-trigger-character-vehicle-ragdoll-editor-product-current-working-tree-review.md",
+      "report_sha256": "c22157285953b2ea916c8bb3153032242892edc78f6b06520e2c2eb052f44cff",
+      "bytes": 30390,
+      "lines": 304,
+      "literal_rows": 0,
+      "gate_rows": 0,
+      "refresh_rows": 4,
+      "role": "successor_refresh_only",
+      "domain": "physics",
+      "tests_run": 0,
+      "acceptance": "open"
+    },
+    {
+      "record_type": "scope_row",
+      "batch": "w0-batch25",
+      "report_id": "Runtime221",
+      "report": "docs/plans/optimize/zircon_runtime/221-runtime-animation-source-compiled-pose-skinning-ik-root-motion-event-editor-product-current-working-tree-review.md",
+      "report_realpath": "E:/Git/ZirconEngine/docs/plans/optimize/zircon_runtime/221-runtime-animation-source-compiled-pose-skinning-ik-root-motion-event-editor-product-current-working-tree-review.md",
+      "report_sha256": "70acd16083cf1e4ea7f3cf264c8d19c26f74e18565f6ec2cbea69d48351fd489",
+      "bytes": 31456,
+      "lines": 276,
+      "literal_rows": 0,
+      "gate_rows": 0,
+      "refresh_rows": 21,
+      "role": "successor_refresh_only",
+      "domain": "animation",
+      "tests_run": 0,
+      "acceptance": "open"
+    }
+  ],
+  "classification": {
+    "historical_original": "Runtime08a 24 literal findings (P1=20,P2=4) plus 8 null-ID ordinal gates; Runtime08c 25 literal findings (P1=20,P2=5) plus 14 null-ID ordinal gates. Original rows remain report-qualified and unlabelled gate ordinals are preserved.",
+    "current_canonical": "Runtime138 60 literal findings (P1=48,P2=12) plus PH G01-G42; Runtime137 35 literal findings (P1=30,P2=5) plus Gate-A01..R08 (32).",
+    "successor_refresh": "Runtime219 has four refresh-only currentness rows; Runtime221 has 11 refresh-only rows (P0=6,P1=5) and ten refresh gate rows. All are non-new with no literal finding IDs; no successor rows are merged into originals.",
+    "gate_definition": "22 original gate rows are exactly the null-ID Runtime08a/08c rows; gates.jsonl contains those 22 plus 74 current canonical gate rows; the ten Runtime221 refresh gates are separate and are not counted in the 96 gate file rows."
+  },
+  "counts": {
+    "source_observations": 1630,
+    "report_qualified_keys": 1626,
+    "distinct_original_literal_ids": 1396,
+    "unlabelled_original_finding_ordinals": 84,
+    "original_gate_rows": 803,
+    "this_batch_finding_observations": 144,
+    "this_batch_historical_finding_rows": 49,
+    "this_batch_current_finding_rows": 95,
+    "this_batch_declared_gate_rows": 96,
+    "this_batch_historical_nullID_gate_rows": 22,
+    "this_batch_current_literal_gate_rows": 74,
+    "this_batch_successor_nonnew_currentness_and_finding_rows": 15,
+    "this_batch_successor_nonnew_gate_rows": 10,
+    "refresh_count_scope": "B24 plus B25 only; prior global refresh totals are not inferred",
+    "b24_b25_nonnew_currentness_and_finding_rows": 121,
+    "b24_b25_nonnew_gate_rows": 46
+  },
+  "literal_identity_rule": "exact original ID plus original report path; ambiguous historical mapping remains unaccepted; successor refresh rows non-new",
+  "tests_run": 0,
+  "source_writes": 0,
+  "acceptance": "open",
+  "whole_report_acceptance": false,
+  "whole_inventory": false
+}

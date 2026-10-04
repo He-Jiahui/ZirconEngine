@@ -28,7 +28,7 @@ Use the existing Table item `row_index` metadata path as the repository preceden
 
 ## Pressure Budget
 
-`tools/runtime_tree_logical_index_pressure.py` models 100,000 logical nodes, 1,000 single interactions, and 1,000 range interactions of width 10. With two current-style full logical passes per interaction, the model counts 400,000,000 logical-node visits, 400,000,000 temporary ID-vector entries, and 400,000,000 temporary dedup-index entries. The target authority budgets 10,000 range visits and zero full-tree temporary index entries; single selection and rename use the published index without logical-node visits. The resulting logical-visit ratio is 40,000x.
+`tools/analysis/performance/runtime/runtime_tree_logical_index_pressure.py` models 100,000 logical nodes, 1,000 single interactions, and 1,000 range interactions of width 10. With two current-style full logical passes per interaction, the model counts 400,000,000 logical-node visits, 400,000,000 temporary ID-vector entries, and 400,000,000 temporary dedup-index entries. The target authority budgets 10,000 range visits and zero full-tree temporary index entries; single selection and rename use the published index without logical-node visits. The resulting logical-visit ratio is 40,000x.
 
 This is an algorithm budget, not a product measurement. Focused deterministic model tests pass 3/3. Artifact: `E:\zircon-profiles\runtime-tree-logical-index-pressure-20260828.json`, SHA-256 `CED16C7862A55F3FF5C9B0DFC1EF992D8F39D1AFE5951369D802A5C0685CBA9B`.
 

@@ -1,21 +1,21 @@
 import unittest
 from pathlib import Path
 
-
+# 约束动态项目的测试组织：动态项目测试应目录支撑。
 class RuntimeDynamicProjectTestStructureTests(unittest.TestCase):
     def test_dynamic_project_tests_are_folder_backed(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
         project_path = repo_root / "zircon_runtime/src/dynamic_api/session/project.rs"
-        tests_path = repo_root / "zircon_runtime/src/dynamic_api/session/project/tests.rs"
+        tests_path = repo_root / "zircon_runtime/src/dynamic_api/session/project/tests/cases.rs"
 
         project = project_path.read_text(encoding="utf-8")
         tests = tests_path.read_text(encoding="utf-8")
 
         self.assertLessEqual(len(project.splitlines()), 800)
-        self.assertIn('#[path = "project/tests.rs"]', project)
+        self.assertIn("#[path = \"project/tests/cases.rs\"]", project)
         self.assertIn("mod tests;", project)
         self.assertNotIn("mod tests {", project)
-        self.assertIn('#[path = "project/runtime61_characterization.rs"]', project)
+        self.assertIn('#[path = "project/tests/runtime61_characterization.rs"]', project)
         self.assertIn(
             "fn project_startup_snapshot_survives_disk_manifest_rewrite_before_activation()",
             tests,

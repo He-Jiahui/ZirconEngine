@@ -12,10 +12,17 @@ fn runtime_navigation_boundary_file_set_requires_doc_update() {
                 .unwrap_or_else(|name| panic!("non-utf8 navigation entry name: {name:?}"))
         })
         .collect::<std::collections::BTreeSet<_>>();
-    let expected_entries = ["mod.rs", "module.rs", "operation", "runtime", "runtime.rs"]
-        .into_iter()
-        .map(String::from)
-        .collect::<std::collections::BTreeSet<_>>();
+    let expected_entries = [
+        "mod.rs",
+        "module.rs",
+        "operation",
+        "repath_budget.rs",
+        "runtime",
+        "runtime.rs",
+    ]
+    .into_iter()
+    .map(String::from)
+    .collect::<std::collections::BTreeSet<_>>();
 
     assert_eq!(
         actual_entries, expected_entries,
@@ -35,10 +42,13 @@ fn runtime_navigation_boundary_file_set_requires_doc_update() {
         .collect::<std::collections::BTreeSet<_>>();
     let expected_runtime_entries = [
         "avoidance.rs",
+        "baked_mesh",
         "baked_mesh.rs",
         "math.rs",
+        "state",
         "state.rs",
         "tests.rs",
+        "world_scan",
         "world_scan.rs",
     ]
     .into_iter()
@@ -49,6 +59,32 @@ fn runtime_navigation_boundary_file_set_requires_doc_update() {
         actual_runtime_entries, expected_runtime_entries,
         "runtime navigation fallback changed owner modules; update docs/zircon_runtime/navigation/runtime.md and Runtime 14 before adding behavior files"
     );
+
+    for (owner, expected_files) in [
+        ("baked_mesh", &["query_scratch.rs", "spatial_index.rs"][..]),
+        ("state", &["repath_entry_tests.rs"][..]),
+        ("world_scan", &["capacity_tests.rs"][..]),
+    ] {
+        let owner_dir = runtime_dir.join(owner);
+        let actual_files = std::fs::read_dir(&owner_dir)
+            .unwrap_or_else(|error| panic!("failed to read {}: {error}", owner_dir.display()))
+            .map(|entry| {
+                entry
+                    .unwrap_or_else(|error| panic!("failed to read {owner} entry: {error}"))
+                    .file_name()
+                    .into_string()
+                    .unwrap_or_else(|name| panic!("non-utf8 {owner} entry name: {name:?}"))
+            })
+            .collect::<std::collections::BTreeSet<_>>();
+        let expected_files = expected_files
+            .iter()
+            .map(|file| String::from(*file))
+            .collect::<std::collections::BTreeSet<_>>();
+        assert_eq!(
+            actual_files, expected_files,
+            "runtime navigation {owner} changed owner modules; update docs/zircon_runtime/navigation/runtime.md and Runtime 14"
+        );
+    }
 
     let operation_dir = navigation_dir.join("operation");
     let actual_operation_entries = std::fs::read_dir(&operation_dir)
@@ -80,7 +116,8 @@ fn runtime_navigation_boundary_file_set_requires_doc_update() {
         "navigation module descriptor should keep fallback runtime scope explicit"
     );
 
-    let boundary_doc = include_str!("../../../../../../docs/zircon_runtime/navigation/runtime.md");
+    let boundary_doc =
+        include_str!("../../../../../../docs/crates/zircon_runtime/navigation/runtime.md");
     for required_anchor in [
         "Runtime 14 Boundary Judgment",
         "built-in fallback implementation",

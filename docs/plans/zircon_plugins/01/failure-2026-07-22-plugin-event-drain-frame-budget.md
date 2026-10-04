@@ -10,7 +10,6 @@ fixing_child_dir: docs/plans/zircon_plugins/01
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/dynamic_api/session/event_mirror.rs
-  - zircon_editor/src/core/gateway/session.rs
 tests:
   - cargo test -p zircon_runtime --lib plugin_event --locked --jobs 1 -- --nocapture --test-threads=1
   - cargo test -p zircon_editor --lib runtime_event_consumer_bounded_pump --locked --jobs 1 -- --ignored --nocapture --test-threads=1

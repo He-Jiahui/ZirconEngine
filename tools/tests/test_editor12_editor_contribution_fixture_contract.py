@@ -72,8 +72,8 @@ class EditorContributionFixtureContractTests(unittest.TestCase):
         expected_schema_by_kind = {
             "view": "zircon.editor.view/1",
             "drawer": "zircon.editor.drawer/1",
-            "menu": "zircon.editor.menu/1",
-            "command": "zircon.editor.command/1",
+            "menu": "zircon.editor.menu/2",
+            "command": "zircon.editor.command/3",
             "asset_type": "zircon.editor.asset-type/1",
             "localization_bundle": "zircon.editor.localization-bundle/1",
             "settings_page": "zircon.editor.settings-page/2",

@@ -81,3 +81,39 @@ required terminal acceptance evidence, including the 1/100/10k registration and
 selection matrices. The 2026-07-31 independent review found `0 Critical / 0
 Important / 0 Minor` in the scoped generation, matcher and plugin-unload paths.
 This failure remains `open` until the managed matrix has terminal evidence.
+
+### 2026-09-09 managed importer fixture and feature validation
+
+- The shared test fixture now registers the `ui_document_importer.zui_document`
+  descriptor with the plugin's `.zui` matcher, version, output kinds and
+  capability when `ui` is enabled. The fixture uses the same runtime loader
+  as the plugin for view, style, theme-token and component documents. The
+  matching test declares the same `ui` prerequisite. There is no partial
+  component-only implementation in a no-UI build.
+- `importer_validates_wgsl_and_reports_errors` now declares its existing
+  `graphics` feature prerequisite, so the no-default matrix does not report a
+  backend that is intentionally absent.
+- Final source matches snapshot `3317`: `asset_importer.rs` at
+  `3dbb2f47ac5e0945454199ed370dbf1afe14de384a0399843daf5f7c33ce2386`,
+  `shader_model.rs` at
+  `3f0331a75bb5e4013800a13e55123a474afb7091df0884bf3e1ea68124060409`, and
+  `typed_toml_ui.rs` at
+  `6c56ab1ac5a7e3f9f4c70c2f9336e9e4a11d4827874526a5f214bffd42af979a`.
+- Managed input
+  `runtime04-importer-tests-3317-20260909` (`12d079431895b0f0c666985f50276105746fb8204555b35c905616e66341db39`)
+  passed the exact no-default importer filter: 25 passed, 0 failed, job
+  `de8bc70d83f04cdcb6bb32dcb8ac916c`. Its receipt is retained under
+  `E:/cargo-targets/zircon-engine/cache/build-benchmarks/runtime04-importer-tests-3317-20260909/results/runtime04-importer-3317-r1.json`.
+- The same input with `ui` (job `6df95cd9841e47bd9099e0d60f06f6c4`)
+  stopped during lib-test compilation with missing editor test assets and
+  UI/graphics test imports and API drift. No target test executed. The
+  later graphics-only diagnostic (`74afcb59771e43bd8a7f9d312801b751`)
+  also stopped in compilation with 36 errors. Both are blockers, not
+  UI or shader acceptance.
+- Snapshots `3318` through `3320` and job
+  `5371b80ae57b40cf8aa2c57d0d183b42` describe a superseded component-only
+  fixture experiment and are not final-source acceptance evidence.
+- The earlier stale run `c7cb55ae3fe245fdb300214ce544f1c4` (25 passed, 2
+  failed) is superseded by this fixture and feature-boundary correction.
+  UI/WGSL execution, the declared 1/100/10k and 1/1k/1M performance
+  matrices, C0/I0/M0 review, failure return and closeout remain pending.

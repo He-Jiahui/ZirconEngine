@@ -1,10 +1,11 @@
+//! 保护测试文件的子模块职责、检查入口与源码规模；这些约束读取检出文本，具体业务结果由被列出的行为测试另行验证。
 use super::*;
 
 #[test]
 fn runtime_15_historical_oversized_test_roots_are_folder_backed() {
     let test_file_budget_parent =
         read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/mod.rs");
-    let core_framework_parent = read_runtime_src("core/framework/tests.rs");
+    let core_framework_parent = read_runtime_src("core/framework/tests/cases.rs");
     let core_framework_surface = read_runtime_src("core/framework/tests/framework_surfaces.rs");
     let core_render_product = read_runtime_src("core/framework/tests/render_product_surface.rs");
     let core_phase_queue = read_runtime_src("core/framework/tests/phase_queue_summary.rs");
@@ -120,7 +121,7 @@ fn runtime_15_historical_oversized_test_roots_are_folder_backed() {
     );
 
     for path in [
-        "core/framework/tests.rs",
+        "core/framework/tests/cases.rs",
         "core/framework/tests/framework_surfaces.rs",
         "core/framework/tests/render_product_surface.rs",
         "core/framework/tests/phase_queue_summary.rs",

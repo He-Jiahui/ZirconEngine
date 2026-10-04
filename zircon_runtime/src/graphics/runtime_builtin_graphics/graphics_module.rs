@@ -1,5 +1,5 @@
 use crate::core::framework::render::{
-    GRAPHICS_MODULE_NAME, GeometrySourceDescriptor, ShadingModelDescriptor,
+    GeometrySourceDescriptor, ShadingModelDescriptor, GRAPHICS_MODULE_NAME,
 };
 use crate::engine_module::{EngineModule, ModuleDescriptor};
 use crate::graphics::{

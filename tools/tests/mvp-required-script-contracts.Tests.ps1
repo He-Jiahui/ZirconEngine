@@ -1,3 +1,4 @@
+# CI 以具名 Pester 案例启动三个独立验收脚本，收集输出并给每项单独超时；子进程非零退出或超时均阻断控制平面门禁。
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 

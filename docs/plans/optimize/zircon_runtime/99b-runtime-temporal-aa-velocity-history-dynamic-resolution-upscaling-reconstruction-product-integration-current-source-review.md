@@ -7,7 +7,6 @@ baseline_head: be5a281c96b6dc9d33b5c9d0f2699a8bf75afcf1
 baseline_epoch: 336
 related_code:
   - zircon_runtime/src/core/framework/render/anti_alias
-  - zircon_runtime/src/core/framework/render/view_family.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/anti_alias.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/anti_alias.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs

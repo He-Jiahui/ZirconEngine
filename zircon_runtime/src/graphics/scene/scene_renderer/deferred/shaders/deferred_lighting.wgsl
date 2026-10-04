@@ -1,3 +1,4 @@
+// 此片段由 deferred shader 组装器与共享光照 include 合并；group(1) 布局须与 create_lighting_bind_group_layout 同步。
 struct SceneUniform {
     view_proj: mat4x4<f32>,
     view_proj_unjittered: mat4x4<f32>,

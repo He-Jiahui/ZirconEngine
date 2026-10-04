@@ -1,3 +1,5 @@
+//! 组织物理后端私有实现与 crate 公共 API：按 feature 纳入 Jolt，重导出稳定接口，其余解析和选择 helper 留在 crate 内。
+
 pub(crate) mod builtin;
 
 #[cfg(feature = "backend-jolt")]
@@ -29,4 +31,5 @@ pub(crate) use selection::{
 };
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

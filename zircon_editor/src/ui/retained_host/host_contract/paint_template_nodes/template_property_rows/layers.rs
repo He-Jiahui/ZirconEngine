@@ -1,3 +1,6 @@
+//! 属性标签、值外观和值文字保持局部层序，基础层级来自 fallback 已分配的正文层。
+//! 调用者须留足偏移空间，避免把边界层级直接用于局部叠层。
+
 const VALUE_GROUP_OFFSET: i32 = 1;
 const FIELD_TEXT_OFFSET: i32 = 1;
 
@@ -10,15 +13,5 @@ pub(super) fn field_text_order(field_surface_order: i32) -> i32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn property_row_orders_keep_values_above_labels_and_field_text_above_surface() {
-        let label = 30;
-        let value_group = value_group_order(label);
-
-        assert!(label < value_group);
-        assert!(value_group < field_text_order(value_group));
-    }
-}
+#[path = "tests/layers.rs"]
+mod tests;

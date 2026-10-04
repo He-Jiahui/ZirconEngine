@@ -18,7 +18,7 @@
 <!-- Workflow topology is maintained independently from milestone output records. -->
 
 > 状态：工程化细化版 v2.1（执行核心裁决：**kira**） · 优先级：P1 · 前置：[01 插件架构核心](01-plugin-architecture-core.md) M1–M2
-> 关联计划：`.codex/plans/Sound 插件核心完善计划.md` · 现状文档：`docs/zircon_plugins/sound/runtime.md`
+> 关联计划：`.codex/plans/Sound 插件核心完善计划.md` · 现状文档：`docs/crates/zircon_plugins/sound/runtime.md`
 > 参考实现：kira（执行核心，cargo 依赖）、Fyrox `fyrox-sound`（HRTF 算法参照）、Godot `servers/audio/effects`（缺口效果数值参照）
 
 ## 1. 目标与核心裁决

@@ -1,22 +1,23 @@
+# 核对目录载荷辅助函数留在独立模块。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-NATIVE_DYNAMIC_PAYLOAD = REPO_ROOT / "tools/zircon_export/native_dynamic_payload.py"
+NATIVE_DYNAMIC_PAYLOAD = REPO_ROOT / "tools/export/native_dynamic_payload.py"
 NATIVE_DYNAMIC_PAYLOAD_DIRECTORY = (
-    REPO_ROOT / "tools/zircon_export/native_dynamic_payload_directory.py"
+    REPO_ROOT / "tools/export/native_dynamic_payload_directory.py"
 )
 NATIVE_DYNAMIC_PAYLOAD_PLATFORM_BUNDLE = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_payload_platform_bundle.py"
+    / "tools/export/pipeline_report_native_dynamic_payload_platform_bundle.py"
 )
 NATIVE_DYNAMIC_PAYLOAD_BUNDLE_EVIDENCE = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_payload_bundle_evidence.py"
+    / "tools/export/pipeline_report_native_dynamic_payload_bundle_evidence.py"
 )
 NATIVE_DYNAMIC_STAGE_PAYLOAD = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_native_dynamic_stage_payload.py"
+    REPO_ROOT / "tools/export/pipeline_report_native_dynamic_stage_payload.py"
 )
 
 

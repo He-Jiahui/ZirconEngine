@@ -9,11 +9,7 @@ origin_child_dir: docs/plans/mvp/00
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/zircon-session.ps1
-  - tools/session_coordinator/cli.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/validation_tickets.py
-  - tools/session_coordinator/tests/test_validation_tickets.py
+  - tools/dev/zircon-session.ps1
 tests:
   - python -m unittest tools.session_coordinator.tests.test_validation_tickets
 resolved_at: 2026-08-04
@@ -50,7 +46,7 @@ Coordinator service 的 JSON request body 能承载大 manifest，CLI 却只有 
 - `validation submit` 提供与 inline JSON 互斥的 stdin manifest 输入，并继续使用 `json.loads`
   与 `ValidationTicketService._manifest` 做唯一结构/路径/散列校验。
 - 大于 32K、包含至少 1,849 个 `null` tombstone 的 manifest 可由标准
-  `tools/zircon-session.ps1 ... -Json` 提交并返回单一 JSON receipt。
+  `tools/dev/zircon-session.ps1 ... -Json` 提交并返回单一 JSON receipt。
 - inline 小 manifest 行为保持当前主线语义；非法 JSON、非 object 和非法值仍返回现有 typed
   coordinator error，不增加宽松截断或 fallback parser。
 

@@ -1,3 +1,4 @@
+//! 动态会话的二进制接口、宿主请求和诊断路由需与共享契约同步。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn runtime_10_dynamic_session_event_split_keeps_abi_owner_and_event_router() {
     let session_source = include_str!("../../../dynamic_api/session.rs");
@@ -5,7 +6,8 @@ fn runtime_10_dynamic_session_event_split_keeps_abi_owner_and_event_router() {
     let state_source = include_str!("../../../dynamic_api/session/state.rs");
     let construction_source = include_str!("../../../dynamic_api/session/construction.rs");
     let events_source = include_str!("../../../dynamic_api/session/events.rs");
-    let session_doc = include_str!("../../../../../docs/zircon_runtime/dynamic_api/session.md");
+    let session_doc =
+        include_str!("../../../../../docs/crates/zircon_runtime/dynamic_api/session.md");
     let runtime_10_output = include_str!(
         "../../../../../docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md"
     );

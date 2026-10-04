@@ -9,14 +9,15 @@ mod frame_codec;
 mod intent;
 mod recovery;
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 pub(super) use append::{
-    CommitPointRecord, record_commit_point, record_phase, record_prepared, record_state,
+    record_commit_point, record_phase, record_prepared, record_state, CommitPointRecord,
 };
-pub(super) use frame_codec::MAX_JOURNAL_BYTES;
 #[cfg(test)]
 pub(super) use frame_codec::encode_frame;
+pub(super) use frame_codec::MAX_JOURNAL_BYTES;
 #[cfg(test)]
 pub(super) use intent::create_intent;
 pub(super) use intent::{persist_intent, plan_intent};

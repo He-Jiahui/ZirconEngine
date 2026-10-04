@@ -187,6 +187,7 @@ pub(super) fn pack_global_sdf_build_inputs(
         }
     }
 
+    // 当前候选或资产条件不满足的页转终态体素回退；仅总页数或本批上传预算不足的页留待下帧。
     let mut selected_pages = Vec::new();
     let mut selected_objects = vec![false; objects.len()];
     let mut selected_voxel_count = 0_usize;
@@ -429,4 +430,5 @@ fn pack_ready_object(
 }
 
 #[cfg(test)]
+#[path = "packing/tests/cases.rs"]
 mod tests;

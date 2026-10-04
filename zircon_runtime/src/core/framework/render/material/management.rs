@@ -1,3 +1,5 @@
+//! 将资源流送生成的 readiness 快照投影为只读管理视图；筛选、排序和分页不修改材质资产或 GPU 资源。
+
 mod issue_index;
 pub use issue_index::{RenderMaterialManagementIssueIndex, RenderMaterialManagementIssueKind};
 mod issue_view;
@@ -58,4 +60,5 @@ use crate::core::framework::render::material::{
 use crate::core::resource::ResourceId;
 
 #[cfg(test)]
+#[path = "management/tests/cases.rs"]
 mod tests;

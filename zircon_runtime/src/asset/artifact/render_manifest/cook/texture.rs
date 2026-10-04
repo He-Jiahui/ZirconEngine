@@ -137,7 +137,7 @@ pub fn cook_texture_render_artifact(
     let width = texture.width;
     let height = texture.height;
     let mip_count = descriptor.mip_count.max(1);
-    let array_layer_count = descriptor.array_layer_count.max(1);
+    let array_layer_count = descriptor.depth_or_array_layers.max(1);
     let layout = RenderArtifactTextureLayout::new(
         RenderArtifactTextureBlockFormat::new(
             Arc::from(plan.format.as_str()),
@@ -326,5 +326,5 @@ fn validate_payload_range(
 }
 
 #[cfg(test)]
-#[path = "texture/tests.rs"]
+#[path = "texture/tests/cases.rs"]
 mod tests;

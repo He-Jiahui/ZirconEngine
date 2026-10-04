@@ -1,6 +1,7 @@
 use std::cell::Cell;
 use std::time::{Duration, Instant};
 
+// 计数器名称固定且低基数；TLS 聚合只在一次请求结束时发布，避免按段落或文本内容生成动态键。
 const TEXT_ANALYSIS_PROFILE_COUNTER_NAMES: [&str; 11] = [
     "text_analysis_request_count",
     "text_analysis_request_input_bytes",
@@ -35,10 +36,12 @@ thread_local! {
         const { Cell::new(None) };
 }
 
+/// 建立请求级 TLS 聚合；Tracy 构建始终启用，profiling 构建仅在采集期间启用。
 pub(super) fn begin(input_bytes: usize) {
     begin_enabled(input_bytes, profile_metrics_enabled());
 }
 
+/// 入口在后端返回 Result 后统一调用此函数；成功与失败都先取走并清空本次 TLS，再发布快照。
 pub(super) fn finish() {
     let Some(metrics) = take() else {
         return;
@@ -199,45 +202,5 @@ fn profile_metrics_enabled() -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        TEXT_ANALYSIS_PROFILE_COUNTER_NAMES, begin_enabled, record_bidi_metrics,
-        record_line_break_metrics, record_script_emoji_metrics, take,
-    };
-    use std::collections::HashSet;
-
-    #[test]
-    fn request_profile_distinguishes_duplicate_line_break_builds() {
-        begin_enabled(12, true);
-        record_bidi_metrics(12, 3);
-        record_script_emoji_metrics(12, 5);
-        record_line_break_metrics(12, 7);
-        record_line_break_metrics(12, 11);
-
-        let metrics = take().expect("enabled request profiling must retain one request aggregate");
-        assert_eq!(metrics.request_count, 1);
-        assert_eq!(metrics.request_input_bytes, 12);
-        assert_eq!(metrics.bidi_build_count, 1);
-        assert_eq!(metrics.bidi_input_bytes, 12);
-        assert_eq!(metrics.bidi_build_nanos, 3);
-        assert_eq!(metrics.script_emoji_build_count, 1);
-        assert_eq!(metrics.script_emoji_input_bytes, 12);
-        assert_eq!(metrics.script_emoji_build_nanos, 5);
-        assert_eq!(metrics.line_break_build_count, 2);
-        assert_eq!(metrics.line_break_input_bytes, 24);
-        assert_eq!(metrics.line_break_build_nanos, 18);
-        assert!(take().is_none(), "completion must detach the TLS aggregate");
-    }
-
-    #[test]
-    fn analysis_profile_uses_only_fixed_request_names() {
-        let unique = TEXT_ANALYSIS_PROFILE_COUNTER_NAMES
-            .into_iter()
-            .collect::<HashSet<_>>();
-        assert_eq!(unique.len(), 11);
-        assert!(
-            unique.iter().all(|name| name.starts_with("text_analysis_")),
-            "analysis profiling must use one fixed low-cardinality namespace"
-        );
-    }
-}
+#[path = "tests/analysis_profile.rs"]
+mod tests;

@@ -1,3 +1,4 @@
+//! 在原生库存及 authority 预检之后复制选定包；报告与预览沿用计划顺序和同一库存视图。
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
@@ -9,6 +10,7 @@ use super::copy::copy_native_dynamic_package_files;
 use super::package_lookup::NativePackageInventory;
 use super::report::write_native_dynamic_package_report;
 
+/// 调用方先完成选包库存、碰撞和 authority 预检；此阶段复制已入库文件并生成每包报告。
 pub(super) fn materialize_native_dynamic_packages(
     plan: &ExportBuildPlan,
     inventory: &NativePackageInventory,
@@ -53,6 +55,7 @@ pub(super) fn materialize_native_dynamic_packages(
     Ok(())
 }
 
+/// 使用同一库存估计包输出，不再次搜索磁盘或修改导出根目录。
 pub(super) fn preview_native_dynamic_packages(
     plan: &ExportBuildPlan,
     inventory: &NativePackageInventory,
@@ -99,40 +102,5 @@ fn native_dynamic_package_export_index<'a>(
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn native_materialization_indexes_package_export_rows_once() {
-        let source = include_str!("native.rs");
-        let linear_lookup = [".find(|package| package.", "package_id == package_id)"].concat();
-        let cloned_lookup = [".copied()", "\n            .cloned()"].concat();
-
-        assert!(source.contains("native_dynamic_package_export_index(plan)"));
-        assert!(source.contains("copy_native_dynamic_package_files"));
-        assert!(!source.contains("fs::copy"));
-        assert!(!source.contains(&linear_lookup));
-        assert!(!source.contains(&cloned_lookup));
-    }
-
-    #[test]
-    fn native_package_reports_preallocate_plan_bounds() {
-        let native_source = include_str!("native.rs");
-        let native_production = native_source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("native production source should remain available");
-        let materialize_source = include_str!("mod.rs");
-
-        assert_eq!(
-            native_production
-                .matches("HashSet::with_capacity(plan.native_dynamic_packages.len())")
-                .count(),
-            2
-        );
-        assert_eq!(
-            materialize_source
-                .matches(".reserve(copied_package_capacity)")
-                .count(),
-            2
-        );
-    }
-}
+#[path = "tests/native.rs"]
+mod tests;

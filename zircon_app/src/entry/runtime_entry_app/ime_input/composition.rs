@@ -1,44 +1,30 @@
-use winit::event_loop::ActiveEventLoop;
 use zircon_runtime_interface::{
-    ZrRuntimeEventV1, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_IME_CURSOR_HIDDEN_V1,
+    ZrRuntimeEventV1, ZrRuntimeViewportHandle, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZR_RUNTIME_IME_CURSOR_HIDDEN_V1,
 };
 
-use super::super::{
-    converters::{byte_slice, usize_to_u32},
-    RuntimeEntryApp,
-};
+use super::super::converters::{byte_slice, usize_to_u32};
 
-pub(super) fn forward_ime_preedit(
-    app: &mut RuntimeEntryApp,
-    event_loop: &dyn ActiveEventLoop,
+pub(super) fn ime_preedit_event(
+    viewport: ZrRuntimeViewportHandle,
     value: &str,
     cursor: Option<(usize, usize)>,
-) {
+) -> ZrRuntimeEventV1 {
     let (cursor_start, cursor_end) = cursor
         .map(|(start, end)| (usize_to_u32(start), usize_to_u32(end)))
         .unwrap_or((
             ZR_RUNTIME_IME_CURSOR_HIDDEN_V1,
             ZR_RUNTIME_IME_CURSOR_HIDDEN_V1,
         ));
-    let event = ZrRuntimeEventV1::ime_preedit(
+    ZrRuntimeEventV1::ime_preedit(
         ZIRCON_RUNTIME_ABI_VERSION_V1,
-        app.viewport,
+        viewport,
         byte_slice(value),
         cursor_start,
         cursor_end,
-    );
-    app.dispatch_runtime_event(event_loop, event);
+    )
 }
 
-pub(super) fn forward_ime_commit(
-    app: &mut RuntimeEntryApp,
-    event_loop: &dyn ActiveEventLoop,
-    value: &str,
-) {
-    let event = ZrRuntimeEventV1::ime_commit(
-        ZIRCON_RUNTIME_ABI_VERSION_V1,
-        app.viewport,
-        byte_slice(value),
-    );
-    app.dispatch_runtime_event(event_loop, event);
+pub(super) fn ime_commit_event(viewport: ZrRuntimeViewportHandle, value: &str) -> ZrRuntimeEventV1 {
+    ZrRuntimeEventV1::ime_commit(ZIRCON_RUNTIME_ABI_VERSION_V1, viewport, byte_slice(value))
 }

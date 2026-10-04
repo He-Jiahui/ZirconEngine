@@ -1,3 +1,6 @@
+//! 为动态库打开、ABI 探测和入口调用保留阶段、插件、路径、预期值与底层错误。
+//! 加载器把这些结构化错误转成报告诊断，调用方据此区分缺文件、契约不匹配和入口负载错误。
+
 use std::error::Error;
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -14,6 +17,7 @@ pub(super) const ENTRY_EXPORT_HINT: &str =
 pub(super) const ABI_CONTRACT_HINT: &str =
     "rebuild the plugin dist crate with the current Zircon plugin SDK";
 
+/// 错误所在的加载阶段；由模块种类映射到运行时或编辑器入口，供诊断展示。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PluginLoadStage {
     LibraryOpen,
@@ -43,6 +47,7 @@ impl fmt::Display for PluginLoadStage {
     }
 }
 
+/// 保留可观察的失败语境与可用的错误源，供加载报告和外层错误链诊断。
 #[derive(Debug, Error)]
 pub enum PluginLoadError {
     #[error(
@@ -182,6 +187,7 @@ impl PluginLoadError {
         }
     }
 
+    /// ABI 文本、字符串或结构解析失败时保留类型化源错误，供上层追踪原始失败。
     pub(super) fn invalid_payload(
         plugin_id: &str,
         stage: PluginLoadStage,
@@ -203,6 +209,7 @@ impl PluginLoadError {
         }
     }
 
+    /// 协商结果不满足插件声明时同时保留缺失、拒绝及插件回调诊断，供加载报告定位差异。
     pub(super) fn capability_negotiation(
         plugin_id: &str,
         stage: PluginLoadStage,
@@ -273,59 +280,5 @@ impl PluginLoadError {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn contract_mismatch_reports_stage_expected_actual_path_and_hint() {
-        let error = PluginLoadError::contract_mismatch(
-            "fixture",
-            PluginLoadStage::DescriptorProbe,
-            "abi_version",
-            "3",
-            "2",
-            Path::new("plugins/fixture/native/fixture.dll"),
-            ABI_CONTRACT_HINT,
-        );
-        let message = error.to_string();
-
-        assert!(message.contains("descriptor-probe"));
-        assert!(message.contains("expected 3, actual 2"));
-        assert!(message.contains("plugins/fixture/native/fixture.dll"));
-        assert!(message.contains(ABI_CONTRACT_HINT));
-
-        match error {
-            PluginLoadError::ContractMismatch {
-                expected, actual, ..
-            } => {
-                assert_eq!(expected, "3");
-                assert_eq!(actual, "2");
-            }
-            other => panic!("unexpected plugin load error: {other}"),
-        }
-    }
-
-    #[test]
-    fn invalid_payload_preserves_typed_source() {
-        let error = PluginLoadError::invalid_payload(
-            "fixture",
-            PluginLoadStage::RuntimeEntry,
-            "granted_capabilities",
-            Path::new("fixture.dll"),
-            ABI_CONTRACT_HINT,
-            std::ffi::CString::new("invalid\0capability")
-                .expect_err("interior NUL must be rejected"),
-        );
-
-        assert!(std::error::Error::source(&error).is_some());
-        match error {
-            PluginLoadError::InvalidPayload {
-                expected, actual, ..
-            } => {
-                assert_eq!(expected, "valid granted_capabilities");
-                assert!(actual.contains("nul byte"));
-            }
-            other => panic!("unexpected plugin load error: {other}"),
-        }
-    }
-}
+#[path = "tests/plugin_load_error.rs"]
+mod tests;

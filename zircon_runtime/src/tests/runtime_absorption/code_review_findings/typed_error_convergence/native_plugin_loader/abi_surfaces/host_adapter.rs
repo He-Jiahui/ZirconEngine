@@ -1,9 +1,10 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f5_native_host_api_adapter_uses_typed_error() {
     let host_api_adapter =
         include_str!("../../../../../../plugin/native_plugin_loader/host_api_adapter.rs");
     let host_api_adapter_abi_decode_tests = include_str!(
-        "../../../../../../plugin/native_plugin_loader/host_api_adapter/abi_decode/tests.rs"
+        "../../../../../../plugin/native_plugin_loader/host_api_adapter/abi_decode/tests/cases.rs"
     );
 
     for required in [

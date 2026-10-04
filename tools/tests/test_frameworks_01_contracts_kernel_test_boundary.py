@@ -2,7 +2,7 @@ import re
 import unittest
 from pathlib import Path
 
-from tools.runtime_domain_dependency_audit import _rust_code_view, _rust_use_paths
+from tools.audits.runtime_domain_dependency_audit import _rust_code_view, _rust_use_paths
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -30,6 +30,39 @@ def kernel_dependency_lines(source: str) -> list[int]:
 
 
 class Frameworks01ContractsKernelTestBoundaryTests(unittest.TestCase):
+    def test_state_machine_has_exactly_one_physical_implementation_owner(self) -> None:
+        kernel_root = REPO_ROOT / "zircon_runtime/crates/zr_kernel"
+        legacy_owner = REPO_ROOT / "zircon_runtime/src/core/runtime/state_machine"
+
+        if not kernel_root.exists():
+            self.assertTrue(
+                legacy_owner.is_dir(),
+                "state-machine implementation must remain materialized until the atomic "
+                "zr_kernel hard cut starts",
+            )
+            return
+
+        self.assertFalse(
+            legacy_owner.exists(),
+            "zr_kernel and core/runtime/state_machine must not survive as dual physical owners",
+        )
+
+    def test_foundational_crates_do_not_depend_on_runtime_kernel_paths(self) -> None:
+        foundational_roots = (
+            REPO_ROOT / "zircon_runtime/crates/zr_contracts",
+            REPO_ROOT / "zircon_runtime/crates/zr_math",
+            REPO_ROOT / "zircon_runtime/crates/zr_resource",
+        )
+        violations = []
+        for root in foundational_roots:
+            for path in sorted(root.rglob("*.rs")):
+                source = path.read_text(encoding="utf-8")
+                for line_number in kernel_dependency_lines(source):
+                    violations.append(
+                        f"{path.relative_to(REPO_ROOT).as_posix()}:{line_number}"
+                    )
+        self.assertEqual([], violations)
+
     def test_framework_contracts_do_not_import_runtime_kernel_implementations(self) -> None:
         framework_root = REPO_ROOT / "zircon_runtime/src/core/framework"
         violations = []

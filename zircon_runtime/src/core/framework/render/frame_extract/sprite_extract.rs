@@ -4,25 +4,34 @@ use super::super::{
 };
 use super::{resolved_phase_queue, SpritePhaseExtractInput};
 
+// 默认入口从快照字段派生阶段输入并构建 phase queue；显式相位入口可保留上游已经解析的排序策略。
 impl SpriteExtract {
     pub fn from_sprites(
         core_pipeline: CorePipelineKind,
         sprites: Vec<RenderSpriteSnapshot>,
     ) -> Self {
-        let phase_inputs = sprites
-            .iter()
-            .enumerate()
-            .map(|(sprite_index, sprite)| {
-                SpritePhaseExtractInput::new(
-                    sprite.entity,
+        let phase_queue = build_sprite_phase_queue(
+            core_pipeline,
+            sprites
+                .iter()
+                .enumerate()
+                .map(|(sprite_index, sprite)| SpritePhaseInput {
+                    entity: sprite.entity,
                     sprite_index,
-                    sprite.material_alpha_mode,
-                    sprite.z_order,
-                    sprite.transform.translation.z,
-                )
-            })
-            .collect::<Vec<_>>();
-        Self::from_sprites_and_phase_inputs(core_pipeline, sprites, phase_inputs)
+                    queue: resolved_phase_queue(&sprite.material_alpha_mode, 0, 0),
+                    z_order: sprite.z_order,
+                    depth: sprite.transform.translation.z,
+                    depth_bias: 0.0,
+                    camera_order: 0,
+                    sorting_layer: 0,
+                    y_sort: None,
+                    ui_z_index: 0,
+                }),
+        );
+        Self {
+            sprites,
+            phase_queue,
+        }
     }
 
     pub fn from_sprites_and_phase_inputs(
@@ -56,3 +65,7 @@ impl SpriteExtract {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "sprite_extract/tests/optimization_batch_ht_runtime602_tests.rs"]
+mod optimization_batch_ht_runtime602_tests;

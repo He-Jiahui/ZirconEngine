@@ -1,5 +1,5 @@
-use crate::asset::AssetReference;
 use crate::asset::project::ProjectManager;
+use crate::asset::AssetReference;
 use crate::core::resource::{
     MaterialMarker, MeshMarker, ModelMarker, ResourceHandle, ResourceId, ResourceLocator,
     ResourceMarker, ResourceScheme,
@@ -7,8 +7,8 @@ use crate::core::resource::{
 use std::sync::OnceLock;
 
 use super::{
-    BUILTIN_CUBE, BUILTIN_DEFAULT_MATERIAL, BUILTIN_MISSING_MATERIAL, BUILTIN_MISSING_MODEL,
-    SceneProjectError,
+    SceneProjectError, BUILTIN_CUBE, BUILTIN_DEFAULT_MATERIAL, BUILTIN_MISSING_MATERIAL,
+    BUILTIN_MISSING_MODEL, BUILTIN_MISSING_TEXTURE, BUILTIN_QUAD,
 };
 pub(super) fn model_handle_for_reference(
     project: &ProjectManager,
@@ -24,6 +24,7 @@ pub(super) fn material_handle_for_reference(
     handle_for_reference(project, reference)
 }
 
+// 非内置引用必须经过项目资产注册表校验；内置 locator 可直接构造稳定 ResourceId。
 pub(super) fn handle_for_reference<T: ResourceMarker>(
     project: &ProjectManager,
     reference: &AssetReference,
@@ -84,11 +85,13 @@ pub(super) fn reference_for_handle(
 fn builtin_locators() -> &'static [(ResourceId, ResourceLocator)] {
     static BUILTIN_LOCATORS: OnceLock<Vec<(ResourceId, ResourceLocator)>> = OnceLock::new();
     BUILTIN_LOCATORS.get_or_init(|| {
-        let mut locators = Vec::with_capacity(4);
+        let mut locators = Vec::with_capacity(6);
         for locator_text in [
             BUILTIN_CUBE,
             BUILTIN_DEFAULT_MATERIAL,
             BUILTIN_MISSING_MODEL,
+            BUILTIN_MISSING_TEXTURE,
+            BUILTIN_QUAD,
             BUILTIN_MISSING_MATERIAL,
         ] {
             let locator = ResourceLocator::parse(locator_text).expect("builtin locator");

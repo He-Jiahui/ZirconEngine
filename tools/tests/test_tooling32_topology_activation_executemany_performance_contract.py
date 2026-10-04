@@ -1,3 +1,4 @@
+# 核对拓扑激活批量插入节点边及新增尾部。
 from __future__ import annotations
 
 import inspect

@@ -60,5 +60,5 @@ impl fmt::Display for PresentDamage<'_> {
 }
 
 #[cfg(test)]
-#[path = "log/damage_summary_tests.rs"]
+#[path = "log/tests/damage_summary_tests.rs"]
 mod damage_summary_tests;

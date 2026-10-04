@@ -1,3 +1,4 @@
+# 核对播放实例选择域的身份分区，以及界面附着时的域切换顺序。
 from pathlib import Path
 import unittest
 

@@ -92,11 +92,12 @@ fn shared_bottom_drawer_header_pointer_click_activates_runtime_diagnostics_tab()
         .iter()
         .find(|surface| surface.key == bottom_key)
         .and_then(|surface| {
-            surface
-                .items
-                .iter()
-                .enumerate()
-                .find(|(_, item)| item.instance_id == "editor.runtime_diagnostics#1")
+            surface.items.iter().enumerate().find(|(_, item)| {
+                item.instance_id
+                    == crate::ui::workbench::view::ViewInstanceId::new(
+                        "editor.runtime_diagnostics#1",
+                    )
+            })
         })
         .map(|(index, item)| (index, item.instance_id.clone()))
         .expect("runtime diagnostics bottom drawer header item should be projected");

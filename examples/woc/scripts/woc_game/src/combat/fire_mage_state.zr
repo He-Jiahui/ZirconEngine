@@ -1,7 +1,7 @@
-// Fire Mage WOS decision plans. The WOS reducer remains the sole aura, cooldown,
-// damage and event owner; this module preserves branch ordering without RNG draws.
+// 火法命中、暴击和点燃的纯决策投影；world/state 提供权威状态并负责随机、光环、冷却、伤害与事件写入。
 var contract = %import("generated/fire_mage_contract");
 
+/// 暴击后仅描述升温、炽热连击与燃烧冷却变化；世界层按此计划处理真实光环及冷却。
 pub class HotStreakPlan {
     pub var removeHeating: bool;
     pub var applyHeating: bool;
@@ -61,12 +61,14 @@ pub class IgniteCritPlan {
     }
 }
 
+/// 火系已承诺施法的必暴条件；燃烧或火焰冲击直接成立，灼烧还须有目标且生命落入阈值。
 pub fireGuaranteedCrit(committedFire: bool, school: string, hasCombustion: bool, abilityId: string, targetPresent: bool, targetHp: int, targetMaxHp: int): bool {
     if (school != contract.fireSchool() || !committedFire) return false;
     if (hasCombustion || abilityId == "fire_blast") return true;
     return abilityId == "scorch" && targetPresent && <float>targetHp <= <float>targetMaxHp * contract.scorchExecuteHp();
 }
 
+/// 命中后先排除非构筑技能，再区分非暴击清升温、首次暴击升温及再次暴击成对授权；不抽随机数。
 pub hotStreakOnSpellHit(committedFire: bool, abilityPresent: bool, abilityId: string, crit: bool, hasHeating: bool, hasCombustion: bool, hasCombustionCooldown: bool, combustionCooldown: float): HotStreakPlan {
     var inert = new HotStreakPlan(false, false, false, false, combustionCooldown);
     if (!abilityPresent || !contract.isHotStreakBuilder(abilityId) || !committedFire) return inert;
@@ -95,8 +97,8 @@ pub personalBarrierForSpec(specPresent: bool, spec: string): PersonalBarrierPlan
     return new PersonalBarrierPlan(false, "");
 }
 
-// WOS validates specialization, then rounds `amount * ignitionPct` and passes
-// the resulting nonnegative burn into ignitePlan, exactly as igniteOnCrit does.
+// 世界层先核对专精与技能来源，再把非负伤害按 ignitionPct 舍入传给 ignitePlan；本层只返回资格。
+/// 点燃前置筛选只返回资格与比例；世界层按已结算暴击伤害舍入，再调用 ignitePlan。
 pub igniteOnCritPlan(crit: bool, amount: int, abilityPresent: bool, school: string, sourcePresent: bool, sourceIsTarget: bool, committedFire: bool, ignitionPct: float): IgniteCritPlan {
     if (!crit || amount <= 0 || !abilityPresent || school != contract.fireSchool()) return new IgniteCritPlan(false, amount, ignitionPct);
     if (!sourcePresent || sourceIsTarget || !committedFire || ignitionPct <= 0.0) return new IgniteCritPlan(false, amount, ignitionPct);
@@ -107,8 +109,7 @@ pub isFireSpender(abilityId: string, hasAbilityDefinition: bool): bool {
     return contract.isHotStreakSpender(abilityId) && hasAbilityDefinition;
 }
 
-// Returns the exact state WOS must apply when the source fireMageCauterize
-// returns zero. Aura/event mutation remains exclusively in the WOS transaction.
+// 致命伤害边界给出恢复生命与后续燃烧计划；实际生命、疲劳光环和事件由世界事务提交。
 pub cauterizePlan(isPlayer: bool, targetDead: bool, committedFire: bool, hasFatigue: bool, incoming: int, currentHp: int, maxHp: int): CauterizePlan {
     if (!isPlayer || targetDead || incoming < currentHp || !committedFire || hasFatigue) return new CauterizePlan(false, currentHp, 0);
     var restored = roundPositiveRatio(maxHp, contract.cauterizeHealDivisor());
@@ -118,8 +119,8 @@ pub cauterizePlan(isPlayer: bool, targetDead: bool, committedFire: bool, hasFati
     return new CauterizePlan(true, restored, burn);
 }
 
-// `hasOwnedIgnite` is the WOS lookup for id `ignite` and the damage source id.
-// Both source branches refresh the normal six-second/two-second schedule.
+// hasOwnedIgnite 对应同一目标、技能与伤害来源的旧点燃；新建或叠加都由世界层刷新周期。
+/// 将同来源旧点燃每跳伤害累加或新建；调用者使用 resultingValue 写回并自行刷新周期。
 pub ignitePlan(targetDead: bool, burn: int, hasOwnedIgnite: bool, existingValue: int): IgnitePlan {
     if (targetDead || burn <= 0) return new IgnitePlan(false, false, 0, existingValue);
     var perTick = roundPositiveRatio(burn, contract.igniteTickCount());
@@ -127,7 +128,7 @@ pub ignitePlan(targetDead: bool, burn: int, hasOwnedIgnite: bool, existingValue:
     return new IgnitePlan(true, hasOwnedIgnite, perTick, hasOwnedIgnite ? existingValue + perTick : perTick);
 }
 
-// JavaScript Math.round for a nonnegative integer ratio, with ties upward.
+// 对非负整数比例复现 JavaScript 的正中间向上取整；无效分母返回零。
 pub roundPositiveRatio(numerator: int, denominator: int): int {
     if (numerator <= 0 || denominator <= 0) return 0;
     var quotient = 0, remainder = numerator;

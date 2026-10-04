@@ -1,3 +1,5 @@
+//! 生产适配层收拢资源表、命令编码、提交、表面和诊断入口。
+//! 设备管理中立票据和故障时间线；过渡期场景和界面仍可借同设备原生句柄录制，再移交提交包。
 mod binding;
 mod buffer_upload_batch;
 mod command_encoder;
@@ -46,4 +48,5 @@ pub use surface_bootstrap_adapter::WgpuSurfaceAdapterBootstrap;
 pub use upload_batch::{WgpuTextureUpload, WgpuTextureUploadBatch};
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

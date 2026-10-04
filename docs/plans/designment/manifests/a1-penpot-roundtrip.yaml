@@ -1,5 +1,5 @@
 milestone: A1
-status: external-check-deferred
+status: browser-validated
 mvp_gate: design-ready
 owner_sessions:
   - root-designment02-penpot-zui-roundtrip-20260831
@@ -14,31 +14,44 @@ feature_profiles:
   - penpot-plugin-api-v2
 interface_boundaries:
   - Penpot plugin UI <-> plugin host
+  - Penpot plugins-runtime SES sandbox <-> stateful Shape host contract
   - semantic boards <-> reversible ZUI metadata
 target_dir: not-applicable
 cargo_profile: development
 storage_mode: reuse
 commands:
+  - pnpm install --offline --frozen-lockfile
   - eslint .
   - prettier --check angular.json package.json apps/zircon-zui-plugin
-  - tsc --noEmit for app, CLI, plugin, and spec targets
-  - vitest run
+  - tsc -b apps/zircon-zui-plugin/tsconfig.json --pretty false
+  - pnpm --filter zircon-zui-plugin test
+  - pnpm --filter zircon-zui-plugin run test:host-contract
+  - pnpm --filter zircon-zui-plugin run test:browser-contract
   - build-plugin.mjs --plugin=zircon-zui-plugin
   - ng build zircon-zui-plugin
   - HTTP probe manifest.json and assets/plugin.js
-  - Chrome iframe visual probe at 420x520 and 320x520
+  - Puppeteer visual and overflow probe at 420x520 and 320x520
 focused_tests:
-  - 12 parser, projection, reconcile, and bridge asset unit tests
+  - 40 parser, projection, reconcile, capture-guard, and bridge asset tests
+  - official plugins-runtime SES host contract executing the bundled plugin entry
+  - official current Penpot browser canvas contract with mocked RPC/WebSocket backend
   - responsive plugin panel metrics
 product_evidence:
+  - SES host contract created 8 semantic boards and 18 shapes, exported 2 projected edits, and preserved runtime-only fields
+  - assets/plugin.js 59870 bytes and HTTP text/javascript 200
+  - Angular initial production bundle 185.35 kB
   - evidence/screenshots/a1-zui-plugin-420.png
   - evidence/screenshots/a1-zui-plugin-320.png
+  - evidence/screenshots/a1-penpot-canvas-roundtrip.png
+  - evidence/a1-penpot-browser-contract.json
 failures_repaired:
   - Angular Node runtime selection
   - warning visual state and narrow-width layout
   - projection module ownership split
   - semantic component metadata consistency guard
+  - free/auto child geometry materialization and mount slot override sync
+  - cross-parent source/current layout context resolution
 deferred_external_checks:
-  - Real Penpot canvas import/edit/export requires a running local Penpot instance
+  - Local self-hosted Penpot backend deployment, authentication, and persistence at https://localhost:3449 remain environment-deferred; the current official Penpot frontend canvas path is browser-validated with repository-owned mocks and no remote writes
 unlocks:
-  - A2-contract-validation
+  - A2-C contract validation

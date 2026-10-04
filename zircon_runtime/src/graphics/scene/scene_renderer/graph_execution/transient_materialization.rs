@@ -9,7 +9,7 @@ use crate::render_graph::{
 use crate::rhi::{BufferDesc, TextureDesc};
 
 use super::{
-    TransientResourcePool, render_graph_execution_resources::RenderGraphExecutionResources,
+    render_graph_execution_resources::RenderGraphExecutionResources, TransientResourcePool,
 };
 
 pub(super) fn materialize_transient_texture_slots(
@@ -34,6 +34,22 @@ pub(super) fn materialize_transient_texture_slots(
         let Some(lifetime) = graph.resource_lifetime(allocation.resource) else {
             continue;
         };
+        if std::env::var_os("ZR_TRACE_RENDER_GRAPH").is_some() {
+            eprintln!(
+                "ZR_TRACE materialize-texture allocation={} resource={:?} name={} imported={} persistent={} alias={} sparse={} has_view={} has_physical={} physical_desc={:?} desc={:?}",
+                allocation.allocation_id.index(),
+                allocation.resource,
+                lifetime.name,
+                lifetime.imported,
+                lifetime.usage.persistent,
+                lifetime.is_texture_view_alias(),
+                lifetime.is_sparse_reserved_texture(),
+                resources.has_texture_view(&lifetime.name),
+                resources.physical_texture(&lifetime.name).is_some(),
+                resources.physical_texture_desc(&lifetime.name),
+                lifetime.desc,
+            );
+        }
         if !should_materialize_texture_lifetime(resources, lifetime)? {
             continue;
         }
@@ -53,6 +69,12 @@ pub(super) fn materialize_transient_texture_slots(
         for lifetime in lifetimes {
             resources.bind_owned_texture_view(lifetime.name.clone(), &backing_name)?;
         }
+    }
+    if std::env::var_os("ZR_TRACE_RENDER_GRAPH").is_some() {
+        eprintln!(
+            "ZR_TRACE materialize-texture-result bound_views={:?}",
+            resources.bound_texture_view_names().collect::<Vec<_>>(),
+        );
     }
     materialize_persistent_texture_lifetimes(resources, device, graph, pool)?;
     Ok(())
@@ -226,6 +248,7 @@ fn texture_desc_matches_compiler_allocation(left: &TextureDesc, right: &TextureD
     left.width == right.width
         && left.height == right.height
         && left.depth == right.depth
+        && left.array_layers == right.array_layers
         && left.mip_levels == right.mip_levels
         && left.sample_count == right.sample_count
         && left.format == right.format

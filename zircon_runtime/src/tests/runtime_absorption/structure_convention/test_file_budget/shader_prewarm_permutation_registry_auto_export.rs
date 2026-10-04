@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对着色器预热的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 const STATUS: &str = "render_plan08_build_tool_shader_permutation_registry_auto_export_focused_tests_passed_renderdoc_deferred";
@@ -5,7 +6,7 @@ const STATUS: &str = "render_plan08_build_tool_shader_permutation_registry_auto_
 #[test]
 fn runtime_15_shader_prewarm_permutation_registry_auto_export_is_wired() {
     let build_tool = read_zircon_build_sources();
-    let build_prewarm = read_repo("tools/zircon_build_shader_prewarm.py");
+    let build_prewarm = read_repo("tools/build/zircon_build_shader_prewarm.py");
     let build_tests = read_repo("tools/tests/test_zircon_build_shader_prewarm.py");
     let plan_08 = read_repo(
         "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
@@ -55,7 +56,7 @@ fn runtime_15_shader_prewarm_permutation_registry_auto_export_is_wired() {
 
     for (path, source) in [
         (
-            "tools/zircon_build_shader_prewarm.py",
+            "tools/build/zircon_build_shader_prewarm.py",
             build_prewarm.as_str(),
         ),
         (

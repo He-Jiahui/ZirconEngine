@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码投影区域、营地、道路、码头与手工地形修改，生成可核对的 JSON 和 Zr 内容。
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -312,6 +313,7 @@ function pointArrayConstant(text, name) {
   return points;
 }
 
+// 将嵌套区域、营地、道路和码头数据展平为有边界检查的 Zr 查询函数。
 function renderZr(catalog) {
   const {
     constants,
@@ -635,6 +637,7 @@ function renderRoadPointCoordinate(name, label, roads, field) {
   return lines.join('\n');
 }
 
+// 随地形访问函数生成源码哨兵值检查。
 function renderContractTest(catalog) {
   const {
     constants,

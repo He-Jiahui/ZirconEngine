@@ -13,19 +13,25 @@ use zircon_runtime_interface::ui::v2::{
     UiV2ResolvedStyleSheet, UiV2StyleDeclarationBlock,
 };
 
+use attribute_delta::{patch_runtime_style_attributes, RuntimeStyleLayers};
 use rule_index::ResolvedRuleTerminalIndex;
-use runtime_state::{
-    apply_retained_runtime_state_attributes, collect_pseudo_states, collect_runtime_pseudo_states,
-    dirty_for_runtime_style_delta, merge_dirty_flags_into,
-};
+use runtime_state::{collect_pseudo_states, collect_runtime_pseudo_states, merge_dirty_flags_into};
 use tokens::{
     merge_block_with_token_sources, remove_style_token_sources, resolve_value_map,
     style_token_path, style_token_sources_for_block,
 };
 
+mod attribute_delta;
 mod rule_index;
 mod runtime_state;
 mod tokens;
+
+#[cfg(test)]
+#[path = "style/tests/rule_capacity_tests.rs"]
+mod rule_capacity_tests;
+#[cfg(test)]
+#[path = "style/tests/selector_path_tests.rs"]
+mod selector_path_tests;
 
 /// Resolves inline node values through the document's canonical token registry.
 ///
@@ -79,10 +85,8 @@ impl UiV2StyleResolver {
         document: &UiV2AssetDocument,
         arena: &UiV2NodeArena,
     ) -> Result<UiV2ResolvedStyleSheet, UiV2AssetError> {
-        let rules = collect_rules(document)?
-            .into_iter()
-            .filter(|rule| !rule.uses_pseudo_state())
-            .collect::<Vec<_>>();
+        let mut rules = collect_rules(document)?;
+        retain_rules_by_pseudo_state(&mut rules, false);
         Self::resolve_with_rules(document, arena, &rules, false, None)
     }
 
@@ -91,10 +95,8 @@ impl UiV2StyleResolver {
         arena: &UiV2NodeArena,
         theme: &crate::ui::theme::UiThemeRegistry,
     ) -> Result<UiV2ResolvedStyleSheet, UiV2AssetError> {
-        let rules = collect_rules(document)?
-            .into_iter()
-            .filter(|rule| !rule.uses_pseudo_state())
-            .collect::<Vec<_>>();
+        let mut rules = collect_rules(document)?;
+        retain_rules_by_pseudo_state(&mut rules, false);
         Self::resolve_with_rules(document, arena, &rules, false, Some(theme))
     }
 
@@ -187,10 +189,8 @@ impl UiV2RuntimeStyleIndex {
         document: &UiV2AssetDocument,
         theme: Option<&crate::ui::theme::UiThemeRegistry>,
     ) -> Result<Self, UiV2AssetError> {
-        let mut rules = collect_rules(document)?
-            .into_iter()
-            .filter(ResolvedRule::uses_pseudo_state)
-            .collect::<Vec<_>>();
+        let mut rules = collect_rules(document)?;
+        retain_rules_by_pseudo_state(&mut rules, true);
         for rule in &mut rules {
             rule.style_tokens = style_token_sources_for_block(&rule.set, document);
             resolve_value_map(&mut rule.set.self_values, &document.tokens, theme, 0);
@@ -400,41 +400,6 @@ impl UiV2RuntimeStyleIndex {
             }
         }
 
-        let mut next_attributes = base_attributes.clone();
-        next_attributes.extend(node_style.self_values.clone());
-        if let Some(current) = path.last() {
-            apply_retained_runtime_state_attributes(&mut next_attributes, &current.states);
-        }
-        let mut next_style_overrides = self
-            .base_style_overrides
-            .get(&node_id)
-            .cloned()
-            .unwrap_or_default();
-        for key in node_style.self_values.keys() {
-            if self
-                .base_style_overrides
-                .get(&node_id)
-                .and_then(|values| values.get(key))
-                .is_some_and(|override_value| base_attributes.get(key) != Some(override_value))
-            {
-                continue;
-            }
-            if let Some(value) = next_attributes.get(key).cloned() {
-                let _ = next_style_overrides.insert(key.clone(), value);
-            }
-        }
-        let mut next_style_tokens = self
-            .base_style_tokens
-            .get(&node_id)
-            .cloned()
-            .unwrap_or_default();
-        for key in node_style.self_values.keys() {
-            remove_style_token_sources(&mut next_style_tokens, key);
-        }
-        for (key, source) in &node_style.style_tokens {
-            let _ = next_style_tokens.insert(key.clone(), source.clone());
-        }
-
         let node = tree
             .nodes
             .get_mut(&node_id)
@@ -442,17 +407,22 @@ impl UiV2RuntimeStyleIndex {
         let Some(metadata) = node.template_metadata.as_mut() else {
             return Ok(None);
         };
-        if metadata.attributes == next_attributes
-            && metadata.style_overrides == next_style_overrides
-            && metadata.style_tokens == next_style_tokens
-        {
+        let Some(dirty) = patch_runtime_style_attributes(
+            metadata,
+            RuntimeStyleLayers {
+                base_attributes,
+                base_overrides: self.base_style_overrides.get(&node_id),
+                base_tokens: self.base_style_tokens.get(&node_id),
+                rule_values: &node_style.self_values,
+                rule_tokens: &node_style.style_tokens,
+                active_states: &path
+                    .last()
+                    .expect("runtime style path contains the target node")
+                    .states,
+            },
+        ) else {
             return Ok(None);
-        }
-
-        let dirty = dirty_for_runtime_style_delta(&metadata.attributes, &next_attributes);
-        metadata.attributes = next_attributes;
-        metadata.style_overrides = next_style_overrides;
-        metadata.style_tokens = next_style_tokens;
+        };
         if mark_dirty {
             if dirty.text && !node.dirty.text {
                 node.layout_cache.advance_text_layout_revision();
@@ -475,7 +445,12 @@ impl UiV2RuntimeStyleApplyReport {
 }
 
 fn collect_rules(document: &UiV2AssetDocument) -> Result<Vec<ResolvedRule>, UiV2AssetError> {
-    let mut rules = Vec::new();
+    let rule_count: usize = document
+        .stylesheets
+        .iter()
+        .map(|stylesheet| stylesheet.rules.len())
+        .sum();
+    let mut rules = Vec::with_capacity(rule_count);
     let mut order = 0usize;
     for stylesheet in &document.stylesheets {
         for rule in &stylesheet.rules {
@@ -496,6 +471,10 @@ fn collect_rules(document: &UiV2AssetDocument) -> Result<Vec<ResolvedRule>, UiV2
     }
     rules.sort_by_key(|rule| (rule.specificity, rule.order));
     Ok(rules)
+}
+
+fn retain_rules_by_pseudo_state(rules: &mut Vec<ResolvedRule>, include_pseudo_state: bool) {
+    rules.retain(|rule| rule.uses_pseudo_state() == include_pseudo_state);
 }
 
 fn merge_runtime_rule(style: &mut UiV2ResolvedStyle, rule: &ResolvedRule) {
@@ -629,26 +608,23 @@ fn runtime_selector_path(
     component_states: &crate::ui::surface::UiSurfaceComponentStateStore,
     node_id: UiNodeId,
 ) -> Result<Vec<SelectorPathNode>, UiTreeError> {
-    let mut ids = Vec::new();
+    let mut path = Vec::new();
     let mut current = Some(node_id);
     while let Some(current_id) = current {
         let node = tree
             .nodes
             .get(&current_id)
             .ok_or(UiTreeError::MissingNode(current_id))?;
-        ids.push(current_id);
-        current = node.parent;
-    }
-    ids.reverse();
-
-    let mut path = Vec::with_capacity(ids.len());
-    for (index, id) in ids.into_iter().enumerate() {
-        let node = tree.nodes.get(&id).ok_or(UiTreeError::MissingNode(id))?;
         path.push(SelectorPathNode::from_tree_node(
             node,
-            component_states.get(id),
-            index == 0,
+            component_states.get(current_id),
+            false,
         ));
+        current = node.parent;
+    }
+    path.reverse();
+    if let Some(host) = path.first_mut() {
+        host.is_host = true;
     }
     Ok(path)
 }
@@ -707,7 +683,7 @@ impl UiV2SelectorMatchExt for UiSelector {
 
 fn matches_segment(segment: &UiSelectorSegment, node: &SelectorPathNode) -> bool {
     segment.tokens.iter().all(|token| match token {
-        UiSelectorToken::Type(component) => node.component == *component,
+        UiSelectorToken::Type(component) => component == "*" || node.component == *component,
         UiSelectorToken::Class(class_name) => node.classes.iter().any(|class| class == class_name),
         UiSelectorToken::Id(control_id) => node.control_id.as_ref() == Some(control_id),
         UiSelectorToken::State(state) => node.states.iter().any(|value| value == state),
@@ -723,9 +699,12 @@ fn matches_tree_node_segment_ignoring_state(
     let metadata = node.template_metadata.as_ref();
     segment.tokens.iter().all(|token| match token {
         UiSelectorToken::State(_) => true,
-        UiSelectorToken::Type(component) => metadata.map_or(component.is_empty(), |metadata| {
-            metadata.component.as_str() == component.as_str()
-        }),
+        UiSelectorToken::Type(component) => {
+            component == "*"
+                || metadata.map_or(component.is_empty(), |metadata| {
+                    metadata.component.as_str() == component.as_str()
+                })
+        }
         UiSelectorToken::Class(class_name) => metadata
             .is_some_and(|metadata| metadata.classes.iter().any(|class| class == class_name)),
         UiSelectorToken::Id(control_id) => {
@@ -740,7 +719,7 @@ fn matches_tree_node_segment_ignoring_state(
 fn matches_segment_ignoring_state(segment: &UiSelectorSegment, node: &SelectorPathNode) -> bool {
     segment.tokens.iter().all(|token| match token {
         UiSelectorToken::State(_) => true,
-        UiSelectorToken::Type(component) => node.component == *component,
+        UiSelectorToken::Type(component) => component == "*" || node.component == *component,
         UiSelectorToken::Class(class_name) => node.classes.iter().any(|class| class == class_name),
         UiSelectorToken::Id(control_id) => node.control_id.as_ref() == Some(control_id),
         UiSelectorToken::Part(_) => false,

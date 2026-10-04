@@ -1,3 +1,4 @@
+use super::super::rust_source_view::production_section;
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
 #[test]
@@ -7,7 +8,8 @@ fn runtime_text_bound_model_updates_are_bounded_child_owner() {
     let transaction =
         read_runtime_src("ui/dispatch/input_manager/bound_text_model_updates/transaction.rs");
     let profile = read_runtime_src("ui/dispatch/input_manager/bound_text_model_updates/profile.rs");
-    let tests = read_runtime_src("ui/dispatch/input_manager/bound_text_model_updates/tests.rs");
+    let tests =
+        read_runtime_src("ui/dispatch/input_manager/bound_text_model_updates/tests/cases.rs");
     let secure_store = read_runtime_src("ui/surface/secure_text_values.rs");
     let runtime_manifest = read_repo("zircon_runtime/Cargo.toml");
     let interface = read_repo("zircon_runtime_interface/src/ui/text/model_update.rs");
@@ -118,13 +120,10 @@ fn runtime_text_bound_model_updates_are_bounded_child_owner() {
             );
         }
     }
+    let profile_production = production_section(&profile);
     for forbidden_profile_field in ["request_id", "tree_id", "node_id", "source_text"] {
         assert!(
-            !profile
-                .split("#[cfg(test)]")
-                .next()
-                .unwrap_or(&profile)
-                .contains(forbidden_profile_field),
+            !profile_production.contains(forbidden_profile_field),
             "profile owner must not publish `{forbidden_profile_field}`"
         );
     }
@@ -144,7 +143,7 @@ fn runtime_text_bound_model_updates_are_bounded_child_owner() {
             transaction.as_str(),
         ),
         (
-            "ui/dispatch/input_manager/bound_text_model_updates/tests.rs",
+            "ui/dispatch/input_manager/bound_text_model_updates/tests/cases.rs",
             tests.as_str(),
         ),
         ("ui/surface/secure_text_values.rs", secure_store.as_str()),
@@ -156,8 +155,17 @@ fn runtime_text_bound_model_updates_are_bounded_child_owner() {
         );
     }
 
+    assert_contains_all(
+        "structure convention",
+        &structure,
+        &[
+            "runtime_09_15_focused_bound_model_update_owner_implemented_static_unvalidated",
+            "secure pending plaintext in the Surface secure store.",
+            "secure_pending_drop_zeroization_implemented_unvalidated",
+            "persistent_secure_document_zeroization_open",
+        ],
+    );
     for (label, source) in [
-        ("structure convention", structure.as_str()),
         ("review findings", findings.as_str()),
         ("Text 08 plan", text_plan.as_str()),
     ] {

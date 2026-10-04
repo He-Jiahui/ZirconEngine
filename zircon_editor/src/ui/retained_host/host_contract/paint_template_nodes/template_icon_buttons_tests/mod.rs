@@ -1,7 +1,0 @@
-mod adaptive;
-mod commands;
-mod geometry;
-mod identity;
-mod paint;
-mod style;
-mod support;

@@ -5,7 +5,7 @@ use crate::text::{
     RichTextFormat, RichTextParseError,
 };
 
-use super::{RichTextParser, parser_registry::parse_rich_text as try_parse_rich_text};
+use super::{parser_registry::parse_rich_text as try_parse_rich_text, RichTextParser};
 
 fn parse_rich_text(markup: &str, format: RichTextFormat) -> RichParseResult {
     try_parse_rich_text(markup, format).expect("test rich source fits parser budgets")

@@ -1,5 +1,7 @@
+//! 自动攻击标量和固定场景计数契约；采样顺序由调用者管理，产品世界的挥击与投射物由独立状态投影处理。
 // Auto-attack scalar outcomes. Random samples enter this function only after
 // the shared seeded RNG has consumed them in the reference order.
+/// 测试自动攻击的计时、距离、命中、伤害与资源换算；输入已经是调用方选择的采样结果。
 pub metric(
     kind: int,
     first: float,
@@ -51,6 +53,7 @@ pub metric(
 
 // Five-lane c5_auto_attack ordering. It deliberately models samples rather
 // than inventing a second RNG; the authoritative RNG remains kernel/rng.zr.
+/// 以固定五条攻击通道核对排队攻击与随机抽取顺序，不创建或提交世界实体。
 pub scenarioContract(seed: int, rounds: int): float {
     if (seed != 1019 || rounds != 12) {
         throw "auto-attack scenario contract marker is invalid";

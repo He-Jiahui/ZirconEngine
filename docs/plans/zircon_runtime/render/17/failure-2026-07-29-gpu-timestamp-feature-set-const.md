@@ -73,3 +73,26 @@ into the `zr_rhi_wgpu` crate. The timer `related_code` anchor above now names th
 existing post-cut file. This repair changes failure ownership metadata only: it does
 not modify the live timer implementation or add managed compile/GPU evidence, so the
 failure remains open.
+
+### 2026-09-01 current-source managed validation
+
+The post-cut implementation constructs `GPU_TIMESTAMP_REQUIRED_FEATURES` with the
+const-safe bitflags `union` API and keeps the capability gate all-or-nothing. A
+managed validation copy proved the owning `zr_rhi_wgpu` regression green:
+
+- copy: `4c2d9e851eaf447ebc2e68e00e9b68e0`
+- immutable input manifest: `b1432da58092a086b35b08ad5b01b366749bc492f86a555107e2e636e96275ac`
+- run: `b8d5180e82be4bde809919fb47ad0411`
+- command: `cargo +1.94.1 test -p zr_rhi_wgpu --lib render_perf_gpu_timer_capability_gate --locked --jobs 1 -- --nocapture --test-threads=1`
+- result: exit 0; 1 passed, 0 failed, 410 filtered out
+
+The required Runtime-level gate has not yet run. Copy
+`a53a4a41151e484896632e0ddfc1985f` failed closed during `closure_planning`, before
+Cargo, with `validation_copy_compile_time_resource_missing`:
+
+- source: `zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/animation_resource.rs`
+- missing resource: `zircon_runtime/src/core/resource/tests.rs`
+
+Those paths belong to another Runtime failure chain and were not modified here.
+This failure therefore remains open pending repair of that stale compile-time resource
+edge, followed by the Runtime and Plugins09 upward gates listed above.

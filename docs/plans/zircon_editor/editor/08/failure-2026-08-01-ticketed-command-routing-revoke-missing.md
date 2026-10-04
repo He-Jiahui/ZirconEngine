@@ -103,3 +103,32 @@ native contribution provenance + callback lease quiescence；最终受控 Window
   provider 与 enabled state 保持不变。9 个精确源文件 `rustfmt --check` 与 scoped `git diff --check`
   通过；未运行 Cargo。view/layout/session/document-toolkit 与 native unload lease 仍是 open gate，
   failure 不转 fixed、不回传。
+- 2026-09-08：状态 `command-contract-test-import-repaired_validation-pending`。
+  受管 Windows 接口库验证 `c34098ad9f3740918f1415b061977924` 使用输入
+  `interface-library-consumers-3128-20260908`，manifest
+  `7b82a7b3c9f8b9d93ce1e184e44c984a5e2e8cae1b1cd72fa7331d555d69706b`，
+  剩余 3 个编译错误且实际执行 0 个测试。其中
+  `command_schema_v3_roundtrips_a_versioned_execution_contract` 缺失规范
+  `EditorCommandExecutionContract` 的测试模块导入。该文件编辑前与 HEAD 一致，
+  已通过 transfer `48931bcb4fb24f5f94b807917e97f54a` 接管；前置快照 `3133`，
+  修复源码快照 `3134`，SHA-256
+  `4d1bf7af9f70beefc105cbb9012dc0a11922245e2655b3d47a754856c9850d6c`。
+  仅补齐类型导入，保留 command/3、codec、4096/8192/250 预算及往返断言。
+  日志位于受管输入的 `results/interface-library-3128.log`；编译回执不是测试通过。
+  其余两个编译错误归属 App07 模板反序列化测试。完整 command routing、Editor12
+  enable-disable、view/layout/session/document-toolkit 和 native callback quiescence
+  验收仍待完成；本条继续 open，未回传、未提交。
+- 2026-09-08：状态 `command-contract-tests-passed_product-gates-pending`。
+  后继受管 Windows 作业 `f95f64a6a06345d3940884140d9e3e50` 在
+  `interface-library-consumers-3137-20260908`（manifest
+  `484b58e5512bb5619941864b4906bbfaaeef0cff78f89267586fe6e4b00d2b63`）
+  使用 locked/no-default-features/static 执行完整接口库测试。`3134` 源码被精确叠加，
+  7 个 `editor_contribution::tests` 全部实际通过，包括 command/3 execution contract。
+  全库为 739 passed、23 failed、101 ignored；原始证据位于该输入的
+  `results/interface-library-3137.{json,log}`。本结果确认导入修复，未替代完整
+  routing/revoke、Editor12、native quiescence、独立审查或正式 fixing-Session 票据。
+- 2026-09-08：独立源码审查返回 Critical 0 / Important 0 / Moderate 0，报告
+  `.codex/tmp/interface-app-editor-3137-review-20260908-result.txt`，所选源码与记录哈希
+  审查前后匹配且无 reviewer ownership 冲突。实际 3133 -> 3134 的语义差异仅为测试模块
+  `use super` 增加 `EditorCommandExecutionContract`；顶部 `EditorCommandId` 导入早已存在。
+  报告顶部导入概述以此精确 diff 为准。完整产品验收与正式 closeout 仍未完成。

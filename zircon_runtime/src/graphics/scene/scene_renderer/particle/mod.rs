@@ -1,3 +1,5 @@
+//! CPU 抽取粒子与世界 HUD 的 billboard 场景绘制层；透明颜色与历史速度分别接入 render graph。
+//! GPU 粒子绘制由插件回调路径提供，本层消费已有精灵快照及相机/历史状态。
 mod build_particle_velocity_vertices;
 mod build_particle_vertices;
 mod particle_renderer;
@@ -7,29 +9,5 @@ mod particle_vertex;
 pub(crate) use particle_renderer::ParticleRenderer;
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn particle_pipeline_keeps_world_hud_billboards_transparent_and_depth_read_only() {
-        let source = include_str!("particle_renderer/construct.rs");
-
-        assert!(
-            source.contains("depth_write_enabled: Some(false)"),
-            "particle/world-HUD billboards must not write scene depth"
-        );
-        assert!(
-            source.contains("depth_compare: Some(wgpu::CompareFunction::LessEqual)"),
-            "ordinary particle billboards should still be depth-tested against opaque scene geometry"
-        );
-        assert!(
-            source.contains("zircon-particle-overlay-pipeline")
-                && source.contains("wgpu::CompareFunction::Always")
-                && source.contains("depth_compare: Some(depth_compare)"),
-            "world-HUD overlay billboards should have a non-depth-tested color path"
-        );
-        assert!(
-            source.contains("src_factor: wgpu::BlendFactor::SrcAlpha")
-                && source.contains("dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha"),
-            "particle/world-HUD billboards should render through the transparent blend path"
-        );
-    }
-}
+#[path = "tests/cases.rs"]
+mod tests;

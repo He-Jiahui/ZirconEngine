@@ -135,6 +135,7 @@ fn insert_arena_node(
         .with_anchor(layout.anchor)
         .with_pivot(layout.pivot)
         .with_position(layout.position)
+        .with_layout_padding(layout.padding)
         .with_input_policy(layout.input_policy.unwrap_or(input_policy))
         .with_layout_boundary(layout.layout_boundary)
         .with_layout_stretch_axes(layout.stretch_width, layout.stretch_height)
@@ -144,15 +145,19 @@ fn insert_arena_node(
         .with_template_metadata(UiTemplateNodeMetadata {
             component: node.component.clone(),
             control_id: node.control_id.clone(),
+            source_path: node.source_path.clone(),
+            source_node_id: node.source_node_id.clone(),
+            instance_path: node.instance_path.clone(),
             pixel_snapping: node.pixel_snapping,
             classes: node.classes.clone(),
             attributes,
+            localized_text_references: BTreeMap::new(),
             slot_attributes,
             style_overrides,
             style_tokens,
             bindings: node.events.clone(),
             a11y: Default::default(),
-            widget: Default::default(),
+            widget: node.widget.clone().unwrap_or_default(),
         });
     if container.is_scrollable() {
         tree_node = tree_node.with_scroll_state(Default::default());

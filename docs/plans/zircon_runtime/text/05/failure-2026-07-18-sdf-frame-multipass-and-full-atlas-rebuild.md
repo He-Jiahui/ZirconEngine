@@ -65,3 +65,61 @@ failure、advance/decoration、glyph bitmap、slot page与GPU plan没有共享�
 - 第二次静态审查又前向修复 stable bake metadata 分配、stable failure map 分配、no-fallback Vec 搬移和 renderer generation owner 四项问题。`sdf_atlas.rs` 已把 failure 映射拆到 49 行 child，根 owner 732 行；局部 rustfmt 和全树 `git diff --check` 通过。
 
 当前不标记 fixed：1/100/10k glyph 稳定 300 帧 counter/p50/p95/RSS、managed current-source Cargo、reload/cancel/device-loss 组合门、真实 WGPU/RenderDoc 像素与请求的新截图仍待 coordinator receipt 后验收。没有生成新截图，也没有把已有 PNG 当作本轮证据；后续图片只能写入 `docs/tests/runtime/text`，不得写入 `target`。
+
+### 2026-09-08 current API test repair
+
+- Fixing Session: `failure-roll-01a07160-text05`, baseline 601. Source snapshot 3109
+  (`076b4795f5f049f0a410b90537731c44`) preserves the exact two-file repair;
+  pre-edit snapshot 3108 preserves both HEAD-clean inputs and this failure record.
+  Ownership transfer `9de63034af094860b058bd51bfd769ed` and attribution
+  `32141f308090487cb8c4670849b57c61` retain the original provenance.
+- `zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/plan.rs`
+  now passes a borrowed glyph-key slice to `sdf_atlas_run_for_glyph_keys`.
+  The allocated, missing, page-limit and oversized keys and their failure counts are unchanged.
+  SHA-256: `ea9e5bb0a08c8fd889b7155d3e24c8254f76854e523a5dd2d665197ac862d85e`.
+- `zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/compiled_frame.rs`
+  supplies `None` for the optional `ScreenSpaceUiTextFrameProductGeneration` in four
+  `replace`/`matches` calls. This retains deep artifact/source-range comparisons;
+  reusing a synthetic generation would incorrectly skip those negative assertions.
+  SHA-256: `2f34e3f3acb80645a1976e35f290a1a191dc38bc68adeb5c4c3827b87ad7cc83`.
+- Original managed graphics-library job `94560adfdb1a45daa7e2d5785ae6677c`, input
+  `E:/cargo-targets/zircon-engine/cache/build-benchmarks/runtime-graphics-text-test-support-3067-20260908`,
+  reported 67 compiler errors and ran zero tests. Its
+  `results/graphics-library-compiler-diagnostics.json` contains one argument-type error in
+  the atlas test and four missing-argument errors in the compiled-frame tests above.
+  Scoped rustfmt and `git diff --check` pass for snapshot 3109; neither is dynamic acceptance.
+- Independent review through the existing coordinator-efficiency task returned
+  Critical 0 / Important 0 / Moderate 0 for snapshot 3109. The read-only result is
+  `.codex/tmp/text-foundation-3114-review-20260908-result.txt`; selected hashes were
+  unchanged before and after review, and the reviewer owns none of these source files.
+- Managed graphics-library job `76c956f0eebe4ea0bf184b7e1b9f2cfe` used input
+  `runtime-graphics-text-ui-support-3113-20260908`, digest
+  `2a2096322809192c3da2dc6bab482a88efee8d4a1c54956c25c49c4de74062f3`.
+  It reported 30 compiler errors and zero tests; none came from snapshot 3109's two paths.
+  UI product job `83453a2550a34f61808210e167d29be8` on the same input stopped at four
+  UI/Text production compile errors, before `runtime_ui_text_render_contract` tests ran.
+  These results do not satisfy the original dynamic gates.
+- Source snapshot 3120 adds the canonical `UiFrame`, `UiTextAlign`, `UiTextDirection`,
+  `UiTextWrap` and `UiTextWritingMode` imports to the shared renderer fixture
+  `zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests/support.rs`.
+  The four unresolved-name diagnostics were reproduced by the graphics-library job above.
+  Native/SDF routing, explicit-font, writing-mode and fallback fixture values are unchanged.
+  Current SHA-256 is `6c09ef99104a968aae2874644e0013cb110c039a054dbfc5981b850b12841e0f`.
+  Pre-edit snapshot 3119 preserves the prior `d9f2606c...` bytes, proven identical to HEAD
+  after the repository rustfmt normalization; transfer `9e347968fda44f5c9bb49c869daa1858`
+  and attribution `0386bc2cf5474016ac094a7a0af538f6` bind this incremental scope.
+  Snapshot 3120 still requires its own managed run and independent review.
+- The original 1/100/10k stable-frame, GPU, reload/device-loss and pixel gates remain
+  required. This lifecycle stays `open`; no `failure return` or closeout is claimed.
+- The subsequent source 3120 / record 3125 review through the existing coordinator-efficiency
+  task returned Critical 0 / Important 0 / Moderate 0. The result is preserved in
+  `.codex/tmp/runtime22-text-3122-review-20260908-result.txt`; canonical import visibility,
+  unchanged fixture behavior, preimage provenance and current/attributed/ObjectStore hashes
+  were checked before and after review.
+- Managed graphics job `77612283b03b47af9d69d7c58500c323` used
+  `runtime-graphics-text-consumers-3120-20260908`, digest
+  `e6d232251b629d6bf665204dcc7bd222c8f958ed13a04854490f48c6ee442a00`.
+  The preserved `results/graphics-library-3120.{json,log}` report 25 external compiler errors,
+  zero tests, and no remaining diagnostic in the 3120 source path. This replaces the
+  incremental-review-pending statement above, but supplies no scale, GPU, reload/device-loss,
+  product/pixel or formal fixing-Session acceptance. The lifecycle remains open.

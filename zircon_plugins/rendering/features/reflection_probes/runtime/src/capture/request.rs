@@ -1,10 +1,15 @@
+use std::path::Path;
+
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use zircon_runtime::asset::artifact::IBL_SOURCE_CUBEMAP_STAGING_EXTENSION;
+use zircon_runtime::asset::AssetUri;
 use zircon_runtime::core::framework::render::{
     source_cubemap_mip_count, IblBakeArtifactRequest, IblBakeKey, RenderEnvironmentCaptureRequest,
     RenderEnvironmentCaptureRequestError, RenderLayerSet, SourceCubemapPrefilterQuality,
     SOURCE_CUBEMAP_MAX_FACE_SIZE, SOURCE_CUBEMAP_MIN_FACE_SIZE,
 };
+use zircon_runtime::core::resource::ResourceScheme;
 
 pub const REFLECTION_PROBE_CAPTURE_REQUEST_SCHEMA_VERSION: u32 = 2;
 
@@ -32,7 +37,7 @@ impl ReflectionProbeCaptureQuality {
 pub struct ReflectionProbeCaptureRequest {
     pub schema_version: u32,
     pub probe_id: String,
-    pub output_uri: String,
+    pub output_uri: AssetUri,
     pub position: [f32; 3],
     pub near_plane: f32,
     pub far_plane: f32,
@@ -51,14 +56,14 @@ pub struct ReflectionProbeCaptureRequest {
 impl ReflectionProbeCaptureRequest {
     pub fn new(
         probe_id: impl Into<String>,
-        output_uri: impl Into<String>,
+        output_uri: AssetUri,
         position: [f32; 3],
         source_revision: u64,
     ) -> Self {
         Self {
             schema_version: REFLECTION_PROBE_CAPTURE_REQUEST_SCHEMA_VERSION,
             probe_id: probe_id.into(),
-            output_uri: output_uri.into(),
+            output_uri,
             position,
             near_plane: 0.1,
             far_plane: 200.0,
@@ -114,9 +119,7 @@ impl ReflectionProbeCaptureRequest {
         if self.probe_id.trim().is_empty() {
             return Err(ReflectionProbeCaptureRequestError::EmptyProbeId);
         }
-        if self.output_uri.trim().is_empty() {
-            return Err(ReflectionProbeCaptureRequestError::EmptyOutputUri);
-        }
+        validate_reflection_probe_capture_output_uri(&self.output_uri)?;
         if !self.position.iter().all(|value| value.is_finite()) {
             return Err(ReflectionProbeCaptureRequestError::NonFinitePosition);
         }
@@ -181,7 +184,7 @@ impl ReflectionProbeCaptureRequest {
         .with_capture_layer_mask(RenderLayerSet::from_scene_schema_v1_mask(
             self.capture_layer_mask,
         ))
-        .with_persistence_output_uri(self.output_uri.clone())?;
+        .with_persistence_output_uri(self.output_uri.to_string())?;
         if let Some(source_hash) = self.source_hash {
             request =
                 request.with_persistence_artifact_request(self.ibl_bake_request(source_hash))?;
@@ -201,14 +204,45 @@ impl ReflectionProbeCaptureRequest {
     }
 }
 
+pub(super) fn validate_reflection_probe_capture_output_uri(
+    output_uri: &AssetUri,
+) -> Result<(), ReflectionProbeCaptureRequestError> {
+    if output_uri.scheme() != ResourceScheme::Res {
+        return Err(
+            ReflectionProbeCaptureRequestError::UnsupportedOutputUriScheme(output_uri.scheme()),
+        );
+    }
+    if output_uri.label().is_some() {
+        return Err(ReflectionProbeCaptureRequestError::OutputUriHasLabel);
+    }
+    let has_zcube_extension = Path::new(output_uri.path())
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| {
+            extension.eq_ignore_ascii_case(IBL_SOURCE_CUBEMAP_STAGING_EXTENSION)
+        });
+    if !has_zcube_extension {
+        return Err(
+            ReflectionProbeCaptureRequestError::UnsupportedOutputUriExtension(
+                output_uri.path().to_owned(),
+            ),
+        );
+    }
+    Ok(())
+}
+
 #[derive(Clone, Debug, Error, PartialEq)]
 pub enum ReflectionProbeCaptureRequestError {
     #[error("unsupported reflection-probe capture schema version {0}")]
     UnsupportedSchemaVersion(u32),
     #[error("reflection-probe capture probe_id must not be empty")]
     EmptyProbeId,
-    #[error("reflection-probe capture output_uri must not be empty")]
-    EmptyOutputUri,
+    #[error("reflection-probe capture output_uri must use res://, got {0:?}")]
+    UnsupportedOutputUriScheme(ResourceScheme),
+    #[error("reflection-probe capture output_uri must not contain a subasset label")]
+    OutputUriHasLabel,
+    #[error("reflection-probe capture output_uri must end in .zcube, got {0}")]
+    UnsupportedOutputUriExtension(String),
     #[error("reflection-probe capture position must be finite")]
     NonFinitePosition,
     #[error("reflection-probe capture near plane must be finite and positive, got {0}")]
@@ -226,114 +260,5 @@ pub enum ReflectionProbeCaptureRequestError {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn capture_request_json_roundtrip_preserves_quality_and_clip_contract() {
-        let request = ReflectionProbeCaptureRequest::new(
-            "probe-lobby",
-            "lib://probes/lobby.zcube",
-            [1.0, 2.0, 3.0],
-            7,
-        )
-        .with_clip_planes(0.25, 512.0)
-        .with_face_size(256)
-        .with_quality(ReflectionProbeCaptureQuality::High)
-        .with_capture_layer_mask(0x0000_0042);
-
-        let json = request.encode_json().unwrap();
-        let decoded = ReflectionProbeCaptureRequest::decode_json(&json).unwrap();
-
-        assert_eq!(decoded, request);
-        assert_eq!(decoded.capture_layer_mask, 0x0000_0042);
-        let ibl_request = decoded.ibl_bake_request([1, 2, 3, 4]);
-        assert_eq!(ibl_request.source_mip_count(), 9);
-        assert_eq!(ibl_request.pmrem_mip_count(), 8);
-
-        let render_request = decoded.render_request().unwrap();
-        assert_eq!(render_request.capture_id(), "probe-lobby");
-        assert_eq!(render_request.scene_revision(), 7);
-        assert_eq!(render_request.environment_revision(), 7);
-        assert_eq!(render_request.output_generation(), 7);
-        assert_eq!(
-            render_request.quality(),
-            SourceCubemapPrefilterQuality::High
-        );
-        assert_eq!(
-            render_request
-                .capture_layer_mask()
-                .to_scene_schema_v1_mask_lossy(),
-            0x0000_0042
-        );
-        assert_eq!(
-            render_request.persistence_output_uri(),
-            Some("lib://probes/lobby.zcube")
-        );
-        assert!(render_request.persistence_artifact_request().is_none());
-        assert_eq!(decoded.source_hash(), None);
-
-        let hashed = decoded
-            .clone()
-            .with_source_hash([9, 8, 7, 6])
-            .render_request()
-            .unwrap();
-        assert_eq!(
-            decoded.clone().with_source_hash([9, 8, 7, 6]).source_hash(),
-            Some([9, 8, 7, 6])
-        );
-        assert_eq!(
-            hashed.persistence_artifact_request(),
-            Some(decoded.ibl_bake_request([9, 8, 7, 6]))
-        );
-        let runtime_cache_request = hashed
-            .runtime_cache_artifact_request()
-            .expect("hashed capture must request runtime-cache persistence");
-        assert_eq!(runtime_cache_request.bake_key(), hashed.ibl_bake_key());
-        assert_ne!(
-            runtime_cache_request.bake_key(),
-            hashed.persistence_artifact_request().unwrap().bake_key()
-        );
-        assert_eq!(
-            runtime_cache_request.required_contents(),
-            hashed
-                .persistence_artifact_request()
-                .unwrap()
-                .required_contents()
-        );
-
-        let explicit = decoded
-            .render_request_with_artifact_request(ibl_request)
-            .unwrap();
-        assert_eq!(explicit.persistence_artifact_request(), Some(ibl_request));
-    }
-
-    #[test]
-    fn capture_request_rejects_non_power_of_two_face_size() {
-        let request =
-            ReflectionProbeCaptureRequest::new("probe", "lib://probes/probe.zcube", [0.0; 3], 1)
-                .with_face_size(192);
-
-        assert_eq!(
-            request.validate(),
-            Err(ReflectionProbeCaptureRequestError::InvalidFaceSize(192))
-        );
-    }
-
-    #[test]
-    fn capture_request_hard_rejects_v1_without_an_explicit_capture_mask() {
-        let v1 = r#"{
-            "schema_version": 1,
-            "probe_id": "legacy",
-            "output_uri": "lib://probes/legacy.zcube",
-            "position": [0.0, 0.0, 0.0],
-            "near_plane": 0.1,
-            "far_plane": 200.0,
-            "face_size": 128,
-            "quality": "normal",
-            "source_revision": 1
-        }"#;
-
-        assert!(ReflectionProbeCaptureRequest::decode_json(v1).is_err());
-    }
-}
+#[path = "tests/request.rs"]
+mod tests;

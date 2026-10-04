@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[2]
 ATLAS = ROOT / "zircon_runtime/src/ui/icon_atlas/atlas.rs"
 SVG = ROOT / "zircon_runtime/src/ui/icon_atlas/svg.rs"
 
-
+# 读取 SVG 图集计划，验证有界缓存只复用文档解析结果，不改变解析器行为契约。
 class RuntimeUiSvgDocumentCacheContractTests(unittest.TestCase):
     def test_atlas_plan_uses_bounded_cached_svg_parser(self):
         atlas_source = ATLAS.read_text(encoding="utf-8")

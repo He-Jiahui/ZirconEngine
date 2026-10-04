@@ -12,8 +12,8 @@ use super::discovery_refresh::{
     NativePluginDiscoveryRefreshScratchReservation, NativePluginDiscoveryRefreshSink,
 };
 use super::{
-    NativePluginCandidate, NativePluginLoadManifest, NativePluginLoadManifestEntry,
-    NativePluginLoadReport, NativePluginLoader,
+    NativePluginArtifactAuthority, NativePluginCandidate, NativePluginLoadManifest,
+    NativePluginLoadManifestEntry, NativePluginLoadReport, NativePluginLoader,
 };
 
 const NATIVE_PLUGIN_LOAD_MANIFEST_PATH: &str = "plugins/native_plugins.toml";
@@ -30,24 +30,91 @@ impl NativePluginLoader {
         &self,
         export_root: impl AsRef<Path>,
     ) -> NativePluginLoadReport {
+        self.load_all_from_load_manifest_with_authority(
+            export_root,
+            &NativePluginArtifactAuthority::deny_all(),
+        )
+    }
+
+    /// Validates the selected manifest and native artifact inventory without admitting or
+    /// executing a DLL. This is the export-build preflight path.
+    pub fn validate_runtime_from_load_manifest(
+        &self,
+        export_root: impl AsRef<Path>,
+    ) -> NativePluginLoadReport {
         let report = self.discover_from_load_manifest(export_root);
-        self.load_all_candidates(report)
+        self.validate_candidates_for_module_kinds(
+            report,
+            &[crate::plugin::PluginModuleKind::Runtime],
+        )
+    }
+
+    /// Validates the selected editor manifest and native artifact inventory without admitting
+    /// or executing a DLL.
+    pub fn validate_editor_from_load_manifest(
+        &self,
+        export_root: impl AsRef<Path>,
+    ) -> NativePluginLoadReport {
+        let report = self.discover_from_load_manifest(export_root);
+        self.validate_candidates_for_module_kinds(
+            report,
+            &[crate::plugin::PluginModuleKind::Editor],
+        )
+    }
+
+    pub fn load_all_from_load_manifest_with_authority(
+        &self,
+        export_root: impl AsRef<Path>,
+        authority: &NativePluginArtifactAuthority,
+    ) -> NativePluginLoadReport {
+        let report = self.discover_from_load_manifest(export_root);
+        self.load_all_candidates(report, authority)
     }
 
     pub fn load_runtime_from_load_manifest(
         &self,
         export_root: impl AsRef<Path>,
     ) -> NativePluginLoadReport {
+        self.load_runtime_from_load_manifest_with_authority(
+            export_root,
+            &NativePluginArtifactAuthority::deny_all(),
+        )
+    }
+
+    pub fn load_runtime_from_load_manifest_with_authority(
+        &self,
+        export_root: impl AsRef<Path>,
+        authority: &NativePluginArtifactAuthority,
+    ) -> NativePluginLoadReport {
         let report = self.discover_from_load_manifest(export_root);
-        self.load_candidates_for_module_kinds(report, &[crate::plugin::PluginModuleKind::Runtime])
+        self.load_candidates_for_module_kinds(
+            report,
+            &[crate::plugin::PluginModuleKind::Runtime],
+            authority,
+        )
     }
 
     pub fn load_editor_from_load_manifest(
         &self,
         export_root: impl AsRef<Path>,
     ) -> NativePluginLoadReport {
+        self.load_editor_from_load_manifest_with_authority(
+            export_root,
+            &NativePluginArtifactAuthority::deny_all(),
+        )
+    }
+
+    pub fn load_editor_from_load_manifest_with_authority(
+        &self,
+        export_root: impl AsRef<Path>,
+        authority: &NativePluginArtifactAuthority,
+    ) -> NativePluginLoadReport {
         let report = self.discover_from_load_manifest(export_root);
-        self.load_candidates_for_module_kinds(report, &[crate::plugin::PluginModuleKind::Editor])
+        self.load_candidates_for_module_kinds(
+            report,
+            &[crate::plugin::PluginModuleKind::Editor],
+            authority,
+        )
     }
 }
 
@@ -382,28 +449,5 @@ fn normalize_path(path: PathBuf) -> PathBuf {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::parse_bounded_load_manifest;
-
-    #[test]
-    fn bounded_load_manifest_rejects_an_entry_before_unbounded_vector_growth() {
-        let source = r#"
-[[plugins]]
-id = "weather"
-path = "plugins/weather"
-manifest = "plugins/weather/plugin.toml"
-
-[[plugins]]
-id = "climate"
-path = "plugins/climate"
-manifest = "plugins/climate/plugin.toml"
-"#;
-
-        let error = parse_bounded_load_manifest(source, 1)
-            .expect_err("second selection entry must exceed the admitted candidate capacity");
-
-        assert!(error
-            .to_string()
-            .contains("exceeds the admitted candidate budget"));
-    }
-}
+#[path = "tests/discover_load_manifest.rs"]
+mod tests;

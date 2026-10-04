@@ -1,0 +1,2130 @@
+penpot_dependency_sources = []
+penpot_original_source = "[asset]\nkind = \"view\"\nid = \"res://ui/tests/reactbits_auth_onboarding_components.zui\"\nversion = 2\ndisplay_name = \"ReactBits Authentication And Onboarding Components\"\n\n[tokens]\n\"surface.canvas\" = \"#0f1117\"\n\"surface.panel\" = \"#171b24\"\n\"surface.elevated\" = \"#1d2330\"\n\"surface.inset\" = \"#11151d\"\n\"border.default\" = \"#2a3342\"\n\"border.strong\" = \"#3a4658\"\n\"text.primary\" = \"#f4f7fb\"\n\"text.secondary\" = \"#a9b4c5\"\n\"text.muted\" = \"#718096\"\n\"accent.primary\" = \"#8b7cff\"\n\"accent.info\" = \"#5da9ff\"\n\"status.success\" = \"#55d6a0\"\n\"status.warning\" = \"#f4bd62\"\n\"status.error\" = \"#ff7d8a\"\n\n[root]\nnode = \"root\"\n\n[nodes.root]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ReactBitsAuthOnboardingRoot\"\nclasses = [\"rb-auth-onboarding-fixture\"]\nprops = {\n  background_color = \"$surface.canvas\",\n  foreground_color = \"$text.primary\",\n  fixture_data_only = true,\n  reference_primary = \"https://pro.reactbits.dev/docs/app-ui/authentication/authentication-1\",\n  reference_supporting = [\n    \"https://pro.reactbits.dev/docs/app-ui/authentication/authentication-6\",\n    \"https://pro.reactbits.dev/docs/app-ui/onboarding/onboarding-7\",\n    \"https://pro.reactbits.dev/docs/app-ui/onboarding/onboarding-4\",\n  ],\n  responsive_wide = \"a centered sign-in card and a workspace onboarding form share a balanced two-column flow\",\n  responsive_compact = \"the cards yield width and stack while labels remain start-aligned and progress stays end-aligned\",\n  responsive_mobile = \"one scroll owner exposes the auth fields before the onboarding steps and preserves primary actions\",\n  layout_modes = [\"centered-auth\", \"provider-row\", \"verification-code\", \"horizontal-stepper\", \"workspace-slug\", \"windowed-workspace-list\"],\n  accessibility_label = \"Authentication and workspace onboarding reference surface\",\n}\nlayout = {\n  clip = true,\n  input_policy = \"Receive\",\n  width = { min = 360, preferred = 1120, max = 1440, stretch = \"Stretch\" },\n  height = { min = 520, preferred = 820, max = 1040, stretch = \"Stretch\" },\n  container = { kind = \"VerticalBox\", gap = 10 },\n  padding = { left = 14, right = 14, top = 14, bottom = 14 },\n}\nchildren = [{ node = \"header\" }, { node = \"body\" }]\n\n[nodes.header]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"ReactBitsAuthHeader\"\nprops = { background_color = \"$surface.panel\", border_color = \"$border.default\", border_width = 1, corner_radius = 8 }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 52, preferred = 52, max = 52, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 8 }, padding = { left = 12, right = 12, top = 8, bottom = 8 } }\nchildren = [{ node = \"brand\" }, { node = \"header_context\" }, { node = \"locale\" }]\n\n[nodes.brand]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsAuthBrand\"\nprops = { text = \"Zircon access\", text_key = \"fixture.auth.header.brand\", icon = \"package\", icon_size = \"m\", button_variant = \"text\", foreground_color = \"$text.primary\", corner_radius = 6, text_align = \"left\", input_interactive = true, input_focusable = true, accessibility_label = \"Zircon access home\" }\nlayout = { width = { min = 144, preferred = 176, max = 220, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.header_context]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsAuthHeaderContext\"\nprops = { text = \"Sign in or create a workspace\", text_key = \"fixture.auth.header.context\", foreground_color = \"$text.secondary\", font_size = 10, text_overflow = \"elide\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.locale]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsAuthLocale\"\nprops = { text = \"English (US)\", text_key = \"fixture.auth.header.locale\", button_variant = \"outlined\", foreground_color = \"$text.secondary\", border_color = \"$border.strong\", border_width = 1, corner_radius = 6, text_align = \"right\", input_interactive = true, input_focusable = true, accessibility_label = \"Choose language\" }\nlayout = { width = { min = 104, preferred = 126, max = 148, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" }, padding = { left = 8, right = 8, top = 5, bottom = 5 } }\n\n[nodes.body]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"ReactBitsAuthBody\"\nprops = { background_color = \"$surface.inset\", border_color = \"$border.default\", border_width = 1, corner_radius = 8, scroll_owner = \"auth-onboarding-body\", accessibility_label = \"Authentication and onboarding content\" }\nlayout = { clip = true, width = { stretch = \"Stretch\" }, height = { min = 0, stretch = \"Stretch\" }, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = 10, scrollbar_visibility = \"Auto\" }, padding = { left = 12, right = 12, top = 12, bottom = 12 } }\nchildren = [{ node = \"main\" }]\n\n[nodes.main]\ncomponent = \"Stack\"\ncontrol_id = \"ReactBitsAuthOnboardingMain\"\nprops = { direction = { xs = \"column\", md = \"row\" }, spacing = { xs = 2, md = 2 } }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 560 } }\nchildren = [\n  { node = \"auth_card\", slot = { layout = { width = { min = 0, preferred = 420, weight = 1, stretch = \"Stretch\" } } } },\n  { node = \"onboarding_card\", slot = { layout = { width = { min = 0, preferred = 620, weight = 1, stretch = \"Stretch\" } } } },\n]\n\n[nodes.auth_card]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ReactBitsAuthCard\"\nclasses = [\"rb-auth-card\"]\nprops = { background_color = \"$surface.panel\", border_color = \"$border.default\", border_width = 1, corner_radius = 10, accessibility_label = \"Sign in form\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 560 }, container = { kind = \"VerticalBox\", gap = 10 }, padding = { left = 18, right = 18, top = 18, bottom = 18 } }\nchildren = [\n  { node = \"auth_mark\" },\n  { node = \"auth_heading\" },\n  { node = \"provider_row\" },\n  { node = \"auth_divider\" },\n  { node = \"email_field\" },\n  { node = \"password_field\" },\n  { node = \"auth_options\" },\n  { node = \"auth_actions\" },\n  { node = \"terms\" },\n  { node = \"verification\" },\n]\n\n[nodes.auth_mark]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsAuthMark\"\nprops = { text = \"Z\", text_key = \"fixture.auth.mark\", foreground_color = \"$accent.primary\", font_size = 24, font_weight = 700, text_align = \"center\", accessibility_label = \"Zircon\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30, preferred = 34, max = 38, stretch = \"Fixed\" } }\n\n[nodes.auth_heading]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ReactBitsAuthHeading\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 60, preferred = 68, max = 80, stretch = \"Fixed\" }, container = { kind = \"VerticalBox\", gap = 4 } }\nchildren = [{ node = \"auth_title\" }, { node = \"auth_subtitle\" }]\n\n[nodes.auth_title]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsAuthTitle\"\nprops = { text = \"Welcome back\", text_key = \"fixture.auth.signin.title\", foreground_color = \"$text.primary\", font_size = 17, font_weight = 650, text_align = \"center\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 22, preferred = 24, max = 28, stretch = \"Fixed\" } }\n\n[nodes.auth_subtitle]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsAuthSubtitle\"\nprops = { text = \"Use your account to continue to the workspace.\", text_key = \"fixture.auth.signin.subtitle\", foreground_color = \"$text.secondary\", font_size = 10, wrap = \"word\", text_align = \"center\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30, preferred = 34, max = 42, stretch = \"Fixed\" } }\n\n[nodes.provider_row]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"ReactBitsAuthProviderRow\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 38, preferred = 40, max = 44, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 6 } }\nchildren = [{ node = \"provider_google\" }, { node = \"provider_github\" }, { node = \"provider_sso\" }]\n\n[nodes.provider_google]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsAuthProviderGoogle\"\nprops = { text = \"Google\", text_key = \"fixture.auth.provider.google\", icon = \"check-circle\", icon_size = \"m\", button_variant = \"outlined\", foreground_color = \"$text.primary\", border_color = \"$border.strong\", border_width = 1, corner_radius = 6, text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"Continue with Google\" }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.provider_github]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsAuthProviderGithub\"\nprops = { text = \"GitHub\", text_key = \"fixture.auth.provider.github\", icon = \"package\", icon_size = \"m\", button_variant = \"outlined\", foreground_color = \"$text.primary\", border_color = \"$border.strong\", border_width = 1, corner_radius = 6, text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"Continue with GitHub\" }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.provider_sso]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsAuthProviderSso\"\nprops = { text = \"SSO\", text_key = \"fixture.auth.provider.sso\", icon = \"info\", icon_size = \"m\", button_variant = \"outlined\", foreground_color = \"$text.primary\", border_color = \"$border.strong\", border_width = 1, corner_radius = 6, text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"Continue with single sign-on\" }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.auth_divider]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsAuthDivider\"\nprops = { text = \"or continue with email\", text_key = \"fixture.auth.divider\", foreground_color = \"$text.muted\", font_size = 9, text_align = \"center\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 18, preferred = 20, max = 22, stretch = \"Fixed\" } }\n\n[nodes.email_field]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ReactBitsAuthEmailField\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 66, preferred = 70, max = 78, stretch = \"Fixed\" }, container = { kind = \"VerticalBox\", gap = 4 } }\nchildren = [{ node = \"email_label\" }, { node = \"email_input\" }]\n\n[nodes.email_label]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsAuthEmailLabel\"\nprops = { text = \"Work email\", text_key = \"fixture.auth.email.label\", foreground_color = \"$text.primary\", font_size = 10, font_weight = 600, text_align = \"left\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 16, preferred = 16, max = 18, stretch = \"Fixed\" } }\n\n[nodes.email_input]\ncomponent = \"TextField\"\ncontrol_id = \"ReactBitsAuthEmailInput\"\nprops = { component_role = \"auth-field\", value_text = \"builder@example.com\", value_key = \"fixture.auth.email.value\", placeholder = \"you@example.com\", placeholder_key = \"fixture.auth.email.placeholder\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, accessibility_label = \"Work email\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, padding = { left = 9, right = 9, top = 6, bottom = 6 } }\n\n[nodes.password_field]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ReactBitsAuthPasswordField\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 66, preferred = 70, max = 78, stretch = \"Fixed\" }, container = { kind = \"VerticalBox\", gap = 4 } }\nchildren = [{ node = \"password_label\" }, { node = \"password_input\" }]\n\n[nodes.password_label]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsAuthPasswordLabel\"\nprops = { text = \"Password\", text_key = \"fixture.auth.password.label\", foreground_color = \"$text.primary\", font_size = 10, font_weight = 600, text_align = \"left\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 16, preferred = 16, max = 18, stretch = \"Fixed\" } }\n\n[nodes.password_input]\ncomponent = \"TextField\"\ncontrol_id = \"ReactBitsAuthPasswordInput\"\nprops = { component_role = \"auth-field\", value_text = \"••••••••••\", value_key = \"fixture.auth.password.value\", placeholder = \"Enter your password\", placeholder_key = \"fixture.auth.password.placeholder\", secret = true, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, accessibility_label = \"Password\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, padding = { left = 9, right = 9, top = 6, bottom = 6 } }\n\n[nodes.auth_options]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"ReactBitsAuthOptions\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28, preferred = 30, max = 34, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 8 } }\nchildren = [{ node = \"remember\" }, { node = \"forgot\" }]\n\n[nodes.remember]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsAuthRemember\"\nprops = { text = \"Keep me signed in\", text_key = \"fixture.auth.remember\", button_variant = \"text\", selected = true, foreground_color = \"$text.secondary\", text_align = \"left\", input_interactive = true, input_focusable = true, accessibility_label = \"Keep me signed in\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.forgot]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsAuthForgot\"\nprops = { text = \"Forgot password?\", text_key = \"fixture.auth.forgot\", button_variant = \"text\", foreground_color = \"$accent.info\", text_align = \"right\", input_interactive = true, input_focusable = true, accessibility_label = \"Recover password\" }\nlayout = { width = { min = 116, preferred = 132, max = 156, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.auth_actions]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ReactBitsAuthActions\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 76, preferred = 82, max = 90, stretch = \"Fixed\" }, container = { kind = \"VerticalBox\", gap = 6 } }\nchildren = [{ node = \"signin\" }, { node = \"create_account\" }]\n\n[nodes.signin]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsAuthSignIn\"\nprops = { text = \"Sign in\", text_key = \"fixture.auth.action.signin\", button_variant = \"contained\", background_color = \"$accent.primary\", foreground_color = \"$text.primary\", corner_radius = 6, text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"Sign in\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 34, preferred = 36, max = 40, stretch = \"Fixed\" } }\n\n[nodes.create_account]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsAuthCreateAccount\"\nprops = { text = \"Create an account\", text_key = \"fixture.auth.action.create\", button_variant = \"text\", foreground_color = \"$text.secondary\", corner_radius = 6, text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"Create an account\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32, preferred = 34, max = 38, stretch = \"Fixed\" } }\n\n[nodes.terms]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsAuthTerms\"\nprops = { text = \"By continuing, you agree to the **workspace terms** and privacy policy.\", text_key = \"fixture.auth.terms\", rich_text_format = \"markdown_inline_v1\", foreground_color = \"$text.muted\", font_size = 9, wrap = \"word\", text_align = \"center\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28, preferred = 32, max = 40, stretch = \"Fixed\" } }\n\n[nodes.verification]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ReactBitsAuthVerification\"\nprops = { background_color = \"$surface.elevated\", border_color = \"$border.default\", border_width = 1, corner_radius = 8, display = { xs = \"none\", md = \"flex\" }, accessibility_label = \"Verification code follow-up\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 112, preferred = 124, max = 140, stretch = \"Fixed\" }, container = { kind = \"VerticalBox\", gap = 6 }, padding = { left = 10, right = 10, top = 8, bottom = 8 } }\nchildren = [{ node = \"verification_heading\" }, { node = \"otp_row\" }, { node = \"verification_note\" }]\n\n[nodes.verification_heading]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsAuthVerificationHeading\"\nprops = { text = \"Verify your sign-in\", text_key = \"fixture.auth.verification.title\", foreground_color = \"$text.primary\", font_size = 11, font_weight = 650, text_align = \"left\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 16, preferred = 18, max = 20, stretch = \"Fixed\" } }\n\n[nodes.otp_row]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"ReactBitsAuthOtpRow\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30, preferred = 34, max = 38, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 5 } }\nchildren = [{ node = \"otp_1\" }, { node = \"otp_2\" }, { node = \"otp_3\" }, { node = \"otp_4\" }, { node = \"otp_5\" }, { node = \"otp_6\" }]\n\n[nodes.otp_1]\ncomponent = \"TextField\"\ncontrol_id = \"ReactBitsAuthOtp1\"\nprops = { value_text = \"4\", value_key = \"fixture.auth.otp.1\", input_interactive = true, input_focusable = true, text_align = \"center\", accessibility_label = \"Verification digit 1 of 6\" }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, padding = { left = 4, right = 4, top = 4, bottom = 4 } }\n\n[nodes.otp_2]\ncomponent = \"TextField\"\ncontrol_id = \"ReactBitsAuthOtp2\"\nprops = { value_text = \"8\", value_key = \"fixture.auth.otp.2\", input_interactive = true, input_focusable = true, text_align = \"center\", accessibility_label = \"Verification digit 2 of 6\" }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, padding = { left = 4, right = 4, top = 4, bottom = 4 } }\n\n[nodes.otp_3]\ncomponent = \"TextField\"\ncontrol_id = \"ReactBitsAuthOtp3\"\nprops = { value_text = \"2\", value_key = \"fixture.auth.otp.3\", input_interactive = true, input_focusable = true, text_align = \"center\", accessibility_label = \"Verification digit 3 of 6\" }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, padding = { left = 4, right = 4, top = 4, bottom = 4 } }\n\n[nodes.otp_4]\ncomponent = \"TextField\"\ncontrol_id = \"ReactBitsAuthOtp4\"\nprops = { value_text = \"0\", value_key = \"fixture.auth.otp.4\", input_interactive = true, input_focusable = true, text_align = \"center\", accessibility_label = \"Verification digit 4 of 6\" }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, padding = { left = 4, right = 4, top = 4, bottom = 4 } }\n\n[nodes.otp_5]\ncomponent = \"TextField\"\ncontrol_id = \"ReactBitsAuthOtp5\"\nprops = { value_text = \"1\", value_key = \"fixture.auth.otp.5\", input_interactive = true, input_focusable = true, text_align = \"center\", accessibility_label = \"Verification digit 5 of 6\" }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, padding = { left = 4, right = 4, top = 4, bottom = 4 } }\n\n[nodes.otp_6]\ncomponent = \"TextField\"\ncontrol_id = \"ReactBitsAuthOtp6\"\nprops = { value_text = \"6\", value_key = \"fixture.auth.otp.6\", input_interactive = true, input_focusable = true, text_align = \"center\", accessibility_label = \"Verification digit 6 of 6\" }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, padding = { left = 4, right = 4, top = 4, bottom = 4 } }\n\n[nodes.verification_note]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsAuthVerificationNote\"\nprops = { text = \"Code sent to **builder@example.com** · resend in 00:24\", text_key = \"fixture.auth.verification.note\", rich_text_format = \"markdown_inline_v1\", foreground_color = \"$text.secondary\", font_size = 9, text_overflow = \"elide\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 16, preferred = 18, max = 22, stretch = \"Fixed\" } }\n\n[nodes.onboarding_card]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ReactBitsOnboardingCard\"\nclasses = [\"rb-onboarding-card\"]\nprops = { background_color = \"$surface.panel\", border_color = \"$border.default\", border_width = 1, corner_radius = 10, accessibility_label = \"Workspace onboarding form\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 560 }, container = { kind = \"VerticalBox\", gap = 9 }, padding = { left = 16, right = 16, top = 16, bottom = 16 } }\nchildren = [{ node = \"onboarding_heading\" }, { node = \"stepper\" }, { node = \"workspace_name_row\" }, { node = \"slug_row\" }, { node = \"use_case_heading\" }, { node = \"use_case_row\" }, { node = \"team_size_row\" }, { node = \"workspace_picker\" }, { node = \"onboarding_actions\" }]\n\n[nodes.onboarding_heading]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"ReactBitsOnboardingHeading\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 54, preferred = 58, max = 64, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 8 } }\nchildren = [{ node = \"onboarding_heading_stack\" }, { node = \"onboarding_progress\" }]\n\n[nodes.onboarding_heading_stack]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ReactBitsOnboardingHeadingStack\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, container = { kind = \"VerticalBox\", gap = 2 } }\nchildren = [{ node = \"onboarding_title\" }, { node = \"onboarding_subtitle\" }]\n\n[nodes.onboarding_title]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsOnboardingTitle\"\nprops = { text = \"Create your workspace\", text_key = \"fixture.onboarding.title\", foreground_color = \"$text.primary\", font_size = 15, font_weight = 650, text_align = \"left\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 20, preferred = 22, max = 26, stretch = \"Fixed\" } }\n\n[nodes.onboarding_subtitle]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsOnboardingSubtitle\"\nprops = { text = \"A few details help your team find the right starting point.\", text_key = \"fixture.onboarding.subtitle\", foreground_color = \"$text.secondary\", font_size = 10, wrap = \"word\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28, preferred = 30, max = 34, stretch = \"Fixed\" } }\n\n[nodes.onboarding_progress]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsOnboardingProgress\"\nprops = { text = \"Step 2 of 4\", text_key = \"fixture.onboarding.progress\", foreground_color = \"$accent.info\", font_size = 10, text_align = \"right\" }\nlayout = { width = { min = 72, preferred = 88, max = 104, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.stepper]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"ReactBitsOnboardingStepper\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32, preferred = 36, max = 40, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 5 } }\nchildren = [{ node = \"step_profile\" }, { node = \"step_workspace\" }, { node = \"step_team\" }, { node = \"step_finish\" }]\n\n[nodes.step_profile]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsOnboardingStepProfile\"\nprops = { text = \"1  Profile\", text_key = \"fixture.onboarding.step.profile\", button_variant = \"text\", selected = true, foreground_color = \"$status.success\", text_align = \"left\", input_interactive = true, input_focusable = true, accessibility_label = \"Profile step complete\" }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.step_workspace]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsOnboardingStepWorkspace\"\nprops = { text = \"2  Workspace\", text_key = \"fixture.onboarding.step.workspace\", button_variant = \"text\", background_color = \"$surface.elevated\", foreground_color = \"$text.primary\", corner_radius = 6, text_align = \"left\", input_interactive = true, input_focusable = true, accessibility_label = \"Workspace step current\" }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.step_team]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsOnboardingStepTeam\"\nprops = { text = \"3  Team\", text_key = \"fixture.onboarding.step.team\", button_variant = \"text\", foreground_color = \"$text.muted\", text_align = \"left\", input_interactive = true, input_focusable = true, accessibility_label = \"Team step pending\" }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.step_finish]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsOnboardingStepFinish\"\nprops = { text = \"4  Finish\", text_key = \"fixture.onboarding.step.finish\", button_variant = \"text\", foreground_color = \"$text.muted\", text_align = \"left\", input_interactive = true, input_focusable = true, accessibility_label = \"Finish step pending\" }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.workspace_name_row]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"ReactBitsOnboardingWorkspaceNameRow\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 60, preferred = 66, max = 74, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 10 } }\nchildren = [{ node = \"workspace_name_label\" }, { node = \"workspace_name_input\" }]\n\n[nodes.workspace_name_label]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ReactBitsOnboardingWorkspaceNameLabel\"\nlayout = { width = { min = 0, preferred = 124, max = 168, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, container = { kind = \"VerticalBox\", gap = 2 } }\nchildren = [{ node = \"workspace_name_label_text\" }, { node = \"workspace_name_help\" }]\n\n[nodes.workspace_name_label_text]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsOnboardingWorkspaceNameLabelText\"\nprops = { text = \"Workspace name\", text_key = \"fixture.onboarding.workspace.label\", foreground_color = \"$text.primary\", font_size = 10, font_weight = 600, text_align = \"left\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 16, preferred = 16, max = 18, stretch = \"Fixed\" } }\n\n[nodes.workspace_name_help]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsOnboardingWorkspaceNameHelp\"\nprops = { text = \"Visible to invited teammates\", text_key = \"fixture.onboarding.workspace.help\", foreground_color = \"$text.muted\", font_size = 9, text_overflow = \"elide\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 14, preferred = 14, max = 18, stretch = \"Fixed\" } }\n\n[nodes.workspace_name_input]\ncomponent = \"TextField\"\ncontrol_id = \"ReactBitsOnboardingWorkspaceNameInput\"\nprops = { component_role = \"onboarding-field\", value_text = \"Zircon Design Lab\", value_key = \"fixture.onboarding.workspace.value\", placeholder = \"Name your workspace\", placeholder_key = \"fixture.onboarding.workspace.placeholder\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, accessibility_label = \"Workspace name\" }\nlayout = { width = { min = 0, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, padding = { left = 9, right = 9, top = 6, bottom = 6 } }\n\n[nodes.slug_row]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"ReactBitsOnboardingSlugRow\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 34, preferred = 38, max = 44, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 10 } }\nchildren = [{ node = \"slug_label\" }, { node = \"slug_value\" }]\n\n[nodes.slug_label]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsOnboardingSlugLabel\"\nprops = { text = \"Workspace URL\", text_key = \"fixture.onboarding.slug.label\", foreground_color = \"$text.primary\", font_size = 10, font_weight = 600, text_align = \"left\" }\nlayout = { width = { min = 0, preferred = 124, max = 168, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.slug_value]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsOnboardingSlugValue\"\nprops = { text = \"zircon-design-lab\", text_key = \"fixture.onboarding.slug.value\", foreground_color = \"$accent.info\", font_size = 10, text_align = \"right\", text_overflow = \"elide\" }\nlayout = { width = { min = 0, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.use_case_heading]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsOnboardingUseCaseHeading\"\nprops = { text = \"What will your team build?\", text_key = \"fixture.onboarding.use_case.heading\", foreground_color = \"$text.primary\", font_size = 11, font_weight = 650, text_align = \"left\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 18, preferred = 20, max = 24, stretch = \"Fixed\" } }\n\n[nodes.use_case_row]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"ReactBitsOnboardingUseCaseRow\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 56, preferred = 62, max = 70, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 6 } }\nchildren = [{ node = \"use_case_editor\" }, { node = \"use_case_runtime\" }, { node = \"use_case_tools\" }]\n\n[nodes.use_case_editor]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsOnboardingUseCaseEditor\"\nprops = { text = \"Editor\", text_key = \"fixture.onboarding.use_case.editor\", icon = \"package\", icon_size = \"m\", button_variant = \"outlined\", selected = true, background_color = \"$surface.elevated\", foreground_color = \"$text.primary\", border_color = \"$accent.primary\", border_width = 1, corner_radius = 7, text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"Choose editor use case\" }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.use_case_runtime]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsOnboardingUseCaseRuntime\"\nprops = { text = \"Runtime\", text_key = \"fixture.onboarding.use_case.runtime\", icon = \"check-circle\", icon_size = \"m\", button_variant = \"outlined\", foreground_color = \"$text.secondary\", border_color = \"$border.strong\", border_width = 1, corner_radius = 7, text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"Choose runtime use case\" }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.use_case_tools]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsOnboardingUseCaseTools\"\nprops = { text = \"Tools\", text_key = \"fixture.onboarding.use_case.tools\", icon = \"info\", icon_size = \"m\", button_variant = \"outlined\", foreground_color = \"$text.secondary\", border_color = \"$border.strong\", border_width = 1, corner_radius = 7, text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"Choose tools use case\" }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.team_size_row]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"ReactBitsOnboardingTeamSize\"\nprops = { accessibility_label = \"Team size\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 34, preferred = 38, max = 44, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 5 } }\nchildren = [{ node = \"team_size_label\" }, { node = \"team_1\" }, { node = \"team_2\" }, { node = \"team_3\" }, { node = \"team_4\" }]\n\n[nodes.team_size_label]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsOnboardingTeamSizeLabel\"\nprops = { text = \"Team size\", text_key = \"fixture.onboarding.team_size.label\", foreground_color = \"$text.secondary\", font_size = 10, text_align = \"left\" }\nlayout = { width = { min = 68, preferred = 82, max = 96, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.team_1]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsOnboardingTeam1\"\nprops = { text = \"1–5\", text_key = \"fixture.onboarding.team_size.1_5\", button_variant = \"text\", foreground_color = \"$text.secondary\", border_color = \"$border.strong\", border_width = 1, corner_radius = 5, text_align = \"center\", input_interactive = true, input_focusable = true }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.team_2]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsOnboardingTeam2\"\nprops = { text = \"6–20\", text_key = \"fixture.onboarding.team_size.6_20\", button_variant = \"text\", selected = true, background_color = \"$surface.elevated\", foreground_color = \"$text.primary\", border_color = \"$accent.primary\", border_width = 1, corner_radius = 5, text_align = \"center\", input_interactive = true, input_focusable = true }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.team_3]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsOnboardingTeam3\"\nprops = { text = \"21–50\", text_key = \"fixture.onboarding.team_size.21_50\", button_variant = \"text\", foreground_color = \"$text.secondary\", border_color = \"$border.strong\", border_width = 1, corner_radius = 5, text_align = \"center\", input_interactive = true, input_focusable = true }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.team_4]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsOnboardingTeam4\"\nprops = { text = \"51+\", text_key = \"fixture.onboarding.team_size.51_plus\", button_variant = \"text\", foreground_color = \"$text.secondary\", border_color = \"$border.strong\", border_width = 1, corner_radius = 5, text_align = \"center\", input_interactive = true, input_focusable = true }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.workspace_picker]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"ReactBitsOnboardingWorkspacePicker\"\nprops = { collection_virtualization = \"windowed\", viewport_start = 0, visible_limit = 3, collection_items = [\"selected|Zircon Design Lab|owner\", \"normal|Runtime Tools|member\", \"normal|Penpot Bridge|member\", \"normal|Archive Workspace|viewer\"], collection_test_cases = [\"empty\", \"one\", \"normal\", \"overflow\", \"narrow\", \"long-locale\"], long_locale_fixture_label = \"A deliberately long localized workspace label for overflow coverage\", empty_text = \"No workspaces available\", empty_text_key = \"fixture.onboarding.workspace_list.empty\", scroll_owner = \"workspace-picker\", background_color = \"$surface.inset\", border_color = \"$border.default\", border_width = 1, corner_radius = 7, accessibility_label = \"Choose an existing workspace\" }\nlayout = { clip = true, width = { stretch = \"Stretch\" }, height = { min = 76, preferred = 88, max = 104, stretch = \"Fixed\" }, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = 4, scrollbar_visibility = \"Auto\" }, padding = { left = 7, right = 7, top = 6, bottom = 6 } }\nchildren = [{ node = \"workspace_picker_heading\" }, { node = \"workspace_current\" }, { node = \"workspace_other\" }, { node = \"workspace_archived\" }]\n\n[nodes.workspace_picker_heading]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsOnboardingWorkspacePickerHeading\"\nprops = { text = \"Existing workspaces\", text_key = \"fixture.onboarding.workspace_list.heading\", foreground_color = \"$text.muted\", font_size = 9, font_weight = 700, text_align = \"left\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 16, preferred = 18, max = 20, stretch = \"Fixed\" } }\n\n[nodes.workspace_current]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsOnboardingWorkspaceCurrent\"\nprops = { text = \"Zircon Design Lab · owner\", text_key = \"fixture.onboarding.workspace_list.current\", button_variant = \"text\", selected = true, background_color = \"$surface.elevated\", foreground_color = \"$text.primary\", corner_radius = 5, text_align = \"left\", input_interactive = true, input_focusable = true, accessibility_label = \"Current workspace\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 24, preferred = 26, max = 30, stretch = \"Fixed\" } }\n\n[nodes.workspace_other]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsOnboardingWorkspaceOther\"\nprops = { text = \"Runtime Tools · member\", text_key = \"fixture.onboarding.workspace_list.other\", button_variant = \"text\", foreground_color = \"$text.secondary\", corner_radius = 5, text_align = \"left\", input_interactive = true, input_focusable = true, accessibility_label = \"Runtime Tools workspace\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 24, preferred = 26, max = 30, stretch = \"Fixed\" } }\n\n[nodes.workspace_archived]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsOnboardingWorkspaceArchived\"\nprops = { text = \"Archive Workspace · viewer\", text_key = \"fixture.onboarding.workspace_list.archived\", button_variant = \"text\", foreground_color = \"$text.muted\", corner_radius = 5, text_align = \"left\", input_interactive = true, input_focusable = true, accessibility_label = \"Archive Workspace\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 24, preferred = 26, max = 30, stretch = \"Fixed\" } }\n\n[nodes.onboarding_actions]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"ReactBitsOnboardingActions\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 38, preferred = 42, max = 46, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 6 } }\nchildren = [{ node = \"onboarding_back\" }, { node = \"onboarding_action_gap\" }, { node = \"onboarding_continue\" }]\n\n[nodes.onboarding_back]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsOnboardingBack\"\nprops = { text = \"Back\", text_key = \"fixture.onboarding.action.back\", icon = \"chevron-left\", icon_placement = \"start\", icon_size = \"s\", button_variant = \"text\", foreground_color = \"$text.secondary\", corner_radius = 6, text_align = \"left\", input_interactive = true, input_focusable = true, accessibility_label = \"Back to profile step\" }\nlayout = { width = { min = 0, preferred = 92, max = 112, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.onboarding_action_gap]\ncomponent = \"Space\"\nlayout = { width = { min = 0, preferred = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.onboarding_continue]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsOnboardingContinue\"\nprops = { text = \"Continue\", text_key = \"fixture.onboarding.action.continue\", icon = \"chevron-right\", icon_placement = \"end\", icon_size = \"s\", button_variant = \"contained\", background_color = \"$accent.primary\", foreground_color = \"$text.primary\", corner_radius = 6, text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"Continue to team step\" }\nlayout = { width = { min = 0, preferred = 148, max = 180, weight = 2, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.root.zircon_extension]\nowner = \"reactbits-reference-slice\"\nreference_profile = \"reactbits-auth-onboarding-components-v1\"\nsource_of_truth = \"zui\"\npenpot_visual_check = \"required\"\n\n[[stylesheets]]\nid = \"reactbits-ui-typography\"\n\n[[stylesheets.rules]]\nselector = \"*\"\nset = { self = { font = { asset = \"res://fonts/editor-ui.font.toml\", family = \"Fira Sans\" } } }\n"
+
+[asset]
+kind = "view"
+id = "res://ui/tests/reactbits_auth_onboarding_components.zui"
+version = 2
+display_name = "ReactBits Authentication And Onboarding Components"
+
+[tokens]
+"surface.canvas" = "#0f1117"
+"surface.panel" = "#171b24"
+"surface.elevated" = "#1d2330"
+"surface.inset" = "#11151d"
+"border.default" = "#2a3342"
+"border.strong" = "#3a4658"
+"text.primary" = "#f4f7fb"
+"text.secondary" = "#a9b4c5"
+"text.muted" = "#718096"
+"accent.primary" = "#8b7cff"
+"accent.info" = "#5da9ff"
+"status.success" = "#55d6a0"
+"status.warning" = "#f4bd62"
+"status.error" = "#ff7d8a"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalBox"
+control_id = "ReactBitsAuthOnboardingRoot"
+classes = [ "rb-auth-onboarding-fixture" ]
+
+[nodes.root.props]
+background_color = "$surface.canvas"
+foreground_color = "$text.primary"
+fixture_data_only = true
+reference_primary = "https://pro.reactbits.dev/docs/app-ui/authentication/authentication-1"
+reference_supporting = [ "https://pro.reactbits.dev/docs/app-ui/authentication/authentication-6", "https://pro.reactbits.dev/docs/app-ui/onboarding/onboarding-7", "https://pro.reactbits.dev/docs/app-ui/onboarding/onboarding-4" ]
+responsive_wide = "a centered sign-in card and a workspace onboarding form share a balanced two-column flow"
+responsive_compact = "the cards yield width and stack while labels remain start-aligned and progress stays end-aligned"
+responsive_mobile = "one scroll owner exposes the auth fields before the onboarding steps and preserves primary actions"
+layout_modes = [ "centered-auth", "provider-row", "verification-code", "horizontal-stepper", "workspace-slug", "windowed-workspace-list" ]
+accessibility_label = "Authentication and workspace onboarding reference surface"
+
+[nodes.root.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.root.layout.width]
+min = 360
+preferred = 1120
+max = 1440
+stretch = "Stretch"
+
+[nodes.root.layout.height]
+min = 520
+preferred = 820
+max = 1040
+stretch = "Stretch"
+
+[nodes.root.layout.container]
+kind = "VerticalBox"
+gap = 10
+
+[nodes.root.layout.padding]
+left = 14
+right = 14
+top = 14
+bottom = 14
+
+[[nodes.root.children]]
+node = "header"
+
+[[nodes.root.children]]
+node = "body"
+
+[nodes.root.zircon_extension]
+owner = "reactbits-reference-slice"
+reference_profile = "reactbits-auth-onboarding-components-v1"
+source_of_truth = "zui"
+penpot_visual_check = "required"
+
+[nodes.header]
+component = "HorizontalBox"
+control_id = "ReactBitsAuthHeader"
+
+[nodes.header.props]
+background_color = "$surface.panel"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 8
+
+[nodes.header.layout.width]
+stretch = "Stretch"
+
+[nodes.header.layout.height]
+min = 52
+preferred = 52
+max = 52
+stretch = "Fixed"
+
+[nodes.header.layout.container]
+kind = "HorizontalBox"
+gap = 8
+
+[nodes.header.layout.padding]
+left = 12
+right = 12
+top = 8
+bottom = 8
+
+[[nodes.header.children]]
+node = "brand"
+
+[[nodes.header.children]]
+node = "header_context"
+
+[[nodes.header.children]]
+node = "locale"
+
+[nodes.brand]
+component = "Button"
+control_id = "ReactBitsAuthBrand"
+
+[nodes.brand.props]
+text = "Zircon access"
+text_key = "fixture.auth.header.brand"
+icon = "package"
+icon_size = "m"
+button_variant = "text"
+foreground_color = "$text.primary"
+corner_radius = 6
+text_align = "left"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Zircon access home"
+
+[nodes.brand.layout.width]
+min = 144
+preferred = 176
+max = 220
+stretch = "Fixed"
+
+[nodes.brand.layout.height]
+stretch = "Stretch"
+
+[nodes.header_context]
+component = "Label"
+control_id = "ReactBitsAuthHeaderContext"
+
+[nodes.header_context.props]
+text = "Sign in or create a workspace"
+text_key = "fixture.auth.header.context"
+foreground_color = "$text.secondary"
+font_size = 10
+text_overflow = "elide"
+
+[nodes.header_context.layout.width]
+stretch = "Stretch"
+
+[nodes.header_context.layout.height]
+stretch = "Stretch"
+
+[nodes.locale]
+component = "Button"
+control_id = "ReactBitsAuthLocale"
+
+[nodes.locale.props]
+text = "English (US)"
+text_key = "fixture.auth.header.locale"
+button_variant = "outlined"
+foreground_color = "$text.secondary"
+border_color = "$border.strong"
+border_width = 1
+corner_radius = 6
+text_align = "right"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Choose language"
+
+[nodes.locale.layout.width]
+min = 104
+preferred = 126
+max = 148
+stretch = "Fixed"
+
+[nodes.locale.layout.height]
+stretch = "Stretch"
+
+[nodes.locale.layout.padding]
+left = 8
+right = 8
+top = 5
+bottom = 5
+
+[nodes.body]
+component = "ScrollableBox"
+control_id = "ReactBitsAuthBody"
+
+[nodes.body.props]
+background_color = "$surface.inset"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 8
+scroll_owner = "auth-onboarding-body"
+accessibility_label = "Authentication and onboarding content"
+
+[nodes.body.layout]
+clip = true
+
+[nodes.body.layout.width]
+stretch = "Stretch"
+
+[nodes.body.layout.height]
+min = 0
+stretch = "Stretch"
+
+[nodes.body.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = 10
+scrollbar_visibility = "Auto"
+
+[nodes.body.layout.padding]
+left = 12
+right = 12
+top = 12
+bottom = 12
+
+[[nodes.body.children]]
+node = "main"
+
+[nodes.main]
+component = "Stack"
+control_id = "ReactBitsAuthOnboardingMain"
+
+[nodes.main.props.direction]
+xs = "column"
+md = "row"
+
+[nodes.main.props.spacing]
+xs = 2
+md = 2
+
+[nodes.main.layout.width]
+stretch = "Stretch"
+
+[nodes.main.layout.height]
+min = 560
+
+[[nodes.main.children]]
+node = "auth_card"
+
+[nodes.main.children.slot.layout.width]
+min = 0
+preferred = 420
+weight = 1
+stretch = "Stretch"
+
+[[nodes.main.children]]
+node = "onboarding_card"
+
+[nodes.main.children.slot.layout.width]
+min = 0
+preferred = 620
+weight = 1
+stretch = "Stretch"
+
+[nodes.auth_card]
+component = "VerticalBox"
+control_id = "ReactBitsAuthCard"
+classes = [ "rb-auth-card" ]
+
+[nodes.auth_card.props]
+background_color = "$surface.panel"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 10
+accessibility_label = "Sign in form"
+
+[nodes.auth_card.layout.width]
+stretch = "Stretch"
+min = 0
+preferred = 420
+weight = 1
+
+[nodes.auth_card.layout.height]
+min = 560
+
+[nodes.auth_card.layout.container]
+kind = "VerticalBox"
+gap = 10
+
+[nodes.auth_card.layout.padding]
+left = 18
+right = 18
+top = 18
+bottom = 18
+
+[[nodes.auth_card.children]]
+node = "auth_mark"
+
+[[nodes.auth_card.children]]
+node = "auth_heading"
+
+[[nodes.auth_card.children]]
+node = "provider_row"
+
+[[nodes.auth_card.children]]
+node = "auth_divider"
+
+[[nodes.auth_card.children]]
+node = "email_field"
+
+[[nodes.auth_card.children]]
+node = "password_field"
+
+[[nodes.auth_card.children]]
+node = "auth_options"
+
+[[nodes.auth_card.children]]
+node = "auth_actions"
+
+[[nodes.auth_card.children]]
+node = "terms"
+
+[[nodes.auth_card.children]]
+node = "verification"
+
+[nodes.auth_mark]
+component = "Label"
+control_id = "ReactBitsAuthMark"
+
+[nodes.auth_mark.props]
+text = "Z"
+text_key = "fixture.auth.mark"
+foreground_color = "$accent.primary"
+font_size = 24
+font_weight = 700
+text_align = "center"
+accessibility_label = "Zircon"
+
+[nodes.auth_mark.layout.width]
+stretch = "Stretch"
+
+[nodes.auth_mark.layout.height]
+min = 30
+preferred = 34
+max = 38
+stretch = "Fixed"
+
+[nodes.auth_heading]
+component = "VerticalBox"
+control_id = "ReactBitsAuthHeading"
+
+[nodes.auth_heading.layout.width]
+stretch = "Stretch"
+
+[nodes.auth_heading.layout.height]
+min = 60
+preferred = 68
+max = 80
+stretch = "Fixed"
+
+[nodes.auth_heading.layout.container]
+kind = "VerticalBox"
+gap = 4
+
+[[nodes.auth_heading.children]]
+node = "auth_title"
+
+[[nodes.auth_heading.children]]
+node = "auth_subtitle"
+
+[nodes.auth_title]
+component = "Label"
+control_id = "ReactBitsAuthTitle"
+
+[nodes.auth_title.props]
+text = "Welcome back"
+text_key = "fixture.auth.signin.title"
+foreground_color = "$text.primary"
+font_size = 17
+font_weight = 650
+text_align = "center"
+
+[nodes.auth_title.layout.width]
+stretch = "Stretch"
+
+[nodes.auth_title.layout.height]
+min = 22
+preferred = 24
+max = 28
+stretch = "Fixed"
+
+[nodes.auth_subtitle]
+component = "Label"
+control_id = "ReactBitsAuthSubtitle"
+
+[nodes.auth_subtitle.props]
+text = "Use your account to continue to the workspace."
+text_key = "fixture.auth.signin.subtitle"
+foreground_color = "$text.secondary"
+font_size = 10
+wrap = "word"
+text_align = "center"
+
+[nodes.auth_subtitle.layout.width]
+stretch = "Stretch"
+
+[nodes.auth_subtitle.layout.height]
+min = 30
+preferred = 34
+max = 42
+stretch = "Fixed"
+
+[nodes.provider_row]
+component = "HorizontalBox"
+control_id = "ReactBitsAuthProviderRow"
+
+[nodes.provider_row.layout.width]
+stretch = "Stretch"
+
+[nodes.provider_row.layout.height]
+min = 38
+preferred = 40
+max = 44
+stretch = "Fixed"
+
+[nodes.provider_row.layout.container]
+kind = "HorizontalBox"
+gap = 6
+
+[[nodes.provider_row.children]]
+node = "provider_google"
+
+[[nodes.provider_row.children]]
+node = "provider_github"
+
+[[nodes.provider_row.children]]
+node = "provider_sso"
+
+[nodes.provider_google]
+component = "Button"
+control_id = "ReactBitsAuthProviderGoogle"
+
+[nodes.provider_google.props]
+text = "Google"
+text_key = "fixture.auth.provider.google"
+icon = "check-circle"
+icon_size = "m"
+button_variant = "outlined"
+foreground_color = "$text.primary"
+border_color = "$border.strong"
+border_width = 1
+corner_radius = 6
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Continue with Google"
+
+[nodes.provider_google.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.provider_google.layout.height]
+stretch = "Stretch"
+
+[nodes.provider_github]
+component = "Button"
+control_id = "ReactBitsAuthProviderGithub"
+
+[nodes.provider_github.props]
+text = "GitHub"
+text_key = "fixture.auth.provider.github"
+icon = "package"
+icon_size = "m"
+button_variant = "outlined"
+foreground_color = "$text.primary"
+border_color = "$border.strong"
+border_width = 1
+corner_radius = 6
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Continue with GitHub"
+
+[nodes.provider_github.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.provider_github.layout.height]
+stretch = "Stretch"
+
+[nodes.provider_sso]
+component = "Button"
+control_id = "ReactBitsAuthProviderSso"
+
+[nodes.provider_sso.props]
+text = "SSO"
+text_key = "fixture.auth.provider.sso"
+icon = "info"
+icon_size = "m"
+button_variant = "outlined"
+foreground_color = "$text.primary"
+border_color = "$border.strong"
+border_width = 1
+corner_radius = 6
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Continue with single sign-on"
+
+[nodes.provider_sso.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.provider_sso.layout.height]
+stretch = "Stretch"
+
+[nodes.auth_divider]
+component = "Label"
+control_id = "ReactBitsAuthDivider"
+
+[nodes.auth_divider.props]
+text = "or continue with email"
+text_key = "fixture.auth.divider"
+foreground_color = "$text.muted"
+font_size = 9
+text_align = "center"
+
+[nodes.auth_divider.layout.width]
+stretch = "Stretch"
+
+[nodes.auth_divider.layout.height]
+min = 18
+preferred = 20
+max = 22
+stretch = "Fixed"
+
+[nodes.email_field]
+component = "VerticalBox"
+control_id = "ReactBitsAuthEmailField"
+
+[nodes.email_field.layout.width]
+stretch = "Stretch"
+
+[nodes.email_field.layout.height]
+min = 66
+preferred = 70
+max = 78
+stretch = "Fixed"
+
+[nodes.email_field.layout.container]
+kind = "VerticalBox"
+gap = 4
+
+[[nodes.email_field.children]]
+node = "email_label"
+
+[[nodes.email_field.children]]
+node = "email_input"
+
+[nodes.email_label]
+component = "Label"
+control_id = "ReactBitsAuthEmailLabel"
+
+[nodes.email_label.props]
+text = "Work email"
+text_key = "fixture.auth.email.label"
+foreground_color = "$text.primary"
+font_size = 10
+font_weight = 600
+text_align = "left"
+
+[nodes.email_label.layout.width]
+stretch = "Stretch"
+
+[nodes.email_label.layout.height]
+min = 16
+preferred = 16
+max = 18
+stretch = "Fixed"
+
+[nodes.email_input]
+component = "TextField"
+control_id = "ReactBitsAuthEmailInput"
+
+[nodes.email_input.props]
+component_role = "auth-field"
+value_text = "builder@example.com"
+value_key = "fixture.auth.email.value"
+placeholder = "you@example.com"
+placeholder_key = "fixture.auth.email.placeholder"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+accessibility_label = "Work email"
+
+[nodes.email_input.layout.width]
+stretch = "Stretch"
+
+[nodes.email_input.layout.height]
+stretch = "Stretch"
+
+[nodes.email_input.layout.padding]
+left = 9
+right = 9
+top = 6
+bottom = 6
+
+[nodes.password_field]
+component = "VerticalBox"
+control_id = "ReactBitsAuthPasswordField"
+
+[nodes.password_field.layout.width]
+stretch = "Stretch"
+
+[nodes.password_field.layout.height]
+min = 66
+preferred = 70
+max = 78
+stretch = "Fixed"
+
+[nodes.password_field.layout.container]
+kind = "VerticalBox"
+gap = 4
+
+[[nodes.password_field.children]]
+node = "password_label"
+
+[[nodes.password_field.children]]
+node = "password_input"
+
+[nodes.password_label]
+component = "Label"
+control_id = "ReactBitsAuthPasswordLabel"
+
+[nodes.password_label.props]
+text = "Password"
+text_key = "fixture.auth.password.label"
+foreground_color = "$text.primary"
+font_size = 10
+font_weight = 600
+text_align = "left"
+
+[nodes.password_label.layout.width]
+stretch = "Stretch"
+
+[nodes.password_label.layout.height]
+min = 16
+preferred = 16
+max = 18
+stretch = "Fixed"
+
+[nodes.password_input]
+component = "TextField"
+control_id = "ReactBitsAuthPasswordInput"
+
+[nodes.password_input.props]
+component_role = "auth-field"
+value_text = "••••••••••"
+value_key = "fixture.auth.password.value"
+placeholder = "Enter your password"
+placeholder_key = "fixture.auth.password.placeholder"
+secret = true
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+accessibility_label = "Password"
+
+[nodes.password_input.layout.width]
+stretch = "Stretch"
+
+[nodes.password_input.layout.height]
+stretch = "Stretch"
+
+[nodes.password_input.layout.padding]
+left = 9
+right = 9
+top = 6
+bottom = 6
+
+[nodes.auth_options]
+component = "HorizontalBox"
+control_id = "ReactBitsAuthOptions"
+
+[nodes.auth_options.layout.width]
+stretch = "Stretch"
+
+[nodes.auth_options.layout.height]
+min = 28
+preferred = 30
+max = 34
+stretch = "Fixed"
+
+[nodes.auth_options.layout.container]
+kind = "HorizontalBox"
+gap = 8
+
+[[nodes.auth_options.children]]
+node = "remember"
+
+[[nodes.auth_options.children]]
+node = "forgot"
+
+[nodes.remember]
+component = "Button"
+control_id = "ReactBitsAuthRemember"
+
+[nodes.remember.props]
+text = "Keep me signed in"
+text_key = "fixture.auth.remember"
+button_variant = "text"
+selected = true
+foreground_color = "$text.secondary"
+text_align = "left"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Keep me signed in"
+
+[nodes.remember.layout.width]
+stretch = "Stretch"
+
+[nodes.remember.layout.height]
+stretch = "Stretch"
+
+[nodes.forgot]
+component = "Button"
+control_id = "ReactBitsAuthForgot"
+
+[nodes.forgot.props]
+text = "Forgot password?"
+text_key = "fixture.auth.forgot"
+button_variant = "text"
+foreground_color = "$accent.info"
+text_align = "right"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Recover password"
+
+[nodes.forgot.layout.width]
+min = 116
+preferred = 132
+max = 156
+stretch = "Fixed"
+
+[nodes.forgot.layout.height]
+stretch = "Stretch"
+
+[nodes.auth_actions]
+component = "VerticalBox"
+control_id = "ReactBitsAuthActions"
+
+[nodes.auth_actions.layout.width]
+stretch = "Stretch"
+
+[nodes.auth_actions.layout.height]
+min = 76
+preferred = 82
+max = 90
+stretch = "Fixed"
+
+[nodes.auth_actions.layout.container]
+kind = "VerticalBox"
+gap = 6
+
+[[nodes.auth_actions.children]]
+node = "signin"
+
+[[nodes.auth_actions.children]]
+node = "create_account"
+
+[nodes.signin]
+component = "Button"
+control_id = "ReactBitsAuthSignIn"
+
+[nodes.signin.props]
+text = "Sign in"
+text_key = "fixture.auth.action.signin"
+button_variant = "contained"
+background_color = "$accent.primary"
+foreground_color = "$text.primary"
+corner_radius = 6
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Sign in"
+
+[nodes.signin.layout.width]
+stretch = "Stretch"
+
+[nodes.signin.layout.height]
+min = 34
+preferred = 36
+max = 40
+stretch = "Fixed"
+
+[nodes.create_account]
+component = "Button"
+control_id = "ReactBitsAuthCreateAccount"
+
+[nodes.create_account.props]
+text = "Create an account"
+text_key = "fixture.auth.action.create"
+button_variant = "text"
+foreground_color = "$text.secondary"
+corner_radius = 6
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Create an account"
+
+[nodes.create_account.layout.width]
+stretch = "Stretch"
+
+[nodes.create_account.layout.height]
+min = 32
+preferred = 34
+max = 38
+stretch = "Fixed"
+
+[nodes.terms]
+component = "Label"
+control_id = "ReactBitsAuthTerms"
+
+[nodes.terms.props]
+text = "By continuing, you agree to the **workspace terms** and privacy policy."
+text_key = "fixture.auth.terms"
+rich_text_format = "markdown_inline_v1"
+foreground_color = "$text.muted"
+font_size = 9
+wrap = "word"
+text_align = "center"
+
+[nodes.terms.layout.width]
+stretch = "Stretch"
+
+[nodes.terms.layout.height]
+min = 28
+preferred = 32
+max = 40
+stretch = "Fixed"
+
+[nodes.verification]
+component = "VerticalBox"
+control_id = "ReactBitsAuthVerification"
+
+[nodes.verification.props]
+background_color = "$surface.elevated"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 8
+accessibility_label = "Verification code follow-up"
+
+[nodes.verification.props.display]
+xs = "none"
+md = "flex"
+
+[nodes.verification.layout.width]
+stretch = "Stretch"
+
+[nodes.verification.layout.height]
+min = 112
+preferred = 124
+max = 140
+stretch = "Fixed"
+
+[nodes.verification.layout.container]
+kind = "VerticalBox"
+gap = 6
+
+[nodes.verification.layout.padding]
+left = 10
+right = 10
+top = 8
+bottom = 8
+
+[[nodes.verification.children]]
+node = "verification_heading"
+
+[[nodes.verification.children]]
+node = "otp_row"
+
+[[nodes.verification.children]]
+node = "verification_note"
+
+[nodes.verification_heading]
+component = "Label"
+control_id = "ReactBitsAuthVerificationHeading"
+
+[nodes.verification_heading.props]
+text = "Verify your sign-in"
+text_key = "fixture.auth.verification.title"
+foreground_color = "$text.primary"
+font_size = 11
+font_weight = 650
+text_align = "left"
+
+[nodes.verification_heading.layout.width]
+stretch = "Stretch"
+
+[nodes.verification_heading.layout.height]
+min = 16
+preferred = 18
+max = 20
+stretch = "Fixed"
+
+[nodes.otp_row]
+component = "HorizontalBox"
+control_id = "ReactBitsAuthOtpRow"
+
+[nodes.otp_row.layout.width]
+stretch = "Stretch"
+
+[nodes.otp_row.layout.height]
+min = 30
+preferred = 34
+max = 38
+stretch = "Fixed"
+
+[nodes.otp_row.layout.container]
+kind = "HorizontalBox"
+gap = 5
+
+[[nodes.otp_row.children]]
+node = "otp_1"
+
+[[nodes.otp_row.children]]
+node = "otp_2"
+
+[[nodes.otp_row.children]]
+node = "otp_3"
+
+[[nodes.otp_row.children]]
+node = "otp_4"
+
+[[nodes.otp_row.children]]
+node = "otp_5"
+
+[[nodes.otp_row.children]]
+node = "otp_6"
+
+[nodes.otp_1]
+component = "TextField"
+control_id = "ReactBitsAuthOtp1"
+
+[nodes.otp_1.props]
+value_text = "4"
+value_key = "fixture.auth.otp.1"
+input_interactive = true
+input_focusable = true
+text_align = "center"
+accessibility_label = "Verification digit 1 of 6"
+
+[nodes.otp_1.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.otp_1.layout.height]
+stretch = "Stretch"
+
+[nodes.otp_1.layout.padding]
+left = 4
+right = 4
+top = 4
+bottom = 4
+
+[nodes.otp_2]
+component = "TextField"
+control_id = "ReactBitsAuthOtp2"
+
+[nodes.otp_2.props]
+value_text = "8"
+value_key = "fixture.auth.otp.2"
+input_interactive = true
+input_focusable = true
+text_align = "center"
+accessibility_label = "Verification digit 2 of 6"
+
+[nodes.otp_2.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.otp_2.layout.height]
+stretch = "Stretch"
+
+[nodes.otp_2.layout.padding]
+left = 4
+right = 4
+top = 4
+bottom = 4
+
+[nodes.otp_3]
+component = "TextField"
+control_id = "ReactBitsAuthOtp3"
+
+[nodes.otp_3.props]
+value_text = "2"
+value_key = "fixture.auth.otp.3"
+input_interactive = true
+input_focusable = true
+text_align = "center"
+accessibility_label = "Verification digit 3 of 6"
+
+[nodes.otp_3.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.otp_3.layout.height]
+stretch = "Stretch"
+
+[nodes.otp_3.layout.padding]
+left = 4
+right = 4
+top = 4
+bottom = 4
+
+[nodes.otp_4]
+component = "TextField"
+control_id = "ReactBitsAuthOtp4"
+
+[nodes.otp_4.props]
+value_text = "0"
+value_key = "fixture.auth.otp.4"
+input_interactive = true
+input_focusable = true
+text_align = "center"
+accessibility_label = "Verification digit 4 of 6"
+
+[nodes.otp_4.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.otp_4.layout.height]
+stretch = "Stretch"
+
+[nodes.otp_4.layout.padding]
+left = 4
+right = 4
+top = 4
+bottom = 4
+
+[nodes.otp_5]
+component = "TextField"
+control_id = "ReactBitsAuthOtp5"
+
+[nodes.otp_5.props]
+value_text = "1"
+value_key = "fixture.auth.otp.5"
+input_interactive = true
+input_focusable = true
+text_align = "center"
+accessibility_label = "Verification digit 5 of 6"
+
+[nodes.otp_5.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.otp_5.layout.height]
+stretch = "Stretch"
+
+[nodes.otp_5.layout.padding]
+left = 4
+right = 4
+top = 4
+bottom = 4
+
+[nodes.otp_6]
+component = "TextField"
+control_id = "ReactBitsAuthOtp6"
+
+[nodes.otp_6.props]
+value_text = "6"
+value_key = "fixture.auth.otp.6"
+input_interactive = true
+input_focusable = true
+text_align = "center"
+accessibility_label = "Verification digit 6 of 6"
+
+[nodes.otp_6.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.otp_6.layout.height]
+stretch = "Stretch"
+
+[nodes.otp_6.layout.padding]
+left = 4
+right = 4
+top = 4
+bottom = 4
+
+[nodes.verification_note]
+component = "Label"
+control_id = "ReactBitsAuthVerificationNote"
+
+[nodes.verification_note.props]
+text = "Code sent to **builder@example.com** · resend in 00:24"
+text_key = "fixture.auth.verification.note"
+rich_text_format = "markdown_inline_v1"
+foreground_color = "$text.secondary"
+font_size = 9
+text_overflow = "elide"
+
+[nodes.verification_note.layout.width]
+stretch = "Stretch"
+
+[nodes.verification_note.layout.height]
+min = 16
+preferred = 18
+max = 22
+stretch = "Fixed"
+
+[nodes.onboarding_card]
+component = "VerticalBox"
+control_id = "ReactBitsOnboardingCard"
+classes = [ "rb-onboarding-card" ]
+
+[nodes.onboarding_card.props]
+background_color = "$surface.panel"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 10
+accessibility_label = "Workspace onboarding form"
+
+[nodes.onboarding_card.layout.width]
+stretch = "Stretch"
+min = 0
+preferred = 620
+weight = 1
+
+[nodes.onboarding_card.layout.height]
+min = 560
+
+[nodes.onboarding_card.layout.container]
+kind = "VerticalBox"
+gap = 9
+
+[nodes.onboarding_card.layout.padding]
+left = 16
+right = 16
+top = 16
+bottom = 16
+
+[[nodes.onboarding_card.children]]
+node = "onboarding_heading"
+
+[[nodes.onboarding_card.children]]
+node = "stepper"
+
+[[nodes.onboarding_card.children]]
+node = "workspace_name_row"
+
+[[nodes.onboarding_card.children]]
+node = "slug_row"
+
+[[nodes.onboarding_card.children]]
+node = "use_case_heading"
+
+[[nodes.onboarding_card.children]]
+node = "use_case_row"
+
+[[nodes.onboarding_card.children]]
+node = "team_size_row"
+
+[[nodes.onboarding_card.children]]
+node = "workspace_picker"
+
+[[nodes.onboarding_card.children]]
+node = "onboarding_actions"
+
+[nodes.onboarding_heading]
+component = "HorizontalBox"
+control_id = "ReactBitsOnboardingHeading"
+
+[nodes.onboarding_heading.layout.width]
+stretch = "Stretch"
+
+[nodes.onboarding_heading.layout.height]
+min = 54
+preferred = 58
+max = 64
+stretch = "Fixed"
+
+[nodes.onboarding_heading.layout.container]
+kind = "HorizontalBox"
+gap = 8
+
+[[nodes.onboarding_heading.children]]
+node = "onboarding_heading_stack"
+
+[[nodes.onboarding_heading.children]]
+node = "onboarding_progress"
+
+[nodes.onboarding_heading_stack]
+component = "VerticalBox"
+control_id = "ReactBitsOnboardingHeadingStack"
+
+[nodes.onboarding_heading_stack.layout.width]
+stretch = "Stretch"
+
+[nodes.onboarding_heading_stack.layout.height]
+stretch = "Stretch"
+
+[nodes.onboarding_heading_stack.layout.container]
+kind = "VerticalBox"
+gap = 2
+
+[[nodes.onboarding_heading_stack.children]]
+node = "onboarding_title"
+
+[[nodes.onboarding_heading_stack.children]]
+node = "onboarding_subtitle"
+
+[nodes.onboarding_title]
+component = "Label"
+control_id = "ReactBitsOnboardingTitle"
+
+[nodes.onboarding_title.props]
+text = "Create your workspace"
+text_key = "fixture.onboarding.title"
+foreground_color = "$text.primary"
+font_size = 15
+font_weight = 650
+text_align = "left"
+
+[nodes.onboarding_title.layout.width]
+stretch = "Stretch"
+
+[nodes.onboarding_title.layout.height]
+min = 20
+preferred = 22
+max = 26
+stretch = "Fixed"
+
+[nodes.onboarding_subtitle]
+component = "Label"
+control_id = "ReactBitsOnboardingSubtitle"
+
+[nodes.onboarding_subtitle.props]
+text = "A few details help your team find the right starting point."
+text_key = "fixture.onboarding.subtitle"
+foreground_color = "$text.secondary"
+font_size = 10
+wrap = "word"
+
+[nodes.onboarding_subtitle.layout.width]
+stretch = "Stretch"
+
+[nodes.onboarding_subtitle.layout.height]
+min = 28
+preferred = 30
+max = 34
+stretch = "Fixed"
+
+[nodes.onboarding_progress]
+component = "Label"
+control_id = "ReactBitsOnboardingProgress"
+
+[nodes.onboarding_progress.props]
+text = "Step 2 of 4"
+text_key = "fixture.onboarding.progress"
+foreground_color = "$accent.info"
+font_size = 10
+text_align = "right"
+
+[nodes.onboarding_progress.layout.width]
+min = 72
+preferred = 88
+max = 104
+stretch = "Fixed"
+
+[nodes.onboarding_progress.layout.height]
+stretch = "Stretch"
+
+[nodes.stepper]
+component = "HorizontalBox"
+control_id = "ReactBitsOnboardingStepper"
+
+[nodes.stepper.layout.width]
+stretch = "Stretch"
+
+[nodes.stepper.layout.height]
+min = 32
+preferred = 36
+max = 40
+stretch = "Fixed"
+
+[nodes.stepper.layout.container]
+kind = "HorizontalBox"
+gap = 5
+
+[[nodes.stepper.children]]
+node = "step_profile"
+
+[[nodes.stepper.children]]
+node = "step_workspace"
+
+[[nodes.stepper.children]]
+node = "step_team"
+
+[[nodes.stepper.children]]
+node = "step_finish"
+
+[nodes.step_profile]
+component = "Button"
+control_id = "ReactBitsOnboardingStepProfile"
+
+[nodes.step_profile.props]
+text = "1  Profile"
+text_key = "fixture.onboarding.step.profile"
+button_variant = "text"
+selected = true
+foreground_color = "$status.success"
+text_align = "left"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Profile step complete"
+
+[nodes.step_profile.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.step_profile.layout.height]
+stretch = "Stretch"
+
+[nodes.step_workspace]
+component = "Button"
+control_id = "ReactBitsOnboardingStepWorkspace"
+
+[nodes.step_workspace.props]
+text = "2  Workspace"
+text_key = "fixture.onboarding.step.workspace"
+button_variant = "text"
+background_color = "$surface.elevated"
+foreground_color = "$text.primary"
+corner_radius = 6
+text_align = "left"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Workspace step current"
+
+[nodes.step_workspace.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.step_workspace.layout.height]
+stretch = "Stretch"
+
+[nodes.step_team]
+component = "Button"
+control_id = "ReactBitsOnboardingStepTeam"
+
+[nodes.step_team.props]
+text = "3  Team"
+text_key = "fixture.onboarding.step.team"
+button_variant = "text"
+foreground_color = "$text.muted"
+text_align = "left"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Team step pending"
+
+[nodes.step_team.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.step_team.layout.height]
+stretch = "Stretch"
+
+[nodes.step_finish]
+component = "Button"
+control_id = "ReactBitsOnboardingStepFinish"
+
+[nodes.step_finish.props]
+text = "4  Finish"
+text_key = "fixture.onboarding.step.finish"
+button_variant = "text"
+foreground_color = "$text.muted"
+text_align = "left"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Finish step pending"
+
+[nodes.step_finish.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.step_finish.layout.height]
+stretch = "Stretch"
+
+[nodes.workspace_name_row]
+component = "HorizontalBox"
+control_id = "ReactBitsOnboardingWorkspaceNameRow"
+
+[nodes.workspace_name_row.layout.width]
+stretch = "Stretch"
+
+[nodes.workspace_name_row.layout.height]
+min = 60
+preferred = 66
+max = 74
+stretch = "Fixed"
+
+[nodes.workspace_name_row.layout.container]
+kind = "HorizontalBox"
+gap = 10
+
+[[nodes.workspace_name_row.children]]
+node = "workspace_name_label"
+
+[[nodes.workspace_name_row.children]]
+node = "workspace_name_input"
+
+[nodes.workspace_name_label]
+component = "VerticalBox"
+control_id = "ReactBitsOnboardingWorkspaceNameLabel"
+
+[nodes.workspace_name_label.layout.width]
+min = 0
+preferred = 124
+max = 168
+stretch = "Stretch"
+
+[nodes.workspace_name_label.layout.height]
+stretch = "Stretch"
+
+[nodes.workspace_name_label.layout.container]
+kind = "VerticalBox"
+gap = 2
+
+[[nodes.workspace_name_label.children]]
+node = "workspace_name_label_text"
+
+[[nodes.workspace_name_label.children]]
+node = "workspace_name_help"
+
+[nodes.workspace_name_label_text]
+component = "Label"
+control_id = "ReactBitsOnboardingWorkspaceNameLabelText"
+
+[nodes.workspace_name_label_text.props]
+text = "Workspace name"
+text_key = "fixture.onboarding.workspace.label"
+foreground_color = "$text.primary"
+font_size = 10
+font_weight = 600
+text_align = "left"
+
+[nodes.workspace_name_label_text.layout.width]
+stretch = "Stretch"
+
+[nodes.workspace_name_label_text.layout.height]
+min = 16
+preferred = 16
+max = 18
+stretch = "Fixed"
+
+[nodes.workspace_name_help]
+component = "Label"
+control_id = "ReactBitsOnboardingWorkspaceNameHelp"
+
+[nodes.workspace_name_help.props]
+text = "Visible to invited teammates"
+text_key = "fixture.onboarding.workspace.help"
+foreground_color = "$text.muted"
+font_size = 9
+text_overflow = "elide"
+
+[nodes.workspace_name_help.layout.width]
+stretch = "Stretch"
+
+[nodes.workspace_name_help.layout.height]
+min = 14
+preferred = 14
+max = 18
+stretch = "Fixed"
+
+[nodes.workspace_name_input]
+component = "TextField"
+control_id = "ReactBitsOnboardingWorkspaceNameInput"
+
+[nodes.workspace_name_input.props]
+component_role = "onboarding-field"
+value_text = "Zircon Design Lab"
+value_key = "fixture.onboarding.workspace.value"
+placeholder = "Name your workspace"
+placeholder_key = "fixture.onboarding.workspace.placeholder"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+accessibility_label = "Workspace name"
+
+[nodes.workspace_name_input.layout.width]
+min = 0
+stretch = "Stretch"
+
+[nodes.workspace_name_input.layout.height]
+stretch = "Stretch"
+
+[nodes.workspace_name_input.layout.padding]
+left = 9
+right = 9
+top = 6
+bottom = 6
+
+[nodes.slug_row]
+component = "HorizontalBox"
+control_id = "ReactBitsOnboardingSlugRow"
+
+[nodes.slug_row.layout.width]
+stretch = "Stretch"
+
+[nodes.slug_row.layout.height]
+min = 34
+preferred = 38
+max = 44
+stretch = "Fixed"
+
+[nodes.slug_row.layout.container]
+kind = "HorizontalBox"
+gap = 10
+
+[[nodes.slug_row.children]]
+node = "slug_label"
+
+[[nodes.slug_row.children]]
+node = "slug_value"
+
+[nodes.slug_label]
+component = "Label"
+control_id = "ReactBitsOnboardingSlugLabel"
+
+[nodes.slug_label.props]
+text = "Workspace URL"
+text_key = "fixture.onboarding.slug.label"
+foreground_color = "$text.primary"
+font_size = 10
+font_weight = 600
+text_align = "left"
+
+[nodes.slug_label.layout.width]
+min = 0
+preferred = 124
+max = 168
+stretch = "Stretch"
+
+[nodes.slug_label.layout.height]
+stretch = "Stretch"
+
+[nodes.slug_value]
+component = "Label"
+control_id = "ReactBitsOnboardingSlugValue"
+
+[nodes.slug_value.props]
+text = "zircon-design-lab"
+text_key = "fixture.onboarding.slug.value"
+foreground_color = "$accent.info"
+font_size = 10
+text_align = "right"
+text_overflow = "elide"
+
+[nodes.slug_value.layout.width]
+min = 0
+stretch = "Stretch"
+
+[nodes.slug_value.layout.height]
+stretch = "Stretch"
+
+[nodes.use_case_heading]
+component = "Label"
+control_id = "ReactBitsOnboardingUseCaseHeading"
+
+[nodes.use_case_heading.props]
+text = "What will your team build?"
+text_key = "fixture.onboarding.use_case.heading"
+foreground_color = "$text.primary"
+font_size = 11
+font_weight = 650
+text_align = "left"
+
+[nodes.use_case_heading.layout.width]
+stretch = "Stretch"
+
+[nodes.use_case_heading.layout.height]
+min = 18
+preferred = 20
+max = 24
+stretch = "Fixed"
+
+[nodes.use_case_row]
+component = "HorizontalBox"
+control_id = "ReactBitsOnboardingUseCaseRow"
+
+[nodes.use_case_row.layout.width]
+stretch = "Stretch"
+
+[nodes.use_case_row.layout.height]
+min = 56
+preferred = 62
+max = 70
+stretch = "Fixed"
+
+[nodes.use_case_row.layout.container]
+kind = "HorizontalBox"
+gap = 6
+
+[[nodes.use_case_row.children]]
+node = "use_case_editor"
+
+[[nodes.use_case_row.children]]
+node = "use_case_runtime"
+
+[[nodes.use_case_row.children]]
+node = "use_case_tools"
+
+[nodes.use_case_editor]
+component = "Button"
+control_id = "ReactBitsOnboardingUseCaseEditor"
+
+[nodes.use_case_editor.props]
+text = "Editor"
+text_key = "fixture.onboarding.use_case.editor"
+icon = "package"
+icon_size = "m"
+button_variant = "outlined"
+selected = true
+background_color = "$surface.elevated"
+foreground_color = "$text.primary"
+border_color = "$accent.primary"
+border_width = 1
+corner_radius = 7
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Choose editor use case"
+
+[nodes.use_case_editor.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.use_case_editor.layout.height]
+stretch = "Stretch"
+
+[nodes.use_case_runtime]
+component = "Button"
+control_id = "ReactBitsOnboardingUseCaseRuntime"
+
+[nodes.use_case_runtime.props]
+text = "Runtime"
+text_key = "fixture.onboarding.use_case.runtime"
+icon = "check-circle"
+icon_size = "m"
+button_variant = "outlined"
+foreground_color = "$text.secondary"
+border_color = "$border.strong"
+border_width = 1
+corner_radius = 7
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Choose runtime use case"
+
+[nodes.use_case_runtime.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.use_case_runtime.layout.height]
+stretch = "Stretch"
+
+[nodes.use_case_tools]
+component = "Button"
+control_id = "ReactBitsOnboardingUseCaseTools"
+
+[nodes.use_case_tools.props]
+text = "Tools"
+text_key = "fixture.onboarding.use_case.tools"
+icon = "info"
+icon_size = "m"
+button_variant = "outlined"
+foreground_color = "$text.secondary"
+border_color = "$border.strong"
+border_width = 1
+corner_radius = 7
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Choose tools use case"
+
+[nodes.use_case_tools.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.use_case_tools.layout.height]
+stretch = "Stretch"
+
+[nodes.team_size_row]
+component = "HorizontalBox"
+control_id = "ReactBitsOnboardingTeamSize"
+
+[nodes.team_size_row.props]
+accessibility_label = "Team size"
+
+[nodes.team_size_row.layout.width]
+stretch = "Stretch"
+
+[nodes.team_size_row.layout.height]
+min = 34
+preferred = 38
+max = 44
+stretch = "Fixed"
+
+[nodes.team_size_row.layout.container]
+kind = "HorizontalBox"
+gap = 5
+
+[[nodes.team_size_row.children]]
+node = "team_size_label"
+
+[[nodes.team_size_row.children]]
+node = "team_1"
+
+[[nodes.team_size_row.children]]
+node = "team_2"
+
+[[nodes.team_size_row.children]]
+node = "team_3"
+
+[[nodes.team_size_row.children]]
+node = "team_4"
+
+[nodes.team_size_label]
+component = "Label"
+control_id = "ReactBitsOnboardingTeamSizeLabel"
+
+[nodes.team_size_label.props]
+text = "Team size"
+text_key = "fixture.onboarding.team_size.label"
+foreground_color = "$text.secondary"
+font_size = 10
+text_align = "left"
+
+[nodes.team_size_label.layout.width]
+min = 68
+preferred = 82
+max = 96
+stretch = "Fixed"
+
+[nodes.team_size_label.layout.height]
+stretch = "Stretch"
+
+[nodes.team_1]
+component = "Button"
+control_id = "ReactBitsOnboardingTeam1"
+
+[nodes.team_1.props]
+text = "1–5"
+text_key = "fixture.onboarding.team_size.1_5"
+button_variant = "text"
+foreground_color = "$text.secondary"
+border_color = "$border.strong"
+border_width = 1
+corner_radius = 5
+text_align = "center"
+input_interactive = true
+input_focusable = true
+
+[nodes.team_1.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.team_1.layout.height]
+stretch = "Stretch"
+
+[nodes.team_2]
+component = "Button"
+control_id = "ReactBitsOnboardingTeam2"
+
+[nodes.team_2.props]
+text = "6–20"
+text_key = "fixture.onboarding.team_size.6_20"
+button_variant = "text"
+selected = true
+background_color = "$surface.elevated"
+foreground_color = "$text.primary"
+border_color = "$accent.primary"
+border_width = 1
+corner_radius = 5
+text_align = "center"
+input_interactive = true
+input_focusable = true
+
+[nodes.team_2.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.team_2.layout.height]
+stretch = "Stretch"
+
+[nodes.team_3]
+component = "Button"
+control_id = "ReactBitsOnboardingTeam3"
+
+[nodes.team_3.props]
+text = "21–50"
+text_key = "fixture.onboarding.team_size.21_50"
+button_variant = "text"
+foreground_color = "$text.secondary"
+border_color = "$border.strong"
+border_width = 1
+corner_radius = 5
+text_align = "center"
+input_interactive = true
+input_focusable = true
+
+[nodes.team_3.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.team_3.layout.height]
+stretch = "Stretch"
+
+[nodes.team_4]
+component = "Button"
+control_id = "ReactBitsOnboardingTeam4"
+
+[nodes.team_4.props]
+text = "51+"
+text_key = "fixture.onboarding.team_size.51_plus"
+button_variant = "text"
+foreground_color = "$text.secondary"
+border_color = "$border.strong"
+border_width = 1
+corner_radius = 5
+text_align = "center"
+input_interactive = true
+input_focusable = true
+
+[nodes.team_4.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.team_4.layout.height]
+stretch = "Stretch"
+
+[nodes.workspace_picker]
+component = "ScrollableBox"
+control_id = "ReactBitsOnboardingWorkspacePicker"
+
+[nodes.workspace_picker.props]
+collection_virtualization = "windowed"
+viewport_start = 0
+visible_limit = 3
+collection_items = [ "selected|Zircon Design Lab|owner", "normal|Runtime Tools|member", "normal|Penpot Bridge|member", "normal|Archive Workspace|viewer" ]
+collection_test_cases = [ "empty", "one", "normal", "overflow", "narrow", "long-locale" ]
+long_locale_fixture_label = "A deliberately long localized workspace label for overflow coverage"
+empty_text = "No workspaces available"
+empty_text_key = "fixture.onboarding.workspace_list.empty"
+scroll_owner = "workspace-picker"
+background_color = "$surface.inset"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 7
+accessibility_label = "Choose an existing workspace"
+
+[nodes.workspace_picker.layout]
+clip = true
+
+[nodes.workspace_picker.layout.width]
+stretch = "Stretch"
+
+[nodes.workspace_picker.layout.height]
+min = 76
+preferred = 88
+max = 104
+stretch = "Fixed"
+
+[nodes.workspace_picker.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = 4
+scrollbar_visibility = "Auto"
+
+[nodes.workspace_picker.layout.padding]
+left = 7
+right = 7
+top = 6
+bottom = 6
+
+[[nodes.workspace_picker.children]]
+node = "workspace_picker_heading"
+
+[[nodes.workspace_picker.children]]
+node = "workspace_current"
+
+[[nodes.workspace_picker.children]]
+node = "workspace_other"
+
+[[nodes.workspace_picker.children]]
+node = "workspace_archived"
+
+[nodes.workspace_picker_heading]
+component = "Label"
+control_id = "ReactBitsOnboardingWorkspacePickerHeading"
+
+[nodes.workspace_picker_heading.props]
+text = "Existing workspaces"
+text_key = "fixture.onboarding.workspace_list.heading"
+foreground_color = "$text.muted"
+font_size = 9
+font_weight = 700
+text_align = "left"
+
+[nodes.workspace_picker_heading.layout.width]
+stretch = "Stretch"
+
+[nodes.workspace_picker_heading.layout.height]
+min = 16
+preferred = 18
+max = 20
+stretch = "Fixed"
+
+[nodes.workspace_current]
+component = "Button"
+control_id = "ReactBitsOnboardingWorkspaceCurrent"
+
+[nodes.workspace_current.props]
+text = "Zircon Design Lab · owner"
+text_key = "fixture.onboarding.workspace_list.current"
+button_variant = "text"
+selected = true
+background_color = "$surface.elevated"
+foreground_color = "$text.primary"
+corner_radius = 5
+text_align = "left"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Current workspace"
+
+[nodes.workspace_current.layout.width]
+stretch = "Stretch"
+
+[nodes.workspace_current.layout.height]
+min = 24
+preferred = 26
+max = 30
+stretch = "Fixed"
+
+[nodes.workspace_other]
+component = "Button"
+control_id = "ReactBitsOnboardingWorkspaceOther"
+
+[nodes.workspace_other.props]
+text = "Runtime Tools · member"
+text_key = "fixture.onboarding.workspace_list.other"
+button_variant = "text"
+foreground_color = "$text.secondary"
+corner_radius = 5
+text_align = "left"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Runtime Tools workspace"
+
+[nodes.workspace_other.layout.width]
+stretch = "Stretch"
+
+[nodes.workspace_other.layout.height]
+min = 24
+preferred = 26
+max = 30
+stretch = "Fixed"
+
+[nodes.workspace_archived]
+component = "Button"
+control_id = "ReactBitsOnboardingWorkspaceArchived"
+
+[nodes.workspace_archived.props]
+text = "Archive Workspace · viewer"
+text_key = "fixture.onboarding.workspace_list.archived"
+button_variant = "text"
+foreground_color = "$text.muted"
+corner_radius = 5
+text_align = "left"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Archive Workspace"
+
+[nodes.workspace_archived.layout.width]
+stretch = "Stretch"
+
+[nodes.workspace_archived.layout.height]
+min = 24
+preferred = 26
+max = 30
+stretch = "Fixed"
+
+[nodes.onboarding_actions]
+component = "HorizontalBox"
+control_id = "ReactBitsOnboardingActions"
+
+[nodes.onboarding_actions.layout.width]
+stretch = "Stretch"
+
+[nodes.onboarding_actions.layout.height]
+min = 38
+preferred = 42
+max = 46
+stretch = "Fixed"
+
+[nodes.onboarding_actions.layout.container]
+kind = "HorizontalBox"
+gap = 6
+
+[[nodes.onboarding_actions.children]]
+node = "onboarding_back"
+
+[[nodes.onboarding_actions.children]]
+node = "onboarding_action_gap"
+
+[[nodes.onboarding_actions.children]]
+node = "onboarding_continue"
+
+[nodes.onboarding_back]
+component = "Button"
+control_id = "ReactBitsOnboardingBack"
+
+[nodes.onboarding_back.props]
+text = "Back"
+text_key = "fixture.onboarding.action.back"
+icon = "chevron-left"
+icon_placement = "start"
+icon_size = "s"
+button_variant = "text"
+foreground_color = "$text.secondary"
+corner_radius = 6
+text_align = "left"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Back to profile step"
+
+[nodes.onboarding_back.layout.width]
+min = 0
+preferred = 92
+max = 112
+weight = 1
+stretch = "Stretch"
+
+[nodes.onboarding_back.layout.height]
+stretch = "Stretch"
+
+[nodes.onboarding_action_gap]
+component = "Space"
+
+[nodes.onboarding_action_gap.layout.width]
+min = 0
+preferred = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.onboarding_action_gap.layout.height]
+stretch = "Stretch"
+
+[nodes.onboarding_continue]
+component = "Button"
+control_id = "ReactBitsOnboardingContinue"
+
+[nodes.onboarding_continue.props]
+text = "Continue"
+text_key = "fixture.onboarding.action.continue"
+icon = "chevron-right"
+icon_placement = "end"
+icon_size = "s"
+button_variant = "contained"
+background_color = "$accent.primary"
+foreground_color = "$text.primary"
+corner_radius = 6
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Continue to team step"
+
+[nodes.onboarding_continue.layout.width]
+min = 0
+preferred = 148
+max = 180
+weight = 2
+stretch = "Stretch"
+
+[nodes.onboarding_continue.layout.height]
+stretch = "Stretch"
+
+[[stylesheets]]
+id = "reactbits-ui-typography"
+
+[[stylesheets.rules]]
+selector = "*"
+
+[stylesheets.rules.set.self.font]
+asset = "res://fonts/editor-ui.font.toml"
+family = "Fira Sans"
+
+[penpot_original_imports]
+[imports]
+widgets = []
+styles = []

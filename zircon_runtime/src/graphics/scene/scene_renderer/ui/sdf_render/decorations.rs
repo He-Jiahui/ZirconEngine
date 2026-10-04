@@ -1,10 +1,10 @@
 use crate::core::math::UVec2;
-use crate::text::font::{TextDecorationKind, TextDecorationMetrics, text_decoration_frame};
+use crate::text::font::{text_decoration_frame, TextDecorationKind, TextDecorationMetrics};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::UiTextWritingMode;
 
 use super::super::render::ScreenSpaceUiTextBatch;
-use super::vertices::{ScreenSpaceUiSdfVertex, push_clipped_solid_quad, transform_sdf_vertices};
+use super::vertices::{push_clipped_solid_quad, transform_sdf_vertices, ScreenSpaceUiSdfVertex};
 
 pub(super) fn build_text_decoration_vertices_iter<'a, Texts, Metrics>(
     vertices: &mut Vec<ScreenSpaceUiSdfVertex>,
@@ -40,6 +40,7 @@ pub(super) fn push_text_decorations_for_metrics(
     metrics: TextDecorationMetrics,
     viewport: UiFrame,
 ) {
+    // TODO: [CR-R02-runtime_wave12_graphics_ui_atlas_sdf-0004] 显式裁剪框与视口无交集时会退回整个视口；尚缺入口到装饰生成的离屏裁剪 fixture，需验证上游是否剔除该输入。
     let clip = text
         .clip_frame
         .and_then(|clip| clip.intersection(viewport))

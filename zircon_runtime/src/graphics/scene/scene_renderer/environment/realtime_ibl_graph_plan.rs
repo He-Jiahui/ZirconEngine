@@ -104,6 +104,8 @@ impl RealtimeIblGraphTopologyKey {
     }
 }
 
+/// 将一个调度批次投影为图通道与 A/B 外部资源；同纹理各视图声明共享分配别名。
+/// request 的布局须与产生 batch 的调度配置一致，内部索引依赖调度器的有界切片保证。
 pub(in crate::graphics) fn append_realtime_ibl_graph_plan(
     builder: &mut RenderGraphBuilder,
     request: &IblBakeArtifactRequest,
@@ -388,4 +390,5 @@ const fn div_ceil(value: u32, divisor: u32) -> u32 {
 }
 
 #[cfg(test)]
+#[path = "realtime_ibl_graph_plan/tests/cases.rs"]
 mod tests;

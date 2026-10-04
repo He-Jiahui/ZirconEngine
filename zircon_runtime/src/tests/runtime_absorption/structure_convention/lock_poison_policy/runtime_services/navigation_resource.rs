@@ -1,9 +1,10 @@
 use super::*;
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0023] 内置导航管理器的状态锁访问未匹配旧导入和读取表达式；需追踪现行导航查询入口及中毒状态恢复测试，再更新结构期待。
 #[test]
 fn runtime_15_navigation_lock_poison_recovery_guard_covers_builtin_navigation_manager() {
     let navigation_runtime = read_runtime_src("navigation/runtime.rs");
-    let navigation_tests = read_runtime_src("navigation/runtime/tests.rs");
+    let navigation_tests = read_runtime_src("navigation/runtime/tests/cases.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -44,6 +45,7 @@ fn runtime_15_navigation_lock_poison_recovery_guard_covers_builtin_navigation_ma
     );
 }
 
+// BUG: [CR-RUNTIME-TESTS-STRUCT-0022] 此守卫经运行时源码定位器读取资源管理器旧目录，当前文件不存在，精确测试复现文件读取 panic；核对迁移后的真实 owner 并修订守卫。
 #[test]
 fn runtime_15_core_resource_manager_lock_poison_recovery_guard_covers_resource_manager() {
     let resource_manager = read_runtime_src("core/resource/manager/resource_manager.rs");

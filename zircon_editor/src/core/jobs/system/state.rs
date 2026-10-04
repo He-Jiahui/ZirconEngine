@@ -14,7 +14,7 @@ use super::pending_task::PendingTask;
 use super::EditorJobAdmissionWindow;
 
 #[cfg(test)]
-#[path = "state/job_record_hash_tests.rs"]
+#[path = "state/tests/job_record_hash_tests.rs"]
 mod job_record_hash_tests;
 
 // Completed dependencies only need a bounded late-submission history, not runtime handles.
@@ -88,18 +88,13 @@ impl EditorJobSystemState {
     }
 
     pub(super) fn enqueue_pending(&mut self, pending: PendingJob) {
-        let unscheduled = pending
-            .spec
-            .after
-            .iter()
-            .copied()
-            .filter(|dependency| {
-                matches!(
-                    self.records.get(dependency),
-                    Some(EditorJobRecord::AwaitingSchedule)
-                )
-            })
-            .collect::<Vec<_>>();
+        let mut unscheduled = Vec::with_capacity(pending.spec.after.len());
+        unscheduled.extend(pending.spec.after.iter().copied().filter(|dependency| {
+            matches!(
+                self.records.get(dependency),
+                Some(EditorJobRecord::AwaitingSchedule)
+            )
+        }));
         // A dependency can already be terminal when this pending job is
         // admitted. Keep that terminal record until this job has captured its
         // completed runtime handle during promotion.
@@ -127,6 +122,16 @@ impl EditorJobSystemState {
             .ensure_batch_admissible(specs, limits.admission_limits(), now)
     }
 
+    pub(super) fn ensure_batch_pending_admissible_iter<'a>(
+        &self,
+        specs: impl Clone + ExactSizeIterator<Item = &'a EditorJobSpec>,
+        limits: &EditorJobLimits,
+        now: Instant,
+    ) -> Result<(), JobSubmitError> {
+        self.pending
+            .ensure_batch_admissible_iter(specs, limits.admission_limits(), now)
+    }
+
     pub(super) fn reserve_batch_admission(
         &mut self,
         requests: Vec<super::super::EditorJobAdmissionRequest>,
@@ -134,9 +139,8 @@ impl EditorJobSystemState {
         admitted_at: Instant,
     ) -> Result<u64, JobSubmitError> {
         self.ensure_accepting_submissions()?;
-        let requests_for_preflight = requests.iter().collect::<Vec<_>>();
-        self.pending.ensure_reservation_batch_admissible(
-            &requests_for_preflight,
+        self.pending.ensure_reservation_batch_admissible_iter(
+            requests.iter(),
             limits.admission_limits(),
             admitted_at,
         )?;
@@ -242,15 +246,13 @@ impl EditorJobSystemState {
     }
 
     pub(super) fn scheduling_dependencies(&self, pending: &PendingJob) -> Vec<JobHandle> {
-        let mut dependencies = pending
-            .spec
-            .after
-            .iter()
-            .map(|id| {
-                self.dependency_handle(*id)
-                    .expect("pending dependency records stay pinned until scheduling")
-            })
-            .collect::<Vec<_>>();
+        let mut dependencies = Vec::with_capacity(
+            pending.spec.after.len() + usize::from(pending.spec.mutex_group.is_some()),
+        );
+        dependencies.extend(pending.spec.after.iter().map(|id| {
+            self.dependency_handle(*id)
+                .expect("pending dependency records stay pinned until scheduling")
+        }));
         if let Some(group) = pending.spec.mutex_group.as_ref() {
             if let Some(group_tail) = self.mutex_group_tail(group) {
                 dependencies.push(group_tail);
@@ -412,134 +414,5 @@ impl EditorJobSystemState {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::time::Instant;
-
-    use crate::core::jobs::{EditorJobLimits, EditorJobSpec, JobCategory, MutexGroup};
-    use zircon_runtime::core::runtime::tasks::JobHandle;
-
-    use super::{EditorJobSystemState, PendingJob, TERMINAL_RECORD_RETENTION_LIMIT};
-
-    #[test]
-    fn category_blocked_pending_dependencies_pin_history_until_cancelled() {
-        let mut state = EditorJobSystemState::default();
-        let limits = EditorJobLimits::default().with_limit(JobCategory::Export, 1);
-        state.running_by_category.insert(JobCategory::Export, 1);
-
-        for index in 0..=TERMINAL_RECORD_RETENTION_LIMIT {
-            let dependency = state.allocate_id();
-            state.register(dependency);
-            let dependent = state.allocate_id();
-            let dependent_spec =
-                EditorJobSpec::new(format!("blocked-{index}"), JobCategory::Export)
-                    .after(dependency);
-            state.register(dependent);
-            state.enqueue_pending(PendingJob::new(
-                dependent,
-                dependent_spec,
-                Box::new(|_| {}),
-                Box::new(|_| {}),
-                Instant::now(),
-            ));
-            state.mark_cancelled(dependency);
-        }
-
-        assert!(state.take_next_admissible(&limits).is_none());
-        assert!(state.terminal_records.len() > TERMINAL_RECORD_RETENTION_LIMIT);
-        assert!(state.retained_record_count() > TERMINAL_RECORD_RETENTION_LIMIT);
-
-        for pending in state.begin_shutdown() {
-            state.mark_cancelled(pending.id);
-        }
-
-        assert!(state.terminal_records.len() <= TERMINAL_RECORD_RETENTION_LIMIT);
-        assert!(state.retained_record_count() <= TERMINAL_RECORD_RETENTION_LIMIT);
-    }
-
-    #[test]
-    fn terminal_history_eviction_uses_indexed_candidates_not_a_linear_queue_scan() {
-        let source = include_str!("state.rs");
-        let prune = source
-            .split("fn prune_terminal_records")
-            .nth(1)
-            .expect("terminal history prune implementation");
-
-        assert!(source.contains("evictable_terminal_records: BTreeSet"));
-        assert!(prune.contains("evictable_terminal_records.pop_first()"));
-        assert!(!prune.contains(".position("));
-        assert!(!prune.contains(".remove(index)"));
-    }
-
-    #[test]
-    fn scheduling_dependencies_include_the_previous_mutex_owner_tail() {
-        let mut state = EditorJobSystemState::default();
-        let explicit_dependency = state.allocate_id();
-        state.register(explicit_dependency);
-        state.store_scheduled_handle(explicit_dependency, JobHandle::completed());
-        let group = MutexGroup::parse("welcome_project_probe_test").unwrap();
-        let previous_owner = state.allocate_id();
-        state.register(previous_owner);
-        state.store_scheduled_handle(previous_owner, JobHandle::completed());
-        state.update_mutex_group_tail(group.clone(), previous_owner, JobHandle::completed());
-        let pending_id = state.allocate_id();
-        let pending = PendingJob::new(
-            pending_id,
-            EditorJobSpec::new("latest-probe", JobCategory::Index)
-                .after(explicit_dependency)
-                .with_mutex_group(group),
-            Box::new(|_| {}),
-            Box::new(|_| {}),
-            Instant::now(),
-        );
-
-        let dependencies = state.scheduling_dependencies(&pending);
-
-        assert_eq!(dependencies.len(), 2);
-        assert!(dependencies.iter().all(JobHandle::is_complete));
-    }
-
-    #[test]
-    fn terminal_record_cannot_reinstall_a_mutex_tail_after_fast_completion() {
-        let mut state = EditorJobSystemState::default();
-        let id = state.allocate_id();
-        state.register(id);
-        state.mark_finished(id, JobCategory::Export);
-        let group = MutexGroup::parse("terminal_before_tail").unwrap();
-
-        state.store_scheduled_handle(id, JobHandle::completed());
-        state.update_mutex_group_tail(group.clone(), id, JobHandle::completed());
-
-        assert!(state.mutex_group_tail(&group).is_none());
-        assert_eq!(state.mutex_group_tail_count(), 0);
-    }
-
-    #[test]
-    fn a_late_pending_dependency_pins_its_terminal_record_through_retention_pruning() {
-        let mut state = EditorJobSystemState::default();
-        let dependency = state.allocate_id();
-        state.register(dependency);
-        state.mark_cancelled(dependency);
-
-        let dependent = state.allocate_id();
-        state.register(dependent);
-        state.enqueue_pending(PendingJob::new(
-            dependent,
-            EditorJobSpec::new("late-dependent", JobCategory::Export).after(dependency),
-            Box::new(|_| {}),
-            Box::new(|_| {}),
-            Instant::now(),
-        ));
-
-        for _ in 0..=TERMINAL_RECORD_RETENTION_LIMIT {
-            let terminal = state.allocate_id();
-            state.register(terminal);
-            state.mark_cancelled(terminal);
-        }
-
-        assert!(state.is_terminal_record(dependency));
-        assert!(state.dependency_handle(dependency).is_some());
-        assert!(state
-            .take_next_admissible(&EditorJobLimits::default())
-            .is_some());
-    }
-}
+#[path = "tests/state.rs"]
+mod tests;

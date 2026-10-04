@@ -1,5 +1,6 @@
 use std::sync::{Arc, MutexGuard};
 
+use super::construction::CompletionBarrierGuard;
 use super::pending::PendingJob;
 use super::state::EditorJobSystemState;
 use super::{EditorJobSystemInner, ProgressObserverEvent};
@@ -11,10 +12,11 @@ use crate::core::jobs::{
 const MAX_PROMOTION_DISPATCH_BATCH: usize = 64;
 
 impl EditorJobSystemInner {
-    pub(super) fn cancel_pending(&self, pending: Vec<PendingJob>) {
+    pub(super) fn cancel_pending(self: &Arc<Self>, pending: Vec<PendingJob>) {
         if pending.is_empty() {
             return;
         }
+        let _completion = CompletionBarrierGuard::new(Arc::clone(self));
 
         let mut cancelled_ids = Vec::with_capacity(pending.len());
         for pending in pending {
@@ -53,16 +55,14 @@ impl EditorJobSystemInner {
                 let Some(pending) = state.take_next_admissible(&self.limits) else {
                     break;
                 };
-                let mut dependencies = pending
-                    .spec
-                    .after
-                    .iter()
-                    .map(|id| {
-                        state
-                            .dependency_handle(*id)
-                            .expect("pending dependency records stay pinned until scheduling")
-                    })
-                    .collect::<Vec<_>>();
+                let mut dependencies = Vec::with_capacity(
+                    pending.spec.after.len() + usize::from(pending.spec.mutex_group.is_some()),
+                );
+                dependencies.extend(pending.spec.after.iter().map(|id| {
+                    state
+                        .dependency_handle(*id)
+                        .expect("pending dependency records stay pinned until scheduling")
+                }));
                 if let Some(group) = pending.spec.mutex_group.as_ref() {
                     if let Some(group_tail) = state.mutex_group_tail(group) {
                         dependencies.push(group_tail);
@@ -107,6 +107,9 @@ impl EditorJobSystemInner {
     }
 
     pub(super) fn finish(self: &Arc<Self>, id: JobId, category: JobCategory) {
+        // Progress removal precedes observer delivery and promotion; keep the
+        // instance visible to shutdown until those terminal side effects end.
+        let _completion = CompletionBarrierGuard::new(Arc::clone(self));
         {
             let mut state = self.lock_state();
             state.mark_finished(id, category);
@@ -171,5 +174,5 @@ impl Drop for CompletionGuard {
 }
 
 #[cfg(test)]
-#[path = "scheduling/owned_dispatch_metadata_tests.rs"]
+#[path = "scheduling/tests/owned_dispatch_metadata_tests.rs"]
 mod owned_dispatch_metadata_tests;

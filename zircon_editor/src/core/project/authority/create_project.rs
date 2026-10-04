@@ -2,15 +2,17 @@ use std::fs;
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
-use zircon_runtime_interface::project::{render_project_template, RenderedProjectTemplate};
+use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
+use zircon_runtime_interface::project::{
+    render_project_template, ProjectCreationProvenance, RenderedProjectTemplate,
+};
 
 use super::super::filesystem::{
-    canonical_resolved_project_root, resolve_project_path, validate_creation_target,
+    canonical_resolved_project_root, resolve_project_path_with_identity, validate_creation_target,
 };
 use super::transaction::{
-    cleanup_failed_transaction_staging, commit_staged_directory, finalize_empty_target_backup,
-    rollback_committed_project,
+    cleanup_failed_transaction_staging, commit_staged_directory, finalize_published_project,
+    ProjectCreationLease,
 };
 use super::ProjectAuthority;
 use crate::core::project::{CreatedProject, NewProjectDraft, ProjectAuthorityError};
@@ -21,18 +23,34 @@ impl ProjectAuthority {
     pub fn create_project(
         &self,
         draft: &NewProjectDraft,
+        provenance: &ProjectCreationProvenance,
+    ) -> Result<CreatedProject, ProjectAuthorityError> {
+        self.create_project_for_activation(draft, provenance)
+    }
+
+    pub(crate) fn create_project_for_activation(
+        &self,
+        draft: &NewProjectDraft,
+        provenance: &ProjectCreationProvenance,
     ) -> Result<CreatedProject, ProjectAuthorityError> {
         let target = draft.validate_for_creation()?;
-        let rendered = render_project_template(draft.template.pack_id(), &draft.project_name)?;
-        self.create_rendered_project(&target, rendered)
+        let rendered = render_project_template(draft.template, &draft.project_name)?;
+        self.create_rendered_project(&target, &rendered, provenance)
     }
 
     pub(crate) fn create_rendered_project(
         &self,
         target: &Path,
-        rendered: RenderedProjectTemplate,
+        rendered: &RenderedProjectTemplate,
+        provenance: &ProjectCreationProvenance,
     ) -> Result<CreatedProject, ProjectAuthorityError> {
-        let target = resolve_project_path(target)?;
+        let project_guid = rendered
+            .summary
+            .project_guid
+            .ok_or(ProjectAuthorityError::RenderedTemplateMissingProjectGuid)?;
+        let template_receipt = provenance.issue_receipt(rendered.descriptor, project_guid)?;
+        let target_identity = resolve_project_path_with_identity(target)?;
+        let target = target_identity.operation_path().to_path_buf();
         validate_creation_target(&target)?;
         let parent = target
             .parent()
@@ -41,6 +59,9 @@ impl ProjectAuthority {
             })?;
         fs::create_dir_all(parent)
             .map_err(|source| ProjectAuthorityError::io("create project parent", parent, source))?;
+        let creation_lease = ProjectCreationLease::acquire(&target)?;
+        debug_assert_eq!(creation_lease.target(), target.as_path());
+        validate_creation_target(&target)?;
         let transaction = NEXT_TRANSACTION.fetch_add(1, Ordering::Relaxed);
         let stem = target
             .file_name()
@@ -61,14 +82,14 @@ impl ProjectAuthority {
                 ProjectAuthorityError::io("create project staging directory", &staging, source)
             })?;
             staging_created = true;
-            for entry in rendered.entries {
+            for entry in &rendered.entries {
                 let destination = entry.path.join_to(&staging);
                 if let Some(parent) = destination.parent() {
                     fs::create_dir_all(parent).map_err(|source| {
                         ProjectAuthorityError::io("create template directory", parent, source)
                     })?;
                 }
-                fs::write(&destination, entry.bytes).map_err(|source| {
+                fs::write(&destination, &entry.bytes).map_err(|source| {
                     ProjectAuthorityError::io("write template entry", &destination, source)
                 })?;
             }
@@ -79,8 +100,14 @@ impl ProjectAuthority {
                 ProjectAuthorityError::io("create staging derived layout", &staging, source)
             })?;
             let manifest_path = staging.join("zircon-project.toml");
-            let manifest = ProjectManifest::load(&manifest_path)?;
+            let mut manifest = ProjectManifest::load(&manifest_path)?;
+            manifest.template_receipt = Some(template_receipt);
             manifest.save(&manifest_path)?;
+
+            let staging_root = canonical_resolved_project_root(&staging)?;
+            let preflight = self.preflight_resolved_project(&staging_root)?;
+
+            let preflight = preflight.rebind_resolved_project_path(target_identity)?;
 
             let replaced_empty_target = target.exists();
             commit_staged_directory(
@@ -90,60 +117,22 @@ impl ProjectAuthority {
                 replaced_empty_target,
                 |from, to| fs::rename(from, to),
             )?;
-            let root = match canonical_resolved_project_root(&target) {
-                Ok(root) => root,
-                Err(error) => {
-                    rollback_committed_project(
-                        &staging,
-                        &target,
-                        &backup,
-                        replaced_empty_target,
-                        |from, to| fs::rename(from, to),
-                    )?;
-                    return Err(error);
-                }
-            };
-            let project = match ProjectManager::open_resolved(&root) {
-                Ok(project) => project,
-                Err(source) => {
-                    rollback_committed_project(
-                        &staging,
-                        &target,
-                        &backup,
-                        replaced_empty_target,
-                        |from, to| fs::rename(from, to),
-                    )?;
-                    return Err(source.into());
-                }
-            };
-            if let Err(error) =
-                finalize_empty_target_backup(&target, &backup, replaced_empty_target)
-            {
-                drop(project);
-                rollback_committed_project(
-                    &staging,
-                    &target,
-                    &backup,
-                    replaced_empty_target,
-                    |from, to| fs::rename(from, to),
-                )?;
-                return Err(error);
-            }
-            let summary = project.manifest().summary();
-            Ok(CreatedProject::new(root, summary, project))
+            finalize_published_project(&target, &backup, replaced_empty_target)?;
+            Ok(CreatedProject::new(preflight))
         })();
 
-        let preserve_rollback_artifacts = matches!(
-            &result,
-            Err(ProjectAuthorityError::PostCommitRollbackFailed { .. })
-        );
         if result.is_err() {
-            cleanup_failed_transaction_staging(
-                &staging,
-                preserve_rollback_artifacts,
-                staging_created,
-            );
+            cleanup_failed_transaction_staging(&staging, false, staging_created);
         }
         result
+    }
+
+    pub(crate) fn create_preflighted_project_for_activation(
+        &self,
+        target: &Path,
+        rendered: &RenderedProjectTemplate,
+        provenance: &ProjectCreationProvenance,
+    ) -> Result<CreatedProject, ProjectAuthorityError> {
+        self.create_rendered_project(target, rendered, provenance)
     }
 }

@@ -5,7 +5,7 @@ use zircon_runtime_interface::ui::text::UiRichLinkTarget;
 
 use crate::core::math::{Vec2, Vec4};
 
-use super::{OpenTypeFeature, TextAlign, font::FontFamilyName};
+use super::{font::FontFamilyName, OpenTypeFeature, TextAlign};
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct StyleOverride {

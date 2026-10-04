@@ -65,6 +65,8 @@ pub shotAimZ(centerZ: float, aimError: float): float {
     );
 }
 
+// 宿主在选好射门目标和球门位置后查询编码距离；策略只给确定
+// 性数值，不创建机器人行为队列，也不消费战斗随机流。
 pub shotAimRange(distanceToMouth: float): float {
     var fraction = maximum(
         contract.shot_fraction_min(true),

@@ -1,11 +1,14 @@
 use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::{Arc, Barrier};
 use std::thread;
 use std::time::{Duration, Instant};
 
 use super::super::{
     test_job_system, test_job_system_with_limits, CancellationToken, EditorJob, EditorJobLimits,
-    EditorJobSpec, JobCategory, JobContext, JobError, JobTicket,
+    EditorJobProgressObserver, EditorJobProgressSource, EditorJobSpec, JobCategory, JobContext,
+    JobError, JobId, JobTicket,
 };
+use crate::core::editor_message::SharedEditorMessageBus;
 
 const TEST_TIMEOUT: Duration = Duration::from_secs(5);
 
@@ -165,6 +168,62 @@ fn shutdown_removes_pending_entries_and_reports_only_non_terminal_canonical_entr
     release_sender.send(()).unwrap();
     take_before_deadline(&running, TEST_TIMEOUT).unwrap();
     wait_until(TEST_TIMEOUT, || progress.snapshot().is_empty());
+}
+
+#[test]
+fn shutdown_waits_for_in_flight_finish_observer_before_returning() {
+    let (entered_sender, entered_receiver) = mpsc::channel();
+    let release = Arc::new(Barrier::new(2));
+    let observer = Arc::new(BlockingFinishObserver {
+        entered: entered_sender,
+        release: Arc::clone(&release),
+    });
+    let jobs = super::super::EditorJobSystem::with_scheduler_and_bus_and_progress_observer(
+        super::super::test_job_scheduler(),
+        SharedEditorMessageBus::default(),
+        EditorJobLimits::default(),
+        observer,
+    );
+    let ticket = jobs
+        .submit(
+            EditorJobSpec::new("observer-barrier", JobCategory::Misc),
+            ValueJob,
+        )
+        .unwrap();
+
+    entered_receiver.recv_timeout(TEST_TIMEOUT).unwrap();
+    let shutdown_jobs = jobs.clone();
+    let (shutdown_sender, shutdown_receiver) = mpsc::channel();
+    let shutdown_thread = thread::spawn(move || {
+        let unfinished = shutdown_jobs.shutdown(Instant::now() + TEST_TIMEOUT);
+        shutdown_sender.send(unfinished).unwrap();
+    });
+
+    assert!(shutdown_receiver
+        .recv_timeout(Duration::from_millis(50))
+        .is_err());
+    release.wait();
+
+    let unfinished = shutdown_receiver.recv_timeout(TEST_TIMEOUT).unwrap();
+    shutdown_thread.join().unwrap();
+    assert!(unfinished.is_empty());
+    assert_eq!(take_before_deadline(&ticket, TEST_TIMEOUT), Ok(()));
+}
+
+struct BlockingFinishObserver {
+    entered: Sender<()>,
+    release: Arc<Barrier>,
+}
+
+impl EditorJobProgressObserver for BlockingFinishObserver {
+    fn job_admitted(&self, _job: JobId, _source: &EditorJobProgressSource) {}
+
+    fn job_finished(&self, _job: JobId, _source: &EditorJobProgressSource) {
+        self.entered.send(()).unwrap();
+        self.release.wait();
+    }
+
+    fn jobs_resynchronized(&self, _source: &EditorJobProgressSource) {}
 }
 
 struct ValueJob;

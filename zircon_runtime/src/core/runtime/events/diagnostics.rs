@@ -3,6 +3,7 @@ use std::time::{Duration, Instant};
 
 use crate::core::framework::events::{EventBusDiagnosticsMode, EventBusDiagnosticsSnapshot};
 
+/// `delivered` 统计成功入队次数（含替换旧项），不表示消费者已经读取事件。
 pub(super) struct EventBusDiagnosticsState {
     enabled: bool,
     routine_timing_sample_interval: u64,
@@ -26,6 +27,15 @@ pub(super) struct EventBusDiagnosticsState {
 }
 
 impl EventBusDiagnosticsState {
+    pub(super) fn record_evicted(&self, queued_at: Option<Instant>) {
+        if !self.enabled {
+            return;
+        }
+        self.dropped.fetch_add(1, Ordering::Relaxed);
+        self.record_dequeued_depth();
+        self.record_dequeued_age(queued_at.map(|queued_at| queued_at.elapsed()));
+    }
+
     pub(super) fn new(mode: EventBusDiagnosticsMode) -> Self {
         let (enabled, routine_timing_sample_interval) = match mode {
             EventBusDiagnosticsMode::Enabled => (true, 1),
@@ -77,9 +87,38 @@ impl EventBusDiagnosticsState {
         self.capture_routine_time(sample_index)
     }
 
-    pub(super) fn record_dequeued(&self, queued_at: Option<Instant>) {
-        self.record_dequeued_depth();
-        self.record_dequeued_age(queued_at.map(|queued_at| queued_at.elapsed()));
+    // 批量排空一次性扣减队列深度；只有记录过入队时刻的项目才贡献年龄样本。
+    pub(super) fn record_drained(&self, queued_at: impl IntoIterator<Item = Option<Instant>>) {
+        if !self.enabled {
+            return;
+        }
+        let now = Instant::now();
+        let mut drained = 0_u64;
+        let mut age_samples = 0_u64;
+        let mut total_age_ns = 0_u64;
+        let mut max_age_ns = 0_u64;
+        for queued_at in queued_at {
+            drained = drained.saturating_add(1);
+            let Some(queued_at) = queued_at else {
+                continue;
+            };
+            let age_ns = duration_ns(now.saturating_duration_since(queued_at));
+            age_samples = age_samples.saturating_add(1);
+            total_age_ns = total_age_ns.saturating_add(age_ns);
+            max_age_ns = max_age_ns.max(age_ns);
+        }
+        if drained == 0 {
+            return;
+        }
+        decrement_saturating_by(&self.queued, drained);
+        if age_samples == 0 {
+            return;
+        }
+        self.queue_age_samples
+            .fetch_add(age_samples, Ordering::Relaxed);
+        self.total_queue_age_ns
+            .fetch_add(total_age_ns, Ordering::Relaxed);
+        update_max(&self.max_queue_age_ns, max_age_ns);
     }
 
     pub(super) fn record_dequeued_depth(&self) {
@@ -246,8 +285,12 @@ fn duration_ms(nanos: u64) -> f64 {
 }
 
 fn decrement_saturating(value: &AtomicU64) {
+    decrement_saturating_by(value, 1);
+}
+
+fn decrement_saturating_by(value: &AtomicU64, amount: u64) {
     let _ = value.fetch_update(Ordering::AcqRel, Ordering::Acquire, |current| {
-        Some(current.saturating_sub(1))
+        Some(current.saturating_sub(amount))
     });
 }
 
@@ -258,94 +301,9 @@ fn update_max(target: &AtomicU64, candidate: u64) {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::hint::black_box;
-    use std::time::Instant;
+#[path = "tests/diagnostics.rs"]
+mod tests;
 
-    use super::sample_due;
-
-    #[test]
-    fn optimization_batch_20260831ez_runtime565_power_of_two_sampling_matches_modulo_semantics() {
-        for interval in [1, 2, 4, 8, 64, 128] {
-            for sample_index in 0..512 {
-                assert_eq!(
-                    sample_due(sample_index, interval),
-                    sample_index % interval == 0,
-                    "interval={interval} sample_index={sample_index}"
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn optimization_batch_20260831ez_runtime565_non_power_of_two_sampling_keeps_modulo_semantics() {
-        for interval in [3, 5, 7, 63, 65] {
-            for sample_index in 0..512 {
-                assert_eq!(
-                    sample_due(sample_index, interval),
-                    sample_index % interval == 0,
-                    "interval={interval} sample_index={sample_index}"
-                );
-            }
-        }
-        assert!(!sample_due(0, 0));
-    }
-
-    #[test]
-    #[ignore = "managed Windows release performance evidence"]
-    fn optimization_batch_20260831ez_runtime565_event_sampling_mask_p95() {
-        const SAMPLE_PAIRS: usize = 13;
-        const ITERATIONS: u64 = 20_000_000;
-        const INTERVAL: u64 = 64;
-        let mut legacy = Vec::with_capacity(SAMPLE_PAIRS);
-        let mut optimized = Vec::with_capacity(SAMPLE_PAIRS);
-        for pair in 0..SAMPLE_PAIRS {
-            if pair % 2 == 0 {
-                legacy.push(measure(false, INTERVAL, ITERATIONS));
-                optimized.push(measure(true, INTERVAL, ITERATIONS));
-            } else {
-                optimized.push(measure(true, INTERVAL, ITERATIONS));
-                legacy.push(measure(false, INTERVAL, ITERATIONS));
-            }
-        }
-        let legacy_p95_ns = percentile(&legacy, 95);
-        let optimized_p95_ns = percentile(&optimized, 95);
-        println!(
-            "RUNTIME565_EVENT_SAMPLING_MASK_BENCH_V1 sample_pairs={SAMPLE_PAIRS} \
-iterations={ITERATIONS} interval={INTERVAL} legacy_p95_ns={legacy_p95_ns} \
-optimized_p95_ns={optimized_p95_ns} legacy_raw_ns={} optimized_raw_ns={}",
-            csv(&legacy),
-            csv(&optimized)
-        );
-        assert!(optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(50));
-    }
-
-    fn measure(optimized: bool, interval: u64, iterations: u64) -> u128 {
-        let started = Instant::now();
-        let mut hits = 0_u64;
-        let interval = black_box(interval);
-        for sample_index in 0..iterations {
-            hits += u64::from(if optimized {
-                sample_due(sample_index, interval)
-            } else {
-                sample_index % interval == 0
-            });
-        }
-        black_box(hits);
-        started.elapsed().as_nanos().max(1)
-    }
-
-    fn percentile(samples: &[u128], percentile: usize) -> u128 {
-        let mut sorted = samples.to_vec();
-        sorted.sort_unstable();
-        sorted[(sorted.len() * percentile).div_ceil(100).saturating_sub(1)]
-    }
-
-    fn csv(samples: &[u128]) -> String {
-        samples
-            .iter()
-            .map(u128::to_string)
-            .collect::<Vec<_>>()
-            .join(",")
-    }
-}
+#[cfg(test)]
+#[path = "diagnostics/tests/optimization_batch_js_runtime658_tests.rs"]
+mod optimization_batch_js_runtime658_tests;

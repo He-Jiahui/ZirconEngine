@@ -9,23 +9,37 @@ origin_child_dir: docs/plans/zircon_editor/editor/01
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/03
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text
   - zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs
   - zircon_runtime/src/text/model/shaped_run.rs
+  - zircon_runtime/src/text/model/mod.rs
   - zircon_runtime/src/text/layout/rich.rs
+  - zircon_runtime/src/text/layout/rich/tests.rs
+  - zircon_runtime/src/text/layout/rich/materialize.rs
   - zircon_runtime/src/text/layout/mod.rs
   - zircon_runtime/src/text/rich/bbcode_table.rs
-  - zircon_runtime/src/core/framework/render
+  - zircon_runtime/src/text/mod.rs
   - zircon_runtime/src/ui/text/layout_engine/rich_table.rs
+  - zircon_runtime/src/ui/text/layout_engine/rich_layout.rs
+  - zircon_runtime/src/ui/text/layout_engine/measurement.rs
+  - zircon_runtime/src/ui/text/rich_text.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/03-text-and-font-stack.md
   - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md
   - docs/plans/engine-code-structure-convention.md
 tests:
-  - cargo test -p zircon_editor --lib --locked ui::retained_host::host_contract::paint_text -- --test-threads=1
-  - cargo test -p zircon_editor --lib --locked ui::retained_host::host_contract::paint_text::draw::layout -- --test-threads=1
-  - cargo test -p zircon_editor --lib --locked core::jobs::tests -- --test-threads=1
+  - cargo +1.94.1 test -p zircon_editor --lib --locked --jobs 1 --no-run --message-format short --color never
+  - cargo +1.94.1 test -p zircon_editor --lib --locked --jobs 1 ui::retained_host::host_contract::paint_text_tests::retained_text_measure_selects_runtime_family_for_ui_and_code_faces -- --exact --test-threads=1
+  - cargo +1.94.1 test -p zircon_editor --lib --locked --jobs 1 ui::retained_host::host_contract::paint_text_tests::retained_text_preserves_small_underscore_stroke_contrast -- --exact --test-threads=1
+  - cargo +1.94.1 test -p zircon_editor --lib --locked --jobs 1 ui::retained_host::host_contract::paint_text::font::tests::runtime_font_request_generation_includes_face_role_and_runtime_generation -- --exact --test-threads=1
+  - cargo +1.94.1 test -p zircon_editor --lib --locked --jobs 1 ui::retained_host::host_contract::paint_text::draw::layout::tests::layout_uses_runtime_artifact_faces_for_basic_text -- --exact --test-threads=1
+  - cargo +1.94.1 test -p zircon_runtime --lib --locked --jobs 1 text::layout::rich::tests::text_rich_line_materialization_borrows_source_and_uses_a_run_cursor -- --exact --test-threads=1
+  - cargo +1.94.1 test -p zircon_runtime --lib --locked --jobs 1 text::model::shaped_run::tests::shaped_lines_borrow_absolute_ranges_from_one_shared_source -- --exact --test-threads=1
+  - cargo +1.94.1 test -p zircon_editor --lib --locked --jobs 1 -- --test-threads=1
+  - cargo +1.94.1 test -p zircon_runtime --lib --locked --jobs 1 -- --test-threads=1
 ---
 
 # Editor UI 03：Retained text family 与 subpixel 合同失败交接
@@ -78,3 +92,94 @@ Plan 14 M1/M2 的后续编译门禁又分别暴露 rich layout re-export 与 `ui
 ## 修复结果与回传
 
 - 状态：`open / 待修复`；先跑本组，再向上重跑 Editor M1。
+
+### 2026-09-19 current-source static contract receipt
+
+Coordinator-managed static ticket `757c977d485643aa87c92d0a07727e57` passed
+with job/run `624b23a3893341c38d07c9351c27bcb2` /
+`757c977d485643aa87c92d0a07727e57` (exit 0,
+`EDITORUI03_RETAINED_TEXT_FAMILY_SUBPIXEL_SOURCE_CONTRACT_PASS`,
+`CHECKED_PATHS=5`). The sealed source-manifest hash is
+`137f00cd5d3234cc9b23de2dfabba21bed5cc89143aba0201e5f58856ccfe780` and
+covers this failure record plus the retained paint-text family tests, runtime
+font request owner, subpixel placement owner, and runtime-artifact layout tests.
+The checker confirms preference-derived family/weight selection without the
+retired `system-ui` assertion, runtime family and grapheme/contrast regressions,
+and grayscale-versus-subpixel origin handling. This is static/parse-only
+evidence; focused managed Editor tests, platform-font discovery, upward Editor
+M1/14/15 gates, independent C/I/M review, canonical failure return, and
+coordinator closeout remain pending. The failure stays `open`.
+
+### 2026-09-21 independent source review (review-editorui03-retained-family-r1)
+
+- The four attributed source owners were re-read against sealed manifest
+  `137f00cd5d3234cc9b23de2dfabba21bed5cc89143aba0201e5f58856ccfe780` and matched:
+  `paint_text_tests.rs` `e7e2c770f0e342529d7b702c0666287c3669d130a07af4dba3e210ca14ad8be7`,
+  `paint_text/font.rs` `1d4e45a257d5d52f30e19b151ebd0511297f3827611f424a3f62b0aa2580b99f`,
+  `paint_text/draw/placement.rs` `e00b6db199b5e098f4403b49315d1d686dd072c820edbcd864b87b818e603c12`, and
+  `paint_text/draw/layout/tests.rs` `435dd60fa7bb11f63e3dc9f3e092553d37009f40b0994aabc9247ae181b1eb7c`.
+  The failure document itself carries the expected receipt drift and was not treated as a
+  source-owner mismatch.
+- `font.rs` resolves UI, strong-UI, and mono faces from the current host preferences, carries
+  the corresponding weights into runtime styles, and hashes both the resolved runtime-font
+  generation and the complete request for cache identity. No retired `system-ui` alias,
+  platform path, or hard-coded face is reintroduced. The focused tests cover family separation,
+  preference mapping, style-face selection, and stable/distinct request generations.
+- The retained paint-text tests exercise runtime measurement and ellipsis at grapheme boundaries,
+  small-underscore contrast, crop-label ink spacing, runtime family/weight projection, and the
+  runtime surface measurement owner. Layout tests require runtime artifact faces, valid raster
+  face indices/physical ppem, finite glyph origins, and apply grayscale snapping before artifact
+  projection. `placement.rs` keeps non-finite origins on the named fallback, rounds only the
+  grayscale path, and preserves fractional origins for subpixel smoothing.
+- Independent probes passed for preference-derived family/weight routing, generation identity,
+  absence of the retired family assertion, grapheme and contrast guards, artifact-face metadata,
+  and grayscale/subpixel origin behavior. Scoped Rust 1.94.1 `rustfmt --check` and
+  `git diff --check` passed for all four attributed paths.
+- Independent review result: `Critical=0, Important=0, Moderate=0`. This is source-contract
+  evidence only. Managed Windows Editor focused tests, actual platform-font discovery and
+  raster/subpixel output, Runtime rich-text/rich-link unique-export compilation, upward Editor
+  M1/14/15 acceptance, canonical failure return, and coordinator closeout remain pending; no
+  historical binary or unrelated transitive fixture evidence is promoted.
+
+### 2026-09-25 current-source r2 reconciliation
+
+- Successor Session `failure-roll-01a084c8-editorui03-retained-family-r2` owns this failure record only. The current retained paint-text and Runtime text/export chain is listed as exact existing files in `related_code`; no source path was edited or re-attributed.
+- Current SHA-256 values are sealed for all 17 listed files: `paint_text_tests.rs` `e7e2c770f0e342529d7b702c0666287c3669d130a07af4dba3e210ca14ad8be7`, `paint_text/font.rs` `1d4e45a257d5d52f30e19b151ebd0511297f3827611f424a3f62b0aa2580b99f`, `paint_text/font/tests.rs` `6cbb4511d5d10dcbc3166f6d796ef4325ef73fbe9f1d8603d551cd02295fbd43`, `paint_text/draw/placement.rs` `e00b6db199b5e098f4403b49315d1d686dd072c820edbcd864b87b818e603c12`, and `paint_text/draw/layout/tests.rs` `435dd60fa7bb11f63e3dc9f3e092553d37009f40b0994aabc9247ae181b1eb7c`.
+- Runtime owner hashes are `shaped_run.rs` `930cb6e3980a7c59236991ccbc368bce16e143d256d9e33bc5484f50098ee277`, `model/mod.rs` `7eb760f67becdcc638793794ca6f407c75a9719cdeee436dd80a8b80fe6c6f39`, `layout/rich.rs` `2c62090bf15cc2e20c7e37806fe453ea5d0403c1949360cb0692cfec45706275`, `layout/rich/tests.rs` `9249e65af31f6984174873b265967e1f73a451260c79c1abffb50bbb0c1ce5f1`, `layout/rich/materialize.rs` `c941eda6230392ed08f231a3ed25072743317bf57873a8103fa777c10d125d41`, `layout/mod.rs` `271849b177faddc6e597c0a9c54f14187827c9e44ae38e27aae3cd431d796118`, `text/rich/bbcode_table.rs` `73f1d08659a21bc3b97ea221e7d95f40f6c67aa3f987974552ac8ac53bde9077`, `text/mod.rs` `69ae0db7abce20ce43c069fc1e84f42015bc22c4c99ff0e04593773d048714ff`, `ui/text/layout_engine/rich_table.rs` `ae8fc62223d152d0a47c8fefb14d2e4baaef4aef1d9ea58453daf09b208cebd9`, `rich_layout.rs` `7d01791c6c4716f434e4352e7bd7fdedfe7377a85a01f9962d899b44efbf81d3`, `measurement.rs` `945fa2e69834139781664465c77c1dc537785705b97a804df8d44c4311b559a2`, and `ui/text/rich_text.rs` `a755e30b76d5cda8aec354d8fb40bd799a6220ddb9b37677c803093802da4253`.
+- Existing foreign dirty edits are present in four of the five retained layout/font files and ten of the twelve Runtime chain files; `paint_text_tests.rs`, `text/rich/bbcode_table.rs`, and `ui/text/layout_engine/rich_table.rs` are currently clean. This session preserves that provenance and does not claim any source changes. The exact focused filters now resolve to actual test functions, while managed Cargo, platform-font discovery, rich-link export compilation, and upward Editor M1/14/15 gates remain pending.
+
+### 2026-09-26 successor intake (failure-roll-01a084c8-editorui03-retained-family-r3)
+
+- The stale r2 lifecycle was cancelled through the coordinator after its
+  heartbeat expired with no active lease. Successor
+  `failure-roll-01a084c8-editorui03-retained-family-r3` now owns only this
+  failure record. Ownership transfer fingerprint is
+  `a7f7ca51c57165489629b27f51843a4ed8368c3efd996ac7fb2335efa998cbd8`, and
+  pre-review snapshot `3926` sealed the record at SHA
+  `7fc203ae10fd66c260d0e50697d3b4cfbbed3661d57c05ec2c1a84bd5d0d6ec4`.
+- All seventeen current source paths from the r2 source manifest were
+  rehashed and still match their sealed values. Existing foreign dirty edits
+  across retained paint-text and Runtime rich-text paths remain unclaimed and
+  unedited; the coordinator lease covers only this failure document. No stale
+  binary, compile failure, or prior source ticket is promoted to dynamic
+  acceptance.
+- The static ticket `757c977d485643aa87c92d0a07727e57` and prior review remain
+  historical source-contract evidence. Fresh managed Editor/Runtime focused
+  tests, platform-font discovery, rich-link export compilation, upward
+  Editor M1/14/15 gates, independent review of this successor, canonical
+  `fixed-*` return, closeout, and WeCom notification remain pending. The
+  failure stays open.
+
+### 2026-09-26 independent successor review (review-editor03-gizmo-private)
+
+- Reviewer `/root/review_editor03_gizmo_private` rechecked successor snapshot
+  `3927` (`63bc2f1604b46b44da3b76bf2c9537f5197b5109b7a4fa81169f85c9cfece99b`),
+  stale-r2 cancellation, ownership-transfer fingerprint, all seventeen
+  attributed source hashes, and the preserved foreign-dirty provenance.
+- No stale binary, compile result, or historical ticket was promoted to
+  acceptance. Managed focused Editor/Runtime tests, platform-font discovery,
+  rich-link export compilation, upward Editor M1/14/15 gates, canonical
+  `fixed-*` return, coordinator closeout, and WeCom notification remain
+  pending; this review is source-contract evidence only.
+- Independent review result: `Critical=0, Important=0, Moderate=0`. The
+  successor remains open pending its managed validation and closeout lifecycle.

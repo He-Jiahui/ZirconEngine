@@ -1,3 +1,7 @@
+---
+status: local_candidate
+---
+
 # Tooling03 Retired UI asset stat prefilter
 
 ## Problem

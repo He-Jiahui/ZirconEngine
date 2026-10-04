@@ -49,7 +49,7 @@ for (const field of [
 for (const needle of [
   'appendDefaultForcedTargetColumns(this);',
   'appendDefaultForcedTargetColumns(state);',
-  'writer.u16(<uint>38, 1, 1);',
+  'writer.u16(schemaVersion, 1, 1);',
   'schemaVersion != <uint>26',
   'if (schemaVersion >= <uint>26) {',
   'm8FreshPlayerStats.forcedTargetId',
@@ -61,8 +61,8 @@ for (const needle of [
 }
 invariant((state.match(/entityForcedTargetIds/g) ?? []).length >= 9,
   'WOS26 forced target lacks persistence coverage');
-invariant(main.includes('\\"world_state\\":\\"WOS38\\",'),
-  'package stateSchema must expose the WOS38 snapshot version');
+invariant(main.includes('\\"world_state\\":\\"WOS118\\",'),
+  'package stateSchema must expose the WOS118 snapshot version');
 
 process.stdout.write(`checked WOS26 forced-target source projection: ${SOURCE_COMMIT.slice(0, 15)}\n`);
 

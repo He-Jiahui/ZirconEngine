@@ -124,5 +124,5 @@ fn format_step_label(prefix: char, value: f32) -> String {
 }
 
 #[cfg(test)]
-#[path = "viewport_chrome/allocation_tests.rs"]
+#[path = "viewport_chrome/tests/allocation_tests.rs"]
 mod allocation_tests;

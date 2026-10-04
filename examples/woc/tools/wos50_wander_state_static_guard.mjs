@@ -13,7 +13,7 @@ const main = read('scripts/woc_game/src/main.zr');
 const protocol = read('native/crates/woc_protocol/src/lib.rs');
 
 for (const text of [
-  'writer.u16(<uint>67, 1, 1);',
+  'writer.u16(schemaVersion, 1, 1);',
   'schemaVersion != <uint>49 && schemaVersion != <uint>50 &&',
   'schemaVersion != <uint>51 && schemaVersion != <uint>52 &&',
   'schemaVersion != <uint>53 && schemaVersion != <uint>54 &&',
@@ -29,8 +29,8 @@ for (const text of [
   'eastbrookRngCursor.constructorCursorAfterCampSpawns(',
 ]) requireText(world, text, 'world state');
 
-requireText(main, '\\"world_state\\":\\"WOS67\\"', 'package metadata');
-requireText(protocol, 'pub const WORLD_STATE_FORMAT: &str = "WOS67";', 'native state format');
-requireText(protocol, 'pub const WORLD_STATE_SCHEMA_VERSION: u16 = 67;', 'native schema version');
+requireText(main, '\\"world_state\\":\\"WOS118\\"', 'package metadata');
+requireText(protocol, 'pub const WORLD_STATE_FORMAT: &str = "WOS118";', 'native state format');
+requireText(protocol, 'pub const WORLD_STATE_SCHEMA_VERSION: u16 = 118;', 'native schema version');
 
 process.stdout.write('WOS50 wander-state static guards passed\n');

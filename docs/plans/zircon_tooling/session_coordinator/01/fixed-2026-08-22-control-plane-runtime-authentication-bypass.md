@@ -10,18 +10,8 @@ origin_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - docs/cli-and-tooling/local-session-coordinator.md
+  - docs/tooling/local-session-coordinator.md
   - docs/plans/zircon_tooling/session_coordinator/01/2026-07-13-simplified-session-management-acceptance.md
-  - tools/session_coordinator/client.py
-  - tools/session_coordinator/control_plane/http.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/supervision/runtime_descriptor.py
-  - tools/session_coordinator/tests/test_client.py
-  - tools/session_coordinator/tests/test_control_http.py
-  - tools/session_coordinator/tests/test_control_recovery.py
-  - tools/session_coordinator/tests/test_deferred_action_client.py
-  - tools/session_coordinator/tests/test_runtime_descriptor.py
-  - tools/session_coordinator/tests/test_server.py
 resolved_at: 2026-08-22
 ---
 

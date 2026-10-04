@@ -28,14 +28,17 @@ class RuntimeJobSystemAuditTests(unittest.TestCase):
 
         audit = job_system_boundary_audit(self.repo_root)
 
-        self.assertEqual(audit["expected_module_count"], 22)
-        self.assertEqual(audit["behavior_test_anchor_count"], 73)
+        self.assertEqual(audit["expected_module_count"], 23)
+        self.assertEqual(audit["behavior_test_anchor_count"], 77)
         self.assertEqual(audit["missing_modules"], [])
         self.assertEqual(audit["unexpected_modules"], [])
         self.assertEqual(audit["missing_mod_declarations"], [])
         self.assertEqual(audit["missing_public_surface"], [])
         self.assertEqual(audit["missing_api_snippets"], {})
         self.assertEqual(audit["forbidden_scheduler_owner_snippets"], [])
+        self.assertEqual(
+            audit["forbidden_task_graph_scope_scheduler_snippets"], []
+        )
         self.assertEqual(audit["forbidden_graphics_owner_snippets"], [])
         self.assertEqual(audit["forbidden_navigation_owner_snippets"], [])
         self.assertEqual(audit["missing_navigation_owner_snippets"], {})
@@ -44,7 +47,10 @@ class RuntimeJobSystemAuditTests(unittest.TestCase):
         self.assertEqual(audit["platform_default_constructor_references"], [])
         self.assertEqual(audit["missing_platform_owner_snippets"], {})
         self.assertEqual(audit["missing_behavior_test_anchors"], [])
-        self.assertEqual(audit["oversized_modules"], [])
+        self.assertEqual(
+            audit["oversized_modules"],
+            [{"path": "zircon_runtime/src/core/runtime/tasks/report.rs", "lines": 617}],
+        )
         self.assertTrue(audit["mirror_docs_guard_present"])
 
     def test_folder_backed_mirror_owner_closes_runtime_11_audit(self) -> None:
@@ -54,11 +60,11 @@ class RuntimeJobSystemAuditTests(unittest.TestCase):
 
         audit = job_system_boundary_audit(self.repo_root)
 
-        self.assertEqual(audit["expected_module_count"], 22)
+        self.assertEqual(audit["expected_module_count"], 23)
         self.assertEqual(audit["expected_guard_file_count"], 2)
         self.assertEqual(audit["missing_guard_files"], [])
         self.assertEqual(audit["diagnostic_anchor_count"], 11)
-        self.assertEqual(audit["behavior_test_anchor_count"], 73)
+        self.assertEqual(audit["behavior_test_anchor_count"], 77)
         self.assertEqual(audit["missing_behavior_test_anchors"], [])
         self.assertTrue(audit["mirror_docs_guard_present"])
         self.assertEqual(
@@ -68,6 +74,9 @@ class RuntimeJobSystemAuditTests(unittest.TestCase):
         self.assertEqual(audit["unclassified_direct_rayon"], [])
         self.assertEqual(audit["runtime_editor_dependency_references"], [])
         self.assertEqual(audit["forbidden_scheduler_owner_snippets"], [])
+        self.assertEqual(
+            audit["forbidden_task_graph_scope_scheduler_snippets"], []
+        )
         self.assertEqual(audit["forbidden_graphics_owner_snippets"], [])
         self.assertEqual(audit["forbidden_navigation_owner_snippets"], [])
         self.assertEqual(audit["missing_navigation_owner_snippets"], {})
@@ -97,7 +106,17 @@ class RuntimeJobSystemAuditTests(unittest.TestCase):
         self.assertNotIn("use rayon", source_mipmap)
         self.assertIn("pub trait ParallelSliceExecutor", parallel_contract)
         self.assertIn("impl ParallelSliceExecutor for TaskPool", runtime_parallel_for)
-        self.assertEqual(audit["risks"], [])
+        self.assertEqual(
+            audit["oversized_modules"],
+            [{"path": "zircon_runtime/src/core/runtime/tasks/report.rs", "lines": 617}],
+        )
+        self.assertEqual(
+            audit["risks"],
+            [
+                "one or more JobSystem owner modules exceed 500 lines; "
+                "split by execution owner before adding more behavior."
+            ],
+        )
 
     def test_offline_font_sdf_bake_consumes_an_explicit_task_owner(self) -> None:
         bake_source = (

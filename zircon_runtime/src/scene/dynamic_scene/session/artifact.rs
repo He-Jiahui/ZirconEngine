@@ -133,6 +133,7 @@ impl RuntimeSessionArchiveSealFailure {
     }
 }
 
+/// 一次代际封存的阶段计数；供调用方判断规范化、验证和编码是否重复发生。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct RuntimeSessionArchiveArtifactDiagnostics {
     pub capture_count: usize,
@@ -142,6 +143,8 @@ pub struct RuntimeSessionArchiveArtifactDiagnostics {
     pub internal_json_roundtrip_count: usize,
 }
 
+/// 经校验且受字节上限约束的稳定保存快照；清单、统计和编码字节来自同一负载代际。
+/// 写入服务可跨线程持有它，后续 Archive 修改不会改变已封存的内容。
 #[derive(Clone, Debug)]
 pub struct RuntimeSessionArchiveArtifact {
     generation: u64,
@@ -156,6 +159,8 @@ pub struct RuntimeSessionArchiveArtifact {
 }
 
 impl RuntimeSessionArchive {
+    /// 在提交写入或读取清单前封存当前代际；同一代际重复调用复用结果及失败。
+    /// 封存会先验证场景和槽位，再生成有大小上限的规范文本。
     pub fn sealed_artifact(
         &self,
     ) -> Result<RuntimeSessionArchiveArtifact, RuntimeSessionArchiveError> {
@@ -438,6 +443,8 @@ impl RuntimeSessionArchiveArtifact {
         diagnostics_from(&self.counters)
     }
 
+    /// 将此稳定产物提交给路径写入权威；仅同一内存谱系的旧修订受谱系检查保护。
+    /// 若来源于独立加载的快照，调用方须自行处理读改写竞争。
     pub fn save_to_path_atomically(
         &self,
         path: impl AsRef<Path>,
@@ -522,73 +529,5 @@ fn record_slot_counts(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::scene::{
-        dynamic_scene::{session::RuntimeSessionMetadata, DynamicResource, DynamicScene},
-        NodeKind, World,
-    };
-
-    #[test]
-    fn runtime_session_archive_payload_limit_matrix_stops_stream_writes_at_bound() {
-        let chunk = [0u8; 64 * 1024];
-        for mebibytes in [1usize, 64, 512] {
-            let limit = mebibytes * 1024 * 1024;
-            let mut budget = ArchiveByteBudget::new(limit);
-            for _ in 0..limit / chunk.len() {
-                budget
-                    .write_all(&chunk)
-                    .expect("stream should accept bytes through its exact limit");
-            }
-            assert_eq!(budget.written_bytes, limit);
-            assert!(budget.write_all(&[0]).is_err());
-            assert_eq!(budget.overflow_at, Some(limit.saturating_add(1)));
-        }
-        assert_eq!(
-            MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES,
-            512 * 1024 * 1024
-        );
-    }
-
-    #[test]
-    fn runtime_session_archive_slot_and_entity_scale_matrix_builds_linear_indexes() {
-        let mut source = World::empty();
-        source
-            .spawn_node(NodeKind::Mesh)
-            .expect("test scene spawn should succeed");
-        let mut scene =
-            DynamicScene::from_world(&source).expect("source scene should capture one real entity");
-        scene.resources.push(DynamicResource::new(
-            "zircon_runtime::tests::ArchiveScaleResource",
-            Vec::new(),
-        ));
-        let template = RuntimeSessionSlot {
-            slot_id: "template".to_owned(),
-            metadata: RuntimeSessionMetadata::default(),
-            scene,
-        };
-
-        for count in [1usize, 1_000, 100_000] {
-            let payload = RuntimeSessionArchivePayload::new(
-                super::super::RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION,
-                (0..count)
-                    .map(|index| {
-                        let mut slot = template.clone();
-                        slot.slot_id = format!("slot-{index:06}");
-                        slot
-                    })
-                    .collect(),
-            );
-            let manifest = build_manifest(&payload);
-            let index = build_slot_index(&manifest);
-            assert_eq!(manifest.slot_count(), count);
-            assert_eq!(index.len(), count);
-
-            let statistics = build_statistics(&payload);
-            assert_eq!(statistics.total_entity_count, count);
-            assert_eq!(statistics.total_resource_count, count);
-            assert_eq!(statistics.max_slot_entity_count, 1);
-            assert_eq!(statistics.max_slot_resource_count, 1);
-        }
-    }
-}
+#[path = "tests/artifact.rs"]
+mod tests;

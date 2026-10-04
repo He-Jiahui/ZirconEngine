@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node wos61_kidney_shot_static_guard.mjs；缺少源码契约时脚本抛错退出。
+// 对照锁定的肾击连击点消耗与眩晕规则，检查 M4 投影及世界光环、冷却、命令、强制目标和持久化路径。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -55,6 +59,7 @@ for (const needle of [
   }
 }
 
+// 先从结构化 M4 条目固定连击点消耗与眩晕数值，再检查世界命令路径。
 const m4Contract = JSON.parse(read("contracts", "m4_abilities.json"));
 const m4Effects = read("scripts", "woc_game", "src", "generated", "m4_ability_effects.zr");
 const kidneyShotEntry = m4Contract.entries.find((entry) => entry.id === "kidney_shot");

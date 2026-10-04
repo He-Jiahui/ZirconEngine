@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+# 事件批次折叠借用输入切片，仅当输出所有权要求时克隆；原有流式拥有型入口仍可调用并检查 Rust 用例入口。
 import re
 import unittest
 from pathlib import Path
@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime/src/asset/watch/fold_events.rs"
-RUST_TESTS = ROOT / "zircon_runtime/src/asset/watch/fold_events/tests.rs"
+RUST_TESTS = ROOT / "zircon_runtime/src/asset/watch/fold_events/tests/cases.rs"
 
 
 def rust_function_body(source: str, name: str) -> str:
@@ -57,7 +57,7 @@ class Runtime88BorrowedEventFoldPerformanceContract(unittest.TestCase):
         self.assertNotIn(".clone()", body)
 
     def test_owned_rust_contract_is_wired(self) -> None:
-        self.assertIn("#[cfg(test)]\nmod tests;", self.source)
+        self.assertIn("#[cfg(test)]\n#[path = \"fold_events/tests/cases.rs\"]\nmod tests;", self.source)
         tests = RUST_TESTS.read_text(encoding="utf-8")
         self.assertIn(
             "runtime88_borrowed_event_fold_batch_repeated_modifications_clone_only_unique_result_uri",

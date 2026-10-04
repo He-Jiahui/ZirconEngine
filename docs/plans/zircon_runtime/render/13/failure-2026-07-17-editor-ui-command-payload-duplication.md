@@ -80,6 +80,25 @@ PERF-MVP-187补充：MUI X line/pie/sparkline/gauge在paint线程每帧生成最
 
 ## 修复结果与回传
 
+### 2026-09-26 current-source successor handoff (`failure-roll-01a084c8-render13-editor-ui-payload-r2`)
+
+- 本次只接管本 failure 文档；协调器 ownership transfer fingerprint 为
+  `bef6aaf1ce52ee7a7751e335cf5242f47777b2dafd68b94397bddd0db4f9037d`，仅该文档取得租约。生产路径没有被本 Session 重复 claim，也没有吸收其他 owner 的工作树修改。
+- 本轮受管文档边界先冻结在 pre-review snapshot `3892`，manifest hash 为
+  `ef2086d970f963a4653be43439e6fee915e19ca034b989883b762cebf94e2bcf`；补齐边界声明后的 post-review snapshot `3893` manifest hash 为
+  `c636a9be81fa7d6b99bddc723667069420cd911aa36e484776288aef593931ec`；本次 review receipt 修改后的最终封存 snapshot 由协调器记录为 `3894`。
+- 当前生产源码仍由其他历史 owner 或未归属状态持有，先记录本快照中的只读哈希，不把它们当作本 Session 的可提交变更：
+  - `zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording/model.rs` — `0de035eed658070dad2ddbdc2601e608e6bd618c539b6d2d732a6d79a94c7a29`
+  - `zircon_runtime/crates/zr_rhi/src/ui_surface.rs` — `b17a47379d77c75d27ad3e4d7d37e3992eba5befecc739b5b72486deb019161d`
+  - `zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs` — `770b16d6e0c2db37cd43dd1e2e01736d536497ab0f74c7a9c3a37f01204e5dbb`
+- 只读静态核对命中当前契约：Editor recording/stream 和 RHI/WGPU batching 均以 `(resource_key, generation)` 建立图像身份，scene UI 准备路径引用 `ResourceStreamer` 与 generation-qualified prepared texture。与此同时，`UiSurfaceImagePayload` 仍保留显式 `rgba: Option<Vec<u8>>` fallback；因此本次静态证据不能替代 stable-frame no-copy、1/1k/10k upload、device-loss、RenderDoc 或 PNG 验收。
+- 本次没有新增 managed Cargo ticket，避免重复已有 Render13 IBL/下游验证请求；failure 继续保持 `open`，动态 Cargo/WGPU/RenderDoc/pixel/perf gates 仍待协调器在合法 owner 与外部 `E:/Git/zr_vm` 输入可用后执行。
+
+### Independent review receipt
+
+- Coordinator-efficiency reviewer 初审针对 snapshot `3892` 报告 `C/I/M=0/1/0`，唯一 Important 是缺少明确的权威 snapshot 绑定；没有发现 ownership、foreign-source 吸收或动态验收误报。
+- 已补充 snapshot `3892`/`3893` 与 manifest hash 的边界声明；该补丁只改本 failure 文档。本条不改变 `open` 状态，也不替代动态验收。
+
 Open state: `实现与独立静态复核已完成，待协调器受管动态验收`。
 
 - Editor Chrome stream、`zr_rhi::UiSurfaceDrawList`、WGPU geometry/batching/upload/cache/render pass 均以精确 `(resource_key, generation)` 作为图像身份；同键的并存 generation 不会覆盖、错误批处理或错误采样。

@@ -4,6 +4,9 @@ use super::super::super::{
 };
 
 impl RuntimeSessionArchive {
+    /// 先按标签进行普通裁剪，再额外保留选择器命中的桶内槽位。
+    /// 因此可在普通保留数量之外多保留该槽位；桶外选择不改变报告，选择器未命中仍返回错误。
+    /// 预览不修改档案，也不绑定后续提交。
     pub fn preview_prune_slots_with_tag_and_selected_protection(
         &self,
         tag: &str,
@@ -21,6 +24,7 @@ impl RuntimeSessionArchive {
     }
 }
 
+// 只修改同一档案上标签预览形成的分区；桶外选择保留原报告，避免占用其他标签桶的保留名额。
 pub(in crate::scene::dynamic_scene::session::selected_retention) fn report_with_selected_tag_slot(
     archive: &RuntimeSessionArchive,
     tag: &str,
@@ -39,6 +43,7 @@ pub(in crate::scene::dynamic_scene::session::selected_retention) fn report_with_
     protect_selected_slot(report, selected_slot_id)
 }
 
+// 报告两分区必须按槽位 ID 递增；retention 规划层提供此顺序，修订保护后仍保持有序且互斥。
 fn protect_selected_slot(
     mut report: RuntimeSessionArchivePruneReport,
     selected_slot_id: &str,
@@ -62,57 +67,7 @@ fn protect_selected_slot(
     report
 }
 
+// 固定二分保护修订的顺序与唯一性契约，防止标签预览产生重复保留项或失去规范顺序。
 #[cfg(test)]
-mod tests {
-    use super::protect_selected_slot;
-    use crate::scene::dynamic_scene::session::RuntimeSessionArchivePruneReport;
-
-    fn report() -> RuntimeSessionArchivePruneReport {
-        RuntimeSessionArchivePruneReport {
-            retained_slot_ids: ["autosave", "manual-new"].map(str::to_owned).into(),
-            removed_slot_ids: ["manual-mid", "manual-old"].map(str::to_owned).into(),
-        }
-    }
-
-    #[test]
-    fn runtime52_batch_incremental_selected_protection_preserves_canonical_order() {
-        let report = protect_selected_slot(report(), "manual-mid");
-
-        assert_eq!(
-            report.retained_slot_ids,
-            ["autosave", "manual-mid", "manual-new"]
-        );
-        assert_eq!(report.removed_slot_ids, ["manual-old"]);
-    }
-
-    #[test]
-    fn runtime52_batch_incremental_selected_protection_is_noop_when_not_removed() {
-        let expected = report();
-
-        assert_eq!(
-            protect_selected_slot(expected.clone(), "autosave"),
-            expected
-        );
-    }
-
-    #[test]
-    fn runtime52_batch_incremental_selected_protection_keeps_partition_unique() {
-        let mut report = report();
-        report.retained_slot_ids.insert(1, "manual-mid".to_owned());
-
-        let report = protect_selected_slot(report, "manual-mid");
-
-        assert_eq!(
-            report
-                .retained_slot_ids
-                .iter()
-                .filter(|slot_id| slot_id.as_str() == "manual-mid")
-                .count(),
-            1
-        );
-        assert!(!report
-            .removed_slot_ids
-            .iter()
-            .any(|slot_id| slot_id == "manual-mid"));
-    }
-}
+#[path = "tests/preview.rs"]
+mod tests;

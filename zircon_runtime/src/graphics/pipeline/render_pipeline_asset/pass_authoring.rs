@@ -9,8 +9,8 @@ use crate::graphics::pipeline::declarations::{
     RenderGraphExecutionPassMetadata, RenderPassStage, RenderPipelineCompileOptions,
 };
 use crate::graphics::scene::{
-    IBL_BAKE_IRRADIANCE_CUBE_PASS, IBL_BAKE_IRRADIANCE_SH9_PASS,
-    append_ibl_bake_artifact_graph_plan, ibl_bake_pmrem_pass_name,
+    append_ibl_bake_artifact_graph_plan, ibl_bake_pmrem_pass_name, IBL_BAKE_IRRADIANCE_CUBE_PASS,
+    IBL_BAKE_IRRADIANCE_SH9_PASS,
 };
 use crate::render_graph::{
     CompiledRenderGraph, ExternalResource, RenderGraphBufferRange, RenderGraphBuilder,
@@ -20,7 +20,7 @@ use crate::render_graph::{
 };
 
 use super::super::validation::stage_pass_descriptors;
-use super::graph_resources::{PipelineGraphResourcePlan, pipeline_graph_resources};
+use super::graph_resources::{pipeline_graph_resources, PipelineGraphResourcePlan};
 use super::resource_descriptors::buffer_desc_from_schema;
 use super::resource_schema_catalog::RenderResourceSchemaCatalog;
 use crate::graphics::pipeline::RenderGraphCompileCameraTargetFingerprint;
@@ -187,7 +187,6 @@ fn author_graph_passes(
     let mut execution_pass_metadata = Vec::new();
     let mut produced_resource_versions =
         BTreeMap::<ResourceVersionKey, RenderGraphResourceVersionToken>::new();
-
     for pass_descriptor in ordered_render_feature_passes(stages, descriptors)? {
         if pass_descriptor.flags.has_side_effects && pass_descriptor.resources.is_empty() {
             return Err(format!(

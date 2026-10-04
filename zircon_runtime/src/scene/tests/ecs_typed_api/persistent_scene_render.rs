@@ -1,5 +1,5 @@
-use crate::scene::World;
 use crate::scene::components::{CameraComponent, MeshRenderer, Mobility, RenderLayerMask};
+use crate::scene::World;
 
 #[test]
 fn persistent_scene_render_components_use_generic_storage_across_clone_serde_and_records() {
@@ -22,8 +22,8 @@ fn persistent_scene_render_components_use_generic_storage_across_clone_serde_and
         .insert(entity, render_layer_mask)
         .expect("render layer mask should use component storage");
     world
-        .insert(entity, mobility)
-        .expect("mobility should use component storage");
+        .set_mobility(entity, mobility)
+        .expect("mobility should use checked Scene authoring");
 
     let cloned = world.clone();
     let decoded: World = serde_json::from_str(

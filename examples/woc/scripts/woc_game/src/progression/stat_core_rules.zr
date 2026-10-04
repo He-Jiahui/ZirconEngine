@@ -5,7 +5,7 @@
 var math = %import("zr.zircon.math");
 
 pub roundJs(value: float): int {
-    return <int>math.floor(value + 0.5);
+    return <int>math.round(value);
 }
 
 pub primaryAtLevel(baseValue: int, perLevel: int, level: int): int {

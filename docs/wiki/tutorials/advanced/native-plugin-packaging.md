@@ -1,18 +1,18 @@
 ---
 related_code:
-  - tools/cargo-zircon/src/plugin/scaffold/mod.rs
-  - tools/cargo-zircon/src/plugin/check.rs
-  - tools/cargo-zircon/src/plugin/validate.rs
+  - tools/cargo/src/plugin/scaffold/mod.rs
+  - tools/cargo/src/plugin/check.rs
+  - tools/cargo/src/plugin/validate.rs
   - zircon_runtime/src/plugin/runtime_plugin
 implementation_files:
-  - tools/cargo-zircon/src/plugin/scaffold
-  - tools/cargo-zircon/src/plugin/check.rs
+  - tools/cargo/src/plugin/scaffold
+  - tools/cargo/src/plugin/check.rs
   - zircon_runtime/src/plugin/runtime_plugin
 plan_sources:
   - user: 2026-09-09 扩充 ZirconEngine 公开接口教程、机制案例与最佳实践
 tests:
-  - tools/cargo-zircon/tests/plugin_commands.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_validation/tests.rs
+  - tools/cargo/tests/plugin_commands.rs
+  - zircon_runtime/src/plugin/runtime_plugin/feature_validation/tests/cases.rs
 doc_type: workflow-detail
 ---
 
@@ -364,9 +364,9 @@ plugin.catalog capability=runtime.asset.importer.data.weather_data provider=weat
 
 ## 参考
 
-- [Plugin scaffold](https://github.com/He-Jiahui/ZirconEngine/blob/main/tools/cargo-zircon/src/plugin/scaffold/mod.rs)
-- [Plugin check](https://github.com/He-Jiahui/ZirconEngine/blob/main/tools/cargo-zircon/src/plugin/check.rs)
-- [Plugin command tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/tools/cargo-zircon/tests/plugin_commands.rs)
+- [Plugin scaffold](https://github.com/He-Jiahui/ZirconEngine/blob/main/tools/cargo/src/plugin/scaffold/mod.rs)
+- [Plugin check](https://github.com/He-Jiahui/ZirconEngine/blob/main/tools/cargo/src/plugin/check.rs)
+- [Plugin command tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/tools/cargo/tests/plugin_commands.rs)
 
 ## 发布目录布局
 

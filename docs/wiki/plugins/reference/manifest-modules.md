@@ -9,7 +9,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 插件公开接口完整参考
 tests:
-  - zircon_plugins/plugin_sdk/src/manifest/tests.rs
+  - zircon_plugins/plugin_sdk/src/manifest/tests/cases.rs
   - zircon_plugins/plugin_sdk/src/manifest/plugin_module_builder.rs
 doc_type: api-reference
 title: Package Manifest、模块与 Feature Bundle

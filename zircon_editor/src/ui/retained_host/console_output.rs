@@ -600,5 +600,5 @@ pub(in crate::ui::retained_host) fn console_snapshot_content_extent(
 }
 
 #[cfg(test)]
-#[path = "console_output/tests.rs"]
+#[path = "console_output/tests/cases.rs"]
 mod tests;

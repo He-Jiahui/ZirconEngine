@@ -34,13 +34,11 @@ Runtime clocks are fixed by contract:
 - one batch ZrVM transaction per simulation tick;
 - complete rollback on a VM, budget, decode or command-validation failure.
 
-The ZrVM package targets the versioned `WOS113` envelope documented in
-`contracts/world-state.md`; its `stateSchema()` and writer select WOS113 while
-the decoder retains WOS2-WOS113 compatibility. WOS113 keeps the historical WOS15
+The ZrVM package and native protocol target the versioned `WOS118` envelope
+documented in `contracts/world-state.md`; `stateSchema()` and the writer select
+schema 118 while the decoder retains WOS2-WOS118 compatibility. WOS113 keeps the historical WOS15
 signed resource rows and appends the authoritative fractional-resource tail.
-`examples/woc/native/crates/woc_protocol` still declares WOS83, so native protocol
-identity/migration reconciliation remains an explicit forward-repair owner and is
-not evidence that the authoritative ZrVM state should be downgraded. WOS83 appends
+The following earlier schema entries describe retained migrations. WOS83 appends
 29 source-ordered account weapon-skin ownership markers and eight generated-type
 loadout codes. Typed `change_weapon_skin` applies only known owned skins matching
 the displayed mainhand, detaches canonical type entries, refreshes all live
@@ -432,10 +430,12 @@ bag capacity, consumes one rarity draw only after admission, grants the mapped
 material, records first discovery and grants the source gathering XP.
 `trade_offer {items,copper}` and `mail_send` remain
 source-shape inventory because their upstream strings/item-id objects have no source-owned
-wire bound. The 11 source-only and 8 unmapped dispatch commands remain source-shape
-inventory only. The generic protocol envelope can carry bounded opaque bytes for known ids,
-but catalog recognition does not make the remaining 19 rows typed, semantically validated,
-or implemented.
+wire bound. The generated command coverage now contains 157 typed entries
+(156 client-send entries and one dispatch-only entry); remaining 0 source-shaped
+client sends are left in that category, while eight dispatch commands remain
+unmapped. The generic protocol envelope can carry bounded opaque bytes for known
+ids, but catalog recognition does not make an unmapped dispatch route
+semantically validated or implemented.
 The two loadout-index payloads reject values outside the source's ten-slot range
 at the native/client boundary. WOS38 retains the WOS16 bounded offline loadout
 projection (name bytes, six-row allocation and 22 action-bar ability codes), and
@@ -500,7 +500,7 @@ yards of that corpse at 50% health, or at a nearby spirit healer at 20% health
 with a source-level resurrection-sickness duration timer. Arena/delve release
 routing, the sickness stat aura/resource recomputation, and events still require
 their owning systems.
-Command-payload schema 52 covers 149 of 165 source commands. It retains typed
+Command-payload schema 60 covers 157 of 165 source commands. It retains typed
 `qlinkaccept` transport (`quest` plus numeric sharer pid) and typed `equip` /
 `unequip_item` transport over the source's 12 live paperdoll slots. Native client
 mapping and authoritative reducers retain linked-quest same-party availability,
@@ -535,14 +535,28 @@ door-ranged, rank-costed Delve companion transaction. Schema 51 adds bounded
 `unequip_mech_chroma {chroma}` transport, native intent mapping and WOS82's
 account-owned cosmetic return/reuse loop. Schema 52 adds the discriminated
 `change_weapon_skin` apply/detach transport, native intent mapping and WOS83's
-account-owned weapon-loadout projection. The remaining 8 source-shaped client
-sends and eight dispatch-only commands remain
-a separate migration. Package and native
+account-owned weapon-loadout projection. The generated coverage records
+remaining 0 source-shaped client sends; eight dispatch-only commands remain
+unmapped and are tracked as a separate migration. Package and native
 identities report both the command-catalog SHA-256 and payload-schema SHA-256.
 The VM decoder preserves ordered command payload bytes and rejects unknown ids
 before world dispatch.
 Every native host identity also reports the pinned source commit and contract
 schema fingerprint in addition to the 20/60 Hz clocks.
+
+The `woc_headless` executable enables its `engine-host` feature by default and
+loads `scripts/woc_game/woc_game.zrp` through the retained ZrVM project adapter.
+It uses Runtime's registered host exports with only the declared
+`foundation.log` and `math.scalar` capabilities. Its normal entry activates the
+project, constructs a standard offline session, executes 20 fixed ticks, and
+deactivates the project before returning the committed state/presentation summary.
+`--project PATH`, `--ticks COUNT`, `--class ID` and `--player-name NAME` select
+the authored project and session inputs. `--verify-replay` executes one extra
+tick twice around a retained checkpoint and requires identical committed bytes
+and digests. `--help` displays the command syntax without loading the project.
+The headless product regression runs the actual executable and authored package;
+its source is implemented, with managed Windows execution still pending.
+
 The four empty-payload target selectors have a ZrVM ordering module at
 `scripts/woc_game/src/world/target_selection.zr`. It pins the upstream 40-yard
 query boundary, flared facing cone, engaged/visible tiers, near-cluster

@@ -1,6 +1,6 @@
 use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::ui::retained_host::activity_rail_pointer::{
-    build_host_activity_rail_pointer_layout,
+    build_host_activity_rail_pointer_geometry_layout, build_host_activity_rail_pointer_layout,
     build_host_activity_rail_pointer_layout_with_workbench_layout_frames,
 };
 use crate::ui::retained_host::callback_dispatch::{
@@ -59,6 +59,48 @@ fn shared_activity_rail_pointer_layout_prefers_shared_root_projection_when_left_
         root_frames.activity_rail_frame.unwrap()
     );
     assert_eq!(layout.right_strip_frame, UiFrame::default());
+}
+
+#[test]
+fn window_metrics_activity_rail_layout_reuses_semantic_tab_products() {
+    let fixture = default_preview_fixture();
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
+    let metrics = WorkbenchChromeMetrics::default();
+    let initial_frames =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1280.0, 720.0))
+            .expect("initial workbench surface")
+            .layout_frames();
+    let initial = build_host_activity_rail_pointer_layout_with_workbench_layout_frames(
+        &model,
+        &metrics,
+        initial_frames,
+    );
+    let mut resized_bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1440.0, 900.0))
+            .expect("resized workbench surface");
+    resized_bridge
+        .recompute_layout_with_workbench_model(UiSize::new(1440.0, 900.0), &model, &metrics)
+        .expect("resized workbench layout");
+
+    let resized = build_host_activity_rail_pointer_geometry_layout(
+        &initial,
+        &metrics,
+        resized_bridge.layout_frames(),
+    );
+
+    assert!(std::sync::Arc::ptr_eq(
+        &initial.left_tabs,
+        &resized.left_tabs
+    ));
+    assert!(std::sync::Arc::ptr_eq(
+        &initial.right_tabs,
+        &resized.right_tabs
+    ));
+    assert_ne!(initial.left_strip_frame, resized.left_strip_frame);
 }
 
 #[test]

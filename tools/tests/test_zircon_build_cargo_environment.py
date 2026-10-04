@@ -10,20 +10,20 @@ from uuid import uuid4
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-BUILD_RUNNER = REPO_ROOT / "tools" / "zircon_build.py"
-ENVIRONMENT_HELPER = REPO_ROOT / "tools" / "zircon_build_cargo_environment.py"
-FONT_SDF_BUILDER = REPO_ROOT / "tools" / "zircon_build_font_sdf.py"
+BUILD_RUNNER = REPO_ROOT / "tools" / "build" / "zircon_build.py"
+ENVIRONMENT_HELPER = REPO_ROOT / "tools" / "build" / "zircon_build_cargo_environment.py"
+FONT_SDF_BUILDER = REPO_ROOT / "tools" / "build" / "zircon_build_font_sdf.py"
 RUNTIME_FEATURE_CHECKERS = (
-    REPO_ROOT / "tools" / "check-runtime-domain-features.ps1",
-    REPO_ROOT / "tools" / "check-runtime-profile-features.ps1",
+    REPO_ROOT / "tools" / "analysis" / "validation" / "check-runtime-domain-features.ps1",
+    REPO_ROOT / "tools" / "analysis" / "validation" / "check-runtime-profile-features.ps1",
 )
 
 
 class ZirconBuildCargoEnvironmentTests(unittest.TestCase):
     def test_managed_environment_creates_only_staged_cargo_locations(self) -> None:
-        from tools.zircon_build_cargo_environment import managed_cargo_environment
+        from tools.build.zircon_build_cargo_environment import managed_cargo_environment
 
-        managed_root = r"D:\ZirconBuilds" if os.name == "nt" else None
+        managed_root = r"D:\cargo-targets\zircon-local" if os.name == "nt" else None
         with tempfile.TemporaryDirectory(dir=managed_root) as temporary_root:
             cache_root = Path(temporary_root)
             target_dir = cache_root / "targets" / "runtime"
@@ -43,9 +43,9 @@ class ZirconBuildCargoEnvironmentTests(unittest.TestCase):
                 self.assertTrue(directory.is_dir(), f"{name} must stay in staging")
 
     def test_managed_environment_rejects_target_outside_cache_before_creation(self) -> None:
-        from tools.zircon_build_cargo_environment import managed_cargo_environment
+        from tools.build.zircon_build_cargo_environment import managed_cargo_environment
 
-        managed_root = r"D:\ZirconBuilds" if os.name == "nt" else None
+        managed_root = r"D:\cargo-targets\zircon-local" if os.name == "nt" else None
         with tempfile.TemporaryDirectory(dir=managed_root) as temporary_root:
             cache_root = Path(temporary_root) / "cache"
             outside_target = Path(temporary_root) / "outside" / "runtime"
@@ -57,7 +57,7 @@ class ZirconBuildCargoEnvironmentTests(unittest.TestCase):
 
     @unittest.skipUnless(os.name == "nt", "Windows staging roots are Windows-only")
     def test_windows_unmanaged_root_is_rejected_before_creation(self) -> None:
-        from tools.zircon_build_cargo_environment import assert_managed_windows_build_root
+        from tools.build.zircon_build_cargo_environment import assert_managed_windows_build_root
 
         unmanaged_root = Path(r"C:\ZirconBuilds") / f"must-not-be-created-{uuid4().hex}"
         with self.assertRaisesRegex(ValueError, "approved build root"):
@@ -67,7 +67,7 @@ class ZirconBuildCargoEnvironmentTests(unittest.TestCase):
 
     @unittest.skipUnless(os.name == "nt", "Windows staging roots are Windows-only")
     def test_build_rejects_unmanaged_output_before_staging_directories(self) -> None:
-        from tools.zircon_build import build
+        from tools.build.zircon_build import build
 
         out_root = Path(r"C:\ZirconBuilds") / f"must-not-be-created-{uuid4().hex}"
         config = types.SimpleNamespace(
@@ -87,9 +87,9 @@ class ZirconBuildCargoEnvironmentTests(unittest.TestCase):
     def test_run_cargo_resolves_relative_target_dir_from_the_cargo_working_directory(
         self,
     ) -> None:
-        from tools.zircon_build import run_cargo
+        from tools.build.zircon_build import run_cargo
 
-        managed_root = r"D:\ZirconBuilds" if os.name == "nt" else None
+        managed_root = r"D:\cargo-targets\zircon-local" if os.name == "nt" else None
         with tempfile.TemporaryDirectory(dir=managed_root) as temporary_root:
             repo_root = Path(temporary_root)
             targets_root = repo_root / "targets"
@@ -103,7 +103,7 @@ class ZirconBuildCargoEnvironmentTests(unittest.TestCase):
                 targets_root=targets_root,
             )
 
-            with mock.patch("tools.zircon_build.subprocess.run") as cargo_run:
+            with mock.patch("tools.build.zircon_build.subprocess.run") as cargo_run:
                 run_cargo(config, ["build", "--target-dir", "targets/runtime"])
 
             _, keyword_arguments = cargo_run.call_args
@@ -164,14 +164,10 @@ class ZirconBuildCargoEnvironmentTests(unittest.TestCase):
             r"D:\cargo-targets",
             r"E:\cargo-targets",
             r"F:\cargo-targets",
-            r"D:\targets",
-            r"E:\targets",
-            r"F:\targets",
-            r"D:\ZirconBuilds",
-            r"E:\ZirconBuilds",
-            r"F:\ZirconBuilds",
         ):
             self.assertIn(root, source)
+        self.assertNotIn('r"D:\\targets"', source)
+        self.assertNotIn('r"E:\\ZirconBuilds"', source)
 
     def test_runtime_feature_checkers_use_managed_cargo_environments(self) -> None:
         for checker in RUNTIME_FEATURE_CHECKERS:

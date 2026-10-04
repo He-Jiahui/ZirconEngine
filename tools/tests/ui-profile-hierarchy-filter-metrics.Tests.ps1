@@ -1,6 +1,7 @@
-$script:HierarchyFilterMetrics = Join-Path $PSScriptRoot "..\ui-profile-hierarchy-filter-metrics.ps1"
-$script:ProfileCaptureScript = Join-Path $PSScriptRoot "..\ui-profile-capture.ps1"
-$script:ProfileCaptureManifest = Join-Path $PSScriptRoot "..\profile-capture-manifest.ps1"
+# 用时间线夹具验证层级筛选指标保留合法零值并拒绝缺失或非法数值。
+$script:HierarchyFilterMetrics = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-hierarchy-filter-metrics.ps1"
+$script:ProfileCaptureScript = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-capture.ps1"
+$script:ProfileCaptureManifest = Join-Path $PSScriptRoot "..\profiling\shared\profile-capture-manifest.ps1"
 $script:HierarchyFilterMetricsFixtureRoot = Join-Path `
     'E:\zircon-profiles' `
     ("test-fixtures\hierarchy-filter-metrics-" + [Guid]::NewGuid().ToString('N'))
@@ -124,23 +125,23 @@ Describe "ui-profile hierarchy filter metrics" {
 
         $toolPaths = @(Get-ZirconProfileCaptureToolPaths)
         $expectedToolPaths = @(
-            'tools/ui-profile-capture.ps1',
-            'tools/ui-profile-scenarios.ps1',
-            'tools/ui-profile-latency-evidence.ps1',
-            'tools/ui-profile-process-evidence.ps1',
-            'tools/ui-profile-counter-evidence.ps1',
-            'tools/ui-profile-workbench-pointer-evidence.ps1',
-            'tools/ui-profile-native-resize.ps1',
-            'tools/ui-profile-hierarchy-filter-input.ps1',
-            'tools/ui-profile-hierarchy-filter-metrics.ps1',
-            'tools/ui-profile-scale-fixture.ps1',
-            'tools/ui-profile-surface-pipeline-metrics.ps1',
-            'tools/ui-profile-chrome-paint-metrics.ps1',
-            'tools/ui-profile-machine-manifest.ps1',
-            'tools/performance-machine-manifest.ps1',
-            'tools/profile-capture-paths.ps1',
-            'tools/ui-profile-product-directory.ps1',
-            'tools/profile-capture-manifest.ps1'
+            'tools/analysis/profiling/ui/ui-profile-capture.ps1',
+            'tools/analysis/profiling/ui/ui-profile-scenarios.ps1',
+            'tools/analysis/profiling/ui/ui-profile-latency-evidence.ps1',
+            'tools/analysis/profiling/ui/ui-profile-process-evidence.ps1',
+            'tools/analysis/profiling/ui/ui-profile-counter-evidence.ps1',
+            'tools/analysis/profiling/ui/ui-profile-workbench-pointer-evidence.ps1',
+            'tools/analysis/profiling/ui/ui-profile-native-resize.ps1',
+            'tools/analysis/profiling/ui/ui-profile-hierarchy-filter-input.ps1',
+            'tools/analysis/profiling/ui/ui-profile-hierarchy-filter-metrics.ps1',
+            'tools/analysis/profiling/ui/ui-profile-scale-fixture.ps1',
+            'tools/analysis/profiling/ui/ui-profile-surface-pipeline-metrics.ps1',
+            'tools/analysis/profiling/ui/ui-profile-chrome-paint-metrics.ps1',
+            'tools/analysis/profiling/ui/ui-profile-machine-manifest.ps1',
+            'tools/analysis/profiling/shared/performance-machine-manifest.ps1',
+            'tools/analysis/profiling/shared/profile-capture-paths.ps1',
+            'tools/analysis/profiling/ui/ui-profile-product-directory.ps1',
+            'tools/analysis/profiling/shared/profile-capture-manifest.ps1'
         )
 
         $toolPaths.Count | Should Be $expectedToolPaths.Count

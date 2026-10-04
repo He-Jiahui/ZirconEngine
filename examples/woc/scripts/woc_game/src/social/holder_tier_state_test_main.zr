@@ -7,6 +7,7 @@ closeEnough(value: float, expected: float): bool {
     return difference <= 0.000001;
 }
 
+// 独立 zrp 入口直测档位阈值及供应量占比，涵盖无钱包与越界索引。
 var result = 1;
 if (holderTier.wocMaxSupply() != 1000000000 ||
     holderTier.holderTierIndexForBalance(false, 1000000000) != 0 ||

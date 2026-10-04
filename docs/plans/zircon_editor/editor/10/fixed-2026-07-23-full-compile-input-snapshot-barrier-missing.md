@@ -9,10 +9,6 @@ origin_child_dir: docs/plans/zircon_editor/editor/10
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/cargo_jobs.py
-  - tools/session_coordinator/cargo_reservations.py
-  - tools/session_coordinator/validation_copies.py
-  - tools/session_coordinator/server.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_cargo_reservations
   - python -m unittest tools.session_coordinator.tests.test_validation_copies

@@ -9,11 +9,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PACKAGE_REPORT_SCHEMA = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_package_report_schema.py"
+    / "tools/export/pipeline_report_native_dynamic_package_report_schema.py"
 )
 PAYLOAD_FILES_SCHEMA = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_package_report_payload_files_schema.py"
+    / "tools/export/pipeline_report_native_dynamic_package_report_payload_files_schema.py"
 )
 
 PAYLOAD_FILES_FUNCTIONS = (

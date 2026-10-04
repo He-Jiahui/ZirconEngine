@@ -2,13 +2,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.plugin_structure_audits.registration import (
+from tools.audits.plugins.registration import (
     audit_plugin_registration_conformance,
     audit_runtime_registration_builder,
     audit_runtime_plugin_descriptor_single_source,
 )
 
-
+# 用运行时插件描述符夹具验证嵌入式与拆分式声明都能被结构审计准确识别。
 class PluginStructureAuditRegistrationTests(unittest.TestCase):
     def test_runtime_plugin_descriptor_single_source_accepts_embedded_owner(self):
         with tempfile.TemporaryDirectory() as temp_dir:

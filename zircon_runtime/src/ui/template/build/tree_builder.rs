@@ -104,6 +104,7 @@ impl UiTemplateTreeBuilder {
             .with_anchor(layout.anchor)
             .with_pivot(layout.pivot)
             .with_position(layout.position)
+            .with_layout_padding(layout.padding)
             .with_input_policy(layout.input_policy.unwrap_or(input_policy))
             .with_layout_boundary(layout.layout_boundary)
             .with_layout_stretch_axes(layout.stretch_width, layout.stretch_height)
@@ -115,9 +116,13 @@ impl UiTemplateTreeBuilder {
             .with_template_metadata(UiTemplateNodeMetadata {
                 component: node.component.clone().unwrap_or_default(),
                 control_id: node.control_id.clone(),
+                source_path: None,
+                source_node_id: None,
+                instance_path: None,
                 pixel_snapping: Default::default(),
                 classes: node.classes.clone(),
                 attributes: node.attributes.clone(),
+                localized_text_references: BTreeMap::new(),
                 slot_attributes: node.slot_attributes.clone(),
                 style_overrides: node.style_overrides.clone(),
                 style_tokens: node.style_tokens.clone(),

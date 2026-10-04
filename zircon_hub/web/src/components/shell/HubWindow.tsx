@@ -1,15 +1,8 @@
-import { Box } from "@mui/material";
-import { BuildsPage } from "../../pages/BuildsPage";
-import { CatalogPage } from "../../pages/CatalogPage";
-import { CloudPage } from "../../pages/CloudPage";
-import { EditorPage } from "../../pages/EditorPage";
+import { Alert, Box, Typography } from "@mui/material";
 import { ProjectsDashboard } from "../../pages/ProjectsDashboard";
-import { SettingsPage } from "../../pages/SettingsPage";
-import { TeamPage } from "../../pages/TeamPage";
-import { WorkspacePage } from "../../pages/WorkspacePage";
 import { hubTokens } from "../../theme/tokens";
 import type { WindowActionFailureHandler } from "../../tauri/windowActionScheduler";
-import type { ComponentType } from "react";
+import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from "react";
 import type { HubActionHandler, HubPageId, HubShellState } from "../../types/hub";
 import { NavigationDrawer } from "./NavigationDrawer";
 import { TopBar } from "./TopBar";
@@ -21,22 +14,32 @@ export interface HubWindowProps {
 }
 
 type HubPageComponent = ComponentType<HubWindowProps>;
+type LazyHubPage = LazyExoticComponent<HubPageComponent>;
+type HubPageRoute = HubPageComponent | LazyHubPage;
 
-const pageRoutes: Record<HubPageId, HubPageComponent> = {
+const buildsPage = lazy(() => import("../../pages/BuildsPage").then(({ BuildsPage }) => ({ default: BuildsPage })));
+const catalogPage = lazy(() => import("../../pages/CatalogPage").then(({ CatalogPage }) => ({ default: CatalogPage })));
+const cloudPage = lazy(() => import("../../pages/CloudPage").then(({ CloudPage }) => ({ default: CloudPage })));
+const editorPage = lazy(() => import("../../pages/EditorPage").then(({ EditorPage }) => ({ default: EditorPage })));
+const settingsPage = lazy(() => import("../../pages/SettingsPage").then(({ SettingsPage }) => ({ default: SettingsPage })));
+const teamPage = lazy(() => import("../../pages/TeamPage").then(({ TeamPage }) => ({ default: TeamPage })));
+const workspacePage = lazy(() => import("../../pages/WorkspacePage").then(({ WorkspacePage }) => ({ default: WorkspacePage })));
+
+const pageRoutes: Record<HubPageId, HubPageRoute> = {
   projects: ProjectsDashboard,
-  editor: EditorPage,
-  assets: CatalogPage,
-  builds: BuildsPage,
-  plugins: CatalogPage,
-  cloud: CloudPage,
-  team: TeamPage,
-  learn: CatalogPage,
-  settings: SettingsPage,
+  editor: editorPage,
+  assets: catalogPage,
+  builds: buildsPage,
+  plugins: catalogPage,
+  cloud: cloudPage,
+  team: teamPage,
+  learn: catalogPage,
+  settings: settingsPage,
 };
 
 export function HubWindow({ state, onAction, onWindowActionFailure }: HubWindowProps) {
   const activeRoute = toHubPageId(state.activePage);
-  const PageComponent = activeRoute ? pageRoutes[activeRoute] : WorkspacePage;
+  const PageComponent = activeRoute ? pageRoutes[activeRoute] : workspacePage;
 
   return (
     <Box
@@ -65,6 +68,8 @@ export function HubWindow({ state, onAction, onWindowActionFailure }: HubWindowP
         <Box
           component="main"
           sx={{
+            display: "flex",
+            flexDirection: "column",
             flex: "1 1 auto",
             minWidth: 0,
             minHeight: 0,
@@ -72,9 +77,45 @@ export function HubWindow({ state, onAction, onWindowActionFailure }: HubWindowP
             backgroundColor: "rgba(17,17,17,0.55)",
           }}
         >
-          <PageComponent state={state} onAction={onAction} onWindowActionFailure={onWindowActionFailure} />
+          {state.windowCloseSaveError ? (
+            <Alert
+              severity="error"
+              variant="filled"
+              role="alert"
+              tabIndex={0}
+              sx={{ flexShrink: 0, mx: 2, mt: 1, maxHeight: "30vh", overflowY: "auto", overflowWrap: "anywhere", "& .MuiAlert-message": { overflow: "visible" } }}
+            >
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, textAlign: "start" }}>
+                <Typography variant="subtitle2">{state.windowCloseSaveError.label}</Typography>
+                <Typography variant="body2">{state.windowCloseSaveError.detail}</Typography>
+                {state.windowCloseSaveError.recovery ? <Typography variant="caption">{state.windowCloseSaveError.recovery}</Typography> : null}
+              </Box>
+            </Alert>
+          ) : null}
+          <Box sx={{ flex: "1 1 auto", minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+            <Suspense fallback={<PageLoading label={state.pageTitle} />}>
+              <PageComponent key={activeRoute ?? state.activePage} state={state} onAction={onAction} onWindowActionFailure={onWindowActionFailure} />
+            </Suspense>
+          </Box>
         </Box>
       </Box>
+    </Box>
+  );
+}
+
+function PageLoading({ label }: { label: string }) {
+  return (
+    <Box
+      role="status"
+      aria-label={label}
+      sx={{
+        height: "100%",
+        display: "grid",
+        placeItems: "center",
+        color: hubTokens.colors.textSoft,
+      }}
+    >
+      {label}
     </Box>
   );
 }

@@ -1,10 +1,10 @@
 from pathlib import Path
 import unittest
-
+# 本地化目录以哈希索引查 locale、表和键成员，TOML 输出仍按稳定顺序；检查发布基准是否涵盖重复查找。
 
 ROOT = Path(__file__).resolve().parents[2]
 RESOLVE = ROOT / "zircon_runtime/src/ui/template/asset/localization/resolve.rs"
-PERFORMANCE = ROOT / "zircon_runtime/src/ui/template/asset/localization/resolve/performance_tests.rs"
+PERFORMANCE = ROOT / "zircon_runtime/src/ui/template/asset/localization/resolve/tests/performance_tests.rs"
 
 
 class Runtime83LocalizationHashKeyIndexPerformanceContractTests(unittest.TestCase):

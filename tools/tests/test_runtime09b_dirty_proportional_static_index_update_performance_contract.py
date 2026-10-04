@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 静态可见性索引更新只按脏键规模建辅助索引，并保留重复实例最后一项的投影语义；计划与源码断言分担性能和行为证据。
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime/src/graphics/visibility/static_index/mod.rs"

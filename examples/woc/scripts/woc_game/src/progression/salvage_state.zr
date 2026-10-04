@@ -125,6 +125,7 @@ pub salvageYield(definition: SalvageItemDefinition, stream: rng.Mulberry32): int
     return salvageYieldForRoll(definition, stream.next());
 }
 
+/// 调用方先用目录事实构造定义并只给可消耗的普通持有数量；此投影在拒绝路径不抽随机数，成功路径先扣一件再用同一随机流给材料。
 pub resolveSalvage(
     state: SalvageState, itemId: string, stream: rng.Mulberry32
 ): SalvageResult {

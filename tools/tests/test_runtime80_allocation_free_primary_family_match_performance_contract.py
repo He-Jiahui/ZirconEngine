@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 字体主家族匹配借用并折叠 ASCII 名称，避免分配；检查 Rust 用例对 ASCII 与非 ASCII 输入语义的断言。
 
 ROOT = Path(__file__).resolve().parents[2]
 ASSET_REGISTRATION = ROOT / "zircon_runtime/src/text/font/asset_registration.rs"

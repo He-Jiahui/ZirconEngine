@@ -227,7 +227,9 @@ fn replaced_runtime_cannot_receive_an_old_consumer_subscription() {
     replacement.push(delivery(8, 1, SCHEMA));
     gateway.replace(replacement.clone()).unwrap();
 
-    let report = host.pump().expect("a stale consumer is retired locally");
+    let report = host
+        .pump_with_budget(Default::default())
+        .expect("a stale consumer is retired locally");
     assert_eq!(report.applied(), 0);
     assert_eq!(report.stale_consumers(), 1);
     assert_eq!(replacement.drain_calls.load(Ordering::Relaxed), 0);
@@ -263,7 +265,7 @@ fn replacement_with_reused_raw_session_and_subscription_still_retires_the_old_co
     gateway.replace(replacement.clone()).unwrap();
 
     let report = host
-        .pump()
+        .pump_with_budget(Default::default())
         .expect("the old consumer must retire without draining the replacement transport");
     assert_eq!(report.applied(), 0);
     assert_eq!(report.stale_consumers(), 1);

@@ -97,6 +97,7 @@ pub(in crate::graphics) enum EnvironmentCapturePersistenceSubmissionStatus {
 }
 
 pub(in crate::graphics) struct EnvironmentCaptureResidentOutput {
+    handle: RenderEnvironmentCaptureHandle,
     identity: RenderEnvironmentCaptureOutputIdentity,
     gpu_output: EnvironmentCaptureGpuOutput,
     record_report: EnvironmentCaptureWgpuRecordReport,
@@ -169,6 +170,7 @@ impl EnvironmentCaptureSourceSubmission {
 
     pub(in crate::graphics) fn into_resident_output(self) -> EnvironmentCaptureResidentOutput {
         EnvironmentCaptureResidentOutput {
+            handle: self.handle,
             identity: RenderEnvironmentCaptureOutputIdentity::from_request(&self.request),
             gpu_output: self.target.into_filtered_output(),
             record_report: self.record_report,
@@ -296,6 +298,10 @@ impl EnvironmentCaptureSourceSubmissionStatus {
 }
 
 impl EnvironmentCaptureResidentOutput {
+    pub(in crate::graphics) const fn handle(&self) -> RenderEnvironmentCaptureHandle {
+        self.handle
+    }
+
     pub(in crate::graphics) fn identity(&self) -> &RenderEnvironmentCaptureOutputIdentity {
         &self.identity
     }
@@ -326,41 +332,5 @@ impl EnvironmentCaptureResidentOutput {
 }
 
 #[cfg(test)]
-mod tests {
-    const SOURCE: &str = include_str!("environment_capture_source_submission.rs");
-
-    #[test]
-    fn source_submission_retains_target_and_both_backend_tickets() {
-        for field in [
-            "target: EnvironmentCaptureGpuTarget",
-            "resource_upload_submission: SubmissionTicket",
-            "capture_submission: SubmissionTicket",
-            "record_report: EnvironmentCaptureWgpuRecordReport",
-            "filter_report: EnvironmentCaptureFilterWgpuRecordReport",
-            "probe_publication: Option<EnvironmentCaptureProbePublication>",
-        ] {
-            assert!(
-                SOURCE.contains(field),
-                "missing source owner field: {field}"
-            );
-        }
-    }
-
-    #[test]
-    fn submission_status_requires_both_backend_tickets_to_complete() {
-        use zr_rhi::SubmissionStatus::{Completed, DeviceLost, Submitted};
-
-        assert_eq!(
-            EnvironmentCaptureSourceSubmissionStatus::from_statuses(Completed, Completed),
-            EnvironmentCaptureSourceSubmissionStatus::Completed
-        );
-        assert_eq!(
-            EnvironmentCaptureSourceSubmissionStatus::from_statuses(Completed, Submitted),
-            EnvironmentCaptureSourceSubmissionStatus::Pending
-        );
-        assert!(matches!(
-            EnvironmentCaptureSourceSubmissionStatus::from_statuses(Completed, DeviceLost),
-            EnvironmentCaptureSourceSubmissionStatus::Failed { .. }
-        ));
-    }
-}
+#[path = "tests/environment_capture_source_submission.rs"]
+mod tests;

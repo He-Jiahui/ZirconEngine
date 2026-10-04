@@ -8,7 +8,7 @@ SOURCE = (
     / "zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/selection_defaults/catalog_selections.rs"
 )
 
-
+# 读取实现源码约束预分配目录选择完成：选择 ID 索引使用完整上界绑定，并完成选择向量预留注册绑定。
 class PreallocatedCatalogSelectionCompletionPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

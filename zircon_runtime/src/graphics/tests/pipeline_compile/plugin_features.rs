@@ -39,6 +39,7 @@ fn rendering_plugin_product_defaults_exclude_unqualified_forward_plus_ssao() {
             "uber",
             "output-transfer",
             "fxaa",
+            "overlay-depth-reconstruct",
             "overlay-gizmo",
             "runtime-ui",
             "surface-present",
@@ -100,11 +101,10 @@ fn rendering_plugin_post_process_routes_output_transfer_through_terminal_anti_al
         .iter()
         .find(|pass| pass.name == "uber")
         .expect("plugin post-process should keep uber");
-    assert!(
-        uber.resources
-            .iter()
-            .all(|resource| resource.name != PostProcessGraphResourceNames::AMBIENT_OCCLUSION)
-    );
+    assert!(uber
+        .resources
+        .iter()
+        .all(|resource| resource.name != PostProcessGraphResourceNames::AMBIENT_OCCLUSION));
     pass_resource_access(
         &compiled,
         "output-transfer",
@@ -174,6 +174,7 @@ fn rendering_plugin_product_defaults_keep_deferred_ssao_disabled() {
             "uber",
             "output-transfer",
             "fxaa",
+            "overlay-depth-reconstruct",
             "overlay-gizmo",
             "runtime-ui",
             "surface-present",
@@ -228,21 +229,19 @@ fn plugin_feature_buffer_minimum_size_survives_graph_resource_planning() {
         "fixed-size-plugin-packet",
         vec!["view".to_string()],
         Vec::new(),
-        vec![
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::Lighting,
-                "fixed-size-plugin-packet-write",
-                QueueLane::AsyncCompute,
-            )
-            .with_executor_id("test.fixed-size-plugin-packet")
-            .with_compute_workload(RenderGraphComputeWorkload::fixed(
-                "test-fixed-size-plugin-packet",
-                [1, 1, 1],
-                [1, 1, 1],
-            ))
-            .with_side_effects()
-            .write_buffer_with_minimum_size("fixed-size-plugin-packet", PLUGIN_PACKET_SIZE_BYTES),
-        ],
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::Lighting,
+            "fixed-size-plugin-packet-write",
+            QueueLane::AsyncCompute,
+        )
+        .with_executor_id("test.fixed-size-plugin-packet")
+        .with_compute_workload(RenderGraphComputeWorkload::fixed(
+            "test-fixed-size-plugin-packet",
+            [1, 1, 1],
+            [1, 1, 1],
+        ))
+        .with_side_effects()
+        .write_buffer_with_minimum_size("fixed-size-plugin-packet", PLUGIN_PACKET_SIZE_BYTES)],
     );
 
     let compiled = RenderPipelineAsset::default_forward_plus()

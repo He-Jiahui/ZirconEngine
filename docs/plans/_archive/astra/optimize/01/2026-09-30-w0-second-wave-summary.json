@@ -1,0 +1,174 @@
+{
+  "review_date": "2026-09-30",
+  "artifact_state": "private immutable second-wave bounded source review v5; report hash fallback uses same-row evidence refs, not shared docs and not W0 completion",
+  "producer_packet_families": 12,
+  "raw_review_observations": 33,
+  "unique_report_qualified_original_ids": 30,
+  "report_qualified_original_ids": [
+    "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P0-1",
+    "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-1",
+    "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-2",
+    "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+    "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-4",
+    "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-5",
+    "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-6",
+    "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-1",
+    "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-2",
+    "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-3",
+    "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-4",
+    "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-5",
+    "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-6",
+    "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-7",
+    "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-001",
+    "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-002",
+    "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-004",
+    "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-005",
+    "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-009",
+    "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-011",
+    "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#Runtime156-P1-008",
+    "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-001",
+    "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-006",
+    "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-008",
+    "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-009",
+    "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-011",
+    "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-012",
+    "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-015",
+    "docs/plans/optimize/zircon_runtime/77-runtime-ui-input-dispatch-routing-focus-navigation-pointer-capture-gesture-drag-drop-ime-window-lifecycle-product-integration-review.md#RUII-P0-001",
+    "docs/plans/optimize/zircon_runtime/78-runtime-ui-accessibility-semantic-tree-name-description-relation-state-action-live-region-platform-adapter-product-integration-review.md#RUIA-P1-034"
+  ],
+  "exact_duplicate_observation_groups": 3,
+  "duplicate_observations_preserved": 3,
+  "crosswalk_edge_observations": 28,
+  "source_status_counts_by_report_qualified_id": {
+    "confirmed_open": 5,
+    "partially_implemented": 5,
+    "Open in Runtime156 crosswalk row 134; current static source confirms one process-global Mutex<ProfileRecorder> still owns all sessions.": 1,
+    "Partial in Runtime156 crosswalk row 135; current source disproves the stale subclaim that ordinary scope/frame tokens have no epoch.": 1,
+    "Open in Runtime156 crosswalk row 136; current source confirms unvalidated paths, implicit series creation, metadata mutation/union, and per-series history bound only.": 1,
+    "closed_as_written_superseded": 1,
+    "partially_implemented_source-corrected": 2,
+    "Open per Runtime156 status row 139; current source confirms gap": 1,
+    "Partial per Runtime156 table line 140; basename defect closed, rest open": 1,
+    "Open in Runtime156 current-source report; current source confirms global recorder remains.": 1,
+    "Current source recheck changes this item to Partial: epoch now exists in scope/frame tokens and stale reset/start completion is rejected.": 1,
+    "Open in Runtime156; source confirms missing descriptor/owner/global budget.": 1,
+    "Open in Runtime156 findings; latest matching family remains Open": 1,
+    "Open": 1,
+    "P1 Open explicitly; source confirms arbitrary path/implicit series and absent descriptor owner schema.": 1,
+    "P1 Open explicitly; source confirms only per-series history limit.": 1,
+    "P1 Open explicitly; source confirms one process-global recorder.": 1,
+    "P1 Partial; report says missing token epoch, but current code has it. Remaining identity/stop semantics are open.": 1,
+    "P1 Open": 2,
+    "Open explicitly in Runtime212 table": 1
+  },
+  "priority_counts_by_report_qualified_id": {
+    "P0": 2,
+    "P1": 27,
+    "P1 Open": 1
+  },
+  "source_hash_drift_count": 1,
+  "source_hash_drift": [
+    {
+      "path": "zircon_runtime/src/ui/surface/input/keyboard_clipboard.rs",
+      "expected": "bc1b080daf314caff910f8c8e0e133ee981972fd3e1ab84199b731218c48d655",
+      "current": "4e0f88c76a6d204eab5fe6012fd3ee47daf2165d574c7c5ff47cef186aca587d",
+      "report_key": "docs/plans/optimize/zircon_runtime/77-runtime-ui-input-dispatch-routing-focus-navigation-pointer-capture-gesture-drag-drop-ime-window-lifecycle-product-integration-review.md#RUII-P0-001",
+      "packet": "ui-reply-transaction-batch2-2026-09-30",
+      "artifact": "ui-reply-transaction-review-batch2-2026-09-30.jsonl",
+      "span_validation": [
+        {
+          "start": 323,
+          "end": 328,
+          "range_valid": true,
+          "line_count": 353,
+          "snippet_checks": [
+            {
+              "line": 323,
+              "matches_current": false
+            },
+            {
+              "line": 324,
+              "matches_current": false
+            },
+            {
+              "line": 325,
+              "matches_current": false
+            },
+            {
+              "line": 326,
+              "matches_current": false
+            },
+            {
+              "line": 327,
+              "matches_current": false
+            },
+            {
+              "line": 328,
+              "matches_current": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "producer_artifact_integrity_exceptions": [],
+  "drift_recheck": {
+    "path": "zircon_runtime/src/ui/surface/input/keyboard_clipboard.rs",
+    "prior_sha256": "bc1b080daf314caff910f8c8e0e133ee981972fd3e1ab84199b731218c48d655",
+    "current_sha256": "4e0f88c76a6d204eab5fe6012fd3ee47daf2165d574c7c5ff47cef186aca587d",
+    "current_bytes": 12704,
+    "prior_span": {
+      "start": 323,
+      "end": 328
+    },
+    "current_span": {
+      "start": 325,
+      "end": 330,
+      "lines": [
+        {
+          "line": 325,
+          "text": "    append_dispatch_effect_to_result("
+        },
+        {
+          "line": 326,
+          "text": "        surface,"
+        },
+        {
+          "line": 327,
+          "text": "        result,"
+        },
+        {
+          "line": 328,
+          "text": "        UiDispatchEffect::RequestClipboard {"
+        },
+        {
+          "line": 329,
+          "text": "            request: request.clone(),"
+        },
+        {
+          "line": 330,
+          "text": "        },"
+        }
+      ]
+    },
+    "recheck": "The helper call remains after the main reply transaction. Current working diff for this file contains import ordering and comments only; source hash/line drift does not change the observed call behavior.",
+    "source_status_effect": "no status change; RUII-P0-001 remains partially_implemented and not accepted."
+  },
+  "source_only": true,
+  "tests_run": 0,
+  "accepted": 0,
+  "report_path_status": "No whole-report path status changes; bounded review does not promote a report to source_checked.",
+  "preserved_inventory_counts": {
+    "reports": 576,
+    "source_checked_paths": 61,
+    "unreviewed_paths": 515,
+    "supplemental_notes_outside_denominator": 9,
+    "nested_files": 62,
+    "nested_unread": 2316,
+    "candidate_tokens_not_canonical_findings": 27629,
+    "unnumbered_reports": 69,
+    "manual_anchors": 558
+  },
+  "scope_limit": "Only the twelve existing batch2 packets are consolidated. Remaining W0 inventory/source review is incomplete; this does not cover the 515 unread report paths, 9 supplemental notes outside the 576 denominator, or 2,316 nested unread files.",
+  "validation_errors": []
+}

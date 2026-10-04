@@ -26,6 +26,7 @@ pub isProtectiveTemporalHourglass(state: TemporalHourglassState): bool {
     return state.id == contract.id(true) && state.kind == contract.stasisKind(true);
 }
 
+// 返回本步冷却推进量；世界已有普通步长时只补差额，且本技能自身不受加速。
 pub temporalHourglassCooldownDelta(state: TemporalHourglassState, abilityId: string): float {
     if (abilityId == contract.id(true) || !isProtectiveTemporalHourglass(state)) {
         return contract.defaultCooldownDelta(true);
@@ -40,6 +41,7 @@ ceilPositiveDiv(numerator: int, denominator: int): int {
 
 // Mirrors tickTemporalHourglassHealing. Schedule state is consumed before the
 // missing-HP clamp, so a target at full health still consumes a healing tick.
+// 调用方维护保护状态与跳数时机；每次消费一跳预算，满血造成的过量治疗不留给后续跳数。
 pub tickTemporalHourglassHealing(state: TemporalHourglassState): int {
     var ticks = state.temporalHealTicksRemaining;
     var remaining = state.temporalHealRemaining;

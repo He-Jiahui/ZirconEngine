@@ -221,6 +221,7 @@ class EditorZuiBaseRadiusHierarchyContractTests(unittest.TestCase):
                 ".workbench-component-property-row",
                 ".workbench-component-property-row:hovered",
                 ".workbench-panel",
+                ".workbench-panel-header",
                 ".workbench-property-section",
                 ".workbench-component-drawer",
                 ".workbench-status",
@@ -239,6 +240,7 @@ class EditorZuiBaseRadiusHierarchyContractTests(unittest.TestCase):
             },
         }
         expected_node_owners = {
+            WORKBENCH_PANEL_HEADER: {"root"},
             VIEWPORT_PANEL: {
                 "viewport_backdrop",
                 "viewport_ceiling",
@@ -307,11 +309,11 @@ class EditorZuiBaseRadiusHierarchyContractTests(unittest.TestCase):
                 f"{selector} must preserve the independent focus ring recipe",
             )
 
-    def test_editor_radius_tokens_define_a_legible_four_tier_hierarchy(self):
+    def test_editor_radius_tokens_define_the_flat_panel_hierarchy(self):
         tokens = load_document(EDITOR_TOKENS)["controls"]
 
         self.assertEqual(
-            [6.0, 8.0, 10.0, 12.0],
+            [4.0, 4.0, 8.0, 0.0],
             [
                 tokens["small_radius"],
                 tokens["control_radius"],
@@ -330,11 +332,11 @@ class EditorZuiBaseRadiusHierarchyContractTests(unittest.TestCase):
                 f"{selector} must not collapse ordinary controls into the compact radius tier",
             )
 
-    def test_compact_surfaces_remain_smaller_than_ordinary_controls(self):
+    def test_compact_surfaces_share_the_control_radius_tier(self):
         document = load_document(BASE_THEME)
         tokens = load_document(EDITOR_TOKENS)["controls"]
 
-        self.assertLess(tokens["small_radius"], tokens["control_radius"])
+        self.assertEqual(tokens["small_radius"], tokens["control_radius"])
         for selector in (".inset", ".chrome-selected"):
             self.assertEqual(
                 "$editor.control.radius.small",

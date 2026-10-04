@@ -12,7 +12,7 @@ use super::super::{
 use super::inspector::UiAssetInspectorPaneData;
 
 #[cfg(test)]
-#[path = "pane/owned_reflection_move_tests.rs"]
+#[path = "pane/tests/owned_reflection_move_tests.rs"]
 mod owned_reflection_move_tests;
 
 struct OwnedPaneReflectionFields {

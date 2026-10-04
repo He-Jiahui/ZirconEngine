@@ -1,6 +1,7 @@
+//! 过渡期原生录制只借出设备及编码器；生成的包仍须回到唯一设备时间线接受和提交。
 use zr_rhi::{
     DeviceGeneration, DeviceId, DiagnosticReadbackTerminal, RenderDevice, RenderQueueClass,
-    RhiError, SubmissionTicket,
+    RhiError, RhiGraphExecutionReceipt, SubmissionTicket,
 };
 
 use crate::ui_surface::WgpuUiImageInFlightPins;
@@ -104,6 +105,7 @@ impl<'device> WgpuNativeRecorderLease<'device> {
             queue_class: self.queue_class,
             command_buffers: self.command_buffers,
             ui_image_pins: None,
+            graph_execution_receipt: None,
         })
     }
 }
@@ -116,6 +118,7 @@ pub struct WgpuNativeSubmissionPacket {
     queue_class: RenderQueueClass,
     command_buffers: Vec<wgpu::CommandBuffer>,
     ui_image_pins: Option<WgpuUiImageInFlightPins>,
+    graph_execution_receipt: Option<RhiGraphExecutionReceipt>,
 }
 
 impl WgpuNativeSubmissionPacket {
@@ -135,13 +138,46 @@ impl WgpuNativeSubmissionPacket {
         self.command_buffers.len()
     }
 
+    /// Attaches the compiled graph execution proof before native queue admission.
+    pub fn with_graph_execution_receipt(
+        mut self,
+        receipt: RhiGraphExecutionReceipt,
+    ) -> Result<Self, RhiError> {
+        if receipt.device_id() != self.device_id || receipt.generation() != self.generation {
+            return Err(RhiError::SubmissionPacketDeviceMismatch {
+                packet_device_id: receipt.device_id(),
+                packet_generation: receipt.generation(),
+                device_id: self.device_id,
+                generation: self.generation,
+            });
+        }
+        if receipt.submission_queue() != self.queue_class {
+            return Err(RhiError::SubmissionPacketQueueMismatch {
+                packet_queue: self.queue_class,
+                command_queue: receipt.submission_queue(),
+            });
+        }
+        self.graph_execution_receipt = Some(receipt);
+        Ok(self)
+    }
+
     pub(crate) fn retain_ui_image_pins(&mut self, pins: WgpuUiImageInFlightPins) {
         debug_assert!(self.ui_image_pins.is_none());
         self.ui_image_pins = Some(pins);
     }
 
-    fn into_submission_parts(self) -> (Vec<wgpu::CommandBuffer>, Option<WgpuUiImageInFlightPins>) {
-        (self.command_buffers, self.ui_image_pins)
+    fn into_submission_parts(
+        self,
+    ) -> (
+        Vec<wgpu::CommandBuffer>,
+        Option<WgpuUiImageInFlightPins>,
+        Option<RhiGraphExecutionReceipt>,
+    ) {
+        (
+            self.command_buffers,
+            self.ui_image_pins,
+            self.graph_execution_receipt,
+        )
     }
 }
 
@@ -204,6 +240,7 @@ impl WgpuRenderDevice {
     }
 
     /// Enqueues one scene packet with every diagnostic tail bound to its sole ticket.
+    /// 同一个场景票据同时约束命令缓冲、复制诊断和查询诊断；任一绑定失败须取消已接受包。
     pub fn enqueue_native_recording_packet_with_frame_diagnostics(
         &self,
         packet: WgpuNativeSubmissionPacket,
@@ -260,7 +297,8 @@ impl WgpuRenderDevice {
             }
         }
         let queue_class = packet.queue_class();
-        let (command_buffers, ui_image_pins) = packet.into_submission_parts();
+        let (command_buffers, ui_image_pins, graph_execution_receipt) =
+            packet.into_submission_parts();
         if command_buffers.is_empty() {
             self.abandon_unbound_native_diagnostics(diagnostic_frame, query_frame);
             return Err(RhiError::EmptySubmissionPacket);
@@ -295,11 +333,22 @@ impl WgpuRenderDevice {
                 return Err(error);
             }
         }
-        if let Err(error) = self.submissions.commit_packet_with_ui_image_pins(
-            ticket,
-            command_buffers,
-            ui_image_pins,
-        ) {
+        let commit_result = match graph_execution_receipt {
+            Some(receipt) => self
+                .submissions
+                .commit_packet_with_ui_image_pins_and_graph_receipt(
+                    ticket,
+                    command_buffers,
+                    ui_image_pins,
+                    receipt,
+                ),
+            None => self.submissions.commit_packet_with_ui_image_pins(
+                ticket,
+                command_buffers,
+                ui_image_pins,
+            ),
+        };
+        if let Err(error) = commit_result {
             self.cancel_accepted_packet(ticket);
             return Err(error);
         }
@@ -353,6 +402,7 @@ impl WgpuRenderDevice {
     }
 
     /// Submits one scene packet and binds an acquired surface target to its sole ticket.
+    /// 先把表面帧目标登记到场景票据，再刷新设备提交队列，保证呈现能验证该票据。
     pub fn submit_native_recording_packet_with_frame_diagnostics_and_surface(
         &self,
         packet: WgpuNativeSubmissionPacket,
@@ -409,68 +459,5 @@ impl WgpuRenderDevice {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn native_recorder_never_exposes_queue_poll_or_flush_authority() {
-        let source = include_str!("native_recording.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("production native recorder source");
-
-        assert!(!production.contains("wgpu::Queue"));
-        assert!(!production.contains(".poll("));
-        assert!(!production.contains(".flush("));
-        assert!(!production.contains("queue.submit"));
-        assert!(production.contains("self.submissions.begin_packet(queue_class)"));
-        assert!(production.contains("self.submissions.commit_packet_with_ui_image_pins("));
-    }
-
-    #[test]
-    fn native_packet_is_generation_qualified_and_opaque_to_product_callers() {
-        let source = include_str!("native_recording.rs");
-        let source = source.split("mod tests {").next().unwrap();
-
-        for field in [
-            "device_id",
-            "generation",
-            "queue_class",
-            "command_buffers",
-            "ui_image_pins",
-        ] {
-            assert!(source.contains(&format!("    {field}:")));
-        }
-        assert!(source.contains("fn into_submission_parts("));
-        assert!(!source.contains("pub fn into_submission_parts("));
-        assert!(source.contains("RhiError::SubmissionPacketDeviceMismatch"));
-        assert!(source.contains("RhiError::EmptySubmissionPacket"));
-    }
-
-    #[test]
-    fn fused_surface_target_is_registered_before_the_scene_packet_flushes() {
-        let source = include_str!("native_recording.rs");
-        let source = source.split("mod tests {").next().unwrap();
-        let fused_submit = source
-            .split("pub fn submit_native_recording_packet_with_frame_diagnostics_and_surface")
-            .nth(1)
-            .expect("fused surface submission owner");
-        let register = fused_submit
-            .find("self.register_native_surface_frame_use(surface_target.frame_lease(), ticket)")
-            .expect("surface lease must retain the scene ticket");
-        let validate_owner = fused_submit
-            .find("surface_target.validate_owner(self)")
-            .expect("surface target must belong to the submitting device owner");
-        let enqueue = fused_submit
-            .find("self.enqueue_native_recording_packet_with_frame_diagnostics(")
-            .expect("scene packet enqueue");
-        let flush = fused_submit
-            .find("self.flush_submissions()")
-            .expect("fused scene packet must flush once");
-
-        assert!(validate_owner < enqueue);
-        assert!(enqueue < register);
-        assert!(register < flush);
-        assert!(fused_submit[..flush].contains("self.cancel_accepted_packet(ticket)"));
-        assert!(!fused_submit.contains("queue.submit"));
-    }
-}
+#[path = "tests/native_recording.rs"]
+mod tests;

@@ -44,7 +44,6 @@ fn astc_container_importer_reads_3d_block_and_depth() {
             assert_eq!(descriptor.format, "astc/6x6x6");
             assert_eq!(descriptor.dimension, RenderImageDimension::D3);
             assert_eq!(descriptor.depth_or_array_layers, 8);
-            assert_eq!(descriptor.array_layer_count, 1);
             match texture.payload {
                 TexturePayload::Container {
                     format,

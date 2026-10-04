@@ -8,6 +8,10 @@ use zircon_runtime::asset::{
     AssetUri,
 };
 use zircon_runtime::core::resource::ResourceState;
+use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
+use zircon_runtime::scene::components::{
+    CameraComponent, Mesh2dComponent, NodeKind, Sprite2dComponent,
+};
 use zircon_runtime::scene::world::SceneProjectError;
 use zircon_runtime::scene::{DefaultLevelManager, LevelMetadata};
 
@@ -16,19 +20,26 @@ use crate::core::editing::context::CoreEditContext;
 use crate::core::editing::engine::{
     EditorTransactionEngine, HistoryContextId, HistorySaveMarkOutcome,
 };
+use crate::core::editing::interactive_transform::PivotMode;
 use crate::core::editing::selection::SceneSelection;
 use crate::core::project::{
-    NewProjectDraft, NewProjectTemplate, ProjectAuthority, SceneCreateRequest,
+    NewProjectDraft, ProjectAuthority, ProjectTemplateId, SceneCreateRequest,
+};
+use crate::scene::viewport::{
+    GridMode, SceneViewportCameraSnapshot, SceneViewportSettings,
+    SceneViewportWorkspaceSessionSnapshot, ViewOrientation, ViewportCameraSnapshot,
 };
 use crate::ui::workbench::autolayout::ShellFrame;
 use crate::ui::workbench::layout::{
     ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, ActivityWindowId, DocumentNode,
-    FloatingWindowLayout, MainHostPageLayout, MainPageId, TabStackLayout, WorkbenchLayout,
+    FloatingWindowLayout, MainHostPageLayout, MainPageId, SplitAxis, TabStackLayout,
+    WorkbenchLayout,
 };
 use crate::ui::workbench::project::{
     EditorProjectDocument, ProjectEditorWorkspace, ProjectSettingsLoadState,
 };
-use crate::ui::workbench::view::ViewInstanceId;
+use crate::ui::workbench::view::{ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId};
+use zircon_runtime_interface::math::Vec3;
 
 #[test]
 fn f3_project_fixture_roots_follow_the_resolved_test_binary_directory() {
@@ -80,6 +91,18 @@ fn editor_project_document_roundtrips_world_and_workspace() {
         .find(|node| node.name == "Sun")
         .expect("renderable project must retain the template Sun")
         .clone();
+    let left_scene_view = ViewInstanceId::new("scene#1");
+    let right_scene_view = ViewInstanceId::new("scene#2");
+    let mut left_settings = SceneViewportSettings::default();
+    left_settings.grid_mode = GridMode::VisibleAndSnap;
+    let mut left_camera = ViewportCameraSnapshot::default();
+    left_camera.transform.translation.x = 12.5;
+    let mut right_settings = SceneViewportSettings::default();
+    right_settings.projection_mode =
+        zircon_runtime::core::framework::render::ProjectionMode::Orthographic;
+    right_settings.view_orientation = ViewOrientation::PosY;
+    let mut right_camera = ViewportCameraSnapshot::default();
+    right_camera.transform.translation.y = -7.25;
     let workspace = ProjectEditorWorkspace {
         workbench: {
             let mut layout = WorkbenchLayout::default();
@@ -92,7 +115,7 @@ fn editor_project_document_roundtrips_world_and_workspace() {
             let default_window = layout
                 .default_activity_window_mut()
                 .expect("default workbench window");
-            default_window.content_workspace = DocumentNode::Tabs(TabStackLayout {
+            default_window.content_workspace = DocumentNode::tabs(TabStackLayout {
                 tabs: vec![ViewInstanceId::new("scene#1")],
                 active_tab: Some(ViewInstanceId::new("scene#1")),
             });
@@ -110,10 +133,32 @@ fn editor_project_document_roundtrips_world_and_workspace() {
                     visible: true,
                 },
             )]);
+            default_window.content_workspace = DocumentNode::SplitNode {
+                node_id: Default::default(),
+                axis: SplitAxis::Horizontal,
+                ratio: 0.37,
+                first: Box::new(DocumentNode::tabs(TabStackLayout {
+                    tabs: vec![left_scene_view.clone()],
+                    active_tab: Some(left_scene_view.clone()),
+                })),
+                second: Box::new(DocumentNode::SplitNode {
+                    node_id: Default::default(),
+                    axis: SplitAxis::Vertical,
+                    ratio: 0.61,
+                    first: Box::new(DocumentNode::tabs(TabStackLayout {
+                        tabs: vec![right_scene_view.clone()],
+                        active_tab: Some(right_scene_view.clone()),
+                    })),
+                    second: Box::new(DocumentNode::tabs(TabStackLayout {
+                        tabs: vec![ViewInstanceId::new("game#1")],
+                        active_tab: Some(ViewInstanceId::new("game#1")),
+                    })),
+                }),
+            };
             layout.floating_windows = vec![FloatingWindowLayout {
                 window_id: MainPageId::new("float#1"),
                 title: "Scene".to_string(),
-                workspace: DocumentNode::Tabs(TabStackLayout {
+                workspace: DocumentNode::tabs(TabStackLayout {
                     tabs: vec![ViewInstanceId::new("scene#1")],
                     active_tab: Some(ViewInstanceId::new("scene#1")),
                 }),
@@ -122,9 +167,54 @@ fn editor_project_document_roundtrips_world_and_workspace() {
             }];
             layout
         },
-        open_view_instances: Vec::new(),
-        focused_view: Some(ViewInstanceId::new("scene#1")),
+        open_view_instances: vec![
+            ViewInstance {
+                instance_id: left_scene_view.clone(),
+                descriptor_id: ViewDescriptorId::new("editor.scene"),
+                title: "Scene Left".to_string(),
+                serializable_payload: serde_json::Value::Null,
+                dirty: false,
+                host: ViewHost::Document(MainPageId::new("main"), vec![0]),
+            },
+            ViewInstance {
+                instance_id: right_scene_view.clone(),
+                descriptor_id: ViewDescriptorId::new("editor.scene"),
+                title: "Scene Right".to_string(),
+                serializable_payload: serde_json::Value::Null,
+                dirty: false,
+                host: ViewHost::Document(MainPageId::new("main"), vec![1, 0]),
+            },
+            ViewInstance {
+                instance_id: ViewInstanceId::new("game#1"),
+                descriptor_id: ViewDescriptorId::new("editor.game"),
+                title: "Game".to_string(),
+                serializable_payload: serde_json::Value::Null,
+                dirty: false,
+                host: ViewHost::Document(MainPageId::new("main"), vec![1, 1]),
+            },
+        ],
+        focused_view: Some(right_scene_view.clone()),
         active_drawers: vec![ActivityDrawerSlot::LeftTop],
+        scene_viewport_sessions: BTreeMap::from([
+            (
+                left_scene_view,
+                SceneViewportWorkspaceSessionSnapshot {
+                    settings: left_settings,
+                    pivot_mode: PivotMode::Primary,
+                    orbit_target: Vec3::new(1.0, 2.0, 3.0),
+                    camera: Some(SceneViewportCameraSnapshot::from(&left_camera)),
+                },
+            ),
+            (
+                right_scene_view,
+                SceneViewportWorkspaceSessionSnapshot {
+                    settings: right_settings,
+                    pivot_mode: PivotMode::Centroid,
+                    orbit_target: Vec3::new(-4.0, 5.0, 6.0),
+                    camera: Some(SceneViewportCameraSnapshot::from(&right_camera)),
+                },
+            ),
+        ]),
     };
 
     let level =
@@ -310,6 +400,47 @@ fn saving_an_explicit_scene_target_never_overwrites_the_manifest_default_scene()
 }
 
 #[test]
+fn editor_project_document_none_workspace_save_removes_workspace_on_reopen() {
+    let root = unique_mvp_project_root("none-workspace-save");
+    create_renderable_project(&root);
+    let mut project = ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+    let document = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();
+    let workspace = ProjectEditorWorkspace {
+        workbench: WorkbenchLayout::default(),
+        open_view_instances: Vec::new(),
+        focused_view: None,
+        active_drawers: Vec::new(),
+        scene_viewport_sessions: BTreeMap::new(),
+    };
+    let scene_uri = project.manifest().default_scene.clone();
+    let workspace_path = root.join(".zircon").join("editor-workspace.json");
+
+    EditorProjectDocument::save_scene_to_project(
+        &project,
+        &scene_uri,
+        &document.world,
+        Some(&workspace),
+    )
+    .unwrap();
+    assert!(workspace_path.is_file());
+
+    EditorProjectDocument::save_scene_to_project(&project, &scene_uri, &document.world, None)
+        .unwrap();
+    assert!(!workspace_path.exists());
+
+    drop(document);
+    drop(project);
+    let mut reopened = ProjectManager::open(&root).unwrap();
+    reopened.scan_and_import().unwrap();
+    let loaded = EditorProjectDocument::load_from_project_for_tests(&reopened).unwrap();
+    assert!(loaded.editor_workspace.is_none());
+    drop(loaded);
+    drop(reopened);
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
 fn editor_project_document_current_scene_save_is_byte_stable() {
     let unique = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -447,6 +578,7 @@ fn editor_project_document_failed_scene_save_restores_the_previous_workspace() {
         open_view_instances: Vec::new(),
         focused_view: Some(ViewInstanceId::new("scene#before-failed-save")),
         active_drawers: Vec::new(),
+        scene_viewport_sessions: BTreeMap::new(),
     };
     EditorProjectDocument::save_scene_to_project(
         &project,
@@ -460,6 +592,7 @@ fn editor_project_document_failed_scene_save_restores_the_previous_workspace() {
         open_view_instances: Vec::new(),
         focused_view: Some(ViewInstanceId::new("scene#after-failed-save")),
         active_drawers: Vec::new(),
+        scene_viewport_sessions: BTreeMap::new(),
     };
 
     let scene_path = root.join("assets").join("scenes").join("main.scene.toml");
@@ -524,6 +657,7 @@ fn editor_project_document_workspace_write_failure_keeps_last_valid_scene() {
         open_view_instances: Vec::new(),
         focused_view: None,
         active_drawers: Vec::new(),
+        scene_viewport_sessions: BTreeMap::new(),
     };
     let scene_path = root.join("assets").join("scenes").join("main.scene.toml");
     let last_valid_scene = fs::read(&scene_path).unwrap();
@@ -624,6 +758,7 @@ fn editor_project_document_ignores_unknown_workspace_format_with_diagnostic() {
         open_view_instances: Vec::new(),
         focused_view: None,
         active_drawers: Vec::new(),
+        scene_viewport_sessions: BTreeMap::new(),
     };
 
     let mut project = ProjectManager::open(&root).unwrap();
@@ -680,7 +815,7 @@ fn editor_project_document_loads_from_the_active_generation_without_reopening_ma
     let _ = fs::remove_dir_all(&root);
 }
 
-fn unique_mvp_project_root(label: impl AsRef<str>) -> PathBuf {
+pub(super) fn unique_mvp_project_root(label: impl AsRef<str>) -> PathBuf {
     let executable = std::env::current_exe().expect("locate the F3 test executable");
     let binary_directory = executable
         .parent()
@@ -694,7 +829,7 @@ fn unique_mvp_project_root(label: impl AsRef<str>) -> PathBuf {
         .join(label.as_ref())
 }
 
-fn create_renderable_project(root: &Path) {
+pub(super) fn create_renderable_project(root: &Path) {
     let project_name = root
         .file_name()
         .and_then(|name| name.to_str())
@@ -703,11 +838,117 @@ fn create_renderable_project(root: &Path) {
         .parent()
         .expect("temporary project root must have a parent");
     let created = ProjectAuthority::default()
-        .create_project(&NewProjectDraft {
-            project_name: project_name.to_string(),
-            location: location.to_string_lossy().into_owned(),
-            template: NewProjectTemplate::RenderableEmpty,
-        })
+        .create_project(
+            &NewProjectDraft {
+                project_name: project_name.to_string(),
+                location: location.to_string_lossy().into_owned(),
+                template: ProjectTemplateId::RenderableEmpty,
+            },
+            &crate::tests::support::test_project_creation_provenance(),
+        )
         .unwrap();
     assert_eq!(created.root, root);
+}
+
+#[test]
+fn editor_project_document_roundtrips_first_party_2d_components() {
+    let root = unique_mvp_project_root("editor-project-2d-components");
+    create_renderable_project(&root);
+
+    let mut project = ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+    let mut document = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();
+    let camera = document.world.active_camera();
+    let camera = document.world.get_mut::<CameraComponent>(camera).unwrap();
+    camera.core_pipeline = zircon_runtime::core::framework::render::CorePipelineKind::Core2d;
+    camera.projection_mode = zircon_runtime::core::framework::render::ProjectionMode::Orthographic;
+
+    let model_uri = AssetUri::parse("res://models/cube.obj").unwrap();
+    let material_uri = AssetUri::parse("res://materials/default.zmaterial").unwrap();
+    let model_id = project
+        .asset_registry()
+        .resolve_asset_id_by_path(&model_uri)
+        .unwrap();
+    let material_id = project
+        .asset_registry()
+        .resolve_asset_id_by_path(&material_uri)
+        .unwrap();
+
+    let sprite_entity = document.world.spawn_node(NodeKind::Empty).unwrap();
+    let mut sprite = Sprite2dComponent::default();
+    sprite.material = Some(ResourceHandle::new(material_id));
+    sprite.color = zircon_runtime::core::math::Vec4::new(0.4, 0.7, 0.9, 0.6);
+    sprite.z_order = 5;
+    document
+        .world
+        .insert(sprite_entity, sprite.clone())
+        .unwrap();
+
+    let mesh_entity = document.world.spawn_node(NodeKind::Empty).unwrap();
+    let mesh_2d = Mesh2dComponent {
+        mesh: ResourceHandle::<ModelMarker>::new(model_id),
+        material: ResourceHandle::<MaterialMarker>::new(material_id),
+        color: zircon_runtime::core::math::Vec4::new(0.8, 0.6, 0.3, 1.0),
+        z_order: -3,
+        material_alpha_mode:
+            zircon_runtime::core::framework::render::RenderMaterialAlphaMode::Mask { cutoff: 0.42 },
+    };
+    document.world.insert(mesh_entity, mesh_2d.clone()).unwrap();
+
+    let level =
+        DefaultLevelManager::default().create_level(document.world, LevelMetadata::default());
+    EditorProjectDocument::save_scene_to_project(
+        &project,
+        &project.manifest().default_scene,
+        &level.snapshot(),
+        None,
+    )
+    .unwrap();
+    project.scan_and_import().unwrap();
+    drop(level);
+    drop(project);
+
+    let mut reopened_project = ProjectManager::open(&root).unwrap();
+    reopened_project.scan_and_import().unwrap();
+    let reopened = EditorProjectDocument::load_from_project_for_tests(&reopened_project).unwrap();
+    assert_eq!(
+        reopened.world.get::<Sprite2dComponent>(sprite_entity),
+        Some(&sprite)
+    );
+    assert_eq!(
+        reopened.world.get::<Mesh2dComponent>(mesh_entity),
+        Some(&mesh_2d)
+    );
+    assert_eq!(
+        reopened
+            .world
+            .get::<Mesh2dComponent>(mesh_entity)
+            .unwrap()
+            .mesh
+            .id(),
+        model_id,
+        "the editor scene save/reopen must retain the model resource identity"
+    );
+    assert_eq!(
+        reopened
+            .world
+            .get::<Mesh2dComponent>(mesh_entity)
+            .unwrap()
+            .material
+            .id(),
+        material_id,
+        "the editor scene save/reopen must retain the material resource identity"
+    );
+    let extract = reopened.world.to_render_frame_extract();
+    assert!(
+        extract
+            .sprites
+            .sprites
+            .iter()
+            .any(|extracted| extracted.entity == sprite_entity),
+        "the reopened editor sprite must reach the runtime render extract"
+    );
+
+    drop(reopened_project);
+    let _ = fs::remove_dir_all(root);
 }

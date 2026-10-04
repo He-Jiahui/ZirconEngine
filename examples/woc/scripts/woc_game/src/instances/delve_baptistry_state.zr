@@ -3,6 +3,7 @@
 // spawn collision/RNG and damage dispatch remain with the future DelveRun owner.
 var content = %import("instances/delve_baptistry_content");
 
+/// 每间房创建一次，activeWave=-1表示未开始；波次/蛋囊计数仅镜像生命周期，实体生死和碰撞由调用方汇总，不能直接用这些计数触发伤害。
 class BaptistryState {
     pub var activeWave: int;
     pub var liveTrash: int;
@@ -102,6 +103,7 @@ pub waveSpawnHpScalePerMille(
     return 1000;
 }
 
+/// death hook只提交尚未统计的当前波怪物数量；上层负责实体去重及波次归属，本层只防止扣到负值。
 pub recordTrashDeaths(state: BaptistryState, deaths: int): bool {
     if (state.activeWave < 0 || deaths < 0 || deaths > state.liveTrash) {
         return false;
@@ -110,6 +112,7 @@ pub recordTrashDeaths(state: BaptistryState, deaths: int): bool {
     return true;
 }
 
+/// 完整清波后推进一次；最后一波只启用蛋囊一次，蛋囊孵化adds采用独立计数，不重新计入当前波liveTrash。
 pub advanceAfterTrashClear(state: BaptistryState): bool {
     if (state.activeWave < 0 || state.liveTrash != 0) {
         return false;
@@ -150,6 +153,7 @@ markEggSacBurst(state: BaptistryState, eggSacIndex: int): void {
     }
 }
 
+/// 以目录spot索引标记一次性爆破；调用方先确认真实对象与触发条件，随后另行生成两个adds和分派范围伤害。
 pub triggerEggSacBurst(state: BaptistryState, eggSacIndex: int): bool {
     if (!state.eggsEnabled || eggSacIndex < 0 ||
         eggSacIndex >= content.eggSacSpotCount(true) || eggSacAlreadyBurst(state, eggSacIndex)) {

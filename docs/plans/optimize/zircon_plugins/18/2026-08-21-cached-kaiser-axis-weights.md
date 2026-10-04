@@ -13,7 +13,7 @@
 - Current session: `root-runtime-interface03-activate-link-failure-20260831`.
 - Shared static/model ticket: `d49fbe45b4534105bc4be8fc36273fec` (queued, 7 Python tests).
 - Release performance ticket: `a9c345471a234f1db86b5eef3fea0963` (materializing; exact ignored Kaiser benchmark).
-- Shared model: `tools/plugins_texture_native_pressure.py`, source manifest `DEF4AD94090A71DB775902D1190AA327F94910C7B0AF1E9FB38BB2C1553C5B37`.
+- Shared model: `tools/analysis/performance/plugins/plugins_texture_native_pressure.py`, source manifest `DEF4AD94090A71DB775902D1190AA327F94910C7B0AF1E9FB38BB2C1553C5B37`.
 - Current source hashes: `kernel.rs` `A009C233745EF088015971C776B1E01C5773A2B0FEA1407C6DF7F2A8F563FF20`; shared model `5FFA4EF8EA38EC84143374E4471E14B7AEF4F437B6179E7C94412516844B6981`.
 
 The current-source model is structural evidence, not wall-clock timing. It preserves 16,384 target texels and one normalizer evaluation while changing Kaiser weight evaluations `487,305 -> 1,274`, a `99.738562%` reduction. The exact ignored 21-pair release benchmark remains authoritative for P50/P95 and must satisfy candidate P95 `<= 25%` of inline before integration or WeCom publication.

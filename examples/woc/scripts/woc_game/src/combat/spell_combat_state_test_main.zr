@@ -1,3 +1,4 @@
+//! 专用项目入口验证公式投影的固定向量；结果不代表世界实体光环重算或实战命中链已调用此模块。
 var console = %import("zr.system.console");
 var spell = %import("combat/spell_combat_state");
 

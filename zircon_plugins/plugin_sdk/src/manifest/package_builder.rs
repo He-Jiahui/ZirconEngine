@@ -1,15 +1,20 @@
+//! 为运行时或编辑器包构造基础清单；此 builder 只组装数据，不执行清单接纳校验。
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::{ExportPackagingStrategy, ExportTargetPlatform};
-use zircon_runtime::plugin::{PluginMaturity, PluginModuleManifest, PluginPackageManifest};
+use zircon_runtime::plugin::{
+    PluginMaturity, PluginModuleManifest, PluginPackageManifest, PluginPackageRole,
+};
 
 use super::{default_export_packaging, default_supported_platforms, SDK_API_VERSION};
 
 #[derive(Clone, Debug)]
+/// 以 SDK 默认平台、打包形式和版本号初始化的包清单 builder。
 pub struct PluginManifestBuilder {
     manifest: PluginPackageManifest,
 }
 
 impl PluginManifestBuilder {
+    /// 创建带 SDK API 版本及默认平台、默认打包策略的清单底稿。
     pub fn new(id: impl Into<String>, display_name: impl Into<String>) -> Self {
         Self {
             manifest: PluginPackageManifest::new(id, display_name)
@@ -21,6 +26,11 @@ impl PluginManifestBuilder {
 
     pub fn with_category(mut self, category: impl Into<String>) -> Self {
         self.manifest = self.manifest.with_category(category);
+        self
+    }
+
+    pub fn with_package_role(mut self, package_role: PluginPackageRole) -> Self {
+        self.manifest = self.manifest.with_package_role(package_role);
         self
     }
 
@@ -87,6 +97,7 @@ impl PluginManifestBuilder {
         self
     }
 
+    /// 返回已累积的清单数据；结构与跨字段契约由后续接纳层校验。
     pub fn build(self) -> PluginPackageManifest {
         self.manifest
     }

@@ -23,11 +23,13 @@ pub teleportDistance(required: bool): float {
     return 60.0;
 }
 
+/// 存在、存活、敌对三项来自调用方的实体查询；最后的必需标志仍须显式传入，身份筛选通过后才能执行移动或挥击。
 pub ownerTargetEligible(targetExists: bool, targetAlive: bool, targetHostile: bool, required: bool): bool {
     if (!required) { throw "woc Delve companion owner target query is required"; }
     return targetExists && targetAlive && targetHostile;
 }
 
+/// 只判定候选是否可参加回退扫描；调用方还须提供距离上界并逐个做严格替换，以保留实体迭代的平局次序。
 pub fallbackTargetEligible(
     candidateIsMob: bool,
     candidateAlive: bool,

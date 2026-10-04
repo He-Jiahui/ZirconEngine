@@ -15,6 +15,7 @@ pub isDelvePuzzleKind(kind: string, required: bool): bool {
 
 // An empty string represents the source's null template result; valid callers
 // use it only as a scalar decision before changing an actual object template.
+/// 空串代表无模板变更；上层只在对象已被合法触发时提交非空模板，并另行负责交互半径、对象查找和事件。
 pub triggeredTemplate(kind: string, triggered: bool, required: bool): string {
     if (!required) { throw "woc Drowned Litany puzzle template is required"; }
     if (!triggered) { return ""; }

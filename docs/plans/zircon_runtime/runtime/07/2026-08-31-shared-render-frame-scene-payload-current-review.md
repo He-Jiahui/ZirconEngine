@@ -2,7 +2,9 @@
 
 Date: 2026-08-31
 
-Status: `architecture_review_complete / historical_baseline_recorded / M1_shared_storage_source_complete / M2_renderer_submission_immutable_source_complete / core_mutable_compatibility_gate_open / managed_acceptance_pending / M2_M3_remaining`
+Last updated: 2026-09-01
+
+Status: `architecture_review_complete / historical_baseline_recorded / M1_shared_storage_source_complete / M2_renderer_submission_immutable_source_complete / M3_legacy_snapshot_move_complete / core_mutable_compatibility_gate_open / frame_scene_compatibility_gate_open / managed_acceptance_pending / M2_M3_remaining`
 
 Owner session: `root-runtime07-shared-extract-r1-20260831`
 
@@ -188,7 +190,7 @@ vector copy inside the allocation/timing interval; the optimized sample measures
 move. Environment measures the old shared-domain assignment against the compact shallow clone.
 Measured Windows release values remain pending managed acceptance and are not yet claimed here.
 
-Current source hashes for this slice:
+Frozen source hashes for this slice at the 2026-08-31 review:
 
 | Path | SHA-256 |
 | --- | --- |
@@ -246,7 +248,7 @@ reports allocation count, requested/copied bytes, peak live bytes, P50, and P95 
 `RUNTIME07_RENDERER_DERIVED_POST_PROCESS_V1`. Measured Windows release values remain pending the
 managed receipt.
 
-Current source hashes for this slice:
+Frozen source hashes for this slice at the 2026-08-31 review:
 
 | Path | SHA-256 |
 | --- | --- |
@@ -302,7 +304,7 @@ camera-descriptor bytes, peak live bytes, P50, and P95. The deterministic source
 the optimized logical descriptor work to remain one descriptor per projection. Measured values
 remain pending managed acceptance.
 
-Current source hashes for this slice:
+Frozen source hashes for this slice at the 2026-08-31 review:
 
 | Path | SHA-256 |
 | --- | --- |
@@ -331,6 +333,97 @@ This closes renderer production mutation through the runtime-frame and camera-lo
 not yet remove `RenderFrameExtract::DerefMut` or mutable `RenderSharedSceneDomain<T>` from the core
 construction API, so the final public type gate remains open and no full immutable-contract claim
 is made.
+
+## M3 legacy snapshot construction ownership slice
+
+The M3 product-consumer review found a second scene authority inside `ViewportRenderFrame`:
+`Arc<RenderFrameExtract>` is the canonical render input, while `scene: RenderSceneSnapshot` remains
+as an older compatibility projection. The production `from_extract` path initializes that
+projection empty, so it does not duplicate large payloads. The legacy `from_snapshot` constructor,
+however, retained the input snapshot and called `scene.clone()` to build the canonical extract.
+That made construction `Theta(meshes + lights + nested snapshot payload)` in avoidable copied
+bytes before normal extract projection work even began.
+
+`ViewportRenderFrame::from_snapshot` now consumes the snapshot directly into
+`RenderFrameExtract::from_snapshot` and converges on `ViewportRenderFrame::from_extract`. This has
+three effects:
+
+- there is one constructor for viewport sizing, selected-camera synchronization, attachment
+  policy, render region, and renderer-owned defaults;
+- the legacy adapter moves the large snapshot vectors once instead of retaining and cloning them;
+- the compatibility `scene` field becomes the same empty projection used by the canonical
+  `from_extract` path, so it cannot silently remain a second authored scene authority.
+
+The ignored Windows release benchmark
+`viewport_snapshot_construction_moves_scene_without_retaining_a_deep_copy` models the exact removed
+algorithm against the move-based canonical construction at 1, 1,000, and 10,000 meshes plus
+directional lights. Marker `RUNTIME07_VIEWPORT_SNAPSHOT_CONSTRUCTION_V1` reports allocation count,
+requested bytes, logical copied bytes, peak live bytes, P50, and P95. The source contract requires
+zero copied snapshot bytes for the move path and strictly fewer allocations/requested bytes at 10k;
+measured values remain pending managed acceptance.
+
+Current source hashes for this slice:
+
+| Path | SHA-256 |
+| --- | --- |
+| `graphics/types/viewport_render_frame_from_snapshot.rs` | `182a491da309f66fde46e38bdc22b501531930e5aaea284b931a2cfd5bfb650a` |
+| `tests/runtime_frame_extract_shared_payload_performance.rs` | `e4d785f4f5e4324f4f3937bc08f8f0e4c5c4ed5e600a9ced79d5e9791f61eee3` |
+| `tests/runtime_absorption/performance_hotspots/submit_context/source_extract_payloads.rs` | `afb5af71b720af616d465745a0e2a2869958d223cdbe29937a88d3a9c25a177` |
+
+The final field deletion is intentionally not claimed in this slice. `RuntimePrepareCollectorContext`
+still exposes `scene_snapshot()` from `runtime_prepare_collector.rs`, whose current source is owned
+by executable session `01a019a5-b15f-7461-a1b0-ce4b6aa8e710`. Runtime07 does not overwrite that
+foreign lifecycle. Once the exact owner releases or coordinates the root, M3 must delete the
+compatibility field and accessor together rather than add another fallback projection.
+
+## Remaining editor Hybrid-GI scene-domain COW
+
+The production renderer path no longer mutates a shared frame scene, but the Editor viewport still
+does. `editor_viewport_render_defaults.rs` receives `&mut RenderFrameExtract`, enters
+`lighting.hybrid_global_illumination`, and writes enabled/profile/budget defaults before every
+submission. With a cache-shared extract this invokes both `RenderFrameExtract::DerefMut` and
+`RenderSharedSceneDomain<LightingExtract>::DerefMut`: the payload shell is cloned and the complete
+lighting domain is deep-cloned just to change viewport policy.
+
+That policy is not authored world state. It is selected once when the Editor creates a viewport,
+next to `editor_viewport_quality_profile()`. The accepted hard cut is:
+
+1. `RenderQualityProfile` carries one optional Hybrid-GI settings override in addition to the
+   feature-admission flag. Its builder enables the feature and installs the complete settings
+   contract together.
+2. `ViewportRecordState` snapshots that compact override with the other quality fields.
+3. Submission construction selects `viewport override -> authored scene settings`; it does not
+   mutate either input and does not add a compatibility cache.
+4. Editor viewport creation resolves the environment override once into its quality profile.
+   `submit_extract.rs` deletes the per-frame scene mutation call; viewport-size changes remain in
+   the owned view overlay.
+5. A regression requires the Editor quality profile to carry the selected profile/budgets and the
+   returned submission context to expose them while the source extract's shared scene pointer and
+   authored Hybrid-GI state remain unchanged.
+
+This matches Unreal's view-family ownership rule used elsewhere in this review: Editor/show/view
+policy belongs to the viewport/view-family setup, while the referenced scene remains immutable.
+Adding an Editor-only scene clone or a second settings registry would preserve the defect.
+
+An isolated optimized Rust model on the E drive reproduced the exact double-Arc COW against the
+viewport-policy selection. It used 17 alternating samples and emitted
+`RUNTIME07_EDITOR_HYBRID_GI_COW_MODEL_V1`:
+
+| Lights | Old allocations/op | Old requested bytes/op | Old P50 | Old P95 | Viewport policy allocations/op | Viewport policy P50 | Viewport policy P95 |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 3 | 152 B | 216 ns | 281 ns | 0 | 4 ns | 8 ns |
+| 1,000 | 3 | 64,088 B | 2,689 ns | 20,677 ns | 0 | 5 ns | 5 ns |
+| 10,000 | 3 | 640,088 B | 21,525 ns | 47,654 ns | 0 | 6 ns | 7 ns |
+
+The model establishes the linear copied-byte defect and the required authority boundary. It is not
+a managed current-source Cargo result, complete Editor frame profile, GPU result, or power
+measurement. The current-source benchmark must report the source scene/domain pointer identities,
+allocations, requested/copied bytes, and elapsed P50/P95 at the same three cardinalities.
+
+Registration request `69ca139d3f7149b4a40bff324553d61d` for session
+`root-runtime07-editor-hybrid-gi-viewport-policy-20260901` was accepted for the exact Runtime/Editor
+source and output paths but returned `command_post_timeout` before durable write-authority evidence.
+It is not polled, and no production source is changed until the session and exact leases exist.
 
 ## Reference-engine alignment
 
@@ -490,8 +583,14 @@ scene size. The managed Windows release result, exact stdout hash, and measured 
   mutable runtime-frame extract access from renderer production submission.
 - [x] Replaced full-view clone-per-camera with a scene-sharing single-camera projection, reducing
   camera descriptor work from `Theta(C^2)` to `Theta(C)` and adding a 1/1k/10k benchmark.
+- [x] Removed the retained `RenderSceneSnapshot` deep clone from legacy viewport-frame construction,
+  converged it on the canonical extract constructor, and added a 1/1k/10k move-vs-clone benchmark.
+- [x] Profiled and designed the remaining Editor Hybrid-GI scene-domain COW as viewport policy.
 - [ ] Managed M1 current-source result accepted and recorded.
 - [ ] M2 core `RenderFrameExtract::DerefMut` / mutable domain compatibility surface removed after
   all construction and test producers migrate to explicit builders.
+- [ ] Editor Hybrid-GI defaults hard-cut from per-frame scene mutation to quality-profile override.
+- [ ] M3 `ViewportRenderFrame::scene` and `RuntimePrepareCollectorContext::scene_snapshot()`
+  compatibility authority deleted after the current RuntimePrepare owner releases or transfers it.
 - [ ] M3 product consumers migrated.
 - [ ] M4 focused behavior, performance, WGPU product, and power evidence accepted.

@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from tools.runtime_ui_virtual_list_logical_identity_pressure import run
+from tools.analysis.performance.runtime.runtime_ui_virtual_list_logical_identity_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -11,7 +11,7 @@ IDENTITY = (
     / "zircon_runtime/src/ui/surface/virtual_list_materialization/identity.rs"
 )
 
-
+# 约束虚拟列表逻辑标识与实体化器分层，仅重绑的物理槽位更新代际并拒绝过期绑定。
 class RuntimeUiVirtualListLogicalIdentityPerformanceContractTests(unittest.TestCase):
     def test_identity_contract_is_split_from_the_materializer_owner(self) -> None:
         root = MATERIALIZATION.read_text(encoding="utf-8")

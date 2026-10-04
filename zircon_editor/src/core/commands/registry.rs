@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, HashSet};
 use std::sync::{Arc, OnceLock};
 
 use serde::{Deserialize, Serialize};
@@ -336,11 +336,10 @@ impl EditorCommandRegistry {
         &'a self,
         keymap: &'a super::EditorKeymap,
     ) -> Vec<&'a str> {
-        let keymap_commands = keymap
-            .bindings()
-            .iter()
-            .map(|binding| binding.command_id())
-            .collect::<BTreeSet<_>>();
+        let mut keymap_commands = HashSet::with_capacity(keymap.bindings().len());
+        for binding in keymap.bindings() {
+            keymap_commands.insert(binding.command_id());
+        }
         self.commands()
             .filter(|descriptor| descriptor.default_chord().is_some())
             .map(|descriptor| descriptor.id().as_str())
@@ -652,4 +651,9 @@ fn validate_asset_write_target(
 }
 
 #[cfg(test)]
+#[path = "registry/tests/cases.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "registry/tests/optimization_batch_hv_editor604_tests.rs"]
+mod optimization_batch_hv_editor604_tests;

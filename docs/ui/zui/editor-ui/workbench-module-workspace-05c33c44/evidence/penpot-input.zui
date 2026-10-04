@@ -1,0 +1,257 @@
+penpot_original_source = "[asset]\nkind = \"component\"\nid = \"res://ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui\"\nversion = 2\ndisplay_name = \"Workbench Module Workspace\"\n\n[imports]\nwidgets = [\n  \"res://ui/editor/components/workbench/modules/core/index/workbench_additional_module_workspaces.zui#WorkbenchAdditionalModuleWorkspaces\",\n  \"res://ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui#WorkbenchAssetsWorkspace\",\n  \"res://ui/editor/components/workbench/modules/core/ai/workbench_behavior_workspace.zui#WorkbenchBehaviorWorkspace\",\n  \"res://ui/editor/components/workbench/modules/core/gameplay/workbench_effect_workspace.zui#WorkbenchEffectWorkspace\",\n  \"res://ui/editor/components/workbench/modules/core/rendering/workbench_material_workspace.zui#WorkbenchMaterialWorkspace\",\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton\",\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown\",\n  \"res://ui/editor/components/workbench/modules/extensions/index/workbench_extension_module_workspaces.zui#WorkbenchExtensionModuleWorkspaces\",\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField\",\n  \"res://ui/editor/components/workbench/modules/generated/workbench_generated_bottom_drawer.zui#WorkbenchGeneratedBottomDrawer\",\n  \"res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow\",\n  \"res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow\",\n  \"res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle\",\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab\",\n  \"res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow\",\n  \"res://ui/editor/components/workbench/modules/core/rendering/workbench_vfx_workspace.zui#WorkbenchVfxWorkspace\",\n]\nstyles = []\n\n[components.WorkbenchModuleWorkspace]\nroot = \"module_workspace\"\ndefault_classes = [\"workbench-module-workspace\"]\n\n[nodes.module_workspace]\ncomponent = \"Overlay\"\ncontrol_id = \"WorkbenchModuleWorkspace\"\nclasses = [\"workbench-module-workspace\", \"workbench-panel\"]\nprops = { visibility = \"visible\" }\nlayout = { clip = true, container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [\n  { node = \"effect_workspace_host\" },\n  { node = \"material_workspace_host\" },\n  { node = \"behavior_workspace_host\" },\n  { node = \"assets_workspace_host\" },\n  { node = \"vfx_workspace_host\" },\n  { node = \"additional_module_workspaces\" },\n  { node = \"extension_module_workspaces\" },\n  { node = \"generated_bottom_drawer\" },\n]\n\n[nodes.additional_module_workspaces]\ncomponent = \"Overlay\"\ncontrol_id = \"WorkbenchAdditionalModuleWorkspacesHost\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"additional_module_workspaces_body\" }]\n\n[nodes.additional_module_workspaces_body]\ncomponent = \"WorkbenchAdditionalModuleWorkspaces\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.extension_module_workspaces]\ncomponent = \"Overlay\"\ncontrol_id = \"WorkbenchExtensionModuleWorkspacesHost\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"extension_module_workspaces_body\" }]\n\n[nodes.extension_module_workspaces_body]\ncomponent = \"WorkbenchExtensionModuleWorkspaces\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.generated_bottom_drawer]\ncomponent = \"Overlay\"\ncontrol_id = \"WorkbenchGeneratedBottomDrawerHost\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"generated_bottom_drawer_body\" }]\n\n[nodes.generated_bottom_drawer_body]\ncomponent = \"WorkbenchGeneratedBottomDrawer\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.effect_workspace_host]\ncomponent = \"Overlay\"\ncontrol_id = \"WorkbenchEffectWorkspaceHost\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"effect_workspace_body\" }]\n\n[nodes.effect_workspace_body]\ncomponent = \"WorkbenchEffectWorkspace\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.material_workspace_host]\ncomponent = \"Overlay\"\ncontrol_id = \"WorkbenchMaterialWorkspaceHost\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"material_workspace_body\" }]\n\n[nodes.material_workspace_body]\ncomponent = \"WorkbenchMaterialWorkspace\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.behavior_workspace_host]\ncomponent = \"Overlay\"\ncontrol_id = \"WorkbenchBehaviorWorkspaceHost\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"behavior_workspace_body\" }]\n\n[nodes.behavior_workspace_body]\ncomponent = \"WorkbenchBehaviorWorkspace\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.vfx_workspace_host]\ncomponent = \"Overlay\"\ncontrol_id = \"WorkbenchVfxWorkspaceHost\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"vfx_workspace_body\" }]\n\n[nodes.vfx_workspace_body]\ncomponent = \"WorkbenchVfxWorkspace\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.assets_workspace_host]\ncomponent = \"Overlay\"\ncontrol_id = \"WorkbenchAssetsWorkspaceHost\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"assets_workspace_body\" }]\n\n[nodes.assets_workspace_body]\ncomponent = \"WorkbenchAssetsWorkspace\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n"
+
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui"
+version = 2
+display_name = "Workbench Module Workspace"
+
+[imports]
+widgets = [ "res://ui/editor/components/workbench/modules/core/index/workbench_additional_module_workspaces.zui#WorkbenchAdditionalModuleWorkspaces", "res://ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui#WorkbenchAssetsWorkspace", "res://ui/editor/components/workbench/modules/core/ai/workbench_behavior_workspace.zui#WorkbenchBehaviorWorkspace", "res://ui/editor/components/workbench/modules/core/gameplay/workbench_effect_workspace.zui#WorkbenchEffectWorkspace", "res://ui/editor/components/workbench/modules/core/rendering/workbench_material_workspace.zui#WorkbenchMaterialWorkspace", "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton", "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown", "res://ui/editor/components/workbench/modules/extensions/index/workbench_extension_module_workspaces.zui#WorkbenchExtensionModuleWorkspaces", "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField", "res://ui/editor/components/workbench/modules/generated/workbench_generated_bottom_drawer.zui#WorkbenchGeneratedBottomDrawer", "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow", "res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow", "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle", "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab", "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow", "res://ui/editor/components/workbench/modules/core/rendering/workbench_vfx_workspace.zui#WorkbenchVfxWorkspace" ]
+styles = []
+
+[components.WorkbenchModuleWorkspace]
+root = "module_workspace"
+default_classes = [ "workbench-module-workspace" ]
+
+[nodes.module_workspace]
+component = "Overlay"
+control_id = "WorkbenchModuleWorkspace"
+classes = [ "workbench-module-workspace", "workbench-panel" ]
+
+[nodes.module_workspace.props]
+visibility = "visible"
+
+[nodes.module_workspace.layout]
+clip = true
+
+[nodes.module_workspace.layout.container]
+kind = "Overlay"
+
+[nodes.module_workspace.layout.width]
+stretch = "Stretch"
+
+[nodes.module_workspace.layout.height]
+stretch = "Stretch"
+
+[[nodes.module_workspace.children]]
+node = "effect_workspace_host"
+
+[[nodes.module_workspace.children]]
+node = "material_workspace_host"
+
+[[nodes.module_workspace.children]]
+node = "behavior_workspace_host"
+
+[[nodes.module_workspace.children]]
+node = "assets_workspace_host"
+
+[[nodes.module_workspace.children]]
+node = "vfx_workspace_host"
+
+[[nodes.module_workspace.children]]
+node = "additional_module_workspaces"
+
+[[nodes.module_workspace.children]]
+node = "extension_module_workspaces"
+
+[[nodes.module_workspace.children]]
+node = "generated_bottom_drawer"
+
+[nodes.additional_module_workspaces]
+component = "Overlay"
+control_id = "WorkbenchAdditionalModuleWorkspacesHost"
+
+[nodes.additional_module_workspaces.layout.width]
+stretch = "Stretch"
+
+[nodes.additional_module_workspaces.layout.height]
+stretch = "Stretch"
+
+[[nodes.additional_module_workspaces.children]]
+node = "additional_module_workspaces_body"
+
+[nodes.additional_module_workspaces_body]
+component = "WorkbenchAdditionalModuleWorkspaces"
+
+[nodes.additional_module_workspaces_body.layout.width]
+stretch = "Stretch"
+
+[nodes.additional_module_workspaces_body.layout.height]
+stretch = "Stretch"
+
+[nodes.extension_module_workspaces]
+component = "Overlay"
+control_id = "WorkbenchExtensionModuleWorkspacesHost"
+
+[nodes.extension_module_workspaces.layout.width]
+stretch = "Stretch"
+
+[nodes.extension_module_workspaces.layout.height]
+stretch = "Stretch"
+
+[[nodes.extension_module_workspaces.children]]
+node = "extension_module_workspaces_body"
+
+[nodes.extension_module_workspaces_body]
+component = "WorkbenchExtensionModuleWorkspaces"
+
+[nodes.extension_module_workspaces_body.layout.width]
+stretch = "Stretch"
+
+[nodes.extension_module_workspaces_body.layout.height]
+stretch = "Stretch"
+
+[nodes.generated_bottom_drawer]
+component = "Overlay"
+control_id = "WorkbenchGeneratedBottomDrawerHost"
+
+[nodes.generated_bottom_drawer.layout.width]
+stretch = "Stretch"
+
+[nodes.generated_bottom_drawer.layout.height]
+stretch = "Stretch"
+
+[[nodes.generated_bottom_drawer.children]]
+node = "generated_bottom_drawer_body"
+
+[nodes.generated_bottom_drawer_body]
+component = "WorkbenchGeneratedBottomDrawer"
+
+[nodes.generated_bottom_drawer_body.layout.width]
+stretch = "Stretch"
+
+[nodes.generated_bottom_drawer_body.layout.height]
+stretch = "Stretch"
+
+[nodes.effect_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchEffectWorkspaceHost"
+
+[nodes.effect_workspace_host.layout.width]
+stretch = "Stretch"
+
+[nodes.effect_workspace_host.layout.height]
+stretch = "Stretch"
+
+[[nodes.effect_workspace_host.children]]
+node = "effect_workspace_body"
+
+[nodes.effect_workspace_body]
+component = "WorkbenchEffectWorkspace"
+
+[nodes.effect_workspace_body.layout.width]
+stretch = "Stretch"
+
+[nodes.effect_workspace_body.layout.height]
+stretch = "Stretch"
+
+[nodes.effect_workspace_body.props]
+visibility = "visible"
+
+[nodes.material_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchMaterialWorkspaceHost"
+
+[nodes.material_workspace_host.layout.width]
+stretch = "Stretch"
+
+[nodes.material_workspace_host.layout.height]
+stretch = "Stretch"
+
+[[nodes.material_workspace_host.children]]
+node = "material_workspace_body"
+
+[nodes.material_workspace_body]
+component = "WorkbenchMaterialWorkspace"
+
+[nodes.material_workspace_body.layout.width]
+stretch = "Stretch"
+
+[nodes.material_workspace_body.layout.height]
+stretch = "Stretch"
+
+[nodes.material_workspace_body.props]
+visibility = "collapsed"
+
+[nodes.behavior_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchBehaviorWorkspaceHost"
+
+[nodes.behavior_workspace_host.layout.width]
+stretch = "Stretch"
+
+[nodes.behavior_workspace_host.layout.height]
+stretch = "Stretch"
+
+[[nodes.behavior_workspace_host.children]]
+node = "behavior_workspace_body"
+
+[nodes.behavior_workspace_body]
+component = "WorkbenchBehaviorWorkspace"
+
+[nodes.behavior_workspace_body.layout.width]
+stretch = "Stretch"
+
+[nodes.behavior_workspace_body.layout.height]
+stretch = "Stretch"
+
+[nodes.behavior_workspace_body.props]
+visibility = "collapsed"
+
+[nodes.vfx_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchVfxWorkspaceHost"
+
+[nodes.vfx_workspace_host.layout.width]
+stretch = "Stretch"
+
+[nodes.vfx_workspace_host.layout.height]
+stretch = "Stretch"
+
+[[nodes.vfx_workspace_host.children]]
+node = "vfx_workspace_body"
+
+[nodes.vfx_workspace_body]
+component = "WorkbenchVfxWorkspace"
+
+[nodes.vfx_workspace_body.layout.width]
+stretch = "Stretch"
+
+[nodes.vfx_workspace_body.layout.height]
+stretch = "Stretch"
+
+[nodes.vfx_workspace_body.props]
+visibility = "collapsed"
+
+[nodes.assets_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchAssetsWorkspaceHost"
+
+[nodes.assets_workspace_host.layout.width]
+stretch = "Stretch"
+
+[nodes.assets_workspace_host.layout.height]
+stretch = "Stretch"
+
+[[nodes.assets_workspace_host.children]]
+node = "assets_workspace_body"
+
+[nodes.assets_workspace_body]
+component = "WorkbenchAssetsWorkspace"
+
+[nodes.assets_workspace_body.layout.width]
+stretch = "Stretch"
+
+[nodes.assets_workspace_body.layout.height]
+stretch = "Stretch"
+
+[nodes.assets_workspace_body.props]
+visibility = "collapsed"
+
+[penpot_dynamic_review_state]
+schema = "dev.zircon.zui.dynamic-review-state"
+version = 1
+sourcePath = "zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui"
+selectedNodeIds = [ "effect_workspace_body" ]
+selectionPolicy = "authored-first-visible-branch"

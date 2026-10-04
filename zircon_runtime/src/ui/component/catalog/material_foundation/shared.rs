@@ -13,6 +13,8 @@ use zircon_runtime_interface::ui::style::{
     ButtonColor, ButtonIconPlacement, ButtonSize, ButtonVariant,
 };
 
+use crate::ui::editable_text_composition::INACTIVE_COMPOSITION_OFFSET;
+
 pub(super) fn primitive(
     id: &str,
     display_name: &str,
@@ -319,8 +321,8 @@ pub(super) fn with_text_input_state_props(
         .with_prop(default_string_prop("caret_affinity", "downstream"))
         .with_prop(int_prop("selection_anchor", 0))
         .with_prop(int_prop("selection_focus", 0))
-        .with_prop(int_prop("composition_start", 0))
-        .with_prop(int_prop("composition_end", 0))
+        .with_prop(int_prop("composition_start", INACTIVE_COMPOSITION_OFFSET))
+        .with_prop(int_prop("composition_end", INACTIVE_COMPOSITION_OFFSET))
         .with_prop(string_prop("composition_text"))
         .with_prop(string_prop("composition_restore_text"))
         .with_prop(array_prop("composition_clauses"))
@@ -374,7 +376,7 @@ fn enum_label(option: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "shared/enum_label_tests.rs"]
+#[path = "shared/tests/enum_label_tests.rs"]
 mod enum_label_tests;
 
 pub(super) fn int_prop(name: &str, default: i64) -> UiPropSchema {

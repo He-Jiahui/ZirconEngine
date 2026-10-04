@@ -26,6 +26,7 @@ export function SourceEngineList({ engines, emptyLabel, onSelect }: SourceEngine
       {engines.map((engine) => (
         <ButtonBase
           key={engine.id}
+          aria-pressed={engine.active}
           disabled={!hasSelectHandler}
           onClick={() => onSelect?.(engine)}
           sx={{

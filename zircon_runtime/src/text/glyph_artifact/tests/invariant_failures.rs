@@ -13,7 +13,7 @@ fn glyph_artifact_rejects_a_source_that_cannot_own_the_layout_range() {
 
     assert!(matches!(
         build_resolved_text_glyph_artifact(source, &style(), &layout, &mut provider),
-        TextShapingOutcome::Failed(TextLayoutError::LayoutFailed)
+        TextShapingOutcome::Failed(failure) if failure.error() == &TextLayoutError::LayoutFailed
     ));
     assert_eq!(provider.cache_report().insert_count, 0);
 }
@@ -28,7 +28,7 @@ fn glyph_artifact_rejects_a_line_range_outside_its_layout_owner() {
 
     assert!(matches!(
         build_resolved_text_glyph_artifact(source, &style(), &layout, &mut provider),
-        TextShapingOutcome::Failed(TextLayoutError::LayoutFailed)
+        TextShapingOutcome::Failed(failure) if failure.error() == &TextLayoutError::LayoutFailed
     ));
     assert_eq!(provider.cache_report().insert_count, 0);
 }
@@ -45,7 +45,7 @@ fn glyph_artifact_rejects_a_line_range_that_splits_a_utf8_scalar() {
 
     assert!(matches!(
         build_resolved_text_glyph_artifact(source, &style(), &layout, &mut provider),
-        TextShapingOutcome::Failed(TextLayoutError::LayoutFailed)
+        TextShapingOutcome::Failed(failure) if failure.error() == &TextLayoutError::LayoutFailed
     ));
     assert_eq!(provider.cache_report().insert_count, 0);
 }
@@ -63,7 +63,7 @@ fn glyph_artifact_rejects_a_non_empty_run_range_that_splits_a_utf8_scalar() {
 
     assert!(matches!(
         build_resolved_text_glyph_artifact(source, &style(), &layout, &mut provider),
-        TextShapingOutcome::Failed(TextLayoutError::LayoutFailed)
+        TextShapingOutcome::Failed(failure) if failure.error() == &TextLayoutError::LayoutFailed
     ));
     assert_eq!(provider.cache_report().insert_count, 0);
 }

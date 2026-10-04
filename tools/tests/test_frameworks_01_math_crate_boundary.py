@@ -14,6 +14,20 @@ def load_toml(relative_path: str) -> dict:
 
 
 class Frameworks01MathCrateBoundaryTests(unittest.TestCase):
+    def test_product_consumers_use_runtime_math_facade_only(self) -> None:
+        product_roots = (
+            REPO_ROOT / "zircon_app",
+            REPO_ROOT / "zircon_editor",
+            REPO_ROOT / "zircon_plugins",
+        )
+        violations = []
+        for root in product_roots:
+            for path in sorted(root.rglob("*.rs")):
+                source = path.read_text(encoding="utf-8")
+                if "zr_math::" in source or "use zr_math" in source:
+                    violations.append(path.relative_to(REPO_ROOT).as_posix())
+        self.assertEqual([], violations)
+
     def test_workspace_and_product_crates_use_the_canonical_math_owner(self) -> None:
         workspace = load_toml("Cargo.toml")
         runtime = load_toml("zircon_runtime/Cargo.toml")

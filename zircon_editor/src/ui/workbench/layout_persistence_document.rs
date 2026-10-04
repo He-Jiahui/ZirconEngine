@@ -1,3 +1,5 @@
+//! 配置存储与版本化布局文档之间的唯一编解码边界；默认布局、命名预设和页面用户预设使用独立模式身份。
+//! 旧无版本文档被明确拒绝，宿主按各存储用途决定恢复内建布局或空预设。
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
@@ -39,36 +41,42 @@ struct PageLayoutPresetsDocument {
     store: LayoutPresetPersistenceStore,
 }
 
+// 写入全局默认布局的版本化文档；布局引用是否可恢复仍由宿主布局恢复链判断。
 pub(crate) fn encode_default_layout_value(
     workbench: WorkbenchLayout,
 ) -> Result<Value, LayoutPersistenceDocumentError> {
     encode_config_value(&DefaultLayoutDocument { workbench })
 }
 
+// 仅按默认布局模式读取；错误交宿主处理，不能以其它预设模式或旧裸布局兜底读取。
 pub(crate) fn decode_default_layout_value(
     value: Value,
 ) -> Result<WorkbenchLayout, LayoutPersistenceDocumentError> {
     Ok(decode_config_value::<DefaultLayoutDocument>(value)?.workbench)
 }
 
+// 写入按名称检索的整套布局快照，保留独立模式身份以拒绝错用存储槽。
 pub(crate) fn encode_named_layout_presets_value(
     presets: BTreeMap<String, WorkbenchLayout>,
 ) -> Result<Value, LayoutPersistenceDocumentError> {
     encode_config_value(&NamedLayoutPresetsDocument { presets })
 }
 
+// 只读取命名预设文档；非法内容由宿主丢弃，不在此隐式生成默认预设。
 pub(crate) fn decode_named_layout_presets_value(
     value: Value,
 ) -> Result<BTreeMap<String, WorkbenchLayout>, LayoutPersistenceDocumentError> {
     Ok(decode_config_value::<NamedLayoutPresetsDocument>(value)?.presets)
 }
 
+// 页面与用户联合身份的预设存储走专用模式，区别于全局默认布局和任意名称集合。
 pub(crate) fn encode_page_layout_presets_value(
     store: LayoutPresetPersistenceStore,
 ) -> Result<Value, LayoutPersistenceDocumentError> {
     encode_config_value(&PageLayoutPresetsDocument { store })
 }
 
+// 返回已通过文档模式校验的预设存储；页面是否仍存在及布局规范化留给恢复端。
 pub(crate) fn decode_page_layout_presets_value(
     value: Value,
 ) -> Result<LayoutPresetPersistenceStore, LayoutPersistenceDocumentError> {
@@ -124,6 +132,7 @@ impl VersionedSchema for PageLayoutPresetsDocument {
     }
 }
 
+// 版本迁移链明确退休旧裸载荷；调用端采用已有fallback，不保留并行的legacy reader。
 fn reject_legacy_layout_document(_value: Value) -> Result<Value, MigrateError> {
     Err(MigrateError::invalid_payload(
         "unversioned workbench layout documents are retired",
@@ -131,69 +140,5 @@ fn reject_legacy_layout_document(_value: Value) -> Result<Value, MigrateError> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn default_layout_uses_the_current_version_shell_and_roundtrips() {
-        let layout = WorkbenchLayout::default();
-
-        let encoded = encode_default_layout_value(layout.clone()).unwrap();
-        let header = &encoded["$zircon"]["header"];
-
-        assert_eq!(header["schema_id"], DefaultLayoutDocument::SCHEMA.as_str());
-        assert_eq!(header["schema_version"], DefaultLayoutDocument::VERSION);
-        assert_eq!(decode_default_layout_value(encoded).unwrap(), layout);
-    }
-
-    #[test]
-    fn raw_legacy_layout_is_rejected_instead_of_becoming_a_second_reader() {
-        let legacy = serde_json::to_value(WorkbenchLayout::default()).unwrap();
-        let legacy_named =
-            serde_json::to_value(BTreeMap::<String, WorkbenchLayout>::new()).unwrap();
-        let legacy_page = serde_json::to_value(LayoutPresetPersistenceStore::default()).unwrap();
-
-        let error = decode_default_layout_value(legacy).unwrap_err();
-
-        assert!(matches!(
-            error,
-            LayoutPersistenceDocumentError::Decode(LoadError::Migration(_))
-        ));
-        assert!(matches!(
-            decode_named_layout_presets_value(legacy_named),
-            Err(LayoutPersistenceDocumentError::Decode(
-                LoadError::Migration(_)
-            ))
-        ));
-        assert!(matches!(
-            decode_page_layout_presets_value(legacy_page),
-            Err(LayoutPersistenceDocumentError::Decode(
-                LoadError::Migration(_)
-            ))
-        ));
-    }
-
-    #[test]
-    fn layout_payload_kinds_have_distinct_schemas() {
-        let default_layout = encode_default_layout_value(WorkbenchLayout::default()).unwrap();
-        let mut named_presets = BTreeMap::new();
-        named_presets.insert("authoring".to_string(), WorkbenchLayout::default());
-        let named = encode_named_layout_presets_value(named_presets.clone()).unwrap();
-        let page_store = LayoutPresetPersistenceStore::default();
-        let page = encode_page_layout_presets_value(page_store.clone()).unwrap();
-
-        let schema = |value: &Value| value["$zircon"]["header"]["schema_id"].clone();
-        assert_ne!(schema(&default_layout), schema(&named));
-        assert_ne!(schema(&default_layout), schema(&page));
-        assert_ne!(schema(&named), schema(&page));
-        assert!(decode_default_layout_value(named).is_err());
-        assert_eq!(
-            decode_named_layout_presets_value(
-                encode_named_layout_presets_value(named_presets.clone()).unwrap()
-            )
-            .unwrap(),
-            named_presets
-        );
-        assert_eq!(decode_page_layout_presets_value(page).unwrap(), page_store);
-    }
-}
+#[path = "tests/layout_persistence_document.rs"]
+mod tests;

@@ -1,48 +1,42 @@
 use std::path::PathBuf;
 
-use zircon_runtime::asset::project::{ProjectManager, ResolvedProjectPath};
+use zircon_runtime::asset::project::ResolvedProjectPath;
 use zircon_runtime_interface::project::ProjectManifestSummary;
+
+use super::ProjectPreflightReceipt;
 
 #[derive(Clone, Debug)]
 pub struct CreatedProject {
     pub root: PathBuf,
     pub summary: ProjectManifestSummary,
-    identity: ResolvedProjectPath,
-    // The creation transaction establishes this first project generation. Callers transfer it
-    // into the host instead of reopening the just-committed manifest from disk.
-    project: ProjectManager,
+    preflight: ProjectPreflightReceipt,
 }
 
 impl CreatedProject {
-    pub(super) fn new(
-        identity: ResolvedProjectPath,
-        summary: ProjectManifestSummary,
-        project: ProjectManager,
-    ) -> Self {
+    pub(super) fn new(preflight: ProjectPreflightReceipt) -> Self {
         Self {
-            root: identity.operation_path().to_path_buf(),
-            summary,
-            identity,
-            project,
+            root: preflight.root().to_path_buf(),
+            summary: preflight.summary().clone(),
+            preflight,
         }
     }
 
     pub fn identity(&self) -> &ResolvedProjectPath {
-        &self.identity
+        self.preflight.resolved_project_path()
     }
 
-    pub fn project(&self) -> &ProjectManager {
-        &self.project
+    pub fn preflight(&self) -> &ProjectPreflightReceipt {
+        &self.preflight
     }
 
-    pub fn into_project(self) -> ProjectManager {
-        self.project
+    pub fn into_preflight(self) -> ProjectPreflightReceipt {
+        self.preflight
     }
 }
 
 impl PartialEq for CreatedProject {
     fn eq(&self, other: &Self) -> bool {
-        self.identity == other.identity && self.summary == other.summary
+        self.preflight == other.preflight
     }
 }
 

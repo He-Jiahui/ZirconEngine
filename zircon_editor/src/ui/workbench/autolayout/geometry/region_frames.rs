@@ -38,8 +38,9 @@ pub(super) fn build_region_frames(
         .filter(|visible| *visible)
         .count();
     let row_separator_count = visible_row_count.saturating_sub(1) as f32;
-    let available_row_width =
-        (size.width - row_separator_count * metrics.separator_thickness).max(0.0);
+    let row_separator =
+        effective_separator(size.width, row_separator_count, metrics.separator_thickness);
+    let available_row_width = (size.width - row_separator_count * row_separator).max(0.0);
 
     let solved_widths = solve_visible_row_widths(
         size.width,
@@ -55,7 +56,7 @@ pub(super) fn build_region_frames(
     for (region, width) in solved_widths {
         let frame = ShellFrame::new(x, center_y, width, center_height);
         region_frames.insert(region, frame);
-        x += width + metrics.separator_thickness;
+        x += width + row_separator;
     }
 
     let left_frame = region_frames
@@ -143,7 +144,7 @@ fn solve_row_widths(
 }
 
 #[cfg(test)]
-#[path = "region_frames/allocation_tests.rs"]
+#[path = "region_frames/tests/allocation_tests.rs"]
 mod allocation_tests;
 
 pub(crate) fn compact_side_width_limit(region: ShellRegionId, available_width: f32) -> Option<f32> {
@@ -168,13 +169,17 @@ fn compact_side_widths(
     available_row_width: f32,
     mut widths: Vec<(ShellRegionId, f32)>,
 ) -> Vec<(ShellRegionId, f32)> {
-    let mut released_width = 0.0;
+    let available_row_width = finite_non_negative(available_row_width);
+    for (_, width) in &mut widths {
+        *width = finite_demand_within_budget(*width, available_row_width);
+    }
+    let mut released_width = 0.0_f64;
     for (region, width) in &mut widths {
         let Some(limit) = compact_side_width_limit(*region, shell_width) else {
             continue;
         };
         if matches!(region, ShellRegionId::Left | ShellRegionId::Right) && *width > limit {
-            released_width += *width - limit;
+            released_width += f64::from(*width - limit);
             *width = limit;
         }
     }
@@ -196,17 +201,43 @@ fn compact_side_widths(
             ShellRegionId::Bottom | ShellRegionId::Document => continue,
         };
         if *width > next_width {
-            released_width += *width - next_width;
+            released_width += f64::from(*width - next_width);
             *width = next_width;
         }
     }
-    if released_width > 0.0 {
-        if let Some((_, document_width)) = widths
-            .iter_mut()
-            .find(|(region, _)| *region == ShellRegionId::Document)
-        {
-            *document_width += released_width;
-        }
+    let side_total = f64::from(balanced.left) + f64::from(balanced.right);
+    let document_budget = (f64::from(available_row_width) - side_total).max(0.0);
+    if let Some((_, document_width)) = widths
+        .iter_mut()
+        .find(|(region, _)| *region == ShellRegionId::Document)
+    {
+        *document_width = (f64::from(finite_non_negative(*document_width)) + released_width)
+            .min(document_budget) as f32;
     }
     widths
+}
+
+fn effective_separator(total: f32, gap_count: f32, requested: f32) -> f32 {
+    if gap_count <= 0.0 {
+        return 0.0;
+    }
+    finite_non_negative(requested).min(finite_non_negative(total) / gap_count)
+}
+
+fn finite_non_negative(value: f32) -> f32 {
+    if value.is_finite() {
+        value.max(0.0)
+    } else {
+        0.0
+    }
+}
+
+fn finite_demand_within_budget(value: f32, budget: f32) -> f32 {
+    if value.is_finite() {
+        value.max(0.0).min(budget)
+    } else if value.is_sign_positive() {
+        budget
+    } else {
+        0.0
+    }
 }

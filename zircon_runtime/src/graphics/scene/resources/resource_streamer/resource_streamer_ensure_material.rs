@@ -11,7 +11,9 @@ use crate::core::framework::render::{
     RenderMaterialValidationError, SHADING_MODEL_ID_STANDARD_PBR,
 };
 use crate::core::math::{Vec3, Vec4};
-use crate::core::resource::{MaterialMarker, ResourceHandle, ResourceId, ResourceLocator};
+use crate::core::resource::{
+    MaterialMarker, ResourceHandle, ResourceId, ResourceLocator, ResourceReadinessRowIdentity,
+};
 
 use crate::graphics::backend::RenderBackend;
 use crate::graphics::types::GraphicsError;
@@ -22,17 +24,18 @@ use super::super::prepared::{
     PreparedMaterialTextureDependency,
 };
 use super::super::{
-    GpuMaterialUniformResource, MaterialDisabledPasses, MaterialRuntime, PipelineKey,
-    default_pipeline_key, texture_upload_support_from_device,
+    default_pipeline_key, texture_upload_support_from_device, GpuMaterialUniformResource,
+    MaterialDisabledPasses, MaterialRuntime, PipelineKey,
 };
-use super::ResourceStreamer;
 use super::resource_streamer_validate_material_shader_layout::renderer_material_layout_diagnostics;
+use super::ResourceStreamer;
 
 mod cache_identity;
 mod candidate_publication;
 mod material_readiness;
 mod shader_contract_snapshot;
 #[cfg(test)]
+#[path = "resource_streamer_ensure_material/tests/cases.rs"]
 mod tests;
 mod texture_binding;
 
@@ -71,6 +74,7 @@ impl ResourceStreamer {
         )
     }
 
+    // 先按资源及依赖身份复用各缓存状态；依赖执行失败只保留可绘制的 last-good，成功重建仍等待管线准入后发布。
     fn ensure_material_internal(
         &mut self,
         backend: &RenderBackend,
@@ -232,13 +236,10 @@ impl ResourceStreamer {
                 locator: descriptor.dependencies.shader.locator.clone(),
                 id: Some(shader.resource_id()),
                 revision: Some(shader.revision()),
-                dependency_revision: Some(
-                    asset_manager
-                        .resource_manager()
-                        .readiness_generation()
-                        .dependency_revision(shader.resource_id())
-                        .unwrap_or(0),
-                ),
+                dependency_identity: asset_manager
+                    .resource_manager()
+                    .readiness_generation()
+                    .row_identity(shader.resource_id()),
             })
             .unwrap_or_else(|| {
                 self.material_shader_dependency_snapshot(&descriptor.dependencies.shader.locator)
@@ -566,7 +567,7 @@ impl ResourceStreamer {
                     )
                 }),
             );
-        let (shader_id, shader_revision, shader_dependency_revision, shader_readiness) =
+        let (shader_id, shader_revision, shader_dependency_identity, shader_readiness) =
             match self.ensure_shader_source(&descriptor.dependencies.shader) {
                 Ok(shader) => shader,
                 Err(error) => {
@@ -595,18 +596,18 @@ impl ResourceStreamer {
                 readiness.push_diagnostic_once(diagnostic);
             }
         }
-        let (pipeline_shader_id, pipeline_shader_revision, pipeline_shader_dependency_revision) =
+        let (pipeline_shader_id, pipeline_shader_revision, pipeline_shader_dependency_identity) =
             if material_uses_renderer_material_abi_fallback(&readiness.validation_errors) {
                 let fallback_key = default_pipeline_key();
                 (
                     fallback_key.shader_id,
                     fallback_key.shader_revision,
-                    fallback_key.shader_dependency_revision,
+                    fallback_key.shader_dependency_identity,
                 )
             } else {
-                (shader_id, shader_revision, shader_dependency_revision)
+                (shader_id, shader_revision, Some(shader_dependency_identity))
             };
-        let runtime = MaterialRuntime {
+        let mut runtime = MaterialRuntime {
             base_color: Vec4::from_array(descriptor.base_color),
             emissive: Vec3::from_array(descriptor.emissive),
             metallic: descriptor.metallic,
@@ -655,7 +656,7 @@ impl ResourceStreamer {
             pipeline_key: PipelineKey {
                 shader_id: pipeline_shader_id,
                 shader_revision: pipeline_shader_revision,
-                shader_dependency_revision: pipeline_shader_dependency_revision,
+                shader_dependency_identity: pipeline_shader_dependency_identity,
                 material_layout_hash,
                 material_option_bits,
                 double_sided: descriptor.double_sided,
@@ -681,7 +682,7 @@ impl ResourceStreamer {
                 id,
                 Some(PreparedMaterialCandidateIdentity::new(
                     prepared_revision,
-                    material_dependency,
+                    material_dependency.clone(),
                     &shader_dependency,
                     &texture_dependencies,
                     texture_support,
@@ -805,31 +806,30 @@ impl ResourceStreamer {
         id: ResourceId,
         revision: u64,
     ) -> Result<PreparedMaterialDependency, GraphicsError> {
-        let dependency_revision = self
+        let dependency_identity = self
             .asset_manager()?
             .resource_manager()
             .readiness_generation()
-            .dependency_revision(id)
-            .unwrap_or(0);
+            .row_identity(id)
+            .ok_or_else(|| {
+                GraphicsError::Asset(format!("missing material readiness publication for {id}"))
+            })?;
         Ok(PreparedMaterialDependency {
             id,
             revision,
-            dependency_revision,
+            dependency_identity,
         })
     }
 
     fn material_dependency_identity_for_id(
         &self,
         id: ResourceId,
-    ) -> Option<(ResourceId, u64, u64)> {
+    ) -> Option<(ResourceId, u64, ResourceReadinessRowIdentity)> {
         let asset_manager = self.asset_manager().ok()?;
         let resource_manager = asset_manager.resource_manager();
-        let revision = resource_manager.registry().get(id)?.revision;
-        let dependency_revision = resource_manager
-            .readiness_generation()
-            .dependency_revision(id)
-            .unwrap_or(0);
-        Some((id, revision, dependency_revision))
+        let dependency_identity = resource_manager.readiness_generation().row_identity(id)?;
+        let revision = dependency_identity.row().record.revision;
+        Some((id, revision, dependency_identity))
     }
 
     fn material_shader_dependency_snapshot(
@@ -839,27 +839,30 @@ impl ResourceStreamer {
         let identity = self.shader_dependency_identity_for_locator(locator);
         PreparedMaterialShaderDependency {
             locator: locator.clone(),
-            id: identity.map(|(id, _, _)| id),
-            revision: identity.map(|(_, revision, _)| revision),
-            dependency_revision: identity.map(|(_, _, dependency_revision)| dependency_revision),
+            id: identity.as_ref().map(|(id, _, _)| *id),
+            revision: identity.as_ref().map(|(_, revision, _)| *revision),
+            dependency_identity: identity.map(|(_, _, dependency_identity)| dependency_identity),
         }
     }
 
     fn shader_dependency_identity_for_locator(
         &self,
         locator: &ResourceLocator,
-    ) -> Option<(ResourceId, u64, u64)> {
+    ) -> Option<(ResourceId, u64, ResourceReadinessRowIdentity)> {
         let asset_manager = self.asset_manager().ok()?;
         let resource_manager = asset_manager.resource_manager();
         let record = resource_manager
             .registry()
             .get_by_locator(locator)
             .cloned()?;
-        let dependency_revision = resource_manager
+        let dependency_identity = resource_manager
             .readiness_generation()
-            .dependency_revision(record.id())
-            .unwrap_or(0);
-        Some((record.id(), record.revision, dependency_revision))
+            .row_identity(record.id())?;
+        Some((
+            record.id(),
+            dependency_identity.row().record.revision,
+            dependency_identity,
+        ))
     }
 
     fn texture_dependency_revision_for_locator(

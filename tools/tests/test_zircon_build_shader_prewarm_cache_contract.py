@@ -1,9 +1,10 @@
+# 核对着色器预热缓存与报告成对记录请求维度和来源标识。
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from tools.zircon_build_shader_prewarm_cache_artifacts import (
+from tools.build.zircon_build_shader_prewarm_cache_artifacts import (
     validate_shader_prewarm_cache_artifact_contract,
 )
 

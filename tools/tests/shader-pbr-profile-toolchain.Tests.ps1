@@ -1,5 +1,6 @@
-$script:ProfileCaptureManifest = Join-Path $PSScriptRoot "..\profile-capture-manifest.ps1"
-$script:ToolchainScript = Join-Path $PSScriptRoot "..\shader-pbr-profile-toolchain.ps1"
+# 用工具链清单夹具验证图形后端与捕获、回放程序的固定身份绑定。
+$script:ProfileCaptureManifest = Join-Path $PSScriptRoot "..\profiling\shared\profile-capture-manifest.ps1"
+$script:ToolchainScript = Join-Path $PSScriptRoot "..\profiling\shader_pbr\shader-pbr-profile-toolchain.ps1"
 
 if (Test-Path -LiteralPath $script:ProfileCaptureManifest) {
     . $script:ProfileCaptureManifest

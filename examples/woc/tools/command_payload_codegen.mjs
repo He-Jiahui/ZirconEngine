@@ -1,3 +1,6 @@
+// 调用端：npm run generate (tools/package.json)；职责：按源代码发送点校验类型化命令载荷，并生成一致的 Zr 与 Rust 线协议布局。
+// 输入边界：固定版本的源提交和已编写目录；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -19,6 +22,7 @@ const rustOutput = join(
 );
 const checkOnly = process.argv.includes('--check');
 const SOURCE_COMMIT = '5ef9f7cb21cd8875b6d2c49701015dfcd78de35a';
+// 这些命令族把协议名绑定到生成的辅助函数名；下方会按源目录核对这些映射。
 const SOCIAL_COMMANDS = Object.freeze([
   ['guild_event_create', 'guildEventCreate', 'guild-event-create'],
   ['friend_add', 'friendAdd', 'friend-add'],
@@ -226,6 +230,7 @@ const CLIENT_SEND_PAYLOADS = new Set([
 
 main();
 
+// 生成任一目标前，先对齐人工编写的载荷模式、带序号的命令目录和已观察到的 TypeScript 发送形状。
 function main() {
   const document = JSON.parse(readFileSync(sourcePath, 'utf8'));
   const catalog = JSON.parse(readFileSync(commandCatalogPath, 'utf8'));
@@ -781,6 +786,7 @@ function main() {
   );
 }
 
+// 客户端发送模式必须匹配已观察到的方法和有序字段；仅派发命令不得带客户端发送形状。
 function validateSourceShape(entry, command, sourceEntry) {
   const shape = entry.source_shape;
   invariant(shape && typeof shape === 'object', `${entry.name} has no source shape`);
@@ -824,6 +830,7 @@ function validateSourceShape(entry, command, sourceEntry) {
   }
 }
 
+// 从已校验条目生成 Zr 编码器和 ID 入口，使世界派发遵守同一字节边界。
 function renderZr(entries, sha256) {
   const byName = new Map(entries.map((entry) => [entry.name, entry]));
   const castSlot = required(byName, 'castSlot');
@@ -1707,6 +1714,7 @@ function renderZr(entries, sha256) {
     `}\n`;
 }
 
+// 用相同的已校验条目和模式指纹生成原生协议描述符与编解码器。
 function renderRust(entries, sha256) {
   const rows = entries.map((entry) => {
     const kind = `CommandPayloadKind::${kindRustName(entry.kind)}`;
@@ -1985,6 +1993,7 @@ function renderRust(entries, sha256) {
     `}\n`;
 }
 
+// 载荷类别在生成的协议元数据中使用稳定的数字标签。
 function kindCode(kind) {
   return {
     empty: 1,

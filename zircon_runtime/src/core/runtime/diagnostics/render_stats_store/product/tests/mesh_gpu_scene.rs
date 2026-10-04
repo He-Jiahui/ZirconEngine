@@ -227,6 +227,7 @@ fn render_product_diagnostics_record_mesh_command_cache_counts() {
         last_mesh_command_cache_invalidated_transform_count: 0,
         last_mesh_command_cache_invalidated_geometry_count: 1,
         last_mesh_command_cache_invalidated_material_count: 2,
+        last_mesh_command_cache_invalidated_resolver_configuration_count: 4,
         last_mesh_replay_state_change_count: 6,
         last_mesh_replay_bind_skip_count: 7,
         last_mesh_replay_material_bind_group_set_count: 5,
@@ -373,6 +374,12 @@ fn render_product_diagnostics_record_mesh_command_cache_counts() {
         &store,
         "render.mesh.queue.replay_bind_skip_count",
         7.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.mesh.queue.command_cache_invalidated_resolver_configuration_count",
+        4.0,
         "count",
     );
     assert_series(

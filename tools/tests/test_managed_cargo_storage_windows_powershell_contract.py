@@ -5,7 +5,7 @@ import unittest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PATH_RESOLVER = REPO_ROOT / "tools" / "WindowsPathResolver.psm1"
+PATH_RESOLVER = REPO_ROOT / "tools" / "common" / "WindowsPathResolver.psm1"
 MANAGED_STORAGE = (
     REPO_ROOT
     / ".codex"
@@ -41,7 +41,7 @@ Import-Module '{powershell_literal(PATH_RESOLVER)}' -Force -DisableNameChecking
     def test_binding_marker_supports_extended_length_paths_in_windows_powershell(self) -> None:
         result = self.run_windows_powershell(
             r"""
-$temporary = Resolve-ZirconWindowsPath -Path 'E:\ZirconBuilds\zircon-engine\cache\sccache-temporary'
+$temporary = Resolve-ZirconWindowsPath -Path 'E:\cargo-targets\zircon-engine\cache\sccache-temporary'
 $marker = Resolve-ManagedCompilerCacheBindingMarkerPath `
     -StableTemporaryDirectory $temporary.OperationalPath
 $expected = Join-ZirconWindowsPath `

@@ -1,3 +1,4 @@
+//! 对外寻址使用完整 clip 时间轴；绑定到裁剪片段的 Kira 句柄只接收相对片段位置。
 use kira::backend::Backend;
 use zircon_runtime::core::framework::sound::{SoundError, SoundSourceId, SoundSourceInput};
 
@@ -20,6 +21,7 @@ impl DefaultSoundManager {
             ));
         }
         let mut state = crate::poison_recovery::lock_recover(&self.state);
+        state.kira.ensure_control_available()?;
         state.poll_kira_completions();
         let (clamped_frame, range_start_frame) = {
             let voice = state
@@ -103,6 +105,7 @@ pub(crate) fn seek_bound_source<B: Backend>(
     seconds: f64,
     frame: usize,
 ) -> Result<(), SoundError> {
+    kira.ensure_provider_not_retiring()?;
     if let Some(playback) = voice.kira_playback {
         kira.seek_to(playback, seconds)?;
     }

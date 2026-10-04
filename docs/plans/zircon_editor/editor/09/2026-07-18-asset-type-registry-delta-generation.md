@@ -6,7 +6,7 @@
 - 保留失败原子性、旧字段/集合诊断文本与顺序、稳定 materialization 顺序。
 - 同一 `EditorPluginCatalog` generation 只 materialize 一次 extension/asset registry。
 - 将同一 catalog generation 的 asset type contributions 聚合为一个事务批次：失败 contribution 隔离跳过，有效 contribution 一次 finalize/publish，registry generation 最多推进一次。
-- 本切片不吸收已被 Editor10 修改的 `docs/zircon_editor/core/asset.md`，也不触碰 watcher、catalog manager、preview worker 或 retained paint owner。
+- 本切片不吸收已被 Editor10 修改的 `docs/crates/zircon_editor/core/asset.md`，也不触碰 watcher、catalog manager、preview worker 或 retained paint owner。
 
 ## 已批准设计（方案 A）
 

@@ -3,6 +3,7 @@ use std::io;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use crate::asset::importer::canonical_import_input_digest;
 use crate::asset::project::{
     AssetMetaDocument, AssetMetaEntry, PreviewState, ProjectCatalogInputGeneration,
     ProjectCatalogInputSource, ProjectGenerationObservation, ProjectGenerationPhase,
@@ -22,13 +23,16 @@ use super::dependency_resolution::{
     dependencies_for_entry, merge_handwritten_dependencies_into_meta, resolve_imported_dependencies,
 };
 use super::metadata::{
-    apply_importer_metadata, asset_id_for_meta_entry, clear_schema_migration_metadata,
-    config_hash_for_settings, entry_uuid_for_import_entry, existing_entry_tags_for_source,
+    apply_importer_metadata, asset_id_for_meta_entry, build_identity_for_import,
+    clear_schema_migration_metadata, entry_uuid_for_import_entry, existing_entry_tags_for_source,
     existing_entry_uuids_for_source, failed_entries_for_source, importer_contract_matches,
     remap_meta_entry_urls_to_source, validate_import_entries,
 };
 use super::projected_inventory::ProjectedMetaInventory;
-use super::sources::{source_bytes_for_import, source_mtime_unix_ms_for_import, AssetImportSource};
+use super::sources::{
+    materialize_compound_source_snapshot, source_asset_root_for_digest, source_digest_for_import,
+    source_mtime_unix_ms_for_import, take_source_bytes_for_import, AssetImportSource,
+};
 use super::{stage_project_resource, ProjectManager, ShaderImportDependencyIndex};
 use crate::asset::project::manager::durable_transaction::{
     commit_prepared_files, journal_directory, PreparedFileWrite, ProjectFileCommitOutcome,
@@ -129,7 +133,7 @@ impl ProjectManager {
 
         let mut registry = ResourceRegistry::default().begin_staging();
         let mut dependencies_by_id = HashMap::new();
-        let mut catalog_inputs = HashMap::new();
+        let mut catalog_inputs = HashMap::with_capacity(sources.len());
         let mut shader_import_paths = HashMap::new();
         let mut imported = Vec::with_capacity(sources.len());
         let mut restored_records = Vec::new();
@@ -138,13 +142,39 @@ impl ProjectManager {
         let mut prepared_ibl_paths = BTreeMap::new();
 
         let _import_phase = ProjectGenerationPhase::Import.enter();
-        for source in sources {
+        for mut source in sources {
             let file = source.path.clone();
             let uri = source.uri.clone();
-            let source_bytes = source_bytes_for_import(&source)?;
-            observation.record_source_bytes(source_bytes.len());
-            let source_digest = super::super::hash_bytes::hash_bytes(&source_bytes);
+            // Do not reopen a primary that failed admission: the first error owns this failure.
+            let source_snapshot_error = match materialize_compound_source_snapshot(&mut source) {
+                Ok(()) => None,
+                Err(error) if source.source_snapshot.is_none() => return Err(error),
+                Err(error) => Some(error),
+            };
+            let source_bytes = take_source_bytes_for_import(&mut source)?;
             let source_mtime_unix_ms = source_mtime_unix_ms_for_import(&source)?;
+            let source_file_snapshots = source.take_source_file_snapshots();
+            observation.record_source_bytes(
+                source_bytes.len() + source_file_snapshots.values().map(Vec::len).sum::<usize>(),
+            );
+            // Compound .zmeta contains generated cache fields; settings have their own hash.
+            let digest_primary = if source.compound_root.is_some() {
+                &[][..]
+            } else {
+                source_bytes.as_slice()
+            };
+            let source_root = source_asset_root_for_digest(&source);
+            let source_digest = source_digest_for_import(
+                digest_primary,
+                &source_file_snapshots,
+                Some(&source_root),
+            );
+            let build_input_digest = canonical_import_input_digest(
+                &uri.to_string(),
+                digest_primary,
+                &source_file_snapshots,
+                Some(&source_root),
+            );
             let descriptor = self.importer.descriptor_for_source(&file).ok();
             let fallback_kind = descriptor
                 .as_ref()
@@ -157,22 +187,38 @@ impl ProjectManager {
             meta.included_files = source.included_files.clone();
             let import_settings =
                 self.import_settings_for_source(&meta.import_settings, descriptor.as_ref());
-            let config_hash = config_hash_for_settings(&import_settings);
+            let build_identity = build_identity_for_import(
+                &import_settings,
+                &build_input_digest,
+                descriptor.as_ref(),
+                Some((&meta.importer_id, meta.importer_version)),
+            );
+            let config_hash = build_identity.action_key().to_string();
             let root_asset_id = AssetId::from_asset_uuid(meta.uuid);
             let import_context =
                 AssetImportContext::new(file.clone(), uri.clone(), source_bytes, import_settings)
+                    .with_build_identity(build_identity)
+                    .with_source_file_snapshots(source_file_snapshots)
                     .with_project_resolver(import_registry.clone(), project_roots.clone());
 
-            if let Some(metadata) = self.restore_imported_artifact(
-                &source,
-                meta,
-                &previous_meta,
-                source_digest.clone(),
-                source_mtime_unix_ms,
-                config_hash.clone(),
-                descriptor.as_ref(),
-                fallback_kind,
-            )? {
+            #[cfg(test)]
+            source_snapshot_tests::observe(&import_context);
+
+            let restored = if source_snapshot_error.is_none() {
+                self.restore_imported_artifact(
+                    &source,
+                    meta,
+                    &previous_meta,
+                    source_digest.clone(),
+                    source_mtime_unix_ms,
+                    config_hash.clone(),
+                    descriptor.as_ref(),
+                    fallback_kind,
+                )?
+            } else {
+                None
+            };
+            if let Some(metadata) = restored {
                 let restored_root_asset = meta
                     .entries
                     .iter()
@@ -222,7 +268,10 @@ impl ProjectManager {
                 continue;
             }
 
-            let import_result = self.importer.import_context(&import_context);
+            let import_result = match source_snapshot_error {
+                Some(error) => Err(error),
+                None => self.importer.import_context(&import_context),
+            };
             let (metadata, direct_references, reference_repairs) = match import_result {
                 Ok(outcome) => {
                     let validation = validate_import_entries(&uri, &outcome).and_then(|()| {
@@ -725,3 +774,11 @@ fn verify_meta_preconditions(
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "full_generation/tests/optimization_batch_jk_runtime650_tests.rs"]
+mod optimization_batch_jk_runtime650_tests;
+
+#[cfg(test)]
+#[path = "full_generation/tests/source_snapshot_tests.rs"]
+pub(super) mod source_snapshot_tests;

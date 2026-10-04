@@ -8,7 +8,7 @@ SOURCE = (
     / "zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs"
 )
 
-
+# 读取实现源码约束精确包坐标 ID：坐标 ID 预分配全部段与 separators，并坐标 ID 追加借用段不带格式器。
 class ExactPackageCoordinateIdPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

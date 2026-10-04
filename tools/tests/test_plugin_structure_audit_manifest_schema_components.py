@@ -1,10 +1,10 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema import (
+from tools.audits.plugins.manifest_schema import (
     collect_manifest_schema_violations,
 )
 
-
+# 用插件清单夹具验证组件：拒绝格式错误组件行，并拒绝重复组件标识。
 class PluginStructureAuditManifestSchemaComponentsTests(unittest.TestCase):
     def test_manifest_schema_rejects_malformed_component_row(self):
         violations: list[str] = []

@@ -1,9 +1,9 @@
 use super::super::super::{
-    GlyphAtlasBitmapRunPlan, GlyphAtlasBitmapUploadCopy, GlyphAtlasBitmapUploadSourceBytes,
-    GlyphAtlasDirtyPage, GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasSet,
-    GlyphAtlasUploadMode, glyph_atlas_bitmap_staged_upload_plan,
+    glyph_atlas_bitmap_staged_upload_plan,
     glyph_atlas_bitmap_texture_upload_request_plan_with_atlas,
-    glyph_atlas_bitmap_upload_staging_plan, glyph_atlas_upload_command,
+    glyph_atlas_bitmap_upload_staging_plan, glyph_atlas_upload_command, GlyphAtlasBitmapRunPlan,
+    GlyphAtlasBitmapUploadCopy, GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasDirtyPage,
+    GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasSet, GlyphAtlasUploadMode,
 };
 use super::{atlas_rect, source};
 use crate::core::math::UVec2;
@@ -115,11 +115,10 @@ fn render_perf_text_typical_256_glyph_frame_stays_within_upload_budget() {
     assert_eq!(plan.glyphs.len(), 256);
     assert_eq!(plan.dirty_pages.len(), 4);
     assert_eq!(plan.upload_commands.len(), 4);
-    assert!(
-        plan.upload_commands
-            .iter()
-            .all(|command| command.mode == GlyphAtlasUploadMode::FullPage)
-    );
+    assert!(plan
+        .upload_commands
+        .iter()
+        .all(|command| command.mode == GlyphAtlasUploadMode::FullPage));
     assert_eq!(upload_byte_len, 1_835_008);
     assert!(upload_byte_len <= TEXT_ATLAS_UPLOAD_BUDGET_BYTES_PER_FRAME);
 }
@@ -193,11 +192,9 @@ fn render_text_atlas_bitmap_uploads_distant_regions_without_bounding_union() {
     let commands = super::super::upload::bitmap_upload_commands(&atlas, &[dirty_page]);
 
     assert_eq!(commands.len(), 2);
-    assert!(
-        commands
-            .iter()
-            .all(|command| command.mode == GlyphAtlasUploadMode::PartialRect)
-    );
+    assert!(commands
+        .iter()
+        .all(|command| command.mode == GlyphAtlasUploadMode::PartialRect));
     assert_eq!(
         commands
             .iter()
@@ -242,7 +239,7 @@ fn render_text_atlas_bitmap_staging_projects_off_origin_region_to_local_layout()
     assert!(!staging.has_failures());
     assert_eq!(staging.pages[0].target_rect, target_rect);
     assert_eq!(staging.pages[0].bytes_per_row, 8);
-    assert_eq!(staging.pages[0].bytes, source_bytes);
+    assert_eq!(staging.pages[0].bytes.as_ref(), source_bytes);
     assert_eq!(staged.uploads[0].command.source_offset, 0);
     assert_eq!(staged.uploads[0].command.bytes_per_row, 8);
     assert_eq!(staged.uploads[0].command.rows_per_image, 16);

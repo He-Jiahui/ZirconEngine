@@ -18,6 +18,7 @@ pub bountifulDraw(runSeed: uint, required: bool): float {
     return rng.next();
 }
 
+/// 新副本绑定源码布局时按运行种子决定奖励资格；局部随机流不消费战斗流，重复查询同一运行也应得到同一结果。
 pub isBountiful(runSeed: uint, tierId: string, required: bool): bool {
     return bountifulDraw(runSeed, required) < bountifulChance(tierId, true);
 }

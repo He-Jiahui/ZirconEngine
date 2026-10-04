@@ -14,7 +14,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
   - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
-  - zircon_runtime/src/core/framework/animation/ik_command.rs
   - zircon_plugins/animation/runtime/src/manager.rs
   - zircon_plugins/animation/runtime/src/ik
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs

@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from tools.runtime_ui_accessibility_extraction_pressure import run
+from tools.analysis.performance.runtime.runtime_ui_accessibility_extraction_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -11,7 +11,7 @@ EXTRACT = ROOT / "zircon_runtime/src/ui/accessibility/extract.rs"
 RESOLUTION = ROOT / "zircon_runtime/src/ui/accessibility/extract/resolution.rs"
 VISIBILITY = ROOT / "zircon_runtime/src/ui/accessibility/extract/visibility.rs"
 
-
+# 约束无障碍提取只访问已发布子节点、预先合成隐藏状态，并在向量发布前清除指向隐藏节点的关系。
 class RuntimeUiAccessibilityExtractionPerformanceContract(unittest.TestCase):
     def test_pressure_model_counts_repeated_structural_edge_visits(self) -> None:
         report = run(

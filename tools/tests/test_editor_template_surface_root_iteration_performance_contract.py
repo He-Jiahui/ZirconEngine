@@ -1,3 +1,4 @@
+# 核对模板表面根节点脏区遍历不克隆根向量。
 from pathlib import Path
 import unittest
 

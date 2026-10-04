@@ -1,14 +1,15 @@
+# 核对包裁剪对象数组模式归属及模块行数。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PACK_TRIM_SCHEMA = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_pack_trim_schema.py"
+    REPO_ROOT / "tools/export/pipeline_report_pack_trim_schema.py"
 )
 PACK_TRIM_OBJECT_ARRAY_SCHEMA = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_pack_trim_object_array_schema.py"
+    / "tools/export/pipeline_report_pack_trim_object_array_schema.py"
 )
 
 

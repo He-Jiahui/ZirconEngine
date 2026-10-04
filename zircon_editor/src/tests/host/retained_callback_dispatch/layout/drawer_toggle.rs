@@ -10,7 +10,10 @@ fn builtin_host_activity_toggle_collapses_active_hierarchy_drawer_from_typed_tar
 
     let harness = EventRuntimeHarness::new("zircon_retained_template_bridge_activity_collapse");
     let before = harness.runtime.current_layout();
-    let drawer = before.drawers.get(&ActivityDrawerSlot::LeftTop).unwrap();
+    let drawer = before
+        .active_activity_window_drawers()
+        .get(&ActivityDrawerSlot::LeftTop)
+        .unwrap();
     assert_eq!(drawer.mode, ActivityDrawerMode::Pinned);
     assert_eq!(
         drawer.active_view.as_ref().map(|id| id.0.as_str()),
@@ -27,7 +30,7 @@ fn builtin_host_activity_toggle_collapses_active_hierarchy_drawer_from_typed_tar
     let after = harness.runtime.current_layout();
     assert_eq!(
         after
-            .drawers
+            .active_activity_window_drawers()
             .get(&ActivityDrawerSlot::LeftTop)
             .unwrap()
             .mode,
@@ -66,7 +69,10 @@ fn builtin_host_activity_toggle_reopens_collapsed_hierarchy_drawer_from_typed_ta
     .expect("typed activity target should reopen the drawer");
 
     let after = harness.runtime.current_layout();
-    let drawer = after.drawers.get(&ActivityDrawerSlot::LeftTop).unwrap();
+    let drawer = after
+        .active_activity_window_drawers()
+        .get(&ActivityDrawerSlot::LeftTop)
+        .unwrap();
     assert_eq!(drawer.mode, ActivityDrawerMode::Pinned);
     assert_eq!(
         drawer.active_view.as_ref().map(|id| id.0.as_str()),

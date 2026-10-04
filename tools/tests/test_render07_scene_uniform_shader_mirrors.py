@@ -1,3 +1,4 @@
+# 核对场景统一参数在着色器镜像与描述符中保持规范前缀。
 import re
 import unittest
 from pathlib import Path

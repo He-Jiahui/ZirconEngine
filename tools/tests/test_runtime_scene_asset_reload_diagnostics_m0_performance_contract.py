@@ -8,7 +8,7 @@ SOURCE = (
     / "zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs"
 )
 
-
+# 读取场景资源重载帧报告，确认诊断存储只更新一次并记录十二个计数及一个布尔。
 class RuntimeSceneAssetReloadDiagnosticsM0PerformanceContract(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

@@ -1,3 +1,4 @@
+# 核对空选项源在构造结构化选择状态前提前退出。
 from pathlib import Path
 import unittest
 

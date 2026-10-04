@@ -34,13 +34,13 @@ fn render_cache_update_retains_the_input_command_buffer_allocation() {
         quad(3, UiFrame::new(2.0, 4.0, 8.0, 16.0)),
         quad(5, UiFrame::new(12.0, 4.0, 8.0, 16.0)),
     ];
-    let extract = extract(commands);
-    let command_buffer = extract.list.commands.as_ptr();
-    let command_capacity = extract.list.commands.capacity();
+    let current_extract = extract(commands);
+    let command_buffer = current_extract.list.commands.as_ptr();
+    let command_capacity = current_extract.list.commands.capacity();
     let mut cache = UiSurfaceRenderCache::default();
     let previous = extract(Vec::new());
 
-    let update = cache.update(&previous, extract, false);
+    let update = cache.update(&previous, current_extract, false);
 
     assert_eq!(update.extract.list.commands.as_ptr(), command_buffer);
     assert_eq!(update.extract.list.commands.capacity(), command_capacity);
@@ -58,11 +58,9 @@ fn render_cache_range_lookup_fails_closed_for_non_contiguous_node_commands() {
 
     let update = cache.update(&previous, extract(commands), false);
 
-    assert!(
-        cache
-            .commands_for_node(&update.extract, UiNodeId::new(3))
-            .is_none()
-    );
+    assert!(cache
+        .commands_for_node(&update.extract, UiNodeId::new(3))
+        .is_none());
     let (start, commands) = cache
         .commands_for_node(&update.extract, UiNodeId::new(5))
         .expect("the contiguous node range remains indexed");

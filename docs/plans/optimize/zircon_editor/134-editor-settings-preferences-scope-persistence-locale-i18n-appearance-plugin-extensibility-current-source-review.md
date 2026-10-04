@@ -34,7 +34,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/settings_window
   - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
   - zircon_editor/src/ui/retained_host/ui/workbench_window_projection/defaults.rs
-  - zircon_editor/src/ui/v2_design_tokens.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme
   - zircon_editor/src/ui/retained_host/host_contract/settings_window_geometry.rs

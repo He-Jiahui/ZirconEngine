@@ -13,7 +13,7 @@ validation_status: managed_validation_pending
 ## Scope
 
 New-project action parsing resolves the requested template through
-`ProjectTemplate::from_enabled_id`. The previous implementation trimmed every input and then
+`enabled_project_template_id`. The previous implementation trimmed every input and then
 materialized an ASCII-lowercased `String` before matching the only enabled template ID.
 
 The parser now borrows the trimmed input and uses `eq_ignore_ascii_case` directly. This preserves

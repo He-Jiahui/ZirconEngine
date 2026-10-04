@@ -25,4 +25,5 @@ use measurement::{record_bool, record_bytes, record_count, record_microseconds};
 pub(crate) use dispatch::record_render_stats_diagnostics;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

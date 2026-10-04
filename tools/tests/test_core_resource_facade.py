@@ -25,7 +25,7 @@ def _public_reexport_symbols(path: Path) -> set[str]:
         )
     return symbols
 
-
+# 比较接口与运行时资源门面的公开重导出集合，要求显式投影契约并拒绝通配重导出。
 class CoreResourceFacadeTests(unittest.TestCase):
     def test_resource_facade_explicitly_projects_the_interface_contract(self) -> None:
         facade = RUNTIME_RESOURCE_FACADE.read_text(encoding="utf-8")

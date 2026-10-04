@@ -5,7 +5,7 @@ use crate::ui::asset_editor::value_path::{
 };
 
 #[cfg(test)]
-#[path = "payload_suggestions/borrowed_root_tests.rs"]
+#[path = "payload_suggestions/tests/borrowed_root_tests.rs"]
 mod borrowed_root_tests;
 
 pub(super) fn contextual_binding_payload_suggestions(
@@ -46,11 +46,17 @@ fn immediate_nested_suggestions(
 ) -> Vec<(String, Value)> {
     match value {
         Value::Array(entries) => {
-            let mut suggestions = entries
-                .iter()
-                .enumerate()
-                .map(|(index, entry)| (format!("[{index}]"), entry.clone()))
-                .collect::<Vec<_>>();
+            let mut suggestions = Vec::with_capacity(
+                entries
+                    .len()
+                    .saturating_add(usize::from(!entries.is_empty())),
+            );
+            suggestions.extend(
+                entries
+                    .iter()
+                    .enumerate()
+                    .map(|(index, entry)| (format!("[{index}]"), entry.clone())),
+            );
             let append_index = current_selected_value
                 .and_then(Value::as_array)
                 .map(|current_entries| current_entries.len().max(entries.len()))
@@ -61,7 +67,8 @@ fn immediate_nested_suggestions(
             suggestions
         }
         Value::Table(entries) => {
-            let mut keys = entries.keys().cloned().collect::<Vec<_>>();
+            let mut keys = Vec::with_capacity(entries.len());
+            keys.extend(entries.keys().cloned());
             keys.sort();
             keys.into_iter()
                 .filter_map(|key| entries.get(&key).cloned().map(|value| (key, value)))

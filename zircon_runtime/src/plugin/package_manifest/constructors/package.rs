@@ -18,6 +18,7 @@ use super::super::{
 };
 
 impl PluginPackageManifest {
+    /// 创建标准生产包的初始清单，供调用方补充目标、能力和模块声明；注册入口负责后续校验。
     pub fn new(id: impl Into<String>, display_name: impl Into<String>) -> Self {
         let id = id.into();
         let package_name = default_package_coordinate_name(&id);
@@ -29,6 +30,7 @@ impl PluginPackageManifest {
             package_company: "zircon".to_string(),
             package_name,
             package_kind: PluginPackageKind::Standard,
+            package_role: super::super::PluginPackageRole::Production,
             display_name: display_name.into(),
             category: "uncategorized".to_string(),
             description: String::new(),
@@ -60,6 +62,7 @@ impl PluginPackageManifest {
         }
     }
 
+    /// 替换三段包坐标；任一段为空时 package_id() 回退到清单 id。
     pub fn with_package_identity(
         mut self,
         prefix: impl Into<String>,
@@ -84,6 +87,11 @@ impl PluginPackageManifest {
 
     pub fn with_package_kind(mut self, package_kind: PluginPackageKind) -> Self {
         self.package_kind = package_kind;
+        self
+    }
+
+    pub fn with_package_role(mut self, package_role: super::super::PluginPackageRole) -> Self {
+        self.package_role = package_role;
         self
     }
 
@@ -173,6 +181,7 @@ impl PluginPackageManifest {
         self
     }
 
+    /// 按包 id 附加 `<id>.runtime` 模块并记录 crate 名，供注册和导出投影使用。
     pub fn with_runtime_crate(mut self, crate_name: impl Into<String>) -> Self {
         self.modules.push(PluginModuleManifest::runtime(
             format!("{}.runtime", self.id),
@@ -292,6 +301,7 @@ impl PluginPackageManifest {
         self
     }
 
+    /// 替换而非追加策略；目录投影优先选择 LibraryEmbed，否则用首项，注册校验要求非空且无重复。
     pub fn with_default_packaging(
         mut self,
         packaging: impl IntoIterator<Item = ExportPackagingStrategy>,

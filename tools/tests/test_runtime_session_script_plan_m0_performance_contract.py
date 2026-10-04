@@ -6,7 +6,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 CONSTRUCTION = ROOT / "zircon_runtime/src/dynamic_api/session/construction.rs"
 SCRIPT_SYSTEMS = ROOT / "zircon_runtime/src/dynamic_api/session/script_systems.rs"
 
-
+# 读取会话脚本计划合并，确认构造前不实体化计划并只遍历运行时系统一次。
 class RuntimeSessionScriptPlanM0PerformanceContract(unittest.TestCase):
     def test_construction_does_not_materialize_a_plan_before_script_merge(self):
         source = CONSTRUCTION.read_text(encoding="utf-8")

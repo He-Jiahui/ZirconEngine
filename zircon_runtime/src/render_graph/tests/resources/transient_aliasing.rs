@@ -1,6 +1,70 @@
 use super::*;
 
 #[test]
+fn graph_does_not_alias_transient_textures_with_different_view_formats() {
+    let mut builder = RenderGraphBuilder::new("view-format-aliasing");
+    let linear = builder.create_texture(
+        TextureDesc::new(
+            "linear",
+            16,
+            16,
+            TextureFormat::Rgba8Unorm,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+        )
+        .with_view_formats([TextureFormat::Rgba8UnormSrgb]),
+    );
+    let plain = builder.create_texture(TextureDesc::new(
+        "plain",
+        16,
+        16,
+        TextureFormat::Rgba8Unorm,
+        TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+    ));
+    let output = builder.import_present_external_resource("viewport-output");
+    let write_linear = builder.add_pass("write-linear", QueueLane::Graphics);
+    let consume_linear = builder.add_pass("consume-linear", QueueLane::Graphics);
+    let write_plain = builder.add_pass("write-plain", QueueLane::Graphics);
+    let present = builder.add_pass("present", QueueLane::Graphics);
+
+    builder.write_texture(write_linear, linear).unwrap();
+    builder.read_texture(consume_linear, linear).unwrap();
+    builder
+        .set_pass_flags(
+            consume_linear,
+            PassFlags {
+                has_side_effects: true,
+                ..PassFlags::default()
+            },
+        )
+        .unwrap();
+    builder.write_texture(write_plain, plain).unwrap();
+    builder.read_texture(present, plain).unwrap();
+    builder.write_external(present, output).unwrap();
+    builder.add_dependency(consume_linear, write_plain).unwrap();
+
+    let graph = builder.compile().unwrap();
+    let plan = graph.transient_allocation_plan();
+    let linear_allocation = plan
+        .allocations
+        .iter()
+        .find(|allocation| allocation.resource_name == "linear")
+        .unwrap();
+    let plain_allocation = plan
+        .allocations
+        .iter()
+        .find(|allocation| allocation.resource_name == "plain")
+        .unwrap();
+    assert_ne!(
+        linear_allocation.allocation_id,
+        plain_allocation.allocation_id
+    );
+    assert_ne!(
+        linear_allocation.bucket_key_hash,
+        plain_allocation.bucket_key_hash
+    );
+}
+
+#[test]
 fn transient_allocation_indexes_buckets_slots_and_reservations() {
     let graph_source = include_str!("../../graph.rs");
     let allocation_source = include_str!("../../graph/transient_allocation.rs");
@@ -10,6 +74,7 @@ fn transient_allocation_indexes_buckets_slots_and_reservations() {
     assert!(allocation_source.contains("HashMap::<TransientAllocationBucketKey"));
     assert!(allocation_source.contains("BTreeSet::<(usize, usize)>::new()"));
     assert!(allocation_source.contains("CompiledRenderGraphTransientAllocationId,"));
+    assert!(allocation_source.contains("view_formats_key"));
     assert!(
         !allocation_source.contains("slot_last_passes\n            .iter()\n            .position")
     );

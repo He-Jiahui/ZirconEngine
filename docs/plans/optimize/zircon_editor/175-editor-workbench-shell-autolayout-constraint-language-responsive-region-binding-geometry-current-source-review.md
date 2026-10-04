@@ -37,7 +37,7 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/52-editor-builtin-view-window-descriptor-catalog-content-provider-capability-template-localization-product-integration-review.md
   - docs/plans/optimize/zircon_runtime/11a-runtime-ui-architecture-tree-layout-input-accessibility-review.md
   - docs/plans/optimize/zircon_runtime_interface/03-ui-authoring-accessibility-input-diagnostic-status-public-contract-review.md
-  - docs/ui-and-layout/workbench-skeleton-contract.md
+  - docs/ui/workbench-skeleton-contract.md
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Widgets/Layout/SSplitter.h
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Private/Widgets/Layout/SSplitter.cpp

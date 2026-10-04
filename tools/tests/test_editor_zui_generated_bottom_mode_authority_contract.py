@@ -1,3 +1,4 @@
+# 核对生成工具底部模式由唯一标签条控制，明细和路由列表保持可达。
 import unittest
 import tomllib
 from pathlib import Path

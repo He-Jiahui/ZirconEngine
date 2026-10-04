@@ -1,3 +1,5 @@
+//! 按钮内容的宿主密度和文字偏好投影；测量与最终文字绘制共用字号及字重，shrink 是实例声明的溢出策略。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::style_selector::{
     is_asset_browser_toolbar_chip_button, is_asset_browser_utility_tab_button,
@@ -5,7 +7,8 @@ use super::super::super::style_selector::{
 };
 use crate::ui::retained_host::host_contract::paint_text::measure_runtime_text_width_with_style;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    current_host_metrics, current_host_text_preferences, HostControlMetrics, HostTextPreferences,
+    current_host_metrics, current_host_text_preferences, logical_font_size_to_physical,
+    HostControlMetrics, HostTextPreferences,
 };
 use zircon_runtime_interface::ui::style::ButtonInteractionState;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
@@ -13,11 +16,13 @@ use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 const BUTTON_LABEL_STRONG_FONT_WEIGHT: i32 = 600;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 内容域使用的密度快照；统一文字、图标、空隙和按压反馈的尺度来源。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes::template_buttons) struct WorkbenchButtonContentMetrics
 {
     pub icon_gap: f32,
     pub chevron_reserve: f32,
     pub trailing_glyph_inset: f32,
+    scale_factor: f32,
     pub font_size: f32,
     pub text_clip_guard: f32,
     pub utility_tab_pad_x: f32,
@@ -37,6 +42,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes::template_b
         icon_gap: metrics.button_icon_gap,
         chevron_reserve: metrics.button_chevron_reserve,
         trailing_glyph_inset: metrics.button_pad_x,
+        scale_factor: metrics.scale_factor,
         font_size: metrics.font_body,
         text_clip_guard: metrics.text_clip_guard,
         utility_tab_pad_x: metrics.gap_s,
@@ -59,6 +65,7 @@ pub(super) fn button_label_font_size(node: &TemplatePaneNodeData, rect: &FrameRe
     button_label_font_size_from_metrics(node, rect, metrics)
 }
 
+/// 只有 overflow 声明 shrink 时才缩小字号；调用方的图标和箭头槽宽必须与最终布局一致。
 pub(super) fn button_label_font_size_for_slot(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
@@ -100,7 +107,7 @@ fn button_label_font_size_from_metrics(
     if is_compact_icon_text_workbench_button(node) {
         metrics.compact_icon_text_font_size.min(rect.height)
     } else if node.font_size.is_finite() && node.font_size > 0.0 {
-        node.font_size.min(rect.height)
+        logical_font_size_to_physical(node.font_size, metrics.scale_factor).min(rect.height)
     } else {
         metrics.font_size.min(rect.height)
     }
@@ -124,6 +131,7 @@ pub(super) fn button_label_paint_style(
     button_label_paint_style_with_preferences(node, kind, &preferences)
 }
 
+/// 纯投影入口便于宿主文字偏好回归；primary 的强调和 utility 页签的代码字体必须同时用于测量与绘制。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_label_paint_style_with_preferences(
     node: &TemplatePaneNodeData,
     kind: WorkbenchButtonKind,
@@ -140,6 +148,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_
     style
 }
 
+/// 使用最终文字风格的共享测量器；返回值用于居中和 shrink 预算，不是整个文字命令框宽。
 pub(super) fn measured_label_ink_width(
     label: &str,
     font_size: f32,
@@ -152,6 +161,7 @@ pub(super) fn label_text_slot_width(ink_width: f32, max_width: f32) -> f32 {
     (ink_width.max(0.0) + button_content_metrics().text_clip_guard).min(max_width.max(0.0))
 }
 
+/// 按 utility 页签、工具栏 chip 或 compact 语境保留横向内边距；此预算尚未扣除图标槽。
 pub(super) fn max_label_slot_width(node: &TemplatePaneNodeData, rect: &FrameRect) -> f32 {
     let metrics = button_content_metrics();
     let pad_x = if is_asset_browser_utility_tab_button(node) {
@@ -166,6 +176,7 @@ pub(super) fn max_label_slot_width(node: &TemplatePaneNodeData, rect: &FrameRect
     (rect.width - pad_x * 2.0).max(0.0)
 }
 
+/// 实例正的内容间距可覆盖密度默认值；这是图标与标签间距，不移动整个按钮外框。
 pub(super) fn button_icon_gap(node: &TemplatePaneNodeData) -> f32 {
     if node.layout_content_offset_x.is_finite() && node.layout_content_offset_x > 0.0 {
         node.layout_content_offset_x
@@ -199,73 +210,5 @@ impl WorkbenchButtonContentMetrics {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ui::retained_host::host_contract::paint_theme::METRICS;
-
-    #[test]
-    fn compact_icon_text_uses_shared_caption_size_instead_of_instance_font_size() {
-        let node = TemplatePaneNodeData {
-            component_variant: "code compact_icon_text".into(),
-            font_size: 24.0,
-            ..TemplatePaneNodeData::default()
-        };
-        let rect = FrameRect {
-            width: 54.0,
-            height: 28.0,
-            ..FrameRect::default()
-        };
-
-        let metrics = button_content_metrics_from_host(METRICS);
-        assert_eq!(
-            button_label_font_size_from_metrics(&node, &rect, metrics),
-            METRICS.font_small
-        );
-    }
-
-    #[test]
-    fn button_label_font_size_shrinks_only_when_the_node_declares_shrink_overflow() {
-        let node = TemplatePaneNodeData {
-            overflow: "shrink".into(),
-            ..TemplatePaneNodeData::default()
-        };
-        let rect = FrameRect {
-            width: 72.0,
-            height: METRICS.control_default_height,
-            ..FrameRect::default()
-        };
-        let label = "Disabled";
-        let text_style = UiTextRunPaintStyle::default();
-        let base_font_size = button_label_font_size(&node, &rect);
-        let fitted_font_size =
-            button_label_font_size_for_slot(&node, &rect, label, text_style, 0.0, 0.0);
-        let available_ink_width = (max_label_slot_width(&node, &rect)
-            - button_content_metrics().text_clip_guard)
-            .max(0.0);
-
-        assert!(fitted_font_size < base_font_size);
-        assert!(
-            measured_label_ink_width(label, fitted_font_size, text_style)
-                <= available_ink_width + 0.01
-        );
-    }
-
-    #[test]
-    fn button_label_font_size_preserves_elide_overflow_at_the_declared_size() {
-        let node = TemplatePaneNodeData {
-            overflow: "elide".into(),
-            ..TemplatePaneNodeData::default()
-        };
-        let rect = FrameRect {
-            width: 72.0,
-            height: METRICS.control_default_height,
-            ..FrameRect::default()
-        };
-        let text_style = UiTextRunPaintStyle::default();
-
-        assert_eq!(
-            button_label_font_size_for_slot(&node, &rect, "Disabled", text_style, 0.0, 0.0,),
-            button_label_font_size(&node, &rect),
-        );
-    }
-}
+#[path = "tests/metrics.rs"]
+mod tests;

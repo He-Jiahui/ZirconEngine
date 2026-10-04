@@ -457,7 +457,7 @@ at this source binding, so this review does not absorb or rewrite them.
   for text batches.
 - `tools/tests/test_runtime_ui_batch_plan_order_contract.py`: source guard that
   keeps the diagnostic batch helper out of the product renderer path.
-- `tools/runtime_ui_transient_paint_metadata_pressure.py` and
+- `tools/analysis/performance/runtime/runtime_ui_transient_paint_metadata_pressure.py` and
   `tools/tests/test_runtime_ui_transient_paint_metadata_contract.py`: bounded
   operation-count evidence and source contract for the transient product path.
 

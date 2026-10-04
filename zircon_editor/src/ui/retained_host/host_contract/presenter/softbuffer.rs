@@ -15,6 +15,7 @@ mod lifecycle;
 mod present;
 mod surface_io;
 #[cfg(test)]
+#[path = "softbuffer/tests/cases.rs"]
 mod tests;
 
 pub(in crate::ui::retained_host::host_contract) struct SoftbufferHostPresenter {

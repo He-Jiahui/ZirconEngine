@@ -11,6 +11,11 @@ use zircon_runtime_interface::RegistrationDiagnosticSeverity;
 
 use crate::core::plugin::{EditorPluginCatalog, EditorPluginDescriptor};
 
+// Compile the catalog producer in a test target: Cargo does not run tests in build.rs.
+#[allow(dead_code)]
+#[path = "../../build.rs"]
+mod build_script_catalog_tests;
+
 #[test]
 fn builtin_editor_catalog_entries_are_derived_from_plugin_manifests() {
     let plugins_root = plugins_workspace_root();
@@ -47,7 +52,7 @@ fn editor_module_plugin_manifests_are_present_in_builtin_catalog() {
             .modules
             .iter()
             .any(|module| module.kind == PluginModuleKind::Editor);
-        if declares_editor_module {
+        if declares_editor_module && manifest.package_role.is_product_catalog_eligible() {
             assert!(
                 catalog_ids.contains(&manifest.id),
                 "editor plugin `{}` is missing from EditorPluginDescriptor::builtin_catalog()",
@@ -108,15 +113,6 @@ fn editor_only_builtin_catalog_projects_targets_and_capabilities_from_package_ma
                 "editor.extension.build_export_desktop.native_dynamic_report",
             ],
         ),
-        (
-            "plugin_sdk_examples",
-            "sdk",
-            vec![
-                "editor.extension.plugin_sdk_examples",
-                "editor.extension.plugin_sdk_examples.window",
-                "editor.extension.plugin_sdk_examples.asset_fixture",
-            ],
-        ),
     ] {
         let static_manifest = read_plugin_manifest(&plugins_root, package_id);
         let catalog_manifest = catalog_manifests
@@ -152,6 +148,25 @@ fn editor_only_builtin_catalog_projects_targets_and_capabilities_from_package_ma
         assert_eq!(
             catalog_manifest.capabilities, static_manifest.capabilities,
             "builtin editor catalog for `{package_id}` should preserve static package capabilities"
+        );
+    }
+}
+
+#[test]
+fn sample_and_fixture_packages_stay_out_of_builtin_editor_product_inventory() {
+    let catalog_ids = EditorPluginDescriptor::builtin_catalog()
+        .into_iter()
+        .map(|descriptor| descriptor.package_id)
+        .collect::<BTreeSet<_>>();
+
+    for package_id in [
+        "plugin_sdk_examples",
+        "native_dynamic_fixture",
+        "editor_contribution_fixture",
+    ] {
+        assert!(
+            !catalog_ids.contains(package_id),
+            "carrier package `{package_id}` must not appear in product inventory"
         );
     }
 }

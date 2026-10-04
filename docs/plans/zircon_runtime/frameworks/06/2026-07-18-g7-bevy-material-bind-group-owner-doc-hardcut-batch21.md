@@ -2,7 +2,7 @@
 related_code:
   - dev/bevy/crates/bevy_render/src/material_bind_groups.rs
   - dev/bevy/crates/bevy_pbr/src/material.rs
-  - tools/check_conventions.py
+  - tools/audits/check_conventions.py
 implementation_files:
   - docs/plans/zircon_runtime/render/19-gpu-capability-optimizations.md
 plan_sources:
@@ -10,7 +10,7 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - python tools/check_conventions.py --only docs --json
+  - python tools/audits/check_conventions.py --only docs --json
   - git diff --check -- docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md docs/plans/zircon_runtime/frameworks/06/2026-07-18-g7-bevy-material-bind-group-owner-doc-hardcut-batch21.md docs/plans/zircon_runtime/render/19-gpu-capability-optimizations.md
 ---
 
@@ -29,7 +29,7 @@ Session: `frameworks06-g7-bevy-material-bind-group-owner-doc-hardcut-batch21-202
 ## Fresh Testing Evidence
 
 - 修改前 fresh G7：所选 Render19 文档有 `1` 个 missing-path violation。
-- 修改后 fresh `python tools/check_conventions.py --only docs --json`：所选 Render19 文档 `0` violations；共享 current-source 全局快照为 `473` violations / `124` documents / `66,924` checked paths，G7 继续保持 RED。
+- 修改后 fresh `python tools/audits/check_conventions.py --only docs --json`：所选 Render19 文档 `0` violations；共享 current-source 全局快照为 `473` violations / `124` documents / `66,924` checked paths，G7 继续保持 RED。
 - 退役 `dev/bevy/crates/bevy_pbr/src/material_bind_groups.rs` 在所选文档中为 `0`；current `dev/bevy/crates/bevy_render/src/material_bind_groups.rs` 存在。
 - exact-scope `git diff --check` 通过；staged_total 为 `0`。
 

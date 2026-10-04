@@ -70,5 +70,5 @@ pub(in crate::ui::retained_host::host_contract) fn frame_summary(frame: &FrameRe
 }
 
 #[cfg(test)]
-#[path = "summary/single_buffer_presentation_summary_tests.rs"]
+#[path = "summary/tests/single_buffer_presentation_summary_tests.rs"]
 mod single_buffer_presentation_summary_tests;

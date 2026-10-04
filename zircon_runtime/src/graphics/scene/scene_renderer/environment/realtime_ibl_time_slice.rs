@@ -114,6 +114,7 @@ pub(in crate::graphics) struct RealtimeIblPrefilterDispatchSlice {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 将完成回调限定到原代次、阶段和帧，防止过期提交推进已经替换的作业。
 pub(in crate::graphics) struct RealtimeIblBatchToken {
     generation: u64,
     state: u8,
@@ -369,6 +370,8 @@ impl EnvironmentGenerationStage {
     }
 }
 
+/// 只调度当前工作槽的捕获、源 mip、PMREM 和终末 SH9；不拥有 GPU 资源。
+/// 调用方编码后按提交结果完成 token，失败按帧退避重试；整代完成才切换采样槽。
 pub(in crate::graphics) struct RealtimeIblTimeSliceScheduler {
     config: RealtimeIblTimeSliceConfig,
     generation: u64,
@@ -600,4 +603,5 @@ fn frame_sequence_has_reached(frame_number: u64, target_frame: u64) -> bool {
 }
 
 #[cfg(test)]
+#[path = "realtime_ibl_time_slice/tests/cases.rs"]
 mod tests;

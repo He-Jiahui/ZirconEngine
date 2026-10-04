@@ -27,6 +27,7 @@ pub zAt(index: int, required: bool): float {
 
 // The strict comparison intentionally preserves the first source row on an
 // exact distance tie, matching the JavaScript for-of scan.
+// 产品世界/主入口用此选择野外墓地；严格小于保持等距时的原始清单顺序，副本墓地另有 owner。
 pub nearestIndex(x: float, z: float, required: bool): int {
     if (!required) {
         throw "woc nearest spirit graveyard is required";

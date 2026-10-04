@@ -1,11 +1,12 @@
+# 核对插件包载体重复投影复用组件扫描结果。
 import unittest
 from pathlib import Path
 
-from tools.zircon_build_plugin_manifest_contract import (
+from tools.build.zircon_build_plugin_manifest_contract import (
     PLUGIN_DISTRIBUTION_FORM_DIST,
     PLUGIN_DISTRIBUTION_FORM_EMBED,
 )
-from tools.zircon_build_plugin_packages import CargoPackage, PluginPackage
+from tools.build.zircon_build_plugin_packages import CargoPackage, PluginPackage
 
 
 class _CountingCrates(tuple):

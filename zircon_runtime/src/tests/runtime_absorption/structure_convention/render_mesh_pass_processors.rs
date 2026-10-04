@@ -1,10 +1,11 @@
 use super::{assert_contains_all, repo_path, runtime_src_path};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0128] 网格材质、阴影和深度阶段处理器 超出当前结构预算；需核对职责边界和预算来源，区分新增责任与历史门槛过时。
 #[test]
 fn runtime_15_mesh_pass_processors_are_folder_backed() {
     let parent = read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pass/processors/mod.rs");
     let tests =
-        read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs");
+        read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests/cases.rs");
     let material_options = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests/material_options.rs",
     );
@@ -90,7 +91,7 @@ fn runtime_15_mesh_pass_processors_are_folder_backed() {
             80,
         ),
         (
-            "graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs",
+            "graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests/cases.rs",
             tests.as_str(),
             470,
         ),

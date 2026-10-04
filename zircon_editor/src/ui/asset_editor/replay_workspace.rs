@@ -101,5 +101,5 @@ fn reuse_optional_string(target: &mut Option<String>, source: &Option<String>) {
 }
 
 #[cfg(test)]
-#[path = "replay_workspace/reused_state_tests.rs"]
+#[path = "replay_workspace/tests/reused_state_tests.rs"]
 mod reused_state_tests;

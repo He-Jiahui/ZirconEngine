@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use crate::scene::{EntityId, World};
 
-use super::super::WorldInspectionField;
 use super::super::snapshot::build_inspection_fields;
+use super::super::WorldInspectionField;
 
 /// Immutable inspector payload for one entity in one runtime generation.
 #[derive(Clone, Debug, PartialEq)]
@@ -164,5 +164,5 @@ impl WorldInspectionFieldDelta {
 }
 
 #[cfg(test)]
-#[path = "fields/hash_delta_tests.rs"]
+#[path = "fields/tests/hash_delta_tests.rs"]
 mod hash_delta_tests;

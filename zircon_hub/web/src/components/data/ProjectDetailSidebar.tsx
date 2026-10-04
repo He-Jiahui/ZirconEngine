@@ -8,6 +8,7 @@ import { QuickActions } from "./QuickActions";
 import { SourceEngineList } from "./SourceEngineList";
 import { StatusBadge } from "./StatusBadge";
 
+// 详情页须把所展示项目的显式目标与快捷动作可用目标分别传入；管理按钮不应仅凭全局选择推断操作对象。
 export interface ProjectDetailSidebarProps {
   project: HubProjectDetail;
   projectTarget?: ProjectTargetPayload;
@@ -29,6 +30,7 @@ export interface ProjectDetailSidebarProps {
   onAction: HubActionHandler;
 }
 
+// 聚合项目交付、源码选择和两阶段删除入口；这里只发送用户意图，目标校验、失败反馈及持久化归统一动作链。
 export function ProjectDetailSidebar({
   project,
   projectTarget,
@@ -40,6 +42,8 @@ export function ProjectDetailSidebar({
   emptyEngineLabel,
   onAction,
 }: ProjectDetailSidebarProps) {
+  // 待删除标记属于后端确认流程；渲染确认入口不会执行删除，也不能以本地状态替代后端再次核对目标。
+  // BUG: [CR-HUBWEB-0002] 当所展示项目不存在时交付按钮仍可点击，动作却会在目标解析或根目录校验中被拒绝；证据：详情页保留缺失项目，云交付页同操作已禁用。
   return (
     <Box sx={{ display: "grid", gap: 1.4, alignContent: "start" }}>
       <HubPanel title={text.quickActions}>

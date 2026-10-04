@@ -1,3 +1,6 @@
+//! 将后处理图中的 executor ID 接到当前帧的 GPU 录制入口。
+//! 图的读写边由编译结果决定；这里仅依据帧提取状态选择已声明的效果路径。
+
 use std::mem;
 
 use crate::core::framework::render::{
@@ -21,6 +24,8 @@ mod frame_effects;
 mod graph_resources;
 mod resource_routing;
 
+// 同时借用 pass 元数据和 GPU 上下文时，先暂移元数据，
+// 再在成功或错误返回后还原，避免 executor 改写后续诊断所用的身份。
 fn with_borrowed_gpu_metadata<'a, T>(
     context: &mut RenderPassExecutionContext<'a>,
     operation: impl FnOnce(&str, &str, &mut RenderPassGpuExecutionContext<'a>) -> Result<T, String>,
@@ -585,26 +590,5 @@ pub(super) fn uber_postprocess_executor(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn borrowed_gpu_metadata_restores_context_when_gpu_is_missing() {
-        let mut context = RenderPassExecutionContext::new(
-            "post.test-pass",
-            RenderPassExecutorId::from("post.test-executor"),
-        );
-
-        let result = with_borrowed_gpu_metadata(&mut context, |_, _, _| Ok(()));
-
-        assert_eq!(
-            result,
-            Err(
-                "render pass executor `post.test-executor` for pass `post.test-pass` requires renderer GPU context"
-                    .to_string()
-            )
-        );
-        assert_eq!(context.pass_name, "post.test-pass");
-        assert_eq!(context.executor_id.as_str(), "post.test-executor");
-    }
-}
+#[path = "tests/builtin_postprocess_executors.rs"]
+mod tests;

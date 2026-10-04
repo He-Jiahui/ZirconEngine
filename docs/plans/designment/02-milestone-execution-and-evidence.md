@@ -16,12 +16,12 @@ related_code:
   - zircon_hub/src/tauri_app/view_model.rs
   - zircon_hub/web/src/App.tsx
   - zircon_hub/package.json
-  - tools/ui-profile-capture.ps1
-  - tools/capture-editor-ui-visual.ps1
-  - tools/ui-profile-scale-fixture.ps1
-  - tools/performance-machine-manifest.ps1
-  - tools/profile-capture-manifest.ps1
-  - tools/ui-profile-scenarios.ps1
+  - tools/analysis/profiling/ui/ui-profile-capture.ps1
+  - tools/analysis/visual/capture-editor-ui-visual.ps1
+  - tools/analysis/profiling/ui/ui-profile-scale-fixture.ps1
+  - tools/analysis/profiling/shared/performance-machine-manifest.ps1
+  - tools/analysis/profiling/shared/profile-capture-manifest.ps1
+  - tools/analysis/profiling/ui/ui-profile-scenarios.ps1
 implementation_files:
   - dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/zui-document.ts
   - dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/penpot-projection-model.ts
@@ -74,7 +74,7 @@ plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
 doc_type: workflow-detail
 status: in_progress
-last_refined: 2026-08-31
+last_refined: 2026-09-01
 ---
 
 # 界面设计里程碑执行与证据计划
@@ -85,38 +85,48 @@ last_refined: 2026-08-31
 
 ### 1.1 闸门
 
-| 闸门 | 含义 | 允许的界面工作 | 不能声称 |
-|---|---|---|---|
-| design-ready | schema、信息架构、fixture 和 owner 已评审 | M0、M1、直接支撑 F0-F4 的 M2/M3 契约、M6-PRE | 产品可用、F gate accepted、视觉 wave 通过 |
-| f0..f4-accepted | MVP 对应 owner 计划已有当前源证据 | 下一层直接依赖的 UI/交互切片 | 上层高级能力已完成 |
-| f5-accepted | MVP F0-F5 在 clean validation copy 上通过 | M4-M8 产品实现、完整 Hub polish、domain/plugin、视觉/性能 wave | 仍有未验收 failure 的发布候选 |
-| accepted | 本里程碑证据齐全、owner review 完成 | 解锁表中指定的下一个里程碑 | 以窄测试或单张截图代表全量通过 |
+| 闸门            | 含义                                      | 允许的界面工作                                                 | 不能声称                                  |
+| --------------- | ----------------------------------------- | -------------------------------------------------------------- | ----------------------------------------- |
+| design-ready    | schema、信息架构、fixture 和 owner 已评审 | M0、M1、直接支撑 F0-F4 的 M2/M3 契约、M6-PRE                   | 产品可用、F gate accepted、视觉 wave 通过 |
+| f0..f4-accepted | MVP 对应 owner 计划已有当前源证据         | 下一层直接依赖的 UI/交互切片                                   | 上层高级能力已完成                        |
+| f5-accepted     | MVP F0-F5 在 clean validation copy 上通过 | M4-M8 产品实现、完整 Hub polish、domain/plugin、视觉/性能 wave | 仍有未验收 failure 的发布候选             |
+| accepted        | 本里程碑证据齐全、owner review 完成       | 解锁表中指定的下一个里程碑                                     | 以窄测试或单张截图代表全量通过            |
 
 docs/plans/mvp/index.md 的 blocked_by_* 状态优先于本文件。若 F gate 未满足，状态只能保持 blocked 或 design-ready，failure 必须回到原 owner 计划。
 
 ### 1.2 Penpot 到引擎的硬顺序
 
-本次用户请求增加一个可逆的 authoring bootstrap 链。它与原有 M0-M9 产品里程碑相邻，但不改变 Runtime UI ABI 的 owner：`.zui` v2 仍是 ZirconEngine 的唯一运行时资产格式，Penpot 只提供一个 authoring adapter。三步必须按顺序完成，后一步不得用截图或手工复制替代前一步的 contract 证据。
+本次用户请求增加一个可逆的 authoring bootstrap 链。它与原有 M0-M9 产品里程碑相邻，但不改变 Runtime UI ABI 的 owner：`.zui` v2 仍是 ZirconEngine 的唯一运行时资产格式，Penpot 只提供一个 authoring adapter。A0、A1、A2-C、A2-P 必须按顺序完成，后一步不得用截图或手工复制替代前一步的 contract 证据。
 
-| Bootstrap | 目标 | 入口/出口 | 必须保留 | 解锁 |
-|---|---|---|---|---|
-| A0 contract | 定义 `.zui` v2 <-> Penpot semantic bridge、metadata namespace、支持/警告/拒绝矩阵 | 真实 `.zui` fixture 可解析；未知字段和事件/绑定可证明保留 | 原始 document JSON、稳定 node id、imports/tokens/components/styles、unsupported diagnostics | A1 |
-| A1 Penpot adapter | 在当前 Penpot 中导入 `.zui` 为可编辑 board，导出为可被 Zircon loader 接受的 `.zui` | plugin build/lint/unit tests + 一次真实 import/export round-trip | 语义层级、文本、几何、布局子集、raw metadata；辅助视觉 shape 不得成为语义节点 | A2 |
-| A2 engine bootstrap | Zircon Editor/Runtime 消费同一 bridge contract，显示与 Penpot 导出的布局一致 | existing `.zui` loader/compiler + editor fixture evidence；无第二套 schema | `.zui` source of truth、版本拒绝、diagnostics、fallback layout | 后续 M0-M9 产品 UI 实现 |
+| Bootstrap            | 目标                                                                                                | 入口/出口                                                                                   | 必须保留                                                                                    | 解锁                         |
+| -------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------- |
+| A0 contract          | 定义 `.zui` v2 <-> Penpot semantic bridge、metadata namespace、支持/警告/拒绝矩阵                   | 真实 `.zui` fixture 可解析；未知字段和事件/绑定可证明保留                                   | 原始 document JSON、稳定 node id、imports/tokens/components/styles、unsupported diagnostics | A1                           |
+| A1 Penpot adapter    | 在当前 Penpot 中导入 `.zui` 为可编辑 board，导出为可被 Zircon loader 接受的 `.zui`                  | plugin build/lint/unit tests + 官方当前 Penpot 前端的真实浏览器 import/edit/export round-trip；自托管后端另记环境 gate | 语义层级、文本、几何、布局子集、raw metadata；辅助视觉 shape 不得成为语义节点               | A2-C                         |
+| A2-C engine contract | Zircon loader/compiler 与 retained surface 接受同一 bridge contract，并验证当前引擎已支持的布局子集 | existing `.zui` loader/compiler/surface builder + focused integration test；无第二套 schema | `.zui` source of truth、版本拒绝、diagnostics、节点/slot 约束、unsupported boundary         | A2-P；不单独解锁产品完成声明 |
+| A2-P rendered parity | 在归一化 viewport 中证明 Editor/Runtime 与 Penpot 导出布局一致                                      | A2-C validated + f0..f4 owner gate + Editor 产品 fixture/截图/结构化 frame evidence         | 根坐标归一化、container padding 语义、fallback layout、真实产品接线                         | 后续 M0-M9 产品 UI 实现      |
 
 #### A0/A1 capability matrix
 
-| `.zui` surface | Penpot projection | Export policy | 状态 |
-|---|---|---|---|
-| node id, component, control id, children/slots | board/text shape metadata and hierarchy | preserve exact raw value; shape rename never changes id | lossless |
-| x/y, width/height, padding, gap, direction, wrap, alignment | board geometry and flex layout | apply only changed numeric/layout fields | supported |
-| text/placeholder and text style | text shape characters/font/alignment | export edited text/style; preserve other props | supported |
-| fills, strokes, radius, opacity | Penpot fills/strokes/radius/opacity | export supported paint values; warn on unsupported paint syntax | supported-with-warning |
-| events, bindings, repeat, params, slots, imports, tokens, style scopes | plugin/shared data JSON on asset board and semantic shapes | copy raw JSON unchanged unless an explicit editor maps a field | metadata-preserved |
-| arbitrary plugin/runtime props and unknown tables | no visual projection | retain in raw document; emit diagnostic | preserved-but-not-editable |
-| raster/vector assets, expressions, runtime-only controls | optional placeholder shape | never fabricate executable semantics; export original value | unsupported |
+| `.zui` surface                                                         | Penpot projection                                          | Export policy                                                                                                      | 状态                        |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------- |
+| node id, component, control id, children/slots                         | board/text shape metadata and hierarchy                    | preserve exact raw value; shape rename never changes id                                                            | lossless                    |
+| x/y, width/height, gap, direction, wrap, alignment                     | board geometry and flex layout                             | apply only changed numeric/layout fields；A2 顶层 board 原点按下节归一化                                           | supported                   |
+| container padding                                                      | Penpot auto-layout padding                                 | A1 保留并编辑 `nodes.<id>.layout.padding`；A2-P 必须经 owner 批准的 Runtime 映射消费，当前不得声称 rendered parity | A1-supported / A2-P-blocked |
+| text/placeholder and text style                                        | text shape characters/font/alignment                       | export edited text/style; preserve other props                                                                     | supported                   |
+| fills, strokes, radius, opacity                                        | Penpot fills/strokes/radius/opacity                        | export supported paint values; warn on unsupported paint syntax                                                    | supported-with-warning      |
+| events, bindings, repeat, params, slots, imports, tokens, style scopes | plugin/shared data JSON on asset board and semantic shapes | copy raw JSON unchanged unless an explicit editor maps a field                                                     | metadata-preserved          |
+| arbitrary plugin/runtime props and unknown tables                      | no visual projection                                       | retain in raw document; emit diagnostic                                                                            | preserved-but-not-editable  |
+| raster/vector assets, expressions, runtime-only controls               | optional placeholder shape                                 | never fabricate executable semantics; export original value                                                        | unsupported                 |
 
 The adapter must report diagnostics with severity `info`, `warning`, or `error`. A warning is allowed for a successful export; an error blocks download and leaves the last valid document untouched. No field may be silently dropped.
+
+#### A2 坐标与 padding 收敛规则
+
+1. 顶层 asset board 的 Penpot x/y 是 authoring canvas 坐标，不属于 `.zui` surface 的产品坐标。Parity harness 将根原点归一化为 `(0, 0)`，使用 board 逻辑宽高构造固定 `UiSize`，再比较归一化后的 descendant frame。
+2. 非根 free/canvas child 的 position 仍是运行时语义，必须通过 node layout 或 parent-owned mount 原样进入 retained tree；auto-layout 派生位置不得写回为自由定位。
+3. 当前 Runtime v2 surface 只把 `slot.layout.padding` 映射到 `UiSlot.padding`，不会把 `nodes.<id>.layout.padding` 当作 container content inset。A2-P owner 必须选择一个唯一 canonical contract：对可证明等价的线性容器做确定性 lowering，或在 Runtime UI ABI 中增加原生 content inset；wrap/grid 与动态顺序不得用首尾 child 猜测伪造等价语义。
+4. A2-C focused test 只可证明 load、compile、retained-tree projection 和已支持布局子集；A2-P 还必须提供相同 fixture 的 Penpot geometry snapshot、Runtime structured frame snapshot、Editor 产品截图和 tolerance 报告。结构差异为零后才允许视觉 tolerance，截图本身不能替代 frame evidence。
+5. A2-P 受 `editor_ui/02` surface-tree typed layout contract、`editor_ui/05` v2 asset projection、`zircon_runtime/runtime/09` project runtime UI bridge 及 MVP F0-F4 owner gate 约束；这些 owner 未关闭前状态保持 blocked/design-ready。
 
 ### 1.3 证据目录
 
@@ -175,20 +185,20 @@ Evidence 文件必须记录 changed scope、manifest 路径、实际命令、pro
 
 ## 2. Owner 路由
 
-| 设计主题 | 唯一 owner | 本 companion 可写内容 | 必须回传的证据 |
-|---|---|---|---|
-| token/style/cascade | editor_layout/01、20 | 跨产品语义映射、拒绝项、fixture 需求 | resolver/selector 测试、raw-value 扫描 |
-| region/dock/preset/responsive | editor_layout/02、03、04、15e、16 | 页面区域和状态矩阵 | layout round-trip、断点/DPI 断言 |
-| retained UI/assets/components | editor_ui/04、05、06 | 组件语义、slot/variant 需求 | .zui governance、catalog、component contract |
-| Editor gateway | editor/01 | snapshot/handle/overlay 消费方式 | gateway contract、无深路径旁路 |
-| Selection/scene/gizmo | editor/05 | 选择/视口流程 | SelectionModel、HighlightSet、mode/drag tests |
-| command/transaction/undo | editor/03 | commit boundary、can-execute、undo label | journal/replay tests |
-| Inspector/FieldEditor | editor/06 M2 + editor_ui/06 | 受控 binding、property row、typed command 边界 | binding/command、无直接 world mutation、component contract |
-| assets/project references | editor/09、10 | library/token v1 设计子集 | registry、serialization、rollback tests |
-| async/recovery/diagnostics | editor/14、17 | task/error/status 语义 | cancellation、error injection、recovery trace |
-| Hub action/DTO/persistence | Hub 01、02 | 页面状态和 handshake | Rust contract、generation/race tests |
-| Hub React/MUI | Hub 05、06、07 | 页面组件和视觉 fixture | npm run typecheck、npm run build、截图 |
-| plugin/extension | `editor/06`、`12`；`zircon_runtime/runtime/06`；`zircon_plugins/01`、`10` | slot、permission、failure isolation 需求 | load/unload/migration/failure tests |
+| 设计主题                            | 唯一 owner                                                                                             | 本 companion 可写内容                                              | 必须回传的证据                                                                               |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| token/style/cascade                 | editor_layout/01、20                                                                                   | 跨产品语义映射、拒绝项、fixture 需求                               | resolver/selector 测试、raw-value 扫描                                                       |
+| region/dock/preset/responsive       | editor_layout/02、03、04、15e、16                                                                      | 页面区域和状态矩阵                                                 | layout round-trip、断点/DPI 断言                                                             |
+| retained UI/assets/components       | editor_ui/04、05、06                                                                                   | 组件语义、slot/variant 需求                                        | .zui governance、catalog、component contract                                                 |
+| Editor gateway                      | editor/01                                                                                              | snapshot/handle/overlay 消费方式                                   | gateway contract、无深路径旁路                                                               |
+| Selection/scene/gizmo               | editor/05                                                                                              | 选择/视口流程                                                      | SelectionModel、HighlightSet、mode/drag tests                                                |
+| command/transaction/undo            | editor/03                                                                                              | commit boundary、can-execute、undo label                           | journal/replay tests                                                                         |
+| Inspector/FieldEditor               | editor/06 M2 + editor_ui/06                                                                            | 受控 binding、property row、typed command 边界                     | binding/command、无直接 world mutation、component contract                                   |
+| assets/project references           | editor/09、10                                                                                          | library/token v1 设计子集                                          | registry、serialization、rollback tests                                                      |
+| async/recovery/diagnostics          | editor/14、17                                                                                          | task/error/status 语义                                             | cancellation、error injection、recovery trace                                                |
+| Hub action/DTO/persistence          | Hub 01、02                                                                                             | 页面状态和 handshake                                               | Rust contract、generation/race tests                                                         |
+| Hub React/MUI                       | Hub 05、06、07                                                                                         | 页面组件和视觉 fixture                                             | npm run typecheck、npm run build、截图                                                       |
+| plugin/extension                    | `editor/06`、`12`；`zircon_runtime/runtime/06`；`zircon_plugins/01`、`10`                              | slot、permission、failure isolation 需求                           | load/unload/migration/failure tests                                                          |
 | `.zui` <-> Penpot authoring adapter | `zircon_runtime_interface`（格式 owner）+ `dev/penpot/plugins/apps/zircon-zui-plugin`（adapter owner） | bridge contract、projection/loss policy、import/export diagnostics | parser/serializer semantic round-trip、plugin projection tests、真实 Penpot asset round-trip |
 
 跨越两行以上 owner 的切片，先建立 cross-plan handoff，再进入实现；本文件不能代替 owner 接口裁决。
@@ -244,21 +254,22 @@ manifest 必须记录 Node/npm 版本、依赖安装方式、命令退出码和�
 
 ## 4. 里程碑登记
 
-| 里程碑 | Pre-F5 可做范围 | 产品实现 gate | Owner | Evidence | Manifest | 解锁 |
-|---|---|---|---|---|---|---|
-| A0 | `.zui`/Penpot bridge contract、fixture、capability matrix | design-ready | runtime interface + 本 companion | evidence/a0-zui-penpot-contract.md | manifests/a0-zui-penpot.yaml | A1 |
-| A1 | Penpot plugin import/edit/export adapter | design-ready；真实 adapter evidence | Penpot adapter + runtime interface review | evidence/a1-penpot-roundtrip.md | manifests/a1-penpot-roundtrip.yaml | A2 |
-| A2 | Editor/Runtime 消费同一 `.zui` contract、布局 parity | f0..f4 owner gate；不得绕过 MVP 闸门 | editor/runtime UI owners | evidence/a2-engine-bootstrap-parity.md | manifests/a2-engine-bootstrap.yaml | M0-M3 产品切片 |
-| M0 | 文档/审计 | design-ready | 本计划 + 各 owner | evidence/m0-baseline-and-mapping.md | manifests/m0-static.yaml | M1/M2 契约 |
-| M1 | token/schema/fixture/lint 规则 | f5-accepted（组件产品化） | layout/01/20、UI/04/05/06、Hub theme | evidence/m1-token-component-contract.md | manifests/m1-token-components.yaml | M2/M3 |
-| M2 | 直接支撑 F0/F1 的 shell/入口 | F0/F1 对应 gate | layout/02/03/04/07/19、UI/08、Hub/05 | evidence/m2-shell-contract.md | manifests/m2-shell.yaml | M3/M6-PRE |
-| M3 | 直接支撑 F2-F4 的 viewport/Inspector contract | F2/F3/F4 分别 accepted，F5 独占 wave | editor/01/03/05/06、UI/06/08 | evidence/m3-viewport-inspector-contract.md | manifests/m3-mvp-viewport.yaml | F5 input |
-| M4 | schema/fixture/拒绝项 | f5-accepted | editor/09/10、UI/04/05/06 | evidence/m4-assets-library-tokens.md | manifests/m4-assets-library.yaml | M5/M7 |
-| M5 | disabled collaboration fixture、错误 schema | f5-accepted | editor/14/17、Hub/02/07 | evidence/m5-feedback-task-recovery.md | manifests/m5-feedback-tasks.yaml | M8 |
-| M6 | F0/F1 入口与握手 | M6-FULL=f5-accepted | Hub/01/02/05/06/07 | evidence/m6-hub-entry-contract.md、m6-hub-product-surface.md | manifests/m6-hub.yaml | M7/M8 |
-| M7 | slot/permission schema | f5-accepted | editor/06/12、layout/04、runtime/06、plugins/01/10 | evidence/m7-domain-extension.md | manifests/m7-domain-extension.yaml | M8 |
-| M8 | 静态 lint | f5-accepted + 产品 evidence | 本计划 + Windows validation lane | evidence/m8-quality-performance-a11y.md | manifests/m8-quality.yaml | M9 |
-| M9 | 无 | M8 accepted + F0-F5 accepted | 发布/维护 owner | evidence/m9-release-checklist.md | manifests/m9-release.yaml | 后续维护 |
+| 里程碑 | Pre-F5 可做范围                                            | 产品实现 gate                                                           | Owner                                              | Evidence                                                     | Manifest                           | 解锁                |
+| ------ | ---------------------------------------------------------- | ----------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------- | ------------------- |
+| A0     | `.zui`/Penpot bridge contract、fixture、capability matrix  | design-ready                                                            | runtime interface + 本 companion                   | evidence/a0-zui-penpot-contract.md                           | manifests/a0-zui-penpot.yaml       | A1                  |
+| A1     | Penpot plugin import/edit/export adapter                   | design-ready；真实 adapter evidence                                     | Penpot adapter + runtime interface review          | evidence/a1-penpot-roundtrip.md                              | manifests/a1-penpot-roundtrip.yaml | A2-C                |
+| A2-C   | loader/compiler/retained surface 消费同一 `.zui` contract  | design-ready；只验当前支持子集                                          | runtime UI owner + 本 companion                    | evidence/a2-engine-bootstrap-parity.md                       | manifests/a2-engine-bootstrap.yaml | A2-P contract input |
+| A2-P   | 归一化 viewport 下的 Editor/Runtime rendered layout parity | f0..f4 owner gate；container padding contract 已关闭；不得绕过 MVP 闸门 | editor/runtime UI owners                           | evidence/a2-engine-bootstrap-parity.md                       | manifests/a2-engine-bootstrap.yaml | M0-M3 产品切片      |
+| M0     | 文档/审计                                                  | design-ready                                                            | 本计划 + 各 owner                                  | evidence/m0-baseline-and-mapping.md                          | manifests/m0-static.yaml           | M1/M2 契约          |
+| M1     | token/schema/fixture/lint 规则                             | f5-accepted（组件产品化）                                               | layout/01/20、UI/04/05/06、Hub theme               | evidence/m1-token-component-contract.md                      | manifests/m1-token-components.yaml | M2/M3               |
+| M2     | 直接支撑 F0/F1 的 shell/入口                               | F0/F1 对应 gate                                                         | layout/02/03/04/07/19、UI/08、Hub/05               | evidence/m2-shell-contract.md                                | manifests/m2-shell.yaml            | M3/M6-PRE           |
+| M3     | 直接支撑 F2-F4 的 viewport/Inspector contract              | F2/F3/F4 分别 accepted，F5 独占 wave                                    | editor/01/03/05/06、UI/06/08                       | evidence/m3-viewport-inspector-contract.md                   | manifests/m3-mvp-viewport.yaml     | F5 input            |
+| M4     | schema/fixture/拒绝项                                      | f5-accepted                                                             | editor/09/10、UI/04/05/06                          | evidence/m4-assets-library-tokens.md                         | manifests/m4-assets-library.yaml   | M5/M7               |
+| M5     | disabled collaboration fixture、错误 schema                | f5-accepted                                                             | editor/14/17、Hub/02/07                            | evidence/m5-feedback-task-recovery.md                        | manifests/m5-feedback-tasks.yaml   | M8                  |
+| M6     | F0/F1 入口与握手                                           | M6-FULL=f5-accepted                                                     | Hub/01/02/05/06/07                                 | evidence/m6-hub-entry-contract.md、m6-hub-product-surface.md | manifests/m6-hub.yaml              | M7/M8               |
+| M7     | slot/permission schema                                     | f5-accepted                                                             | editor/06/12、layout/04、runtime/06、plugins/01/10 | evidence/m7-domain-extension.md                              | manifests/m7-domain-extension.yaml | M8                  |
+| M8     | 静态 lint                                                  | f5-accepted + 产品 evidence                                             | 本计划 + Windows validation lane                   | evidence/m8-quality-performance-a11y.md                      | manifests/m8-quality.yaml          | M9                  |
+| M9     | 无                                                         | M8 accepted + F0-F5 accepted                                            | 发布/维护 owner                                    | evidence/m9-release-checklist.md                             | manifests/m9-release.yaml          | 后续维护            |
 
 ## 5. 性能预算与判定
 
@@ -268,44 +279,44 @@ manifest 必须记录 Node/npm 版本、依赖安装方式、命令退出码和�
 
 正式 fixture 使用 schema v2 和 deterministic seed `0x5A495243`，禁止远程 I/O、随机网络等待和未固定的用户目录内容。manifest 必须写入 `fixture_id`、`fixture_schema_version: 2`、`generator_id: zircon.ui-profile-scale-fixture`、`generator_version: 2`、seed、输入计数、语义摘要与内容 digest；仅名称相同而 digest 或语义摘要不同的 fixture 不可比较。当前生成器的 `schema_version: 1` 只可用于 5.4 preflight，不能进入 frozen baseline。Editor 正式性能基线还必须绑定 `client=1440x900 physical px`、`window_dpi=96`、`effective_scale_factor=1.0`、`theme_id=dark`、`density_id=compact`；这些环境字段由 5.5 的 `capture_environment.json` 证明，不能从截图文件名推断。
 
-| Fixture ID | 固定内容 | 主要场景 | Owner / 产出 |
-|---|---|---|---|
-| ZR-UI-SHELL-v2 | `RenderableEmpty` 启动；单场景含 camera、cube、light；Authoring preset；环境绑定见本节首段 | startup、viewport_image、idle_hover、click、drawer_resize、window_resize | editor_layout/02/03/04/07/19；M2 fixture |
-| ZR-UI-HIER-10K-v2 | ZR-UI-SHELL-v2 + 10,000 个稳定层级 ID；4 叉 breadth-first tree，depth 0..7；固定查询 `Node 009` 有 1,000 个 direct match | hierarchy_scroll、hierarchy_filter、layout recompute | editor/05 + editor_ui/08；M3 fixture |
-| ZR-UI-VIEWPORT-1K-v2 | ZR-UI-SHELL-v2 + 1,000 个可选静态节点；固定 camera、grid 与 spatial-probe pointer path | viewport_pointer、viewport_toolbar_click、dirty extraction | editor/01/03/05 + editor_ui/08；M3 fixture |
-| ZR-UI-ASSET-10K-v2 | 10,000 条本地 registry/catalog DTO；固定类型、relative-path 长度和 thumbnail 状态分布，详见 5.5 | asset_refresh、asset_browser_scroll、thumbnail first result | editor/09/10 + editor_ui/05；M4 fixture |
-| ZR-HUB-PROJECT-1K-v1 | 1,000 个本地 project DTO、10,000 条 catalog row、100 条 task row；Projects/Catalog/Builds 路由 | action update、filter、route switch、first usable shell | Hub/05/06；M6 fixture 与 Web harness |
-| ZR-TASK-1K-v1 | 100 个排队任务、1 个运行任务、1,000 个固定间隔 progress snapshot；包含 blocked/error terminal state | progress heartbeat、generation monotonicity、recovery | Hub/02/07；M5/M6 fixture |
+| Fixture ID           | 固定内容                                                                                                                 | 主要场景                                                                 | Owner / 产出                               |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ | ------------------------------------------ |
+| ZR-UI-SHELL-v2       | `RenderableEmpty` 启动；单场景含 camera、cube、light；Authoring preset；环境绑定见本节首段                               | startup、viewport_image、idle_hover、click、drawer_resize、window_resize | editor_layout/02/03/04/07/19；M2 fixture   |
+| ZR-UI-HIER-10K-v2    | ZR-UI-SHELL-v2 + 10,000 个稳定层级 ID；4 叉 breadth-first tree，depth 0..7；固定查询 `Node 009` 有 1,000 个 direct match | hierarchy_scroll、hierarchy_filter、layout recompute                     | editor/05 + editor_ui/08；M3 fixture       |
+| ZR-UI-VIEWPORT-1K-v2 | ZR-UI-SHELL-v2 + 1,000 个可选静态节点；固定 camera、grid 与 spatial-probe pointer path                                   | viewport_pointer、viewport_toolbar_click、dirty extraction               | editor/01/03/05 + editor_ui/08；M3 fixture |
+| ZR-UI-ASSET-10K-v2   | 10,000 条本地 registry/catalog DTO；固定类型、relative-path 长度和 thumbnail 状态分布，详见 5.5                          | asset_refresh、asset_browser_scroll、thumbnail first result              | editor/09/10 + editor_ui/05；M4 fixture    |
+| ZR-HUB-PROJECT-1K-v1 | 1,000 个本地 project DTO、10,000 条 catalog row、100 条 task row；Projects/Catalog/Builds 路由                           | action update、filter、route switch、first usable shell                  | Hub/05/06；M6 fixture 与 Web harness       |
+| ZR-TASK-1K-v1        | 100 个排队任务、1 个运行任务、1,000 个固定间隔 progress snapshot；包含 blocked/error terminal state                      | progress heartbeat、generation monotonicity、recovery                    | Hub/02/07；M5/M6 fixture                   |
 
 ### 5.2 采样契约
 
 Editor capture 通过 `ui-profile-capture.ps1` 自动调用 `performance-machine-manifest.ps1` 并导出 `machine_manifest.json`；Hub harness 必须复用同一 manifest 生成函数。当前机器清单只证明 CPU/GPU/内存、OS/build、显示分辨率/刷新率、电源模式和后台负载，不包含 window DPI、effective scale、theme 或 density；后四项必须来自 5.5 的窗口/产品 artifact。机器或环境绑定变化后禁止与旧 baseline 直接比较。
 
-| Sample set | 进程与 workload | 每 run 最低有效样本 | Run-set 有效条件 |
-|---|---|---:|---|
-| Editor frame / dirty extraction | 5 个 fresh process；60 个 presented-frame warmup 后进入 measurement；`viewport_image`/viewport fixture | 300 个 measured presented frame | 合并 >= 1,500；5/5 run 成功；full-tree visit=0 |
-| Editor input-to-visible | 5 个 fresh process；每 run 发送 300 个 source-bound pointer/click/wheel event | requested=completed=300；>=100 个 correlation-to-present sample | 合并 >=500 latency sample；最终 input sequence 可见；critical edge dropped=0 |
-| Editor layout recompute | 5 个 fresh process；每 run 300 个 hierarchy wheel event | >=60 个 dirty-to-arrange span | 合并 >=300 span；visited/dirty node counter 齐全 |
-| Asset thumbnail first result | 30 个 fresh process；每 run 使用独立且启动前为空的 cache partition，并执行一次 asset refresh/request | 1 个 cold request-to-result sample | 30/30 成功；30 个 partition ID/path hash 唯一且 fresh/empty 证据齐全；ready 与 error placeholder 分栏 |
-| Editor cold startup | 10 个 fresh process；不做进程内 warmup | 1 个 navigation/process-start-to-first-usable sample | 10/10 成功，compile/fixture load 分栏 |
-| Hub action update | 5 个 fresh process；production Web + release Tauri；每 run 300 个 typed action | 300 个 action-to-React-commit correlation | 合并 1,500；generation 单调且 missing=0 |
-| Hub first usable shell | 10 个 release Tauri fresh process；不做 warmup | 1 个 navigation-start-to-usable sample | 10/10 成功 |
-| Long task heartbeat | 5 个 run；每 run 1,000 个 running progress snapshot | 999 个相邻 interval | blocked/error 另表；running missing=0 |
+| Sample set                      | 进程与 workload                                                                                        |                                             每 run 最低有效样本 | Run-set 有效条件                                                                                      |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------: | ----------------------------------------------------------------------------------------------------- |
+| Editor frame / dirty extraction | 5 个 fresh process；60 个 presented-frame warmup 后进入 measurement；`viewport_image`/viewport fixture |                                 300 个 measured presented frame | 合并 >= 1,500；5/5 run 成功；full-tree visit=0                                                        |
+| Editor input-to-visible         | 5 个 fresh process；每 run 发送 300 个 source-bound pointer/click/wheel event                          | requested=completed=300；>=100 个 correlation-to-present sample | 合并 >=500 latency sample；最终 input sequence 可见；critical edge dropped=0                          |
+| Editor layout recompute         | 5 个 fresh process；每 run 300 个 hierarchy wheel event                                                |                                   >=60 个 dirty-to-arrange span | 合并 >=300 span；visited/dirty node counter 齐全                                                      |
+| Asset thumbnail first result    | 30 个 fresh process；每 run 使用独立且启动前为空的 cache partition，并执行一次 asset refresh/request   |                              1 个 cold request-to-result sample | 30/30 成功；30 个 partition ID/path hash 唯一且 fresh/empty 证据齐全；ready 与 error placeholder 分栏 |
+| Editor cold startup             | 10 个 fresh process；不做进程内 warmup                                                                 |            1 个 navigation/process-start-to-first-usable sample | 10/10 成功，compile/fixture load 分栏                                                                 |
+| Hub action update               | 5 个 fresh process；production Web + release Tauri；每 run 300 个 typed action                         |                       300 个 action-to-React-commit correlation | 合并 1,500；generation 单调且 missing=0                                                               |
+| Hub first usable shell          | 10 个 release Tauri fresh process；不做 warmup                                                         |                          1 个 navigation-start-to-usable sample | 10/10 成功                                                                                            |
+| Long task heartbeat             | 5 个 run；每 run 1,000 个 running progress snapshot                                                    |                                             999 个相邻 interval | blocked/error 另表；running missing=0                                                                 |
 
 `p50`、`p95` 使用 nearest-rank；同时报告每个 run 和合并样本的 p50/p95/max、valid/missing/dropped sample 数。计时统一使用 monotonic clock。warmup、fixture load、shader/pipeline compile 和 measurement window 必须分栏；不得把 warmup 样本混入 steady-state，也不得删除慢样本。崩溃、timeout、环境不匹配或缺失 generation 计为 failed run。对比只能发生在相同 fixture digest、client/DPI/scale/theme/density、build profile、机器清单、scenario binding 和 `cache_partition_policy` 上；asset cold-run 的实际 partition ID/path 必须逐 run 不同，不能因不同而判为环境不一致。替代环境只能作为独立观察组，不能冒充正式 baseline。
 
 ### 5.3 指标边界与采集 owner
 
-| 指标 | 起点 -> 终点 | Fixture / harness | 归属与阻塞规则 |
-|---|---|---|---|
-| Editor shell/layout frame | 相邻两个成功 presented generation 的 monotonic timestamp 差；warmup 后开始 | ZR-UI-SHELL-v2；`ui-profile-capture.ps1` viewport_image/drawer_resize/window_resize | performance plan + editor_layout；缺 presented marker 则 M8 blocked |
-| Editor input-to-visible feedback | 已进入 Editor input dispatcher 的 pointer/key event -> 首个包含对应 command correlation 的 presented generation | ZR-UI-SHELL-v2 / ZR-UI-VIEWPORT-1K-v2；click/viewport_pointer | editor/03 + editor_ui/08；不能以 handler return 代替 visible feedback |
-| layout recompute | dirty layout request 被接受 -> 同一 generation arrange 结果发布 | ZR-UI-HIER-10K-v2；hierarchy_scroll/hierarchy_filter | editor_layout/03/04；必须同时记录 dirty/visited node 数 |
-| viewport dirty extraction | 冻结 dirty set -> 对应 render batch generation 发布 | ZR-UI-VIEWPORT-1K-v2；viewport_pointer + render-extract scenario | editor/01/05 + runtime_interface；每帧 full-tree visit 非零即失败 |
-| asset thumbnail first result | thumbnail request accepted -> 同一 asset generation 的 ready/error placeholder 可见 | ZR-UI-ASSET-10K-v2；asset_refresh | editor/09/10 + editor_ui/05；缓存命中与冷缓存分栏 |
-| Hub action state update | `dispatchHubAction` 接受 action/correlation -> React commit 包含对应 `stateGeneration` | ZR-HUB-PROJECT-1K-v1；Hub/06 Web performance harness | Hub/01/05/06；handler promise 完成不等于可见完成 |
-| Hub first usable shell | navigation start -> project list 和主 action 可交互且已绑定最新 generation | ZR-HUB-PROJECT-1K-v1；release Tauri + production Web cold-run harness | Hub/05/06；缺真实 shell 证据则保持 deferred |
-| Long task heartbeat | 相邻两个 running progress snapshot 的 publication timestamp 差 | ZR-TASK-1K-v1；Hub/02 task harness | Hub/02/07；blocked 状态单独统计，不混入 running heartbeat |
+| 指标                             | 起点 -> 终点                                                                                                    | Fixture / harness                                                                   | 归属与阻塞规则                                                        |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Editor shell/layout frame        | 相邻两个成功 presented generation 的 monotonic timestamp 差；warmup 后开始                                      | ZR-UI-SHELL-v2；`ui-profile-capture.ps1` viewport_image/drawer_resize/window_resize | performance plan + editor_layout；缺 presented marker 则 M8 blocked   |
+| Editor input-to-visible feedback | 已进入 Editor input dispatcher 的 pointer/key event -> 首个包含对应 command correlation 的 presented generation | ZR-UI-SHELL-v2 / ZR-UI-VIEWPORT-1K-v2；click/viewport_pointer                       | editor/03 + editor_ui/08；不能以 handler return 代替 visible feedback |
+| layout recompute                 | dirty layout request 被接受 -> 同一 generation arrange 结果发布                                                 | ZR-UI-HIER-10K-v2；hierarchy_scroll/hierarchy_filter                                | editor_layout/03/04；必须同时记录 dirty/visited node 数               |
+| viewport dirty extraction        | 冻结 dirty set -> 对应 render batch generation 发布                                                             | ZR-UI-VIEWPORT-1K-v2；viewport_pointer + render-extract scenario                    | editor/01/05 + runtime_interface；每帧 full-tree visit 非零即失败     |
+| asset thumbnail first result     | thumbnail request accepted -> 同一 asset generation 的 ready/error placeholder 可见                             | ZR-UI-ASSET-10K-v2；asset_refresh                                                   | editor/09/10 + editor_ui/05；缓存命中与冷缓存分栏                     |
+| Hub action state update          | `dispatchHubAction` 接受 action/correlation -> React commit 包含对应 `stateGeneration`                          | ZR-HUB-PROJECT-1K-v1；Hub/06 Web performance harness                                | Hub/01/05/06；handler promise 完成不等于可见完成                      |
+| Hub first usable shell           | navigation start -> project list 和主 action 可交互且已绑定最新 generation                                      | ZR-HUB-PROJECT-1K-v1；release Tauri + production Web cold-run harness               | Hub/05/06；缺真实 shell 证据则保持 deferred                           |
+| Long task heartbeat              | 相邻两个 running progress snapshot 的 publication timestamp 差                                                  | ZR-TASK-1K-v1；Hub/02 task harness                                                  | Hub/02/07；blocked 状态单独统计，不混入 running heartbeat             |
 
 缺少 marker、correlation/generation、fixture generator、环境绑定或 run-set harness 本身就是相应 owner 的 M8 阻塞项，不能改用人工秒表、浏览器肉眼或空页面数据替代。
 
@@ -320,19 +331,19 @@ Editor 统一从协调器登记的 profiling product directory 采集。下面�
     $env:ZIRCON_PROFILE_INITIAL_CLIENT_WIDTH = '1440'
     $env:ZIRCON_PROFILE_INITIAL_CLIENT_HEIGHT = '900'
 
-    .\tools\ui-profile-capture.ps1 -Scenario startup -OutputRoot E:\zircon-profiles\designment-m8-startup -ProductDirectory $productDirectory -SkipBuild -RequireScenarioEvidence -AutoCloseSeconds 10 -WithinProcessWarmupPresentCount 0 -MeasuredRunCount 10 -MaxFrames 2048
+    .\tools\analysis\profiling\ui\ui-profile-capture.ps1 -Scenario startup -OutputRoot E:\zircon-profiles\designment-m8-startup -ProductDirectory $productDirectory -SkipBuild -RequireScenarioEvidence -AutoCloseSeconds 10 -WithinProcessWarmupPresentCount 0 -MeasuredRunCount 10 -MaxFrames 2048
 
-    .\tools\ui-profile-capture.ps1 -Scenario viewport_image -OutputRoot E:\zircon-profiles\designment-m8-frame -ProductDirectory $productDirectory -SkipBuild -AutoInteract -RequireScenarioEvidence -AutoCloseSeconds 30 -WithinProcessWarmupPresentCount 60 -MeasuredRunCount 5 -MaxFrames 4096
+    .\tools\analysis\profiling\ui\ui-profile-capture.ps1 -Scenario viewport_image -OutputRoot E:\zircon-profiles\designment-m8-frame -ProductDirectory $productDirectory -SkipBuild -AutoInteract -RequireScenarioEvidence -AutoCloseSeconds 30 -WithinProcessWarmupPresentCount 60 -MeasuredRunCount 5 -MaxFrames 4096
 
-    .\tools\ui-profile-capture.ps1 -Scenario idle_hover -OutputRoot E:\zircon-profiles\designment-m8-input -ProductDirectory $productDirectory -SkipBuild -AutoInteract -RequireScenarioEvidence -AutoPointerMoveCount 300 -AutoCloseSeconds 30 -WithinProcessWarmupPresentCount 60 -MeasuredRunCount 5 -MaxFrames 4096
+    .\tools\analysis\profiling\ui\ui-profile-capture.ps1 -Scenario idle_hover -OutputRoot E:\zircon-profiles\designment-m8-input -ProductDirectory $productDirectory -SkipBuild -AutoInteract -RequireScenarioEvidence -AutoPointerMoveCount 300 -AutoCloseSeconds 30 -WithinProcessWarmupPresentCount 60 -MeasuredRunCount 5 -MaxFrames 4096
 
-    .\tools\ui-profile-capture.ps1 -Scenario hierarchy_scroll -OutputRoot E:\zircon-profiles\designment-m8-layout -ProductDirectory $productDirectory -SkipBuild -AutoInteract -RequireScenarioEvidence -HierarchyLogicalNodeCount 10000 -AutoWheelCount 300 -AutoCloseSeconds 30 -WithinProcessWarmupPresentCount 60 -MeasuredRunCount 5 -MaxFrames 4096
+    .\tools\analysis\profiling\ui\ui-profile-capture.ps1 -Scenario hierarchy_scroll -OutputRoot E:\zircon-profiles\designment-m8-layout -ProductDirectory $productDirectory -SkipBuild -AutoInteract -RequireScenarioEvidence -HierarchyLogicalNodeCount 10000 -AutoWheelCount 300 -AutoCloseSeconds 30 -WithinProcessWarmupPresentCount 60 -MeasuredRunCount 5 -MaxFrames 4096
 
-    .\tools\ui-profile-capture.ps1 -Scenario viewport_pointer -OutputRoot E:\zircon-profiles\designment-m8-viewport -ProductDirectory $productDirectory -SkipBuild -AutoInteract -RequireScenarioEvidence -ViewportSelectableNodeCount 1000 -AutoPointerMoveCount 300 -AutoCloseSeconds 30 -WithinProcessWarmupPresentCount 60 -MeasuredRunCount 5 -MaxFrames 4096
+    .\tools\analysis\profiling\ui\ui-profile-capture.ps1 -Scenario viewport_pointer -OutputRoot E:\zircon-profiles\designment-m8-viewport -ProductDirectory $productDirectory -SkipBuild -AutoInteract -RequireScenarioEvidence -ViewportSelectableNodeCount 1000 -AutoPointerMoveCount 300 -AutoCloseSeconds 30 -WithinProcessWarmupPresentCount 60 -MeasuredRunCount 5 -MaxFrames 4096
 
     1..3 | ForEach-Object {
         $assetRoot = "E:\zircon-profiles\designment-m8-asset-$($_)"
-        .\tools\ui-profile-capture.ps1 -Scenario asset_refresh -OutputRoot $assetRoot -ProductDirectory $productDirectory -SkipBuild -AutoInteract -RequireScenarioEvidence -AssetCatalogItemCount 10000 -AutoCloseSeconds 30 -WithinProcessWarmupPresentCount 60 -MeasuredRunCount 10 -MaxFrames 4096
+        .\tools\analysis\profiling\ui\ui-profile-capture.ps1 -Scenario asset_refresh -OutputRoot $assetRoot -ProductDirectory $productDirectory -SkipBuild -AutoInteract -RequireScenarioEvidence -AssetCatalogItemCount 10000 -AutoCloseSeconds 30 -WithinProcessWarmupPresentCount 60 -MeasuredRunCount 10 -MaxFrames 4096
     }
 
 `asset_refresh` 当前每个进程只触发一次 source-bound 文件变更，因此用 3 x 10 fresh process 形成 30 个 cold sample；不能把 5 个进程里的 frame 数误当作 1,500 个 thumbnail latency sample。
@@ -384,30 +395,30 @@ Hub/06 必须在产品测量前提供 `zircon_hub/web/tests/ui_performance_contr
 
 ### 5.6 冻结后的候选阈值
 
-| 指标 | 目标 | P1 预警 | P0 失败 |
-|---|---:|---:|---:|
-| Editor shell/layout steady-state frame | p95 <= 16.7 ms（60 FPS） | > 16.7 ms 且 <= 33.3 ms | p95 > 33.3 ms 或连续掉帧影响输入 |
-| Editor input-to-visible feedback | p95 <= 50 ms | > 50 ms 且 <= 100 ms | > 100 ms 或丢失 pointer/key event |
-| 单次 layout recompute（标准 fixture） | p95 <= 4 ms | > 4 ms 且 <= 8 ms | > 8 ms 或全树重算造成卡顿 |
-| viewport dirty extraction（无结构变化） | p95 <= 2 ms，零全树遍历 | > 2 ms | 每帧全树扫描或 p95 > 5 ms |
-| asset thumbnail first result（本地 fixture） | p95 <= 250 ms | > 250 ms 且 <= 500 ms | > 500 ms 或阻塞输入 |
-| Hub action state update | p95 <= 100 ms | > 100 ms 且 <= 250 ms | > 250 ms 或 generation 倒退 |
-| Hub first usable shell | p95 <= 1500 ms（冷启动 fixture） | > 1500 ms 且 <= 2500 ms | > 2500 ms 或无错误反馈 |
-| Long task progress heartbeat | <= 500 ms 间隔 | 500-1000 ms | > 1000 ms 且无明确 blocked 状态 |
+| 指标                                         |                             目标 |                 P1 预警 |                           P0 失败 |
+| -------------------------------------------- | -------------------------------: | ----------------------: | --------------------------------: |
+| Editor shell/layout steady-state frame       |         p95 <= 16.7 ms（60 FPS） | > 16.7 ms 且 <= 33.3 ms |  p95 > 33.3 ms 或连续掉帧影响输入 |
+| Editor input-to-visible feedback             |                     p95 <= 50 ms |    > 50 ms 且 <= 100 ms | > 100 ms 或丢失 pointer/key event |
+| 单次 layout recompute（标准 fixture）        |                      p95 <= 4 ms |       > 4 ms 且 <= 8 ms |         > 8 ms 或全树重算造成卡顿 |
+| viewport dirty extraction（无结构变化）      |          p95 <= 2 ms，零全树遍历 |                  > 2 ms |         每帧全树扫描或 p95 > 5 ms |
+| asset thumbnail first result（本地 fixture） |                    p95 <= 250 ms |   > 250 ms 且 <= 500 ms |               > 500 ms 或阻塞输入 |
+| Hub action state update                      |                    p95 <= 100 ms |   > 100 ms 且 <= 250 ms |       > 250 ms 或 generation 倒退 |
+| Hub first usable shell                       | p95 <= 1500 ms（冷启动 fixture） | > 1500 ms 且 <= 2500 ms |            > 2500 ms 或无错误反馈 |
+| Long task progress heartbeat                 |                   <= 500 ms 间隔 |             500-1000 ms |   > 1000 ms 且无明确 blocked 状态 |
 
 预算不适用于尚未完成的功能，不能用空页面测出“通过”。M0 冻结值若与候选值不同，以带 owner 审核和 machine/source fingerprint 的 M0 evidence 为准；M8 报告必须同时保留 candidate、frozen baseline 和 measured 三列，避免基线漂移。
 
 ## 6. 视觉和交互证据矩阵
 
-| 维度 | 值 |
-|---|---|
-| Editor viewport | 1280x720、1440x900、1920x1080、1024x768、900x700 |
-| Hub viewport | 1280x720、1440x900、1024x768、768x1024 |
-| DPI | 100%、125%、150%、200%（Editor）；browser device scale 记录（Hub） |
-| Theme/density | Editor dark comfortable/compact；Hub 当前主题；后置 high-contrast/light fixture |
-| Content | short、中文/英文长文本、数字/单位、缺失 asset、空 page/board |
-| State | loading、empty、error、disabled、read-only、pending、saving、saved、conflict、offline |
-| Input | mouse、keyboard-only、focus-visible、IME/numeric、reduced-motion |
+| 维度            | 值                                                                                    |
+| --------------- | ------------------------------------------------------------------------------------- |
+| Editor viewport | 1280x720、1440x900、1920x1080、1024x768、900x700                                      |
+| Hub viewport    | 1280x720、1440x900、1024x768、768x1024                                                |
+| DPI             | 100%、125%、150%、200%（Editor）；browser device scale 记录（Hub）                    |
+| Theme/density   | Editor dark comfortable/compact；Hub 当前主题；后置 high-contrast/light fixture       |
+| Content         | short、中文/英文长文本、数字/单位、缺失 asset、空 page/board                          |
+| State           | loading、empty、error、disabled、read-only、pending、saving、saved、conflict、offline |
+| Input           | mouse、keyboard-only、focus-visible、IME/numeric、reduced-motion                      |
 
 截图命名格式：<milestone>_<product>_<surface>_<viewport>_<dpi>_<theme>_<density>_<state>_<fixture>_<generation>.<ext>。交互 trace 至少记录入口、焦点起点、键盘/指针序列、command/action id、预期状态、实际状态和 correlation/generation。
 
@@ -433,20 +444,8 @@ Hub/06 必须在产品测量前提供 `zircon_hub/web/tests/ui_performance_contr
 
 ## 9. 状态与产出记录
 
-| 里程碑 | 范围 | 状态 | 完成日期 | 证据 |
-|---|---|---|---|---|
-| A0 | `.zui`/Penpot bridge contract | validated | 2026-08-31 | [a0-zui-penpot-contract.md](./evidence/a0-zui-penpot-contract.md) |
-| A1 | Penpot import/edit/export adapter | external-check-deferred |  | [a1-penpot-roundtrip.md](./evidence/a1-penpot-roundtrip.md) |
-| A2 | Engine bootstrap/layout parity | in_progress |  | [a2-engine-bootstrap-parity.md](./evidence/a2-engine-bootstrap-parity.md) |
-| M0 | 基线与模式映射 |  |  |  |
-| M1 | token/component contract |  |  |  |
-| M2 | shell/入口 contract |  |  |  |
-| M3 | viewport/Inspector MVP contract |  |  |  |
-| M4 | assets/library/tokens |  |  |  |
-| M5 | feedback/tasks/recovery |  |  |  |
-| M6 | Hub entry/product surface |  |  |  |
-| M7 | domain/extension |  |  |  |
-| M8 | quality/performance/a11y |  |  |  |
-| M9 | release/maintenance |  |  |  |
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
-> A0-A2 已进入执行阶段，因此记录当前证据和未闭合检查；M0-M9 仍保持规划态。此表不代替原 owner 计划的完成记录。
+A0 已验证；A1 已通过 Penpot 官方 `plugins-runtime` SES host contract 和当前官方 Penpot 前端的真实浏览器 canvas contract，覆盖 import -> layer selection -> text edit -> Inspector radius edit -> export，并验证 event、`zircon_extension`、`runtime_only` 保留；浏览器后端由仓库 fixture/mock 隔离，不写远端数据，本地自托管部署/认证/持久化仍列为 deferred environment check。A2-C 已接入真实 project Runtime surface 的 render/accessibility/input/action 源码路径和 focused regression，但托管 Rust 验证被既有 [Text04 retained raster hard-cut failure](../zircon_runtime/text/04/failure-2026-08-31-retained-swash-native-scale-bypasses-physical-raster.md) 的 `Cargo.toml`/`Cargo.lock` 不一致阻断，仍不得标记 validated；A2-P 受 MVP、Runtime container padding contract 与 Editor 产品接线阻塞。M0-M9 仍为规划态，且本 companion 状态不代替原 owner 计划的完成记录。
+
+- [2026-09-01 bootstrap 与里程碑状态](./02/2026-09-01-bootstrap-and-milestone-status.md)

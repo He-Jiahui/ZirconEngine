@@ -22,8 +22,6 @@ related_code:
   - zircon_runtime/src/asset/assets/scene
   - zircon_runtime/src/asset/assets/project_document
   - zircon_runtime/src/core/framework/scene
-  - zircon_runtime/src/core/resource/io/atomic_file
-  - zircon_runtime/src/core/resource/io/transaction
   - zircon_runtime/src/dynamic_api/session/project.rs
   - zircon_editor/src/core/editing/authoring_world.rs
   - zircon_editor/src/core/play/snapshot

@@ -1,6 +1,7 @@
 use super::super::assert_contains_all;
 use super::{read_repo, read_runtime_src, DEAD_CODE_ALLOW_ATTRIBUTE};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0006] 纹理资源归属清理的旧计划回执未匹配；需核对当前纹理句柄持有与释放链，并补齐该历史阶段的归档说明或更新断言。
 #[test]
 fn runtime_15_gpu_texture_resource_owner_cleanup() {
     let gpu_texture =
@@ -53,6 +54,7 @@ fn runtime_15_gpu_texture_resource_owner_cleanup() {
     }
 }
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0003] 材质统一数据归属清理的历史计划回执缺失；当前缺少该阶段与现行资源持有者的对应证据，需沿材质上传和缓存生命周期重新登记验收归属。
 #[test]
 fn runtime_15_gpu_material_uniform_owner_cleanup() {
     let gpu_material_uniform = read_runtime_src(
@@ -62,7 +64,7 @@ fn runtime_15_gpu_material_uniform_owner_cleanup() {
         "graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs",
     );
     let resource_streamer_material_diagnostics = read_runtime_src(
-        "graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_diagnostics.rs",
+        "graphics/scene/resources/resource_streamer/resource_streamer_accessors/tests/material_diagnostics.rs",
     );
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
@@ -125,6 +127,7 @@ fn runtime_15_gpu_material_uniform_owner_cleanup() {
     }
 }
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0004] 网格上传仍要求排序签名覆盖顶点颜色和索引，但当前仅复现这两个输入的文本锚点缺失；需检查现行签名数据流及顺序缓存失效覆盖，再修订断言。
 #[test]
 fn runtime_15_gpu_mesh_order_signature_cleanup() {
     let gpu_mesh = read_runtime_src("graphics/scene/resources/gpu_mesh/gpu_mesh_resource.rs");
@@ -202,6 +205,7 @@ fn runtime_15_gpu_mesh_order_signature_cleanup() {
     }
 }
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0005] 模型上传中优先使用网格资源的旧聚合表达式未匹配；尚未证明资源身份丢失，需追踪现行模型图元装配与资源键消费后调整守卫。
 #[test]
 fn runtime_15_gpu_model_identity_cleanup() {
     let gpu_model = read_runtime_src("graphics/scene/resources/gpu_model/gpu_model_resource.rs");
@@ -273,6 +277,7 @@ fn runtime_15_gpu_model_identity_cleanup() {
     }
 }
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0008] 后处理查找表纹理归属的旧计划回执缺失；需对照查找表上传、效果输入和资源保留责任，补充现行验收证据后修订归档期待。
 #[test]
 fn runtime_15_post_process_lut_texture_owner_cleanup() {
     let lut_texture = read_runtime_src(
@@ -334,6 +339,7 @@ fn runtime_15_post_process_lut_texture_owner_cleanup() {
     }
 }
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0007] 输出目标回写仍期待经准备资源访问器复制纹理的旧写法；尚缺现行访问链与存活期证据，需沿回写导出路径检查资源持有再更新断言。
 #[test]
 fn runtime_15_output_target_texture_owner_cleanup() {
     let output_target = read_runtime_src(

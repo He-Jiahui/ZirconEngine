@@ -1,5 +1,5 @@
 use crate::core::framework::render::{
-    CapturedHdrFrame, RenderCaptureReport, decode_rgba16f_texels,
+    decode_rgba16f_texels, CapturedHdrFrame, RenderCaptureReport,
 };
 use crate::graphics::types::{GraphicsError, ViewportFrame};
 
@@ -43,6 +43,7 @@ impl SceneRenderer {
             route_frame_submission_completion_consumers(
                 backend,
                 &mut self.core,
+                &mut self.streamer,
                 &mut self.scene_submission_completion_journal,
                 &mut self.gpu_pass_timer,
                 &mut self.gpu_pipeline_statistics_timer,
@@ -96,6 +97,7 @@ impl SceneRenderer {
             route_frame_submission_completion_consumers(
                 backend,
                 &mut self.core,
+                &mut self.streamer,
                 &mut self.scene_submission_completion_journal,
                 &mut self.gpu_pass_timer,
                 &mut self.gpu_pipeline_statistics_timer,
@@ -135,6 +137,7 @@ impl SceneRenderer {
             route_frame_submission_completion_consumers(
                 backend,
                 &mut self.core,
+                &mut self.streamer,
                 &mut self.scene_submission_completion_journal,
                 &mut self.gpu_pass_timer,
                 &mut self.gpu_pipeline_statistics_timer,

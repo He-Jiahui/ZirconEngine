@@ -29,6 +29,8 @@ pub scenarioName(index: int): string {
     return "";
 }
 
+// 按固定序号调用彼此独立的脚本夹具，供 M6 测试入口汇总校验；
+// 返回成功只证明这些局部规则，不能代表 WOS/WTR1 生产回放通过。
 pub runScenario(index: int): int {
     if (index == 0) { return chat.scenarioTest(); }
     if (index == 1) { return party.scenarioTest(); }

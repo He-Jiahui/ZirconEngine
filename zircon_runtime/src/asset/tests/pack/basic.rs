@@ -109,3 +109,37 @@ fn pack_writer_rejects_unnormalized_asset_paths() {
         );
     }
 }
+
+#[test]
+fn runtime04_pack_reader_repeated_alias_reads_keep_owned_results_isolated() {
+    let payload = (0..16 * 1_024)
+        .map(|index| (index % 251) as u8)
+        .collect::<Vec<_>>();
+    let mut report = ZrPackWriter::write([
+        ZrPackInputAsset::new("a/shared.bin", payload.clone()),
+        ZrPackInputAsset::new("b/shared-alias.bin", payload.clone()),
+        ZrPackInputAsset::new("c/empty.bin", Vec::new()),
+    ])
+    .unwrap();
+    let reader = ZrPackReader::from_bytes(report.bytes.as_slice()).unwrap();
+    let cloned_reader = reader.clone();
+
+    // Opening borrowed bytes owns an immutable snapshot; later input changes
+    // and mutations of an owned read result must not alter that snapshot.
+    report.bytes.fill(0);
+    let mut first_read = reader.read_asset("a/shared.bin").unwrap();
+    first_read.fill(0xff);
+    assert_ne!(first_read, payload);
+
+    for _ in 0..4 {
+        for path in ["a/shared.bin", "b/shared-alias.bin"] {
+            assert_eq!(reader.read_asset(path).unwrap(), payload);
+            assert_eq!(cloned_reader.read_asset(path).unwrap(), payload);
+        }
+        assert!(reader.read_asset("c/empty.bin").unwrap().is_empty());
+        assert_eq!(
+            reader.read_asset("missing.bin"),
+            Err(ZrPackError::AssetNotFound("missing.bin".to_string()))
+        );
+    }
+}

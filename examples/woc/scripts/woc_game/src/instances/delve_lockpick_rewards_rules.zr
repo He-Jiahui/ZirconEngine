@@ -63,6 +63,8 @@ pub bonusCopper(delveId: string, ante: int, required: bool): int {
         (<float>(numerator - denominator) / <float>denominator) + 0.5);
 }
 
+/// 用requiresObservedDraw先决定是否从共享流观察一次；随后对同一次结算的所有ordinal复用该值，无需抽取的分支传合法占位值。
+/// 返回物品目录ID和固定次序；背包实例分配、奖励防重复及失败回滚由提交方承担。
 pub itemId(
     ante: int,
     classId: string,

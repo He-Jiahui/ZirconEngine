@@ -1,15 +1,15 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::asset::{AssetManager, AssetUri, ProjectAssetManager, ProjectManifest, ProjectPaths};
-use crate::text::font::{FontDatabase, load_text_font_source};
+use crate::text::font::{load_text_font_source, FontDatabase, FontLoadError};
 use crate::text::sdf::{
-    SdfBakeParams, SdfOfflineArtifact, SdfOfflineArtifactIdentity, SdfOfflineGlyph,
-    SdfOfflineGlyphMetrics, SdfOfflinePage, SdfOfflineRect, generate_distance_field_glyph,
-    sdf_default_variation_hash, sdf_font_source_hash, sdf_offline_artifact_path,
+    generate_distance_field_glyph, sdf_default_variation_hash, sdf_font_source_hash,
+    sdf_offline_artifact_path, SdfBakeParams, SdfOfflineArtifact, SdfOfflineArtifactIdentity,
+    SdfOfflineGlyph, SdfOfflineGlyphMetrics, SdfOfflinePage, SdfOfflineRect,
 };
 use zircon_runtime_interface::project::RelPath;
 
-use super::super::{SdfFontBakeCache, resolve_font_face};
+use super::super::{resolve_font_face, SdfFontBakeCache};
 
 const TEXT_SDF_OFFLINE_WORK_DIRECTORY: &str = ".runtime_text_sdf_offline_work";
 
@@ -38,11 +38,10 @@ fn text_sdf_offline_negative_manifest_cache_has_a_hard_lru_limit() {
 
     for index in 0..129 {
         let font_ref = format!("res://fonts/missing-{index}.font.toml");
-        assert!(
-            bake.offline_source
-                .load_manifest_for_test(&font_ref, &asset_manager)
-                .is_err()
-        );
+        assert!(bake
+            .offline_source
+            .load_manifest_for_test(&font_ref, &asset_manager)
+            .is_err());
     }
 
     let report = bake.offline_source.report();
@@ -58,27 +57,23 @@ fn text_sdf_font_bake_consumers_use_database_glyph_metadata_without_reparse() {
     assert!(!dynamic_source.contains("Face::parse"));
     assert!(!offline_source.contains("Face::parse"));
     assert!(dynamic_source.contains("face_glyph_id"));
-    assert!(
-        offline_source
-            .contains("glyph_id_for_key(key, face_id, resolved_shaped_face, font_database)")
-    );
+    assert!(offline_source
+        .contains("glyph_id_for_key(key, face_id, resolved_shaped_face, font_database)"));
 }
 
 #[test]
 fn text_sdf_offline_glyph_hits_skip_dynamic_gen_and_miss_falls_back() {
     let fixture = OfflineFontProject::new();
-    assert!(
-        fixture.root.starts_with(
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .parent()
-                .expect("zircon_runtime manifest must have a workspace parent")
-                .join("docs")
-                .join("tests")
-                .join("runtime")
-                .join("text")
-                .join(TEXT_SDF_OFFLINE_WORK_DIRECTORY)
-        )
-    );
+    assert!(fixture.root.starts_with(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("zircon_runtime manifest must have a workspace parent")
+            .join("docs")
+            .join("tests")
+            .join("runtime")
+            .join("text")
+            .join(TEXT_SDF_OFFLINE_WORK_DIRECTORY)
+    ));
     let asset_manager = ProjectAssetManager::default();
     asset_manager
         .open_project(fixture.root.to_string_lossy().as_ref())
@@ -254,11 +249,12 @@ fn text_sdf_offline_glyph_hits_skip_dynamic_gen_and_miss_falls_back() {
     )
     .expect("restore fixture source before a later project rescan");
     let late_manifest_ref = "res://fonts/late.font.toml";
-    assert!(
+    assert_eq!(
         bake.offline_source
-            .load_manifest_for_test(late_manifest_ref, &asset_manager)
-            .is_none()
+            .load_manifest_for_test(late_manifest_ref, &asset_manager),
+        Err(FontLoadError::ProjectAssetUnavailable)
     );
+    let manifest_parse_count = bake.offline_source.report().manifest_parse_count;
     std::fs::copy(
         fixture.font_root.join("offline.font.toml"),
         fixture.font_root.join("late.font.toml"),
@@ -267,22 +263,24 @@ fn text_sdf_offline_glyph_hits_skip_dynamic_gen_and_miss_falls_back() {
     asset_manager
         .open_project(fixture.root.to_string_lossy().as_ref())
         .expect("rescan fixture project after adding the late manifest");
-    assert!(
+    assert_eq!(
         bake.offline_source
-            .load_manifest_for_test(late_manifest_ref, &asset_manager)
-            .is_none(),
+            .load_manifest_for_test(late_manifest_ref, &asset_manager),
+        Err(FontLoadError::ProjectAssetUnavailable),
         "a missing manifest must remain negatively cached for the current font generation"
+    );
+    assert_eq!(
+        bake.offline_source.report().manifest_parse_count,
+        manifest_parse_count
     );
     assert_eq!(bake.offline_source.manifest_cache_len(), 2);
 
     let next_generation = bake.observed_font_generation.wrapping_add(1);
     bake.sync_font_generation(next_generation);
     assert_eq!(bake.offline_source.manifest_cache_len(), 0);
-    assert!(
-        bake.offline_source
-            .load_manifest_for_test(late_manifest_ref, &asset_manager)
-            .is_some()
-    );
+    bake.offline_source
+        .load_manifest_for_test(late_manifest_ref, &asset_manager)
+        .expect("a new generation must load the newly admitted manifest");
 }
 
 fn write_artifact_at_expected_path(

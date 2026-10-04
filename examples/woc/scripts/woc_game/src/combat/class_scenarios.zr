@@ -1,4 +1,6 @@
+//! 职业与治疗场景的标量和固定回放断言，仅由专用 M4 测试入口调用，不维护世界中的治疗或仇恨状态。
 // Shared class/healing outcomes for the M4 solo and multi-class scenarios.
+/// 用于专用测试入口的职业伤害、治疗、吸收、周期次数及连击点标量断言。
 pub metric(
     kind: int,
     first: float,
@@ -42,6 +44,7 @@ pub metric(
     throw "class scenario metric is invalid";
 }
 
+/// 用固定迭代数记录职业场景事件预算；真实职业施法和治疗仇恨不经此函数。
 pub scenarioContract(scenarioKind: int, seed: int, iterations: int): float {
     if (scenarioKind == 0) {
         if (seed != 1001 || iterations != 6) { return 0.0; }

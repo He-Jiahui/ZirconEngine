@@ -176,3 +176,14 @@ remains the final managed GREEN for the already implemented `zr_resource` path-n
 `zr_diagnostics` implementation stays behind the `zr_kernel` physical predecessor, fresh ownership
 rotation, complete current-source consumer manifest, managed baseline, and exact manifest/Cargo
 coordination gates.
+
+## 2026-09-02 physical-owner invariant
+
+The static boundary now encodes the planned dependency order and the no-compatibility hard cut.
+Before `zr_diagnostics` exists, both current implementation owners must remain materialized. Once
+the crate exists, `zr_kernel` must already exist and both `zircon_runtime/src/diagnostic_log` and
+the low-level `zircon_runtime/src/core/runtime/diagnostics` implementation trees must be absent.
+The higher `runtime_diagnostics` manager-resolving adapter remains Runtime-facade owned and is not
+part of that deletion condition. This prevents an empty diagnostics crate, an out-of-order
+foundation edge, or a facade-plus-legacy dual implementation from being recorded as a physical
+hard cut. Production migration remains `physical_hard_cut_not_started / zr_kernel_predecessor_missing`.

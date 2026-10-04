@@ -55,6 +55,7 @@ impl Display for EmojiShortcodeRegistrationError {
 
 impl Error for EmojiShortcodeRegistrationError {}
 
+/// 解析器实例私有的短码表；注册后由上层递增代际并清空缓存，避免旧编译产物混用新替换规则。
 pub(super) struct EmojiShortcodeRegistry {
     replacements: HashMap<String, String>,
 }
@@ -91,6 +92,7 @@ impl EmojiShortcodeRegistry {
         Ok(())
     }
 
+    /// BBCode 普通文本进入 run 前展开短码；替换项限一个字素簇，扩展字节仍计入本次输出预算。
     pub(super) fn expand<'a>(
         &self,
         text: &'a str,
@@ -173,5 +175,5 @@ fn normalized_name(name: &str) -> Option<String> {
 }
 
 #[cfg(test)]
-#[path = "emoji_shortcode/hash_index_tests.rs"]
+#[path = "emoji_shortcode/tests/hash_index_tests.rs"]
 mod hash_index_tests;

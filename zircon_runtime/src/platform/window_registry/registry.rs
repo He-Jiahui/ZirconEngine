@@ -7,6 +7,10 @@ use super::relationship::WindowParentRelation;
 use super::slot::WindowRegistrySlot;
 use super::{PrimaryWindowRoleChange, WindowCloseBegin, WindowParentKind, WindowRegistryError};
 
+#[cfg(test)]
+#[path = "tests/cases.rs"]
+mod tests;
+
 /// Main-thread platform-host ownership of the engine/native window mapping.
 ///
 /// A slot only becomes reusable after the host has marked it closing and

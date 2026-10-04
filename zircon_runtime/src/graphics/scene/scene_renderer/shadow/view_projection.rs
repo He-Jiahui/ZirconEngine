@@ -4,11 +4,11 @@ use crate::core::framework::render::{
     RenderDirectionalLightSnapshot, RenderPointLightSnapshot, RenderSpotLightSnapshot,
     ViewportCameraSnapshot,
 };
-use crate::core::math::{Mat4, Real, Transform, Vec3, is_finite_vec3, view_matrix};
+use crate::core::math::{is_finite_vec3, view_matrix, Mat4, Real, Transform, Vec3};
 
 use super::cascade::{
-    CascadeRange, CascadeShadowBounds, cascade_shadow_bounds_from_camera_slice,
-    snapped_cascade_view_projection,
+    cascade_shadow_bounds_from_camera_slice, snapped_cascade_view_projection, CascadeRange,
+    CascadeShadowBounds,
 };
 
 const POINT_LIGHT_SHADOW_FACE_COUNT: u8 = 6;
@@ -39,6 +39,7 @@ pub(super) fn directional_cascade_view_projection(
         .max(range.far);
     let bounds = CascadeShadowBounds::new(slice_bounds.center, half_extent)
         .with_depth_range(SHADOW_CAMERA_NEAR_PLANE, far_plane);
+    // TODO: [CR-GRAPHICS-SHADOW-STABILITY-0001] 光视图随 slice 中心重建，量化网格也随相机移动；现有测试固定光视图，需验证方向光调用链的亚 texel 平移效果以确认稳定性意图。
     snapped_cascade_view_projection(light_view, bounds, resolution)
 }
 

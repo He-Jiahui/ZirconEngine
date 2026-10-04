@@ -2,6 +2,8 @@ use super::LineBreakChunk;
 use crate::text::{TextRange, WordBoundaryMap};
 use unicode_properties::{GeneralCategory, UnicodeGeneralCategory};
 
+/// 在整形给出的断行块上补充词尾标点策略，避免标点独占下一视觉行。
+/// 只合并连续且源到显示字节一一对应的块；硬行边界与生成字符不得在此重映射。
 pub(super) fn apply_word_smart_rules<'a>(
     text: &'a str,
     chunks: Vec<LineBreakChunk<'a>>,
@@ -282,4 +284,5 @@ where
 }
 
 #[cfg(test)]
+#[path = "smart/tests/cases.rs"]
 mod tests;

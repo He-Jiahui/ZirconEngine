@@ -6,4 +6,5 @@ pub use component_adapter::{
 pub use zircon_runtime_interface::reflect::{ZrReflect, ZrReflectValue};
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

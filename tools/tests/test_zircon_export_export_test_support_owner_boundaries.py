@@ -7,12 +7,12 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-EXPORT_TEST_SUPPORT = REPO_ROOT / "tools/zircon_export/tests/export_test_support.py"
+EXPORT_TEST_SUPPORT = REPO_ROOT / "tools/export/tests/export_test_support.py"
 NATIVE_DYNAMIC_SUPPORT = (
-    REPO_ROOT / "tools/zircon_export/tests/native_dynamic_export_test_support.py"
+    REPO_ROOT / "tools/export/tests/native_dynamic_export_test_support.py"
 )
 PLATFORM_BUNDLE_SUPPORT = (
-    REPO_ROOT / "tools/zircon_export/tests/platform_bundle_export_test_support.py"
+    REPO_ROOT / "tools/export/tests/platform_bundle_export_test_support.py"
 )
 
 NATIVE_DYNAMIC_HELPERS = (
@@ -32,7 +32,7 @@ def _line_count(path: Path) -> int:
 
 
 def _python_test_files() -> list[Path]:
-    return sorted((REPO_ROOT / "tools/zircon_export/tests").glob("*.py"))
+    return sorted((REPO_ROOT / "tools/export/tests").glob("*.py"))
 
 
 def _root_support_imports(text: str) -> set[str]:
@@ -41,7 +41,7 @@ def _root_support_imports(text: str) -> set[str]:
     index = 0
     while index < len(lines):
         line = lines[index]
-        if line == "from tools.zircon_export.tests.export_test_support import (":
+        if line == "from tools.export.tests.export_test_support import (":
             index += 1
             while index < len(lines) and lines[index] != ")":
                 item = lines[index].strip().removesuffix(",")
@@ -49,7 +49,7 @@ def _root_support_imports(text: str) -> set[str]:
                     imported.add(item)
                 index += 1
         elif line.startswith(
-            "from tools.zircon_export.tests.export_test_support import "
+            "from tools.export.tests.export_test_support import "
         ):
             imported.update(
                 item.strip()

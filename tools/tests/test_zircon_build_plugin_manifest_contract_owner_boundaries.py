@@ -1,11 +1,12 @@
+# 核对插件清单契约由清单模块拥有并保持分发与模块语义。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-ZIRCON_BUILD = REPO_ROOT / "tools/zircon_build.py"
+ZIRCON_BUILD = REPO_ROOT / "tools/build/zircon_build.py"
 ZIRCON_BUILD_PLUGIN_MANIFEST_CONTRACT = (
-    REPO_ROOT / "tools/zircon_build_plugin_manifest_contract.py"
+    REPO_ROOT / "tools/build/zircon_build_plugin_manifest_contract.py"
 )
 
 
@@ -23,11 +24,11 @@ class ZirconBuildPluginManifestContractOwnerBoundaryTests(unittest.TestCase):
         )
 
         self.assertIn(
-            "from .zircon_build_plugin_manifest_contract import (",
+            "from .build.zircon_build_plugin_manifest_contract import (",
             build_text,
         )
         self.assertIn(
-            "from zircon_build_plugin_manifest_contract import (",
+            "from .build.zircon_build_plugin_manifest_contract import (",
             build_text,
         )
         for constant_name in (
@@ -69,7 +70,7 @@ class ZirconBuildPluginManifestContractOwnerBoundaryTests(unittest.TestCase):
     def test_plugin_manifest_contract_owner_preserves_distribution_and_module_semantics(
         self,
     ):
-        from tools.zircon_build_plugin_manifest_contract import (
+        from tools.build.zircon_build_plugin_manifest_contract import (
             PLUGIN_DISTRIBUTION_FORM_DIST,
             collect_module_crate_names,
             distribution_table,

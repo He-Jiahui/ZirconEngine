@@ -11,11 +11,13 @@ use super::super::super::super::constants::MAX_HYBRID_GI_PROBES;
 use super::super::super::super::hybrid_gi_probe_gpu::GpuHybridGiProbe;
 use super::super::camera_matrices::view_projection;
 
+// 与 runtime prepared scene sideband 的量化字段相配套，不能作为任意世界坐标的独立编码格式。
 const HYBRID_GI_POSITION_BIAS: i32 = 2048;
 const HYBRID_GI_POSITION_SCALE: f32 = 64.0;
 const HYBRID_GI_RADIUS_SCALE: f32 = 64.0;
 const PREPARED_RT_LIGHTING_WEIGHT: f32 = 0.75;
 
+// 在一次探针编码中共享场景和 RT 光照的查找约定；规范升序输入可复用二分，非规范输入保留首个匹配语义。
 struct PreparedProbeSidebandLookup<'a> {
     scene_data: &'a [RenderHybridGiPreparedProbeSceneData],
     rt_lighting: &'a [RenderHybridGiPreparedProbeRtLighting],
@@ -24,6 +26,7 @@ struct PreparedProbeSidebandLookup<'a> {
 }
 
 impl<'a> PreparedProbeSidebandLookup<'a> {
+    // 一次验证两种 sideband 的规范性，使 resident probe 循环不重复判定排序/重复键。
     fn new(prepared_frame: &'a RenderHybridGiPreparedFrame) -> Self {
         let scene_data = prepared_frame.probe_scene_data.as_slice();
         let rt_lighting = prepared_frame.probe_rt_lighting_rgb.as_slice();
@@ -35,6 +38,7 @@ impl<'a> PreparedProbeSidebandLookup<'a> {
         }
     }
 
+    // 缺少场景位置的 resident probe 不能投影，由上层丢弃该探针。
     fn scene_data(&self, probe_id: u32) -> Option<&RenderHybridGiPreparedProbeSceneData> {
         lookup_by_probe_id(
             self.scene_data,
@@ -44,6 +48,7 @@ impl<'a> PreparedProbeSidebandLookup<'a> {
         )
     }
 
+    // RT 光照是可选支撑，缺失时保留探针自身辐照度并使用中性 RT 权重。
     fn rt_lighting(&self, probe_id: u32) -> Option<&RenderHybridGiPreparedProbeRtLighting> {
         lookup_by_probe_id(
             self.rt_lighting,
@@ -54,6 +59,8 @@ impl<'a> PreparedProbeSidebandLookup<'a> {
     }
 }
 
+/// 将 runtime 已准备的 resident probes 投影成当前视图可上传的有效前缀。
+/// 编译特性、extract 启用与 prepared sideband 三者共同约束可用性；返回计数是 shader 可读范围。
 pub(in super::super) fn encode_hybrid_gi_probes(
     frame: &ViewportRenderFrame,
     viewport_size: UVec2,
@@ -105,6 +112,7 @@ pub(in super::super) fn encode_hybrid_gi_probes(
     (probes, count as u32)
 }
 
+// 将同一 probe ID 的空间、辐照度和 RT sideband 组合为屏幕影响权重；缺少空间描述或投影失败即排除。
 fn project_prepared_hybrid_gi_probe(
     probe: &RenderHybridGiPreparedProbe,
     prepared_frame: &RenderHybridGiPreparedFrame,
@@ -149,6 +157,7 @@ fn project_prepared_hybrid_gi_probe(
     })
 }
 
+// 规范性标志必须对应此切片；非规范路径保留测试固定的重复键首条记录，不能随意改成末条覆盖。
 fn lookup_by_probe_id<T>(
     entries: &[T],
     probe_id: u32,
@@ -162,6 +171,7 @@ fn lookup_by_probe_id<T>(
     entries.iter().find(|entry| key(entry) == probe_id)
 }
 
+// 严格升序同时排除重复键，让二分查找与历史首条匹配约定一致。
 fn strictly_increasing_by_key<T>(entries: &[T], key: fn(&T) -> u32) -> bool {
     entries.windows(2).all(|pair| key(&pair[0]) < key(&pair[1]))
 }
@@ -174,6 +184,8 @@ fn rt_lighting_probe_id(entry: &RenderHybridGiPreparedProbeRtLighting) -> u32 {
     entry.probe_id
 }
 
+// 给 GI 历史写入的主导探针提供粗粒度来源签名；策略 epoch/烘焙代际变化也参与该签名。
+// 有限 bucket 用于降低误复用概率，不能作为无碰撞 probe 标识。
 fn probe_temporal_signature(
     probe: &RenderHybridGiPreparedProbe,
     prepared_frame: &RenderHybridGiPreparedFrame,
@@ -194,6 +206,7 @@ fn probe_temporal_signature(
     bucket as f32 / 1024.0
 }
 
+// 将有效深度中心映射为稳定的屏幕影响中心，屏幕边缘夹取属于此近似权重模型。
 fn project_screen_uv(view_proj: Mat4, position: Vec3) -> Option<(f32, f32)> {
     let clip = view_proj * position.extend(1.0);
     if clip.w.abs() <= f32::EPSILON {
@@ -211,11 +224,13 @@ fn project_screen_uv(view_proj: Mat4, position: Vec3) -> Option<(f32, f32)> {
     ))
 }
 
+// 有界的距离近似用于组合权重的屏幕覆盖，避免近处探针覆盖无限扩大；不是几何体的精确投影半径。
 fn projected_screen_radius(radius: f32, position: Vec3, camera_position: Vec3) -> f32 {
     let distance = (camera_position - position).length().max(1.0);
     (radius.max(0.05) / distance).clamp(0.04, 0.75)
 }
 
+// 恢复 prepared scene sideband 的世界空间中心，随后与当前视图矩阵一同使用。
 fn dequantized_probe_position(scene_data: &RenderHybridGiPreparedProbeSceneData) -> Vec3 {
     Vec3::new(
         dequantized_signed(scene_data.position_x_q),
@@ -224,14 +239,17 @@ fn dequantized_probe_position(scene_data: &RenderHybridGiPreparedProbeSceneData)
     )
 }
 
+// 输入须满足 runtime 量化坐标域；与上述 bias/scale 和 sideband 生产者保持一致。
 fn dequantized_signed(value: u32) -> f32 {
     (value as i32 - HYBRID_GI_POSITION_BIAS) as f32 / HYBRID_GI_POSITION_SCALE
 }
 
+// 半径采用 prepared probe 的专用量化尺度，与 trace region 的半径尺度分别维护。
 fn dequantized_probe_radius(scene_data: &RenderHybridGiPreparedProbeSceneData) -> f32 {
     scene_data.radius_q as f32 / HYBRID_GI_RADIUS_SCALE
 }
 
+// Runtime sideband 的八位光照通道进入 GPU 浮点权重域，共享于探针辐照度与 RT 辅助照明。
 fn rgb8_to_unit(rgb: [u8; 3]) -> [f32; 3] {
     [
         rgb[0] as f32 / 255.0,
@@ -241,215 +259,5 @@ fn rgb8_to_unit(rgb: [u8; 3]) -> [f32; 3] {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::framework::render::{
-        RenderFrameExtract, RenderHybridGiExtract, RenderHybridGiPreparedProbeRtLighting,
-        RenderPreparedRuntimeSidebands,
-    };
-    use crate::core::math::UVec2;
-    use crate::graphics::ViewportRenderFrame;
-    use crate::scene::world::World;
-
-    #[test]
-    fn hybrid_gi_probe_encoder_returns_no_resources_when_disabled() {
-        let frame = ViewportRenderFrame::from_extract(
-            World::new().to_render_frame_extract(),
-            UVec2::new(160, 120),
-        );
-
-        let (_, probe_count) = encode_hybrid_gi_probes(&frame, UVec2::new(160, 120), false);
-
-        assert_eq!(probe_count, 0);
-    }
-
-    #[test]
-    fn hybrid_gi_probe_encoder_requires_prepared_scene_probe_sideband() {
-        let frame = ViewportRenderFrame::from_extract(
-            hybrid_gi_scene_representation_extract(),
-            UVec2::new(160, 120),
-        );
-
-        let (_, probe_count) = encode_hybrid_gi_probes(&frame, UVec2::new(160, 120), true);
-
-        assert_eq!(probe_count, 0);
-    }
-
-    #[test]
-    fn hybrid_gi_sideband_lookup_preserves_reordered_duplicate_first_match() {
-        let prepared = RenderHybridGiPreparedFrame {
-            probe_scene_data: vec![scene_data(9, 90), scene_data(7, 70), scene_data(7, 71)],
-            probe_rt_lighting_rgb: vec![
-                rt_lighting(9, [90, 0, 0]),
-                rt_lighting(7, [70, 0, 0]),
-                rt_lighting(7, [71, 0, 0]),
-            ],
-            ..RenderHybridGiPreparedFrame::default()
-        };
-
-        let lookup = PreparedProbeSidebandLookup::new(&prepared);
-
-        assert!(!lookup.scene_data_is_canonical);
-        assert!(!lookup.rt_lighting_is_canonical);
-        assert_eq!(
-            lookup.scene_data(7).map(|entry| entry.position_x_q),
-            Some(70)
-        );
-        assert_eq!(
-            lookup.rt_lighting(7).map(|entry| entry.rt_lighting_rgb),
-            Some([70, 0, 0])
-        );
-    }
-
-    #[test]
-    fn optimization_batch_20260830dv_hybrid_gi_sidebands_use_canonical_binary_lookup() {
-        let prepared = RenderHybridGiPreparedFrame {
-            probe_scene_data: vec![scene_data(3, 30), scene_data(7, 70), scene_data(9, 90)],
-            probe_rt_lighting_rgb: vec![
-                rt_lighting(3, [30, 0, 0]),
-                rt_lighting(7, [70, 0, 0]),
-                rt_lighting(9, [90, 0, 0]),
-            ],
-            ..RenderHybridGiPreparedFrame::default()
-        };
-        let lookup = PreparedProbeSidebandLookup::new(&prepared);
-
-        assert!(lookup.scene_data_is_canonical);
-        assert!(lookup.rt_lighting_is_canonical);
-        assert_eq!(
-            lookup.scene_data(7).map(|entry| entry.position_x_q),
-            Some(70)
-        );
-        assert_eq!(
-            lookup.rt_lighting(7).map(|entry| entry.rt_lighting_rgb),
-            Some([70, 0, 0])
-        );
-
-        let source = include_str!("encode.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("production source");
-        assert!(production.contains("binary_search_by_key"));
-        assert!(production.contains("strictly_increasing_by_key"));
-    }
-
-    #[test]
-    #[ignore = "release-only performance evidence"]
-    fn optimization_batch_20260830dv_hybrid_gi_sideband_lookup_evidence() {
-        const FRAME_COUNT: usize = 32_768;
-        const PROBE_COUNT: usize = MAX_HYBRID_GI_PROBES;
-        const MARKER: &str = "RUNTIME531_HYBRID_GI_SIDEBAND_BINARY_LOOKUP_BENCH_V1";
-
-        let legacy_checks_per_frame = PROBE_COUNT
-            .saturating_mul(PROBE_COUNT.saturating_add(1))
-            .saturating_mul(2)
-            / 2;
-        let comparisons_per_lookup = usize::BITS as usize - PROBE_COUNT.leading_zeros() as usize;
-        let indexed_checks_per_frame = PROBE_COUNT
-            .saturating_sub(1)
-            .saturating_mul(2)
-            .saturating_add(
-                PROBE_COUNT
-                    .saturating_mul(comparisons_per_lookup)
-                    .saturating_mul(2),
-            );
-        let legacy_candidate_checks = FRAME_COUNT.saturating_mul(legacy_checks_per_frame);
-        let indexed_candidate_checks = FRAME_COUNT.saturating_mul(indexed_checks_per_frame);
-        let reduction_bps = legacy_candidate_checks
-            .saturating_sub(indexed_candidate_checks)
-            .saturating_mul(10_000)
-            / legacy_candidate_checks.max(1);
-
-        assert!(
-            indexed_candidate_checks.saturating_mul(100)
-                <= legacy_candidate_checks.saturating_mul(70)
-        );
-        println!(
-            "{MARKER} frames={FRAME_COUNT} probes={PROBE_COUNT} \
-             legacy_candidate_checks={legacy_candidate_checks} \
-             indexed_candidate_checks_upper_bound={indexed_candidate_checks} \
-             comparisons_per_lookup={comparisons_per_lookup} reduction_bps={reduction_bps}"
-        );
-    }
-
-    #[test]
-    fn hybrid_gi_probe_encoder_projects_prepared_runtime_screen_probe_sideband() {
-        let frame = ViewportRenderFrame::from_extract(
-            hybrid_gi_scene_representation_extract(),
-            UVec2::new(160, 120),
-        )
-        .with_prepared_runtime_sidebands(
-            RenderPreparedRuntimeSidebands::default().with_hybrid_gi_prepared_frame(Some(
-                RenderHybridGiPreparedFrame {
-                    resident_probes: vec![RenderHybridGiPreparedProbe {
-                        probe_id: 7,
-                        slot: 0,
-                        stable_instance_key: 77,
-                        source_mask: crate::core::framework::render::HYBRID_GI_SOURCE_FULL_DYNAMIC,
-                        dynamic_weight_q8: u8::MAX,
-                        ray_budget: 1,
-                        irradiance_rgb: [32, 40, 48],
-                    }],
-                    probe_scene_data: vec![RenderHybridGiPreparedProbeSceneData {
-                        probe_id: 7,
-                        position_x_q: 2048,
-                        position_y_q: 2048,
-                        position_z_q: 2048,
-                        radius_q: 96,
-                    }],
-                    probe_rt_lighting_rgb: vec![RenderHybridGiPreparedProbeRtLighting {
-                        probe_id: 7,
-                        rt_lighting_rgb: [240, 64, 32],
-                    }],
-                    ..RenderHybridGiPreparedFrame::default()
-                },
-            )),
-        );
-
-        let (probes, probe_count) = encode_hybrid_gi_probes(&frame, UVec2::new(160, 120), true);
-
-        assert_eq!(probe_count, 1);
-        assert!(probes[0].screen_uv_and_radius[2] > 0.0);
-        assert_eq!(probes[0].irradiance_and_intensity[0], 32.0_f32 / 255.0);
-        assert_eq!(
-            probes[0].hierarchy_rt_lighting_rgb_and_weight[0],
-            240.0_f32 / 255.0
-        );
-        assert!(probes[0].hierarchy_rt_lighting_rgb_and_weight[3] > 0.0);
-    }
-
-    fn hybrid_gi_scene_representation_extract() -> RenderFrameExtract {
-        let world = World::new();
-        let mut extract = world.to_render_frame_extract();
-        extract.apply_viewport_size(UVec2::new(160, 120));
-        extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
-            enabled: true,
-            trace_budget: 2,
-            card_budget: 1,
-            voxel_budget: 1,
-            ..RenderHybridGiExtract::default()
-        });
-        extract
-    }
-
-    fn scene_data(probe_id: u32, position_x_q: u32) -> RenderHybridGiPreparedProbeSceneData {
-        RenderHybridGiPreparedProbeSceneData {
-            probe_id,
-            position_x_q,
-            position_y_q: 2048,
-            position_z_q: 2048,
-            radius_q: 96,
-        }
-    }
-
-    fn rt_lighting(
-        probe_id: u32,
-        rt_lighting_rgb: [u8; 3],
-    ) -> RenderHybridGiPreparedProbeRtLighting {
-        RenderHybridGiPreparedProbeRtLighting {
-            probe_id,
-            rt_lighting_rgb,
-        }
-    }
-}
+#[path = "tests/encode.rs"]
+mod tests;

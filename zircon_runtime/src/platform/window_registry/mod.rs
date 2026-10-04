@@ -10,6 +10,3 @@ pub(crate) use registry::WindowRegistry;
 pub(super) use registry_id_allocator::allocate_window_registry_id;
 pub(crate) use relationship::WindowParentKind;
 pub(crate) use window_registry_error::WindowRegistryError;
-
-#[cfg(test)]
-mod tests;

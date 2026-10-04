@@ -1,3 +1,4 @@
+//! 视效图的运行时公共契约；特性提供者将此处元数据提交到目录与图编译。
 use zircon_runtime::graphics::{
     RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassExecutionContext,
     RenderPassExecutorRegistration, RenderPassStage,
@@ -23,6 +24,7 @@ const VFX_GRAPH_SIMULATION_WORKGROUP_SIZE: [u32; 3] = [64, 1, 1];
 const VFX_GRAPH_SIMULATION_DISPATCH_GROUPS: [u32; 3] = [1, 1, 1];
 
 #[derive(Clone, Debug, PartialEq)]
+/// 作者侧的视效图配置；粒子容量是资源规划上限，不由当前固定工作量自动推导。
 pub struct VfxGraphAsset {
     pub name: String,
     pub max_particles: u32,
@@ -30,6 +32,7 @@ pub struct VfxGraphAsset {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+/// 描述生成、生命周期与材质依赖；编译报告当前只做必要节点检查。
 pub enum VfxGraphNode {
     SpawnRate { particles_per_second: f32 },
     Lifetime { seconds: f32 },
@@ -39,12 +42,14 @@ pub enum VfxGraphNode {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 特性通道名称与诊断；此报告本身不包含可提交 GPU 的 shader 或粒子程序。
 pub struct VfxGraphCompileReport {
     pub simulation_pass: String,
     pub render_pass: String,
     pub diagnostics: Vec<String>,
 }
 
+/// 在将资产映射到运行时前检查必需节点，供作者或导出诊断；没有执行程序生成步骤。
 pub fn compile_vfx_graph(asset: &VfxGraphAsset) -> VfxGraphCompileReport {
     let mut diagnostics = Vec::new();
     if asset.max_particles == 0 {
@@ -74,6 +79,7 @@ pub fn compile_vfx_graph(asset: &VfxGraphAsset) -> VfxGraphCompileReport {
     }
 }
 
+/// 为场景反射声明视效图资产引用；实例提取与 GPU 粒子缓冲区由后续运行时链负责。
 pub fn vfx_emitter_component_descriptor(
 ) -> zircon_runtime::core::framework::scene::ComponentTypeDescriptor {
     zircon_runtime::core::framework::scene::ComponentTypeDescriptor::new(
@@ -85,6 +91,7 @@ pub fn vfx_emitter_component_descriptor(
     .with_property("rate_multiplier", "float", true)
 }
 
+/// 声明粒子状态写入与透明绘制读取的依赖；固定工作量是当前图契约，不按资产粒子上限调整。
 pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
     RenderFeatureDescriptor::new(
         FEATURE_NAME,
@@ -121,6 +128,7 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
     )
 }
 
+/// 提供与特性图匹配的执行实现；宿主负责实际 GPU 资源与这些句柄的设备生命周期。
 pub fn render_pass_executor_registrations() -> Vec<RenderPassExecutorRegistration> {
     vec![
         RenderPassExecutorRegistration::new(SIMULATION_EXECUTOR_ID, noop_render_executor),
@@ -128,55 +136,12 @@ pub fn render_pass_executor_registrations() -> Vec<RenderPassExecutorRegistratio
     ]
 }
 
+// TODO: [CR-PLUGIN-RENDERING-0006] 确认视效图的模拟与透明绘制是否由其它 owner 处理；两个已注册通道都绑定空 executor，且模拟工作量固定为一组；下一步核对组件提取与资产容量对应的产品行为。
 fn noop_render_executor(_context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
     Ok(())
 }
 
+// 此测试边界覆盖声明与注册约束；GPU 效果证据需由对应产品测试另行提供。
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use zircon_runtime::render_graph::RenderGraphComputeDispatchExtent;
-
-    #[test]
-    fn vfx_graph_compile_report_requires_spawn_and_material() {
-        let report = compile_vfx_graph(&VfxGraphAsset {
-            name: "sparks".to_string(),
-            max_particles: 1024,
-            nodes: vec![VfxGraphNode::SpawnRate {
-                particles_per_second: 64.0,
-            }],
-        });
-
-        assert_eq!(report.simulation_pass, "vfx-graph-simulate");
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.contains("shader graph material")));
-    }
-
-    #[test]
-    fn vfx_feature_registers_two_runtime_passes_and_dependencies() {
-        let report = plugin_feature_registration();
-
-        assert!(report.is_success(), "{:?}", report.diagnostics);
-        assert!(!report.manifest.enabled_by_default);
-        assert!(report
-            .manifest
-            .dependencies
-            .iter()
-            .any(|dependency| dependency.plugin_id == "particles"));
-        assert_eq!(report.extensions.render_features()[0].stage_passes.len(), 2);
-        let pass = &report.extensions.render_features()[0].stage_passes[0];
-        let workload = pass
-            .compute_workload
-            .as_ref()
-            .expect("vfx graph simulation pass should declare workload");
-        assert_eq!(pass.queue, QueueLane::AsyncCompute);
-        assert_eq!(workload.pipeline_label, VFX_GRAPH_SIMULATION_PIPELINE_LABEL);
-        assert_eq!(workload.workgroup_size, VFX_GRAPH_SIMULATION_WORKGROUP_SIZE);
-        assert_eq!(
-            workload.dispatch_extent,
-            RenderGraphComputeDispatchExtent::Fixed(VFX_GRAPH_SIMULATION_DISPATCH_GROUPS)
-        );
-    }
-}
+#[path = "tests/lib.rs"]
+mod tests;

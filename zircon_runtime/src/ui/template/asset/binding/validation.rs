@@ -12,6 +12,8 @@ use zircon_runtime_interface::ui::template::{
     UiComponentParamSchema, UiNodeDefinition,
 };
 
+/// 编辑器诊断和编译前置检查共用此报告，确保作者看到的错误与编译拒绝理由一致。
+/// 每个根树独立解析控制属性，组件内部引用不能跨到文档根或其他组件。
 pub fn collect_asset_binding_report(
     document: &UiAssetDocument,
     registry: &UiComponentDescriptorRegistry,
@@ -36,6 +38,7 @@ pub fn collect_asset_binding_report(
     context.report
 }
 
+/// 编译器在展开组件前调用；首个错误转为资产错误，完整诊断仍可经报告接口读取。
 pub fn validate_asset_bindings(
     document: &UiAssetDocument,
     registry: &UiComponentDescriptorRegistry,
@@ -50,6 +53,7 @@ pub fn validate_asset_bindings(
     Ok(())
 }
 
+// 当前验证上下文只覆盖正在遍历的根树；描述符提供权威属性类型，诊断保留原资产路径。
 struct ValidationContext<'a> {
     registry: &'a UiComponentDescriptorRegistry,
     report: UiBindingReport,
@@ -102,6 +106,30 @@ impl<'a> ValidationContext<'a> {
                 format!(
                     "binding {} mode {:?} does not have a runtime executor",
                     binding.id, binding.mode
+                ),
+            );
+            return;
+        }
+        // A binding must not declare both a top-level route and a nested action.action.
+        // template_action.rs returns None for that case, so clicks silently do nothing.
+        let has_route = binding
+            .route
+            .as_deref()
+            .is_some_and(|r| !r.trim().is_empty());
+        let has_action_action = binding
+            .action
+            .as_ref()
+            .and_then(|a| a.action.as_deref())
+            .is_some_and(|a| !a.trim().is_empty());
+        if has_route && has_action_action {
+            self.push_error(
+                UiBindingDiagnosticCode::InvalidTarget,
+                format!("{path}.route"),
+                node,
+                binding,
+                format!(
+                    "binding {} declares both route and action.action; only one dispatch target is allowed",
+                    binding.id
                 ),
             );
             return;
@@ -190,6 +218,7 @@ impl<'a> ValidationContext<'a> {
         );
     }
 
+    // 只验证运行时可解释的表达式；编辑器预览函数语法由预览层处理，不能在此提前误拒绝。
     fn validate_payload_expression(
         &mut self,
         path: &str,
@@ -268,6 +297,7 @@ impl<'a> ValidationContext<'a> {
         }
     }
 
+    // 有组件描述符时它是属性类型的权威；只有无描述符节点才回退到作者提供的属性值。
     fn expected_kind_for_target(
         &mut self,
         path: &str,
@@ -650,6 +680,7 @@ fn kind_matches(expected: UiValueKind, actual: UiValueKind) -> bool {
         || matches!((expected, actual), (UiValueKind::Float, UiValueKind::Int))
 }
 
+/// 校验与组件展开共用参数类型别名，防止诊断接受但编译转换拒绝同一类型。
 pub(crate) fn component_param_kind(value: &str) -> Option<UiValueKind> {
     match value.trim().to_ascii_lowercase().as_str() {
         "any" => Some(UiValueKind::Any),
@@ -672,6 +703,7 @@ pub(crate) fn component_param_kind(value: &str) -> Option<UiValueKind> {
     }
 }
 
+// 协议已知字段以固定类型校验；自定义动态表达式没有静态目标类型，暂保留 Any。
 fn payload_value_kind(payload_key: &str, value: &Value) -> UiValueKind {
     if let Some(kind) = UiActionPayloadFieldName::from_schema_name(payload_key)
         .and_then(UiActionPayloadFieldName::expected_value_kind)

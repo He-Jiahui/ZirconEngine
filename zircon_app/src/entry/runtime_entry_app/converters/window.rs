@@ -9,12 +9,5 @@ pub(in crate::entry::runtime_entry_app) fn window_theme(theme: Theme) -> u32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn themes_map_to_runtime_values() {
-        assert_eq!(window_theme(Theme::Light), ZR_RUNTIME_WINDOW_THEME_LIGHT_V1);
-        assert_eq!(window_theme(Theme::Dark), ZR_RUNTIME_WINDOW_THEME_DARK_V1);
-    }
-}
+#[path = "tests/window.rs"]
+mod tests;

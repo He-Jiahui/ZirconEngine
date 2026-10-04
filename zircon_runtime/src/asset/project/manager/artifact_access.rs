@@ -1,3 +1,5 @@
+//! ProjectManager 通过资源注册表把逻辑 URI/ID 映射到已提交 artifact；图形资源流可先准备只读句柄，再离开项目锁执行实际磁盘读取。
+
 use crate::asset::{ArtifactStore, AssetId, AssetImportError, AssetUri, ImportedAsset};
 
 use super::super::ProjectPaths;
@@ -39,6 +41,7 @@ impl ProjectManager {
         self.prepare_artifact_read_by_id(id)?.read()
     }
 
+    /// 在项目代仍可访问时固定 artifact 路径与存储句柄，供上层离开锁后读取。
     pub(crate) fn prepare_artifact_read_by_id(
         &self,
         id: AssetId,
@@ -86,5 +89,5 @@ fn split_labeled_uri(uri: &AssetUri) -> Option<(AssetUri, String)> {
 }
 
 #[cfg(test)]
-#[path = "artifact_access/direct_rebuild_tests.rs"]
+#[path = "artifact_access/tests/direct_rebuild_tests.rs"]
 mod direct_rebuild_tests;

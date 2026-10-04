@@ -46,7 +46,7 @@ plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md
 tests:
-  - python tools/check_conventions.py --only docs --json
+  - python tools/audits/check_conventions.py --only docs --json
   - git diff --check -- exact11 Batch45 paths
 ---
 

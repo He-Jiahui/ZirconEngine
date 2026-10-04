@@ -1,17 +1,17 @@
 ---
 related_code:
-  - tools/cargo-zircon/src/main.rs
-  - tools/cargo-zircon/src/lib.rs
-  - tools/cargo-zircon/src/plugin
-  - tools/cargo-zircon/src/product_receipt_cli
+  - tools/cargo/src/main.rs
+  - tools/cargo/src/lib.rs
+  - tools/cargo/src/plugin
+  - tools/cargo/src/product_receipt_cli
 implementation_files:
-  - tools/cargo-zircon/src
+  - tools/cargo/src
 plan_sources:
   - docs/plans/optimize/zircon_tooling/01-workspace-toolchain-ci-validation-and-developer-entrypoints-review.md
 tests:
-  - tools/cargo-zircon/src/main.rs
-  - tools/cargo-zircon/src/plugin
-  - tools/cargo-zircon/src/build
+  - tools/cargo/src/main.rs
+  - tools/cargo/src/plugin
+  - tools/cargo/src/build
 doc_type: cli-reference
 ---
 

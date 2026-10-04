@@ -5,7 +5,7 @@ use zircon_runtime::asset::{asset_manager_handle, project_asset_manager_handle, 
 use zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot;
 use zircon_runtime::core::framework::foundation::ConfigManager;
 use zircon_runtime::core::manager::{
-    config_manager_handle, resolve_manager_service, ManagerServiceHandle,
+    config_manager_handle, resolve_manager_service, ManagerServiceHandle, CONFIG_MANAGER_NAME,
 };
 use zircon_runtime::core::{CoreError, CoreHandle, CoreWeak};
 use zircon_runtime::scene::{LevelMetadata, Scene};
@@ -63,7 +63,12 @@ impl EditorHostRuntimeServices {
     pub(super) fn capability_configuration(
         &self,
     ) -> Result<EditorCapabilityConfiguration, EditorError> {
-        Ok(EditorCapabilityConfiguration { core: self.core()? })
+        let core = self.core()?;
+        let config = resolve_manager_service(&core, config_manager_handle(&core)?)?;
+        Ok(EditorCapabilityConfiguration {
+            _core: core,
+            config,
+        })
     }
 
     pub(super) fn config_manager(&self) -> Result<Arc<dyn ConfigManager>, EditorError> {
@@ -175,7 +180,8 @@ impl EditorProjectAssetRuntimeAccess {
 
 /// A short-lived, typed config transaction that keeps the runtime alive through rollback.
 pub(super) struct EditorCapabilityConfiguration {
-    core: CoreHandle,
+    _core: CoreHandle,
+    config: Arc<dyn ConfigManager>,
 }
 
 /// A short-lived VM host capability access that resolves the runtime driver once per bootstrap.
@@ -197,23 +203,34 @@ impl EditorVmHostCapabilityAccess {
 
 impl EditorCapabilityConfiguration {
     pub(super) fn enabled_subsystems(&self) -> Vec<String> {
-        self.core
-            .load_config::<Vec<String>>(EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY)
+        self.config
+            .get_value(EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY)
+            .and_then(|value| serde_json::from_value(value).ok())
             .unwrap_or_default()
     }
 
-    pub(super) fn store_enabled_subsystems(&self, capabilities: &[String]) {
-        self.core.store_config_value(
-            EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY,
-            serde_json::json!(capabilities),
-        );
+    pub(super) fn store_enabled_subsystems(
+        &self,
+        capabilities: &[String],
+    ) -> Result<(), EditorError> {
+        self.config
+            .set_value(
+                EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY,
+                serde_json::json!(capabilities),
+            )
+            .map_err(|error| {
+                EditorError::from(CoreError::Initialization(
+                    CONFIG_MANAGER_NAME.to_owned(),
+                    error.to_string(),
+                ))
+            })
     }
 
     pub(super) fn subsystem_report(&self) -> EditorSubsystemReport {
         editor_subsystem_report_from_config(
-            self.core
-                .load_config::<Vec<String>>(EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY)
-                .ok(),
+            self.config
+                .get_value(EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY)
+                .and_then(|value| serde_json::from_value(value).ok()),
         )
     }
 }

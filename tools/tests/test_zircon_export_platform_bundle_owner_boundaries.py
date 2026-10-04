@@ -1,14 +1,15 @@
+# 核对平台包物化与原生插件载荷的模块归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PLATFORM_BUNDLE = REPO_ROOT / "tools/zircon_export/platform_bundle.py"
+PLATFORM_BUNDLE = REPO_ROOT / "tools/export/platform_bundle.py"
 PLATFORM_BUNDLE_MATERIALIZE = (
-    REPO_ROOT / "tools/zircon_export/platform_bundle_materialize.py"
+    REPO_ROOT / "tools/export/platform_bundle_materialize.py"
 )
 PLATFORM_BUNDLE_NATIVE_PLUGINS_PAYLOAD = (
-    REPO_ROOT / "tools/zircon_export/platform_bundle_native_plugins_payload.py"
+    REPO_ROOT / "tools/export/platform_bundle_native_plugins_payload.py"
 )
 
 

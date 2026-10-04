@@ -9,6 +9,7 @@ mod track;
 mod value;
 
 #[cfg(test)]
+#[path = "workbench_slider/tests/cases.rs"]
 mod tests;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use model::WorkbenchSliderStyle;

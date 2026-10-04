@@ -6,6 +6,7 @@ use crate::ui::retained_host::host_contract::window::UiHostWindow;
 use crate::ui::retained_host::ui_perf::{
     enter_ui_perf_scenario, time_ui_perf_scenario, UiPerfScenario,
 };
+use zircon_runtime_interface::ui::dispatch::UiPointerId;
 
 use self::body::dispatch_pointer_move_body;
 use self::capture::dispatch_pointer_move_capture;
@@ -13,13 +14,14 @@ use super::super::WorkbenchTooltipPointerTarget;
 
 pub(in crate::ui::retained_host::host_contract) fn dispatch_native_pointer_move(
     ui: &UiHostWindow,
+    pointer_id: Option<UiPointerId>,
     x: f32,
     y: f32,
 ) -> (
     NativePointerDispatchResult,
     Option<WorkbenchTooltipPointerTarget>,
 ) {
-    if let Some(result) = dispatch_pointer_move_capture(ui, x, y) {
+    if let Some(result) = pointer_id.and_then(|id| dispatch_pointer_move_capture(ui, id, x, y)) {
         return (result, None);
     }
 

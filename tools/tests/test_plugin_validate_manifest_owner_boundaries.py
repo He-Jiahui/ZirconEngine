@@ -7,32 +7,32 @@ PLUGIN_VALIDATE_OWNER_BOUNDARIES_TEST = (
     REPO_ROOT / "tools/tests/test_plugin_validate_owner_boundaries.py"
 )
 PLUGIN_VALIDATE_SINGLE_TARGET = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_single_target.py"
+    REPO_ROOT / "tools/export/plugin_validate_single_target.py"
 )
-PLUGIN_VALIDATE_COMMON = REPO_ROOT / "tools/zircon_export/plugin_validate_common.py"
-PLUGIN_VALIDATE_LAYOUT = REPO_ROOT / "tools/zircon_export/plugin_validate_layout.py"
+PLUGIN_VALIDATE_COMMON = REPO_ROOT / "tools/export/plugin_validate_common.py"
+PLUGIN_VALIDATE_LAYOUT = REPO_ROOT / "tools/export/plugin_validate_layout.py"
 PLUGIN_VALIDATE_MANIFEST_SHAPE = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_manifest_shape.py"
+    REPO_ROOT / "tools/export/plugin_validate_manifest_shape.py"
 )
 PLUGIN_VALIDATE_MANIFEST_CLASSIFICATION = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_manifest_classification.py"
+    REPO_ROOT / "tools/export/plugin_validate_manifest_classification.py"
 )
 PLUGIN_VALIDATE_PACKAGE_KIND = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_package_kind.py"
+    REPO_ROOT / "tools/export/plugin_validate_package_kind.py"
 )
-PLUGIN_VALIDATE_TEST = REPO_ROOT / "tools/zircon_export/tests/test_plugin_validate.py"
+PLUGIN_VALIDATE_TEST = REPO_ROOT / "tools/export/tests/test_plugin_validate.py"
 PLUGIN_VALIDATE_LAYOUT_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_plugin_validate_layout.py"
+    REPO_ROOT / "tools/export/tests/test_plugin_validate_layout.py"
 )
 PLUGIN_VALIDATE_MANIFEST_SHAPE_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_plugin_validate_manifest_shape.py"
+    REPO_ROOT / "tools/export/tests/test_plugin_validate_manifest_shape.py"
 )
 PLUGIN_VALIDATE_MANIFEST_CLASSIFICATION_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_plugin_validate_manifest_classification.py"
+    / "tools/export/tests/test_plugin_validate_manifest_classification.py"
 )
 PLUGIN_VALIDATE_PACKAGE_KIND_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_plugin_validate_package_kind.py"
+    REPO_ROOT / "tools/export/tests/test_plugin_validate_package_kind.py"
 )
 
 MANIFEST_BOUNDARY_METHODS = (
@@ -44,7 +44,7 @@ MANIFEST_BOUNDARY_METHODS = (
     "test_package_kind_lives_in_package_kind_owner",
 )
 
-
+# 验证校验清单归属边界的职责切分：清单边界移出通用归属文件，并清单形状测试位于清单形状测试归属。
 class PluginValidateManifestOwnerBoundaryTests(unittest.TestCase):
     def test_manifest_boundaries_leave_general_owner_file(self):
         general_owner_text = PLUGIN_VALIDATE_OWNER_BOUNDARIES_TEST.read_text(

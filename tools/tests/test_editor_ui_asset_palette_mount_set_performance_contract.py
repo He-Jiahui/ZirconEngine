@@ -1,3 +1,4 @@
+# 核对子组件挂载校验借用名称并复用预分配集合。
 from pathlib import Path
 import unittest
 
@@ -29,7 +30,7 @@ class EditorUiAssetPaletteMountSetPerformanceContractTests(unittest.TestCase):
         self.assertNotIn("child.mount.clone()", validation)
         self.assertNotIn("*count += 1", validation)
 
-        benchmark = (ROOT / "zircon_editor/src/ui/asset_editor/palette/instantiate/child_mount_validation_tests.rs").read_text(encoding="utf-8")
+        benchmark = (ROOT / "zircon_editor/src/ui/asset_editor/palette/instantiate/tests/child_mount_validation_tests.rs").read_text(encoding="utf-8")
         self.assertIn("RUNTIME75_PALETTE_CHILD_MOUNT_SET_BENCH_V1", benchmark)
         self.assertIn("legacy_tree_nodes_per_check={SLOT_COUNT}", benchmark)
         self.assertIn("optimized_preallocated_sets_per_check=1", benchmark)

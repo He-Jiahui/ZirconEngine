@@ -26,7 +26,7 @@ ENTRY_REPORT_BOUNDARY_METHODS = (
     "test_single_target_validation_lives_in_single_target_owner",
 )
 
-
+# 验证校验条目报告归属边界的职责切分：条目报告边界移出通用归属文件，并全部目标发现位于目标发现归属。
 class PluginValidateEntryReportOwnerBoundaryTests(unittest.TestCase):
     def test_entry_report_boundaries_leave_general_owner_file(self):
         general_owner_text = PLUGIN_VALIDATE_OWNER_BOUNDARIES_TEST.read_text(

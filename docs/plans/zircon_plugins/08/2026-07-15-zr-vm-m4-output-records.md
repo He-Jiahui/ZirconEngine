@@ -3,7 +3,7 @@
 Plan: docs/plans/zircon_plugins/08-zr-vm.md
 Milestone: M4
 Status: completed
-Files: ["Cargo.lock", "docs/plans/zircon_plugins/08/2026-07-15-zr-vm-m4-output-records.md", "docs/zircon_plugins/zr_vm_language/runtime.md", "docs/zircon_runtime/script/vm/gc_bridge.md", "zircon_plugins/zr_vm_language/runtime/Cargo.toml", "zircon_plugins/zr_vm_language/runtime/src/real_backend.rs", "zircon_plugins/zr_vm_language/runtime/src/real_backend/extension_host.rs", "zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs", "zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs", "zircon_plugins/zr_vm_language/runtime/src/real_backend/package.rs", "zircon_plugins/zr_vm_language/runtime/src/real_backend/runtime_owner.rs", "zircon_plugins/zr_vm_language/runtime/src/tests/real_backend.rs", "zircon_plugins/zr_vm_language/runtime/src/tests/support.rs"]
+Files: ["Cargo.lock", "docs/plans/zircon_plugins/08/2026-07-15-zr-vm-m4-output-records.md", "docs/crates/zircon_plugins/zr_vm_language/runtime.md", "docs/crates/zircon_runtime/script/vm/gc_bridge.md", "zircon_plugins/zr_vm_language/runtime/Cargo.toml", "zircon_plugins/zr_vm_language/runtime/src/real_backend.rs", "zircon_plugins/zr_vm_language/runtime/src/real_backend/extension_host.rs", "zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs", "zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs", "zircon_plugins/zr_vm_language/runtime/src/real_backend/package.rs", "zircon_plugins/zr_vm_language/runtime/src/real_backend/runtime_owner.rs", "zircon_plugins/zr_vm_language/runtime/src/tests/real_backend.rs", "zircon_plugins/zr_vm_language/runtime/src/tests/support.rs"]
 
 ## Scope Delivered
 

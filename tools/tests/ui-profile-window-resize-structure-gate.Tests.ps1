@@ -1,3 +1,4 @@
+# 用窗口缩放时间线验证宿主呈现结构门禁拒绝重建。
 $ErrorActionPreference = 'Stop'
 
 Describe 'UI profile window resize structure gate' {
@@ -30,7 +31,7 @@ Describe 'UI profile window resize structure gate' {
             ).Sum
         }
 
-        . (Join-Path $repoRoot 'tools\ui-profile-counter-evidence.ps1')
+        . (Join-Path $repoRoot 'tools\analysis\profiling\ui\ui-profile-counter-evidence.ps1')
     }
 
     It 'rejects a measured resize that rebuilds the host presentation' {

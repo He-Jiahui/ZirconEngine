@@ -126,11 +126,13 @@ fn legacy_tree_nodes_default_missing_input_response_declarations() {
         .expect("tree node serialization is an object");
     fields.remove("pointer_events");
     fields.remove("cursor");
+    fields.remove("layout_padding");
 
     let restored: UiTreeNode = serde_json::from_value(legacy).expect("legacy nodes deserialize");
 
     assert_eq!(restored.pointer_events, UiPointerEvents::Auto);
     assert_eq!(restored.cursor, None);
+    assert_eq!(restored.layout_padding, Default::default());
 }
 
 #[test]

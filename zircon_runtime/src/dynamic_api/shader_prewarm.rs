@@ -607,5 +607,5 @@ pub fn default_staged_shader_variant_cache_root_for_project(
 }
 
 #[cfg(test)]
-#[path = "shader_prewarm/tests.rs"]
+#[path = "shader_prewarm/tests/cases.rs"]
 mod tests;

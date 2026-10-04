@@ -7,6 +7,7 @@ use zircon_runtime_interface::serialization::MigrateError;
 
 const DYNAMIC_SCENE_V1_INNER_FORMAT_VERSION: u32 = 1;
 
+// 旧世界文档先转换为动态场景，再统一退休资源引用；该迁移由版本化加载链驱动，不供运行时直接调用。
 pub(super) fn migrate_dynamic_scene_v0_to_v1(value: Value) -> Result<Value, MigrateError> {
     let mut value = if value.get("world").is_some() {
         project_world::migrate_project_world(value)?
@@ -39,6 +40,7 @@ pub(super) fn migrate_dynamic_scene_v1_to_v2(mut value: Value) -> Result<Value, 
     Ok(value)
 }
 
+// 稳定字段 ID 在文档迁移时建立，使后续生成的场景能够按身份而非旧字段名称匹配反射模式。
 pub(super) fn migrate_dynamic_scene_v2_to_v3(mut value: Value) -> Result<Value, MigrateError> {
     let object = value
         .as_object_mut()
@@ -119,38 +121,5 @@ fn migrate_reflected_fields(value: &mut Value, kind: &str) -> Result<(), Migrate
 }
 
 #[cfg(test)]
-mod tests {
-    use serde_json::json;
-
-    use super::{migrate_dynamic_scene_v2_to_v3, ReflectFieldId};
-
-    #[test]
-    fn v2_migration_assigns_stable_ids_to_component_and_resource_fields() {
-        let component_type = "tests.Component.Legacy";
-        let resource_type = "tests.Resource.Legacy";
-        let migrated = migrate_dynamic_scene_v2_to_v3(json!({
-            "entities": [{
-                "components": [{
-                    "type_path": component_type,
-                    "fields": [{ "field_name": "enabled" }]
-                }]
-            }],
-            "resources": [{
-                "type_path": resource_type,
-                "fields": [{ "field_name": "value" }]
-            }]
-        }))
-        .expect("valid v2 reflected fields should migrate");
-        let component_id = ReflectFieldId::from_stable_keys(component_type, "enabled").to_string();
-        let resource_id = ReflectFieldId::from_stable_keys(resource_type, "value").to_string();
-
-        assert_eq!(
-            migrated["entities"][0]["components"][0]["fields"][0]["field_id"].as_str(),
-            Some(component_id.as_str())
-        );
-        assert_eq!(
-            migrated["resources"][0]["fields"][0]["field_id"].as_str(),
-            Some(resource_id.as_str())
-        );
-    }
-}
+#[path = "tests/cases.rs"]
+mod tests;

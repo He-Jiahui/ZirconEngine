@@ -10,7 +10,7 @@ use zircon_runtime::foundation::{
 use zircon_runtime::scene::DefaultLevelManager;
 pub(super) use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 
-use crate::core::project::{NewProjectDraft, NewProjectTemplate, ProjectAuthority};
+use crate::core::project::{NewProjectDraft, ProjectAuthority, ProjectTemplateId};
 use crate::ui::host::module::{self, module_descriptor};
 use crate::ui::workbench::layout::{
     ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, ActivityWindowId, DocumentNode,
@@ -49,10 +49,13 @@ pub(super) fn create_project_with_default_world(project_root: &Path) {
     let draft = NewProjectDraft {
         project_name: project_name.to_string(),
         location: location.to_string_lossy().into_owned(),
-        template: NewProjectTemplate::RenderableEmpty,
+        template: ProjectTemplateId::RenderableEmpty,
     };
     let created = ProjectAuthority::default()
-        .create_project(&draft)
+        .create_project(
+            &draft,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
         .expect("ProjectAuthority should create the manager test project");
     assert_eq!(created.root, project_root);
 

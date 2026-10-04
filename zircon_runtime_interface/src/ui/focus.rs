@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
 
@@ -163,7 +163,7 @@ impl UiFocusContract {
 pub fn focus_chain(tree: &UiTree) -> Vec<UiNodeId> {
     let mut default_candidates = Vec::new();
     let mut indexed_candidates = Vec::new();
-    let mut visited = BTreeSet::new();
+    let mut visited = HashSet::with_capacity(tree.nodes.len());
     let mut pre_order = 0usize;
 
     for root in &tree.roots {
@@ -210,7 +210,7 @@ fn collect_focus_candidates(
     tree: &UiTree,
     node_id: UiNodeId,
     ancestors_render_visible: bool,
-    visited: &mut BTreeSet<UiNodeId>,
+    visited: &mut HashSet<UiNodeId>,
     pre_order: &mut usize,
     default_candidates: &mut Vec<UiNodeId>,
     indexed_candidates: &mut Vec<UiFocusChainCandidate>,
@@ -255,113 +255,9 @@ fn collect_focus_candidates(
 }
 
 #[cfg(test)]
-mod performance_tests {
-    use std::{hint::black_box, time::Instant};
-
-    use super::{finish_focus_chain, UiFocusChainCandidate};
-    use crate::ui::{event_ui::UiNodeId, navigation::UiTabIndex};
-
-    const CANDIDATE_COUNT: usize = 10_000;
-    const SAMPLE_PAIRS: usize = 21;
-
-    #[derive(Clone, Copy)]
-    struct LegacyUiFocusChainCandidate {
-        node_id: UiNodeId,
-        tab_index: Option<UiTabIndex>,
-        pre_order: usize,
-    }
-
-    fn legacy_finish_focus_chain(
-        mut candidates: Vec<LegacyUiFocusChainCandidate>,
-    ) -> Vec<UiNodeId> {
-        candidates.sort_by_key(|candidate| {
-            (
-                candidate.tab_index.is_none(),
-                candidate.tab_index.map_or(0, |index| index.order),
-                candidate.pre_order,
-            )
-        });
-        candidates
-            .into_iter()
-            .map(|candidate| candidate.node_id)
-            .collect()
-    }
-
-    fn p95(mut samples: Vec<u128>) -> u128 {
-        samples.sort_unstable();
-        samples[(samples.len() * 95).div_ceil(100) - 1]
-    }
-
-    fn measure<T>(run: impl FnOnce() -> T) -> (u128, T) {
-        let start = Instant::now();
-        let output = run();
-        let elapsed = start.elapsed().as_nanos();
-        (elapsed, output)
-    }
-
-    #[test]
-    #[ignore = "release performance evidence"]
-    fn focus_chain_default_partition_avoids_full_candidate_sort() {
-        let default_candidates = (0..CANDIDATE_COUNT)
-            .map(|index| UiNodeId::new(index as u64 + 1))
-            .collect::<Vec<_>>();
-        let legacy_candidates = default_candidates
-            .iter()
-            .copied()
-            .enumerate()
-            .map(|(pre_order, node_id)| LegacyUiFocusChainCandidate {
-                node_id,
-                tab_index: None,
-                pre_order,
-            })
-            .collect::<Vec<_>>();
-
-        for _ in 0..5 {
-            black_box(legacy_finish_focus_chain(legacy_candidates.clone()));
-            black_box(finish_focus_chain(default_candidates.clone(), Vec::new()));
-        }
-
-        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
-        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
-        for sample in 0..SAMPLE_PAIRS {
-            let legacy_input = legacy_candidates.clone();
-            let optimized_input = default_candidates.clone();
-            if sample % 2 == 0 {
-                let (elapsed, output) = measure(|| legacy_finish_focus_chain(legacy_input));
-                black_box(output);
-                legacy_samples.push(elapsed);
-                let (elapsed, output) = measure(|| {
-                    finish_focus_chain(optimized_input, Vec::<UiFocusChainCandidate>::new())
-                });
-                black_box(output);
-                optimized_samples.push(elapsed);
-            } else {
-                let (elapsed, output) = measure(|| {
-                    finish_focus_chain(optimized_input, Vec::<UiFocusChainCandidate>::new())
-                });
-                black_box(output);
-                optimized_samples.push(elapsed);
-                let (elapsed, output) = measure(|| legacy_finish_focus_chain(legacy_input));
-                black_box(output);
-                legacy_samples.push(elapsed);
-            }
-        }
-
-        let legacy_p95_ns = p95(legacy_samples);
-        let optimized_p95_ns = p95(optimized_samples);
-        println!(
-            "PERF_RESULT runtime_interface03_focus_chain_partition \
-             candidates={CANDIDATE_COUNT} sample_pairs={SAMPLE_PAIRS} \
-             legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} \
-             legacy_sorted_candidates=10000 optimized_sorted_candidates=0"
-        );
-        assert!(
-            optimized_p95_ns * 100 <= legacy_p95_ns * 35,
-            "partitioned focus-chain finalization must be <=35% of legacy P95: \
-             optimized={optimized_p95_ns}ns legacy={legacy_p95_ns}ns"
-        );
-    }
-}
+#[path = "tests/focus_performance_tests.rs"]
+mod performance_tests;
 
 #[cfg(test)]
+#[path = "focus/tests/focus_tests.rs"]
 mod focus_tests;

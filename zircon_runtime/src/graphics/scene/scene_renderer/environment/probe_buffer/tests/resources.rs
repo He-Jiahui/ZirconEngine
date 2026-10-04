@@ -30,7 +30,13 @@ use super::super::upload::ReflectionProbeAssetRejectionReason;
 fn render_probe_gpu_capacity_matches_plan_v1_limit() {
     assert_eq!(MAX_REFLECTION_PROBES, 64);
     assert_eq!(ReflectionProbeResourceCapacity::FULL.probe_count, 64);
-    assert_eq!(ReflectionProbeResourceCapacity::FULL.cubemap_slot_count, 65);
+    assert_eq!(ReflectionProbeResourceCapacity::FULL.cubemap_slot_count, 64);
+    assert_eq!(
+        ReflectionProbeResourceCapacity::FULL.cubemap_slot_count
+            * REFLECTION_PROBE_FACE_COUNT as usize,
+        384,
+        "full resident PMREM array must fit the MVP adapter array-layer limit"
+    );
     assert_eq!(
         ReflectionProbeResourceCapacity::ENVIRONMENT_PREVIEW_PLACEHOLDER.cubemap_slot_count,
         2

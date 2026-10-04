@@ -8,7 +8,7 @@ Milestone: M1
 
 Status: source_implemented_static_green / state_kernel_owner_hard_cut_static_green / managed_rust_gate_blocked
 
-Files: ["tools/tests/test_frameworks_01_contracts_kernel_test_boundary.py", "tools/framework_contract_partition_audit.py", "tools/tests/test_framework_contract_partition_audit.py", "tools/tests/test_frameworks_01_state_kernel_owner_boundary.py", "zircon_runtime/src/core/framework/foundation/config_manager.rs", "zircon_runtime/src/core/framework/foundation/config_manager_error.rs", "zircon_runtime/src/core/framework/foundation/mod.rs", "zircon_runtime/src/core/framework/scene/level_manager_error.rs", "zircon_runtime/src/core/framework/scene/mod.rs", "zircon_runtime/src/foundation/runtime/config_manager.rs", "zircon_runtime/src/foundation/runtime/config_manager/worker.rs", "zircon_runtime/src/foundation/runtime/config_manager_tests.rs", "zircon_runtime/src/scene/module/level_manager_contract.rs", "zircon_runtime/src/core/runtime/state_machine", "docs/plans/optimize/zircon_runtime/55/failure-2026-08-24-config-manager-domain-error-consumer.md", "docs/plans/zircon_runtime/frameworks/01/2026-07-30-m1-contracts-kernel-test-boundary.md", "docs/plans/zircon_runtime/frameworks/01/2026-08-24-m1-state-kernel-owner-hard-cut.md"]
+Files: ["tools/tests/test_frameworks_01_contracts_kernel_test_boundary.py", "tools/audits/framework_contract_partition_audit.py", "tools/tests/test_framework_contract_partition_audit.py", "tools/tests/test_frameworks_01_state_kernel_owner_boundary.py", "zircon_runtime/src/core/framework/foundation/config_manager.rs", "zircon_runtime/src/core/framework/foundation/config_manager_error.rs", "zircon_runtime/src/core/framework/foundation/mod.rs", "zircon_runtime/src/core/framework/scene/level_manager_error.rs", "zircon_runtime/src/core/framework/scene/mod.rs", "zircon_runtime/src/foundation/runtime/config_manager.rs", "zircon_runtime/src/foundation/runtime/config_manager/worker.rs", "zircon_runtime/src/foundation/runtime/config_manager_tests.rs", "zircon_runtime/src/scene/module/level_manager_contract.rs", "zircon_runtime/src/core/runtime/state_machine", "docs/plans/optimize/zircon_runtime/55/failure-2026-08-24-config-manager-domain-error-consumer.md", "docs/plans/zircon_runtime/frameworks/01/2026-07-30-m1-contracts-kernel-test-boundary.md", "docs/plans/zircon_runtime/frameworks/01/2026-08-24-m1-state-kernel-owner-hard-cut.md"]
 
 ## 范围
 
@@ -78,7 +78,7 @@ runtime55_consumer_handoff_open / foreign_rhi_product_gate_blocked / managed_rus
   `render::image` module，不是外部 `image` crate。
 - 但是“纯 trait/DTO”假设本身不成立。原一次性词法统计的 3,418/2,606 函数与 207/385/15 文件分类
   没有稳定区分跨行函数、受限可见性与产品公开面，现已被
-  `tools/framework_contract_partition_audit.py` 的 schema-1 报告取代。该工具复用 Rust comment/literal 与
+  `tools/audits/framework_contract_partition_audit.py` 的 schema-1 报告取代。该工具复用 Rust comment/literal 与
   `cfg(test)` 屏蔽器，分类 mutation tests `5/5` GREEN；迁移前的可复现基线为 607 production 文件、
   52,541 行非空 production code、3,634 个函数体、2,542 个产品 `pub` 函数体、176 个受限可见性函数体、
   48 个 public trait，文件分类为 205 declaration-only、380 mixed、22 behavior-only。

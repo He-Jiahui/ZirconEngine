@@ -1,3 +1,7 @@
+mod shutdown;
+
+pub use shutdown::ModuleShutdownReport;
+
 use std::any::Any;
 use std::collections::HashMap;
 use std::fmt;
@@ -36,6 +40,7 @@ use super::{
     ClockDiscontinuity, ClockSource, FrameClock, FrameClockRebaseReceipt, ModuleDescriptor,
 };
 
+/// CoreHandle 的宿主外观；克隆值及 `handle()` 共享同一运行时状态与时钟。
 #[derive(Clone)]
 pub struct CoreRuntime {
     handle: CoreHandle,
@@ -204,6 +209,15 @@ impl CoreRuntime {
         self.task_graph().shutdown(deadline)
     }
 
+    /// Continues task-graph teardown against an enclosing owner's absolute
+    /// deadline instead of restarting a relative timeout at this boundary.
+    pub(crate) fn shutdown_task_graph_until(
+        &self,
+        deadline: Instant,
+    ) -> Result<TaskGraphShutdownReport, TaskGraphShutdownError> {
+        self.task_graph().shutdown_until(deadline)
+    }
+
     /// Returns this runtime instance's seed authority and unique stream registry.
     pub fn random_service(&self) -> &RandomService {
         self.handle.random_service()
@@ -217,6 +231,7 @@ impl CoreRuntime {
         self.handle.advance_time_by(real_delta, max_fixed_steps)
     }
 
+    /// 从本 Runtime 的单调帧时钟取样；传入宿主增量时应调用 `advance_time_by`。
     pub fn tick_time(&self, max_fixed_steps: u32) -> FrameTimeSnapshot {
         self.handle.tick_time(max_fixed_steps)
     }
@@ -319,20 +334,6 @@ impl CoreRuntime {
             .deactivate_module_with_drain_timeout(module_name, drain_timeout)
     }
 
-    pub fn shutdown_registered_modules_with_drain_timeout(
-        &self,
-        drain_timeout: Duration,
-    ) -> Result<(), CoreError> {
-        let module_shutdown_order = self.handle.active_module_shutdown_order();
-        let started_at = Instant::now();
-        for module_name in module_shutdown_order.iter().rev() {
-            let remaining_drain_timeout = drain_timeout.saturating_sub(started_at.elapsed());
-            self.handle
-                .deactivate_module_with_drain_timeout(module_name, remaining_drain_timeout)?;
-        }
-        Ok(())
-    }
-
     pub fn resolve_driver<T: Any + Send + Sync>(&self, name: &str) -> Result<Arc<T>, CoreError> {
         self.handle.resolve_driver(name)
     }
@@ -362,16 +363,33 @@ impl CoreRuntime {
         self.handle.resolve_plugin_handle(name)
     }
 
-    pub fn publish_event(&self, topic: impl Into<String>, payload: Value) {
-        self.handle.publish_event(topic, payload)
+    pub fn try_publish_event(
+        &self,
+        topic: impl Into<String>,
+        payload: Value,
+    ) -> Result<
+        crate::core::framework::events::EngineEventPublishReceipt,
+        crate::core::framework::events::EngineEventPublishRejected,
+    > {
+        self.handle.try_publish_event(topic, payload)
     }
 
     pub fn subscribe_events(
         &self,
         topic: impl Into<String>,
         policy: EngineEventDeliveryPolicy,
-    ) -> Box<dyn EngineEventSubscription> {
+    ) -> Result<
+        Box<dyn EngineEventSubscription>,
+        crate::core::framework::events::EngineEventSubscribeError,
+    > {
         self.handle.subscribe_events(topic, policy)
+    }
+
+    pub fn close_event_admission(&self) -> crate::core::framework::events::EventBusCloseReceipt {
+        self.handle.close_event_admission()
+    }
+    pub fn event_bus_retention(&self) -> crate::core::framework::events::EventBusRetentionSnapshot {
+        self.handle.event_bus_retention()
     }
 
     pub fn event_bus_diagnostics(&self) -> EventBusDiagnosticsSnapshot {
@@ -479,51 +497,5 @@ impl fmt::Debug for CoreRuntime {
 }
 
 #[cfg(test)]
-mod performance_tests {
-    use super::{
-        CoreRuntime, EngineTaskGraphOptions, TaskGraphAdmissionError, TaskGraphScopeDescriptor,
-    };
-    use std::time::Duration;
-
-    #[test]
-    fn runtime_facade_reuses_its_owned_handle() {
-        let source = include_str!("runtime.rs");
-        let end = source
-            .find("mod performance_tests {")
-            .expect("performance test module");
-        let implementation = &source[..end];
-
-        assert!(implementation.contains("handle: CoreHandle,"));
-        assert!(implementation.contains("self.handle.clone()"));
-        assert!(!implementation.contains("self.handle()"));
-        assert!(implementation.contains("try_with_task_graph_options"));
-        assert!(!implementation.contains("TaskPools::default()"));
-        assert!(!implementation.contains("task_pools()"));
-    }
-
-    #[test]
-    fn core_runtime_routes_scope_shutdown_through_its_execution_owner() {
-        let runtime = CoreRuntime::try_with_task_graph_options(
-            EngineTaskGraphOptions::with_worker_threads(3),
-        )
-        .expect("task graph owner should initialize");
-        let scope = runtime
-            .create_task_graph_scope(TaskGraphScopeDescriptor::new("runtime-test"))
-            .expect("running core runtime should create a scope");
-
-        let inventory = runtime.task_graph_worker_inventory();
-        assert_eq!(inventory.worker_set_count, 1);
-        assert_eq!(inventory.worker_count, 3);
-
-        let report = runtime
-            .shutdown_task_graph(Duration::ZERO)
-            .expect("an idle scope should permit immediate shutdown");
-
-        assert_eq!(report.scopes.len(), 1);
-        assert!(matches!(
-            runtime.create_task_graph_scope(TaskGraphScopeDescriptor::new("late")),
-            Err(TaskGraphAdmissionError::RuntimeStopped)
-        ));
-        drop(scope);
-    }
-}
+#[path = "tests/runtime_performance_tests.rs"]
+mod performance_tests;

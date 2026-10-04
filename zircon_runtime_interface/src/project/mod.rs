@@ -1,3 +1,6 @@
+//! Editor、Hub 与 Runtime 共用的中立项目值与持久化契约。
+//! 文件系统准入、运行时加载和项目生命周期仍由各宿主实现。
+
 mod activation_operation_id;
 mod asset_ref;
 mod canonical_descriptor_identity;
@@ -5,6 +8,7 @@ mod engine_compatibility;
 mod manifest_digest;
 mod manifest_digest_parse_error;
 mod manifest_summary;
+mod package_lock;
 mod persisted_asset_reference;
 mod project_guid;
 mod project_guid_parse_error;
@@ -38,6 +42,15 @@ pub use manifest_summary::{
     MAX_PROJECT_MANIFEST_BYTES, MAX_PROJECT_MANIFEST_NESTING_DEPTH,
     MAX_PROJECT_MANIFEST_TABLE_ENTRIES, PROJECT_MANIFEST_FORMAT_VERSION,
 };
+pub use package_lock::{
+    valid_package_version, ProjectPackageLock, ProjectPackageLockAuthority,
+    ProjectPackageLockEntry, ProjectPackageLockError, ProjectPackageLockPlatform,
+    ProjectPackageLockProject, ProjectPackageLockRuntimeMode, ProjectPackageLockState,
+    ProjectPackageLockTarget, ProjectPackageLockUnavailableReason, MAX_PROJECT_PACKAGE_LOCK_BYTES,
+    MAX_PROJECT_PACKAGE_LOCK_CAPABILITIES, MAX_PROJECT_PACKAGE_LOCK_ENTRIES,
+    MAX_PROJECT_PACKAGE_LOCK_TEXT, PROJECT_PACKAGE_LOCK_SCHEMA_VERSION_V1,
+    PROJECT_PACKAGE_LOCK_STATE_SCHEMA_VERSION_V1,
+};
 pub use persisted_asset_reference::{PersistedAssetReference, PersistedAssetReferenceError};
 pub use project_guid::ProjectGuid;
 pub use project_guid_parse_error::ProjectGuidParseError;
@@ -58,8 +71,13 @@ pub use retired_asset_ref_migration::{
     MAX_RETIRED_ASSET_REF_MIGRATION_NODES, MAX_RETIRED_ASSET_REF_MIGRATION_REFERENCES,
 };
 pub use template_pack::{
-    render_project_template, ProjectTemplateId, ProjectTemplatePackError, RenderedProjectTemplate,
-    RenderedProjectTemplateEntry,
+    project_template_descriptor, render_project_template, ProjectCreationProvenance,
+    ProjectTemplateCapability, ProjectTemplateContentDigest,
+    ProjectTemplateContentDigestParseError, ProjectTemplateDescriptor,
+    ProjectTemplateEntryDescriptor, ProjectTemplateId, ProjectTemplatePackError,
+    ProjectTemplateReceipt, ProjectTemplateReceiptError, ProjectTemplateTargetRequirement,
+    RenderedProjectTemplate, RenderedProjectTemplateEntry,
+    PROJECT_TEMPLATE_RECEIPT_SCHEMA_VERSION_V1,
 };
 
 #[cfg(test)]

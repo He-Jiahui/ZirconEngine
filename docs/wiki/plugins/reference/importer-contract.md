@@ -9,7 +9,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 插件公开接口完整参考
 tests:
-  - zircon_plugins/plugin_sdk/src/manifest/tests.rs
+  - zircon_plugins/plugin_sdk/src/manifest/tests/cases.rs
   - zircon_runtime/tests/shader_import_dependency_contract.rs
 doc_type: api-reference
 title: Asset Importer 插件契约
@@ -38,7 +38,7 @@ let builder = zircon_plugin_sdk::ImporterRuntimeManifestBuilder::new(
 
 公开方法：`new`、`with_engine_compat`、`with_capabilities`、`with_asset_importers`、`runtime_module_manifest`、`dist_module_manifest`、`distribution_manifest`、`build_package_manifest`。后者消费 builder，将 native module、distribution 和 importer descriptors 合并到 descriptor package manifest。
 
-默认 targets 是 `ClientRuntime + EditorHost`，默认 platforms 是 Windows/Linux/Macos，distribution packaging 是 `NativeDynamic`，descriptor symbol 是 `zircon_native_plugin_descriptor_v3`，ABI version 是 3。
+默认 targets 是 `ClientRuntime + EditorHost`，默认 platforms 是 Windows/Linux/Macos，distribution packaging 是 `NativeDynamic`，descriptor symbol 是 `zircon_native_plugin_descriptor_v3`，ABI version 是 3。这里的 platforms/packaging 是 SDK builder 的声明默认值，不等于每个平台都允许 native 动态导出：当前产品导出策略只允许 Windows 使用 `NativeDynamic`；Linux、macOS 及其他非 Windows 平台必须选择 `SourceTemplate`、`LibraryEmbed` 或 `Vm`，若仍声明 `NativeDynamic`，导出计划会 fail-closed 拒绝。
 
 ## ImporterDescriptor 语义
 

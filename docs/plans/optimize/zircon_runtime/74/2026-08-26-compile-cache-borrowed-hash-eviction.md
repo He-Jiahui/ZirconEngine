@@ -34,10 +34,21 @@ unchanged.
 | Transient owned asset-ID strings | 65,536 | 0 |
 | Cache and snapshot removal semantics | matching IDs removed | unchanged |
 
-The ignored release gate runs 17 alternating samples and emits
-`RUNTIME74_COMPILE_CACHE_HASH_EVICTION_BENCH_V1`. Acceptance requires borrowed hash-membership P95
-to be at most 60% of owned ordered-membership P95. Exact Windows timings remain pending the
-coordinator run.
+The ignored release gate runs 101 alternating samples and emits
+`RUNTIME74_COMPILE_CACHE_HASH_EVICTION_BENCH_V1` with an explicit `sample_count=101` marker.
+Acceptance requires borrowed hash-membership P95 to be at most 60% of owned ordered-membership
+P95. Exact Windows timings remain pending the managed run. The current combined Runtime/Editor
+source-contract loader separately passes
+`2002/2002` across `561` files in `12.503s`; that receipt does not replace the ignored Release
+marker or product timing gate.
+
+### 2026-09-18 evidence refresh
+
+The TDD source contract first failed against the old 17-sample marker (RED), then passed after
+the marker was raised to 101 samples and made auditable with `sample_count=101` (GREEN). The
+combined Runtime/Editor benchmark-evidence batch passes `26/26` in `0.034s`; the all-surface
+performance-contract discovery passes `2438/2438` in `92.731s`. These are source-contract and
+benchmark-wiring receipts only; managed Cargo/Release and product percentile gates remain pending.
 
 ## Acceptance
 

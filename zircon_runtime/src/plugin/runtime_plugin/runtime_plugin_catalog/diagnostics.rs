@@ -70,5 +70,5 @@ impl RuntimePluginCatalog {
 }
 
 #[cfg(test)]
-#[path = "diagnostics/capacity_tests.rs"]
+#[path = "diagnostics/tests/capacity_tests.rs"]
 mod capacity_tests;

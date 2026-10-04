@@ -13,6 +13,7 @@ const sourceFile = ts.createSourceFile(sourcePath, sourceText, ts.ScriptTarget.L
 const start = findFunction('startDelveRaiseDeadChannel');
 const tick = findFunction('tickDelveRaiseDeadChannel');
 const interact = findFunction('delveInteract');
+// 从固定版本模拟器的 AST 读取 Raise Dead 常量和引导标记。
 const content = {
   channel_seconds: numericConst('DELVE_RAISE_DEAD_CHANNEL'),
   interrupt_object_kind: stringLiteralAssignedToComparison(interact, 'state.kind'),

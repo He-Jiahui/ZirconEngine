@@ -1,8 +1,8 @@
 import unittest
 
-from tools.ui_measure_validity_locality_pressure import run
+from tools.analysis.performance.ui.ui_measure_validity_locality_pressure import run
 
-
+# 检查父节点测量失效只传播到实际依赖区域，不强制重测仍有效的干净子树。
 class RuntimeUiMeasureValidityLocalityPerformanceContractTests(unittest.TestCase):
     def test_invalid_parent_does_not_force_a_valid_clean_subtree(self) -> None:
         result = run(

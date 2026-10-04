@@ -1,7 +1,7 @@
 from pathlib import Path
 import re
 import unittest
-
+# 视口记录直接保存可见空间查询快照，只共享轻量查询句柄；本组对照 Rust 行为用例声明，防止存取时重复拷贝快照。
 
 ROOT = Path(__file__).resolve().parents[2]
 RECORD_RS = ROOT / (

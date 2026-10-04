@@ -107,38 +107,34 @@ fn drag_payload_summary(showcase: &UiComponentShowcaseDemoState) -> String {
 
 fn state_flags_summary(state: &UiComponentState) -> String {
     let flags = &state.flags;
-    let mut states = Vec::with_capacity(STATE_FLAG_SUMMARY_CAPACITY);
-    if flags.focused {
-        states.push("focused");
+    let mut states = [""; STATE_FLAG_SUMMARY_CAPACITY];
+    let mut count = 0;
+    for (enabled, label) in [
+        (flags.focused, "focused"),
+        (flags.hovered, "hovered"),
+        (flags.pressed, "pressed"),
+        (flags.dragging, "dragging"),
+        (flags.popup_open, "popup open"),
+        (flags.expanded, "expanded"),
+        (flags.selected, "selected"),
+        (flags.checked, "checked"),
+    ] {
+        if enabled {
+            states[count] = label;
+            count += 1;
+        }
     }
-    if flags.hovered {
-        states.push("hovered");
-    }
-    if flags.pressed {
-        states.push("pressed");
-    }
-    if flags.dragging {
-        states.push("dragging");
-    }
-    if flags.popup_open {
-        states.push("popup open");
-    }
-    if flags.expanded {
-        states.push("expanded");
-    }
-    if flags.selected {
-        states.push("selected");
-    }
-    if flags.checked {
-        states.push("checked");
-    }
-    if states.is_empty() {
+    if count == 0 {
         "No value payload".to_string()
     } else {
-        states.join(", ")
+        states[..count].join(", ")
     }
 }
 
 #[cfg(test)]
-#[path = "state_panel/capacity_tests.rs"]
+#[path = "state_panel/tests/capacity_tests.rs"]
 mod capacity_tests;
+
+#[cfg(test)]
+#[path = "state_panel/tests/stack_buffer_tests.rs"]
+mod stack_buffer_tests;

@@ -1,0 +1,3291 @@
+penpot_dependency_sources = [ "zircon_editor/src/tests/fixtures/ui_zui/theme/editor_material.zui" ]
+penpot_original_source = "[asset]\nkind = \"widget\"\nid = \"ui.editor.material_meta_components\"\nversion = 1\ndisplay_name = \"Material Meta Components\"\n\n[imports]\nwidgets = []\nstyles = [\"res://ui/theme/editor_material.zui\"]\n\n[tokens]\nmaterial_control_height = \"$material_density_default_control_height\"\nmaterial_compact_control_height = \"$material_density_compact_control_height\"\nmaterial_icon_button_size = \"$material_density_default_control_height\"\nmaterial_button_min_width = \"$material_density_default_control_height\"\nmaterial_button_padding_x = \"$material_spacing_button_content_x\"\nmaterial_button_padding_y = \"$material_spacing_button_content_y\"\nmaterial_button_icon_size = \"$material_icon_size_button\"\nmaterial_button_spacing = \"$material_spacing_button_gap\"\nmaterial_field_min_height = \"$material_density_field_control_height\"\nmaterial_field_padding_x = \"$material_spacing_field_content_x\"\nmaterial_field_padding_y = \"$material_spacing_field_content_y\"\nmaterial_list_item_height = \"$material_density_list_item_height\"\nmaterial_list_item_padding_x = \"$material_spacing_list_item_content_x\"\nmaterial_list_item_spacing = \"$material_spacing_list_item_gap\"\nmaterial_icon_size = \"$material_icon_size_standard\"\nmaterial_radius = \"$material_radius_control\"\nmaterial_radius_control = 5.0\nmaterial_radius_small = 4.0\nmaterial_radius_medium = 8.0\nmaterial_radius_large = 16.0\nmaterial_radius_pill = 28.0\nmaterial_border_width = 1.0\nmaterial_font_size = \"$material_font_size_body\"\nmaterial_font_size_body = 12.0\nmaterial_font_size_meta = 11.0\nmaterial_font_size_title = 15.0\nmaterial_density_compact_height = 28.0\nmaterial_density_default_height = 32.0\nmaterial_density_prominent_height = 40.0\nmaterial_density_compact_control_height = \"$material_density_compact_height\"\nmaterial_density_default_control_height = \"$material_density_default_height\"\nmaterial_density_field_control_height = \"$material_density_default_height\"\nmaterial_density_list_item_height = \"$material_density_default_height\"\nmaterial_spacing_button_content_x = 12.0\nmaterial_spacing_button_content_y = 6.0\nmaterial_spacing_button_gap = 6.0\nmaterial_spacing_field_content_x = 10.0\nmaterial_spacing_field_content_y = 3.0\nmaterial_spacing_list_item_content_x = 10.0\nmaterial_spacing_list_item_gap = 6.0\nmaterial_icon_size_button = 16.0\nmaterial_icon_size_standard = 18.0\nmaterial_focus_ring_width = 1.0\nmaterial_focus_ring_offset = 1.0\nmaterial_state_layer_opacity_hover = 0.08\nmaterial_state_layer_opacity_focus = 0.12\nmaterial_state_layer_opacity_pressed = 0.12\nmaterial_state_layer_opacity_disabled = 0.12\nmaterial_state_layer_opacity_dragged = 0.16\nmaterial_state_layer_opacity_press = \"$material_state_layer_opacity_pressed\"\nmaterial_state_layer_opacity_drag = \"$material_state_layer_opacity_dragged\"\nmaterial_disabled_opacity = 0.38\nmaterial_elevation_level0 = 0.0\nmaterial_elevation_level1 = 1.0\nmaterial_elevation_level2 = 3.0\nmaterial_popup_width = 220.0\nmaterial_popup_height = 120.0\nmaterial_scroll_height = 84.0\n\n[components.MaterialStateLayer]\nroot = \"material_state_layer_root\"\nstyle_scope = \"open\"\n\n[components.MaterialStateLayer.params.surface_variant]\ntype = \"string\"\ndefault = \"inset\"\n\n[components.MaterialStateLayer.params.border_width]\ntype = \"number\"\ndefault = \"$material_border_width\"\n\n[components.MaterialStateLayer.params.corner_radius]\ntype = \"number\"\ndefault = \"$material_radius\"\n\n[components.MaterialStateLayer.params.disabled]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialStateLayer.params.focused]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialStateLayer.params.hovered]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialStateLayer.params.pressed]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialStateLayer.slots.content]\nrequired = false\nmultiple = true\n\n[components.MaterialButtonBase]\nroot = \"material_button_base_root\"\nstyle_scope = \"open\"\n\n[components.MaterialButtonBase.params.text]\ntype = \"string\"\ndefault = \"Button\"\n\n[components.MaterialButtonBase.params.icon]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialButtonBase.params.surface_variant]\ntype = \"string\"\ndefault = \"default\"\n\n[components.MaterialButtonBase.params.button_variant]\ntype = \"string\"\ndefault = \"default\"\n\n[components.MaterialButtonBase.params.text_tone]\ntype = \"string\"\ndefault = \"primary\"\n\n[components.MaterialButtonBase.params.disabled]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialButtonBase.params.focused]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialButtonBase.params.hovered]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialButtonBase.params.pressed]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialButtonBase.params.height]\ntype = \"number\"\ndefault = \"$material_control_height\"\n\n[components.MaterialButton]\nroot = \"material_button_root\"\nstyle_scope = \"open\"\n\n[components.MaterialButton.params.text]\ntype = \"string\"\ndefault = \"Button\"\n\n[components.MaterialButton.params.icon]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialButton.params.surface_variant]\ntype = \"string\"\ndefault = \"inset\"\n\n[components.MaterialButton.params.button_variant]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialButton.params.text_tone]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialButton.params.validation_level]\ntype = \"string\"\ndefault = \"normal\"\n\n[components.MaterialButton.params.disabled]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialButton.params.focused]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialButton.params.hovered]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialButton.params.pressed]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialButton.params.binding_id]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialButton.params.action_id]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialButton.params.input_focusable]\ntype = \"bool\"\ndefault = true\n\n[components.MaterialButton.params.capability]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialButton.params.accessibility_label]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialButton.params.height]\ntype = \"number\"\ndefault = \"$material_control_height\"\n\n[components.MaterialIconButton]\nroot = \"material_icon_button_root\"\nstyle_scope = \"open\"\n\n[components.MaterialIconButton.params.text]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialIconButton.params.icon]\ntype = \"string\"\ndefault = \"ellipse-outline\"\n\n[components.MaterialIconButton.params.surface_variant]\ntype = \"string\"\ndefault = \"inset\"\n\n[components.MaterialIconButton.params.button_variant]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialIconButton.params.text_tone]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialIconButton.params.validation_level]\ntype = \"string\"\ndefault = \"normal\"\n\n[components.MaterialIconButton.params.selected]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialIconButton.params.disabled]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialIconButton.params.focused]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialIconButton.params.hovered]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialIconButton.params.pressed]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialIconButton.params.binding_id]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialIconButton.params.action_id]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialIconButton.params.input_focusable]\ntype = \"bool\"\ndefault = true\n\n[components.MaterialIconButton.params.capability]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialIconButton.params.accessibility_label]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialIconButton.params.height]\ntype = \"number\"\ndefault = \"$material_icon_button_size\"\n\n[components.MaterialToggleButton]\nroot = \"material_toggle_button_root\"\nstyle_scope = \"open\"\n\n[components.MaterialToggleButton.params.text]\ntype = \"string\"\ndefault = \"Toggle\"\n\n[components.MaterialToggleButton.params.checked]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialToggleButton.params.surface_variant]\ntype = \"string\"\ndefault = \"inset\"\n\n[components.MaterialToggleButton.params.disabled]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialToggleButton.params.focused]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialToggleButton.params.hovered]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialToggleButton.params.pressed]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialToggleButton.params.height]\ntype = \"number\"\ndefault = \"$material_control_height\"\n\n[components.MaterialCheckboxRow]\nroot = \"material_checkbox_row_root\"\nstyle_scope = \"open\"\n\n[components.MaterialCheckboxRow.params.text]\ntype = \"string\"\ndefault = \"Checkbox\"\n\n[components.MaterialCheckboxRow.params.checked]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialCheckboxRow.params.surface_variant]\ntype = \"string\"\ndefault = \"inset\"\n\n[components.MaterialCheckboxRow.params.disabled]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialCheckboxRow.params.focused]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialCheckboxRow.params.hovered]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialCheckboxRow.params.pressed]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialCheckboxRow.params.height]\ntype = \"number\"\ndefault = \"$material_list_item_height\"\n\n[components.MaterialOutlinedField]\nroot = \"material_outlined_field_root\"\nstyle_scope = \"open\"\n\n[components.MaterialOutlinedField.params.value]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialOutlinedField.params.placeholder]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialOutlinedField.params.validation_level]\ntype = \"string\"\ndefault = \"normal\"\n\n[components.MaterialOutlinedField.params.text_tone]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialOutlinedField.params.disabled]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialOutlinedField.params.focused]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialOutlinedField.params.hovered]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialOutlinedField.params.binding_id]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialOutlinedField.params.edit_action_id]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialOutlinedField.params.commit_action_id]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialOutlinedField.params.input_focusable]\ntype = \"bool\"\ndefault = true\n\n[components.MaterialOutlinedField.params.capability]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialOutlinedField.params.accessibility_label]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialOutlinedField.params.height]\ntype = \"number\"\ndefault = \"$material_field_min_height\"\n\n[components.MaterialSliderField]\nroot = \"material_slider_field_root\"\nstyle_scope = \"open\"\n\n[components.MaterialSliderField.params.value]\ntype = \"number\"\ndefault = 0.0\n\n[components.MaterialSliderField.params.min]\ntype = \"number\"\ndefault = 0.0\n\n[components.MaterialSliderField.params.max]\ntype = \"number\"\ndefault = 100.0\n\n[components.MaterialSliderField.params.step]\ntype = \"number\"\ndefault = 1.0\n\n[components.MaterialSliderField.params.disabled]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialSliderField.params.focused]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialSliderField.params.hovered]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialSliderField.params.pressed]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialSliderField.params.height]\ntype = \"number\"\ndefault = \"$material_field_min_height\"\n\n[components.MaterialRipple]\nroot = \"material_ripple_root\"\nstyle_scope = \"open\"\n\n[components.MaterialRipple.params.surface_variant]\ntype = \"string\"\ndefault = \"accent\"\n\n[components.MaterialRipple.params.opacity]\ntype = \"number\"\ndefault = 0.12\n\n[components.MaterialListItem]\nroot = \"material_list_item_root\"\nstyle_scope = \"open\"\n\n[components.MaterialListItem.params.text]\ntype = \"string\"\ndefault = \"List item\"\n\n[components.MaterialListItem.params.value]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialListItem.params.selected]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialListItem.params.focused]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialListItem.params.hovered]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialListItem.params.pressed]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialListItem.params.disabled]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialListItem.params.binding_id]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialListItem.params.action_id]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialListItem.params.input_focusable]\ntype = \"bool\"\ndefault = true\n\n[components.MaterialListItem.params.capability]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialListItem.params.accessibility_label]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialListItem.params.height]\ntype = \"number\"\ndefault = \"$material_list_item_height\"\n\n[components.MaterialTableRow]\nroot = \"material_table_row_root\"\nstyle_scope = \"open\"\n\n[components.MaterialTableRow.params.text]\ntype = \"string\"\ndefault = \"Table row\"\n\n[components.MaterialTableRow.params.value]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialTableRow.params.selected]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialTableRow.params.focused]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialTableRow.params.hovered]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialTableRow.params.pressed]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialTableRow.params.disabled]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialTableRow.params.height]\ntype = \"number\"\ndefault = \"$material_list_item_height\"\n\n[components.MaterialTextButton]\nroot = \"material_text_button_root\"\nstyle_scope = \"open\"\n\n[components.MaterialTextButton.params.text]\ntype = \"string\"\ndefault = \"Text Button\"\n\n[components.MaterialTextButton.params.disabled]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialTextButton.params.focused]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialTextButton.params.hovered]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialTextButton.params.pressed]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialTextButton.params.height]\ntype = \"number\"\ndefault = \"$material_control_height\"\n\n[components.MaterialCheckBox]\nroot = \"material_check_box_root\"\nstyle_scope = \"open\"\n\n[components.MaterialCheckBox.params.text]\ntype = \"string\"\ndefault = \"CheckBox\"\n\n[components.MaterialCheckBox.params.checked]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialCheckBox.params.disabled]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialCheckBox.params.focused]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialCheckBox.params.hovered]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialCheckBox.params.pressed]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialCheckBox.params.height]\ntype = \"number\"\ndefault = \"$material_list_item_height\"\n\n[components.MaterialComboBox]\nroot = \"material_combo_box_root\"\nstyle_scope = \"open\"\n\n[components.MaterialComboBox.params.value]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialComboBox.params.options]\ntype = \"array\"\ndefault = []\n\n[components.MaterialComboBox.params.popup_open]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialComboBox.params.popup_anchor_x]\ntype = \"number\"\ndefault = 0.0\n\n[components.MaterialComboBox.params.popup_anchor_y]\ntype = \"number\"\ndefault = 0.0\n\n[components.MaterialComboBox.params.disabled]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialComboBox.params.focused]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialComboBox.params.hovered]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialComboBox.params.pressed]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialComboBox.params.multiple]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialComboBox.params.selection_state]\ntype = \"string\"\ndefault = \"single\"\n\n[components.MaterialComboBox.params.binding_id]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialComboBox.params.action_id]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialComboBox.params.input_focusable]\ntype = \"bool\"\ndefault = true\n\n[components.MaterialComboBox.params.capability]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialComboBox.params.accessibility_label]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialComboBox.params.height]\ntype = \"number\"\ndefault = \"$material_field_min_height\"\n\n[components.MaterialDatePickerPopup]\nroot = \"material_date_picker_popup_root\"\nstyle_scope = \"open\"\n\n[components.MaterialDatePickerPopup.params.value]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialDatePickerPopup.params.menu_items]\ntype = \"array\"\ndefault = []\n\n[components.MaterialDatePickerPopup.params.popup_open]\ntype = \"bool\"\ndefault = true\n\n[components.MaterialDatePickerPopup.params.popup_anchor_x]\ntype = \"number\"\ndefault = 0.0\n\n[components.MaterialDatePickerPopup.params.popup_anchor_y]\ntype = \"number\"\ndefault = 0.0\n\n[components.MaterialDatePickerPopup.params.action_id]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialDatePickerPopup.params.input_focusable]\ntype = \"bool\"\ndefault = true\n\n[components.MaterialDatePickerPopup.params.capability]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialDatePickerPopup.params.accessibility_label]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialGroupBox]\nroot = \"material_group_box_root\"\nstyle_scope = \"open\"\n\n[components.MaterialGroupBox.params.text]\ntype = \"string\"\ndefault = \"Group\"\n\n[components.MaterialGroupBox.params.expanded]\ntype = \"bool\"\ndefault = true\n\n[components.MaterialGroupBox.params.disabled]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialGroupBox.params.focused]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialGroupBox.params.hovered]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialGroupBox.params.pressed]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialGroupBox.params.input_focusable]\ntype = \"bool\"\ndefault = true\n\n[components.MaterialGroupBox.params.capability]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialGroupBox.params.accessibility_label]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialGroupBox.params.height]\ntype = \"number\"\ndefault = 32.0\n\n[components.MaterialLineEdit]\nroot = \"material_line_edit_root\"\nstyle_scope = \"open\"\n\n[components.MaterialLineEdit.params.value]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialLineEdit.params.placeholder]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialLineEdit.params.validation_level]\ntype = \"string\"\ndefault = \"normal\"\n\n[components.MaterialLineEdit.params.disabled]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialLineEdit.params.focused]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialLineEdit.params.hovered]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialLineEdit.params.height]\ntype = \"number\"\ndefault = \"$material_field_min_height\"\n\n[components.MaterialMenuBarItem]\nroot = \"material_menu_bar_item_root\"\nstyle_scope = \"open\"\n\n[components.MaterialMenuBarItem.params.text]\ntype = \"string\"\ndefault = \"Menu\"\n\n[components.MaterialMenuBarItem.params.disabled]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialMenuBarItem.params.focused]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialMenuBarItem.params.hovered]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialMenuBarItem.params.pressed]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialMenuBarItem.params.binding_id]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialMenuBarItem.params.action_id]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialMenuBarItem.params.input_focusable]\ntype = \"bool\"\ndefault = true\n\n[components.MaterialMenuBarItem.params.capability]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialMenuBarItem.params.accessibility_label]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialMenuBarItem.params.height]\ntype = \"number\"\ndefault = 32.0\n\n[components.MaterialMenuBar]\nroot = \"material_menu_bar_root\"\nstyle_scope = \"open\"\n\n[components.MaterialMenuBar.slots.content]\nrequired = false\nmultiple = true\n\n[components.MaterialMenuFrame]\nroot = \"material_menu_frame_root\"\nstyle_scope = \"open\"\n\n[components.MaterialMenuFrame.params.value]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialMenuFrame.params.menu_items]\ntype = \"array\"\ndefault = []\n\n[components.MaterialMenuFrame.params.popup_open]\ntype = \"bool\"\ndefault = true\n\n[components.MaterialMenuFrame.params.popup_anchor_x]\ntype = \"number\"\ndefault = 0.0\n\n[components.MaterialMenuFrame.params.popup_anchor_y]\ntype = \"number\"\ndefault = 0.0\n\n[components.MaterialMenuFrame.params.action_id]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialMenuFrame.params.input_focusable]\ntype = \"bool\"\ndefault = true\n\n[components.MaterialMenuFrame.params.capability]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialMenuFrame.params.accessibility_label]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialMenuItem]\nroot = \"material_menu_item_root\"\nstyle_scope = \"open\"\n\n[components.MaterialMenuItem.params.text]\ntype = \"string\"\ndefault = \"Menu item\"\n\n[components.MaterialMenuItem.params.checked]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialMenuItem.params.disabled]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialMenuItem.params.focused]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialMenuItem.params.hovered]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialMenuItem.params.pressed]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialMenuItem.params.binding_id]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialMenuItem.params.action_id]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialMenuItem.params.input_focusable]\ntype = \"bool\"\ndefault = true\n\n[components.MaterialMenuItem.params.capability]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialMenuItem.params.accessibility_label]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialMenuItem.params.height]\ntype = \"number\"\ndefault = 40.0\n\n[components.MaterialProgressIndicator]\nroot = \"material_progress_indicator_root\"\nstyle_scope = \"open\"\n\n[components.MaterialProgressIndicator.params.value]\ntype = \"number\"\ndefault = 0.5\n\n[components.MaterialProgressIndicator.params.indeterminate]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialProgressIndicator.params.height]\ntype = \"number\"\ndefault = 8.0\n\n[components.MaterialScrollView]\nroot = \"material_scroll_view_root\"\nstyle_scope = \"open\"\n\n[components.MaterialScrollView.params.input_focusable]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialScrollView.params.capability]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialScrollView.params.accessibility_label]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialScrollView.slots.content]\nrequired = false\nmultiple = true\n\n[components.MaterialSlider]\nroot = \"material_slider_root\"\nstyle_scope = \"open\"\n\n[components.MaterialSlider.params.value]\ntype = \"number\"\ndefault = 0.0\n\n[components.MaterialSlider.params.min]\ntype = \"number\"\ndefault = 0.0\n\n[components.MaterialSlider.params.max]\ntype = \"number\"\ndefault = 100.0\n\n[components.MaterialSlider.params.step]\ntype = \"number\"\ndefault = 1.0\n\n[components.MaterialSlider.params.disabled]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialSlider.params.focused]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialSlider.params.hovered]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialSlider.params.pressed]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialSlider.params.height]\ntype = \"number\"\ndefault = \"$material_field_min_height\"\n\n[components.MaterialSpinBox]\nroot = \"material_spin_box_root\"\nstyle_scope = \"open\"\n\n[components.MaterialSpinBox.params.value]\ntype = \"number\"\ndefault = 0.0\n\n[components.MaterialSpinBox.params.min]\ntype = \"number\"\ndefault = 0.0\n\n[components.MaterialSpinBox.params.max]\ntype = \"number\"\ndefault = 100.0\n\n[components.MaterialSpinBox.params.step]\ntype = \"number\"\ndefault = 1.0\n\n[components.MaterialSpinBox.params.large_step]\ntype = \"number\"\ndefault = 10.0\n\n[components.MaterialSpinBox.params.validation_level]\ntype = \"string\"\ndefault = \"normal\"\n\n[components.MaterialSpinBox.params.disabled]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialSpinBox.params.focused]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialSpinBox.params.hovered]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialSpinBox.params.pressed]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialSpinBox.params.height]\ntype = \"number\"\ndefault = \"$material_field_min_height\"\n\n[components.MaterialSpinner]\nroot = \"material_spinner_root\"\nstyle_scope = \"open\"\n\n[components.MaterialSpinner.params.text]\ntype = \"string\"\ndefault = \"Loading\"\n\n[components.MaterialSpinner.params.height]\ntype = \"number\"\ndefault = \"$material_control_height\"\n\n[components.MaterialSwitch]\nroot = \"material_switch_root\"\nstyle_scope = \"open\"\n\n[components.MaterialSwitch.params.text]\ntype = \"string\"\ndefault = \"Switch\"\n\n[components.MaterialSwitch.params.checked]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialSwitch.params.disabled]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialSwitch.params.focused]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialSwitch.params.hovered]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialSwitch.params.pressed]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialSwitch.params.height]\ntype = \"number\"\ndefault = \"$material_list_item_height\"\n\n[components.MaterialStandardTableView]\nroot = \"material_standard_table_view_root\"\nstyle_scope = \"open\"\n\n[components.MaterialStandardTableView.params.items]\ntype = \"array\"\ndefault = []\n\n[components.MaterialStandardTableView.params.total_count]\ntype = \"number\"\ndefault = 0\n\n[components.MaterialStandardTableView.params.viewport_start]\ntype = \"number\"\ndefault = 0\n\n[components.MaterialStandardTableView.params.viewport_count]\ntype = \"number\"\ndefault = 0\n\n[components.MaterialStandardTableView.params.item_extent]\ntype = \"number\"\ndefault = 40.0\n\n[components.MaterialTabWidgetImpl]\nroot = \"material_tab_widget_impl_root\"\nstyle_scope = \"open\"\n\n[components.MaterialTabWidgetImpl.slots.tabs]\nrequired = false\nmultiple = true\n\n[components.MaterialTabImpl]\nroot = \"material_tab_impl_root\"\nstyle_scope = \"open\"\n\n[components.MaterialTabImpl.params.title]\ntype = \"string\"\ndefault = \"Tab\"\n\n[components.MaterialTabImpl.params.selected]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialTabImpl.params.disabled]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialTabImpl.params.focused]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialTabImpl.params.hovered]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialTabImpl.params.pressed]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialTabImpl.params.binding_id]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialTabImpl.params.action_id]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialTabImpl.params.input_focusable]\ntype = \"bool\"\ndefault = true\n\n[components.MaterialTabImpl.params.capability]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialTabImpl.params.accessibility_label]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialTabImpl.params.height]\ntype = \"number\"\ndefault = 36.0\n\n[components.MaterialTabBarHorizontalImpl]\nroot = \"material_tab_bar_horizontal_impl_root\"\nstyle_scope = \"open\"\n\n[components.MaterialTabBarHorizontalImpl.slots.tabs]\nrequired = false\nmultiple = true\n\n[components.MaterialTabBarVerticalImpl]\nroot = \"material_tab_bar_vertical_impl_root\"\nstyle_scope = \"open\"\n\n[components.MaterialTabBarVerticalImpl.slots.tabs]\nrequired = false\nmultiple = true\n\n[components.MaterialTabWidget]\nroot = \"material_tab_widget_root\"\nstyle_scope = \"open\"\n\n[components.MaterialTabWidget.slots.tabs]\nrequired = false\nmultiple = true\n\n[components.MaterialTextEdit]\nroot = \"material_text_edit_root\"\nstyle_scope = \"open\"\n\n[components.MaterialTextEdit.params.value]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialTextEdit.params.placeholder]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialTextEdit.params.validation_level]\ntype = \"string\"\ndefault = \"normal\"\n\n[components.MaterialTextEdit.params.disabled]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialTextEdit.params.focused]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialTextEdit.params.hovered]\ntype = \"bool\"\ndefault = false\n\n[components.MaterialTextEdit.params.height]\ntype = \"number\"\ndefault = \"$material_field_min_height\"\n\n[components.MaterialTimePickerPopup]\nroot = \"material_time_picker_popup_root\"\nstyle_scope = \"open\"\n\n[components.MaterialTimePickerPopup.params.value]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialTimePickerPopup.params.menu_items]\ntype = \"array\"\ndefault = []\n\n[components.MaterialTimePickerPopup.params.popup_open]\ntype = \"bool\"\ndefault = true\n\n[components.MaterialTimePickerPopup.params.popup_anchor_x]\ntype = \"number\"\ndefault = 0.0\n\n[components.MaterialTimePickerPopup.params.popup_anchor_y]\ntype = \"number\"\ndefault = 0.0\n\n[components.MaterialTimePickerPopup.params.action_id]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialTimePickerPopup.params.input_focusable]\ntype = \"bool\"\ndefault = true\n\n[components.MaterialTimePickerPopup.params.capability]\ntype = \"string\"\ndefault = \"\"\n\n[components.MaterialTimePickerPopup.params.accessibility_label]\ntype = \"string\"\ndefault = \"\"\n\n[nodes.material_state_layer_content]\nkind = \"slot\"\nslot_name = \"content\"\n\n[nodes.material_state_layer_root]\nkind = \"native\"\ntype = \"Group\"\nclasses = [\"material-state-layer\"]\nprops = { surface_variant = \"$param.surface_variant\", border_width = \"$param.border_width\", corner_radius = \"$param.corner_radius\", disabled = \"$param.disabled\", focused = \"$param.focused\", hovered = \"$param.hovered\", pressed = \"$param.pressed\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, container = { kind = \"Overlay\" } }\nchildren = [{ child = \"material_state_layer_content\", mount = \"content\" }]\n\n[nodes.material_button_base_root]\nkind = \"native\"\ntype = \"Button\"\ncontrol_id = \"MaterialButtonBase\"\nclasses = [\"material-control\", \"material-button-base\"]\nprops = { text = \"$param.text\", icon = \"$param.icon\", surface_variant = \"$param.surface_variant\", button_variant = \"$param.button_variant\", text_tone = \"$param.text_tone\", disabled = \"$param.disabled\", focused = \"$param.focused\", hovered = \"$param.hovered\", pressed = \"$param.pressed\", border_width = \"$material_border_width\", corner_radius = \"$material_radius\", font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = \"$material_button_padding_x\", layout_padding_right = \"$material_button_padding_x\", layout_padding_top = \"$material_button_padding_y\", layout_padding_bottom = \"$material_button_padding_y\", layout_spacing = \"$material_button_spacing\", layout_min_width = \"$material_button_min_width\", layout_min_height = \"$param.height\", layout_icon_size = \"$material_button_icon_size\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$param.height\" } }\n\n[nodes.material_button_root]\nkind = \"native\"\ntype = \"Button\"\nclasses = [\"material-control\", \"material-button\"]\nprops = { text = \"$param.text\", icon = \"$param.icon\", surface_variant = \"$param.surface_variant\", button_variant = \"$param.button_variant\", text_tone = \"$param.text_tone\", validation_level = \"$param.validation_level\", disabled = \"$param.disabled\", focused = \"$param.focused\", hovered = \"$param.hovered\", pressed = \"$param.pressed\", binding_id = \"$param.binding_id\", action_id = \"$param.action_id\", capability = \"$param.capability\", accessibility_label = \"$param.accessibility_label\", border_width = \"$material_border_width\", corner_radius = \"$material_radius\", font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = \"$param.input_focusable\", layout_padding_left = \"$material_button_padding_x\", layout_padding_right = \"$material_button_padding_x\", layout_padding_top = \"$material_button_padding_y\", layout_padding_bottom = \"$material_button_padding_y\", layout_spacing = \"$material_button_spacing\", layout_min_width = \"$material_button_min_width\", layout_min_height = \"$param.height\", layout_icon_size = \"$material_button_icon_size\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$param.height\" } }\n\n[nodes.material_icon_button_root]\nkind = \"native\"\ntype = \"IconButton\"\nclasses = [\"material-control\", \"material-icon-button\"]\nprops = { text = \"$param.text\", icon = \"$param.icon\", surface_variant = \"$param.surface_variant\", button_variant = \"$param.button_variant\", text_tone = \"$param.text_tone\", validation_level = \"$param.validation_level\", selected = \"$param.selected\", disabled = \"$param.disabled\", focused = \"$param.focused\", hovered = \"$param.hovered\", pressed = \"$param.pressed\", binding_id = \"$param.binding_id\", action_id = \"$param.action_id\", capability = \"$param.capability\", accessibility_label = \"$param.accessibility_label\", border_width = \"$material_border_width\", corner_radius = \"$material_radius\", font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = \"$param.input_focusable\", layout_padding_left = 0.0, layout_padding_right = 0.0, layout_padding_top = 0.0, layout_padding_bottom = 0.0, layout_spacing = 0.0, layout_min_width = \"$material_icon_button_size\", layout_min_height = \"$param.height\", layout_icon_size = \"$material_button_icon_size\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$param.height\" } }\n\n[nodes.material_toggle_button_root]\nkind = \"native\"\ntype = \"ToggleButton\"\nclasses = [\"material-control\", \"material-toggle-button\"]\nprops = { text = \"$param.text\", value = \"$param.checked\", checked = \"$param.checked\", selected = \"$param.checked\", disabled = \"$param.disabled\", focused = \"$param.focused\", hovered = \"$param.hovered\", pressed = \"$param.pressed\", surface_variant = \"$param.surface_variant\", border_width = \"$material_border_width\", corner_radius = \"$material_radius\", font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = \"$material_button_padding_x\", layout_padding_right = \"$material_button_padding_x\", layout_padding_top = \"$material_button_padding_y\", layout_padding_bottom = \"$material_button_padding_y\", layout_spacing = \"$material_button_spacing\", layout_min_width = \"$material_button_min_width\", layout_min_height = \"$param.height\", layout_icon_size = \"$material_button_icon_size\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$param.height\" } }\n\n[nodes.material_checkbox_row_root]\nkind = \"native\"\ntype = \"Checkbox\"\nclasses = [\"material-control\", \"material-checkbox-row\"]\nprops = { text = \"$param.text\", value = \"$param.checked\", checked = \"$param.checked\", selected = \"$param.checked\", disabled = \"$param.disabled\", focused = \"$param.focused\", hovered = \"$param.hovered\", pressed = \"$param.pressed\", surface_variant = \"$param.surface_variant\", border_width = \"$material_border_width\", corner_radius = \"$material_radius\", font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = \"$material_list_item_padding_x\", layout_padding_right = \"$material_list_item_padding_x\", layout_spacing = \"$material_list_item_spacing\", layout_min_height = \"$param.height\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$param.height\" } }\n\n[nodes.material_outlined_field_root]\nkind = \"native\"\ntype = \"InputField\"\nclasses = [\"material-control\", \"material-outlined-field\"]\nprops = { value = \"$param.value\", placeholder = \"$param.placeholder\", validation_level = \"$param.validation_level\", disabled = \"$param.disabled\", focused = \"$param.focused\", hovered = \"$param.hovered\", surface_variant = \"inset\", text_tone = \"$param.text_tone\", binding_id = \"$param.binding_id\", edit_action_id = \"$param.edit_action_id\", commit_action_id = \"$param.commit_action_id\", capability = \"$param.capability\", accessibility_label = \"$param.accessibility_label\", border_width = \"$material_border_width\", corner_radius = \"$material_radius\", font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = \"$param.input_focusable\", layout_padding_left = \"$material_field_padding_x\", layout_padding_right = \"$material_field_padding_x\", layout_padding_top = \"$material_field_padding_y\", layout_padding_bottom = \"$material_field_padding_y\", layout_min_height = \"$param.height\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$param.height\" } }\n\n[nodes.material_slider_field_root]\nkind = \"native\"\ntype = \"RangeField\"\nclasses = [\"material-control\", \"material-slider-field\"]\nprops = { value = \"$param.value\", min = \"$param.min\", max = \"$param.max\", step = \"$param.step\", disabled = \"$param.disabled\", focused = \"$param.focused\", hovered = \"$param.hovered\", pressed = \"$param.pressed\", surface_variant = \"inset\", border_width = \"$material_border_width\", corner_radius = \"$material_radius\", font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = \"$material_field_padding_x\", layout_padding_right = \"$material_field_padding_x\", layout_padding_top = \"$material_field_padding_y\", layout_padding_bottom = \"$material_field_padding_y\", layout_min_height = \"$param.height\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$param.height\" } }\n\n[nodes.material_ripple_root]\nkind = \"native\"\ntype = \"Group\"\nclasses = [\"material-ripple\"]\nprops = { surface_variant = \"$param.surface_variant\", opacity = \"$param.opacity\", border_width = 0.0, corner_radius = \"$material_radius\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, container = { kind = \"Overlay\" } }\n\n[nodes.material_list_item_root]\nkind = \"native\"\ntype = \"ListRow\"\nclasses = [\"material-control\", \"material-list-item\"]\nprops = { text = \"$param.text\", value = \"$param.value\", selected = \"$param.selected\", focused = \"$param.focused\", hovered = \"$param.hovered\", pressed = \"$param.pressed\", disabled = \"$param.disabled\", binding_id = \"$param.binding_id\", action_id = \"$param.action_id\", capability = \"$param.capability\", accessibility_label = \"$param.accessibility_label\", surface_variant = \"inset\", border_width = 0.0, corner_radius = \"$material_radius\", font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = \"$param.input_focusable\", layout_padding_left = \"$material_list_item_padding_x\", layout_padding_right = \"$material_list_item_padding_x\", layout_spacing = \"$material_list_item_spacing\", layout_min_height = \"$param.height\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$param.height\" } }\n\n[nodes.material_table_row_root]\nkind = \"native\"\ntype = \"TableRow\"\nclasses = [\"material-control\", \"material-table-row\"]\nprops = { text = \"$param.text\", value = \"$param.value\", selected = \"$param.selected\", focused = \"$param.focused\", hovered = \"$param.hovered\", pressed = \"$param.pressed\", disabled = \"$param.disabled\", surface_variant = \"inset\", border_width = 0.0, corner_radius = \"$material_radius\", font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = \"$material_list_item_padding_x\", layout_padding_right = \"$material_list_item_padding_x\", layout_spacing = \"$material_list_item_spacing\", layout_min_height = \"$param.height\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$param.height\" } }\n\n[nodes.material_text_button_root]\nkind = \"native\"\ntype = \"Button\"\nclasses = [\"material-control\", \"material-text-button\"]\nprops = { text = \"$param.text\", surface_variant = \"transparent\", button_variant = \"text\", text_tone = \"accent\", disabled = \"$param.disabled\", focused = \"$param.focused\", hovered = \"$param.hovered\", pressed = \"$param.pressed\", border_width = 0.0, corner_radius = \"$material_radius\", font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = \"$material_button_padding_x\", layout_padding_right = \"$material_button_padding_x\", layout_padding_top = \"$material_button_padding_y\", layout_padding_bottom = \"$material_button_padding_y\", layout_spacing = \"$material_button_spacing\", layout_min_width = \"$material_button_min_width\", layout_min_height = \"$param.height\", layout_icon_size = \"$material_button_icon_size\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$param.height\" } }\n\n[nodes.material_check_box_root]\nkind = \"native\"\ntype = \"Checkbox\"\nclasses = [\"material-control\", \"material-check-box\"]\nprops = { text = \"$param.text\", value = \"$param.checked\", checked = \"$param.checked\", selected = \"$param.checked\", disabled = \"$param.disabled\", focused = \"$param.focused\", hovered = \"$param.hovered\", pressed = \"$param.pressed\", surface_variant = \"inset\", border_width = \"$material_border_width\", corner_radius = \"$material_radius\", font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = \"$material_list_item_padding_x\", layout_padding_right = \"$material_list_item_padding_x\", layout_spacing = \"$material_list_item_spacing\", layout_min_height = \"$param.height\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$param.height\" } }\n\n[nodes.material_combo_box_root]\nkind = \"native\"\ntype = \"ComboBox\"\nclasses = [\"material-control\", \"material-combo-box\"]\nprops = { value = \"$param.value\", options = \"$param.options\", popup_open = \"$param.popup_open\", popup_anchor_x = \"$param.popup_anchor_x\", popup_anchor_y = \"$param.popup_anchor_y\", multiple = \"$param.multiple\", selection_state = \"$param.selection_state\", disabled = \"$param.disabled\", focused = \"$param.focused\", hovered = \"$param.hovered\", pressed = \"$param.pressed\", binding_id = \"$param.binding_id\", action_id = \"$param.action_id\", capability = \"$param.capability\", accessibility_label = \"$param.accessibility_label\", surface_variant = \"inset\", border_width = \"$material_border_width\", corner_radius = \"$material_radius\", font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = \"$param.input_focusable\", layout_padding_left = \"$material_field_padding_x\", layout_padding_right = \"$material_field_padding_x\", layout_padding_top = \"$material_field_padding_y\", layout_padding_bottom = \"$material_field_padding_y\", layout_min_height = \"$param.height\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$param.height\" } }\n\n[nodes.material_date_picker_popup_root]\nkind = \"native\"\ntype = \"ContextActionMenu\"\nclasses = [\"material-control\", \"material-date-picker-popup\", \"material-popup-frame\"]\nprops = { value = \"$param.value\", menu_items = \"$param.menu_items\", popup_open = \"$param.popup_open\", popup_anchor_x = \"$param.popup_anchor_x\", popup_anchor_y = \"$param.popup_anchor_y\", action_id = \"$param.action_id\", capability = \"$param.capability\", accessibility_label = \"$param.accessibility_label\", surface_variant = \"inset\", border_width = \"$material_border_width\", corner_radius = \"$material_radius\", font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = \"$param.input_focusable\", layout_padding_left = \"$material_list_item_padding_x\", layout_padding_right = \"$material_list_item_padding_x\", layout_spacing = \"$material_list_item_spacing\", layout_min_height = \"$material_list_item_height\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$material_popup_height\", preferred = \"$material_popup_height\", max = \"$material_popup_height\", stretch = \"Fixed\" } }\n\n[nodes.material_group_box_root]\nkind = \"native\"\ntype = \"Group\"\nclasses = [\"material-control\", \"material-group-box\"]\nprops = { text = \"$param.text\", expanded = \"$param.expanded\", disabled = \"$param.disabled\", focused = \"$param.focused\", hovered = \"$param.hovered\", pressed = \"$param.pressed\", capability = \"$param.capability\", accessibility_label = \"$param.accessibility_label\", surface_variant = \"inset\", border_width = \"$material_border_width\", corner_radius = \"$material_radius\", font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = \"$param.input_focusable\", layout_min_height = \"$param.height\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$param.height\", preferred = \"$param.height\", max = \"$param.height\", stretch = \"Fixed\" } }\n\n[nodes.material_line_edit_root]\nkind = \"native\"\ntype = \"InputField\"\nclasses = [\"material-control\", \"material-line-edit\"]\nprops = { value = \"$param.value\", placeholder = \"$param.placeholder\", validation_level = \"$param.validation_level\", disabled = \"$param.disabled\", focused = \"$param.focused\", hovered = \"$param.hovered\", surface_variant = \"inset\", border_width = \"$material_border_width\", corner_radius = \"$material_radius\", font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = \"$material_field_padding_x\", layout_padding_right = \"$material_field_padding_x\", layout_padding_top = \"$material_field_padding_y\", layout_padding_bottom = \"$material_field_padding_y\", layout_min_height = \"$param.height\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$param.height\" } }\n\n[nodes.material_menu_bar_item_root]\nkind = \"native\"\ntype = \"Button\"\nclasses = [\"material-control\", \"material-menu-bar-item\"]\nprops = { text = \"$param.text\", disabled = \"$param.disabled\", focused = \"$param.focused\", hovered = \"$param.hovered\", pressed = \"$param.pressed\", binding_id = \"$param.binding_id\", action_id = \"$param.action_id\", capability = \"$param.capability\", accessibility_label = \"$param.accessibility_label\", surface_variant = \"transparent\", button_variant = \"text\", border_width = 0.0, corner_radius = \"$material_radius\", font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = \"$param.input_focusable\", layout_padding_left = \"$material_button_padding_x\", layout_padding_right = \"$material_button_padding_x\", layout_padding_top = \"$material_button_padding_y\", layout_padding_bottom = \"$material_button_padding_y\", layout_spacing = \"$material_button_spacing\", layout_min_width = \"$material_button_min_width\", layout_min_height = \"$param.height\", layout_icon_size = \"$material_button_icon_size\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$param.height\", preferred = \"$param.height\", max = \"$param.height\", stretch = \"Fixed\" } }\n\n[nodes.material_menu_bar_content]\nkind = \"slot\"\nslot_name = \"content\"\n\n[nodes.material_menu_bar_root]\nkind = \"native\"\ntype = \"HorizontalBox\"\nclasses = [\"material-menu-bar\"]\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 8.0 } }\nchildren = [{ child = \"material_menu_bar_content\", mount = \"content\" }]\n\n[nodes.material_menu_frame_root]\nkind = \"native\"\ntype = \"ContextActionMenu\"\nclasses = [\"material-control\", \"material-menu-frame\", \"material-popup-frame\"]\nprops = { value = \"$param.value\", menu_items = \"$param.menu_items\", popup_open = \"$param.popup_open\", popup_anchor_x = \"$param.popup_anchor_x\", popup_anchor_y = \"$param.popup_anchor_y\", action_id = \"$param.action_id\", capability = \"$param.capability\", accessibility_label = \"$param.accessibility_label\", surface_variant = \"inset\", border_width = \"$material_border_width\", corner_radius = \"$material_radius\", font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = \"$param.input_focusable\", layout_padding_left = \"$material_list_item_padding_x\", layout_padding_right = \"$material_list_item_padding_x\", layout_spacing = \"$material_list_item_spacing\", layout_min_height = \"$material_list_item_height\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$material_popup_height\", preferred = \"$material_popup_height\", max = \"$material_popup_height\", stretch = \"Fixed\" } }\n\n[nodes.material_menu_item_root]\nkind = \"native\"\ntype = \"MenuItem\"\nclasses = [\"material-control\", \"material-menu-item\"]\nprops = { text = \"$param.text\", checked = \"$param.checked\", selected = \"$param.checked\", disabled = \"$param.disabled\", focused = \"$param.focused\", hovered = \"$param.hovered\", pressed = \"$param.pressed\", binding_id = \"$param.binding_id\", action_id = \"$param.action_id\", capability = \"$param.capability\", accessibility_label = \"$param.accessibility_label\", surface_variant = \"inset\", border_width = 0.0, corner_radius = \"$material_radius\", font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = \"$param.input_focusable\", layout_padding_left = \"$material_list_item_padding_x\", layout_padding_right = \"$material_list_item_padding_x\", layout_spacing = \"$material_list_item_spacing\", layout_min_height = \"$param.height\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$param.height\", preferred = \"$param.height\", max = \"$param.height\", stretch = \"Fixed\" } }\n\n[nodes.material_progress_indicator_root]\nkind = \"native\"\ntype = \"ProgressBar\"\nclasses = [\"material-control\", \"material-progress-indicator\"]\nprops = { value = \"$param.value\", indeterminate = \"$param.indeterminate\", surface_variant = \"inset\", border_width = 0.0, corner_radius = \"$material_radius\", layout_min_height = \"$param.height\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$param.height\", preferred = \"$param.height\", max = \"$param.height\", stretch = \"Fixed\" } }\n\n[nodes.material_scroll_view_content]\nkind = \"slot\"\nslot_name = \"content\"\n\n[nodes.material_scroll_view_root]\nkind = \"native\"\ntype = \"ScrollableBox\"\nclasses = [\"material-control\", \"material-scroll-view\"]\nprops = { capability = \"$param.capability\", accessibility_label = \"$param.accessibility_label\", surface_variant = \"inset\", border_width = \"$material_border_width\", corner_radius = \"$material_radius\", input_interactive = false, input_clickable = false, input_hoverable = true, input_focusable = \"$param.input_focusable\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$material_scroll_height\", preferred = \"$material_scroll_height\", max = \"$material_scroll_height\", stretch = \"Fixed\" }, container = { kind = \"VerticalBox\", gap = 4.0 }, scroll = { vertical = true } }\nchildren = [{ child = \"material_scroll_view_content\", mount = \"content\" }]\n\n[nodes.material_slider_root]\nkind = \"native\"\ntype = \"RangeField\"\nclasses = [\"material-control\", \"material-slider\"]\nprops = { value = \"$param.value\", min = \"$param.min\", max = \"$param.max\", step = \"$param.step\", disabled = \"$param.disabled\", focused = \"$param.focused\", hovered = \"$param.hovered\", pressed = \"$param.pressed\", surface_variant = \"inset\", border_width = \"$material_border_width\", corner_radius = \"$material_radius\", font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = \"$material_field_padding_x\", layout_padding_right = \"$material_field_padding_x\", layout_padding_top = \"$material_field_padding_y\", layout_padding_bottom = \"$material_field_padding_y\", layout_min_height = \"$param.height\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$param.height\" } }\n\n[nodes.material_spin_box_root]\nkind = \"native\"\ntype = \"NumberField\"\nclasses = [\"material-control\", \"material-spin-box\"]\nprops = { value = \"$param.value\", min = \"$param.min\", max = \"$param.max\", step = \"$param.step\", large_step = \"$param.large_step\", validation_level = \"$param.validation_level\", disabled = \"$param.disabled\", focused = \"$param.focused\", hovered = \"$param.hovered\", pressed = \"$param.pressed\", surface_variant = \"inset\", border_width = \"$material_border_width\", corner_radius = \"$material_radius\", font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = \"$material_field_padding_x\", layout_padding_right = \"$material_field_padding_x\", layout_padding_top = \"$material_field_padding_y\", layout_padding_bottom = \"$material_field_padding_y\", layout_min_height = \"$param.height\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$param.height\" } }\n\n[nodes.material_spinner_root]\nkind = \"native\"\ntype = \"Spinner\"\nclasses = [\"material-control\", \"material-spinner\"]\nprops = { text = \"$param.text\", surface_variant = \"transparent\", border_width = 0.0, corner_radius = \"$material_radius\", font_size = \"$material_font_size\", layout_padding_left = \"$material_list_item_padding_x\", layout_padding_right = \"$material_list_item_padding_x\", layout_spacing = \"$material_list_item_spacing\", layout_min_height = \"$material_control_height\", layout_icon_size = \"$material_button_icon_size\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$param.height\", preferred = \"$param.height\", max = \"$param.height\", stretch = \"Fixed\" } }\n\n[nodes.material_switch_root]\nkind = \"native\"\ntype = \"ToggleButton\"\nclasses = [\"material-control\", \"material-switch\"]\nprops = { text = \"$param.text\", value = \"$param.checked\", checked = \"$param.checked\", selected = \"$param.checked\", disabled = \"$param.disabled\", focused = \"$param.focused\", hovered = \"$param.hovered\", pressed = \"$param.pressed\", surface_variant = \"inset\", button_variant = \"switch\", border_width = \"$material_border_width\", corner_radius = 16.0, font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = \"$material_list_item_padding_x\", layout_padding_right = \"$material_list_item_padding_x\", layout_spacing = \"$material_list_item_spacing\", layout_min_height = \"$param.height\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$param.height\" } }\n\n[nodes.material_standard_table_view_root]\nkind = \"native\"\ntype = \"VirtualList\"\nclasses = [\"material-control\", \"material-standard-table-view\"]\nprops = { items = \"$param.items\", total_count = \"$param.total_count\", viewport_start = \"$param.viewport_start\", viewport_count = \"$param.viewport_count\", item_extent = \"$param.item_extent\", surface_variant = \"inset\", border_width = \"$material_border_width\", corner_radius = \"$material_radius\", font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = \"$material_list_item_padding_x\", layout_padding_right = \"$material_list_item_padding_x\", layout_spacing = \"$material_list_item_spacing\", layout_min_height = \"$material_list_item_height\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$material_scroll_height\", preferred = \"$material_scroll_height\", max = \"$material_scroll_height\", stretch = \"Fixed\" } }\n\n[nodes.material_tab_widget_impl_tabs]\nkind = \"slot\"\nslot_name = \"tabs\"\n\n[nodes.material_tab_widget_impl_root]\nkind = \"native\"\ntype = \"VerticalBox\"\nclasses = [\"material-tab-widget-impl\"]\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 64.0, preferred = 64.0, max = 64.0, stretch = \"Fixed\" }, container = { kind = \"VerticalBox\", gap = 2.0 } }\nchildren = [{ child = \"material_tab_widget_impl_tabs\", mount = \"tabs\" }]\n\n[nodes.material_tab_impl_root]\nkind = \"native\"\ntype = \"Tab\"\nclasses = [\"material-control\", \"material-tab-impl\"]\nprops = { text = \"$param.title\", value = \"$param.selected\", checked = \"$param.selected\", selected = \"$param.selected\", disabled = \"$param.disabled\", focused = \"$param.focused\", hovered = \"$param.hovered\", pressed = \"$param.pressed\", binding_id = \"$param.binding_id\", action_id = \"$param.action_id\", capability = \"$param.capability\", accessibility_label = \"$param.accessibility_label\", surface_variant = \"transparent\", button_variant = \"tab\", border_width = 0.0, corner_radius = 0.0, font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = \"$param.input_focusable\", layout_padding_left = \"$material_button_padding_x\", layout_padding_right = \"$material_button_padding_x\", layout_padding_top = \"$material_button_padding_y\", layout_padding_bottom = \"$material_button_padding_y\", layout_spacing = \"$material_button_spacing\", layout_min_width = \"$material_button_min_width\", layout_min_height = \"$param.height\", layout_icon_size = \"$material_button_icon_size\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$param.height\", preferred = \"$param.height\", max = \"$param.height\", stretch = \"Fixed\" } }\n\n[nodes.material_tab_bar_horizontal_impl_tabs]\nkind = \"slot\"\nslot_name = \"tabs\"\n\n[nodes.material_tab_bar_horizontal_impl_root]\nkind = \"native\"\ntype = \"HorizontalBox\"\nclasses = [\"material-tab-bar\", \"material-tab-bar-horizontal\"]\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 2.0 } }\nchildren = [{ child = \"material_tab_bar_horizontal_impl_tabs\", mount = \"tabs\" }]\n\n[nodes.material_tab_bar_vertical_impl_tabs]\nkind = \"slot\"\nslot_name = \"tabs\"\n\n[nodes.material_tab_bar_vertical_impl_root]\nkind = \"native\"\ntype = \"VerticalBox\"\nclasses = [\"material-tab-bar\", \"material-tab-bar-vertical\"]\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 72.0, preferred = 72.0, max = 72.0, stretch = \"Fixed\" }, container = { kind = \"VerticalBox\", gap = 2.0 } }\nchildren = [{ child = \"material_tab_bar_vertical_impl_tabs\", mount = \"tabs\" }]\n\n[nodes.material_tab_widget_tabs]\nkind = \"slot\"\nslot_name = \"tabs\"\n\n[nodes.material_tab_widget_root]\nkind = \"native\"\ntype = \"VerticalBox\"\nclasses = [\"material-tab-widget\"]\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 72.0, preferred = 72.0, max = 72.0, stretch = \"Fixed\" }, container = { kind = \"VerticalBox\", gap = 2.0 } }\nchildren = [{ child = \"material_tab_widget_tabs\", mount = \"tabs\" }]\n\n[nodes.material_text_edit_root]\nkind = \"native\"\ntype = \"TextField\"\nclasses = [\"material-control\", \"material-text-edit\"]\nprops = { value = \"$param.value\", placeholder = \"$param.placeholder\", validation_level = \"$param.validation_level\", disabled = \"$param.disabled\", focused = \"$param.focused\", hovered = \"$param.hovered\", surface_variant = \"inset\", border_width = \"$material_border_width\", corner_radius = \"$material_radius\", font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = \"$material_field_padding_x\", layout_padding_right = \"$material_field_padding_x\", layout_padding_top = \"$material_field_padding_y\", layout_padding_bottom = \"$material_field_padding_y\", layout_min_height = \"$param.height\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$param.height\" } }\n\n[nodes.material_time_picker_popup_root]\nkind = \"native\"\ntype = \"ContextActionMenu\"\nclasses = [\"material-control\", \"material-time-picker-popup\", \"material-popup-frame\"]\nprops = { value = \"$param.value\", menu_items = \"$param.menu_items\", popup_open = \"$param.popup_open\", popup_anchor_x = \"$param.popup_anchor_x\", popup_anchor_y = \"$param.popup_anchor_y\", action_id = \"$param.action_id\", capability = \"$param.capability\", accessibility_label = \"$param.accessibility_label\", surface_variant = \"inset\", border_width = \"$material_border_width\", corner_radius = \"$material_radius\", font_size = \"$material_font_size\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = \"$param.input_focusable\", layout_padding_left = \"$material_list_item_padding_x\", layout_padding_right = \"$material_list_item_padding_x\", layout_spacing = \"$material_list_item_spacing\", layout_min_height = \"$material_list_item_height\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$material_popup_height\", preferred = \"$material_popup_height\", max = \"$material_popup_height\", stretch = \"Fixed\" } }\n"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+accent = "#35c7d0"
+panel_bg = "#202830"
+panel_bg_soft = "#2f4650"
+field_bg = "#12181e"
+border = "#4b626d"
+text = "#e6f1f4"
+muted = "#8fa3ac"
+warning = "#f2b84b"
+error = "#ef7066"
+material_surface = "#202830"
+material_surface_inset = "#12181e"
+material_surface_hover = "#2f4650"
+material_surface_pressed = "#103c4a"
+material_surface_selected = "#0f6574"
+material_surface_disabled = "#191d22"
+material_accent = "#35c7d0"
+material_accent_soft = "#0f6574"
+material_border = "#4b626d"
+material_text = "#e6f1f4"
+material_text_muted = "#8fa3ac"
+material_text_disabled = "#58656c"
+material_warning = "#f2b84b"
+material_error = "#ef7066"
+material_success = "#5cbe7a"
+material_info = "#63b3ff"
+material_warning_container = "#463112"
+material_error_container = "#4c2427"
+material_success_container = "#1d472f"
+material_info_container = "#18395b"
+material_popup = "#0e1217"
+material_track = "#2a343c"
+material_focus_ring = "#80eaff"
+material_primary = "#35c7d0"
+material_on_primary = "#081416"
+material_surface_container = "#202830"
+material_surface_container_low = "#161e25"
+material_surface_container_high = "#2f4650"
+material_outline = "#4b626d"
+material_outline_variant = "#334852"
+material_on_error = "#fff0ee"
+material_on_success = "#07140c"
+material_on_info = "#07101a"
+material_shadow = "#00000066"
+material_shadow_soft = "#00000033"
+material_scrim = "#0b1020cc"
+material_inverse_surface = "#d2dceb"
+material_inverse_on_surface = "#171a20"
+material_color_primary = "$material_primary"
+material_color_on_primary = "$material_on_primary"
+material_color_surface = "$material_surface"
+material_color_surface_container = "$material_surface_container"
+material_color_surface_container_low = "$material_surface_container_low"
+material_color_surface_container_high = "$material_surface_container_high"
+material_color_on_surface = "$material_text"
+material_color_on_surface_variant = "$material_text_muted"
+material_color_outline = "$material_outline"
+material_color_outline_variant = "$material_outline_variant"
+material_color_error = "$material_error"
+material_color_on_error = "$material_on_error"
+material_color_success = "$material_success"
+material_color_on_success = "$material_on_success"
+material_color_info = "$material_info"
+material_color_on_info = "$material_on_info"
+material_color_shadow = "$material_shadow"
+material_color_scrim = "$material_scrim"
+material_state_layer_opacity_hover = 0.08
+material_state_layer_opacity_focus = 0.12
+material_state_layer_opacity_pressed = 0.12
+material_state_layer_opacity_disabled = 0.12
+material_state_layer_opacity_dragged = 0.16
+material_state_layer_opacity_press = "$material_state_layer_opacity_pressed"
+material_state_layer_opacity_drag = "$material_state_layer_opacity_dragged"
+material_disabled_opacity = 0.38
+material_focus_ring_width = 1
+material_focus_ring_offset = 1
+material_elevation_level0 = 0
+material_elevation_level1 = 1
+material_elevation_level2 = 3
+material_radius_none = 0
+material_radius_control = 5
+material_radius_surface = 12
+material_radius_small = 4
+material_radius_medium = 8
+material_radius_large = 16
+material_radius_pill = 28
+material_border_width = 1
+material_border_width_none = 0
+material_density_compact_height = 28
+material_density_default_height = 32
+material_density_prominent_height = 40
+material_density_compact_control_height = "$material_density_compact_height"
+material_density_default_control_height = "$material_density_default_height"
+material_density_field_control_height = "$material_density_default_height"
+material_density_list_item_height = "$material_density_default_height"
+material_spacing_button_content_x = 12
+material_spacing_button_content_y = 6
+material_spacing_button_gap = 6
+material_spacing_field_content_x = 10
+material_spacing_field_content_y = 3
+material_spacing_list_item_content_x = 10
+material_spacing_list_item_gap = 6
+material_icon_size_button = 16
+material_icon_size_standard = 18
+material_font_size_body = 12
+material_font_size_meta = 11
+material_font_size_title = 15
+material_control_height = "$material_density_default_control_height"
+material_compact_control_height = "$material_density_compact_control_height"
+material_icon_button_size = "$material_density_default_control_height"
+material_button_min_width = "$material_density_default_control_height"
+material_button_padding_x = "$material_spacing_button_content_x"
+material_button_padding_y = "$material_spacing_button_content_y"
+material_button_icon_size = "$material_icon_size_button"
+material_button_spacing = "$material_spacing_button_gap"
+material_field_min_height = "$material_density_field_control_height"
+material_field_padding_x = "$material_spacing_field_content_x"
+material_field_padding_y = "$material_spacing_field_content_y"
+material_list_item_height = "$material_density_list_item_height"
+material_list_item_padding_x = "$material_spacing_list_item_content_x"
+material_list_item_spacing = "$material_spacing_list_item_gap"
+material_icon_size = "$material_icon_size_standard"
+material_radius = "$material_radius_control"
+material_font_size = "$material_font_size_body"
+material_popup_width = 220
+material_popup_height = 120
+material_scroll_height = 84
+
+[asset]
+kind = "view"
+id = "ui.editor.material_meta_components"
+version = 2
+display_name = "Material Meta Components"
+
+[root]
+node = "__penpot_root"
+
+[nodes.material_state_layer_content]
+component = "Slot"
+legacy_kind = "slot"
+legacy_slot_name = "content"
+legacy_mount = "content"
+
+[nodes.material_state_layer_content.props]
+name = "content"
+
+[nodes.material_state_layer_root]
+component = "Group"
+classes = [ "material-state-layer" ]
+legacy_kind = "native"
+legacy_type = "Group"
+
+[nodes.material_state_layer_root.props]
+surface_variant = "inset"
+border_width = "$material_border_width"
+corner_radius = "$material_radius"
+disabled = false
+focused = false
+hovered = false
+pressed = false
+
+[nodes.material_state_layer_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_state_layer_root.layout.height]
+stretch = "Stretch"
+
+[nodes.material_state_layer_root.layout.container]
+kind = "Overlay"
+
+[[nodes.material_state_layer_root.children]]
+node = "material_state_layer_content"
+
+[nodes.material_state_layer_root.children.slot]
+name = "content"
+
+[nodes.material_button_base_root]
+component = "Button"
+control_id = "MaterialButtonBase"
+classes = [ "material-control", "material-button-base" ]
+legacy_kind = "native"
+legacy_type = "Button"
+
+[nodes.material_button_base_root.props]
+text = "Button"
+icon = ""
+surface_variant = "default"
+button_variant = "default"
+text_tone = "primary"
+disabled = false
+focused = false
+hovered = false
+pressed = false
+border_width = "$material_border_width"
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = "$material_button_padding_x"
+layout_padding_right = "$material_button_padding_x"
+layout_padding_top = "$material_button_padding_y"
+layout_padding_bottom = "$material_button_padding_y"
+layout_spacing = "$material_button_spacing"
+layout_min_width = "$material_button_min_width"
+layout_min_height = "$material_control_height"
+layout_icon_size = "$material_button_icon_size"
+
+[nodes.material_button_base_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_button_base_root.layout.height]
+min = "$material_control_height"
+
+[nodes.material_button_root]
+component = "Button"
+classes = [ "material-control", "material-button" ]
+legacy_kind = "native"
+legacy_type = "Button"
+
+[nodes.material_button_root.props]
+text = "Button"
+icon = ""
+surface_variant = "inset"
+button_variant = ""
+text_tone = ""
+validation_level = "normal"
+disabled = false
+focused = false
+hovered = false
+pressed = false
+binding_id = ""
+action_id = ""
+capability = ""
+accessibility_label = ""
+border_width = "$material_border_width"
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = "$material_button_padding_x"
+layout_padding_right = "$material_button_padding_x"
+layout_padding_top = "$material_button_padding_y"
+layout_padding_bottom = "$material_button_padding_y"
+layout_spacing = "$material_button_spacing"
+layout_min_width = "$material_button_min_width"
+layout_min_height = "$material_control_height"
+layout_icon_size = "$material_button_icon_size"
+
+[nodes.material_button_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_button_root.layout.height]
+min = "$material_control_height"
+
+[nodes.material_icon_button_root]
+component = "IconButton"
+classes = [ "material-control", "material-icon-button" ]
+legacy_kind = "native"
+legacy_type = "IconButton"
+
+[nodes.material_icon_button_root.props]
+text = ""
+icon = "ellipse-outline"
+surface_variant = "inset"
+button_variant = ""
+text_tone = ""
+validation_level = "normal"
+selected = false
+disabled = false
+focused = false
+hovered = false
+pressed = false
+binding_id = ""
+action_id = ""
+capability = ""
+accessibility_label = ""
+border_width = "$material_border_width"
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = 0
+layout_padding_right = 0
+layout_padding_top = 0
+layout_padding_bottom = 0
+layout_spacing = 0
+layout_min_width = "$material_icon_button_size"
+layout_min_height = "$material_icon_button_size"
+layout_icon_size = "$material_button_icon_size"
+
+[nodes.material_icon_button_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_icon_button_root.layout.height]
+min = "$material_icon_button_size"
+
+[nodes.material_toggle_button_root]
+component = "ToggleButton"
+classes = [ "material-control", "material-toggle-button" ]
+legacy_kind = "native"
+legacy_type = "ToggleButton"
+
+[nodes.material_toggle_button_root.props]
+text = "Toggle"
+value = false
+checked = false
+selected = false
+disabled = false
+focused = false
+hovered = false
+pressed = false
+surface_variant = "inset"
+border_width = "$material_border_width"
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = "$material_button_padding_x"
+layout_padding_right = "$material_button_padding_x"
+layout_padding_top = "$material_button_padding_y"
+layout_padding_bottom = "$material_button_padding_y"
+layout_spacing = "$material_button_spacing"
+layout_min_width = "$material_button_min_width"
+layout_min_height = "$material_control_height"
+layout_icon_size = "$material_button_icon_size"
+
+[nodes.material_toggle_button_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_toggle_button_root.layout.height]
+min = "$material_control_height"
+
+[nodes.material_checkbox_row_root]
+component = "Checkbox"
+classes = [ "material-control", "material-checkbox-row" ]
+legacy_kind = "native"
+legacy_type = "Checkbox"
+
+[nodes.material_checkbox_row_root.props]
+text = "Checkbox"
+value = false
+checked = false
+selected = false
+disabled = false
+focused = false
+hovered = false
+pressed = false
+surface_variant = "inset"
+border_width = "$material_border_width"
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = "$material_list_item_padding_x"
+layout_padding_right = "$material_list_item_padding_x"
+layout_spacing = "$material_list_item_spacing"
+layout_min_height = "$material_list_item_height"
+
+[nodes.material_checkbox_row_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_checkbox_row_root.layout.height]
+min = "$material_list_item_height"
+
+[nodes.material_outlined_field_root]
+component = "InputField"
+classes = [ "material-control", "material-outlined-field" ]
+legacy_kind = "native"
+legacy_type = "InputField"
+
+[nodes.material_outlined_field_root.props]
+value = ""
+placeholder = ""
+validation_level = "normal"
+disabled = false
+focused = false
+hovered = false
+surface_variant = "inset"
+text_tone = ""
+binding_id = ""
+edit_action_id = ""
+commit_action_id = ""
+capability = ""
+accessibility_label = ""
+border_width = "$material_border_width"
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = "$material_field_padding_x"
+layout_padding_right = "$material_field_padding_x"
+layout_padding_top = "$material_field_padding_y"
+layout_padding_bottom = "$material_field_padding_y"
+layout_min_height = "$material_field_min_height"
+
+[nodes.material_outlined_field_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_outlined_field_root.layout.height]
+min = "$material_field_min_height"
+
+[nodes.material_slider_field_root]
+component = "RangeField"
+classes = [ "material-control", "material-slider-field" ]
+legacy_kind = "native"
+legacy_type = "RangeField"
+
+[nodes.material_slider_field_root.props]
+value = 0
+min = 0
+max = 100
+step = 1
+disabled = false
+focused = false
+hovered = false
+pressed = false
+surface_variant = "inset"
+border_width = "$material_border_width"
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = "$material_field_padding_x"
+layout_padding_right = "$material_field_padding_x"
+layout_padding_top = "$material_field_padding_y"
+layout_padding_bottom = "$material_field_padding_y"
+layout_min_height = "$material_field_min_height"
+
+[nodes.material_slider_field_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_slider_field_root.layout.height]
+min = "$material_field_min_height"
+
+[nodes.material_ripple_root]
+component = "Group"
+classes = [ "material-ripple" ]
+legacy_kind = "native"
+legacy_type = "Group"
+
+[nodes.material_ripple_root.props]
+surface_variant = "accent"
+opacity = 0.12
+border_width = 0
+corner_radius = "$material_radius"
+
+[nodes.material_ripple_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_ripple_root.layout.height]
+stretch = "Stretch"
+
+[nodes.material_ripple_root.layout.container]
+kind = "Overlay"
+
+[nodes.material_list_item_root]
+component = "ListRow"
+classes = [ "material-control", "material-list-item" ]
+legacy_kind = "native"
+legacy_type = "ListRow"
+
+[nodes.material_list_item_root.props]
+text = "List item"
+value = ""
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+binding_id = ""
+action_id = ""
+capability = ""
+accessibility_label = ""
+surface_variant = "inset"
+border_width = 0
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = "$material_list_item_padding_x"
+layout_padding_right = "$material_list_item_padding_x"
+layout_spacing = "$material_list_item_spacing"
+layout_min_height = "$material_list_item_height"
+
+[nodes.material_list_item_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_list_item_root.layout.height]
+min = "$material_list_item_height"
+
+[nodes.material_table_row_root]
+component = "TableRow"
+classes = [ "material-control", "material-table-row" ]
+legacy_kind = "native"
+legacy_type = "TableRow"
+
+[nodes.material_table_row_root.props]
+text = "Table row"
+value = ""
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+surface_variant = "inset"
+border_width = 0
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = "$material_list_item_padding_x"
+layout_padding_right = "$material_list_item_padding_x"
+layout_spacing = "$material_list_item_spacing"
+layout_min_height = "$material_list_item_height"
+
+[nodes.material_table_row_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_table_row_root.layout.height]
+min = "$material_list_item_height"
+
+[nodes.material_text_button_root]
+component = "Button"
+classes = [ "material-control", "material-text-button" ]
+legacy_kind = "native"
+legacy_type = "Button"
+
+[nodes.material_text_button_root.props]
+text = "Text Button"
+surface_variant = "transparent"
+button_variant = "text"
+text_tone = "accent"
+disabled = false
+focused = false
+hovered = false
+pressed = false
+border_width = 0
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = "$material_button_padding_x"
+layout_padding_right = "$material_button_padding_x"
+layout_padding_top = "$material_button_padding_y"
+layout_padding_bottom = "$material_button_padding_y"
+layout_spacing = "$material_button_spacing"
+layout_min_width = "$material_button_min_width"
+layout_min_height = "$material_control_height"
+layout_icon_size = "$material_button_icon_size"
+
+[nodes.material_text_button_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_text_button_root.layout.height]
+min = "$material_control_height"
+
+[nodes.material_check_box_root]
+component = "Checkbox"
+classes = [ "material-control", "material-check-box" ]
+legacy_kind = "native"
+legacy_type = "Checkbox"
+
+[nodes.material_check_box_root.props]
+text = "CheckBox"
+value = false
+checked = false
+selected = false
+disabled = false
+focused = false
+hovered = false
+pressed = false
+surface_variant = "inset"
+border_width = "$material_border_width"
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = "$material_list_item_padding_x"
+layout_padding_right = "$material_list_item_padding_x"
+layout_spacing = "$material_list_item_spacing"
+layout_min_height = "$material_list_item_height"
+
+[nodes.material_check_box_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_check_box_root.layout.height]
+min = "$material_list_item_height"
+
+[nodes.material_combo_box_root]
+component = "ComboBox"
+classes = [ "material-control", "material-combo-box" ]
+legacy_kind = "native"
+legacy_type = "ComboBox"
+
+[nodes.material_combo_box_root.props]
+value = ""
+options = []
+popup_open = false
+popup_anchor_x = 0
+popup_anchor_y = 0
+multiple = false
+selection_state = "single"
+disabled = false
+focused = false
+hovered = false
+pressed = false
+binding_id = ""
+action_id = ""
+capability = ""
+accessibility_label = ""
+surface_variant = "inset"
+border_width = "$material_border_width"
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = "$material_field_padding_x"
+layout_padding_right = "$material_field_padding_x"
+layout_padding_top = "$material_field_padding_y"
+layout_padding_bottom = "$material_field_padding_y"
+layout_min_height = "$material_field_min_height"
+
+[nodes.material_combo_box_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_combo_box_root.layout.height]
+min = "$material_field_min_height"
+
+[nodes.material_date_picker_popup_root]
+component = "ContextActionMenu"
+classes = [ "material-control", "material-date-picker-popup", "material-popup-frame" ]
+legacy_kind = "native"
+legacy_type = "ContextActionMenu"
+
+[nodes.material_date_picker_popup_root.props]
+value = ""
+menu_items = []
+popup_open = true
+popup_anchor_x = 0
+popup_anchor_y = 0
+action_id = ""
+capability = ""
+accessibility_label = ""
+surface_variant = "inset"
+border_width = "$material_border_width"
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = "$material_list_item_padding_x"
+layout_padding_right = "$material_list_item_padding_x"
+layout_spacing = "$material_list_item_spacing"
+layout_min_height = "$material_list_item_height"
+
+[nodes.material_date_picker_popup_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_date_picker_popup_root.layout.height]
+min = "$material_popup_height"
+preferred = "$material_popup_height"
+max = "$material_popup_height"
+stretch = "Fixed"
+
+[nodes.material_group_box_root]
+component = "Group"
+classes = [ "material-control", "material-group-box" ]
+legacy_kind = "native"
+legacy_type = "Group"
+
+[nodes.material_group_box_root.props]
+text = "Group"
+expanded = true
+disabled = false
+focused = false
+hovered = false
+pressed = false
+capability = ""
+accessibility_label = ""
+surface_variant = "inset"
+border_width = "$material_border_width"
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_min_height = 32
+
+[nodes.material_group_box_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_group_box_root.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.material_line_edit_root]
+component = "InputField"
+classes = [ "material-control", "material-line-edit" ]
+legacy_kind = "native"
+legacy_type = "InputField"
+
+[nodes.material_line_edit_root.props]
+value = ""
+placeholder = ""
+validation_level = "normal"
+disabled = false
+focused = false
+hovered = false
+surface_variant = "inset"
+border_width = "$material_border_width"
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = "$material_field_padding_x"
+layout_padding_right = "$material_field_padding_x"
+layout_padding_top = "$material_field_padding_y"
+layout_padding_bottom = "$material_field_padding_y"
+layout_min_height = "$material_field_min_height"
+
+[nodes.material_line_edit_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_line_edit_root.layout.height]
+min = "$material_field_min_height"
+
+[nodes.material_menu_bar_item_root]
+component = "Button"
+classes = [ "material-control", "material-menu-bar-item" ]
+legacy_kind = "native"
+legacy_type = "Button"
+
+[nodes.material_menu_bar_item_root.props]
+text = "Menu"
+disabled = false
+focused = false
+hovered = false
+pressed = false
+binding_id = ""
+action_id = ""
+capability = ""
+accessibility_label = ""
+surface_variant = "transparent"
+button_variant = "text"
+border_width = 0
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = "$material_button_padding_x"
+layout_padding_right = "$material_button_padding_x"
+layout_padding_top = "$material_button_padding_y"
+layout_padding_bottom = "$material_button_padding_y"
+layout_spacing = "$material_button_spacing"
+layout_min_width = "$material_button_min_width"
+layout_min_height = 32
+layout_icon_size = "$material_button_icon_size"
+
+[nodes.material_menu_bar_item_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_menu_bar_item_root.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.material_menu_bar_content]
+component = "Slot"
+legacy_kind = "slot"
+legacy_slot_name = "content"
+legacy_mount = "content"
+
+[nodes.material_menu_bar_content.props]
+name = "content"
+
+[nodes.material_menu_bar_root]
+component = "HorizontalBox"
+classes = [ "material-menu-bar" ]
+legacy_kind = "native"
+legacy_type = "HorizontalBox"
+
+[nodes.material_menu_bar_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_menu_bar_root.layout.height]
+min = 40
+preferred = 40
+max = 40
+stretch = "Fixed"
+
+[nodes.material_menu_bar_root.layout.container]
+kind = "HorizontalBox"
+gap = 8
+
+[[nodes.material_menu_bar_root.children]]
+node = "material_menu_bar_content"
+
+[nodes.material_menu_bar_root.children.slot]
+name = "content"
+
+[nodes.material_menu_frame_root]
+component = "ContextActionMenu"
+classes = [ "material-control", "material-menu-frame", "material-popup-frame" ]
+legacy_kind = "native"
+legacy_type = "ContextActionMenu"
+
+[nodes.material_menu_frame_root.props]
+value = ""
+menu_items = []
+popup_open = true
+popup_anchor_x = 0
+popup_anchor_y = 0
+action_id = ""
+capability = ""
+accessibility_label = ""
+surface_variant = "inset"
+border_width = "$material_border_width"
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = "$material_list_item_padding_x"
+layout_padding_right = "$material_list_item_padding_x"
+layout_spacing = "$material_list_item_spacing"
+layout_min_height = "$material_list_item_height"
+
+[nodes.material_menu_frame_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_menu_frame_root.layout.height]
+min = "$material_popup_height"
+preferred = "$material_popup_height"
+max = "$material_popup_height"
+stretch = "Fixed"
+
+[nodes.material_menu_item_root]
+component = "MenuItem"
+classes = [ "material-control", "material-menu-item" ]
+legacy_kind = "native"
+legacy_type = "MenuItem"
+
+[nodes.material_menu_item_root.props]
+text = "Menu item"
+checked = false
+selected = false
+disabled = false
+focused = false
+hovered = false
+pressed = false
+binding_id = ""
+action_id = ""
+capability = ""
+accessibility_label = ""
+surface_variant = "inset"
+border_width = 0
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = "$material_list_item_padding_x"
+layout_padding_right = "$material_list_item_padding_x"
+layout_spacing = "$material_list_item_spacing"
+layout_min_height = 40
+
+[nodes.material_menu_item_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_menu_item_root.layout.height]
+min = 40
+preferred = 40
+max = 40
+stretch = "Fixed"
+
+[nodes.material_progress_indicator_root]
+component = "ProgressBar"
+classes = [ "material-control", "material-progress-indicator" ]
+legacy_kind = "native"
+legacy_type = "ProgressBar"
+
+[nodes.material_progress_indicator_root.props]
+value = 0.5
+indeterminate = false
+surface_variant = "inset"
+border_width = 0
+corner_radius = "$material_radius"
+layout_min_height = 8
+
+[nodes.material_progress_indicator_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_progress_indicator_root.layout.height]
+min = 8
+preferred = 8
+max = 8
+stretch = "Fixed"
+
+[nodes.material_scroll_view_content]
+component = "Slot"
+legacy_kind = "slot"
+legacy_slot_name = "content"
+legacy_mount = "content"
+
+[nodes.material_scroll_view_content.props]
+name = "content"
+
+[nodes.material_scroll_view_root]
+component = "ScrollableBox"
+classes = [ "material-control", "material-scroll-view" ]
+legacy_kind = "native"
+legacy_type = "ScrollableBox"
+
+[nodes.material_scroll_view_root.props]
+capability = ""
+accessibility_label = ""
+surface_variant = "inset"
+border_width = "$material_border_width"
+corner_radius = "$material_radius"
+input_interactive = false
+input_clickable = false
+input_hoverable = true
+input_focusable = false
+
+[nodes.material_scroll_view_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_scroll_view_root.layout.height]
+min = "$material_scroll_height"
+preferred = "$material_scroll_height"
+max = "$material_scroll_height"
+stretch = "Fixed"
+
+[nodes.material_scroll_view_root.layout.container]
+kind = "VerticalBox"
+gap = 4
+
+[nodes.material_scroll_view_root.layout.scroll]
+vertical = true
+
+[[nodes.material_scroll_view_root.children]]
+node = "material_scroll_view_content"
+
+[nodes.material_scroll_view_root.children.slot]
+name = "content"
+
+[nodes.material_slider_root]
+component = "RangeField"
+classes = [ "material-control", "material-slider" ]
+legacy_kind = "native"
+legacy_type = "RangeField"
+
+[nodes.material_slider_root.props]
+value = 0
+min = 0
+max = 100
+step = 1
+disabled = false
+focused = false
+hovered = false
+pressed = false
+surface_variant = "inset"
+border_width = "$material_border_width"
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = "$material_field_padding_x"
+layout_padding_right = "$material_field_padding_x"
+layout_padding_top = "$material_field_padding_y"
+layout_padding_bottom = "$material_field_padding_y"
+layout_min_height = "$material_field_min_height"
+
+[nodes.material_slider_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_slider_root.layout.height]
+min = "$material_field_min_height"
+
+[nodes.material_spin_box_root]
+component = "NumberField"
+classes = [ "material-control", "material-spin-box" ]
+legacy_kind = "native"
+legacy_type = "NumberField"
+
+[nodes.material_spin_box_root.props]
+value = 0
+min = 0
+max = 100
+step = 1
+large_step = 10
+validation_level = "normal"
+disabled = false
+focused = false
+hovered = false
+pressed = false
+surface_variant = "inset"
+border_width = "$material_border_width"
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = "$material_field_padding_x"
+layout_padding_right = "$material_field_padding_x"
+layout_padding_top = "$material_field_padding_y"
+layout_padding_bottom = "$material_field_padding_y"
+layout_min_height = "$material_field_min_height"
+
+[nodes.material_spin_box_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_spin_box_root.layout.height]
+min = "$material_field_min_height"
+
+[nodes.material_spinner_root]
+component = "Spinner"
+classes = [ "material-control", "material-spinner" ]
+legacy_kind = "native"
+legacy_type = "Spinner"
+
+[nodes.material_spinner_root.props]
+text = "Loading"
+surface_variant = "transparent"
+border_width = 0
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+layout_padding_left = "$material_list_item_padding_x"
+layout_padding_right = "$material_list_item_padding_x"
+layout_spacing = "$material_list_item_spacing"
+layout_min_height = "$material_control_height"
+layout_icon_size = "$material_button_icon_size"
+
+[nodes.material_spinner_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_spinner_root.layout.height]
+min = "$material_control_height"
+preferred = "$material_control_height"
+max = "$material_control_height"
+stretch = "Fixed"
+
+[nodes.material_switch_root]
+component = "ToggleButton"
+classes = [ "material-control", "material-switch" ]
+legacy_kind = "native"
+legacy_type = "ToggleButton"
+
+[nodes.material_switch_root.props]
+text = "Switch"
+value = false
+checked = false
+selected = false
+disabled = false
+focused = false
+hovered = false
+pressed = false
+surface_variant = "inset"
+button_variant = "switch"
+border_width = "$material_border_width"
+corner_radius = 16
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = "$material_list_item_padding_x"
+layout_padding_right = "$material_list_item_padding_x"
+layout_spacing = "$material_list_item_spacing"
+layout_min_height = "$material_list_item_height"
+
+[nodes.material_switch_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_switch_root.layout.height]
+min = "$material_list_item_height"
+
+[nodes.material_standard_table_view_root]
+component = "VirtualList"
+classes = [ "material-control", "material-standard-table-view" ]
+legacy_kind = "native"
+legacy_type = "VirtualList"
+
+[nodes.material_standard_table_view_root.props]
+items = []
+total_count = 0
+viewport_start = 0
+viewport_count = 0
+item_extent = 40
+surface_variant = "inset"
+border_width = "$material_border_width"
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = "$material_list_item_padding_x"
+layout_padding_right = "$material_list_item_padding_x"
+layout_spacing = "$material_list_item_spacing"
+layout_min_height = "$material_list_item_height"
+
+[nodes.material_standard_table_view_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_standard_table_view_root.layout.height]
+min = "$material_scroll_height"
+preferred = "$material_scroll_height"
+max = "$material_scroll_height"
+stretch = "Fixed"
+
+[nodes.material_tab_widget_impl_tabs]
+component = "Slot"
+legacy_kind = "slot"
+legacy_slot_name = "tabs"
+legacy_mount = "tabs"
+
+[nodes.material_tab_widget_impl_tabs.props]
+name = "tabs"
+
+[nodes.material_tab_widget_impl_root]
+component = "VerticalBox"
+classes = [ "material-tab-widget-impl" ]
+legacy_kind = "native"
+legacy_type = "VerticalBox"
+
+[nodes.material_tab_widget_impl_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_tab_widget_impl_root.layout.height]
+min = 64
+preferred = 64
+max = 64
+stretch = "Fixed"
+
+[nodes.material_tab_widget_impl_root.layout.container]
+kind = "VerticalBox"
+gap = 2
+
+[[nodes.material_tab_widget_impl_root.children]]
+node = "material_tab_widget_impl_tabs"
+
+[nodes.material_tab_widget_impl_root.children.slot]
+name = "tabs"
+
+[nodes.material_tab_impl_root]
+component = "Tab"
+classes = [ "material-control", "material-tab-impl" ]
+legacy_kind = "native"
+legacy_type = "Tab"
+
+[nodes.material_tab_impl_root.props]
+text = "Tab"
+value = false
+checked = false
+selected = false
+disabled = false
+focused = false
+hovered = false
+pressed = false
+binding_id = ""
+action_id = ""
+capability = ""
+accessibility_label = ""
+surface_variant = "transparent"
+button_variant = "tab"
+border_width = 0
+corner_radius = 0
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = "$material_button_padding_x"
+layout_padding_right = "$material_button_padding_x"
+layout_padding_top = "$material_button_padding_y"
+layout_padding_bottom = "$material_button_padding_y"
+layout_spacing = "$material_button_spacing"
+layout_min_width = "$material_button_min_width"
+layout_min_height = 36
+layout_icon_size = "$material_button_icon_size"
+
+[nodes.material_tab_impl_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_tab_impl_root.layout.height]
+min = 36
+preferred = 36
+max = 36
+stretch = "Fixed"
+
+[nodes.material_tab_bar_horizontal_impl_tabs]
+component = "Slot"
+legacy_kind = "slot"
+legacy_slot_name = "tabs"
+legacy_mount = "tabs"
+
+[nodes.material_tab_bar_horizontal_impl_tabs.props]
+name = "tabs"
+
+[nodes.material_tab_bar_horizontal_impl_root]
+component = "HorizontalBox"
+classes = [ "material-tab-bar", "material-tab-bar-horizontal" ]
+legacy_kind = "native"
+legacy_type = "HorizontalBox"
+
+[nodes.material_tab_bar_horizontal_impl_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_tab_bar_horizontal_impl_root.layout.height]
+min = 40
+preferred = 40
+max = 40
+stretch = "Fixed"
+
+[nodes.material_tab_bar_horizontal_impl_root.layout.container]
+kind = "HorizontalBox"
+gap = 2
+
+[[nodes.material_tab_bar_horizontal_impl_root.children]]
+node = "material_tab_bar_horizontal_impl_tabs"
+
+[nodes.material_tab_bar_horizontal_impl_root.children.slot]
+name = "tabs"
+
+[nodes.material_tab_bar_vertical_impl_tabs]
+component = "Slot"
+legacy_kind = "slot"
+legacy_slot_name = "tabs"
+legacy_mount = "tabs"
+
+[nodes.material_tab_bar_vertical_impl_tabs.props]
+name = "tabs"
+
+[nodes.material_tab_bar_vertical_impl_root]
+component = "VerticalBox"
+classes = [ "material-tab-bar", "material-tab-bar-vertical" ]
+legacy_kind = "native"
+legacy_type = "VerticalBox"
+
+[nodes.material_tab_bar_vertical_impl_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_tab_bar_vertical_impl_root.layout.height]
+min = 72
+preferred = 72
+max = 72
+stretch = "Fixed"
+
+[nodes.material_tab_bar_vertical_impl_root.layout.container]
+kind = "VerticalBox"
+gap = 2
+
+[[nodes.material_tab_bar_vertical_impl_root.children]]
+node = "material_tab_bar_vertical_impl_tabs"
+
+[nodes.material_tab_bar_vertical_impl_root.children.slot]
+name = "tabs"
+
+[nodes.material_tab_widget_tabs]
+component = "Slot"
+legacy_kind = "slot"
+legacy_slot_name = "tabs"
+legacy_mount = "tabs"
+
+[nodes.material_tab_widget_tabs.props]
+name = "tabs"
+
+[nodes.material_tab_widget_root]
+component = "VerticalBox"
+classes = [ "material-tab-widget" ]
+legacy_kind = "native"
+legacy_type = "VerticalBox"
+
+[nodes.material_tab_widget_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_tab_widget_root.layout.height]
+min = 72
+preferred = 72
+max = 72
+stretch = "Fixed"
+
+[nodes.material_tab_widget_root.layout.container]
+kind = "VerticalBox"
+gap = 2
+
+[[nodes.material_tab_widget_root.children]]
+node = "material_tab_widget_tabs"
+
+[nodes.material_tab_widget_root.children.slot]
+name = "tabs"
+
+[nodes.material_text_edit_root]
+component = "TextField"
+classes = [ "material-control", "material-text-edit" ]
+legacy_kind = "native"
+legacy_type = "TextField"
+
+[nodes.material_text_edit_root.props]
+value = ""
+placeholder = ""
+validation_level = "normal"
+disabled = false
+focused = false
+hovered = false
+surface_variant = "inset"
+border_width = "$material_border_width"
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = "$material_field_padding_x"
+layout_padding_right = "$material_field_padding_x"
+layout_padding_top = "$material_field_padding_y"
+layout_padding_bottom = "$material_field_padding_y"
+layout_min_height = "$material_field_min_height"
+
+[nodes.material_text_edit_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_text_edit_root.layout.height]
+min = "$material_field_min_height"
+
+[nodes.material_time_picker_popup_root]
+component = "ContextActionMenu"
+classes = [ "material-control", "material-time-picker-popup", "material-popup-frame" ]
+legacy_kind = "native"
+legacy_type = "ContextActionMenu"
+
+[nodes.material_time_picker_popup_root.props]
+value = ""
+menu_items = []
+popup_open = true
+popup_anchor_x = 0
+popup_anchor_y = 0
+action_id = ""
+capability = ""
+accessibility_label = ""
+surface_variant = "inset"
+border_width = "$material_border_width"
+corner_radius = "$material_radius"
+font_size = "$material_font_size"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+layout_padding_left = "$material_list_item_padding_x"
+layout_padding_right = "$material_list_item_padding_x"
+layout_spacing = "$material_list_item_spacing"
+layout_min_height = "$material_list_item_height"
+
+[nodes.material_time_picker_popup_root.layout.width]
+stretch = "Stretch"
+
+[nodes.material_time_picker_popup_root.layout.height]
+min = "$material_popup_height"
+preferred = "$material_popup_height"
+max = "$material_popup_height"
+stretch = "Fixed"
+
+[nodes.__penpot_root]
+component = "ScrollableBox"
+control_id = "PenpotCatalogRoot"
+
+[nodes.__penpot_root.props]
+background_color = "#171a20"
+
+[nodes.__penpot_root.layout]
+clip = true
+
+[nodes.__penpot_root.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = 16
+scrollbar_visibility = "Auto"
+
+[nodes.__penpot_root.layout.padding]
+top = 24
+right = 24
+bottom = 24
+left = 24
+
+[nodes.__penpot_root.layout.width]
+min = 0
+stretch = "Stretch"
+
+[nodes.__penpot_root.layout.height]
+min = 0
+stretch = "Stretch"
+
+[[nodes.__penpot_root.children]]
+node = "material_state_layer_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_button_base_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_button_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_icon_button_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_toggle_button_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_checkbox_row_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_outlined_field_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_slider_field_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_ripple_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_list_item_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_table_row_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_text_button_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_check_box_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_combo_box_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_date_picker_popup_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_group_box_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_line_edit_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_menu_bar_item_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_menu_bar_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_menu_frame_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_menu_item_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_progress_indicator_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_scroll_view_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_slider_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_spin_box_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_spinner_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_switch_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_standard_table_view_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_tab_widget_impl_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_tab_impl_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_tab_bar_horizontal_impl_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_tab_bar_vertical_impl_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_tab_widget_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_text_edit_root"
+
+[[nodes.__penpot_root.children]]
+node = "material_time_picker_popup_root"
+
+[components.MaterialStateLayer]
+root = "material_state_layer_root"
+style_scope = "open"
+
+[components.MaterialStateLayer.params.surface_variant]
+type = "string"
+default = "inset"
+
+[components.MaterialStateLayer.params.border_width]
+type = "number"
+default = "$material_border_width"
+
+[components.MaterialStateLayer.params.corner_radius]
+type = "number"
+default = "$material_radius"
+
+[components.MaterialStateLayer.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialStateLayer.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialStateLayer.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialStateLayer.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialStateLayer.slots.content]
+required = false
+multiple = true
+
+[components.MaterialButtonBase]
+root = "material_button_base_root"
+style_scope = "open"
+
+[components.MaterialButtonBase.params.text]
+type = "string"
+default = "Button"
+
+[components.MaterialButtonBase.params.icon]
+type = "string"
+default = ""
+
+[components.MaterialButtonBase.params.surface_variant]
+type = "string"
+default = "default"
+
+[components.MaterialButtonBase.params.button_variant]
+type = "string"
+default = "default"
+
+[components.MaterialButtonBase.params.text_tone]
+type = "string"
+default = "primary"
+
+[components.MaterialButtonBase.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialButtonBase.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialButtonBase.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialButtonBase.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialButtonBase.params.height]
+type = "number"
+default = "$material_control_height"
+
+[components.MaterialButton]
+root = "material_button_root"
+style_scope = "open"
+
+[components.MaterialButton.params.text]
+type = "string"
+default = "Button"
+
+[components.MaterialButton.params.icon]
+type = "string"
+default = ""
+
+[components.MaterialButton.params.surface_variant]
+type = "string"
+default = "inset"
+
+[components.MaterialButton.params.button_variant]
+type = "string"
+default = ""
+
+[components.MaterialButton.params.text_tone]
+type = "string"
+default = ""
+
+[components.MaterialButton.params.validation_level]
+type = "string"
+default = "normal"
+
+[components.MaterialButton.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialButton.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialButton.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialButton.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialButton.params.binding_id]
+type = "string"
+default = ""
+
+[components.MaterialButton.params.action_id]
+type = "string"
+default = ""
+
+[components.MaterialButton.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialButton.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialButton.params.accessibility_label]
+type = "string"
+default = ""
+
+[components.MaterialButton.params.height]
+type = "number"
+default = "$material_control_height"
+
+[components.MaterialIconButton]
+root = "material_icon_button_root"
+style_scope = "open"
+
+[components.MaterialIconButton.params.text]
+type = "string"
+default = ""
+
+[components.MaterialIconButton.params.icon]
+type = "string"
+default = "ellipse-outline"
+
+[components.MaterialIconButton.params.surface_variant]
+type = "string"
+default = "inset"
+
+[components.MaterialIconButton.params.button_variant]
+type = "string"
+default = ""
+
+[components.MaterialIconButton.params.text_tone]
+type = "string"
+default = ""
+
+[components.MaterialIconButton.params.validation_level]
+type = "string"
+default = "normal"
+
+[components.MaterialIconButton.params.selected]
+type = "bool"
+default = false
+
+[components.MaterialIconButton.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialIconButton.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialIconButton.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialIconButton.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialIconButton.params.binding_id]
+type = "string"
+default = ""
+
+[components.MaterialIconButton.params.action_id]
+type = "string"
+default = ""
+
+[components.MaterialIconButton.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialIconButton.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialIconButton.params.accessibility_label]
+type = "string"
+default = ""
+
+[components.MaterialIconButton.params.height]
+type = "number"
+default = "$material_icon_button_size"
+
+[components.MaterialToggleButton]
+root = "material_toggle_button_root"
+style_scope = "open"
+
+[components.MaterialToggleButton.params.text]
+type = "string"
+default = "Toggle"
+
+[components.MaterialToggleButton.params.checked]
+type = "bool"
+default = false
+
+[components.MaterialToggleButton.params.surface_variant]
+type = "string"
+default = "inset"
+
+[components.MaterialToggleButton.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialToggleButton.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialToggleButton.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialToggleButton.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialToggleButton.params.height]
+type = "number"
+default = "$material_control_height"
+
+[components.MaterialCheckboxRow]
+root = "material_checkbox_row_root"
+style_scope = "open"
+
+[components.MaterialCheckboxRow.params.text]
+type = "string"
+default = "Checkbox"
+
+[components.MaterialCheckboxRow.params.checked]
+type = "bool"
+default = false
+
+[components.MaterialCheckboxRow.params.surface_variant]
+type = "string"
+default = "inset"
+
+[components.MaterialCheckboxRow.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialCheckboxRow.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialCheckboxRow.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialCheckboxRow.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialCheckboxRow.params.height]
+type = "number"
+default = "$material_list_item_height"
+
+[components.MaterialOutlinedField]
+root = "material_outlined_field_root"
+style_scope = "open"
+
+[components.MaterialOutlinedField.params.value]
+type = "string"
+default = ""
+
+[components.MaterialOutlinedField.params.placeholder]
+type = "string"
+default = ""
+
+[components.MaterialOutlinedField.params.validation_level]
+type = "string"
+default = "normal"
+
+[components.MaterialOutlinedField.params.text_tone]
+type = "string"
+default = ""
+
+[components.MaterialOutlinedField.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialOutlinedField.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialOutlinedField.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialOutlinedField.params.binding_id]
+type = "string"
+default = ""
+
+[components.MaterialOutlinedField.params.edit_action_id]
+type = "string"
+default = ""
+
+[components.MaterialOutlinedField.params.commit_action_id]
+type = "string"
+default = ""
+
+[components.MaterialOutlinedField.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialOutlinedField.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialOutlinedField.params.accessibility_label]
+type = "string"
+default = ""
+
+[components.MaterialOutlinedField.params.height]
+type = "number"
+default = "$material_field_min_height"
+
+[components.MaterialSliderField]
+root = "material_slider_field_root"
+style_scope = "open"
+
+[components.MaterialSliderField.params.value]
+type = "number"
+default = 0
+
+[components.MaterialSliderField.params.min]
+type = "number"
+default = 0
+
+[components.MaterialSliderField.params.max]
+type = "number"
+default = 100
+
+[components.MaterialSliderField.params.step]
+type = "number"
+default = 1
+
+[components.MaterialSliderField.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialSliderField.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialSliderField.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialSliderField.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialSliderField.params.height]
+type = "number"
+default = "$material_field_min_height"
+
+[components.MaterialRipple]
+root = "material_ripple_root"
+style_scope = "open"
+
+[components.MaterialRipple.params.surface_variant]
+type = "string"
+default = "accent"
+
+[components.MaterialRipple.params.opacity]
+type = "number"
+default = 0.12
+
+[components.MaterialListItem]
+root = "material_list_item_root"
+style_scope = "open"
+
+[components.MaterialListItem.params.text]
+type = "string"
+default = "List item"
+
+[components.MaterialListItem.params.value]
+type = "string"
+default = ""
+
+[components.MaterialListItem.params.selected]
+type = "bool"
+default = false
+
+[components.MaterialListItem.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialListItem.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialListItem.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialListItem.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialListItem.params.binding_id]
+type = "string"
+default = ""
+
+[components.MaterialListItem.params.action_id]
+type = "string"
+default = ""
+
+[components.MaterialListItem.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialListItem.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialListItem.params.accessibility_label]
+type = "string"
+default = ""
+
+[components.MaterialListItem.params.height]
+type = "number"
+default = "$material_list_item_height"
+
+[components.MaterialTableRow]
+root = "material_table_row_root"
+style_scope = "open"
+
+[components.MaterialTableRow.params.text]
+type = "string"
+default = "Table row"
+
+[components.MaterialTableRow.params.value]
+type = "string"
+default = ""
+
+[components.MaterialTableRow.params.selected]
+type = "bool"
+default = false
+
+[components.MaterialTableRow.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialTableRow.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialTableRow.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialTableRow.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialTableRow.params.height]
+type = "number"
+default = "$material_list_item_height"
+
+[components.MaterialTextButton]
+root = "material_text_button_root"
+style_scope = "open"
+
+[components.MaterialTextButton.params.text]
+type = "string"
+default = "Text Button"
+
+[components.MaterialTextButton.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialTextButton.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialTextButton.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialTextButton.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialTextButton.params.height]
+type = "number"
+default = "$material_control_height"
+
+[components.MaterialCheckBox]
+root = "material_check_box_root"
+style_scope = "open"
+
+[components.MaterialCheckBox.params.text]
+type = "string"
+default = "CheckBox"
+
+[components.MaterialCheckBox.params.checked]
+type = "bool"
+default = false
+
+[components.MaterialCheckBox.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialCheckBox.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialCheckBox.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialCheckBox.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialCheckBox.params.height]
+type = "number"
+default = "$material_list_item_height"
+
+[components.MaterialComboBox]
+root = "material_combo_box_root"
+style_scope = "open"
+
+[components.MaterialComboBox.params.value]
+type = "string"
+default = ""
+
+[components.MaterialComboBox.params.options]
+type = "array"
+default = []
+
+[components.MaterialComboBox.params.popup_open]
+type = "bool"
+default = false
+
+[components.MaterialComboBox.params.popup_anchor_x]
+type = "number"
+default = 0
+
+[components.MaterialComboBox.params.popup_anchor_y]
+type = "number"
+default = 0
+
+[components.MaterialComboBox.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialComboBox.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialComboBox.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialComboBox.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialComboBox.params.multiple]
+type = "bool"
+default = false
+
+[components.MaterialComboBox.params.selection_state]
+type = "string"
+default = "single"
+
+[components.MaterialComboBox.params.binding_id]
+type = "string"
+default = ""
+
+[components.MaterialComboBox.params.action_id]
+type = "string"
+default = ""
+
+[components.MaterialComboBox.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialComboBox.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialComboBox.params.accessibility_label]
+type = "string"
+default = ""
+
+[components.MaterialComboBox.params.height]
+type = "number"
+default = "$material_field_min_height"
+
+[components.MaterialDatePickerPopup]
+root = "material_date_picker_popup_root"
+style_scope = "open"
+
+[components.MaterialDatePickerPopup.params.value]
+type = "string"
+default = ""
+
+[components.MaterialDatePickerPopup.params.menu_items]
+type = "array"
+default = []
+
+[components.MaterialDatePickerPopup.params.popup_open]
+type = "bool"
+default = true
+
+[components.MaterialDatePickerPopup.params.popup_anchor_x]
+type = "number"
+default = 0
+
+[components.MaterialDatePickerPopup.params.popup_anchor_y]
+type = "number"
+default = 0
+
+[components.MaterialDatePickerPopup.params.action_id]
+type = "string"
+default = ""
+
+[components.MaterialDatePickerPopup.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialDatePickerPopup.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialDatePickerPopup.params.accessibility_label]
+type = "string"
+default = ""
+
+[components.MaterialGroupBox]
+root = "material_group_box_root"
+style_scope = "open"
+
+[components.MaterialGroupBox.params.text]
+type = "string"
+default = "Group"
+
+[components.MaterialGroupBox.params.expanded]
+type = "bool"
+default = true
+
+[components.MaterialGroupBox.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialGroupBox.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialGroupBox.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialGroupBox.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialGroupBox.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialGroupBox.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialGroupBox.params.accessibility_label]
+type = "string"
+default = ""
+
+[components.MaterialGroupBox.params.height]
+type = "number"
+default = 32
+
+[components.MaterialLineEdit]
+root = "material_line_edit_root"
+style_scope = "open"
+
+[components.MaterialLineEdit.params.value]
+type = "string"
+default = ""
+
+[components.MaterialLineEdit.params.placeholder]
+type = "string"
+default = ""
+
+[components.MaterialLineEdit.params.validation_level]
+type = "string"
+default = "normal"
+
+[components.MaterialLineEdit.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialLineEdit.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialLineEdit.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialLineEdit.params.height]
+type = "number"
+default = "$material_field_min_height"
+
+[components.MaterialMenuBarItem]
+root = "material_menu_bar_item_root"
+style_scope = "open"
+
+[components.MaterialMenuBarItem.params.text]
+type = "string"
+default = "Menu"
+
+[components.MaterialMenuBarItem.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialMenuBarItem.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialMenuBarItem.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialMenuBarItem.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialMenuBarItem.params.binding_id]
+type = "string"
+default = ""
+
+[components.MaterialMenuBarItem.params.action_id]
+type = "string"
+default = ""
+
+[components.MaterialMenuBarItem.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialMenuBarItem.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialMenuBarItem.params.accessibility_label]
+type = "string"
+default = ""
+
+[components.MaterialMenuBarItem.params.height]
+type = "number"
+default = 32
+
+[components.MaterialMenuBar]
+root = "material_menu_bar_root"
+style_scope = "open"
+
+[components.MaterialMenuBar.slots.content]
+required = false
+multiple = true
+
+[components.MaterialMenuFrame]
+root = "material_menu_frame_root"
+style_scope = "open"
+
+[components.MaterialMenuFrame.params.value]
+type = "string"
+default = ""
+
+[components.MaterialMenuFrame.params.menu_items]
+type = "array"
+default = []
+
+[components.MaterialMenuFrame.params.popup_open]
+type = "bool"
+default = true
+
+[components.MaterialMenuFrame.params.popup_anchor_x]
+type = "number"
+default = 0
+
+[components.MaterialMenuFrame.params.popup_anchor_y]
+type = "number"
+default = 0
+
+[components.MaterialMenuFrame.params.action_id]
+type = "string"
+default = ""
+
+[components.MaterialMenuFrame.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialMenuFrame.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialMenuFrame.params.accessibility_label]
+type = "string"
+default = ""
+
+[components.MaterialMenuItem]
+root = "material_menu_item_root"
+style_scope = "open"
+
+[components.MaterialMenuItem.params.text]
+type = "string"
+default = "Menu item"
+
+[components.MaterialMenuItem.params.checked]
+type = "bool"
+default = false
+
+[components.MaterialMenuItem.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialMenuItem.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialMenuItem.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialMenuItem.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialMenuItem.params.binding_id]
+type = "string"
+default = ""
+
+[components.MaterialMenuItem.params.action_id]
+type = "string"
+default = ""
+
+[components.MaterialMenuItem.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialMenuItem.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialMenuItem.params.accessibility_label]
+type = "string"
+default = ""
+
+[components.MaterialMenuItem.params.height]
+type = "number"
+default = 40
+
+[components.MaterialProgressIndicator]
+root = "material_progress_indicator_root"
+style_scope = "open"
+
+[components.MaterialProgressIndicator.params.value]
+type = "number"
+default = 0.5
+
+[components.MaterialProgressIndicator.params.indeterminate]
+type = "bool"
+default = false
+
+[components.MaterialProgressIndicator.params.height]
+type = "number"
+default = 8
+
+[components.MaterialScrollView]
+root = "material_scroll_view_root"
+style_scope = "open"
+
+[components.MaterialScrollView.params.input_focusable]
+type = "bool"
+default = false
+
+[components.MaterialScrollView.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialScrollView.params.accessibility_label]
+type = "string"
+default = ""
+
+[components.MaterialScrollView.slots.content]
+required = false
+multiple = true
+
+[components.MaterialSlider]
+root = "material_slider_root"
+style_scope = "open"
+
+[components.MaterialSlider.params.value]
+type = "number"
+default = 0
+
+[components.MaterialSlider.params.min]
+type = "number"
+default = 0
+
+[components.MaterialSlider.params.max]
+type = "number"
+default = 100
+
+[components.MaterialSlider.params.step]
+type = "number"
+default = 1
+
+[components.MaterialSlider.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialSlider.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialSlider.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialSlider.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialSlider.params.height]
+type = "number"
+default = "$material_field_min_height"
+
+[components.MaterialSpinBox]
+root = "material_spin_box_root"
+style_scope = "open"
+
+[components.MaterialSpinBox.params.value]
+type = "number"
+default = 0
+
+[components.MaterialSpinBox.params.min]
+type = "number"
+default = 0
+
+[components.MaterialSpinBox.params.max]
+type = "number"
+default = 100
+
+[components.MaterialSpinBox.params.step]
+type = "number"
+default = 1
+
+[components.MaterialSpinBox.params.large_step]
+type = "number"
+default = 10
+
+[components.MaterialSpinBox.params.validation_level]
+type = "string"
+default = "normal"
+
+[components.MaterialSpinBox.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialSpinBox.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialSpinBox.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialSpinBox.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialSpinBox.params.height]
+type = "number"
+default = "$material_field_min_height"
+
+[components.MaterialSpinner]
+root = "material_spinner_root"
+style_scope = "open"
+
+[components.MaterialSpinner.params.text]
+type = "string"
+default = "Loading"
+
+[components.MaterialSpinner.params.height]
+type = "number"
+default = "$material_control_height"
+
+[components.MaterialSwitch]
+root = "material_switch_root"
+style_scope = "open"
+
+[components.MaterialSwitch.params.text]
+type = "string"
+default = "Switch"
+
+[components.MaterialSwitch.params.checked]
+type = "bool"
+default = false
+
+[components.MaterialSwitch.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialSwitch.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialSwitch.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialSwitch.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialSwitch.params.height]
+type = "number"
+default = "$material_list_item_height"
+
+[components.MaterialStandardTableView]
+root = "material_standard_table_view_root"
+style_scope = "open"
+
+[components.MaterialStandardTableView.params.items]
+type = "array"
+default = []
+
+[components.MaterialStandardTableView.params.total_count]
+type = "number"
+default = 0
+
+[components.MaterialStandardTableView.params.viewport_start]
+type = "number"
+default = 0
+
+[components.MaterialStandardTableView.params.viewport_count]
+type = "number"
+default = 0
+
+[components.MaterialStandardTableView.params.item_extent]
+type = "number"
+default = 40
+
+[components.MaterialTabWidgetImpl]
+root = "material_tab_widget_impl_root"
+style_scope = "open"
+
+[components.MaterialTabWidgetImpl.slots.tabs]
+required = false
+multiple = true
+
+[components.MaterialTabImpl]
+root = "material_tab_impl_root"
+style_scope = "open"
+
+[components.MaterialTabImpl.params.title]
+type = "string"
+default = "Tab"
+
+[components.MaterialTabImpl.params.selected]
+type = "bool"
+default = false
+
+[components.MaterialTabImpl.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialTabImpl.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialTabImpl.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialTabImpl.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialTabImpl.params.binding_id]
+type = "string"
+default = ""
+
+[components.MaterialTabImpl.params.action_id]
+type = "string"
+default = ""
+
+[components.MaterialTabImpl.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialTabImpl.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialTabImpl.params.accessibility_label]
+type = "string"
+default = ""
+
+[components.MaterialTabImpl.params.height]
+type = "number"
+default = 36
+
+[components.MaterialTabBarHorizontalImpl]
+root = "material_tab_bar_horizontal_impl_root"
+style_scope = "open"
+
+[components.MaterialTabBarHorizontalImpl.slots.tabs]
+required = false
+multiple = true
+
+[components.MaterialTabBarVerticalImpl]
+root = "material_tab_bar_vertical_impl_root"
+style_scope = "open"
+
+[components.MaterialTabBarVerticalImpl.slots.tabs]
+required = false
+multiple = true
+
+[components.MaterialTabWidget]
+root = "material_tab_widget_root"
+style_scope = "open"
+
+[components.MaterialTabWidget.slots.tabs]
+required = false
+multiple = true
+
+[components.MaterialTextEdit]
+root = "material_text_edit_root"
+style_scope = "open"
+
+[components.MaterialTextEdit.params.value]
+type = "string"
+default = ""
+
+[components.MaterialTextEdit.params.placeholder]
+type = "string"
+default = ""
+
+[components.MaterialTextEdit.params.validation_level]
+type = "string"
+default = "normal"
+
+[components.MaterialTextEdit.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialTextEdit.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialTextEdit.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialTextEdit.params.height]
+type = "number"
+default = "$material_field_min_height"
+
+[components.MaterialTimePickerPopup]
+root = "material_time_picker_popup_root"
+style_scope = "open"
+
+[components.MaterialTimePickerPopup.params.value]
+type = "string"
+default = ""
+
+[components.MaterialTimePickerPopup.params.menu_items]
+type = "array"
+default = []
+
+[components.MaterialTimePickerPopup.params.popup_open]
+type = "bool"
+default = true
+
+[components.MaterialTimePickerPopup.params.popup_anchor_x]
+type = "number"
+default = 0
+
+[components.MaterialTimePickerPopup.params.popup_anchor_y]
+type = "number"
+default = 0
+
+[components.MaterialTimePickerPopup.params.action_id]
+type = "string"
+default = ""
+
+[components.MaterialTimePickerPopup.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialTimePickerPopup.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialTimePickerPopup.params.accessibility_label]
+type = "string"
+default = ""
+
+[legacy_migration]
+source_path = "zircon_editor/src/tests/fixtures/ui_zui/editor/material_meta_components.zui"
+source_kind = "widget"
+source_version = 1
+source_component_ids = [ "MaterialStateLayer", "MaterialButtonBase", "MaterialButton", "MaterialIconButton", "MaterialToggleButton", "MaterialCheckboxRow", "MaterialOutlinedField", "MaterialSliderField", "MaterialRipple", "MaterialListItem", "MaterialTableRow", "MaterialTextButton", "MaterialCheckBox", "MaterialComboBox", "MaterialDatePickerPopup", "MaterialGroupBox", "MaterialLineEdit", "MaterialMenuBarItem", "MaterialMenuBar", "MaterialMenuFrame", "MaterialMenuItem", "MaterialProgressIndicator", "MaterialScrollView", "MaterialSlider", "MaterialSpinBox", "MaterialSpinner", "MaterialSwitch", "MaterialStandardTableView", "MaterialTabWidgetImpl", "MaterialTabImpl", "MaterialTabBarHorizontalImpl", "MaterialTabBarVerticalImpl", "MaterialTabWidget", "MaterialTextEdit", "MaterialTimePickerPopup" ]
+
+[[stylesheets]]
+id = "editor_material"
+
+[[stylesheets.rules]]
+selector = ".showcase-shell"
+
+[stylesheets.rules.set.self.background]
+color = "$field_bg"
+
+[[stylesheets.rules]]
+selector = ".showcase-panel"
+
+[stylesheets.rules.set.self.background]
+color = "$panel_bg"
+
+[stylesheets.rules.set.self.border]
+color = "$border"
+width = "$material_border_width"
+radius = "$material_radius_surface"
+
+[[stylesheets.rules]]
+selector = ".showcase-field"
+
+[stylesheets.rules.set.self.background]
+color = "$panel_bg_soft"
+
+[stylesheets.rules.set.self.border]
+color = "$border"
+width = "$material_border_width"
+radius = "$material_radius_small"
+
+[[stylesheets.rules]]
+selector = ".showcase-title"
+
+[stylesheets.rules.set.self.foreground]
+color = "$text"
+
+[stylesheets.rules.set.self.font]
+size = "$material_font_size_title"
+
+[[stylesheets.rules]]
+selector = ".showcase-muted"
+
+[stylesheets.rules.set.self.foreground]
+color = "$muted"
+
+[stylesheets.rules.set.self.font]
+size = "$material_font_size_meta"
+
+[[stylesheets.rules]]
+selector = ".material-state-layer"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-control"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-button"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_hover"
+
+[[stylesheets.rules]]
+selector = ".material-button-primary"
+
+[stylesheets.rules.set.self.background]
+color = "$material_color_primary"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_color_on_primary"
+
+[stylesheets.rules.set.self.border]
+color = "$material_focus_ring"
+width = "$material_focus_ring_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-button-base"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-icon-button"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[[stylesheets.rules]]
+selector = ".material-checkbox-row"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[[stylesheets.rules]]
+selector = ".material-outlined-field"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-slider-field"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[[stylesheets.rules]]
+selector = ".material-ripple"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_hover"
+
+[stylesheets.rules.set.self.border]
+color = "$material_surface_hover"
+width = "$material_border_width_none"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-list-item"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-table-row"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-text-button"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_accent"
+
+[stylesheets.rules.set.self.border]
+color = "$material_surface"
+width = "$material_border_width_none"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-check-box"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-combo-box"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-popup-frame"
+
+[stylesheets.rules.set.self.background]
+color = "$material_popup"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-date-picker-popup"
+
+[stylesheets.rules.set.self.background]
+color = "$material_popup"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-time-picker-popup"
+
+[stylesheets.rules.set.self.background]
+color = "$material_popup"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-group-box"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-line-edit"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-menu-bar"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-menu-bar-item"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-menu-frame"
+
+[stylesheets.rules.set.self.background]
+color = "$material_popup"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-menu-item"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-progress-indicator"
+
+[stylesheets.rules.set.self.background]
+color = "$material_track"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_accent"
+
+[[stylesheets.rules]]
+selector = ".material-scroll-view"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-slider"
+
+[stylesheets.rules.set.self.background]
+color = "$material_track"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_accent"
+
+[[stylesheets.rules]]
+selector = ".material-spin-box"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-spinner"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_accent"
+
+[stylesheets.rules.set.self.border]
+color = "$material_surface"
+width = "$material_border_width_none"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-switch"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_accent"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_large"
+
+[[stylesheets.rules]]
+selector = ".material-standard-table-view"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-tab-widget"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-tab-widget-impl"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-tab-bar"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-tab-bar-horizontal"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[[stylesheets.rules]]
+selector = ".material-tab-bar-vertical"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[[stylesheets.rules]]
+selector = ".material-tab-impl"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.border]
+color = "$material_surface_inset"
+width = "$material_border_width_none"
+radius = "$material_radius_none"
+
+[[stylesheets.rules]]
+selector = ".material-text-edit"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-runtime-dialog"
+
+[stylesheets.rules.set.self.background]
+color = "$material_popup"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_medium"
+
+[[stylesheets.rules]]
+selector = ".material-runtime-hud"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_surface"
+
+[[stylesheets.rules]]
+selector = ".material-runtime-backdrop"
+
+[stylesheets.rules.set.self.background]
+color = "$material_color_scrim"
+
+[[stylesheets.rules]]
+selector = ".material-title"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.font]
+size = "$material_font_size_title"
+
+[[stylesheets.rules]]
+selector = ".material-body"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.font]
+size = "$material_font_size_body"
+
+[[stylesheets.rules]]
+selector = ".material-meta"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text_muted"
+
+[stylesheets.rules.set.self.font]
+size = "$material_font_size_meta"
+
+[penpot_original_imports]
+widgets = []
+styles = [ "res://ui/theme/editor_material.zui" ]

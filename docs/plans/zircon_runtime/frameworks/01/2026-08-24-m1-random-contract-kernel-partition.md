@@ -232,3 +232,13 @@ The Runtime-owned master-seed service is now a single non-copyable authority exp
 borrow. Runtime22 still owns admission of stable stream keys, the authoritative stream registry,
 checkpoint/replay integration, and any explicit fork capability; this atom does not claim those
 higher-level policies are complete.
+
+Current-source restore review found one remaining API-surface hard-cut candidate:
+`RandomStreamCheckpoint::new` is public even though every non-test caller is inside the Runtime
+random kernel. Product code does not call it today, and only a validated `RandomServiceCheckpoint`
+can enter the public restore path, but leaving the constructor public lets future consumers forge
+a generation-tagged single-stream value and encourages an unsupported independent-restore model.
+The next contract-owner rotation must move construction behind the hidden contract assembly/kernel
+boundary while retaining public read-only projection through service checkpoints. Frameworks01 did
+not change the Runtime22-owned contract or kernel source in this review; the existing boundary guard
+was sealed/read-only and was not permission-bypassed.

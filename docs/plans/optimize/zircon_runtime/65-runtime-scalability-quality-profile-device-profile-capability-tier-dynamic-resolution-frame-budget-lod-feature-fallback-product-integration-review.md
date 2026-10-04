@@ -9,7 +9,6 @@ related_code:
   - zircon_runtime/src/core/framework/render/backend_types/quality.rs
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/frame_profile.rs
-  - zircon_runtime/src/core/framework/render/view_family.rs
   - zircon_runtime/src/graphics/runtime/render_framework/budget
   - zircon_runtime/src/graphics/runtime/render_framework/capability_summary
   - zircon_runtime/src/graphics/runtime/render_framework/capability_validation

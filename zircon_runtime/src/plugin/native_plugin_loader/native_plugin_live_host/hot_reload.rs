@@ -68,6 +68,8 @@ impl std::fmt::Display for NativePluginHotReloadError {
 impl std::error::Error for NativePluginHotReloadError {}
 
 #[derive(Debug)]
+/// 一次热重载的回滚账：跟踪旧代次是否仍可恢复、状态快照及诊断。
+/// lifecycle 在提前返回路径据此重新开放旧代次或报告不可回滚。
 pub(super) struct NativePluginHotReloadState {
     pub(super) module_kind: PluginModuleKind,
     pub(super) key: String,
@@ -106,6 +108,7 @@ impl NativePluginHotReloadState {
         }
     }
 
+    // 仅有状态的运行时插件需要跨代次传递状态；保存失败时旧代次尚未卸载。
     pub(super) fn save_existing_runtime_snapshot(
         &mut self,
         plugin_id: &str,
@@ -219,6 +222,7 @@ pub(super) struct PluginStateSnapshot {
     pub(super) blob: Vec<u8>,
 }
 
+// 状态版本必须与新代次吻合；不吻合时由 lifecycle 回滚而非把旧字节交给新 ABI。
 pub(super) fn restore_runtime_snapshot(
     snapshot: &PluginStateSnapshot,
     plugin: &LoadedNativePlugin,
@@ -288,43 +292,5 @@ fn joined_hot_reload_diagnostics_len(diagnostics: &[String]) -> usize {
 }
 
 #[cfg(test)]
-mod diagnostic_formatting_tests {
-    use super::*;
-
-    #[test]
-    fn streaming_hot_reload_diagnostics_preserve_contract() {
-        let error = NativePluginHotReloadError::RestoreRuntimeState {
-            plugin_id: "physics".to_string(),
-            status_code: 17,
-            diagnostics: vec!["first".to_string(), "second".to_string()],
-        };
-        assert_eq!(
-            error.to_string(),
-            "plugin physics hot reload failed while restoring runtime state: status 17; first; second"
-        );
-
-        let empty = NativePluginHotReloadError::RestoreRuntimeState {
-            plugin_id: "physics".to_string(),
-            status_code: 18,
-            diagnostics: Vec::new(),
-        };
-        assert_eq!(
-            empty.to_string(),
-            "plugin physics hot reload failed while restoring runtime state: status 18; "
-        );
-
-        let mut state =
-            NativePluginHotReloadState::new(PluginModuleKind::Runtime, "physics".to_string(), None);
-        state.mark_existing_unloaded(vec!["first".to_string(), "second".to_string()]);
-        let rollback = state.rollback_diagnostic();
-        assert_eq!(
-            rollback,
-            "rollback unavailable because previous runtime native package was already unloaded; first; second"
-        );
-        assert_eq!(rollback.len(), rollback.capacity());
-        assert_eq!(
-            state.rollback_error("reload failed".to_string()),
-            "reload failed; rollback unavailable because previous runtime native package was already unloaded; first; second"
-        );
-    }
-}
+#[path = "tests/hot_reload_diagnostic_formatting_tests.rs"]
+mod diagnostic_formatting_tests;

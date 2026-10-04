@@ -1,0 +1,153 @@
+[asset]
+kind = "view"
+id = "res://ui/tests/reactbits_agent_native_components.zui"
+version = 2
+display_name = "ReactBits Agent Native Components"
+
+[tokens]
+"surface.canvas" = "#0f1117"
+"surface.panel" = "#171b24"
+"surface.elevated" = "#1d2330"
+"surface.inset" = "#11151d"
+"border.default" = "#2a3342"
+"border.strong" = "#3a4658"
+"text.primary" = "#f4f7fb"
+"text.secondary" = "#a9b4c5"
+"text.muted" = "#718096"
+"accent.primary" = "#8b7cff"
+"accent.info" = "#5da9ff"
+"status.success" = "#55d6a0"
+"status.error" = "#ff7d8a"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalBox"
+control_id = "ReactBitsNativeComponentsRoot"
+classes = ["rb-native-component-fixture"]
+props = {
+  background_color = "$surface.canvas",
+  foreground_color = "$text.primary",
+  fixture_data_only = true,
+  reference_primary = "https://pro.reactbits.dev/docs/app-ui/ai-chat/ai-chat-1",
+  reference_supporting = [
+    "https://pro.reactbits.dev/docs/app-ui/prompt-input/prompt-input-3",
+    "https://pro.reactbits.dev/docs/app-ui/agent-activity/agent-activity-1",
+    "https://pro.reactbits.dev/docs/app-ui/ai-chat/ai-chat-2",
+    "https://pro.reactbits.dev/docs/app-ui/ai-chat/ai-chat-5",
+    "https://pro.reactbits.dev/docs/app-ui/ai-chat/ai-chat-6",
+    "https://pro.reactbits.dev/docs/app-ui/ai-chat/ai-chat-7",
+    "https://pro.reactbits.dev/docs/app-ui/ai-chat/ai-chat-9",
+  ],
+  responsive_wide = "agent component card stays centered with full composer",
+  responsive_mobile = "message bubbles and composer remain primary; outer padding contracts",
+}
+layout = {
+  clip = true,
+  input_policy = "Receive",
+  width = { min = 320, preferred = 720, max = 960, stretch = "Stretch" },
+  height = { min = 300, preferred = 420, max = 560, stretch = "Stretch" },
+  container = { kind = "VerticalBox", gap = 12 },
+  padding = { left = 18, right = 18, top = 18, bottom = 18 },
+}
+children = [
+  { node = "header" },
+  { node = "agent_chat" },
+  { node = "composer" },
+  { node = "state" },
+]
+
+[nodes.header]
+component = "VerticalBox"
+control_id = "ReactBitsNativeComponentsHeader"
+layout = { width = { stretch = "Stretch" }, height = { min = 42, preferred = 42, max = 42, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 3 } }
+children = [{ node = "title" }, { node = "subtitle" }]
+
+[nodes.title]
+component = "Label"
+control_id = "ReactBitsNativeComponentsTitle"
+props = { text = "Native AgentChat primitives", foreground_color = "$text.primary", font_size = 15, font_weight = 650 }
+layout = { width = { stretch = "Stretch" }, height = { min = 20, preferred = 20, max = 20, stretch = "Fixed" } }
+
+[nodes.subtitle]
+component = "Label"
+control_id = "ReactBitsNativeComponentsSubtitle"
+props = { text = "Semantic messages, streaming state, and a real composer surface", foreground_color = "$text.secondary", font_size = 10 }
+layout = { width = { stretch = "Stretch" }, height = { min = 18, preferred = 18, max = 18, stretch = "Fixed" } }
+
+[nodes.agent_chat]
+component = "AgentChat"
+control_id = "ReactBitsNativeAgentChat"
+classes = ["MuiAgentChat-root", "MuiAgentChat-streaming", "MuiAgentChat-hasMessages"]
+props = {
+  messages = [
+    "user|Review the selected asset and keep its context visible.",
+    "agent|The retained host is drawing this response from semantic ZUI data.",
+    "user|Can the tool result and cited file stay in the same thread?",
+    "agent|Yes — the full thread keeps each turn in source order while it streams.",
+  ],
+  streaming = true,
+  error = false,
+  background_color = "$surface.panel",
+  foreground_color = "$text.primary",
+  border_color = "$border.default",
+  border_width = 1,
+  corner_radius = 10,
+  accessibility_label = "Native agent conversation",
+}
+layout = { width = { stretch = "Stretch" }, height = { min = 164, preferred = 208, max = 244, stretch = "Fixed" } }
+
+[nodes.composer]
+component = "ChatComposer"
+control_id = "ReactBitsNativeChatComposer"
+classes = ["MuiChatComposer-root", "MuiChatComposer-streaming", "MuiChatComposer-hasText"]
+props = {
+  composer_text = "Continue the parity review…",
+  send_icon = "arrow-up",
+  send_icon_size = "s",
+  streaming = true,
+  error = false,
+  background_color = "$surface.inset",
+  foreground_color = "$text.primary",
+  border_color = "$accent.primary",
+  border_width = 1,
+  corner_radius = 8,
+  input_interactive = true,
+  input_focusable = true,
+  accessibility_label = "Native agent prompt",
+}
+layout = { width = { stretch = "Stretch" }, height = { min = 48, preferred = 54, max = 64, stretch = "Fixed" } }
+events = [{ id = "ReactBitsNative/ComposerSubmit", event = "Submit", route = "agent.prompt.submit" }]
+
+[nodes.state]
+component = "HorizontalBox"
+control_id = "ReactBitsNativeComponentsState"
+props = { background_color = "$surface.elevated", border_color = "$border.default", border_width = 1, corner_radius = 7 }
+layout = { width = { stretch = "Stretch" }, height = { min = 34, preferred = 34, max = 34, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8 }, padding = { left = 10, right = 10, top = 7, bottom = 7 } }
+children = [{ node = "state_label" }, { node = "state_value" }]
+
+[nodes.state_label]
+component = "Label"
+control_id = "ReactBitsNativeComponentsStateLabel"
+props = { text = "STATE", foreground_color = "$text.muted", font_size = 9, font_weight = 700, letter_spacing = 1 }
+layout = { width = { min = 40, preferred = 40, max = 40, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.state_value]
+component = "Label"
+control_id = "ReactBitsNativeComponentsStateValue"
+props = { text = "messages projected · streaming · submit route retained", foreground_color = "$status.success", font_size = 10, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.root.zircon_extension]
+owner = "reactbits-reference-slice"
+reference_profile = "reactbits-native-components-v1"
+source_of_truth = "zui"
+penpot_visual_check = "required"
+
+[[stylesheets]]
+id = "reactbits-ui-typography"
+
+[[stylesheets.rules]]
+selector = "*"
+set = { self = { font = { asset = "res://fonts/editor-ui.font.toml", family = "Fira Sans" } } }

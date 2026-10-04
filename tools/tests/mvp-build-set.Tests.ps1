@@ -153,6 +153,50 @@ Describe 'MVP product BuildSet' {
         (Assert-MvpProductBuildSet -ManifestPath $buildSet.manifest_path).build_set_id | Should Be $buildSet.build_set_id
     }
 
+    It 'captures explicitly declared untracked source without changing the shared index' {
+        $sourceRoot = New-BuildSetFixtureRepository -Name 'explicit-source-addition'
+        $addedPath = Join-Path $sourceRoot 'src\extra.rs'
+        [IO.File]::WriteAllText($addedPath, 'pub const EXTRA: u32 = 9;', [Text.UTF8Encoding]::new($false))
+        $addedBytes = [IO.File]::ReadAllBytes($addedPath)
+        $hasher = [Security.Cryptography.SHA256]::Create()
+        try {
+            $addedHash = [BitConverter]::ToString($hasher.ComputeHash($addedBytes)).Replace('-', '')
+        }
+        finally {
+            $hasher.Dispose()
+        }
+        $additionsPath = Join-Path $TestDrive 'explicit-source-additions.json'
+        $additions = [ordered]@{
+            schema_version = 1
+            files = @([ordered]@{
+                    relative_path = 'src/extra.rs'
+                    sha256 = $addedHash
+                    byte_length = $addedBytes.Length
+                })
+        }
+        [IO.File]::WriteAllText(
+            $additionsPath,
+            (ConvertTo-Json -InputObject $additions -Depth 5),
+            [Text.UTF8Encoding]::new($false))
+        $sharedIndexBefore = @(Invoke-BuildSetFixtureGit -RepositoryRoot $sourceRoot -Arguments @('ls-files', '--stage')) -join "`n"
+
+        $buildSet = New-MvpProductBuildSet `
+            -RepositoryRoot $sourceRoot `
+            -BuildSetRoot (Join-Path $TestDrive 'explicit-source-build-set') `
+            -SourceAdditionsManifestPath $additionsPath
+
+        $sharedIndexAfter = @(Invoke-BuildSetFixtureGit -RepositoryRoot $sourceRoot -Arguments @('ls-files', '--stage')) -join "`n"
+        $manifest = [IO.File]::ReadAllText($buildSet.manifest_path) | ConvertFrom-Json
+        $sharedIndexAfter | Should Be $sharedIndexBefore
+        $buildSet.schema_version | Should Be 2
+        $manifest.source_policy | Should Be 'tracked_head_plus_tracked_dirty_overlay_plus_explicit_additions'
+        $manifest.source_additions[0].relative_path | Should Be 'src/extra.rs'
+        $manifest.source_additions[0].sha256 | Should Be $addedHash
+        [IO.File]::ReadAllText((Join-Path $buildSet.snapshot_root 'src\extra.rs')) | Should Be 'pub const EXTRA: u32 = 9;'
+        (Test-Path -LiteralPath (Join-Path $buildSet.snapshot_root 'untracked-noise.txt')) | Should Be $false
+        (Assert-MvpProductBuildSet -ManifestPath $buildSet.manifest_path).build_set_id | Should Be $buildSet.build_set_id
+    }
+
     It 'does not retain a tracked file deleted by the dirty overlay' {
         $sourceRoot = New-BuildSetFixtureRepository -Name 'deleted-tracked-source'
         Remove-Item -LiteralPath (Join-Path $sourceRoot 'src\lib.rs') -Force
@@ -297,6 +341,37 @@ Describe 'MVP product BuildSet' {
 
         $validated.build_set_id | Should Be $buildSet.build_set_id
         $validated.snapshot_root | Should Be ('\\?\' + $buildSet.snapshot_root)
+    }
+
+    It 'passes display paths to Git when the BuildSet root uses a Windows device prefix' {
+        $sourceRoot = New-BuildSetFixtureRepository -Name 'device-git-source'
+        $deviceBuildSetRoot = '\\?\' + (Join-Path $TestDrive 'device-git-build-set')
+
+        $buildSet = New-MvpProductBuildSet `
+            -RepositoryRoot $sourceRoot `
+            -BuildSetRoot $deviceBuildSetRoot
+
+        $buildSet.snapshot_root | Should Be ($deviceBuildSetRoot + '\source')
+        [IO.File]::ReadAllText($buildSet.snapshot_root + '\src\lib.rs') |
+            Should Be 'pub const VALUE: u32 = 2;'
+    }
+
+    It 'returns exactly one BuildSet object to product input callers' {
+        $sourceRoot = New-BuildSetFixtureRepository -Name 'single-return-source'
+        $results = @(New-MvpProductBuildSet `
+            -RepositoryRoot $sourceRoot `
+            -BuildSetRoot (Join-Path $TestDrive 'single-return-build-set'))
+
+        $results.Count | Should Be 1
+        $results[0].snapshot_root | Should Be (Join-Path $TestDrive 'single-return-build-set\source')
+        $results[0].manifest_path | Should Be (Join-Path $TestDrive 'single-return-build-set\build-set.json')
+    }
+
+    It 'enables Git long-path support for immutable worktree publication' {
+        $moduleSource = Get-Content -LiteralPath $buildSetModule -Raw
+        $moduleSource | Should Match "'-c', 'core\.longpaths=true', 'worktree', 'add'"
+        $moduleSource | Should Match "'-c', 'core\.longpaths=true', 'apply'"
+        $moduleSource | Should Match "'-c', 'core\.longpaths=true', 'worktree', 'remove'"
     }
 
     It 'rejects unknown BuildSet manifest and file-entry properties' {
@@ -507,7 +582,7 @@ Describe 'MVP BuildSet index allocation contracts' {
 
         $publisherSource | Should Match '\$gitPath = \[string\]\$git\.Source'
         @([regex]::Matches($publisherSource, '\$git\.Source')).Count | Should Be 1
-        @([regex]::Matches($publisherSource, '-GitPath \$gitPath')).Count | Should Be 8
+        @([regex]::Matches($publisherSource, '-GitPath \$gitPath')).Count | Should Be 9
     }
 
     It 'discards CLR directory results without Out-Null pipelines' {
@@ -602,7 +677,7 @@ Describe 'MVP BuildSet index allocation contracts' {
         $assertionStart = $moduleSource.IndexOf('function Assert-MvpBuildSetExactProperties')
         $assertionSource = $moduleSource.Substring(
             $assertionStart,
-            $moduleSource.IndexOf('function Get-MvpBuildSetSnapshotFilesNoFollow') - $assertionStart)
+            $moduleSource.IndexOf('function Assert-MvpBuildSetSourceAdditions') - $assertionStart)
 
         $assertionSource | Should Match '\$actualCount = 0'
         $assertionSource | Should Match '\$actualCount\+\+'
@@ -621,7 +696,7 @@ Describe 'MVP BuildSet index allocation contracts' {
             $moduleSource.IndexOf('Export-ModuleMember') - $validatorStart)
 
         $moduleSource | Should Match '\$script:MvpBuildSetManifestPropertyNames = \[string\[\]\]\s*@\('
-        $validatorSource | Should Match '-ExpectedNames \$script:MvpBuildSetManifestPropertyNames'
+        $validatorSource | Should Match '-ExpectedNames \$expectedProperties'
         $validatorSource | Should Match '\$filePropertyCount = 0'
         $validatorSource | Should Match 'foreach \(\$property in \$file\.PSObject\.Properties\)'
         $validatorSource | Should Match '\$propertyName -cne ''relative_path'''
@@ -799,7 +874,7 @@ Describe 'MVP BuildSet index allocation contracts' {
 
         $trackedSource | Should Match '\$entries = \$script:MvpBuildSetUtf8\.GetString\('
         $trackedSource | Should Match '\.Split\(\s*\$script:MvpBuildSetNulSeparator,\s*\[StringSplitOptions\]::RemoveEmptyEntries\)'
-        $trackedSource | Should Match '\$paths = \[Collections\.Generic\.List\[string\]\]::new\(\$entries\.Length\)'
+        $trackedSource | Should Match '\$paths = \[Collections\.Generic\.List\[string\]\]::new\(\$entries\.Length \+ \$SourceAdditions\.Count\)'
         $trackedSource | Should Match 'foreach \(\$entry in \$entries\)'
         $trackedSource | Should Match '\$pathBuffer = \$null'
         $trackedSource | Should Match '\$pathCapture = \$null'
@@ -872,14 +947,16 @@ Describe 'MVP BuildSet index allocation contracts' {
         $validatorSource = $moduleSource.Substring(
             $validatorStart,
             $moduleSource.IndexOf('Export-ModuleMember') - $validatorStart)
+        $contentValidationSource = $validatorSource.Substring(
+            0, $validatorSource.IndexOf('Assert-MvpBuildSetInventory'))
 
         $validatorSource | Should Match '\$expectedSha256 = \[string\]\$file\.sha256'
         $validatorSource | Should Match '\$expectedByteLength = \$file\.byte_length'
         $validatorSource | Should Match '\$expectedSha256 -notmatch'
         $validatorSource | Should Match '\[int64\]\$expectedByteLength -ne \[int64\]\$item\.Length'
         $validatorSource | Should Match '\$expectedSha256 -ne \$actualSha256'
-        @([regex]::Matches($validatorSource, '\$file\.sha256')).Count | Should Be 1
-        @([regex]::Matches($validatorSource, '\$file\.byte_length')).Count | Should Be 1
+        @([regex]::Matches($contentValidationSource, '\$file\.sha256')).Count | Should Be 1
+        @([regex]::Matches($contentValidationSource, '\$file\.byte_length')).Count | Should Be 1
     }
 
     It 'checks LFS materialization and hashes each tracked file through one stream' {

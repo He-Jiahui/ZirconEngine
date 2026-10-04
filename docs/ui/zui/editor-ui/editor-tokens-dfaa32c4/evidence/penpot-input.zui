@@ -1,0 +1,1269 @@
+penpot_host_theme_source = "zircon_editor/assets/ui/editor/theme/editor_tokens.zui"
+stylesheets = []
+penpot_dependency_sources = [ "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_divider.zui" ]
+penpot_original_source = "[asset]\nkind = \"theme_tokens\"\nid = \"res://ui/editor/theme/editor_tokens.zui\"\nversion = 2\ndisplay_name = \"Zircon Editor Workbench Tokens\"\n\n[palette]\nsurface = [\"#151515\", \"#242424\", \"#2f2f2f\", \"#383838\"]\nsurface_recessed = \"#0f0f0f\"\nsurface_hover = \"#454545\"\nsurface_selected = \"#243f5a\"\nsurface_disabled = \"#2b2b2b\"\naccent = \"#60aeff\"\naccent_soft = \"#253f59\"\nborder = \"#484848\"\nborder_disabled = \"#363636\"\nseparator_strong = \"#565656\"\nseparator_soft = \"#333333\"\ntext_primary = \"#e8e8e8\"\ntext_secondary = \"#b3b3b3\"\ntext_disabled = \"#737373\"\nsuccess = \"#55be78\"\nsuccess_container = \"#1d472f\"\ninfo = \"#5faae6\"\ninfo_container = \"#18395b\"\nwarning = \"#dcac50\"\nwarning_container = \"#463112\"\nerror = \"#eb605c\"\nerror_container = \"#4c2427\"\npopup = \"#242424\"\ntrack = \"#3b3b3b\"\nfocus_ring = \"#66b2ff\"\nshadow = \"#00000073\"\n\n[typography]\nui_family = \"Fira Sans\"\nui_strong_family = \"Fira Sans\"\ncode_family = \"Fira Mono\"\nutility_tab_text_role = \"ui\"\nfont_smoothing = \"grayscale\"\nbody_size = 14.0\ncaption_size = 12.0\noverlay_size = 12.0\nheading_size = 16.0\ntitle_size = 20.0\nbody_weight = 400\nmedium_weight = 500\nstrong_weight = 600\nemphasis_weight = 700\ncode_weight = 400\nline_height = 1.4\n\n[controls]\nlarge_height = 48.0\ndefault_height = 32.0\ncompact_height = 32.0\ndense_height = 28.0\nsmall_radius = 4.0\ncontrol_radius = 4.0\nlarge_radius = 8.0\npanel_radius = 0.0\npill_radius = 999.0\nborder_width = 1.0\n\n[chrome]\ntop_bar_height = 25.0\nhost_bar_height = 32.0\nworkbench_toolbar_height = 66.0\nworkbench_toolbar_command_row_height = 34.0\nworkbench_toolbar_popup_command_offset_y = 29.0\nworkbench_toolbar_popup_module_offset_y = -6.0\nstatus_bar_height = 24.0\npanel_header_height = 30.0\ndocument_header_height = 31.0\nviewport_toolbar_height = 28.0\nactivity_rail_width = 34.0\nseparator_thickness = 1.0\nsplitter_hit_size = 8.0\n\n[density]\ngap_xsmall = 2.0\ngap_tight = 4.0\ngap_small = 4.0\ngap_regular = 8.0\ngap_medium = 8.0\ngap_large = 12.0\ngap_group = 24.0\ndrawer_padding = 12.0\npanel_padding = 16.0\ntoolbar_action_width = 76.0\ntoolbar_wide_action_width = 96.0\nui_asset_action_min_width = 40.0\nui_asset_action_preferred_width = 52.0\nui_asset_action_max_width = 64.0\nui_asset_side_min_width = 128.0\nui_asset_side_preferred_width = 220.0\nui_asset_center_min_width = 256.0\nui_asset_center_preferred_width = 420.0\nui_asset_header_kind_min_width = 64.0\nui_asset_header_kind_preferred_width = 70.0\nui_asset_header_kind_max_width = 84.0\nui_asset_tool_min_width = 56.0\nui_asset_tool_preferred_width = 64.0\nui_asset_tool_max_width = 80.0\ncommand_palette_min_width = 520.0\ncommand_palette_preferred_width = 560.0\ncommand_palette_max_width = 640.0\ncommand_palette_min_height = 180.0\ncommand_palette_preferred_height = 220.0\ncommand_palette_max_height = 280.0\ndialog_min_width = 420.0\ndialog_preferred_width = 480.0\ndialog_max_width = 560.0\ndialog_min_height = 180.0\ndialog_preferred_height = 220.0\ndialog_max_height = 320.0\nconfirm_dialog_preferred_width = 460.0\nconfirm_dialog_max_width = 540.0\nconfirm_dialog_min_height = 174.0\nconfirm_dialog_preferred_height = 210.0\nconfirm_dialog_max_height = 300.0\nnotification_panel_min_width = 280.0\nnotification_panel_preferred_width = 320.0\nnotification_panel_max_width = 380.0\nnotification_panel_min_height = 160.0\nnotification_panel_preferred_height = 220.0\nnotification_panel_max_height = 320.0\ncaption_min_height = 20.0\ncaption_preferred_height = 22.0\ncaption_max_height = 24.0\nlabel_min_height = 22.0\nlabel_preferred_height = 24.0\nlabel_max_height = 32.0\nchip_min_width = 40.0\nchip_preferred_width = 80.0\nchip_max_width = 160.0\naxis_value_field_min_width = 54.0\naxis_value_field_preferred_width = 62.0\naxis_value_field_max_width = 72.0\nrow_height = 28.0\nleft_drawer_width = 332.0\nright_drawer_width = 404.0\nbottom_output_height = 228.0\nbreakpoint_ultra_width = 480.0\nbreakpoint_narrow_width = 640.0\nbreakpoint_wide_width = 1260.0\ncompact_side_width = 1100.0\nultra_compact_side_width = 760.0\ncompact_left_drawer_max_width = 340.0\ncompact_right_drawer_max_width = 220.0\ncompact_side_min_width = 196.0\nminimum_document_width_fraction = 0.5\nultra_compact_left_drawer_max_width = 220.0\nultra_compact_right_drawer_max_width = 160.0\ncompact_bottom_available_height = 900.0\ncompact_bottom_max_height = 148.0\ncompact_bottom_max_available_fraction = 0.23\ncompact_bottom_min_height = 120.0\nultra_compact_bottom_available_height = 420.0\nultra_compact_bottom_max_height = 96.0\nultra_compact_bottom_max_available_fraction = 0.20\nultra_compact_bottom_min_height = 80.0\nminimum_window_width = 640.0\nminimum_window_height = 420.0\nultra_minimum_window_width = 420.0\nultra_minimum_window_height = 360.0\n\n[state_roles]\ndefault = \"surface_1\"\nhovered = \"surface_2\"\npressed = \"surface_3\"\nselected = \"surface_selected\"\nfocused = \"surface_1\"\ndisabled = \"text_disabled\"\nloading = \"accent\"\n\n[names.palette]\nsurface_0 = \"editor.surface.0\"\nsurface_1 = \"editor.surface.1\"\nsurface_2 = \"editor.surface.2\"\nsurface_3 = \"editor.surface.3\"\nsurface_recessed = \"editor.surface.recessed\"\nsurface_hover = \"editor.surface.hover\"\nsurface_selected = \"editor.surface.selected\"\nsurface_disabled = \"editor.surface.disabled\"\naccent = \"editor.accent\"\naccent_soft = \"editor.accent.soft\"\nborder = \"editor.border\"\nborder_disabled = \"editor.border.disabled\"\nseparator_strong = \"editor.separator.strong\"\nseparator_soft = \"editor.separator.soft\"\ntext_primary = \"editor.text.primary\"\ntext_secondary = \"editor.text.secondary\"\ntext_disabled = \"editor.text.disabled\"\nsuccess = \"editor.semantic.success\"\nsuccess_container = \"editor.semantic.success.container\"\ninfo = \"editor.semantic.info\"\ninfo_container = \"editor.semantic.info.container\"\nwarning = \"editor.semantic.warning\"\nwarning_container = \"editor.semantic.warning.container\"\nerror = \"editor.semantic.error\"\nerror_container = \"editor.semantic.error.container\"\npopup = \"editor.popup\"\ntrack = \"editor.track\"\nfocus_ring = \"editor.focus.ring\"\nshadow = \"editor.shadow\"\n\n[names.typography]\nui_family = \"editor.typography.ui.family\"\nui_strong_family = \"editor.typography.ui.strong.family\"\ncode_family = \"editor.typography.code.family\"\nutility_tab_text_role = \"editor.typography.utility_tab.text_role\"\nfont_smoothing = \"editor.typography.font_smoothing\"\nbody_size = \"editor.typography.body.size\"\ncaption_size = \"editor.typography.caption.size\"\noverlay_size = \"editor.typography.overlay.size\"\nheading_size = \"editor.typography.heading.size\"\ntitle_size = \"editor.typography.title.size\"\nbody_weight = \"editor.typography.body.weight\"\nmedium_weight = \"editor.typography.medium.weight\"\nstrong_weight = \"editor.typography.strong.weight\"\nemphasis_weight = \"editor.typography.emphasis.weight\"\ncode_weight = \"editor.typography.code.weight\"\nline_height = \"editor.typography.line_height\"\n\n[names.controls]\nlarge_height = \"editor.control.height.large\"\ndefault_height = \"editor.control.height.default\"\ncompact_height = \"editor.control.height.compact\"\ndense_height = \"editor.control.height.dense\"\nsmall_radius = \"editor.control.radius.small\"\ncontrol_radius = \"editor.control.radius.control\"\nlarge_radius = \"editor.control.radius.large\"\npanel_radius = \"editor.control.radius.panel\"\npill_radius = \"editor.control.radius.pill\"\nborder_width = \"editor.control.border_width\"\n\n[names.chrome]\ntop_bar_height = \"editor.chrome.top_bar.height\"\nhost_bar_height = \"editor.chrome.host_bar.height\"\nworkbench_toolbar_height = \"editor.chrome.workbench_toolbar.height\"\nworkbench_toolbar_command_row_height = \"editor.chrome.workbench_toolbar.command_row.height\"\nworkbench_toolbar_popup_command_offset_y = \"editor.chrome.workbench_toolbar.popup.command_offset_y\"\nworkbench_toolbar_popup_module_offset_y = \"editor.chrome.workbench_toolbar.popup.module_offset_y\"\nstatus_bar_height = \"editor.chrome.status_bar.height\"\npanel_header_height = \"editor.chrome.panel_header.height\"\ndocument_header_height = \"editor.chrome.document_header.height\"\nviewport_toolbar_height = \"editor.chrome.viewport_toolbar.height\"\nactivity_rail_width = \"editor.chrome.activity_rail.width\"\nseparator_thickness = \"editor.chrome.separator.thickness\"\nsplitter_hit_size = \"editor.chrome.splitter.hit_size\"\n\n[names.density]\ngap_xsmall = \"editor.density.gap.xsmall\"\ngap_tight = \"editor.density.gap.tight\"\ngap_small = \"editor.density.gap.small\"\ngap_regular = \"editor.density.gap.regular\"\ngap_medium = \"editor.density.gap.medium\"\ngap_large = \"editor.density.gap.large\"\ngap_group = \"editor.density.gap.group\"\ndrawer_padding = \"editor.density.drawer_padding\"\npanel_padding = \"editor.density.panel_padding\"\ntoolbar_action_width = \"editor.density.toolbar_action_width\"\ntoolbar_wide_action_width = \"editor.density.toolbar_wide_action_width\"\nui_asset_action_min_width = \"editor.density.ui_asset_action.min_width\"\nui_asset_action_preferred_width = \"editor.density.ui_asset_action.preferred_width\"\nui_asset_action_max_width = \"editor.density.ui_asset_action.max_width\"\nui_asset_side_min_width = \"editor.density.ui_asset.side.min_width\"\nui_asset_side_preferred_width = \"editor.density.ui_asset.side.preferred_width\"\nui_asset_center_min_width = \"editor.density.ui_asset.center.min_width\"\nui_asset_center_preferred_width = \"editor.density.ui_asset.center.preferred_width\"\nui_asset_header_kind_min_width = \"editor.density.ui_asset.header_kind.min_width\"\nui_asset_header_kind_preferred_width = \"editor.density.ui_asset.header_kind.preferred_width\"\nui_asset_header_kind_max_width = \"editor.density.ui_asset.header_kind.max_width\"\nui_asset_tool_min_width = \"editor.density.ui_asset.tool.min_width\"\nui_asset_tool_preferred_width = \"editor.density.ui_asset.tool.preferred_width\"\nui_asset_tool_max_width = \"editor.density.ui_asset.tool.max_width\"\ncommand_palette_min_width = \"editor.density.command_palette.min_width\"\ncommand_palette_preferred_width = \"editor.density.command_palette.preferred_width\"\ncommand_palette_max_width = \"editor.density.command_palette.max_width\"\ncommand_palette_min_height = \"editor.density.command_palette.min_height\"\ncommand_palette_preferred_height = \"editor.density.command_palette.preferred_height\"\ncommand_palette_max_height = \"editor.density.command_palette.max_height\"\ndialog_min_width = \"editor.density.dialog.min_width\"\ndialog_preferred_width = \"editor.density.dialog.preferred_width\"\ndialog_max_width = \"editor.density.dialog.max_width\"\ndialog_min_height = \"editor.density.dialog.min_height\"\ndialog_preferred_height = \"editor.density.dialog.preferred_height\"\ndialog_max_height = \"editor.density.dialog.max_height\"\nconfirm_dialog_preferred_width = \"editor.density.confirm_dialog.preferred_width\"\nconfirm_dialog_max_width = \"editor.density.confirm_dialog.max_width\"\nconfirm_dialog_min_height = \"editor.density.confirm_dialog.min_height\"\nconfirm_dialog_preferred_height = \"editor.density.confirm_dialog.preferred_height\"\nconfirm_dialog_max_height = \"editor.density.confirm_dialog.max_height\"\nnotification_panel_min_width = \"editor.density.notification_panel.min_width\"\nnotification_panel_preferred_width = \"editor.density.notification_panel.preferred_width\"\nnotification_panel_max_width = \"editor.density.notification_panel.max_width\"\nnotification_panel_min_height = \"editor.density.notification_panel.min_height\"\nnotification_panel_preferred_height = \"editor.density.notification_panel.preferred_height\"\nnotification_panel_max_height = \"editor.density.notification_panel.max_height\"\ncaption_min_height = \"editor.density.caption.min_height\"\ncaption_preferred_height = \"editor.density.caption.preferred_height\"\ncaption_max_height = \"editor.density.caption.max_height\"\nlabel_min_height = \"editor.density.label.min_height\"\nlabel_preferred_height = \"editor.density.label.preferred_height\"\nlabel_max_height = \"editor.density.label.max_height\"\nchip_min_width = \"editor.density.chip.min_width\"\nchip_preferred_width = \"editor.density.chip.preferred_width\"\nchip_max_width = \"editor.density.chip.max_width\"\naxis_value_field_min_width = \"editor.density.axis_value_field.min_width\"\naxis_value_field_preferred_width = \"editor.density.axis_value_field.preferred_width\"\naxis_value_field_max_width = \"editor.density.axis_value_field.max_width\"\nrow_height = \"editor.density.row_height\"\nleft_drawer_width = \"editor.density.left_drawer_width\"\nright_drawer_width = \"editor.density.right_drawer_width\"\nbottom_output_height = \"editor.density.bottom_output_height\"\nbreakpoint_ultra_width = \"editor.density.breakpoint_ultra_width\"\nbreakpoint_narrow_width = \"editor.density.breakpoint_narrow_width\"\nbreakpoint_wide_width = \"editor.density.breakpoint_wide_width\"\ncompact_side_width = \"editor.density.compact_side_width\"\nultra_compact_side_width = \"editor.density.ultra_compact_side_width\"\ncompact_left_drawer_max_width = \"editor.density.compact_left_drawer_max_width\"\ncompact_right_drawer_max_width = \"editor.density.compact_right_drawer_max_width\"\ncompact_side_min_width = \"editor.density.compact_side_min_width\"\nminimum_document_width_fraction = \"editor.density.minimum_document_width_fraction\"\nultra_compact_left_drawer_max_width = \"editor.density.ultra_compact_left_drawer_max_width\"\nultra_compact_right_drawer_max_width = \"editor.density.ultra_compact_right_drawer_max_width\"\ncompact_bottom_available_height = \"editor.density.compact_bottom_available_height\"\ncompact_bottom_max_height = \"editor.density.compact_bottom_max_height\"\ncompact_bottom_max_available_fraction = \"editor.density.compact_bottom_max_available_fraction\"\ncompact_bottom_min_height = \"editor.density.compact_bottom_min_height\"\nultra_compact_bottom_available_height = \"editor.density.ultra_compact_bottom_available_height\"\nultra_compact_bottom_max_height = \"editor.density.ultra_compact_bottom_max_height\"\nultra_compact_bottom_max_available_fraction = \"editor.density.ultra_compact_bottom_max_available_fraction\"\nultra_compact_bottom_min_height = \"editor.density.ultra_compact_bottom_min_height\"\nminimum_window_width = \"editor.density.minimum_window_width\"\nminimum_window_height = \"editor.density.minimum_window_height\"\nultra_minimum_window_width = \"editor.density.ultra_minimum_window_width\"\nultra_minimum_window_height = \"editor.density.ultra_minimum_window_height\"\n\n[names.state_roles]\ndefault = \"editor.state.default\"\nhovered = \"editor.state.hovered\"\npressed = \"editor.state.pressed\"\nselected = \"editor.state.selected\"\nfocused = \"editor.state.focused\"\ndisabled = \"editor.state.disabled\"\nloading = \"editor.state.loading\"\n"
+
+[asset]
+kind = "theme_tokens"
+id = "res://ui/editor/theme/editor_tokens.zui"
+version = 2
+display_name = "Zircon Editor Workbench Tokens"
+
+[palette]
+surface = [ "#151515", "#242424", "#2f2f2f", "#383838" ]
+surface_recessed = "#0f0f0f"
+surface_hover = "#454545"
+surface_selected = "#243f5a"
+surface_disabled = "#2b2b2b"
+accent = "#60aeff"
+accent_soft = "#253f59"
+border = "#484848"
+border_disabled = "#363636"
+separator_strong = "#565656"
+separator_soft = "#333333"
+text_primary = "#e8e8e8"
+text_secondary = "#b3b3b3"
+text_disabled = "#737373"
+success = "#55be78"
+success_container = "#1d472f"
+info = "#5faae6"
+info_container = "#18395b"
+warning = "#dcac50"
+warning_container = "#463112"
+error = "#eb605c"
+error_container = "#4c2427"
+popup = "#242424"
+track = "#3b3b3b"
+focus_ring = "#66b2ff"
+shadow = "#00000073"
+
+[typography]
+ui_family = "Fira Sans"
+ui_strong_family = "Fira Sans"
+code_family = "Fira Mono"
+utility_tab_text_role = "ui"
+font_smoothing = "grayscale"
+body_size = 14
+caption_size = 12
+overlay_size = 12
+heading_size = 16
+title_size = 20
+body_weight = 400
+medium_weight = 500
+strong_weight = 600
+emphasis_weight = 700
+code_weight = 400
+line_height = 1.4
+
+[controls]
+large_height = 48
+default_height = 32
+compact_height = 32
+dense_height = 28
+small_radius = 4
+control_radius = 4
+large_radius = 8
+panel_radius = 0
+pill_radius = 999
+border_width = 1
+
+[chrome]
+top_bar_height = 25
+host_bar_height = 32
+workbench_toolbar_height = 66
+workbench_toolbar_command_row_height = 34
+workbench_toolbar_popup_command_offset_y = 29
+workbench_toolbar_popup_module_offset_y = -6
+status_bar_height = 24
+panel_header_height = 30
+document_header_height = 31
+viewport_toolbar_height = 28
+activity_rail_width = 34
+separator_thickness = 1
+splitter_hit_size = 8
+
+[density]
+gap_xsmall = 2
+gap_tight = 4
+gap_small = 4
+gap_regular = 8
+gap_medium = 8
+gap_large = 12
+gap_group = 24
+drawer_padding = 12
+panel_padding = 16
+toolbar_action_width = 76
+toolbar_wide_action_width = 96
+ui_asset_action_min_width = 40
+ui_asset_action_preferred_width = 52
+ui_asset_action_max_width = 64
+ui_asset_side_min_width = 128
+ui_asset_side_preferred_width = 220
+ui_asset_center_min_width = 256
+ui_asset_center_preferred_width = 420
+ui_asset_header_kind_min_width = 64
+ui_asset_header_kind_preferred_width = 70
+ui_asset_header_kind_max_width = 84
+ui_asset_tool_min_width = 56
+ui_asset_tool_preferred_width = 64
+ui_asset_tool_max_width = 80
+command_palette_min_width = 520
+command_palette_preferred_width = 560
+command_palette_max_width = 640
+command_palette_min_height = 180
+command_palette_preferred_height = 220
+command_palette_max_height = 280
+dialog_min_width = 420
+dialog_preferred_width = 480
+dialog_max_width = 560
+dialog_min_height = 180
+dialog_preferred_height = 220
+dialog_max_height = 320
+confirm_dialog_preferred_width = 460
+confirm_dialog_max_width = 540
+confirm_dialog_min_height = 174
+confirm_dialog_preferred_height = 210
+confirm_dialog_max_height = 300
+notification_panel_min_width = 280
+notification_panel_preferred_width = 320
+notification_panel_max_width = 380
+notification_panel_min_height = 160
+notification_panel_preferred_height = 220
+notification_panel_max_height = 320
+caption_min_height = 20
+caption_preferred_height = 22
+caption_max_height = 24
+label_min_height = 22
+label_preferred_height = 24
+label_max_height = 32
+chip_min_width = 40
+chip_preferred_width = 80
+chip_max_width = 160
+axis_value_field_min_width = 54
+axis_value_field_preferred_width = 62
+axis_value_field_max_width = 72
+row_height = 28
+left_drawer_width = 332
+right_drawer_width = 404
+bottom_output_height = 228
+breakpoint_ultra_width = 480
+breakpoint_narrow_width = 640
+breakpoint_wide_width = 1260
+compact_side_width = 1100
+ultra_compact_side_width = 760
+compact_left_drawer_max_width = 340
+compact_right_drawer_max_width = 220
+compact_side_min_width = 196
+minimum_document_width_fraction = 0.5
+ultra_compact_left_drawer_max_width = 220
+ultra_compact_right_drawer_max_width = 160
+compact_bottom_available_height = 900
+compact_bottom_max_height = 148
+compact_bottom_max_available_fraction = 0.23
+compact_bottom_min_height = 120
+ultra_compact_bottom_available_height = 420
+ultra_compact_bottom_max_height = 96
+ultra_compact_bottom_max_available_fraction = 0.2
+ultra_compact_bottom_min_height = 80
+minimum_window_width = 640
+minimum_window_height = 420
+ultra_minimum_window_width = 420
+ultra_minimum_window_height = 360
+
+[state_roles]
+default = "surface_1"
+hovered = "surface_2"
+pressed = "surface_3"
+selected = "surface_selected"
+focused = "surface_1"
+disabled = "text_disabled"
+loading = "accent"
+
+[names.palette]
+surface_0 = "editor.surface.0"
+surface_1 = "editor.surface.1"
+surface_2 = "editor.surface.2"
+surface_3 = "editor.surface.3"
+surface_recessed = "editor.surface.recessed"
+surface_hover = "editor.surface.hover"
+surface_selected = "editor.surface.selected"
+surface_disabled = "editor.surface.disabled"
+accent = "editor.accent"
+accent_soft = "editor.accent.soft"
+border = "editor.border"
+border_disabled = "editor.border.disabled"
+separator_strong = "editor.separator.strong"
+separator_soft = "editor.separator.soft"
+text_primary = "editor.text.primary"
+text_secondary = "editor.text.secondary"
+text_disabled = "editor.text.disabled"
+success = "editor.semantic.success"
+success_container = "editor.semantic.success.container"
+info = "editor.semantic.info"
+info_container = "editor.semantic.info.container"
+warning = "editor.semantic.warning"
+warning_container = "editor.semantic.warning.container"
+error = "editor.semantic.error"
+error_container = "editor.semantic.error.container"
+popup = "editor.popup"
+track = "editor.track"
+focus_ring = "editor.focus.ring"
+shadow = "editor.shadow"
+
+[names.typography]
+ui_family = "editor.typography.ui.family"
+ui_strong_family = "editor.typography.ui.strong.family"
+code_family = "editor.typography.code.family"
+utility_tab_text_role = "editor.typography.utility_tab.text_role"
+font_smoothing = "editor.typography.font_smoothing"
+body_size = "editor.typography.body.size"
+caption_size = "editor.typography.caption.size"
+overlay_size = "editor.typography.overlay.size"
+heading_size = "editor.typography.heading.size"
+title_size = "editor.typography.title.size"
+body_weight = "editor.typography.body.weight"
+medium_weight = "editor.typography.medium.weight"
+strong_weight = "editor.typography.strong.weight"
+emphasis_weight = "editor.typography.emphasis.weight"
+code_weight = "editor.typography.code.weight"
+line_height = "editor.typography.line_height"
+
+[names.controls]
+large_height = "editor.control.height.large"
+default_height = "editor.control.height.default"
+compact_height = "editor.control.height.compact"
+dense_height = "editor.control.height.dense"
+small_radius = "editor.control.radius.small"
+control_radius = "editor.control.radius.control"
+large_radius = "editor.control.radius.large"
+panel_radius = "editor.control.radius.panel"
+pill_radius = "editor.control.radius.pill"
+border_width = "editor.control.border_width"
+
+[names.chrome]
+top_bar_height = "editor.chrome.top_bar.height"
+host_bar_height = "editor.chrome.host_bar.height"
+workbench_toolbar_height = "editor.chrome.workbench_toolbar.height"
+workbench_toolbar_command_row_height = "editor.chrome.workbench_toolbar.command_row.height"
+workbench_toolbar_popup_command_offset_y = "editor.chrome.workbench_toolbar.popup.command_offset_y"
+workbench_toolbar_popup_module_offset_y = "editor.chrome.workbench_toolbar.popup.module_offset_y"
+status_bar_height = "editor.chrome.status_bar.height"
+panel_header_height = "editor.chrome.panel_header.height"
+document_header_height = "editor.chrome.document_header.height"
+viewport_toolbar_height = "editor.chrome.viewport_toolbar.height"
+activity_rail_width = "editor.chrome.activity_rail.width"
+separator_thickness = "editor.chrome.separator.thickness"
+splitter_hit_size = "editor.chrome.splitter.hit_size"
+
+[names.density]
+gap_xsmall = "editor.density.gap.xsmall"
+gap_tight = "editor.density.gap.tight"
+gap_small = "editor.density.gap.small"
+gap_regular = "editor.density.gap.regular"
+gap_medium = "editor.density.gap.medium"
+gap_large = "editor.density.gap.large"
+gap_group = "editor.density.gap.group"
+drawer_padding = "editor.density.drawer_padding"
+panel_padding = "editor.density.panel_padding"
+toolbar_action_width = "editor.density.toolbar_action_width"
+toolbar_wide_action_width = "editor.density.toolbar_wide_action_width"
+ui_asset_action_min_width = "editor.density.ui_asset_action.min_width"
+ui_asset_action_preferred_width = "editor.density.ui_asset_action.preferred_width"
+ui_asset_action_max_width = "editor.density.ui_asset_action.max_width"
+ui_asset_side_min_width = "editor.density.ui_asset.side.min_width"
+ui_asset_side_preferred_width = "editor.density.ui_asset.side.preferred_width"
+ui_asset_center_min_width = "editor.density.ui_asset.center.min_width"
+ui_asset_center_preferred_width = "editor.density.ui_asset.center.preferred_width"
+ui_asset_header_kind_min_width = "editor.density.ui_asset.header_kind.min_width"
+ui_asset_header_kind_preferred_width = "editor.density.ui_asset.header_kind.preferred_width"
+ui_asset_header_kind_max_width = "editor.density.ui_asset.header_kind.max_width"
+ui_asset_tool_min_width = "editor.density.ui_asset.tool.min_width"
+ui_asset_tool_preferred_width = "editor.density.ui_asset.tool.preferred_width"
+ui_asset_tool_max_width = "editor.density.ui_asset.tool.max_width"
+command_palette_min_width = "editor.density.command_palette.min_width"
+command_palette_preferred_width = "editor.density.command_palette.preferred_width"
+command_palette_max_width = "editor.density.command_palette.max_width"
+command_palette_min_height = "editor.density.command_palette.min_height"
+command_palette_preferred_height = "editor.density.command_palette.preferred_height"
+command_palette_max_height = "editor.density.command_palette.max_height"
+dialog_min_width = "editor.density.dialog.min_width"
+dialog_preferred_width = "editor.density.dialog.preferred_width"
+dialog_max_width = "editor.density.dialog.max_width"
+dialog_min_height = "editor.density.dialog.min_height"
+dialog_preferred_height = "editor.density.dialog.preferred_height"
+dialog_max_height = "editor.density.dialog.max_height"
+confirm_dialog_preferred_width = "editor.density.confirm_dialog.preferred_width"
+confirm_dialog_max_width = "editor.density.confirm_dialog.max_width"
+confirm_dialog_min_height = "editor.density.confirm_dialog.min_height"
+confirm_dialog_preferred_height = "editor.density.confirm_dialog.preferred_height"
+confirm_dialog_max_height = "editor.density.confirm_dialog.max_height"
+notification_panel_min_width = "editor.density.notification_panel.min_width"
+notification_panel_preferred_width = "editor.density.notification_panel.preferred_width"
+notification_panel_max_width = "editor.density.notification_panel.max_width"
+notification_panel_min_height = "editor.density.notification_panel.min_height"
+notification_panel_preferred_height = "editor.density.notification_panel.preferred_height"
+notification_panel_max_height = "editor.density.notification_panel.max_height"
+caption_min_height = "editor.density.caption.min_height"
+caption_preferred_height = "editor.density.caption.preferred_height"
+caption_max_height = "editor.density.caption.max_height"
+label_min_height = "editor.density.label.min_height"
+label_preferred_height = "editor.density.label.preferred_height"
+label_max_height = "editor.density.label.max_height"
+chip_min_width = "editor.density.chip.min_width"
+chip_preferred_width = "editor.density.chip.preferred_width"
+chip_max_width = "editor.density.chip.max_width"
+axis_value_field_min_width = "editor.density.axis_value_field.min_width"
+axis_value_field_preferred_width = "editor.density.axis_value_field.preferred_width"
+axis_value_field_max_width = "editor.density.axis_value_field.max_width"
+row_height = "editor.density.row_height"
+left_drawer_width = "editor.density.left_drawer_width"
+right_drawer_width = "editor.density.right_drawer_width"
+bottom_output_height = "editor.density.bottom_output_height"
+breakpoint_ultra_width = "editor.density.breakpoint_ultra_width"
+breakpoint_narrow_width = "editor.density.breakpoint_narrow_width"
+breakpoint_wide_width = "editor.density.breakpoint_wide_width"
+compact_side_width = "editor.density.compact_side_width"
+ultra_compact_side_width = "editor.density.ultra_compact_side_width"
+compact_left_drawer_max_width = "editor.density.compact_left_drawer_max_width"
+compact_right_drawer_max_width = "editor.density.compact_right_drawer_max_width"
+compact_side_min_width = "editor.density.compact_side_min_width"
+minimum_document_width_fraction = "editor.density.minimum_document_width_fraction"
+ultra_compact_left_drawer_max_width = "editor.density.ultra_compact_left_drawer_max_width"
+ultra_compact_right_drawer_max_width = "editor.density.ultra_compact_right_drawer_max_width"
+compact_bottom_available_height = "editor.density.compact_bottom_available_height"
+compact_bottom_max_height = "editor.density.compact_bottom_max_height"
+compact_bottom_max_available_fraction = "editor.density.compact_bottom_max_available_fraction"
+compact_bottom_min_height = "editor.density.compact_bottom_min_height"
+ultra_compact_bottom_available_height = "editor.density.ultra_compact_bottom_available_height"
+ultra_compact_bottom_max_height = "editor.density.ultra_compact_bottom_max_height"
+ultra_compact_bottom_max_available_fraction = "editor.density.ultra_compact_bottom_max_available_fraction"
+ultra_compact_bottom_min_height = "editor.density.ultra_compact_bottom_min_height"
+minimum_window_width = "editor.density.minimum_window_width"
+minimum_window_height = "editor.density.minimum_window_height"
+ultra_minimum_window_width = "editor.density.ultra_minimum_window_width"
+ultra_minimum_window_height = "editor.density.ultra_minimum_window_height"
+
+[names.state_roles]
+default = "editor.state.default"
+hovered = "editor.state.hovered"
+pressed = "editor.state.pressed"
+selected = "editor.state.selected"
+focused = "editor.state.focused"
+disabled = "editor.state.disabled"
+loading = "editor.state.loading"
+
+[penpot_host_colors]
+primary = "#60aeff"
+accent = "#60aeff"
+"material.primary" = "#60aeff"
+material_color_primary = "#60aeff"
+on_primary = "#151515"
+"material.on_primary" = "#151515"
+material_color_on_primary = "#151515"
+surface = "#2f2f2f"
+"material.surface" = "#2f2f2f"
+surface_inset = "#0f0f0f"
+"material.surface_inset" = "#0f0f0f"
+surface_hover = "#454545"
+"material.surface_hover" = "#454545"
+surface_pressed = "#383838"
+"material.surface_pressed" = "#383838"
+surface_selected = "#243f5a"
+"material.surface_selected" = "#243f5a"
+disabled = "#2b2b2b"
+"material.disabled" = "#2b2b2b"
+border = "#484848"
+outline = "#484848"
+"material.outline" = "#484848"
+focus = "#66b2ff"
+focus_ring = "#66b2ff"
+"material.focus_ring" = "#66b2ff"
+text = "#e8e8e8"
+on_surface = "#e8e8e8"
+"material.text" = "#e8e8e8"
+"material.on_surface" = "#e8e8e8"
+text_muted = "#b3b3b3"
+muted = "#b3b3b3"
+"material.text_muted" = "#b3b3b3"
+text_disabled = "#737373"
+"material.text_disabled" = "#737373"
+warning = "#dcac50"
+"material.warning" = "#dcac50"
+error = "#eb605c"
+danger = "#eb605c"
+"material.error" = "#eb605c"
+success = "#55be78"
+"material.success" = "#55be78"
+info = "#5faae6"
+"material.info" = "#5faae6"
+
+[penpot_host_palette]
+surface = [ "#151515", "#242424", "#2f2f2f", "#383838" ]
+surface_recessed = "#0f0f0f"
+surface_hover = "#454545"
+surface_selected = "#243f5a"
+surface_disabled = "#2b2b2b"
+accent = "#60aeff"
+accent_soft = "#253f59"
+border = "#484848"
+border_disabled = "#363636"
+separator_strong = "#565656"
+separator_soft = "#333333"
+text_primary = "#e8e8e8"
+text_secondary = "#b3b3b3"
+text_disabled = "#737373"
+success = "#55be78"
+success_container = "#1d472f"
+info = "#5faae6"
+info_container = "#18395b"
+warning = "#dcac50"
+warning_container = "#463112"
+error = "#eb605c"
+error_container = "#4c2427"
+popup = "#242424"
+track = "#3b3b3b"
+focus_ring = "#66b2ff"
+shadow = "#00000073"
+
+[tokens]
+"theme.palette.surface.0" = "#151515"
+"theme.palette.surface.1" = "#242424"
+"theme.palette.surface.2" = "#2f2f2f"
+"theme.palette.surface.3" = "#383838"
+"theme.palette.text.primary" = "#e8e8e8"
+"theme.palette.text.secondary" = "#b3b3b3"
+"theme.palette.text.disabled" = "#737373"
+"theme.palette.accent" = "#60aeff"
+"theme.palette.success" = "#55be78"
+"theme.palette.info" = "#5faae6"
+"theme.palette.warning" = "#dcac50"
+"theme.palette.error" = "#eb605c"
+"theme.palette.separator" = "#484848"
+"editor.surface.0" = "#151515"
+"editor.surface.1" = "#242424"
+"editor.surface.2" = "#2f2f2f"
+"editor.surface.3" = "#383838"
+"editor.surface.recessed" = "#0f0f0f"
+"editor.surface.hover" = "#454545"
+"editor.surface.selected" = "#243f5a"
+"editor.surface.disabled" = "#2b2b2b"
+"editor.accent" = "#60aeff"
+"editor.accent.soft" = "#253f59"
+"editor.border" = "#484848"
+"editor.border.disabled" = "#363636"
+"editor.separator.strong" = "#565656"
+"editor.separator.soft" = "#333333"
+"editor.text.primary" = "#e8e8e8"
+"editor.text.secondary" = "#b3b3b3"
+"editor.text.disabled" = "#737373"
+"editor.semantic.success" = "#55be78"
+"editor.semantic.success.container" = "#1d472f"
+"editor.semantic.info" = "#5faae6"
+"editor.semantic.info.container" = "#18395b"
+"editor.semantic.warning" = "#dcac50"
+"editor.semantic.warning.container" = "#463112"
+"editor.semantic.error" = "#eb605c"
+"editor.semantic.error.container" = "#4c2427"
+"editor.popup" = "#242424"
+"editor.track" = "#3b3b3b"
+"editor.focus.ring" = "#66b2ff"
+"editor.shadow" = "#00000073"
+"editor.typography.ui.family" = "Fira Sans"
+"editor.typography.ui.strong.family" = "Fira Sans"
+"editor.typography.code.family" = "Fira Mono"
+"editor.typography.utility_tab.text_role" = "ui"
+"editor.typography.font_smoothing" = "grayscale"
+"editor.typography.body.size" = 14
+"editor.typography.caption.size" = 12
+"editor.typography.overlay.size" = 12
+"editor.typography.heading.size" = 16
+"editor.typography.title.size" = 20
+"editor.typography.body.weight" = 400
+"editor.typography.medium.weight" = 500
+"editor.typography.strong.weight" = 600
+"editor.typography.emphasis.weight" = 700
+"editor.typography.code.weight" = 400
+"editor.typography.line_height" = 1.4
+"editor.control.height.large" = 48
+"editor.control.height.default" = 32
+"editor.control.height.compact" = 32
+"editor.control.height.dense" = 28
+"editor.control.radius.small" = 4
+"editor.control.radius.control" = 4
+"editor.control.radius.large" = 8
+"editor.control.radius.panel" = 0
+"editor.control.radius.pill" = 999
+"editor.control.border_width" = 1
+"editor.chrome.top_bar.height" = 25
+"editor.chrome.host_bar.height" = 32
+"editor.chrome.workbench_toolbar.height" = 66
+"editor.chrome.workbench_toolbar.command_row.height" = 34
+"editor.chrome.workbench_toolbar.popup.command_offset_y" = 29
+"editor.chrome.workbench_toolbar.popup.module_offset_y" = -6
+"editor.chrome.status_bar.height" = 24
+"editor.chrome.panel_header.height" = 30
+"editor.chrome.document_header.height" = 31
+"editor.chrome.viewport_toolbar.height" = 28
+"editor.chrome.activity_rail.width" = 34
+"editor.chrome.separator.thickness" = 1
+"editor.chrome.splitter.hit_size" = 8
+"editor.density.gap.xsmall" = 2
+"editor.density.gap.tight" = 4
+"editor.density.gap.small" = 4
+"editor.density.gap.regular" = 8
+"editor.density.gap.medium" = 8
+"editor.density.gap.large" = 12
+"editor.density.gap.group" = 24
+"editor.density.drawer_padding" = 12
+"editor.density.panel_padding" = 16
+"editor.density.toolbar_action_width" = 76
+"editor.density.toolbar_wide_action_width" = 96
+"editor.density.ui_asset_action.min_width" = 40
+"editor.density.ui_asset_action.preferred_width" = 52
+"editor.density.ui_asset_action.max_width" = 64
+"editor.density.ui_asset.side.min_width" = 128
+"editor.density.ui_asset.side.preferred_width" = 220
+"editor.density.ui_asset.center.min_width" = 256
+"editor.density.ui_asset.center.preferred_width" = 420
+"editor.density.ui_asset.header_kind.min_width" = 64
+"editor.density.ui_asset.header_kind.preferred_width" = 70
+"editor.density.ui_asset.header_kind.max_width" = 84
+"editor.density.ui_asset.tool.min_width" = 56
+"editor.density.ui_asset.tool.preferred_width" = 64
+"editor.density.ui_asset.tool.max_width" = 80
+"editor.density.command_palette.min_width" = 520
+"editor.density.command_palette.preferred_width" = 560
+"editor.density.command_palette.max_width" = 640
+"editor.density.command_palette.min_height" = 180
+"editor.density.command_palette.preferred_height" = 220
+"editor.density.command_palette.max_height" = 280
+"editor.density.dialog.min_width" = 420
+"editor.density.dialog.preferred_width" = 480
+"editor.density.dialog.max_width" = 560
+"editor.density.dialog.min_height" = 180
+"editor.density.dialog.preferred_height" = 220
+"editor.density.dialog.max_height" = 320
+"editor.density.confirm_dialog.preferred_width" = 460
+"editor.density.confirm_dialog.max_width" = 540
+"editor.density.confirm_dialog.min_height" = 174
+"editor.density.confirm_dialog.preferred_height" = 210
+"editor.density.confirm_dialog.max_height" = 300
+"editor.density.notification_panel.min_width" = 280
+"editor.density.notification_panel.preferred_width" = 320
+"editor.density.notification_panel.max_width" = 380
+"editor.density.notification_panel.min_height" = 160
+"editor.density.notification_panel.preferred_height" = 220
+"editor.density.notification_panel.max_height" = 320
+"editor.density.caption.min_height" = 20
+"editor.density.caption.preferred_height" = 22
+"editor.density.caption.max_height" = 24
+"editor.density.label.min_height" = 22
+"editor.density.label.preferred_height" = 24
+"editor.density.label.max_height" = 32
+"editor.density.chip.min_width" = 40
+"editor.density.chip.preferred_width" = 80
+"editor.density.chip.max_width" = 160
+"editor.density.axis_value_field.min_width" = 54
+"editor.density.axis_value_field.preferred_width" = 62
+"editor.density.axis_value_field.max_width" = 72
+"editor.density.row_height" = 28
+"editor.density.left_drawer_width" = 332
+"editor.density.right_drawer_width" = 404
+"editor.density.bottom_output_height" = 228
+"editor.density.breakpoint_ultra_width" = 480
+"editor.density.breakpoint_narrow_width" = 640
+"editor.density.breakpoint_wide_width" = 1260
+"editor.density.compact_side_width" = 1100
+"editor.density.ultra_compact_side_width" = 760
+"editor.density.compact_left_drawer_max_width" = 340
+"editor.density.compact_right_drawer_max_width" = 220
+"editor.density.compact_side_min_width" = 196
+"editor.density.minimum_document_width_fraction" = 0.5
+"editor.density.ultra_compact_left_drawer_max_width" = 220
+"editor.density.ultra_compact_right_drawer_max_width" = 160
+"editor.density.compact_bottom_available_height" = 900
+"editor.density.compact_bottom_max_height" = 148
+"editor.density.compact_bottom_max_available_fraction" = 0.23
+"editor.density.compact_bottom_min_height" = 120
+"editor.density.ultra_compact_bottom_available_height" = 420
+"editor.density.ultra_compact_bottom_max_height" = 96
+"editor.density.ultra_compact_bottom_max_available_fraction" = 0.2
+"editor.density.ultra_compact_bottom_min_height" = 80
+"editor.density.minimum_window_width" = 640
+"editor.density.minimum_window_height" = 420
+"editor.density.ultra_minimum_window_width" = 420
+"editor.density.ultra_minimum_window_height" = 360
+"editor.state.default" = "surface_1"
+"editor.state.hovered" = "surface_2"
+"editor.state.pressed" = "surface_3"
+"editor.state.selected" = "surface_selected"
+"editor.state.focused" = "surface_1"
+"editor.state.disabled" = "text_disabled"
+"editor.state.loading" = "accent"
+
+[penpot_original_imports]
+[imports]
+widgets = []
+styles = []
+
+[penpot_review_host]
+stylesheets = []
+
+[penpot_review_host.asset]
+kind = "view"
+version = 2
+id = "res://ui/editor/theme/editor_tokens.zui#review-host"
+display_name = "Zircon Editor Workbench Tokens"
+
+[penpot_review_host.imports]
+widgets = []
+styles = []
+
+[penpot_review_host.root]
+node = "review_theme_host"
+
+[penpot_review_host.nodes.review_theme_host]
+component = "Panel"
+control_id = "EditorThemeReviewHost"
+classes = [ "workbench-panel" ]
+
+[penpot_review_host.nodes.review_theme_host.style.self.background]
+color = "$editor.surface.0"
+
+[penpot_review_host.nodes.review_theme_host.style.self.foreground]
+color = "$editor.text.primary"
+
+[penpot_review_host.nodes.review_theme_host.layout.container]
+kind = "Overlay"
+
+[penpot_review_host.nodes.review_theme_host.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_theme_host.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_theme_host.children]]
+node = "review_theme_title"
+
+[[penpot_review_host.nodes.review_theme_host.children]]
+node = "review_theme_label_0"
+
+[[penpot_review_host.nodes.review_theme_host.children]]
+node = "review_theme_component_0"
+
+[[penpot_review_host.nodes.review_theme_host.children]]
+node = "review_theme_label_1"
+
+[[penpot_review_host.nodes.review_theme_host.children]]
+node = "review_theme_component_1"
+
+[[penpot_review_host.nodes.review_theme_host.children]]
+node = "review_theme_label_2"
+
+[[penpot_review_host.nodes.review_theme_host.children]]
+node = "review_theme_component_2"
+
+[[penpot_review_host.nodes.review_theme_host.children]]
+node = "review_theme_label_3"
+
+[[penpot_review_host.nodes.review_theme_host.children]]
+node = "review_theme_component_3"
+
+[[penpot_review_host.nodes.review_theme_host.children]]
+node = "review_theme_label_4"
+
+[[penpot_review_host.nodes.review_theme_host.children]]
+node = "review_theme_component_4"
+
+[penpot_review_host.nodes.review_theme_title]
+component = "Label"
+control_id = "EditorThemeReviewTitle"
+
+[penpot_review_host.nodes.review_theme_title.props]
+text = "Editor component states"
+font_size = "$editor.typography.title.size"
+font_weight = "$editor.typography.strong.weight"
+
+[penpot_review_host.nodes.review_theme_title.layout.position]
+x = 32
+y = 32
+
+[penpot_review_host.nodes.review_theme_title.layout.width]
+preferred = 560
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_theme_title.layout.height]
+preferred = 32
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_theme_label_0]
+component = "Label"
+control_id = "review_theme_component_0Label"
+
+[penpot_review_host.nodes.review_theme_label_0.props]
+text = "Button"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.medium.weight"
+text_tone = "secondary"
+
+[penpot_review_host.nodes.review_theme_label_0.layout.position]
+x = 32
+y = 120
+
+[penpot_review_host.nodes.review_theme_label_0.layout.width]
+preferred = 280
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_theme_label_0.layout.height]
+preferred = 20
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_theme_component_0]
+component = "Button"
+control_id = "review_theme_component_0Control"
+classes = [ "workbench-control-button" ]
+
+[penpot_review_host.nodes.review_theme_component_0.props]
+text = "Button"
+text_overflow = "ellipsis"
+text_align = "center"
+button_variant = "outlined"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+validation_level = "normal"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font = "res://fonts/editor-ui.font.toml"
+font_family = "Fira Sans"
+font_weight = "$editor.typography.strong.weight"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.large"
+layout_padding_right = "$editor.density.gap.large"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.medium"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[penpot_review_host.nodes.review_theme_component_0.layout.width]
+min = 280
+preferred = 280
+max = 280
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_theme_component_0.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.default"
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_theme_component_0.layout.position]
+x = 32
+y = 148
+
+[penpot_review_host.nodes.review_theme_label_1]
+component = "Label"
+control_id = "review_theme_component_1Label"
+
+[penpot_review_host.nodes.review_theme_label_1.props]
+text = "Field"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.medium.weight"
+text_tone = "secondary"
+
+[penpot_review_host.nodes.review_theme_label_1.layout.position]
+x = 328
+y = 120
+
+[penpot_review_host.nodes.review_theme_label_1.layout.width]
+preferred = 280
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_theme_label_1.layout.height]
+preferred = 20
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_theme_component_1]
+component = "InputField"
+control_id = "review_theme_component_1Control"
+classes = [ "workbench-field" ]
+
+[penpot_review_host.nodes.review_theme_component_1.props]
+value = ""
+placeholder = ""
+validation_level = "normal"
+focused = false
+hovered = false
+disabled = false
+editable_text = true
+background_color = "$editor.surface.recessed"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+focused_background_color = "$editor.surface.recessed"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.separator.soft"
+hover_border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+placeholder_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[penpot_review_host.nodes.review_theme_component_1.layout.width]
+min = 280
+preferred = 280
+max = 280
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_theme_component_1.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.default"
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_theme_component_1.layout.position]
+x = 328
+y = 148
+
+[penpot_review_host.nodes.review_theme_label_2]
+component = "Label"
+control_id = "review_theme_component_2Label"
+
+[penpot_review_host.nodes.review_theme_label_2.props]
+text = "Dropdown"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.medium.weight"
+text_tone = "secondary"
+
+[penpot_review_host.nodes.review_theme_label_2.layout.position]
+x = 32
+y = 240
+
+[penpot_review_host.nodes.review_theme_label_2.layout.width]
+preferred = 280
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_theme_label_2.layout.height]
+preferred = 20
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_theme_component_2]
+component = "Dropdown"
+control_id = "review_theme_component_2Control"
+pixel_snapping = "disabled"
+classes = [ "workbench-field", "workbench-dropdown" ]
+
+[penpot_review_host.nodes.review_theme_component_2.props]
+value = "default"
+value_text = "Default"
+options = [ "default" ]
+multiple = false
+popup_open = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+selection_state = "single"
+validation_level = "normal"
+background_color = "$editor.surface.recessed"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+open_background_color = "$editor.accent.soft"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+label_color = "$editor.text.secondary"
+icon_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+horizontal_inset = "$editor.density.gap.medium"
+caret_size = "$editor.typography.overlay.size"
+caret_right_inset = "$editor.density.gap.large"
+caret_gap = "$editor.density.gap.small"
+label_top = "$editor.control.border_width"
+label_font_size = "$editor.typography.caption.size"
+label_line_height_ratio = "$editor.typography.line_height"
+value_bottom_inset = "$editor.control.border_width"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.control.border_width"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[penpot_review_host.nodes.review_theme_component_2.layout.width]
+min = 280
+preferred = 280
+max = 280
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_theme_component_2.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.default"
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_theme_component_2.layout.position]
+x = 32
+y = 268
+
+[penpot_review_host.nodes.review_theme_label_3]
+component = "Label"
+control_id = "review_theme_component_3Label"
+
+[penpot_review_host.nodes.review_theme_label_3.props]
+text = "Tab"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.medium.weight"
+text_tone = "secondary"
+
+[penpot_review_host.nodes.review_theme_label_3.layout.position]
+x = 328
+y = 240
+
+[penpot_review_host.nodes.review_theme_label_3.layout.width]
+preferred = 280
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_theme_label_3.layout.height]
+preferred = 20
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_theme_component_3]
+component = "Tab"
+control_id = "review_theme_component_3Control"
+classes = [ "workbench-tab" ]
+
+[penpot_review_host.nodes.review_theme_component_3.props]
+text = "Tab"
+value = false
+checked = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+background_color = "$editor.surface.2"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_underline_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = 0
+corner_radius = "$editor.control.radius.panel"
+tab_font_size = "$editor.typography.body.size"
+tab_line_height_ratio = "$editor.typography.line_height"
+tab_text_inset_x = "$editor.density.gap.medium"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[penpot_review_host.nodes.review_theme_component_3.layout.width]
+min = 280
+preferred = 280
+max = 280
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_theme_component_3.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.default"
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_theme_component_3.layout.position]
+x = 328
+y = 268
+
+[penpot_review_host.nodes.review_theme_label_4]
+component = "Label"
+control_id = "review_theme_component_4Label"
+
+[penpot_review_host.nodes.review_theme_label_4.props]
+text = "Divider"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.medium.weight"
+text_tone = "secondary"
+
+[penpot_review_host.nodes.review_theme_label_4.layout.position]
+x = 32
+y = 360
+
+[penpot_review_host.nodes.review_theme_label_4.layout.width]
+preferred = 280
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_theme_label_4.layout.height]
+preferred = 20
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_theme_component_4]
+component = "Divider"
+control_id = "review_theme_component_4Control"
+pixel_snapping = "snap_to_pixel"
+classes = [ "workbench-divider" ]
+
+[penpot_review_host.nodes.review_theme_component_4.props]
+orientation = "horizontal"
+variant = "fullWidth"
+separator_color = "$editor.separator.soft"
+disabled_separator_color = "$editor.border.disabled"
+thickness = "$editor.control.border_width"
+inset = "$editor.density.gap.medium"
+layout_min_height = "$editor.control.border_width"
+
+[penpot_review_host.nodes.review_theme_component_4.layout.width]
+min = 240
+preferred = 240
+max = 280
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_theme_component_4.layout.height]
+min = "$editor.density.gap.small"
+preferred = "$editor.density.gap.small"
+max = "$editor.density.gap.medium"
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_theme_component_4.layout.position]
+x = 32
+y = 388
+
+[penpot_review_host.tokens]
+"theme.palette.surface.0" = "#151515"
+"theme.palette.surface.1" = "#242424"
+"theme.palette.surface.2" = "#2f2f2f"
+"theme.palette.surface.3" = "#383838"
+"theme.palette.text.primary" = "#e8e8e8"
+"theme.palette.text.secondary" = "#b3b3b3"
+"theme.palette.text.disabled" = "#737373"
+"theme.palette.accent" = "#60aeff"
+"theme.palette.success" = "#55be78"
+"theme.palette.info" = "#5faae6"
+"theme.palette.warning" = "#dcac50"
+"theme.palette.error" = "#eb605c"
+"theme.palette.separator" = "#484848"
+"editor.surface.0" = "#151515"
+"editor.surface.1" = "#242424"
+"editor.surface.2" = "#2f2f2f"
+"editor.surface.3" = "#383838"
+"editor.surface.recessed" = "#0f0f0f"
+"editor.surface.hover" = "#454545"
+"editor.surface.selected" = "#243f5a"
+"editor.surface.disabled" = "#2b2b2b"
+"editor.accent" = "#60aeff"
+"editor.accent.soft" = "#253f59"
+"editor.border" = "#484848"
+"editor.border.disabled" = "#363636"
+"editor.separator.strong" = "#565656"
+"editor.separator.soft" = "#333333"
+"editor.text.primary" = "#e8e8e8"
+"editor.text.secondary" = "#b3b3b3"
+"editor.text.disabled" = "#737373"
+"editor.semantic.success" = "#55be78"
+"editor.semantic.success.container" = "#1d472f"
+"editor.semantic.info" = "#5faae6"
+"editor.semantic.info.container" = "#18395b"
+"editor.semantic.warning" = "#dcac50"
+"editor.semantic.warning.container" = "#463112"
+"editor.semantic.error" = "#eb605c"
+"editor.semantic.error.container" = "#4c2427"
+"editor.popup" = "#242424"
+"editor.track" = "#3b3b3b"
+"editor.focus.ring" = "#66b2ff"
+"editor.shadow" = "#00000073"
+"editor.typography.ui.family" = "Fira Sans"
+"editor.typography.ui.strong.family" = "Fira Sans"
+"editor.typography.code.family" = "Fira Mono"
+"editor.typography.utility_tab.text_role" = "ui"
+"editor.typography.font_smoothing" = "grayscale"
+"editor.typography.body.size" = 14
+"editor.typography.caption.size" = 12
+"editor.typography.overlay.size" = 12
+"editor.typography.heading.size" = 16
+"editor.typography.title.size" = 20
+"editor.typography.body.weight" = 400
+"editor.typography.medium.weight" = 500
+"editor.typography.strong.weight" = 600
+"editor.typography.emphasis.weight" = 700
+"editor.typography.code.weight" = 400
+"editor.typography.line_height" = 1.4
+"editor.control.height.large" = 48
+"editor.control.height.default" = 32
+"editor.control.height.compact" = 32
+"editor.control.height.dense" = 28
+"editor.control.radius.small" = 4
+"editor.control.radius.control" = 4
+"editor.control.radius.large" = 8
+"editor.control.radius.panel" = 0
+"editor.control.radius.pill" = 999
+"editor.control.border_width" = 1
+"editor.chrome.top_bar.height" = 25
+"editor.chrome.host_bar.height" = 32
+"editor.chrome.workbench_toolbar.height" = 66
+"editor.chrome.workbench_toolbar.command_row.height" = 34
+"editor.chrome.workbench_toolbar.popup.command_offset_y" = 29
+"editor.chrome.workbench_toolbar.popup.module_offset_y" = -6
+"editor.chrome.status_bar.height" = 24
+"editor.chrome.panel_header.height" = 30
+"editor.chrome.document_header.height" = 31
+"editor.chrome.viewport_toolbar.height" = 28
+"editor.chrome.activity_rail.width" = 34
+"editor.chrome.separator.thickness" = 1
+"editor.chrome.splitter.hit_size" = 8
+"editor.density.gap.xsmall" = 2
+"editor.density.gap.tight" = 4
+"editor.density.gap.small" = 4
+"editor.density.gap.regular" = 8
+"editor.density.gap.medium" = 8
+"editor.density.gap.large" = 12
+"editor.density.gap.group" = 24
+"editor.density.drawer_padding" = 12
+"editor.density.panel_padding" = 16
+"editor.density.toolbar_action_width" = 76
+"editor.density.toolbar_wide_action_width" = 96
+"editor.density.ui_asset_action.min_width" = 40
+"editor.density.ui_asset_action.preferred_width" = 52
+"editor.density.ui_asset_action.max_width" = 64
+"editor.density.ui_asset.side.min_width" = 128
+"editor.density.ui_asset.side.preferred_width" = 220
+"editor.density.ui_asset.center.min_width" = 256
+"editor.density.ui_asset.center.preferred_width" = 420
+"editor.density.ui_asset.header_kind.min_width" = 64
+"editor.density.ui_asset.header_kind.preferred_width" = 70
+"editor.density.ui_asset.header_kind.max_width" = 84
+"editor.density.ui_asset.tool.min_width" = 56
+"editor.density.ui_asset.tool.preferred_width" = 64
+"editor.density.ui_asset.tool.max_width" = 80
+"editor.density.command_palette.min_width" = 520
+"editor.density.command_palette.preferred_width" = 560
+"editor.density.command_palette.max_width" = 640
+"editor.density.command_palette.min_height" = 180
+"editor.density.command_palette.preferred_height" = 220
+"editor.density.command_palette.max_height" = 280
+"editor.density.dialog.min_width" = 420
+"editor.density.dialog.preferred_width" = 480
+"editor.density.dialog.max_width" = 560
+"editor.density.dialog.min_height" = 180
+"editor.density.dialog.preferred_height" = 220
+"editor.density.dialog.max_height" = 320
+"editor.density.confirm_dialog.preferred_width" = 460
+"editor.density.confirm_dialog.max_width" = 540
+"editor.density.confirm_dialog.min_height" = 174
+"editor.density.confirm_dialog.preferred_height" = 210
+"editor.density.confirm_dialog.max_height" = 300
+"editor.density.notification_panel.min_width" = 280
+"editor.density.notification_panel.preferred_width" = 320
+"editor.density.notification_panel.max_width" = 380
+"editor.density.notification_panel.min_height" = 160
+"editor.density.notification_panel.preferred_height" = 220
+"editor.density.notification_panel.max_height" = 320
+"editor.density.caption.min_height" = 20
+"editor.density.caption.preferred_height" = 22
+"editor.density.caption.max_height" = 24
+"editor.density.label.min_height" = 22
+"editor.density.label.preferred_height" = 24
+"editor.density.label.max_height" = 32
+"editor.density.chip.min_width" = 40
+"editor.density.chip.preferred_width" = 80
+"editor.density.chip.max_width" = 160
+"editor.density.axis_value_field.min_width" = 54
+"editor.density.axis_value_field.preferred_width" = 62
+"editor.density.axis_value_field.max_width" = 72
+"editor.density.row_height" = 28
+"editor.density.left_drawer_width" = 332
+"editor.density.right_drawer_width" = 404
+"editor.density.bottom_output_height" = 228
+"editor.density.breakpoint_ultra_width" = 480
+"editor.density.breakpoint_narrow_width" = 640
+"editor.density.breakpoint_wide_width" = 1260
+"editor.density.compact_side_width" = 1100
+"editor.density.ultra_compact_side_width" = 760
+"editor.density.compact_left_drawer_max_width" = 340
+"editor.density.compact_right_drawer_max_width" = 220
+"editor.density.compact_side_min_width" = 196
+"editor.density.minimum_document_width_fraction" = 0.5
+"editor.density.ultra_compact_left_drawer_max_width" = 220
+"editor.density.ultra_compact_right_drawer_max_width" = 160
+"editor.density.compact_bottom_available_height" = 900
+"editor.density.compact_bottom_max_height" = 148
+"editor.density.compact_bottom_max_available_fraction" = 0.23
+"editor.density.compact_bottom_min_height" = 120
+"editor.density.ultra_compact_bottom_available_height" = 420
+"editor.density.ultra_compact_bottom_max_height" = 96
+"editor.density.ultra_compact_bottom_max_available_fraction" = 0.2
+"editor.density.ultra_compact_bottom_min_height" = 80
+"editor.density.minimum_window_width" = 640
+"editor.density.minimum_window_height" = 420
+"editor.density.ultra_minimum_window_width" = 420
+"editor.density.ultra_minimum_window_height" = 360
+"editor.state.default" = "surface_1"
+"editor.state.hovered" = "surface_2"
+"editor.state.pressed" = "surface_3"
+"editor.state.selected" = "surface_selected"
+"editor.state.focused" = "surface_1"
+"editor.state.disabled" = "text_disabled"
+"editor.state.loading" = "accent"

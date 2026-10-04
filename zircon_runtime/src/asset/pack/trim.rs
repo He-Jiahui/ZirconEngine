@@ -1,4 +1,4 @@
-use std::collections::{btree_map::Entry, BTreeMap, BTreeSet, VecDeque};
+use std::collections::{btree_map::Entry, BTreeMap, HashSet, VecDeque};
 
 use serde::{Deserialize, Serialize};
 
@@ -207,8 +207,8 @@ fn reachable_asset_closure(
     config: &ZrPackTrimConfig,
     asset_map: &BTreeMap<String, ZrPackTrimInputAsset>,
     mut diagnostics: Vec<String>,
-) -> (BTreeSet<String>, Vec<ZrPackMissingDependency>, Vec<String>) {
-    let mut reachable_assets = BTreeSet::new();
+) -> (HashSet<String>, Vec<ZrPackMissingDependency>, Vec<String>) {
+    let mut reachable_assets = HashSet::with_capacity(asset_map.len());
     let mut queue = VecDeque::new();
     let mut missing_dependencies = Vec::new();
 
@@ -270,5 +270,5 @@ fn trim_reason(
 }
 
 #[cfg(test)]
-#[path = "trim/optimization_tests.rs"]
+#[path = "trim/tests/optimization_tests.rs"]
 mod optimization_tests;

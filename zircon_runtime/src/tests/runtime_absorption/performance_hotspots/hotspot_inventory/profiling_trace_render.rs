@@ -1,3 +1,4 @@
+//! 性能热点的结构守卫核对拥有者、文件预算和证据文档。保存同组守卫使用的局部数据或辅助变换。
 use super::sources::HotspotInventorySources;
 
 pub(super) fn assert_profiling_trace_and_render_diversion(sources: &HotspotInventorySources) {
@@ -12,8 +13,8 @@ fn assert_profiling_build_tooling(sources: &HotspotInventorySources) {
         "profile.profiling",
         "profiling-tracy",
         "profiling-chrome",
-        "python tools/zircon_build.py --targets runtime",
-        "./tools/dev-fast-build.ps1 -Profile client -Action check",
+        "python tools/build/zircon_build.py --targets runtime",
+        "./tools/dev/dev-fast-build.ps1 -Profile client -Action check",
         "profiling_build_tooling_static_passed_cargo_deferred_active_lanes",
     ] {
         assert!(
@@ -72,12 +73,12 @@ fn assert_profiling_build_tooling(sources: &HotspotInventorySources) {
         "--runtime-features",
         "--mode profiling is not supported for the hub/Tauri target.",
         "command.extend([\"--profile\", \"profiling\"])",
-        "python tools/zircon_build.py --targets runtime --out E:\\builds\\zircon-smoke --mode profiling --runtime-features target-client,profiling,profiling-tracy --dry-run",
+        "python tools/build/zircon_build.py --targets runtime --out E:\\builds\\zircon-smoke --mode profiling --runtime-features target-client,profiling,profiling-tracy --dry-run",
     ] {
         assert!(
             sources.zircon_build.contains(required_zircon_build_anchor)
                 || sources.build_tool_doc.contains(required_zircon_build_anchor),
-            "tools/zircon_build.py profiling path should retain `{required_zircon_build_anchor}`"
+            "tools/build/zircon_build.py profiling path should retain `{required_zircon_build_anchor}`"
         );
     }
 
@@ -87,7 +88,7 @@ fn assert_profiling_build_tooling(sources: &HotspotInventorySources) {
         "$CargoProfile -eq \"profiling\"",
         "$args.Add(\"--profile\")",
         "$args.Add(\"profiling\")",
-        "./tools/dev-fast-build.ps1 -Profile client -Action check -Package zircon_runtime -CargoProfile profiling -FeatureOverride \"target-client profiling profiling-tracy\"",
+        "./tools/dev/dev-fast-build.ps1 -Profile client -Action check -Package zircon_runtime -CargoProfile profiling -FeatureOverride \"target-client profiling profiling-tracy\"",
     ] {
         assert!(
             sources
@@ -95,7 +96,7 @@ fn assert_profiling_build_tooling(sources: &HotspotInventorySources) {
                 .contains(required_dev_fast_build_anchor)
                 || sources.build_tool_doc.contains(required_dev_fast_build_anchor)
                 || sources.profiling_doc.contains(required_dev_fast_build_anchor),
-            "tools/dev-fast-build.ps1 profiling path should retain `{required_dev_fast_build_anchor}`"
+            "tools/dev/dev-fast-build.ps1 profiling path should retain `{required_dev_fast_build_anchor}`"
         );
     }
 }

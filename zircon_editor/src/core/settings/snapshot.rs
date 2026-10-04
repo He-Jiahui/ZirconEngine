@@ -5,9 +5,9 @@ use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 
 use super::registry::SettingsRegistry;
 use super::{
+    EditorCommandPaletteMru, EditorKeymapOverrides, SettingValue, SettingsCatalog, SettingsKey,
     EDITOR_AUTOSAVE_INTERVAL_SECS_KEY, EDITOR_COMMAND_PALETTE_MRU_KEY, EDITOR_DESIGN_TOKENS_KEY,
-    EDITOR_KEYMAP_OVERRIDES_KEY, EDITOR_LOCALE_KEY, EditorCommandPaletteMru, EditorKeymapOverrides,
-    SettingValue, SettingsCatalog, SettingsKey, VIEWPORT_ROTATE_STEP_DEGREES_KEY,
+    EDITOR_KEYMAP_OVERRIDES_KEY, EDITOR_LOCALE_KEY, VIEWPORT_ROTATE_STEP_DEGREES_KEY,
     VIEWPORT_SCALE_STEP_KEY, VIEWPORT_TRANSLATE_STEP_KEY,
 };
 

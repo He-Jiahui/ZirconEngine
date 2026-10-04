@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex, MutexGuard, RwLock};
 
 mod behavior_tree;
 mod blackboard;
+mod effects;
 mod execution_gate;
 pub(crate) mod parameters;
 mod perception;
@@ -15,6 +16,7 @@ use execution_gate::BehaviorNodeExecutionGate;
 use state::AiRuntimeState;
 
 #[derive(Clone, Debug)]
+/// 同一状态锁保护代理、schema 与树实例；执行门闩单独跟踪插件节点的在途调用。
 pub struct DefaultAiManager {
     state: Arc<Mutex<AiRuntimeState>>,
     behavior_node_catalog: Arc<RwLock<crate::behavior_tree::BehaviorNodeCatalog>>,

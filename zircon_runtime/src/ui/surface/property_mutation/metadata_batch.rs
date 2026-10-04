@@ -11,6 +11,10 @@ use crate::ui::binding::reflected_property_update_with_source_kind;
 
 use super::metadata_dirty::metadata_attribute_dirty;
 
+#[cfg(test)]
+#[path = "metadata_batch/tests/optimization_tests.rs"]
+mod optimization_tests;
+
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct UiMetadataPropertyChange {
     pub(crate) property: String,
@@ -44,8 +48,20 @@ where
     let mut batch = UiMetadataPropertyBatchMutation::default();
     for (property, value) in properties {
         let property_name = property.as_ref();
+        metadata.localized_text_references.remove(property_name);
+        // Caret/selection projections include the unchanged owned text value.
+        // Compare borrowed bodies before allocating their TOML representation.
+        let string_equal = match (&value, metadata.attributes.get(property_name)) {
+            (UiValue::String(proposed), Some(toml::Value::String(current))) => {
+                Some(current == proposed)
+            }
+            _ => None,
+        };
+        if string_equal == Some(true) {
+            continue;
+        }
         let next = value.to_toml();
-        if metadata.attributes.get(property_name) == Some(&next) {
+        if string_equal.is_none() && metadata.attributes.get(property_name) == Some(&next) {
             continue;
         }
 
@@ -103,64 +119,5 @@ fn merge_dirty_flags(target: &mut UiDirtyFlags, dirty: UiDirtyFlags) {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::collections::BTreeMap;
-
-    use zircon_runtime_interface::ui::{
-        event_ui::{UiNodePath, UiTreeId},
-        tree::{UiTemplateNodeMetadata, UiTreeNode},
-    };
-
-    use super::*;
-
-    #[test]
-    fn virtual_window_metadata_batch_skips_unchanged_aliases_and_merges_dirty_once() {
-        let node_id = UiNodeId::new(2);
-        let mut tree = UiTree::new(UiTreeId::new("runtime.ui.virtual_window.batch"));
-        tree.insert_root(
-            UiTreeNode::new(node_id, UiNodePath::new("root/table")).with_template_metadata(
-                UiTemplateNodeMetadata {
-                    component: "Table".to_string(),
-                    attributes: BTreeMap::from([
-                        ("viewport_start".to_string(), toml::Value::Integer(0)),
-                        ("viewport_count".to_string(), toml::Value::Integer(4)),
-                    ]),
-                    ..UiTemplateNodeMetadata::default()
-                },
-            ),
-        );
-
-        let batch = mutate_tree_metadata_properties(
-            &mut tree,
-            node_id,
-            [
-                ("viewport_start", UiValue::Int(2)),
-                ("viewport_count", UiValue::Int(4)),
-                ("visible_end", UiValue::Int(6)),
-            ],
-            UiBindingSourceKind::WidgetBehavior,
-        )
-        .expect("metadata batch should apply");
-
-        assert_eq!(batch.changes.len(), 2);
-        assert_eq!(batch.reflected_updates.len(), 2);
-        assert!(
-            batch
-                .reflected_updates
-                .iter()
-                .all(|update| update.status == UiBindingUpdateStatus::Applied)
-        );
-        assert!(batch.dirty.layout);
-        assert!(batch.dirty.hit_test);
-        assert!(batch.dirty.render);
-        assert!(batch.dirty.input);
-        assert!(batch.dirty.visible_range);
-        assert!(!tree.node(node_id).expect("node").dirty.any());
-        assert_eq!(
-            tree.node(node_id)
-                .and_then(|node| node.template_metadata.as_ref())
-                .and_then(|metadata| metadata.attributes.get("viewport_start")),
-            Some(&toml::Value::Integer(2))
-        );
-    }
-}
+#[path = "tests/metadata_batch.rs"]
+mod tests;

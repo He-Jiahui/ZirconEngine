@@ -8,17 +8,17 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PACK_DELTA_SCHEMA = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_pack_delta_schema.py"
+    REPO_ROOT / "tools/export/pipeline_report_pack_delta_schema.py"
 )
 PACK_STAGE_SCHEMA = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_pack_stage_schema.py"
+    REPO_ROOT / "tools/export/pipeline_report_pack_stage_schema.py"
 )
 PACK_DELTA_SEMANTICS = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_pack_delta_semantics.py"
+    REPO_ROOT / "tools/export/pipeline_report_pack_delta_semantics.py"
 )
 PACK_DELTA_ASSET_SET_SEMANTICS = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_pack_delta_asset_set_semantics.py"
+    / "tools/export/pipeline_report_pack_delta_asset_set_semantics.py"
 )
 
 MOVED_FUNCTIONS = (

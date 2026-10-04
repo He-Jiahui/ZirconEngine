@@ -1,3 +1,4 @@
+# 核对受管构建命令在登记与清理记录之间共享单次序列化结果。
 from __future__ import annotations
 
 import json

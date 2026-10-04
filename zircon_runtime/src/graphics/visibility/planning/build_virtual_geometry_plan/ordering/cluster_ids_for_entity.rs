@@ -1,5 +1,5 @@
 use crate::core::framework::render::{
-    RenderVirtualGeometryExtract, RenderVirtualGeometryInstance, render_mesh_stable_instance_key,
+    render_mesh_stable_instance_key, RenderVirtualGeometryExtract, RenderVirtualGeometryInstance,
 };
 
 pub(in crate::graphics::visibility::planning::build_virtual_geometry_plan) fn cluster_ids_for_stable_instance_key(
@@ -47,5 +47,5 @@ fn stable_instance_key_for_instance(instance: &RenderVirtualGeometryInstance) ->
 }
 
 #[cfg(test)]
-#[path = "cluster_ids_for_entity/segmented_extend_tests.rs"]
+#[path = "cluster_ids_for_entity/tests/segmented_extend_tests.rs"]
 mod segmented_extend_tests;

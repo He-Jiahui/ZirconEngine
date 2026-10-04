@@ -1,3 +1,4 @@
+//! 插件公开面、原生装载命名空间与生命周期回退保持分离。对照源文件与文档的当前锚点，记录尚待运行验证的结构约束。
 use std::collections::BTreeSet;
 use std::path::Path;
 
@@ -140,19 +141,15 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
         ("runtime index status", runtime_index_status),
         (
             "native plugin boundary",
-            include_str!("../../../../../docs/engine-architecture/native-plugin-boundary.md"),
+            include_str!("../../../../../docs/architecture/native-plugin-boundary.md"),
         ),
         (
             "interface convergence",
-            include_str!(
-                "../../../../../docs/engine-architecture/runtime-interface-convergence.md"
-            ),
+            include_str!("../../../../../docs/architecture/runtime-interface-convergence.md"),
         ),
         (
             "M0 review",
-            include_str!(
-                "../../../../../docs/engine-architecture/runtime-architecture-review-m0.md"
-            ),
+            include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md"),
         ),
     ];
 

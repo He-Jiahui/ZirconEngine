@@ -25,8 +25,11 @@ impl ToolInputCaptureId {
     }
 
     const fn checked_next(self) -> Option<Self> {
-        match self.0.get().checked_add(1).and_then(NonZeroU64::new) {
-            Some(value) => Some(Self(value)),
+        match self.0.get().checked_add(1) {
+            Some(value) => match NonZeroU64::new(value) {
+                Some(value) => Some(Self(value)),
+                None => None,
+            },
             None => None,
         }
     }
@@ -474,8 +477,18 @@ impl ToolInputCaptureAuthority {
     }
 
     pub(crate) fn shutdown(&mut self) -> ToolInputCaptureReport<Box<[ToolInputCaptureHandle]>> {
-        let ids = self.captures.keys().copied().collect::<Vec<_>>();
-        self.end_ids(ids, ToolInputCaptureDisposition::Shutdown)
+        let captures = std::mem::take(&mut self.captures);
+        self.by_source.clear();
+        let mut ended = Vec::with_capacity(captures.len());
+        let mut events = Vec::with_capacity(captures.len());
+        for handle in captures.into_values() {
+            events.push(ToolInputCaptureEvent::Ended {
+                handle: handle.clone(),
+                disposition: ToolInputCaptureDisposition::Shutdown,
+            });
+            ended.push(handle);
+        }
+        ToolInputCaptureReport::new(ended.into_boxed_slice(), events)
     }
 
     fn start_capture(
@@ -604,4 +617,9 @@ impl ToolInputCaptureAuthority {
 }
 
 #[cfg(test)]
+#[path = "input_capture/tests/cases.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "tests/optimization_batch_editor877_input_capture_shutdown_owned_drain_tests.rs"]
+mod optimization_batch_editor877_input_capture_shutdown_owned_drain_tests;

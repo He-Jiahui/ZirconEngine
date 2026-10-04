@@ -1,5 +1,4 @@
-// Pure shared group-haste application planning. The WOS reducer selects live
-// candidates and commits the returned aura descriptions atomically.
+// 群体加速应用的纯计划；world/state 负责先筛候选，再将返回的攻击/法术加速和疲劳值写入权威列。
 var container = %import("zr.container");
 var contract = %import("generated/group_haste_contract");
 
@@ -25,6 +24,7 @@ pub class GroupHasteParams {
     }
 }
 
+/// 单目标写回描述；攻击加速保留倍率，法术加速改用倍率减一，疲劳持续时间独立给出。
 pub class GroupHasteApplication {
     pub var targetId: int;
     pub var attackHasteValue: float;
@@ -42,8 +42,8 @@ pub class GroupHasteApplication {
     }
 }
 
-// Mirrors applyGroupHaste after the source has selected either group or
-// friendlies-in-radius candidates. Existing Sated blocks only exhausting casts.
+/// 对已筛选候选保持原顺序；只有需要施加疲劳的施法会跳过已有疲劳目标，持续时间由世界层按技能效果写入。
+/// 只计划资格与数值，不查询世界阵营或半径，也不写入实体；调用方须保持候选身份稳定至提交。
 pub planGroupHaste(
     candidates: container.Array<GroupHasteTarget>,
     params: GroupHasteParams
@@ -74,6 +74,7 @@ pub contractTest(): int {
     var exhausting = planGroupHaste(candidates, new GroupHasteParams(1.3, 12.0, true, true));
     if (exhausting.length != 1) return -1;
     var applied = <GroupHasteApplication>exhausting[0];
+    // BUG: [CR-WOC-CW-CE-0002] 本测试把 1.3 减 1.0 的双精度结果与 0.3 严格比较，恒返回负二；世界层时间加速测试调用本合同后也早退负一。
     if (applied.targetId != 8 || applied.attackHasteValue != 1.3 ||
         !applied.addSpellHaste || applied.spellHasteValue != 0.3 ||
         !applied.addSated || applied.satedDuration != 600.0 ||

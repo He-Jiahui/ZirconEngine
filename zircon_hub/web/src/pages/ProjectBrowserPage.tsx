@@ -5,7 +5,7 @@ import GridViewIcon from "@mui/icons-material/GridView";
 import SearchOffIcon from "@mui/icons-material/SearchOff";
 import { Box, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
-import { EmptyStateBlock, HubPanel, ProjectTable, QuickActions, SourceEngineList } from "../components/data";
+import { EmptyStateBlock, HubPanel, PageHeader, ProjectTable, QuickActions, SourceEngineList } from "../components/data";
 import { HubStatusBanner } from "../components/feedback";
 import { HubButton, HubSearchField, HubSelect, HubToggle } from "../components/inputs";
 import { useDebouncedProjectSearch } from "../projects/debouncedProjectSearch";
@@ -73,30 +73,28 @@ export function ProjectBrowserPage({ state, onAction }: ProjectBrowserPageProps)
         },
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, mb: 2.3 }}>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="h4">{text.browserTitle}</Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.9 }}>
-            {state.pageSubtitle}
-          </Typography>
-        </Box>
-        <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap", justifyContent: "flex-end" }}>
+      <PageHeader title={text.browserTitle} subtitle={state.pageSubtitle} actions={<>
           <HubButton startIcon={<DashboardCustomizeOutlinedIcon />} onClick={() => void onAction(HUB_ACTION.showProjectSubpage, "dashboard")}>
             {actionText.dashboard}
           </HubButton>
           <HubButton tone="primary" startIcon={<AddIcon />} onClick={() => void onAction(HUB_ACTION.newProject)}>
             {actionText.newProject}
           </HubButton>
-        </Box>
-      </Box>
+        </>} />
 
       <Box sx={{ mb: 1.4 }}>
-        <HubStatusBanner task={state.taskSummary} />
+        <HubStatusBanner
+          task={state.taskSummary}
+          cancelLabel={state.ui.common.cancelTask}
+          onCancel={() => void onAction(HUB_ACTION.cancelBackgroundTask, String(state.taskSummary.taskId))}
+        />
       </Box>
 
       <Box
         sx={{
           display: "grid",
+          width: "100%",
+          minWidth: 0,
           gridTemplateColumns: "minmax(280px, 420px) 1fr auto auto auto",
           alignItems: "center",
           gap: 1.2,
@@ -105,7 +103,8 @@ export function ProjectBrowserPage({ state, onAction }: ProjectBrowserPageProps)
             gridTemplateColumns: "minmax(240px, 1fr) auto auto",
           },
           "@media (max-width: 760px)": {
-            gridTemplateColumns: "1fr",
+            gridTemplateColumns: "minmax(0, 1fr)",
+            "& > *": { minWidth: 0, maxWidth: "100%" },
           },
         }}
       >
@@ -120,6 +119,7 @@ export function ProjectBrowserPage({ state, onAction }: ProjectBrowserPageProps)
         <Box sx={{ minWidth: 0 }} />
         <HubSelect
           value={filter}
+          label={text.filterLabel}
           minWidth={183}
           options={[
             { value: "all", label: text.filterAll },
@@ -133,6 +133,7 @@ export function ProjectBrowserPage({ state, onAction }: ProjectBrowserPageProps)
         />
         <HubSelect
           value={sort}
+          label={text.sortLabel}
           minWidth={190}
           options={[
             { value: "last-modified", label: text.sortLastModified },
@@ -144,6 +145,7 @@ export function ProjectBrowserPage({ state, onAction }: ProjectBrowserPageProps)
           }}
         />
         <HubToggle
+          ariaLabel={text.browserTitle}
           value={viewMode}
           onChange={(value) => {
             setViewMode(value);

@@ -32,10 +32,16 @@ fn read_repo_file(path: &str) -> String {
 }
 
 fn assert_contains_all(source_name: &str, source: &str, snippets: &[&str]) {
+    let mut missing = Vec::new();
     for snippet in snippets {
-        assert!(
-            source.contains(snippet),
-            "{source_name} should contain page-copy snippet {snippet:?}"
+        if !source.contains(snippet) {
+            missing.push(*snippet);
+        }
+    }
+    if !missing.is_empty() {
+        panic!(
+            "{} should contain page-copy snippets {:?}",
+            source_name, missing
         );
     }
 }
@@ -66,7 +72,7 @@ fn rust_localization_and_view_model_own_page_subtitles_status_and_quick_action_l
     let quick_actions = read_crate_file("src/tauri_app/view_model/quick_actions.rs");
     let ui_text = read_crate_file("src/tauri_app/view_model/ui_text.rs");
     let view_model = read_crate_file("src/tauri_app/view_model.rs");
-    let view_model_tests = read_crate_file("src/tauri_app/view_model/tests.rs");
+    let view_model_tests = read_crate_file("src/tauri_app/view_model/tests/cases.rs");
     let task_status = read_crate_file("src/state/task_status.rs");
 
     assert_contains_all(
@@ -160,6 +166,8 @@ fn rust_localization_and_view_model_own_page_subtitles_status_and_quick_action_l
             "{0} -> {1}（{2} 个文件）",
             "已打包 {0} 到 {1}（{2} 个文件）",
             "输出文件夹不存在：{0}",
+            "OutputFolderNotRecorded",
+            "输出文件夹不是 Hub 已记录的输出：{0}",
             "包目录已存在：{0}",
             "设备安装已存在：{0}",
         ],
@@ -211,8 +219,12 @@ fn rust_localization_and_view_model_own_page_subtitles_status_and_quick_action_l
             "let log_excerpt = text.render_message(&record.log_excerpt);",
             "let detail_rows = action_history_detail_rows(",
             ".map(|recovery| text.render_message(recovery))",
-            "fn action_history_row_localizes_log_excerpt()",
         ],
+    );
+    assert_contains_all(
+        "action_history.rs",
+        &read_crate_file("src/tauri_app/view_model/tests/action_history.rs"),
+        &["fn action_history_row_localizes_log_excerpt()"],
     );
     assert_contains_all(
         "ui_text.rs",
@@ -252,6 +264,12 @@ fn rust_localization_and_view_model_own_page_subtitles_status_and_quick_action_l
             "option_label: template_option_label(&title, &status, template.enabled, language)",
             "HubLanguage::Chinese => format!(\"{title}（{status}）\")",
             "HubLanguage::English => format!(\"{title} ({status})\")",
+        ],
+    );
+    assert_contains_all(
+        "project_templates.rs",
+        &read_crate_file("src/tauri_app/view_model/tests/project_templates.rs"),
+        &[
             "disabled_template_option_label_is_localized_before_react_renders_it",
             "assert_eq!(template.option_label, \"2D 场景（敬请期待）\")",
         ],
@@ -306,7 +324,7 @@ fn rust_localization_and_view_model_own_page_subtitles_status_and_quick_action_l
         ],
     );
     assert_contains_all(
-        "view_model/tests.rs",
+        "view_model/tests/cases.rs",
         &view_model_tests,
         &["fn task_summary_localizes_backend_operation_targets()"],
     );
@@ -317,9 +335,13 @@ fn rust_localization_and_view_model_own_page_subtitles_status_and_quick_action_l
             "label: \"Ready\".to_string()",
             "detail: HubMessage::new(HubMessageId::Shell(ShellMessageId::HubReady))",
             "pub recovery: Option<HubMessage>",
-            "TaskStatus::success(\"Project selected\", HubMessage::raw_text(\"Game\"))",
             "operation_summary",
         ],
+    );
+    assert_contains_all(
+        "task_status.rs",
+        &read_crate_file("src/state/tests/task_status.rs"),
+        &["TaskStatus::success(\"Project selected\", HubMessage::raw_text(\"Game\"))"],
     );
 }
 
@@ -336,7 +358,7 @@ fn projects_dashboard_and_browser_copy_match_the_reference_surface() {
         &[
             "const text = state.ui.projects;",
             "const actionText = state.ui.actions;",
-            "<Typography variant=\"h4\">{text.title}</Typography>",
+            "<PageHeader title={text.title} subtitle={state.pageSubtitle}",
             "<ProjectsToolbar",
             "title={text.noProjectsFound}",
             "detail={text.searchFiltersEmpty}",
@@ -387,7 +409,7 @@ fn projects_dashboard_and_browser_copy_match_the_reference_surface() {
         &[
             "const text = state.ui.projects;",
             "const actionText = state.ui.actions;",
-            "<Typography variant=\"h4\">{text.browserTitle}</Typography>",
+            "<PageHeader title={text.browserTitle} subtitle={state.pageSubtitle}",
             "{actionText.dashboard}",
             "{actionText.newProject}",
             "placeholder={text.searchPlaceholder}",
@@ -578,12 +600,12 @@ fn workspace_copy_stays_local_selected_project_and_component_focused() {
         "SettingsPage.tsx",
         &settings,
         &[
-            "<Typography variant=\"h4\">{settingsText.heading}</Typography>",
+            "<PageHeader title={settingsText.heading} subtitle={state.pageSubtitle}",
             "{settingsText.saveButton}",
             "{settingsText.discardButton}",
             "{settingsText.restoreDefaultsButton}",
-            "void onAction(HUB_ACTION.discardSettingsDraft)",
-            "void onAction(HUB_ACTION.restoreDefaultSettings)",
+            "runSettingsBarrier(() => onAction(HUB_ACTION.discardSettingsDraft))",
+            "runSettingsBarrier(() => onAction(HUB_ACTION.restoreDefaultSettings))",
             "MetricCard label={settingsText.sourceEnginesPanel}",
             "MetricCard label={labels.buildProfile}",
             "MetricCard label={labels.language}",
@@ -622,7 +644,7 @@ fn settings_page_displays_localized_option_labels_without_changing_stable_payloa
             "MetricCard label={labels.buildProfile} value={buildProfileLabel} detail={draftJobsLabel}",
             "MetricCard label={labels.language} value={languageLabel}",
             "detail: languageLabel",
-            "void onAction(HUB_ACTION.saveSettings, undefined, { settings: draft })",
+            "runSettingsBarrier(() => onAction(HUB_ACTION.saveSettings, undefined, { settings: draft }))",
         ],
     );
     assert_contains_all(
@@ -697,6 +719,12 @@ fn workspace_pages_display_localized_saved_settings_option_labels() {
             "option(\"Chinese\", \"中文\")",
             "option(\"English\", \"English\")",
             "fn job_count_label(jobs: u16, language: HubLanguage) -> String",
+        ],
+    );
+    assert_contains_all(
+        "settings_dto.rs",
+        &read_crate_file("src/tauri_app/view_model/tests/settings_dto.rs"),
+        &[
             "settings_language_options_keep_native_names_across_ui_languages",
             "settings_summary_projects_saved_option_labels_for_react_consumers",
         ],
@@ -957,7 +985,7 @@ fn cloud_local_delivery_history_rows_show_output_directories_from_action_history
             "secondaryDetail: action.outputDir ?? common.noOutputDirectory,",
             "meta: action.finished,",
             "items={installActions.map((action) => ({",
-            "onSelect={(item) => void onAction(HUB_ACTION.openOutputFolder, item.id, { historyId: item.id })}",
+            "onSelect={(item) => void onAction(HUB_ACTION.openOutputFolder, undefined, { receiptId: item.id })}",
         ],
     );
     assert_not_contains_any(

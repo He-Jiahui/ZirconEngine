@@ -1,3 +1,6 @@
+//! 汇合发现清单、ABI 描述符及运行时/编辑器入口清单，并在运行时注册阶段解析包内 shader 源。
+//! 发现清单提供包路径和初始声明；后续阶段的贡献按插件 ID 合并为供目录与导出使用的视图。
+
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 use std::path::{Component, Path, PathBuf};
@@ -18,15 +21,17 @@ const MAX_SHADER_MODULE_SOURCE_BYTES: u64 = 4 * 1024 * 1024;
 const MAX_SHADER_MODULE_SOURCE_TOTAL_BYTES: u64 = 16 * 1024 * 1024;
 
 #[cfg(test)]
-#[path = "manifests/capacity_tests.rs"]
+#[path = "manifests/tests/capacity_tests.rs"]
 mod capacity_tests;
 
 impl NativePluginLoadReport {
+    /// 给需要拥有清单的调用方返回投影副本；批量读取时应复用 `projection` 的借用切片。
     pub fn package_manifests(&self) -> Vec<PluginPackageManifest> {
         self.projection().package_manifests().to_vec()
     }
 }
 
+/// 按发现、描述符、运行时入口、编辑器入口的顺序汇合清单；同 ID 包在最终输出前只排序一次。
 pub(super) fn projected_package_manifests(
     report: &NativePluginLoadReport,
     stats: &mut ProjectionBuildStats,
@@ -61,6 +66,8 @@ pub(super) fn projected_package_manifests(
     builder.finish()
 }
 
+/// 在运行时注册需要源码时读取发现包中的 shader；路径须留在包根内，并受单文件与整包预算约束。
+/// 解析失败以注册诊断返回，发现报告本身不会预先读取这些文件。
 pub(super) fn shader_module_sources_from_candidate(
     candidate: &crate::plugin::native_plugin_loader::NativePluginCandidate,
 ) -> (Vec<PluginShaderModuleSource>, Vec<String>) {
@@ -183,6 +190,7 @@ pub(super) fn shader_module_sources_from_candidate(
     (sources, diagnostics)
 }
 
+// 源文件可能经过符号链接；注册前校验规范路径，避免把包外文件当作包内 shader。
 fn package_shader_module_source_path(package_root: &Path, source: &str) -> Result<PathBuf, String> {
     let relative = Path::new(source);
     if source.is_empty()
@@ -239,6 +247,7 @@ pub(super) fn merge_package_manifest(
     manifests.insert(merged.id.clone(), merged);
 }
 
+// 发现清单先占据包 ID，后续 ABI/入口声明补充同一包；索引避免逐个包线性查找。
 #[derive(Default)]
 struct ManifestProjectionBuilder {
     manifests: Vec<ManifestAccumulator>,
@@ -312,6 +321,8 @@ impl ManifestAccumulator {
         }
     }
 
+    // TODO: [CR-PLUGIN-NATIVE-0501] 确认 ABI/入口清单中的 package_role、目标平台和 shader_permutation 是否必须覆盖发现清单；当前只汇合部分字段，缺少跨阶段差异的契约测试；下一步核对目录、启用和导出调用方并补充冲突样例。
+    // 入口贡献可更新展示字段并增加模块等声明，集合项按结构值去重。
     fn merge(&mut self, manifest: PluginPackageManifest) {
         if !manifest.version.is_empty() {
             self.manifest.version = manifest.version;
@@ -372,6 +383,7 @@ impl ManifestAccumulator {
     }
 }
 
+// 用序列化键定位候选桶，再以结构相等判断，保留首次出现的清单顺序。
 struct EqualityIndex<T> {
     buckets: HashMap<String, Vec<T>>,
 }

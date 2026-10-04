@@ -1,7 +1,7 @@
 from pathlib import Path
 import re
 import unittest
-
+# 活跃资源索引用借用名称做哈希键，并按图资源引用上界预留容量；各消费入口都应接受这一借用集合。
 
 ROOT = Path(__file__).resolve().parents[2]
 FILTERING_RS = ROOT / (

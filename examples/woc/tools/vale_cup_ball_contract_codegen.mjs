@@ -1,3 +1,6 @@
+// 调用端：npm run generate:vale-cup-ball-contract (tools/package.json)；职责：固化山谷杯球体物理和场地墙体几何。
+// 输入边界：src/sim/vale_cup_ball.ts, src/sim/vale_cup_layout.ts, src/sim/types.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

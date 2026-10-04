@@ -1,7 +1,8 @@
+# 核对模板投影保留节点命令区间索引，纯文本更新只遍历局部区间。
 from pathlib import Path
 import unittest
 
-from tools.editor_template_projection_command_index_pressure import run
+from tools.analysis.performance.editor.editor_template_projection_command_index_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]

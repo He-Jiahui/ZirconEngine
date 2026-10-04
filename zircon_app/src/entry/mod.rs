@@ -15,6 +15,7 @@ pub(crate) mod product_shutdown;
 #[cfg(feature = "platform-winit")]
 mod runtime_entry_app;
 pub(crate) mod runtime_library;
+pub use runtime_library::{retry_runtime_startup_cleanup, RuntimeSessionCreateFailure};
 
 #[cfg(test)]
 mod tests;
@@ -25,6 +26,10 @@ pub use entry_profile::EntryProfile;
 #[cfg(feature = "target-editor-host")]
 pub use entry_runner::EditorApplicationComposition;
 pub use entry_runner::EntryRunner;
+#[cfg(feature = "diagnostic-log")]
+pub use entry_runner::{
+    HeadlessController, HeadlessHostError, HeadlessRunReport, HeadlessStopReason,
+};
 pub use export_bootstrap::{
     bootstrap_export_runtime, bootstrap_export_runtime_with_native_plugins_from_export_root,
     discover_export_root, ExportRuntimeBootstrapConfig,
@@ -48,4 +53,11 @@ pub use product_host_config::{
     ProductPlatformClass, ProductRoleDescriptor, ProductRoleRequest, ProductRunnerKind,
     ProductRuntimeLinkage, ProductShutdownPolicy, ResolvedProductHostConfig,
 };
-pub use product_shutdown::{ProductExitClass, ProductProcessExitCode};
+pub use product_shutdown::{
+    retry_product_cleanup_until, ProductCloseError, ProductCompositionFailure,
+};
+pub use product_shutdown::{
+    ProductExitClass, ProductProcessExitCode, ProductTerminalOutcome, ProductTerminalPrimary,
+    ProductTerminalReceipt, ProductTerminalSecondary, ProductTerminalStatus,
+    PRODUCT_TERMINAL_RECEIPT_SCHEMA_VERSION,
+};

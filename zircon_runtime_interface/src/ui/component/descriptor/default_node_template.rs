@@ -26,9 +26,10 @@ pub struct UiDefaultNodeTemplate {
 impl UiDefaultNodeTemplate {
     pub fn native(widget_type: impl Into<String>) -> Self {
         let widget_type = widget_type.into();
+        let (node_id_prefix, control_id_prefix) = native_prefixes(&widget_type);
         Self {
-            node_id_prefix: normalize_prefix(&widget_type),
-            control_id_prefix: Some(control_prefix(&widget_type)),
+            node_id_prefix,
+            control_id_prefix: Some(control_id_prefix),
             widget_type,
             ..Self::default()
         }
@@ -63,6 +64,8 @@ impl UiDefaultNodeTemplate {
         self.widget_type.trim().is_empty() || self.node_id_prefix.trim().is_empty()
     }
 
+    /// 调用方传入的 control_id 优先于模板前缀；本方法只生成单个 Native 节点，
+    /// 参数、绑定、样式覆盖与子节点保持为空。
     pub fn instantiate(
         &self,
         node_id: impl Into<String>,
@@ -89,28 +92,45 @@ impl UiDefaultNodeTemplate {
     }
 }
 
-fn normalize_prefix(value: &str) -> String {
-    let normalized = value
-        .chars()
-        .map(|ch| if ch.is_ascii_alphanumeric() { ch } else { '_' })
-        .collect::<String>()
-        .trim_matches('_')
-        .to_ascii_lowercase();
-    if normalized.is_empty() {
-        "node".to_string()
-    } else {
-        normalized
+// 节点前缀统一小写并将非 ASCII 字母数字折成下划线；控制 ID 前缀只保留原大小写 ASCII 字母数字，
+// 两者的空结果分别回退为 node 与 Node。
+fn native_prefixes(value: &str) -> (String, String) {
+    let mut node_prefix = String::with_capacity(value.len());
+    let mut control_prefix = String::with_capacity(value.len());
+
+    for ch in value.chars() {
+        if ch.is_ascii_alphanumeric() {
+            node_prefix.push(ch.to_ascii_lowercase());
+            control_prefix.push(ch);
+        } else {
+            node_prefix.push('_');
+        }
     }
+
+    let start = node_prefix
+        .as_bytes()
+        .iter()
+        .position(|byte| *byte != b'_')
+        .unwrap_or(0);
+    let end = node_prefix
+        .as_bytes()
+        .iter()
+        .rposition(|byte| *byte != b'_')
+        .map_or(start, |index| index.saturating_add(1));
+    node_prefix.truncate(end);
+    if start > 0 {
+        node_prefix.drain(..start);
+    }
+    if node_prefix.is_empty() {
+        node_prefix.push_str("node");
+    }
+    if control_prefix.is_empty() {
+        control_prefix.push_str("Node");
+    }
+
+    (node_prefix, control_prefix)
 }
 
-fn control_prefix(value: &str) -> String {
-    let prefix = value
-        .chars()
-        .filter(|ch| ch.is_ascii_alphanumeric())
-        .collect::<String>();
-    if prefix.is_empty() {
-        "Node".to_string()
-    } else {
-        prefix
-    }
-}
+#[cfg(test)]
+#[path = "default_node_template/tests/prefix_performance_tests.rs"]
+mod prefix_performance_tests;

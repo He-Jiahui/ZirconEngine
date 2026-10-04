@@ -19,6 +19,7 @@ pub enum MeshSdfCookRequest {
 }
 
 impl MeshSdfCookRequest {
+    /// 在导入投影之前把可选 TOML 设置转为有界请求；未声明时不生成 SDF，错误配置阻止导入。
     pub fn from_import_settings(import_settings: &toml::Table) -> Result<Self, String> {
         let Some(value) = import_settings.get(MESH_SDF_IMPORT_SETTING) else {
             return Ok(Self::Disabled);
@@ -63,6 +64,7 @@ impl MeshSdfCookRequest {
         Ok(Self::Enabled(settings))
     }
 
+    /// 仅显式启用时向原语投影传递设置，避免默认为每个模型增加昂贵派生数据。
     pub fn settings(&self) -> Option<MeshSdfCookSettings> {
         match self {
             Self::Disabled => None,
@@ -123,59 +125,5 @@ fn invalid_integer(key: &str) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn mesh_sdf_cook_is_disabled_without_an_explicit_request() {
-        assert_eq!(
-            MeshSdfCookRequest::from_import_settings(&toml::Table::new()).unwrap(),
-            MeshSdfCookRequest::Disabled
-        );
-    }
-
-    #[test]
-    fn enabled_request_preserves_bounded_settings() {
-        let settings = toml::from_str(
-            r#"
-                [mesh_sdf]
-                enabled = true
-                max_dimension = 24
-                max_voxel_count = 8192
-                max_payload_bytes = 32768
-                surface_band_voxels = 3
-                two_sided = true
-            "#,
-        )
-        .unwrap();
-
-        assert_eq!(
-            MeshSdfCookRequest::from_import_settings(&settings)
-                .unwrap()
-                .settings(),
-            Some(MeshSdfCookSettings {
-                max_dimension: 24,
-                max_voxel_count: 8192,
-                max_payload_bytes: 32768,
-                surface_band_voxels: 3,
-                two_sided: true,
-            })
-        );
-    }
-
-    #[test]
-    fn malformed_or_unbounded_settings_are_rejected() {
-        let settings = toml::from_str(
-            r#"
-                [mesh_sdf]
-                enabled = true
-                max_dimension = 1024
-            "#,
-        )
-        .unwrap();
-
-        assert!(MeshSdfCookRequest::from_import_settings(&settings)
-            .unwrap_err()
-            .contains("max_dimension"));
-    }
-}
+#[path = "tests/request.rs"]
+mod tests;

@@ -1,0 +1,41 @@
+penpot_original_source = "[asset]\r\nkind = \"view\"\r\nid = \"navigation.navmesh_asset\"\r\nversion = 2\r\ndisplay_name = \"NavMesh Asset\"\r\n\r\n[imports]\r\nstyles = [\"res://ui/theme/editor_base.zui\"]\r\n\r\n[root]\r\nnode = \"navigation_navmesh_asset_root\"\r\n\r\n[nodes.navigation_navmesh_asset_summary]\r\ncomponent = \"Space\"\r\ncontrol_id = \"NavigationNavMeshAssetSummary\"\r\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\n\r\n[nodes.navigation_navmesh_asset_root]\r\ncomponent = \"VerticalGroup\"\r\ncontrol_id = \"NavigationNavMeshAssetRoot\"\r\nclasses = [\"editor-shell\"]\r\nlayout = { container = { kind = \"VerticalBox\", gap = 8 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\nchildren = [{ node = \"navigation_navmesh_asset_summary\" }]\r\n"
+
+[asset]
+kind = "view"
+id = "navigation.navmesh_asset"
+version = 2
+display_name = "NavMesh Asset"
+
+[imports]
+styles = [ "res://ui/theme/editor_base.zui" ]
+
+[root]
+node = "navigation_navmesh_asset_root"
+
+[nodes.navigation_navmesh_asset_summary]
+component = "Space"
+control_id = "NavigationNavMeshAssetSummary"
+
+[nodes.navigation_navmesh_asset_summary.layout.width]
+stretch = "Stretch"
+
+[nodes.navigation_navmesh_asset_summary.layout.height]
+stretch = "Stretch"
+
+[nodes.navigation_navmesh_asset_root]
+component = "VerticalGroup"
+control_id = "NavigationNavMeshAssetRoot"
+classes = [ "editor-shell" ]
+
+[nodes.navigation_navmesh_asset_root.layout.container]
+kind = "VerticalBox"
+gap = 8
+
+[nodes.navigation_navmesh_asset_root.layout.width]
+stretch = "Stretch"
+
+[nodes.navigation_navmesh_asset_root.layout.height]
+stretch = "Stretch"
+
+[[nodes.navigation_navmesh_asset_root.children]]
+node = "navigation_navmesh_asset_summary"

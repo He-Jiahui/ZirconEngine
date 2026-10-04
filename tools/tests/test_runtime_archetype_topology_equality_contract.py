@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 读取拓扑回执与运行时结构，确认常量索引相等性替代全量比较且计划镜像保持同步。
 class RuntimeArchetypeTopologyEqualityContractTests(unittest.TestCase):
     STATUS = (
         "runtime_08_15_archetype_topology_equality_receipt_"
@@ -14,7 +14,7 @@ class RuntimeArchetypeTopologyEqualityContractTests(unittest.TestCase):
             repo_root / "zircon_runtime/src/scene/ecs/archetype/index.rs"
         ).read_text(encoding="utf-8")
         tests = (
-            repo_root / "zircon_runtime/src/scene/ecs/archetype/index/tests.rs"
+            repo_root / "zircon_runtime/src/scene/ecs/archetype/index/tests/cases.rs"
         ).read_text(encoding="utf-8")
 
         for anchor in (

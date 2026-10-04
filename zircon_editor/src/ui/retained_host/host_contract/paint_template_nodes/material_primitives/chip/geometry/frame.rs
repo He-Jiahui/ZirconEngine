@@ -2,6 +2,7 @@ use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::identity::chip_is_small;
 use super::metrics::{chip_bounded_extent, CHIP_MEDIUM_HEIGHT, CHIP_SMALL_HEIGHT};
 
+/// 将 Chip 的标准高度收进父节点边界，供所有子层共用同一可绘帧。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_frame(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
@@ -41,37 +42,5 @@ fn chip_height(node: &TemplatePaneNodeData) -> f32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn chip_frame_stays_inside_tight_parent_bounds() {
-        let parent = FrameRect {
-            x: 10.4,
-            y: 20.8,
-            width: 0.4,
-            height: 0.6,
-        };
-        let frame = chip_frame(&TemplatePaneNodeData::default(), &parent);
-
-        assert!(frame.x >= parent.x);
-        assert!(frame.y >= parent.y);
-        assert!(frame.right() <= parent.right());
-        assert!(frame.bottom() <= parent.bottom());
-    }
-
-    #[test]
-    fn chip_corner_radius_does_not_exceed_narrow_frame_bounds() {
-        let rect = FrameRect {
-            x: 0.0,
-            y: 0.0,
-            width: 2.0,
-            height: 20.0,
-        };
-
-        assert_eq!(
-            chip_corner_radius(&TemplatePaneNodeData::default(), &rect),
-            1.0
-        );
-    }
-}
+#[path = "tests/frame.rs"]
+mod tests;

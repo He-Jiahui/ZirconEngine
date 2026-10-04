@@ -1,3 +1,4 @@
+//! 特性能力要求连接作者声明与设备摘要，编译过滤及提交前校验应使用同一语义。
 use crate::core::framework::render::{RenderCapabilityKind, RenderCapabilitySummary};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -82,16 +83,5 @@ impl RenderFeatureCapabilityRequirement {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::RenderFeatureCapabilityRequirement;
-    use crate::core::framework::render::RenderCapabilityKind;
-
-    #[test]
-    fn feature_requirements_round_trip_every_render_capability() {
-        for capability in RenderCapabilityKind::ALL {
-            let requirement = RenderFeatureCapabilityRequirement::from_capability_kind(capability);
-
-            assert_eq!(requirement.capability_kind(), capability);
-        }
-    }
-}
+#[path = "tests/render_feature_capability_requirement.rs"]
+mod tests;

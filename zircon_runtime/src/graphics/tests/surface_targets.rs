@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{
-    AssetUri, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT, TextureAsset, TextureAssetDescriptor,
+    AssetUri, TextureAsset, TextureAssetDescriptor, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
 };
 use crate::core::framework::render::{
     CameraRenderDescriptor, CameraRenderType, CapturedFrame, FallbackSkyboxKind,
@@ -188,12 +188,10 @@ fn graphics_surface_missing_surface_clears_pending_graphics_debugger_capture() {
     assert!(!status.active_capture);
     assert!(!status.capture_pending);
     assert_eq!(status.last_capture_frame, None);
-    assert!(
-        status
-            .last_error
-            .as_deref()
-            .is_some_and(|message| message.contains(SURFACE_PRESENT_CAPABILITY))
-    );
+    assert!(status
+        .last_error
+        .as_deref()
+        .is_some_and(|message| message.contains(SURFACE_PRESENT_CAPABILITY)));
     assert_eq!(framework.query_stats().unwrap().captured_frames, 0);
 }
 
@@ -343,11 +341,10 @@ fn graphics_surface_runtime_frame_exposes_retained_linear_hdr_scene_color() {
 
     assert_eq!((hdr.width, hdr.height), (size.x, size.y));
     assert_eq!(hdr.rgba16f.len(), (size.x * size.y) as usize);
-    assert!(
-        hdr.rgba16f
-            .iter()
-            .all(|texel| texel.iter().all(|channel| channel.is_finite()))
-    );
+    assert!(hdr
+        .rgba16f
+        .iter()
+        .all(|texel| texel.iter().all(|channel| channel.is_finite())));
     assert_eq!(
         hdr.generation,
         framework.query_stats().unwrap().last_generation.unwrap()
@@ -385,12 +382,10 @@ fn graphics_surface_hdr_capture_never_returns_another_viewports_retained_scene_c
         )
         .unwrap();
 
-    assert!(
-        framework
-            .capture_scene_color_hdr(first_viewport)
-            .unwrap()
-            .is_none()
-    );
+    assert!(framework
+        .capture_scene_color_hdr(first_viewport)
+        .unwrap()
+        .is_none());
     let second_hdr = framework
         .capture_scene_color_hdr(second_viewport)
         .unwrap()

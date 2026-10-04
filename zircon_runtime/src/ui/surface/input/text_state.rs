@@ -14,6 +14,10 @@ use crate::ui::text::clamp_grapheme_boundary;
 
 use super::super::surface::UiSurface;
 
+#[cfg(test)]
+#[path = "text_state/tests/optimization_tests.rs"]
+mod optimization_tests;
+
 pub(in crate::ui) fn editable_text_state_for_node(
     surface: &UiSurface,
     target: UiNodeId,
@@ -39,20 +43,39 @@ pub(in crate::ui) fn editable_text_state_for_node(
             .unwrap_or_default()
     };
     super::editable_text::profile::record_state_materialization(text.len());
+    // At most five offsets are clamped during this materialization. Selection,
+    // composition, and caret metadata often repeat the same raw offset; retain
+    // each result only for this source text and this call.
+    let mut boundaries = [(0usize, 0usize); 5];
+    let mut boundary_count = 0;
+    let mut clamp_offset = |offset| {
+        if let Some((_, clamped)) = boundaries[..boundary_count]
+            .iter()
+            .find(|(raw, _)| *raw == offset)
+        {
+            return *clamped;
+        }
+        let clamped = clamp_grapheme_boundary(&text, offset);
+        if boundary_count < boundaries.len() {
+            boundaries[boundary_count] = (offset, clamped);
+            boundary_count += 1;
+        }
+        clamped
+    };
     let caret_offset = usize_attribute(metadata, "caret_offset").unwrap_or(text.len());
     let selection = usize_attribute(metadata, "selection_anchor")
         .zip(usize_attribute(metadata, "selection_focus"))
         .map(|(anchor, focus)| UiTextSelection {
-            anchor: clamp_grapheme_boundary(&text, anchor),
-            focus: clamp_grapheme_boundary(&text, focus),
+            anchor: clamp_offset(anchor),
+            focus: clamp_offset(focus),
         });
     let composition = usize_attribute(metadata, "composition_start")
         .zip(usize_attribute(metadata, "composition_end"))
         .zip(string_attribute(metadata, "composition_text"))
         .map(|((start, end), composition_text)| UiTextComposition {
             range: UiTextRange {
-                start: clamp_grapheme_boundary(&text, start),
-                end: clamp_grapheme_boundary(&text, end),
+                start: clamp_offset(start),
+                end: clamp_offset(end),
             },
             preedit_clauses: composition_clauses_from_metadata(metadata, &composition_text),
             text: composition_text,
@@ -61,7 +84,7 @@ pub(in crate::ui) fn editable_text_state_for_node(
 
     Some(UiEditableTextState {
         caret: UiTextCaret {
-            offset: clamp_grapheme_boundary(&text, caret_offset),
+            offset: clamp_offset(caret_offset),
             affinity: caret_affinity_from_metadata(metadata),
         },
         selection,

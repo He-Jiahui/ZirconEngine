@@ -13,7 +13,7 @@ related_code:
   - zircon_runtime/src/asset/watch/asset_uri_for_path.rs
   - zircon_runtime/src/asset/watch/asset_uri_for_path/tests.rs
 tests:
-  - .\tools\zircon-session.ps1 ownership matrix --prefix zircon_runtime/src/asset/watch/asset_uri_for_path -Json
+  - .\tools\dev\zircon-session.ps1 ownership matrix --prefix zircon_runtime/src/asset/watch/asset_uri_for_path -Json
 ---
 
 # Runtime25: return executable attribution for Resource AssetUri consumers

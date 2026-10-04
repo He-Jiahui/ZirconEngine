@@ -1,10 +1,11 @@
 use std::path::Path;
 
 use super::{
-    RuntimeSessionArchive, RuntimeSessionArchiveArtifact, RuntimeSessionArchiveError,
-    RuntimeSessionArchiveSavePreviewReport, target_path,
+    target_path, RuntimeSessionArchive, RuntimeSessionArchiveArtifact, RuntimeSessionArchiveError,
+    RuntimeSessionArchiveSavePreviewReport,
 };
 
+// 预览也先封存完整档案，因此序列化或大小限制错误会在目标路径检查之前返回；封存不写文件。
 pub(super) fn preview_save_to_path(
     archive: &RuntimeSessionArchive,
     target_path: impl AsRef<Path>,

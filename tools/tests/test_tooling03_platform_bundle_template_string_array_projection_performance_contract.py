@@ -5,14 +5,14 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from tools.zircon_export.pipeline_report_platform_bundle_template_schema import (
+from tools.export.pipeline_report_platform_bundle_template_schema import (
     platform_bundle_template_report_schema_diagnostics,
     template_report_string_array_projection,
 )
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-OWNER = REPO_ROOT / "tools/zircon_export/pipeline_report_platform_bundle_template_schema.py"
+OWNER = REPO_ROOT / "tools/export/pipeline_report_platform_bundle_template_schema.py"
 
 
 class PlatformBundleTemplateStringArrayProjectionPerformanceContractTests(unittest.TestCase):

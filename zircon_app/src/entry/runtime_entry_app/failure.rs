@@ -1,3 +1,6 @@
+//! Winit 回调失败进入产品关停账本的记录和停止信号。
+//! 账本存完整错误；原子标志只用于阻止后续回调继续驱动动态会话。
+
 use std::{
     error::Error,
     fmt::{self, Display, Formatter},
@@ -48,6 +51,7 @@ impl Display for RuntimeEntryAppFailure {
 impl Error for RuntimeEntryAppFailure {}
 
 #[derive(Clone, Debug)]
+/// 入口、回调和退出报告共享的失败句柄；克隆后仍指向同一账本与停止标志。
 pub(in crate::entry) struct RuntimeEntryAppFailureState {
     recorded: Arc<AtomicBool>,
     failures: ProductFailureLedger,
@@ -67,6 +71,7 @@ impl RuntimeEntryAppFailureState {
         }
     }
 
+    /// 先登记产品失败，再发布停止标志，供其他回调按 Acquire 观察。
     pub(super) fn record(&self, failure: RuntimeEntryAppFailure) {
         self.failures.record(
             ProductHostPhase::Running,
@@ -87,82 +92,5 @@ impl RuntimeEntryAppFailureState {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::time::{Duration, Instant};
-
-    use super::{RuntimeEntryAppFailure, RuntimeEntryAppFailureState};
-
-    #[test]
-    fn runtime_entry_failure_uses_actionable_startup_diagnostic_fields() {
-        let failure = RuntimeEntryAppFailure::new(
-            "runtime_surface_present",
-            "viewport=1 size=1280x720",
-            "frame capture failed: device lost",
-            "verify the graphics adapter and restart zircon_runtime",
-        );
-
-        assert_eq!(
-            failure.to_string(),
-            "runtime startup diagnostic: component=runtime_surface_present requested=viewport=1 size=1280x720 cause=frame capture failed: device lost recovery=verify the graphics adapter and restart zircon_runtime"
-        );
-    }
-
-    #[test]
-    fn runtime_entry_failure_state_retains_all_fatal_callback_failures() {
-        let state = RuntimeEntryAppFailureState::default();
-        assert!(
-            !state.is_recorded(),
-            "a fresh runtime entry failure state must allow host initialization"
-        );
-        state.record(RuntimeEntryAppFailure::new(
-            "runtime_window",
-            "primary_window",
-            "window creation failed",
-            "verify the desktop session and retry",
-        ));
-        state.record(RuntimeEntryAppFailure::new(
-            "runtime_frame_loop",
-            "runtime_session",
-            "frame tick failed",
-            "restart zircon_runtime",
-        ));
-        assert!(
-            state.is_recorded(),
-            "a terminal callback failure must remain visible until EntryRunner collects it"
-        );
-
-        let report = state.failure_ledger().snapshot();
-        assert_eq!(report.records().len(), 2);
-        assert_eq!(report.primary().unwrap().owner(), "runtime_window");
-        assert_eq!(report.secondary()[0].owner(), "runtime_frame_loop");
-        assert!(state.is_recorded());
-    }
-
-    #[test]
-    fn recorded_flag_publishes_the_failure_record_before_readers_stop() {
-        let state = RuntimeEntryAppFailureState::default();
-        let producer = state.clone();
-        let producer = std::thread::spawn(move || {
-            producer.record(RuntimeEntryAppFailure::new(
-                "runtime_frame_loop",
-                "runtime_session",
-                "frame tick failed",
-                "restart zircon_runtime",
-            ));
-        });
-        let deadline = Instant::now() + Duration::from_secs(5);
-
-        while !state.is_recorded() {
-            assert!(
-                Instant::now() < deadline,
-                "the producer must publish its terminal callback failure"
-            );
-            std::thread::yield_now();
-        }
-
-        let report = state.failure_ledger().snapshot();
-        producer.join().expect("failure producer must finish");
-        assert_eq!(report.records().len(), 1);
-        assert_eq!(report.primary().unwrap().owner(), "runtime_frame_loop");
-    }
-}
+#[path = "tests/failure.rs"]
+mod tests;

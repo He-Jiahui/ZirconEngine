@@ -19,6 +19,7 @@ pub struct WgpuTextureUpload {
 }
 
 impl WgpuTextureUpload {
+    /// 构造时只保证共享负载范围可切片；调用者须按所走的上传路径预先校验纹理区域和行布局。
     pub fn new(
         texture: wgpu::Texture,
         region: TextureCopyRegion,
@@ -113,7 +114,7 @@ impl WgpuTextureUploadBatch {
         self.uploads.len()
     }
 
-    pub(super) fn payload_byte_len(&self) -> u64 {
+    pub fn payload_byte_len(&self) -> u64 {
         self.uploads
             .iter()
             .map(WgpuTextureUpload::payload_byte_len)

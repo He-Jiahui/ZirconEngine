@@ -117,7 +117,7 @@ children = [
 
     let alias_slot = surface
         .tree
-        .slots
+        .layout_slots()
         .iter()
         .find(|slot| slot.child_id == alias.node_id)
         .expect("block child should carry a parent-owned slot");
@@ -163,7 +163,7 @@ layout = { container = { kind = "Block" } }
 
     let alias_slot = surface
         .tree
-        .slots
+        .layout_slots()
         .iter()
         .find(|slot| slot.child_id == alias.node_id)
         .expect("v2 block child should carry a parent-owned slot");

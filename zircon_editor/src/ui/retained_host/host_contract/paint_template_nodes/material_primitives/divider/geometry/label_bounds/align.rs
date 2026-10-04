@@ -4,6 +4,7 @@ pub(super) fn divider_text_align(node: &TemplatePaneNodeData) -> DividerTextAlig
     divider_text_align_for_variant(&node.component_variant, &node.text_align)
 }
 
+// 组件词元和通用 text_align 同时可指定位置；冲突时右对齐优先，再尝试左对齐，默认居中。
 fn divider_text_align_for_variant(component_variant: &str, text_align: &str) -> DividerTextAlign {
     let mut has_right = false;
     let mut has_left = false;
@@ -43,5 +44,5 @@ pub(super) fn divider_text_align_ratio(align: DividerTextAlign) -> f32 {
 }
 
 #[cfg(test)]
-#[path = "align/single_scan_variant_tests.rs"]
+#[path = "align/tests/single_scan_variant_tests.rs"]
 mod single_scan_variant_tests;

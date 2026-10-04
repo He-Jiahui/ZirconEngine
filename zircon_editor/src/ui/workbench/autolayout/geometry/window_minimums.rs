@@ -5,6 +5,7 @@ use super::super::{
     WorkbenchChromeMetrics,
 };
 
+/// 可见横排内容加分隔线的logical最小宽度；按当前窗口档位限幅后交给native最小尺寸策略。
 pub(super) fn compute_window_min_width(
     left: RegionState,
     document: RegionState,
@@ -28,6 +29,7 @@ pub(super) fn compute_window_min_width(
     ))
 }
 
+/// 中心包络、可见底区与固定chrome共同形成最小高度；本函数不参与实际band分配。
 pub(super) fn compute_window_min_height(
     left: RegionState,
     document: RegionState,
@@ -55,5 +57,5 @@ pub(super) fn compute_window_min_height(
 }
 
 #[cfg(test)]
-#[path = "window_minimums/allocation_tests.rs"]
+#[path = "window_minimums/tests/allocation_tests.rs"]
 mod allocation_tests;

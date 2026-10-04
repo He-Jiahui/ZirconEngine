@@ -8,8 +8,7 @@ SOURCE = (
     / "zircon_runtime/src/plugin/runtime_plugin/package_validation/projection/build.rs"
 )
 REGRESSIONS = (
-    ROOT
-    / "zircon_runtime/src/plugin/runtime_plugin/package_validation/projection/tests.rs"
+    ROOT / "zircon_runtime/src/plugin/runtime_plugin/package_validation/projection/tests/cases.rs"
 )
 
 
@@ -26,7 +25,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束预分配包标识索引：已见标识索引使用精确行容量，并容量覆盖每个索引化清单域。
 class PreallocatedPackageIdentityIndexPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

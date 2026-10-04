@@ -18,4 +18,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use image:
 pub(super) use key::image_pixels_cache_key;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use missing::missing_icon_pixels;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use pixels::load_pixels_from_candidates;
-pub(super) use pixels::{load_pixels_from_candidates_with_status, CandidatePixelsLoad};
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use pixels::{
+    load_pixels_from_candidates_with_status, CandidatePixelsLoad,
+};

@@ -1,3 +1,6 @@
+// 调用端：npm run generate:casting-lifecycle-contract (tools/package.json)；职责：提取施法节拍、推迟、引导和群体复活的顺序常量。
+// 输入边界：src/sim/combat/casting_lifecycle.ts, src/sim/types.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

@@ -163,7 +163,7 @@ GPU command stream：glyph atlas（SDF / 位图按 raster_path_for）→ 提交
 
 | # | 切片 | 涉及文件 | 验证命令 | 硬切换 |
 |---|------|---------|---------|--------|
-| M1.S1 | （2026-07-02 评审收口：选型切片作废，降级为**验证性对拍**——栅格定稿 swash，见 U3/text/index §5）样张（拉丁/CJK 混排/数字）× 字号档 11/12/14/16/24/32，对拍 swash 输出质量/栅格耗时/atlas 占用；结论写 `docs/zircon_runtime/ui/text.md` | 对拍 harness | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter text_raster_bench` + 对拍记录 | 无删除 |
+| M1.S1 | （2026-07-02 评审收口：选型切片作废，降级为**验证性对拍**——栅格定稿 swash，见 U3/text/index §5）样张（拉丁/CJK 混排/数字）× 字号档 11/12/14/16/24/32，对拍 swash 输出质量/栅格耗时/atlas 占用；结论写 `docs/crates/zircon_runtime/ui/text.md` | 对拍 harness | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter text_raster_bench` + 对拍记录 | 无删除 |
 | M1.S2 | （2026-07-02 评审收口：「−glyphon」义务**作废**，glyphon 保留为 bitmap atlas 绘制后端）依赖收口按 text/02（shaping/cosmic-text 定位）与 text/04（atlas/glyphon 定位）执行；workspace 全量 check 义务已随 U2 裁决一并作废，包级 focused check 留给对应 text/ 里程碑的最小批次（policy §4 波次收口执行全量） | Cargo.toml | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipTest` | 无删除 |
 | M2.S1 | （实现主体让渡 text/01 `FontDatabase`）编辑器侧接入 FontAsset→FontDatabase 注册链（复用 assets/font.rs 加载链；前置=text/01 里程碑） | `text/font/{asset_registration.rs,database/asset_lifecycle.rs}` | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter font_asset` | UI-local registry 已硬删除 |
 | M2.S2 | 默认字体包（含 CJK）注册进 FontDatabase + fallback 链配置；editor 启动注册 | zircon_editor/assets/fonts/ | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests` | 无删除 |

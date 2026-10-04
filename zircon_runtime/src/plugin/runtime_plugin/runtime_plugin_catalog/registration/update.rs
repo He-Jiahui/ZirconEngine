@@ -235,4 +235,5 @@ fn feature_registration_identity(
 }
 
 #[cfg(test)]
+#[path = "update/tests/cases.rs"]
 mod tests;

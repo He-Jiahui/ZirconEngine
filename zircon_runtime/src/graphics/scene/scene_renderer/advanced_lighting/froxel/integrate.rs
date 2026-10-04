@@ -16,6 +16,8 @@ const INTEGRATE_SHADER: &str = concat!(
     include_str!("integrate/shaders/integrate.wgsl"),
 );
 
+/// 接收前一散射通道的 3D froxel 纹理，并产出供场景着色与天空应用的累计辐射亮度和透射率。
+/// 输入输出视图必须与同一清理后的网格尺寸对应。
 pub(crate) struct FroxelIntegrateRequest<'a> {
     pub grid: FroxelGridParams,
     pub view: FroxelViewReconstruction,
@@ -167,4 +169,5 @@ fn sampled_texture_layout_entry(
 }
 
 #[cfg(test)]
+#[path = "integrate/tests/cases.rs"]
 mod tests;

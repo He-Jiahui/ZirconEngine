@@ -1,3 +1,5 @@
+// 沿每条视线逐层积累光与透射率；结果由 zr_volumetric_apply 按场景深度采样。
+// z 轴不能并行打散，因为后一层依赖前一层的累计透射率。
 struct VolumetricIntegrateParams {
     grid_dimensions: vec4<u32>,
     view: ZrFroxelViewParams,

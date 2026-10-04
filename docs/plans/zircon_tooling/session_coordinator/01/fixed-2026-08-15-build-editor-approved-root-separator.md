@@ -11,8 +11,8 @@ origin_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/WindowsPathResolver.psm1
-  - tools/build-editor.ps1
+  - tools/maintenance/WindowsPathResolver.psm1
+  - tools/build/build-editor.ps1
   - tools/mvp/MvpTestFixturePaths.psm1
   - tools/tests/build-editor.Tests.ps1
   - tools/tests/windows-path-resolver.Tests.ps1
@@ -76,4 +76,4 @@ root helper. No Editor or Runtime product source is part of the repair.
   reproduced as artifact governance deleting its unregistered live fixture. After
   schema 64 was committed and hot-loaded, the helper acquired and released formal
   fixture leases and the finalizer-equivalent complete run passed 15/15 in 250.88s.
-- 回传：After the scoped maintenance finalize and daemon rollover, UI12 may use the managed `tools/build-editor.ps1` path; this record does not authorize raw Cargo.
+- 回传：After the scoped maintenance finalize and daemon rollover, UI12 may use the managed `tools/build/build-editor.ps1` path; this record does not authorize raw Cargo.

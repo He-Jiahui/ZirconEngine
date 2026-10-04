@@ -7,18 +7,19 @@ use crate::core::framework::text::{TextDirection, TextLayoutError};
 use crate::core::runtime::tasks::TaskPool;
 
 use super::cache::{
-    CompiledRichTextCacheReport, DEFAULT_SHAPED_RUN_CACHE_CAPACITY,
-    DEFAULT_SHAPED_RUN_CACHE_MAX_BYTES, HardLineIndexCache, HardLineIndexCacheReport,
-    ShapedRunCache, ShapedRunCacheLookupKey, ShapedRunCacheReport, TextDocumentKey,
+    CompiledRichTextCacheReport, HardLineIndexCache, HardLineIndexCacheReport, ShapedRunCache,
+    ShapedRunCacheLookupKey, ShapedRunCacheReport, TextDocumentKey,
+    DEFAULT_SHAPED_RUN_CACHE_CAPACITY, DEFAULT_SHAPED_RUN_CACHE_MAX_BYTES,
 };
+use super::context::{TextRuntimeSessionLease, TextSessionId};
 use super::font::{
-    FontCollectionRevision, FontCollectionService, FontCollectionSnapshot,
-    shared_font_collection_service,
+    shared_font_collection_service, FontCollectionRevision, FontCollectionService,
+    FontCollectionSnapshot,
 };
 use super::model::TextShapingRequestDiagnostics;
 use super::parallel::shape_pool::{
-    TextParallelShapeBatchReport, TextShapeParagraph,
-    shape_paragraphs_with_cache_in_font_collection,
+    shape_paragraphs_with_cache_in_font_collection, TextParallelShapeBatchReport,
+    TextShapeParagraph,
 };
 use super::service::{
     shape_backend_request_at_stable_generation,
@@ -28,8 +29,8 @@ use super::shaping::{
     TextShapeRunProvider, TextShapingOutcome, TextShapingWorkBudget, TextShapingWorkReport,
 };
 use super::{
-    BackendShapeRequest, CompiledRichText, HardLine, RichTextFormat, RichTextParseError,
-    RichTextParser, ShapedGlyphRun, TextRange, TextStyle, VerticalMode, hard_line_count_and_window,
+    hard_line_count_and_window, BackendShapeRequest, CompiledRichText, HardLine, RichTextFormat,
+    RichTextParseError, RichTextParser, ShapedGlyphRun, TextRange, TextStyle, VerticalMode,
 };
 use super::{TextLayoutGeometryBudget, TextLayoutGeometryOwner, TextLayoutGeometryViolation};
 
@@ -68,7 +69,7 @@ fn record_text_layout_session_construction() {
     );
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub(crate) struct SharedTextLayoutSession {
     font_collection: Arc<FontCollectionService>,
     rich_text_parser: Arc<RichTextParser>,
@@ -80,6 +81,27 @@ pub(crate) struct SharedTextLayoutSession {
     diagnostics: TextLayoutSessionDiagnostics,
     table_layout_work_report: TextTableLayoutWorkReport,
     vertical_mode: Option<VerticalMode>,
+    _context_session_lease: Option<TextRuntimeSessionLease>,
+}
+
+impl Clone for SharedTextLayoutSession {
+    fn clone(&self) -> Self {
+        Self {
+            font_collection: Arc::clone(&self.font_collection),
+            // A cloned session is a new cache owner. Keep the immutable layout state and lease
+            // family, but never let clear/telemetry on one surface reach another parser cache.
+            rich_text_parser: Arc::new(RichTextParser::default()),
+            shaped_runs: self.shaped_runs.clone(),
+            hard_line_index: self.hard_line_index.clone(),
+            geometry_budget: self.geometry_budget,
+            shaping_work_budget: self.shaping_work_budget,
+            shaping_work_report: self.shaping_work_report,
+            diagnostics: self.diagnostics,
+            table_layout_work_report: self.table_layout_work_report,
+            vertical_mode: self.vertical_mode,
+            _context_session_lease: self._context_session_lease.clone(),
+        }
+    }
 }
 
 impl PartialEq for SharedTextLayoutSession {
@@ -117,9 +139,32 @@ impl SharedTextLayoutSession {
         )
     }
 
+    pub(super) fn new_with_font_collection_and_context_lease(
+        font_collection: Arc<FontCollectionService>,
+        context_session_lease: TextRuntimeSessionLease,
+    ) -> Self {
+        Self::new_with_font_collection_geometry_budget_and_context_lease(
+            font_collection,
+            TextLayoutGeometryBudget::default(),
+            Some(context_session_lease),
+        )
+    }
+
     pub(crate) fn new_with_font_collection_and_geometry_budget(
         font_collection: Arc<FontCollectionService>,
         geometry_budget: TextLayoutGeometryBudget,
+    ) -> Self {
+        Self::new_with_font_collection_geometry_budget_and_context_lease(
+            font_collection,
+            geometry_budget,
+            None,
+        )
+    }
+
+    fn new_with_font_collection_geometry_budget_and_context_lease(
+        font_collection: Arc<FontCollectionService>,
+        geometry_budget: TextLayoutGeometryBudget,
+        context_session_lease: Option<TextRuntimeSessionLease>,
     ) -> Self {
         #[cfg(test)]
         record_text_layout_session_construction();
@@ -137,6 +182,7 @@ impl SharedTextLayoutSession {
             diagnostics: TextLayoutSessionDiagnostics::default(),
             table_layout_work_report: TextTableLayoutWorkReport::default(),
             vertical_mode: None,
+            _context_session_lease: context_session_lease,
         }
     }
 
@@ -156,6 +202,12 @@ impl SharedTextLayoutSession {
         self.rich_text_parser.clear_compiled_cache();
         self.shaped_runs.clear();
         self.hard_line_index.clear();
+    }
+
+    pub(crate) fn text_session_id(&self) -> Option<TextSessionId> {
+        self._context_session_lease
+            .as_ref()
+            .map(TextRuntimeSessionLease::id)
     }
 
     pub(crate) fn compile_rich_text(
@@ -544,9 +596,9 @@ impl Drop for VerticalTextLayoutScope<'_> {
 }
 
 #[cfg(test)]
-#[path = "layout_session/work_budget.rs"]
+#[path = "layout_session/tests/work_budget.rs"]
 mod work_budget_tests;
 
 #[cfg(test)]
-#[path = "layout_session/tests.rs"]
+#[path = "layout_session/tests/cases.rs"]
 mod tests;

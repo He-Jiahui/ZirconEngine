@@ -43,6 +43,8 @@ pub(in crate::ui::retained_host::host_contract) enum PanePointerTarget<'a> {
     ViewportToolbar {
         surface_key: &'a str,
         control_id: Option<&'a str>,
+        source_control_id: Option<String>,
+        control_frame: crate::ui::retained_host::host_contract::data::FrameRect,
     },
     SceneViewport(&'a str),
     GameViewport(&'a str),

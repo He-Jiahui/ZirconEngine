@@ -45,6 +45,7 @@ impl RuntimeSessionSlotSelector {
         })
     }
 
+    /// 在档案当前代际借用实际槽位，供恢复和复制链使用；借用期阻止该档案的可变提交。
     pub fn resolve_slot<'archive>(
         &self,
         archive: &'archive RuntimeSessionArchive,
@@ -67,6 +68,7 @@ impl RuntimeSessionSlotSelector {
         ))
     }
 
+    /// 只凭目录摘要解析选择器；适合保存预览，不需要加载或借用场景负载。
     pub fn resolve_manifest(
         &self,
         manifest: &RuntimeSessionArchiveManifest,
@@ -117,5 +119,5 @@ fn normalize_selector_value(value: impl Into<String>) -> String {
 }
 
 #[cfg(test)]
-#[path = "resolve/in_place_tests.rs"]
+#[path = "resolve/tests/in_place_tests.rs"]
 mod in_place_tests;

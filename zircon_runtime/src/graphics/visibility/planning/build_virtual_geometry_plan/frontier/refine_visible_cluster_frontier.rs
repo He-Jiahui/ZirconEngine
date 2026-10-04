@@ -4,6 +4,8 @@ use crate::core::framework::render::RenderVirtualGeometryCluster;
 
 use super::super::ordering::virtual_geometry_cluster_sort_key;
 
+// 在预算内选择一组互不重叠的父/子 cluster；仅当子页可驻留且历史迟滞允许时细化。
+// 调用方据此生成绘制段和页请求，不能同时绘制仍在 frontier 中的父节点与其子节点。
 pub(in crate::graphics::visibility::planning::build_virtual_geometry_plan) fn refine_visible_cluster_frontier(
     visible_clusters: &[RenderVirtualGeometryCluster],
     cluster_budget: usize,
@@ -96,7 +98,7 @@ pub(in crate::graphics::visibility::planning::build_virtual_geometry_plan) fn re
 }
 
 #[cfg(test)]
-#[path = "redundant_parent_lookup_tests.rs"]
+#[path = "tests/redundant_parent_lookup_tests.rs"]
 mod redundant_parent_lookup_tests;
 
 fn should_hold_split_hysteresis(

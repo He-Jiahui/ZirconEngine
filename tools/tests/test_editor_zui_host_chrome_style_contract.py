@@ -1,3 +1,4 @@
+# 核对宿主外框只使用当前主题权威、共享样式角色与可达溢出菜单。
 import re
 import tomllib
 import unittest

@@ -206,3 +206,30 @@ fn unknown_status_and_selection_updates_are_rejected_without_mutation() {
     );
     assert_eq!(model.entries()[0].status, RealmStatusState::Checking);
 }
+
+#[test]
+fn stale_status_probes_cannot_mutate_a_replaced_directory() {
+    let mut model = RealmDirectoryModel::default();
+    model
+        .replace_directory(vec![realm("Eastbrook", "one", RealmType::Normal, 1)], None)
+        .expect("first directory");
+    let old_generation = model.generation();
+    model
+        .replace_directory(vec![realm("Ashenfall", "two", RealmType::Pvp, 2)], None)
+        .expect("replacement directory");
+    let current_generation = model.generation();
+    assert!(current_generation > old_generation);
+
+    assert_eq!(
+        model
+            .set_status_for_generation(old_generation, "Ashenfall", RealmStatus::online(1, 10))
+            .expect_err("old probe must be rejected"),
+        RealmDirectoryError::StaleGeneration {
+            expected: current_generation,
+            actual: old_generation,
+        }
+    );
+    assert_eq!(model.entries()[0].status, RealmStatusState::Checking);
+    assert!(!model.finish_status_refresh_for_generation(old_generation));
+    assert!(model.finish_status_refresh_for_generation(current_generation));
+}

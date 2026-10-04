@@ -1,9 +1,9 @@
 use std::ops::Range;
 
-use super::TextDocumentHardLineSpan;
 use super::hard_line_model::PreparedHardLineEdit;
 use super::index::PreparedTextDocumentSourceIndexEdit;
 use super::storage::{TextDocument, TextDocumentPiece, TextDocumentPieceSource};
+use super::TextDocumentHardLineSpan;
 use crate::text::TextDocumentKey;
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
@@ -43,6 +43,8 @@ pub(crate) struct TextDocumentEditReceipt {
 
 impl TextDocumentEditReceipt {
     #[allow(clippy::too_many_arguments)]
+    /// 将内部回执投影为 UI 回执，核验所有者、相邻 revision 及长度、范围和选择端点的一致性。
+    /// Store 在发布文档变更前完成此投影，因此校验失败不会提交预备编辑。
     pub(crate) fn project_public(
         &self,
         node_id: UiNodeId,
@@ -334,6 +336,8 @@ impl TextDocument {
         ))
     }
 
+    /// 提交调用方已核验文档身份和 revision 的预备编辑，更新存储、硬行模型与 grapheme 索引。
+    /// ASCII 快路径失败时使索引失效，后续查询会执行完整重建。
     pub(super) fn commit_prepared_change(
         &mut self,
         prepared: PreparedTextDocumentChange,

@@ -13,7 +13,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 扩展脚本、反射、动画与导航公开接口文档
 tests:
-  - zircon_runtime/src/navigation/runtime/tests.rs
+  - zircon_runtime/src/navigation/runtime/tests/cases.rs
   - zircon_runtime/src/operation/tests/source_guards.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_gameplay.rs
   - zircon_runtime_interface/src/tests/runtime_operation.rs
@@ -153,7 +153,7 @@ result 保证提供的字段。生产日志避免输出完整 payload；开发�
 - [registration](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/navigation/operation/registration.rs)
 - [handler](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/navigation/operation/handler.rs)
 - [navigation module](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/navigation/module.rs)
-- [navigation tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/navigation/runtime/tests.rs)
+- [navigation tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/navigation/runtime/tests/cases.rs)
 
 ## 已注册 Operation 目录
 

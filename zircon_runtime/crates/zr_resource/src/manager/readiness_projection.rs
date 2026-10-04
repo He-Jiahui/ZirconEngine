@@ -18,12 +18,22 @@ struct ResourceReadinessSource {
     payload_type_id: Option<TypeId>,
 }
 
+#[cfg(test)]
 #[derive(Clone, Debug)]
 pub(super) struct ResourceReadinessSourceUpdate {
     pub(super) id: ResourceId,
     pub(super) record: Option<ResourceRecord>,
     pub(super) runtime_state: RuntimeResourceState,
     pub(super) payload_type_id: Option<TypeId>,
+}
+
+// Only stage_source_update can construct this owned, canonical source update.
+// The authority stages unique IDs against an unchanged projection before applying them.
+#[derive(Debug)]
+pub(super) struct ResourceReadinessStagedUpdate {
+    id: ResourceId,
+    next: Option<ResourceReadinessSource>,
+    dependency_ids_changed: bool,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -52,7 +62,165 @@ impl ResourceReadinessProjection {
         self.generation.clone()
     }
 
+    pub(super) fn stage_source_update(
+        &self,
+        id: ResourceId,
+        record: Option<&ResourceRecord>,
+        runtime_state: RuntimeResourceState,
+        payload_type_id: Option<TypeId>,
+    ) -> Option<ResourceReadinessStagedUpdate> {
+        let current = self.sources.get(&id);
+        let next = match record {
+            Some(record) => {
+                let same_record = current.filter(|source| source.record.as_ref() == record);
+                let canonical_record = if let Some(current) = same_record {
+                    if current.runtime_state == runtime_state
+                        && current.payload_type_id == payload_type_id
+                    {
+                        return None;
+                    }
+                    // A runtime/payload change keeps the already owned canonical record.
+                    current.record.clone()
+                } else {
+                    let mut canonical = record.clone();
+                    canonical.dependency_ids.sort_unstable();
+                    canonical.dependency_ids.dedup();
+                    if let Some(current) = current.filter(|source| {
+                        record.dependency_ids != canonical.dependency_ids
+                            && source.record.as_ref() == &canonical
+                    }) {
+                        if current.runtime_state == runtime_state
+                            && current.payload_type_id == payload_type_id
+                        {
+                            return None;
+                        }
+                        current.record.clone()
+                    } else {
+                        Arc::new(canonical)
+                    }
+                };
+                Some(ResourceReadinessSource {
+                    record: canonical_record,
+                    runtime_state,
+                    payload_type_id,
+                })
+            }
+            None if current.is_none() => return None,
+            None => None,
+        };
+        let dependency_ids_changed = match (current, next.as_ref()) {
+            (Some(previous), Some(next)) => {
+                previous.record.dependency_ids != next.record.dependency_ids
+            }
+            (None, Some(next)) => !next.record.dependency_ids.is_empty(),
+            (Some(previous), None) => !previous.record.dependency_ids.is_empty(),
+            (None, None) => false,
+        };
+        Some(ResourceReadinessStagedUpdate {
+            id,
+            next,
+            dependency_ids_changed,
+        })
+    }
+
+    // Caller completely stages unique IDs against this unchanged projection. Tokens
+    // already own canonical source Arcs, so the buffer does not carry whole records.
+    pub(super) fn apply_staged_updates(
+        &mut self,
+        updates: impl IntoIterator<Item = ResourceReadinessStagedUpdate>,
+    ) {
+        self.apply_staged_updates_inner(updates, None);
+    }
+
+    // The authority retains its sorted input buffer while staging and removes only
+    // no-op IDs. Validate the two owned buffers before any source mutation.
+    pub(super) fn apply_staged_many_updates(
+        &mut self,
+        updates: Vec<ResourceReadinessStagedUpdate>,
+        sorted_changed_ids: Vec<ResourceId>,
+    ) {
+        debug_assert_eq!(updates.len(), sorted_changed_ids.len());
+        debug_assert!(sorted_changed_ids.windows(2).all(|ids| ids[0] < ids[1]));
+        debug_assert!(updates
+            .iter()
+            .zip(&sorted_changed_ids)
+            .all(|(update, id)| update.id == *id));
+        self.apply_staged_updates_inner(updates, Some(sorted_changed_ids));
+    }
+
+    fn apply_staged_updates_inner(
+        &mut self,
+        updates: impl IntoIterator<Item = ResourceReadinessStagedUpdate>,
+        sorted_changed_ids: Option<Vec<ResourceId>>,
+    ) {
+        let updates = updates.into_iter();
+        let mut changed_ids = HashSet::with_capacity(updates.size_hint().0);
+        let mut present_changed_source_count = 0usize;
+        for update in updates {
+            if update.dependency_ids_changed {
+                if let Some(previous) = self.sources.get(&update.id) {
+                    for dependency in &previous.record.dependency_ids {
+                        let remove_bucket = match self.reverse_dependencies.get_mut(dependency) {
+                            Some(parents) => {
+                                parents.remove(&update.id);
+                                parents.is_empty()
+                            }
+                            None => false,
+                        };
+                        if remove_bucket {
+                            self.reverse_dependencies.remove(dependency);
+                        }
+                    }
+                }
+                if let Some(next) = &update.next {
+                    for dependency in &next.record.dependency_ids {
+                        self.reverse_dependencies
+                            .entry(*dependency)
+                            .or_default()
+                            .insert(update.id);
+                    }
+                }
+            }
+            if let Some(next) = update.next {
+                present_changed_source_count += 1;
+                self.sources.insert(update.id, next);
+            } else {
+                self.sources.remove(&update.id);
+            }
+            changed_ids.insert(update.id);
+        }
+        if changed_ids.is_empty() {
+            return;
+        }
+        // Unique staged IDs with a next source remain present after this batch.
+        // If they cover every live source, every possible reverse parent is already
+        // a root. Removed roots may also be present; they do not count as live sources.
+        if present_changed_source_count == self.sources.len() {
+            if let Some(ordered_affected) = sorted_changed_ids {
+                // Full coverage cannot add a live reverse parent. The retained IDs
+                // are therefore exactly the sorted affected roots, including removals.
+                self.publish_sorted_affected(ordered_affected, changed_ids);
+            } else {
+                self.publish_affected(changed_ids);
+            }
+            return;
+        }
+        drop(sorted_changed_ids);
+        let affected = self.reverse_closure(changed_ids);
+        self.publish_affected(affected);
+    }
+
+    // Keep the original owned-update algorithm as the tests' semantic/perf reference.
+    #[cfg(test)]
     pub(super) fn apply_updates(
+        &mut self,
+        updates: impl IntoIterator<Item = ResourceReadinessSourceUpdate>,
+    ) {
+        self.apply_updates_inner(updates);
+    }
+
+    #[cfg(test)]
+    fn apply_updates_inner(
         &mut self,
         updates: impl IntoIterator<Item = ResourceReadinessSourceUpdate>,
     ) {
@@ -149,7 +317,100 @@ impl ResourceReadinessProjection {
                     record: source.record.clone(),
                     load_state,
                     direct_dependency_state: aggregate.direct,
-                    recursive_dependency_state: if load_state == ResourceReadinessState::Loaded {
+                    recursive_dependency_state: if aggregate.recursive
+                        == ResourceReadinessState::Failed
+                    {
+                        ResourceReadinessState::Failed
+                    } else if load_state == ResourceReadinessState::Loaded {
+                        aggregate.recursive
+                    } else {
+                        load_state
+                    },
+                    dependency_revision,
+                    dependency_fingerprint: aggregate.fingerprint,
+                    payload_type_id: source.payload_type_id,
+                };
+                previous
+                    .as_ref()
+                    .filter(|previous| readiness_rows_equal(previous, &candidate))
+                    .cloned()
+                    .unwrap_or_else(|| Arc::new(candidate))
+            });
+            if same_optional_row(previous.as_ref(), next.as_ref()) {
+                continue;
+            }
+            let shard = changed_shards
+                .entry(shard_index)
+                .or_insert_with(|| self.generation.shards()[shard_index].rows().clone());
+            match next {
+                Some(next) => {
+                    shard.insert(id, next);
+                }
+                None => {
+                    shard.remove(&id);
+                }
+            }
+            changed_row_count += 1;
+        }
+        if changed_row_count == 0 {
+            return;
+        }
+
+        let mut shards = self.generation.shards().to_vec();
+        for (index, rows) in changed_shards {
+            shards[index] = Arc::new(ResourceReadinessShard::from_rows(rows));
+        }
+        self.generation = Arc::new(ResourceReadinessGeneration::from_parts(
+            ResourceReadinessGenerationDiagnostics {
+                publication_count: self
+                    .generation
+                    .diagnostics()
+                    .publication_count
+                    .saturating_add(1),
+                row_count: self.sources.len(),
+                changed_row_count,
+                affected_closure_count: affected.len(),
+                edge_visit_count,
+            },
+            shards,
+        ));
+    }
+
+    fn publish_sorted_affected(
+        &mut self,
+        ordered_affected: Vec<ResourceId>,
+        affected: HashSet<ResourceId>,
+    ) {
+        let (computed, edge_visit_count) = self.compute_aggregates(&ordered_affected, &affected);
+
+        let mut changed_shards =
+            HashMap::<usize, HashMap<ResourceId, Arc<ResourceReadinessRow>>>::new();
+        let mut changed_row_count = 0;
+        for id in ordered_affected {
+            let shard_index = resource_readiness_shard_index(id);
+            let previous = self.generation.row(id).cloned();
+            let next = self.sources.get(&id).map(|source| {
+                let aggregate = computed
+                    .get(&id)
+                    .copied()
+                    .expect("affected readiness aggregate");
+                let load_state = source_load_state(source);
+                let dependency_revision = match previous.as_ref() {
+                    Some(previous) if previous.dependency_fingerprint == aggregate.fingerprint => {
+                        previous.dependency_revision
+                    }
+                    Some(previous) => previous.dependency_revision.saturating_add(1),
+                    None => 1,
+                };
+                let candidate = ResourceReadinessRow {
+                    record: source.record.clone(),
+                    load_state,
+                    direct_dependency_state: aggregate.direct,
+                    recursive_dependency_state: if aggregate.recursive
+                        == ResourceReadinessState::Failed
+                    {
+                        ResourceReadinessState::Failed
+                    } else if load_state == ResourceReadinessState::Loaded {
                         aggregate.recursive
                     } else {
                         load_state
@@ -351,7 +612,9 @@ impl ResourceReadinessProjection {
                             let dependency_component = component_by_id.get(dependency).copied();
                             if dependency_component != Some(component_index) {
                                 let nested = if dependency_component.is_some() {
-                                    computed.get(dependency).copied()
+                                    Some(computed.get(dependency).copied().expect(
+                                        "readiness components must be evaluated dependency-first",
+                                    ))
                                 } else {
                                     self.generation.row(*dependency).map(|previous| {
                                         ComputedAggregate {
@@ -390,6 +653,7 @@ impl ResourceReadinessProjection {
     }
 }
 
+#[cfg(test)]
 fn source_matches_update(
     current: Option<&ResourceReadinessSource>,
     update: &ResourceReadinessSourceUpdate,
@@ -483,4 +747,5 @@ fn hash_cycle_component(component: &[ResourceId], hasher: &mut impl Hasher) {
 }
 
 #[cfg(test)]
+#[path = "readiness_projection/tests/cases.rs"]
 mod tests;

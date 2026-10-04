@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 检查资源族与记录集合行为迁入各自子目录，并核对旧路径的镜像守卫。
 class RuntimeAssetManagementOwnerStructureTests(unittest.TestCase):
     STATUS = (
         "runtime_04_15_asset_management_generation_static_"

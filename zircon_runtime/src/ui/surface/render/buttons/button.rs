@@ -6,7 +6,7 @@ use super::{
     commands::{icon_command, surface_command, text_command},
     metadata::{button_label, icon_name},
     state::ButtonRenderState,
-    style::{ButtonVisual, foreground_color},
+    style::{foreground_color, ButtonVisual},
 };
 
 pub(super) fn button_commands(
@@ -55,6 +55,7 @@ pub(super) fn button_commands(
     if let Some(label) = label {
         commands.push(text_command(
             node_id,
+            metadata,
             UiFrame::new(
                 cursor_x,
                 frame.y + (frame.height - visual.line_height).max(0.0) * 0.5,

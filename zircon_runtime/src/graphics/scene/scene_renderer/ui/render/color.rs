@@ -1,3 +1,4 @@
+/// UI 样式颜色解析入口；显式色值无效时用调用方备用色，但透明命令不产生可见颜色。
 pub(super) fn parse_color(
     value: Option<&str>,
     fallback: [f32; 4],
@@ -55,5 +56,5 @@ fn decode_hex_digit(encoded: u8) -> Option<u8> {
 }
 
 #[cfg(test)]
-#[path = "color/direct_hex_color_tests.rs"]
+#[path = "color/tests/direct_hex_color_tests.rs"]
 mod direct_hex_color_tests;

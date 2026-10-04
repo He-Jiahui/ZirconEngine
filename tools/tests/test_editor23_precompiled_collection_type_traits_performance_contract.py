@@ -1,3 +1,4 @@
+# 核对集合行投影在循环外预编译借用类型特征并复用到每一行。
 import re
 import unittest
 from pathlib import Path

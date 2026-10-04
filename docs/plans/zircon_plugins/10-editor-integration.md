@@ -16,7 +16,7 @@
 
 > 状态：工程化细化版 v2 · 优先级：P1（横切规范，随各插件 Editor 里程碑落地）
 > 关联：`zircon_editor/src/core/editor_plugin.rs`（`EditorPlugin` trait）、`zircon_editor/src/core/editor_extension.rs`（`EditorExtensionRegistry`）
-> UI 参考：`docs/ui-and-layout/ai-workbench-style/`（STYLE-NOTES.md + 62 张 workbench 布局图）
+> UI 参考：`docs/ui/ai-workbench-style/`（STYLE-NOTES.md + 62 张 workbench 布局图）
 
 - open failure：[terrain-tilemap-scene-mode-factories-missing](10/failure-2026-08-01-terrain-tilemap-scene-mode-factories-missing.md)
 
@@ -54,7 +54,7 @@
 
 ## 4. AI Workbench 风格对位表
 
-各插件主面板以 `docs/ui-and-layout/ai-workbench-style/` 对应布局图为版式基准（三栏 workbench：左结构树 / 中主编辑区 / 右属性检查器，遵循 STYLE-NOTES.md 间距与层级 token）：
+各插件主面板以 `docs/ui/ai-workbench-style/` 对应布局图为版式基准（三栏 workbench：左结构树 / 中主编辑区 / 右属性检查器，遵循 STYLE-NOTES.md 间距与层级 token）：
 
 | 插件面板 | 参考布局图 | 交付里程碑 |
 |----------|-----------|-----------|
@@ -66,7 +66,7 @@
 | Net 诊断 / Replication 配置 | `ai-console-diagnostics-layout.png` | [07](07-net.md) M7 |
 | 导出向导 | `ai-build-export-layout.png` | [09](09-export-publishing.md) M6 |
 
-面板实现走 retained host 的 `.zui` 模板体系（与 `docs/zircon_editor/ui/retained_host/` 契约一致），经 `register_ui_template(EditorUiTemplateDescriptor)` 注册；`.ui.toml` / `.v2.ui.toml` 后缀已退役，不作为当前插件 editor view/layout 文档口径；不引入 Slint 旁路（zircon_hub 独占 Slint 的边界维持）。
+面板实现走 retained host 的 `.zui` 模板体系（与 `docs/crates/zircon_editor/ui/retained_host/` 契约一致），经 `register_ui_template(EditorUiTemplateDescriptor)` 注册；`.ui.toml` / `.v2.ui.toml` 后缀已退役，不作为当前插件 editor view/layout 文档口径；不引入 Slint 旁路（zircon_hub 独占 Slint 的边界维持）。
 
 ## 5. 运行时调试设施规范（横切，每插件 Editor 里程碑必交付）
 
@@ -100,7 +100,7 @@
 - `cargo test -p zircon_editor --test integration_contracts --features integration-contracts --locked` 全绿。
 - 插件 editor crate 契约测试覆盖：扩展点注册清单快照、operation 可撤销性、capability 缺失时的降级行为（`RegistrationDiagnostic` 产出断言）。
 - §5 三项调试设施各有对应测试（overlay 快照 / DiagnosticPath 注册 / 镜像通道契约）。
-- `docs/zircon_plugins/<plugin>/editor.md` 与实现同步更新。
+- `docs/crates/zircon_plugins/<plugin>/editor.md` 与实现同步更新。
 
 ## 8. 里程碑
 

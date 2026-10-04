@@ -1,7 +1,8 @@
+# 核对界面帧提取缓存压力模型的重用成本及非法输入和路径拒绝。
 from pathlib import Path
 import unittest
 
-from tools.editor_ui_frame_extraction_cache_pressure import (
+from tools.analysis.performance.editor.editor_ui_frame_extraction_cache_pressure import (
     pressure_report,
     validate_output_path,
 )

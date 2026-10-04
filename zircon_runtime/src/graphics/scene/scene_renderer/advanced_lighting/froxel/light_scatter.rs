@@ -24,6 +24,7 @@ const LIGHT_SCATTER_SHADER: &str = concat!(
     include_str!("light_scatter/shaders/main.wgsl"),
 );
 
+/// 每次散射 dispatch 的完整资源契约：当前介质写入输出，历史纹理始终绑定，历史不可用时由 temporal 参数把混合权重置零；光源网格与阴影图来自同一帧提取。
 pub(crate) struct FroxelLightScatterRequest<'a> {
     pub grid: FroxelGridParams,
     pub view: FroxelViewReconstruction,
@@ -33,7 +34,7 @@ pub(crate) struct FroxelLightScatterRequest<'a> {
     pub media_view: &'a wgpu::TextureView,
     pub history_view: &'a wgpu::TextureView,
     pub temporal: GpuFroxelTemporalReprojection,
-    pub light_buffer: &'a wgpu::Buffer,
+    pub light_buffer: wgpu::BufferBinding<'a>,
     pub light_count: u32,
     pub light_grid_params_buffer: wgpu::BufferBinding<'a>,
     pub light_zbins_buffer: wgpu::BufferBinding<'a>,
@@ -82,6 +83,7 @@ impl FroxelLightScatterPipeline {
         }
     }
 
+    /// 通过 pass capability 创建临时参数和两组绑定，并按已清洗的 froxel 尺寸派发；输出随后由 integrate pass 累积。
     pub(crate) fn encode<C: RenderPassGpuRecordingContext>(
         &self,
         context: &mut C,
@@ -112,7 +114,7 @@ impl FroxelLightScatterPipeline {
                     },
                     wgpu::BindGroupEntry {
                         binding: 2,
-                        resource: request.light_buffer.as_entire_binding(),
+                        resource: wgpu::BindingResource::Buffer(request.light_buffer),
                     },
                     wgpu::BindGroupEntry {
                         binding: 3,
@@ -328,4 +330,5 @@ fn dispatch_size(dimensions: [u32; 3]) -> [u32; 3] {
 }
 
 #[cfg(test)]
+#[path = "light_scatter/tests/cases.rs"]
 mod tests;

@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 
-use crate::scene::EntityId;
 use crate::scene::ecs::{
-    ChangeTick, ComponentId, ComponentTicks, component::TableColumnLayout, storage::StoredComponent,
+    component::TableColumnLayout, storage::StoredComponent, ChangeTick, ComponentId, ComponentTicks,
 };
+use crate::scene::EntityId;
 
 use super::id::ArchetypeId;
 use super::signature::ArchetypeSignature;
@@ -12,6 +12,7 @@ use super::table::{
 };
 
 #[derive(Debug)]
+/// 把不可变原型签名与唯一表行所有者结合；仅成功的行增删推进成员代次，值替换不推进。
 pub struct ArchetypeRecord {
     id: ArchetypeId,
     signature: ArchetypeSignature,
@@ -133,6 +134,57 @@ impl ArchetypeRecord {
         row: usize,
     ) -> Option<ComponentTicks> {
         self.table.component_ticks_by_slot(column_slot, row)
+    }
+
+    /// # Safety
+    /// Authorize the selected value/tick row without conflicting live access.
+    /// Keep allocation, layout and entity membership fixed for every returned
+    /// reference's complete lifetime; shared ownership proves no uniqueness.
+    pub(super) unsafe fn get_mut_at_tick_by_slot_unchecked<T>(
+        &self,
+        column_slot: usize,
+        row: usize,
+        tick: ChangeTick,
+    ) -> Option<&mut T>
+    where
+        T: Send + Sync + 'static,
+    {
+        // SAFETY: the caller covers this exact row and its complete lifetime.
+        unsafe {
+            self.table
+                .get_mut_at_tick_by_slot_unchecked::<T>(column_slot, row, tick)
+        }
+    }
+
+    /// # Safety
+    /// Authorize the selected value/tick row without conflicting live access.
+    /// Keep allocation, layout and entity membership fixed for every returned
+    /// reference's complete lifetime; shared ownership proves no uniqueness.
+    pub(super) unsafe fn get_mut_with_ticks_by_slot_unchecked<T>(
+        &self,
+        column_slot: usize,
+        row: usize,
+    ) -> Option<(&mut T, &mut ComponentTicks)>
+    where
+        T: Send + Sync + 'static,
+    {
+        // SAFETY: the caller covers this exact row and its complete lifetime.
+        unsafe {
+            self.table
+                .get_mut_with_ticks_by_slot_unchecked::<T>(column_slot, row)
+        }
+    }
+
+    pub(super) fn component_ticks_by_slot_for_type<T>(
+        &self,
+        column_slot: usize,
+        row: usize,
+    ) -> Option<ComponentTicks>
+    where
+        T: Send + Sync + 'static,
+    {
+        self.table
+            .component_ticks_by_slot_for_type::<T>(column_slot, row)
     }
 
     pub(super) fn get_mut_at_tick_by_slot<T>(

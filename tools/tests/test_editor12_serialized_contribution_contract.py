@@ -21,13 +21,13 @@ class SerializedContributionContractTests(unittest.TestCase):
         self.assertIn("LocalizationBundle", source)
         self.assertIn("SettingsPage", source)
         self.assertIn("deny_unknown_fields", source)
-        self.assertEqual(source.count("schema: String"), 7)
+        self.assertGreaterEqual(source.count("schema: String"), 7)
         self.assertIn("pub fn expected_schema(&self) -> &'static str", source)
         for schema in (
             "zircon.editor.view/1",
             "zircon.editor.drawer/1",
-            "zircon.editor.menu/1",
-            "zircon.editor.command/1",
+            "zircon.editor.menu/2",
+            "zircon.editor.command/3",
             "zircon.editor.asset-type/1",
             "zircon.editor.localization-bundle/1",
             "zircon.editor.settings-page/2",

@@ -11,7 +11,7 @@ plan_sources:
   - user: 2026-09-09 补充 ZirconEngine 最佳实践、方案示例与详细 Wiki
 tests:
   - zircon_runtime/src/core/runtime/tests/resolution
-  - zircon_runtime/src/core/manager/tests.rs
+  - zircon_runtime/src/core/manager/tests/cases.rs
 doc_type: workflow-detail
 ---
 

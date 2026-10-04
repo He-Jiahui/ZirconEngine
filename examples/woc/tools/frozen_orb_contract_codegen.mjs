@@ -1,3 +1,6 @@
+// 调用端：npm run generate:frozen-orb-contract (tools/package.json)；职责：从战斗和类型定义提取冰霜之球的寿命与脉冲数值。
+// 输入边界：src/sim/combat/frozen_orb.ts, src/sim/types.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

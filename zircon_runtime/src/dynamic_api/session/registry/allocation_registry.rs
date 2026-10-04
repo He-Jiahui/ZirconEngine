@@ -1,5 +1,6 @@
 use std::collections::HashMap;
-use std::sync::{Mutex, MutexGuard, OnceLock};
+use std::sync::{Mutex, MutexGuard, OnceLock, TryLockError};
+use std::time::Instant;
 
 use zircon_runtime_interface::{
     ZrOwnedResultV2, ZrRuntimeAllocationId, ZrRuntimeSessionHandle, ZrStatus,
@@ -59,6 +60,61 @@ fn lock_registry() -> MutexGuard<'static, RuntimeAllocationRegistry> {
     registry()
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+fn lock_registry_until(
+    deadline: Instant,
+) -> Option<MutexGuard<'static, RuntimeAllocationRegistry>> {
+    loop {
+        if Instant::now() >= deadline {
+            return None;
+        }
+        let guard = match registry().try_lock() {
+            Ok(guard) => guard,
+            Err(TryLockError::Poisoned(poisoned)) => poisoned.into_inner(),
+            Err(TryLockError::WouldBlock) => {
+                std::thread::yield_now();
+                continue;
+            }
+        };
+        return (Instant::now() < deadline).then_some(guard);
+    }
+}
+
+pub(super) struct RuntimeAllocationDestroyGuard(MutexGuard<'static, RuntimeAllocationRegistry>);
+
+impl RuntimeAllocationDestroyGuard {
+    pub(super) fn has_census(&self, session: ZrRuntimeSessionHandle) -> bool {
+        self.0.census.contains_key(&session.raw())
+    }
+
+    pub(super) fn has_outstanding_allocations(&self, session: ZrRuntimeSessionHandle) -> bool {
+        self.0
+            .census
+            .get(&session.raw())
+            .is_some_and(|census| census.outstanding_allocations != 0)
+    }
+
+    pub(super) fn forget_empty_census(&mut self, session: ZrRuntimeSessionHandle) {
+        debug_assert!(!self.has_outstanding_allocations(session));
+        self.0.census.remove(&session.raw());
+    }
+}
+
+pub(super) fn try_lock_registry_for_destroy() -> Option<RuntimeAllocationDestroyGuard> {
+    match registry().try_lock() {
+        Ok(guard) => Some(RuntimeAllocationDestroyGuard(guard)),
+        Err(TryLockError::Poisoned(poisoned)) => {
+            Some(RuntimeAllocationDestroyGuard(poisoned.into_inner()))
+        }
+        Err(TryLockError::WouldBlock) => None,
+    }
+}
+
+#[cfg(test)]
+pub(super) fn with_registry_lock_for_test(action: impl FnOnce()) {
+    let _registry = lock_registry();
+    action();
 }
 
 pub(in crate::dynamic_api::session) fn register_runtime_allocation(
@@ -170,17 +226,15 @@ pub(super) fn allocation_census(session: ZrRuntimeSessionHandle) -> RuntimeAlloc
         .unwrap_or_default()
 }
 
-pub(super) fn session_has_outstanding_allocations(session: ZrRuntimeSessionHandle) -> bool {
-    allocation_census(session).outstanding_allocations != 0
-}
-
-pub(super) fn forget_session_census(session: ZrRuntimeSessionHandle) {
-    let mut registry = lock_registry();
-    if registry
-        .census
-        .get(&session.raw())
-        .is_some_and(|census| census.outstanding_allocations == 0)
-    {
-        registry.census.remove(&session.raw());
-    }
+pub(super) fn session_has_outstanding_allocations_until(
+    session: ZrRuntimeSessionHandle,
+    deadline: Instant,
+) -> Option<bool> {
+    let registry = lock_registry_until(deadline)?;
+    Some(
+        registry
+            .census
+            .get(&session.raw())
+            .is_some_and(|census| census.outstanding_allocations != 0),
+    )
 }

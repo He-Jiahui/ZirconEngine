@@ -1,0 +1,525 @@
+---
+related_code:
+  - zircon_runtime_interface/src/ui/mod.rs
+  - zircon_runtime_interface/src/ui/accessibility.rs
+  - zircon_runtime_interface/src/ui/binding/mod.rs
+  - zircon_runtime_interface/src/ui/binding/model/binding_call.rs
+  - zircon_runtime_interface/src/ui/binding/model/binding_value.rs
+  - zircon_runtime_interface/src/ui/binding/model/event_binding.rs
+  - zircon_runtime_interface/src/ui/binding/model/event_kind.rs
+  - zircon_runtime_interface/src/ui/binding/model/event_path.rs
+  - zircon_runtime_interface/src/ui/binding/model/mod.rs
+  - zircon_runtime_interface/src/ui/binding/model/parse_error.rs
+  - zircon_runtime_interface/src/ui/binding/model/parser.rs
+  - zircon_runtime_interface/src/ui/component/mod.rs
+  - zircon_runtime_interface/src/ui/component/category.rs
+  - zircon_runtime_interface/src/ui/component/data_binding/adapter_error.rs
+  - zircon_runtime_interface/src/ui/component/data_binding/adapter_result.rs
+  - zircon_runtime_interface/src/ui/component/data_binding/binding_target.rs
+  - zircon_runtime_interface/src/ui/component/data_binding/data_source.rs
+  - zircon_runtime_interface/src/ui/component/data_binding/event_envelope.rs
+  - zircon_runtime_interface/src/ui/component/data_binding/mod.rs
+  - zircon_runtime_interface/src/ui/component/data_binding/projection_patch.rs
+  - zircon_runtime_interface/src/ui/component/descriptor/component_descriptor.rs
+  - zircon_runtime_interface/src/ui/component/descriptor/default_node_template.rs
+  - zircon_runtime_interface/src/ui/component/descriptor/fallback_policy.rs
+  - zircon_runtime_interface/src/ui/component/descriptor/host_capability.rs
+  - zircon_runtime_interface/src/ui/component/descriptor/mod.rs
+  - zircon_runtime_interface/src/ui/component/descriptor/option_descriptor.rs
+  - zircon_runtime_interface/src/ui/component/descriptor/palette_metadata.rs
+  - zircon_runtime_interface/src/ui/component/descriptor/prop_schema.rs
+  - zircon_runtime_interface/src/ui/component/descriptor/render_capability.rs
+  - zircon_runtime_interface/src/ui/component/descriptor/slot_schema.rs
+  - zircon_runtime_interface/src/ui/component/drag.rs
+  - zircon_runtime_interface/src/ui/component/event.rs
+  - zircon_runtime_interface/src/ui/component/state.rs
+  - zircon_runtime_interface/src/ui/component/validation.rs
+  - zircon_runtime_interface/src/ui/component/value.rs
+  - zircon_runtime_interface/src/ui/dispatch/mod.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/effect.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/event.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/metadata.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/mod.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/reply.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/result.rs
+  - zircon_runtime_interface/src/ui/dispatch/navigation/context.rs
+  - zircon_runtime_interface/src/ui/dispatch/navigation/effect.rs
+  - zircon_runtime_interface/src/ui/dispatch/navigation/invocation.rs
+  - zircon_runtime_interface/src/ui/dispatch/navigation/mod.rs
+  - zircon_runtime_interface/src/ui/dispatch/navigation/result.rs
+  - zircon_runtime_interface/src/ui/dispatch/pointer/context.rs
+  - zircon_runtime_interface/src/ui/dispatch/pointer/effect.rs
+  - zircon_runtime_interface/src/ui/dispatch/pointer/event.rs
+  - zircon_runtime_interface/src/ui/dispatch/pointer/invocation.rs
+  - zircon_runtime_interface/src/ui/dispatch/pointer/mod.rs
+  - zircon_runtime_interface/src/ui/dispatch/pointer/result.rs
+  - zircon_runtime_interface/src/ui/event_ui/mod.rs
+  - zircon_runtime_interface/src/ui/event_ui/codec.rs
+  - zircon_runtime_interface/src/ui/event_ui/control.rs
+  - zircon_runtime_interface/src/ui/event_ui/reflection.rs
+  - zircon_runtime_interface/src/ui/focus.rs
+  - zircon_runtime_interface/src/ui/layout/mod.rs
+  - zircon_runtime_interface/src/ui/layout/engine.rs
+  - zircon_runtime_interface/src/ui/layout/constraints.rs
+  - zircon_runtime_interface/src/ui/layout/geometry.rs
+  - zircon_runtime_interface/src/ui/layout/scroll.rs
+  - zircon_runtime_interface/src/ui/layout/virtualization.rs
+  - zircon_runtime_interface/src/ui/navigation.rs
+  - zircon_runtime_interface/src/ui/picking.rs
+  - zircon_runtime_interface/src/ui/pipeline/mod.rs
+  - zircon_runtime_interface/src/ui/pipeline/stage.rs
+  - zircon_runtime_interface/src/ui/pipeline/dirty_reason.rs
+  - zircon_runtime_interface/src/ui/pipeline/stage_counters.rs
+  - zircon_runtime_interface/src/ui/pipeline/stage_report.rs
+  - zircon_runtime_interface/src/ui/pipeline/frame_report.rs
+  - zircon_runtime_interface/src/ui/surface/mod.rs
+  - zircon_runtime_interface/src/ui/surface/focus_state.rs
+  - zircon_runtime_interface/src/ui/surface/navigation/event_kind.rs
+  - zircon_runtime_interface/src/ui/surface/navigation/mod.rs
+  - zircon_runtime_interface/src/ui/surface/navigation/route.rs
+  - zircon_runtime_interface/src/ui/surface/navigation_state.rs
+  - zircon_runtime_interface/src/ui/surface/pointer/button.rs
+  - zircon_runtime_interface/src/ui/surface/pointer/event_kind.rs
+  - zircon_runtime_interface/src/ui/surface/pointer/mod.rs
+  - zircon_runtime_interface/src/ui/surface/pointer/route.rs
+  - zircon_runtime_interface/src/ui/surface/render/command.rs
+  - zircon_runtime_interface/src/ui/surface/render/command_kind.rs
+  - zircon_runtime_interface/src/ui/surface/render/extract.rs
+  - zircon_runtime_interface/src/ui/surface/render/list.rs
+  - zircon_runtime_interface/src/ui/surface/render/mod.rs
+  - zircon_runtime_interface/src/ui/surface/render/paint.rs
+  - zircon_runtime_interface/src/ui/surface/render/brush.rs
+  - zircon_runtime_interface/src/ui/surface/render/batch.rs
+  - zircon_runtime_interface/src/ui/surface/render/debug.rs
+  - zircon_runtime_interface/src/ui/surface/render/visualizer.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
+  - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
+  - zircon_runtime_interface/src/ui/surface/render/typography.rs
+  - zircon_runtime_interface/src/ui/surface/render/visual_asset_ref.rs
+  - zircon_runtime_interface/src/ui/text.rs
+  - zircon_runtime/src/ui/surface/render/extract.rs
+  - zircon_runtime_interface/src/ui/template/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/action_policy/diagnostic.rs
+  - zircon_runtime_interface/src/ui/template/asset/action_policy/host_policy.rs
+  - zircon_runtime_interface/src/ui/template/asset/action_policy/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/action_policy/report.rs
+  - zircon_runtime_interface/src/ui/template/asset/action_policy/side_effect_class.rs
+  - zircon_runtime_interface/src/ui/template/asset/binding/diagnostic.rs
+  - zircon_runtime_interface/src/ui/template/asset/binding/expression.rs
+  - zircon_runtime_interface/src/ui/template/asset/binding/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/binding/target.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/cache/cache_key.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/cache/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/artifact.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/cache_record.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/header.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/manifest.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/package_manifest.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/profile.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/report.rs
+  - zircon_runtime/src/ui/template/asset/compiler/package/artifact.rs
+  - zircon_runtime/src/ui/template/asset/compiler/package/package_manifest.rs
+  - zircon_runtime/src/ui/template/asset/compiler/package/validate.rs
+  - zircon_editor/src/ui/template/service.rs
+  - zircon_runtime_interface/src/ui/template/asset/component_contract/api_version.rs
+  - zircon_runtime_interface/src/ui/template/asset/component_contract/binding_contract.rs
+  - zircon_runtime_interface/src/ui/template/asset/component_contract/diagnostic.rs
+  - zircon_runtime_interface/src/ui/template/asset/component_contract/focus_contract.rs
+  - zircon_runtime_interface/src/ui/template/asset/component_contract/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/component_contract/public_contract.rs
+  - zircon_runtime_interface/src/ui/template/asset/component_contract/public_part.rs
+  - zircon_runtime_interface/src/ui/template/asset/component_contract/root_class_policy.rs
+  - zircon_runtime_interface/src/tests/ui_v2_contracts.rs
+  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/v2_contract.rs
+  - zircon_runtime_interface/src/ui/template/asset/document.rs
+  - zircon_runtime_interface/src/ui/template/asset/invalidation/change.rs
+  - zircon_runtime_interface/src/ui/template/asset/invalidation/diagnostic.rs
+  - zircon_runtime_interface/src/ui/template/asset/invalidation/fingerprint.rs
+  - zircon_runtime_interface/src/ui/template/asset/invalidation/impact.rs
+  - zircon_runtime_interface/src/ui/template/asset/invalidation/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/invalidation/report.rs
+  - zircon_runtime_interface/src/ui/template/asset/invalidation/stage.rs
+  - zircon_runtime_interface/src/ui/template/asset/localization/diagnostic.rs
+  - zircon_runtime_interface/src/ui/template/asset/localization/localized_text_ref.rs
+  - zircon_runtime_interface/src/ui/template/asset/localization/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/localization/report.rs
+  - zircon_runtime_interface/src/ui/template/asset/localization/text_direction.rs
+  - zircon_runtime_interface/src/ui/template/asset/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs
+  - zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs
+  - zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs
+  - zircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs
+  - zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs
+  - zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs
+  - zircon_runtime_interface/src/ui/template/asset/schema/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/schema/policy.rs
+  - zircon_runtime_interface/src/ui/template/asset/schema/report.rs
+  - zircon_runtime/src/ui/template/asset/schema/migrator.rs
+  - zircon_runtime/src/ui/tests/asset_schema_migration.rs
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/ui.rs
+  - zircon_runtime_interface/src/ui/template/asset/style.rs
+  - zircon_runtime_interface/src/ui/template/document.rs
+  - zircon_runtime_interface/src/ui/tree/mod.rs
+  - zircon_runtime_interface/src/ui/tree/node/dirty_flags.rs
+  - zircon_runtime_interface/src/ui/tree/node/input_policy.rs
+  - zircon_runtime_interface/src/ui/tree/node/layout_cache.rs
+  - zircon_runtime_interface/src/ui/tree/node/mod.rs
+  - zircon_runtime_interface/src/ui/tree/node/template_node_metadata.rs
+  - zircon_runtime_interface/src/ui/tree/node/tree_error.rs
+  - zircon_runtime_interface/src/ui/tree/node/tree_node.rs
+  - zircon_runtime_interface/src/ui/tree/node/ui_tree.rs
+  - zircon_runtime_interface/src/ui/window/mod.rs
+  - zircon_runtime_interface/src/ui/window/metadata.rs
+  - zircon_runtime_interface/src/ui/window/metrics.rs
+  - zircon_runtime_interface/src/ui/window/impact.rs
+  - zircon_runtime_interface/src/ui/window/event.rs
+  - zircon_runtime_interface/src/ui/window/pump.rs
+  - zircon_runtime_interface/src/ui/widget.rs
+  - zircon_runtime_interface/src/tests/ui_contract_spine.rs
+implementation_files:
+  - zircon_runtime_interface/src/ui/mod.rs
+  - zircon_runtime_interface/src/ui/accessibility.rs
+  - zircon_runtime_interface/src/ui/binding/mod.rs
+  - zircon_runtime_interface/src/ui/binding/model/mod.rs
+  - zircon_runtime_interface/src/ui/binding/model/binding_call.rs
+  - zircon_runtime_interface/src/ui/binding/model/binding_value.rs
+  - zircon_runtime_interface/src/ui/binding/model/event_binding.rs
+  - zircon_runtime_interface/src/ui/binding/model/event_kind.rs
+  - zircon_runtime_interface/src/ui/binding/model/event_path.rs
+  - zircon_runtime_interface/src/ui/binding/model/parse_error.rs
+  - zircon_runtime_interface/src/ui/binding/model/parser.rs
+  - zircon_runtime_interface/src/ui/component/mod.rs
+  - zircon_runtime_interface/src/ui/component/category.rs
+  - zircon_runtime_interface/src/ui/component/data_binding/adapter_error.rs
+  - zircon_runtime_interface/src/ui/component/data_binding/adapter_result.rs
+  - zircon_runtime_interface/src/ui/component/data_binding/binding_target.rs
+  - zircon_runtime_interface/src/ui/component/data_binding/data_source.rs
+  - zircon_runtime_interface/src/ui/component/data_binding/event_envelope.rs
+  - zircon_runtime_interface/src/ui/component/data_binding/mod.rs
+  - zircon_runtime_interface/src/ui/component/data_binding/projection_patch.rs
+  - zircon_runtime_interface/src/ui/component/descriptor/component_descriptor.rs
+  - zircon_runtime_interface/src/ui/component/descriptor/default_node_template.rs
+  - zircon_runtime_interface/src/ui/component/descriptor/fallback_policy.rs
+  - zircon_runtime_interface/src/ui/component/descriptor/host_capability.rs
+  - zircon_runtime_interface/src/ui/component/descriptor/mod.rs
+  - zircon_runtime_interface/src/ui/component/descriptor/option_descriptor.rs
+  - zircon_runtime_interface/src/ui/component/descriptor/palette_metadata.rs
+  - zircon_runtime_interface/src/ui/component/descriptor/prop_schema.rs
+  - zircon_runtime_interface/src/ui/component/descriptor/render_capability.rs
+  - zircon_runtime_interface/src/ui/component/descriptor/slot_schema.rs
+  - zircon_runtime_interface/src/ui/component/drag.rs
+  - zircon_runtime_interface/src/ui/component/event.rs
+  - zircon_runtime_interface/src/ui/component/state.rs
+  - zircon_runtime_interface/src/ui/component/validation.rs
+  - zircon_runtime_interface/src/ui/component/value.rs
+  - zircon_runtime_interface/src/ui/dispatch/mod.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/effect.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/event.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/metadata.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/mod.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/reply.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/result.rs
+  - zircon_runtime_interface/src/ui/dispatch/navigation/context.rs
+  - zircon_runtime_interface/src/ui/dispatch/navigation/effect.rs
+  - zircon_runtime_interface/src/ui/dispatch/navigation/invocation.rs
+  - zircon_runtime_interface/src/ui/dispatch/navigation/mod.rs
+  - zircon_runtime_interface/src/ui/dispatch/navigation/result.rs
+  - zircon_runtime_interface/src/ui/dispatch/pointer/context.rs
+  - zircon_runtime_interface/src/ui/dispatch/pointer/effect.rs
+  - zircon_runtime_interface/src/ui/dispatch/pointer/event.rs
+  - zircon_runtime_interface/src/ui/dispatch/pointer/invocation.rs
+  - zircon_runtime_interface/src/ui/dispatch/pointer/mod.rs
+  - zircon_runtime_interface/src/ui/dispatch/pointer/result.rs
+  - zircon_runtime_interface/src/ui/event_ui/mod.rs
+  - zircon_runtime_interface/src/ui/event_ui/codec.rs
+  - zircon_runtime_interface/src/ui/event_ui/control.rs
+  - zircon_runtime_interface/src/ui/event_ui/reflection.rs
+  - zircon_runtime_interface/src/ui/focus.rs
+  - zircon_runtime_interface/src/ui/layout/mod.rs
+  - zircon_runtime_interface/src/ui/layout/engine.rs
+  - zircon_runtime_interface/src/ui/layout/constraints.rs
+  - zircon_runtime_interface/src/ui/layout/geometry.rs
+  - zircon_runtime_interface/src/ui/layout/scroll.rs
+  - zircon_runtime_interface/src/ui/layout/virtualization.rs
+  - zircon_runtime_interface/src/ui/navigation.rs
+  - zircon_runtime_interface/src/ui/picking.rs
+  - zircon_runtime_interface/src/ui/pipeline/mod.rs
+  - zircon_runtime_interface/src/ui/pipeline/stage.rs
+  - zircon_runtime_interface/src/ui/pipeline/dirty_reason.rs
+  - zircon_runtime_interface/src/ui/pipeline/stage_counters.rs
+  - zircon_runtime_interface/src/ui/pipeline/stage_report.rs
+  - zircon_runtime_interface/src/ui/pipeline/frame_report.rs
+  - zircon_runtime_interface/src/ui/surface/mod.rs
+  - zircon_runtime_interface/src/ui/surface/focus_state.rs
+  - zircon_runtime_interface/src/ui/surface/navigation/event_kind.rs
+  - zircon_runtime_interface/src/ui/surface/navigation/mod.rs
+  - zircon_runtime_interface/src/ui/surface/navigation/route.rs
+  - zircon_runtime_interface/src/ui/surface/navigation_state.rs
+  - zircon_runtime_interface/src/ui/surface/pointer/button.rs
+  - zircon_runtime_interface/src/ui/surface/pointer/event_kind.rs
+  - zircon_runtime_interface/src/ui/surface/pointer/mod.rs
+  - zircon_runtime_interface/src/ui/surface/pointer/route.rs
+  - zircon_runtime_interface/src/ui/surface/render/command.rs
+  - zircon_runtime_interface/src/ui/surface/render/command_kind.rs
+  - zircon_runtime_interface/src/ui/surface/render/extract.rs
+  - zircon_runtime_interface/src/ui/surface/render/list.rs
+  - zircon_runtime_interface/src/ui/surface/render/mod.rs
+  - zircon_runtime_interface/src/ui/surface/render/paint.rs
+  - zircon_runtime_interface/src/ui/surface/render/brush.rs
+  - zircon_runtime_interface/src/ui/surface/render/batch.rs
+  - zircon_runtime_interface/src/ui/surface/render/debug.rs
+  - zircon_runtime_interface/src/ui/surface/render/visualizer.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
+  - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
+  - zircon_runtime_interface/src/ui/surface/render/typography.rs
+  - zircon_runtime_interface/src/ui/surface/render/visual_asset_ref.rs
+  - zircon_runtime_interface/src/ui/text.rs
+  - zircon_runtime_interface/src/ui/template/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/action_policy/diagnostic.rs
+  - zircon_runtime_interface/src/ui/template/asset/action_policy/host_policy.rs
+  - zircon_runtime_interface/src/ui/template/asset/action_policy/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/action_policy/report.rs
+  - zircon_runtime_interface/src/ui/template/asset/action_policy/side_effect_class.rs
+  - zircon_runtime_interface/src/ui/template/asset/binding/diagnostic.rs
+  - zircon_runtime_interface/src/ui/template/asset/binding/expression.rs
+  - zircon_runtime_interface/src/ui/template/asset/binding/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/binding/target.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/cache/cache_key.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/cache/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/artifact.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/cache_record.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/header.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/manifest.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/package_manifest.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/profile.rs
+  - zircon_runtime_interface/src/ui/template/asset/compiler/package/report.rs
+  - zircon_runtime/src/ui/template/asset/compiler/package/artifact.rs
+  - zircon_runtime/src/ui/template/asset/compiler/package/package_manifest.rs
+  - zircon_runtime/src/ui/template/asset/compiler/package/validate.rs
+  - zircon_editor/src/ui/template/service.rs
+  - zircon_runtime_interface/src/ui/template/asset/component_contract/api_version.rs
+  - zircon_runtime_interface/src/ui/template/asset/component_contract/binding_contract.rs
+  - zircon_runtime_interface/src/ui/template/asset/component_contract/diagnostic.rs
+  - zircon_runtime_interface/src/ui/template/asset/component_contract/focus_contract.rs
+  - zircon_runtime_interface/src/ui/template/asset/component_contract/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/component_contract/public_contract.rs
+  - zircon_runtime_interface/src/ui/template/asset/component_contract/public_part.rs
+  - zircon_runtime_interface/src/ui/template/asset/component_contract/root_class_policy.rs
+  - zircon_runtime_interface/src/tests/ui_v2_contracts.rs
+  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/v2_contract.rs
+  - zircon_runtime_interface/src/ui/template/asset/document.rs
+  - zircon_runtime_interface/src/ui/template/asset/invalidation/change.rs
+  - zircon_runtime_interface/src/ui/template/asset/invalidation/diagnostic.rs
+  - zircon_runtime_interface/src/ui/template/asset/invalidation/fingerprint.rs
+  - zircon_runtime_interface/src/ui/template/asset/invalidation/impact.rs
+  - zircon_runtime_interface/src/ui/template/asset/invalidation/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/invalidation/report.rs
+  - zircon_runtime_interface/src/ui/template/asset/invalidation/stage.rs
+  - zircon_runtime_interface/src/ui/template/asset/localization/diagnostic.rs
+  - zircon_runtime_interface/src/ui/template/asset/localization/localized_text_ref.rs
+  - zircon_runtime_interface/src/ui/template/asset/localization/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/localization/report.rs
+  - zircon_runtime_interface/src/ui/template/asset/localization/text_direction.rs
+  - zircon_runtime_interface/src/ui/template/asset/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs
+  - zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs
+  - zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs
+  - zircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs
+  - zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs
+  - zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs
+  - zircon_runtime_interface/src/ui/template/asset/schema/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/schema/policy.rs
+  - zircon_runtime_interface/src/ui/template/asset/schema/report.rs
+  - zircon_runtime_interface/src/ui/template/asset/style.rs
+  - zircon_runtime_interface/src/ui/template/document.rs
+  - zircon_runtime_interface/src/ui/tree/mod.rs
+  - zircon_runtime_interface/src/ui/tree/node/dirty_flags.rs
+  - zircon_runtime_interface/src/ui/tree/node/input_policy.rs
+  - zircon_runtime_interface/src/ui/tree/node/layout_cache.rs
+  - zircon_runtime_interface/src/ui/tree/node/mod.rs
+  - zircon_runtime_interface/src/ui/tree/node/template_node_metadata.rs
+  - zircon_runtime_interface/src/ui/tree/node/tree_error.rs
+  - zircon_runtime_interface/src/ui/tree/node/tree_node.rs
+  - zircon_runtime_interface/src/ui/tree/node/ui_tree.rs
+  - zircon_runtime_interface/src/ui/window/mod.rs
+  - zircon_runtime_interface/src/ui/window/metadata.rs
+  - zircon_runtime_interface/src/ui/window/metrics.rs
+  - zircon_runtime_interface/src/ui/window/impact.rs
+  - zircon_runtime_interface/src/ui/window/event.rs
+  - zircon_runtime_interface/src/ui/window/pump.rs
+  - zircon_runtime_interface/src/ui/widget.rs
+plan_sources:
+  - docs/superpowers/specs/2026-05-02-ui-runtime-interface-big-cutover-design.md
+  - docs/superpowers/plans/2026-05-02-ui-runtime-interface-big-cutover.md
+  - user: 2026-05-02 approve subagent-driven UI runtime interface big cutover
+  - user: 2026-05-02 continue active UI runtime-interface cutover
+  - user: 2026-05-02 continue package/cache classification and editor template-service façade
+  - docs/superpowers/plans/2026-05-06-ui-complete-input-events.md
+  - user: 2026-05-06 implement Milestone 1 shared input contract foundation only
+  - docs/superpowers/specs/2026-05-06-ui-lifecycle-reflection-reflector-design.md
+  - docs/superpowers/plans/2026-05-06-ui-lifecycle-reflection-reflector.md
+  - .codex/plans/Bevy-Informed Zircon UI 架构优化里程碑计划.md
+  - docs/ui/bevy-informed-ui-m0-gap-audit.md
+  - .codex/plans/Bevy 对齐的 Zircon UI Text Widgets Focus A11y 里程碑计划.md
+  - docs/ui/bevy-ui-text-widgets-focus-a11y-m0-gap-audit.md
+tests:
+  - zircon_runtime_interface/src/tests/contracts.rs
+  - zircon_runtime_interface/src/tests/layout_engine_contracts.rs
+  - zircon_runtime_interface/src/tests/pipeline_contracts.rs
+  - zircon_runtime_interface/src/tests/window_input_contracts.rs
+  - zircon_runtime_interface/src/tests/ui_contract_spine.rs
+  - zircon_runtime_interface/src/tests/ui_v2_contracts.rs
+  - cargo test -p zircon_runtime_interface --lib layout_engine_contracts --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-layout-engine-m3 --message-format short --color never (3 passed; 0 failed; 73 filtered out)
+  - cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-layout-engine-m3 --message-format short --color never (passed)
+  - cargo test -p zircon_runtime_interface --lib pipeline_contracts --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-pipeline-m2 --message-format short --color never (3 passed; 0 failed; 70 filtered out)
+  - cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-pipeline-m2 --message-format short --color never (passed)
+  - cargo test -p zircon_runtime_interface --lib window_input_contracts --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-window-input-m1 --message-format short --color never (2 passed; 0 failed; 68 filtered out; existing sibling `ui_contract_spine` unused-import warning)
+  - cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-window-input-m1 --message-format short --color never (passed)
+  - cargo test -p zircon_runtime_interface --lib ui_input --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-complete-input-events --message-format short --color never -- --nocapture
+  - cargo test -p zircon_runtime_interface --lib contracts --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-complete-input-events --message-format short --color never -- --nocapture
+  - cargo check -p zircon_runtime_interface --lib --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-complete-input-events --message-format short --color never
+  - cargo test -p zircon_runtime_interface --lib contracts --locked --target-dir E:\zircon-build\targets\ui-lifecycle-reflection
+  - cargo check -p zircon_runtime_interface --lib --locked --target-dir E:\zircon-build\targets\ui-lifecycle-reflection
+  - Get-PSDrive -Name E (145.35 GB free before quality-fix validation)
+  - cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never (pass after offline lockfile sync)
+  - cargo test -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never (16 passed; doc-tests 0)
+  - cargo tree -p zircon_runtime_interface --locked (no crossbeam-channel, crossbeam-utils, zircon_runtime, zircon_editor, slint, or wgpu)
+  - git diff --check -- "zircon_runtime_interface/Cargo.toml" "zircon_runtime_interface/src/tests/contracts.rs" "zircon_runtime_interface/src/ui/template/asset/style.rs" "zircon_runtime_interface/src/ui/template/asset/schema/report.rs" "docs/crates/zircon_runtime_interface/ui/mod.md" (pass)
+  - rustfmt --edition 2021 --check zircon_runtime_interface/src/ui/template/asset/binding/diagnostic.rs zircon_runtime/src/ui/template/asset/binding/mod.rs zircon_runtime/src/ui/template/asset/binding/validation.rs zircon_editor/src/ui/asset_editor/diagnostics/binding.rs zircon_editor/src/ui/asset_editor/binding/schema_projection.rs (pass for binding DTO owner cutover)
+  - cargo test -p zircon_runtime --lib asset_binding --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never (16 passed; 0 failed; 642 filtered out)
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never (pass with existing warnings after stale render-extract call sites moved to runtime behavior)
+  - rustfmt --edition 2021 --check zircon_runtime_interface/src/ui/template/asset/schema/report.rs zircon_runtime/src/ui/template/asset/loader.rs zircon_runtime/src/ui/template/asset/schema/migrator.rs zircon_runtime/src/ui/tree/hit_test.rs zircon_runtime/src/ui/tree/mod.rs zircon_runtime/src/ui/tree/node/{mod.rs,tree_access.rs,layout.rs,routing.rs,render_order.rs,interaction.rs,focus.rs,scroll.rs} (pass for schema/tree duplicate-owner cleanup)
+  - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never (pass with warnings only after schema/tree duplicate-owner cleanup)
+  - cargo test -p zircon_runtime --test ui_asset_binding_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never (16 passed; 0 failed after schema/tree duplicate-owner cleanup)
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-editor-check --message-format short --color never (pass with existing runtime graphics warnings and 3 editor warnings after editor tree DTO/runtime extension split)
+  - cargo test -p zircon_runtime_interface ui_component_state_with_value_clears_reference_source_metadata --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never (1 passed; 0 failed)
+  - cargo test -p zircon_runtime --lib component_state --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-component-state --message-format short --color never (20 passed; 0 failed)
+  - cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never (pass after component-state provenance cleanup)
+  - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-runtime-check --message-format short --color never (pass with warnings only after component-state provenance cleanup)
+  - cargo test -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never (17 passed; 0 failed; doc-tests 0)
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-editor-check --message-format short --color never (pass with existing runtime graphics warnings and 3 editor warnings after component-state provenance cleanup)
+  - Get-PSDrive -Name E (150.23 GB free before final focused UI runtime-interface validation)
+  - cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover-opencode --message-format short --color never (fresh pass)
+  - cargo test -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover-opencode --message-format short --color never (17 passed; doc-tests 0)
+  - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover-opencode --message-format short --color never (fresh pass with existing graphics/plugin warnings)
+  - cargo test -p zircon_runtime --test ui_asset_binding_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover-opencode --message-format short --color never (16 passed)
+  - cargo test -p zircon_runtime --lib asset_binding --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover-opencode --message-format short --color never (16 passed; 644 filtered)
+  - cargo test -p zircon_runtime --lib asset_action_policy --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover-opencode --message-format short --color never (3 passed; 657 filtered)
+  - cargo test -p zircon_runtime --lib asset_localization --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover-opencode --message-format short --color never (5 passed; 655 filtered)
+  - cargo test -p zircon_runtime --lib asset_package_validation --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover-opencode --message-format short --color never (9 passed; 651 filtered)
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover-opencode --message-format short --color never (earlier fresh pass with existing runtime graphics warnings and 3 editor warnings)
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never (2026-05-02 19:44 rerun passed with existing runtime graphics warnings and 3 editor warnings; the earlier `EditorPluginRegistrationReport.lifecycle` constructor blocker is stale in current source)
+  - cargo tree -p zircon_editor --locked --depth 1 (direct dependencies include zircon_runtime for concrete services and zircon_runtime_interface for neutral contracts)
+  - cargo build --workspace --locked --verbose --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never (package/cache closeout workspace build passed)
+  - cargo test -p zircon_runtime --test virtual_geometry_debug_snapshot_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never --no-run (first blocked outside this UI DTO slice by `zircon_runtime/tests/support/mod.rs` using the stale 2-argument VG renderer fixture constructor; the follow-up fixture patch now supplies render features, no-op render-pass executor registrations, and a minimal virtual-geometry runtime provider)
+  - cargo clean --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode (2026-05-03 follow-up cleanup of an inactive scoped target after E drive free space fell below the 50 GB Cargo threshold; removed 2700 files, 2.5 GiB)
+  - cargo check -p zircon_runtime --test virtual_geometry_debug_snapshot_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never (2026-05-03 follow-up passed with existing runtime warnings after the shared VG fixture moved to the 4-argument constructor path)
+  - cargo clean --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode and cargo clean --target-dir E:\cargo-targets\zircon-runtime-interface-boundary (2026-05-03 follow-up cleanup of inactive scoped targets after E drive free space again fell below the 50 GB Cargo threshold; removed 4.4 GiB and 14.0 GiB respectively)
+  - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never (2026-05-03 follow-up passed with existing runtime warnings after transient moving-source failures in resource-streamer access and graphics-module constructor wiring no longer reproduced)
+  - cargo test -p zircon_runtime --test virtual_geometry_debug_snapshot_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never --no-run (2026-05-03 follow-up passed with existing runtime warnings; produced the integration-test executable)
+  - cargo test -p zircon_runtime --test virtual_geometry_debug_snapshot_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never -- --test-threads=1 --nocapture (2026-05-03 focused rerun passed with existing runtime warnings: 3 passed, 0 failed, 4 ignored)
+doc_type: module-detail
+---
+
+# Runtime Interface UI Contracts
+
+`zircon_runtime_interface::ui` owns the neutral UI DTO contract namespace used across runtime, editor, app, and future plugin seams. The module tree is backed by real files under `zircon_runtime_interface/src/ui/**`; it no longer path-includes `zircon_runtime/src/ui/**` source.
+
+## Scope
+
+The interface crate contains serializable declarations, transient borrowed dispatch views, and narrow contract helpers for binding, component descriptors, dispatch inputs/results, event control/reflection, layout geometry, surface render extracts, template asset reports, localization/action-policy records, and tree node snapshots.
+
+Runtime behavior remains outside this crate. Event managers, component registries and editor showcase catalogs, dispatchers, layout pass algorithms, surface orchestration, render extraction, text layout, tree mutation/query extensions, template loaders, compilers, validators, schema migrators, and graphics/plugin renderer execution still belong to `zircon_runtime` milestones.
+
+## Module Families
+
+`ui::binding` contains event binding DTOs plus parsing helpers needed on the contract type itself.
+
+`ui::focus`, `ui::navigation`, `ui::picking`, `ui::accessibility`, `ui::widget`, and `ui::text` contain the Bevy-aligned M1 contract spine. These modules define neutral DTOs for input focus, focus visible state, focus change events, focused input bubbling, tab and directional navigation, unified pick policy, pointer capture, accessibility nodes/snapshots/actions/diagnostics, headless widget events, text edit changes, and cursor style. Runtime/editor behavior for these contracts remains outside the interface crate. See `docs/crates/zircon_runtime_interface/ui/contract-spine.md` for the M1 module detail.
+
+The neutral widget event keeps its public tagged-serde shape while boxing the large `UiTextEdit` payload inside `TextEditChange`; this bounds enum stack size and leaves ownership explicit at the event boundary. No legacy unboxed event variant or conversion shim is retained.
+
+`ui::pipeline` contains the Bevy-informed M2 pipeline-report DTOs. `UiPipelineStage` fixes the neutral runtime schedule order from input collection through batch preparation, while `ARCHIVED_DIAGNOSTIC_FORMAT_VERSION` and `ARCHIVED_DIAGNOSTIC_STAGES` make older diagnostic report names explicit data-policy inputs instead of current schedule stages. `UiPipelineStageReport` and `UiPipelineFrameReport` record elapsed timing, dirty reasons, and counters for layout, hit-grid, render extract, batch prepare, paint submit, diagnostics, template reloads, and repeated pointer-move fast paths. Runtime/editor scheduling and surface mutation stay outside this interface module. See `docs/crates/zircon_runtime_interface/ui/pipeline.md` for the M2 module detail.
+
+`ui::component` contains component category, value, drag/drop, event, validation state, descriptor, and data-binding DTOs. `UiComponentState` is data-only in the interface crate; event application and descriptor-backed state mutation remain runtime/editor behavior. Its direct `with_value(...)` helper preserves DTO invariants by clearing stale per-property drag/drop provenance whenever a retained value is replaced outside the runtime reducer.
+
+`ui::dispatch` contains pointer and navigation dispatch context, invocation, effect, result, and pointer event contracts, but no dispatchers. Pointer and navigation handler contexts are non-serializable event-lifetime views that borrow the one route later moved into the public dispatch result; route, invocation, effect, result, and input contracts remain serializable owned DTOs. `UiHitPath` stores one canonical root-to-leaf node sequence and derives bubble order by reverse iteration. `UiPointerRoutingPath::HitPath` reuses that sequence for ordinary pointer dispatch, while `ExplicitRootToLeaf` owns the distinct capture/redirect route only when required. Serialization preserves the existing `root_to_leaf`, `bubble_route`, and `bubbled` arrays even though reverse-order copies are not retained in memory. Its `input` subtree adds the M5 shared input contract vocabulary: common metadata, pointer/keyboard/text/IME/navigation/analog/drag-drop/popup/tooltip events, transient dispatch replies/effects, input-method requests, dispatch diagnostics, host requests, and component event reports. Runtime/editor effect application remains outside the interface crate.
+
+Runtime 15 F5 records `Runtime 15 F5 UI input surrounding-text error source` / `runtime_15_ui_input_surrounding_text_error_source_static_passed_cargo_deferred`: `UiInputMethodSurroundingTextError` now implements `std::error::Error`, and `ui_dispatch_error_contracts.rs::ui_input_method_surrounding_text_error_is_std_error` locks that the interface validation error remains usable as a typed source in runtime error composition without adding runtime behavior to this crate.
+
+`ui::event_ui` contains control request/response, reflection descriptors, stable scalar/string ID wrappers, and a serde JSON binding codec helper. Its reflection module now also owns the neutral Widget Reflector DTO family: `UiWidgetLifecycleState`, `UiReflectedProperty`, `UiPropertyInvalidationReason`, `UiReflectorNode`, `UiReflectorHitContext`, and `UiReflectorSnapshot`. These are serializable debug/editor contracts only; runtime owns property mutation, lifecycle derivation, hit-test context production, and binding action projection.
+
+`ui::layout` contains constraints, geometry, scroll/container, virtualization, and M3 layout-engine selection contract structures without layout-pass execution, Taffy conversion, or virtualization window computation. `UiLayoutEngineCapability`, `UiLayoutEngineRequest`, and `UiLayoutEngineSelectionReport` let future runtime M3 work report whether a layout family used the current Legacy Zircon path or a Taffy-compatible path while preserving Zircon-owned Free, Overlay, Scrollable, and virtualized-list semantics. See `docs/crates/zircon_runtime_interface/ui/layout.md` for the module detail.
+
+`ui::surface` contains focus/navigation/pointer DTOs and render command/list/style/text/extract declarations. `UiRenderExtract` and text layout records are data-only in the interface crate. The render subtree now also contains the neutral paint/brush/batch/debug DTO layer (`UiPaintElement`, `UiBrushPayload`, `UiBatchPlan`, `UiRenderDebugSnapshot`, and `UiShapedText`) used to migrate existing `UiRenderCommand` producers toward Slate-style paint and batch contracts without adding required fields to legacy command literals.
+
+`UiRenderExtractKind` and `UiRenderStats` are additive M1 render-boundary DTOs. They classify the extract path and report command-family counts without adding required fields to the legacy `{ tree_id, list }` extract shape.
+
+`ui::template` contains template document DTOs plus asset binding, action-policy, localization, compile-cache key, package header/cache-record/manifest/report, component-contract, invalidation, resource-ref, schema-report, selector, and asset document contract records. Selector parsing stays as a contract helper; selector matching stays outside the interface crate. Runtime owns compiler-state builders such as `compile_cache_key_from_compiler(...)`, runtime framed TOML envelope encoding/decoding through `UiRuntimeCompiledAssetArtifact`, and package-manifest assembly from runtime artifacts. The interface `UiCompiledAssetArtifact` name is neutral DTO data only and does not carry a runtime `UiTemplateInstance` payload.
+
+Runtime 09 source-template production migration hard cutover removes the historical fixture converter from the live loader. The schema-report DTO therefore no longer exposes `SourceTemplateFixture` or `SourceTemplateFixtureConverted`; current/older tree and flat node-table reports remain the complete production source-kind vocabulary. Archived Runtime15 naming records describe the former intermediate state and do not authorize restoring those variants as aliases.
+
+`ui::template::asset::binding` is the canonical source for versioned neutral binding target, expression, diagnostic, and report DTOs. The runtime binding module keeps validation behavior in `zircon_runtime::ui::template::asset::binding::validation` and imports these DTOs directly; the deleted runtime-local `diagnostic.rs`, `expression.rs`, and `target.rs` files are not compatibility surfaces.
+
+Runtime 10 M2.1 extends the same single-source rule to the remaining runtime/interface public type duplicates. `UiBindingCodec` is owned by `zircon_runtime_interface::ui::event_ui`, and `UiAssetSchemaVersionPolicy` plus its schema-version constants are owned by `zircon_runtime_interface::ui::template::asset::schema`; the runtime-local `zircon_runtime/src/ui/event_ui/codec.rs` and `zircon_runtime/src/ui/template/asset/schema/policy.rs` files were removed rather than kept as compatibility shells. The current structural guard records `runtime_10_m2_1_ui_contract_duplicate_public_types_removed_static_passed_cargo_pending`, `ui_contract_single_source_anchors = 7/7`, and `ui_contract_duplicate_public_types = 0`.
+
+Runtime 10 M2.2 mirrors the Runtime 09 `v2-replacement-mainline` verdict into the interface/runtime split. `zircon_runtime_interface::ui::v2` remains the DTO owner for authored v2 assets and compiled graphs, while `zircon_runtime::ui::v2` consumes those DTOs for loading, caching, instancing, compilation, and surface building. `UiComponentApiVersion` remains owned by `zircon_runtime_interface::ui::template::asset::component_contract::api_version`; runtime component-contract validation calls `actual.is_compatible_with(required)` and reports `UiComponentContractDiagnosticCode::ApiMismatch` instead of redefining the version type. The current structural guard records `runtime_10_m2_2_ui_v2_contract_sync_static_passed_cargo_pending`, `ui_v2_contract_sync_anchors = 9/9`, `UiComponentApiVersion`, and `v2-replacement-mainline`; `ui_component_api_version_mismatch_is_rejected_with_parse_error` covers the named mismatch/parse-error path. The 2026-06-17 interface package gate passed `cargo test -p zircon_runtime_interface --locked` with 168 tests and doc-test 0/0; Runtime 10 M2 still waits on runtime UI and editor Cargo gates.
+
+`UiAssetDocument` exposes only declaration fields and minimal root-id accessors in this crate. Tree authority checks, style/node mutation, node traversal, template loading, and document validation are runtime/editor behavior and are intentionally absent from the interface source tree.
+
+`ui::tree` contains data-only tree node declarations. Runtime tree mutation/query behavior remains in `zircon_runtime` and is exposed through `UiRuntimeTree*Ext` traits over the interface-owned `UiTree` and `UiTreeNode` DTOs.
+
+`ui::window` contains the Bevy-informed M1 neutral window/input pump DTOs. `UiWindowEvent` models cursor move/enter/leave, focus, resize, scale-factor, redraw, close, and cleanup events. `UiWindowInputPumpEvent` combines those window events with existing shared `UiInputEvent` values so runtime winit and editor host converters can converge on one stream in later slices without duplicating input DTO families in the interface crate.
+
+`zircon_runtime::ui::surface::UiSurface` is still a runtime service type, but its `tree` field now stores `zircon_runtime_interface::ui::tree::UiTree` directly. Editor surface builders therefore import tree DTOs from the interface crate and import runtime tree extension traits only when they call behavior such as insertion, query, mutation, routing, focus, scroll, or render-order traversal.
+
+## Milestone 1 Boundary
+
+This milestone only materializes the interface-owned contract source tree and tests representative construction/serialization. Runtime and editor rewiring is intentionally deferred to later milestones in the UI runtime interface big cutover plan.
+
+The focused runtime/editor gates below are unblock evidence, not workspace-wide acceptance. Subsequent M2 and tree/surface slices removed the runtime-local DTO shadows and old-path re-export shells for the touched seams, including the tree DTO family. A final residue audit found no live `#[path = ...]`, runtime-source include, shim, facade, or bridge residue in `zircon_runtime_interface/src/ui`, and no migration-only `pub use zircon_runtime_interface::ui` under `zircon_runtime/src/ui`. Remaining editor neutral DTO imports outside the tree family still need DTO-by-DTO hard-cutover around concrete runtime services rather than `pub use` compatibility shims.
+
+## Milestone 1 Evidence
+
+Milestone 1 acceptance is scoped to the interface crate: `cargo check -p zircon_runtime_interface`, `cargo test -p zircon_runtime_interface`, and `cargo tree -p zircon_runtime_interface` must pass after checking free space on the target drive.
+
+These checks prove the interface UI namespace is implementation-free and dependency-light. They do not claim runtime, editor, graphics/plugin, or workspace-wide build and test success.
+
+## Runtime And Editor Gate Evidence
+
+The focused runtime checks also confirm that the binding-expression schema, M21 action-policy, M14 localization, package-validation, and component-state filters execute after the interface DTO namespace is materialized. The component-state provenance regression specifically keeps interface `UiComponentState::with_value(...)` aligned with runtime reducer value replacement by clearing stale `reference_sources` metadata. Fresh final validation on `E:\cargo-targets\zircon-ui-interface-big-cutover-opencode` passed the interface crate check/test, runtime lib check, binding integration test, and all four focused runtime filters listed in the header. The package/cache follow-up removed the remaining runtime duplicate `UiCompileCacheKey`, `UiCompiledAssetCacheRecord`, and `UiCompiledAssetPackageManifest` declarations; runtime now emits those interface DTOs through behavior helpers while keeping only `UiRuntimeCompiledAssetArtifact` as the runtime-owned framed TOML envelope wrapper. An earlier editor library type-check gate also passed with existing warnings after stale `UiRenderExtract::from_tree(...)` call sites were moved to runtime-owned `extract_ui_render_tree(...)` behavior and after editor tree DTO construction moved to `zircon_runtime_interface::ui::tree` while retaining runtime tree extension traits for behavior calls. The editor template service follow-up adds `EditorTemplateRuntimeService` as the editor-owned façade over high-level runtime template loading, compilation, registration, instantiation, surface construction, render extraction, and binding diagnostic collection. The 2026-05-02 20:45 isolated rerun on `E:\cargo-targets\zircon-ui-interface-followup-opencode` confirms the interface check/test, runtime lib check, and editor lib check still type-check the package/cache and editor-template-service source with existing warnings only. The same rerun could not execute the `asset_package_validation` lib-test filter in the moved worktree because broader runtime lib-test compilation now fails first in active plugin/sound/export code, not in the UI package/cache owner seam. Broad workspace-test green is still unclaimed because validation is currently blocked by unrelated active lanes.
+
+`zircon_editor` still depends on `zircon_runtime` through deliberate concrete runtime services such as UI behavior builders, event management, rendering submission, and host implementation. The tree DTO family is no longer part of that dependency debt, and the latest known-neutral stale-owner grep gates did not find DTO imports through `zircon_runtime::ui`; any remaining non-tree owner surfaces need a dedicated editor review instead of mechanical rewriting. The latest source audit found 134 `zircon_runtime::ui` hits and 431 `zircon_runtime_interface::ui` hits under `zircon_editor/src`; the current evidence does not claim every editor runtime UI dependency has been replaced by `zircon_runtime_interface::ui`.
+
+## 2026-05-06 Surface Render Re-Export Follow-Up
+
+The Material/Slate validation lane exposed a fresh-build contract drift in `ui::surface`: runtime and editor users still import resolved style/text DTOs from `zircon_runtime_interface::ui::surface`, while the concrete declarations now live under `ui::surface::render`. `surface/mod.rs` re-exports `UiResolvedStyle`, `UiResolvedTextLayout`, `UiResolvedTextLine`, `UiResolvedTextRun`, and `UiResourceUvRect` with the rest of the neutral render DTO set so existing surface consumers keep a single import boundary.
+
+The same fresh-build pass also required an explicit `Vec<UiRenderVisualizerOverdrawRegion>` type in the render visualizer overdraw collector. That keeps the debug/reflector DTO implementation buildable without changing the serialized contract shape.
+
+Validation evidence for this follow-up:
+- `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed with existing warnings.
+- `cargo test -p zircon_runtime --lib hit_grid --locked --jobs 1 --target-dir D:\cargo-targets\zircon-material-slate-followup --message-format short --color never`: passed, 11 tests.
+- `cargo test -p zircon_runtime --lib event_routing --locked --jobs 1 --target-dir D:\cargo-targets\zircon-material-slate-followup --message-format short --color never`: passed, 16 tests.
+- `cargo test -p zircon_runtime --lib material_layout --locked --jobs 1 --target-dir D:\cargo-targets\zircon-material-slate-followup --message-format short --color never`: passed, 15 tests.
+
+## 2026-05-07 World-Space Hit Query Contract
+
+The world-space UI follow-up keeps the neutral DTO boundary in `zircon_runtime_interface` and leaves raycasting/rendering behavior outside this crate. `UiHitTestQuery::with_projected_world_hit(...)` records both the original `UiWorldHitRay` and the host-projected `UiVirtualPointerPosition`; `has_projected_world_hit()` is true only when the query is in `World` coordinate space, carries a virtual pointer, and the ray contains finite origin/direction values. Runtime hit testing may then use the mapped surface point, while retaining the world ray for diagnostics and higher-layer ownership.
+
+`UiHitTestRejectReason::WorldHitUnavailable` is now the explicit diagnostics state for a `World` query that does not contain a finite ray plus surface-local projection. Window and screen coordinate spaces still require a separate projection step and therefore remain unsupported by the shared hit grid until a host maps them into surface coordinates.
+
+`UiHostCapability::WorldSpaceUi` gates catalog exposure for world-space components. `UiHostCapabilitySet::runtime_basic()` does not include the capability, so ordinary runtime hosts filter out `WorldSpaceSurface`; `UiHostCapabilitySet::runtime_world_space()` opts into it for hosts that can produce the projected world-hit query contract.
+
+Validation evidence on `F:\cargo-targets\zircon-world-space-ui-interface`:
+- `cargo test -p zircon_runtime_interface --lib ui_hit_metadata_contract_carries_scope_space_and_world_ray --locked --jobs 1 --target-dir F:\cargo-targets\zircon-world-space-ui-interface --message-format short --color never -- --nocapture`: passed with 1 test.
+- `cargo test -p zircon_runtime --lib hit_grid --locked --jobs 1 --target-dir F:\cargo-targets\zircon-world-space-ui-interface --message-format short --color never -- --nocapture`: passed with 12 tests.
+- `cargo test -p zircon_runtime --lib component_catalog --locked --jobs 1 --target-dir F:\cargo-targets\zircon-world-space-ui-interface --message-format short --color never -- --nocapture`: passed with 39 tests.

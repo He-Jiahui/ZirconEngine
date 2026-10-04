@@ -1,7 +1,8 @@
+# 核对模块插件宿主投影按代际与存储身份复用结果，避免稳定帧重复构建。
 from pathlib import Path
 import unittest
 
-from tools.editor_module_plugins_host_projection_cache_pressure import run
+from tools.analysis.performance.editor.editor_module_plugins_host_projection_cache_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]

@@ -6,32 +6,38 @@ use zircon_runtime_interface::hub_protocol::{
     HubSessionToken,
 };
 
-use crate::engines::{active_source_engine, validate_source_engine, SourceEngineValidation};
+use crate::engines::{
+    active_source_engine, validate_source_engine, SourceEngineInstall, SourceEngineValidation,
+};
 use crate::error::HubError;
 use crate::process::editor_focus::{
     probe_project_editor_session, publish_project_editor_focus_signal,
     wait_for_project_editor_focus_ack, ProjectEditorSessionProbe,
 };
 use crate::process::{
-    editor_handshake::wait_for_editor_handshake, launch_editor, preferred_editor_executable,
-    preferred_editor_executable_exists, EditorLaunchCommand, EditorLaunchRequest,
+    editor_handshake::wait_for_editor_handshake, launch_editor, staged_editor_executable,
+    staged_editor_executable_exists, EditorLaunchCommand, EditorLaunchRequest, SupervisedChild,
 };
 use crate::projects::{
-    merge_recent_project_entries, project_paths_match, validate_project_root, ProjectValidation,
+    enabled_project_template_id, merge_recent_project_entries, project_paths_match,
+    validate_project_root, CreateProjectRequest, ProjectTemplateId, ProjectValidation,
     RecentProject,
 };
 use crate::state::{
     HubActionKind, HubActionRecord, HubActionStatus, HubMessage, HubMessageId, ProcessMessageId,
-    ProjectMessageId, TaskOperationKind, TaskStatus,
+    ProjectMessageId, TaskExecutionOutcome, TaskOperationKind, TaskStatus,
 };
 
 use super::{
-    action_tasks::BackgroundTask, recent_project_display_name, source_engine_validation_detail,
+    action_tasks::{BackgroundTask, BackgroundTaskContext},
+    recent_project_display_name, source_engine_validation_detail,
     source_engine_validation_recovery, HubRuntimeSession,
 };
+use crate::tauri_app::action_request::{HubAction, HubActionRequest};
 
 #[derive(Debug)]
 pub(in crate::tauri_app) struct EditorLaunchReport {
+    attempt_id: u64,
     process_id: u32,
     outcome: EditorLaunchOutcome,
 }
@@ -49,6 +55,16 @@ pub(in crate::tauri_app) struct PendingEditorLaunch {
     project_path: Option<PathBuf>,
     remember_project: bool,
     recovery_on_launch_failure: HubMessage,
+}
+
+#[derive(Clone, Debug)]
+pub(in crate::tauri_app) struct PendingProjectCreation {
+    project_name: String,
+    project_root: PathBuf,
+    engine_id: String,
+    template: ProjectTemplateId,
+    command: EditorLaunchCommand,
+    handshake_session: HubSessionToken,
 }
 
 #[derive(Clone, Debug)]
@@ -70,8 +86,14 @@ enum EditorLaunchPreparedCommand {
 impl BackgroundTask for PendingEditorLaunch {
     type Output = EditorLaunchReport;
 
-    fn run(&self) -> Result<EditorLaunchReport, HubError> {
-        let process_id = match &self.command {
+    fn run(
+        &self,
+        context: &BackgroundTaskContext,
+    ) -> Result<TaskExecutionOutcome<EditorLaunchReport>, HubError> {
+        if context.cancellation().is_cancellation_requested() {
+            return Ok(TaskExecutionOutcome::Cancelled);
+        }
+        let outcome = match &self.command {
             EditorLaunchPreparedCommand::FocusExistingProject {
                 project_path,
                 record,
@@ -79,30 +101,107 @@ impl BackgroundTask for PendingEditorLaunch {
             } => {
                 let request =
                     publish_project_editor_focus_signal(project_path, record, *focus_session)?;
-                wait_for_project_editor_focus_ack(project_path, &request)?;
-                return Ok(EditorLaunchReport {
-                    process_id: record.process_id(),
-                    outcome: EditorLaunchOutcome::FocusedExisting,
-                });
+                match wait_for_project_editor_focus_ack(
+                    project_path,
+                    &request,
+                    context.cancellation(),
+                )? {
+                    TaskExecutionOutcome::Completed(()) => {
+                        TaskExecutionOutcome::Completed(EditorLaunchReport {
+                            attempt_id: context.cancellation().task_id(),
+                            process_id: record.process_id(),
+                            outcome: EditorLaunchOutcome::FocusedExisting,
+                        })
+                    }
+                    TaskExecutionOutcome::Cancelled => TaskExecutionOutcome::Cancelled,
+                }
             }
             EditorLaunchPreparedCommand::Project {
                 command,
                 handshake_session,
             } => {
                 let child = launch_editor(command)?;
-                let project_path = self.project_path.as_deref().ok_or_else(|| {
-                    HubError::message("project editor launch is missing its handshake project path")
-                })?;
-                wait_for_project_editor_ready(project_path, *handshake_session, child.id())?
+                let Some(project_path) = self.project_path.as_deref() else {
+                    let error = HubError::message(
+                        "project editor launch is missing its handshake project path",
+                    );
+                    return match context
+                        .editor_child_reaper()
+                        .fail_before_ready(context.cancellation().task_id(), child)
+                    {
+                        Ok(()) => Err(error),
+                        Err(cleanup_error) => Err(HubError::message(format!(
+                            "{error}; failed to terminate Editor process tree: {cleanup_error}"
+                        ))),
+                    };
+                };
+                match wait_for_project_editor_ready(
+                    project_path,
+                    *handshake_session,
+                    child,
+                    context,
+                )? {
+                    TaskExecutionOutcome::Completed(process_id) => {
+                        TaskExecutionOutcome::Completed(EditorLaunchReport {
+                            attempt_id: context.cancellation().task_id(),
+                            process_id,
+                            outcome: EditorLaunchOutcome::Spawned,
+                        })
+                    }
+                    TaskExecutionOutcome::Cancelled => TaskExecutionOutcome::Cancelled,
+                }
             }
             EditorLaunchPreparedCommand::Empty { executable } => {
-                Command::new(executable).spawn()?.id()
+                let mut process = Command::new(executable);
+                let mut child = SupervisedChild::spawn(&mut process, "Editor")?;
+                if context.cancellation().is_cancellation_requested() {
+                    context
+                        .editor_child_reaper()
+                        .cancel_before_ready(context.cancellation().task_id(), child)?;
+                    TaskExecutionOutcome::Cancelled
+                } else {
+                    let process_id = child.id();
+                    context
+                        .editor_child_reaper()
+                        .register(context.cancellation().task_id(), child)?;
+                    TaskExecutionOutcome::Completed(EditorLaunchReport {
+                        attempt_id: context.cancellation().task_id(),
+                        process_id,
+                        outcome: EditorLaunchOutcome::Spawned,
+                    })
+                }
             }
         };
-        Ok(EditorLaunchReport {
-            process_id,
-            outcome: EditorLaunchOutcome::Spawned,
-        })
+        Ok(outcome)
+    }
+}
+
+impl BackgroundTask for PendingProjectCreation {
+    type Output = EditorLaunchReport;
+
+    fn run(
+        &self,
+        context: &BackgroundTaskContext,
+    ) -> Result<TaskExecutionOutcome<EditorLaunchReport>, HubError> {
+        if context.cancellation().is_cancellation_requested() {
+            return Ok(TaskExecutionOutcome::Cancelled);
+        }
+        let child = launch_editor(&self.command)?;
+        match wait_for_project_editor_ready(
+            &self.project_root,
+            self.handshake_session,
+            child,
+            context,
+        )? {
+            TaskExecutionOutcome::Completed(process_id) => {
+                Ok(TaskExecutionOutcome::Completed(EditorLaunchReport {
+                    attempt_id: context.cancellation().task_id(),
+                    process_id,
+                    outcome: EditorLaunchOutcome::Spawned,
+                }))
+            }
+            TaskExecutionOutcome::Cancelled => Ok(TaskExecutionOutcome::Cancelled),
+        }
     }
 }
 
@@ -119,15 +218,178 @@ impl PendingEditorLaunch {
 }
 
 impl HubRuntimeSession {
+    pub(in crate::tauri_app) fn prepare_background_project_creation(
+        &mut self,
+        request: &HubActionRequest,
+    ) -> Result<Option<PendingProjectCreation>, HubError> {
+        let HubAction::CreateProject { payload } = request.parse_as(request.action()?)? else {
+            return Err(HubError::message(
+                "project creation background task received a non-create action",
+            ));
+        };
+        self.remember_create_project_payload(&payload);
+
+        let template = match enabled_project_template_id(&payload.template) {
+            Some(template) => template,
+            None => {
+                self.record_lifecycle_failure(
+                    HubActionKind::CreateProject,
+                    payload.name,
+                    HubMessage::with_params(
+                        HubMessageId::Project(ProjectMessageId::TemplateComingSoon),
+                        [payload.template],
+                    ),
+                    HubMessage::new(HubMessageId::Project(
+                        ProjectMessageId::ChooseRenderableTemplate,
+                    )),
+                    None,
+                )?;
+                return Ok(None);
+            }
+        };
+        let engine_id = match self.resolve_project_engine_id(payload.engine_id) {
+            Ok(Some(engine_id)) => engine_id,
+            Ok(None) => {
+                let target = payload.name;
+                self.record_lifecycle_failure(
+                    HubActionKind::CreateProject,
+                    target.clone(),
+                    HubMessage::with_params(
+                        HubMessageId::Project(ProjectMessageId::NoBoundSourceEngine),
+                        [target],
+                    ),
+                    HubMessage::new(HubMessageId::Project(
+                        ProjectMessageId::RegisterEngineBeforeCreate,
+                    )),
+                    None,
+                )?;
+                return Ok(None);
+            }
+            Err(error) => {
+                let (detail, _) = error.into_status_messages();
+                self.record_lifecycle_failure(
+                    HubActionKind::CreateProject,
+                    payload.name,
+                    detail,
+                    HubMessage::new(HubMessageId::Project(
+                        ProjectMessageId::RegisterEngineBeforeCreate,
+                    )),
+                    None,
+                )?;
+                return Ok(None);
+            }
+        };
+        let engine = self
+            .config
+            .engines
+            .iter()
+            .find(|engine| engine.id == engine_id)
+            .cloned()
+            .expect("resolved project engine id must remain registered");
+        let source_validation = validate_source_engine(&engine.source_dir);
+        let staged_engine_dir = engine.staged_engine_dir();
+        if source_validation != SourceEngineValidation::Valid {
+            self.record_lifecycle_failure(
+                HubActionKind::CreateProject,
+                payload.name,
+                source_engine_validation_detail(source_validation),
+                source_engine_validation_recovery(source_validation),
+                None,
+            )?;
+            return Ok(None);
+        }
+        let build_profile = self.config.settings.build_profile.as_mode().to_string();
+        if let Err(error) = self.ensure_editor_available_at(&engine, &build_profile) {
+            let (detail, _) = error.into_status_messages();
+            self.record_lifecycle_failure(
+                HubActionKind::CreateProject,
+                payload.name,
+                detail,
+                HubMessage::new(HubMessageId::Process(
+                    ProcessMessageId::BuildPayloadBeforeOpeningProject,
+                )),
+                None,
+            )?;
+            return Ok(None);
+        }
+
+        let create_request =
+            CreateProjectRequest::new(payload.name.clone(), payload.location, template);
+        let project_root = create_request.target_root();
+        let handshake_session = HubSessionToken::new();
+        let command = EditorLaunchCommand::from_staged_engine(
+            staged_engine_dir,
+            EditorLaunchRequest::create_project(create_request)?,
+        )?
+        .with_hub_handshake(handshake_session);
+        self.mark_background_action_prepared();
+        Ok(Some(PendingProjectCreation {
+            project_name: payload.name,
+            project_root,
+            engine_id,
+            template,
+            command,
+            handshake_session,
+        }))
+    }
+
+    pub(in crate::tauri_app) fn complete_background_project_creation(
+        &mut self,
+        pending: PendingProjectCreation,
+        result: Result<EditorLaunchReport, HubError>,
+    ) -> Result<(), HubError> {
+        let command_line = pending.command.command_line();
+        let report = match result {
+            Ok(report) => report,
+            Err(error) => {
+                let recovery = if validate_project_root(&pending.project_root)
+                    == ProjectValidation::Valid
+                {
+                    HubMessage::new(HubMessageId::Project(ProjectMessageId::KeptFolderUseImport))
+                } else {
+                    HubMessage::new(HubMessageId::Project(
+                        ProjectMessageId::ChooseEmptyTargetFolder,
+                    ))
+                };
+                return self.record_lifecycle_failure(
+                    HubActionKind::CreateProject,
+                    pending.project_name,
+                    HubMessage::raw_text(error.to_string()),
+                    recovery,
+                    pending
+                        .project_root
+                        .exists()
+                        .then_some(pending.project_root),
+                );
+            }
+        };
+
+        let attempt_id = report.attempt_id;
+        let process_id = report.process_id;
+        let target = pending.project_name.clone();
+        let completion = self.accept_editor_owned_project_creation(
+            pending.project_name,
+            pending.project_root,
+            pending.engine_id,
+            pending.template,
+            process_id,
+            command_line,
+        );
+        self.task_status.task_id = attempt_id;
+        let terminal = self.observe_completed_editor_launch(attempt_id, process_id, target);
+        completion.and(terminal)
+    }
+
     pub(in crate::tauri_app) fn prepare_background_editor_launch(
         &mut self,
     ) -> Result<Option<PendingEditorLaunch>, HubError> {
+        let history_len = self.config.action_history.len();
         match self.prepare_editor_launch() {
             Ok(pending_launch) => {
                 self.mark_background_action_prepared();
                 Ok(Some(pending_launch))
             }
-            Err(error) if self.task_status.running => Err(error),
+            Err(error) if self.config.action_history.len() == history_len => Err(error),
             Err(_) => Ok(None),
         }
     }
@@ -250,8 +512,25 @@ impl HubRuntimeSession {
             ProjectEditorSessionProbe::Inactive => {}
         }
         self.activate_project_engine_for_path(&project_path);
-        self.validate_active_source_engine_for_editor_launch(&display_name)?;
-        if let Err(error) = self.ensure_editor_available() {
+        let engine = match self.project_bound_engine(&project) {
+            Ok(engine) => engine,
+            Err(error) => {
+                let (detail, _) = error.into_status_messages();
+                let recovery = HubMessage::new(HubMessageId::Process(
+                    ProcessMessageId::ChooseValidProjectForEditor,
+                ));
+                self.record_editor_launch_failure(
+                    display_name,
+                    detail.clone(),
+                    Vec::new(),
+                    recovery.clone(),
+                )?;
+                return Err(HubError::status(detail, Some(recovery)));
+            }
+        };
+        self.validate_source_engine_for_editor_launch(&engine, &display_name)?;
+        let build_profile = self.config.settings.build_profile.as_mode().to_string();
+        if let Err(error) = self.ensure_editor_available_at(&engine, &build_profile) {
             let (detail, _) = error.into_status_messages();
             let recovery = HubMessage::new(HubMessageId::Process(
                 ProcessMessageId::BuildPayloadBeforeOpeningProject,
@@ -265,8 +544,8 @@ impl HubRuntimeSession {
             ));
         }
         let handshake_session = HubSessionToken::new();
-        let command = EditorLaunchCommand::from_preferred_engine(
-            self.staged_engine_dir(),
+        let command = EditorLaunchCommand::from_staged_engine(
+            engine.staged_engine_dir(),
             EditorLaunchRequest::open_project(project_path.clone())?,
         )?
         .with_hub_handshake(handshake_session);
@@ -284,17 +563,12 @@ impl HubRuntimeSession {
         })
     }
 
-    fn validate_active_source_engine_for_editor_launch(
+    fn validate_source_engine_for_editor_launch(
         &mut self,
+        engine: &SourceEngineInstall,
         target: &str,
     ) -> Result<(), HubError> {
-        let Some(validation) = active_source_engine(
-            &self.config.engines,
-            self.config.active_engine_id.as_deref(),
-        )
-        .map(|engine| validate_source_engine(&engine.source_dir)) else {
-            return Ok(());
-        };
+        let validation = validate_source_engine(&engine.source_dir);
         if validation == SourceEngineValidation::Valid {
             return Ok(());
         }
@@ -311,7 +585,14 @@ impl HubRuntimeSession {
     }
 
     fn prepare_empty_editor_launch(&mut self) -> Result<PendingEditorLaunch, HubError> {
-        if let Err(error) = self.ensure_editor_available() {
+        let engine = active_source_engine(
+            &self.config.engines,
+            self.config.active_engine_id.as_deref(),
+        )
+        .cloned()
+        .ok_or_else(|| HubError::message("Editor launch requires an active Source Engine"))?;
+        let build_profile = self.config.settings.build_profile.as_mode().to_string();
+        if let Err(error) = self.ensure_editor_available_at(&engine, &build_profile) {
             let (detail, _) = error.into_status_messages();
             let recovery = HubMessage::new(HubMessageId::Process(
                 ProcessMessageId::BuildPayloadBeforeLaunching,
@@ -332,7 +613,7 @@ impl HubRuntimeSession {
         Ok(PendingEditorLaunch {
             target: "Editor without project".to_string(),
             command: EditorLaunchPreparedCommand::Empty {
-                executable: preferred_editor_executable(self.staged_engine_dir()),
+                executable: staged_editor_executable(engine.staged_engine_dir()),
             },
             project_path: None,
             remember_project: false,
@@ -362,75 +643,97 @@ impl HubRuntimeSession {
             }
         };
 
-        if pending_launch.remember_project {
-            let Some(project_path) = pending_launch.project_path else {
-                return Err(HubError::message(
-                    "Editor launch project state is missing the project path",
-                ));
-            };
-            self.remember_project(RecentProject::with_now(project_path)?)?;
-        }
-        let detail = match report.outcome {
-            EditorLaunchOutcome::Spawned => HubMessage::with_params(
-                HubMessageId::Process(ProcessMessageId::StartedProcess),
-                [report.process_id.to_string()],
-            ),
-            EditorLaunchOutcome::FocusedExisting => HubMessage::with_params(
-                HubMessageId::Process(ProcessMessageId::FocusedExistingEditor),
-                [report.process_id.to_string()],
-            ),
-        };
-        self.record_action_and_persist(HubActionRecord {
-            finished_unix_ms: crate::projects::now_unix_ms(),
-            action: HubActionKind::OpenEditor,
-            status: HubActionStatus::Success,
-            target: pending_launch.target.clone(),
-            detail,
-            log_excerpt: HubMessage::empty(),
-            recovery: None,
-            process_id: Some(report.process_id),
-            command_line,
-            output_dir: Some(self.config.settings.default_build_output_dir.clone()),
-        })?;
-        let (operation, detail) = if pending_launch.remember_project {
-            (
-                TaskOperationKind::Project,
-                match report.outcome {
-                    EditorLaunchOutcome::Spawned => HubMessage::with_params(
-                        HubMessageId::Process(ProcessMessageId::OpeningTargetProcess),
-                        [pending_launch.target.clone(), report.process_id.to_string()],
-                    ),
-                    EditorLaunchOutcome::FocusedExisting => HubMessage::with_params(
-                        HubMessageId::Process(ProcessMessageId::FocusedExistingEditor),
-                        [report.process_id.to_string()],
-                    ),
-                },
-            )
-        } else {
-            (
-                TaskOperationKind::Process,
-                HubMessage::with_params(
-                    HubMessageId::Process(ProcessMessageId::ProcessId),
+        let attempt_id = report.attempt_id;
+        let process_id = report.process_id;
+        let target = pending_launch.target.clone();
+        let completion = (|| {
+            if pending_launch.remember_project {
+                let Some(project_path) = pending_launch.project_path else {
+                    return Err(HubError::message(
+                        "Editor launch project state is missing the project path",
+                    ));
+                };
+                self.remember_project(RecentProject::with_now(project_path)?)?;
+            }
+            let detail = match report.outcome {
+                EditorLaunchOutcome::Spawned => HubMessage::with_params(
+                    HubMessageId::Process(ProcessMessageId::StartedProcess),
                     [report.process_id.to_string()],
                 ),
+                EditorLaunchOutcome::FocusedExisting => HubMessage::with_params(
+                    HubMessageId::Process(ProcessMessageId::FocusedExistingEditor),
+                    [report.process_id.to_string()],
+                ),
+            };
+            self.record_action_and_persist(HubActionRecord {
+                finished_unix_ms: crate::projects::now_unix_ms(),
+                action: HubActionKind::OpenEditor,
+                status: HubActionStatus::Success,
+                target: pending_launch.target.clone(),
+                detail,
+                log_excerpt: HubMessage::empty(),
+                recovery: None,
+                process_id: Some(report.process_id),
+                command_line,
+                output_dir: Some(self.config.settings.default_build_output_dir.clone()),
+            })?;
+            let (operation, detail) = if pending_launch.remember_project {
+                (
+                    TaskOperationKind::Project,
+                    match report.outcome {
+                        EditorLaunchOutcome::Spawned => HubMessage::with_params(
+                            HubMessageId::Process(ProcessMessageId::OpeningTargetProcess),
+                            [pending_launch.target.clone(), report.process_id.to_string()],
+                        ),
+                        EditorLaunchOutcome::FocusedExisting => HubMessage::with_params(
+                            HubMessageId::Process(ProcessMessageId::FocusedExistingEditor),
+                            [report.process_id.to_string()],
+                        ),
+                    },
+                )
+            } else {
+                (
+                    TaskOperationKind::Process,
+                    HubMessage::with_params(
+                        HubMessageId::Process(ProcessMessageId::ProcessId),
+                        [report.process_id.to_string()],
+                    ),
+                )
+            };
+            self.task_status = TaskStatus::success(
+                match report.outcome {
+                    EditorLaunchOutcome::Spawned => "Editor launched",
+                    EditorLaunchOutcome::FocusedExisting => "Existing editor focused",
+                },
+                detail,
             )
+            .with_operation(operation, pending_launch.target)
+            .with_task_id(attempt_id);
+            Ok(())
+        })();
+        let terminal = if report.outcome == EditorLaunchOutcome::Spawned {
+            self.observe_completed_editor_launch(attempt_id, process_id, target)
+        } else {
+            Ok(())
         };
-        self.task_status = TaskStatus::success(
-            match report.outcome {
-                EditorLaunchOutcome::Spawned => "Editor launched",
-                EditorLaunchOutcome::FocusedExisting => "Existing editor focused",
-            },
-            detail,
-        )
-        .with_operation(operation, pending_launch.target);
-        Ok(())
+        completion.and(terminal)
     }
 
-    fn ensure_editor_available(&mut self) -> Result<(), HubError> {
-        if preferred_editor_executable_exists(self.staged_engine_dir()) {
-            return Ok(());
+    fn ensure_editor_available_at(
+        &self,
+        engine: &SourceEngineInstall,
+        expected_profile: &str,
+    ) -> Result<(), HubError> {
+        let staged_engine_dir = engine.staged_engine_dir();
+        if staged_editor_executable_exists(&staged_engine_dir) {
+            return super::build_actions::staged_build::validate_staged_editor_runtime_build(
+                &staged_engine_dir,
+                &engine.source_dir,
+                expected_profile,
+            )
+            .map(|_| ());
         }
-        let executable = preferred_editor_executable(self.staged_engine_dir());
+        let executable = staged_editor_executable(&staged_engine_dir);
         Err(HubError::status(
             HubMessage::with_params(
                 HubMessageId::Process(ProcessMessageId::EditorExecutableUnavailable),
@@ -545,12 +848,55 @@ impl HubRuntimeSession {
 fn wait_for_project_editor_ready(
     project_path: &Path,
     handshake_session: HubSessionToken,
-    child_process_id: u32,
-) -> Result<u32, HubError> {
-    validate_project_editor_handshake(
-        child_process_id,
-        wait_for_editor_handshake(project_path, handshake_session)?,
-    )
+    mut child: SupervisedChild,
+    context: &BackgroundTaskContext,
+) -> Result<TaskExecutionOutcome<u32>, HubError> {
+    let child_process_id = child.id();
+    let handshake = match wait_for_editor_handshake(
+        project_path,
+        handshake_session,
+        &mut child,
+        context.cancellation(),
+    ) {
+        Ok(handshake) => handshake,
+        Err(error) => {
+            return match context
+                .editor_child_reaper()
+                .fail_before_ready(context.cancellation().task_id(), child)
+            {
+                Ok(()) => Err(error),
+                Err(termination_error) => Err(HubError::message(format!(
+                    "{error}; failed to terminate Editor process tree: {termination_error}"
+                ))),
+            };
+        }
+    };
+    let mailbox = match handshake {
+        TaskExecutionOutcome::Completed(mailbox) => mailbox,
+        TaskExecutionOutcome::Cancelled => {
+            context
+                .editor_child_reaper()
+                .cancel_before_ready(context.cancellation().task_id(), child)?;
+            return Ok(TaskExecutionOutcome::Cancelled);
+        }
+    };
+    match validate_project_editor_handshake(child_process_id, mailbox) {
+        Ok(process_id) => {
+            context
+                .editor_child_reaper()
+                .register(context.cancellation().task_id(), child)?;
+            Ok(TaskExecutionOutcome::Completed(process_id))
+        }
+        Err(error) => match context
+            .editor_child_reaper()
+            .fail_before_ready(context.cancellation().task_id(), child)
+        {
+            Ok(()) => Err(error),
+            Err(termination_error) => Err(HubError::message(format!(
+                "{error}; failed to terminate Editor process tree: {termination_error}"
+            ))),
+        },
+    }
 }
 
 fn validate_project_editor_handshake(
@@ -603,280 +949,5 @@ fn selected_project_path_changed(before: Option<&Path>, after: Option<&Path>) ->
 }
 
 #[cfg(test)]
-mod tests {
-    use std::{
-        fs,
-        path::{Path, PathBuf},
-    };
-
-    use crate::engines::SourceEngineInstall;
-    use crate::projects::{project_metadata_key, ProjectMetadata, RecentProject};
-    use crate::settings::{HubConfig, HubLanguage};
-    use crate::state::{
-        HubActionKind, HubActionStatus, HubMessage, HubMessageId, ProcessMessageId,
-    };
-    use zircon_runtime_interface::hub_protocol::{
-        HubEditorMailboxV1, HubEditorReadyReceiptV1, HubEditorStartupFailureCodeV1, HubSessionToken,
-    };
-
-    use super::super::HubRuntimeSession;
-    use super::{
-        validate_project_editor_handshake, EditorLaunchOutcome, EditorLaunchReport,
-        PendingEditorLaunch,
-    };
-
-    #[test]
-    fn editor_handshake_accepts_a_ready_receipt_bound_to_the_supervised_child() {
-        let session = HubSessionToken::new();
-        assert_eq!(
-            validate_project_editor_handshake(
-                913,
-                HubEditorMailboxV1::ready(
-                    session,
-                    HubEditorReadyReceiptV1::after_first_present(913, "913-42", 1)
-                        .expect("ready receipt"),
-                ),
-            )
-            .expect("matching ready mailbox"),
-            913
-        );
-
-        let mismatch = validate_project_editor_handshake(
-            913,
-            HubEditorMailboxV1::ready(
-                session,
-                HubEditorReadyReceiptV1::after_first_present(914, "914-42", 1)
-                    .expect("ready receipt"),
-            ),
-        )
-        .expect_err("a different child process must not be reported ready");
-        assert!(mismatch
-            .to_string()
-            .contains("not bound to the Hub-supervised child"));
-    }
-
-    #[test]
-    fn editor_handshake_surfaces_the_editor_terminal_failure() {
-        let error = validate_project_editor_handshake(
-            913,
-            HubEditorMailboxV1::failed(
-                HubSessionToken::new(),
-                HubEditorStartupFailureCodeV1::ProjectActivation,
-            ),
-        )
-        .expect_err("editor reported failure");
-
-        assert_eq!(
-            error.to_string(),
-            "editor reported startup failure category through the Hub handshake: project_activation"
-        );
-    }
-
-    #[test]
-    fn background_editor_launch_prepare_records_missing_executable_failure_without_spawn() {
-        let temp = temp_test_dir("zircon-hub-background-editor-missing");
-        let project = create_project_root(&temp, "Game");
-        let mut session = session_with_project(&temp, "Game", &project);
-
-        let pending = session
-            .prepare_background_editor_launch()
-            .expect("missing editor should be a recoverable visible failure");
-
-        assert!(pending.is_none());
-        let record = &session.config.action_history[0];
-        assert_eq!(record.action, HubActionKind::OpenEditor);
-        assert_eq!(record.status, HubActionStatus::Failed);
-        assert_eq!(session.task_status.label, "Open Editor failed");
-        assert!(record.recovery.as_ref().unwrap().contains("editor/runtime"));
-
-        fs::remove_dir_all(temp).unwrap();
-    }
-
-    #[test]
-    fn editor_launch_missing_executable_failure_localizes_task_summary() {
-        let temp = temp_test_dir("zircon-hub-background-editor-missing-localized");
-        let project = create_project_root(&temp, "Game");
-        let mut session = session_with_project(&temp, "Game", &project);
-        session.config.settings.language = HubLanguage::Chinese;
-
-        let pending = session
-            .prepare_background_editor_launch()
-            .expect("missing editor should be a recoverable visible failure");
-
-        assert!(pending.is_none());
-        let model = session.view_model();
-        assert_eq!(model.task_summary.label, "打开编辑器失败");
-        assert_eq!(
-            model.task_summary.detail,
-            format!(
-                "编辑器可执行文件不可用：{}",
-                super::preferred_editor_executable(session.staged_engine_dir()).to_string_lossy()
-            )
-        );
-        assert_eq!(
-            model.task_summary.recovery.as_deref(),
-            Some("打开项目前先构建编辑器/运行时载荷，或修复源码引擎设置")
-        );
-
-        fs::remove_dir_all(temp).unwrap();
-    }
-
-    #[test]
-    fn editor_launch_rejects_missing_bound_source_engine_before_spawn() {
-        let temp = temp_test_dir("zircon-hub-editor-missing-bound-source");
-        let project = create_project_root(&temp, "Game");
-        let missing_source = temp.join("missing-source");
-        let mut session = session_with_project(&temp, "Game", &project);
-        session.config.engines.push(SourceEngineInstall {
-            id: "missing-engine".to_string(),
-            display_name: "Missing Engine".to_string(),
-            source_dir: missing_source,
-            output_dir: temp.join("out"),
-            last_build_unix_ms: None,
-            build_history: Vec::new(),
-        });
-        session.config.active_engine_id = Some("missing-engine".to_string());
-        session.config.project_metadata.insert(
-            project_metadata_key(&project),
-            ProjectMetadata {
-                engine_id: Some("missing-engine".to_string()),
-                ..ProjectMetadata::default()
-            },
-        );
-
-        let pending = session
-            .prepare_background_editor_launch()
-            .expect("invalid bound source engine should be a recoverable visible failure");
-
-        assert!(pending.is_none());
-        assert_eq!(session.task_status.label, "Open Editor failed");
-        assert_eq!(
-            session.task_status.detail,
-            "Source checkout directory is missing"
-        );
-        assert_eq!(session.config.action_history.len(), 1);
-        assert_eq!(
-            session.config.action_history[0].status,
-            HubActionStatus::Failed
-        );
-
-        fs::remove_dir_all(temp).unwrap();
-    }
-
-    #[test]
-    fn background_editor_launch_completion_records_success_after_external_spawn() {
-        let temp = temp_test_dir("zircon-hub-background-editor-complete");
-        let project = create_project_root(&temp, "Game");
-        let mut session = session_with_project(&temp, "Game", &project);
-        let pending = PendingEditorLaunch {
-            target: "Game".to_string(),
-            command: super::EditorLaunchPreparedCommand::Empty {
-                executable: temp.join("zircon_editor.exe"),
-            },
-            project_path: Some(project.clone()),
-            remember_project: true,
-            recovery_on_launch_failure: HubMessage::new(HubMessageId::Process(
-                ProcessMessageId::VerifyEditorExecutable,
-            )),
-        };
-
-        session
-            .complete_background_editor_launch(
-                pending,
-                Ok(EditorLaunchReport {
-                    process_id: 42,
-                    outcome: EditorLaunchOutcome::Spawned,
-                }),
-            )
-            .expect("editor launch completion should record success");
-
-        let record = &session.config.action_history[0];
-        assert_eq!(record.action, HubActionKind::OpenEditor);
-        assert_eq!(record.status, HubActionStatus::Success);
-        assert_eq!(record.process_id, Some(42));
-        assert_eq!(session.task_status.label, "Editor launched");
-
-        fs::remove_dir_all(temp).unwrap();
-    }
-
-    #[test]
-    fn editor_launch_completion_localizes_task_summary_and_history() {
-        let temp = temp_test_dir("zircon-hub-background-editor-complete-localized");
-        let project = create_project_root(&temp, "Game");
-        let mut session = session_with_project(&temp, "Game", &project);
-        session.config.settings.language = HubLanguage::Chinese;
-        let pending = PendingEditorLaunch {
-            target: "Game".to_string(),
-            command: super::EditorLaunchPreparedCommand::Empty {
-                executable: temp.join("zircon_editor.exe"),
-            },
-            project_path: Some(project.clone()),
-            remember_project: true,
-            recovery_on_launch_failure: HubMessage::new(HubMessageId::Process(
-                ProcessMessageId::VerifyEditorExecutable,
-            )),
-        };
-
-        session
-            .complete_background_editor_launch(
-                pending,
-                Ok(EditorLaunchReport {
-                    process_id: 42,
-                    outcome: EditorLaunchOutcome::Spawned,
-                }),
-            )
-            .expect("editor launch completion should record success");
-
-        let model = session.view_model();
-        assert_eq!(model.task_summary.label, "编辑器已启动");
-        assert_eq!(model.task_summary.detail, "正在打开 Game（进程 42）");
-        assert_eq!(model.action_history[0].action, "打开编辑器");
-        assert_eq!(model.action_history[0].detail, "已启动进程 42");
-
-        fs::remove_dir_all(temp).unwrap();
-    }
-
-    fn session_with_project(
-        temp: &std::path::Path,
-        name: &str,
-        project: &std::path::Path,
-    ) -> HubRuntimeSession {
-        let config_path = temp.join("hub.toml");
-        let shared_recent_projects_path = temp.join("recent_projects.json");
-        let mut config = HubConfig::default();
-        config.settings.default_source_dir = PathBuf::new();
-        config.settings.default_build_output_dir = temp.join("out");
-        config.recent_projects = vec![RecentProject::fixture(name, project, 1)];
-        config.runtime.selected_project_path = Some(project.to_path_buf());
-        config.save(&config_path).unwrap();
-        fs::write(
-            &shared_recent_projects_path,
-            r#"{"protocol_version":1,"projects":[]}"#,
-        )
-        .unwrap();
-        HubRuntimeSession::load_from_paths(config_path, shared_recent_projects_path).unwrap()
-    }
-
-    fn create_project_root(temp: &std::path::Path, name: &str) -> PathBuf {
-        let project = temp.join(name);
-        fs::create_dir_all(project.join("Assets")).unwrap();
-        fs::write(
-            project.join("zircon-project.toml"),
-            format!("name = \"{name}\"\n"),
-        )
-        .unwrap();
-        fs::write(project.join("Assets").join("mesh.txt"), "mesh").unwrap();
-        project
-    }
-
-    fn temp_test_dir(prefix: &str) -> PathBuf {
-        let path = std::env::temp_dir().join(format!(
-            "{prefix}-{}-{}",
-            std::process::id(),
-            crate::projects::now_unix_ms()
-        ));
-        let _ = fs::remove_dir_all(&path);
-        fs::create_dir_all(&path).unwrap();
-        path
-    }
-}
+#[path = "editor_launch_actions/tests/cases.rs"]
+mod tests;

@@ -1,4 +1,5 @@
 //! Static contracts for React/MUI Hub page chrome and routed page surfaces.
+//! 检查 Rust 本地化标题、HubWindow 路由及页面状态反馈的投影边界。
 
 use std::{fs, path::PathBuf};
 
@@ -13,6 +14,7 @@ fn repo_dir() -> PathBuf {
         .to_path_buf()
 }
 
+// 源码片段跨检出平台比较时统一换行；这里不会执行被检查的前端代码。
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
@@ -49,6 +51,8 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+// 页面槽消费当前页面 ID 并提供唯一主内容区域。
+// BUG: [CR-HUBTESTB-0012] 窗口路由和任务反馈参数已扩展，旧的单行壳层及弹条片段断言必失败；证据：hub_window_owns_page_router_and_main_surface_slot 读取 HubWindow.tsx。
 #[test]
 fn hub_window_owns_page_router_and_main_surface_slot() {
     let hub_window = read_crate_file("web/src/components/shell/HubWindow.tsx");
@@ -100,6 +104,7 @@ fn hub_window_owns_page_router_and_main_surface_slot() {
     );
 }
 
+// Rust 本地化标题经视图模型进入页面，避免前端自造副本。
 #[test]
 fn rust_navigation_ids_feed_localized_page_title_subtitle_projection() {
     let navigation = read_crate_file("src/state/navigation.rs");
@@ -122,8 +127,12 @@ fn rust_navigation_ids_feed_localized_page_title_subtitle_projection() {
             "Settings",
             "pub fn id(self) -> &'static str",
             "pub fn from_id(id: &str) -> Option<Self>",
-            "hub_page_parses_known_navigation_ids",
         ],
+    );
+    assert_contains_all(
+        "navigation.rs",
+        &read_crate_file("src/state/tests/navigation.rs"),
+        &["hub_page_parses_known_navigation_ids"],
     );
     assert_not_contains_any(
         "navigation.rs",
@@ -160,6 +169,7 @@ fn rust_navigation_ids_feed_localized_page_title_subtitle_projection() {
     );
 }
 
+// 路由页复用标题、说明和任务反馈而保持自己的业务内容。
 #[test]
 fn routed_pages_render_page_title_subtitle_and_status_surfaces() {
     for (page, snippets) in [
@@ -255,6 +265,7 @@ fn routed_pages_render_page_title_subtitle_and_status_surfaces() {
     }
 }
 
+// 状态横幅与弹条为同一任务摘要提供常驻和暂时反馈。
 #[test]
 fn feedback_components_own_status_banner_and_snackbar_chrome() {
     let status_banner = read_crate_file("web/src/components/feedback/HubStatusBanner.tsx");
@@ -320,6 +331,7 @@ fn feedback_components_own_status_banner_and_snackbar_chrome() {
     );
 }
 
+// 文档记录标题投影和反馈组件的边界。
 #[test]
 fn shell_page_documentation_records_react_mui_contract_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -352,6 +364,7 @@ fn shell_page_documentation_records_react_mui_contract_cutover() {
     );
 }
 
+// 自检此契约只读取当前路由页和反馈源。
 #[test]
 fn shell_page_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/ui_shell_page_contract.rs");

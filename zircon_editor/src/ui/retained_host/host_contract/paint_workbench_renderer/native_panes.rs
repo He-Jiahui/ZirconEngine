@@ -10,6 +10,10 @@ use super::super::data::{
 };
 use super::super::paint_frame::HostRgbaFrame;
 
+pub(in crate::ui::retained_host::host_contract) use hierarchy::{
+    hierarchy_row_frame, hierarchy_viewport_frame,
+};
+pub(in crate::ui::retained_host::host_contract) use scrollbar::draw_hierarchy_scrollbar;
 pub(super) use scrollbar::draw_vertical_scrollbar;
 #[cfg(test)]
 pub(crate) use scrollbar::paint_scrollbar_component_for_test;
@@ -30,7 +34,18 @@ pub(in crate::ui::retained_host::host_contract) fn draw_viewport_image(
     clip: &FrameRect,
     viewport_images: &HostViewportImageSet,
 ) -> bool {
-    viewport::draw_viewport_image(frame, pane, body, clip, viewport_images)
+    viewport::draw_viewport_image(frame, pane, body, clip, viewport_images, None)
+}
+
+pub(in crate::ui::retained_host::host_contract) fn draw_viewport_image_for_surface(
+    frame: &mut HostRgbaFrame,
+    pane: &PaneData,
+    body: &FrameRect,
+    clip: &FrameRect,
+    viewport_images: &HostViewportImageSet,
+    surface_key: Option<&str>,
+) -> bool {
+    viewport::draw_viewport_image(frame, pane, body, clip, viewport_images, surface_key)
 }
 
 pub(in crate::ui::retained_host::host_contract) fn draw_native_pane_content(

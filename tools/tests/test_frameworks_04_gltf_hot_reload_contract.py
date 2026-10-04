@@ -7,7 +7,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 GLTF_DIST_SOURCE = REPO_ROOT / "zircon_plugins/gltf_importer/dist/src/lib.rs"
 
-
+# 读取 glTF 分发实现，确认状态回调由 ABI 归属并阻断跨边界 panic。
 class Frameworks04GltfHotReloadContractTests(unittest.TestCase):
     def test_state_callbacks_are_abi_owned_and_panic_free(self) -> None:
         source = GLTF_DIST_SOURCE.read_text(encoding="utf-8")

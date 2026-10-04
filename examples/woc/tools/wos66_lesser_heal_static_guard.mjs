@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node wos66_lesser_heal_static_guard.mjs；缺少源码契约时脚本抛错退出。
+// 对照锁定的次级治疗目标、施法和效果规则，检查 M4 投影、治疗舍入内核、世界完成处理、仇恨与自测路径。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -45,6 +49,7 @@ if (!lesserHeal || lesserHeal.index !== 6 || lesserHeal.definition.class !== "pr
   throw new Error("M4 Lesser Heal projection drifted");
 }
 
+// 治疗内核断言固定先处理带小数的来源量及暴击倍率，随后舍入。
 const healState = read("scripts", "woc_game", "src", "combat", "heal_state.zr");
 requireText(
   healState,

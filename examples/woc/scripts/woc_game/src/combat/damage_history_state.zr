@@ -1,8 +1,9 @@
-// Current-head Chronomancy Rewind damage history. Runtime-only by design:
-// entries are not persistence or parity-digest state.
+// Rewind 的单实体近期损血独立投影，不含自身持久化或校验和接口。
+// 正式 WorldState 另有按实体标识组织、会进入快照编解码的历史列。
 var container = %import("zr.container");
 var contract = %import("generated/rewind_contract");
 
+// 单实体叶子投影，双列同序且按模拟时刻追加；正式世界另有带实体标识的历史与编解码。
 pub class DamageHistoryState {
     pub var ticks: container.Array<int>;
     pub var amounts: container.Array<int>;
@@ -15,6 +16,7 @@ pub class DamageHistoryState {
 pub rewindWindowSeconds(): int { return contract.windowSeconds(true); }
 pub rewindWindowTicks(): int { return contract.windowTicks(true); }
 
+// 依赖时刻非递减，仅移除过期前缀；调用方不得乱序插入或拆开双列。
 pub prune(state: DamageHistoryState, now: int): void {
     var cutoff = now - rewindWindowTicks();
     var drop = 0;
@@ -38,6 +40,7 @@ pub recordDamageTaken(state: DamageHistoryState, amount: int, tick: int): void {
 }
 
 // Read-only: concurrent Rewind casters observe the same ring independently.
+// 查询时刻须不早于已记录项；可用历史只保留标准窗口，更长回看无法恢复已删数据。
 pub damageTakenWithin(state: DamageHistoryState, now: int, windowTicks: int): int {
     var cutoff = now - windowTicks;
     var sum = 0;

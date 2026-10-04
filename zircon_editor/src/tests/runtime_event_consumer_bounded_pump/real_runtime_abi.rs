@@ -26,7 +26,7 @@ use crate::core::runtime_event_consumer::{
     EditorRuntimeEventConsumerHost, EditorRuntimeEventPumpBudget,
 };
 
-use super::{percentile_index, register_state, RecordingState, CAPABILITY};
+use super::support::{percentile_index, register_state, RecordingState, CAPABILITY};
 
 #[derive(Clone, Debug, Serialize)]
 struct RealRuntimeAbiEvent {

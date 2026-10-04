@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::ui::dispatch::visited_node_set::UiDispatchVisitedNodeSet;
@@ -52,8 +52,8 @@ impl UiPointerDispatchState {
 
 #[derive(Default)]
 pub struct UiPointerDispatcher {
-    handlers: BTreeMap<(UiNodeId, UiPointerEventKind), Vec<PointerHandler>>,
-    phase_handlers: BTreeMap<(UiNodeId, UiPointerEventKind, UiDispatchPhase), Vec<PointerHandler>>,
+    handlers: HashMap<(UiNodeId, UiPointerEventKind), Vec<PointerHandler>>,
+    phase_handlers: HashMap<(UiNodeId, UiPointerEventKind, UiDispatchPhase), Vec<PointerHandler>>,
 }
 
 impl UiPointerDispatcher {

@@ -115,6 +115,10 @@ fn slot_entry_node(
     }
 
     RetainedUiHostNodeModel {
+        source_path: None,
+        source_node_id: None,
+        instance_path: None,
+        source_surface_frame: None,
         node_id: format!(
             "{PANEL_ENTRY_NODE_PREFIX}{}.{}",
             slot.control_id,

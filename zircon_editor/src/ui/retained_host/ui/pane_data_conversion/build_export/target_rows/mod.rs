@@ -15,6 +15,10 @@ use self::identity::{build_export_key, build_export_target_id};
 use self::metrics::{BUILD_EXPORT_NODES_PER_TARGET, BUILD_EXPORT_ROW_GAP, BUILD_EXPORT_ROW_HEIGHT};
 use self::row::build_export_target_nodes;
 
+#[cfg(test)]
+#[path = "tests/optimization_batch_ja_editor640_tests.rs"]
+mod optimization_batch_ja_editor640_tests;
+
 pub(super) fn build_export_target_row_nodes(
     data: &BuildExportPaneViewData,
     template_nodes: &[host_contract::TemplatePaneNodeData],
@@ -30,7 +34,8 @@ pub(super) fn build_export_target_row_nodes(
             (target, platform_id)
         })
         .collect::<Vec<_>>();
-    let mut platform_counts = HashMap::new();
+    let target_capacity = targets_with_platform_id.len();
+    let mut platform_counts = HashMap::with_capacity(target_capacity);
     for (_, platform_id) in &targets_with_platform_id {
         *platform_counts
             .entry(platform_id.as_str())
@@ -51,7 +56,7 @@ pub(super) fn build_export_target_row_nodes(
         })
         .collect::<Vec<_>>();
     drop(platform_counts);
-    let mut target_id_counts = HashMap::new();
+    let mut target_id_counts = HashMap::with_capacity(target_capacity);
     for target_id in &target_ids {
         *target_id_counts.entry(target_id.clone()).or_insert(0usize) += 1;
     }

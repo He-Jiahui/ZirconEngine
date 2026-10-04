@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 验证帧分析器 GPU 解析的职责切分：GPU 解析应为子节点持有，并GPU 解析归属状态应为镜像。
 class RuntimeFrameProfilerGpuResolutionOwnerStructureTests(unittest.TestCase):
     STATUS = (
         "runtime_17_15_frame_profiler_gpu_resolution_owner_split_"

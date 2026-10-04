@@ -1,3 +1,4 @@
+# 核对编辑器资源索引只投影运行时共享注册表并沿事件与反向成员关系增量刷新。
 from pathlib import Path
 import unittest
 
@@ -69,7 +70,7 @@ class Editor09RuntimeAssetIndexProjectionContract(unittest.TestCase):
         self.assertNotIn("metadata_by_uuid.retain", ingest)
 
     def test_regressions_cover_authority_atomicity_state_and_snapshot_reconciliation(self) -> None:
-        source = self.read("zircon_editor/src/core/asset/index/tests.rs")
+        source = self.read("zircon_editor/src/core/asset/index/tests/cases.rs")
         for test_name in (
             "rows_borrow_runtime_registry_authority_and_meta_v7_projection",
             "watch_events_mark_only_touched_runtime_entries_dirty",

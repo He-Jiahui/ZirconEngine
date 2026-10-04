@@ -42,7 +42,7 @@ tests:
   - zircon_editor/src/tests/host/retained_menu_pointer/asset_browser_controls_visual_screenshot.rs
   - zircon_editor/src/tests/ui/asset_browser/bootstrap_assets.rs
   - zircon_editor/src/tests/ui/hierarchy/bootstrap_assets.rs
-  - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_primitives.rs
+  - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_primitives/
   - zircon_editor/src/ui/host/asset_editor_sessions/dependency_index/tests.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/tests/reference_lists.rs
 plan_sources:
@@ -382,6 +382,32 @@ SearchQuerySource
 | Unity Graphics | UI highlight、debug filter、typed Search columns、Shader Graph provider/tree/result action | Graphics仓只是Unity搜索生态的消费者，不代表完整Unity Search源码 |
 
 ## 10. Owner边界与最终判定
+
+### 2026-09-13 Editor742 follow-up
+
+本轮在References/Used By的动态行投影中补上了已知节点足迹的容量预留。
+
+每条`AssetReferenceSnapshot`固定追加四个节点，刷新前以
+`references.len() * 4`一次性预留，保留原有prototype过滤、空态、隐藏和行顺序语义。
+
+4096行的确定性模型从几何扩容的11次增长降为一次容量准入；实现记录见
+[Editor129-reference-row-node-capacity-2026-09-13](129/2026-09-13-reference-row-node-capacity.md)，
+Astra完成列表见[Editor742](../../astra/features/editor/742-reference-row-node-capacity.md)。
+
+刷新后的非工具 Runtime/Editor performance-plus-pressure loader 覆盖555个模块，
+2065/2065测试通过（24.966s）；这只是本地源码/模型证据。
+
+Managed Cargo/Release真实性与延迟门仍待协调器在干净分配上验证，本记录不把本地压力模型当作最终产品门。
+
+### 2026-09-13 Editor743 follow-up
+
+References/Used By现在在一次节点切片遍历中捕获四个首个row prototype，
+并在全部槽位就绪后停止；缺失prototype仍返回`None`，重复control仍保留
+首个匹配语义。确定性4096节点前缀模型把四次扫描的16384次访问降为4096次，
+实现与Astra记录见[Editor743](129/2026-09-13-reference-prototype-single-pass.md)
+和[Editor743 completion](../../astra/features/editor/743-reference-prototype-single-pass.md)。
+刷新后的非工具 Runtime/Editor performance-plus-pressure loader覆盖556个模块，
+2068/2068测试在29.116s通过；该模型与批量测试仍不替代受管Cargo/Release与产品延迟门。
 
 - Editor129只拥有跨Editor query/runtime/provider/result/navigation与可见搜索入口真实性；不重写Editor04的资产注册/导入/引用抽取，也不接管Runtime51的持久化asset index。
 - Hierarchy的Scene snapshot、identity和mutation继续由Editor03/Runtime05/Runtime24拥有；Search provider只能消费同代只读事实。

@@ -6,17 +6,17 @@
   "roots": [
     {
       "root_id": "windows-local-d",
-      "display_path": "D:\\ZirconBuilds",
+      "display_path": "D:\\cargo-targets",
       "capability_class": "windows-local-artifact"
     },
     {
       "root_id": "windows-local-e",
-      "display_path": "E:\\ZirconBuilds",
+      "display_path": "E:\\cargo-targets",
       "capability_class": "windows-local-artifact"
     },
     {
       "root_id": "windows-local-f",
-      "display_path": "F:\\ZirconBuilds",
+      "display_path": "F:\\cargo-targets",
       "capability_class": "windows-local-artifact"
     }
   ],

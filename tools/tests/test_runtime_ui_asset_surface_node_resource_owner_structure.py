@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 核对节点资源注册的子模块归属及结构状态镜像，防止 UI 表面根模块重新承载该行为。
 class RuntimeUiAssetSurfaceNodeResourceOwnerStructureTests(unittest.TestCase):
     STATUS = (
         "runtime_09_15_ui_asset_surface_node_resource_owner_split_"
@@ -77,7 +77,7 @@ class RuntimeUiAssetSurfaceNodeResourceOwnerStructureTests(unittest.TestCase):
             / "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
             repo_root
             / "docs/plans/optimize/zircon_runtime/11a-runtime-ui-architecture-tree-layout-input-accessibility-review.md",
-            repo_root / "docs/zircon_runtime/ui/architecture.md",
+            repo_root / "docs/crates/zircon_runtime/ui/architecture.md",
             repo_root / "docs/plans/engine-code-structure-convention.md",
             repo_root / "docs/plans/engine-code-review-findings-2026-06.md",
         )

@@ -67,5 +67,5 @@ fn paint_ordered_commands<'a>(
 }
 
 #[cfg(test)]
-#[path = "replay/stable_z_sort_tests.rs"]
+#[path = "replay/tests/stable_z_sort_tests.rs"]
 mod stable_z_sort_tests;

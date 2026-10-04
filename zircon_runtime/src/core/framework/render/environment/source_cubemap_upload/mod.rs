@@ -2,6 +2,7 @@ mod artifact;
 mod build;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 pub use artifact::{SourceCubemapUploadArtifact, SourceCubemapUploadMip};

@@ -1,3 +1,4 @@
+//! 校验包和 owner.feature 标识，并只从生成视图去掉被当前目标消费的无效行。
 use std::fmt;
 
 use crate::core::framework::project::ProjectPluginManifest;
@@ -8,6 +9,7 @@ use super::tokens::{
 };
 use super::ProjectPluginManifestValidationProjection;
 
+/// 只报告当前目标消费的包标识；required 决定是否阻断，原行仍可供诊断引用。
 pub(in crate::plugin::export_build_plan) fn project_plugin_package_id_diagnostics(
     manifest: &ProjectPluginManifest,
     projection: &ProjectPluginManifestValidationProjection,
@@ -34,6 +36,7 @@ pub(in crate::plugin::export_build_plan) fn project_plugin_package_id_diagnostic
     (diagnostics, fatal_diagnostics)
 }
 
+/// 特征必须位于 owner 的点命名空间；计划在生成注册调用前收集这些诊断。
 pub(in crate::plugin::export_build_plan) fn project_feature_id_diagnostics(
     manifest: &ProjectPluginManifest,
     projection: &ProjectPluginManifestValidationProjection,
@@ -61,6 +64,7 @@ pub(in crate::plugin::export_build_plan) fn project_feature_id_diagnostics(
     (diagnostics, fatal_diagnostics)
 }
 
+/// 用未变动的行索引清理当前目标消费的非法/重复项；必须与先前建成的 projection 同代。
 pub(in crate::plugin::export_build_plan) fn sanitize_project_identity_rows(
     manifest: &mut ProjectPluginManifest,
     projection: &ProjectPluginManifestValidationProjection,
@@ -200,54 +204,5 @@ fn project_feature_id_has_owner(owner_plugin_id: &str, feature_id: &str) -> bool
 }
 
 #[cfg(test)]
-mod tests {
-    use super::validate_project_plugin_package_id;
-
-    #[test]
-    fn deferred_provider_diagnostic_context_preserves_contract() {
-        let mut diagnostics = Vec::new();
-        validate_project_plugin_package_id(
-            format_args!("project plugin selection id"),
-            "Bad__",
-            &mut diagnostics,
-        );
-        validate_project_plugin_package_id(
-            format_args!("project plugin feature streaming provider_package_id"),
-            "Bad__",
-            &mut diagnostics,
-        );
-
-        assert_eq!(
-            diagnostics,
-            vec![
-                "project plugin selection id `Bad__` must start with a lowercase ASCII letter".to_string(),
-                "project plugin selection id `Bad__` must contain only lowercase ASCII letters, digits, and underscores".to_string(),
-                "project plugin selection id `Bad__` must not end with an underscore or contain repeated underscores".to_string(),
-                "project plugin feature streaming provider_package_id `Bad__` must start with a lowercase ASCII letter".to_string(),
-                "project plugin feature streaming provider_package_id `Bad__` must contain only lowercase ASCII letters, digits, and underscores".to_string(),
-                "project plugin feature streaming provider_package_id `Bad__` must not end with an underscore or contain repeated underscores".to_string(),
-            ]
-        );
-    }
-
-    #[test]
-    fn project_feature_identity_validation_does_not_allocate_scan_helpers() {
-        let source = include_str!("identity.rs");
-        let segment_collection = ["split('.')", ".collect::<Vec<_>>()"].concat();
-        let formatted_prefix = ["format!(\"{owner_", "plugin_id}.\")"].concat();
-        assert!(!source.contains(&segment_collection));
-        assert!(!source.contains(&formatted_prefix));
-    }
-
-    #[test]
-    fn project_feature_owner_matching_preserves_the_dot_boundary() {
-        assert!(super::project_feature_id_has_owner(
-            "rendering",
-            "rendering.deferred"
-        ));
-        assert!(!super::project_feature_id_has_owner(
-            "render",
-            "rendering.deferred"
-        ));
-    }
-}
+#[path = "tests/identity.rs"]
+mod tests;

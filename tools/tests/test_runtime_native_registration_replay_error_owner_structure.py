@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 验证原生注册重放错误的职责切分：注册重放错误应为子节点持有，并类型化错误复核守卫读取错误子节点。
 class RuntimeNativeRegistrationReplayErrorOwnerStructureTests(unittest.TestCase):
     def test_registration_replay_error_is_child_owned(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
@@ -62,7 +62,7 @@ class RuntimeNativeRegistrationReplayErrorOwnerStructureTests(unittest.TestCase)
             "docs/plans/engine-code-review-findings-2026-06.md",
             "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
             "docs/plans/zircon_runtime/runtime/06/2026-07-09-plugin-surface-and-lifecycle-output-records.md",
-            "docs/engine-architecture/native-plugin-boundary.md",
+            "docs/architecture/native-plugin-boundary.md",
         )
 
         for relative_path in docs:

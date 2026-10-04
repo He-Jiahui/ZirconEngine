@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码中提取区域、营地、道路、码头与手工地形修改，供 m3_terrain_content_codegen.mjs 消费。
 const data = await import('wocgit:///src/sim/data.ts');
 const dockLayout = await import('wocgit:///src/sim/dock_layout.ts');
 const valeCup = await import('wocgit:///src/sim/vale_cup_layout.ts');
@@ -20,6 +21,7 @@ const zones = data.ZONES.map((zone) => ({
   })),
 }));
 
+// 展开各营地时保持源码区域与营地的原始顺序。
 const camps = builtin.camps.map((camp) => {
   const template = data.MOBS[camp.mobId];
   if (!template) {

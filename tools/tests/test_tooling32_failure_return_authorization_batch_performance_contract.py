@@ -1,3 +1,4 @@
+# 核对失败交还授权一次加载并投影最后请求键。
 from __future__ import annotations
 
 import inspect

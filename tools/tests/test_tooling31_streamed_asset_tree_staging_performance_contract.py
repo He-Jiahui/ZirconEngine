@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tools import zircon_build_asset_staging as asset_staging
+from tools.build import zircon_build_asset_staging as asset_staging
 
 
 TOOLING31_WARMUP_PAIRS = 4
@@ -25,7 +25,7 @@ def _legacy_tree_entries(source_root: Path) -> list[tuple[Path, bool]]:
 
 
 def _optimized_tree_entries(source_root: Path) -> list[tuple[Path, bool]]:
-    return list(asset_staging._iter_tree_entries(source_root))
+    return list(asset_staging.iter_tree_entries(source_root))
 
 
 def _entry_checksum(entries: list[tuple[Path, bool]]) -> int:

@@ -1,3 +1,4 @@
+# 以临时机器清单验证采集与报告共用精确哈希绑定，并拒绝不完整或被改写的快照。
 $script:MachineEvidenceModule = Join-Path $PSScriptRoot '..\mvp\RenderExtractMachineEvidence.psm1'
 
 function New-RenderExtractMachineManifestFixture {

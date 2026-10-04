@@ -91,6 +91,7 @@ pub blackwaterMarkTickInterval(required: bool): float {
     return 1.0;
 }
 
+/// 与nextBlackwaterMarkCastTimer成对使用同一旧timer与本步delta；到期后重设固定周期且不结转超出量，宿主按既有固定步调用一次。
 pub blackwaterMarkCastDue(timer: float, deltaSeconds: float, required: bool): bool {
     if (!required || timer < 0.0 || deltaSeconds < 0.0) {
         throw "woc Nhalia mark cast timer is invalid";
@@ -121,6 +122,7 @@ pub nextBlackwaterMarkTickTimer(timer: float, deltaSeconds: float, required: boo
     return next <= 0.0 ? blackwaterMarkTickInterval(true) : next;
 }
 
+/// heroic与High Water组合发生在同一次命中前；最大生命由实体层提供，本层不选择目标也不叠加多个水痕伤害。
 pub blackwaterMarkDamage(
     maximumHealth: int,
     heroicTier: bool,
@@ -136,6 +138,7 @@ pub blackwaterMarkDamage(
     return damage < 1 ? 1 : damage;
 }
 
+/// boss健康一次越过阈值时由宿主写入finalBellFired；单独反复查询为true不能作为重复生成thrall/伤害的许可。
 pub finalBellDue(
     finalBellFired: bool,
     bossHealth: int,
@@ -185,6 +188,7 @@ pub bellVolleyRotationSpan(count: int, required: bool): float {
     return 6.283185307179586 / <float>count;
 }
 
+/// 外部先从共享流取本轮唯一旋转unit并复用到全部bellIndex；逐钟重新抽取会改变阵型与后续随机顺序。
 pub bellVolleyRotationOffset(randomUnit: float, count: int, required: bool): float {
     if (!required || randomUnit < 0.0 || randomUnit >= 1.0) {
         throw "woc Nhalia bell rotation input is invalid";
@@ -276,6 +280,7 @@ pub advanceBellCoordinate(
 }
 
 // Bounds are local to the apse and include the three-yard fly-through margin.
+/// 输入为转换到apse的局部坐标；范围含飞出余量，不能直接传世界X/Z。bellHitsTarget则接收钟与目标的相对位移。
 pub bellOutsideApse(localX: float, localZ: float, required: bool): bool {
     if (!required) { throw "woc Nhalia bell bounds query is required"; }
     return absolute(localX) > 28.0 || localZ < -19.0 || localZ > 95.0;
@@ -331,6 +336,7 @@ pub contractTest(): int {
         finalBellDamage(1, true) != 1 || finalBellStunDuration(true) != 1.5) {
         return -3;
     }
+    // BUG: [CR-WOC-IPS-I-0013] 下面两个已越界坐标的正查询直接并入失败条件，按本文件边界必为true，内部合同因此返回-4；应核对断言极性。
     if (initialBellVolleyTimer(true) != 12.0 || bellCount(true) != 4 ||
         absolute(bellVolleyRotationSpan(4, true) - 1.5707963267948966) > 0.000001 ||
         bellVolleyRotationOffset(0.0, 4, true) != 0.0 ||

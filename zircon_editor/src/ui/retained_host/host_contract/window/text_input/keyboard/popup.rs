@@ -1,11 +1,17 @@
+use winit::event::ElementState;
 use winit::event::KeyEvent;
 
 use super::super::super::UiHostWindow;
 use crate::ui::retained_host::host_contract::native_keyboard::{
     dispatch_workbench_popup_keyboard_command, dispatch_workbench_popup_text_search,
-    workbench_popup_keyboard_command,
+    workbench_popup_accept_is_owned, workbench_popup_keyboard_command,
 };
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
+
+pub(super) fn popup_enter_is_owned(window: &UiHostWindow, event: &KeyEvent) -> bool {
+    event.state == ElementState::Pressed
+        && workbench_popup_accept_is_owned(window, &event.logical_key)
+}
 
 pub(super) fn dispatch_popup_keyboard_fallback(
     window: &UiHostWindow,

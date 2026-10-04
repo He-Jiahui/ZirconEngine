@@ -1,3 +1,6 @@
+// 调用端：npm run generate:glacial-front-contract (tools/package.json)；职责：从所属源模块固化冰川前线的战斗常量。
+// 输入边界：src/sim/combat/glacial_front.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

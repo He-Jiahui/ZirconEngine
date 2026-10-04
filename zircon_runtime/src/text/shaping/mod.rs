@@ -20,13 +20,14 @@ mod vertical;
 mod work_budget;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 use std::sync::Arc;
 
 use crate::core::framework::text::{TextDirection, TextLayoutError};
+use crate::text::font::{shared_font_collection_snapshot, FontCollectionSnapshot};
 use crate::text::VerticalMode;
-use crate::text::font::{FontCollectionSnapshot, shared_font_collection_snapshot};
 use crate::text::{BackendShapeRequest, ShapedGlyphRun};
 use crate::text::{TextRange, TextStyle};
 
@@ -35,14 +36,14 @@ pub use super::model::{
     TextShapingFailureDisposition, TextShapingFailurePhase, TextShapingFailureReceipt,
 };
 pub(crate) use bidi::{
-    BidiInvariantError, BidiLineOrder, BidiLineSignature, analyze_bidi_line,
-    capture_bidi_line_signature, mirrored_bidi_char, resolve_bidi_base_direction,
+    analyze_bidi_line, capture_bidi_line_signature, mirrored_bidi_char,
+    resolve_bidi_base_direction, BidiInvariantError, BidiLineOrder, BidiLineSignature,
 };
 pub use failure_receipt::TextShapingFailureReport;
 pub(crate) use failure_receipt::{TextShapingBackendRouteReport, TextShapingDiagnosticsReport};
 pub(crate) use fallback_spans::{
-    FallbackItemizationError, FallbackTextSpan, fallback_primary_face, fallback_text_spans,
-    fallback_text_spans_with_report,
+    fallback_primary_face, fallback_text_spans, fallback_text_spans_with_report,
+    FallbackItemizationError, FallbackTextSpan,
 };
 pub(crate) use outcome::{
     TextLayoutOutcome, TextShapingCompletion, TextShapingFailure, TextShapingOutcome,
@@ -94,21 +95,14 @@ pub(crate) trait TextShapeRunProvider {
 
     fn shape_vertical_range_with_kerning(
         &mut self,
-        text: &str,
-        style: &TextStyle,
-        direction: TextDirection,
-        source_range: TextRange,
-        vertical_mode: VerticalMode,
-        include_kerning: bool,
+        _text: &str,
+        _style: &TextStyle,
+        _direction: TextDirection,
+        _source_range: TextRange,
+        _vertical_mode: VerticalMode,
+        _include_kerning: bool,
     ) -> TextShapingOutcome {
-        let _ = vertical_mode;
-        self.shape_horizontal_range_with_kerning(
-            text,
-            style,
-            direction,
-            source_range,
-            include_kerning,
-        )
+        TextShapingOutcome::failed(TextLayoutError::UnsupportedWritingMode)
     }
 }
 

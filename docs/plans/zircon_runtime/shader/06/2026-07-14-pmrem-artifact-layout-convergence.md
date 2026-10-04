@@ -3,7 +3,7 @@
 Plan: docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
 Milestone: M3
 Status: completed
-Files: ["zircon_app/src/bin/zircon_shader_pbr_viewer/hdri.rs", "zircon_runtime/src/asset/artifact/ibl_bake_artifact_asset_derived.rs", "zircon_runtime/src/asset/artifact/ibl_bake_artifact_cache.rs", "zircon_runtime/src/asset/importer/environment_ibl.rs", "zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact.rs", "zircon_runtime/src/core/framework/render/environment/mod.rs", "zircon_runtime/src/core/framework/render/environment/skybox.rs", "zircon_runtime/src/core/framework/render/environment/source_cubemap.rs", "zircon_runtime/src/core/framework/render/environment/source_cubemap_artifact.rs", "zircon_runtime/tests/runtime_environment_ibl_bake_artifact_contract.rs", "zircon_runtime/tests/runtime_environment_ibl_source_import_staging_contract.rs", "docs/zircon_runtime/asset/ibl-source-cubemap-staging.md"]
+Files: ["zircon_app/src/bin/zircon_shader_pbr_viewer/hdri.rs", "zircon_runtime/src/asset/artifact/ibl_bake_artifact_asset_derived.rs", "zircon_runtime/src/asset/artifact/ibl_bake_artifact_cache.rs", "zircon_runtime/src/asset/importer/environment_ibl.rs", "zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact.rs", "zircon_runtime/src/core/framework/render/environment/mod.rs", "zircon_runtime/src/core/framework/render/environment/skybox.rs", "zircon_runtime/src/core/framework/render/environment/source_cubemap.rs", "zircon_runtime/src/core/framework/render/environment/source_cubemap_artifact.rs", "zircon_runtime/tests/runtime_environment_ibl_bake_artifact_contract.rs", "zircon_runtime/tests/runtime_environment_ibl_source_import_staging_contract.rs", "docs/crates/zircon_runtime/asset/ibl-source-cubemap-staging.md"]
 
 ## 状态与产出记录
 
@@ -17,7 +17,7 @@ Files: ["zircon_app/src/bin/zircon_shader_pbr_viewer/hdri.rs", "zircon_runtime/s
 - Asset owner: `zircon_runtime/src/asset/{importer/environment_ibl.rs,artifact/ibl_bake_artifact_cache.rs,artifact/ibl_bake_artifact_asset_derived.rs}`.
 - Product consumer: `zircon_app/src/bin/zircon_shader_pbr_viewer/hdri.rs`.
 - Contract tests: `zircon_runtime/tests/runtime_environment_ibl_{bake_artifact,source_import_staging}_contract.rs`.
-- Module documentation: `docs/zircon_runtime/asset/ibl-source-cubemap-staging.md`.
+- Module documentation: `docs/crates/zircon_runtime/asset/ibl-source-cubemap-staging.md`.
 
 ## Fresh Testing Evidence
 

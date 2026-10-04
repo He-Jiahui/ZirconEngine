@@ -1,3 +1,5 @@
+//! 校验字形工件是否仍与当前文本布局及字体快照一致。
+
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine,
 };
@@ -6,8 +8,8 @@ use crate::core::framework::text::TextGlyph;
 
 use super::super::font::FontCollectionRevision;
 use super::{
-    ResolvedTextGlyphArtifact, ResolvedTextGlyphArtifactLine,
-    resolved_text_line_requires_visual_fallback, source_text_origin,
+    resolved_text_line_requires_visual_fallback, source_text_origin, ResolvedTextGlyphArtifact,
+    ResolvedTextGlyphArtifactLine,
 };
 
 pub(crate) fn resolved_text_glyph_artifact_matches_layout_snapshot(
@@ -48,6 +50,7 @@ pub(super) fn matching_artifact_line<'a>(
     line_index: usize,
     layout_line: &UiResolvedTextLine,
 ) -> Option<&'a [TextGlyph]> {
+    // 保留的旧字体快照仍可使用；这里要求工件声明的代际与自身字体租约一致。
     (artifact.font_generation == artifact.font_lease.generation())
         .then(|| matching_artifact_line_entry(artifact, line_index, layout_line))
         .flatten()

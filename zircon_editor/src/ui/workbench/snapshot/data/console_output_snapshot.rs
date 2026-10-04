@@ -367,11 +367,10 @@ fn generation_from_flat_parts(
     }
     let line_count = logical_line_count(text).max(levels.len());
     let retained_start = line_count.saturating_sub(CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY);
-    let lines = text
-        .split('\n')
-        .skip(retained_start)
-        .enumerate()
-        .map(|(retained_index, line)| {
+    let retained_line_capacity = line_count.saturating_sub(retained_start);
+    let mut lines = Vec::with_capacity(retained_line_capacity);
+    lines.extend(text.split('\n').skip(retained_start).enumerate().map(
+        |(retained_index, line)| {
             let source_index = retained_start + retained_index;
             let level = levels.get(source_index).copied().unwrap_or_default();
             let jump_sequence = jump_sequences.get(source_index).copied().flatten();
@@ -385,8 +384,8 @@ fn generation_from_flat_parts(
                 jump_sequence,
                 action_id,
             )
-        })
-        .collect::<Vec<_>>();
+        },
+    ));
     ConsoleOutputLineGeneration::from_lines(lines)
 }
 
@@ -451,81 +450,5 @@ fn byte_offset_after_logical_lines(text: &str, line_count: usize) -> usize {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-
-    use crate::core::editor_event::ConsoleMessageFilter;
-
-    use super::{
-        ConsoleOutputSnapshot, EditorConsoleMessageLevel, CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY,
-    };
-
-    #[test]
-    fn string_conversion_assigns_info_to_each_logical_line() {
-        let output = ConsoleOutputSnapshot::from("ready\ncompiled\n");
-
-        assert_eq!(output.as_ref(), "ready\ncompiled\n");
-        assert_eq!(
-            output.levels(),
-            &[
-                EditorConsoleMessageLevel::Info,
-                EditorConsoleMessageLevel::Info,
-                EditorConsoleMessageLevel::Info,
-            ]
-        );
-        assert_eq!(output.counts().info, 3);
-        assert_eq!(output.counts().total(), 3);
-        assert_eq!(output.filter(), ConsoleMessageFilter::All);
-        assert!(Arc::ptr_eq(&output.text_arc(), &output.text_arc()));
-        assert!(ConsoleOutputSnapshot::from("").levels().is_empty());
-    }
-
-    #[test]
-    fn snapshot_construction_bounds_direct_multiline_inputs() {
-        let text = (0..(CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY + 44))
-            .map(|index| format!("line {index}"))
-            .collect::<Vec<_>>()
-            .join("\n");
-
-        let output = ConsoleOutputSnapshot::from(text);
-        let lines = output.lines().collect::<Vec<_>>();
-
-        assert_eq!(lines.len(), CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY);
-        assert_eq!(lines.first().copied(), Some("line 44"));
-        assert_eq!(lines.last().copied(), Some("line 299"));
-        assert_eq!(output.levels().len(), CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY);
-        assert_eq!(
-            output.counts().total(),
-            CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY
-        );
-    }
-
-    #[test]
-    fn snapshot_distinguishes_empty_history_from_one_blank_logical_line() {
-        let empty = ConsoleOutputSnapshot::from("");
-        let blank_line = ConsoleOutputSnapshot::new(
-            Arc::from(""),
-            Arc::from([EditorConsoleMessageLevel::Warning]),
-        );
-
-        assert!(!empty.has_output());
-        assert!(blank_line.has_output());
-        assert!(blank_line.is_empty());
-        assert_eq!(blank_line.counts().warning, 1);
-    }
-
-    #[test]
-    fn snapshot_preserves_raw_crlf_text_but_exposes_clean_presentation_lines() {
-        let output = ConsoleOutputSnapshot::from("compile\r\nready");
-
-        assert_eq!(output.as_ref(), "compile\r\nready");
-        assert_eq!(
-            output.logical_line(0).map(|line| line.text()),
-            Some("compile")
-        );
-        assert_eq!(
-            output.logical_line(1).map(|line| line.text()),
-            Some("ready")
-        );
-    }
-}
+#[path = "tests/console_output_snapshot.rs"]
+mod tests;

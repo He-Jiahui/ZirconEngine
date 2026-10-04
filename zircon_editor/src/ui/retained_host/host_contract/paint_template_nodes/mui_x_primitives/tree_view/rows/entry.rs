@@ -1,7 +1,7 @@
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::render_commands::HostPaintCommand;
 use super::super::style::tree_view_surface_color;
-use super::metrics::{tree_view_row_metrics, MUI_X_TREE_ROW_COUNT};
+use super::metrics::{tree_view_header_height, tree_view_row_metrics, MUI_X_TREE_ROW_COUNT};
 use super::row::push_tree_view_row;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tree_view(
@@ -25,11 +25,20 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tr
         opacity,
     );
 
-    let row_height =
-        ((rect.height - metrics.horizontal_inset * 2.0) / MUI_X_TREE_ROW_COUNT as f32).max(0.0);
+    let header_height = tree_view_header_height(rect, node);
+    let rows_rect = FrameRect {
+        x: rect.x,
+        y: rect.y + header_height,
+        width: rect.width,
+        height: (rect.height - header_height).max(0.0),
+    };
+    let row_height = ((rows_rect.height - metrics.horizontal_inset * 2.0)
+        / MUI_X_TREE_ROW_COUNT as f32)
+        .max(0.0);
     for row in 0..MUI_X_TREE_ROW_COUNT {
         push_tree_view_row(
-            commands, node, rect, clip, order, opacity, metrics, row_height, row,
+            commands, node, &rows_rect, clip, order, opacity, metrics, row_height, row,
         );
     }
+    super::super::content::push_tree_view_content(commands, node, rect, clip, order, opacity);
 }

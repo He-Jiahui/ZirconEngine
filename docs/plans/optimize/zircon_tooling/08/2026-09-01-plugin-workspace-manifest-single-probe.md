@@ -1,3 +1,7 @@
+---
+status: local_candidate
+---
+
 # Tooling08 Plugin workspace manifest single probe
 
 ## Problem

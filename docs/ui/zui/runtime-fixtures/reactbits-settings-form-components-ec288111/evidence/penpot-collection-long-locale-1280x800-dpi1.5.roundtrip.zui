@@ -1,0 +1,432 @@
+[asset]
+kind = "view"
+id = "res://ui/tests/reactbits_settings_form_components.zui"
+version = 2
+display_name = "ReactBits Settings Form Components"
+
+[tokens]
+"surface.canvas" = "#0f1117"
+"surface.panel" = "#171b24"
+"surface.elevated" = "#1d2330"
+"surface.inset" = "#11151d"
+"border.default" = "#2a3342"
+"border.strong" = "#3a4658"
+"text.primary" = "#f4f7fb"
+"text.secondary" = "#a9b4c5"
+"text.muted" = "#718096"
+"accent.primary" = "#8b7cff"
+"accent.info" = "#5da9ff"
+"status.success" = "#55d6a0"
+"status.warning" = "#f4bd62"
+"status.error" = "#ff7d8a"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalBox"
+control_id = "ReactBitsSettingsFormRoot"
+classes = ["rb-settings-form-fixture"]
+props = {
+  background_color = "$surface.canvas",
+  foreground_color = "$text.primary",
+  fixture_data_only = true,
+  reference_primary = "https://pro.reactbits.dev/docs/app-ui/settings-form/settings-form-1",
+  reference_supporting = [
+    "https://pro.reactbits.dev/docs/app-ui/forms/forms-1",
+    "https://pro.reactbits.dev/docs/app-ui/app-dialog/app-dialog-1",
+    "https://pro.reactbits.dev/docs/app-ui/notifications/notifications-3",
+  ],
+  responsive_wide = "section navigation, a label-left form, and delivery feedback share one settings frame",
+  responsive_compact = "navigation yields width to the form; labels stay start-aligned and values remain in their row",
+  responsive_mobile = "navigation becomes a priority selector, the form owns the scroll, and the save bar remains reachable",
+  layout_modes = ["settings-shell", "section-navigation", "label-left-form", "sticky-save-bar", "confirmation-dialog"],
+  accessibility_label = "Settings form reference surface",
+}
+layout = {
+  clip = true,
+  input_policy = "Receive",
+  width = { min = 360, preferred = 1120, max = 1440, stretch = "Stretch" },
+  height = { min = 400, preferred = 760, max = 920, stretch = "Stretch" },
+  container = { kind = "VerticalBox", gap = 8 },
+  padding = { left = 14, right = 14, top = 14, bottom = 14 },
+}
+children = [
+  { node = "header" },
+  { node = "body" },
+  { node = "save_bar" },
+  { node = "feedback_row" },
+]
+
+[nodes.header]
+component = "HorizontalBox"
+control_id = "ReactBitsSettingsHeader"
+props = { background_color = "$surface.panel", border_color = "$border.default", border_width = 1, corner_radius = 8 }
+layout = { width = { stretch = "Stretch" }, height = { min = 56, preferred = 56, max = 56, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8 }, padding = { left = 12, right = 12, top = 8, bottom = 8 } }
+children = [{ node = "header_title_stack" }, { node = "header_status" }]
+
+[nodes.header_title_stack]
+component = "VerticalBox"
+control_id = "ReactBitsSettingsHeaderTitleStack"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 2 } }
+children = [{ node = "header_title" }, { node = "header_subtitle" }]
+
+[nodes.header_title]
+component = "Label"
+control_id = "ReactBitsSettingsTitle"
+props = { text = "Workspace settings", text_key = "fixture.settings.title", foreground_color = "$text.primary", font_size = 15, font_weight = 650, accessibility_label = "Workspace settings" }
+layout = { width = { stretch = "Stretch" }, height = { min = 20, preferred = 20, max = 20, stretch = "Fixed" } }
+
+[nodes.header_subtitle]
+component = "Label"
+control_id = "ReactBitsSettingsSubtitle"
+props = { text = "Profile, preferences, integrations, and delivery controls", text_key = "fixture.settings.subtitle", foreground_color = "$text.secondary", font_size = 10, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 16, preferred = 16, max = 16, stretch = "Fixed" } }
+
+[nodes.header_status]
+component = "Label"
+control_id = "ReactBitsSettingsStatus"
+props = { text = "UNSAVED", text_key = "fixture.settings.status.unsaved", foreground_color = "$status.warning", font_size = 9, font_weight = 700, letter_spacing = 0.8, text_align = "right" }
+layout = { width = { min = 80, preferred = 96, max = 112, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.body]
+component = "HorizontalBox"
+control_id = "ReactBitsSettingsBody"
+layout = { width = { stretch = "Stretch" }, height = { min = 220, stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 10 } }
+children = [{ node = "nav" }, { node = "form" }]
+
+[nodes.nav]
+component = "VerticalBox"
+control_id = "ReactBitsSettingsSectionNav"
+classes = ["rb-settings-nav"]
+props = { background_color = "$surface.panel", border_color = "$border.default", border_width = 1, corner_radius = 8, display = { xs = "none", md = "flex" }, accessibility_label = "Settings sections" }
+layout = { clip = true, width = { min = 156, preferred = 196, max = 228, stretch = "Fixed" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 5 }, padding = { left = 9, right = 9, top = 10, bottom = 10 } }
+children = [{ node = "nav_heading" }, { node = "nav_profile" }, { node = "nav_preferences" }, { node = "nav_integrations" }, { node = "nav_danger" }]
+
+[nodes.nav_heading]
+component = "Label"
+control_id = "ReactBitsSettingsNavHeading"
+props = { text = "SETTINGS", text_key = "fixture.settings.nav.heading", foreground_color = "$text.muted", font_size = 9, font_weight = 700, letter_spacing = 1.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 18, preferred = 18, max = 18, stretch = "Fixed" } }
+
+[nodes.nav_profile]
+component = "Button"
+control_id = "ReactBitsSettingsNavProfile"
+props = { text = "Profile", text_key = "fixture.settings.nav.profile", button_variant = "text", background_color = "$surface.elevated", foreground_color = "$text.primary", corner_radius = 6, text_align = "left", selected = true, input_interactive = true, input_focusable = true, accessibility_label = "Open profile settings" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32, preferred = 32, max = 32, stretch = "Fixed" } }
+
+[nodes.nav_preferences]
+component = "Button"
+control_id = "ReactBitsSettingsNavPreferences"
+props = { text = "Preferences", text_key = "fixture.settings.nav.preferences", button_variant = "text", foreground_color = "$text.secondary", corner_radius = 6, text_align = "left", input_interactive = true, input_focusable = true, accessibility_label = "Open preference settings" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32, preferred = 32, max = 32, stretch = "Fixed" } }
+
+[nodes.nav_integrations]
+component = "Button"
+control_id = "ReactBitsSettingsNavIntegrations"
+props = { text = "Integrations", text_key = "fixture.settings.nav.integrations", button_variant = "text", foreground_color = "$text.secondary", corner_radius = 6, text_align = "left", input_interactive = true, input_focusable = true, accessibility_label = "Open integration settings" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32, preferred = 32, max = 32, stretch = "Fixed" } }
+
+[nodes.nav_danger]
+component = "Button"
+control_id = "ReactBitsSettingsNavDanger"
+props = { text = "Danger zone", text_key = "fixture.settings.nav.danger", button_variant = "text", foreground_color = "$status.error", corner_radius = 6, text_align = "left", input_interactive = true, input_focusable = true, accessibility_label = "Open danger zone settings" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32, preferred = 32, max = 32, stretch = "Fixed" } }
+
+[nodes.form]
+component = "ScrollableBox"
+control_id = "ReactBitsSettingsForm"
+classes = ["rb-settings-form"]
+props = { background_color = "$surface.inset", border_color = "$border.default", border_width = 1, corner_radius = 8, scroll_owner = "settings-form", accessibility_label = "Settings form content" }
+layout = { clip = true, width = { min = 0, stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "ScrollableBox", axis = "Vertical", gap = 10, scrollbar_visibility = "Auto" }, padding = { left = 12, right = 12, top = 12, bottom = 12 } }
+children = [{ node = "profile_section" }, { node = "preferences_section" }, { node = "integrations_section" }]
+
+[nodes.profile_section]
+component = "VerticalBox"
+control_id = "ReactBitsSettingsProfileSection"
+props = { background_color = "$surface.panel", border_color = "$border.default", border_width = 1, corner_radius = 8, section_id = "profile" }
+layout = { width = { stretch = "Stretch" }, height = { min = 168, preferred = 184, max = 212, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 8 }, padding = { left = 12, right = 12, top = 10, bottom = 10 } }
+children = [{ node = "profile_heading" }, { node = "profile_intro" }, { node = "display_name_row" }, { node = "locale_row" }]
+
+[nodes.profile_heading]
+component = "Label"
+control_id = "ReactBitsSettingsProfileHeading"
+props = { text = "Profile", text_key = "fixture.settings.profile.heading", foreground_color = "$text.primary", font_size = 13, font_weight = 650 }
+layout = { width = { stretch = "Stretch" }, height = { min = 18, preferred = 18, max = 18, stretch = "Fixed" } }
+
+[nodes.profile_intro]
+component = "Label"
+control_id = "ReactBitsSettingsProfileIntro"
+props = { text = "Update the identity shown in project activity and shared reviews.", text_key = "fixture.settings.profile.intro", foreground_color = "$text.secondary", font_size = 10, wrap = "word", text_overflow = "clip" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22, preferred = 24, max = 36, stretch = "Fixed" } }
+
+[nodes.display_name_row]
+component = "HorizontalBox"
+control_id = "ReactBitsSettingsDisplayNameRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 46, preferred = 48, max = 56, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 10 } }
+children = [{ node = "display_name_label" }, { node = "display_name_field" }]
+
+[nodes.display_name_label]
+component = "VerticalBox"
+control_id = "ReactBitsSettingsDisplayNameLabel"
+layout = { width = { min = 132, preferred = 188, max = 240, stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 2 } }
+children = [{ node = "display_name_label_text" }, { node = "display_name_help" }]
+
+[nodes.display_name_label_text]
+component = "Label"
+control_id = "ReactBitsSettingsDisplayNameLabelText"
+props = { text = "Display name", text_key = "fixture.settings.profile.display_name.label", foreground_color = "$text.primary", font_size = 11, font_weight = 600 }
+layout = { width = { stretch = "Stretch" }, height = { min = 16, preferred = 16, max = 18, stretch = "Fixed" } }
+
+[nodes.display_name_help]
+component = "Label"
+control_id = "ReactBitsSettingsDisplayNameHelp"
+props = { text = "Shown to collaborators", text_key = "fixture.settings.profile.display_name.help", foreground_color = "$text.muted", font_size = 9, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 14, preferred = 14, max = 16, stretch = "Fixed" } }
+
+[nodes.display_name_field]
+component = "TextField"
+control_id = "ReactBitsSettingsDisplayNameField"
+props = { component_role = "settings-field", value_text = "Zircon Editor", value_key = "fixture.settings.profile.display_name.value", placeholder = "Enter a display name", placeholder_key = "fixture.settings.profile.display_name.placeholder", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, accessibility_label = "Display name" }
+layout = { width = { min = 168, stretch = "Stretch" }, height = { stretch = "Stretch" }, padding = { left = 8, right = 8, top = 5, bottom = 5 } }
+
+[nodes.locale_row]
+component = "HorizontalBox"
+control_id = "ReactBitsSettingsLocaleRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 42, preferred = 44, max = 52, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 10 } }
+children = [{ node = "locale_label" }, { node = "locale_value" }]
+
+[nodes.locale_label]
+component = "Label"
+control_id = "ReactBitsSettingsLocaleLabel"
+props = { text = "Language and direction", text_key = "fixture.settings.profile.locale.label", foreground_color = "$text.primary", font_size = 11, font_weight = 600 }
+layout = { width = { min = 132, preferred = 188, max = 240, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.locale_value]
+component = "Button"
+control_id = "ReactBitsSettingsLocaleValue"
+props = { text = "English (US) · LTR", text_key = "fixture.settings.profile.locale.value", button_variant = "outlined", background_color = "$surface.elevated", foreground_color = "$text.secondary", border_color = "$border.strong", border_width = 1, corner_radius = 6, text_align = "left", input_interactive = true, input_focusable = true, accessibility_label = "Choose language and text direction" }
+layout = { width = { min = 168, stretch = "Stretch" }, height = { stretch = "Stretch" }, padding = { left = 8, right = 8, top = 5, bottom = 5 } }
+
+[nodes.preferences_section]
+component = "VerticalBox"
+control_id = "ReactBitsSettingsPreferencesSection"
+props = { background_color = "$surface.panel", border_color = "$border.default", border_width = 1, corner_radius = 8, section_id = "preferences" }
+layout = { width = { stretch = "Stretch" }, height = { min = 128, preferred = 142, max = 164, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 8 }, padding = { left = 12, right = 12, top = 10, bottom = 10 } }
+children = [{ node = "preferences_heading" }, { node = "notification_row" }, { node = "quiet_hours_row" }]
+
+[nodes.preferences_heading]
+component = "Label"
+control_id = "ReactBitsSettingsPreferencesHeading"
+props = { text = "Delivery preferences", text_key = "fixture.settings.preferences.heading", foreground_color = "$text.primary", font_size = 13, font_weight = 650 }
+layout = { width = { stretch = "Stretch" }, height = { min = 18, preferred = 18, max = 18, stretch = "Fixed" } }
+
+[nodes.notification_row]
+component = "HorizontalBox"
+control_id = "ReactBitsSettingsNotificationRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 36, preferred = 38, max = 44, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8 } }
+children = [{ node = "notification_label" }, { node = "notification_toggle" }]
+
+[nodes.notification_label]
+component = "VerticalBox"
+control_id = "ReactBitsSettingsNotificationLabel"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 2 } }
+children = [{ node = "notification_label_text" }, { node = "notification_help" }]
+
+[nodes.notification_label_text]
+component = "Label"
+control_id = "ReactBitsSettingsNotificationLabelText"
+props = { text = "Activity notifications", text_key = "fixture.settings.preferences.activity.label", foreground_color = "$text.primary", font_size = 11, font_weight = 600 }
+layout = { width = { stretch = "Stretch" }, height = { min = 16, preferred = 16, max = 18, stretch = "Fixed" } }
+
+[nodes.notification_help]
+component = "Label"
+control_id = "ReactBitsSettingsNotificationHelp"
+props = { text = "Keep the team informed about completed runs", text_key = "fixture.settings.preferences.activity.help", foreground_color = "$text.muted", font_size = 9, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 14, preferred = 14, max = 16, stretch = "Fixed" } }
+
+[nodes.notification_toggle]
+component = "ToggleButton"
+control_id = "ReactBitsSettingsNotificationToggle"
+props = { text = "Enabled", text_key = "fixture.settings.preferences.activity.value", checked = true, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, accessibility_label = "Activity notifications enabled" }
+layout = { width = { min = 92, preferred = 104, max = 116, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.quiet_hours_row]
+component = "HorizontalBox"
+control_id = "ReactBitsSettingsQuietHoursRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 34, preferred = 36, max = 42, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8 } }
+children = [{ node = "quiet_hours_label" }, { node = "quiet_hours_value" }]
+
+[nodes.quiet_hours_label]
+component = "Label"
+control_id = "ReactBitsSettingsQuietHoursLabel"
+props = { text = "Quiet hours", text_key = "fixture.settings.preferences.quiet_hours.label", foreground_color = "$text.primary", font_size = 11, font_weight = 600 }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.quiet_hours_value]
+component = "Label"
+control_id = "ReactBitsSettingsQuietHoursValue"
+props = { text = "22:00 – 07:00", text_key = "fixture.settings.preferences.quiet_hours.value", foreground_color = "$text.secondary", font_size = 10, text_align = "right" }
+layout = { width = { min = 120, preferred = 144, max = 168, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.integrations_section]
+component = "VerticalBox"
+control_id = "ReactBitsSettingsIntegrationsSection"
+props = { background_color = "$surface.panel", border_color = "$border.default", border_width = 1, corner_radius = 8, section_id = "integrations" }
+layout = { width = { stretch = "Stretch" }, height = { min = 174, preferred = 190, max = 220, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 8 }, padding = { left = 12, right = 12, top = 10, bottom = 10 } }
+children = [{ node = "integrations_heading" }, { node = "integrations_intro" }, { node = "api_keys" }]
+
+[nodes.integrations_heading]
+component = "Label"
+control_id = "ReactBitsSettingsIntegrationsHeading"
+props = { text = "API keys and integrations", text_key = "fixture.settings.integrations.heading", foreground_color = "$text.primary", font_size = 13, font_weight = 650 }
+layout = { width = { stretch = "Stretch" }, height = { min = 18, preferred = 18, max = 18, stretch = "Fixed" } }
+
+[nodes.integrations_intro]
+component = "Label"
+control_id = "ReactBitsSettingsIntegrationsIntro"
+props = { text = "Rotate or revoke access without leaving the settings flow.", text_key = "fixture.settings.integrations.intro", foreground_color = "$text.secondary", font_size = 10, wrap = "word", text_overflow = "clip" }
+layout = { width = { stretch = "Stretch" }, height = { min = 18, preferred = 20, max = 30, stretch = "Fixed" } }
+
+[nodes.api_keys]
+component = "DataGrid"
+control_id = "ReactBitsSettingsApiKeys"
+classes = ["MuiDataGrid-root", "rb-settings-api-keys"]
+props = {
+  component_role = "mui-x-data-grid",
+  collection_virtualization = "windowed",
+  viewport_start = 0,
+  visible_limit = 3,
+  collection_test_cases = ["empty", "one", "normal", "overflow", "narrow", "long-locale"],
+  long_locale_fixture_label = "A deliberately long localized integration label for overflow coverage",
+  text_key = "fixture.settings.integrations.api_keys.title",
+  options = ["Name", "Last used", "State"],
+  column_alignments = ["left", "right", "center"],
+  collection_items = [
+    "selected|Editor bridge|2026-09-18|Active",
+    "normal|CI validation|2026-09-17|Active",
+    "warning|Legacy importer|2026-08-02|Rotate soon",
+    "normal|Localized integration|Never|Revoked",
+  ],
+  overflow_fixture_label = "A deliberately long localized integration label for overflow coverage",
+  selected_row_id = "Editor bridge",
+  empty_text = "No API keys",
+  empty_text_key = "fixture.settings.integrations.api_keys.empty",
+  value_text = "No API keys",
+  background_color = "$surface.elevated",
+  foreground_color = "$text.primary",
+  border_color = "$border.default",
+  border_width = 1,
+  corner_radius = 6,
+  accessibility_label = "API keys table",
+}
+layout = { clip = true, width = { stretch = "Stretch" }, height = { min = 72, preferred = 82, max = 96, stretch = "Fixed" }, padding = { left = 7, right = 7, top = 6, bottom = 6 } }
+
+[nodes.save_bar]
+component = "HorizontalBox"
+control_id = "ReactBitsSettingsSaveBar"
+classes = ["rb-sticky-save-bar"]
+props = { background_color = "$surface.elevated", border_color = "$accent.primary", border_width = 1, corner_radius = 8, sticky = true, accessibility_label = "Unsaved changes actions" }
+layout = { width = { stretch = "Stretch" }, height = { min = 50, preferred = 54, max = 62, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8 }, padding = { left = 10, right = 10, top = 7, bottom = 7 } }
+children = [{ node = "save_text" }, { node = "save_actions" }]
+
+[nodes.save_text]
+component = "Label"
+control_id = "ReactBitsSettingsSaveText"
+props = { text = "Changes are **not saved** until you apply them.", text_key = "fixture.settings.save.unsaved", rich_text_format = "markdown_inline_v1", foreground_color = "$text.primary", font_size = 10, wrap = "word" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.save_actions]
+component = "HorizontalBox"
+control_id = "ReactBitsSettingsSaveActions"
+layout = { width = { min = 188, preferred = 214, max = 240, stretch = "Fixed" }, height = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 6 } }
+children = [{ node = "save_reset" }, { node = "save_button" }]
+
+[nodes.save_reset]
+component = "Button"
+control_id = "ReactBitsSettingsReset"
+props = { text = "Revert", text_key = "fixture.settings.save.revert", button_variant = "text", foreground_color = "$text.secondary", corner_radius = 6, input_interactive = true, input_focusable = true, accessibility_label = "Revert unsaved changes" }
+layout = { width = { min = 82, preferred = 92, max = 104, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.save_button]
+component = "Button"
+control_id = "ReactBitsSettingsApply"
+props = { text = "Apply changes", text_key = "fixture.settings.save.apply", button_variant = "contained", background_color = "$accent.primary", foreground_color = "$text.primary", corner_radius = 6, input_interactive = true, input_focusable = true, accessibility_label = "Apply settings changes" }
+layout = { width = { min = 98, preferred = 116, max = 132, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.feedback_row]
+component = "HorizontalBox"
+control_id = "ReactBitsSettingsFeedbackRow"
+props = { display = { xs = "none", md = "flex" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 96, preferred = 108, max = 120, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8 } }
+children = [{ node = "notifications" }, { node = "confirm_dialog" }]
+
+[nodes.notifications]
+component = "NotificationCenter"
+control_id = "ReactBitsSettingsNotifications"
+classes = ["rb-settings-notifications"]
+props = {
+  open = true,
+  popup_open = true,
+  title = "Recent settings activity",
+  title_key = "fixture.settings.notifications.title",
+  unread_count = 1,
+  overflow_count = 0,
+  notifications = [
+    "save|title=Profile saved|message=The display name is ready for review|severity=success|unread=true",
+    "rotate|title=Key rotation suggested|message=Legacy importer has not been used recently|severity=warning|unread=false",
+    "delivery|title=Quiet hours updated|message=Delivery preferences are synchronized|severity=info|unread=false",
+  ],
+  selected_notification_id = "save",
+  focused_index = 0,
+  visible_limit = 2,
+  empty_text = "No recent settings activity",
+  empty_text_key = "fixture.settings.notifications.empty",
+  input_interactive = true,
+  input_clickable = true,
+  input_hoverable = true,
+  input_focusable = true,
+  accessibility_label = "Recent settings activity",
+}
+layout = { clip = true, width = { min = 0, stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox" }, padding = { left = 7, right = 7, top = 6, bottom = 6 } }
+
+[nodes.confirm_dialog]
+component = "ConfirmDialog"
+control_id = "ReactBitsSettingsConfirmDialog"
+classes = ["rb-settings-confirm", "rb-destructive"]
+props = {
+  open = true,
+  popup_open = true,
+  title = "Revoke legacy importer key?",
+  title_key = "fixture.settings.dialog.title",
+  text = "Revoke legacy importer key?",
+  message = "This removes access for the importer and cannot be undone.",
+  message_key = "fixture.settings.dialog.message",
+  confirm_text = "Revoke key",
+  confirm_text_key = "fixture.settings.dialog.confirm",
+  cancel_text = "Keep key",
+  cancel_text_key = "fixture.settings.dialog.cancel",
+  severity = "error",
+  destructive = true,
+  requires_explicit_action = true,
+  required_value = "Legacy importer",
+  input_interactive = true,
+  input_clickable = true,
+  input_hoverable = true,
+  input_focusable = true,
+  accessibility_label = "Confirm legacy importer key revocation",
+}
+layout = { clip = true, width = { min = 0, stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox" }, padding = { left = 7, right = 7, top = 6, bottom = 6 } }
+
+[nodes.root.zircon_extension]
+owner = "reactbits-reference-slice"
+reference_profile = "reactbits-settings-form-components-v1"
+source_of_truth = "zui"
+penpot_visual_check = "required"
+
+[[stylesheets]]
+id = "reactbits-ui-typography"
+
+[[stylesheets.rules]]
+selector = "*"
+set = { self = { font = { asset = "res://fonts/editor-ui.font.toml", family = "Fira Sans" } } }

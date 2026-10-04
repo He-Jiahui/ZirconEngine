@@ -26,7 +26,7 @@ mod mui_x_classes;
 mod slot_contract;
 
 #[cfg(test)]
-#[path = "style_apply/token_map_sharing_tests.rs"]
+#[path = "style_apply/tests/token_map_sharing_tests.rs"]
 mod token_map_sharing_tests;
 
 #[derive(Clone)]
@@ -41,7 +41,10 @@ pub(super) struct ParsedStyleRule {
 pub(super) fn build_style_plan(
     sheets: &[ResolvedStyleSheet],
 ) -> Result<Vec<ParsedStyleRule>, UiAssetError> {
-    let mut rules = Vec::new();
+    let rule_count = sheets.iter().fold(0usize, |count, sheet| {
+        count.saturating_add(sheet.stylesheet.rules.len())
+    });
+    let mut rules = Vec::with_capacity(rule_count);
     let mut order = 0;
     for sheet in sheets {
         if sheet.stylesheet.rules.is_empty() {
@@ -63,6 +66,7 @@ pub(super) fn build_style_plan(
     Ok(rules)
 }
 
+// 选择器读取应用规则前的路径快照；规则写入、sx 与显式覆盖不会在本轮反向触发新的匹配。
 pub(super) fn apply_styles_to_tree(
     node: &mut UiTemplateNode,
     rules: &[ParsedStyleRule],

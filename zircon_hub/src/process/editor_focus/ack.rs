@@ -10,6 +10,7 @@ use zircon_runtime_interface::hub_protocol::{
 };
 
 use crate::error::HubError;
+use crate::state::{TaskCancellationToken, TaskExecutionOutcome};
 
 const FOCUS_ACK_POLL_INTERVAL: Duration = Duration::from_millis(25);
 const FOCUS_ACK_MAX_BYTES: u64 = 4 * 1024;
@@ -21,7 +22,8 @@ const FOCUS_ACK_MAX_BYTES: u64 = 4 * 1024;
 pub(crate) fn wait_for_project_editor_focus_ack(
     project_root: impl AsRef<Path>,
     request: &HubEditorFocusSignalV1,
-) -> Result<(), HubError> {
+    cancellation: &TaskCancellationToken,
+) -> Result<TaskExecutionOutcome<()>, HubError> {
     let acknowledgement_path = hub_editor_focus_ack_path(
         project_root,
         &request.target_instance_id,
@@ -31,6 +33,9 @@ pub(crate) fn wait_for_project_editor_focus_ack(
     .map_err(|source| HubError::message(source.to_string()))?;
 
     loop {
+        if cancellation.is_cancellation_requested() {
+            return Ok(TaskExecutionOutcome::Cancelled);
+        }
         let now_unix_millis = unix_millis_now()?;
         if request.is_expired_at(now_unix_millis) {
             return Err(HubError::message(
@@ -50,7 +55,7 @@ pub(crate) fn wait_for_project_editor_focus_ack(
                 if result.is_ok() || acknowledgement.matches_request(request) {
                     fs::remove_file(&acknowledgement_path)?;
                 }
-                return result;
+                return result.map(TaskExecutionOutcome::Completed);
             }
             Err(error) if error.kind() == io::ErrorKind::NotFound => {
                 thread::sleep(FOCUS_ACK_POLL_INTERVAL);
@@ -94,27 +99,5 @@ fn unix_millis_now() -> Result<u64, HubError> {
 }
 
 #[cfg(test)]
-mod tests {
-    use zircon_runtime_interface::hub_protocol::{HubEditorFocusAckV1, HubSessionToken};
-
-    use super::validate_focus_acknowledgement;
-    use zircon_runtime_interface::hub_protocol::{
-        HubEditorFocusAckDispositionV1, HubEditorFocusSignalV1,
-    };
-
-    #[test]
-    fn acknowledgement_requires_the_exact_request_identity_and_a_focused_disposition() {
-        let request = HubEditorFocusSignalV1::new(HubSessionToken::new(), "913-42", 1, 7, u64::MAX)
-            .expect("valid request");
-        assert!(
-            validate_focus_acknowledgement(&request, &HubEditorFocusAckV1::focused(&request))
-                .is_ok()
-        );
-
-        let rejected = HubEditorFocusAckV1::from_request(
-            &request,
-            HubEditorFocusAckDispositionV1::RejectedExpired,
-        );
-        assert!(validate_focus_acknowledgement(&request, &rejected).is_err());
-    }
-}
+#[path = "tests/ack.rs"]
+mod tests;

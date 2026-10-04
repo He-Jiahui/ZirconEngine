@@ -3,6 +3,7 @@ use std::path::{Component, Path, PathBuf};
 
 use super::names::module_name;
 
+/// MUI 模块图标作为本地资源候选接入常规查询，不改变调用方的语义图标名。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn module_candidates(
     icon_name: &str,
     workspace_root: &Path,
@@ -46,5 +47,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_modu
 }
 
 #[cfg(test)]
-#[path = "candidates/component_scan_tests.rs"]
+#[path = "candidates/tests/component_scan_tests.rs"]
 mod component_scan_tests;

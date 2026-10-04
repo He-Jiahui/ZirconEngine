@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录执行 npm run check:m6-chat-state-source；入口由 package.json 登记；缺少源码契约时脚本抛错退出。
+// 从锁定提交提取聊天路由和限流函数，核对修剪、频道成员、距离投递及令牌补充规则，并限制投影的测试导入者。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
@@ -68,6 +72,7 @@ function invariant(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+// 先按大括号提取锁定的路由与限流函数，再分别检查函数体内的行为标记。
 function functionBlock(source, declaration) {
   const start = source.indexOf(declaration);
   invariant(start >= 0, `missing source function: ${declaration}`);

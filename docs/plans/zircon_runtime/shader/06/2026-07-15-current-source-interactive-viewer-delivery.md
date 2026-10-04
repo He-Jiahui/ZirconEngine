@@ -3,7 +3,7 @@
 Plan: docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
 Milestone: EC-M5
 Status: historical-baseline; current-source revalidation pending
-Files: ["docs/plans/zircon_runtime/shader/06/2026-07-15-current-source-interactive-viewer-delivery.md", "docs/tests/runtime/shader/runtime_shader_pbr_interactive_viewer_current_source_20260715.png", "docs/tests/runtime/shader/zircon_shader_pbr_viewer_current_source_20260715_validation.md", "docs/tests/runtime/shader/zircon_shader_pbr_viewer_current_source_dx12_renderdoc_20260715_capture.rdc", "docs/zircon_runtime/tests/runtime_shader_pbr_hdri_export.md", "zircon_app/src/bin/zircon_shader_pbr_viewer/camera.rs", "zircon_app/src/bin/zircon_shader_pbr_viewer/hdri.rs", "zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs"]
+Files: ["docs/plans/zircon_runtime/shader/06/2026-07-15-current-source-interactive-viewer-delivery.md", "docs/tests/runtime/shader/runtime_shader_pbr_interactive_viewer_current_source_20260715.png", "docs/tests/runtime/shader/zircon_shader_pbr_viewer_current_source_20260715_validation.md", "docs/tests/runtime/shader/zircon_shader_pbr_viewer_current_source_dx12_renderdoc_20260715_capture.rdc", "docs/crates/zircon_runtime/tests/runtime_shader_pbr_hdri_export.md", "zircon_app/src/bin/zircon_shader_pbr_viewer/camera.rs", "zircon_app/src/bin/zircon_shader_pbr_viewer/hdri.rs", "zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs"]
 
 ## 状态与产出记录
 

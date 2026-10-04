@@ -1,6 +1,7 @@
 use crate::core::framework::render::RenderStats;
 
 use super::{record_bytes, record_count, DiagnosticStore};
+// 投影 RenderStats 中队列、准备与编码路径的观测；这些数量不单独证明 GPU 已执行完相应工作。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_count(
@@ -489,6 +490,22 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
             "cache",
             "invalidated",
             "material",
+        ],
+    );
+    record_count(
+        store,
+        "render.mesh.queue.command_cache_invalidated_resolver_configuration_count",
+        frame_index,
+        stats.last_mesh_command_cache_invalidated_resolver_configuration_count,
+        &[
+            "render",
+            "mesh",
+            "queue",
+            "command",
+            "cache",
+            "invalidated",
+            "resolver",
+            "configuration",
         ],
     );
     record_count(

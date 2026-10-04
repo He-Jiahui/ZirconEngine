@@ -1,3 +1,5 @@
+//! 子菜单把悬停待定、正式打开和焦点作用域分别保留；键盘动作与延迟到期事件经同一状态同步入口协作，防止焦点退出时遗留打开目标。
+
 use zircon_runtime_interface::ui::component::{
     UiComponentDescriptor, UiComponentEventError, UiComponentState, UiValue,
 };
@@ -12,6 +14,7 @@ const MENU_SUBMENU_HOVER_READY: &str = "submenu_hover_ready";
 const MENU_SUBMENU_OPEN_OPTION_ID: &str = "submenu_open_option_id";
 const MENU_SUBMENU_PENDING_OPTION_ID: &str = "submenu_pending_option_id";
 
+// Activate 优先尝试打开具有子项且可用的当前目标；成功会消费动作，失败时调用方继续一般激活语义。
 pub(in crate::ui::component::state_reducer::keyboard) fn open_focused_submenu(
     state: &mut UiComponentState,
     descriptor: &UiComponentDescriptor,
@@ -57,6 +60,7 @@ pub(in crate::ui::component::state_reducer::keyboard) fn close_active_submenu(
     true
 }
 
+// 目标悬停先建立 pending；输入计时拥有者稍后发布 ready 才转为 open，选项或禁用条件变化会重新校验目标。
 pub(super) fn sync_submenu_state(
     state: &mut UiComponentState,
     descriptor: &UiComponentDescriptor,
@@ -200,6 +204,7 @@ fn write_pending_submenu_state(state: &mut UiComponentState, option_id: &str, pa
     );
 }
 
+// Cancel、失效目标及关闭焦点循环共用清理，作用域回到 root，使下次键盘导航从顶层重新解释。
 fn clear_submenu_state(state: &mut UiComponentState) {
     write_submenu_string(state, MENU_SUBMENU_PENDING_OPTION_ID, "");
     write_submenu_string(state, MENU_SUBMENU_OPEN_OPTION_ID, "");
@@ -290,5 +295,5 @@ fn write_submenu_string(state: &mut UiComponentState, property: &str, value: &st
 }
 
 #[cfg(test)]
-#[path = "submenu/borrowed_current_option_tests.rs"]
+#[path = "submenu/tests/borrowed_current_option_tests.rs"]
 mod borrowed_current_option_tests;

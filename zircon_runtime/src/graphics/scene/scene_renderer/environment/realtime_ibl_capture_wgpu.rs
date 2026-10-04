@@ -24,6 +24,8 @@ pub(in crate::graphics) struct RealtimeIblWgpuBindingCreationStats {
     pub creation_micros: u64,
 }
 
+/// 同一设备复用天空捕获与源 mip 管线，兼供实时 IBL 和场景捕获滤波使用。
+/// 调度器决定面预算，调用方提供目标视图并负责提交；这里不发布 A/B 槽位。
 pub(in crate::graphics) struct RealtimeIblCaptureWgpuPipelines {
     capture_layout: wgpu::BindGroupLayout,
     capture_pipeline: wgpu::ComputePipeline,
@@ -185,6 +187,8 @@ impl RealtimeIblCaptureWgpuPipelines {
         }
     }
 
+    /// 从已写完的源 mip0 依次生成后继级；每级只读取前一级的单 mip cube 视图。
+    /// sampled/storage 两组视图须覆盖相同纹理布局，便于同一编码器安全串接依赖。
     pub(in crate::graphics) fn record_source_mip_chain(
         &self,
         device: &wgpu::Device,
@@ -373,4 +377,5 @@ const fn mip_dimension(face_size: u32, mip_level: usize) -> u32 {
 }
 
 #[cfg(test)]
+#[path = "realtime_ibl_capture_wgpu/tests/cases.rs"]
 mod tests;

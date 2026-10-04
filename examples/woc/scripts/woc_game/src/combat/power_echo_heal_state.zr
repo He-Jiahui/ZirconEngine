@@ -1,6 +1,7 @@
 // Current-head projection of the Power Echo direct-heal tail. The normal heal
 // owner resolves crits, reductions and overheal first; this reducer consumes an
 // armed echo and emits only the already-resolved, non-critting copy request.
+// 单次治疗尾部的输入与结果投影；当前契约入口分别构造对象，复用时需先重置输出。
 pub class PowerEchoHealState {
     pub var powerEchoArmed: bool;
     pub var powerEchoFraction: float;
@@ -25,6 +26,7 @@ roundPositive(value: float): int {
     return <int>(value + 0.5);
 }
 
+// 上游先结算实际直接治疗量；这里仅产出副本请求，真正治疗与世界光环移除仍由调用方完成。
 pub resolvePowerEchoHeal(
     state: PowerEchoHealState,
     isSpell: bool,

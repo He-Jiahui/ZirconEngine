@@ -59,6 +59,7 @@ class AuraEntity {
     }
 }
 
+/// 供独立 M4 光环派发契约复现来源/目标光环列、递减抗性和预置随机流；使用者须先提供同一时刻对齐的实体快照，返回的修改不会自动进入世界存储。
 class AuraDispatchState {
     pub var source: AuraEntity;
     pub var target: AuraEntity;
@@ -508,6 +509,7 @@ dispatchSunder(
     enterCombat(state);
 }
 
+/// 仅消费目录中的光环与控制类效果，返回 false 表示由其他效果所有者处理；本模块当前只由独立叶子入口调用，不能与世界命令重复提交光环。
 pub dispatchAuraEffect(
     state: AuraDispatchState,
     abilityIndex: int,

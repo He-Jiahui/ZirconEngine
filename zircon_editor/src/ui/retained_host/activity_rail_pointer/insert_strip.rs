@@ -6,12 +6,12 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::base_state::base_state;
-use super::constants::{BUTTON_EXTENT, BUTTON_GAP, STRIP_X_INSET, STRIP_Y_INSET};
 use super::host_activity_rail_pointer_item::HostActivityRailPointerItem;
 use super::host_activity_rail_pointer_route::HostActivityRailPointerRoute;
 use super::host_activity_rail_pointer_side::HostActivityRailPointerSide;
 use super::register_handled_pointer_node::register_handled_pointer_node;
 use super::strip_button_node_id::{strip_button_node_id, strip_button_route_id, strip_route_id};
+use super::surface_delta::button_frame;
 use crate::ui::retained_host::route_intent::{EditorRouteIntent, EditorRouteIntentMap};
 
 pub(super) fn insert_strip(
@@ -57,12 +57,7 @@ pub(super) fn insert_strip(
                     node_id,
                     UiNodePath::new(format!("{path}/button_{item_index}")),
                 )
-                .with_frame(UiFrame::new(
-                    frame.x + STRIP_X_INSET,
-                    frame.y + STRIP_Y_INSET + item_index as f32 * (BUTTON_EXTENT + BUTTON_GAP),
-                    BUTTON_EXTENT,
-                    BUTTON_EXTENT,
-                ))
+                .with_frame(button_frame(frame, item_index))
                 .with_z_index(20 + item_index as i32)
                 .with_input_policy(UiInputPolicy::Receive)
                 .with_state_flags(base_state(true)),

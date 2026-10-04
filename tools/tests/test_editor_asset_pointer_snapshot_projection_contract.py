@@ -1,3 +1,4 @@
+# 核对指针发布只携带命中所需的资产权威字段。
 import unittest
 from pathlib import Path
 

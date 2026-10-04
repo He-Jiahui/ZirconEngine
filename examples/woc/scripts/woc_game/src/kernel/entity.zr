@@ -1,5 +1,7 @@
+//! 实体身份与移动的隔离样例；产品世界状态仍由 world/state.zr 持有。
 var {Array} = %import("zr.container");
 
+/// 以 id 和 generation 共同标识一次实体生命周期；复用 id 后旧引用必须失效。
 pub class EntityRef {
     pub var id: uint = <uint>0;
     pub var generation: uint = <uint>0;
@@ -26,6 +28,7 @@ pub class Vec3 {
     }
 }
 
+/// 三份位置区分当前步、上一帧与出生基准；copy 须分别复制以维持快照隔离。
 pub class Entity {
     pub var id: uint = <uint>0;
     pub var generation: uint = <uint>0;
@@ -93,6 +96,7 @@ pub class Entity {
         return result;
     }
 
+    /// 只处理存活实体的水平移动；调用方须给正 delta，返回值表示本步是否推进位置。
     pub moveToward(targetX: float, targetZ: float, delta: float): bool {
         if (this.dead || delta <= 0.0) {
             return false;
@@ -118,6 +122,7 @@ pub class Entity {
     }
 }
 
+// 样例存储同时维护稳定排序的 activeIds 和可复用的 freeIds；generation 隔离旧引用。
 class EntityStore {
     pri var initialized: bool = false;
     pri var nextId: uint = <uint>1;
@@ -251,6 +256,7 @@ class EntityStore {
         return <uint>this.activeIds[index];
     }
 
+    /// 深拷贝实体及向量，供快照隔离测试在原对象继续修改后比较旧状态。
     pub snapshot(): EntityStore {
         var result = new EntityStore(<uint>1);
         result.nextId = this.nextId;

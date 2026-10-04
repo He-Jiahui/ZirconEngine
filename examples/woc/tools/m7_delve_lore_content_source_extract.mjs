@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码中提取按固定顺序解锁的地下探索传闻，供 m7_delve_lore_content_codegen.mjs 消费。
 import { execFileSync } from 'node:child_process';
 import ts from 'typescript';
 
@@ -21,6 +22,7 @@ const initializer = declaration.initializer.expression;
 if (!ts.isArrayLiteralExpression(initializer)) {
   throw new Error('DELVE_LORE_ORDER must be an array');
 }
+// 保持手工编写的传闻顺序；解锁函数按已解锁数量索引此数组。
 const loreOrder = initializer.elements.map((element) => {
   if (!ts.isStringLiteral(element)) {
     throw new Error('DELVE_LORE_ORDER must contain string ids');

@@ -7,17 +7,19 @@ use crate::ui::retained_host::host_contract::window::UiHostWindow;
 use crate::ui::retained_host::ui_perf::{
     enter_ui_perf_scenario, time_ui_perf_scenario, UiPerfScenario,
 };
+use zircon_runtime_interface::ui::dispatch::UiPointerId;
 
 use self::active::dispatch_active_tab_drag_move;
 use self::start::start_tab_drag_move;
 
 pub(in crate::ui::retained_host::host_contract) fn dispatch_native_tab_drag_move(
     ui: &UiHostWindow,
+    pointer_id: UiPointerId,
     x: f32,
     y: f32,
 ) -> Option<NativePointerDispatchResult> {
     let host = ui.global::<UiHostContext>();
-    let (drag_active, pointer_x, pointer_y) = host.drag_pointer_snapshot()?;
+    let (drag_active, pointer_x, pointer_y) = host.drag_pointer_snapshot(pointer_id)?;
     if pointer_x == x && pointer_y == y {
         return Some(NativePointerDispatchResult::idle());
     }

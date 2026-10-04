@@ -1,5 +1,5 @@
-// Pure source-locked lockpick decisions. Board-cell construction and the
-// mutable session remain DelveRun-owned until the collection ABI is available.
+//! 开锁棋盘的局部构造与标量决策；由会话创建并持有，显示层按投影读取。
+//! 当前真实消费者是实例测试和场景矩阵，棋盘数组不跨宿主边界；宝箱及奖励提交由上层处理。
 var content = %import("instances/delve_lockpick_content");
 var container = %import("zr.container");
 var rngModule = %import("kernel/rng");
@@ -58,6 +58,7 @@ pub class LockpickBoard {
     }
 }
 
+// BUG: [CR-WOC-IPS-I-0006] 棋盘仅初始化96项，此索引却按每列16项编码；第6列起生成会写越界，VM数组赋值会报错，正常/英雄棋盘初始化均受影响。
 flatIndex(column: int, row: int): int {
     return column * 16 + row;
 }
@@ -127,6 +128,7 @@ clearBoard(board: LockpickBoard): void {
     }
 }
 
+// 先保留一条合法动作可达的解，再扩展并前后裁剪可通行区域，最后从非解路径的内部格挑陷阱；阶段次序与候选遍历次序共同决定局部随机轨迹。
 generatePath(board: LockpickBoard, rng: rngModule.Mulberry32): void {
     board.pathRows[0] = rngInt(rng, 0, board.rows - 1);
     var column = 1;
@@ -292,6 +294,8 @@ pub isFreshSeedStream(stream: rngModule.Mulberry32, seed: uint, required: bool):
     return stream.draws == <uint>0 && stream.state == expectedInitialState;
 }
 
+/// 仅接收与本页seed一致且尚未抽取的独立流；会完整重建棋盘并消耗该流，不能传世界战斗流或复用已推进流。
+/// 完成后的draw/state摘要供重放断言读取；中途异常不代表可供会话继续使用的完整棋盘。
 pub initializeWithStream(
     board: LockpickBoard,
     stream: rngModule.Mulberry32,
@@ -351,6 +355,7 @@ pub cellKind(board: LockpickBoard, column: int, row: int, required: bool): int {
     return isTrapCell(board, column, row) ? 4 : 1;
 }
 
+/// 从第0列到当前列加可见窗口统计开放格，保留已走过的历史列；投影序号须沿相同列/行顺序解释，不是围绕玩家的双向裁窗。
 pub visibleCellCount(board: LockpickBoard, currentColumn: int, required: bool): int {
     requireBoard(board, required);
     if (currentColumn < 0) { throw "woc lockpick current column is invalid"; }
@@ -371,6 +376,7 @@ pub visibleCellCount(board: LockpickBoard, currentColumn: int, required: bool): 
 }
 
 // 0 = advanced, 1 = slip, 2 = bind, 3 = trap, 4 = success.
+/// 只判定下一步结果，不消耗尝试次数、不移动会话；调用方根据失败/终点结果统一切页、重试和奖励生命周期。
 pub stepResult(board: LockpickBoard, column: int, row: int, actionIndex: int, required: bool): int {
     requireCell(board, column, row, required);
     if (!content.tierActionAllowed(board.tierIndex, actionIndex, true)) {

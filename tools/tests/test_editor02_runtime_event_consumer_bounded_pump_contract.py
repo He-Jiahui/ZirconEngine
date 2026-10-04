@@ -35,15 +35,25 @@ class EditorRuntimeEventConsumerBoundedPumpContractTests(unittest.TestCase):
             self.assertIn(metric, source)
 
     def test_host_snapshots_active_consumers_before_external_calls(self) -> None:
-        source = self.read(
+        host = self.read(
             "zircon_editor/src/core/runtime_event_consumer/host.rs"
         )
-        self.assertIn("snapshot_active_consumers", source)
-        self.assertIn("pump_with_budget", source)
-        self.assertIn("append_drained_deliveries", source)
-        self.assertIn("take_pending_batch", source)
-        self.assertIn("restore_pending_batch", source)
-        self.assertIn("PendingDeliveryBatchRestoreGuard", source)
+        pump = self.read(
+            "zircon_editor/src/core/runtime_event_consumer/host/pump_execution.rs"
+        )
+        pending = self.read(
+            "zircon_editor/src/core/runtime_event_consumer/host/pending.rs"
+        )
+        self.assertIn("mod pump_execution;", host)
+        self.assertIn("mod pending;", host)
+        self.assertIn("snapshot_active_consumers", host)
+        self.assertIn("self.snapshot_active_consumers()", pump)
+        self.assertIn("pump_with_budget", pump)
+        self.assertIn("append_drained_deliveries", pump)
+        self.assertIn("take_pending_batch", pump)
+        self.assertIn("restore_pending_batch", pending)
+        self.assertIn("PendingDeliveryBatchRestoreGuard", pump)
+        source = "\n".join((host, pump, pending))
         self.assertNotIn("commit_delivery_sequence", source)
         self.assertNotIn("for consumer in active.values_mut()", source)
 
@@ -52,17 +62,25 @@ class EditorRuntimeEventConsumerBoundedPumpContractTests(unittest.TestCase):
         support = self.read(
             "zircon_editor/src/core/runtime_event_consumer/host/execution_support.rs"
         )
+        pending = self.read(
+            "zircon_editor/src/core/runtime_event_consumer/host/pending.rs"
+        )
 
         self.assertIn("mod execution_support;", host)
         for atomic_owner in ("AtomicU8", "AtomicU64", "Ordering"):
             self.assertIn(atomic_owner, host)
         for state_owner in (
             "active: Mutex<BTreeMap<String, ActiveConsumer>>",
-            "pending: VecDeque<ZrRuntimePluginEventDeliveryV1>",
+            "pending: VecDeque<PendingDelivery>",
+        ):
+            self.assertIn(state_owner, host)
+        for pending_owner in (
+            "pub(super) struct PendingDelivery",
+            "delivery: ZrRuntimePluginEventDeliveryV1",
             "fn take_pending_batch(",
             "fn restore_pending_batch(",
         ):
-            self.assertIn(state_owner, host)
+            self.assertIn(pending_owner, pending)
         for support_owner in (
             "pub(super) struct PumpExecutionGuard",
             "pub(super) struct LifecycleExecutionGuard",
@@ -72,8 +90,10 @@ class EditorRuntimeEventConsumerBoundedPumpContractTests(unittest.TestCase):
             self.assertIn(support_owner, support)
 
     def test_regressions_cover_budget_fairness_reentrancy_and_slow_callbacks(self) -> None:
-        source = self.read(
-            "zircon_editor/src/tests/runtime_event_consumer_bounded_pump.rs"
+        root = ROOT / "zircon_editor/src/tests/runtime_event_consumer_bounded_pump"
+        source = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in sorted(root.glob("*.rs"))
         )
         round_robin = self.read(
             "zircon_editor/src/tests/runtime_event_consumer_bounded_pump/round_robin.rs"
@@ -83,7 +103,7 @@ class EditorRuntimeEventConsumerBoundedPumpContractTests(unittest.TestCase):
             "round_robin_budget_gives_each_consumer_a_turn",
             "round_robin_start_rotates_under_non_divisible_budgets",
             "gateway_failure_does_not_starve_later_consumers",
-            "callback_panic_restores_pending_tail_and_last_sequence",
+            "consume_panic_is_typed_and_does_not_starve_other_consumers",
             "consumer_callback_can_reenter_host_observation_without_deadlock",
             "concurrent_end_session_is_typed_busy_until_pump_releases_owner",
             "slow_callback_is_visible_in_pump_report",
@@ -106,27 +126,39 @@ class EditorRuntimeEventConsumerBoundedPumpContractTests(unittest.TestCase):
     ) -> None:
         host = self.read("zircon_editor/src/core/runtime_event_consumer/host.rs")
         error = self.read("zircon_editor/src/core/runtime_event_consumer/error.rs")
+        lifecycle = self.read(
+            "zircon_editor/src/core/runtime_event_consumer/host/lifecycle.rs"
+        )
         regressions = self.read(
-            "zircon_editor/src/tests/runtime_event_consumer_bounded_pump.rs"
+            "zircon_editor/src/tests/runtime_event_consumer_bounded_pump/lifecycle.rs"
         )
 
         self.assertIn("LifecycleMutationBusy", error)
         self.assertIn("LifecycleExecutionGuard", host)
         self.assertIn("EXECUTION_IDLE", host)
         self.assertNotIn("reject_lifecycle_mutation_during_pump", host)
-        self.assertIn("remove_active_consumer", host)
+        self.assertIn("mod lifecycle;", host)
+        self.assertIn("remove_active_consumer", lifecycle)
         self.assertIn(
             "consumer_callback_reconcile_is_typed_busy_without_deadlock",
             regressions,
         )
 
-    def test_payload_moves_into_callback_and_error_paths_advance_fairness(self) -> None:
-        host = self.read("zircon_editor/src/core/runtime_event_consumer/host.rs")
-        self.assertIn("delivery.payload", host)
-        self.assertNotIn("delivery.payload.clone()", host)
-        self.assertIn("first_error", host)
-        self.assertIn("advance_round_robin_start", host)
-        self.assertNotIn("last_visited", host)
+    def test_payload_is_borrowed_for_decode_and_error_paths_advance_fairness(self) -> None:
+        pump = self.read(
+            "zircon_editor/src/core/runtime_event_consumer/host/pump_execution.rs"
+        )
+        registration = self.read(
+            "zircon_editor/src/core/runtime_event_consumer/registration.rs"
+        )
+        self.assertIn("delivery.delivery().payload.as_ref()", pump)
+        self.assertNotIn("delivery.payload.clone()", pump)
+        self.assertNotIn("delivery.delivery().payload.clone()", pump)
+        self.assertIn("serde_json::from_str::<S::Payload>(payload.get())", registration)
+        self.assertIn(".consume(play_session_id, sequence, payload)", registration)
+        self.assertIn("first_error", pump)
+        self.assertIn("advance_round_robin_start", pump)
+        self.assertNotIn("last_visited", pump)
 
 
 if __name__ == "__main__":

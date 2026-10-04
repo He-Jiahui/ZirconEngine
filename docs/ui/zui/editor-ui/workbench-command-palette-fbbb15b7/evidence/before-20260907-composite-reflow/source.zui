@@ -1,0 +1,37 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/floating/workbench_command_palette.zui"
+version = 2
+display_name = "Workbench Command Palette"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui#WorkbenchSearchInput",
+  "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
+]
+styles = [
+  "res://ui/theme/editor_workbench_strict.zui",
+]
+
+[components.WorkbenchCommandPalette]
+root = "palette"
+default_classes = ["workbench-floating", "workbench-command-palette"]
+
+[nodes.palette]
+component = "Panel"
+control_id = "WorkbenchCommandPalette"
+classes = ["workbench-floating", "workbench-command-palette"]
+style = { self = { background = { color = "$editor.surface.1" }, foreground = { color = "$editor.text.primary" }, border = { color = "$editor.border", width = "$editor.control.border_width", radius = "$editor.control.radius.panel" } } }
+layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { min = "$editor.density.command_palette.min_width", preferred = "$editor.density.command_palette.preferred_width", max = "$editor.density.command_palette.max_width", stretch = "Fixed" }, height = { min = "$editor.density.command_palette.min_height", preferred = "$editor.density.command_palette.preferred_height", max = "$editor.density.command_palette.max_height", stretch = "Fixed" } }
+children = [{ node = "search" }, { node = "first_result" }]
+
+[nodes.search]
+component = "WorkbenchSearchInput"
+control_id = "WorkbenchCommandPaletteSearch"
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+
+[nodes.first_result]
+component = "WorkbenchListRow"
+control_id = "WorkbenchCommandPaletteFirstResult"
+props = { label = "Open command" }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }

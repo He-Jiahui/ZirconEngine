@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../dist/out-tsc/zircon-zui-plugin-host-contract",
+    "types": ["node"],
+    "moduleResolution": "bundler"
+  },
+  "files": [
+    "tools/penpot-runtime-host-contract.ts",
+    "tools/runtime-modules.d.ts"
+  ]
+}

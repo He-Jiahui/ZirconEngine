@@ -7,21 +7,20 @@ TEXT_SHAPE = (
     ROOT / "zircon_runtime_interface/src/ui/surface/render/text_shape.rs"
 )
 PROFILE_BENCH = (
-    ROOT
-    / "zircon_runtime_interface/src/ui/surface/render/text_shape/projection_profile.rs"
+    ROOT / "zircon_runtime_interface/src/ui/surface/render/text_shape/tests/projection_profile.rs"
 )
 PROFILE_PLAN = (
     ROOT
     / "docs/plans/zircon_runtime/text/09/2026-08-31-rich-paint-block-geometry-owner-and-profile-plan.md"
 )
 
-
+# 读取文本绘制投影剖析入口，确认私有辅助函数与固定密集样本通道一致。
 class RuntimeTextPaintRunProjectionProfileContractTests(unittest.TestCase):
     def test_private_profile_owner_calls_the_exact_production_helper(self) -> None:
         root = TEXT_SHAPE.read_text(encoding="utf-8")
         profile = PROFILE_BENCH.read_text(encoding="utf-8")
 
-        self.assertIn('path = "text_shape/projection_profile.rs"', root)
+        self.assertIn('path = "text_shape/tests/projection_profile.rs"', root)
         self.assertIn("mod projection_profile;", root)
         self.assertIn("text_paint_runs_from_resolved_layout(", profile)
         self.assertNotIn("resolved_text_run_frame(", profile)

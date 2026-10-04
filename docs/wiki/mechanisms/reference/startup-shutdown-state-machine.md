@@ -25,7 +25,7 @@ doc_type: mechanism-case-study
 ```mermaid
 stateDiagram-v2
     [*] --> Constructing
-    Constructing --> Registered: CoreRuntime::try_new + register_module
+    Constructing --> Registered: runtime created + module registered
     Registered --> Activating: activate_registered_modules
     Activating --> Ready: build + ready all modules
     Activating --> Failed: dependency/error/timeout

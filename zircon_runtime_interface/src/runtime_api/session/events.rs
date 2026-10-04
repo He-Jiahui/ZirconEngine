@@ -3,6 +3,7 @@ use crate::handles::ZrRuntimeViewportHandle;
 
 use super::super::constants::*;
 use super::editor_transform::ZrRuntimeEditorTransformWriteV1;
+use super::ime_composition_capability_v2::ZR_RUNTIME_IME_COMPOSITION_V2_EVENT_STATE;
 use super::viewport::{ZrRuntimeViewportMetricsV1, ZrRuntimeViewportSizeV1};
 
 #[repr(C)]
@@ -462,6 +463,18 @@ impl ZrRuntimeEventV1 {
             payload: value,
             key_code: cursor_start,
             scan_code: cursor_end,
+            ..Self::new(abi_version, ZR_RUNTIME_EVENT_KIND_IME_V1, viewport)
+        }
+    }
+
+    pub const fn ime_composition_v2(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        payload: ZrByteSlice,
+    ) -> Self {
+        Self {
+            state: ZR_RUNTIME_IME_COMPOSITION_V2_EVENT_STATE,
+            payload,
             ..Self::new(abi_version, ZR_RUNTIME_EVENT_KIND_IME_V1, viewport)
         }
     }

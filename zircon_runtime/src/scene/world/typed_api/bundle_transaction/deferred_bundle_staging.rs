@@ -1,7 +1,7 @@
 use std::any::TypeId;
 
-use crate::scene::EntityId;
 use crate::scene::ecs::{Bundle, BundleStaging, Component, InternalEntity};
+use crate::scene::EntityId;
 
 use super::super::{SceneError, SceneResult};
 use super::{BundleInsertionTransaction, MAX_BUNDLE_COMPONENTS};
@@ -73,6 +73,7 @@ impl BundleStaging for DeferredBundleStaging<'_, '_> {
         self.transaction.stage_deferred(component)
     }
 
+    // 单条 Bundle 只检查类型数与重复项；最终状态在整段合并后校验，使后续覆盖能修正中间值。
     fn validate_final_state(&self) -> SceneResult<()> {
         Ok(())
     }

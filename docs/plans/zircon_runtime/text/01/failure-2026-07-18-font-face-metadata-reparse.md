@@ -14,7 +14,6 @@ related_code:
   - zircon_runtime/src/text/font/database.rs
   - zircon_runtime/src/text/shaping/horizontal/backend.rs
   - zircon_runtime/src/text/shaping/vertical.rs
-  - zircon_runtime/src/text/raster
 ---
 
 # Font face metadata在glyph/run路径重复解析
@@ -80,3 +79,26 @@ Open state: `implementation_complete / managed_validation_pending`。Text01 已�
 | 2026-07-28 02:42 +08:00 | `Text01_runtime_return_passed / external_editor_return_failed / Text05_open` | Editor job `4eefa547982a4bd896813d9fad698f21` / run `ceff37fc13224768af1c365287f242e5` compiled the current Runtime/Text source before exiting 101. | Its 56 errors are all in editor API/DTO/test owners, not Text01. Text05's independent outline-batch scope also remains open; neither is absorbed or falsely closed here. |
 | 2026-08-11 04:20 +08:00 | `implementation_complete / managed_validation_pending` | 静态复核当前 `FontDatabase`、shared generation、metadata 与 effective-instance 路径：`FontFaceMetadata` 仍是唯一 SFNT metadata parse owner；shared snapshot 在读锁内取得 generation，mutation 在同一写锁内先发布 generation；per-face metadata/source/TTC standalone bytes 均由 `Arc<OnceLock<_>>` 共享；face mutation 会 detach face-dependent variation/fallback/match caches。 | 本次未运行 Cargo/WGPU，也未把历史受管 Runtime 通过冒充 current-source 验收。Text05 outline/FDSM 批处理与 editor 上行问题继续由各自 failure 负责；本记录维持 `open`，等待协调器后续 managed receipt。 |
 | 2026-08-25 | `implementation_complete / static_checks_passed / managed_validation_pending` | `FontBlobArtifact` 进入 artifact cache 后将统一 manifest wire 升级为 `ZRARTM06` / schema 6，旧 M05 工件在 payload 反序列化前拒绝；冷路径回归首次导入后销毁 `ProjectAssetManager`、删除源 `.ttf`、重新打开项目，从持久化 artifact 取出 cooked blob 并注册可解析的 `FontDatabase` 主 face。 | `rustfmt --check` 与 scoped `git diff --check` 通过，且 `M05` 只保留为旧代际拒绝负例。受管 profiling/Cargo 仍在编译前被外部 `Cargo.lock` 与 workspace manifest 的 `--locked` 不一致阻断；未生成 WGPU PNG、性能或功耗数据，不能作为当前源码验收或里程碑完成证据。 |
+
+## 2026-09-25 current-source reconciliation (r2)
+
+本轮只恢复当前五个生产消费路径的稳定归属，未修改 Rust 源码。协调器 session 为
+`failure-roll-01a084c8-text01-font-face-metadata-r2`，不可变源码/文档边界先由 snapshot `3828` 捕获，审查修订后的 manifest 为 snapshot `3829`，后续最终 current-source manifest 为 snapshot `3830`，本次文档归档清单固定为 snapshot `3831`；`text/raster` 不在本轮 scope：该目录存在其他会话的脏改动（包括 `raster/mod.rs`、`raster/swash/*` 以及未跟踪的 `raster/service/`），已明确保留为 foreign/unowned provenance，不吸收进 Text01。
+
+当前受管源码快照（claim 前读取的 SHA-256）如下：
+
+| 路径 | SHA-256 |
+| --- | --- |
+| `zircon_runtime/src/text/font/instance.rs` | `d57d8bc02f79c578e5759495f2ce4607266a67e8ffa2a62415be3919fde6f351` |
+| `zircon_runtime/src/text/font/vertical_metrics.rs` | `07f8017e75dc94f1f0e9853502650d64705940f26b0a2f580c355547c9d7a465` |
+| `zircon_runtime/src/text/font/database.rs` | `8a6d2c02323d0367a422086ac0eab2d9c090880deb0ef8bfab20857d04a1dd6a` |
+| `zircon_runtime/src/text/shaping/horizontal/backend.rs` | `b3b36cb123d6a0a2da7c4b7ec10c24f4968189f7c726b5ab77fa80e960a68921` |
+| `zircon_runtime/src/text/shaping/vertical.rs` | `915800f612d60bdd7c7baa8e4b8e2e60fe6753e89b24a150a5853bdf551a71a8` |
+
+Current-source probe `TEXT01_FONT_FACE_METADATA_CURRENT_SOURCE_PASS 6 files` verified the shared `FontFaceMetadata`/`OnceLock` generation owner, metadata build counter, bounded canonical variation cache, horizontal shared-variation consumer, reusable vertical metrics view, and run-level vertical metrics cache. `rustfmt +1.94.1 --edition 2024 --config skip_children=true --check` remains non-zero only for pre-existing import-order formatting in the five claimed files; `git diff --check` is clean. The working-tree diff in these files (including the functional `FiniteGeometryAccumulator` edits in `shaping/vertical.rs`) predates this session and is recorded as foreign current-source drift; this session made no source edits.
+
+因此本记录继续保持 `open / managed_validation_pending`：fresh managed Text focused/broad Cargo、TTC/variable/system/SDF/native 上行门禁、Text05 outline-batch 交接、独立审查后的 fixed return/closeout/WeCom 仍未完成；历史通过票据不作为本次 current-source 动态验收。
+
+### Independent review receipt (2026-09-25)
+
+Reviewer `/root/review_editor03_gizmo_private` independently rechecked snapshot `3831`: all five current SHA-256 values, source anchors, explicit foreign raster provenance, and pending-gate wording match the current tree. Result: `Critical=0 / Important=0 / Moderate=0`, Ready for source/static handoff review only; no Cargo or product acceptance was inferred. This receipt is included in the post-review manifest snapshot `3832`.

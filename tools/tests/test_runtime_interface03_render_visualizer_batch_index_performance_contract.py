@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 VISUALIZER = ROOT / "zircon_runtime_interface/src/ui/surface/render/visualizer.rs"
 
-
+# 读取实现源码约束接口渲染可视化器批次索引：可视化器构建共享批次与缓存索引。
 class RuntimeInterface03RenderVisualizerBatchIndexPerformanceContractTests(unittest.TestCase):
     def test_visualizer_builds_shared_batch_and_cache_indexes(self) -> None:
         source = VISUALIZER.read_text(encoding="utf-8")

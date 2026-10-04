@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "path": "E:\\Git\\ZirconEngine\\docs\\plans\\zircon_tooling\\source_comment_audit\\02\\2026-09-30-stage-status.md",
+  "before_sha256": "039c3bc6a50d2da88df312c7c5f8bb589006291783414b8b2d135ee8cd97415f",
+  "after_sha256": "5e7be68602c05a18c9374cd830c4a981c4752196fcf20aa7b0c3826d8d5a68b4",
+  "authority": [
+    "81983cb7c80f65660ca64672503a559956aee6762e09154239fcafed8c0f253d",
+    "2101d04d63df9a97151720db89f50ba5bab1a1c3b762c0465c128b8c21d1c9b2",
+    "7588ebc13609459b0ec92cb5f6bf81dbd75211437150868e5b4410eabf493bdb"
+  ],
+  "verification": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-mesh-pipeline-stage-20261002-r9\\verification.json",
+    "sha256": "55dea7cd5ebfd55869e44d33295a3ec90328fb3dc7d3b073292f2924119c8ba2"
+  },
+  "helper": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\update_mesh_pipeline_stage_20261002_r9.py",
+    "sha256": "7092a0f811df44786e90e6a714e114e8c9db3de9f3926d1de9f1561ab500f86e"
+  },
+  "links_checked": true,
+  "whitespace_checked": true,
+  "source_writes": 0,
+  "canonical_writes": 0,
+  "status": "coarse_stage_status_updated",
+  "completed_at_utc": "2026-10-02T21:11:25.809479+00:00",
+  "plan_status_writes": 1,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "goal_status_changed": false,
+  "full_repository_scan_complete": false
+}

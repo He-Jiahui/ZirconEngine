@@ -55,7 +55,7 @@ for (const needle of [
   'updatePartyReadyChecks(state);',
   'partyReadyCheckStateIsValid(state: WorldState): bool',
   'partyRemoveReadyCheckMember(state: WorldState, index: int): void',
-  'writer.u16(<uint>21, 1, 1);',
+  'writer.u16(schemaVersion, 1, 1);',
   'schemaVersion != <uint>20',
   'if (schemaVersion >= <uint>20) {',
   'pub partyReadyCheckCommandStateTest(): int',
@@ -65,8 +65,8 @@ for (const needle of [
   invariant(state.includes(needle), `WOS20 ready-check projection omitted: ${needle}`);
 }
 invariant(
-  main.includes('\\"world_state\\":\\"WOS21\\",'),
-  'package stateSchema must expose the WOS21 snapshot version',
+  main.includes('\\"world_state\\":\\"WOS118\\",'),
+  'package stateSchema must expose the WOS118 snapshot version',
 );
 
 process.stdout.write(`checked WOS20 ready-check source projection: ${SOURCE_COMMIT.slice(0, 15)}\n`);

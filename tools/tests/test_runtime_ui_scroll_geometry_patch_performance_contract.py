@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from tools.runtime_ui_scroll_geometry_patch_pressure import run
+from tools.analysis.performance.runtime.runtime_ui_scroll_geometry_patch_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -12,7 +12,7 @@ HIT_TEST = ROOT / "zircon_runtime/src/ui/tree/hit_test.rs"
 HIT_GEOMETRY_PATCH = ROOT / "zircon_runtime/src/ui/tree/hit_test/geometry_patch.rs"
 SCROLL_TESTS = ROOT / "zircon_runtime/src/ui/tests/scroll_virtualization.rs"
 
-
+# 约束滚动只触发布局、命中和渲染域，几何补丁精确返回裁剪影响集合与稳定零面积条目。
 class RuntimeUiScrollGeometryPatchPerformanceContractTests(unittest.TestCase):
     def test_scroll_offset_uses_layout_hit_and_render_domains_only(self) -> None:
         source = SCROLL.read_text(encoding="utf-8")

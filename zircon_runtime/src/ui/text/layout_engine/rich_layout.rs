@@ -1,11 +1,12 @@
 use crate::core::framework::text::TextLayoutError;
 use crate::text::layout::{
-    ELLIPSIS, RichWordWrapMode, layout_rich_text_glyph_wrapped_with_provider,
+    layout_rich_text_glyph_wrapped_with_provider,
     layout_rich_text_with_provider as layout_rich_text_items_with_provider,
     layout_rich_text_word_wrapped_with_provider, measured_grapheme_widths_with_provider,
     resolve_rich_run_style, rich_forced_line_ranges, rich_glyph_line_ranges_with_provider,
-    soft_hyphen_break_suffix_at,
+    soft_hyphen_break_suffix_at, RichWordWrapMode, ELLIPSIS,
 };
+use crate::text::layout_geometry::finite_sum;
 use crate::text::shaping::{TextLayoutOutcome, TextShapeRunProvider, TextShapingOutcome};
 use crate::text::{LayoutItem, SharedTextLayoutSession};
 use zircon_runtime_interface::ui::layout::UiFrame;
@@ -15,7 +16,7 @@ use zircon_runtime_interface::ui::surface::{
 };
 
 use super::super::rich_text::UiParsedText;
-use super::candidate_line::{CandidateLine, append_virtual_discretionary_hyphen};
+use super::candidate_line::{append_virtual_discretionary_hyphen, CandidateLine};
 use super::ellipsis::{
     ellipsis_style_owner_source_range, ellipsize_line_with_advances_and_style_owner,
     is_ellipsis_overflow,
@@ -175,7 +176,7 @@ pub(super) fn layout_rich_text_with_provider(
                 return TextShapingOutcome::failed(TextLayoutError::LayoutFailed);
             };
             let source_range = UiTextRange { start, end };
-            let line_height = rich_line.ascent + rich_line.descent;
+            let line_height = finite_sum([rich_line.ascent, rich_line.descent]);
             let paragraph_start = crate::text::hard_line_start(parsed.text(), source_range.start);
             let first_physical_line = previous_paragraph_start != Some(paragraph_start);
             previous_paragraph_start = Some(paragraph_start);
@@ -291,27 +292,27 @@ pub(super) fn layout_rich_text_with_provider(
                 Ok(()) => {}
                 Err(_) => return TextShapingOutcome::failed(TextLayoutError::BidiInvariant),
             }
-            let measured_width = glyph_advances.iter().copied().sum::<f32>();
+            let measured_width = finite_sum(glyph_advances.iter().copied());
             let resolved_source_range = visual_line.source_range;
             let line_width = measured_width.min(constraints.max_width);
             let line_align = constraints.align;
             let content_frame =
                 super::paragraph_layout::inset_logical_start(frame, constraints.inset, direction);
-            let placement_frame = UiFrame::new(
-                content_frame.x,
-                frame.y + rich_line.origin.y,
-                content_frame.width,
-                line_height,
-            );
+            let line_y = finite_sum([frame.y, rich_line.origin.y]);
+            let placement_frame =
+                UiFrame::new(content_frame.x, line_y, content_frame.width, line_height);
             let line_frame = UiFrame::new(
                 aligned_x(content_frame, line_width, line_align, direction),
-                frame.y + rich_line.origin.y,
+                line_y,
                 measured_width,
                 line_height,
             );
             unclipped_measured_width = unclipped_measured_width.max(measured_width);
-            unclipped_measured_height =
-                unclipped_measured_height.max(line_frame.bottom() - frame.y);
+            unclipped_measured_height = unclipped_measured_height.max(finite_sum([
+                line_frame.y,
+                line_frame.height,
+                -frame.y,
+            ]));
             if placement_frame.intersection(clip).is_none() {
                 overflow_clipped = true;
                 continue;
@@ -486,7 +487,7 @@ where
     P: TextShapeRunProvider + ?Sized,
 {
     match item {
-        LayoutItem::Inline { advance, .. } => vec![*advance],
+        LayoutItem::Inline { advance, .. } => TextShapingOutcome::Ready(vec![*advance]),
         LayoutItem::Text {
             run_index,
             source_range,

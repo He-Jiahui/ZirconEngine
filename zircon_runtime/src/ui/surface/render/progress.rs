@@ -13,6 +13,8 @@ use zircon_runtime_interface::ui::{
 
 use super::painter_state::UiRenderPainterStateSource;
 
+const PROGRESS_COMMAND_CAPACITY: usize = 3;
+
 #[derive(Clone, Copy, Debug)]
 struct ProgressVisual {
     track: UiRgbaColor,
@@ -159,7 +161,8 @@ pub(super) fn progress_render_commands(
     }
 
     let radius = visual.corner_radius.min(track.height * 0.5);
-    let mut commands = vec![quad_command(
+    let mut commands = Vec::with_capacity(PROGRESS_COMMAND_CAPACITY);
+    commands.push(quad_command(
         node_id,
         track,
         clip_frame,
@@ -170,7 +173,7 @@ pub(super) fn progress_render_commands(
         radius,
         &state,
         opacity,
-    )];
+    ));
     let percent = progress_percent(metadata);
     let fill_width = (track.width * percent).clamp(0.0, track.width);
     if fill_width > 0.0 {

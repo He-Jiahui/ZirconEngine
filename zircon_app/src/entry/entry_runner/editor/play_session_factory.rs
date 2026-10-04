@@ -35,10 +35,12 @@ impl PlaySessionFactory for AppPlaySessionFactory {
         &self,
         request: &PlaySessionLaunchRequest,
     ) -> Result<Box<dyn PlaySessionLease>, String> {
+        eprintln!("mvp_play_boundary app_factory_entered");
         let runtime = self
             .runtime_preflight
             .load_after_preflight()
             .map_err(|error| error.to_string())?;
+        eprintln!("mvp_play_boundary app_factory_runtime_loaded");
         let session = Arc::new(
             RuntimeSession::create_with_profile_and_project(
                 runtime,
@@ -48,17 +50,23 @@ impl PlaySessionFactory for AppPlaySessionFactory {
                 None,
                 None,
             )
-            .map_err(|error| error.to_string())?,
+            .map_err(|error| error.diagnostic_with_recovery())?,
         );
+        eprintln!("mvp_play_boundary app_factory_session_created");
         let gateway = session
             .editor_gateway(self.capabilities.clone())
             .map_err(|error| error.to_string())?;
+        eprintln!("mvp_play_boundary app_factory_gateway_created");
         Ok(Box::new(AppPlaySessionLease {
             gateway: Some(gateway),
             session: Some(session),
         }))
     }
 }
+
+#[cfg(test)]
+#[path = "tests/play_session_factory.rs"]
+mod tests;
 
 struct AppPlaySessionLease {
     gateway: Option<SharedEditorRuntimeGateway>,

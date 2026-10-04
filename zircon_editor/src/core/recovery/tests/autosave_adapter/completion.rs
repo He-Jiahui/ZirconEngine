@@ -23,22 +23,20 @@ fn autosave_completion_pump_inspects_only_the_explicit_ticket_budget() {
     let source = Arc::new(CountingSnapshotSource::success());
     let save_mutex = MutexGroup::parse("save_completion_budget").unwrap();
 
-    assert!(
-        adapter
-            .schedule(
-                Duration::from_secs(10),
-                &dirty,
-                |_| 1,
-                |document| {
-                    Some(AutosaveDocumentRequest::new(
-                        document.clone(),
-                        AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
-                        source.clone(),
-                    ))
-                },
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule(
+            Duration::from_secs(10),
+            &dirty,
+            |_| 1,
+            |document| {
+                Some(AutosaveDocumentRequest::new(
+                    document.clone(),
+                    AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
+                    source.clone(),
+                ))
+            },
+        )
+        .unwrap());
 
     let first = adapter.pump_completed_with_budget(Duration::from_secs(11), 8);
     assert_eq!(first.inspected_tickets(), 8);
@@ -76,27 +74,25 @@ fn autosave_completion_budget_preserves_zero_budget_and_rotates_a_blocked_head()
         AutosaveStore::new(&root),
         AutosaveScheduler::new(AutosavePolicy::new(Duration::from_secs(10)).unwrap()),
     );
-    assert!(
-        adapter
-            .schedule(
-                Duration::from_secs(10),
-                &dirty,
-                |_| 1,
-                |document| {
-                    let (save_mutex, source) = if document.as_str() == "scene_a" {
-                        (blocked_mutex.clone(), blocked_source.clone())
-                    } else {
-                        (ready_mutex.clone(), ready_source.clone())
-                    };
-                    Some(AutosaveDocumentRequest::new(
-                        document.clone(),
-                        AutosaveJobPolicy::for_save_mutex(save_mutex),
-                        source,
-                    ))
-                },
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule(
+            Duration::from_secs(10),
+            &dirty,
+            |_| 1,
+            |document| {
+                let (save_mutex, source) = if document.as_str() == "scene_a" {
+                    (blocked_mutex.clone(), blocked_source.clone())
+                } else {
+                    (ready_mutex.clone(), ready_source.clone())
+                };
+                Some(AutosaveDocumentRequest::new(
+                    document.clone(),
+                    AutosaveJobPolicy::for_save_mutex(save_mutex),
+                    source,
+                ))
+            },
+        )
+        .unwrap());
     wait_for_capture_count(&ready_source, 1);
 
     let zero = adapter.pump_completed_with_budget(Duration::from_secs(11), 0);
@@ -141,28 +137,25 @@ fn autosave_completion_counts_accumulate_then_reset_for_the_next_interval() {
         AutosaveStore::new(&root),
         AutosaveScheduler::new(AutosavePolicy::new(Duration::from_secs(10)).unwrap()),
     );
-    assert!(
-        adapter
-            .schedule(
-                Duration::from_secs(10),
-                &dirty,
-                |_| 1,
-                |document| {
-                    let source: Arc<dyn AutosaveSnapshotSource> = if document.as_str() == "scene_a"
-                    {
-                        succeeded_source.clone()
-                    } else {
-                        failed_source.clone()
-                    };
-                    Some(AutosaveDocumentRequest::new(
-                        document.clone(),
-                        AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
-                        source,
-                    ))
-                },
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule(
+            Duration::from_secs(10),
+            &dirty,
+            |_| 1,
+            |document| {
+                let source: Arc<dyn AutosaveSnapshotSource> = if document.as_str() == "scene_a" {
+                    succeeded_source.clone()
+                } else {
+                    failed_source.clone()
+                };
+                Some(AutosaveDocumentRequest::new(
+                    document.clone(),
+                    AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
+                    source,
+                ))
+            },
+        )
+        .unwrap());
     wait_for_capture_count(&succeeded_source, 1);
     wait_for_capture_count(&failed_source, 1);
 
@@ -191,22 +184,20 @@ fn autosave_completion_counts_accumulate_then_reset_for_the_next_interval() {
     assert_eq!(reset.succeeded(), 0);
     assert_eq!(reset.failed(), 0);
     assert_eq!(reset.pending(), 0);
-    assert!(
-        adapter
-            .schedule(
-                Duration::from_secs(21),
-                &dirty[..1],
-                |_| 1,
-                |document| {
-                    Some(AutosaveDocumentRequest::new(
-                        document.clone(),
-                        AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
-                        Arc::new(CountingSnapshotSource::success()),
-                    ))
-                },
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule(
+            Duration::from_secs(21),
+            &dirty[..1],
+            |_| 1,
+            |document| {
+                Some(AutosaveDocumentRequest::new(
+                    document.clone(),
+                    AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
+                    Arc::new(CountingSnapshotSource::success()),
+                ))
+            },
+        )
+        .unwrap());
     assert_eq!(
         wait_for_autosave_completion(&mut adapter, Duration::from_secs(22)).succeeded(),
         1

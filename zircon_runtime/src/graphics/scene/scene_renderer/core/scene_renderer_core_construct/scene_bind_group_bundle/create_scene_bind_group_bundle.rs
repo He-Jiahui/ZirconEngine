@@ -5,6 +5,7 @@ use super::scene_bind_group_bundle::SceneBindGroupBundle;
 use crate::graphics::backend::SystemTextureGenerationLease;
 use wgpu::util::DeviceExt;
 
+/// 以系统纹理世代租约建立 scene 常驻绑定；冷启动默认 SH9 随设备创建，后续帧只上传更新量。
 pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_construct) fn create_scene_bind_group_bundle(
     device: &wgpu::Device,
     system_textures: &SystemTextureGenerationLease,
@@ -49,32 +50,5 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_constru
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn scene_sh9_default_uses_cold_mapped_initialization() {
-        let production = include_str!("create_scene_bind_group_bundle.rs")
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("scene bind group construction must retain a test boundary");
-
-        assert!(production.contains("device.create_buffer_init("));
-        assert!(production.contains("contents: bytemuck::bytes_of(&environment_sh9)"));
-        assert!(production.contains("wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST"));
-        assert!(!production.contains("queue.write_buffer("));
-    }
-
-    #[test]
-    fn scene_bundle_consumes_system_textures_without_queue_authority() {
-        let production = include_str!("create_scene_bind_group_bundle.rs")
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("scene bind group construction must retain a test boundary");
-
-        assert!(production.contains("SceneEnvironmentCubemap::fallback(system_textures)"));
-        assert!(
-            production.contains("SceneEnvironmentBrdfLut::from_system_textures(system_textures)")
-        );
-        assert!(!production.contains("queue: &wgpu::Queue"));
-        assert!(!production.contains("queue.write_texture"));
-    }
-}
+#[path = "tests/create_scene_bind_group_bundle.rs"]
+mod tests;

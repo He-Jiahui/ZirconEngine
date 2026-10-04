@@ -13,7 +13,7 @@ class CleanupInterruptedIndexPerformanceContractTests(unittest.TestCase):
         source = inspect.getsource(interrupted_target_deletions)
 
         self.assertIn("latest_by_target", source)
-        self.assertEqual(1, source.count("for deletion_id, payload in started.items():"))
+        self.assertEqual(1, source.count("for row in rows:"))
         self.assertNotIn("reversed(tuple(started.items()))", source)
         self.assertIn("latest_by_target.get(target_key)", source)
 

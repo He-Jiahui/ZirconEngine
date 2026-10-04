@@ -7,7 +7,7 @@ pub(super) fn production_source_lines(source: &str) -> Vec<(usize, &str)> {
 
     for (line_index, line) in source.lines().enumerate() {
         let trimmed = line.trim();
-// BUG: [CR-RUNTIME-TESTS-ABS-0008] 逐行统计花括号把字符串内容也计入测试模块深度，导致夹具行泄漏或后续生产行被跳过；证据：当前函数及独立复现。
+        // BUG: [CR-RUNTIME-TESTS-ABS-0008] 逐行统计花括号把字符串内容也计入测试模块深度，导致夹具行泄漏或后续生产行被跳过；证据：当前函数及独立复现。
         let delta = line.matches('{').count() as isize - line.matches('}').count() as isize;
 
         if let Some(base_depth) = cfg_test_base_depth {

@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, HashSet};
 
 use crate::ui::asset_editor::UiDesignerSelectionModel;
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use zircon_runtime::ui::v2::UiV2AssetLoader;
 use zircon_runtime_interface::ui::template::{
     UiAssetDocument, UiComponentDefinition, UiNodeDefinition,
 };
@@ -12,8 +13,8 @@ use super::{
         UiAssetEditorDocumentReplayCommand, UiAssetEditorTreeEdit, UiAssetEditorTreeEditKind,
     },
     ui_asset_editor_session::{
-        UiAssetEditorReplayResult, UiAssetEditorSession, UiAssetEditorSessionError,
-        remap_source_byte_offset,
+        remap_source_byte_offset, UiAssetEditorReplayResult, UiAssetEditorSession,
+        UiAssetEditorSessionError, UiAssetSourceSchema,
     },
     undo_stack::UiAssetEditorUndoExternalEffects,
 };
@@ -55,6 +56,37 @@ impl UiAssetEditorSession {
         next_theme_source_key: Option<String>,
         next_style_rule_id: Option<Option<String>>,
     ) -> Result<(), UiAssetEditorSessionError> {
+        // A valid document of the wrong kind is a rejected command. Check it
+        // before changing the source buffer so a failed command cannot leave
+        // an unregistered dirty buffer behind.
+        let mut prebuilt_v2_palette = None;
+        match self.source_schema {
+            UiAssetSourceSchema::LayoutDocument => {
+                if let Ok(document) = super::lifecycle::parse_ui_asset_source(command.next_source())
+                {
+                    super::session_state::ensure_asset_kind(
+                        self.route.asset_kind,
+                        document.asset.kind,
+                    )?;
+                }
+            }
+            UiAssetSourceSchema::V2 => {
+                if let Ok(document) = UiV2AssetLoader::load_toml_str(command.next_source()) {
+                    let projection =
+                        super::lifecycle::v2_projection::v2_document_to_legacy_projection_document(
+                            &document,
+                        )?;
+                    super::session_state::ensure_asset_kind(
+                        self.route.asset_kind,
+                        projection.asset.kind,
+                    )?;
+                    prebuilt_v2_palette = super::lifecycle::preflight_v2_palette_catalog(
+                        &projection,
+                        &self.v2_compiler_imports.widgets,
+                    )?;
+                }
+            }
+        }
         let before_source = self.source_buffer.text().to_string();
         let before_selection = self.selection.clone();
         let before_source_cursor = self.source_cursor_snapshot();
@@ -79,7 +111,17 @@ impl UiAssetEditorSession {
         if let Some(next_style_rule_id) = next_style_rule_id {
             self.selected_style_rule_id = next_style_rule_id;
         }
-        self.revalidate().map(|_| {
+        let validation = if let Some(palette) = prebuilt_v2_palette {
+            self.palette_catalog = palette;
+            #[cfg(test)]
+            {
+                self.palette_catalog_build_count += 1;
+            }
+            self.revalidate_without_palette_catalog()
+        } else {
+            self.revalidate()
+        };
+        validation.map(|_| {
             if command.next_selection().is_some() {
                 self.set_source_cursor_to_selected_node_start();
             } else if self.diagnostics.is_empty() {
@@ -343,6 +385,10 @@ fn tree_document_replay_commands(
     commands
 }
 
+#[cfg(test)]
+#[path = "tests/command_entry_close_dirty_preflight_tests.rs"]
+mod close_dirty_preflight_tests;
+
 fn build_widget_import_replay_commands(
     current: &[String],
     target: &[String],
@@ -358,7 +404,7 @@ fn build_widget_import_replay_commands(
 
     let target_entries = widget_import_target_entries(target);
     let mut working = current.to_vec();
-    let mut commands = Vec::new();
+    let mut commands = Vec::with_capacity(current.len().saturating_add(target.len()));
 
     for index in (0..working.len()).rev() {
         if target_entries.contains(working[index].as_str()) {
@@ -513,135 +559,9 @@ fn has_duplicate_string_entries(entries: &[String]) -> bool {
 }
 
 #[cfg(test)]
-mod optimization_tests {
-    use std::collections::BTreeSet;
-    use std::hint::black_box;
-    use std::time::Instant;
+#[path = "command_entry/tests/optimization_batch_jn_editor653_tests.rs"]
+mod optimization_batch_jn_editor653_tests;
 
-    use super::*;
-
-    fn strings(values: &[&str]) -> Vec<String> {
-        values.iter().map(|value| (*value).to_string()).collect()
-    }
-
-    #[test]
-    fn optimization_batch_20260826k_editor23_widget_import_hash_index_preserves_replay() {
-        let commands = build_widget_import_replay_commands(
-            &strings(&["a", "b", "obsolete"]),
-            &strings(&["b", "a", "new"]),
-        );
-
-        assert!(matches!(
-            &commands[0],
-            UiAssetEditorDocumentReplayCommand::RemoveWidgetImport { index: 2, reference }
-                if reference == "obsolete"
-        ));
-        assert!(matches!(
-            &commands[1],
-            UiAssetEditorDocumentReplayCommand::MoveWidgetImport {
-                from_index: 1,
-                to_index: 0,
-                reference,
-            } if reference == "b"
-        ));
-        assert!(matches!(
-            &commands[2],
-            UiAssetEditorDocumentReplayCommand::InsertWidgetImport { index: 2, reference }
-                if reference == "new"
-        ));
-
-        let duplicate_fallback =
-            build_widget_import_replay_commands(&strings(&["a"]), &strings(&["a", "a"]));
-        assert!(matches!(
-            duplicate_fallback.as_slice(),
-            [UiAssetEditorDocumentReplayCommand::SetWidgetImports { references }]
-                if references == &strings(&["a", "a"])
-        ));
-    }
-
-    #[test]
-    fn optimization_batch_20260826k_editor23_widget_import_index_borrows_hash_keys() {
-        let source = include_str!("command_entry.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("asset editor command production source");
-        let replay = production
-            .split("fn build_widget_import_replay_commands")
-            .nth(1)
-            .expect("widget import replay")
-            .split("fn upsert_node_replay_commands")
-            .next()
-            .expect("bounded widget import replay");
-
-        assert!(!production.contains("BTreeSet"));
-        assert!(replay.contains("widget_import_target_entries(target)"));
-        assert!(production.contains("HashSet::with_capacity(target.len())"));
-        assert!(production.contains("HashSet::with_capacity(entries.len())"));
-        assert!(!replay.contains("target.iter().cloned()"));
-    }
-
-    #[test]
-    #[ignore = "release performance evidence; run through the validation coordinator"]
-    fn optimization_batch_20260826k_editor23_widget_import_borrowed_hash_performance_evidence() {
-        fn legacy_retained_count(current: &[String], target: &[String]) -> usize {
-            let target_entries = target.iter().cloned().collect::<BTreeSet<_>>();
-            current
-                .iter()
-                .filter(|entry| target_entries.contains(*entry))
-                .count()
-        }
-
-        let target = (0..32_768)
-            .map(|index| format!("res://editor/widget/import/{index:05}.zui"))
-            .collect::<Vec<_>>();
-        let current = (0..32_768)
-            .map(|index| {
-                if index % 2 == 0 {
-                    target[index].clone()
-                } else {
-                    format!("res://editor/widget/stale/{index:05}.zui")
-                }
-            })
-            .collect::<Vec<_>>();
-        let copied_target_bytes = target.iter().map(String::len).sum::<usize>();
-        let mut legacy_samples = Vec::with_capacity(17);
-        let mut hash_samples = Vec::with_capacity(17);
-        for _ in 0..17 {
-            let started = Instant::now();
-            black_box(legacy_retained_count(
-                black_box(&current),
-                black_box(&target),
-            ));
-            legacy_samples.push(started.elapsed().as_nanos());
-
-            let started = Instant::now();
-            let target_entries = widget_import_target_entries(black_box(&target));
-            black_box(
-                current
-                    .iter()
-                    .filter(|entry| target_entries.contains(entry.as_str()))
-                    .count(),
-            );
-            hash_samples.push(started.elapsed().as_nanos());
-        }
-
-        legacy_samples.sort_unstable();
-        hash_samples.sort_unstable();
-        let legacy_p95 = legacy_samples[16];
-        let hash_p95 = hash_samples[16];
-        println!(
-            "EDITOR23_WIDGET_IMPORT_BORROWED_HASH_INDEX_BENCH_V1 target_imports={} current_imports={} legacy_p95_ns={} hash_p95_ns={} legacy_string_clones={} hash_string_clones=0 legacy_copied_bytes={} hash_copied_bytes=0 target_ratio_bp=6000",
-            target.len(),
-            current.len(),
-            legacy_p95,
-            hash_p95,
-            target.len(),
-            copied_target_bytes,
-        );
-        assert!(
-            hash_p95.saturating_mul(10_000) <= legacy_p95.saturating_mul(6_000),
-            "borrowed widget import hash P95 {hash_p95} ns exceeded 60% of legacy {legacy_p95} ns"
-        );
-    }
-}
+#[cfg(test)]
+#[path = "tests/command_entry_optimization_tests.rs"]
+mod optimization_tests;

@@ -21,7 +21,7 @@ def expansion_body() -> str:
     text = source().split("fn expand_track_sends", 1)[1]
     return text.split("#[cfg(test)]", 1)[0]
 
-
+# 读取路由展开缓存实现，确认递归展开只填充一次，命中时复用展开结果而不克隆向量。
 class Plugins11CachedExpandedRoutesContract(unittest.TestCase):
     def test_recursive_expansion_reports_cache_population_only(self) -> None:
         body = compact(expansion_body())

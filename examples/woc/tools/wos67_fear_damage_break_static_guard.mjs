@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node wos67_fear_damage_break_static_guard.mjs；缺少源码契约时脚本抛错退出。
+// 对照锁定的恐惧受伤解除概率，检查光环和伤害状态的并行数组、随机数消耗顺序及归约回归标记。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -51,6 +55,7 @@ requireText(
   "aura dispatch regression coverage is missing",
 );
 
+// 伤害归约器须在光环旁保留解除概率系数，且仅对分级恐惧解除消耗随机数。
 const damage = read("scripts", "woc_game", "src", "combat", "damage_state.zr");
 requireText(
   damage,

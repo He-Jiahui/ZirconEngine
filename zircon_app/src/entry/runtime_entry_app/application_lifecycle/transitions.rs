@@ -4,7 +4,7 @@ use super::{
 };
 
 impl ApplicationLifecycleMachine {
-    pub(super) fn resume(&mut self) -> bool {
+    pub(in crate::entry::runtime_entry_app) fn resume(&mut self) -> bool {
         match self.state {
             ApplicationLifecycleState::Cold | ApplicationLifecycleState::Suspended => {
                 self.state = ApplicationLifecycleState::AwaitingSurface;
@@ -16,20 +16,20 @@ impl ApplicationLifecycleMachine {
         }
     }
 
-    pub(super) const fn surface_creation_requested(&self) -> bool {
+    pub(in crate::entry::runtime_entry_app) const fn surface_creation_requested(&self) -> bool {
         matches!(
             self.state,
             ApplicationLifecycleState::Cold | ApplicationLifecycleState::AwaitingSurface
         )
     }
 
-    pub(super) fn confirm_surface_created(&mut self) {
+    pub(in crate::entry::runtime_entry_app) fn confirm_surface_created(&mut self) {
         if self.surface_creation_requested() {
             self.state = ApplicationLifecycleState::SurfaceActive;
         }
     }
 
-    pub(super) fn destroy_surfaces(&mut self) -> SurfaceReleaseAction {
+    pub(in crate::entry::runtime_entry_app) fn destroy_surfaces(&mut self) -> SurfaceReleaseAction {
         if self.state == ApplicationLifecycleState::SurfaceActive {
             self.state = ApplicationLifecycleState::AwaitingSurface;
             SurfaceReleaseAction::Release
@@ -38,7 +38,7 @@ impl ApplicationLifecycleMachine {
         }
     }
 
-    pub(super) fn suspend(&mut self) -> Option<SurfaceReleaseAction> {
+    pub(in crate::entry::runtime_entry_app) fn suspend(&mut self) -> Option<SurfaceReleaseAction> {
         match self.state {
             ApplicationLifecycleState::Suspended | ApplicationLifecycleState::Exiting => None,
             ApplicationLifecycleState::SurfaceActive => {
@@ -52,7 +52,7 @@ impl ApplicationLifecycleMachine {
         }
     }
 
-    pub(super) fn exit(&mut self) -> Option<SurfaceReleaseAction> {
+    pub(in crate::entry::runtime_entry_app) fn exit(&mut self) -> Option<SurfaceReleaseAction> {
         match self.state {
             ApplicationLifecycleState::Exiting => None,
             ApplicationLifecycleState::SurfaceActive => {
@@ -68,7 +68,7 @@ impl ApplicationLifecycleMachine {
         }
     }
 
-    pub(super) const fn allows_frame_pump(&self) -> bool {
+    pub(in crate::entry::runtime_entry_app) fn allows_frame_pump(&self) -> bool {
         self.state == ApplicationLifecycleState::SurfaceActive
     }
 }

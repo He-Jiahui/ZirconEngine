@@ -186,15 +186,16 @@ fn command_palette_uses_surface_anchor_without_editor_geometry_projection() {
         .open_command_palette(palette_state("file.project.open", "Open Project"))
         .expect("command palette should open after a narrow layout recompute");
 
-    let node_id = bridge
-        .control_node_id(COMMAND_PALETTE_CONTROL_ID)
-        .expect("command palette control should resolve");
     let metadata = bridge
-        .template_surface
-        .surface
+        .surface()
         .tree
-        .node(node_id)
-        .and_then(|node| node.template_metadata.as_ref())
+        .nodes
+        .values()
+        .find_map(|node| {
+            node.template_metadata.as_ref().filter(|metadata| {
+                metadata.control_id.as_deref() == Some(COMMAND_PALETTE_CONTROL_ID)
+            })
+        })
         .expect("command palette metadata should resolve");
     assert!(matches!(
         &metadata.widget.popup_anchor,

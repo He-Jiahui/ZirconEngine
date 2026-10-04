@@ -74,6 +74,7 @@ export function SettingsSection({
               <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 1.2, "@media (max-width: 760px)": { gridTemplateColumns: "1fr" } }}>
                 <HubComboBox
                   value={draft.buildProfile}
+                  label={labels.buildProfile}
                   minWidth={0}
                   options={settingsText.buildProfileOptions}
                   onChange={(value) => updateDraft("buildProfile", value)}
@@ -88,6 +89,7 @@ export function SettingsSection({
                 <HubSwitch checked={draft.buildProfile === "release"} label={labels.releaseBuild} detail={buildProfileLabel} onChange={(checked) => updateDraft("buildProfile", checked ? "release" : "debug")} />
                 <HubComboBox
                   value={draft.language}
+                  label={labels.language}
                   minWidth={0}
                   options={settingsText.languageOptions}
                   onChange={(value) => updateDraft("language", value)}
@@ -167,7 +169,7 @@ export function SettingsSection({
                   {draftSettings.health.completion}%
                 </Typography>
               </Box>
-              <LinearProgress variant="determinate" value={draftSettings.health.completion} />
+              <LinearProgress aria-label={settingsText.completenessLabel} variant="determinate" value={draftSettings.health.completion} />
             </Box>
             <HubList items={healthRows} />
           </Box>

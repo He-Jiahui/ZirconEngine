@@ -13,18 +13,20 @@ first queue from empty even though the complete direct dependency count was alre
 
 ## Optimization
 
-- Use the direct dependency count as the initial capacity for rows, row lookup, and traversal queue,
-  plus one slot for the expanded root id.
-- Preserve breadth-first order, duplicate depth/direct merging, transitive expansion, missing-row
+- Use the direct dependency count as the initial capacity for the result rows, discovered set, and
+  traversal queue.
+- Deduplicate dependency ids at enqueue time, replacing the old row-index plus expanded-set pair;
+  preserve breadth-first order, direct/depth precedence, transitive expansion, missing-row
   diagnostics, and root cycle protection.
 
 ## Regression Contract
 
 The `optimization_batch_20260826fl_` Runtime tests traverse 256 real missing asset ids against a
 default readiness generation, verify row order, direct/depth flags, failed state, diagnostics and
-capacity, enforce all four production reservations, and provide an ignored paired release
-benchmark emitting `RUNTIME207_DEPENDENCY_READINESS_CAPACITY_BENCH_V1`. It fills four traversal
-containers 1,024 times per sample and requires `optimized_p95_ns <= legacy_p95_ns * 0.70`.
+capacity, enforce the three current production reservations, and compare the optimized traversal
+against the legacy graph on cyclic/shared/missing fixtures. An ignored paired release benchmark
+still emits `RUNTIME207_DEPENDENCY_READINESS_CAPACITY_BENCH_V1`; its synthetic container model is
+kept as a supplementary allocation signal and requires `optimized_p95_ns <= legacy_p95_ns * 0.70`.
 
 ## Validation Ownership
 

@@ -1,3 +1,5 @@
+//! 环境渲染契约的聚合门面：把天空盒、反射探针、辐照度、烘焙产物和运行时快照统一暴露给图形后端、插件与编辑器。
+//! 这里的类型只表达资源身份、采样布局和状态，不持有 GPU 资源所有权。
 mod ambient;
 mod cubemap_projection;
 mod environment_brdf_lut;
@@ -88,7 +90,11 @@ pub use rgba16f::{
     decode_rgba16f_texels, decode_rgba16f_texels_into_exact, encode_rg16f_texels,
     encode_rgba16f_texels, RG16F_TEXEL_SIZE_BYTES, RGBA16F_TEXEL_SIZE_BYTES,
 };
-pub use runtime_snapshot::{EnvironmentRuntimeSnapshot, EnvironmentRuntimeSnapshotError};
+pub use runtime_snapshot::{
+    EnvironmentCaptureResidencyReport, EnvironmentCubemapUploadReport,
+    EnvironmentIblHydrationReport, EnvironmentRuntimeSnapshot, EnvironmentRuntimeSnapshotError,
+    ENVIRONMENT_IBL_HYDRATION_REPORT_CAPACITY,
+};
 pub use skybox::{
     IblBakeKey, ProceduralSkyParams, SkyboxMode, SkyboxSettings, SourceCubemapEnvironment,
     SourceCubemapUploadKey, PROCEDURAL_SKY_DEFAULT_SOURCE_REVISION,

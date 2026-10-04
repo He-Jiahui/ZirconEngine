@@ -3,6 +3,7 @@ zircon_plugin_sdk::declare_plugin! {
         id: PLUGIN_ID = "plugin_sdk_examples",
         display_name: "Plugin SDK Examples",
         category: sdk,
+        package_role: sample,
         module: MODULE_NAME = "plugin_sdk_examples.editor",
         crate_name: EDITOR_CRATE_NAME = "zircon_plugin_sdk_examples_editor",
         module_description: "Editor SDK example extensions and asset fixtures",

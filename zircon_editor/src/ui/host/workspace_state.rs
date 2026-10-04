@@ -1,10 +1,15 @@
+use std::collections::BTreeSet;
+
 use serde_json::Value;
 
 use crate::ui::workbench::layout::{
-    MainHostPageLayout, MainPageId, RestorePolicy, WorkbenchLayout,
+    ActivityDrawerMode, ActivityDrawerSlot, DocumentNode, MainHostPageLayout, MainPageId,
+    RestorePolicy, WorkbenchLayout,
 };
 use crate::ui::workbench::project::ProjectEditorWorkspace;
-use crate::ui::workbench::view::{ViewDescriptor, ViewDescriptorId, ViewInstance, ViewInstanceId};
+use crate::ui::workbench::view::{
+    ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId,
+};
 use crate::ui::workbench::window_registry::EditorWindowRegistry;
 
 use super::asset_editor_sessions::UI_ASSET_EDITOR_DESCRIPTOR_ID;
@@ -35,6 +40,243 @@ fn active_main_page_view(session: &EditorSessionState) -> Option<ViewInstanceId>
         })
 }
 
+fn active_activity_window_template_descriptor_id(
+    session: &EditorSessionState,
+) -> Option<&ViewDescriptorId> {
+    let layout = &session.layout;
+    let active_page = layout
+        .main_pages
+        .iter()
+        .find(|page| page.id() == &layout.active_main_page)?;
+    match active_page {
+        MainHostPageLayout::WorkbenchPage {
+            activity_window, ..
+        } => layout
+            .activity_windows()
+            .get(activity_window)
+            .map(|window| &window.descriptor_id),
+        MainHostPageLayout::ExclusiveActivityWindowPage {
+            window_instance, ..
+        } => session
+            .open_view_instances
+            .get(window_instance)
+            .map(|instance| &instance.descriptor_id),
+    }
+}
+
+fn visit_document_focus_target<'a>(
+    node: &'a DocumentNode,
+    focused: Option<&ViewInstanceId>,
+    first: &mut Option<&'a ViewInstanceId>,
+    active: &mut Option<&'a ViewInstanceId>,
+) -> Option<&'a ViewInstanceId> {
+    match node {
+        DocumentNode::SplitNode {
+            first: first_node,
+            second: second_node,
+            ..
+        } => {
+            if let Some(target) = visit_document_focus_target(first_node, focused, first, active) {
+                return Some(target);
+            }
+            visit_document_focus_target(second_node, focused, first, active)
+        }
+        DocumentNode::Tabs(stack) => {
+            for tab in &stack.tabs {
+                if first.is_none() {
+                    *first = Some(tab);
+                }
+                if focused == Some(tab) {
+                    return Some(tab);
+                }
+                if active.is_none() && stack.active_tab.as_ref() == Some(tab) {
+                    *active = Some(tab);
+                }
+            }
+            None
+        }
+    }
+}
+
+fn floating_window_focus_target_in_layout<'a>(
+    layout: &'a WorkbenchLayout,
+    window_id: &MainPageId,
+) -> Option<&'a ViewInstanceId> {
+    let window = layout
+        .floating_windows
+        .iter()
+        .find(|window| &window.window_id == window_id)?;
+    let mut first = None;
+    let mut active = None;
+    visit_document_focus_target(
+        &window.workspace,
+        window.focused_view.as_ref(),
+        &mut first,
+        &mut active,
+    )
+    .or(active)
+    .or(first)
+}
+
+fn floating_window_id_for_surface_key_in_layout(
+    layout: &WorkbenchLayout,
+    surface_key: &str,
+) -> Option<MainPageId> {
+    layout
+        .floating_windows
+        .iter()
+        .find(|window| window.window_id.0 == surface_key)
+        .map(|window| window.window_id.clone())
+}
+
+fn active_drawer_toggle_state_in_layout(
+    layout: &WorkbenchLayout,
+    slot: ActivityDrawerSlot,
+    instance_id: &ViewInstanceId,
+) -> Result<(ActivityDrawerMode, bool, bool), String> {
+    let active_window_id = layout
+        .active_activity_window_id()
+        .ok_or_else(|| "missing active activity window".to_string())?;
+    let active_drawers = &layout
+        .activity_windows()
+        .get(&active_window_id)
+        .ok_or_else(|| format!("missing active activity window {active_window_id:?}"))?
+        .activity_drawers;
+    let drawer = active_drawers
+        .get(&slot)
+        .ok_or_else(|| format!("missing drawer {slot:?}"))?;
+    let region_was_expanded = active_drawers.iter().any(|(candidate_slot, candidate)| {
+        candidate_slot.shares_region(slot)
+            && candidate.visible
+            && !candidate.tab_stack.tabs.is_empty()
+            && candidate.mode != ActivityDrawerMode::Collapsed
+    });
+    let is_active = drawer
+        .tab_stack
+        .active_tab
+        .as_ref()
+        .is_some_and(|active| active == instance_id);
+    Ok((drawer.mode, is_active, region_was_expanded))
+}
+
+fn active_drawer_mode_in_layout(
+    layout: &WorkbenchLayout,
+    slot: ActivityDrawerSlot,
+) -> Option<ActivityDrawerMode> {
+    layout
+        .active_activity_window()
+        .and_then(|window| window.activity_drawers.get(&slot))
+        .map(|drawer| drawer.mode)
+}
+
+fn floating_window_exists_in_layout(layout: &WorkbenchLayout, window_id: &MainPageId) -> bool {
+    layout
+        .floating_windows
+        .iter()
+        .any(|window| &window.window_id == window_id)
+}
+
+fn floating_window_instance_ids_in_layout(
+    layout: &WorkbenchLayout,
+    window_id: &MainPageId,
+) -> Option<Vec<ViewInstanceId>> {
+    let window = layout
+        .floating_windows
+        .iter()
+        .find(|window| &window.window_id == window_id)?;
+    let mut instance_ids = Vec::with_capacity(window.workspace.instance_count());
+    window.workspace.append_instance_ids(&mut instance_ids);
+    (!instance_ids.is_empty()).then_some(instance_ids)
+}
+
+fn view_host_for_instance_key_in_session(
+    session: &EditorSessionState,
+    surface_key: &str,
+) -> Option<ViewHost> {
+    session
+        .open_view_instances
+        .values()
+        .find(|instance| instance.instance_id.0 == surface_key)
+        .map(|instance| instance.host.clone())
+}
+
+fn view_instance_id_for_descriptor_in_session<'a>(
+    session: &'a EditorSessionState,
+    descriptor_id: &ViewDescriptorId,
+) -> Option<&'a ViewInstanceId> {
+    session
+        .open_view_instances
+        .iter()
+        .find_map(|(instance_id, instance)| {
+            (&instance.descriptor_id == descriptor_id).then_some(instance_id)
+        })
+}
+
+fn current_view_instance_ids_in_session(session: &EditorSessionState) -> Vec<ViewInstanceId> {
+    session.open_view_instances.keys().cloned().collect()
+}
+
+fn view_instance_ids_for_descriptor_key_in_session(
+    session: &EditorSessionState,
+    descriptor_key: &str,
+) -> Vec<ViewInstanceId> {
+    let mut instance_ids = Vec::new();
+    for (instance_id, instance) in &session.open_view_instances {
+        if instance.descriptor_id.0.as_str() != descriptor_key {
+            continue;
+        }
+        if instance_ids.is_empty() {
+            instance_ids.reserve(session.open_view_instances.len());
+        }
+        instance_ids.push(instance_id.clone());
+    }
+    instance_ids
+}
+
+fn view_instance_ids_for_descriptors_in_session(
+    session: &EditorSessionState,
+    descriptor_ids: &BTreeSet<ViewDescriptorId>,
+) -> Vec<ViewInstanceId> {
+    let mut instance_ids = Vec::new();
+    for (instance_id, instance) in &session.open_view_instances {
+        if !descriptor_ids.contains(&instance.descriptor_id) {
+            continue;
+        }
+        if instance_ids.is_empty() {
+            instance_ids.reserve(session.open_view_instances.len());
+        }
+        instance_ids.push(instance_id.clone());
+    }
+    instance_ids
+}
+
+fn editor_pane_instance_ids_in_session(
+    session: &EditorSessionState,
+    collect_ui_asset_panes: bool,
+    collect_animation_panes: bool,
+) -> (Vec<ViewInstanceId>, Vec<ViewInstanceId>) {
+    let mut ui_asset_instance_ids = Vec::new();
+    let mut animation_instance_ids = Vec::new();
+    for (instance_id, instance) in &session.open_view_instances {
+        match instance.descriptor_id.0.as_str() {
+            UI_ASSET_EDITOR_DESCRIPTOR_ID if collect_ui_asset_panes => {
+                if ui_asset_instance_ids.is_empty() {
+                    ui_asset_instance_ids.reserve(session.open_view_instances.len());
+                }
+                ui_asset_instance_ids.push(instance_id.clone());
+            }
+            "editor.animation_sequence" | "editor.animation_graph" if collect_animation_panes => {
+                if animation_instance_ids.is_empty() {
+                    animation_instance_ids.reserve(session.open_view_instances.len());
+                }
+                animation_instance_ids.push(instance_id.clone());
+            }
+            _ => {}
+        }
+    }
+    (ui_asset_instance_ids, animation_instance_ids)
+}
+
 impl EditorUiHost {
     pub(super) fn current_layout(&self) -> WorkbenchLayout {
         self.lock_session().layout.clone()
@@ -61,6 +303,117 @@ impl EditorUiHost {
             .open_view_instances
             .get(focused)
             .is_some_and(|instance| &instance.descriptor_id == descriptor_id)
+    }
+
+    pub(super) fn active_activity_window_template_document_is(&self, document_id: &str) -> bool {
+        let session = self.lock_session();
+        let Some(descriptor_id) = active_activity_window_template_descriptor_id(&session) else {
+            return false;
+        };
+        let registry = self.lock_view_registry();
+        let Some(descriptor) = registry.descriptor(descriptor_id) else {
+            return false;
+        };
+        if registry.descriptor_capability_error(descriptor).is_some() {
+            return false;
+        }
+        descriptor
+            .activity_window_template
+            .as_ref()
+            .is_some_and(|template| template.document_id.as_str() == document_id)
+    }
+
+    pub(super) fn floating_window_focus_target(
+        &self,
+        window_id: &MainPageId,
+    ) -> Option<ViewInstanceId> {
+        let session = self.lock_session();
+        floating_window_focus_target_in_layout(&session.layout, window_id).cloned()
+    }
+
+    pub(super) fn floating_window_id_for_surface_key(
+        &self,
+        surface_key: &str,
+    ) -> Option<MainPageId> {
+        let session = self.lock_session();
+        floating_window_id_for_surface_key_in_layout(&session.layout, surface_key)
+    }
+
+    pub(super) fn active_drawer_toggle_state(
+        &self,
+        slot: ActivityDrawerSlot,
+        instance_id: &ViewInstanceId,
+    ) -> Result<(ActivityDrawerMode, bool, bool), String> {
+        let session = self.lock_session();
+        active_drawer_toggle_state_in_layout(&session.layout, slot, instance_id)
+    }
+
+    pub(super) fn active_drawer_mode(
+        &self,
+        slot: ActivityDrawerSlot,
+    ) -> Option<ActivityDrawerMode> {
+        let session = self.lock_session();
+        active_drawer_mode_in_layout(&session.layout, slot)
+    }
+
+    pub(super) fn floating_window_exists(&self, window_id: &MainPageId) -> bool {
+        let session = self.lock_session();
+        floating_window_exists_in_layout(&session.layout, window_id)
+    }
+
+    pub(super) fn floating_window_instance_ids(
+        &self,
+        window_id: &MainPageId,
+    ) -> Option<Vec<ViewInstanceId>> {
+        let session = self.lock_session();
+        floating_window_instance_ids_in_layout(&session.layout, window_id)
+    }
+
+    pub(super) fn view_host_for_instance_key(&self, surface_key: &str) -> Option<ViewHost> {
+        let session = self.lock_session();
+        view_host_for_instance_key_in_session(&session, surface_key)
+    }
+
+    pub(super) fn view_instance_id_for_descriptor(
+        &self,
+        descriptor_id: &ViewDescriptorId,
+    ) -> Option<ViewInstanceId> {
+        let session = self.lock_session();
+        view_instance_id_for_descriptor_in_session(&session, descriptor_id).cloned()
+    }
+
+    pub(super) fn current_view_instance_ids(&self) -> Vec<ViewInstanceId> {
+        let session = self.lock_session();
+        current_view_instance_ids_in_session(&session)
+    }
+
+    pub(super) fn view_instance_ids_for_descriptor_key(
+        &self,
+        descriptor_key: &str,
+    ) -> Vec<ViewInstanceId> {
+        let session = self.lock_session();
+        view_instance_ids_for_descriptor_key_in_session(&session, descriptor_key)
+    }
+
+    pub(super) fn view_instance_ids_for_descriptors(
+        &self,
+        descriptor_ids: &BTreeSet<ViewDescriptorId>,
+    ) -> Vec<ViewInstanceId> {
+        let session = self.lock_session();
+        view_instance_ids_for_descriptors_in_session(&session, descriptor_ids)
+    }
+
+    pub(super) fn editor_pane_instance_ids(
+        &self,
+        collect_ui_asset_panes: bool,
+        collect_animation_panes: bool,
+    ) -> (Vec<ViewInstanceId>, Vec<ViewInstanceId>) {
+        let session = self.lock_session();
+        editor_pane_instance_ids_in_session(
+            &session,
+            collect_ui_asset_panes,
+            collect_animation_panes,
+        )
     }
 
     pub(super) fn update_view_instance_metadata(
@@ -194,6 +547,7 @@ impl EditorUiHost {
             open_view_instances: session.open_view_instances.values().cloned().collect(),
             focused_view: session.focused_view.clone(),
             active_drawers: session.active_drawers.clone(),
+            scene_viewport_sessions: std::collections::BTreeMap::new(),
         }
     }
 
@@ -283,3 +637,23 @@ impl EditorUiHost {
             .sync_layout_windows(&session.layout);
     }
 }
+
+#[cfg(test)]
+#[path = "tests/workspace_state_active_template_query_tests.rs"]
+mod workspace_state_active_template_query_tests;
+
+#[cfg(test)]
+#[path = "tests/workspace_state_floating_focus_query_tests.rs"]
+mod workspace_state_floating_focus_query_tests;
+
+#[cfg(test)]
+#[path = "tests/workspace_state_surface_window_query_tests.rs"]
+mod workspace_state_surface_window_query_tests;
+
+#[cfg(test)]
+#[path = "tests/workspace_state_direct_query_batch_tests.rs"]
+mod workspace_state_direct_query_batch_tests;
+
+#[cfg(test)]
+#[path = "tests/workspace_state_identity_projection_tests.rs"]
+mod workspace_state_identity_projection_tests;

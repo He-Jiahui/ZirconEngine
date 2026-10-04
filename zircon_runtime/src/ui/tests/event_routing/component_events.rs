@@ -1,3 +1,5 @@
+//! 组件事件从编译绑定发布；多目标赋值要保留顺序和事务边界，滚动及焦点默认动作也经此出口。
+
 use super::*;
 use std::collections::BTreeMap;
 use zircon_runtime_interface::ui::binding::{UiBindingDirtyDomain, UiBindingMutationOutcome};
@@ -7,6 +9,7 @@ use zircon_runtime_interface::ui::template::{
 
 mod missing_policy;
 mod performance;
+mod scroll_defaults;
 
 #[test]
 fn click_component_events_preserve_every_matching_binding_on_target() {
@@ -731,101 +734,6 @@ fn release_outside_pressed_target_reports_default_click_rejected() {
     assert_eq!(result.route.click_target, None);
     assert!(result.diagnostics.default_click_rejected);
     assert!(result.component_events.is_empty());
-}
-
-#[test]
-fn scroll_fallback_reports_scroll_defaulted_when_unhandled() {
-    let mut surface = scrollable_surface();
-
-    let result = surface
-        .dispatch_pointer_event(
-            &crate::ui::dispatch::UiPointerDispatcher::default(),
-            UiPointerEvent::new(UiPointerEventKind::Scroll, UiPoint::new(20.0, 20.0))
-                .with_scroll_delta(50.0),
-        )
-        .unwrap();
-
-    assert_eq!(result.handled_by, Some(UiNodeId::new(2)));
-    assert!(result.diagnostics.scroll_defaulted);
-}
-
-#[test]
-fn routed_pointer_input_preserves_scroll_delta_and_reuses_the_default_scroll_authority() {
-    let mut surface = scrollable_surface();
-    let route = surface
-        .route_pointer_input_event(
-            UiPointerEvent::new(UiPointerEventKind::Scroll, UiPoint::new(20.0, 20.0))
-                .with_scroll_delta(50.0),
-        )
-        .unwrap();
-
-    assert_eq!(route.scroll_delta, 50.0);
-    assert_eq!(
-        surface.apply_default_pointer_scroll(&route).unwrap(),
-        Some(UiNodeId::new(2))
-    );
-    assert_eq!(
-        surface
-            .tree
-            .node(UiNodeId::new(2))
-            .unwrap()
-            .scroll_state
-            .unwrap()
-            .offset,
-        50.0
-    );
-}
-
-#[test]
-fn scroll_fallback_does_not_handle_when_scroll_offset_is_unchanged() {
-    let mut surface = scrollable_surface();
-
-    let result = surface
-        .dispatch_pointer_event(
-            &crate::ui::dispatch::UiPointerDispatcher::default(),
-            UiPointerEvent::new(UiPointerEventKind::Scroll, UiPoint::new(20.0, 20.0))
-                .with_scroll_delta(0.0),
-        )
-        .unwrap();
-
-    assert_eq!(result.handled_by, None);
-    assert!(!result.diagnostics.scroll_defaulted);
-}
-
-#[test]
-fn scroll_fallback_continues_to_ancestor_when_nearest_scrollable_is_clamped() {
-    let mut surface = nested_scrollable_surface();
-
-    let result = surface
-        .dispatch_pointer_event(
-            &crate::ui::dispatch::UiPointerDispatcher::default(),
-            UiPointerEvent::new(UiPointerEventKind::Scroll, UiPoint::new(20.0, 20.0))
-                .with_scroll_delta(20.0),
-        )
-        .unwrap();
-
-    assert_eq!(result.handled_by, Some(UiNodeId::new(2)));
-    assert!(result.diagnostics.scroll_defaulted);
-    assert_eq!(
-        surface
-            .tree
-            .node(UiNodeId::new(2))
-            .unwrap()
-            .scroll_state
-            .unwrap()
-            .offset,
-        20.0
-    );
-    assert_eq!(
-        surface
-            .tree
-            .node(UiNodeId::new(3))
-            .unwrap()
-            .scroll_state
-            .unwrap()
-            .offset,
-        0.0
-    );
 }
 
 #[test]

@@ -76,7 +76,6 @@ fn render_probe_rejects_rgba8_cubemap_as_non_hdr_pmrem() {
     let mut descriptor = TextureAssetDescriptor::rgba8_srgb();
     descriptor.dimension = RenderImageDimension::Cube;
     descriptor.depth_or_array_layers = 6;
-    descriptor.array_layer_count = 6;
     descriptor.mip_count = 8;
     let byte_len = (0..8)
         .map(|mip| {

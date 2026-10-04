@@ -1,9 +1,10 @@
+//! 从源码和约定文档核对着色器预热的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 #[test]
 fn runtime_15_builtin_fallback_prewarm_uses_template_source() {
     let dynamic_api = read_runtime_src("dynamic_api/shader_prewarm.rs");
-    let dynamic_api_tests = read_runtime_src("dynamic_api/shader_prewarm/tests.rs");
+    let dynamic_api_tests = read_runtime_src("dynamic_api/shader_prewarm/tests/cases.rs");
     let scene_mod = read_runtime_src("graphics/scene/mod.rs");
     let scene_renderer_mod = read_runtime_src("graphics/scene/scene_renderer/mod.rs");
     let mesh_mod = read_runtime_src("graphics/scene/scene_renderer/mesh/mod.rs");
@@ -13,7 +14,7 @@ fn runtime_15_builtin_fallback_prewarm_uses_template_source() {
         "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs",
     );
     let mesh_cache_ensure_tests = read_runtime_src(
-        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline/tests.rs",
+        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline/tests/cases.rs",
     );
     let mesh_cache_source =
         read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs");
@@ -109,7 +110,7 @@ fn runtime_15_builtin_fallback_prewarm_uses_template_source() {
             mesh_cache_ensure.as_str(),
         ),
         (
-            "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline/tests.rs",
+            "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline/tests/cases.rs",
             mesh_cache_ensure_tests.as_str(),
         ),
         (

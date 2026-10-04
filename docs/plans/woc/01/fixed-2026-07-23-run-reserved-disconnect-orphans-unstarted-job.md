@@ -9,11 +9,6 @@ origin_child_dir: docs/plans/woc/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/cargo_jobs.py
-  - tools/session_coordinator/cargo_runner.py
-  - tools/session_coordinator/client.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/tests/test_cargo_jobs.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_cargo_jobs.CargoJobTests.test_run_reserved_disconnect_terminalizes_unstarted_orphan_with_wrapper_audit
 resolved_at: 2026-07-23

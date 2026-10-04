@@ -166,8 +166,34 @@ impl<T> PresentationTimeline<T> {
         &mut self,
         snapshot: PresentationSnapshot<T>,
     ) -> Result<PresentationTimelinePush, PresentationTimelineError> {
+        let result = self.validate(&snapshot)?;
+        match result {
+            PresentationTimelinePush::Reset => {
+                if self
+                    .current
+                    .as_ref()
+                    .is_some_and(|current| snapshot.generation > current.generation)
+                {
+                    self.previous = None;
+                }
+                self.current = Some(snapshot);
+            }
+            PresentationTimelinePush::Advanced => {
+                self.previous = self.current.take();
+                self.current = Some(snapshot);
+            }
+            PresentationTimelinePush::Duplicate => {}
+        }
+        Ok(result)
+    }
+
+    /// Validates a candidate without changing the timeline. Callers can use
+    /// this before consuming host scheduling/input state.
+    pub fn validate(
+        &self,
+        snapshot: &PresentationSnapshot<T>,
+    ) -> Result<PresentationTimelinePush, PresentationTimelineError> {
         let Some(current) = self.current.as_ref() else {
-            self.current = Some(snapshot);
             return Ok(PresentationTimelinePush::Reset);
         };
 
@@ -206,13 +232,8 @@ impl<T> PresentationTimeline<T> {
         }
 
         if snapshot.generation > current.generation {
-            self.previous = None;
-            self.current = Some(snapshot);
             return Ok(PresentationTimelinePush::Reset);
         }
-
-        self.previous = self.current.take();
-        self.current = Some(snapshot);
         Ok(PresentationTimelinePush::Advanced)
     }
 

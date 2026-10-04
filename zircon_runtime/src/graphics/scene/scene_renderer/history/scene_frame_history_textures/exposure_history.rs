@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::core::framework::render::{EXPOSURE_BUFFER_WORD_COUNT, PostProcessGraphResourceNames};
+use crate::core::framework::render::{PostProcessGraphResourceNames, EXPOSURE_BUFFER_WORD_COUNT};
 use crate::graphics::scene::scene_renderer::post_process::params::exposure_params::default_exposure_buffer_words;
 use crate::rhi::{BufferDesc, BufferUsage};
 use wgpu::util::DeviceExt;

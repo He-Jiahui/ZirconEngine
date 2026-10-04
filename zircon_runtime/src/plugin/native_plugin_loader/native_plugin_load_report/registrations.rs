@@ -59,6 +59,7 @@ impl NativePluginLoadProjection {
             .iter()
             .flat_map(|manifest| {
                 let plugin_id = manifest.id.clone();
+                let provider_package_role = manifest.package_role;
                 let runtime_features = runtime_feature_manifests(&manifest)
                     .filter(|feature| has_runtime_feature_module(*feature))
                     .cloned()
@@ -90,7 +91,8 @@ impl NativePluginLoadProjection {
                             RuntimePluginFeatureRegistrationReport::from_native_feature_manifest(
                                 feature,
                                 provider_package_id,
-                            );
+                            )
+                            .with_provider_package_role(provider_package_role);
                         for source in shader_module_sources.iter().cloned() {
                             if let Err(error) = report
                                 .extensions
@@ -146,5 +148,5 @@ fn runtime_only_package_manifest(mut manifest: PluginPackageManifest) -> PluginP
 }
 
 #[cfg(test)]
-#[path = "registrations/optimization_tests.rs"]
+#[path = "registrations/tests/optimization_tests.rs"]
 mod optimization_tests;

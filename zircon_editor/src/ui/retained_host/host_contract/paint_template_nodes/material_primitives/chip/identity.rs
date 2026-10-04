@@ -10,6 +10,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_chip
     ) || matches!(node.role.as_str(), "Chip" | "MuiChip")
 }
 
+/// 识别已由 Chip 根节点表示的槽位；命中后返回接管但不产生第二组表面命令。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_chip_slot_node(
     node: &TemplatePaneNodeData,
 ) -> bool {
@@ -62,5 +63,5 @@ fn chip_slot_variant(component_variant: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "identity/single_scan_slot_tests.rs"]
+#[path = "identity/tests/single_scan_slot_tests.rs"]
 mod single_scan_slot_tests;

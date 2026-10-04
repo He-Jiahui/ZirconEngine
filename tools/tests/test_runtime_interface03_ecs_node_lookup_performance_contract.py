@@ -11,7 +11,7 @@ CONTRACTS_RS = (
     / "ui_ecs_node_lookup_contracts.rs"
 )
 
-
+# 读取实现源码约束接口 ECS 节点查找：有序 ECS 投影使用对数节点查找，并无序 ECS 投影保持兼容回退。
 def _node_lookup_body() -> str:
     source = ECS_RS.read_text(encoding="utf-8")
     start = source.index("    pub fn node(&self, node_id: UiNodeId)")

@@ -9,7 +9,6 @@ related_code:
   - zircon_editor/src/core/asset/type_registry/contribution.rs
   - zircon_editor/src/core/asset/type_registry/definition.rs
   - zircon_editor/src/core/asset/type_registry/registry.rs
-  - zircon_editor/src/ui/host/editor_event_runtime_access.rs
   - zircon_editor/src/ui/host/editor_event_execution/asset_event.rs
   - zircon_editor/src/ui/host/editor_asset_manager/
   - zircon_editor/src/ui/workbench/snapshot/asset/

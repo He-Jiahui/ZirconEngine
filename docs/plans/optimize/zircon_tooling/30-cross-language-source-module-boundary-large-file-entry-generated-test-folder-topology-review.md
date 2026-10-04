@@ -1,7 +1,7 @@
 ---
 related_code:
   - .github/workflows/ci.yml
-  - tools/check_conventions.py
+  - tools/audits/check_conventions.py
   - examples/woc/tools/package.json
   - examples/woc/scripts/woc_game/src/world/state.zr
   - examples/woc/scripts/woc_game/src/instances/delve_state.zr
@@ -15,25 +15,6 @@ related_code:
   - examples/woc/tools/command_payload_codegen.mjs
   - examples/woc/tools/m3_delve_collision_content_codegen.mjs
   - examples/woc/tools/m8_eastbrook_encounter_codegen.mjs
-  - tools/session_coordinator/cargo_jobs.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/migrations.py
-  - tools/session_coordinator/git_finalize.py
-  - tools/session_coordinator/workspace_copy.py
-  - tools/session_coordinator/cli.py
-  - tools/session_coordinator/cleanup.py
-  - tools/session_coordinator/failures.py
-  - tools/session_coordinator/workflows/milestones.py
-  - tools/session_coordinator/workflows/failure_closeouts.py
-  - tools/session_coordinator/supervision/service.py
-  - tools/session_coordinator/web/package.json
-  - tools/session_coordinator/web/tsconfig.json
-  - tools/session_coordinator/web/tsconfig.test.json
-  - tools/session_coordinator/web/src/api/contracts.ts
-  - tools/session_coordinator/web/src/api/validation.ts
-  - tools/session_coordinator/web/src/pages/OverviewPage.tsx
-  - tools/session_coordinator/web/scripts/run-tests.mjs
-  - tools/session_coordinator/web/scripts/verify-dist.mjs
   - zircon_hub/package.json
   - zircon_hub/tsconfig.json
   - zircon_hub/web/src/types/hub.ts
@@ -42,12 +23,12 @@ related_code:
   - tools/editor-workbench-preview/design.js
   - tools/editor-workbench-preview/design.css
   - tools/editor-workbench-preview/verify-designs.mjs
-  - tools/ui-profile-capture.ps1
+  - tools/analysis/profiling/ui/ui-profile-capture.ps1
   - tools/mvp/Invoke-MvpAcceptance.ps1
   - tools/mvp/Stage-MvpProducts.ps1
   - tools/mvp/MvpAcceptanceStagingSnapshot.psm1
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
-  - tools/zircon_validate_shader_pbr_viewer_evidence.py
+  - tools/analysis/profiling/shader_pbr/zircon_validate_shader_pbr_viewer_evidence.py
   - zircon_plugins/navigation/native/build.rs
   - zircon_plugins/navigation/native/native/recast_bridge.h
   - zircon_plugins/navigation/native/native/detour_query.cpp
@@ -121,7 +102,7 @@ Rust并不是当前唯一的源码结构风险。Zircon仓库还用Zr承载产�
 
 Session Coordinator不是“完全未拆分”：它已经有62个root Python文件、workflows/control_plane/codex_sync/supervision子包和102个测试文件。但7个核心服务仍各自聚合1,662至2,971行class body，`server.py`的`CoordinatorApplication._command_unlocked`约1,056行，`cli.py`的`_run`约959行。其问题是command/application/service owner仍过宽，不是简单把每300行切一个文件。`migrations.py`的2,834行则是65个顺序migration函数，必须以不可变迁移单元、schema catalog和回放门治理，不能按行数重写历史。
 
-仓库的跨语言检查链也不闭合。根CI会运行Python编写的约定测试和Rust约定门，但`tools/check_conventions.py`的命令只覆盖Rust structure/fmt/clippy及文档/例外规则；CI没有Hub或Coordinator Web的`npm`安装/typecheck/test/build，没有全仓Python lint/typecheck、PowerShell analyzer、JS lint、C++ static analysis或WGSL全变体结构门。局部`package.json`脚本、Hub strict TypeScript和Coordinator Web测试是可保留基础，不能被当成required CI已经覆盖。
+仓库的跨语言检查链也不闭合。根CI会运行Python编写的约定测试和Rust约定门，但`tools/audits/check_conventions.py`的命令只覆盖Rust structure/fmt/clippy及文档/例外规则；CI没有Hub或Coordinator Web的`npm`安装/typecheck/test/build，没有全仓Python lint/typecheck、PowerShell analyzer、JS lint、C++ static analysis或WGSL全变体结构门。局部`package.json`脚本、Hub strict TypeScript和Coordinator Web测试是可保留基础，不能被当成required CI已经覆盖。
 
 本篇不重复Tooling05/06/07/14/15/17/19/21/27的codegen、协调器语义、性能证据、原型、MVP、SourceSet、脚本操作、FFI安全或迁移正确性，也不接管App03、Hub02、Runtime08d/09c/12/18/19/20/21的产品与运行时功能。Tooling30是非Rust源码物理角色、entry/service/schema/generated/test边界、folder topology和跨语言结构门的canonical专项owner；登记 **0项P0、64项P1和16项P2**。
 
@@ -352,7 +333,7 @@ workbench preview把212个函数候选放入9,183行`design.js`，CSS有约499�
 | 3,332 | `tools/session_coordinator/cargo_jobs.py` | admission/reservation/process/reconcile/projection拆分 |
 | 3,046 | `tools/session_coordinator/server.py` | thin application + typed command handlers |
 | 2,834 | `tools/session_coordinator/migrations.py` | 保留顺序历史，迁为不可变migration unit/catalog，不机械重写 |
-| 2,644 | `tools/ui-profile-capture.ps1` | command root与capture/evidence/platform modules分离 |
+| 2,644 | `tools/analysis/profiling/ui/ui-profile-capture.ps1` | command root与capture/evidence/platform modules分离 |
 | 2,571 | `tools/mvp/Invoke-MvpAcceptance.ps1` | acceptance plan、operation、assertion和packaging分离 |
 | 2,465 | `tools/session_coordinator/git_finalize.py` | intent/scope/index/commit/recovery拆分 |
 | 2,448 | `tools/session_coordinator/workflows/milestones.py` | validation/review/gate/manifest/reconcile/close拆分 |
@@ -367,7 +348,7 @@ workbench preview把212个函数候选放入9,183行`design.js`，CSS有约499�
 | 1,290 | `tools/session_coordinator/cleanup.py` | cleanup与retention owner已可见，继续分离policy/operation |
 | 1,279 | `tools/session_coordinator/workflows/failure_closeouts.py` | closeout transaction、artifact、graph mutation拆分 |
 | 1,239 | `tools/session_coordinator/failures.py` | graph query/mutation/import/projection拆分 |
-| 1,220 | `tools/zircon_validate_shader_pbr_viewer_evidence.py` | PNG/metadata/profile/evidence validators按格式拆分 |
+| 1,220 | `tools/analysis/profiling/shader_pbr/zircon_validate_shader_pbr_viewer_evidence.py` | PNG/metadata/profile/evidence validators按格式拆分 |
 | 1,026 | `examples/woc/tools/m8_eastbrook_encounter_codegen.mjs` | 迁入encounter generator family并绑定input/output manifest |
 
 注意：该表是当前snapshot，不是要求把所有文件降到相同长度。`migrations.py`、CSS、code generator与service class需要不同的syntax/owner政策。

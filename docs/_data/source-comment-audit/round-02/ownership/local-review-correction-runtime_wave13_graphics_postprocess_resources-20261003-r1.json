@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "owner": "runtime_wave13_graphics_postprocess_resources",
+  "files": [
+    {
+      "path": "docs/_data/source-comment-audit/round-02/coverage/runtime_wave13_graphics_postprocess_resources.jsonl",
+      "key": "coverage",
+      "before_sha256": "f6780bcfd495bc93f5c541c9fc009df94380954f0a63c98530edbaa676a1f17d",
+      "after_sha256": "60b12b5e27f4af4413cba9befc3befce260ab10f9dbffe241522ce0548f1918e",
+      "changed_records": 1
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/batches.jsonl",
+      "key": "batch",
+      "before_sha256": "3366294b73379f7cd3be7ff900775af49bf70e61d123f87cc8fa7cfbfa52e70e",
+      "after_sha256": "45d0944bbdfe1f5ddea54d374534c33976aeaed76405d04c629a9a2022b7b5a7",
+      "changed_records": 1
+    }
+  ],
+  "source_hash": "79f132d8ac8b39fa0bbb7198c8de66eaf74ec36235e73ff9c324270612508a11",
+  "correction": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave13-postprocess-resources-root-review-correction-20261003-r1\\correction.json",
+    "sha256": "53631535c0fcfc46e992ae69abdf8edc4f5721e0c0ae505fd9e749e9a71e2815"
+  },
+  "helper": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\root_wave13_ppres_review_correction_20261003_r1.py",
+    "sha256": "fda3200ad500de1a44dc4756abf1c4e294eb3b8ea511eb185d388f6368223f37"
+  },
+  "sources_or_issue_ledgers_to_write": 0,
+  "coverage_and_batch_records_to_update": 2,
+  "status": "review_metadata_corrected_original_receipts_preserved",
+  "at_utc": "2026-10-03T22:11:44.235001+00:00",
+  "source_writes": 0,
+  "comment_writes": 0,
+  "canonical_ledger_writes": 2,
+  "original_proofs_not_overwritten": true,
+  "native_or_Git_calls": 0,
+  "product_acceptance": false
+}

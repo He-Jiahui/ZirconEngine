@@ -1,3 +1,5 @@
+//! 导入时按显式请求烘焙网格 SDF；预算超限可降级为无派生数据，其余错误中止导入。
+
 mod acceleration;
 mod budget;
 mod cook;
@@ -5,6 +7,7 @@ mod distance;
 mod error;
 mod request;
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 pub use budget::MeshSdfCookBudget;

@@ -52,6 +52,8 @@ takeRandomUnit(result: TimedSpellResult): float {
     return value;
 }
 
+/// 依次消耗调用方提供的基础伤害与暴击两个随机值；随机流耗尽会抛出错误。
+/// 仅计算通过准入后的单次结果；伤害与威胁由调用方提交。
 pub resolveTimedSpellHit(result: TimedSpellResult, spec: TimedSpellSpec): void {
     if (spec.minimum < 0.0 || spec.maximum < spec.minimum || spec.spellPower < 0.0 ||
         spec.castTime < 0.0 || spec.critChance < 0.0 || spec.critChance > 1.0 ||

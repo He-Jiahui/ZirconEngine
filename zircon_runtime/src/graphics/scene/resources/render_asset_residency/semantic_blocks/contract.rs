@@ -21,6 +21,7 @@ pub(crate) enum RenderAssetSemanticBlockLoadAdvance {
     Ready(RenderAssetCpuBlockLease),
 }
 
+/// 把解码块、字节核算和 loader 批次作为同一所有权单元；GPU 计划与上传 lease 继续持有它，直至终态消费或显式丢弃。
 pub(crate) struct RenderAssetCpuBlockLease {
     ticket: RenderAssetResidencyTicket,
     blocks: Vec<RenderArtifactDecodedBlock>,
@@ -46,8 +47,8 @@ impl RenderAssetCpuBlockLease {
         }
     }
 
-    pub(crate) const fn ticket(&self) -> RenderAssetResidencyTicket {
-        self.ticket
+    pub(crate) fn ticket(&self) -> RenderAssetResidencyTicket {
+        self.ticket.clone()
     }
 
     pub(crate) fn blocks(&self) -> &[RenderArtifactDecodedBlock] {

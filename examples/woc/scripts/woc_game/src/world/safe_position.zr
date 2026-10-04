@@ -24,6 +24,8 @@ isBuiltinSafePosition(seed: uint, x: float, z: float, minHeight: float): bool {
     return absolute(resolvedX - x) < 0.0001 && absolute(resolvedZ - z) < 0.0001;
 }
 
+/// 仅用于内建开放世界构建时的地面与碰撞避让；两轴查询须用同一原位置和种子。
+/// 搜索耗尽会原样返回输入位置，因此返回坐标不等于已经证明出生安全，权威构建方须定义失败策略。
 pub findBuiltinSafePositionCoordinate(
     seed: uint,
     x: float,
@@ -50,6 +52,7 @@ pub findBuiltinSafePositionCoordinate(
         }
         index = index + 1;
     }
+    // TODO: [CR-WOC-CW-2004] 确认构建调用方是否允许所有探针失败后继续使用原位置；当前没有成功标记且调用方直接消费坐标，缺少全失败场景的契约证据；下一步验证水位或碰撞约束无可用位置时的创建策略。
     return axis == 1 ? x : z;
 }
 

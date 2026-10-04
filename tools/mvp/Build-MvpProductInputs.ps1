@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
-    [string]$ArtifactOutputDirectory
+    [string]$ArtifactOutputDirectory,
+    [string]$SourceAdditionsManifestPath
 )
 
 Set-StrictMode -Version Latest
@@ -12,7 +13,7 @@ Import-Module (Join-Path $PSScriptRoot "MvpArtifactStoragePolicy.psm1") -Force -
 Import-Module (Join-Path $PSScriptRoot "MvpBuildSet.psm1") -Force -ErrorAction Stop
 # MvpProductInputManifest imports this module for its own scope. Import it last here so its
 # forced module reload also leaves the resolver command visible to this build script's functions.
-Import-Module (Join-Path $pathResolverRepoRoot "tools\WindowsPathResolver.psm1") -Force -ErrorAction Stop
+Import-Module (Join-Path $pathResolverRepoRoot "tools\maintenance\WindowsPathResolver.psm1") -Force -ErrorAction Stop
 if ([string]::IsNullOrWhiteSpace($ArtifactOutputDirectory)) {
     $ArtifactOutputDirectory = New-MvpArtifactStoragePath -NamespaceId 'mvp-product-inputs'
 }
@@ -31,6 +32,43 @@ function Get-MvpProductBuildRequests {
                 ArtifactName = $_.artifact_name
             }
         })
+}
+
+function Invoke-MvpProductStagingCoordinator {
+    param([Parameter(Mandatory)][string[]]$Arguments)
+
+    $coordinator = Join-Path $pathResolverRepoRoot 'tools\dev\zircon-session.ps1'
+    $output = @(& $coordinator -Json artifact @Arguments)
+    if ($LASTEXITCODE -ne 0) {
+        throw "Coordinator product staging command failed with exit code ${LASTEXITCODE}: $($output -join ' ')"
+    }
+    $json = $output -join "`n"
+    if ([string]::IsNullOrWhiteSpace($json)) {
+        throw 'Coordinator product staging command returned no JSON result.'
+    }
+    try {
+        return $json | ConvertFrom-Json -ErrorAction Stop
+    }
+    catch {
+        throw "Coordinator product staging command returned invalid JSON: $($_.Exception.Message)"
+    }
+}
+
+function Assert-MvpProductStagingLease {
+    param(
+        [Parameter(Mandatory)]$Response,
+        [Parameter(Mandatory)][string]$LeaseId,
+        [Parameter(Mandatory)][string]$ExpectedStatus
+    )
+
+    if (
+        $null -eq $Response.lease -or
+        [string]$Response.lease.leaseId -ne $LeaseId -or
+        [string]$Response.lease.status -ne $ExpectedStatus -or
+        [int]$Response.lease.ownerPid -ne $PID
+    ) {
+        throw "Coordinator product staging returned an invalid '$ExpectedStatus' lease for $LeaseId."
+    }
 }
 
 function Assert-MvpProductInputDirectory {
@@ -180,13 +218,17 @@ function Publish-MvpProductInputPublicationRoot {
         [Parameter(Mandatory)]
         [string]$OutputDirectory,
         [Parameter(Mandatory)]
-        [string]$PublicationParent
+        [string]$PublicationParent,
+        [Microsoft.Win32.SafeHandles.SafeFileHandle]$SourceLease
     )
 
     if ([IO.File]::Exists($OutputDirectory)) {
         throw "MVP product input publication target is a file: $OutputDirectory"
     }
     if ([IO.Directory]::Exists($OutputDirectory)) {
+        if ($null -ne $SourceLease) {
+            throw "MVP product input publication target appeared after staging was acquired: $OutputDirectory"
+        }
         if ([IO.Directory]::EnumerateFileSystemEntries($OutputDirectory).GetEnumerator().MoveNext()) {
             throw "MVP product input publication target must remain empty until publication: $OutputDirectory"
         }
@@ -194,7 +236,15 @@ function Publish-MvpProductInputPublicationRoot {
         # the completed output root in one operation rather than exposing partial group directories.
         [IO.Directory]::Delete($OutputDirectory, $false)
     }
-    Move-ZirconWindowsPath -Source $PublicationDirectory -Destination $OutputDirectory -ApprovedRoot $PublicationParent
+    if ($null -ne $SourceLease) {
+        Move-ZirconWindowsLeasedPathWithinRoot `
+            -SourceLease $SourceLease `
+            -Destination $OutputDirectory `
+            -ApprovedRoot $PublicationParent | Out-Null
+    }
+    else {
+        Move-ZirconWindowsPath -Source $PublicationDirectory -Destination $OutputDirectory -ApprovedRoot $PublicationParent | Out-Null
+    }
 }
 
 function Publish-MvpProductInputManifest {
@@ -224,21 +274,80 @@ function Invoke-MvpProductInputBuild {
     if ([string]::IsNullOrWhiteSpace($publicationParent) -or [string]::IsNullOrWhiteSpace($publicationLeaf)) {
         throw "MVP product input publication target must name a child directory: $resolvedOutputDirectory"
     }
-    $publicationDirectory = Join-ZirconWindowsPath -Path $publicationParent -ChildPath ($publicationLeaf + ".partial-" + [guid]::NewGuid().ToString("N"))
-    if ([IO.Directory]::Exists($publicationDirectory) -or [IO.File]::Exists($publicationDirectory)) {
-        throw "MVP product input publication staging directory already exists: $publicationDirectory"
-    }
+    $publicationDirectory = $null
+    $productStagingLeaseId = $null
+    $productStagingStatus = $null
+    $stagingCreated = $false
+    $rootLease = $null
+    $stagingLease = $null
+    $cleanupRootLease = $null
     # This retained field is only for the current Stage reader. Build identity is the BuildSet
     # below; no product build or publication re-reads the mutable checkout.
     $publicationCompleted = $false
     try {
+        if ([IO.Directory]::Exists($resolvedOutputDirectory) -or [IO.File]::Exists($resolvedOutputDirectory)) {
+            throw "MVP product input publication target must not already exist: $resolvedOutputDirectory"
+        }
+        $outputDisplayPath = (Resolve-ZirconWindowsPath -Path $resolvedOutputDirectory).DisplayPath
+        $acquireResponse = Invoke-MvpProductStagingCoordinator -Arguments @(
+            'staging-acquire'
+            '--purpose', 'build-product-inputs'
+            '--final-path', $outputDisplayPath
+            '--owner-pid', [string]$PID
+        )
+        if ($null -eq $acquireResponse.lease) {
+            throw 'Coordinator product staging acquire response omitted its lease.'
+        }
+        $productStagingLeaseId = [string]$acquireResponse.lease.leaseId
+        if ($productStagingLeaseId -notmatch '^[0-9a-f]{32}$') {
+            throw "Coordinator product staging acquire returned an invalid lease ID: $productStagingLeaseId"
+        }
+        Assert-MvpProductStagingLease -Response $acquireResponse -LeaseId $productStagingLeaseId -ExpectedStatus 'active'
+        $productStagingStatus = 'active'
+        if (
+            [string]$acquireResponse.lease.purpose -ne 'build-product-inputs' -or
+            -not [string]::Equals(
+                [string]$acquireResponse.lease.finalPath,
+                $outputDisplayPath,
+                [StringComparison]::OrdinalIgnoreCase)
+        ) {
+            throw 'Coordinator product staging lease is not bound to this product output.'
+        }
+        $stagingResolution = Resolve-ZirconWindowsPath -Path ([string]$acquireResponse.lease.stagingPath)
+        $publicationDirectory = $stagingResolution.OperationalPath.TrimEnd('\')
+        $expectedStagingPath = Join-ZirconWindowsPath `
+            -Path $publicationParent `
+            -ChildPath "mvp-product-inputs-build-product-inputs-$productStagingLeaseId"
+        if (-not [string]::Equals(
+                $publicationDirectory,
+                $expectedStagingPath,
+                [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Coordinator product staging path is outside the approved product root: $($stagingResolution.DisplayPath)"
+        }
+        $rootLease = Open-ZirconWindowsDirectoryLease `
+            -Path $publicationParent `
+            -ExpectedOperationalPath $publicationParent
+        if ([IO.Directory]::Exists($publicationDirectory) -or [IO.File]::Exists($publicationDirectory)) {
+            throw "MVP product input publication staging directory already exists: $publicationDirectory"
+        }
         [System.IO.Directory]::CreateDirectory($publicationDirectory) | Out-Null
+        $stagingCreated = $true
+        $stagingLease = Open-ZirconWindowsDirectoryLease `
+            -Path $publicationDirectory `
+            -ExpectedOperationalPath $publicationDirectory `
+            -ForMove `
+            -DenyWrite `
+            -NoFollow
         $buildSet = New-MvpProductBuildSet `
             -RepositoryRoot $repoRoot `
-            -BuildSetRoot (Join-ZirconWindowsPath -Path $publicationDirectory -ChildPath 'build-set')
+            -BuildSetRoot (Join-ZirconWindowsPath -Path $publicationDirectory -ChildPath 'build-set') `
+            -SourceAdditionsManifestPath $SourceAdditionsManifestPath
         $productProfileRegistrySnapshot = Get-MvpProductProfileRegistrySnapshot `
-            -RegistryPath (Join-Path $buildSet.snapshot_root 'tools\mvp\mvp-product-profile-registry.json')
-        $validator = Join-Path $buildSet.snapshot_root ".codex\skills\zircon-dev\scripts\validate-matrix.ps1"
+            -RegistryPath (Join-ZirconWindowsPath -Path $buildSet.snapshot_root -ChildPath 'tools\mvp\mvp-product-profile-registry.json')
+        $validator = (Resolve-ZirconWindowsPath `
+            -Path (Join-ZirconWindowsPath `
+                -Path $buildSet.snapshot_root `
+                -ChildPath ".codex\skills\zircon-dev\scripts\validate-matrix.ps1")).DisplayPath
         if (-not [System.IO.File]::Exists($validator)) {
             throw "BuildSet is missing the versioned Cargo validator: $validator"
         }
@@ -313,10 +422,26 @@ function Invoke-MvpProductInputBuild {
             -Path $stagedSummaryPath `
             -Summary $summary `
             -BuildSet $buildSet
+        $publishingResponse = Invoke-MvpProductStagingCoordinator -Arguments @(
+            'staging-begin-publish'
+            '--lease-id', $productStagingLeaseId
+            '--owner-pid', [string]$PID
+        )
+        Assert-MvpProductStagingLease -Response $publishingResponse -LeaseId $productStagingLeaseId -ExpectedStatus 'publishing'
+        $productStagingStatus = 'publishing'
         Publish-MvpProductInputPublicationRoot `
             -PublicationDirectory $publicationDirectory `
             -OutputDirectory $resolvedOutputDirectory `
-            -PublicationParent $publicationParent
+            -PublicationParent $publicationParent `
+            -SourceLease $stagingLease
+        $stagingCreated = $false
+        $publishedResponse = Invoke-MvpProductStagingCoordinator -Arguments @(
+            'staging-complete-publish'
+            '--lease-id', $productStagingLeaseId
+            '--owner-pid', [string]$PID
+        )
+        Assert-MvpProductStagingLease -Response $publishedResponse -LeaseId $productStagingLeaseId -ExpectedStatus 'published'
+        $productStagingStatus = 'published'
         $publicationCompleted = $true
         $summaryPath = Join-ZirconWindowsPath -Path $resolvedOutputDirectory -ChildPath "mvp-product-inputs.json"
         Write-Host "MVP product input manifest: $((Resolve-ZirconWindowsPath -Path $summaryPath).DisplayPath)"
@@ -324,7 +449,50 @@ function Invoke-MvpProductInputBuild {
     }
     catch {
         $failure = $_
-        if (-not $publicationCompleted) {
+        if ($stagingCreated -and $null -ne $stagingLease) {
+            try {
+                $rootLease.Dispose()
+                $rootLease = $null
+                $cleanupRootLease = Open-ZirconWindowsDirectoryLease `
+                    -Path $publicationParent `
+                    -ExpectedOperationalPath $publicationParent `
+                    -DenyWrite `
+                    -NoFollow
+                Remove-ZirconWindowsLeasedDirectoryTree -Lease $stagingLease
+                $stagingLease.Dispose()
+                $stagingLease = $null
+            }
+            catch {
+                Write-Warning "Could not remove the leased product staging directory: $($_.Exception.Message)"
+            }
+        }
+        if (
+            $null -ne $productStagingLeaseId -and
+            $productStagingStatus -in @('active', 'publishing') -and
+            ($null -eq $publicationDirectory -or
+                (-not [IO.Directory]::Exists($publicationDirectory) -and
+                 -not [IO.File]::Exists($publicationDirectory))) -and
+            -not [IO.Directory]::Exists($resolvedOutputDirectory) -and
+            -not [IO.File]::Exists($resolvedOutputDirectory)
+        ) {
+            try {
+                $releaseResponse = Invoke-MvpProductStagingCoordinator -Arguments @(
+                    'staging-release'
+                    '--lease-id', $productStagingLeaseId
+                    '--owner-pid', [string]$PID
+                )
+                Assert-MvpProductStagingLease -Response $releaseResponse -LeaseId $productStagingLeaseId -ExpectedStatus 'released'
+                $productStagingStatus = 'released'
+            }
+            catch {
+                Write-Warning "Could not release the product staging lease: $($_.Exception.Message)"
+            }
+        }
+        if ($null -ne $cleanupRootLease) {
+            $cleanupRootLease.Dispose()
+            $cleanupRootLease = $null
+        }
+        if (-not $publicationCompleted -and -not [IO.Directory]::Exists($resolvedOutputDirectory)) {
             try {
                 Publish-MvpProductInputAbortReceipt `
                     -PublicationParent $publicationParent `
@@ -337,6 +505,11 @@ function Invoke-MvpProductInputBuild {
             }
         }
         throw $failure
+    }
+    finally {
+        if ($null -ne $cleanupRootLease) { $cleanupRootLease.Dispose() }
+        if ($null -ne $stagingLease) { $stagingLease.Dispose() }
+        if ($null -ne $rootLease) { $rootLease.Dispose() }
     }
 }
 

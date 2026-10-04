@@ -7,5 +7,5 @@ pub(in crate::ui::retained_host::host_contract) use bounds::{
 pub(in crate::ui::retained_host::host_contract) use frame::frame_from_template_node;
 
 #[cfg(test)]
-#[path = "template_geometry_tests.rs"]
+#[path = "tests/template_geometry_tests.rs"]
 mod tests;

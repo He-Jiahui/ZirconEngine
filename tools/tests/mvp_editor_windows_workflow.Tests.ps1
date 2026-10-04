@@ -47,7 +47,7 @@ Assert-WorkflowMatch 'Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2
 Assert-WorkflowMatch 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02' 'MVP job must pin artifact upload to the reviewed upstream commit.'
 Assert-WorkflowMatch 'MVP_RUST_TOOLCHAIN:\s*1\.94\.1' 'MVP job must declare the repository-authoritative Rust toolchain.'
 Assert-WorkflowMatch 'runner_image:\s*\$env:ImageOS/\$env:ImageVersion' 'MVP environment receipt must record the concrete hosted runner image.'
-Assert-WorkflowMatch 'MVP_EVIDENCE_ROOT:\s*D:\\ZirconBuilds\\mvp-ci-results-\$\{\{\s*github\.run_id\s*\}\}-\$\{\{\s*github\.run_attempt\s*\}\}' 'MVP diagnostics must use a source-bound approved physical artifact root.'
+Assert-WorkflowMatch 'MVP_EVIDENCE_ROOT:\s*D:\\cargo-targets\\mvp-ci-results-\$\{\{\s*github\.run_id\s*\}\}-\$\{\{\s*github\.run_attempt\s*\}\}' 'MVP diagnostics must use a source-bound approved physical artifact root.'
 
 if ($workflow -match 'cargo build -p zircon_app --bin zircon_(?:editor|runtime)') {
     throw 'MVP workflow must not rebuild mutable-checkout product binaries before the immutable BuildSet product build.'
@@ -79,8 +79,8 @@ if (([regex]::Matches($workflow, 'Build-MvpProductInputs\.ps1 -ArtifactOutputDir
     throw 'MVP workflow must build ProductInputs exactly once and reuse the resulting BuildSet across F5 gates and staging.'
 }
 Assert-WorkflowMatch '-ProductInputManifest\s+\$productInputManifest' 'F5 staging must not bypass product input provenance with raw artifact paths.'
-Assert-WorkflowMatch '\$binaryInputRoot = Join-Path ''D:\\ZirconBuilds'' "mvp-product-inputs-\$runIdentity"' 'F5 product inputs must use the managed physical artifact root.'
-Assert-WorkflowMatch '\$evidenceRoot = Join-Path ''D:\\ZirconBuilds'' "mvp-f5-evidence-\$runIdentity"' 'F5 evidence must use the managed physical artifact root.'
+Assert-WorkflowMatch '\$binaryInputRoot = Join-Path ''D:\\cargo-targets'' "mvp-product-inputs-\$runIdentity"' 'F5 product inputs must use the managed physical artifact root.'
+Assert-WorkflowMatch '\$evidenceRoot = Join-Path ''D:\\cargo-targets'' "mvp-f5-evidence-\$runIdentity"' 'F5 evidence must use the managed physical artifact root.'
 Assert-WorkflowMatch 'Run focused MVP control-plane contracts' 'MVP job must run the focused control-plane contract batch.'
 Assert-WorkflowMatch 'MVP_POWERSHELL_VERSION:\s*7\.4\.19' 'Control-plane runtime must pin the PowerShell LTS patch version.'
 Assert-WorkflowMatch 'MVP_POWERSHELL_SHA256:\s*CD62AD6D8174CC6FB85B335A0058444BC934FE27C39FA97FE342134286D28AF9' 'Pinned PowerShell archive must be verified against the official release digest.'
@@ -181,7 +181,7 @@ Assert-WorkflowMatch 'command\s*=\s*\$executedCommand' 'F5 gate evidence must re
 if ($workflow -match 'Invoke-F5CargoGate\s+-GateId[^\r\n]+-(?:Command|Arguments)') {
     throw 'F5 gate call sites must not pass independent declared commands or argv that can drift apart.'
 }
-Assert-WorkflowMatch "D:\\ZirconBuilds" 'MVP job must use an approved external staging root.'
+Assert-WorkflowMatch "D:\\cargo-targets" 'MVP job must use an approved external staging root.'
 Assert-WorkflowMatch 'f5-product' 'MVP job must retain the staged F5 manifests, logs, and captures as bounded diagnostics.'
 
 if ($workflow -match 'Tee-Object -FilePath test-results/f5-(?:stage|acceptance)\.json') {

@@ -1,3 +1,4 @@
+// 上一帧 HZB 驱动的保守裁剪：投影不可靠或变换异常时保留实例，避免错误地删掉可见绘制。
 struct SceneUniform {
     view_proj: mat4x4<f32>,
     view_proj_unjittered: mat4x4<f32>,

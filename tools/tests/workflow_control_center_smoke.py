@@ -1,3 +1,4 @@
+# 核对会话控制台的只读和受控操作烟测通过实际本地服务验证路由、资源、安全及审批留痕。
 from __future__ import annotations
 
 import argparse

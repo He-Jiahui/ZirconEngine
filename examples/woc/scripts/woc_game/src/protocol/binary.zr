@@ -1,5 +1,9 @@
+//! 负责宿主固定步输入与世界快照的字节边界；状态一致性及事务发布仍由会话与世界状态所有者验证。
+
 var container = %import("zr.container");
 
+/// 解码成功后交给世界推进的列式输入；命令各列按同一索引关联，载荷用偏移指向共享字节列。
+/// 直接构造的测试输入不自动具有解码器保证，消费方仍须检查列长和实体引用。
 pub class TickInput {
     pub var tick: uint;
     pub var generation: uint;
@@ -92,6 +96,7 @@ decodeFiniteF64Bits(bits: uint): float {
     return sign * (1.0 + fraction) * powerOfTwo(exponent - 1023, true);
 }
 
+// 私有读取器复制输入以隔离调用者；完整帧解码入口在读取全部字段后显式检查尾部字节，异常阻止会话发布。
 class ByteReader {
     pri var bytes: container.Array<uint>;
     pri var offset: int;
@@ -226,6 +231,7 @@ readU64LeAtBytes(source: container.Array<uint>, offset: uint): uint {
 // Command payloads are concatenated in a shared byte column. Expose the
 // existing finite f64 decoder at an explicit byte offset so reducers do not
 // need a second floating-point wire implementation.
+/// 用于世界命令归约器读取共享载荷中的有限浮点字段；范围或非有限值错误会中止当前步。
 pub readF64LeAt(
     source: container.Array<uint>, offset: uint, width: uint
 ): float {
@@ -236,6 +242,7 @@ pub readF64LeAt(
     return decodeFiniteF64Bits(readU64LeAtBytes(source, offset));
 }
 
+/// 用于已解码命令的有符号索引字段；字节元素须来自已验证的载荷列，本入口只检查字段范围。
 pub readI32LeAt(
     source: container.Array<uint>, offset: uint, width: uint
 ): int {
@@ -336,6 +343,7 @@ decodeFixedTickInputLocal(bytes: container.Array<uint>, marker: int): TickInput 
     if (commandCount > <uint>contracts.fieldFixedTickInputCommandsMaxLength()) {
         throw "woc command batch exceeds contract limit";
     }
+    // 先保存元数据，再把每项载荷合入同一字节列；世界可以按偏移读取，避免复制每条命令的完整对象。
     var commandIds = input.commandIds;
     var commandActorIds = input.commandActorIds;
     var commandActorGenerations = input.commandActorGenerations;
@@ -388,6 +396,7 @@ decodeFixedTickInputLocal(bytes: container.Array<uint>, marker: int): TickInput 
     var movementJump = input.movementJump;
     var movementFacingPresent = input.movementFacingPresent;
     var movementFacing = input.movementFacing;
+    // 宿主提交的是实体引用的有序快照；排序与唯一性在边界验证，后续世界推进不重新安排输入顺序。
     var previousActorId: uint = <uint>0;
     var previousActorGeneration: uint = <uint>0;
     var movementIndex: uint = <uint>0;
@@ -432,10 +441,13 @@ decodeFixedTickInputLocal(bytes: container.Array<uint>, marker: int): TickInput 
     return input;
 }
 
+/// 会话在比较已提交状态前调用；完整帧、字段上限、布尔编码、移动排序及末尾字节都必须合法。
+/// 它不核对状态摘要或实体是否属于当前世界，这些约束由后续消费者负责。
 pub decodeFixedTickInput(bytes: container.Array<uint>): TickInput {
     return decodeFixedTickInputLocal(bytes, 1);
 }
 
+// 当前世界结果仅发布状态：事件列表为空，其摘要采用空事件流的规范值；不能在这里宣称已转发游戏事件。
 encodeWorldSnapshotLocal(
     input: TickInput,
     state: container.Array<uint>,
@@ -451,6 +463,7 @@ encodeWorldSnapshotLocal(
     return writer.finish(true);
 }
 
+/// 世界完成候选状态编码后封装宿主快照；调用方提供对应状态摘要，宿主还会再次校验摘要与步号。
 pub encodeWorldSnapshot(
     input: TickInput,
     state: container.Array<uint>,

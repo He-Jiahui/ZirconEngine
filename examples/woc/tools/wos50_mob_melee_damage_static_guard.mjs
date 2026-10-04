@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node wos50_mob_melee_damage_static_guard.mjs；缺少源码契约时脚本抛错退出。
+// 对照锁定的近战随机数与伤害路径及 Eastbrook 模板的无命中附魔条件，检查世界挥击、减伤、致死、随机数交接和自测标记。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -56,6 +60,7 @@ invariant(
 
 process.stdout.write(`checked WOS50 mob melee damage source: ${SOURCE_COMMIT.slice(0, 15)}\n`);
 
+// 按相邻模板 ID 截取锁定的 Eastbrook 怪物定义，再排除命中附魔字段。
 function sourceTemplate(start, next) {
   const beginning = zone.indexOf(`id: '${start}'`);
   const ending = zone.indexOf(`id: '${next}'`, beginning + 1);

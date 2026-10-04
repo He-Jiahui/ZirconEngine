@@ -60,11 +60,11 @@ requireText(types, /export const MIN_GCD = 0\.75;/, "source global cooldown floo
 const sourceGenerator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
 if (!/WOC_RETAINED_ABILITY_IDS\s*=\s*\[[\s\S]*?'serpent_sting',[\s\S]*?'shadow_word_pain'/.test(sourceGenerator) ||
-!sourceGenerator.includes("EXPECTED_ABILITY_COUNT = 79")) {
+!sourceGenerator.includes("EXPECTED_ABILITY_COUNT = 117")) {
   throw new Error("M4 instant DoT projection scope is missing");
 }
 if (!zrGenerator.includes("'minRange'") || !zrGenerator.includes("'scalesWith'") ||
-!zrGenerator.includes("document.entries.length === 79")) {
+!zrGenerator.includes("document.entries.length === 117")) {
   throw new Error("M4 instant DoT Zr projection fields are missing");
 }
 const m4 = JSON.parse(read("contracts", "m4_abilities.json"));
@@ -85,22 +85,22 @@ requireText(numeric, /abilities\.text\(abilityIndex, "scalesWith"\) == "ranged"/
 const world = read("scripts", "woc_game", "src", "world", "state.zr");
 requireText(world, /OFFLINE_SOURCE_MIN_GLOBAL_COOLDOWN_SECONDS: float = 0\.75;/, "pure-DoT global cooldown floor is missing");
 requireText(world, /offlineDotRanks[\s\S]*?offlineDotSnapshotPowers/, "WOS63 DoT snapshot columns are missing");
-requireText(world, /writer\.u16\(<uint>78, 1, 1\)[\s\S]*?offlineDotSnapshotPowers/, "WOS63 DoT snapshot tail is missing");
+requireText(world, /writer\.u16\(<uint>state\.offlineDotTargetIds\.length, 1, 1\)[\s\S]*?offlineDotSnapshotPowers/, "WOS63 DoT snapshot tail is missing");
 requireText(world, /schemaVersion != <uint>64[\s\S]*?schemaVersion >= <uint>63/, "WOS63 DoT decoder migration is missing");
 requireText(world, /serpentStingAbilityCode\([\s\S]*?shadowWordPainAbilityCode\([\s\S]*?startOfflineSerpentStingCast[\s\S]*?startOfflineShadowWordPainCast/, "instant DoT cast reducers are missing");
 requireText(world, /appendOfflineAbilityProjectile\([\s\S]*?OFFLINE_PROJECTILE_SCHOOL_NATURE[\s\S]*?OFFLINE_PROJECTILE_SCHOOL_SHADOW/, "instant DoT projectile admission is missing");
 requireText(world, /landOfflinePureDotProjectile[\s\S]*?spellResist\.resolve[\s\S]*?resolvePureDotProfile[\s\S]*?landOfflineSerpentStingProjectile[\s\S]*?landOfflineShadowWordPainProjectile/, "instant DoT landing reducer is missing");
-requireText(world, /offlineDotStateIsValid[\s\S]*?pureDotProfileMatches/, "WOS63 DoT snapshot validation is missing");
+requireText(world, /offlineDotStateIsValid[\s\S]*?dotProfileMatchesResolvedTotal/, "WOS63 DoT snapshot validation is missing");
 requireText(world, /stepOfflineEastbrookProjectiles[\s\S]*?serpentStingAbilityCode\(\)[\s\S]*?shadowWordPainAbilityCode\(\)/, "instant DoT projectile dispatch is missing");
 requireText(world, /pub instantDotCommandStateTest\(\): int[\s\S]*?serpent_sting[\s\S]*?shadow_word_pain/, "instant DoT state regression coverage is missing");
 
 const main = read("scripts", "woc_game", "src", "main.zr");
-if (!/\\"world_state\\":\\"WOS78\\"/.test(main)) {
+if (!/\\"world_state\\":\\"WOS118\\"/.test(main)) {
   throw new Error("package state identity must retain WOS64");
 }
 const protocol = read("native", "crates", "woc_protocol", "src", "lib.rs");
-if (!protocol.includes('WORLD_STATE_FORMAT: &str = "WOS78"') ||
-    !protocol.includes("WORLD_STATE_SCHEMA_VERSION: u16 = 78")) {
+if (!protocol.includes('WORLD_STATE_FORMAT: &str = "WOS118"') ||
+    !protocol.includes("WORLD_STATE_SCHEMA_VERSION: u16 = 118")) {
   throw new Error("native state identity must retain WOS74");
 }
 

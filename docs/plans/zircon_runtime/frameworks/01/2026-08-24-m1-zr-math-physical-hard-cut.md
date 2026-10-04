@@ -166,3 +166,12 @@ Source implementation and focused evidence are complete. M1 remains unaccepted u
 Runtime product blockers are resolved, required product gates run on a coherent current snapshot,
 independent review accepts the exact blobs, and the coordinator performs service commit and WeCom
 notification.
+
+## 2026-09-02 product consumer facade guard
+
+The math boundary guard was strengthened with an explicit scan of all Rust sources under
+`zircon_app`, `zircon_editor`, and `zircon_plugins`. Direct `zr_math` imports are rejected so
+product code cannot bypass the Runtime curated math projection. The focused guard remains green
+at `5/5` (`14.144s`); guard SHA-256 is
+`DB46A86BC1495E3E3AD152763E813E2BEFE76D78CC3EF1B726E8A60EA9555F1C`. This is a static API
+boundary proof and does not change the managed Runtime blocker or milestone acceptance state.

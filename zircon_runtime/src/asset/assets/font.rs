@@ -1,3 +1,6 @@
+//! 字体 importer 产出的元数据与解码字节在这里形成资产契约；text/font/database 和图形 UI 分别消费字形信息与 cooked blob，调用方须保留源格式和渲染策略。
+
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
@@ -334,16 +337,31 @@ pub struct FontBlobArtifact {
     source_format: FontAssetSourceFormat,
     content_hash: [u8; 32],
     bytes: Arc<[u8]>,
+    #[serde(default)]
+    source_path: Option<PathBuf>,
+    #[serde(default)]
+    source_sha256: Option<[u8; 32]>,
 }
 
 impl FontBlobArtifact {
     pub(crate) fn from_decoded_bytes(source_format: FontAssetSourceFormat, bytes: Vec<u8>) -> Self {
+        Self::from_decoded_source_file(source_format, bytes, None, None)
+    }
+
+    pub(crate) fn from_decoded_source_file(
+        source_format: FontAssetSourceFormat,
+        bytes: Vec<u8>,
+        source_path: Option<PathBuf>,
+        source_sha256: Option<[u8; 32]>,
+    ) -> Self {
         let content_hash = *blake3::hash(&bytes).as_bytes();
         Self {
             schema_version: FONT_BLOB_ARTIFACT_SCHEMA_VERSION,
             source_format,
             content_hash,
             bytes: Arc::from(bytes.into_boxed_slice()),
+            source_path,
+            source_sha256,
         }
     }
 
@@ -357,6 +375,16 @@ impl FontBlobArtifact {
 
     pub fn content_hash(&self) -> [u8; 32] {
         self.content_hash
+    }
+
+    /// Canonical source file path captured when the raw resource bytes were admitted.
+    pub fn source_path(&self) -> Option<&Path> {
+        self.source_path.as_deref()
+    }
+
+    /// SHA-256 of the raw source file bytes, before WOFF2 decoding.
+    pub const fn source_sha256(&self) -> Option<[u8; 32]> {
+        self.source_sha256
     }
 
     pub fn bytes(&self) -> &[u8] {
@@ -373,6 +401,7 @@ impl FontBlobArtifact {
 
     pub fn has_valid_content_hash(&self) -> bool {
         self.content_hash == *blake3::hash(&self.bytes).as_bytes()
+            && self.source_path.is_some() == self.source_sha256.is_some()
     }
 }
 
@@ -484,38 +513,5 @@ fn is_false(value: &bool) -> bool {
 }
 
 #[cfg(test)]
-mod contract_owner_tests {
-    use std::path::Path;
-
-    #[test]
-    fn composite_font_contract_is_owned_by_the_font_asset_schema() {
-        let asset = include_str!("font.rs")
-            .split("#[cfg(test)]")
-            .next()
-            .expect("font asset production source must precede its tests");
-        let cache = include_str!("../artifact/cache_payload/font.rs");
-        let text_family = include_str!("../../text/model/font/family.rs");
-        let text_font = include_str!("../../text/model/font/mod.rs");
-
-        assert!(asset.contains("pub struct CompositeFontDescriptor"));
-        assert!(asset.contains("pub struct FontFamilyName"));
-        assert!(!asset.contains("crate::text"));
-        assert!(!cache.contains("crate::text"));
-        assert!(!text_family.contains("pub struct FontFamilyName"));
-        assert!(text_family.contains("use crate::asset::assets::FontFamilyName;"));
-        assert!(text_font.contains("pub use crate::asset::assets::{"));
-        for contract in [
-            "CompositeFontDescriptor",
-            "FontCultureTag",
-            "FontFamilyName",
-            "FontScript",
-            "FontScriptTag",
-            "SubFontRange",
-        ] {
-            assert!(text_font.contains(contract));
-        }
-        assert!(!Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("src/text/model/font/composite.rs")
-            .exists());
-    }
-}
+#[path = "tests/font_contract_owner_tests.rs"]
+mod contract_owner_tests;

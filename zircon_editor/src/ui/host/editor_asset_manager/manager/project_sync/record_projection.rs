@@ -39,11 +39,18 @@ pub(super) fn project_catalog_record(
         .and_then(|name| name.to_str())
         .unwrap_or_default()
         .to_ascii_lowercase();
-    let mut diagnostics = metadata
-        .diagnostics
-        .iter()
-        .map(|diagnostic| diagnostic.message.clone())
-        .collect::<Vec<_>>();
+    let mut diagnostics = Vec::with_capacity(
+        metadata
+            .diagnostics
+            .len()
+            .saturating_add(catalog_input.reference_repairs().len()),
+    );
+    diagnostics.extend(
+        metadata
+            .diagnostics
+            .iter()
+            .map(|diagnostic| diagnostic.message.clone()),
+    );
     diagnostics.extend(
         catalog_input
             .reference_repairs()

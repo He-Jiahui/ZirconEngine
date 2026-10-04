@@ -1,4 +1,4 @@
-use crate::asset::{AssetUri, SceneAsset, project::ProjectManager};
+use crate::asset::{project::ProjectManager, AssetUri, SceneAsset};
 use crate::scene::serializer::SceneAssetSerializer;
 
 use super::error::scene_asset_error;
@@ -23,6 +23,7 @@ impl DynamicScene {
         Self::from_world(&world)
     }
 
+    // 此限制约束资产原始载荷；捕获后的准备结果仍由调用者另按估算字节数检查。
     pub(crate) fn from_scene_asset_uri_with_raw_payload_limit(
         project: &ProjectManager,
         uri: &AssetUri,

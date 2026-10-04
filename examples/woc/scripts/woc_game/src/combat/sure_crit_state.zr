@@ -1,6 +1,11 @@
+//! 投影必暴光环的存在检查与一次消耗；实战抽样和光环事件由上层管理。
 var container=%import("zr.container");var contract=%import("generated/sure_crit_contract");
+/// 专用公式仅需种类与剩余次数；不承载实体归属、时限或同步状态。
 pub class SureCritAura{pub var kind:string;pub var charges:int;pub @constructor(kind:string,charges:int){this.kind=kind;this.charges=charges;}}
+/// 供暴击决策前检查对应光环；不抽样，也不消耗次数。
 pub hasSureCritAura(auras:container.Array<SureCritAura>):bool{var i=0;while(i<auras.length){if((<SureCritAura>auras[i]).kind==contract.kind())return true;i=i+1;}return false;}
 // Returns true when source semantics remove the aura; false for no match or a decremented charge.
+/// 在一次获准的攻击消耗点调用；true 表示移除，false 也可能表示已扣除一次。
+/// 未指定次数使用生成契约默认值；调用方负责同步突变后的世界光环。
 pub consumeSureCritCharge(auras:container.Array<SureCritAura>):bool{var i=0;while(i<auras.length){var a=<SureCritAura>auras[i];if(a.kind==contract.kind()){var remaining=(a.charges<0?contract.defaultCharges():a.charges)-1;if(remaining<=0){auras.removeAt(i);return true;}a.charges=remaining;return false;}i=i+1;}return false;}
 pub contractTest():int{var a=new container.Array<SureCritAura>();a.add(new SureCritAura(contract.kind(),2));a.add(new SureCritAura("other",1));if(!hasSureCritAura(a)||consumeSureCritCharge(a)||(<SureCritAura>a[0]).charges!=1)return -1;if(!consumeSureCritCharge(a)||a.length!=1||hasSureCritAura(a))return -2;a.add(new SureCritAura(contract.kind(),-1));if(!consumeSureCritCharge(a)||a.length!=1)return -3;a.add(new SureCritAura(contract.kind(),0));if(!consumeSureCritCharge(a)||a.length!=1)return -4;return 1;}

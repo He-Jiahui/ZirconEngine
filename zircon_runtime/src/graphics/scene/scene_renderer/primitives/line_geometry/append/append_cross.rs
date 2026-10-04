@@ -19,16 +19,5 @@ pub(crate) fn append_cross(
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::core::math::{Vec3, Vec4};
-
-    use super::{CROSS_VERTEX_CAPACITY, append_cross};
-
-    #[test]
-    fn cross_capacity_matches_output() {
-        let mut vertices = Vec::new();
-        append_cross(&mut vertices, Vec3::ZERO, 1.0, Vec4::ONE, Vec3::X, Vec3::Y);
-
-        assert_eq!(vertices.len(), CROSS_VERTEX_CAPACITY);
-    }
-}
+#[path = "tests/append_cross.rs"]
+mod tests;

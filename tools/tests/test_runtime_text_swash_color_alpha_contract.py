@@ -5,9 +5,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BITMAP = REPO_ROOT / "zircon_runtime/src/text/raster/swash/bitmap.rs"
 RASTERIZER = REPO_ROOT / "zircon_runtime/src/text/raster/swash/rasterizer.rs"
-TESTS = REPO_ROOT / "zircon_runtime/src/text/raster/swash/tests.rs"
+TESTS = REPO_ROOT / "zircon_runtime/src/text/raster/swash/tests/cases.rs"
 
-
+# 对照文本图集和 Swash 轮廓实现，锁定彩色轮廓的 straight alpha 归一化，并以 Rust 回归区分轮廓与位图来源。
 class RuntimeTextSwashColorAlphaContractTests(unittest.TestCase):
     def test_color_outline_is_normalized_to_the_straight_alpha_atlas_contract(self) -> None:
         bitmap = BITMAP.read_text(encoding="utf-8")

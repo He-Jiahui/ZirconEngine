@@ -4,10 +4,7 @@ status: accepted
 created_at: 2026-07-15
 plan_source: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
 related_code:
-  - tools/session_coordinator/client.py
-  - tools/session_coordinator/tests/test_deferred_action_client.py
-  - tools/session_coordinator/tests/test_milestone_cli.py
-  - docs/cli-and-tooling/local-session-coordinator.md
+  - docs/tooling/local-session-coordinator.md
 tests:
   - python -m unittest tools.session_coordinator.tests.test_deferred_action_client -v
   - python -m unittest tools.session_coordinator.tests.test_milestone_cli.MilestoneControlClientTests.test_control_action_polls_executing_confirmation_until_terminal -v

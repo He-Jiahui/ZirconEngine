@@ -257,6 +257,7 @@ impl JobSchedulerDiagnosticsState {
         None
     }
 
+    // 合并各 shard 后再次核对 epoch 与进行中更新；任一 shard 在窗口内变化就放弃本次快照。
     fn try_stable_snapshot_attempt(&self) -> Option<JobDiagnosticsSnapshot> {
         let mut total = JobDiagnosticsSnapshot::default();
         let mut epochs = [0; DIAGNOSTIC_SHARD_COUNT];
@@ -422,5 +423,5 @@ pub(super) fn duration_ms(nanos: u64) -> f64 {
 }
 
 #[cfg(test)]
-#[path = "diagnostics/tests.rs"]
+#[path = "diagnostics/tests/cases.rs"]
 mod tests;

@@ -1,14 +1,12 @@
 from pathlib import Path
 import unittest
-
+# 阴影图集竞争按规划索引查占用者并截取有界优先级前缀，帧内保留与抢占共享该索引；发布基准另约束尾延迟。
 
 ROOT = Path(__file__).resolve().parents[2]
 ALLOCATOR = ROOT / (
     "zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/allocator.rs"
 )
-ALLOCATOR_TESTS = ROOT / (
-    "zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/allocator/tests.rs"
-)
+ALLOCATOR_TESTS = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/allocator/tests/cases.rs"
 
 
 def function_region(source: str, start: str, end: str) -> str:

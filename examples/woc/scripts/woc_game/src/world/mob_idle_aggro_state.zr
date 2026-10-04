@@ -22,6 +22,7 @@ pub class IdleAggroCandidate {
     }
 }
 
+/// 目标选择与本次扫描计数的可复用输出；选择器每次重置这两项，调用者随后负责真正拉怪。
 pub class IdleAggroSelection {
     pub var targetId: uint;
     pub var scanVisits: int;
@@ -91,8 +92,10 @@ pub isTrivialToPlayer(
     return playerLevel - mobLevel >= 10;
 }
 
-// Candidates must arrive in SpatialGridState.queryInRadius callback order.
-// The strict nearest comparison preserves the source's first-callback tie rule.
+// 候选顺序由调用者确定；当前离线世界按实体行构造，源世界空间查询按回调顺序提供。
+// 严格最近比较保留先到者优先的等距规则，调用方不可无意重排。
+/// 消费调用者已按扫描顺序整理的候选，保持等距时先到者优先；本函数只选目标，不更改怪物的仇恨或战斗状态。
+/// 离线世界目前按实体行顺序供给候选；使用空间查询时应保留查询回调顺序，不能先排序候选。
 pub selectIdleAggroTarget(
     output: IdleAggroSelection,
     mobLevel: int,

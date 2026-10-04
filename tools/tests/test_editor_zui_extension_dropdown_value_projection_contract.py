@@ -1,3 +1,4 @@
+# 核对扩展下拉框区分机器值和显示文本，并服从运行时选择。
 import tomllib
 import unittest
 from pathlib import Path

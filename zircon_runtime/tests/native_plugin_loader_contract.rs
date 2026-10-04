@@ -5,15 +5,16 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_runtime::plugin::native::{
     discovery::{
-        discover_native_plugins_from_load_manifest, load_discovered_native_plugins,
-        load_discovered_native_runtime_plugins,
+        discover_native_plugins_from_load_manifest, load_discovered_native_plugins_with_authority,
+        load_discovered_native_runtime_plugins_with_authority,
     },
     host::NativePluginHostHandle,
-    NativePluginBehaviorHealth, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
+    NativePluginArtifactAuthority, NativePluginArtifactDigest, NativePluginArtifactExpectation,
+    NativePluginArtifactTarget, NativePluginBehaviorHealth, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
     ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
     ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
 };
-use zircon_runtime::plugin::PluginModuleKind;
+use zircon_runtime::plugin::{PluginModuleKind, PluginPackageManifest};
 
 #[test]
 fn native_loader_rejects_load_manifest_entries_outside_export_root() {
@@ -50,13 +51,14 @@ manifest = "../{outside_name}/plugin.toml"
 }
 
 #[test]
+#[cfg(windows)]
 fn native_runtime_hot_update_loads_real_fixture_from_export_manifest() {
-    let fixture_target = temp_export_root("native-dynamic-fixture-export-target");
+    let fixture_target = temp_native_fixture_target("native-dynamic-fixture-export-target");
     let export_root = temp_export_root("native-dynamic-fixture-export-root");
 
-    materialize_native_dynamic_fixture_export_root(&fixture_target, &export_root);
+    let authority = materialize_native_dynamic_fixture_export_root(&fixture_target, &export_root);
 
-    let host = NativePluginHostHandle::default();
+    let host = NativePluginHostHandle::with_artifact_authority(authority);
     let report = host
         .hot_reload_runtime_plugins_from_export_root(&export_root)
         .expect("manifest-driven hot update should load the real runtime fixture");
@@ -99,14 +101,34 @@ fn native_runtime_hot_update_loads_real_fixture_from_export_manifest() {
     assert_eq!(echo_report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
     assert_eq!(echo_report.payload.as_deref(), Some(&b"echo:manifest"[..]));
 
+    let source_library = export_root
+        .join("plugins/native_dynamic_fixture/native")
+        .join(platform_library_file_name(
+            "zircon_plugin_native_dynamic_fixture_native",
+        ));
+    fs::write(source_library, b"tampered replacement DLL").unwrap();
+    let rejected = host
+        .hot_reload_runtime_plugins_from_export_root(&export_root)
+        .unwrap();
+    assert!(rejected.loaded_plugin_ids.is_empty());
+    assert!(rejected
+        .diagnostics
+        .iter()
+        .any(|message| message.contains("admission") || message.contains("mismatch")));
+    let preserved = host
+        .invoke_runtime_plugin_command("native_dynamic_fixture", "echo", b"preserved")
+        .unwrap();
+    assert_eq!(preserved.payload.as_deref(), Some(&b"echo:preserved"[..]));
+
     drop(host);
     let _ = fs::remove_dir_all(fixture_target);
     let _ = fs::remove_dir_all(export_root);
 }
 
 #[test]
+#[cfg(windows)]
 fn native_loader_exposes_v3_behavior_boundary_from_real_fixture() {
-    let fixture_target = temp_export_root("native-dynamic-fixture-target");
+    let fixture_target = temp_native_fixture_target("native-dynamic-fixture-target");
     let package_root = temp_export_root("native-dynamic-fixture-package");
     let plugin_root = package_root.join("native_dynamic_fixture");
     let native_root = plugin_root.join("native");
@@ -120,13 +142,12 @@ fn native_loader_exposes_v3_behavior_boundary_from_real_fixture() {
         )),
     )
     .unwrap();
-    fs::copy(
-        repo_root().join("zircon_plugins/native_dynamic_fixture/plugin.toml"),
-        plugin_root.join("plugin.toml"),
-    )
-    .unwrap();
+    let manifest_path = write_product_fixture_manifest(&plugin_root.join("plugin.toml"));
 
-    let report = load_discovered_native_plugins(&package_root);
+    let report = load_discovered_native_plugins_with_authority(
+        &package_root,
+        &fixture_authority(&library_path, &manifest_path),
+    );
 
     assert!(
         report.diagnostics().is_empty(),
@@ -180,7 +201,7 @@ fn native_loader_exposes_v3_behavior_boundary_from_real_fixture() {
             .behavior_validation
             .command_manifest_schema
             .as_deref(),
-        Some("zircon.native.command-manifest/3")
+        Some("zircon.native.command-manifest/4")
     );
     assert_eq!(
         runtime_report
@@ -207,18 +228,22 @@ fn native_loader_exposes_v3_behavior_boundary_from_real_fixture() {
     assert_eq!(plugin.runtime_state_schema_version(), Some(3));
     assert_eq!(
         plugin.runtime_command_manifest_schema(),
-        Some("zircon.native.command-manifest/3")
+        Some("zircon.native.command-manifest/4")
     );
     assert_eq!(
         plugin.runtime_event_manifest_schema(),
         Some("zircon.native.event-manifest/3")
     );
+    assert!(plugin.runtime_command_manifest().is_some_and(|manifest| {
+        manifest.contains("name = \"echo\"\nslot = 0\npayload_schema = \"bytes\"")
+    }));
     assert!(plugin
         .runtime_command_manifest()
-        .is_some_and(|manifest| manifest.contains("command=echo;payload=bytes")));
-    assert!(plugin
-        .runtime_command_manifest()
-        .is_some_and(|manifest| manifest.contains("command=mismatched_buffer;payload=bytes")));
+        .is_some_and(|manifest| {
+            manifest.contains(
+                "name = \"bounded_overflow\"\nslot = 1\npayload_schema = \"bytes\"\nmax_output_bytes = 4",
+            )
+        }));
     assert!(plugin
         .runtime_event_manifest()
         .is_some_and(|manifest| manifest.contains("event=native_dynamic_fixture.echoed")));
@@ -248,18 +273,16 @@ fn native_loader_exposes_v3_behavior_boundary_from_real_fixture() {
         .iter()
         .any(|message| message.contains("caught panic")));
 
-    let mismatch_report = plugin.invoke_runtime_command("mismatched_buffer", b"hello");
-    assert_eq!(mismatch_report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    let bounded_overflow_report = plugin.invoke_runtime_command("bounded_overflow", b"hello");
     assert_eq!(
-        mismatch_report.payload.as_deref(),
-        Some(&b"mismatch:hello"[..])
+        bounded_overflow_report.status_code,
+        ZIRCON_NATIVE_PLUGIN_STATUS_ERROR
     );
-    assert!(mismatch_report
+    assert!(bounded_overflow_report.payload.is_none());
+    assert!(bounded_overflow_report
         .diagnostics
         .iter()
-        .any(|message| message.contains(
-            "native plugin owned buffer free failed: native plugin SDK allocation owner mismatch"
-        )));
+        .any(|message| message.contains("exceeded its declared 4 byte limit")));
 
     let state_report = plugin.save_runtime_state();
     assert_eq!(state_report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
@@ -353,8 +376,9 @@ fn native_loader_exposes_v3_behavior_boundary_from_real_fixture() {
 }
 
 #[test]
+#[cfg(windows)]
 fn native_loader_rejects_unknown_abi_version_with_explicit_report() {
-    let fixture_target = temp_export_root("native-dynamic-fixture-unknown-abi-target");
+    let fixture_target = temp_native_fixture_target("native-dynamic-fixture-unknown-abi-target");
     let package_root = temp_export_root("native-dynamic-fixture-unknown-abi-package");
     let plugin_root = package_root.join("native_dynamic_fixture");
     let native_root = plugin_root.join("native");
@@ -369,33 +393,25 @@ fn native_loader_rejects_unknown_abi_version_with_explicit_report() {
         )),
     )
     .unwrap();
-    fs::copy(
-        repo_root().join("zircon_plugins/native_dynamic_fixture/plugin.toml"),
-        plugin_root.join("plugin.toml"),
-    )
-    .unwrap();
+    let manifest_path = write_product_fixture_manifest(&plugin_root.join("plugin.toml"));
 
-    let report = load_discovered_native_runtime_plugins(&package_root);
+    let report = load_discovered_native_runtime_plugins_with_authority(
+        &package_root,
+        &fixture_authority(&library_path, &manifest_path),
+    );
 
-    assert!(report.diagnostics().iter().any(|message| message
-        .contains("native plugin native_dynamic_fixture loaded but ABI descriptor is invalid")));
+    assert!(report.diagnostics().iter().any(|message| message.contains(
+        "native plugin native_dynamic_fixture descriptor-probe contract abi_version mismatch"
+    )));
     assert!(report
         .diagnostics()
         .iter()
-        .any(|message| message.contains("unsupported native plugin ABI version 99; expected 3")));
-    assert_eq!(report.loaded().len(), 1);
-    let plugin = &report.loaded()[0];
-    assert!(plugin.descriptor.is_none());
-    assert!(plugin.runtime_entry_report.is_none());
-    assert!(plugin.runtime_behavior_is_stateless().is_none());
-    assert!(plugin.runtime_behavior_health().is_none());
-    assert!(plugin.runtime_state_schema_version().is_none());
-    assert!(plugin.runtime_command_manifest_schema().is_none());
+        .any(|message| message.contains("expected 3, actual 99")));
+    assert!(report.loaded().is_empty());
     let runtime_diagnostics = report.diagnostics_for_runtime_plugin("native_dynamic_fixture");
-    assert!(runtime_diagnostics.iter().any(|message| message
-        .contains("native plugin native_dynamic_fixture loaded but ABI descriptor is invalid")));
-    assert!(runtime_diagnostics.iter().any(|message| message
-        .contains("native plugin native_dynamic_fixture has no ABI descriptor attached")));
+    assert!(runtime_diagnostics
+        .iter()
+        .any(|message| message.contains("descriptor-probe contract abi_version mismatch")));
 
     let _ = fs::remove_dir_all(fixture_target);
     let _ = fs::remove_dir_all(package_root);
@@ -409,7 +425,20 @@ fn build_native_dynamic_fixture_with_features(
     target_root: &std::path::Path,
     features: &[&str],
 ) -> PathBuf {
-    let manifest_path = repo_root().join("zircon_plugins/Cargo.toml");
+    let manifest_path = prepare_native_dynamic_fixture_workspace(target_root);
+    let linker_temp = target_root.join("t");
+    fs::create_dir_all(&linker_temp).unwrap();
+    let lock_status = Command::new("cargo")
+        .arg("generate-lockfile")
+        .arg("--manifest-path")
+        .arg(&manifest_path)
+        .arg("--offline")
+        .status()
+        .unwrap();
+    assert!(
+        lock_status.success(),
+        "native dynamic fixture lockfile generation failed: {lock_status}"
+    );
     let mut command = Command::new("cargo");
     command
         .arg("build")
@@ -421,6 +450,22 @@ fn build_native_dynamic_fixture_with_features(
         .arg("--target-dir")
         .arg(target_root)
         .arg("--quiet");
+    // The managed dev-dynamic lane exports `prefer-dynamic` to its Cargo
+    // process. A product native DLL must not inherit that test-lane-only
+    // linkage, otherwise its Rust `std-*.dll` import is already bound from
+    // the host process and correctly rejected by native staging.
+    command
+        .env_remove("RUSTFLAGS")
+        .env_remove("CARGO_ENCODED_RUSTFLAGS")
+        .env_remove("CARGO_BUILD_RUSTFLAGS")
+        .env_remove("CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS")
+        .env_remove("RUSTC_WRAPPER")
+        .env_remove("RUSTC_WORKSPACE_WRAPPER")
+        .env_remove("CARGO_BUILD_RUSTC_WRAPPER")
+        .env_remove("CARGO_TARGET_DIR")
+        .env("TEMP", &linker_temp)
+        .env("TMP", &linker_temp)
+        .env("TMPDIR", &linker_temp);
     if !features.is_empty() {
         command.arg("--features").arg(features.join(","));
     }
@@ -434,10 +479,62 @@ fn build_native_dynamic_fixture_with_features(
     ))
 }
 
+fn prepare_native_dynamic_fixture_workspace(target_root: &std::path::Path) -> PathBuf {
+    let source_root = repo_root().join("zircon_plugins/native_dynamic_fixture");
+    let workspace_root = target_root.join("w");
+    let package_root = workspace_root.join("n");
+    let crate_root = package_root.join("native");
+    let source_destination = crate_root.join("src");
+    fs::create_dir_all(&source_destination).unwrap();
+    fs::copy(
+        source_root.join("native/src/lib.rs"),
+        source_destination.join("lib.rs"),
+    )
+    .unwrap();
+    fs::copy(
+        source_root.join("native/src/tests/cases.rs"),
+        source_destination.join("tests.rs"),
+    )
+    .unwrap();
+    write_product_fixture_manifest(&package_root.join("plugin.toml"));
+
+    let sdk_path = repo_root()
+        .join("zircon_plugins/plugin_sdk")
+        .to_string_lossy()
+        .replace('\\', "/");
+    let manifest = format!(
+        r#"[package]
+name = "zircon_plugin_native_dynamic_fixture_native"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+default = ["dist"]
+dist = []
+abi_unknown_version = []
+descriptor_export_missing = []
+runtime_entry_export_missing = []
+required_capability_missing = []
+
+[dependencies]
+serde = {{ version = "1.0.228", features = ["derive"] }}
+serde_json = "1.0.149"
+zircon_plugin_sdk = {{ path = "{sdk_path}", default-features = false, features = ["native"] }}
+"#
+    );
+    let manifest_path = crate_root.join("Cargo.toml");
+    fs::write(&manifest_path, manifest).unwrap();
+    manifest_path
+}
+
 fn materialize_native_dynamic_fixture_export_root(
     fixture_target: &std::path::Path,
     export_root: &std::path::Path,
-) {
+) -> NativePluginArtifactAuthority {
     let plugin_root = export_root.join("plugins").join("native_dynamic_fixture");
     let native_root = plugin_root.join("native");
     fs::create_dir_all(&native_root).unwrap();
@@ -450,11 +547,7 @@ fn materialize_native_dynamic_fixture_export_root(
         )),
     )
     .unwrap();
-    fs::copy(
-        repo_root().join("zircon_plugins/native_dynamic_fixture/plugin.toml"),
-        plugin_root.join("plugin.toml"),
-    )
-    .unwrap();
+    let manifest_path = write_product_fixture_manifest(&plugin_root.join("plugin.toml"));
     fs::write(
         export_root.join("plugins").join("native_plugins.toml"),
         r#"
@@ -466,6 +559,43 @@ manifest = "plugins/native_dynamic_fixture/plugin.toml"
         .trim_start(),
     )
     .unwrap();
+    fixture_authority(&library_path, &manifest_path)
+}
+
+fn fixture_authority(
+    library_path: &std::path::Path,
+    manifest_path: &std::path::Path,
+) -> NativePluginArtifactAuthority {
+    use zircon_runtime::core::framework::{
+        platform::RuntimeTargetMode, project::ExportTargetPlatform,
+    };
+    let manifest: PluginPackageManifest =
+        toml::from_str(&fs::read_to_string(&manifest_path).unwrap()).unwrap();
+    let expectation = NativePluginArtifactExpectation::trusted_local_first_party(
+        "native_dynamic_fixture",
+        manifest.package_id(),
+        NativePluginArtifactDigest::capture(manifest_path).unwrap(),
+        NativePluginArtifactDigest::capture(library_path).unwrap(),
+        "fixture-build-authority",
+        NativePluginArtifactTarget::new(
+            RuntimeTargetMode::ClientRuntime,
+            ExportTargetPlatform::Windows,
+        ),
+        [PluginModuleKind::Runtime, PluginModuleKind::Editor],
+        manifest.capabilities,
+    );
+    NativePluginArtifactAuthority::from_expectations([expectation]).unwrap()
+}
+
+fn write_product_fixture_manifest(destination: &std::path::Path) -> PathBuf {
+    let source = repo_root().join("zircon_plugins/native_dynamic_fixture/plugin.toml");
+    let source_text = fs::read_to_string(source).unwrap();
+    let role_marker = "package_role = \"test_fixture\"";
+    let replacements = source_text.matches(role_marker).count();
+    let manifest_text = source_text.replace(role_marker, "package_role = \"production\"");
+    assert_eq!(replacements, 1, "native fixture role marker must be unique");
+    fs::write(destination, manifest_text).unwrap();
+    destination.to_path_buf()
 }
 
 fn runtime_plugin_manifest() -> &'static str {
@@ -487,6 +617,21 @@ fn temp_export_root(label: &str) -> PathBuf {
         .unwrap()
         .as_nanos();
     std::env::temp_dir().join(format!("zircon-{label}-{stamp}"))
+}
+
+fn temp_native_fixture_target(_label: &str) -> PathBuf {
+    let target_root = std::env::current_exe()
+        .unwrap()
+        .parent()
+        .and_then(std::path::Path::parent)
+        .and_then(std::path::Path::parent)
+        .unwrap()
+        .to_path_buf();
+    let stamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    target_root.join(format!("fx-{stamp}"))
 }
 
 fn platform_library_file_name(crate_name: &str) -> String {

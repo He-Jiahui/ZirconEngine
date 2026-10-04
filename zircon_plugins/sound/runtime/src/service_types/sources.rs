@@ -1,3 +1,4 @@
+//! 声源创建与更新先验证声明和运行面，再把可持续的源身份绑定到短命 Kira 句柄；设备停止后描述仍可重建播放。
 use std::collections::HashMap;
 
 use super::DefaultSoundManager;
@@ -22,6 +23,7 @@ impl DefaultSoundManager {
         mut source: SoundSourceDescriptor,
     ) -> Result<SoundSourceId, SoundError> {
         let mut state = crate::poison_recovery::lock_recover(&self.state);
+        state.kira.ensure_provider_not_retiring()?;
         state.poll_kira_completions();
         validate_source_descriptor(&state, &source)?;
         validate_source_runtime_surface(&source)?;
@@ -35,6 +37,7 @@ impl DefaultSoundManager {
                 track: source.output_track,
             });
         }
+        // BUG: [CR-SOUND-AUDIT-0001] 显式声源 ID 未检查占用也未推进自动游标；后续匿名分配可复用同一 ID，插入时覆盖旧 voice，活动 Kira 句柄还可能失去管理。证据：storage.rs 与 mixer_configuration/sources.rs。
         let source_id = source.id.unwrap_or_else(|| state.next_source_id());
         source.id = Some(source_id);
         let gameplay_emission = source.gameplay_emitter.filter(|_| {
@@ -74,6 +77,7 @@ impl DefaultSoundManager {
         Ok(source_id)
     }
 
+    // 读者以序号增量消费；若环形日志已覆盖旧项，返回的 missed_events 明确报告缺口。
     pub(super) fn read_gameplay_emissions_impl(
         &self,
         world: WorldHandle,
@@ -117,6 +121,7 @@ impl DefaultSoundManager {
             SoundError::InvalidParameter("source update requires a source id".to_string())
         })?;
         let mut state = crate::poison_recovery::lock_recover(&self.state);
+        state.kira.ensure_provider_not_retiring()?;
         state.poll_kira_completions();
         validate_source_descriptor(&state, &source)?;
         validate_source_runtime_surface(&source)?;
@@ -133,6 +138,7 @@ impl DefaultSoundManager {
 
     pub(super) fn remove_source_impl(&self, source: SoundSourceId) -> Result<(), SoundError> {
         let mut state = crate::poison_recovery::lock_recover(&self.state);
+        state.kira.ensure_provider_not_retiring()?;
         state.poll_kira_completions();
         let mut voice = state
             .sources
@@ -143,6 +149,7 @@ impl DefaultSoundManager {
 
     pub(super) fn stop_source_impl(&self, source: SoundSourceId) -> Result<(), SoundError> {
         let mut state = crate::poison_recovery::lock_recover(&self.state);
+        state.kira.ensure_provider_not_retiring()?;
         state.poll_kira_completions();
         let mut voice = state
             .sources
@@ -183,12 +190,34 @@ pub(crate) fn sync_preconfigured_sources(state: &mut SoundEngineState) -> Result
     Ok(())
 }
 
+/// Rebind a cloned source registry to a prepared Kira generation. The caller keeps the Kira
+/// generation muted until commit, so source playback can be allocated without audible overlap.
+pub(crate) fn prepare_source_generation<B: Backend>(
+    kira: &mut KiraEngine<B>,
+    next_playback_id: &mut u64,
+    clips: &HashMap<SoundClipId, LoadedClip>,
+    sources: &mut HashMap<SoundSourceId, SourceVoice>,
+) -> Result<(), SoundError> {
+    let source_ids = sources.keys().copied().collect::<Vec<_>>();
+    for source in source_ids {
+        let mut voice = sources
+            .remove(&source)
+            .ok_or(SoundError::UnknownSource { source_id: source })?;
+        voice.kira_playback = None;
+        let result = sync_source_voice(kira, next_playback_id, clips, &mut voice);
+        sources.insert(source, voice);
+        result?;
+    }
+    Ok(())
+}
+
 pub(crate) fn sync_source_voice<B: Backend>(
     kira: &mut KiraEngine<B>,
     next_playback_id: &mut u64,
     clips: &HashMap<SoundClipId, LoadedClip>,
     voice: &mut SourceVoice,
 ) -> Result<(), SoundError> {
+    kira.ensure_provider_not_retiring()?;
     if !voice.descriptor.playing {
         return Ok(());
     }
@@ -252,6 +281,7 @@ pub(crate) fn stop_bound_source<B: Backend>(
     kira: &mut KiraEngine<B>,
     voice: &mut SourceVoice,
 ) -> Result<(), SoundError> {
+    kira.ensure_provider_not_retiring()?;
     let Some(playback) = voice.kira_playback.take() else {
         return Ok(());
     };

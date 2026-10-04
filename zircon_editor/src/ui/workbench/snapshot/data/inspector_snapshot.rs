@@ -1,19 +1,30 @@
+mod native_fields;
+mod rotation;
+
+pub use native_fields::InspectorNativeFieldSnapshot;
+
 use zircon_runtime::scene::NodeId;
 
 use crate::core::extension::{FieldEditorContainer, FieldEditorInstance, InspectorField};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 当前实体检查器的只读字段视图；选中身份属于权威world，文本可叠加编辑草稿。
 pub struct InspectorSnapshot {
     pub id: NodeId,
     pub name: String,
     pub parent: String,
     pub translation: [String; 3],
+    /// Read-only local XYZ Euler angles in degrees; None means unavailable.
+    pub rotation_degrees: Option<[String; 3]>,
     pub scale: [String; 3],
     pub render_layer_mask: u32,
+    /// Reflected native component fields; current UI exposes these as read-only.
+    pub native_fields: Vec<InspectorNativeFieldSnapshot>,
     pub plugin_components: Vec<InspectorPluginComponentSnapshot>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 插件schema/customization状态；插件定义缺失时保留受保护JSON展示和诊断。
 pub struct InspectorPluginComponentSnapshot {
     pub component_id: String,
     pub display_name: String,
@@ -29,6 +40,7 @@ pub struct InspectorPluginComponentSnapshot {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 字段显示与解析好的编辑器；editable提示不能代替写入边界验证。
 pub struct InspectorPluginComponentPropertySnapshot {
     pub field_id: String,
     pub name: String,
@@ -41,48 +53,5 @@ pub struct InspectorPluginComponentPropertySnapshot {
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::core::extension::{
-        FieldEditorContainer, FieldEditorInstance, FieldEditorKind, InspectorField,
-    };
-
-    use super::InspectorPluginComponentPropertySnapshot;
-
-    fn property(value_kind: &str) -> InspectorPluginComponentPropertySnapshot {
-        let field_editor = InspectorField::new(
-            "plugin.weather.cloud_layer.value",
-            "Value",
-            value_kind,
-            "res://clouds.ztex",
-            true,
-        )
-        .map(|field| FieldEditorContainer::builtin().resolve(field))
-        .unwrap_or_else(|_| FieldEditorInstance::automatic());
-        InspectorPluginComponentPropertySnapshot {
-            field_id: "plugin.weather.cloud_layer.value".to_string(),
-            name: "value".to_string(),
-            label: "Value".to_string(),
-            value: "res://clouds.ztex".to_string(),
-            value_kind: value_kind.to_string(),
-            editable: true,
-            field_editor,
-        }
-    }
-
-    #[test]
-    fn property_projection_uses_field_editor_container_with_auto_fallback() {
-        let numeric = property("f32").field_editor;
-        assert_eq!(numeric.kind(), FieldEditorKind::Numeric);
-        assert!(numeric.asset_reference_markers().is_empty());
-
-        let asset = property("TextureAsset").field_editor;
-        assert_eq!(asset.kind(), FieldEditorKind::AssetReference);
-        assert_eq!(asset.asset_reference_markers().len(), 21);
-        assert!(asset.asset_reference_markers().contains(&"texture"));
-
-        assert_eq!(
-            property("plugin<unsupported>").field_editor.kind(),
-            FieldEditorKind::Auto
-        );
-    }
-}
+#[path = "tests/inspector_snapshot.rs"]
+mod tests;

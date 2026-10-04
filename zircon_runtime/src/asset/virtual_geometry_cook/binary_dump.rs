@@ -15,6 +15,7 @@ const ROOT_RANGE_U32_FIELD_COUNT: usize = 3;
 const PAGE_DEPENDENCY_U32_FIELD_COUNT: usize = 3;
 const PAGE_PAYLOAD_U32_FIELD_COUNT: usize = 1;
 
+/// 将已烘焙资产编码为可重复比较的诊断字节流；当前供测试与检查使用，不承担运行时页解码。
 pub fn encode_virtual_geometry_cook_binary_dump(asset: &VirtualGeometryAsset) -> Vec<u8> {
     let mut dump = Vec::with_capacity(binary_dump_capacity(asset));
     dump.extend(BINARY_DUMP_MAGIC);
@@ -184,6 +185,7 @@ fn sorted_clusters(asset: &VirtualGeometryAsset) -> Vec<&VirtualGeometryClusterH
     clusters
 }
 
+// 页头与同位置的页数据先配对再排序，避免诊断顺序改变时错配载荷。
 fn sorted_pages(
     asset: &VirtualGeometryAsset,
 ) -> Vec<(&VirtualGeometryClusterPageHeaderAsset, Option<&[u8]>)> {
@@ -266,5 +268,5 @@ fn append_f32(dump: &mut Vec<u8>, value: f32) {
 }
 
 #[cfg(test)]
-#[path = "binary_dump/capacity_tests.rs"]
+#[path = "binary_dump/tests/capacity_tests.rs"]
 mod capacity_tests;

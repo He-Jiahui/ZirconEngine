@@ -37,6 +37,7 @@ pub(in crate::manager) fn validate_blackboard_entries(
     schema: Option<&AiBlackboardSchemaDescriptor>,
     entries: &[AiBlackboardEntry],
 ) -> Result<(), AiManagerError> {
+    // 先按输入顺序报告空键、非有限值和重复键，再按 schema 顺序核对必需键与类型。
     let mut entries_by_key = HashMap::with_capacity(entries.len());
     for entry in entries {
         ensure_non_empty(&entry.key, "blackboard_entry.key")?;
@@ -125,4 +126,5 @@ pub(in crate::manager) fn validate_perception_snapshot(
 }
 
 #[cfg(test)]
+#[path = "runtime_inputs/tests/indexed_entry_tests.rs"]
 mod indexed_entry_tests;

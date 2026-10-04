@@ -57,4 +57,5 @@ impl<'a> InputBindings<'a> {
 }
 
 #[cfg(test)]
+#[path = "tensor_workspace/tests/performance_tests.rs"]
 mod performance_tests;

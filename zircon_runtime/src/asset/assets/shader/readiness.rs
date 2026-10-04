@@ -1,3 +1,5 @@
+//! 就绪报告把源文件、导入、定义、入口点和布局诊断投影到资产管理界面；它描述为何不可用，不替代渲染管线编译。
+
 use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
@@ -523,5 +525,5 @@ fn pipeline_layout_readiness(shader: &ShaderAsset) -> ShaderPipelineLayoutReadin
 }
 
 #[cfg(test)]
-#[path = "readiness/optimization_tests.rs"]
+#[path = "readiness/tests/optimization_tests.rs"]
 mod optimization_tests;

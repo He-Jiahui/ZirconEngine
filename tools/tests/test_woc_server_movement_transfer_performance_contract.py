@@ -1,3 +1,4 @@
+# 核对服务端移动数据转移沿用协议上界并限制诊断复制。
 from __future__ import annotations
 
 import re

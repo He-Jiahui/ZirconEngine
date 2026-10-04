@@ -1,3 +1,4 @@
+// 核对模板兼容性夹具、宿主节点模型与表面投影的属性和路由一致性。
 use std::collections::BTreeMap;
 
 use super::support::*;
@@ -582,6 +583,12 @@ fn retained_host_node(
         parent_id: None,
         component: component.to_string(),
         control_id: Some(control_id.to_string()),
+        source_path: None,
+        source_node_id: None,
+        instance_path: None,
+        parent_source_path: None,
+        parent_source_node_id: None,
+        parent_instance_path: None,
         frame: UiFrame::default(),
         clip_frame: None,
         z_index: 0,

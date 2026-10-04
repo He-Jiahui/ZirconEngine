@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 虚拟几何遍历按节点规模建一次借用层级索引，重复实体保留首项；检查 Rust 用例中的首次命中语义。
 
 ROOT = Path(__file__).resolve().parents[2]
 NODE_CULL = ROOT / (

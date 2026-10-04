@@ -1,0 +1,167 @@
+{
+  "record_type": "root_qualified_w0_batch7_summary",
+  "batch": "w0-batch7",
+  "reviewed_at_utc": "2026-10-02T02:24:40Z",
+  "acceptance_state": "open; source-only bounded review; no row accepted",
+  "acceptance": "open",
+  "tests_run": 0,
+  "rows": 12,
+  "unique_report_qualified_ids": 12,
+  "target_finding_ids": [
+    "RT213-P1-001",
+    "RT213-P1-002",
+    "RT213-P1-003",
+    "RT213-P1-004",
+    "RT213-P1-005",
+    "RT213-P1-006",
+    "MSP4-P1-025",
+    "MSP4-P1-026",
+    "MSP4-P1-027",
+    "MSP4-P1-005",
+    "MSP4-P1-019",
+    "MSP4-P1-033"
+  ],
+  "report_coverage": [
+    {
+      "report_id": "Runtime213",
+      "report_path": "docs/plans/optimize/zircon_runtime/213-runtime-visibility-gpu-scene-culling-batching-instancing-hzb-virtual-geometry-current-working-tree-review.md",
+      "report_sha256_current_working_tree": "4fb17e3f5195ec9a9a5db81b7408851485a9a4a851ce18889db6b89d33467139",
+      "finding_ids": [
+        "RT213-P1-001",
+        "RT213-P1-002",
+        "RT213-P1-003",
+        "RT213-P1-004",
+        "RT213-P1-005",
+        "RT213-P1-006"
+      ],
+      "table_lines": [
+        91,
+        92,
+        93,
+        94,
+        95,
+        96
+      ],
+      "rows_reviewed": 6,
+      "unread_scope": "All Runtime213 rows outside lines 91-96, all non-target sections, and all unreviewed callers/tests/product/performance gates."
+    },
+    {
+      "report_id": "Runtime225",
+      "report_path": "docs/plans/optimize/zircon_runtime/225-runtime-material-shader-artifact-variant-pipeline-pso-publication-current-working-tree-recheck.md",
+      "report_sha256_current_working_tree": "5164fe9b88de6945d8a399afa136383d0713cee8f312faca33f5b9dfd31517bd",
+      "finding_ids": [
+        "MSP4-P1-025",
+        "MSP4-P1-026",
+        "MSP4-P1-027",
+        "MSP4-P1-005",
+        "MSP4-P1-019",
+        "MSP4-P1-033"
+      ],
+      "table_lines": [
+        142,
+        143,
+        146,
+        155,
+        172,
+        184
+      ],
+      "rows_reviewed": 6,
+      "unread_scope": "All Runtime225 rows outside lines 142-146/155/172/184, all non-target sections, and all unreviewed callers/tests/product/performance gates."
+    }
+  ],
+  "coverage_note": "Exactly twelve literal original rows were read from two reports. Whole reports remain inventory-unreviewed; no source_checked promotion or denominator change is asserted.",
+  "unread_scope": [
+    "No source files outside the row evidence and bounded caller/test spans were audited.",
+    "No Cargo/build/test/compiler/probe/device/benchmark/visual/soak validation was run.",
+    "No implementation lease, source consent, Session, Failure, coordinator, route, load, commit, push, or WeCom state was inspected or changed."
+  ],
+  "inventory_denominator": {
+    "reports_total": 576,
+    "source_checked_report_paths": 61,
+    "unreviewed_report_paths": 515,
+    "batch_source_path_units": 27,
+    "prior_canonical_source_paths": 176,
+    "scope_note": "The historical 576/61/515 report inventory is preserved; batch7 source path units are a separate evidence count.",
+    "prior_unique_paths": 176
+  },
+  "prior_collision_check": {
+    "canonical_review_files": 6,
+    "prior_review_objects": 148,
+    "prior_literal_finding_ids_checked": 112,
+    "prior_report_qualified_keys_checked": 144,
+    "target_prior_overlap": [],
+    "batch6_published_rows": 18,
+    "batch6_new_rows": 14,
+    "batch6_refresh_rows": 4,
+    "collision_refs": [],
+    "note": "All prior keys were normalized from original_report or report_path plus literal original_finding_id; no target key overlap was found."
+  },
+  "source_path_counts": {
+    "batch_unique_paths": 27,
+    "batch_paths": [
+      "zircon_runtime/src/asset/assets/material/validation.rs",
+      "zircon_runtime/src/asset/assets/shader/readiness.rs",
+      "zircon_runtime/src/asset/assets/shader/shader_asset.rs",
+      "zircon_runtime/src/asset/importer/ingest/import_shader_package.rs",
+      "zircon_runtime/src/asset/tests/project/zmeta/shader_diagnostics_fixture.rs",
+      "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs",
+      "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs",
+      "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/prepare.rs",
+      "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs",
+      "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/hybrid_gi_stats.rs",
+      "zircon_runtime/src/graphics/scene/render_scene/registry.rs",
+      "zircon_runtime/src/graphics/scene/render_scene/scene.rs",
+      "zircon_runtime/src/graphics/scene/render_scene/tests.rs",
+      "zircon_runtime/src/graphics/scene/resources/prepared/prepared_shader.rs",
+      "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_shader_source.rs",
+      "zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_scene.rs",
+      "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/material_pipeline_requirements.rs",
+      "zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/material_pipeline_publication.rs",
+      "zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs",
+      "zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source_validation_admission.rs",
+      "zircon_runtime/src/graphics/shader/template/assemble.rs",
+      "zircon_runtime/src/graphics/shader/variant_cache/disk.rs",
+      "zircon_runtime/src/graphics/visibility/context/from_extract_with_history/collect_gpu_instancing_candidates.rs",
+      "zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs",
+      "zircon_runtime/src/graphics/visibility/planning/build_instance_upload_plan.rs",
+      "zircon_runtime/src/graphics/visibility/planning/build_particle_upload_plan.rs",
+      "zircon_runtime/src/graphics/visibility/view_context/mod.rs"
+    ],
+    "prior_unique_paths": 176,
+    "union_scope": "not computed; historical source-path evidence is tracked separately from batch7 units"
+  },
+  "assertions": {
+    "row_count": 12,
+    "all_target_ids_exact": true,
+    "all_keys_derived_from_literal": true,
+    "one_normal_original_key_per_row": true,
+    "original_rows_exact": true,
+    "source_spans_valid_read_only": true,
+    "source_hashes_current_at_capture": true,
+    "collision_refs_empty": true,
+    "crosswalk_identity_merge_false": true,
+    "crosswalk_id_merge_false": true,
+    "missing_targets_marked": true,
+    "report_inventory_counts_preserved": true,
+    "source_path_units_count": 27,
+    "tests_run_zero": true,
+    "acceptance_open": true
+  },
+  "root_qualified_at_utc": "2026-10-02T04:01:48.402301+00:00",
+  "source_states": {
+    "narrowed_open": 1,
+    "confirmed_open": 11
+  },
+  "prior_and_projected_counts": {
+    "prior_observations": 148,
+    "prior_unique_keys": 144,
+    "batch_observations": 12,
+    "new_keys": 12,
+    "refresh_keys": 0,
+    "projected_observations": 160,
+    "projected_unique_keys": 156,
+    "canonical_publication": "pending distinct normal own-SID admission/publication/attribution"
+  },
+  "root_semantic_qualification": "All12 exact original keys retained; original report priority P1 unchanged. One original tests-only RenderScene premise narrowed by normal callers. Previous visibility/history-index reuse retained. Existing test function names and limited oracles pinned, original gates preserved and augmented with per-key lower/upward/product/fault/performance scenarios.",
+  "unrun_limit": "No actual test, managed Cargo, product, performance, failure import, foreign status/ownership or external action."
+}

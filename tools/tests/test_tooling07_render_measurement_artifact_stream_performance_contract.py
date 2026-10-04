@@ -1,3 +1,4 @@
+# 核对渲染测量产物以有界流校验图像并单次读取文件元数据。
 from __future__ import annotations
 
 import binascii
@@ -9,7 +10,7 @@ import zlib
 from pathlib import Path
 from typing import BinaryIO
 
-from tools.validate_render_measurement_evidence import _validate_png
+from tools.analysis.validation.validate_render_measurement_evidence import _validate_png
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "validate_render_measurement_evidence.py"

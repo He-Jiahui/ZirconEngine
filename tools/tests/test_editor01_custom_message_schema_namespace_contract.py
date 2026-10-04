@@ -1,3 +1,4 @@
+# 核对编辑器自定义消息的命名空间、类型化载荷和反序列化入口；本文件用源码锚点约束跨模块协议。
 from pathlib import Path
 import re
 import unittest

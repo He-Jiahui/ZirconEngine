@@ -5,7 +5,6 @@ slice: bounded-fifo-tool-scheduler-core
 status: source_complete_static_green_mount_pending
 related_code:
   - zircon_editor/src/core/tools/mod.rs
-  - zircon_editor/src/core/tools/tool_id.rs
   - zircon_editor/src/core/tools/scheduler.rs
 tests:
   - zircon_editor/src/core/tools/tests.rs

@@ -1,4 +1,5 @@
 use super::*;
+use sha2::{Digest, Sha256};
 
 #[test]
 fn text_font_database_registers_file_once_and_feeds_glyphon_fontdb() {
@@ -57,8 +58,10 @@ fn text_font_database_decodes_woff2_once_for_native_and_sdf_consumers() {
     )
     .unwrap();
     let encoded = encode(&original, BrotliQuality::default()).unwrap();
+    let resource_sha256: [u8; 32] = Sha256::digest(&encoded).into();
     let source_path = unique_font_fixture_path("font-database-decode", "woff2");
-    std::fs::write(&source_path, encoded).unwrap();
+    std::fs::write(&source_path, &encoded).unwrap();
+    let canonical_source_path = std::fs::canonicalize(&source_path).unwrap();
 
     let mut database = FontDatabase::default();
     let face = database
@@ -69,11 +72,48 @@ fn text_font_database_decodes_woff2_once_for_native_and_sdf_consumers() {
         .unwrap();
     let native_bytes = database.face_bytes(face).unwrap();
     let sdf_bytes = database.face_bytes(face).unwrap();
+    let receipt = database.face_receipt_metadata(face).unwrap();
+    let parsed = ttf_parser::Face::parse(native_bytes.as_ref(), 0).unwrap();
+    let parsed_family = parsed
+        .names()
+        .into_iter()
+        .filter(|name| name.name_id == ttf_parser::name_id::TYPOGRAPHIC_FAMILY)
+        .filter_map(|name| name.to_string())
+        .find(|name| !name.trim().is_empty())
+        .or_else(|| {
+            parsed
+                .names()
+                .into_iter()
+                .filter(|name| name.name_id == ttf_parser::name_id::FAMILY)
+                .filter_map(|name| name.to_string())
+                .find(|name| !name.trim().is_empty())
+        });
+    let parsed_postscript = parsed
+        .names()
+        .into_iter()
+        .filter(|name| name.name_id == ttf_parser::name_id::POST_SCRIPT_NAME)
+        .filter_map(|name| name.to_string())
+        .find(|name| !name.trim().is_empty());
 
     assert_eq!(repeated, face);
     assert!(!native_bytes.starts_with(b"wOF2"));
     assert!(ttf_parser::Face::parse(native_bytes.as_ref(), 0).is_ok());
     assert!(Arc::ptr_eq(&native_bytes, &sdf_bytes));
+    assert!(parsed_family.is_some());
+    assert!(parsed_postscript.is_some());
+    assert_eq!(receipt.family_name, parsed_family);
+    assert_eq!(receipt.postscript_name, parsed_postscript);
+    assert_eq!(receipt.face_index, 0);
+    assert_eq!(
+        receipt.resource_path.as_deref(),
+        Some(canonical_source_path.as_path())
+    );
+    assert_eq!(receipt.resource_sha256, Some(resource_sha256));
+    assert_eq!(
+        receipt.raster_sha256,
+        <[u8; 32]>::from(Sha256::digest(native_bytes.as_ref()))
+    );
+    assert_ne!(receipt.resource_sha256, Some(receipt.raster_sha256));
 
     let _ = std::fs::remove_file(source_path);
 }
@@ -196,12 +236,10 @@ fn text_font_database_builds_discovered_system_face_metadata_once_on_first_use()
         .face_source_identity(face)
         .expect("system face source identity");
     assert_ne!(source_identity, [0; 16]);
-    assert!(
-        database
-            .face_metrics(face)
-            .expect("system face metrics")
-            .is_some()
-    );
+    assert!(database
+        .face_metrics(face)
+        .expect("system face metrics")
+        .is_some());
     assert_eq!(database.face_metadata_build_count(), 1);
 
     assert_eq!(

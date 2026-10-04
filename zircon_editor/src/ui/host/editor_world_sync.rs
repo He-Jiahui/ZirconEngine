@@ -73,7 +73,7 @@ impl EditorHostEventController {
         self.play_world_sync
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .shutdown(&self.play_sessions.play_gateway_handle())
+            .shutdown(&self.play_sessions().play_gateway_handle())
     }
 
     fn world_sync_pump(&self, domain: WorldDomain) -> &Mutex<WorldSyncPump> {

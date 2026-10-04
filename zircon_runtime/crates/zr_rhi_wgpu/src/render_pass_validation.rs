@@ -17,6 +17,8 @@ pub(crate) trait RenderPassResourceLookup {
     fn texture_view_desc(&self, handle: TextureViewHandle) -> Result<&TextureViewDesc, RhiError>;
 }
 
+/// 保存已通过附件检查的通道形状；BeginRenderPass 建立此状态，
+/// 管线、viewport 与 scissor 校验读取它，EndRenderPass 将其清除。
 #[derive(Clone, Debug)]
 pub(super) struct ActiveRenderPass {
     color_attachments: Vec<TextureHandle>,
@@ -273,6 +275,8 @@ impl RenderPassAttachmentInfo {
     }
 }
 
+/// 确定性命令校验与生产编码器共用此入口，先检查附件资源和视图契约，
+/// 再返回供本通道复用的宽高与采样数。
 pub(crate) fn validate_render_pass_attachments(
     resources: &impl RenderPassResourceLookup,
     color_attachments: &[RenderPassColorAttachmentDesc],
@@ -452,7 +456,9 @@ fn validate_registered_attachment_view(
         .mip_level_count
         .unwrap_or_else(|| parent_desc.mip_levels.saturating_sub(view.base_mip_level));
     let array_layer_count = view.array_layer_count.unwrap_or_else(|| {
-        texture_view_layer_count(parent_desc).saturating_sub(view.base_array_layer)
+        parent_desc
+            .array_layer_count()
+            .saturating_sub(view.base_array_layer)
     });
     if mip_level_count != 1 || array_layer_count != 1 {
         return Err(RhiError::InvalidRenderPass {
@@ -558,7 +564,7 @@ fn validate_attachment_view(
             ),
         });
     }
-    let layer_count = texture_view_layer_count(desc);
+    let layer_count = desc.array_layer_count();
     if array_layer >= layer_count {
         return Err(RhiError::InvalidRenderPass {
             reason: format!(
@@ -572,13 +578,6 @@ fn validate_attachment_view(
         height: mip_extent(desc.height, mip_level),
         sample_count: desc.sample_count,
     })
-}
-
-fn texture_view_layer_count(desc: &TextureDesc) -> u32 {
-    match desc.dimension {
-        TextureDimension::D1 | TextureDimension::D2 | TextureDimension::D3 => 1,
-        TextureDimension::D2Array | TextureDimension::Cube => desc.depth,
-    }
 }
 
 const fn mip_extent(value: u32, level: u32) -> u32 {

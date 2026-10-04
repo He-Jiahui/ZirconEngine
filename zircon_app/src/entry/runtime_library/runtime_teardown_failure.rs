@@ -1,3 +1,7 @@
+//! RuntimeSession 销毁错误进入产品关停账本的桥梁。
+//! 入口在释放会话前克隆共享账本，供正常返回的清理与产品退出读取。
+//! 会话 destroy 在 Drop 中失败会记录后终止进程，不会返回退出入口。
+
 use crate::entry::product_shutdown::{
     ProductFailureLedger, ProductFailureSeverity, ProductHostPhase,
 };
@@ -5,6 +9,7 @@ use crate::entry::product_shutdown::{
 use super::RuntimeLibraryError;
 
 #[derive(Clone, Debug, Default)]
+/// 由会话析构和产品退出入口共享的销毁失败记录句柄。
 pub(in crate::entry) struct RuntimeSessionTeardownFailureState(ProductFailureLedger);
 
 impl RuntimeSessionTeardownFailureState {
@@ -23,18 +28,5 @@ impl RuntimeSessionTeardownFailureState {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{RuntimeLibraryError, RuntimeSessionTeardownFailureState};
-
-    #[test]
-    fn runtime_session_teardown_failure_state_records_secondary_errors_in_the_product_ledger() {
-        let state = RuntimeSessionTeardownFailureState::default();
-        state.record(RuntimeLibraryError::new("surface unbind failed"));
-        state.record(RuntimeLibraryError::new("session destroy failed"));
-
-        let report = state.failure_ledger().snapshot();
-        assert_eq!(report.records().len(), 2);
-        assert_eq!(report.primary().unwrap().message(), "surface unbind failed");
-        assert_eq!(report.secondary()[0].message(), "session destroy failed");
-    }
-}
+#[path = "tests/runtime_teardown_failure.rs"]
+mod tests;

@@ -1,11 +1,13 @@
 //! Neutral text layout contracts shared by runtime consumers.
 
+//! Runtime 提供布局与栅格服务实现；此模块公开调用方共享的排版服务接口、请求结果和字形栅格 DTO。
 mod direction;
 mod font_collection_handle;
 mod font_face_handle;
 mod font_request;
 mod glyph;
 mod glyph_flags;
+mod glyph_raster;
 mod glyph_rotation;
 mod layout_error;
 mod layout_metrics;
@@ -24,6 +26,11 @@ pub use font_face_handle::TextFontFaceHandle;
 pub use font_request::TextFontRequest;
 pub use glyph::TextGlyph;
 pub use glyph_flags::TextGlyphFlags;
+pub use glyph_raster::{
+    TextGlyphBitmapFormat, TextGlyphRasterError, TextGlyphRasterHinting, TextGlyphRasterMode,
+    TextGlyphRasterReceipt, TextGlyphRasterRequest, TextGlyphRasterSmoothing,
+    TextGlyphSyntheticStyle,
+};
 pub use glyph_rotation::TextGlyphRotation;
 pub use layout_error::TextLayoutError;
 pub use layout_metrics::TextLayoutMetrics;
@@ -40,4 +47,5 @@ pub use vertical_glyph_decision::{
 pub use writing_mode::TextWritingMode;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

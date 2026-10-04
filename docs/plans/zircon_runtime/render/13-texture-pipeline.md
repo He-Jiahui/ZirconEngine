@@ -309,7 +309,7 @@ pub enum TextureArrayLayerSource {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Texture2DArrayAsset {
     pub uri: AssetUri,
-    /// dimension=D2、array_layer_count=N;全层尺寸/格式一致性在导入期校验
+    /// dimension=D2、depth_or_array_layers=N;全层尺寸/格式一致性在导入期校验
     pub descriptor: TextureAssetDescriptor,
     pub layers: Vec<TextureArrayLayerSource>,
 }
@@ -328,7 +328,7 @@ pub enum CubemapSourceLayout {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CubemapAsset {
     pub uri: AssetUri,
-    /// array_layer_count=6;view 维度 Cube;计划 11 SkyboxSettings 按 AssetReference 消费
+    /// depth_or_array_layers=6;view 维度 Cube;计划 11 SkyboxSettings 按 AssetReference 消费
     pub descriptor: TextureAssetDescriptor,
     pub source_layout: CubemapSourceLayout,
     pub sources: Vec<AssetReference>, // SixFiles=6 项,其余=1 项

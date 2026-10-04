@@ -10,6 +10,8 @@ use super::super::encode_hybrid_gi_probes::encode_hybrid_gi_probes;
 use super::super::encode_hybrid_gi_trace_regions::encode_hybrid_gi_trace_regions;
 use super::super::encode_reflection_probes::encode_reflection_probes;
 
+/// 将有效 GPU 数据前缀放入一份共享不可变 payload，并返回与每个缓冲读取范围一致的计数。
+/// 零条目不上传，shader 必须以计数限制读取，不能依赖未更新的尾部内容。
 pub(in crate::graphics::scene::scene_renderer::post_process::resources) fn prepare_scene_data_uploads(
     resources: &ScenePostProcessResources,
     frame: &ViewportRenderFrame,
@@ -77,12 +79,14 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources) fn prepa
     )
 }
 
+// 保存各目的缓冲在共享 payload 中的精确来源范围，后续上传只复制所属片段。
 fn append_payload_bytes(payload: &mut Vec<u8>, bytes: &[u8]) -> Range<usize> {
     let start = payload.len();
     payload.extend_from_slice(bytes);
     start..payload.len()
 }
 
+// 空前缀无需清旧缓冲，消费者计数阻止读取；有效范围持有 Arc，直到提交上传事务消费。
 fn push_non_empty_upload(
     uploads: &mut WgpuBufferUploadBatch,
     buffer: &wgpu::Buffer,
@@ -99,20 +103,5 @@ fn push_non_empty_upload(
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn scene_data_uploads_share_one_exact_payload_and_skip_empty_targets() {
-        let source = include_str!("prepare_scene_data_uploads.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("post-process scene-data upload source");
-
-        assert!(!production.contains("queue.write_buffer"));
-        assert!(production.contains("Vec::with_capacity(payload_byte_len)"));
-        assert_eq!(production.matches("let payload: Arc<[u8]>").count(), 1);
-        assert_eq!(production.matches("push_non_empty_upload(").count(), 4);
-        assert!(production.contains("if payload_byte_len == 0"));
-        assert!(production.contains("if source_range.is_empty()"));
-    }
-}
+#[path = "tests/prepare_scene_data_uploads.rs"]
+mod tests;

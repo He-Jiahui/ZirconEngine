@@ -11,8 +11,8 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 场景与资产公开接口详细 Wiki
 tests:
-  - zircon_runtime/src/scene/inspection/tests.rs
-  - zircon_runtime/src/scene/world/generation/tests.rs
+  - zircon_runtime/src/scene/inspection/tests/cases.rs
+  - zircon_runtime/src/scene/world/generation/tests/cases.rs
 doc_type: module-detail
 ---
 
@@ -140,7 +140,7 @@ let applied = level.with_world_mut_if_replacement_epoch(epoch, |world| {
 - [World 实现](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/scene/world/world.rs)
 - [类型化组件 API](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/scene/world/typed_api.rs)
 - [查询模块](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/scene/ecs/query/mod.rs)
-- [World generation 测试](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/scene/world/generation/tests.rs)
+- [World generation 测试](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/scene/world/generation/tests/cases.rs)
 
 ## 字段级契约
 

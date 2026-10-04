@@ -11,7 +11,7 @@ plan_sources:
   - user: 2026-09-09 扩充公开 UI 接口、机制案例与教程
 tests:
   - zircon_runtime_interface/src/tests/ui_v2_contracts.rs
-  - zircon_runtime/src/ui/v2/loader/owned_schema_error_tests.rs
+  - zircon_runtime/src/ui/v2/loader/tests/owned_schema_error_tests.rs
 doc_type: api-reference
 ---
 

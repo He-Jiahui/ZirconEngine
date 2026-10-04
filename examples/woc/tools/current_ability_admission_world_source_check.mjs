@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node current_ability_admission_world_source_check.mjs；缺少源码契约时脚本抛错退出。
+// 检查世界状态中的职业与已提交专精解析、已知技能准入和时间逆转准入回归标记，确保当前技能目录仍接入命令路径。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';

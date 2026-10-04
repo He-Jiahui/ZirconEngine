@@ -37,7 +37,7 @@ def _assert_canonical_zr_vm_command(command: str) -> None:
         "retired ZrVM backend feature must not return"
     )
 
-
+# 调用技术栈边界审计器核对 VM 后端特性命令与目录镜像守卫归属。
 class RuntimeTechStackBoundaryTests(unittest.TestCase):
     def test_vampire_executable_commands_use_canonical_zr_vm_backend_feature(
         self,

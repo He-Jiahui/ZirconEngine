@@ -137,8 +137,8 @@ fn visibility_context_holds_resident_child_page_one_frame_when_frontier_merges_b
 }
 
 #[test]
-fn visibility_context_keeps_resident_child_frontier_hot_across_repeated_budget_collapse_without_pending_requests()
- {
+fn visibility_context_keeps_resident_child_frontier_hot_across_repeated_budget_collapse_without_pending_requests(
+) {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
@@ -245,8 +245,8 @@ fn visibility_context_keeps_resident_child_frontier_hot_across_repeated_budget_c
 }
 
 #[test]
-fn visibility_context_requests_nonresident_ancestor_page_and_holds_descendants_when_frontier_collapses_multiple_levels()
- {
+fn visibility_context_requests_nonresident_ancestor_page_and_holds_descendants_when_frontier_collapses_multiple_levels(
+) {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
@@ -359,8 +359,8 @@ fn visibility_context_requests_nonresident_ancestor_page_and_holds_descendants_w
 }
 
 #[test]
-fn visibility_context_keeps_resident_grandchild_pages_hot_while_multi_level_cascade_request_remains_pending()
- {
+fn visibility_context_keeps_resident_grandchild_pages_hot_while_multi_level_cascade_request_remains_pending(
+) {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
@@ -456,8 +456,8 @@ fn visibility_context_keeps_resident_grandchild_pages_hot_while_multi_level_casc
 }
 
 #[test]
-fn visibility_context_keeps_intermediate_virtual_geometry_lineage_pages_hot_while_ancestor_request_remains_pending()
- {
+fn visibility_context_keeps_intermediate_virtual_geometry_lineage_pages_hot_while_ancestor_request_remains_pending(
+) {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 

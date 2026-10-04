@@ -15,10 +15,10 @@ related_code:
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/requests.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/parameter_apply.rs
-  - docs/zircon_runtime/performance/hotspot_inventory.md
+  - docs/crates/zircon_runtime/performance/hotspot_inventory.md
 tests:
   - animation scene frame diagnostics record populated and empty animation.evaluate frames
-  - python tools/check_conventions.py --only docs --json
+  - python tools/audits/check_conventions.py --only docs --json
   - cargo +1.94.1 check -p zircon_plugin_animation_runtime --lib --locked --jobs 1 --color never
 ---
 
@@ -37,7 +37,7 @@ tests:
 ## 失败现象与复现证据
 
 Fresh G7 reports twelve missing-path violations in
-`docs/zircon_runtime/performance/hotspot_inventory.md` because both machine
+`docs/crates/zircon_runtime/performance/hotspot_inventory.md` because both machine
 fields still list the six deleted Runtime owners under
 `zircon_runtime/src/animation/scene_hook/{diagnostics,events,node_pose,pending,scan,tick}.rs`.
 
@@ -75,7 +75,7 @@ nearby Plugin file would hide that loss instead of completing the migration.
   `animation/scene_hook` stays physically absent with no alias, shim, facade, or
   compatibility module.
 - Runtime07 performance inventories, guards, and
-  `docs/zircon_runtime/performance/hotspot_inventory.md` hard-cut to the real
+  `docs/crates/zircon_runtime/performance/hotspot_inventory.md` hard-cut to the real
   Plugin owners only after the production behavior exists.
 - Focused diagnostics tests, G7 docs validation, Runtime07 structure guards, and
   canonical Rust 1.94.1 Plugin compilation pass before fixed return.
@@ -88,6 +88,8 @@ nearby Plugin file would hide that loss instead of completing the migration.
 - 不得删除 counters、空帧语义或 Runtime07 验收项来消除 stale-path 失败。
 
 ## 修复结果与回传
+
+2026-09-11 滚动复核：恢复原 Session `failure-roll-01a084c8-plugins04-animation-frame-diagnostics` 后确认当前工作树已包含 Plugin-local `AnimationSceneFrameDiagnostics`、十条 `animation.scene.*` 计数及 populated/empty frame 回归。静态 ticket `9df89056125c484f8f35a815cf03fc95` 在隔离 copy 中实际执行并通过；owned 文件逐项 `rustfmt --check`（`mod.rs` 使用 `skip_children`，避免触碰 foreign-owned `sequences.rs`）及 scoped `git diff --check` 通过。Cargo `check -p zircon_plugin_animation_runtime --lib --locked` admission 因外部 `E:\Git\zr_vm` dirty worktree 被拒绝，尚无动态编译或 product-frame 证据；因此仍保持 `status: open`，不执行 fixed return。
 
 Open state: `待修复`; Plugins04 production diagnostics and the upward Runtime07
 and Frameworks06 gates have not passed. Independent Frameworks06 work may

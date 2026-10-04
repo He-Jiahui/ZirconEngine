@@ -1,3 +1,5 @@
+# 日期保真 JSON 测试面向验收收据中的时间词法、对象数组和显式根类型约束；前三项调用模块，末项只检查模块源码的对象构造方式。
+# TODO: [CR-M15-TOOLS-TESTS-0001] 当前控制平面 CI 的显式 Pester 清单未注册本文件；确认日期词法与根类型断言是否另有持续门禁，若无则补入套件。
 $modulePath = Join-Path $PSScriptRoot '..\mvp\MvpDatePreservingJson.psm1'
 
 Describe 'MVP date-preserving JSON authority' {

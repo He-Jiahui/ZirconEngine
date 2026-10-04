@@ -1,5 +1,208 @@
 use super::*;
-use std::sync::Arc;
+use std::{collections::BTreeSet, sync::Arc};
+
+#[test]
+fn disjoint_ancestor_clips_remain_empty_in_published_render_and_hit_frames() {
+    for (root_width, parent_width) in [
+        (20.0, None),
+        (100.0, Some(20.0)),
+        (40.0, None),
+        (100.0, Some(40.0)),
+    ] {
+        let mut surface = clipped_leaf_surface(root_width, parent_width);
+        let frame = surface.surface_frame();
+        let leaf = frame.arranged_tree.get(FRONT_ID).unwrap();
+        assert_eq!(leaf.clip_frame, UiFrame::new(40.0, 40.0, 0.0, 0.0));
+        assert_eq!(
+            frame
+                .render_extract
+                .list
+                .commands
+                .iter()
+                .find(|command| command.node_id == FRONT_ID)
+                .unwrap()
+                .clip_frame,
+            Some(leaf.clip_frame),
+        );
+        assert_eq!(
+            hit_test_surface_frame(&frame, UiPoint::new(45.0, 45.0)).top_hit,
+            None,
+        );
+        assert_eq!(surface.hit_test(UiPoint::new(45.0, 45.0)).top_hit, None);
+
+        for node_id in [Some(ROOT_ID), parent_width.map(|_| BACK_ID), Some(FRONT_ID)]
+            .into_iter()
+            .flatten()
+        {
+            surface.tree.node_mut(node_id).unwrap().clip_to_bounds = false;
+        }
+        surface.rebuild_authored_frames(UiSize::new(100.0, 100.0));
+        let unclipped = surface.surface_frame();
+        let leaf = unclipped.arranged_tree.get(FRONT_ID).unwrap();
+        assert_eq!(leaf.clip_frame, leaf.frame);
+        assert_eq!(
+            hit_test_surface_frame(&unclipped, UiPoint::new(45.0, 45.0)).top_hit,
+            Some(FRONT_ID),
+        );
+    }
+}
+
+#[test]
+fn clipping_parent_geometry_patch_preserves_empty_clip_and_retained_frame() {
+    let mut surface = clipped_leaf_surface(100.0, Some(60.0));
+    let before = surface.surface_frame();
+    let point = UiPoint::new(45.0, 45.0);
+    assert_eq!(
+        hit_test_surface_frame(&before, point).top_hit,
+        Some(FRONT_ID)
+    );
+    let topology_generation = surface.tree.layout_order_generation();
+    surface.tree.node_mut(BACK_ID).unwrap().layout_cache.frame = UiFrame::new(0.0, 0.0, 20.0, 20.0);
+
+    let publication = surface.publish_authored_geometry(
+        UiSize::new(100.0, 100.0),
+        &BTreeSet::from([BACK_ID]),
+        topology_generation,
+    );
+    assert!(matches!(
+        publication,
+        crate::ui::surface::UiAuthoredGeometryPublication::Local(_)
+    ));
+
+    let after = surface.surface_frame();
+    let leaf = after.arranged_tree.get(FRONT_ID).unwrap();
+    assert_eq!(leaf.clip_frame, UiFrame::new(40.0, 40.0, 0.0, 0.0));
+    assert_eq!(
+        after
+            .render_extract
+            .list
+            .commands
+            .iter()
+            .find(|command| command.node_id == FRONT_ID)
+            .unwrap()
+            .clip_frame,
+        Some(leaf.clip_frame),
+    );
+    assert_eq!(hit_test_surface_frame(&after, point).top_hit, None);
+    assert_eq!(surface.hit_test(point).top_hit, None);
+    assert_eq!(
+        hit_test_surface_frame(&before, point).top_hit,
+        Some(FRONT_ID)
+    );
+    let full_surface = clipped_leaf_surface(100.0, Some(20.0));
+    let full_frame = full_surface.surface_frame();
+    assert_eq!(
+        after.arranged_tree.get(FRONT_ID),
+        full_frame.arranged_tree.get(FRONT_ID),
+    );
+    assert_eq!(
+        hit_test_surface_frame(&after, point),
+        hit_test_surface_frame(&full_frame, point),
+    );
+}
+
+#[test]
+fn clipped_component_children_keep_empty_scissors_through_paint_conversion() {
+    for (component, attributes) in [
+        ("AgentChat", "messages = [\"user|hidden\"]"),
+        ("ChatComposer", "composer_text = \"hidden\""),
+        (
+            "TreeView",
+            "text = \"header\"\ncollection_items = [\"selected|0|hidden\"]",
+        ),
+        ("InputField", "text = \"hidden\"\ncontent = \"hidden\""),
+    ] {
+        let mut surface = clipped_leaf_surface(20.0, None);
+        let widget = if component == "InputField" {
+            zircon_runtime_interface::ui::widget::UiWidgetContract {
+                behavior: zircon_runtime_interface::ui::widget::UiWidgetBehavior::TextInput,
+                value_property: Some("content".into()),
+                ..Default::default()
+            }
+        } else {
+            Default::default()
+        };
+        let leaf = surface.tree.node_mut(FRONT_ID).unwrap();
+        leaf.layout_cache.frame = UiFrame::new(40.25, 40.25, 160.0, 80.0);
+        leaf.template_metadata = Some(UiTemplateNodeMetadata {
+            component: component.into(),
+            attributes: toml::from_str(attributes).unwrap(),
+            widget,
+            ..Default::default()
+        });
+        surface.rebuild_authored_frames(UiSize::new(100.0, 100.0));
+        let frame = surface.surface_frame();
+        let leaf_commands = frame
+            .render_extract
+            .list
+            .commands
+            .iter()
+            .filter(|command| command.node_id == FRONT_ID)
+            .collect::<Vec<_>>();
+        assert!(
+            leaf_commands.iter().any(|command| {
+                command.kind == zircon_runtime_interface::ui::surface::UiRenderCommandKind::Text
+                    && command.text.as_deref() == Some("hidden")
+            }),
+            "{component} must render a child text command",
+        );
+        for command in leaf_commands {
+            let clip = command
+                .clip_frame
+                .expect("clipped child must retain a scissor");
+            assert!(clip.width <= 0.0 || clip.height <= 0.0, "{component}");
+            for dpi_scale in [1.0, 1.25, 1.5, 2.0] {
+                let elements = command.to_paint_elements_with_metrics(
+                    0,
+                    zircon_runtime_interface::ui::layout::UiLayoutMetrics {
+                        dpi_scale,
+                        ..Default::default()
+                    },
+                );
+                assert!(!elements.is_empty(), "{component}");
+                for element in elements {
+                    let clip = element.clip.expect("paint must retain an empty scissor");
+                    assert!(
+                        clip.frame.width <= 0.0 || clip.frame.height <= 0.0,
+                        "{component} at DPI {dpi_scale}",
+                    );
+                }
+            }
+        }
+    }
+}
+
+fn clipped_leaf_surface(root_width: f32, parent_width: Option<f32>) -> UiSurface {
+    let mut surface = UiSurface::new(UiTreeId::new("surface.frame.clipping"));
+    let mut root = UiTreeNode::new(ROOT_ID, UiNodePath::new("root"))
+        .with_frame(UiFrame::new(0.0, 0.0, root_width, root_width))
+        .with_input_policy(UiInputPolicy::Ignore)
+        .with_state_flags(root_state());
+    root.clip_to_bounds = true;
+    surface.tree.insert_root(root);
+    let leaf_parent = if let Some(width) = parent_width {
+        let mut parent = UiTreeNode::new(BACK_ID, UiNodePath::new("root/parent"))
+            .with_frame(UiFrame::new(0.0, 0.0, width, width))
+            .with_input_policy(UiInputPolicy::Ignore)
+            .with_state_flags(root_state());
+        parent.clip_to_bounds = true;
+        surface.tree.insert_child(ROOT_ID, parent).unwrap();
+        BACK_ID
+    } else {
+        ROOT_ID
+    };
+    let mut leaf = button_node(
+        FRONT_ID,
+        "root/leaf",
+        "leaf.button",
+        UiFrame::new(40.0, 40.0, 20.0, 20.0),
+        1,
+    );
+    leaf.clip_to_bounds = true;
+    surface.tree.insert_child(leaf_parent, leaf).unwrap();
+    surface.rebuild_authored_frames(UiSize::new(100.0, 100.0));
+    surface
+}
 
 #[test]
 fn surface_frame_render_hit_and_pointer_dispatch_share_arranged_authority() {

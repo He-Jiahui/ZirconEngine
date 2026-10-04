@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码中提取首次与重复通关的地下探索印记奖励，供 m7_delve_mark_payout_content_codegen.mjs 消费。
 import { execFileSync } from 'node:child_process';
 import ts from 'typescript';
 
@@ -18,6 +19,7 @@ if (!declaration) {
 }
 
 const functionSource = declaration.getText(source);
+// 确认首次通关和重复英雄通关分支后，才记录奖励标量。
 for (const marker of [
   "const isHeroic = run.tierId === 'heroic';",
   'if (meta.delveDaily.markClears < 3) return isHeroic ? 2 : 1;',

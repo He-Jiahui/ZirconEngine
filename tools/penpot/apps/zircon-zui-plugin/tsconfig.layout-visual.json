@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../dist/out-tsc/zircon-zui-plugin-layout-visual",
+    "types": ["node"],
+    "moduleResolution": "bundler"
+  },
+  "files": [
+    "tools/zui-layout-visual-validation.ts",
+    "tools/zui-layout-status.ts",
+    "tools/zui-layout-gallery-check.ts",
+    "tools/zui-layout-gallery.ts",
+    "tools/zui-layout-contact-sheet.ts",
+    "tools/zui-layout-screenshot-contract.ts",
+    "tools/zui-material-source-refinement.ts",
+    "tools/zui-material-sample-refinement.ts",
+    "tools/zui-layout-delivery.ts",
+    "tools/zui-layout-delivery-replay.ts",
+    "tools/zui-layout-text-audit.ts",
+    "tools/zui-layout-style-audit.ts",
+    "tools/zui-workbench-source-refinement.ts"
+  ]
+}

@@ -1,3 +1,4 @@
+//! 结构守卫锁定缓存查询的缺失组件语义及直接读取路径；行为等价性由查询行为测试覆盖。
 fn section_between<'a>(source: &'a str, start: &str, end: &str) -> &'a str {
     source
         .split(start)
@@ -47,25 +48,24 @@ fn cached_query_filters_and_fetches_use_direct_branches() {
             && !changed_filter.contains(".is_some_and("),
         "cached Changed<T> filters must branch directly on missing component ticks"
     );
+    let data_fetchers_compact: String = data_fetchers.split_whitespace().collect();
     assert!(
-        data_fetchers
+        data_fetchers_compact
             .matches(
-                "let (value, _) = world.component_ref_with_ticks_at_location::<T>(*location)?;"
+                "let(value,_)=World::query_component_ref_with_ticks_at_location::<T>(world,*location)?;"
             )
             .count()
             == 2
-            && data_fetchers.contains(
-                "let Some((value, _)) = world.component_ref_with_ticks_at_location::<T>(*location)"
+            && data_fetchers_compact.contains(
+                "letSome((value,_))=World::query_component_ref_with_ticks_at_location::<T>(world,*location)"
             )
             && data_fetchers.contains("Some(Some(value))")
             && !data_fetchers.contains(".map(|(value, _)| value)"),
         "cached query data fetches must unwrap value/tick pairs without tuple-map adapters"
     );
     assert!(
-        tick_helper.contains(
-            "let (_, ticks) = world.component_ref_with_ticks_at_location::<T>(*location)?;"
-        ) && tick_helper.contains("Some(ticks)")
-            && !tick_helper.contains(".map(|(_, ticks)| ticks)"),
-        "cached component tick lookup must return ticks without a tuple-map adapter"
+        tick_helper.contains("world.component_ticks_at_location::<T>(*location)")
+            && !tick_helper.contains("component_ref_with_ticks_at_location"),
+        "cached component tick lookup must use typed tick access without fetching the value"
     );
 }

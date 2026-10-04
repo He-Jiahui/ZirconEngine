@@ -4,16 +4,17 @@ use std::path::{Path, PathBuf};
 use zircon_runtime_interface::project::RelPath;
 
 mod identity;
+mod lexical_identity;
 #[cfg(windows)]
 mod windows;
 
 pub use identity::ResolvedProjectPathIdentity;
+pub(crate) use lexical_identity::LexicalProjectPathIdentity;
 
 #[cfg(windows)]
 use windows::{
     is_windows_drive_relative, normalize_windows_final_path, wide_ascii_lowercase,
     wide_starts_with_ascii_case_insensitive, windows_os_str_equals_ascii_case_insensitive,
-    windows_paths_equal_ignore_case,
 };
 
 /// Canonical file name for a Zircon project manifest.
@@ -264,18 +265,13 @@ impl ProjectPaths {
         left: impl AsRef<Path>,
         right: impl AsRef<Path>,
     ) -> Result<bool, std::io::Error> {
-        let left = absolute_project_path(left.as_ref())?;
-        let right = absolute_project_path(right.as_ref())?;
-        #[cfg(windows)]
-        {
-            let left = normalize_windows_final_path(left);
-            let right = normalize_windows_final_path(right);
-            Ok(windows_paths_equal_ignore_case(&left, &right))
-        }
-        #[cfg(not(windows))]
-        {
-            Ok(left == right)
-        }
+        Ok(Self::lexical_identity(left)? == Self::lexical_identity(right)?)
+    }
+
+    pub(crate) fn lexical_identity(
+        path: impl AsRef<Path>,
+    ) -> Result<LexicalProjectPathIdentity, std::io::Error> {
+        LexicalProjectPathIdentity::new(path.as_ref())
     }
 
     /// Returns a diagnostic-safe representation of a path without changing its operational form.
@@ -420,6 +416,11 @@ fn split_at_deepest_existing_project_ancestor(
 
     for component in path.components() {
         candidate.push(component.as_os_str());
+        // A drive prefix is not an absolute filesystem object until RootDir
+        // follows it. In particular, querying \\?\C: fails on Windows.
+        if matches!(component, std::path::Component::Prefix(_)) {
+            continue;
+        }
         match fs::metadata(&candidate) {
             Ok(_) => {
                 deepest_existing = Some(candidate.clone());
@@ -446,4 +447,5 @@ fn canonicalize_physical_path(path: &Path) -> Result<PathBuf, std::io::Error> {
 }
 
 #[cfg(test)]
+#[path = "paths/tests/cases.rs"]
 mod tests;

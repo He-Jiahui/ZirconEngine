@@ -8,6 +8,10 @@ use toml::Value;
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::ui::template::UiAssetLoader;
 use zircon_runtime::ui::v2::UiZuiAssetLoader;
+use zircon_runtime_interface::project::{
+    ProjectActivationOperationIdGenerator, ProjectCreationProvenance, ProjectEngineVersion,
+    ProjectLaunchInstanceId,
+};
 use zircon_runtime_interface::runtime_build_set::ZrRuntimeBuildSetId;
 use zircon_runtime_interface::ui::accessibility::UiAccessibilityContract;
 use zircon_runtime_interface::ui::focus::UiFocusContract;
@@ -26,8 +30,8 @@ use crate::scene::modes::{
     EditorSceneMode, InputOutcome, SceneModeCtx, SceneModeRegistration, ViewportOverlayBuilder,
 };
 use crate::scene::viewport::ViewportInput;
-use crate::ui::host::EditorManager;
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
+use crate::ui::host::EditorManager;
 
 struct PassThroughTestSceneMode {
     id: SceneModeId,
@@ -97,12 +101,27 @@ pub(crate) fn configure_editor_test_runtime_build_set(runtime: &CoreRuntime) {
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .expect("activated test runtime should resolve EditorManager");
-    manager.configure_project_runtime_build_set(Some(
-        ZrRuntimeBuildSetId::parse(
-            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-        )
-        .expect("test BuildSet fixture must be valid"),
-    ));
+    manager.configure_project_runtime_build_set(Some(test_runtime_build_set_id()));
+}
+
+pub(crate) fn test_project_creation_provenance() -> ProjectCreationProvenance {
+    static OPERATION_IDS: OnceLock<ProjectActivationOperationIdGenerator> = OnceLock::new();
+
+    let operation_id = OPERATION_IDS
+        .get_or_init(|| ProjectActivationOperationIdGenerator::new(ProjectLaunchInstanceId::new()))
+        .allocate()
+        .expect("test project creation operation sequence must remain available");
+    ProjectCreationProvenance::new(
+        operation_id,
+        ProjectEngineVersion::parse(env!("CARGO_PKG_VERSION"))
+            .expect("editor package version must be a valid engine version"),
+        test_runtime_build_set_id(),
+    )
+}
+
+fn test_runtime_build_set_id() -> ZrRuntimeBuildSetId {
+    ZrRuntimeBuildSetId::parse("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
+        .expect("test BuildSet fixture must be valid")
 }
 
 pub(crate) fn load_test_ui_asset(source: &str) -> Result<UiAssetDocument, UiAssetError> {

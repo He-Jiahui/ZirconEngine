@@ -1,3 +1,6 @@
+// 调用端：npm run generate:temporal-reversal-offer-contract (tools/package.json)；职责：跨模块核对时间逆转的目标解析、技能字段和效果派发。
+// 输入边界：src/sim/content/classes.ts, src/sim/combat/casting_lifecycle.ts, src/sim/combat/effect_dispatch.ts, src/sim/types.ts；--check 比较生成结果，不改写目标文件。
+
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';

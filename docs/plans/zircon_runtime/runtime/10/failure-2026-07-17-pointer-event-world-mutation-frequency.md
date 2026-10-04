@@ -13,9 +13,11 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/state.rs
   - zircon_runtime/src/dynamic_api/camera_controller.rs
   - zircon_runtime/src/input/runtime/default_input_manager.rs
+  - zircon_runtime/src/dynamic_api/session/tests/pointer_frame_batch.rs
 tests:
   - pointer event world-mutation count at 125/500/1000 Hz
   - pointer latest-value frame application preserves button and touch edges
+  - cargo test -p zircon_runtime --lib pointer_frame_batch --locked
 ---
 
 # Runtime10：pointer 事件仍逐次锁 world 并更新相机

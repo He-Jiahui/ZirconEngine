@@ -32,4 +32,5 @@ pub(super) enum ModulePluginAction<'a> {
 }
 
 #[cfg(test)]
+#[path = "action_ids/tests/cases.rs"]
 mod tests;

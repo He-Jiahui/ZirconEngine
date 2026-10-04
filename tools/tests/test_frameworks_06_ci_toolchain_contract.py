@@ -8,7 +8,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUST_TOOLCHAIN = "1.94.1"
 
-
+# 读取 CI 工作流与约定检查脚本，确认构建步骤安装并使用同名工具链。
 class Frameworks06CiToolchainContractTests(unittest.TestCase):
     def test_convention_job_installs_the_runner_named_toolchain(self) -> None:
         workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(

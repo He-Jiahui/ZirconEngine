@@ -37,14 +37,14 @@ requireText(lifecycle, /p\.resource = Math\.min\(p\.maxResource, p\.resource \+ 
 const generator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
 if (!/primal_reflexes',[\s\S]*?'enrage'/.test(generator) ||
-    !generator.includes("EXPECTED_ABILITY_COUNT = 79") ||
-    !zrGenerator.includes("document.entries.length === 79")) {
+    !generator.includes("EXPECTED_ABILITY_COUNT = 117") ||
+    !zrGenerator.includes("document.entries.length === 117")) {
   throw new Error("M4 Enrage projection scope is missing");
 }
 const entry = JSON.parse(read("contracts", "m4_abilities.json")).entries.find(
   (value) => value.id === "enrage",
 );
-if (!entry || entry.index !== 68 || entry.definition.cost !== 0 ||
+if (!entry || entry.index !== 72 || entry.definition.cost !== 0 ||
     entry.definition.cooldown !== 60 || !entry.definition.offGcd ||
     entry.definition.requiresForm !== "bear" ||
     entry.definition.effects?.[0]?.type !== "gainResource" ||
@@ -57,8 +57,8 @@ requireText(world, /enrageAbilityCode\([\s\S]*?knownAbilityCatalog\.abilityCode\
   "Enrage catalog identity is missing");
 requireText(world, /startOfflineEnrageCast[\s\S]*?entityCastingAbility[\s\S]*?forms\.formKindForAbilityCode[\s\S]*?m4AbilityCatalog\.flag\(abilityIndex, "offGcd"\)[\s\S]*?entityMaxResources[\s\S]*?setAbilityCooldownExpiration/,
   "Enrage Bear-only resource reducer is missing");
-const reducerStart = world.indexOf("startOfflineEnrageCast");
-const reducerEnd = world.indexOf("\n}\n", reducerStart);
+const reducerStart = world.indexOf("startOfflineEnrageCast(state: WorldState");
+const reducerEnd = world.indexOf("\n}", reducerStart);
 if (reducerStart < 0 || reducerEnd < reducerStart ||
     world.slice(reducerStart, reducerEnd).includes("entityCastGcdRemaining")) {
   throw new Error("Enrage must not consume or require the global cooldown");

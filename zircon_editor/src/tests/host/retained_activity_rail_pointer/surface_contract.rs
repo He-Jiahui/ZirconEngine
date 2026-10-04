@@ -75,3 +75,56 @@ fn activity_rail_pointer_bridge_uses_route_intent_only() {
         );
     }
 }
+
+#[test]
+fn activity_rail_pointer_bridge_publishes_retained_geometry_deltas() {
+    let sync = source("src/ui/retained_host/activity_rail_pointer/sync.rs");
+    let rebuild = source("src/ui/retained_host/activity_rail_pointer/rebuild_surface.rs");
+
+    assert!(sync.contains("surface_delta_for_layout"));
+    assert!(rebuild.contains("publish_authored_geometry("));
+    assert!(rebuild.contains("rebuild_authored_frames("));
+    assert!(!rebuild.contains("surface.rebuild();"));
+}
+
+#[test]
+fn window_metrics_activity_rail_sync_uses_geometry_only_semantics() {
+    let shell_chrome = source("src/ui/retained_host/app/pointer_layout/shell_chrome.rs");
+    let recompute = source("src/ui/retained_host/app/host_lifecycle/recompute_viewport.rs");
+    let layout = source(
+        "src/ui/retained_host/activity_rail_pointer/build_host_activity_rail_pointer_layout.rs",
+    );
+
+    assert!(recompute.contains("window_metrics_target"));
+    assert!(shell_chrome.contains("sync_activity_rail_pointer_layout_for_target"));
+    assert!(shell_chrome.contains("build_host_activity_rail_pointer_geometry_layout("));
+    assert!(layout.contains("Arc::clone(&previous.left_tabs)"));
+    assert!(layout.contains("Arc::clone(&previous.right_tabs)"));
+}
+
+#[test]
+fn window_metrics_recompute_reuses_geometry_free_pointer_receipts() {
+    let recompute = source("src/ui/retained_host/app/host_lifecycle/recompute_viewport.rs");
+    let reuse_gate = recompute
+        .split("if !window_metrics_target {")
+        .nth(1)
+        .and_then(|source| source.split("} else {").next())
+        .expect("WindowMetrics semantic pointer receipt reuse gate");
+
+    assert!(reuse_gate.contains("sync_host_page_pointer_layout(model)"));
+    assert!(reuse_gate.contains("sync_document_tab_pointer_layout(model)"));
+    assert!(reuse_gate.contains("sync_drawer_header_pointer_layout(model)"));
+    assert!(recompute.contains("ui.window_metrics.semantic_pointer_receipt_reuse_count"));
+}
+
+#[test]
+fn window_metrics_recompute_uses_welcome_recent_viewport_fast_path() {
+    let pointer_surfaces =
+        source("src/ui/retained_host/app/host_lifecycle/recompute/pointer_surfaces.rs");
+    let welcome = source("src/ui/retained_host/app/pointer_layout/welcome_recent.rs");
+
+    assert!(pointer_surfaces.contains("sync_welcome_recent_pointer_size()"));
+    assert!(pointer_surfaces.contains("ui.window_metrics.welcome_recent_semantic_reuse_count"));
+    assert!(welcome.contains("fn sync_welcome_recent_pointer_size"));
+    assert!(pointer_surfaces.contains("if window_metrics_target {"));
+}

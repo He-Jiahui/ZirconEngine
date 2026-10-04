@@ -1,9 +1,10 @@
 use super::{assert_contains_all, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0084] 界面图像顶点缓冲复用与提交上传的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_screen_space_ui_images_reuse_a_single_vertex_buffer() {
     let image = read_runtime_src("graphics/scene/scene_renderer/ui/image.rs");
-    let image_tests = read_runtime_src("graphics/scene/scene_renderer/ui/image/tests.rs");
+    let image_tests = read_runtime_src("graphics/scene/scene_renderer/ui/image/tests/cases.rs");
     let record = read_runtime_src("graphics/scene/scene_renderer/ui/render/record.rs");
 
     assert_contains_all(

@@ -16,7 +16,7 @@ related_code:
   - zircon_editor/src/ui/host/editor_manager.rs
   - zircon_editor/src/ui/retained_host/app.rs
 tests:
-  - powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/build-editor.ps1 -OutputDirectory E:\ZirconBuilds\editor-context-composition
+  - powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/build/build-editor.ps1
 ---
 
 # Editor17: context autosave construction drift
@@ -72,7 +72,17 @@ preserved. Editor17 should complete the composition with Editor14:
 
 ## 修复结果与回传
 
-The approved-root separator defect in `tools/build-editor.ps1:130` currently prevents the product
-command above from reaching Cargo. That independent failure is recorded in
-`failure-2026-08-15-build-editor-approved-root-separator.md`. This record remains open until both the
-source repair and managed validation are green.
+At the original 2026-08-16 reproduction, the approved-root separator defect in
+`tools/build/build-editor.ps1` prevented the product command from reaching Cargo. That
+independent failure is recorded in the
+[Performance01 handoff](../../../performance/01/failure-2026-08-15-build-editor-approved-root-separator.md).
+The original command is retained as historical evidence:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/build/build-editor.ps1 -OutputDirectory E:\ZirconBuilds\editor-context-composition
+```
+
+The current builder accepts physical `D/E/F:\cargo-targets` roots and generates
+a unique approved child when `OutputDirectory` is omitted. The tests frontmatter
+uses that current route. Context construction, the managed product build, and
+the `--help` smoke remain unverified, so this failure stays open.

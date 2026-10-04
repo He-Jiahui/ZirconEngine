@@ -20,7 +20,7 @@ use crate::extension_ids::{
 use crate::runtime_mirror::AiPieMirror;
 
 #[cfg(test)]
-#[path = "overlay/allocation_tests.rs"]
+#[path = "overlay/tests/allocation_tests.rs"]
 mod allocation_tests;
 
 const FOV_COLOR: Vec4 = Vec4::new(0.2, 0.85, 1.0, 1.0);
@@ -30,6 +30,7 @@ const HEARING_STIMULUS_COLOR: Vec4 = Vec4::new(1.0, 0.72, 0.2, 1.0);
 const OTHER_STIMULUS_COLOR: Vec4 = Vec4::new(0.95, 0.32, 0.76, 1.0);
 const CIRCLE_SEGMENTS: usize = 24;
 
+/// 接收完整覆盖层替换；关闭模式时由控制器发送 `None` 清除旧图元。
 pub trait AiPerceptionViewportGizmoSink {
     fn replace_ai_perception_overlay(&mut self, overlay: Option<SceneGizmoOverlayExtract>);
 }
@@ -136,6 +137,7 @@ pub(crate) fn register_ai_perception_overlay(
     )
 }
 
+/// 仅投影指定世界的 PIE 帧，过滤无效位置后生成视野、听觉和刺激图元。
 pub fn build_ai_perception_overlay(
     owner: EntityId,
     world: &WorldHandle,
@@ -221,6 +223,7 @@ struct OverlayCapacity {
     pick_shapes: usize,
 }
 
+// 容量预估与下方实际追加路径使用相同的有效性条件，避免每帧反复扩容。
 fn overlay_capacity(
     world: &WorldHandle,
     mirror: &AiPieMirror,

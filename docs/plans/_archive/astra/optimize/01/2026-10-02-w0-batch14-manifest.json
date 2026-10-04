@@ -1,0 +1,354 @@
+{
+  "record_type": "root_qualified_batch14_manifest",
+  "root_captured_at_utc": "2026-10-02T19:44:33.084160+00:00",
+  "canonical_artifacts": {
+    "2026-10-02-w0-batch14-review.jsonl": {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch14-review.jsonl",
+      "sha256": "19272991aac36217ce8206c56b162e57d232adc16a0fa4db01be3464fa04ad73",
+      "bytes": 43943
+    },
+    "2026-10-02-w0-batch14-crosswalk.jsonl": {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch14-crosswalk.jsonl",
+      "sha256": "c7b28c7cba62c3df92f77ecd444f79234f57f92b6d3388ad5dbd3902472468b1",
+      "bytes": 5481
+    },
+    "2026-10-02-w0-batch14-summary.json": {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch14-summary.json",
+      "sha256": "0904696e1dcb7a7cb6e8d646257823f81ac63fdb93288e63518b59c87f45733c",
+      "bytes": 2412
+    }
+  },
+  "raw_inputs": [
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-source-review-wave.jsonl",
+      "sha256": "8d6d68c499d52c354a992a76bc05ffb3ed41ff4ccb9abc21b1f487d3954aefc5",
+      "raw_bytes": 594805,
+      "captured": "captured-current\\canonical__2026-09-30-source-review-wave.jsonl",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\canonical__2026-09-30-source-review-wave.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-batch3-review.jsonl",
+      "sha256": "4b4137f6ef0feeb0fc4ef6f55664a80f3c8a14473c0f94ab4361d85728a68fbe",
+      "raw_bytes": 61460,
+      "captured": "captured-current\\canonical__2026-09-30-w0-batch3-review.jsonl",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\canonical__2026-09-30-w0-batch3-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-second-wave-review.jsonl",
+      "sha256": "dccceb090592eea01f48f885ef84e53d202e6470c647b4481c44a4c23ec673d1",
+      "raw_bytes": 652094,
+      "captured": "captured-current\\canonical__2026-09-30-w0-second-wave-review.jsonl",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\canonical__2026-09-30-w0-second-wave-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch4-review.jsonl",
+      "sha256": "9ca9bc4ea5b83865c219c8fb9b3c7ac73d7d078460bf8b92c6cded896996fb2c",
+      "raw_bytes": 116983,
+      "captured": "captured-current\\canonical__2026-10-01-w0-batch4-review.jsonl",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\canonical__2026-10-01-w0-batch4-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch5-review.jsonl",
+      "sha256": "4bd6dcae8255f6d770f06cb471a1ead80b64be2c2038ed5705f256dff6a1b7cc",
+      "raw_bytes": 105131,
+      "captured": "captured-current\\canonical__2026-10-01-w0-batch5-review.jsonl",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\canonical__2026-10-01-w0-batch5-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch6-review.jsonl",
+      "sha256": "e0a4798dea7a20c842e177f4ae2007858fbd487278fd87220f2b1e3c61ec0eb3",
+      "raw_bytes": 159783,
+      "captured": "captured-current\\canonical__2026-10-02-w0-batch6-review.jsonl",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\canonical__2026-10-02-w0-batch6-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch7-review.jsonl",
+      "sha256": "ec3c9b5feb2eebdd4192b4aec98730466a7ed3d4f7efab56cb0c8d9f098449e2",
+      "raw_bytes": 126773,
+      "captured": "captured-current\\canonical__2026-10-02-w0-batch7-review.jsonl",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\canonical__2026-10-02-w0-batch7-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch8-review.jsonl",
+      "sha256": "6ee6790c7739ff8065143c7e4abb7f209168b022847f7c59729074bf941b74cc",
+      "raw_bytes": 186399,
+      "captured": "captured-current\\canonical__2026-10-02-w0-batch8-review.jsonl",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\canonical__2026-10-02-w0-batch8-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/170-runtime-animation-current-working-tree-source-compiled-pose-skinning-ik-root-motion-event-editor-boundary-review.md",
+      "sha256": "3bc1298417ab117eabda42d55e64b29dd12a74e3db176921d97374a6745617cc",
+      "raw_bytes": 21013,
+      "captured": "captured-current\\docs__plans__optimize__zircon_runtime__170-runtime-animation-current-working-tree-source-compiled-pose-skinning-ik-root-motion-event-editor-boundary-review.md",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\docs__plans__optimize__zircon_runtime__170-runtime-animation-current-working-tree-source-compiled-pose-skinning-ik-root-motion-event-editor-boundary-review.md",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/221-runtime-animation-source-compiled-pose-skinning-ik-root-motion-event-editor-product-current-working-tree-review.md",
+      "sha256": "70acd16083cf1e4ea7f3cf264c8d19c26f74e18565f6ec2cbea69d48351fd489",
+      "raw_bytes": 31456,
+      "captured": "captured-current\\docs__plans__optimize__zircon_runtime__221-runtime-animation-source-compiled-pose-skinning-ik-root-motion-event-editor-product-current-working-tree-review.md",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\docs__plans__optimize__zircon_runtime__221-runtime-animation-source-compiled-pose-skinning-ik-root-motion-event-editor-product-current-working-tree-review.md",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/evaluation/pipeline/events.rs",
+      "sha256": "69c86626000b0649ab2f0fd6880025bdd83ca9db5ee17ef2da8086fb0e09eff2",
+      "raw_bytes": 9813,
+      "captured": "captured-current\\zircon_plugins__animation__runtime__src__evaluation__pipeline__events.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_plugins__animation__runtime__src__evaluation__pipeline__events.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/evaluation/pipeline/machine_instance_key.rs",
+      "sha256": "dde7dd344328add8e326a2926db79a6e60f10748a3594f56c13381264c9514d9",
+      "raw_bytes": 2052,
+      "captured": "captured-current\\zircon_plugins__animation__runtime__src__evaluation__pipeline__machine_instance_key.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_plugins__animation__runtime__src__evaluation__pipeline__machine_instance_key.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/evaluation/pipeline/sequences.rs",
+      "sha256": "bfde820cdbc95be3088a214d7bc369b7eee992eed87b3fc46991b22f8e3d1746",
+      "raw_bytes": 3867,
+      "captured": "captured-current\\zircon_plugins__animation__runtime__src__evaluation__pipeline__sequences.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_plugins__animation__runtime__src__evaluation__pipeline__sequences.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/evaluation/pipeline/state_machine_cache.rs",
+      "sha256": "70c6cf3c06885785ddfdbd623834800252d39cb2845b94583021ee418feeced7",
+      "raw_bytes": 18806,
+      "captured": "captured-current\\zircon_plugins__animation__runtime__src__evaluation__pipeline__state_machine_cache.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_plugins__animation__runtime__src__evaluation__pipeline__state_machine_cache.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/evaluation/pipeline/state_machine_step.rs",
+      "sha256": "26ead9ff7b1e6cf7589c210e9596313925fc4e70d9d94523a52e74a492ad34f5",
+      "raw_bytes": 12867,
+      "captured": "captured-current\\zircon_plugins__animation__runtime__src__evaluation__pipeline__state_machine_step.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_plugins__animation__runtime__src__evaluation__pipeline__state_machine_step.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs",
+      "sha256": "b0950cf2f9f50eb79a5443365dd604f5a10c32032caee5ed4d6326637539ca26",
+      "raw_bytes": 21904,
+      "captured": "captured-current\\zircon_plugins__animation__runtime__src__evaluation__pipeline__tick.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_plugins__animation__runtime__src__evaluation__pipeline__tick.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/gpu_skinning/decision.rs",
+      "sha256": "f5e5ae7f70e7b49de8857e6f82b22c6c55943ea30283caf924fbb733f7289e84",
+      "raw_bytes": 1206,
+      "captured": "captured-current\\zircon_plugins__animation__runtime__src__gpu_skinning__decision.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_plugins__animation__runtime__src__gpu_skinning__decision.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/gpu_skinning/palette.rs",
+      "sha256": "9548cec35d0df892a3730e4d3d0716ee7cfd3467fb4d9ae41627b48a955e7e92",
+      "raw_bytes": 9495,
+      "captured": "captured-current\\zircon_plugins__animation__runtime__src__gpu_skinning__palette.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_plugins__animation__runtime__src__gpu_skinning__palette.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/runtime_system.rs",
+      "sha256": "9ba5835d353221b727b558dd8ddd4ce4884e3688f21eb773f342d7d60a817250",
+      "raw_bytes": 2927,
+      "captured": "captured-current\\zircon_plugins__animation__runtime__src__runtime_system.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_plugins__animation__runtime__src__runtime_system.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/tests.rs",
+      "sha256": "ea6a662d69a2215d21f63693836cc727387ff1319cab174330b01e694099eb48",
+      "raw_bytes": 9043,
+      "captured": "captured-current\\zircon_plugins__animation__runtime__src__tests.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_plugins__animation__runtime__src__tests.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/tests/animation_compiled_evaluator_contract.rs",
+      "sha256": "1e680f285c962cb1edc8ccca90b4707a930851c5c94275486e08e061f86fb7bd",
+      "raw_bytes": 19480,
+      "captured": "captured-current\\zircon_plugins__animation__runtime__tests__animation_compiled_evaluator_contract.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_plugins__animation__runtime__tests__animation_compiled_evaluator_contract.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/tests/animation_gpu_skinning_contract.rs",
+      "sha256": "833d6dc828744ebf2b3006e402ecd8b0a5daf4dd32712cdec2659390df6b76d6",
+      "raw_bytes": 3331,
+      "captured": "captured-current\\zircon_plugins__animation__runtime__tests__animation_gpu_skinning_contract.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_plugins__animation__runtime__tests__animation_gpu_skinning_contract.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/tests/animation_target_table_contract.rs",
+      "sha256": "af0753db79cb4fcb4d5ef5f9e92fe567a6f8c3b3eb036298c5ff6b2b9638741b",
+      "raw_bytes": 8581,
+      "captured": "captured-current\\zircon_plugins__animation__runtime__tests__animation_target_table_contract.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_plugins__animation__runtime__tests__animation_target_table_contract.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/animation/clip_event.rs",
+      "sha256": "9bfa8e8a287bd2493bc0966e3d9c7763eedcd7c2200ae5c24d554ba192343d08",
+      "raw_bytes": 34104,
+      "captured": "captured-current\\zircon_runtime__src__animation__clip_event.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_runtime__src__animation__clip_event.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets/optimization_batch_ir_runtime628_tests.rs",
+      "sha256": "a87d940f7af027b47abffcd26728bc11349644545fe0097d68e82587de8a4485",
+      "raw_bytes": 3325,
+      "captured": "captured-current\\zircon_runtime__src__asset__importer__ingest__gltf_animation_subassets__optimization_batch_ir_runtime628_tests.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_runtime__src__asset__importer__ingest__gltf_animation_subassets__optimization_batch_ir_runtime628_tests.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets.rs",
+      "sha256": "27223e9a22966f23baaa87bec2886005b235e1abfbb59190615d23c1b355eec2",
+      "raw_bytes": 32066,
+      "captured": "captured-current\\zircon_runtime__src__asset__importer__ingest__gltf_animation_subassets.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_runtime__src__asset__importer__ingest__gltf_animation_subassets.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/animation/asset/clip.rs",
+      "sha256": "d1fc9feee8a271b5270661edf9b91871fdc8fd3fc58c449a3789396aa0982d6d",
+      "raw_bytes": 6328,
+      "captured": "captured-current\\zircon_runtime__src__core__framework__animation__asset__clip.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_runtime__src__core__framework__animation__asset__clip.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/animation/asset/mod.rs",
+      "sha256": "597718152d7bf6260b3070f66cb2986c71ce868f0ead76fd2a101c636d22be59",
+      "raw_bytes": 1271,
+      "captured": "captured-current\\zircon_runtime__src__core__framework__animation__asset__mod.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_runtime__src__core__framework__animation__asset__mod.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/animation/clip_event_sampling.rs",
+      "sha256": "ef216e8c2768b6924842c22bf3af285fb1d7e417053e84f71beafbabecb91d87",
+      "raw_bytes": 4901,
+      "captured": "captured-current\\zircon_runtime__src__core__framework__animation__clip_event_sampling.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_runtime__src__core__framework__animation__clip_event_sampling.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/animation/compiler/product.rs",
+      "sha256": "ad9d2604e7d8b325c5f03ecf9b56d81dc8909a9753a77e5a4388b928643a1cf0",
+      "raw_bytes": 2603,
+      "captured": "captured-current\\zircon_runtime__src__core__framework__animation__compiler__product.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_runtime__src__core__framework__animation__compiler__product.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/animation/compiler/schema.rs",
+      "sha256": "6a377b9134b8006f33cfa5fbf288a4f06c8944a05c5ab303cf50293322f2a6f0",
+      "raw_bytes": 9066,
+      "captured": "captured-current\\zircon_runtime__src__core__framework__animation__compiler__schema.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_runtime__src__core__framework__animation__compiler__schema.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/animation/compiler/sequence/tests.rs",
+      "sha256": "26c4bf68906737d6c08ebb3ff3a1ce083cc9ea6b290ec3455a80789c70052872",
+      "raw_bytes": 5040,
+      "captured": "captured-current\\zircon_runtime__src__core__framework__animation__compiler__sequence__tests.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_runtime__src__core__framework__animation__compiler__sequence__tests.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/animation/compiler/state_machine/tests.rs",
+      "sha256": "08cc11c26b2cdbf42387500578c6f364990331af21f01c377552aab78897bb5c",
+      "raw_bytes": 10397,
+      "captured": "captured-current\\zircon_runtime__src__core__framework__animation__compiler__state_machine__tests.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_runtime__src__core__framework__animation__compiler__state_machine__tests.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/animation/compiler/tests.rs",
+      "sha256": "8f0c7c681473b424d46239a271c929dedce00f97f571e36884c021396b628640",
+      "raw_bytes": 6538,
+      "captured": "captured-current\\zircon_runtime__src__core__framework__animation__compiler__tests.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_runtime__src__core__framework__animation__compiler__tests.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/animation/gpu_skinning.rs",
+      "sha256": "ded608a9c9be67d1ce79cefad73172b64175d9f4cc56e5e6306bde7d2ab9eb60",
+      "raw_bytes": 1822,
+      "captured": "captured-current\\zircon_runtime__src__core__framework__animation__gpu_skinning.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_runtime__src__core__framework__animation__gpu_skinning.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/gpu_scene/skinned_palette_arena.rs",
+      "sha256": "936dbe2f2cb7790a46693969ccd01b22742b5a7248f1aa0499363b9256816e6b",
+      "raw_bytes": 8876,
+      "captured": "captured-current\\zircon_runtime__src__graphics__scene__gpu_scene__skinned_palette_arena.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_runtime__src__graphics__scene__gpu_scene__skinned_palette_arena.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs",
+      "sha256": "533233f48636d8c4900ed30b510a9c08d7fd70442f3635f8102427a92ad5b214",
+      "raw_bytes": 15774,
+      "captured": "captured-current\\zircon_runtime__src__graphics__scene__scene_renderer__mesh__build_mesh_draws__build__skinning.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_runtime__src__graphics__scene__scene_renderer__mesh__build_mesh_draws__build__skinning.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/scene/components/scene/animation.rs",
+      "sha256": "1e24bc38ce4213596e2d8e3ae9b8dae5c31f768680129aa6991e6dffd6d6adde",
+      "raw_bytes": 1701,
+      "captured": "captured-current\\zircon_runtime__src__scene__components__scene__animation.rs",
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\captured-current\\zircon_runtime__src__scene__components__scene__animation.rs",
+      "root_current_match": true
+    }
+  ],
+  "original_artifacts": {
+    "review": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\review.jsonl",
+      "sha256": "8becdbb589d055141cfeae251f5c3649b530caa34a5c0e908e45effdc3849c44"
+    },
+    "crosswalk": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\crosswalk.jsonl",
+      "sha256": "cd24c2000fdb4fd63709173afd1a263da9b654e084b80e020dab42c0c854d2f2"
+    },
+    "summary": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\summary.json",
+      "sha256": "80ddbdc033cae1d1ef2293e6eea24638a2842e7f50295f1b9b7f093c699bf92b"
+    },
+    "manifest": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\manifest.json",
+      "sha256": "71fcd29b43e6690658661846a6909418b8ed436179006894e5d17bbb18e3400c"
+    }
+  },
+  "independent_review": {
+    "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0-batch14-independent-qualification-r1\\independent-source-qualification-y-r1.json",
+    "sha256": "e6045d9b3ecc2c5ed6b46bcac1df93d1df19dc7d3ab161ea2c424ced5b192941"
+  },
+  "whole_compiler_dependency_closure": false,
+  "source_ready": false,
+  "tests_run": 0,
+  "acceptance": "open",
+  "self_hash_qualification": "Exact manifest SHA is in Root terminal publication receipt; no self-hash claimed."
+}

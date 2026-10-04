@@ -10,7 +10,9 @@ mod values;
 
 type ZrVmRegistration = zr_vm_rust_binding::NativeModuleRegistration;
 
+pub use host_modules::build_zr_vm_native_host_modules;
 pub use package::load_project_package;
 
 #[cfg(test)]
+#[path = "real_backend/tests/cases.rs"]
 mod tests;

@@ -1,0 +1,250 @@
+[asset]
+kind = "view"
+version = 2
+id = "res://ui/editor/components/workbench/primitives/feedback/workbench_notification_center.zui#review-host"
+display_name = "Workbench Notification Center"
+
+[imports]
+widgets = []
+styles = []
+
+[root]
+node = "review_panel"
+
+[nodes.review_panel]
+component = "Panel"
+control_id = "WorkbenchNotificationCenterReview"
+classes = [ "workbench-notification-center", "workbench-panel" ]
+
+[nodes.review_panel.style.self.background]
+color = "$editor.popup"
+
+[nodes.review_panel.style.self.foreground]
+color = "$editor.text.primary"
+
+[nodes.review_panel.style.self.border]
+color = "$editor.border"
+width = "$editor.control.border_width"
+radius = "$editor.control.radius.panel"
+
+[nodes.review_panel.layout]
+clip = true
+padding = "$editor.density.gap.medium"
+
+[nodes.review_panel.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.review_panel.layout.width]
+stretch = "Stretch"
+
+[nodes.review_panel.layout.height]
+min = "$editor.density.notification_panel.min_height"
+preferred = "$editor.density.notification_panel.preferred_height"
+max = "$editor.density.notification_panel.max_height"
+stretch = "Fixed"
+
+[[nodes.review_panel.children]]
+node = "review_title"
+
+[[nodes.review_panel.children]]
+node = "review_build"
+
+[[nodes.review_panel.children]]
+node = "review_asset"
+
+[[nodes.review_panel.children]]
+node = "review_source"
+
+[nodes.review_title]
+component = "Label"
+control_id = "WorkbenchNotificationCenterReviewTitle"
+
+[nodes.review_title.props]
+text = "Notifications"
+font_size = "$editor.typography.body.size"
+font_weight = "$editor.typography.strong.weight"
+text_tone = "primary"
+
+[nodes.review_title.layout.width]
+stretch = "Stretch"
+
+[nodes.review_title.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.review_build]
+component = "Panel"
+control_id = "WorkbenchNotificationCenterReviewBuild"
+
+[nodes.review_build.style.self.background]
+color = "$editor.semantic.error.container"
+
+[nodes.review_build.style.self.border]
+color = "$editor.separator.soft"
+width = "$editor.control.border_width"
+radius = "$editor.control.radius.small"
+
+[nodes.review_build.layout]
+padding = "$editor.density.gap.small"
+
+[nodes.review_build.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.xsmall"
+
+[nodes.review_build.layout.width]
+stretch = "Stretch"
+
+[nodes.review_build.layout.height]
+min = 56
+preferred = 56
+max = 56
+stretch = "Fixed"
+
+[[nodes.review_build.children]]
+node = "WorkbenchNotificationCenterReviewBuildTitle"
+
+[[nodes.review_build.children]]
+node = "WorkbenchNotificationCenterReviewBuildMessage"
+
+[nodes.review_build.slots.title]
+node = "WorkbenchNotificationCenterReviewBuildTitle"
+
+[nodes.review_build.slots.message]
+node = "WorkbenchNotificationCenterReviewBuildMessage"
+
+[nodes.WorkbenchNotificationCenterReviewBuildTitle]
+component = "Label"
+control_id = "WorkbenchNotificationCenterReviewBuildTitle"
+
+[nodes.WorkbenchNotificationCenterReviewBuildTitle.props]
+text = "Build failed"
+font_size = "$editor.typography.body.size"
+font_weight = "$editor.typography.medium.weight"
+
+[nodes.WorkbenchNotificationCenterReviewBuildMessage]
+component = "Label"
+control_id = "WorkbenchNotificationCenterReviewBuildMessage"
+
+[nodes.WorkbenchNotificationCenterReviewBuildMessage.props]
+text = "Shader compile error"
+font_size = "$editor.typography.caption.size"
+text_tone = "secondary"
+
+[nodes.review_asset]
+component = "Panel"
+control_id = "WorkbenchNotificationCenterReviewAsset"
+
+[nodes.review_asset.style.self.background]
+color = "$editor.semantic.success.container"
+
+[nodes.review_asset.style.self.border]
+color = "$editor.separator.soft"
+width = "$editor.control.border_width"
+radius = "$editor.control.radius.small"
+
+[nodes.review_asset.layout]
+padding = "$editor.density.gap.small"
+
+[nodes.review_asset.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.xsmall"
+
+[nodes.review_asset.layout.width]
+stretch = "Stretch"
+
+[nodes.review_asset.layout.height]
+min = 56
+preferred = 56
+max = 56
+stretch = "Fixed"
+
+[[nodes.review_asset.children]]
+node = "WorkbenchNotificationCenterReviewAssetTitle"
+
+[[nodes.review_asset.children]]
+node = "WorkbenchNotificationCenterReviewAssetMessage"
+
+[nodes.review_asset.slots.title]
+node = "WorkbenchNotificationCenterReviewAssetTitle"
+
+[nodes.review_asset.slots.message]
+node = "WorkbenchNotificationCenterReviewAssetMessage"
+
+[nodes.WorkbenchNotificationCenterReviewAssetTitle]
+component = "Label"
+control_id = "WorkbenchNotificationCenterReviewAssetTitle"
+
+[nodes.WorkbenchNotificationCenterReviewAssetTitle.props]
+text = "Asset import complete"
+font_size = "$editor.typography.body.size"
+font_weight = "$editor.typography.medium.weight"
+
+[nodes.WorkbenchNotificationCenterReviewAssetMessage]
+component = "Label"
+control_id = "WorkbenchNotificationCenterReviewAssetMessage"
+
+[nodes.WorkbenchNotificationCenterReviewAssetMessage.props]
+text = "StoneWall.mesh ready"
+font_size = "$editor.typography.caption.size"
+text_tone = "secondary"
+
+[nodes.review_source]
+component = "Panel"
+control_id = "WorkbenchNotificationCenterReviewSource"
+
+[nodes.review_source.style.self.background]
+color = "$editor.semantic.info.container"
+
+[nodes.review_source.style.self.border]
+color = "$editor.separator.soft"
+width = "$editor.control.border_width"
+radius = "$editor.control.radius.small"
+
+[nodes.review_source.layout]
+padding = "$editor.density.gap.small"
+
+[nodes.review_source.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.xsmall"
+
+[nodes.review_source.layout.width]
+stretch = "Stretch"
+
+[nodes.review_source.layout.height]
+min = 56
+preferred = 56
+max = 56
+stretch = "Fixed"
+
+[[nodes.review_source.children]]
+node = "WorkbenchNotificationCenterReviewSourceTitle"
+
+[[nodes.review_source.children]]
+node = "WorkbenchNotificationCenterReviewSourceMessage"
+
+[nodes.review_source.slots.title]
+node = "WorkbenchNotificationCenterReviewSourceTitle"
+
+[nodes.review_source.slots.message]
+node = "WorkbenchNotificationCenterReviewSourceMessage"
+
+[nodes.WorkbenchNotificationCenterReviewSourceTitle]
+component = "Label"
+control_id = "WorkbenchNotificationCenterReviewSourceTitle"
+
+[nodes.WorkbenchNotificationCenterReviewSourceTitle.props]
+text = "Source control synced"
+font_size = "$editor.typography.body.size"
+font_weight = "$editor.typography.medium.weight"
+
+[nodes.WorkbenchNotificationCenterReviewSourceMessage]
+component = "Label"
+control_id = "WorkbenchNotificationCenterReviewSourceMessage"
+
+[nodes.WorkbenchNotificationCenterReviewSourceMessage.props]
+text = "No local conflicts"
+font_size = "$editor.typography.caption.size"
+text_tone = "secondary"

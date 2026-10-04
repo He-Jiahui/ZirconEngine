@@ -1,3 +1,4 @@
+//! 工作台生产模板的共享surface与宿主投影；保留参考度量作为初始基线。
 use std::collections::{BTreeSet, HashMap};
 
 use thiserror::Error;
@@ -15,8 +16,12 @@ use crate::ui::template_runtime::{
     WORKBENCH_WINDOW_DOCUMENT_ID,
 };
 
+mod localized_text;
+
+use self::localized_text::WorkbenchLocalizedTextContext;
 use super::EditorWorkbenchReferenceMetrics;
 
+/// 模板资源与宿主布局之间的稳定控件身份契约；缺失或重复会使挂载失败。
 pub struct EditorWorkbenchTemplateControlIds;
 
 impl EditorWorkbenchTemplateControlIds {
@@ -35,6 +40,7 @@ impl EditorWorkbenchTemplateControlIds {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 宿主布局使用的必需区域几何快照；由当前surface控制节点提取。
 pub struct EditorWorkbenchTemplateFrames {
     pub root: UiFrame,
     pub top_toolbar: UiFrame,
@@ -103,11 +109,13 @@ impl EditorWorkbenchTemplateFrames {
 }
 
 #[derive(Clone, Debug)]
+/// 连接资源投影、UI树和宿主投影的缓存；待发布差异在宿主确认后才清除。
 pub struct EditorWorkbenchTemplateSurface {
     pub surface: UiSurface,
     pub metrics: EditorWorkbenchReferenceMetrics,
     pub frames: EditorWorkbenchTemplateFrames,
     pub host_projection: RetainedUiHostProjection,
+    localization_context: Option<WorkbenchLocalizedTextContext>,
     layout_size: UiSize,
     #[cfg(test)]
     layout_pass_count: u64,
@@ -135,6 +143,7 @@ pub struct EditorWorkbenchTemplateSurface {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 局部补丁的拓扑护栏；节点路径、父子关系、组件或控件身份变化须全量重建。
 struct HostProjectionNodeIdentity {
     node_path: String,
     parent: Option<UiNodeId>,
@@ -166,11 +175,13 @@ struct HostProjectionGeometryPatch {
 }
 
 impl EditorWorkbenchTemplateSurface {
+    /// 窗口尺寸变化时重排并收集语义/几何差异；宿主发布前不得丢弃待提交状态。
     pub fn recompute_layout(
         &mut self,
         runtime: &EditorUiHostRuntime,
         size: UiSize,
     ) -> Result<(), EditorWorkbenchTemplateSurfaceError> {
+        self.synchronize_localized_text()?;
         let semantic_node_ids = self.surface.pending_rebuild_node_ids();
         zircon_runtime::profile_counter!(
             "editor",
@@ -208,10 +219,12 @@ impl EditorWorkbenchTemplateSurface {
         self.refresh_projection(runtime, &workset, true)
     }
 
+    /// 指针或数据状态变更后只重建脏节点；未重排时沿用已有区域几何。
     pub(crate) fn refresh_after_state_change(
         &mut self,
         runtime: &EditorUiHostRuntime,
     ) -> Result<(), EditorWorkbenchTemplateSurfaceError> {
+        self.synchronize_localized_text()?;
         let semantic_node_ids = self.surface.pending_rebuild_node_ids();
         let report = self.surface.rebuild_dirty(self.layout_size)?;
         let workset = HostProjectionRefreshWorkset {
@@ -249,6 +262,7 @@ impl EditorWorkbenchTemplateSurface {
         self.frames_extract_skip_count
     }
 
+    /// 返回布局缓存中的控件框；需要可见且已排布的框时使用可见性查询。
     pub fn control_frame(&self, control_id: &str) -> Option<UiFrame> {
         let node_id = self.control_node_id(control_id)?;
         self.surface
@@ -258,6 +272,7 @@ impl EditorWorkbenchTemplateSurface {
             .map(|node| node.layout_cache.frame)
     }
 
+    /// 仅返回已排布且自身及祖先可见的控件框，供宿主实际显示区域判断。
     pub fn visible_control_frame(&self, control_id: &str) -> Option<UiFrame> {
         visible_arranged_control_frame(&self.surface, self.control_node_id(control_id)?)
     }
@@ -271,6 +286,7 @@ impl EditorWorkbenchTemplateSurface {
         self.host_projection.nodes.get(*index)
     }
 
+    /// 合并语义和几何差异后选择局部补丁或全量重建；刷新结果等待宿主发布。
     fn refresh_projection(
         &mut self,
         runtime: &EditorUiHostRuntime,
@@ -311,6 +327,7 @@ impl EditorWorkbenchTemplateSurface {
                 "retained_host",
                 "workbench_surface_build_host_projection"
             );
+            self.host_projection.source_surface_frame = Some(self.surface.surface_frame());
             let changed_node_ids = workset.changed_node_ids();
             if changed_node_ids.is_empty() && self.host_projection_roots == self.surface.tree.roots
             {
@@ -382,6 +399,7 @@ impl EditorWorkbenchTemplateSurface {
                 node.frame = patch.frame;
                 node.clip_frame = patch.clip_frame;
                 node.z_index = patch.z_index;
+                node.source_surface_frame = Some(self.surface.surface_frame());
                 self.pending_host_projection_patch_indices
                     .insert(patch.index);
             }
@@ -415,6 +433,7 @@ impl EditorWorkbenchTemplateSurface {
         Ok(())
     }
 
+    /// 仅当根、节点拓扑和宿主索引身份仍一致时允许原位替换。
     fn can_patch_host_projection(&self, changed_node_ids: &BTreeSet<UiNodeId>) -> bool {
         if self.host_projection_roots != self.surface.tree.roots {
             return false;
@@ -436,6 +455,7 @@ impl EditorWorkbenchTemplateSurface {
         })
     }
 
+    /// 索引或拓扑失效时重建宿主投影，并将下一次发布标为全量。
     fn refresh_projection_full(
         &mut self,
         runtime: &EditorUiHostRuntime,
@@ -516,6 +536,7 @@ impl EditorWorkbenchTemplateSurface {
         runtime.build_retained_host_projection_with_surface(&self.source_projection, &self.surface)
     }
 
+    /// 给宿主稀疏语义补丁；待全量发布时返回空选项，要求使用完整投影。
     pub(crate) fn pending_host_projection_patch_nodes(
         &self,
     ) -> Option<Vec<RetainedUiHostNodeModel>> {
@@ -530,6 +551,7 @@ impl EditorWorkbenchTemplateSurface {
         )
     }
 
+    /// 仅纯几何变化可走宿主快速路径；语义变化或全量刷新必须走完整呈现。
     pub(crate) fn pending_host_projection_geometry_patch_indices(&self) -> Option<Vec<usize>> {
         if self.host_projection_full_refresh_pending
             || self.pending_host_projection_has_semantic_changes
@@ -549,6 +571,7 @@ impl EditorWorkbenchTemplateSurface {
             || !self.pending_host_projection_patch_indices.is_empty()
     }
 
+    /// 宿主已成功发布投影后清除待提交状态；提前调用会丢掉尚未呈现的差异。
     pub(crate) fn mark_host_projection_committed(&mut self) {
         self.pending_host_projection_patch_indices.clear();
         self.pending_host_projection_has_semantic_changes = false;
@@ -592,6 +615,13 @@ pub enum EditorWorkbenchTemplateSurfaceError {
     Runtime(#[from] EditorUiHostRuntimeError),
     #[error(transparent)]
     Tree(#[from] UiTreeError),
+    #[error(transparent)]
+    LocalizedText(
+        #[from]
+        zircon_runtime::ui::surface::UiLocalizedTextSynchronizationError<
+            crate::core::i18n::EditorI18nError,
+        >,
+    ),
     #[error("componentized workbench template is missing required control {control_id}")]
     MissingControl { control_id: &'static str },
     #[error(
@@ -604,6 +634,7 @@ pub enum EditorWorkbenchTemplateSurfaceError {
     },
 }
 
+/// 从工作台文档装载模板、注册路由并建立首份完整宿主投影。
 pub fn build_editor_workbench_template_surface(
     runtime: &EditorUiHostRuntime,
     metrics: EditorWorkbenchReferenceMetrics,
@@ -626,6 +657,7 @@ pub fn build_editor_workbench_template_surface(
         metrics,
         frames,
         host_projection,
+        localization_context: None,
         layout_size: metrics.target_size(),
         #[cfg(test)]
         layout_pass_count: 1,
@@ -707,6 +739,7 @@ fn required_control_frame(
         .ok_or(EditorWorkbenchTemplateSurfaceError::MissingControl { control_id })
 }
 
+/// 控件ID索引须唯一；动态行拓扑更新后宿主需显式刷新此索引。
 fn build_control_node_index(
     surface: &UiSurface,
 ) -> Result<HashMap<String, UiNodeId>, EditorWorkbenchTemplateSurfaceError> {
@@ -730,6 +763,7 @@ fn build_control_node_index(
     Ok(control_nodes)
 }
 
+/// 呈现查询使用已排布框和祖先可见性，不把仅缓存的布局框误作屏幕区域。
 fn visible_arranged_control_frame(surface: &UiSurface, node_id: UiNodeId) -> Option<UiFrame> {
     let node = surface.arranged_node(node_id)?;
     if !surface_node_render_visible(surface, node_id) {
@@ -757,3 +791,7 @@ fn surface_node_render_visible(surface: &UiSurface, node_id: UiNodeId) -> bool {
     }
     true
 }
+
+#[cfg(test)]
+#[path = "tests/template_surface_source_publication_tests.rs"]
+mod source_publication_tests;

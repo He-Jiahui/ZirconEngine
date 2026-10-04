@@ -77,6 +77,7 @@ pub resolvePureHotProfile(
     return pureHotProfileFromSnapshot(abilityIndex, rank, spellPower);
 }
 
+// 施加时接收已调整的总治疗量和法强，生成此光环固定的每跳值；后续跳数不重读装备或天赋。
 pub resolvePureHotProfileWithResolvedTotal(
     abilityIndex: int,
     rank: int,
@@ -87,6 +88,7 @@ pub resolvePureHotProfileWithResolvedTotal(
     return pureHotProfileFromResolvedTotal(abilityIndex, rank, spellPower, resolvedTotal);
 }
 
+// 用生成基础总量重算的精确比较；天赋调整过的历史队列应改走快照形态校验。
 pub pureHotProfileMatches(
     abilityIndex: int,
     rank: int,

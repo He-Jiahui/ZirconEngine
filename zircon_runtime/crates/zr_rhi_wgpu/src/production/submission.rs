@@ -4,8 +4,8 @@ use std::time::Instant;
 
 use zr_rhi::{
     DeviceGeneration, DeviceId, GpuMemoryBudget, GpuMemoryClass, RenderQueueClass, RhiError,
-    SubmissionHistory, SubmissionLimits, SubmissionPollReceipt, SubmissionStatus, SubmissionTicket,
-    TextureCopyRegion,
+    RhiGraphExecutionReceipt, SubmissionHistory, SubmissionLimits, SubmissionPollReceipt,
+    SubmissionStatus, SubmissionTicket, TextureCopyRegion,
 };
 
 use crate::ui_surface::WgpuUiImageInFlightPins;
@@ -18,6 +18,10 @@ use super::upload_batch::{WgpuTextureUpload, WgpuTextureUploadBatch};
 
 mod queued_work;
 mod ui_image_retirement;
+
+#[cfg(test)]
+#[path = "submission/tests/retirement_tests.rs"]
+mod retirement_tests;
 
 use queued_work::{queued_upload_stats, QueuedWgpuSubmission};
 use ui_image_retirement::WgpuUiImageRetirementOwner;
@@ -45,6 +49,9 @@ struct WgpuSubmissionState {
     pending: Vec<QueuedWgpuSubmission>,
     flushing_upload_bytes: u64,
     submitted_at: HashMap<SubmissionTicket, Instant>,
+    /// Physical graph resources remain owned until the ticket reaches a
+    /// terminal state, independently of logical graph-resource retirement.
+    graph_execution_receipts: HashMap<SubmissionTicket, RhiGraphExecutionReceipt>,
     metrics: WgpuSubmissionMetrics,
     memory_budget: GpuMemoryBudget,
     contexts: WgpuCommandContextPool,
@@ -113,6 +120,7 @@ impl WgpuSubmissionService {
                 pending: Vec::new(),
                 flushing_upload_bytes: 0,
                 submitted_at: HashMap::new(),
+                graph_execution_receipts: HashMap::new(),
                 metrics: WgpuSubmissionMetrics::default(),
                 memory_budget,
                 contexts: WgpuCommandContextPool::default(),
@@ -143,7 +151,8 @@ impl WgpuSubmissionService {
                 })?;
         let ticket = SubmissionTicket::new(self.device_id, self.generation, queue_class, sequence);
         state.contexts.checkout(ticket);
-        debug_assert!(state.history.record_accepted(ticket));
+        let _recorded = state.history.record_accepted(ticket);
+        debug_assert!(_recorded);
         state.reserved.insert(ticket);
         Ok(ticket)
     }
@@ -163,8 +172,51 @@ impl WgpuSubmissionService {
         command_buffers: Vec<wgpu::CommandBuffer>,
         ui_image_pins: Option<WgpuUiImageInFlightPins>,
     ) -> Result<(), RhiError> {
+        self.commit_packet_with_execution_receipt(ticket, command_buffers, ui_image_pins, None)
+    }
+
+    pub(crate) fn commit_packet_with_ui_image_pins_and_graph_receipt(
+        &self,
+        ticket: SubmissionTicket,
+        command_buffers: Vec<wgpu::CommandBuffer>,
+        ui_image_pins: Option<WgpuUiImageInFlightPins>,
+        graph_execution_receipt: RhiGraphExecutionReceipt,
+    ) -> Result<(), RhiError> {
+        self.commit_packet_with_execution_receipt(
+            ticket,
+            command_buffers,
+            ui_image_pins,
+            Some(graph_execution_receipt),
+        )
+    }
+
+    fn commit_packet_with_execution_receipt(
+        &self,
+        ticket: SubmissionTicket,
+        command_buffers: Vec<wgpu::CommandBuffer>,
+        ui_image_pins: Option<WgpuUiImageInFlightPins>,
+        graph_execution_receipt: Option<RhiGraphExecutionReceipt>,
+    ) -> Result<(), RhiError> {
         if ticket.device_id() != self.device_id || ticket.generation() != self.generation {
             return Err(RhiError::UnknownSubmissionTicket(ticket));
+        }
+        if let Some(receipt) = graph_execution_receipt.as_ref() {
+            if receipt.device_id() != ticket.device_id()
+                || receipt.generation() != ticket.generation()
+            {
+                return Err(RhiError::SubmissionPacketDeviceMismatch {
+                    packet_device_id: receipt.device_id(),
+                    packet_generation: receipt.generation(),
+                    device_id: ticket.device_id(),
+                    generation: ticket.generation(),
+                });
+            }
+            if receipt.submission_queue() != ticket.queue_class() {
+                return Err(RhiError::SubmissionPacketQueueMismatch {
+                    packet_queue: ticket.queue_class(),
+                    command_queue: receipt.submission_queue(),
+                });
+            }
         }
         let _queue_access = self.lock_queue_access();
         let mut state = self.lock_state();
@@ -174,6 +226,13 @@ impl WgpuSubmissionService {
             .ok_or(RhiError::UnknownSubmissionTicket(ticket))?;
         if status != SubmissionStatus::Accepted || !state.reserved.remove(&ticket) {
             return Err(RhiError::SubmissionNotAcceptingPacket { ticket, status });
+        }
+        if let Some(receipt) = graph_execution_receipt {
+            let replaced = state.graph_execution_receipts.insert(ticket, receipt);
+            debug_assert!(
+                replaced.is_none(),
+                "tickets are unique within a device generation"
+            );
         }
         state.pending.push(QueuedWgpuSubmission::Command {
             ticket,
@@ -505,15 +564,19 @@ impl WgpuSubmissionService {
         if ticket.device_id() != self.device_id || ticket.generation() != self.generation {
             return Err(RhiError::UnknownSubmissionTicket(ticket));
         }
+        // Declare retired custody before guards so early returns
+        // release both guards before destroying any detached original backing.
+        let cancelled_submission;
+        let cancelled_graph_receipt;
         // Keep cancellation from observing a packet after flush removed it but
         // before the native queue accepted and published its submitted state.
-        let _queue_access = self.lock_queue_access();
+        let queue_access = self.lock_queue_access();
         let mut state = self.lock_state();
         let status = state
             .history
             .status(ticket)
             .ok_or(RhiError::UnknownSubmissionTicket(ticket))?;
-        let cancelled_submission = match status {
+        cancelled_submission = match status {
             SubmissionStatus::Accepted => {
                 let cancelled_submission = if state.reserved.remove(&ticket) {
                     state.contexts.release_pending(ticket);
@@ -537,8 +600,11 @@ impl WgpuSubmissionService {
             }
             terminal => return Ok(terminal),
         };
+        cancelled_graph_receipt = state.graph_execution_receipts.remove(&ticket);
         drop(state);
+        drop(queue_access);
         drop(cancelled_submission);
+        drop(cancelled_graph_receipt);
         Ok(SubmissionStatus::Cancelled)
     }
 
@@ -550,7 +616,11 @@ impl WgpuSubmissionService {
         &self,
         tickets: &[SubmissionTicket],
     ) -> Result<Vec<SubmissionStatus>, RhiError> {
-        let _queue_access = self.lock_queue_access();
+        // Invariant refusal can follow partial cancellation. Its detached
+        // payloads must outlive both guards on that error path as well.
+        let mut cancelled_graph_receipts = Vec::new();
+        let mut cancelled_submissions = Vec::new();
+        let queue_access = self.lock_queue_access();
         let mut state = self.lock_state();
         let mut statuses = Vec::with_capacity(tickets.len());
         let mut accepted = HashSet::with_capacity(tickets.len());
@@ -579,13 +649,15 @@ impl WgpuSubmissionService {
                 state
                     .history
                     .transition(ticket, SubmissionStatus::Cancelled);
+                if let Some(receipt) = state.graph_execution_receipts.remove(&ticket) {
+                    cancelled_graph_receipts.push(receipt);
+                }
             } else if state.history.status(ticket) == Some(SubmissionStatus::Accepted) {
                 accepted.insert(ticket);
             }
         }
 
         let pending = std::mem::take(&mut state.pending);
-        let mut cancelled_submissions = Vec::new();
         for submission in pending {
             let ticket = submission.ticket();
             if accepted.remove(&ticket) {
@@ -593,6 +665,9 @@ impl WgpuSubmissionService {
                 state
                     .history
                     .transition(ticket, SubmissionStatus::Cancelled);
+                if let Some(receipt) = state.graph_execution_receipts.remove(&ticket) {
+                    cancelled_graph_receipts.push(receipt);
+                }
                 cancelled_submissions.push(submission);
             } else {
                 state.pending.push(submission);
@@ -608,7 +683,9 @@ impl WgpuSubmissionService {
             }
         }
         drop(state);
+        drop(queue_access);
         drop(cancelled_submissions);
+        drop(cancelled_graph_receipts);
         Ok(statuses)
     }
 
@@ -640,16 +717,19 @@ impl WgpuSubmissionService {
 
     pub(crate) fn terminalize_unresolved(&self, status: SubmissionStatus) {
         debug_assert!(status.is_terminal());
+        let pending;
+        let graph_execution_receipts;
+        let ui_image_retirements;
         // Fault handling shares the queue transition lock so it cannot turn a
         // packet terminal while flush is between native submit and state publish.
-        let _queue_access = self.lock_queue_access();
+        let queue_access = self.lock_queue_access();
         let mut state = self.lock_state();
         let reserved = std::mem::take(&mut state.reserved);
         for ticket in reserved {
             state.history.transition(ticket, status);
             state.contexts.release_pending(ticket);
         }
-        let pending = std::mem::take(&mut state.pending);
+        pending = std::mem::take(&mut state.pending);
         state.flushing_upload_bytes = 0;
         for submission in &pending {
             let ticket = submission.ticket();
@@ -663,9 +743,14 @@ impl WgpuSubmissionService {
             state.submitted_at.remove(&ticket);
             state.contexts.release_submitted(ticket);
         }
+        graph_execution_receipts = std::mem::take(&mut state.graph_execution_receipts);
         drop(state);
+        // Preserve serialized UI pin removal; only destruction leaves the locks.
+        ui_image_retirements = self.ui_image_retirements.take_terminal_retirements();
+        drop(queue_access);
         drop(pending);
-        self.ui_image_retirements.terminalize_all();
+        drop(graph_execution_receipts);
+        drop(ui_image_retirements);
     }
 
     #[cfg(test)]
@@ -742,6 +827,7 @@ impl WgpuSubmissionService {
             let mut state = completion_state
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
+            let mut completed_graph_receipts = Vec::new();
             for &ticket in &completed_tickets {
                 if state.history.status(ticket) == Some(SubmissionStatus::Submitted) {
                     state
@@ -753,10 +839,14 @@ impl WgpuSubmissionService {
                         );
                     }
                     state.contexts.release_submitted(ticket);
+                    if let Some(receipt) = state.graph_execution_receipts.remove(&ticket) {
+                        completed_graph_receipts.push(receipt);
+                    }
                 }
             }
             drop(state);
             completion_retirements.complete(&completed_tickets);
+            drop(completed_graph_receipts);
         });
     }
 }

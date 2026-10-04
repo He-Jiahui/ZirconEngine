@@ -358,7 +358,7 @@ fn rejected_plugin_extension_does_not_publish_runtime_event_consumers() {
         }))
         .unwrap();
 
-    let contribution_handle = runtime
+    let error = runtime
         .runtime
         .register_editor_plugin_registration(EditorPluginRegistrationReport {
             package_manifest: PluginPackageManifest::new(
@@ -375,6 +375,10 @@ fn rejected_plugin_extension_does_not_publish_runtime_event_consumers() {
             diagnostics: Vec::new(),
         })
         .expect_err("invalid extension must reject the complete plugin registration");
+    assert!(matches!(
+        error,
+        crate::core::editor_extension::EditorExtensionRegistryError::SceneMode(_)
+    ));
 
     runtime
         .runtime
@@ -651,7 +655,7 @@ fn editor_runtime_revokes_plugin_scene_modes_and_overlay_providers_as_one_owner_
         )
         .expect("plugin overlay toggle command registration");
 
-    runtime
+    let contribution_handle = runtime
         .runtime
         .register_editor_plugin_registration(EditorPluginRegistrationReport {
             package_manifest: PluginPackageManifest::new(OWNER_ID, "Weather Lifecycle"),

@@ -1,3 +1,4 @@
+# 核对样式语义读取借用路径片段，主题规则动作只建立一次局部索引。
 from pathlib import Path
 import unittest
 

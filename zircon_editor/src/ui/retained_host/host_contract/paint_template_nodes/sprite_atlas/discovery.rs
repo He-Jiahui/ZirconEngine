@@ -38,5 +38,5 @@ fn collect_atlas_manifest_candidates(paths: impl IntoIterator<Item = PathBuf>) -
 }
 
 #[cfg(test)]
-#[path = "discovery/atlas_candidate_tests.rs"]
+#[path = "discovery/tests/atlas_candidate_tests.rs"]
 mod atlas_candidate_tests;

@@ -104,4 +104,5 @@ impl PreferenceStorage for PlatformManager {
 }
 
 #[cfg(test)]
+#[path = "manager/tests/cases.rs"]
 mod tests;

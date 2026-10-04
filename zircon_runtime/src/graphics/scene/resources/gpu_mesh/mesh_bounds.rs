@@ -1,5 +1,6 @@
 use crate::core::math::Vec3;
 
+/// 网格上传时汇总顶点位置，供设备资源与调试线框持有紧凑局部边界。
 pub(super) struct MeshBoundsAccumulator {
     min: Vec3,
     max: Vec3,
@@ -21,6 +22,7 @@ impl MeshBoundsAccumulator {
         self.max = self.max.max(position);
     }
 
+    // TODO: [CR-GRAPHICS-SCENERES-0003] 确认非有限顶点的资产准入策略；MeshAsset::validate 只校验格式/数量/索引，此处将无效范围变成零边界，需验证剔除与诊断路径。
     pub(super) fn finish(self) -> (Vec3, Vec3) {
         if !self.min.is_finite() || !self.max.is_finite() {
             (Vec3::ZERO, Vec3::ZERO)
@@ -31,25 +33,5 @@ impl MeshBoundsAccumulator {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::MeshBoundsAccumulator;
-    use crate::core::math::Vec3;
-
-    #[test]
-    fn accumulator_preserves_bounds_and_invalid_input_fallback() {
-        let mut bounds = MeshBoundsAccumulator::default();
-        bounds.include_position([-2.0, 4.0, 1.0]);
-        bounds.include_position([3.0, -1.0, 5.0]);
-        assert_eq!(
-            bounds.finish(),
-            (
-                Vec3::from_array([-2.0, -1.0, 1.0]),
-                Vec3::from_array([3.0, 4.0, 5.0])
-            )
-        );
-
-        let mut invalid = MeshBoundsAccumulator::default();
-        invalid.include_position([f32::NAN, 0.0, 0.0]);
-        assert_eq!(invalid.finish(), (Vec3::ZERO, Vec3::ZERO));
-    }
-}
+#[path = "tests/mesh_bounds.rs"]
+mod tests;

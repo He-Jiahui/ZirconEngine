@@ -92,6 +92,7 @@ pub(super) fn build_node_and_cluster_cull_child_visit_records(
         .collect()
 }
 
+// TODO: [CR-VIRTUAL-GEOMETRY-0006] 核实此 CPU 投影中的 FixedFanout 仅作记录标记还是应展开子项；当前仅 authored 子区间生成 work item，注册的 GPU executor 属于另一条路径。
 fn authored_child_record(record: &VirtualGeometryNodeAndClusterCullTraversalRecord) -> bool {
     record.op == VirtualGeometryNodeAndClusterCullTraversalOp::EnqueueChild
         && record.child_source
@@ -114,4 +115,5 @@ fn available_authored_child_count(
 }
 
 #[cfg(test)]
+#[path = "child_worklist/tests/allocation_tests.rs"]
 mod allocation_tests;

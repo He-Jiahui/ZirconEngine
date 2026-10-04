@@ -1,10 +1,10 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema import (
+from tools.audits.plugins.manifest_schema import (
     collect_manifest_schema_violations,
 )
 
-
+# 用插件清单夹具验证特性分发：拒绝可选特性分发契约，并拒绝特性扩展分发契约。
 class PluginStructureAuditManifestSchemaFeatureDistributionContractTests(
     unittest.TestCase
 ):

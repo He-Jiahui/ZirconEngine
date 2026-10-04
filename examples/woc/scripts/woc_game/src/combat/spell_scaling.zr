@@ -1,4 +1,6 @@
+//! 把技能时长、周期和强度来源折算为基础伤害或治疗的加成，供世界与效果分发复用；命中、暴击和状态提交属于上层。
 // Pinned from src/sim/spell_scaling.ts at the WOC reference commit.
+// 系数使用技能原始施法时长；瞬发仍有最低贡献，当前剩余读条与急速结果不应作为输入。
 clampCast(seconds: float): float {
     var value = seconds <= 0.0 ? 1.5 : seconds;
     if (value < 1.5) { value = 1.5; }
@@ -26,6 +28,7 @@ pub dotTotalCoeff(duration: float): float {
     return duration / 15.0;
 }
 
+/// 由效果分发器按技能目录选择法强、远程强度或攻击强度；只做来源选择，数值系数另行结算。
 pub abilityScalingPower(
     spellPower: float,
     rangedPower: float,
@@ -37,6 +40,8 @@ pub abilityScalingPower(
     return school == "physical" ? attackPower : spellPower;
 }
 
+/// 返回叠加到技能基础伤害上的整数加成；调用者须先选定与学派、远程标志一致的强度来源。
+/// 世界弹体和效果分发继续负责随机范围、暴击与最终减伤，此处的返回值不是一次命中的总伤害。
 pub directHitBonus(
     power: float,
     school: string,
@@ -53,6 +58,7 @@ pub directHealBonus(spellPower: float, castTime: float): int {
     return roundPositive(spellPower * directSpellCoeff(castTime));
 }
 
+/// 供持续治疗在光环施加时快照单跳加成；时长和间隔来自同一效果配置，不以剩余时间重算。
 pub hotTickBonus(spellPower: float, duration: float, interval: float): int {
     var ticks = interval > 0.0 ? duration / interval : 1.0;
     if (ticks < 1.0) { ticks = 1.0; }
@@ -60,6 +66,7 @@ pub hotTickBonus(spellPower: float, duration: float, interval: float): int {
     return roundPositive(spellPower * coefficient);
 }
 
+/// 将通道技能的总系数分配到声明的跳数；调用方按每跳追加本结果，零跳配置不产生加成。
 pub channelTickBonus(
     power: float,
     school: string,
@@ -72,6 +79,7 @@ pub channelTickBonus(
     return roundPositive(power * coefficient * powerScale(school, scalesWithRanged));
 }
 
+/// 供周期伤害的纯持续效果使用；混合直伤与持续伤害是否允许额外缩放由上层目录分发决定。
 pub dotTickBonus(
     power: float,
     school: string,

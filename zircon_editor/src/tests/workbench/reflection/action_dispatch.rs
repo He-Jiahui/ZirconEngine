@@ -176,9 +176,9 @@ fn remote_control_operation_binding_preserves_native_binding_provenance_and_tran
 #[test]
 fn remote_invoke_binding_and_route_cannot_bypass_command_surface_policy() {
     use crate::core::commands::EditorCommandDescriptor;
+    use crate::core::editor_event::MenuAction;
     use crate::core::editor_extension::{EditorExtensionRegistry, EditorMenuItemDescriptor};
     use crate::core::editor_operation::EditorOperationPath;
-    use crate::ui::workbench::event::MenuAction;
 
     let _guard = env_lock().lock().unwrap();
     let runtime = EventRuntimeHarness::new("zircon_workbench_reflection_remote_route_gate");

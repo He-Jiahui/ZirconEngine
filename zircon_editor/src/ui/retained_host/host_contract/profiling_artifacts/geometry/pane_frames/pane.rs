@@ -21,14 +21,12 @@ pub(in crate::ui::retained_host::host_contract) fn collect_pane_profile_frames(
         return;
     }
     let mut body = content.clone();
-    if matches!(pane.kind.as_str(), "Scene" | "Game") && pane.show_toolbar {
-        let toolbar_height = 28.0_f32.min(content.height);
-        let toolbar = FrameRect {
-            x: content.x,
-            y: content.y,
-            width: content.width,
-            height: toolbar_height,
-        };
+    if let Some(toolbar) =
+        crate::ui::retained_host::host_contract::viewport_chrome_geometry::viewport_toolbar_frame(
+            pane, content,
+        )
+    {
+        let toolbar_height = toolbar.height;
         collect_surface_frame_controls(
             "viewport_toolbar_control",
             surface,

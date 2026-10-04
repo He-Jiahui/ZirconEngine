@@ -12,6 +12,29 @@ related_code:
   - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes
   - zircon_editor/src/ui/retained_host/ui
+  - zircon_runtime_interface/src/ui/design_tokens.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/palette_projection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline/draw.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline/test_support.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes/commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes/geometry.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes/fallback.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/component_showcase_projection.rs
+  - zircon_editor/src/ui/retained_host/ui/tests/component_showcase/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/tests/component_showcase/contracts.rs
+  - zircon_editor/src/ui/retained_host/ui/tests/component_showcase/runtime_projection.rs
+  - zircon_editor/src/ui/retained_host/ui/tests/component_showcase/state_projection.rs
+  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives/mod.rs
+  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives/support.rs
+  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives/avatar_badge_chip.rs
+  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives/field_and_icon.rs
+  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives/mui_x_chart_and_chat.rs
+  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives/mui_x_foundation.rs
+  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives/progress_and_overlay.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/06-component-library-mui.md
   - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md
@@ -74,3 +97,127 @@ Commit `7a20f921bb97ed428ae248cbcaf3c2fac5442ddf` removed the monolithic
 owns `mod.rs`, primitive groups, shared support, and the circular-progress regression,
 so `related_code` names that directory. No painter or test implementation changed and
 no current managed result is added; the MUI parity failure remains open.
+
+## 2026-09-19 受管静态合同回执
+
+- 受管 ticket `b46ba7043acd4cd3a5bfa63074bb8cc8`（job/run 同 ID）已通过，退出码 `0`；
+  输出为 `EDITORUI06_MUI_NATIVE_PAINTER_SOURCE_CONTRACT_PASS`、`CHECKED_PATHS=11`，
+  source manifest `1d7782e4c40d18cae22b41a348b516deedb53dfcdf0a8c14e0c77ca035d8b371`。
+- 本票据只验证当前 MUI/native painter、共享 `EditorPaletteTokens`、material primitive
+  dispatch 与 component showcase 的源码合同；`ROOT_FAILURE_REMAINS_OPEN=true` 是有意保留的
+  failure 状态。此前的失败复现和源码形状纠正证据不删除、不覆盖。
+- 尚未获得 Cargo focused groups、Editor M1 全量、产品/性能门槛、独立 Critical/Important/
+  Moderate 审查、failure return 或 closeout 的通过证据；本 failure 继续保持 `open`。
+
+## 2026-09-21 independent current-source review receipt
+
+- Reviewer Session `review-editorui06-mui-painter-r2` re-read the full failure record and the
+  current UI-06 plan, then inspected the current painter, primitive-test, showcase-structure,
+  and `EditorPaletteTokens` owners. The seven changed source/test paths were checked at their
+  current bytes; the unrelated/unattributed `native_material_painter_mui_primitives/mod.rs`
+  overlay was intentionally excluded and not absorbed.
+- `EDITORUI06_RUSTFMT_PASS` covered 10 current Rust paths and `EDITORUI06_DIFF_CHECK_PASS`
+  completed with only Git's LF-to-CRLF warnings. The source probe passed as
+  `EDITORUI06_MUI_NATIVE_PAINTER_CURRENT_SOURCE_REVIEW_PASS`, covering shared token ownership,
+  state-priority painter contracts, MUI/MUI-X primitive regressions, material dispatch, and
+  Rust-owned component-showcase structure. Independent C/I/M review is `0/0/0`; no foreign
+  source change was incorporated.
+- This is static evidence only. Focused managed Cargo for `native_material_painter` and
+  `component_showcase`, the Editor M1/full product and performance gates, canonical fixed
+  return, managed closeout, and WeCom receipt remain pending. The failure therefore remains
+  `open`.
+
+## 2026-09-21 current-source ticket receipt
+
+- Current-source static ticket `c20dac1b15c340fe89c539ea827f0a5a` passed under managed job
+  `0ed4aad2d76843509c01a5f92e5ae9dc` (run ID equal to the ticket), exit code `0`, with
+  `EDITORUI06_MUI_NATIVE_PAINTER_SOURCE_CONTRACT_PASS`, `CHECKED_PATHS=11`, and source
+  manifest `f8863dba07557092cba72f78ad47e72cfc099d7a653bc47613d1c87399895503`.
+- The ticket is static parse/source-contract evidence only. The earlier one-path probe ticket
+  `9899ca73b91d4a0c97eac23f64d667ca` passed a non-acceptance command and is explicitly not
+  reused for this failure.
+- Focused managed Cargo, Editor M1/full product and performance gates, fixed return, closeout,
+  and WeCom receipt remain pending; `status: open` is intentionally preserved.
+
+## 2026-09-25 current-source owner-chain reconciliation
+
+- The current production/test chain is now indexed explicitly: the
+  `native_material_painter_mui_primitives` module tree (its `mod.rs`, support helpers, and
+  primitive groups) calls the retained-host test bridge in
+  `paint_template_nodes/template_node_pipeline/{test_support.rs,draw.rs}`, then the
+  `template_nodes.rs` export and `template_nodes/{commands.rs,geometry.rs}` helpers route
+  `push_template_node_commands` through `template_nodes/fallback.rs` to the
+  `material_primitives.rs` and `mui_x_primitives.rs` families. Painter colors and geometry consume the host projection in
+  `paint_theme/palette_projection.rs`, whose canonical inputs are
+  `zircon_runtime_interface/src/ui/design_tokens.rs` (`EditorDesignTokens`/
+  `EditorPaletteTokens`). The component-showcase path is separately indexed from
+  `ui/pane_data_conversion/component_showcase_projection.rs` into the Rust-owned
+  `ui/tests/component_showcase/{mod.rs,contracts.rs,runtime_projection.rs,state_projection.rs}`
+  tests. This is the minimum direct chain for the two focused Cargo filters; no retired
+  monolithic `native_material_painter_mui_primitives.rs` path is reintroduced.
+- The current bytes were rechecked before this receipt. The frontmatter now contains 26 explicit
+  existing related-code paths (3 directory anchors plus 23 concrete files); no path count is
+  implied beyond that manifest. Key source hashes are:
+  `design_tokens.rs` `1adaaf791f0593c1cef5ee06565d4055d770e71c2910663ee19d2f671116d3bc`,
+  `palette_projection.rs` `2db767572bc0d3c9fc3859b0cdcf5ef6081cd36475719d9c555b14b0193dd7be`,
+  `template_node_pipeline.rs` `7e2e7c0e2619372016d4b55c27dec265820afc9cd7dc039cff2b011e70c6818e`,
+  `template_node_pipeline/test_support.rs` `3a06785041c28fee1298b2c5608e1f91eebd45dd48d3664cc5c70c9bfd164dbb`,
+  `component_showcase_projection.rs` `5f7665a9c79e26572d9c0a13378ae6c9334b5555faa4b5531cdb0a51c0e3a858`,
+  and `native_material_painter_mui_primitives/progress_and_overlay.rs`
+  `35abeb7be788b6976a4de4437dd6505c87281ffa5702ceada91bc59922d24d9f`.
+  Coordinator ownership inspection reports the retained-host painter tree as foreign or
+  unattributed (including an archived owner for `material_primitives.rs`); this session does
+  not claim, modify, or validate those dirty source bytes.
+ - The existing static source-contract receipts remain static only. Focused managed Cargo for
+   `native_material_painter` and `component_showcase`, the Editor M1/full product and performance
+   gates, and the canonical return/closeout are still required. The failure therefore remains
+   `open`.
+
+## 2026-09-26 rolling successor source handoff
+
+- Successor Session `failure-roll-01a084c8-editorui06-mui-painter-r4` owns only this
+  failure document under audited ownership-transfer fingerprint
+  `c1d33762958969b227143db284cd0ae2a9c441827242f0cb7c08e37b26b3fe6f`.
+  The pre-review document boundary is snapshot `3907`, with document SHA
+  `d5594c1d87addc721975e098a68c83c76de05ab6543a84955ddc83d911467ddc`.
+  The retained-host painter and token source paths remain foreign or unattributed;
+  this Session claims, edits, and absorbs none of those dirty bytes.
+- At the pre-review boundary, the exact twelve-path source manifest (plan, failure
+  record, and the ten existing painter/token source/test files used by the passed
+  static contract) was
+  `debeb29fefb9ce5a47e84115e718e3e6747c231f35b33dfda2cd7c6021162b02`. The
+  final doc-only review receipt changes only the failure-record entry; the final
+  twelve-path manifest is
+  `4786deee4c4f673a5ec60480240ffbc649c06b69eed68ec621ea9ad829f529a5`.
+  The plan
+  SHA is `520b992814dc533547411e83a7e831b331670f85645cf52ad677c264651963e9`;
+  the ten code/test hashes are unchanged from the corrected source ticket:
+  `native_material_painter.rs` `c189a421346ddaf5b2ac140f0f42ee1e402e7edb21fe6300d13db6cafcb59511`,
+  `avatar_badge_chip.rs` `40f8af6a92fcbfdd36617aec0862a84da5ffd13a5af10bfb6204ab2e00014a1e`,
+  `field_and_icon.rs` `e9c2729529277d3b4decd7d569bffe6bc00185f84bf51b3750dc0cda3014c4c9`,
+  `mui_x_chart_and_chat.rs` `6d4cdab7ef9ea4acfa30c9d52177fc0497d4b5102b14526645ad55ca42c38928`,
+  `mui_x_foundation.rs` `b52205147456e09376064012a8fba2cd1fe00560b8cffe97a2c54f39f3e5647d`,
+  `progress_and_overlay.rs` `35abeb7be788b6976a4de4437dd6505c87281ffa5702ceada91bc59922d24d9f`,
+  `support.rs` `1a50b08b18f27653e163a2e8985aaba4cfd48a9cdfdc5ad828946b48771fa626`,
+  `material_primitives.rs` `aebea782b21c20a40629fc831f845d221c7c1625489f9496ba6addd612645405`,
+  `structure_component_tests.rs` `70efe82fcd16311e0485b92d81e4d79d45ba3f01418d63278872e8b277599bcb`,
+  and `design_tokens.rs` `1adaaf791f0593c1cef5ee06565d4055d770e71c2910663ee19d2f671116d3bc`.
+- Current-source static ticket `c20dac1b15c340fe89c539ea827f0a5a` is the sole
+  reusable acceptance for this boundary and emitted
+  `EDITORUI06_MUI_NATIVE_PAINTER_SOURCE_CONTRACT_PASS` with `CHECKED_PATHS=11`
+  and exit code `0`. Failed checker ticket `817cfc2d67454b23a728ea1a05e49760`
+  and non-acceptance probe `9899ca73b91d4a0c97eac23f64d667ca` remain diagnostic
+  evidence and are not reused. The existing independent review is static
+  `Critical=0 / Important=0 / Moderate=0`; no foreign source change was incorporated.
+- Focused managed Cargo for `native_material_painter` and `component_showcase`,
+  Editor M1/full product and performance gates, canonical `fixed-*` return,
+  closeout, and WeCom receipt remain pending. External `E:\Git\zr_vm` cleanliness
+  remains a validation admission blocker. Failure status remains `open`.
+- Final r4 review receipt: reviewer `review_editor03_gizmo_private` verified
+  snapshot `3909` (document SHA
+  `6ec843bfd9ad84dea46e61cd2757b995f367f5ba5d540f727982461c84b687ef`) and
+  the pre-review/final-manifest distinction, with **Critical=0 /
+  Important=0 / Moderate=0**. The review-boundary manifest
+  `4786deee4c4f673a5ec60480240ffbc649c06b69eed68ec621ea9ad829f529a5`
+  remains the sealed source index; this receipt does not promote any deferred
+  Cargo or product gate.

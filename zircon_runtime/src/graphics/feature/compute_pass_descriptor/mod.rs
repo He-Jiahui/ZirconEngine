@@ -7,4 +7,5 @@ pub use compute_shader_source::ComputeShaderSource;
 pub use lowering::COMPUTE_GENERIC_EXECUTOR_ID;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

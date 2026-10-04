@@ -1,21 +1,23 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0058] 渲染管线编译的阶段与外部资源租约测试 超出当前结构预算；需核对职责边界和预算来源，区分新增责任与历史门槛过时。
 #[test]
 fn runtime_15_render_pipeline_compile_tests_are_child_owners() {
-    let root = read_runtime_src("graphics/pipeline/render_pipeline_asset/compile_tests.rs");
-    let core =
-        read_runtime_src("graphics/pipeline/render_pipeline_asset/compile_tests/core_contracts.rs");
+    let root = read_runtime_src("graphics/pipeline/render_pipeline_asset/tests/compile_tests.rs");
+    let core = read_runtime_src(
+        "graphics/pipeline/render_pipeline_asset/compile_tests/tests/core_contracts.rs",
+    );
     let external_history_leases = read_runtime_src(
-        "graphics/pipeline/render_pipeline_asset/compile_tests/core_contracts/external_history_leases.rs",
+        "graphics/pipeline/render_pipeline_asset/compile_tests/core_contracts/tests/external_history_leases.rs",
     );
     let postprocess = read_runtime_src(
-        "graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes.rs",
+        "graphics/pipeline/render_pipeline_asset/compile_tests/tests/postprocess_routes.rs",
     );
     let plugin_inputs = read_runtime_src(
-        "graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes/plugin_inputs.rs",
+        "graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes/tests/plugin_inputs.rs",
     );
     let external = read_runtime_src(
-        "graphics/pipeline/render_pipeline_asset/compile_tests/external_compute_guards.rs",
+        "graphics/pipeline/render_pipeline_asset/compile_tests/tests/external_compute_guards.rs",
     );
 
     let plan_01 = read_repo(
@@ -136,25 +138,28 @@ fn runtime_15_render_pipeline_compile_tests_are_child_owners() {
     );
 
     for (path, source) in [
-        ("render_pipeline_asset/compile_tests.rs", root.as_str()),
         (
-            "render_pipeline_asset/compile_tests/core_contracts.rs",
+            "render_pipeline_asset/tests/compile_tests.rs",
+            root.as_str(),
+        ),
+        (
+            "render_pipeline_asset/compile_tests/tests/core_contracts.rs",
             core.as_str(),
         ),
         (
-            "render_pipeline_asset/compile_tests/core_contracts/external_history_leases.rs",
+            "render_pipeline_asset/compile_tests/core_contracts/tests/external_history_leases.rs",
             external_history_leases.as_str(),
         ),
         (
-            "render_pipeline_asset/compile_tests/postprocess_routes.rs",
+            "render_pipeline_asset/compile_tests/tests/postprocess_routes.rs",
             postprocess.as_str(),
         ),
         (
-            "render_pipeline_asset/compile_tests/postprocess_routes/plugin_inputs.rs",
+            "render_pipeline_asset/compile_tests/postprocess_routes/tests/plugin_inputs.rs",
             plugin_inputs.as_str(),
         ),
         (
-            "render_pipeline_asset/compile_tests/external_compute_guards.rs",
+            "render_pipeline_asset/compile_tests/tests/external_compute_guards.rs",
             external.as_str(),
         ),
     ] {
@@ -178,10 +183,10 @@ fn runtime_15_render_pipeline_compile_tests_are_child_owners() {
             &[
                 "RenderPipelineAsset compile tests owner split",
                 "render_pipeline_asset_compile_tests_owner_split_static_passed_cargo_deferred_active_compile_lane",
-                "graphics/pipeline/render_pipeline_asset/compile_tests.rs",
-                "graphics/pipeline/render_pipeline_asset/compile_tests/core_contracts.rs",
-                "graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes.rs",
-                "graphics/pipeline/render_pipeline_asset/compile_tests/external_compute_guards.rs",
+                "graphics/pipeline/render_pipeline_asset/tests/compile_tests.rs",
+                "graphics/pipeline/render_pipeline_asset/compile_tests/tests/core_contracts.rs",
+                "graphics/pipeline/render_pipeline_asset/compile_tests/tests/postprocess_routes.rs",
+                "graphics/pipeline/render_pipeline_asset/compile_tests/tests/external_compute_guards.rs",
                 "runtime_15_render_pipeline_compile_tests_are_child_owners",
             ],
         );

@@ -5,4 +5,5 @@ mod channel_layout;
 pub use channel_layout::{AudioChannelLayout, AudioSpeakerChannel};
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

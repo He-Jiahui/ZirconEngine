@@ -11,6 +11,7 @@ use super::text::push_chip_label;
 
 const MAX_CHIP_COMMANDS: usize = 14;
 
+/// 接管 Chip 根及其占位槽位；根依次生成表面、前置头像或图标、标签与删除图标，槽位不重复绘制。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_chip_primitive_commands(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
@@ -51,5 +52,5 @@ fn reserve_chip_command_capacity(commands: &mut Vec<HostPaintCommand>) {
 }
 
 #[cfg(test)]
-#[path = "commands/reserve_capacity_tests.rs"]
+#[path = "commands/tests/reserve_capacity_tests.rs"]
 mod reserve_capacity_tests;

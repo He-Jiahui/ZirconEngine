@@ -1,3 +1,5 @@
+//! 把主体均分为选项框；末项吸收浮点除法余差，分隔线和标签均以各选项框为基准。
+
 use super::super::super::super::{data::FrameRect, paint_geometry::bounded_extent};
 use super::super::metrics::{
     segment_divider_inset_y, segment_divider_width, segment_text_inset_x, segment_text_inset_y,
@@ -28,6 +30,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn segment
     }
 }
 
+/// 调用方传入已过滤空项后的 index/count；最后一段吸收小数余差以覆盖整个主体宽度。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn segment_rect(
     rect: &FrameRect,
     index: usize,
@@ -49,24 +52,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn segment
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn collapsed_segment_has_no_divider_or_label_extent() {
-        let segment = FrameRect {
-            x: 12.0,
-            y: 8.0,
-            width: 0.0,
-            height: 0.0,
-        };
-
-        let divider = segment_divider_rect(&segment);
-        let label = segment_label_rect(&segment);
-        let allocated = segment_rect(&segment, 0, 0);
-
-        assert_eq!((divider.width, divider.height), (0.0, 0.0));
-        assert_eq!((label.width, label.height), (0.0, 0.0));
-        assert_eq!((allocated.width, allocated.height), (0.0, 0.0));
-    }
-}
+#[path = "tests/item.rs"]
+mod tests;

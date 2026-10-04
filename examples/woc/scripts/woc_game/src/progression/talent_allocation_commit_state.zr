@@ -26,6 +26,7 @@ pub class TalentAllocationCandidate {
     }
 }
 
+/// 提交结果是一份待世界层执行的副作用计划；调用方只在 applied 为真时重算属性、刷新技能并处理装备、宠物与光环。
 pub class TalentCommitEffects {
     pub var applied: bool;
     pub var needsModifierRecompute: bool;
@@ -208,6 +209,7 @@ commit(
 }
 
 // applyTalentAllocation's public entrypoint.
+/// 同一分配重复提交可成功但不会生成修订或副作用；上层要用 effects.applied 区分“接受请求”和“状态改变”。
 pub apply(
     state: TalentAllocationCommitState,
     candidate: TalentAllocationCandidate,

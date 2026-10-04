@@ -11,6 +11,7 @@ impl RuntimeDynamicSession {
     pub(super) fn current_extract(&mut self) -> RenderFrameExtract {
         crate::profile_scope!("runtime", "frame", "runtime_frame_extract");
         let viewport_size = self.camera_controller.viewport_size();
+        // 场景快照命中缓存后再叠加 session 专属相机与帧计时，避免它们污染场景缓存键。
         let mut cached = self
             .extract_cache
             .current_extract(&self.level, viewport_size);
@@ -51,20 +52,5 @@ impl RuntimeDynamicSession {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn render_timing_overlays_cached_scene_content_without_entering_cache_identity() {
-        let session_extract = include_str!("extract.rs");
-        let extract_cache = include_str!("extract_cache.rs");
-        let cache_lookup = session_extract
-            .find(".current_extract(&self.level, viewport_size)")
-            .expect("session must resolve the scene extract through its cache");
-        let timing_overlay = session_extract
-            .find("cached.extract.set_timing(self.last_render_frame_timing)")
-            .expect("session must overlay authoritative timing after cache lookup");
-
-        assert!(cache_lookup < timing_overlay);
-        assert!(!extract_cache.contains("RenderFrameTiming"));
-        assert!(!extract_cache.contains("last_render_frame_timing"));
-    }
-}
+#[path = "tests/extract.rs"]
+mod tests;

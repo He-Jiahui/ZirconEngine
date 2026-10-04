@@ -1,3 +1,4 @@
+//! 命名策略扫描需区分生产源码、测试夹具和已分类的历史名称。以结果断言检查当前接口或源码快照对应的边界。
 use std::path::Path;
 
 use super::super::support::{assert_contains_all, read_repo_text, read_text};
@@ -122,7 +123,7 @@ fn runtime_15_font_ui_asset_schema_names_use_current_policy_terms() {
 fn runtime_15_font_render_mode_priority_fixture_uses_schema_v1_name() {
     let manifest_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let renderer_font_asset = read_text(
-        &manifest_root.join("src/graphics/scene/scene_renderer/ui/font_asset.rs"),
+        &manifest_root.join("src/graphics/scene/scene_renderer/ui/tests/font_asset.rs"),
         "renderer font asset owner should be readable",
     );
     let runtime_15_plan = read_repo_text(

@@ -1,11 +1,13 @@
+//! 曝光直方图与曝光解析阶段共用的帧参数；字段顺序必须与对应 WGSL uniform 布局一致。
 use bytemuck::{Pod, Zeroable};
 
 use crate::core::framework::render::{
-    DEFAULT_CAMERA_EXPOSURE_EV100, EXPOSURE_HISTOGRAM_BIN_COUNT, RenderExposureMode,
-    RenderExposureSettings,
+    RenderExposureMode, RenderExposureSettings, DEFAULT_CAMERA_EXPOSURE_EV100,
+    EXPOSURE_HISTOGRAM_BIN_COUNT,
 };
 use crate::core::math::UVec2;
 
+/// 由视口尺寸、曝光设置和帧间隔构造 GPU 参数，并提供直方图归一化所需的像素数。
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 pub(in crate::graphics::scene::scene_renderer::post_process) struct ExposureParams {
@@ -65,17 +67,5 @@ fn exposure_mode_id(mode: RenderExposureMode) -> u32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn exposure_params_preserve_the_authoritative_frame_delta() {
-        let params = ExposureParams::new(
-            UVec2::new(640, 360),
-            RenderExposureSettings::default(),
-            0.125,
-        );
-
-        assert_eq!(params.speeds_and_compensation[3], 0.125);
-    }
-}
+#[path = "tests/exposure_params.rs"]
+mod tests;

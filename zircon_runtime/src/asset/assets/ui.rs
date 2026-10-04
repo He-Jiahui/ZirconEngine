@@ -10,6 +10,10 @@ use zircon_runtime_interface::ui::v2::{UiV2AssetDocument, UiV2AssetError, UiV2As
 mod document_loader;
 mod resource_references;
 
+#[cfg(test)]
+#[path = "ui/tests/optimization_batch_ix_runtime635_tests.rs"]
+mod optimization_batch_ix_runtime635_tests;
+
 use document_loader::{load_current_ui_document, load_ui_v2_document, load_zui_document};
 use resource_references::visit_resource_uris;
 
@@ -190,18 +194,18 @@ impl UiIconAsset {
     }
 
     pub fn direct_references(&self) -> Vec<AssetReference> {
-        let mut references = Vec::new();
-        let mut seen = HashSet::new();
         match self.source.kind {
-            UiIconSourceKind::Svg => {}
+            UiIconSourceKind::Svg => Vec::new(),
             UiIconSourceKind::SvgAsset | UiIconSourceKind::Bitmap => {
                 let Some(uri) = self.source.uri.as_deref() else {
-                    return references;
+                    return Vec::new();
                 };
-                push_reference(uri, &mut references, &mut seen);
+                asset_locator_from_uri(uri)
+                    .map(AssetReference::from_locator)
+                    .into_iter()
+                    .collect()
             }
         }
-        references
     }
 
     fn validate(&self) -> UiIconAssetDocumentResult<()> {
@@ -240,6 +244,10 @@ impl UiV2ViewAsset {
     pub fn to_toml_string(&self) -> Result<String, toml::ser::Error> {
         toml::to_string_pretty(&self.document)
     }
+
+    pub fn direct_references(&self) -> Vec<AssetReference> {
+        ui_v2_asset_references(&self.document)
+    }
 }
 
 impl UiV2ComponentAsset {
@@ -261,6 +269,10 @@ impl UiV2ComponentAsset {
     pub fn to_toml_string(&self) -> Result<String, toml::ser::Error> {
         toml::to_string_pretty(&self.document)
     }
+
+    pub fn direct_references(&self) -> Vec<AssetReference> {
+        ui_v2_asset_references(&self.document)
+    }
 }
 
 impl UiV2StyleAsset {
@@ -270,6 +282,10 @@ impl UiV2StyleAsset {
 
     pub fn to_toml_string(&self) -> Result<String, toml::ser::Error> {
         toml::to_string_pretty(&self.document)
+    }
+
+    pub fn direct_references(&self) -> Vec<AssetReference> {
+        ui_v2_asset_references(&self.document)
     }
 }
 
@@ -320,17 +336,17 @@ fn push_reference(
     references: &mut Vec<AssetReference>,
     seen: &mut HashSet<ResourceLocator>,
 ) {
-    let Ok(locator) = ResourceLocator::parse(uri) else {
-        return;
-    };
-    let Ok(asset_locator) =
-        ResourceLocator::new(locator.scheme(), locator.path().to_string(), None)
-    else {
+    let Some(asset_locator) = asset_locator_from_uri(uri) else {
         return;
     };
     if seen.insert(asset_locator.clone()) {
         references.push(AssetReference::from_locator(asset_locator));
     }
+}
+
+fn asset_locator_from_uri(uri: &str) -> Option<ResourceLocator> {
+    let locator = ResourceLocator::parse(uri).ok()?;
+    ResourceLocator::new(locator.scheme(), locator.path().to_string(), None).ok()
 }
 
 fn parse_typed(document: &str, expected: UiAssetKind) -> UiAssetDocumentResult<UiAssetDocument> {

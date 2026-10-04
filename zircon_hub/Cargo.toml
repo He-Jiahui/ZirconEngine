@@ -10,14 +10,52 @@ autobins = false
 [[bin]]
 name = "zircon_hub"
 path = "src/main.rs"
+required-features = ["desktop"]
+
+[[bin]]
+name = "zircon_hub_service"
+path = "src/bin/zircon_hub_service.rs"
+required-features = ["local-service"]
+
+[[test]]
+name = "project_management_contract"
+path = "tests/project_management_contract.rs"
+required-features = ["desktop"]
+
+[[test]]
+name = "hub04_message_id_lookup_performance"
+path = "tests/hub04_message_id_lookup_performance.rs"
+required-features = ["desktop"]
+
+[features]
+default = ["desktop"]
+desktop = ["dep:tauri", "dep:tauri-build", "dep:zircon_runtime_interface", "account-broker"]
+account-broker = ["dep:openidconnect", "dep:tokio", "dep:axum", "dep:keyring", "dep:webbrowser", "dep:sha2", "dep:libc"]
+local-service = ["dep:zircon_runtime_interface", "dep:axum", "dep:tokio", "dep:rusqlite", "dep:openidconnect", "dep:jsonwebtoken", "dep:uuid", "dep:sha2", "dep:aes-gcm", "dep:libc"]
 
 [dependencies]
 serde.workspace = true
 serde_json = "1.0.149"
-tauri = { version = "2.11.2", features = [] }
+tauri = { version = "2.11.2", features = [], optional = true }
 thiserror.workspace = true
 toml.workspace = true
-zircon_runtime_interface.workspace = true
+zircon_runtime_interface = { workspace = true, optional = true }
+axum = { version = "0.8.9", optional = true }
+tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread", "net", "signal", "sync", "time", "process", "io-util"], optional = true }
+rusqlite = { version = "0.40.2", default-features = false, features = ["bundled", "fallible_uint"], optional = true }
+openidconnect = { version = "4.0.1", features = ["timing-resistant-secret-traits"], optional = true }
+keyring = { version = "3.6.2", default-features = false, features = ["windows-native"], optional = true }
+webbrowser = { version = "1.0.6", optional = true }
+jsonwebtoken = { version = "11.0.0", default-features = false, features = ["rust_crypto"], optional = true }
+uuid = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
+aes-gcm = { version = "0.10.3", optional = true }
+
+[target.'cfg(unix)'.dependencies]
+libc = { version = "0.2", optional = true }
 
 [build-dependencies]
-tauri-build = { version = "2.6.2", features = [] }
+tauri-build = { version = "2.6.2", features = [], optional = true }
+
+[dev-dependencies]
+jsonwebtoken = { version = "11.0.0", default-features = false, features = ["rust_crypto"] }

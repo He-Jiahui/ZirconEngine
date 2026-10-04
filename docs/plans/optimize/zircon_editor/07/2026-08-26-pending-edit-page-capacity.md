@@ -4,6 +4,7 @@
 - Owner: `root-runtime-events-20260824`
 - Source plan: `docs/plans/optimize/zircon_editor/07-play-session-process-pie-game-view-live-edit-recovery-review.md`, E-PLAY-P1-32
 - Status: implementation and release gate authored; batched managed validation pending
+- Follow-up: `docs/plans/optimize/zircon_editor/07/2026-09-13-pending-edit-page-single-scan.md`
 
 ## Problem
 
@@ -50,6 +51,10 @@ required per-entry operation-id projection.
   pass before managed validation submission.
 
 ## Remaining Plan Work
+
+The 2026-09-13 follow-up removes the residual queue-wide `count()` sizing
+walk; this record remains the authority for the bounded reservation and page
+ordering contract.
 
 This slice does not close Editor07. Product pending-edit routing, revision-safe
 replay, typed Play transport, Game View, multi-instance authority, and the

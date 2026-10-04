@@ -68,3 +68,30 @@ fn ui_v2_asset_direct_references_include_imports_and_resources() {
         ]
     );
 }
+
+#[test]
+fn ui_v2_typed_assets_delegate_direct_references_to_the_shared_collector() {
+    let view = UiV2ViewAsset::from_toml_str(V2_VIEW_UI_TOML).unwrap();
+    let component = UiV2ComponentAsset::from_toml_str(V2_COMPONENT_UI_TOML).unwrap();
+    let style = UiV2StyleAsset::from_toml_str(V2_STYLE_UI_TOML).unwrap();
+
+    assert_eq!(
+        reference_locators(view.direct_references()),
+        reference_locators(ui_v2_asset_references(&view.document))
+    );
+    assert_eq!(
+        reference_locators(component.direct_references()),
+        reference_locators(ui_v2_asset_references(&component.document))
+    );
+    assert_eq!(
+        reference_locators(style.direct_references()),
+        reference_locators(ui_v2_asset_references(&style.document))
+    );
+}
+
+fn reference_locators(references: Vec<crate::asset::AssetReference>) -> Vec<String> {
+    references
+        .into_iter()
+        .map(|reference| reference.locator.to_string())
+        .collect()
+}

@@ -108,7 +108,7 @@ fn coordinator_persists_a_typed_user_mutation_through_its_shutdown_fence() {
         store.load_into(SettingsScope::User, &mut restored),
         Ok(SettingsLoad::Loaded { .. })
     ));
-    assert_eq!(restored.resolve(&snap_key), Some(&SettingValue::Float(2.5)));
+    assert_eq!(restored.resolve(&snap_key), Ok(&SettingValue::Float(2.5)));
     remove_temporary_root(&root);
 }
 

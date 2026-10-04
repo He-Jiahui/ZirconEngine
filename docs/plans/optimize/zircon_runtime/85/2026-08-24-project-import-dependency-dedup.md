@@ -55,7 +55,7 @@ elapsed time is accepted only from coordinator terminal evidence.
 - Ownership transfer apply: `6779c8224fc74a1aa211d8739d11592e`.
 - The correctness and ignored release tests now share the
   `runtime85_project_dedup_recovery_batch_` filter with project-root deduplication.
-- Managed batch script: `tools/zircon-validation-runtime85-project-dedup-recovery-batch.ps1`.
+- Managed batch script: `tools/analysis/validation/zircon-validation-runtime85-project-dedup-recovery-batch.ps1`.
 - Coordinator ticket: `pending_submission`; terminal timings and pass/fail remain authoritative in
   the managed log.
 

@@ -1,7 +1,7 @@
 import re
 import unittest
 from pathlib import Path
-
+# 只读 ECS 查询用单调写入游标构造最终投影，保留原访问冲突准入；检查 Rust 回归的行为与冲突集合断言。
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SYSTEM_PARAM_ACCESS = (

@@ -1,3 +1,4 @@
+# 核对插件能力审计逐所有者只读取一次源码。
 from __future__ import annotations
 
 import tempfile
@@ -5,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.plugin_structure_audits import capability
+from tools.audits.plugins import capability
 
 
 class Tooling13PluginCapabilitySourceCachePerformanceContractTests(

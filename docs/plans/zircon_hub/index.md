@@ -13,11 +13,11 @@ related_code:
 plan_sources:
   - .codex/plans/Zircon Hub 本地闭环 v1 功能实现设计.md
   - .codex/plans/Zircon Hub Tauri + ReactMUI 硬切换计划.md
-  - docs/zircon_hub/index.md
-  - docs/zircon_hub/ui/tauri-react-shell.md
-  - docs/zircon_hub/ui/responsive-component-system.md
-  - docs/zircon_hub/pages/actionable-pages.md
-  - docs/zircon_hub/pages/settings-status.md
+  - docs/crates/zircon_hub/index.md
+  - docs/crates/zircon_hub/ui/tauri-react-shell.md
+  - docs/crates/zircon_hub/ui/responsive-component-system.md
+  - docs/crates/zircon_hub/pages/actionable-pages.md
+  - docs/crates/zircon_hub/pages/settings-status.md
 ---
 
 # Zircon Hub 本地闭环 v1 架构稳定与功能完善总体计划
@@ -90,7 +90,7 @@ Hub 同样遵守引擎级 [`engine-code-structure-convention.md`](../engine-code
 4. project target 解析顺序保持 `projectPath` > 稳定 `projectId` > legacy `targetId`；仅 dashboard 型快捷操作允许 latest-recent 回退，selected-project 动作不得改目标。
 5. `update-settings-draft` 只改 draft 并重算 health，不 persist；只有 `save-settings` 才持久化 `hub.toml`、注册 Source Engine、刷新 catalogs。
 6. 只读控件语义不破坏：`HubCheckbox`/`HubSwitch` 缺 `onChange`、`SourceEngineList`/`HubList` 缺 `onSelect` 时必须呈只读态。
-7. 43 个契约测试是结构守卫：任何重构在同一变更内刷新对应契约断言，不得绕过、不得整体削弱断言面；`hub_docs_contract` 要求的 `docs/zircon_hub/*.md` machine-readable header 在文档刷新时保持。
+7. 43 个契约测试是结构守卫：任何重构在同一变更内刷新对应契约断言，不得绕过、不得整体削弱断言面；`hub_docs_contract` 要求的 `docs/crates/zircon_hub/*.md` machine-readable header 在文档刷新时保持。
 8. 前端依赖克制：v1 不引入路由库、状态库、i18n 库、表单库；如确需运行时校验等第三方依赖，先在子计划中记录决策再引入。
 9. Learn `open-resource` 只允许打开当前 catalog 内真实存在的文件；远程账号/云同步/插件市场/团队权限一律 disabled +"敬请期待"。
 
@@ -100,7 +100,7 @@ Hub 同样遵守引擎级 [`engine-code-structure-convention.md`](../engine-code
 
 - Rust 里程碑：通过 `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_hub` 合并执行受管 build/test；切片期对触及的 Rust 文件运行 `rustfmt --edition 2021 --check`。
 - 前端：在同一里程碑阶段运行一次 `npm run typecheck` 与 `npm run build`（`zircon_hub/` 下）。
-- 集成：先通过上述受管验证器完成 Rust 构建，再运行协调器产出的 Hub 二进制或 staged payload；不得用 `npm run tauri:dev` / `tools/zircon_build.py` 绕过共享 Cargo reservation。
+- 集成：先通过上述受管验证器完成 Rust 构建，再运行协调器产出的 Hub 二进制或 staged payload；不得用 `npm run tauri:dev` / `tools/build/zircon_build.py` 绕过共享 Cargo reservation。
 - 视觉验收（06 计划详述）：仅在改变页面布局、文案或组件行为的里程碑运行 Tauri Hub 截图矩阵——Projects / New Project / Project Detail / Editor / Builds / Cloud / Settings，覆盖中文默认、错误态、运行中、空态；确认无溢出、无遮挡、无英文硬编码残留。
 
 ## 5. 协调与避让

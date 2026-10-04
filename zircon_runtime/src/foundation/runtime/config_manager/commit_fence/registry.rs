@@ -37,7 +37,12 @@ pub(super) fn register_path_gate(
             ));
         }
     };
-    state.current = state.current.wrapping_add(1);
+    state.current = state.current.checked_add(1).ok_or_else(|| {
+        io::Error::other(format!(
+            "config filesystem commit epoch exhausted for {}",
+            path.display()
+        ))
+    })?;
     let epoch = state.current;
     drop(state);
     drop(gates);

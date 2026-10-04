@@ -1,8 +1,9 @@
+# 核对预热成功结果交给验收步骤时保留来源证据。
 import subprocess
 import unittest
 from unittest.mock import patch
 
-from tools import zircon_build
+from tools.build import zircon_build
 from tools.tests.test_zircon_build_shader_prewarm_acceptance_contract import (
     _FakePrewarmConfig,
 )

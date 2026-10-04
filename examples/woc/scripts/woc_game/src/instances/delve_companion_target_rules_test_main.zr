@@ -1,5 +1,6 @@
 var rules = %import("instances/delve_companion_target_rules");
 
+// BUG: [CR-WOC-IPS-I-0001] 本组四次主人目标查询均漏传第四个必需参数，专用测试入口会编译失败；证据：被调签名无默认值，语言编译器拒绝缺失必需成员参数。
 if (rules.meleeReach(true) != 4.5 || rules.fallbackAcquireRange(true) != 40.0 ||
     rules.followDistance(true) != 4.0 || rules.teleportDistance(true) != 60.0 ||
     !rules.ownerTargetEligible(true, true, true) ||

@@ -1,3 +1,4 @@
+# 项目打开证据从产品诊断中选定最后一次有效事件，解析所需字段后绑定预期项目；本组覆盖空白分隔和缺字段拒绝，源码断言约束整段日志处理。
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 

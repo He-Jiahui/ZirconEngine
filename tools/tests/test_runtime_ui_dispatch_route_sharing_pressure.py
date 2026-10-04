@@ -1,12 +1,12 @@
 import unittest
 from pathlib import Path
 
-from tools.runtime_ui_dispatch_route_sharing_pressure import run, validate_output_path
+from tools.analysis.performance.runtime.runtime_ui_dispatch_route_sharing_pressure import run, validate_output_path
 
 
 ROOT = Path(__file__).resolve().parents[2]
 
-
+# 按路由深度和处理器数量计数深拷贝与访问集合分配，验证典型路由共享同一事件序列。
 class RuntimeUiDispatchRouteSharingPressureTests(unittest.TestCase):
     def test_depth_matrix_eliminates_event_route_deep_copies(self) -> None:
         report = run(event_count=1_000_000)

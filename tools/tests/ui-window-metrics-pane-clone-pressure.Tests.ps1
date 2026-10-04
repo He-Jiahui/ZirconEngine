@@ -1,4 +1,5 @@
-$script:PressureScript = Join-Path $PSScriptRoot "..\ui-window-metrics-pane-clone-pressure.ps1"
+# 以窗口指标夹具验证面板克隆压力的来源绑定及漂移拒绝。
+$script:PressureScript = Join-Path $PSScriptRoot "..\profiling\ui\ui-window-metrics-pane-clone-pressure.ps1"
 if (Test-Path -LiteralPath $script:PressureScript) {
     . $script:PressureScript
 }

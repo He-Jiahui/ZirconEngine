@@ -1,17 +1,26 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use crate::rhi::{TextureDesc, TextureDimension};
+use crate::rhi::TextureDesc;
 
 use super::super::access::{
-    RenderGraphBufferRange, RenderGraphResourceAccessIntent, RenderGraphResourceAccessMetadata,
-    RenderGraphResourceAccessRange, RenderGraphTextureAspect, RenderGraphTextureSubresourceRange,
+    RenderGraphBufferRange, RenderGraphResourceAccessId, RenderGraphResourceAccessIntent,
+    RenderGraphResourceAccessMetadata, RenderGraphResourceAccessRange, RenderGraphTextureAspect,
+    RenderGraphTextureSubresourceRange,
 };
 use super::super::error::RenderGraphError;
 use super::super::types::{
-    RenderGraphAttachmentStoreOp, RenderGraphResource, RenderGraphResourceDesc,
+    QueueLane, RenderGraphAttachmentStoreOp, RenderGraphResource, RenderGraphResourceDesc,
     RenderGraphResourceVersionToken, RenderGraphTextureViewAlias, RenderPassId,
 };
 use super::ResourceNode;
+
+mod buffer_scope_history;
+#[cfg(test)]
+pub(super) use buffer_scope_history::with_whole_map_coalescing;
+mod texture_scope;
+
+use buffer_scope_history::{BufferScopeHistory, BufferSegment};
+use texture_scope::{validate_texture_descriptor_for_tracking, TexturePlane, TextureScope};
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub(super) struct LatestWriter {
@@ -20,34 +29,65 @@ pub(super) struct LatestWriter {
     pub(super) store: RenderGraphAttachmentStoreOp,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(super) struct ResourceAccessHistory {
     pub(super) latest_writer: Option<LatestWriter>,
     pub(super) latest_version_ordinal: u64,
     pub(super) readers_since_last_write: Vec<RenderPassId>,
+    pub(super) latest_state: Option<LatestAccessState>,
 }
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-struct TextureCell {
-    mip_level: u32,
-    array_layer: u32,
-    aspect: RenderGraphTextureAspect,
+impl ResourceAccessHistory {
+    /// Pass accesses are processed together, so repeated reads in one pass need
+    /// only one reader entry for later write-after-read ordering.
+    pub(super) fn record_reader_pass(&mut self, pass: RenderPassId) {
+        if self.readers_since_last_write.last().copied() != Some(pass) {
+            self.readers_since_last_write.push(pass);
+        }
+    }
 }
 
-#[derive(Clone, Debug)]
-struct BufferSegment {
-    end: u64,
-    history: ResourceAccessHistory,
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) struct LatestAccessState {
+    pub(super) access: RenderGraphResourceAccessId,
+    pub(super) intent: RenderGraphResourceAccessIntent,
+    pub(super) queue: QueueLane,
 }
 
-#[derive(Clone, Debug, Default)]
-struct BufferScopeHistory {
-    segments: BTreeMap<u64, BufferSegment>,
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) struct ScopedAccessState {
+    pub(super) range: RenderGraphResourceAccessRange,
+    pub(super) latest: Option<LatestAccessState>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(super) struct AccessScopeWorkReceipt {
+    pub(super) lookup_visits: usize,
+    pub(super) split_visits: usize,
+    pub(super) read_visits: usize,
+    pub(super) update_visits: usize,
+    pub(super) merge_visits: usize,
+    /// Visits made by the state-plan state-read and history-update passes.
+    /// Each visit is one mip/aspect key; array layers remain one interval.
+    pub(super) plane_visits: usize,
+}
+
+impl AccessScopeWorkReceipt {
+    pub(super) const fn delta_since(self, previous: Self) -> Self {
+        Self {
+            lookup_visits: self.lookup_visits - previous.lookup_visits,
+            split_visits: self.split_visits - previous.split_visits,
+            read_visits: self.read_visits - previous.read_visits,
+            update_visits: self.update_visits - previous.update_visits,
+            merge_visits: self.merge_visits - previous.merge_visits,
+            plane_visits: self.plane_visits - previous.plane_visits,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
 enum ScopeHistory {
-    Texture(HashMap<TextureCell, ResourceAccessHistory>),
+    Texture(HashMap<TexturePlane, BufferScopeHistory>),
     Buffer(BufferScopeHistory),
     Whole(ResourceAccessHistory),
 }
@@ -61,7 +101,7 @@ enum ScopeDescriptor {
 
 #[derive(Clone, Debug)]
 enum PreparedScopeKind {
-    Texture(Vec<TextureCell>),
+    Texture(TextureScope),
     Buffer { start: u64, end: u64 },
     Whole,
 }
@@ -94,13 +134,18 @@ struct BufferScopeOccupancy {
 
 #[derive(Debug)]
 enum ScopeOccupancy {
-    Texture(HashMap<TextureCell, usize>),
+    Texture(HashMap<TexturePlane, BTreeMap<u64, BufferScopeOccupancy>>),
     Buffer(BTreeMap<u64, BufferScopeOccupancy>),
     Whole(usize),
 }
 
 /// Per-pass conflict index. Callers use one instance per pass and group by
 /// logical identity plus direction, so it has no graph-global scheduling role.
+///
+/// Read/read overlap is intentionally allowed: two bindings may legally read
+/// overlapping subresources (for example, a full mip-chain view and a coarse
+/// mip alias) during one pass. Only overlapping writes need rejection because
+/// there is no intra-pass ordering between them.
 #[derive(Default)]
 pub(super) struct PassScopeConflictTracker {
     occupancy: HashMap<(usize, bool), ScopeOccupancy>,
@@ -114,23 +159,44 @@ impl PassScopeConflictTracker {
         is_write: bool,
         access_index: usize,
     ) -> Option<usize> {
+        if !is_write {
+            return None;
+        }
         let key = (scope.identity, is_write);
         match &scope.kind {
-            PreparedScopeKind::Texture(cells) => {
-                let occupancy = self.occupancy.entry(key).or_insert_with(|| {
-                    ScopeOccupancy::Texture(HashMap::with_capacity(cells.len()))
-                });
+            PreparedScopeKind::Texture(texture_scope) => {
+                let occupancy = self
+                    .occupancy
+                    .entry(key)
+                    .or_insert_with(|| ScopeOccupancy::Texture(HashMap::new()));
                 let ScopeOccupancy::Texture(occupied_cells) = occupancy else {
                     return Some(access_index);
                 };
-                if let Some(previous_access) = cells
-                    .iter()
-                    .find_map(|cell| occupied_cells.get(cell).copied())
-                {
-                    return Some(previous_access);
+                for plane in texture_scope.planes() {
+                    let intervals = occupied_cells.entry(plane).or_default();
+                    if let Some((_, previous)) =
+                        intervals.range(..=texture_scope.layer_start()).next_back()
+                    {
+                        if previous.end > texture_scope.layer_start() {
+                            return Some(previous.access_index);
+                        }
+                    }
+                    if let Some((&next_start, next)) =
+                        intervals.range(texture_scope.layer_start()..).next()
+                    {
+                        if texture_scope.layer_end() > next_start {
+                            return Some(next.access_index);
+                        }
+                    }
                 }
-                for cell in cells {
-                    occupied_cells.insert(*cell, access_index);
+                for plane in texture_scope.planes() {
+                    occupied_cells.entry(plane).or_default().insert(
+                        texture_scope.layer_start(),
+                        BufferScopeOccupancy {
+                            end: texture_scope.layer_end(),
+                            access_index,
+                        },
+                    );
                 }
                 None
             }
@@ -176,13 +242,14 @@ impl PassScopeConflictTracker {
 }
 
 /// Tracks only the portions of a logical transient resource that a graph
-/// actually touches. Texture work scales with selected subresource cells;
-/// buffer work scales with touched interval segments rather than byte count.
+/// actually touches. Texture work scales with selected mip/aspect planes and
+/// layer intervals; buffer work scales with touched intervals rather than bytes.
 pub(super) struct AccessScopeTracker {
     descriptors: HashMap<RenderGraphResource, ScopeDescriptor>,
     texture_view_aliases: HashMap<RenderGraphResource, RenderGraphTextureViewAlias>,
     histories: HashMap<usize, ScopeHistory>,
     next_version_ordinals: HashMap<usize, u64>,
+    work: AccessScopeWorkReceipt,
 }
 
 impl AccessScopeTracker {
@@ -239,7 +306,12 @@ impl AccessScopeTracker {
             texture_view_aliases,
             histories: HashMap::new(),
             next_version_ordinals: HashMap::new(),
+            work: AccessScopeWorkReceipt::default(),
         }
+    }
+
+    pub(super) const fn work_receipt(&self) -> AccessScopeWorkReceipt {
+        self.work
     }
 
     pub(super) fn prepare_scope(
@@ -248,12 +320,24 @@ impl AccessScopeTracker {
         resource: RenderGraphResource,
         metadata: RenderGraphResourceAccessMetadata,
     ) -> Result<PreparedAccessScope, RenderGraphError> {
-        let metadata = self.project_texture_view_alias_scope(resource, metadata)?;
-        let descriptor = self.descriptors.get(&resource).cloned().ok_or_else(|| {
-            RenderGraphError::ResourceDeclarationMissing {
-                resource: format!("{resource:?}"),
+        let descriptor = match self.descriptors.get(&resource).cloned() {
+            Some(descriptor) => descriptor,
+            None => {
+                eprintln!(
+                    "ZR_TRACE scope-descriptor-missing resource={resource:?} identity={identity} metadata={metadata:?}"
+                );
+                return Err(RenderGraphError::ResourceDeclarationMissing {
+                    resource: format!("{resource:?}"),
+                });
             }
-        })?;
+        };
+        // Keep tracker construction device-neutral, but reject malformed
+        // texture shapes before canonicalization can expand any subresource
+        // range or allocate history for the descriptor.
+        if let ScopeDescriptor::Texture(desc) = &descriptor {
+            validate_texture_descriptor_for_tracking(resource, desc)?;
+        }
+        let metadata = self.project_texture_view_alias_scope(resource, metadata)?;
         let metadata = Self::canonicalize_access_metadata(resource, &descriptor, metadata)?;
         let precise = !matches!(
             metadata.intent,
@@ -261,7 +345,7 @@ impl AccessScopeTracker {
         );
         let kind = match (&descriptor, metadata.range) {
             (ScopeDescriptor::Texture(desc), RenderGraphResourceAccessRange::Texture(range)) => {
-                PreparedScopeKind::Texture(texture_cells(desc, range))
+                PreparedScopeKind::Texture(TextureScope::new(desc, range))
             }
             (
                 ScopeDescriptor::Buffer { size_bytes },
@@ -277,6 +361,9 @@ impl AccessScopeTracker {
             // Access range validation has already returned a typed authoring
             // error before this compiler-only tracker is reached.
             _ => {
+                eprintln!(
+                    "ZR_TRACE scope-kind-mismatch resource={resource:?} descriptor={descriptor:?} metadata={metadata:?}"
+                );
                 return Err(RenderGraphError::ResourceDeclarationMissing {
                     resource: format!("{resource:?}"),
                 });
@@ -336,7 +423,7 @@ impl AccessScopeTracker {
                 let array_layer_count = resolved_range_count(
                     range.base_array_layer,
                     range.array_layer_count,
-                    texture_array_layer_count(desc),
+                    desc.array_layer_count(),
                 )
                 .ok_or_else(|| RenderGraphError::ResourceDeclarationMissing {
                     resource: format!("{resource:?}"),
@@ -349,6 +436,21 @@ impl AccessScopeTracker {
                     aspect: range.aspect,
                 })
             }
+            // Legacy external accesses deliberately carry an unresolved range
+            // at authoring time. Once an imported resource has a physical
+            // descriptor, resolve that legacy whole-resource access to the
+            // descriptor's complete texture scope so it participates in the
+            // same subresource tracking as an explicitly typed access.
+            (
+                ScopeDescriptor::Texture(desc),
+                RenderGraphResourceAccessRange::UnresolvedExternal,
+            ) => RenderGraphResourceAccessRange::Texture(RenderGraphTextureSubresourceRange {
+                base_mip_level: 0,
+                mip_level_count: Some(desc.mip_levels),
+                base_array_layer: 0,
+                array_layer_count: Some(desc.array_layer_count()),
+                aspect: RenderGraphTextureAspect::All,
+            }),
             (
                 ScopeDescriptor::Buffer { size_bytes },
                 RenderGraphResourceAccessRange::Buffer(range),
@@ -365,8 +467,15 @@ impl AccessScopeTracker {
                     Some(size),
                 ))
             }
+            (
+                ScopeDescriptor::Buffer { size_bytes: _ },
+                RenderGraphResourceAccessRange::UnresolvedExternal,
+            ) => RenderGraphResourceAccessRange::Buffer(RenderGraphBufferRange::full()),
             (ScopeDescriptor::Whole, range) => range,
             _ => {
+                eprintln!(
+                    "ZR_TRACE scope-canonicalization-mismatch resource={resource:?} descriptor={descriptor:?} metadata={metadata:?}"
+                );
                 return Err(RenderGraphError::ResourceDeclarationMissing {
                     resource: format!("{resource:?}"),
                 });
@@ -383,7 +492,7 @@ impl AccessScopeTracker {
         scope: &PreparedAccessScope,
     ) -> Result<Vec<ResourceAccessHistory>, RenderGraphError> {
         match &scope.kind {
-            PreparedScopeKind::Texture(cells) => {
+            PreparedScopeKind::Texture(texture_scope) => {
                 let Some(history) = self.histories.get_mut(&scope.identity) else {
                     return Err(RenderGraphError::AccessScopeTrackerStateMismatch {
                         identity: scope.identity,
@@ -394,10 +503,27 @@ impl AccessScopeTracker {
                         identity: scope.identity,
                     });
                 };
-                Ok(cells
-                    .iter()
-                    .map(|cell| histories.entry(*cell).or_default().clone())
-                    .collect())
+                let mut result = Vec::new();
+                for plane in texture_scope.planes() {
+                    let history = histories
+                        .entry(plane)
+                        .or_insert_with(|| BufferScopeHistory::new(texture_scope.layer_limit()));
+                    history.ensure_boundaries(
+                        texture_scope.layer_start(),
+                        texture_scope.layer_end(),
+                        scope.identity,
+                        &mut self.work,
+                    )?;
+                    let start_len = result.len();
+                    result.extend(
+                        history
+                            .segments
+                            .range(texture_scope.layer_start()..texture_scope.layer_end())
+                            .map(|(_, segment)| segment.history.clone()),
+                    );
+                    self.work.read_visits += result.len() - start_len;
+                }
+                Ok(result)
             }
             PreparedScopeKind::Buffer { start, end } => {
                 let Some(scope_history) = self.histories.get_mut(&scope.identity) else {
@@ -410,12 +536,14 @@ impl AccessScopeTracker {
                         identity: scope.identity,
                     });
                 };
-                history.ensure_boundaries(*start, *end, scope.identity)?;
-                Ok(history
+                history.ensure_boundaries(*start, *end, scope.identity, &mut self.work)?;
+                let histories = history
                     .segments
                     .range(*start..*end)
                     .map(|(_, segment)| segment.history.clone())
-                    .collect())
+                    .collect::<Vec<_>>();
+                self.work.read_visits += histories.len();
+                Ok(histories)
             }
             PreparedScopeKind::Whole => {
                 let Some(scope_history) = self.histories.get(&scope.identity) else {
@@ -428,18 +556,18 @@ impl AccessScopeTracker {
                         identity: scope.identity,
                     });
                 };
+                self.work.read_visits += 1;
                 Ok(vec![history.clone()])
             }
         }
     }
 
-    pub(super) fn mutate_histories(
+    pub(super) fn current_states_for(
         &mut self,
         scope: &PreparedAccessScope,
-        mut update: impl FnMut(&mut ResourceAccessHistory),
-    ) -> Result<(), RenderGraphError> {
+    ) -> Result<Vec<ScopedAccessState>, RenderGraphError> {
         match &scope.kind {
-            PreparedScopeKind::Texture(cells) => {
+            PreparedScopeKind::Texture(texture_scope) => {
                 let Some(history) = self.histories.get_mut(&scope.identity) else {
                     return Err(RenderGraphError::AccessScopeTrackerStateMismatch {
                         identity: scope.identity,
@@ -450,8 +578,125 @@ impl AccessScopeTracker {
                         identity: scope.identity,
                     });
                 };
-                for cell in cells {
-                    update(histories.entry(*cell).or_default());
+                let mut states = Vec::new();
+                for plane in texture_scope.planes() {
+                    self.work.plane_visits += 1;
+                    let history = histories
+                        .entry(plane)
+                        .or_insert_with(|| BufferScopeHistory::new(texture_scope.layer_limit()));
+                    history.ensure_boundaries(
+                        texture_scope.layer_start(),
+                        texture_scope.layer_end(),
+                        scope.identity,
+                        &mut self.work,
+                    )?;
+                    let start_len = states.len();
+                    states.extend(
+                        history
+                            .segments
+                            .range(texture_scope.layer_start()..texture_scope.layer_end())
+                            .map(|(layer_start, segment)| ScopedAccessState {
+                                range: texture_layer_range(plane, *layer_start, segment.end),
+                                latest: segment.history.latest_state,
+                            }),
+                    );
+                    self.work.read_visits += states.len() - start_len;
+                }
+                Ok(states)
+            }
+            PreparedScopeKind::Buffer { start, end } => {
+                let Some(scope_history) = self.histories.get_mut(&scope.identity) else {
+                    return Err(RenderGraphError::AccessScopeTrackerStateMismatch {
+                        identity: scope.identity,
+                    });
+                };
+                let ScopeHistory::Buffer(history) = scope_history else {
+                    return Err(RenderGraphError::AccessScopeTrackerStateMismatch {
+                        identity: scope.identity,
+                    });
+                };
+                history.ensure_boundaries(*start, *end, scope.identity, &mut self.work)?;
+                let states = history
+                    .segments
+                    .range(*start..*end)
+                    .map(|(segment_start, segment)| ScopedAccessState {
+                        range: RenderGraphResourceAccessRange::Buffer(RenderGraphBufferRange::new(
+                            *segment_start,
+                            Some(segment.end - *segment_start),
+                        )),
+                        latest: segment.history.latest_state,
+                    })
+                    .collect::<Vec<_>>();
+                self.work.read_visits += states.len();
+                Ok(states)
+            }
+            PreparedScopeKind::Whole => {
+                let Some(scope_history) = self.histories.get(&scope.identity) else {
+                    return Err(RenderGraphError::AccessScopeTrackerStateMismatch {
+                        identity: scope.identity,
+                    });
+                };
+                let ScopeHistory::Whole(history) = scope_history else {
+                    return Err(RenderGraphError::AccessScopeTrackerStateMismatch {
+                        identity: scope.identity,
+                    });
+                };
+                self.work.read_visits += 1;
+                Ok(vec![ScopedAccessState {
+                    range: scope.metadata.range,
+                    latest: history.latest_state,
+                }])
+            }
+        }
+    }
+
+    pub(super) fn mutate_histories(
+        &mut self,
+        scope: &PreparedAccessScope,
+        mut update: impl FnMut(&mut ResourceAccessHistory),
+    ) -> Result<(), RenderGraphError> {
+        match &scope.kind {
+            PreparedScopeKind::Texture(texture_scope) => {
+                let Some(history) = self.histories.get_mut(&scope.identity) else {
+                    return Err(RenderGraphError::AccessScopeTrackerStateMismatch {
+                        identity: scope.identity,
+                    });
+                };
+                let ScopeHistory::Texture(histories) = history else {
+                    return Err(RenderGraphError::AccessScopeTrackerStateMismatch {
+                        identity: scope.identity,
+                    });
+                };
+                for plane in texture_scope.planes() {
+                    self.work.plane_visits += 1;
+                    let history = histories
+                        .entry(plane)
+                        .or_insert_with(|| BufferScopeHistory::new(texture_scope.layer_limit()));
+                    history.ensure_boundaries(
+                        texture_scope.layer_start(),
+                        texture_scope.layer_end(),
+                        scope.identity,
+                        &mut self.work,
+                    )?;
+                    let starts = history
+                        .segments
+                        .range(texture_scope.layer_start()..texture_scope.layer_end())
+                        .map(|(segment_start, _)| *segment_start)
+                        .collect::<Vec<_>>();
+                    self.work.update_visits += starts.len();
+                    for segment_start in starts {
+                        let Some(segment) = history.segments.get_mut(&segment_start) else {
+                            return Err(RenderGraphError::AccessScopeTrackerStateMismatch {
+                                identity: scope.identity,
+                            });
+                        };
+                        update(&mut segment.history);
+                    }
+                    history.merge_adjacent_equal_around(
+                        texture_scope.layer_start(),
+                        texture_scope.layer_end(),
+                        &mut self.work,
+                    );
                 }
                 Ok(())
             }
@@ -466,12 +711,13 @@ impl AccessScopeTracker {
                         identity: scope.identity,
                     });
                 };
-                history.ensure_boundaries(*start, *end, scope.identity)?;
+                history.ensure_boundaries(*start, *end, scope.identity, &mut self.work)?;
                 let starts = history
                     .segments
                     .range(*start..*end)
                     .map(|(segment_start, _)| *segment_start)
                     .collect::<Vec<_>>();
+                self.work.update_visits += starts.len();
                 for segment_start in starts {
                     let Some(segment) = history.segments.get_mut(&segment_start) else {
                         return Err(RenderGraphError::AccessScopeTrackerStateMismatch {
@@ -480,6 +726,7 @@ impl AccessScopeTracker {
                     };
                     update(&mut segment.history);
                 }
+                history.merge_adjacent_equal_around(*start, *end, &mut self.work);
                 Ok(())
             }
             PreparedScopeKind::Whole => {
@@ -493,6 +740,7 @@ impl AccessScopeTracker {
                         identity: scope.identity,
                     });
                 };
+                self.work.update_visits += 1;
                 update(history);
                 Ok(())
             }
@@ -554,7 +802,7 @@ impl AccessScopeTracker {
     ) -> Result<Vec<LatestWriter>, RenderGraphError> {
         let mut writers = HashSet::new();
         match &scope.kind {
-            PreparedScopeKind::Texture(cells) => {
+            PreparedScopeKind::Texture(texture_scope) => {
                 let Some(history) = self.histories.get(&scope.identity) else {
                     return Err(RenderGraphError::AccessScopeTrackerStateMismatch {
                         identity: scope.identity,
@@ -565,11 +813,19 @@ impl AccessScopeTracker {
                         identity: scope.identity,
                     });
                 };
-                writers.extend(cells.iter().filter_map(|cell| {
-                    histories
-                        .get(cell)
-                        .and_then(|history| history.latest_writer)
-                }));
+                for plane in texture_scope.planes() {
+                    let Some(history) = histories.get(&plane) else {
+                        continue;
+                    };
+                    writers.extend(
+                        history
+                            .overlapping_segments(
+                                texture_scope.layer_start(),
+                                texture_scope.layer_end(),
+                            )
+                            .filter_map(|(_, segment)| segment.history.latest_writer),
+                    );
+                }
             }
             PreparedScopeKind::Buffer { start, end } => {
                 let Some(scope_history) = self.histories.get(&scope.identity) else {
@@ -584,8 +840,7 @@ impl AccessScopeTracker {
                 };
                 writers.extend(
                     history
-                        .segments
-                        .range(*start..*end)
+                        .overlapping_segments(*start, *end)
                         .filter_map(|(_, segment)| segment.history.latest_writer),
                 );
             }
@@ -639,30 +894,58 @@ fn project_texture_subresource_range(
         alias.range.mip_level_count,
         parent.mip_levels,
     )
-    .ok_or_else(|| RenderGraphError::ResourceDeclarationMissing {
-        resource: format!("{:?}", alias.parent),
+    .ok_or_else(|| {
+        if std::env::var_os("ZR_TRACE_RENDER_GRAPH").is_some() {
+            eprintln!(
+                "ZR_TRACE alias-range-failure=parent-mip alias={alias:?} local={local:?} parent_desc={parent:?}"
+            );
+        }
+        RenderGraphError::ResourceDeclarationMissing {
+            resource: format!("{:?}", alias.parent),
+        }
     })?;
-    let parent_array_layers = texture_array_layer_count(parent);
+    let parent_array_layers = parent.array_layer_count();
     let alias_array_count = resolved_range_count(
         alias.range.base_array_layer,
         alias.range.array_layer_count,
         parent_array_layers,
     )
-    .ok_or_else(|| RenderGraphError::ResourceDeclarationMissing {
-        resource: format!("{:?}", alias.parent),
+    .ok_or_else(|| {
+        if std::env::var_os("ZR_TRACE_RENDER_GRAPH").is_some() {
+            eprintln!(
+                "ZR_TRACE alias-range-failure=parent-array alias={alias:?} local={local:?} parent_desc={parent:?}"
+            );
+        }
+        RenderGraphError::ResourceDeclarationMissing {
+            resource: format!("{:?}", alias.parent),
+        }
     })?;
     let mip_level_count =
         resolved_range_count(local.base_mip_level, local.mip_level_count, alias_mip_count)
-            .ok_or_else(|| RenderGraphError::ResourceDeclarationMissing {
-                resource: format!("{:?}", alias.parent),
+            .ok_or_else(|| {
+                if std::env::var_os("ZR_TRACE_RENDER_GRAPH").is_some() {
+                    eprintln!(
+                        "ZR_TRACE alias-range-failure=local-mip alias={alias:?} local={local:?} parent_desc={parent:?} alias_mip_count={alias_mip_count}"
+                    );
+                }
+                RenderGraphError::ResourceDeclarationMissing {
+                    resource: format!("{:?}", alias.parent),
+                }
             })?;
     let array_layer_count = resolved_range_count(
         local.base_array_layer,
         local.array_layer_count,
         alias_array_count,
     )
-    .ok_or_else(|| RenderGraphError::ResourceDeclarationMissing {
-        resource: format!("{:?}", alias.parent),
+    .ok_or_else(|| {
+        if std::env::var_os("ZR_TRACE_RENDER_GRAPH").is_some() {
+            eprintln!(
+                "ZR_TRACE alias-range-failure=local-array alias={alias:?} local={local:?} parent_desc={parent:?} alias_array_count={alias_array_count}"
+            );
+        }
+        RenderGraphError::ResourceDeclarationMissing {
+            resource: format!("{:?}", alias.parent),
+        }
     })?;
     let aspect = compose_texture_aspect(alias.range.aspect, local.aspect).ok_or_else(|| {
         RenderGraphError::TextureViewAliasAspectUnsupported {
@@ -687,13 +970,6 @@ fn resolved_range_count(base: u32, count: Option<u32>, limit: u32) -> Option<u32
     (count > 0 && base.checked_add(count).is_some_and(|end| end <= limit)).then_some(count)
 }
 
-fn texture_array_layer_count(desc: &TextureDesc) -> u32 {
-    match desc.dimension {
-        TextureDimension::D2Array | TextureDimension::Cube => desc.depth,
-        TextureDimension::D1 | TextureDimension::D2 | TextureDimension::D3 => 1,
-    }
-}
-
 fn compose_texture_aspect(
     parent_view: RenderGraphTextureAspect,
     local_access: RenderGraphTextureAspect,
@@ -707,79 +983,23 @@ fn compose_texture_aspect(
     }
 }
 
-impl BufferScopeHistory {
-    fn ensure_boundaries(
-        &mut self,
-        start: u64,
-        end: u64,
-        identity: usize,
-    ) -> Result<(), RenderGraphError> {
-        self.split_at(start, identity)?;
-        self.split_at(end, identity)
-    }
-
-    fn split_at(&mut self, boundary: u64, identity: usize) -> Result<(), RenderGraphError> {
-        let Some((&start, segment)) = self.segments.range(..=boundary).next_back() else {
-            return Err(RenderGraphError::AccessScopeTrackerStateMismatch { identity });
-        };
-        if boundary == start || boundary >= segment.end {
-            return Ok(());
-        }
-        let end = segment.end;
-        let history = segment.history.clone();
-        let Some(segment) = self.segments.get_mut(&start) else {
-            return Err(RenderGraphError::AccessScopeTrackerStateMismatch { identity });
-        };
-        segment.end = boundary;
-        self.segments
-            .insert(boundary, BufferSegment { end, history });
-        Ok(())
-    }
+fn texture_layer_range(
+    plane: TexturePlane,
+    layer_start: u64,
+    layer_end: u64,
+) -> RenderGraphResourceAccessRange {
+    RenderGraphResourceAccessRange::Texture(RenderGraphTextureSubresourceRange {
+        base_mip_level: plane.mip_level,
+        mip_level_count: Some(1),
+        base_array_layer: layer_start as u32,
+        array_layer_count: Some((layer_end - layer_start) as u32),
+        aspect: plane.aspect,
+    })
 }
 
-fn texture_cells(
-    desc: &TextureDesc,
-    range: crate::render_graph::RenderGraphTextureSubresourceRange,
-) -> Vec<TextureCell> {
-    let mip_end = range
-        .mip_level_count
-        .map_or(desc.mip_levels, |count| range.base_mip_level + count);
-    let array_layers = texture_array_layer_count(desc);
-    let array_end = range
-        .array_layer_count
-        .map_or(array_layers, |count| range.base_array_layer + count);
-    let single_aspect = [range.aspect];
-    let aspects: &[RenderGraphTextureAspect] = match range.aspect {
-        RenderGraphTextureAspect::All if desc.format.has_stencil() => &[
-            RenderGraphTextureAspect::Depth,
-            RenderGraphTextureAspect::Stencil,
-        ],
-        RenderGraphTextureAspect::All if desc.format.is_depth() => {
-            &[RenderGraphTextureAspect::Depth]
-        }
-        RenderGraphTextureAspect::All => &[RenderGraphTextureAspect::Color],
-        RenderGraphTextureAspect::Color
-        | RenderGraphTextureAspect::Depth
-        | RenderGraphTextureAspect::Stencil => &single_aspect,
-    };
-    let mut cells = Vec::with_capacity(
-        (mip_end - range.base_mip_level) as usize
-            * (array_end - range.base_array_layer) as usize
-            * aspects.len(),
-    );
-    for mip_level in range.base_mip_level..mip_end {
-        for array_layer in range.base_array_layer..array_end {
-            for aspect in aspects {
-                cells.push(TextureCell {
-                    mip_level,
-                    array_layer,
-                    aspect: *aspect,
-                });
-            }
-        }
-    }
-    cells
-}
+#[cfg(test)]
+#[path = "tests/access_scope_tracker.rs"]
+mod tests;
 
 pub(super) fn token_covers_scope(
     histories: &[ResourceAccessHistory],

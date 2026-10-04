@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录执行 npm run check:m6-arena-state-source；入口由 package.json 登记；缺少源码契约时脚本抛错退出。
+// 读取锁定提交中的竞技场返场与准备函数，核对充能和跳跃状态清理，并限制 Zr 竞技场状态仅由两个测试入口导入。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
@@ -82,6 +86,7 @@ function startMatchBlock(source) {
   return blockFrom(source, start, 'startMatch');
 }
 
+// 扫描大括号时跳过字符串和注释，确保状态清理断言只落在指定函数体内。
 function blockFrom(source, start, label) {
   const typedVoidBody = source.indexOf('): void {', start);
   const open = typedVoidBody >= 0

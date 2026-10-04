@@ -1,0 +1,229 @@
+{
+  "batch": "w0-batch26",
+  "recorded_at_utc": "2026-10-03T15:50:13.677628+00:00",
+  "author_terminal_receipt_sha256": "80c878d4b9848bf9d2c73b94cd92645c56fbce4413fc134a54ba8c8ef9893191",
+  "author_review_sha256": "2c8246c6378194aaa76c9124043c586da5f4940facbb54d950f0e8a0a0dab41c",
+  "raw_capture_inventory": [
+    {
+      "name": "explicit-successor-links.jsonl",
+      "sha256": "ff567242063abe039bbbe489feb74868e38ae26a7670d8f8317c2e712212c9ca",
+      "bytes": 141264
+    },
+    {
+      "name": "manifest.json",
+      "sha256": "74a8825df7a541b65e53dc06a721e17d848fb884bcaf8f23bc2602889241d664",
+      "bytes": 1105
+    },
+    {
+      "name": "original-findings.jsonl",
+      "sha256": "a57255d7afb0a1535f06f83792396091a983b7f9ff34585c6c0d9f0e7d11b0ff",
+      "bytes": 149776
+    },
+    {
+      "name": "original-gates.jsonl",
+      "sha256": "ebd987f4251cbb05316c6e1d52940ef47d5079a8554c1999cbbb379ec227601f",
+      "bytes": 72352
+    },
+    {
+      "name": "review.json",
+      "sha256": "2c8246c6378194aaa76c9124043c586da5f4940facbb54d950f0e8a0a0dab41c",
+      "bytes": 1502090
+    },
+    {
+      "name": "summary.json",
+      "sha256": "b2772dd942ceb0a4526a635313bc34597ee2ee931efe36119e0da20cb7dce890",
+      "bytes": 4133
+    },
+    {
+      "name": "summary.md",
+      "sha256": "37fb4f0ddec1a8b82bca1dc145863fd36febe6f62b0158a8a2e1a0f830e95c7e",
+      "bytes": 1206
+    },
+    {
+      "name": "terminal-receipt.json",
+      "sha256": "80c878d4b9848bf9d2c73b94cd92645c56fbce4413fc134a54ba8c8ef9893191",
+      "bytes": 1048
+    }
+  ],
+  "raw_capture_root": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch26-root-canonical-preparation-r1\\author-capture",
+  "raw_report_root": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch26-root-canonical-preparation-r1\\raw-reports",
+  "source_provenance": [
+    {
+      "report_id": "Runtime94",
+      "report_path": "docs/plans/optimize/zircon_runtime/94-runtime-visibility-review.md",
+      "realpath": "E:\\Git\\ZirconEngine\\docs\\plans\\optimize\\zircon_runtime\\94-runtime-visibility-review.md",
+      "sha256": "3bcdf87809513ebee9a021ebc407d5456c6921e8123f7ce8f0810cf57117bd67",
+      "bytes": 46841,
+      "lines": 419,
+      "newline_style": "LF",
+      "sealed_sha256": "3bcdf87809513ebee9a021ebc407d5456c6921e8123f7ce8f0810cf57117bd67",
+      "row_count": 108,
+      "finding_rows": 60,
+      "gate_rows": 48,
+      "line_text_exact": true
+    },
+    {
+      "report_id": "Editor138",
+      "report_path": "docs/plans/optimize/zircon_editor/138-editor-terrain-landscape-foliage-scatter-world-partition-level-streaming-authoring-current-source-review.md",
+      "realpath": "E:\\Git\\ZirconEngine\\docs\\plans\\optimize\\zircon_editor\\138-editor-terrain-landscape-foliage-scatter-world-partition-level-streaming-authoring-current-source-review.md",
+      "sha256": "e5eefefd8b31816de9a0ddbab8634590b71e81224c7b9a3e54b7def824ebb628",
+      "bytes": 29253,
+      "lines": 327,
+      "newline_style": "LF",
+      "sealed_sha256": "e5eefefd8b31816de9a0ddbab8634590b71e81224c7b9a3e54b7def824ebb628",
+      "row_count": 109,
+      "finding_rows": 77,
+      "gate_rows": 32,
+      "line_text_exact": true
+    }
+  ],
+  "canonical_boundary": {
+    "publication_receipt": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch25-root-canonical-publication-r1\\terminal-canonical-publication.json",
+    "publication_receipt_sha256": "1ac0a43e25f677ca0fcc1e3fdb9b08cdca574f0636c10803d7cdd8d6fffa8509",
+    "publication_declared_sha256": "c4ada1ed94b9a49e49428c522771541edf98156a2000ddd799dfc70bd1ba4bc7",
+    "counts": {
+      "source_observations": 1630,
+      "report_qualified_keys": 1626,
+      "distinct_original_literal_ids": 1396,
+      "unlabelled_original_finding_ordinals": 84,
+      "original_gate_rows": 803,
+      "this_batch_finding_observations": 144,
+      "this_batch_historical_finding_rows": 49,
+      "this_batch_current_finding_rows": 95,
+      "this_batch_declared_gate_rows": 96,
+      "this_batch_historical_nullID_gate_rows": 22,
+      "this_batch_current_literal_gate_rows": 74,
+      "this_batch_successor_nonnew_currentness_and_finding_rows": 15,
+      "this_batch_successor_nonnew_gate_rows": 10,
+      "refresh_count_scope": "B24 plus B25 only; prior global refresh totals are not inferred",
+      "b24_b25_nonnew_currentness_and_finding_rows": 121,
+      "b24_b25_nonnew_gate_rows": 46
+    },
+    "publication_file_checks": [
+      {
+        "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch25-review.jsonl",
+        "exists": true,
+        "actual_sha256": "b27c378505a45a1be95db882dab1ac84528c9f3a5a158c9177bafddf71cb5d8b",
+        "declared_postimage_sha256": "b27c378505a45a1be95db882dab1ac84528c9f3a5a158c9177bafddf71cb5d8b",
+        "hash_match": true,
+        "bytes": 390711
+      },
+      {
+        "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch25-gates.jsonl",
+        "exists": true,
+        "actual_sha256": "ed936d87c0f5868ed8cb3618d4ac8c85365183fa24bc47edd7eafde63f6db03b",
+        "declared_postimage_sha256": "ed936d87c0f5868ed8cb3618d4ac8c85365183fa24bc47edd7eafde63f6db03b",
+        "hash_match": true,
+        "bytes": 180764
+      },
+      {
+        "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch25-refresh.jsonl",
+        "exists": true,
+        "actual_sha256": "c75f100adf8facb6d0215b440e03d6dd312b74c22746264b1f46257ca8d3af83",
+        "declared_postimage_sha256": "c75f100adf8facb6d0215b440e03d6dd312b74c22746264b1f46257ca8d3af83",
+        "hash_match": true,
+        "bytes": 52167
+      },
+      {
+        "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch25-crosswalk.jsonl",
+        "exists": true,
+        "actual_sha256": "6c42f23119e76373b1f7512cdc5b1493564b41110bfe47c33545e9d49161dee8",
+        "declared_postimage_sha256": "6c42f23119e76373b1f7512cdc5b1493564b41110bfe47c33545e9d49161dee8",
+        "hash_match": true,
+        "bytes": 93814
+      },
+      {
+        "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch25-manifest.json",
+        "exists": true,
+        "actual_sha256": "2b3b68bba68c2eb1074b470e562bd0ff00a1ee5e4f264ef19bf521b8f0094649",
+        "declared_postimage_sha256": "2b3b68bba68c2eb1074b470e562bd0ff00a1ee5e4f264ef19bf521b8f0094649",
+        "hash_match": true,
+        "bytes": 61592
+      },
+      {
+        "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch25-summary.json",
+        "exists": true,
+        "actual_sha256": "ce2f1cff237ddfb73f0a8d0de81a09ae54576dbb3d33ecda982c6932d5dfde93",
+        "declared_postimage_sha256": "ce2f1cff237ddfb73f0a8d0de81a09ae54576dbb3d33ecda982c6932d5dfde93",
+        "hash_match": true,
+        "bytes": 22626
+      },
+      {
+        "path": "docs/plans/astra/optimize/01-review-and-repair.md",
+        "exists": true,
+        "actual_sha256": "950d550d1330695d22538f66c4fdcbfb873a86a740e73753290bae37ad626357",
+        "declared_postimage_sha256": "950d550d1330695d22538f66c4fdcbfb873a86a740e73753290bae37ad626357",
+        "hash_match": true,
+        "bytes": 78558
+      },
+      {
+        "path": "docs/plans/astra/optimize/01/2026-09-30-w0-current-source-continuation.md",
+        "exists": true,
+        "actual_sha256": "ac5993238f3cefa34b77dd2cdac599614bbcb9fb03d26c89d38a2eaaf536599e",
+        "declared_postimage_sha256": "ac5993238f3cefa34b77dd2cdac599614bbcb9fb03d26c89d38a2eaaf536599e",
+        "hash_match": true,
+        "bytes": 133929
+      }
+    ],
+    "all_postimages_match": true,
+    "preserved": true
+  },
+  "canonical_scan_counts": {
+    "original_rows": 217,
+    "original_findings": 137,
+    "original_gates": 80,
+    "findings_by_priority": {
+      "P0": 5,
+      "P1": 108,
+      "P2": 24
+    },
+    "null_id_original_rows": {
+      "finding_literal_id_null": 0,
+      "gate_id_null": 0
+    },
+    "canonical_jsonl_files_scanned": 77,
+    "canonical_jsonl_records_scanned": 4176,
+    "canonical_exact_origin_qualified_key_matches": 0,
+    "canonical_exact_origin_path_identity_matches": 0,
+    "canonical_identifier_any_report_overlaps": 32,
+    "canonical_unqualified_identifier_collision_rows": 32,
+    "canonical_relation_or_report_mentions": 3,
+    "explicit_runtime94_p1_successor_links": 48,
+    "explicit_runtime94_p1_successor_target_keys_present": 48,
+    "explicit_runtime94_p1_successor_target_occurrences": 54,
+    "ambiguous_successor_relations": 1,
+    "unresolved_origin_link_groups": 2
+  },
+  "mapping_qualification": "Six archival grouped ranges only; no 48 ordinal one-to-one links. Three cardinality mismatches: 08..19=>008..016 (12:9), 26..34=>023..032 (9:10), 35..40=>033..040 (6:8). Editor232/P2/gate semantics remain unresolved.",
+  "counts": {
+    "source_observations": 1767,
+    "report_qualified_keys": 1763,
+    "distinct_original_literal_ids": 1533,
+    "unlabelled_original_finding_ordinals": 84,
+    "original_gate_rows": 883,
+    "this_batch_original_findings": 137,
+    "this_batch_original_gates": 80,
+    "this_batch_priority_split": {
+      "P0": 5,
+      "P1": 108,
+      "P2": 24
+    },
+    "whole_inventory": false,
+    "preserved_nonnew_successor_group_relations": 6,
+    "original_Runtime94_P1_rows_retained_open": 48,
+    "cardinality_mismatched_successor_groups": 3
+  },
+  "whole_inventory": false,
+  "source_writes": 0,
+  "tests_run": 0,
+  "acceptance": "open",
+  "root_independent_review": {
+    "status": "completed exact independent structural review of r2 identity, group relations, counts and all7candidate inputs",
+    "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0-b26-root-canonical-independent-review-r2\\review.json",
+    "sha256": "238960879c9f356738ac3245de55a6a9d3a86b8d3748004ce98c1b0c3de37abb",
+    "r2_private_preparation_sha256": "cb648aa80480a14b054b2fcbb54b6b3a5583e48fb7b277ef1eb77c7a63f5a3b6",
+    "publication_metadata_qualification": "Root r3 adds only this exact review receipt and qualification to manifest/summary; all finding/gate/crosswalk/doc bytes are identical to reviewed r2. This does not accept production behavior or any runtime/test/native/product gate."
+  },
+  "author_individual_ordinal_links": "preserved only in immutable raw author capture; excluded from canonical crosswalk",
+  "source_publication_state": "prepared; actual immutable publication receipt is separate"
+}

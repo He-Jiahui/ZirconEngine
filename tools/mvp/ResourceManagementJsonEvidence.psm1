@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-Import-Module (Join-Path $PSScriptRoot '..\WindowsPathResolver.psm1') -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot '..\common\WindowsPathResolver.psm1') -ErrorAction Stop
 
 $script:ResourceManagementEvidenceReadBufferBytes = 81920
 $script:ResourceManagementEvidenceHexDigits = [char[]]'0123456789ABCDEF'

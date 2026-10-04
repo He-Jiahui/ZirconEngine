@@ -19,7 +19,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束预分配内建宿主模块 handles：完整安装容量匹配全部内建模块，并句柄收集器使用精确预分配。
 class PreallocatedBuiltinHostModuleHandlesPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

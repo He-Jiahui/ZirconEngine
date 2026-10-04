@@ -15,6 +15,8 @@ pub struct AnimationSkeletonBoneAsset {
     pub local_scale: [Real; 3],
 }
 
+/// 片段采样与运行时目标表共享的骨架资源；骨骼顺序是姿态槽位的依据，
+/// 引用它的片段需在资源加载后再做目标解析。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AnimationSkeletonAsset {
     pub name: Option<String>,
@@ -50,5 +52,5 @@ impl AnimationSkeletonAsset {
 }
 
 #[cfg(test)]
-#[path = "skeleton/borrowed_encoding_tests.rs"]
+#[path = "skeleton/tests/borrowed_encoding_tests.rs"]
 mod borrowed_encoding_tests;

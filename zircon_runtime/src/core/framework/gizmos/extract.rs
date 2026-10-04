@@ -14,6 +14,8 @@ const DEFAULT_CIRCLE_SEGMENTS: usize = 32;
 const MIN_CIRCLE_SEGMENTS: usize = 3;
 const CIRCLE_BASIS_AXIS_DOT_LIMIT: Real = 0.9;
 
+/// 把同一 owner/kind 的临时与保留式 gizmo 合并成一个渲染覆盖层的输入。
+/// 借用源命令直到提取结束；selected 是覆盖层元数据，不改变几何命令。
 pub struct GizmoOverlayExtractRequest<'a> {
     pub owner: EntityId,
     pub kind: SceneGizmoKind,
@@ -49,6 +51,8 @@ impl<'a> GizmoOverlayExtractRequest<'a> {
     }
 }
 
+/// 将启用源的命令转成世界空间线段；先接入临时缓冲，再接入保留式实例。
+/// 没有可绘制线段时返回 None，调用方无需向 RenderOverlayExtract 写入空项。
 pub fn extract_gizmo_overlay(
     request: GizmoOverlayExtractRequest<'_>,
 ) -> Option<SceneGizmoOverlayExtract> {
@@ -88,6 +92,8 @@ pub fn extract_gizmo_overlay(
     })
 }
 
+// TODO: [CR-FRAMEWORK-RESIDUAL-0004] 确认通用 GizmoBuffer 到视口覆盖层的接线 owner；当前直接调用仅见测试，Editor 与 Runtime 视口仍各自构造 SceneGizmoOverlayExtract。
+/// 将可见的通用 gizmo 结果追加到现有渲染覆盖包，供后续视口线段顶点生成使用。
 pub fn append_gizmo_overlay(
     packet: &mut RenderOverlayExtract,
     request: GizmoOverlayExtractRequest<'_>,
@@ -109,6 +115,7 @@ fn push_commands(
     }
 }
 
+// 提取前按同一过滤与形状展开规则估算容量，避免多源命令逐个扩容。
 fn estimated_request_line_count(request: &GizmoOverlayExtractRequest<'_>) -> usize {
     request
         .buffers
@@ -189,6 +196,7 @@ fn push_command(
             *size,
             color_policy.apply(*color),
         ),
+        // BUG: [CR-FRAMEWORK-RESIDUAL-0002] 保留式 Circle/Sphere 只变换中心或法线，半径未经过实例缩放；与 Line/Cube 的世界空间变换不一致，证据：下方 push_circle/push_sphere 与 retained.transform。
         GizmoCommand::Circle {
             center,
             normal,
@@ -224,6 +232,7 @@ fn push_command(
         GizmoCommand::Aabb { min, max, color } => {
             push_aabb(lines, transform, *min, *max, color_policy.apply(*color))
         }
+        // BUG: [CR-FRAMEWORK-RESIDUAL-0001] 保留式 Axis 只变换原点，方向和长度仍沿未变换的基轴；旋转或缩放实例会画错线段，证据：push_axis 使用 axis.direction()。
         GizmoCommand::Axis {
             origin,
             axis,
@@ -439,4 +448,5 @@ fn transform_vector(transform: Mat4, vector: Vec3) -> Vec3 {
 }
 
 #[cfg(test)]
+#[path = "extract/tests/performance_tests.rs"]
 mod performance_tests;

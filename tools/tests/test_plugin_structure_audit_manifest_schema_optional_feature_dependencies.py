@@ -7,7 +7,7 @@ from tools.tests.plugin_structure_audit_optional_feature_support import (
     plugin_manifest,
 )
 
-
+# 用插件清单夹具验证可选特性依赖：拒绝可选特性依赖非表格，并拒绝可选特性缺失依赖。
 class PluginStructureAuditManifestSchemaOptionalFeatureDependenciesTests(
     unittest.TestCase
 ):

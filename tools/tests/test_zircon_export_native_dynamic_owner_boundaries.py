@@ -3,26 +3,29 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-NATIVE_DYNAMIC_STAGE = REPO_ROOT / "tools/zircon_export/native_dynamic.py"
+NATIVE_DYNAMIC_STAGE = REPO_ROOT / "tools/export/native_dynamic.py"
 NATIVE_DYNAMIC_MATERIALIZE = (
-    REPO_ROOT / "tools/zircon_export/native_dynamic_materialize.py"
+    REPO_ROOT / "tools/export/native_dynamic_materialize.py"
 )
 NATIVE_DYNAMIC_MATERIALIZE_IO = (
-    REPO_ROOT / "tools/zircon_export/native_dynamic_materialize_io.py"
+    REPO_ROOT / "tools/export/native_dynamic_materialize_io.py"
+)
+NATIVE_DYNAMIC_MANIFEST_INDEX = (
+    REPO_ROOT / "tools/export/native_dynamic_manifest_index.py"
 )
 NATIVE_DYNAMIC_CLI_OPTIONS = (
-    REPO_ROOT / "tools/zircon_export/native_dynamic_cli_options.py"
+    REPO_ROOT / "tools/export/native_dynamic_cli_options.py"
 )
 NATIVE_DYNAMIC_STAGE_PAYLOAD = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_native_dynamic_stage_payload.py"
+    REPO_ROOT / "tools/export/pipeline_report_native_dynamic_stage_payload.py"
 )
 NATIVE_DYNAMIC_BUILD_EXECUTION = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_build_execution.py"
+    / "tools/export/pipeline_report_native_dynamic_build_execution.py"
 )
 NATIVE_DYNAMIC_PACKAGE_EXPORTS = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_package_exports.py"
+    / "tools/export/pipeline_report_native_dynamic_package_exports.py"
 )
 
 
@@ -34,11 +37,15 @@ class ZirconExportNativeDynamicOwnerBoundaryTests(unittest.TestCase):
         )
         stage_text = NATIVE_DYNAMIC_STAGE.read_text(encoding="utf-8")
         materialize_text = NATIVE_DYNAMIC_MATERIALIZE.read_text(encoding="utf-8")
+        manifest_index_text = NATIVE_DYNAMIC_MANIFEST_INDEX.read_text(
+            encoding="utf-8"
+        )
 
+        self.assertIn(
+            "def materialize_native_dynamic_packages(",
+            materialize_text,
+        )
         for function_name in (
-            "materialize_native_dynamic_packages",
-            "find_native_package_dir",
-            "read_package_manifest_id",
             "copy_native_dynamic_package",
             "copy_native_artifacts",
         ):
@@ -52,12 +59,38 @@ class ZirconExportNativeDynamicOwnerBoundaryTests(unittest.TestCase):
                 materialize_text,
             )
 
-        self.assertNotIn(
-            "class PackageManifestRead",
-            stage_text,
-            "Package manifest read state belongs in the materialize owner",
+        for function_name in (
+            "find_native_package_dir",
+            "read_package_manifest_id",
+            "populate_native_package_manifest_index",
+        ):
+            self.assertNotIn(f"def {function_name}(", stage_text)
+            self.assertIn(
+                f"def {function_name}(",
+                materialize_text,
+                f"{function_name} keeps a compatibility facade in materialize",
+            )
+            self.assertIn(
+                f"def {function_name}(",
+                manifest_index_text,
+                f"{function_name} implementation belongs in manifest index owner",
+            )
+
+        for class_name in ("PackageManifestRead", "NativePackageManifestIndex"):
+            self.assertNotIn(f"class {class_name}", stage_text)
+            self.assertNotIn(f"class {class_name}", materialize_text)
+            self.assertIn(f"class {class_name}", manifest_index_text)
+
+        self.assertIn(
+            "from .native_dynamic_manifest_index import",
+            materialize_text,
+            "package materialization should consume the manifest index owner",
         )
-        self.assertIn("class PackageManifestRead", materialize_text)
+        self.assertNotIn(
+            "from .native_dynamic_materialize import",
+            manifest_index_text,
+            "manifest index owner must not import package materialization",
+        )
         self.assertIn(
             "from .native_dynamic_materialize import",
             stage_text,

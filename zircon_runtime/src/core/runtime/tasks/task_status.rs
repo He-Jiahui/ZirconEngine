@@ -23,6 +23,7 @@ impl TaskStatus {
         self.state.is_terminal()
     }
 
+    // 本状态值转为 Running 时清空旧失败文本；JobHandle::task_status 仅在 Failed 状态投影 panic 说明。
     pub(crate) fn mark_running(&mut self) {
         self.state = TaskState::Running;
         self.failure_message = None;
@@ -45,21 +46,5 @@ impl TaskStatus {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn runtime_task_status_has_one_terminal_state_and_no_poll_clock() {
-        let mut status = TaskStatus::pending(TaskId::new(42));
-        assert_eq!(status.state, TaskState::Pending);
-        assert!(!status.is_terminal());
-
-        status.mark_running();
-        assert_eq!(status.state, TaskState::Running);
-
-        status.mark_failed("worker panicked");
-        assert_eq!(status.state, TaskState::Failed);
-        assert_eq!(status.failure_message.as_deref(), Some("worker panicked"));
-        assert!(status.is_terminal());
-    }
-}
+#[path = "tests/task_status.rs"]
+mod tests;

@@ -5,8 +5,8 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::shared::{
-    CollectionRowVisual, RowRenderState, bool_attribute, icon_command, quad_command, row_label,
-    text_command,
+    bool_attribute, icon_command, quad_command, row_label, text_command, CollectionRowVisual,
+    RowRenderState,
 };
 
 const COLUMN_RATIOS: [f32; 4] = [0.36, 0.27, 0.19, 0.18];
@@ -158,6 +158,7 @@ fn action(visual: &CollectionRowVisual, state: &RowRenderState) -> UiRgbaColor {
     }
 }
 
+// 数组有可用单元格时只物化前四列；没有可用单元格或数组缺失时才回退紧凑行标签解析。
 fn table_cells(metadata: &UiTemplateNodeMetadata) -> TableCells {
     if let Some(values) = ["cells", "columns", "options"]
         .iter()
@@ -260,52 +261,5 @@ fn is_tail(metadata: &UiTemplateNodeMetadata) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn table_cells_materialize_only_the_four_rendered_columns() {
-        let mut metadata = UiTemplateNodeMetadata::default();
-        metadata.attributes.insert(
-            "cells".to_string(),
-            Value::Array(
-                (0..128)
-                    .map(|index| Value::String(format!("cell-{index}")))
-                    .collect(),
-            ),
-        );
-
-        assert_eq!(
-            table_cells(&metadata),
-            [
-                Some("cell-0".to_string()),
-                Some("cell-1".to_string()),
-                Some("cell-2".to_string()),
-                Some("cell-3".to_string()),
-            ]
-        );
-    }
-
-    #[test]
-    fn empty_cell_array_preserves_compact_row_label_fallback() {
-        let mut metadata = UiTemplateNodeMetadata::default();
-        metadata.attributes.insert(
-            "cells".to_string(),
-            Value::Array(vec![Value::String("  ".to_string())]),
-        );
-        metadata.attributes.insert(
-            "label".to_string(),
-            Value::String("texture image 12 KiB today UTC".to_string()),
-        );
-
-        assert_eq!(
-            table_cells(&metadata),
-            [
-                Some("texture".to_string()),
-                Some("image".to_string()),
-                Some("12 KiB".to_string()),
-                Some("today UTC".to_string()),
-            ]
-        );
-    }
-}
+#[path = "tests/table.rs"]
+mod tests;

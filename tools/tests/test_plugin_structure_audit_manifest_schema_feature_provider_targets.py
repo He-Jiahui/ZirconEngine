@@ -1,10 +1,10 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema_feature_provider_targets import (
+from tools.audits.plugins.manifest_schema_feature_provider_targets import (
     collect_feature_provider_target_identity_violations,
 )
 
-
+# 用提供者目标清单夹具拒绝重复目标 ID 与根目标 ID 冲突，保留独立目标命名空间。
 class PluginStructureAuditManifestSchemaFeatureProviderTargetsTests(unittest.TestCase):
     def test_manifest_schema_rejects_duplicate_feature_provider_target_ids(self):
         violations: list[str] = []

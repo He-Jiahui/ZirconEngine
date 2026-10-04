@@ -1,6 +1,7 @@
 use crate::core::framework::render::RenderGpuTimingStatus;
 use crate::graphics::backend::{GpuTimerFrameObservation, GpuTimerFrameStatus};
 
+/// 将 RHI 计时观察映射到 Runtime 可见状态，保留禁用、不可用和延迟到达的区别。
 pub(in crate::graphics::scene::scene_renderer::core) fn render_gpu_timing_status(
     timing_requested: bool,
     timer_available: bool,
@@ -21,47 +22,5 @@ pub(in crate::graphics::scene::scene_renderer::core) fn render_gpu_timing_status
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn timing_status_keeps_disabled_unavailable_and_deferred_distinct() {
-        assert_eq!(
-            render_gpu_timing_status(false, false, None),
-            RenderGpuTimingStatus::Disabled
-        );
-        assert_eq!(
-            render_gpu_timing_status(true, false, None),
-            RenderGpuTimingStatus::Unavailable
-        );
-        assert_eq!(
-            render_gpu_timing_status(true, true, None),
-            RenderGpuTimingStatus::Deferred
-        );
-    }
-
-    #[test]
-    fn timing_status_projects_each_rhi_frame_observation() {
-        let observation = |status| GpuTimerFrameObservation {
-            frame_generation: 8,
-            status,
-        };
-
-        assert_eq!(
-            render_gpu_timing_status(true, true, Some(observation(GpuTimerFrameStatus::Pending))),
-            RenderGpuTimingStatus::Pending
-        );
-        assert_eq!(
-            render_gpu_timing_status(
-                true,
-                true,
-                Some(observation(GpuTimerFrameStatus::CapacityExhausted))
-            ),
-            RenderGpuTimingStatus::CapacityExhausted
-        );
-        assert_eq!(
-            render_gpu_timing_status(true, true, Some(observation(GpuTimerFrameStatus::NoPasses))),
-            RenderGpuTimingStatus::NoPasses
-        );
-    }
-}
+#[path = "tests/gpu_timing_status.rs"]
+mod tests;

@@ -1,3 +1,4 @@
+# 核对工作台预览与视觉清单复用当前调色板、圆角和基础令牌。
 import re
 import tomllib
 import unittest

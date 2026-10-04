@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录执行 npm run check:m6-fiesta-state-source；入口由 package.json 登记；缺少源码契约时脚本抛错退出。
+// 核对锁定的 Fiesta 计分、生成、圆环和强化物规则，及死亡时清理状态的 Zr 投影，并限制其测试导入者。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
@@ -34,6 +38,7 @@ for (const needle of [
   'fiestaCurrentHeadDeathResetTest(): int',
 ]) invariant(projection.includes(needle), `Fiesta projection omitted current-head reset: ${needle}`);
 
+// 扫描全部 Zr 文件的导入，防止该测试投影越过测试入口与场景矩阵的边界。
 const importers = zrFiles(wocRoot)
   .filter((path) => readFileSync(path, 'utf8').includes('%import("social/fiesta_state")'))
   .map((path) => relative(wocRoot, path).replaceAll('\\', '/'))

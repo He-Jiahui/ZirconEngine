@@ -1,7 +1,7 @@
 use woc_client::{
-    AuthCompletion, AuthFlowEffect, AuthMode, CharacterRosterScreen, CharacterSortMode,
-    OnlineEntryState, OnlineShellController, OnlineShellEffect, OnlineShellScreen, RealmDefinition,
-    RealmType,
+    AuthCompletion, AuthFlowEffect, AuthMode, AuthRequestId, CharacterRosterScreen,
+    CharacterSortMode, OnlineEntryState, OnlineShellController, OnlineShellEffect,
+    OnlineShellScreen, RealmDefinition, RealmType,
 };
 
 fn realm(name: &str, url: &str) -> RealmDefinition {
@@ -11,6 +11,12 @@ fn realm(name: &str, url: &str) -> RealmDefinition {
         realm_type: RealmType::Normal,
         character_count: 0,
     }
+}
+
+fn effect_request_id(effect: &AuthFlowEffect) -> AuthRequestId {
+    effect
+        .request_id()
+        .expect("authentication request effects must carry an identity")
 }
 
 #[test]
@@ -40,15 +46,32 @@ fn two_factor_challenge_stays_on_authentication_and_success_loads_realms() {
         .enter_online(OnlineEntryState::AuthenticationRequired)
         .expect("authentication entry");
 
+    shell
+        .auth_mut()
+        .set_username("Vale")
+        .expect("username input");
+    shell
+        .auth_mut()
+        .set_password("secret")
+        .expect("password input");
+    let login_request = match shell.submit_auth().expect("login request") {
+        OnlineShellEffect::Authentication(effect) => effect_request_id(&effect),
+        _ => panic!("login must emit an authentication request"),
+    };
+
     assert!(shell
-        .complete_auth(AuthCompletion::TwoFactorRequired)
+        .complete_auth(login_request, AuthCompletion::TwoFactorRequired)
         .expect("two-factor result")
         .is_none());
     assert_eq!(shell.screen(), OnlineShellScreen::Authentication);
     assert!(shell.auth().two_factor_visible());
 
+    let follow_up_request = match shell.submit_auth().expect("two-factor login request") {
+        OnlineShellEffect::Authentication(effect) => effect_request_id(&effect),
+        _ => panic!("two-factor login must emit an authentication request"),
+    };
     match shell
-        .complete_auth(AuthCompletion::Authenticated)
+        .complete_auth(follow_up_request, AuthCompletion::Authenticated)
         .expect("authenticated result")
     {
         Some(OnlineShellEffect::LoadRealmDirectory) => {}

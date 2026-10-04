@@ -1,3 +1,5 @@
+//! 以原子持久化包裹每次副作用台账迁移；项目激活/关闭与残留恢复共用同一文件身份，读取前有大小与格式门槛。
+
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -207,6 +209,7 @@ impl ProjectSessionEffectLedgerStore {
             ))
     }
 
+    // 写外部副作用前后的台账变更都经此持久化门；写入失败时调用方不能假装副作用已可靠记录。
     fn mutate(
         &mut self,
         apply: impl FnOnce(
@@ -353,44 +356,5 @@ fn read_capped_ledger_bytes(mut reader: impl Read) -> std::io::Result<Vec<u8>> {
 }
 
 #[cfg(test)]
-mod bounded_read_tests {
-    use std::io::Cursor;
-    use std::path::Path;
-
-    use zircon_runtime_interface::project::{
-        ProjectActivationOperationIdGenerator, ProjectLaunchInstanceId,
-    };
-
-    use super::{
-        read_capped_ledger_bytes, ProjectSessionEffectLedger, ProjectSessionEffectLedgerStore,
-        MAX_SESSION_EFFECT_LEDGER_BYTES,
-    };
-
-    #[test]
-    fn session_effect_ledger_reads_are_capped_before_deserialization() {
-        let oversized = vec![b'x'; MAX_SESSION_EFFECT_LEDGER_BYTES * 4];
-        let source = read_capped_ledger_bytes(Cursor::new(oversized)).expect("capped read");
-
-        assert_eq!(source.len(), MAX_SESSION_EFFECT_LEDGER_BYTES + 1);
-    }
-
-    #[test]
-    fn decode_rejects_an_unreachable_closed_effect_inventory() {
-        let operation_id =
-            ProjectActivationOperationIdGenerator::new(ProjectLaunchInstanceId::new())
-                .allocate()
-                .expect("fixture operation id");
-        let ledger = ProjectSessionEffectLedger::for_operation(operation_id);
-        let mut record = serde_json::to_value(ledger).expect("serialize fixture ledger");
-        record["phase"] = serde_json::json!("closed");
-        record["effects"] = serde_json::json!({ "runtime": "prepared" });
-        let source = serde_json::to_vec(&record).expect("encode forged ledger");
-
-        assert!(ProjectSessionEffectLedgerStore::decode(
-            Path::new("forged-session-effect-ledger.json"),
-            &source,
-            operation_id,
-        )
-        .is_err());
-    }
-}
+#[path = "tests/store_bounded_read_tests.rs"]
+mod bounded_read_tests;

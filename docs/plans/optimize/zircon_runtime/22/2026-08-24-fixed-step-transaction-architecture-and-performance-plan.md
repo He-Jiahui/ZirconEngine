@@ -221,7 +221,7 @@ work and diagnostic to be absent from the trace, not merely a lower average.
    diagnostics scoped to real time. World fixed telemetry remains pending on
    the committed receipt/outbox owner.
 4. Completed: update core-time, prelude, and frame-schedule documentation in
-   the same change. `docs/zircon_runtime/scene/ecs.md` is currently lock-owned
+   the same change. `docs/crates/zircon_runtime/scene/ecs.md` is currently lock-owned
    and is intentionally not edited by this slice.
 
 The only behavior-sensitive risk is callers that apply a policy after Level

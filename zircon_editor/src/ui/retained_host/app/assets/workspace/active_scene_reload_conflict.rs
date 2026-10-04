@@ -5,6 +5,7 @@ use crate::core::notifications::{
 };
 use crate::ui::host::PreparedActiveSceneReloadDirtyPolicy;
 use crate::ui::retained_host::app::RetainedEditorHost;
+use crate::ui::workbench::startup::SceneReloadDiscardAuthorization;
 use zircon_runtime::asset::pipeline::manager::ProjectAssetGenerationToken;
 
 const ACTIVE_SCENE_RELOAD_NOTIFICATION_PREFIX: &str = "editor.scene.active_reload_conflict";
@@ -19,9 +20,21 @@ pub(in crate::ui::retained_host::app) struct ActiveSceneReloadConflict {
 }
 
 pub(in crate::ui::retained_host::app) enum ActiveSceneReloadConflictState {
-    AwaitingDecision { ticket: Option<DecisionTicket> },
-    DiscardRequested,
+    AwaitingDecision {
+        ticket: Option<DecisionTicket>,
+        authorization: Option<SceneReloadDiscardAuthorization>,
+    },
+    DiscardRequested(SceneReloadDiscardAuthorization),
     Cancelled,
+}
+
+impl ActiveSceneReloadConflictState {
+    fn awaiting_decision() -> Self {
+        Self::AwaitingDecision {
+            ticket: None,
+            authorization: None,
+        }
+    }
 }
 
 enum ActiveSceneReloadDecisionLookup {
@@ -38,7 +51,7 @@ impl ActiveSceneReloadConflict {
         Self {
             identity,
             generation,
-            state: ActiveSceneReloadConflictState::AwaitingDecision { ticket: None },
+            state: ActiveSceneReloadConflictState::awaiting_decision(),
         }
     }
 }
@@ -59,12 +72,13 @@ impl RetainedEditorHost {
 
         let same_generation = conflict.generation == *generation;
         match &conflict.state {
-            ActiveSceneReloadConflictState::DiscardRequested => {
+            ActiveSceneReloadConflictState::DiscardRequested(authorization) => {
+                let authorization = authorization.clone();
                 if !same_generation {
                     conflict.generation = generation.clone();
                 }
                 self.active_scene_reload_conflict = Some(conflict);
-                Some(PreparedActiveSceneReloadDirtyPolicy::Discard)
+                Some(PreparedActiveSceneReloadDirtyPolicy::Discard(authorization))
             }
             _ if same_generation => {
                 self.active_scene_reload_conflict = Some(conflict);
@@ -90,7 +104,7 @@ impl RetainedEditorHost {
             self.dismiss_active_scene_reload_conflict_decision(&conflict);
             return;
         }
-        match self.dirty_project_scene_generation() {
+        match self.dirty_project_scene_token() {
             Ok(Some(_)) => {}
             Ok(None) => {
                 self.dismiss_active_scene_reload_conflict_decision(&conflict);
@@ -110,7 +124,7 @@ impl RetainedEditorHost {
         }
 
         match &conflict.state {
-            ActiveSceneReloadConflictState::AwaitingDecision { ticket } => {
+            ActiveSceneReloadConflictState::AwaitingDecision { ticket, .. } => {
                 let ticket = ticket.clone();
                 let selected_option = match ticket {
                     Some(ticket) => match self.active_scene_reload_decision(&ticket) {
@@ -120,13 +134,11 @@ impl RetainedEditorHost {
                             return;
                         }
                         Ok(ActiveSceneReloadDecisionLookup::Missing) => {
-                            conflict.state =
-                                ActiveSceneReloadConflictState::AwaitingDecision { ticket: None };
+                            conflict.state = ActiveSceneReloadConflictState::awaiting_decision();
                             None
                         }
                         Err(error) => {
-                            conflict.state =
-                                ActiveSceneReloadConflictState::AwaitingDecision { ticket: None };
+                            conflict.state = ActiveSceneReloadConflictState::awaiting_decision();
                             self.active_scene_reload_conflict = Some(conflict);
                             self.set_status_line(error);
                             return;
@@ -146,7 +158,7 @@ impl RetainedEditorHost {
                 };
                 self.apply_active_scene_reload_conflict_decision(conflict, &selected_option);
             }
-            ActiveSceneReloadConflictState::DiscardRequested => {
+            ActiveSceneReloadConflictState::DiscardRequested(_) => {
                 self.active_scene_reload_conflict = Some(conflict);
             }
             ActiveSceneReloadConflictState::Cancelled => {
@@ -233,6 +245,9 @@ impl RetainedEditorHost {
         &mut self,
         conflict: &mut ActiveSceneReloadConflict,
     ) -> Result<(), String> {
+        let authorization = self
+            .active_scene_reload_discard_authorization()?
+            .ok_or_else(|| "the active scene no longer needs a discard decision".to_owned())?;
         let sequence = self
             .active_scene_reload_decision_sequence
             .checked_add(1)
@@ -282,6 +297,7 @@ impl RetainedEditorHost {
         self.active_scene_reload_decision_sequence = sequence;
         conflict.state = ActiveSceneReloadConflictState::AwaitingDecision {
             ticket: Some(ticket),
+            authorization: Some(authorization),
         };
         self.refresh_activity_notification_presentation();
         Ok(())
@@ -297,7 +313,41 @@ impl RetainedEditorHost {
                 self.save_active_scene_reload_conflict(conflict);
             }
             ACTIVE_SCENE_RELOAD_DISCARD_OPTION => {
-                conflict.state = ActiveSceneReloadConflictState::DiscardRequested;
+                let authorized = match &conflict.state {
+                    ActiveSceneReloadConflictState::AwaitingDecision { authorization, .. } => {
+                        authorization.clone()
+                    }
+                    _ => None,
+                };
+                match self.active_scene_reload_discard_authorization() {
+                    Ok(None) => {
+                        self.dismiss_active_scene_reload_conflict_decision(&conflict);
+                        self.queue_active_scene_reload_retry();
+                        return;
+                    }
+                    Ok(current) if current == authorized => {}
+                    Ok(Some(_)) => {
+                        self.dismiss_active_scene_reload_conflict_decision(&conflict);
+                        conflict.state = ActiveSceneReloadConflictState::awaiting_decision();
+                        if let Err(error) =
+                            self.publish_active_scene_reload_conflict_decision(&mut conflict)
+                        {
+                            self.set_status_line(error);
+                        }
+                        self.active_scene_reload_conflict = Some(conflict);
+                        return;
+                    }
+                    Err(error) => {
+                        self.active_scene_reload_conflict = Some(conflict);
+                        self.set_status_line(error);
+                        return;
+                    }
+                }
+                let Some(authorization) = authorized else {
+                    // Only a published prompt can grant a discard authorization.
+                    return;
+                };
+                conflict.state = ActiveSceneReloadConflictState::DiscardRequested(authorization);
                 self.active_scene_reload_conflict = Some(conflict);
                 if let Err(error) = self.submit_active_scene_reload(None) {
                     self.set_status_line(error);
@@ -311,7 +361,7 @@ impl RetainedEditorHost {
                 );
             }
             _ => {
-                conflict.state = ActiveSceneReloadConflictState::AwaitingDecision { ticket: None };
+                conflict.state = ActiveSceneReloadConflictState::awaiting_decision();
                 self.active_scene_reload_conflict = Some(conflict);
                 self.set_status_line(format!(
                     "Unknown active scene reload decision option `{selected_option}`"
@@ -322,7 +372,7 @@ impl RetainedEditorHost {
 
     fn save_active_scene_reload_conflict(&mut self, mut conflict: ActiveSceneReloadConflict) {
         match self.save_project_scene() {
-            Ok(()) => match self.dirty_project_scene_generation() {
+            Ok(()) => match self.dirty_project_scene_token() {
                 Ok(None)
                     if self
                         .editor_manager
@@ -337,8 +387,7 @@ impl RetainedEditorHost {
                 }
                 Ok(None) => {}
                 Ok(Some(_)) => {
-                    conflict.state =
-                        ActiveSceneReloadConflictState::AwaitingDecision { ticket: None };
+                    conflict.state = ActiveSceneReloadConflictState::awaiting_decision();
                     self.active_scene_reload_conflict = Some(conflict);
                     self.set_status_line(
                         "The active scene changed while it was being saved; review the reload decision again."
@@ -346,18 +395,27 @@ impl RetainedEditorHost {
                     );
                 }
                 Err(error) => {
-                    conflict.state =
-                        ActiveSceneReloadConflictState::AwaitingDecision { ticket: None };
+                    conflict.state = ActiveSceneReloadConflictState::awaiting_decision();
                     self.active_scene_reload_conflict = Some(conflict);
                     self.set_status_line(error);
                 }
             },
             Err(error) => {
-                conflict.state = ActiveSceneReloadConflictState::AwaitingDecision { ticket: None };
+                conflict.state = ActiveSceneReloadConflictState::awaiting_decision();
                 self.active_scene_reload_conflict = Some(conflict);
                 self.set_status_line(format!("The active scene could not be saved: {error}"));
             }
         }
+    }
+
+    fn active_scene_reload_discard_authorization(
+        &self,
+    ) -> Result<Option<SceneReloadDiscardAuthorization>, String> {
+        let Some(history) = self.runtime.active_scene_history_context() else {
+            return Ok(None);
+        };
+        SceneReloadDiscardAuthorization::capture(self.runtime.context().transactions(), history)
+            .map_err(|error| error.to_string())
     }
 
     fn dismiss_active_scene_reload_conflict_decision(
@@ -366,6 +424,7 @@ impl RetainedEditorHost {
     ) {
         let ActiveSceneReloadConflictState::AwaitingDecision {
             ticket: Some(ticket),
+            ..
         } = &conflict.state
         else {
             return;
@@ -391,18 +450,5 @@ fn active_scene_reload_display_subject(scene_uri: &str) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::active_scene_reload_display_subject;
-    use crate::core::notifications::MAX_DECISION_DISPLAY_SUBJECT_BYTES;
-
-    #[test]
-    fn reload_conflict_display_subject_preserves_a_bounded_utf8_tail() {
-        let uri = format!("res://scenes/{}final.scene.toml", "场景/".repeat(80));
-
-        let subject = active_scene_reload_display_subject(&uri);
-
-        assert!(subject.len() <= MAX_DECISION_DISPLAY_SUBJECT_BYTES);
-        assert!(subject.starts_with("..."));
-        assert!(subject.ends_with("final.scene.toml"));
-    }
-}
+#[path = "tests/active_scene_reload_conflict.rs"]
+mod tests;

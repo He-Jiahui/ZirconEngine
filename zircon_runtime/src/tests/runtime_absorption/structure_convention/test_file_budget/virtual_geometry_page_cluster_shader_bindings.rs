@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对虚拟几何链路的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 const STATUS: &str = "render_plan08_virtual_geometry_page_cluster_shader_bindings_direct_binary_wgpu_layout_passed_renderdoc_deferred";
@@ -22,7 +23,8 @@ fn runtime_15_virtual_geometry_page_cluster_shader_bindings_are_wired() {
         read_runtime_src("graphics/shader/wgsl/zr_geometry_virtual_geometry.wgsl");
     let permutation_registry =
         read_runtime_src("bin/zircon_shader_prewarm/manifest/permutation_registry.rs");
-    let shader_prewarm_tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests.rs");
+    let shader_prewarm_tests =
+        read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/cases.rs");
     let package_manifest_tests =
         read_runtime_src("tests/plugin_extensions/package_manifest_declarations.rs");
     let build_tool_tests = read_repo("tools/tests/test_zircon_build_shader_prewarm.py");

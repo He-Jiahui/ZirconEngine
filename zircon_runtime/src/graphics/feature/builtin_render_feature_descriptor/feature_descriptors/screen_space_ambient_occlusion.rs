@@ -3,7 +3,7 @@ use bytemuck::{Pod, Zeroable};
 use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::core::math::UVec2;
 use crate::graphics::pipeline::{
-    AO_SHADER_INTERFACE_VERSION, AmbientOcclusionInputSemantic, CompiledAoProfile, RenderPassStage,
+    AmbientOcclusionInputSemantic, CompiledAoProfile, RenderPassStage, AO_SHADER_INTERFACE_VERSION,
 };
 use crate::graphics::{
     ComputePassDescriptor, ComputeShaderSource, RenderBufferSchema, RenderResourceSchema,
@@ -118,7 +118,8 @@ impl SsaoParams {
     }
 }
 
-pub(super) fn descriptor() -> RenderFeatureDescriptor {
+pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor(
+) -> RenderFeatureDescriptor {
     let evaluate = ComputePassDescriptor::new(
         "ssao-evaluate",
         RenderPassStage::AmbientOcclusion,
@@ -292,7 +293,7 @@ pub(super) fn descriptor() -> RenderFeatureDescriptor {
     )
 }
 
-pub(super) fn configure_for_profile(
+pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn configure_for_profile(
     descriptors: &mut [RenderFeatureDescriptor],
     profile: &CompiledAoProfile,
 ) -> Result<(), String> {
@@ -604,4 +605,5 @@ fn half_resolution_ambient_occlusion_schema() -> RenderResourceSchema {
 }
 
 #[cfg(test)]
+#[path = "screen_space_ambient_occlusion/tests/cases.rs"]
 mod tests;

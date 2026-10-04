@@ -1,5 +1,6 @@
 use std::fmt;
 
+/// 后处理纹理的中立格式契约，用于选择中间纹理及 LUT 布局；最终输出传输由 RenderOutputTransfer 另行声明。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum RenderPostProcessTextureFormat {
     R8Unorm,
@@ -71,8 +72,10 @@ impl fmt::Display for RenderOutputTransfer {
     }
 }
 
+// The baseline device requests no optional format features. Packed R11G11B10 needs an
+// explicit render-target capability, including on adapters that support the format.
 pub const INTERMEDIATE_HDR_FORMAT_DEFAULT: RenderPostProcessTextureFormat =
-    RenderPostProcessTextureFormat::Rg11b10Ufloat;
+    RenderPostProcessTextureFormat::Rgba16Float;
 pub const INTERMEDIATE_HDR_FORMAT_HIGH_QUALITY: RenderPostProcessTextureFormat =
     RenderPostProcessTextureFormat::Rgba16Float;
 pub const COLOR_LUT_SIZE_DEFAULT: u32 = 32;
@@ -84,32 +87,5 @@ pub const TONEMAPPED_SDR_FORMAT: RenderPostProcessTextureFormat =
 pub const OUTPUT_TRANSFER_DEFAULT: RenderOutputTransfer = RenderOutputTransfer::SrgbNonlinear;
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn render_post_color_space_intermediate_hdr_defaults_to_rg11b10ufloat() {
-        assert_eq!(
-            INTERMEDIATE_HDR_FORMAT_DEFAULT,
-            RenderPostProcessTextureFormat::Rg11b10Ufloat
-        );
-        assert_eq!(INTERMEDIATE_HDR_FORMAT_DEFAULT.bytes_per_pixel(), 4);
-        assert!(INTERMEDIATE_HDR_FORMAT_DEFAULT.is_hdr_color());
-    }
-
-    #[test]
-    fn render_post_color_lut_contract_keeps_power_of_two_sizes() {
-        assert_eq!(COLOR_LUT_SIZE_DEFAULT, 32);
-        assert_eq!(COLOR_LUT_SIZE_HIGH_QUALITY, 64);
-        assert_eq!(
-            COLOR_LUT_FORMAT,
-            RenderPostProcessTextureFormat::Rgba16Float
-        );
-    }
-
-    #[test]
-    fn render_post_output_transfer_defaults_to_srgb() {
-        assert_eq!(OUTPUT_TRANSFER_DEFAULT, RenderOutputTransfer::SrgbNonlinear);
-        assert_eq!(OUTPUT_TRANSFER_DEFAULT.label(), "srgb-nonlinear");
-    }
-}
+#[path = "tests/color_space.rs"]
+mod tests;

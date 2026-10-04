@@ -6,5 +6,6 @@ mod cycles;
 mod external_aliasing;
 mod ordering;
 mod resource_dependencies;
+mod resource_state_plan;
 mod resources;
 mod scaling;

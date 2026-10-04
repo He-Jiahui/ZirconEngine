@@ -9,7 +9,7 @@ fn host_function_registry_matches_documented_ledger() {
     let gameplay_source = include_str!("../../../script/vm/gameplay_host.rs");
     let bridge_source = include_str!("../../../script/vm/host/bridge_host_module.rs");
     let ledger =
-        include_str!("../../../../../docs/zircon_runtime/script/vm/host/function_ledger.md");
+        include_str!("../../../../../docs/crates/zircon_runtime/script/vm/host/function_ledger.md");
     let plan = concat!(
         include_str!(
             "../../../../../docs/plans/zircon_runtime/runtime/13-script-binding-and-reflection.md"
@@ -21,12 +21,12 @@ fn host_function_registry_matches_documented_ledger() {
 
     assert_eq!(
         count_occurrences(builtin_source, "HostExportFunction::new("),
-        20,
+        21,
         "builtin host callback count changed; update function_ledger.md and Runtime 13 status"
     );
     assert_eq!(
         count_occurrences(gameplay_source, "HostExportFunction::new("),
-        39,
+        40,
         "gameplay host callback count changed; update function_ledger.md and Runtime 13 status"
     );
     assert_eq!(
@@ -78,7 +78,8 @@ fn host_function_registry_matches_documented_ledger() {
     }
 
     for required_ledger_anchor in [
-        "6 host modules, 61 fixed host functions, and 2 fixed script type descriptors",
+        "6 host modules, 63 fixed host functions, and 2 fixed script type descriptors",
+        "Version 0.3.0 deterministic value and scalar math ABI.",
         "`zr.zircon.bridge`",
         "dynamic module shape contract",
         "Value descriptors",
@@ -113,7 +114,7 @@ fn host_function_registry_matches_documented_ledger() {
 #[test]
 fn host_function_registry_ledger_guard_rejects_missing_entry() {
     let ledger =
-        include_str!("../../../../../docs/zircon_runtime/script/vm/host/function_ledger.md")
+        include_str!("../../../../../docs/crates/zircon_runtime/script/vm/host/function_ledger.md")
             .replace("| `time_unix_millis` |", "| `time_unix_millis_removed` |");
 
     let missing_entries = missing_documented_functions(&ledger);

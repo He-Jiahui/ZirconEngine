@@ -524,6 +524,7 @@ void sanitized_extents(const float* input, float* output) {
 
 } // namespace
 
+// 把资产多边形和连接转换为 Detour 拥有的查询对象；不支持的输入由 Rust 查询层回退处理。
 extern "C" void zr_nav_detour_create_query(
     const float* vertices,
     std::uint32_t vertex_count,

@@ -17,6 +17,8 @@ use execution_resource_cache::{
 const CUBE_FACE_COUNT: u32 = 6;
 const IBL_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
 
+/// 同一设备与固定布局的 A/B 常驻资源：当前槽供场景采样，工作槽跨帧积累新一代环境。
+/// 所有采样/存储 mip 视图共享各槽纹理分配，绑定缓存随这个物理资源 owner 一起销毁。
 pub(in crate::graphics) struct RealtimeIblGpuResources {
     slot_a: RealtimeIblGpuSlotResources,
     slot_b: RealtimeIblGpuSlotResources,
@@ -299,6 +301,7 @@ fn bind_texture_views(
     Ok(())
 }
 
+// 输入由编译变体统一排序，只绑定编译后存活的视图，避免每次回放重建名称集合。
 fn is_required_resource(required_resource_names: &[String], name: &str) -> bool {
     required_resource_names
         .binary_search_by(|candidate| candidate.as_str().cmp(name))
@@ -337,4 +340,5 @@ fn storage_view_descriptor(mip_level: u32) -> wgpu::TextureViewDescriptor<'stati
 }
 
 #[cfg(test)]
+#[path = "realtime_ibl_gpu_resources/tests/cases.rs"]
 mod tests;

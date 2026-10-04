@@ -1,4 +1,4 @@
-use crate::core::framework::render::{ComputeDispatchPlan, ShaderDispatchExtent};
+use crate::graphics::shader::invocation::{ComputeDispatchPlan, ShaderDispatchExtent};
 use crate::rhi::{BufferDesc, TextureDesc};
 use zircon_runtime_interface::resource::AssetReference;
 

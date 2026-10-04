@@ -1,3 +1,4 @@
+# 产品场景的子进程环境由场景声明和宿主允许继承项共同限定；本组防止未声明变量渗入，并保持运行时、编辑器与自动化场景各自的声明边界。
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $policyModule = Join-Path $repoRoot 'tools\mvp\MvpProcessEnvironmentPolicy.psm1'
 $stagePolicyModule = Join-Path $repoRoot 'tools\mvp\MvpStageProcessEnvironmentPolicy.psm1'

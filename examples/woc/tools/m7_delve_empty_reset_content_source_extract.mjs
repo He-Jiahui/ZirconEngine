@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码中提取空置地下探索实例的占用采样与超时，供 m7_delve_empty_reset_content_codegen.mjs 消费。
 import { execFileSync } from 'node:child_process';
 import ts from 'typescript';
 
@@ -18,6 +19,7 @@ const update = source.statements.find(
 if (!update) {
   throw new Error('updateDelveRuns missing from source');
 }
+// 确认占用采样周期、半径与超时分支后，才输出对应常量。
 for (const marker of [
   'if (ctx.tickCount % 20 !== 0) return;',
   'Math.abs(e.pos.x - origin.x) < 120',

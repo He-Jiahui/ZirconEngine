@@ -16,17 +16,19 @@ use zircon_runtime_interface::ui::{
 const SYNTHETIC_ROOT_NODE_ID: NodeId = NodeId(u64::MAX);
 
 #[cfg(test)]
+#[path = "accesskit/tests/performance_tests.rs"]
 mod performance_tests;
 
 pub(crate) fn snapshot_to_accesskit_tree_update(
     snapshot: &UiAccessibilityTreeSnapshot,
 ) -> Option<TreeUpdate> {
     let root = accesskit_root_id(snapshot)?;
-    let mut nodes = snapshot
-        .nodes
-        .iter()
-        .map(|node| (accesskit_node_id(node.node_id), accesskit_node(node)))
-        .collect::<Vec<_>>();
+    let synthetic_root_capacity = usize::from(snapshot.roots.len() > 1);
+    let mut nodes =
+        Vec::with_capacity(snapshot.nodes.len().saturating_add(synthetic_root_capacity));
+    for node in &snapshot.nodes {
+        nodes.push((accesskit_node_id(node.node_id), accesskit_node(node)));
+    }
 
     if snapshot.roots.len() > 1 {
         nodes.push((SYNTHETIC_ROOT_NODE_ID, synthetic_root_node(snapshot)));
@@ -121,14 +123,11 @@ fn accesskit_root_id(snapshot: &UiAccessibilityTreeSnapshot) -> Option<NodeId> {
 fn synthetic_root_node(snapshot: &UiAccessibilityTreeSnapshot) -> Node {
     let mut node = Node::new(Role::Window);
     node.set_label(format!("Zircon UI {}", snapshot.tree_id.0));
-    node.set_children(
-        snapshot
-            .roots
-            .iter()
-            .copied()
-            .map(accesskit_node_id)
-            .collect::<Vec<_>>(),
-    );
+    let mut children = Vec::with_capacity(snapshot.roots.len());
+    for root in snapshot.roots.iter().copied() {
+        children.push(accesskit_node_id(root));
+    }
+    node.set_children(children);
     node
 }
 
@@ -142,14 +141,11 @@ fn accesskit_node(source: &UiAccessibilityNode) -> Node {
         node.set_bounds(accesskit_rect(bounds));
     }
     if !source.children.is_empty() {
-        node.set_children(
-            source
-                .children
-                .iter()
-                .copied()
-                .map(accesskit_node_id)
-                .collect::<Vec<_>>(),
-        );
+        let mut children = Vec::with_capacity(source.children.len());
+        for child in source.children.iter().copied() {
+            children.push(accesskit_node_id(child));
+        }
+        node.set_children(children);
     }
     node
 }

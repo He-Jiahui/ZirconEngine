@@ -4,15 +4,13 @@ related_code:
   - .github/workflows/ci.yml
   - .github/workflows/mvp-editor-windows.yml
   - .github/workflows/profile-feature-contract.yml
-  - tools/dev-fast-build.ps1
-  - tools/README-fast-build.md
-  - tools/check-runtime-domain-features.ps1
-  - tools/check-runtime-profile-features.ps1
-  - tools/zircon_build_cargo_environment.py
-  - tools/zircon_build_shader_prewarm.py
-  - tools/zircon_build_shader_prewarm_cache_artifacts.py
-  - tools/session_coordinator/cargo_runner.py
-  - tools/session_coordinator/benchmark_validation_grants.py
+  - tools/dev/dev-fast-build.ps1
+  - tools/dev/README-fast-build.md
+  - tools/analysis/validation/check-runtime-domain-features.ps1
+  - tools/analysis/validation/check-runtime-profile-features.ps1
+  - tools/build/zircon_build_cargo_environment.py
+  - tools/build/zircon_build_shader_prewarm.py
+  - tools/build/zircon_build_shader_prewarm_cache_artifacts.py
   - zircon_runtime/src/asset/artifact/cache_key.rs
   - zircon_runtime/src/asset/artifact/chunk_residency.rs
   - zircon_runtime/src/asset/artifact/store.rs

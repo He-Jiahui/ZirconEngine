@@ -1,3 +1,4 @@
+//! 启动描述符供 App 配置和原生窗口创建使用；运行期窗口、输出与表面状态由带代数的 Host 契约维护。
 //! Neutral window contracts shared by runtime modules and host backends.
 
 mod constants;
@@ -75,4 +76,5 @@ pub use window_state::{
 };
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

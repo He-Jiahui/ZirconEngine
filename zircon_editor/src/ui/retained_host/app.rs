@@ -60,6 +60,7 @@ use crate::ui::workbench::startup::{EditorSessionMode, EditorStartupSessionDocum
 use crate::ui::workbench::state::EditorState;
 
 use super::activity_rail_pointer::{
+    build_host_activity_rail_pointer_geometry_layout,
     build_host_activity_rail_pointer_layout_with_workbench_layout_frames,
     HostActivityRailPointerBridge, HostActivityRailPointerSide,
 };
@@ -141,6 +142,7 @@ mod module_plugin_projection;
 mod native_keyboard_actions;
 mod native_window_close;
 mod native_windows;
+mod opened_view_visibility;
 mod pane_payload_visibility;
 mod pane_surface_actions;
 mod play_preview_redraw;
@@ -158,6 +160,7 @@ mod runtime_shutdown;
 mod scene_picker_actions;
 mod scene_picker_session;
 #[cfg(test)]
+#[path = "app/tests/scene_picker_session_tests.rs"]
 mod scene_picker_session_tests;
 mod settings_window_actions;
 mod showcase_event_inputs;
@@ -181,12 +184,17 @@ mod workbench_tooltip;
 mod workspace_docking;
 use super::run_config::EditorHostRunConfig;
 use asset_runtime_access::RetainedHostAssetRuntimeAccess;
+pub(super) use asset_surface_pointer_state::{
+    AssetReferenceListSurfacePointerState, AssetSurfacePointerState,
+};
 pub use automation::{run_retained_host_automation, RetainedHostAutomationResult};
 use callback_wiring::wire_callbacks;
 pub(super) use helpers::{
     asset_surface_visible, compute_window_menu_popup_height, resolve_callback_source_window_id,
     shell_region_group_key, viewport_size_from_frame,
 };
+use hierarchy_pointer::identity::HierarchyDragIdentity;
+use hierarchy_pointer::HierarchyInputOwner;
 use hierarchy_world_watch::HierarchyWorldWatch;
 pub(crate) use invalidation::HostInvalidationMask;
 use invalidation::HostInvalidationRoot;
@@ -196,10 +204,12 @@ pub(crate) use native_windows::{
     collect_native_floating_window_targets, configure_native_floating_window_presentation,
     NativeFloatingWindowTarget,
 };
+pub(crate) use play_viewport_pick::PlayViewportPickConsumer;
 use product_frame_diagnostics::{editor_product_frame_diagnostics, emit_product_frame_log};
 use runtime_diagnostics_visibility::RuntimeDiagnosticsRefreshTarget;
 use runtime_lease::RetainedHostRuntimeLease;
 pub(crate) use startup::build_startup_state;
+pub(super) use workspace_docking::ActiveDrawerResize;
 
 pub fn run_editor(
     core: CoreHandle,
@@ -324,7 +334,7 @@ pub fn run_editor_with_config(
             .map_err(|error| hub_startup_reporter.report_failure(error))?;
     }
     let host = Rc::new(RefCell::new(retained_host));
-    wire_callbacks(&ui, &host);
+    wire_callbacks(&ui, &host, None);
     let host_weak = Rc::downgrade(&host);
     ui.window().on_close_requested(move || {
         if let Some(host) = host_weak.upgrade() {
@@ -340,7 +350,8 @@ pub fn run_editor_with_config(
         let Some(host) = hub_focus_host.upgrade() else {
             return;
         };
-        if let Err(error) = host.borrow().acknowledge_hub_window_focus() {
+        let result = { host.borrow().acknowledge_hub_window_focus() };
+        if let Err(error) = result {
             eprintln!(
                 "[zircon_editor] failed to publish owner-confirmed Hub focus acknowledgement: {error}"
             );
@@ -608,54 +619,8 @@ fn emit_host_window_diagnostics(logs: &EditorLogService, diagnostics: Vec<HostWi
 }
 
 #[cfg(test)]
-mod host_window_diagnostic_log_tests {
-    use super::{emit_host_window_diagnostics, HostWindowDiagnostic, HostWindowDiagnosticSeverity};
-    use crate::core::logging::{EditorLogService, LogFilter, LogSeverity, LogSource};
-
-    #[test]
-    fn native_window_diagnostics_keep_their_severity_at_the_editor_log_boundary() {
-        let logs = EditorLogService::default();
-
-        emit_host_window_diagnostics(
-            &logs,
-            vec![
-                HostWindowDiagnostic::new(HostWindowDiagnosticSeverity::Info, "frame ready"),
-                HostWindowDiagnostic::new(HostWindowDiagnosticSeverity::Error, "present failed"),
-            ],
-        );
-
-        let records = logs.snapshot(&LogFilter::default());
-        assert_eq!(records.len(), 2);
-        assert!(records
-            .iter()
-            .all(|record| record.entry().source() == &LogSource::editor()));
-        assert_eq!(records[0].entry().severity(), LogSeverity::Info);
-        assert_eq!(records[0].entry().message(), "frame ready");
-        assert_eq!(records[1].entry().severity(), LogSeverity::Error);
-        assert_eq!(records[1].entry().message(), "present failed");
-    }
-
-    #[test]
-    fn oversized_native_window_diagnostic_uses_a_bounded_severity_preserving_fallback() {
-        let logs = EditorLogService::default();
-
-        emit_host_window_diagnostics(
-            &logs,
-            vec![HostWindowDiagnostic::new(
-                HostWindowDiagnosticSeverity::Warning,
-                "x".repeat(9 * 1024),
-            )],
-        );
-
-        let records = logs.snapshot(&LogFilter::default());
-        assert_eq!(records.len(), 1);
-        assert_eq!(records[0].entry().severity(), LogSeverity::Warning);
-        assert_eq!(
-            records[0].entry().message(),
-            "editor_host_window diagnostic exceeds the log-entry limit."
-        );
-    }
-}
+#[path = "tests/app_host_window_diagnostic_log_tests.rs"]
+mod host_window_diagnostic_log_tests;
 
 struct RetainedEditorHost {
     ui: UiHostWindow,
@@ -692,7 +657,7 @@ struct RetainedEditorHost {
     startup_session: EditorStartupSessionDocument,
     welcome_project_probe: welcome_session::WelcomeProjectProbeState,
     viewport_size: UVec2,
-    viewport_pointer_bridge: callback_dispatch::SharedViewportPointerBridge,
+    viewport_pointer_bridge: Box<callback_dispatch::SharedViewportPointerBridge>,
     play_preview_input_focus_active: bool,
     play_preview_view_focus_active: bool,
     play_viewport_pick: play_viewport_pick::PlayViewportPickConsumer,
@@ -712,19 +677,19 @@ struct RetainedEditorHost {
         crate::ui::retained_host::ui::ModulePluginsPaneProjectionCache,
     floating_window_source_bridge: callback_dispatch::BuiltinFloatingWindowSourceTemplateBridge,
     viewport_toolbar_bridge: callback_dispatch::BuiltinViewportToolbarTemplateBridge,
-    viewport_toolbar_pointer_bridge: ViewportToolbarPointerBridge,
+    viewport_toolbar_pointer_bridge: Box<ViewportToolbarPointerBridge>,
     asset_surface_bridge: Option<callback_dispatch::BuiltinAssetSurfaceTemplateBridge>,
     welcome_surface_bridge: Option<callback_dispatch::BuiltinWelcomeSurfaceTemplateBridge>,
     inspector_surface_bridge: callback_dispatch::BuiltinInspectorSurfaceTemplateBridge,
     pane_surface_bridge: callback_dispatch::BuiltinPaneSurfaceTemplateBridge,
     component_showcase_runtime: EditorUiHostRuntime,
     component_showcase_runtime_loaded: bool,
-    shell_pointer_bridge: HostShellPointerBridge,
-    activity_rail_pointer_bridge: HostActivityRailPointerBridge,
+    shell_pointer_bridge: Box<HostShellPointerBridge>,
+    activity_rail_pointer_bridge: Box<HostActivityRailPointerBridge>,
     host_page_pointer_bridge: HostPagePointerBridge,
     document_tab_pointer_bridge: HostDocumentTabPointerBridge,
     drawer_header_pointer_bridge: HostDrawerHeaderPointerBridge,
-    menu_pointer_bridge: HostMenuPointerBridge,
+    menu_pointer_bridge: Box<HostMenuPointerBridge>,
     menu_pointer_state: HostMenuPointerState,
     menu_pointer_layout: Arc<HostMenuPointerLayout>,
     welcome_recent_pointer_bridge: WelcomeRecentPointerBridge,
@@ -738,11 +703,13 @@ struct RetainedEditorHost {
     console_scroll_surface: ScrollSurfaceHostState,
     inspector_scroll_surface: ScrollSurfaceHostState,
     browser_asset_details_scroll_surface: ScrollSurfaceHostState,
-    activity_asset_pointer: AssetSurfacePointerState,
-    browser_asset_pointer: AssetSurfacePointerState,
+    activity_asset_pointer: Box<AssetSurfacePointerState>,
+    browser_asset_pointer: Box<AssetSurfacePointerState>,
     active_asset_drag_payload: Option<UiDragPayload>,
     active_scene_drag_payload: Option<UiDragPayload>,
     active_hierarchy_drag_node_ids: Vec<NodeId>,
+    active_hierarchy_drag_identity: Option<HierarchyDragIdentity>,
+    hierarchy_input_owner: HierarchyInputOwner,
     last_hierarchy_rename_click: Option<hierarchy_rename::HierarchyRenameClick>,
     active_object_drag_payload: Option<UiDragPayload>,
     native_window_presenters: NativeWindowPresenterStore,
@@ -784,30 +751,4 @@ impl Drop for RetainedEditorHost {
         // unwatch and preserves its `WorldSyncShutdownReceipt` for diagnostics.
         self.hierarchy_world_watch.take();
     }
-}
-
-#[derive(Clone, Copy, Debug)]
-struct ActiveDrawerResize {
-    region: ShellRegionId,
-    start_x: f32,
-    start_y: f32,
-    base_preferred: f32,
-}
-
-struct AssetSurfacePointerState {
-    snapshot: Option<Arc<crate::ui::workbench::snapshot::AssetWorkspaceSnapshot>>,
-    tree_bridge: AssetFolderTreePointerBridge,
-    tree_state: AssetListPointerState,
-    tree_size: UiSize,
-    content_bridge: AssetContentListPointerBridge,
-    content_state: AssetListPointerState,
-    content_size: UiSize,
-    references: AssetReferenceListSurfacePointerState,
-    used_by: AssetReferenceListSurfacePointerState,
-}
-
-struct AssetReferenceListSurfacePointerState {
-    bridge: AssetReferenceListPointerBridge,
-    state: AssetListPointerState,
-    size: UiSize,
 }

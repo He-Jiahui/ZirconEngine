@@ -125,12 +125,16 @@ impl ExportWizardJobState {
     }
 
     pub fn finish_from_pipeline(&mut self, execution: ExportWizardPipelineExecution) {
-        self.snapshot.current_stage = execution.stages.last().map(|stage| stage.stage);
         self.snapshot.progress = execution.progress;
         self.snapshot.stages = execution.stages;
-        self.snapshot.live_stage_outputs.clear();
         self.snapshot.diagnostics = execution.diagnostics;
         self.snapshot.fatal = execution.fatal;
+        self.finish_recorded_stages();
+    }
+
+    pub(super) fn finish_recorded_stages(&mut self) {
+        self.snapshot.current_stage = self.snapshot.stages.last().map(|stage| stage.stage);
+        self.snapshot.live_stage_outputs.clear();
         self.snapshot.status = if self.snapshot.cancel_requested {
             ExportWizardJobStatus::Cancelled
         } else if self.snapshot.fatal {
@@ -157,8 +161,12 @@ fn reuse_progress_state(
 }
 
 #[cfg(test)]
-#[path = "job/reused_progress_tests.rs"]
+#[path = "job/tests/reused_progress_tests.rs"]
 mod reused_progress_tests;
+
+#[cfg(test)]
+#[path = "job/tests/astra_terminal_tests.rs"]
+mod astra_terminal_tests;
 
 impl ExportWizardJobSnapshot {
     pub fn is_terminal(&self) -> bool {

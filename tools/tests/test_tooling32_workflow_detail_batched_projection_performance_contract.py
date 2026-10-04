@@ -1,3 +1,4 @@
+# 核对工作流详情批量查询尝试与资格，再逐节点还原门控结果。
 from __future__ import annotations
 
 import inspect

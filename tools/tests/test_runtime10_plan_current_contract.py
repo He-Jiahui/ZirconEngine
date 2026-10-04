@@ -14,15 +14,15 @@ RUNTIME10_PLAN = (
 
 
 class Runtime10PlanCurrentContractTests(unittest.TestCase):
-    def test_current_contract_is_the_v7_build_set_abi(self) -> None:
+    def test_current_contract_is_the_v8_build_set_abi(self) -> None:
         plan = RUNTIME10_PLAN.read_text(encoding="utf-8")
 
-        self.assertIn("## Current V7 ABI State", plan)
-        self.assertIn("`ZrRuntimeApiV7`", plan)
-        self.assertIn("25-field", plan)
-        self.assertIn("23 个函数指针", plan)
-        self.assertIn("`zircon_runtime_get_api_v7`", plan)
-        self.assertIn("`ZR_RUNTIME_GET_API_SYMBOL_V7`", plan)
+        self.assertIn("## Current V8 ABI State", plan)
+        self.assertIn("`ZrRuntimeApiV8`", plan)
+        self.assertIn("28-field", plan)
+        self.assertIn("26 个函数指针", plan)
+        self.assertIn("`zircon_runtime_get_api_v8`", plan)
+        self.assertIn("`ZR_RUNTIME_GET_API_SYMBOL_V8`", plan)
 
         for stale_current_contract in (
             "函数表版本策略维持：`ZrRuntimeApiV3`",

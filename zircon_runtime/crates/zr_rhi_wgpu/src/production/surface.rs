@@ -1,3 +1,4 @@
+//! 表面服务将原生获取帧映射为中立租约，呈现必须引用已由帧提交入口登记为该目标使用者的已提交票据。
 use std::collections::{HashMap, HashSet};
 #[cfg(target_os = "windows")]
 use std::num::NonZeroIsize;
@@ -111,6 +112,7 @@ impl WgpuSurfaceService {
         Ok(surface_session_outcome(replacement, negotiated))
     }
 
+    // 每个会话一次仅有一个活动租约；获取结果区分重建、重试和可提交帧。
     pub(crate) fn acquire_frame(
         &mut self,
         registry: &mut WgpuResourceRegistry,
@@ -208,6 +210,7 @@ impl WgpuSurfaceService {
         )))
     }
 
+    // 以登记的目标、租约和提交票据核验呈现关联；该登记不检查原生命令缓冲中的实际 GPU 使用。
     pub(crate) fn present_frame(
         &mut self,
         registry: &mut WgpuResourceRegistry,
@@ -567,20 +570,5 @@ fn optional_nonzero_isize(value: Option<u64>) -> Result<Option<NonZeroIsize>, Rh
 }
 
 #[cfg(test)]
-mod tests {
-    use zr_rhi::PresentMode;
-
-    use super::surface_present_mode;
-
-    #[test]
-    fn native_fifo_variants_project_to_the_neutral_fifo_contract() {
-        for mode in [
-            wgpu::PresentMode::Fifo,
-            wgpu::PresentMode::FifoRelaxed,
-            wgpu::PresentMode::AutoVsync,
-            wgpu::PresentMode::AutoNoVsync,
-        ] {
-            assert_eq!(surface_present_mode(mode), PresentMode::Fifo);
-        }
-    }
-}
+#[path = "tests/surface.rs"]
+mod tests;

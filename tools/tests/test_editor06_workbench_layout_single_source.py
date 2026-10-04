@@ -1,3 +1,4 @@
+# 核对工作台布局根结构与默认夹具的单一数据来源，避免退休字段重新进入访问路径。
 import re
 import unittest
 from pathlib import Path

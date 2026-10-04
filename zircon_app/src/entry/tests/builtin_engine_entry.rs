@@ -51,13 +51,17 @@ fn builtin_engine_entry_reports_run_mode_and_owned_modules() {
         .modules()
         .iter()
         .all(|module| !module.module_name().is_empty()));
-    assert!(descriptors.iter().any(|descriptor| descriptor.name
-        == zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME));
+    assert_eq!(
+        descriptors.iter().any(|descriptor| descriptor.name
+            == zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME),
+        cfg!(feature = "graphics")
+    );
     assert!(descriptors
         .iter()
         .all(|descriptor| descriptor.name != EDITOR_MODULE_NAME));
 }
 
+#[cfg(feature = "ui")]
 #[test]
 fn entry_config_selects_runtime_modules_explicitly_for_client_runtime() {
     let config = EntryConfig::new(EntryProfile::Runtime)
@@ -92,6 +96,7 @@ fn entry_config_can_define_headless_target_without_client_plugins() {
     );
     assert!(descriptors.iter().all(|descriptor| descriptor.name
         != zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME));
+    #[cfg(feature = "ui")]
     assert!(descriptors
         .iter()
         .all(|descriptor| descriptor.name != zircon_runtime::ui::UI_MODULE_NAME));
@@ -295,24 +300,26 @@ fn product_composition_preserves_runtime_plugin_availability_and_core_owner() {
         .with_runtime_plugin_registrations([linked_virtual_geometry_registration()])
         .compose()
         .unwrap();
+    {
+        assert!(composition
+            .module_selection_report()
+            .runtime_plugin_availability
+            .contains(
+                RuntimePluginAvailabilityCategory::Linked,
+                RuntimePluginId::VirtualGeometry
+            ));
+        assert!(!composition
+            .module_selection_report()
+            .runtime_plugin_availability
+            .has_missing_required());
 
-    assert!(composition
-        .module_selection_report()
-        .runtime_plugin_availability
-        .contains(
-            RuntimePluginAvailabilityCategory::Linked,
-            RuntimePluginId::VirtualGeometry
-        ));
-    assert!(!composition
-        .module_selection_report()
-        .runtime_plugin_availability
-        .has_missing_required());
-
-    assert!(composition
-        .module_selection_report()
-        .module_keys()
-        .contains(&"VirtualGeometryPlugin"));
-    let _core = composition.core();
+        assert!(composition
+            .module_selection_report()
+            .module_keys()
+            .contains(&"VirtualGeometryPlugin"));
+        let _core = composition.core();
+    }
+    super::product_composition::close_owner::close_composition(composition);
 }
 
 #[test]

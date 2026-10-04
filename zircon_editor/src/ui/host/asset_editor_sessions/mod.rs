@@ -81,12 +81,5 @@ const fn legacy_asset_kind_for_v2(kind: UiV2AssetKind) -> UiAssetKind {
 }
 
 #[cfg(test)]
-mod performance_tests {
-    #[test]
-    fn zui_suffix_check_does_not_lowercase_the_whole_asset_id() {
-        let source = include_str!("mod.rs");
-        let allocating_fold = ["to_ascii_", "lowercase()"].concat();
-
-        assert!(!source.contains(&allocating_fold));
-    }
-}
+#[path = "tests/mod_performance_tests.rs"]
+mod performance_tests;

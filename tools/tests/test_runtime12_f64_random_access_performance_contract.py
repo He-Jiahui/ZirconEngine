@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+# 二进制协议的 f64 随机读取只取被校验的八字节，复用顺序解码语义且不扫描前缀；WOC Zr 用例覆盖非零偏移。
 import json
 import re
 import unittest

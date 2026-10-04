@@ -68,6 +68,7 @@ pub firstSequentialEntityIdForCategory(category: int, required: bool): int {
     return id;
 }
 
+// 施工清单按类别顺序映射旧 Sim 的实体 ID；未来 WorldState 应原子消费此映射并分配实体。
 pub sequentialEntityId(category: int, sourceIndex: int, required: bool): int {
     if (!required || !categoryIsValid(category) || sourceIndex < 0 ||
         sourceIndex >= sequentialCategoryCount(category, true)) {

@@ -1,3 +1,4 @@
+# 核对诊断时间线与插件动作投影借用热点键和中间字段。
 from pathlib import Path
 import unittest
 

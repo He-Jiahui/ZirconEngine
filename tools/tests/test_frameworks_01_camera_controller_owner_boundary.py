@@ -4,7 +4,7 @@ import unittest
 from dataclasses import dataclass
 from pathlib import Path
 
-from tools.runtime_domain_dependency_audit import _rust_code_view, _rust_use_paths
+from tools.audits.runtime_domain_dependency_audit import _rust_code_view, _rust_use_paths
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -43,7 +43,7 @@ QUALIFIED_PATH = re.compile(
     r"\b[A-Za-z_]\w*\b(?:\s*::\s*(?:[A-Za-z_]\w*|\*))+"
 )
 
-
+# 读取控制器契约与产品实现，验证输入行为只有运行时归属；别名、通配导入和相对模块也纳入旧归属扫描。
 @dataclass
 class RustScope:
     module_path: tuple[str, ...]

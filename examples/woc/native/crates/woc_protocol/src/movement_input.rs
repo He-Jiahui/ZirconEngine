@@ -221,6 +221,24 @@ impl MovementInputRelay {
         self.inputs.get(&actor_key(actor))
     }
 
+    /// Removes the retained input for an actor during despawn or control-lease
+    /// teardown. Repeated removal is deliberately idempotent.
+    pub fn remove_actor(&mut self, actor: EntityRef) -> Option<RetainedMovementInput> {
+        self.inputs.remove(&actor_key(actor))
+    }
+
+    /// Clears every retained input and starts a fresh world/tick generation.
+    /// This is used for world unload, reconnect, and role-transfer resets so
+    /// old acknowledgements cannot leak into the next session.
+    pub fn reset(&mut self) {
+        self.inputs.clear();
+        self.last_observed_tick = None;
+    }
+
+    pub fn retained_count(&self) -> usize {
+        self.inputs.len()
+    }
+
     fn observe_tick(&mut self, tick: u64) -> Result<(), MovementInputError> {
         if let Some(previous) = self.last_observed_tick {
             if tick < previous {

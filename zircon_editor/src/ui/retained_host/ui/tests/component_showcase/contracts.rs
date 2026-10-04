@@ -1,8 +1,23 @@
 use super::*;
 
+fn template_node_contract_source() -> String {
+    [
+        "src/ui/retained_host/host_contract/data/template_nodes.rs",
+        "src/ui/retained_host/host_contract/data/template_nodes/actions.rs",
+        "src/ui/retained_host/host_contract/data/template_nodes/collection.rs",
+        "src/ui/retained_host/host_contract/data/template_nodes/menu.rs",
+        "src/ui/retained_host/host_contract/data/template_nodes/node.rs",
+        "src/ui/retained_host/host_contract/data/template_nodes/options.rs",
+    ]
+    .into_iter()
+    .map(source)
+    .collect::<Vec<_>>()
+    .join("\n")
+}
+
 #[test]
 fn component_showcase_template_metadata_is_owned_by_rust_contracts() {
-    let template_nodes = source("src/ui/retained_host/host_contract/data/template_nodes.rs");
+    let template_nodes = template_node_contract_source();
     let showcase_asset = component_showcase_contract_source();
 
     for required in [
@@ -80,7 +95,7 @@ fn component_showcase_template_metadata_is_owned_by_rust_contracts() {
 
 #[test]
 fn component_showcase_option_and_action_callbacks_are_rust_wired() {
-    let template_nodes = source("src/ui/retained_host/host_contract/data/template_nodes.rs");
+    let template_nodes = template_node_contract_source();
     let callbacks = source("src/ui/retained_host/host_contract/globals.rs");
     let wiring = source("src/ui/retained_host/app/callback_wiring.rs");
     let pane_actions = source("src/ui/retained_host/app/pane_surface_actions.rs");

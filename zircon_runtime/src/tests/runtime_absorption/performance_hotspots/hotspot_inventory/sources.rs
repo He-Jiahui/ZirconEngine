@@ -1,3 +1,4 @@
+//! 性能热点的结构守卫核对拥有者、文件预算和证据文档。提取源文件或定义分类规则，供同组守卫复用。
 pub(super) struct HotspotInventorySources {
     pub(super) runtime_07_plan: &'static str,
     pub(super) runtime_07_archive: &'static str,
@@ -67,20 +68,20 @@ impl HotspotInventorySources {
                 "../../../../../../docs/plans/zircon_runtime/render/index.md"
             ),
             hotspot_doc: include_str!(
-                "../../../../../../docs/zircon_runtime/performance/hotspot_inventory.md"
+                "../../../../../../docs/crates/zircon_runtime/performance/hotspot_inventory.md"
             ),
             dynamic_session_doc: include_str!(
-                "../../../../../../docs/zircon_runtime/dynamic_api/session.md"
+                "../../../../../../docs/crates/zircon_runtime/dynamic_api/session.md"
             ),
-            ecs_doc: include_str!("../../../../../../docs/zircon_runtime/scene/ecs.md"),
+            ecs_doc: include_str!("../../../../../../docs/crates/zircon_runtime/scene/ecs.md"),
             animation_doc: include_str!(
-                "../../../../../../docs/zircon_runtime/animation/runtime.md"
+                "../../../../../../docs/crates/zircon_runtime/animation/runtime.md"
             ),
             diagnostics_doc: include_str!(
-                "../../../../../../docs/zircon_runtime/core/diagnostics.md"
+                "../../../../../../docs/crates/zircon_runtime/core/diagnostics.md"
             ),
             architecture_review: include_str!(
-                "../../../../../../docs/engine-architecture/runtime-architecture-review-m0.md"
+                "../../../../../../docs/architecture/runtime-architecture-review-m0.md"
             ),
             schedule_runner: include_str!("../../../../scene/ecs/schedule_runner.rs"),
             ecs_frame_diagnostics: include_str!(
@@ -133,13 +134,13 @@ impl HotspotInventorySources {
             ),
             root_manifest: include_str!("../../../../../../Cargo.toml"),
             runtime_manifest: include_str!("../../../../../../zircon_runtime/Cargo.toml"),
-            zircon_build: include_str!("../../../../../../tools/zircon_build.py"),
-            dev_fast_build: include_str!("../../../../../../tools/dev-fast-build.ps1"),
+            zircon_build: include_str!("../../../../../../tools/build/zircon_build.py"),
+            dev_fast_build: include_str!("../../../../../../tools/dev/dev-fast-build.ps1"),
             build_tool_doc: include_str!(
-                "../../../../../../docs/cli-and-tooling/zircon-build-tool.md"
+                "../../../../../../docs/tooling/zircon-build-tool.md"
             ),
             profiling_doc: include_str!(
-                "../../../../../../docs/zircon_runtime/core/diagnostics/profiling.md"
+                "../../../../../../docs/crates/zircon_runtime/core/diagnostics/profiling.md"
             ),
             interface_profiling: include_str!(
                 "../../../../../../zircon_runtime_interface/src/profiling.rs"

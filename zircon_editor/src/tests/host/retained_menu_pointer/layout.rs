@@ -30,8 +30,8 @@ fn shared_menu_pointer_layout_prefers_shared_root_menu_bar_projection_over_stale
         ),
         "shared root menu bar projection should own runtime-measured top-level menu button frames"
     );
-    assert_eq!(layout.active_preset_name, "compact");
-    assert_eq!(layout.resolved_preset_name, "compact");
+    assert_eq!(layout.active_preset_name.as_ref(), "compact");
+    assert_eq!(layout.resolved_preset_name.as_ref(), "compact");
 }
 
 #[test]
@@ -231,4 +231,66 @@ fn shared_menu_pointer_layout_content_measures_root_popup_widths() {
 
     assert!(layout.popup_widths[0] > 208.0);
     assert!(layout.popup_widths[0] <= layout.shell_frame.width);
+}
+
+#[test]
+fn window_metrics_menu_geometry_retains_shared_semantic_products() {
+    let harness = EventRuntimeHarness::new("zircon_retained_menu_geometry_product");
+    let chrome = harness.runtime.chrome_snapshot();
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
+    let layout = build_host_menu_pointer_layout(
+        &model.menu_bar,
+        &chrome,
+        UiSize::new(1280.0, 720.0),
+        &["rider".to_string(), "compact".to_string()],
+        Some("rider"),
+        None,
+    );
+
+    let resized = build_host_menu_pointer_geometry_layout(
+        &layout,
+        &model.menu_bar,
+        UiSize::new(900.0, 540.0),
+        Some(&BuiltinHostOuterShellFrames {
+            shell_frame: Some(UiFrame::new(40.0, 24.0, 900.0, 540.0)),
+            menu_bar_frame: Some(UiFrame::new(40.0, 24.0, 900.0, 36.0)),
+            ..Default::default()
+        }),
+    );
+
+    assert!(std::sync::Arc::ptr_eq(&layout.menus, &resized.menus));
+    assert!(std::sync::Arc::ptr_eq(
+        &layout.preset_names,
+        &resized.preset_names
+    ));
+    assert!(std::sync::Arc::ptr_eq(
+        &layout.intrinsic_popup_widths,
+        &resized.intrinsic_popup_widths
+    ));
+    assert_eq!(resized.shell_frame, UiFrame::new(40.0, 24.0, 900.0, 540.0));
+    assert_eq!(resized.button_frames[0].x, layout.button_frames[0].x + 40.0);
+    assert_eq!(resized.button_frames[0].y, layout.button_frames[0].y + 24.0);
+    assert!(resized.popup_widths.iter().all(|width| *width <= 900.0));
+
+    let narrowed = build_host_menu_pointer_geometry_layout(
+        &layout,
+        &model.menu_bar,
+        UiSize::new(120.0, 540.0),
+        None,
+    );
+    let restored = build_host_menu_pointer_geometry_layout(
+        &narrowed,
+        &model.menu_bar,
+        UiSize::new(1280.0, 720.0),
+        None,
+    );
+    assert!(narrowed.popup_widths.iter().all(|width| *width <= 120.0));
+    assert_eq!(restored.popup_widths, layout.popup_widths);
+    assert!(std::sync::Arc::ptr_eq(
+        &layout.intrinsic_popup_widths,
+        &restored.intrinsic_popup_widths
+    ));
 }

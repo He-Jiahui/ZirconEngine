@@ -1,3 +1,4 @@
+//! 运行时根入口只公开选定模块，模块家族和历史别名由各自子模块判定。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn runtime_animation_status_json_boundary_sanitizes_non_finite_values() {
     let runtime_status_source =
@@ -18,7 +19,7 @@ fn runtime_animation_status_json_boundary_sanitizes_non_finite_values() {
         );
     }
 
-    let framework_tests = include_str!("../../../../core/framework/animation/tests.rs");
+    let framework_tests = include_str!("../../../../core/framework/animation/tests/cases.rs");
     for required_anchor in [
         "runtime_status_reports_player_rig_and_gpu_readiness",
         "serde_json::from_value::<AnimationRuntimeStatus>",
@@ -32,7 +33,7 @@ fn runtime_animation_status_json_boundary_sanitizes_non_finite_values() {
     }
 
     let framework_doc =
-        include_str!("../../../../../../docs/zircon_runtime/core/framework/animation.md");
+        include_str!("../../../../../../docs/crates/zircon_runtime/core/framework/animation.md");
     for required_anchor in [
         "AnimationPlayerRuntimeStatus",
         "JSON boundary",

@@ -173,3 +173,40 @@ Text09已经定义“主线程只装配/上传”和每帧≤256新glyph、≤2 
   semantically distinct. This update has not run Cargo, WGPU, profiling, or screenshot capture;
   the handoff remains `open` until the coordinator records the declared managed validation
   evidence.
+
+### 2026-09-08 Worker Completion Test Contract Repair
+
+Stable fixing Session `failure-roll-01a07160-text09` retains this lifecycle as
+open. Managed job `3db36b30be88485bb06b0a5ff2c6d3e4` reported 90 compiler errors,
+zero tests; the worker tests still imported the removed completion entry.
+The current production owner requires an explicit `FontCollectionService`.
+
+`zircon_runtime/src/text/parallel/shape_pool/tests.rs` was HEAD-identical at
+`1cb81760ed3a50a6e04d500644acec45a6b9954a0a60ca22f79544bc43087f84`.
+Transfer `fef11e9224654712984847481d947de8` and pre-edit snapshot `3066` preserve
+that base. Source `3067`, request `d8642356e0fc455e91ec25c27fdef01e`, has hash
+`6d9e3a51916752b1f45747e94c2abcd7ddaa8503311c33d0dfaffe591723625e`.
+Four existing tests call `finish_pending_shape_job_in_font_collection` with the
+shared collection already used to construct their cache keys. Retired-generation,
+deferred, failed and missing outcomes still require no cache publication.
+No compatibility entry or production scheduling change is added. Formatting
+passes; actual worker tests, scale/thread/backlog measurements, independent
+review and formal return/closeout remain pending.
+
+The source was included in managed job `94560adfdb1a45daa7e2d5785ae6677c`,
+input `runtime-graphics-text-test-support-3067-20260908`, digest
+`c93b37d1c23413b5f1ff16f4705abfbf56ec2511dfb45f89a1b1c85500a839da`.
+The removed-entry diagnostic disappeared and no new diagnostic names this file.
+The library still has 67 errors and zero executed tests; all input hashes were
+verified. This does not certify worker publication, shutdown or frame budgets.
+
+The existing task `优化协调器验证效率` reviewed source `3067` with Critical 0,
+Important 0, Moderate 0. Report:
+`.codex/tmp/text-framework-3080-review-20260908-result.txt`.
+It verified snapshot/ObjectStore/current attribution at both boundaries and
+preserved all four no-publication outcomes under the actual shared collection.
+The later Text-only job `1f242fb1789e44ce87d7a5cacc569d5f`, input digest
+`4e5f800cd19e5748464ac759b4e1efbfae073ecf1c05d419327a6d6739cbe9e2`,
+contains that exact source and reports three library errors, zero tests, none
+in this file. Worker behavior, scale, shutdown and frame-budget acceptance
+remain pending.

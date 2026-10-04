@@ -5,8 +5,8 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-ZIRCON_BUILD = REPO_ROOT / "tools/zircon_build.py"
-ZIRCON_BUILD_ASSET_STAGING = REPO_ROOT / "tools/zircon_build_asset_staging.py"
+ZIRCON_BUILD = REPO_ROOT / "tools/build/zircon_build.py"
+ZIRCON_BUILD_ASSET_STAGING = REPO_ROOT / "tools/build/zircon_build_asset_staging.py"
 
 
 class ZirconBuildAssetStagingOwnerBoundaryTests(unittest.TestCase):
@@ -19,11 +19,11 @@ class ZirconBuildAssetStagingOwnerBoundaryTests(unittest.TestCase):
         staging_text = ZIRCON_BUILD_ASSET_STAGING.read_text(encoding="utf-8")
 
         self.assertIn(
-            "from .zircon_build_asset_staging import (",
+            "from .build.zircon_build_asset_staging import (",
             build_text,
         )
         self.assertIn(
-            "from zircon_build_asset_staging import (",
+            "from .build.zircon_build_asset_staging import (",
             build_text,
         )
         for function_name in (
@@ -63,7 +63,7 @@ class ZirconBuildAssetStagingOwnerBoundaryTests(unittest.TestCase):
         )
 
     def test_asset_staging_owner_preserves_zui_and_resource_copy_semantics(self):
-        from tools.zircon_build_asset_staging import (
+        from tools.build.zircon_build_asset_staging import (
             copy_resource_dirs,
             stage_engine_assets,
         )
@@ -117,6 +117,46 @@ schema_version = 1
                     encoding="utf-8"
                 ),
             )
+
+    def test_shipping_runtime_keeps_runtime_assets_but_drops_editor_payloads(self):
+        from tools.build.zircon_build_asset_staging import stage_engine_assets
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo_root = root / "repo"
+            runtime_assets = repo_root / "zircon_runtime" / "assets"
+            (runtime_assets / "fonts" / "editor-ui-sources").mkdir(parents=True)
+            (runtime_assets / "ui" / "runtime").mkdir(parents=True)
+            (runtime_assets / "ui" / "compiled_artifacts").mkdir(parents=True)
+            (runtime_assets / "cache").mkdir(parents=True)
+            (runtime_assets / "fonts" / "default.font.toml").write_text("runtime", encoding="utf-8")
+            (runtime_assets / "fonts" / "editor-ui.ttc").write_text("editor", encoding="utf-8")
+            (runtime_assets / "fonts" / "editor-ui-sources" / "source.ttf").write_text("editor", encoding="utf-8")
+            (runtime_assets / "ui" / "runtime" / "hud.zui").write_text(
+                "[asset]\nkind = \"view\"\nschema_version = 1\n",
+                encoding="utf-8",
+            )
+            (runtime_assets / "ui" / "compiled_artifacts" / "hud.zuiart").write_text("cache", encoding="utf-8")
+            (runtime_assets / "cache" / "stale.bin").write_text("cache", encoding="utf-8")
+            config = types.SimpleNamespace(
+                repo_root=repo_root,
+                engine_root=root / "out" / "ZirconEngine",
+                out_root=root / "out",
+                dry_run=False,
+                is_shipping=True,
+                mode="shipping",
+                asset_scope="runtime",
+            )
+
+            stage_engine_assets(config, "runtime")
+
+            staged = config.engine_root / "assets"
+            self.assertTrue((staged / "fonts" / "default.font.toml").exists())
+            self.assertTrue((staged / "ui" / "runtime" / "hud.zui").exists())
+            self.assertFalse((staged / "fonts" / "editor-ui.ttc").exists())
+            self.assertFalse((staged / "fonts" / "editor-ui-sources").exists())
+            self.assertFalse((staged / "ui" / "compiled_artifacts").exists())
+            self.assertFalse((staged / "cache").exists())
 
 
 if __name__ == "__main__":

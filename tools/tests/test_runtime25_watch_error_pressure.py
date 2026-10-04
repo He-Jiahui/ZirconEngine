@@ -1,14 +1,14 @@
 import unittest
 from pathlib import Path
-
-from tools.runtime25_watch_error_pressure import run
+# 监视错误尾队列只保留最近有界记录；本组把 Python 工作量模型、Rust VecDeque 源码和批次验证脚本连接起来，发布计时仍单独待验。
+from tools.analysis.performance.runtime.runtime25_watch_error_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
 WATCH_DISPATCH = ROOT / (
     "zircon_runtime/src/asset/pipeline/manager/project_asset_manager/watch_dispatch.rs"
 )
-BATCH_VALIDATOR = ROOT / "tools/zircon-validation-runtime25-watch-error-batch.ps1"
+BATCH_VALIDATOR = ROOT / "tools/analysis/validation/zircon-validation-runtime25-watch-error-batch.ps1"
 
 
 class Runtime25WatchErrorPressureTests(unittest.TestCase):

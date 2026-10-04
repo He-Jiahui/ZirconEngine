@@ -52,7 +52,7 @@ Import-Module (Join-Path $PSScriptRoot 'MvpBuildSummaryEvidence.psm1') -Force -D
 Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceStagingProjection.psm1') -Force -DisableNameChecking -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceNativeFileSystem.psm1') -Force -DisableNameChecking -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceStagingTreeManifest.psm1') -Force -DisableNameChecking -ErrorAction Stop
-Import-Module (Join-Path $PSScriptRoot '..\WindowsPathResolver.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot '..\common\WindowsPathResolver.psm1') -Force -DisableNameChecking -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpArtifactStoragePolicy.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpDatePreservingJson.psm1') -Force -ErrorAction Stop
 
@@ -174,10 +174,25 @@ function Get-MvpAcceptancePngEvidence {
 
     if ($null -eq ('ZirconMvpAcceptancePngEvidence' -as [type])) {
         Add-Type -AssemblyName System.Drawing -ErrorAction Stop
+        $platformDrawingReferences = foreach ($assemblyName in @(
+                'System.Private.Windows.GdiPlus'
+                'System.Private.Windows.Core'
+            )) {
+            try {
+                $assembly = [Reflection.Assembly]::Load($assemblyName)
+                if ($null -ne $assembly -and -not [string]::IsNullOrWhiteSpace($assembly.Location)) {
+                    $assembly.Location
+                }
+            }
+            catch [System.IO.FileNotFoundException] {
+                # Older Windows PowerShell hosts do not expose the split drawing assemblies.
+            }
+        }
         $drawingReferences = @(
             [Drawing.Bitmap].Assembly.Location
             [Drawing.Rectangle].Assembly.Location
             [Security.Cryptography.SHA256].Assembly.Location
+            $platformDrawingReferences
         ) | Select-Object -Unique
         Add-Type -TypeDefinition @'
 using System;

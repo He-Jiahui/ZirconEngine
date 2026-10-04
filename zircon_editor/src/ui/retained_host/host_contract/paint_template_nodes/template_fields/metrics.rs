@@ -1,8 +1,11 @@
+//! 宿主控件密度向普通输入、搜索图标和步进器的公共投影；衍生模块只消费这一快照。
+
 use crate::ui::retained_host::host_contract::paint_theme::{
     current_host_metrics, HostControlMetrics,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 普通字段、搜索前缀/清除与数值步进器的共同尺寸协议；局部模块不能另定图标或预留宽度。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchFieldMetrics {
     pub border_width: f32,
     pub radius: f32,
@@ -61,32 +64,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workben
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ui::retained_host::host_contract::paint_theme::METRICS;
-
-    #[test]
-    fn field_metrics_project_from_host_control_metrics() {
-        let host_metrics = HostControlMetrics {
-            row_height: 30.0,
-            gap_s: 5.0,
-            gap_m: 9.0,
-            border_width: 2.0,
-            font_body: 12.0,
-            input_pad: [9.0, 9.0, 3.0, 5.0],
-            ..METRICS
-        };
-
-        let metrics = workbench_field_metrics_from_host(host_metrics);
-
-        assert_eq!(metrics.font_size, 12.0);
-        assert!((metrics.line_height - 14.4).abs() < 0.001);
-        assert_eq!(metrics.search_icon_size, 18.0);
-        assert_eq!(metrics.search_text_left, 32.0);
-        assert_eq!(metrics.search_max_height, 38.0);
-        assert_eq!(metrics.stepper_width, 18.0);
-        assert_eq!(metrics.stepper_divider_width, 2.0);
-        assert_eq!(metrics.stepper_divider_inset_y, 5.0);
-        assert_eq!(metrics.stepper_glyph_width, 13.0);
-    }
-}
+#[path = "tests/metrics.rs"]
+mod tests;

@@ -16,10 +16,10 @@ related_code:
   - zircon_plugins/first_party_runtime_catalog
   - zircon_plugins/first_party_editor_catalog
   - zircon_app/Cargo.toml
-  - tools/plugin_structure_audits/capability.py
+  - tools/audits/plugins/capability.py
   - tools/tests/test_plugin_structure_audit_capability.py
 tests:
-  - python tools/audit_plugin_structure.py --json
+  - python tools/audits/audit_plugin_structure.py --json
   - python -m unittest tools.tests.test_plugin_structure_audit_capability
   - cargo +1.94.1 test -p zircon_plugin_neural_runtime --lib --locked --jobs 1 -- --nocapture --test-threads=1
   - cargo +1.94.1 test -p zircon_plugin_neural_post_process_runtime --lib --locked --jobs 1 -- --nocapture --test-threads=1
@@ -75,6 +75,8 @@ runtime feature manifest 单一真相、editor declaration mirror 和 catalog pr
 - 不注册无真实执行行为的 render pass、editor window、menu 或 importer。
 
 ## 修复结果与回传
+
+以下为 2026-08-10 旧协调器流程的历史记录，保留原复现、失效快照与票据。现行独立验证续修见本文末节；旧票据不构成当前源码验收。
 
 待修复；尚未向来源计划回传 fixed。当前 Session 为 `resolving_failure`。TDD 已新增 runtime
 manifest、feature registration 和 editor mirror/capability 回归；
@@ -139,3 +141,25 @@ fixed return 和 accepted 仍待完成。
 | 2026-08-10 | `second-review contract repair implemented / candidate rebuilding` | snapshot1558 独立二审 `C0/I5/M0` 发现 production graphics feature 未闭合、catalog mirror count 仍为 4、原子输入遗漏 workspace/locks/construction，以及 importer 可接受 backend 必然拒绝的 arity/Resize 默认采样。现已显式启用 runtime production graphics，mirror count 更新为 5，完整 arity 表与显式 `scales + floor + asymmetric` 回归/拒绝路径落地，并扩展原子输入范围；snapshot1558 及七张 queued tickets 作废，新 immutable snapshot、受管 Cargo、最终二审和 fixed return 仍待完成。 |
 | 2026-08-10 | `executable-only contract completed / candidate rebuilding` | snapshot1560 独立二审 `C0/I3/M0` 发现非法 normalization/pooling 属性、broadcast/shape 漂移与 initializer 计数溢出。现已用集中 V1 属性/shape 合同和 checked element count 前向修复，新增属性、九类 shape family 与 overflow 回归，并按模块预算拆出 `onnx/executable_contract.rs`；snapshot1560 作废，fresh immutable snapshot、最终二审、受管 Cargo 与 fixed return 仍待完成。 |
 | 2026-08-10 | `exact77 review repair implemented / fresh candidate rebuilding` | exact77 稳定二审 `C0/I4/M1` 发现终端 view 不写 GPU output、Pool 空窗口、Resize 上界饱和、input 索引容量与旧范围格式缺口。四项功能合同及对应回归已前向修复，exact 61 个 Rust 输入现统一通过 Rust 1.94.1 格式门，`convert.rs`/`executable_contract.rs`/tests 保持 773/326/898 行；exact77 作废，fresh immutable snapshot、最终二审、受管 Cargo 与 fixed return 仍待完成。 |
+## 2026-10-03 独立验证续修：Python 两项通过，Rust 验收待执行
+
+按现行验证流程修复共享 capability 解析器：普通 `pub const` 只从 Rust 代码区取值，注释、字符串中的同形文本不再进入 capability 真相；字符字面量与 lifetime/label 分开处理，保留其后真实 const 和 declaration macro。修改位于 `tools/audits/plugins/capability.py` 与直接回归，原有业务代码和注释保留。当前源码 SHA-256 为 `a2e7ee18eb77ed5c5ff0527cf6730e48a744b0dd488dd1e534fdd09ce15942e3`，测试为 `2b228689562477238285c77055a741b0baf3044b4d897a95dc4825809e5456ad`。
+
+| 当前验收范围 | 实际结果 | 精确证据 |
+|---|---|---|
+| capability 下层回归 | 新增 lifetime/label 回归先出现 7 个失败子用例；修复后原 6 项及新增 2 项全部执行，8/8，通过，0 error、0 skip | [下层独立审查](../../../../.codex/tmp/failure-roll-20261003-capability-lifetime-lower-independent-actual-review-r1/review.json)，绑定 `lifetime-green/terminal.json` SHA `2bf5d8b5aba017f5b90621a0d7be28937fbae6fc42016c1aa5f1989bc8ea0ab4`；C/I/M = 0/0/0 |
+| 原 `audit_plugin_structure.py --json` 六项聚合审计 | 2026-10-03 22:15:02 UTC 完成，exit 0；31 个违规计数全为 0，M1 `classified-and-clear`、M2 `sample-clean-migration-debt-clear` | [聚合独立审查](../../../../.codex/tmp/failure-roll-20261003-neural12-plugin-audit-upper-independent-actual-review-r1/review.json)，绑定终态 SHA `5c28581293cc1df328b1f726256763727febbfa24553ffe295a90891f8ba2c09`；C/I/M = 0/0/0 |
+
+两项均使用 Windows Python 3.14.4。聚合在 F 盘合规目录执行原入口、默认根定位和全部六项审计，未筛选子包；78 份 Python 源码、3,142 份插件 `.rs`/`.toml` 输入的前后守卫相符，3,220 份副本 SHA 匹配。该证据证明所记录读入范围的前后一致，不证明整树静默或排除短暂 ABA 写入。原 D 盘预检失败及先前非零二审仍保留；本次纯 Python 数据证据不放宽 Cargo 的 35 GiB 空间门槛。
+
+`status: open` 保持不变。frontmatter 列出的 neural runtime、post-process runtime、neural editor、runtime catalog、editor catalog 五项 Rust 1.94.1 `--locked` 验收尚未执行；既有 neural 生产修复、完整功能审查及来源计划向上验收仍需绑定届时精确源码。当前尚无 fixed 回传、真实 commit SHA 或企微发送结果，不复用旧 queued 票据，不 push。
+
+
+## 2026-10-04 当前可定位证据：下层 8 项及原六项 Python 审计
+
+旧 `.codex/tmp` 与原下层 D 盘回执链接当前无法定位，旧叙述与复现保留为历史记录，不据此判定旧执行失败或撤销源码。现行源码未改变：capability `a2e7ee18eb77ed5c5ff0527cf6730e48a744b0dd488dd1e534fdd09ce15942e3`，测试 `2b228689562477238285c77055a741b0baf3044b4d897a95dc4825809e5456ad`。
+
+- 下层原模块实际重绑执行 8/8，0 failure/error/skip，源码前后守卫相同；[当前终态](E:/cargo-targets/zircon-local/failure-roll/capability-lower-rebind-20261004-r1/terminal.json) SHA `423065a528dd41a04a6c94b9ad1c1da4fbe02da327535a6c85d98eb1f4efd8ef`。独立实际证据审查 C/I/M = 0/0/0；原 RED 与旧私有回执未追补。
+- 原六项聚合入口实际 exit 0，31 个指定违规计数全零，17 个状态符合预期；78 份应用源码、3,142 份内容输入及 5,581 份目录身份的记录前后相等。[更正接受回执](E:/cargo-targets/zircon-local/failure-roll/neural12-plugin-audit-20261004-r4-reception-r1/accepted.json) SHA `bcdc01307b204f33a2143aafa464bb353cfad9b35034a1fdb48aa35fbd087398`，独立更正回执审查 C/I/M = 0/0/0。原封装器把仓库内的 91 份 Python 标准库导入误列为应用源码，因此其 [r4 原回执](E:/cargo-targets/zircon-local/failure-roll/neural12-plugin-audit-20261004-r4/terminal.json) SHA `f6503d91085633d736e802b2efefeb3d94465db13b40f327e4ec4e29c143ec9c` 仍保留 exit 1 和守卫 false；本次接受未重跑六项，也未改写原失败记录。
+
+接受范围仅为这些 Python 门：解释器只有运行后采样，标准库及缺失 initializer 的历史前后状态未封存；当前复核全部 78 份应用源码和固定 15 份数据样本，不声称当前所有内容仍未变、整树静默或排除 ABA。五项 Rust 门、Neural 功能源码复审、产品及来源向上验收仍 open；未生成 fixed、commit、通知或 push，也不恢复退休协调器。

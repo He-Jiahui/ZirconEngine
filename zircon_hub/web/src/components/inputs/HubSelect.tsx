@@ -11,11 +11,12 @@ export interface HubSelectOption {
 export interface HubSelectProps {
   value: string;
   options: HubSelectOption[];
+  label: string;
   minWidth?: number;
   onChange: (value: string) => void;
 }
 
-export function HubSelect({ value, options, minWidth = 183, onChange }: HubSelectProps) {
+export function HubSelect({ value, options, label, minWidth = 183, onChange }: HubSelectProps) {
   const handleChange = (event: SelectChangeEvent) => {
     onChange(event.target.value);
   };
@@ -23,6 +24,7 @@ export function HubSelect({ value, options, minWidth = 183, onChange }: HubSelec
   return (
     <Select
       value={value}
+      inputProps={{ "aria-label": label }}
       size="small"
       IconComponent={ExpandMoreIcon}
       onChange={handleChange}
@@ -32,13 +34,18 @@ export function HubSelect({ value, options, minWidth = 183, onChange }: HubSelec
         </Typography>
       )}
       sx={{
-        minWidth,
+        width: "100%",
+        minWidth: 0,
+        maxWidth: "100%",
+        "@media (min-width: 761px)": { width: "auto", minWidth },
         height: 42,
         color: hubTokens.colors.textSoft,
         "& .MuiSelect-select": {
           display: "flex",
           alignItems: "center",
           py: 0,
+          minWidth: 0,
+          "& .MuiTypography-root": { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
         },
       }}
     >

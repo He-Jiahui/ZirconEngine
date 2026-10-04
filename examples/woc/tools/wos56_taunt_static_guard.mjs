@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node wos56_taunt_static_guard.mjs；缺少源码契约时脚本抛错退出。
+// 对照锁定的嘲讽定义、效果、仇恨与强制目标计时，检查世界准入、施法路径、计时更新和命令自测。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";

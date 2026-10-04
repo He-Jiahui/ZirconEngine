@@ -112,7 +112,6 @@ fn validate_camera_texture_target_descriptor(
     }
     if descriptor.dimension != RenderImageDimension::D2
         || descriptor.depth_or_array_layers != 1
-        || descriptor.array_layer_count != 1
         || descriptor.mip_count != 1
     {
         return Err(RenderFrameworkError::UnsupportedCapability {

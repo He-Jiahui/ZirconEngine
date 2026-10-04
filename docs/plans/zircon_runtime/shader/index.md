@@ -83,7 +83,7 @@ Shader 总索引只保留计划入口与当前执行概述；逐条产出记录�
 - `docs/plans/zircon_runtime/render/08-material-shader-permutation.md`:变体键/模板拼接/缓存预热的实施权威;本计划集是其资产契约层前置与增维来源。
 - `docs/plans/zircon_runtime/render/index.md` §8:全局工程约定,本计划集第 5 节全部约定以其为基。
 - `docs/plans/engine-code-structure-convention.md`:模块归属与结构规范;本计划集文件落点遵循"契约进 `core/framework/render`、实现进 `graphics`/`asset`"。
-- `docs/assets-and-rendering/render-framework-architecture.md` 等 docs 模块文档:各子计划落地后按源路径镜像规则更新。
+- `docs/rendering/render-framework-architecture.md` 等 docs 模块文档:各子计划落地后按源路径镜像规则更新。
 
 ## 7. 全局验收基线
 

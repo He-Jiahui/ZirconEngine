@@ -1,12 +1,12 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::sync::atomic::Ordering;
+use std::sync::Arc;
 
 use crate::text::font::shared::{FontCollectionService, FontCollectionSnapshot};
 
 use super::{
-    BackendFontHandlePair, FontHandleRegistrySnapshot, TextFontHandlePair, duration_to_nanos,
-    project_resolved_pairs, unique_current_text_pairs,
+    duration_to_nanos, project_resolved_pairs, unique_current_text_pairs, BackendFontHandlePair,
+    FontHandleRegistrySnapshot, TextFontHandlePair,
 };
 
 #[derive(Clone)]
@@ -75,6 +75,7 @@ pub(crate) fn resolve_font_handle_batch_from_snapshot(
         .fetch_add(1, Ordering::Relaxed);
     let collection = resolver.registry.collection;
     let generation = resolver.registry.generation;
+    // 先按快照 generation 去重，再一次构建后端句柄映射；这使旧 snapshot 的解析与输出投影使用同一 collection/generation 标识。
     let unique = unique_current_text_pairs(pairs, collection, generation);
     metrics
         .resolution_unique_pair_count

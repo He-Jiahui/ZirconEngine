@@ -132,6 +132,7 @@ pub(in crate::scene::dynamic_scene::scene) fn spawn_scene_into(
     apply_compiled_scene_spawn(world, plan)
 }
 
+/// 为指定目标生成一次性应用计划；预览读取此计划，真正发布还必须检查代际并经过隔离预检。
 pub(crate) fn compile_scene_spawn(
     scene: &DynamicScene,
     world: &World,
@@ -176,6 +177,7 @@ pub(crate) fn compile_scene_spawn(
     })
 }
 
+/// 消费此前对同一目标编译的计划；目标变化即拒绝，以免把旧映射发布到新世界状态。
 pub(crate) fn apply_compiled_scene_spawn(
     world: &mut World,
     plan: CompiledSceneSpawn,
@@ -530,6 +532,7 @@ fn compile_component_write(
     })
 }
 
+// 优先保留未占用的源 ID；冲突时分配后继 ID，使父子、关节和反射引用共用同一映射。
 fn build_entity_remap(
     scene: &DynamicScene,
     world: &World,
@@ -547,6 +550,7 @@ fn build_entity_remap(
     Ok(remap)
 }
 
+// 大批量导入时缓存已占用 ID 的下一候选位，避免密集冲突反复从源 ID 线性扫描。
 struct EntityIdReservationProbe<'world> {
     world: &'world World,
     successor_by_occupied: HashMap<EntityId, Option<EntityId>>,
@@ -702,6 +706,7 @@ fn remapped_entity(
         .ok_or(DynamicSceneError::CompiledPlanMissingEntityRemap { source_entity })
 }
 
+// 场景内父节点跟随新 ID；场景外父节点仅在目标世界现存时保留，避免悬空层级。
 fn remapped_parent(
     world: &World,
     remap: &EntityRemap,
@@ -734,9 +739,9 @@ fn remap_record_entity_references(record: &mut NodeRecord, remap: &EntityRemap) 
 }
 
 #[cfg(test)]
-#[path = "transaction/performance_tests.rs"]
+#[path = "transaction/tests/performance_tests.rs"]
 mod performance_tests;
 
 #[cfg(test)]
-#[path = "transaction/tests.rs"]
+#[path = "transaction/tests/cases.rs"]
 mod tests;

@@ -12,6 +12,7 @@ import { quickActionProjectTargetPayload } from "../tauri/projectTarget";
 import { hubTokens } from "../theme/tokens";
 import type { HubActionHandler, HubActionHistoryItem, HubShellState } from "../types/hub";
 import { HUB_ACTION } from "../types/hub";
+import { AccountPanel } from "../account";
 
 export interface TeamPageProps {
   state: HubShellState;
@@ -92,19 +93,18 @@ export function TeamPage({ state, onAction }: TeamPageProps) {
         "@media (max-width: 980px)": { px: 2, py: 2 },
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, mb: 2.5 }}>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="h4">{state.pageTitle}</Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.9 }}>
-            {state.pageSubtitle}
-          </Typography>
-        </Box>
-        <StatusBadge label={state.taskSummary.label} tone={state.taskSummary.tone} />
-      </Box>
+      <PageHeader title={state.pageTitle} subtitle={state.pageSubtitle}
+        actions={<StatusBadge label={state.taskSummary.label} tone={state.taskSummary.tone} />} />
 
       <Box sx={{ mb: 1.4 }}>
-        <HubStatusBanner task={state.taskSummary} />
+        <HubStatusBanner
+          task={state.taskSummary}
+          cancelLabel={state.ui.common.cancelTask}
+          onCancel={() => void onAction(HUB_ACTION.cancelBackgroundTask, String(state.taskSummary.taskId))}
+        />
       </Box>
+
+      <AccountPanel language={state.settings.language} selectedProjectId={state.selectedProjectId} />
 
       <Box
         sx={{
@@ -232,3 +232,4 @@ function ActionDetail({ action }: { action: HubActionHistoryItem }) {
     </Box>
   );
 }
+import { PageHeader } from "../components/data/PageHeader";

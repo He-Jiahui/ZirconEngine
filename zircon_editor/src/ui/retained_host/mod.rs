@@ -13,6 +13,7 @@ pub(crate) mod floating_window_projection;
 pub(crate) mod hierarchy_pointer;
 mod host_contract;
 pub(crate) mod host_page_pointer;
+mod input_policy;
 pub(crate) mod menu_pointer;
 pub(crate) mod menu_popup_contract;
 mod option_spec;
@@ -31,6 +32,7 @@ pub(crate) mod welcome_recent_geometry;
 pub(crate) mod welcome_recent_pointer;
 pub(crate) mod workbench_popup_actions;
 pub(crate) mod workbench_preview_actions;
+mod zui_visual_evidence;
 
 pub(crate) use app::build_startup_state;
 pub(crate) use app::HostInvalidationMask;
@@ -47,6 +49,12 @@ pub(crate) use app::{
 pub use app::{
     run_editor, run_editor_with_config, run_editor_with_startup_request,
     run_retained_host_automation, RetainedHostAutomationResult,
+};
+
+pub use zui_visual_evidence::{
+    export_zui_visual_evidence, export_zui_visual_evidence_with_context,
+    export_zui_workbench_product_snapshots, export_zui_workbench_product_snapshots_with_context,
+    ZuiVisualEvidenceSummary,
 };
 #[cfg(test)]
 pub(crate) fn console_content_extent(text: &str) -> f32 {

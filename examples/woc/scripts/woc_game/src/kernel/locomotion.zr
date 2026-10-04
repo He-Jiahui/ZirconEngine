@@ -1,3 +1,4 @@
+//! 水平移动公式及 M3 移动战斗场景样例；实体移动和 parity 指标共同依赖此边界。
 var {Array} = %import("zr.container");
 var container = %import("zr.container");
 
@@ -6,6 +7,7 @@ pub distance2d(dx: float, dz: float): float {
     return math.sqrt(dx * dx + dz * dz);
 }
 
+/// 沿目标方向推进一个轴；调用方须先排除零距离，并将 step 限制在目标距离内。
 pub integrateAxis(current: float, delta: float, distance: float, step: float): float {
     return current + delta / distance * step;
 }
@@ -15,6 +17,7 @@ pub facing(dx: float, dz: float): float {
     return math.atan2(dx, dz);
 }
 
+// 规则夹具集中保存伤害、恐惧、游荡和逃跑状态，避免测试把这些状态写入产品世界。
 class LocomotionTestState {
     pub var randomUnits: Array<float>;
     pub var randomIndex: int;
@@ -197,6 +200,7 @@ discardProfileDraws(state: LocomotionTestState, count: int): void {
     }
 }
 
+// 依次消耗战斗配置与机制随机数，再采集每一阶段摘要；顺序是 trace fixture 的合同。
 runScenario(): LocomotionScenario {
     var rng = %import("kernel/rng");
     rng.prepareSharedAfterConstruction(<uint>7777, 306, 5, 1, true);
@@ -270,6 +274,7 @@ scenarioVector(required: bool): container.Array<int> {
     return values;
 }
 
+/// 按索引取固定场景指标；每次读取重演场景并重置共享夹具流，越界或非 required 调用明确拒绝。
 pub scenarioMetric(metric: int, required: bool): int {
     if (!required || metric < 0 || metric > 20) {
         throw "mob locomotion scenario metric is invalid";

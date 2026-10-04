@@ -1,7 +1,10 @@
+//! 运行时主题保留语义色角色，资源热重载用指纹判断是否需要重新解析样式。
+
 use std::hash::{Hash, Hasher};
 
 use zircon_runtime_interface::ui::style::{UiStyleColor, UiThemeDocument, UiThemeTokenRef};
 
+/// 保存当前主题与文档指纹；角色解析失败保留原语义值，以便宿主处理私有角色。
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiThemeRegistry {
     active: UiThemeDocument,
@@ -27,10 +30,12 @@ impl UiThemeRegistry {
         &self.active
     }
 
+    /// 供同一运行环境的重载和样式缓存比较内容；不应当作跨版本持久化资源身份。
     pub fn fingerprint(&self) -> u64 {
         self.fingerprint
     }
 
+    /// 仅解析已支持的 palette token；未知名称返回 None，不隐式改成默认颜色。
     pub fn resolve_token(&self, token: &UiThemeTokenRef) -> Option<UiStyleColor> {
         self.resolve_token_name(token.as_str())
     }
@@ -55,6 +60,7 @@ impl UiThemeRegistry {
         Some(UiStyleColor::Rgba(color))
     }
 
+    /// 接受带或不带主题前缀的角色名，借用原字符串完成查找，适用于反复解析的样式路径。
     pub fn resolve_role(&self, role: &str) -> Option<UiStyleColor> {
         let token = normalized_theme_role(role)?;
         self.resolve_token_name(token)
@@ -69,6 +75,7 @@ impl UiThemeRegistry {
         }
     }
 
+    /// 热重载执行器先替换主题，再用返回的 changed 决定相关样式是否需要刷新。
     pub fn apply_document(&mut self, document: UiThemeDocument) -> UiThemeReloadOutcome {
         let previous_fingerprint = self.fingerprint;
         let new_fingerprint = theme_fingerprint(&document);
@@ -111,5 +118,5 @@ fn theme_fingerprint(document: &UiThemeDocument) -> u64 {
 }
 
 #[cfg(test)]
-#[path = "borrowed_role_resolution_tests.rs"]
+#[path = "tests/borrowed_role_resolution_tests.rs"]
 mod borrowed_role_resolution_tests;

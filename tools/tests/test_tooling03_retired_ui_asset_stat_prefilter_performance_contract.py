@@ -1,9 +1,10 @@
+# 核对退役界面资源检查只对候选后缀读取文件元数据。
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_export.plugin_validate_retired_ui_assets import (
+from tools.export.plugin_validate_retired_ui_assets import (
     _plugin_validate_retired_ui_asset_files,
 )
 

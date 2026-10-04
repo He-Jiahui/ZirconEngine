@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use super::super::{RuntimeSessionArchiveError, RuntimeSessionArchivePathStatus, io};
+use super::super::{io, RuntimeSessionArchiveError, RuntimeSessionArchivePathStatus};
 
 pub(in crate::scene::dynamic_scene::session) fn inspect_path(
     path: impl AsRef<Path>,

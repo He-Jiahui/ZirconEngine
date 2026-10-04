@@ -9,6 +9,8 @@ struct IblIrradianceShParams {
     _pad0: u32,
 };
 
+// 九项系数按 CPU ShL2Rgb 的 y-up 基函数顺序输出，供场景漫反射求值直接使用。
+// 已包含漫反射频带卷积；宿主必须只派发一个工作组，避免多组同时覆盖同一输出。
 struct IblIrradianceShOutput {
     coeffs: array<vec4<f32>, 9>,
 };

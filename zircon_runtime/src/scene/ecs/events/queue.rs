@@ -57,6 +57,7 @@ impl<T> Events<T> {
         written
     }
 
+    /// 将待发送缓冲发布为本代并丢弃上一代；游标未消费的上一代事件也不会保留到新代。
     pub fn update(&mut self) {
         self.current.clear();
         std::mem::swap(&mut self.current, &mut self.next);
@@ -156,7 +157,7 @@ impl<T> Events<T> {
             return;
         }
         self.next
-            .reserve_exact(self.high_water_len - self.next.capacity());
+            .reserve_exact(self.high_water_len.saturating_sub(self.next.len()));
     }
 
     fn shrink_buffers_to(&mut self, target_capacity: usize) -> bool {
@@ -180,56 +181,5 @@ impl<T> Events<T> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::Events;
-
-    #[test]
-    fn runtime60_batch_specialized_batch_extend_preserves_order_and_count() {
-        let mut events = Events::default();
-
-        assert_eq!(events.send_batch(10_u32..14), 4);
-        events.update();
-
-        assert_eq!(events.iter().copied().collect::<Vec<_>>(), [10, 11, 12, 13]);
-    }
-
-    #[test]
-    fn runtime60_batch_specialized_batch_extend_accepts_non_exact_iterators() {
-        let mut events = Events::default();
-
-        assert_eq!(
-            events.send_batch((0_u32..8).filter(|value| value % 2 == 0)),
-            4
-        );
-        events.update();
-
-        assert_eq!(events.iter().copied().collect::<Vec<_>>(), [0, 2, 4, 6]);
-    }
-
-    #[test]
-    fn runtime60_batch_empty_batch_does_not_raise_the_high_water_mark() {
-        let mut events = Events::<u32>::default();
-
-        assert_eq!(events.send_batch(std::iter::empty()), 0);
-
-        let metrics = events.capacity_metrics();
-        assert_eq!(metrics.next_len, 0);
-        assert_eq!(metrics.high_water_len, 0);
-    }
-
-    #[test]
-    fn event_queue_equality_ignores_reader_generation_metadata() {
-        let mut first = Events::<u32>::default();
-        let mut second = Events::<u32>::default();
-
-        first.update();
-        first.update();
-
-        assert_eq!(first, second);
-
-        first.send(5);
-        second.send(5);
-
-        assert_eq!(first, second);
-    }
-}
+#[path = "tests/queue.rs"]
+mod tests;

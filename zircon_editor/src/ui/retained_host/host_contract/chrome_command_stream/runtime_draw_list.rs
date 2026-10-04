@@ -161,4 +161,5 @@ fn ui_surface_image_resources_from_borrowed_stream(
 }
 
 #[cfg(test)]
+#[path = "runtime_draw_list/tests/cases.rs"]
 mod tests;

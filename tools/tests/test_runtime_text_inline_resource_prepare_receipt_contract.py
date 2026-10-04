@@ -22,6 +22,10 @@ TEXTURE_PREPARE = (
     / "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_texture.rs"
 )
 IMAGE = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs"
+IMAGE_GEOMETRY = (
+    ROOT
+    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/image/geometry.rs"
+)
 
 
 class RuntimeTextInlineResourcePrepareReceiptContractTests(unittest.TestCase):
@@ -82,12 +86,32 @@ class RuntimeTextInlineResourcePrepareReceiptContractTests(unittest.TestCase):
         self.assertIn("last_ui_texture_prepare_receipt", source)
         self.assertIn("prepared_ui_texture_id", source)
 
+    def test_image_geometry_helpers_have_a_folder_backed_owner(self):
+        source = IMAGE.read_text(encoding="utf-8")
+        geometry = IMAGE_GEOMETRY.read_text(encoding="utf-8")
+
+        self.assertIn("mod geometry;", source)
+        self.assertIn("pub(super) fn write_screen_space_ui_image_vertex_buffer", geometry)
+        self.assertIn("pub(super) fn image_vertices", geometry)
+        self.assertNotIn("fn write_screen_space_ui_image_vertex_buffer", source)
+        self.assertNotIn("fn image_vertices(", source)
+
+    def test_stable_image_frame_returns_before_cache_epoch_retention(self):
+        source = IMAGE.read_text(encoding="utf-8")
+        prepare = source.split("pub(super) fn prepare(", 1)[1]
+
+        self.assertIn("generation_matches", prepare)
+        self.assertLess(
+            prepare.index("if frame_generation_matches && !force_full_upload"),
+            prepare.index("let prepare_epoch = self.image_bindings.begin_prepare();"),
+        )
+
     def test_prepare_accepts_only_the_owned_distinct_dependency_set(self):
         ui_texture = UI_TEXTURE.read_text(encoding="utf-8")
         receipt = RECEIPT.read_text(encoding="utf-8")
 
         self.assertIn("struct UiTextureDependencies", ui_texture)
-        self.assertIn(") -> UiTextureDependencies", ui_texture)
+        self.assertIn(") -> Arc<UiTextureDependencies>", ui_texture)
         self.assertIn("requested_ids: &UiTextureDependencies", receipt)
         self.assertNotIn("requested_ids: &[ResourceId]", receipt)
         self.assertIn(
@@ -125,6 +149,7 @@ class RuntimeTextInlineResourcePrepareReceiptContractTests(unittest.TestCase):
             SCENE_PREPARE,
             TEXTURE_PREPARE,
             IMAGE,
+            IMAGE_GEOMETRY,
         ):
             with self.subTest(path=path):
                 self.assertLessEqual(

@@ -6,7 +6,9 @@ use zircon_runtime_interface::ui::component::{
 const ACTIVITY_ASSET_CONTENT_CONTROL_ID: &str = "AssetsActivityContentPanel";
 const BROWSER_ASSET_CONTENT_CONTROL_ID: &str = "AssetBrowserContentPanel";
 
-pub(super) fn is_asset_content_drag_payload(payload: &UiDragPayload) -> bool {
+pub(in crate::ui::retained_host::app) fn is_asset_content_drag_payload(
+    payload: &UiDragPayload,
+) -> bool {
     payload.kind == UiDragPayloadKind::Asset
         && payload.source.as_ref().is_some_and(|source| {
             matches!(

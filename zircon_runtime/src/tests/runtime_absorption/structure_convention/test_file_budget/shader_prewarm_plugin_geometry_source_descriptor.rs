@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对着色器预热的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 const STATUS: &str = "render_plan08_plugin_geometry_source_descriptor_registration_typecheck_python_cargo_check_passed_renderdoc_deferred";
@@ -22,7 +23,8 @@ fn runtime_15_shader_prewarm_plugin_geometry_source_descriptor_registration_is_w
     let virtual_geometry_plugin =
         read_repo("zircon_plugins/virtual_geometry/runtime/src/plugin.rs");
     let virtual_geometry_static_manifest = read_repo("zircon_plugins/virtual_geometry/plugin.toml");
-    let virtual_geometry_tests = read_repo("zircon_plugins/virtual_geometry/runtime/src/tests.rs");
+    let virtual_geometry_tests =
+        read_repo("zircon_plugins/virtual_geometry/runtime/src/tests/cases.rs");
     let package_manifest_tests =
         read_runtime_src("tests/plugin_extensions/package_manifest_declarations.rs");
     let extension_registry_tests =
@@ -33,8 +35,9 @@ fn runtime_15_shader_prewarm_plugin_geometry_source_descriptor_registration_is_w
     let static_manifest_nested = read_runtime_src(
         "tests/plugin_extensions/static_manifest_contracts/manifest_schema/nested.rs",
     );
-    let build_tool = read_repo("tools/zircon_build.py");
-    let build_shader_descriptors = read_repo("tools/zircon_build_plugin_shader_descriptors.py");
+    let build_tool = read_repo("tools/build/zircon_build.py");
+    let build_shader_descriptors =
+        read_repo("tools/build/zircon_build_plugin_shader_descriptors.py");
     let build_plugin_tests = read_repo("tools/tests/test_zircon_build_plugin_carriers.py");
     let plan_08 = read_repo(
         "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
@@ -127,7 +130,7 @@ fn runtime_15_shader_prewarm_plugin_geometry_source_descriptor_registration_is_w
             extension_register_metadata.as_str(),
         ),
         (
-            "tools/zircon_build_plugin_shader_descriptors.py",
+            "tools/build/zircon_build_plugin_shader_descriptors.py",
             build_shader_descriptors.as_str(),
         ),
         (

@@ -1,3 +1,4 @@
+# 核对无效过渡提前退出状态与方向投影，空记录不持有计时文本。
 from pathlib import Path
 import unittest
 

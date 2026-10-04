@@ -8,7 +8,7 @@ use crate::graphics::{
     RenderFeatureDescriptor, RenderPassExecutorRegistration, RuntimePrepareCollectorRegistration,
 };
 use crate::plugin::PluginShaderModuleSource;
-use crate::text::font::{FontCollectionService, shared_font_collection_service};
+use crate::text::font::{shared_font_collection_service, FontCollectionService};
 
 use crate::graphics::types::GraphicsError;
 
@@ -23,6 +23,10 @@ impl SceneRenderer {
         Self::new(ProjectAssetManagerAccess::for_test(asset_manager))
     }
 
+    /// Standalone compatibility constructor for tests and diagnostic products.
+    ///
+    /// Core-owned Runtime products construct the renderer through the builtin Graphics module host
+    /// so text layout and rendering use the same `TextRuntimeContext` authority.
     pub fn new(asset_manager: ProjectAssetManagerAccess) -> Result<Self, GraphicsError> {
         Self::new_with_icon_source(asset_manager, Arc::new(EmptyViewportIconSource))
     }
@@ -87,6 +91,7 @@ impl SceneRenderer {
             plugin_geometry_sources,
             plugin_shading_models,
             plugin_shader_module_sources,
+            // Runtime201 standalone compatibility: Core-owned products inject TextRuntimeContext.
             shared_font_collection_service(),
         )
     }

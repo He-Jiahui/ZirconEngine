@@ -41,6 +41,36 @@ pub(super) fn project_sequence_timeline(
     sequence: &AnimationSequenceSessionState,
 ) -> AnimationTimelineFoundationView {
     let frames_per_second = sanitize_frames_per_second(asset.frames_per_second);
+    let track_count: usize = asset
+        .bindings
+        .iter()
+        .map(|binding| binding.tracks.len())
+        .sum();
+    let mut tracks = Vec::with_capacity(track_count);
+    for binding in &asset.bindings {
+        for track in &binding.tracks {
+            let path = zircon_runtime::core::framework::animation::AnimationTrackPath::new(
+                binding.entity_path.clone(),
+                track.property_path.clone(),
+            );
+            let track_id = path.to_string();
+            let mut keys = Vec::with_capacity(track.channel.keys.len());
+            for key in &track.channel.keys {
+                keys.push(TimelineKey::new(
+                    format!("{track_id}@{:08x}", key.time_seconds.to_bits()),
+                    key.time_seconds,
+                    format!("{:.3}s", key.time_seconds),
+                ));
+            }
+            tracks.push(TimelineTrackView {
+                id: track_id.clone(),
+                display_name: track_id.clone(),
+                value_kind: track_value_kind(track).to_string(),
+                keys,
+                sections: Vec::new(),
+            });
+        }
+    }
     AnimationTimelineFoundationView {
         range: TimelineRange::new(
             frame_to_seconds(sequence.timeline_start_frame, frames_per_second),
@@ -53,39 +83,13 @@ pub(super) fn project_sequence_timeline(
             sequence.speed,
             frame_to_seconds(sequence.current_frame, frames_per_second),
         ),
-        tracks: asset
-            .bindings
-            .iter()
-            .flat_map(|binding| {
-                binding.tracks.iter().map(move |track| {
-                    let path = zircon_runtime::core::framework::animation::AnimationTrackPath::new(
-                        binding.entity_path.clone(),
-                        track.property_path.clone(),
-                    );
-                    let track_id = path.to_string();
-                    TimelineTrackView {
-                        id: track_id.clone(),
-                        display_name: track_id.clone(),
-                        value_kind: track_value_kind(track).to_string(),
-                        keys: track
-                            .channel
-                            .keys
-                            .iter()
-                            .map(|key| {
-                                TimelineKey::new(
-                                    format!("{track_id}@{:08x}", key.time_seconds.to_bits()),
-                                    key.time_seconds,
-                                    format!("{:.3}s", key.time_seconds),
-                                )
-                            })
-                            .collect(),
-                        sections: Vec::new(),
-                    }
-                })
-            })
-            .collect(),
+        tracks,
     }
 }
+
+#[cfg(test)]
+#[path = "tests/timeline_foundation_optimization_tests.rs"]
+mod optimization_tests;
 
 fn track_value_kind(track: &AnimationSequenceTrackAsset) -> &'static str {
     match track.channel.keys.first().map(|key| &key.value) {

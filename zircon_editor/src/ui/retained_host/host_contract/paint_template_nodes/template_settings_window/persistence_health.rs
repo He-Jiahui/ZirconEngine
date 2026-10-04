@@ -1,3 +1,6 @@
+//! 设置持久化失败的只读状态提示；只有外部投影提供可重试作用域时才绘制重试入口。
+//! 绘制不会自动重试，实际操作由窗口的命中与动作处理协议负责。
+
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
@@ -19,9 +22,7 @@ pub(super) fn push_persistence_health(
     palette: HostMaterialPalette,
     metrics: HostControlMetrics,
 ) {
-    if node.settings_persistence_retry_scope.is_empty()
-        || node.settings_persistence_status_text.is_empty()
-    {
+    if node.settings_persistence_status_text.is_empty() {
         return;
     }
     commands.push(HostPaintCommand::text(
@@ -35,6 +36,9 @@ pub(super) fn push_persistence_health(
         UiTextRunPaintStyle::default(),
         opacity,
     ));
+    if node.settings_persistence_retry_scope.is_empty() {
+        return;
+    }
     commands.push(HostPaintCommand::quad(
         layout.persistence_retry.clone(),
         Some(clip.clone()),

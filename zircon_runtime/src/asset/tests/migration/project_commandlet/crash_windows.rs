@@ -27,10 +27,12 @@ fn minted_sidecar_commit_crash_is_whitelisted_and_next_apply_converges() {
         .file_name()
         .to_string_lossy()
         .into_owned();
-    assert!(
-        journal_name.starts_with(".hero.glb.zmeta.zr-migrate-journal-"),
-        "unexpected migration journal name: {journal_name}"
-    );
+    let (owner_token, _) = journal_name
+        .strip_prefix('.')
+        .and_then(|name| name.split_once(".zr-migrate-journal-"))
+        .expect("migration journal must retain its opaque owner identity");
+    assert_eq!(owner_token.len(), blake3::OUT_LEN * 2);
+    assert!(owner_token.bytes().all(|byte| byte.is_ascii_hexdigit()));
     assert!(
         journal_name.ends_with(".zrjournal"),
         "migration journal must use the framed journal suffix: {journal_name}"
@@ -189,24 +191,48 @@ fn append_journal_records_each_document_once_and_recovers_after_commit_interrupt
 #[test]
 fn direct_transaction_replacement_keeps_platform_durability_barrier() {
     const ATOMIC_TRANSACTION_SOURCE: &str =
-        include_str!("../../../../core/resource/io/atomic_file/transaction.rs");
+        include_str!("../../../../../crates/zr_resource/src/io/atomic_file/transaction.rs");
     const ATOMIC_PLATFORM_SOURCE: &str =
-        include_str!("../../../../core/resource/io/atomic_file/platform.rs");
-    const COMMIT_SOURCE: &str = include_str!("../../../../core/resource/io/transaction/commit.rs");
+        include_str!("../../../../../crates/zr_resource/src/io/atomic_file/platform.rs");
+    const COMMIT_SOURCE: &str =
+        include_str!("../../../../../crates/zr_resource/src/io/transaction/commit.rs");
     const JOURNAL_INTENT_SOURCE: &str =
         include_str!("../../../../../crates/zr_resource/src/io/transaction/journal/intent.rs");
 
+    let publication = ATOMIC_TRANSACTION_SOURCE
+        .split_once("fn publish_staged_file_for_transaction(")
+        .expect("transaction publication owner exists")
+        .1
+        .split_once("\n}")
+        .expect("transaction publication function ends")
+        .0;
+    let replace = publication
+        .find("platform::replace_existing_staged_file(staging, target)")
+        .expect("transaction replaces its existing target");
+    let flush = publication
+        .find("platform::sync_committed_target(target)")
+        .expect("transaction flushes the committed target");
+    let sync_directory = publication
+        .find("sync_parent_directory(target)")
+        .expect("transaction persists its directory entry on Unix");
+    assert!(replace < flush && flush < sync_directory);
     assert!(
-        ATOMIC_TRANSACTION_SOURCE.contains("sync_parent_directory(target)"),
-        "a committed target replacement must persist its directory entry on Unix"
-    );
-    assert!(
-        COMMIT_SOURCE.contains("sync_parent_directory(retired)"),
+        COMMIT_SOURCE.contains("fs::remove_file(&retirement.path)?")
+            && COMMIT_SOURCE.contains("sync_parent_directory(&retirement.path)?"),
         "retired sidecar deletion must persist its directory entry on Unix"
     );
+    let committed_target_flush = ATOMIC_PLATFORM_SOURCE
+        .split_once("fn sync_committed_target(path: &Path)")
+        .expect("Windows committed-target flush exists")
+        .1
+        .split_once("\n}")
+        .expect("Windows committed-target flush function ends")
+        .0;
     assert!(
-        ATOMIC_PLATFORM_SOURCE.contains("REPLACEFILE_WRITE_THROUGH"),
-        "Windows replacement must request a write-through commit"
+        committed_target_flush.contains(".write(true)")
+            && committed_target_flush.contains(".open(path)?")
+            && committed_target_flush.contains(".sync_all()"),
+        "Windows replacement must flush a writable committed-file handle"
     );
     assert!(
         ATOMIC_PLATFORM_SOURCE.contains("MOVEFILE_WRITE_THROUGH"),
@@ -291,6 +317,37 @@ fn sidecar_target_replace_and_retired_delete_crash_windows_converge_forward() {
         .expect_err("sidecar commit substep interruption must retain active evidence");
         assert!(current.is_file());
         assert_eq!(retired.exists(), !after_retired_delete);
+
+        // Current preflight fails after recovery, preventing a new live transaction.
+        let source_before_recovery = fs::read(&source).unwrap();
+        let current_before_recovery = fs::read(&current).unwrap();
+        let material_before_recovery = fs::read(&material).unwrap();
+        let retired_before_recovery = (!after_retired_delete).then(|| fs::read(&retired).unwrap());
+        let invalid_material = material
+            .parent()
+            .unwrap()
+            .join("blocked-recovery.zmaterial");
+        fs::write(&invalid_material, b"version = [\n").unwrap();
+
+        let blocked =
+            migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
+                .unwrap();
+        assert!(!blocked.succeeded());
+        assert!(blocked
+            .issues()
+            .iter()
+            .any(|issue| issue.kind() == AssetMigrationIssueKind::InvalidDocument));
+        assert_eq!(fs::read(&source).unwrap(), source_before_recovery);
+        assert_eq!(fs::read(&current).unwrap(), current_before_recovery);
+        assert_eq!(fs::read(&material).unwrap(), material_before_recovery);
+        assert_eq!(retired.exists(), !after_retired_delete);
+        if let Some(expected) = retired_before_recovery {
+            assert_eq!(fs::read(&retired).unwrap(), expected);
+        }
+        assert_eq!(fs::read(&invalid_material).unwrap(), b"version = [\n");
+        assert_transaction_artifacts_cleared(&root, current.parent().unwrap());
+        assert_transaction_artifacts_cleared(&root, material.parent().unwrap());
+        fs::remove_file(&invalid_material).unwrap();
 
         let report =
             migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))

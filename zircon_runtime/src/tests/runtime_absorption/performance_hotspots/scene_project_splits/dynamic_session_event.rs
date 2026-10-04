@@ -1,3 +1,4 @@
+//! 性能热点的结构守卫核对拥有者、文件预算和证据文档。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn runtime_07_dynamic_session_event_split_keeps_abi_entry_and_event_owner() {
     let session_facade = include_str!("../../../../dynamic_api/session.rs");
@@ -11,10 +12,11 @@ fn runtime_07_dynamic_session_event_split_keeps_abi_entry_and_event_owner() {
     let runtime_index_output = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-index-output-records.md"
     );
-    let hotspot_doc =
-        include_str!("../../../../../../docs/zircon_runtime/performance/hotspot_inventory.md");
+    let hotspot_doc = include_str!(
+        "../../../../../../docs/crates/zircon_runtime/performance/hotspot_inventory.md"
+    );
     let dynamic_session_doc =
-        include_str!("../../../../../../docs/zircon_runtime/dynamic_api/session.md");
+        include_str!("../../../../../../docs/crates/zircon_runtime/dynamic_api/session.md");
 
     assert!(
         session_facade.contains("mod events;"),

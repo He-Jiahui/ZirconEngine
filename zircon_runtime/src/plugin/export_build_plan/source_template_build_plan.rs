@@ -1,3 +1,4 @@
+//! SourceTemplate 的可执行验证计划进入 Validate 报告，由 Python source-template 阶段核对命令与构建结果。
 use serde::{Deserialize, Serialize};
 
 use crate::core::framework::project::{ExportBuildMode, ExportPackagingStrategy};
@@ -9,6 +10,7 @@ const TARGET_DIR: &str = "stages/source_template/target";
 const BASE_COMMAND_ARGUMENT_COUNT: usize = 6;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// Validate stage 交给 SourceTemplate 的构建声明；命令与结果由流水线独立核对。
 pub struct SourceTemplateBuildValidationPlan {
     pub manifest_path: String,
     pub target_dir: String,
@@ -26,6 +28,7 @@ impl ExportBuildPlan {
     }
 }
 
+/// 仅 SourceTemplate 有独立生成项目可编译；后续 Python 阶段负责执行及验证这份计划。
 pub(super) fn source_template_build_validation_plan(
     plan: &ExportBuildPlan,
 ) -> Option<SourceTemplateBuildValidationPlan> {
@@ -65,22 +68,5 @@ fn source_template_command(release: bool) -> Vec<String> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::source_template_command;
-
-    #[test]
-    fn preallocated_source_template_command_preserves_contract() {
-        assert_eq!(
-            source_template_command(true),
-            vec![
-                "cargo".to_string(),
-                "build".to_string(),
-                "--manifest-path".to_string(),
-                "Cargo.toml".to_string(),
-                "--target-dir".to_string(),
-                "stages/source_template/target".to_string(),
-                "--release".to_string(),
-            ]
-        );
-    }
-}
+#[path = "tests/source_template_build_plan.rs"]
+mod tests;

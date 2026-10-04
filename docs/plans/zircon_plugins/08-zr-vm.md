@@ -1,7 +1,7 @@
 # 08 · ZrVM 插件完善计划（反射 / 接口注册 / GC 与生命周期管理）
 
 > 状态：工程化细化版 v2 · 优先级：P2 · 前置：[01 插件架构核心](01-plugin-architecture-core.md) M1–M3
-> 关联计划：`.codex/plans/ZrVM 语言插件与反射注册计划.md`（五里程碑维持有效） · 现状文档：`docs/zircon_plugins/zr_vm_language/runtime.md`
+> 关联计划：`.codex/plans/ZrVM 语言插件与反射注册计划.md`（五里程碑维持有效） · 现状文档：`docs/crates/zircon_plugins/zr_vm_language/runtime.md`
 > 参考实现：Godot GDExtension（class registration、initialization level）、Piccolo（编译期反射注入 + TypeMeta/FieldAccessor/MethodAccessor 形态）
 
 ## 1. 目标

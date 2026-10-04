@@ -28,6 +28,8 @@ floorNonnegative(value: float): int {
 
 // Format codes are 1=1v1 and 2=2v2. Other formats are not ranked arena
 // rewards in the source and return no honor.
+// 调用方负责识别同一对手与每日窗口，并在事务提交后更新计数；
+// 此纯规则只计算本次应授荣誉，不能单独防止重复结算。
 pub rankedArenaWinHonor(format: int, priorOpponentAwards: int, totalWinsToday: int): int {
     var base = 0;
     if (format == 1) base = contract.rankedOneVOneHonor();

@@ -1,3 +1,5 @@
+//! 规范化项目相对源路径，作为自动保存身份与元数据键；拒绝绝对路径和穿越，跨平台分隔符归一。
+
 use std::path::{Component, Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -49,20 +51,9 @@ fn normalize_project_relative_path(path: &Path) -> String {
 }
 
 #[cfg(test)]
-#[path = "source_path/direct_join_tests.rs"]
+#[path = "source_path/tests/direct_join_tests.rs"]
 mod direct_join_tests;
 
 #[cfg(test)]
-mod tests {
-    use std::path::Path;
-
-    use super::AutosaveSourcePath;
-
-    #[cfg(windows)]
-    #[test]
-    fn source_path_normalizes_windows_separators_to_the_project_form() {
-        let source = AutosaveSourcePath::parse(r"assets\ui\panel.zui").unwrap();
-
-        assert_eq!(source.as_path(), Path::new("assets/ui/panel.zui"));
-    }
-}
+#[path = "tests/source_path.rs"]
+mod tests;

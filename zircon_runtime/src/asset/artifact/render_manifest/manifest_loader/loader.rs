@@ -14,11 +14,11 @@ use super::contract::{
     RenderArtifactManifestPoll, RenderArtifactManifestRequest, RenderArtifactManifestRequestKey,
 };
 use super::state::{
-    RenderArtifactManifestEntry, RenderArtifactManifestRegistry, TICKET_ACTIVE,
-    TICKET_CALLER_CANCELLED, TICKET_EXPIRED, TICKET_OWNER_CLOSED, TicketRegistration, remove_entry,
-    remove_registered_ticket,
+    remove_entry, remove_registered_ticket, RenderArtifactManifestEntry,
+    RenderArtifactManifestRegistry, TicketRegistration, TICKET_ACTIVE, TICKET_CALLER_CANCELLED,
+    TICKET_EXPIRED, TICKET_OWNER_CLOSED,
 };
-use super::worker::{RenderArtifactManifestLoaderMetrics, atomic_add};
+use super::worker::{atomic_add, RenderArtifactManifestLoaderMetrics};
 
 const ENTRY_METADATA_BYTES: usize = 512;
 
@@ -48,6 +48,7 @@ pub struct RenderArtifactManifestTicketBatch {
 }
 
 impl RenderArtifactManifestLoader {
+    /// 用最大编码清单大小与 metadata 定额计算每 entry 的预留预算，再创建容量为 max_entries 的任务 scope；无效容量提前返回。
     pub fn new(
         store: RenderArtifactStore,
         limits: RenderArtifactManifestLoaderLimits,
@@ -145,6 +146,7 @@ impl RenderArtifactManifestTicket {
         self.entry.key()
     }
 
+    /// 仅在注册状态为 active 时读取共享 manifest entry；已记录的 deadline、调用方取消和 owner 关闭映射为对应取消结果。
     pub fn poll(&self) -> RenderArtifactManifestPoll {
         match self.registration.status() {
             TICKET_ACTIVE => self.entry.poll(),

@@ -91,6 +91,9 @@ fn editor_manager_bootstrap_repairs_empty_global_default_layout() {
             ViewInstanceId::new("editor.build_export_desktop#1"),
         ]
     );
+    assert_eq!(bottom.mode, ActivityDrawerMode::Collapsed);
+    assert!(bottom.visible);
+    assert!(bottom.extent > 0.0);
 
     let workbench_page_id = layout
         .main_pages

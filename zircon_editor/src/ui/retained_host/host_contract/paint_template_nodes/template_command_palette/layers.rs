@@ -1,3 +1,6 @@
+//! 面板内部的叠放约定：搜索内容位于搜索底面之上，行内容位于各行底面之上。
+//! 所有 helper 的 base 都来自同一个节点的绘制顺序，调用方须保留足够的整数余量。
+
 const SEARCH_FIELD_OFFSET: i32 = 1;
 const EMPTY_MESSAGE_OFFSET: i32 = 3;
 const FIRST_ROW_OFFSET: i32 = 4;
@@ -38,13 +41,5 @@ pub(super) fn row_label_order(row_order: i32) -> i32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn command_palette_row_order_advances_by_row_stride() {
-        assert_eq!(row_order(10, 0), 14);
-        assert_eq!(row_order(10, 1), 17);
-        assert_eq!(row_order(10, 2), 20);
-    }
-}
+#[path = "tests/layers.rs"]
+mod tests;

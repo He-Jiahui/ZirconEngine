@@ -219,7 +219,10 @@ impl SceneReflectionProbeResources {
             planar_texture_view,
             planar_params_buffer,
             capture_disabled_planar_params_buffer,
-            slots: ProbeCubemapSlotAllocator::new(capacity.probe_count),
+            slots: ProbeCubemapSlotAllocator::new_with_physical_slot_count(
+                capacity.probe_count,
+                capacity.cubemap_slot_count,
+            ),
             next_prepare_epoch: 0,
             pending_uploads: Vec::new(),
             last_report: ReflectionProbeUploadReport::default(),

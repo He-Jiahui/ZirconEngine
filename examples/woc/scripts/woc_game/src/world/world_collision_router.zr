@@ -28,6 +28,7 @@ pub supportsStaticWorldPosition(x: float, required: bool): bool {
         (x >= instanceContent.yumiBandXMin(true) && x < instanceContent.yumiBandXMax(true));
 }
 
+// 运动/寻路从这里按世界带路由静态或实例碰撞，当前 Delve 带明确拒绝。
 pub resolveSupportedWorldCoordinate(
     x: float,
     z: float,
@@ -55,6 +56,7 @@ pub resolveSupportedWorldCoordinate(
     );
 }
 
+// TODO: [CR-WOC-WS-P-0001] 核实产品移动是否应纳入已供 safe_position 使用的装饰物碰撞；当前此链委托 collision_static/sweep 而跳过 collision_grid 的装饰候选，下一步对同一树石障碍做安全点与移动复演。
 pub resolveSupportedWorldMovementCoordinate(
     fromX: float,
     fromZ: float,

@@ -4,10 +4,6 @@ status: accepted
 created_at: 2026-07-17
 plan_source: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
 related_code:
-  - tools/session_coordinator/supervision/service.py
-  - tools/session_coordinator/supervision/lifecycle.py
-  - tools/session_coordinator/tests/test_supervision_actions.py
-  - docs/tools/session_coordinator/control-plane.md
 tests:
   - python -m unittest tools.session_coordinator.tests.test_supervision_actions
   - python -m unittest tools.session_coordinator.tests.test_control_snapshot

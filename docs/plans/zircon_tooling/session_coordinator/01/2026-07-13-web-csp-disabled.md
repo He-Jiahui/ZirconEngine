@@ -16,4 +16,4 @@
 
 - `tools/session_coordinator/control_plane/assets.py`
 - `tools/session_coordinator/tests/test_control_assets.py`
-- `docs/cli-and-tooling/workflow-control-center.md`
+- `docs/tooling/workflow-control-center.md`

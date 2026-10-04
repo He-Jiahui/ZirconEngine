@@ -8,7 +8,9 @@ use zircon_editor::core::editing::engine::{
     EditorTransactionEngine, HistoryContextId, MergeMode, SelectionSnapshot,
 };
 use zircon_editor::core::gateway::{
-    EditorRuntimeGateway, EditorRuntimeGatewayHandle, EditorRuntimeOperationRoute, GatewayError,
+    EditorRuntimeFrameDemand, EditorRuntimeGateway, EditorRuntimeGatewayHandle,
+    EditorRuntimeOperationRoute, GatewayError, GatewaySessionIdentity, RuntimeCapabilities,
+    SessionGateway,
 };
 use zircon_editor::core::play::WorldDomain;
 use zircon_runtime::core::framework::navigation::{
@@ -17,10 +19,12 @@ use zircon_runtime::core::framework::navigation::{
     NAVIGATION_BAKE_SURFACE_OPERATION, NAVIGATION_CLEAR_SURFACE_OPERATION,
     NAVIGATION_RESTORE_BAKE_OPERATION,
 };
+use zircon_runtime::dynamic_api::{create_linked_runtime_session, zircon_runtime_get_api_v8};
 use zircon_runtime_interface::{
     ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle, ZrRuntimeOperationPhase,
     ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2, ZrRuntimeOperationSubmitRequestV1,
-    ZrRuntimeSessionHandle, ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2,
+    ZrRuntimeSessionHandle, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V2,
 };
 
 use crate::operation_command::NavigationOperationCommand;
@@ -184,6 +188,10 @@ impl EditorRuntimeGateway for RecordingGateway {
         ZrRuntimeSessionHandle::new(3)
     }
 
+    fn tick_frame(&self) -> Result<EditorRuntimeFrameDemand, GatewayError> {
+        Ok(EditorRuntimeFrameDemand::OnDemand)
+    }
+
     fn submit_operation(
         &self,
         request: ZrRuntimeOperationSubmitRequestV1,
@@ -244,20 +252,25 @@ impl EditorRuntimeGateway for RecordingGateway {
         &self,
         handle: ZrRuntimeOperationHandle,
     ) -> Result<ZrRuntimeOperationStatusV2, GatewayError> {
-        let handle = if self.state.lock().unwrap().foreign_progress {
+        let state = self.state.lock().unwrap();
+        let handle = if state.foreign_progress {
             ZrRuntimeOperationHandle::new(handle.raw() + 1)
         } else {
             handle
         };
-        let mut status = ZrRuntimeOperationStatusV2::new(
-            handle,
-            ZrRuntimeOperationPhase::Completed,
-            1,
-            1,
-            ZrRuntimeOperationDetailKindV2::None,
-            0,
-        );
-        if self.state.lock().unwrap().wrong_progress_abi {
+        let (phase, detail_kind) = if state.failed_result {
+            (
+                ZrRuntimeOperationPhase::Failed,
+                ZrRuntimeOperationDetailKindV2::OwnerApplyFailed,
+            )
+        } else {
+            (
+                ZrRuntimeOperationPhase::Completed,
+                ZrRuntimeOperationDetailKindV2::None,
+            )
+        };
+        let mut status = ZrRuntimeOperationStatusV2::new(handle, phase, 1, 1, detail_kind, 0);
+        if state.wrong_progress_abi {
             status.abi_version = ZIRCON_RUNTIME_ABI_VERSION_V2 + 1;
         }
         Ok(status)
@@ -372,6 +385,29 @@ fn error_chain_contains(error: &(dyn Error + 'static), needle: &str) -> bool {
 }
 
 #[test]
+fn recording_gateway_failed_result_polls_owner_apply_failure_status() {
+    let gateway = RecordingGateway::with_failed_result();
+    let handle = gateway
+        .submit_operation(ZrRuntimeOperationSubmitRequestV1::new(
+            ZIRCON_RUNTIME_ABI_VERSION_V1,
+            NAVIGATION_BAKE_SCENE_OPERATION,
+            serde_json::to_value(NavMeshBakeRequest::default()).unwrap(),
+        ))
+        .unwrap();
+    let status = gateway.poll_operation(handle).unwrap();
+    assert_eq!(status.handle, handle);
+    assert_eq!(status.phase(), Some(ZrRuntimeOperationPhase::Failed));
+    assert_eq!(
+        status.detail_kind(),
+        Some(ZrRuntimeOperationDetailKindV2::OwnerApplyFailed)
+    );
+    assert_eq!(
+        gateway.harvest_operation(handle).unwrap().failure(),
+        Some("runtime rejected the generated bake")
+    );
+}
+
+#[test]
 fn runtime_operation_route_keeps_one_gateway_generation_for_the_whole_chain() {
     let first = Arc::new(RecordingGateway::new());
     let replacement = Arc::new(RecordingGateway::new());
@@ -389,9 +425,14 @@ fn runtime_operation_route_keeps_one_gateway_generation_for_the_whole_chain() {
             serde_json::to_value(NavMeshBakeRequest::default()).unwrap(),
         ))
         .expect("the pinned route should submit through its captured generation");
-    route
+    let status = route
         .poll_operation(handle)
         .expect("the pinned route should poll the same generation");
+    assert_eq!(status.phase(), Some(ZrRuntimeOperationPhase::Completed));
+    assert_eq!(
+        status.detail_kind(),
+        Some(ZrRuntimeOperationDetailKindV2::None)
+    );
     route
         .harvest_operation(handle)
         .expect("the pinned route should harvest the same generation");
@@ -453,6 +494,10 @@ fn navigation_operation_command_marks_post_submit_protocol_failure_as_applied() 
     let error = command.apply(&mut context).unwrap_err();
 
     assert_eq!(error.effect, CommandEffect::Applied);
+    assert!(error_chain_contains(
+        &error,
+        "progress returned a foreign operation handle"
+    ));
     assert!(gateway.current().asset.is_some());
 }
 
@@ -469,6 +514,10 @@ fn navigation_operation_command_marks_terminal_runtime_failure_as_applied() {
     let error = command.apply(&mut context).unwrap_err();
 
     assert_eq!(error.effect, CommandEffect::Applied);
+    assert!(error_chain_contains(
+        &error,
+        "runtime rejected the generated bake"
+    ));
     assert!(gateway.current().asset.is_some());
 }
 
@@ -531,4 +580,60 @@ fn navigation_operation_command_rejects_result_with_foreign_abi() {
 
     assert_eq!(error.effect, CommandEffect::Applied);
     assert!(error_chain_contains(&error, "result ABI version"));
+}
+
+#[test]
+#[ignore = "managed real DynamicSession operation consumer; run alone with --test-threads=1"]
+fn navigation_editor_command_consumes_real_dynamic_session_tick_poll_harvest_and_reload_boundary() {
+    let api = unsafe { zircon_runtime_get_api_v8(std::ptr::null()) };
+    assert!(
+        !api.is_null(),
+        "linked runtime API table should be available"
+    );
+    let api = unsafe { std::ptr::read(api) };
+    let session = create_linked_runtime_session(
+        b"headless",
+        None,
+        vec![zircon_plugin_navigation_runtime::plugin_registration()],
+    )
+    .expect("the linked DynamicSession should admit the navigation runtime registration");
+    let gateway = Arc::new(unsafe {
+        SessionGateway::new_with_identity(
+            Arc::new(()),
+            api,
+            session,
+            GatewaySessionIdentity::new(1, session, 1, None),
+            RuntimeCapabilities::editor_default(),
+            Arc::new(Default::default()),
+        )
+        .expect("the editor gateway should retain the real DynamicSession identity");
+    });
+    let gateway_handle = EditorRuntimeGatewayHandle::new(gateway.clone());
+    let engine = EditorTransactionEngine::new(GatewayEditContext::new(gateway_handle.clone()));
+    let command = NavigationOperationCommand::new(ZrRuntimeOperationSubmitRequestV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        NAVIGATION_CLEAR_SURFACE_OPERATION,
+        serde_json::json!({ "surface_entity": 7 }),
+    ));
+
+    engine
+        .execute_operation(
+            "Clear Navigation Surface Bake",
+            HistoryContextId::Global,
+            None,
+            MergeMode::Disable,
+            Box::new(command),
+        )
+        .expect("the normal editor command must drive DynamicSession through tick/poll/harvest");
+    assert!(engine.undo(HistoryContextId::Global).unwrap());
+    assert!(engine.redo(HistoryContextId::Global).unwrap());
+    let _ = gateway_handle
+        .drain_world_invalidations()
+        .expect("normal editor consumer must be able to sample runtime mutation invalidations");
+
+    let destroy = api
+        .destroy_session
+        .expect("linked runtime API exposes session destruction");
+    let status = unsafe { destroy(session) };
+    assert_eq!(status.status_code(), ZrStatusCode::Ok);
 }

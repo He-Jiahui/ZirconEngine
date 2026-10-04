@@ -5,15 +5,15 @@ related_code:
   - zircon_editor/src/ui/workbench/state/editor_state_apply_intent.rs
   - zircon_editor/src/ui/workbench/state/editor_state_viewport.rs
 implementation_files:
-  - docs/editor-and-tooling/editor-command-workflow.md
-  - docs/editor-and-tooling/index.md
+  - docs/editor/editor-command-workflow.md
+  - docs/editor/index.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - python tools/check_conventions.py --only docs --json
-  - git diff --check -- docs/editor-and-tooling/editor-command-workflow.md docs/editor-and-tooling/index.md
+  - python tools/audits/check_conventions.py --only docs --json
+  - git diff --check -- docs/editor/editor-command-workflow.md docs/editor/index.md
 ---
 
 # Frameworks06 G7 Editor Transaction Owner 文档硬切 Batch 11
@@ -31,7 +31,7 @@ Session: `frameworks06-g7-editor-transaction-owner-doc-hardcut-batch11-20260718`
 ## Fresh Testing Evidence
 
 - 修改前 fresh G7：`482` violations / `130` documents。
-- 修改后 fresh `python tools/check_conventions.py --only docs --json`：所选两份文档 `0` violations；共享 current-source 全局快照为 `478` violations / `128` documents，G7 继续保持 RED。
+- 修改后 fresh `python tools/audits/check_conventions.py --only docs --json`：所选两份文档 `0` violations；共享 current-source 全局快照为 `478` violations / `128` documents，G7 继续保持 RED。
 - 两份文档内旧机器路径与 `EditorHistory` 术语均为 `0`；current owner 已由 Git 跟踪，并分别存在 `HistoryStore` 与 `EditorTransactionEngine` 声明。
 - exact-scope `git diff --check` 通过，staged_total 为 `0`。
 

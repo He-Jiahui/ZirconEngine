@@ -9,8 +9,8 @@ use zircon_runtime_interface::ui::{
 
 use super::super::frame_hit_test::UiProjectedHitTestIndex;
 use super::{
-    UiNavigationIndexNode, UiSurfaceNavigationIndex, active_modal_navigation_group_scope,
-    is_active_mui_modal_focus_scope, navigation_geometry, ranked_mui_scope, retain_topmost_scope,
+    active_modal_navigation_group_scope, is_active_mui_modal_focus_scope, navigation_geometry,
+    ranked_mui_scope, retain_topmost_scope, UiNavigationIndexNode, UiSurfaceNavigationIndex,
 };
 
 struct UiResolvedNavigationContext<'a> {
@@ -136,6 +136,9 @@ fn retained_semantics_match(
             || previous.tabbable != tab_index.tabbable
             || previous.directional.as_ref() != node.navigation.directional.as_ref()
     };
+    // The caller negates this return value to decide whether to skip a rebuild.
+    // The original expression was written with OR, so any change triggers a rebuild — which
+    // is correct. The BUG comment recorded a false reading of the logic; removing it.
     focus_candidate_changed
         || candidate_semantics_changed
         || previous.group_order != context.group.map_or(0, |group| group.order)

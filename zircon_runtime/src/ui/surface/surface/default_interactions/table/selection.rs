@@ -139,7 +139,7 @@ impl UiSurface {
                     return Ok(None);
                 };
                 return Ok(Some(TableRowHit {
-                    owner_id: *node_id,
+                    owner_id: node_id,
                     row_id,
                     row_identity,
                     row_index,

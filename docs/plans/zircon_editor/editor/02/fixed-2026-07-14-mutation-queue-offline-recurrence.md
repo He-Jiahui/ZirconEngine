@@ -8,10 +8,6 @@ fixing_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-c
 origin_child_dir: docs/plans/zircon_editor/editor/02
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 related_code:
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/leases.py
-  - tools/session_coordinator/cargo_jobs.py
-  - tools/session_coordinator/control_plane/actions/service.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_server tools.session_coordinator.tests.test_cargo_jobs tools.session_coordinator.tests.test_action_execution
 resolved_at: 2026-07-14

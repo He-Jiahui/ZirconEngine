@@ -8,12 +8,11 @@ use zircon_runtime_interface::ui::{
 use crate::ui::{
     dispatch::UiTextDocumentSession,
     surface::{
-        UiSurface,
         input::{
             editable_text_state_for_node, retained_grapheme_count_for_constraints,
             synchronize_text_document,
         },
-        text_input_constraints_for_node,
+        text_input_constraints_for_node, UiSurface,
     },
 };
 

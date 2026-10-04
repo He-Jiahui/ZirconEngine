@@ -53,7 +53,7 @@ requireText(world, /resolveOfflineLootRoll[\s\S]*?lootRollRuntime\.tiedWinnerCou
   'loot-roll resolution semantics are missing');
 requireText(world, /updateOfflineLootRolls[\s\S]*?pendingLootRollExpiresAtMicros[\s\S]*?resolveOfflineLootRoll/,
   'loot-roll timeout resolution is missing');
-requireText(world, /writer\.u16\(<uint>78, 1, 1\)[\s\S]*?nextLootRollId[\s\S]*?pendingLootRollIds[\s\S]*?lootRollCandidateRollIds/,
+requireText(world, /writer\.u16\(schemaVersion, 1, 1\)[\s\S]*?nextLootRollId[\s\S]*?pendingLootRollIds[\s\S]*?lootRollCandidateRollIds/,
   'WOS72 loot-roll snapshot tail is missing');
 requireText(world, /if \(schemaVersion >= <uint>70\)[\s\S]*?nextLootRollId[\s\S]*?pendingLootRollIds[\s\S]*?lootRollCandidateRollIds/,
   'WOS72 loot-roll migration is missing');

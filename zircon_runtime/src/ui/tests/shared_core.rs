@@ -20,12 +20,12 @@ use zircon_runtime_interface::ui::{
     },
     style::{UiPainterFamily, UiPainterResolvedState},
     surface::{
-        UiFocusState, UiNavigationEventKind, UiPointerButton, UiPointerEventKind,
+        UiFocusState, UiNavigationEventKind, UiPointerButton, UiPointerEventKind, UiPointerRoute,
         UiRenderCommandKind, UiResolvedStyle, UiTextAlign, UiTextRenderMode, UiTextWrap,
         UiVisualAssetRef,
     },
     template::UiBindingRef,
-    tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTree, UiTreeNode, UiVisibility},
+    tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTree, UiTreeError, UiTreeNode, UiVisibility},
 };
 
 fn stretch_constraint(min: f32, preferred: f32, priority: i32, weight: f32) -> AxisConstraint {

@@ -4,8 +4,8 @@ use crate::text::shaping::TextShapingOutcome;
 use crate::text::{ShapedGlyphRun, TextStyle};
 
 use super::{
-    MeasuredGlyphCluster, TextLineMetrics, measured_grapheme_geometry_from_shaped,
-    resolve_horizontal_plain_line_policy, text_line_metrics_from_shaped,
+    measured_grapheme_geometry_from_shaped, resolve_horizontal_plain_line_policy,
+    text_line_metrics_from_shaped, MeasuredGlyphCluster, TextLineMetrics,
 };
 
 /// Shared immutable geometry derived from one horizontal final-line shape request.
@@ -28,6 +28,7 @@ impl HorizontalLineFragmentGeometry {
         text: &str,
         style: &TextStyle,
     ) -> TextShapingOutcome<Self> {
+        // 从同一 shaped run 派生行指标与簇几何；几何投影失败时不发布只带部分字段的 fragment。
         let metrics = shaped
             .lines
             .first()

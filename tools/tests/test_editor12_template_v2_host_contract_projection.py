@@ -31,23 +31,24 @@ class EditorPluginV2HostContractTests(unittest.TestCase):
         projection = source(
             "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/template_runtime_projection.rs"
         )
-        consumers = [
-            "zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/selection.rs",
-            "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/pane_nodes.rs",
-            "zircon_editor/src/ui/retained_host/host_contract/window/template_hover/panes.rs",
-            "zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry/pane_frames/template_nodes/source.rs",
-            "zircon_editor/src/ui/retained_host/host_contract/data/world_space_submission/builder/pane.rs",
-        ]
+        consumers = {
+            "zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/selection.rs": "template_nodes()",
+            "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/pane_nodes.rs": "template_nodes()",
+            "zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry/pane_frames/template_nodes/source.rs": "template_nodes()",
+            "zircon_editor/src/ui/retained_host/host_contract/data/world_space_submission/builder/pane.rs": "&pane.template_v2.nodes",
+        }
 
         self.assertIn("has_template_v2_payload", conversion)
         self.assertIn("template_v2", conversion)
         self.assertIn("PanePayload::TemplateV2", projection)
         self.assertIn("to_host_contract_template_v2_pane_from_host_pane_with_runtime", projection)
         self.assertIn("build_host_model_with_surface", projection)
-        for relative_path in consumers:
-            self.assertIn("template_v2.nodes", source(relative_path), relative_path)
+        for relative_path, anchor in consumers.items():
+            self.assertIn(anchor, source(relative_path), relative_path)
 
-        implementation = "\n".join([conversion, projection] + [source(path) for path in consumers])
+        implementation = "\n".join(
+            [conversion, projection] + [source(path) for path in consumers]
+        )
         self.assertNotIn("navigation.", implementation.lower())
 
 

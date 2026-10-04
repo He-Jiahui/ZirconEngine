@@ -9,15 +9,15 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ROOT_SCHEMA_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_pipeline_report_native_dynamic_stage_build_plan_schema.py"
+    / "tools/export/tests/test_pipeline_report_native_dynamic_stage_build_plan_schema.py"
 )
 PACKAGE_SCHEMA_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_pipeline_report_native_dynamic_stage_build_plan_package_schema.py"
+    / "tools/export/tests/test_pipeline_report_native_dynamic_stage_build_plan_package_schema.py"
 )
 SUPPORT_FILE = (
     REPO_ROOT
-    / "tools/zircon_export/tests/native_dynamic_stage_schema_test_support.py"
+    / "tools/export/tests/native_dynamic_stage_schema_test_support.py"
 )
 
 PACKAGE_SCHEMA_TESTS = (

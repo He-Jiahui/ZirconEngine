@@ -1,3 +1,4 @@
+//! 构造辅助方法积累图级声明；跨特性替换和资源扩展的冲突交给编译器统一检查。
 use crate::graphics::FrameHistoryBinding;
 
 use super::render_feature_descriptor::RenderFeatureDescriptor;
@@ -257,29 +258,5 @@ impl RenderFeatureDescriptor {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::render_graph::{RenderResourceSchema, RenderTextureSchema};
-    use crate::rhi::{TextureFormat, TextureUsage};
-
-    #[test]
-    fn pass_resource_extension_preserves_its_explicit_schema() {
-        let schema = RenderResourceSchema::texture(RenderTextureSchema::new(
-            TextureFormat::Rgba16Float,
-            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
-        ));
-        let descriptor =
-            RenderFeatureDescriptor::new("typed-extension", Vec::new(), Vec::new(), Vec::new())
-                .with_pass_read_texture_with_schema(
-                    "existing-pass",
-                    "typed-extension-input",
-                    schema,
-                );
-
-        let extension = descriptor
-            .resource_extensions()
-            .next()
-            .expect("extension declaration");
-        assert_eq!(extension.resource.schema, Some(schema));
-    }
-}
+#[path = "tests/construct.rs"]
+mod tests;

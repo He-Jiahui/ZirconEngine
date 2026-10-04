@@ -10,15 +10,17 @@ use crate::graphics::debug_markers::{
     insert_marker, marker_for_render_graph_pass, marker_for_render_pass_stage,
 };
 use crate::graphics::pipeline::RenderPassStage;
-use crate::graphics::pipeline::{CompiledRenderPipeline, RenderGraphExecutionCursor};
+use crate::graphics::pipeline::{
+    CompiledRenderPipeline, RenderGraphExecutionCursor, RenderGraphExecutionPass,
+};
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::cluster_dimensions_for_size;
 use crate::graphics::scene::scene_renderer::deferred::DeferredSceneResources;
-use crate::graphics::scene::scene_renderer::environment::IblBakeWgpuPipelineCache;
 use crate::graphics::scene::scene_renderer::environment::ibl_bake_graph_plan::{
     IBL_BAKE_IRRADIANCE_CUBE_EXECUTOR_ID, IBL_BAKE_IRRADIANCE_SH9_EXECUTOR_ID,
     IBL_BAKE_PMREM_EXECUTOR_ID,
 };
+use crate::graphics::scene::scene_renderer::environment::IblBakeWgpuPipelineCache;
 use crate::graphics::scene::scene_renderer::graph_execution::parallel_encoder_set::ParallelEncoderSet;
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphComputeDispatchRecord, RenderGraphComputeWorkloadDispatchContext,
@@ -28,10 +30,10 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
 };
 use crate::graphics::scene::scene_renderer::history::SceneHistoryWriteIntent;
 use crate::graphics::scene::scene_renderer::hzb::{HzbOcclusionCuller, HzbOcclusionParamsCommit};
-use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawReplayStats, MeshDrawReplayStatsAccumulator,
 };
+use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::overlay::{
     PreparedOverlayBuffers, ViewportOverlayRenderer,
 };
@@ -144,9 +146,10 @@ impl<'a> RenderGraphStageExecution<'a> {
     pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene) fn admit_graph_pass(
         &mut self,
         pipeline: &CompiledRenderPipeline,
-        graph_pass_index: usize,
+        execution_pass: &RenderGraphExecutionPass,
         expected_batch_index: usize,
     ) -> Result<(), GraphicsError> {
+        let graph_pass_index = execution_pass.graph_pass_index;
         let pass = pipeline
             .graph()
             .passes()
@@ -175,6 +178,17 @@ impl<'a> RenderGraphStageExecution<'a> {
                 pipeline.name, pass.name
             )));
         }
+        let access_ids = pipeline
+            .execution_access_ids_for_pass(graph_pass_index)
+            .ok_or_else(|| {
+                GraphicsError::Asset(format!(
+                    "compiled render pipeline `{}` device plan is missing access identities for pass `{}` at index {graph_pass_index}",
+                    pipeline.name, pass.name
+                ))
+            })?;
+        self.resources
+            .validate_device_execution_pass(pipeline.graph(), execution_pass, access_ids)
+            .map_err(GraphicsError::Asset)?;
         let cursor = self
             .execution_cursor
             .get_or_insert_with(|| pipeline.begin_execution());
@@ -191,6 +205,75 @@ impl<'a> RenderGraphStageExecution<'a> {
             )));
         }
         coverage[graph_pass_index] = 1;
+        Ok(())
+    }
+
+    /// Accounts for terminal `Present` passes that have no destination in an
+    /// offscreen frame.  The compiled packet remains the authority: every
+    /// present pass is checked and marked through the same cursor used by
+    /// recorded passes, while no GPU executor is invoked.
+    pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene) fn skip_unavailable_present_passes(
+        &mut self,
+        pipeline: &CompiledRenderPipeline,
+    ) -> Result<(), GraphicsError> {
+        let present_passes = pipeline
+            .execution_batches_with_indices_for_stage(RenderPassStage::Present)
+            .flat_map(|(batch_index, batch)| {
+                pipeline
+                    .execution_passes_for_batch(batch)
+                    .filter(|execution_pass| execution_pass.stage == RenderPassStage::Present)
+                    .map(move |execution_pass| (batch_index, execution_pass.graph_pass_index))
+            })
+            .collect::<Vec<_>>();
+
+        for (batch_index, graph_pass_index) in present_passes {
+            let pass = pipeline
+                .graph()
+                .passes()
+                .get(graph_pass_index)
+                .ok_or_else(|| {
+                    GraphicsError::Asset(format!(
+                        "compiled render pipeline `{}` execution references missing graph pass index {graph_pass_index}",
+                        pipeline.name
+                    ))
+                })?;
+            if pass.culled {
+                return Err(GraphicsError::Asset(format!(
+                    "compiled render pipeline `{}` execution attempted to skip culled graph pass `{}` at index {graph_pass_index}",
+                    pipeline.name, pass.name
+                )));
+            }
+            let Some(packet_batch_index) =
+                pipeline.execution_batch_index_for_pass(graph_pass_index)
+            else {
+                return Err(GraphicsError::Asset(format!(
+                    "compiled render pipeline `{}` present pass `{}` at index {graph_pass_index} has no live execution batch",
+                    pipeline.name, pass.name
+                )));
+            };
+            if packet_batch_index != batch_index {
+                return Err(GraphicsError::Asset(format!(
+                    "compiled render pipeline `{}` present pass `{}` at index {graph_pass_index} belongs to batch {packet_batch_index}, but stage routing supplied batch {batch_index}",
+                    pipeline.name, pass.name
+                )));
+            }
+            let cursor = self
+                .execution_cursor
+                .get_or_insert_with(|| pipeline.begin_execution());
+            pipeline
+                .skip_surface_present_execution_pass(cursor, graph_pass_index)
+                .map_err(GraphicsError::Asset)?;
+            let coverage = self
+                .graph_pass_coverage
+                .get_or_insert_with(|| vec![0; pipeline.graph().passes().len()]);
+            if coverage[graph_pass_index] != 0 {
+                return Err(GraphicsError::Asset(format!(
+                    "compiled render pipeline `{}` execution admitted or skipped graph pass `{}` at index {graph_pass_index} more than once",
+                    pipeline.name, pass.name
+                )));
+            }
+            coverage[graph_pass_index] = 1;
+        }
         Ok(())
     }
 
@@ -215,7 +298,7 @@ impl<'a> RenderGraphStageExecution<'a> {
                 )));
             }
         }
-        if let Some(cursor) = self.execution_cursor {
+        if let Some(cursor) = &self.execution_cursor {
             pipeline
                 .finish_execution(cursor)
                 .map_err(GraphicsError::Asset)?;
@@ -430,7 +513,7 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
             if pass.culled {
                 continue;
             }
-            execution.admit_graph_pass(pipeline, execution_pass.graph_pass_index, batch_index)?;
+            execution.admit_graph_pass(pipeline, execution_pass, batch_index)?;
             let gpu_timestamp_scope = execution
                 .gpu_pass_timer
                 .as_deref_mut()
@@ -621,7 +704,7 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
 }
 
 #[cfg(test)]
-#[path = "execute_graph_stage_tests.rs"]
+#[path = "tests/execute_graph_stage_tests.rs"]
 mod tests;
 
 #[allow(clippy::too_many_arguments)]
@@ -813,7 +896,25 @@ fn execute_graph_pass(
                 gpu.take_history_writes(),
             )
         })
-        .unwrap_or_default();
+        .unwrap_or_else(|| {
+            (
+                None,
+                None,
+                None,
+                Vec::new(),
+                MotionVectorCameraStatus::NotRequested,
+                None,
+                None,
+                RenderPassNativeResourceCreateMetrics::default(),
+                (0_usize, 0_u64),
+                0,
+                WgpuBufferUploadBatch::new(),
+                WgpuTextureUploadBatch::new(),
+                Vec::new(),
+                Vec::new(),
+                SceneHistoryWriteIntent::default(),
+            )
+        });
     drop(context);
     if let Some(scope) = gpu_timestamp_scope.as_ref() {
         scope.end(encoder);

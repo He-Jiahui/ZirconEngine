@@ -42,6 +42,8 @@ pub(super) const IBL_SOURCE_CUBEMAP_BUNDLE_JOURNAL_DIRECTORY: &str =
 const IBL_SOURCE_CUBEMAP_BUNDLE_TRANSACTION_TAG: &str = "ibl-source-bundle";
 const IBL_SOURCE_CUBEMAP_BUNDLE_READ_ATTEMPTS: usize = 3;
 
+/// 将导入器生成的源立方图、CPU 派生 IBL 与清单绑定为可恢复的磁盘 bundle。
+/// 读取方先恢复未完成事务，再按清单验证同一请求的两份载荷。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct IblSourceCubemapStagingStore {
     cache_root: PathBuf,
@@ -89,6 +91,7 @@ impl IblSourceCubemapStagingStore {
         self.read_source_cubemap_zcube_with_snapshot_hooks(request, || Ok(()), || Ok(()))
     }
 
+    /// 恢复环境时验证请求、bundle 摘要及发布状态；失败交给导入恢复链决定重建。
     pub fn read_source_cubemap_environment(
         &self,
         request: &IblBakeArtifactRequest,
@@ -104,6 +107,7 @@ impl IblSourceCubemapStagingStore {
         )
     }
 
+    // BUG: [CR-ASSET-ARTIFACT-0001] 此热缓存探测只比较源/派生文件长度，未核对清单摘要；等长损坏仍被 importer/environment_ibl 的 Reused 分支接受。
     pub(crate) fn current_bundle_manifest_matches(
         &self,
         request: &IblBakeArtifactRequest,
@@ -338,6 +342,7 @@ impl IblSourceCubemapStagingStore {
         }
     }
 
+    /// 导入阶段的发布入口；三份文件必须一起提交，调用方不能单独替换已配对载荷。
     pub fn write_source_cubemap_staged_bundle(
         &self,
         request: &IblBakeArtifactRequest,
@@ -861,5 +866,5 @@ fn update_bake_key_hash(hasher: &mut blake3::Hasher, bake_key: IblBakeKey) {
 }
 
 #[cfg(test)]
-#[path = "ibl_source_cubemap_staging/tests.rs"]
+#[path = "ibl_source_cubemap_staging/tests/cases.rs"]
 mod tests;

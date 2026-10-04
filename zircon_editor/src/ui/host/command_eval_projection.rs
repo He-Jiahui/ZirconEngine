@@ -82,7 +82,12 @@ impl EditorHostEventController {
                     .with_play_state(play_state_from_mode(self.play_sessions().mode()))
             }
             EditorOperationSource::Menu | EditorOperationSource::UiBinding => {
-                self.context().command_eval().snapshot()
+                // Play transitions commit before the next chrome projection. Admission must
+                // observe the live session authority while preserving the stored UI context.
+                self.context()
+                    .command_eval()
+                    .snapshot()
+                    .with_play_state(play_state_from_mode(self.play_sessions().mode()))
             }
         }
     }

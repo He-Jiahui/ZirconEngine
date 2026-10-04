@@ -10,6 +10,8 @@ use crate::asset::{
 };
 use crate::core::resource::ResourceDiagnostic;
 
+use super::{AssetImportBuildContext, AssetImportBuildIdentity, AssetImportRecipe};
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AssetImporterDescriptor {
     pub id: String,
@@ -119,8 +121,12 @@ pub struct AssetImportContext {
     pub source_path: PathBuf,
     pub uri: AssetUri,
     pub source_bytes: Vec<u8>,
-    pub import_settings: toml::Table,
+    import_settings: toml::Table,
+    import_recipe: AssetImportRecipe,
+    build_context: Option<AssetImportBuildContext>,
+    build_action_key: Option<String>,
     source_file_snapshots: BTreeMap<PathBuf, Vec<u8>>,
+    source_file_snapshots_authoritative: bool,
     project_resolver: Option<ProjectImportResolver>,
     reference_repairs: std::sync::Arc<std::sync::Mutex<Vec<crate::asset::ReferenceRepair>>>,
 }
@@ -138,15 +144,49 @@ impl AssetImportContext {
         source_bytes: Vec<u8>,
         import_settings: toml::Table,
     ) -> Self {
+        let import_recipe = AssetImportRecipe::from_legacy_settings(import_settings.clone());
         Self {
             source_path,
             uri,
             source_bytes,
             import_settings,
+            import_recipe,
+            build_context: None,
+            build_action_key: None,
             source_file_snapshots: BTreeMap::new(),
+            source_file_snapshots_authoritative: false,
             project_resolver: None,
             reference_repairs: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
         }
+    }
+
+    pub(crate) fn with_build_identity(mut self, identity: AssetImportBuildIdentity) -> Self {
+        let settings_recipe = AssetImportRecipe::from_legacy_settings(self.import_settings.clone());
+        assert!(
+            identity.recipe().canonical_bytes() == settings_recipe.canonical_bytes(),
+            "asset import build identity recipe must match the context settings"
+        );
+        let (recipe, build_context, action_key) = identity.into_context_parts();
+        self.import_recipe = recipe;
+        self.build_context = Some(build_context);
+        self.build_action_key = Some(action_key);
+        self
+    }
+
+    pub fn import_settings(&self) -> &toml::Table {
+        &self.import_settings
+    }
+
+    pub fn import_recipe(&self) -> &AssetImportRecipe {
+        &self.import_recipe
+    }
+
+    pub fn build_context(&self) -> Option<&AssetImportBuildContext> {
+        self.build_context.as_ref()
+    }
+
+    pub fn build_action_key(&self) -> Option<&str> {
+        self.build_action_key.as_deref()
     }
 
     pub(crate) fn with_project_resolver(
@@ -158,17 +198,42 @@ impl AssetImportContext {
         self
     }
 
-    /// Supplies transaction-owned companion files without exposing an uncommitted destination.
-    pub(crate) fn with_source_file_snapshots(
+    /// Supplies authoritative transaction-owned companion files without exposing the destination.
+    pub fn with_source_file_snapshots(
         mut self,
         source_file_snapshots: BTreeMap<PathBuf, Vec<u8>>,
     ) -> Self {
         self.source_file_snapshots = source_file_snapshots;
+        self.source_file_snapshots_authoritative = true;
         self
     }
 
     pub(crate) fn source_file_snapshot(&self, path: &std::path::Path) -> Option<&[u8]> {
-        self.source_file_snapshots.get(path).map(Vec::as_slice)
+        self.source_file_snapshots
+            .get(path)
+            .or_else(|| {
+                #[cfg(windows)]
+                {
+                    self.source_file_snapshots.iter().find_map(|(key, bytes)| {
+                        crate::asset::project::ProjectPaths::same_lexical_path(key, path)
+                            .unwrap_or(false)
+                            .then_some(bytes)
+                    })
+                }
+                #[cfg(not(windows))]
+                {
+                    None
+                }
+            })
+            .map(Vec::as_slice)
+    }
+
+    pub(crate) fn has_source_file_snapshots(&self) -> bool {
+        self.source_file_snapshots_authoritative
+    }
+
+    pub(crate) fn source_file_snapshot_paths(&self) -> impl Iterator<Item = &std::path::Path> {
+        self.source_file_snapshots.keys().map(PathBuf::as_path)
     }
 
     pub fn resolve_project_asset_ref(
@@ -233,12 +298,12 @@ impl AssetImportContext {
     pub fn virtual_geometry_cook_request(
         &self,
     ) -> Result<VirtualGeometryCookRequest, AssetImportError> {
-        VirtualGeometryCookRequest::from_import_settings(&self.import_settings)
+        VirtualGeometryCookRequest::from_import_settings(self.import_settings())
             .map_err(AssetImportError::Parse)
     }
 
     pub fn mesh_sdf_cook_request(&self) -> Result<MeshSdfCookRequest, AssetImportError> {
-        MeshSdfCookRequest::from_import_settings(&self.import_settings)
+        MeshSdfCookRequest::from_import_settings(self.import_settings())
             .map_err(AssetImportError::Parse)
     }
 
@@ -248,60 +313,8 @@ impl AssetImportContext {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn source_str_borrows_the_context_utf8_buffer() {
-        let context = AssetImportContext::new(
-            PathBuf::from("assets/shaders/main.wgsl"),
-            AssetUri::parse("res://shaders/main.wgsl").unwrap(),
-            b"@compute @workgroup_size(1) fn main() {}".to_vec(),
-            toml::Table::new(),
-        );
-
-        let source = context.source_str().unwrap();
-
-        assert_eq!(source, "@compute @workgroup_size(1) fn main() {}");
-        assert_eq!(source.as_ptr(), context.source_bytes.as_ptr());
-        assert_eq!(source.len(), context.source_bytes.len());
-    }
-
-    fn context_with_settings(import_settings: toml::Table) -> AssetImportContext {
-        AssetImportContext::new(
-            PathBuf::from("assets/models/mesh.obj"),
-            AssetUri::parse("res://models/mesh.obj").unwrap(),
-            Vec::new(),
-            import_settings,
-        )
-    }
-
-    #[test]
-    fn context_exposes_disabled_virtual_geometry_request_by_default() {
-        assert_eq!(
-            context_with_settings(toml::Table::new())
-                .virtual_geometry_cook_request()
-                .unwrap(),
-            VirtualGeometryCookRequest::Disabled
-        );
-    }
-
-    #[test]
-    fn context_rejects_malformed_virtual_geometry_request() {
-        let settings = toml::from_str(
-            r#"
-                [virtual_geometry]
-                enabled = "yes"
-            "#,
-        )
-        .unwrap();
-
-        assert!(matches!(
-            context_with_settings(settings).virtual_geometry_cook_request(),
-            Err(AssetImportError::Parse(message)) if message.contains("virtual_geometry.enabled")
-        ));
-    }
-}
+#[path = "tests/contract.rs"]
+mod tests;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AssetSchemaMigrationReport {
@@ -555,168 +568,5 @@ fn normalize_full_suffix_owned(mut suffix: String) -> String {
 }
 
 #[cfg(test)]
-mod plugins07_descriptor_normalization_hotpath_tests {
-    use std::hint::black_box;
-    use std::time::Instant;
-
-    use super::*;
-
-    const SAMPLE_PAIRS: usize = 21;
-    const CHECKS_PER_SAMPLE: usize = 160_000;
-    const EXTENSIONS: [&str; 4] = [" PNG ", " .KtX2 ", " DDS", ".AstC "];
-    const SUFFIXES: [&str; 4] = [
-        " .SKELETON.ZRANIM ",
-        ".Clip.ZRANIM ",
-        " .Scene.TOML",
-        ".PREFAB.TOML ",
-    ];
-
-    #[test]
-    fn importer_descriptor_normalization_contract_in_place_extensions() {
-        assert_eq!(normalize_extension_owned("  .PnG  ".to_string()), "png");
-        let descriptor =
-            AssetImporterDescriptor::new("test.normalized", "test.plugin", AssetKind::Texture, 1)
-                .with_source_extensions([" .KtX2 ".to_string()]);
-        assert_eq!(descriptor.source_extensions, ["ktx2"]);
-    }
-
-    #[test]
-    fn importer_descriptor_normalization_contract_in_place_full_suffixes() {
-        assert_eq!(
-            normalize_full_suffix_owned("  Skeleton.ZRANIM  ".to_string()),
-            ".skeleton.zranim"
-        );
-        let descriptor =
-            AssetImporterDescriptor::new("test.normalized", "test.plugin", AssetKind::Texture, 1)
-                .with_full_suffixes([" Scene.TOML ".to_string()]);
-        assert_eq!(descriptor.full_suffixes, [".scene.toml"]);
-    }
-
-    #[test]
-    #[ignore = "release performance gate"]
-    fn importer_descriptor_normalization_performance_release_extensions() {
-        let (legacy_samples, optimized_samples) =
-            alternating_samples(measure_legacy_extensions, measure_in_place_extensions);
-        report_normalization_performance(
-            "plugins07_importer_extension_in_place_normalization",
-            CHECKS_PER_SAMPLE * 2,
-            CHECKS_PER_SAMPLE,
-            &legacy_samples,
-            &optimized_samples,
-        );
-    }
-
-    #[test]
-    #[ignore = "release performance gate"]
-    fn importer_descriptor_normalization_performance_release_full_suffixes() {
-        let (legacy_samples, optimized_samples) =
-            alternating_samples(measure_legacy_suffixes, measure_in_place_suffixes);
-        report_normalization_performance(
-            "plugins07_importer_suffix_in_place_normalization",
-            CHECKS_PER_SAMPLE * 2,
-            CHECKS_PER_SAMPLE,
-            &legacy_samples,
-            &optimized_samples,
-        );
-    }
-
-    fn measure_legacy_extensions() -> u128 {
-        measure_owned_normalization(&EXTENSIONS, |value| {
-            let owned = value.to_string();
-            normalize_extension(black_box(&owned))
-        })
-    }
-
-    fn measure_in_place_extensions() -> u128 {
-        measure_owned_normalization(&EXTENSIONS, |value| {
-            normalize_extension_owned(value.to_string())
-        })
-    }
-
-    fn measure_legacy_suffixes() -> u128 {
-        measure_owned_normalization(&SUFFIXES, |value| {
-            let owned = value.to_string();
-            normalize_full_suffix(black_box(&owned))
-        })
-    }
-
-    fn measure_in_place_suffixes() -> u128 {
-        measure_owned_normalization(&SUFFIXES, |value| {
-            normalize_full_suffix_owned(value.to_string())
-        })
-    }
-
-    fn measure_owned_normalization(
-        values: &[&str],
-        mut normalize: impl FnMut(&str) -> String,
-    ) -> u128 {
-        let started = Instant::now();
-        let mut total_len = 0_usize;
-        for check in 0..CHECKS_PER_SAMPLE {
-            let normalized = normalize(black_box(values[check % values.len()]));
-            total_len += black_box(normalized.len());
-            black_box(normalized);
-        }
-        black_box(total_len);
-        started.elapsed().as_nanos().max(1)
-    }
-
-    fn alternating_samples(
-        mut legacy: impl FnMut() -> u128,
-        mut optimized: impl FnMut() -> u128,
-    ) -> (Vec<u128>, Vec<u128>) {
-        for _ in 0..4 {
-            black_box(legacy());
-            black_box(optimized());
-        }
-        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
-        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
-        for pair_index in 0..SAMPLE_PAIRS {
-            if pair_index % 2 == 0 {
-                legacy_samples.push(legacy());
-                optimized_samples.push(optimized());
-            } else {
-                optimized_samples.push(optimized());
-                legacy_samples.push(legacy());
-            }
-        }
-        (legacy_samples, optimized_samples)
-    }
-
-    fn report_normalization_performance(
-        name: &str,
-        legacy_allocations_per_sample: usize,
-        optimized_allocations_per_sample: usize,
-        legacy_samples: &[u128],
-        optimized_samples: &[u128],
-    ) {
-        let legacy_p95 = nearest_rank_p95(legacy_samples);
-        let optimized_p95 = nearest_rank_p95(optimized_samples);
-        let improvement_percent =
-            legacy_p95.saturating_sub(optimized_p95).saturating_mul(100) / legacy_p95.max(1);
-        println!(
-            "PERF_RESULT {name} sample_pairs={SAMPLE_PAIRS} checks_per_sample={CHECKS_PER_SAMPLE} legacy_ns={} optimized_ns={} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} improvement_percent={improvement_percent} threshold_percent=25 legacy_allocations_per_sample={legacy_allocations_per_sample} optimized_allocations_per_sample={optimized_allocations_per_sample} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10",
-            csv(legacy_samples),
-            csv(optimized_samples),
-        );
-        assert!(
-            improvement_percent >= 25,
-            "in-place importer descriptor normalization must improve P95 by at least 25%"
-        );
-    }
-
-    fn nearest_rank_p95(samples: &[u128]) -> u128 {
-        let mut sorted = samples.to_vec();
-        sorted.sort_unstable();
-        let rank = (sorted.len() * 95).div_ceil(100);
-        sorted[rank.saturating_sub(1)]
-    }
-
-    fn csv(samples: &[u128]) -> String {
-        samples
-            .iter()
-            .map(u128::to_string)
-            .collect::<Vec<_>>()
-            .join(",")
-    }
-}
+#[path = "tests/contract_plugins07_descriptor_normalization_hotpath_tests.rs"]
+mod plugins07_descriptor_normalization_hotpath_tests;

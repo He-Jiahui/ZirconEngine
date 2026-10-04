@@ -24,7 +24,7 @@ requireText(casting, /firesProjectile = ability\.projectile \?\? ability\.school
 
 const generator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
-if (!/frost_shock',[\s\S]*?'flame_shock'/.test(generator) || !generator.includes("EXPECTED_ABILITY_COUNT = 79") || !zrGenerator.includes("document.entries.length === 79")) throw new Error("M4 Flame Shock scope is missing");
+if (!/frost_shock',[\s\S]*?'flame_shock'/.test(generator) || !generator.includes("EXPECTED_ABILITY_COUNT = 117") || !zrGenerator.includes("document.entries.length === 117")) throw new Error("M4 Flame Shock scope is missing");
 const m4 = JSON.parse(read("contracts", "m4_abilities.json"));
 const entry = m4.entries.find((value) => value.id === "flame_shock");
 if (!entry || entry.index !== 36 || entry.definition.school !== "fire" || entry.definition.effects?.[0]?.type !== "directDamage" || entry.definition.effects?.[1]?.type !== "dot") throw new Error("M4 Flame Shock projection drifted");

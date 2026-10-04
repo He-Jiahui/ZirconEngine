@@ -1,3 +1,4 @@
+# 核对运行时状态编码借用已提交节拍输入并保留线协议。
 from __future__ import annotations
 
 import re

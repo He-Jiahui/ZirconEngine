@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-
+# 校验 Kira 依赖只由 sound runtime 持有：清单审计覆盖全部产品包、拒绝伪造别名和不可读子树，并与 Rust 结构守卫的所有权约束对齐。
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 AUDIT_SCRIPTS = (

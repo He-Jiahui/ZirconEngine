@@ -1,10 +1,10 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema_native_modules import (
+from tools.audits.plugins.manifest_schema_native_modules import (
     collect_native_crate_name_collisions,
 )
 
-
+# 用原生模块清单夹具验证运行时与编辑器可共享 cdylib，且同类模块复用名称会报告冲突。
 class PluginStructureAuditNativeModuleTests(unittest.TestCase):
     def test_shared_cdylib_is_valid_when_runtime_and_editor_kinds_are_explicit(self):
         collisions = collect_native_crate_name_collisions(

@@ -1,0 +1,490 @@
+penpot_dependency_sources = []
+penpot_original_source = "[asset]\nkind = \"view\"\nid = \"res://ui/tests/reactbits_workbench_interaction_surfaces.zui\"\nversion = 2\ndisplay_name = \"ReactBits Workbench Interaction Surfaces\"\n\n[tokens]\n\"surface.canvas\" = \"#0f1117\"\n\"surface.panel\" = \"#171b24\"\n\"surface.elevated\" = \"#1d2330\"\n\"surface.inset\" = \"#11151d\"\n\"border.default\" = \"#2a3342\"\n\"border.strong\" = \"#3a4658\"\n\"text.primary\" = \"#f4f7fb\"\n\"text.secondary\" = \"#a9b4c5\"\n\"text.muted\" = \"#718096\"\n\"accent.primary\" = \"#8b7cff\"\n\"accent.info\" = \"#5da9ff\"\n\"status.success\" = \"#55d6a0\"\n\"status.warning\" = \"#f4bd62\"\n\"status.error\" = \"#ff7d8a\"\n\n[root]\nnode = \"root\"\n\n[nodes.root]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ReactBitsWorkbenchInteractionRoot\"\nclasses = [\"rb-interaction-surfaces\"]\nprops = {\n  background_color = \"$surface.canvas\",\n  foreground_color = \"$text.primary\",\n  fixture_data_only = true,\n  reference_primary = \"https://pro.reactbits.dev/docs/app-ui/app-shell/app-shell-4\",\n  reference_supporting = [\n    \"https://pro.reactbits.dev/docs/app-ui/command-menu\",\n    \"https://pro.reactbits.dev/docs/app-ui/app-dialog\",\n    \"https://pro.reactbits.dev/docs/app-ui/notifications\",\n    \"https://pro.reactbits.dev/docs/app-ui/mobile\",\n  ],\n  responsive_wide = \"command palette leads; dialog and notification surfaces share a row\",\n  responsive_intermediate = \"sidebar/rail remains available; popup surfaces use a bounded drawer\",\n  responsive_compact = \"feedback surfaces keep equal priority and retain their action affordances\",\n  responsive_mobile = \"rows stay readable at the narrow tier; toast remains full width\",\n  layout_modes = [\"full-shell\", \"adaptive-rail\", \"centered-editor\", \"mobile-bottom-actions\"],\n  accessibility_label = \"Workbench interaction surface reference\",\n}\nlayout = {\n  clip = true,\n  input_policy = \"Receive\",\n  width = { min = 360, preferred = 960, max = 1280, stretch = \"Stretch\" },\n  height = { min = 360, preferred = 620, max = 820, stretch = \"Stretch\" },\n  container = { kind = \"VerticalBox\", gap = 6 },\n  padding = { left = 10, right = 10, top = 10, bottom = 10 },\n}\nchildren = [\n  { node = \"header\" },\n  { node = \"command_palette\" },\n  { node = \"dialog_row\" },\n  { node = \"system_row\" },\n  { node = \"toast\" },\n]\n\n[nodes.header]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"ReactBitsWorkbenchInteractionHeader\"\nprops = { background_color = \"$surface.panel\", border_color = \"$border.default\", border_width = 1, corner_radius = 8 }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28, preferred = 28, max = 28, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 8 }, padding = { left = 10, right = 10, top = 4, bottom = 4 } }\nchildren = [{ node = \"header_title\" }, { node = \"header_status\" }]\n\n[nodes.header_title]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsWorkbenchInteractionTitle\"\nprops = { text = \"Interaction surfaces\", foreground_color = \"$text.primary\", font_size = 13, font_weight = 650, accessibility_label = \"Interaction surfaces\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.header_status]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsWorkbenchInteractionStatus\"\nprops = { text = \"PENPOT PARITY\", foreground_color = \"$status.success\", font_size = 9, font_weight = 700, letter_spacing = 0.8, text_align = \"right\" }\nlayout = { width = { min = 96, preferred = 108, max = 124, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.command_palette]\ncomponent = \"CommandPalette\"\ncontrol_id = \"ReactBitsWorkbenchCommandPalette\"\nclasses = [\"rb-surface\", \"rb-command-palette\", \"rb-open\"]\nprops = {\n  open = true,\n  popup_open = true,\n  query = \"build\",\n  placeholder = \"Search commands\",\n  command_source = \"workbench\",\n  commands = [\n    \"open_scene|label=Open Scene|shortcut=Ctrl+O\",\n    \"build_project|label=Build Project|shortcut=Ctrl+B\",\n    \"toggle_console|label=Toggle Console|shortcut=Ctrl+`\",\n  ],\n  filtered_commands = [\"build_project\", \"open_scene\"],\n  recent_commands = [\"build_project\"],\n  selected_command_id = \"build_project\",\n  focused_index = 0,\n  keyboard_navigation = true,\n  empty_text = \"No commands found\",\n  input_interactive = true,\n  input_clickable = true,\n  input_hoverable = true,\n  input_focusable = true,\n  accessibility_label = \"Search and run workbench commands\",\n}\nlayout = { clip = true, width = { stretch = \"Stretch\" }, height = { min = 100, preferred = 108, max = 120, stretch = \"Fixed\" }, container = { kind = \"VerticalBox\" }, padding = { left = 8, right = 8, top = 6, bottom = 6 } }\nevents = [{ id = \"ReactBitsWorkbench/CommandCommit\", event = \"Submit\", route = \"workbench.command.commit\" }]\n\n[nodes.dialog_row]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"ReactBitsWorkbenchDialogRow\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 108, preferred = 120, max = 136, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 8 } }\nchildren = [{ node = \"dialog\" }, { node = \"confirm_dialog\" }]\n\n[nodes.dialog]\ncomponent = \"Dialog\"\ncontrol_id = \"ReactBitsWorkbenchDialog\"\nclasses = [\"rb-surface\", \"rb-dialog\"]\nprops = {\n  open = true,\n  popup_open = true,\n  title = \"Review layout changes\",\n  text = \"Review layout changes\",\n  message = \"The retained host has a new compact interaction row.\",\n  action = \"Review\",\n  input_interactive = true,\n  input_clickable = true,\n  input_hoverable = true,\n  input_focusable = true,\n  accessibility_label = \"Review layout changes dialog\",\n}\nlayout = { clip = true, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, container = { kind = \"VerticalBox\" }, padding = { left = 6, right = 6, top = 5, bottom = 5 } }\nevents = [{ id = \"ReactBitsWorkbench/DialogReview\", event = \"Click\", route = \"workbench.dialog.review\" }]\n\n[nodes.confirm_dialog]\ncomponent = \"ConfirmDialog\"\ncontrol_id = \"ReactBitsWorkbenchConfirmDialog\"\nclasses = [\"rb-surface\", \"rb-confirm-dialog\", \"rb-destructive\"]\nprops = {\n  open = true,\n  popup_open = true,\n  title = \"Apply generated patch?\",\n  text = \"Apply generated patch?\",\n  message = \"This writes the reviewed ZUI fixture into the project.\",\n  confirm_text = \"Apply\",\n  cancel_text = \"Later\",\n  severity = \"warning\",\n  destructive = false,\n  confirm_enabled = true,\n  requires_explicit_action = true,\n  input_interactive = true,\n  input_clickable = true,\n  input_hoverable = true,\n  input_focusable = true,\n  accessibility_label = \"Confirm generated patch\",\n}\nlayout = { clip = true, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, container = { kind = \"VerticalBox\" }, padding = { left = 6, right = 6, top = 5, bottom = 5 } }\nevents = [{ id = \"ReactBitsWorkbench/ConfirmPatch\", event = \"Click\", route = \"workbench.patch.confirm\" }]\n\n[nodes.system_row]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"ReactBitsWorkbenchSystemRow\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 150, preferred = 165, max = 180, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 8 } }\nchildren = [{ node = \"notifications\" }, { node = \"drag_overlay\" }]\n\n[nodes.notifications]\ncomponent = \"NotificationCenter\"\ncontrol_id = \"ReactBitsWorkbenchNotificationCenter\"\nclasses = [\"rb-surface\", \"rb-notifications\"]\nprops = {\n  open = true,\n  popup_open = true,\n  title = \"Notifications\",\n  unread_count = 2,\n  overflow_count = 0,\n  notifications = [\n    \"build|title=Build finished|message=ZUI fixture exported|severity=success|unread=true\",\n    \"review|title=Review requested|message=Check the narrow viewport|severity=info|unread=true\",\n    \"sync|title=Source synced|message=No local conflicts|severity=info|unread=false\",\n  ],\n  selected_notification_id = \"review\",\n  focused_index = 1,\n  visible_limit = 2,\n  empty_text = \"No notifications\",\n  input_interactive = true,\n  input_clickable = true,\n  input_hoverable = true,\n  input_focusable = true,\n  accessibility_label = \"Workbench notifications\",\n}\nlayout = { clip = true, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, container = { kind = \"VerticalBox\" }, padding = { left = 6, right = 6, top = 5, bottom = 5 } }\n\n[nodes.drag_overlay]\ncomponent = \"DragOverlay\"\ncontrol_id = \"ReactBitsWorkbenchDragOverlay\"\nclasses = [\"rb-surface\", \"rb-drag-overlay\", \"rb-dragging\"]\nprops = {\n  open = true,\n  dragging = true,\n  drop_hovered = true,\n  active_drag_target = true,\n  payload_kind = \"asset\",\n  payload_label = \"StoneWall.mesh\",\n  payload_reference = \"assets/stone_wall.mesh\",\n  source_control_id = \"WorkbenchAssetBrowser\",\n  target_control_id = \"WorkbenchSceneTree\",\n  drop_allowed = true,\n  drop_indicator_edge = \"bottom\",\n  drop_indicator_text = \"Drop into scene\",\n  input_interactive = true,\n  input_clickable = true,\n  input_hoverable = true,\n  input_focusable = true,\n  accessibility_label = \"Dragging asset preview\",\n}\nlayout = { clip = true, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, container = { kind = \"VerticalBox\" }, padding = { left = 6, right = 6, top = 5, bottom = 5 } }\n\n[nodes.toast]\ncomponent = \"WorkbenchToast\"\ncontrol_id = \"ReactBitsWorkbenchToast\"\nclasses = [\"rb-toast\", \"rb-toast-success\"]\nprops = {\n  open = true,\n  popup_open = true,\n  text = \"Layout exported to Penpot\",\n  value = \"Layout exported to Penpot\",\n  severity = \"success\",\n  action_label = \"Open\",\n  current_toast_id = \"layout-exported\",\n  input_interactive = true,\n  input_clickable = true,\n  input_hoverable = true,\n  input_focusable = true,\n  accessibility_label = \"Layout export notification\",\n}\nlayout = { clip = true, width = { stretch = \"Stretch\" }, height = { min = 38, preferred = 40, max = 46, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\" }, padding = { left = 6, right = 6, top = 4, bottom = 4 } }\nevents = [{ id = \"ReactBitsWorkbench/OpenExport\", event = \"Click\", route = \"workbench.export.open\" }]\n\n[nodes.root.zircon_extension]\nowner = \"reactbits-reference-slice\"\nreference_profile = \"reactbits-workbench-interaction-surfaces-v1\"\nsource_of_truth = \"zui\"\npenpot_visual_check = \"required\"\n\n[[stylesheets]]\nid = \"reactbits-ui-typography\"\n\n[[stylesheets.rules]]\nselector = \"*\"\nset = { self = { font = { asset = \"res://fonts/editor-ui.font.toml\", family = \"Fira Sans\" } } }\n"
+
+[asset]
+kind = "view"
+id = "res://ui/tests/reactbits_workbench_interaction_surfaces.zui"
+version = 2
+display_name = "ReactBits Workbench Interaction Surfaces"
+
+[tokens]
+"surface.canvas" = "#0f1117"
+"surface.panel" = "#171b24"
+"surface.elevated" = "#1d2330"
+"surface.inset" = "#11151d"
+"border.default" = "#2a3342"
+"border.strong" = "#3a4658"
+"text.primary" = "#f4f7fb"
+"text.secondary" = "#a9b4c5"
+"text.muted" = "#718096"
+"accent.primary" = "#8b7cff"
+"accent.info" = "#5da9ff"
+"status.success" = "#55d6a0"
+"status.warning" = "#f4bd62"
+"status.error" = "#ff7d8a"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalBox"
+control_id = "ReactBitsWorkbenchInteractionRoot"
+classes = [ "rb-interaction-surfaces" ]
+
+[nodes.root.props]
+background_color = "$surface.canvas"
+foreground_color = "$text.primary"
+fixture_data_only = true
+reference_primary = "https://pro.reactbits.dev/docs/app-ui/app-shell/app-shell-4"
+reference_supporting = [ "https://pro.reactbits.dev/docs/app-ui/command-menu", "https://pro.reactbits.dev/docs/app-ui/app-dialog", "https://pro.reactbits.dev/docs/app-ui/notifications", "https://pro.reactbits.dev/docs/app-ui/mobile" ]
+responsive_wide = "command palette leads; dialog and notification surfaces share a row"
+responsive_intermediate = "sidebar/rail remains available; popup surfaces use a bounded drawer"
+responsive_compact = "feedback surfaces keep equal priority and retain their action affordances"
+responsive_mobile = "rows stay readable at the narrow tier; toast remains full width"
+layout_modes = [ "full-shell", "adaptive-rail", "centered-editor", "mobile-bottom-actions" ]
+accessibility_label = "Workbench interaction surface reference"
+
+[nodes.root.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.root.layout.width]
+min = 360
+preferred = 960
+max = 1280
+stretch = "Stretch"
+
+[nodes.root.layout.height]
+min = 360
+preferred = 620
+max = 820
+stretch = "Stretch"
+
+[nodes.root.layout.container]
+kind = "VerticalBox"
+gap = 6
+
+[nodes.root.layout.padding]
+left = 10
+right = 10
+top = 10
+bottom = 10
+
+[[nodes.root.children]]
+node = "header"
+
+[[nodes.root.children]]
+node = "command_palette"
+
+[[nodes.root.children]]
+node = "dialog_row"
+
+[[nodes.root.children]]
+node = "system_row"
+
+[[nodes.root.children]]
+node = "toast"
+
+[nodes.root.zircon_extension]
+owner = "reactbits-reference-slice"
+reference_profile = "reactbits-workbench-interaction-surfaces-v1"
+source_of_truth = "zui"
+penpot_visual_check = "required"
+
+[nodes.header]
+component = "HorizontalBox"
+control_id = "ReactBitsWorkbenchInteractionHeader"
+
+[nodes.header.props]
+background_color = "$surface.panel"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 8
+
+[nodes.header.layout.width]
+stretch = "Stretch"
+
+[nodes.header.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[nodes.header.layout.container]
+kind = "HorizontalBox"
+gap = 8
+
+[nodes.header.layout.padding]
+left = 10
+right = 10
+top = 4
+bottom = 4
+
+[[nodes.header.children]]
+node = "header_title"
+
+[[nodes.header.children]]
+node = "header_status"
+
+[nodes.header_title]
+component = "Label"
+control_id = "ReactBitsWorkbenchInteractionTitle"
+
+[nodes.header_title.props]
+text = "Interaction surfaces"
+foreground_color = "$text.primary"
+font_size = 13
+font_weight = 650
+accessibility_label = "Interaction surfaces"
+
+[nodes.header_title.layout.width]
+stretch = "Stretch"
+
+[nodes.header_title.layout.height]
+stretch = "Stretch"
+
+[nodes.header_status]
+component = "Label"
+control_id = "ReactBitsWorkbenchInteractionStatus"
+
+[nodes.header_status.props]
+text = "PENPOT PARITY"
+foreground_color = "$status.success"
+font_size = 9
+font_weight = 700
+letter_spacing = 0.8
+text_align = "right"
+
+[nodes.header_status.layout.width]
+min = 96
+preferred = 108
+max = 124
+stretch = "Fixed"
+
+[nodes.header_status.layout.height]
+stretch = "Stretch"
+
+[nodes.command_palette]
+component = "CommandPalette"
+control_id = "ReactBitsWorkbenchCommandPalette"
+classes = [ "rb-surface", "rb-command-palette", "rb-open" ]
+
+[nodes.command_palette.props]
+open = true
+popup_open = true
+query = "build"
+placeholder = "Search commands"
+command_source = "workbench"
+commands = [ "open_scene|label=Open Scene|shortcut=Ctrl+O", "build_project|label=Build Project|shortcut=Ctrl+B", "toggle_console|label=Toggle Console|shortcut=Ctrl+`" ]
+filtered_commands = [ "build_project", "open_scene" ]
+recent_commands = [ "build_project" ]
+selected_command_id = "build_project"
+focused_index = 0
+keyboard_navigation = true
+empty_text = "No commands found"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+accessibility_label = "Search and run workbench commands"
+
+[nodes.command_palette.layout]
+clip = true
+
+[nodes.command_palette.layout.width]
+stretch = "Stretch"
+
+[nodes.command_palette.layout.height]
+min = 100
+preferred = 108
+max = 120
+stretch = "Fixed"
+
+[nodes.command_palette.layout.container]
+kind = "VerticalBox"
+
+[nodes.command_palette.layout.padding]
+left = 8
+right = 8
+top = 6
+bottom = 6
+
+[[nodes.command_palette.events]]
+id = "ReactBitsWorkbench/CommandCommit"
+event = "Submit"
+route = "workbench.command.commit"
+
+[nodes.dialog_row]
+component = "HorizontalBox"
+control_id = "ReactBitsWorkbenchDialogRow"
+
+[nodes.dialog_row.layout.width]
+stretch = "Stretch"
+
+[nodes.dialog_row.layout.height]
+min = 108
+preferred = 120
+max = 136
+stretch = "Fixed"
+
+[nodes.dialog_row.layout.container]
+kind = "HorizontalBox"
+gap = 8
+
+[[nodes.dialog_row.children]]
+node = "dialog"
+
+[[nodes.dialog_row.children]]
+node = "confirm_dialog"
+
+[nodes.dialog]
+component = "Dialog"
+control_id = "ReactBitsWorkbenchDialog"
+classes = [ "rb-surface", "rb-dialog" ]
+
+[nodes.dialog.props]
+open = true
+popup_open = true
+title = "Review layout changes"
+text = "Review layout changes"
+message = "The retained host has a new compact interaction row."
+action = "Review"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+accessibility_label = "Review layout changes dialog"
+
+[nodes.dialog.layout]
+clip = true
+
+[nodes.dialog.layout.width]
+stretch = "Stretch"
+
+[nodes.dialog.layout.height]
+stretch = "Stretch"
+
+[nodes.dialog.layout.container]
+kind = "VerticalBox"
+
+[nodes.dialog.layout.padding]
+left = 6
+right = 6
+top = 5
+bottom = 5
+
+[[nodes.dialog.events]]
+id = "ReactBitsWorkbench/DialogReview"
+event = "Click"
+route = "workbench.dialog.review"
+
+[nodes.confirm_dialog]
+component = "ConfirmDialog"
+control_id = "ReactBitsWorkbenchConfirmDialog"
+classes = [ "rb-surface", "rb-confirm-dialog", "rb-destructive" ]
+
+[nodes.confirm_dialog.props]
+open = true
+popup_open = true
+title = "Apply generated patch?"
+text = "Apply generated patch?"
+message = "This writes the reviewed ZUI fixture into the project."
+confirm_text = "Apply"
+cancel_text = "Later"
+severity = "warning"
+destructive = false
+confirm_enabled = true
+requires_explicit_action = true
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+accessibility_label = "Confirm generated patch"
+
+[nodes.confirm_dialog.layout]
+clip = true
+
+[nodes.confirm_dialog.layout.width]
+stretch = "Stretch"
+
+[nodes.confirm_dialog.layout.height]
+stretch = "Stretch"
+
+[nodes.confirm_dialog.layout.container]
+kind = "VerticalBox"
+
+[nodes.confirm_dialog.layout.padding]
+left = 6
+right = 6
+top = 5
+bottom = 5
+
+[[nodes.confirm_dialog.events]]
+id = "ReactBitsWorkbench/ConfirmPatch"
+event = "Click"
+route = "workbench.patch.confirm"
+
+[nodes.system_row]
+component = "HorizontalBox"
+control_id = "ReactBitsWorkbenchSystemRow"
+
+[nodes.system_row.layout.width]
+stretch = "Stretch"
+
+[nodes.system_row.layout.height]
+min = 150
+preferred = 165
+max = 180
+stretch = "Fixed"
+
+[nodes.system_row.layout.container]
+kind = "HorizontalBox"
+gap = 8
+
+[[nodes.system_row.children]]
+node = "notifications"
+
+[[nodes.system_row.children]]
+node = "drag_overlay"
+
+[nodes.notifications]
+component = "NotificationCenter"
+control_id = "ReactBitsWorkbenchNotificationCenter"
+classes = [ "rb-surface", "rb-notifications" ]
+
+[nodes.notifications.props]
+open = true
+popup_open = true
+title = "Notifications"
+unread_count = 2
+overflow_count = 0
+notifications = [ "build|title=Build finished|message=ZUI fixture exported|severity=success|unread=true", "review|title=Review requested|message=Check the narrow viewport|severity=info|unread=true", "sync|title=Source synced|message=No local conflicts|severity=info|unread=false" ]
+selected_notification_id = "review"
+focused_index = 1
+visible_limit = 2
+empty_text = "No notifications"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+accessibility_label = "Workbench notifications"
+
+[nodes.notifications.layout]
+clip = true
+
+[nodes.notifications.layout.width]
+stretch = "Stretch"
+
+[nodes.notifications.layout.height]
+stretch = "Stretch"
+
+[nodes.notifications.layout.container]
+kind = "VerticalBox"
+
+[nodes.notifications.layout.padding]
+left = 6
+right = 6
+top = 5
+bottom = 5
+
+[nodes.drag_overlay]
+component = "DragOverlay"
+control_id = "ReactBitsWorkbenchDragOverlay"
+classes = [ "rb-surface", "rb-drag-overlay", "rb-dragging" ]
+
+[nodes.drag_overlay.props]
+open = true
+dragging = true
+drop_hovered = true
+active_drag_target = true
+payload_kind = "asset"
+payload_label = "StoneWall.mesh"
+payload_reference = "assets/stone_wall.mesh"
+source_control_id = "WorkbenchAssetBrowser"
+target_control_id = "WorkbenchSceneTree"
+drop_allowed = true
+drop_indicator_edge = "bottom"
+drop_indicator_text = "Drop into scene"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+accessibility_label = "Dragging asset preview"
+
+[nodes.drag_overlay.layout]
+clip = true
+
+[nodes.drag_overlay.layout.width]
+stretch = "Stretch"
+
+[nodes.drag_overlay.layout.height]
+stretch = "Stretch"
+
+[nodes.drag_overlay.layout.container]
+kind = "VerticalBox"
+
+[nodes.drag_overlay.layout.padding]
+left = 6
+right = 6
+top = 5
+bottom = 5
+
+[nodes.toast]
+component = "WorkbenchToast"
+control_id = "ReactBitsWorkbenchToast"
+classes = [ "rb-toast", "rb-toast-success" ]
+
+[nodes.toast.props]
+open = true
+popup_open = true
+text = "Layout exported to Penpot"
+value = "Layout exported to Penpot"
+severity = "success"
+action_label = "Open"
+current_toast_id = "layout-exported"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+accessibility_label = "Layout export notification"
+
+[nodes.toast.layout]
+clip = true
+
+[nodes.toast.layout.width]
+stretch = "Stretch"
+
+[nodes.toast.layout.height]
+min = 38
+preferred = 40
+max = 46
+stretch = "Fixed"
+
+[nodes.toast.layout.container]
+kind = "HorizontalBox"
+
+[nodes.toast.layout.padding]
+left = 6
+right = 6
+top = 4
+bottom = 4
+
+[[nodes.toast.events]]
+id = "ReactBitsWorkbench/OpenExport"
+event = "Click"
+route = "workbench.export.open"
+
+[[stylesheets]]
+id = "reactbits-ui-typography"
+
+[[stylesheets.rules]]
+selector = "*"
+
+[stylesheets.rules.set.self.font]
+asset = "res://fonts/editor-ui.font.toml"
+family = "Fira Sans"
+
+[penpot_original_imports]
+[imports]
+widgets = []
+styles = []

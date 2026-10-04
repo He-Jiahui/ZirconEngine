@@ -1,3 +1,4 @@
+# 核对临时命令请求保留期以批量语句删除选中行。
 from __future__ import annotations
 
 import inspect

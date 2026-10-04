@@ -13,6 +13,8 @@ use zircon_runtime_interface::ui::{
 
 use super::painter_state::UiRenderPainterStateSource;
 
+const DROPDOWN_COMMAND_CAPACITY: usize = 5;
+
 #[derive(Clone, Copy, Debug)]
 struct DropdownVisual {
     surface_idle: UiRgbaColor,
@@ -196,7 +198,7 @@ pub(super) fn dropdown_render_commands(
         return Vec::new();
     }
     let state = DropdownRenderState::resolve(metadata, state_flags, component_state);
-    let mut commands = Vec::new();
+    let mut commands = Vec::with_capacity(DROPDOWN_COMMAND_CAPACITY);
     commands.push(quad_command(
         node_id,
         frame,

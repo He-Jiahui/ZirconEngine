@@ -1,0 +1,1782 @@
+{
+  "batch": 22,
+  "at_utc": "2026-10-03T05:39:56.064747+00:00",
+  "independent_review_sha256": "7236a6c139b79a0f73ae01317583fac867e3d6d98ec3e7174b29436b8b6d7a9d",
+  "raw_author_artifacts": [
+    {
+      "batch": 22,
+      "role": "review_file",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\review.jsonl",
+      "bytes": 277046,
+      "sha256": "4bddcc4865dc94f9d36de6fe5bd62fdb5c733e7cadec150985d641df60d0e07c"
+    },
+    {
+      "batch": 22,
+      "role": "gate_file",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\original-gates.jsonl",
+      "bytes": 46916,
+      "sha256": "97f422d1aa614af91a7b9629e8f4ee6f7fb8e8e1d33b2058f50ff24391d64ff1"
+    },
+    {
+      "batch": 22,
+      "role": "crosswalk_file",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\crosswalk.jsonl",
+      "bytes": 12663,
+      "sha256": "97c5224da5bb032c258703d111753c649df4da03cb824867b7912b85ee5d8df3"
+    },
+    {
+      "batch": 22,
+      "role": "raw_manifest",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw-manifest.jsonl",
+      "bytes": 46177,
+      "sha256": "96257e936e61e5958e431e0298046bc65631098fc513aaa7f1cb43089907047a"
+    },
+    {
+      "batch": 22,
+      "role": "reference_evidence_file",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-evidence.jsonl",
+      "bytes": 14388,
+      "sha256": "1057a760315d9dd7921890527af3fcb875fd4f9334be6076b9e33acb529fd1a8"
+    },
+    {
+      "batch": 22,
+      "role": "audit.md",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\audit.md",
+      "bytes": 3217,
+      "sha256": "afc6f416cf2a5222dab20537e925160e5c4f5dbfdbc054fd78ee5fdae3f4a498"
+    },
+    {
+      "batch": 22,
+      "role": "refresh.json",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\refresh.json",
+      "bytes": 6073,
+      "sha256": "8e648325cf1d38708c7b825ed3d9c9c153d59d3e7061328ecd3aa412715659d6"
+    },
+    {
+      "batch": 22,
+      "role": "report-discovery.txt",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\report-discovery.txt",
+      "bytes": 375,
+      "sha256": "06c17721b815c46a93e418b1046a255d25fded569d5956b8881eb5d26e5858bc"
+    },
+    {
+      "batch": 22,
+      "role": "selected-path-status.txt",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\selected-path-status.txt",
+      "bytes": 2191,
+      "sha256": "0b761c6a79dc6351ae37da47fe0f085692fd1a04272dbe5ec327d559b87401b2"
+    },
+    {
+      "batch": 22,
+      "role": "report-milestones.jsonl",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\report-milestones.jsonl",
+      "bytes": 15488,
+      "sha256": "fdbe92d7b782f28c2afcdc622784c1c35f3bd418e37efe5137931030ac47d23b"
+    }
+  ],
+  "raw_capture_inventory": [
+    {
+      "batch": 22,
+      "kind": "reports",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reports\\09f3-hybrid-global-illumination-review.md",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\reports\\09f3-hybrid-global-illumination-review.md",
+      "sha256": "ef7a210373a56c193bf7e3ffe156c93fed2543bd027d46075e1b3d9503209801",
+      "bytes": 45203
+    },
+    {
+      "batch": 22,
+      "kind": "reports",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reports\\28-hardware-ray-tracing-blas-tlas-ray-query-pipeline-sbt-denoising-scalability-product-integration-review.md",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\reports\\28-hardware-ray-tracing-blas-tlas-ray-query-pipeline-sbt-denoising-scalability-product-integration-review.md",
+      "sha256": "3f049723e4a1b3e0e0bb14fda0640c194e0c0073a1d479fdc44a3641afd2eb99",
+      "bytes": 36092
+    },
+    {
+      "batch": 22,
+      "kind": "reports",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reports\\98-runtime-hybrid-global-illumination-scene-representation-surface-cache-global-sdf-screen-probe-radiance-cache-product-integration-current-source-review.md",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\reports\\98-runtime-hybrid-global-illumination-scene-representation-surface-cache-global-sdf-screen-probe-radiance-cache-product-integration-current-source-review.md",
+      "sha256": "da9695b9ff76f67a581c4a746a3542105aebf4aa09c72d1c04927a66c5513859",
+      "bytes": 42127
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\001__plugin.toml.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\001__plugin.toml.raw",
+      "sha256": "4df537ee8d87d221c18fe99ebff050ef0a0bfb28990463547cff1ae70bd02a27",
+      "bytes": 1759
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\002__capability.rs.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\002__capability.rs.raw",
+      "sha256": "492aa712927dccd62389a15e230c4ada82c4892a8f9ce779cc1d0effe94aecc7",
+      "bytes": 2172
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\003__provider.rs.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\003__provider.rs.raw",
+      "sha256": "cc106ef66c524fb0e34df89c7a28a5fe508a050fdf4631562d0a5245128ff2a8",
+      "bytes": 22119
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\004__render_pass_executors.rs.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\004__render_pass_executors.rs.raw",
+      "sha256": "244db22cc1eca71c07735b2ab1f308b8ad8d6a7967509de1de8c666e6e2a43a0",
+      "bytes": 17045
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\005__representation.rs.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\005__representation.rs.raw",
+      "sha256": "41f67995c5a6553f342130d5cca34b5017203117f12d6e9f2091c7cc909cebe5",
+      "bytes": 25908
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\006__surface_cache_state.rs.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\006__surface_cache_state.rs.raw",
+      "sha256": "1e81a72aed8e7bde7810e0bb18ad1c82621837a8b781b8d26a0fa29df3a5573f",
+      "bytes": 25136
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\007__declarations.rs.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\007__declarations.rs.raw",
+      "sha256": "eb8711bb31d35732371d699bbdd100c2b871bee91c14b3e5d15646687f526fcf",
+      "bytes": 5018
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\008__synchronize.rs.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\008__synchronize.rs.raw",
+      "sha256": "0ba5b92cecc671698823077d043e685582c297b791e45816126b72760ec8fbe4",
+      "bytes": 6698
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\009__radiance_cache_state.rs.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\009__radiance_cache_state.rs.raw",
+      "sha256": "6444cc4230cea153deb4884bc199d0553dc01595aecbf773a6f397645c01d0c5",
+      "bytes": 25227
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\010__update_pipeline.rs.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\010__update_pipeline.rs.raw",
+      "sha256": "98114ccce63711bc13b32c2336f0f1efc4938e1f05c1d7901b0503d773f76d92",
+      "bytes": 5368
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\011__scene_depth_handoff.wgsl.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\011__scene_depth_handoff.wgsl.raw",
+      "sha256": "9f6d46991c5fbd1ba53224747f2108e62bfc01e5a20367a4f72954fbd53bb55b",
+      "bytes": 6487
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\012__trace_schedule_handoff.wgsl.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\012__trace_schedule_handoff.wgsl.raw",
+      "sha256": "f097136f5e3286717fb9b1958074814cbe11cf53e16e7ee0797918db55131a08",
+      "bytes": 27794
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\013__trace_probe_tiles_global_sdf.wgsl.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\013__trace_probe_tiles_global_sdf.wgsl.raw",
+      "sha256": "f469ee4b19f5e74a2ececa58644d5338faa3cda50e010d7c63822a14758dc927",
+      "bytes": 5378
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\014__radiance_cache_update.wgsl.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\014__radiance_cache_update.wgsl.raw",
+      "sha256": "44cad95a8777c64afc71355fa95b6dd150824031a561f54c0e04f4cd37b4e0c7",
+      "bytes": 12321
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\015__extract.rs.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\015__extract.rs.raw",
+      "sha256": "8a340a27d64c4ed9207babaa56929959145156004fc8e827909f4d9e94be5927",
+      "bytes": 1157
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\016__hybrid_gi.rs.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\016__hybrid_gi.rs.raw",
+      "sha256": "8c9a4f48549fc8e24fffba25615c258334f8bc336962b4dbfa70f4e18d612389",
+      "bytes": 9459
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\017__construct.rs.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\017__construct.rs.raw",
+      "sha256": "a17035a96fc562ea6a426a3942b00e8832de221c5b0065662fd9621b33b07506",
+      "bytes": 14777
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\018__encode.rs.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\018__encode.rs.raw",
+      "sha256": "14e7fd46f0fbc82f4f1e9c50c984fcfcbd06c19750412217eba9c4395ed80cc8",
+      "bytes": 17955
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\019__capability.rs.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\019__capability.rs.raw",
+      "sha256": "0e1688a2c78d76aa682f882c3240ea824579d05c907b81e569ee9339bf3f5a8c",
+      "bytes": 1437
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\020__status.rs.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\020__status.rs.raw",
+      "sha256": "f32027f976314bbf8e188de28668c32b6d94bcb25bde495656b3a917f08c10c6",
+      "bytes": 11252
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\021__provider.rs.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\021__provider.rs.raw",
+      "sha256": "e33569df3a5049e223774d5341d160b8b8e770d0c9cb2203a3b7e2f080bbd317",
+      "bytes": 1275
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\022__lib.rs.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\022__lib.rs.raw",
+      "sha256": "f1f6c19b55e9b05dab8db184780177aa9e5c07c5de483a94f6185a5109c35918",
+      "bytes": 5116
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\023__handles.rs.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\023__handles.rs.raw",
+      "sha256": "75e473b15394345114f730e625e8b4dc1b02b3c8e5c0d4cb29bf05a815f2a760",
+      "bytes": 12472
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\024__error.rs.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\024__error.rs.raw",
+      "sha256": "2be938b66b7b9f84b92ff945ea094fcc240b8870067157310d16cb0630d0afec",
+      "bytes": 15358
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\025__capabilities.rs.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\025__capabilities.rs.raw",
+      "sha256": "335ea20dd3261c833b5dc98577eb08a4892a96545634e8974ac66c4ccdde5362",
+      "bytes": 6761
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\026__command_list.rs.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\026__command_list.rs.raw",
+      "sha256": "ebe4ed2d1f82ab31963a3265cbff69a482457f2ccda959c864705c4549384521",
+      "bytes": 9362
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\027__plugin.rs.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\027__plugin.rs.raw",
+      "sha256": "d54a3e73dd7d2fd6f45f40336402962fc441af9c74d96154923c17a7137e3634",
+      "bytes": 2580
+    },
+    {
+      "batch": 22,
+      "kind": "full_source",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\028__tests.rs.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\full_source\\028__tests.rs.raw",
+      "sha256": "1806f2d6351ab9252fdf33f5273514985fe178fb1fcfe087ec2b3d4551b4206a",
+      "bytes": 1220
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\001__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\001__after.raw",
+      "sha256": "4df537ee8d87d221c18fe99ebff050ef0a0bfb28990463547cff1ae70bd02a27",
+      "bytes": 1759
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\001__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\001__before.raw",
+      "sha256": "4df537ee8d87d221c18fe99ebff050ef0a0bfb28990463547cff1ae70bd02a27",
+      "bytes": 1759
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\002__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\002__after.raw",
+      "sha256": "492aa712927dccd62389a15e230c4ada82c4892a8f9ce779cc1d0effe94aecc7",
+      "bytes": 2172
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\002__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\002__before.raw",
+      "sha256": "492aa712927dccd62389a15e230c4ada82c4892a8f9ce779cc1d0effe94aecc7",
+      "bytes": 2172
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\003__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\003__after.raw",
+      "sha256": "cc106ef66c524fb0e34df89c7a28a5fe508a050fdf4631562d0a5245128ff2a8",
+      "bytes": 22119
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\003__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\003__before.raw",
+      "sha256": "cc106ef66c524fb0e34df89c7a28a5fe508a050fdf4631562d0a5245128ff2a8",
+      "bytes": 22119
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\004__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\004__after.raw",
+      "sha256": "244db22cc1eca71c07735b2ab1f308b8ad8d6a7967509de1de8c666e6e2a43a0",
+      "bytes": 17045
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\004__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\004__before.raw",
+      "sha256": "244db22cc1eca71c07735b2ab1f308b8ad8d6a7967509de1de8c666e6e2a43a0",
+      "bytes": 17045
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\005__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\005__after.raw",
+      "sha256": "41f67995c5a6553f342130d5cca34b5017203117f12d6e9f2091c7cc909cebe5",
+      "bytes": 25908
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\005__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\005__before.raw",
+      "sha256": "41f67995c5a6553f342130d5cca34b5017203117f12d6e9f2091c7cc909cebe5",
+      "bytes": 25908
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\006__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\006__after.raw",
+      "sha256": "1e81a72aed8e7bde7810e0bb18ad1c82621837a8b781b8d26a0fa29df3a5573f",
+      "bytes": 25136
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\006__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\006__before.raw",
+      "sha256": "1e81a72aed8e7bde7810e0bb18ad1c82621837a8b781b8d26a0fa29df3a5573f",
+      "bytes": 25136
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\007__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\007__after.raw",
+      "sha256": "eb8711bb31d35732371d699bbdd100c2b871bee91c14b3e5d15646687f526fcf",
+      "bytes": 5018
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\007__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\007__before.raw",
+      "sha256": "eb8711bb31d35732371d699bbdd100c2b871bee91c14b3e5d15646687f526fcf",
+      "bytes": 5018
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\008__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\008__after.raw",
+      "sha256": "0ba5b92cecc671698823077d043e685582c297b791e45816126b72760ec8fbe4",
+      "bytes": 6698
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\008__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\008__before.raw",
+      "sha256": "0ba5b92cecc671698823077d043e685582c297b791e45816126b72760ec8fbe4",
+      "bytes": 6698
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\009__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\009__after.raw",
+      "sha256": "6444cc4230cea153deb4884bc199d0553dc01595aecbf773a6f397645c01d0c5",
+      "bytes": 25227
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\009__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\009__before.raw",
+      "sha256": "6444cc4230cea153deb4884bc199d0553dc01595aecbf773a6f397645c01d0c5",
+      "bytes": 25227
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\010__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\010__after.raw",
+      "sha256": "98114ccce63711bc13b32c2336f0f1efc4938e1f05c1d7901b0503d773f76d92",
+      "bytes": 5368
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\010__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\010__before.raw",
+      "sha256": "98114ccce63711bc13b32c2336f0f1efc4938e1f05c1d7901b0503d773f76d92",
+      "bytes": 5368
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\011__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\011__after.raw",
+      "sha256": "9f6d46991c5fbd1ba53224747f2108e62bfc01e5a20367a4f72954fbd53bb55b",
+      "bytes": 6487
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\011__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\011__before.raw",
+      "sha256": "9f6d46991c5fbd1ba53224747f2108e62bfc01e5a20367a4f72954fbd53bb55b",
+      "bytes": 6487
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\012__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\012__after.raw",
+      "sha256": "f097136f5e3286717fb9b1958074814cbe11cf53e16e7ee0797918db55131a08",
+      "bytes": 27794
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\012__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\012__before.raw",
+      "sha256": "f097136f5e3286717fb9b1958074814cbe11cf53e16e7ee0797918db55131a08",
+      "bytes": 27794
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\013__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\013__after.raw",
+      "sha256": "f469ee4b19f5e74a2ececa58644d5338faa3cda50e010d7c63822a14758dc927",
+      "bytes": 5378
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\013__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\013__before.raw",
+      "sha256": "f469ee4b19f5e74a2ececa58644d5338faa3cda50e010d7c63822a14758dc927",
+      "bytes": 5378
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\014__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\014__after.raw",
+      "sha256": "44cad95a8777c64afc71355fa95b6dd150824031a561f54c0e04f4cd37b4e0c7",
+      "bytes": 12321
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\014__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\014__before.raw",
+      "sha256": "44cad95a8777c64afc71355fa95b6dd150824031a561f54c0e04f4cd37b4e0c7",
+      "bytes": 12321
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\015__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\015__after.raw",
+      "sha256": "8a340a27d64c4ed9207babaa56929959145156004fc8e827909f4d9e94be5927",
+      "bytes": 1157
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\015__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\015__before.raw",
+      "sha256": "8a340a27d64c4ed9207babaa56929959145156004fc8e827909f4d9e94be5927",
+      "bytes": 1157
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\016__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\016__after.raw",
+      "sha256": "8c9a4f48549fc8e24fffba25615c258334f8bc336962b4dbfa70f4e18d612389",
+      "bytes": 9459
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\016__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\016__before.raw",
+      "sha256": "8c9a4f48549fc8e24fffba25615c258334f8bc336962b4dbfa70f4e18d612389",
+      "bytes": 9459
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\017__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\017__after.raw",
+      "sha256": "a17035a96fc562ea6a426a3942b00e8832de221c5b0065662fd9621b33b07506",
+      "bytes": 14777
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\017__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\017__before.raw",
+      "sha256": "a17035a96fc562ea6a426a3942b00e8832de221c5b0065662fd9621b33b07506",
+      "bytes": 14777
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\018__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\018__after.raw",
+      "sha256": "14e7fd46f0fbc82f4f1e9c50c984fcfcbd06c19750412217eba9c4395ed80cc8",
+      "bytes": 17955
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\018__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\018__before.raw",
+      "sha256": "14e7fd46f0fbc82f4f1e9c50c984fcfcbd06c19750412217eba9c4395ed80cc8",
+      "bytes": 17955
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\019__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\019__after.raw",
+      "sha256": "0e1688a2c78d76aa682f882c3240ea824579d05c907b81e569ee9339bf3f5a8c",
+      "bytes": 1437
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\019__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\019__before.raw",
+      "sha256": "0e1688a2c78d76aa682f882c3240ea824579d05c907b81e569ee9339bf3f5a8c",
+      "bytes": 1437
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\020__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\020__after.raw",
+      "sha256": "f32027f976314bbf8e188de28668c32b6d94bcb25bde495656b3a917f08c10c6",
+      "bytes": 11252
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\020__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\020__before.raw",
+      "sha256": "f32027f976314bbf8e188de28668c32b6d94bcb25bde495656b3a917f08c10c6",
+      "bytes": 11252
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\021__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\021__after.raw",
+      "sha256": "e33569df3a5049e223774d5341d160b8b8e770d0c9cb2203a3b7e2f080bbd317",
+      "bytes": 1275
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\021__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\021__before.raw",
+      "sha256": "e33569df3a5049e223774d5341d160b8b8e770d0c9cb2203a3b7e2f080bbd317",
+      "bytes": 1275
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\022__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\022__after.raw",
+      "sha256": "f1f6c19b55e9b05dab8db184780177aa9e5c07c5de483a94f6185a5109c35918",
+      "bytes": 5116
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\022__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\022__before.raw",
+      "sha256": "f1f6c19b55e9b05dab8db184780177aa9e5c07c5de483a94f6185a5109c35918",
+      "bytes": 5116
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\023__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\023__after.raw",
+      "sha256": "75e473b15394345114f730e625e8b4dc1b02b3c8e5c0d4cb29bf05a815f2a760",
+      "bytes": 12472
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\023__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\023__before.raw",
+      "sha256": "75e473b15394345114f730e625e8b4dc1b02b3c8e5c0d4cb29bf05a815f2a760",
+      "bytes": 12472
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\024__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\024__after.raw",
+      "sha256": "2be938b66b7b9f84b92ff945ea094fcc240b8870067157310d16cb0630d0afec",
+      "bytes": 15358
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\024__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\024__before.raw",
+      "sha256": "2be938b66b7b9f84b92ff945ea094fcc240b8870067157310d16cb0630d0afec",
+      "bytes": 15358
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\025__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\025__after.raw",
+      "sha256": "335ea20dd3261c833b5dc98577eb08a4892a96545634e8974ac66c4ccdde5362",
+      "bytes": 6761
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\025__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\025__before.raw",
+      "sha256": "335ea20dd3261c833b5dc98577eb08a4892a96545634e8974ac66c4ccdde5362",
+      "bytes": 6761
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\026__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\026__after.raw",
+      "sha256": "ebe4ed2d1f82ab31963a3265cbff69a482457f2ccda959c864705c4549384521",
+      "bytes": 9362
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\026__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\026__before.raw",
+      "sha256": "ebe4ed2d1f82ab31963a3265cbff69a482457f2ccda959c864705c4549384521",
+      "bytes": 9362
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\027__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\027__after.raw",
+      "sha256": "d54a3e73dd7d2fd6f45f40336402962fc441af9c74d96154923c17a7137e3634",
+      "bytes": 2580
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\027__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\027__before.raw",
+      "sha256": "d54a3e73dd7d2fd6f45f40336402962fc441af9c74d96154923c17a7137e3634",
+      "bytes": 2580
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\028__after.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\028__after.raw",
+      "sha256": "1806f2d6351ab9252fdf33f5273514985fe178fb1fcfe087ec2b3d4551b4206a",
+      "bytes": 1220
+    },
+    {
+      "batch": 22,
+      "kind": "raw",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\028__before.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\raw\\028__before.raw",
+      "sha256": "1806f2d6351ab9252fdf33f5273514985fe178fb1fcfe087ec2b3d4551b4206a",
+      "bytes": 1220
+    },
+    {
+      "batch": 22,
+      "kind": "references",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\001__LumenSceneData.h.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\references\\001__LumenSceneData.h.raw",
+      "sha256": "b6aec717ffd06593852c1fbbfbed98be69d2b61a827bb24eeec0633da41fe1de",
+      "bytes": 48264
+    },
+    {
+      "batch": 22,
+      "kind": "references",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\002__LumenMeshCards.cpp.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\references\\002__LumenMeshCards.cpp.raw",
+      "sha256": "e7da1bf640b98badae229f3147678420af0b476cb6951137f97176d607a7e9cc",
+      "bytes": 62773
+    },
+    {
+      "batch": 22,
+      "kind": "references",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\003__LumenSceneCardCapture.cpp.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\references\\003__LumenSceneCardCapture.cpp.raw",
+      "sha256": "333a967152856368ae510dae6cd48cbb0ba50973b20c3d42e93808118894ed3c",
+      "bytes": 37584
+    },
+    {
+      "batch": 22,
+      "kind": "references",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\004__LumenSurfaceCache.cpp.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\references\\004__LumenSurfaceCache.cpp.raw",
+      "sha256": "364d60f6654c19372edb1efc1ff1d67fb6ef97d868ed3048a1ebe7f4b9d159f3",
+      "bytes": 47101
+    },
+    {
+      "batch": 22,
+      "kind": "references",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\005__LumenSurfaceCacheFeedback.cpp.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\references\\005__LumenSurfaceCacheFeedback.cpp.raw",
+      "sha256": "9d2a0fe7393f745bbac4137f370aec97105a3ed38de2402036ab632b7036b23f",
+      "bytes": 22460
+    },
+    {
+      "batch": 22,
+      "kind": "references",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\006__LumenScreenProbeGather.cpp.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\references\\006__LumenScreenProbeGather.cpp.raw",
+      "sha256": "d119e4e6c4777fdfcf22e14674681d971d28431b56a15e495a794e938eb7db88",
+      "bytes": 147446
+    },
+    {
+      "batch": 22,
+      "kind": "references",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\007__LumenScreenProbeTracing.cpp.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\references\\007__LumenScreenProbeTracing.cpp.raw",
+      "sha256": "b0bd88c14e040b1a13dc9bbf9a7ad1ca5f0564e90fe7addfd58407d5af074340",
+      "bytes": 45032
+    },
+    {
+      "batch": 22,
+      "kind": "references",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\008__LumenScreenProbeFiltering.cpp.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\references\\008__LumenScreenProbeFiltering.cpp.raw",
+      "sha256": "605b1f71006eacf1e429e92eff5a8f74a6c3fe6462af6db3ee0e3ffa8343c793",
+      "bytes": 39844
+    },
+    {
+      "batch": 22,
+      "kind": "references",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\009__LumenRadianceCache.cpp.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\references\\009__LumenRadianceCache.cpp.raw",
+      "sha256": "36c01ad7d5f60bd7221c2b6c35029d710e9f40f8841404d8ad67add90863bd00",
+      "bytes": 148836
+    },
+    {
+      "batch": 22,
+      "kind": "references",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\010__LumenRadianceCacheHardwareRayTracing.cpp.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\references\\010__LumenRadianceCacheHardwareRayTracing.cpp.raw",
+      "sha256": "a1376e9c5bb5dc233fb624fb8fb184b53706bb06f0f9145b1ead31454ce369ff",
+      "bytes": 40963
+    },
+    {
+      "batch": 22,
+      "kind": "references",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\011__LumenHardwareRayTracingCommon.cpp.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\references\\011__LumenHardwareRayTracingCommon.cpp.raw",
+      "sha256": "fc444578b5d62ce9ae5dc3b7ae9188b8feaf6615869df43ba5b7a12a7dcdae5b",
+      "bytes": 22002
+    },
+    {
+      "batch": 22,
+      "kind": "references",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\012__LumenScreenProbeTracing.usf.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\references\\012__LumenScreenProbeTracing.usf.raw",
+      "sha256": "87412e00ca91701ebbfaef29f7fbc097f7d04c31c64c0983be7118f78e476b18",
+      "bytes": 40072
+    },
+    {
+      "batch": 22,
+      "kind": "references",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\013__LumenRadianceCacheUpdate.usf.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\references\\013__LumenRadianceCacheUpdate.usf.raw",
+      "sha256": "87d2d1729973ce3de816bbaf83a259f4837cf93a3a6a4ba8893f2cdad6195bea",
+      "bytes": 19343
+    },
+    {
+      "batch": 22,
+      "kind": "references",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\014__LumenSurfaceCacheSampling.ush.raw",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\references\\014__LumenSurfaceCacheSampling.ush.raw",
+      "sha256": "330b88e323b7912965f5d7dd2746fa31edf1238b132eb7dc4899dfdd725d81cc",
+      "bytes": 24964
+    }
+  ],
+  "raw_manifest": [
+    {
+      "path": "E:\\Git\\ZirconEngine\\docs\\plans\\optimize\\zircon_runtime\\09f3-hybrid-global-illumination-review.md",
+      "relative_path": "docs/plans/optimize/zircon_runtime/09f3-hybrid-global-illumination-review.md",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reports\\09f3-hybrid-global-illumination-review.md",
+      "sha256": "ef7a210373a56c193bf7e3ffe156c93fed2543bd027d46075e1b3d9503209801",
+      "bytes": 45203,
+      "lines": 531,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\docs\\plans\\optimize\\zircon_runtime\\98-runtime-hybrid-global-illumination-scene-representation-surface-cache-global-sdf-screen-probe-radiance-cache-product-integration-current-source-review.md",
+      "relative_path": "docs/plans/optimize/zircon_runtime/98-runtime-hybrid-global-illumination-scene-representation-surface-cache-global-sdf-screen-probe-radiance-cache-product-integration-current-source-review.md",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reports\\98-runtime-hybrid-global-illumination-scene-representation-surface-cache-global-sdf-screen-probe-radiance-cache-product-integration-current-source-review.md",
+      "sha256": "da9695b9ff76f67a581c4a746a3542105aebf4aa09c72d1c04927a66c5513859",
+      "bytes": 42127,
+      "lines": 408,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\docs\\plans\\optimize\\zircon_runtime\\28-hardware-ray-tracing-blas-tlas-ray-query-pipeline-sbt-denoising-scalability-product-integration-review.md",
+      "relative_path": "docs/plans/optimize/zircon_runtime/28-hardware-ray-tracing-blas-tlas-ray-query-pipeline-sbt-denoising-scalability-product-integration-review.md",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reports\\28-hardware-ray-tracing-blas-tlas-ray-query-pipeline-sbt-denoising-scalability-product-integration-review.md",
+      "sha256": "3f049723e4a1b3e0e0bb14fda0640c194e0c0073a1d479fdc44a3641afd2eb99",
+      "bytes": 36092,
+      "lines": 335,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\_work\\09f3-extract.txt",
+      "sha256": "7fcf62db0200cdcbea3f159a05726f49b16200b8e1558d9d6f694622f1ef4310",
+      "bytes": 3985,
+      "lines": 47,
+      "preserved": true
+    },
+    {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\_work\\28-extract.txt",
+      "sha256": "2fabec48783a896104ff78634be5076dbd6e23f74d46d84f63460f69e609d3ce",
+      "bytes": 20156,
+      "lines": 119,
+      "preserved": true
+    },
+    {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\_work\\98-extract.txt",
+      "sha256": "dc1567c138a8548e8be1be93d5f7aec43acd6b920de7d5d22f3d4184e1b91be0",
+      "bytes": 15747,
+      "lines": 69,
+      "preserved": true
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_plugins\\hybrid_gi\\plugin.toml",
+      "relative_path": "zircon_plugins/hybrid_gi/plugin.toml",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\001__plugin.toml.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\001__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\001__after.raw",
+      "sha256_before": "4df537ee8d87d221c18fe99ebff050ef0a0bfb28990463547cff1ae70bd02a27",
+      "sha256_capture": "4df537ee8d87d221c18fe99ebff050ef0a0bfb28990463547cff1ae70bd02a27",
+      "sha256_after": "4df537ee8d87d221c18fe99ebff050ef0a0bfb28990463547cff1ae70bd02a27",
+      "bytes": 1759,
+      "lines": 51,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_plugins\\hybrid_gi\\runtime\\src\\capability.rs",
+      "relative_path": "zircon_plugins/hybrid_gi/runtime/src/capability.rs",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\002__capability.rs.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\002__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\002__after.raw",
+      "sha256_before": "492aa712927dccd62389a15e230c4ada82c4892a8f9ce779cc1d0effe94aecc7",
+      "sha256_capture": "492aa712927dccd62389a15e230c4ada82c4892a8f9ce779cc1d0effe94aecc7",
+      "sha256_after": "492aa712927dccd62389a15e230c4ada82c4892a8f9ce779cc1d0effe94aecc7",
+      "bytes": 2172,
+      "lines": 41,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_plugins\\hybrid_gi\\runtime\\src\\provider.rs",
+      "relative_path": "zircon_plugins/hybrid_gi/runtime/src/provider.rs",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\003__provider.rs.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\003__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\003__after.raw",
+      "sha256_before": "cc106ef66c524fb0e34df89c7a28a5fe508a050fdf4631562d0a5245128ff2a8",
+      "sha256_capture": "cc106ef66c524fb0e34df89c7a28a5fe508a050fdf4631562d0a5245128ff2a8",
+      "sha256_after": "cc106ef66c524fb0e34df89c7a28a5fe508a050fdf4631562d0a5245128ff2a8",
+      "bytes": 22119,
+      "lines": 557,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_plugins\\hybrid_gi\\runtime\\src\\render_pass_executors.rs",
+      "relative_path": "zircon_plugins/hybrid_gi/runtime/src/render_pass_executors.rs",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\004__render_pass_executors.rs.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\004__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\004__after.raw",
+      "sha256_before": "244db22cc1eca71c07735b2ab1f308b8ad8d6a7967509de1de8c666e6e2a43a0",
+      "sha256_capture": "244db22cc1eca71c07735b2ab1f308b8ad8d6a7967509de1de8c666e6e2a43a0",
+      "sha256_after": "244db22cc1eca71c07735b2ab1f308b8ad8d6a7967509de1de8c666e6e2a43a0",
+      "bytes": 17045,
+      "lines": 496,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_plugins\\hybrid_gi\\runtime\\src\\hybrid_gi\\scene_representation\\representation.rs",
+      "relative_path": "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/representation.rs",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\005__representation.rs.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\005__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\005__after.raw",
+      "sha256_before": "41f67995c5a6553f342130d5cca34b5017203117f12d6e9f2091c7cc909cebe5",
+      "sha256_capture": "41f67995c5a6553f342130d5cca34b5017203117f12d6e9f2091c7cc909cebe5",
+      "sha256_after": "41f67995c5a6553f342130d5cca34b5017203117f12d6e9f2091c7cc909cebe5",
+      "bytes": 25908,
+      "lines": 798,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_plugins\\hybrid_gi\\runtime\\src\\hybrid_gi\\scene_representation\\surface_cache_state.rs",
+      "relative_path": "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/surface_cache_state.rs",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\006__surface_cache_state.rs.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\006__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\006__after.raw",
+      "sha256_before": "1e81a72aed8e7bde7810e0bb18ad1c82621837a8b781b8d26a0fa29df3a5573f",
+      "sha256_capture": "1e81a72aed8e7bde7810e0bb18ad1c82621837a8b781b8d26a0fa29df3a5573f",
+      "sha256_after": "1e81a72aed8e7bde7810e0bb18ad1c82621837a8b781b8d26a0fa29df3a5573f",
+      "bytes": 25136,
+      "lines": 690,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_plugins\\hybrid_gi\\runtime\\src\\hybrid_gi\\scene_representation\\global_sdf_scene_state\\declarations.rs",
+      "relative_path": "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/global_sdf_scene_state/declarations.rs",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\007__declarations.rs.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\007__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\007__after.raw",
+      "sha256_before": "eb8711bb31d35732371d699bbdd100c2b871bee91c14b3e5d15646687f526fcf",
+      "sha256_capture": "eb8711bb31d35732371d699bbdd100c2b871bee91c14b3e5d15646687f526fcf",
+      "sha256_after": "eb8711bb31d35732371d699bbdd100c2b871bee91c14b3e5d15646687f526fcf",
+      "bytes": 5018,
+      "lines": 140,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_plugins\\hybrid_gi\\runtime\\src\\hybrid_gi\\scene_representation\\global_sdf_scene_state\\synchronize.rs",
+      "relative_path": "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/global_sdf_scene_state/synchronize.rs",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\008__synchronize.rs.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\008__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\008__after.raw",
+      "sha256_before": "0ba5b92cecc671698823077d043e685582c297b791e45816126b72760ec8fbe4",
+      "sha256_capture": "0ba5b92cecc671698823077d043e685582c297b791e45816126b72760ec8fbe4",
+      "sha256_after": "0ba5b92cecc671698823077d043e685582c297b791e45816126b72760ec8fbe4",
+      "bytes": 6698,
+      "lines": 179,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_plugins\\hybrid_gi\\runtime\\src\\hybrid_gi\\scene_representation\\radiance_cache_state.rs",
+      "relative_path": "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/radiance_cache_state.rs",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\009__radiance_cache_state.rs.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\009__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\009__after.raw",
+      "sha256_before": "6444cc4230cea153deb4884bc199d0553dc01595aecbf773a6f397645c01d0c5",
+      "sha256_capture": "6444cc4230cea153deb4884bc199d0553dc01595aecbf773a6f397645c01d0c5",
+      "sha256_after": "6444cc4230cea153deb4884bc199d0553dc01595aecbf773a6f397645c01d0c5",
+      "bytes": 25227,
+      "lines": 685,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_plugins\\hybrid_gi\\runtime\\src\\hybrid_gi\\scene_representation\\radiance_cache_state\\update_pipeline.rs",
+      "relative_path": "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/radiance_cache_state/update_pipeline.rs",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\010__update_pipeline.rs.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\010__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\010__after.raw",
+      "sha256_before": "98114ccce63711bc13b32c2336f0f1efc4938e1f05c1d7901b0503d773f76d92",
+      "sha256_capture": "98114ccce63711bc13b32c2336f0f1efc4938e1f05c1d7901b0503d773f76d92",
+      "sha256_after": "98114ccce63711bc13b32c2336f0f1efc4938e1f05c1d7901b0503d773f76d92",
+      "bytes": 5368,
+      "lines": 160,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_plugins\\hybrid_gi\\runtime\\src\\hybrid_gi\\renderer\\shaders\\scene_depth_handoff.wgsl",
+      "relative_path": "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/scene_depth_handoff.wgsl",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\011__scene_depth_handoff.wgsl.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\011__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\011__after.raw",
+      "sha256_before": "9f6d46991c5fbd1ba53224747f2108e62bfc01e5a20367a4f72954fbd53bb55b",
+      "sha256_capture": "9f6d46991c5fbd1ba53224747f2108e62bfc01e5a20367a4f72954fbd53bb55b",
+      "sha256_after": "9f6d46991c5fbd1ba53224747f2108e62bfc01e5a20367a4f72954fbd53bb55b",
+      "bytes": 6487,
+      "lines": 161,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_plugins\\hybrid_gi\\runtime\\src\\hybrid_gi\\renderer\\shaders\\trace_schedule_handoff.wgsl",
+      "relative_path": "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_schedule_handoff.wgsl",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\012__trace_schedule_handoff.wgsl.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\012__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\012__after.raw",
+      "sha256_before": "f097136f5e3286717fb9b1958074814cbe11cf53e16e7ee0797918db55131a08",
+      "sha256_capture": "f097136f5e3286717fb9b1958074814cbe11cf53e16e7ee0797918db55131a08",
+      "sha256_after": "f097136f5e3286717fb9b1958074814cbe11cf53e16e7ee0797918db55131a08",
+      "bytes": 27794,
+      "lines": 742,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_plugins\\hybrid_gi\\runtime\\src\\hybrid_gi\\renderer\\shaders\\trace_probe_tiles_global_sdf.wgsl",
+      "relative_path": "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_probe_tiles_global_sdf.wgsl",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\013__trace_probe_tiles_global_sdf.wgsl.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\013__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\013__after.raw",
+      "sha256_before": "f469ee4b19f5e74a2ececa58644d5338faa3cda50e010d7c63822a14758dc927",
+      "sha256_capture": "f469ee4b19f5e74a2ececa58644d5338faa3cda50e010d7c63822a14758dc927",
+      "sha256_after": "f469ee4b19f5e74a2ececa58644d5338faa3cda50e010d7c63822a14758dc927",
+      "bytes": 5378,
+      "lines": 125,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_plugins\\hybrid_gi\\runtime\\src\\hybrid_gi\\renderer\\shaders\\radiance_cache_update.wgsl",
+      "relative_path": "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/radiance_cache_update.wgsl",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\014__radiance_cache_update.wgsl.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\014__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\014__after.raw",
+      "sha256_before": "44cad95a8777c64afc71355fa95b6dd150824031a561f54c0e04f4cd37b4e0c7",
+      "sha256_capture": "44cad95a8777c64afc71355fa95b6dd150824031a561f54c0e04f4cd37b4e0c7",
+      "sha256_after": "44cad95a8777c64afc71355fa95b6dd150824031a561f54c0e04f4cd37b4e0c7",
+      "bytes": 12321,
+      "lines": 352,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_runtime\\src\\core\\framework\\render\\scene_extract\\hybrid_gi\\extract.rs",
+      "relative_path": "zircon_runtime/src/core/framework/render/scene_extract/hybrid_gi/extract.rs",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\015__extract.rs.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\015__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\015__after.raw",
+      "sha256_before": "8a340a27d64c4ed9207babaa56929959145156004fc8e827909f4d9e94be5927",
+      "sha256_capture": "8a340a27d64c4ed9207babaa56929959145156004fc8e827909f4d9e94be5927",
+      "sha256_after": "8a340a27d64c4ed9207babaa56929959145156004fc8e827909f4d9e94be5927",
+      "bytes": 1157,
+      "lines": 35,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_runtime\\src\\core\\framework\\render\\plugin_renderer_outputs\\hybrid_gi.rs",
+      "relative_path": "zircon_runtime/src/core/framework/render/plugin_renderer_outputs/hybrid_gi.rs",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\016__hybrid_gi.rs.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\016__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\016__after.raw",
+      "sha256_before": "8c9a4f48549fc8e24fffba25615c258334f8bc336962b4dbfa70f4e18d612389",
+      "sha256_capture": "8c9a4f48549fc8e24fffba25615c258334f8bc336962b4dbfa70f4e18d612389",
+      "sha256_after": "8c9a4f48549fc8e24fffba25615c258334f8bc336962b4dbfa70f4e18d612389",
+      "bytes": 9459,
+      "lines": 267,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_runtime\\src\\graphics\\visibility\\context\\from_extract_with_history\\construct.rs",
+      "relative_path": "zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\017__construct.rs.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\017__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\017__after.raw",
+      "sha256_before": "a17035a96fc562ea6a426a3942b00e8832de221c5b0065662fd9621b33b07506",
+      "sha256_capture": "a17035a96fc562ea6a426a3942b00e8832de221c5b0065662fd9621b33b07506",
+      "sha256_after": "a17035a96fc562ea6a426a3942b00e8832de221c5b0065662fd9621b33b07506",
+      "bytes": 14777,
+      "lines": 385,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_runtime\\src\\graphics\\scene\\scene_renderer\\post_process\\resources\\execute_post_process\\encode_hybrid_gi_probes\\encode.rs",
+      "relative_path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/encode.rs",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\018__encode.rs.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\018__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\018__after.raw",
+      "sha256_before": "14e7fd46f0fbc82f4f1e9c50c984fcfcbd06c19750412217eba9c4395ed80cc8",
+      "sha256_capture": "14e7fd46f0fbc82f4f1e9c50c984fcfcbd06c19750412217eba9c4395ed80cc8",
+      "sha256_after": "14e7fd46f0fbc82f4f1e9c50c984fcfcbd06c19750412217eba9c4395ed80cc8",
+      "bytes": 17955,
+      "lines": 473,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_runtime\\src\\core\\framework\\render\\solari\\capability.rs",
+      "relative_path": "zircon_runtime/src/core/framework/render/solari/capability.rs",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\019__capability.rs.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\019__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\019__after.raw",
+      "sha256_before": "0e1688a2c78d76aa682f882c3240ea824579d05c907b81e569ee9339bf3f5a8c",
+      "sha256_capture": "0e1688a2c78d76aa682f882c3240ea824579d05c907b81e569ee9339bf3f5a8c",
+      "sha256_after": "0e1688a2c78d76aa682f882c3240ea824579d05c907b81e569ee9339bf3f5a8c",
+      "bytes": 1437,
+      "lines": 38,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_runtime\\src\\core\\framework\\render\\solari\\status.rs",
+      "relative_path": "zircon_runtime/src/core/framework/render/solari/status.rs",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\020__status.rs.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\020__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\020__after.raw",
+      "sha256_before": "f32027f976314bbf8e188de28668c32b6d94bcb25bde495656b3a917f08c10c6",
+      "sha256_capture": "f32027f976314bbf8e188de28668c32b6d94bcb25bde495656b3a917f08c10c6",
+      "sha256_after": "f32027f976314bbf8e188de28668c32b6d94bcb25bde495656b3a917f08c10c6",
+      "bytes": 11252,
+      "lines": 327,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_runtime\\src\\graphics\\solari_runtime_provider\\provider.rs",
+      "relative_path": "zircon_runtime/src/graphics/solari_runtime_provider/provider.rs",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\021__provider.rs.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\021__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\021__after.raw",
+      "sha256_before": "e33569df3a5049e223774d5341d160b8b8e770d0c9cb2203a3b7e2f080bbd317",
+      "sha256_capture": "e33569df3a5049e223774d5341d160b8b8e770d0c9cb2203a3b7e2f080bbd317",
+      "sha256_after": "e33569df3a5049e223774d5341d160b8b8e770d0c9cb2203a3b7e2f080bbd317",
+      "bytes": 1275,
+      "lines": 31,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_runtime\\crates\\zr_rhi\\src\\lib.rs",
+      "relative_path": "zircon_runtime/crates/zr_rhi/src/lib.rs",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\022__lib.rs.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\022__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\022__after.raw",
+      "sha256_before": "f1f6c19b55e9b05dab8db184780177aa9e5c07c5de483a94f6185a5109c35918",
+      "sha256_capture": "f1f6c19b55e9b05dab8db184780177aa9e5c07c5de483a94f6185a5109c35918",
+      "sha256_after": "f1f6c19b55e9b05dab8db184780177aa9e5c07c5de483a94f6185a5109c35918",
+      "bytes": 5116,
+      "lines": 97,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_runtime\\crates\\zr_rhi\\src\\device\\handles.rs",
+      "relative_path": "zircon_runtime/crates/zr_rhi/src/device/handles.rs",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\023__handles.rs.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\023__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\023__after.raw",
+      "sha256_before": "75e473b15394345114f730e625e8b4dc1b02b3c8e5c0d4cb29bf05a815f2a760",
+      "sha256_capture": "75e473b15394345114f730e625e8b4dc1b02b3c8e5c0d4cb29bf05a815f2a760",
+      "sha256_after": "75e473b15394345114f730e625e8b4dc1b02b3c8e5c0d4cb29bf05a815f2a760",
+      "bytes": 12472,
+      "lines": 398,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_runtime\\crates\\zr_rhi\\src\\device\\error.rs",
+      "relative_path": "zircon_runtime/crates/zr_rhi/src/device/error.rs",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\024__error.rs.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\024__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\024__after.raw",
+      "sha256_before": "2be938b66b7b9f84b92ff945ea094fcc240b8870067157310d16cb0630d0afec",
+      "sha256_capture": "2be938b66b7b9f84b92ff945ea094fcc240b8870067157310d16cb0630d0afec",
+      "sha256_after": "2be938b66b7b9f84b92ff945ea094fcc240b8870067157310d16cb0630d0afec",
+      "bytes": 15358,
+      "lines": 388,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_runtime\\crates\\zr_rhi_wgpu\\src\\capabilities.rs",
+      "relative_path": "zircon_runtime/crates/zr_rhi_wgpu/src/capabilities.rs",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\025__capabilities.rs.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\025__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\025__after.raw",
+      "sha256_before": "335ea20dd3261c833b5dc98577eb08a4892a96545634e8974ac66c4ccdde5362",
+      "sha256_capture": "335ea20dd3261c833b5dc98577eb08a4892a96545634e8974ac66c4ccdde5362",
+      "sha256_after": "335ea20dd3261c833b5dc98577eb08a4892a96545634e8974ac66c4ccdde5362",
+      "bytes": 6761,
+      "lines": 174,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_runtime\\crates\\zr_rhi_wgpu\\src\\device\\command_list.rs",
+      "relative_path": "zircon_runtime/crates/zr_rhi_wgpu/src/device/command_list.rs",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\026__command_list.rs.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\026__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\026__after.raw",
+      "sha256_before": "ebe4ed2d1f82ab31963a3265cbff69a482457f2ccda959c864705c4549384521",
+      "sha256_capture": "ebe4ed2d1f82ab31963a3265cbff69a482457f2ccda959c864705c4549384521",
+      "sha256_after": "ebe4ed2d1f82ab31963a3265cbff69a482457f2ccda959c864705c4549384521",
+      "bytes": 9362,
+      "lines": 335,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_plugins\\hybrid_gi\\editor\\src\\plugin.rs",
+      "relative_path": "zircon_plugins/hybrid_gi/editor/src/plugin.rs",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\027__plugin.rs.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\027__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\027__after.raw",
+      "sha256_before": "d54a3e73dd7d2fd6f45f40336402962fc441af9c74d96154923c17a7137e3634",
+      "sha256_capture": "d54a3e73dd7d2fd6f45f40336402962fc441af9c74d96154923c17a7137e3634",
+      "sha256_after": "d54a3e73dd7d2fd6f45f40336402962fc441af9c74d96154923c17a7137e3634",
+      "bytes": 2580,
+      "lines": 82,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\zircon_plugins\\hybrid_gi\\editor\\src\\tests.rs",
+      "relative_path": "zircon_plugins/hybrid_gi/editor/src/tests.rs",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\full-source-captures\\028__tests.rs.raw",
+      "before_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\028__before.raw",
+      "after_raw_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\raw\\028__after.raw",
+      "sha256_before": "1806f2d6351ab9252fdf33f5273514985fe178fb1fcfe087ec2b3d4551b4206a",
+      "sha256_capture": "1806f2d6351ab9252fdf33f5273514985fe178fb1fcfe087ec2b3d4551b4206a",
+      "sha256_after": "1806f2d6351ab9252fdf33f5273514985fe178fb1fcfe087ec2b3d4551b4206a",
+      "bytes": 1220,
+      "lines": 37,
+      "changed_during_capture": false,
+      "captured_at_utc": "2026-10-03T03:41:00.993156Z"
+    },
+    {
+      "record_type": "review_stream",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\review.jsonl",
+      "sha256": "4bddcc4865dc94f9d36de6fe5bd62fdb5c733e7cadec150985d641df60d0e07c",
+      "rows": 173,
+      "description": "literal original findings plus explicit Runtime98 non-new parent refresh rows"
+    },
+    {
+      "record_type": "primary_reference_capture",
+      "path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Source\\Runtime\\Renderer\\Private\\Lumen\\LumenSceneData.h",
+      "relative_path": "dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/Lumen/LumenSceneData.h",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\001__LumenSceneData.h.raw",
+      "sha256": "b6aec717ffd06593852c1fbbfbed98be69d2b61a827bb24eeec0633da41fe1de",
+      "bytes": 48264,
+      "lines": 1347,
+      "version": "filesystem snapshot; no independent git revision asserted",
+      "aggregate_reference_fingerprint": "89670ea60492310877cc82a0d96b1a127cbcac1a51bd633511eafb3b2b9a2322",
+      "preserved": true
+    },
+    {
+      "record_type": "primary_reference_capture",
+      "path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Source\\Runtime\\Renderer\\Private\\Lumen\\LumenMeshCards.cpp",
+      "relative_path": "dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/Lumen/LumenMeshCards.cpp",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\002__LumenMeshCards.cpp.raw",
+      "sha256": "e7da1bf640b98badae229f3147678420af0b476cb6951137f97176d607a7e9cc",
+      "bytes": 62773,
+      "lines": 1631,
+      "version": "filesystem snapshot; no independent git revision asserted",
+      "aggregate_reference_fingerprint": "89670ea60492310877cc82a0d96b1a127cbcac1a51bd633511eafb3b2b9a2322",
+      "preserved": true
+    },
+    {
+      "record_type": "primary_reference_capture",
+      "path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Source\\Runtime\\Renderer\\Private\\Lumen\\LumenSceneCardCapture.cpp",
+      "relative_path": "dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/Lumen/LumenSceneCardCapture.cpp",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\003__LumenSceneCardCapture.cpp.raw",
+      "sha256": "333a967152856368ae510dae6cd48cbb0ba50973b20c3d42e93808118894ed3c",
+      "bytes": 37584,
+      "lines": 931,
+      "version": "filesystem snapshot; no independent git revision asserted",
+      "aggregate_reference_fingerprint": "89670ea60492310877cc82a0d96b1a127cbcac1a51bd633511eafb3b2b9a2322",
+      "preserved": true
+    },
+    {
+      "record_type": "primary_reference_capture",
+      "path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Source\\Runtime\\Renderer\\Private\\Lumen\\LumenSurfaceCache.cpp",
+      "relative_path": "dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/Lumen/LumenSurfaceCache.cpp",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\004__LumenSurfaceCache.cpp.raw",
+      "sha256": "364d60f6654c19372edb1efc1ff1d67fb6ef97d868ed3048a1ebe7f4b9d159f3",
+      "bytes": 47101,
+      "lines": 1017,
+      "version": "filesystem snapshot; no independent git revision asserted",
+      "aggregate_reference_fingerprint": "89670ea60492310877cc82a0d96b1a127cbcac1a51bd633511eafb3b2b9a2322",
+      "preserved": true
+    },
+    {
+      "record_type": "primary_reference_capture",
+      "path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Source\\Runtime\\Renderer\\Private\\Lumen\\LumenSurfaceCacheFeedback.cpp",
+      "relative_path": "dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/Lumen/LumenSurfaceCacheFeedback.cpp",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\005__LumenSurfaceCacheFeedback.cpp.raw",
+      "sha256": "9d2a0fe7393f745bbac4137f370aec97105a3ed38de2402036ab632b7036b23f",
+      "bytes": 22460,
+      "lines": 495,
+      "version": "filesystem snapshot; no independent git revision asserted",
+      "aggregate_reference_fingerprint": "89670ea60492310877cc82a0d96b1a127cbcac1a51bd633511eafb3b2b9a2322",
+      "preserved": true
+    },
+    {
+      "record_type": "primary_reference_capture",
+      "path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Source\\Runtime\\Renderer\\Private\\Lumen\\LumenScreenProbeGather.cpp",
+      "relative_path": "dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/Lumen/LumenScreenProbeGather.cpp",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\006__LumenScreenProbeGather.cpp.raw",
+      "sha256": "d119e4e6c4777fdfcf22e14674681d971d28431b56a15e495a794e938eb7db88",
+      "bytes": 147446,
+      "lines": 2830,
+      "version": "filesystem snapshot; no independent git revision asserted",
+      "aggregate_reference_fingerprint": "89670ea60492310877cc82a0d96b1a127cbcac1a51bd633511eafb3b2b9a2322",
+      "preserved": true
+    },
+    {
+      "record_type": "primary_reference_capture",
+      "path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Source\\Runtime\\Renderer\\Private\\Lumen\\LumenScreenProbeTracing.cpp",
+      "relative_path": "dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/Lumen/LumenScreenProbeTracing.cpp",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\007__LumenScreenProbeTracing.cpp.raw",
+      "sha256": "b0bd88c14e040b1a13dc9bbf9a7ad1ca5f0564e90fe7addfd58407d5af074340",
+      "bytes": 45032,
+      "lines": 939,
+      "version": "filesystem snapshot; no independent git revision asserted",
+      "aggregate_reference_fingerprint": "89670ea60492310877cc82a0d96b1a127cbcac1a51bd633511eafb3b2b9a2322",
+      "preserved": true
+    },
+    {
+      "record_type": "primary_reference_capture",
+      "path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Source\\Runtime\\Renderer\\Private\\Lumen\\LumenScreenProbeFiltering.cpp",
+      "relative_path": "dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/Lumen/LumenScreenProbeFiltering.cpp",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\008__LumenScreenProbeFiltering.cpp.raw",
+      "sha256": "605b1f71006eacf1e429e92eff5a8f74a6c3fe6462af6db3ee0e3ffa8343c793",
+      "bytes": 39844,
+      "lines": 766,
+      "version": "filesystem snapshot; no independent git revision asserted",
+      "aggregate_reference_fingerprint": "89670ea60492310877cc82a0d96b1a127cbcac1a51bd633511eafb3b2b9a2322",
+      "preserved": true
+    },
+    {
+      "record_type": "primary_reference_capture",
+      "path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Source\\Runtime\\Renderer\\Private\\Lumen\\LumenRadianceCache.cpp",
+      "relative_path": "dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/Lumen/LumenRadianceCache.cpp",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\009__LumenRadianceCache.cpp.raw",
+      "sha256": "36c01ad7d5f60bd7221c2b6c35029d710e9f40f8841404d8ad67add90863bd00",
+      "bytes": 148836,
+      "lines": 2852,
+      "version": "filesystem snapshot; no independent git revision asserted",
+      "aggregate_reference_fingerprint": "89670ea60492310877cc82a0d96b1a127cbcac1a51bd633511eafb3b2b9a2322",
+      "preserved": true
+    },
+    {
+      "record_type": "primary_reference_capture",
+      "path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Source\\Runtime\\Renderer\\Private\\Lumen\\LumenRadianceCacheHardwareRayTracing.cpp",
+      "relative_path": "dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/Lumen/LumenRadianceCacheHardwareRayTracing.cpp",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\010__LumenRadianceCacheHardwareRayTracing.cpp.raw",
+      "sha256": "a1376e9c5bb5dc233fb624fb8fb184b53706bb06f0f9145b1ead31454ce369ff",
+      "bytes": 40963,
+      "lines": 768,
+      "version": "filesystem snapshot; no independent git revision asserted",
+      "aggregate_reference_fingerprint": "89670ea60492310877cc82a0d96b1a127cbcac1a51bd633511eafb3b2b9a2322",
+      "preserved": true
+    },
+    {
+      "record_type": "primary_reference_capture",
+      "path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Source\\Runtime\\Renderer\\Private\\Lumen\\LumenHardwareRayTracingCommon.cpp",
+      "relative_path": "dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/Lumen/LumenHardwareRayTracingCommon.cpp",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\011__LumenHardwareRayTracingCommon.cpp.raw",
+      "sha256": "fc444578b5d62ce9ae5dc3b7ae9188b8feaf6615869df43ba5b7a12a7dcdae5b",
+      "bytes": 22002,
+      "lines": 467,
+      "version": "filesystem snapshot; no independent git revision asserted",
+      "aggregate_reference_fingerprint": "89670ea60492310877cc82a0d96b1a127cbcac1a51bd633511eafb3b2b9a2322",
+      "preserved": true
+    },
+    {
+      "record_type": "primary_reference_capture",
+      "path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Shaders\\Private\\Lumen\\LumenScreenProbeTracing.usf",
+      "relative_path": "dev/UnrealEngine/Engine/Shaders/Private/Lumen/LumenScreenProbeTracing.usf",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\012__LumenScreenProbeTracing.usf.raw",
+      "sha256": "87412e00ca91701ebbfaef29f7fbc097f7d04c31c64c0983be7118f78e476b18",
+      "bytes": 40072,
+      "lines": 1067,
+      "version": "filesystem snapshot; no independent git revision asserted",
+      "aggregate_reference_fingerprint": "89670ea60492310877cc82a0d96b1a127cbcac1a51bd633511eafb3b2b9a2322",
+      "preserved": true
+    },
+    {
+      "record_type": "primary_reference_capture",
+      "path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Shaders\\Private\\Lumen\\LumenRadianceCacheUpdate.usf",
+      "relative_path": "dev/UnrealEngine/Engine/Shaders/Private/Lumen/LumenRadianceCacheUpdate.usf",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\013__LumenRadianceCacheUpdate.usf.raw",
+      "sha256": "87d2d1729973ce3de816bbaf83a259f4837cf93a3a6a4ba8893f2cdad6195bea",
+      "bytes": 19343,
+      "lines": 532,
+      "version": "filesystem snapshot; no independent git revision asserted",
+      "aggregate_reference_fingerprint": "89670ea60492310877cc82a0d96b1a127cbcac1a51bd633511eafb3b2b9a2322",
+      "preserved": true
+    },
+    {
+      "record_type": "primary_reference_capture",
+      "path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Shaders\\Private\\Lumen\\SurfaceCache\\LumenSurfaceCacheSampling.ush",
+      "relative_path": "dev/UnrealEngine/Engine/Shaders/Private/Lumen/SurfaceCache/LumenSurfaceCacheSampling.ush",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reference-captures\\014__LumenSurfaceCacheSampling.ush.raw",
+      "sha256": "330b88e323b7912965f5d7dd2746fa31edf1238b132eb7dc4899dfdd725d81cc",
+      "bytes": 24964,
+      "lines": 673,
+      "version": "filesystem snapshot; no independent git revision asserted",
+      "aggregate_reference_fingerprint": "89670ea60492310877cc82a0d96b1a127cbcac1a51bd633511eafb3b2b9a2322",
+      "preserved": true
+    },
+    {
+      "record_type": "selected_path_status",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\selected-path-status.txt",
+      "sha256": "0b761c6a79dc6351ae37da47fe0f085692fd1a04272dbe5ec327d559b87401b2",
+      "bytes": 2191,
+      "description": "selected-path concurrent source change evidence; no whole-workspace quiet claim"
+    },
+    {
+      "record_type": "report_discovery",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\report-discovery.txt",
+      "sha256": "06c17721b815c46a93e418b1046a255d25fded569d5956b8881eb5d26e5858bc",
+      "bytes": 375,
+      "method": "rg --files bounded docs/plans/optimize/zircon_runtime | rg hardware-ray-tracing"
+    },
+    {
+      "record_type": "report_milestones",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\report-milestones.jsonl",
+      "sha256": "fdbe92d7b782f28c2afcdc622784c1c35f3bd418e37efe5137931030ac47d23b",
+      "rows": 16,
+      "description": "09F3 M0-M15 roadmap milestones captured verbatim; not minted as gate IDs"
+    }
+  ],
+  "source_observations": [
+    {
+      "batch": 22,
+      "path": "zircon_plugins/hybrid_gi/plugin.toml",
+      "captured_sha256": "4df537ee8d87d221c18fe99ebff050ef0a0bfb28990463547cff1ae70bd02a27",
+      "root_current_sha256": "4df537ee8d87d221c18fe99ebff050ef0a0bfb28990463547cff1ae70bd02a27",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_plugins/hybrid_gi/runtime/src/capability.rs",
+      "captured_sha256": "492aa712927dccd62389a15e230c4ada82c4892a8f9ce779cc1d0effe94aecc7",
+      "root_current_sha256": "492aa712927dccd62389a15e230c4ada82c4892a8f9ce779cc1d0effe94aecc7",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_plugins/hybrid_gi/runtime/src/provider.rs",
+      "captured_sha256": "cc106ef66c524fb0e34df89c7a28a5fe508a050fdf4631562d0a5245128ff2a8",
+      "root_current_sha256": "cc106ef66c524fb0e34df89c7a28a5fe508a050fdf4631562d0a5245128ff2a8",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_plugins/hybrid_gi/runtime/src/render_pass_executors.rs",
+      "captured_sha256": "244db22cc1eca71c07735b2ab1f308b8ad8d6a7967509de1de8c666e6e2a43a0",
+      "root_current_sha256": "244db22cc1eca71c07735b2ab1f308b8ad8d6a7967509de1de8c666e6e2a43a0",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/representation.rs",
+      "captured_sha256": "41f67995c5a6553f342130d5cca34b5017203117f12d6e9f2091c7cc909cebe5",
+      "root_current_sha256": "41f67995c5a6553f342130d5cca34b5017203117f12d6e9f2091c7cc909cebe5",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/surface_cache_state.rs",
+      "captured_sha256": "1e81a72aed8e7bde7810e0bb18ad1c82621837a8b781b8d26a0fa29df3a5573f",
+      "root_current_sha256": "1e81a72aed8e7bde7810e0bb18ad1c82621837a8b781b8d26a0fa29df3a5573f",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/global_sdf_scene_state/declarations.rs",
+      "captured_sha256": "eb8711bb31d35732371d699bbdd100c2b871bee91c14b3e5d15646687f526fcf",
+      "root_current_sha256": "eb8711bb31d35732371d699bbdd100c2b871bee91c14b3e5d15646687f526fcf",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/global_sdf_scene_state/synchronize.rs",
+      "captured_sha256": "0ba5b92cecc671698823077d043e685582c297b791e45816126b72760ec8fbe4",
+      "root_current_sha256": "0ba5b92cecc671698823077d043e685582c297b791e45816126b72760ec8fbe4",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/radiance_cache_state.rs",
+      "captured_sha256": "6444cc4230cea153deb4884bc199d0553dc01595aecbf773a6f397645c01d0c5",
+      "root_current_sha256": "6444cc4230cea153deb4884bc199d0553dc01595aecbf773a6f397645c01d0c5",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/radiance_cache_state/update_pipeline.rs",
+      "captured_sha256": "98114ccce63711bc13b32c2336f0f1efc4938e1f05c1d7901b0503d773f76d92",
+      "root_current_sha256": "98114ccce63711bc13b32c2336f0f1efc4938e1f05c1d7901b0503d773f76d92",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/scene_depth_handoff.wgsl",
+      "captured_sha256": "9f6d46991c5fbd1ba53224747f2108e62bfc01e5a20367a4f72954fbd53bb55b",
+      "root_current_sha256": "9f6d46991c5fbd1ba53224747f2108e62bfc01e5a20367a4f72954fbd53bb55b",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_schedule_handoff.wgsl",
+      "captured_sha256": "f097136f5e3286717fb9b1958074814cbe11cf53e16e7ee0797918db55131a08",
+      "root_current_sha256": "f097136f5e3286717fb9b1958074814cbe11cf53e16e7ee0797918db55131a08",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_probe_tiles_global_sdf.wgsl",
+      "captured_sha256": "f469ee4b19f5e74a2ececa58644d5338faa3cda50e010d7c63822a14758dc927",
+      "root_current_sha256": "f469ee4b19f5e74a2ececa58644d5338faa3cda50e010d7c63822a14758dc927",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/radiance_cache_update.wgsl",
+      "captured_sha256": "44cad95a8777c64afc71355fa95b6dd150824031a561f54c0e04f4cd37b4e0c7",
+      "root_current_sha256": "44cad95a8777c64afc71355fa95b6dd150824031a561f54c0e04f4cd37b4e0c7",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_runtime/src/core/framework/render/scene_extract/hybrid_gi/extract.rs",
+      "captured_sha256": "8a340a27d64c4ed9207babaa56929959145156004fc8e827909f4d9e94be5927",
+      "root_current_sha256": "8a340a27d64c4ed9207babaa56929959145156004fc8e827909f4d9e94be5927",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_runtime/src/core/framework/render/plugin_renderer_outputs/hybrid_gi.rs",
+      "captured_sha256": "8c9a4f48549fc8e24fffba25615c258334f8bc336962b4dbfa70f4e18d612389",
+      "root_current_sha256": "8c9a4f48549fc8e24fffba25615c258334f8bc336962b4dbfa70f4e18d612389",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs",
+      "captured_sha256": "a17035a96fc562ea6a426a3942b00e8832de221c5b0065662fd9621b33b07506",
+      "root_current_sha256": "a17035a96fc562ea6a426a3942b00e8832de221c5b0065662fd9621b33b07506",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/encode.rs",
+      "captured_sha256": "14e7fd46f0fbc82f4f1e9c50c984fcfcbd06c19750412217eba9c4395ed80cc8",
+      "root_current_sha256": "14e7fd46f0fbc82f4f1e9c50c984fcfcbd06c19750412217eba9c4395ed80cc8",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_runtime/src/core/framework/render/solari/capability.rs",
+      "captured_sha256": "0e1688a2c78d76aa682f882c3240ea824579d05c907b81e569ee9339bf3f5a8c",
+      "root_current_sha256": "0e1688a2c78d76aa682f882c3240ea824579d05c907b81e569ee9339bf3f5a8c",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_runtime/src/core/framework/render/solari/status.rs",
+      "captured_sha256": "f32027f976314bbf8e188de28668c32b6d94bcb25bde495656b3a917f08c10c6",
+      "root_current_sha256": "f32027f976314bbf8e188de28668c32b6d94bcb25bde495656b3a917f08c10c6",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_runtime/src/graphics/solari_runtime_provider/provider.rs",
+      "captured_sha256": "e33569df3a5049e223774d5341d160b8b8e770d0c9cb2203a3b7e2f080bbd317",
+      "root_current_sha256": "e33569df3a5049e223774d5341d160b8b8e770d0c9cb2203a3b7e2f080bbd317",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_runtime/crates/zr_rhi/src/lib.rs",
+      "captured_sha256": "f1f6c19b55e9b05dab8db184780177aa9e5c07c5de483a94f6185a5109c35918",
+      "root_current_sha256": "f1f6c19b55e9b05dab8db184780177aa9e5c07c5de483a94f6185a5109c35918",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_runtime/crates/zr_rhi/src/device/handles.rs",
+      "captured_sha256": "75e473b15394345114f730e625e8b4dc1b02b3c8e5c0d4cb29bf05a815f2a760",
+      "root_current_sha256": "75e473b15394345114f730e625e8b4dc1b02b3c8e5c0d4cb29bf05a815f2a760",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_runtime/crates/zr_rhi/src/device/error.rs",
+      "captured_sha256": "2be938b66b7b9f84b92ff945ea094fcc240b8870067157310d16cb0630d0afec",
+      "root_current_sha256": "2be938b66b7b9f84b92ff945ea094fcc240b8870067157310d16cb0630d0afec",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_runtime/crates/zr_rhi_wgpu/src/capabilities.rs",
+      "captured_sha256": "335ea20dd3261c833b5dc98577eb08a4892a96545634e8974ac66c4ccdde5362",
+      "root_current_sha256": "335ea20dd3261c833b5dc98577eb08a4892a96545634e8974ac66c4ccdde5362",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_runtime/crates/zr_rhi_wgpu/src/device/command_list.rs",
+      "captured_sha256": "ebe4ed2d1f82ab31963a3265cbff69a482457f2ccda959c864705c4549384521",
+      "root_current_sha256": "ebe4ed2d1f82ab31963a3265cbff69a482457f2ccda959c864705c4549384521",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_plugins/hybrid_gi/editor/src/plugin.rs",
+      "captured_sha256": "d54a3e73dd7d2fd6f45f40336402962fc441af9c74d96154923c17a7137e3634",
+      "root_current_sha256": "d54a3e73dd7d2fd6f45f40336402962fc441af9c74d96154923c17a7137e3634",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 22,
+      "path": "zircon_plugins/hybrid_gi/editor/src/tests.rs",
+      "captured_sha256": "1806f2d6351ab9252fdf33f5273514985fe178fb1fcfe087ec2b3d4551b4206a",
+      "root_current_sha256": "1806f2d6351ab9252fdf33f5273514985fe178fb1fcfe087ec2b3d4551b4206a",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    }
+  ],
+  "qualification": "capture and source observations only; no compiler/native/product/performance/Jenkins acceptance; old B23 seal raw bytes unavailable and not reconstructed",
+  "tests_run": 0,
+  "acceptance": "open"
+}

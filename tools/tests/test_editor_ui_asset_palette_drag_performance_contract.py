@@ -1,3 +1,4 @@
+# 核对组件拖拽复用已选条目与解析槽位，重校验只在文档变化时更新缓存。
 from pathlib import Path
 import unittest
 

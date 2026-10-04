@@ -8,5 +8,5 @@ pub(in crate::ui::retained_host::host_contract) use top_bar::presentation_top_ba
 pub(in crate::ui::retained_host::host_contract) use union::union_diagnostic_frames;
 
 #[cfg(test)]
-#[path = "paint_diagnostics_tests.rs"]
+#[path = "tests/paint_diagnostics_tests.rs"]
 mod tests;

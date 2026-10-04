@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 $projectOpenEvidenceRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-Import-Module (Join-Path $projectOpenEvidenceRepoRoot 'tools\WindowsPathResolver.psm1') -ErrorAction Stop
+Import-Module (Join-Path $projectOpenEvidenceRepoRoot 'tools\maintenance\WindowsPathResolver.psm1') -ErrorAction Stop
 
 function Get-MvpProjectOpenEvidenceValue {
     param(

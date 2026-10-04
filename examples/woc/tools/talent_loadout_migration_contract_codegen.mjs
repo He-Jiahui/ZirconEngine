@@ -1,3 +1,6 @@
+// 调用端：npm run generate:talent-loadout-migration-contract (tools/package.json)；职责：固化已保存天赋方案的迁移和旧选项映射。
+// 输入边界：src/sim/content/talents.ts, src/sim/content/talent_rows.ts, src/sim/content/talents_warrior.ts, src/sim/content/talents_classic.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

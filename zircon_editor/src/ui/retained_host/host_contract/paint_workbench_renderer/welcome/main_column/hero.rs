@@ -4,7 +4,8 @@ use super::super::super::super::paint_primitives::{
     draw_rect_clipped, draw_rounded_box_clipped, draw_rounded_rect_clipped,
 };
 use super::super::super::super::paint_text::{
-    draw_text_with_size_and_style, measure_runtime_text_width,
+    draw_text_with_size_and_style, draw_text_with_size_and_style_and_layout_policy,
+    measure_runtime_text_width, HostTextLayoutPolicy,
 };
 use super::super::super::super::paint_theme::current_host_metrics;
 use super::super::super::{first_non_empty, ACCENT, SEPARATOR};
@@ -128,14 +129,14 @@ pub(in crate::ui::retained_host::host_contract) fn draw_welcome_status(
     let font_size = metrics.font_body;
     let line_height = shared_line_height(font_size).min(status.height.max(0.0));
     let text_x = marker.x + marker.width + metrics.gap_m;
-    draw_text_with_size_and_style(
+    draw_text_with_size_and_style_and_layout_policy(
         frame,
         FrameRect {
             x: text_x,
-            y: status.y + ((status.height - line_height).max(0.0) * 0.5),
+            y: status.y,
             width: (status.x + status.width - metrics.gap_l - text_x)
                 .max(MIN_WELCOME_TEXT_SLOT_WIDTH),
-            height: line_height,
+            height: status.height,
         },
         first_non_empty(&[pane.welcome.status_message.as_str(), "Ready"]),
         Some(clip),
@@ -143,6 +144,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_welcome_status(
         font_size,
         line_height,
         UiTextRunPaintStyle::default(),
+        HostTextLayoutPolicy::WordWrap,
     );
 }
 
@@ -152,85 +154,5 @@ fn shared_line_height(font_size: f32) -> f32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::super::super::super::super::paint_frame::HostRecordedPaintKind;
-    use super::*;
-
-    fn test_clip() -> FrameRect {
-        FrameRect {
-            x: 0.0,
-            y: 0.0,
-            width: 360.0,
-            height: 160.0,
-        }
-    }
-
-    #[test]
-    fn welcome_hero_uses_runtime_text_metrics_and_measured_accent_width() {
-        let mut frame = HostRgbaFrame::recording_only(360, 160);
-        let mut pane = PaneData::default();
-        pane.welcome.title = "Create a project".into();
-        pane.welcome.subtitle = "Start from a renderable template".into();
-        let hero = FrameRect {
-            x: 16.0,
-            y: 12.0,
-            width: 328.0,
-            height: 84.0,
-        };
-
-        draw_welcome_hero(&mut frame, &pane, &hero, &test_clip());
-
-        let commands = frame.into_recorded_commands();
-        assert_eq!(commands.len(), 4);
-        let metrics = current_host_metrics();
-        assert!(matches!(
-            &commands[0].kind,
-            HostRecordedPaintKind::Text { text, font_size, .. }
-                if text == "Create a project" && *font_size == metrics.font_large
-        ));
-        assert!(matches!(
-            &commands[1].kind,
-            HostRecordedPaintKind::Text { text, font_size, .. }
-                if text == "Start from a renderable template" && *font_size == metrics.font_body
-        ));
-        assert_eq!(commands[0].frame.x, hero.x);
-        assert_eq!(commands[0].frame.width, hero.width);
-        assert_eq!(commands[3].frame.height, metrics.selection_indicator_width);
-        assert!(commands[3].frame.width < hero.width);
-        assert!(commands[3].frame.width > metrics.gap_l);
-    }
-
-    #[test]
-    fn welcome_status_uses_shared_radius_border_and_vertically_centered_runtime_text() {
-        let mut frame = HostRgbaFrame::recording_only(360, 64);
-        let status = FrameRect {
-            x: 16.0,
-            y: 12.0,
-            width: 328.0,
-            height: 30.0,
-        };
-
-        draw_welcome_status(&mut frame, &PaneData::default(), &status, &test_clip());
-
-        let commands = frame.into_recorded_commands();
-        assert_eq!(commands.len(), 4);
-        let metrics = current_host_metrics();
-        assert!(matches!(
-            &commands[0].kind,
-            HostRecordedPaintKind::Quad { corner_radius, .. }
-                if *corner_radius == metrics.radius_control
-        ));
-        assert!(matches!(
-            &commands[1].kind,
-            HostRecordedPaintKind::Border { width, corner_radius, .. }
-                if *width == metrics.border_width && *corner_radius == metrics.radius_control
-        ));
-        assert!(matches!(
-            &commands[3].kind,
-            HostRecordedPaintKind::Text { text, font_size, .. }
-                if text == "Ready" && *font_size == metrics.font_body
-        ));
-        let text_center_y = commands[3].frame.y + commands[3].frame.height * 0.5;
-        assert!((text_center_y - (status.y + status.height * 0.5)).abs() <= 1.0);
-    }
-}
+#[path = "tests/hero.rs"]
+mod tests;

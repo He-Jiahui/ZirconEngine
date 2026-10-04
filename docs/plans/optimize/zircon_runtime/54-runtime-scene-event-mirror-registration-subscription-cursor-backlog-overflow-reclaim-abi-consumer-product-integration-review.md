@@ -25,7 +25,7 @@ tests:
   - zircon_runtime/src/dynamic_api/tests/linked_plugins.rs
   - zircon_runtime/src/dynamic_api/session/registry/tests.rs
   - zircon_editor/src/tests/runtime_event_consumer.rs
-  - zircon_editor/src/tests/runtime_event_consumer_bounded_pump.rs
+  - zircon_editor/src/tests/runtime_event_consumer_bounded_pump
   - zircon_editor/src/tests/runtime_event_consumer_bounded_pump/real_runtime_abi.rs
   - zircon_editor/src/tests/gateway/session/plugin_operations.rs
   - zircon_plugins/navigation/runtime/src/tests/runtime_mirror.rs

@@ -12,13 +12,6 @@ RUNTIME_15_OUTPUT_ARCHIVE = (
     "2026-07-09-code-structure-and-module-conventions-output-records.md"
 )
 FIXTURE_SYMBOL = "RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT"
-AGGREGATE_ARCHIVE_CONSUMERS = {
-    "plan_status/index_tables/status_anchors/cargo_attempt.rs",
-    "plan_status/index_tables/status_anchors/generated_status.rs",
-    "plan_status/index_tables/status_anchors/runtime07_owner_budget.rs",
-    "plan_status/index_tables/status_anchors/runtime07_scene_asset.rs",
-    "plan_status/index_tables/status_anchors/runtime10_behavior.rs",
-}
 CONCAT_LITERAL_CONSUMERS = {
     "dynamic_scene/split_layout.rs",
     "job_system/split_layout.rs",
@@ -64,10 +57,10 @@ class RuntimeAbsorptionCurrentSourceFixtureTests(unittest.TestCase):
                 consumers.append(path)
 
         self.assertEqual(15, len(consumers), [path.as_posix() for path in consumers])
-        for relative_path in AGGREGATE_ARCHIVE_CONSUMERS:
-            source = (RUNTIME_ABSORPTION_ROOT / relative_path).read_text(encoding="utf-8")
-            self.assertIn("runtime_numbered_archive_sources()", source)
-            self.assertNotIn(FIXTURE_SYMBOL, source)
+        self.assertFalse(
+            (RUNTIME_ABSORPTION_ROOT / "plan_status").exists(),
+            "the retired status tree must not be restored for fixture consumers",
+        )
         for relative_path in CONCAT_LITERAL_CONSUMERS:
             source = (RUNTIME_ABSORPTION_ROOT / relative_path).read_text(encoding="utf-8")
             self.assertIn(RUNTIME_15_OUTPUT_ARCHIVE, source)

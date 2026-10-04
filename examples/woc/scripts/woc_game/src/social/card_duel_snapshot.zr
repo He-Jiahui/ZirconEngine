@@ -253,6 +253,8 @@ pub encode(state: serviceModule.CardDuelService): container.Array<uint> {
     return writer.finish(true);
 }
 
+// WOS 反序列化后先从 CDS1 恢复队列与对局；world/state 随后以当前
+// 世界角色列表重建资格，并用 WOS 随机游标覆盖快照中的旧游标。
 pub decode(bytes: container.Array<uint>, seed: uint): serviceModule.CardDuelService {
     if (bytes.length == 0) return new serviceModule.CardDuelService(seed);
     var reader = new SnapshotReader(bytes);

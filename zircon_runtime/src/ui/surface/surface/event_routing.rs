@@ -1,3 +1,5 @@
+mod pointer_ownership;
+
 use std::collections::HashSet;
 
 use crate::ui::dispatch::{
@@ -6,9 +8,12 @@ use crate::ui::dispatch::{
 use crate::ui::surface::input::{
     apply_dispatch_reply, apply_dispatch_reply_steps, dispatch_input_event, is_valid_input_owner,
 };
-use crate::ui::tree::{
-    UiRuntimeTreeFocusExt, UiRuntimeTreeInteractionExt, UiRuntimeTreeRoutingExt,
-    UiRuntimeTreeScrollExt,
+use crate::ui::{
+    layout::MAX_UI_LAYOUT_DISCRETE_VALUE,
+    tree::{
+        UiRuntimeTreeFocusExt, UiRuntimeTreeInteractionExt, UiRuntimeTreeRoutingExt,
+        UiRuntimeTreeScrollExt,
+    },
 };
 use zircon_runtime_interface::ui::{
     dispatch::{
@@ -30,29 +35,6 @@ use zircon_runtime_interface::ui::{
 use super::{default_interactions, UiSurface};
 
 impl UiSurface {
-    pub fn capture_pointer(&mut self, node_id: UiNodeId) -> Result<(), UiTreeError> {
-        if !is_valid_input_owner(self, node_id) {
-            return Err(UiTreeError::MissingNode(node_id));
-        }
-        if let Some(previous) = self.focus.captured.filter(|owner| owner != &node_id) {
-            self.input.clear_high_precision_for(previous);
-        }
-        self.input.clear_pointer_capture_for(node_id);
-        self.focus.captured = Some(node_id);
-        Ok(())
-    }
-
-    pub fn release_pointer_capture(&mut self) -> Option<UiNodeId> {
-        let released = self.focus.captured.take();
-        if let Some(owner) = released {
-            self.input.clear_pointer_capture_for(owner);
-            self.input.clear_pointer_drag_for(owner);
-        } else {
-            self.input.clear_pointer_capture();
-        }
-        released
-    }
-
     pub fn apply_dispatch_reply(
         &mut self,
         event: UiInputEvent,
@@ -166,12 +148,28 @@ impl UiSurface {
         } else {
             route.root_targets.as_slice()
         };
-        for node_id in self.tree.scrollable_candidates(candidates)? {
-            if self.tree.scroll_by(node_id, route.scroll_delta)? {
-                return Ok(Some(node_id));
+        let mut scrollable_candidates = std::mem::take(&mut self.scrollable_candidate_scratch);
+        let result = (|| {
+            self.tree
+                .collect_scrollable_candidates(candidates, &mut scrollable_candidates)?;
+            for node_id in scrollable_candidates.iter().copied() {
+                if self.tree.scroll_by(node_id, route.scroll_delta)? {
+                    return Ok(Some(node_id));
+                }
             }
+            Ok(None)
+        })();
+        scrollable_candidates.clear();
+        if scrollable_candidates.capacity() > MAX_UI_LAYOUT_DISCRETE_VALUE {
+            scrollable_candidates = Vec::new();
         }
-        Ok(None)
+        self.scrollable_candidate_scratch = scrollable_candidates;
+        result
+    }
+
+    #[cfg(test)]
+    pub(crate) fn default_scroll_candidate_scratch_capacity_for_test(&self) -> usize {
+        self.scrollable_candidate_scratch.capacity()
     }
 
     pub fn route_pointer_event_with_query(
@@ -268,6 +266,17 @@ impl UiSurface {
             event.scroll_delta,
         )?;
         let mut result = dispatcher.dispatch_surface_route(&self.tree, route)?;
+        if matches!(event.kind, UiPointerEventKind::Down)
+            && result.captured_by.is_some_and(|owner| {
+                !self.input.can_capture_pointer_for_button(
+                    self.input.routed_pointer_id(),
+                    owner,
+                    event.button,
+                )
+            })
+        {
+            result.captured_by = None;
+        }
         if let Some(node_id) = result.captured_by {
             if capture_before_dispatch != Some(node_id) {
                 result.diagnostics.capture_started = true;
@@ -280,7 +289,7 @@ impl UiSurface {
         if let Some(node_id) = result.released_capture {
             if self.focus.captured == Some(node_id) || result.route.captured == Some(node_id) {
                 self.focus.captured = None;
-                self.input.clear_pointer_capture_for(node_id);
+                self.clear_routed_pointer_capture(node_id);
                 result.diagnostics.capture_released = true;
             }
         }
@@ -315,9 +324,7 @@ impl UiSurface {
                 .or(result.released_capture)
                 .or(result.route.captured)
             {
-                self.input.clear_pointer_capture_for(owner);
-            } else {
-                self.input.clear_pointer_capture();
+                self.clear_routed_pointer_capture(owner);
             }
         }
         result.diagnostics.default_click_rejected = result.route.activation_phase
@@ -427,105 +434,17 @@ impl UiSurface {
             focus_before_dispatch,
         );
         result.diagnostics.component_event_count = result.component_events.len();
+        if let Some(owner) = result.captured_by {
+            let button = matches!(event.kind, UiPointerEventKind::Down)
+                .then_some(event.button)
+                .flatten();
+            self.input.set_pointer_capture_for_button(
+                self.input.routed_pointer_id(),
+                owner,
+                button,
+            );
+        }
         Ok(result)
-    }
-
-    fn route_pointer_event_with_details(
-        &mut self,
-        kind: UiPointerEventKind,
-        query: UiHitTestQuery,
-        button: Option<UiPointerButton>,
-        modifiers: UiInputModifiers,
-        scroll_delta: f32,
-    ) -> Result<UiPointerRoute, UiTreeError> {
-        let point = query.hit_point();
-        let hit = self.hit_test_with_query(query);
-        let captured = self.focus.captured;
-        let previous_pressed = self.focus.pressed;
-        let target = captured.or(hit.top_hit);
-        let routing_path = match (captured, target) {
-            (None, Some(node_id)) if hit.path.target == Some(node_id) => {
-                UiPointerRoutingPath::HitPath
-            }
-            (_, Some(node_id)) => {
-                UiPointerRoutingPath::from_bubble_route(self.tree.bubble_route(node_id)?)
-            }
-            (_, None) => UiPointerRoutingPath::ExplicitRootToLeaf(Vec::new()),
-        };
-
-        let (entered, left) = if hit.stacked == self.focus.hovered {
-            (Vec::new(), Vec::new())
-        } else {
-            let previous_hovered = std::mem::replace(&mut self.focus.hovered, hit.stacked.clone());
-            hover_diff(&hit.stacked, &previous_hovered)
-        };
-        if matches!(kind, UiPointerEventKind::Down) {
-            self.focus.pressed = target;
-            if let Some(focus_target) = self
-                .tree
-                .first_focusable_in_route_iter(
-                    routing_path.root_to_leaf(&hit.path).iter().rev().copied(),
-                )?
-                .filter(|focus_target| is_valid_input_owner(self, *focus_target))
-            {
-                self.focus_node_with_reason(
-                    focus_target,
-                    UiFocusChangeReason::Input,
-                    UiFocusVisible::hidden(UiFocusVisibleReason::PointerInteraction),
-                )?;
-            }
-        }
-        let click_target = if matches!(kind, UiPointerEventKind::Up)
-            && button == Some(UiPointerButton::Primary)
-            && previous_pressed.is_some_and(|node_id| hit.stacked.contains(&node_id))
-        {
-            previous_pressed
-        } else {
-            None
-        };
-        if matches!(kind, UiPointerEventKind::Up) {
-            self.focus.pressed = None;
-            self.focus.captured = None;
-            if let Some(owner) = captured {
-                self.input.clear_pointer_capture_for(owner);
-            } else {
-                self.input.clear_pointer_capture();
-            }
-        } else if matches!(kind, UiPointerEventKind::Cancel) {
-            self.focus.pressed = None;
-            self.release_pointer_capture();
-        }
-        let pressed = if matches!(kind, UiPointerEventKind::Down) {
-            self.focus.pressed
-        } else {
-            previous_pressed
-        };
-
-        Ok(UiPointerRoute {
-            kind,
-            button,
-            modifiers,
-            activation_phase: activation_phase(kind, button),
-            point,
-            scroll_delta,
-            target,
-            hit_path: hit.path,
-            routing_path,
-            stacked: hit.stacked,
-            entered,
-            left,
-            captured,
-            pressed,
-            click_target,
-            release_inside_pressed: click_target.is_some(),
-            focused: self.focus.focused,
-            fallback_to_root: target.is_none(),
-            root_targets: if target.is_none() {
-                self.tree.roots.clone()
-            } else {
-                Vec::new()
-            },
-        })
     }
 
     pub fn route_navigation_event(
@@ -628,6 +547,39 @@ fn hover_diff(current: &[UiNodeId], previous: &[UiNodeId]) -> (Vec<UiNodeId>, Ve
     (entered, left)
 }
 
+fn hover_diff_with_scratch(
+    current: &[UiNodeId],
+    previous: &[UiNodeId],
+    membership: &mut HashSet<UiNodeId>,
+) -> (Vec<UiNodeId>, Vec<UiNodeId>) {
+    if current == previous {
+        return (Vec::new(), Vec::new());
+    }
+    if current.len().saturating_mul(previous.len()) <= HOVER_DIFF_LINEAR_COMPARISON_BUDGET {
+        return hover_diff_linear(current, previous);
+    }
+
+    let required = current.len().max(previous.len());
+    membership.clear();
+    if membership.capacity() < required {
+        membership.reserve(required);
+    }
+    membership.extend(previous.iter().copied());
+    let entered = current
+        .iter()
+        .filter(|node_id| !membership.contains(node_id))
+        .copied()
+        .collect();
+    membership.clear();
+    membership.extend(current.iter().copied());
+    let left = previous
+        .iter()
+        .filter(|node_id| !membership.contains(node_id))
+        .copied()
+        .collect();
+    (entered, left)
+}
+
 fn hover_diff_linear(
     current: &[UiNodeId],
     previous: &[UiNodeId],
@@ -646,37 +598,8 @@ fn hover_diff_linear(
 }
 
 #[cfg(test)]
-mod hot_path_tests {
-    use super::hover_diff;
-    use zircon_runtime_interface::ui::event_ui::UiNodeId;
-
-    #[test]
-    fn runtime200_hover_diff_preserves_route_order_without_set_allocation() {
-        let shared = UiNodeId::new(1);
-        let previous_leaf = UiNodeId::new(2);
-        let current_leaf = UiNodeId::new(3);
-
-        assert_eq!(
-            hover_diff(&[current_leaf, shared], &[previous_leaf, shared]),
-            (vec![current_leaf], vec![previous_leaf])
-        );
-        assert_eq!(hover_diff(&[shared], &[shared]), (Vec::new(), Vec::new()));
-    }
-
-    #[test]
-    fn runtime200_hover_diff_preserves_route_order_on_the_indexed_path() {
-        let current = (1..=10).map(UiNodeId::new).collect::<Vec<_>>();
-        let previous = (6..=15).map(UiNodeId::new).collect::<Vec<_>>();
-
-        assert_eq!(
-            hover_diff(&current, &previous),
-            (
-                (1..=5).map(UiNodeId::new).collect(),
-                (11..=15).map(UiNodeId::new).collect(),
-            )
-        );
-    }
-}
+#[path = "tests/event_routing_hot_path_tests.rs"]
+mod hot_path_tests;
 
 fn activation_phase(
     kind: UiPointerEventKind,

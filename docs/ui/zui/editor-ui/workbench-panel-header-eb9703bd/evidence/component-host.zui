@@ -1,0 +1,51 @@
+[asset]
+kind = "view"
+version = 2
+id = "res://ui/editor/components/workbench/composites/chrome/workbench_panel_header.zui#review-host"
+display_name = "Workbench Panel Header"
+
+[imports]
+widgets = [ "res://ui/editor/components/workbench/composites/chrome/workbench_panel_header.zui", "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui", "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui" ]
+styles = []
+
+[root]
+node = "review_component"
+
+[nodes.review_component]
+component = "res://ui/editor/components/workbench/composites/chrome/workbench_panel_header.zui#WorkbenchPanelHeader"
+
+[[nodes.review_component.children]]
+node = "review_title"
+
+[nodes.review_component.children.slot]
+name = "title"
+
+[[nodes.review_component.children]]
+node = "review_action"
+
+[nodes.review_component.children.slot]
+name = "actions"
+
+[nodes.review_title]
+component = "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle"
+
+[nodes.review_title.props]
+text = "Inspector"
+
+[nodes.review_action]
+component = "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton"
+
+[nodes.review_action.props]
+text = "More"
+
+[nodes.review_action.layout.width]
+min = "$editor.density.toolbar_action_width"
+preferred = "$editor.density.toolbar_action_width"
+max = "$editor.density.toolbar_action_width"
+stretch = "Fixed"
+
+[nodes.review_action.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"

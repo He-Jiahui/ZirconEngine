@@ -2,8 +2,8 @@ use std::{fs, path::PathBuf, sync::Arc};
 
 use image::{ImageBuffer, ImageFormat, Rgba};
 
-use crate::asset::AssetUri;
 use crate::asset::pipeline::manager::ProjectAssetManager;
+use crate::asset::AssetUri;
 use crate::core::framework::render::{
     CameraRenderDescriptor, CapturedFrame, DisplayMode, GeometryExtract, ProjectionMode,
     RenderCameraClear, RenderFrameExtract, RenderFramework, RenderLayerSet,

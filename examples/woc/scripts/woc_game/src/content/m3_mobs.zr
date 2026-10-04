@@ -1,3 +1,5 @@
+//! 保存早期营地样本的标量回归向量，供内容及基础场景测试交叉校对；当前世界构建读取完整生成目录。
+
 // Stable scalar metric ids keep custom classes out of the current ZrVM module ABI.
 // 1 moveSpeed; 2-4 pack frenzy; 5-7 pulse; 8-10 stomp; 11-13 terrify;
 // 14-17 death throes; 20-29 base stats and level bounds.
@@ -119,6 +121,7 @@ pub metric(id: string, kind: int, marker: int, a: int, b: int): float {
 }
 
 // Derived kind: 1=maxHp, 2=weapon minimum, 3=weapon maximum, 4=armor.
+/// 供固定样本回归比较等级派生值；调用者提供所选等级，本入口没有模板等级准入检查。
 pub derived(
     id: string,
     level: int,

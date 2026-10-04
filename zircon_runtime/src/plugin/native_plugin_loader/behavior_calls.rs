@@ -1,3 +1,7 @@
+//! 原生行为 ABI 到宿主命令/状态调用的边界。命令先按清单解析名称和输出预算，
+//! 输出复制进宿主容器；状态快照仍由插件分配，并经其释放回调跨越分配器边界。
+//! 此模块不持有库代次，外调准入由外层行为快照和生命周期调用方负责。
+
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -18,6 +22,7 @@ use super::ffi_panic_guard::NATIVE_PLUGIN_OUTPUT_SINK_PANIC_DIAGNOSTIC;
 use super::native_strings::read_optional_c_string;
 use output_sink::{write_host_output_v4, NativePluginHostOutput};
 
+// 清单预算同时约束加载时的元数据和调用时的宿主输出；插件不能用成功状态绕过 sink 拒绝。
 pub(super) const NATIVE_COMMAND_MAX_OUTPUT_BYTES_V4: usize = 256 * 1024 * 1024;
 
 pub(super) type NativePluginBehaviorResult<T> = std::result::Result<T, NativePluginBehaviorError>;
@@ -47,6 +52,7 @@ impl std::fmt::Display for NativePluginBehaviorError {
 
 impl std::error::Error for NativePluginBehaviorError {}
 
+/// 从入口报告复制的行为元数据与回调地址。字符串脱离插件存储，函数指针仍依赖所属库代次。
 #[derive(Clone, Debug)]
 pub(super) struct NativePluginBehavior {
     pub(super) is_stateless: bool,
@@ -67,6 +73,8 @@ pub(super) struct NativePluginBehavior {
 /// The callback snapshot retains the stable library generation without holding a callback lease.
 /// A lease is acquired only for foreign dispatch; the immutable host table needs no plugin or host
 /// mutex for command lookup.
+/// 此处所依赖的库代次由外层行为快照持有；本回调快照只复制函数地址。
+/// 执行外来回调仍须通过外层快照获取租约，命令表查询本身不取得租约。
 #[derive(Clone, Debug)]
 pub(super) struct NativePluginBehaviorCallbacks {
     command_table: Option<Arc<NativePluginCommandTable>>,
@@ -76,6 +84,8 @@ pub(super) struct NativePluginBehaviorCallbacks {
     unload: Option<NativePluginUnloadFnV3>,
 }
 
+/// 一次调用的宿主所有结果；消费方应先判断状态，再决定是否接受 payload。
+/// diagnostics 是可长期保存的文本，不保留插件返回的字符串指针。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NativePluginBehaviorCallReport {
     pub status_code: u32,
@@ -113,6 +123,8 @@ struct NativePluginCommandV4 {
 }
 
 impl NativePluginCommandTable {
+    /// 加载阶段固定命令名称、连续 slot 和输出上限，避免每次命令调用解析外来清单。
+    /// 名称按原字符串匹配，允许内嵌 NUL；跨 ABI 实际发送 slot，名称不转换成 C 字符串。
     pub(super) fn from_manifest_v4(manifest: &str) -> NativePluginBehaviorResult<Self> {
         let manifest =
             toml::from_str::<NativePluginCommandManifestV4>(manifest).map_err(|error| {
@@ -187,6 +199,11 @@ impl NativePluginCommandTable {
 }
 
 impl NativePluginBehavior {
+    /// 入口报告解码后建立可复制元数据；版本匹配不等于外来指针有效性验证。
+    ///
+    /// # Safety
+    /// 调用者须保证 ABI 结构及非空字符串在复制期间有效，函数地址属于外层持有的库代次；
+    /// 加载入口只能校验版本与空指针，不能验证任意插件返回地址的有效性。
     pub(super) unsafe fn from_abi_v4(
         abi: &NativePluginBehaviorV4,
     ) -> NativePluginBehaviorResult<Self> {
@@ -237,6 +254,7 @@ impl NativePluginBehavior {
         self.callback_snapshot().unload()
     }
 
+    /// 供已加载插件建立外层行为快照。此处不增加 active callback 计数，实际外调才取得租约。
     pub(super) fn callback_snapshot(&self) -> NativePluginBehaviorCallbacks {
         NativePluginBehaviorCallbacks {
             command_table: self.command_table.clone(),
@@ -275,6 +293,7 @@ impl NativePluginBehaviorCallbacks {
             .is_some_and(|table| table.resolve(name).is_some())
     }
 
+    /// 编辑器绑定命令时保存展示/校验元数据；不会执行插件，也不会改变当前库代次。
     pub(super) fn command_metadata(&self, name: &str) -> Option<(String, usize)> {
         self.command_table
             .as_ref()
@@ -282,6 +301,8 @@ impl NativePluginBehaviorCallbacks {
             .map(|command| (command.payload_schema, command.max_output_bytes))
     }
 
+    /// 由持有库代次与准入租约的外层调用；payload 和宿主 sink 仅在同步回调期间有效。
+    /// 外来代码不得缓存 sink context，或在返回后/并发地写入同一输出对象。
     pub(super) fn invoke_command(
         &self,
         name: &str,
@@ -304,6 +325,8 @@ impl NativePluginBehaviorCallbacks {
         };
 
         let mut output = NativePluginHostOutput::new(command.max_output_bytes);
+        // SAFETY: 已准入的调用者在整个同步外调期间保活库、payload 与栈上 sink；
+        // 插件须按 ABI 契约仅在该期间访问借用，不得缓存或并发使用 sink context。
         let status = unsafe {
             invoke_command(
                 command.slot,
@@ -343,8 +366,10 @@ impl NativePluginBehaviorCallbacks {
             return missing_callback_report("save_state");
         };
         let mut output = NativePluginOwnedByteBufferV3::empty();
+        // SAFETY: 输出描述符由本次调用独占并保持到回调返回；库由外层快照或迁移持有者保活。
         let status = unsafe { save_state(&mut output) };
         let mut report = NativePluginBehaviorCallReport::from_status(status);
+        // TODO: [CR-PLUGIN-NATIVE-0002] 确认缺少释放回调或释放失败时仍接受状态快照的策略；当前 save 的 OK 状态不变，热重载可继续；下一步补故障释放回调的迁移测试。
         report.payload = take_owned_bytes(output, &mut report.diagnostics);
         report
     }
@@ -353,6 +378,7 @@ impl NativePluginBehaviorCallbacks {
         let Some(restore_state) = self.restore_state else {
             return missing_callback_report("restore_state");
         };
+        // SAFETY: state 在同步回调期间保持只读借用；普通调用的快照租约或迁移调用方都保持库代次存活。
         let status = unsafe {
             restore_state(NativePluginByteSliceV3 {
                 data: state.as_ptr(),
@@ -366,6 +392,7 @@ impl NativePluginBehaviorCallbacks {
         let Some(unload) = self.unload else {
             return missing_callback_report("unload");
         };
+        // SAFETY: 迁移调用方仍持有库；普通快照调用已取得租约，卸载行为回调返回后才释放句柄。
         NativePluginBehaviorCallReport::from_status(unsafe { unload() })
     }
 }
@@ -394,6 +421,7 @@ fn missing_callback_report(callback_name: &str) -> NativePluginBehaviorCallRepor
     ))
 }
 
+// 插件诊断必须在回调返回后仍是有效的 NUL 结尾文本；SDK 的静态诊断符合该约定，立即复制后不外借。
 fn status_diagnostics(status: NativePluginCallbackStatusV3) -> Vec<String> {
     unsafe { read_optional_c_string(status.diagnostics) }
         .unwrap_or_default()
@@ -404,6 +432,8 @@ fn status_diagnostics(status: NativePluginCallbackStatusV3) -> Vec<String> {
         .collect()
 }
 
+// 状态快照跨插件分配器边界：宿主复制有效负载，原分配只能交给该描述符的 free 回调。
+// 非空 data 的可读范围仍是可信插件 ABI 前提；len/capacity 检查无法验证任意地址。
 fn take_owned_bytes(
     output: NativePluginOwnedByteBufferV3,
     diagnostics: &mut Vec<String>,
@@ -426,12 +456,16 @@ fn take_owned_bytes(
         // malformed descriptor back to a plugin free callback.
         return None;
     }
+    // SAFETY: SDK 的 owned_bytes 从活着的 Vec 导出 data/len/capacity，并把释放延后到此处；
+    // 入口调用方保持库存活，读取完成后才调用插件的 free。其他插件必须遵守同一所有权契约。
     let bytes =
         unsafe { std::slice::from_raw_parts(output.data.cast_const(), output.len) }.to_vec();
     let Some(free) = output.free else {
         diagnostics.push("native plugin owned buffer did not provide a free callback".to_string());
         return Some(bytes);
     };
+    // SAFETY: 插件须保持原始分配存活，并把与该分配匹配的 free 函数与 owner_token 一并返回；
+    // 宿主只把完整原描述符交回同一释放函数，形状检查本身不证明任意指针有效。
     let free_status = unsafe { free(output) };
     if free_status.code != ZIRCON_NATIVE_PLUGIN_STATUS_OK {
         diagnostics.extend(
@@ -444,266 +478,5 @@ fn take_owned_bytes(
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::atomic::{AtomicUsize, Ordering};
-
-    use super::super::abi_declarations::NativePluginSchemaVersionsV3;
-    use super::*;
-
-    fn minimal_behavior(abi_version: u32) -> NativePluginBehaviorV4 {
-        NativePluginBehaviorV4 {
-            abi_version,
-            is_stateless: 1,
-            schema_versions: NativePluginSchemaVersionsV3 {
-                state_schema_version: 0,
-                command_manifest_schema: std::ptr::null(),
-                event_manifest_schema: std::ptr::null(),
-                registration_manifest_schema: std::ptr::null(),
-            },
-            command_manifest: std::ptr::null(),
-            event_manifest: std::ptr::null(),
-            registration_manifest: std::ptr::null(),
-            invoke_command: None,
-            save_state: None,
-            restore_state: None,
-            unload: None,
-        }
-    }
-
-    #[test]
-    fn native_behavior_reports_unsupported_abi_version_with_typed_error() {
-        let behavior = minimal_behavior(ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4 + 1);
-        let error = unsafe { NativePluginBehavior::from_abi_v4(&behavior) }
-            .expect_err("unsupported behavior ABI should report typed error");
-
-        assert!(matches!(
-            error,
-            NativePluginBehaviorError::UnsupportedAbiVersion { actual, expected }
-                if actual == ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4 + 1
-                    && expected == ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4
-        ));
-    }
-
-    #[test]
-    fn native_behavior_v4_resolves_dense_slot_without_c_string_or_plugin_owned_buffer() {
-        unsafe extern "C" fn write_echo(
-            slot: u32,
-            _payload: NativePluginByteSliceV3,
-            output: NativePluginOutputSinkV4,
-        ) -> NativePluginCallbackStatusV3 {
-            assert_eq!(slot, 0);
-            let bytes = b"host-owned";
-            unsafe {
-                output.write.expect("host writer")(
-                    output.context,
-                    NativePluginByteSliceV3 {
-                        data: bytes.as_ptr(),
-                        len: bytes.len(),
-                    },
-                )
-            }
-        }
-
-        let command_manifest = r#"
-            schema = "zircon.native.command-manifest/4"
-            [[commands]]
-            name = "nul\u0000safe"
-            slot = 0
-            payload_schema = "bytes"
-            max_output_bytes = 32
-        "#;
-        let behavior = NativePluginBehavior {
-            is_stateless: true,
-            state_schema_version: 0,
-            command_manifest_schema: Some(ZIRCON_NATIVE_COMMAND_MANIFEST_SCHEMA_V4.to_string()),
-            event_manifest_schema: None,
-            registration_manifest_schema: None,
-            command_manifest: Some(command_manifest.to_string()),
-            event_manifest: None,
-            registration_manifest: None,
-            command_table: Some(Arc::new(
-                NativePluginCommandTable::from_manifest_v4(command_manifest).unwrap(),
-            )),
-            invoke_command: Some(write_echo),
-            save_state: None,
-            restore_state: None,
-            unload: None,
-        };
-
-        let callbacks = behavior.callback_snapshot();
-        assert!(callbacks.has_invoke_command());
-        assert!(callbacks.declares_command("nul\0safe"));
-        assert!(!callbacks.declares_command("undeclared"));
-
-        let report = callbacks.invoke_command("nul\0safe", b"ignored");
-        assert_eq!(report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
-        assert_eq!(report.payload.as_deref(), Some(&b"host-owned"[..]));
-    }
-
-    #[test]
-    fn native_behavior_v4_rejects_callback_that_ignores_host_sink_failure() {
-        unsafe extern "C" fn ignore_sink_failure(
-            _slot: u32,
-            _payload: NativePluginByteSliceV3,
-            output: NativePluginOutputSinkV4,
-        ) -> NativePluginCallbackStatusV3 {
-            let bytes = b"exceeds-limit";
-            let _ = unsafe {
-                output.write.expect("host writer")(
-                    output.context,
-                    NativePluginByteSliceV3 {
-                        data: bytes.as_ptr(),
-                        len: bytes.len(),
-                    },
-                )
-            };
-            NativePluginCallbackStatusV3 {
-                code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
-                diagnostics: std::ptr::null(),
-            }
-        }
-
-        let command_manifest = r#"
-            schema = "zircon.native.command-manifest/4"
-            [[commands]]
-            name = "bounded"
-            slot = 0
-            payload_schema = "bytes"
-            max_output_bytes = 4
-        "#;
-        let behavior = NativePluginBehavior {
-            is_stateless: true,
-            state_schema_version: 0,
-            command_manifest_schema: Some(ZIRCON_NATIVE_COMMAND_MANIFEST_SCHEMA_V4.to_string()),
-            event_manifest_schema: None,
-            registration_manifest_schema: None,
-            command_manifest: Some(command_manifest.to_string()),
-            event_manifest: None,
-            registration_manifest: None,
-            command_table: Some(Arc::new(
-                NativePluginCommandTable::from_manifest_v4(command_manifest).unwrap(),
-            )),
-            invoke_command: Some(ignore_sink_failure),
-            save_state: None,
-            restore_state: None,
-            unload: None,
-        };
-
-        let report = behavior.callback_snapshot().invoke_command("bounded", b"");
-
-        assert_eq!(report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
-        assert!(report.payload.is_none());
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.contains("exceeded its declared 4 byte limit")));
-    }
-
-    #[test]
-    fn native_behavior_v4_rejects_non_dense_duplicate_and_oversized_command_metadata() {
-        for manifest in [
-            r#"schema = "zircon.native.command-manifest/4"
-[[commands]]
-name = "first"
-slot = 1
-payload_schema = "bytes"
-max_output_bytes = 1"#,
-            r#"schema = "zircon.native.command-manifest/4"
-[[commands]]
-name = "first"
-slot = 0
-payload_schema = "bytes"
-max_output_bytes = 1
-[[commands]]
-name = "first"
-slot = 1
-payload_schema = "bytes"
-max_output_bytes = 1"#,
-            r#"schema = "zircon.native.command-manifest/4"
-[[commands]]
-name = "first"
-slot = 0
-payload_schema = "bytes"
-max_output_bytes = 268435457"#,
-        ] {
-            assert!(NativePluginCommandTable::from_manifest_v4(manifest).is_err());
-        }
-    }
-
-    #[test]
-    fn native_behavior_v4_rejects_unknown_command_manifest_fields() {
-        for manifest in [
-            r#"schema = "zircon.native.command-manifest/4"
-unexpected_root_field = true"#,
-            r#"schema = "zircon.native.command-manifest/4"
-[[commands]]
-name = "first"
-slot = 0
-payload_schema = "bytes"
-max_output_bytes = 1
-unexpected_command_field = true"#,
-        ] {
-            assert!(NativePluginCommandTable::from_manifest_v4(manifest).is_err());
-        }
-    }
-
-    #[test]
-    fn native_behavior_rejects_malformed_owned_buffer_before_copying_or_freeing() {
-        let backing = *b"ok";
-        let buffer = NativePluginOwnedByteBufferV3 {
-            data: backing.as_ptr() as *mut u8,
-            len: backing.len(),
-            capacity: backing.len() - 1,
-            owner_token: 0,
-            free: None,
-        };
-        let mut diagnostics = Vec::new();
-
-        let payload = take_owned_bytes(buffer, &mut diagnostics);
-
-        assert!(payload.is_none());
-        assert_eq!(
-            diagnostics,
-            vec!["native plugin owned buffer was malformed: len 2 exceeds capacity 1"]
-        );
-    }
-
-    #[test]
-    fn native_behavior_host_output_rejects_unallocatable_chunk_before_reading_it() {
-        let mut output = NativePluginHostOutput::new(usize::MAX);
-
-        let status = unsafe {
-            write_host_output_v4(
-                (&mut output as *mut NativePluginHostOutput).cast(),
-                NativePluginByteSliceV3 {
-                    data: std::ptr::NonNull::<u8>::dangling().as_ptr(),
-                    len: usize::MAX,
-                },
-            )
-        };
-
-        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
-        assert!(output.bytes.is_empty());
-        assert!(output
-            .diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.contains("could not reserve")));
-    }
-
-    #[test]
-    fn native_behavior_typed_error_preserves_unsupported_abi_message() {
-        let error = NativePluginBehaviorError::UnsupportedAbiVersion {
-            actual: ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4 + 2,
-            expected: ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4,
-        };
-
-        assert_eq!(
-            error.to_string(),
-            format!(
-                "unsupported native plugin behavior ABI version {}; expected {}",
-                ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4 + 2,
-                ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4
-            )
-        );
-    }
-}
+#[path = "tests/behavior_calls.rs"]
+mod tests;

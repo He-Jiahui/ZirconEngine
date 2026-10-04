@@ -1,0 +1,3273 @@
+penpot_host_theme_source = "zircon_editor/assets/ui/editor/theme/editor_tokens.zui"
+penpot_dependency_sources = [ "zircon_editor/assets/ui/editor/theme/editor_tokens.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_divider.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui" ]
+penpot_original_source = "[asset]\nkind = \"component\"\nid = \"res://ui/editor/components/workbench/shell/workbench_top_toolbar.zui\"\nversion = 2\ndisplay_name = \"Workbench Top Toolbar\"\n\n[imports]\nwidgets = [\n  \"res://ui/editor/components/workbench/primitives/data/workbench_divider.zui#WorkbenchDivider\",\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton\",\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton\",\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab\",\n]\nstyles = [\"res://ui/editor/theme/editor_tokens.zui\"]\n\n[components.WorkbenchTopToolbar]\nroot = \"top_toolbar\"\ndefault_classes = [\"workbench-topbar\"]\n\n[nodes.top_toolbar]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"WorkbenchWindowTopToolbar\"\nclasses = [\"workbench-topbar\"]\nprops = { background_color = \"$editor.surface.2\", hover_background_color = \"$editor.surface.hover\", pressed_background_color = \"$editor.surface.3\", selected_background_color = \"$editor.surface.selected\", disabled_background_color = \"$editor.surface.disabled\", border_color = \"$editor.border\", border_width = 0.0, focus_border_color = \"$editor.focus.ring\", separator_edge = \"bottom\", separator_color = \"$editor.separator.soft\", separator_thickness = \"$editor.control.border_width\", foreground_color = \"$editor.text.secondary\", active_foreground_color = \"$editor.text.primary\", disabled_foreground_color = \"$editor.text.disabled\", icon_color = \"$editor.text.secondary\", active_icon_color = \"$editor.accent\", font_size = \"$editor.typography.body.size\", line_height_ratio = \"$editor.typography.line_height\", layout_padding_left = \"$editor.density.gap.medium\", layout_padding_right = \"$editor.density.gap.medium\", layout_padding_vertical = \"$editor.density.gap.small\", layout_spacing = \"$editor.density.gap.small\" }\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.small\" }, width = { stretch = \"Stretch\" }, height = { min = \"$editor.chrome.workbench_toolbar.height\", preferred = \"$editor.chrome.workbench_toolbar.height\", max = \"$editor.chrome.workbench_toolbar.height\", stretch = \"Fixed\" } }\nchildren = [\n  { node = \"toolbar_command_row\" },\n  { node = \"toolbar_module_tabs\" },\n]\n\n[nodes.toolbar_command_row]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchToolbarCommandRow\"\nclasses = [\"workbench-toolbar-command-row\"]\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Horizontal\", gap = \"$editor.density.gap.small\", scrollbar_visibility = \"Never\" }, input_policy = \"Receive\", width = { min = 0.0, stretch = \"Stretch\" }, height = { min = \"$editor.chrome.workbench_toolbar.command_row.height\", preferred = \"$editor.chrome.workbench_toolbar.command_row.height\", max = \"$editor.chrome.workbench_toolbar.command_row.height\", stretch = \"Fixed\" } }\nchildren = [\n  { node = \"toolbar_file_group\", slot = { layout = { linear_size = { rule = \"StretchContent\", value = 1.0, shrink_value = 0.0 } } } },\n  { node = \"toolbar_file_group_divider\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n  { node = \"toolbar_run_group\", slot = { layout = { linear_size = { rule = \"StretchContent\", value = 1.0, shrink_value = 0.0 } } } },\n  { node = \"toolbar_run_group_divider\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n  { node = \"toolbar_layout_group\", slot = { layout = { linear_size = { rule = \"StretchContent\", value = 1.0, shrink_value = 0.0 } } } },\n  { node = \"toolbar_layout_group_divider\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n  { node = \"toolbar_spacer_left\" },\n  { node = \"toolbar_module_commands\", slot = { layout = { linear_size = { rule = \"StretchContent\", value = 1.0, shrink_value = 0.0 } } } },\n  { node = \"toolbar_tool_group_divider\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n  { node = \"toolbar_tool_group\", slot = { layout = { linear_size = { rule = \"StretchContent\", value = 1.0, shrink_value = 0.0 } } } },\n  { node = \"toolbar_spacer_right\" },\n]\n\n[nodes.toolbar_file_group]\ncomponent = \"HorizontalGroup\"\ncontrol_id = \"WorkbenchToolbarFileGroup\"\nclasses = [\"workbench-toolbar-group\"]\nlayout = { container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.small\" }, width = { min = 132.0, preferred = 132.0, max = 132.0, priority = 90, weight = 1.0, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [\n  { node = \"toolbar_menu\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n  { node = \"toolbar_assets\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n  { node = \"toolbar_open\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n  { node = \"toolbar_save\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n]\n\n[nodes.toolbar_menu]\ncomponent = \"WorkbenchIconButton\"\ncontrol_id = \"WorkbenchToolbarMenu\"\nclasses = [\"workbench-icon-button\", \"workbench-toolbar-action\", \"workbench-quiet-action\"]\nprops = { icon = \"zircon_editor_shell/toolbar/menu.svg\", label = \"Menu\" }\nlayout = { width = { min = 30.0, preferred = 30.0, max = 30.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"MenuAction/OpenMainMenu\", event = \"Click\", route = \"workbench.menu.main.open\" }]\n\n[nodes.toolbar_assets]\ncomponent = \"WorkbenchIconButton\"\ncontrol_id = \"WorkbenchToolbarAssets\"\nclasses = [\"workbench-icon-button\", \"workbench-toolbar-action\", \"workbench-quiet-action\"]\nprops = { icon = \"zircon_editor_shell/toolbar/package.svg\", label = \"Assets\" }\nlayout = { width = { min = 30.0, preferred = 30.0, max = 30.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"Workbench/OpenAssetBrowserFromToolbar\", event = \"Click\", action = { action = \"view.asset_browser.open\" } }]\n\n[nodes.toolbar_open]\ncomponent = \"WorkbenchIconButton\"\ncontrol_id = \"WorkbenchToolbarOpen\"\nclasses = [\"workbench-icon-button\", \"workbench-toolbar-action\", \"workbench-quiet-action\"]\nprops = { icon = \"zircon_editor_shell/toolbar/folder-open.svg\", label = \"Open\" }\nlayout = { width = { min = 30.0, preferred = 30.0, max = 30.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"MenuAction/OpenProject\", event = \"Click\", action = { action = \"file.project.open\" } }]\n\n[nodes.toolbar_save]\ncomponent = \"WorkbenchIconButton\"\ncontrol_id = \"WorkbenchToolbarSave\"\nclasses = [\"workbench-icon-button\", \"workbench-toolbar-action\", \"workbench-quiet-action\"]\nprops = { icon = \"zircon_editor_shell/toolbar/save.svg\", label = \"Save\" }\nlayout = { width = { min = 30.0, preferred = 30.0, max = 30.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"MenuAction/SaveProject\", event = \"Click\", action = { action = \"file.project.save\" } }]\n\n[nodes.toolbar_spacer_left]\ncomponent = \"Space\"\ncontrol_id = \"WorkbenchToolbarSpacerLeft\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.toolbar_file_group_divider]\ncomponent = \"WorkbenchDivider\"\ncontrol_id = \"WorkbenchToolbarFileGroupDivider\"\nclasses = [\"workbench-toolbar-divider\"]\nprops = { orientation = \"vertical\", variant = \"middle\", thickness = \"$editor.control.border_width\", layout_min_height = 22.0 }\nlayout = { width = { min = \"$editor.control.border_width\", preferred = \"$editor.control.border_width\", max = \"$editor.control.border_width\", stretch = \"Fixed\" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = \"Fixed\" } }\n\n[nodes.toolbar_module_tabs]\ncomponent = \"HorizontalGroup\"\ncontrol_id = \"WorkbenchModuleTabs\"\nclasses = [\"workbench-toolbar-group\", \"workbench-module-tabs\"]\nlayout = { container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.xsmall\" }, width = { stretch = \"Stretch\" }, height = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Fixed\" } }\nchildren = [\n  { node = \"module_tab_scroll\", slot = { layout = { linear_size = { rule = \"Stretch\", value = 1.0, shrink_value = 1.0 } } } },\n  { node = \"module_more\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n]\n\n[nodes.module_tab_scroll]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchModuleTabScroll\"\nclasses = [\"workbench-module-tab-scroll\"]\nprops = { input_hoverable = true }\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Horizontal\", gap = \"$editor.density.gap.xsmall\", scrollbar_visibility = \"Never\" }, input_policy = \"Receive\", width = { min = 0.0, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"module_scene\" }, { node = \"module_effect\" }, { node = \"module_ability\" }, { node = \"module_tags\" }, { node = \"module_perception\" }, { node = \"module_material\" }, { node = \"module_behavior\" }, { node = \"module_render\" }, { node = \"module_assets\" }, { node = \"module_vfx\" }, { node = \"module_hud\" }]\n\n[nodes.module_scene]\ncomponent = \"WorkbenchTab\"\ncontrol_id = \"WorkbenchModuleScene\"\nclasses = [\"workbench-tab\", \"workbench-module-tab\", \"workbench-toolbar-tab\"]\nprops = { text = \"Scene\" }\nlayout = { width = { min = 64.0, preferred = 64.0, max = 64.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/Scene\", event = \"Click\", route = \"workbench.module.scene\" }]\n\n[nodes.module_effect]\ncomponent = \"WorkbenchTab\"\ncontrol_id = \"WorkbenchModuleEffect\"\nclasses = [\"workbench-tab\", \"workbench-module-tab\", \"workbench-toolbar-tab\"]\nprops = { text = \"Effect\" }\nlayout = { width = { min = 68.0, preferred = 68.0, max = 68.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/Effect\", event = \"Click\", route = \"workbench.module.effect\" }]\n\n[nodes.module_ability]\ncomponent = \"WorkbenchTab\"\ncontrol_id = \"WorkbenchModuleAbility\"\nclasses = [\"workbench-tab\", \"workbench-module-tab\", \"workbench-toolbar-tab\"]\nprops = { text = \"Ability\" }\nlayout = { width = { min = 76.0, preferred = 76.0, max = 76.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/Ability\", event = \"Click\", route = \"workbench.module.ability\" }]\n\n[nodes.module_tags]\ncomponent = \"WorkbenchTab\"\ncontrol_id = \"WorkbenchModuleTags\"\nclasses = [\"workbench-tab\", \"workbench-module-tab\", \"workbench-toolbar-tab\"]\nprops = { text = \"Tags\" }\nlayout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/Tags\", event = \"Click\", route = \"workbench.module.tags\" }]\n\n[nodes.module_perception]\ncomponent = \"WorkbenchTab\"\ncontrol_id = \"WorkbenchModulePerception\"\nclasses = [\"workbench-tab\", \"workbench-module-tab\", \"workbench-toolbar-tab\"]\nprops = { text = \"Perception\" }\nlayout = { width = { min = 88.0, preferred = 88.0, max = 88.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/Perception\", event = \"Click\", route = \"workbench.module.perception\" }]\n\n[nodes.module_material]\ncomponent = \"WorkbenchTab\"\ncontrol_id = \"WorkbenchModuleMaterial\"\nclasses = [\"workbench-tab\", \"workbench-module-tab\", \"workbench-toolbar-tab\"]\nprops = { text = \"Material\" }\nlayout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/Material\", event = \"Click\", route = \"workbench.module.material\" }]\n\n[nodes.module_behavior]\ncomponent = \"WorkbenchTab\"\ncontrol_id = \"WorkbenchModuleBehavior\"\nclasses = [\"workbench-tab\", \"workbench-module-tab\", \"workbench-toolbar-tab\"]\nprops = { text = \"Behavior\" }\nlayout = { width = { min = 82.0, preferred = 82.0, max = 82.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/Behavior\", event = \"Click\", route = \"workbench.module.behavior\" }]\n\n[nodes.module_render]\ncomponent = \"WorkbenchTab\"\ncontrol_id = \"WorkbenchModuleRender\"\nclasses = [\"workbench-tab\", \"workbench-module-tab\", \"workbench-toolbar-tab\"]\nprops = { text = \"Render\" }\nlayout = { width = { min = 74.0, preferred = 74.0, max = 74.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/Render\", event = \"Click\", route = \"workbench.module.render\" }]\n\n[nodes.module_assets]\ncomponent = \"WorkbenchTab\"\ncontrol_id = \"WorkbenchModuleAssets\"\nclasses = [\"workbench-tab\", \"workbench-module-tab\", \"workbench-toolbar-tab\"]\nprops = { text = \"Assets\" }\nlayout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/Assets\", event = \"Click\", route = \"workbench.module.assets\" }]\n\n[nodes.module_vfx]\ncomponent = \"WorkbenchTab\"\ncontrol_id = \"WorkbenchModuleVfx\"\nclasses = [\"workbench-tab\", \"workbench-module-tab\", \"workbench-toolbar-tab\"]\nprops = { text = \"VFX\" }\nlayout = { width = { min = 54.0, preferred = 54.0, max = 54.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/Vfx\", event = \"Click\", route = \"workbench.module.vfx\" }]\n\n[nodes.module_hud]\ncomponent = \"WorkbenchTab\"\ncontrol_id = \"WorkbenchModuleHud\"\nclasses = [\"workbench-tab\", \"workbench-module-tab\", \"workbench-toolbar-tab\"]\nprops = { text = \"HUD\" }\nlayout = { width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/Hud\", event = \"Click\", route = \"workbench.module.hud\" }]\n\n[nodes.module_more]\ncomponent = \"WorkbenchIconButton\"\ncontrol_id = \"WorkbenchModuleMore\"\nclasses = [\"workbench-icon-button\", \"workbench-module-overflow\", \"workbench-toolbar-action\", \"workbench-quiet-action\"]\nprops = { icon = \"zircon_editor_shell/toolbar/more-vertical.svg\", label = \"More Modules\" }\nlayout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/More\", event = \"Click\", route = \"workbench.module.more\" }]\n\n[nodes.toolbar_module_commands]\ncomponent = \"HorizontalGroup\"\ncontrol_id = \"WorkbenchModuleCommands\"\nclasses = [\"workbench-toolbar-group\", \"workbench-module-commands\"]\nlayout = { container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.small\" }, width = { min = 292.0, preferred = 300.0, max = 300.0, priority = 60, weight = 1.0, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [\n  { node = \"module_save\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n  { node = \"module_browse\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n  { node = \"module_compile\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n  { node = \"module_diff\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n  { node = \"module_simulate\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n]\n\n[nodes.module_save]\ncomponent = \"WorkbenchIconButton\"\ncontrol_id = \"WorkbenchModuleSave\"\nclasses = [\"workbench-icon-button\", \"workbench-module-command\", \"workbench-toolbar-action\", \"workbench-quiet-action\"]\nprops = { icon = \"zircon_editor_shell/toolbar/save.svg\", label = \"Save Current Module\", tooltip = \"Save Current Module\" }\nlayout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/Save\", event = \"Click\", route = \"workbench.module.save\" }]\n\n[nodes.module_browse]\ncomponent = \"WorkbenchIconButton\"\ncontrol_id = \"WorkbenchModuleBrowse\"\nclasses = [\"workbench-icon-button\", \"workbench-module-command\", \"workbench-toolbar-action\", \"workbench-quiet-action\"]\nprops = { icon = \"zircon_editor_shell/toolbar/folder-open.svg\", label = \"Browse Current Module\", tooltip = \"Browse Current Module\" }\nlayout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/Browse\", event = \"Click\", route = \"workbench.module.browse\" }]\n\n[nodes.module_compile]\ncomponent = \"WorkbenchButton\"\ncontrol_id = \"WorkbenchModuleCompile\"\nclasses = [\"workbench-control-button\", \"workbench-module-command\", \"workbench-toolbar-action\"]\nprops = { text = \"Compile\", icon = \"zircon_editor_shell/toolbar/compile.svg\", tooltip = \"Compile Current Module\", button_variant = \"filled\", button_color = \"accent\", button_size = \"small\", layout_spacing = \"$editor.density.gap.small\" }\nlayout = { width = { min = 104.0, preferred = 104.0, max = 104.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/Compile\", event = \"Click\", route = \"workbench.module.compile\" }]\n\n[nodes.module_diff]\ncomponent = \"WorkbenchButton\"\ncontrol_id = \"WorkbenchModuleDiff\"\nclasses = [\"workbench-control-button\", \"workbench-module-command\", \"workbench-toolbar-action\", \"workbench-quiet-action\"]\nprops = { text = \"Diff\", button_variant = \"tertiary\", button_color = \"secondary\", button_size = \"small\", background_color = \"transparent\", border_color = \"transparent\" }\nlayout = { width = { min = 54.0, preferred = 54.0, max = 54.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/Diff\", event = \"Click\", route = \"workbench.module.diff\" }]\n\n[nodes.module_simulate]\ncomponent = \"WorkbenchButton\"\ncontrol_id = \"WorkbenchModuleSimulate\"\nclasses = [\"workbench-control-button\", \"workbench-module-command\", \"workbench-toolbar-action\", \"workbench-quiet-action\"]\nprops = { text = \"Sim\", button_variant = \"tertiary\", button_color = \"secondary\", button_size = \"small\", background_color = \"transparent\", border_color = \"transparent\" }\nlayout = { width = { min = 50.0, preferred = 50.0, max = 50.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/Simulate\", event = \"Click\", route = \"workbench.module.simulate\" }]\n\n[nodes.toolbar_tool_group]\ncomponent = \"HorizontalGroup\"\ncontrol_id = \"WorkbenchToolbarToolGroup\"\nclasses = [\"workbench-toolbar-group\"]\nlayout = { container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.small\" }, width = { min = 182.0, preferred = 182.0, max = 182.0, priority = 40, weight = 1.0, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [\n  { node = \"tool_select\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n  { node = \"tool_move\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n  { node = \"tool_rotate\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n  { node = \"tool_scale\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n  { node = \"tool_snap\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n]\n\n[nodes.tool_select]\ncomponent = \"WorkbenchIconButton\"\ncontrol_id = \"WorkbenchToolSelect\"\nclasses = [\"workbench-icon-button\", \"workbench-toolbar-action\", \"workbench-quiet-action\"]\nprops = { icon = \"zircon_editor_shell/toolbar/select.svg\", label = \"Select\" }\nlayout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"Tool/Select\", event = \"Click\", route = \"workbench.tool.select\" }]\n\n[nodes.tool_move]\ncomponent = \"WorkbenchIconButton\"\ncontrol_id = \"WorkbenchToolMove\"\nclasses = [\"workbench-icon-button\", \"workbench-toolbar-action\", \"workbench-quiet-action\"]\nprops = { icon = \"zircon_editor_shell/toolbar/move.svg\", label = \"Move\" }\nlayout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"Tool/Move\", event = \"Click\", route = \"workbench.tool.move\" }]\n\n[nodes.tool_rotate]\ncomponent = \"WorkbenchIconButton\"\ncontrol_id = \"WorkbenchToolRotate\"\nclasses = [\"workbench-icon-button\", \"workbench-toolbar-action\", \"workbench-quiet-action\"]\nprops = { icon = \"zircon_editor_shell/toolbar/rotate.svg\", label = \"Rotate\" }\nlayout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"Tool/Rotate\", event = \"Click\", route = \"workbench.tool.rotate\" }]\n\n[nodes.tool_scale]\ncomponent = \"WorkbenchIconButton\"\ncontrol_id = \"WorkbenchToolScale\"\nclasses = [\"workbench-icon-button\", \"workbench-toolbar-action\", \"workbench-quiet-action\"]\nprops = { icon = \"zircon_editor_shell/toolbar/scale.svg\", label = \"Scale\" }\nlayout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"Tool/Scale\", event = \"Click\", route = \"workbench.tool.scale\" }]\n\n[nodes.tool_snap]\ncomponent = \"WorkbenchIconButton\"\ncontrol_id = \"WorkbenchToolSnap\"\nclasses = [\"workbench-icon-button\", \"workbench-toolbar-action\", \"workbench-quiet-action\"]\nprops = { icon = \"zircon_editor_shell/toolbar/snap.svg\", label = \"Snap\" }\nlayout = { width = { min = 36.0, preferred = 36.0, max = 36.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"Tool/ToggleSnap\", event = \"Click\", route = \"workbench.tool.toggle_snap\" }]\n\n[nodes.toolbar_spacer_right]\ncomponent = \"Space\"\ncontrol_id = \"WorkbenchToolbarSpacerRight\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.toolbar_tool_group_divider]\ncomponent = \"WorkbenchDivider\"\ncontrol_id = \"WorkbenchToolbarToolGroupDivider\"\nclasses = [\"workbench-toolbar-divider\"]\nprops = { orientation = \"vertical\", variant = \"middle\", thickness = \"$editor.control.border_width\", layout_min_height = 22.0 }\nlayout = { width = { min = \"$editor.control.border_width\", preferred = \"$editor.control.border_width\", max = \"$editor.control.border_width\", stretch = \"Fixed\" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = \"Fixed\" } }\n\n[nodes.toolbar_run_group_divider]\ncomponent = \"WorkbenchDivider\"\ncontrol_id = \"WorkbenchToolbarRunGroupDivider\"\nclasses = [\"workbench-toolbar-divider\"]\nprops = { orientation = \"vertical\", variant = \"middle\", thickness = \"$editor.control.border_width\", layout_min_height = 22.0 }\nlayout = { width = { min = \"$editor.control.border_width\", preferred = \"$editor.control.border_width\", max = \"$editor.control.border_width\", stretch = \"Fixed\" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = \"Fixed\" } }\n\n[nodes.toolbar_run_group]\ncomponent = \"HorizontalGroup\"\ncontrol_id = \"WorkbenchToolbarRunGroup\"\nclasses = [\"workbench-toolbar-group\"]\nlayout = { container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.small\" }, width = { min = 70.0, preferred = 70.0, max = 70.0, priority = 100, weight = 1.0, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [\n  { node = \"run_play\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n  { node = \"run_stop\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n  { node = \"run_mode\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n]\n\n[nodes.toolbar_layout_group_divider]\ncomponent = \"WorkbenchDivider\"\ncontrol_id = \"WorkbenchToolbarLayoutGroupDivider\"\nclasses = [\"workbench-toolbar-divider\"]\nprops = { orientation = \"vertical\", variant = \"middle\", thickness = \"$editor.control.border_width\", layout_min_height = 22.0 }\nlayout = { width = { min = \"$editor.control.border_width\", preferred = \"$editor.control.border_width\", max = \"$editor.control.border_width\", stretch = \"Fixed\" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = \"Fixed\" } }\n\n[nodes.toolbar_layout_group]\ncomponent = \"HorizontalGroup\"\ncontrol_id = \"WorkbenchToolbarLayoutGroup\"\nclasses = [\"workbench-toolbar-group\"]\nlayout = { container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.small\" }, width = { min = 104.0, preferred = 104.0, max = 104.0, priority = 20, weight = 1.0, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [\n  { node = \"layout_grid\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n  { node = \"theme_toggle\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n  { node = \"module_details_drawer_toggle\", slot = { layout = { alignment = { vertical = \"Center\" } } } },\n]\n\n[nodes.run_play]\ncomponent = \"WorkbenchIconButton\"\ncontrol_id = \"WorkbenchRunPlay\"\nclasses = [\"workbench-icon-button\", \"workbench-toolbar-action\", \"workbench-quiet-action\"]\nprops = { icon = \"zircon_editor_shell/toolbar/play.svg\", label = \"Play\", button_color = \"success\" }\nlayout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"Run/Play\", event = \"Click\", action = { action = \"runtime.play_mode.enter\" } }]\n\n[nodes.run_stop]\ncomponent = \"WorkbenchIconButton\"\ncontrol_id = \"WorkbenchRunStop\"\nclasses = [\"workbench-icon-button\", \"workbench-toolbar-action\", \"workbench-quiet-action\"]\nprops = { icon = \"editor_pages/scene_viewport/play/stop.svg\", label = \"Stop\", button_color = \"error\", visibility = \"collapsed\" }\nlayout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"Run/Stop\", event = \"Click\", action = { action = \"runtime.play_mode.exit\" } }]\n\n[nodes.run_mode]\ncomponent = \"WorkbenchIconButton\"\ncontrol_id = \"WorkbenchRunMode\"\nclasses = [\"workbench-icon-button\", \"workbench-toolbar-action\", \"workbench-quiet-action\"]\nprops = { icon = \"zircon_editor_shell/toolbar/dropdown.svg\", label = \"Run Mode\" }\nlayout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"Run/OpenModeMenu\", event = \"Click\", route = \"workbench.run.open_mode_menu\" }]\n\n[nodes.layout_grid]\ncomponent = \"WorkbenchIconButton\"\ncontrol_id = \"WorkbenchLayoutGrid\"\nclasses = [\"workbench-icon-button\", \"workbench-toolbar-action\", \"workbench-quiet-action\"]\nprops = { icon = \"zircon_editor_shell/toolbar/layout-grid.svg\", label = \"Layouts\" }\nlayout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"DockCommand/OpenLayoutMenu\", event = \"Click\", route = \"workbench.dock.open_layout_menu\" }]\n\n[nodes.theme_toggle]\ncomponent = \"WorkbenchIconButton\"\ncontrol_id = \"WorkbenchThemeToggle\"\nclasses = [\"workbench-icon-button\", \"workbench-toolbar-action\", \"workbench-quiet-action\"]\nprops = { icon = \"zircon_editor_shell/toolbar/sun.svg\", label = \"Theme\" }\nlayout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"Workbench/ToggleTheme\", event = \"Click\", route = \"workbench.theme.toggle\" }]\n\n[nodes.module_details_drawer_toggle]\ncomponent = \"WorkbenchIconButton\"\ncontrol_id = \"WorkbenchModuleDetailsDrawerToggle\"\nclasses = [\"workbench-icon-button\", \"workbench-toolbar-action\", \"workbench-quiet-action\"]\nprops = { icon = \"editor_pages/workbench/dock/dock-right.svg\", label = \"Module Details\", tooltip = \"Module Details\", responsive_min_tier = \"narrow\", responsive_max_tier = \"regular\" }\nlayout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"Workbench/ToggleModuleDetailsDrawer\", event = \"Click\", route = \"workbench.module.details_drawer.toggle\" }]\n"
+
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/shell/workbench_top_toolbar.zui"
+version = 2
+display_name = "Workbench Top Toolbar"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchTopToolbar]
+root = "top_toolbar"
+default_classes = [ "workbench-topbar" ]
+
+[nodes.top_toolbar]
+component = "VerticalGroup"
+control_id = "WorkbenchWindowTopToolbar"
+classes = [ "workbench-topbar" ]
+
+[nodes.top_toolbar.props]
+background_color = "$editor.surface.2"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+border_width = 0
+focus_border_color = "$editor.focus.ring"
+separator_edge = "bottom"
+separator_color = "$editor.separator.soft"
+separator_thickness = "$editor.control.border_width"
+foreground_color = "$editor.text.secondary"
+active_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+active_icon_color = "$editor.accent"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_vertical = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+
+[nodes.top_toolbar.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.top_toolbar.layout.width]
+stretch = "Stretch"
+
+[nodes.top_toolbar.layout.height]
+min = "$editor.chrome.workbench_toolbar.height"
+preferred = "$editor.chrome.workbench_toolbar.height"
+max = "$editor.chrome.workbench_toolbar.height"
+stretch = "Fixed"
+
+[[nodes.top_toolbar.children]]
+node = "toolbar_command_row"
+
+[[nodes.top_toolbar.children]]
+node = "toolbar_module_tabs"
+
+[nodes.toolbar_command_row]
+component = "ScrollableBox"
+control_id = "WorkbenchToolbarCommandRow"
+classes = [ "workbench-toolbar-command-row" ]
+
+[nodes.toolbar_command_row.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.toolbar_command_row.layout.container]
+kind = "ScrollableBox"
+axis = "Horizontal"
+gap = "$editor.density.gap.small"
+scrollbar_visibility = "Never"
+
+[nodes.toolbar_command_row.layout.width]
+min = 0
+stretch = "Stretch"
+
+[nodes.toolbar_command_row.layout.height]
+min = "$editor.chrome.workbench_toolbar.command_row.height"
+preferred = "$editor.chrome.workbench_toolbar.command_row.height"
+max = "$editor.chrome.workbench_toolbar.command_row.height"
+stretch = "Fixed"
+
+[[nodes.toolbar_command_row.children]]
+node = "toolbar_file_group"
+
+[nodes.toolbar_command_row.children.slot.layout.linear_size]
+rule = "StretchContent"
+value = 1
+shrink_value = 0
+
+[[nodes.toolbar_command_row.children]]
+node = "toolbar_file_group_divider"
+
+[nodes.toolbar_command_row.children.slot.layout.alignment]
+vertical = "Center"
+
+[[nodes.toolbar_command_row.children]]
+node = "toolbar_run_group"
+
+[nodes.toolbar_command_row.children.slot.layout.linear_size]
+rule = "StretchContent"
+value = 1
+shrink_value = 0
+
+[[nodes.toolbar_command_row.children]]
+node = "toolbar_run_group_divider"
+
+[nodes.toolbar_command_row.children.slot.layout.alignment]
+vertical = "Center"
+
+[[nodes.toolbar_command_row.children]]
+node = "toolbar_layout_group"
+
+[nodes.toolbar_command_row.children.slot.layout.linear_size]
+rule = "StretchContent"
+value = 1
+shrink_value = 0
+
+[[nodes.toolbar_command_row.children]]
+node = "toolbar_layout_group_divider"
+
+[nodes.toolbar_command_row.children.slot.layout.alignment]
+vertical = "Center"
+
+[[nodes.toolbar_command_row.children]]
+node = "toolbar_spacer_left"
+
+[[nodes.toolbar_command_row.children]]
+node = "toolbar_module_commands"
+
+[nodes.toolbar_command_row.children.slot.layout.linear_size]
+rule = "StretchContent"
+value = 1
+shrink_value = 0
+
+[[nodes.toolbar_command_row.children]]
+node = "toolbar_tool_group_divider"
+
+[nodes.toolbar_command_row.children.slot.layout.alignment]
+vertical = "Center"
+
+[[nodes.toolbar_command_row.children]]
+node = "toolbar_tool_group"
+
+[nodes.toolbar_command_row.children.slot.layout.linear_size]
+rule = "StretchContent"
+value = 1
+shrink_value = 0
+
+[[nodes.toolbar_command_row.children]]
+node = "toolbar_spacer_right"
+
+[nodes.toolbar_file_group]
+component = "HorizontalGroup"
+control_id = "WorkbenchToolbarFileGroup"
+classes = [ "workbench-toolbar-group" ]
+
+[nodes.toolbar_file_group.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.toolbar_file_group.layout.width]
+min = 132
+preferred = 132
+max = 132
+priority = 90
+weight = 1
+stretch = "Stretch"
+
+[nodes.toolbar_file_group.layout.height]
+stretch = "Stretch"
+
+[nodes.toolbar_file_group.layout.linear_size]
+rule = "StretchContent"
+value = 1
+shrink_value = 0
+
+[[nodes.toolbar_file_group.children]]
+node = "toolbar_menu"
+
+[nodes.toolbar_file_group.children.slot.layout.alignment]
+vertical = "Center"
+
+[[nodes.toolbar_file_group.children]]
+node = "toolbar_assets"
+
+[nodes.toolbar_file_group.children.slot.layout.alignment]
+vertical = "Center"
+
+[[nodes.toolbar_file_group.children]]
+node = "toolbar_open"
+
+[nodes.toolbar_file_group.children.slot.layout.alignment]
+vertical = "Center"
+
+[[nodes.toolbar_file_group.children]]
+node = "toolbar_save"
+
+[nodes.toolbar_file_group.children.slot.layout.alignment]
+vertical = "Center"
+
+[nodes.toolbar_menu]
+component = "IconButton"
+control_id = "WorkbenchToolbarMenu"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive", "workbench-toolbar-action", "workbench-quiet-action" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Menu\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-width=\"1.9\" d=\"M4 6h16M4 12h16M4 18h16\"/>\n</svg>\n"
+
+[nodes.toolbar_menu.props]
+icon = "zircon_editor_shell/toolbar/menu.svg"
+text = ""
+label = "Menu"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.toolbar_menu.layout.width]
+min = 30
+preferred = 30
+max = 30
+stretch = "Fixed"
+
+[nodes.toolbar_menu.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.toolbar_menu.layout.alignment]
+vertical = "Center"
+
+[[nodes.toolbar_menu.events]]
+id = "MenuAction/OpenMainMenu"
+event = "Click"
+route = "workbench.menu.main.open"
+
+[nodes.toolbar_menu.state]
+[nodes.toolbar_menu.style.self]
+[nodes.toolbar_menu.style.slot]
+[nodes.toolbar_menu.slots]
+[nodes.toolbar_assets]
+component = "IconButton"
+control_id = "WorkbenchToolbarAssets"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive", "workbench-toolbar-action", "workbench-quiet-action" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Package\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linejoin=\"round\" stroke-width=\"1.7\" d=\"m12 3 8 4.5v9L12 21l-8-4.5v-9z\"/>\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M4.5 7.7 12 12l7.5-4.3M12 12v8.4\"/>\n  <path fill=\"#26d8d1\" d=\"m12 5.7 3 1.7-3 1.7-3-1.7z\"/>\n</svg>\n"
+
+[nodes.toolbar_assets.props]
+icon = "zircon_editor_shell/toolbar/package.svg"
+text = ""
+label = "Assets"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.toolbar_assets.layout.width]
+min = 30
+preferred = 30
+max = 30
+stretch = "Fixed"
+
+[nodes.toolbar_assets.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.toolbar_assets.layout.alignment]
+vertical = "Center"
+
+[[nodes.toolbar_assets.events]]
+id = "Workbench/OpenAssetBrowserFromToolbar"
+event = "Click"
+
+[nodes.toolbar_assets.events.action]
+action = "view.asset_browser.open"
+
+[nodes.toolbar_assets.state]
+[nodes.toolbar_assets.style.self]
+[nodes.toolbar_assets.style.slot]
+[nodes.toolbar_assets.slots]
+[nodes.toolbar_open]
+component = "IconButton"
+control_id = "WorkbenchToolbarOpen"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive", "workbench-toolbar-action", "workbench-quiet-action" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Open folder\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.7\" d=\"M3.5 8.5V6.3c0-.9.7-1.6 1.6-1.6h4.7l1.9 2.1h7.2c.9 0 1.6.7 1.6 1.6v1.1\"/>\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linejoin=\"round\" stroke-width=\"1.7\" d=\"M4.2 9.5h16.2l-2 9.5H5.8z\"/>\n</svg>\n"
+
+[nodes.toolbar_open.props]
+icon = "zircon_editor_shell/toolbar/folder-open.svg"
+text = ""
+label = "Open"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.toolbar_open.layout.width]
+min = 30
+preferred = 30
+max = 30
+stretch = "Fixed"
+
+[nodes.toolbar_open.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.toolbar_open.layout.alignment]
+vertical = "Center"
+
+[[nodes.toolbar_open.events]]
+id = "MenuAction/OpenProject"
+event = "Click"
+
+[nodes.toolbar_open.events.action]
+action = "file.project.open"
+
+[nodes.toolbar_open.state]
+[nodes.toolbar_open.style.self]
+[nodes.toolbar_open.style.slot]
+[nodes.toolbar_open.slots]
+[nodes.toolbar_save]
+component = "IconButton"
+control_id = "WorkbenchToolbarSave"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive", "workbench-toolbar-action", "workbench-quiet-action" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Save\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linejoin=\"round\" stroke-width=\"1.7\" d=\"M4.5 4.5h12.2l2.8 2.8v12.2h-15z\"/>\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M7.5 4.5v5h8v-5M8 19.5v-6h8v6\"/>\n</svg>\n"
+
+[nodes.toolbar_save.props]
+icon = "zircon_editor_shell/toolbar/save.svg"
+text = ""
+label = "Save"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.toolbar_save.layout.width]
+min = 30
+preferred = 30
+max = 30
+stretch = "Fixed"
+
+[nodes.toolbar_save.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.toolbar_save.layout.alignment]
+vertical = "Center"
+
+[[nodes.toolbar_save.events]]
+id = "MenuAction/SaveProject"
+event = "Click"
+
+[nodes.toolbar_save.events.action]
+action = "file.project.save"
+
+[nodes.toolbar_save.state]
+[nodes.toolbar_save.style.self]
+[nodes.toolbar_save.style.slot]
+[nodes.toolbar_save.slots]
+[nodes.toolbar_spacer_left]
+component = "Space"
+control_id = "WorkbenchToolbarSpacerLeft"
+
+[nodes.toolbar_spacer_left.layout.width]
+stretch = "Stretch"
+
+[nodes.toolbar_spacer_left.layout.height]
+stretch = "Stretch"
+
+[nodes.toolbar_file_group_divider]
+component = "Divider"
+control_id = "WorkbenchToolbarFileGroupDivider"
+pixel_snapping = "snap_to_pixel"
+classes = [ "workbench-divider", "workbench-primitive", "workbench-toolbar-divider" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_divider.zui#WorkbenchDivider"
+
+[nodes.toolbar_file_group_divider.props]
+orientation = "vertical"
+variant = "middle"
+separator_color = "$editor.separator.soft"
+disabled_separator_color = "$editor.border.disabled"
+thickness = "$editor.control.border_width"
+inset = "$editor.density.gap.medium"
+layout_min_height = 22
+
+[nodes.toolbar_file_group_divider.layout.width]
+stretch = "Fixed"
+min = "$editor.control.border_width"
+preferred = "$editor.control.border_width"
+max = "$editor.control.border_width"
+
+[nodes.toolbar_file_group_divider.layout.height]
+min = 22
+preferred = 22
+max = 22
+stretch = "Fixed"
+
+[nodes.toolbar_file_group_divider.layout.alignment]
+vertical = "Center"
+
+[nodes.toolbar_file_group_divider.state]
+[nodes.toolbar_file_group_divider.style.self]
+[nodes.toolbar_file_group_divider.style.slot]
+[nodes.toolbar_file_group_divider.slots]
+[nodes.toolbar_module_tabs]
+component = "HorizontalGroup"
+control_id = "WorkbenchModuleTabs"
+classes = [ "workbench-toolbar-group", "workbench-module-tabs" ]
+
+[nodes.toolbar_module_tabs.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.xsmall"
+
+[nodes.toolbar_module_tabs.layout.width]
+stretch = "Stretch"
+
+[nodes.toolbar_module_tabs.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[nodes.toolbar_module_tabs.children]]
+node = "module_tab_scroll"
+
+[nodes.toolbar_module_tabs.children.slot.layout.linear_size]
+rule = "Stretch"
+value = 1
+shrink_value = 1
+
+[[nodes.toolbar_module_tabs.children]]
+node = "module_more"
+
+[nodes.toolbar_module_tabs.children.slot.layout.alignment]
+vertical = "Center"
+
+[nodes.module_tab_scroll]
+component = "ScrollableBox"
+control_id = "WorkbenchModuleTabScroll"
+classes = [ "workbench-module-tab-scroll" ]
+
+[nodes.module_tab_scroll.props]
+input_hoverable = true
+
+[nodes.module_tab_scroll.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.module_tab_scroll.layout.container]
+kind = "ScrollableBox"
+axis = "Horizontal"
+gap = "$editor.density.gap.xsmall"
+scrollbar_visibility = "Never"
+
+[nodes.module_tab_scroll.layout.width]
+min = 0
+stretch = "Stretch"
+
+[nodes.module_tab_scroll.layout.height]
+stretch = "Stretch"
+
+[nodes.module_tab_scroll.layout.linear_size]
+rule = "Stretch"
+value = 1
+shrink_value = 1
+
+[[nodes.module_tab_scroll.children]]
+node = "module_scene"
+
+[[nodes.module_tab_scroll.children]]
+node = "module_effect"
+
+[[nodes.module_tab_scroll.children]]
+node = "module_ability"
+
+[[nodes.module_tab_scroll.children]]
+node = "module_tags"
+
+[[nodes.module_tab_scroll.children]]
+node = "module_perception"
+
+[[nodes.module_tab_scroll.children]]
+node = "module_material"
+
+[[nodes.module_tab_scroll.children]]
+node = "module_behavior"
+
+[[nodes.module_tab_scroll.children]]
+node = "module_render"
+
+[[nodes.module_tab_scroll.children]]
+node = "module_assets"
+
+[[nodes.module_tab_scroll.children]]
+node = "module_vfx"
+
+[[nodes.module_tab_scroll.children]]
+node = "module_hud"
+
+[nodes.module_scene]
+component = "Tab"
+control_id = "WorkbenchModuleScene"
+classes = [ "workbench-tab", "workbench-primitive", "workbench-module-tab", "workbench-toolbar-tab" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab"
+
+[nodes.module_scene.props]
+text = "Scene"
+value = false
+checked = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+background_color = "$editor.surface.2"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_underline_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = 0
+corner_radius = "$editor.control.radius.panel"
+tab_font_size = "$editor.typography.body.size"
+tab_line_height_ratio = "$editor.typography.line_height"
+tab_text_inset_x = "$editor.density.gap.medium"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.module_scene.layout.width]
+stretch = "Fixed"
+min = 64
+preferred = 64
+max = 64
+
+[nodes.module_scene.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[nodes.module_scene.events]]
+id = "WorkbenchModule/Scene"
+event = "Click"
+route = "workbench.module.scene"
+
+[nodes.module_scene.state]
+[nodes.module_scene.style.self]
+[nodes.module_scene.style.slot]
+[nodes.module_scene.slots]
+[nodes.module_effect]
+component = "Tab"
+control_id = "WorkbenchModuleEffect"
+classes = [ "workbench-tab", "workbench-primitive", "workbench-module-tab", "workbench-toolbar-tab" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab"
+
+[nodes.module_effect.props]
+text = "Effect"
+value = false
+checked = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+background_color = "$editor.surface.2"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_underline_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = 0
+corner_radius = "$editor.control.radius.panel"
+tab_font_size = "$editor.typography.body.size"
+tab_line_height_ratio = "$editor.typography.line_height"
+tab_text_inset_x = "$editor.density.gap.medium"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.module_effect.layout.width]
+stretch = "Fixed"
+min = 68
+preferred = 68
+max = 68
+
+[nodes.module_effect.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[nodes.module_effect.events]]
+id = "WorkbenchModule/Effect"
+event = "Click"
+route = "workbench.module.effect"
+
+[nodes.module_effect.state]
+[nodes.module_effect.style.self]
+[nodes.module_effect.style.slot]
+[nodes.module_effect.slots]
+[nodes.module_ability]
+component = "Tab"
+control_id = "WorkbenchModuleAbility"
+classes = [ "workbench-tab", "workbench-primitive", "workbench-module-tab", "workbench-toolbar-tab" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab"
+
+[nodes.module_ability.props]
+text = "Ability"
+value = false
+checked = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+background_color = "$editor.surface.2"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_underline_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = 0
+corner_radius = "$editor.control.radius.panel"
+tab_font_size = "$editor.typography.body.size"
+tab_line_height_ratio = "$editor.typography.line_height"
+tab_text_inset_x = "$editor.density.gap.medium"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.module_ability.layout.width]
+stretch = "Fixed"
+min = 76
+preferred = 76
+max = 76
+
+[nodes.module_ability.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[nodes.module_ability.events]]
+id = "WorkbenchModule/Ability"
+event = "Click"
+route = "workbench.module.ability"
+
+[nodes.module_ability.state]
+[nodes.module_ability.style.self]
+[nodes.module_ability.style.slot]
+[nodes.module_ability.slots]
+[nodes.module_tags]
+component = "Tab"
+control_id = "WorkbenchModuleTags"
+classes = [ "workbench-tab", "workbench-primitive", "workbench-module-tab", "workbench-toolbar-tab" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab"
+
+[nodes.module_tags.props]
+text = "Tags"
+value = false
+checked = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+background_color = "$editor.surface.2"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_underline_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = 0
+corner_radius = "$editor.control.radius.panel"
+tab_font_size = "$editor.typography.body.size"
+tab_line_height_ratio = "$editor.typography.line_height"
+tab_text_inset_x = "$editor.density.gap.medium"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.module_tags.layout.width]
+stretch = "Fixed"
+min = 58
+preferred = 58
+max = 58
+
+[nodes.module_tags.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[nodes.module_tags.events]]
+id = "WorkbenchModule/Tags"
+event = "Click"
+route = "workbench.module.tags"
+
+[nodes.module_tags.state]
+[nodes.module_tags.style.self]
+[nodes.module_tags.style.slot]
+[nodes.module_tags.slots]
+[nodes.module_perception]
+component = "Tab"
+control_id = "WorkbenchModulePerception"
+classes = [ "workbench-tab", "workbench-primitive", "workbench-module-tab", "workbench-toolbar-tab" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab"
+
+[nodes.module_perception.props]
+text = "Perception"
+value = false
+checked = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+background_color = "$editor.surface.2"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_underline_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = 0
+corner_radius = "$editor.control.radius.panel"
+tab_font_size = "$editor.typography.body.size"
+tab_line_height_ratio = "$editor.typography.line_height"
+tab_text_inset_x = "$editor.density.gap.medium"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.module_perception.layout.width]
+stretch = "Fixed"
+min = 88
+preferred = 88
+max = 88
+
+[nodes.module_perception.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[nodes.module_perception.events]]
+id = "WorkbenchModule/Perception"
+event = "Click"
+route = "workbench.module.perception"
+
+[nodes.module_perception.state]
+[nodes.module_perception.style.self]
+[nodes.module_perception.style.slot]
+[nodes.module_perception.slots]
+[nodes.module_material]
+component = "Tab"
+control_id = "WorkbenchModuleMaterial"
+classes = [ "workbench-tab", "workbench-primitive", "workbench-module-tab", "workbench-toolbar-tab" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab"
+
+[nodes.module_material.props]
+text = "Material"
+value = false
+checked = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+background_color = "$editor.surface.2"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_underline_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = 0
+corner_radius = "$editor.control.radius.panel"
+tab_font_size = "$editor.typography.body.size"
+tab_line_height_ratio = "$editor.typography.line_height"
+tab_text_inset_x = "$editor.density.gap.medium"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.module_material.layout.width]
+stretch = "Fixed"
+min = 80
+preferred = 80
+max = 80
+
+[nodes.module_material.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[nodes.module_material.events]]
+id = "WorkbenchModule/Material"
+event = "Click"
+route = "workbench.module.material"
+
+[nodes.module_material.state]
+[nodes.module_material.style.self]
+[nodes.module_material.style.slot]
+[nodes.module_material.slots]
+[nodes.module_behavior]
+component = "Tab"
+control_id = "WorkbenchModuleBehavior"
+classes = [ "workbench-tab", "workbench-primitive", "workbench-module-tab", "workbench-toolbar-tab" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab"
+
+[nodes.module_behavior.props]
+text = "Behavior"
+value = false
+checked = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+background_color = "$editor.surface.2"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_underline_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = 0
+corner_radius = "$editor.control.radius.panel"
+tab_font_size = "$editor.typography.body.size"
+tab_line_height_ratio = "$editor.typography.line_height"
+tab_text_inset_x = "$editor.density.gap.medium"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.module_behavior.layout.width]
+stretch = "Fixed"
+min = 82
+preferred = 82
+max = 82
+
+[nodes.module_behavior.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[nodes.module_behavior.events]]
+id = "WorkbenchModule/Behavior"
+event = "Click"
+route = "workbench.module.behavior"
+
+[nodes.module_behavior.state]
+[nodes.module_behavior.style.self]
+[nodes.module_behavior.style.slot]
+[nodes.module_behavior.slots]
+[nodes.module_render]
+component = "Tab"
+control_id = "WorkbenchModuleRender"
+classes = [ "workbench-tab", "workbench-primitive", "workbench-module-tab", "workbench-toolbar-tab" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab"
+
+[nodes.module_render.props]
+text = "Render"
+value = false
+checked = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+background_color = "$editor.surface.2"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_underline_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = 0
+corner_radius = "$editor.control.radius.panel"
+tab_font_size = "$editor.typography.body.size"
+tab_line_height_ratio = "$editor.typography.line_height"
+tab_text_inset_x = "$editor.density.gap.medium"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.module_render.layout.width]
+stretch = "Fixed"
+min = 74
+preferred = 74
+max = 74
+
+[nodes.module_render.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[nodes.module_render.events]]
+id = "WorkbenchModule/Render"
+event = "Click"
+route = "workbench.module.render"
+
+[nodes.module_render.state]
+[nodes.module_render.style.self]
+[nodes.module_render.style.slot]
+[nodes.module_render.slots]
+[nodes.module_assets]
+component = "Tab"
+control_id = "WorkbenchModuleAssets"
+classes = [ "workbench-tab", "workbench-primitive", "workbench-module-tab", "workbench-toolbar-tab" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab"
+
+[nodes.module_assets.props]
+text = "Assets"
+value = false
+checked = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+background_color = "$editor.surface.2"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_underline_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = 0
+corner_radius = "$editor.control.radius.panel"
+tab_font_size = "$editor.typography.body.size"
+tab_line_height_ratio = "$editor.typography.line_height"
+tab_text_inset_x = "$editor.density.gap.medium"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.module_assets.layout.width]
+stretch = "Fixed"
+min = 72
+preferred = 72
+max = 72
+
+[nodes.module_assets.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[nodes.module_assets.events]]
+id = "WorkbenchModule/Assets"
+event = "Click"
+route = "workbench.module.assets"
+
+[nodes.module_assets.state]
+[nodes.module_assets.style.self]
+[nodes.module_assets.style.slot]
+[nodes.module_assets.slots]
+[nodes.module_vfx]
+component = "Tab"
+control_id = "WorkbenchModuleVfx"
+classes = [ "workbench-tab", "workbench-primitive", "workbench-module-tab", "workbench-toolbar-tab" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab"
+
+[nodes.module_vfx.props]
+text = "VFX"
+value = false
+checked = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+background_color = "$editor.surface.2"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_underline_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = 0
+corner_radius = "$editor.control.radius.panel"
+tab_font_size = "$editor.typography.body.size"
+tab_line_height_ratio = "$editor.typography.line_height"
+tab_text_inset_x = "$editor.density.gap.medium"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.module_vfx.layout.width]
+stretch = "Fixed"
+min = 54
+preferred = 54
+max = 54
+
+[nodes.module_vfx.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[nodes.module_vfx.events]]
+id = "WorkbenchModule/Vfx"
+event = "Click"
+route = "workbench.module.vfx"
+
+[nodes.module_vfx.state]
+[nodes.module_vfx.style.self]
+[nodes.module_vfx.style.slot]
+[nodes.module_vfx.slots]
+[nodes.module_hud]
+component = "Tab"
+control_id = "WorkbenchModuleHud"
+classes = [ "workbench-tab", "workbench-primitive", "workbench-module-tab", "workbench-toolbar-tab" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab"
+
+[nodes.module_hud.props]
+text = "HUD"
+value = false
+checked = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+background_color = "$editor.surface.2"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_underline_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = 0
+corner_radius = "$editor.control.radius.panel"
+tab_font_size = "$editor.typography.body.size"
+tab_line_height_ratio = "$editor.typography.line_height"
+tab_text_inset_x = "$editor.density.gap.medium"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.module_hud.layout.width]
+stretch = "Fixed"
+min = 56
+preferred = 56
+max = 56
+
+[nodes.module_hud.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[nodes.module_hud.events]]
+id = "WorkbenchModule/Hud"
+event = "Click"
+route = "workbench.module.hud"
+
+[nodes.module_hud.state]
+[nodes.module_hud.style.self]
+[nodes.module_hud.style.slot]
+[nodes.module_hud.slots]
+[nodes.module_more]
+component = "IconButton"
+control_id = "WorkbenchModuleMore"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive", "workbench-module-overflow", "workbench-toolbar-action", "workbench-quiet-action" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"More\">\n  <circle cx=\"12\" cy=\"5\" r=\"1.5\" fill=\"#cbd2dc\"/><circle cx=\"12\" cy=\"12\" r=\"1.5\" fill=\"#cbd2dc\"/><circle cx=\"12\" cy=\"19\" r=\"1.5\" fill=\"#cbd2dc\"/>\n</svg>\n"
+
+[nodes.module_more.props]
+icon = "zircon_editor_shell/toolbar/more-vertical.svg"
+text = ""
+label = "More Modules"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.module_more.layout.width]
+min = 34
+preferred = 34
+max = 34
+stretch = "Fixed"
+
+[nodes.module_more.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[nodes.module_more.layout.alignment]
+vertical = "Center"
+
+[[nodes.module_more.events]]
+id = "WorkbenchModule/More"
+event = "Click"
+route = "workbench.module.more"
+
+[nodes.module_more.state]
+[nodes.module_more.style.self]
+[nodes.module_more.style.slot]
+[nodes.module_more.slots]
+[nodes.toolbar_module_commands]
+component = "HorizontalGroup"
+control_id = "WorkbenchModuleCommands"
+classes = [ "workbench-toolbar-group", "workbench-module-commands" ]
+
+[nodes.toolbar_module_commands.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.toolbar_module_commands.layout.width]
+min = 292
+preferred = 300
+max = 300
+priority = 60
+weight = 1
+stretch = "Stretch"
+
+[nodes.toolbar_module_commands.layout.height]
+stretch = "Stretch"
+
+[nodes.toolbar_module_commands.layout.linear_size]
+rule = "StretchContent"
+value = 1
+shrink_value = 0
+
+[[nodes.toolbar_module_commands.children]]
+node = "module_save"
+
+[nodes.toolbar_module_commands.children.slot.layout.alignment]
+vertical = "Center"
+
+[[nodes.toolbar_module_commands.children]]
+node = "module_browse"
+
+[nodes.toolbar_module_commands.children.slot.layout.alignment]
+vertical = "Center"
+
+[[nodes.toolbar_module_commands.children]]
+node = "module_compile"
+
+[nodes.toolbar_module_commands.children.slot.layout.alignment]
+vertical = "Center"
+
+[[nodes.toolbar_module_commands.children]]
+node = "module_diff"
+
+[nodes.toolbar_module_commands.children.slot.layout.alignment]
+vertical = "Center"
+
+[[nodes.toolbar_module_commands.children]]
+node = "module_simulate"
+
+[nodes.toolbar_module_commands.children.slot.layout.alignment]
+vertical = "Center"
+
+[nodes.module_save]
+component = "IconButton"
+control_id = "WorkbenchModuleSave"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive", "workbench-module-command", "workbench-toolbar-action", "workbench-quiet-action" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Save\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linejoin=\"round\" stroke-width=\"1.7\" d=\"M4.5 4.5h12.2l2.8 2.8v12.2h-15z\"/>\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M7.5 4.5v5h8v-5M8 19.5v-6h8v6\"/>\n</svg>\n"
+
+[nodes.module_save.props]
+icon = "zircon_editor_shell/toolbar/save.svg"
+text = ""
+label = "Save Current Module"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+tooltip = "Save Current Module"
+
+[nodes.module_save.layout.width]
+min = 34
+preferred = 34
+max = 34
+stretch = "Fixed"
+
+[nodes.module_save.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.module_save.layout.alignment]
+vertical = "Center"
+
+[[nodes.module_save.events]]
+id = "WorkbenchModule/Save"
+event = "Click"
+route = "workbench.module.save"
+
+[nodes.module_save.state]
+[nodes.module_save.style.self]
+[nodes.module_save.style.slot]
+[nodes.module_save.slots]
+[nodes.module_browse]
+component = "IconButton"
+control_id = "WorkbenchModuleBrowse"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive", "workbench-module-command", "workbench-toolbar-action", "workbench-quiet-action" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Open folder\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.7\" d=\"M3.5 8.5V6.3c0-.9.7-1.6 1.6-1.6h4.7l1.9 2.1h7.2c.9 0 1.6.7 1.6 1.6v1.1\"/>\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linejoin=\"round\" stroke-width=\"1.7\" d=\"M4.2 9.5h16.2l-2 9.5H5.8z\"/>\n</svg>\n"
+
+[nodes.module_browse.props]
+icon = "zircon_editor_shell/toolbar/folder-open.svg"
+text = ""
+label = "Browse Current Module"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+tooltip = "Browse Current Module"
+
+[nodes.module_browse.layout.width]
+min = 34
+preferred = 34
+max = 34
+stretch = "Fixed"
+
+[nodes.module_browse.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.module_browse.layout.alignment]
+vertical = "Center"
+
+[[nodes.module_browse.events]]
+id = "WorkbenchModule/Browse"
+event = "Click"
+route = "workbench.module.browse"
+
+[nodes.module_browse.state]
+[nodes.module_browse.style.self]
+[nodes.module_browse.style.slot]
+[nodes.module_browse.slots]
+[nodes.module_compile]
+component = "Button"
+control_id = "WorkbenchModuleCompile"
+classes = [ "workbench-control-button", "workbench-primitive", "workbench-module-command", "workbench-toolbar-action" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Compile\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.6\" d=\"M6 4h8l4 4v12H6zM14 4v5h4\"/>\n  <path fill=\"none\" stroke=\"#26d8d1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.7\" d=\"m9 13 2.2 2.2L15.5 11\"/>\n  <path fill=\"none\" stroke=\"#64748b\" stroke-linecap=\"round\" stroke-width=\"1.2\" d=\"M8.5 18h7\"/>\n</svg>\n"
+
+[nodes.module_compile.props]
+text = "Compile"
+text_overflow = "ellipsis"
+text_align = "center"
+button_variant = "filled"
+button_color = "accent"
+button_size = "small"
+button_interaction_state = "normal"
+validation_level = "normal"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font = "res://fonts/editor-ui.font.toml"
+font_family = "Fira Sans"
+font_weight = "$editor.typography.strong.weight"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.large"
+layout_padding_right = "$editor.density.gap.large"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+icon = "zircon_editor_shell/toolbar/compile.svg"
+tooltip = "Compile Current Module"
+
+[nodes.module_compile.layout.width]
+stretch = "Fixed"
+min = 104
+preferred = 104
+max = 104
+
+[nodes.module_compile.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.module_compile.layout.alignment]
+vertical = "Center"
+
+[[nodes.module_compile.events]]
+id = "WorkbenchModule/Compile"
+event = "Click"
+route = "workbench.module.compile"
+
+[nodes.module_compile.state]
+[nodes.module_compile.style.self]
+[nodes.module_compile.style.slot]
+[nodes.module_compile.slots]
+[nodes.module_diff]
+component = "Button"
+control_id = "WorkbenchModuleDiff"
+classes = [ "workbench-control-button", "workbench-primitive", "workbench-module-command", "workbench-toolbar-action", "workbench-quiet-action" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton"
+
+[nodes.module_diff.props]
+text = "Diff"
+text_overflow = "ellipsis"
+text_align = "center"
+button_variant = "tertiary"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+validation_level = "normal"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font = "res://fonts/editor-ui.font.toml"
+font_family = "Fira Sans"
+font_weight = "$editor.typography.strong.weight"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.large"
+layout_padding_right = "$editor.density.gap.large"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.medium"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.module_diff.layout.width]
+stretch = "Fixed"
+min = 54
+preferred = 54
+max = 54
+
+[nodes.module_diff.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.module_diff.layout.alignment]
+vertical = "Center"
+
+[[nodes.module_diff.events]]
+id = "WorkbenchModule/Diff"
+event = "Click"
+route = "workbench.module.diff"
+
+[nodes.module_diff.state]
+[nodes.module_diff.style.self]
+[nodes.module_diff.style.slot]
+[nodes.module_diff.slots]
+[nodes.module_simulate]
+component = "Button"
+control_id = "WorkbenchModuleSimulate"
+classes = [ "workbench-control-button", "workbench-primitive", "workbench-module-command", "workbench-toolbar-action", "workbench-quiet-action" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton"
+
+[nodes.module_simulate.props]
+text = "Sim"
+text_overflow = "ellipsis"
+text_align = "center"
+button_variant = "tertiary"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+validation_level = "normal"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font = "res://fonts/editor-ui.font.toml"
+font_family = "Fira Sans"
+font_weight = "$editor.typography.strong.weight"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.large"
+layout_padding_right = "$editor.density.gap.large"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.medium"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.module_simulate.layout.width]
+stretch = "Fixed"
+min = 50
+preferred = 50
+max = 50
+
+[nodes.module_simulate.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.module_simulate.layout.alignment]
+vertical = "Center"
+
+[[nodes.module_simulate.events]]
+id = "WorkbenchModule/Simulate"
+event = "Click"
+route = "workbench.module.simulate"
+
+[nodes.module_simulate.state]
+[nodes.module_simulate.style.self]
+[nodes.module_simulate.style.slot]
+[nodes.module_simulate.slots]
+[nodes.toolbar_tool_group]
+component = "HorizontalGroup"
+control_id = "WorkbenchToolbarToolGroup"
+classes = [ "workbench-toolbar-group" ]
+
+[nodes.toolbar_tool_group.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.toolbar_tool_group.layout.width]
+min = 182
+preferred = 182
+max = 182
+priority = 40
+weight = 1
+stretch = "Stretch"
+
+[nodes.toolbar_tool_group.layout.height]
+stretch = "Stretch"
+
+[nodes.toolbar_tool_group.layout.linear_size]
+rule = "StretchContent"
+value = 1
+shrink_value = 0
+
+[[nodes.toolbar_tool_group.children]]
+node = "tool_select"
+
+[nodes.toolbar_tool_group.children.slot.layout.alignment]
+vertical = "Center"
+
+[[nodes.toolbar_tool_group.children]]
+node = "tool_move"
+
+[nodes.toolbar_tool_group.children.slot.layout.alignment]
+vertical = "Center"
+
+[[nodes.toolbar_tool_group.children]]
+node = "tool_rotate"
+
+[nodes.toolbar_tool_group.children.slot.layout.alignment]
+vertical = "Center"
+
+[[nodes.toolbar_tool_group.children]]
+node = "tool_scale"
+
+[nodes.toolbar_tool_group.children.slot.layout.alignment]
+vertical = "Center"
+
+[[nodes.toolbar_tool_group.children]]
+node = "tool_snap"
+
+[nodes.toolbar_tool_group.children.slot.layout.alignment]
+vertical = "Center"
+
+[nodes.tool_select]
+component = "IconButton"
+control_id = "WorkbenchToolSelect"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive", "workbench-toolbar-action", "workbench-quiet-action" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Select tool\">\n  <path fill=\"#26d8d1\" d=\"M5 3.5 18.8 11 12.2 13.2 9.2 20z\"/>\n  <path fill=\"none\" stroke=\"#bafff8\" stroke-linejoin=\"round\" stroke-width=\"1.4\" d=\"M5 3.5 18.8 11 12.2 13.2 9.2 20z\"/>\n</svg>\n"
+
+[nodes.tool_select.props]
+icon = "zircon_editor_shell/toolbar/select.svg"
+text = ""
+label = "Select"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.tool_select.layout.width]
+min = 34
+preferred = 34
+max = 34
+stretch = "Fixed"
+
+[nodes.tool_select.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.tool_select.layout.alignment]
+vertical = "Center"
+
+[[nodes.tool_select.events]]
+id = "Tool/Select"
+event = "Click"
+route = "workbench.tool.select"
+
+[nodes.tool_select.state]
+[nodes.tool_select.style.self]
+[nodes.tool_select.style.slot]
+[nodes.tool_select.slots]
+[nodes.tool_move]
+component = "IconButton"
+control_id = "WorkbenchToolMove"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive", "workbench-toolbar-action", "workbench-quiet-action" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Move tool\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.7\" d=\"M12 3v18M3 12h18M12 3 9.5 5.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5\"/>\n</svg>\n"
+
+[nodes.tool_move.props]
+icon = "zircon_editor_shell/toolbar/move.svg"
+text = ""
+label = "Move"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.tool_move.layout.width]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.tool_move.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.tool_move.layout.alignment]
+vertical = "Center"
+
+[[nodes.tool_move.events]]
+id = "Tool/Move"
+event = "Click"
+route = "workbench.tool.move"
+
+[nodes.tool_move.state]
+[nodes.tool_move.style.self]
+[nodes.tool_move.style.slot]
+[nodes.tool_move.slots]
+[nodes.tool_rotate]
+component = "IconButton"
+control_id = "WorkbenchToolRotate"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive", "workbench-toolbar-action", "workbench-quiet-action" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Rotate tool\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\" d=\"M18.5 8A7.5 7.5 0 1 0 19 15\"/>\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\" d=\"M18.5 4.5V8h-3.7\"/>\n</svg>\n"
+
+[nodes.tool_rotate.props]
+icon = "zircon_editor_shell/toolbar/rotate.svg"
+text = ""
+label = "Rotate"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.tool_rotate.layout.width]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.tool_rotate.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.tool_rotate.layout.alignment]
+vertical = "Center"
+
+[[nodes.tool_rotate.events]]
+id = "Tool/Rotate"
+event = "Click"
+route = "workbench.tool.rotate"
+
+[nodes.tool_rotate.state]
+[nodes.tool_rotate.style.self]
+[nodes.tool_rotate.style.slot]
+[nodes.tool_rotate.slots]
+[nodes.tool_scale]
+component = "IconButton"
+control_id = "WorkbenchToolScale"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive", "workbench-toolbar-action", "workbench-quiet-action" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Scale tool\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.7\" d=\"M4.5 15.5v4h4M19.5 8.5v-4h-4M6 18 18 6\"/>\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.7\" d=\"M4.5 8.5v-4h4M19.5 15.5v4h-4\" opacity=\"0.65\"/>\n</svg>\n"
+
+[nodes.tool_scale.props]
+icon = "zircon_editor_shell/toolbar/scale.svg"
+text = ""
+label = "Scale"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.tool_scale.layout.width]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.tool_scale.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.tool_scale.layout.alignment]
+vertical = "Center"
+
+[[nodes.tool_scale.events]]
+id = "Tool/Scale"
+event = "Click"
+route = "workbench.tool.scale"
+
+[nodes.tool_scale.state]
+[nodes.tool_scale.style.self]
+[nodes.tool_scale.style.slot]
+[nodes.tool_scale.slots]
+[nodes.tool_snap]
+component = "IconButton"
+control_id = "WorkbenchToolSnap"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive", "workbench-toolbar-action", "workbench-quiet-action" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Snap\">\n  <path fill=\"none\" stroke=\"#64748b\" stroke-width=\"1.1\" d=\"M5 5h14v14H5zM5 10h14M5 14h14M10 5v14M14 5v14\"/>\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-width=\"1.6\" d=\"M8 8h3M8 8v3M16 16h-3M16 16v-3\"/>\n  <circle cx=\"12\" cy=\"12\" r=\"2\" fill=\"none\" stroke=\"#26d8d1\" stroke-width=\"1.5\"/>\n</svg>\n"
+
+[nodes.tool_snap.props]
+icon = "zircon_editor_shell/toolbar/snap.svg"
+text = ""
+label = "Snap"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.tool_snap.layout.width]
+min = 36
+preferred = 36
+max = 36
+stretch = "Fixed"
+
+[nodes.tool_snap.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.tool_snap.layout.alignment]
+vertical = "Center"
+
+[[nodes.tool_snap.events]]
+id = "Tool/ToggleSnap"
+event = "Click"
+route = "workbench.tool.toggle_snap"
+
+[nodes.tool_snap.state]
+[nodes.tool_snap.style.self]
+[nodes.tool_snap.style.slot]
+[nodes.tool_snap.slots]
+[nodes.toolbar_spacer_right]
+component = "Space"
+control_id = "WorkbenchToolbarSpacerRight"
+
+[nodes.toolbar_spacer_right.layout.width]
+stretch = "Stretch"
+
+[nodes.toolbar_spacer_right.layout.height]
+stretch = "Stretch"
+
+[nodes.toolbar_tool_group_divider]
+component = "Divider"
+control_id = "WorkbenchToolbarToolGroupDivider"
+pixel_snapping = "snap_to_pixel"
+classes = [ "workbench-divider", "workbench-primitive", "workbench-toolbar-divider" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_divider.zui#WorkbenchDivider"
+
+[nodes.toolbar_tool_group_divider.props]
+orientation = "vertical"
+variant = "middle"
+separator_color = "$editor.separator.soft"
+disabled_separator_color = "$editor.border.disabled"
+thickness = "$editor.control.border_width"
+inset = "$editor.density.gap.medium"
+layout_min_height = 22
+
+[nodes.toolbar_tool_group_divider.layout.width]
+stretch = "Fixed"
+min = "$editor.control.border_width"
+preferred = "$editor.control.border_width"
+max = "$editor.control.border_width"
+
+[nodes.toolbar_tool_group_divider.layout.height]
+min = 22
+preferred = 22
+max = 22
+stretch = "Fixed"
+
+[nodes.toolbar_tool_group_divider.layout.alignment]
+vertical = "Center"
+
+[nodes.toolbar_tool_group_divider.state]
+[nodes.toolbar_tool_group_divider.style.self]
+[nodes.toolbar_tool_group_divider.style.slot]
+[nodes.toolbar_tool_group_divider.slots]
+[nodes.toolbar_run_group_divider]
+component = "Divider"
+control_id = "WorkbenchToolbarRunGroupDivider"
+pixel_snapping = "snap_to_pixel"
+classes = [ "workbench-divider", "workbench-primitive", "workbench-toolbar-divider" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_divider.zui#WorkbenchDivider"
+
+[nodes.toolbar_run_group_divider.props]
+orientation = "vertical"
+variant = "middle"
+separator_color = "$editor.separator.soft"
+disabled_separator_color = "$editor.border.disabled"
+thickness = "$editor.control.border_width"
+inset = "$editor.density.gap.medium"
+layout_min_height = 22
+
+[nodes.toolbar_run_group_divider.layout.width]
+stretch = "Fixed"
+min = "$editor.control.border_width"
+preferred = "$editor.control.border_width"
+max = "$editor.control.border_width"
+
+[nodes.toolbar_run_group_divider.layout.height]
+min = 22
+preferred = 22
+max = 22
+stretch = "Fixed"
+
+[nodes.toolbar_run_group_divider.layout.alignment]
+vertical = "Center"
+
+[nodes.toolbar_run_group_divider.state]
+[nodes.toolbar_run_group_divider.style.self]
+[nodes.toolbar_run_group_divider.style.slot]
+[nodes.toolbar_run_group_divider.slots]
+[nodes.toolbar_run_group]
+component = "HorizontalGroup"
+control_id = "WorkbenchToolbarRunGroup"
+classes = [ "workbench-toolbar-group" ]
+
+[nodes.toolbar_run_group.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.toolbar_run_group.layout.width]
+min = 70
+preferred = 70
+max = 70
+priority = 100
+weight = 1
+stretch = "Stretch"
+
+[nodes.toolbar_run_group.layout.height]
+stretch = "Stretch"
+
+[nodes.toolbar_run_group.layout.linear_size]
+rule = "StretchContent"
+value = 1
+shrink_value = 0
+
+[[nodes.toolbar_run_group.children]]
+node = "run_play"
+
+[nodes.toolbar_run_group.children.slot.layout.alignment]
+vertical = "Center"
+
+[[nodes.toolbar_run_group.children]]
+node = "run_stop"
+
+[nodes.toolbar_run_group.children.slot.layout.alignment]
+vertical = "Center"
+
+[[nodes.toolbar_run_group.children]]
+node = "run_mode"
+
+[nodes.toolbar_run_group.children.slot.layout.alignment]
+vertical = "Center"
+
+[nodes.toolbar_layout_group_divider]
+component = "Divider"
+control_id = "WorkbenchToolbarLayoutGroupDivider"
+pixel_snapping = "snap_to_pixel"
+classes = [ "workbench-divider", "workbench-primitive", "workbench-toolbar-divider" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_divider.zui#WorkbenchDivider"
+
+[nodes.toolbar_layout_group_divider.props]
+orientation = "vertical"
+variant = "middle"
+separator_color = "$editor.separator.soft"
+disabled_separator_color = "$editor.border.disabled"
+thickness = "$editor.control.border_width"
+inset = "$editor.density.gap.medium"
+layout_min_height = 22
+
+[nodes.toolbar_layout_group_divider.layout.width]
+stretch = "Fixed"
+min = "$editor.control.border_width"
+preferred = "$editor.control.border_width"
+max = "$editor.control.border_width"
+
+[nodes.toolbar_layout_group_divider.layout.height]
+min = 22
+preferred = 22
+max = 22
+stretch = "Fixed"
+
+[nodes.toolbar_layout_group_divider.layout.alignment]
+vertical = "Center"
+
+[nodes.toolbar_layout_group_divider.state]
+[nodes.toolbar_layout_group_divider.style.self]
+[nodes.toolbar_layout_group_divider.style.slot]
+[nodes.toolbar_layout_group_divider.slots]
+[nodes.toolbar_layout_group]
+component = "HorizontalGroup"
+control_id = "WorkbenchToolbarLayoutGroup"
+classes = [ "workbench-toolbar-group" ]
+
+[nodes.toolbar_layout_group.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.toolbar_layout_group.layout.width]
+min = 104
+preferred = 104
+max = 104
+priority = 20
+weight = 1
+stretch = "Stretch"
+
+[nodes.toolbar_layout_group.layout.height]
+stretch = "Stretch"
+
+[nodes.toolbar_layout_group.layout.linear_size]
+rule = "StretchContent"
+value = 1
+shrink_value = 0
+
+[[nodes.toolbar_layout_group.children]]
+node = "layout_grid"
+
+[nodes.toolbar_layout_group.children.slot.layout.alignment]
+vertical = "Center"
+
+[[nodes.toolbar_layout_group.children]]
+node = "theme_toggle"
+
+[nodes.toolbar_layout_group.children.slot.layout.alignment]
+vertical = "Center"
+
+[[nodes.toolbar_layout_group.children]]
+node = "module_details_drawer_toggle"
+
+[nodes.toolbar_layout_group.children.slot.layout.alignment]
+vertical = "Center"
+
+[nodes.run_play]
+component = "IconButton"
+control_id = "WorkbenchRunPlay"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive", "workbench-toolbar-action", "workbench-quiet-action" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Play\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linejoin=\"round\" stroke-width=\"1.7\" d=\"M7 4.8 19 12 7 19.2z\"/>\n</svg>\n"
+
+[nodes.run_play.props]
+icon = "zircon_editor_shell/toolbar/play.svg"
+text = ""
+label = "Play"
+button_variant = "text"
+button_color = "success"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.run_play.layout.width]
+min = 34
+preferred = 34
+max = 34
+stretch = "Fixed"
+
+[nodes.run_play.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.run_play.layout.alignment]
+vertical = "Center"
+
+[[nodes.run_play.events]]
+id = "Run/Play"
+event = "Click"
+
+[nodes.run_play.events.action]
+action = "runtime.play_mode.enter"
+
+[nodes.run_play.state]
+[nodes.run_play.style.self]
+[nodes.run_play.style.slot]
+[nodes.run_play.slots]
+[nodes.run_stop]
+component = "IconButton"
+control_id = "WorkbenchRunStop"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive", "workbench-toolbar-action", "workbench-quiet-action" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Stop\"><circle cx=\"12\" cy=\"12\" r=\"8\" fill=\"#172033\" stroke=\"#cbd2dc\" stroke-width=\"1.4\"/><rect x=\"8.5\" y=\"8.5\" width=\"7\" height=\"7\" rx=\"1\" fill=\"#e16666\"/></svg>\n"
+
+[nodes.run_stop.props]
+icon = "editor_pages/scene_viewport/play/stop.svg"
+text = ""
+label = "Stop"
+button_variant = "text"
+button_color = "error"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+visibility = "collapsed"
+
+[nodes.run_stop.layout.width]
+min = 34
+preferred = 34
+max = 34
+stretch = "Fixed"
+
+[nodes.run_stop.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.run_stop.layout.alignment]
+vertical = "Center"
+
+[[nodes.run_stop.events]]
+id = "Run/Stop"
+event = "Click"
+
+[nodes.run_stop.events.action]
+action = "runtime.play_mode.exit"
+
+[nodes.run_stop.state]
+[nodes.run_stop.style.self]
+[nodes.run_stop.style.slot]
+[nodes.run_stop.slots]
+[nodes.run_mode]
+component = "IconButton"
+control_id = "WorkbenchRunMode"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive", "workbench-toolbar-action", "workbench-quiet-action" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Dropdown\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\" d=\"m7 9 5 5 5-5\"/>\n</svg>\n"
+
+[nodes.run_mode.props]
+icon = "zircon_editor_shell/toolbar/dropdown.svg"
+text = ""
+label = "Run Mode"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.run_mode.layout.width]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.run_mode.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.run_mode.layout.alignment]
+vertical = "Center"
+
+[[nodes.run_mode.events]]
+id = "Run/OpenModeMenu"
+event = "Click"
+route = "workbench.run.open_mode_menu"
+
+[nodes.run_mode.state]
+[nodes.run_mode.style.self]
+[nodes.run_mode.style.slot]
+[nodes.run_mode.slots]
+[nodes.layout_grid]
+component = "IconButton"
+control_id = "WorkbenchLayoutGrid"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive", "workbench-toolbar-action", "workbench-quiet-action" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Grid layout\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linejoin=\"round\" stroke-width=\"1.6\" d=\"M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z\"/>\n</svg>\n"
+
+[nodes.layout_grid.props]
+icon = "zircon_editor_shell/toolbar/layout-grid.svg"
+text = ""
+label = "Layouts"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.layout_grid.layout.width]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.layout_grid.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.layout_grid.layout.alignment]
+vertical = "Center"
+
+[[nodes.layout_grid.events]]
+id = "DockCommand/OpenLayoutMenu"
+event = "Click"
+route = "workbench.dock.open_layout_menu"
+
+[nodes.layout_grid.state]
+[nodes.layout_grid.style.self]
+[nodes.layout_grid.style.slot]
+[nodes.layout_grid.slots]
+[nodes.theme_toggle]
+component = "IconButton"
+control_id = "WorkbenchThemeToggle"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive", "workbench-toolbar-action", "workbench-quiet-action" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Lighting\">\n  <circle cx=\"12\" cy=\"12\" r=\"3.5\" fill=\"none\" stroke=\"#cbd2dc\" stroke-width=\"1.6\"/>\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-width=\"1.6\" d=\"M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M18.5 5.5l-1.8 1.8M7.3 16.7l-1.8 1.8\"/>\n</svg>\n"
+
+[nodes.theme_toggle.props]
+icon = "zircon_editor_shell/toolbar/sun.svg"
+text = ""
+label = "Theme"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.theme_toggle.layout.width]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.theme_toggle.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.theme_toggle.layout.alignment]
+vertical = "Center"
+
+[[nodes.theme_toggle.events]]
+id = "Workbench/ToggleTheme"
+event = "Click"
+route = "workbench.theme.toggle"
+
+[nodes.theme_toggle.state]
+[nodes.theme_toggle.style.self]
+[nodes.theme_toggle.style.slot]
+[nodes.theme_toggle.slots]
+[nodes.module_details_drawer_toggle]
+component = "IconButton"
+control_id = "WorkbenchModuleDetailsDrawerToggle"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive", "workbench-toolbar-action", "workbench-quiet-action" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Dock right\"><rect x=\"4\" y=\"4\" width=\"16\" height=\"16\" rx=\"2\" fill=\"#172033\" stroke=\"#cbd2dc\" stroke-width=\"1.4\"/><path fill=\"#26d8d1\" d=\"M13 6h5v12h-5z\"/><path fill=\"none\" stroke=\"#64748b\" stroke-width=\"1.2\" d=\"M6 7h6M6 11h6M6 15h6\"/></svg>\n"
+
+[nodes.module_details_drawer_toggle.props]
+icon = "editor_pages/workbench/dock/dock-right.svg"
+text = ""
+label = "Module Details"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+tooltip = "Module Details"
+responsive_min_tier = "narrow"
+responsive_max_tier = "regular"
+
+[nodes.module_details_drawer_toggle.layout.width]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.module_details_drawer_toggle.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.module_details_drawer_toggle.layout.alignment]
+vertical = "Center"
+
+[[nodes.module_details_drawer_toggle.events]]
+id = "Workbench/ToggleModuleDetailsDrawer"
+event = "Click"
+route = "workbench.module.details_drawer.toggle"
+
+[nodes.module_details_drawer_toggle.state]
+[nodes.module_details_drawer_toggle.style.self]
+[nodes.module_details_drawer_toggle.style.slot]
+[nodes.module_details_drawer_toggle.slots]
+[penpot_host_colors]
+primary = "#60aeff"
+accent = "#60aeff"
+"material.primary" = "#60aeff"
+material_color_primary = "#60aeff"
+on_primary = "#151515"
+"material.on_primary" = "#151515"
+material_color_on_primary = "#151515"
+surface = "#2f2f2f"
+"material.surface" = "#2f2f2f"
+surface_inset = "#0f0f0f"
+"material.surface_inset" = "#0f0f0f"
+surface_hover = "#454545"
+"material.surface_hover" = "#454545"
+surface_pressed = "#383838"
+"material.surface_pressed" = "#383838"
+surface_selected = "#243f5a"
+"material.surface_selected" = "#243f5a"
+disabled = "#2b2b2b"
+"material.disabled" = "#2b2b2b"
+border = "#484848"
+outline = "#484848"
+"material.outline" = "#484848"
+focus = "#66b2ff"
+focus_ring = "#66b2ff"
+"material.focus_ring" = "#66b2ff"
+text = "#e8e8e8"
+on_surface = "#e8e8e8"
+"material.text" = "#e8e8e8"
+"material.on_surface" = "#e8e8e8"
+text_muted = "#b3b3b3"
+muted = "#b3b3b3"
+"material.text_muted" = "#b3b3b3"
+text_disabled = "#737373"
+"material.text_disabled" = "#737373"
+warning = "#dcac50"
+"material.warning" = "#dcac50"
+error = "#eb605c"
+danger = "#eb605c"
+"material.error" = "#eb605c"
+success = "#55be78"
+"material.success" = "#55be78"
+info = "#5faae6"
+"material.info" = "#5faae6"
+
+[penpot_host_palette]
+surface = [ "#151515", "#242424", "#2f2f2f", "#383838" ]
+surface_recessed = "#0f0f0f"
+surface_hover = "#454545"
+surface_selected = "#243f5a"
+surface_disabled = "#2b2b2b"
+accent = "#60aeff"
+accent_soft = "#253f59"
+border = "#484848"
+border_disabled = "#363636"
+separator_strong = "#565656"
+separator_soft = "#333333"
+text_primary = "#e8e8e8"
+text_secondary = "#b3b3b3"
+text_disabled = "#737373"
+success = "#55be78"
+success_container = "#1d472f"
+info = "#5faae6"
+info_container = "#18395b"
+warning = "#dcac50"
+warning_container = "#463112"
+error = "#eb605c"
+error_container = "#4c2427"
+popup = "#242424"
+track = "#3b3b3b"
+focus_ring = "#66b2ff"
+shadow = "#00000073"
+
+[tokens]
+"theme.palette.surface.0" = "#151515"
+"theme.palette.surface.1" = "#242424"
+"theme.palette.surface.2" = "#2f2f2f"
+"theme.palette.surface.3" = "#383838"
+"theme.palette.text.primary" = "#e8e8e8"
+"theme.palette.text.secondary" = "#b3b3b3"
+"theme.palette.text.disabled" = "#737373"
+"theme.palette.accent" = "#60aeff"
+"theme.palette.success" = "#55be78"
+"theme.palette.info" = "#5faae6"
+"theme.palette.warning" = "#dcac50"
+"theme.palette.error" = "#eb605c"
+"theme.palette.separator" = "#484848"
+"editor.surface.0" = "#151515"
+"editor.surface.1" = "#242424"
+"editor.surface.2" = "#2f2f2f"
+"editor.surface.3" = "#383838"
+"editor.surface.recessed" = "#0f0f0f"
+"editor.surface.hover" = "#454545"
+"editor.surface.selected" = "#243f5a"
+"editor.surface.disabled" = "#2b2b2b"
+"editor.accent" = "#60aeff"
+"editor.accent.soft" = "#253f59"
+"editor.border" = "#484848"
+"editor.border.disabled" = "#363636"
+"editor.separator.strong" = "#565656"
+"editor.separator.soft" = "#333333"
+"editor.text.primary" = "#e8e8e8"
+"editor.text.secondary" = "#b3b3b3"
+"editor.text.disabled" = "#737373"
+"editor.semantic.success" = "#55be78"
+"editor.semantic.success.container" = "#1d472f"
+"editor.semantic.info" = "#5faae6"
+"editor.semantic.info.container" = "#18395b"
+"editor.semantic.warning" = "#dcac50"
+"editor.semantic.warning.container" = "#463112"
+"editor.semantic.error" = "#eb605c"
+"editor.semantic.error.container" = "#4c2427"
+"editor.popup" = "#242424"
+"editor.track" = "#3b3b3b"
+"editor.focus.ring" = "#66b2ff"
+"editor.shadow" = "#00000073"
+"editor.typography.ui.family" = "Fira Sans"
+"editor.typography.ui.strong.family" = "Fira Sans"
+"editor.typography.code.family" = "Fira Mono"
+"editor.typography.utility_tab.text_role" = "ui"
+"editor.typography.font_smoothing" = "grayscale"
+"editor.typography.body.size" = 14
+"editor.typography.caption.size" = 12
+"editor.typography.overlay.size" = 12
+"editor.typography.heading.size" = 16
+"editor.typography.title.size" = 20
+"editor.typography.body.weight" = 400
+"editor.typography.medium.weight" = 500
+"editor.typography.strong.weight" = 600
+"editor.typography.emphasis.weight" = 700
+"editor.typography.code.weight" = 400
+"editor.typography.line_height" = 1.4
+"editor.control.height.large" = 48
+"editor.control.height.default" = 32
+"editor.control.height.compact" = 32
+"editor.control.height.dense" = 28
+"editor.control.radius.small" = 4
+"editor.control.radius.control" = 4
+"editor.control.radius.large" = 8
+"editor.control.radius.panel" = 0
+"editor.control.radius.pill" = 999
+"editor.control.border_width" = 1
+"editor.chrome.top_bar.height" = 25
+"editor.chrome.host_bar.height" = 32
+"editor.chrome.workbench_toolbar.height" = 66
+"editor.chrome.workbench_toolbar.command_row.height" = 34
+"editor.chrome.workbench_toolbar.popup.command_offset_y" = 29
+"editor.chrome.workbench_toolbar.popup.module_offset_y" = -6
+"editor.chrome.status_bar.height" = 24
+"editor.chrome.panel_header.height" = 30
+"editor.chrome.document_header.height" = 31
+"editor.chrome.viewport_toolbar.height" = 28
+"editor.chrome.activity_rail.width" = 34
+"editor.chrome.separator.thickness" = 1
+"editor.chrome.splitter.hit_size" = 8
+"editor.density.gap.xsmall" = 2
+"editor.density.gap.tight" = 4
+"editor.density.gap.small" = 4
+"editor.density.gap.regular" = 8
+"editor.density.gap.medium" = 8
+"editor.density.gap.large" = 12
+"editor.density.gap.group" = 24
+"editor.density.drawer_padding" = 12
+"editor.density.panel_padding" = 16
+"editor.density.toolbar_action_width" = 76
+"editor.density.toolbar_wide_action_width" = 96
+"editor.density.ui_asset_action.min_width" = 40
+"editor.density.ui_asset_action.preferred_width" = 52
+"editor.density.ui_asset_action.max_width" = 64
+"editor.density.ui_asset.side.min_width" = 128
+"editor.density.ui_asset.side.preferred_width" = 220
+"editor.density.ui_asset.center.min_width" = 256
+"editor.density.ui_asset.center.preferred_width" = 420
+"editor.density.ui_asset.header_kind.min_width" = 64
+"editor.density.ui_asset.header_kind.preferred_width" = 70
+"editor.density.ui_asset.header_kind.max_width" = 84
+"editor.density.ui_asset.tool.min_width" = 56
+"editor.density.ui_asset.tool.preferred_width" = 64
+"editor.density.ui_asset.tool.max_width" = 80
+"editor.density.command_palette.min_width" = 520
+"editor.density.command_palette.preferred_width" = 560
+"editor.density.command_palette.max_width" = 640
+"editor.density.command_palette.min_height" = 180
+"editor.density.command_palette.preferred_height" = 220
+"editor.density.command_palette.max_height" = 280
+"editor.density.dialog.min_width" = 420
+"editor.density.dialog.preferred_width" = 480
+"editor.density.dialog.max_width" = 560
+"editor.density.dialog.min_height" = 180
+"editor.density.dialog.preferred_height" = 220
+"editor.density.dialog.max_height" = 320
+"editor.density.confirm_dialog.preferred_width" = 460
+"editor.density.confirm_dialog.max_width" = 540
+"editor.density.confirm_dialog.min_height" = 174
+"editor.density.confirm_dialog.preferred_height" = 210
+"editor.density.confirm_dialog.max_height" = 300
+"editor.density.notification_panel.min_width" = 280
+"editor.density.notification_panel.preferred_width" = 320
+"editor.density.notification_panel.max_width" = 380
+"editor.density.notification_panel.min_height" = 160
+"editor.density.notification_panel.preferred_height" = 220
+"editor.density.notification_panel.max_height" = 320
+"editor.density.caption.min_height" = 20
+"editor.density.caption.preferred_height" = 22
+"editor.density.caption.max_height" = 24
+"editor.density.label.min_height" = 22
+"editor.density.label.preferred_height" = 24
+"editor.density.label.max_height" = 32
+"editor.density.chip.min_width" = 40
+"editor.density.chip.preferred_width" = 80
+"editor.density.chip.max_width" = 160
+"editor.density.axis_value_field.min_width" = 54
+"editor.density.axis_value_field.preferred_width" = 62
+"editor.density.axis_value_field.max_width" = 72
+"editor.density.row_height" = 28
+"editor.density.left_drawer_width" = 332
+"editor.density.right_drawer_width" = 404
+"editor.density.bottom_output_height" = 228
+"editor.density.breakpoint_ultra_width" = 480
+"editor.density.breakpoint_narrow_width" = 640
+"editor.density.breakpoint_wide_width" = 1260
+"editor.density.compact_side_width" = 1100
+"editor.density.ultra_compact_side_width" = 760
+"editor.density.compact_left_drawer_max_width" = 340
+"editor.density.compact_right_drawer_max_width" = 220
+"editor.density.compact_side_min_width" = 196
+"editor.density.minimum_document_width_fraction" = 0.5
+"editor.density.ultra_compact_left_drawer_max_width" = 220
+"editor.density.ultra_compact_right_drawer_max_width" = 160
+"editor.density.compact_bottom_available_height" = 900
+"editor.density.compact_bottom_max_height" = 148
+"editor.density.compact_bottom_max_available_fraction" = 0.23
+"editor.density.compact_bottom_min_height" = 120
+"editor.density.ultra_compact_bottom_available_height" = 420
+"editor.density.ultra_compact_bottom_max_height" = 96
+"editor.density.ultra_compact_bottom_max_available_fraction" = 0.2
+"editor.density.ultra_compact_bottom_min_height" = 80
+"editor.density.minimum_window_width" = 640
+"editor.density.minimum_window_height" = 420
+"editor.density.ultra_minimum_window_width" = 420
+"editor.density.ultra_minimum_window_height" = 360
+"editor.state.default" = "surface_1"
+"editor.state.hovered" = "surface_2"
+"editor.state.pressed" = "surface_3"
+"editor.state.selected" = "surface_selected"
+"editor.state.focused" = "surface_1"
+"editor.state.disabled" = "text_disabled"
+"editor.state.loading" = "accent"
+
+[[stylesheets]]
+id = "workbench-tab-states"
+
+[[stylesheets.rules]]
+selector = ".workbench-tab:selected, .workbench-tab:checked"
+
+[stylesheets.rules.set.self]
+background_color = "$editor.surface.selected"
+
+[[stylesheets.rules]]
+selector = ".workbench-tab:focus, .workbench-tab:focus-visible"
+
+[stylesheets.rules.set.self]
+background_color = "$editor.accent.soft"
+hover_background_color = "$editor.accent.soft"
+foreground_color = "$editor.text.primary"
+
+[penpot_original_imports]
+widgets = [ "res://ui/editor/components/workbench/primitives/data/workbench_divider.zui#WorkbenchDivider", "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton", "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton", "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab" ]
+styles = [ "res://ui/editor/theme/editor_tokens.zui" ]

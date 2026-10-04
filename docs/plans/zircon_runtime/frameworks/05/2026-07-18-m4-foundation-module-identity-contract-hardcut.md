@@ -3,7 +3,6 @@ related_code:
   - zircon_runtime/src/core/framework/foundation/mod.rs
   - zircon_runtime/src/core/framework/foundation/config_manager.rs
   - zircon_runtime/src/core/framework/foundation/config_persistence_report.rs
-  - zircon_runtime/src/core/framework/foundation/event_manager.rs
   - zircon_runtime/src/core/framework/foundation/module_identity.rs
   - zircon_runtime/src/foundation/module.rs
   - zircon_runtime/src/foundation/mod.rs
@@ -13,7 +12,6 @@ implementation_files:
   - zircon_runtime/src/core/framework/foundation/mod.rs
   - zircon_runtime/src/core/framework/foundation/config_manager.rs
   - zircon_runtime/src/core/framework/foundation/config_persistence_report.rs
-  - zircon_runtime/src/core/framework/foundation/event_manager.rs
   - zircon_runtime/src/core/framework/foundation/module_identity.rs
   - zircon_runtime/src/foundation/module.rs
   - zircon_runtime/src/foundation/mod.rs
@@ -30,7 +28,7 @@ tests:
   - python -B -m unittest tools.tests.test_frameworks_05_layer_direction
   - rustfmt +1.94.1 --edition 2021 --check <exact Rust manifest>
   - git -c core.safecrlf=false diff --check -- <exact40 manifest>
-  - python tools/runtime_domain_dependency_audit.py
+  - python tools/audits/runtime_domain_dependency_audit.py
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json
 doc_type: milestone-detail
 ---
@@ -40,7 +38,7 @@ doc_type: milestone-detail
 Plan: docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md
 Milestone: M4
 Status: waiting_prerequisite_owner_commits_and_re_review
-Files: ["docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md", "docs/plans/zircon_runtime/frameworks/05/2026-07-18-m4-foundation-module-identity-contract-hardcut.md", "docs/plans/zircon_runtime/frameworks/05/2026-07-18-m4-input-module-identity-contract-hardcut.md", "docs/plans/zircon_runtime/frameworks/05/2026-07-18-m4-platform-module-identity-contract-hardcut.md", "docs/plans/zircon_runtime/frameworks/05/2026-07-18-m4-ui-module-identity-contract-hardcut.md", "docs/zircon_runtime/core/framework/foundation.md", "docs/zircon_runtime/core/framework/input.md", "docs/zircon_runtime/core/framework/platform.md", "docs/zircon_runtime/core/framework/ui.md", "tools/tests/frameworks_05_module_identity.py", "tools/tests/test_frameworks_05_layer_direction.py", "zircon_runtime/src/asset/module.rs", "zircon_runtime/src/builtin/runtime_modules/tests/registration/behavior.rs", "zircon_runtime/src/core/framework/foundation.rs", "zircon_runtime/src/core/framework/foundation/config_manager.rs", "zircon_runtime/src/core/framework/foundation/config_persistence_report.rs", "zircon_runtime/src/core/framework/foundation/event_manager.rs", "zircon_runtime/src/core/framework/foundation/mod.rs", "zircon_runtime/src/core/framework/foundation/module_identity.rs", "zircon_runtime/src/core/framework/input/mod.rs", "zircon_runtime/src/core/framework/input/module_identity.rs", "zircon_runtime/src/core/framework/platform/mod.rs", "zircon_runtime/src/core/framework/platform/module_identity.rs", "zircon_runtime/src/core/framework/ui.rs", "zircon_runtime/src/core/framework/ui/module_identity.rs", "zircon_runtime/src/foundation/mod.rs", "zircon_runtime/src/foundation/module.rs", "zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs", "zircon_runtime/src/input/mod.rs", "zircon_runtime/src/input/module/descriptor.rs", "zircon_runtime/src/input/module/mod.rs", "zircon_runtime/src/input/module/module_type.rs", "zircon_runtime/src/platform/mod.rs", "zircon_runtime/src/platform/module.rs", "zircon_runtime/src/script/vm/reflection/tests.rs", "zircon_runtime/src/tests/plugin_extensions/profile_maturity.rs", "zircon_runtime/src/tests/runtime_absorption/builtin_modules/core_spine.rs", "zircon_runtime/src/ui/mod.rs", "zircon_runtime/src/ui/module.rs", "zircon_runtime/src/ui/prelude.rs"]
+Files: ["docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md", "docs/plans/zircon_runtime/frameworks/05/2026-07-18-m4-foundation-module-identity-contract-hardcut.md", "docs/plans/zircon_runtime/frameworks/05/2026-07-18-m4-input-module-identity-contract-hardcut.md", "docs/plans/zircon_runtime/frameworks/05/2026-07-18-m4-platform-module-identity-contract-hardcut.md", "docs/plans/zircon_runtime/frameworks/05/2026-07-18-m4-ui-module-identity-contract-hardcut.md", "docs/crates/zircon_runtime/core/framework/foundation.md", "docs/crates/zircon_runtime/core/framework/input.md", "docs/crates/zircon_runtime/core/framework/platform.md", "docs/crates/zircon_runtime/core/framework/ui.md", "tools/tests/frameworks_05_module_identity.py", "tools/tests/test_frameworks_05_layer_direction.py", "zircon_runtime/src/asset/module.rs", "zircon_runtime/src/builtin/runtime_modules/tests/registration/behavior.rs", "zircon_runtime/src/core/framework/foundation.rs", "zircon_runtime/src/core/framework/foundation/config_manager.rs", "zircon_runtime/src/core/framework/foundation/config_persistence_report.rs", "zircon_runtime/src/core/framework/foundation/event_manager.rs", "zircon_runtime/src/core/framework/foundation/mod.rs", "zircon_runtime/src/core/framework/foundation/module_identity.rs", "zircon_runtime/src/core/framework/input/mod.rs", "zircon_runtime/src/core/framework/input/module_identity.rs", "zircon_runtime/src/core/framework/platform/mod.rs", "zircon_runtime/src/core/framework/platform/module_identity.rs", "zircon_runtime/src/core/framework/ui.rs", "zircon_runtime/src/core/framework/ui/module_identity.rs", "zircon_runtime/src/foundation/mod.rs", "zircon_runtime/src/foundation/module.rs", "zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs", "zircon_runtime/src/input/mod.rs", "zircon_runtime/src/input/module/descriptor.rs", "zircon_runtime/src/input/module/mod.rs", "zircon_runtime/src/input/module/module_type.rs", "zircon_runtime/src/platform/mod.rs", "zircon_runtime/src/platform/module.rs", "zircon_runtime/src/script/vm/reflection/tests.rs", "zircon_runtime/src/tests/plugin_extensions/profile_maturity.rs", "zircon_runtime/src/tests/runtime_absorption/builtin_modules/core_spine.rs", "zircon_runtime/src/ui/mod.rs", "zircon_runtime/src/ui/module.rs", "zircon_runtime/src/ui/prelude.rs"]
 Date: 2026-07-18
 
 ## Scope Delivered

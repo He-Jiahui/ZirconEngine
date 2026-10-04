@@ -9,7 +9,7 @@ use crate::ui::binding::EditorUiBinding;
 use crate::ui::template::EditorTemplateError;
 
 #[cfg(test)]
-#[path = "adapter/hash_index_tests.rs"]
+#[path = "adapter/tests/hash_index_tests.rs"]
 mod hash_index_tests;
 
 #[derive(Default)]
@@ -18,6 +18,10 @@ pub struct EditorTemplateAdapter {
 }
 
 impl EditorTemplateAdapter {
+    pub fn contains_binding(&self, binding_id: &str) -> bool {
+        self.bindings.contains_key(binding_id)
+    }
+
     pub fn register_binding(
         &mut self,
         binding_id: impl Into<String>,

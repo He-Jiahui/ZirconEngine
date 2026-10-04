@@ -1,3 +1,6 @@
+//! 变换轴标签与比例链接标记的 secondary 专用接管入口；按控件身份区分文本和图标后抑制普通 fallback。
+//! 该入口只画静态视觉，实际坐标编辑与链接交互由工作台事件链负责。
+
 mod identity;
 mod layers;
 mod metrics;
@@ -35,5 +38,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ax
 }
 
 #[cfg(test)]
-#[path = "template_axis_labels_tests/mod.rs"]
+#[path = "template_axis_labels_tests/tests/mod.rs"]
 mod tests;

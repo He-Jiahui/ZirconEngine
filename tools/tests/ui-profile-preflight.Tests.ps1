@@ -1,4 +1,5 @@
-$script:PreflightScript = Join-Path $PSScriptRoot "..\ui-profile-preflight.ps1"
+# 用临时产品与工具夹具验证界面画像预检的类型化阻断和输出根约束。
+$script:PreflightScript = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-preflight.ps1"
 if (Test-Path -LiteralPath $script:PreflightScript) {
     . $script:PreflightScript
 }

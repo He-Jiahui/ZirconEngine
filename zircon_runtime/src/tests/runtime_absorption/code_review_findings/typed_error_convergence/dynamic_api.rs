@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f5_dynamic_api_session_uses_typed_errors_before_abi_status_boundary() {
     let session = include_str!("../../../../dynamic_api/session.rs");
@@ -16,7 +17,8 @@ fn review_f5_dynamic_api_session_uses_typed_errors_before_abi_status_boundary() 
         include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let convention =
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
-    let session_doc = include_str!("../../../../../../docs/zircon_runtime/dynamic_api/session.md");
+    let session_doc =
+        include_str!("../../../../../../docs/crates/zircon_runtime/dynamic_api/session.md");
 
     for required in [
         "mod error;",

@@ -65,7 +65,7 @@ impl RetainedEditorHost {
         }
     }
 
-    pub(super) fn route_focused_game_keyboard_input(
+    pub(in crate::ui::retained_host::app) fn route_focused_game_keyboard_input(
         &mut self,
         keyboard: &UiKeyboardInputEvent,
     ) -> bool {

@@ -8,7 +8,7 @@ mod move_dispatch;
 mod pane_button_damage;
 mod redraw_result;
 mod resize_damage;
-mod routing;
+pub(super) mod routing;
 mod scroll_dispatch;
 mod state;
 mod tab_drag_damage;
@@ -20,12 +20,15 @@ mod viewport_toolbar_damage;
 pub(in crate::ui::retained_host::host_contract) use button_dispatch::asset_deletion_blocker_action_at;
 pub(in crate::ui::retained_host::host_contract) use button_dispatch::dispatch_native_pointer_button;
 pub(in crate::ui::retained_host::host_contract) use constants::{
-    HOST_POINTER_DOWN, HOST_POINTER_MOVE, HOST_POINTER_UP, VIEWPORT_POINTER_BUTTON_MIDDLE,
-    VIEWPORT_POINTER_BUTTON_NONE, VIEWPORT_POINTER_BUTTON_PRIMARY,
+    HOST_POINTER_CANCEL, HOST_POINTER_DOWN, HOST_POINTER_MOVE, HOST_POINTER_UP,
+    VIEWPORT_POINTER_BUTTON_MIDDLE, VIEWPORT_POINTER_BUTTON_NONE, VIEWPORT_POINTER_BUTTON_PRIMARY,
     VIEWPORT_POINTER_BUTTON_SECONDARY, VIEWPORT_POINTER_DOWN, VIEWPORT_POINTER_MOVE,
     VIEWPORT_POINTER_SCROLL, VIEWPORT_POINTER_UP,
 };
 pub(in crate::ui::retained_host::host_contract) use move_dispatch::dispatch_native_pointer_move;
+pub(in crate::ui::retained_host::host_contract) use routing::{
+    route_pointer_move_to_pane, PanePointerTarget,
+};
 pub(in crate::ui::retained_host::host_contract) use scroll_dispatch::dispatch_native_pointer_scroll;
 pub(in crate::ui::retained_host::host_contract) use state::NativePointerButtonState;
 pub(in crate::ui::retained_host::host_contract) use tooltip_target::tooltip_target_for_chrome_route;

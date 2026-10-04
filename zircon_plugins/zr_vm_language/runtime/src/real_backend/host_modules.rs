@@ -3,7 +3,9 @@ use std::sync::Arc;
 use zircon_runtime::core::framework::script::{
     ScriptHostArguments, ScriptHostFunctionDescriptor, ScriptHostPrototypeKind,
 };
-use zircon_runtime::script::{CapabilitySet, ScriptCallSite, VmError, VmPluginHostContext};
+use zircon_runtime::script::{
+    CapabilitySet, HostExportRegistry, ScriptCallSite, VmError, VmPluginHostContext,
+};
 use zr_vm_rust_binding as zrvm;
 
 use super::errors::{map_zr_error, zr_error};
@@ -30,9 +32,36 @@ pub(super) fn register_host_modules(
     if host.vm_owner().is_some() {
         registrations.push(register_extension_host_module(runtime, host)?);
     }
-    let call_table = host.host_exports.script_call_table();
-    let capabilities = Arc::new(host.capabilities.clone());
-    for module in host.host_exports.modules() {
+    for module in build_zr_vm_native_host_modules(&host.host_exports, &host.capabilities)? {
+        registrations.push(
+            runtime
+                .register_native_module(module)
+                .map_err(map_zr_error)?,
+        );
+    }
+    Ok(RegisteredHostModules {
+        registrations,
+        reflection_host,
+    })
+}
+
+/// Builds native callbacks from Runtime's registered host exports and the
+/// embedding host's admitted capabilities. Each callback validates its captured
+/// call site and capability before invoking the original Runtime implementation.
+///
+/// The caller registers these modules on its own thread-confined ZrVM runtime
+/// and retains the returned registrations for the lifetime of its sessions.
+/// Reflection and plugin lifecycle extensions require a `VmPluginHostContext`
+/// and are registered by the managed plugin backend separately.
+pub fn build_zr_vm_native_host_modules(
+    host_exports: &HostExportRegistry,
+    capabilities: &CapabilitySet,
+) -> Result<Vec<zrvm::NativeModule>, VmError> {
+    let call_table = host_exports.script_call_table();
+    let capabilities = Arc::new(capabilities.clone());
+    let modules = host_exports.modules();
+    let mut native_modules = Vec::with_capacity(modules.len());
+    for module in modules {
         let mut builder = zrvm::ModuleBuilder::new(&module.descriptor.name)
             .module_version(&module.descriptor.version);
         if let Some(documentation) = &module.descriptor.documentation {
@@ -77,17 +106,9 @@ pub(super) fn register_host_modules(
             )?);
         }
 
-        let native_module = builder.build().map_err(map_zr_error)?;
-        registrations.push(
-            runtime
-                .register_native_module(native_module)
-                .map_err(map_zr_error)?,
-        );
+        native_modules.push(builder.build().map_err(map_zr_error)?);
     }
-    Ok(RegisteredHostModules {
-        registrations,
-        reflection_host,
-    })
+    Ok(native_modules)
 }
 
 pub(super) fn native_function_label(module_name: &str, function_name: &str) -> String {

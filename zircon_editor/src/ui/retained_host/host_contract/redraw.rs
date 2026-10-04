@@ -7,5 +7,5 @@ pub(crate) use dispatch_result::NativePointerDispatchResult;
 pub(crate) use request::HostRedrawRequest;
 
 #[cfg(test)]
-#[path = "redraw_tests.rs"]
+#[path = "tests/redraw_tests.rs"]
 mod tests;

@@ -5,13 +5,13 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from tools.zircon_export.pipeline_report_native_dynamic_build_plan_schema import (
+from tools.export.pipeline_report_native_dynamic_build_plan_schema import (
     native_dynamic_build_plan_string_array_projection,
 )
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-OWNER = REPO_ROOT / "tools/zircon_export/pipeline_report_native_dynamic_build_plan_schema.py"
+OWNER = REPO_ROOT / "tools/export/pipeline_report_native_dynamic_build_plan_schema.py"
 
 
 class NativeDynamicBuildPlanStringArrayProjectionPerformanceContractTests(unittest.TestCase):

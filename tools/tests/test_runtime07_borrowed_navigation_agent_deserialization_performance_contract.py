@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime/src/script/vm/gameplay_host/navigation.rs"
 
-
+# 读取实现源码约束借用导航代理反序列化：导航代理反序列化来自借用 JSON，并导航代理路径不克隆 JSON 树。
 class BorrowedNavigationAgentDeserializationPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

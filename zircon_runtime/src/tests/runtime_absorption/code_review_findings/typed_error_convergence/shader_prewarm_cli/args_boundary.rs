@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
     let main = include_str!("../../../../../bin/zircon_shader_prewarm/main.rs");
@@ -7,7 +8,8 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
     let manifest_material_sources =
         include_str!("../../../../../bin/zircon_shader_prewarm/manifest/material_sources.rs");
     let manifest_paths = include_str!("../../../../../bin/zircon_shader_prewarm/manifest/paths.rs");
-    let manifest_tests = include_str!("../../../../../bin/zircon_shader_prewarm/manifest/tests.rs");
+    let manifest_tests =
+        include_str!("../../../../../bin/zircon_shader_prewarm/manifest/tests/cases.rs");
     let manifest_asset_scan_tests = include_str!(
         "../../../../../bin/zircon_shader_prewarm/manifest/tests/asset_scan_errors.rs"
     );
@@ -18,7 +20,7 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
     let resource_registry =
         include_str!("../../../../../bin/zircon_shader_prewarm/manifest/resource_registry.rs");
     let resource_registry_tests = include_str!(
-        "../../../../../bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs"
+        "../../../../../bin/zircon_shader_prewarm/manifest/resource_registry/tests/cases.rs"
     );
     let run = include_str!("../../../../../bin/zircon_shader_prewarm/run.rs");
     let review_findings = concat!(
@@ -33,10 +35,12 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
         include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let convention =
         include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
-    let render_doc =
-        include_str!("../../../../../../../docs/zircon_runtime/graphics/render-product-submit.md");
-    let module_doc =
-        include_str!("../../../../../../../docs/zircon_runtime/structure/module-convention.md");
+    let render_doc = include_str!(
+        "../../../../../../../docs/crates/zircon_runtime/graphics/render-product-submit.md"
+    );
+    let module_doc = include_str!(
+        "../../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
+    );
 
     assert!(
         main.contains("mod error;"),

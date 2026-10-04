@@ -1,5 +1,6 @@
 import AutoStoriesOutlinedIcon from "@mui/icons-material/AutoStoriesOutlined";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
+import CloudOutlinedIcon from "@mui/icons-material/CloudOutlined";
 import ExtensionOutlinedIcon from "@mui/icons-material/ExtensionOutlined";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
@@ -8,7 +9,10 @@ import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
 import { Box, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
 import { buildCatalogSearchIndex, filterCatalogSearchIndex } from "../catalog/catalogSearchIndex";
+import { selectVisibleCatalogRow } from "../catalog/catalogSelection";
 import { groupBy } from "../catalog/groupBy";
+import { catalogCopy } from "../catalog/service/copy";
+import { ServiceCatalog } from "../catalog/service/ServiceCatalog";
 import { EmptyStateBlock, HubList, HubPanel, HubTreeView, MetricCard, QuickActions, SourceEngineList, StatusBadge } from "../components/data";
 import { HubStatusBanner } from "../components/feedback";
 import { HubButton, HubSearchField, HubTabs } from "../components/inputs";
@@ -48,6 +52,9 @@ export function CatalogPage({ state, onAction }: CatalogPageProps) {
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("all");
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
+  const [source, setSource] = useState("local");
+  const service = mode !== "learn" && source === "service";
+  const sourceCopy = catalogCopy(state.settings.language);
   const common = state.ui.common;
   const text = state.ui.catalog;
   const Icon = pageIcon[mode];
@@ -64,9 +71,8 @@ export function CatalogPage({ state, onAction }: CatalogPageProps) {
   const categoryCount = new Set(rows.map((row) => row.category)).size;
   const scopeCount = new Set(rows.map((row) => row.scope)).size;
   const selectedRow = useMemo(() => {
-    const selectedCandidates = visibleRows.length > 0 ? visibleRows : rows;
-    return selectedCandidates.find((row) => row.id === selectedRowId) ?? selectedCandidates[0];
-  }, [rows, selectedRowId, visibleRows]);
+    return selectVisibleCatalogRow(visibleRows, selectedRowId);
+  }, [selectedRowId, visibleRows]);
   const openLearnResource = (row: CatalogRow) => {
     void onAction(HUB_ACTION.openResource, undefined, { resourceId: row.id, path: row.path });
   };
@@ -102,20 +108,22 @@ export function CatalogPage({ state, onAction }: CatalogPageProps) {
         "@media (max-width: 980px)": { px: 2, py: 2 },
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, mb: 2.5 }}>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="h4">{state.pageTitle}</Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.9 }}>
-            {state.pageSubtitle}
-          </Typography>
-        </Box>
-        <Box sx={{ width: 320, maxWidth: "100%", "@media (max-width: 760px)": { width: "100%" } }}>
+      <PageHeader title={state.pageTitle} subtitle={state.pageSubtitle} actions={
+        !service ? <Box sx={{ width: 320, maxWidth: "100%", "@media (max-width: 760px)": { width: "100%" } }}>
           <HubSearchField value={query} placeholder={`${text.searchPlaceholderPrefix}${text.searchPlaceholderSeparator}${state.pageTitle}${text.searchPlaceholderSuffix}`} onChange={setQuery} />
-        </Box>
-      </Box>
+        </Box> : undefined
+      } />
+
+      {mode !== "learn" ? <Box sx={{ mb: 1.4 }}><HubTabs value={source} onChange={setSource} options={[{ value: "local", label: sourceCopy.local, icon: <StorageOutlinedIcon /> }, { value: "service", label: sourceCopy.service, icon: <CloudOutlinedIcon /> }]} /></Box> : null}
+
+      {service ? <ServiceCatalog key={mode} mode={mode as "assets" | "plugins"} language={state.settings.language} /> : <>
 
       <Box sx={{ mb: 1.4 }}>
-        <HubStatusBanner task={state.taskSummary} />
+        <HubStatusBanner
+          task={state.taskSummary}
+          cancelLabel={state.ui.common.cancelTask}
+          onCancel={() => void onAction(HUB_ACTION.cancelBackgroundTask, String(state.taskSummary.taskId))}
+        />
       </Box>
 
       <Box
@@ -218,6 +226,7 @@ export function CatalogPage({ state, onAction }: CatalogPageProps) {
           <SourceEngineList engines={state.sourceEngines} emptyLabel={state.ui.shell.noSourceEngineRegistered} onSelect={(engine) => void onAction(HUB_ACTION.selectEngine, engine.id)} />
         </HubPanel>
       </Box>
+      </>}
     </Box>
   );
 }
@@ -302,3 +311,4 @@ function iconForMode(mode: "assets" | "plugins" | "learn") {
   const Icon = pageIcon[mode];
   return <Icon fontSize="small" />;
 }
+import { PageHeader } from "../components/data/PageHeader";

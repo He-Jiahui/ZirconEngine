@@ -109,6 +109,7 @@ impl TaskCallbackDispatcher {
         }
     }
 
+    // 同一 envelope 先耗尽 observer 队列再取 completion；回调预算轮转时 completion 仍留在该 envelope 末尾。
     pub(super) fn dispatch(&self, callbacks: Vec<TaskCallback>, completion: Option<TaskCallback>) {
         if callbacks.is_empty() && completion.is_none() {
             return;
@@ -339,4 +340,5 @@ impl CallbackEnvelope {
 }
 
 #[cfg(test)]
+#[path = "callback_dispatcher/tests/cases.rs"]
 mod tests;

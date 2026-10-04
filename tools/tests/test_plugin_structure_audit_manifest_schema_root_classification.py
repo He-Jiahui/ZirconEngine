@@ -1,10 +1,10 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema import (
+from tools.audits.plugins.manifest_schema import (
     collect_manifest_schema_violations,
 )
 
-
+# 用插件清单夹具验证根分类：拒绝未知根类别。
 class PluginStructureAuditManifestSchemaRootClassificationTests(unittest.TestCase):
     def test_manifest_schema_rejects_unknown_root_category(self):
         violations: list[str] = []

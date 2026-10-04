@@ -9,7 +9,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 插件公开接口完整参考
 tests:
-  - zircon_plugins/plugin_sdk/src/native/tests.rs
+  - zircon_plugins/plugin_sdk/src/native/tests/cases.rs
   - zircon_plugins/native_dynamic_fixture
 doc_type: abi-reference
 title: Native ABI v3/v4 逐字段参考

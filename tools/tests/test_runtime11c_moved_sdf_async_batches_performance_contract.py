@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# SDF 异步提交把组条目所有权移入有界批次，不逐批克隆；检查 Rust 用例是否声明边界和原有顺序断言。
 
 ROOT = Path(__file__).resolve().parents[2]
 ASYNC_BATCH = ROOT / "zircon_runtime/src/text/sdf/font_bake/async_batch.rs"

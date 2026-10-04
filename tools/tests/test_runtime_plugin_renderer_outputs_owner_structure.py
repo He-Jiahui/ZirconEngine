@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 验证插件渲染器输出的职责切分：渲染器反馈域应子节点持有。
 class RuntimePluginRendererOutputsOwnerStructureTests(unittest.TestCase):
     def test_renderer_feedback_domains_are_child_owned(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]

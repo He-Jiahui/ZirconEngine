@@ -93,14 +93,13 @@ impl UiSurface {
         render_local_patch_node_ids: Option<&BTreeSet<UiNodeId>>,
     ) {
         let render_patch_ranges = render_local_patch_node_ids.map(|node_ids| {
-            node_ids
-                .iter()
-                .filter_map(|node_id| {
-                    self.render_cache
-                        .commands_for_node(&self.render_extract, *node_id)
-                        .map(|(start, commands)| start..start + commands.len())
-                })
-                .collect::<Vec<_>>()
+            let mut render_patch_ranges = Vec::with_capacity(node_ids.len());
+            render_patch_ranges.extend(node_ids.iter().filter_map(|node_id| {
+                self.render_cache
+                    .commands_for_node(&self.render_extract, *node_id)
+                    .map(|(start, commands)| start..start + commands.len())
+            }));
+            render_patch_ranges
         });
         let publication = self.frame_publication.get_mut();
         publication.dirty = true;
@@ -464,3 +463,7 @@ fn merge_render_patch_ranges(ranges: &mut Vec<Range<usize>>) {
     }
     ranges.truncate(write_index);
 }
+
+#[cfg(test)]
+#[path = "tests/frame_publication_optimization_tests.rs"]
+mod optimization_tests;

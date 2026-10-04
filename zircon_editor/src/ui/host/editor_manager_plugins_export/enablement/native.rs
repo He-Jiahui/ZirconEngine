@@ -2,6 +2,7 @@ use std::path::Path;
 
 use zircon_runtime::asset::project::ProjectManifest;
 use zircon_runtime::plugin::native::discovery::discover_native_plugins;
+use zircon_runtime::plugin::PluginPackageManifest;
 
 use super::super::super::editor_manager::EditorManager;
 use super::super::package_projection::editor_capabilities_for_package;
@@ -31,11 +32,10 @@ impl EditorManager {
         }
 
         let native_projection = native_report.projection();
-        let native_package = native_projection
-            .package_manifests()
-            .iter()
-            .find(|package| package.id == plugin_id)
-            .cloned();
+        let native_package =
+            product_native_package(native_projection.package_manifests(), plugin_id).ok_or_else(
+                || format!("native plugin {plugin_id} has no product-eligible package to enable"),
+            )?;
         let mut completed =
             self.complete_project_plugin_manifest_with_native_report(manifest, &native_report);
         let mut selection = completed
@@ -52,10 +52,7 @@ impl EditorManager {
         }
         selection.enabled = enabled;
         completed.plugins.set_enabled(selection.clone());
-        let editor_capabilities = native_package
-            .as_ref()
-            .map(editor_capabilities_for_package)
-            .unwrap_or_default();
+        let editor_capabilities = editor_capabilities_for_package(native_package);
         let capability_snapshot = if editor_capabilities.is_empty() {
             self.capability_snapshot()
         } else {
@@ -85,3 +82,16 @@ impl EditorManager {
         Ok(report)
     }
 }
+
+fn product_native_package<'a>(
+    packages: &'a [PluginPackageManifest],
+    plugin_id: &str,
+) -> Option<&'a PluginPackageManifest> {
+    packages.iter().find(|package| {
+        package.id == plugin_id && package.package_role.is_product_catalog_eligible()
+    })
+}
+
+#[cfg(test)]
+#[path = "tests/native_product_selection_tests.rs"]
+mod product_selection_tests;

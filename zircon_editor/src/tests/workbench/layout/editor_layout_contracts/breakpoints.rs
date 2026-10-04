@@ -139,6 +139,62 @@ fn workbench_layout_tiers_classify_reference_capture_widths() {
 }
 
 #[test]
+fn native_width_minimum_bridges_narrow_to_ultra_at_the_breakpoint() {
+    let defaults = workbench_layout_defaults();
+
+    assert_eq!(
+        crate::ui::workbench::autolayout::window_min_width_limit_for_logical_width(
+            defaults.breakpoints.narrow_max_width,
+        ),
+        defaults.breakpoints.ultra_max_width,
+    );
+    assert_eq!(
+        crate::ui::workbench::autolayout::window_min_width_limit_for_logical_width(
+            defaults.breakpoints.ultra_max_width,
+        ),
+        defaults.window_minimums.ultra_min_width,
+    );
+    assert_eq!(
+        crate::ui::workbench::autolayout::window_min_width_limit_for_logical_width(
+            defaults.breakpoints.narrow_max_width + 0.1,
+        ),
+        defaults.window_minimums.min_width,
+    );
+}
+
+#[test]
+fn native_width_minimum_bridge_uses_logical_breakpoints_at_supported_dpi_scales() {
+    let defaults = workbench_layout_defaults();
+    for scale in [1.0_f32, 1.25, 2.0] {
+        let narrow_physical = defaults.breakpoints.narrow_max_width * scale;
+        let ultra_physical = defaults.breakpoints.ultra_max_width * scale;
+
+        assert_eq!(
+            workbench_layout_tier_for_physical_width(narrow_physical, scale),
+            WorkbenchLayoutTier::Narrow,
+        );
+        assert_eq!(
+            crate::ui::workbench::autolayout::window_min_width_limit_for_physical_width(
+                narrow_physical,
+                scale,
+            ),
+            defaults.breakpoints.ultra_max_width,
+        );
+        assert_eq!(
+            workbench_layout_tier_for_physical_width(ultra_physical, scale),
+            WorkbenchLayoutTier::Ultra,
+        );
+        assert_eq!(
+            crate::ui::workbench::autolayout::window_min_width_limit_for_physical_width(
+                ultra_physical,
+                scale,
+            ),
+            defaults.window_minimums.ultra_min_width,
+        );
+    }
+}
+
+#[test]
 fn tier_uses_logical_width_consistent_across_scale() {
     assert_eq!(workbench_logical_width_for_scale(3840.0, 2.0), 1920.0);
     assert_eq!(

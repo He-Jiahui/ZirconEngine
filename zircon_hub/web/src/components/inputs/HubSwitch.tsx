@@ -1,6 +1,7 @@
 import { Box, FormControlLabel, Switch, Typography } from "@mui/material";
 import { hubTokens } from "../../theme/tokens";
 
+// 页面持有开关值并解释其业务含义；没有变更回调表示只读条件，不能呈现为可修改设置。
 export interface HubSwitchProps {
   checked: boolean;
   label: string;
@@ -9,6 +10,7 @@ export interface HubSwitchProps {
   onChange?: (checked: boolean) => void;
 }
 
+// 开关只表达下一次期望值，保存、成员权限及失败恢复由各自调用方处理，不在控件内执行副作用。
 export function HubSwitch({ checked, label, detail, disabled = false, onChange }: HubSwitchProps) {
   const isDisabled = disabled || !onChange;
 

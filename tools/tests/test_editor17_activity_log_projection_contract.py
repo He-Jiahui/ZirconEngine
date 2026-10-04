@@ -1,3 +1,4 @@
+# 核对活动日志只投影核心记录，并保留来源类型与跳转分发信息。
 from pathlib import Path
 import unittest
 

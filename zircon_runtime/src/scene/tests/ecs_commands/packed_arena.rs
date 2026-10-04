@@ -319,10 +319,8 @@ fn deferred_command_queue_batch_merge_skips_worker_arena_linear_lookup_when_empt
         .and_then(|source| source.split("pub(crate) fn reclaim_worker_arena").next())
         .expect("read the known-absent worker arena fast path");
 
-    assert!(
-        worker_buffer
-            .contains("let destination_has_worker_arenas = self.has_worker_inline_arenas();")
-    );
+    assert!(worker_buffer
+        .contains("let destination_has_worker_arenas = self.has_worker_inline_arenas();"));
     assert!(worker_buffer.contains("buffer.merge_into_with_known_absent_arena(self);"));
     assert!(!fast_path.contains(".position("));
 }

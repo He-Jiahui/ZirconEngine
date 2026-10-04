@@ -66,5 +66,5 @@ fn variant_has_any_token(variant: &str, expected: &[&str]) -> bool {
 }
 
 #[cfg(test)]
-#[path = "skeleton/borrowed_animation_tests.rs"]
+#[path = "skeleton/tests/borrowed_animation_tests.rs"]
 mod borrowed_animation_tests;

@@ -10,11 +10,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/session_coordinator/validation_copies.py
-  - tools/session_coordinator/validation_ticket_worker.py
-  - tools/session_coordinator/workspace_copy.py
-  - tools/session_coordinator/tests/test_validation_copies.py
-  - tools/session_coordinator/tests/test_workspace_copy.py
 tests:
   - python -B -m unittest tools.session_coordinator.tests.test_validation_copies.ValidationCopySourceTests.test_compile_time_resource_accepts_declared_overlay_file -v
   - python -B -m unittest tools.session_coordinator.tests.test_validation_copies.ValidationCopySourceTests.test_compile_time_resource_accepts_any_declared_including_source -v
@@ -80,3 +75,23 @@ validated overlay was treated as missing.
   required on the final exact snapshot.
 - 回传：proof-bound successor replay and Runtime07/Runtime90/RuntimeInterface01 managed Cargo gates
   remain pending; this open artifact must not be returned until those gates pass.
+
+### 2026-09-11 immutable coordinator closure
+
+The current Coordinator01 fixing Session first isolated the planner and worker
+halves, then re-ran the exact six-test lifecycle on one schema-70 immutable
+closure. Planner ticket `d9565f4e19114b5bbaed64a40411b24e` / job
+`7930a2f5a2564a0295811d4a76d98d67` passed the four declared overlay-discovery
+regressions. Worker ticket `6ba720f0be3e4abea16a69175b991383` / job
+`752dea3806264a36a359a404428cd039` passed the two synchronous/durable
+propagation regressions after the required schema-70 migration was included in
+the immutable copy.
+
+The final combined ticket `723d1814f5314d7ea6dbbba613aa89d6` / job
+`c04850bd1bd543129be42d7343dde022` executed all six declared tests from the
+same complete source manifest
+`3ebd04b8646d909783e3912a5aa0d984468a1596437fbd877635b645be24f471`:
+`6 passed`, exit `0`. This validates only the Coordinator planner/worker
+closure. It does not replay a proof-bound successor or satisfy the distinct
+Runtime07, Runtime90, and RuntimeInterface01 managed Cargo acceptance gates,
+so the lifecycle remains open and is not eligible for return or closeout.

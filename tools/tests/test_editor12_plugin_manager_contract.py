@@ -275,6 +275,22 @@ class Editor12PluginManagerContractTests(unittest.TestCase):
         self,
     ) -> None:
         project = EDITOR_MANAGER_PROJECT.read_text(encoding="utf-8")
+        activation_effects = (
+            REPOSITORY_ROOT
+            / "zircon_editor"
+            / "src"
+            / "ui"
+            / "host"
+            / "editor_manager_project_activation_effects.rs"
+        ).read_text(encoding="utf-8")
+        project_session = (
+            REPOSITORY_ROOT
+            / "zircon_editor"
+            / "src"
+            / "ui"
+            / "host"
+            / "editor_manager_project_session.rs"
+        ).read_text(encoding="utf-8")
         startup = EDITOR_MANAGER_STARTUP.read_text(encoding="utf-8")
         plugin_exports = EDITOR_MANAGER_PLUGIN_EXPORTS.read_text(encoding="utf-8")
         open_project = project.split("pub fn open_project", 1)[1].split(
@@ -283,9 +299,9 @@ class Editor12PluginManagerContractTests(unittest.TestCase):
 
         self.assertIn("fn apply_project_plugin_manifest", project)
         self.assertIn("project_root: &Path", project)
-        self.assertIn("NativePluginLoader.load_discovered_editor", project)
+        self.assertIn("load_discovered_native_editor_plugins_with_authority", project)
         self.assertIn(
-            "complete_project_plugin_manifest_with_native_report(manifest, &native_report)",
+            "complete_project_plugin_manifest_with_native_report(\n                &approved_manifest,\n                &native_report,\n            )",
             project,
         )
         self.assertIn(
@@ -296,17 +312,25 @@ class Editor12PluginManagerContractTests(unittest.TestCase):
         self.assertIn("clear_project_registration_reports", project)
         self.assertIn(".apply_project_manifest(&completed.plugins)", project)
         self.assertIn("self.publish_project_plugin_status(", project)
-        self.assertIn("fn apply_project_plugin_manifest_or_close", project)
-        self.assertIn("self.host.close_project()", project)
+        complete_open = activation_effects.split(
+            "pub(super) fn complete_project_open", 1
+        )[1].split("pub(super) fn finalize_project_activation", 1)[0]
+        self.assertIn("ProjectSessionEffect::ProjectPlugins", complete_open)
+        self.assertIn("ProjectSessionEffect::Documents", complete_open)
         self.assertLess(
-            open_project.index("apply_project_plugin_manifest_or_close"),
-            open_project.index("publish_document_messages"),
+            complete_open.index("apply_project_plugin_manifest("),
+            complete_open.index("publish_document_messages("),
         )
-        self.assertEqual(
-            startup.count("self.publish_document_startup_session(&session)?;"), 3
-        )
+        self.assertIn("open_project_document_with_admission", project_session)
+        self.assertIn("activate_project_from_preflight(", project_session)
+        self.assertIn("self.open_project_document_with_admission(preflight, &admission)", open_project)
+        self.assertEqual(startup.count("self.execute_project_launch_intent("), 2)
+        self.assertIn("self.open_project_and_remember_with_session(", startup)
+        self.assertIn("self.recover_project_and_remember_with_session(", startup)
+        self.assertIn("self.create_project_and_open_with_session(", startup)
+        self.assertNotIn("publish_document_startup_session", startup)
         self.assertIn("pub fn plugin_panel_source", plugin_exports)
-        self.assertIn("EditorPluginPanelSource::from_manager(&self.plugin_manager)", plugin_exports)
+        self.assertIn("EditorPluginPanelSource::from_manager(self.plugin_manager())", plugin_exports)
 
     def test_project_native_discovery_uses_the_manager_scoped_publication_boundary(
         self,
@@ -382,7 +406,7 @@ class Editor12PluginManagerContractTests(unittest.TestCase):
         self.assertIn("refresh_builtin_plugin_status", editor_manager)
         self.assertIn("publish_project_plugin_status", project_manager)
         self.assertIn("clear_project_plugin_status", project_manager)
-        self.assertIn("load_discovered_editor", project_manager)
+        self.assertIn("load_discovered_native_editor_plugins_with_authority", project_manager)
         self.assertIn(
             "selected_native_editor_plugin_registration_reports_from_load_report",
             native_registration,
@@ -425,7 +449,8 @@ class Editor12PluginManagerContractTests(unittest.TestCase):
         self.assertIn(
             "native_aware_runtime_plugin_catalog_from_load_report", feature_enablement
         )
-        self.assertIn("manifest.plugins.set_enabled(selection.clone());", project_enablement)
+        self.assertIn("selection.enabled = enabled;", project_enablement)
+        self.assertIn("replace_or_push_selection_at(", project_enablement)
         self.assertIn("self.publish_project_plugin_status", project_enablement)
         self.assertIn("self.plugin_status_report(manifest)", project_enablement)
         self.assertIn(
@@ -493,7 +518,7 @@ class Editor12PluginManagerContractTests(unittest.TestCase):
         replacement_test = MANAGER_LIFECYCLE_REPLACEMENT.read_text(encoding="utf-8")
         replacement_owner = MANAGER_REPLACEMENT_OWNER.read_text(encoding="utf-8")
         native_projection = NATIVE_REGISTRATION_PROJECTION.read_text(encoding="utf-8")
-        runtime_registration = RUNTIME_REGISTRATION_TEST.read_text(encoding="utf-8")
+        runtime_registration = (PLUGIN_ROOT / "registration.rs").read_text(encoding="utf-8")
 
         self.assertIn("pub fn transition_state", manager)
         self.assertIn("pub fn validate_enablement", manager)
@@ -628,14 +653,14 @@ class Editor12PluginManagerContractTests(unittest.TestCase):
         self.assertIn("pub(crate) struct EditorPluginCatalog", catalog)
         self.assertIn("pub(crate) use catalog::EditorPluginCatalog;", plugin_module)
         self.assertNotIn("EditorPluginCatalog", library)
-        self.assertIn("previous_by_package", manager)
+        self.assertIn("previous_by_package", snapshot)
         self.assertNotIn(
             ".find(|entry| entry.package_id == package.id)", manager
         )
 
     def test_catalog_replacement_uses_sorted_retraction_lookup(self) -> None:
-        manager = (PLUGIN_ROOT / "manager.rs").read_text(encoding="utf-8")
-        retraction = manager.split("fn active_package_retracted", 1)[1].split(
+        publication = MANAGER_PUBLICATION.read_text(encoding="utf-8")
+        retraction = publication.split("fn active_package_retracted", 1)[1].split(
             "fn has_failed_disabled_lifecycle", 1
         )[0]
 
@@ -789,14 +814,14 @@ class Editor12PluginManagerContractTests(unittest.TestCase):
             ),
         )
         self.assertIn(
-            "self.restore_editor_capabilities(&core, &previous_capabilities)",
+            "self.restore_editor_capabilities(&configuration, &previous_capabilities)",
             plugin_enablement,
         )
         self.assertLess(
             project_enablement.index(
                 "self.set_editor_plugin_enabled_unpublished(plugin_id, enabled)?"
             ),
-            project_enablement.index("manifest.plugins.set_enabled(selection.clone());"),
+            project_enablement.index("replace_or_push_selection_at("),
         )
 
     def test_capability_enablement_serializes_the_config_transaction_and_keeps_its_core(self) -> None:
@@ -818,12 +843,20 @@ class Editor12PluginManagerContractTests(unittest.TestCase):
         self.assertIn("capability_updates: Mutex<()>", editor_manager)
         self.assertIn("fn lock_editor_capability_updates", editor_manager)
         self.assertEqual(capabilities.count("self.lock_editor_capability_updates();"), 2)
-        self.assertIn("Result<(CoreHandle, EditorCapabilitySnapshot, Vec<String>), String>", capabilities)
+        self.assertIn("EditorCapabilityConfiguration", capabilities)
+        self.assertNotIn(
+            "Result<(CoreHandle, EditorCapabilitySnapshot, Vec<String>), String>",
+            capabilities,
+        )
         self.assertIn("fn restore_editor_capabilities(", capabilities)
-        self.assertIn("core: &CoreHandle", capabilities)
+        self.assertIn(
+            "configuration: &EditorCapabilityConfiguration",
+            capabilities,
+        )
         self.assertNotIn("self.host.runtime_core()", capabilities.split("fn restore_editor_capabilities", 1)[1])
-        self.assertIn("refresh_capabilities_from_core", capabilities)
-        self.assertIn("pub(super) fn refresh_capabilities_from_core", ui_host)
+        self.assertIn("capability_configuration()", capabilities)
+        self.assertIn("apply_capability_report", capabilities)
+        self.assertNotIn("refresh_capabilities_from_core", ui_host)
 
     def test_loading_phase_publishes_one_manager_owned_active_extension_view(self) -> None:
         manager = (PLUGIN_ROOT / "manager.rs").read_text(encoding="utf-8")
@@ -837,7 +870,7 @@ class Editor12PluginManagerContractTests(unittest.TestCase):
         self.assertIn("reached_loading_phase: Option<", snapshot)
         self.assertIn("pub fn advance_loading_phase", manager)
         self.assertIn("InvalidLoadingPhaseAdvance", state)
-        self.assertIn("fn build_active_extensions", manager)
+        self.assertIn("fn build_active_extensions", snapshot)
         self.assertIn("state: EditorPluginState::Validated", snapshot)
         self.assertIn("pub fn active_extensions", snapshot)
         self.assertIn("pub(crate) fn registrations", catalog_snapshot)
@@ -924,7 +957,7 @@ class Editor12PluginManagerContractTests(unittest.TestCase):
 
         self.assertIn("active_manager_generation: Option<u64>", extension_report)
         self.assertIn(
-            "report.active_manager_generation = Some(manager_generation);", manager
+            "report.active_manager_generation = Some(manager_generation);", snapshot
         )
         self.assertIn("LoadingPhaseUnavailable", state)
         self.assertIn("normalize_entries_for_loading_phase", manager)
@@ -950,11 +983,6 @@ class Editor12PluginManagerContractTests(unittest.TestCase):
         catalog_snapshot = (PLUGIN_ROOT / "catalog_snapshot.rs").read_text(
             encoding="utf-8"
         )
-        event_registration = (
-            REPOSITORY_ROOT
-            / "zircon_editor"
-            / "src/tests/editor_event/runtime/extensions_registration.rs"
-        ).read_text(encoding="utf-8")
         native_registration_projection = (
             REPOSITORY_ROOT
             / "zircon_editor"
@@ -971,10 +999,10 @@ class Editor12PluginManagerContractTests(unittest.TestCase):
             "fn lifecycle_stage", 1
         )[0]
 
-        self.assertIn("fn activate_eligible_entries", manager)
+        self.assertIn("fn activate_eligible_entries", state)
         self.assertIn("pub fn dispatch_lifecycle_event", manager)
-        self.assertIn("EditorPluginLifecycleStage::Loaded", manager)
-        self.assertIn("EditorPluginLifecycleStage::Enabled", manager)
+        self.assertIn("EditorPluginLifecycleStage::Loaded", state)
+        self.assertIn("EditorPluginLifecycleStage::Enabled", state)
         self.assertNotIn("record_lifecycle_stage(", registration_build)
         self.assertIn("pub(super) fn record_lifecycle_event", registration)
         self.assertIn("successful_lifecycle_stages", registration)
@@ -1026,10 +1054,7 @@ class Editor12PluginManagerContractTests(unittest.TestCase):
         self.assertNotIn("pub fn editor_extensions", catalog)
         self.assertNotIn("extensions: Arc<EditorExtensionCatalogReport>", catalog_snapshot)
         self.assertNotIn("pub fn editor_extensions", catalog_snapshot)
-        for registration_literal in (
-            event_registration,
-            native_registration_projection,
-        ):
+        for registration_literal in (registration, native_registration_projection):
             self.assertIn(
                 "successful_lifecycle_stages: Vec::new(),", registration_literal
             )

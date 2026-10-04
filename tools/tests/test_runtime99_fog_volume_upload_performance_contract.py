@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 雾体积上传把借用的体积和层交给编码器，并合并筛选与 GPU 转换；检查发布基准是否分别覆盖启用和禁用。
 
 ROOT = Path(__file__).resolve().parents[2]
 MEDIA_INJECT = (
@@ -12,8 +12,7 @@ EXECUTOR = (
     / "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/executors/media_inject.rs"
 )
 PERFORMANCE_TESTS = (
-    ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/media_inject/performance_tests.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/media_inject/tests/performance_tests.rs"
 )
 
 

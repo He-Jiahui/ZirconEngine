@@ -1,7 +1,10 @@
+//! 图标按钮只绘制实例声明的资产图标；缺失名称或资源不产生手工像素回退，避免与资产设计脱节。
+
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::render_commands::HostPaintCommand;
 use super::template_icon_assets::push_icon_asset_pixels;
 
+/// 消费实例 icon_name；未声明或加载失败时保持空内容，真实资产重新可用时由统一加载器请求重绘。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_icon_button_glyph(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
@@ -26,81 +29,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ic
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ui::retained_host::host_contract::data::{
-        TemplateNodeFrameData, TemplatePaneNodeData,
-    };
-
-    #[test]
-    fn real_svg_icon_button_prefers_asset_pixels_over_fallback_glyph() {
-        let node = TemplatePaneNodeData {
-            control_id: "WorkbenchToolbarOpen".into(),
-            role: "IconButton".into(),
-            icon_name: "editor_pages/workbench/menu/open-project.svg".into(),
-            frame: TemplateNodeFrameData {
-                x: 0.0,
-                y: 0.0,
-                width: 20.0,
-                height: 20.0,
-            },
-            ..TemplatePaneNodeData::default()
-        };
-        let rect = FrameRect {
-            x: 0.0,
-            y: 0.0,
-            width: 20.0,
-            height: 20.0,
-        };
-        let mut commands = Vec::new();
-
-        push_icon_button_glyph(
-            &mut commands,
-            &node,
-            &rect,
-            &rect,
-            10,
-            [203, 210, 220, 255],
-            1.0,
-        );
-
-        assert_eq!(commands.len(), 1);
-        assert!(commands[0].image_pixels.is_some());
-        assert!(commands[0].image_key.is_none());
-    }
-
-    #[test]
-    fn missing_svg_icon_button_fails_closed_without_manual_pixel_fallback() {
-        let node = TemplatePaneNodeData {
-            control_id: "WorkbenchToolbarMenu".into(),
-            role: "IconButton".into(),
-            icon_name: "missing-zircon-toolbar-icon.svg".into(),
-            frame: TemplateNodeFrameData {
-                x: 0.0,
-                y: 0.0,
-                width: 20.0,
-                height: 20.0,
-            },
-            ..TemplatePaneNodeData::default()
-        };
-        let rect = FrameRect {
-            x: 0.0,
-            y: 0.0,
-            width: 20.0,
-            height: 20.0,
-        };
-        let mut commands = Vec::new();
-
-        push_icon_button_glyph(
-            &mut commands,
-            &node,
-            &rect,
-            &rect,
-            10,
-            [203, 210, 220, 255],
-            1.0,
-        );
-
-        assert!(commands.is_empty());
-    }
-}
+#[path = "tests/template_icon_button_glyphs.rs"]
+mod tests;

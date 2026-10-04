@@ -1,7 +1,7 @@
 use super::HostInvalidationMask;
 
 #[cfg(test)]
-#[path = "summary/capacity_tests.rs"]
+#[path = "summary/tests/capacity_tests.rs"]
 mod capacity_tests;
 
 const INVALIDATION_SUMMARY_NAME_COUNT: usize = 11;

@@ -128,6 +128,7 @@ pub(super) fn dispatch_probe_trace_tiles(
         frame_transactions,
         global_sdf_scene_state,
     );
+    // global SDF 只在存在已提交的可采样页时可用；体素后端还要求完整的帧内查表。
     let trace_route = HybridGiTraceCapabilityGraph.select(
         HybridGiTraceRequest {
             domain: HybridGiTraceDomain::Screen,
@@ -603,4 +604,5 @@ pub(in crate::hybrid_gi::renderer::gpu_resources) fn create_probe_trace_tile_dis
 }
 
 #[cfg(test)]
+#[path = "dispatch_probe_trace_tiles/tests/cases.rs"]
 mod tests;

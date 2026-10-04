@@ -1,27 +1,39 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock, TryLockError};
+use std::time::{Duration, Instant};
 
 use thiserror::Error;
 use zircon_runtime_interface::{ZrRuntimeSessionHandle, ZrStatus};
 
 use super::action_guard::SessionActionGuard;
-use super::allocation_registry::{forget_session_census, session_has_outstanding_allocations};
+use super::allocation_registry::{
+    session_has_outstanding_allocations_until, try_lock_registry_for_destroy,
+};
+use super::session_owner::runtime::RuntimeSessionOwnerCreateError;
 use super::session_slot::SessionSlot;
 use super::{RuntimeFrameActivity, RuntimeWakeRegistration};
+use crate::diagnostic_log::write_log;
+use crate::dynamic_api::session::profile::RuntimeDynamicSessionProfile;
+use crate::dynamic_api::session::project::RuntimeProjectConfig;
 use crate::dynamic_api::session::status::{invalid_argument, not_found, teardown_incomplete};
 use crate::dynamic_api::session::RuntimeDynamicSession;
+use crate::plugin::RuntimePluginRegistrationReport;
 
 static SESSION_REGISTRY: OnceLock<Mutex<SessionRegistry>> = OnceLock::new();
+const DYNAMIC_SESSION_ACTION_WAKE_DRAIN_TIMEOUT: Duration = Duration::from_secs(5);
+const DYNAMIC_SESSION_OWNED_COMMAND_ADMISSION_TIMEOUT: Duration = Duration::from_secs(5);
 
 struct SessionRegistry {
     next_handle: u64,
     sessions: HashMap<u64, Arc<SessionSlot>>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
+#[derive(Clone, Debug, Eq, Error, PartialEq)]
 pub(in crate::dynamic_api::session) enum SessionRegistryInsertError {
     #[error("runtime session handle space exhausted")]
     HandleSpaceExhausted,
+    #[error("runtime session owner unavailable: {0}")]
+    OwnerUnavailable(String),
 }
 
 impl Default for SessionRegistry {
@@ -56,18 +68,55 @@ fn lock_registry() -> MutexGuard<'static, SessionRegistry> {
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
+fn lock_registry_until(deadline: Instant) -> Option<MutexGuard<'static, SessionRegistry>> {
+    loop {
+        if Instant::now() >= deadline {
+            return None;
+        }
+        let guard = match registry().try_lock() {
+            Ok(guard) => guard,
+            Err(TryLockError::Poisoned(poisoned)) => poisoned.into_inner(),
+            Err(TryLockError::WouldBlock) => {
+                std::thread::yield_now();
+                continue;
+            }
+        };
+        return (Instant::now() < deadline).then_some(guard);
+    }
+}
+
+#[cfg(test)]
+pub(super) fn with_registry_lock_for_test(action: impl FnOnce()) {
+    let _registry = lock_registry();
+    action();
+}
+
+#[cfg(test)]
+pub(in crate::dynamic_api::session) fn session_handle_is_published_for_test(
+    handle: ZrRuntimeSessionHandle,
+) -> bool {
+    lock_registry().sessions.contains_key(&handle.raw())
+}
+
+#[cfg(test)]
+pub(super) fn session_slot_for_test(handle: ZrRuntimeSessionHandle) -> Option<Arc<SessionSlot>> {
+    find_session_slot(handle).ok()
+}
+
 #[cfg(test)]
 pub(in crate::dynamic_api::session) fn poison_registry_lock_for_test() {
     let _registry = lock_registry();
     panic!("poison dynamic API session registry lock");
 }
 
+#[cfg(test)]
 pub(in crate::dynamic_api::session) fn try_insert_session(
     session: RuntimeDynamicSession,
 ) -> Result<ZrRuntimeSessionHandle, SessionRegistryInsertError> {
     try_insert_session_with_wake(session, RuntimeWakeRegistration::disabled())
 }
 
+#[cfg(test)]
 pub(in crate::dynamic_api::session) fn try_insert_session_with_wake(
     mut session: RuntimeDynamicSession,
     wake: RuntimeWakeRegistration,
@@ -86,9 +135,49 @@ pub(in crate::dynamic_api::session) fn try_insert_session_with_wake(
             return Err(error);
         }
     };
-    registry
-        .sessions
-        .insert(handle, Arc::new(SessionSlot::new(session, wake)));
+    let slot = SessionSlot::new(session, wake)
+        .map(Arc::new)
+        .map_err(SessionRegistryInsertError::OwnerUnavailable)?;
+    registry.sessions.insert(handle, slot);
+    Ok(ZrRuntimeSessionHandle::new(handle))
+}
+
+pub(in crate::dynamic_api::session) fn try_create_linked_session(
+    profile: RuntimeDynamicSessionProfile,
+    project: Option<RuntimeProjectConfig>,
+    registrations: Vec<RuntimePluginRegistrationReport>,
+) -> Result<ZrRuntimeSessionHandle, SessionRegistryInsertError> {
+    let handle = lock_registry().try_allocate_handle()?;
+    #[cfg(test)]
+    super::session_owner::runtime::startup_observation::record_allocated_handle(handle);
+    let slot = SessionSlot::create_with_linked_plugins(profile, project, registrations).map_err(
+        |error| match error {
+            RuntimeSessionOwnerCreateError::Owner(message) => {
+                SessionRegistryInsertError::OwnerUnavailable(message)
+            }
+            RuntimeSessionOwnerCreateError::Session(status) => {
+                SessionRegistryInsertError::OwnerUnavailable(status.into_message())
+            }
+        },
+    )?;
+    lock_registry().sessions.insert(handle, Arc::new(slot));
+    Ok(ZrRuntimeSessionHandle::new(handle))
+}
+
+pub(in crate::dynamic_api::session) fn try_create_session_with_wake(
+    profile: RuntimeDynamicSessionProfile,
+    project: Option<RuntimeProjectConfig>,
+    wake: RuntimeWakeRegistration,
+) -> Result<ZrRuntimeSessionHandle, ZrStatus> {
+    let handle = lock_registry().try_allocate_handle().map_err(|_| {
+        crate::dynamic_api::session::status::limit_exceeded(
+            b"runtime session handle space exhausted",
+        )
+    })?;
+    #[cfg(test)]
+    super::session_owner::runtime::startup_observation::record_allocated_handle(handle);
+    let slot = Arc::new(SessionSlot::create(profile, project, wake)?);
+    lock_registry().sessions.insert(handle, slot);
     Ok(ZrRuntimeSessionHandle::new(handle))
 }
 
@@ -109,78 +198,117 @@ pub(in crate::dynamic_api::session) fn insert_session_with_wake(
 
 pub(in crate::dynamic_api::session) fn with_session(
     handle: ZrRuntimeSessionHandle,
-    action: impl FnOnce(&mut RuntimeDynamicSession) -> ZrStatus,
+    action: impl FnOnce(&mut RuntimeDynamicSession) -> ZrStatus + Send,
 ) -> ZrStatus {
     with_session_activity(handle, |session, _activity| action(session))
 }
 
+pub(in crate::dynamic_api::session) fn with_session_owned(
+    handle: ZrRuntimeSessionHandle,
+    action: impl FnOnce(&mut RuntimeDynamicSession) -> ZrStatus + Send + 'static,
+) -> ZrStatus {
+    let slot = match find_session_slot(handle) {
+        Ok(slot) => slot,
+        Err(status) => return status,
+    };
+    let Some(action_guard) = slot.begin_action() else {
+        return not_found(b"runtime session not found");
+    };
+    let admission_deadline = Instant::now()
+        .checked_add(DYNAMIC_SESSION_OWNED_COMMAND_ADMISSION_TIMEOUT)
+        .unwrap_or_else(Instant::now);
+    let status = match slot.dispatch_owned(admission_deadline, move |session| {
+        let status = action(session);
+        if status.is_ok() {
+            Ok(())
+        } else {
+            Err(status)
+        }
+    }) {
+        Ok(result) => match result.recv() {
+            Ok(Ok(())) => ZrStatus::ok(),
+            Ok(Err(error)) => error.into_abi(),
+            Err(_) => not_found(b"runtime session not found"),
+        },
+        Err(super::session_owner::OwnerDispatchError::Reentrant) => {
+            invalid_argument(b"runtime session callback cannot reenter synchronously")
+        }
+        Err(super::session_owner::OwnerDispatchError::AdmissionIncomplete) => {
+            crate::dynamic_api::session::status::error_status(
+                "runtime session owner command admission incomplete",
+            )
+        }
+        Err(_) => not_found(b"runtime session not found"),
+    };
+    drop(action_guard);
+    status
+}
+
 pub(in crate::dynamic_api::session) fn with_session_activity(
     handle: ZrRuntimeSessionHandle,
-    action: impl FnOnce(&mut RuntimeDynamicSession, &RuntimeFrameActivity) -> ZrStatus,
+    action: impl FnOnce(&mut RuntimeDynamicSession, &RuntimeFrameActivity) -> ZrStatus + Send,
 ) -> ZrStatus {
-    match with_session_activity_result(handle, |session, activity| Ok(action(session, activity))) {
-        Ok(status) | Err(status) => status,
+    match with_session_activity_result(handle, |session, activity| {
+        let status = action(session, activity);
+        if status.is_ok() {
+            Ok(())
+        } else {
+            Err(status)
+        }
+    }) {
+        Ok(()) => ZrStatus::ok(),
+        Err(status) => status,
     }
 }
 
-pub(in crate::dynamic_api::session) fn with_session_result_finalized<T, U>(
+pub(in crate::dynamic_api::session) fn with_session_result_finalized<T: Send, U>(
     handle: ZrRuntimeSessionHandle,
-    action: impl FnOnce(&mut RuntimeDynamicSession) -> Result<T, ZrStatus>,
+    action: impl FnOnce(&mut RuntimeDynamicSession) -> Result<T, ZrStatus> + Send,
     finalize: impl FnOnce(ZrRuntimeSessionHandle, T) -> Result<U, ZrStatus>,
 ) -> Result<U, ZrStatus> {
     with_session_activity_result_finalized(handle, |session, _activity| action(session), finalize)
 }
 
-pub(in crate::dynamic_api::session) fn with_session_result_committed<T, U>(
+pub(in crate::dynamic_api::session) fn with_session_result_committed<T: Send, U>(
     handle: ZrRuntimeSessionHandle,
-    action: impl FnOnce(&mut RuntimeDynamicSession) -> Result<T, ZrStatus>,
+    action: impl FnOnce(&mut RuntimeDynamicSession) -> Result<T, ZrStatus> + Send,
     finalize: impl FnOnce(ZrRuntimeSessionHandle, T) -> Result<U, ZrStatus>,
-    commit: impl FnOnce(&mut RuntimeDynamicSession),
-    rollback: impl FnOnce(&mut RuntimeDynamicSession),
+    commit: impl FnOnce(&mut RuntimeDynamicSession) + Send,
+    rollback: impl FnOnce(&mut RuntimeDynamicSession) + Send,
 ) -> Result<U, ZrStatus> {
     let slot = find_session_slot(handle)?;
     let Some(action_guard) = slot.begin_action() else {
         return Err(not_found(b"runtime session not found"));
     };
-    let value = {
-        let mut session = slot.lock_session();
-        let session = session
-            .as_mut()
-            .expect("an active runtime session action must retain its session");
-        action(session)?
-    };
+    let value = dispatch_session_action(&slot, action)?;
     let finalized = match finalize(handle, value) {
         Ok(finalized) => finalized,
         Err(status) => {
-            let mut session = slot.lock_session();
-            let session = session
-                .as_mut()
-                .expect("an active runtime session rollback must retain its session");
-            rollback(session);
+            dispatch_session_action(&slot, move |session| {
+                rollback(session);
+                Ok(())
+            })?;
             return Err(status);
         }
     };
-    {
-        let mut session = slot.lock_session();
-        let session = session
-            .as_mut()
-            .expect("an active runtime session finalizer must retain its session");
+    dispatch_session_action(&slot, move |session| {
         commit(session);
-    }
+        Ok(())
+    })?;
     drop(action_guard);
     Ok(finalized)
 }
 
-fn with_session_activity_result<T>(
+fn with_session_activity_result<T: Send>(
     handle: ZrRuntimeSessionHandle,
-    action: impl FnOnce(&mut RuntimeDynamicSession, &RuntimeFrameActivity) -> Result<T, ZrStatus>,
+    action: impl FnOnce(&mut RuntimeDynamicSession, &RuntimeFrameActivity) -> Result<T, ZrStatus> + Send,
 ) -> Result<T, ZrStatus> {
     with_session_activity_result_finalized(handle, action, |_active_handle, value| Ok(value))
 }
 
-fn with_session_activity_result_finalized<T, U>(
+pub(in crate::dynamic_api::session) fn with_session_activity_result_finalized<T: Send, U>(
     handle: ZrRuntimeSessionHandle,
-    action: impl FnOnce(&mut RuntimeDynamicSession, &RuntimeFrameActivity) -> Result<T, ZrStatus>,
+    action: impl FnOnce(&mut RuntimeDynamicSession, &RuntimeFrameActivity) -> Result<T, ZrStatus> + Send,
     finalize: impl FnOnce(ZrRuntimeSessionHandle, T) -> Result<U, ZrStatus>,
 ) -> Result<U, ZrStatus> {
     let slot = match find_session_slot(handle) {
@@ -190,14 +318,8 @@ fn with_session_activity_result_finalized<T, U>(
     let Some(action_guard) = slot.begin_action() else {
         return Err(not_found(b"runtime session not found"));
     };
-    let result = {
-        let mut session = slot.lock_session();
-        let Some(session) = session.as_mut() else {
-            return Err(not_found(b"runtime session not found"));
-        };
-        action(session, slot.frame_activity())
-    };
-    let value = result?;
+    let activity = slot.frame_activity();
+    let value = dispatch_session_action(&slot, move |session| action(session, activity))?;
     let finalized = finalize(handle, value);
     drop(action_guard);
     finalized
@@ -222,50 +344,132 @@ pub(super) fn begin_session_release_action(
 pub(in crate::dynamic_api::session) fn destroy_session_slot(
     handle: ZrRuntimeSessionHandle,
 ) -> ZrStatus {
-    let slot = match find_session_slot(handle) {
+    destroy_session_slot_with_timeout(handle, DYNAMIC_SESSION_ACTION_WAKE_DRAIN_TIMEOUT)
+}
+
+pub(super) fn destroy_session_slot_with_timeout(
+    handle: ZrRuntimeSessionHandle,
+    timeout: Duration,
+) -> ZrStatus {
+    let destroy_started_at = Instant::now();
+    let Some(destroy_deadline) = destroy_started_at.checked_add(timeout) else {
+        return teardown_incomplete();
+    };
+    write_log("runtime_session", "destroy_find_slot_start");
+    let slot = match find_session_slot_until(handle, destroy_deadline) {
         Ok(slot) => slot,
         Err(status) => return status,
     };
+    write_log("runtime_session", "destroy_find_slot_done");
     if slot
         .frame_activity()
         .wake_callback_active_on_current_thread()
     {
         return invalid_argument(b"runtime wake callback cannot destroy its session synchronously");
     }
+    write_log("runtime_session", "destroy_begin_close_start");
     if !slot.begin_close() {
         return not_found(b"runtime session not found");
     }
+    write_log("runtime_session", "destroy_begin_close_done");
 
     slot.frame_activity().disable_wake_entries();
-    slot.wait_for_actions();
-    slot.frame_activity().wait_for_wake_callbacks();
-    if session_has_outstanding_allocations(handle) {
+    write_log("runtime_session", "destroy_wait_actions_start");
+    if !slot.wait_for_actions(destroy_deadline.saturating_duration_since(Instant::now())) {
         slot.preserve_failed_teardown_for_retry();
         return teardown_incomplete();
     }
-    let session_shutdown = slot
-        .lock_session()
-        .as_mut()
-        .is_none_or(RuntimeDynamicSession::shutdown_before_library_unload);
+    write_log("runtime_session", "destroy_wait_actions_done");
+    write_log("runtime_session", "destroy_wait_wake_callbacks_start");
+    if !slot
+        .frame_activity()
+        .wait_for_wake_callbacks(destroy_deadline.saturating_duration_since(Instant::now()))
+    {
+        slot.preserve_failed_teardown_for_retry();
+        return teardown_incomplete();
+    }
+    write_log("runtime_session", "destroy_wait_wake_callbacks_done");
+    write_log("runtime_session", "destroy_allocation_check_start");
+    let Some(has_outstanding_allocations) =
+        session_has_outstanding_allocations_until(handle, destroy_deadline)
+    else {
+        slot.preserve_failed_teardown_for_retry();
+        return teardown_incomplete();
+    };
+    if has_outstanding_allocations {
+        slot.preserve_failed_teardown_for_retry();
+        return teardown_incomplete();
+    }
+    write_log("runtime_session", "destroy_allocation_check_done");
+    write_log("runtime_session", "destroy_shutdown_start");
+    let session_shutdown = matches!(
+        slot.shutdown_until(destroy_deadline),
+        super::session_owner::OwnerShutdownReceipt::Joined
+    );
+    write_log("runtime_session", "destroy_shutdown_done");
 
     if !session_shutdown {
         slot.preserve_failed_teardown_for_retry();
         return teardown_incomplete();
     }
 
-    drop(slot.take_session());
-
-    let mut registry = lock_registry();
-    if registry
-        .sessions
-        .get(&handle.raw())
-        .is_some_and(|registered| Arc::ptr_eq(registered, &slot))
-    {
-        registry.sessions.remove(&handle.raw());
+    write_log("runtime_session", "destroy_registry_remove_start");
+    let removed = remove_session_and_census_until(handle, &slot, destroy_deadline);
+    if !removed {
+        slot.preserve_failed_teardown_for_retry();
+        return teardown_incomplete();
     }
-    drop(registry);
-    forget_session_census(handle);
+    write_log("runtime_session", "destroy_registry_remove_done");
     ZrStatus::ok()
+}
+
+pub(super) fn remove_session_and_census_until(
+    handle: ZrRuntimeSessionHandle,
+    slot: &Arc<SessionSlot>,
+    destroy_deadline: Instant,
+) -> bool {
+    let removed = loop {
+        let Some(mut registry) = lock_registry_until(destroy_deadline) else {
+            break false;
+        };
+        let Some(mut allocations) = try_lock_registry_for_destroy() else {
+            drop(registry);
+            if Instant::now() >= destroy_deadline {
+                break false;
+            }
+            std::thread::yield_now();
+            continue;
+        };
+        if Instant::now() >= destroy_deadline {
+            break false;
+        }
+        match registry.sessions.get(&handle.raw()) {
+            Some(registered) if Arc::ptr_eq(registered, &slot) => {}
+            None if !allocations.has_census(handle) => break true,
+            _ => break false,
+        }
+        if allocations.has_outstanding_allocations(handle) || Instant::now() >= destroy_deadline {
+            break false;
+        }
+        registry.sessions.remove(&handle.raw());
+        allocations.forget_empty_census(handle);
+        break true;
+    };
+    removed
+}
+
+fn dispatch_session_action<R: Send>(
+    slot: &SessionSlot,
+    action: impl FnOnce(&mut RuntimeDynamicSession) -> Result<R, ZrStatus> + Send,
+) -> Result<R, ZrStatus> {
+    match slot.dispatch_scoped(action) {
+        Ok(Ok(value)) => Ok(value),
+        Ok(Err(error)) => Err(error.into_abi()),
+        Err(super::session_owner::OwnerDispatchError::Reentrant) => Err(invalid_argument(
+            b"runtime session callback cannot reenter synchronously",
+        )),
+        Err(_) => Err(not_found(b"runtime session not found")),
+    }
 }
 
 fn find_session_slot(handle: ZrRuntimeSessionHandle) -> Result<Arc<SessionSlot>, ZrStatus> {
@@ -280,122 +484,33 @@ fn find_session_slot(handle: ZrRuntimeSessionHandle) -> Result<Arc<SessionSlot>,
         .ok_or_else(|| not_found(b"runtime session not found"))
 }
 
+fn find_session_slot_until(
+    handle: ZrRuntimeSessionHandle,
+    deadline: Instant,
+) -> Result<Arc<SessionSlot>, ZrStatus> {
+    if !handle.is_valid() {
+        return Err(invalid_argument(b"invalid runtime session handle"));
+    }
+    let registry = lock_registry_until(deadline).ok_or_else(teardown_incomplete)?;
+    registry
+        .sessions
+        .get(&handle.raw())
+        .cloned()
+        .ok_or_else(|| not_found(b"runtime session not found"))
+}
+
 #[cfg(test)]
 pub(in crate::dynamic_api::session) fn session_is_closing(handle: ZrRuntimeSessionHandle) -> bool {
     find_session_slot(handle).is_ok_and(|slot| slot.is_closing())
 }
 
 #[cfg(test)]
-mod handle_allocation_tests {
-    use std::hint::black_box;
-    use std::sync::atomic::{AtomicU64, Ordering};
-    use std::time::{Duration, Instant};
-
-    use super::{SessionRegistry, SessionRegistryInsertError};
-
-    const PERFORMANCE_SAMPLE_PAIRS: usize = 21;
-    const PERFORMANCE_ITERATIONS: usize = 250_000;
-    const BASIS_POINTS_SCALE: u128 = 10_000;
-    const PERFORMANCE_MAX_RATIO_BPS: u128 = 7_500;
-
-    fn nearest_rank_percentile(samples: &[Duration], percentile: usize) -> Duration {
-        let mut sorted = samples.to_vec();
-        sorted.sort_unstable();
-        let rank = (sorted.len() * percentile).div_ceil(100);
-        sorted[rank.saturating_sub(1)]
-    }
-
-    fn measure_legacy_atomic_allocation() -> Duration {
-        let next_handle = AtomicU64::new(1);
-        let started = Instant::now();
-        for _ in 0..PERFORMANCE_ITERATIONS {
-            black_box(next_handle.fetch_add(1, Ordering::SeqCst));
-        }
-        started.elapsed()
-    }
-
-    fn measure_checked_allocation() -> Duration {
-        let mut registry = SessionRegistry::default();
-        let started = Instant::now();
-        for _ in 0..PERFORMANCE_ITERATIONS {
-            black_box(registry.try_allocate_handle().unwrap());
-        }
-        started.elapsed()
-    }
-
-    #[test]
-    fn session_handle_allocation_exhausts_after_the_maximum_value_without_wrapping() {
-        let mut registry = SessionRegistry::default();
-        registry.next_handle = u64::MAX;
-
-        assert_eq!(registry.try_allocate_handle().unwrap(), u64::MAX);
-        assert_eq!(
-            registry.try_allocate_handle(),
-            Err(SessionRegistryInsertError::HandleSpaceExhausted)
-        );
-        assert_eq!(
-            registry.try_allocate_handle(),
-            Err(SessionRegistryInsertError::HandleSpaceExhausted)
-        );
-    }
-
-    #[test]
-    fn session_handle_allocation_rejects_zero_as_exhausted() {
-        let mut registry = SessionRegistry::default();
-        registry.next_handle = 0;
-
-        assert_eq!(
-            registry.try_allocate_handle(),
-            Err(SessionRegistryInsertError::HandleSpaceExhausted)
-        );
-    }
-
-    #[test]
-    #[cfg_attr(debug_assertions, ignore)]
-    fn checked_session_handle_allocation_release_performance_acceptance() {
-        black_box(measure_legacy_atomic_allocation());
-        black_box(measure_checked_allocation());
-
-        let mut legacy_samples = Vec::with_capacity(PERFORMANCE_SAMPLE_PAIRS);
-        let mut checked_samples = Vec::with_capacity(PERFORMANCE_SAMPLE_PAIRS);
-        for pair in 0..PERFORMANCE_SAMPLE_PAIRS {
-            let (legacy, checked) = if pair % 2 == 0 {
-                (
-                    measure_legacy_atomic_allocation(),
-                    measure_checked_allocation(),
-                )
-            } else {
-                let checked = measure_checked_allocation();
-                let legacy = measure_legacy_atomic_allocation();
-                (legacy, checked)
-            };
-            legacy_samples.push(legacy);
-            checked_samples.push(checked);
-        }
-
-        let legacy_p95 = nearest_rank_percentile(&legacy_samples, 95);
-        let checked_p95 = nearest_rank_percentile(&checked_samples, 95);
-        let ratio_bps = checked_p95.as_nanos() * BASIS_POINTS_SCALE / legacy_p95.as_nanos().max(1);
-        let legacy_samples_ns = legacy_samples
-            .iter()
-            .map(|sample| sample.as_nanos().to_string())
-            .collect::<Vec<_>>()
-            .join(",");
-        let checked_samples_ns = checked_samples
-            .iter()
-            .map(|sample| sample.as_nanos().to_string())
-            .collect::<Vec<_>>()
-            .join(",");
-        println!(
-            "PERF-MVP-INTERFACE01-HANDLE: sample_pairs={PERFORMANCE_SAMPLE_PAIRS};order=alternating_legacy_first_even;iterations={PERFORMANCE_ITERATIONS};legacy_samples_ns={legacy_samples_ns};optimized_samples_ns={checked_samples_ns};legacy_p95_ns={};optimized_p95_ns={};ratio_bps={ratio_bps};threshold_bps={PERFORMANCE_MAX_RATIO_BPS}",
-            legacy_p95.as_nanos(),
-            checked_p95.as_nanos(),
-        );
-
-        assert!(
-            checked_p95.as_nanos() * BASIS_POINTS_SCALE
-                <= legacy_p95.as_nanos() * PERFORMANCE_MAX_RATIO_BPS,
-            "checked handle allocation P95 {checked_p95:?} must be at least 25% faster than legacy SeqCst allocation P95 {legacy_p95:?}"
-        );
-    }
+pub(super) fn session_active_actions(handle: ZrRuntimeSessionHandle) -> Option<usize> {
+    find_session_slot(handle)
+        .ok()
+        .map(|slot| slot.active_actions())
 }
+
+#[cfg(test)]
+#[path = "tests/session_store_handle_allocation_tests.rs"]
+mod handle_allocation_tests;

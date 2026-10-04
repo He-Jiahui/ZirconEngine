@@ -1,3 +1,4 @@
+# 核对活动抽屉统一停靠位、工作台布局与夹具值之间的归属关系。
 import json
 import re
 import unittest

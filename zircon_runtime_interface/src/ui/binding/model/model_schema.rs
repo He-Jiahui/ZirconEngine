@@ -58,6 +58,7 @@ impl UiModelIdentityError {
     }
 }
 
+// 模型身份宏统一生成包装类型，并让 Deserialize 回到 try_new，避免不同入口采用不同校验。
 macro_rules! model_identity {
     ($name:ident, $kind:expr) => {
         #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
@@ -110,6 +111,7 @@ pub struct UiModelVersionError {
     pub kind: UiModelVersionKind,
 }
 
+// 版本宏统一生成非零包装类型，并让 Deserialize 复用零值检查。
 macro_rules! model_version {
     ($name:ident, $kind:expr) => {
         #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
@@ -213,7 +215,17 @@ impl UiModelSchema {
         &self.key
     }
 
+    /// 按字段 ID 查询 schema；先走有序字段的二分查找，再回退线性扫描以兼容公开 Vec 的任意顺序。
     pub fn field(&self, field_id: &UiModelFieldId) -> Option<&UiModelFieldSchema> {
+        self.fields
+            .binary_search_by(|field| field.id.cmp(field_id))
+            .ok()
+            .and_then(|index| self.fields.get(index))
+            .or_else(|| self.fields.iter().find(|field| field.id == *field_id))
+    }
+
+    #[cfg(test)]
+    fn field_linear(&self, field_id: &UiModelFieldId) -> Option<&UiModelFieldSchema> {
         self.fields.iter().find(|field| field.id == *field_id)
     }
 }
@@ -249,6 +261,10 @@ impl UiModelProviderSchema {
         self.key.version
     }
 }
+
+#[cfg(test)]
+#[path = "model_schema/tests/field_lookup_performance_tests.rs"]
+mod field_lookup_performance_tests;
 
 fn validate_model_identity(
     kind: UiModelIdentityKind,

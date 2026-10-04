@@ -1,0 +1,482 @@
+[asset]
+kind = "view"
+version = 2
+id = "res://ui/editor/theme/editor_tokens.zui#review-host"
+display_name = "Zircon Editor Workbench Tokens"
+
+[imports]
+widgets = []
+styles = [ "res://ui/editor/theme/editor_tokens.zui" ]
+
+[root]
+node = "review_theme_host"
+
+[nodes.review_theme_host]
+component = "Panel"
+control_id = "EditorThemeReviewHost"
+classes = [ "workbench-panel" ]
+
+[nodes.review_theme_host.style.self.background]
+color = "$editor.surface.0"
+
+[nodes.review_theme_host.style.self.foreground]
+color = "$editor.text.primary"
+
+[nodes.review_theme_host.layout.container]
+kind = "Overlay"
+
+[nodes.review_theme_host.layout.width]
+stretch = "Stretch"
+
+[nodes.review_theme_host.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_title"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_label_0"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_component_0"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_label_1"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_component_1"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_label_2"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_component_2"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_label_3"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_component_3"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_label_4"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_component_4"
+
+[nodes.review_theme_title]
+component = "Label"
+control_id = "EditorThemeReviewTitle"
+
+[nodes.review_theme_title.props]
+text = "Editor component states"
+font_size = "$editor.typography.title.size"
+font_weight = "$editor.typography.strong.weight"
+
+[nodes.review_theme_title.layout.position]
+x = 32
+y = 32
+
+[nodes.review_theme_title.layout.width]
+preferred = 560
+stretch = "Fixed"
+
+[nodes.review_theme_title.layout.height]
+preferred = 32
+stretch = "Fixed"
+
+[nodes.review_theme_label_0]
+component = "Label"
+control_id = "review_theme_component_0Label"
+
+[nodes.review_theme_label_0.props]
+text = "Button"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.medium.weight"
+text_tone = "secondary"
+
+[nodes.review_theme_label_0.layout.position]
+x = 32
+y = 120
+
+[nodes.review_theme_label_0.layout.width]
+preferred = 280
+stretch = "Fixed"
+
+[nodes.review_theme_label_0.layout.height]
+preferred = 20
+stretch = "Fixed"
+
+[nodes.review_theme_component_0]
+component = "Button"
+control_id = "review_theme_component_0Control"
+classes = [ "workbench-control-button" ]
+
+[nodes.review_theme_component_0.props]
+text = "Button"
+text_overflow = "ellipsis"
+text_align = "center"
+button_variant = "outlined"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+validation_level = "normal"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font = "res://fonts/editor-ui.font.toml"
+font_family = "Fira Sans"
+font_weight = "$editor.typography.strong.weight"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.large"
+layout_padding_right = "$editor.density.gap.large"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.medium"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.review_theme_component_0.layout.width]
+min = 280
+preferred = 280
+max = 280
+stretch = "Fixed"
+
+[nodes.review_theme_component_0.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.default"
+stretch = "Fixed"
+
+[nodes.review_theme_component_0.layout.position]
+x = 32
+y = 148
+
+[nodes.review_theme_label_1]
+component = "Label"
+control_id = "review_theme_component_1Label"
+
+[nodes.review_theme_label_1.props]
+text = "Field"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.medium.weight"
+text_tone = "secondary"
+
+[nodes.review_theme_label_1.layout.position]
+x = 328
+y = 120
+
+[nodes.review_theme_label_1.layout.width]
+preferred = 280
+stretch = "Fixed"
+
+[nodes.review_theme_label_1.layout.height]
+preferred = 20
+stretch = "Fixed"
+
+[nodes.review_theme_component_1]
+component = "InputField"
+control_id = "review_theme_component_1Control"
+classes = [ "workbench-field" ]
+
+[nodes.review_theme_component_1.props]
+value = ""
+placeholder = ""
+validation_level = "normal"
+focused = false
+hovered = false
+disabled = false
+editable_text = true
+background_color = "$editor.surface.recessed"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+focused_background_color = "$editor.surface.recessed"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.separator.soft"
+hover_border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+placeholder_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.review_theme_component_1.layout.width]
+min = 280
+preferred = 280
+max = 280
+stretch = "Fixed"
+
+[nodes.review_theme_component_1.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.default"
+stretch = "Fixed"
+
+[nodes.review_theme_component_1.layout.position]
+x = 328
+y = 148
+
+[nodes.review_theme_label_2]
+component = "Label"
+control_id = "review_theme_component_2Label"
+
+[nodes.review_theme_label_2.props]
+text = "Dropdown"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.medium.weight"
+text_tone = "secondary"
+
+[nodes.review_theme_label_2.layout.position]
+x = 32
+y = 240
+
+[nodes.review_theme_label_2.layout.width]
+preferred = 280
+stretch = "Fixed"
+
+[nodes.review_theme_label_2.layout.height]
+preferred = 20
+stretch = "Fixed"
+
+[nodes.review_theme_component_2]
+component = "Dropdown"
+control_id = "review_theme_component_2Control"
+pixel_snapping = "disabled"
+classes = [ "workbench-field", "workbench-dropdown" ]
+
+[nodes.review_theme_component_2.props]
+value = "default"
+value_text = "Default"
+options = [ "default" ]
+multiple = false
+popup_open = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+selection_state = "single"
+validation_level = "normal"
+background_color = "$editor.surface.recessed"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+open_background_color = "$editor.accent.soft"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+label_color = "$editor.text.secondary"
+icon_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+horizontal_inset = "$editor.density.gap.medium"
+caret_size = "$editor.typography.overlay.size"
+caret_right_inset = "$editor.density.gap.large"
+caret_gap = "$editor.density.gap.small"
+label_top = "$editor.control.border_width"
+label_font_size = "$editor.typography.caption.size"
+label_line_height_ratio = "$editor.typography.line_height"
+value_bottom_inset = "$editor.control.border_width"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.control.border_width"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.review_theme_component_2.layout.width]
+min = 280
+preferred = 280
+max = 280
+stretch = "Fixed"
+
+[nodes.review_theme_component_2.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.default"
+stretch = "Fixed"
+
+[nodes.review_theme_component_2.layout.position]
+x = 32
+y = 268
+
+[nodes.review_theme_label_3]
+component = "Label"
+control_id = "review_theme_component_3Label"
+
+[nodes.review_theme_label_3.props]
+text = "Tab"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.medium.weight"
+text_tone = "secondary"
+
+[nodes.review_theme_label_3.layout.position]
+x = 328
+y = 240
+
+[nodes.review_theme_label_3.layout.width]
+preferred = 280
+stretch = "Fixed"
+
+[nodes.review_theme_label_3.layout.height]
+preferred = 20
+stretch = "Fixed"
+
+[nodes.review_theme_component_3]
+component = "Tab"
+control_id = "review_theme_component_3Control"
+classes = [ "workbench-tab" ]
+
+[nodes.review_theme_component_3.props]
+text = "Tab"
+value = false
+checked = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+background_color = "$editor.surface.2"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_underline_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = 0
+corner_radius = "$editor.control.radius.panel"
+tab_font_size = "$editor.typography.body.size"
+tab_line_height_ratio = "$editor.typography.line_height"
+tab_text_inset_x = "$editor.density.gap.medium"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.review_theme_component_3.layout.width]
+min = 280
+preferred = 280
+max = 280
+stretch = "Fixed"
+
+[nodes.review_theme_component_3.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.default"
+stretch = "Fixed"
+
+[nodes.review_theme_component_3.layout.position]
+x = 328
+y = 268
+
+[nodes.review_theme_label_4]
+component = "Label"
+control_id = "review_theme_component_4Label"
+
+[nodes.review_theme_label_4.props]
+text = "Divider"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.medium.weight"
+text_tone = "secondary"
+
+[nodes.review_theme_label_4.layout.position]
+x = 32
+y = 360
+
+[nodes.review_theme_label_4.layout.width]
+preferred = 280
+stretch = "Fixed"
+
+[nodes.review_theme_label_4.layout.height]
+preferred = 20
+stretch = "Fixed"
+
+[nodes.review_theme_component_4]
+component = "Divider"
+control_id = "review_theme_component_4Control"
+pixel_snapping = "snap_to_pixel"
+classes = [ "workbench-divider" ]
+
+[nodes.review_theme_component_4.props]
+orientation = "horizontal"
+variant = "fullWidth"
+separator_color = "$editor.separator.soft"
+disabled_separator_color = "$editor.border.disabled"
+thickness = "$editor.control.border_width"
+inset = "$editor.density.gap.medium"
+layout_min_height = "$editor.control.border_width"
+
+[nodes.review_theme_component_4.layout.width]
+min = 240
+preferred = 240
+max = 280
+stretch = "Fixed"
+
+[nodes.review_theme_component_4.layout.height]
+min = "$editor.density.gap.small"
+preferred = "$editor.density.gap.small"
+max = "$editor.density.gap.medium"
+stretch = "Fixed"
+
+[nodes.review_theme_component_4.layout.position]
+x = 32
+y = 388

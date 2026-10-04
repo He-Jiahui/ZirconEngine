@@ -1,3 +1,6 @@
+// 调用端：npm run generate:professions-craft-parity-contract (tools/package.json)；职责：解析固定版本的配方与物品，并以对齐用 golden 核对指定制造结果。
+// 输入边界：src/sim/content/recipes.ts, src/sim/content/items.ts, src/sim/professions/crafting.ts, tests/parity/golden/professions_craft.json；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -23,6 +26,7 @@ const RECIPE_IDS = ['recipe_minor_healing_potion', 'recipe_eastbrook_ritual_vest
 
 main();
 
+// 先将固定版本的配方与物品字面量关联到选定的 golden 制作记录，再输出运行时对齐常量。
 function main() {
   const manifest = readJson(join(referenceRoot, 'source_manifest.json'));
   invariant(manifest.source_commit === SOURCE_COMMIT,
@@ -105,6 +109,7 @@ function main() {
   process.stdout.write(`${checkOnly ? 'checked' : 'generated'} professions craft parity contract for ${SOURCE_COMMIT}\n`);
 }
 
+// 通过 TypeScript AST 读取配方字面量字段，使内容结构漂移在提取阶段报错。
 function parseRecipes(source) {
   const array = variableArray(RECIPES_PATH, source, 'COMMON_RECIPES');
   const result = new Map();
@@ -156,6 +161,7 @@ function parseItems(source) {
   return result;
 }
 
+// 投影前逐项核对所选配方与 golden 的输入和输出。
 function assertRecipe(actual, expected) {
   const projection = actual && {
     profession_id: actual.profession_id,

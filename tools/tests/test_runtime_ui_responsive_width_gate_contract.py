@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from tools.runtime_ui_responsive_width_gate_pressure import run
+from tools.analysis.performance.runtime.runtime_ui_responsive_width_gate_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -25,7 +25,12 @@ class RuntimeUiResponsiveWidthGateContractTests(unittest.TestCase):
         self.assertIn("responsive_definition_for_metadata", candidates)
         self.assertIn('"size"', candidates)
         self.assertIn('"offset"', candidates)
-        self.assertIn("previous_definition != next_definition", candidates)
+        self.assertIn(
+            "previous_definition.as_ref() != next_definition.as_ref()", candidates
+        )
+        self.assertIn(
+            "previous_membership != is_candidate || definition_changed", candidates
+        )
         self.assertIn("width_thresholds_for_metadata", candidates)
         self.assertIn("responsive_layout_may_change(root_size.width)", responsive)
         self.assertIn("previous <= threshold && next > threshold", candidates)

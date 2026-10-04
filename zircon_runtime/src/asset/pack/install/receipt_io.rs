@@ -1,17 +1,33 @@
 use std::path::Path;
 
 use super::{
-    file_io::{read_pack_file, write_pack_file},
-    ZrPackDeltaInstallError, ZrPackDeltaInstallReport, ZrPackInstallReceipt, ZrPackPromotionReport,
-    ZRPACK_INSTALL_RECEIPT_FORMAT_VERSION,
+    file_io::read_pack_file, ZrPackDeltaInstallError, ZrPackDeltaInstallReport,
+    ZrPackInstallReceipt, ZrPackPromotionReport, ZRPACK_INSTALL_RECEIPT_FORMAT_VERSION,
 };
 
+// receipt 只在两个阶段报告已互相校验后生成，并拒绝覆盖任一输入、installed 或 backup 路径。
 pub(super) fn write_install_receipt(
     receipt_path: &Path,
     staging_report: &ZrPackDeltaInstallReport,
     promotion_report: &ZrPackPromotionReport,
 ) -> Result<ZrPackInstallReceipt, ZrPackDeltaInstallError> {
     validate_receipt_reports(staging_report, promotion_report)?;
+    for pack_path in [
+        Some(staging_report.base_pack.as_path()),
+        Some(staging_report.delta_pack.as_path()),
+        Some(staging_report.staged_pack.as_path()),
+        Some(promotion_report.installed_pack.as_path()),
+        promotion_report.backup_pack.as_deref(),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        if super::promotion_journal::paths_alias(receipt_path, pack_path)? {
+            return Err(ZrPackDeltaInstallError::InvalidPromotionPaths(
+                "receipt must not overwrite a pack input, installed pack or backup".into(),
+            ));
+        }
+    }
     let receipt = ZrPackInstallReceipt {
         format_version: ZRPACK_INSTALL_RECEIPT_FORMAT_VERSION,
         base_pack: staging_report.base_pack.clone(),
@@ -29,10 +45,16 @@ pub(super) fn write_install_receipt(
     };
     let bytes = serde_json::to_vec_pretty(&receipt)
         .map_err(|error| ZrPackDeltaInstallError::ReceiptEncode(error.to_string()))?;
-    write_pack_file(receipt_path, &bytes)?;
+    crate::core::resource::io::atomic_write(receipt_path, &bytes).map_err(|error| {
+        ZrPackDeltaInstallError::WriteFailed {
+            path: receipt_path.to_path_buf(),
+            error: error.to_string(),
+        }
+    })?;
     Ok(receipt)
 }
 
+// 读取后立即校验格式版本；未知版本不会被当作当前事务结果继续使用。
 pub(super) fn read_install_receipt(
     receipt_path: &Path,
 ) -> Result<ZrPackInstallReceipt, ZrPackDeltaInstallError> {
@@ -48,6 +70,7 @@ pub(super) fn read_install_receipt(
     Ok(receipt)
 }
 
+// staging 的目标 manifest、staged 路径和 delta_apply_verified 是 receipt 可审计性的最小一致性条件。
 fn validate_receipt_reports(
     staging_report: &ZrPackDeltaInstallReport,
     promotion_report: &ZrPackPromotionReport,

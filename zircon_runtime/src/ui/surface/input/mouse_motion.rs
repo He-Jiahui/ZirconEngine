@@ -5,6 +5,7 @@ use zircon_runtime_interface::ui::dispatch::{
 
 use super::super::surface::UiSurface;
 
+/// 保留原始相对鼠标运动回执给宿主消费；此事件本身没有 UI 命中路由。
 pub(super) fn dispatch_mouse_motion_input(
     _surface: &UiSurface,
     motion: UiMouseMotionInputEvent,
@@ -25,38 +26,5 @@ pub(super) fn dispatch_mouse_motion_input(
 }
 
 #[cfg(test)]
-mod tests {
-    use zircon_runtime_interface::ui::{
-        dispatch::{UiInputDiagnosticsMode, UiInputEventMetadata, UiMouseMotionInputEvent},
-        event_ui::UiTreeId,
-    };
-
-    use crate::ui::surface::UiSurface;
-
-    use super::dispatch_mouse_motion_input;
-
-    #[test]
-    fn summary_mouse_motion_preserves_reply_without_materializing_note() {
-        let surface = UiSurface::new(UiTreeId::new("runtime.raw-mouse-motion"));
-        let motion = UiMouseMotionInputEvent {
-            metadata: UiInputEventMetadata::default(),
-            delta_x: 2.0,
-            delta_y: -1.0,
-        };
-
-        let summary =
-            dispatch_mouse_motion_input(&surface, motion.clone(), UiInputDiagnosticsMode::Summary);
-        let full = dispatch_mouse_motion_input(&surface, motion, UiInputDiagnosticsMode::Full);
-
-        assert_eq!(summary.reply, full.reply);
-        assert!(summary.diagnostics.notes.is_empty());
-        assert_eq!(
-            full.diagnostics
-                .notes
-                .iter()
-                .map(String::as_str)
-                .collect::<Vec<_>>(),
-            ["raw_mouse_motion"]
-        );
-    }
-}
+#[path = "tests/mouse_motion.rs"]
+mod tests;

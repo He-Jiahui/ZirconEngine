@@ -83,3 +83,49 @@ atomic admission/eviction/identity cases live in `behavior.rs`, while the ignore
 Python contract is GREEN without modifying the foreign-owned message-bus source. This closes only the stale
 read-path defect. The failure remains `open / managed_validation_pending`; no performance number or Cargo result
 is inferred from static source.
+
+### 2026-09-18 static ticket terminal result
+
+The managed static ticket `f072ede31b8743d29e7689ce86e338cd` reached terminal
+`passed` with job `534721cf5c7d4d5183dfb4499077495c`, run
+`f072ede31b8743d29e7689ce86e338cd`, and exit code `0`; all 7 Python contract
+tests passed. This confirms the current source shape and stale-read-path guard
+only. Paused-subscriber performance, focused Cargo, upward return, and closeout
+remain pending, so the failure stays `open`.
+
+### 2026-09-19 current-source static successor
+
+The resumed primary Session `failure-roll-01a084c8-editor02-message-inbox-r2`
+reclaimed the exact current source/test closure and submitted fresh managed
+Python validation request `failure-roll-01a084c8-editor02-message-inbox-static-20260919-r1`.
+The coordinator admitted ticket `0407c2c00025424db2bde4e0bbed1a5e` with source
+manifest hash `e9f83b291398023eb6aaee4097ffc62c57986b0cdc7d218462764b7c6dd32017`;
+it is queued and has not produced terminal test evidence yet. This ticket
+refreshes the current failure-record hash after the prior static receipt and
+does not claim performance, Cargo, upward, review, return, or closeout gates.
+
+### 2026-09-19 static successor terminal result
+
+Ticket `0407c2c00025424db2bde4e0bbed1a5e` completed with exit code `0` in job
+`146463af570f4fc8aa39ab6b29a736aa` / run
+`0407c2c00025424db2bde4e0bbed1a5e`. All seven declared Python contract tests
+ran and passed. This receipt is bound to the current 13-path manifest only;
+the ignored fanout performance matrix, focused Cargo, upward acceptance,
+independent review refresh, canonical return, and closeout remain open.
+
+### 2026-09-19 managed performance-gate admission
+
+The exact current-source managed request used the Editor02 backpressure test
+filter with ignored tests enabled:
+
+```powershell
+validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests -TestFilter editor_message::bus::backpressure -IgnoredTests -VerboseOutput
+```
+
+Coordinator request `a6b3fea6c84940f6b1b8007e7fe2398c` reached terminal `failed`
+at `cargo.acquire` with `unmanaged_artifacts_detected`, naming the pre-existing
+cleanup reservation for `D:\\ZirconBuilds\\mvp-test-fixtures-28916` at
+`2026-09-19T19:50:25.930401+00:00`. No Cargo process, focused test, ignored
+performance matrix, or timing result was produced. This Session did not delete
+or modify that foreign directory; retry is deferred until coordinator cleanup
+completes.

@@ -1,7 +1,9 @@
+//! 猎人陷阱布防与首次触发的局部计时投影；当前由专用测试入口调用，世界侧另行处理目标接触和眩晕事务。
 // Pure Hunter Trap timing. Contact eligibility and the stun transaction are WOS-owned.
 var contract = %import("generated/hunter_trap_contract");
 pub class HunterTrapState { pub var armRemaining: float; pub var triggered: bool; pub @constructor(arm: float) { this.armRemaining = arm; this.triggered = false; } }
 pub class HunterTrapTick { pub var armed: bool; pub var shimmer: bool; pub var triggeredNow: bool; pub @constructor() { this.armed=false; this.shimmer=false; this.triggeredNow=false; } }
+/// 布防倒计时归零后的下一步才接受接触；首次触发后不再报告新触发或闪烁。
 pub tickHunterTrap(state: HunterTrapState, tick: int, eligibleContact: bool, dt: float): HunterTrapTick {
     var result = new HunterTrapTick(); if (state.triggered) return result;
     if (state.armRemaining > 0.0) { state.armRemaining = state.armRemaining - dt; return result; }

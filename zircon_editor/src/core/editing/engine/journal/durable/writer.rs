@@ -2,9 +2,10 @@ use std::fs::{self, File, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
+use super::format::write_header;
 use super::{
-    write_header, DurableJournalError, JournalDocumentKey, PreparedJournalRecord,
-    MAX_JOURNAL_BYTES, MAX_RECORD_BYTES,
+    DurableJournalError, JournalDocumentKey, PreparedJournalRecord, MAX_JOURNAL_BYTES,
+    MAX_RECORD_BYTES,
 };
 
 pub struct JournalWriter {

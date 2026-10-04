@@ -12,7 +12,7 @@ use super::super::VirtualGeometryRuntimeState;
 use super::prepared_visible_clusters::PreparedVisibleClusters;
 
 #[cfg(test)]
-#[path = "prepare_visible_clusters/allocation_tests.rs"]
+#[path = "prepare_visible_clusters/tests/allocation_tests.rs"]
 mod allocation_tests;
 
 pub(super) fn prepare_visible_clusters(
@@ -101,7 +101,8 @@ fn compact_cluster_draw_segments(
     visible_clusters: &[VisibilityVirtualGeometryCluster],
     prepared_clusters_by_id: &BTreeMap<(u64, u32), &VirtualGeometryPrepareCluster>,
 ) -> Vec<VirtualGeometryPrepareDrawSegment> {
-    let mut cluster_draw_segments = Vec::with_capacity(visible_clusters.len());
+    let mut cluster_draw_segments: Vec<VirtualGeometryPrepareDrawSegment> =
+        Vec::with_capacity(visible_clusters.len());
 
     for cluster in visible_clusters {
         let Some(prepared_cluster) =

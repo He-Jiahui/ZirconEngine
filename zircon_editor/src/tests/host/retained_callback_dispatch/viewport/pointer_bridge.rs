@@ -1,5 +1,7 @@
 use super::super::support::*;
 
+mod button_ownership;
+
 #[test]
 fn shared_viewport_pointer_bridge_maps_secondary_button_to_right_pressed_event() {
     let _guard = env_lock().lock().unwrap();
@@ -187,6 +189,19 @@ fn shared_viewport_pointer_move_without_feedback_stays_dirty_domain_idle() {
 
     let harness = EventRuntimeHarness::new("zircon_retained_shared_pointer_idle_move");
     let mut bridge = SharedViewportPointerBridge::new(UiFrame::new(0.0, 0.0, 100.0, 100.0));
+
+    // Pointer input consumes the product published by the render path. The first
+    // move requests that missing product; a move after publication can stay idle.
+    let stale_effects = dispatch_viewport_pointer_event(
+        &harness.runtime,
+        &mut bridge,
+        UiPointerEvent::new(UiPointerEventKind::Move, UiPoint::new(24.0, 32.0)),
+        Default::default(),
+    )
+    .unwrap();
+    assert!(stale_effects.render_dirty);
+    assert!(!stale_effects.presentation_dirty);
+    assert!(harness.runtime.render_frame_extract().is_some());
 
     let effects = dispatch_viewport_pointer_event(
         &harness.runtime,

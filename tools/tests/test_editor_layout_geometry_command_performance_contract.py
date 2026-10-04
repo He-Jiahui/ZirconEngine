@@ -1,3 +1,4 @@
+# 核对几何布局命令跳过全局修复，抽屉尺寸变化作为单次事件提交。
 from pathlib import Path
 import unittest
 

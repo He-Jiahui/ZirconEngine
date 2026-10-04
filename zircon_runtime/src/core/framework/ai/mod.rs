@@ -1,7 +1,9 @@
 //! Neutral AI contracts for behavior-tree, blackboard, perception, and agent tick plugins.
+//! 这些 DTO、句柄和服务 trait 是 Runtime、AI 插件与编辑器之间的中立边界；执行状态和调度由实现持有。
 
 mod behavior_tree;
 mod blackboard;
+mod effects;
 mod error;
 mod ids;
 mod manager;
@@ -16,6 +18,10 @@ pub use behavior_tree::{
 pub use blackboard::{
     AiBlackboardEntry, AiBlackboardKeyDescriptor, AiBlackboardSchemaDescriptor, AiBlackboardValue,
     AiBlackboardValueType,
+};
+pub use effects::{
+    AiBehaviorEffectCommand, AiBehaviorEffectId, AiBehaviorEffectOutcome, AiBehaviorEffectReceipt,
+    AiGameplayEvent,
 };
 pub use error::AiManagerError;
 pub use ids::{AiAgentId, AiBehaviorTreeId, AiBlackboardSchemaId};

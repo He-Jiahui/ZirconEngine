@@ -1,3 +1,4 @@
+# 核对欢迎页最近项目以直接回执处理命中和点击，状态更新仅发布真实变化。
 import unittest
 from pathlib import Path
 

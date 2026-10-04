@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 核对视口回写与渲染图导入规划器分别由子模块持有，结构状态镜像保持一致。
 class RuntimeViewportOutputPlannerOwnerStructureTests(unittest.TestCase):
     STATUS = (
         "runtime_render_09_15_viewport_output_planner_owner_split_"
@@ -18,7 +18,7 @@ class RuntimeViewportOutputPlannerOwnerStructureTests(unittest.TestCase):
         owner_dir = owner_path.with_suffix("")
         writeback = (owner_dir / "writeback.rs").read_text(encoding="utf-8")
         graph_import = (owner_dir / "graph_import.rs").read_text(encoding="utf-8")
-        tests = (owner_dir / "tests.rs").read_text(encoding="utf-8")
+        tests = (owner_dir / "tests/cases.rs").read_text(encoding="utf-8")
 
         self.assertLessEqual(len(owner.splitlines()), 110)
         self.assertLessEqual(len(writeback.splitlines()), 250)
@@ -75,8 +75,8 @@ class RuntimeViewportOutputPlannerOwnerStructureTests(unittest.TestCase):
         )
 
         self.assertEqual(tests.count("#[test]"), 12)
-        self.assertIn('include_str!("writeback.rs")', tests)
-        self.assertIn('include_str!("graph_import.rs")', tests)
+        self.assertIn('include_str!("../writeback.rs")', tests)
+        self.assertIn('include_str!("../graph_import.rs")', tests)
 
     def test_owner_split_status_is_mirrored(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
@@ -96,7 +96,7 @@ class RuntimeViewportOutputPlannerOwnerStructureTests(unittest.TestCase):
             "zircon_runtime/src/graphics/types/viewport_render_output_target.rs",
             "zircon_runtime/src/graphics/types/viewport_render_output_target/writeback.rs",
             "zircon_runtime/src/graphics/types/viewport_render_output_target/graph_import.rs",
-            "zircon_runtime/src/graphics/types/viewport_render_output_target/tests.rs",
+            "zircon_runtime/src/graphics/types/viewport_render_output_target/tests/cases.rs",
             "tools/tests/test_runtime_viewport_output_planner_owner_structure.py",
         ):
             self.assertIn(current_path, structure_plan)

@@ -1,10 +1,10 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema import (
+from tools.audits.plugins.manifest_schema import (
     collect_manifest_schema_violations,
 )
 
-
+# 用插件清单夹具验证几何源码：拒绝几何源码描述符形状，并拒绝着色器变体几何源码 ID 不匹配。
 class PluginStructureAuditManifestSchemaGeometrySourcesTests(unittest.TestCase):
     def test_manifest_schema_rejects_geometry_source_descriptor_shape(self):
         violations: list[str] = []

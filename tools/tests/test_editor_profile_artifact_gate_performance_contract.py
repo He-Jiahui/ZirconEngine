@@ -1,3 +1,4 @@
+# 核对性能产物的一次性门控在读取环境前短路，并移除不可达的二次判断。
 from pathlib import Path
 import unittest
 

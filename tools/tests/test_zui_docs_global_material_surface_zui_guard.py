@@ -1,3 +1,4 @@
+# 核对材质界面文档的当前视图清单与资源格式一致。
 import unittest
 from pathlib import Path
 
@@ -14,10 +15,10 @@ def _section(text: str, start: str, end: str) -> str:
 class ZuiDocsGlobalMaterialSurfaceGuardTests(unittest.TestCase):
     def test_current_material_surface_docs_use_zui_view_inventory(self):
         showcase_text = (
-            REPO_ROOT / "docs/ui-and-layout/runtime-ui-component-showcase.md"
+            REPO_ROOT / "docs/ui/runtime-ui-component-showcase.md"
         ).read_text(encoding="utf-8")
         shared_template_text = (
-            REPO_ROOT / "docs/ui-and-layout/shared-ui-template-runtime.md"
+            REPO_ROOT / "docs/ui/shared-ui-template-runtime.md"
         ).read_text(encoding="utf-8")
 
         sections = {

@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 
 use crate::text::TextDocumentKey;
 use crate::ui::surface::{
-    UiArrangedVisibilityIndex, UiSurfaceControlIndex, arranged_node_indexed,
-    component_state::UiSurfaceComponentStateStore,
+    arranged_node_indexed, component_state::UiSurfaceComponentStateStore,
+    UiArrangedVisibilityIndex, UiSurfaceControlIndex,
 };
 use crate::ui::text::{
     UiTextLayoutRequest, UiTextMeasureCache, UiTextShapePrewarmRequest, UiTextViewport,
@@ -15,6 +15,7 @@ use zircon_runtime_interface::ui::{
     tree::{UiTemplateNodeMetadata, UiTree},
 };
 
+use super::super::agent_chat::agent_chat_suppresses_owner_text;
 use super::super::buttons::button_suppresses_owner_text;
 use super::super::chrome::chrome_suppresses_owner_text;
 use super::super::collection_rows::collection_row_suppresses_owner_text;
@@ -31,11 +32,13 @@ use super::super::popup_options::popup_option_may_emit_text;
 use super::super::progress::progress_suppresses_owner_text;
 use super::super::segmented_controls::segmented_control_suppresses_owner_text;
 use super::super::selection_controls::selection_control_suppresses_owner_text;
+use super::super::semantic_components::semantic_component_suppresses_owner_text;
 use super::super::skeleton::skeleton_suppresses_owner_text;
 use super::super::sliders::slider_suppresses_owner_text;
 use super::super::text_fields::text_field_suppresses_owner_text;
 use super::popup_anchor::{popup_runtime_anchor_is_open, resolve_popup_anchor_frame};
 
+// 组件自绘文字仍会访问共享测量缓存；只有这些访问全部缺席时，预热才能与命令收集重叠。
 pub(super) struct OwnerTextPrewarmCollection {
     pub(super) requests: Vec<UiTextShapePrewarmRequest>,
     pub(super) can_overlap_render_commands: bool,
@@ -139,7 +142,8 @@ fn component_text_requires_shared_cache(metadata: Option<&UiTemplateNodeMetadata
 }
 
 pub(super) fn owner_text_is_suppressed(metadata: Option<&UiTemplateNodeMetadata>) -> bool {
-    selection_control_suppresses_owner_text(metadata)
+    agent_chat_suppresses_owner_text(metadata)
+        || selection_control_suppresses_owner_text(metadata)
         || slider_suppresses_owner_text(metadata)
         || dropdown_suppresses_owner_text(metadata)
         || text_field_suppresses_owner_text(metadata)
@@ -155,4 +159,5 @@ pub(super) fn owner_text_is_suppressed(metadata: Option<&UiTemplateNodeMetadata>
         || notification_center_suppresses_owner_text(metadata)
         || drag_overlay_suppresses_owner_text(metadata)
         || chrome_suppresses_owner_text(metadata)
+        || semantic_component_suppresses_owner_text(metadata)
 }

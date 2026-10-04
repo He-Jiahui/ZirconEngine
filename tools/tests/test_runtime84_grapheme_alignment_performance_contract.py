@@ -1,11 +1,11 @@
 from pathlib import Path
 import unittest
-
+# 富文本字素对齐在 ASCII 路径复用规范 run，Unicode 仅为新输出 run 克隆元数据；检查发布基准是否记录克隆收敛。
 
 ROOT = Path(__file__).resolve().parents[2]
 RUN_ALIGNMENT = ROOT / "zircon_runtime/src/text/rich/parser/run_alignment.rs"
 PERFORMANCE_TESTS = (
-    ROOT / "zircon_runtime/src/text/rich/parser/performance_tests.rs"
+    ROOT / "zircon_runtime/src/text/rich/parser/tests/performance_tests.rs"
 )
 
 

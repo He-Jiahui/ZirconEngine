@@ -13,7 +13,7 @@ plan_sources:
   - user: 2026-09-09 完善 ZirconEngine 公开接口、机制案例、教程与最佳实践
 tests:
   - zircon_editor/src/ui/retained_host/viewport/tests
-  - zircon_editor/src/core/gateway/session/tests.rs
+  - zircon_editor/src/core/gateway/session/tests/cases.rs
 doc_type: module-detail
 ---
 

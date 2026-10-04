@@ -3,13 +3,14 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-NATIVE_DYNAMIC_STAGE = REPO_ROOT / "tools/zircon_export/native_dynamic.py"
+NATIVE_DYNAMIC_STAGE = REPO_ROOT / "tools/export/native_dynamic.py"
 NATIVE_DYNAMIC_MATERIALIZE = (
-    REPO_ROOT / "tools/zircon_export/native_dynamic_materialize.py"
+    REPO_ROOT / "tools/export/native_dynamic_materialize.py"
 )
 NATIVE_DYNAMIC_MATERIALIZE_IO = (
-    REPO_ROOT / "tools/zircon_export/native_dynamic_materialize_io.py"
+    REPO_ROOT / "tools/export/native_dynamic_materialize_io.py"
 )
+NATIVE_DYNAMIC_CAS = REPO_ROOT / "tools/export/native_dynamic_cas.py"
 
 
 class ZirconExportNativeDynamicMaterializeIoOwnerBoundaryTests(unittest.TestCase):
@@ -23,6 +24,7 @@ class ZirconExportNativeDynamicMaterializeIoOwnerBoundaryTests(unittest.TestCase
         materialize_io_text = NATIVE_DYNAMIC_MATERIALIZE_IO.read_text(
             encoding="utf-8"
         )
+        cas_text = NATIVE_DYNAMIC_CAS.read_text(encoding="utf-8")
 
         for function_name in (
             "reset_native_dynamic_plugins_dir",
@@ -59,6 +61,16 @@ class ZirconExportNativeDynamicMaterializeIoOwnerBoundaryTests(unittest.TestCase
             materialize_io_text,
             "materialize IO/path owner must not import stage orchestration",
         )
+        self.assertIn(
+            "from .native_dynamic_cas import",
+            materialize_io_text,
+            "filesystem adapters should consume the dedicated CAS owner",
+        )
+        self.assertNotIn(
+            "from .native_dynamic_materialize_io import",
+            cas_text,
+            "CAS owner must not import filesystem adapters",
+        )
 
     def test_native_dynamic_materialize_owners_stay_under_split_thresholds(self):
         self.assertTrue(
@@ -71,6 +83,7 @@ class ZirconExportNativeDynamicMaterializeIoOwnerBoundaryTests(unittest.TestCase
         materialize_io_line_count = len(
             NATIVE_DYNAMIC_MATERIALIZE_IO.read_text(encoding="utf-8").splitlines()
         )
+        cas_line_count = len(NATIVE_DYNAMIC_CAS.read_text(encoding="utf-8").splitlines())
         self.assertLess(
             materialize_line_count,
             340,
@@ -81,6 +94,23 @@ class ZirconExportNativeDynamicMaterializeIoOwnerBoundaryTests(unittest.TestCase
             150,
             "NativeDynamic materialize IO/path owner should stay below 150 lines",
         )
+        self.assertLess(
+            cas_line_count,
+            800,
+            "NativeDynamic CAS owner should stay below the CAS responsibility threshold",
+        )
+
+        cas_text = NATIVE_DYNAMIC_CAS.read_text(encoding="utf-8")
+        for function_name in (
+            "native_dynamic_cas_scope",
+            "resolve_native_dynamic_cas_root",
+            "native_dynamic_cas_max_bytes",
+            "prune_native_dynamic_cas",
+            "_ensure_native_dynamic_blob",
+            "_materialize_native_dynamic_source",
+            "_materialize_native_dynamic_tree",
+        ):
+            self.assertIn(f"def {function_name}(", cas_text)
 
 
 if __name__ == "__main__":

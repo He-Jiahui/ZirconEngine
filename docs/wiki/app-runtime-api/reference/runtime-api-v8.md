@@ -11,8 +11,8 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 为 ZirconEngine 构建引擎说明书级 Wiki
 tests:
-  - zircon_runtime_interface/src/runtime_api/abi/api_shape_tests.rs
-  - zircon_runtime_interface/src/runtime_api/abi/host_api_shape_tests.rs
+  - zircon_runtime_interface/src/runtime_api/abi/tests/api_shape_tests.rs
+  - zircon_runtime_interface/src/runtime_api/abi/tests/host_api_shape_tests.rs
 doc_type: api-reference
 ---
 

@@ -1,15 +1,16 @@
+//! 从源码和约定文档核对着色器预热的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 #[test]
 fn runtime_15_shader_prewarm_builtin_standard_material_template_source_is_wired() {
     let dynamic_api = read_runtime_src("dynamic_api/shader_prewarm.rs");
-    let dynamic_api_tests = read_runtime_src("dynamic_api/shader_prewarm/tests.rs");
+    let dynamic_api_tests = read_runtime_src("dynamic_api/shader_prewarm/tests/cases.rs");
     let dynamic_mod = read_runtime_src("dynamic_api/mod.rs");
     let scene_mod = read_runtime_src("graphics/scene/mod.rs");
     let manifest = read_runtime_src("bin/zircon_shader_prewarm/manifest.rs");
     let material_sources =
         read_runtime_src("bin/zircon_shader_prewarm/manifest/material_sources.rs");
-    let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests.rs");
+    let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/cases.rs");
     let plan_08 = read_repo(
         "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
     );
@@ -98,7 +99,7 @@ fn runtime_15_shader_prewarm_builtin_standard_material_template_source_is_wired(
             material_sources.as_str(),
         ),
         (
-            "bin/zircon_shader_prewarm/manifest/tests.rs",
+            "bin/zircon_shader_prewarm/manifest/tests/cases.rs",
             tests.as_str(),
         ),
     ] {

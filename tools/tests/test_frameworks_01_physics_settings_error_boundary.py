@@ -42,11 +42,10 @@ class Frameworks01PhysicsSettingsErrorBoundaryTests(unittest.TestCase):
         self.assertIn("PhysicsSettingsStoreError", plugin_service)
         self.assertNotIn("Result<(), CoreError>", plugin_settings)
         self.assertNotIn("zircon_runtime::core::CoreError", plugin_service)
-        self.assertRegex(
-            plugin_settings,
-            r"core\.store_config\([^;]+?\)\s*\.map_err\(\|source\|\s*"
-            r"PhysicsSettingsStoreError::persistence\(source\.to_string\(\)\)\)",
-        )
+        self.assertIn("config_manager_handle", plugin_settings)
+        self.assertIn("resolve_manager_service", plugin_settings)
+        self.assertIn(".set_value(", plugin_settings)
+        self.assertNotIn(".store_config(", plugin_settings)
         self.assertNotRegex(
             error_source,
             r"impl\s+From\s*<[^>]*CoreError[^>]*>\s+for\s+PhysicsSettingsStoreError",

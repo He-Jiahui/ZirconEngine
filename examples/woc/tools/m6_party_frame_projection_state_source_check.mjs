@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node m6_party_frame_projection_state_source_check.mjs；缺少源码契约时脚本抛错退出。
+// 核对锁定的队伍框体光环上限与排序、吸收量、仇恨、治疗和角色标记，并检查 Zr 投影及测试项目。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';

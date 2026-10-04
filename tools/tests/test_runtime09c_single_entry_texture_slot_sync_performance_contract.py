@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 材质纹理槽同步对同一键只做一次 BTree entry 探测；占用项读取元数据后原位替换，并检查两种分支的 Rust 用例入口。
 
 ROOT = Path(__file__).resolve().parents[2]
 VALUE_SYNC = ROOT / (

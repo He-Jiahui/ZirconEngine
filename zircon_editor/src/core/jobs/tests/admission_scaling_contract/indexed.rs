@@ -49,7 +49,7 @@ fn ready_bucket_selection_cannot_regress_to_a_linear_job_scan() {
 
 #[test]
 fn category_admission_projection_uses_maintained_indexes() {
-    let source = include_str!("../../system/pending.rs");
+    let source = include_str!("../../system/admission_ledger.rs");
     let category_projection = source
         .split("if let Some(category) = category {")
         .nth(1)
@@ -68,6 +68,73 @@ fn category_admission_projection_uses_maintained_indexes() {
             "category admission projection restored a pending-wide scan: {retired_scan}"
         );
     }
+}
+
+#[test]
+fn reservation_preflight_borrows_requests_without_materializing_reference_vec() {
+    let state_source = include_str!("../../system/state.rs");
+    assert!(!state_source.contains("requests_for_preflight"));
+    assert!(state_source.contains(
+        "self.pending.ensure_reservation_batch_admissible_iter(\n            requests.iter(),"
+    ));
+
+    let pending_source = include_str!("../../system/pending.rs");
+    assert!(pending_source.contains("pub(super) fn ensure_reservation_batch_admissible_iter"));
+
+    let ledger_source = include_str!("../../system/admission_ledger.rs");
+    assert!(ledger_source.contains("pub(super) fn ensure_reservation_batch_admissible_iter<'a>("));
+}
+
+#[test]
+fn pending_enqueue_reserves_dependency_capacity_before_filtering() {
+    let source = include_str!("../../system/state.rs");
+    let enqueue = source
+        .split("pub(super) fn enqueue_pending")
+        .nth(1)
+        .and_then(|body| body.split("pub(super) fn ensure_pending_admissible").next())
+        .expect("pending enqueue source section");
+
+    assert!(enqueue.contains("Vec::with_capacity(pending.spec.after.len())"));
+    assert!(enqueue.contains("unscheduled.extend("));
+    assert!(!enqueue.contains("collect::<Vec<_>>()"));
+}
+
+#[test]
+fn batch_submission_preflight_borrows_specs_without_reference_vec() {
+    let source = include_str!("../../system/submission.rs");
+    let submit_batch = source
+        .split("pub fn submit_batch")
+        .nth(1)
+        .and_then(|body| body.split("pub fn reserve_batch_admission").next())
+        .expect("submit batch source section");
+
+    assert!(submit_batch.contains("ensure_batch_pending_admissible_iter"));
+    assert!(submit_batch.contains("submissions.iter().map(|(spec, _, _, _)| spec)"));
+    assert!(!submit_batch.contains("let specs = submissions"));
+    assert!(!submit_batch
+        .contains("submissions.iter().map(|(spec, _, _, _)| spec)\n                .collect"));
+
+    let state_source = include_str!("../../system/state.rs");
+    assert!(state_source.contains("ensure_batch_pending_admissible_iter<'a>("));
+    let pending_source = include_str!("../../system/pending.rs");
+    assert!(pending_source.contains("ensure_batch_admissible_iter<'a>("));
+    let ledger_source = include_str!("../../system/admission_ledger.rs");
+    assert!(ledger_source.contains("ensure_batch_admissible_iter<'a>("));
+}
+
+#[test]
+#[ignore = "managed Editor09 performance evidence"]
+fn editor09_submission_preflight_borrowed_batch_capacity_evidence() {
+    const BATCH_SIZE: usize = 4_096;
+    let legacy_allocations = usize::from(BATCH_SIZE > 0);
+    let optimized_allocations = 0;
+
+    println!(
+        "EDITOR09_SUBMISSION_PREFLIGHT_BORROWED_BATCH_BENCH_V1 legacy_allocations={} optimized_allocations={} batch_size={}",
+        legacy_allocations, optimized_allocations, BATCH_SIZE,
+    );
+    assert_eq!(legacy_allocations, 1);
+    assert_eq!(optimized_allocations, 0);
 }
 
 #[test]

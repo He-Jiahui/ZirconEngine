@@ -1,0 +1,1513 @@
+{
+  "schema": 1,
+  "owner": "runtime_wave12_graphics_resource_residency",
+  "sid": "source-audit-20260930-01a0f168",
+  "prepared_at_utc": "2026-10-03T00:37:27.981733+00:00",
+  "files": [
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs",
+      "before_sha256": "dc401a3239da66d35e7c64eee21b500fc64eb946c038021a51d06de37e3126d9",
+      "after_sha256": "1e3e59ec919c7b6a732f8367c9971bb683c4672b45ddc21f97b2f0f665dfee38",
+      "changed": true,
+      "added_comment_lines": 2,
+      "additions": [
+        {
+          "anchor": "    fn from_contents(",
+          "comment": "    // 材质绑定共享至少 256 字节的 ABI 下限；属性原始长度与补零后的缓冲长度分别保留，供诊断区分有效载荷与实际分配。",
+          "anchor_raw_base64": "ICAgIGZuIGZyb21fY29udGVudHMoCg==",
+          "added_raw_base64": "ICAgIC8vIOadkOi0qOe7keWumuWFseS6q+iHs+WwkSAyNTYg5a2X6IqC55qEIEFCSSDkuIvpmZDvvJvlsZ7mgKfljp/lp4vplb/luqbkuI7ooaXpm7blkI7nmoTnvJPlhrLplb/luqbliIbliKvkv53nlZnvvIzkvpvor4rmlq3ljLrliIbmnInmlYjovb3ojbfkuI7lrp7pmYXliIbphY3jgIIK",
+          "anchor_preimage_line": 82,
+          "root_reason": "create_mesh_draw.rs:176-184 只绑定整个 buffer，而 material_diagnostics.rs:23-30 还要区分原始 payload 与实际 buffer 大小；两者不是重复值。",
+          "original_proposal_index": 0,
+          "text": "    // 材质绑定共享至少 256 字节的 ABI 下限；属性原始长度与补零后的缓冲长度分别保留，供诊断区分有效载荷与实际分配。",
+          "insert_before": "    fn from_contents("
+        },
+        {
+          "anchor": "        assert_f32_near(f32_at(&bytes, 204), 0.4_f32.sin());",
+          "comment": "        // BUG: [CR-R02-runtime_wave12_graphics_resource_residency-0001] 此 0.4 弧度夹具把 cos/sin 期望交换，首个近似断言必失败；helper、生产打包与 WGSL 均约定 204 字节为 cos、248 字节为 sin。",
+          "anchor_raw_base64": "ICAgICAgICBhc3NlcnRfZjMyX25lYXIoZjMyX2F0KCZieXRlcywgMjA0KSwgMC40X2YzMi5zaW4oKSk7Cg==",
+          "added_raw_base64": "ICAgICAgICAvLyBCVUc6IFtDUi1SMDItcnVudGltZV93YXZlMTJfZ3JhcGhpY3NfcmVzb3VyY2VfcmVzaWRlbmN5LTAwMDFdIOatpCAwLjQg5byn5bqm5aS55YW35oqKIGNvcy9zaW4g5pyf5pyb5Lqk5o2i77yM6aaW5Liq6L+R5Ly85pat6KiA5b+F5aSx6LSl77ybaGVscGVy44CB55Sf5Lqn5omT5YyF5LiOIFdHU0wg5Z2H57qm5a6aIDIwNCDlrZfoioLkuLogY29z44CBMjQ4IOWtl+iKguS4uiBzaW7jgIIK",
+          "anchor_preimage_line": 552,
+          "root_reason": "Root proved static test contradiction with helper and WGSL consumers; production assignments preserved.",
+          "original_proposal_index": null,
+          "text": "        // BUG: [CR-R02-runtime_wave12_graphics_resource_residency-0001] 此 0.4 弧度夹具把 cos/sin 期望交换，首个近似断言必失败；helper、生产打包与 WGSL 均约定 204 字节为 cos、248 字节为 sin。",
+          "insert_before": "        assert_f32_near(f32_at(&bytes, 204), 0.4_f32.sin());"
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs",
+          "session_id": "render18-af-m1-frozen-closeout-20260714",
+          "baseline_epoch": 67,
+          "content_hash": "e4277d9e3aeb5dcfe0b9a7de2cc990291c378463d2801b06e51e9f1b6c219ce1",
+          "attributed_at": "2026-07-14T14:43:21.955344+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_resource.rs",
+      "before_sha256": "dee093cff613e4424df8973183c38e6a1f44ba29f62f5fe722deecab59b221fb",
+      "after_sha256": "dee093cff613e4424df8973183c38e6a1f44ba29f62f5fe722deecab59b221fb",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_resource.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_resource.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "dee093cff613e4424df8973183c38e6a1f44ba29f62f5fe722deecab59b221fb",
+          "attributed_at": "2026-09-27T10:02:50.656950+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_resource_from_asset.rs",
+      "before_sha256": "d4a423de62b8191e2c1ce174734edd5d30d64f5c499057812378c5d58004110c",
+      "after_sha256": "acf2dc57867b9da6d3a46dc1aaeb41cd9a1ed39ed2b8ebf3c4b8f1169ef9ae90",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor": "    pub(crate) fn from_asset(",
+          "comment": "    /// 从同一批顶点生成缓冲、边界和排序补充签名；签名选取部分通道及索引顺序，资源复用仍由资产版本决定。",
+          "anchor_raw_base64": "ICAgIHB1YihjcmF0ZSkgZm4gZnJvbV9hc3NldCgK",
+          "added_raw_base64": "ICAgIC8vLyDku47lkIzkuIDmibnpobbngrnnlJ/miJDnvJPlhrLjgIHovrnnlYzlkozmjpLluo/ooaXlhYXnrb7lkI3vvJvnrb7lkI3pgInlj5bpg6jliIbpgJrpgZPlj4rntKLlvJXpobrluo/vvIzotYTmupDlpI3nlKjku43nlLHotYTkuqfniYjmnKzlhrPlrprjgIIK",
+          "anchor_preimage_line": 10,
+          "root_reason": "resource_streamer_ensure_mesh.rs:43、ensure_model.rs:41 与 mesh draw 构建路径都依赖这组不可变资源；本函数不能把 bounds/signature 再从另一份顶点副本计算。",
+          "original_proposal_index": 1,
+          "text": "    /// 从同一批顶点生成缓冲、边界和排序补充签名；签名选取部分通道及索引顺序，资源复用仍由资产版本决定。",
+          "insert_before": "    pub(crate) fn from_asset("
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_resource_from_asset.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_resource_from_asset.rs",
+          "session_id": "failure-roll-01a07160-frameworks01",
+          "baseline_epoch": 600,
+          "content_hash": "d4a423de62b8191e2c1ce174734edd5d30d64f5c499057812378c5d58004110c",
+          "attributed_at": "2026-09-07T08:40:40.767889+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex.rs",
+      "before_sha256": "39dcd755ea463f1e2689406e3ec10675b8d4929c35a46dee84d69fc4720d3012",
+      "after_sha256": "39dcd755ea463f1e2689406e3ec10675b8d4929c35a46dee84d69fc4720d3012",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "39dcd755ea463f1e2689406e3ec10675b8d4929c35a46dee84d69fc4720d3012",
+          "attributed_at": "2026-09-27T10:02:50.656950+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex_layout.rs",
+      "before_sha256": "eca8bef66c666b1d81ecbea8b59e48cc21d614b3b243a71c9411fab53189be32",
+      "after_sha256": "eca8bef66c666b1d81ecbea8b59e48cc21d614b3b243a71c9411fab53189be32",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex_layout.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex_layout.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "eca8bef66c666b1d81ecbea8b59e48cc21d614b3b243a71c9411fab53189be32",
+          "attributed_at": "2026-09-27T10:02:50.656950+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/gpu_mesh/mesh_bounds.rs",
+      "before_sha256": "4d996154d8e9d9bb2fe4314e40bcb649b2d067cede578bd0b21be8e0c8752af6",
+      "after_sha256": "4d996154d8e9d9bb2fe4314e40bcb649b2d067cede578bd0b21be8e0c8752af6",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/gpu_mesh/mesh_bounds.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/gpu_mesh/mesh_bounds.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "4d996154d8e9d9bb2fe4314e40bcb649b2d067cede578bd0b21be8e0c8752af6",
+          "attributed_at": "2026-09-27T10:02:50.656950+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/gpu_mesh/wire_segments.rs",
+      "before_sha256": "b81eca69450e5ec48b5545ccca514988037839ba6fd0a2882d31c3cea67eb9b7",
+      "after_sha256": "b81eca69450e5ec48b5545ccca514988037839ba6fd0a2882d31c3cea67eb9b7",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/gpu_mesh/wire_segments.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/gpu_mesh/wire_segments.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "b81eca69450e5ec48b5545ccca514988037839ba6fd0a2882d31c3cea67eb9b7",
+          "attributed_at": "2026-09-27T10:02:50.656950+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/gpu_model/gpu_model_resource.rs",
+      "before_sha256": "647731c96e943ae8c541567a49cbc25c80bab5cbb581fbcf6c7d556d29dce160",
+      "after_sha256": "647731c96e943ae8c541567a49cbc25c80bab5cbb581fbcf6c7d556d29dce160",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/gpu_model/gpu_model_resource.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/gpu_model/gpu_model_resource.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "647731c96e943ae8c541567a49cbc25c80bab5cbb581fbcf6c7d556d29dce160",
+          "attributed_at": "2026-09-27T10:02:50.656950+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/gpu_model/gpu_model_resource_from_asset.rs",
+      "before_sha256": "655096cc68b5d25ad6e2b397da76d469336db3399d3520991551ed8b3a207a3e",
+      "after_sha256": "36b5d126a555844d3355e6e9ebac5be9e11a2a686b28e8830b7b4e0bbf224e47",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor": "pub(in crate::graphics::scene::resources) fn model_primitives_preferring_mesh_assets<F>(",
+          "comment": "/// 引用 mesh 只有加载及转换均成功时才替换内嵌 primitive；失败时保留模型提供的数据，供后续几何准备使用。",
+          "anchor_raw_base64": "cHViKGluIGNyYXRlOjpncmFwaGljczo6c2NlbmU6OnJlc291cmNlcykgZm4gbW9kZWxfcHJpbWl0aXZlc19wcmVmZXJyaW5nX21lc2hfYXNzZXRzPEY+KAo=",
+          "added_raw_base64": "Ly8vIOW8leeUqCBtZXNoIOWPquacieWKoOi9veWPiui9rOaNouWdh+aIkOWKn+aXtuaJjeabv+aNouWGheW1jCBwcmltaXRpdmXvvJvlpLHotKXml7bkv53nlZnmqKHlnovmj5DkvpvnmoTmlbDmja7vvIzkvpvlkI7nu63lh6DkvZXlh4blpIfkvb/nlKjjgIIK",
+          "anchor_preimage_line": 23,
+          "root_reason": "测试 lines 56-115 分别覆盖引用 mesh 成功和回退；该回退是资源准备的容错边界。",
+          "original_proposal_index": 2,
+          "text": "/// 引用 mesh 只有加载及转换均成功时才替换内嵌 primitive；失败时保留模型提供的数据，供后续几何准备使用。",
+          "insert_before": "pub(in crate::graphics::scene::resources) fn model_primitives_preferring_mesh_assets<F>("
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/gpu_model/gpu_model_resource_from_asset.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/gpu_model/gpu_model_resource_from_asset.rs",
+          "session_id": "render18-hgi-m5-current-source-20260810",
+          "baseline_epoch": 266,
+          "content_hash": "0f8ba677b2b8d86d9bf3ef2600804c8607f18db1236e2cab4bd6f8e54f7d5f39",
+          "attributed_at": "2026-08-11T07:34:19.978984+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/shape_projection.rs",
+      "before_sha256": "d3fd469a3920ba5e181b0344b54fcd779a9ae4aa30b98170eb46bb10ecb26033",
+      "after_sha256": "16b35ff8ef21b82535bc07bd7883235a80a4ddd1f964b884000de34febfac6ba",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor": "pub(super) fn validated_texture_shape(",
+          "comment": "/// 在创建纹理或视图前校验存储形状，并把失败连同资产 URI 返回；各上传路径据此选择维度、层数及视图范围。",
+          "anchor_raw_base64": "cHViKHN1cGVyKSBmbiB2YWxpZGF0ZWRfdGV4dHVyZV9zaGFwZSgK",
+          "added_raw_base64": "Ly8vIOWcqOWIm+W7uue6ueeQhuaIluinhuWbvuWJjeagoemqjOWtmOWCqOW9oueKtu+8jOW5tuaKiuWksei0pei/nuWQjOi1hOS6pyBVUkkg6L+U5Zue77yb5ZCE5LiK5Lyg6Lev5b6E5o2u5q2k6YCJ5oup57u05bqm44CB5bGC5pWw5Y+K6KeG5Zu+6IyD5Zu044CCCg==",
+          "anchor_preimage_line": 7,
+          "root_reason": "gpu_texture_resource_from_asset.rs:154、267、420、589 在创建纹理或视图前调用该门槛；tests.rs:194-231 覆盖数组/cube 视图与非法形状。",
+          "original_proposal_index": 3,
+          "text": "/// 在创建纹理或视图前校验存储形状，并把失败连同资产 URI 返回；各上传路径据此选择维度、层数及视图范围。",
+          "insert_before": "pub(super) fn validated_texture_shape("
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/shape_projection.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/shape_projection.rs",
+          "session_id": "failure-roll-01a07160-frameworks01",
+          "baseline_epoch": 600,
+          "content_hash": "d3fd469a3920ba5e181b0344b54fcd779a9ae4aa30b98170eb46bb10ecb26033",
+          "attributed_at": "2026-09-07T09:39:49.201224+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/mod.rs",
+      "before_sha256": "4e506852c2f13deaa2efcbc9815628b7d83e7876f17356a18512d79a49101348",
+      "after_sha256": "4e506852c2f13deaa2efcbc9815628b7d83e7876f17356a18512d79a49101348",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/mod.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/mod.rs",
+          "session_id": "failure-roll-01a07160-frameworks01",
+          "baseline_epoch": 600,
+          "content_hash": "4e506852c2f13deaa2efcbc9815628b7d83e7876f17356a18512d79a49101348",
+          "attributed_at": "2026-09-07T08:40:40.767889+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/output_target_texture/output_target_writeback_converter.rs",
+      "before_sha256": "3b181ce2e4be81246469470b6d96021107a112d4ba6686e20958077b3c47fc64",
+      "after_sha256": "f0860700865cb41e9dd31d764eb2f70b46a7116234b3004e2455aa9b22dc2d13",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor": "    pub(in crate::graphics::scene::resources) fn encode_linear_rgba_conversion(",
+          "comment": "    /// 把线性源像素转换为 RGBA8Unorm；使用逐像素读取，调用者须先确认源、目标与帧计划尺寸一致。",
+          "anchor_raw_base64": "ICAgIHB1YihpbiBjcmF0ZTo6Z3JhcGhpY3M6OnNjZW5lOjpyZXNvdXJjZXMpIGZuIGVuY29kZV9saW5lYXJfcmdiYV9jb252ZXJzaW9uKAo=",
+          "added_raw_base64": "ICAgIC8vLyDmiornur/mgKfmupDlg4/ntKDovazmjaLkuLogUkdCQThVbm9ybe+8m+S9v+eUqOmAkOWDj+e0oOivu+WPlu+8jOiwg+eUqOiAhemhu+WFiOehruiupOa6kOOAgeebruagh+S4juW4p+iuoeWIkuWwuuWvuOS4gOiHtOOAggo=",
+          "anchor_preimage_line": 92,
+          "root_reason": "resource_streamer_execute_output_target_writeback.rs:56 在统一 frame plan 中调用；shader test lines 134-139 明确约束 textureLoad/no sampler。",
+          "original_proposal_index": 4,
+          "text": "    /// 把线性源像素转换为 RGBA8Unorm；使用逐像素读取，调用者须先确认源、目标与帧计划尺寸一致。",
+          "insert_before": "    pub(in crate::graphics::scene::resources) fn encode_linear_rgba_conversion("
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/output_target_texture/output_target_writeback_converter.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/output_target_texture/output_target_writeback_converter.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "3b181ce2e4be81246469470b6d96021107a112d4ba6686e20958077b3c47fc64",
+          "attributed_at": "2026-09-27T10:02:50.656950+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/pipeline/default_pipeline_key.rs",
+      "before_sha256": "32c1989d8155a0b4dd353da1f37dbe23c598af1abde0792a4feb668f1635e2c4",
+      "after_sha256": "32c1989d8155a0b4dd353da1f37dbe23c598af1abde0792a4feb668f1635e2c4",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/pipeline/default_pipeline_key.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/pipeline/default_pipeline_key.rs",
+          "session_id": "failure-roll-01a07160-runtime09c",
+          "baseline_epoch": 600,
+          "content_hash": "32c1989d8155a0b4dd353da1f37dbe23c598af1abde0792a4feb668f1635e2c4",
+          "attributed_at": "2026-09-07T13:26:47.195506+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs",
+      "before_sha256": "f8bb914887d4f8a8ca7459672591751f467a82c993cd862a50da13a483ec4fd8",
+      "after_sha256": "f8bb914887d4f8a8ca7459672591751f467a82c993cd862a50da13a483ec4fd8",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs",
+          "session_id": "failure-roll-01a07160-runtime09c",
+          "baseline_epoch": 600,
+          "content_hash": "c427683306eb43dc88637c34a9c053589ac7e9bebd367da5f3e62ff0e58ce1b8",
+          "attributed_at": "2026-09-07T13:26:47.195506+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/prepared/mod.rs",
+      "before_sha256": "d17d9996da81bf150fd8cd725f186f966ff353f224fd2dc5d9a35a1c50b42331",
+      "after_sha256": "d17d9996da81bf150fd8cd725f186f966ff353f224fd2dc5d9a35a1c50b42331",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/prepared/mod.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/prepared/mod.rs",
+          "session_id": "01a019a5-b15f-7461-a1b0-ce4b6aa8e710",
+          "baseline_epoch": 479,
+          "content_hash": "81e4a3c1ef8ddbc0255bdebfc758d288d8a38ae7715607fd07f3111a1e7cc36f",
+          "attributed_at": "2026-08-26T20:10:21.343698+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_geometry_deformation.rs",
+      "before_sha256": "5a75d451d1f931ef5633ce419a0a069647c6f05c8ecdfa480cef7df0a6d83824",
+      "after_sha256": "523881ae8f30b861347eb7a86f794fea7bf9130022f81bbd4bbbdaebac380d3b",
+      "changed": true,
+      "added_comment_lines": 2,
+      "additions": [
+        {
+          "anchor": "    pub(in crate::graphics::scene::resources) fn include_mesh_asset(&mut self, asset: &MeshAsset) {",
+          "comment": "    /// 汇总蒙皮与形变边界；显式 skin 优先，否则须同时存在非零权重和有效属性，避免为探测权重构造整份 primitive。",
+          "anchor_raw_base64": "ICAgIHB1YihpbiBjcmF0ZTo6Z3JhcGhpY3M6OnNjZW5lOjpyZXNvdXJjZXMpIGZuIGluY2x1ZGVfbWVzaF9hc3NldCgmbXV0IHNlbGYsIGFzc2V0OiAmTWVzaEFzc2V0KSB7Cg==",
+          "added_raw_base64": "ICAgIC8vLyDmsYfmgLvokpnnmq7kuI7lvaLlj5jovrnnlYzvvJvmmL7lvI8gc2tpbiDkvJjlhYjvvIzlkKbliJnpobvlkIzml7blrZjlnKjpnZ7pm7bmnYPph43lkozmnInmlYjlsZ7mgKfvvIzpgb/lhY3kuLrmjqLmtYvmnYPph43mnoTpgKDmlbTku70gcHJpbWl0aXZl44CCCg==",
+          "anchor_preimage_line": 21,
+          "root_reason": "tests lines 136-193 覆盖直接属性检测和非法属性拒绝；该标记决定后续 skinning buffer/绘制路径。",
+          "original_proposal_index": 7,
+          "text": "    /// 汇总蒙皮与形变边界；显式 skin 优先，否则须同时存在非零权重和有效属性，避免为探测权重构造整份 primitive。",
+          "insert_before": "    pub(in crate::graphics::scene::resources) fn include_mesh_asset(&mut self, asset: &MeshAsset) {"
+        },
+        {
+          "anchor": "            let delta_min = Vec3::from_array(delta_bounds.min) * weight;",
+          "comment": "            // 负 morph 权重会交换区间端点，须重新取 min/max 后累加，才能把形变范围保守地并入基础边界。",
+          "anchor_raw_base64": "ICAgICAgICAgICAgbGV0IGRlbHRhX21pbiA9IFZlYzM6OmZyb21fYXJyYXkoZGVsdGFfYm91bmRzLm1pbikgKiB3ZWlnaHQ7Cg==",
+          "added_raw_base64": "ICAgICAgICAgICAgLy8g6LSfIG1vcnBoIOadg+mHjeS8muS6pOaNouWMuumXtOerr+eCue+8jOmhu+mHjeaWsOWPliBtaW4vbWF4IOWQjue0r+WKoO+8jOaJjeiDveaKiuW9ouWPmOiMg+WbtOS/neWuiOWcsOW5tuWFpeWfuuehgOi+ueeVjOOAggo=",
+          "anchor_preimage_line": 81,
+          "root_reason": "Sign-aware interval arithmetic affects culling bounds; positive/negative weight tests and geometry_seed consumer read.",
+          "original_proposal_index": null,
+          "text": "            // 负 morph 权重会交换区间端点，须重新取 min/max 后累加，才能把形变范围保守地并入基础边界。",
+          "insert_before": "            let delta_min = Vec3::from_array(delta_bounds.min) * weight;"
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_geometry_deformation.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_geometry_deformation.rs",
+          "session_id": "render18-hgi-m5-current-source-20260810",
+          "baseline_epoch": 266,
+          "content_hash": "5be3ca72f51aed59fe757e829c2e4fdec6e175419d7d5ae98a3a93e38b71981f",
+          "attributed_at": "2026-08-11T07:34:19.978984+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_material.rs",
+      "before_sha256": "77b178f877a4dc136a1b9c0f34f73cac95fd94b792e3b2d97dee015878aec11a",
+      "after_sha256": "77b178f877a4dc136a1b9c0f34f73cac95fd94b792e3b2d97dee015878aec11a",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_material.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_material.rs",
+          "session_id": "failure-roll-01a07160-runtime09c",
+          "baseline_epoch": 600,
+          "content_hash": "b589d68b649abfa60d5a740cfe23914a84c6df68ed3a12f3c134cb71b8bd0a66",
+          "attributed_at": "2026-09-07T13:26:47.195506+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_mesh.rs",
+      "before_sha256": "d98e7b267245171f8ccdc77603a55a3ad25091acb2cc094c5dcefbe12b5ff0ec",
+      "after_sha256": "d98e7b267245171f8ccdc77603a55a3ad25091acb2cc094c5dcefbe12b5ff0ec",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_mesh.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_mesh.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "d98e7b267245171f8ccdc77603a55a3ad25091acb2cc094c5dcefbe12b5ff0ec",
+          "attributed_at": "2026-09-27T10:02:50.656950+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_mesh_sdf.rs",
+      "before_sha256": "dbcf6e9dca94335f713f81cbbf86f1ae36a82c1cda618a004759b59183f840c1",
+      "after_sha256": "1b4ce08f1b00cff4e9ad4fba4a4ed87fe69f4b0c7ae68ec2a3ad9334d63f0a09",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor": "pub(in crate::graphics::scene::resources) fn mesh_sdf_seed_from_primitives(",
+          "comment": "/// 全部源 payload 校验通过后才克隆 SDF 数据；晚出现的无效 primitive 直接返回其位置，避免无效批次的复制成本。",
+          "anchor_raw_base64": "cHViKGluIGNyYXRlOjpncmFwaGljczo6c2NlbmU6OnJlc291cmNlcykgZm4gbWVzaF9zZGZfc2VlZF9mcm9tX3ByaW1pdGl2ZXMoCg==",
+          "added_raw_base64": "Ly8vIOWFqOmDqOa6kCBwYXlsb2FkIOagoemqjOmAmui/h+WQjuaJjeWFi+mahiBTREYg5pWw5o2u77yb5pma5Ye6546w55qE5peg5pWIIHByaW1pdGl2ZSDnm7TmjqXov5Tlm57lhbbkvY3nva7vvIzpgb/lhY3ml6DmlYjmibnmrKHnmoTlpI3liLbmiJDmnKzjgIIK",
+          "anchor_preimage_line": 6,
+          "root_reason": "optimization_batch_gu_runtime576_tests::optimization_batch_gu_runtime576_late_invalid_seed_preserves_error 在 lines 42-74 检查验证先于克隆并保留最后 primitive 的错误。",
+          "original_proposal_index": 8,
+          "text": "/// 全部源 payload 校验通过后才克隆 SDF 数据；晚出现的无效 primitive 直接返回其位置，避免无效批次的复制成本。",
+          "insert_before": "pub(in crate::graphics::scene::resources) fn mesh_sdf_seed_from_primitives("
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_mesh_sdf.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_mesh_sdf.rs",
+          "session_id": "root-runtime-editor-optimize-20260829-r5",
+          "baseline_epoch": 584,
+          "content_hash": "244329abbd4d34f4499a5fb03a86e4558f7e051614d138301ae957530ef834ad",
+          "attributed_at": "2026-08-31T13:17:00.450368+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_model.rs",
+      "before_sha256": "b3f4478b21b35bae2d8b5f035aa0e3e89b75d0f6a2f877145c7620b6e0031e47",
+      "after_sha256": "119b0d0aead1d8c1cd46b6e9e48369f59e9656325c3523f98c3cf45df9307307",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor": "pub(in crate::graphics::scene::resources) struct PreparedModel {",
+          "comment": "/// source_revision 跟踪模型资产；revision 是结合 mesh 依赖版本与状态的几何指纹，依赖变化时整组几何须重新发布。",
+          "anchor_raw_base64": "cHViKGluIGNyYXRlOjpncmFwaGljczo6c2NlbmU6OnJlc291cmNlcykgc3RydWN0IFByZXBhcmVkTW9kZWwgewo=",
+          "added_raw_base64": "Ly8vIHNvdXJjZV9yZXZpc2lvbiDot5/ouKrmqKHlnovotYTkuqfvvJtyZXZpc2lvbiDmmK/nu5PlkIggbWVzaCDkvp3otZbniYjmnKzkuI7nirbmgIHnmoTlh6DkvZXmjIfnurnvvIzkvp3otZblj5jljJbml7bmlbTnu4Tlh6DkvZXpobvph43mlrDlj5HluIPjgIIK",
+          "anchor_preimage_line": 11,
+          "root_reason": "model_geometry_resolution::ModelMeshDependencyState 与 resource_streamer_ensure_model 同时维护依赖状态和资源 Arc；本结构是 scene draw 的整代快照。",
+          "original_proposal_index": 9,
+          "text": "/// source_revision 跟踪模型资产；revision 是结合 mesh 依赖版本与状态的几何指纹，依赖变化时整组几何须重新发布。",
+          "insert_before": "pub(in crate::graphics::scene::resources) struct PreparedModel {"
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_model.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_model.rs",
+          "session_id": "01a019a5-b15f-7461-a1b0-ce4b6aa8e710",
+          "baseline_epoch": 584,
+          "content_hash": "c4134746be41b8aa433acd9c7ba64249e863d99cdeb2c24cf07de340384e98c7",
+          "attributed_at": "2026-08-31T16:23:34.796408+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_output_target_texture.rs",
+      "before_sha256": "b9e01665d05dadee069828c1c8acc3bee6df9e2118f34bc016152ab4ba3bb97a",
+      "after_sha256": "b9e01665d05dadee069828c1c8acc3bee6df9e2118f34bc016152ab4ba3bb97a",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_output_target_texture.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_output_target_texture.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "b9e01665d05dadee069828c1c8acc3bee6df9e2118f34bc016152ab4ba3bb97a",
+          "attributed_at": "2026-09-27T10:02:50.656950+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_shader.rs",
+      "before_sha256": "42ebf538f8f5c9ff442bee89b0f357892c64c11896fc62148ae09e2ef758e36a",
+      "after_sha256": "ebd0997054d0931112535e045e69fe13b4337f10ddf2f4fde32c5a87ba1f71ab",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor": "pub(in crate::graphics::scene::resources) struct PreparedShader {",
+          "comment": "/// 同时保留 shader 源版本和依赖发布身份，源版本未变时也能识别依赖失效；仅带导入路径的 include 资产建立模块源绑定。",
+          "anchor_raw_base64": "cHViKGluIGNyYXRlOjpncmFwaGljczo6c2NlbmU6OnJlc291cmNlcykgc3RydWN0IFByZXBhcmVkU2hhZGVyIHsK",
+          "added_raw_base64": "Ly8vIOWQjOaXtuS/neeVmSBzaGFkZXIg5rqQ54mI5pys5ZKM5L6d6LWW5Y+R5biD6Lqr5Lu977yM5rqQ54mI5pys5pyq5Y+Y5pe25Lmf6IO96K+G5Yir5L6d6LWW5aSx5pWI77yb5LuF5bim5a+85YWl6Lev5b6E55qEIGluY2x1ZGUg6LWE5Lqn5bu656uL5qih5Z2X5rqQ57uR5a6a44CCCg==",
+          "anchor_preimage_line": 5,
+          "root_reason": "PipelineKey.shader_dependency_identity 与 ResourceStreamer shader preparation 读取同一发布身份，source binding 不是 shader revision 的替代物。",
+          "original_proposal_index": 10,
+          "text": "/// 同时保留 shader 源版本和依赖发布身份，源版本未变时也能识别依赖失效；仅带导入路径的 include 资产建立模块源绑定。",
+          "insert_before": "pub(in crate::graphics::scene::resources) struct PreparedShader {"
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_shader.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_shader.rs",
+          "session_id": "failure-roll-01a07160-runtime09c",
+          "baseline_epoch": 600,
+          "content_hash": "42ebf538f8f5c9ff442bee89b0f357892c64c11896fc62148ae09e2ef758e36a",
+          "attributed_at": "2026-09-07T13:26:47.195506+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_texture.rs",
+      "before_sha256": "409352d29a48f39fa35174d761641dc300194616d1c4b53641f76dd7e5e3b104",
+      "after_sha256": "409352d29a48f39fa35174d761641dc300194616d1c4b53641f76dd7e5e3b104",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_texture.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_texture.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "409352d29a48f39fa35174d761641dc300194616d1c4b53641f76dd7e5e3b104",
+          "attributed_at": "2026-09-27T10:02:50.656950+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/contract.rs",
+      "before_sha256": "b3f76baee79a35ecba8bf8988bcdee9bb06789ee8c96e262b5f88be102260868",
+      "after_sha256": "c9fb7614d40afb57f7813337c315eccda82151af95d938c9cc2a2624472a2609",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor": "pub(crate) struct RenderAssetResidencyTicket {",
+          "comment": "/// 把资产、依赖发布、需求与设备代际固定为同一次工作身份；完成与取消必须匹配完整 ticket，资源 ID 相同不足以复用旧工作。",
+          "anchor_raw_base64": "cHViKGNyYXRlKSBzdHJ1Y3QgUmVuZGVyQXNzZXRSZXNpZGVuY3lUaWNrZXQgewo=",
+          "added_raw_base64": "Ly8vIOaKiui1hOS6p+OAgeS+nei1luWPkeW4g+OAgemcgOaxguS4juiuvuWkh+S7o+mZheWbuuWumuS4uuWQjOS4gOasoeW3peS9nOi6q+S7ve+8m+WujOaIkOS4juWPlua2iOW/hemhu+WMuemFjeWujOaVtCB0aWNrZXTvvIzotYTmupAgSUQg55u45ZCM5LiN6Laz5Lul5aSN55So5pen5bel5L2c44CCCg==",
+          "anchor_preimage_line": 75,
+          "root_reason": "manager resolve_ticket_seed、publication_identity tests 和 device_recovery 都按完整 tuple 判断 stale/epoch，不把 resource id 单独当作身份。",
+          "original_proposal_index": 11,
+          "text": "/// 把资产、依赖发布、需求与设备代际固定为同一次工作身份；完成与取消必须匹配完整 ticket，资源 ID 相同不足以复用旧工作。",
+          "insert_before": "pub(crate) struct RenderAssetResidencyTicket {"
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/contract.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/contract.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "b3f76baee79a35ecba8bf8988bcdee9bb06789ee8c96e262b5f88be102260868",
+          "attributed_at": "2026-09-07T14:11:53.946553+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_maintenance.rs",
+      "before_sha256": "708a96b8d2dc232c17519d762a054f2add84ec964036a31a79e0e4190918c55b",
+      "after_sha256": "985440d599b0fd46cdd7167bcd024c080566278a2da0f2830af1ef43ef5d8336",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor": "        assert!(\n            source\n                .find(\"validate_poll_receipt(expected\")",
+          "comment": "        // BUG: [CR-R02-runtime_wave12_graphics_resource_residency-0002] 扫描完整源码时，左侧首次匹配命中测试自身，右侧先命中生产调用，顺序断言恒失败；生产校验调用的参数跨行。",
+          "anchor_raw_base64": "ICAgICAgICBhc3NlcnQhKAogICAgICAgICAgICBzb3VyY2UKICAgICAgICAgICAgICAgIC5maW5kKCJ2YWxpZGF0ZV9wb2xsX3JlY2VpcHQoZXhwZWN0ZWQiKQo=",
+          "added_raw_base64": "ICAgICAgICAvLyBCVUc6IFtDUi1SMDItcnVudGltZV93YXZlMTJfZ3JhcGhpY3NfcmVzb3VyY2VfcmVzaWRlbmN5LTAwMDJdIOaJq+aPj+WujOaVtOa6kOeggeaXtu+8jOW3puS+p+mmluasoeWMuemFjeWRveS4rea1i+ivleiHqui6q++8jOWPs+S+p+WFiOWRveS4reeUn+S6p+iwg+eUqO+8jOmhuuW6j+aWreiogOaBkuWksei0pe+8m+eUn+S6p+agoemqjOiwg+eUqOeahOWPguaVsOi3qOihjOOAggo=",
+          "anchor_preimage_line": 442,
+          "root_reason": "Root proved source self-introspection contradiction; avoid adding either literal needle to this comment.",
+          "original_proposal_index": null,
+          "text": "        // BUG: [CR-R02-runtime_wave12_graphics_resource_residency-0002] 扫描完整源码时，左侧首次匹配命中测试自身，右侧先命中生产调用，顺序断言恒失败；生产校验调用的参数跨行。",
+          "insert_before": "        assert!(\n            source\n                .find(\"validate_poll_receipt(expected\")"
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_maintenance.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_maintenance.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "708a96b8d2dc232c17519d762a054f2add84ec964036a31a79e0e4190918c55b",
+          "attributed_at": "2026-09-07T14:11:53.946553+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_residency.rs",
+      "before_sha256": "3b4a6a509a9ebc9cb96156f17da38b6ac5dfbaa878eeb3cd3cc17810be0c082a",
+      "after_sha256": "d052b9baaf53838c887a81c9b487566c01a78bb441c0ec52ee61544c05c8dd62",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor": "pub(super) struct RenderAssetGpuResidencyState {",
+          "comment": "// 提交跟踪与待销毁 artifact 共用设备代际；轮询 frontier 控制单次工作量，待退休字节计数为资源销毁积压提供背压。",
+          "anchor_raw_base64": "cHViKHN1cGVyKSBzdHJ1Y3QgUmVuZGVyQXNzZXRHcHVSZXNpZGVuY3lTdGF0ZSB7Cg==",
+          "added_raw_base64": "Ly8g5o+Q5Lqk6Lef6Liq5LiO5b6F6ZSA5q+BIGFydGlmYWN0IOWFseeUqOiuvuWkh+S7o+mZhe+8m+i9ruivoiBmcm9udGllciDmjqfliLbljZXmrKHlt6XkvZzph4/vvIzlvoXpgIDkvJHlrZfoioLorqHmlbDkuLrotYTmupDplIDmr4Hnp6/ljovmj5Dkvpvog4zljovjgIIK",
+          "anchor_preimage_line": 88,
+          "root_reason": "gpu_maintenance.rs:294-344 依赖 frontier/scratch 做预算轮询，device recovery lines 346-377 清空整个完成流；测试 lines 567-637 锁定容量和 epoch 行为。",
+          "original_proposal_index": 12,
+          "text": "// 提交跟踪与待销毁 artifact 共用设备代际；轮询 frontier 控制单次工作量，待退休字节计数为资源销毁积压提供背压。",
+          "insert_before": "pub(super) struct RenderAssetGpuResidencyState {"
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_residency.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_residency.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "3b4a6a509a9ebc9cb96156f17da38b6ac5dfbaa878eeb3cd3cc17810be0c082a",
+          "attributed_at": "2026-09-07T14:11:53.946553+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_upload/contract.rs",
+      "before_sha256": "b508cc72fd5834628e01724b4744ea0af9dafa3d7d41c491eac3abaf609cb895",
+      "after_sha256": "b508cc72fd5834628e01724b4744ea0af9dafa3d7d41c491eac3abaf609cb895",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_upload/contract.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_upload/contract.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "b508cc72fd5834628e01724b4744ea0af9dafa3d7d41c491eac3abaf609cb895",
+          "attributed_at": "2026-09-27T10:02:50.656950+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_upload/mod.rs",
+      "before_sha256": "7c03b7a6e891397f7cc3ec832d3ff4e250f304b5bd8579bed36dafec8e5fec16",
+      "after_sha256": "7c03b7a6e891397f7cc3ec832d3ff4e250f304b5bd8579bed36dafec8e5fec16",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_upload/mod.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_upload/mod.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "7c03b7a6e891397f7cc3ec832d3ff4e250f304b5bd8579bed36dafec8e5fec16",
+          "attributed_at": "2026-09-07T13:51:39.106900+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_upload/plan.rs",
+      "before_sha256": "3121a3b41b099874c6c6fb015a55d83067a4b993351fc4466352d0f40e86b710",
+      "after_sha256": "cb5d45128cf883002eda2e820093f33ca9398ab67701da8a97801e01bd3e350d",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor": "pub(super) fn prepare_upload(",
+          "comment": "/// 在 CPU 侧校验 manifest、子资源布局与上传预算；通过全部检查后才生成中性计划，由提交阶段创建 RHI 资源。",
+          "anchor_raw_base64": "cHViKHN1cGVyKSBmbiBwcmVwYXJlX3VwbG9hZCgK",
+          "added_raw_base64": "Ly8vIOWcqCBDUFUg5L6n5qCh6aqMIG1hbmlmZXN044CB5a2Q6LWE5rqQ5biD5bGA5LiO5LiK5Lyg6aKE566X77yb6YCa6L+H5YWo6YOo5qOA5p+l5ZCO5omN55Sf5oiQ5Lit5oCn6K6h5YiS77yM55Sx5o+Q5Lqk6Zi25q615Yib5bu6IFJISSDotYTmupDjgIIK",
+          "anchor_preimage_line": 129,
+          "root_reason": "semantic_executor.rs:404-417 在计算任务中调用 prepare；gpu_upload/tests.rs:186-228 验证超预算在 native resource 创建前失败。",
+          "original_proposal_index": 13,
+          "text": "/// 在 CPU 侧校验 manifest、子资源布局与上传预算；通过全部检查后才生成中性计划，由提交阶段创建 RHI 资源。",
+          "insert_before": "pub(super) fn prepare_upload("
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_upload/plan.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_upload/plan.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "3121a3b41b099874c6c6fb015a55d83067a4b993351fc4466352d0f40e86b710",
+          "attributed_at": "2026-09-07T14:11:53.946553+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_upload/submit.rs",
+      "before_sha256": "cdd48fa67dcaf4be742f906f946f2d52c7577e9b74c0caba5a0abaf08cfb494e",
+      "after_sha256": "61a53975b7734f7354c2f952559220bf2e1b09567d97589ec3f8cd07215d1b46",
+      "changed": true,
+      "added_comment_lines": 3,
+      "additions": [
+        {
+          "anchor": "    pub(crate) fn submit(",
+          "comment": "    /// 在 ticket 指定的设备代际提交中性计划；返回的 lease 须保留到提交终态，成功返回仅表示已入队。",
+          "anchor_raw_base64": "ICAgIHB1YihjcmF0ZSkgZm4gc3VibWl0KAo=",
+          "added_raw_base64": "ICAgIC8vLyDlnKggdGlja2V0IOaMh+WumueahOiuvuWkh+S7o+mZheaPkOS6pOS4reaAp+iuoeWIku+8m+i/lOWbnueahCBsZWFzZSDpobvkv53nlZnliLDmj5DkuqTnu4jmgIHvvIzmiJDlip/ov5Tlm57ku4XooajnpLrlt7LlhaXpmJ/jgIIK",
+          "anchor_preimage_line": 324,
+          "root_reason": "gpu_residency::bind_gpu_upload 在 manager 中登记 submission，complete_gpu_upload 依据 terminal status 把 artifact 发布或排入 retirement。",
+          "original_proposal_index": 14,
+          "text": "    /// 在 ticket 指定的设备代际提交中性计划；返回的 lease 须保留到提交终态，成功返回仅表示已入队。",
+          "insert_before": "    pub(crate) fn submit("
+        },
+        {
+          "anchor": "fn rollback_texture(",
+          "comment": "// TODO: [CR-R02-runtime_wave12_graphics_resource_residency-0003] 待确认销毁失败后剩余句柄由谁重试；当前仅返回操作与清理错误，尚无故障注入证据，需验证回滚所有权及逐句柄重试契约。",
+          "anchor_raw_base64": "Zm4gcm9sbGJhY2tfdGV4dHVyZSgK",
+          "added_raw_base64": "Ly8gVE9ETzogW0NSLVIwMi1ydW50aW1lX3dhdmUxMl9ncmFwaGljc19yZXNvdXJjZV9yZXNpZGVuY3ktMDAwM10g5b6F56Gu6K6k6ZSA5q+B5aSx6LSl5ZCO5Ymp5L2Z5Y+l5p+E55Sx6LCB6YeN6K+V77yb5b2T5YmN5LuF6L+U5Zue5pON5L2c5LiO5riF55CG6ZSZ6K+v77yM5bCa5peg5pWF6Zqc5rOo5YWl6K+B5o2u77yM6ZyA6aqM6K+B5Zue5rua5omA5pyJ5p2D5Y+K6YCQ5Y+l5p+E6YeN6K+V5aWR57qm44CCCg==",
+          "anchor_preimage_line": 526,
+          "root_reason": "Fallible RHI destroy methods and both current WGPU registry paths independently read; no live rollback failure proven.",
+          "original_proposal_index": null,
+          "text": "// TODO: [CR-R02-runtime_wave12_graphics_resource_residency-0003] 待确认销毁失败后剩余句柄由谁重试；当前仅返回操作与清理错误，尚无故障注入证据，需验证回滚所有权及逐句柄重试契约。",
+          "insert_before": "fn rollback_texture("
+        },
+        {
+          "anchor": "fn rollback_mesh(",
+          "comment": "// TODO: [CR-R02-runtime_wave12_graphics_resource_residency-0003] 待确认部分回滚失败后的句柄保留契约；当前错误不携带剩余缓冲，尚未验证实际失败路径，需用故障注入核对回收 owner 与重试顺序。",
+          "anchor_raw_base64": "Zm4gcm9sbGJhY2tfbWVzaCgK",
+          "added_raw_base64": "Ly8gVE9ETzogW0NSLVIwMi1ydW50aW1lX3dhdmUxMl9ncmFwaGljc19yZXNvdXJjZV9yZXNpZGVuY3ktMDAwM10g5b6F56Gu6K6k6YOo5YiG5Zue5rua5aSx6LSl5ZCO55qE5Y+l5p+E5L+d55WZ5aWR57qm77yb5b2T5YmN6ZSZ6K+v5LiN5pC65bim5Ymp5L2Z57yT5Yay77yM5bCa5pyq6aqM6K+B5a6e6ZmF5aSx6LSl6Lev5b6E77yM6ZyA55So5pWF6Zqc5rOo5YWl5qC45a+55Zue5pS2IG93bmVyIOS4jumHjeivlemhuuW6j+OAggo=",
+          "anchor_preimage_line": 547,
+          "root_reason": "Same issue for mesh index-first/vertex-second rollback, without claiming a proven leak.",
+          "original_proposal_index": null,
+          "text": "// TODO: [CR-R02-runtime_wave12_graphics_resource_residency-0003] 待确认部分回滚失败后的句柄保留契约；当前错误不携带剩余缓冲，尚未验证实际失败路径，需用故障注入核对回收 owner 与重试顺序。",
+          "insert_before": "fn rollback_mesh("
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_upload/submit.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_upload/submit.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "cdd48fa67dcaf4be742f906f946f2d52c7577e9b74c0caba5a0abaf08cfb494e",
+          "attributed_at": "2026-09-07T14:11:53.946553+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_upload/tests.rs",
+      "before_sha256": "d7d797f18b6fc5ddd7ed916b827a1cb52f1a6a3bededb46691794702eebebb58",
+      "after_sha256": "d7d797f18b6fc5ddd7ed916b827a1cb52f1a6a3bededb46691794702eebebb58",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_upload/tests.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_upload/tests.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "d7d797f18b6fc5ddd7ed916b827a1cb52f1a6a3bededb46691794702eebebb58",
+          "attributed_at": "2026-09-07T13:51:39.106900+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/manager.rs",
+      "before_sha256": "37c5ebb5fe174d9f99163bc3992475d65555aeaa6c5f3a106a57a3dfa581a9dc",
+      "after_sha256": "341563a5202576d08c4ebf90f9612cd692e988f53efa1c9b0303645fb67b3490",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor": "    pub(crate) fn apply_scene_reference_deltas(",
+          "comment": "    /// 整批预检引用计数、资源发布与退休容量后再提交状态变更；失败时保留既有 entry 和 ticket 分配位置。",
+          "anchor_raw_base64": "ICAgIHB1YihjcmF0ZSkgZm4gYXBwbHlfc2NlbmVfcmVmZXJlbmNlX2RlbHRhcygK",
+          "added_raw_base64": "ICAgIC8vLyDmlbTmibnpooTmo4DlvJXnlKjorqHmlbDjgIHotYTmupDlj5HluIPkuI7pgIDkvJHlrrnph4/lkI7lho3mj5DkuqTnirbmgIHlj5jmm7TvvJvlpLHotKXml7bkv53nlZnml6LmnIkgZW50cnkg5ZKMIHRpY2tldCDliIbphY3kvY3nva7jgIIK",
+          "anchor_preimage_line": 124,
+          "root_reason": "tests.rs:273-337 明确要求 underflow/重复输入失败时不改变 reference、entry 或 ticket id；后续 work queue 才消费 mutation。",
+          "original_proposal_index": 15,
+          "text": "    /// 整批预检引用计数、资源发布与退休容量后再提交状态变更；失败时保留既有 entry 和 ticket 分配位置。",
+          "insert_before": "    pub(crate) fn apply_scene_reference_deltas("
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/manager.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/manager.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "f6ee82835de9a1bf48cf198e0bdc791f84eb674ddc248ffb5091eeb33c06b8af",
+          "attributed_at": "2026-09-07T14:11:53.946553+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/manager/device_recovery.rs",
+      "before_sha256": "e1741e18d716358564b21fd792755f222b78d233fb49cfbe72df2b9fdff302bf",
+      "after_sha256": "e1741e18d716358564b21fd792755f222b78d233fb49cfbe72df2b9fdff302bf",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/manager/device_recovery.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/manager/device_recovery.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "bf6dc6253c70c085b1a7cf343ae784d612ecfccd98fa2bb516d132fd23f55c5a",
+          "attributed_at": "2026-09-07T14:11:53.946553+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/manager/ticket_issuance.rs",
+      "before_sha256": "a85545a2ae749e0ab0cbf4cf5894f6960bf2d8e90389149975ccae94d08d83ed",
+      "after_sha256": "7859922690704ea65f5efcfea558bc01dbc7ea29ca33609e24a52e72713e528c",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor": "    pub(super) fn reserve_ticket_ids(",
+          "comment": "    // 整批预留连续 ID 后才推进分配位置，转换或溢出错误须在发出任何 ticket 前返回，供引用更新和设备恢复保持原子性。",
+          "anchor_raw_base64": "ICAgIHB1YihzdXBlcikgZm4gcmVzZXJ2ZV90aWNrZXRfaWRzKAo=",
+          "added_raw_base64": "ICAgIC8vIOaVtOaJuemihOeVmei/nue7rSBJRCDlkI7miY3mjqjov5vliIbphY3kvY3nva7vvIzovazmjaLmiJbmuqLlh7rplJnor6/pobvlnKjlj5Hlh7rku7vkvZUgdGlja2V0IOWJjei/lOWbnu+8jOS+m+W8leeUqOabtOaWsOWSjOiuvuWkh+aBouWkjeS/neaMgeWOn+WtkOaAp+OAggo=",
+          "anchor_preimage_line": 51,
+          "root_reason": "manager.rs 的 reference/reconciliation preflight 与 device_recovery.rs:176-192 都依赖批量 reservation 保持原子性。",
+          "original_proposal_index": 16,
+          "text": "    // 整批预留连续 ID 后才推进分配位置，转换或溢出错误须在发出任何 ticket 前返回，供引用更新和设备恢复保持原子性。",
+          "insert_before": "    pub(super) fn reserve_ticket_ids("
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/manager/ticket_issuance.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/manager/ticket_issuance.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "a85545a2ae749e0ab0cbf4cf5894f6960bf2d8e90389149975ccae94d08d83ed",
+          "attributed_at": "2026-09-07T14:11:53.946553+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/mod.rs",
+      "before_sha256": "3daee155cac224985326f80f95f9f26139981185bbd6d8dcca156821aa943c02",
+      "after_sha256": "3daee155cac224985326f80f95f9f26139981185bbd6d8dcca156821aa943c02",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/mod.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/mod.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "3daee155cac224985326f80f95f9f26139981185bbd6d8dcca156821aa943c02",
+          "attributed_at": "2026-09-07T13:51:39.106900+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_blocks/contract.rs",
+      "before_sha256": "69fdb0a7bd89755db3dc6c4a1475da21c9c97d66adfd0d431e01dec331a0597a",
+      "after_sha256": "4f65062acf9e2203d4a496615acfd90ad374d90cd4851d368f90334a89de6107",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor": "pub(crate) struct RenderAssetCpuBlockLease {",
+          "comment": "/// 把解码块、字节核算和 loader 批次作为同一所有权单元；GPU 计划与上传 lease 继续持有它，直至终态消费或显式丢弃。",
+          "anchor_raw_base64": "cHViKGNyYXRlKSBzdHJ1Y3QgUmVuZGVyQXNzZXRDcHVCbG9ja0xlYXNlIHsK",
+          "added_raw_base64": "Ly8vIOaKiuino+eggeWdl+OAgeWtl+iKguaguOeul+WSjCBsb2FkZXIg5om55qyh5L2c5Li65ZCM5LiA5omA5pyJ5p2D5Y2V5YWD77ybR1BVIOiuoeWIkuS4juS4iuS8oCBsZWFzZSDnu6fnu63mjIHmnInlroPvvIznm7Toh7Pnu4jmgIHmtojotLnmiJbmmL7lvI/kuKLlvIPjgIIK",
+          "anchor_preimage_line": 24,
+          "root_reason": "semantic_load.rs:29-75 将 manifest ticket 与该 lease 组合，semantic_executor.rs:376-453 把它送入 prepare task；tests/semantic_blocks.rs:223-335 验证 drop 前的所有权。",
+          "original_proposal_index": 17,
+          "text": "/// 把解码块、字节核算和 loader 批次作为同一所有权单元；GPU 计划与上传 lease 继续持有它，直至终态消费或显式丢弃。",
+          "insert_before": "pub(crate) struct RenderAssetCpuBlockLease {"
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_blocks/contract.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_blocks/contract.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "69fdb0a7bd89755db3dc6c4a1475da21c9c97d66adfd0d431e01dec331a0597a",
+          "attributed_at": "2026-09-07T14:11:53.946553+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_blocks/load.rs",
+      "before_sha256": "ec4d58827ddc50c14acd17640ecdfc009d8bb595a33d48a6ce84e6fbc92e02b4",
+      "after_sha256": "ec4d58827ddc50c14acd17640ecdfc009d8bb595a33d48a6ce84e6fbc92e02b4",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_blocks/load.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_blocks/load.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "ec4d58827ddc50c14acd17640ecdfc009d8bb595a33d48a6ce84e6fbc92e02b4",
+          "attributed_at": "2026-09-27T10:02:50.656950+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_blocks/mod.rs",
+      "before_sha256": "af021136bc2357e78af880ad63d46379d11aefc1a5d4b6a7f2b0268a20aee844",
+      "after_sha256": "af021136bc2357e78af880ad63d46379d11aefc1a5d4b6a7f2b0268a20aee844",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_blocks/mod.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_blocks/mod.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "af021136bc2357e78af880ad63d46379d11aefc1a5d4b6a7f2b0268a20aee844",
+          "attributed_at": "2026-09-07T13:51:39.106900+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_blocks/semantic_load.rs",
+      "before_sha256": "56f28905cbfe2f5204ffd0cca91edb39144f4698481096d6e3061a5d32a60f09",
+      "after_sha256": "f1413a8ec1375ac618cebef8710aa22e9925581beeaf23cc8346f47f251b9668",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor": "pub(crate) struct RenderAssetSemanticLoad {",
+          "comment": "/// 固定 manifest 的资源、版本与平台后推进块加载；准入延后时保留已就绪 manifest，下一轮继续原请求。",
+          "anchor_raw_base64": "cHViKGNyYXRlKSBzdHJ1Y3QgUmVuZGVyQXNzZXRTZW1hbnRpY0xvYWQgewo=",
+          "added_raw_base64": "Ly8vIOWbuuWumiBtYW5pZmVzdCDnmoTotYTmupDjgIHniYjmnKzkuI7lubPlj7DlkI7mjqjov5vlnZfliqDovb3vvJvlh4blhaXlu7blkI7ml7bkv53nlZnlt7LlsLHnu6ogbWFuaWZlc3TvvIzkuIvkuIDova7nu6fnu63ljp/or7fmsYLjgIIK",
+          "anchor_preimage_line": 90,
+          "root_reason": "advance lines 139-225 明确 Manifest→ReadyManifest→Blocks 三态；tests/semantic_blocks.rs:137-222 覆盖批次顺序和 deferred admission。",
+          "original_proposal_index": 18,
+          "text": "/// 固定 manifest 的资源、版本与平台后推进块加载；准入延后时保留已就绪 manifest，下一轮继续原请求。",
+          "insert_before": "pub(crate) struct RenderAssetSemanticLoad {"
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_blocks/semantic_load.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_blocks/semantic_load.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "56f28905cbfe2f5204ffd0cca91edb39144f4698481096d6e3061a5d32a60f09",
+          "attributed_at": "2026-09-07T14:11:53.946553+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_executor.rs",
+      "before_sha256": "2eeed0c25cad8daef466605226b7fb664598da5d677946207626b914b139e1e5",
+      "after_sha256": "aac7e59ac41f2d12186504fb8a13b20f2529ee5e96c53d50e24d72d0dcdb113f",
+      "changed": true,
+      "added_comment_lines": 2,
+      "additions": [
+        {
+          "anchor": "    pub(crate) fn maintain(",
+          "comment": "    /// 每轮先消费准备结果，再推进 I/O，最后准入新的 CPU 准备；各阶段有独立预算，就绪计划交由 RHI owner 提交。",
+          "anchor_raw_base64": "ICAgIHB1YihjcmF0ZSkgZm4gbWFpbnRhaW4oCg==",
+          "added_raw_base64": "ICAgIC8vLyDmr4/ova7lhYjmtojotLnlh4blpIfnu5PmnpzvvIzlho3mjqjov5sgSS9P77yM5pyA5ZCO5YeG5YWl5paw55qEIENQVSDlh4blpIfvvJvlkITpmLbmrrXmnInni6znq4vpooTnrpfvvIzlsLHnu6rorqHliJLkuqTnlLEgUkhJIG93bmVyIOaPkOS6pOOAggo=",
+          "anchor_preimage_line": 200,
+          "root_reason": "tests/semantic_executor.rs:204-291 要求 neutral plan 不提交 RHI；lines 292-393 验证 prepare admission 失败会把 lease 放回 ready_cpu。",
+          "original_proposal_index": 19,
+          "text": "    /// 每轮先消费准备结果，再推进 I/O，最后准入新的 CPU 准备；各阶段有独立预算，就绪计划交由 RHI owner 提交。",
+          "insert_before": "    pub(crate) fn maintain("
+        },
+        {
+          "anchor": "            let task = self.prepare_scope.submit(",
+          "comment": "            // TODO: [CR-R02-runtime_wave12_graphics_resource_residency-0004] 待确认取消或 panic 跳过准备体后的业务完成转交；scope 终态只退休其任务，owner 关闭会清表，但关停先后未证，需验证关停顺序及未启动任务回收。",
+          "anchor_raw_base64": "ICAgICAgICAgICAgbGV0IHRhc2sgPSBzZWxmLnByZXBhcmVfc2NvcGUuc3VibWl0KAo=",
+          "added_raw_base64": "ICAgICAgICAgICAgLy8gVE9ETzogW0NSLVIwMi1ydW50aW1lX3dhdmUxMl9ncmFwaGljc19yZXNvdXJjZV9yZXNpZGVuY3ktMDAwNF0g5b6F56Gu6K6k5Y+W5raI5oiWIHBhbmljIOi3s+i/h+WHhuWkh+S9k+WQjueahOS4muWKoeWujOaIkOi9rOS6pO+8m3Njb3BlIOe7iOaAgeWPqumAgOS8keWFtuS7u+WKoe+8jG93bmVyIOWFs+mXreS8mua4heihqO+8jOS9huWFs+WBnOWFiOWQjuacquivge+8jOmcgOmqjOivgeWFs+WBnOmhuuW6j+WPiuacquWQr+WKqOS7u+WKoeWbnuaUtuOAggo=",
+          "anchor_preimage_line": 398,
+          "root_reason": "Current scope has a scheduler post-terminal retirement hook; root rejects contrary worker wording. Domain completion only occurs in the preparation body; shutdown/owner ordering remains unproved.",
+          "original_proposal_index": null,
+          "text": "            // TODO: [CR-R02-runtime_wave12_graphics_resource_residency-0004] 待确认取消或 panic 跳过准备体后的业务完成转交；scope 终态只退休其任务，owner 关闭会清表，但关停先后未证，需验证关停顺序及未启动任务回收。",
+          "insert_before": "            let task = self.prepare_scope.submit("
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_executor.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_executor.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "adfe35703eb4451efd6f98cee89251f3496ed1feea125324ad8b2ca7457df461",
+          "attributed_at": "2026-09-07T14:11:53.946553+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_executor/contract.rs",
+      "before_sha256": "59066b94d9207c2ad87e5ed6e39bfab9e6ba7396d3b5df95c9c88e48a46894e4",
+      "after_sha256": "59066b94d9207c2ad87e5ed6e39bfab9e6ba7396d3b5df95c9c88e48a46894e4",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_executor/contract.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_executor/contract.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "59066b94d9207c2ad87e5ed6e39bfab9e6ba7396d3b5df95c9c88e48a46894e4",
+          "attributed_at": "2026-09-07T14:11:53.946553+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_executor/owner.rs",
+      "before_sha256": "9c17b5b712328f1c9616f4487ebe23248e8583ee1546c4b4ddfb79dbf3f900e0",
+      "after_sha256": "e32b923fc54613d66ab9e81f32f5f1dd0eb61822a17f7bc9f5c96e93e3c42d8c",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor": "    pub(crate) fn take_next_ready_upload(",
+          "comment": "    // TODO: [CR-R02-runtime_wave12_graphics_resource_residency-0005] 待确认中性计划的唯一提交与绑定 owner；当前只找到提取测试及路由定义，缺少实际帧交接证据，需追踪提交、ticket 绑定和失败回收契约。",
+          "anchor_raw_base64": "ICAgIHB1YihjcmF0ZSkgZm4gdGFrZV9uZXh0X3JlYWR5X3VwbG9hZCgK",
+          "added_raw_base64": "ICAgIC8vIFRPRE86IFtDUi1SMDItcnVudGltZV93YXZlMTJfZ3JhcGhpY3NfcmVzb3VyY2VfcmVzaWRlbmN5LTAwMDVdIOW+heehruiupOS4reaAp+iuoeWIkueahOWUr+S4gOaPkOS6pOS4jue7keWumiBvd25lcu+8m+W9k+WJjeWPquaJvuWIsOaPkOWPlua1i+ivleWPiui3r+eUseWumuS5ie+8jOe8uuWwkeWunumZheW4p+S6pOaOpeivgeaNru+8jOmcgOi/vei4quaPkOS6pOOAgXRpY2tldCDnu5HlrprlkozlpLHotKXlm57mlLblpZHnuqbjgIIK",
+          "anchor_preimage_line": 168,
+          "root_reason": "Missing typed integration evidence is a concrete intent/ownership question, not a verified production defect.",
+          "original_proposal_index": null,
+          "text": "    // TODO: [CR-R02-runtime_wave12_graphics_resource_residency-0005] 待确认中性计划的唯一提交与绑定 owner；当前只找到提取测试及路由定义，缺少实际帧交接证据，需追踪提交、ticket 绑定和失败回收契约。",
+          "insert_before": "    pub(crate) fn take_next_ready_upload("
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_executor/owner.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_executor/owner.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "435d67cd5d1a213ce9176be8fbf27fc48ae8df1f134f575318062b172f8fc5da",
+          "attributed_at": "2026-09-07T14:11:53.946553+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests.rs",
+      "before_sha256": "75f9ac529c19863d37b8a2a3247bb7ff2d46ec4f5ce3fffc468467d2782f0156",
+      "after_sha256": "75f9ac529c19863d37b8a2a3247bb7ff2d46ec4f5ce3fffc468467d2782f0156",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "10ce79774b0749cd960634254551ad5ec6b6558b190bfadad69d15a7987c669d",
+          "attributed_at": "2026-09-07T14:11:53.946553+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests/device_recovery.rs",
+      "before_sha256": "5610bd8e9893e63c223d764b5b8e79209b6c3c0eeecbaade9a487fb00f31d913",
+      "after_sha256": "5610bd8e9893e63c223d764b5b8e79209b6c3c0eeecbaade9a487fb00f31d913",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests/device_recovery.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests/device_recovery.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "6400094e492071002f724df87a6fa47ae5610d367cdb61a36929b4b63014a833",
+          "attributed_at": "2026-09-07T14:11:53.946553+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests/publication_identity.rs",
+      "before_sha256": "b23b871fdb484d4ee4a4229ef1f08cf915690d75981b66a951ad6725e61913c0",
+      "after_sha256": "b23b871fdb484d4ee4a4229ef1f08cf915690d75981b66a951ad6725e61913c0",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests/publication_identity.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests/publication_identity.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "b23b871fdb484d4ee4a4229ef1f08cf915690d75981b66a951ad6725e61913c0",
+          "attributed_at": "2026-09-07T14:11:53.946553+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests/semantic_blocks.rs",
+      "before_sha256": "d43e03b45cf66f1d969dca54b129d77ed5292c7cac4d2b1dafe5341f8c0177b8",
+      "after_sha256": "d43e03b45cf66f1d969dca54b129d77ed5292c7cac4d2b1dafe5341f8c0177b8",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests/semantic_blocks.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests/semantic_blocks.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "d43e03b45cf66f1d969dca54b129d77ed5292c7cac4d2b1dafe5341f8c0177b8",
+          "attributed_at": "2026-09-07T13:51:39.106900+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests/semantic_executor.rs",
+      "before_sha256": "206a3abdcc9573eba7b53baf0a0dbd3cdb784268b800e5b8d571d75db7103d94",
+      "after_sha256": "206a3abdcc9573eba7b53baf0a0dbd3cdb784268b800e5b8d571d75db7103d94",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests/semantic_executor.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests/semantic_executor.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "94eadbf3b4dd7f884fa2594e0166ef1923858d98307ee9c59234ab700586e475",
+          "attributed_at": "2026-09-07T14:11:53.946553+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests/work_queue.rs",
+      "before_sha256": "2f940bc112ea1cce371269cb9918ae5c6a7945bbbcbfd330fbdf6bc2be4fc6cf",
+      "after_sha256": "2f940bc112ea1cce371269cb9918ae5c6a7945bbbcbfd330fbdf6bc2be4fc6cf",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests/work_queue.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests/work_queue.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "2f940bc112ea1cce371269cb9918ae5c6a7945bbbcbfd330fbdf6bc2be4fc6cf",
+          "attributed_at": "2026-09-07T14:11:53.946553+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/work_queue.rs",
+      "before_sha256": "75dbe01218f144a4ea40235638f831538d1d6edc00ea5883415fb7195df5856c",
+      "after_sha256": "b81b9ffb8546fe09579b7860c890f071065a30c09afac6b13fc9acc54c655b66",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor": "    pub(crate) fn retain_mutation(&mut self, mutation: &RenderAssetResidencyMutation) {",
+          "comment": "    /// 本地移除未开始的请求；已派发的语义请求转入取消队列，GPU 退休类 release 留给提交终态与资源销毁路径。",
+          "anchor_raw_base64": "ICAgIHB1YihjcmF0ZSkgZm4gcmV0YWluX211dGF0aW9uKCZtdXQgc2VsZiwgbXV0YXRpb246ICZSZW5kZXJBc3NldFJlc2lkZW5jeU11dGF0aW9uKSB7Cg==",
+          "added_raw_base64": "ICAgIC8vLyDmnKzlnLDnp7vpmaTmnKrlvIDlp4vnmoTor7fmsYLvvJvlt7LmtL7lj5HnmoTor63kuYnor7fmsYLovazlhaXlj5bmtojpmJ/liJfvvIxHUFUg6YCA5LyR57G7IHJlbGVhc2Ug55WZ57uZ5o+Q5Lqk57uI5oCB5LiO6LWE5rqQ6ZSA5q+B6Lev5b6E44CCCg==",
+          "anchor_preimage_line": 17,
+          "root_reason": "tests/work_queue.rs:9-145 分别覆盖按 route 分区、admission failure 保持队列、已派发 semantic cancellation 与未开始请求删除。",
+          "original_proposal_index": 21,
+          "text": "    /// 本地移除未开始的请求；已派发的语义请求转入取消队列，GPU 退休类 release 留给提交终态与资源销毁路径。",
+          "insert_before": "    pub(crate) fn retain_mutation(&mut self, mutation: &RenderAssetResidencyMutation) {"
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/work_queue.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/render_asset_residency/work_queue.rs",
+          "session_id": "failure-roll-01a07160-runtime09d",
+          "baseline_epoch": 600,
+          "content_hash": "75dbe01218f144a4ea40235638f831538d1d6edc00ea5883415fb7195df5856c",
+          "attributed_at": "2026-09-07T14:11:53.946553+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/renderer_shader_layout_contract.rs",
+      "before_sha256": "c354d896c0e6002b4b41a5fe4bbfe417f38be66a6c4812a17be6fa8e80cce216",
+      "after_sha256": "864756f5a4b08bbe1c473c4dd71564425dc2fd0c7720d53fedbfceb800b72339",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor": "use crate::core::framework::render::{RenderShaderBindingResourceType, RenderShaderStage};",
+          "comment": "//! 描述材质与 GPUScene 绑定验证所用的固定槽位和可见阶段；资源绑定与管线创建由调用模块按此契约完成。",
+          "anchor_raw_base64": "dXNlIGNyYXRlOjpjb3JlOjpmcmFtZXdvcms6OnJlbmRlcjo6e1JlbmRlclNoYWRlckJpbmRpbmdSZXNvdXJjZVR5cGUsIFJlbmRlclNoYWRlclN0YWdlfTsK",
+          "added_raw_base64": "Ly8hIOaPj+i/sOadkOi0qOS4jiBHUFVTY2VuZSDnu5Hlrprpqozor4HmiYDnlKjnmoTlm7rlrprmp73kvY3lkozlj6/op4HpmLbmrrXvvJvotYTmupDnu5HlrprkuI7nrqHnur/liJvlu7rnlLHosIPnlKjmqKHlnZfmjInmraTlpZHnuqblrozmiJDjgIIK",
+          "anchor_preimage_line": 1,
+          "root_reason": "material_shader_binding_contract/gpu_scene_shader_binding_contract 被 scene pipeline 验证消费；tests lines 188-229 检查连续 binding、资源类型和 vertex-only skin palettes。",
+          "original_proposal_index": 22,
+          "text": "//! 描述材质与 GPUScene 绑定验证所用的固定槽位和可见阶段；资源绑定与管线创建由调用模块按此契约完成。",
+          "insert_before": "use crate::core::framework::render::{RenderShaderBindingResourceType, RenderShaderStage};"
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/renderer_shader_layout_contract.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/renderer_shader_layout_contract.rs",
+          "session_id": "01a019a5-b15f-7461-a1b0-ce4b6aa8e710",
+          "baseline_epoch": 507,
+          "content_hash": "c354d896c0e6002b4b41a5fe4bbfe417f38be66a6c4812a17be6fa8e80cce216",
+          "attributed_at": "2026-08-27T05:37:12.826654+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/ui_texture/prepare_receipt.rs",
+      "before_sha256": "af21a8535a34c7ef53433826abd7df2af9b4b7ade1a530679bfe8dbca8c7eab7",
+      "after_sha256": "cddd546b8d3d85cbefa7153e66693a5ed1699860e7a8ae058d9cb3dd9351ad01",
+      "changed": true,
+      "added_comment_lines": 2,
+      "additions": [
+        {
+          "anchor": "const fn retry_policy(outcome: UiTexturePrepareOutcome) -> UiTextureRetryPolicy {",
+          "comment": "// 上传失败与代际变化每帧重试；加载未就绪或失败等待 readiness 更新，身份及描述符结果随 management 更新重新判断。",
+          "anchor_raw_base64": "Y29uc3QgZm4gcmV0cnlfcG9saWN5KG91dGNvbWU6IFVpVGV4dHVyZVByZXBhcmVPdXRjb21lKSAtPiBVaVRleHR1cmVSZXRyeVBvbGljeSB7Cg==",
+          "added_raw_base64": "Ly8g5LiK5Lyg5aSx6LSl5LiO5Luj6ZmF5Y+Y5YyW5q+P5bin6YeN6K+V77yb5Yqg6L295pyq5bCx57uq5oiW5aSx6LSl562J5b6FIHJlYWRpbmVzcyDmm7TmlrDvvIzouqvku73lj4rmj4/ov7DnrKbnu5Pmnpzpmo8gbWFuYWdlbWVudCDmm7TmlrDph43mlrDliKTmlq3jgIIK",
+          "anchor_preimage_line": 321,
+          "root_reason": "prepare_ui_textures_for_frame lines 423-479 只扫描对应 retry 集合；tests lines 717-734 锁定三类策略。",
+          "original_proposal_index": 23,
+          "text": "// 上传失败与代际变化每帧重试；加载未就绪或失败等待 readiness 更新，身份及描述符结果随 management 更新重新判断。",
+          "insert_before": "const fn retry_policy(outcome: UiTexturePrepareOutcome) -> UiTextureRetryPolicy {"
+        },
+        {
+          "anchor": "    pub(super) fn reuse_equivalent_binding_product_generation(&mut self, previous: &Self) {",
+          "comment": "    // 每帧准备 epoch 可推进，绑定产物代次仅在 row 改变时推进；完全相同的结果复用旧代次，避免触发无效绑定重建。",
+          "anchor_raw_base64": "ICAgIHB1YihzdXBlcikgZm4gcmV1c2VfZXF1aXZhbGVudF9iaW5kaW5nX3Byb2R1Y3RfZ2VuZXJhdGlvbigmbXV0IHNlbGYsIHByZXZpb3VzOiAmU2VsZikgewo=",
+          "added_raw_base64": "ICAgIC8vIOavj+W4p+WHhuWkhyBlcG9jaCDlj6/mjqjov5vvvIznu5Hlrprkuqfnianku6PmrKHku4XlnKggcm93IOaUueWPmOaXtuaOqOi/m++8m+WujOWFqOebuOWQjOeahOe7k+aenOWkjeeUqOaXp+S7o+asoe+8jOmBv+WFjeinpuWPkeaXoOaViOe7keWumumHjeW7uuOAggo=",
+          "anchor_preimage_line": 117,
+          "root_reason": "prepare_receipt retained state plus ui_texture.rs557–593 generation fixture independently read.",
+          "original_proposal_index": null,
+          "text": "    // 每帧准备 epoch 可推进，绑定产物代次仅在 row 改变时推进；完全相同的结果复用旧代次，避免触发无效绑定重建。",
+          "insert_before": "    pub(super) fn reuse_equivalent_binding_product_generation(&mut self, previous: &Self) {"
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/resources/ui_texture/prepare_receipt.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/resources/ui_texture/prepare_receipt.rs",
+          "session_id": "failure-roll-01a07160-frameworks01",
+          "baseline_epoch": 600,
+          "content_hash": "af21a8535a34c7ef53433826abd7df2af9b4b7ade1a530679bfe8dbca8c7eab7",
+          "attributed_at": "2026-09-07T11:21:23.080514+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits.",
+      "existing_bytes_adopted_or_reauthored": false
+    }
+  ],
+  "root_review_inputs": [
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\jobs\\runtime_wave12_graphics_resource_residency.json",
+      "sha256": "61660ae787bb869435d7ea5f7ab8e13d12d132ea9d549be2bcb3b74f8eb03b0a"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_resource_residency-root-semantic-proof-20261002-r1.json",
+      "sha256": "fac0c771b0592470eff04fc660e4129cd9366871529107bfc23f3dbfd15c24ed"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_resource_residency-root-insertions-20261002-r1.json",
+      "sha256": "6b725dd17458f57d766344f7cf34bbb0172eaca9d8d0b411a42583f0264f4301"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_resource_residency-root-issue-decisions-20261002-r1.json",
+      "sha256": "24071353c23136e72bc054a3135c21c3038ae7267ca185930afdb9834e235715"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_resource_residency-root-private-candidate-check-20261002-r1.json",
+      "sha256": "642f99dcc6857710a91d79fb2ffee713293c00cb43e2eb12917146d537e51d1a"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_resource_residency-root-candidate-parser-check-20261002-r1.json",
+      "sha256": "027fb4e11c747b290425dfc96f3b87654abf21aa29681afaf03304d0d3647d94"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\local_residency_exact_20261002_r2.py",
+      "sha256": "e03a385b362eb876f012436c952e2c4dd96b6a8c7f9bdf5c53d799ede1716427"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave12-residency-gpu-resources-trace-20261002-r1\\raw-byte-seal.json",
+      "sha256": "0b0be0104a78c21b754dcf3427d80f31ee80bffbd96260b2706badb5ebfe5bc5"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave12-residency-uniform-rotation-trace-20261002-r2\\raw-byte-seal.json",
+      "sha256": "3e5c9a3276cae529706979952eb34198dbcdc6c5cb29932edc017db32c3c90b5"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave12-residency-manager-recovery-trace-20261002-r1\\raw-byte-seal.json",
+      "sha256": "66715a39ba50ce031becd469009c6046a8d7784d92baa028e855c714d4f33635"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave12-residency-maintenance-guard-trace-20261002-r3\\raw-byte-seal.json",
+      "sha256": "9309633f885c47179cf57ec019200351b5d909d8644db37bddfc600c28b8dbbb"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave12-residency-semantic-upload-trace-20261002-r1\\raw-byte-seal.json",
+      "sha256": "68c44daeecdea6d41673cffec0e726562a7c5fef52b937a8e8dc50557d7fa071"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave12-residency-parser-provenance-20261002-r1\\raw-byte-seal.json",
+      "sha256": "33bfecf0b176355e3ef7994b769e038478beec7b166620af390f1f123b856188"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave12-residency-candidate-parse-20261002-r1\\rustfmt-receipts.json",
+      "sha256": "92dda39e0b43e6a81be56d93fdb1084ee3eeab58fc4ce6628f6979cd9f3f507b"
+    },
+    {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave12-residency-candidate-parse-20261002-r1\\raw-byte-seal.json",
+      "sha256": "756efd7b0cc1e942058ad672ab877d796fa9cb595b8052310d5bfa54dbddc189"
+    }
+  ],
+  "audit_only_diff": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-install-runtime_wave12_graphics_resource_residency-20261002-r1\\audit-only.diff",
+    "sha256": "bebd62e0a3b0896cae0968cc88ba12176ceaf7ffc7f8a6ebcbce1ac543848c46"
+  },
+  "authority": {
+    "user_update": "目前协调器已经弃用，暂时自行维护",
+    "scope": "Exact29 new comment lines only",
+    "native_lease_or_ticket_claim": false
+  },
+  "all_removals_restore_exact_preimage": true,
+  "allocated_source_review_children_terminal": true,
+  "old_r2_scratch_terminal_not_inferred": true,
+  "source_writes": 23,
+  "canonical_writes": 0,
+  "business_edits": 0,
+  "whole_file_business_adoption": false,
+  "product_consent": false,
+  "status": "exact_comment_delta_installed",
+  "completed_at_utc": "2026-10-03T00:38:28.209465+00:00",
+  "intent": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-install-runtime_wave12_graphics_resource_residency-20261002-r1\\intent.json",
+    "sha256": "53b89c6bc9d5c3b1c256c63fb8953052bb26d685e32a32a7acd6d06e2970fd39"
+  },
+  "added_comment_lines": 29,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "existing_source_authorship_preserved": true,
+  "future_source_edit_pending_paths": [],
+  "coverage_publication": "pending_separate_root_publication"
+}

@@ -3,6 +3,7 @@
 // source-pinned aura specification to concrete target entities.
 var content = %import("instances/delve_bad_air_content");
 
+/// 房间级计时夹具，不保存成员集合或实际光环；多目标分发应复用同一轮到期结果，避免按人数重复推进计时。
 class BadAirState {
     pub var timer: float;
     pub var auraApplications: int;
@@ -21,6 +22,7 @@ closeEnough(actual: float, expected: float): bool {
     return difference <= 0.000001;
 }
 
+/// 每次接收一段模拟时间；到期先消费本轮计时再判定目标，返回真后仍由调用方应用光环，长步不会补发多轮。
 pub tick(
     state: BadAirState,
     deltaSeconds: float,

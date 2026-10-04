@@ -1,0 +1,302 @@
+stylesheets = []
+penpot_dependency_sources = []
+penpot_original_source = "[asset]\nkind = \"view\"\nid = \"res://ui/runtime/fixtures/pause_menu.zui\"\nversion = 2\ndisplay_name = \"Runtime Pause Menu\"\n\n[imports]\nwidgets = []\nstyles = []\n\n[root]\nnode = \"pause_root\"\n\n[nodes.pause_root]\ncomponent = \"Overlay\"\ncontrol_id = \"PauseMenuRoot\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, container = { kind = \"Overlay\" } }\nchildren = [{ node = \"scrim\" }, { node = \"dialog\" }, { node = \"title\" }, { node = \"resume_button\" }, { node = \"settings_button\" }, { node = \"quit_button\" }, { node = \"hint_label\" }]\n\n[nodes.scrim]\ncomponent = \"Container\"\ncontrol_id = \"PauseScrim\"\nprops = { background = { color = \"#10141dcc\" } }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.dialog]\ncomponent = \"Container\"\ncontrol_id = \"PauseDialog\"\nprops = { opacity = 0.96, background = { color = \"#b13d3d\" }, border = { color = \"#f6d2a6\", width = 3.0, radius = 18.0 } }\nlayout = { width = { min = 420.0, preferred = 420.0, max = 420.0, stretch = \"Fixed\" }, height = { min = 320.0, preferred = 320.0, max = 320.0, stretch = \"Fixed\" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = 0.0 } }\n\n[nodes.title]\ncomponent = \"Label\"\ncontrol_id = \"PauseTitle\"\nprops = { text = \"Paused\", foreground = { color = \"#fff4e0\" } }\nlayout = { width = { min = 220.0, preferred = 220.0, max = 220.0, stretch = \"Fixed\" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = \"Fixed\" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.0 }, position = { x = 0.0, y = -114.0 } }\n\n[nodes.resume_button]\ncomponent = \"Button\"\ncontrol_id = \"ResumeButton\"\nprops = { text = \"Resume Mission\", background = { color = \"#272c38\" }, border = { color = \"#f7d58d\", width = 1.0, radius = 10.0 }, foreground = { color = \"#fff7ea\" } }\nlayout = { width = { min = 280.0, preferred = 280.0, max = 280.0, stretch = \"Fixed\" }, height = { min = 52.0, preferred = 52.0, max = 52.0, stretch = \"Fixed\" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.0 }, position = { x = 0.0, y = -32.0 } }\n\n[nodes.settings_button]\ncomponent = \"Button\"\ncontrol_id = \"SettingsButton\"\nprops = { text = \"Settings\", background = { color = \"#272c38\" }, border = { color = \"#9ab3ce\", width = 1.0, radius = 10.0 }, foreground = { color = \"#eef3f7\" } }\nlayout = { width = { min = 280.0, preferred = 280.0, max = 280.0, stretch = \"Fixed\" }, height = { min = 52.0, preferred = 52.0, max = 52.0, stretch = \"Fixed\" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.0 }, position = { x = 0.0, y = 36.0 } }\n\n[nodes.quit_button]\ncomponent = \"Button\"\ncontrol_id = \"QuitButton\"\nprops = { text = \"Return To Title\", background = { color = \"#341f24\" }, border = { color = \"#ff9787\", width = 1.0, radius = 10.0 }, foreground = { color = \"#fff0ec\" } }\nlayout = { width = { min = 280.0, preferred = 280.0, max = 280.0, stretch = \"Fixed\" }, height = { min = 52.0, preferred = 52.0, max = 52.0, stretch = \"Fixed\" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.0 }, position = { x = 0.0, y = 104.0 } }\n\n[nodes.hint_label]\ncomponent = \"Label\"\ncontrol_id = \"PauseHint\"\nprops = { text = \"Press Esc to close\", opacity = 0.85, foreground = { color = \"#f7dfc3\" } }\nlayout = { width = { min = 240.0, preferred = 240.0, max = 240.0, stretch = \"Fixed\" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = \"Fixed\" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.0 }, position = { x = 0.0, y = 188.0 } }\n"
+
+[asset]
+kind = "view"
+id = "res://ui/runtime/fixtures/pause_menu.zui"
+version = 2
+display_name = "Runtime Pause Menu"
+
+[imports]
+widgets = []
+styles = []
+
+[root]
+node = "pause_root"
+
+[nodes.pause_root]
+component = "Overlay"
+control_id = "PauseMenuRoot"
+
+[nodes.pause_root.layout.width]
+stretch = "Stretch"
+
+[nodes.pause_root.layout.height]
+stretch = "Stretch"
+
+[nodes.pause_root.layout.container]
+kind = "Overlay"
+
+[[nodes.pause_root.children]]
+node = "scrim"
+
+[[nodes.pause_root.children]]
+node = "dialog"
+
+[[nodes.pause_root.children]]
+node = "title"
+
+[[nodes.pause_root.children]]
+node = "resume_button"
+
+[[nodes.pause_root.children]]
+node = "settings_button"
+
+[[nodes.pause_root.children]]
+node = "quit_button"
+
+[[nodes.pause_root.children]]
+node = "hint_label"
+
+[nodes.scrim]
+component = "Container"
+control_id = "PauseScrim"
+
+[nodes.scrim.props.background]
+color = "#10141dcc"
+
+[nodes.scrim.layout.width]
+stretch = "Stretch"
+
+[nodes.scrim.layout.height]
+stretch = "Stretch"
+
+[nodes.dialog]
+component = "Container"
+control_id = "PauseDialog"
+
+[nodes.dialog.props]
+opacity = 0.96
+
+[nodes.dialog.props.background]
+color = "#b13d3d"
+
+[nodes.dialog.props.border]
+color = "#f6d2a6"
+width = 3
+radius = 18
+
+[nodes.dialog.layout.width]
+min = 420
+preferred = 420
+max = 420
+stretch = "Fixed"
+
+[nodes.dialog.layout.height]
+min = 320
+preferred = 320
+max = 320
+stretch = "Fixed"
+
+[nodes.dialog.layout.anchor]
+x = 0.5
+y = 0.5
+
+[nodes.dialog.layout.pivot]
+x = 0.5
+y = 0.5
+
+[nodes.dialog.layout.position]
+x = 0
+y = 0
+
+[nodes.title]
+component = "Label"
+control_id = "PauseTitle"
+
+[nodes.title.props]
+text = "Paused"
+
+[nodes.title.props.foreground]
+color = "#fff4e0"
+
+[nodes.title.layout.width]
+min = 220
+preferred = 220
+max = 220
+stretch = "Fixed"
+
+[nodes.title.layout.height]
+min = 36
+preferred = 36
+max = 36
+stretch = "Fixed"
+
+[nodes.title.layout.anchor]
+x = 0.5
+y = 0.5
+
+[nodes.title.layout.pivot]
+x = 0.5
+y = 0
+
+[nodes.title.layout.position]
+x = 0
+y = -114
+
+[nodes.resume_button]
+component = "Button"
+control_id = "ResumeButton"
+
+[nodes.resume_button.props]
+text = "Resume Mission"
+
+[nodes.resume_button.props.background]
+color = "#272c38"
+
+[nodes.resume_button.props.border]
+color = "#f7d58d"
+width = 1
+radius = 10
+
+[nodes.resume_button.props.foreground]
+color = "#fff7ea"
+
+[nodes.resume_button.layout.width]
+min = 280
+preferred = 280
+max = 280
+stretch = "Fixed"
+
+[nodes.resume_button.layout.height]
+min = 52
+preferred = 52
+max = 52
+stretch = "Fixed"
+
+[nodes.resume_button.layout.anchor]
+x = 0.5
+y = 0.5
+
+[nodes.resume_button.layout.pivot]
+x = 0.5
+y = 0
+
+[nodes.resume_button.layout.position]
+x = 0
+y = -32
+
+[nodes.settings_button]
+component = "Button"
+control_id = "SettingsButton"
+
+[nodes.settings_button.props]
+text = "Settings"
+
+[nodes.settings_button.props.background]
+color = "#272c38"
+
+[nodes.settings_button.props.border]
+color = "#9ab3ce"
+width = 1
+radius = 10
+
+[nodes.settings_button.props.foreground]
+color = "#eef3f7"
+
+[nodes.settings_button.layout.width]
+min = 280
+preferred = 280
+max = 280
+stretch = "Fixed"
+
+[nodes.settings_button.layout.height]
+min = 52
+preferred = 52
+max = 52
+stretch = "Fixed"
+
+[nodes.settings_button.layout.anchor]
+x = 0.5
+y = 0.5
+
+[nodes.settings_button.layout.pivot]
+x = 0.5
+y = 0
+
+[nodes.settings_button.layout.position]
+x = 0
+y = 36
+
+[nodes.quit_button]
+component = "Button"
+control_id = "QuitButton"
+
+[nodes.quit_button.props]
+text = "Return To Title"
+
+[nodes.quit_button.props.background]
+color = "#341f24"
+
+[nodes.quit_button.props.border]
+color = "#ff9787"
+width = 1
+radius = 10
+
+[nodes.quit_button.props.foreground]
+color = "#fff0ec"
+
+[nodes.quit_button.layout.width]
+min = 280
+preferred = 280
+max = 280
+stretch = "Fixed"
+
+[nodes.quit_button.layout.height]
+min = 52
+preferred = 52
+max = 52
+stretch = "Fixed"
+
+[nodes.quit_button.layout.anchor]
+x = 0.5
+y = 0.5
+
+[nodes.quit_button.layout.pivot]
+x = 0.5
+y = 0
+
+[nodes.quit_button.layout.position]
+x = 0
+y = 104
+
+[nodes.hint_label]
+component = "Label"
+control_id = "PauseHint"
+
+[nodes.hint_label.props]
+text = "Press Esc to close"
+opacity = 0.85
+
+[nodes.hint_label.props.foreground]
+color = "#f7dfc3"
+
+[nodes.hint_label.layout.width]
+min = 240
+preferred = 240
+max = 240
+stretch = "Fixed"
+
+[nodes.hint_label.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.hint_label.layout.anchor]
+x = 0.5
+y = 0.5
+
+[nodes.hint_label.layout.pivot]
+x = 0.5
+y = 0
+
+[nodes.hint_label.layout.position]
+x = 0
+y = 188
+
+[tokens]
+[penpot_original_imports]
+widgets = []
+styles = []

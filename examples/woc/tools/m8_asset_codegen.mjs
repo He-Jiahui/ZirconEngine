@@ -1,3 +1,4 @@
+// 从固定 Git 提交复制选定的 WOC 资源字节，并记录每个文件的哈希与长度。
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -51,6 +52,7 @@ function readBlob(commit, sourcePath) {
   return result.stdout;
 }
 
+// 写入资源字节前拒绝重复路径与未知许可证 ID。
 function flattenSelection(selection) {
   const licenseIds = new Set(selection.licenses.map((license) => license.id));
   if (licenseIds.size !== selection.licenses.length) {
@@ -136,6 +138,7 @@ let animations = 0;
 let skins = 0;
 let glbs = 0;
 
+// 从选定提交读取每个 Git 对象，并将 GLB 与固定资源目录核对。
 for (const entry of selected) {
   const bytes = readBlob(selection.source_commit, entry.source_path);
   const digest = sha256(bytes);

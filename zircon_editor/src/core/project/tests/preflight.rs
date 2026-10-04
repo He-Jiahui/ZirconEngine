@@ -7,12 +7,14 @@ use super::super::{
     ProjectPreflightRevalidation,
 };
 use super::temp_root;
-use zircon_runtime::asset::project::ProjectPaths;
 use zircon_runtime::asset::project::ProjectScriptManifest;
+use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
 use zircon_runtime::core::framework::project::ProjectPluginManifest;
 use zircon_runtime_interface::project::{
-    ProjectEngineCompatibilityDisposition, ProjectEngineVersion, ProjectManifestDigest,
-    ProjectManifestSummary, PROJECT_MANIFEST_FORMAT_VERSION,
+    ProjectActivationOperationIdGenerator, ProjectEngineCompatibilityDisposition,
+    ProjectEngineVersion, ProjectLaunchInstanceId, ProjectLaunchIntent, ProjectLaunchProfile,
+    ProjectLaunchSource, ProjectManifestDigest, ProjectManifestSummary, ProjectTemplateId,
+    PROJECT_MANIFEST_FORMAT_VERSION,
 };
 
 #[test]
@@ -43,6 +45,7 @@ fn current_preflight_receipt_requires_a_persisted_project_guid() {
         ProjectManifestSummary {
             name: "Current Guid".to_string(),
             engine_version_req: None,
+            template_receipt: None,
             default_scene: "res://scenes/main.scene.toml".to_string(),
             format_version: PROJECT_MANIFEST_FORMAT_VERSION,
             project_guid: None,
@@ -472,6 +475,48 @@ fn normal_preflight_keeps_static_project_manifest_inputs_for_later_approved_comp
     assert!(!root.join("assets").exists());
 
     fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn launch_preflight_rejects_a_template_project_with_weakened_provider_requirements() {
+    let location = temp_root("preflight-template-provider-drift");
+    let authority = ProjectAuthority::default();
+    let draft = super::super::NewProjectDraft {
+        project_name: "Provider Drift".to_string(),
+        location: location.to_string_lossy().into_owned(),
+        template: ProjectTemplateId::RenderableEmpty,
+    };
+    let project = authority
+        .create_project(
+            &draft,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
+        .unwrap();
+    let root = project.root.clone();
+    drop(project);
+    let manifest_path = root.join("zircon-project.toml");
+    let mut manifest = ProjectManifest::load(&manifest_path).unwrap();
+    manifest.plugins = ProjectPluginManifest::default();
+    manifest.save(&manifest_path).unwrap();
+    let operation_id = ProjectActivationOperationIdGenerator::new(ProjectLaunchInstanceId::new())
+        .allocate()
+        .unwrap();
+    let intent = ProjectLaunchIntent::open_existing(
+        operation_id,
+        ProjectLaunchSource::Application,
+        ProjectLaunchProfile::Normal,
+        &root,
+    )
+    .unwrap();
+
+    let error = authority.preflight_project_launch(intent).unwrap_err();
+    assert!(matches!(
+        error,
+        ProjectAuthorityError::TemplateProviderRequirement { provider, found }
+            if provider == "rendering" && found == 0
+    ));
+
+    fs::remove_dir_all(location).unwrap();
 }
 
 fn current_manifest(name: &str) -> String {

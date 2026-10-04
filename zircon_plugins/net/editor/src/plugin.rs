@@ -1,3 +1,6 @@
+//! 把 net 运行时包的元数据镜像为 Editor 插件声明，并合并网络 authoring 描述符。
+//! 此包的能力授权编辑器扩展；实际网络服务依赖 runtime net 模块与可选 feature 装配。
+
 use zircon_plugin_editor_support::{register_authoring_extensions, EditorAuthoringExtensions};
 use zircon_plugin_sdk::{authoring_plugin, EditorPluginDeclaration};
 
@@ -61,5 +64,5 @@ pub fn plugin_registration() -> zircon_editor::EditorPluginRegistrationReport {
 }
 
 pub fn editor_host_contract_marker() -> &'static str {
-    zircon_editor::EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY
+    zircon_editor::ui::host::EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY
 }

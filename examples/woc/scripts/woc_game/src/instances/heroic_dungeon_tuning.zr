@@ -29,6 +29,7 @@ pub supportsHeroic(dungeonId: string): bool {
 
 // Mirrors claimDifficultyForDungeon: a non-heroic dungeon always claims normal,
 // even when the party has selected heroic.
+/// 队伍选择不等于实例实际难度；分配实例时先按副本支持情况归一化，再用结果查询出生属性和首领免疫。
 pub claimDifficulty(dungeonId: string, selected: uint): uint {
     return selected == HEROIC && supportsHeroic(dungeonId) ? HEROIC : NORMAL;
 }
@@ -93,6 +94,7 @@ pub finalBossId(dungeonId: string): string {
     return "";
 }
 
+/// 仅提供英雄难度结算的每人目录额度；调用方须先验证实际难度、最终首领和参与资格，这个查询本身不会过滤普通难度。
 pub marksPerParticipant(dungeonId: string): int {
     return dungeonCode(dungeonId) == NYTHRAXIS_BOSS_ARENA ? 3 :
         supportsHeroic(dungeonId) ? 1 : 0;

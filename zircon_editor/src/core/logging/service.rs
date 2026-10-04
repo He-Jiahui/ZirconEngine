@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use super::{
     EditorLogConfig, EditorLogDiagnostics, EditorLogError, EditorLogStore, LogEntry, LogFilter,
-    LogRecord, RollingFileLogSink,
+    LogRecord, LogTailIdentity, RollingFileLogSink,
 };
 
 #[derive(Clone, Debug)]
@@ -235,6 +235,16 @@ impl EditorLogService {
 
     pub fn snapshot_tail(&self, filter: &LogFilter, max_records: usize) -> Vec<LogRecord> {
         self.store.snapshot_tail(filter, max_records)
+    }
+
+    pub(crate) fn snapshot_tail_if_changed(
+        &self,
+        filter: &LogFilter,
+        max_records: usize,
+        known_identity: Option<LogTailIdentity>,
+    ) -> (LogTailIdentity, Option<Vec<LogRecord>>) {
+        self.store
+            .snapshot_tail_if_changed(filter, max_records, known_identity)
     }
 
     pub fn record(&self, sequence: u64) -> Option<LogRecord> {
@@ -496,36 +506,36 @@ impl EditorLogService {
 
     #[cfg(test)]
     fn run_before_emission_hook(&self) {
-        if let Some(hook) = self
+        let hook = self
             .before_emission_hook
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .clone()
-        {
+            .clone();
+        if let Some(hook) = hook {
             hook();
         }
     }
 
     #[cfg(test)]
     fn run_after_store_hook(&self, record: &LogRecord) {
-        if let Some(hook) = self
+        let hook = self
             .after_store_hook
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .clone()
-        {
+            .clone();
+        if let Some(hook) = hook {
             hook(record);
         }
     }
 
     #[cfg(test)]
     fn run_before_event_dispatch_hook(&self) {
-        if let Some(hook) = self
+        let hook = self
             .before_event_dispatch_hook
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .clone()
-        {
+            .clone();
+        if let Some(hook) = hook {
             hook();
         }
     }
@@ -537,3 +547,7 @@ fn log_delivery_requires_resync(delivery: LogEventDelivery) -> bool {
         LogEventDelivery::Backpressured | LogEventDelivery::Rejected
     )
 }
+
+#[cfg(test)]
+#[path = "tests/service_hook_lock_tests.rs"]
+mod hook_lock_tests;

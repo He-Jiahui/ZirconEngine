@@ -10,8 +10,6 @@ origin_child_dir: docs/plans/optimize/zircon_tooling/06
 fixing_child_dir: docs/plans/optimize/zircon_tooling/06
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/validation_ticket_worker.py
-  - tools/session_coordinator/tests/test_validation_tickets.py
 tests:
   - python -u -B -m unittest tools.session_coordinator.tests.test_validation_tickets.ValidationTicketTests.test_worker_routes_cargo_toolchain_wrappers_through_a_cargo_workspace_copy -v
   - python -u -B -m unittest tools.session_coordinator.tests.test_validation_tickets.ValidationTicketTests.test_worker_does_not_route_a_not_required_cargo_marker_to_cargo -v

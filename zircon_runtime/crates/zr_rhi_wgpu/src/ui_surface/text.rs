@@ -1,3 +1,4 @@
+//! 文本整形与图集准备遵守投影尺寸及批次顺序；字形准备失败时不发布文本批次缓存键，成功的键在呈现提交前已形成。
 use glyphon::{
     Attrs, Buffer, Cache, Color, ColorMode, Family, FontSystem, Metrics, Resolution, Shaping,
     Style, SwashCache, TextArea, TextAtlas, TextRenderer, Viewport, Weight, Wrap,
@@ -8,11 +9,14 @@ use zr_rhi::{
     UiSurfaceCommand, UiSurfaceDrawList, UiSurfaceResolvedCommandKind, UiSurfaceTextStyle,
 };
 
+mod layout_evidence;
 use super::batching::DrawOp;
 use super::color_space::{target_color_mode, UiTargetColorMode};
 use super::geometry::{
     command_effective_rect, full_projection_effective_rect, text_bounds_from_rect,
 };
+use layout_evidence::observe_buffer;
+use zr_rhi::{UiSurfaceTextLayoutRun, UiSurfaceTextLayoutSnapshot};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(super) struct WgpuUiTextPrepareStats {
@@ -37,6 +41,9 @@ pub(super) struct WgpuUiTextRenderer {
     batch_cache_key: Option<TextBatchCacheKey>,
     prepared_renderer_count: u64,
     batches: Vec<WgpuUiTextBatch>,
+    font_face_cache: std::collections::HashMap<String, zr_rhi::UiSurfaceTextFace>,
+    pub(super) observe_layout: bool,
+    pub(super) layout_snapshot: Option<UiSurfaceTextLayoutSnapshot>,
 }
 
 struct WgpuUiTextBatch {
@@ -67,6 +74,18 @@ impl WgpuUiTextRenderer {
             batch_cache_key: None,
             prepared_renderer_count: 0,
             batches: Vec::new(),
+            font_face_cache: std::collections::HashMap::new(),
+            observe_layout: false,
+            layout_snapshot: None,
+        }
+    }
+
+    pub(super) fn set_layout_observation(&mut self, enabled: bool) {
+        if self.observe_layout != enabled {
+            self.observe_layout = enabled;
+            self.layout_snapshot = None;
+            // Existing cached batches lack the newly requested layout observation.
+            self.batch_cache_key = None;
         }
     }
 
@@ -88,6 +107,8 @@ impl WgpuUiTextRenderer {
             }
         }
 
+        self.layout_snapshot = None;
+        let mut observed_runs: Vec<UiSurfaceTextLayoutRun> = Vec::new();
         self.viewport.update(
             queue,
             Resolution {
@@ -103,6 +124,7 @@ impl WgpuUiTextRenderer {
             let DrawOp::Text(text_draw) = op else {
                 continue;
             };
+            let mut batch_observations = Vec::new();
             let mut buffers = Vec::new();
             let mut text_commands = Vec::new();
             let mut text_clips = Vec::new();
@@ -144,6 +166,17 @@ impl WgpuUiTextRenderer {
                     font_weight,
                     style,
                 );
+                if self.observe_layout {
+                    batch_observations.push(observe_buffer(
+                        &self.font_system,
+                        &mut self.font_face_cache,
+                        &buffer,
+                        command,
+                        *command_index,
+                        text,
+                        clip,
+                    ));
+                }
                 stats.text_shape_count = stats.text_shape_count.saturating_add(1);
                 buffers.push(buffer);
                 text_commands.push(command);
@@ -195,6 +228,9 @@ impl WgpuUiTextRenderer {
                 None
             };
             let renderer_built = renderer.is_some();
+            if renderer_built {
+                observed_runs.extend(batch_observations);
+            }
             debug_assert_eq!(self.batches.len(), text_draw.batch_index);
             // Preserve the compiled batch index even when this draw produces no glyph vertices.
             self.batches.push(WgpuUiTextBatch { renderer });
@@ -205,6 +241,17 @@ impl WgpuUiTextRenderer {
         self.batch_cache_key =
             committed_text_batch_cache_key(cache_key, stats.text_prepare_failure_count);
         self.prepared_renderer_count = stats.text_renderer_build_count;
+        if self.observe_layout && stats.text_prepare_failure_count == 0 {
+            self.layout_snapshot = Some(UiSurfaceTextLayoutSnapshot {
+                presented_frame_count: 0,
+                projection_size,
+                damage: draw_list.damage,
+                prepared_this_present: false,
+                retained_cache_copy_bytes: 0,
+                draw_list_generation: draw_list.generation(),
+                runs: observed_runs,
+            });
+        }
         stats
     }
 
@@ -219,7 +266,11 @@ impl WgpuUiTextRenderer {
         let Some(renderer) = batch.renderer.as_mut() else {
             return false;
         };
-        renderer.render(&self.atlas, &self.viewport, pass).is_ok()
+        let rendered = renderer.render(&self.atlas, &self.viewport, pass).is_ok();
+        if !rendered {
+            self.layout_snapshot = None;
+        }
+        rendered
     }
 }
 
@@ -324,89 +375,5 @@ fn text_attrs<'a>(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn ui_surface_text_attrs_preserve_requested_family_and_weight() {
-        let attrs = text_attrs(Some("Zircon Sans"), 500, UiSurfaceTextStyle::Regular);
-
-        assert_eq!(attrs.family, Family::Name("Zircon Sans"));
-        assert_eq!(attrs.weight, Weight(500));
-
-        let strong_attrs = text_attrs(Some("Zircon Sans"), 500, UiSurfaceTextStyle::Strong);
-        assert_eq!(strong_attrs.family, Family::Name("Zircon Sans"));
-        assert_eq!(strong_attrs.weight, Weight::BOLD);
-
-        let emphasis_attrs = text_attrs(None, 450, UiSurfaceTextStyle::Emphasis);
-        assert_eq!(emphasis_attrs.weight, Weight(450));
-        assert_eq!(emphasis_attrs.style, Style::Italic);
-    }
-
-    #[test]
-    fn text_batch_cache_key_allows_a_versioned_damage_projection() {
-        let versioned = UiSurfaceDrawList::with_generation((64, 32), None, Vec::new(), 9);
-        let damaged = UiSurfaceDrawList::with_generation(
-            (64, 32),
-            Some(zr_rhi::UiSurfaceRect::new(0.0, 0.0, 8.0, 8.0)),
-            Vec::new(),
-            9,
-        );
-        let legacy = UiSurfaceDrawList::new((64, 32), None, Vec::new());
-
-        assert!(text_batch_cache_key(&versioned, (64, 32)).is_some());
-        assert!(text_batch_cache_key(&damaged, (64, 32)).is_some());
-        assert_eq!(text_batch_cache_key(&legacy, (64, 32)), None);
-    }
-
-    #[test]
-    fn text_batch_cache_key_ignores_target_only_resize() {
-        let mut draw_list = UiSurfaceDrawList::with_generation((64, 32), None, Vec::new(), 9);
-        let original = text_batch_cache_key(&draw_list, draw_list.projection_size());
-
-        draw_list.retarget_surface_size_preserving_projection((32, 16));
-
-        assert_eq!(
-            text_batch_cache_key(&draw_list, draw_list.projection_size()),
-            original
-        );
-    }
-
-    #[test]
-    fn text_preparation_skips_content_that_cannot_produce_visible_glyphs() {
-        assert!(!text_has_visible_content(""));
-        assert!(!text_has_visible_content(" \t\r\n"));
-        assert!(text_has_visible_content("Zircon"));
-    }
-
-    #[test]
-    fn text_metrics_preserve_fractional_physical_sizes() {
-        let metrics = text_metrics(13.333_333, 16.666_666);
-
-        assert_eq!(metrics.font_size.to_bits(), 13.333_333_f32.to_bits());
-        assert_eq!(metrics.line_height.to_bits(), 16.666_666_f32.to_bits());
-    }
-
-    #[test]
-    fn text_color_mode_matches_the_surface_transfer_function() {
-        assert_eq!(
-            text_color_mode(wgpu::TextureFormat::Bgra8UnormSrgb),
-            glyphon::ColorMode::Accurate
-        );
-        assert_eq!(
-            text_color_mode(wgpu::TextureFormat::Bgra8Unorm),
-            glyphon::ColorMode::Web
-        );
-    }
-
-    #[test]
-    fn text_prepare_failure_does_not_publish_the_generation_cache_key() {
-        let cache_key = Some(TextBatchCacheKey {
-            generation: 7,
-            projection_size: (320, 240),
-        });
-
-        assert_eq!(committed_text_batch_cache_key(cache_key, 0), cache_key);
-        assert_eq!(committed_text_batch_cache_key(cache_key, 1), None);
-    }
-}
+#[path = "tests/text.rs"]
+mod tests;

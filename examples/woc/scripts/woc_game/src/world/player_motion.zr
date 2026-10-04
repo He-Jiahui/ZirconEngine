@@ -2,6 +2,7 @@
 // collision and vertical state remain explicit reducer dependencies; this module
 // owns only the deterministic input-to-horizontal-wish transformation.
 
+/// 固定帧运动规则以秒为单位；世界调用方在每个二十赫兹帧使用同一组参数，不能另传可变帧间隔。
 pub simulationStepSeconds(required: bool): float {
     if (!required) {
         throw "woc player motion step is required";
@@ -86,6 +87,7 @@ pub swimDepth(required: bool): float {
     return 0.8;
 }
 
+/// 将保留的朝向归入运动规则的角度区间；调用方须提供有限值，正负无穷不能通过此循环收敛。
 pub normalizeFacing(value: float, required: bool): float {
     if (!required) {
         throw "woc player motion facing is required";
@@ -206,6 +208,7 @@ normalizedLocalZ(
     return length == 0.0 ? 0.0 : z / length;
 }
 
+/// 将已抵消相反按键并归一化的方向转换到世界坐标；与另一坐标分量配对时必须使用同一朝向和输入。
 pub wishX(
     facing: float,
     forward: bool,
@@ -240,6 +243,7 @@ pub wishZ(
     return mz * math.cos(facing) + mx * math.sin(facing);
 }
 
+/// 计算输入期望速度，尚不判断定身、地形阻挡或碰撞；这些限制由上层运动过渡统一应用。
 pub wishSpeed(
     forward: bool,
     back: bool,
@@ -377,6 +381,7 @@ pub airborneStepDistance(velocityY: float, required: bool): float {
     return velocityY * simulationStepSeconds(true);
 }
 
+/// 给垂直过渡返回待结算的落地伤害；生命扣减、死亡与战斗副作用仍由世界状态持有者处理。
 pub fallDamage(
     maximumHealth: int,
     fallStartY: float,

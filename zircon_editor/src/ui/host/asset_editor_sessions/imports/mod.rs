@@ -12,4 +12,5 @@ pub(super) use resolution::UiAssetImportResolution;
 pub(super) use traversal::UiAssetImportTraversal;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

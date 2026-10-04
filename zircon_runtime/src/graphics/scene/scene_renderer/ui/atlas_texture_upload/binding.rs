@@ -46,7 +46,7 @@ pub(super) fn glyph_atlas_bitmap_texture_upload_binding_plan<'a>(
     staging_pages: &'a [GlyphAtlasBitmapPageUploadStaging],
     requests: &[GlyphAtlasBitmapTextureUploadRequest],
 ) -> GlyphAtlasBitmapTextureUploadBindingPlan<'a> {
-    let mut bindings = Vec::new();
+    let mut bindings = Vec::with_capacity(requests.len());
     let mut failures = Vec::new();
 
     for (request_index, request) in requests.iter().copied().enumerate() {

@@ -1,3 +1,4 @@
+# 核对原生动态载荷清单流式哈希文件，保留空文件证据。
 from __future__ import annotations
 
 import hashlib
@@ -6,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_export.native_dynamic_payload_file_manifest import (
+from tools.export.native_dynamic_payload_file_manifest import (
     native_dynamic_package_payload_file_manifest,
 )
 

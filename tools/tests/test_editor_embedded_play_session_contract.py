@@ -33,6 +33,9 @@ class EditorEmbeddedPlaySessionContractTests(unittest.TestCase):
 
     def test_start_attaches_backend_gateway_and_terminal_path_retires_after_detach(self) -> None:
         controller = self.read("zircon_editor/src/core/play/controller.rs")
+        runtime_ownership = self.read(
+            "zircon_editor/src/core/play/controller/runtime_ownership.rs"
+        )
         shutdown = self.read(
             "zircon_editor/src/ui/host/editor_host_event_controller/runtime_shutdown.rs"
         )
@@ -45,7 +48,8 @@ class EditorEmbeddedPlaySessionContractTests(unittest.TestCase):
         self.assertIn("rollback_failed_gateway_attach", controller)
         self.assertIn('event: "request_play_with_attached_gateway"', controller)
         self.assertIn("backend remains live because stop rollback failed", controller)
-        self.assertIn("retire_terminal_backend", controller)
+        self.assertIn("mod runtime_ownership;", controller)
+        self.assertIn("retire_terminal_backend", runtime_ownership)
         self.assertLess(
             shutdown.find("shutdown_play_gateway"),
             shutdown.find("shutdown_play_backend_retirement"),

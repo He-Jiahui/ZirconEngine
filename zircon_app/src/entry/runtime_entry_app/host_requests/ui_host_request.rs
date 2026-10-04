@@ -1,3 +1,6 @@
+//! 尚无产品适配器时记录通用 UI 宿主请求的有限诊断。
+//! 只报告类型和静态身份，避免动态内容进入日志。
+
 use zircon_runtime::diagnostic_log::write_warn;
 use zircon_runtime_interface::ZrRuntimeUiHostRequestV1;
 
@@ -31,24 +34,5 @@ fn should_report_count(count: u64) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::should_report_count;
-
-    #[test]
-    fn unhandled_ui_host_request_diagnostics_are_logarithmically_bounded() {
-        assert!(should_report_count(1));
-        assert!(should_report_count(2));
-        assert!(!should_report_count(3));
-        assert!(should_report_count(4));
-    }
-
-    #[test]
-    fn diagnostic_source_never_formats_dynamic_host_request_content() {
-        let source = include_str!("ui_host_request.rs");
-
-        assert!(!source.contains(concat!("request.kind.", "href")));
-        assert!(!source.contains(concat!("request.kind.", "popup_id")));
-        assert!(!source.contains(concat!("request.kind.", "tooltip_id")));
-        assert!(!source.contains(concat!("request.", "tree_id")));
-    }
-}
+#[path = "tests/ui_host_request.rs"]
+mod tests;

@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对着色器预热的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 const STATUS: &str = "render_plan08_prewarm_wgpu_module_validation_gate_python_cargo_check_passed_runtime_run_timeout_deferred";
@@ -6,7 +7,7 @@ const STATUS: &str = "render_plan08_prewarm_wgpu_module_validation_gate_python_c
 fn runtime_15_shader_prewarm_wgpu_module_validation_is_wired() {
     let prewarm_route = read_runtime_src("graphics/shader/variant_cache/prewarm.rs");
     let prewarm_worker = read_runtime_src("graphics/shader/variant_cache/prewarm/worker.rs");
-    let prewarm_tests = read_runtime_src("graphics/shader/variant_cache/prewarm/tests.rs");
+    let prewarm_tests = read_runtime_src("graphics/shader/variant_cache/prewarm/tests/cases.rs");
     let shader_mod = read_runtime_src("graphics/shader/mod.rs");
     let dynamic_api = read_runtime_src("dynamic_api/shader_prewarm.rs");
     let wgpu_validation = read_runtime_src("dynamic_api/shader_prewarm/wgpu_validation.rs");
@@ -14,7 +15,7 @@ fn runtime_15_shader_prewarm_wgpu_module_validation_is_wired() {
     let args = read_runtime_src("bin/zircon_shader_prewarm/args.rs");
     let run = read_runtime_src("bin/zircon_shader_prewarm/run.rs");
     let build_tool = read_zircon_build_sources();
-    let build_prewarm = read_repo("tools/zircon_build_shader_prewarm.py");
+    let build_prewarm = read_repo("tools/build/zircon_build_shader_prewarm.py");
     let build_prewarm_tests = read_repo("tools/tests/test_zircon_build_shader_prewarm.py");
     let plan_08 = read_repo(
         "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
@@ -130,7 +131,7 @@ fn runtime_15_shader_prewarm_wgpu_module_validation_is_wired() {
             prewarm_worker.as_str(),
         ),
         (
-            "zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests.rs",
+            "zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests/cases.rs",
             prewarm_tests.as_str(),
         ),
         (
@@ -142,7 +143,7 @@ fn runtime_15_shader_prewarm_wgpu_module_validation_is_wired() {
             wgpu_validation.as_str(),
         ),
         (
-            "tools/zircon_build_shader_prewarm.py",
+            "tools/build/zircon_build_shader_prewarm.py",
             build_prewarm.as_str(),
         ),
         (

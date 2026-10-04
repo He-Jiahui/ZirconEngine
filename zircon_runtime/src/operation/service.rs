@@ -10,14 +10,17 @@ use zircon_runtime_interface::{
 };
 
 use crate::core::CoreHandle;
-use crate::scene::World;
+use crate::scene::LevelSystem;
 
 use super::maintenance::{
     expire_due_deadlines_in_state, expire_terminal_results_in_state, lock_operation_state,
     refresh_operation_maintenance_alarm,
 };
 use super::task::RuntimeOperationTask;
-use super::{RuntimeOperationContext, RuntimeOperationHandler, RuntimeOperationServiceError};
+use super::{
+    RuntimeOperationApply, RuntimeOperationContext, RuntimeOperationHandler,
+    RuntimeOperationServiceError,
+};
 
 mod admission;
 mod completion;
@@ -41,6 +44,7 @@ pub struct RuntimeOperationService {
     state: Arc<Mutex<RuntimeOperationTaskState>>,
     maintenance_refresh: Arc<Mutex<()>>,
     completion_receivers: Mutex<Vec<RuntimeOperationCompletionReceiver>>,
+    lost_completion_batches: Arc<Mutex<Vec<Vec<ZrRuntimeOperationHandle>>>>,
 }
 
 impl RuntimeOperationService {
@@ -55,6 +59,7 @@ impl RuntimeOperationService {
             state: Arc::new(Mutex::new(RuntimeOperationTaskState::default())),
             maintenance_refresh: Arc::new(Mutex::new(())),
             completion_receivers: Mutex::new(Vec::new()),
+            lost_completion_batches: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
@@ -93,14 +98,14 @@ impl RuntimeOperationService {
     }
 
     /// Advances bounded owner snapshots, worker preparation, and owner applies per runtime frame.
-    pub fn tick(&self, core: &CoreHandle, world: &mut World) {
+    pub fn tick(&self, core: &CoreHandle, level: &LevelSystem) {
         self.expire_due_deadlines(Instant::now());
         self.expire_terminal_results(Instant::now());
         self.drain_prepare_completions();
         self.expire_due_deadlines(Instant::now());
-        self.apply_prepared(core, world);
+        self.apply_prepared(core, level);
         self.expire_due_deadlines(Instant::now());
-        self.snapshot_and_dispatch_queued_prepares(core, world);
+        self.snapshot_and_dispatch_queued_prepares(core, level);
     }
 
     /// Cancels an operation before its owner-thread apply phase is claimed.
@@ -125,12 +130,27 @@ impl RuntimeOperationService {
             {
                 return Err(RuntimeOperationServiceError::NotCancellable { handle });
             }
-            let released_bytes = std::mem::replace(&mut task.retained_bytes, 0);
+            let worker_still_owns_snapshot = task.prepare_in_flight;
+            let released_bytes = if worker_still_owns_snapshot {
+                task.payload = None;
+                task.prepared_command = None;
+                task.prepared_result = None;
+                task.prepared_owner_state = None;
+                0
+            } else {
+                std::mem::replace(&mut task.retained_bytes, 0)
+            };
             task.payload = None;
             task.prepared_command = None;
             task.prepared_result = None;
+            task.prepared_owner_state = None;
+            if !worker_still_owns_snapshot {
+                task.snapshot_owner_bytes = 0;
+                task.in_flight_owner_bytes = 0;
+            }
             task.prepared_command_bytes = 0;
             task.prepared_result_bytes = 0;
+            task.prepared_owner_bytes = 0;
             task.result = None;
             task.deadline_armed = false;
             task.snapshot_claimed = false;
@@ -194,8 +214,12 @@ impl RuntimeOperationService {
             task.payload = None;
             task.prepared_command = None;
             task.prepared_result = None;
+            task.prepared_owner_state = None;
+            task.snapshot_owner_bytes = 0;
+            task.in_flight_owner_bytes = 0;
             task.prepared_command_bytes = 0;
             task.prepared_result_bytes = 0;
+            task.prepared_owner_bytes = 0;
             task.deadline_armed = false;
             task.harvest_in_flight = false;
             task.phase = ZrRuntimeOperationPhase::Harvested;
@@ -271,14 +295,14 @@ impl RuntimeOperationService {
             .expect("rolled back operation bytes must remain accounted");
     }
 
-    fn snapshot_and_dispatch_queued_prepares(&self, core: &CoreHandle, world: &mut World) {
+    fn snapshot_and_dispatch_queued_prepares(&self, core: &CoreHandle, level: &LevelSystem) {
         let mut completion_batch = None;
         for _ in 0..self.limits.max_owner_applies_per_tick {
             let Some((handle, handler, payload)) = self.take_queued_snapshot_task() else {
                 break;
             };
             let snapshot = catch_unwind(AssertUnwindSafe(|| {
-                handler.snapshot(RuntimeOperationContext::new(core, world), payload)
+                handler.snapshot_owned(RuntimeOperationContext::new(core, level), payload)
             }));
             let snapshot = match snapshot {
                 Ok(Ok(snapshot)) => snapshot,
@@ -294,8 +318,11 @@ impl RuntimeOperationService {
                     continue;
                 }
             };
+            let snapshot_owner_bytes = snapshot.owner_bytes();
+            let mut snapshot_budget_error = false;
             let should_dispatch = {
                 let mut state = self.lock_state();
+                let current_retained_bytes = state.retained_bytes;
                 if state.in_flight_prepares >= self.limits.max_in_flight_prepares {
                     false
                 } else if let Some(task) = state.tasks.get_mut(&handle) {
@@ -307,16 +334,39 @@ impl RuntimeOperationService {
                             .deadline
                             .is_none_or(|deadline| deadline > Instant::now())
                     {
-                        task.phase = ZrRuntimeOperationPhase::Preparing;
-                        task.detail_kind = ZrRuntimeOperationDetailKindV2::None;
-                        task.detail_value = 0;
-                        task.snapshot_claimed = false;
-                        task.prepare_in_flight = true;
-                        state.in_flight_prepares = state
-                            .in_flight_prepares
-                            .checked_add(1)
-                            .expect("operation prepare capacity was preflighted");
-                        true
+                        let reservation = task
+                            .retained_bytes
+                            .checked_add(snapshot_owner_bytes)
+                            .and_then(|task_bytes| {
+                                current_retained_bytes
+                                    .checked_sub(task.retained_bytes)
+                                    .and_then(|bytes| bytes.checked_add(task_bytes))
+                                    .map(|retained_bytes| (task_bytes, retained_bytes))
+                            });
+                        match reservation {
+                            Some((task_bytes, retained_bytes))
+                                if retained_bytes <= self.limits.max_retained_bytes =>
+                            {
+                                task.in_flight_owner_bytes = task_bytes;
+                                task.retained_bytes = 0;
+                                task.snapshot_owner_bytes = snapshot_owner_bytes;
+                                task.phase = ZrRuntimeOperationPhase::Preparing;
+                                task.detail_kind = ZrRuntimeOperationDetailKindV2::None;
+                                task.detail_value = 0;
+                                task.snapshot_claimed = false;
+                                task.prepare_in_flight = true;
+                                state.retained_bytes = retained_bytes;
+                                state.in_flight_prepares = state
+                                    .in_flight_prepares
+                                    .checked_add(1)
+                                    .expect("operation prepare capacity was preflighted");
+                                true
+                            }
+                            _ => {
+                                snapshot_budget_error = true;
+                                false
+                            }
+                        }
                     } else {
                         false
                     }
@@ -325,6 +375,28 @@ impl RuntimeOperationService {
                 }
             };
             if !should_dispatch {
+                if snapshot_budget_error {
+                    self.finish_snapshot_failed_task(
+                        handle,
+                        "runtime operation immutable snapshot exceeds retained byte budget"
+                            .to_owned(),
+                    );
+                } else {
+                    let (payload, _, _) = snapshot.into_parts();
+                    let mut state = self.lock_state();
+                    let should_restore = state.tasks.get(&handle).is_some_and(|task| {
+                        task.phase == ZrRuntimeOperationPhase::Queued
+                            && task.snapshot_claimed
+                            && !task.apply_claimed
+                    });
+                    if should_restore {
+                        if let Some(task) = state.tasks.get_mut(&handle) {
+                            task.payload = Some(payload);
+                            task.snapshot_claimed = false;
+                        }
+                        state.queued_snapshot_tasks.push_front(handle);
+                    }
+                }
                 continue;
             }
             let batch = completion_batch.get_or_insert_with(|| {
@@ -337,42 +409,50 @@ impl RuntimeOperationService {
             });
             batch.handles.push(handle);
             let completion_sender = batch.sender.clone();
+            let lost_completion_batches = Arc::clone(&self.lost_completion_batches);
             core.scheduler().spawn(move || {
-                let completion = match catch_unwind(AssertUnwindSafe(|| handler.prepare(snapshot)))
-                {
-                    Ok(Ok(prepared)) => {
-                        let (command, result) = prepared.into_parts();
-                        match (json_value_byte_len(&command), json_value_byte_len(&result)) {
-                            (Ok(command_bytes), Ok(result_bytes)) => {
-                                RuntimeOperationPrepareCompletion::Prepared {
-                                    handle,
-                                    command,
-                                    result,
-                                    command_bytes,
-                                    result_bytes,
+                let completion =
+                    match catch_unwind(AssertUnwindSafe(|| handler.prepare_owned(snapshot))) {
+                        Ok(Ok(prepared)) => {
+                            let (command, result, owner_state, owner_bytes) = prepared.into_parts();
+                            match (json_value_byte_len(&command), json_value_byte_len(&result)) {
+                                (Ok(command_bytes), Ok(result_bytes)) => {
+                                    RuntimeOperationPrepareCompletion::Prepared {
+                                        handle,
+                                        command,
+                                        result,
+                                        owner_state,
+                                        owner_bytes,
+                                        command_bytes,
+                                        result_bytes,
+                                    }
                                 }
-                            }
-                            (Err(error), _) | (_, Err(error)) => {
-                                RuntimeOperationPrepareCompletion::Failed {
-                                    handle,
-                                    error: error.to_string(),
-                                    detail_kind: ZrRuntimeOperationDetailKindV2::None,
+                                (Err(error), _) | (_, Err(error)) => {
+                                    RuntimeOperationPrepareCompletion::Failed {
+                                        handle,
+                                        error: error.to_string(),
+                                        detail_kind: ZrRuntimeOperationDetailKindV2::None,
+                                    }
                                 }
                             }
                         }
-                    }
-                    Ok(Err(error)) => RuntimeOperationPrepareCompletion::Failed {
-                        handle,
-                        error: error.to_string(),
-                        detail_kind: ZrRuntimeOperationDetailKindV2::None,
-                    },
-                    Err(_) => RuntimeOperationPrepareCompletion::Failed {
-                        handle,
-                        error: "runtime operation prepare panicked".to_owned(),
-                        detail_kind: ZrRuntimeOperationDetailKindV2::WorkerPanic,
-                    },
-                };
-                let _ = completion_sender.send(completion);
+                        Ok(Err(error)) => RuntimeOperationPrepareCompletion::Failed {
+                            handle,
+                            error: error.to_string(),
+                            detail_kind: ZrRuntimeOperationDetailKindV2::None,
+                        },
+                        Err(_) => RuntimeOperationPrepareCompletion::Failed {
+                            handle,
+                            error: "runtime operation prepare panicked".to_owned(),
+                            detail_kind: ZrRuntimeOperationDetailKindV2::WorkerPanic,
+                        },
+                    };
+                if completion_sender.send(completion).is_err() {
+                    lost_completion_batches
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner())
+                        .push(vec![handle]);
+                }
             });
         }
         if let Some(RuntimeOperationCompletionBatch {
@@ -458,14 +538,17 @@ impl RuntimeOperationService {
         }
     }
 
-    fn apply_prepared(&self, core: &CoreHandle, world: &mut World) {
+    fn apply_prepared(&self, core: &CoreHandle, level: &LevelSystem) {
         let mut terminal_transition = false;
         for _ in 0..self.limits.max_owner_applies_per_tick {
-            let Some((handle, handler, command)) = self.take_prepared_task() else {
+            let Some((handle, handler, command, owner_state)) = self.take_prepared_task() else {
                 break;
             };
             let result = catch_unwind(AssertUnwindSafe(|| {
-                handler.apply(RuntimeOperationContext::new(core, world), command)
+                handler.apply_owned(
+                    RuntimeOperationContext::new(core, level),
+                    RuntimeOperationApply::new(command, owner_state),
+                )
             }));
             let mut state = self.lock_state();
             match result {
@@ -508,6 +591,7 @@ impl RuntimeOperationService {
         ZrRuntimeOperationHandle,
         Arc<dyn RuntimeOperationHandler>,
         serde_json::Value,
+        Option<Box<dyn std::any::Any + Send>>,
     )> {
         let mut state = self.lock_state();
         let now = Instant::now();
@@ -531,6 +615,7 @@ impl RuntimeOperationService {
             handle,
             Arc::clone(&task.handler),
             task.prepared_command.take()?,
+            task.prepared_owner_state.take(),
         ))
     }
 
@@ -539,7 +624,7 @@ impl RuntimeOperationService {
         state: &mut RuntimeOperationTaskState,
         handle: ZrRuntimeOperationHandle,
     ) -> Result<(), RuntimeOperationServiceError> {
-        let (operation_id, command_bytes, result_bytes) = {
+        let (operation_id, command_bytes, result_bytes, owner_bytes) = {
             let task = state
                 .tasks
                 .get(&handle)
@@ -548,11 +633,16 @@ impl RuntimeOperationService {
                 task.operation_id.clone(),
                 task.prepared_command_bytes,
                 task.prepared_result_bytes,
+                task.prepared_owner_bytes,
             )
         };
         let retained_bytes = state
             .retained_bytes
-            .checked_sub(command_bytes)
+            .checked_sub(
+                command_bytes
+                    .checked_add(owner_bytes)
+                    .expect("prepared owner bytes must fit retained capacity"),
+            )
             .expect("prepared command bytes must remain reserved before owner apply");
         let task = state
             .tasks
@@ -563,8 +653,12 @@ impl RuntimeOperationService {
             .take()
             .ok_or(RuntimeOperationServiceError::NotTerminal { handle })?;
         task.prepared_command = None;
+        task.prepared_owner_state = None;
+        task.snapshot_owner_bytes = 0;
+        task.in_flight_owner_bytes = 0;
         task.prepared_command_bytes = 0;
         task.prepared_result_bytes = 0;
+        task.prepared_owner_bytes = 0;
         task.phase = ZrRuntimeOperationPhase::Completed;
         task.detail_kind = ZrRuntimeOperationDetailKindV2::None;
         task.detail_value = 0;
@@ -591,11 +685,14 @@ impl RuntimeOperationService {
         detail_value: u64,
     ) {
         let error = error.into();
-        let Some((previous_bytes, operation_id)) = state
-            .tasks
-            .get(&handle)
-            .map(|task| (task.retained_bytes, task.operation_id.clone()))
-        else {
+        let Some((previous_bytes, operation_id)) = state.tasks.get(&handle).map(|task| {
+            (
+                task.retained_bytes
+                    .checked_add(task.in_flight_owner_bytes)
+                    .expect("failed operation bytes must fit retained capacity"),
+                task.operation_id.clone(),
+            )
+        }) else {
             return;
         };
         let retained_without_task = state
@@ -622,8 +719,12 @@ impl RuntimeOperationService {
         task.payload = None;
         task.prepared_command = None;
         task.prepared_result = None;
+        task.prepared_owner_state = None;
+        task.snapshot_owner_bytes = 0;
+        task.in_flight_owner_bytes = 0;
         task.prepared_command_bytes = 0;
         task.prepared_result_bytes = 0;
+        task.prepared_owner_bytes = 0;
         task.retained_bytes = error_bytes;
         task.deadline_armed = false;
         task.result = Some(ZrRuntimeOperationResultV1::failed(
@@ -637,7 +738,7 @@ impl RuntimeOperationService {
         task.apply_claimed = false;
     }
 
-    fn lock_state(&self) -> MutexGuard<'_, RuntimeOperationTaskState> {
+    pub(super) fn lock_state(&self) -> MutexGuard<'_, RuntimeOperationTaskState> {
         lock_operation_state(&self.state)
     }
 
@@ -655,6 +756,11 @@ impl RuntimeOperationService {
             .expect("deadline test task must exist");
         task.deadline = deadline;
         task.deadline_armed = armed;
+    }
+
+    #[cfg(test)]
+    pub(super) fn drop_prepare_completion_receivers_for_test(&self) {
+        self.lock_completion_receivers().clear();
     }
 
     fn expire_due_deadlines(&self, now: Instant) {

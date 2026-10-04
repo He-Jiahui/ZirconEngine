@@ -80,7 +80,9 @@ fn matches_segment(segment: &UiSelectorSegment, node: &UiSelectorMatchNode<'_>) 
 
 fn matches_token(token: &UiSelectorToken, node: &UiSelectorMatchNode<'_>) -> bool {
     match token {
-        UiSelectorToken::Type(component) => node.component == component.as_str(),
+        UiSelectorToken::Type(component) => {
+            component == "*" || node.component == component.as_str()
+        }
         UiSelectorToken::Class(class_name) => node
             .classes
             .iter()
@@ -93,5 +95,5 @@ fn matches_token(token: &UiSelectorToken, node: &UiSelectorMatchNode<'_>) -> boo
 }
 
 #[cfg(test)]
-#[path = "style/single_match_tests.rs"]
+#[path = "style/tests/single_match_tests.rs"]
 mod single_match_tests;

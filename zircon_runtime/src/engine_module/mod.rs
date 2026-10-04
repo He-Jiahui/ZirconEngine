@@ -23,4 +23,5 @@ pub use engine_service::{
 pub use service_factory::{factory, plugin_factory};
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

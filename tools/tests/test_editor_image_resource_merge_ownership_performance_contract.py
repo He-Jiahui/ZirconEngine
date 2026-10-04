@@ -1,3 +1,4 @@
+# 核对图像资源合并移动组键与代际映射的所有权。
 import re
 import unittest
 from pathlib import Path

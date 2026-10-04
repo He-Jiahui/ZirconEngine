@@ -19,4 +19,5 @@ pub const TASK_DIAGNOSTIC_RETENTION_CAPACITY: usize = 256;
 pub const TASK_DIAGNOSTIC_MAX_BATCH_ENTRIES: usize = 64;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

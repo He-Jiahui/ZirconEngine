@@ -425,3 +425,27 @@ thumbnail、shader IDE文件和其他Editor cache均使用content-addressed key�
 本轮没有验证具体texture/font/glTF/mesh/shader importer算法、artifact原子提交和Runtime watcher线程，因为相关实现有在途修改且Runtime资产纵向报告已覆盖其合同。实施M0前必须以当时working tree重新追踪Runtime import commit、AssetChange发布和resource generation顺序。
 
 下一份Editor报告转向Inspector/property authoring：reflection schema、multi-object edit、component topology、custom drawer、validation、units/ranges、asset picker、transaction/preview与large-selection性能。Asset Import Settings inspector与本报告的schema/coordinator共享基础，不能再建立独立property系统。
+
+## 14. 已完成的低风险性能切片
+
+2026-09-13 已落地 full catalog generation 的已知容量预留：
+[`Editor04 catalog generation capacity`](04/2026-09-13-catalog-generation-capacity.md)。
+该切片保留 locator 排序、details/folder 语义与 Runtime authority 边界；对应
+Astra 记录为 [`Editor735`](../../../astra/features/editor/735-catalog-generation-capacity.md)。
+异步托管 Cargo、Release 与产品 catalog p50/p95/p99 门禁仍待合批验证。
+
+随后将 `EditorAssetIndex::rows` 改为直接从 Runtime registry 的 exact-size
+`entries_iter()` 填充预留结果，避免 `entries()` 的中间 Vec；行顺序、metadata
+和状态投影不变，详见 [`Editor04 registry row iterator projection`](04/2026-09-13-registry-row-iterator-projection.md)
+及 Astra [`Editor736`](../../../astra/features/editor/736-registry-row-iterator-projection.md)。
+
+同日为 full refresh 的 catalog 输入投影预留 Runtime asset count 对应的两张
+HashMap，并为 metadata/reference-repair diagnostics 预留合并容量，避免逐条
+插入与追加时的几何扩容；单遍 generation、排序和 preview 语义保持不变。详见
+[`Editor04 catalog projection input capacity`](04/2026-09-13-catalog-projection-input-capacity.md)
+及 Astra [`Editor737`](../../../astra/features/editor/737-catalog-projection-input-capacity.md)。
+
+随后将单项 preview/catalog 更新的 details COW 收敛为按需复制：目标 details
+未物化时直接复用 immutable slice，已物化时仍只替换目标行。详见
+[`Editor04 details slice sharing`](04/2026-09-13-details-slice-share-on-preview-update.md)
+及 Astra [`Editor738`](../../../astra/features/editor/738-details-slice-share-on-preview-update.md)。

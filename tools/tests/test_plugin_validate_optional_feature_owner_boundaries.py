@@ -6,68 +6,68 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 PLUGIN_VALIDATE_OWNER_BOUNDARIES_TEST = (
     REPO_ROOT / "tools/tests/test_plugin_validate_owner_boundaries.py"
 )
-PLUGIN_VALIDATE = REPO_ROOT / "tools/zircon_export/plugin_validate.py"
+PLUGIN_VALIDATE = REPO_ROOT / "tools/export/plugin_validate.py"
 PLUGIN_VALIDATE_SINGLE_TARGET = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_single_target.py"
+    REPO_ROOT / "tools/export/plugin_validate_single_target.py"
 )
 PLUGIN_VALIDATE_DEPENDENCIES = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_dependencies.py"
+    REPO_ROOT / "tools/export/plugin_validate_dependencies.py"
 )
 PLUGIN_VALIDATE_DEFAULT_PACKAGING_METADATA = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_default_packaging.py"
+    REPO_ROOT / "tools/export/plugin_validate_default_packaging.py"
 )
-PLUGIN_VALIDATE_MODULES = REPO_ROOT / "tools/zircon_export/plugin_validate_modules.py"
+PLUGIN_VALIDATE_MODULES = REPO_ROOT / "tools/export/plugin_validate_modules.py"
 PLUGIN_VALIDATE_OPTIONAL_FEATURE_DEPENDENCIES = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_optional_feature_dependencies.py"
+    REPO_ROOT / "tools/export/plugin_validate_optional_feature_dependencies.py"
 )
 PLUGIN_VALIDATE_OPTIONAL_FEATURE_DISTRIBUTION = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_optional_feature_distribution.py"
+    REPO_ROOT / "tools/export/plugin_validate_optional_feature_distribution.py"
 )
 PLUGIN_VALIDATE_OPTIONAL_FEATURE_DEPENDENCY_CAPABILITIES = (
     REPO_ROOT
-    / "tools/zircon_export/plugin_validate_optional_feature_dependency_capabilities.py"
+    / "tools/export/plugin_validate_optional_feature_dependency_capabilities.py"
 )
 PLUGIN_VALIDATE_OPTIONAL_FEATURES = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_optional_features.py"
+    REPO_ROOT / "tools/export/plugin_validate_optional_features.py"
 )
 PLUGIN_VALIDATE_FEATURE_EXTENSIONS = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_feature_extensions.py"
+    REPO_ROOT / "tools/export/plugin_validate_feature_extensions.py"
 )
 PLUGIN_VALIDATE_PACKAGE_KIND = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_package_kind.py"
+    REPO_ROOT / "tools/export/plugin_validate_package_kind.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider.py"
+    REPO_ROOT / "tools/export/plugin_validate_feature_provider.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_DEPENDENCIES = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider_dependencies.py"
+    REPO_ROOT / "tools/export/plugin_validate_feature_provider_dependencies.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_DISTRIBUTION = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider_distribution.py"
+    REPO_ROOT / "tools/export/plugin_validate_feature_provider_distribution.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_EXTENSION = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider_extension.py"
+    REPO_ROOT / "tools/export/plugin_validate_feature_provider_extension.py"
 )
-PLUGIN_VALIDATE_TEST = REPO_ROOT / "tools/zircon_export/tests/test_plugin_validate.py"
+PLUGIN_VALIDATE_TEST = REPO_ROOT / "tools/export/tests/test_plugin_validate.py"
 PLUGIN_VALIDATE_DISTRIBUTION_CONTRACT_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_plugin_validate_distribution_contract.py"
+    REPO_ROOT / "tools/export/tests/test_plugin_validate_distribution_contract.py"
 )
 PLUGIN_VALIDATE_OPTIONAL_FEATURES_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_plugin_validate_optional_features.py"
+    REPO_ROOT / "tools/export/tests/test_plugin_validate_optional_features.py"
 )
 PLUGIN_VALIDATE_OPTIONAL_FEATURE_DEPENDENCIES_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_plugin_validate_optional_feature_dependencies.py"
+    / "tools/export/tests/test_plugin_validate_optional_feature_dependencies.py"
 )
 PLUGIN_VALIDATE_OPTIONAL_FEATURE_DISTRIBUTION_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_plugin_validate_optional_feature_distribution.py"
+    / "tools/export/tests/test_plugin_validate_optional_feature_distribution.py"
 )
 PLUGIN_VALIDATE_FEATURE_EXTENSIONS_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_plugin_validate_feature_extensions.py"
+    REPO_ROOT / "tools/export/tests/test_plugin_validate_feature_extensions.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_plugin_validate_feature_provider.py"
+    REPO_ROOT / "tools/export/tests/test_plugin_validate_feature_provider.py"
 )
 
 OPTIONAL_FEATURE_BOUNDARY_METHODS = (
@@ -78,7 +78,7 @@ OPTIONAL_FEATURE_BOUNDARY_METHODS = (
     "test_optional_feature_dependency_capabilities_lives_in_capability_owner",
 )
 
-
+# 验证校验可选特性归属边界的职责切分：可选特性边界移出通用归属文件，并可选特性依赖位于可选特性归属。
 class PluginValidateOptionalFeatureOwnerBoundaryTests(unittest.TestCase):
     def test_optional_feature_boundaries_leave_general_owner_file(self):
         general_owner_text = PLUGIN_VALIDATE_OWNER_BOUNDARIES_TEST.read_text(

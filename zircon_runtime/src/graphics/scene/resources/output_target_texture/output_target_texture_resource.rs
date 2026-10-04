@@ -1,7 +1,7 @@
-use crate::asset::{RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT, TextureAsset};
+use crate::asset::{TextureAsset, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT};
 use crate::core::framework::render::{
-    RenderImageDescriptor, RenderImageDimension, RenderImageUsage, RenderSamplerAddressMode,
-    RenderSamplerFilter, TextureMetadata,
+    RenderImageDescriptor, RenderImageShape, RenderImageUsage, RenderSamplerAddressMode,
+    RenderSamplerFilter, TextureMetadata, TextureViewKind,
 };
 use crate::core::resource::ResourceId;
 use crate::graphics::types::GraphicsError;
@@ -31,7 +31,7 @@ impl OutputTargetTextureResource {
         payload: TextureAsset,
     ) -> Result<Self, GraphicsError> {
         let descriptor = payload.render_image_descriptor();
-        validate_output_target_descriptor(id, &descriptor)?;
+        let shape = validate_output_target_descriptor(id, &descriptor)?;
         let format = output_target_wgpu_format(&descriptor).ok_or_else(|| {
             GraphicsError::Asset(format!(
                 "output target texture {id} has unsupported render target format {}",
@@ -41,9 +41,9 @@ impl OutputTargetTextureResource {
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some(OUTPUT_TARGET_TEXTURE_LABEL),
             size: wgpu::Extent3d {
-                width: descriptor.width,
-                height: descriptor.height,
-                depth_or_array_layers: 1,
+                width: shape.extent.width,
+                height: shape.extent.height,
+                depth_or_array_layers: shape.extent.depth_or_array_layers,
             },
             mip_level_count: 1,
             sample_count: 1,
@@ -119,17 +119,13 @@ impl OutputTargetTextureResource {
 fn validate_output_target_descriptor(
     id: ResourceId,
     descriptor: &RenderImageDescriptor,
-) -> Result<(), GraphicsError> {
-    if descriptor.width == 0 || descriptor.height == 0 {
-        return Err(GraphicsError::Asset(format!(
-            "output target texture {id} must have nonzero extent"
-        )));
-    }
-    if descriptor.dimension != RenderImageDimension::D2
-        || descriptor.depth_or_array_layers != 1
-        || descriptor.array_layer_count != 1
-        || descriptor.mip_count != 1
-    {
+) -> Result<RenderImageShape, GraphicsError> {
+    let shape = descriptor.validated_shape().map_err(|error| {
+        GraphicsError::Asset(format!(
+            "output target texture {id} has invalid storage/view shape metadata: {error}"
+        ))
+    })?;
+    if shape.view_kind != TextureViewKind::D2 || descriptor.mip_count != 1 {
         return Err(GraphicsError::Asset(format!(
             "output target texture {id} must be a 2d single-layer single-mip texture"
         )));
@@ -144,7 +140,7 @@ fn validate_output_target_descriptor(
             "output target texture {id} must include render_target usage"
         )));
     }
-    Ok(())
+    Ok(shape)
 }
 
 fn output_target_texture_usages(
@@ -273,125 +269,5 @@ fn address_mode(mode: RenderSamplerAddressMode) -> wgpu::AddressMode {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::framework::render::{
-        RenderImageColorSpace, RenderImageFallbackKind, RenderSamplerDescriptor,
-    };
-
-    #[test]
-    fn output_target_texture_usages_keep_render_targets_graph_readable() {
-        let descriptor = texture_descriptor(vec![RenderImageUsage::RenderTarget]);
-
-        let usages = output_target_texture_usages(&descriptor, wgpu::TextureFormat::Rgba8UnormSrgb);
-
-        assert!(usages.contains(wgpu::TextureUsages::RENDER_ATTACHMENT));
-        assert!(usages.contains(wgpu::TextureUsages::COPY_SRC));
-        assert!(usages.contains(wgpu::TextureUsages::COPY_DST));
-        assert!(usages.contains(wgpu::TextureUsages::TEXTURE_BINDING));
-    }
-
-    #[test]
-    fn output_target_texture_usages_preserve_copy_and_sampled_authoring_flags() {
-        let descriptor = texture_descriptor(vec![
-            RenderImageUsage::RenderTarget,
-            RenderImageUsage::Sampled,
-            RenderImageUsage::CopySrc,
-        ]);
-
-        let usages = output_target_texture_usages(&descriptor, wgpu::TextureFormat::Rgba8Unorm);
-
-        assert!(usages.contains(wgpu::TextureUsages::RENDER_ATTACHMENT));
-        assert!(usages.contains(wgpu::TextureUsages::TEXTURE_BINDING));
-        assert!(usages.contains(wgpu::TextureUsages::COPY_SRC));
-        assert!(usages.contains(wgpu::TextureUsages::COPY_DST));
-    }
-
-    #[test]
-    fn output_target_wgpu_format_uses_descriptor_label() {
-        assert_eq!(
-            output_target_wgpu_format(&texture_descriptor_with_format(RGBA8_UNORM_FORMAT)),
-            Some(wgpu::TextureFormat::Rgba8Unorm)
-        );
-        assert_eq!(
-            output_target_wgpu_format(&texture_descriptor_with_format(RGBA8_UNORM_SRGB_FORMAT)),
-            Some(wgpu::TextureFormat::Rgba8UnormSrgb)
-        );
-        assert_eq!(
-            output_target_wgpu_format(&texture_descriptor_with_format("dds/dxt1")),
-            None
-        );
-    }
-
-    #[test]
-    fn output_target_rhi_descriptor_matches_wgpu_allocation_contract() {
-        let descriptor = texture_descriptor(vec![
-            RenderImageUsage::RenderTarget,
-            RenderImageUsage::Sampled,
-            RenderImageUsage::Storage,
-        ]);
-
-        let format = output_target_rhi_format(&descriptor).expect("supported target format");
-        let usages = output_target_rhi_usages(&descriptor, format);
-
-        assert_eq!(format, TextureFormat::Rgba8UnormSrgb);
-        assert!(usages.contains(TextureUsage::RENDER_ATTACHMENT));
-        assert!(usages.contains(TextureUsage::SAMPLED));
-        assert!(usages.contains(TextureUsage::COPY_SRC));
-        assert!(usages.contains(TextureUsage::COPY_DST));
-        assert!(!usages.contains(TextureUsage::STORAGE));
-    }
-
-    #[test]
-    fn output_target_rhi_descriptor_keeps_render_targets_graph_readable() {
-        let descriptor = texture_descriptor(vec![RenderImageUsage::RenderTarget]);
-        let format = output_target_rhi_format(&descriptor).expect("supported target format");
-
-        let usages = output_target_rhi_usages(&descriptor, format);
-
-        assert!(usages.contains(TextureUsage::RENDER_ATTACHMENT));
-        assert!(usages.contains(TextureUsage::SAMPLED));
-        assert!(usages.contains(TextureUsage::COPY_SRC));
-        assert!(usages.contains(TextureUsage::COPY_DST));
-    }
-
-    #[test]
-    fn validate_output_target_descriptor_rejects_sampled_only_target() {
-        let descriptor = texture_descriptor(vec![RenderImageUsage::Sampled]);
-
-        let error = validate_output_target_descriptor(
-            ResourceId::from_stable_label("tests/target"),
-            &descriptor,
-        )
-        .unwrap_err();
-
-        assert!(
-            matches!(error, GraphicsError::Asset(message) if message.contains("render_target usage"))
-        );
-    }
-
-    fn texture_descriptor(usage: Vec<RenderImageUsage>) -> RenderImageDescriptor {
-        RenderImageDescriptor {
-            width: 64,
-            height: 64,
-            depth_or_array_layers: 1,
-            dimension: RenderImageDimension::D2,
-            format: RGBA8_UNORM_SRGB_FORMAT.to_string(),
-            color_space: RenderImageColorSpace::Srgb,
-            metadata: TextureMetadata::default(),
-            sampler: RenderSamplerDescriptor::default(),
-            usage,
-            asset_usage: Vec::new(),
-            mip_count: 1,
-            array_layer_count: 1,
-            fallback: RenderImageFallbackKind::MissingImage,
-        }
-    }
-
-    fn texture_descriptor_with_format(format: &str) -> RenderImageDescriptor {
-        RenderImageDescriptor {
-            format: format.to_string(),
-            ..texture_descriptor(vec![RenderImageUsage::RenderTarget])
-        }
-    }
-}
+#[path = "tests/output_target_texture_resource.rs"]
+mod tests;

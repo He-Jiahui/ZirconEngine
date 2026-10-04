@@ -10,9 +10,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/control_plane/http.py
-  - tools/session_coordinator/tests/test_control_http.py
 tests:
   - python -m unittest -v tools.session_coordinator.tests.test_control_http.ControlHttpTests.test_legacy_command_sets_request_read_deadline
 resolved_at: 2026-08-30

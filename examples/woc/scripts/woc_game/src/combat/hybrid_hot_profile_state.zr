@@ -64,6 +64,7 @@ pub resolveHybridHotProfile(abilityIndex: int, rank: int): HybridHotProfile {
     return hybridHotProfile(abilityIndex, rank);
 }
 
+// 接收施加时天赋调整后的持续总量；直接治疗已用过施法系数，此处不再增加法强。
 pub resolveHybridHotProfileWithResolvedTotal(
     abilityIndex: int,
     rank: int,

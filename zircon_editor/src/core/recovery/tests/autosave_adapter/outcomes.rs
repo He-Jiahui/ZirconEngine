@@ -15,24 +15,22 @@ fn autosave_failure_completion_keeps_document_source_stage_and_retryability() {
         AutosaveStore::new(&root),
         AutosaveScheduler::new(AutosavePolicy::new(Duration::from_secs(10)).unwrap()),
     );
-    assert!(
-        adapter
-            .schedule(
-                Duration::from_secs(10),
-                &dirty,
-                |_| 1,
-                |requested| {
-                    Some(AutosaveDocumentRequest::new(
-                        requested.clone(),
-                        AutosaveJobPolicy::for_save_mutex(
-                            MutexGroup::parse("save_document_outcome").unwrap(),
-                        ),
-                        Arc::new(CountingSnapshotSource::failure()),
-                    ))
-                },
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule(
+            Duration::from_secs(10),
+            &dirty,
+            |_| 1,
+            |requested| {
+                Some(AutosaveDocumentRequest::new(
+                    requested.clone(),
+                    AutosaveJobPolicy::for_save_mutex(
+                        MutexGroup::parse("save_document_outcome").unwrap(),
+                    ),
+                    Arc::new(CountingSnapshotSource::failure()),
+                ))
+            },
+        )
+        .unwrap());
 
     let completion = wait_for_autosave_completion(&mut adapter, Duration::from_secs(11));
     assert_eq!(completion.failed(), 1);
@@ -43,12 +41,10 @@ fn autosave_failure_completion_keeps_document_source_stage_and_retryability() {
     assert_eq!(outcome.failure_stage(), Some(AutosaveFailureStage::Capture));
     assert_eq!(outcome.retryability(), AutosaveRetryability::Retryable);
     assert!(outcome.usable_snapshot().is_none());
-    assert!(
-        outcome
-            .error_chain()
-            .iter()
-            .any(|message| message.contains("snapshot failure"))
-    );
+    assert!(outcome
+        .error_chain()
+        .iter()
+        .any(|message| message.contains("snapshot failure")));
     assert!(outcome.diagnostic_persisted());
 
     let report = AutosaveDiagnosticStore::new(&root).load().unwrap();
@@ -92,22 +88,20 @@ fn project_switch_persists_cancelled_autosave_outcome_for_the_retired_project() 
         service.poll_project(Some(&first_root)).now(),
         Duration::ZERO
     );
-    assert!(
-        service
-            .schedule(
-                Duration::from_secs(10),
-                &dirty,
-                |_| 1,
-                |requested| {
-                    Some(AutosaveDocumentRequest::new(
-                        requested.clone(),
-                        AutosaveJobPolicy::for_save_mutex(blocked_mutex.clone()),
-                        Arc::new(CountingSnapshotSource::success()),
-                    ))
-                },
-            )
-            .unwrap()
-    );
+    assert!(service
+        .schedule(
+            Duration::from_secs(10),
+            &dirty,
+            |_| 1,
+            |requested| {
+                Some(AutosaveDocumentRequest::new(
+                    requested.clone(),
+                    AutosaveJobPolicy::for_save_mutex(blocked_mutex.clone()),
+                    Arc::new(CountingSnapshotSource::success()),
+                ))
+            },
+        )
+        .unwrap());
 
     service.poll_project(Some(&second_root));
     let deadline = Instant::now() + Duration::from_secs(5);

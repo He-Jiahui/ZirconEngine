@@ -206,6 +206,74 @@ fn compiled_plan_cache_reuses_a_generation_across_target_only_resize() {
 }
 
 #[test]
+fn compiled_plan_cache_rebuilds_when_generation_changes() {
+    let first_draw_list = UiSurfaceDrawList::with_generation(
+        (100, 100),
+        None,
+        vec![quad(
+            0,
+            UiSurfaceRect::new(0.0, 0.0, 20.0, 20.0),
+            [255, 0, 0, 255],
+        )],
+        41,
+    );
+    let next_draw_list = UiSurfaceDrawList::with_generation(
+        (100, 100),
+        None,
+        vec![quad(
+            0,
+            UiSurfaceRect::new(0.0, 0.0, 20.0, 20.0),
+            [255, 0, 0, 255],
+        )],
+        42,
+    );
+    let mut cache = CompiledUiBatchPlanCache::default();
+
+    let first = cache.resolve(&first_draw_list, false);
+    let rebuilt = cache.resolve(&next_draw_list, false);
+
+    assert_eq!(first.batch_plan_build_count, 1);
+    assert_eq!(first.batch_plan_cache_hit_count, 0);
+    assert_eq!(rebuilt.batch_plan_build_count, 1);
+    assert_eq!(rebuilt.batch_plan_cache_hit_count, 0);
+    assert!(!Arc::ptr_eq(&first.plan, &rebuilt.plan));
+}
+
+#[test]
+fn compiled_plan_cache_rebuilds_when_projection_size_changes() {
+    let first_draw_list = UiSurfaceDrawList::with_generation(
+        (100, 100),
+        None,
+        vec![quad(
+            0,
+            UiSurfaceRect::new(0.0, 0.0, 20.0, 20.0),
+            [255, 0, 0, 255],
+        )],
+        41,
+    );
+    let resized_projection = UiSurfaceDrawList::with_generation(
+        (50, 50),
+        None,
+        vec![quad(
+            0,
+            UiSurfaceRect::new(0.0, 0.0, 20.0, 20.0),
+            [255, 0, 0, 255],
+        )],
+        41,
+    );
+    let mut cache = CompiledUiBatchPlanCache::default();
+
+    let first = cache.resolve(&first_draw_list, false);
+    let rebuilt = cache.resolve(&resized_projection, false);
+
+    assert_eq!(first.batch_plan_build_count, 1);
+    assert_eq!(first.batch_plan_cache_hit_count, 0);
+    assert_eq!(rebuilt.batch_plan_build_count, 1);
+    assert_eq!(rebuilt.batch_plan_cache_hit_count, 0);
+    assert!(!Arc::ptr_eq(&first.plan, &rebuilt.plan));
+}
+
+#[test]
 fn compiled_plan_cache_requires_an_explicit_generation() {
     let draw_list = UiSurfaceDrawList::new(
         (100, 100),

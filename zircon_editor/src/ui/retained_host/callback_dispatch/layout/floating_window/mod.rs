@@ -1,6 +1,9 @@
 mod dispatch;
+#[cfg(test)]
+#[path = "tests/resolution.rs"]
 mod resolution;
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 pub(crate) use dispatch::{

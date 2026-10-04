@@ -1,9 +1,10 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0054] 材质就绪报告与管理快照测试的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_render_material_readiness_report_tests_are_child_owner() {
     let parent = read_runtime_src("core/framework/render/material/readiness_report.rs");
-    let tests = read_runtime_src("core/framework/render/material/readiness_report/tests.rs");
+    let tests = read_runtime_src("core/framework/render/material/readiness_report/tests/cases.rs");
 
     let plan_08 = read_repo(
         "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
@@ -63,7 +64,7 @@ fn runtime_15_render_material_readiness_report_tests_are_child_owner() {
             parent.as_str(),
         ),
         (
-            "core/framework/render/material/readiness_report/tests.rs",
+            "core/framework/render/material/readiness_report/tests/cases.rs",
             tests.as_str(),
         ),
     ] {

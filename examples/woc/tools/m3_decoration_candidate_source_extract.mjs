@@ -1,3 +1,4 @@
+// 从固定种子的 WOC 装饰物生成结果中提取固定种子生成的装饰物样本、网格坐标与目录哈希，供源码核查使用。
 import { createHash } from 'node:crypto';
 
 const data = await import('wocgit:///src/sim/data.ts');
@@ -7,6 +8,7 @@ const decorations = world.generateDecorations(seed);
 const startX = -(data.WORLD_MAX_X - 14);
 const startZ = data.ZONES[0].zMin + 14;
 
+// 先挑选种类和尺寸样本，再对完整的确定性装饰物序列计算哈希。
 const representative = [
   find('tree', (value) => true),
   find('tree2', (value) => true),

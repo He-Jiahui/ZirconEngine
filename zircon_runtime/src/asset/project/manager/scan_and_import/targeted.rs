@@ -2,9 +2,10 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use crate::asset::importer::canonical_import_input_digest;
 use crate::asset::project::{
-    AssetMetaEntry, PreviewState, ProjectCatalogInputGeneration, ProjectCatalogInputSource,
-    ProjectPaths,
+    AssetMetaDocument, AssetMetaEntry, PreviewState, ProjectCatalogInputGeneration,
+    ProjectCatalogInputSource, ProjectPaths,
 };
 use crate::asset::registry::AssetRegistryDiagnostic;
 use crate::asset::{
@@ -16,23 +17,26 @@ use crate::core::resource::{
     ResourceState,
 };
 
+use super::super::load_or_create_meta::verify_meta_precondition;
 use super::metadata::{
-    apply_importer_metadata, clear_schema_migration_metadata, config_hash_for_settings,
+    apply_importer_metadata, build_identity_for_import, clear_schema_migration_metadata,
     entry_uuid_for_import_entry, existing_entry_tags_for_source, existing_entry_uuids_for_source,
-    validate_import_entries,
+    failed_entries_for_source, validate_import_entries,
 };
 use super::sources::{
-    AssetImportSourceSnapshot, source_mtime_unix_ms_for_import, take_source_bytes_for_import,
+    materialize_compound_source_snapshot, source_asset_root_for_digest, source_digest_for_import,
+    source_mtime_unix_ms_for_import, take_source_bytes_for_import, AssetImportSourceSnapshot,
 };
-use super::{ImportSourcePlan, ProjectManager, stage_project_resource};
+use super::{stage_project_resource, ImportSourcePlan, ProjectManager};
 use crate::asset::project::manager::durable_transaction::{
-    PreparedFileWrite, ProjectFileCommitOutcome, ProjectTransactionFault, commit_prepared_files,
-    journal_directory,
+    commit_prepared_files, journal_directory, PreparedFileWrite, ProjectFileCommitOutcome,
+    ProjectTransactionFault,
 };
 
 pub(crate) struct PreparedTargetedGeneration {
     journal_directory: PathBuf,
     meta_path: PathBuf,
+    meta_precondition: Option<AssetMetaDocument>,
     writes: Vec<PreparedFileWrite>,
     registry_write: PreparedFileWrite,
     imported: Vec<ResourceRecord>,
@@ -55,6 +59,7 @@ impl PreparedTargetedGeneration {
 
     pub(crate) fn commit(self) -> Result<ProjectFileCommitOutcome, AssetImportError> {
         let _meta_write_guard = crate::asset::project::lock_meta_document_path(&self.meta_path)?;
+        verify_meta_precondition(&self.meta_path, self.meta_precondition.as_ref())?;
         let mut writes = self.writes;
         writes.push(self.registry_write);
         commit_prepared_files(
@@ -70,6 +75,7 @@ impl PreparedTargetedGeneration {
         fault: ProjectTransactionFault,
     ) -> Result<ProjectFileCommitOutcome, AssetImportError> {
         let _meta_write_guard = crate::asset::project::lock_meta_document_path(&self.meta_path)?;
+        verify_meta_precondition(&self.meta_path, self.meta_precondition.as_ref())?;
         let mut writes = self.writes;
         writes.push(self.registry_write);
         commit_prepared_files(&self.journal_directory, writes, fault)
@@ -83,6 +89,7 @@ impl PreparedTargetedGeneration {
 pub(crate) struct PreparedProjectImportBatch {
     journal_directory: PathBuf,
     meta_paths: Vec<PathBuf>,
+    meta_preconditions: Vec<(PathBuf, Option<AssetMetaDocument>)>,
     writes: Vec<PreparedFileWrite>,
     registry_write: PreparedFileWrite,
     imported: Vec<ResourceRecord>,
@@ -133,6 +140,9 @@ impl PreparedProjectImportBatch {
 
     pub(crate) fn commit(self) -> Result<ProjectFileCommitOutcome, AssetImportError> {
         let _meta_write_guards = crate::asset::project::lock_meta_document_paths(&self.meta_paths)?;
+        for (path, expected) in &self.meta_preconditions {
+            verify_meta_precondition(path, expected.as_ref())?;
+        }
         let mut writes = self.writes;
         writes.push(self.registry_write);
         commit_prepared_files(
@@ -146,6 +156,7 @@ impl PreparedProjectImportBatch {
         let PreparedTargetedGeneration {
             journal_directory,
             meta_path,
+            meta_precondition,
             writes,
             registry_write,
             imported,
@@ -154,6 +165,7 @@ impl PreparedProjectImportBatch {
         } = generation;
         Self {
             journal_directory,
+            meta_preconditions: vec![(meta_path.clone(), meta_precondition)],
             meta_paths: vec![meta_path],
             writes,
             registry_write,
@@ -167,6 +179,7 @@ impl PreparedProjectImportBatch {
         let PreparedTargetedGeneration {
             journal_directory,
             meta_path,
+            meta_precondition,
             writes,
             registry_write,
             imported,
@@ -174,6 +187,8 @@ impl PreparedProjectImportBatch {
             ready_payloads,
         } = generation;
         debug_assert_eq!(self.journal_directory, journal_directory);
+        self.meta_preconditions
+            .push((meta_path.clone(), meta_precondition));
         self.meta_paths.push(meta_path);
         self.writes.extend(writes);
         self.registry_write = registry_write;
@@ -359,15 +374,34 @@ impl ProjectManager {
             .into_iter()
             .map(|entry| AssetId::from_asset_uuid(entry.uuid()))
             .collect::<HashSet<_>>();
+        let source_snapshot_error = match materialize_compound_source_snapshot(&mut source) {
+            Ok(()) => None,
+            Err(error) if source.source_snapshot.is_none() => return Err(error),
+            Err(error) => Some(error),
+        };
         let source_bytes = take_source_bytes_for_import(&mut source)?;
-        let source_digest = super::super::hash_bytes::hash_bytes(&source_bytes);
         let source_mtime_unix_ms = source_mtime_unix_ms_for_import(&source)?;
+        let source_file_snapshots = source.take_source_file_snapshots();
+        let digest_primary = if source.compound_root.is_some() {
+            &[][..]
+        } else {
+            source_bytes.as_slice()
+        };
+        let source_root = source_asset_root_for_digest(&source);
+        let source_digest =
+            source_digest_for_import(digest_primary, &source_file_snapshots, Some(&source_root));
+        let build_input_digest = canonical_import_input_digest(
+            &source.uri.to_string(),
+            digest_primary,
+            &source_file_snapshots,
+            Some(&source_root),
+        );
         let descriptor = self.importer.descriptor_for_source(&source.path).ok();
         let fallback_kind = descriptor
             .as_ref()
             .map(|descriptor| descriptor.output_kind)
             .unwrap_or(AssetKind::Data);
-        let mut meta = super::super::load_or_create_meta::load_or_create_meta(
+        let (mut meta, meta_precondition) = super::super::load_or_create_meta::load_or_create_meta(
             &source.meta_path,
             &source.uri,
             fallback_kind,
@@ -377,7 +411,113 @@ impl ProjectManager {
         meta.included_files = source.included_files.clone();
         let import_settings =
             self.import_settings_for_source(&meta.import_settings, descriptor.as_ref());
-        let config_hash = config_hash_for_settings(&import_settings);
+        let build_identity = build_identity_for_import(
+            &import_settings,
+            &build_input_digest,
+            descriptor.as_ref(),
+            Some((&meta.importer_id, meta.importer_version)),
+        );
+        let config_hash = build_identity.action_key().to_string();
+        if let Some(error) = source_snapshot_error {
+            apply_importer_metadata(&mut meta, descriptor.as_ref());
+            clear_schema_migration_metadata(&mut meta);
+            meta.url = source.uri.clone();
+            meta.asset_kind = fallback_kind;
+            meta.unit = source.unit;
+            meta.included_files = source.included_files.clone();
+            meta.artifact_locator = None;
+            meta.dependencies.clear();
+            meta.entries =
+                failed_entries_for_source(&previous_meta, meta.uuid, &source.uri, fallback_kind);
+            meta.config_hash = config_hash.clone();
+            meta.source_digest = source_digest.clone();
+            meta.source_mtime_unix_ms = source_mtime_unix_ms;
+            meta.preview_state = PreviewState::Error;
+
+            let (mut asset_registry, mut affected_uuids) = self
+                .asset_registry
+                .prepare_source_replacement_generation(&mut meta)?;
+            let root_asset_id = AssetId::from_asset_uuid(meta.uuid);
+            let (shader_import_dependencies, shader_affected_ids) = self
+                .shader_import_dependencies
+                .prepare_source_replacement(&replaced_ids, std::iter::empty());
+            let dependency_changes = shader_affected_ids.into_iter().map(|id| {
+                (
+                    id,
+                    self.shader_import_dependencies.dependency_locators(id),
+                    shader_import_dependencies.dependency_locators(id),
+                )
+            });
+            affected_uuids
+                .extend(asset_registry.retarget_runtime_dependency_paths(dependency_changes));
+
+            let mut registry = self.registry.begin_staging();
+            for previous in self.asset_registry.source_entries(&source.uri) {
+                registry.stage_remove_locator(previous.path());
+            }
+            stage_project_resource(
+                &mut registry,
+                ResourceRecord::new(root_asset_id, fallback_kind, source.uri.clone())
+                    .with_source_hash(source_digest)
+                    .with_importer_id(meta.importer_id.clone())
+                    .with_importer_version(meta.importer_version)
+                    .with_config_hash(config_hash)
+                    .with_state(ResourceState::Error)
+                    .with_diagnostics(vec![ResourceDiagnostic::error(error.to_string())]),
+            )?;
+            refresh_runtime_dependency_closure(&mut registry, &asset_registry, &affected_uuids)?;
+            let imported = vec![registry
+                .get(root_asset_id)
+                .cloned()
+                .expect("failed source was staged")];
+            let catalog_updated_records = std::iter::once(root_asset_id)
+                .chain(affected_uuids.iter().copied().map(AssetId::from_asset_uuid))
+                .filter_map(|id| registry.get(id).cloned())
+                .collect::<Vec<_>>();
+            let mut affected = affected_uuids
+                .into_iter()
+                .filter_map(|uuid| registry.get(AssetId::from_asset_uuid(uuid)).cloned())
+                .collect::<Vec<_>>();
+            affected.sort_by(|left, right| left.primary_locator.cmp(&right.primary_locator));
+            let persisted = asset_registry.prepare_persistence(self.paths.registry_root())?;
+            let registry_write = PreparedFileWrite::new(persisted.path, persisted.bytes);
+            let writes = vec![PreparedFileWrite::new(
+                source.meta_path.clone(),
+                meta.to_pretty_bytes()?,
+            )];
+            self.registry = registry.finish();
+            self.asset_registry = Arc::new(asset_registry);
+            self.shader_import_dependencies = shader_import_dependencies;
+            self.catalog_input_generation = ProjectCatalogInputGeneration::publish_targeted(
+                &self.catalog_input_generation,
+                self.paths.root(),
+                &self.manifest,
+                &self.package_assets,
+                catalog_updated_records,
+                HashMap::from([(
+                    root_asset_id,
+                    ProjectCatalogInputSource::new(
+                        source.path,
+                        source.meta_path.clone(),
+                        meta,
+                        source_mtime_unix_ms,
+                        Vec::new(),
+                        Vec::new(),
+                    ),
+                )]),
+                replaced_ids.iter().copied(),
+            );
+            return Ok(PreparedTargetedGeneration {
+                journal_directory: journal_directory(&self.paths),
+                meta_path: source.meta_path,
+                meta_precondition,
+                writes,
+                registry_write,
+                imported,
+                affected,
+                ready_payloads: Vec::new(),
+            });
+        }
         let project_roots = Arc::new(
             self.manifest
                 .asset_roots
@@ -392,7 +532,8 @@ impl ProjectManager {
             source_bytes,
             import_settings,
         )
-        .with_source_file_snapshots(source.source_file_snapshots())
+        .with_build_identity(build_identity)
+        .with_source_file_snapshots(source_file_snapshots)
         .with_project_resolver(Arc::clone(&self.asset_registry), project_roots);
         let mut outcome = self.importer.import_context(&context)?;
         validate_import_entries(&source.uri, &outcome)?;
@@ -550,6 +691,7 @@ impl ProjectManager {
         Ok(PreparedTargetedGeneration {
             journal_directory: journal_directory(&self.paths),
             meta_path: source.meta_path,
+            meta_precondition,
             writes,
             registry_write,
             imported,
@@ -663,3 +805,7 @@ pub(crate) fn refresh_runtime_dependency_closure(
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "targeted/tests/snapshot_failure_tests.rs"]
+mod snapshot_failure_tests;

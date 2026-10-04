@@ -1,3 +1,4 @@
+//! 验证 CLI 对 ExportBuildPlan 的稳定 JSON 投影；Python 导出流水线核对 schema、摘要及可选内容工件后才进入后续阶段。
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, HashSet};
@@ -17,6 +18,7 @@ const EXPORT_VALIDATE_REPORT_SCHEMA_VERSION: u32 = 2;
 const EXPORT_VALIDATE_CONTENTS_ARTIFACT_SCHEMA_VERSION: u32 = 1;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// Validate stage 的跨语言收据；schema_version 与内容摘要供 Python 流水线核对。
 pub struct ExportValidateReport {
     pub stage: ExportStage,
     pub schema_version: u32,
@@ -41,6 +43,7 @@ pub struct ExportValidateReport {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 计划最终使用的 profile，便于后续 stage 检查目标与打包策略的一致性。
 pub struct ExportValidateProfileSummary {
     pub name: String,
     pub target_mode: RuntimeTargetMode,
@@ -54,6 +57,7 @@ pub struct ExportValidateProfileSummary {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 只投影后续 stage 所需的插件、编译计划及工件摘要，不替代建计划的准入校验。
 pub struct ExportValidatePlanSummary {
     pub enabled_runtime_plugins: Vec<String>,
     pub linked_runtime_crates: Vec<String>,
@@ -69,6 +73,7 @@ pub struct ExportValidatePlanSummary {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 完整源码另存内容工件，此摘要用于验证长度、用途和 SHA-256 绑定。
 pub struct ExportValidateGeneratedFileSummary {
     pub path: String,
     pub purpose: String,
@@ -77,6 +82,7 @@ pub struct ExportValidateGeneratedFileSummary {
 }
 
 impl ExportValidateReport {
+    /// CLI 在计划准入后调用；fatal 来自计划和运行时可用性，供后续 stage 在写工件前阻断。
     pub fn from_build_plan(
         project_manifest: impl Into<String>,
         stage_output: Option<String>,
@@ -101,6 +107,7 @@ impl ExportValidateReport {
         }
     }
 
+    /// 项目加载或 profile 查找失败时构造完整的 fatal 收据；此时不伪造计划摘要。
     pub fn fatal_error(
         project_manifest: impl Into<String>,
         profile: impl Into<String>,
@@ -127,6 +134,7 @@ impl ExportValidateReport {
         }
     }
 
+    /// 仅显式请求内容工件时序列化完整生成源码；调用方需将长度和 SHA-256 写回验证报告。
     pub fn generated_contents_artifact_json(
         plan: &ExportBuildPlan,
         pretty: bool,
@@ -139,6 +147,7 @@ impl ExportValidateReport {
         }
     }
 
+    /// 由写出内容工件的 CLI 回填绑定信息；长度和 digest 必须对应同一份实际编码后的字节。
     pub fn record_generated_contents_artifact(
         &mut self,
         path: String,
@@ -150,6 +159,7 @@ impl ExportValidateReport {
         self.generated_contents_artifact_digest = Some(digest);
     }
 
+    /// 为内容工件与单文件摘要使用相同 digest 格式；输入是最终序列化字节。
     pub fn sha256_digest(bytes: &[u8]) -> String {
         format!("{:x}", Sha256::digest(bytes))
     }
@@ -236,6 +246,7 @@ impl<'a> ExportValidateContentsArtifactFile<'a> {
     }
 }
 
+// 报告呈现保留首见顺序，HashSet 只做成员检查，不决定最终输出顺序。
 fn dedupe(values: Vec<String>) -> Vec<String> {
     let mut seen = HashSet::<&str>::with_capacity(values.len());
     let mut accepted = Vec::with_capacity(values.len());
@@ -255,4 +266,5 @@ fn dedupe(values: Vec<String>) -> Vec<String> {
 }
 
 #[cfg(test)]
+#[path = "export_validate_report/tests/diagnostic_dedup_tests.rs"]
 mod diagnostic_dedup_tests;

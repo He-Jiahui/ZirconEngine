@@ -11,11 +11,21 @@ plan_link_mode: child_record_only
 failure_scope: cross_plan
 related_code:
   - zircon_runtime/src/scene/world/transaction/detached_entity_batch.rs
+  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/prepared.rs
+  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/preparation_owner.rs
+  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/tests.rs
+  - zircon_runtime/src/scene/world/world.rs
+  - zircon_runtime/src/scene/world/derived_state.rs
   - zircon_editor/src/core/editing/command.rs
-  - zircon_editor/src/tests/editing/node_ops.rs
+  - zircon_editor/src/tests/editing/detached_entity_batch.rs
+  - zircon_editor/src/tests/editing/node_ops/delete_history.rs
+  - zircon_editor/src/tests/editing/node_ops/multi_delete.rs
 tests:
   - cargo test -p zircon_runtime --lib detached_entity_batch --locked --jobs 1 -- --nocapture --test-threads=1
   - cargo test -p zircon_editor --lib deleting --locked --jobs 1 -- --nocapture --test-threads=1
+  - cargo test -p zircon_runtime --lib prepared_camera_subtree_managed_scale_fixture --locked --jobs 1 -- --ignored --nocapture --test-threads=1
+  - cargo test -p zircon_editor --lib deleting_all_cameras_after_capture_managed_scale_fixture --locked --jobs 1 -- --ignored --nocapture --test-threads=1
+  - cargo test -p zircon_runtime --lib detached_entity_batch_managed_scale_fixture --locked --jobs 1 -- --ignored --nocapture --test-threads=1
   - 2/128 camera subtree and 100k non-camera node scale probes
 ---
 
@@ -31,6 +41,8 @@ tests:
 ## 失败现象与复现证据
 
 当前 move-only delete capture 只在 `scene.camera_count() == 1` 且唯一 active camera 位于目标 subtree 时拒绝。如果场景有两个或更多 camera，且它们全部位于同一个待删除父 subtree，capture 会通过；Runtime detach 完成后没有 surviving camera，`active_camera` 变为 `0`，违反 Editor 的 cannot-delete-last-camera invariant。
+
+以上为 2026-08-23 原始证据。2026-09-06 核对现行源码时，capture 已有 subtree component count 修复，但 apply/redo 仍直接 detach。新增复现先 capture 合法删除，再把最后一个外部相机移入目标子树；旧 apply/redo 会跳过相机不变量。原始证据与 lifecycle key 保留。
 
 现有 `deleting_multiple_cameras_cancels_the_whole_transaction` 选择多个独立 camera root。command 逐个 capture/apply，所以最后一个 command 能观察到 `camera_count == 1`；它没有覆盖一条 subtree command 同时包含全部 camera 的路径。
 
@@ -57,4 +69,11 @@ Runtime 的 subtree prepare artifact 没有同时封存 normalized roots、affec
 
 ## 修复结果与回传
 
-Open state: Runtime08 generation-bound subtree preflight/ticket 尚未提供，Editor05/Editor03 consumer 与 managed product evidence 也尚未闭合。本记录仅修复 canonical routing/schema，不声明源码修复、Cargo green、`fixed-*` return 或完成通知。
+Open state: `generation_bound_preflight_source_complete / managed_behavior_validation_pending`。
+
+- Runtime08 Session `failure-roll-01a07160-runtime08-record` 已实现 `PreparedEntitySubtrees`；票据包含规范化根、受影响行/相机计数及全局相机计数，按 World 身份和有效 generation 消费。Clone/deserialize 不共享身份，过期或跨 World 票据在删除前 typed reject，饱和 generation 不签发票据。
+- prepare 先兑现 query 延迟 mutation，再读取层级索引；原有 immediate detach 复用同一 prepare/commit 路径，保留 move-only rows、ticks 和 observer ownership。新增 7 项常规 Runtime 回归及 2/128 cameras + 100k unrelated entities 的 ignored 受管用例。
+- Editor03 的 apply/redo 消费端由其原有 [inverse-delta failure](../../../zircon_editor/editor/03/failure-2026-08-13-detached-entity-batch-editor-inverse-delta.md) 和 Session 分别拥有，禁止把 Editor 源码并入 Runtime08 closeout。
+- Runtime 精确文件快照 `2851`，Windows 格式验证票据 `373d3bff015c42849bcf586c84978d29`，请求 `3ec7ef8ec1934c29b6d95a70f880e796`，manifest `f06be9582343cff84f6db4928cdd470069e28cca541114c019ef25a34a74d089`。票据为 `queued / validation_dependency_failed`，未执行；不以排队回执作为验收证据。
+- 本地 `rustfmt --edition 2021 --config skip_children=true --check` 覆盖 13 个 Runtime/Editor Rust 文件并通过；现有 Editor03 hardcut + EditorUI10 budget Python 合约 18/18 通过。新增 Rust 行为、1/1k/100k 性能及 F4 product gate 均尚未执行。
+- Cargo 沿用已记录的全 workspace 外部源码准入阻塞；按用户要求跳过 `zr_vm`，未重复提交已知阻塞的 Cargo 请求。继续独立 failure，保留票据等待协调器唤醒。独立审查、`failure return`、closeout SHA 与按 SHA 去重的企微通知均待完整验收后执行。

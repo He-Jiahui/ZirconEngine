@@ -3,6 +3,7 @@ use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMo
 use crate::{
     core::framework::project::ExportPackagingStrategy, plugin::CapabilityStatusManifest,
     plugin::PluginFeatureBundleManifest, plugin::PluginInterfaceManifest, plugin::PluginMaturity,
+    plugin::PluginPackageRole,
 };
 
 use super::super::RuntimePluginDescriptor;
@@ -33,6 +34,7 @@ impl RuntimePluginDescriptor {
 }
 
 impl RuntimePluginDescriptorBuilder {
+    /// 创建默认启用且非强制的运行插件描述符；模块 ID 为 package_id.runtime，初始化阶段为 Post。
     pub fn new(
         package_id: impl Into<String>,
         display_name: impl Into<String>,
@@ -69,6 +71,7 @@ impl RuntimePluginDescriptorBuilder {
                     ExportPackagingStrategy::SourceTemplate,
                     ExportPackagingStrategy::LibraryEmbed,
                 ],
+                package_role: PluginPackageRole::Production,
             },
         }
     }
@@ -172,6 +175,11 @@ impl RuntimePluginDescriptorBuilder {
         self
     }
 
+    pub fn with_package_role(mut self, package_role: PluginPackageRole) -> Self {
+        self.descriptor.package_role = package_role;
+        self
+    }
+
     pub(crate) fn package_id(&self) -> &str {
         self.descriptor.package_id()
     }
@@ -182,18 +190,5 @@ impl RuntimePluginDescriptorBuilder {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::join_string_parts;
-
-    #[test]
-    fn exact_runtime_descriptor_metadata_preserves_identity_and_description() {
-        assert_eq!(
-            join_string_parts(&["weather", ".runtime"]),
-            "weather.runtime"
-        );
-        assert_eq!(
-            join_string_parts(&["Runtime plugin module for ", "Weather"]),
-            "Runtime plugin module for Weather"
-        );
-    }
-}
+#[path = "tests/runtime_plugin_descriptor_builder.rs"]
+mod tests;

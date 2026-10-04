@@ -1,12 +1,13 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0091] 帧基础统计中的后处理诊断测试的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_render_update_base_stats_tests_are_child_owner() {
     let parent = read_runtime_src(
         "graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs",
     );
     let tests = read_runtime_src(
-        "graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats/tests.rs",
+        "graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats/tests/cases.rs",
     );
     let post_process_diagnostics = read_runtime_src(
         "graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats/post_process_diagnostics.rs",
@@ -91,7 +92,7 @@ fn runtime_15_render_update_base_stats_tests_are_child_owner() {
             parent.as_str(),
         ),
         (
-            "graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats/tests.rs",
+            "graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats/tests/cases.rs",
             tests.as_str(),
         ),
         (

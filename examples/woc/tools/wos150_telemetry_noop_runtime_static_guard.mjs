@@ -25,8 +25,8 @@ requireText(sourceServer,
   'source telemetry command is no longer an accepted no-op');
 
 const contract = JSON.parse(read('contracts', 'command_payloads.json'));
-if (contract.schema_version !== 51) {
-  throw new Error('WOS150 command payload schema must be 44');
+if (contract.schema_version !== 60) {
+  throw new Error('WOS150 command payload schema must be 60');
 }
 const telemetry = contract.entries.find((entry) => entry.id === 125 && entry.name === 'telemetry');
 if (!telemetry || telemetry.kind !== 'telemetry_numeric_fields' ||

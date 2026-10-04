@@ -25,6 +25,12 @@ fn runtime_and_plugin_modules_keep_manager_handles_under_core_manager_contracts(
     let animation_plugin_manager_source =
         std::fs::read_to_string(runtime_root.join("src/animation/manager/mod.rs"))
             .unwrap_or_default();
+    let external_animation_plugin_mod_source =
+        std::fs::read_to_string(plugin_root.join("animation/runtime/src/module.rs"))
+            .unwrap_or_default();
+    let external_animation_plugin_manager_source =
+        std::fs::read_to_string(plugin_root.join("animation/runtime/src/manager.rs"))
+            .unwrap_or_default();
     let net_mod_source =
         std::fs::read_to_string(plugin_root.join("net/runtime/src/module.rs")).unwrap_or_default();
     let net_service_source =
@@ -98,6 +104,53 @@ fn runtime_and_plugin_modules_keep_manager_handles_under_core_manager_contracts(
             "animation plugin contract should keep framework-backed manager service wiring `{required}`"
         );
     }
+
+    for (owner, module_source, manager_source) in [
+        (
+            "runtime animation manager",
+            &animation_plugin_mod_source,
+            &animation_plugin_manager_source,
+        ),
+        (
+            "plugin animation manager",
+            &external_animation_plugin_mod_source,
+            &external_animation_plugin_manager_source,
+        ),
+    ] {
+        assert!(
+            module_source.contains("FOUNDATION_MODULE_NAME"),
+            "{owner} must declare its Foundation config dependency"
+        );
+        assert!(
+            manager_source.contains("config_manager_handle"),
+            "{owner} must resolve ConfigManager through a generation-aware handle"
+        );
+        assert!(
+            manager_source.contains(".set_value("),
+            "{owner} must use ConfigManager for durable playback settings"
+        );
+        assert!(
+            !manager_source.contains(".store_config("),
+            "{owner} must not retain the CoreHandle config-write bypass"
+        );
+    }
+
+    assert!(
+        physics_plugin_mod_source.contains("FOUNDATION_MODULE_NAME"),
+        "physics plugin manager must declare its Foundation config dependency"
+    );
+    assert!(
+        physics_plugin_manager_source.contains("config_manager_handle"),
+        "physics plugin manager must resolve ConfigManager through a generation-aware handle"
+    );
+    assert!(
+        physics_plugin_manager_source.contains(".set_value("),
+        "physics plugin manager must use ConfigManager for durable settings"
+    );
+    assert!(
+        !physics_plugin_manager_source.contains(".store_config("),
+        "physics plugin manager must not retain the CoreHandle config-write bypass"
+    );
 
     for required in [
         "DefaultNetManager",

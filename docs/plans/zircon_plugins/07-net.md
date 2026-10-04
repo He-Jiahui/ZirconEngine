@@ -20,7 +20,7 @@
 <!-- Workflow topology is maintained independently from milestone output records. -->
 
 > 状态：工程化细化版 v2 · 优先级：P2 · 前置：[01 插件架构核心](01-plugin-architecture-core.md) M1–M3
-> 关联计划：`.codex/plans/ZirconEngine Net 插件完善计划.md`（M0–M7 分层路线维持有效） · 现状文档：`docs/zircon_plugins/net/{runtime,editor}.md`
+> 关联计划：`.codex/plans/ZirconEngine Net 插件完善计划.md`（M0–M7 分层路线维持有效） · 现状文档：`docs/crates/zircon_plugins/net/{runtime,editor}.md`
 
 ## 1. 目标
 

@@ -13,6 +13,7 @@ pub(in crate::text::shaping) enum BackendGlyphInvariantKind {
 }
 
 #[derive(Debug, thiserror::Error)]
+/// 直接后端错误保留 itemization/bidi、字体加载和 glyph 校验的阶段信息；回退分类器依赖这些变体而非错误字符串。
 pub(in crate::text::shaping) enum DirectShapeError {
     #[error("text itemization failed: {0}")]
     Itemization(#[from] ItemizationError),
@@ -57,6 +58,7 @@ impl From<BidiInvariantError> for DirectShapeError {
     }
 }
 
+/// 验证后端 glyph 非空、cluster 起点位于文本内且为 UTF-8 字符边界、度量有限；失败保留具体类别供回执分类。
 pub(in crate::text::shaping) fn validate_backend_glyphs<T>(
     glyphs: &[T],
     text: &str,
@@ -79,34 +81,5 @@ pub(in crate::text::shaping) fn validate_backend_glyphs<T>(
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::text::TextRange;
-    use crate::text::shaping::backend_error::BackendShapeError;
-
-    use super::DirectShapeError;
-
-    #[test]
-    fn backend_failures_retain_the_itemized_source_range() {
-        let range = TextRange { start: 4, end: 9 };
-        let face = crate::text::FontFaceId(7);
-
-        let error = DirectShapeError::backend(
-            range,
-            BackendShapeError::FaceParseFailed {
-                face,
-                face_index: 2,
-            },
-        );
-
-        assert!(matches!(
-            error,
-            DirectShapeError::Backend {
-                range: retained,
-                source: BackendShapeError::FaceParseFailed {
-                    face: retained_face,
-                    face_index: 2,
-                },
-            } if retained == range && retained_face == face
-        ));
-    }
-}
+#[path = "tests/direct_error.rs"]
+mod tests;

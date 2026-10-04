@@ -1,11 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/rhi/capabilities.rs
-  - zircon_runtime/src/rhi/descriptors/pipeline.rs
-  - zircon_runtime/src/rhi/device.rs
-  - zircon_runtime/src/rhi/device/handles.rs
-  - zircon_runtime/src/rhi_wgpu/capabilities.rs
-  - zircon_runtime/src/rhi_wgpu/device.rs
   - zircon_runtime/src/core/framework/render/backend_types/capability.rs
   - zircon_runtime/src/core/framework/render/solari/capability.rs
   - zircon_runtime/src/graphics/backend/render_backend/request_device.rs
@@ -511,7 +505,7 @@ RenderExtract / GPUScene sync
 - [ ] 写 DX12/Vulkan/Metal 映射表和 adapter conformance fixture,只测试中立输入输出,不创建原生实现。
 - [ ] 增加 RenderDoc capture marker、BLAS/TLAS build/trace pass stats、selection dump 和 device-lost diagnostics。
 - [ ] 建立 fallback 产品矩阵与有能力 GPU 的最小 triangle、动态 instance、shadow/reflection/Solari 场景。
-- [ ] 更新实际实现对应的 `docs/zircon_runtime/**` 模块文档;只记录真实落地能力,未实现 adapter 保持 future mapping。
+- [ ] 更新实际实现对应的 `docs/crates/zircon_runtime/**` 模块文档;只记录真实落地能力,未实现 adapter 保持 future mapping。
 
 **RT-M6 测试阶段:** 按 `milestone-validation-policy.md` 批量运行 RHI、render graph、pipeline compile、scene lifetime、消费者产品和 runtime diagnostics suites;有 RT GPU 时保存能力清单、graph dump、RenderDoc capture 与图像,无 RT GPU 时保存 disabled/fallback 选择报告。跨平台 conformance 只在真实 backend adapter 存在后升级为产品完成门。
 

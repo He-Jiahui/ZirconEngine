@@ -18,6 +18,8 @@ fn virtualized_range_dirty() -> UiDirtyFlags {
     }
 }
 
+/// 为属性事务选择实际受影响的派生域；组件语义优先于同名属性的通用分类。
+/// 可视窗口改变同时影响布局、命中、输入和物化范围，不能缩成一次绘制更新。
 pub(super) fn metadata_attribute_dirty(
     component: &str,
     property: &str,
@@ -322,20 +324,5 @@ fn is_layout_metadata_attribute(property: &str) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn tooltip_intro_progress_and_status_are_render_only() {
-        for (property, value_kind) in [
-            ("transition_progress", UiValueKind::Float),
-            ("transition_status", UiValueKind::String),
-        ] {
-            assert_eq!(
-                metadata_attribute_dirty("Tooltip", property, value_kind),
-                render_dirty(),
-                "tooltip intro samples must not rebuild layout, hit-test, text, or input"
-            );
-        }
-    }
-}
+#[path = "tests/metadata_dirty.rs"]
+mod tests;

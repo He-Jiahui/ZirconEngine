@@ -3,8 +3,9 @@ use crate::core::runtime::tasks::TaskPool;
 
 use crate::asset::registry::AssetRegistryIndex;
 use crate::asset::{ArtifactStore, AssetImporter};
+use crate::scene::world::SceneComponentSerializerRegistry;
 use scan_and_import::ShaderImportDependencyIndex;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use super::{
     PackageAssetRegistry, ProjectCatalogInputGeneration, ProjectManifest, ProjectPaths,
@@ -16,6 +17,7 @@ mod asset_kind;
 mod collect_files;
 mod deletion;
 mod durable_transaction;
+mod editor_document_transaction;
 mod hash_bytes;
 mod importer_access;
 mod is_meta_sidecar;
@@ -30,6 +32,11 @@ mod scan_and_import;
 mod source_mtime_unix_ms;
 mod source_path_for_uri;
 mod source_uri_for_path;
+
+pub use editor_document_transaction::{
+    EditorDocumentCommitFault, EditorDocumentCommitOutcome, EditorDocumentScope,
+    ScopedRuntimeProjectManager,
+};
 
 pub(crate) use deletion::PreparedProjectSourceDeletion;
 pub(crate) use load_or_create_meta::mint_meta_for_migration;
@@ -49,4 +56,10 @@ pub struct ProjectManager {
     artifact_store: ArtifactStore,
     shader_import_dependencies: ShaderImportDependencyIndex,
     environment_ibl_parallel_executor: Option<TaskPool>,
+    /// Provider codecs owned by this project/runtime lifecycle.
+    ///
+    /// Clones of `ProjectManager` share this state, while separate projects receive
+    /// independent registries. Scene persistence takes a snapshot from this owner
+    /// for each operation, so it never falls back to a fresh builtin registry.
+    scene_component_registry: Arc<RwLock<SceneComponentSerializerRegistry>>,
 }

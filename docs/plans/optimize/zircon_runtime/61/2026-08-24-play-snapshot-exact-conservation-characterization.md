@@ -3,8 +3,8 @@
 - Owner: `runtime61-play-snapshot-characterization-r1-f0f9ae6f-20260824`
 - Source plan: `61-runtime-scene-world-level-registry-lifecycle-project-io-snapshot-clone-serialization-schema-transaction-product-integration-review.md`
 - Findings: `RWL-P0-003`, `RWL-G03`, `RWL-P1-060`
-- Status: source characterization implemented; managed RED execution compile-blocked before the
-  target test; M0 remains partial
+- Status: the empty-snapshot restore constructor is repaired and its product-path regression is
+  enabled; the current managed validation attempt stopped before Cargo ran; M0 remains partial
 
 ## Completed in this slice
 
@@ -13,12 +13,12 @@
   requires the loaded runtime World to contain exactly zero entities.
 - The fixture root is derived from the test executable directory, so generated data remains under
   the managed Cargo target rather than the system drive.
-- Kept the test separate from the already busy shared dynamic-session test tree and left production
-  restore behavior unchanged. The expected current RED is the three entities inserted by
-  `World::new()`: Camera, DirectionalLight, and Cube.
-- Marked the characterization `#[ignore]` with an explicit M0 RED reason. It remains available for
-  direct opt-in execution without making an unfinished architecture contract part of the routine
-  library-test gate.
+- Kept the test separate from the already busy shared dynamic-session test tree. The
+  `PreparedPlaySceneKind::VersionedSnapshot` branch now creates `World::empty()` before applying
+  the snapshot, so it cannot inherit the Camera, DirectionalLight, and Cube that belong only to a
+  new-scene template. The canonical authoring-scene path retains its existing construction.
+- Enabled the characterization as a routine library test. It is now a regression for the specific
+  default-entity injection defect rather than an intentionally expected RED.
 
 This is one of the five required M0 characterization groups. It does not close `RWL-P0-003` or
 authorize the production hard cut.
@@ -27,10 +27,11 @@ authorize the production hard cut.
 
 Current `DynamicScene::spawn_into` already compiles an `EntityRemap`, validates the target World
 generation/schema/component-registry/change-tick, stages the mutation, and commits it atomically.
-The structural defect is above that transaction: `load_play_scene_level` creates a template
-`World::new()` and then appends the snapshot. The future implementation must introduce a dedicated
-runtime restore/fork artifact and an exact-conservation receipt. It must not change the general new
-scene template semantics or silently discard the remap.
+The prior structural defect above that transaction—creating a template `World::new()` and then
+appending a snapshot—has been repaired by selecting `World::empty()` exclusively for the versioned
+snapshot restore branch. The broader runtime restore/fork artifact and exact-conservation receipt
+remain required; they must not change general new-scene template semantics or silently discard the
+remap.
 
 The Unreal reference keeps the same boundary explicit: `UWorld::CreateWorld` initializes a new
 World, while PIE uses `DuplicateWorldForPIE` or package loading and then publishes the loaded World.
@@ -61,15 +62,29 @@ authoring `.scene.toml` inventory remains owned by the other M0 groups.
 | --- | --- | --- |
 | Arbitrary typed/dynamic component Save/reopen | Pending | Editor Save plus Runtime61 schema/snapshot owner |
 | Play enter/exit exact authoring conservation | Pending | Editor07 Play lifecycle plus Runtime61 runtime-fork owner |
-| Empty Play snapshot has no default entities | Source complete; managed execution compile-blocked before test | Runtime61 dynamic project startup |
+| Empty Play snapshot has no default entities | Source repaired and regression enabled; current managed execution stopped before Cargo | Runtime61 dynamic project startup |
 | Terrain/tilemap/prefab canonical roundtrip | Pending | Runtime61 scene schema/provider owner |
 | Sprite2D/Mesh2D canonical roundtrip | Pending | Runtime61 scene schema/provider owner |
 
 Writer freeze remains active: no fields were added to `World::clone`, `SceneAsset`, or the legacy JSON
-writer. Production implementation remains blocked by the four missing M0 product characterizations
-and by the unfrozen identity/schema/participant contracts.
+writer. This repair closes only default-template injection for an empty versioned Play snapshot;
+broader M0 product characterization and the unfrozen identity/schema/participant contracts remain.
 
 ## Validation evidence
+
+### 2026-09-18 targeted restore repair
+
+- Session: `astra-runtime61-play-snapshot-restore-20260918`
+- Changed `load_play_scene_level` only for `PreparedPlaySceneKind::VersionedSnapshot`, replacing
+  `World::new()` with `World::empty()` before the existing `DynamicScene::spawn_into` transaction.
+- Removed the test's M0 `#[ignore]`, making
+  `empty_versioned_play_snapshot_restores_an_exact_empty_runtime_world` a normal library test.
+- `rustfmt --edition 2021 --check` and `git diff --check` passed for the two changed Rust files.
+- Managed job `6803e9b5f9d04c2ea0f2668b33fe2927` was released with exit `1`, but produced no
+  Cargo run record (`cargo run-status` returned `cargo_run_not_found`). It therefore supplies no
+  compile or test verdict and must not be treated as either a pass or a test failure.
+
+### Historical characterization attempt
 
 The UI12 Cargo job was allowed to finish and its requested quiet window elapsed before this session
 started a Windows-native managed test job. The target and command were:

@@ -1,13 +1,12 @@
-// Source-authored M7 pet AI/command state at 20 Hz. Current-head follow and
-// target scalar decisions come from their generated rule modules; shared combat
-// RNG consumption is explicit, and lifecycle commands never draw unless
-// despawn threat cleanup must retarget a mob.
+//! 两个宠物槽位与两个敌人的固定步场景夹具；跟随与选敌复用规则叶子，
+//! 事件计数和随机流镜像用于观测，不替代世界实体、寻路与伤害所有权。
 var container = %import("zr.container");
 var rngModule = %import("kernel/rng");
 var rngObserver = %import("instances/m7_rng_observer");
 var followRules = %import("instances/pet_follow_rules");
 var targetRules = %import("instances/pet_target_rules");
 
+/// 宠物和敌人均以固定槽位的平行数组表示；敌人引用用一开始的编号，零为空，所有数组须保持构造后的对齐长度。
 class PetState {
     pub var tick: int;
     pub var ownerLevel: int;
@@ -167,6 +166,7 @@ absFloat(value: float): float {
     return value < 0.0 ? -value : value;
 }
 
+// TODO: [CR-WOC-IPS-I-0005] 确认场景夹具的近似距离是否允许用于范围边界；现有场景多为同轴坐标，缺少对角线临界样本；下一步与世界二维距离判定对照。
 distance(ax: float, az: float, bx: float, bz: float): float {
     var dx = absFloat(ax - bx);
     var dz = absFloat(az - bz);
@@ -300,6 +300,7 @@ pub revivePet(state: PetState): bool {
     return true;
 }
 
+/// 远处目标只设置等待中的手动嘲讽；成功返回可能尚未产生仇恨，实际命中与冷却由后续固定步推进。
 pub petTaunt(state: PetState, enemy: int): bool {
     if (!<bool>state.petExists[0] || <bool>state.petDead[0] || enemy < 1 || enemy > 2 ||
         !<bool>state.enemyAlive[enemy - 1] || <int>state.petTauntTicks[0] > 0) {
@@ -332,6 +333,7 @@ pub abandonPet(state: PetState, stream: rngModule.Mulberry32): bool {
     return true;
 }
 
+/// 暂存保留生命、模式与自动嘲讽，再清理敌人对旧槽位的引用；传入既有随机流以保留清理引起的重选消耗。
 pub stowPet(state: PetState, stream: rngModule.Mulberry32): bool {
     syncObservedRng(state, stream);
     if (!<bool>state.petExists[0]) { return false; }
@@ -347,6 +349,7 @@ pub stowPet(state: PetState, stream: rngModule.Mulberry32): bool {
     return true;
 }
 
+/// 仅恢复一次暂存快照到空槽位；新世代会重置战斗目标和瞬时冷却，不能把恢复当成完整战斗现场还原。
 pub restorePet(state: PetState): bool {
     if (!state.stashed || <bool>state.petExists[0]) { return false; }
     spawnPet(state, 0, state.stashKind, state.stashDemon);
@@ -521,6 +524,7 @@ updatePet(state: PetState, slot: int, stream: rngModule.Mulberry32): void {
     }
 }
 
+/// 每次推进一个五十毫秒步，按槽位顺序再处理敌方远程攻击；同一模拟过程须持续传入同一随机流，不能每步重建。
 pub tickOnce(state: PetState, stream: rngModule.Mulberry32): void {
     syncObservedRng(state, stream);
     state.tick = state.tick + 1;

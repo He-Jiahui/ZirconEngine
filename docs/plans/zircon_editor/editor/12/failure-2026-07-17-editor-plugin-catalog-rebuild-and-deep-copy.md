@@ -68,6 +68,16 @@ Open state: Editor12 已建立 generation-owned immutable catalog snapshot、pro
 report；仍待 source-bound Cargo、独立复审、native refresh publication 和 1/100/1000 scale 证据，
 不得回传 `fixed-*`。
 
+### 2026-09-01 current-source commandlet guard anchor repair
+
+The commandlet projection guard retained the pre-generic `impl Serialize for
+CommandletReport` spelling, while the production report is intentionally generic
+over the automation payload (`impl<T> Serialize for CommandletReport<T>`). The
+guard now checks the current generic implementation without changing the
+serialization contract. This is static guard maintenance only; source-bound
+Cargo, native refresh behavior, scale evidence, independent review and fixed
+return remain pending.
+
 当前 native status 依赖：Editor12 已将稳定状态读取从
 `NativePluginLoader.load_discovered_all` 降为 discovery authority 的 last-good report 投影，因而不再在 pane
 recompute 中加载 DLL 或执行 entry callback；但 cold root 的 `discover()` 仍会调度并等待 refresh，且会物化 owned
@@ -273,3 +283,22 @@ report。该剩余根因已由 Plugins01 的
 - The committed Editor module factory upgrades its weak core handle into an owned local `CoreHandle`, then passes `&core` to the fallible `EditorManager::new` constructor. The admission guard still asserted the pre-upgrade call spelling and failed despite preserving the same recoverable `CoreError` path.
 - The guard now asserts `EditorManager::new(&core)?`. The referenced call shape was verified directly in the `HEAD` blob before editing, so the repair does not depend on concurrent changes to `ui/host/module.rs`.
 - This is static guard maintenance only. Managed Cargo, the declared scale evidence, independent review, failure return, and terminal integration remain outstanding; this failure stays `open`.
+
+### 2026-09-25 current-source rolling reconciliation (Editor12 owner)
+
+- Session `failure-roll-01a084c8-editor12-plugin-catalog-r2` owns this reconciliation. Snapshot `3812` seals the seven current related-code paths below; no source edits were made in this pass:
+  - `zircon_editor/src/core/plugin/manager.rs` — `6f93218f5bc90070847fea069f1c137918c2dd0c75db6c9aeefc7e3073ae7f7d`
+  - `zircon_editor/src/core/plugin/manager/lifecycle_replacement.rs` — `c193c370880f37c7cbb5580c83e3d9d7e0886c9c8e986c920ababb673c7bc95b`
+  - `zircon_editor/src/ui/host/editor_manager_plugins_export/mod.rs` — `26ce7b1d5d146b73af19923fafa35fe48e971aecf9a896ca60c6d20b1fa4aa9b`
+  - `zircon_editor/src/ui/host/editor_manager_plugins_export/status/native.rs` — `4642380549e2d2a23e7a4fb8fde460534578a05edfc5859483dff6ad291e6d99`
+  - `zircon_editor/src/ui/host/editor_manager_plugins_export/enablement/native.rs` — `1971b5857e7d33e41fde682eebe18735ec3f2bc82e503533912b8afe4f65f82e`
+  - `zircon_editor/src/ui/retained_host/app/module_plugin_projection/pane_data.rs` — `0d983ddf75f116fe25c68c1b7acee36344f30b137023f39576e9036ae776a1d9`
+  - `zircon_editor/src/ui/retained_host/app/module_plugin_projection/pane_data/report.rs` — `c06a80572ec024222510e2bef1648705198ada5e7afb1499ae684ed36c38cb06`
+- The three export files (`editor_manager_plugins_export/{mod.rs,status/native.rs,enablement/native.rs}`) are already dirty in the shared checkout and remain foreign provenance; their existing changes are not absorbed or rewritten. `git diff --check` reports no whitespace errors (only normal LF→CRLF warnings). `rustfmt +1.94.1 --edition 2024 --config skip_children=true --check` was executed against all seven paths but returns non-zero on pre-existing import ordering and formatting differences in `manager.rs`, `lifecycle_replacement.rs`, `editor_manager_plugins_export/mod.rs`, and `enablement/native.rs`; this is recorded as a formatting gate, not treated as passing evidence.
+- Current static contract evidence is green and exact: `python -X utf8 tools/tests/test_editor12_plugin_manager_contract.py` (`24/24`), `test_editor12_plugin_catalog_store_contract.py` (`11/11`), `test_editor12_plugin_catalog_projection_contract.py` (`3/3`), and `test_editor12_plugin_admission_contract.py` (`5/5`). Source inspection confirms manager/catalog consumers use the generation-owned `Arc<EditorPluginCatalogSnapshot>`, project status publication is centralized through `publish_project_plugin_status_from_load_report`, and retained pane projection is snapshot-owned; stable reads do not add a new discovery/load path.
+- This reconciliation does not establish source-bound Cargo, native refresh behavior, 1/100/1000 scale counts/clone bytes/p95, or upward Runtime11/Plugins01 gates. Managed Windows Cargo, the formatting gate, independent review, `fixed-*` return, closeout, and WeCom remain pending; the failure remains `open`/`resolving_failure`.
+
+### 2026-09-25 independent static review receipt
+
+- Reviewer `review_editor03_gizmo_private` independently checked snapshot `3812`, all seven manifest hashes, the three foreign-dirty export paths, generation-owned `Arc` snapshot reads, centralized mutation publication, and the four exact static contract commands. Result: Critical/Important/Moderate = `0/0/0`.
+- The reviewer explicitly confirmed that the existing rustfmt import-order/line-wrap drift remains a non-passing formatting gate and that no Cargo, native refresh, scale, fixed return, or closeout evidence was inferred.

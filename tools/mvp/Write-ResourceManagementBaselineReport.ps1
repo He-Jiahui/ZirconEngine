@@ -9,7 +9,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-Import-Module (Join-Path $repoRoot 'tools\WindowsPathResolver.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $repoRoot 'tools\maintenance\WindowsPathResolver.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpArtifactStoragePolicy.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'ResourceManagementJsonEvidence.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'ResourceManagementSchema.psm1') -ErrorAction Stop

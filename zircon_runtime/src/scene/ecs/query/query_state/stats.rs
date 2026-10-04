@@ -76,6 +76,7 @@ impl QueryStateCacheStats {
         ]
     }
 
+    // 累计计数取饱和增量；四个数量快照仅在有查询活动时携带，代际值仍保留当前值。
     pub fn saturating_delta_since(self, baseline: Self) -> Self {
         let cache_hits = self.cache_hits.saturating_sub(baseline.cache_hits);
         let cache_misses = self.cache_misses.saturating_sub(baseline.cache_misses);
@@ -144,7 +145,7 @@ impl QueryStateCacheStats {
 }
 
 fn record_count(store: &mut DiagnosticStore, path: &'static str, frame_index: u64, value: f64) {
-    store.record(path, frame_index, value, Some("count"), ["ecs", "query"]);
+    store.record_static(path, frame_index, value, Some("count"), &["ecs", "query"]);
 }
 
 impl<D, F> QueryState<D, F> {

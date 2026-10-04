@@ -1,6 +1,8 @@
+//! 输入动作、手柄、宿主请求与公共契约保持由运行时输入栈拥有。对照源文件与文档的当前锚点，记录尚待运行验证的结构约束。
 #[test]
 fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
-    let input_doc = include_str!("../../../../../../docs/zircon_runtime/input/input_state.md");
+    let input_doc =
+        include_str!("../../../../../../docs/crates/zircon_runtime/input/input_state.md");
     let closeout = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/12/2026-07-17-m5-input-event-bounds-current-source-closeout.md"
     );
@@ -60,7 +62,8 @@ fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
 
 #[test]
 fn runtime_12_input_stack_cargo_pending_gate_stays_explicit_until_input_validation() {
-    let input_doc = include_str!("../../../../../../docs/zircon_runtime/input/input_state.md");
+    let input_doc =
+        include_str!("../../../../../../docs/crates/zircon_runtime/input/input_state.md");
 
     assert!(
         input_doc.contains("Runtime 12 managed Cargo gates remain pending"),

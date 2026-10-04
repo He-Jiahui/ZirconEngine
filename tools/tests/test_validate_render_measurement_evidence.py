@@ -1,3 +1,4 @@
+# 核对渲染测量证据的产物、样本窗口与统计约束。
 import json
 import binascii
 import struct
@@ -7,7 +8,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from tools.validate_render_measurement_evidence import (
+from tools.analysis.validation.validate_render_measurement_evidence import (
     RENDER_MEASUREMENT_EVIDENCE_SCHEMA,
     validate_render_measurement_evidence,
 )

@@ -1,3 +1,4 @@
+//! 状态机被打断时保留刚采样的源姿态，后续交叉淡入以该姿态连续起步；实例退场时撤销记录。
 use std::collections::btree_map::Entry;
 use std::collections::BTreeSet;
 use std::sync::Arc;
@@ -8,7 +9,7 @@ use zircon_runtime::core::framework::animation::AnimationPoseOutput;
 use zircon_runtime::scene::EntityId;
 
 #[cfg(test)]
-#[path = "interrupted_transition_source/performance_tests.rs"]
+#[path = "interrupted_transition_source/tests/performance_tests.rs"]
 mod optimization_batch_20260830cq_tests;
 
 #[derive(Clone, Debug)]
@@ -19,6 +20,7 @@ pub(super) struct InterruptedTransitionSource {
 }
 
 impl AnimationEvaluationPipeline {
+    /// 保存中断发生点的混合姿态；帧事务调用者负责记录旧值，以便事件延期时回滚。
     pub(super) fn record_interrupted_transition_source(
         &mut self,
         instance: MachineInstanceKey,

@@ -2,7 +2,7 @@ use super::super::*;
 use crate::core::editing::engine::HistoryContextId;
 use crate::core::editor_event::SelectionHostEvent;
 use crate::core::editor_message::{EditorMessagePayload, EditorTopic, TOPIC_SCENE_INSPECTION};
-use crate::core::project::{NewProjectDraft, NewProjectTemplate, ProjectAuthority};
+use crate::core::project::{NewProjectDraft, ProjectAuthority, ProjectTemplateId};
 use crate::ui::workbench::project::EditorProjectDocument;
 use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -80,15 +80,18 @@ fn save_project_marks_the_transaction_history_only_after_persisting_the_world() 
         .parent()
         .expect("temporary project root should have a parent");
     ProjectAuthority::default()
-        .create_project(&NewProjectDraft {
-            project_name: root
-                .file_name()
-                .expect("temporary project root should have a name")
-                .to_string_lossy()
-                .into_owned(),
-            location: location.to_string_lossy().into_owned(),
-            template: NewProjectTemplate::RenderableEmpty,
-        })
+        .create_project(
+            &NewProjectDraft {
+                project_name: root
+                    .file_name()
+                    .expect("temporary project root should have a name")
+                    .to_string_lossy()
+                    .into_owned(),
+                location: location.to_string_lossy().into_owned(),
+                template: ProjectTemplateId::RenderableEmpty,
+            },
+            &crate::tests::support::test_project_creation_provenance(),
+        )
         .expect("renderable template project should be created");
 
     {
@@ -120,8 +123,6 @@ fn save_project_marks_the_transaction_history_only_after_persisting_the_world() 
                         .find(|node| node.kind == NodeKind::Cube)
                         .map(|node| node.id)
                 })
-                .expect("default world gateway should succeed")
-                .flatten()
                 .expect("renderable template should contain a cube")
         };
         runtime

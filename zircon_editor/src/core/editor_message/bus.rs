@@ -133,7 +133,7 @@ impl EditorMessageBus {
                 message,
             ));
         };
-        let targets = subscribers.iter().copied().collect::<Vec<_>>();
+        let targets = collect_dispatch_targets(&self.inboxes, subscribers.iter().copied());
         self.prepare_dispatch(EditorMessageProtocol::Publish, topic, message, targets)
     }
 
@@ -142,7 +142,7 @@ impl EditorMessageBus {
         topic: EditorTopic,
         message: EditorMessage,
     ) -> Result<EditorMessageDispatchPlan, (EditorMessageDispatchReport, EditorMessage)> {
-        let targets = self.subscribers.keys().copied().collect::<Vec<_>>();
+        let targets = collect_dispatch_targets(&self.inboxes, self.subscribers.keys().copied());
         self.prepare_dispatch(EditorMessageProtocol::Broadcast, topic, message, targets)
     }
 
@@ -294,7 +294,7 @@ impl EditorMessageBus {
         protocol: EditorMessageProtocol,
         topic: EditorTopic,
         message: EditorMessage,
-        targets: Vec<EditorSubscriberId>,
+        targets: Vec<EditorMessageDispatchTarget>,
     ) -> Result<EditorMessageDispatchPlan, (EditorMessageDispatchReport, EditorMessage)> {
         let Some(sequence) = self.allocate_delivery_sequence() else {
             return Err((
@@ -307,7 +307,7 @@ impl EditorMessageBus {
             ));
         };
         let delivery = EditorMessageDelivery::with_sequence(protocol, topic, message, sequence);
-        Ok(self.dispatch_plan(delivery, targets))
+        Ok(EditorMessageDispatchPlan { delivery, targets })
     }
 
     fn dispatch_plan(
@@ -315,13 +315,7 @@ impl EditorMessageBus {
         delivery: EditorMessageDelivery,
         targets: impl IntoIterator<Item = EditorSubscriberId>,
     ) -> EditorMessageDispatchPlan {
-        let targets = targets
-            .into_iter()
-            .filter_map(|subscriber| {
-                self.inbox_handle(subscriber)
-                    .map(|inbox| EditorMessageDispatchTarget { subscriber, inbox })
-            })
-            .collect();
+        let targets = collect_dispatch_targets(&self.inboxes, targets);
         EditorMessageDispatchPlan { delivery, targets }
     }
 
@@ -348,6 +342,21 @@ impl EditorMessageBus {
     pub(crate) fn set_next_delivery_sequence_for_test(&mut self, value: u64) {
         self.next_delivery_sequence = value;
     }
+}
+
+fn collect_dispatch_targets(
+    inboxes: &BTreeMap<EditorSubscriberId, Arc<Mutex<EditorMessageInbox>>>,
+    targets: impl IntoIterator<Item = EditorSubscriberId>,
+) -> Vec<EditorMessageDispatchTarget> {
+    let targets = targets.into_iter();
+    let mut dispatch_targets = Vec::with_capacity(targets.size_hint().1.unwrap_or_default());
+    dispatch_targets.extend(targets.filter_map(|subscriber| {
+        inboxes
+            .get(&subscriber)
+            .cloned()
+            .map(|inbox| EditorMessageDispatchTarget { subscriber, inbox })
+    }));
+    dispatch_targets
 }
 
 pub(super) struct EditorMessageDispatchPlan {
@@ -404,6 +413,7 @@ impl EditorMessageDispatchPlan {
         if !report.backpressured.is_empty() {
             return report;
         }
+        report.delivered.reserve_exact(self.targets.len());
         for (target, inbox) in self.targets.iter().zip(inboxes.iter_mut()) {
             let outcome = inbox.enqueue(self.delivery.clone());
             debug_assert!(matches!(outcome, EditorMessageInboxEnqueue::Enqueued));
@@ -593,3 +603,7 @@ impl fmt::Display for EditorMessageBusError {
 }
 
 impl std::error::Error for EditorMessageBusError {}
+
+#[cfg(test)]
+#[path = "tests/bus_optimization_tests.rs"]
+mod optimization_tests;

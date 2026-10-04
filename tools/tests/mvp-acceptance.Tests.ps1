@@ -121,6 +121,8 @@ Assert-True ($acceptanceSource -match 'MvpDatePreservingJson\.psm1' -and $accept
 Assert-True ($acceptanceSource -match '\$entry = ConvertFrom-MvpJsonText -Json \$line') 'MVP acceptance must preserve UTC timestamp lexemes while reading process journal JSONL.'
 Assert-True ($acceptanceSource -match '\[IO\.StreamReader\]::new\(' -and $acceptanceSource -match '\$reader\.ReadLine\(\)' -and $acceptanceSource -notmatch '\$lines = @\(Get-Content -LiteralPath \$journalPath') 'MVP acceptance process journal reads must stream strict UTF-8 lines instead of materializing the whole JSONL file.'
 Assert-True ($acceptanceSource -notmatch '\^\[D-F\]:' -and $acceptanceSource -notmatch '[D-F]:\\ZirconBuilds') 'MVP acceptance must not duplicate physical artifact-root literals.'
+Assert-True ($acceptanceSource -match 'System\.Private\.Windows\.GdiPlus' -and $acceptanceSource -match 'System\.Private\.Windows\.Core') 'MVP acceptance must include split Windows drawing assemblies when the runtime requires them.'
+Assert-True ($acceptanceSource -match '\[Reflection\.Assembly\]::Load\(\$assemblyName\)') 'MVP acceptance must resolve optional drawing support assemblies through the runtime loader.'
 Assert-True ($acceptanceSource -match '\$decoderPath = \(Resolve-ZirconWindowsPath -Path \$Path\)\.DisplayPath') 'MVP acceptance PNG decoding must use the resolver display path at the System.Drawing API boundary.'
 Assert-True ($acceptanceSource -match 'ZirconMvpAcceptancePngEvidence\]::Inspect\(\$decoderPath\)') 'MVP acceptance PNG decoding must pass the display path to System.Drawing.'
 Assert-True ($acceptanceSource -notmatch '\(Resolve-Path -LiteralPath \$candidate\)\.Path') 'MVP acceptance evidence files must not fall back to PowerShell provider path resolution.'
@@ -335,7 +337,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 # The nested fixtures reload their private resolver dependencies. Keep the command that this
 # top-level fixture invokes directly in the caller scope, matching the production driver.
-Import-Module (Join-Path $PSScriptRoot '..\WindowsPathResolver.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot '..\common\WindowsPathResolver.psm1') -Force -ErrorAction Stop
 
 function ConvertTo-FixtureDiagnosticToken {
     param([Parameter(Mandatory)][string]$Value)

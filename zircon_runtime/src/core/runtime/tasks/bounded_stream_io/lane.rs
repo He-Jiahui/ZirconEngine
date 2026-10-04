@@ -33,7 +33,7 @@ impl BoundedStreamIoLane {
         }
         let reader_capacity = limits
             .max_concurrent_readers
-            .min(runtime.worker_pool().parallelism());
+            .min(runtime.task_pool(TaskPoolKind::Io).parallelism());
         let scope = runtime.create_scope(
             TaskGraphScopeDescriptor::new(owner).with_task_capacity(reader_capacity),
         )?;
@@ -61,6 +61,7 @@ impl BoundedStreamIoLane {
         self.scope.census()
     }
 
+    /// 先一次性预留本次所有 reader permit，再逐个接纳任务；ReaderStartGate 让部分提交失败时已接纳 reader 仍不会开始读。
     pub fn capture(
         &self,
         readers: Vec<BoundedStreamIoReader>,

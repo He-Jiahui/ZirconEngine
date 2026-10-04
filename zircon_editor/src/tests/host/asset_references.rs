@@ -27,7 +27,7 @@ use zircon_runtime_interface::resource::ResourceScheme;
 
 use crate::core::document::AuthoringSceneInstaller;
 use crate::core::project::{
-    NewProjectDraft, NewProjectTemplate, ProjectAuthority, SceneCreateRequest,
+    NewProjectDraft, ProjectAuthority, ProjectTemplateId, SceneCreateRequest,
 };
 use crate::core::recovery::ProjectSessionEffect;
 use crate::tests::support::env_lock;
@@ -108,11 +108,14 @@ fn create_scene_document_refreshes_editor_assets_before_document_publication() {
     )
     .unwrap();
     let created = ProjectAuthority::default()
-        .create_project(&NewProjectDraft {
-            project_name: "Scene Catalog".to_string(),
-            location: project_root.to_string_lossy().into_owned(),
-            template: NewProjectTemplate::RenderableEmpty,
-        })
+        .create_project(
+            &NewProjectDraft {
+                project_name: "Scene Catalog".to_string(),
+                location: project_root.to_string_lossy().into_owned(),
+                template: ProjectTemplateId::RenderableEmpty,
+            },
+            &crate::tests::support::test_project_creation_provenance(),
+        )
         .unwrap();
     let root = created.root.clone();
     drop(created);
@@ -499,6 +502,7 @@ fn scene_asset() -> SceneAsset {
             terrain: None,
             tilemap: None,
             prefab_instance: None,
+            components: Vec::new(),
             script_bindings: Vec::new(),
         }],
     }

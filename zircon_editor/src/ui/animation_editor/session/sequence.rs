@@ -1,7 +1,7 @@
 use zircon_runtime::core::framework::animation::AnimationTrackPath;
 
-use super::AnimationEditorSession;
 use super::support::{clamp_timeline_span, frame_to_seconds};
+use super::AnimationEditorSession;
 
 impl AnimationEditorSession {
     /// Source replay can invalidate a UI-only selection. Keep the transient cursor detached from
@@ -47,9 +47,10 @@ impl AnimationEditorSession {
             return;
         };
         if let Some((selected_track_path, start_frame, end_frame)) = sequence.selected_span.clone()
-            && selected_track_path == *from_track_path
         {
-            sequence.selected_span = Some((to_track_path.clone(), start_frame, end_frame));
+            if selected_track_path == *from_track_path {
+                sequence.selected_span = Some((to_track_path.clone(), start_frame, end_frame));
+            }
         }
     }
 

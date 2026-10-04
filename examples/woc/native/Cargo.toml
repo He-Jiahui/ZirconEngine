@@ -22,7 +22,12 @@ serde_json = "1.0.149"
 sha2 = "0.10.9"
 thiserror = "2.0.18"
 toml = "1.1.2"
+tempfile = "3"
 woc_contract_codegen = { path = "crates/woc_contract_codegen" }
 woc_parity = { path = "crates/woc_parity" }
 woc_protocol = { path = "crates/woc_protocol" }
 woc_runtime = { path = "plugins/woc_runtime" }
+zircon_runtime = { path = "../../../zircon_runtime", default-features = false, features = ["script"] }
+zircon_plugin_zr_vm_language_runtime = { path = "../../../zircon_plugins/zr_vm_language/runtime", features = ["backend-zr-vm"] }
+zr_vm_rust_binding = { path = "../../../../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding" }
+zr_vm_rust_binding_sys = { path = "../../../../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding_sys" }

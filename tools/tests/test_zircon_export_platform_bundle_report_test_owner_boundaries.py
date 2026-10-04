@@ -8,11 +8,11 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PLATFORM_BUNDLE_REPORT_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_pipeline_report_platform_bundle.py"
+    REPO_ROOT / "tools/export/tests/test_pipeline_report_platform_bundle.py"
 )
 NATIVE_PAYLOAD_REPORT_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_pipeline_report_platform_bundle_native_plugins_payload.py"
+    / "tools/export/tests/test_pipeline_report_platform_bundle_native_plugins_payload.py"
 )
 
 NATIVE_PAYLOAD_TEST_METHODS = (

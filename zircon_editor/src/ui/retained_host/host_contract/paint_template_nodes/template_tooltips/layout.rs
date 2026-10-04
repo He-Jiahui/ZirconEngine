@@ -1,3 +1,5 @@
+//! 气泡宽度由 runtime 文字度量决定，并受作者容器与主题宽度上限约束；绘制保留已有分数 DPI 坐标。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::metrics::tooltip_metrics;
 use super::text::{tooltip_body, tooltip_title};
@@ -26,6 +28,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn frame_i
         && inner.y + inner.height <= outer.y + outer.height
 }
 
+/// 使用与文本绘制相同的修剪后内容计算气泡；有正文和只有标题分别消费不同高度。
+/// layout_offset 只移动气泡，调用方还要检查结果仍被完整 tooltip 容器包含。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tooltip_bubble_rect(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
@@ -78,21 +82,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn paint_r
 }
 
 #[cfg(test)]
-mod fractional_geometry_tests {
-    use super::*;
-
-    #[test]
-    fn tooltip_paint_rect_preserves_fractional_post_dpi_geometry() {
-        let rect = paint_rect(&FrameRect {
-            x: 14.25,
-            y: 19.5,
-            width: 176.75,
-            height: 64.25,
-        });
-
-        assert_eq!(rect.x, 14.25);
-        assert_eq!(rect.y, 19.5);
-        assert_eq!(rect.width, 176.75);
-        assert_eq!(rect.height, 64.25);
-    }
-}
+#[path = "tests/layout_fractional_geometry_tests.rs"]
+mod fractional_geometry_tests;

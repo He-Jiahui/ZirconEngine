@@ -10,6 +10,7 @@ use super::component_support;
 
 const TYPE_PATH: &str = "zircon_runtime::scene::components::ActiveInHierarchy";
 
+// 有效启用状态由层级传播生成，反射只允许观察；修改时应写 ActiveSelf 或调整父子关系。
 pub(super) fn registration() -> Result<RuntimeTypeRegistration, ReflectError> {
     derived_component_registration_with_adapter::<ActiveInHierarchy>(
         ReflectComponent::new(TYPE_PATH, contains, read_field, write_field, remove)
@@ -113,5 +114,8 @@ fn write_fields_by_slot(
 }
 
 fn remove(world: &mut World, entity: EntityId, _type_path: &str) -> Result<bool, ReflectError> {
-    component_support::remove::<ActiveInHierarchy>(world, entity, TYPE_PATH)
+    component_support::get::<ActiveInHierarchy>(world, entity, TYPE_PATH)?;
+    Err(ReflectError::NonRemovableComponent {
+        type_path: TYPE_PATH.to_string(),
+    })
 }

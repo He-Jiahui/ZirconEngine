@@ -8,9 +8,9 @@ use super::render::ScreenSpaceUiVertex;
 use super::screen_space_ui_renderer::ScreenSpaceUiRenderer;
 use super::text::ScreenSpaceUiTextSystem;
 use crate::graphics::GraphicsError;
-use crate::text::font::FontCollectionService;
 #[cfg(test)]
 use crate::text::font::shared_font_collection_service;
+use crate::text::font::FontCollectionService;
 
 const SCREEN_SPACE_UI_SHADER: &str = include_str!("shaders/screen_space_ui.wgsl");
 
@@ -107,6 +107,7 @@ impl ScreenSpaceUiRenderer {
             pipeline,
             vertex_segments: Vec::new(),
             vertex_buffer_plan: None,
+            vertex_buffer_generation: None,
             image_system,
             plan_cache: Default::default(),
             text_system,

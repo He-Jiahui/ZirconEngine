@@ -47,7 +47,6 @@ related_code:
   - zircon_runtime/src/bin/zircon_font_sdf_bake/main.rs
   - zircon_runtime/tests/runtime_text_sdf_offline_artifact.rs
   - zircon_app/src/entry/engine_entry.rs
-  - zircon_runtime/src/scene/dynamic_scene/session/io/path.rs
   - zircon_runtime/src/scene/dynamic_scene/session/io/reader
   - zircon_editor/src/core/context/builder.rs
   - zircon_editor/src/core/settings/persistence.rs
@@ -67,7 +66,6 @@ related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_markdown.py
   - tools/tests/test_runtime_job_system_audit.py
   - tools/tests/test_runtime_11_native_plugin_discovery_contract.py
-  - tests/acceptance/runtime-job-system-audit-owner-sync.md
   - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Tasks/Task.h
   - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Tasks/Pipe.h
   - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Tasks/TaskConcurrencyLimiter.h
@@ -141,15 +139,16 @@ unchanged.
 
 把 runtime 的并行执行底座从"三池 + 三原语 + 多处旁路"升级为带**依赖图、句柄、同步点、数据并行原语**的统一 JobSystem——任务模型对照 Unity C# Job System（JobHandle / 依赖链 / Complete 同步点 / IJobParallelFor），调度实现对照 UE5 Tasks System（`Tasks::FTask` 前置依赖、`FPipe` 串行管道、`FTaskConcurrencyLimiter`、worker 本地队列 + 窃取）。**证据优先原则继承 07：每一步结构升级必须有消费方需求或计数证据，不做投机调度器**。
 
-### 2026-08-27 单一 TaskGraph worker owner 状态
+### 2026-09-02 单一 TaskGraph 生命周期 owner 状态
 
-Runtime11 已在源码层把三物理池 `ExecutionRuntime` 硬切为
-`tasks/task_graph/EngineTaskGraph`。每个 CoreRuntime 现在只创建一个精确 1/2/N
-预算的 `zircon-taskgraph-worker` set；Core `task_pools()/task_pool(kind)` selector、
-旧 public 类型、旧路径和兼容 alias 均已删除。默认 JobScheduler 与 asset、platform、
-graphics、scene、VM discovery、dynamic archive、PBR viewer 和 editor settings 产品
-调用面复用同一 worker owner。`TaskGraphWorkerInventory` 的当前合同为一个 worker set
-和精确 worker 数，不再报告三个物理 work-kind domain。
+Runtime11 已在源码层把分散的执行生命周期硬切为
+`tasks/task_graph/EngineTaskGraph`。每个 CoreRuntime 在一个总预算内创建 `Io`、
+`AsyncCompute` 与 `Compute` 三个物理域，并由同一 TaskGraph 统一 admission、callback
+dispatcher、scope drain 与 close/join；`TaskDescriptor.kind` 以 O(1) 选择对应域。
+默认 JobScheduler 与 asset、platform、graphics、scene、VM discovery、dynamic archive、
+PBR viewer 和 editor settings 产品调用面复用这一生命周期 owner。
+`TaskGraphWorkerInventory` 的当前合同报告三个域及其守恒 worker 总数，不存在第二套
+CoreRuntime worker 生命周期或兼容 alias。
 
 dynamic session 的关闭顺序同步修正为 session scope 停止 admission 并排空、module
 cleanup、最后 TaskGraph close/join，避免 module cleanup 在 scheduler 已停止后运行。
@@ -212,7 +211,7 @@ cleanup、最后 TaskGraph close/join，避免 module cleanup 在 scheduler 已�
 
 #### 切片 0.1 消费方需求清单与模型选型
 
-- 目标文件：`docs/zircon_runtime/core/job_system.md`（新建；挂 `docs/zircon_runtime/` 索引）。
+- 目标文件：`docs/crates/zircon_runtime/core/job_system.md`（新建；挂 `docs/crates/zircon_runtime/` 索引）。
 - 改动形态：纯文档。两部分：
   - **消费方需求矩阵**（实测五消费方逐行）：ECS 并行批次（需要：批次间依赖、批内 fork-join、失败传播）、graphics 剔除 parallel_frustum（需要：parallel_for、每帧低开销）、asset 解码（需要：IO 池、长任务不占 compute、完成通知——已有 channel 形态）、animation/navigation 等模块系统（执行时盘点：Grep `JobScheduler|TaskPool`，path `zircon_runtime/src`，列实际用法）、未来物理（01-M3 决策后的 fixed-step 内并行，预留行）。
   - **模型选型判词**（对照表三列：Unity 语义 / UE 实现 / 本仓决策）：
@@ -378,8 +377,10 @@ scope registration 已改为最后一个 live owner 释放时自动注销，图�
 底层 pool 现区分外部 admission 与已接受工作的 continuation：提交租约贯穿依赖等待、
 实际执行和终态 callback，shutdown 在拒绝新任务后等待租约归零再释放/join worker。
 该切片修复关闭竞态与 owner 析构位置，不作为吞吐、功耗或最终算法性能结论。
-更新后的 `job_system_boundary` 为 owner 22/22、行为锚点 73/73、direct-Rayon
-白名单 2/2、缺失 API/声明/模块 0、超限 owner 0、runtime→editor 依赖 0、`risks=[]`。
+更新后的 `job_system_boundary` 为 `expected_module_count = 22`、
+`behavior_test_anchor_count = 77`、owner 22/22、行为锚点 77/77、direct-Rayon
+白名单 2/2、缺失 API/声明/模块 0、runtime→editor 依赖 0；当前唯一风险是 foreign-owned
+`core/runtime/tasks/report.rs` 617 行，未被本生命周期静默豁免。
 `DefaultLevelManager::default()` 同步收敛为纯内存 owner；artifact save 只有
 `SceneModule::with_core` 注入 TaskGraph worker 后可 admission，无 owner 时在序列化和文件系统
 工作前返回 typed `RuntimeUnavailable`，不再进入 process-default pool。
@@ -391,6 +392,17 @@ full-compute pool 的 3 个站点已归零，无调用的 Solari 隐式 owner �
 fixture 均从其保留的 CoreRuntime TaskGraph 注入 owner。该结构结果不代表渲染耗时或功耗改善。
 受管 Cargo、独立 review、1/2/N 与 1/1k/100k task matrix、F0/F2/F4
 current-source WPR/RSS/功耗仍待执行，未达到 accepted milestone，未提交、未发送企微。
+
+2026-09-02 current-source 补记：`TaskGraphScope` 的 public task admission 已硬切为
+`submit` / `submit_after` 两个 canonical 入口；两者都由 graph 根据 `TaskDescriptor.kind`
+选择物理执行域，再进入同一 scheduler-backed admission、terminal publication 与 scope
+retirement 管线。caller-injected `schedule` / `schedule_after`、`SchedulerOwnerMismatch` 和
+`scheduler_admission` 命名均已删除，dynamic-scene scoped loader 已迁入该单一路径。
+direct dependency failure 固定为 dependent `Failed` 且不运行用户闭包；
+`TaskHandle::wait_all(&[TaskHandle])` 是 admitted work 的 canonical 多句柄同步点，并由
+64-wide fan-in 回归覆盖。精确 Rustfmt 检查、diff check、旧入口扫描和 JobSystem Python
+结构测试 4/4、77/77 行为锚点通过；managed Cargo、allocator/WPR、RSS/功耗仍 pending，
+因此只记 `source_complete_validation_pending`，保持 `in_progress`，不构成可提交里程碑。
 
 - implementation-pending-validation：[task-diagnostics-editor-log-source-bridge](11/failure-2026-08-05-task-diagnostics-editor-log-source-bridge.md)；已实现 256 条保留、64 条单批、4 KiB UTF-8 安全消息上限、typed identity/cursor、panic/error 与 cancel/warning 映射、EditorLog 单一投影和重复 pump 去重，Cargo/独立验收未执行。
 

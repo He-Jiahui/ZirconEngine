@@ -1,3 +1,4 @@
+//! 聚合独立内核合同测试，供 kernel/test_main 依次映射失败码；不持有产品世界状态。
 pub generationReuse(): int {
     var entityModule = %import("kernel/entity");
     return entityModule.generationReuseTest();

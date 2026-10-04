@@ -30,6 +30,7 @@ class EditorZuiInspectorFilterContractTests(unittest.TestCase):
                 "inspector_header",
                 "inspector_filter_row",
                 "inspector_content",
+                "inspector_add_component",
             ],
             [child["node"] for child in nodes["inspector_panel"]["children"]],
         )
@@ -46,6 +47,7 @@ class EditorZuiInspectorFilterContractTests(unittest.TestCase):
         ]
         self.assertNotIn("inspector_title", scrolling_children)
         self.assertNotIn("inspector_filter_row", scrolling_children)
+        self.assertNotIn("inspector_add_component", scrolling_children)
         self.assertIn("inspector_filter_empty", scrolling_children)
 
     def test_filter_is_a_value_bound_search_field_with_edit_and_commit_routes(self):

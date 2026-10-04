@@ -9,11 +9,18 @@ pub const RUNTIME_FOREIGN_OUTPUT_JSON_MAX_NESTING_DEPTH: usize =
     ZR_RUNTIME_JSON_MAX_NESTING_DEPTH_V1;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum RuntimeForeignOutputPreflight {
+    None,
+    ProfileFiles,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RuntimeForeignOutputBudget {
     pub(super) max_encoded_bytes: usize,
     pub(super) max_items: usize,
     pub(super) max_decode_time: Duration,
     pub(super) allow_empty: bool,
+    pub(super) preflight: RuntimeForeignOutputPreflight,
 }
 
 impl RuntimeForeignOutputBudget {
@@ -23,6 +30,7 @@ impl RuntimeForeignOutputBudget {
             max_items: limit.max_items,
             max_decode_time: Duration::from_micros(limit.max_processing_time_micros),
             allow_empty: limit.allow_empty,
+            preflight: RuntimeForeignOutputPreflight::None,
         }
     }
 
@@ -36,11 +44,17 @@ impl RuntimeForeignOutputBudget {
             max_items,
             max_decode_time,
             allow_empty: false,
+            preflight: RuntimeForeignOutputPreflight::None,
         }
     }
 
     pub const fn allow_empty(mut self) -> Self {
         self.allow_empty = true;
+        self
+    }
+
+    pub(super) const fn preflight_profile_files(mut self) -> Self {
+        self.preflight = RuntimeForeignOutputPreflight::ProfileFiles;
         self
     }
 

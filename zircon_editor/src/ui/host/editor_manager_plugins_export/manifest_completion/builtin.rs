@@ -10,7 +10,7 @@ use super::super::super::editor_manager::EditorManager;
 use super::super::package_projection::{module_crate, project_selection_from_package};
 
 #[cfg(test)]
-#[path = "builtin/package_index_tests.rs"]
+#[path = "builtin/tests/package_index_tests.rs"]
 mod package_index_tests;
 
 impl EditorManager {

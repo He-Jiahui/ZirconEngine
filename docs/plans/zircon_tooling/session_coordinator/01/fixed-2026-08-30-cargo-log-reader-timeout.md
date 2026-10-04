@@ -10,8 +10,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/session_coordinator/cargo_runner.py
-  - tools/session_coordinator/tests/test_cargo_runner.py
 tests:
   - python -m unittest -v tools.session_coordinator.tests.test_cargo_runner.CargoRunnerSourceRootTests.test_collector_bounds_log_reader_join_and_records_timeout
 resolved_at: 2026-08-30

@@ -4,7 +4,9 @@ use std::rc::Rc;
 
 use crate::ui::retained_host::host_contract::WorkbenchTooltipPointerTarget;
 use crate::ui::retained_host::primitives::SharedString;
-use zircon_runtime_interface::ui::dispatch::{UiKeyboardInputEvent, UiPointerInputEvent};
+use zircon_runtime_interface::ui::dispatch::{
+    UiKeyboardInputEvent, UiPointerId, UiPointerInputEvent,
+};
 
 use super::super::data::{
     HostDockOverflowMenuStateData, HostDragStateData, HostMenuStateData,
@@ -69,13 +71,36 @@ impl UiHostContext<'_> {
         self.state.borrow_mut().drag_state = value;
     }
 
-    pub(crate) fn drag_pointer_snapshot(&self) -> Option<(bool, f32, f32)> {
+    pub(crate) fn drag_pointer_snapshot(
+        &self,
+        pointer_id: UiPointerId,
+    ) -> Option<(bool, f32, f32)> {
         let state = self.state.borrow();
-        (!state.drag_state.drag_tab_id.is_empty()).then_some((
+        (!state.drag_state.drag_tab_id.is_empty()
+            && state.drag_state.capture_pointer_id == Some(pointer_id))
+        .then_some((
             state.drag_state.drag_active,
             state.drag_state.drag_pointer_x,
             state.drag_state.drag_pointer_y,
         ))
+    }
+
+    pub(crate) fn native_primary_capture_active(&self) -> bool {
+        let state = self.state.borrow();
+        state.resize_state.resize_active || !state.drag_state.drag_tab_id.is_empty()
+    }
+
+    pub(crate) fn cancel_native_primary_capture(&self) -> (bool, bool) {
+        let mut state = self.state.borrow_mut();
+        let drag_active = !state.drag_state.drag_tab_id.is_empty();
+        let resize_active = state.resize_state.resize_active;
+        if drag_active {
+            state.drag_state = HostDragStateData::default();
+        }
+        if resize_active {
+            state.resize_state = HostResizeStateData::default();
+        }
+        (drag_active, resize_active)
     }
 
     pub(crate) fn set_drag_pointer_position(&self, x: f32, y: f32) {
@@ -113,10 +138,15 @@ impl UiHostContext<'_> {
         self.state.borrow_mut().resize_state = value;
     }
 
-    pub(crate) fn update_resize_pointer_if_active(&self, x: f32, y: f32) -> Option<bool> {
+    pub(crate) fn update_resize_pointer_if_active(
+        &self,
+        pointer_id: UiPointerId,
+        x: f32,
+        y: f32,
+    ) -> Option<bool> {
         let mut state = self.state.borrow_mut();
         let resize = &mut state.resize_state;
-        if !resize.resize_active {
+        if !resize.resize_active || resize.capture_pointer_id != Some(pointer_id) {
             return None;
         }
         if resize.resize_pointer_x == x && resize.resize_pointer_y == y {
@@ -165,6 +195,8 @@ impl UiHostContext<'_> {
         ()
     );
     callback_methods!(ui_callbacks, on_workbench_pointer_input, invoke_workbench_pointer_input, workbench_pointer_input, (pointer: UiPointerInputEvent, target: Option<WorkbenchTooltipPointerTarget>));
+    callback_methods!(ui_callbacks, on_workbench_pointer_move_pre_dispatch, invoke_workbench_pointer_move_pre_dispatch, workbench_pointer_move_pre_dispatch, (pointer_id: UiPointerId, x: f32, y: f32, eligible: bool));
+    callback_methods!(ui_callbacks, on_workbench_primary_release_post_dispatch, invoke_workbench_primary_release_post_dispatch, workbench_primary_release_post_dispatch, (pointer_id: UiPointerId));
     callback_methods!(
         ui_callbacks,
         on_workbench_input_activity,

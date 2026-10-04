@@ -165,6 +165,7 @@ pub enum UiBindingUpdateStatus {
     Rejected,
 }
 
+/// 一次 binding 写入的审计结果，关联来源、目标、前后值、状态、脏域和可选拒绝原因。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiBindingUpdate {
@@ -245,8 +246,13 @@ impl UiBindingUpdate {
 }
 
 impl UiBindingDirtyDomain {
+    const fn bit(self) -> u16 {
+        1u16 << self as u8
+    }
+
+    /// 从 UiDirtyFlags 有对应位的七种脏标记生成域列表；其余 UiBindingDirtyDomain 不由该转换推断。
     pub fn from_dirty_flags(flags: UiDirtyFlags) -> Vec<Self> {
-        let mut domains = Vec::new();
+        let mut domains = Vec::with_capacity(7);
         if flags.layout {
             domains.push(Self::Layout);
         }
@@ -296,11 +302,13 @@ impl UiBindingUpdateReport {
         report
     }
 
+    /// 从 updates 重建状态计数和脏域并集；脏域按首次出现顺序保留，便于稳定序列化。
     pub fn recompute(&mut self) {
         self.applied_count = 0;
         self.unchanged_count = 0;
         self.rejected_count = 0;
         self.dirty.clear();
+        let mut dirty_mask = 0u16;
 
         for update in &self.updates {
             match update.status {
@@ -309,10 +317,16 @@ impl UiBindingUpdateReport {
                 UiBindingUpdateStatus::Rejected => self.rejected_count += 1,
             }
             for domain in &update.dirty {
-                if !self.dirty.contains(domain) {
+                let domain_mask = domain.bit();
+                if dirty_mask & domain_mask == 0 {
+                    dirty_mask |= domain_mask;
                     self.dirty.push(*domain);
                 }
             }
         }
     }
 }
+
+#[cfg(test)]
+#[path = "tests/update.rs"]
+mod tests;

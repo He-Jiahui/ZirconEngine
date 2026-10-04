@@ -14,6 +14,7 @@ pub struct EditorDensityTokens {
     pub gap_regular: f32,
     pub gap_medium: f32,
     pub gap_large: f32,
+    pub gap_group: f32,
     pub drawer_padding: f32,
     pub panel_padding: f32,
     pub toolbar_action_width: f32,
@@ -103,15 +104,17 @@ impl Default for EditorDensityTokens {
 
 impl EditorDensityTokens {
     pub const WORKBENCH_ROW_HEIGHT: f32 = 28.0;
+    pub const WORKBENCH_GROUP_GAP: f32 = 24.0;
 
     pub fn workbench_dense() -> Self {
         Self {
             gap_xsmall: 2.0,
-            gap_tight: 3.0,
+            gap_tight: 4.0,
             gap_small: 4.0,
-            gap_regular: 6.0,
+            gap_regular: 8.0,
             gap_medium: 8.0,
             gap_large: 12.0,
+            gap_group: Self::WORKBENCH_GROUP_GAP,
             drawer_padding: 12.0,
             panel_padding: 16.0,
             toolbar_action_width: 76.0,
@@ -152,12 +155,12 @@ impl EditorDensityTokens {
             notification_panel_min_height: 160.0,
             notification_panel_preferred_height: 220.0,
             notification_panel_max_height: 320.0,
-            caption_min_height: 18.0,
-            caption_preferred_height: 20.0,
-            caption_max_height: 22.0,
-            label_min_height: 20.0,
-            label_preferred_height: 22.0,
-            label_max_height: 28.0,
+            caption_min_height: 20.0,
+            caption_preferred_height: 22.0,
+            caption_max_height: 24.0,
+            label_min_height: 22.0,
+            label_preferred_height: 24.0,
+            label_max_height: 32.0,
             chip_min_width: 40.0,
             chip_preferred_width: 80.0,
             chip_max_width: 160.0,
@@ -166,7 +169,7 @@ impl EditorDensityTokens {
             axis_value_field_max_width: 72.0,
             row_height: Self::WORKBENCH_ROW_HEIGHT,
             left_drawer_width: 332.0,
-            right_drawer_width: 404.0,
+            right_drawer_width: 320.0,
             bottom_output_height: 228.0,
             breakpoint_ultra_width: 480.0,
             breakpoint_narrow_width: 640.0,
@@ -204,6 +207,7 @@ impl EditorDensityTokens {
             ("editor.density.gap.regular", self.gap_regular),
             ("editor.density.gap.medium", self.gap_medium),
             ("editor.density.gap.large", self.gap_large),
+            ("editor.density.gap.group", self.gap_group),
             ("editor.density.drawer_padding", self.drawer_padding),
             ("editor.density.panel_padding", self.panel_padding),
             (

@@ -1,3 +1,4 @@
+# 核对原生动态清单路径索引涵盖文件与父目录，并复用插件根解析。
 from __future__ import annotations
 
 import tempfile
@@ -5,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_export import pipeline_report_native_dynamic_build_execution as build_execution
+from tools.export import pipeline_report_native_dynamic_build_execution as build_execution
 
 
 class CountingPathIndex(set[str]):

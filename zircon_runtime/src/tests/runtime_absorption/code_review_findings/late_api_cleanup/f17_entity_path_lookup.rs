@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f17_entity_path_option_lookup_uses_get_verb() {
     let path_resolution =
@@ -21,13 +22,11 @@ fn review_f17_entity_path_option_lookup_uses_get_verb() {
     let runtime_index = include_str!(
         "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
     );
-    let ecs_doc = include_str!("../../../../../../docs/zircon_runtime/scene/ecs.md");
-    let animation_doc = include_str!(
-        "../../../../../../docs/assets-and-rendering/runtime-physics-animation-assets.md"
-    );
-    let editor_boundary_doc = include_str!(
-        "../../../../../../docs/editor-and-tooling/runtime-editor-boundary-cleanup.md"
-    );
+    let ecs_doc = include_str!("../../../../../../docs/crates/zircon_runtime/scene/ecs.md");
+    let animation_doc =
+        include_str!("../../../../../../docs/rendering/runtime-physics-animation-assets.md");
+    let editor_boundary_doc =
+        include_str!("../../../../../../docs/editor/runtime-editor-boundary-cleanup.md");
     let f17_row = review_findings
         .lines()
         .find(|line| line.starts_with("| F17 |"))

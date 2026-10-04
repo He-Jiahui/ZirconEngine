@@ -1,34 +1,30 @@
 #[test]
 fn runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts() {
-    let architecture_doc = include_str!("../../../../../docs/zircon_runtime/ui/architecture.md");
+    let architecture_doc =
+        include_str!("../../../../../docs/crates/zircon_runtime/ui/architecture.md");
     let runtime_09_plan = include_str!(
         "../../../../../docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md"
     );
     let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let architecture_review =
-        include_str!("../../../../../docs/engine-architecture/runtime-architecture-review-m0.md");
+        include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md");
     let interface_doc =
-        include_str!("../../../../../docs/engine-architecture/runtime-interface-convergence.md");
+        include_str!("../../../../../docs/architecture/runtime-interface-convergence.md");
     let audit_script = include_str!(
         "../../../../../.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ui_architecture_boundary.py"
     );
-    let ui_guard = [
-        include_str!("../ui_architecture.rs"),
-        include_str!("architecture_boundaries.rs"),
-        include_str!("legacy_renames.rs"),
-        include_str!("mirror_docs.rs"),
-    ]
-    .join("\n");
+    let boundary_guard = include_str!("architecture_boundaries.rs");
 
     for audit_anchor in [
-        "EXPECTED_SOURCE_FILE_COUNT = 52",
-        "EXPECTED_UI_ENTRY_COUNT = 20",
-        "EXPECTED_SURFACE_ENTRY_COUNT = 26",
-        "EXPECTED_LEGACY_FULL_HITS = 70",
+        "EXPECTED_SOURCE_FILE_COUNT = 49",
+        "EXPECTED_UI_ENTRY_COUNT = 23",
+        "EXPECTED_SURFACE_ENTRY_COUNT = 45",
+        "EXPECTED_LEGACY_FULL_HITS = 15",
         "EXPECTED_LEGACY_PRODUCTION_HITS = 0",
         "EXPECTED_LEGACY_PRODUCTION_FILE_COUNT = 0",
-        "EXPECTED_TAFFY_PRODUCTION_HITS = 175",
-        "EXPECTED_TAFFY_PRODUCTION_FILE_COUNT = 10",
+        "EXPECTED_TAFFY_PRODUCTION_HITS = 254",
+        "EXPECTED_TAFFY_PRODUCTION_FILE_COUNT = 16",
+        "LEGACY_MIGRATION_TERMS",
         "MIRROR_DOCS_GUARD",
         "\"runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts\"",
         "\"mirror_docs_guard_present\"",
@@ -39,13 +35,36 @@ fn runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts() {
         );
     }
 
+    for rust_guard_anchor in [
+        "fn runtime_09_ui_architecture_doc_records_current_boundaries()",
+        "fn runtime_09_ui_architecture_baselines_match_current_source_scan()",
+        "LEGACY_MIGRATION_TERMS",
+        "matching_migration_line_count",
+        "const EXPECTED_UI_ENTRY_COUNT: usize = 23;",
+        "const EXPECTED_SURFACE_ENTRY_COUNT: usize = 45;",
+        "const EXPECTED_SURFACE_SOURCE_ENTRY_COUNT: usize = 43;",
+    ] {
+        assert!(
+            boundary_guard.contains(rust_guard_anchor),
+            "Runtime 09 Rust guard source should retain current contract anchor `{rust_guard_anchor}`"
+        );
+    }
+
     assert!(
-        architecture_doc.contains("expected_surface_entry_count = 26"),
-        "current UI architecture doc should mirror the 26-entry surface map"
+        architecture_doc.contains("expected_surface_entry_count = 45"),
+        "current UI architecture doc should retain the raw 45-path worktree count"
+    );
+    assert!(
+        architecture_doc.contains("surface_source_module_entry_count = 43"),
+        "current UI architecture doc should distinguish the 43 source-backed surface entries"
     );
     let numbered_status = concat!(
-        include_str!("../../../../../docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md"),
-        include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md")
+        include_str!(
+            "../../../../../docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md"
+        ),
+        include_str!(
+            "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+        )
     );
     let mirror_docs = [
         ("Runtime 09 plan", runtime_09_plan),
@@ -57,18 +76,19 @@ fn runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts() {
     for (doc_name, doc_source) in mirror_docs {
         for expected_anchor in [
             "ui_architecture_boundary",
-            "expected_source_file_count = 52",
-            "expected_ui_entry_count = 20",
-            "legacy_full_hits = 70",
-            "expected_legacy_full_hits = 70",
+            "expected_source_file_count = 49",
+            "expected_ui_entry_count = 23",
+            "expected_surface_entry_count = 45",
+            "legacy_full_hits = 15",
+            "expected_legacy_full_hits = 15",
             "legacy_production_hits = 0",
             "expected_legacy_production_hits = 0",
             "legacy_production_file_count = 0",
             "expected_legacy_production_file_count = 0",
-            "taffy_production_hits = 175",
-            "expected_taffy_production_hits = 175",
-            "taffy_production_file_count = 10",
-            "expected_taffy_production_file_count = 10",
+            "taffy_production_hits = 254",
+            "expected_taffy_production_hits = 254",
+            "taffy_production_file_count = 16",
+            "expected_taffy_production_file_count = 16",
             "runtime_v2_anchor_count = 10",
             "interface_v2_anchor_count = 9",
             "guard_anchor_count = 19",
@@ -99,5 +119,15 @@ fn runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts() {
                 "{doc_name} should mirror Runtime 09 UI architecture audit anchor `{expected_anchor}`"
             );
         }
+    }
+
+    for (doc_name, doc_source) in [
+        ("Runtime 09 plan", runtime_09_plan),
+        ("runtime index", runtime_index),
+    ] {
+        assert!(
+            doc_source.contains("surface_source_module_entry_count = 43"),
+            "{doc_name} should distinguish source-backed surface entries from raw worktree paths"
+        );
     }
 }

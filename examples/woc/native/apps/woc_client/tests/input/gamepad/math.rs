@@ -106,3 +106,39 @@ fn rising_edges_reports_only_up_to_down_transitions() {
     assert!(rising_edges(&[true, true], &[true, true]).is_empty());
     assert_eq!(rising_edges(&[], &[false, true]), vec![1]);
 }
+
+#[test]
+fn invalid_analog_values_fail_closed_without_nan_output() {
+    assert_eq!(
+        apply_radial_deadzone(f64::NAN, 0.0, 0.2),
+        GamepadStickVector::default()
+    );
+    assert_eq!(
+        apply_radial_deadzone(0.0, f64::INFINITY, 0.2),
+        GamepadStickVector::default()
+    );
+    assert_eq!(
+        apply_radial_deadzone(0.0, 1.0, 1.0),
+        GamepadStickVector::default()
+    );
+    assert_eq!(
+        stick_to_move_flags(0.0, 0.0, -0.1),
+        GamepadMoveFlags::default()
+    );
+    assert_eq!(
+        stick_to_look(1.0, 0.0, 0.2, f64::NAN, false, 0.016),
+        GamepadLookDelta::default()
+    );
+    assert_eq!(
+        stick_to_look(1.0, 0.0, 0.2, 2.0, false, -0.016),
+        GamepadLookDelta::default()
+    );
+}
+
+#[test]
+fn zero_deadzone_remains_a_valid_calibration() {
+    assert_eq!(
+        apply_radial_deadzone(0.0, -1.0, 0.0),
+        GamepadStickVector { x: 0.0, y: -1.0 }
+    );
+}

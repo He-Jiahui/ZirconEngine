@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::fs::{self, File};
+use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
@@ -11,10 +11,14 @@ use super::super::native_dynamic_package_plan::{
     NativeDynamicPackageExportPlan,
 };
 use super::super::{ExportBuildPlan, ExportMaterializeReport};
+use super::copy::{
+    write_verified_native_file, MaterializedFileStaging, NativeDynamicPackageFileEntry,
+};
 use super::package_lookup::NativePackageInventory;
 use super::paths::validated_materialized_relative_path;
 
 const NATIVE_PACKAGE_REPORT_FILE: &str = "native_dynamic_package.toml";
+const AUTHORITY_PATH: &str = "src/zircon_native_authority.json";
 
 pub(super) fn materialize_zip_archive(
     plan: &ExportBuildPlan,
@@ -30,6 +34,18 @@ pub(super) fn materialize_zip_archive(
         ));
     }
 
+    validate_reserved_authority_entry(plan)?;
+    // Admission and authority construction finish before staging starts; the
+    // previous archive remains published until every staged entry is verified.
+    let native_packages = if plan.native_dynamic_packages.is_empty() {
+        None
+    } else {
+        let inventory = NativePackageInventory::build(plugin_root, &plan.native_dynamic_packages)?;
+        validate_native_entry_collisions(plan, &inventory)?;
+        let authority = super::native_authority::embedded_native_authority_bytes(plan, &inventory)?;
+        Some((inventory, authority))
+    };
+
     if let Some(parent) = archive_path
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty())
@@ -37,7 +53,7 @@ pub(super) fn materialize_zip_archive(
         fs::create_dir_all(parent)?;
     }
 
-    let file = File::create(archive_path)?;
+    let (file, staging) = MaterializedFileStaging::create(archive_path)?;
     let mut writer = ZipWriter::new(file);
     let mut written_entries = HashSet::with_capacity(archive_entry_capacity(plan));
     let mut report = ExportMaterializeReport {
@@ -49,8 +65,14 @@ pub(super) fn materialize_zip_archive(
     };
 
     write_generated_entries(plan, &mut writer, &mut written_entries, &mut report)?;
-    if !plan.native_dynamic_packages.is_empty() {
-        let inventory = NativePackageInventory::build(plugin_root, &plan.native_dynamic_packages)?;
+    if let Some((inventory, authority)) = native_packages {
+        if !written_entries.insert(AUTHORITY_PATH.to_string()) {
+            return Err(std::io::Error::other(
+                "generated native authority path is reserved",
+            ));
+        }
+        write_zip_entry(&mut writer, AUTHORITY_PATH, &authority)?;
+        report.generated_files.push(PathBuf::from(AUTHORITY_PATH));
         write_native_package_entries(
             plan,
             &inventory,
@@ -59,7 +81,10 @@ pub(super) fn materialize_zip_archive(
             &mut report,
         )?;
     }
-    writer.finish()?;
+    let file = writer.finish()?;
+    file.sync_all()?;
+    drop(file);
+    staging.publish()?;
 
     Ok(report)
 }
@@ -69,6 +94,7 @@ pub(super) fn preview_zip_archive(
     plugin_root: &Path,
     archive_path: &Path,
 ) -> Result<ExportMaterializeReport, std::io::Error> {
+    validate_reserved_authority_entry(plan)?;
     let mut report = ExportMaterializeReport {
         archive_file: Some(archive_path.to_path_buf()),
         generated_files: Vec::with_capacity(plan.generated_files.len()),
@@ -86,10 +112,73 @@ pub(super) fn preview_zip_archive(
 
     if !plan.native_dynamic_packages.is_empty() {
         let inventory = NativePackageInventory::build(plugin_root, &plan.native_dynamic_packages)?;
+        validate_native_entry_collisions(plan, &inventory)?;
         preview_native_package_entries(plan, &inventory, &mut report)?;
+        report.generated_files.push(PathBuf::from(AUTHORITY_PATH));
     }
 
     Ok(report)
+}
+
+fn validate_reserved_authority_entry(plan: &ExportBuildPlan) -> Result<(), std::io::Error> {
+    if plan.native_dynamic_packages.is_empty() {
+        return Ok(());
+    }
+    for file in &plan.generated_files {
+        if validated_materialized_relative_path(&file.path)?.eq_ignore_ascii_case(AUTHORITY_PATH) {
+            return Err(std::io::Error::other(
+                "generated native authority path is reserved",
+            ));
+        }
+    }
+    Ok(())
+}
+
+pub(super) fn validate_native_entry_collisions(
+    plan: &ExportBuildPlan,
+    inventory: &NativePackageInventory,
+) -> std::io::Result<()> {
+    let mut selected_directories = HashMap::with_capacity(plan.native_dynamic_packages.len());
+    let generated = plan
+        .generated_files
+        .iter()
+        .map(|file| {
+            validated_materialized_relative_path(&file.path).map(|path| path.to_ascii_lowercase())
+        })
+        .collect::<std::io::Result<HashSet<_>>>()?;
+    for package_id in &plan.native_dynamic_packages {
+        let directory_name = native_dynamic_package_directory(package_id);
+        if let Some(previous_id) =
+            selected_directories.insert(directory_name.to_ascii_lowercase(), package_id.as_str())
+        {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::AlreadyExists,
+                format!(
+                    "selected native packages {previous_id} and {package_id} collide at output directory plugins/{directory_name}"
+                ),
+            ));
+        }
+        let Some(files) = inventory.file_inventory(package_id) else {
+            continue;
+        };
+        let directory = format!("plugins/{directory_name}");
+        for relative_path in files
+            .entries
+            .iter()
+            .map(|entry| entry.relative_path.as_str())
+            .chain(std::iter::once(NATIVE_PACKAGE_REPORT_FILE))
+        {
+            let entry_path =
+                validated_materialized_relative_path(&format!("{directory}/{relative_path}"))?;
+            if generated.contains(&entry_path.to_ascii_lowercase()) {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::AlreadyExists,
+                    format!("generated export entry {entry_path} collides with native package {package_id}"),
+                ));
+            }
+        }
+    }
+    Ok(())
 }
 
 fn write_generated_entries<W: Write + std::io::Seek>(
@@ -153,12 +242,12 @@ fn write_native_package_entries<W: Write + std::io::Seek>(
                 entry.relative_path
             ))?;
             if !written_entries.insert(archive_path.clone()) {
-                report.diagnostics.push(format!(
-                    "export archive skipped duplicate entry {archive_path}"
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::AlreadyExists,
+                    format!("export archive native entry {archive_path} collides with an existing entry"),
                 ));
-                continue;
             }
-            write_zip_file_entry(writer, &archive_path, &entry.source_path)?;
+            write_zip_file_entry(writer, &archive_path, entry)?;
         }
 
         let fallback_export;
@@ -172,10 +261,16 @@ fn write_native_package_entries<W: Write + std::io::Seek>(
         let report_path = validated_materialized_relative_path(&format!(
             "{archive_directory}/{NATIVE_PACKAGE_REPORT_FILE}"
         ))?;
-        if written_entries.insert(report_path.clone()) {
-            let report_contents = native_dynamic_package_report_template(package_export);
-            write_zip_entry(writer, &report_path, report_contents.as_bytes())?;
+        if !written_entries.insert(report_path.clone()) {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::AlreadyExists,
+                format!(
+                    "export archive native report {report_path} collides with an existing entry"
+                ),
+            ));
         }
+        let report_contents = native_dynamic_package_report_template(package_export);
+        write_zip_entry(writer, &report_path, report_contents.as_bytes())?;
         report
             .copied_packages
             .push(PathBuf::from(archive_directory));
@@ -231,12 +326,11 @@ fn write_zip_entry<W: Write + std::io::Seek>(
 fn write_zip_file_entry<W: Write + std::io::Seek>(
     writer: &mut ZipWriter<W>,
     entry_name: &str,
-    source_path: &Path,
+    source: &NativeDynamicPackageFileEntry,
 ) -> Result<(), std::io::Error> {
     let options = zip_file_options();
     writer.start_file(entry_name, options)?;
-    let mut source = File::open(source_path)?;
-    std::io::copy(&mut source, writer)?;
+    write_verified_native_file(source, writer)?;
     Ok(())
 }
 
@@ -287,56 +381,5 @@ fn blocked_archive_report(
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn native_package_archive_entries_are_streamed_from_disk() {
-        let source = include_str!("archive.rs");
-        let whole_file_read = ["fs::", "read(&entry.source_path)"].concat();
-        assert!(
-            !source.contains(&whole_file_read),
-            "native package files should stream into ZipWriter without a full-file Vec"
-        );
-    }
-
-    #[test]
-    fn archive_materialization_does_not_preview_then_rescan_each_package() {
-        let source = include_str!("archive.rs");
-        let linear_lookup = [".find(|package| package.", "package_id == package_id)"].concat();
-        let cloned_lookup = [".copied()", "\n            .cloned()"].concat();
-        let write_body = source
-            .split("fn write_native_package_entries")
-            .nth(1)
-            .and_then(|body| body.split("fn preview_native_package_entries").next())
-            .expect("write-native-package body should remain available");
-
-        assert!(!write_body.contains("preview_native_dynamic_package_copy"));
-        assert!(write_body.contains("inventory.file_inventory(package_id)"));
-        assert!(!source.contains(&linear_lookup));
-        assert!(!write_body.contains(&cloned_lookup));
-    }
-
-    #[test]
-    fn archive_projection_preallocates_known_plan_bounds() {
-        let source = include_str!("archive.rs");
-
-        assert!(source.contains("HashSet::with_capacity(archive_entry_capacity(plan))"));
-        assert_eq!(
-            source
-                .matches("Vec::with_capacity(plan.generated_files.len())")
-                .count(),
-            2
-        );
-        assert_eq!(
-            source
-                .matches("Vec::with_capacity(plan.native_dynamic_packages.len())")
-                .count(),
-            2
-        );
-        assert_eq!(
-            source
-                .matches("HashSet::with_capacity(plan.native_dynamic_packages.len())")
-                .count(),
-            2
-        );
-    }
-}
+#[path = "tests/archive.rs"]
+mod tests;

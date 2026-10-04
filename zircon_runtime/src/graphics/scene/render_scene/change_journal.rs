@@ -5,8 +5,9 @@ use crate::core::framework::render::RenderWorldSnapshotHandle;
 
 use super::primitive::RenderScenePrimitive;
 use super::resource_dependencies::{
-    RenderSceneResourceReferenceDelta, RenderSceneResourceReferenceDeltaStats,
-    build_resource_reference_deltas,
+    build_resource_reference_deltas, RenderSceneResourceReferenceDelta,
+    RenderSceneResourceReferenceDeltaBuild, RenderSceneResourceReferenceDeltaStats,
+    RenderSceneResourceReferenceUpdate,
 };
 use super::scene::{RenderSceneGeneration, RenderScenePrimitiveHandle, RenderSceneStorageStats};
 
@@ -372,8 +373,41 @@ impl RenderSceneChangeJournal {
         additions: Vec<RenderSceneAddedPrimitive>,
         stats: RenderSceneApplyStats,
     ) -> Self {
-        let resource_reference_build =
-            build_resource_reference_deltas(&removals, &updates, &additions);
+        let resource_reference_build = build_resource_reference_deltas(
+            removals.iter().map(|removal| removal.primitive().as_ref()),
+            updates.iter().map(|update| {
+                RenderSceneResourceReferenceUpdate::new(
+                    update.dirty(),
+                    update.previous_primitive().as_ref(),
+                    update.primitive().as_ref(),
+                )
+            }),
+            additions
+                .iter()
+                .map(|addition| addition.primitive().as_ref()),
+        );
+        Self::new_with_resource_reference_build(
+            world,
+            from_generation,
+            to_generation,
+            removals,
+            updates,
+            additions,
+            resource_reference_build,
+            stats,
+        )
+    }
+
+    pub(super) fn new_with_resource_reference_build(
+        world: RenderWorldSnapshotHandle,
+        from_generation: RenderSceneGeneration,
+        to_generation: RenderSceneGeneration,
+        removals: Vec<RenderSceneRemovedPrimitive>,
+        updates: Vec<RenderSceneUpdatedPrimitive>,
+        additions: Vec<RenderSceneAddedPrimitive>,
+        resource_reference_build: RenderSceneResourceReferenceDeltaBuild,
+        stats: RenderSceneApplyStats,
+    ) -> Self {
         Self {
             world,
             from_generation,

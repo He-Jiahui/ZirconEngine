@@ -10,6 +10,7 @@ impl ProjectInfo {
         let mut failed_asset_count = 0;
         for record in project.registry().values() {
             asset_count += 1;
+            // 总数包含尚未完成的条目，不能用就绪数与失败数之和代替。
             match record.state {
                 ResourceState::Ready => ready_asset_count += 1,
                 ResourceState::Error => failed_asset_count += 1,
@@ -21,6 +22,7 @@ impl ProjectInfo {
             name: project.manifest().name.clone(),
             default_scene_uri: project.manifest().default_scene.to_string(),
             library_version: project.manifest().library_version,
+            project_generation: project.catalog_input_generation().sequence(),
             asset_count,
             ready_asset_count,
             failed_asset_count,

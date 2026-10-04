@@ -1,3 +1,4 @@
+# 核对中心设置值解析借用去空白输入并保留跨字符集语义。
 from pathlib import Path
 import unittest
 

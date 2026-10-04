@@ -19,7 +19,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束预分配 VM 反射 registrations：投影预分配来自模式行上界绑定，并投影不增加计数扫描。
 class PreallocatedVmReflectionRegistrationsPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

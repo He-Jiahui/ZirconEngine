@@ -17,7 +17,6 @@ related_code:
   - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/gameplay_animation.rs
   - zircon_editor/src/ui/timeline_strip
   - zircon_editor/src/ui/weight_heatmap
-  - zircon_editor/assets/ui/editor/animation_editor.zui
   - zircon_editor/assets/ui/editor/host/animation_graph_body.zui
   - zircon_editor/assets/ui/editor/host/animation_sequence_body.zui
   - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation

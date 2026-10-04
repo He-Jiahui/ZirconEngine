@@ -93,10 +93,10 @@ fn advanced_render_plugin_manifests_declare_profile_capabilities() {
         ];
 
         assert!(
-            manifest_source.contains(r#"sdk_api_version = "0.1.0""#),
+            manifest_source.contains(r#"sdk_api_version = "0.2.0""#),
             "advanced render plugin `{plugin_id}` should explicitly declare SDK API version"
         );
-        assert_eq!(manifest.sdk_api_version, "0.1.0");
+        assert_eq!(manifest.sdk_api_version, "0.2.0");
         assert_eq!(manifest.category, "rendering");
         assert_eq!(
             manifest.maturity,
@@ -149,7 +149,7 @@ fn solari_plugin_manifest_matches_catalog_metadata() {
         "runtime.render.experimental.solari".to_string(),
     ];
 
-    assert_eq!(manifest.sdk_api_version, "0.1.0");
+    assert_eq!(manifest.sdk_api_version, "0.2.0");
     assert_eq!(manifest.category, "rendering");
     assert_eq!(
         manifest.maturity,
@@ -230,7 +230,7 @@ fn native_dynamic_fixture_manifests_declare_package_level_metadata() {
         .find(|module| module.kind == PluginModuleKind::Editor)
         .expect("native fixture should declare an editor module");
 
-    assert_eq!(manifest.sdk_api_version, "0.1.0");
+    assert_eq!(manifest.sdk_api_version, "0.2.0");
     assert_eq!(manifest.category, "sdk");
     assert_eq!(
         manifest.maturity,
@@ -260,7 +260,7 @@ fn native_dynamic_fixture_manifests_declare_package_level_metadata() {
     );
 
     for expected_line in [
-        r#"sdk_api_version = "0.1.0""#,
+        r#"sdk_api_version = "0.2.0""#,
         r#"category = "sdk""#,
         r#"maturity = "experimental""#,
         r#"supported_targets = ["client_runtime", "server_runtime", "editor_host"]"#,
@@ -372,10 +372,10 @@ fn authoring_plugin_manifests_match_catalog_and_workspace_shape() {
 
         assert_eq!(RuntimePluginId::parse_key(id), Some(runtime_id.clone()));
         assert!(
-            manifest_source.contains(r#"sdk_api_version = "0.1.0""#),
+            manifest_source.contains(r#"sdk_api_version = "0.2.0""#),
             "runtime-backed authoring plugin `{id}` should explicitly declare SDK API version"
         );
-        assert_eq!(manifest.sdk_api_version, "0.1.0");
+        assert_eq!(manifest.sdk_api_version, "0.2.0");
         assert_eq!(manifest.category, "authoring");
         assert_eq!(manifest.maturity, crate::plugin::PluginMaturity::Beta);
         assert_eq!(manifest.supported_targets, expected_targets);

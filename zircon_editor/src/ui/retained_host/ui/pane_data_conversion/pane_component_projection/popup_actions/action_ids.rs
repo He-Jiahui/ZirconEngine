@@ -104,5 +104,5 @@ fn primary_binding_refs(bindings: &[RetainedUiHostBindingProjection]) -> Primary
 }
 
 #[cfg(test)]
-#[path = "action_ids/primary_binding_scan_tests.rs"]
+#[path = "action_ids/tests/primary_binding_scan_tests.rs"]
 mod primary_binding_scan_tests;

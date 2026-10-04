@@ -8,7 +8,12 @@ use zircon_runtime_interface::ui::template::{
 use super::style_rule_declarations::{declaration_entries, UiStyleRuleDeclarationEntry};
 
 #[cfg(test)]
+#[path = "matched_rule_inspection/tests/single_projection_tests.rs"]
 mod single_projection_tests;
+
+#[cfg(test)]
+#[path = "matched_rule_inspection/tests/optimization_batch_jl_editor651_tests.rs"]
+mod optimization_batch_jl_editor651_tests;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct MatchedStyleRuleEntry {
@@ -328,31 +333,30 @@ fn selector_segment_matches(segment: &InspectorSelectorSegment, node: &StyleMatc
 }
 
 fn parse_selector_tokens(input: &str) -> Option<Vec<InspectorSelectorToken>> {
-    let chars: Vec<char> = input.chars().collect();
     let mut index = 0;
     let mut tokens = Vec::new();
 
-    while index < chars.len() {
-        let prefix = chars[index];
+    while index < input.len() {
+        let prefix = input[index..].chars().next()?;
         let start = if matches!(prefix, '.' | '#' | ':') {
-            index + 1
+            index + prefix.len_utf8()
         } else {
             index
         };
-        let mut end = start;
-        while end < chars.len() && !matches!(chars[end], '.' | '#' | ':') {
-            end += 1;
-        }
-        let value: String = chars[start..end].iter().collect();
+        let end = input[start..]
+            .char_indices()
+            .find_map(|(offset, ch)| matches!(ch, '.' | '#' | ':').then_some(start + offset))
+            .unwrap_or(input.len());
+        let value = &input[start..end];
         if value.is_empty() {
             return None;
         }
         let token = match prefix {
-            '.' => InspectorSelectorToken::Class(value),
-            '#' => InspectorSelectorToken::Id(value),
+            '.' => InspectorSelectorToken::Class(value.to_string()),
+            '#' => InspectorSelectorToken::Id(value.to_string()),
             ':' if value == "host" => InspectorSelectorToken::Host,
-            ':' => InspectorSelectorToken::State(value),
-            _ => InspectorSelectorToken::Type(value),
+            ':' => InspectorSelectorToken::State(value.to_string()),
+            _ => InspectorSelectorToken::Type(value.to_string()),
         };
         tokens.push(token);
         index = end;

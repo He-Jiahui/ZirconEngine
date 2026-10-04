@@ -1,5 +1,7 @@
+//! 检查网格绘制前的待执行命令缓存计划是否由独立责任路径建立并被消费。
 use super::{assert_contains_all, repo_path, runtime_src_path};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0130] 网格绘制前的待执行命令缓存计划的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build() {
     let build_mod =
@@ -29,19 +31,19 @@ fn runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build() 
         "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/residual_fallback.rs",
     );
     let extract_second_frame_tests_owner = read_runtime_src(
-        "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/second_frame_tests.rs",
+        "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/tests/second_frame_tests.rs",
     );
     let extract_lazy_tests_owner = read_runtime_src(
-        "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/lazy_rebuild_tests.rs",
+        "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/tests/lazy_rebuild_tests.rs",
     );
     let extract_fallback_tests_owner = read_runtime_src(
-        "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/fallback_tests.rs",
+        "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/tests/fallback_tests.rs",
     );
     let extract_visibility_tests_owner = read_runtime_src(
-        "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/visibility_tests.rs",
+        "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/tests/visibility_tests.rs",
     );
     let extract_tests_owner = read_runtime_src(
-        "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/tests.rs",
+        "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/tests/cases.rs",
     );
     let build_owner =
         read_runtime_src("graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs");
@@ -428,27 +430,27 @@ fn runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build() 
             120,
         ),
         (
-            "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/second_frame_tests.rs",
+            "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/tests/second_frame_tests.rs",
             extract_second_frame_tests_owner.as_str(),
             220,
         ),
         (
-            "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/lazy_rebuild_tests.rs",
+            "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/tests/lazy_rebuild_tests.rs",
             extract_lazy_tests_owner.as_str(),
             160,
         ),
         (
-            "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/fallback_tests.rs",
+            "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/tests/fallback_tests.rs",
             extract_fallback_tests_owner.as_str(),
             180,
         ),
         (
-            "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/visibility_tests.rs",
+            "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/tests/visibility_tests.rs",
             extract_visibility_tests_owner.as_str(),
             120,
         ),
         (
-            "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/tests.rs",
+            "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/tests/cases.rs",
             extract_tests_owner.as_str(),
             260,
         ),
@@ -524,8 +526,8 @@ fn runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build() 
         &[
             "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/rebuild_batch.rs",
             "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/residual_fallback.rs",
-            "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/lazy_rebuild_tests.rs",
-            "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/fallback_tests.rs",
+            "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/tests/lazy_rebuild_tests.rs",
+            "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/tests/fallback_tests.rs",
         ],
     );
 }

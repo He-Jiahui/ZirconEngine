@@ -1,3 +1,4 @@
+//! 无序透明的运行时公共契约；特性提供者将此处元数据提交到目录与图编译。
 use zircon_runtime::core::framework::render::PostProcessGraphResourceNames;
 use zircon_runtime::graphics::{
     RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
@@ -21,6 +22,7 @@ pub const RESOLVE_PASS: &str = "oit.resolve";
 pub const FRAGMENT_STORE_EXECUTOR: &str = "oit.fragment_store";
 pub const RESOLVE_EXECUTOR: &str = "oit.resolve";
 
+/// 以片元存储和解析替换排序透明通道；仅在相机启用该策略且设备满足存储缓冲区要求时进入图。
 pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
     RenderFeatureDescriptor::new(
         FEATURE_NAME,
@@ -63,9 +65,12 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
     .with_replaced_pass("transparent-mesh")
 }
 
+/// 提供与特性图匹配的执行实现；宿主负责实际 GPU 资源与这些句柄的设备生命周期。
 pub fn render_pass_executor_registrations() -> Vec<RenderPassExecutorRegistration> {
     zircon_runtime::graphics::oit_render_pass_executor_registrations()
 }
 
+// 此测试边界覆盖声明与注册约束；GPU 效果证据需由对应产品测试另行提供。
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

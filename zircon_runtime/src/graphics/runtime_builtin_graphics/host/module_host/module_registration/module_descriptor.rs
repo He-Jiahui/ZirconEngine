@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use crate::core::framework::platform::PLATFORM_MODULE_NAME;
 use crate::core::framework::render::{
-    GRAPHICS_MODULE_NAME, GeometrySourceDescriptor, RenderFramework, RenderingManager,
-    ShadingModelDescriptor,
+    GeometrySourceDescriptor, RenderFramework, RenderingManager, ShadingModelDescriptor,
+    GRAPHICS_MODULE_NAME,
 };
 use crate::core::framework::scene::SCENE_MODULE_NAME;
 use crate::core::manager::RegisteredManagerService;
@@ -156,30 +156,5 @@ pub fn module_descriptor_with_render_features(
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::core::framework::render::GRAPHICS_MODULE_NAME;
-    use crate::text::TEXT_MODULE_NAME;
-
-    use super::module_descriptor;
-
-    #[test]
-    fn graphics_render_framework_depends_on_core_owned_text_font_services() {
-        let descriptor = module_descriptor();
-
-        assert!(
-            descriptor
-                .module_dependencies
-                .iter()
-                .any(|dependency| dependency.module_name == TEXT_MODULE_NAME)
-        );
-        let render_framework = descriptor
-            .managers
-            .iter()
-            .find(|manager| manager.name.to_string() == "GraphicsModule.Manager.RenderFramework")
-            .expect("graphics render framework manager");
-        assert!(render_framework.dependencies.iter().any(|dependency| {
-            dependency.name.to_string() == "TextModule.Manager.FontServices"
-        }));
-        assert_eq!(descriptor.name, GRAPHICS_MODULE_NAME);
-    }
-}
+#[path = "tests/module_descriptor.rs"]
+mod tests;

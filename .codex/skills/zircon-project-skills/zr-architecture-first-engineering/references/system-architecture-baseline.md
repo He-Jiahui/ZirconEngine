@@ -1,23 +1,23 @@
 # System Architecture Baseline
 
-Use this reference to align daily design decisions with the current repository-wide engine target. This file is a checklist and summary, not a replacement for the roadmap plans. Read the full plans whenever the task changes ownership boundaries, lifecycle rules, ECS authority, runtime or editor absorption, or VM plugin contracts.
+Use this reference to align daily design decisions with the current repository-wide engine target. This file is a checklist and summary, not a replacement for the roadmap plans. Read the relevant plan sections when those boundaries change and reuse unchanged context already read.
 
 ## Authority Sources
 
 - Primary roadmap: `.codex/plans/全系统重构方案.md`
 - Binding convergence rules for runtime/editor architecture: `.codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md`
-- Mainstream engine evidence: `../zr-language-feature-design/SKILL.md` plus the reference trees under `dev/`
-- Execution and validation workflow: `../layered-milestone-development/SKILL.md` and `../../zircon-dev/SKILL.md`
+- Mainstream engine evidence: `../../zr-language-feature-design/guide.md` plus the reference trees under `dev/`
+- Execution and validation workflow: `../../layered-milestone-development/guide.md` and `../../../zircon-dev/SKILL.md`
 
 ## Current Structural Invariants
 
-### Fixed Top-Level Packages
+### Primary Architectural Roles
 
 - `zircon_app`: process entry, profile selection, and main-loop host
 - `zircon_runtime`: runtime absorption layer plus the internal `core/{runtime,framework,manager,math,resource}` spine
 - `zircon_editor`: editor host and authoring-state owner
 - `zircon_runtime::core::runtime::CoreRuntime` is the process-level authority for registration, activation, dependency ordering, config, events, scheduling, and shutdown.
-- Treat this three-package root as fixed public architecture. Supporting modules may exist inside `zircon_runtime`, but they must not reappear as competing root packages.
+- These three packages define the primary roles. The current manifest also contains supporting packages; assess them by their documented owner rather than treating this summary as a complete membership whitelist.
 
 ### Runtime-Internal Supporting Rule
 
@@ -30,7 +30,7 @@ Use this reference to align daily design decisions with the current repository-w
 - Reserve `server` naming for true server-side or network semantics only.
 - Treat any non-network `*server*` crate names, trait names, handles, or registry names as migration debt.
 - Do not keep compatibility shims, alias crates, or legacy-path re-exports once a migration stage lands. Each stage must cut directly to the new structure.
-- If active work is happening in a directory or crate that the convergence plan already declares non-compliant, migrate that work to the target directory or crate before continuing feature development there.
+- Move ownership when the authorized task requires that convergence. Record unrelated migration debt without expanding a bounded change.
 
 ### Module and Service Model
 
@@ -64,7 +64,7 @@ Use this reference to align daily design decisions with the current repository-w
 ### Boundary Ownership
 
 - Which fixed role owns the new capability: app host, runtime-internal core kernel, runtime-internal manager access layer, runtime-internal framework contract layer, runtime absorption layer, editor authoring host, supporting runtime module, or VM plugin path?
-- If the answer is not one of those, is the design inventing a fourth root package by accident?
+- If a supporting package owns the work, does its manifest role preserve the intended dependency direction?
 
 ### Lifecycle Shape
 
@@ -87,9 +87,9 @@ Use this reference to align daily design decisions with the current repository-w
 ### Validation
 
 - Which layers need tests: lifecycle, dependency ordering, ECS propagation, render extraction, serialization, VM state migration, or error handling?
-- Which sibling crates need stub or skeleton integration so the workspace architecture stays coherent?
+- Which existing consumers require real integration for the changed contract? Do not add unrelated sibling stubs.
 - Does the validation prove that old path aliases and old naming are gone instead of only proving the new path was added?
-- Does the execution order prove that ongoing work did not keep advancing inside a directory that should have been migrated first?
+- Does the authorized migration move its intended consumers without leaving stale ownership?
 
 ## Acceptable Leaf Exceptions
 
@@ -101,4 +101,4 @@ Direct implementation is acceptable only when all of these are true:
 - No legacy naming, alias path, or shim path must stay alive to make it work.
 - Another feature would not need a new reusable boundary to share the same logic.
 
-If any condition fails, stop and design the framework slot first.
+When a relevant boundary changes, design that boundary before implementing it. These questions do not require speculative framework slots or a pause of independent work.

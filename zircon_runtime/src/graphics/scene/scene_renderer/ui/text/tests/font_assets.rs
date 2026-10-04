@@ -3,8 +3,8 @@ use std::io;
 use std::path::PathBuf;
 
 use super::super::font_assets::{
-    EnsuredUiFontAsset, UiFontAssetCache, UiFontAssetCacheStatus, UiFontAssetLoadError,
     ensure_font_asset_record as ensure_font_asset_record_with_claims, font_asset_cache_report,
+    EnsuredUiFontAsset, UiFontAssetCache, UiFontAssetCacheStatus, UiFontAssetLoadError,
 };
 use super::super::*;
 use super::support::{RuntimeFontAssetGuard, TextFontProject};
@@ -140,6 +140,8 @@ fn native_text_prepare_uses_prepared_glyph_runs_without_a_layout_backend() {
     assert!(source.contains("native_bitmap_atlas_glyph_runs"));
     assert!(!source.contains("TextArea"));
     assert!(!source.contains("TextRenderer"));
+    // BUG: [CR-W12-UI-TEXT-0006] 本 guard 禁止的 TextAtlas 子串在被包含的文字系统中出现 4 次，执行到此断言必失败。
+    // 证据：四处均属于 ScreenSpaceUiTextAtlasRecoveryState 的定义与使用；该名称也触发 rendering 测试中的同类断言。
     assert!(!source.contains("TextAtlas"));
     assert!(!source.contains("layout_runs()"));
 

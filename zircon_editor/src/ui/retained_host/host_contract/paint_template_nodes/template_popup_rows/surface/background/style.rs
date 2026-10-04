@@ -1,3 +1,5 @@
+//! 弹层容器的宿主主题快照；投影了有效圆角时优先使用节点声明，否则退回panel级别半径。
+
 use super::super::super::super::super::data::TemplatePaneNodeData;
 use super::super::super::super::super::paint_theme::{current_host_metrics, current_host_palette};
 
@@ -24,22 +26,5 @@ pub(super) fn popup_background_style(node: &TemplatePaneNodeData) -> PopupBackgr
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn popup_background_uses_the_panel_radius_tier() {
-        let metrics = current_host_metrics();
-        let node = TemplatePaneNodeData::default();
-
-        assert_eq!(popup_background_style(&node).radius, metrics.radius_panel);
-    }
-
-    #[test]
-    fn popup_background_prefers_the_projected_panel_radius() {
-        let mut node = TemplatePaneNodeData::default();
-        node.corner_radius = 14.0;
-
-        assert_eq!(popup_background_style(&node).radius, 14.0);
-    }
-}
+#[path = "tests/style.rs"]
+mod tests;

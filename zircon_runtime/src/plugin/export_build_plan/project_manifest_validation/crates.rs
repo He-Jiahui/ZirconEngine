@@ -1,3 +1,4 @@
+//! 对目标实际消费的 runtime/editor crate 覆盖名给出诊断，并从生成视图清除无效覆盖。
 use std::fmt;
 
 use crate::core::framework::platform::RuntimeTargetMode;
@@ -5,6 +6,7 @@ use crate::core::framework::project::ProjectPluginManifest;
 
 use super::tokens::is_lowercase_project_runtime_crate;
 
+/// 清理 completed 清单克隆，阻止无效 crate 覆盖进入链接及生成代码；诊断仍从原 manifest 收集。
 pub(in crate::plugin::export_build_plan) fn sanitize_invalid_project_crate_overrides(
     manifest: &mut ProjectPluginManifest,
     target: RuntimeTargetMode,
@@ -35,6 +37,7 @@ pub(in crate::plugin::export_build_plan) fn sanitize_invalid_project_crate_overr
     }
 }
 
+/// 原始清单的 runtime crate 诊断按目标消费和 required 分类，供计划决定阻断。
 pub(in crate::plugin::export_build_plan) fn project_runtime_crate_diagnostics(
     manifest: &ProjectPluginManifest,
     target: RuntimeTargetMode,
@@ -79,6 +82,7 @@ pub(in crate::plugin::export_build_plan) fn project_runtime_crate_diagnostics(
     (diagnostics, fatal_diagnostics)
 }
 
+/// editor crate 也需遵守命名契约；只有当前目标消费的 required 行会把错误升级 fatal。
 pub(in crate::plugin::export_build_plan) fn project_editor_crate_diagnostics(
     manifest: &ProjectPluginManifest,
     target: RuntimeTargetMode,
@@ -211,33 +215,5 @@ fn project_selection_runtime_crate_name_prefix_is_valid(crate_name: &str) -> boo
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        validate_project_runtime_crate_name, validate_project_selection_runtime_crate_name,
-    };
-
-    #[test]
-    fn deferred_crate_diagnostic_context_preserves_contract() {
-        let mut diagnostics = Vec::new();
-        validate_project_selection_runtime_crate_name(
-            format_args!("project plugin audio runtime_crate"),
-            "Zircon__",
-            &mut diagnostics,
-        );
-        validate_project_runtime_crate_name(
-            format_args!("project plugin audio editor_crate"),
-            "Zircon__",
-            &mut diagnostics,
-        );
-
-        assert_eq!(
-            diagnostics,
-            vec![
-                "project plugin audio runtime_crate `Zircon__` must use `zircon_plugin_` crate prefix or `builtin_` runtime-domain prefix and contain only lowercase ASCII letters, digits, and underscores".to_string(),
-                "project plugin audio runtime_crate `Zircon__` must not end with an underscore or contain repeated underscores".to_string(),
-                "project plugin audio editor_crate `Zircon__` must use `zircon_plugin_` prefix and contain only lowercase ASCII letters, digits, and underscores".to_string(),
-                "project plugin audio editor_crate `Zircon__` must not end with an underscore or contain repeated underscores".to_string(),
-            ]
-        );
-    }
-}
+#[path = "tests/crates.rs"]
+mod tests;

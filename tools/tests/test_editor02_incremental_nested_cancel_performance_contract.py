@@ -1,3 +1,4 @@
+# 核对嵌套编辑事务取消时逐帧回退及失败恢复的源码路径，并关联 Rust 行为测试名称。
 from pathlib import Path
 import unittest
 

@@ -228,7 +228,7 @@ fn partition_external_changes(
     external_changed: &BTreeSet<DocumentId>,
 ) -> (BTreeSet<DocumentId>, Vec<DocumentId>) {
     let mut present = BTreeSet::new();
-    let mut removed = Vec::new();
+    let mut removed = Vec::with_capacity(external_changed.len());
     for document in external_changed {
         if state.documents.contains(document) {
             present.insert(*document);
@@ -395,14 +395,20 @@ impl DirtyRegistry {
                 let mut state = self.lock_state();
                 let external_reset =
                     cursor_generation.is_none_or(|generation| !state.can_replay_from(generation));
-                let external_changed = match cursor_generation {
-                    None => state.documents.iter().copied().collect(),
-                    Some(_) if external_reset => state.documents.iter().copied().collect(),
-                    Some(generation) if generation == state.registry_generation => BTreeSet::new(),
-                    Some(generation) => state.changed_documents_after(generation),
+                let (external_changed, external_present, external_removed) = if external_reset {
+                    (BTreeSet::new(), BTreeSet::new(), Vec::new())
+                } else {
+                    let external_changed = match cursor_generation {
+                        None => BTreeSet::new(),
+                        Some(generation) if generation == state.registry_generation => {
+                            BTreeSet::new()
+                        }
+                        Some(generation) => state.changed_documents_after(generation),
+                    };
+                    let (external_present, external_removed) =
+                        partition_external_changes(&state, &external_changed);
+                    (external_changed, external_present, external_removed)
                 };
-                let (external_present, external_removed) =
-                    partition_external_changes(&state, &external_changed);
                 (
                     state.registry_generation,
                     external_reset,
@@ -644,5 +650,5 @@ impl DirtyRegistry {
 }
 
 #[cfg(test)]
-#[path = "registry/optimization_tests.rs"]
+#[path = "registry/tests/optimization_tests.rs"]
 mod optimization_tests;

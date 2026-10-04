@@ -62,6 +62,8 @@ impl RenderFramePhaseQueueSummaryPhaseOrderSpan {
 }
 
 impl RenderFramePhaseQueueSummary {
+    /// 把已排序的几何与精灵队列合为只读诊断视图；区间索引仍分别指向原队列，
+    /// 不能把合计数当作可直接提交的混合队列下标。
     pub fn new(geometry: RenderPhaseQueueSummary, sprites: RenderPhaseQueueSummary) -> Self {
         let phase_counts = RENDER_PHASES_BY_QUEUE_ORDER
             .iter()
@@ -236,16 +238,9 @@ fn phase_diagnostic_name(phases: &[RenderPhase]) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn frame_summary_builds_diagnostic_names_without_temporary_vec() {
-        let source = include_str!("frame_phase_queue_summary.rs");
-
-        assert!(!source.contains(concat!(".collect::<Vec<_>>()", ".join(\"+\")")));
-        assert!(source.contains(concat!("String::with_", "capacity(capacity)")));
-    }
-}
+#[path = "tests/frame_phase_queue_summary.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "frame_phase_queue_summary/cached_span_template_tests.rs"]
+#[path = "frame_phase_queue_summary/tests/cached_span_template_tests.rs"]
 mod cached_span_template_tests;

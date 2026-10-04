@@ -4,22 +4,30 @@ use crate::core::framework::render::{
 use crate::core::framework::time::{ProductTimePolicy, ProductTimePolicyError};
 use crate::core::manager::{input_manager_handle, resolve_manager_service};
 use crate::core::math::{UVec2, Vec2};
-use crate::core::{CoreHandle, CoreRuntime, FrameClockRebaseReceipt, TaskGraphScopeDescriptor};
+use crate::core::{
+    CoreError, CoreHandle, CoreRuntime, FrameClockRebaseReceipt, TaskGraphScopeDescriptor,
+};
 use crate::diagnostic_log::{write_log, write_log_lazy};
 use crate::operation::RuntimeOperationService;
 use crate::plugin::{RuntimeExtensionRegistryError, RuntimePluginRegistrationReport};
 use crate::scene::components::NodeKind;
-use crate::text::font_collection_service_for_core;
+use crate::text::{text_runtime_context_for_core, TEXT_MODULE_NAME};
 
 use super::super::camera_controller::RuntimeCameraController;
 use super::super::runtime_loop::RuntimeRenderBridge;
+use super::ime_composition_route::RuntimeImeCompositionRoute;
 use super::project::{project_opened_log, RuntimePreparedProject, RuntimeProjectConfig};
 use super::ui_extract_cache::RuntimeUiExtractCache;
+
+mod cleanup;
+
 use super::{
     event_mirror, linked_plugins::LinkedRuntimePluginPlan, merge_builtin_script_scene_systems,
     RuntimeDynamicSession, RuntimeDynamicSessionError, RuntimeDynamicSessionProfile,
     RuntimeDynamicSessionResult,
 };
+pub(in crate::dynamic_api::session) use cleanup::RuntimeConstructionCleanup;
+pub(in crate::dynamic_api::session) use cleanup::RuntimeConstructionFailure;
 
 fn store_profile_submission_config(
     core: &CoreHandle,
@@ -69,11 +77,16 @@ fn rebase_frame_clock_after_session_activation(runtime: &CoreRuntime) -> FrameCl
     runtime.rebase_frame_clock()
 }
 
+pub(super) enum RuntimePluginPlanInput {
+    CoreOnly,
+    Linked(Vec<RuntimePluginRegistrationReport>),
+}
+
 pub(super) fn build(
     profile: RuntimeDynamicSessionProfile,
     project_config: Option<RuntimeProjectConfig>,
-    linked_plugin_registrations: Vec<RuntimePluginRegistrationReport>,
-) -> RuntimeDynamicSessionResult<RuntimeDynamicSession> {
+    plugin_plan_input: RuntimePluginPlanInput,
+) -> Result<RuntimeDynamicSession, RuntimeConstructionFailure> {
     crate::profile_scope!("runtime", "dynamic_api", "runtime_dynamic_session_new");
     crate::diagnostic_log::initialize_unity_process_log("runtime-dynamic");
     write_log_lazy("runtime_session", || {
@@ -95,17 +108,23 @@ pub(super) fn build(
     let project_plugin_manifest = prepared_project
         .as_ref()
         .map(RuntimePreparedProject::plugin_manifest);
-    let linked_plugin_plan = LinkedRuntimePluginPlan::prepare(
-        &linked_plugin_registrations,
-        project_plugin_manifest,
-        profile.target_mode(),
-    )?;
+    let linked_plugin_plan = match plugin_plan_input {
+        RuntimePluginPlanInput::CoreOnly => {
+            LinkedRuntimePluginPlan::prepare_core_only(profile.target_mode())?
+        }
+        RuntimePluginPlanInput::Linked(registrations) => LinkedRuntimePluginPlan::prepare(
+            &registrations,
+            project_plugin_manifest,
+            profile.target_mode(),
+        )?,
+    };
     let (modules, runtime_plugin_catalog_snapshot, compiled_project_plugin_plan) =
         linked_plugin_plan.into_parts();
     let module_composition_identity = modules.identity().clone();
     let linked_extensions = compiled_project_plugin_plan.runtime_extensions_handle();
+    let mut runtime_extension_registry = linked_extensions.registry.clone();
     let linked_extension_world_plan =
-        merge_builtin_script_scene_systems(&linked_extensions.registry)?;
+        merge_builtin_script_scene_systems(&runtime_extension_registry)?;
     let time_policy = profile.product_time_policy();
     let runtime = {
         crate::profile_scope!("runtime", "dynamic_api", "runtime_session_core_new");
@@ -113,13 +132,21 @@ pub(super) fn build(
             RuntimeDynamicSessionError::EngineTaskGraphInitialization { source }
         })?
     };
-    let task_graph_scope = runtime
-        .create_task_graph_scope(TaskGraphScopeDescriptor::new("dynamic-session"))
-        .map_err(|source| RuntimeDynamicSessionError::TaskGraphScopeAdmission { source })?;
-    apply_profile_time_policy(&runtime, time_policy)?;
+    let mut construction_cleanup = RuntimeConstructionCleanup::new(
+        &runtime,
+        &runtime_plugin_catalog_snapshot,
+        &compiled_project_plugin_plan,
+    );
+    let task_graph_scope = construction_cleanup.check(
+        runtime
+            .create_task_graph_scope(TaskGraphScopeDescriptor::new("dynamic-session"))
+            .map_err(|source| RuntimeDynamicSessionError::TaskGraphScopeAdmission { source }),
+    )?;
+    construction_cleanup.attach_scope(&task_graph_scope);
+    construction_cleanup.check(apply_profile_time_policy(&runtime, time_policy))?;
     write_log("runtime_session", "runtime_dynamic_session_core_created");
     let core = runtime.handle();
-    store_profile_submission_config(&core, profile)?;
+    construction_cleanup.check(store_profile_submission_config(&core, profile))?;
     write_log_lazy("runtime_session", || {
         format!(
             "runtime_dynamic_session_modules_discovered count={} composition_hash={}",
@@ -130,12 +157,12 @@ pub(super) fn build(
     {
         crate::profile_scope!("runtime", "dynamic_api", "runtime_session_register_modules");
         for descriptor in modules.module_descriptors() {
-            runtime
-                .register_module(descriptor.clone())
-                .map_err(|source| RuntimeDynamicSessionError::CoreStep {
+            construction_cleanup.check(runtime.register_module(descriptor.clone()).map_err(
+                |source| RuntimeDynamicSessionError::CoreStep {
                     step: "register runtime module",
                     source,
-                })?;
+                },
+            ))?;
         }
     }
     write_log(
@@ -144,42 +171,45 @@ pub(super) fn build(
     );
     {
         crate::profile_scope!("runtime", "dynamic_api", "runtime_session_activate_modules");
-        activate_registered_modules(&runtime)?;
+        construction_cleanup.check(activate_registered_modules(&runtime))?;
     }
     write_log(
         "runtime_session",
         "runtime_dynamic_session_modules_activated",
     );
-    let font_collection = font_collection_service_for_core(&core).map_err(|source| {
-        RuntimeDynamicSessionError::CoreStep {
-            step: "resolve runtime text font services",
-            source,
-        }
-    })?;
-    let input_manager = {
-        crate::profile_scope!("runtime", "dynamic_api", "runtime_session_resolve_input");
-        let handle =
-            input_manager_handle(&core).map_err(|source| RuntimeDynamicSessionError::CoreStep {
-                step: "capture input manager handle",
-                source,
-            })?;
-        resolve_manager_service(&core, handle.clone()).map_err(|source| {
+    let text_context =
+        construction_cleanup.check(text_runtime_context_for_core(&core).map_err(|source| {
             RuntimeDynamicSessionError::CoreStep {
-                step: "resolve input",
+                step: "resolve runtime text context",
                 source,
             }
-        })?;
+        }))?;
+    let input_manager = {
+        crate::profile_scope!("runtime", "dynamic_api", "runtime_session_resolve_input");
+        let handle = construction_cleanup.check(input_manager_handle(&core).map_err(|source| {
+            RuntimeDynamicSessionError::CoreStep {
+                step: "capture input manager handle",
+                source,
+            }
+        }))?;
+        construction_cleanup.check(resolve_manager_service(&core, handle.clone()).map_err(
+            |source| RuntimeDynamicSessionError::CoreStep {
+                step: "resolve input",
+                source,
+            },
+        ))?;
         handle
     };
     write_log("runtime_session", "runtime_dynamic_session_input_ready");
     let render_bridge = if profile.uses_render_bridge() {
         crate::profile_scope!("runtime", "dynamic_api", "runtime_session_render_bridge");
-        let render_bridge = RuntimeRenderBridge::new(&core).map_err(|source| {
-            RuntimeDynamicSessionError::CoreStep {
-                step: "create render bridge",
-                source,
-            }
-        })?;
+        let render_bridge =
+            construction_cleanup.check(RuntimeRenderBridge::new(&core).map_err(|source| {
+                RuntimeDynamicSessionError::CoreStep {
+                    step: "create render bridge",
+                    source,
+                }
+            }))?;
         write_log(
             "runtime_session",
             "runtime_dynamic_session_render_bridge_ready",
@@ -197,12 +227,14 @@ pub(super) fn build(
         match &mut prepared_project {
             Some(project) => {
                 write_log("runtime_session", "runtime_project_open_assets_start");
-                let project_info = project.open_project_assets(&core).map_err(|source| {
-                    RuntimeDynamicSessionError::ProjectStep {
-                        step: "open project assets",
-                        source,
-                    }
-                })?;
+                let project_info = construction_cleanup.check(
+                    project
+                        .open_project_assets(&core, &mut runtime_extension_registry)
+                        .map_err(|source| RuntimeDynamicSessionError::ProjectStep {
+                            step: "open project assets",
+                            source,
+                        }),
+                )?;
                 write_log("runtime_session", "runtime_project_open_assets_done");
                 write_log_lazy("runtime_session", || project_opened_log(&project_info));
                 let project_identity =
@@ -213,68 +245,71 @@ pub(super) fn build(
                         .then(|| project_info.default_scene_uri.clone())
                 });
                 write_log("runtime_session", "runtime_project_navigation_load_start");
-                project.load_default_navigation(&core).map_err(|source| {
-                    RuntimeDynamicSessionError::ProjectStep {
+                construction_cleanup.check(project.load_default_navigation(&core).map_err(
+                    |source| RuntimeDynamicSessionError::ProjectStep {
                         step: "load default project navigation",
                         source,
-                    }
-                })?;
+                    },
+                ))?;
                 write_log("runtime_session", "runtime_project_navigation_load_done");
                 write_log("runtime_session", "runtime_project_scripts_load_start");
-                project.load_startup_scripts(&core).map_err(|source| {
-                    RuntimeDynamicSessionError::ProjectStep {
+                construction_cleanup.check(project.load_startup_scripts(&core).map_err(
+                    |source| RuntimeDynamicSessionError::ProjectStep {
                         step: "load startup script packages",
                         source,
-                    }
-                })?;
+                    },
+                ))?;
                 write_log("runtime_session", "runtime_project_scripts_load_done");
                 write_log("runtime_session", "runtime_project_level_load_start");
                 let level = if project.has_play_scene_override() {
-                    project.load_play_scene_level(&core).map_err(|source| {
-                        RuntimeDynamicSessionError::ProjectStep {
+                    construction_cleanup.check(project.load_play_scene_level(&core).map_err(
+                        |source| RuntimeDynamicSessionError::ProjectStep {
                             step: "load Play scene override",
                             source,
-                        }
-                    })?
+                        },
+                    ))?
                 } else {
-                    project.load_default_level(&core).map_err(|source| {
-                        RuntimeDynamicSessionError::ProjectStep {
+                    construction_cleanup.check(project.load_default_level(&core).map_err(
+                        |source| RuntimeDynamicSessionError::ProjectStep {
                             step: "load default level",
                             source,
-                        }
-                    })?
+                        },
+                    ))?
                 };
                 (level, project_identity, scene_uri)
             }
             None => (
-                crate::scene::create_default_level(&core).map_err(|source| {
-                    RuntimeDynamicSessionError::CoreStep {
+                construction_cleanup.check(crate::scene::create_default_level(&core).map_err(
+                    |source| RuntimeDynamicSessionError::CoreStep {
                         step: "create default level",
                         source,
-                    }
-                })?,
+                    },
+                ))?,
                 None,
                 None,
             ),
         }
     };
-    level
-        .with_world_mut(|world| linked_extension_world_plan.apply_to_world(world))
-        .map_err(
-            |source| RuntimeDynamicSessionError::RuntimeExtensionRegistryStep {
-                step: "apply linked plugin extensions to runtime world",
-                source: RuntimeExtensionRegistryError::WorldRegistration(source.to_string()),
-            },
-        )?;
+    construction_cleanup.check(
+        level
+            .with_world_mut(|world| linked_extension_world_plan.apply_to_world(world))
+            .map_err(
+                |source| RuntimeDynamicSessionError::RuntimeExtensionRegistryStep {
+                    step: "apply linked plugin extensions to runtime world",
+                    source: RuntimeExtensionRegistryError::WorldRegistration(source.to_string()),
+                },
+            ),
+    )?;
     write_log("runtime_session", "runtime_dynamic_session_level_ready");
     let scene_asset_reload_queue = match &prepared_project {
         Some(project) => Some(
-            project
-                .scene_asset_reload_queue(&core)
-                .map_err(|source| RuntimeDynamicSessionError::ProjectStep {
-                    step: "create scene asset reload queue",
-                    source,
-                })?
+            construction_cleanup
+                .check(project.scene_asset_reload_queue(&core).map_err(|source| {
+                    RuntimeDynamicSessionError::ProjectStep {
+                        step: "create scene asset reload queue",
+                        source,
+                    }
+                }))?
                 .with_task_graph_scope(task_graph_scope.clone()),
         ),
         None => None,
@@ -283,12 +318,14 @@ pub(super) fn build(
         write_log("runtime_session", "runtime_scene_asset_reload_queue_ready");
     }
     let runtime_ui = match &prepared_project {
-        Some(project) => project
-            .load_runtime_ui_surfaces(&core, font_collection.clone())
-            .map_err(|source| RuntimeDynamicSessionError::ProjectStep {
-                step: "load declared project UI roots",
-                source,
-            })?,
+        Some(project) => construction_cleanup.check(
+            project
+                .load_runtime_ui_surfaces(&core, text_context.clone())
+                .map_err(|source| RuntimeDynamicSessionError::ProjectStep {
+                    step: "load declared project UI roots",
+                    source,
+                }),
+        )?,
         None => Default::default(),
     };
     let (orbit_target, selected_model_resource_id, selected_material_resource_id) = {
@@ -304,12 +341,12 @@ pub(super) fn build(
                 .find(|node| matches!(&node.kind, NodeKind::Cube))
                 .map(|node| node.id)
                 .unwrap_or(world.active_camera());
-            let selected_node = world.find_node(cube);
-            let orbit_target = selected_node
+            let orbit_node = world.find_node(cube);
+            let orbit_target = orbit_node
                 .as_ref()
                 .map(|node| node.transform.translation)
                 .unwrap_or_default();
-            let selected_mesh = selected_node.and_then(|node| node.mesh);
+            let selected_mesh = orbit_node.and_then(|node| node.mesh);
             (
                 orbit_target,
                 selected_mesh
@@ -333,9 +370,23 @@ pub(super) fn build(
     write_log("runtime_session", "runtime_dynamic_session_create_done");
 
     let mut operations = RuntimeOperationService::new();
-    crate::navigation::register_navigation_operation_handlers(&mut operations)
-        .map_err(|source| RuntimeDynamicSessionError::RuntimeOperationRegistry { source })?;
+    construction_cleanup.check(
+        crate::navigation::register_navigation_operation_handlers(&mut operations)
+            .map_err(|source| RuntimeDynamicSessionError::RuntimeOperationRegistry { source }),
+    )?;
     let frame_clock_activation_rebase = rebase_frame_clock_after_session_activation(&runtime);
+    let ui_extract_cache = construction_cleanup.check(
+        RuntimeUiExtractCache::new_with_text_context(&text_context).map_err(|source| {
+            RuntimeDynamicSessionError::CoreStep {
+                step: "create runtime UI text extract cache",
+                source: CoreError::Initialization(TEXT_MODULE_NAME.to_owned(), source.to_string()),
+            }
+        }),
+    )?;
+    write_log(
+        "runtime_session",
+        "runtime_dynamic_session_post_create_ready",
+    );
 
     Ok(RuntimeDynamicSession {
         runtime,
@@ -356,7 +407,7 @@ pub(super) fn build(
         selected_material_resource_id,
         camera_controller,
         extract_cache: Default::default(),
-        ui_extract_cache: RuntimeUiExtractCache::new_with_font_collection(font_collection),
+        ui_extract_cache,
         cursor: Vec2::ZERO,
         input_manager,
         input_diagnostics: Default::default(),
@@ -371,75 +422,20 @@ pub(super) fn build(
         operations,
         _runtime_plugin_catalog_snapshot: runtime_plugin_catalog_snapshot,
         _compiled_project_plugin_plan: compiled_project_plugin_plan,
+        _runtime_extension_registry: runtime_extension_registry,
         project_watchers_shutdown: false,
         dynamic_process_log: None,
         runtime_ui,
+        ime_composition_route: RuntimeImeCompositionRoute::legacy(1),
         viewport_picks: Default::default(),
         editor_transform: Default::default(),
     })
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        activate_registered_modules, apply_profile_time_policy,
-        rebase_frame_clock_after_session_activation, store_profile_submission_config, CoreRuntime,
-        RenderProfileBundle, RenderSubmissionConfig, RuntimeDynamicSessionProfile,
-        RENDER_PROFILE_CONFIG_KEY,
-    };
-    use crate::core::FrameClockFirstTickPolicy;
+#[path = "tests/construction.rs"]
+mod tests;
 
-    #[test]
-    fn pipelined_runtime_profile_stores_the_render_submission_config_before_activation() {
-        let runtime = CoreRuntime::new();
-        let core = runtime.handle();
-
-        store_profile_submission_config(&core, RuntimeDynamicSessionProfile::RuntimePipelined)
-            .expect("pipelined runtime profile should store the render submission config");
-
-        let profile = core
-            .load_config::<RenderProfileBundle>(RENDER_PROFILE_CONFIG_KEY)
-            .expect("pipelined runtime profile should be readable before module activation");
-        assert_eq!(
-            profile.submission_config(),
-            RenderSubmissionConfig::pipelined()
-        );
-    }
-
-    #[test]
-    fn construction_commits_the_selected_product_time_policy_before_module_activation() {
-        let runtime = CoreRuntime::new();
-        let policy = RuntimeDynamicSessionProfile::Headless.product_time_policy();
-
-        apply_profile_time_policy(&runtime, policy)
-            .expect("built-in headless policy should apply to a new runtime");
-
-        assert_eq!(runtime.time_policy(), policy.time_policy());
-        assert_eq!(runtime.time_policy_generation(), 1);
-    }
-
-    #[test]
-    fn successful_session_activation_rebases_the_frame_clock() {
-        let runtime = CoreRuntime::new();
-        activate_registered_modules(&runtime).expect("empty module activation should succeed");
-
-        let receipt = rebase_frame_clock_after_session_activation(&runtime);
-
-        assert_eq!(receipt.generation(), 1);
-        assert_eq!(
-            receipt.first_tick_policy(),
-            FrameClockFirstTickPolicy::MeasureFromRebase
-        );
-    }
-
-    #[test]
-    fn standard_runtime_profile_does_not_override_the_default_submission_config() {
-        let runtime = CoreRuntime::new();
-        let core = runtime.handle();
-
-        store_profile_submission_config(&core, RuntimeDynamicSessionProfile::Runtime)
-            .expect("standard runtime profile should not require render submission configuration");
-
-        assert_eq!(core.load_config_value(RENDER_PROFILE_CONFIG_KEY), None);
-    }
-}
+#[cfg(test)]
+#[path = "construction/tests/error_cleanup_tests.rs"]
+mod error_cleanup_tests;

@@ -296,7 +296,7 @@ def reachable_feature_graph(
         visit_package(manifest_path)
     return reachable_features, reachable_packages
 
-
+# 解析工作区特性闭包，验证服务端配置不会经本地依赖重新启用客户端域。
 class Frameworks03ServerFeatureBoundaryTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

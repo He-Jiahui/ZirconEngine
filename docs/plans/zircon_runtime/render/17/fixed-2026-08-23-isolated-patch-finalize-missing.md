@@ -11,15 +11,7 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 failure_scope: cross_plan
 related_code:
-  - tools/zircon-session.ps1
-  - tools/session_coordinator/isolated_patch_contract.py
-  - tools/session_coordinator/isolated_patch_checkout.py
-  - tools/session_coordinator/isolated_patch_finalize.py
-  - tools/session_coordinator/git_finalize.py
-  - tools/session_coordinator/cli.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/tests/test_isolated_patch_finalize.py
-  - tools/session_coordinator/tests/test_powershell_wrapper_arguments.py
+  - tools/dev/zircon-session.ps1
 tests:
   - python -B -m unittest tools.session_coordinator.tests.test_isolated_patch_finalize -v
   - python -B -m unittest tools.session_coordinator.tests.test_powershell_wrapper_arguments -v

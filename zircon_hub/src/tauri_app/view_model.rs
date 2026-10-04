@@ -5,7 +5,7 @@ use serde::Serialize;
 use crate::engines::SourceEngineInstall;
 use crate::projects::{metadata_for_path, now_unix_ms, project_paths_match, RecentProject};
 use crate::settings::HubLanguage;
-use crate::state::{HubSnapshot, ProjectAvailabilitySnapshot, TaskSeverity};
+use crate::state::{HubSnapshot, ProjectAvailabilitySnapshot, TaskSeverity, TaskStatus};
 use crate::team::{TeamMemberEntry, TeamOverview};
 
 mod action_history;
@@ -41,6 +41,8 @@ const RECENT_ROW_LIMIT: usize = 8;
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct HubViewModel {
+    pub backend_epoch: String,
+    pub state_revision: String,
     pub product_name: String,
     pub engine_version: String,
     pub active_page: String,
@@ -56,6 +58,7 @@ pub(crate) struct HubViewModel {
     pub selected_project_id: Option<String>,
     pub active_source_engine_id: Option<String>,
     pub task_summary: HubTaskSummary,
+    pub window_close_save_error: Option<HubWindowCloseSaveError>,
     pub task_status: Vec<HubStatusPill>,
     pub projects: Vec<HubProjectSummary>,
     pub browser_projects: Vec<HubRecentProject>,
@@ -89,11 +92,20 @@ pub(crate) struct HubTaskSummary {
     pub detail: String,
     pub tone: String,
     pub running: bool,
+    pub cancellable: bool,
     pub recovery: Option<String>,
     pub operation: String,
     pub progress_percent: u8,
     pub task_id: u64,
     pub queued: usize,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct HubWindowCloseSaveError {
+    pub label: String,
+    pub detail: String,
+    pub recovery: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -242,6 +254,22 @@ pub(crate) struct HubTeamMember {
 }
 
 impl HubViewModel {
+    pub(in crate::tauri_app) fn set_window_close_save_error(
+        &mut self,
+        status: Option<&TaskStatus>,
+        language: HubLanguage,
+    ) {
+        let text = HubTextBundle::new(language);
+        self.window_close_save_error = status.map(|status| HubWindowCloseSaveError {
+            label: text.status_label(&status.label),
+            detail: text.render_message(&status.detail),
+            recovery: status
+                .recovery
+                .as_ref()
+                .map(|recovery| text.render_message(recovery)),
+        });
+    }
+
     pub(crate) fn from_snapshot(snapshot: &HubSnapshot) -> Self {
         let availability = ProjectAvailabilitySnapshot::capture_with_selected(
             &snapshot.recent_projects,
@@ -264,6 +292,8 @@ impl HubViewModel {
         let text = HubTextBundle::new(snapshot.settings.language);
 
         Self {
+            backend_epoch: "snapshot".to_owned(),
+            state_revision: "0".to_string(),
             product_name: "Zircon Hub".to_string(),
             engine_version: active_engine
                 .map(source_engine_display_title)
@@ -281,6 +311,7 @@ impl HubViewModel {
             selected_project_id,
             active_source_engine_id,
             task_summary: task_summary(snapshot, text),
+            window_close_save_error: None,
             task_status: header_statuses(snapshot, text),
             projects: filtered_projects
                 .iter()
@@ -326,6 +357,7 @@ fn task_summary(snapshot: &HubSnapshot, text: HubTextBundle) -> HubTaskSummary {
             severity_tone(snapshot.task_status.severity).to_string()
         },
         running: snapshot.task_status.running,
+        cancellable: snapshot.task_status.cancellable,
         recovery: snapshot
             .task_status
             .recovery
@@ -686,5 +718,5 @@ fn severity_tone(severity: TaskSeverity) -> &'static str {
 }
 
 #[cfg(test)]
-#[path = "view_model/tests.rs"]
+#[path = "view_model/tests/cases.rs"]
 mod tests;

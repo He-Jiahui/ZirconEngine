@@ -1,0 +1,448 @@
+{
+  "schema": 1,
+  "owner": "runtime_wave12_graphics_advanced_lighting",
+  "prepared_at_utc": "2026-10-03T03:48:28.955114+00:00",
+  "files": [
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/apply_binding.rs",
+      "before_sha256": "698050deec8ded235c5a31ea6955e398d490a6e4e749cf474ed368e28e18de59",
+      "after_sha256": "7946530088ef71903df16debb54bffc9c95a38091c9bc0d54213c8693e581922",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "P02",
+          "anchor": "    fn from_frame(",
+          "before_line": 18,
+          "added_raw_base64": "ICAgIC8vIOeJqeeQhuWOn+eCueWSjOWwuuWvuOWAkuaVsOmhu+WMuemFjeW6lOeUqOmAmumBk+eahOa4suafk+WMuuWfn++8jOedgOiJsuWZqOaNruatpOaKiueJh+WFg+WdkOagh+aNoueul+S4uiBmcm94ZWwgVVbjgIIK",
+          "comment_text": "    // 物理原点和尺寸倒数须匹配应用通道的渲染区域，着色器据此把片元坐标换算为 froxel UV。",
+          "added_comment_lines": 1
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 1,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/executors/integrate.rs",
+      "before_sha256": "021f00625d1d94c216f3067f72f57858dc3e66506ccf2e29e2d308271fd04e04",
+      "after_sha256": "e9478c6e7f6a15ae84542fd5f171bd679e742b6c8f82bf0469d4c2bf707db250",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "P03",
+          "anchor": "impl RenderPassExecutor for VolumetricIntegrateExecutor {",
+          "before_line": 23,
+          "added_raw_base64": "Ly8g56ev5YiG566h57q/5oyJ6K6+5aSH5LiW5Luj5aSN55So77yM6K+75Y+W5pys5bin5pWj5bCE5bm255Sf5oiQ5bqU55So57q555CG77yb5pWj5bCE5Y6G5Y+y55SxIGxpZ2h0X3NjYXR0ZXIg5omn6KGM5Zmo6K6w5b2V44CCCg==",
+          "comment_text": "// 积分管线按设备世代复用，读取本帧散射并生成应用纹理；散射历史由 light_scatter 执行器记录。",
+          "added_comment_lines": 1
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 1,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/executors/light_scatter.rs",
+      "before_sha256": "6881a260f8849b4b671da9f41c3ee797fcbe91ca379f693ba1527e9f8c2d4c67",
+      "after_sha256": "6881a260f8849b4b671da9f41c3ee797fcbe91ca379f693ba1527e9f8c2d4c67",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/executors/media_inject.rs",
+      "before_sha256": "622cb986e75150a91dbf573f6deb204ed515e9aa36f73dc0c2a6ea660e057fc8",
+      "after_sha256": "622cb986e75150a91dbf573f6deb204ed515e9aa36f73dc0c2a6ea660e057fc8",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/executors/mod.rs",
+      "before_sha256": "7f64195307d96ccc54d04245bc443bf8c1bbe234350bf85a3998c0e014b89215",
+      "after_sha256": "7f64195307d96ccc54d04245bc443bf8c1bbe234350bf85a3998c0e014b89215",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/integrate.rs",
+      "before_sha256": "2318cb4a890f4a3adf423a0ba1e50de3f6fde7e3c4541792ea86e40cd9044038",
+      "after_sha256": "2318cb4a890f4a3adf423a0ba1e50de3f6fde7e3c4541792ea86e40cd9044038",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/integrate/tests.rs",
+      "before_sha256": "15734ed5239d04f9f67038e2acf6a3afa0c00b8ce571453778e1750499792719",
+      "after_sha256": "15734ed5239d04f9f67038e2acf6a3afa0c00b8ce571453778e1750499792719",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/media_inject.rs",
+      "before_sha256": "7678f902f4a6f497220b24f16c94053eb15ecbbd11b2b24ed0b9af8827149a4c",
+      "after_sha256": "1a1dc9d53d1284f34c174ca2ad52a0aec38ac5116103495cc11cff93dfcbc93c",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "P05",
+          "anchor": "fn collect_gpu_volumes(",
+          "before_line": 257,
+          "added_raw_base64": "Ly8gTm9uZSDkv53nlZnmiYDmnInovpPlhaXvvJvlm77miafooYzot6/lvoTpgJrov4cgcHJlcGFyZV9mb3JfbGF5ZXJzIOaYvuW8j+S8oOWFpeebuOacuuWxguaOqeeggeOAggovLyDnpoHnlKjlsYDpg6jkvZPnp6/ml7blnKjpgY3ljobliY3ov5Tlm57nqbrliJfooajvvIzlkI7nu63nvJbnoIHlpI3nlKjnqbrotJ/ovb3nvJPlhrLjgIIK",
+          "comment_text": "// None 保留所有输入；图执行路径通过 prepare_for_layers 显式传入相机层掩码。\n// 禁用局部体积时在遍历前返回空列表，后续编码复用空负载缓冲。",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/media_inject/performance_tests.rs",
+      "before_sha256": "765dfbc527bd602031484cf331e9f2d6478c6eb3ddf2875e3fe0541fae62fe69",
+      "after_sha256": "765dfbc527bd602031484cf331e9f2d6478c6eb3ddf2875e3fe0541fae62fe69",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/resolved_settings.rs",
+      "before_sha256": "33481b02c666594607dedf3ab482012c620a1a892b032e13b45d461986d9171d",
+      "after_sha256": "33481b02c666594607dedf3ab482012c620a1a892b032e13b45d461986d9171d",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/view_reconstruction.rs",
+      "before_sha256": "9d7b5b66b88873ccbba52862991e26f46f3903c53cf92dca3d83a67c62c8f62f",
+      "after_sha256": "9d7b5b66b88873ccbba52862991e26f46f3903c53cf92dca3d83a67c62c8f62f",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/irradiance_volume/executor.rs",
+      "before_sha256": "b86f7bb80ba5e45082aaad2bf768ea14660a36c9d3c6112685bc2b4ac738777c",
+      "after_sha256": "b86f7bb80ba5e45082aaad2bf768ea14660a36c9d3c6112685bc2b4ac738777c",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/irradiance_volume/mod.rs",
+      "before_sha256": "56840985aa6531ed8b2c5615ab713d499f7291f8ef35f20192bbfd4b9161e18d",
+      "after_sha256": "56840985aa6531ed8b2c5615ab713d499f7291f8ef35f20192bbfd4b9161e18d",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/irradiance_volume/resources.rs",
+      "before_sha256": "9eebd6b964a824c26bf2381a1de3a138467d1b137f844e8dd85ea0a67ce19083",
+      "after_sha256": "9eebd6b964a824c26bf2381a1de3a138467d1b137f844e8dd85ea0a67ce19083",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/blit_pipeline.rs",
+      "before_sha256": "1be6e68a3c730d5259d0ff9a76e3183fd6722628d7dbfcf909c7dcb92109475a",
+      "after_sha256": "1be6e68a3c730d5259d0ff9a76e3183fd6722628d7dbfcf909c7dcb92109475a",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/executor.rs",
+      "before_sha256": "ddf542d0fe240500205a1f6ffc99f8a1cc25ac5d7359711be282f0afe08cc804",
+      "after_sha256": "ddf542d0fe240500205a1f6ffc99f8a1cc25ac5d7359711be282f0afe08cc804",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/frame_plan.rs",
+      "before_sha256": "cad03b38efdd9467683d2000739d702feba96056cc8ac092dfd13cf92a05fb4c",
+      "after_sha256": "cad03b38efdd9467683d2000739d702feba96056cc8ac092dfd13cf92a05fb4c",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/frame_plan/performance_tests.rs",
+      "before_sha256": "e296e149cea52688d1d0b922531309aba8e56886569fffad4a3cafd85b4e6e11",
+      "after_sha256": "e296e149cea52688d1d0b922531309aba8e56886569fffad4a3cafd85b4e6e11",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/mod.rs",
+      "before_sha256": "533d93e6c1c165a24c06e2b5dc85db7e4c2f97f16f9d915a0eb9c9cd866b8eaf",
+      "after_sha256": "533d93e6c1c165a24c06e2b5dc85db7e4c2f97f16f9d915a0eb9c9cd866b8eaf",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/profile.rs",
+      "before_sha256": "f880540ba0d59bddfd838087b5a2a2c5286397668ec17dc703ffa1a5253569a5",
+      "after_sha256": "f880540ba0d59bddfd838087b5a2a2c5286397668ec17dc703ffa1a5253569a5",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/projection.rs",
+      "before_sha256": "21aafa37e4f564560d6bda59c984d192772ed4458dbf5ca3feb2bb107b669f23",
+      "after_sha256": "5f5b3d0315dd1dc1c270d1859a53226693f77623b18087860ce11771ebd0ceca",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "P08",
+          "anchor": "pub(crate) fn directional_cookie_uv(",
+          "before_line": 5,
+          "added_raw_base64": "Ly8vIOWwhuS4lueVjOS9jee9ruaKleW9seS4uuaWueWQkeWFieWxgOmDqCBjb29raWUgVVbvvIzlubblupTnlKggb2Zmc2V0L3NjYWxl77yb57uT5p6c5pyq57uPIHdyYXDjgIHoo4HliarmiJblm77pm4bmp73kvY3lj5jmjaLjgIIK",
+          "comment_text": "/// 将世界位置投影为方向光局部 cookie UV，并应用 offset/scale；结果未经 wrap、裁剪或图集槽位变换。",
+          "added_comment_lines": 1
+        },
+        {
+          "proposal_id": "P09",
+          "anchor": "pub(crate) fn spot_cookie_uv(",
+          "before_line": 15,
+          "added_raw_base64": "Ly8vIOi/lOWbnuacquijgeWJqueahOiBmuWFieWxgOmDqCBVVu+8m+a3seW6puS4jei2hei/h+mYiOWAvOaIluaKleW9seWNiuWuvee7neWvueWAvOaOpei/kembtuaXtui/lOWbniBOb25l44CCCi8vLyDmnKzlh73mlbDkuI3mo4Dmn6XovpPlhaXmnInpmZDmgKfjgIIK",
+          "comment_text": "/// 返回未裁剪的聚光局部 UV；深度不超过阈值或投影半宽绝对值接近零时返回 None。\n/// 本函数不检查输入有限性。",
+          "added_comment_lines": 2
+        },
+        {
+          "proposal_id": "P10",
+          "anchor": "pub(crate) fn point_octahedral_cookie_uv(",
+          "before_line": 31,
+          "added_raw_base64": "Ly8vIOi/lOWbnueCueWFieaWueWQkeeahOWFq+mdouS9k+WxgOmDqCBVVu+8m+e7neWvueWIhumHj+WSjOS4jei2hei/h+mYiOWAvOaXtuWPluS4reW/g++8jOi0nyB6IOWNiueQg+aKmOWPoOOAggo=",
+          "comment_text": "/// 返回点光方向的八面体局部 UV；绝对分量和不超过阈值时取中心，负 z 半球折叠。",
+          "added_comment_lines": 1
+        }
+      ],
+      "comment_additions": 3,
+      "added_comment_lines": 4,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/resources.rs",
+      "before_sha256": "be9bc82e157939a0c4a2f1aca576e2a27a5e552bac26dd2ad61fe8730ee18fd1",
+      "after_sha256": "db53d526a7e0bfe209d4236e2e0985bb2745fa4a409264ea734880df8147ff7e",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "P11",
+          "anchor": "pub(crate) struct LightCookieAtlasResources {",
+          "before_line": 14,
+          "added_raw_base64": "Ly8vIOe9keagvOeuoee6v+e8k+WtmOaMgeacieeahOWbuuWumuWbvumbhuS4jiBibGl0IOeuoee6v++8jOi3qOW4p+WkjeeUqOOAggovLy8g6YeN5bu65pe254us56uL55Sf5oiQ5qe95L2N6K6h5YiS77yM6ZyA5LiO5YWJ57yT5Yay5L+d5oyB55u45ZCM5bin6L6T5YWl5LiO5Y676YeN6KeE5YiZ44CCCg==",
+          "comment_text": "/// 网格管线缓存持有的固定图集与 blit 管线，跨帧复用。\n/// 重建时独立生成槽位计划，需与光缓冲保持相同帧输入与去重规则。",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/mod.rs",
+      "before_sha256": "bd7a4c822374bf52472d1979a6ec4197a857ee3e8e5ec749a6728afe9c333775",
+      "after_sha256": "fa7f57ad66e55975bf2780951d396ede71e56f04402d01f0e09ac644276a95c2",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "P01",
+          "anchor": "pub(crate) mod froxel;",
+          "before_line": 1,
+          "added_raw_base64": "Ly8hIOmrmOe6p+WFieeFp+WFpeWPo+axh+iBmuWQhOWtkOeJueaAp+eahOaJp+ihjOWZqOazqOWGjOOAgei1hOa6kOagh+ivhuWSjOW3peS9nOmHj+WumuS5ie+8m+W4p+WGhei1hOa6kOWHhuWkh+S4jiBHUFUg57yW56CB55Sx5a+55bqU5a2Q5qih5Z2X6LSf6LSj44CCCgo=",
+          "comment_text": "//! 高级光照入口汇聚各子特性的执行器注册、资源标识和工作量定义；帧内资源准备与 GPU 编码由对应子模块负责。\n",
+          "added_comment_lines": 1
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 1,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/oit_buffers/fragment_store_pipeline.rs",
+      "before_sha256": "2792dd837d94a30ee7a5310ecd8551f296d899c2b967c87db5fbfa4b4b51b609",
+      "after_sha256": "2792dd837d94a30ee7a5310ecd8551f296d899c2b967c87db5fbfa4b4b51b609",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/oit_buffers/resolve_pipeline.rs",
+      "before_sha256": "4548c2f528de4a5eace2bfc6655ea928b40b2dee6360b344289a01da9d53d7c9",
+      "after_sha256": "4548c2f528de4a5eace2bfc6655ea928b40b2dee6360b344289a01da9d53d7c9",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/planar_filter/executor.rs",
+      "before_sha256": "26f5c032eef7a02947cd7457cde05b54206cde57353b420c87c21cb4ab575790",
+      "after_sha256": "26f5c032eef7a02947cd7457cde05b54206cde57353b420c87c21cb4ab575790",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/planar_filter/mod.rs",
+      "before_sha256": "8e86e4fc5b89af6f75a26f76096dba118b8e1e01100852f90073facbec7e5c7d",
+      "after_sha256": "8e86e4fc5b89af6f75a26f76096dba118b8e1e01100852f90073facbec7e5c7d",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass/executors.rs",
+      "before_sha256": "9f40b8fcb9b8db2f89a3899be450c9b7ec63613dbef58f0fecafa76d783fa8a8",
+      "after_sha256": "9f40b8fcb9b8db2f89a3899be450c9b7ec63613dbef58f0fecafa76d783fa8a8",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass/mod.rs",
+      "before_sha256": "5f8b8fab161d0901abd39d4055fe3a4f0fab4247272ab452d92a362a8611844f",
+      "after_sha256": "5f8b8fab161d0901abd39d4055fe3a4f0fab4247272ab452d92a362a8611844f",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass/pipelines.rs",
+      "before_sha256": "aaf127c3389a64c0d970371f46249a3769a7b2e7f502030fa5c2b80397c32a21",
+      "after_sha256": "aaf127c3389a64c0d970371f46249a3769a7b2e7f502030fa5c2b80397c32a21",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/transmission/mod.rs",
+      "before_sha256": "8da25117ca979ea7bbf63404f07b2286c1cd5e725f51d63e1f76bc5773d3f09d",
+      "after_sha256": "8da25117ca979ea7bbf63404f07b2286c1cd5e725f51d63e1f76bc5773d3f09d",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/transmission/resources.rs",
+      "before_sha256": "9b0aec8811315521dba6728579687dbb7b1eda4411c3f3a1144b4d84dc4f7f24",
+      "after_sha256": "ebe2a7a8590e2d3ea17a1d12507ec1354615dd95820e8e5d3aa2f0b4de30f8de",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "P14",
+          "anchor": "pub(crate) struct TransmissionSceneColorFallbackResources {",
+          "before_line": 28,
+          "added_raw_base64": "Ly8vIOS4uumAj+WwhOmHh+agt+aPkOS+m+aIkOWvueeahOWcuuaZr+minOiJsue6ueeQhuWSjOWPr+eUqOS9je+8m+e8uuWwkei+k+WFpSB2aWV3IOaXtue7keWumuezu+e7n+m7kee6ueeQhuW5tuWFs+mXreWcuuaZr+mHh+agt+OAggo=",
+          "comment_text": "/// 为透射采样提供成对的场景颜色纹理和可用位；缺少输入 view 时绑定系统黑纹理并关闭场景采样。",
+          "added_comment_lines": 1
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 1,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/transmission/steps.rs",
+      "before_sha256": "4e37b66df8766ef9fe6a9fcd102e625c142489dc3d5e0e43aeb0467724c1680e",
+      "after_sha256": "4e37b66df8766ef9fe6a9fcd102e625c142489dc3d5e0e43aeb0467724c1680e",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    }
+  ],
+  "root_semantic_proof": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_advanced_lighting-root-semantic-proof-20261003-r1.json",
+    "sha256": "91e59cccc0954a547b8466679a8602f93d52b019fa3f1fecfc0a2f5291619b33"
+  },
+  "spec": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_advanced_lighting-root-insertions-20261003-r1.json",
+    "sha256": "e8a6dc547de23b817b7a95fe55ef7061762031a97726f1dafd26972f21d068b9"
+  },
+  "terminal_children": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_advanced_lighting-root-terminal-children-20261003-r1.json",
+    "sha256": "28b5113b625be35668f6e0d518c6e7c5982082853df97fbbb5d32271ba72e6da"
+  },
+  "audit_only_diff": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave12-lighting-root-candidates-20261003-r1\\audit-only.diff",
+    "sha256": "dbf65e83c278f64c3ce46760e737270c54100ee82c5a6eb1a08e24f03264ee3d"
+  },
+  "source_manifest_files": 33,
+  "source_writes": 7,
+  "business_edits": 0,
+  "whole_file_business_adoption": false,
+  "product_consent": false,
+  "snapshot_scope": "exact audit deltas only; baseline bytes keep original or unknown authorship",
+  "status": "exact_comment_delta_installed",
+  "completed_at_utc": "2026-10-03T03:48:43.424964+00:00",
+  "comment_additions": 9,
+  "added_comment_lines": 12,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "existing_source_authorship_preserved": true,
+  "future_source_edit_pending_paths": [],
+  "coverage_publication": "pending_separate_root_publication"
+}

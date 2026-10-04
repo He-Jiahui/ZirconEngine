@@ -20,6 +20,9 @@ PLUGIN_VALIDATE_ASSET_IMPORTER_GLOBAL_IDS = (
     REPO_ROOT
     / "tools/zircon_export/plugin_validate_asset_importer_global_ids.py"
 )
+PLUGIN_VALIDATE_GLOBAL_IDENTITIES = (
+    REPO_ROOT / "tools/zircon_export/plugin_validate_global_identities.py"
+)
 PLUGIN_VALIDATE_ASSET_IMPORTER_NUMBERS = (
     REPO_ROOT / "tools/zircon_export/plugin_validate_asset_importer_numbers.py"
 )
@@ -224,6 +227,9 @@ class PluginValidateAssetImporterOwnerBoundaryTests(unittest.TestCase):
         global_ids_text = PLUGIN_VALIDATE_ASSET_IMPORTER_GLOBAL_IDS.read_text(
             encoding="utf-8"
         )
+        global_identities_text = PLUGIN_VALIDATE_GLOBAL_IDENTITIES.read_text(
+            encoding="utf-8"
+        )
 
         for symbol in (
             "validate_plugin_asset_importer_global_ids",
@@ -235,11 +241,15 @@ class PluginValidateAssetImporterOwnerBoundaryTests(unittest.TestCase):
         ):
             self.assertIn(symbol, global_ids_text)
         self.assertIn(
-            "from .plugin_validate_asset_importer_global_ids import",
+            "from .plugin_validate_global_identities import",
             validate_text,
-            "plugin validate --all should dispatch global importer id checks",
+            "plugin validate --all should dispatch global identity checks",
         )
-        self.assertIn("validate_plugin_asset_importer_global_ids(", validate_text)
+        self.assertIn(
+            "from .plugin_validate_asset_importer_global_ids import",
+            global_identities_text,
+        )
+        self.assertIn("validate_plugin_asset_importer_global_ids(", global_identities_text)
         for parent_text, parent_name in (
             (single_target_text, "plugin_validate_single_target.py"),
             (asset_importers_text, "plugin_validate_asset_importers.py"),

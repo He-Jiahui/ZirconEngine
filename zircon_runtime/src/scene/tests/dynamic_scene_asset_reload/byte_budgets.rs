@@ -1,6 +1,6 @@
 use super::*;
 use crate::core::resource::{
-    ResourceEvent, ResourceEventKind, ResourceLocator, approximate_event_bytes,
+    approximate_event_bytes, ResourceEvent, ResourceEventKind, ResourceLocator,
 };
 use crate::scene::PreparedDynamicSceneSpawn;
 

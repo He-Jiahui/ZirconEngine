@@ -1,3 +1,6 @@
+//! 查看器轨道交互到每帧相机覆盖的转换。
+//! 相机状态归主循环，Scene 只提取当前视角；角度同时成为诊断工件的来源。
+
 use zircon_runtime::core::framework::render::{
     CameraRenderDescriptor, ProjectionMode, RenderLayerSet, ViewportCameraSnapshot,
     DEFAULT_RENDER_LAYER_MASK,
@@ -14,6 +17,7 @@ const MAX_CAMERA_RADIUS: f32 = 12.0;
 const CAMERA_PITCH_LIMIT_DEGREES: f32 = 150.0;
 const CAMERA_DRAG_DEGREES_PER_PIXEL: f32 = 0.35;
 
+/// 查看器的临时轨道视角；主循环修改后为每帧提取相机覆盖，并把同一角度写入证据。
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct OrbitCamera {
     yaw_degrees: f32,
@@ -83,6 +87,7 @@ fn normalize_yaw_degrees(yaw_degrees: f32) -> f32 {
     }
 }
 
+/// 为当前 viewport 提供无场景实体身份的相机覆盖；投影、裁剪层和体积层随目标保持一致。
 pub(crate) fn camera_render_descriptor(
     camera: &OrbitCamera,
     viewport_size: UVec2,
@@ -107,6 +112,7 @@ pub(crate) fn camera_render_descriptor(
     descriptor
 }
 
+// 允许观察角度越过竖直方向；参考轴需避开视线，以免极点处的观察矩阵退化。
 fn stable_camera_up(forward: Vec3) -> Vec3 {
     if forward.dot(Vec3::Y).abs() > 0.98 {
         Vec3::Z
@@ -116,51 +122,5 @@ fn stable_camera_up(forward: Vec3) -> Vec3 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        normalize_yaw_degrees, OrbitCamera, CAMERA_PITCH_LIMIT_DEGREES, MAX_CAMERA_RADIUS,
-        MIN_CAMERA_RADIUS,
-    };
-
-    #[test]
-    fn initial_angles_preserve_yaw_and_clamp_pitch() {
-        let upper = OrbitCamera::from_angles(-120.0, 220.0);
-        let lower = OrbitCamera::from_angles(120.0, -220.0);
-
-        assert_eq!(upper.yaw_degrees(), -120.0);
-        assert_eq!(upper.pitch_degrees(), CAMERA_PITCH_LIMIT_DEGREES);
-        assert_eq!(lower.yaw_degrees(), 120.0);
-        assert_eq!(lower.pitch_degrees(), -CAMERA_PITCH_LIMIT_DEGREES);
-    }
-
-    #[test]
-    fn mouse_wheel_zoom_changes_radius_and_clamps_to_orbit_limits() {
-        let mut camera = OrbitCamera::default();
-        let initial_radius = camera.radius;
-
-        camera.zoom(1.0);
-        assert!(camera.radius < initial_radius);
-
-        for _ in 0..100 {
-            camera.zoom(1.0);
-        }
-        assert_eq!(camera.radius, MIN_CAMERA_RADIUS);
-
-        for _ in 0..100 {
-            camera.zoom(-1.0);
-        }
-        assert_eq!(camera.radius, MAX_CAMERA_RADIUS);
-    }
-
-    #[test]
-    fn yaw_normalization_preserves_cardinal_orbit_equivalence() {
-        assert_eq!(normalize_yaw_degrees(480.0), 120.0);
-        assert_eq!(normalize_yaw_degrees(-480.0), -120.0);
-        assert_eq!(normalize_yaw_degrees(540.0), 180.0);
-        assert_eq!(normalize_yaw_degrees(-540.0), 180.0);
-
-        let mut camera = OrbitCamera::from_angles(0.0, 0.0);
-        camera.drag(3_600.0, 0.0);
-        assert_eq!(camera.yaw_degrees(), 180.0);
-    }
-}
+#[path = "tests/camera.rs"]
+mod tests;

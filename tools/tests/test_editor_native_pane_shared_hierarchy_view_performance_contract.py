@@ -1,3 +1,4 @@
+# 核对层级面板行与滚动条共享一次构建的视图和尺寸快照。
 from pathlib import Path
 import unittest
 

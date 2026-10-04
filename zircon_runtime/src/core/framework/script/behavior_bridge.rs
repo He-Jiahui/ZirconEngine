@@ -12,6 +12,8 @@ pub struct ScriptBehaviorCallbackRef {
 }
 
 impl ScriptBehaviorCallbackRef {
+    // BUG: [CR-FRAMEWORK-TEXTSCRIPT-0001] new("a::b", "c") 可成功，但 stable_id 后再 parse 会变成 ("a", "b::c")；VM 按两个字段查找回调，身份不再往返一致。
+    /// 构造供 VM 桥接查找的包名与节点名；调用方应提供稳定的提供者身份。
     pub fn new(
         package_id: impl Into<String>,
         node_id: impl Into<String>,
@@ -34,6 +36,7 @@ impl ScriptBehaviorCallbackRef {
         })
     }
 
+    /// 从对外标识拆分提供者与节点；随后 invoke 会按这两个字段解析活动 VM 包和注册节点。
     pub fn parse(value: &str) -> Result<Self, ScriptHostError> {
         let Some((package_id, node_id)) = value.split_once("::") else {
             return Err(ScriptHostError::new(
@@ -62,6 +65,7 @@ impl ScriptBehaviorCallbackRef {
 
 /// Neutral call boundary implemented by the script owner and consumed by AI or other plugins.
 pub trait ScriptBehaviorBridge: Send + Sync + 'static {
+    /// 对活动包的已注册节点发起同步调用；实现者负责处理热重载后的句柄代际。
     fn invoke(
         &self,
         callback: &ScriptBehaviorCallbackRef,
@@ -74,114 +78,5 @@ impl PluginInterface for dyn ScriptBehaviorBridge {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::hint::black_box;
-    use std::time::Instant;
-
-    use super::*;
-
-    const SAMPLE_PAIRS: usize = 17;
-    const IDS_PER_SAMPLE: usize = 262_144;
-
-    #[test]
-    fn callback_reference_requires_provider_qualified_identity() {
-        let callback = ScriptBehaviorCallbackRef::parse("combat::ai.attack").unwrap();
-        assert_eq!(callback.package_id(), "combat");
-        assert_eq!(callback.node_id(), "ai.attack");
-        assert_eq!(callback.stable_id(), "combat::ai.attack");
-        assert!(ScriptBehaviorCallbackRef::parse("ai.attack").is_err());
-        assert!(ScriptBehaviorCallbackRef::parse("::ai.attack").is_err());
-    }
-
-    #[test]
-    fn optimization_batch_fb_runtime460_preserves_script_callback_ids() {
-        for (package_id, node_id) in [
-            ("combat", "ai.attack"),
-            ("p", "n"),
-            (
-                "zircon.gameplay.behavior.runtime",
-                "enemy.boss.phase.transition.on_enter",
-            ),
-        ] {
-            let callback = ScriptBehaviorCallbackRef::new(package_id, node_id).unwrap();
-            assert_eq!(callback.stable_id(), format!("{package_id}::{node_id}"));
-        }
-    }
-
-    #[test]
-    #[ignore = "release performance gate"]
-    fn optimization_batch_fb_runtime460_direct_script_callback_id_benchmark() {
-        let callback = ScriptBehaviorCallbackRef::new(
-            "zircon.gameplay.behavior.runtime",
-            "enemy.boss.phase.transition.on_enter",
-        )
-        .unwrap();
-        for _ in 0..4 {
-            black_box(measure_legacy(&callback));
-            black_box(measure_optimized(&callback));
-        }
-        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
-        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
-        for pair_index in 0..SAMPLE_PAIRS {
-            if pair_index % 2 == 0 {
-                legacy_samples.push(measure_legacy(&callback));
-                optimized_samples.push(measure_optimized(&callback));
-            } else {
-                optimized_samples.push(measure_optimized(&callback));
-                legacy_samples.push(measure_legacy(&callback));
-            }
-        }
-
-        report_performance(&legacy_samples, &optimized_samples);
-    }
-
-    fn measure_legacy(callback: &ScriptBehaviorCallbackRef) -> u128 {
-        measure(|| format!("{}::{}", callback.package_id, callback.node_id))
-    }
-
-    fn measure_optimized(callback: &ScriptBehaviorCallbackRef) -> u128 {
-        measure(|| callback.stable_id())
-    }
-
-    fn measure(mut build: impl FnMut() -> String) -> u128 {
-        let started = Instant::now();
-        let mut checksum = 0_usize;
-        for _ in 0..IDS_PER_SAMPLE {
-            let value = black_box(build());
-            checksum = checksum.wrapping_add(value.len());
-        }
-        black_box(checksum);
-        started.elapsed().as_nanos().max(1)
-    }
-
-    fn report_performance(legacy_samples: &[u128], optimized_samples: &[u128]) {
-        let legacy_p95 = nearest_rank_p95(legacy_samples);
-        let optimized_p95 = nearest_rank_p95(optimized_samples);
-        let improvement_percent =
-            legacy_p95.saturating_sub(optimized_p95).saturating_mul(100) / legacy_p95.max(1);
-        println!(
-            "RUNTIME460_DIRECT_SCRIPT_CALLBACK_ID_BENCH_V1 sample_pairs={SAMPLE_PAIRS} ids_per_sample={IDS_PER_SAMPLE} legacy_ns={} optimized_ns={} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} improvement_percent={improvement_percent} threshold_percent=30",
-            csv(legacy_samples),
-            csv(optimized_samples),
-        );
-        assert!(
-            optimized_p95 <= legacy_p95.saturating_mul(70) / 100,
-            "direct script callback IDs must reduce P95 by at least 30%"
-        );
-    }
-
-    fn nearest_rank_p95(samples: &[u128]) -> u128 {
-        let mut sorted = samples.to_vec();
-        sorted.sort_unstable();
-        let rank = (sorted.len() * 95).div_ceil(100);
-        sorted[rank.saturating_sub(1)]
-    }
-
-    fn csv(samples: &[u128]) -> String {
-        samples
-            .iter()
-            .map(u128::to_string)
-            .collect::<Vec<_>>()
-            .join(",")
-    }
-}
+#[path = "tests/behavior_bridge.rs"]
+mod tests;

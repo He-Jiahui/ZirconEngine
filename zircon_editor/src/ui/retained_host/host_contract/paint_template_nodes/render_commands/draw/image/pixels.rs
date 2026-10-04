@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use super::super::super::super::visual_assets::HostPaintImagePixels;
 
+/// 透明度版本会生成新的像素副本；录制端需要把透明度纳入资源身份，才能安全复用。
 pub(super) fn image_pixels_with_opacity(image: &HostPaintImagePixels, opacity: f32) -> Arc<[u8]> {
     pixels_with_opacity(&image.rgba, opacity)
 }
@@ -20,5 +21,5 @@ fn pixels_with_opacity(source: &Arc<[u8]>, opacity: f32) -> Arc<[u8]> {
 }
 
 #[cfg(test)]
-#[path = "pixels/direct_arc_opacity_tests.rs"]
+#[path = "pixels/tests/direct_arc_opacity_tests.rs"]
 mod direct_arc_opacity_tests;

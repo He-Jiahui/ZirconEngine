@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node wos141_use_item_runtime_static_guard.mjs；缺少源码契约时脚本抛错退出。
+// 核对锁定的药水与装备使用分支，再沿命令 ID 23 检查冷却、物品和装备归约路径及自测调用。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -23,6 +27,7 @@ requireText(items, /def\.kind === 'weapon'[\s\S]*?equipItem[\s\S]*?def\.kind ===
 const payloads = read('scripts', 'woc_game', 'src', 'protocol', 'command_payloads.zr');
 requireText(payloads, /pub useItemCommandId\(required: bool\): uint[\s\S]*?return <uint>23/,
   'use command identity is missing');
+// 核对药水冷却与装备分支后，再检查世界自测已注册。
 const world = read('scripts', 'woc_game', 'src', 'world', 'state.zr');
 requireText(world, /var useItemCommand = payloads\.useItemCommandId\(true\)/,
   'use command reducer binding is missing');

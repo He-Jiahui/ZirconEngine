@@ -3,9 +3,9 @@ use crate::graphics::{
     RenderResourceSchema, RenderTextureExtentPolicy, RenderTextureExtentReference,
     RenderTextureExtentRounding,
 };
-use crate::rhi::{BufferDesc, BufferUsage, TextureDesc, TextureUsage};
+use crate::rhi::{BufferDesc, BufferUsage, TextureDesc, TextureDimension, TextureUsage};
 
-pub(super) fn texture_desc_from_schema(
+pub(in crate::graphics::pipeline::render_pipeline_asset) fn texture_desc_from_schema(
     name: &str,
     schema: RenderResourceSchema,
     extract: &RenderFrameExtract,
@@ -83,14 +83,27 @@ pub(super) fn texture_desc_from_schema(
         ));
     }
     let desc = TextureDesc::new(name, width, height, schema.format, schema.usage)
-        .with_dimension(schema.dimension)
-        .with_depth(depth)
-        .with_mip_levels(schema.mip_levels)
-        .with_sample_count(schema.sample_count);
+        .with_dimension(schema.dimension);
+    let desc = match schema.dimension {
+        TextureDimension::D3 => desc.with_depth(depth),
+        TextureDimension::D2Array | TextureDimension::Cube => desc.with_array_layers(depth),
+        TextureDimension::D1 | TextureDimension::D2 if depth == 1 => desc,
+        TextureDimension::D1 | TextureDimension::D2 => {
+            return Err(format!(
+                "resource `{name}` {:?} schema must declare depth_or_array_layers as 1, got {depth}",
+                schema.dimension
+            ));
+        }
+    }
+    .with_mip_levels(schema.mip_levels)
+    .with_sample_count(schema.sample_count);
     if !desc.mip_levels_fit_shape() {
         return Err(format!(
-            "resource `{name}` schema mip level count {} exceeds its {}x{}x{} extent",
-            desc.mip_levels, desc.width, desc.height, desc.depth
+            "resource `{name}` schema mip level count {} exceeds its {}x{}x{} physical extent",
+            desc.mip_levels,
+            desc.width,
+            desc.height,
+            desc.depth_or_array_layers()
         ));
     }
     Ok(desc)
@@ -118,7 +131,7 @@ pub(super) fn resolve_relative_extent_axis(
     u32::try_from(scaled).map_err(|_| "exceeds the supported u32 texture extent".to_string())
 }
 
-pub(super) fn buffer_desc_from_schema(
+pub(in crate::graphics::pipeline::render_pipeline_asset) fn buffer_desc_from_schema(
     name: &str,
     schema: RenderResourceSchema,
     minimum_size_bytes: Option<u64>,

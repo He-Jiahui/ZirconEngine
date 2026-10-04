@@ -31,16 +31,19 @@ impl SessionGateway {
                 &mut output,
             )
         };
-        self.decode_output(
-            status,
-            output,
-            RuntimeForeignOutputKind::ProfileResponse,
-            PROFILE_RESPONSE_OUTPUT_BUDGET,
-            "control runtime profiling",
-            "free runtime profile response",
-            |response: &ProfileControlResponse| {
-                Ok::<usize, GatewayError>(profile_control_response_item_count(response))
-            },
-        )
+        // The status and output were produced above by this gateway's retained runtime provider.
+        unsafe {
+            self.decode_output(
+                status,
+                output,
+                RuntimeForeignOutputKind::ProfileResponse,
+                PROFILE_RESPONSE_OUTPUT_BUDGET,
+                "control runtime profiling",
+                "free runtime profile response",
+                |response: &ProfileControlResponse| {
+                    Ok::<usize, GatewayError>(profile_control_response_item_count(response))
+                },
+            )
+        }
     }
 }

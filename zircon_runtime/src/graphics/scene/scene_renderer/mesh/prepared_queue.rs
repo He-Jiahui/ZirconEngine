@@ -9,6 +9,7 @@ mod stats;
 mod stats_bridge;
 
 #[cfg(test)]
+#[path = "prepared_queue/tests/stats_bridge_tests.rs"]
 mod stats_bridge_tests;
 
 pub(crate) use self::stats::{
@@ -20,6 +21,9 @@ pub(crate) struct PreparedMeshQueue {
     stats: PreparedMeshQueueStats,
 }
 
+// TODO: [CR-SCENE-MESH-0003] 确认已实例化队列统计入口的保留用途；构建器目前统计 pending draws，且此入口只见导出与结构测试，需复核统计收敛计划。
+/// 将已实体化 MeshDraw 汇总为阶段、几何来源和批次候选统计。
+/// 此处只生成帧报告观察值；真正的命令构建在 Mesh pass 中完成。
 pub(crate) fn prepare_mesh_queue(draws: &[MeshDraw]) -> PreparedMeshQueue {
     let stats = summarize_prepared_mesh_queue_items::<MeshDrawBatchKey>(draws.iter().map(|draw| {
         (
@@ -201,4 +205,5 @@ fn repeated_group_stats(group_sizes: impl IntoIterator<Item = usize>) -> (usize,
 }
 
 #[cfg(test)]
+#[path = "prepared_queue/tests/cases.rs"]
 mod tests;

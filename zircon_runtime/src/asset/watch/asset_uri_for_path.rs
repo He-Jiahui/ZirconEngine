@@ -5,6 +5,7 @@ use crate::core::resource::ResourceLocatorError;
 use crate::asset::AssetUri;
 
 #[cfg(test)]
+#[path = "asset_uri_for_path/tests/cases.rs"]
 mod tests;
 
 pub(super) fn asset_uri_for_path(

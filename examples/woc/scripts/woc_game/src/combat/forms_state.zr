@@ -9,6 +9,7 @@ pub isTravelFormAuraKind(kind: string): bool { return contract.isTravel(kind); }
 pub formAbilityCode(kind: string): uint { return contract.formAbilityCode(kind); }
 pub formKindForAbilityCode(code: uint): string { return contract.formKindForAbilityCode(code); }
 pub isFormAbilityCode(code: uint): bool { return contract.isFormAbilityCode(code); }
+/// 只解码完整载荷切片；未知或不完整的形态名返回零。
 pub formAbilityCodeForExactPayload(
     payloadBytes: container.Array<uint>, offset: uint, length: uint
 ): uint { return contract.formAbilityCodeForExactPayload(payloadBytes, offset, length); }

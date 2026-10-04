@@ -130,7 +130,7 @@ impl AssetMutationRelocationPreflight {
             .iter()
             .map(AssetMutationAsset::from)
             .collect::<Vec<_>>();
-        companions.sort_by(asset_order);
+        sort_assets_by_canonical_order(&mut companions);
         let companion_uuids = companions
             .iter()
             .map(AssetMutationAsset::uuid)
@@ -145,7 +145,7 @@ impl AssetMutationRelocationPreflight {
             .filter_map(|uuid| registry.entry_by_uuid(uuid))
             .map(AssetMutationAsset::from)
             .collect::<Vec<_>>();
-        referencer_closure.sort_by(asset_order);
+        sort_assets_by_canonical_order(&mut referencer_closure);
         (companions, referencer_closure)
     }
 
@@ -176,8 +176,22 @@ impl AssetMutationRelocationPreflight {
     }
 }
 
-fn asset_order(left: &AssetMutationAsset, right: &AssetMutationAsset) -> std::cmp::Ordering {
-    left.locator()
-        .cmp(right.locator())
-        .then_with(|| left.uuid().to_string().cmp(&right.uuid().to_string()))
+fn sort_assets_by_canonical_order(assets: &mut [AssetMutationAsset]) {
+    assets.sort_by(|left, right| left.locator().cmp(right.locator()));
+    let mut group_start = 0;
+    while group_start < assets.len() {
+        let locator = assets[group_start].locator().clone();
+        let mut group_end = group_start + 1;
+        while group_end < assets.len() && assets[group_end].locator() == &locator {
+            group_end += 1;
+        }
+        if group_end - group_start > 1 {
+            assets[group_start..group_end].sort_by_cached_key(|asset| asset.uuid().to_string());
+        }
+        group_start = group_end;
+    }
 }
+
+#[cfg(test)]
+#[path = "relocation_preflight/tests/optimization_batch_jg_runtime646_tests.rs"]
+mod optimization_batch_jg_runtime646_tests;

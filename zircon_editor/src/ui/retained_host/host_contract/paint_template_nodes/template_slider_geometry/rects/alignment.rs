@@ -1,3 +1,5 @@
+//! 为滑块本体及可选 halo 提供共同中心框；尺寸无效时返回退化框，由最终绘制器过滤。
+
 use super::super::super::super::{data::FrameRect, paint_geometry::bounded_extent};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn centered_rect(
@@ -15,14 +17,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn centere
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn invalid_centered_slider_geometry_has_no_drawable_extent() {
-        let invalid = centered_rect(8.0, 6.0, f32::NAN);
-
-        assert_eq!((invalid.width, invalid.height), (0.0, 0.0));
-        assert_eq!((invalid.x, invalid.y), (8.0, 6.0));
-    }
-}
+#[path = "tests/alignment.rs"]
+mod tests;

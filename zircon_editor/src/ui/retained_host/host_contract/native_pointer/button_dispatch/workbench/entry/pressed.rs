@@ -23,11 +23,14 @@ pub(super) fn dispatch_pressed_workbench_button(
             y,
             cleared_text_input_frame,
         )),
-        UiPointerButton::Primary => Some(dispatch_workbench_primary_button(
-            ui,
-            hit,
-            cleared_text_input_frame,
-        )),
+        UiPointerButton::Primary => {
+            ui.begin_template_button_press(&hit, x, y);
+            Some(dispatch_workbench_primary_button(
+                ui,
+                hit,
+                cleared_text_input_frame,
+            ))
+        }
         _ => None,
     }
 }

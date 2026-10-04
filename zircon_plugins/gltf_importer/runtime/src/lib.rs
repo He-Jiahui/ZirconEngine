@@ -4,26 +4,23 @@ mod plugin;
 #[cfg(feature = "runtime")]
 mod subassets;
 #[cfg(all(test, feature = "runtime"))]
+#[path = "tests/test_fixtures.rs"]
 mod test_fixtures;
 
 #[cfg(feature = "runtime")]
 use std::collections::BTreeMap;
 #[cfg(feature = "runtime")]
-use std::path::Path;
-
-#[cfg(feature = "runtime")]
 use subassets::{
-    add_gltf_animation_placeholders_and_skin_subassets, add_gltf_material_subassets,
-    add_gltf_mesh_subassets, add_gltf_scene_subassets, add_gltf_texture_subassets,
-    gltf_label_reference, validate_gltf_texture_import_support, GltfMeshSubasset,
-    GltfPrimitiveSubasset,
+    add_gltf_material_subassets, add_gltf_mesh_subassets, add_gltf_scene_subassets,
+    add_gltf_texture_subassets, gltf_label_reference, validate_gltf_texture_import_support,
+    GltfMeshSubasset, GltfPrimitiveSubasset,
 };
 #[cfg(feature = "runtime")]
 use zircon_runtime::asset::importer::{
-    cook_mesh_asset_derived_data, project_indexed_mesh_primitive,
+    add_gltf_animation_and_skin_subassets, cook_mesh_asset_derived_data,
+    decode_gltf_source_with_required_extensions, project_indexed_mesh_primitive,
     remap_gltf_morph_targets_for_flat_normals, resolve_gltf_normal_texture_tangent_uv_attribute,
-    validate_required_gltf_material_extension_support, IndexedMeshMissingNormalPolicy,
-    IndexedMeshSource,
+    DecodedGltf, IndexedMeshMissingNormalPolicy, IndexedMeshSource,
 };
 #[cfg(feature = "runtime")]
 use zircon_runtime::asset::{
@@ -62,13 +59,17 @@ const STABLE_IMPORTER_SUPPORTED_REQUIRED_EXTENSIONS: &[&str] = &[
 
 #[cfg(feature = "runtime")]
 pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
-    let preflight_document = parse_gltf_preflight_document(&context.source_bytes)?;
-    validate_external_gltf_buffers(context, &preflight_document)?;
-    validate_gltf_texture_import_support(&preflight_document)?;
-    let (document, buffers, images) = gltf::import(&context.source_path)
-        .map_err(|error| AssetImportError::Parse(format!("parse gltf: {error}")))?;
+    let DecodedGltf {
+        document,
+        buffers,
+        images,
+    } = decode_gltf_source_with_required_extensions(
+        context,
+        STABLE_IMPORTER_SUPPORTED_REQUIRED_EXTENSIONS,
+    )?;
+    validate_gltf_texture_import_support(&document)?;
     let mut primitives = Vec::new();
-    let mut meshes = Vec::new();
+    let mut meshes = Vec::with_capacity(document.meshes().count());
     let mesh_skins = mesh_skin_assets_by_mesh(&document, &buffers);
     let source_hint = context.uri.to_string();
     let virtual_geometry_request = context.virtual_geometry_cook_request()?;
@@ -76,7 +77,8 @@ pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, A
     let mut mesh_sdf_budget = MeshSdfCookBudget::default();
 
     for mesh in document.meshes() {
-        let mut mesh_primitives = Vec::new();
+        let mut mesh_primitives =
+            reserve_gltf_mesh_outputs(&mut primitives, mesh.primitives().count());
         let mesh_name = mesh.name();
         for primitive in mesh.primitives() {
             let mode = primitive.mode();
@@ -240,72 +242,17 @@ pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, A
     outcome = add_gltf_material_subassets(outcome, &context.uri, &document);
     outcome = add_gltf_mesh_subassets(outcome, &context.uri, meshes);
     outcome = add_gltf_scene_subassets(outcome, &context.uri, &document);
-    outcome = add_gltf_animation_placeholders_and_skin_subassets(
-        outcome,
-        &context.uri,
-        &document,
-        &buffers,
-    )?;
+    outcome = add_gltf_animation_and_skin_subassets(outcome, &context.uri, &document, &buffers)?;
     Ok(outcome)
 }
 
 #[cfg(feature = "runtime")]
-fn parse_gltf_preflight_document(source_bytes: &[u8]) -> Result<gltf::Document, AssetImportError> {
-    let gltf = gltf::Gltf::from_slice_without_validation(source_bytes)
-        .map_err(|error| AssetImportError::Parse(format!("parse gltf: {error}")))?;
-    let mut json = gltf.document.into_json();
-    let required_extensions = json.extensions_required.clone();
-    validate_gltf_required_extensions(&required_extensions)?;
-    json.extensions_required.retain(|extension| {
-        STABLE_IMPORTER_SUPPORTED_REQUIRED_EXTENSIONS.contains(&extension.as_str())
-    });
-    let document = gltf::Document::from_json(json)
-        .map_err(|error| AssetImportError::Parse(format!("validate gltf: {error}")))?;
-    validate_required_gltf_material_extension_support(&document, &required_extensions)?;
-    Ok(document)
-}
-
-#[cfg(feature = "runtime")]
-fn validate_gltf_required_extensions(required: &[String]) -> Result<(), AssetImportError> {
-    if let Some(extension) = required.iter().find(|extension| {
-        !STABLE_IMPORTER_SUPPORTED_REQUIRED_EXTENSIONS.contains(&extension.as_str())
-    }) {
-        return Err(AssetImportError::Parse(format!(
-            "gltf requires unsupported extension `{extension}`"
-        )));
-    }
-    Ok(())
-}
-
-#[cfg(feature = "runtime")]
-fn validate_external_gltf_buffers(
-    context: &AssetImportContext,
-    document: &gltf::Document,
-) -> Result<(), AssetImportError> {
-    let base_dir = context
-        .source_path
-        .parent()
-        .unwrap_or_else(|| Path::new(""));
-    for buffer in document.buffers() {
-        let gltf::buffer::Source::Uri(uri) = buffer.source() else {
-            continue;
-        };
-        if uri
-            .get(..5)
-            .is_some_and(|prefix| prefix.eq_ignore_ascii_case("data:"))
-        {
-            continue;
-        }
-        let buffer_path = base_dir.join(uri);
-        if !buffer_path.exists() {
-            return Err(AssetImportError::Parse(format!(
-                "parse gltf: missing external buffer `{uri}` referenced by Buffer{} at {}",
-                buffer.index(),
-                buffer_path.display()
-            )));
-        }
-    }
-    Ok(())
+fn reserve_gltf_mesh_outputs(
+    primitives: &mut Vec<ModelPrimitiveAsset>,
+    primitive_count: usize,
+) -> Vec<GltfPrimitiveSubasset> {
+    primitives.reserve(primitive_count);
+    Vec::with_capacity(primitive_count)
 }
 
 #[cfg(feature = "runtime")]
@@ -378,6 +325,7 @@ fn mesh_skin_assets_by_mesh(
 }
 
 #[cfg(all(test, feature = "runtime"))]
+#[path = "tests/cases.rs"]
 mod tests;
 
 #[cfg(all(test, feature = "runtime"))]
@@ -391,3 +339,7 @@ mod hotpath_tests;
 #[cfg(all(test, feature = "runtime"))]
 #[path = "tests/geometry_convergence.rs"]
 mod geometry_convergence_tests;
+
+#[cfg(all(test, feature = "runtime"))]
+#[path = "tests/source_snapshot.rs"]
+mod source_snapshot_tests;

@@ -1,3 +1,4 @@
+/// 将命中代理 GPU readback 的半精度通道还原为 CPU 数值；调用方按 little-endian 两字节读取。
 pub(in crate::graphics::scene::scene_renderer::core) fn f16_bits_to_f32(bits: u16) -> f32 {
     let sign = u32::from(bits & 0x8000) << 16;
     let exponent = u32::from((bits >> 10) & 0x1f);
@@ -17,15 +18,5 @@ pub(in crate::graphics::scene::scene_renderer::core) fn f16_bits_to_f32(bits: u1
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn f16_bits_to_f32_decodes_signed_normals_and_special_values() {
-        assert_eq!(f16_bits_to_f32(0x0000), 0.0);
-        assert_eq!(f16_bits_to_f32(0x3c00), 1.0);
-        assert_eq!(f16_bits_to_f32(0xbc00), -1.0);
-        assert!(f16_bits_to_f32(0x7c00).is_infinite());
-        assert!(f16_bits_to_f32(0x7e00).is_nan());
-    }
-}
+#[path = "tests/half_float.rs"]
+mod tests;

@@ -2,29 +2,50 @@ use std::collections::HashMap;
 use std::ops::Range;
 
 use crate::render_graph::{
-    CompiledRenderGraph, RenderGraphExternalResourceType, RenderGraphResourceAccessId,
-    RenderGraphResourceAccessRange, RenderGraphTextureAspect, RenderGraphTextureSubresourceRange,
+    CompiledRenderGraph, RenderGraphExternalResourceBinding, RenderGraphExternalResourceType,
+    RenderGraphResourceAccessId, RenderGraphResourceAccessRange,
+    RenderGraphTextureSubresourceRange, RenderGraphVersionedAccessKey,
 };
 use crate::rhi::TextureDesc;
 
+use super::texture_views::{
+    texture_range_covers_full_view, texture_subresource_view_descriptor,
+    validate_texture_view_descriptor,
+};
 use super::RenderGraphExecutionResources;
-use super::texture_views::{texture_subresource_view_descriptor, validate_texture_view_descriptor};
 
 #[derive(Debug)]
 enum ExternalAccessBinding {
     Texture {
+        key: RenderGraphVersionedAccessKey,
         view: wgpu::TextureView,
         desc: Option<TextureDesc>,
     },
     Buffer {
+        key: RenderGraphVersionedAccessKey,
         buffer: wgpu::Buffer,
         range: Range<wgpu::BufferAddress>,
     },
 }
 
+impl ExternalAccessBinding {
+    const fn key(&self) -> RenderGraphVersionedAccessKey {
+        match self {
+            Self::Texture { key, .. } | Self::Buffer { key, .. } => *key,
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub(super) struct RenderGraphExecutionExternalAccessBindings {
     bindings: HashMap<RenderGraphResourceAccessId, ExternalAccessBinding>,
+    contracts_by_access: HashMap<
+        RenderGraphResourceAccessId,
+        (
+            RenderGraphVersionedAccessKey,
+            RenderGraphExternalResourceBinding,
+        ),
+    >,
 }
 
 impl RenderGraphExecutionExternalAccessBindings {
@@ -34,8 +55,18 @@ impl RenderGraphExecutionExternalAccessBindings {
     ) -> Result<Self, String> {
         let packet = graph.external_access_packet();
         let mut bindings = HashMap::with_capacity(packet.accesses().len());
-        let mut texture_views_by_scope = HashMap::new();
+        let mut contracts_by_access = HashMap::with_capacity(packet.accesses().len());
+        let mut texture_views_by_scope: HashMap<_, wgpu::TextureView> = HashMap::new();
         for access in packet.accesses() {
+            if contracts_by_access
+                .insert(access.access_id, (access.key, access.binding))
+                .is_some()
+            {
+                return Err(format!(
+                    "external access packet contains duplicate logical contract {:?}",
+                    access.access_id
+                ));
+            }
             let name = graph
                 .resource_declaration(access.key.resource)
                 .map(|declaration| declaration.name.as_str())
@@ -96,7 +127,11 @@ impl RenderGraphExecutionExternalAccessBindings {
                             ));
                         }
                     };
-                    ExternalAccessBinding::Texture { view, desc }
+                    ExternalAccessBinding::Texture {
+                        key: access.key,
+                        view,
+                        desc,
+                    }
                 }
                 RenderGraphExternalResourceType::Buffer => {
                     let Some(buffer) = resources.buffer(name).cloned() else {
@@ -139,7 +174,11 @@ impl RenderGraphExecutionExternalAccessBindings {
                             ));
                         }
                     };
-                    ExternalAccessBinding::Buffer { buffer, range }
+                    ExternalAccessBinding::Buffer {
+                        key: access.key,
+                        buffer,
+                        range,
+                    }
                 }
                 RenderGraphExternalResourceType::Unknown => continue,
             };
@@ -150,7 +189,10 @@ impl RenderGraphExecutionExternalAccessBindings {
                 ));
             }
         }
-        Ok(Self { bindings })
+        Ok(Self {
+            bindings,
+            contracts_by_access,
+        })
     }
 
     pub(super) fn texture_view(
@@ -189,7 +231,9 @@ impl RenderGraphExecutionExternalAccessBindings {
         access: RenderGraphResourceAccessId,
     ) -> Result<(&wgpu::Buffer, Range<wgpu::BufferAddress>), String> {
         match self.bindings.get(&access) {
-            Some(ExternalAccessBinding::Buffer { buffer, range }) => Ok((buffer, range.clone())),
+            Some(ExternalAccessBinding::Buffer { buffer, range, .. }) => {
+                Ok((buffer, range.clone()))
+            }
             Some(ExternalAccessBinding::Texture { .. }) => Err(format!(
                 "external access {:?} is a texture lease, not a buffer binding",
                 access
@@ -206,7 +250,7 @@ impl RenderGraphExecutionExternalAccessBindings {
         access: RenderGraphResourceAccessId,
     ) -> Result<Option<(&wgpu::Buffer, Range<wgpu::BufferAddress>)>, String> {
         match self.bindings.get(&access) {
-            Some(ExternalAccessBinding::Buffer { buffer, range }) => {
+            Some(ExternalAccessBinding::Buffer { buffer, range, .. }) => {
                 Ok(Some((buffer, range.clone())))
             }
             Some(ExternalAccessBinding::Texture { .. }) => Err(format!(
@@ -239,320 +283,47 @@ impl RenderGraphExecutionExternalAccessBindings {
             )),
         }
     }
-}
 
-fn texture_range_covers_full_view(
-    range: RenderGraphTextureSubresourceRange,
-    desc: &TextureDesc,
-) -> bool {
-    let covers_mips = range.base_mip_level == 0 && range.mip_level_count == Some(desc.mip_levels);
-    let array_layers = match desc.dimension {
-        crate::rhi::TextureDimension::D2Array | crate::rhi::TextureDimension::Cube => desc.depth,
-        crate::rhi::TextureDimension::D1
-        | crate::rhi::TextureDimension::D2
-        | crate::rhi::TextureDimension::D3 => 1,
-    };
-    let covers_layers =
-        range.base_array_layer == 0 && range.array_layer_count == Some(array_layers);
-    let covers_aspects = match range.aspect {
-        RenderGraphTextureAspect::All => true,
-        RenderGraphTextureAspect::Color => !desc.format.is_depth(),
-        RenderGraphTextureAspect::Depth => desc.format.is_depth() && !desc.format.has_stencil(),
-        RenderGraphTextureAspect::Stencil => false,
-    };
-    covers_mips && covers_layers && covers_aspects
+    pub(super) fn key(
+        &self,
+        access: RenderGraphResourceAccessId,
+    ) -> Option<RenderGraphVersionedAccessKey> {
+        self.bindings.get(&access).map(ExternalAccessBinding::key)
+    }
+
+    pub(super) fn contract(
+        &self,
+        access: RenderGraphResourceAccessId,
+    ) -> Option<(
+        RenderGraphVersionedAccessKey,
+        RenderGraphExternalResourceBinding,
+    )> {
+        self.contracts_by_access.get(&access).copied()
+    }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::graphics::backend::RenderBackend;
-    use crate::render_graph::{
-        PassFlags, QueueLane, RenderGraphBufferRange, RenderGraphBuilder,
-        RenderGraphExternalResourceBinding, RenderGraphResourceAccessIntent,
-        RenderGraphResourceAccessKind, RenderGraphResourceAccessRange, RenderGraphShaderStages,
-        RenderGraphTextureSubresourceRange,
-    };
-    use crate::rhi::{BufferDesc, BufferUsage, TextureDesc, TextureFormat, TextureUsage};
-
-    #[test]
-    fn required_external_lease_is_fail_closed_when_physical_buffer_is_missing() {
-        let mut builder = RenderGraphBuilder::new("external-lease-missing");
-        let buffer = builder.import_present_external_buffer_with_binding(
-            "external-buffer",
-            BufferDesc::new("external-buffer", 256, BufferUsage::STORAGE),
-            RenderGraphExternalResourceBinding::required_buffer(),
-        );
-        let pass = builder.add_pass("external-writer", QueueLane::AsyncCompute);
-        builder.write_storage_external(pass, buffer).unwrap();
-        builder
-            .set_pass_flags(
-                pass,
-                PassFlags {
-                    has_side_effects: true,
-                    ..PassFlags::default()
-                },
-            )
-            .unwrap();
-        let graph = builder.compile().unwrap();
-        let resources = RenderGraphExecutionResources::new();
-        let error = RenderGraphExecutionExternalAccessBindings::materialize(&resources, &graph)
-            .expect_err("required external leases must be present before encoding");
-        assert!(error.contains("required external buffer `external-buffer`"));
-    }
-
-    #[test]
-    fn external_lease_table_is_keyed_by_compiled_access_identity() {
-        let Ok(backend) = RenderBackend::new_offscreen() else {
-            return;
-        };
-        let mut builder = RenderGraphBuilder::new("external-lease-access-id");
-        let buffer = builder.import_present_external_buffer_with_binding(
-            "external-buffer",
-            BufferDesc::new("external-buffer", 256, BufferUsage::STORAGE),
-            RenderGraphExternalResourceBinding::required_buffer(),
-        );
-        let pass = builder.add_pass("external-writer", QueueLane::AsyncCompute);
-        builder.write_storage_external(pass, buffer).unwrap();
-        builder
-            .set_pass_flags(
-                pass,
-                PassFlags {
-                    has_side_effects: true,
-                    ..PassFlags::default()
-                },
-            )
-            .unwrap();
-        let graph = builder.compile().unwrap();
-        let native = backend.device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("external-lease-access-id-buffer"),
-            size: 256,
-            usage: wgpu::BufferUsages::STORAGE,
-            mapped_at_creation: false,
-        });
-        let mut resources = RenderGraphExecutionResources::new();
-        resources.insert_buffer("external-buffer", native);
-        resources
-            .materialize_external_access_bindings(&graph)
-            .expect("typed external lease should materialize");
-        let access_id = graph.access_id_at(pass, 0).unwrap();
-        let (_, range) = resources
-            .external_buffer_binding_for_access(access_id)
-            .expect("compiled access identity should resolve its lease");
-        assert_eq!(range, 0..256);
-    }
-
-    #[test]
-    fn external_lease_table_preserves_concrete_buffer_access_window() {
-        let Ok(backend) = RenderBackend::new_offscreen() else {
-            return;
-        };
-        let mut builder = RenderGraphBuilder::new("external-lease-buffer-window");
-        let buffer = builder.import_present_external_buffer_with_binding(
-            "external-buffer",
-            BufferDesc::new("external-buffer", 256, BufferUsage::STORAGE),
-            RenderGraphExternalResourceBinding::required_buffer(),
-        );
-        let pass = builder.add_pass("external-writer", QueueLane::AsyncCompute);
-        builder
-            .access_external(
-                pass,
-                buffer,
-                RenderGraphResourceAccessKind::Write,
-                RenderGraphResourceAccessRange::Buffer(RenderGraphBufferRange::new(32, Some(64))),
-                RenderGraphResourceAccessIntent::storage_buffer_read_write(
-                    RenderGraphShaderStages::COMPUTE,
-                ),
-                None,
-            )
-            .unwrap();
-        builder
-            .set_pass_flags(
-                pass,
-                PassFlags {
-                    has_side_effects: true,
-                    ..PassFlags::default()
-                },
-            )
-            .unwrap();
-        let graph = builder.compile().unwrap();
-        let native = backend.device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("external-lease-buffer-window"),
-            size: 256,
-            usage: wgpu::BufferUsages::STORAGE,
-            mapped_at_creation: false,
-        });
-        let mut resources = RenderGraphExecutionResources::new();
-        resources.insert_buffer("external-buffer", native);
-        resources
-            .materialize_external_access_bindings(&graph)
-            .unwrap();
-        let access_id = graph.access_id_at(pass, 0).unwrap();
-        let (_, range) = resources
-            .external_buffer_binding_for_access(access_id)
-            .unwrap();
-        assert_eq!(range, 32..96);
-    }
-
-    #[test]
-    fn external_texture_lease_materializes_exact_scope_from_physical_backing() {
-        let Ok(backend) = RenderBackend::new_offscreen() else {
-            return;
-        };
-        let (graph, pass, desc) = exact_external_texture_graph("exact-external-texture");
-        let texture = create_external_texture(&backend, "exact-external-texture", &desc);
-        let default_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let mut resources = RenderGraphExecutionResources::new();
-        resources.import_borrowed_texture("external-texture", &texture, &default_view, desc);
-
-        resources
-            .materialize_external_access_bindings(&graph)
-            .expect("physical texture backing must materialize its exact mip lease");
-
-        let access_id = graph.access_id_at(pass, 0).unwrap();
-        assert!(
-            resources
-                .external_texture_view_for_access(access_id)
-                .is_ok()
-        );
-    }
-
-    #[test]
-    fn exact_external_texture_scope_rejects_a_view_only_physical_lease() {
-        let Ok(backend) = RenderBackend::new_offscreen() else {
-            return;
-        };
-        let (graph, _pass, desc) = exact_external_texture_graph("view-only-external-texture");
-        let texture = create_external_texture(&backend, "view-only-external-texture", &desc);
-        let default_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let mut resources = RenderGraphExecutionResources::new();
-        resources.import_borrowed_texture_view_with_physical_desc(
-            "external-texture",
-            &default_view,
-            desc,
-        );
-
-        let error = resources
-            .materialize_external_access_bindings(&graph)
-            .expect_err("a default view cannot represent a partial mip lease");
-
-        assert!(error.contains("requires subresource scope"));
-        assert!(error.contains("physical lease is view-only"));
-    }
-
-    #[test]
-    fn exact_full_external_texture_scope_accepts_a_view_only_physical_lease() {
-        let Ok(backend) = RenderBackend::new_offscreen() else {
-            return;
-        };
-        let desc = external_texture_desc("full-view-only-external-texture");
-        let mut builder = RenderGraphBuilder::new("full-view-only-external-texture");
-        let texture = builder.import_present_external_texture_with_binding(
-            "external-texture",
-            desc.clone(),
-            RenderGraphExternalResourceBinding::required_texture(),
-        );
-        let pass = builder.add_pass("external-reader", QueueLane::AsyncCompute);
-        builder
-            .read_external_with_access(
-                pass,
-                texture,
-                RenderGraphResourceAccessRange::Texture(RenderGraphTextureSubresourceRange::full()),
-                RenderGraphResourceAccessIntent::sampled_texture(RenderGraphShaderStages::COMPUTE),
-            )
-            .unwrap();
-        builder.set_pass_flags(pass, non_cullable()).unwrap();
-        let graph = builder.compile().unwrap();
-        let native = create_external_texture(&backend, "full-view-only-external-texture", &desc);
-        let default_view = native.create_view(&wgpu::TextureViewDescriptor::default());
-        let mut resources = RenderGraphExecutionResources::new();
-        resources.import_borrowed_texture_view_with_physical_desc(
-            "external-texture",
-            &default_view,
-            desc,
-        );
-
-        resources
-            .materialize_external_access_bindings(&graph)
-            .expect("a full-scope access may reuse its producer-supplied default view");
-        let access_id = graph.access_id_at(pass, 0).unwrap();
-        assert!(
-            resources
-                .external_texture_view_for_access(access_id)
-                .is_ok()
-        );
-    }
-
-    fn exact_external_texture_graph(
-        name: &'static str,
-    ) -> (
-        CompiledRenderGraph,
-        crate::render_graph::RenderPassId,
-        TextureDesc,
-    ) {
-        let desc = external_texture_desc(name);
-        let mut builder = RenderGraphBuilder::new(name);
-        let texture = builder.import_present_external_texture_with_binding(
-            "external-texture",
-            desc.clone(),
-            RenderGraphExternalResourceBinding::required_texture(),
-        );
-        let pass = builder.add_pass("external-reader", QueueLane::AsyncCompute);
-        builder
-            .read_external_with_access(
-                pass,
-                texture,
-                RenderGraphResourceAccessRange::Texture(
-                    RenderGraphTextureSubresourceRange::single_mip(2),
-                ),
-                RenderGraphResourceAccessIntent::sampled_texture(RenderGraphShaderStages::COMPUTE),
-            )
-            .unwrap();
-        builder.set_pass_flags(pass, non_cullable()).unwrap();
-        (builder.compile().unwrap(), pass, desc)
-    }
-
-    fn external_texture_desc(name: &'static str) -> TextureDesc {
-        TextureDesc::new(
-            name,
-            32,
-            16,
-            TextureFormat::Rgba16Float,
-            TextureUsage::SAMPLED,
-        )
-        .with_mip_levels(4)
-    }
-
-    fn create_external_texture(
-        backend: &RenderBackend,
-        label: &'static str,
-        desc: &TextureDesc,
-    ) -> wgpu::Texture {
-        backend.device.create_texture(&wgpu::TextureDescriptor {
-            label: Some(label),
-            size: wgpu::Extent3d {
-                width: desc.width,
-                height: desc.height,
-                depth_or_array_layers: desc.depth,
-            },
-            mip_level_count: desc.mip_levels,
-            sample_count: desc.sample_count,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba16Float,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING,
-            view_formats: &[],
-        })
-    }
-
-    fn non_cullable() -> PassFlags {
-        PassFlags {
-            has_side_effects: true,
-            ..PassFlags::default()
-        }
-    }
-}
+#[path = "tests/external_access_bindings.rs"]
+mod tests;
 
 impl RenderGraphExecutionResources {
+    pub(in crate::graphics::scene::scene_renderer) fn external_access_contract_for_access(
+        &self,
+        access: RenderGraphResourceAccessId,
+    ) -> Option<(
+        RenderGraphVersionedAccessKey,
+        RenderGraphExternalResourceBinding,
+    )> {
+        self.external_access_bindings.contract(access)
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn external_access_key(
+        &self,
+        access: RenderGraphResourceAccessId,
+    ) -> Option<RenderGraphVersionedAccessKey> {
+        self.external_access_bindings.key(access)
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn materialize_external_access_bindings(
         &mut self,
         graph: &CompiledRenderGraph,

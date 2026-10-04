@@ -5,6 +5,6 @@ mod host;
 
 pub use graphics_module::GraphicsModule;
 pub use host::{
-    RENDER_FRAMEWORK_NAME, RENDERING_MANAGER_NAME, module_descriptor,
-    module_descriptor_with_render_features,
+    module_descriptor, module_descriptor_with_render_features, RENDERING_MANAGER_NAME,
+    RENDER_FRAMEWORK_NAME,
 };

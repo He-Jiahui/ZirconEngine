@@ -2,12 +2,12 @@ use std::any::TypeId;
 use std::cell::Cell;
 
 use super::{SceneError, SceneResult, World};
-use crate::scene::EntityId;
 use crate::scene::components::{Hierarchy, Mobility, NodeRecord};
 use crate::scene::ecs::{
     ArchetypeSignature, BundleStaging, Component, ComponentId, ComponentTicks, InternalEntity,
     LifecycleEventKind, PreflightedComponentInsert, StorageType,
 };
+use crate::scene::EntityId;
 
 mod deferred_bundle_commit;
 mod deferred_bundle_removals;

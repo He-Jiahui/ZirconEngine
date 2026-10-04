@@ -1,0 +1,9 @@
+mod diagnostics;
+mod dock_patches;
+mod first_frame_capture;
+mod generation;
+mod lifecycle;
+mod metadata;
+mod pane_patches;
+mod sparse_patches;
+mod support;

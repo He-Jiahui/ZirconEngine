@@ -252,6 +252,57 @@ pub(crate) enum GpuSceneJournalTransactionError<StageError> {
     Commit(GpuSceneJournalConsumerError),
 }
 
+#[derive(Debug)]
+pub(crate) struct GpuSceneJournalStagedTransaction<'journal, StageOutput> {
+    plan: GpuSceneJournalApplyPlan<'journal>,
+    staged: Option<StageOutput>,
+}
+
+impl<'journal, StageOutput> GpuSceneJournalStagedTransaction<'journal, StageOutput> {
+    pub(crate) const fn requires_commit(&self) -> bool {
+        self.plan.requires_apply()
+    }
+
+    pub(crate) fn staged(&self) -> Option<&StageOutput> {
+        self.staged.as_ref()
+    }
+
+    pub(crate) fn commit(
+        self,
+        consumer: &mut GpuSceneJournalConsumer,
+    ) -> Result<GpuSceneJournalTransactionCommit<StageOutput>, GpuSceneJournalConsumerError> {
+        let commit = consumer.commit_preflighted(self.plan)?;
+        match (commit, self.staged) {
+            (RenderSceneJournalCommit::Applied, Some(output)) => {
+                Ok(GpuSceneJournalTransactionCommit::Applied(output))
+            }
+            (RenderSceneJournalCommit::Replayed, None) => {
+                Ok(GpuSceneJournalTransactionCommit::Replayed)
+            }
+            _ => Err(GpuSceneJournalConsumerError::InvalidPlan),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct GpuSceneJournalOwnedStagedTransaction {
+    journal: RenderSceneChangeJournal,
+}
+
+impl GpuSceneJournalOwnedStagedTransaction {
+    pub(crate) fn journal(&self) -> &RenderSceneChangeJournal {
+        &self.journal
+    }
+
+    pub(crate) fn commit(
+        self,
+        consumer: &mut GpuSceneJournalConsumer,
+    ) -> Result<RenderSceneJournalCommit, GpuSceneJournalConsumerError> {
+        let plan = consumer.preflight(&self.journal)?;
+        consumer.commit_preflighted(plan)
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum GpuSceneJournalTransactionCommit<StageOutput> {
     Applied(StageOutput),
@@ -285,6 +336,7 @@ where
     }
 }
 
+#[derive(Clone, Debug)]
 pub(crate) struct GpuSceneJournalConsumer {
     cursor: RenderSceneJournalCursor,
     slots: Vec<GpuSceneJournalSlot>,
@@ -319,15 +371,21 @@ impl GpuSceneJournalConsumer {
             .flatten()
     }
 
-    /// Stages every journal-owned GPU mutation before publishing the matching
-    /// residency and cursor generation. The staging callback must leave its
-    /// external owner unchanged when it returns an error.
-    pub(crate) fn apply_with_staging<'journal, StageOutput, StageError>(
-        &mut self,
+    pub(crate) fn resident_stable_keys(&self) -> impl Iterator<Item = u64> + '_ {
+        self.slots
+            .iter()
+            .filter_map(|slot| slot.stable_instance_key)
+    }
+
+    /// Stages journal-owned GPU work without publishing residency or cursor state.
+    /// The caller must commit the returned transaction only after the matching
+    /// frame submission has been accepted.
+    pub(crate) fn stage<'journal, StageOutput, StageError>(
+        &self,
         journal: &'journal RenderSceneChangeJournal,
         stage: impl FnOnce(&GpuSceneJournalApplyPlan<'journal>) -> Result<StageOutput, StageError>,
     ) -> Result<
-        GpuSceneJournalTransactionCommit<StageOutput>,
+        GpuSceneJournalStagedTransaction<'journal, StageOutput>,
         GpuSceneJournalTransactionError<StageError>,
     > {
         let plan = self
@@ -337,20 +395,37 @@ impl GpuSceneJournalConsumer {
             .requires_apply()
             .then(|| stage(&plan).map_err(GpuSceneJournalTransactionError::Staging))
             .transpose()?;
-        let commit = self
-            .commit_preflighted(plan)
-            .map_err(GpuSceneJournalTransactionError::Commit)?;
-        match (commit, staged) {
-            (RenderSceneJournalCommit::Applied, Some(output)) => {
-                Ok(GpuSceneJournalTransactionCommit::Applied(output))
-            }
-            (RenderSceneJournalCommit::Replayed, None) => {
-                Ok(GpuSceneJournalTransactionCommit::Replayed)
-            }
-            _ => Err(GpuSceneJournalTransactionError::Commit(
-                GpuSceneJournalConsumerError::InvalidPlan,
-            )),
+        Ok(GpuSceneJournalStagedTransaction { plan, staged })
+    }
+
+    pub(crate) fn stage_owned<StageError>(
+        &self,
+        journal: RenderSceneChangeJournal,
+        stage: impl FnOnce(&GpuSceneJournalApplyPlan<'_>) -> Result<(), StageError>,
+    ) -> Result<GpuSceneJournalOwnedStagedTransaction, GpuSceneJournalTransactionError<StageError>>
+    {
+        let plan = self
+            .preflight(&journal)
+            .map_err(GpuSceneJournalTransactionError::Preflight)?;
+        if plan.requires_apply() {
+            stage(&plan).map_err(GpuSceneJournalTransactionError::Staging)?;
         }
+        Ok(GpuSceneJournalOwnedStagedTransaction { journal })
+    }
+
+    /// Compatibility transaction for owners whose staging callback already
+    /// represents the terminal acceptance boundary.
+    pub(crate) fn apply_with_staging<'journal, StageOutput, StageError>(
+        &mut self,
+        journal: &'journal RenderSceneChangeJournal,
+        stage: impl FnOnce(&GpuSceneJournalApplyPlan<'journal>) -> Result<StageOutput, StageError>,
+    ) -> Result<
+        GpuSceneJournalTransactionCommit<StageOutput>,
+        GpuSceneJournalTransactionError<StageError>,
+    > {
+        self.stage(journal, stage)?
+            .commit(self)
+            .map_err(GpuSceneJournalTransactionError::Commit)
     }
 
     fn preflight<'journal>(
@@ -550,4 +625,5 @@ impl GpuSceneJournalConsumer {
 }
 
 #[cfg(test)]
+#[path = "journal_consumer/tests/cases.rs"]
 mod tests;

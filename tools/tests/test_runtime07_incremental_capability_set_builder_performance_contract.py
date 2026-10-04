@@ -9,7 +9,7 @@ CAPABILITY_SET = ROOT / "zircon_runtime/src/script/vm/capability_set.rs"
 def production_source() -> str:
     return CAPABILITY_SET.read_text(encoding="utf-8").split("#[cfg(test)]", 1)[0]
 
-
+# 读取实现源码约束增量能力集合构建器：构建器使用二进制插入在有序唯一存储，并格式错误公开存储保持兼容修复。
 class Runtime07IncrementalCapabilitySetBuilderPerformanceContractTests(
     unittest.TestCase
 ):

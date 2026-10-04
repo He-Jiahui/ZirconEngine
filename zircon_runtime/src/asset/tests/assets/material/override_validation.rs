@@ -1,5 +1,6 @@
 ﻿use super::*;
 
+// 无效的材质自有控制字段应保留可定位的作者诊断，同时在描述符读取时回退安全默认值。
 #[test]
 fn material_owned_receive_shadows_reports_non_bool_override() {
     let material = MaterialAsset::from_toml_str(

@@ -1,6 +1,6 @@
 use std::{env, path::Path};
 
-use crate::core::framework::animation::AnimationParameterValue;
+use crate::core::framework::animation::{AnimationParameterSet, AnimationParameterValue};
 use crate::core::math::{Transform, Vec3};
 use zircon_runtime_interface::{
     ZrByteSlice, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeViewportHandle,
@@ -285,7 +285,7 @@ pub(super) fn assert_world_hud_bar_tracks_position(
 pub(super) fn animation_state_machine_parameters(
     session: &RuntimeDynamicSession,
     entity: u64,
-) -> std::collections::BTreeMap<String, AnimationParameterValue> {
+) -> AnimationParameterSet {
     session
         .level
         .with_world(|world| {

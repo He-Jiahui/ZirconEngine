@@ -11,9 +11,9 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/platform/preferences/atomic_file.rs
 tests:
-  - cargo test -p zircon_runtime --lib platform::preferences::atomic_file::tests::platform_preference_storage_maps_host_io_error_categories --locked --jobs 1 --message-format short --color never -- --exact --nocapture --test-threads=1
-  - cargo test -p zircon_runtime --lib native_callback_can_reenter_live_host_descriptor_without_deadlock --no-default-features --features core-min --locked --jobs 1 --message-format short --color never -- --test-threads=1 --nocapture
-  - cargo test -p zircon_runtime --lib active_animation_tick_emits_immediate_then_paused_tick_resets_to_idle --locked --jobs 1 --message-format short --color never -- --nocapture --test-threads=1
+  - cargo test -p zircon_runtime --lib platform::preferences::atomic_file::tests::platform_preference_storage_maps_host_io_error_categories --locked --message-format short --color never -- --exact --nocapture --test-threads=1
+  - cargo test -p zircon_runtime --lib native_callback_can_reenter_live_host_descriptor_without_deadlock --no-default-features --features core-min --locked --message-format short --color never -- --test-threads=1 --nocapture
+  - cargo test -p zircon_runtime --lib active_animation_tick_emits_immediate_then_paused_tick_resets_to_idle --locked --message-format short --color never -- --nocapture --test-threads=1
 ---
 
 # Frameworks05：偏好存储 quota ErrorKind 与固定工具链漂移
@@ -86,3 +86,43 @@ Open state: `Frameworks05 owner source fix and fresh managed validation pending`
 - State is `fix_implemented_review_green_validation_receipt_accepted`. Pending materialization or
   validation delays only accepted closeout. The focused terminal result, Plugins01 upward gate,
   commit, and fixed return are still required; this node remains open and does not claim acceptance.
+
+## 2026-09-11 rolling repair admission
+
+- Stable fixing Session `failure-roll-01a084c8-frameworks05-preference-quota-error-kind` owns this
+  record and `atomic_file.rs`; snapshot `3403` freezes both paths at HEAD
+  `c37155ba304740b3762b20585f77fb53a6da47fb`.
+- Request `preference-quota-error-kind-20260911-r1` was rejected for the coordinator command
+  policy because the copied command supplied `--jobs 1` (`validation_ticket_cargo_compute_override`).
+  No Cargo process started.
+- Corrected request `preference-quota-error-kind-20260911-r2` removed that coordinator-owned
+  override and submitted the exact focused quota-category test. Admission then rejected it with
+  `validation_ticket_external_worktree_dirty` for external repository `E:\Git\zr_vm`, before a
+  validation ticket or Cargo process was created. No dynamic test, upward gate, performance result,
+  or fixed return is claimed; the external worktree was not modified and this failure remains open.
+
+## 2026-09-19 rolling repair successor
+
+- Stable successor Session `failure-roll-01a084c8-frameworks05-preference-quota-r2` now owns this
+  failure, the fixing-plan record, and `atomic_file.rs`; the prior owner was archived after the
+  coordinator transfer. Transfer preview fingerprint was
+  `257d0d9d4f290f05678d25854ed8bbb5f4ecebd58dedbfb78d003cb2ceafd92d` and the transfer was
+  applied by request `137ee0756dd740e485ebbeb484a7acd0`.
+- Lease claim request `2ad9008b5f254b7992bd82cf39d22e71` and baseline attribution request
+  `833165f273294e4983fedc88edeb1e31` cover the exact source/doc scope. Current source hash is
+  `2c13e066d89592489713d8a37bf8e32d095c20aa98191643783a97bf154726d1`; the stable Rust 1.94.1
+  `io::ErrorKind::QuotaExceeded` mapping and focused category test are present, while the retired
+  `FilesystemQuotaExceeded` spelling remains absent.
+- A current-source static contract ticket is being submitted before any Cargo retry. It validates
+  the supported ErrorKind spelling, all three capacity mappings, the exact focused test, and the
+  absence of the retired variant. This is source-contract evidence only; managed Frameworks05
+  Cargo, Plugins01 upward acceptance, independent review, fixed return, and closeout remain open.
+- The previously recorded external-worktree blocker is unchanged: `E:\Git\zr_vm` must be clean
+  before a fresh immutable managed Cargo ticket can be admitted. No external worktree mutation or
+  coordinator database edit is authorized.
+- Static source-contract ticket `cc47b76c5c7947f0a7373fa4e43db009` (request
+  `failure-roll-01a084c8-frameworks05-preference-quota-20260919-r2`) was admitted and source-sealed
+  with manifest hash `ac5d3462c8d1234f9c17e4b109eea0d42020704c55ba6134274485e5a08a77f2`, but the
+  coordinator left it queued behind open lower dependency failures (`validation_dependency_failed`).
+  No validator process or Cargo process started; this receipt is not a pass and does not alter the
+  open state.

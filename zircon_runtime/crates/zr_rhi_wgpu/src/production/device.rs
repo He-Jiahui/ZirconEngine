@@ -498,13 +498,29 @@ impl RenderDevice for WgpuRenderDevice {
                 if let Some(frame) = diagnostic_frame.take() {
                     self.lock_diagnostics().commit_query_frame(ticket, frame);
                 }
-                match self.submissions.commit_packet(ticket, command_buffers) {
+                let (command_lists, diagnostic_query_plan, graph_execution_receipt) =
+                    packet.into_parts();
+                let committed = match graph_execution_receipt {
+                    Some(receipt) => self
+                        .submissions
+                        .commit_packet_with_ui_image_pins_and_graph_receipt(
+                            ticket,
+                            command_buffers,
+                            None,
+                            receipt,
+                        ),
+                    None => self.submissions.commit_packet(ticket, command_buffers),
+                };
+                let result = match committed {
                     Ok(()) => Ok(ticket),
                     Err(error) => {
                         self.cancel_accepted_packet(ticket);
                         Err(error)
                     }
-                }
+                };
+                drop(command_lists);
+                drop(diagnostic_query_plan);
+                result
             }
             Err(error) => {
                 if let Some(frame) = diagnostic_frame.take() {

@@ -9,9 +9,6 @@ origin_child_dir: docs/plans/zircon_editor/editor/02
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/workspace_copy.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/cli.py
 tests:
   - validation copy materializes a pinned external Git sibling dependency
   - external repository dirty worktree is excluded from default pinned-HEAD input

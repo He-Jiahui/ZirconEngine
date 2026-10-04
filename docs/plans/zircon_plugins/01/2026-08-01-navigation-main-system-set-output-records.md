@@ -17,7 +17,7 @@ Date: 2026-08-01
 - 测试先行静态 RED：测试合同已存在时，production descriptor 与 TOML 均尚无 `navigation.main`；随后仅补齐合同所需实现。
 - Rust 1.94.1、edition 2021 scoped `rustfmt --check`：通过。
 - 四文件限定范围 `git diff --check`：通过，仅有工作树既有行尾转换提示。
-- `python tools/audit_plugin_structure.py --json --repo-root E:\\Git\\ZirconEngine`：manifest schema、generated manifest header、runtime descriptor single-source、runtime registration builder 与 compatibility shim 相关计数均为 0。全局既有 `dist_abi_projection_violations = 37` 不归属本切片，本记录不声明 broad audit 全绿。
+- `python tools/audits/audit_plugin_structure.py --json --repo-root E:\\Git\\ZirconEngine`：manifest schema、generated manifest header、runtime descriptor single-source、runtime registration builder 与 compatibility shim 相关计数均为 0。全局既有 `dist_abi_projection_violations = 37` 不归属本切片，本记录不声明 broad audit 全绿。
 - 当前源码 SHA-256：`plugin.toml` = `C89BD3768462745F51F1D9951297148D3B7905AE53464E106BFF806B786EB597`；`lib.rs` = `DD9ACC1D235305673F67AD9E66DC2B03686F8ACB3644A6CF341C12B8BC819257`；`plugin.rs` = `D7B9C0EA4E17DAF0EEBDB25FF83D465B2D755835D0B3BC7FB119BAD2F1D8C92D`；registration tests = `A3E1FB8C69CF9B607400438B13DA77BEA3120B9630D5EB3091DCEA78EF2DD6DC`。
 - 独立只读复核：Critical 0 / Important 0 / Minor 0；未运行 Cargo、未编辑源码。
 

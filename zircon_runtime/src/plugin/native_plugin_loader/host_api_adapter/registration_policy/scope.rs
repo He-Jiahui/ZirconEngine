@@ -14,8 +14,7 @@ use super::super::context_handles::{
     insert_context, remove_context, NativeHostApiV3Context, NativeHostRegistrationScopeState,
 };
 use super::super::ecs_registration::{
-    native_host_asset_request_v1, native_host_diagnostics_emit_v1,
-    native_host_diagnostics_metric_v1, native_host_event_drain_v1, native_host_event_emit_v1,
+    native_host_asset_request_v1, native_host_event_drain_v1, native_host_event_emit_v1,
     native_host_register_component_v1, native_host_register_system_v2,
     native_host_spawn_command_v1, plugin_id_from_runtime_module_name,
 };
@@ -91,10 +90,7 @@ impl<'registry> NativeHostApiV4RegistrationScope<'registry> {
             bridge: ZrHostBridgeApiV1 {
                 call: Some(native_host_bridge_call_v1),
             },
-            diagnostics: ZrHostDiagnosticsApiV1 {
-                emit: Some(native_host_diagnostics_emit_v1),
-                metric: Some(native_host_diagnostics_metric_v1),
-            },
+            diagnostics: ZrHostDiagnosticsApiV1::empty(),
         }
     }
 }

@@ -1,3 +1,4 @@
+# 核对面板组件投影移动宿主节点所有权，内容回退借用控件身份。
 from pathlib import Path
 import unittest
 

@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 约束着色器模块注册表的测试组织：着色器模块注册表测试应目录支撑，并着色器模块注册表预算读取测试归属。
 class RuntimeShaderModuleRegistryTestStructureTests(unittest.TestCase):
     def test_shader_module_registry_tests_are_folder_backed(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
@@ -10,8 +10,7 @@ class RuntimeShaderModuleRegistryTestStructureTests(unittest.TestCase):
             / "zircon_runtime/src/graphics/shader/template/module_registry.rs"
         )
         tests_path = (
-            repo_root
-            / "zircon_runtime/src/graphics/shader/template/module_registry/tests.rs"
+            repo_root / "zircon_runtime/src/graphics/shader/template/module_registry/tests/cases.rs"
         )
 
         registry = registry_path.read_text(encoding="utf-8")
@@ -19,7 +18,7 @@ class RuntimeShaderModuleRegistryTestStructureTests(unittest.TestCase):
 
         self.assertLessEqual(len(registry.splitlines()), 800)
         self.assertLessEqual(len(tests.splitlines()), 800)
-        self.assertIn('#[path = "module_registry/tests.rs"]', registry)
+        self.assertIn("#[path = \"module_registry/tests/cases.rs\"]", registry)
         self.assertIn("mod tests;", registry)
         self.assertNotIn("mod tests {", registry)
         self.assertEqual(tests.count("#[test]"), 11)
@@ -36,7 +35,7 @@ class RuntimeShaderModuleRegistryTestStructureTests(unittest.TestCase):
         owner_budget = (
             budget_root / "assembly_assertions/owner_budget.rs"
         ).read_text(encoding="utf-8")
-        tests_path = "graphics/shader/template/module_registry/tests.rs"
+        tests_path = "graphics/shader/template/module_registry/tests/cases.rs"
 
         self.assertIn(tests_path, sources)
         self.assertIn(tests_path, owner_budget)

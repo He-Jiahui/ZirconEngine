@@ -32,7 +32,7 @@ related_code:
 plan_sources:
   - docs/plans/zircon_hub/index.md
   - docs/plans/zircon_hub/01-action-dispatch-and-typed-payload.md
-  - docs/zircon_hub/ui/responsive-component-system.md
+  - docs/crates/zircon_hub/ui/responsive-component-system.md
 status: in_progress
 ---
 

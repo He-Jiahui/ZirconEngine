@@ -1,5 +1,6 @@
 use crate::core::framework::text::TextDirection;
 use crate::text::font::FontDatabase;
+use crate::text::layout_geometry::{finite_f32_or_geometry, finite_sum, FiniteGeometryAccumulator};
 use crate::text::{
     BackendShapeRequest, ShapedGlyph, ShapedGlyphRotation, ShapedGlyphRun, ShapedHardLine,
     TextRange, TextVerticalGlyphDecisionBasis, TextVerticalGlyphFallbackReason,
@@ -7,20 +8,20 @@ use crate::text::{
     VerticalMode,
 };
 
-use super::backend::{VerticalBackendDirection, shape_vertical_run};
+use super::backend::{shape_vertical_run, VerticalBackendDirection};
 use super::orientation::{
-    VerticalShapeOrientation, transform_or_rotate_rotation, vertical_glyph_metrics_for_rotation,
+    transform_or_rotate_rotation, vertical_glyph_metrics_for_rotation, VerticalShapeOrientation,
 };
 use crate::text::shaping::bidi::BidiParagraph;
 use crate::text::shaping::cosmic::cluster_flags;
 use crate::text::shaping::direct_error::{
-    BackendGlyphInvariantKind, DirectShapeError, validate_backend_glyphs,
+    validate_backend_glyphs, BackendGlyphInvariantKind, DirectShapeError,
 };
-use crate::text::shaping::fallback_spans::{FallbackTextSpan, fallback_primary_face};
-use crate::text::shaping::horizontal::{HorizontalBackendRun, shape_horizontal_run};
+use crate::text::shaping::fallback_spans::{fallback_primary_face, FallbackTextSpan};
+use crate::text::shaping::horizontal::{shape_horizontal_run, HorizontalBackendRun};
 use crate::text::shaping::itemize::{
-    LogicalSegment, logical_segments_for_line, restore_backend_cluster_logical_order,
-    virtual_hard_break_glyph,
+    logical_segments_for_line, restore_backend_cluster_logical_order, virtual_hard_break_glyph,
+    LogicalSegment,
 };
 use crate::text::shaping::line_break::LineBreakOpportunityMap;
 use crate::text::shaping::script_segment::ParagraphTextAnalysis;
@@ -130,7 +131,10 @@ pub(in crate::text::shaping) fn shape_vertical_request(
         orientation: request.orientation,
         vertical_mode: request.vertical_mode,
         include_kerning: request.include_kerning,
-        measured_width: populated_columns as f32 * column_width,
+        measured_width: finite_f32_or_geometry(
+            populated_columns as f32 * column_width,
+            populated_columns as f64 * f64::from(column_width),
+        ),
         measured_height,
         horizontal_composition_receipt: None,
         horizontal_line_raw_metrics: Vec::new(),
@@ -397,7 +401,7 @@ fn position_vertical_glyphs(
     glyphs: &mut [ShapedGlyph],
     column_width: f32,
 ) -> f32 {
-    let mut cursor_y = 0.0_f32;
+    let mut cursor_y = FiniteGeometryAccumulator::default();
     let mut glyph_start = 0_usize;
     while glyph_start < glyphs.len() {
         let source_range = glyphs[glyph_start].source_range;
@@ -407,10 +411,11 @@ fn position_vertical_glyphs(
         }
 
         let cluster_text = super::source_cluster_text(request, source_range);
-        let shaped_advance = glyphs[glyph_start..glyph_end]
-            .iter()
-            .map(|glyph| glyph.advance.max(0.0))
-            .sum::<f32>();
+        let shaped_advance = finite_sum(
+            glyphs[glyph_start..glyph_end]
+                .iter()
+                .map(|glyph| glyph.advance.max(0.0)),
+        );
         let native_vertical_advance =
             matches!(glyphs[glyph_start].rotation, ShapedGlyphRotation::None)
                 .then_some(shaped_advance);
@@ -423,8 +428,11 @@ fn position_vertical_glyphs(
         );
         for (cluster_glyph_index, glyph) in glyphs[glyph_start..glyph_end].iter_mut().enumerate() {
             glyph.x = column_width * 0.5;
-            glyph.y = cursor_y;
-            glyph.offset_x += metrics.offset_x;
+            glyph.y = cursor_y.value();
+            glyph.offset_x = finite_f32_or_geometry(
+                glyph.offset_x + metrics.offset_x,
+                f64::from(glyph.offset_x) + f64::from(metrics.offset_x),
+            );
             glyph.rotation = metrics.rotation;
             glyph.advance = if cluster_glyph_index == 0 {
                 metrics.advance
@@ -432,10 +440,10 @@ fn position_vertical_glyphs(
                 0.0
             };
         }
-        cursor_y += metrics.advance;
+        cursor_y.add(metrics.advance);
         glyph_start = glyph_end;
     }
-    cursor_y
+    cursor_y.value()
 }
 
 pub(super) fn vertical_backend_direction(direction: TextDirection) -> VerticalBackendDirection {

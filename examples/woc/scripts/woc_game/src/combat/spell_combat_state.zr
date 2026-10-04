@@ -1,7 +1,9 @@
+//! 为专用项目入口提供共享暴击与光环公式的独立契约投影；实战属性和事件由世界侧的独立调用链负责。
 // Pure spell-combat aura reads. Fire Mage proc notification remains a WOS reducer call.
 var container = %import("zr.container");
 var contract = %import("generated/spell_combat_contract");
 
+/// 只携带公式回归需要的光环种类与值；当前专用测试构造此投影，世界实体光环的有效期由其自身状态维护。
 pub class SpellCombatAura {
     pub var kind: string;
     pub var value: float;
@@ -40,6 +42,7 @@ pub critFractionFromRating(critRating: float): float {
     return critRating / 1000.0;
 }
 
+/// 汇总属性重算时可共享给近战与法术的暴击部分；调用者应传入那次重算的光环快照。
 pub sharedCritBonus(
     critRating: float,
     talentCrit: float,
@@ -50,6 +53,8 @@ pub sharedCritBonus(
         critFractionFromRating(critRating);
 }
 
+/// 在共享属性快照之上读取命中时的法术专用光环，避免把同一专用增益同时计入两层。
+/// 保留源公式的原始概率值；此投影不负责抽样、触发通知或世界状态提交。
 pub spellCritChance(
     intellect: float,
     sharedBonus: float,
@@ -84,6 +89,7 @@ pub spellDamageMultFromAuras(auras: container.Array<SpellCombatAura>): float {
     return 1.0 + bonus;
 }
 
+/// 合并已结算的属性急速与当下光环；属性输入不能预先重复包含这批光环的贡献。
 pub spellHasteMult(resolvedSpellHaste: float, auras: container.Array<SpellCombatAura>): float {
     var bonus = resolvedSpellHaste, i = 0;
     while (i < auras.length) {

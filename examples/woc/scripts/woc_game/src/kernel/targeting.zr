@@ -1,6 +1,8 @@
+//! 独立复演仇恨阈值、强制目标和目标死亡后的选择；结果供 M3 trace 夹具读取。
 var {Array} = %import("zr.container");
 var container = %import("zr.container");
 
+// entity 与 threat 各有平行列；场景入口负责保持列对齐并提供存活状态。
 class TargetState {
     pub var entityIds: Array<uint>;
     pub var entityX: Array<float>;
@@ -132,6 +134,7 @@ threatFor(state: TargetState, id: uint): float {
     return 0.0;
 }
 
+// 只从存活候选中选择最高仇恨；同值保留先加入的目标以固定场景顺序。
 highestThreatTarget(state: TargetState): uint {
     var ids = state.threatIds;
     var values = state.threatValues;
@@ -155,6 +158,7 @@ highestThreatTarget(state: TargetState): uint {
     return bestId;
 }
 
+// 本步进入时的正强制计时优先，即使扣减后变负也保留本步目标；下次调用才应用仇恨阈值。
 updateTarget(state: TargetState): void {
     if (state.forcedTimer > 0.0) {
         state.forcedTimer = state.forcedTimer - 0.05;
@@ -166,6 +170,7 @@ updateTarget(state: TargetState): void {
     if (state.forcedTimer <= 0.0) {
         state.forcedId = <uint>0;
     }
+    // TODO: [CR-WOC-KP-0001] 确认无存活仇恨目标时是否必须清除已死亡的 currentId；当前分支无 next 即返回，场景测试未覆盖；下一步增加死目标且空威胁表断言。
     if (!isAlive(state, state.currentId)) {
         var next = highestThreatTarget(state);
         if (next != <uint>0) {
@@ -225,6 +230,7 @@ retarget(state: TargetState): void {
     state.aiState = "evade";
 }
 
+// 以同一状态依次经历近远程阈值、强制窗口过期及无效仇恨清理，供指标与 trace 消费。
 runScenario(): TargetScenario {
     var result = new TargetScenario();
     var state = new TargetState();
@@ -325,6 +331,7 @@ scenarioVector(required: bool): container.Array<int> {
     return values;
 }
 
+/// trace 只通过稳定整数索引取得场景结果；调用方不得把它当作产品实时目标查询。
 pub scenarioMetric(metric: int, required: bool): int {
     if (!required || metric < 0 || metric > 27) {
         throw "mob targeting scenario metric is invalid";

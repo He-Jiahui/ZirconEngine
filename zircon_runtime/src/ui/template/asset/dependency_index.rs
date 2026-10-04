@@ -86,6 +86,9 @@ impl UiAssetDependencyIndex {
             for dependent in dependents {
                 let dependent = dependent.as_str();
                 if seen.insert(dependent) {
+                    if targets.is_empty() {
+                        targets.reserve(dependents.len());
+                    }
                     targets.push(dependent.to_string());
                     queue.push_back(dependent);
                 }
@@ -113,6 +116,11 @@ impl UiAssetDependencyIndex {
     }
 }
 
+#[cfg(test)]
+#[path = "dependency_index/tests/cascade_target_capacity_tests.rs"]
+mod cascade_target_capacity_tests;
+
+// 依赖身份只按定位器去重并排序；同定位器的额外引用信息保留首次登记的版本。
 fn dedupe_references(references: &[AssetReference]) -> Vec<AssetReference> {
     let mut unique = BTreeMap::new();
     for reference in references {

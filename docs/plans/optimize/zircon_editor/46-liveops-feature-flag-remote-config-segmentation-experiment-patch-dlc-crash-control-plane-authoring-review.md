@@ -6,8 +6,7 @@ related_code:
   - tools/editor-workbench-preview/design.css
   - tools/editor-workbench-preview/export-designs.mjs
   - tools/editor-workbench-preview/verify-designs.mjs
-  - docs/ui-and-layout/index.md
-  - docs/ui-and-layout/editor-workbench-designs
+  - docs/ui/index.md
   - zircon_editor/src/core/settings/authority.rs
   - zircon_editor/src/core/settings/registry.rs
   - zircon_editor/src/core/export/stages/platform_bundle.rs
@@ -17,7 +16,7 @@ related_code:
   - zircon_runtime/src/core/framework/net/download.rs
   - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline/runtime_feature_flags.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_runtime_feature_flags/scene_runtime_feature_flags.rs
-  - tools/zircon_export/platform_bundle.py
+  - tools/export/platform_bundle.py
   - tools/mvp/MvpStagingRelease.psm1
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
@@ -74,7 +73,7 @@ source_recheck_required: true
 
 Zircon当前没有可称为工程级LiveOps控制面、Feature Flag、Remote Config、Player Segment或Experiment产品。仓库确实展示了八张视觉完成度较高的Workbench：`feature-flags`、`remote-config`、`telemetry-query`、`patch-planner`、`dlc-catalog`、`crash-symbolication`、`player-segment`和`experiment-console`；但它们只存在于`tools/editor-workbench-preview`、八张PNG和文档索引。对生产Editor、Runtime、Plugin、Hub、App、Interface与Host的精确检索没有找到对应capability、document、command、operation、provider或runtime consumer。
 
-这八张页面不是“后端还少几个接口”的半成品。`design.js`直接写死Live v42、12 live flags、42k users、3 live experiments、184 crashes、92% resolved、8 DLC packs和24 patch changes；同一文件没有`addEventListener`、`fetch`、XHR、WebSocket、storage、timer、message channel或签名验证。按钮、筛选、发布、rollout、launch、resolve、package与export都只是截图中的视觉字符，没有任何effect或receipt。`docs/ui-and-layout/index.md`又把它们列为LiveOps pages，因此必须同时纠正“有图即有能力”的文档投影。
+这八张页面不是“后端还少几个接口”的半成品。`design.js`直接写死Live v42、12 live flags、42k users、3 live experiments、184 crashes、92% resolved、8 DLC packs和24 patch changes；同一文件没有`addEventListener`、`fetch`、XHR、WebSocket、storage、timer、message channel或签名验证。按钮、筛选、发布、rollout、launch、resolve、package与export都只是截图中的视觉字符，没有任何effect或receipt。`docs/ui/index.md`又把它们列为LiveOps pages，因此必须同时纠正“有图即有能力”的文档投影。
 
 现有局部基础值得保留，但语义不能偷换。Editor `SettingsRegistry`有User/Project/Session三层、schema校验、revision和snapshot；Runtime profile preset有build-time schema和生成式Cargo feature闭包；Plugin feature bundle有owner/dependency/module/capability/packaging描述；Net download DTO有chunk/hash/resume/status；export pipeline能产出pack/delta pack/platform bundle。它们分别是本地设置、构建选择、插件装配、下载描述和发布产物基础，不是远程运营策略、玩家定向、实验分桶、内容授权或运行时热更新authority。Graphics里的`runtime_feature_flags`更只是编译后渲染路径布尔位，绝不能因同名被接成远程Feature Flag。
 

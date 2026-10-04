@@ -605,5 +605,5 @@ fn poll_export_process(
 }
 
 #[cfg(test)]
-#[path = "execution/capacity_tests.rs"]
+#[path = "execution/tests/capacity_tests.rs"]
 mod capacity_tests;

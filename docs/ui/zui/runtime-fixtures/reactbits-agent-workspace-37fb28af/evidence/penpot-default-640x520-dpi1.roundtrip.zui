@@ -1,0 +1,842 @@
+[asset]
+kind = "view"
+id = "res://ui/tests/reactbits_agent_workspace.zui"
+version = 2
+display_name = "ReactBits Agent Workspace"
+
+[tokens]
+"surface.canvas" = "#0f1117"
+"surface.panel" = "#171b24"
+"surface.elevated" = "#1d2330"
+"surface.inset" = "#11151d"
+"border.default" = "#2a3342"
+"border.strong" = "#3a4658"
+"text.primary" = "#f4f7fb"
+"text.secondary" = "#a9b4c5"
+"text.muted" = "#718096"
+"accent.primary" = "#8b7cff"
+"accent.info" = "#5da9ff"
+"status.success" = "#55d6a0"
+"status.warning" = "#f4bd62"
+"status.error" = "#ff7d8a"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "Stack"
+control_id = "ReactBitsAgentWorkspaceRoot"
+classes = ["rb-shell"]
+props = {
+  background_color = "$surface.canvas",
+  foreground_color = "$text.primary",
+  fixture_data_only = true,
+  direction = { xs = "column", md = "row" },
+  spacing = { xs = 1.5, md = 1.5 },
+  reference_primary = "https://pro.reactbits.dev/docs/app-ui/app-shell/app-shell-4",
+  reference_supporting = [
+    "https://pro.reactbits.dev/docs/app-ui/ai-chat/ai-chat-1",
+    "https://pro.reactbits.dev/docs/app-ui/agent-activity/agent-activity-2",
+    "https://pro.reactbits.dev/docs/app-ui/tool-calls/tool-calls-2",
+    "https://pro.reactbits.dev/docs/app-ui/agent-approval",
+  ],
+  responsive_wide = "sidebar + conversation + context panel",
+  responsive_intermediate = "icon rail + conversation + context drawer",
+  responsive_compact = "context panel moves below the conversation",
+  responsive_mobile = "sidebar collapses to a host-owned priority dock; composer stays primary",
+  layout_modes = ["full-shell", "adaptive-rail", "three-column", "master-detail", "mobile-bottom-actions"],
+}
+layout = {
+  clip = true,
+  input_policy = "Receive",
+  width = { min = 640, preferred = 1280, max = 1600, stretch = "Stretch" },
+  height = { min = 520, preferred = 800, max = 1000, stretch = "Stretch" },
+}
+children = [
+  { node = "sidebar", slot = { layout = { width = { min = 220, preferred = 232, max = 260, stretch = "Fixed" } } } },
+  { node = "main", slot = { layout = { width = { min = 440, preferred = 700, weight = 1, stretch = "Stretch" } } } },
+  { node = "context", slot = { layout = { width = { min = 280, preferred = 320, max = 360, stretch = "Fixed" } } } },
+]
+
+[nodes.sidebar]
+component = "VerticalBox"
+control_id = "ReactBitsAgentSidebar"
+classes = ["rb-panel", "rb-sidebar"]
+props = { background_color = "$surface.panel", border_color = "$border.default", border_width = 1, corner_radius = 10, responsive_min_tier = "regular", display = { xs = "none", md = "flex" } }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 10 }, padding = { left = 14, right = 14, top = 14, bottom = 14 } }
+children = [
+  { node = "sidebar_brand" },
+  { node = "new_session" },
+  { node = "sidebar_nav" },
+  { node = "sidebar_history" },
+  { node = "sidebar_footer" },
+]
+
+[nodes.sidebar_brand]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentSidebarBrand"
+props = { background_color = "$surface.elevated", corner_radius = 8, border_color = "$border.default", border_width = 1 }
+layout = { width = { stretch = "Stretch" }, height = { min = 42, preferred = 42, max = 42, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8 }, padding = { left = 10, right = 10, top = 8, bottom = 8 } }
+children = [
+  { node = "brand_mark" },
+  { node = "brand_title" },
+  { node = "brand_status" },
+]
+
+[nodes.brand_mark]
+component = "Label"
+control_id = "ReactBitsAgentBrandMark"
+props = { text = "Z", foreground_color = "$accent.primary", font_size = 18, font_weight = 700, accessibility_label = "Zircon" }
+layout = { width = { min = 22, preferred = 22, max = 22, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.brand_title]
+component = "Label"
+control_id = "ReactBitsAgentBrandTitle"
+props = { text = "Zircon Agent", foreground_color = "$text.primary", font_size = 13, font_weight = 650, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.brand_status]
+component = "Label"
+control_id = "ReactBitsAgentBrandStatus"
+props = { text = "●", foreground_color = "$status.success", font_size = 12, accessibility_label = "Connected" }
+layout = { width = { min = 16, preferred = 16, max = 16, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.new_session]
+component = "Button"
+control_id = "ReactBitsAgentNewSession"
+classes = ["rb-primary-action"]
+props = { text = "+  New session", button_variant = "contained", background_color = "$accent.primary", foreground_color = "$text.primary", corner_radius = 8, border_width = 0, input_interactive = true, input_focusable = true, accessibility_label = "Create new agent session" }
+layout = { width = { stretch = "Stretch" }, height = { min = 38, preferred = 38, max = 38, stretch = "Fixed" } }
+events = [{ id = "ReactBitsAgent/NewSession", event = "Click", route = "agent.session.create" }]
+
+[nodes.sidebar_nav]
+component = "VerticalBox"
+control_id = "ReactBitsAgentSidebarNav"
+layout = { width = { stretch = "Stretch" }, height = { min = 154, preferred = 154, max = 154, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 4 } }
+children = [
+  { node = "nav_label" },
+  { node = "nav_home" },
+  { node = "nav_runs" },
+  { node = "nav_artifacts" },
+  { node = "nav_settings" },
+]
+
+[nodes.nav_label]
+component = "Label"
+control_id = "ReactBitsAgentNavLabel"
+props = { text = "WORKSPACE", foreground_color = "$text.muted", font_size = 10, font_weight = 700, letter_spacing = 1.2 }
+layout = { width = { stretch = "Stretch" }, height = { min = 18, preferred = 18, max = 18, stretch = "Fixed" } }
+
+[nodes.nav_home]
+component = "Button"
+control_id = "ReactBitsAgentNavHome"
+props = { text = "⌂  Overview", button_variant = "text", background_color = "$surface.elevated", foreground_color = "$text.primary", corner_radius = 6, text_align = "left", input_interactive = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30, preferred = 30, max = 30, stretch = "Fixed" } }
+
+[nodes.nav_runs]
+component = "Button"
+control_id = "ReactBitsAgentNavRuns"
+props = { text = "◌  Agent runs", button_variant = "text", foreground_color = "$text.secondary", corner_radius = 6, text_align = "left", input_interactive = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30, preferred = 30, max = 30, stretch = "Fixed" } }
+
+[nodes.nav_artifacts]
+component = "Button"
+control_id = "ReactBitsAgentNavArtifacts"
+props = { text = "◇  Artifacts", button_variant = "text", foreground_color = "$text.secondary", corner_radius = 6, text_align = "left", input_interactive = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30, preferred = 30, max = 30, stretch = "Fixed" } }
+
+[nodes.nav_settings]
+component = "Button"
+control_id = "ReactBitsAgentNavSettings"
+props = { text = "⚙  Settings", button_variant = "text", foreground_color = "$text.secondary", corner_radius = 6, text_align = "left", input_interactive = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30, preferred = 30, max = 30, stretch = "Fixed" } }
+
+[nodes.sidebar_history]
+component = "ScrollableBox"
+control_id = "ReactBitsAgentConversationHistory"
+props = { background_color = "$surface.inset", border_color = "$border.default", border_width = 1, corner_radius = 8 }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { min = 120, preferred = 240, weight = 1, stretch = "Stretch" }, container = { kind = "ScrollableBox", axis = "Vertical", gap = 4, scrollbar_visibility = "Auto" }, padding = { left = 8, right = 8, top = 8, bottom = 8 } }
+children = [
+  { node = "history_label" },
+  { node = "history_current" },
+  { node = "history_previous" },
+  { node = "history_old" },
+]
+
+[nodes.history_label]
+component = "Label"
+control_id = "ReactBitsAgentHistoryLabel"
+props = { text = "RECENT SESSIONS", foreground_color = "$text.muted", font_size = 10, font_weight = 700, letter_spacing = 1.1 }
+layout = { width = { stretch = "Stretch" }, height = { min = 18, preferred = 18, max = 18, stretch = "Fixed" } }
+
+[nodes.history_current]
+component = "Button"
+control_id = "ReactBitsAgentHistoryCurrent"
+props = { text = "UI parity review", button_variant = "text", background_color = "$accent.primary", foreground_color = "$text.primary", corner_radius = 6, text_align = "left", selected = true, input_interactive = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32, preferred = 32, max = 32, stretch = "Fixed" } }
+
+[nodes.history_previous]
+component = "Button"
+control_id = "ReactBitsAgentHistoryPrevious"
+props = { text = "Penpot importer", button_variant = "text", foreground_color = "$text.secondary", corner_radius = 6, text_align = "left", input_interactive = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32, preferred = 32, max = 32, stretch = "Fixed" } }
+
+[nodes.history_old]
+component = "Button"
+control_id = "ReactBitsAgentHistoryOld"
+props = { text = "Runtime layout audit", button_variant = "text", foreground_color = "$text.secondary", corner_radius = 6, text_align = "left", input_interactive = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32, preferred = 32, max = 32, stretch = "Fixed" } }
+
+[nodes.sidebar_footer]
+component = "VerticalBox"
+control_id = "ReactBitsAgentSidebarFooter"
+layout = { width = { stretch = "Stretch" }, height = { min = 56, preferred = 56, max = 56, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 4 } }
+children = [{ node = "connection_text" }, { node = "usage_text" }]
+
+[nodes.connection_text]
+component = "Label"
+control_id = "ReactBitsAgentConnectionText"
+props = { text = "Runtime connected · local", foreground_color = "$text.secondary", font_size = 11, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22, preferred = 22, max = 22, stretch = "Fixed" } }
+
+[nodes.usage_text]
+component = "Label"
+control_id = "ReactBitsAgentUsageText"
+props = { text = "12.4k / 32k context tokens", foreground_color = "$text.muted", font_size = 10, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22, preferred = 22, max = 22, stretch = "Fixed" } }
+
+[nodes.main]
+component = "VerticalBox"
+control_id = "ReactBitsAgentMain"
+classes = ["rb-main"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 12 } }
+children = [{ node = "main_header" }, { node = "conversation" }, { node = "context_summary" }, { node = "composer" }]
+
+[nodes.main_header]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentMainHeader"
+classes = ["rb-panel"]
+props = { background_color = "$surface.panel", border_color = "$border.default", border_width = 1, corner_radius = 10 }
+layout = { width = { stretch = "Stretch" }, height = { min = 52, preferred = 52, max = 52, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 10 }, padding = { left = 14, right = 10, top = 8, bottom = 8 } }
+children = [{ node = "header_title_stack" }, { node = "model_picker" }, { node = "header_context" }, { node = "header_more" }]
+
+[nodes.header_title_stack]
+component = "VerticalBox"
+control_id = "ReactBitsAgentHeaderTitleStack"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 2 } }
+children = [{ node = "header_title" }, { node = "header_subtitle" }]
+
+[nodes.header_title]
+component = "Label"
+control_id = "ReactBitsAgentHeaderTitle"
+props = { text = "UI parity review", foreground_color = "$text.primary", font_size = 14, font_weight = 650, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 18, preferred = 18, max = 18, stretch = "Fixed" } }
+
+[nodes.header_subtitle]
+component = "Label"
+control_id = "ReactBitsAgentHeaderSubtitle"
+props = { text = "Agent run · 4 steps · streaming", foreground_color = "$text.secondary", font_size = 10, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 16, preferred = 16, max = 16, stretch = "Fixed" } }
+
+[nodes.model_picker]
+component = "Button"
+control_id = "ReactBitsAgentModelPicker"
+props = { text = "Claude Sonnet 4  ▾", button_variant = "outlined", background_color = "$surface.elevated", foreground_color = "$text.secondary", border_color = "$border.strong", border_width = 1, corner_radius = 6, input_interactive = true, input_focusable = true, accessibility_label = "Choose model" }
+layout = { width = { min = 144, preferred = 168, max = 188, stretch = "Fixed" }, height = { min = 32, preferred = 32, max = 32, stretch = "Fixed" } }
+
+[nodes.header_context]
+component = "Label"
+control_id = "ReactBitsAgentHeaderContext"
+props = { text = "12.4k tokens", foreground_color = "$accent.info", font_size = 10, text_align = "right", text_overflow = "elide" }
+layout = { width = { min = 72, preferred = 86, max = 104, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.header_more]
+component = "Button"
+control_id = "ReactBitsAgentHeaderMore"
+props = { text = "···", button_variant = "text", foreground_color = "$text.secondary", corner_radius = 6, input_interactive = true, input_focusable = true, accessibility_label = "Conversation actions" }
+layout = { width = { min = 34, preferred = 34, max = 34, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.conversation]
+component = "ScrollableBox"
+control_id = "ReactBitsAgentConversation"
+classes = ["rb-panel", "rb-conversation"]
+props = { background_color = "$surface.inset", border_color = "$border.default", border_width = 1, corner_radius = 10 }
+layout = { clip = true, input_policy = "Receive", width = { stretch = "Stretch" }, height = { min = 300, preferred = 560, weight = 1, stretch = "Stretch" }, container = { kind = "ScrollableBox", axis = "Vertical", gap = 12, scrollbar_visibility = "Auto" }, padding = { left = 18, right = 18, top = 18, bottom = 18 } }
+children = [{ node = "user_message" }, { node = "assistant_message" }, { node = "followup_message" }]
+
+[nodes.user_message]
+component = "VerticalBox"
+control_id = "ReactBitsAgentUserMessage"
+classes = ["rb-message", "rb-user-message"]
+props = { background_color = "$surface.elevated", border_color = "$border.default", border_width = 1, corner_radius = 8 }
+layout = { width = { min = 0, stretch = "Stretch" }, height = { min = 64, preferred = 76, max = 96, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 6 }, padding = { left = 12, right = 12, top = 10, bottom = 10 } }
+children = [{ node = "user_message_meta" }, { node = "user_message_text" }]
+
+[nodes.user_message_meta]
+component = "Label"
+control_id = "ReactBitsAgentUserMeta"
+props = { text = "You  ·  just now", foreground_color = "$text.muted", font_size = 10, font_weight = 600 }
+layout = { width = { stretch = "Stretch" }, height = { min = 16, preferred = 16, max = 16, stretch = "Fixed" } }
+
+[nodes.user_message_text]
+component = "Label"
+control_id = "ReactBitsAgentUserText"
+props = { text = "Recreate the ReactBits agent workspace in ZUI and verify the layout in Penpot.", foreground_color = "$text.primary", font_size = 13, wrap = "word", text_overflow = "clip" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32, preferred = 38, max = 52, stretch = "Fixed" } }
+
+[nodes.assistant_message]
+component = "VerticalBox"
+control_id = "ReactBitsAgentAssistantMessage"
+classes = ["rb-message", "rb-assistant-message"]
+props = { background_color = "$surface.panel", border_color = "$border.strong", border_width = 1, corner_radius = 8 }
+layout = { width = { min = 0, stretch = "Stretch" }, height = { min = 290, preferred = 360, max = 440, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 10 }, padding = { left = 14, right = 14, top = 12, bottom = 12 } }
+children = [{ node = "assistant_header" }, { node = "reasoning" }, { node = "tool_call" }, { node = "assistant_body" }, { node = "sources" }]
+
+[nodes.assistant_header]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentAssistantHeader"
+layout = { width = { stretch = "Stretch" }, height = { min = 24, preferred = 24, max = 24, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8 } }
+children = [{ node = "assistant_avatar" }, { node = "assistant_name" }, { node = "assistant_streaming" }]
+
+[nodes.assistant_avatar]
+component = "Label"
+control_id = "ReactBitsAgentAssistantAvatar"
+props = { text = "✦", foreground_color = "$accent.primary", font_size = 16, accessibility_label = "Assistant" }
+layout = { width = { min = 22, preferred = 22, max = 22, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.assistant_name]
+component = "Label"
+control_id = "ReactBitsAgentAssistantName"
+props = { text = "Zircon Agent", foreground_color = "$text.primary", font_size = 12, font_weight = 650 }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.assistant_streaming]
+component = "Label"
+control_id = "ReactBitsAgentAssistantStreaming"
+props = { text = "STREAMING", foreground_color = "$accent.info", font_size = 9, font_weight = 700, letter_spacing = 1 }
+layout = { width = { min = 66, preferred = 66, max = 66, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.reasoning]
+component = "VerticalBox"
+control_id = "ReactBitsAgentReasoning"
+classes = ["rb-disclosure", "rb-reasoning-expanded"]
+props = { background_color = "$surface.inset", border_color = "$border.default", border_width = 1, corner_radius = 6, disclosure_state = "expanded", accessible_role = "group" }
+layout = { width = { stretch = "Stretch" }, height = { min = 58, preferred = 68, max = 84, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 5 }, padding = { left = 10, right = 10, top = 8, bottom = 8 } }
+children = [{ node = "reasoning_summary" }, { node = "reasoning_detail" }]
+
+[nodes.reasoning_summary]
+component = "Label"
+control_id = "ReactBitsAgentReasoningSummary"
+props = { text = "⌄  Reasoning  ·  2.4s", foreground_color = "$text.secondary", font_size = 10, font_weight = 650 }
+layout = { width = { stretch = "Stretch" }, height = { min = 16, preferred = 16, max = 16, stretch = "Fixed" } }
+
+[nodes.reasoning_detail]
+component = "Label"
+control_id = "ReactBitsAgentReasoningDetail"
+props = { text = "Comparing retained layout slots with the three-column reference and preserving a single scroll owner.", foreground_color = "$text.muted", font_size = 10, wrap = "word", text_overflow = "clip" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24, preferred = 30, max = 38, stretch = "Fixed" } }
+
+[nodes.tool_call]
+component = "VerticalBox"
+control_id = "ReactBitsAgentToolCall"
+classes = ["rb-tool-call", "rb-tool-call-running"]
+props = { background_color = "$surface.elevated", border_color = "$accent.info", border_width = 1, corner_radius = 6, status = "running", disclosure_state = "expanded" }
+layout = { width = { stretch = "Stretch" }, height = { min = 66, preferred = 76, max = 92, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 5 }, padding = { left = 10, right = 10, top = 8, bottom = 8 } }
+children = [{ node = "tool_call_header" }, { node = "tool_call_output" }]
+
+[nodes.tool_call_header]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentToolCallHeader"
+layout = { width = { stretch = "Stretch" }, height = { min = 18, preferred = 18, max = 18, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 6 } }
+children = [{ node = "tool_call_name" }, { node = "tool_call_status" }, { node = "tool_call_elapsed" }]
+
+[nodes.tool_call_name]
+component = "Label"
+control_id = "ReactBitsAgentToolCallName"
+props = { text = "▣  zui.inspect_layout", foreground_color = "$text.primary", font_size = 11, font_weight = 650 }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.tool_call_status]
+component = "Label"
+control_id = "ReactBitsAgentToolCallStatus"
+props = { text = "running", foreground_color = "$accent.info", font_size = 10, font_weight = 650 }
+layout = { width = { min = 54, preferred = 54, max = 54, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.tool_call_elapsed]
+component = "Label"
+control_id = "ReactBitsAgentToolCallElapsed"
+props = { text = "1.8s", foreground_color = "$text.muted", font_size = 10, text_align = "right" }
+layout = { width = { min = 34, preferred = 34, max = 34, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.tool_call_output]
+component = "Label"
+control_id = "ReactBitsAgentToolCallOutput"
+props = { text = "Reading 12 retained nodes · checking overflow bounds…", foreground_color = "$text.secondary", font_size = 10, wrap = "word", text_overflow = "clip" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24, preferred = 28, max = 36, stretch = "Fixed" } }
+
+[nodes.assistant_body]
+component = "Label"
+control_id = "ReactBitsAgentAssistantBody"
+props = { text = "The shell now has explicit sidebar, conversation, and context slots. I’m keeping the approval decision beside the destructive action and reserving a stable composer row for streaming input.", foreground_color = "$text.primary", font_size = 12, wrap = "word", text_overflow = "clip" }
+layout = { width = { stretch = "Stretch" }, height = { min = 42, preferred = 52, max = 68, stretch = "Fixed" } }
+
+[nodes.sources]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentSources"
+classes = ["rb-sources"]
+layout = { width = { stretch = "Stretch" }, height = { min = 26, preferred = 30, max = 34, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 6 } }
+children = [{ node = "source_zui" }, { node = "source_penpot" }, { node = "source_reference" }]
+
+[nodes.source_zui]
+component = "Button"
+control_id = "ReactBitsAgentSourceZui"
+props = { text = "ZUI source", button_variant = "outlined", background_color = "$surface.elevated", foreground_color = "$accent.info", border_color = "$border.strong", border_width = 1, corner_radius = 5, font_size = 10, input_interactive = true, input_focusable = true, accessibility_label = "Open ZUI source" }
+layout = { width = { min = 76, preferred = 82, max = 96, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.source_penpot]
+component = "Button"
+control_id = "ReactBitsAgentSourcePenpot"
+props = { text = "Penpot board", button_variant = "outlined", background_color = "$surface.elevated", foreground_color = "$accent.info", border_color = "$border.strong", border_width = 1, corner_radius = 5, font_size = 10, input_interactive = true, input_focusable = true, accessibility_label = "Open Penpot board" }
+layout = { width = { min = 88, preferred = 98, max = 112, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.source_reference]
+component = "Button"
+control_id = "ReactBitsAgentSourceReference"
+props = { text = "ReactBits refs", button_variant = "outlined", background_color = "$surface.elevated", foreground_color = "$accent.info", border_color = "$border.strong", border_width = 1, corner_radius = 5, font_size = 10, input_interactive = true, input_focusable = true, accessibility_label = "Open design references" }
+layout = { width = { min = 94, preferred = 106, max = 120, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.followup_message]
+component = "VerticalBox"
+control_id = "ReactBitsAgentFollowupMessage"
+classes = ["rb-message", "rb-followup-message"]
+props = { background_color = "$surface.elevated", border_color = "$border.default", border_width = 1, corner_radius = 8 }
+layout = { width = { min = 0, stretch = "Stretch" }, height = { min = 56, preferred = 66, max = 84, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 5 }, padding = { left = 12, right = 12, top = 10, bottom = 10 } }
+children = [{ node = "followup_meta" }, { node = "followup_text" }]
+
+[nodes.followup_meta]
+component = "Label"
+control_id = "ReactBitsAgentFollowupMeta"
+props = { text = "Next checkpoint", foreground_color = "$status.success", font_size = 10, font_weight = 650 }
+layout = { width = { stretch = "Stretch" }, height = { min = 16, preferred = 16, max = 16, stretch = "Fixed" } }
+
+[nodes.followup_text]
+component = "Label"
+control_id = "ReactBitsAgentFollowupText"
+props = { text = "After the native baseline is green, compare wide, compact, and mobile captures against the same Penpot board.", foreground_color = "$text.secondary", font_size = 11, wrap = "word", text_overflow = "clip" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26, preferred = 32, max = 42, stretch = "Fixed" } }
+
+[nodes.composer]
+component = "VerticalBox"
+control_id = "ReactBitsAgentComposer"
+classes = ["rb-panel", "MuiAgentChat-composer", "MuiAgentChat-composerStreaming", "MuiAgentChat-composerHasText"]
+props = { background_color = "$surface.panel", border_color = "$accent.primary", border_width = 1, corner_radius = 10 }
+layout = { width = { stretch = "Stretch" }, height = { min = 112, preferred = 128, max = 148, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 6 }, padding = { left = 10, right = 10, top = 10, bottom = 8 } }
+children = [{ node = "composer_chat" }, { node = "composer_toolbar" }]
+
+[nodes.composer_chat]
+component = "ChatComposer"
+control_id = "ReactBitsAgentComposerInput"
+classes = ["MuiChatComposer-root", "MuiChatComposer-streaming", "MuiChatComposer-hasText"]
+props = { composer_text = "Review the responsive collapse path…", send_icon = "arrow-up", send_icon_size = "s", streaming = true, background_color = "$surface.inset", foreground_color = "$text.primary", border_color = "$border.default", border_width = 1, corner_radius = 7, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, placeholder = "Ask the agent…", accessibility_label = "Agent prompt" }
+layout = { width = { stretch = "Stretch" }, height = { min = 54, preferred = 60, max = 70, stretch = "Fixed" } }
+events = [{ id = "ReactBitsAgent/ComposerSubmit", event = "Submit", route = "agent.prompt.submit" }]
+
+[nodes.composer_toolbar]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentComposerToolbar"
+layout = { width = { stretch = "Stretch" }, height = { min = 30, preferred = 30, max = 30, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 6 } }
+children = [{ node = "composer_attach" }, { node = "composer_reasoning" }, { node = "composer_spacer" }, { node = "composer_send" }]
+
+[nodes.composer_attach]
+component = "Button"
+control_id = "ReactBitsAgentComposerAttach"
+props = { text = "＋ Attach", button_variant = "text", foreground_color = "$text.secondary", corner_radius = 5, font_size = 10, input_interactive = true, input_focusable = true, accessibility_label = "Attach file" }
+layout = { width = { min = 72, preferred = 78, max = 90, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.composer_reasoning]
+component = "Button"
+control_id = "ReactBitsAgentComposerReasoning"
+props = { text = "Reasoning: high", button_variant = "text", foreground_color = "$text.secondary", corner_radius = 5, font_size = 10, input_interactive = true, input_focusable = true, accessibility_label = "Reasoning effort" }
+layout = { width = { min = 108, preferred = 122, max = 138, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.composer_spacer]
+component = "Space"
+control_id = "ReactBitsAgentComposerSpacer"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.composer_send]
+component = "Button"
+control_id = "ReactBitsAgentComposerSend"
+props = { text = "Send  ↑", button_variant = "contained", background_color = "$accent.primary", foreground_color = "$text.primary", corner_radius = 6, font_size = 10, input_interactive = true, input_focusable = true, accessibility_label = "Send prompt" }
+layout = { width = { min = 68, preferred = 74, max = 86, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ReactBitsAgent/ComposerSend", event = "Click", route = "agent.prompt.submit" }]
+
+[nodes.context_summary]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentContextSummary"
+classes = ["rb-panel", "rb-context-summary"]
+props = { background_color = "$surface.panel", border_color = "$border.default", border_width = 1, corner_radius = 8, responsive_min_tier = "regular", responsive_max_tier = "regular", display = { xs = "none", md = "flex", lg = "none" }, accessible_role = "group", accessibility_label = "Compact run context" }
+layout = { width = { stretch = "Stretch" }, height = { min = 62, preferred = 62, max = 62, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8 }, padding = { left = 10, right = 10, top = 8, bottom = 8 } }
+children = [{ node = "context_summary_title" }, { node = "context_summary_status" }, { node = "context_summary_spacer" }, { node = "context_summary_open" }]
+
+[nodes.context_summary_title]
+component = "VerticalBox"
+control_id = "ReactBitsAgentContextSummaryTitle"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 2 } }
+children = [{ node = "context_summary_heading" }, { node = "context_summary_detail" }]
+
+[nodes.context_summary_heading]
+component = "Label"
+control_id = "ReactBitsAgentContextSummaryHeading"
+props = { text = "Run context", foreground_color = "$text.primary", font_size = 11, font_weight = 650, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 18, preferred = 18, max = 18, stretch = "Fixed" } }
+
+[nodes.context_summary_detail]
+component = "Label"
+control_id = "ReactBitsAgentContextSummaryDetail"
+props = { text = "2/4 steps complete  ·  12.4k tokens  ·  approval pending", foreground_color = "$text.secondary", font_size = 10, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 18, preferred = 18, max = 18, stretch = "Fixed" } }
+
+[nodes.context_summary_status]
+component = "Label"
+control_id = "ReactBitsAgentContextSummaryStatus"
+props = { text = "LIVE", foreground_color = "$status.success", font_size = 9, font_weight = 700, letter_spacing = 1 }
+layout = { width = { min = 34, preferred = 34, max = 34, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.context_summary_spacer]
+component = "Space"
+control_id = "ReactBitsAgentContextSummarySpacer"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.context_summary_open]
+component = "Button"
+control_id = "ReactBitsAgentContextSummaryOpen"
+props = { text = "Open  ›", button_variant = "outlined", background_color = "$surface.elevated", foreground_color = "$accent.info", border_color = "$border.strong", border_width = 1, corner_radius = 6, font_size = 10, input_interactive = true, input_focusable = true, accessibility_label = "Open run context" }
+layout = { width = { min = 78, preferred = 84, max = 92, stretch = "Fixed" }, height = { min = 30, preferred = 30, max = 30, stretch = "Fixed" } }
+events = [{ id = "ReactBitsAgent/OpenContextSummary", event = "Click", route = "agent.context.open" }]
+
+[nodes.context]
+component = "ScrollableBox"
+control_id = "ReactBitsAgentContextPanel"
+classes = ["rb-panel", "rb-context-panel"]
+props = { background_color = "$surface.panel", border_color = "$border.default", border_width = 1, corner_radius = 10, responsive_min_tier = "wide", display = { xs = "none", md = "none", lg = "flex" } }
+layout = { clip = true, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "ScrollableBox", axis = "Vertical", gap = 12, scrollbar_visibility = "Auto" }, padding = { left = 12, right = 12, top = 12, bottom = 12 } }
+children = [{ node = "context_header" }, { node = "plan_card" }, { node = "activity_card" }, { node = "tool_calls_card" }, { node = "approval_card" }, { node = "usage_card" }]
+
+[nodes.context_header]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentContextHeader"
+layout = { width = { stretch = "Stretch" }, height = { min = 30, preferred = 30, max = 30, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 6 } }
+children = [{ node = "context_title" }, { node = "context_collapse" }]
+
+[nodes.context_title]
+component = "Label"
+control_id = "ReactBitsAgentContextTitle"
+props = { text = "Run context", foreground_color = "$text.primary", font_size = 13, font_weight = 650 }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.context_collapse]
+component = "Button"
+control_id = "ReactBitsAgentContextCollapse"
+props = { text = "‹", button_variant = "text", foreground_color = "$text.secondary", corner_radius = 5, font_size = 14, input_interactive = true, input_focusable = true, accessibility_label = "Collapse context panel" }
+layout = { width = { min = 28, preferred = 28, max = 28, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.plan_card]
+component = "VerticalBox"
+control_id = "ReactBitsAgentPlanCard"
+classes = ["rb-card", "rb-plan"]
+props = { background_color = "$surface.elevated", border_color = "$border.default", border_width = 1, corner_radius = 8 }
+layout = { width = { stretch = "Stretch" }, height = { min = 106, preferred = 124, max = 148, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 6 }, padding = { left = 10, right = 10, top = 10, bottom = 10 } }
+children = [{ node = "plan_title" }, { node = "plan_step_done" }, { node = "plan_step_active" }, { node = "plan_step_next" }]
+
+[nodes.plan_title]
+component = "Label"
+control_id = "ReactBitsAgentPlanTitle"
+props = { text = "Agent plan  ·  2/4 complete", foreground_color = "$text.primary", font_size = 11, font_weight = 650 }
+layout = { width = { stretch = "Stretch" }, height = { min = 18, preferred = 18, max = 18, stretch = "Fixed" } }
+
+[nodes.plan_step_done]
+component = "Label"
+control_id = "ReactBitsAgentPlanDone"
+props = { text = "✓  Map ReactBits references", foreground_color = "$status.success", font_size = 10 }
+layout = { width = { stretch = "Stretch" }, height = { min = 18, preferred = 18, max = 18, stretch = "Fixed" } }
+
+[nodes.plan_step_active]
+component = "Label"
+control_id = "ReactBitsAgentPlanActive"
+props = { text = "◉  Build retained ZUI surface", foreground_color = "$accent.info", font_size = 10 }
+layout = { width = { stretch = "Stretch" }, height = { min = 18, preferred = 18, max = 18, stretch = "Fixed" } }
+
+[nodes.plan_step_next]
+component = "Label"
+control_id = "ReactBitsAgentPlanNext"
+props = { text = "○  Compare native screenshots", foreground_color = "$text.muted", font_size = 10 }
+layout = { width = { stretch = "Stretch" }, height = { min = 18, preferred = 18, max = 18, stretch = "Fixed" } }
+
+[nodes.activity_card]
+component = "VerticalBox"
+control_id = "ReactBitsAgentActivityCard"
+classes = ["rb-card", "rb-activity"]
+props = { background_color = "$surface.elevated", border_color = "$border.default", border_width = 1, corner_radius = 8 }
+layout = { width = { stretch = "Stretch" }, height = { min = 132, preferred = 164, max = 198, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 7 }, padding = { left = 10, right = 10, top = 10, bottom = 10 } }
+children = [{ node = "activity_title" }, { node = "activity_prepare" }, { node = "activity_nested" }, { node = "activity_nested_child" }, { node = "activity_verify" }]
+
+[nodes.activity_title]
+component = "Label"
+control_id = "ReactBitsAgentActivityTitle"
+props = { text = "Agent activity  ·  live", foreground_color = "$text.primary", font_size = 11, font_weight = 650 }
+layout = { width = { stretch = "Stretch" }, height = { min = 18, preferred = 18, max = 18, stretch = "Fixed" } }
+
+[nodes.activity_prepare]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentActivityPrepare"
+props = { foreground_color = "$status.success" }
+layout = { width = { stretch = "Stretch" }, height = { min = 20, preferred = 20, max = 20, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 5 } }
+children = [{ node = "activity_prepare_label" }, { node = "activity_prepare_time" }]
+
+[nodes.activity_prepare_label]
+component = "Label"
+control_id = "ReactBitsAgentActivityPrepareLabel"
+props = { text = "●  Prepare workspace", foreground_color = "$status.success", font_size = 10, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.activity_prepare_time]
+component = "Label"
+control_id = "ReactBitsAgentActivityPrepareTime"
+props = { text = "0.8s", foreground_color = "$status.success", font_size = 10, text_align = "right" }
+layout = { width = { min = 34, preferred = 38, max = 46, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.activity_nested]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentActivityNested"
+props = { foreground_color = "$accent.info" }
+layout = { width = { stretch = "Stretch" }, height = { min = 20, preferred = 20, max = 20, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 5 } }
+children = [{ node = "activity_nested_label" }, { node = "activity_nested_time" }]
+
+[nodes.activity_nested_label]
+component = "Label"
+control_id = "ReactBitsAgentActivityNestedLabel"
+props = { text = "⌄  Inspect layout tree", foreground_color = "$accent.info", font_size = 10, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.activity_nested_time]
+component = "Label"
+control_id = "ReactBitsAgentActivityNestedTime"
+props = { text = "1.8s", foreground_color = "$accent.info", font_size = 10, text_align = "right" }
+layout = { width = { min = 34, preferred = 38, max = 46, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.activity_nested_child]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentActivityNestedChild"
+props = { foreground_color = "$text.secondary" }
+layout = { width = { stretch = "Stretch" }, height = { min = 20, preferred = 20, max = 20, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 5 }, padding = { left = 14 } }
+children = [{ node = "activity_nested_child_label" }, { node = "activity_nested_child_time" }]
+
+[nodes.activity_nested_child_label]
+component = "Label"
+control_id = "ReactBitsAgentActivityNestedChildLabel"
+props = { text = "└─ Check slot overflow", foreground_color = "$text.secondary", font_size = 10, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.activity_nested_child_time]
+component = "Label"
+control_id = "ReactBitsAgentActivityNestedChildTime"
+props = { text = "0.6s", foreground_color = "$text.secondary", font_size = 10, text_align = "right" }
+layout = { width = { min = 34, preferred = 38, max = 46, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.activity_verify]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentActivityVerify"
+props = { foreground_color = "$text.muted" }
+layout = { width = { stretch = "Stretch" }, height = { min = 20, preferred = 20, max = 20, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 5 } }
+children = [{ node = "activity_verify_label" }, { node = "activity_verify_time" }]
+
+[nodes.activity_verify_label]
+component = "Label"
+control_id = "ReactBitsAgentActivityVerifyLabel"
+props = { text = "○  Verify Penpot export", foreground_color = "$text.muted", font_size = 10, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.activity_verify_time]
+component = "Label"
+control_id = "ReactBitsAgentActivityVerifyTime"
+props = { text = "queued", foreground_color = "$text.muted", font_size = 10, text_align = "right" }
+layout = { width = { min = 44, preferred = 50, max = 60, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.tool_calls_card]
+component = "VerticalBox"
+control_id = "ReactBitsAgentToolCallsCard"
+classes = ["rb-card", "rb-tool-calls"]
+props = { background_color = "$surface.elevated", border_color = "$border.default", border_width = 1, corner_radius = 8 }
+layout = { width = { stretch = "Stretch" }, height = { min = 164, preferred = 196, max = 228, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 6 }, padding = { left = 10, right = 10, top = 10, bottom = 10 } }
+children = [{ node = "tool_calls_title" }, { node = "call_success" }, { node = "call_pending" }, { node = "call_failure" }]
+
+[nodes.tool_calls_title]
+component = "Label"
+control_id = "ReactBitsAgentToolCallsTitle"
+props = { text = "Tool calls  ·  3", foreground_color = "$text.primary", font_size = 11, font_weight = 650 }
+layout = { width = { stretch = "Stretch" }, height = { min = 18, preferred = 18, max = 18, stretch = "Fixed" } }
+
+[nodes.call_success]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentCallSuccess"
+classes = ["rb-tool-row", "rb-tool-success"]
+props = { background_color = "$surface.inset", border_color = "$border.default", border_width = 1, corner_radius = 5, status = "success" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30, preferred = 32, max = 34, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 5 }, padding = { left = 7, right = 7, top = 5, bottom = 5 } }
+children = [{ node = "call_success_label" }, { node = "call_success_status" }]
+
+[nodes.call_success_label]
+component = "Label"
+control_id = "ReactBitsAgentCallSuccessLabel"
+props = { text = "✓  read_file  ·  layout.zui", foreground_color = "$text.secondary", font_size = 10, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.call_success_status]
+component = "Label"
+control_id = "ReactBitsAgentCallSuccessStatus"
+props = { text = "done", foreground_color = "$status.success", font_size = 10, font_weight = 650, text_align = "right" }
+layout = { width = { min = 34, preferred = 34, max = 34, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.call_pending]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentCallPending"
+classes = ["rb-tool-row", "rb-tool-pending"]
+props = { background_color = "$surface.inset", border_color = "$accent.info", border_width = 1, corner_radius = 5, status = "pending" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30, preferred = 32, max = 34, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 5 }, padding = { left = 7, right = 7, top = 5, bottom = 5 } }
+children = [{ node = "call_pending_label" }, { node = "call_pending_status" }]
+
+[nodes.call_pending_label]
+component = "Label"
+control_id = "ReactBitsAgentCallPendingLabel"
+props = { text = "◌  search_web  ·  ReactBits", foreground_color = "$text.secondary", font_size = 10, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.call_pending_status]
+component = "Label"
+control_id = "ReactBitsAgentCallPendingStatus"
+props = { text = "wait", foreground_color = "$accent.info", font_size = 10, font_weight = 650, text_align = "right" }
+layout = { width = { min = 34, preferred = 34, max = 34, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.call_failure]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentCallFailure"
+classes = ["rb-tool-row", "rb-tool-failure"]
+props = { background_color = "$surface.inset", border_color = "$status.error", border_width = 1, corner_radius = 5, status = "failure" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30, preferred = 32, max = 34, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 5 }, padding = { left = 7, right = 7, top = 5, bottom = 5 } }
+children = [{ node = "call_failure_label" }, { node = "call_failure_retry" }]
+
+[nodes.call_failure_label]
+component = "Label"
+control_id = "ReactBitsAgentCallFailureLabel"
+props = { text = "!  apply_patch  ·  blocked", foreground_color = "$text.secondary", font_size = 10, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.call_failure_retry]
+component = "Button"
+control_id = "ReactBitsAgentCallFailureRetry"
+props = { text = "Retry", button_variant = "text", foreground_color = "$status.error", corner_radius = 4, font_size = 10, input_interactive = true, input_focusable = true, accessibility_label = "Retry failed tool call" }
+layout = { width = { min = 42, preferred = 46, max = 54, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ReactBitsAgent/RetryToolCall", event = "Click", route = "agent.tool.retry" }]
+
+[nodes.approval_card]
+component = "VerticalBox"
+control_id = "ReactBitsAgentApprovalCard"
+classes = ["rb-card", "rb-approval"]
+props = { background_color = "$surface.elevated", border_color = "$status.warning", border_width = 1, corner_radius = 8, approval_state = "pending", destructive = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 148, preferred = 178, max = 208, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 7 }, padding = { left = 10, right = 10, top = 10, bottom = 10 } }
+children = [{ node = "approval_title" }, { node = "approval_body" }, { node = "approval_scope" }, { node = "approval_actions" }]
+
+[nodes.approval_title]
+component = "Label"
+control_id = "ReactBitsAgentApprovalTitle"
+props = { text = "⚠  Approval required", foreground_color = "$status.warning", font_size = 11, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 18, preferred = 18, max = 18, stretch = "Fixed" } }
+
+[nodes.approval_body]
+component = "Label"
+control_id = "ReactBitsAgentApprovalBody"
+props = { text = "The agent wants to write the generated layout into the project.", foreground_color = "$text.primary", font_size = 10, wrap = "word", text_overflow = "clip" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26, preferred = 32, max = 42, stretch = "Fixed" } }
+
+[nodes.approval_scope]
+component = "Label"
+control_id = "ReactBitsAgentApprovalScope"
+props = { text = "Scope: zircon_runtime/tests/fixtures/ui  ·  reversible", foreground_color = "$text.secondary", font_size = 10, wrap = "word", text_overflow = "clip" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26, preferred = 30, max = 38, stretch = "Fixed" } }
+
+[nodes.approval_actions]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentApprovalActions"
+layout = { width = { stretch = "Stretch" }, height = { min = 32, preferred = 34, max = 38, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 6 } }
+children = [{ node = "approval_reject" }, { node = "approval_spacer" }, { node = "approval_allow" }]
+
+[nodes.approval_reject]
+component = "Button"
+control_id = "ReactBitsAgentApprovalReject"
+props = { text = "Deny", button_variant = "outlined", foreground_color = "$text.secondary", border_color = "$border.strong", border_width = 1, corner_radius = 5, input_interactive = true, input_focusable = true, accessibility_label = "Deny agent write" }
+layout = { width = { min = 54, preferred = 60, max = 70, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ReactBitsAgent/ApprovalDeny", event = "Click", route = "agent.approval.deny" }]
+
+[nodes.approval_spacer]
+component = "Space"
+control_id = "ReactBitsAgentApprovalSpacer"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.approval_allow]
+component = "Button"
+control_id = "ReactBitsAgentApprovalAllow"
+props = { text = "Allow write", button_variant = "contained", background_color = "$status.warning", foreground_color = "$surface.canvas", corner_radius = 5, input_interactive = true, input_focusable = true, accessibility_label = "Allow agent write" }
+layout = { width = { min = 86, preferred = 98, max = 112, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ReactBitsAgent/ApprovalAllow", event = "Click", route = "agent.approval.allow" }]
+
+[nodes.usage_card]
+component = "VerticalBox"
+control_id = "ReactBitsAgentUsageCard"
+classes = ["rb-card", "rb-usage"]
+props = { background_color = "$surface.elevated", border_color = "$border.default", border_width = 1, corner_radius = 8 }
+layout = { width = { stretch = "Stretch" }, height = { min = 76, preferred = 88, max = 104, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 6 }, padding = { left = 10, right = 10, top = 10, bottom = 10 } }
+children = [{ node = "usage_title" }, { node = "usage_bar" }, { node = "usage_detail" }]
+
+[nodes.usage_title]
+component = "Label"
+control_id = "ReactBitsAgentUsageTitle"
+props = { text = "AI usage", foreground_color = "$text.primary", font_size = 11, font_weight = 650 }
+layout = { width = { stretch = "Stretch" }, height = { min = 18, preferred = 18, max = 18, stretch = "Fixed" } }
+
+[nodes.usage_bar]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentUsageBar"
+props = { background_color = "$surface.inset", border_color = "$border.default", border_width = 1, corner_radius = 4 }
+layout = { width = { stretch = "Stretch" }, height = { min = 8, preferred = 8, max = 8, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 0 } }
+children = [{ node = "usage_bar_fill" }, { node = "usage_bar_rest" }]
+
+[nodes.usage_bar_fill]
+component = "Space"
+control_id = "ReactBitsAgentUsageBarFill"
+props = { background_color = "$accent.primary", corner_radius = 4 }
+layout = { width = { min = 0, preferred = 38, weight = 0.39, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.usage_bar_rest]
+component = "Space"
+control_id = "ReactBitsAgentUsageBarRest"
+props = { background_color = "$surface.inset" }
+layout = { width = { min = 0, preferred = 60, weight = 0.61, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.usage_detail]
+component = "Label"
+control_id = "ReactBitsAgentUsageDetail"
+props = { text = "12.4k used  ·  19.6k remaining  ·  $0.08", foreground_color = "$text.secondary", font_size = 10, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 18, preferred = 18, max = 18, stretch = "Fixed" } }
+
+[nodes.root.zircon_extension]
+owner = "reactbits-reference-slice"
+reference_profile = "reactbits-app-ui-agent-workspace-v1"
+source_of_truth = "zui"
+penpot_visual_check = "required"
+
+[[stylesheets]]
+id = "reactbits-ui-typography"
+
+[[stylesheets.rules]]
+selector = "*"
+set = { self = { font = { asset = "res://fonts/editor-ui.font.toml", family = "Fira Sans" } } }

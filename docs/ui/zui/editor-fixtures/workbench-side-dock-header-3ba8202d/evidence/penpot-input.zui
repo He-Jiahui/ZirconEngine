@@ -1,0 +1,168 @@
+stylesheets = []
+penpot_dependency_sources = []
+penpot_original_source = "stylesheets = []\n\n[asset]\nkind = \"layout\"\nid = \"editor.host.workbench_side_dock_header\"\nversion = 1\ndisplay_name = \"workbench side dock header\"\n\n[imports]\nwidgets = []\nstyles = []\n\n[root]\nnode_id = \"side_dock_header_root\"\nkind = \"native\"\ntype = \"Overlay\"\ncontrol_id = \"SideDockHeaderRoot\"\n\n[root.layout]\nclip = true\n\n[root.layout.container]\nkind = \"Overlay\"\n\n[root.layout.width]\nstretch = \"Stretch\"\n\n[root.layout.height]\nstretch = \"Stretch\"\n\n[[root.children]]\n[root.children.node]\nnode_id = \"side_dock_header_bar\"\nkind = \"native\"\ntype = \"Container\"\ncontrol_id = \"SideDockHeaderBar\"\n\n[root.children.node.props]\nsurface_variant = \"panel\"\nradius = 0.0\nborder_width = 0.0\n\n[root.children.node.layout.position]\nx = 0.0\ny = 0.0\n\n[root.children.node.layout.width]\nstretch = \"Stretch\"\n\n[root.children.node.layout.height]\nmin = 25.0\npreferred = 25.0\nmax = 25.0\nstretch = \"Fixed\"\n\n[[root.children]]\n[root.children.node]\nnode_id = \"side_dock_tab_0\"\nkind = \"native\"\ntype = \"Label\"\ncontrol_id = \"SideDockTab0\"\n\n[root.children.node.props]\ntext = \"Project\"\ntext_tone = \"default\"\nfont_size = 10.0\ntext_align = \"center\"\noverflow = \"elide\"\n\n[root.children.node.layout.position]\nx = 6.0\ny = 3.0\n\n[root.children.node.layout.width]\nmin = 82.0\npreferred = 82.0\nmax = 82.0\nstretch = \"Fixed\"\n\n[root.children.node.layout.height]\nmin = 20.0\npreferred = 20.0\nmax = 20.0\nstretch = \"Fixed\"\n\n[[root.children]]\n[root.children.node]\nnode_id = \"side_dock_tab_1\"\nkind = \"native\"\ntype = \"Label\"\ncontrol_id = \"SideDockTab1\"\n\n[root.children.node.props]\ntext = \"Assets\"\ntext_tone = \"subtle\"\nfont_size = 10.0\ntext_align = \"center\"\noverflow = \"elide\"\n\n[root.children.node.layout.position]\nx = 92.0\ny = 3.0\n\n[root.children.node.layout.width]\nmin = 82.0\npreferred = 82.0\nmax = 82.0\nstretch = \"Fixed\"\n\n[root.children.node.layout.height]\nmin = 20.0\npreferred = 20.0\nmax = 20.0\nstretch = \"Fixed\"\n\n[[root.children]]\n[root.children.node]\nnode_id = \"side_dock_tab_2\"\nkind = \"native\"\ntype = \"Label\"\ncontrol_id = \"SideDockTab2\"\n\n[root.children.node.props]\ntext = \"Hierarchy\"\ntext_tone = \"subtle\"\nfont_size = 10.0\ntext_align = \"center\"\noverflow = \"elide\"\n\n[root.children.node.layout.position]\nx = 178.0\ny = 3.0\n\n[root.children.node.layout.width]\nmin = 82.0\npreferred = 82.0\nmax = 82.0\nstretch = \"Fixed\"\n\n[root.children.node.layout.height]\nmin = 20.0\npreferred = 20.0\nmax = 20.0\nstretch = \"Fixed\"\n"
+
+[imports]
+widgets = []
+styles = []
+
+[asset]
+kind = "view"
+id = "editor.host.workbench_side_dock_header"
+version = 2
+display_name = "workbench side dock header"
+
+[root]
+node = "side_dock_header_root"
+
+[nodes.side_dock_header_root]
+component = "Overlay"
+control_id = "SideDockHeaderRoot"
+legacy_kind = "native"
+legacy_type = "Overlay"
+
+[nodes.side_dock_header_root.layout]
+clip = true
+
+[nodes.side_dock_header_root.layout.container]
+kind = "Overlay"
+
+[nodes.side_dock_header_root.layout.width]
+stretch = "Stretch"
+
+[nodes.side_dock_header_root.layout.height]
+stretch = "Stretch"
+
+[[nodes.side_dock_header_root.children]]
+node = "side_dock_header_bar"
+
+[[nodes.side_dock_header_root.children]]
+node = "side_dock_tab_0"
+
+[[nodes.side_dock_header_root.children]]
+node = "side_dock_tab_1"
+
+[[nodes.side_dock_header_root.children]]
+node = "side_dock_tab_2"
+
+[nodes.side_dock_header_bar]
+component = "Container"
+control_id = "SideDockHeaderBar"
+legacy_kind = "native"
+legacy_type = "Container"
+
+[nodes.side_dock_header_bar.props]
+surface_variant = "panel"
+radius = 0
+border_width = 0
+
+[nodes.side_dock_header_bar.layout.position]
+x = 0
+y = 0
+
+[nodes.side_dock_header_bar.layout.width]
+stretch = "Stretch"
+
+[nodes.side_dock_header_bar.layout.height]
+min = 25
+preferred = 25
+max = 25
+stretch = "Fixed"
+
+[nodes.side_dock_tab_0]
+component = "Label"
+control_id = "SideDockTab0"
+legacy_kind = "native"
+legacy_type = "Label"
+
+[nodes.side_dock_tab_0.props]
+text = "Project"
+text_tone = "default"
+font_size = 10
+text_align = "center"
+overflow = "elide"
+
+[nodes.side_dock_tab_0.layout.position]
+x = 6
+y = 3
+
+[nodes.side_dock_tab_0.layout.width]
+min = 82
+preferred = 82
+max = 82
+stretch = "Fixed"
+
+[nodes.side_dock_tab_0.layout.height]
+min = 20
+preferred = 20
+max = 20
+stretch = "Fixed"
+
+[nodes.side_dock_tab_1]
+component = "Label"
+control_id = "SideDockTab1"
+legacy_kind = "native"
+legacy_type = "Label"
+
+[nodes.side_dock_tab_1.props]
+text = "Assets"
+text_tone = "subtle"
+font_size = 10
+text_align = "center"
+overflow = "elide"
+
+[nodes.side_dock_tab_1.layout.position]
+x = 92
+y = 3
+
+[nodes.side_dock_tab_1.layout.width]
+min = 82
+preferred = 82
+max = 82
+stretch = "Fixed"
+
+[nodes.side_dock_tab_1.layout.height]
+min = 20
+preferred = 20
+max = 20
+stretch = "Fixed"
+
+[nodes.side_dock_tab_2]
+component = "Label"
+control_id = "SideDockTab2"
+legacy_kind = "native"
+legacy_type = "Label"
+
+[nodes.side_dock_tab_2.props]
+text = "Hierarchy"
+text_tone = "subtle"
+font_size = 10
+text_align = "center"
+overflow = "elide"
+
+[nodes.side_dock_tab_2.layout.position]
+x = 178
+y = 3
+
+[nodes.side_dock_tab_2.layout.width]
+min = 82
+preferred = 82
+max = 82
+stretch = "Fixed"
+
+[nodes.side_dock_tab_2.layout.height]
+min = 20
+preferred = 20
+max = 20
+stretch = "Fixed"
+
+[legacy_migration]
+source_path = "zircon_editor/src/tests/fixtures/ui_zui/editor/host/workbench_side_dock_header.zui"
+source_kind = "layout"
+source_version = 1
+source_component_ids = []
+
+[tokens]
+[penpot_original_imports]
+widgets = []
+styles = []

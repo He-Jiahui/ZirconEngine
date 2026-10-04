@@ -1,3 +1,4 @@
+//! 待运行载荷拥有工作与唯一结果发送端；同类型合并只替换轻量工作内容并保留原票据，执行端把合作式取消、失败和恐慌归为唯一终态。
 use std::any::Any;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::mpsc::SyncSender;
@@ -95,5 +96,5 @@ fn panic_message(payload: Box<dyn Any + Send>) -> String {
 }
 
 #[cfg(test)]
-#[path = "pending_task/owned_panic_tests.rs"]
+#[path = "pending_task/tests/owned_panic_tests.rs"]
 mod owned_panic_tests;

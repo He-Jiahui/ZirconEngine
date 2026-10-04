@@ -24,10 +24,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sh
         ShellPanelKind::ActivityRail | ShellPanelKind::ScenePanel => {
             push_right_line(commands, rect, clip, order, style.strong_separator, opacity);
         }
-        ShellPanelKind::ViewportPanel => {
-            push_left_line(commands, rect, clip, order, style.soft_separator, opacity);
-            push_right_line(commands, rect, clip, order, style.soft_separator, opacity);
-        }
         ShellPanelKind::InspectorPanel => {
             push_left_line(commands, rect, clip, order, style.strong_separator, opacity);
         }
@@ -51,6 +47,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sh
         }
         ShellPanelKind::WindowRoot
         | ShellPanelKind::MainBand
+        | ShellPanelKind::ViewportPanel
         | ShellPanelKind::ContentPanel
         | ShellPanelKind::DrawerBody => {}
     }

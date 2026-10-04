@@ -1,3 +1,5 @@
+//! 选择类组件在模板编译时从属性生成 Autocomplete 根与显式 slot 类名，供样式表在运行前匹配。
+
 use std::collections::BTreeMap;
 
 use toml::Value;
@@ -20,6 +22,7 @@ pub(super) fn append_component_classes(
     true
 }
 
+/// 从父 Autocomplete 向输入区、标签、弹层和选项 slot 投影状态；子节点本身只携带局部覆盖。
 pub(super) fn append_slot_classes(
     child: &mut UiTemplateNode,
     owner_component: &str,
@@ -151,6 +154,7 @@ fn append_autocomplete_popper_slot_classes(
     }
 }
 
+// TODO: [CR-UI-TEMPLATE-STYLE-0002] 确认多个 option slot 是否应按各自 ID 应用 focused 类；当前父聚焦集合非空会标记所有选项，缺少多选项模板的身份契约测试。
 fn append_autocomplete_option_slot_classes(
     child: &mut UiTemplateNode,
     owner_attributes: &BTreeMap<String, Value>,
@@ -209,6 +213,7 @@ fn autocomplete_owner_has_popup_icon(owner_attributes: &BTreeMap<String, Value>)
     }
 }
 
+// 清除按钮可见性同时接受已选值、查询文本和多选集合；空白字符串不计入已有值。
 fn autocomplete_has_value(node: &UiTemplateNode) -> bool {
     borrowed_autocomplete_attribute(node, &["value", "value_text"])
         .or_else(|| borrowed_autocomplete_attribute(node, &["query", "inputValue"]))
@@ -270,5 +275,5 @@ fn array_attribute_any_non_empty_from_attributes(
 }
 
 #[cfg(test)]
-#[path = "mui_selection_classes/borrowed_attribute_tests.rs"]
+#[path = "mui_selection_classes/tests/borrowed_attribute_tests.rs"]
 mod borrowed_attribute_tests;

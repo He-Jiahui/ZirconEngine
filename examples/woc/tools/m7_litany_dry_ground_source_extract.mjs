@@ -6,6 +6,7 @@ const litany = await import('wocgit:///src/sim/delve_litany_layout.ts');
 const layouts = await import('wocgit:///src/sim/delve_layout.ts');
 
 const layoutIds = Object.keys(layouts.DELVE_MODULE_LAYOUTS);
+// 按 Litany 模块投影源码中的安全岛与祭坛几何。
 const modules = litany.LITANY_MODULE_IDS.map((id) => {
   const geometry = litany.litanyModuleGeometry(id);
   if (!geometry) throw new Error(`missing Litany geometry for ${id}`);

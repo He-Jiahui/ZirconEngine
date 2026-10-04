@@ -2,7 +2,6 @@
 related_code:
   - zircon_runtime/src/graphics/extract/history.rs
   - zircon_runtime/src/core/framework/render/camera/camera_snapshot.rs
-  - zircon_runtime/src/core/framework/render/view_family.rs
   - zircon_runtime/src/core/framework/render/temporal_jitter.rs
   - zircon_runtime/src/core/framework/render/view_matrix_pair.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs
@@ -843,7 +842,7 @@ jitter 注入点:`build_frame_submission_context` 在 `apply_viewport_size` 同�
 
 **TP-M4-S3b/S3c 材质 authored reactive strength 与 opaque material flag writer**:触碰标准材质 descriptor/control/asset/runtime/uniform、`mesh/build_mesh_draws/*`、`mesh_draw/*`、`mesh_pass/mesh_pass_processor.rs`、`mesh_pass/processors/taa_reactive_mask.rs`、`create_taa_reactive_mask_mesh_pipeline.rs`、`ensure_taa_reactive_mask_pipeline.rs` 与 `fallback_mesh.wgsl`。要点:`taa_reactive_mask_strength` 是材质拥有属性,默认 0,范围 `0..=1`;透明 writer 写 `max(sampled_base_alpha, data8.x)`,opaque/alpha-mask writer 只有强度非零时由 CPU 侧生成 `TaaReactiveMaterialMask` command 并用 `fs_taa_reactive_material_mask` 写强度。完成判据:check 通过;processor/command-buffer/material/shader tests 覆盖;默认强度 0 不产生 opaque/alpha-mask reactive command。
 
-**TP-M4-S4 P0 关闭**:触碰 `.codex/plans/Runtime 渲染风险清单与 RenderDoc 调试支持计划.md`(P0 条目标记)、`docs/zircon_runtime/**` 镜像文档。完成判据:里程碑测试阶段全绿 + RenderDoc 抓帧证据归档。
+**TP-M4-S4 P0 关闭**:触碰 `.codex/plans/Runtime 渲染风险清单与 RenderDoc 调试支持计划.md`(P0 条目标记)、`docs/crates/zircon_runtime/**` 镜像文档。完成判据:里程碑测试阶段全绿 + RenderDoc 抓帧证据归档。
 
 ### 测试与验收清单
 

@@ -1,3 +1,4 @@
+# 核对工作台侧面板优先级在单次槽位遍历中确定。
 from pathlib import Path
 import unittest
 

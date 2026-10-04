@@ -165,6 +165,7 @@ impl<'a> PublishedMaterialDrawProxy<'a> {
         })
     }
 
+    // mip 替换可沿用同资产修订的当前纹理；修订不同则保留 bundle 快照，防止旧材质读取新一代纹理内容。
     fn resolve_texture_binding(
         self,
         binding: &PreparedMaterialTextureBinding,
@@ -214,6 +215,7 @@ fn same_texture_revision(snapshot: Option<u64>, current: Option<u64>) -> bool {
 }
 
 impl ResourceStreamer {
+    /// 给管线准入报告当前可见、上次可见和待发布的三个代际；绘制实际只经代理选取前两者。
     pub(crate) fn material_draw_generations(&self, id: &ResourceId) -> [Option<u64>; 3] {
         let Some(prepared) = self.materials.get(id) else {
             return [None, None, None];
@@ -255,47 +257,5 @@ impl ResourceStreamer {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn published_draw_proxy_is_the_only_non_test_bundle_projection() {
-        let accessors = include_str!("resource_streamer_accessors.rs");
-        let proxy = include_str!("published_material_draw_proxy.rs")
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("published material draw proxy test boundary");
-
-        assert!(proxy.contains("prepared.published.as_ref()"));
-        assert!(proxy.contains("prepared.previous_published.as_ref()"));
-        assert!(proxy.contains("bundle.runtime"));
-        assert!(proxy.contains("bundle.uniform"));
-        assert!(proxy.contains("bundle.standard_uniform"));
-        assert!(proxy.contains("bundle.textures"));
-        assert!(proxy.contains("same_texture_revision"));
-        assert!(!accessors.contains("pub(crate) fn published_material_uniform("));
-        assert!(!accessors.contains("pub(crate) fn published_standard_material_uniform("));
-    }
-
-    #[test]
-    fn same_revision_accepts_mip_streaming_but_rejects_another_asset_generation() {
-        assert!(super::same_texture_revision(Some(7), Some(7)));
-        assert!(!super::same_texture_revision(Some(7), Some(8)));
-        assert!(!super::same_texture_revision(None, Some(7)));
-    }
-
-    #[test]
-    fn resource_streamer_publishes_only_the_three_live_material_generation_slots() {
-        let source = include_str!("published_material_draw_proxy.rs")
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("published material draw proxy test boundary");
-        let generations = source
-            .split("fn material_draw_generations(")
-            .nth(1)
-            .expect("live material generation projection");
-
-        assert!(generations.contains("prepared.published"));
-        assert!(generations.contains("prepared.previous_published"));
-        assert!(generations.contains("prepared.staged_candidate"));
-        assert!(source.contains("fn staged_material_draw_generation("));
-    }
-}
+#[path = "tests/published_material_draw_proxy.rs"]
+mod tests;

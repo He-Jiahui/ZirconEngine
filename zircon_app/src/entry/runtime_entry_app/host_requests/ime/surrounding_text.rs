@@ -1,3 +1,5 @@
+//! Runtime 周围文本和光标锚点进入 Winit IME 更新前的有效性边界。
+
 use winit::window::ImeSurroundingText;
 use zircon_runtime::diagnostic_log::write_warn;
 use zircon_runtime_interface::ZrRuntimeImeSurroundingTextV1;
@@ -19,11 +21,5 @@ pub(super) fn runtime_ime_surrounding_text(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::default_ime_surrounding_text;
-
-    #[test]
-    fn default_surrounding_text_is_available_without_a_panic_contract() {
-        assert!(default_ime_surrounding_text().is_some());
-    }
-}
+#[path = "tests/surrounding_text.rs"]
+mod tests;

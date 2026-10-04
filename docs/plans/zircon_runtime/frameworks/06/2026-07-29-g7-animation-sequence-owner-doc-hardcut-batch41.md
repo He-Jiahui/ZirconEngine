@@ -1,6 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/animation/sequence/apply.rs
   - zircon_runtime/src/animation/sequence/target.rs
 implementation_files:
   - docs/plans/engine-code-review-findings-2026-06.md
@@ -8,7 +7,7 @@ plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md
 tests:
-  - python tools/check_conventions.py --only docs --json
+  - python tools/audits/check_conventions.py --only docs --json
   - git diff --check -- docs/plans/engine-code-review-findings-2026-06.md docs/plans/zircon_runtime/frameworks/06/2026-07-29-g7-animation-sequence-owner-doc-hardcut-batch41.md
 ---
 

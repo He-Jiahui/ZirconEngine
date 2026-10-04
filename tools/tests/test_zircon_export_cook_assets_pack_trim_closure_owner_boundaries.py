@@ -1,17 +1,18 @@
+# 核对资源包裁剪闭包的实现归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PIPELINE_REPORT = REPO_ROOT / "tools/zircon_export/pipeline_report.py"
+PIPELINE_REPORT = REPO_ROOT / "tools/export/pipeline_report.py"
 COOK_ASSETS_PACK_HANDOFF = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_cook_assets_pack_handoff.py"
+    REPO_ROOT / "tools/export/pipeline_report_cook_assets_pack_handoff.py"
 )
 COOK_ASSETS_PACK_TRIM_CLOSURE = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_cook_assets_pack_trim_closure.py"
+    REPO_ROOT / "tools/export/pipeline_report_cook_assets_pack_trim_closure.py"
 )
 COOK_ASSETS_TRIM_EVIDENCE = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_cook_assets_trim_evidence.py"
+    REPO_ROOT / "tools/export/pipeline_report_cook_assets_trim_evidence.py"
 )
 
 

@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "owner": "runtime_wave12_graphics_mesh_draw_build",
+  "prepared_at_utc": "2026-10-02T19:01:08.832997+00:00",
+  "files": [
+    {
+      "path": "docs/_data/source-comment-audit/round-02/coverage/runtime_wave12_graphics_mesh_draw_build.jsonl",
+      "before_exists": false,
+      "before_sha256": null,
+      "after_sha256": "7b99374b26f6ea98392336e3954d30b254a6b331a0d7b45ab490e94f823f3949"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/issues/runtime_wave12_graphics_mesh_draw_build.jsonl",
+      "before_exists": false,
+      "before_sha256": null,
+      "after_sha256": "a29097c2e10d91782ce00ebc198cb68eb69f8ca411db5450e51af008d6b732eb"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/inventory.jsonl",
+      "before_exists": true,
+      "before_sha256": "a036a5ae29434de1f6cf6d4d8a92d1c74044d1f765eaaba34aa28302221ebbe5",
+      "after_sha256": "1d43dbeacbc64c557a5c4ca3aa46dcca4d2b59acd11d49b62f95b78a76428e8b"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/batches.jsonl",
+      "before_exists": true,
+      "before_sha256": "4b16753bef644d6dd582aba0fa5ba16f774b713cce4622fda4a3d65fd9057da5",
+      "after_sha256": "ae5531445d016700d2109500f7b17723ca501e083d3efdb51e75c8f64fa464dd"
+    }
+  ],
+  "source_hashes": {
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs": "556c4773d688df27db45cffa9d0043bf1b308c76dafe7a0a31989c689402403b",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build_mesh_draw_build_context.rs": "43dd636d04e3b4db202623dc2e7c7ad57a286649be6ecccaa6439e1451934801",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/collect_pending_draws.rs": "4601f8d374071a727bbee24e0351ce8fba289c73475737c5315a3a44db836fa8",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs": "4791e3ca14ec0ac188fb409410cf176ea011c3357d7db223ca341b4954d24688",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance/material_inputs.rs": "9b3dceef610dc8a9b5a8d972270b3f12c262ca7792d7cbdb36d995cbc7d49261",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance/tests.rs": "3ea4fb4be9bf3dfe775adf4da4333a8657f754049e28a1d177c344ab1452be17",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/geometry_source_selection.rs": "50dc9795560f43b3e361552e182b78148bedb849d7de72057916fd3b12f1ea22",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_bounds.rs": "85bf2157a7a820164e9163001be9cda1e9cb7f1347ac8235d004f21deaa6ca52",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs": "2ea5813b9b2e581d6e08878e3447c0e5c1dd761aaf588c1a5e8567d681f29639",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync/optimization_batch_ip_runtime626_tests.rs": "5de65f7a379a8f3b727214ba0e0830b43d8edfbbb2fe6ea8ae46ee96fd65e9f7",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/material_context_admission.rs": "bf1c67751cf58f9a0b891a80d1d27b991ed21b20026323384f394f961a1b1b92",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/material_draw_selection.rs": "505cebba9670aa933a26f527f7ee3669d260ff4cc5166b4b7c9302bd6a96779d",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/material_pipeline_requirements.rs": "4731164a84dc91b00c77b4533a3eba13850bc339f7dc666d88d1136c1611fafc",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/material_pipeline_requirements/tests.rs": "bac54eadcb299b61c2edaf40e7f1a77d353a8961ee15e0e79685b8bac479f0e0",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/mesh_draw_build_context.rs": "b53442a5012f2f2d3d1f8e166af8b3bbe2ecdcb528f3876170024978eea805df",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/mod.rs": "7d750abe451a17fc29e6fc0569b8e90eb24c8340172e66898f552a0b7c9769cb",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract.rs": "13afa3e493f789609b832705fd350d3ad293a989ac1294595ad7b875641d5b00",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/command_slots.rs": "f4d93dab2bee7c89932d9ba79976c4b733c4cdbd59da4263b98b94c0e19b846c",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/extract_item.rs": "f0bc60ea31305fa8d298067ab19caa24d0437087f2fc53239186f439b1c9d854",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/rebuild_batch.rs": "fd3fd1cd213a633a7ba6a81417c8a6c6aa9b3ae526dd321d08a43b54c0488dce",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/remainder.rs": "3ad67120d0da69bd9a851a58dfa18ea780e2b5ad35bc24f206a968719ceff375",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/tests.rs": "c9a52676527f728e94aa98093a249aebefdb77ae82f63937627a8c707389c084",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_material_draw.rs": "5c401d18d5b64213cf59a7d5ac893af2f144a091e13679ccf0c4b55eac77b506",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs": "bcae860f3e06ff749b2cca3dd07d77b65caf2491e725cbd5b7cc14e7287c01a6",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/phase_ordering.rs": "5a2f43b47becdb0627fee89efccf78e5bde5fc6babd63c004468ff3f7894b83e",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/previous_skinned_palette.rs": "f6ea42bafdb1071b8a6bc23942fe9b6379bf0778769d21743bdb284744cfc9d5",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs": "533233f48636d8c4900ed30b510a9c08d7fd70442f3635f8102427a92ad5b214",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/virtual_geometry_indirect.rs": "2b71831e1a65e2ef31c4ef1c603a01f8b7d5a87410576c8638b46bf049e98ec5",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/create_mesh_draw.rs": "3ba6745b89e536f006306ae61f9db2fe00dfba761dc39448482a36020aa401fd",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/indexed_indirect_args.rs": "7270432c9003ac8a91011827a5a9b16a020dc7acc5908e10e065e56b8df9ddb7",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/mod.rs": "4ca917aa5027dc2943e0d57bf7644d2a45db2da95655b8c4bb1aca491590d973"
+  },
+  "installation": {
+    "path": "E:\\Git\\ZirconEngine\\docs\\cli-and-tooling\\source-comment-audit\\round-02\\ownership\\local-install-runtime_wave12_graphics_mesh_draw_build-20261002-r1.json",
+    "sha256": "83e3beea997d8714bbd6bdcbf5d6025cd8d14e4e6945dc4797e3ef212fd5e258"
+  },
+  "root_semantic_proof": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_mesh_draw_build-root-semantic-proof-20261002-r1.json",
+    "sha256": "342e3245f96f8cfc45b42e5eb9feab2a71acea07ef7425fe41d89a4211ca14da"
+  },
+  "coverage_records": 31,
+  "reviewed_current_records": 31,
+  "new_issues": 2,
+  "historical_issue_references": 2,
+  "source_writes": 0,
+  "canonical_writes": 0,
+  "status": "final_coverage_published",
+  "completed_at_utc": "2026-10-02T19:03:39.371829+00:00",
+  "intent": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-publish-runtime_wave12_graphics_mesh_draw_build-20261002-r1\\intent.json",
+    "sha256": "5d0309a84e2809ecc694c573b29e1c791cce0ba4669540f6ff4452999106e113"
+  },
+  "inventory_reviewed_current_records": 4092,
+  "canonical_batch_records": 107,
+  "canonical_ledger_writes": 4,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "business_adoption": false,
+  "dynamic_acceptance": false,
+  "future_source_edit_pending_paths": [],
+  "submission": "pending_index_ownership_resolution"
+}

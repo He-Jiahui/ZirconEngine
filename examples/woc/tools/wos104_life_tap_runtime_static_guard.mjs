@@ -38,8 +38,8 @@ requireText(
 const generator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
 if (!/immolate',[\s\S]*?'corruption',[\s\S]*?'life_tap'/.test(generator) ||
-    !generator.includes("EXPECTED_ABILITY_COUNT = 79") ||
-    !zrGenerator.includes("document.entries.length === 79")) {
+    !generator.includes("EXPECTED_ABILITY_COUNT = 117") ||
+    !zrGenerator.includes("document.entries.length === 117")) {
   throw new Error("M4 Life Tap projection scope is missing");
 }
 const m4 = JSON.parse(read("contracts", "m4_abilities.json"));
@@ -55,7 +55,7 @@ if (!entry || entry.index !== 44 || entry.definition.class !== "warlock" ||
 const world = read("scripts", "woc_game", "src", "world", "state.zr");
 requireText(world, /lifeTapAbilityCode\([\s\S]*?lifeTapPayloadAbilityIsExact/, "Life Tap identity is missing");
 requireText(world, /lifeTapRankLevel[\s\S]*?return 6;[\s\S]*?return 14;[\s\S]*?return 20;/, "Life Tap rank mapping is missing");
-requireText(world, /startOfflineLifeTapCast[\s\S]*?lifeTapGlobalCooldownSeconds[\s\S]*?healthCost[\s\S]*?entityHp\[casterIndex\] <= healthCost[\s\S]*?entityHp\[casterIndex\] = [\s\S]*?restoredResource[\s\S]*?entityResources\[casterIndex\] =/, "Life Tap health-to-mana resolution is missing");
+requireText(world, /startOfflineLifeTapCast[\s\S]*?lifeTapGlobalCooldownSeconds[\s\S]*?healthCost[\s\S]*?entityHp\[casterIndex\] <= healthCost[\s\S]*?entityHp\[casterIndex\] = [\s\S]*?offlineCappedResourceGain\(state, casterIndex, manaGain\)/, "Life Tap health-to-mana resolution is missing");
 requireText(world, /applySupportedCastSlotCommand[\s\S]*?lifeTapAbilityCode\(\)[\s\S]*?startOfflineLifeTapCast[\s\S]*?applySupportedCastCommand[\s\S]*?lifeTapPayloadAbilityIsExact/, "Life Tap command routes are missing");
 requireText(world, /pub lifeTapCommandStateTest\(\): int[\s\S]*?decodeState\(encodeState\(state\)\)[\s\S]*?entityHp[\s\S]*?entityResources/, "Life Tap state regression coverage is missing");
 

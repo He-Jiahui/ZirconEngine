@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 着色器来源先按借用字段去重再取得所有权，首见项顺序仍有 Rust 回归入口；本组防止为每条候选复制键字符串。
 
 ROOT = Path(__file__).resolve().parents[2]
 EXTENSION_INPUTS = ROOT / (

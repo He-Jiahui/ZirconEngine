@@ -250,7 +250,10 @@ fn assert_route_report_exported(surface: &UiSurface) {
     assert!(report.request_count > 0, "{report:#?}");
     assert_route_report_counts_and_reasons(surface);
     assert_eq!(report.unsupported_count, 0, "{report:#?}");
-    assert_eq!(surface.surface_frame().layout_engine_report, report);
+    assert_eq!(
+        surface.surface_frame().layout_engine_report.as_ref(),
+        &report
+    );
     assert_eq!(surface.debug_snapshot().layout_engine_report, report);
     let snapshot_json = surface
         .debug_snapshot_json(&UiSurfaceDebugOptions::default())

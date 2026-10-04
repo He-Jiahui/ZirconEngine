@@ -3,6 +3,7 @@
 var collisionGeometry = %import("world/collision_geometry");
 var collisionContent = %import("world/instance_collision_content");
 
+// 只对调用方选定的 dungeon/arena/Yumi layout 局部碰撞求解，返回单轴供 world router 组合。
 pub resolveCoordinate(
     layoutIndex: int,
     x: float,

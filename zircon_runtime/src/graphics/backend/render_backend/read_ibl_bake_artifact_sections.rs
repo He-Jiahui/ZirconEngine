@@ -1,16 +1,19 @@
 #[cfg(test)]
+#[path = "read_ibl_bake_artifact_sections/tests/batch.rs"]
 mod batch;
 mod pending;
 mod resources;
 #[cfg(test)]
+#[path = "read_ibl_bake_artifact_sections/tests/staging.rs"]
 mod staging;
 #[cfg(test)]
+#[path = "read_ibl_bake_artifact_sections/tests/cases.rs"]
 mod tests;
 
 #[cfg(test)]
 use crate::core::framework::render::IblBakeArtifactReadbackSections;
 use crate::core::framework::render::{
-    SOURCE_CUBEMAP_FACE_COUNT, SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE, source_cubemap_mip_size,
+    source_cubemap_mip_size, SOURCE_CUBEMAP_FACE_COUNT, SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
 };
 use crate::graphics::types::GraphicsError;
 
@@ -20,8 +23,8 @@ pub(crate) use pending::IblBakeArtifactWgpuPendingReadback;
 use pending::IblBakeArtifactWgpuReadbackSection;
 pub(crate) use resources::IblBakeArtifactWgpuReadbackResources;
 use resources::{
-    IblBakeArtifactWgpuBufferReadback, required_irradiance_sh9_readback_resource,
-    required_wgpu_readback_resource,
+    required_irradiance_sh9_readback_resource, required_wgpu_readback_resource,
+    IblBakeArtifactWgpuBufferReadback,
 };
 
 use super::render_backend::RenderBackend;

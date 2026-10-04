@@ -46,7 +46,8 @@ class InteractiveSaveJobAdapterContractTests(unittest.TestCase):
         self.assertIn("max_tickets.min(self.tickets.len())", completion_pump)
         self.assertIn("self.complete_slot(slot_index, completion)", completion_pump)
         self.assertIn(
-            "completions: std::mem::take(&mut self.completions)", completion_pump
+            "let completions = std::mem::take(&mut self.completions);",
+            completion_pump,
         )
         self.assertNotIn("BTreeMap", source)
         self.assertNotIn("self.completions.insert", completion_pump)

@@ -25,10 +25,11 @@ pub use graph::{
     CompiledRenderGraphAccessAllocationTable, CompiledRenderGraphComputeBindingAccess,
     CompiledRenderGraphComputeBindingAccessPacket, CompiledRenderGraphComputeDispatchAccess,
     CompiledRenderGraphComputeDispatchAccessPacket, CompiledRenderGraphExternalAccess,
-    CompiledRenderGraphExternalAccessPacket, CompiledRenderGraphStats,
-    CompiledRenderGraphTransientAllocation, CompiledRenderGraphTransientAllocationId,
-    CompiledRenderGraphTransientAllocationPlan, CompiledRenderGraphTransientSlotReservation,
-    CompiledRenderPass, RenderGraphPhysicalAllocationId,
+    CompiledRenderGraphResourceStatePlan, CompiledRenderGraphResourceStateTransition,
+    CompiledRenderGraphStats, CompiledRenderGraphTransientAllocation,
+    CompiledRenderGraphTransientAllocationId, CompiledRenderGraphTransientAllocationPlan,
+    CompiledRenderGraphTransientSlotReservation, CompiledRenderPass,
+    RenderGraphPhysicalAllocationId, RenderGraphResourceState,
 };
 pub use resource_schema::{
     RenderBufferSchema, RenderResourceFallback, RenderResourceSchema, RenderTextureExtentPolicy,

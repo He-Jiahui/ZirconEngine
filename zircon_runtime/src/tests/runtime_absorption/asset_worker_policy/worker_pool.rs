@@ -9,10 +9,12 @@ fn asset_worker_pool_matches_runtime_04_and_11_decisions() {
         "{worker_pool_source}\n{worker_pool_diagnostics}\n{worker_pool_completion}\n{worker_pool_options}"
     );
     let worker_pool_tests = include_str!("../../../asset/tests/pipeline/worker_pool.rs");
-    let worker_pool_internal_tests = include_str!("../../../asset/pipeline/worker_pool/tests.rs");
+    let worker_pool_internal_tests =
+        include_str!("../../../asset/pipeline/worker_pool/tests/cases.rs");
     let project_asset_manager_construction =
         include_str!("../../../asset/pipeline/manager/project_asset_manager/construction.rs");
-    let worker_pool_doc = include_str!("../../../../../docs/zircon_runtime/asset/worker_pool.md");
+    let worker_pool_doc =
+        include_str!("../../../../../docs/crates/zircon_runtime/asset/worker_pool.md");
     let runtime_04_plan = include_str!(
         "../../../../../docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md"
     );

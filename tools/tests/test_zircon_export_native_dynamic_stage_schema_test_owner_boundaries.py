@@ -8,15 +8,15 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 STAGE_SCHEMA_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_pipeline_report_native_dynamic_stage_schema.py"
+    REPO_ROOT / "tools/export/tests/test_pipeline_report_native_dynamic_stage_schema.py"
 )
 STAGE_OPERATION_AUDIT_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_pipeline_report_native_dynamic_stage_operation_audit_schema.py"
+    / "tools/export/tests/test_pipeline_report_native_dynamic_stage_operation_audit_schema.py"
 )
 STAGE_OPERATION_AUDIT_SUPPORT = (
     REPO_ROOT
-    / "tools/zircon_export/tests/native_dynamic_stage_operation_audit_schema_test_support.py"
+    / "tools/export/tests/native_dynamic_stage_operation_audit_schema_test_support.py"
 )
 
 OPERATION_AUDIT_TEST_METHODS = (
@@ -89,7 +89,7 @@ class NativeDynamicStageSchemaTestOwnerBoundaryTests(unittest.TestCase):
             else ""
         )
         self.assertIn(
-            "from tools.zircon_export.tests.native_dynamic_stage_operation_audit_schema_test_support import",
+            "from tools.export.tests.native_dynamic_stage_operation_audit_schema_test_support import",
             audit_text,
         )
 

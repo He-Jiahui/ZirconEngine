@@ -8,6 +8,46 @@ use super::super::text_search::{contains_lowercase_query, starts_with_lowercase_
 
 mod submenu;
 
+#[cfg(test)]
+#[path = "menu/tests/search_capacity_tests.rs"]
+mod search_capacity_tests;
+
+#[cfg(test)]
+#[path = "menu/tests/search_streaming_tests.rs"]
+mod search_streaming_tests;
+
+#[cfg(test)]
+#[path = "menu/tests/typeahead_option_id_tests.rs"]
+mod typeahead_option_id_tests;
+
+#[cfg(test)]
+#[path = "menu/tests/typeahead_text_normalization_tests.rs"]
+mod typeahead_text_normalization_tests;
+
+#[cfg(test)]
+#[path = "menu/tests/typeahead_append_reuse_tests.rs"]
+mod typeahead_append_reuse_tests;
+
+#[cfg(test)]
+#[path = "menu/tests/typeahead_search_projection_tests.rs"]
+mod typeahead_search_projection_tests;
+
+#[cfg(test)]
+#[path = "menu/tests/search_query_borrow_tests.rs"]
+mod search_query_borrow_tests;
+
+#[cfg(test)]
+#[path = "menu/tests/search_filter_accumulator_tests.rs"]
+mod search_filter_accumulator_tests;
+
+#[cfg(test)]
+#[path = "menu/tests/label_borrow_tests.rs"]
+mod label_borrow_tests;
+
+#[cfg(test)]
+#[path = "menu/tests/child_values_iterator_tests.rs"]
+mod child_values_iterator_tests;
+
 pub(super) use submenu::{close_active_submenu, open_focused_submenu};
 
 const MENU_TYPEAHEAD_BUFFER: &str = "typeahead_buffer";
@@ -19,6 +59,9 @@ const MENU_FILTER_NO_RESULTS: &str = "filter_no_results";
 const MENU_SEARCH_BAR_ENABLED_ON_ITEM_COUNT: &str = "search_bar_enabled_on_item_count";
 const MENU_SEARCH_BAR_ENABLED_ON_ITEM_COUNT_CAMEL: &str = "searchBarEnabledOnItemCount";
 const MENU_SEARCH_QUERY: &str = "search_query";
+const MENU_CHILD_PROPERTY_NAMES: [&str; 6] = [
+    "children", "items", "submenu", "sub_menu", "subMenu", "options",
+];
 
 pub(super) fn apply_keyboard_text(
     state: &mut UiComponentState,
@@ -39,11 +82,7 @@ pub(super) fn apply_keyboard_text(
         return Ok(());
     }
 
-    let option_ids = options
-        .iter()
-        .map(|option| option.id.clone())
-        .collect::<Vec<_>>();
-    let current = super::current_index(state, descriptor, &option_ids);
+    let current = super::current_option_entry_index(state, descriptor, &options);
     let matched = {
         let eligibility = super::OptionEligibility::new(state, descriptor);
         searches.iter().find_map(|search| {
@@ -51,7 +90,7 @@ pub(super) fn apply_keyboard_text(
                 &eligibility,
                 current,
                 &options,
-                &search.search,
+                &search.buffer,
                 !super::bool_setting(state, descriptor, "disableListWrap", false),
                 !super::bool_setting(state, descriptor, "disabledItemsFocusable", false),
                 search.prefer_current,
@@ -198,7 +237,6 @@ pub(super) fn option_is_hidden_by_search_filter(
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct MenuTypeaheadSearch {
-    search: String,
     buffer: String,
     prefer_current: bool,
 }
@@ -209,9 +247,8 @@ fn menu_typeahead_searches(
     text: &str,
 ) -> Option<Vec<MenuTypeaheadSearch>> {
     let payload = keyboard_text_search(text)?;
-    if payload.chars().count() > 1 {
+    if payload.chars().nth(1).is_some() {
         return Some(vec![MenuTypeaheadSearch {
-            search: payload.clone(),
             buffer: payload,
             prefer_current: true,
         }]);
@@ -224,20 +261,22 @@ fn menu_typeahead_searches(
             .and_then(|buffer| keyboard_text_search(&buffer))
             .unwrap_or_default()
     };
-    let combined = format!("{previous}{payload}");
-    let buffer = if repeated_typeahead_character(&combined) {
-        payload.clone()
-    } else {
-        combined
-    };
+    let mut combined = previous;
+    combined.push_str(&payload);
+    if repeated_typeahead_character(&combined) {
+        return Some(vec![MenuTypeaheadSearch {
+            buffer: payload,
+            prefer_current: false,
+        }]);
+    }
+    let prefer_current = combined.chars().nth(1).is_some();
+    let needs_fallback = combined != payload;
     let mut searches = vec![MenuTypeaheadSearch {
-        search: buffer.clone(),
-        buffer: buffer.clone(),
-        prefer_current: buffer.chars().count() > 1,
+        buffer: combined,
+        prefer_current,
     }];
-    if buffer != payload {
+    if needs_fallback {
         searches.push(MenuTypeaheadSearch {
-            search: payload.clone(),
             buffer: payload,
             prefer_current: false,
         });
@@ -246,12 +285,22 @@ fn menu_typeahead_searches(
 }
 
 fn keyboard_text_search(text: &str) -> Option<String> {
-    let search = text
-        .chars()
-        .filter(|ch| !ch.is_control())
-        .collect::<String>()
-        .trim()
-        .to_lowercase();
+    let mut search = String::new();
+    let mut trailing_whitespace_start = None;
+    for ch in text.chars() {
+        if ch.is_control() || (search.is_empty() && ch.is_whitespace()) {
+            continue;
+        }
+        if ch.is_whitespace() {
+            trailing_whitespace_start.get_or_insert(search.len());
+        } else {
+            trailing_whitespace_start = None;
+        }
+        search.extend(ch.to_lowercase());
+    }
+    if let Some(start) = trailing_whitespace_start {
+        search.truncate(start);
+    }
     (!search.is_empty()).then_some(search)
 }
 
@@ -329,9 +378,9 @@ fn allow_search(state: &UiComponentState, descriptor: &UiComponentDescriptor) ->
 }
 
 fn search_query(state: &UiComponentState, descriptor: &UiComponentDescriptor) -> Option<String> {
-    super::string_setting(state, descriptor, MENU_SEARCH_QUERY)
-        .map(|query| query.trim().to_lowercase())
-        .filter(|query| !query.is_empty())
+    let query = nonempty_string_setting_ref(state, descriptor, MENU_SEARCH_QUERY)?;
+    let query = query.trim();
+    (!query.is_empty()).then(|| query.to_lowercase())
 }
 
 fn search_query_active(state: &UiComponentState, descriptor: &UiComponentDescriptor) -> bool {
@@ -356,6 +405,23 @@ fn string_setting_ref<'a>(
         })
 }
 
+fn nonempty_string_setting_ref<'a>(
+    state: &'a UiComponentState,
+    descriptor: &'a UiComponentDescriptor,
+    property: &str,
+) -> Option<&'a str> {
+    state
+        .values
+        .get(property)
+        .and_then(nonempty_string_value_ref)
+        .or_else(|| {
+            descriptor
+                .prop(property)
+                .and_then(|schema| schema.default_value.as_ref())
+                .and_then(nonempty_string_value_ref)
+        })
+}
+
 fn string_value_ref(value: &UiValue) -> Option<&str> {
     match value {
         UiValue::String(value) | UiValue::Enum(value) => Some(value.as_str()),
@@ -363,9 +429,17 @@ fn string_value_ref(value: &UiValue) -> Option<&str> {
     }
 }
 
+fn nonempty_string_value_ref(value: &UiValue) -> Option<&str> {
+    match value {
+        UiValue::String(value) | UiValue::Enum(value) if !value.is_empty() => Some(value.as_str()),
+        _ => None,
+    }
+}
+
 fn collect_filtered_option_id_refs<'a>(value: &'a UiValue, ids: &mut HashSet<&'a str>) {
     match value {
         UiValue::Array(values) => {
+            ids.reserve(values.len());
             for value in values {
                 collect_filtered_option_id_refs(value, ids);
             }
@@ -374,6 +448,7 @@ fn collect_filtered_option_id_refs<'a>(value: &'a UiValue, ids: &mut HashSet<&'a
             ids.insert(value.as_str());
         }
         UiValue::Flags(values) => {
+            ids.reserve(values.len());
             ids.extend(values.iter().map(String::as_str));
         }
         _ => {}
@@ -469,66 +544,82 @@ fn menu_search_options(
 
 fn menu_search_option_list(value: &UiValue) -> Vec<MenuSearchOption> {
     let mut next_top_level_index = 0;
-    collect_top_level_search_options(value, &mut next_top_level_index, true)
+    let mut options = Vec::with_capacity(menu_search_option_capacity_hint(value));
+    collect_top_level_search_options(value, &mut next_top_level_index, true, &mut options);
+    options
+}
+
+fn menu_search_option_capacity_hint(value: &UiValue) -> usize {
+    match value {
+        UiValue::Array(values) => values.len(),
+        UiValue::String(value) | UiValue::Enum(value) => {
+            if value.is_empty() {
+                0
+            } else {
+                1
+            }
+        }
+        UiValue::Map(_) => 1,
+        _ => 0,
+    }
 }
 
 fn collect_top_level_search_options(
     value: &UiValue,
     next_top_level_index: &mut i64,
     default_focus_candidate: bool,
-) -> Vec<MenuSearchOption> {
+    options: &mut Vec<MenuSearchOption>,
+) {
     match value {
-        UiValue::Array(values) => values
-            .iter()
-            .flat_map(|value| {
+        UiValue::Array(values) => {
+            options.reserve(values.len());
+            for value in values {
                 collect_top_level_search_options(
                     value,
                     next_top_level_index,
                     default_focus_candidate,
-                )
-            })
-            .collect(),
+                    options,
+                );
+            }
+        }
         UiValue::String(value) | UiValue::Enum(value) if !value.is_empty() => {
-            let option = MenuSearchOption {
+            options.push(MenuSearchOption {
                 id: value.clone(),
                 text: value.clone(),
                 top_level_index: *next_top_level_index,
                 top_level_id: value.clone(),
                 default_focus_candidate,
                 children: Vec::new(),
-            };
+            });
             *next_top_level_index += 1;
-            vec![option]
         }
         UiValue::Map(values) => {
             let ids = menu_option_ids(values);
             let text = menu_option_label_text(values);
             if ids.is_empty() {
-                return menu_child_values(values)
-                    .into_iter()
-                    .flat_map(|value| {
-                        collect_top_level_search_options(value, next_top_level_index, false)
-                    })
-                    .collect();
+                for value in menu_child_values(values) {
+                    collect_top_level_search_options(value, next_top_level_index, false, options);
+                }
+                return;
             }
 
-            ids.into_iter()
-                .filter(|id| !id.is_empty())
-                .map(|id| {
-                    let top_level_index = *next_top_level_index;
-                    *next_top_level_index += 1;
-                    MenuSearchOption {
-                        children: collect_child_search_options(values, top_level_index, &id),
-                        text: text.clone().unwrap_or_else(|| id.clone()),
-                        top_level_id: id.clone(),
-                        top_level_index,
-                        default_focus_candidate,
-                        id,
-                    }
-                })
-                .collect()
+            for id in ids {
+                if id.is_empty() {
+                    continue;
+                }
+                let top_level_index = *next_top_level_index;
+                *next_top_level_index += 1;
+                options.push(MenuSearchOption {
+                    children: collect_child_search_options(values, top_level_index, &id),
+                    text: text.map(str::to_owned).unwrap_or_else(|| id.clone()),
+                    top_level_id: id.clone(),
+                    top_level_index,
+                    default_focus_candidate,
+                    id,
+                });
+            }
         }
-        _ => Vec::new(),
+        _ => {}
     }
 }
 
@@ -537,65 +628,66 @@ fn collect_child_search_options(
     top_level_index: i64,
     top_level_id: &str,
 ) -> Vec<MenuSearchOption> {
-    menu_child_values(values)
-        .into_iter()
-        .flat_map(|value| {
-            collect_descendant_search_options(value, top_level_index, top_level_id.to_string())
-        })
-        .collect()
+    let mut children = Vec::new();
+    for value in menu_child_values(values) {
+        collect_descendant_search_options(value, top_level_index, top_level_id, &mut children);
+    }
+    children
 }
 
 fn collect_descendant_search_options(
     value: &UiValue,
     top_level_index: i64,
-    top_level_id: String,
-) -> Vec<MenuSearchOption> {
+    top_level_id: &str,
+    options: &mut Vec<MenuSearchOption>,
+) {
     match value {
-        UiValue::Array(values) => values
-            .iter()
-            .flat_map(|value| {
-                collect_descendant_search_options(value, top_level_index, top_level_id.clone())
-            })
-            .collect(),
+        UiValue::Array(values) => {
+            options.reserve(values.len());
+            for value in values {
+                collect_descendant_search_options(value, top_level_index, top_level_id, options);
+            }
+        }
         UiValue::String(value) | UiValue::Enum(value) if !value.is_empty() => {
-            vec![MenuSearchOption {
+            options.push(MenuSearchOption {
                 id: value.clone(),
                 text: value.clone(),
                 top_level_index,
-                top_level_id,
+                top_level_id: top_level_id.to_string(),
                 default_focus_candidate: false,
                 children: Vec::new(),
-            }]
+            });
         }
         UiValue::Map(values) => {
             let ids = menu_option_ids(values);
             let text = menu_option_label_text(values);
             if ids.is_empty() {
-                return menu_child_values(values)
-                    .into_iter()
-                    .flat_map(|value| {
-                        collect_descendant_search_options(
-                            value,
-                            top_level_index,
-                            top_level_id.clone(),
-                        )
-                    })
-                    .collect();
+                for value in menu_child_values(values) {
+                    collect_descendant_search_options(
+                        value,
+                        top_level_index,
+                        top_level_id,
+                        options,
+                    );
+                }
+                return;
             }
 
-            ids.into_iter()
-                .filter(|id| !id.is_empty())
-                .map(|id| MenuSearchOption {
-                    children: collect_child_search_options(values, top_level_index, &top_level_id),
-                    text: text.clone().unwrap_or_else(|| id.clone()),
-                    top_level_id: top_level_id.clone(),
+            for id in ids {
+                if id.is_empty() {
+                    continue;
+                }
+                options.push(MenuSearchOption {
+                    children: collect_child_search_options(values, top_level_index, top_level_id),
+                    text: text.map(str::to_owned).unwrap_or_else(|| id.clone()),
+                    top_level_id: top_level_id.to_string(),
                     top_level_index,
                     default_focus_candidate: false,
                     id,
-                })
-                .collect()
+                });
+            }
         }
-        _ => Vec::new(),
+        _ => {}
     }
 }
 
@@ -612,24 +704,25 @@ fn menu_option_ids(values: &std::collections::BTreeMap<String, UiValue>) -> Vec<
         .unwrap_or_default()
 }
 
-fn menu_option_label_text(values: &std::collections::BTreeMap<String, UiValue>) -> Option<String> {
+fn menu_option_label_text<'a>(
+    values: &'a std::collections::BTreeMap<String, UiValue>,
+) -> Option<&'a str> {
     ["label", "text", "title", "value_text", "value", "id"]
         .into_iter()
-        .filter_map(|property| values.get(property).and_then(super::string_value))
+        .filter_map(|property| values.get(property).and_then(string_value_ref))
         .find(|value| !value.is_empty())
 }
 
-fn menu_child_values(values: &std::collections::BTreeMap<String, UiValue>) -> Vec<&UiValue> {
-    [
-        "children", "items", "submenu", "sub_menu", "subMenu", "options",
-    ]
-    .into_iter()
-    .filter_map(|property| values.get(property))
-    .collect()
+fn menu_child_values<'a>(
+    values: &'a std::collections::BTreeMap<String, UiValue>,
+) -> impl Iterator<Item = &'a UiValue> {
+    MENU_CHILD_PROPERTY_NAMES
+        .iter()
+        .filter_map(move |property| values.get(*property))
 }
 
 fn all_search_option_ids(options: &[MenuSearchOption]) -> Vec<String> {
-    let mut ids = Vec::new();
+    let mut ids = Vec::with_capacity(options.len());
     for option in options {
         collect_search_option_ids(option, &mut ids);
     }
@@ -638,6 +731,7 @@ fn all_search_option_ids(options: &[MenuSearchOption]) -> Vec<String> {
 
 fn collect_search_option_ids(option: &MenuSearchOption, ids: &mut Vec<String>) {
     ids.push(option.id.clone());
+    ids.reserve(option.children.len());
     for child in &option.children {
         collect_search_option_ids(child, ids);
     }
@@ -659,13 +753,10 @@ fn collect_matching_search_options(
     query: &str,
     filter: &mut MenuSearchBuild,
 ) -> bool {
-    let mut child_filter = MenuSearchBuild::default();
-    for child in &option.children {
-        collect_matching_search_options(child, query, &mut child_filter);
-    }
-
+    let ids_start = filter.filtered_ids.len();
+    let focus_start = filter.focus_candidates.len();
     let matches = option_text_or_id_matches_search(&option.id, &option.text, query);
-    if !matches && child_filter.filtered_ids.is_empty() {
+    if !matches && option.children.is_empty() {
         return false;
     }
 
@@ -677,9 +768,15 @@ fn collect_matching_search_options(
             option_id: option.id.clone(),
         });
     }
-    filter.filtered_ids.extend(child_filter.filtered_ids);
-    filter
-        .focus_candidates
-        .extend(child_filter.focus_candidates);
+
+    for child in &option.children {
+        collect_matching_search_options(child, query, filter);
+    }
+
+    if !matches && filter.filtered_ids.len() == ids_start + 1 {
+        filter.filtered_ids.truncate(ids_start);
+        filter.focus_candidates.truncate(focus_start);
+        return false;
+    }
     true
 }

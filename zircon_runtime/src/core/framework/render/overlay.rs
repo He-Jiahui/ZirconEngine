@@ -11,6 +11,7 @@ pub enum SceneGizmoKind {
     VirtualGeometryBvh,
     VirtualGeometryVisBuffer,
     NavigationMesh,
+    Physics,
     AiPerception,
 }
 
@@ -165,6 +166,7 @@ pub struct HandleOverlayExtract {
     pub elements: Vec<HandleElementExtract>,
 }
 
+/// 覆盖层提取把编辑器选择锚点、网格、操控柄和调试图元集中为一帧 DTO；图形绘制与编辑器拾取复用这些几何语义，实体状态仍由编辑器拥有。
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderOverlayExtract {
     pub highlights: Option<HighlightSet>,

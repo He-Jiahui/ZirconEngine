@@ -1,3 +1,4 @@
+# 核对生产模块清单对每个源文件只读取一次。
 import sys
 import tempfile
 import time

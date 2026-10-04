@@ -1,15 +1,16 @@
+# 核对资源烘焙报告、清单与打包交接的实现归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PIPELINE_REPORT = REPO_ROOT / "tools/zircon_export/pipeline_report.py"
-COOK_ASSETS_REPORT = REPO_ROOT / "tools/zircon_export/pipeline_report_cook_assets.py"
+PIPELINE_REPORT = REPO_ROOT / "tools/export/pipeline_report.py"
+COOK_ASSETS_REPORT = REPO_ROOT / "tools/export/pipeline_report_cook_assets.py"
 COOK_ASSETS_MANIFEST_IO = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_cook_assets_manifest_io.py"
+    REPO_ROOT / "tools/export/pipeline_report_cook_assets_manifest_io.py"
 )
 COOK_ASSETS_PACK_HANDOFF = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_cook_assets_pack_handoff.py"
+    REPO_ROOT / "tools/export/pipeline_report_cook_assets_pack_handoff.py"
 )
 
 

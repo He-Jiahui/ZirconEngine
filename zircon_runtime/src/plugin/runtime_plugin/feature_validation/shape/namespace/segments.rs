@@ -6,6 +6,8 @@ use self::{
     tokens::validate_runtime_plugin_feature_namespace_segment_tokens,
 };
 
+// 先判命名空间是否具备分段结构；该结构缺失时只报这一原因，
+// 具备结构后再审查每段内容，保留调用方所依赖的诊断顺序。
 pub(super) fn validate_runtime_plugin_feature_namespace_segments(
     field_name: &str,
     value: &str,
@@ -18,11 +20,5 @@ pub(super) fn validate_runtime_plugin_feature_namespace_segments(
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn runtime_feature_namespace_validation_streams_segments() {
-        let source = include_str!("segments.rs");
-        let allocating_shape = ["split('.')", ".collect::<Vec<_>>()"].concat();
-        assert!(!source.contains(&allocating_shape));
-    }
-}
+#[path = "tests/segments.rs"]
+mod tests;

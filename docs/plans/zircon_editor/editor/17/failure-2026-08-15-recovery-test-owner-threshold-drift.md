@@ -13,6 +13,13 @@ related_code:
   - tools/tests/test_editor17_recovery_test_ownership_contract.py
   - zircon_editor/src/core/recovery/mod.rs
   - zircon_editor/src/core/recovery/tests.rs
+  - zircon_editor/src/core/recovery/tests/autosave_adapter/mod.rs
+  - zircon_editor/src/core/recovery/tests/autosave_adapter/admission.rs
+  - zircon_editor/src/core/recovery/tests/autosave_adapter/completion.rs
+  - zircon_editor/src/core/recovery/tests/autosave_adapter/outcomes.rs
+  - zircon_editor/src/core/recovery/tests/autosave_adapter/scheduling.rs
+  - zircon_editor/src/core/recovery/tests/autosave_adapter/shutdown.rs
+  - zircon_editor/src/core/recovery/tests/autosave_adapter/support.rs
 tests:
   - python -m unittest tools.tests.test_editor17_recovery_test_ownership_contract
 ---
@@ -88,3 +95,64 @@ Its folder-backed replacement remains foreign and untracked in the shared worktr
 so this record does not claim that replacement as an integrated owner. The tracked
 ownership contract, recovery module, and `tests.rs` facade remain the durable anchors;
 no Editor17 source bytes or acceptance state changed.
+
+## 2026-09-06 current-source folder-backed ownership evidence
+
+The old `tests/autosave_adapter.rs` path is absent from the current source. Its behavior is now
+owned by the tracked folder-backed module with seven files under
+`zircon_editor/src/core/recovery/tests/autosave_adapter/`; the root recovery facade is 65 lines
+and `tests.rs` is 591 lines. The current ownership contract was run against this source state:
+
+```text
+python -m unittest tools.tests.test_editor17_recovery_test_ownership_contract
+....
+Ran 4 tests in 0.101s
+OK
+```
+
+The seven adapter owners and the recovery facade were checked with the current structure audit;
+the threshold failure described by the original record is no longer present. The original flat
+path remains in the handoff history as evidence and is not recreated. Managed rustfmt and the
+focused recovery Cargo suites remain required; this static result does not claim those gates or
+fixed return.
+
+### 2026-09-06 coordinator static ticket
+
+- Request: `failure-roll-01a07160-editor17-static-20260906-r2`
+- Ticket: `c4aea5744f9a47bb893e64fcc0dba685`
+- Command: `python -m unittest tools.tests.test_editor17_recovery_test_ownership_contract`
+- Coverage: focused static gate with dependency roots `tools` and
+  `zircon_editor/src/core/recovery`.
+- Admission: queued, with `validation_dependency_failed` blockers from the open Editor17
+  prerequisite chain (including the Editor14 autosave-job admission, Editor16 project-session
+  lock reuse, Editor00 core-root facade, and Editor09 import-diagnostics handoffs).
+
+The coordinator receipt is retained as evidence of a valid ticket and dependency routing. It is
+not a GREEN result and no fixed return, commit, or notification is claimed for this failure.
+
+## 2026-09-11 rolling repair continuation
+
+- Stable Session `failure-roll-01a090ae-editor17-autosave-budget-r1` owns only the seven
+  folder-backed autosave test owners and this failure record. The foreign
+  `zircon_editor/src/core/recovery/mod.rs` rustfmt-only import reorder is outside the scope;
+  root `tests.rs` and the ownership-contract test remain unchanged historical inputs.
+- The seven autosave files match their archived baseline-599 attribution hashes with zero drift,
+  and the former flat `tests/autosave_adapter.rs` path is absent. Current source check:
+
+  ```text
+  py -3 -B -m unittest tools.tests.test_editor17_recovery_test_ownership_contract -v
+  ....
+  Ran 4 tests in 0.029s
+  OK
+  ```
+
+  This is static evidence only; it does not establish a Cargo or product gate.
+- The old queued ticket `c4aea5744f9a47bb893e64fcc0dba685` belongs to archived Session
+  `failure-roll-01a07160-editor17` and is not reused. A fresh current-source ticket is required;
+  full recovery rustfmt and the foreign `recovery/mod.rs` edit remain outside this slice.
+- Fresh coordinator static ticket `21abd6606f8d413e8fe802da3ba84ba3` sealed the current eight-path
+  scope and is `queued` with the existing Editor17 prerequisite-chain blockers. The focused Cargo
+  request `failure-roll-01a090ae-editor17-cargo-20260911-r1` was rejected before ticket creation
+  or Cargo execution with `validation_ticket_external_worktree_dirty` for `E:\Git\zr_vm`; no
+  compile/test result is available. Session status remains `waiting_validation`, this failure
+  remains `open`, and no fixed return or closeout is claimed.

@@ -12,16 +12,13 @@ fixing_child_dir: docs/plans/zircon_editor/editor_ui/08
 related_code:
   - zircon_editor/src/tests/host/binding_dispatch/
   - zircon_editor/src/tests/host/pane_presentation/
-  - zircon_editor/src/tests/host/manager/bootstrap_and_startup.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints/mod.rs
   - zircon_editor/src/tests/host/template_runtime/component_showcase_state/
   - zircon_editor/src/tests/host/template_runtime/pane_body_documents/
   - zircon_editor/src/tests/ui/boundary/workbench_projection_cutover/
   - zircon_editor/src/tests/workbench/layout/editor_layout_contracts/
   - zircon_editor/src/ui/host/play_pending_decision/tests/
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node_tests.rs
-  - zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs
+  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/tests
 tests:
   - python -B .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_editor_structure.py --json --repo-root E:\\Git\\ZirconEngine
   - cargo test -p zircon_editor --lib structure_convention --locked
@@ -85,13 +82,176 @@ menu/callback、template runtime、scene projection 和 pending decision 建立 
 
 ## 修复结果与回传
 
-Open state: `待修复`。`native_host_contract.rs` 已前向拆为 `native_host_contract/` 下的
+Open state: `resolving_failure / remaining owners and managed acceptance pending`。`native_host_contract.rs` 已前向拆为 `native_host_contract/` 下的
 `chrome_pointer`、`template_input`、`drag_projection`、`viewport_hierarchy_menu` 与唯一 `support`；
 43 个测试函数保留，所有新文件不超过 800 行，结构审计已不再报告该 3123 行最大项。随后
 `shell_window.rs`、`native_workbench_reference.rs`、`native_material_painter_mui_primitives.rs`、
 `blend_space_workspace.rs`、`workbench_window_menus.rs`、`drag_sources.rs`、`host_scene_projection.rs` 与
 `ui_asset_reference_and_promotion.rs` 也已硬切；当前其余 12 个 EditorUI08 owner
-尚未处理，因此本 handoff 不能作为 EditorUI08 milestone 或 EditorUI10 根 failure 的 fixed evidence。
+尚未处理的历史数量须以下方最新审计为准，因此本 handoff 不能作为 EditorUI08 milestone 或 EditorUI10 根 failure 的 fixed evidence。
+
+## 2026-09-06 template hit-test owner migration
+
+Session `failure-roll-01a07160-editorui08` transferred the complete current parent,
+flat test owner and existing componentized regression from archived Sessions via
+fingerprint `325c5f2723dabced411c17d36c5cdbeb3d5af18cf16e5b685d1c389373ca53af`
+and apply request `b3158478532b4b0fb58a60157142bb09`. Exact lease request
+`367da074a0e942138620718977166e4d` had no conflicts. Pre-edit SHA-256 values:
+
+- `template_node.rs`: `e0ec8fb1b975c935eafe4cf66f4b31728ca4a8c5d1a4581572ffb4355ef01b41`.
+- `template_node_tests.rs`: `6b8f085362de9d24e82a98778f9b8c90ab75eeb79b9cf57f9dbd03c24852eb46`.
+- `template_node_tests/componentized_ownership.rs`: `2c5225f9294700e17916655fe09ecadf489b1fb8d7f7c3e47123364a3b6664b6`.
+
+The 1,128-line flat test owner and its componentized child are replaced by the
+canonical `surface_hit_test/template_node/tests/` tree. The seven-line `mod.rs`
+mounts index, console, pointer-move, popup, semantic-node and componentized tests,
+plus one shared helper owner. Both former `#[path]` mounts are removed. The parent
+production behavior, including the existing RuntimeDiagnostics projection change,
+is preserved; its only new edit is removal of the test path attribute.
+
+All 21 tests remain, including the archived Session's componentized regression.
+All 28 original functions plus that regression compare equal apart from Rustfmt
+whitespace, optional trailing call commas and the four shared helpers' restricted
+visibility. The largest new file is 314 lines. The direct Python source guard now
+reads `template_node/tests/pointer_move.rs`; current owner/functional document
+references use the new tree while dated evidence is retained.
+
+Local verification: recursive Rustfmt and scoped diff checks passed; the pointer
+move and test-infrastructure static suites passed 16/16. The fresh structure audit
+reports 19 oversized test owners, down from 20, with no exemptions, banned module
+names or UI owner-boundary violations. This migrated owner is absent from the
+oversized inventory. Managed Rust behavior and upward structure acceptance remain
+pending while the user-requested `zr_vm` skip is in effect. No fixed return,
+integration, closeout commit or WeCom notification is claimed.
+
+The exact hit-test source snapshot is `2802`. Managed request
+`failure-roll-01a07160-editorui08-pointer-20260906-r1` produced ticket
+`7170dc5c494a444e846fd3ef562749ed`; after independent toolbar work, its terminal
+result was received once: `passed`, exit `0`, five tests executed in 0.080 seconds.
+This accepts the source guard only, without substituting for Rust behavior.
+
+### Toolbar breakpoint root migration
+
+The current 1,077-line `workbench_toolbar_breakpoints/mod.rs` was clean before
+editing, at SHA-256
+`1a01abd857b45a31898c59b2a15e9d7e4c7db8d05d2fccbc5d4c513c46ac74d0`.
+Exact lease request `47c37d5d4bc24c19ac900fca89446bbc` had no conflicts. The root
+now contains only 11 module declarations; density, overflow and icon-family tests
+have explicit child owners, while run/business/visual tests join their existing
+behavior owners. Three shared geometry/assertion helpers and six size constants
+live in one private support module. The full-width screenshot test uses the
+existing visual-artifact path/pixel helpers; duplicate and unused root helpers
+are removed. All 25 tests, including the three existing ignored screenshot tests,
+are retained. No screenshot test was executed.
+
+Recursive Rustfmt passed after a transient Windows mapped-file write retry. The
+largest toolbar file is 342 lines, and the fresh structure audit reports 18
+oversized test owners, down from 19, with zero exemptions. The live-state guard's
+direct toolbar input now names `overflow.rs`. Its complete local suite executed
+31 tests: 30 passed, including the migrated responsive-command assertion, and one
+failed at the unchanged popup-offset contract (`29.0 != 30.0`). Current shared
+theme tokens use 32px compact controls but retain popup offsets from the earlier
+density values; the dirty theme/assets belong to EditorUI12. That separate shared
+token failure is not repaired by weakening this assertion. The original Rust
+behavior and upward structure gates remain pending, so this lifecycle stays open.
+
+The exact toolbar source snapshot is `2804`. Managed request
+`failure-roll-01a07160-editorui08-toolbar-20260906-r1` produced ticket
+`0a620fca46b44875b05eab574a25c993`. Its terminal result was received once after
+independent native-host work: `passed`, exit `0`, one responsive-command guard
+executed in 0.019 seconds. This is a source-contract result, not Rust acceptance.
+
+### Native viewport, tree hover and menu overlay test owners
+
+The clean 818-line `native_host_contract/viewport_hierarchy_menu.rs`, at SHA-256
+`5bd6bcac83e7ac68339fddc5950ad6b568a5ddcc8964d312f33c1abf52832e21`, was
+migrated under exact lease request `c0bb004de53c4c7faafc85c057e7f73d` without
+conflicts. The former flat file is deleted. The same-named directory has a
+three-line module root and viewport, tree-hover and menu-overlay owners with
+6/5/2 tests; all 13 original test bodies compare equal after Rustfmt whitespace
+normalization. The largest child is 323 lines. Each child accesses the existing
+native-host support owner directly, with no new helper copy or path attribute.
+
+Recursive Rustfmt and scoped diff checks passed. No direct source reader uses
+the deleted flat path. The fresh editor audit reports 17 oversized test owners,
+down from 18, with zero exemptions; this migrated owner is absent. Global
+structure debt and the original managed native-host Rust gate remain pending.
+
+### Module navigation test owners
+
+The clean 813-line `template_bridge/workbench_module_navigation.rs`, at SHA-256
+`05477263ff7b95ee1ed534e73ceed43ecac663c437e956f1b9f6c24c9d799e46`, was
+migrated under exact lease request `ece96e601d6047a79332b327d816ea87` without
+conflicts. A four-line root now mounts event contracts, workspace selection,
+command feedback and dropdown tests. The eight test bodies compare equal
+after Rustfmt normalization, with a 1/3/3/1 distribution. Event fixtures and
+their 11 `CARGO_MANIFEST_DIR` asset imports retain the original source paths;
+the 189-event expectation is unchanged. The old flat file is deleted, and
+existing ancestor support helpers are imported directly by the new children.
+
+The direct Python selection guard now reads `workspace_selection.rs`. Current
+functional and optimization-plan references name the new test directory.
+Recursive Rustfmt and scoped whitespace checks passed. The complete local
+live-state suite executed 31 tests in 2.524 seconds, all passing. The fresh
+editor audit reports 16 oversized test owners, down from 17, with no exemptions.
+Managed Rust behavior and upward structure acceptance remain pending.
+
+The earlier popup-offset failure is tracked separately by
+[EditorUI12](../12/failure-2026-09-06-toolbar-popup-offset-density-token-drift.md).
+Its shared-token source correction passes all 31 current local live-state
+checks; ticket `bc6e869c1cc9416eb80df30ce49a58b0` remains queued behind plan
+dependencies. The UI08 lifecycle is not closed using that local-only result.
+
+The module-navigation snapshot is `2811`. Managed request
+`failure-roll-01a07160-editorui08-navigation-20260906-r1` produced ticket
+`5c63e5bfe6af48a3acafb3a73d0edc21`, queued with 371 plan-dependency blockers,
+including the linked EditorUI12 token failure. This ticket has not executed;
+its source manifest and Session ownership are retained without resubmission.
+
+### Window generation, patch, diagnostic and lifecycle test owners
+
+The complete current 1,250-line `host_contract/window/tests.rs` was transferred
+from cancelled Session `editor17-services-recovery-continuation-20260804` via
+fingerprint `aa42bdb3558551bda3edd5f59ad4b6e52b98a46b8b6ea6482d05e67d13edc2fc`
+and apply request `d77dbd4800b44518a1517fdc6b026875`. Exact lease request
+`bc5f492dd6df4eeaa46c971589543140` had no conflicts. Its pre-edit SHA-256 was
+`80ba96fc1539324c66eb3f26aff7a9cf838685ab91264f143579173565b8ec14`.
+
+All 26 current tests are retained, including ten pre-existing worktree tests
+beyond the 16-test Git baseline. The new nine-line root mounts generation,
+metadata, dock patch, pane patch, sparse patch, diagnostic, lifecycle and
+first-frame capture owners plus one 14-line shared fixture module. All 27
+functions compare equal after Rustfmt whitespace normalization and the
+fixture's restricted visibility change. The largest child is 323 lines.
+The original flat file is deleted; the existing parent `mod tests;` resolves
+the new directory normally, without a path attribute or compatibility layer.
+
+Recursive Rustfmt and scoped whitespace checks passed. Current functional,
+owner-plan and optimization-plan links use the directory; the entry document
+has a separate recursive Rust 2024 format command for the new children.
+The fresh editor audit reports 15 oversized test owners, down from 16, with
+zero exemptions. The remaining retained-host asset projector test belongs to
+Editor09's `asset-pane-projector-repeated-model-scans` lifecycle and is not
+absorbed into this Session. Original managed Rust behavior and upward
+structure acceptance remain pending.
+
+The final local budget, presentation-generation and current-layout wording
+batch executed 11 tests in 0.199 seconds, all passing. The current migration
+document check resolved 32 references across 17 documents without a violation,
+and all 102 UI05/UI08/UI12 scoped paths passed the whitespace scan. These are
+local source checks. Coordinator descriptor loss interrupted the subsequent
+window attribution/snapshot attempt; no snapshot was created by those failed
+calls. Exact ownership is renewed before resuming the interrupted registration.
+
+The resumed attribution succeeded and the complete 63-path source was frozen
+as snapshot `2814`. Managed window format request
+`failure-roll-01a07160-editorui08-window-format-20260906-r1` produced ticket
+`808258f66f3c486494883087b55f7045`; its executed result is `passed`, exit code 0,
+for recursive `rustfmt --edition 2024 --check` on the new root. The ticket's
+11-path manifest matches the window migration in snapshot 2814, including the
+old-file deletion. This is format/module-resolution evidence only; the 26 Rust
+behavior tests and original upward acceptance remain pending while `zr_vm`
+is skipped. No duplicate validation request was submitted.
 
 ## 产出记录与时间
 

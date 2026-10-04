@@ -11,6 +11,7 @@ fn join_string_parts(parts: &[&str]) -> String {
     joined
 }
 
+// 行定义提供稳定 feature 标识和依赖；这里投影为可由目录和导出流程共同读取的清单。
 pub(super) fn net_feature(row: &NetFeatureRow) -> PluginFeatureBundleManifest {
     let feature_id = join_string_parts(&["net.", row.id_suffix]);
     let runtime_module_id = join_string_parts(&[&feature_id, ".runtime"]);
@@ -35,16 +36,5 @@ pub(super) fn net_feature(row: &NetFeatureRow) -> PluginFeatureBundleManifest {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::join_string_parts;
-
-    #[test]
-    fn exact_net_identifier_join_preserves_feature_and_runtime_ids() {
-        let feature_id = join_string_parts(&["net.", "reliable_udp"]);
-        assert_eq!(feature_id, "net.reliable_udp");
-        assert_eq!(
-            join_string_parts(&[&feature_id, ".runtime"]),
-            "net.reliable_udp.runtime"
-        );
-    }
-}
+#[path = "tests/manifest.rs"]
+mod tests;

@@ -1,3 +1,4 @@
+//! 作者侧布局声明的受限词汇；解析后映射共享UI DTO，由运行时布局桥执行求解。
 use std::str::FromStr;
 
 use thiserror::Error;
@@ -76,6 +77,7 @@ impl Default for CssLikeConstraint {
 }
 
 impl CssLikeConstraint {
+    /// 给父slot选择对应的布局执行家族；wrap会使flex进入流式家族。
     pub fn family(&self) -> UiLayoutEngineFamily {
         match self.display {
             UiLayoutDisplay::Flex if self.wrap != UiFlexWrap::NoWrap => {
@@ -92,6 +94,7 @@ impl CssLikeConstraint {
         }
     }
 
+    /// 用当前设计令牌解析并验证作者值，再交给运行时共享布局DTO。
     pub fn into_layout_style(
         &self,
         tokens: &EditorDesignTokens,
@@ -248,6 +251,7 @@ impl CssLikeEdges {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+/// 作者尺寸单位；百分比已归一，令牌在投影时以当前主题度量解释。
 pub enum CssLikeDimension {
     Auto,
     Px(f32),
@@ -371,6 +375,7 @@ impl CssLikeOverflowPair {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+/// 受限网格轨道声明；不支持的函数语法显式返回诊断。
 pub enum CssLikeGridTrack {
     Dimension(CssLikeDimension),
     Fr(f32),
@@ -496,6 +501,7 @@ impl FromStr for CssLikeGridTrackBreadth {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 可接受的属性名集合；不在集合内的作者声明不能静默进入运行时。
 pub enum CssLikeConstraintProperty {
     Display,
     FlexDirection,
@@ -589,6 +595,7 @@ impl FromStr for CssLikeConstraintProperty {
 }
 
 #[derive(Clone, Debug, Error, PartialEq)]
+/// 解析/映射边界的作者诊断，区分无效值与已知但未支持的扩展候选。
 pub enum CssLikeConstraintError {
     #[error("invalid CSS-like layout dimension `{value}`")]
     InvalidDimension { value: String },
@@ -707,4 +714,5 @@ fn known_unsupported_property(property: &str) -> Option<&'static str> {
 mod declaration_parser;
 
 #[cfg(test)]
+#[path = "css_like_constraint/tests/cases.rs"]
 mod tests;

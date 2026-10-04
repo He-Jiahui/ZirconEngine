@@ -16,11 +16,11 @@ use super::contract::{
 use super::entry::RenderArtifactBlockEntry;
 use super::policy::validate_limits;
 use super::registry::{
-    RenderArtifactBlockRegistry, RenderArtifactDecodeKey, TICKET_ACTIVE, TICKET_CALLER_CANCELLED,
-    TICKET_EXPIRED, TICKET_OWNER_CLOSED, TicketRegistration, remove_entry,
-    remove_registered_ticket, take_task_id,
+    remove_entry, remove_registered_ticket, take_task_id, RenderArtifactBlockRegistry,
+    RenderArtifactDecodeKey, TicketRegistration, TICKET_ACTIVE, TICKET_CALLER_CANCELLED,
+    TICKET_EXPIRED, TICKET_OWNER_CLOSED,
 };
-use super::worker::{RenderArtifactBlockLoaderMetrics, atomic_add, run_decode_task};
+use super::worker::{atomic_add, run_decode_task, RenderArtifactBlockLoaderMetrics};
 
 pub(super) struct RenderArtifactBlockLoaderInner {
     pub(super) store: RenderArtifactStore,
@@ -48,6 +48,7 @@ pub struct RenderArtifactBlockTicketBatch {
 }
 
 impl RenderArtifactBlockLoader {
+    /// 验证容量后为 I/O 与解码任务建立共用的 loader scope；克隆加载器共享 registry 和指标，关闭时统一取消未完成票据。
     pub fn new(
         store: RenderArtifactStore,
         limits: RenderArtifactBlockLoaderLimits,
@@ -146,6 +147,7 @@ impl RenderArtifactBlockTicket {
         self.id
     }
 
+    /// 仅在注册状态为 active 时读取共享条目；已记录的过期、调用方取消或 owner 关闭直接返回对应取消原因。
     pub fn poll(&self) -> RenderArtifactBlockPoll {
         match self.registration.status() {
             TICKET_ACTIVE => self.entry.poll(&self.descriptor),
@@ -193,6 +195,7 @@ impl Drop for RenderArtifactBlockTicket {
 }
 
 impl RenderArtifactBlockLoaderInner {
+    // 提交解码前核对 registry 中的 Arc 身份；条目已被移除则取消，任务号耗尽则失败，避免为过期条目继续提交解码。
     pub(super) fn schedule_decode(
         self: &Arc<Self>,
         entry: Arc<RenderArtifactBlockEntry>,

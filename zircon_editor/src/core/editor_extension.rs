@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, btree_map::Entry};
+use std::collections::{btree_map::Entry, BTreeMap};
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
@@ -483,14 +483,13 @@ impl EditorExtensionRegistry {
     }
 
     pub(crate) fn bind_matching_ui_templates_to_views(&mut self) {
-        let template_ids = self
-            .ui_templates
-            .iter()
-            .filter(|(_, template)| template.ui_document().starts_with("plugins://"))
-            .map(|(template_id, _)| template_id.clone())
-            .collect::<std::collections::BTreeSet<_>>();
         for view in self.views.values_mut() {
-            if view.ui_template_id().is_none() && template_ids.contains(view.id()) {
+            if view.ui_template_id().is_none()
+                && self
+                    .ui_templates
+                    .get(view.id())
+                    .is_some_and(|template| template.ui_document().starts_with("plugins://"))
+            {
                 view.bind_ui_template_id(view.id().to_string());
             }
         }
@@ -669,7 +668,7 @@ fn validate_graph_node_palette(
             descriptor.id()
         )));
     }
-    let mut node_ids = std::collections::BTreeSet::new();
+    let mut node_ids = std::collections::HashSet::with_capacity(descriptor.nodes().len());
     for node in descriptor.nodes() {
         validate_contribution_id("graph node", node.id())?;
         if !node_ids.insert(node.id()) {
@@ -712,3 +711,11 @@ fn insert_unique<T>(
         }
     }
 }
+
+#[cfg(test)]
+#[path = "editor_extension/tests/optimization_batch_ik_editor621_tests.rs"]
+mod optimization_batch_ik_editor621_tests;
+
+#[cfg(test)]
+#[path = "editor_extension/tests/optimization_batch_editor826_template_binding_tests.rs"]
+mod optimization_batch_editor826_template_binding_tests;

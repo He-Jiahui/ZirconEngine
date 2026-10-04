@@ -1,3 +1,6 @@
+// 调用端：npm run generate:crafting-transaction-contract (tools/package.json)；职责：跨制造模块固化配方交易成本、技能门槛和专长规则。
+// 输入边界：src/sim/professions/crafting.ts, src/sim/professions/wheel.ts, src/sim/content/professions.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

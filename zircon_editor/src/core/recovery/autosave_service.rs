@@ -11,6 +11,10 @@ use super::{
     AutosavePolicy, AutosaveScheduler, AutosaveStore, DEFAULT_AUTOSAVE_COMPLETION_BUDGET,
 };
 
+#[cfg(test)]
+#[path = "autosave_service/tests/diagnostic_capacity_tests.rs"]
+mod diagnostic_capacity_tests;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct AutosaveDiagnosticPersistenceIssue {
     project_root: PathBuf,
@@ -241,8 +245,8 @@ impl EditorAutosaveState {
 
     fn pump_retired(&mut self, instant: Instant) -> Vec<AutosaveDiagnosticPersistenceIssue> {
         let mut completion_budget = DEFAULT_AUTOSAVE_COMPLETION_BUDGET;
-        let mut issues = Vec::new();
         let retired_count = self.retired.len();
+        let mut issues = Vec::new();
         for _ in 0..retired_count {
             let Some(mut retired) = self.retired.pop_front() else {
                 break;
@@ -259,7 +263,11 @@ impl EditorAutosaveState {
                     .filter(|outcome| !outcome.diagnostic_persisted())
                     .cloned(),
             );
-            issues.extend(retired.persist_fallback_diagnostics());
+            let retired_issues = retired.persist_fallback_diagnostics();
+            if !retired_issues.is_empty() {
+                issues.reserve(retired_count.saturating_sub(issues.len()));
+                issues.extend(retired_issues);
+            }
             if !retired.is_finished() {
                 self.retired.push_back(retired);
             }

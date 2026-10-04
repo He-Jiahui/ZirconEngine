@@ -51,6 +51,33 @@ pub(super) struct ActiveOperationGroup {
 }
 
 impl ActiveOperationGroup {
+    pub(super) fn begin_flush(
+        &mut self,
+        requested: &'static str,
+    ) -> Result<TransactionId, EditCommandError> {
+        if self.phase != OperationGroupPhase::Open {
+            return Err(EditCommandError::EngineBusy {
+                active: self.phase.operation(),
+                requested,
+            });
+        }
+        let transaction = self
+            .transaction
+            .ok_or(EditCommandError::InvariantViolation {
+                invariant: "an open operation group must own a transaction",
+            })?;
+        self.phase = OperationGroupPhase::Flushing;
+        Ok(transaction)
+    }
+
+    pub(super) fn restore_open_after_failed_flush(&mut self) {
+        self.phase = OperationGroupPhase::Open;
+    }
+
+    pub(super) fn allows_observation(&self) -> bool {
+        self.phase == OperationGroupPhase::Open
+    }
+
     pub(super) fn allows_begin(
         &self,
         history: HistoryContextId,
@@ -76,7 +103,6 @@ impl EditorTransactionEngine {
         merge_mode: MergeMode,
         command: CommandBox,
     ) -> Result<OperationTransactionResult, EditCommandError> {
-        super::scope::ensure_single_gateway_history(history)?;
         let label = label.into();
         let operation_group = operation_group.filter(|group| !group.is_empty());
         if let Some(group) = operation_group {
@@ -190,19 +216,7 @@ impl EditorTransactionEngine {
             let Some(active) = state.operation_group.as_mut() else {
                 return Ok(None);
             };
-            if active.phase != OperationGroupPhase::Open {
-                return Err(EditCommandError::EngineBusy {
-                    active: active.phase.operation(),
-                    requested: "flush operation group",
-                });
-            }
-            let transaction = active
-                .transaction
-                .ok_or(EditCommandError::InvariantViolation {
-                    invariant: "an open operation group must own a transaction",
-                })?;
-            active.phase = OperationGroupPhase::Flushing;
-            transaction
+            active.begin_flush("flush operation group")?
         };
         match self.commit(active) {
             Ok(transaction) => {
@@ -227,7 +241,7 @@ impl EditorTransactionEngine {
                 {
                     if preserve {
                         if let Some(current) = state.operation_group.as_mut() {
-                            current.phase = OperationGroupPhase::Open;
+                            current.restore_open_after_failed_flush();
                         }
                     } else {
                         state.operation_group = None;
@@ -317,153 +331,5 @@ impl EditorTransactionEngine {
 }
 
 #[cfg(test)]
-mod performance_source_guards {
-    use std::any::Any;
-
-    use crate::core::editing::engine::{
-        CommandExecutionError, EditCommand, EditContext, EditWorldRoute, SelectionSnapshot,
-    };
-    use crate::core::play::WorldDomain;
-
-    use super::*;
-
-    #[derive(Default)]
-    struct TestContext;
-
-    impl EditContext for TestContext {
-        fn capture_world_route(
-            &self,
-            world_domain: WorldDomain,
-        ) -> Result<EditWorldRoute, EditCommandError> {
-            Ok(EditWorldRoute::logical(world_domain))
-        }
-
-        fn activate_world_route(
-            &mut self,
-            _route: &EditWorldRoute,
-        ) -> Result<(), EditCommandError> {
-            Ok(())
-        }
-
-        fn retire_world_route(
-            &mut self,
-            _world_domain: WorldDomain,
-        ) -> Result<(), EditCommandError> {
-            Ok(())
-        }
-
-        fn selection_snapshot(&self) -> SelectionSnapshot {
-            SelectionSnapshot::default()
-        }
-
-        fn restore_selection(
-            &mut self,
-            _snapshot: &SelectionSnapshot,
-        ) -> Result<(), EditCommandError> {
-            Ok(())
-        }
-
-        fn as_any(&self) -> &dyn Any {
-            self
-        }
-
-        fn as_any_mut(&mut self) -> &mut dyn Any {
-            self
-        }
-    }
-
-    struct TestCommand;
-
-    impl EditCommand for TestCommand {
-        fn label(&self) -> &str {
-            "operation group state test"
-        }
-
-        fn apply(&mut self, _context: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
-            Ok(())
-        }
-
-        fn revert(&mut self, _context: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
-            Ok(())
-        }
-
-        fn as_any(&self) -> &dyn Any {
-            self
-        }
-    }
-
-    #[test]
-    fn continuing_an_operation_group_does_not_clone_its_stable_key() {
-        let source = include_str!("operation_group.rs");
-        let cloned_group = ["operation_group", ".clone()"].concat();
-
-        assert!(!source.contains(&cloned_group));
-        assert!(!source.contains("active.clone()"));
-    }
-
-    #[test]
-    fn unowned_begin_cannot_cross_live_operation_group_reservation() {
-        let engine = EditorTransactionEngine::new(TestContext::default());
-        assert_eq!(engine.flush_operation_group().unwrap(), None);
-        let reservation = engine
-            .reserve_operation_group("reserved", HistoryContextId::Global)
-            .unwrap();
-
-        assert!(matches!(
-            engine.begin_transaction("stale caller", HistoryContextId::Global, None),
-            Err(EditCommandError::EngineBusy {
-                active: "initialize operation group",
-                ..
-            })
-        ));
-
-        let transaction = engine
-            .begin_transaction(
-                "reservation owner",
-                HistoryContextId::Global,
-                Some(&reservation),
-            )
-            .unwrap();
-        engine.cancel(transaction).unwrap();
-        engine.clear_initializing_operation_group(
-            "reserved",
-            HistoryContextId::Global,
-            None,
-            &reservation,
-        );
-    }
-
-    #[test]
-    fn stale_operation_group_cleanup_preserves_successor() {
-        let engine = EditorTransactionEngine::new(TestContext::default());
-        let first = engine
-            .execute_operation(
-                "first",
-                HistoryContextId::Global,
-                Some("first"),
-                MergeMode::Disable,
-                Box::new(TestCommand),
-            )
-            .unwrap();
-        assert_eq!(
-            engine.flush_operation_group().unwrap(),
-            Some(first.transaction_id)
-        );
-        let successor = engine
-            .execute_operation(
-                "successor",
-                HistoryContextId::Global,
-                Some("successor"),
-                MergeMode::Disable,
-                Box::new(TestCommand),
-            )
-            .unwrap();
-
-        engine.clear_operation_group_for_transaction(first.transaction_id);
-
-        assert_eq!(
-            engine.flush_operation_group().unwrap(),
-            Some(successor.transaction_id)
-        );
-    }
-}
+#[path = "tests/operation_group_performance_source_guards.rs"]
+mod performance_source_guards;

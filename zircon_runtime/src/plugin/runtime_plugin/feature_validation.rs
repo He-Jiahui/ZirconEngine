@@ -9,6 +9,7 @@ mod provider;
 mod shape;
 
 #[cfg(test)]
+#[path = "feature_validation/tests/cases.rs"]
 mod tests;
 
 use self::projection::RuntimePluginFeatureValidationProjection;
@@ -34,6 +35,7 @@ pub(super) fn validate_runtime_plugin_feature_manifest(
     validate_runtime_plugin_feature_manifest_with_projection(feature, &projection, diagnostics);
 }
 
+// 嵌入特性复用所属包的投影视图，使跨字段诊断与独立特性采用相同规则。
 pub(super) fn validate_runtime_plugin_embedded_feature_manifest(
     feature: &PluginFeatureBundleManifest,
     kind: EmbeddedFeatureKind,

@@ -36,7 +36,7 @@ fn render_device_recovery_reissues_live_resources_and_terminalizes_old_projectio
     assert_eq!(admitted.requests().len(), 2);
 
     let texture_ticket = request_for(admitted.requests(), texture);
-    advance_to_upload(&mut residency, texture_ticket);
+    advance_to_upload(&mut residency, &texture_ticket);
     let texture_submission = SubmissionTicket::new(
         failed.device_id(),
         failed.generation(),
@@ -44,18 +44,18 @@ fn render_device_recovery_reissues_live_resources_and_terminalizes_old_projectio
         1,
     );
     residency
-        .bind_upload_submission(texture_ticket, texture_submission)
+        .bind_upload_submission(&texture_ticket, texture_submission)
         .expect("texture upload should bind");
     residency
         .complete_upload(
-            texture_ticket,
+            &texture_ticket,
             texture_submission,
             SubmissionStatus::Completed,
         )
         .expect("texture upload should publish");
 
     let mesh_ticket = request_for(admitted.requests(), mesh);
-    advance_to_upload(&mut residency, mesh_ticket);
+    advance_to_upload(&mut residency, &mesh_ticket);
     let mesh_submission = SubmissionTicket::new(
         failed.device_id(),
         failed.generation(),
@@ -63,7 +63,7 @@ fn render_device_recovery_reissues_live_resources_and_terminalizes_old_projectio
         2,
     );
     residency
-        .bind_upload_submission(mesh_ticket, mesh_submission)
+        .bind_upload_submission(&mesh_ticket, mesh_submission)
         .expect("mesh upload should bind");
 
     let report = residency
@@ -84,13 +84,13 @@ fn render_device_recovery_reissues_live_resources_and_terminalizes_old_projectio
     assert_eq!(residency.reference_count(mesh), 2);
     assert_eq!(residency.resident_ticket(texture), None);
     assert_eq!(residency.resident_ticket(mesh), None);
-    assert_eq!(residency.state(texture_ticket), None);
-    assert_eq!(residency.state(mesh_ticket), None);
+    assert_eq!(residency.state(&texture_ticket), None);
+    assert_eq!(residency.state(&mesh_ticket), None);
     for resource in [texture, mesh] {
         let ticket = request_for(report.mutation().requests(), resource);
         assert_eq!(ticket.device(), replacement);
         assert_eq!(
-            residency.state(ticket),
+            residency.state(&ticket),
             Some(RenderAssetResidencyState::QueuedIo)
         );
     }
@@ -139,7 +139,10 @@ fn render_device_recovery_preflight_is_atomic_and_does_not_consume_ticket_ids() 
         Err(RenderAssetResidencyAdmissionError::DeviceEpochMismatch { .. })
     ));
     assert_eq!(residency.reference_count(texture), 1);
-    assert_eq!(residency.pending_ticket(texture), Some(old_ticket));
+    assert_eq!(
+        residency.pending_ticket(texture).as_ref(),
+        Some(&old_ticket)
+    );
 
     let unchanged = residency.recover_device_epoch(
         failed,
@@ -152,7 +155,10 @@ fn render_device_recovery_preflight_is_atomic_and_does_not_consume_ticket_ids() 
         unchanged,
         Err(RenderAssetDeviceRecoveryError::UnchangedEpoch { .. })
     ));
-    assert_eq!(residency.pending_ticket(texture), Some(old_ticket));
+    assert_eq!(
+        residency.pending_ticket(texture).as_ref(),
+        Some(&old_ticket)
+    );
 
     let stale_replacement = residency.recover_device_epoch(
         failed,
@@ -165,7 +171,10 @@ fn render_device_recovery_preflight_is_atomic_and_does_not_consume_ticket_ids() 
         stale_replacement,
         Err(RenderAssetDeviceRecoveryError::NonAdvancingGeneration { .. })
     ));
-    assert_eq!(residency.pending_ticket(texture), Some(old_ticket));
+    assert_eq!(
+        residency.pending_ticket(texture).as_ref(),
+        Some(&old_ticket)
+    );
 
     let wrong_failed = device_epoch(999, 1);
     let foreign = residency.recover_device_epoch(
@@ -179,7 +188,10 @@ fn render_device_recovery_preflight_is_atomic_and_does_not_consume_ticket_ids() 
         foreign,
         Err(RenderAssetDeviceRecoveryError::GpuEpochMismatch { .. })
     ));
-    assert_eq!(residency.pending_ticket(texture), Some(old_ticket));
+    assert_eq!(
+        residency.pending_ticket(texture).as_ref(),
+        Some(&old_ticket)
+    );
 
     let recovered = residency
         .recover_device_epoch(

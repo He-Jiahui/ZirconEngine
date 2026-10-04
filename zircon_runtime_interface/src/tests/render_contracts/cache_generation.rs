@@ -1,6 +1,6 @@
 use crate::ui::{
     event_ui::UiNodeId,
-    layout::UiFrame,
+    layout::{UiFrame, UiLayoutMetrics},
     surface::{UiRenderCommand, UiRenderCommandKind, UiResolvedStyle, UiVisualAssetRef},
 };
 
@@ -8,9 +8,14 @@ use crate::ui::{
 fn ui_render_command_cache_generation_streams_json_bytes_once_per_conversion() {
     let command = representative_command();
     let expected_generation = legacy_json_generation(&command);
+    let initial_calls = UiRenderCommand::cache_generation_test_calls();
 
     let single = command.to_paint_element(7);
     assert_eq!(single.cache_generation, Some(expected_generation));
+    assert_eq!(
+        UiRenderCommand::cache_generation_test_calls() - initial_calls,
+        1
+    );
 
     let elements = command.to_paint_elements(11);
     assert_eq!(elements.len(), 4);
@@ -20,6 +25,30 @@ fn ui_render_command_cache_generation_streams_json_bytes_once_per_conversion() {
             .all(|element| element.cache_generation == Some(expected_generation)),
         "every paint element from one command must share its precomputed generation"
     );
+    assert_eq!(
+        UiRenderCommand::cache_generation_test_calls() - initial_calls,
+        2
+    );
+
+    let mut scratch = Vec::new();
+    command.fill_paint_elements(11, UiLayoutMetrics::default(), &mut scratch);
+    assert_eq!(scratch, elements);
+    assert_eq!(
+        UiRenderCommand::cache_generation_test_calls() - initial_calls,
+        3
+    );
+
+    let transient = command.to_transient_paint_elements(11);
+    assert_eq!(transient.len(), elements.len());
+    assert!(transient
+        .iter()
+        .all(|element| element.cache_generation.is_none()));
+    command.fill_transient_paint_elements(11, UiLayoutMetrics::default(), &mut scratch);
+    assert_eq!(scratch, transient);
+    assert_eq!(
+        UiRenderCommand::cache_generation_test_calls() - initial_calls,
+        3
+    );
 
     let source = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -27,23 +56,6 @@ fn ui_render_command_cache_generation_streams_json_bytes_once_per_conversion() {
     ));
     assert!(!source.contains("serde_json::to_vec("));
     assert!(source.contains("serde_json::to_writer(&mut writer, value)"));
-    assert_eq!(
-        source
-            .matches("let cache_generation = self.cache_generation();")
-            .count(),
-        2,
-        "single- and multi-element conversion must each compute generation once"
-    );
-
-    let base_start = source
-        .find("fn base_paint_element(")
-        .expect("base paint element helper");
-    let cache_start = source
-        .find("fn cache_generation(")
-        .expect("cache generation helper");
-    let base_source = &source[base_start..cache_start];
-    assert!(base_source.contains("cache_generation: u64"));
-    assert!(!base_source.contains("self.cache_generation()"));
 }
 
 fn representative_command() -> UiRenderCommand {

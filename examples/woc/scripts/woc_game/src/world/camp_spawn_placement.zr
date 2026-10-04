@@ -19,6 +19,7 @@ pub canCampMobSpawnInWater(campIndex: int, required: bool): bool {
     return mobSpec.canSpawnInWater(terrainContent.campMobId(campIndex, required), true);
 }
 
+// 先保持 camp 布点的随机消费，再做门口避让和安全位置搜索；两轴都必须从同一原始点独立查询。
 pub finalSpawnCoordinate(
     seed: uint,
     campIndex: int,

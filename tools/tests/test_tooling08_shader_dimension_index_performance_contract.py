@@ -1,9 +1,10 @@
+# 核对着色器维度索引只解析写入变体一次且保留重复字段优先级。
 from __future__ import annotations
 
 import unittest
 from types import SimpleNamespace
 
-from tools import zircon_build_shader_prewarm_cache_artifacts as cache_artifacts
+from tools.build import zircon_build_shader_prewarm_cache_artifacts as cache_artifacts
 
 
 class _CountingCanonicalString(str):

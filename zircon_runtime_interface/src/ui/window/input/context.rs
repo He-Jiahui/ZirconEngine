@@ -1,8 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-use crate::ui::dispatch::{
-    UiDeviceId, UiInputEventMetadata, UiInputModifiers, UiPointerId, UiPointerSource, UiSurfaceId,
-    UiUserId,
+use crate::ui::{
+    dispatch::{
+        UiDeviceId, UiInputEventMetadata, UiInputModifiers, UiPointerId, UiPointerSource,
+        UiSurfaceId, UiUserId,
+    },
+    layout::UiPoint,
 };
 
 use super::super::{UiWindowEventMetadata, UiWindowMetrics};
@@ -17,12 +20,19 @@ pub struct UiWindowInputContext {
     /// needs to preserve DPI while translating a physical-size-only resize.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub window_metrics: Option<UiWindowMetrics>,
+    /// Last known cursor position in logical pixels.  Platform adapters set this
+    /// from the most recent PointerMoved event so that events without an explicit
+    /// position (e.g. MouseWheel) can route to the correct hit-test target rather
+    /// than always hitting the origin.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_cursor_position: Option<UiPoint>,
 }
 
 impl PartialEq for UiWindowInputContext {
     fn eq(&self, other: &Self) -> bool {
         self.metadata == other.metadata
             && window_metrics_equal(self.window_metrics, other.window_metrics)
+            && eq_point(self.last_cursor_position, other.last_cursor_position)
     }
 }
 
@@ -36,6 +46,7 @@ impl UiWindowInputContext {
         Self {
             metadata: input,
             window_metrics: None,
+            last_cursor_position: None,
         }
     }
 
@@ -73,6 +84,11 @@ impl UiWindowInputContext {
         self.window_metrics = Some(metrics);
         self
     }
+
+    pub fn with_last_cursor_position(mut self, position: UiPoint) -> Self {
+        self.last_cursor_position = Some(position);
+        self
+    }
 }
 
 // 用浮点位模式比较窗口度量，避免 NaN 破坏本类型声明的 Eq 等价关系。
@@ -86,5 +102,13 @@ fn window_metrics_equal(left: Option<UiWindowMetrics>, right: Option<UiWindowMet
                 && left.scale_factor.to_bits() == right.scale_factor.to_bits()
         }
         (None, Some(_)) | (Some(_), None) => false,
+    }
+}
+
+fn eq_point(left: Option<UiPoint>, right: Option<UiPoint>) -> bool {
+    match (left, right) {
+        (None, None) => true,
+        (Some(l), Some(r)) => l.x.to_bits() == r.x.to_bits() && l.y.to_bits() == r.y.to_bits(),
+        _ => false,
     }
 }

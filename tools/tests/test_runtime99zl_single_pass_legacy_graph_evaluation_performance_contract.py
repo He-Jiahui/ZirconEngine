@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 旧动画图按首次定义建借用索引，递归收集写入单个预留结果，权重只处理新增片段；避免每层重新线性扫图。
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE = REPO_ROOT / "zircon_plugins/animation/runtime/src/manager/graph.rs"

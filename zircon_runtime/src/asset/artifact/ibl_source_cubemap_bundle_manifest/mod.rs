@@ -12,4 +12,5 @@ pub(crate) use manifest::{
 pub(crate) use payload_stamp::IblSourceCubemapBundlePayloadStamp;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

@@ -16,10 +16,21 @@ use super::{
 pub(crate) struct TemplatePaneNodeData {
     pub node_id: SharedString,
     pub surface_node_id: Option<UiNodeId>,
+    /// Exact tree/publication owner; absent means source attribution is unproven.
+    pub source_surface_frame:
+        Option<std::sync::Arc<zircon_runtime_interface::ui::surface::UiSurfaceFrame>>,
     pub surface_render_command_ref: Option<UiRenderFrameCommandRef>,
     pub has_workbench_icon_tooltip: bool,
     pub parent_node_id: SharedString,
     pub control_id: SharedString,
+    pub source_path: SharedString,
+    pub source_node_id: SharedString,
+    pub inspector_property_field_id: SharedString,
+    pub inspector_property_item_key: SharedString,
+    pub instance_path: SharedString,
+    pub parent_source_path: SharedString,
+    pub parent_source_node_id: SharedString,
+    pub parent_instance_path: SharedString,
     pub role: SharedString,
     pub text: SharedString,
     pub label_text: SharedString,
@@ -188,6 +199,7 @@ pub(crate) struct TemplatePaneNodeData {
     pub text_tone: SharedString,
     pub button_variant: SharedString,
     pub button_style: ResolvedButtonStyle,
+    /// Authored logical pixels; zero selects role-based host typography.
     pub font_size: f32,
     pub font_weight: i32,
     pub text_align: SharedString,

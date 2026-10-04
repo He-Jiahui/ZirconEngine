@@ -7,7 +7,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-TOOL = ROOT / "tools/runtime_ui_surface_input_evidence.py"
+TOOL = ROOT / "tools/analysis/performance/runtime/runtime_ui_surface_input_evidence.py"
 REQUIRED_SOURCE_PATHS = (
     "zircon_runtime/src/dynamic_api/session/runtime_ui.rs",
     "zircon_runtime/src/ui/surface/frame_hit_test.rs",
@@ -137,7 +137,7 @@ def _source_manifest(route_class: str) -> dict[str, object]:
         },
     }
 
-
+# 解析逐事件输入采样与源码指纹，约束指针捕获、焦点和直达路由的候选访问及分发延迟。
 class RuntimeUiSurfaceInputEvidenceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

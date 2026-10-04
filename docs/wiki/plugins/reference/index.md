@@ -10,8 +10,8 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 插件公开接口完整参考
 tests:
-  - zircon_plugins/plugin_sdk/src/declaration/tests.rs
-  - zircon_plugins/plugin_sdk/src/native/tests.rs
+  - zircon_plugins/plugin_sdk/src/declaration/tests/cases.rs
+  - zircon_plugins/plugin_sdk/src/native/tests/cases.rs
 doc_type: api-reference
 title: 插件 API 参考手册
 status: source-audited

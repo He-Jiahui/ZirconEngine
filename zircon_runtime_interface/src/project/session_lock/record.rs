@@ -3,6 +3,9 @@ use crate::runtime_build_set::ZrRuntimeBuildSetId;
 
 use super::ProjectSessionAdmissionRecordError;
 
+/// Maximum UTF-8 byte length of the persisted session instance identity.
+pub const MAX_PROJECT_SESSION_ADMISSION_INSTANCE_ID_BYTES: usize = 128;
+
 /// Origin of a local desktop request. This is provenance, not an authentication claim.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProjectSessionPrincipalV1 {
@@ -48,6 +51,7 @@ impl ProjectSessionPrincipalV1 {
     }
 }
 
+/// 持久准入阶段；Ready 只能通过提交 generation 到达，关闭或恢复状态不能重新激活。
 /// Persistent lifecycle state of an editor admission lease.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProjectSessionAdmissionLifecycleV1 {
@@ -85,6 +89,7 @@ impl ProjectSessionAdmissionLifecycleV1 {
         }
     }
 
+    /// 普通状态边不含 Ready；只有实际运行时会话取得 generation 后才能单独提交。
     const fn allows_transition_to(self, next: Self) -> bool {
         match (self, next) {
             (Self::Claimed, Self::PreflightApproved | Self::Closing | Self::RecoveryRequired)
@@ -135,6 +140,7 @@ pub struct ProjectSessionAdmissionRecordV1 {
 }
 
 impl ProjectSessionAdmissionRecordV1 {
+    /// 创建初始 Claimed 快照（epoch 1、无 generation）；平台租约和写盘由宿主负责。
     pub fn claim(
         process_id: u32,
         instance_id: impl Into<String>,
@@ -156,7 +162,9 @@ impl ProjectSessionAdmissionRecordV1 {
         )
     }
 
+    // EXEMPT(GEN-Q7): persisted session-lock construction keeps the fixed wire-record argument shape.
     #[allow(clippy::too_many_arguments)]
+    // 同时用于解码持久记录和构造状态后继，集中校验跨字段不变量。
     pub(crate) fn from_persisted(
         process_id: u32,
         instance_id: impl Into<String>,
@@ -242,6 +250,7 @@ impl ProjectSessionAdmissionRecordV1 {
         self.heartbeat_unix_millis
     }
 
+    /// 生成合法的非 Ready 状态后继并递增 epoch；Ready 必须走 commit_ready。
     pub fn transition_to(
         &self,
         lifecycle: ProjectSessionAdmissionLifecycleV1,
@@ -261,6 +270,7 @@ impl ProjectSessionAdmissionRecordV1 {
         self.with_lifecycle(lifecycle, self.session_generation)
     }
 
+    /// 仅从 Activating 提交真实会话 generation，之后 Hub 才能将记录作为可寻址会话。
     pub fn commit_ready(
         &self,
         generation: ProjectSessionGenerationV1,
@@ -273,6 +283,7 @@ impl ProjectSessionAdmissionRecordV1 {
         self.with_lifecycle(ProjectSessionAdmissionLifecycleV1::Ready, Some(generation))
     }
 
+    /// 更新存活时间而不改变 admission epoch；Editor 持锁期间用它刷新持久心跳。
     pub fn with_heartbeat_unix_millis(&self, heartbeat_unix_millis: u64) -> Self {
         Self {
             process_id: self.process_id,
@@ -310,9 +321,15 @@ impl ProjectSessionAdmissionRecordV1 {
     }
 }
 
+/// 持久实例令牌由 ASCII 数字与连字符组成，因而 128 字节上限也是稳定的字符上限。
 pub(super) fn validate_instance_id(
     instance_id: &str,
 ) -> Result<(), ProjectSessionAdmissionRecordError> {
+    if instance_id.len() > MAX_PROJECT_SESSION_ADMISSION_INSTANCE_ID_BYTES {
+        return Err(ProjectSessionAdmissionRecordError::new(format!(
+            "instance_id exceeds the {MAX_PROJECT_SESSION_ADMISSION_INSTANCE_ID_BYTES}-byte limit"
+        )));
+    }
     if instance_id.is_empty()
         || !instance_id
             .bytes()

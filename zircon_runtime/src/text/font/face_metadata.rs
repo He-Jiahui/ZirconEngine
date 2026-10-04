@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use ttf_parser::{Face, GlyphId, Style as TtfStyle, name_id};
+use sha2::{Digest, Sha256};
+use ttf_parser::{name_id, Face, GlyphId, Style as TtfStyle};
 
 use crate::asset::{FontAssetFaceMetrics, FontAssetLineMetrics};
 use crate::text::{FontFamilyName, FontStretch, FontStyle, FontWeight, VariationCoords};
@@ -31,6 +32,7 @@ pub(super) struct FontVariationAxis {
 pub(super) struct FontFaceMetadata {
     parsed: bool,
     family: Option<FontFamilyName>,
+    postscript_name: Option<String>,
     weight: FontWeight,
     style: FontStyle,
     stretch: FontStretch,
@@ -40,13 +42,16 @@ pub(super) struct FontFaceMetadata {
     glyph_map: FontGlyphMap,
     coverage: FontCoverage,
     source_identity: [u8; 16],
+    resource_sha256: Option<[u8; 32]>,
+    raster_sha256: [u8; 32],
 }
 
 impl FontFaceMetadata {
     pub(super) fn from_sfnt_bytes(bytes: &[u8], face_index: u32) -> Self {
         let source_identity = source_identity(bytes, face_index);
+        let raster_sha256 = Sha256::digest(bytes).into();
         let Ok(face) = Face::parse(bytes, face_index) else {
-            return Self::unknown(source_identity);
+            return Self::unknown_with_raster_sha256(source_identity, raster_sha256);
         };
         let axes = face
             .variation_axes()
@@ -64,6 +69,7 @@ impl FontFaceMetadata {
         Self {
             parsed: true,
             family: face_family_name(&face).map(FontFamilyName::from),
+            postscript_name: ttf_name_by_id(&face, name_id::POST_SCRIPT_NAME),
             weight: FontWeight::clamped(face.weight().to_number()),
             style: style_from_ttf(face.style()),
             stretch: stretch_from_ttf_width_class(face.width().to_number()),
@@ -73,7 +79,14 @@ impl FontFaceMetadata {
             glyph_map,
             coverage,
             source_identity,
+            resource_sha256: None,
+            raster_sha256,
         }
+    }
+
+    pub(super) fn with_resource_sha256(mut self, resource_sha256: [u8; 32]) -> Self {
+        self.resource_sha256 = Some(resource_sha256);
+        self
     }
 
     pub(super) fn with_coverage(mut self, coverage: FontCoverage) -> Self {
@@ -83,6 +96,14 @@ impl FontFaceMetadata {
 
     pub(super) fn discovered_family(&self) -> Option<&FontFamilyName> {
         self.family.as_ref()
+    }
+
+    pub(super) fn family_name(&self) -> Option<&str> {
+        self.family.as_ref().map(|family| family.as_str())
+    }
+
+    pub(super) fn postscript_name(&self) -> Option<&str> {
+        self.postscript_name.as_deref()
     }
 
     pub(super) const fn weight(&self) -> FontWeight {
@@ -111,6 +132,14 @@ impl FontFaceMetadata {
 
     pub(super) const fn source_identity(&self) -> [u8; 16] {
         self.source_identity
+    }
+
+    pub(super) const fn resource_sha256(&self) -> Option<[u8; 32]> {
+        self.resource_sha256
+    }
+
+    pub(super) const fn raster_sha256(&self) -> [u8; 32] {
+        self.raster_sha256
     }
 
     pub(super) fn vertical_advance(&self, glyph_id: u32) -> Option<u16> {
@@ -164,10 +193,16 @@ impl FontFaceMetadata {
         )
     }
 
+    #[cfg(test)]
     fn unknown(source_identity: [u8; 16]) -> Self {
+        Self::unknown_with_raster_sha256(source_identity, [0; 32])
+    }
+
+    fn unknown_with_raster_sha256(source_identity: [u8; 16], raster_sha256: [u8; 32]) -> Self {
         Self {
             parsed: false,
             family: None,
+            postscript_name: None,
             weight: FontWeight::NORMAL,
             style: FontStyle::Normal,
             stretch: FontStretch::NORMAL,
@@ -177,6 +212,8 @@ impl FontFaceMetadata {
             glyph_map: FontGlyphMap::default(),
             coverage: FontCoverage::Unknown,
             source_identity,
+            resource_sha256: None,
+            raster_sha256,
         }
     }
 }
@@ -302,42 +339,9 @@ fn source_identity(bytes: &[u8], face_index: u32) -> [u8; 16] {
 }
 
 #[cfg(test)]
-#[path = "face_metadata/cached_weight_axis_tests.rs"]
+#[path = "face_metadata/tests/cached_weight_axis_tests.rs"]
 mod cached_weight_axis_tests;
 
 #[cfg(test)]
-mod tests {
-    use std::path::Path;
-
-    use super::FontFaceMetadata;
-
-    #[test]
-    fn face_metadata_projects_glyph_ids_with_coverage_in_one_build() {
-        let bytes = std::fs::read(
-            Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/FiraSans-Regular.ttf"),
-        )
-        .unwrap();
-        let metadata = FontFaceMetadata::from_sfnt_bytes(&bytes, 0);
-
-        for codepoint in ['A', 'e', '\u{00e9}'] {
-            assert!(metadata.coverage().contains(codepoint));
-            assert!(metadata.glyph_id(codepoint).is_some());
-        }
-        assert_eq!(metadata.glyph_id('\u{10ffff}'), None);
-    }
-
-    #[test]
-    fn face_metadata_reuses_the_sorted_glyph_map_for_coverage() {
-        let source = include_str!("face_metadata.rs");
-        let copied_codepoints = ["glyph_map", "codepoints()"].join(".");
-
-        assert!(
-            source.contains("let coverage = glyph_map.coverage();"),
-            "face metadata must build coverage from its already sorted glyph map"
-        );
-        assert!(
-            !source.contains(&copied_codepoints),
-            "face metadata must not copy and re-sort codepoints after glyph-map construction"
-        );
-    }
-}
+#[path = "tests/face_metadata.rs"]
+mod tests;

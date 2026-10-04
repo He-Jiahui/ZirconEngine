@@ -29,4 +29,5 @@ pub use policy::{
 pub use state::RuntimeForeignOutputState;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

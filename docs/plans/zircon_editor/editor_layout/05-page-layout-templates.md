@@ -6,11 +6,11 @@ related_code:
   - zircon_editor/assets/ui/editor/layout/page_templates.toml
   - zircon_editor/assets/ui/editor/components/workbench/modules
 design_references:
-  - docs/ui-and-layout/editor-workbench-designs/scene-drawer-layout-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/material-drawer-layout-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/inspector-drawer-content-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/drawer-expanded-state-spec.png
-  - docs/ui-and-layout/ai-workbench-style/STYLE-NOTES.md
+  - docs/ui/editor-workbench-designs/scene-drawer-layout-spec.png
+  - docs/ui/editor-workbench-designs/material-drawer-layout-spec.png
+  - docs/ui/editor-workbench-designs/inspector-drawer-content-spec.png
+  - docs/ui/editor-workbench-designs/drawer-expanded-state-spec.png
+  - docs/ui/ai-workbench-style/STYLE-NOTES.md
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/03-jetbrains-docking-workbench.md
   - docs/plans/zircon_editor/editor_ui/09-editor-modules-and-design-parity.md

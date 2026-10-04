@@ -1,0 +1,203 @@
+{
+  "session": "astra-plugin-selection-20260905",
+  "parent": "astra-full-domain-20260905",
+  "base_head": "d3174741300b272774c56a37465f043a03debd6c",
+  "status": "source_reviewed_pending_combined_validation",
+  "files": [
+    {
+      "path": "docs/plans/astra/features/plugins/02-native-trust-admission.md",
+      "sha256": "462b2c8d4e033d0f81ab6f60a1bf7499633953ad1d4933aff64963701448c5eb"
+    },
+    {
+      "path": "docs/plans/astra/features/plugins/03-signed-package-receipts.md",
+      "sha256": "095873e6fed15ffeba39807904d905d5949f8738e00c98030be33674a86831c1"
+    },
+    {
+      "path": "zircon_runtime/Cargo.toml",
+      "sha256": "d915fbba4ea815a3a8392c98f3f5496ea0f53c624b645ac0cc1dca73084cc8e8"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native.rs",
+      "sha256": "2853fb850659be62224f08ebc6191247f09cc09be08b854da5e174870a759ef9"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native/discovery.rs",
+      "sha256": "14d3893817c45e88d1fd531bfc1dd29dbd923c5fb2b81a2b116a7ee1f07dcc7b"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/native_artifact_trust.rs",
+      "sha256": "48ceeb45a7760b174146f89016390e8dce1ec169194c6f5200be55312be1666b"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/native_artifact_staging.rs",
+      "sha256": "690c731cd0bf2819bffd136c7bf1092414fd2d334973b718209549f6328a85f9"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/native_artifact_staging/tests.rs",
+      "sha256": "2a4ce8456db3ef04fb66dfe3c830db66cad5e4e18e8172d0431d9b364963558b"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/package_receipt.rs",
+      "sha256": "2a504ac022f1a12d1bd037c51e8cb1596bf9d549073da322b5a3f2f9ebd48009"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/package_receipt/wire.rs",
+      "sha256": "05450f45ceb9311b85799d6fc9308b4b68894157639de0e494f6baa9988788f5"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/package_receipt/trust.rs",
+      "sha256": "9ee23b4b1048b077bb63e427c6012b742e8f2a244e8b21def52be3e9cfadb9fa"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/package_receipt/tests.rs",
+      "sha256": "3d369f619e8b64e59694b24764c584c278536cc98d5987c572ce0dd158bebbfc"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/package_receipt/fixtures/canonical-attestation.json",
+      "sha256": "e256e123b489081ccb27c5fe79cb72dbd0ef8ef129511583c8248cc3c97300db"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/package_receipt/fixtures/canonical-receipt.json",
+      "sha256": "ea0caf4376c2390a523ab520a605dbf2102fde363237490bdabeafb11e63fe08"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/package_receipt/fixtures/manifest-bytes.json",
+      "sha256": "dfeb7deeea1e480cafc437d33a9153d1f7111bf136f6f2cc16af7cf4d643e739"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/package_receipt/fixtures/plugin.toml",
+      "sha256": "c319099465221b153c93e85082d17389c752eae2fe2e121261b2dca3942e0944"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/package_receipt/fixtures/README.md",
+      "sha256": "572ca74faa10560a3fd057d68adac0e26cbc14c29eac785d1c99ab3ee1fcbb5f"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/package_receipt/fixtures/receipt.json",
+      "sha256": "0f2cc6e7486584d799b616ffe411f557b7ee52bafec3a7aca56ac39be90ce91a"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/package_receipt/fixtures/trust-registry.json",
+      "sha256": "dd3430c1bc71d813c8ab233d4d69eb853e7e53dca3733288ab6f857cc5ea5887"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/mod.rs",
+      "sha256": "595609e9889fa333fefe1e54b9b24326a66893f6943d302344c536fc5567c4e1"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/load_discovered.rs",
+      "sha256": "3cb643b51f383f1cdf7e5c10023c1450972530caebe76978597104698eaf5b88"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/discover_load_manifest.rs",
+      "sha256": "997fb18fa1e8b48e262bcc7ffe08b441c44f1aa4ccffb26e24c0abe9be5ce768"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/native_plugin_discovery.rs",
+      "sha256": "15243670ab0bfc8db3e1c486e8188a6917e575c22a08796cb40b43c01802575e"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/native_plugin_host_handle.rs",
+      "sha256": "cf791ae30e7788e9e647eae734ae7a9561c892a6bea4b7171a979bc83cd5e6ad"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs",
+      "sha256": "b0911ea534347488dbc4cbceccc76b5c37236300177919c9a3f6e060db0dc5e8"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/loading.rs",
+      "sha256": "dc90c604e5827c6264c39f698066d0cc5879513a31e222c3e5549f3994e926ea"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs",
+      "sha256": "44acafcb8c9516455e3fcf293de52bdb2228b0b5e839cb06ffdc5dd7ba050bf2"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin.rs",
+      "sha256": "3a16d1051645ed32b21737dac8f734aef6d8b6e33575bcaf068b5b6f1bc74f60"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin/callback.rs",
+      "sha256": "3e00c3f6cb7d6ed0cc7468515fde39c00b9306d24977ea22852e111d87bcffb8"
+    },
+    {
+      "path": "zircon_app/src/entry/product_composition/request.rs",
+      "sha256": "309d4ed50af02fcafeefaa31475f91cd2d78fea4b7b8b7b91b1a269ac5e2e2d9"
+    },
+    {
+      "path": "zircon_app/src/entry/product_composition/composition.rs",
+      "sha256": "2bc3d4b42137c23ca6358b3a1d031cd3e6fdd381ad339a2cacb9e20144348923"
+    },
+    {
+      "path": "zircon_app/src/entry/export_bootstrap.rs",
+      "sha256": "ac8e2afdf83bd030c4cb7ef65aab11f78d5247658b351aed38d5e3e1f531ff1e"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/export_build_plan/main_template.rs",
+      "sha256": "1bf09ae4629ed3f5ddb4fce1d3a1736e6a09237aa8dec319276519b30ada6059"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/export_build_plan/materialize/mod.rs",
+      "sha256": "0330f79ca316a6e6accfcb63f1504e644b9653de67fa0acf64ae11b095d74496"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/export_build_plan/materialize/archive.rs",
+      "sha256": "321ea6ddaa6cf3614308943209d97c355995205bef7686c6444b4f8358ebce8c"
+    },
+    {
+      "path": "zircon_runtime/src/plugin/export_build_plan/materialize/native_authority.rs",
+      "sha256": "667f11f780828cb58f26523e29bd4714a4df0f52b2f6ae69ac374f181da3bcd4"
+    },
+    {
+      "path": "zircon_runtime/tests/native_plugin_loader_contract.rs",
+      "sha256": "c80df608db9e66b33761ec03c71ce9550c0b0cf3d3d8b744efc118159d5b1d0d"
+    },
+    {
+      "path": "zircon_runtime/src/tests/plugin_extensions/native_plugin_loader/real_fixture.rs",
+      "sha256": "6296e5a0f727b0592bd2b421974b3927bf3c454911c4810d6db4f373b6127f4a"
+    }
+  ],
+  "dependencies": {
+    "ring": "0.17.14",
+    "goblin": "0.10.7",
+    "windows_sys_features": [
+      "Win32_System_LibraryLoader",
+      "Win32_System_SystemInformation"
+    ]
+  },
+  "validation": {
+    "executed": [
+      "rustfmt targeted files",
+      "git diff --check targeted files"
+    ],
+    "not_executed": [
+      "Cargo",
+      "real MSVC DLL tests"
+    ],
+    "required": [
+      "Windows MSVC environment with cl.exe available",
+      "runtime unit tests native_artifact_staging::tests",
+      "runtime unit tests package_receipt::tests",
+      "runtime unit tests native_artifact_trust::tests",
+      "runtime test native_plugin_loader_contract",
+      "runtime plugin_extensions native_plugin_loader real_fixture",
+      "App native_admission_tests and optional Unsupported preparation test",
+      "native export directory/ZIP/preview generated-authority parity",
+      "existing cargo-zircon signed receipt interop script",
+      "MSVC child-process cwd/PATH spoof and PE forwarded-export denial"
+    ]
+  },
+  "handoff": {
+    "hot_update_application": "Asset pack15 owner maintains recover-before-stage; retains this lane artifact_authority argument",
+    "receipt_verifier": "Isolated producer interop delta imported; this owner has subsequent test edits"
+  },
+  "scope_notes": [
+    "Non-Windows admission fails closed",
+    "Explicit local build outputs require no backend",
+    "Signed product service must supply trusted roots/revocations/release+BuildSet+capability/target authority; candidate registry is never authoritative"
+  ],
+  "review": {
+    "signed_receipt": "Independent reviewer no P0/P1 blocker; interop execution pending",
+    "native_platform": "Independent P1 export-forwarder finding fixed with package reject + system forwarder recursion + real .def regression; independent recheck found no additional confirmed blocking native source finding"
+  }
+}

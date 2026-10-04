@@ -1,3 +1,4 @@
+//! 特性资产连接内建或插件描述符、门控与关联素材；启用状态在编译前解析。
 use std::collections::BTreeMap;
 
 use crate::asset::AssetReference;
@@ -10,6 +11,7 @@ use super::{
     renderer_feature_source::RendererFeatureSource,
 };
 
+/// 连接作者配置、门控及图描述符，供管线编译选择通道。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RendererFeatureAsset {
     pub feature: RendererFeatureSource,
@@ -165,5 +167,5 @@ impl RendererFeatureAsset {
 }
 
 #[cfg(test)]
-#[path = "renderer_feature_asset/borrowed_capability_tests.rs"]
+#[path = "renderer_feature_asset/tests/borrowed_capability_tests.rs"]
 mod borrowed_capability_tests;

@@ -6,10 +6,14 @@ use super::super::super::data::{
     TemplatePaneNodeData,
 };
 use super::super::super::paint_frame::HostRgbaFrame;
-use super::super::render_commands::{draw_host_paint_commands, HostPaintCommand};
+use super::super::evidence::{record_identity_issue, record_owner_commands_complete};
+use super::super::render_commands::{
+    draw_host_paint_commands, HostPaintCommand, PaintNodeIdentity,
+};
 use super::super::template_nodes::{push_template_node_commands, template_node_intersects_clip};
 use super::clip::effective_template_clip;
 use super::hover::{apply_template_hover_to_node, template_hover_targets_node};
+use super::press::{apply_template_press_to_node, template_press_targets_node};
 use super::transform::TemplateNodePaintTransform;
 
 fn push_untransformed_template_node_commands(
@@ -21,17 +25,63 @@ fn push_untransformed_template_node_commands(
     row: i32,
     interaction: Option<&HostPaneInteractionStateData>,
 ) -> bool {
-    if let Some(interaction) =
-        interaction.filter(|interaction| template_hover_targets_node(source_node, interaction))
-    {
+    let before = commands.len();
+    if let Some(interaction) = interaction.filter(|interaction| {
+        template_hover_targets_node(source_node, interaction)
+            || template_press_targets_node(source_node, origin, interaction)
+    }) {
         let mut node = source_node.clone();
         apply_template_hover_to_node(&mut node, interaction);
+        apply_template_press_to_node(&mut node, origin, interaction);
         push_template_node_commands(commands, &node, origin, clip, text_input_focus, row);
+        attach_owner(commands, before, source_node);
         true
     } else {
         push_template_node_commands(commands, source_node, origin, clip, text_input_focus, row);
+        attach_owner(commands, before, source_node);
         false
     }
+}
+
+fn attach_owner(
+    commands: &mut [HostPaintCommand],
+    from: usize,
+    source_node: &TemplatePaneNodeData,
+) {
+    let source_path = source_node.source_path.to_string();
+    let source_node_id = source_node.source_node_id.to_string();
+    let instance_path = source_node.instance_path.to_string();
+    let node_id = source_node.node_id.to_string();
+    if node_id.is_empty()
+        || source_path.is_empty()
+        || source_node_id.is_empty()
+        || instance_path.is_empty()
+    {
+        record_identity_issue(format!(
+            "painted template row {} has incomplete authored source identity",
+            source_node.node_id
+        ));
+        return;
+    }
+    let owner = PaintNodeIdentity {
+        node_id,
+        parent_node_id: nonempty_string(&source_node.parent_node_id),
+        source_path,
+        source_node_id,
+        instance_path,
+        parent_source_path: nonempty_string(&source_node.parent_source_path),
+        parent_source_node_id: nonempty_string(&source_node.parent_source_node_id),
+        parent_instance_path: nonempty_string(&source_node.parent_instance_path),
+        control_id: nonempty_string(&source_node.control_id),
+    };
+    for command in &mut commands[from..] {
+        command.set_owner(owner.clone());
+    }
+    record_owner_commands_complete(&owner);
+}
+
+fn nonempty_string(value: &crate::ui::retained_host::primitives::SharedString) -> Option<String> {
+    (!value.is_empty()).then(|| value.to_string())
 }
 
 pub(in crate::ui::retained_host::host_contract) fn draw_template_nodes(
@@ -102,9 +152,11 @@ pub(in crate::ui::retained_host::host_contract) fn draw_template_nodes_with_tran
             }
             if let Some(interaction) = frame.pane_interaction_state() {
                 apply_template_hover_to_node(&mut node, interaction);
+                apply_template_press_to_node(&mut node, origin, interaction);
             }
             // Region repaint must avoid generating commands for off-damage nodes:
             // image commands can rasterize previews before the final primitive clip runs.
+            let before = commands.len();
             push_template_node_commands(
                 commands,
                 &node,
@@ -113,6 +165,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_template_nodes_with_tran
                 text_input_focus,
                 row as i32,
             );
+            attach_owner(commands, before, &node);
         };
         let streamed_rows = transform.is_some_and(|transform| {
             transform.stream_row_visit_indices(nodes.row_count(), &effective_clip, &mut |row| {

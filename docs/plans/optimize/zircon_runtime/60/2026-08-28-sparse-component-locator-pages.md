@@ -6,19 +6,21 @@ related_code:
 implementation_files:
   - zircon_runtime/src/scene/ecs/storage/component_storage/sparse.rs
   - zircon_runtime/src/scene/ecs/storage/component_storage/sparse/locator.rs
+  - zircon_runtime/src/scene/ecs/storage/component_storage/store.rs
 plan_sources:
   - docs/plans/optimize/zircon_runtime/60-runtime-scene-ecs-entity-component-storage-archetype-query-access-change-detection-command-schedule-parallel-event-product-integration-review.md
   - docs/plans/zircon_runtime/runtime/08/failure-2026-07-22-ecs-archetype-columnar-storage.md
 tests:
   - zircon_runtime/src/scene/ecs/storage/component_storage/sparse/tests.rs
+  - zircon_runtime/src/scene/ecs/storage/component_storage/store.rs
   - tools/tests/test_runtime_sparse_component_locator_pages_contract.py
   - tools/benchmarks/runtime_sparse_locator_pages.rs
 doc_type: milestone-detail
 report_id: Runtime60-sparse-component-locator-pages-2026-08-28
 date: 2026-08-28
 session_id: root-runtime60-sparse-component-locator-pages-20260828
-implementation_status: partial
-validation_status: source_model_harness_passed_diagnostics_managed_cargo_product_profile_pending
+implementation_status: implementation_complete
+validation_status: source_contract_passed_rust_cargo_product_profile_pending
 ---
 
 # Runtime60 Sparse Component Locator Pages
@@ -113,11 +115,15 @@ overflow, sparse-key reinsertion, cross-representation deletion compaction, gene
 cross-page swap repair, packed slot size, and a 20,000-operation reference model. The non-test compile harness, exact rustfmt, focused source
 contract, and benchmark checksums also pass.
 
-`RECS-P1-11` remains partial: production locator-byte diagnostics are not yet aggregated through
-the shared `ComponentStorage` owner. Runtime08 Cargo, million-entity counters/RSS slope, real scene
-query P95, WPR wakeups/CPU, and power remain managed qualification work; modeled allocation totals
-are not allocator/RSS measurements, and this microbenchmark makes no product power claim. Product
-profiling must also establish whether the truly disjoint overflow is cold; otherwise a later bounded
-multi-window policy is required before that branch can be treated as hot-query qualified.
+`RECS-P1-11` source implementation is complete. `SparseRowLocator` now produces a cold structural
+snapshot, `SparseComponentStorage` forwards it, and the shared `ComponentStorage` owner aggregates
+entry count, page count, and modeled retained bytes across every sparse component owner with
+saturating arithmetic. The mounted two-owner regression requires two high-index locators to remain
+within a 32 KiB modeled structural bound. The focused source contract now passes 5/5; the new Rust
+regression awaits managed Cargo execution. Runtime08 Cargo, million-entity counters/RSS slope,
+real scene query P95, WPR wakeups/CPU, and power remain managed qualification work; modeled
+allocation totals are not allocator/RSS measurements, and this microbenchmark makes no product power
+claim. Product profiling must also establish whether the truly disjoint overflow is cold; otherwise a
+later bounded multi-window policy is required before that branch can be treated as hot-query qualified.
 
-Status: `runtime_08_60_sparse_component_locator_algorithm_source_passed_diagnostics_cargo_product_profile_deferred`.
+Status: `runtime_08_60_sparse_component_locator_source_complete_cargo_product_profile_pending`.

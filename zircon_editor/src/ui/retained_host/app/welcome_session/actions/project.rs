@@ -15,7 +15,7 @@ impl RetainedEditorHost {
                     ProjectLaunchProfile::Normal,
                     draft.project_name,
                     draft.location,
-                    draft.template.pack_id(),
+                    draft.template,
                 )
                 .map_err(|error| error.to_string())
             })

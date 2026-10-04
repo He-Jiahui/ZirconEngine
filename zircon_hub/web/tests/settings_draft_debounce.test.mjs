@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { performance } from "node:perf_hooks";
 import test from "node:test";
 
-import { DebouncedSettingsDraft } from "../src/settings/debouncedSettingsDraft.ts";
+import { DebouncedSettingsDraft, SettingsActionScheduler } from "../src/settings/debouncedSettingsDraft.ts";
 
 const SAMPLE_PAIRS = 21;
 const BURST_UPDATES = 100;
@@ -82,12 +82,49 @@ test("settings draft debounce cancellation prevents stale state publication", ()
   assert.deepEqual(dispatched, [{ value: "current" }]);
 });
 
+test("settings barriers wait for an in-flight draft and prevent post-save stale updates", async () => {
+  const timer = new FakeTimer();
+  const updateFinished = deferred();
+  const calls = [];
+  const scheduler = new SettingsActionScheduler(
+    async (draft) => {
+      calls.push(`update:${draft.value}:start`);
+      await updateFinished.promise;
+      calls.push(`update:${draft.value}:finish`);
+    },
+    200,
+    timer,
+  );
+
+  scheduler.schedule({ value: "current" });
+  timer.flush();
+  await Promise.resolve();
+  const save = scheduler.runBarrier(async () => {
+    calls.push("save");
+  });
+
+  assert.deepEqual(calls, ["update:current:start"]);
+  updateFinished.resolve();
+  await save;
+  assert.deepEqual(calls, ["update:current:start", "update:current:finish", "save"]);
+  timer.flush();
+  assert.deepEqual(calls, ["update:current:start", "update:current:finish", "save"]);
+});
+
 test("SettingsPage cancels pending draft publication at explicit workflow boundaries", () => {
   const source = readFileSync(new URL("../src/pages/SettingsPage.tsx", import.meta.url), "utf8");
 
   assert.match(source, /useDebouncedSettingsDraft/);
-  assert.match(source, /cancelPendingDraft\(\);\s*void onAction\(HUB_ACTION\.saveSettings/s);
-  assert.match(source, /cancelPendingDraft\(\);\s*void onAction\(HUB_ACTION\.browseSettingsFolder/s);
-  assert.match(source, /cancelPendingDraft\(\);\s*void onAction\(HUB_ACTION\.discardSettingsDraft/s);
-  assert.match(source, /cancelPendingDraft\(\);\s*void onAction\(HUB_ACTION\.restoreDefaultSettings/s);
+  assert.match(source, /runSettingsBarrier\(\(\) => onAction\(HUB_ACTION\.saveSettings/s);
+  assert.match(source, /runSettingsBarrier\(\(\) => onAction\(HUB_ACTION\.browseSettingsFolder/s);
+  assert.match(source, /runSettingsBarrier\(\(\) => onAction\(HUB_ACTION\.discardSettingsDraft/s);
+  assert.match(source, /runSettingsBarrier\(\(\) => onAction\(HUB_ACTION\.restoreDefaultSettings/s);
 });
+
+function deferred() {
+  let resolve;
+  const promise = new Promise((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}

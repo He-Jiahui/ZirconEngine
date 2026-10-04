@@ -19,6 +19,8 @@ const MEDIA_INJECT_SHADER: &str = concat!(
     include_str!("media_inject/shaders/media_inject.wgsl"),
 );
 
+/// 为一帧体积介质注入提供相机网格和全局雾；局部体积是否参与由画质档位决定，
+/// 图执行器还应通过 `prepare_for_layers` 按当前相机层过滤局部体积。
 pub(crate) struct FroxelMediaInjectRequest<'a> {
     pub settings: VolumetricFogSettings,
     pub grid: FroxelGridParams,
@@ -130,6 +132,7 @@ impl FroxelMediaInjectPipeline {
             .map(|outcome| outcome.dispatch)
     }
 
+    /// 在创建 GPU 资源前完成相机层过滤和上传负载打包，供图执行器复用。
     pub(crate) fn prepare_for_layers(
         request: FroxelMediaInjectRequest<'_>,
         render_layers: &RenderLayerSet,
@@ -251,6 +254,8 @@ impl PreparedMediaInjectRequest {
     }
 }
 
+// None 保留所有输入；图执行路径通过 prepare_for_layers 显式传入相机层掩码。
+// 禁用局部体积时在遍历前返回空列表，后续编码复用空负载缓冲。
 fn collect_gpu_volumes(
     local_volumes: &[FogVolumeData],
     include_local_volumes: bool,
@@ -317,7 +322,9 @@ fn dispatch_size(dimensions: [u32; 3]) -> [u32; 3] {
 }
 
 #[cfg(test)]
+#[path = "media_inject/tests/performance_tests.rs"]
 mod performance_tests;
 
 #[cfg(test)]
+#[path = "media_inject/tests/cases.rs"]
 mod tests;

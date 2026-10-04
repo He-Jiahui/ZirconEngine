@@ -1,3 +1,5 @@
+//! 路由器拥有表面和独立事件状态，同时借用已发布提取及渲染快照；只有身份一致的产品可以进入本次查询。
+
 use std::sync::{Arc, Mutex};
 
 use zircon_runtime::core::framework::render::RenderVisibleSpatialQuerySnapshot;

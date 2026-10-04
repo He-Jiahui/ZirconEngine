@@ -13,6 +13,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn matches
         .any(|candidate| *candidate == component_role || *candidate == role)
 }
 
+/// 多个 MUI X 族复用同一种宿主命令；边框色仅在节点声明边框宽度时投影。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_quad(
     commands: &mut Vec<HostPaintCommand>,
     rect: FrameRect,
@@ -65,27 +66,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn compone
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
-
-    #[test]
-    fn mui_x_shared_quad_border_projects_from_host_border_palette() {
-        let mut palette = PALETTE;
-        palette.border = [10, 11, 12, 255];
-        palette.focus_ring = [90, 91, 92, 255];
-
-        assert_eq!(
-            quad_border_color_from_host(1.0, palette),
-            Some([10, 11, 12, 255])
-        );
-    }
-
-    #[test]
-    fn mui_x_shared_quad_border_stays_absent_without_width() {
-        let mut palette = PALETTE;
-        palette.focus_ring = [10, 11, 12, 255];
-
-        assert_eq!(quad_border_color_from_host(0.0, palette), None);
-    }
-}
+#[path = "tests/shared.rs"]
+mod tests;

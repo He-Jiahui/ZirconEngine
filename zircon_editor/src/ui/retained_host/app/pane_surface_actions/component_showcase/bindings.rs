@@ -38,19 +38,33 @@ impl RetainedEditorHost {
 }
 
 fn component_showcase_action_id_for_binding_id(binding_id: &str) -> String {
-    let Some(suffix) = binding_id.strip_prefix("UiComponentShowcase/") else {
-        return binding_id
-            .split(['/', '.', ':'])
-            .filter(|segment| !segment.is_empty())
-            .map(camel_to_snake_segment)
-            .collect::<Vec<_>>()
-            .join(".");
-    };
-    format!("ui_component_showcase.{}", camel_to_snake_segment(suffix))
+    let mut action_id = String::with_capacity(binding_id.len().saturating_mul(2));
+    if let Some(suffix) = binding_id.strip_prefix("UiComponentShowcase/") {
+        action_id.push_str("ui_component_showcase.");
+        append_camel_to_snake_segment(&mut action_id, suffix);
+        return action_id;
+    }
+    for (index, segment) in binding_id
+        .split(['/', '.', ':'])
+        .filter(|segment| !segment.is_empty())
+        .enumerate()
+    {
+        if index > 0 {
+            action_id.push('.');
+        }
+        append_camel_to_snake_segment(&mut action_id, segment);
+    }
+    action_id
 }
 
 fn camel_to_snake_segment(value: &str) -> String {
     let mut output = String::with_capacity(value.len());
+    append_camel_to_snake_segment(&mut output, value);
+    output
+}
+
+fn append_camel_to_snake_segment(output: &mut String, value: &str) {
+    let segment_start = output.len();
     let mut previous_was_separator = true;
     for ch in value.chars() {
         if ch.is_ascii_alphanumeric() {
@@ -59,17 +73,20 @@ fn camel_to_snake_segment(value: &str) -> String {
             }
             output.push(ch.to_ascii_lowercase());
             previous_was_separator = false;
-        } else if !output.is_empty() && !output.ends_with('_') {
+        } else if output.len() > segment_start && !output.ends_with('_') {
             output.push('_');
             previous_was_separator = true;
         }
     }
-    if output.ends_with('_') {
+    if output.len() > segment_start && output.ends_with('_') {
         output.pop();
     }
-    output
 }
 
 #[cfg(test)]
-#[path = "bindings/camel_to_snake_tests.rs"]
+#[path = "bindings/tests/action_id_single_buffer_tests.rs"]
+mod action_id_single_buffer_tests;
+
+#[cfg(test)]
+#[path = "bindings/tests/camel_to_snake_tests.rs"]
 mod camel_to_snake_tests;

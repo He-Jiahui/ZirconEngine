@@ -1,3 +1,4 @@
+# 核对资产引用布局按类型建立连续宽度索引并常数时间取默认宽度。
 from pathlib import Path
 import unittest
 

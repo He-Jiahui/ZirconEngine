@@ -6,12 +6,10 @@ related_code:
   - zircon_runtime/tests/zui_native_visual_acceptance.rs
   - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs
   - zircon_runtime/tests/virtual_geometry_visbuffer_overlay_contract.rs
-  - tools/capture-editor-ui-visual.ps1
+  - tools/analysis/visual/capture-editor-ui-visual.ps1
 implementation_files:
   - docs/tests/editor
-  - docs/tests/runtime
-  - docs/tests/workflow-control-center
-  - tools/capture-editor-ui-visual.ps1
+  - tools/analysis/visual/capture-editor-ui-visual.ps1
   - .codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/capture-hub-window.ps1
 plan_sources:
   - docs/plans/mvp/index.md
@@ -169,7 +167,7 @@ cargo test -p zircon_editor --lib capture_workbench_component_slate_atlas_visual
 原生编辑器窗口截图使用受控脚本；脚本会校验窗口尺寸、虚拟屏幕定位、颜色/亮度信息和 SHA-256：
 
 ```powershell
-pwsh -File tools/capture-editor-ui-visual.ps1 `
+pwsh -File tools/analysis/visual/capture-editor-ui-visual.ps1 `
   -BundleDirectory E:\editor-bundle `
   -OutputDirectory E:\evidence\editor `
   -ExpectedEditorSha256 <64-hex> `

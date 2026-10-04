@@ -1,0 +1,88 @@
+penpot_original_source = "[asset]\nkind = \"view\"\nid = \"physics.diagnostics\"\nversion = 2\ndisplay_name = \"Physics Diagnostics\"\n\n[imports]\nstyles = [\"res://ui/theme/editor_base.zui\"]\n\n[root]\nnode = \"physics_diagnostics_root\"\n\n[nodes.physics_step_history]\ncomponent = \"Space\"\ncontrol_id = \"PhysicsStepDurationHistory\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 180.0, preferred = 220.0, stretch = \"Fixed\" } }\n\n[nodes.physics_collision_matrix]\ncomponent = \"Space\"\ncontrol_id = \"PhysicsCollisionLayerMatrix\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.physics_world_statistics]\ncomponent = \"Space\"\ncontrol_id = \"PhysicsWorldStatistics\"\nlayout = { width = { min = 260.0, preferred = 320.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.physics_diagnostics_details]\ncomponent = \"HorizontalGroup\"\ncontrol_id = \"PhysicsDiagnosticsDetails\"\nlayout = { container = { kind = \"HorizontalBox\", gap = 8 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"physics_collision_matrix\" }, { node = \"physics_world_statistics\" }]\n\n[nodes.physics_diagnostics_root]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"PhysicsDiagnosticsRoot\"\nclasses = [\"editor-shell\"]\nlayout = { container = { kind = \"VerticalBox\", gap = 8 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"physics_step_history\" }, { node = \"physics_diagnostics_details\" }]\n"
+
+[asset]
+kind = "view"
+id = "physics.diagnostics"
+version = 2
+display_name = "Physics Diagnostics"
+
+[imports]
+styles = [ "res://ui/theme/editor_base.zui" ]
+
+[root]
+node = "physics_diagnostics_root"
+
+[nodes.physics_step_history]
+component = "Space"
+control_id = "PhysicsStepDurationHistory"
+
+[nodes.physics_step_history.layout.width]
+stretch = "Stretch"
+
+[nodes.physics_step_history.layout.height]
+min = 180
+preferred = 220
+stretch = "Fixed"
+
+[nodes.physics_collision_matrix]
+component = "Space"
+control_id = "PhysicsCollisionLayerMatrix"
+
+[nodes.physics_collision_matrix.layout.width]
+stretch = "Stretch"
+
+[nodes.physics_collision_matrix.layout.height]
+stretch = "Stretch"
+
+[nodes.physics_world_statistics]
+component = "Space"
+control_id = "PhysicsWorldStatistics"
+
+[nodes.physics_world_statistics.layout.width]
+min = 260
+preferred = 320
+stretch = "Fixed"
+
+[nodes.physics_world_statistics.layout.height]
+stretch = "Stretch"
+
+[nodes.physics_diagnostics_details]
+component = "HorizontalGroup"
+control_id = "PhysicsDiagnosticsDetails"
+
+[nodes.physics_diagnostics_details.layout.container]
+kind = "HorizontalBox"
+gap = 8
+
+[nodes.physics_diagnostics_details.layout.width]
+stretch = "Stretch"
+
+[nodes.physics_diagnostics_details.layout.height]
+stretch = "Stretch"
+
+[[nodes.physics_diagnostics_details.children]]
+node = "physics_collision_matrix"
+
+[[nodes.physics_diagnostics_details.children]]
+node = "physics_world_statistics"
+
+[nodes.physics_diagnostics_root]
+component = "VerticalGroup"
+control_id = "PhysicsDiagnosticsRoot"
+classes = [ "editor-shell" ]
+
+[nodes.physics_diagnostics_root.layout.container]
+kind = "VerticalBox"
+gap = 8
+
+[nodes.physics_diagnostics_root.layout.width]
+stretch = "Stretch"
+
+[nodes.physics_diagnostics_root.layout.height]
+stretch = "Stretch"
+
+[[nodes.physics_diagnostics_root.children]]
+node = "physics_step_history"
+
+[[nodes.physics_diagnostics_root.children]]
+node = "physics_diagnostics_details"

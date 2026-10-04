@@ -1,6 +1,7 @@
 mod budget_degrade;
 mod effective_view_state;
 #[cfg(test)]
+#[path = "build/tests/cases.rs"]
 mod tests;
 mod ui_submission_stats;
 
@@ -214,8 +215,17 @@ fn build_frame_submission_context_from_source(
     let source_anti_alias = sized_extract.view.anti_alias;
     let source_msaa_samples = sized_extract.view.camera.msaa_samples;
     let effective_extract = &submission_extract;
+    let prepared_local_bounds = {
+        let state = framework.lock_state();
+        effective_extract
+            .geometry
+            .meshes
+            .iter()
+            .map(|mesh| state.renderer.prepared_local_bounds_for_mesh(mesh))
+            .collect::<Vec<_>>()
+    };
     let visibility_context =
-        VisibilityContext::from_extract_with_history_static_index_task_pool_and_feature_payloads(
+        VisibilityContext::from_extract_with_history_static_index_task_pool_and_feature_payloads_with_prepared_bounds(
             effective_extract,
             viewport_state.previous_visibility(),
             viewport_state.previous_static_index(),
@@ -225,6 +235,7 @@ fn build_frame_submission_context_from_source(
             virtual_geometry_enabled
                 .then_some(effective_virtual_geometry_extract.as_ref())
                 .flatten(),
+            Some(&prepared_local_bounds),
         );
     let history_validation_key = FrameHistoryValidationKey::from_extract(
         effective_extract,

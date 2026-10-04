@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
+use std::time::Instant;
 
 use serde::Serialize;
 
@@ -14,7 +15,8 @@ use super::subscription::{
 };
 use super::{RuntimeEventMirrorDrainPage, RuntimeEventMirrorError, RuntimeEventMirrorSubscription};
 
-type ReaderCountCallback = dyn Fn(&mut World, u32) -> SceneResult<()> + Send + Sync;
+type ReaderCountCallback =
+    dyn Fn(&mut World, u32, Option<Instant>) -> SceneResult<()> + Send + Sync;
 const RUNTIME_EVENT_MIRROR_DESCRIPTOR_MAX_BYTES: usize = 128;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -81,6 +83,17 @@ impl RuntimeEventMirrorRegistration {
         mut self,
         callback: impl Fn(&mut World, u32) -> SceneResult<()> + Send + Sync + 'static,
     ) -> Self {
+        self.reader_count_callback = Some(Arc::new(move |world, count, _deadline| {
+            callback(world, count)
+        }));
+        self
+    }
+
+    /// 配置可协作检查绝对截止时间的订阅计数回调；Ok 提交计数变化，Err 进入补偿，额外 World 副作用须由回调自行处理。
+    pub fn with_reader_count_callback_until(
+        mut self,
+        callback: impl Fn(&mut World, u32, Option<Instant>) -> SceneResult<()> + Send + Sync + 'static,
+    ) -> Self {
         self.reader_count_callback = Some(Arc::new(callback));
         self
     }
@@ -102,11 +115,12 @@ impl RuntimeEventMirrorRegistration {
         &self,
         world: &mut World,
         reader_count: u32,
+        deadline: Option<Instant>,
     ) -> Result<(), RuntimeEventMirrorError> {
         let Some(callback) = &self.reader_count_callback else {
             return Ok(());
         };
-        callback(world, reader_count).map_err(|error| {
+        callback(world, reader_count, deadline).map_err(|error| {
             RuntimeEventMirrorError::ReaderCountCallback {
                 event_id: self.descriptor.event_id.clone(),
                 message: error.to_string(),
@@ -442,5 +456,5 @@ impl PartialEq for RuntimeEventMirrorRegistry {
 }
 
 #[cfg(test)]
-#[path = "registration/hash_index_tests.rs"]
+#[path = "registration/tests/hash_index_tests.rs"]
 mod hash_index_tests;

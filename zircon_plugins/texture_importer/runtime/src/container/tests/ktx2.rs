@@ -20,7 +20,6 @@ fn ktx2_container_importer_reads_layers_faces_and_mips() {
             assert_eq!(descriptor.dimension, RenderImageDimension::D2);
             assert_eq!(descriptor.depth_or_array_layers, 12);
             assert_eq!(descriptor.mip_count, 4);
-            assert_eq!(descriptor.array_layer_count, 12);
             match texture.payload {
                 TexturePayload::Container {
                     format,
@@ -44,10 +43,6 @@ fn ktx2_container_importer_accepts_known_supercompression_schemes() {
     let cases = [
         (KTX2_SUPERCOMPRESSION_NONE, "ktx2/vk-37/supercompression-0"),
         (
-            KTX2_SUPERCOMPRESSION_BASIS_LZ,
-            "ktx2/vk-0/supercompression-1",
-        ),
-        (
             KTX2_SUPERCOMPRESSION_ZSTANDARD,
             "ktx2/vk-37/supercompression-0",
         ),
@@ -57,9 +52,6 @@ fn ktx2_container_importer_accepts_known_supercompression_schemes() {
     for (scheme, expected_format) in cases {
         let mut bytes = tiny_ktx2_bytes();
         write_u32(&mut bytes, 44, scheme);
-        if scheme == KTX2_SUPERCOMPRESSION_BASIS_LZ {
-            write_u32(&mut bytes, 12, 0);
-        }
 
         let imported = import_container_fixture("supercompression.ktx2", bytes);
 
@@ -208,14 +200,15 @@ fn read_u64(bytes: &[u8], offset: usize) -> u64 {
 }
 
 #[test]
-fn ktx2_container_importer_rejects_basislz_with_concrete_vk_format() {
+fn ktx2_container_importer_rejects_basislz_without_a_transcode_backend() {
     let mut bytes = tiny_ktx2_bytes();
     write_u32(&mut bytes, 44, KTX2_SUPERCOMPRESSION_BASIS_LZ);
+    write_u32(&mut bytes, 12, 0);
 
-    let error = import_container_error("basislz-concrete-format.ktx2", bytes);
+    let error = import_container_error("basislz-unavailable-transcoder.ktx2", bytes);
 
     assert!(
-        error.contains("ktx2 BasisLZ supercompression requires vkFormat 0, got 37"),
+        error.contains("ktx2 BasisLZ supercompression requires an unavailable transcode backend"),
         "unexpected error: {error}"
     );
 }
@@ -436,7 +429,7 @@ fn ktx2_container_importer_rejects_supercompression_global_data_when_none() {
 }
 
 #[test]
-fn ktx2_container_importer_rejects_basislz_payload_without_supercompression_global_data() {
+fn ktx2_container_importer_rejects_basislz_before_level_payload_validation() {
     let mut bytes = tiny_ktx2_bytes();
     write_u32(&mut bytes, 12, 0);
     write_u32(&mut bytes, 44, KTX2_SUPERCOMPRESSION_BASIS_LZ);
@@ -452,7 +445,7 @@ fn ktx2_container_importer_rejects_basislz_payload_without_supercompression_glob
     let error = import_container_error("basislz-payload-without-sgd.ktx2", bytes);
 
     assert!(
-        error.contains("ktx2 BasisLZ level payloads require supercompression global data"),
+        error.contains("ktx2 BasisLZ supercompression requires an unavailable transcode backend"),
         "unexpected error: {error}"
     );
 }
@@ -557,7 +550,7 @@ fn ktx2_container_importer_rejects_invalid_level_uncompressed_byte_lengths() {
             "ktx2 level 0 uncompressed byte length must equal byte length when supercompression is none",
         ),
         (
-            "basislz-uncompressed.ktx2",
+            "basislz-unavailable-transcoder.ktx2",
             |bytes: &mut Vec<u8>| {
                 write_u32(bytes, 12, 0);
                 write_u32(bytes, 44, KTX2_SUPERCOMPRESSION_BASIS_LZ);
@@ -565,7 +558,7 @@ fn ktx2_container_importer_rejects_invalid_level_uncompressed_byte_lengths() {
                 write_u64(bytes, KTX2_HEADER_SIZE + 16, 8);
                 bytes.resize(KTX2_AFTER_DEFAULT_DFD_8_BYTE_OFFSET + 8, 0);
             },
-            "ktx2 level 0 uncompressed byte length must be 0 for BasisLZ supercompression",
+            "ktx2 BasisLZ supercompression requires an unavailable transcode backend",
         ),
         (
             "zstd-zero-uncompressed.ktx2",
@@ -679,7 +672,6 @@ fn ktx2_container_importer_reads_3d_dimension() {
             let descriptor = texture.render_image_descriptor();
             assert_eq!(descriptor.dimension, RenderImageDimension::D3);
             assert_eq!(descriptor.depth_or_array_layers, 5);
-            assert_eq!(descriptor.array_layer_count, 1);
         }
         other => panic!("unexpected imported asset: {other:?}"),
     }

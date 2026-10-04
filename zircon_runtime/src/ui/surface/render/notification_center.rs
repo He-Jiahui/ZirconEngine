@@ -12,7 +12,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::painter_state::UiRenderPainterStateSource;
-use super::popup_position::{PopupPlacement, resolve_anchored_popup_geometry};
+use super::popup_position::{resolve_anchored_popup_geometry, PopupPlacement};
 
 const NOTIFICATIONS: &str = "notifications";
 const OPEN: &str = "open";
@@ -230,45 +230,47 @@ pub(super) fn notification_center_render_commands(
         opacity,
     )];
 
-    commands.push(text_command(
-        node_id,
-        UiFrame::new(
-            frame.x + PANEL_PADDING_X,
-            frame.y + HEADER_TOP,
-            (frame.width - PANEL_PADDING_X * 2.0).max(1.0),
-            HEADER_HEIGHT,
-        ),
-        clip_frame,
-        z_index.saturating_add(2),
-        header_text(metadata),
-        visual.header_text,
-        visual.header_font_size,
-        visual.header_line_height,
-        state.panel_state,
-        opacity,
-    ));
-
-    let rows = notification_rows(metadata);
-    if rows.is_empty() {
+    if let Some(header_text) = header_text(metadata) {
         commands.push(text_command(
             node_id,
             UiFrame::new(
                 frame.x + PANEL_PADDING_X,
-                frame.y + EMPTY_TEXT_TOP,
+                frame.y + HEADER_TOP,
                 (frame.width - PANEL_PADDING_X * 2.0).max(1.0),
-                visual.message_line_height,
+                HEADER_HEIGHT,
             ),
             clip_frame,
-            z_index.saturating_add(3),
-            string_attribute(metadata, EMPTY_TEXT)
-                .unwrap_or("No notifications")
-                .to_string(),
-            visual.muted_text,
-            visual.message_font_size,
-            visual.message_line_height,
-            UiPainterResolvedState::Normal,
+            z_index.saturating_add(2),
+            header_text,
+            visual.header_text,
+            visual.header_font_size,
+            visual.header_line_height,
+            state.panel_state,
             opacity,
         ));
+    }
+
+    let rows = notification_rows(metadata);
+    if rows.is_empty() {
+        if let Some(empty_text) = string_attribute(metadata, EMPTY_TEXT) {
+            commands.push(text_command(
+                node_id,
+                UiFrame::new(
+                    frame.x + PANEL_PADDING_X,
+                    frame.y + EMPTY_TEXT_TOP,
+                    (frame.width - PANEL_PADDING_X * 2.0).max(1.0),
+                    visual.message_line_height,
+                ),
+                clip_frame,
+                z_index.saturating_add(3),
+                empty_text.to_string(),
+                visual.muted_text,
+                visual.message_font_size,
+                visual.message_line_height,
+                UiPainterResolvedState::Normal,
+                opacity,
+            ));
+        }
         return commands;
     }
 
@@ -506,15 +508,13 @@ fn notification_center_open(
         || component_state.is_some_and(|state| state.flags.popup_open)
 }
 
-fn header_text(metadata: &UiTemplateNodeMetadata) -> String {
-    let title = string_attribute(metadata, TITLE)
-        .filter(|value| !value.trim().is_empty())
-        .unwrap_or("Notifications");
+fn header_text(metadata: &UiTemplateNodeMetadata) -> Option<String> {
+    let title = string_attribute(metadata, TITLE).filter(|value| !value.trim().is_empty())?;
     let unread_count = usize_attribute(metadata, UNREAD_COUNT).unwrap_or(0);
     if unread_count > 0 {
-        format!("{title} ({unread_count})")
+        Some(format!("{title} ({unread_count})"))
     } else {
-        title.to_string()
+        Some(title.to_string())
     }
 }
 
@@ -536,6 +536,7 @@ fn notification_rows(metadata: &UiTemplateNodeMetadata) -> Vec<NotificationRow> 
     rows
 }
 
+// 深度优先累计有效条目，达到可见数量即停止，空条目不占用行索引。
 fn collect_visible_notification_rows(
     value: &Value,
     visible_limit: usize,
@@ -800,28 +801,9 @@ fn css_color(color: UiRgbaColor) -> String {
 }
 
 #[cfg(test)]
-mod performance_tests {
-    use toml::Value;
+#[path = "tests/notification_center_performance_tests.rs"]
+mod performance_tests;
 
-    use super::collect_visible_notification_rows;
-
-    #[test]
-    fn visible_rows_stop_after_the_first_valid_depth_first_entries() {
-        let notifications = Value::Array(vec![
-            Value::String(String::new()),
-            Value::String("first|title=First".to_string()),
-            Value::Array(vec![
-                Value::String("second|title=Second".to_string()),
-                Value::String("third|title=Third".to_string()),
-            ]),
-        ]);
-        let mut rows = Vec::new();
-
-        collect_visible_notification_rows(&notifications, 2, &mut rows);
-
-        assert_eq!(
-            rows.iter().map(|row| row.id.as_str()).collect::<Vec<_>>(),
-            vec!["first", "second"]
-        );
-    }
-}
+#[cfg(test)]
+#[path = "tests/notification_center_content_contract_tests.rs"]
+mod content_contract_tests;

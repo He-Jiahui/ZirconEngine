@@ -1,4 +1,11 @@
-use super::*;
+use super::fixtures::{
+    DUPLICATE_LOCAL_THEME_LAYOUT_ASSET_TOML, IMPORTED_THEME_CASCADE_A_ASSET_TOML,
+    IMPORTED_THEME_CASCADE_B_ASSET_TOML, IMPORTED_THEME_COLLISION_ASSET_TOML,
+    MULTI_IMPORTED_THEME_CASCADE_LAYOUT_ASSET_TOML, THEME_SUMMARY_LAYOUT_ASSET_TOML,
+};
+use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorSession};
+use toml::Value;
+use zircon_runtime_interface::ui::{layout::UiSize, template::UiAssetKind};
 
 #[test]
 fn ui_asset_editor_session_adopts_imported_theme_rule_body_helper_items() {

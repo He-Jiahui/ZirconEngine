@@ -79,5 +79,5 @@ fn boxed_popup_rows(rows: Vec<usize>) -> Box<[usize]> {
 }
 
 #[cfg(test)]
-#[path = "pane_index/boxed_popup_rows_tests.rs"]
+#[path = "pane_index/tests/boxed_popup_rows_tests.rs"]
 mod boxed_popup_rows_tests;

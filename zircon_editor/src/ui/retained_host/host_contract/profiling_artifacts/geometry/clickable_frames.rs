@@ -1,6 +1,7 @@
 use super::super::{UiProfileNamedFrame, UiProfileTabFrame};
 
 #[cfg(test)]
+#[path = "clickable_frames/tests/capacity_tests.rs"]
 mod capacity_tests;
 
 pub(in crate::ui::retained_host::host_contract) fn collect_clickable_frames(

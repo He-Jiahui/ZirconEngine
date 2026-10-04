@@ -2,6 +2,7 @@ var container = %import("zr.container");
 
 // Candidate rows are already filtered by the source entity predicates. This
 // module owns only interaction precedence and distance comparison semantics.
+/// 独立交互优先规则测试的候选投影；本模块不检查阵营、拾取权限或视线，提交实际交互前须由权威持有者完成这些判定。
 pub class CandidateSet {
     pub var ids: container.Array<uint>;
     pub var distanceSquared: container.Array<float>;
@@ -118,6 +119,8 @@ nearestSpiritHealer(candidates: CandidateSet): Selection {
     return bestIndex < 0 ? none() : new Selection(5, <uint>candidates.ids[bestIndex]);
 }
 
+/// 只返回交互路由和对象编号，不执行交互；活人优先检查已选目标，再按尸体、对象、任务桶顺序找附近候选。
+/// 死亡路径忽略当前目标只查灵魂医者；桶顺序优先于跨桶的全局最近距离。
 pub select(candidates: CandidateSet, targetId: uint, actorDead: bool): Selection {
     validateCandidates(candidates);
     if (actorDead) {

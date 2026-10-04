@@ -1,3 +1,4 @@
+# 核对面板命中路由借用代际身份，仅在激活与回调边界物化持有载荷。
 from pathlib import Path
 import unittest
 
@@ -102,7 +103,7 @@ class EditorPaneRouteBorrowedHitPerformanceContractTests(unittest.TestCase):
         self.assertNotIn("surface_key.clone()", viewport_click)
 
     def test_lower_regression_proves_generation_owned_pane_route_identity(self) -> None:
-        tests = (PANES / "entry/route/tests.rs").read_text(encoding="utf-8")
+        tests = (PANES / "entry/route/tests/cases.rs").read_text(encoding="utf-8")
 
         self.assertIn(
             "pane_pointer_route_borrows_generation_owned_targets_and_materializes_only_for_activation",

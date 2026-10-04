@@ -140,3 +140,59 @@ fn failed_exclusive_context_update_faults_the_engine_when_selection_rollback_fai
         Err(EditCommandError::EngineFaulted { .. })
     ));
 }
+
+#[test]
+fn exclusive_history_snapshot_keeps_competing_edits_out_until_context_update() {
+    let (engine, _) = engine_with_committed_history();
+    let before = engine.history_status(HistoryContextId::Global).unwrap();
+    let mut transition = engine
+        .begin_exclusive_transition("guarded history replacement")
+        .unwrap();
+
+    assert_eq!(transition.history_status(HistoryContextId::Global), before);
+    std::thread::scope(|threads| {
+        threads
+            .spawn(|| {
+                assert!(matches!(
+                    engine.begin("competing edit", HistoryContextId::Global),
+                    Err(EditCommandError::EngineBusy { .. })
+                ));
+            })
+            .join()
+            .unwrap();
+    });
+    transition
+        .clear_history_and_context::<FixtureContext>(
+            HistoryContextId::Global,
+            "FixtureContext",
+            |context| {
+                context.value = 17;
+                Ok(())
+            },
+        )
+        .unwrap();
+    let after = transition.history_status(HistoryContextId::Global);
+    assert!(after.generation > before.generation);
+    assert!(!after.dirty);
+    assert_eq!(after.len, 0);
+    drop(transition);
+    assert_eq!(
+        engine.history_status(HistoryContextId::Global).unwrap(),
+        after
+    );
+}
+
+#[test]
+fn exclusive_history_snapshot_observes_the_generation_after_undo() {
+    let (engine, _) = engine_with_committed_history();
+    let before = engine.history_status(HistoryContextId::Global).unwrap();
+    assert!(engine.undo(HistoryContextId::Global).unwrap());
+    let current = engine.history_status(HistoryContextId::Global).unwrap();
+    let transition = engine
+        .begin_exclusive_transition("snapshot after undo")
+        .unwrap();
+
+    assert_eq!(transition.history_status(HistoryContextId::Global), current);
+    assert!(current.generation > before.generation);
+    assert!(current.can_redo);
+}

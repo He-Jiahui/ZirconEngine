@@ -62,6 +62,9 @@ pub(super) fn project_v2_document(
             root: RetainedUiNodeProjection {
                 component: String::new(),
                 control_id: None,
+                source_path: None,
+                source_node_id: None,
+                instance_path: None,
                 attributes: BTreeMap::new(),
                 style_tokens: BTreeMap::new(),
                 binding_ids: Vec::new(),
@@ -178,23 +181,15 @@ fn merge_projection_only_host_nodes(
         })
         .collect::<BTreeMap<_, _>>();
 
-    for projection_node in &projection_nodes {
+    for mut projection_node in projection_nodes {
         let Some(control_id) = projection_node.control_id.as_ref() else {
             continue;
         };
-        let Some(surface_index) = surface_by_control_id.get(control_id).copied() else {
-            continue;
-        };
-        merge_projection_metadata(&mut surface_nodes[surface_index], projection_node);
-    }
-
-    for mut projection_node in projection_nodes {
-        let Some(control_id) = projection_node.control_id.clone() else {
-            continue;
-        };
-        if surface_by_control_id.contains_key(&control_id) {
+        if let Some(surface_index) = surface_by_control_id.get(control_id).copied() {
+            merge_projection_metadata(&mut surface_nodes[surface_index], projection_node);
             continue;
         }
+        let control_id = control_id.clone();
 
         // Pane payload projection can inject synthetic host nodes after the shared surface has
         // already been built from the authored document. Keep those nodes on the surface-backed
@@ -227,19 +222,21 @@ fn merge_projection_only_host_nodes(
 
 fn merge_projection_metadata(
     surface_node: &mut RetainedUiHostNodeProjection,
-    projection_node: &RetainedUiHostNodeProjection,
+    projection_node: RetainedUiHostNodeProjection,
 ) {
-    for (key, value) in &projection_node.attributes {
-        surface_node.attributes.insert(key.clone(), value.clone());
+    let RetainedUiHostNodeProjection {
+        attributes,
+        mut style_overrides,
+        mut style_tokens,
+        ..
+    } = projection_node;
+    // A materialized surface owns its current values, visibility, and input state.
+    // Retain metadata present only in the source projection without replaying its defaults.
+    for (key, value) in attributes {
+        surface_node.attributes.entry(key).or_insert(value);
     }
-    for (key, value) in &projection_node.style_tokens {
-        surface_node.style_tokens.insert(key.clone(), value.clone());
-    }
-    for (key, value) in &projection_node.style_overrides {
-        surface_node
-            .style_overrides
-            .insert(key.clone(), value.clone());
-    }
+    surface_node.style_tokens.append(&mut style_tokens);
+    surface_node.style_overrides.append(&mut style_overrides);
 }
 
 fn project_node(
@@ -247,7 +244,7 @@ fn project_node(
     adapter: &EditorTemplateAdapter,
     bindings: &mut Vec<RetainedUiBindingProjection>,
 ) -> Result<RetainedUiNodeProjection, EditorUiHostRuntimeError> {
-    let mut binding_ids = Vec::new();
+    let mut binding_ids = Vec::with_capacity(node.bindings.len());
     for binding_ref in &node.bindings {
         let binding = adapter
             .resolve_binding(binding_ref)
@@ -264,6 +261,9 @@ fn project_node(
     Ok(RetainedUiNodeProjection {
         component: node.component.clone().unwrap_or_default(),
         control_id: node.control_id.clone(),
+        source_path: None,
+        source_node_id: None,
+        instance_path: None,
         attributes: node.attributes.clone(),
         style_tokens: node.style_tokens.clone(),
         binding_ids,
@@ -323,6 +323,9 @@ fn project_v2_tree(
                     RetainedUiNodeProjection {
                         component: node.component.clone(),
                         control_id: node.control_id.clone(),
+                        source_path: node.source_path.clone(),
+                        source_node_id: node.source_node_id.clone(),
+                        instance_path: node.instance_path.clone(),
                         attributes: v2_node_attributes(node),
                         style_tokens: BTreeMap::new(),
                         binding_ids,
@@ -345,7 +348,7 @@ fn project_v2_binding_ids(
     adapter: &EditorTemplateAdapter,
     bindings: &mut Vec<RetainedUiBindingProjection>,
 ) -> Result<Vec<String>, EditorUiHostRuntimeError> {
-    let mut binding_ids = Vec::new();
+    let mut binding_ids = Vec::with_capacity(node.events.len());
     for binding_ref in &node.events {
         let binding = adapter
             .resolve_binding(binding_ref)
@@ -391,6 +394,9 @@ fn collect_host_nodes(
         node,
         parent_id: parent_id.map(str::to_string),
         node_id: node_id.to_string(),
+        parent_source_path: None,
+        parent_source_node_id: None,
+        parent_instance_path: None,
     }];
     while let Some(frame) = stack.pop() {
         let node_bindings = node_bindings_from_ids(&frame.node.binding_ids, bindings)?;
@@ -401,6 +407,12 @@ fn collect_host_nodes(
             parent_id: frame.parent_id.clone(),
             component: frame.node.component.clone(),
             control_id: frame.node.control_id.clone(),
+            source_path: frame.node.source_path.clone(),
+            source_node_id: frame.node.source_node_id.clone(),
+            instance_path: frame.node.instance_path.clone(),
+            parent_source_path: frame.parent_source_path.clone(),
+            parent_source_node_id: frame.parent_source_node_id.clone(),
+            parent_instance_path: frame.parent_instance_path.clone(),
             frame: Default::default(),
             clip_frame: None,
             z_index: 0,
@@ -415,6 +427,9 @@ fn collect_host_nodes(
                 node: child,
                 parent_id: Some(frame.node_id.clone()),
                 node_id: format!("{}.{index}", frame.node_id),
+                parent_source_path: frame.node.source_path.clone(),
+                parent_source_node_id: frame.node.source_node_id.clone(),
+                parent_instance_path: frame.node.instance_path.clone(),
             });
         }
     }
@@ -425,6 +440,10 @@ struct HostProjectionFrame<'a> {
     node: &'a RetainedUiNodeProjection,
     parent_id: Option<String>,
     node_id: String,
+    parent_source_path: Option<String>,
+    parent_source_node_id: Option<String>,
+    parent_instance_path:
+        Option<Vec<zircon_runtime_interface::ui::v2::UiTemplateNodeInstancePathStep>>,
 }
 
 fn collect_surface_host_nodes(
@@ -481,6 +500,24 @@ fn surface_host_node(
             .map(|parent| parent.node_path.0.clone()),
         component: metadata.component.clone(),
         control_id: metadata.control_id.clone(),
+        source_path: metadata.source_path.clone(),
+        source_node_id: metadata.source_node_id.clone(),
+        instance_path: metadata.instance_path.clone(),
+        parent_source_path: node
+            .parent
+            .and_then(|parent_id| tree.node(parent_id))
+            .and_then(|parent| parent.template_metadata.as_ref())
+            .and_then(|parent| parent.source_path.clone()),
+        parent_source_node_id: node
+            .parent
+            .and_then(|parent_id| tree.node(parent_id))
+            .and_then(|parent| parent.template_metadata.as_ref())
+            .and_then(|parent| parent.source_node_id.clone()),
+        parent_instance_path: node
+            .parent
+            .and_then(|parent_id| tree.node(parent_id))
+            .and_then(|parent| parent.template_metadata.as_ref())
+            .and_then(|parent| parent.instance_path.clone()),
         frame: arranged_node
             .map(|arranged_node| arranged_node.frame)
             .unwrap_or(node.layout_cache.frame),
@@ -687,161 +724,13 @@ fn resolve_template_action_value_with_lookup(
 }
 
 #[cfg(test)]
-mod tests {
-    use std::collections::BTreeMap;
+#[path = "tests/projection.rs"]
+mod tests;
 
-    use toml::Value;
-    use zircon_runtime_interface::ui::{
-        component::UiValue,
-        dispatch::UiTemplateActionInvocation,
-        template::{UiActionRef, UiBindingMissingValuePolicy},
-    };
+#[cfg(test)]
+#[path = "projection/tests/optimization_batch_ho_editor596_tests.rs"]
+mod optimization_batch_ho_editor596_tests;
 
-    use super::resolve_template_action;
-
-    #[test]
-    fn resolves_typed_action_payload_from_a_control_property_snapshot() {
-        let action = UiActionRef {
-            route: Some("plugin.operation".to_string()),
-            action: None,
-            payload: BTreeMap::from([(
-                "entity".to_string(),
-                Value::String("=control.RowList.prop.selected_row_identity".to_string()),
-            )]),
-            payload_missing_policy: Default::default(),
-        };
-        let control_attributes = BTreeMap::from([(
-            "RowList".to_string(),
-            BTreeMap::from([("selected_row_identity".to_string(), Value::Integer(73))]),
-        )]);
-
-        assert_eq!(
-            resolve_template_action(&action, &BTreeMap::new(), &control_attributes),
-            Some(UiTemplateActionInvocation::route(
-                "plugin.operation",
-                BTreeMap::from([("entity".to_string(), UiValue::Int(73))]),
-            ))
-        );
-    }
-
-    #[test]
-    fn authored_editor_action_keeps_action_identity_without_a_route_alias() {
-        let action = UiActionRef {
-            route: None,
-            action: Some("view.console.clear".to_string()),
-            payload: BTreeMap::new(),
-            payload_missing_policy: Default::default(),
-        };
-
-        assert_eq!(
-            resolve_template_action(&action, &BTreeMap::new(), &BTreeMap::new()),
-            Some(UiTemplateActionInvocation::action("view.console.clear"))
-        );
-    }
-
-    #[test]
-    fn authored_action_and_route_aliases_are_rejected_as_ambiguous() {
-        let action = UiActionRef {
-            route: Some("view.console.clear".to_string()),
-            action: Some("view.console.clear".to_string()),
-            payload: BTreeMap::new(),
-            payload_missing_policy: Default::default(),
-        };
-
-        assert_eq!(
-            resolve_template_action(&action, &BTreeMap::new(), &BTreeMap::new()),
-            None
-        );
-    }
-
-    #[test]
-    fn authored_editor_action_with_route_payload_is_rejected() {
-        let action = UiActionRef {
-            route: None,
-            action: Some("view.console.clear".to_string()),
-            payload: BTreeMap::from([(
-                "legacy_route_argument".to_string(),
-                toml::Value::Boolean(true),
-            )]),
-            payload_missing_policy: Default::default(),
-        };
-
-        assert_eq!(
-            resolve_template_action(&action, &BTreeMap::new(), &BTreeMap::new()),
-            None
-        );
-    }
-
-    #[test]
-    fn source_action_missing_value_policy_distinguishes_omit_substitute_and_reject() {
-        let mut action = UiActionRef {
-            route: Some("plugin.operation".to_string()),
-            action: None,
-            payload: BTreeMap::from([(
-                "entity".to_string(),
-                Value::String("=prop.missing".to_string()),
-            )]),
-            payload_missing_policy: UiBindingMissingValuePolicy::Optional,
-        };
-
-        let optional = resolve_template_action(&action, &BTreeMap::new(), &BTreeMap::new())
-            .expect("optional missing payload should preserve its route");
-        assert!(optional.payload.is_empty());
-
-        action.payload_missing_policy = UiBindingMissingValuePolicy::Fallback {
-            value: UiValue::Int(73),
-        };
-        assert_eq!(
-            resolve_template_action(&action, &BTreeMap::new(), &BTreeMap::new())
-                .and_then(|invocation| invocation.payload.get("entity").cloned()),
-            Some(UiValue::Int(73))
-        );
-
-        action.payload_missing_policy = UiBindingMissingValuePolicy::Error;
-        assert!(resolve_template_action(&action, &BTreeMap::new(), &BTreeMap::new()).is_none());
-    }
-
-    #[test]
-    fn console_editor_commands_are_authored_as_actions_not_routes() {
-        let source = include_str!("../../../../assets/ui/editor/host/console_body.zui");
-
-        for command_id in [
-            "view.console.filter.all",
-            "view.console.filter.error",
-            "view.console.filter.warning",
-            "view.console.filter.info",
-            "view.console.source.all",
-            "view.console.source.editor",
-            "view.console.source.runtime",
-            "view.console.source.play",
-            "view.console.source.plugin",
-            "view.console.source.import",
-            "view.console.source.script_build",
-            "view.console.clear",
-        ] {
-            assert!(
-                source.contains(&format!("action = {{ action = \"{command_id}\" }}")),
-                "{command_id} must use UiActionRef.action"
-            );
-            assert!(
-                !source.contains(&format!("route = \"{command_id}\"")),
-                "{command_id} must not retain a route alias"
-            );
-        }
-    }
-
-    #[test]
-    fn host_projection_indexes_bindings_by_reference() {
-        let source = include_str!("projection.rs");
-        let builders = source
-            .split("pub(super) fn build_host_model")
-            .nth(1)
-            .expect("host model builders")
-            .split("fn merge_projection_only_host_nodes")
-            .next()
-            .expect("host model builder bodies");
-        let cloned_rows = [".cloned", "()"].concat();
-
-        assert!(!builders.contains(&cloned_rows));
-    }
-}
+#[cfg(test)]
+#[path = "projection/tests/binding_capacity_tests.rs"]
+mod binding_capacity_tests;

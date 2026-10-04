@@ -28,7 +28,7 @@ doc_type: milestone-detail
 Plan: docs/plans/zircon_plugins/10-editor-integration.md
 Milestone: M1
 Status: completed
-Files: ["zircon_runtime_interface/src/ui/template/asset/binding/expression.rs", "zircon_runtime_interface/tests/ui_binding_control_prop_ref.rs", "zircon_runtime/src/ui/template/asset/binding/validation.rs", "zircon_runtime/src/ui/tests/asset_binding.rs", "zircon_runtime/tests/ui_binding_control_prop_ref.rs", "docs/zircon_runtime/ui/v2.md", "docs/plans/zircon_plugins/10/2026-07-15-control-prop-ref-shared-ui-integration-m1.md"]
+Files: ["zircon_runtime_interface/src/ui/template/asset/binding/expression.rs", "zircon_runtime_interface/tests/ui_binding_control_prop_ref.rs", "zircon_runtime/src/ui/template/asset/binding/validation.rs", "zircon_runtime/src/ui/tests/asset_binding.rs", "zircon_runtime/tests/ui_binding_control_prop_ref.rs", "docs/crates/zircon_runtime/ui/v2.md", "docs/plans/zircon_plugins/10/2026-07-15-control-prop-ref-shared-ui-integration-m1.md"]
 Date: 2026-07-15
 
 ## Scope Delivered

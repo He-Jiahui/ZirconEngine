@@ -3,11 +3,13 @@ use zircon_runtime_interface::ui::{
     layout::UiFrame,
     style::{UiPainterFamily, UiRgbaColor},
     surface::{UiRenderCommand, UiRenderCommandKind, UiResolvedStyle, UiVisualAssetRef},
+    tree::UiTemplateNodeMetadata,
 };
 
+use super::super::resolve::resolve_style;
 use super::{
     state::ButtonRenderState,
-    style::{ButtonVisual, background_color, border_color},
+    style::{background_color, border_color, ButtonVisual},
 };
 
 pub(super) fn surface_command(
@@ -46,6 +48,7 @@ pub(super) fn surface_command(
 
 pub(super) fn text_command(
     node_id: UiNodeId,
+    metadata: &UiTemplateNodeMetadata,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     z_index: i32,
@@ -63,10 +66,15 @@ pub(super) fn text_command(
         clip_frame,
         z_index,
         style: UiResolvedStyle {
+            // The label inherits owner typography, but the surface owns its decoration.
+            background_color: None,
+            border_color: None,
+            border_width: 0.0,
+            corner_radius: 0.0,
             foreground_color: Some(css_color(foreground)),
             font_size,
             line_height,
-            ..UiResolvedStyle::default()
+            ..resolve_style(Some(metadata))
         }
         .with_painter_state(state.family(), state.visual_state()),
         text_layout: None,

@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use crate::core::gateway::EditorRuntimeGatewayHandle;
 use crate::core::runtime_event_consumer::EditorRuntimeEventConsumerHost;
 
-use super::{budget, register_state, FakeGateway, RecordingState, CAPABILITY};
+use super::support::{budget, register_state, FakeGateway, RecordingState, CAPABILITY};
 
 #[test]
 fn global_budget_resumes_at_the_first_unvisited_consumer() {

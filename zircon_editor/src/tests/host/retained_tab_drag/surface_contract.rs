@@ -39,7 +39,9 @@ fn host_document_tab_drop_uses_componentized_workbench_layout_frames() {
     let strip_hitbox = source("src/ui/retained_host/tab_drag/strip_hitbox.rs");
 
     assert!(docking_route.contains("resolve_host_tab_drop_route_with_workbench_layout_frames("));
-    assert!(docking_route.contains("self.workbench_window_bridge.layout_frames()"));
+    assert!(docking_route.contains("let committed = self.committed_shell_state.as_ref()?;"));
+    assert!(docking_route.contains("&committed.layout"));
+    assert!(docking_route.contains("committed.layout_frames"));
     assert!(!docking.contains("self.template_bridge.root_shell_frames()"));
     assert!(!docking_route.contains("self.template_bridge.root_shell_frames()"));
     assert!(!docking.contains("root_shell_frames_with_componentized_drawers();"));

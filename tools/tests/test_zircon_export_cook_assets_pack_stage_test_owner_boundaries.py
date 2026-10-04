@@ -8,12 +8,12 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 COOK_ASSETS_PACK_STAGE_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_cook_assets_pack_stage.py"
+    REPO_ROOT / "tools/export/tests/test_cook_assets_pack_stage.py"
 )
 COOK_ASSETS_PROJECT_FALLBACK_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_cook_assets_project_fallback.py"
+    REPO_ROOT / "tools/export/tests/test_cook_assets_project_fallback.py"
 )
-PACK_STAGE_CLI_TEST = REPO_ROOT / "tools/zircon_export/tests/test_pack_stage_cli.py"
+PACK_STAGE_CLI_TEST = REPO_ROOT / "tools/export/tests/test_pack_stage_cli.py"
 
 PROJECT_FALLBACK_TEST_METHODS = (
     "test_cook_assets_derives_project_default_scene_without_manifest",

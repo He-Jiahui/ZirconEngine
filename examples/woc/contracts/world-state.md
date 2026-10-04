@@ -1,14 +1,35 @@
-# WOC authoritative world state (`WOS113`)
+# WOC authoritative world state (`WOS118`)
 
-`WOS113` is the current committed ZrVM-owned world-state envelope carried
+`WOS118` is the current committed ZrVM-owned world-state envelope carried
 between fixed-tick transactions. `world/state.zr` is the canonical codec and
-`main.zr` publishes `world_state: WOS113`; it writes schema 113 and accepts the
-WOS2-WOS113 migration range. Rust treats these bytes as opaque gameplay state:
+`main.zr` publishes `world_state: WOS118`; it writes schema 118 and accepts the
+WOS2-WOS118 migration range. Rust treats these bytes as opaque gameplay state:
 it checks the FNV-1a digest, enforces transaction budgets and commits or rolls
 back the whole candidate. It must not decode the envelope to reproduce gameplay
 rules.
 
-## Current WOS113 fractional-resource and Rage-aura delta
+## Package lifecycle
+
+The package declares `stateEncoding() == "vm-state-bytes-v1"`. Its
+`saveState() -> Array<uint>` returns a detached copy of the retained canonical
+world state, and `restoreState(Array<uint>) -> int` validates and migrates the
+complete envelope before replacing that state. Success returns zero. An empty
+array explicitly represents the bootstrap state before the first tick.
+
+`world/session.zr` owns this state. A normal `main.fixedTick` must supply the
+same committed bytes as the retained session, then publishes the candidate only
+after simulation and snapshot encoding succeed. The pure `world/state.fixedTick`
+codec entry remains available for isolated simulation. Deactivation and
+reactivation do not reset the world. Host transactions restore the VM checkpoint
+when later budget or output validation rejects an otherwise computed candidate.
+
+The generic ZrVM backend wraps the bytes in an opaque schema-v3 `VmStateBlob`,
+so manager hot reload and the WOC native adapter use the same gameplay payload.
+`tests/woc_lifecycle.rs` in the ZrVM language plugin covers actual ticks, rejected
+inputs, canonical restore, collector steps, and manager hot reload;
+`kernel/lifecycle_state_tests.zr` covers detached byte ownership and migration.
+
+## WOS113 fractional-resource and Rage-aura delta
 
 WOS113 preserves the historical WOS15 signed current/max resource fields and
 appends four entity-aligned `fixed6` values after the WOS112 Feral Instinct
@@ -39,7 +60,7 @@ WOS111 and older snapshots synthesize zero for every row. Historical writers
 reject a nonzero timer, preventing an active Feral Instinct aura from being
 silently downgraded.
 
-## Current WOS111 Tiger's Fury talent-snapshot delta
+## WOS111 Tiger's Fury talent-snapshot delta
 
 WOS111 appends an entity-aligned resolved Tiger's Fury `buff_ap` value, one
 talent-spec code and six selected-row codes after the WOS110 absorb tail. The

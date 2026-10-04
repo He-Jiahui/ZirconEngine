@@ -1,6 +1,6 @@
 // Current-head source port of src/sim/social/card_duel_queue.ts at
-// 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a. Match ownership, world liveness
-// and player-facing events remain in the later Card Duel world reducer.
+// 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a。队列只维护入队顺序和
+// 可复用槽位；CardDuelQueueCoordinator 根据玩家存活状态清退槽位，Service 才创建对局。
 var container = %import("zr.container");
 
 pub class CardDuelPair {
@@ -31,6 +31,8 @@ pub class CardDuelQueueJoin {
     }
 }
 
+// 玩家顺序与物理槽位分离；配对只摘头节点，快照才按逻辑 FIFO
+// 输出玩家列表，避免槽位复用改变队列的公平顺序。
 pub class CardDuelQueue {
     pri var slotPlayerIds: container.Array<uint>;
     pri var slotGenerations: container.Array<uint>;
@@ -56,6 +58,8 @@ pub class CardDuelQueue {
         this.liveCount = 0;
     }
 
+    // 槽位句柄含代数，供协调器从玩家索引直接退队；复用空槽时换代，
+    // 旧句柄即使指向相同下标也不能删除后来入队的玩家。
     pri appendTracked(pid: uint, ownerIndex: int): CardDuelQueueJoin {
         var result = new CardDuelQueueJoin();
         var slot = -1;

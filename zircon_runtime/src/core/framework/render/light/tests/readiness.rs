@@ -1,0 +1,70 @@
+use crate::core::framework::render::{
+    RenderAmbientLightSnapshot, RenderLayerSet, RenderRectLightSnapshot, DEFAULT_RENDER_LAYER_MASK,
+};
+use crate::core::math::{Vec2, Vec3};
+
+use super::RenderLightReadinessReport;
+
+#[test]
+fn light_status_counts_split_ready_and_degraded_slots() {
+    let ambient_lights = vec![
+        RenderAmbientLightSnapshot {
+            color: Vec3::ONE,
+            intensity: 1.0,
+            affects_lightmapped_meshes: true,
+            renderer_degraded: false,
+            degradation_reason: None,
+        },
+        RenderAmbientLightSnapshot {
+            color: Vec3::ZERO,
+            intensity: 0.0,
+            affects_lightmapped_meshes: true,
+            renderer_degraded: true,
+            degradation_reason: Some("ambient fallback only".to_string()),
+        },
+    ];
+    let rect_lights = vec![
+        rect_light(false),
+        RenderRectLightSnapshot {
+            renderer_degraded: true,
+            degradation_reason: Some("area-light shading unavailable".to_string()),
+            ..rect_light(false)
+        },
+    ];
+
+    let report =
+        RenderLightReadinessReport::from_light_slices(2, 10, 1, &ambient_lights, &rect_lights);
+
+    assert_eq!(report.directional.total_count, 2);
+    assert_eq!(report.directional.ready_count, 2);
+    assert_eq!(report.directional.degraded_count, 0);
+    assert_eq!(report.point.total_count, 10);
+    assert_eq!(report.point.ready_count, 10);
+    assert_eq!(report.point.degraded_count, 0);
+    assert_eq!(report.spot.total_count, 1);
+    assert_eq!(report.spot.ready_count, 1);
+    assert_eq!(report.spot.degraded_count, 0);
+    assert_eq!(report.ambient.total_count, 2);
+    assert_eq!(report.ambient.ready_count, 1);
+    assert_eq!(report.ambient.degraded_count, 1);
+    assert_eq!(report.rect.total_count, 2);
+    assert_eq!(report.rect.ready_count, 1);
+    assert_eq!(report.rect.degraded_count, 1);
+}
+
+fn rect_light(renderer_degraded: bool) -> RenderRectLightSnapshot {
+    RenderRectLightSnapshot {
+        node_id: 1,
+        light_id: 1,
+        layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
+        position: Vec3::ZERO,
+        direction: Vec3::new(0.0, 0.0, -1.0),
+        color: Vec3::ONE,
+        intensity: 1.0,
+        range: 1.0,
+        size: Vec2::ONE,
+        shadow: None,
+        renderer_degraded,
+        degradation_reason: renderer_degraded.then(|| "degraded".to_string()),
+    }
+}

@@ -1,3 +1,4 @@
+//! 控制台投影在模板可用时复用逻辑日志代次和行槽位；失败时回到原生节点，保持过滤器与消息快照一致。
 use std::collections::BTreeMap;
 
 use crate::core::editor_event::{ConsoleMessageFilter, ConsoleSourceFilter};
@@ -486,5 +487,5 @@ fn to_host_contract_console_legacy_node(
 }
 
 #[cfg(test)]
-#[path = "console_projection/tests.rs"]
+#[path = "console_projection/tests/cases.rs"]
 mod tests;

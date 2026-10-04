@@ -14,8 +14,8 @@ use super::cache::{
     CircularProgressRasterKey,
 };
 use super::geometry::circular_progress_rect;
-use super::key::circular_progress_image_key;
-use super::pixels::{circular_progress_pixels, normalized_circular_progress_percent};
+use super::key::circular_progress_image_key_for_target;
+use super::pixels::{circular_progress_pixels_for_target, normalized_circular_progress_percent};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_circular_progress_command(
     commands: &mut Vec<HostPaintCommand>,
@@ -29,11 +29,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ci
     if intersect(&image_rect, clip).is_none() {
         return;
     }
-    let Some((width, height)) = raster_size_from_frame(image_rect.width, image_rect.height) else {
+    let target_size = image_rect.width.min(image_rect.height);
+    let Some((source_width, source_height)) = raster_size_from_frame(target_size, target_size)
+    else {
         return;
     };
-    let size = width.min(height);
-    if size == 0 {
+    let source_size = source_width.min(source_height);
+    if source_size == 0 {
         return;
     }
 
@@ -44,11 +46,25 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ci
     });
     let track = progress_track_color(node);
     let fill = progress_fill_color(node);
-    let cache_key = CircularProgressRasterKey::new(size, progress, track, fill);
+    let cache_key =
+        CircularProgressRasterKey::with_target(source_size, target_size, progress, track, fill);
     let CachedCircularProgressRaster { resource_key, rgba } =
         cached_circular_progress_raster(cache_key).unwrap_or_else(|| {
-            let rgba: Arc<[u8]> = circular_progress_pixels(size, progress, track, fill).into();
-            let resource_key = circular_progress_image_key(size, progress, track, fill);
+            let rgba: Arc<[u8]> = circular_progress_pixels_for_target(
+                source_size,
+                target_size,
+                progress,
+                track,
+                fill,
+            )
+            .into();
+            let resource_key = circular_progress_image_key_for_target(
+                source_size,
+                target_size,
+                progress,
+                track,
+                fill,
+            );
             store_circular_progress_raster(cache_key, resource_key.clone(), Arc::clone(&rgba));
             CachedCircularProgressRaster { resource_key, rgba }
         });
@@ -57,8 +73,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ci
         Some(clip.clone()),
         order,
         resource_key,
-        size,
-        size,
+        source_size,
+        source_size,
         rgba,
         None,
         opacity,

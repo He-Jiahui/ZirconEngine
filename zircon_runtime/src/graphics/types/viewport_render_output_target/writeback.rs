@@ -1,13 +1,15 @@
+//! 写回计划与图导入使用同一目标格式契约，在场景提交后决定拷贝、转换或保持禁止。
 use crate::core::framework::render::RenderCameraTargetKind;
 use crate::core::math::UVec2;
 use crate::core::resource::{ResourceHandle, TextureMarker};
 
 use super::{
-    FRAMEWORK_OUTPUT_FORMAT_LABEL, LINEAR_OUTPUT_FORMAT_LABEL, ViewportRenderOutputTarget,
-    format_label_matches,
+    format_label_matches, ViewportRenderOutputTarget, FRAMEWORK_OUTPUT_FORMAT_LABEL,
+    LINEAR_OUTPUT_FORMAT_LABEL,
 };
 
 impl ViewportRenderOutputTarget {
+    /// 根据图导入后的目标描述计算写回状态，供直接提交和图路径共用。
     pub(crate) fn writeback_plan(
         self,
         target_format: Option<&str>,
@@ -206,6 +208,7 @@ impl ViewportTextureWritebackPlan {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 纹理写回状态，说明是拷贝、格式转换、等待描述还是被格式禁止。
 pub(crate) enum ViewportTextureWritebackStatus {
     #[default]
     NotRequested,

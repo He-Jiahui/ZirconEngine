@@ -1,3 +1,4 @@
+# 核对设置窗口共享目录并按版本投影选中值，语言与域身份独立于值重建。
 import unittest
 from pathlib import Path
 

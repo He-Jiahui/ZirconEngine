@@ -1,3 +1,5 @@
+//! 轨道、填充、刻度、标签、双滑块与数值浮层的内部叠放协议；基础排序边界见 CR-EDITOR-PAINT-0002。
+
 const TRACK_FILL_ORDER_OFFSET: i32 = 1;
 const TICK_ORDER_OFFSET: i32 = 2;
 const LABEL_ORDER_OFFSET: i32 = 3;
@@ -40,20 +42,5 @@ pub(super) fn thumb_body_order(halo_order: i32) -> i32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn slider_layers_keep_track_ticks_thumbs_and_value_stack_order() {
-        let order = 30;
-
-        assert!(order < track_fill_order(order));
-        assert!(track_fill_order(order) < tick_order(order));
-        assert_eq!(label_order(order), range_min_thumb_order(order));
-        assert!(range_min_thumb_order(order) < primary_thumb_order(order));
-        assert!(primary_thumb_order(order) < value_surface_order(order));
-        assert!(value_surface_order(order) < inner_text_order(value_surface_order(order)));
-        assert!(range_min_thumb_order(order) < thumb_body_order(range_min_thumb_order(order)));
-        assert!(primary_thumb_order(order) < thumb_body_order(primary_thumb_order(order)));
-    }
-}
+#[path = "tests/layers.rs"]
+mod tests;

@@ -42,7 +42,7 @@ resolved_at: 2026-07-15
 
 原始失败为 `CommandEvalCtx.focused_document_kind` 默认 `None`，`command_eval_ctx_from_chrome` 没有消费领域文档 owner。当前修复已补齐 typed descriptor 与唯一 `focused_view` 投影；Plan08 的 project-open 不得自动制造 focused scene document 回归保持不变。
 
-修复前静态复现为生产 `with_focused_document_kind(` 调用为零；修复后 host 从 Chrome 的 typed snapshot 消费 `focused_document_kind`。current-source Cargo 已实际启动，不再是共享池等待状态；首次重跑未能进入 Editor 测试执行的原因是下层 owner 编译失败：[Plugins08 reflection（已回传 fixed）](../../../zircon_runtime/render/18/fixed-2026-07-14-derived-reflection-visibility-compilation.md)、[Text02 shaping](../../../zircon_runtime/text/02/failure-2026-07-14-variable-shaping-visibility-compilation.md) 与 [Runtime04 reference resolver](../../../zircon_runtime/runtime/04/failure-2026-07-13-stale-subasset-reference-repair.md)。
+修复前静态复现为生产 `with_focused_document_kind(` 调用为零；修复后 host 从 Chrome 的 typed snapshot 消费 `focused_document_kind`。current-source Cargo 已实际启动，不再是共享池等待状态；首次重跑未能进入 Editor 测试执行的原因是下层 owner 编译失败：[Plugins08 reflection（已回传 fixed）](../../../zircon_runtime/render/18/fixed-2026-07-14-derived-reflection-visibility-compilation.md)、[Text02 shaping](../07/fixed-2026-07-14-variable-shaping-visibility-compilation.md) 与 [Runtime04 reference resolver](../../../zircon_runtime/frameworks/02/fixed-2026-07-14-stale-subasset-reference-repair.md)。
 
 ## 最低共享层根因
 

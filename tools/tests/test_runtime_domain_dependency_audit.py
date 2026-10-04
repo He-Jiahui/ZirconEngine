@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.runtime_domain_dependency_audit import (
+from tools.audits.runtime_domain_dependency_audit import (
     _rust_code_view,
     _rust_use_paths,
     audit_runtime_domain_dependencies,
@@ -34,6 +34,25 @@ class RuntimeDomainDependencyAuditTests(unittest.TestCase):
                 (("crate", "graphics", "text"), "nested_text"),
                 (("wgpu",), "gpu"),
             ],
+        )
+
+    def test_reports_exact_lines_for_large_multiline_use_tree(self) -> None:
+        source = "\n" * 2048 + (
+            "use crate::{\n"
+            "    graphics::Renderer,\n"
+            "    ui::{UiTree, UiNode},\n"
+            "};\n"
+        )
+
+        paths = _rust_use_paths(_rust_code_view(source))
+
+        self.assertEqual(
+            [
+                (("crate", "graphics", "Renderer"), None, 2050),
+                (("crate", "ui", "UiTree"), None, 2051),
+                (("crate", "ui", "UiNode"), None, 2051),
+            ],
+            paths,
         )
 
     def test_canonicalizes_raw_identifiers_in_paths_and_use_trees(self) -> None:

@@ -21,7 +21,7 @@ fn startup_session_defaults_to_the_project_chooser_without_recent_project() {
     assert!(session.project.is_none());
     assert!(session.recent_projects.is_empty());
     assert_eq!(session.draft.project_name, "ZirconProject");
-    assert_eq!(session.draft.template, NewProjectTemplate::RenderableEmpty);
+    assert_eq!(session.draft.template, ProjectTemplateId::RenderableEmpty);
     assert_eq!(session.status_message, "Select a project to open.");
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
@@ -41,7 +41,7 @@ fn startup_session_keeps_valid_recent_projects_in_the_chooser() {
     let draft = NewProjectDraft {
         project_name: "RecentProject".to_string(),
         location: location.to_string_lossy().into_owned(),
-        template: NewProjectTemplate::RenderableEmpty,
+        template: ProjectTemplateId::RenderableEmpty,
     };
 
     let opened = manager.create_project_and_open(draft).unwrap();

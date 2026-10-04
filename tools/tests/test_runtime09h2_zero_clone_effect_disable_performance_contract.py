@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 禁用 effect 的输出用借用名称索引清理依赖，提供者输出在同一变更流程中转移并归还；避免无关名称复制。
 
 ROOT = Path(__file__).resolve().parents[2]
 STACK_RS = ROOT / "zircon_runtime/src/core/framework/render/post_process/stack.rs"

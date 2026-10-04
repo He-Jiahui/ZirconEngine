@@ -58,5 +58,5 @@ pub(in super::super) fn pane_route_from_pane<'a>(
 }
 
 #[cfg(test)]
-#[path = "entry/tests.rs"]
+#[path = "entry/tests/cases.rs"]
 mod tests;

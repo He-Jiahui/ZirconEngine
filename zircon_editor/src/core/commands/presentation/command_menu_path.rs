@@ -51,10 +51,12 @@ impl EditorCommandMenuPath {
         &self.leaf
     }
 
-    pub fn segments(&self) -> impl ExactSizeIterator<Item = &EditorCommandMenuSegment> {
-        std::iter::once(&self.root)
-            .chain(self.groups.iter())
-            .chain(std::iter::once(&self.leaf))
+    pub fn segments(&self) -> std::vec::IntoIter<&EditorCommandMenuSegment> {
+        let mut segments = Vec::with_capacity(self.groups.len().saturating_add(2));
+        segments.push(&self.root);
+        segments.extend(self.groups.iter());
+        segments.push(&self.leaf);
+        segments.into_iter()
     }
 
     pub fn stable_path(&self) -> String {

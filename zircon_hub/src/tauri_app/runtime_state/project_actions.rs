@@ -3,120 +3,63 @@ use std::path::{Path, PathBuf};
 use crate::error::HubError;
 use crate::process::FolderPickerRequest;
 use crate::projects::{
-    create_project, merge_recent_project_entries, metadata_for_path_mut, normalize_project_root,
+    merge_recent_project_entries, metadata_for_path_mut, normalize_project_root,
     project_metadata_key, project_paths_match, prune_empty_metadata, validate_project_root,
-    CreateProjectError, CreateProjectRequest, ProjectTemplate, ProjectValidation, RecentProject,
+    ProjectTemplateId, ProjectValidation, RecentProject,
 };
 use crate::state::{
     EngineMessageId, HubActionKind, HubActionRecord, HubActionStatus, HubMessage, HubMessageId,
     HubPage, ProjectMessageId, ProjectSubpage, ProjectViewMode, TaskOperationKind, TaskStatus,
 };
-use crate::tauri_app::action_request::{
-    CreateProjectActionPayload, ImportProjectActionPayload, ProjectTargetActionPayload,
-};
+use crate::tauri_app::action_request::{ImportProjectActionPayload, ProjectTargetActionPayload};
 use crate::tauri_app::view_model::HubTextBundle;
 
 use super::{recent_project_display_name, HubRuntimeSession};
 
-#[cfg(test)]
-const CREATE_KEPT_FOLDER_RECOVERY: &str =
-    "The project folder was kept on disk; use Import Project to add it to Hub";
-
 impl HubRuntimeSession {
-    pub(super) fn create_project_from_payload(
+    pub(super) fn accept_editor_owned_project_creation(
         &mut self,
-        payload: CreateProjectActionPayload,
+        project_name: String,
+        project_root: PathBuf,
+        engine_id: String,
+        template: ProjectTemplateId,
+        process_id: u32,
+        command_line: Vec<String>,
     ) -> Result<(), HubError> {
-        self.remember_create_project_payload(&payload);
-        let template = match ProjectTemplate::from_enabled_id(&payload.template) {
-            Some(template) => template,
-            None => {
-                self.record_lifecycle_failure(
-                    HubActionKind::CreateProject,
-                    payload.name.clone(),
-                    HubMessage::with_params(
-                        HubMessageId::Project(ProjectMessageId::TemplateComingSoon),
-                        [payload.template],
-                    ),
-                    HubMessage::new(HubMessageId::Project(
-                        ProjectMessageId::ChooseRenderableTemplate,
-                    )),
-                    None,
-                )?;
-                return Ok(());
-            }
-        };
-        let engine_id = match self.resolve_project_engine_id(payload.engine_id) {
-            Ok(engine_id) => engine_id,
-            Err(error) => {
-                let (detail, _) = error.into_status_messages();
-                self.record_lifecycle_failure(
-                    HubActionKind::CreateProject,
-                    payload.name.clone(),
-                    detail,
-                    HubMessage::new(HubMessageId::Project(
-                        ProjectMessageId::RegisterEngineBeforeCreate,
-                    )),
-                    None,
-                )?;
-                return Ok(());
-            }
-        };
-        let request = CreateProjectRequest::new(payload.name.clone(), payload.location, template);
-        let report = match create_project(&request) {
-            Ok(report) => report,
-            Err(error) => {
-                let target_not_empty = matches!(&error, CreateProjectError::TargetNotEmpty { .. });
-                let detail = error.to_string();
-                let detail_message = create_project_error_message(&detail);
-                let recovery = if target_not_empty {
-                    HubMessage::new(HubMessageId::Project(
-                        ProjectMessageId::ExistingFolderUseImport,
-                    ))
-                } else {
-                    HubMessage::new(HubMessageId::Project(
-                        ProjectMessageId::ChooseEmptyTargetFolder,
-                    ))
-                };
-                self.record_lifecycle_failure(
-                    HubActionKind::CreateProject,
-                    payload.name.clone(),
-                    detail_message,
-                    recovery,
-                    None,
-                )?;
-                return Ok(());
-            }
-        };
-
-        let project_root = report.project_root.clone();
         if let Err(error) = self.remember_lifecycle_project(
             project_root.clone(),
-            engine_id,
-            Some(template.id().to_string()),
+            Some(engine_id),
+            Some(template.as_str().to_string()),
         ) {
             return self.record_create_project_kept_folder_failure(
-                payload.name,
+                project_name,
                 &project_root,
                 error,
             );
         }
-        self.push_lifecycle_record(
-            HubActionKind::CreateProject,
-            HubActionStatus::Success,
-            payload.name.clone(),
-            HubMessage::with_params(
-                HubMessageId::Project(ProjectMessageId::CreatedPath),
-                [project_root.to_string_lossy().into_owned()],
-            ),
-            None,
-            Some(project_root.clone()),
+        crate::state::push_action_record(
+            &mut self.config.action_history,
+            HubActionRecord {
+                finished_unix_ms: crate::projects::now_unix_ms(),
+                action: HubActionKind::CreateProject,
+                status: HubActionStatus::Success,
+                target: project_name.clone(),
+                detail: HubMessage::with_params(
+                    HubMessageId::Project(ProjectMessageId::CreatedPath),
+                    [project_root.to_string_lossy().into_owned()],
+                ),
+                log_excerpt: HubMessage::empty(),
+                recovery: None,
+                process_id: Some(process_id),
+                command_line,
+                output_dir: Some(project_root.clone()),
+            },
         );
         self.task_status = TaskStatus::success(
             "Project created",
             HubMessage::raw_text(project_root.to_string_lossy().into_owned()),
         )
-        .with_operation(TaskOperationKind::Project, payload.name);
+        .with_operation(TaskOperationKind::Project, project_name.clone());
         self.new_project_name.clear();
         if let Err(error) = self.persist() {
             self.config.action_history.retain(|record| {
@@ -125,7 +68,7 @@ impl HubRuntimeSession {
                     || record.output_dir.as_deref() != Some(project_root.as_path())
             });
             return self.record_create_project_kept_folder_failure(
-                request.project_name,
+                project_name,
                 &project_root,
                 error,
             );
@@ -412,7 +355,7 @@ impl HubRuntimeSession {
         )
     }
 
-    fn resolve_project_engine_id(
+    pub(super) fn resolve_project_engine_id(
         &self,
         requested_engine_id: Option<String>,
     ) -> Result<Option<String>, HubError> {
@@ -533,7 +476,7 @@ impl HubRuntimeSession {
         self.refresh_selected_project_scoped_views()
     }
 
-    fn record_lifecycle_failure(
+    pub(super) fn record_lifecycle_failure(
         &mut self,
         action: HubActionKind,
         target: String,
@@ -633,24 +576,6 @@ fn project_validation_error(project_root: &Path) -> Option<HubMessage> {
     }
 }
 
-fn create_project_error_message(detail: &str) -> HubMessage {
-    match detail {
-        "Project root is required" => {
-            HubMessage::new(HubMessageId::Project(ProjectMessageId::ProjectRootRequired))
-        }
-        "Target path already exists as a file" => {
-            HubMessage::new(HubMessageId::Project(ProjectMessageId::TargetPathIsFile))
-        }
-        "Target directory must be empty" => HubMessage::new(HubMessageId::Project(
-            ProjectMessageId::TargetDirectoryMustBeEmpty,
-        )),
-        "Project path is required" => {
-            HubMessage::new(HubMessageId::Project(ProjectMessageId::ProjectPathRequired))
-        }
-        _ => HubMessage::raw_text(detail.to_string()),
-    }
-}
-
 fn project_display_name_from_path(path: &Path) -> String {
     path.file_name()
         .and_then(|name| name.to_str())
@@ -660,5 +585,5 @@ fn project_display_name_from_path(path: &Path) -> String {
 }
 
 #[cfg(test)]
-#[path = "project_actions/tests.rs"]
+#[path = "project_actions/tests/cases.rs"]
 mod tests;

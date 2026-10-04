@@ -17,6 +17,8 @@ export const coverById: Record<string, string> = {
 };
 
 export const fallbackShellState: HubShellState = {
+  backendEpoch: "fallback",
+  stateRevision: "0",
   productName: "Zircon Hub",
   engineVersion: "Zircon Engine 1.8.2",
   activePage: "projects",
@@ -57,6 +59,7 @@ export const fallbackShellState: HubShellState = {
     detail: "Hub 已就绪",
     tone: "neutral",
     running: false,
+    cancellable: false,
     recovery: null,
     operation: "Hub",
     progressPercent: 0,
@@ -436,6 +439,8 @@ export const fallbackShellState: HubShellState = {
       browserTitle: "项目浏览器",
       detailTitle: "项目详情",
       searchPlaceholder: "搜索项目...",
+      filterLabel: "筛选项目",
+      sortLabel: "排序项目",
       filterAll: "全部项目",
       filterExisting: "存在",
       filterMissing: "缺失",
@@ -508,6 +513,7 @@ export const fallbackShellState: HubShellState = {
       quickActions: "快捷操作",
       project: "项目",
       engine: "引擎",
+      cancelTask: "取消任务",
       template: "模板",
       path: "路径",
       category: "分类",

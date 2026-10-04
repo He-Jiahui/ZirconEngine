@@ -1,0 +1,1884 @@
+{
+  "batch": 24,
+  "recorded_at_utc": "2026-10-03T07:30:24.162008+00:00",
+  "independent_review_sha256": "176a0d9b638d727087c21a390f05401115e006400454e51002e188764a45920d",
+  "independent_md_sha256": "82e8b68a621bffcfe06849794b7c2c972807ffbdbffee43cb047eaf260dc3b57",
+  "raw_capture_inventory": [
+    {
+      "bytes": 1105,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\audit.md",
+      "sha256": "b2690542d739f96c38de38c87e528e2ab2e773d77ea3fc931157d3883737c434",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\audit.md"
+    },
+    {
+      "bytes": 61195,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\crosswalk.jsonl",
+      "sha256": "04c36d7c303d4dce5549e712235a2fbb144e5f68c420862949bce8875edb5279",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\crosswalk.jsonl"
+    },
+    {
+      "bytes": 62713,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\original-gates.jsonl",
+      "sha256": "deb84b668a49ecef556abb76f928095184f7001af5a680138abc159a0d155fbf",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\original-gates.jsonl"
+    },
+    {
+      "bytes": 191,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\001__Build.version__after.raw",
+      "sha256": "3dcd8b6654872d013f2b00aa5f0ef1e0db89d4e8627ce820554675a27f228ea6",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\001__Build.version__after.raw"
+    },
+    {
+      "bytes": 191,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\001__Build.version__before.raw",
+      "sha256": "3dcd8b6654872d013f2b00aa5f0ef1e0db89d4e8627ce820554675a27f228ea6",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\001__Build.version__before.raw"
+    },
+    {
+      "bytes": 191,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\001__Build.version__capture.raw",
+      "sha256": "3dcd8b6654872d013f2b00aa5f0ef1e0db89d4e8627ce820554675a27f228ea6",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\001__Build.version__capture.raw"
+    },
+    {
+      "bytes": 3501,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\002__LandscapeComponent.cpp__after.raw",
+      "sha256": "334b12c5cb354a609791bd89d06602b14d89c8e758544b056fb01402b02d8293",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\002__LandscapeComponent.cpp__after.raw"
+    },
+    {
+      "bytes": 3501,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\002__LandscapeComponent.cpp__before.raw",
+      "sha256": "334b12c5cb354a609791bd89d06602b14d89c8e758544b056fb01402b02d8293",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\002__LandscapeComponent.cpp__before.raw"
+    },
+    {
+      "bytes": 3501,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\002__LandscapeComponent.cpp__capture.raw",
+      "sha256": "334b12c5cb354a609791bd89d06602b14d89c8e758544b056fb01402b02d8293",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\002__LandscapeComponent.cpp__capture.raw"
+    },
+    {
+      "bytes": 206243,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\003__LandscapeRender.cpp__after.raw",
+      "sha256": "23ff5712ae28b0a23d21a8e61825e4f7d1dacc3320b3ba7afae3f5d28e6b2973",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\003__LandscapeRender.cpp__after.raw"
+    },
+    {
+      "bytes": 206243,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\003__LandscapeRender.cpp__before.raw",
+      "sha256": "23ff5712ae28b0a23d21a8e61825e4f7d1dacc3320b3ba7afae3f5d28e6b2973",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\003__LandscapeRender.cpp__before.raw"
+    },
+    {
+      "bytes": 206243,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\003__LandscapeRender.cpp__capture.raw",
+      "sha256": "23ff5712ae28b0a23d21a8e61825e4f7d1dacc3320b3ba7afae3f5d28e6b2973",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\003__LandscapeRender.cpp__capture.raw"
+    },
+    {
+      "bytes": 187300,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\005__InstancedFoliage.cpp__after.raw",
+      "sha256": "37f8a5691f74f8b713b7eb73e6fa8bfed2dceccd5595e15953f3e06cc79ebc65",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\005__InstancedFoliage.cpp__after.raw"
+    },
+    {
+      "bytes": 187300,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\005__InstancedFoliage.cpp__before.raw",
+      "sha256": "37f8a5691f74f8b713b7eb73e6fa8bfed2dceccd5595e15953f3e06cc79ebc65",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\005__InstancedFoliage.cpp__before.raw"
+    },
+    {
+      "bytes": 187300,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\005__InstancedFoliage.cpp__capture.raw",
+      "sha256": "37f8a5691f74f8b713b7eb73e6fa8bfed2dceccd5595e15953f3e06cc79ebc65",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\005__InstancedFoliage.cpp__capture.raw"
+    },
+    {
+      "bytes": 33691,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\006__WorldPartitionRuntimeLevelStreamingCell.cpp__after.raw",
+      "sha256": "eadb6d6a1d16b353337b61150862a5410efca5f784e6ef424614f178b6a827e2",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\006__WorldPartitionRuntimeLevelStreamingCell.cpp__after.raw"
+    },
+    {
+      "bytes": 33691,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\006__WorldPartitionRuntimeLevelStreamingCell.cpp__before.raw",
+      "sha256": "eadb6d6a1d16b353337b61150862a5410efca5f784e6ef424614f178b6a827e2",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\006__WorldPartitionRuntimeLevelStreamingCell.cpp__before.raw"
+    },
+    {
+      "bytes": 33691,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\006__WorldPartitionRuntimeLevelStreamingCell.cpp__capture.raw",
+      "sha256": "eadb6d6a1d16b353337b61150862a5410efca5f784e6ef424614f178b6a827e2",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\006__WorldPartitionRuntimeLevelStreamingCell.cpp__capture.raw"
+    },
+    {
+      "bytes": 74310,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\007__WorldPartitionSubsystem.cpp__after.raw",
+      "sha256": "a8b89e14d26e9d65ebf7822533b8150d2f01c3e3fade4221932335c805c3101a",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\007__WorldPartitionSubsystem.cpp__after.raw"
+    },
+    {
+      "bytes": 74310,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\007__WorldPartitionSubsystem.cpp__before.raw",
+      "sha256": "a8b89e14d26e9d65ebf7822533b8150d2f01c3e3fade4221932335c805c3101a",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\007__WorldPartitionSubsystem.cpp__before.raw"
+    },
+    {
+      "bytes": 74310,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\007__WorldPartitionSubsystem.cpp__capture.raw",
+      "sha256": "a8b89e14d26e9d65ebf7822533b8150d2f01c3e3fade4221932335c805c3101a",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\007__WorldPartitionSubsystem.cpp__capture.raw"
+    },
+    {
+      "bytes": 159626,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\008__LandscapeEdMode.cpp__after.raw",
+      "sha256": "e9da4d6a01c5076b99bf07e3baa8dc3256651d51bd3dfe8b563b1fb14b23b777",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\008__LandscapeEdMode.cpp__after.raw"
+    },
+    {
+      "bytes": 159626,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\008__LandscapeEdMode.cpp__before.raw",
+      "sha256": "e9da4d6a01c5076b99bf07e3baa8dc3256651d51bd3dfe8b563b1fb14b23b777",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\008__LandscapeEdMode.cpp__before.raw"
+    },
+    {
+      "bytes": 159626,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\008__LandscapeEdMode.cpp__capture.raw",
+      "sha256": "e9da4d6a01c5076b99bf07e3baa8dc3256651d51bd3dfe8b563b1fb14b23b777",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\008__LandscapeEdMode.cpp__capture.raw"
+    },
+    {
+      "bytes": 138557,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\009__FoliageEdMode.cpp__after.raw",
+      "sha256": "8a488fdab975b866fe2d20d89e5614c421d8cdc282d84b227346fad733345935",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\009__FoliageEdMode.cpp__after.raw"
+    },
+    {
+      "bytes": 138557,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\009__FoliageEdMode.cpp__before.raw",
+      "sha256": "8a488fdab975b866fe2d20d89e5614c421d8cdc282d84b227346fad733345935",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\009__FoliageEdMode.cpp__before.raw"
+    },
+    {
+      "bytes": 138557,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\009__FoliageEdMode.cpp__capture.raw",
+      "sha256": "8a488fdab975b866fe2d20d89e5614c421d8cdc282d84b227346fad733345935",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\009__FoliageEdMode.cpp__capture.raw"
+    },
+    {
+      "bytes": 126262,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\010__GPUScene.cpp__after.raw",
+      "sha256": "8501c164ebd45d8990c23692a07960c885014444638f1bd63c493e4bc1153f8b",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\010__GPUScene.cpp__after.raw"
+    },
+    {
+      "bytes": 126262,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\010__GPUScene.cpp__before.raw",
+      "sha256": "8501c164ebd45d8990c23692a07960c885014444638f1bd63c493e4bc1153f8b",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\010__GPUScene.cpp__before.raw"
+    },
+    {
+      "bytes": 126262,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\010__GPUScene.cpp__capture.raw",
+      "sha256": "8501c164ebd45d8990c23692a07960c885014444638f1bd63c493e4bc1153f8b",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\010__GPUScene.cpp__capture.raw"
+    },
+    {
+      "bytes": 99195,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\011__InstanceCullingContext.cpp__after.raw",
+      "sha256": "de275b2f0726c21cae5e19c9415153b4a71ad062a23fd19f97bd98f7ae4d637e",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\011__InstanceCullingContext.cpp__after.raw"
+    },
+    {
+      "bytes": 99195,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\011__InstanceCullingContext.cpp__before.raw",
+      "sha256": "de275b2f0726c21cae5e19c9415153b4a71ad062a23fd19f97bd98f7ae4d637e",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\011__InstanceCullingContext.cpp__before.raw"
+    },
+    {
+      "bytes": 99195,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\011__InstanceCullingContext.cpp__capture.raw",
+      "sha256": "de275b2f0726c21cae5e19c9415153b4a71ad062a23fd19f97bd98f7ae4d637e",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\011__InstanceCullingContext.cpp__capture.raw"
+    },
+    {
+      "bytes": 262191,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\012__SceneVisibility.cpp__after.raw",
+      "sha256": "72eb971af94e1b93cf7aef9012166ddaf208b187f30eba60698d569af5b94ce0",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\012__SceneVisibility.cpp__after.raw"
+    },
+    {
+      "bytes": 262191,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\012__SceneVisibility.cpp__before.raw",
+      "sha256": "72eb971af94e1b93cf7aef9012166ddaf208b187f30eba60698d569af5b94ce0",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\012__SceneVisibility.cpp__before.raw"
+    },
+    {
+      "bytes": 262191,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\012__SceneVisibility.cpp__capture.raw",
+      "sha256": "72eb971af94e1b93cf7aef9012166ddaf208b187f30eba60698d569af5b94ce0",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\012__SceneVisibility.cpp__capture.raw"
+    },
+    {
+      "bytes": 339787,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\013__NaniteCullRaster.cpp__after.raw",
+      "sha256": "d3c086708e6fe8a4cc1fab474d4e75ac5d28a87254f6f975cd060ec7a983e62d",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\013__NaniteCullRaster.cpp__after.raw"
+    },
+    {
+      "bytes": 339787,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\013__NaniteCullRaster.cpp__before.raw",
+      "sha256": "d3c086708e6fe8a4cc1fab474d4e75ac5d28a87254f6f975cd060ec7a983e62d",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\013__NaniteCullRaster.cpp__before.raw"
+    },
+    {
+      "bytes": 339787,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\013__NaniteCullRaster.cpp__capture.raw",
+      "sha256": "d3c086708e6fe8a4cc1fab474d4e75ac5d28a87254f6f975cd060ec7a983e62d",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\references\\013__NaniteCullRaster.cpp__capture.raw"
+    },
+    {
+      "bytes": 45815,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\001__09b-renderer-visibility-gpu-scene-review__after.md",
+      "sha256": "6408e6ad91cb9a094c06e51db897c22743d01704429e3d90cb180ff47c683b46",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\reports\\001__09b-renderer-visibility-gpu-scene-review__after.md"
+    },
+    {
+      "bytes": 45815,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\001__09b-renderer-visibility-gpu-scene-review__before.md",
+      "sha256": "6408e6ad91cb9a094c06e51db897c22743d01704429e3d90cb180ff47c683b46",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\reports\\001__09b-renderer-visibility-gpu-scene-review__before.md"
+    },
+    {
+      "bytes": 45815,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\001__09b-renderer-visibility-gpu-scene-review__capture.md",
+      "sha256": "6408e6ad91cb9a094c06e51db897c22743d01704429e3d90cb180ff47c683b46",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\reports\\001__09b-renderer-visibility-gpu-scene-review__capture.md"
+    },
+    {
+      "bytes": 31058,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\002__213-runtime-visibility-gpu-scene-culling-batching-instancing-hzb-virtual-geometry-current-working-tree-review__after.md",
+      "sha256": "4fb17e3f5195ec9a9a5db81b7408851485a9a4a851ce18889db6b89d33467139",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\reports\\002__213-runtime-visibility-gpu-scene-culling-batching-instancing-hzb-virtual-geometry-current-working-tree-review__after.md"
+    },
+    {
+      "bytes": 31058,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\002__213-runtime-visibility-gpu-scene-culling-batching-instancing-hzb-virtual-geometry-current-working-tree-review__before.md",
+      "sha256": "4fb17e3f5195ec9a9a5db81b7408851485a9a4a851ce18889db6b89d33467139",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\reports\\002__213-runtime-visibility-gpu-scene-culling-batching-instancing-hzb-virtual-geometry-current-working-tree-review__before.md"
+    },
+    {
+      "bytes": 31058,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\002__213-runtime-visibility-gpu-scene-culling-batching-instancing-hzb-virtual-geometry-current-working-tree-review__capture.md",
+      "sha256": "4fb17e3f5195ec9a9a5db81b7408851485a9a4a851ce18889db6b89d33467139",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\reports\\002__213-runtime-visibility-gpu-scene-culling-batching-instancing-hzb-virtual-geometry-current-working-tree-review__capture.md"
+    },
+    {
+      "bytes": 48262,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\003__99zq-terrain-landscape-review__after.md",
+      "sha256": "091334f998c8a1aab86db5ebcefe7ea77c2a28f22ef6e0f58249b7241bc19e00",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\reports\\003__99zq-terrain-landscape-review__after.md"
+    },
+    {
+      "bytes": 48262,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\003__99zq-terrain-landscape-review__before.md",
+      "sha256": "091334f998c8a1aab86db5ebcefe7ea77c2a28f22ef6e0f58249b7241bc19e00",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\reports\\003__99zq-terrain-landscape-review__before.md"
+    },
+    {
+      "bytes": 48262,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\003__99zq-terrain-landscape-review__capture.md",
+      "sha256": "091334f998c8a1aab86db5ebcefe7ea77c2a28f22ef6e0f58249b7241bc19e00",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\reports\\003__99zq-terrain-landscape-review__capture.md"
+    },
+    {
+      "bytes": 42868,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\004__29-terrain-landscape-heightfield-quadtree-lod-material-layer-foliage-world-partition-physics-navigation-scalability-product-integration-review__after.md",
+      "sha256": "9b26bd38d524f4729e6f77dd0d07c6855763a647d7525a5ef57b600dc25fec4d",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\reports\\004__29-terrain-landscape-heightfield-quadtree-lod-material-layer-foliage-world-partition-physics-navigation-scalability-product-integration-review__after.md"
+    },
+    {
+      "bytes": 42868,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\004__29-terrain-landscape-heightfield-quadtree-lod-material-layer-foliage-world-partition-physics-navigation-scalability-product-integration-review__before.md",
+      "sha256": "9b26bd38d524f4729e6f77dd0d07c6855763a647d7525a5ef57b600dc25fec4d",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\reports\\004__29-terrain-landscape-heightfield-quadtree-lod-material-layer-foliage-world-partition-physics-navigation-scalability-product-integration-review__before.md"
+    },
+    {
+      "bytes": 42868,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\004__29-terrain-landscape-heightfield-quadtree-lod-material-layer-foliage-world-partition-physics-navigation-scalability-product-integration-review__capture.md",
+      "sha256": "9b26bd38d524f4729e6f77dd0d07c6855763a647d7525a5ef57b600dc25fec4d",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\reports\\004__29-terrain-landscape-heightfield-quadtree-lod-material-layer-foliage-world-partition-physics-navigation-scalability-product-integration-review__capture.md"
+    },
+    {
+      "bytes": 20246,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\005__172-runtime-terrain-landscape-world-partition-current-working-tree-authority-render-physics-navigation-review__after.md",
+      "sha256": "70cd8e7257aff0da3fdb593a653d5d2282850925f9de27b0e72f002301829d25",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\reports\\005__172-runtime-terrain-landscape-world-partition-current-working-tree-authority-render-physics-navigation-review__after.md"
+    },
+    {
+      "bytes": 20246,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\005__172-runtime-terrain-landscape-world-partition-current-working-tree-authority-render-physics-navigation-review__before.md",
+      "sha256": "70cd8e7257aff0da3fdb593a653d5d2282850925f9de27b0e72f002301829d25",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\reports\\005__172-runtime-terrain-landscape-world-partition-current-working-tree-authority-render-physics-navigation-review__before.md"
+    },
+    {
+      "bytes": 20246,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\005__172-runtime-terrain-landscape-world-partition-current-working-tree-authority-render-physics-navigation-review__capture.md",
+      "sha256": "70cd8e7257aff0da3fdb593a653d5d2282850925f9de27b0e72f002301829d25",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\reports\\005__172-runtime-terrain-landscape-world-partition-current-working-tree-authority-render-physics-navigation-review__capture.md"
+    },
+    {
+      "bytes": 45817,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\006__16-terrain-landscape-foliage-scatter-world-partition-level-streaming-authoring-review__after.md",
+      "sha256": "04bdc916e13530408f7cf998a47a75ecf3bc02754dbd4b0f04074b3ba181e95e",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\reports\\006__16-terrain-landscape-foliage-scatter-world-partition-level-streaming-authoring-review__after.md"
+    },
+    {
+      "bytes": 45817,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\006__16-terrain-landscape-foliage-scatter-world-partition-level-streaming-authoring-review__before.md",
+      "sha256": "04bdc916e13530408f7cf998a47a75ecf3bc02754dbd4b0f04074b3ba181e95e",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\reports\\006__16-terrain-landscape-foliage-scatter-world-partition-level-streaming-authoring-review__before.md"
+    },
+    {
+      "bytes": 45817,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\006__16-terrain-landscape-foliage-scatter-world-partition-level-streaming-authoring-review__capture.md",
+      "sha256": "04bdc916e13530408f7cf998a47a75ecf3bc02754dbd4b0f04074b3ba181e95e",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\reports\\006__16-terrain-landscape-foliage-scatter-world-partition-level-streaming-authoring-review__capture.md"
+    },
+    {
+      "bytes": 17761,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\007__232-editor-terrain-landscape-world-partition-current-working-tree-authoring-preview-build-review__after.md",
+      "sha256": "c517b97db69750cd26c51d8ea289f60d5f0b710b1df4f616c4e59c04bebed899",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\reports\\007__232-editor-terrain-landscape-world-partition-current-working-tree-authoring-preview-build-review__after.md"
+    },
+    {
+      "bytes": 17761,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\007__232-editor-terrain-landscape-world-partition-current-working-tree-authoring-preview-build-review__before.md",
+      "sha256": "c517b97db69750cd26c51d8ea289f60d5f0b710b1df4f616c4e59c04bebed899",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\reports\\007__232-editor-terrain-landscape-world-partition-current-working-tree-authoring-preview-build-review__before.md"
+    },
+    {
+      "bytes": 17761,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\007__232-editor-terrain-landscape-world-partition-current-working-tree-authoring-preview-build-review__capture.md",
+      "sha256": "c517b97db69750cd26c51d8ea289f60d5f0b710b1df4f616c4e59c04bebed899",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\reports\\007__232-editor-terrain-landscape-world-partition-current-working-tree-authoring-preview-build-review__capture.md"
+    },
+    {
+      "bytes": 2584,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\001__virtual_geometry.rs__after.raw",
+      "sha256": "cdfcf0b22b8a8f5d5b15fb5bd8f3c1c76b6ddf5cace68777f6e30a60d5ea7e8c",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\001__virtual_geometry.rs__after.raw"
+    },
+    {
+      "bytes": 2584,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\001__virtual_geometry.rs__before.raw",
+      "sha256": "cdfcf0b22b8a8f5d5b15fb5bd8f3c1c76b6ddf5cace68777f6e30a60d5ea7e8c",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\001__virtual_geometry.rs__before.raw"
+    },
+    {
+      "bytes": 2584,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\001__virtual_geometry.rs__capture.raw",
+      "sha256": "cdfcf0b22b8a8f5d5b15fb5bd8f3c1c76b6ddf5cace68777f6e30a60d5ea7e8c",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\001__virtual_geometry.rs__capture.raw"
+    },
+    {
+      "bytes": 5777,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\002__plugin.rs__after.raw",
+      "sha256": "acededc5be5d931ee58acf39706647238980eb9e11e3dea78ca613d427475dbc",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\002__plugin.rs__after.raw"
+    },
+    {
+      "bytes": 5777,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\002__plugin.rs__before.raw",
+      "sha256": "acededc5be5d931ee58acf39706647238980eb9e11e3dea78ca613d427475dbc",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\002__plugin.rs__before.raw"
+    },
+    {
+      "bytes": 5777,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\002__plugin.rs__capture.raw",
+      "sha256": "acededc5be5d931ee58acf39706647238980eb9e11e3dea78ca613d427475dbc",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\002__plugin.rs__capture.raw"
+    },
+    {
+      "bytes": 2202,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\003__capability.rs__after.raw",
+      "sha256": "703b6f60fbeec72288853e62a917343882039c23e56ca8677eefb30cd5f94a11",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\003__capability.rs__after.raw"
+    },
+    {
+      "bytes": 2202,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\003__capability.rs__before.raw",
+      "sha256": "703b6f60fbeec72288853e62a917343882039c23e56ca8677eefb30cd5f94a11",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\003__capability.rs__before.raw"
+    },
+    {
+      "bytes": 2202,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\003__capability.rs__capture.raw",
+      "sha256": "703b6f60fbeec72288853e62a917343882039c23e56ca8677eefb30cd5f94a11",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\003__capability.rs__capture.raw"
+    },
+    {
+      "bytes": 12583,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\004__render_pass_executors.rs__after.raw",
+      "sha256": "80aeb897bdc773e8d89a5c8f0bba43eb194e968456d0bdb85dbc3c9564ce2f2b",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\004__render_pass_executors.rs__after.raw"
+    },
+    {
+      "bytes": 12583,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\004__render_pass_executors.rs__before.raw",
+      "sha256": "80aeb897bdc773e8d89a5c8f0bba43eb194e968456d0bdb85dbc3c9564ce2f2b",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\004__render_pass_executors.rs__before.raw"
+    },
+    {
+      "bytes": 12583,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\004__render_pass_executors.rs__capture.raw",
+      "sha256": "80aeb897bdc773e8d89a5c8f0bba43eb194e968456d0bdb85dbc3c9564ce2f2b",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\004__render_pass_executors.rs__capture.raw"
+    },
+    {
+      "bytes": 22999,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\005__gpu.rs__after.raw",
+      "sha256": "77bf641e50e6d02cfb5e2b218eec843e69bf6ab667f959c43c01d4bd268158a9",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\005__gpu.rs__after.raw"
+    },
+    {
+      "bytes": 22999,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\005__gpu.rs__before.raw",
+      "sha256": "77bf641e50e6d02cfb5e2b218eec843e69bf6ab667f959c43c01d4bd268158a9",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\005__gpu.rs__before.raw"
+    },
+    {
+      "bytes": 22999,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\005__gpu.rs__capture.raw",
+      "sha256": "77bf641e50e6d02cfb5e2b218eec843e69bf6ab667f959c43c01d4bd268158a9",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\005__gpu.rs__capture.raw"
+    },
+    {
+      "bytes": 10354,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\006__execute.rs__after.raw",
+      "sha256": "e4ff053efb8d2365dfd396efb0a7b5f1dc67cb30f935ed64d2fbf2e3b78e48c1",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\006__execute.rs__after.raw"
+    },
+    {
+      "bytes": 10354,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\006__execute.rs__before.raw",
+      "sha256": "e4ff053efb8d2365dfd396efb0a7b5f1dc67cb30f935ed64d2fbf2e3b78e48c1",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\006__execute.rs__before.raw"
+    },
+    {
+      "bytes": 10354,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\006__execute.rs__capture.raw",
+      "sha256": "e4ff053efb8d2365dfd396efb0a7b5f1dc67cb30f935ed64d2fbf2e3b78e48c1",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\006__execute.rs__capture.raw"
+    },
+    {
+      "bytes": 1519,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\007__execute.rs__after.raw",
+      "sha256": "05ace19bfbd630747e3e531061fe2ca902430f2b53ea664a1f7e732b2fea06f4",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\007__execute.rs__after.raw"
+    },
+    {
+      "bytes": 1519,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\007__execute.rs__before.raw",
+      "sha256": "05ace19bfbd630747e3e531061fe2ca902430f2b53ea664a1f7e732b2fea06f4",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\007__execute.rs__before.raw"
+    },
+    {
+      "bytes": 1519,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\007__execute.rs__capture.raw",
+      "sha256": "05ace19bfbd630747e3e531061fe2ca902430f2b53ea664a1f7e732b2fea06f4",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\007__execute.rs__capture.raw"
+    },
+    {
+      "bytes": 1430,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\008__execute.rs__after.raw",
+      "sha256": "6de96d2fbf368f9d69489d785d68ef029aa485f48739532fdd82c948148ce3c8",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\008__execute.rs__after.raw"
+    },
+    {
+      "bytes": 1430,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\008__execute.rs__before.raw",
+      "sha256": "6de96d2fbf368f9d69489d785d68ef029aa485f48739532fdd82c948148ce3c8",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\008__execute.rs__before.raw"
+    },
+    {
+      "bytes": 1430,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\008__execute.rs__capture.raw",
+      "sha256": "6de96d2fbf368f9d69489d785d68ef029aa485f48739532fdd82c948148ce3c8",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\008__execute.rs__capture.raw"
+    },
+    {
+      "bytes": 934,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\009__provider.rs__after.raw",
+      "sha256": "057c79887c7ba12ff5e2d1c0fcd020ce62a8dbcbbc033ac03fb3f53a02f38884",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\009__provider.rs__after.raw"
+    },
+    {
+      "bytes": 934,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\009__provider.rs__before.raw",
+      "sha256": "057c79887c7ba12ff5e2d1c0fcd020ce62a8dbcbbc033ac03fb3f53a02f38884",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\009__provider.rs__before.raw"
+    },
+    {
+      "bytes": 934,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\009__provider.rs__capture.raw",
+      "sha256": "057c79887c7ba12ff5e2d1c0fcd020ce62a8dbcbbc033ac03fb3f53a02f38884",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\009__provider.rs__capture.raw"
+    },
+    {
+      "bytes": 391,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\010__from_extract.rs__after.raw",
+      "sha256": "2024039b1b52728172fcd3bd49ab2249fa2501dcefc653a2b67d60f8c5206d5b",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\010__from_extract.rs__after.raw"
+    },
+    {
+      "bytes": 391,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\010__from_extract.rs__before.raw",
+      "sha256": "2024039b1b52728172fcd3bd49ab2249fa2501dcefc653a2b67d60f8c5206d5b",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\010__from_extract.rs__before.raw"
+    },
+    {
+      "bytes": 391,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\010__from_extract.rs__capture.raw",
+      "sha256": "2024039b1b52728172fcd3bd49ab2249fa2501dcefc653a2b67d60f8c5206d5b",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\010__from_extract.rs__capture.raw"
+    },
+    {
+      "bytes": 28992,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\011__build.rs__after.raw",
+      "sha256": "7ce901decbe0bb2b0426e606859611fdcdf3431c700ef485df3d6d0b49388ef3",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\011__build.rs__after.raw"
+    },
+    {
+      "bytes": 28992,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\011__build.rs__before.raw",
+      "sha256": "7ce901decbe0bb2b0426e606859611fdcdf3431c700ef485df3d6d0b49388ef3",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\011__build.rs__before.raw"
+    },
+    {
+      "bytes": 28992,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\011__build.rs__capture.raw",
+      "sha256": "7ce901decbe0bb2b0426e606859611fdcdf3431c700ef485df3d6d0b49388ef3",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\011__build.rs__capture.raw"
+    },
+    {
+      "bytes": 3601,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\012__render_pass_executor_registration.rs__after.raw",
+      "sha256": "4447496d24c0964935128455682669fbcc03522d3680e22bfd5bd33eb874b86e",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\012__render_pass_executor_registration.rs__after.raw"
+    },
+    {
+      "bytes": 3601,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\012__render_pass_executor_registration.rs__before.raw",
+      "sha256": "4447496d24c0964935128455682669fbcc03522d3680e22bfd5bd33eb874b86e",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\012__render_pass_executor_registration.rs__before.raw"
+    },
+    {
+      "bytes": 3601,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\012__render_pass_executor_registration.rs__capture.raw",
+      "sha256": "4447496d24c0964935128455682669fbcc03522d3680e22bfd5bd33eb874b86e",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\012__render_pass_executor_registration.rs__capture.raw"
+    },
+    {
+      "bytes": 17956,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\013__render_pass_executor_registry.rs__after.raw",
+      "sha256": "0edd2afc170eb0aa5099ca79bd5513db9b5cac52fec891960116301e980585e1",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\013__render_pass_executor_registry.rs__after.raw"
+    },
+    {
+      "bytes": 17956,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\013__render_pass_executor_registry.rs__before.raw",
+      "sha256": "0edd2afc170eb0aa5099ca79bd5513db9b5cac52fec891960116301e980585e1",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\013__render_pass_executor_registry.rs__before.raw"
+    },
+    {
+      "bytes": 17956,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\013__render_pass_executor_registry.rs__capture.raw",
+      "sha256": "0edd2afc170eb0aa5099ca79bd5513db9b5cac52fec891960116301e980585e1",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\013__render_pass_executor_registry.rs__capture.raw"
+    },
+    {
+      "bytes": 17350,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\014__capabilities.rs__after.raw",
+      "sha256": "9b9b19b935e7f2c626244fe2d082e1647632f269a4c0076af87c417970535ac7",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\014__capabilities.rs__after.raw"
+    },
+    {
+      "bytes": 17350,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\014__capabilities.rs__before.raw",
+      "sha256": "9b9b19b935e7f2c626244fe2d082e1647632f269a4c0076af87c417970535ac7",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\014__capabilities.rs__before.raw"
+    },
+    {
+      "bytes": 17350,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\014__capabilities.rs__capture.raw",
+      "sha256": "9b9b19b935e7f2c626244fe2d082e1647632f269a4c0076af87c417970535ac7",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\014__capabilities.rs__capture.raw"
+    },
+    {
+      "bytes": 4946,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\015__capabilities.rs__after.raw",
+      "sha256": "b0cd2ade6d846d4ffba8f120489031c38029b488939b3982fec5d7cc7cd21a6d",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\015__capabilities.rs__after.raw"
+    },
+    {
+      "bytes": 4946,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\015__capabilities.rs__before.raw",
+      "sha256": "b0cd2ade6d846d4ffba8f120489031c38029b488939b3982fec5d7cc7cd21a6d",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\015__capabilities.rs__before.raw"
+    },
+    {
+      "bytes": 4946,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\015__capabilities.rs__capture.raw",
+      "sha256": "b0cd2ade6d846d4ffba8f120489031c38029b488939b3982fec5d7cc7cd21a6d",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\015__capabilities.rs__capture.raw"
+    },
+    {
+      "bytes": 7339,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\016__compute_pass.rs__after.raw",
+      "sha256": "278908b65582d2ddeb758ddeeab4e80c8ad825d628fe51e0f7c51784a70fd978",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\016__compute_pass.rs__after.raw"
+    },
+    {
+      "bytes": 7339,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\016__compute_pass.rs__before.raw",
+      "sha256": "278908b65582d2ddeb758ddeeab4e80c8ad825d628fe51e0f7c51784a70fd978",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\016__compute_pass.rs__before.raw"
+    },
+    {
+      "bytes": 7339,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\016__compute_pass.rs__capture.raw",
+      "sha256": "278908b65582d2ddeb758ddeeab4e80c8ad825d628fe51e0f7c51784a70fd978",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\016__compute_pass.rs__capture.raw"
+    },
+    {
+      "bytes": 22485,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\017__render_pass.rs__after.raw",
+      "sha256": "c61c33c9ec70c54fc41d4413ea566f7e943847e37b9225480a1f370e45c20dea",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\017__render_pass.rs__after.raw"
+    },
+    {
+      "bytes": 22485,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\017__render_pass.rs__before.raw",
+      "sha256": "c61c33c9ec70c54fc41d4413ea566f7e943847e37b9225480a1f370e45c20dea",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\017__render_pass.rs__before.raw"
+    },
+    {
+      "bytes": 22485,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\017__render_pass.rs__capture.raw",
+      "sha256": "c61c33c9ec70c54fc41d4413ea566f7e943847e37b9225480a1f370e45c20dea",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\017__render_pass.rs__capture.raw"
+    },
+    {
+      "bytes": 1411,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\018__plugin.toml__after.raw",
+      "sha256": "2a57f3e9837faf45c72d8acefd15671e742be1cb721488af4bd28111c1209b61",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\018__plugin.toml__after.raw"
+    },
+    {
+      "bytes": 1411,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\018__plugin.toml__before.raw",
+      "sha256": "2a57f3e9837faf45c72d8acefd15671e742be1cb721488af4bd28111c1209b61",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\018__plugin.toml__before.raw"
+    },
+    {
+      "bytes": 1411,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\018__plugin.toml__capture.raw",
+      "sha256": "2a57f3e9837faf45c72d8acefd15671e742be1cb721488af4bd28111c1209b61",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\018__plugin.toml__capture.raw"
+    },
+    {
+      "bytes": 4796,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\019__plugin.rs__after.raw",
+      "sha256": "ca1fb14fa0a85de3d6adcb43b98935e1b337c36841001e48715caf02cf68efff",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\019__plugin.rs__after.raw"
+    },
+    {
+      "bytes": 4796,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\019__plugin.rs__before.raw",
+      "sha256": "ca1fb14fa0a85de3d6adcb43b98935e1b337c36841001e48715caf02cf68efff",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\019__plugin.rs__before.raw"
+    },
+    {
+      "bytes": 4796,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\019__plugin.rs__capture.raw",
+      "sha256": "ca1fb14fa0a85de3d6adcb43b98935e1b337c36841001e48715caf02cf68efff",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\019__plugin.rs__capture.raw"
+    },
+    {
+      "bytes": 1560,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\020__capability.rs__after.raw",
+      "sha256": "dfbe2808e897e642b7a062798202abf6e47fbac3601c565528671bc498594947",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\020__capability.rs__after.raw"
+    },
+    {
+      "bytes": 1560,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\020__capability.rs__before.raw",
+      "sha256": "dfbe2808e897e642b7a062798202abf6e47fbac3601c565528671bc498594947",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\020__capability.rs__before.raw"
+    },
+    {
+      "bytes": 1560,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\020__capability.rs__capture.raw",
+      "sha256": "dfbe2808e897e642b7a062798202abf6e47fbac3601c565528671bc498594947",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\020__capability.rs__capture.raw"
+    },
+    {
+      "bytes": 3635,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\021__lib.rs__after.raw",
+      "sha256": "d7ab8db2dcc0907562b21680ae9cac7133bdad3d4fe601604e7a0f22cda23c1b",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\021__lib.rs__after.raw"
+    },
+    {
+      "bytes": 3635,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\021__lib.rs__before.raw",
+      "sha256": "d7ab8db2dcc0907562b21680ae9cac7133bdad3d4fe601604e7a0f22cda23c1b",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\021__lib.rs__before.raw"
+    },
+    {
+      "bytes": 3635,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\021__lib.rs__capture.raw",
+      "sha256": "d7ab8db2dcc0907562b21680ae9cac7133bdad3d4fe601604e7a0f22cda23c1b",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\021__lib.rs__capture.raw"
+    },
+    {
+      "bytes": 15088,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\022__authoring.rs__after.raw",
+      "sha256": "f0367f64740f6e71ce8b3aa5be6921a5a43ea13f739ad447c08a58bd44e3982e",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\022__authoring.rs__after.raw"
+    },
+    {
+      "bytes": 15088,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\022__authoring.rs__before.raw",
+      "sha256": "f0367f64740f6e71ce8b3aa5be6921a5a43ea13f739ad447c08a58bd44e3982e",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\022__authoring.rs__before.raw"
+    },
+    {
+      "bytes": 15088,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\022__authoring.rs__capture.raw",
+      "sha256": "f0367f64740f6e71ce8b3aa5be6921a5a43ea13f739ad447c08a58bd44e3982e",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\022__authoring.rs__capture.raw"
+    },
+    {
+      "bytes": 3129,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\023__entity.rs__after.raw",
+      "sha256": "cb9c490089ffaed37854d557c6c816fbf47d83042f828c7842176b663347adcc",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\023__entity.rs__after.raw"
+    },
+    {
+      "bytes": 3129,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\023__entity.rs__before.raw",
+      "sha256": "cb9c490089ffaed37854d557c6c816fbf47d83042f828c7842176b663347adcc",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\023__entity.rs__before.raw"
+    },
+    {
+      "bytes": 3129,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\023__entity.rs__capture.raw",
+      "sha256": "cb9c490089ffaed37854d557c6c816fbf47d83042f828c7842176b663347adcc",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\023__entity.rs__capture.raw"
+    },
+    {
+      "bytes": 22444,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\024__asset_importer.rs__after.raw",
+      "sha256": "43d6d8e7e02afa84f315e27585ad879fdead7d955b2dcd731fdd22bf5c27215c",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\024__asset_importer.rs__after.raw"
+    },
+    {
+      "bytes": 22444,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\024__asset_importer.rs__before.raw",
+      "sha256": "43d6d8e7e02afa84f315e27585ad879fdead7d955b2dcd731fdd22bf5c27215c",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\024__asset_importer.rs__before.raw"
+    },
+    {
+      "bytes": 22444,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\024__asset_importer.rs__capture.raw",
+      "sha256": "43d6d8e7e02afa84f315e27585ad879fdead7d955b2dcd731fdd22bf5c27215c",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\024__asset_importer.rs__capture.raw"
+    },
+    {
+      "bytes": 37560,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\025__scene_asset.rs__after.raw",
+      "sha256": "8d8d1e6c9155af293e5db7ca17291bb199204515fdc6a9b5f80ce3b00ddc4b6d",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\025__scene_asset.rs__after.raw"
+    },
+    {
+      "bytes": 37560,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\025__scene_asset.rs__before.raw",
+      "sha256": "8d8d1e6c9155af293e5db7ca17291bb199204515fdc6a9b5f80ce3b00ddc4b6d",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\025__scene_asset.rs__before.raw"
+    },
+    {
+      "bytes": 37560,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\025__scene_asset.rs__capture.raw",
+      "sha256": "8d8d1e6c9155af293e5db7ca17291bb199204515fdc6a9b5f80ce3b00ddc4b6d",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\025__scene_asset.rs__capture.raw"
+    },
+    {
+      "bytes": 7790,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\026__advanced_slots.rs__after.raw",
+      "sha256": "ec66e2fc642638135e41941c44f586a81405db3f7b87411028bdfd5b47797d84",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\026__advanced_slots.rs__after.raw"
+    },
+    {
+      "bytes": 7790,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\026__advanced_slots.rs__before.raw",
+      "sha256": "ec66e2fc642638135e41941c44f586a81405db3f7b87411028bdfd5b47797d84",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\026__advanced_slots.rs__before.raw"
+    },
+    {
+      "bytes": 7790,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\026__advanced_slots.rs__capture.raw",
+      "sha256": "ec66e2fc642638135e41941c44f586a81405db3f7b87411028bdfd5b47797d84",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\026__advanced_slots.rs__capture.raw"
+    },
+    {
+      "bytes": 14583,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\027__geometry.rs__after.raw",
+      "sha256": "7585da44c5a4f0dd31653beb94ef2e000ba0e6247e5dc6132044057614664d15",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\027__geometry.rs__after.raw"
+    },
+    {
+      "bytes": 14583,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\027__geometry.rs__before.raw",
+      "sha256": "7585da44c5a4f0dd31653beb94ef2e000ba0e6247e5dc6132044057614664d15",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\027__geometry.rs__before.raw"
+    },
+    {
+      "bytes": 14583,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\027__geometry.rs__capture.raw",
+      "sha256": "7585da44c5a4f0dd31653beb94ef2e000ba0e6247e5dc6132044057614664d15",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\027__geometry.rs__capture.raw"
+    },
+    {
+      "bytes": 9761,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\028__conversion.rs__after.raw",
+      "sha256": "7dc2eb07efcb9fd82402482b10c2eed1673518179a089a937af575eaa8f67ce8",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\028__conversion.rs__after.raw"
+    },
+    {
+      "bytes": 9761,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\028__conversion.rs__before.raw",
+      "sha256": "7dc2eb07efcb9fd82402482b10c2eed1673518179a089a937af575eaa8f67ce8",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\028__conversion.rs__before.raw"
+    },
+    {
+      "bytes": 9761,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\028__conversion.rs__capture.raw",
+      "sha256": "7dc2eb07efcb9fd82402482b10c2eed1673518179a089a937af575eaa8f67ce8",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\028__conversion.rs__capture.raw"
+    },
+    {
+      "bytes": 7010,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\029__mesh_shape.rs__after.raw",
+      "sha256": "09f849cf14c7e109c50b22a1dab7addd97b791403087fd4394b9287adbfb5c78",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\029__mesh_shape.rs__after.raw"
+    },
+    {
+      "bytes": 7010,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\029__mesh_shape.rs__before.raw",
+      "sha256": "09f849cf14c7e109c50b22a1dab7addd97b791403087fd4394b9287adbfb5c78",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\029__mesh_shape.rs__before.raw"
+    },
+    {
+      "bytes": 7010,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\029__mesh_shape.rs__capture.raw",
+      "sha256": "09f849cf14c7e109c50b22a1dab7addd97b791403087fd4394b9287adbfb5c78",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\029__mesh_shape.rs__capture.raw"
+    },
+    {
+      "bytes": 7289,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\030__plugin.rs__after.raw",
+      "sha256": "45b978e65badaa6b6a5b7d45f1d92af1438eef53636506988537b6acd7e4a55a",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\030__plugin.rs__after.raw"
+    },
+    {
+      "bytes": 7289,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\030__plugin.rs__before.raw",
+      "sha256": "45b978e65badaa6b6a5b7d45f1d92af1438eef53636506988537b6acd7e4a55a",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\030__plugin.rs__before.raw"
+    },
+    {
+      "bytes": 7289,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\030__plugin.rs__capture.raw",
+      "sha256": "45b978e65badaa6b6a5b7d45f1d92af1438eef53636506988537b6acd7e4a55a",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\030__plugin.rs__capture.raw"
+    },
+    {
+      "bytes": 4563,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\031__authoring.rs__after.raw",
+      "sha256": "814963a9ab31f2bd70a5b2bb9015a6f44cdfc85b895ec5fd4eadd6a3875b44df",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\031__authoring.rs__after.raw"
+    },
+    {
+      "bytes": 4563,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\031__authoring.rs__before.raw",
+      "sha256": "814963a9ab31f2bd70a5b2bb9015a6f44cdfc85b895ec5fd4eadd6a3875b44df",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\031__authoring.rs__before.raw"
+    },
+    {
+      "bytes": 4563,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\031__authoring.rs__capture.raw",
+      "sha256": "814963a9ab31f2bd70a5b2bb9015a6f44cdfc85b895ec5fd4eadd6a3875b44df",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\031__authoring.rs__capture.raw"
+    },
+    {
+      "bytes": 16380,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\032__workbench_extension_terrain_editor_workspace.zui__after.raw",
+      "sha256": "dab10b71f81a6bfc1664db5128487118d0045964502116e428dce15d694ef6e7",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\032__workbench_extension_terrain_editor_workspace.zui__after.raw"
+    },
+    {
+      "bytes": 16380,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\032__workbench_extension_terrain_editor_workspace.zui__before.raw",
+      "sha256": "dab10b71f81a6bfc1664db5128487118d0045964502116e428dce15d694ef6e7",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\032__workbench_extension_terrain_editor_workspace.zui__before.raw"
+    },
+    {
+      "bytes": 16380,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\032__workbench_extension_terrain_editor_workspace.zui__capture.raw",
+      "sha256": "dab10b71f81a6bfc1664db5128487118d0045964502116e428dce15d694ef6e7",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\032__workbench_extension_terrain_editor_workspace.zui__capture.raw"
+    },
+    {
+      "bytes": 5785,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\033__terrain_and_foliage.rs__after.raw",
+      "sha256": "37020d1f940668d3a0d93525bf487c765cfbaf47c5c1d7f05114379b4fc6533d",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\033__terrain_and_foliage.rs__after.raw"
+    },
+    {
+      "bytes": 5785,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\033__terrain_and_foliage.rs__before.raw",
+      "sha256": "37020d1f940668d3a0d93525bf487c765cfbaf47c5c1d7f05114379b4fc6533d",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\033__terrain_and_foliage.rs__before.raw"
+    },
+    {
+      "bytes": 5785,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\sources\\033__terrain_and_foliage.rs__capture.raw",
+      "sha256": "37020d1f940668d3a0d93525bf487c765cfbaf47c5c1d7f05114379b4fc6533d",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw\\sources\\033__terrain_and_foliage.rs__capture.raw"
+    },
+    {
+      "bytes": 79095,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw-manifest.jsonl",
+      "sha256": "19a799f3704872b1c495aa57573bbea8ae4b4cc92ebb8984e7f2ed5b6296ca4a",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\raw-manifest.jsonl"
+    },
+    {
+      "bytes": 14714,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\reference-evidence.jsonl",
+      "sha256": "abce3223699ee4e260d904b3404a2b14005e1d085954b475244c6d66219fc297",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\reference-evidence.jsonl"
+    },
+    {
+      "bytes": 1440,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\refresh.jsonl",
+      "sha256": "59b37236d9c10d709edcd698a496014c01e541705fd98f5052e9715749511d30",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\refresh.jsonl"
+    },
+    {
+      "bytes": 10458,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\report-discovery.jsonl",
+      "sha256": "a89ce9b071818ea9041fa96294c3fb7e46caeb916220300044165020f00feb64",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\report-discovery.jsonl"
+    },
+    {
+      "bytes": 245558,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\review.jsonl",
+      "sha256": "6b21996147b09ba0d85f7f79a2bded830b16c789fc3f83156cf11fc8605f493c",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\review.jsonl"
+    },
+    {
+      "bytes": 77026,
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\summary.json",
+      "sha256": "72d80fcea4262b6a71fc60a6c17bc64fc2a5ad1822f421c2c3abcc7e852b114f",
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batch24-root-canonical-publication-r2\\raw-author\\summary.json"
+    }
+  ],
+  "sealed_author_inputs": {
+    "artifact-hashes.jsonl": "3753601a488b8659e45e4b372e73bc90308ffb14e2defc0b7ace6b3e4c3d1989",
+    "summary.json": "72d80fcea4262b6a71fc60a6c17bc64fc2a5ad1822f421c2c3abcc7e852b114f",
+    "review.jsonl": "6b21996147b09ba0d85f7f79a2bded830b16c789fc3f83156cf11fc8605f493c",
+    "original-gates.jsonl": "deb84b668a49ecef556abb76f928095184f7001af5a680138abc159a0d155fbf",
+    "refresh.jsonl": "59b37236d9c10d709edcd698a496014c01e541705fd98f5052e9715749511d30",
+    "crosswalk.jsonl": "04c36d7c303d4dce5549e712235a2fbb144e5f68c420862949bce8875edb5279",
+    "raw-manifest.jsonl": "19a799f3704872b1c495aa57573bbea8ae4b4cc92ebb8984e7f2ed5b6296ca4a",
+    "reference-evidence.jsonl": "abce3223699ee4e260d904b3404a2b14005e1d085954b475244c6d66219fc297",
+    "report-discovery.jsonl": "a89ce9b071818ea9041fa96294c3fb7e46caeb916220300044165020f00feb64",
+    "audit.md": "b2690542d739f96c38de38c87e528e2ab2e773d77ea3fc931157d3883737c434",
+    "erratum-canonical-baseline-after-seal.json": "62303338d50c908a0a473bc2cbaa7bb68d32d0f2ef953931e7120f7778b1c575",
+    "erratum-runtime29-inherited-owner-rows.json": "c647e1b67d964ca74f0ee43ad91a2c7b0c902e29011ebb96d104cba2094fc0bb",
+    "erratum-selected-scope-dirty-state.json": "f840624f1a290251c84368e7ead67c4e7441d46ffcd94f077bbc112f63891adc"
+  },
+  "report_manifest": [
+    {
+      "bytes": 45815,
+      "changed_during_capture": false,
+      "exists": true,
+      "line_count": 406,
+      "raw_after": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\001__09b-renderer-visibility-gpu-scene-review__after.md",
+      "raw_before": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\001__09b-renderer-visibility-gpu-scene-review__before.md",
+      "raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\001__09b-renderer-visibility-gpu-scene-review__capture.md",
+      "report_id": "Runtime09B",
+      "role": "original",
+      "sha256_after": "6408e6ad91cb9a094c06e51db897c22743d01704429e3d90cb180ff47c683b46",
+      "sha256_before": "6408e6ad91cb9a094c06e51db897c22743d01704429e3d90cb180ff47c683b46",
+      "sha256_capture": "6408e6ad91cb9a094c06e51db897c22743d01704429e3d90cb180ff47c683b46",
+      "source_path": "E:\\Git\\ZirconEngine\\docs\\plans\\optimize\\zircon_runtime\\09b-renderer-visibility-gpu-scene-review.md"
+    },
+    {
+      "bytes": 31058,
+      "changed_during_capture": false,
+      "exists": true,
+      "line_count": 287,
+      "raw_after": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\002__213-runtime-visibility-gpu-scene-culling-batching-instancing-hzb-virtual-geometry-current-working-tree-review__after.md",
+      "raw_before": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\002__213-runtime-visibility-gpu-scene-culling-batching-instancing-hzb-virtual-geometry-current-working-tree-review__before.md",
+      "raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\002__213-runtime-visibility-gpu-scene-culling-batching-instancing-hzb-virtual-geometry-current-working-tree-review__capture.md",
+      "report_id": "Runtime213",
+      "role": "successor_refresh",
+      "sha256_after": "4fb17e3f5195ec9a9a5db81b7408851485a9a4a851ce18889db6b89d33467139",
+      "sha256_before": "4fb17e3f5195ec9a9a5db81b7408851485a9a4a851ce18889db6b89d33467139",
+      "sha256_capture": "4fb17e3f5195ec9a9a5db81b7408851485a9a4a851ce18889db6b89d33467139",
+      "source_path": "E:\\Git\\ZirconEngine\\docs\\plans\\optimize\\zircon_runtime\\213-runtime-visibility-gpu-scene-culling-batching-instancing-hzb-virtual-geometry-current-working-tree-review.md"
+    },
+    {
+      "bytes": 48262,
+      "changed_during_capture": false,
+      "exists": true,
+      "line_count": 466,
+      "raw_after": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\003__99zq-terrain-landscape-review__after.md",
+      "raw_before": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\003__99zq-terrain-landscape-review__before.md",
+      "raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\003__99zq-terrain-landscape-review__capture.md",
+      "report_id": "Runtime142",
+      "role": "original",
+      "sha256_after": "091334f998c8a1aab86db5ebcefe7ea77c2a28f22ef6e0f58249b7241bc19e00",
+      "sha256_before": "091334f998c8a1aab86db5ebcefe7ea77c2a28f22ef6e0f58249b7241bc19e00",
+      "sha256_capture": "091334f998c8a1aab86db5ebcefe7ea77c2a28f22ef6e0f58249b7241bc19e00",
+      "source_path": "E:\\Git\\ZirconEngine\\docs\\plans\\optimize\\zircon_runtime\\99zq-terrain-landscape-review.md"
+    },
+    {
+      "bytes": 42868,
+      "changed_during_capture": false,
+      "exists": true,
+      "line_count": 415,
+      "raw_after": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\004__29-terrain-landscape-heightfield-quadtree-lod-material-layer-foliage-world-partition-physics-navigation-scalability-product-integration-review__after.md",
+      "raw_before": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\004__29-terrain-landscape-heightfield-quadtree-lod-material-layer-foliage-world-partition-physics-navigation-scalability-product-integration-review__before.md",
+      "raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\004__29-terrain-landscape-heightfield-quadtree-lod-material-layer-foliage-world-partition-physics-navigation-scalability-product-integration-review__capture.md",
+      "report_id": "Runtime29",
+      "role": "original",
+      "sha256_after": "9b26bd38d524f4729e6f77dd0d07c6855763a647d7525a5ef57b600dc25fec4d",
+      "sha256_before": "9b26bd38d524f4729e6f77dd0d07c6855763a647d7525a5ef57b600dc25fec4d",
+      "sha256_capture": "9b26bd38d524f4729e6f77dd0d07c6855763a647d7525a5ef57b600dc25fec4d",
+      "source_path": "E:\\Git\\ZirconEngine\\docs\\plans\\optimize\\zircon_runtime\\29-terrain-landscape-heightfield-quadtree-lod-material-layer-foliage-world-partition-physics-navigation-scalability-product-integration-review.md"
+    },
+    {
+      "bytes": 20246,
+      "changed_during_capture": false,
+      "exists": true,
+      "line_count": 173,
+      "raw_after": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\005__172-runtime-terrain-landscape-world-partition-current-working-tree-authority-render-physics-navigation-review__after.md",
+      "raw_before": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\005__172-runtime-terrain-landscape-world-partition-current-working-tree-authority-render-physics-navigation-review__before.md",
+      "raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\005__172-runtime-terrain-landscape-world-partition-current-working-tree-authority-render-physics-navigation-review__capture.md",
+      "report_id": "Runtime172",
+      "role": "successor_refresh",
+      "sha256_after": "70cd8e7257aff0da3fdb593a653d5d2282850925f9de27b0e72f002301829d25",
+      "sha256_before": "70cd8e7257aff0da3fdb593a653d5d2282850925f9de27b0e72f002301829d25",
+      "sha256_capture": "70cd8e7257aff0da3fdb593a653d5d2282850925f9de27b0e72f002301829d25",
+      "source_path": "E:\\Git\\ZirconEngine\\docs\\plans\\optimize\\zircon_runtime\\172-runtime-terrain-landscape-world-partition-current-working-tree-authority-render-physics-navigation-review.md"
+    },
+    {
+      "bytes": 45817,
+      "changed_during_capture": false,
+      "exists": true,
+      "line_count": 434,
+      "raw_after": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\006__16-terrain-landscape-foliage-scatter-world-partition-level-streaming-authoring-review__after.md",
+      "raw_before": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\006__16-terrain-landscape-foliage-scatter-world-partition-level-streaming-authoring-review__before.md",
+      "raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\006__16-terrain-landscape-foliage-scatter-world-partition-level-streaming-authoring-review__capture.md",
+      "report_id": "Editor16",
+      "role": "original",
+      "sha256_after": "04bdc916e13530408f7cf998a47a75ecf3bc02754dbd4b0f04074b3ba181e95e",
+      "sha256_before": "04bdc916e13530408f7cf998a47a75ecf3bc02754dbd4b0f04074b3ba181e95e",
+      "sha256_capture": "04bdc916e13530408f7cf998a47a75ecf3bc02754dbd4b0f04074b3ba181e95e",
+      "source_path": "E:\\Git\\ZirconEngine\\docs\\plans\\optimize\\zircon_editor\\16-terrain-landscape-foliage-scatter-world-partition-level-streaming-authoring-review.md"
+    },
+    {
+      "bytes": 17761,
+      "changed_during_capture": false,
+      "exists": true,
+      "line_count": 159,
+      "raw_after": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\007__232-editor-terrain-landscape-world-partition-current-working-tree-authoring-preview-build-review__after.md",
+      "raw_before": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\007__232-editor-terrain-landscape-world-partition-current-working-tree-authoring-preview-build-review__before.md",
+      "raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\reports\\007__232-editor-terrain-landscape-world-partition-current-working-tree-authoring-preview-build-review__capture.md",
+      "report_id": "Editor232",
+      "role": "successor_refresh",
+      "sha256_after": "c517b97db69750cd26c51d8ea289f60d5f0b710b1df4f616c4e59c04bebed899",
+      "sha256_before": "c517b97db69750cd26c51d8ea289f60d5f0b710b1df4f616c4e59c04bebed899",
+      "sha256_capture": "c517b97db69750cd26c51d8ea289f60d5f0b710b1df4f616c4e59c04bebed899",
+      "source_path": "E:\\Git\\ZirconEngine\\docs\\plans\\optimize\\zircon_editor\\232-editor-terrain-landscape-world-partition-current-working-tree-authoring-preview-build-review.md"
+    }
+  ],
+  "selected_source_observations": [
+    {
+      "path": "zircon_runtime/src/asset/assets/model/virtual_geometry.rs",
+      "captured_sha256": "cdfcf0b22b8a8f5d5b15fb5bd8f3c1c76b6ddf5cace68777f6e30a60d5ea7e8c",
+      "root_current_sha256": "cdfcf0b22b8a8f5d5b15fb5bd8f3c1c76b6ddf5cace68777f6e30a60d5ea7e8c",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/virtual_geometry/runtime/src/plugin.rs",
+      "captured_sha256": "acededc5be5d931ee58acf39706647238980eb9e11e3dea78ca613d427475dbc",
+      "root_current_sha256": "acededc5be5d931ee58acf39706647238980eb9e11e3dea78ca613d427475dbc",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/virtual_geometry/runtime/src/capability.rs",
+      "captured_sha256": "703b6f60fbeec72288853e62a917343882039c23e56ca8677eefb30cd5f94a11",
+      "root_current_sha256": "703b6f60fbeec72288853e62a917343882039c23e56ca8677eefb30cd5f94a11",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/virtual_geometry/runtime/src/render_pass_executors.rs",
+      "captured_sha256": "80aeb897bdc773e8d89a5c8f0bba43eb194e968456d0bdb85dbc3c9564ce2f2b",
+      "root_current_sha256": "80aeb897bdc773e8d89a5c8f0bba43eb194e968456d0bdb85dbc3c9564ce2f2b",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/virtual_geometry/runtime/src/render_pass_executors/gpu.rs",
+      "captured_sha256": "77bf641e50e6d02cfb5e2b218eec843e69bf6ab667f959c43c01d4bd268158a9",
+      "root_current_sha256": "77bf641e50e6d02cfb5e2b218eec843e69bf6ab667f959c43c01d4bd268158a9",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_node_and_cluster_cull_pass/execute.rs",
+      "captured_sha256": "e4ff053efb8d2365dfd396efb0a7b5f1dc67cb30f935ed64d2fbf2e3b78e48c1",
+      "root_current_sha256": "e4ff053efb8d2365dfd396efb0a7b5f1dc67cb30f935ed64d2fbf2e3b78e48c1",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_hardware_rasterization_pass/execute.rs",
+      "captured_sha256": "05ace19bfbd630747e3e531061fe2ca902430f2b53ea664a1f7e732b2fea06f4",
+      "root_current_sha256": "05ace19bfbd630747e3e531061fe2ca902430f2b53ea664a1f7e732b2fea06f4",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_visbuffer64_pass/execute.rs",
+      "captured_sha256": "6de96d2fbf368f9d69489d785d68ef029aa485f48739532fdd82c948148ce3c8",
+      "root_current_sha256": "6de96d2fbf368f9d69489d785d68ef029aa485f48739532fdd82c948148ce3c8",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/graphics/virtual_geometry_runtime_provider/provider.rs",
+      "captured_sha256": "057c79887c7ba12ff5e2d1c0fcd020ce62a8dbcbbc033ac03fb3f53a02f38884",
+      "root_current_sha256": "057c79887c7ba12ff5e2d1c0fcd020ce62a8dbcbbc033ac03fb3f53a02f38884",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/graphics/visibility/context/from_extract.rs",
+      "captured_sha256": "2024039b1b52728172fcd3bd49ab2249fa2501dcefc653a2b67d60f8c5206d5b",
+      "root_current_sha256": "2024039b1b52728172fcd3bd49ab2249fa2501dcefc653a2b67d60f8c5206d5b",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/build.rs",
+      "captured_sha256": "7ce901decbe0bb2b0426e606859611fdcdf3431c700ef485df3d6d0b49388ef3",
+      "root_current_sha256": "7ce901decbe0bb2b0426e606859611fdcdf3431c700ef485df3d6d0b49388ef3",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registration.rs",
+      "captured_sha256": "4447496d24c0964935128455682669fbcc03522d3680e22bfd5bd33eb874b86e",
+      "root_current_sha256": "4447496d24c0964935128455682669fbcc03522d3680e22bfd5bd33eb874b86e",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs",
+      "captured_sha256": "0edd2afc170eb0aa5099ca79bd5513db9b5cac52fec891960116301e980585e1",
+      "root_current_sha256": "0edd2afc170eb0aa5099ca79bd5513db9b5cac52fec891960116301e980585e1",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/crates/zr_rhi/src/capabilities.rs",
+      "captured_sha256": "9b9b19b935e7f2c626244fe2d082e1647632f269a4c0076af87c417970535ac7",
+      "root_current_sha256": "9b9b19b935e7f2c626244fe2d082e1647632f269a4c0076af87c417970535ac7",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/crates/zr_rhi_wgpu/src/production/device/capabilities.rs",
+      "captured_sha256": "b0cd2ade6d846d4ffba8f120489031c38029b488939b3982fec5d7cc7cd21a6d",
+      "root_current_sha256": "b0cd2ade6d846d4ffba8f120489031c38029b488939b3982fec5d7cc7cd21a6d",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/crates/zr_rhi_wgpu/src/production/command_encoder/compute_pass.rs",
+      "captured_sha256": "278908b65582d2ddeb758ddeeab4e80c8ad825d628fe51e0f7c51784a70fd978",
+      "root_current_sha256": "278908b65582d2ddeb758ddeeab4e80c8ad825d628fe51e0f7c51784a70fd978",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/crates/zr_rhi_wgpu/src/production/command_encoder/render_pass.rs",
+      "captured_sha256": "c61c33c9ec70c54fc41d4413ea566f7e943847e37b9225480a1f370e45c20dea",
+      "root_current_sha256": "c61c33c9ec70c54fc41d4413ea566f7e943847e37b9225480a1f370e45c20dea",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/terrain/plugin.toml",
+      "captured_sha256": "2a57f3e9837faf45c72d8acefd15671e742be1cb721488af4bd28111c1209b61",
+      "root_current_sha256": "2a57f3e9837faf45c72d8acefd15671e742be1cb721488af4bd28111c1209b61",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/terrain/runtime/src/plugin.rs",
+      "captured_sha256": "ca1fb14fa0a85de3d6adcb43b98935e1b337c36841001e48715caf02cf68efff",
+      "root_current_sha256": "ca1fb14fa0a85de3d6adcb43b98935e1b337c36841001e48715caf02cf68efff",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/terrain/runtime/src/capability.rs",
+      "captured_sha256": "dfbe2808e897e642b7a062798202abf6e47fbac3601c565528671bc498594947",
+      "root_current_sha256": "dfbe2808e897e642b7a062798202abf6e47fbac3601c565528671bc498594947",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/terrain/dist/src/lib.rs",
+      "captured_sha256": "d7ab8db2dcc0907562b21680ae9cac7133bdad3d4fe601604e7a0f22cda23c1b",
+      "root_current_sha256": "d7ab8db2dcc0907562b21680ae9cac7133bdad3d4fe601604e7a0f22cda23c1b",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/asset/assets/authoring.rs",
+      "captured_sha256": "f0367f64740f6e71ce8b3aa5be6921a5a43ea13f739ad447c08a58bd44e3982e",
+      "root_current_sha256": "f0367f64740f6e71ce8b3aa5be6921a5a43ea13f739ad447c08a58bd44e3982e",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/asset/assets/scene/entity.rs",
+      "captured_sha256": "cb9c490089ffaed37854d557c6c816fbf47d83042f828c7842176b663347adcc",
+      "root_current_sha256": "cb9c490089ffaed37854d557c6c816fbf47d83042f828c7842176b663347adcc",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/asset/importer/ingest/asset_importer.rs",
+      "captured_sha256": "43d6d8e7e02afa84f315e27585ad879fdead7d955b2dcd731fdd22bf5c27215c",
+      "root_current_sha256": "43d6d8e7e02afa84f315e27585ad879fdead7d955b2dcd731fdd22bf5c27215c",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/project_io/scene_asset.rs",
+      "captured_sha256": "8d8d1e6c9155af293e5db7ca17291bb199204515fdc6a9b5f80ce3b00ddc4b6d",
+      "root_current_sha256": "8d8d1e6c9155af293e5db7ca17291bb199204515fdc6a9b5f80ce3b00ddc4b6d",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_runtime/src/graphics/feature/builtin_render_feature/advanced_slots.rs",
+      "captured_sha256": "ec66e2fc642638135e41941c44f586a81405db3f7b87411028bdfd5b47797d84",
+      "root_current_sha256": "ec66e2fc642638135e41941c44f586a81405db3f7b87411028bdfd5b47797d84",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/navigation/runtime/src/manager/bake/geometry.rs",
+      "captured_sha256": "7585da44c5a4f0dd31653beb94ef2e000ba0e6247e5dc6132044057614664d15",
+      "root_current_sha256": "7585da44c5a4f0dd31653beb94ef2e000ba0e6247e5dc6132044057614664d15",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/backend/jolt/conversion.rs",
+      "captured_sha256": "7dc2eb07efcb9fd82402482b10c2eed1673518179a089a937af575eaa8f67ce8",
+      "root_current_sha256": "7dc2eb07efcb9fd82402482b10c2eed1673518179a089a937af575eaa8f67ce8",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/backend/jolt/mesh_shape.rs",
+      "captured_sha256": "09f849cf14c7e109c50b22a1dab7addd97b791403087fd4394b9287adbfb5c78",
+      "root_current_sha256": "09f849cf14c7e109c50b22a1dab7addd97b791403087fd4394b9287adbfb5c78",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/terrain/editor/src/plugin.rs",
+      "captured_sha256": "45b978e65badaa6b6a5b7d45f1d92af1438eef53636506988537b6acd7e4a55a",
+      "root_current_sha256": "45b978e65badaa6b6a5b7d45f1d92af1438eef53636506988537b6acd7e4a55a",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_plugins/terrain/editor/src/authoring.rs",
+      "captured_sha256": "814963a9ab31f2bd70a5b2bb9015a6f44cdfc85b895ec5fd4eadd6a3875b44df",
+      "root_current_sha256": "814963a9ab31f2bd70a5b2bb9015a6f44cdfc85b895ec5fd4eadd6a3875b44df",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_terrain_editor_workspace.zui",
+      "captured_sha256": "dab10b71f81a6bfc1664db5128487118d0045964502116e428dce15d694ef6e7",
+      "root_current_sha256": "dab10b71f81a6bfc1664db5128487118d0045964502116e428dce15d694ef6e7",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "path": "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building/terrain_and_foliage.rs",
+      "captured_sha256": "37020d1f940668d3a0d93525bf487c765cfbaf47c5c1d7f05114379b4fc6533d",
+      "root_current_sha256": "37020d1f940668d3a0d93525bf487c765cfbaf47c5c1d7f05114379b4fc6533d",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    }
+  ],
+  "reference_evidence": [
+    {
+      "category": "ue_version",
+      "report_refs": [
+        "Runtime213",
+        "Runtime172"
+      ],
+      "source_path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Build\\Build.version",
+      "sha256": "3dcd8b6654872d013f2b00aa5f0ef1e0db89d4e8627ce820554675a27f228ea6",
+      "raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\001__Build.version__capture.raw",
+      "evidence_lines": [],
+      "changed_during_capture": false
+    },
+    {
+      "category": "ue_landscape",
+      "report_refs": [
+        "Runtime142",
+        "Runtime172"
+      ],
+      "source_path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Source\\Runtime\\Landscape\\Private\\LandscapeComponent.cpp",
+      "sha256": "334b12c5cb354a609791bd89d06602b14d89c8e758544b056fb01402b02d8293",
+      "raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\002__LandscapeComponent.cpp__capture.raw",
+      "evidence_lines": [
+        {
+          "line": 78,
+          "text": "\t\t// The selection/tool/gizmo materials are displayed in a translucent pass with Disable Depth Test == true so that they always show despite being underneath other objects."
+        }
+      ],
+      "changed_during_capture": false
+    },
+    {
+      "category": "ue_landscape",
+      "report_refs": [
+        "Runtime142",
+        "Runtime172"
+      ],
+      "source_path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Source\\Runtime\\Landscape\\Private\\LandscapeRender.cpp",
+      "sha256": "23ff5712ae28b0a23d21a8e61825e4f7d1dacc3320b3ba7afae3f5d28e6b2973",
+      "raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\003__LandscapeRender.cpp__capture.raw",
+      "evidence_lines": [
+        {
+          "line": 4,
+          "text": "LandscapeRender.cpp: New terrain rendering"
+        },
+        {
+          "line": 21,
+          "text": "#include \"MeshDrawShaderBindings.h\""
+        },
+        {
+          "line": 36,
+          "text": "#include \"DrawDebugHelpers.h\""
+        },
+        {
+          "line": 54,
+          "text": "#include \"RenderGraphBuilder.h\""
+        },
+        {
+          "line": 56,
+          "text": "#include \"Rendering/CustomRenderPass.h\""
+        },
+        {
+          "line": 135,
+          "text": "float GLandscapeNonNaniteVirtualShadowMapInvalidationHeightErrorThresholdOverride = -1.f;"
+        },
+        {
+          "line": 136,
+          "text": "FAutoConsoleVariableRef CVarLandscapeNonNaniteVirtualShadowMapInvalidationHeightErrorThresholdOverride("
+        },
+        {
+          "line": 137,
+          "text": "\tTEXT(\"landscape.OverrideNonNaniteVirtualShadowMapInvalidationHeightErrorThreshold\"),"
+        }
+      ],
+      "changed_during_capture": false
+    },
+    {
+      "category": "ue_foliage",
+      "report_refs": [
+        "Runtime142",
+        "Runtime172"
+      ],
+      "source_path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Source\\Runtime\\Foliage\\Private\\InstancedFoliage.cpp",
+      "sha256": "37f8a5691f74f8b713b7eb73e6fa8bfed2dceccd5595e15953f3e06cc79ebc65",
+      "raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\005__InstancedFoliage.cpp__capture.raw",
+      "evidence_lines": [
+        {
+          "line": 16,
+          "text": "#include \"WorldCollision.h\""
+        },
+        {
+          "line": 18,
+          "text": "#include \"Engine/World.h\""
+        },
+        {
+          "line": 44,
+          "text": "#include \"DrawDebugHelpers.h\""
+        },
+        {
+          "line": 149,
+          "text": "\tvirtual void SetInstanceWorldTransform(int32 InstanceIndex, const FTransform& Transform, bool bTeleport) override;"
+        },
+        {
+          "line": 150,
+          "text": "\tvirtual FTransform GetInstanceWorldTransform(int32 InstanceIndex) const override;"
+        },
+        {
+          "line": 192,
+          "text": "\tvirtual bool CanMoveSMInstance(const FSMInstanceId& InstanceId, const ETypedElementWorldType WorldType) const override;"
+        },
+        {
+          "line": 193,
+          "text": "\tvirtual bool GetSMInstanceTransform(const FSMInstanceId& InstanceId, FTransform& OutInstanceTransform, bool bWorldSpace = false) const override;"
+        },
+        {
+          "line": 194,
+          "text": "\tvirtual bool SetSMInstanceTransform(const FSMInstanceId& InstanceId, const FTransform& InstanceTransform, bool bWorldSpace = false, bool bMarkRenderStateDirty = false, bool bTeleport = false) override;"
+        }
+      ],
+      "changed_during_capture": false
+    },
+    {
+      "category": "ue_world_partition",
+      "report_refs": [
+        "Runtime142",
+        "Runtime172"
+      ],
+      "source_path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Source\\Runtime\\Engine\\Private\\WorldPartition\\WorldPartitionRuntimeLevelStreamingCell.cpp",
+      "sha256": "eadb6d6a1d16b353337b61150862a5410efca5f784e6ef424614f178b6a827e2",
+      "raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\006__WorldPartitionRuntimeLevelStreamingCell.cpp__capture.raw",
+      "evidence_lines": [
+        {
+          "line": 3,
+          "text": "#include \"WorldPartition/WorldPartitionRuntimeLevelStreamingCell.h\""
+        },
+        {
+          "line": 4,
+          "text": "#include \"WorldPartition/WorldPartitionLevelStreamingDynamic.h\""
+        },
+        {
+          "line": 5,
+          "text": "#include \"WorldPartition/WorldPartitionLevelStreamingPolicy.h\""
+        },
+        {
+          "line": 6,
+          "text": "#include \"WorldPartition/WorldPartitionDebugHelper.h\""
+        },
+        {
+          "line": 7,
+          "text": "#include \"WorldPartition/WorldPartitionStreamingGenerationContext.h\""
+        },
+        {
+          "line": 8,
+          "text": "#include \"WorldPartition/WorldPartitionRuntimeHash.h\""
+        },
+        {
+          "line": 9,
+          "text": "#include \"WorldPartition/WorldPartitionStreamingPolicy.h\""
+        },
+        {
+          "line": 10,
+          "text": "#include \"WorldPartition/WorldPartitionUtils.h\""
+        }
+      ],
+      "changed_during_capture": false
+    },
+    {
+      "category": "ue_world_partition",
+      "report_refs": [
+        "Runtime142",
+        "Runtime172"
+      ],
+      "source_path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Source\\Runtime\\Engine\\Private\\WorldPartition\\WorldPartitionSubsystem.cpp",
+      "sha256": "a8b89e14d26e9d65ebf7822533b8150d2f01c3e3fade4221932335c805c3101a",
+      "raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\007__WorldPartitionSubsystem.cpp__capture.raw",
+      "evidence_lines": [
+        {
+          "line": 3,
+          "text": "#include \"WorldPartition/WorldPartitionSubsystem.h\""
+        },
+        {
+          "line": 6,
+          "text": "#include \"WorldPartition/WorldPartition.h\""
+        },
+        {
+          "line": 7,
+          "text": "#include \"WorldPartition/WorldPartitionActorDesc.h\""
+        },
+        {
+          "line": 8,
+          "text": "#include \"WorldPartition/WorldPartitionDebugHelper.h\""
+        },
+        {
+          "line": 9,
+          "text": "#include \"WorldPartition/WorldPartitionLog.h\""
+        },
+        {
+          "line": 10,
+          "text": "#include \"WorldPartition/WorldPartitionRuntimeHash.h\""
+        },
+        {
+          "line": 11,
+          "text": "#include \"WorldPartition/WorldPartitionStreamingSource.h\""
+        },
+        {
+          "line": 12,
+          "text": "#include \"WorldPartition/WorldPartitionReplay.h\""
+        }
+      ],
+      "changed_during_capture": false
+    },
+    {
+      "category": "ue_editor_landscape",
+      "report_refs": [
+        "Editor16",
+        "Editor232"
+      ],
+      "source_path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Source\\Editor\\LandscapeEditor\\Private\\LandscapeEdMode.cpp",
+      "sha256": "e9da4d6a01c5076b99bf07e3baa8dc3256651d51bd3dfe8b563b1fb14b23b777",
+      "raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\008__LandscapeEdMode.cpp__capture.raw",
+      "evidence_lines": [
+        {
+          "line": 40,
+          "text": "#include \"LandscapeHeightfieldCollisionComponent.h\""
+        },
+        {
+          "line": 42,
+          "text": "#include \"EditorWorldExtension.h\""
+        },
+        {
+          "line": 162,
+          "text": "\tCurrentToolTarget.TargetType = ELandscapeToolTargetType::Heightmap;"
+        },
+        {
+          "line": 242,
+          "text": "\tFLandscapeToolMode* ToolMode_Sculpt = new(LandscapeToolModes)FLandscapeToolMode(UE::Landscape::Editor::Private::Mode::Sculpt, ELandscapeToolTargetTypeFlags::Heightmap | ELandscapeToolTargetTypeFlags::Visibility);"
+        },
+        {
+          "line": 310,
+          "text": "\t\t\treturn CurrentToolTarget.TargetType == ELandscapeToolTargetType::Visibility ? ELandscapeToolTargetType::Visibility : ELandscapeToolTargetType::Heightmap;"
+        },
+        {
+          "line": 367,
+          "text": "\t\t\t\t\t * ((LandscapeListInfo.Height > 0) ? LandscapeListInfo.Height : 1);"
+        },
+        {
+          "line": 438,
+          "text": "\tUWorld* World = GetWorld();"
+        },
+        {
+          "line": 440,
+          "text": "\tif (World != nullptr)"
+        }
+      ],
+      "changed_during_capture": false
+    },
+    {
+      "category": "ue_editor_foliage",
+      "report_refs": [
+        "Editor16",
+        "Editor232"
+      ],
+      "source_path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Source\\Editor\\FoliageEdit\\Private\\FoliageEdMode.cpp",
+      "sha256": "8a488fdab975b866fe2d20d89e5614c421d8cdc282d84b227346fad733345935",
+      "raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\009__FoliageEdMode.cpp__capture.raw",
+      "evidence_lines": [
+        {
+          "line": 40,
+          "text": "#include \"Engine/World.h\""
+        },
+        {
+          "line": 67,
+          "text": "#include \"LandscapeHeightfieldCollisionComponent.h\""
+        },
+        {
+          "line": 121,
+          "text": "#include \"WorldPartition/WorldPartitionSubsystem.h\""
+        },
+        {
+          "line": 188,
+          "text": "\tFFoliageInfoIterator(UWorld* InWorld, const UFoliageType* InFoliageType)"
+        },
+        {
+          "line": 191,
+          "text": "\t\t, ActorIterator(InWorld)"
+        },
+        {
+          "line": 270,
+          "text": "\t\t\t(bAllowLandscape   && Component->IsA(ULandscapeHeightfieldCollisionComponent::StaticClass())) ||"
+        },
+        {
+          "line": 318,
+          "text": "\tSphereBrushComponent->SetCollisionObjectType(ECC_WorldDynamic);"
+        },
+        {
+          "line": 451,
+          "text": "\tFCoreUObjectDelegates::OnObjectsReplaced.AddRaw(this, &FEdModeFoliage::OnObjectsReplaced);"
+        }
+      ],
+      "changed_during_capture": false
+    },
+    {
+      "category": "ue_gpu_scene",
+      "report_refs": [
+        "Runtime09B",
+        "Runtime213"
+      ],
+      "source_path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Source\\Runtime\\Renderer\\Private\\GPUScene.cpp",
+      "sha256": "8501c164ebd45d8990c23692a07960c885014444638f1bd63c493e4bc1153f8b",
+      "raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\010__GPUScene.cpp__capture.raw",
+      "evidence_lines": [
+        {
+          "line": 51,
+          "text": "static void ConstructDefault(FGPUSceneResourceParameters& GPUScene, FRDGBuilder& GraphBuilder)"
+        },
+        {
+          "line": 53,
+          "text": "\tFRDGBufferRef DummyBufferVec4 = GSystemTextures.GetDefaultStructuredBuffer(GraphBuilder, sizeof(FVector4f));"
+        },
+        {
+          "line": 54,
+          "text": "\tGPUScene.GPUSceneInstanceSceneData = GraphBuilder.CreateSRV(DummyBufferVec4);"
+        },
+        {
+          "line": 55,
+          "text": "\tGPUScene.GPUSceneInstancePayloadData = GraphBuilder.CreateSRV(DummyBufferVec4);"
+        },
+        {
+          "line": 56,
+          "text": "\tGPUScene.GPUScenePrimitiveSceneData = GraphBuilder.CreateSRV(DummyBufferVec4);"
+        },
+        {
+          "line": 57,
+          "text": "\tGPUScene.GPUSceneLightmapData = GraphBuilder.CreateSRV(DummyBufferVec4);"
+        },
+        {
+          "line": 58,
+          "text": "\tFRDGBufferRef DummyBufferLight = GSystemTextures.GetDefaultStructuredBuffer(GraphBuilder, sizeof(FLightSceneData));"
+        },
+        {
+          "line": 59,
+          "text": "\tGPUScene.GPUSceneLightData = GraphBuilder.CreateSRV(DummyBufferLight);"
+        }
+      ],
+      "changed_during_capture": false
+    },
+    {
+      "category": "ue_instance_culling",
+      "report_refs": [
+        "Runtime09B",
+        "Runtime213"
+      ],
+      "source_path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Source\\Runtime\\Renderer\\Private\\InstanceCulling\\InstanceCullingContext.cpp",
+      "sha256": "de275b2f0726c21cae5e19c9415153b4a71ad062a23fd19f97bd98f7ae4d637e",
+      "raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\011__InstanceCullingContext.cpp__capture.raw",
+      "evidence_lines": [
+        {
+          "line": 8,
+          "text": "#include \"RenderGraphResources.h\""
+        },
+        {
+          "line": 9,
+          "text": "#include \"RenderGraphBuilder.h\""
+        },
+        {
+          "line": 10,
+          "text": "#include \"RenderGraphUtils.h\""
+        },
+        {
+          "line": 20,
+          "text": "#include \"MeshDrawCommandStats.h\""
+        },
+        {
+          "line": 51,
+          "text": "\tTEXT(\"Whether or not to allow instances to preserve instance draw order using GPU compaction.\"),"
+        },
+        {
+          "line": 67,
+          "text": "// Used by DrawDynamicMeshPassPrivate to build per-pass instance-culling UBs at execute time outside of RDG."
+        },
+        {
+          "line": 124,
+          "text": "static FUintVector2 PackDrawCommandDesc(bool bMaterialUsesWorldPositionOffset, bool bMaterialAlwaysEvaluatesWorldPositionOffset, FMeshDrawCommandCullingPayload CullingPayload, EMeshDrawCommandCullingPayloadFlags CullingPayloadFlags)"
+        },
+        {
+          "line": 126,
+          "text": "\t// See UnpackDrawCommandDesc() in shader code."
+        }
+      ],
+      "changed_during_capture": false
+    },
+    {
+      "category": "ue_scene_visibility",
+      "report_refs": [
+        "Runtime09B",
+        "Runtime213"
+      ],
+      "source_path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Source\\Runtime\\Renderer\\Private\\SceneVisibility.cpp",
+      "sha256": "72eb971af94e1b93cf7aef9012166ddaf208b187f30eba60698d569af5b94ce0",
+      "raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\012__SceneVisibility.cpp__capture.raw",
+      "evidence_lines": [
+        {
+          "line": 22,
+          "text": "#include \"PrimitiveDrawingUtils.h\""
+        },
+        {
+          "line": 31,
+          "text": "#include \"DynamicPrimitiveDrawing.h\""
+        },
+        {
+          "line": 92,
+          "text": "float GMinScreenRadiusForDepthPrepass = 0.03f;"
+        },
+        {
+          "line": 93,
+          "text": "static FAutoConsoleVariableRef CVarMinScreenRadiusForDepthPrepass("
+        },
+        {
+          "line": 94,
+          "text": "\tTEXT(\"r.MinScreenRadiusForDepthPrepass\"),"
+        },
+        {
+          "line": 95,
+          "text": "\tGMinScreenRadiusForDepthPrepass,"
+        },
+        {
+          "line": 96,
+          "text": "\tTEXT(\"Threshold below which meshes will be culled from depth only pass.\"),"
+        },
+        {
+          "line": 147,
+          "text": "\tTEXT(\"Draw boxes for all occluded primitives.\\n\")"
+        }
+      ],
+      "changed_during_capture": false
+    },
+    {
+      "category": "ue_nanite",
+      "report_refs": [
+        "Runtime09B",
+        "Runtime213"
+      ],
+      "source_path": "E:\\Git\\ZirconEngine\\dev\\UnrealEngine\\Engine\\Source\\Runtime\\Renderer\\Private\\Nanite\\NaniteCullRaster.cpp",
+      "sha256": "d3c086708e6fe8a4cc1fab474d4e75ac5d28a87254f6f975cd060ec7a983e62d",
+      "raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch24\\terminal-r1\\raw\\references\\013__NaniteCullRaster.cpp__capture.raw",
+      "evidence_lines": [
+        {
+          "line": 22,
+          "text": "#include \"RenderGraphUtils.h\""
+        },
+        {
+          "line": 41,
+          "text": "#define CULLING_PASS_NO_OCCLUSION\t\t0"
+        },
+        {
+          "line": 42,
+          "text": "#define CULLING_PASS_OCCLUSION_MAIN\t\t1"
+        },
+        {
+          "line": 43,
+          "text": "#define CULLING_PASS_OCCLUSION_POST\t\t2"
+        },
+        {
+          "line": 44,
+          "text": "#define CULLING_PASS_EXPLICIT_LIST\t\t3"
+        },
+        {
+          "line": 47,
+          "text": "static_assert(1 + NANITE_MAX_NODES_PER_PRIMITIVE_BITS + NANITE_MAX_VIEWS_PER_CULL_RASTERIZE_PASS_BITS <= 32, \"FCandidateNode.y fields don't fit in 32bits\");"
+        },
+        {
+          "line": 67,
+          "text": "static TAutoConsoleVariable<int32> CVarNaniteAsyncRasterizeCustomPass("
+        },
+        {
+          "line": 68,
+          "text": "\tTEXT(\"r.Nanite.AsyncRasterization.CustomPass\"),"
+        }
+      ],
+      "changed_during_capture": false
+    }
+  ],
+  "missing_reference_qualification": [
+    "Source-only qualification; no implementation, compiler, native, performance, or acceptance pass claimed.",
+    "All seven report before/capture/after hashes matched and changed_during_capture was false.",
+    "Selected scope was dirty before and after capture; sealed erratum records status without rewriting packet files.",
+    "UE LandscapeStreamingProxy.cpp was not present in the selected references; no replacement file was manufactured.",
+    "Tests or builds run: 0. Acceptance remains open."
+  ],
+  "classification_rules": {
+    "Runtime213": "RT213-P1-001..048 map to Runtime94 and are successor non-new; RT213-P1-049..060 and RT213-P2-001..012 are current text-backed own findings",
+    "Runtime29": "five lines 143-147 are inherited owner decisions with null literal_id and excluded from finding and literal counts",
+    "Runtime09B_gates": "sealed rows span 369-378; rows 369-377 are the nine execution hard checks, while row 378 is stats/RenderDoc metric qualification; lines 348-354 dimensions and 358-365 metrics remain acceptance requirements, not gate rows",
+    "null_ids": "unlabelled rows and null gate IDs are retained exactly; no IDs are minted",
+    "Root_null_ordinal_identity": "Editor16 P1 ordinals restart in six sections; original null IDs and ordinals retained; packet locator adds exact original line to distinguish all72 observations, no literal ID minted"
+  },
+  "tests_run": 0,
+  "source_writes": 0,
+  "acceptance": "open"
+}

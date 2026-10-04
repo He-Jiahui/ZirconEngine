@@ -1,7 +1,7 @@
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodePath, UiTreeId},
-    layout::UiFrame,
+    layout::{UiFrame, UiSize},
     tree::{UiInputPolicy, UiTreeNode},
 };
 
@@ -19,7 +19,7 @@ use super::state_flags::base_state;
 use crate::ui::retained_host::route_intent::{EditorRouteIntent, EditorRouteIntentMap};
 
 impl HostMenuPointerBridge {
-    pub(in crate::ui::retained_host::menu_pointer) fn rebuild_surface(&mut self) {
+    pub(in crate::ui::retained_host::menu_pointer) fn rebuild_surface_from_scratch(&mut self) {
         let mut surface = UiSurface::new(UiTreeId::new("zircon.editor.workbench.menu_pointer"));
         let mut dispatcher = UiPointerDispatcher::default();
         let mut route_intents = EditorRouteIntentMap::default();
@@ -123,7 +123,10 @@ impl HostMenuPointerBridge {
             }
         }
 
-        surface.rebuild();
+        surface.rebuild_authored_frames(UiSize::new(
+            self.layout.shell_frame.width,
+            self.layout.shell_frame.height,
+        ));
         self.surface = surface;
         self.dispatcher = dispatcher;
         self.route_intents = route_intents;

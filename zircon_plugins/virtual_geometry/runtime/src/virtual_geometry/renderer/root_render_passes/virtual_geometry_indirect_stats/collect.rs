@@ -26,6 +26,7 @@ struct ExecutionDrawProjection<'a> {
     draw_submission_token_records: Vec<(u64, u32, u32, u32, usize)>,
 }
 
+// 提交顺序和令牌记录取自全部执行 draw；间接参数偏移与计数只取实际使用 indirect draw 的子集。
 fn collect_execution_draw_projection(
     execution_draws: &[RenderVirtualGeometryExecutionDraw],
 ) -> ExecutionDrawProjection<'_> {
@@ -218,4 +219,5 @@ fn virtual_geometry_indirect_stats(
 }
 
 #[cfg(test)]
+#[path = "collect/tests/draw_projection_tests.rs"]
 mod draw_projection_tests;

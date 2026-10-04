@@ -1,3 +1,6 @@
+//! 将调用端路径归一为事务实际操作身份，并将临时产物绑定到 journal owner。
+//! 归一处理现存祖先与未创建尾部；命名空间比较按组件识别包含关系，不能使用字符串前缀代替。
+
 use std::cmp::Ordering as CmpOrdering;
 use std::ffi::OsString;
 use std::fs;
@@ -187,6 +190,57 @@ pub(super) fn valid_transaction_id(value: &str, journal_directory: &PathIdentity
     }) && parts.next().is_none()
 }
 
+pub(super) fn is_project_transaction_sibling_path(path: &Path) -> bool {
+    let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+        return false;
+    };
+    let Some(name) = name.strip_prefix('.') else {
+        return false;
+    };
+    let Some((basename_token, artifact)) = name.split_once(".zr-project-") else {
+        return false;
+    };
+    if !is_canonical_path_token(basename_token) {
+        return false;
+    }
+
+    ["stage-", "backup-", "rollback-stage-"].iter().any(|role| {
+        artifact
+            .strip_prefix(role)
+            .is_some_and(is_canonical_transaction_id)
+    })
+}
+
+fn is_canonical_transaction_id(value: &str) -> bool {
+    let mut parts = value.split('-');
+    if !parts.next().is_some_and(is_canonical_path_token) {
+        return false;
+    }
+    let Some(process_id) = parts.next() else {
+        return false;
+    };
+    let Ok(process_id_number) = process_id.parse::<u32>() else {
+        return false;
+    };
+    if process_id_number == 0 || process_id_number.to_string() != process_id {
+        return false;
+    }
+    let Some(sequence) = parts.next() else {
+        return false;
+    };
+    let Ok(sequence_number) = sequence.parse::<NonZeroU64>() else {
+        return false;
+    };
+    sequence_number.get().to_string() == sequence && parts.next().is_none()
+}
+
+fn is_canonical_path_token(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
 pub(super) fn journal_owner_token(journal_directory: &Path) -> String {
     path_encoding_token(journal_directory)
 }
@@ -262,196 +316,8 @@ fn path_encoding_token(path: &Path) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    const OPAQUE_TRANSACTION_ID: &str =
-        "0000000000000000000000000000000000000000000000000000000000000000-1-1";
-
-    fn test_directory(label: &str) -> PathBuf {
-        let output_root = std::env::var_os("ZIRCON_TEST_OUTPUT_ROOT")
-            .or_else(|| std::env::var_os("CARGO_TARGET_DIR"))
-            .map(PathBuf::from)
-            .unwrap_or_else(|| std::env::current_dir().unwrap().join("target"));
-        output_root.join("zircon-test-output").join(format!(
-            "transaction-identity-{label}-{}-{}",
-            std::process::id(),
-            crate::io::next_test_output_id()
-        ))
-    }
-
-    #[test]
-    fn transaction_identity_is_partitioned_by_canonical_journal_owner() {
-        let root = test_directory("owner-partition");
-        let first_owner = root.join("first-owner");
-        let second_owner = root.join("second-owner");
-        fs::create_dir_all(&first_owner).unwrap();
-        fs::create_dir_all(&second_owner).unwrap();
-        let first_sequence = ArtifactSequence::starting_at(7);
-        let second_sequence = ArtifactSequence::starting_at(7);
-        let first_identity = PathIdentity::resolve(&first_owner).unwrap();
-        let second_identity = PathIdentity::resolve(&second_owner).unwrap();
-        let first =
-            next_transaction_id_with_sequence(first_identity.operation_path(), &first_sequence)
-                .unwrap();
-        let second =
-            next_transaction_id_with_sequence(second_identity.operation_path(), &second_sequence)
-                .unwrap();
-
-        assert_ne!(first, second);
-        assert!(valid_transaction_id(&first, &first_identity));
-        assert!(valid_transaction_id(&second, &second_identity));
-        assert!(!valid_transaction_id(&first, &second_identity));
-        fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn transaction_identity_parser_rejects_legacy_and_malformed_wires() {
-        let owner = test_directory("wire-validation");
-        fs::create_dir_all(&owner).unwrap();
-        let identity = PathIdentity::resolve(&owner).unwrap();
-        let token = journal_owner_token(identity.operation_path());
-
-        assert!(!valid_transaction_id("42-1", &identity));
-        assert!(!valid_transaction_id(&format!("{token}-42-0"), &identity));
-        assert!(!valid_transaction_id(
-            &format!("{}-42-1", token.to_uppercase()),
-            &identity
-        ));
-        assert!(!valid_transaction_id(
-            &format!("{}-42-1", &token[..32]),
-            &identity
-        ));
-        assert!(!valid_transaction_id(
-            &format!("{token}-42-1-extra"),
-            &identity
-        ));
-        assert!(valid_transaction_id(&format!("{token}-42-1"), &identity));
-        fs::remove_dir_all(owner).unwrap();
-    }
-
-    #[test]
-    fn transaction_identity_exhaustion_is_terminal() {
-        let owner = Path::new("journal-owner");
-        let sequence = ArtifactSequence::starting_at(u64::MAX);
-
-        let final_identity = next_transaction_id_with_sequence(owner, &sequence).unwrap();
-
-        assert!(final_identity.ends_with(&format!("-{}-{}", std::process::id(), u64::MAX)));
-        assert_eq!(
-            next_transaction_id_with_sequence(owner, &sequence),
-            Err(ArtifactIdentityExhausted)
-        );
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn basename_tokens_distinguish_non_unicode_basenames() {
-        use std::os::unix::ffi::OsStringExt;
-
-        let parent = Path::new("/tmp");
-        let first = parent.join(OsString::from_vec(vec![b'a', 0x80]));
-        let second = parent.join(OsString::from_vec(vec![b'a', 0x81]));
-        let literal = parent.join("zircon.data");
-
-        let first_artifact = transaction_sibling(&first, "project", "stage", OPAQUE_TRANSACTION_ID);
-        let second_artifact =
-            transaction_sibling(&second, "project", "stage", OPAQUE_TRANSACTION_ID);
-        let literal_artifact =
-            transaction_sibling(&literal, "project", "stage", OPAQUE_TRANSACTION_ID);
-
-        assert_ne!(first_artifact, second_artifact);
-        assert_ne!(first_artifact, literal_artifact);
-        assert_ne!(second_artifact, literal_artifact);
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn basename_tokens_distinguish_non_unicode_basenames() {
-        use std::ffi::OsString;
-        use std::os::windows::ffi::OsStringExt;
-
-        let parent = Path::new(r"C:\zircon");
-        let first = parent.join(OsString::from_wide(&[0xd800]));
-        let second = parent.join(OsString::from_wide(&[0xd801]));
-        let literal = parent.join("zircon.data");
-
-        let first_artifact = transaction_sibling(&first, "project", "stage", OPAQUE_TRANSACTION_ID);
-        let second_artifact =
-            transaction_sibling(&second, "project", "stage", OPAQUE_TRANSACTION_ID);
-        let literal_artifact =
-            transaction_sibling(&literal, "project", "stage", OPAQUE_TRANSACTION_ID);
-
-        assert_ne!(first_artifact, second_artifact);
-        assert_ne!(first_artifact, literal_artifact);
-        assert_ne!(second_artifact, literal_artifact);
-    }
-
-    #[test]
-    fn split_at_deepest_existing_ancestor_scans_from_leaf() {
-        let output_root = std::env::var_os("ZIRCON_TEST_OUTPUT_ROOT")
-            .or_else(|| std::env::var_os("CARGO_TARGET_DIR"))
-            .map(PathBuf::from)
-            .unwrap_or_else(|| std::env::current_dir().unwrap().join("target"));
-        let root = output_root.join("zircon-test-output").join(format!(
-            "zircon-resource-pathing-{}-{}",
-            std::process::id(),
-            crate::io::next_test_output_id()
-        ));
-        let existing = root.join("existing").join("branch");
-        fs::create_dir_all(&existing).unwrap();
-        let missing = existing.join("new").join("nested").join("asset.zmeta");
-
-        let (ancestor, tail) = split_at_deepest_existing_ancestor(&missing).unwrap();
-
-        assert_eq!(ancestor, existing);
-        assert_eq!(
-            tail,
-            vec![
-                OsString::from("new"),
-                OsString::from("nested"),
-                OsString::from("asset.zmeta"),
-            ]
-        );
-        fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn split_at_deepest_existing_ancestor_preserves_parent_components() {
-        let output_root = std::env::var_os("ZIRCON_TEST_OUTPUT_ROOT")
-            .or_else(|| std::env::var_os("CARGO_TARGET_DIR"))
-            .map(PathBuf::from)
-            .unwrap_or_else(|| std::env::current_dir().unwrap().join("target"));
-        let root = output_root.join("zircon-test-output").join(format!(
-            "zircon-resource-parent-pathing-{}-{}",
-            std::process::id(),
-            crate::io::next_test_output_id()
-        ));
-        let existing = root.join("existing");
-        fs::create_dir_all(&existing).unwrap();
-        let mut missing = existing.as_os_str().to_os_string();
-        missing.push(std::path::MAIN_SEPARATOR_STR);
-        missing.push("missing");
-        missing.push(std::path::MAIN_SEPARATOR_STR);
-        missing.push("..");
-        missing.push(std::path::MAIN_SEPARATOR_STR);
-        missing.push("asset.zmeta");
-        let missing = PathBuf::from(missing);
-
-        let (ancestor, tail) = split_at_deepest_existing_ancestor(&missing).unwrap();
-
-        assert_eq!(ancestor, existing);
-        assert_eq!(
-            tail,
-            vec![
-                OsString::from("missing"),
-                OsString::from(".."),
-                OsString::from("asset.zmeta"),
-            ]
-        );
-        fs::remove_dir_all(root).unwrap();
-    }
-}
+#[path = "tests/pathing.rs"]
+mod tests;
 
 fn resolve_operation_path(path: &Path) -> io::Result<PathBuf> {
     match fs::symlink_metadata(path) {
@@ -596,6 +462,7 @@ fn compare_windows_paths(left: &[u16], right: &[u16]) -> CmpOrdering {
 
     let left_length = i32::try_from(left.len()).expect("validated Windows path length");
     let right_length = i32::try_from(right.len()).expect("validated Windows path length");
+    // SAFETY: 两个切片在同步调用期间存活，显式长度已验证可表示为 i32；API 按长度只读取 UTF-16 单元，不要求终止符。
     let comparison = unsafe {
         CompareStringOrdinal(left.as_ptr(), left_length, right.as_ptr(), right_length, 1)
     };

@@ -1,0 +1,236 @@
+{
+  "acceptance": "open",
+  "acceptance_state": "open; root-qualified bounded source review; no row accepted",
+  "author_artifacts": {
+    "cross": "d86400302df897591ddbd0d92697f95c0bc4daf06c9eb11d15a7beaa5cc51fc1",
+    "manifest": "ffc87c3f3c58d7f2e6817cfec86a7581c29cc49df1fff8099e7006e884818e76",
+    "review": "81e03e77bbd23927d4926e8803cd7a76893c89fe9eb583fc621e24987d23fdc9",
+    "summary": "c273ac58372f0410d372fa0a76377df70f128a6f3867129f13a48cb3c9a7a99b"
+  },
+  "batch": "w0-batch10",
+  "canonical_collision_check": {
+    "canonical_review_files": 8,
+    "canonical_review_inputs": [
+      {
+        "path": "docs/plans/astra/optimize/01/2026-09-30-source-review-wave.jsonl",
+        "rows": 37,
+        "sha256": "8d6d68c499d52c354a992a76bc05ffb3ed41ff4ccb9abc21b1f487d3954aefc5"
+      },
+      {
+        "path": "docs/plans/astra/optimize/01/2026-09-30-w0-second-wave-review.jsonl",
+        "rows": 30,
+        "sha256": "dccceb090592eea01f48f885ef84e53d202e6470c647b4481c44a4c23ec673d1"
+      },
+      {
+        "path": "docs/plans/astra/optimize/01/2026-09-30-w0-batch3-review.jsonl",
+        "rows": 15,
+        "sha256": "4b4137f6ef0feeb0fc4ef6f55664a80f3c8a14473c0f94ab4361d85728a68fbe"
+      },
+      {
+        "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch4-review.jsonl",
+        "rows": 24,
+        "sha256": "9ca9bc4ea5b83865c219c8fb9b3c7ac73d7d078460bf8b92c6cded896996fb2c"
+      },
+      {
+        "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch5-review.jsonl",
+        "rows": 24,
+        "sha256": "4bd6dcae8255f6d770f06cb471a1ead80b64be2c2038ed5705f256dff6a1b7cc"
+      },
+      {
+        "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch6-review.jsonl",
+        "rows": 18,
+        "sha256": "e0a4798dea7a20c842e177f4ae2007858fbd487278fd87220f2b1e3c61ec0eb3"
+      },
+      {
+        "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch7-review.jsonl",
+        "rows": 12,
+        "sha256": "ec3c9b5feb2eebdd4192b4aec98730466a7ed3d4f7efab56cb0c8d9f098449e2"
+      },
+      {
+        "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch8-review.jsonl",
+        "rows": 12,
+        "sha256": "6ee6790c7739ff8065143c7e4abb7f209168b022847f7c59729074bf941b74cc"
+      }
+    ],
+    "collision_refs": [],
+    "prior_literal_finding_ids_checked": 136,
+    "prior_report_qualified_keys_checked": 168,
+    "prior_review_objects": 172,
+    "target_prior_overlap": []
+  },
+  "canonical_prior_counts": {
+    "literal_ids": 136,
+    "observations": 172,
+    "qualified_keys": 168
+  },
+  "cargo_or_compiler_run": false,
+  "crosswalk_edges": 23,
+  "environment_context": {
+    "coordinator_service": "retired; qualification used only the authorized local evidence path",
+    "jenkins_formal_gate": "separate Jenkins/formal product gate; not executed by this source-only qualification",
+    "legacy_receipts": "prior terminal/publication receipts remain immutable historical evidence and were not rewritten",
+    "penpot_lifecycle_gates": {
+      "count": 3,
+      "execution": "not_run; no new lifecycle or font failure inferred",
+      "status": "open"
+    }
+  },
+  "fault_recovery_validation": false,
+  "limitation": "Exact current report/source/test bytes and spans were captured; one explicitly pinned current-source drift is recorded separately from immutable author bytes; no Cargo/build/test/compiler/probe/device/benchmark/visual/soak, Windows product, fault or performance command was run.",
+  "metadata_corrections": [
+    {
+      "finding_id": "REV-P1-01",
+      "original_priority": "P1",
+      "original_status": "Open",
+      "premise": "Core, World, mirror and Editor paths remain separate with no compiled shared taxonomy; premise confirmed.",
+      "status": "confirmed_open"
+    },
+    {
+      "finding_id": "REV-P1-02",
+      "original_priority": "P1",
+      "original_status": "Open",
+      "premise": "EngineEvent remains String plus JSON and boundary metadata is not a shared typed envelope; premise confirmed.",
+      "status": "confirmed_open"
+    },
+    {
+      "finding_id": "REV-P1-03",
+      "original_priority": "P1",
+      "original_status": "Open",
+      "premise": "Missing-topic behavior now returns NoSubscribers and subscriptions create entries; stale implicit-create wording narrowed while registry/preflight remains absent.",
+      "status": "narrowed_open"
+    },
+    {
+      "finding_id": "REV-P1-04",
+      "original_priority": "P1",
+      "original_status": "Open",
+      "premise": "try_publish now returns an aggregate receipt or rejection carrying the event; stale return-type premise repaired while status/range fields remain absent.",
+      "status": "narrowed_open"
+    },
+    {
+      "finding_id": "REV-P1-05",
+      "original_priority": "P1",
+      "original_status": "Partial",
+      "premise": "Entry/topic/global limits, reliable backpressure and lossy replacement exist; stale unbounded entry-only premise narrowed to missing owner credit/spill semantics.",
+      "status": "narrowed_open"
+    },
+    {
+      "finding_id": "REV-P1-06",
+      "original_priority": "P1",
+      "original_status": "Partial",
+      "premise": "Per-subscriber queue locking and O(subscribers) fanout remain; premise confirmed.",
+      "status": "confirmed_open"
+    },
+    {
+      "finding_id": "RLI-P1-001",
+      "original_priority": "P1",
+      "original_status": "Open",
+      "premise": "No public Runtime content authority or App snapshot/lookup service is present; premise confirmed.",
+      "status": "confirmed_open"
+    },
+    {
+      "finding_id": "RLI-P1-002",
+      "original_priority": "P1",
+      "original_status": "Partial",
+      "premise": "ICU BCP47 normalization and selectors exist; format/content/asset typed Runtime contracts remain absent, narrowing the premise.",
+      "status": "narrowed_open"
+    },
+    {
+      "finding_id": "RLI-P1-003",
+      "original_priority": "P1",
+      "original_status": "Partial",
+      "premise": "Runtime ICU, UI raw catalog maps and Editor normalized locales remain separate; no shared CultureTag/outcome, premise narrowed.",
+      "status": "narrowed_open"
+    },
+    {
+      "finding_id": "RLI-P1-004",
+      "original_priority": "P1",
+      "original_status": "Open",
+      "premise": "TextCultureSelector has parent matching but no bounded catalog fallback graph/plan; premise narrowed.",
+      "status": "narrowed_open"
+    },
+    {
+      "finding_id": "RLI-P1-005",
+      "original_priority": "P1",
+      "original_status": "Open",
+      "premise": "No Runtime/App precedence resolver or typed bootstrap receipt was found; premise confirmed.",
+      "status": "confirmed_open"
+    },
+    {
+      "finding_id": "RLI-P1-006",
+      "original_priority": "P1",
+      "original_status": "Partial",
+      "premise": "Script and UI collector direction hints exist, but no shared resolved outcome/conflict diagnostics/precedence; premise narrowed.",
+      "status": "narrowed_open"
+    }
+  ],
+  "original_priority_counts": {
+    "P1": 12
+  },
+  "original_status_counts": {
+    "Open": 7,
+    "Partial": 5
+  },
+  "performance_validation": false,
+  "publication_qualification": {
+    "acceptance": "open",
+    "coordinator_boundary": "Retired. User authorizes sealed independent local evidence; historical records and original acceptance gates remain intact.",
+    "coordinator_retired_at_utc": "2026-10-02T07:19:48.379193+00:00",
+    "foreign_source_consent": "not inferred",
+    "generation": "root-publication-candidate-r2",
+    "historical_relative_capture_paths_resolve_against": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch10-root-qualified-r3",
+    "normalized_current_capture_manifest": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\root-publication-candidate-r2\\batch10\\rawcaptures\\manifest.json",
+      "sha256": "5064e4069bf376c576a76262d75647560b1cb6a68482ed91e6015be20fa8bd3e"
+    },
+    "original_qualified_artifacts": {
+      "crosswalk": {
+        "bytes": 25203,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch10-root-qualified-r3\\2026-10-02-w0-batch10-crosswalk.jsonl",
+        "sha256": "e1d809293170a83a76828ba66e6ab6b24d5237e27dd6d2482e92c500ed44a352"
+      },
+      "manifest": {
+        "bytes": 4201,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch10-root-qualified-r3\\2026-10-02-w0-batch10-manifest.json",
+        "sha256": "e492791ae534faa828ed41a018b5e5bf2a6c85d7575938b424d4c4c9fa77504a"
+      },
+      "review": {
+        "bytes": 286858,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch10-root-qualified-r3\\2026-10-02-w0-batch10-review.jsonl",
+        "sha256": "73675292dcb052353c22d2641c32a82298268747ff9cff51afb1f3bf264eff21"
+      },
+      "summary": {
+        "bytes": 7758,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch10-root-qualified-r3\\2026-10-02-w0-batch10-summary.json",
+        "sha256": "13b184a3cf1d22fa36935408ebf6f0c253b361e3b74013b9da8620774081b4f8"
+      }
+    },
+    "original_qualified_generation": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch10-root-qualified-r3",
+    "qualified_at_utc": "2026-10-02T09:27:45.157749+00:00",
+    "raw_evidence_root": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\root-publication-candidate-r2\\batch10",
+    "root_normal_claim_denial_observed_at_utc": "2026-10-02T07:35Z",
+    "tests_run": 0
+  },
+  "raw_capture_files": 54,
+  "record_type": "root_qualified_w0-batch10_summary",
+  "report_paths": 2,
+  "root_current_utc": "2026-10-02T08:04:12Z",
+  "root_publication_captured_source_count": 35,
+  "root_publication_current_context_count": 37,
+  "root_publication_scope_rows": 12,
+  "rows": 12,
+  "source_bytes_captured_total": 353534,
+  "source_drift_since_author": [
+    {
+      "author_declared_sha256": "e067eeaf1ea9952e089eb122248757b2f09e3a4dc3e80bb2d8459e5c13e2bdfb",
+      "current_sha256": "681c006c9145aedb86027a205d6b6fa347ec6c2f278d1dccbe27cd7846f18cb2",
+      "path": "zircon_runtime/src/scene/world/event_mirror.rs"
+    }
+  ],
+  "source_status_counts": {
+    "confirmed_open": 5,
+    "narrowed_open": 7
+  },
+  "source_unit_count": 35,
+  "tests_run": 0,
+  "windows_product_validation": false
+}

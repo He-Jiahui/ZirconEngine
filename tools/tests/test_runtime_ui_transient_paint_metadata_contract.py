@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from tools.runtime_ui_transient_paint_metadata_pressure import run
+from tools.analysis.performance.runtime.runtime_ui_transient_paint_metadata_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -17,7 +17,7 @@ TEXT_BATCHES_SOURCE = (
     ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_batches.rs"
 )
 
-
+# 确认产品绘制路径使用瞬时元素，文本阶段才分配代际元数据；压力模型分开计数两类成本。
 class RuntimeUiTransientPaintMetadataContractTests(unittest.TestCase):
     def test_product_path_uses_transient_elements_and_defers_generation_to_text(self) -> None:
         command = COMMAND_SOURCE.read_text(encoding="utf-8")

@@ -204,7 +204,7 @@ zircon_editor/src/core/jobs/
 
 - 切片 1.1：`core/jobs/` 文件夹模块；submit/配额/互斥/after 映射 `JobScheduler`；`CancellationToken` 协议。
 - 切片 1.2：`pump.rs` 回流泵接 01 bus（`JobEvent` 消息族）；`JobTicket` 推拉双态；Send 约束的类型层验证（编译失败测试：trybuild 或 doc-test 断言非 Send 捕获不过编译）。
-- 测试阶段：`cargo test -p zircon_editor --lib --locked`（夹具矩阵全绿）+ `cargo test -p zircon_runtime --lib --locked`（tasks 内核消费不回归）。更新 `docs/zircon_editor/core/jobs.md`。
+- 测试阶段：`cargo test -p zircon_editor --lib --locked`（夹具矩阵全绿）+ `cargo test -p zircon_runtime --lib --locked`（tasks 内核消费不回归）。更新 `docs/crates/zircon_editor/core/jobs.md`。
 
 ### M2 散点收编
 

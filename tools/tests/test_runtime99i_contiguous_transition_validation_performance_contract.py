@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# ECS archetype 转换用一段连续组件 ID 缓冲合并排序差量，预留仅覆盖真实新增项；线性 schema 比较保留错误优先级。
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime/src/scene/ecs/archetype/table/table.rs"

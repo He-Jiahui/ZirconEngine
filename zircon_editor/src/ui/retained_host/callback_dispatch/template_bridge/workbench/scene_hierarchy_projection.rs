@@ -1,4 +1,7 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::{
+    collections::{BTreeSet, HashMap},
+    sync::Arc,
+};
 
 use zircon_runtime::scene::{EntityId, WorldInspectionHierarchyRow};
 
@@ -12,8 +15,8 @@ pub(super) struct SceneHierarchyProjectionState {
     generation: Option<u64>,
     selection_revision: Option<u64>,
     rows_by_entity: HashMap<EntityId, SceneHierarchyRowState>,
-    controls_by_entity: BTreeMap<EntityId, String>,
-    entities_by_control: BTreeMap<String, EntityId>,
+    controls_by_entity: HashMap<EntityId, Arc<str>>,
+    entities_by_control: HashMap<Arc<str>, EntityId>,
     selected_entities: BTreeSet<EntityId>,
 }
 
@@ -87,21 +90,24 @@ impl SceneHierarchyProjectionState {
     ) {
         self.generation = generation;
         self.selection_revision = selection_revision;
-        self.rows_by_entity = rows
-            .iter()
-            .enumerate()
-            .map(|(row_index, row)| (row.entity, SceneHierarchyRowState::from_row(row_index, row)))
-            .collect();
-        let controls_by_entity = rows
-            .iter()
-            .zip(controls)
-            .map(|(row, control_id)| (row.entity, control_id.clone()))
-            .collect::<BTreeMap<_, _>>();
-        self.entities_by_control = controls_by_entity
-            .iter()
-            .map(|(entity, control_id)| (control_id.clone(), *entity))
-            .collect();
-        self.controls_by_entity = controls_by_entity;
+        self.rows_by_entity.clear();
+        self.rows_by_entity.reserve(rows.len());
+        self.controls_by_entity.clear();
+        self.controls_by_entity
+            .reserve(rows.len().min(controls.len()));
+        self.entities_by_control.clear();
+        self.entities_by_control
+            .reserve(rows.len().min(controls.len()));
+        for (row_index, row) in rows.iter().enumerate() {
+            self.rows_by_entity
+                .insert(row.entity, SceneHierarchyRowState::from_row(row_index, row));
+            if let Some(control_id) = controls.get(row_index) {
+                let control_id: Arc<str> = Arc::from(control_id.as_str());
+                self.controls_by_entity
+                    .insert(row.entity, Arc::clone(&control_id));
+                self.entities_by_control.insert(control_id, row.entity);
+            }
+        }
         self.selected_entities.clone_from(selected_entities);
     }
 
@@ -122,7 +128,7 @@ impl SceneHierarchyProjectionState {
     }
 
     pub(super) fn control_for(&self, entity: EntityId) -> Option<&str> {
-        self.controls_by_entity.get(&entity).map(String::as_str)
+        self.controls_by_entity.get(&entity).map(Arc::as_ref)
     }
 
     pub(super) fn contains_entity(&self, entity: EntityId) -> bool {
@@ -198,3 +204,7 @@ impl SceneHierarchyProjectionState {
         self.selected_entities = selected_entities;
     }
 }
+
+#[cfg(test)]
+#[path = "tests/scene_hierarchy_projection.rs"]
+mod tests;

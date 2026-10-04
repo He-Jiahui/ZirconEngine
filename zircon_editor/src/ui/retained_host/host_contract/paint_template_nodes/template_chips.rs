@@ -1,3 +1,5 @@
+//! secondary 专用链的紧凑 chip 绘制边界；状态控件和普通按钮拥有各自更早或更晚的归属判断。
+
 mod commands;
 mod geometry;
 mod identity;
@@ -13,5 +15,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use metric
 };
 
 #[cfg(test)]
-#[path = "template_chips_tests/mod.rs"]
+#[path = "template_chips_tests/tests/mod.rs"]
 mod tests;

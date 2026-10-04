@@ -11,8 +11,8 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 扩展脚本、反射、动画与导航公开接口文档
 tests:
-  - zircon_runtime/reflection_macros/src/tests.rs
-  - zircon_reflect_derive/src/tests.rs
+  - zircon_runtime/reflection_macros/src/tests/cases.rs
+  - zircon_reflect_derive/src/tests/cases.rs
   - zircon_runtime/src/script/vm/tests/reflection_docs.rs
 doc_type: module-detail
 ---
@@ -89,7 +89,7 @@ fn read_health(ctx: &VmPluginHostContext, entity: u64)
 - [function macro](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/reflection_macros/src/function.rs)
 - [module macro](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/reflection_macros/src/module.rs)
 - [derive macro](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/reflection_macros/src/derive_type.rs)
-- [derive tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_reflect_derive/src/tests.rs)
+- [derive tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_reflect_derive/src/tests/cases.rs)
 
 ## 宏生成物检查
 

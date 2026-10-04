@@ -9,11 +9,6 @@ origin_child_dir: docs/plans/zircon_runtime/render/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/migrations.py
-  - tools/session_coordinator/failures.py
-  - tools/session_coordinator/workflows/milestones.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/cli.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_milestone_failure_scope
   - python -m unittest tools.session_coordinator.tests.test_workflow_commit

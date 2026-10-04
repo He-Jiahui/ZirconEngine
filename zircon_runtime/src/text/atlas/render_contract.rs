@@ -1,3 +1,6 @@
+//! 统一 CPU 批次、GPU 管线与 WGSL 对字形像素的解释。
+//! 颜色与子像素覆盖率虽同用 RGBA 存储，解码和混合语义不同，不能只按纹理存储格式选择管线。
+
 use super::{GlyphAtlasPageSpec, GlyphAtlasSamplingSemantics};
 
 pub(crate) const GLYPH_ATLAS_SAMPLING_SHADER: &str =
@@ -52,6 +55,8 @@ pub(crate) enum GlyphAtlasBlendMode {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 绘制批次必须携带的采样、解码和混合组合。
+/// 子像素路径需要已知不透明背景，覆盖率路径用前景 alpha，颜色字形保留自身 RGBA。
 pub(crate) struct GlyphAtlasRenderContract {
     pub(crate) sampling_semantics: GlyphAtlasSamplingSemantics,
     pub(crate) shader_decode: GlyphAtlasShaderDecode,
@@ -110,4 +115,5 @@ impl GlyphAtlasRenderContract {
 }
 
 #[cfg(test)]
+#[path = "render_contract/tests/cases.rs"]
 mod tests;

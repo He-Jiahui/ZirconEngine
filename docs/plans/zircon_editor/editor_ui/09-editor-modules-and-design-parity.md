@@ -2,7 +2,6 @@
 related_code:
   - zircon_editor/src/core/gateway/contract.rs
   - zircon_editor/src/core/gateway/handle.rs
-  - zircon_editor/src/core/gateway/session.rs
   - zircon_editor/src/core/editing/command.rs
   - zircon_editor/src/core/editing/intent.rs
   - zircon_editor/src/core/editing/engine
@@ -27,15 +26,15 @@ plan_sources:
   - .codex/plans/编辑器启动最近工程与 Welcome 新建工程计划.md
   - .codex/plans/Editor Event Decoupling And Replay Plan.md
 design_references:
-  - docs/ui-and-layout/editor-workbench-designs/scene-workbench.png
-  - docs/ui-and-layout/editor-workbench-designs/hierarchy-drawer-content-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/inspector-drawer-content-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/asset-grid-drawer-content-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/console-drawer-content-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/timeline-drawer-content-spec.png
-  - docs/ui-and-layout/ai-workbench-style/ai-scene-editor-layout.png
-  - docs/ui-and-layout/ai-workbench-style/ai-material-editor-layout.png
-  - docs/ui-and-layout/ai-workbench-style/ai-asset-browser-layout.png
+  - docs/ui/editor-workbench-designs/scene-workbench.png
+  - docs/ui/editor-workbench-designs/hierarchy-drawer-content-spec.png
+  - docs/ui/editor-workbench-designs/inspector-drawer-content-spec.png
+  - docs/ui/editor-workbench-designs/asset-grid-drawer-content-spec.png
+  - docs/ui/editor-workbench-designs/console-drawer-content-spec.png
+  - docs/ui/editor-workbench-designs/timeline-drawer-content-spec.png
+  - docs/ui/ai-workbench-style/ai-scene-editor-layout.png
+  - docs/ui/ai-workbench-style/ai-material-editor-layout.png
+  - docs/ui/ai-workbench-style/ai-asset-browser-layout.png
 status: in_progress
 ---
 
@@ -169,7 +168,7 @@ pub struct HierarchyViewModel {                    // 新增（workbench/model/ 
 | M4.S1 | Runtime Diagnostics + Project Overview 真实数据（editor_manager_runtime_diagnostics 既有源） | 批次 3 模块 | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests -TestFilter diagnostics` | 静态诊断模板删除 |
 | M4.S2 | Widget Tree Debugger（02 M5 packet）+ Theme Token 预览（04）+ Build/Export 面板 | 批次 3 模块 | 实机 + 集成契约 | 无删除 |
 | M5.S1 | 逐模块对照设计图 PNG 出差异清单（结构/组件/交互三维度） | 审查文档 | 评审 | 无删除 |
-| M5.S2 | 差异收敛 + 剩余差异显式记录落 `docs/zircon_editor/ui/` | 各模块 + 文档 | 实机复查 | 无删除 |
+| M5.S2 | 差异收敛 + 剩余差异显式记录落 `docs/crates/zircon_editor/ui/` | 各模块 + 文档 | 实机复查 | 无删除 |
 
 ## 8. 测试矩阵（代表性用例）
 
@@ -205,7 +204,7 @@ pub struct HierarchyViewModel {                    // 新增（workbench/model/ 
 
 - M1 实机回路脚本（§7 M1.S6）全步骤通过且可重复执行。
 - 批次 1 五模块、批次 2 至少 Material + UI Asset、批次 3 工具面板全部真实数据接线；undo/redo 覆盖全部编辑操作。
-- 逐模块设计图对照审查文档落 `docs/zircon_editor/ui/`，剩余差异显式列表。
+- 逐模块设计图对照审查文档落 `docs/crates/zircon_editor/ui/`，剩余差异显式列表。
 - 验收命令组：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests`、`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -TestTarget integration_contracts -Features integration-contracts`、实机回路脚本。
 
 ## 12. 边界约束

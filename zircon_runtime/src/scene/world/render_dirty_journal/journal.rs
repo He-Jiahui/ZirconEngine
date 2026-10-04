@@ -1,8 +1,8 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
-use crate::scene::EntityId;
 use crate::scene::ecs::ChangeTick;
+use crate::scene::EntityId;
 
 static NEXT_RENDER_DIRTY_WORLD_ID: AtomicU64 = AtomicU64::new(1);
 
@@ -24,6 +24,7 @@ impl RenderDirtyWorldId {
     }
 }
 
+/// 发布给渲染提取阶段的不可变脏实体快照；Arc 让读取方跨帧持有而不影响 World 写入。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct RenderDirtyEntityJournal {
     world: RenderDirtyWorldId,

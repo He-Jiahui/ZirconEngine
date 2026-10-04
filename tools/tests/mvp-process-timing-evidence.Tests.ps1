@@ -1,3 +1,4 @@
+# F5 进程时间线以有序阶段和产品尝试为证据边界；夹具验证重复、重叠和缺失退出码，源码扫描约束字段索引与每阶段分配。
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 

@@ -5,6 +5,7 @@ use zircon_runtime_interface::ui::dispatch::{
 use super::super::surface::UiSurface;
 use super::{route_policy::annotate_route_policy, route_steps::annotate_result_route_steps};
 
+/// 到期后重新核对 toast ID 和目标，再投递关闭语义事件；不存在的目标返回未处理回执。
 pub(super) fn dispatch_toast_timer_input(
     surface: &mut UiSurface,
     toast: UiToastTimerInputEvent,
@@ -54,5 +55,5 @@ fn with_toast_route_policy(
 }
 
 #[cfg(test)]
-#[path = "toast_timer/owned_event_tests.rs"]
+#[path = "toast_timer/tests/owned_event_tests.rs"]
 mod owned_event_tests;

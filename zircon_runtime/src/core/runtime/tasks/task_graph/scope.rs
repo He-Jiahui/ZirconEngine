@@ -4,19 +4,19 @@ use std::sync::{Arc, Condvar, Mutex, MutexGuard, Weak};
 use std::time::Duration;
 
 use super::super::job_scheduler::JobExecutionOutcome;
-use super::super::{JobScheduler, TaskCancellationPolicy, TaskDescriptor, TaskId};
+use super::super::{JobHandle, JobScheduler, TaskCancellationPolicy, TaskDescriptor, TaskId};
 use super::admission::TaskGraphAdmissionError;
 use super::engine_task_graph::EngineTaskGraphInner;
 use super::lease::TaskGraphClientLease;
 use super::scope_model::{TaskGraphScopeCensus, TaskGraphScopeDescriptor};
 use super::scope_registration::TaskGraphScopeRegistration;
-use super::task_handle::{TaskHandle, TaskRecord};
+use super::task_handle::TaskHandle;
 
 mod cancellation;
-mod scheduler_admission;
+mod task_admission;
 
 pub use cancellation::TaskCancellationToken;
-use scheduler_admission::SchedulerTaskAdmission;
+use task_admission::TaskAdmission;
 
 pub(super) struct TaskGraphScopeInner {
     descriptor: TaskGraphScopeDescriptor,
@@ -33,7 +33,12 @@ struct TaskGraphScopeState {
     completed: u64,
     failed: u64,
     cancelled: u64,
-    tasks: HashMap<TaskId, Arc<TaskRecord>>,
+    tasks: HashMap<TaskId, ScopeTask>,
+}
+
+struct ScopeTask {
+    completion: JobHandle,
+    running: bool,
 }
 
 /// A subsystem-owned gate for task submission and shutdown accounting.
@@ -78,73 +83,124 @@ impl TaskGraphScope {
             .graph
             .upgrade()
             .ok_or(TaskGraphAdmissionError::RuntimeUnavailable)?;
-        let submission = graph.acquire_worker_submission()?;
-        let record = self.inner.admit(descriptor)?;
-        let task_id = record.descriptor.id;
-        let scope = Arc::clone(&self.inner);
-        let completion = graph.pending_completion();
-        let completion_for_task = completion.clone();
-        submission.spawn(move || {
-            completion_for_task.mark_running();
-            match scope.run(task_id, task) {
-                JobExecutionOutcome::Cancelled => completion_for_task.mark_cancelled(),
-                JobExecutionOutcome::Completed => completion_for_task.mark_complete(),
-                JobExecutionOutcome::Panicked(message) => {
-                    completion_for_task.mark_panicked(message)
-                }
-            }
-        });
-        Ok(TaskHandle {
-            record,
-            scope: Some(Arc::clone(&self.inner)),
-            completion,
-            handle_lease: TaskGraphClientLease::new(),
-        })
+        let scheduler = graph.scheduler_for(descriptor.kind);
+        self.submit_with_scheduler(&graph, &scheduler, descriptor, task)
     }
 
-    /// Schedules through a scheduler that shares this graph's worker owner while
-    /// retaining scope admission, cancellation, and drain ownership.
-    pub fn schedule(
+    /// Uses the supplied execution owner while this scope accounts for admission and cancellation.
+    /// Original runtime refusal takes precedence over a missing or closed target scope.
+    pub fn submit_on_scheduler(
         &self,
         scheduler: &JobScheduler,
         descriptor: TaskDescriptor,
         task: impl FnOnce(TaskCancellationToken) + Send + 'static,
     ) -> Result<TaskHandle, TaskGraphAdmissionError> {
-        let admission = self.admit_for_scheduler(scheduler, descriptor)?;
-        let task_id = admission.record.descriptor.id;
+        let (submission, original_graph) = scheduler.acquire_task_submission()?;
+        if descriptor.kind != scheduler.pool_kind() {
+            return Err(TaskGraphAdmissionError::SchedulerKindMismatch {
+                descriptor: descriptor.kind,
+                scheduler: scheduler.pool_kind(),
+            });
+        }
+        let target_graph = self
+            .graph
+            .upgrade()
+            .ok_or(TaskGraphAdmissionError::RuntimeUnavailable)?;
+        target_graph.ensure_admission_open()?;
+        let completion = match original_graph.as_ref() {
+            Some(graph) => graph.pending_scheduler_completion(scheduler, descriptor, 0),
+            None => scheduler.pending_task_completion(descriptor, 0),
+        };
+        self.inner.admit(completion.clone())?;
+        let task_id = completion.descriptor().id;
         let scope = Arc::clone(&self.inner);
-        let completion = scheduler
-            .schedule_with_submission(admission.submission, move || scope.run(task_id, task));
-        Ok(TaskHandle {
-            record: admission.record,
-            scope: Some(Arc::clone(&self.inner)),
+        let retirement = Arc::clone(&self.inner);
+        let completion = scheduler.schedule_existing_with_submission_and_post_terminal(
             completion,
-            handle_lease: TaskGraphClientLease::new(),
-        })
+            submission,
+            move || scope.run(task_id, task),
+            Some(Box::new(move |outcome| {
+                retirement.retire(task_id, &outcome)
+            })),
+        );
+        Ok(TaskHandle::new(completion, Some(Arc::clone(&self.inner))))
+    }
+
+    /// Schedules descriptor-led work after canonical task handles without requiring a
+    /// separately-provided scheduler facade. The graph supplies the physical owner and
+    /// callback dispatcher, so this route cannot create a private worker or callback lane.
+    pub fn submit_after(
+        &self,
+        dependencies: &[TaskHandle],
+        descriptor: TaskDescriptor,
+        task: impl FnOnce(TaskCancellationToken) + Send + 'static,
+    ) -> Result<TaskHandle, TaskGraphAdmissionError> {
+        let graph = self
+            .graph
+            .upgrade()
+            .ok_or(TaskGraphAdmissionError::RuntimeUnavailable)?;
+        let scheduler = graph.scheduler_for(descriptor.kind);
+        self.submit_after_with_scheduler(&graph, &scheduler, dependencies, descriptor, task)
+    }
+
+    fn submit_with_scheduler(
+        &self,
+        graph: &EngineTaskGraphInner,
+        scheduler: &JobScheduler,
+        descriptor: TaskDescriptor,
+        task: impl FnOnce(TaskCancellationToken) + Send + 'static,
+    ) -> Result<TaskHandle, TaskGraphAdmissionError> {
+        let admission = self.admit(graph, scheduler, descriptor, 0)?;
+        let task_id = admission.completion.descriptor().id;
+        let scope = Arc::clone(&self.inner);
+        let scope_for_retirement = Arc::clone(&self.inner);
+        let completion = scheduler.schedule_existing_with_submission_and_post_terminal(
+            admission.completion,
+            admission.submission,
+            move || scope.run(task_id, task),
+            Some(Box::new(move |outcome| {
+                scope_for_retirement.retire(task_id, &outcome);
+            })),
+        );
+        Ok(TaskHandle::new(completion, Some(Arc::clone(&self.inner))))
     }
 
     /// Schedules scoped work after all dependencies complete successfully.
     ///
     /// A failed dependency retires the queued record without launching user code.
-    pub fn schedule_after(
+    // 依赖先校验属于同一 graph owner，再由 dependency leases 保活至终态；前置依赖失败时 scheduler 走不启动用户闭包的退休钩子。
+    fn submit_after_with_scheduler(
         &self,
+        graph: &EngineTaskGraphInner,
         scheduler: &JobScheduler,
         dependencies: &[TaskHandle],
         descriptor: TaskDescriptor,
         task: impl FnOnce(TaskCancellationToken) + Send + 'static,
     ) -> Result<TaskHandle, TaskGraphAdmissionError> {
-        let admission = self.admit_for_scheduler(scheduler, descriptor)?;
-        let task_id = admission.record.descriptor.id;
-        let scope_for_task = Arc::clone(&self.inner);
-        let scope_for_prelaunch_terminal = Arc::clone(&self.inner);
-        let dependency_fences = dependencies
+        if dependencies
             .iter()
-            .map(|dependency| dependency.completion.clone())
-            .collect::<Vec<_>>();
+            .any(|dependency| !dependency.belongs_to_graph(graph.owner_identity()))
+        {
+            return Err(TaskGraphAdmissionError::DependencyOwnerMismatch {
+                owner: self.inner.descriptor.owner.clone(),
+            });
+        }
+        let admission = self.admit(graph, scheduler, descriptor, dependencies.len())?;
+        let task_id = admission.completion.descriptor().id;
+        let scope_for_task = Arc::clone(&self.inner);
+        let scope_for_retirement = Arc::clone(&self.inner);
+        let scope_for_prelaunch_terminal = Arc::clone(&self.inner);
+        let mut dependency_fences = Vec::with_capacity(dependencies.len());
+        dependency_fences.extend(
+            dependencies
+                .iter()
+                .map(|dependency| dependency.completion.clone()),
+        );
         let dependency_leases = Arc::new(dependencies.to_vec());
         let dependency_leases_for_task = Arc::clone(&dependency_leases);
         let dependency_leases_for_prelaunch_terminal = Arc::clone(&dependency_leases);
-        let completion = scheduler.schedule_after_with_submission_and_prelaunch_terminal(
+        let completion = scheduler.schedule_after_existing_with_submission_and_hooks(
+            admission.completion,
             &dependency_fences,
             admission.submission,
             move || {
@@ -165,32 +221,28 @@ impl TaskGraphScope {
                     }
                 }
             },
+            move |outcome| {
+                scope_for_retirement.retire(task_id, &outcome);
+            },
         );
-        Ok(TaskHandle {
-            record: admission.record,
-            scope: Some(Arc::clone(&self.inner)),
-            completion,
-            handle_lease: TaskGraphClientLease::new(),
-        })
+        Ok(TaskHandle::new(completion, Some(Arc::clone(&self.inner))))
     }
 
-    fn admit_for_scheduler(
+    fn admit(
         &self,
+        graph: &EngineTaskGraphInner,
         scheduler: &JobScheduler,
         descriptor: TaskDescriptor,
-    ) -> Result<SchedulerTaskAdmission, TaskGraphAdmissionError> {
-        let graph = self
-            .graph
-            .upgrade()
-            .ok_or(TaskGraphAdmissionError::RuntimeUnavailable)?;
-        if !graph.shares_worker_owner_with(scheduler) {
-            return Err(TaskGraphAdmissionError::SchedulerOwnerMismatch {
-                owner: self.inner.descriptor.owner.clone(),
-            });
-        }
-        let submission = graph.acquire_worker_submission()?;
-        let record = self.inner.admit(descriptor)?;
-        Ok(SchedulerTaskAdmission { record, submission })
+        remaining_dependencies: usize,
+    ) -> Result<TaskAdmission, TaskGraphAdmissionError> {
+        let submission = graph.acquire_worker_submission(descriptor.kind)?;
+        let completion =
+            graph.pending_scheduler_completion(scheduler, descriptor, remaining_dependencies);
+        self.inner.admit(completion.clone())?;
+        Ok(TaskAdmission {
+            completion,
+            submission,
+        })
     }
 }
 
@@ -245,9 +297,11 @@ impl TaskGraphScopeInner {
         // Workers take the scope lock before a task lock. Mark cancellation
         // under the same lock so a queued CancelOnDrop task cannot begin in
         // the gap between closing admission and its cancellation request.
-        for record in state.tasks.values() {
-            if record.descriptor.cancellation_policy == TaskCancellationPolicy::CancelOnDrop {
-                record.request_cancellation();
+        for task in state.tasks.values() {
+            if task.completion.descriptor().cancellation_policy
+                == TaskCancellationPolicy::CancelOnDrop
+            {
+                task.completion.task_node_ref().request_cancellation();
             }
         }
     }
@@ -282,10 +336,7 @@ impl TaskGraphScopeInner {
         }
     }
 
-    fn admit(
-        &self,
-        descriptor: TaskDescriptor,
-    ) -> Result<Arc<TaskRecord>, TaskGraphAdmissionError> {
+    fn admit(&self, completion: JobHandle) -> Result<(), TaskGraphAdmissionError> {
         let mut state = self.lock_state();
         if !state.accepting {
             return Err(TaskGraphAdmissionError::ScopeClosed {
@@ -298,22 +349,27 @@ impl TaskGraphScopeInner {
                 capacity: self.descriptor.task_capacity,
             });
         }
-        let task_id = descriptor.id;
+        let task_id = completion.descriptor().id;
         if state.tasks.contains_key(&task_id) {
             return Err(TaskGraphAdmissionError::TaskIdAlreadyActive {
                 owner: self.descriptor.owner.clone(),
                 id: task_id.raw(),
             });
         }
-        let record = Arc::new(TaskRecord::new(descriptor));
-        state.tasks.insert(task_id, Arc::clone(&record));
+        state.tasks.insert(
+            task_id,
+            ScopeTask {
+                completion,
+                running: false,
+            },
+        );
         state.submitted = state.submitted.saturating_add(1);
         state.queued += 1;
-        Ok(record)
+        Ok(())
     }
 
     fn run(
-        self: Arc<Self>,
+        &self,
         task_id: TaskId,
         task: impl FnOnce(TaskCancellationToken),
     ) -> JobExecutionOutcome {
@@ -324,7 +380,7 @@ impl TaskGraphScopeInner {
         match result {
             Ok(()) => self.finish(task_id, None),
             Err(payload) => {
-                let message = panic_payload_message(&payload);
+                let message = panic_payload_message(payload);
                 self.finish(task_id, Some(message))
             }
         }
@@ -332,59 +388,85 @@ impl TaskGraphScopeInner {
 
     fn begin(&self, task_id: TaskId) -> Option<TaskCancellationToken> {
         let mut scope = self.lock_state();
-        let record = scope.tasks.get(&task_id)?.clone();
-        let cancellation_requested = record.lock_state().cancellation_requested;
+        let completion = scope.tasks.get(&task_id)?.completion.clone();
+        let node = completion.task_node();
+        let cancellation_requested = node.lock_inner().cancellation_requested;
         if cancellation_requested {
-            scope.tasks.remove(&task_id);
-            scope.queued = scope.queued.saturating_sub(1);
-            scope.cancelled = scope.cancelled.saturating_add(1);
-            self.quiescent.notify_all();
             return None;
         }
         scope.queued = scope.queued.saturating_sub(1);
         scope.running += 1;
-        Some(TaskCancellationToken { record })
+        scope.tasks.get_mut(&task_id)?.running = true;
+        Some(TaskCancellationToken { node })
     }
 
     fn finish(&self, task_id: TaskId, failure_message: Option<String>) -> JobExecutionOutcome {
-        let mut scope = self.lock_state();
-        let Some(record) = scope.tasks.remove(&task_id) else {
+        let scope = self.lock_state();
+        let Some(completion) = scope
+            .tasks
+            .get(&task_id)
+            .map(|task| task.completion.clone())
+        else {
             return JobExecutionOutcome::Cancelled;
         };
-        let mut task = record.lock_state();
-        let outcome = if let Some(message) = failure_message {
-            scope.failed = scope.failed.saturating_add(1);
+        let task = completion.task_node();
+        let task = task.lock_inner();
+        if let Some(message) = failure_message {
             JobExecutionOutcome::Panicked(Arc::from(message))
         } else if task.cancellation_acknowledged {
-            scope.cancelled = scope.cancelled.saturating_add(1);
             JobExecutionOutcome::Cancelled
         } else {
-            scope.completed = scope.completed.saturating_add(1);
             JobExecutionOutcome::Completed
+        }
+    }
+
+    /// Retires a scope record only after its JobHandle has published the terminal state.
+    /// Keeping the record active until this point makes quiescence and TaskId admission
+    /// observe the same completion boundary as the public handle.
+    fn retire(&self, task_id: TaskId, outcome: &JobExecutionOutcome) {
+        let mut scope = self.lock_state();
+        let Some(task) = scope.tasks.remove(&task_id) else {
+            return;
         };
-        scope.running = scope.running.saturating_sub(1);
+        if task.running {
+            scope.running = scope.running.saturating_sub(1);
+        } else {
+            scope.queued = scope.queued.saturating_sub(1);
+        }
+        match outcome {
+            JobExecutionOutcome::Panicked(_) => {
+                scope.failed = scope.failed.saturating_add(1);
+            }
+            JobExecutionOutcome::Cancelled => {
+                scope.cancelled = scope.cancelled.saturating_add(1);
+            }
+            JobExecutionOutcome::Completed => {
+                scope.completed = scope.completed.saturating_add(1);
+            }
+        }
         self.quiescent.notify_all();
-        outcome
+    }
+
+    fn retire_prelaunch_failure(&self, task_id: TaskId, cancelled: bool) {
+        let mut scope = self.lock_state();
+        if scope.tasks.remove(&task_id).is_none() {
+            return;
+        }
+        scope.queued = scope.queued.saturating_sub(1);
+        if cancelled {
+            scope.cancelled = scope.cancelled.saturating_add(1);
+        } else {
+            scope.failed = scope.failed.saturating_add(1);
+        }
+        self.quiescent.notify_all();
     }
 
     fn fail_without_execution(&self, task_id: TaskId, _message: String) {
-        let mut scope = self.lock_state();
-        if scope.tasks.remove(&task_id).is_none() {
-            return;
-        }
-        scope.queued = scope.queued.saturating_sub(1);
-        scope.failed = scope.failed.saturating_add(1);
-        self.quiescent.notify_all();
+        self.retire_prelaunch_failure(task_id, false);
     }
 
     fn cancel_without_execution(&self, task_id: TaskId) {
-        let mut scope = self.lock_state();
-        if scope.tasks.remove(&task_id).is_none() {
-            return;
-        }
-        scope.queued = scope.queued.saturating_sub(1);
-        scope.cancelled = scope.cancelled.saturating_add(1);
-        self.quiescent.notify_all();
+        self.retire_prelaunch_failure(task_id, true);
     }
 
     fn lock_state(&self) -> MutexGuard<'_, TaskGraphScopeState> {
@@ -394,16 +476,21 @@ impl TaskGraphScopeInner {
     }
 }
 
-pub(super) fn panic_payload_message(payload: &(dyn std::any::Any + Send)) -> String {
-    if let Some(message) = payload.downcast_ref::<&str>() {
-        (*message).to_owned()
-    } else if let Some(message) = payload.downcast_ref::<String>() {
-        message.clone()
-    } else {
-        "non-string panic payload".to_owned()
+pub(super) fn panic_payload_message(payload: Box<dyn std::any::Any + Send>) -> String {
+    let payload = match payload.downcast::<String>() {
+        Ok(message) => return *message,
+        Err(payload) => payload,
+    };
+    match payload.downcast::<&str>() {
+        Ok(message) => (*message).to_owned(),
+        Err(_) => "non-string panic payload".to_owned(),
     }
 }
 
 #[cfg(test)]
-#[path = "scope/tests.rs"]
+#[path = "scope/tests/panic_payload.rs"]
+mod panic_payload_tests;
+
+#[cfg(test)]
+#[path = "scope/tests/cases.rs"]
 mod tests;

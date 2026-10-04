@@ -1,0 +1,1218 @@
+penpot_host_theme_source = "zircon_editor/assets/ui/editor/theme/editor_tokens.zui"
+stylesheets = []
+penpot_dependency_sources = [ "zircon_editor/assets/ui/editor/theme/editor_tokens.zui", "zircon_editor/assets/ui/editor/components/workbench/composites/chrome/workbench_panel_header.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_progress_bar.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_checkbox.zui" ]
+penpot_original_source = "[asset]\nkind = \"component\"\nid = \"res://ui/editor/components/workbench/composites/animation/workbench_sample_weights.zui\"\nversion = 2\ndisplay_name = \"Workbench Sample Weights\"\n\n[imports]\nwidgets = [\n  \"res://ui/editor/components/workbench/composites/chrome/workbench_panel_header.zui#WorkbenchPanelHeader\",\n  \"res://ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption\",\n  \"res://ui/editor/components/workbench/primitives/feedback/workbench_progress_bar.zui#WorkbenchProgressBar\",\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_checkbox.zui#WorkbenchCheckbox\",\n]\nstyles = [\"res://ui/editor/theme/editor_tokens.zui\"]\n\n[components.WorkbenchSampleWeights]\nroot = \"sample_weights_root\"\ndefault_classes = [\"workbench-panel\", \"workbench-surface-inset\", \"workbench-composite\"]\n\n[nodes.sample_weights_root]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"WorkbenchSampleWeightsRoot\"\nclasses = [\"workbench-panel\", \"workbench-surface-inset\"]\nlayout = { clip = true, container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.xsmall\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"sample_weights_header\" }, { node = \"sample_weights_body\" }]\n\n[nodes.sample_weights_header]\ncomponent = \"WorkbenchPanelHeader\"\ncontrol_id = \"WorkbenchSampleWeightsHeader\"\nlayout = { width = { stretch = \"Stretch\" } }\nchildren = [{ node = \"sample_weights_title\", slot = { name = \"title\" } }]\n\n[nodes.sample_weights_body]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchSampleWeightsBody\"\nprops = { input_hoverable = true }\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = \"$editor.density.gap.xsmall\", scrollbar_visibility = \"Auto\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"sample_weights_axes\" }, { node = \"sample_weights_run_forward_row\" }, { node = \"sample_weights_run_left_row\" }, { node = \"sample_weights_run_right_row\" }, { node = \"sample_weights_idle_row\" }, { node = \"sample_weights_footer\" }]\n\n[nodes.sample_weights_title]\ncomponent = \"WorkbenchCaption\"\ncontrol_id = \"WorkbenchSampleWeightsTitle\"\nprops = { text = \"SAMPLE WEIGHTS\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 20.0, preferred = 22.0, max = 24.0, stretch = \"Fixed\" } }\n\n[nodes.sample_weights_axes]\ncomponent = \"HorizontalGroup\"\ncontrol_id = \"WorkbenchSampleWeightsAxes\"\nlayout = { container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.small\" }, width = { stretch = \"Stretch\" }, height = { min = 24.0, preferred = 26.0, max = 28.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"sample_weights_direction_label\" }, { node = \"sample_weights_direction_value\" }, { node = \"sample_weights_axes_fill\" }, { node = \"sample_weights_speed_label\" }, { node = \"sample_weights_speed_value\" }]\n\n[nodes.sample_weights_direction_label]\ncomponent = \"WorkbenchCaption\"\ncontrol_id = \"WorkbenchSampleWeightsDirectionLabel\"\nprops = { text = \"Direction\" }\nlayout = { width = { min = 52.0, preferred = 60.0, max = 68.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.sample_weights_direction_value]\ncomponent = \"WorkbenchCaption\"\ncontrol_id = \"WorkbenchSampleWeightsDirectionValue\"\nprops = { text = \"0.0\" }\nlayout = { width = { min = 30.0, preferred = 38.0, max = 46.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.sample_weights_axes_fill]\ncomponent = \"Container\"\ncontrol_id = \"WorkbenchSampleWeightsAxesFill\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.sample_weights_speed_label]\ncomponent = \"WorkbenchCaption\"\ncontrol_id = \"WorkbenchSampleWeightsSpeedLabel\"\nprops = { text = \"Speed\" }\nlayout = { width = { min = 38.0, preferred = 46.0, max = 54.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.sample_weights_speed_value]\ncomponent = \"WorkbenchCaption\"\ncontrol_id = \"WorkbenchSampleWeightsSpeedValue\"\nprops = { text = \"600.0\" }\nlayout = { width = { min = 40.0, preferred = 48.0, max = 56.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.sample_weights_run_forward_row]\ncomponent = \"HorizontalGroup\"\ncontrol_id = \"WorkbenchSampleWeightsRunForwardRow\"\nlayout = { container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.medium\" }, width = { stretch = \"Stretch\" }, height = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Fixed\" } }\nchildren = [{ node = \"sample_weights_run_forward_label\" }, { node = \"sample_weights_run_forward\" }, { node = \"sample_weights_run_forward_value\" }]\n\n[nodes.sample_weights_run_forward_label]\ncomponent = \"WorkbenchCaption\"\ncontrol_id = \"WorkbenchSampleWeightsRunForwardLabel\"\nprops = { text = \"Run_Fwd\" }\nlayout = { width = { min = 58.0, preferred = 72.0, max = 86.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.sample_weights_run_forward]\ncomponent = \"WorkbenchProgressBar\"\ncontrol_id = \"WorkbenchSampleWeightsRunForward\"\nprops = { value = 100, value_percent = 1, min = 0, max = 100, show_label = false, background_color = \"transparent\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Stretch\" } }\n\n[nodes.sample_weights_run_forward_value]\ncomponent = \"WorkbenchCaption\"\ncontrol_id = \"WorkbenchSampleWeightsRunForwardValue\"\nprops = { text = \"1.00\" }\nlayout = { width = { min = 28.0, preferred = 34.0, max = 40.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.sample_weights_run_left_row]\ncomponent = \"HorizontalGroup\"\ncontrol_id = \"WorkbenchSampleWeightsRunLeftRow\"\nlayout = { container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.medium\" }, width = { stretch = \"Stretch\" }, height = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Fixed\" } }\nchildren = [{ node = \"sample_weights_run_left_label\" }, { node = \"sample_weights_run_left\" }, { node = \"sample_weights_run_left_value\" }]\n\n[nodes.sample_weights_run_left_label]\ncomponent = \"WorkbenchCaption\"\ncontrol_id = \"WorkbenchSampleWeightsRunLeftLabel\"\nprops = { text = \"Run_Fwd_L\" }\nlayout = { width = { min = 58.0, preferred = 72.0, max = 86.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.sample_weights_run_left]\ncomponent = \"WorkbenchProgressBar\"\ncontrol_id = \"WorkbenchSampleWeightsRunLeft\"\nprops = { value = 0, value_percent = 0, min = 0, max = 100, show_label = false, background_color = \"transparent\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Stretch\" } }\n\n[nodes.sample_weights_run_left_value]\ncomponent = \"WorkbenchCaption\"\ncontrol_id = \"WorkbenchSampleWeightsRunLeftValue\"\nprops = { text = \"0.00\" }\nlayout = { width = { min = 28.0, preferred = 34.0, max = 40.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.sample_weights_run_right_row]\ncomponent = \"HorizontalGroup\"\ncontrol_id = \"WorkbenchSampleWeightsRunRightRow\"\nlayout = { container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.medium\" }, width = { stretch = \"Stretch\" }, height = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Fixed\" } }\nchildren = [{ node = \"sample_weights_run_right_label\" }, { node = \"sample_weights_run_right\" }, { node = \"sample_weights_run_right_value\" }]\n\n[nodes.sample_weights_run_right_label]\ncomponent = \"WorkbenchCaption\"\ncontrol_id = \"WorkbenchSampleWeightsRunRightLabel\"\nprops = { text = \"Run_Fwd_R\" }\nlayout = { width = { min = 58.0, preferred = 72.0, max = 86.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.sample_weights_run_right]\ncomponent = \"WorkbenchProgressBar\"\ncontrol_id = \"WorkbenchSampleWeightsRunRight\"\nprops = { value = 0, value_percent = 0, min = 0, max = 100, show_label = false, background_color = \"transparent\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Stretch\" } }\n\n[nodes.sample_weights_run_right_value]\ncomponent = \"WorkbenchCaption\"\ncontrol_id = \"WorkbenchSampleWeightsRunRightValue\"\nprops = { text = \"0.00\" }\nlayout = { width = { min = 28.0, preferred = 34.0, max = 40.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.sample_weights_idle_row]\ncomponent = \"HorizontalGroup\"\ncontrol_id = \"WorkbenchSampleWeightsIdleRow\"\nlayout = { container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.medium\" }, width = { stretch = \"Stretch\" }, height = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Fixed\" } }\nchildren = [{ node = \"sample_weights_idle_label\" }, { node = \"sample_weights_idle\" }, { node = \"sample_weights_idle_value\" }]\n\n[nodes.sample_weights_idle_label]\ncomponent = \"WorkbenchCaption\"\ncontrol_id = \"WorkbenchSampleWeightsIdleLabel\"\nprops = { text = \"Idle\" }\nlayout = { width = { min = 58.0, preferred = 72.0, max = 86.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.sample_weights_idle]\ncomponent = \"WorkbenchProgressBar\"\ncontrol_id = \"WorkbenchSampleWeightsIdle\"\nprops = { value = 0, value_percent = 0, min = 0, max = 100, show_label = false, background_color = \"transparent\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Stretch\" } }\n\n[nodes.sample_weights_idle_value]\ncomponent = \"WorkbenchCaption\"\ncontrol_id = \"WorkbenchSampleWeightsIdleValue\"\nprops = { text = \"0.00\" }\nlayout = { width = { min = 28.0, preferred = 34.0, max = 40.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.sample_weights_footer]\ncomponent = \"WorkbenchCheckbox\"\ncontrol_id = \"WorkbenchSampleWeightsNormalize\"\nprops = { text = \"Normalize\", value = true, checked = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28, preferred = 28, max = 28, stretch = \"Fixed\" } }\n"
+
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/composites/animation/workbench_sample_weights.zui"
+version = 2
+display_name = "Workbench Sample Weights"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchSampleWeights]
+root = "sample_weights_root"
+default_classes = [ "workbench-panel", "workbench-surface-inset", "workbench-composite" ]
+
+[nodes.sample_weights_root]
+component = "VerticalGroup"
+control_id = "WorkbenchSampleWeightsRoot"
+classes = [ "workbench-panel", "workbench-surface-inset" ]
+
+[nodes.sample_weights_root.layout]
+clip = true
+
+[nodes.sample_weights_root.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.xsmall"
+
+[nodes.sample_weights_root.layout.width]
+stretch = "Stretch"
+
+[nodes.sample_weights_root.layout.height]
+stretch = "Stretch"
+
+[[nodes.sample_weights_root.children]]
+node = "sample_weights_header"
+
+[[nodes.sample_weights_root.children]]
+node = "sample_weights_body"
+
+[nodes.sample_weights_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchSampleWeightsHeader"
+classes = [ "workbench-panel-header", "workbench-panel-toolbar", "workbench-composite" ]
+events = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/composites/chrome/workbench_panel_header.zui#WorkbenchPanelHeader"
+
+[nodes.sample_weights_header.props]
+background_color = "$editor.surface.3"
+border_color = "$editor.separator.soft"
+border_width = 0
+corner_radius = 0
+separator_color = "$editor.separator.soft"
+separator_edge = "bottom"
+separator_thickness = "$editor.control.border_width"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+
+[nodes.sample_weights_header.layout]
+clip = true
+
+[nodes.sample_weights_header.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.sample_weights_header.layout.padding]
+left = "$editor.density.gap.medium"
+right = "$editor.density.gap.medium"
+
+[nodes.sample_weights_header.layout.width]
+stretch = "Stretch"
+
+[nodes.sample_weights_header.layout.height]
+min = "$editor.chrome.panel_header.height"
+preferred = "$editor.chrome.panel_header.height"
+max = "$editor.chrome.panel_header.height"
+stretch = "Fixed"
+
+[[nodes.sample_weights_header.children]]
+node = "sample_weights_title"
+
+[nodes.sample_weights_header.children.slot]
+name = "title"
+
+[nodes.sample_weights_header.children.slot.layout.width]
+stretch = "Stretch"
+
+[nodes.sample_weights_header.children.slot.layout.height]
+stretch = "Stretch"
+
+[nodes.sample_weights_header.state]
+[nodes.sample_weights_header.style.self]
+[nodes.sample_weights_header.style.slot]
+[nodes.sample_weights_header.slots]
+[nodes.sample_weights_body]
+component = "ScrollableBox"
+control_id = "WorkbenchSampleWeightsBody"
+
+[nodes.sample_weights_body.props]
+input_hoverable = true
+
+[nodes.sample_weights_body.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.sample_weights_body.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = "$editor.density.gap.xsmall"
+scrollbar_visibility = "Auto"
+
+[nodes.sample_weights_body.layout.width]
+stretch = "Stretch"
+
+[nodes.sample_weights_body.layout.height]
+stretch = "Stretch"
+
+[[nodes.sample_weights_body.children]]
+node = "sample_weights_axes"
+
+[[nodes.sample_weights_body.children]]
+node = "sample_weights_run_forward_row"
+
+[[nodes.sample_weights_body.children]]
+node = "sample_weights_run_left_row"
+
+[[nodes.sample_weights_body.children]]
+node = "sample_weights_run_right_row"
+
+[[nodes.sample_weights_body.children]]
+node = "sample_weights_idle_row"
+
+[[nodes.sample_weights_body.children]]
+node = "sample_weights_footer"
+
+[nodes.sample_weights_title]
+component = "Label"
+control_id = "WorkbenchSampleWeightsTitle"
+classes = [ "workbench-caption", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.sample_weights_title.props]
+text = "SAMPLE WEIGHTS"
+text_overflow = "ellipsis"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "secondary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+
+[nodes.sample_weights_title.layout.width]
+stretch = "Stretch"
+
+[nodes.sample_weights_title.layout.height]
+min = 20
+preferred = 22
+max = 24
+stretch = "Stretch"
+
+[nodes.sample_weights_title.state]
+[nodes.sample_weights_title.style.self]
+[nodes.sample_weights_title.style.slot]
+[nodes.sample_weights_title.slots]
+[nodes.sample_weights_axes]
+component = "HorizontalGroup"
+control_id = "WorkbenchSampleWeightsAxes"
+
+[nodes.sample_weights_axes.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.sample_weights_axes.layout.width]
+stretch = "Stretch"
+
+[nodes.sample_weights_axes.layout.height]
+min = 24
+preferred = 26
+max = 28
+stretch = "Fixed"
+
+[[nodes.sample_weights_axes.children]]
+node = "sample_weights_direction_label"
+
+[[nodes.sample_weights_axes.children]]
+node = "sample_weights_direction_value"
+
+[[nodes.sample_weights_axes.children]]
+node = "sample_weights_axes_fill"
+
+[[nodes.sample_weights_axes.children]]
+node = "sample_weights_speed_label"
+
+[[nodes.sample_weights_axes.children]]
+node = "sample_weights_speed_value"
+
+[nodes.sample_weights_direction_label]
+component = "Label"
+control_id = "WorkbenchSampleWeightsDirectionLabel"
+classes = [ "workbench-caption", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.sample_weights_direction_label.props]
+text = "Direction"
+text_overflow = "ellipsis"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "secondary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+
+[nodes.sample_weights_direction_label.layout.width]
+stretch = "Fixed"
+min = 52
+preferred = 60
+max = 68
+
+[nodes.sample_weights_direction_label.layout.height]
+min = "$editor.density.caption.min_height"
+preferred = "$editor.density.caption.preferred_height"
+max = "$editor.density.caption.max_height"
+stretch = "Stretch"
+
+[nodes.sample_weights_direction_label.state]
+[nodes.sample_weights_direction_label.style.self]
+[nodes.sample_weights_direction_label.style.slot]
+[nodes.sample_weights_direction_label.slots]
+[nodes.sample_weights_direction_value]
+component = "Label"
+control_id = "WorkbenchSampleWeightsDirectionValue"
+classes = [ "workbench-caption", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.sample_weights_direction_value.props]
+text = "0.0"
+text_overflow = "ellipsis"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "secondary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+
+[nodes.sample_weights_direction_value.layout.width]
+stretch = "Fixed"
+min = 30
+preferred = 38
+max = 46
+
+[nodes.sample_weights_direction_value.layout.height]
+min = "$editor.density.caption.min_height"
+preferred = "$editor.density.caption.preferred_height"
+max = "$editor.density.caption.max_height"
+stretch = "Stretch"
+
+[nodes.sample_weights_direction_value.state]
+[nodes.sample_weights_direction_value.style.self]
+[nodes.sample_weights_direction_value.style.slot]
+[nodes.sample_weights_direction_value.slots]
+[nodes.sample_weights_axes_fill]
+component = "Container"
+control_id = "WorkbenchSampleWeightsAxesFill"
+
+[nodes.sample_weights_axes_fill.layout.width]
+stretch = "Stretch"
+
+[nodes.sample_weights_axes_fill.layout.height]
+stretch = "Stretch"
+
+[nodes.sample_weights_speed_label]
+component = "Label"
+control_id = "WorkbenchSampleWeightsSpeedLabel"
+classes = [ "workbench-caption", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.sample_weights_speed_label.props]
+text = "Speed"
+text_overflow = "ellipsis"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "secondary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+
+[nodes.sample_weights_speed_label.layout.width]
+stretch = "Fixed"
+min = 38
+preferred = 46
+max = 54
+
+[nodes.sample_weights_speed_label.layout.height]
+min = "$editor.density.caption.min_height"
+preferred = "$editor.density.caption.preferred_height"
+max = "$editor.density.caption.max_height"
+stretch = "Stretch"
+
+[nodes.sample_weights_speed_label.state]
+[nodes.sample_weights_speed_label.style.self]
+[nodes.sample_weights_speed_label.style.slot]
+[nodes.sample_weights_speed_label.slots]
+[nodes.sample_weights_speed_value]
+component = "Label"
+control_id = "WorkbenchSampleWeightsSpeedValue"
+classes = [ "workbench-caption", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.sample_weights_speed_value.props]
+text = "600.0"
+text_overflow = "ellipsis"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "secondary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+
+[nodes.sample_weights_speed_value.layout.width]
+stretch = "Fixed"
+min = 40
+preferred = 48
+max = 56
+
+[nodes.sample_weights_speed_value.layout.height]
+min = "$editor.density.caption.min_height"
+preferred = "$editor.density.caption.preferred_height"
+max = "$editor.density.caption.max_height"
+stretch = "Stretch"
+
+[nodes.sample_weights_speed_value.state]
+[nodes.sample_weights_speed_value.style.self]
+[nodes.sample_weights_speed_value.style.slot]
+[nodes.sample_weights_speed_value.slots]
+[nodes.sample_weights_run_forward_row]
+component = "HorizontalGroup"
+control_id = "WorkbenchSampleWeightsRunForwardRow"
+
+[nodes.sample_weights_run_forward_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.sample_weights_run_forward_row.layout.width]
+stretch = "Stretch"
+
+[nodes.sample_weights_run_forward_row.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[nodes.sample_weights_run_forward_row.children]]
+node = "sample_weights_run_forward_label"
+
+[[nodes.sample_weights_run_forward_row.children]]
+node = "sample_weights_run_forward"
+
+[[nodes.sample_weights_run_forward_row.children]]
+node = "sample_weights_run_forward_value"
+
+[nodes.sample_weights_run_forward_label]
+component = "Label"
+control_id = "WorkbenchSampleWeightsRunForwardLabel"
+classes = [ "workbench-caption", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.sample_weights_run_forward_label.props]
+text = "Run_Fwd"
+text_overflow = "ellipsis"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "secondary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+
+[nodes.sample_weights_run_forward_label.layout.width]
+stretch = "Fixed"
+min = 58
+preferred = 72
+max = 86
+
+[nodes.sample_weights_run_forward_label.layout.height]
+min = "$editor.density.caption.min_height"
+preferred = "$editor.density.caption.preferred_height"
+max = "$editor.density.caption.max_height"
+stretch = "Stretch"
+
+[nodes.sample_weights_run_forward_label.state]
+[nodes.sample_weights_run_forward_label.style.self]
+[nodes.sample_weights_run_forward_label.style.slot]
+[nodes.sample_weights_run_forward_label.slots]
+[nodes.sample_weights_run_forward]
+component = "Progress"
+control_id = "WorkbenchSampleWeightsRunForward"
+pixel_snapping = "disabled"
+classes = [ "workbench-progress-bar", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_progress_bar.zui#WorkbenchProgressBar"
+
+[nodes.sample_weights_run_forward.props]
+value = 100
+value_percent = 1
+min = 0
+max = 100
+variant = "linear"
+label_text = "Progress"
+show_label = false
+validation_level = "normal"
+track_color = "$editor.surface.recessed"
+disabled_track_color = "$editor.surface.disabled"
+fill_color = "$editor.accent"
+disabled_fill_color = "$editor.text.disabled"
+warning_color = "$editor.semantic.warning"
+error_color = "$editor.semantic.error"
+border_color = "$editor.separator.soft"
+disabled_border_color = "$editor.border.disabled"
+label_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+track_height = "$editor.density.gap.small"
+horizontal_inset = "$editor.density.gap.medium"
+label_gap = "$editor.density.gap.small"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+background_color = "transparent"
+
+[nodes.sample_weights_run_forward.layout.width]
+stretch = "Stretch"
+
+[nodes.sample_weights_run_forward.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.dense"
+stretch = "Stretch"
+
+[nodes.sample_weights_run_forward.state]
+[nodes.sample_weights_run_forward.style.self]
+[nodes.sample_weights_run_forward.style.slot]
+[nodes.sample_weights_run_forward.slots]
+[nodes.sample_weights_run_forward_value]
+component = "Label"
+control_id = "WorkbenchSampleWeightsRunForwardValue"
+classes = [ "workbench-caption", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.sample_weights_run_forward_value.props]
+text = "1.00"
+text_overflow = "ellipsis"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "secondary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+
+[nodes.sample_weights_run_forward_value.layout.width]
+stretch = "Fixed"
+min = 28
+preferred = 34
+max = 40
+
+[nodes.sample_weights_run_forward_value.layout.height]
+min = "$editor.density.caption.min_height"
+preferred = "$editor.density.caption.preferred_height"
+max = "$editor.density.caption.max_height"
+stretch = "Stretch"
+
+[nodes.sample_weights_run_forward_value.state]
+[nodes.sample_weights_run_forward_value.style.self]
+[nodes.sample_weights_run_forward_value.style.slot]
+[nodes.sample_weights_run_forward_value.slots]
+[nodes.sample_weights_run_left_row]
+component = "HorizontalGroup"
+control_id = "WorkbenchSampleWeightsRunLeftRow"
+
+[nodes.sample_weights_run_left_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.sample_weights_run_left_row.layout.width]
+stretch = "Stretch"
+
+[nodes.sample_weights_run_left_row.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[nodes.sample_weights_run_left_row.children]]
+node = "sample_weights_run_left_label"
+
+[[nodes.sample_weights_run_left_row.children]]
+node = "sample_weights_run_left"
+
+[[nodes.sample_weights_run_left_row.children]]
+node = "sample_weights_run_left_value"
+
+[nodes.sample_weights_run_left_label]
+component = "Label"
+control_id = "WorkbenchSampleWeightsRunLeftLabel"
+classes = [ "workbench-caption", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.sample_weights_run_left_label.props]
+text = "Run_Fwd_L"
+text_overflow = "ellipsis"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "secondary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+
+[nodes.sample_weights_run_left_label.layout.width]
+stretch = "Fixed"
+min = 58
+preferred = 72
+max = 86
+
+[nodes.sample_weights_run_left_label.layout.height]
+min = "$editor.density.caption.min_height"
+preferred = "$editor.density.caption.preferred_height"
+max = "$editor.density.caption.max_height"
+stretch = "Stretch"
+
+[nodes.sample_weights_run_left_label.state]
+[nodes.sample_weights_run_left_label.style.self]
+[nodes.sample_weights_run_left_label.style.slot]
+[nodes.sample_weights_run_left_label.slots]
+[nodes.sample_weights_run_left]
+component = "Progress"
+control_id = "WorkbenchSampleWeightsRunLeft"
+pixel_snapping = "disabled"
+classes = [ "workbench-progress-bar", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_progress_bar.zui#WorkbenchProgressBar"
+
+[nodes.sample_weights_run_left.props]
+value = 0
+value_percent = 0
+min = 0
+max = 100
+variant = "linear"
+label_text = "Progress"
+show_label = false
+validation_level = "normal"
+track_color = "$editor.surface.recessed"
+disabled_track_color = "$editor.surface.disabled"
+fill_color = "$editor.accent"
+disabled_fill_color = "$editor.text.disabled"
+warning_color = "$editor.semantic.warning"
+error_color = "$editor.semantic.error"
+border_color = "$editor.separator.soft"
+disabled_border_color = "$editor.border.disabled"
+label_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+track_height = "$editor.density.gap.small"
+horizontal_inset = "$editor.density.gap.medium"
+label_gap = "$editor.density.gap.small"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+background_color = "transparent"
+
+[nodes.sample_weights_run_left.layout.width]
+stretch = "Stretch"
+
+[nodes.sample_weights_run_left.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.dense"
+stretch = "Stretch"
+
+[nodes.sample_weights_run_left.state]
+[nodes.sample_weights_run_left.style.self]
+[nodes.sample_weights_run_left.style.slot]
+[nodes.sample_weights_run_left.slots]
+[nodes.sample_weights_run_left_value]
+component = "Label"
+control_id = "WorkbenchSampleWeightsRunLeftValue"
+classes = [ "workbench-caption", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.sample_weights_run_left_value.props]
+text = "0.00"
+text_overflow = "ellipsis"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "secondary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+
+[nodes.sample_weights_run_left_value.layout.width]
+stretch = "Fixed"
+min = 28
+preferred = 34
+max = 40
+
+[nodes.sample_weights_run_left_value.layout.height]
+min = "$editor.density.caption.min_height"
+preferred = "$editor.density.caption.preferred_height"
+max = "$editor.density.caption.max_height"
+stretch = "Stretch"
+
+[nodes.sample_weights_run_left_value.state]
+[nodes.sample_weights_run_left_value.style.self]
+[nodes.sample_weights_run_left_value.style.slot]
+[nodes.sample_weights_run_left_value.slots]
+[nodes.sample_weights_run_right_row]
+component = "HorizontalGroup"
+control_id = "WorkbenchSampleWeightsRunRightRow"
+
+[nodes.sample_weights_run_right_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.sample_weights_run_right_row.layout.width]
+stretch = "Stretch"
+
+[nodes.sample_weights_run_right_row.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[nodes.sample_weights_run_right_row.children]]
+node = "sample_weights_run_right_label"
+
+[[nodes.sample_weights_run_right_row.children]]
+node = "sample_weights_run_right"
+
+[[nodes.sample_weights_run_right_row.children]]
+node = "sample_weights_run_right_value"
+
+[nodes.sample_weights_run_right_label]
+component = "Label"
+control_id = "WorkbenchSampleWeightsRunRightLabel"
+classes = [ "workbench-caption", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.sample_weights_run_right_label.props]
+text = "Run_Fwd_R"
+text_overflow = "ellipsis"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "secondary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+
+[nodes.sample_weights_run_right_label.layout.width]
+stretch = "Fixed"
+min = 58
+preferred = 72
+max = 86
+
+[nodes.sample_weights_run_right_label.layout.height]
+min = "$editor.density.caption.min_height"
+preferred = "$editor.density.caption.preferred_height"
+max = "$editor.density.caption.max_height"
+stretch = "Stretch"
+
+[nodes.sample_weights_run_right_label.state]
+[nodes.sample_weights_run_right_label.style.self]
+[nodes.sample_weights_run_right_label.style.slot]
+[nodes.sample_weights_run_right_label.slots]
+[nodes.sample_weights_run_right]
+component = "Progress"
+control_id = "WorkbenchSampleWeightsRunRight"
+pixel_snapping = "disabled"
+classes = [ "workbench-progress-bar", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_progress_bar.zui#WorkbenchProgressBar"
+
+[nodes.sample_weights_run_right.props]
+value = 0
+value_percent = 0
+min = 0
+max = 100
+variant = "linear"
+label_text = "Progress"
+show_label = false
+validation_level = "normal"
+track_color = "$editor.surface.recessed"
+disabled_track_color = "$editor.surface.disabled"
+fill_color = "$editor.accent"
+disabled_fill_color = "$editor.text.disabled"
+warning_color = "$editor.semantic.warning"
+error_color = "$editor.semantic.error"
+border_color = "$editor.separator.soft"
+disabled_border_color = "$editor.border.disabled"
+label_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+track_height = "$editor.density.gap.small"
+horizontal_inset = "$editor.density.gap.medium"
+label_gap = "$editor.density.gap.small"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+background_color = "transparent"
+
+[nodes.sample_weights_run_right.layout.width]
+stretch = "Stretch"
+
+[nodes.sample_weights_run_right.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.dense"
+stretch = "Stretch"
+
+[nodes.sample_weights_run_right.state]
+[nodes.sample_weights_run_right.style.self]
+[nodes.sample_weights_run_right.style.slot]
+[nodes.sample_weights_run_right.slots]
+[nodes.sample_weights_run_right_value]
+component = "Label"
+control_id = "WorkbenchSampleWeightsRunRightValue"
+classes = [ "workbench-caption", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.sample_weights_run_right_value.props]
+text = "0.00"
+text_overflow = "ellipsis"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "secondary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+
+[nodes.sample_weights_run_right_value.layout.width]
+stretch = "Fixed"
+min = 28
+preferred = 34
+max = 40
+
+[nodes.sample_weights_run_right_value.layout.height]
+min = "$editor.density.caption.min_height"
+preferred = "$editor.density.caption.preferred_height"
+max = "$editor.density.caption.max_height"
+stretch = "Stretch"
+
+[nodes.sample_weights_run_right_value.state]
+[nodes.sample_weights_run_right_value.style.self]
+[nodes.sample_weights_run_right_value.style.slot]
+[nodes.sample_weights_run_right_value.slots]
+[nodes.sample_weights_idle_row]
+component = "HorizontalGroup"
+control_id = "WorkbenchSampleWeightsIdleRow"
+
+[nodes.sample_weights_idle_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.sample_weights_idle_row.layout.width]
+stretch = "Stretch"
+
+[nodes.sample_weights_idle_row.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[nodes.sample_weights_idle_row.children]]
+node = "sample_weights_idle_label"
+
+[[nodes.sample_weights_idle_row.children]]
+node = "sample_weights_idle"
+
+[[nodes.sample_weights_idle_row.children]]
+node = "sample_weights_idle_value"
+
+[nodes.sample_weights_idle_label]
+component = "Label"
+control_id = "WorkbenchSampleWeightsIdleLabel"
+classes = [ "workbench-caption", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.sample_weights_idle_label.props]
+text = "Idle"
+text_overflow = "ellipsis"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "secondary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+
+[nodes.sample_weights_idle_label.layout.width]
+stretch = "Fixed"
+min = 58
+preferred = 72
+max = 86
+
+[nodes.sample_weights_idle_label.layout.height]
+min = "$editor.density.caption.min_height"
+preferred = "$editor.density.caption.preferred_height"
+max = "$editor.density.caption.max_height"
+stretch = "Stretch"
+
+[nodes.sample_weights_idle_label.state]
+[nodes.sample_weights_idle_label.style.self]
+[nodes.sample_weights_idle_label.style.slot]
+[nodes.sample_weights_idle_label.slots]
+[nodes.sample_weights_idle]
+component = "Progress"
+control_id = "WorkbenchSampleWeightsIdle"
+pixel_snapping = "disabled"
+classes = [ "workbench-progress-bar", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_progress_bar.zui#WorkbenchProgressBar"
+
+[nodes.sample_weights_idle.props]
+value = 0
+value_percent = 0
+min = 0
+max = 100
+variant = "linear"
+label_text = "Progress"
+show_label = false
+validation_level = "normal"
+track_color = "$editor.surface.recessed"
+disabled_track_color = "$editor.surface.disabled"
+fill_color = "$editor.accent"
+disabled_fill_color = "$editor.text.disabled"
+warning_color = "$editor.semantic.warning"
+error_color = "$editor.semantic.error"
+border_color = "$editor.separator.soft"
+disabled_border_color = "$editor.border.disabled"
+label_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+track_height = "$editor.density.gap.small"
+horizontal_inset = "$editor.density.gap.medium"
+label_gap = "$editor.density.gap.small"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+background_color = "transparent"
+
+[nodes.sample_weights_idle.layout.width]
+stretch = "Stretch"
+
+[nodes.sample_weights_idle.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.dense"
+stretch = "Stretch"
+
+[nodes.sample_weights_idle.state]
+[nodes.sample_weights_idle.style.self]
+[nodes.sample_weights_idle.style.slot]
+[nodes.sample_weights_idle.slots]
+[nodes.sample_weights_idle_value]
+component = "Label"
+control_id = "WorkbenchSampleWeightsIdleValue"
+classes = [ "workbench-caption", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.sample_weights_idle_value.props]
+text = "0.00"
+text_overflow = "ellipsis"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "secondary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+
+[nodes.sample_weights_idle_value.layout.width]
+stretch = "Fixed"
+min = 28
+preferred = 34
+max = 40
+
+[nodes.sample_weights_idle_value.layout.height]
+min = "$editor.density.caption.min_height"
+preferred = "$editor.density.caption.preferred_height"
+max = "$editor.density.caption.max_height"
+stretch = "Stretch"
+
+[nodes.sample_weights_idle_value.state]
+[nodes.sample_weights_idle_value.style.self]
+[nodes.sample_weights_idle_value.style.slot]
+[nodes.sample_weights_idle_value.slots]
+[nodes.sample_weights_footer]
+component = "Checkbox"
+control_id = "WorkbenchSampleWeightsNormalize"
+classes = [ "workbench-check", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_checkbox.zui#WorkbenchCheckbox"
+
+[nodes.sample_weights_footer.props]
+text = "Normalize"
+value = true
+checked = true
+background_color = "$editor.surface.recessed"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.separator.strong"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+label_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_spacing = "$editor.density.gap.medium"
+input_interactive = false
+input_clickable = false
+input_hoverable = false
+input_focusable = false
+
+[nodes.sample_weights_footer.layout.width]
+stretch = "Stretch"
+
+[nodes.sample_weights_footer.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[nodes.sample_weights_footer.state]
+[nodes.sample_weights_footer.style.self]
+[nodes.sample_weights_footer.style.slot]
+[nodes.sample_weights_footer.slots]
+[penpot_host_colors]
+primary = "#60aeff"
+accent = "#60aeff"
+"material.primary" = "#60aeff"
+material_color_primary = "#60aeff"
+on_primary = "#151515"
+"material.on_primary" = "#151515"
+material_color_on_primary = "#151515"
+surface = "#2f2f2f"
+"material.surface" = "#2f2f2f"
+surface_inset = "#0f0f0f"
+"material.surface_inset" = "#0f0f0f"
+surface_hover = "#454545"
+"material.surface_hover" = "#454545"
+surface_pressed = "#383838"
+"material.surface_pressed" = "#383838"
+surface_selected = "#243f5a"
+"material.surface_selected" = "#243f5a"
+disabled = "#2b2b2b"
+"material.disabled" = "#2b2b2b"
+border = "#484848"
+outline = "#484848"
+"material.outline" = "#484848"
+focus = "#66b2ff"
+focus_ring = "#66b2ff"
+"material.focus_ring" = "#66b2ff"
+text = "#e8e8e8"
+on_surface = "#e8e8e8"
+"material.text" = "#e8e8e8"
+"material.on_surface" = "#e8e8e8"
+text_muted = "#b3b3b3"
+muted = "#b3b3b3"
+"material.text_muted" = "#b3b3b3"
+text_disabled = "#737373"
+"material.text_disabled" = "#737373"
+warning = "#dcac50"
+"material.warning" = "#dcac50"
+error = "#eb605c"
+danger = "#eb605c"
+"material.error" = "#eb605c"
+success = "#55be78"
+"material.success" = "#55be78"
+info = "#5faae6"
+"material.info" = "#5faae6"
+
+[penpot_host_palette]
+surface = [ "#151515", "#242424", "#2f2f2f", "#383838" ]
+surface_recessed = "#0f0f0f"
+surface_hover = "#454545"
+surface_selected = "#243f5a"
+surface_disabled = "#2b2b2b"
+accent = "#60aeff"
+accent_soft = "#253f59"
+border = "#484848"
+border_disabled = "#363636"
+separator_strong = "#565656"
+separator_soft = "#333333"
+text_primary = "#e8e8e8"
+text_secondary = "#b3b3b3"
+text_disabled = "#737373"
+success = "#55be78"
+success_container = "#1d472f"
+info = "#5faae6"
+info_container = "#18395b"
+warning = "#dcac50"
+warning_container = "#463112"
+error = "#eb605c"
+error_container = "#4c2427"
+popup = "#242424"
+track = "#3b3b3b"
+focus_ring = "#66b2ff"
+shadow = "#00000073"
+
+[tokens]
+"theme.palette.surface.0" = "#151515"
+"theme.palette.surface.1" = "#242424"
+"theme.palette.surface.2" = "#2f2f2f"
+"theme.palette.surface.3" = "#383838"
+"theme.palette.text.primary" = "#e8e8e8"
+"theme.palette.text.secondary" = "#b3b3b3"
+"theme.palette.text.disabled" = "#737373"
+"theme.palette.accent" = "#60aeff"
+"theme.palette.success" = "#55be78"
+"theme.palette.info" = "#5faae6"
+"theme.palette.warning" = "#dcac50"
+"theme.palette.error" = "#eb605c"
+"theme.palette.separator" = "#484848"
+"editor.surface.0" = "#151515"
+"editor.surface.1" = "#242424"
+"editor.surface.2" = "#2f2f2f"
+"editor.surface.3" = "#383838"
+"editor.surface.recessed" = "#0f0f0f"
+"editor.surface.hover" = "#454545"
+"editor.surface.selected" = "#243f5a"
+"editor.surface.disabled" = "#2b2b2b"
+"editor.accent" = "#60aeff"
+"editor.accent.soft" = "#253f59"
+"editor.border" = "#484848"
+"editor.border.disabled" = "#363636"
+"editor.separator.strong" = "#565656"
+"editor.separator.soft" = "#333333"
+"editor.text.primary" = "#e8e8e8"
+"editor.text.secondary" = "#b3b3b3"
+"editor.text.disabled" = "#737373"
+"editor.semantic.success" = "#55be78"
+"editor.semantic.success.container" = "#1d472f"
+"editor.semantic.info" = "#5faae6"
+"editor.semantic.info.container" = "#18395b"
+"editor.semantic.warning" = "#dcac50"
+"editor.semantic.warning.container" = "#463112"
+"editor.semantic.error" = "#eb605c"
+"editor.semantic.error.container" = "#4c2427"
+"editor.popup" = "#242424"
+"editor.track" = "#3b3b3b"
+"editor.focus.ring" = "#66b2ff"
+"editor.shadow" = "#00000073"
+"editor.typography.ui.family" = "Fira Sans"
+"editor.typography.ui.strong.family" = "Fira Sans"
+"editor.typography.code.family" = "Fira Mono"
+"editor.typography.utility_tab.text_role" = "ui"
+"editor.typography.font_smoothing" = "grayscale"
+"editor.typography.body.size" = 14
+"editor.typography.caption.size" = 12
+"editor.typography.overlay.size" = 12
+"editor.typography.heading.size" = 16
+"editor.typography.title.size" = 20
+"editor.typography.body.weight" = 400
+"editor.typography.medium.weight" = 500
+"editor.typography.strong.weight" = 600
+"editor.typography.emphasis.weight" = 700
+"editor.typography.code.weight" = 400
+"editor.typography.line_height" = 1.4
+"editor.control.height.large" = 48
+"editor.control.height.default" = 32
+"editor.control.height.compact" = 32
+"editor.control.height.dense" = 28
+"editor.control.radius.small" = 4
+"editor.control.radius.control" = 4
+"editor.control.radius.large" = 8
+"editor.control.radius.panel" = 0
+"editor.control.radius.pill" = 999
+"editor.control.border_width" = 1
+"editor.chrome.top_bar.height" = 25
+"editor.chrome.host_bar.height" = 32
+"editor.chrome.workbench_toolbar.height" = 66
+"editor.chrome.workbench_toolbar.command_row.height" = 34
+"editor.chrome.workbench_toolbar.popup.command_offset_y" = 29
+"editor.chrome.workbench_toolbar.popup.module_offset_y" = -6
+"editor.chrome.status_bar.height" = 24
+"editor.chrome.panel_header.height" = 30
+"editor.chrome.document_header.height" = 31
+"editor.chrome.viewport_toolbar.height" = 28
+"editor.chrome.activity_rail.width" = 34
+"editor.chrome.separator.thickness" = 1
+"editor.chrome.splitter.hit_size" = 8
+"editor.density.gap.xsmall" = 2
+"editor.density.gap.tight" = 4
+"editor.density.gap.small" = 4
+"editor.density.gap.regular" = 8
+"editor.density.gap.medium" = 8
+"editor.density.gap.large" = 12
+"editor.density.gap.group" = 24
+"editor.density.drawer_padding" = 12
+"editor.density.panel_padding" = 16
+"editor.density.toolbar_action_width" = 76
+"editor.density.toolbar_wide_action_width" = 96
+"editor.density.ui_asset_action.min_width" = 40
+"editor.density.ui_asset_action.preferred_width" = 52
+"editor.density.ui_asset_action.max_width" = 64
+"editor.density.ui_asset.side.min_width" = 128
+"editor.density.ui_asset.side.preferred_width" = 220
+"editor.density.ui_asset.center.min_width" = 256
+"editor.density.ui_asset.center.preferred_width" = 420
+"editor.density.ui_asset.header_kind.min_width" = 64
+"editor.density.ui_asset.header_kind.preferred_width" = 70
+"editor.density.ui_asset.header_kind.max_width" = 84
+"editor.density.ui_asset.tool.min_width" = 56
+"editor.density.ui_asset.tool.preferred_width" = 64
+"editor.density.ui_asset.tool.max_width" = 80
+"editor.density.command_palette.min_width" = 520
+"editor.density.command_palette.preferred_width" = 560
+"editor.density.command_palette.max_width" = 640
+"editor.density.command_palette.min_height" = 180
+"editor.density.command_palette.preferred_height" = 220
+"editor.density.command_palette.max_height" = 280
+"editor.density.dialog.min_width" = 420
+"editor.density.dialog.preferred_width" = 480
+"editor.density.dialog.max_width" = 560
+"editor.density.dialog.min_height" = 180
+"editor.density.dialog.preferred_height" = 220
+"editor.density.dialog.max_height" = 320
+"editor.density.confirm_dialog.preferred_width" = 460
+"editor.density.confirm_dialog.max_width" = 540
+"editor.density.confirm_dialog.min_height" = 174
+"editor.density.confirm_dialog.preferred_height" = 210
+"editor.density.confirm_dialog.max_height" = 300
+"editor.density.notification_panel.min_width" = 280
+"editor.density.notification_panel.preferred_width" = 320
+"editor.density.notification_panel.max_width" = 380
+"editor.density.notification_panel.min_height" = 160
+"editor.density.notification_panel.preferred_height" = 220
+"editor.density.notification_panel.max_height" = 320
+"editor.density.caption.min_height" = 20
+"editor.density.caption.preferred_height" = 22
+"editor.density.caption.max_height" = 24
+"editor.density.label.min_height" = 22
+"editor.density.label.preferred_height" = 24
+"editor.density.label.max_height" = 32
+"editor.density.chip.min_width" = 40
+"editor.density.chip.preferred_width" = 80
+"editor.density.chip.max_width" = 160
+"editor.density.axis_value_field.min_width" = 54
+"editor.density.axis_value_field.preferred_width" = 62
+"editor.density.axis_value_field.max_width" = 72
+"editor.density.row_height" = 28
+"editor.density.left_drawer_width" = 332
+"editor.density.right_drawer_width" = 404
+"editor.density.bottom_output_height" = 228
+"editor.density.breakpoint_ultra_width" = 480
+"editor.density.breakpoint_narrow_width" = 640
+"editor.density.breakpoint_wide_width" = 1260
+"editor.density.compact_side_width" = 1100
+"editor.density.ultra_compact_side_width" = 760
+"editor.density.compact_left_drawer_max_width" = 340
+"editor.density.compact_right_drawer_max_width" = 220
+"editor.density.compact_side_min_width" = 196
+"editor.density.minimum_document_width_fraction" = 0.5
+"editor.density.ultra_compact_left_drawer_max_width" = 220
+"editor.density.ultra_compact_right_drawer_max_width" = 160
+"editor.density.compact_bottom_available_height" = 900
+"editor.density.compact_bottom_max_height" = 148
+"editor.density.compact_bottom_max_available_fraction" = 0.23
+"editor.density.compact_bottom_min_height" = 120
+"editor.density.ultra_compact_bottom_available_height" = 420
+"editor.density.ultra_compact_bottom_max_height" = 96
+"editor.density.ultra_compact_bottom_max_available_fraction" = 0.2
+"editor.density.ultra_compact_bottom_min_height" = 80
+"editor.density.minimum_window_width" = 640
+"editor.density.minimum_window_height" = 420
+"editor.density.ultra_minimum_window_width" = 420
+"editor.density.ultra_minimum_window_height" = 360
+"editor.state.default" = "surface_1"
+"editor.state.hovered" = "surface_2"
+"editor.state.pressed" = "surface_3"
+"editor.state.selected" = "surface_selected"
+"editor.state.focused" = "surface_1"
+"editor.state.disabled" = "text_disabled"
+"editor.state.loading" = "accent"
+
+[penpot_original_imports]
+widgets = [ "res://ui/editor/components/workbench/composites/chrome/workbench_panel_header.zui#WorkbenchPanelHeader", "res://ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption", "res://ui/editor/components/workbench/primitives/feedback/workbench_progress_bar.zui#WorkbenchProgressBar", "res://ui/editor/components/workbench/primitives/inputs/workbench_checkbox.zui#WorkbenchCheckbox" ]
+styles = [ "res://ui/editor/theme/editor_tokens.zui" ]

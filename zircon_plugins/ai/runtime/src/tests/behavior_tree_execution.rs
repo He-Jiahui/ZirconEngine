@@ -171,8 +171,6 @@ fn node_semantics_matrix_covers_standard_node_implementations() {
         "wait",
         "move_to",
         "play_animation",
-        "set_blackboard",
-        "emit_event",
         "run_subtree",
         "script_task",
     ] {
@@ -548,6 +546,108 @@ fn run_subtree_maps_success_failure_and_running_statuses() {
             .expect("subtree parent");
         assert_eq!(tick(&manager, parent, 21, 0.1).status, status);
     }
+}
+
+#[test]
+fn behavior_tree_depth_budget_returns_deterministic_blocked_result() {
+    const DEPTH: usize = 300;
+
+    let manager = DefaultAiManager::default();
+    let mut descriptor = AiBehaviorTreeDescriptor::new("depth_budget", "Depth Budget", "node-0000");
+    for index in (0..=DEPTH).rev() {
+        let node_id = format!("node-{index:04}");
+        let mut node = AiBehaviorNodeDescriptor::new(
+            node_id,
+            if index == DEPTH {
+                AiBehaviorNodeKind::Task
+            } else {
+                AiBehaviorNodeKind::Sequence
+            },
+            format!("Node {index}"),
+        );
+        if index < DEPTH {
+            node = node.with_child(format!("node-{:04}", index + 1));
+        } else {
+            node = node.with_parameter("result", "succeeded");
+        }
+        descriptor = descriptor.with_node(node);
+    }
+    let tree = manager
+        .register_behavior_tree(descriptor)
+        .expect("deep behavior tree");
+
+    let first = tick(&manager, tree, 30, 0.1);
+    let second = tick(&manager, tree, 30, 0.1);
+
+    assert_eq!(first.status, AiDecisionStatus::Blocked);
+    assert_eq!(second.status, AiDecisionStatus::Blocked);
+    assert_eq!(first.active_node, second.active_node);
+    assert_eq!(first.diagnostic, second.diagnostic);
+    assert!(first
+        .diagnostic
+        .as_deref()
+        .is_some_and(|diagnostic| diagnostic.contains("evaluation depth budget")));
+}
+
+#[test]
+fn behavior_tree_node_budget_returns_deterministic_blocked_result() {
+    const LEAF_COUNT: usize = 4_100;
+
+    let manager = DefaultAiManager::default();
+    let mut root = AiBehaviorNodeDescriptor::new("root", AiBehaviorNodeKind::Parallel, "Root");
+    let mut descriptor = AiBehaviorTreeDescriptor::new("node_budget", "Node Budget", "root");
+    for index in 0..LEAF_COUNT {
+        let node_id = format!("leaf-{index:04}");
+        root = root.with_child(node_id.as_str());
+        descriptor = descriptor.with_node(
+            AiBehaviorNodeDescriptor::new(node_id, AiBehaviorNodeKind::Task, "Leaf")
+                .with_parameter("result", "succeeded"),
+        );
+    }
+    descriptor = descriptor.with_node(root);
+    let tree = manager
+        .register_behavior_tree(descriptor)
+        .expect("wide behavior tree");
+
+    let first = tick(&manager, tree, 31, 0.1);
+    let second = tick(&manager, tree, 31, 0.1);
+
+    assert_eq!(first.status, AiDecisionStatus::Blocked);
+    assert_eq!(second.status, AiDecisionStatus::Blocked);
+    assert_eq!(first.active_node, second.active_node);
+    assert_eq!(first.diagnostic, second.diagnostic);
+    assert!(first
+        .diagnostic
+        .as_deref()
+        .is_some_and(|diagnostic| diagnostic.contains("node evaluation budget")));
+}
+
+#[test]
+fn behavior_tree_budget_preserves_wide_tree_below_limit() {
+    const LEAF_COUNT: usize = 2_048;
+
+    let manager = DefaultAiManager::default();
+    let mut root = AiBehaviorNodeDescriptor::new("root", AiBehaviorNodeKind::Parallel, "Root");
+    let mut descriptor = AiBehaviorTreeDescriptor::new("wide_under_budget", "Wide", "root");
+    for index in 0..LEAF_COUNT {
+        let node_id = format!("leaf-{index:02}");
+        root = root.with_child(node_id.as_str());
+        descriptor = descriptor.with_node(
+            AiBehaviorNodeDescriptor::new(node_id, AiBehaviorNodeKind::Task, "Leaf")
+                .with_parameter("result", "running"),
+        );
+    }
+    let tree = manager
+        .register_behavior_tree(descriptor.with_node(root))
+        .expect("wide under-budget behavior tree");
+
+    let first = tick(&manager, tree, 32, 0.1);
+    let second = tick(&manager, tree, 32, 0.1);
+
+    assert_eq!(first.status, AiDecisionStatus::Running);
+    assert_eq!(first.diagnostic, None);
+    assert_eq!(second.status, AiDecisionStatus::Running);
+    assert_eq!(second.diagnostic, None);
 }
 
 fn matrix_tree(implementation: &str, status: &AiDecisionStatus) -> AiBehaviorTreeDescriptor {

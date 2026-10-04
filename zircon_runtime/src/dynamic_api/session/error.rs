@@ -3,8 +3,8 @@ use std::str::Utf8Error;
 
 use zircon_runtime_interface::project::{RelPath, RelPathError};
 
-use crate::asset::AssetImportError;
 use crate::asset::project::ProjectPaths;
+use crate::asset::AssetImportError;
 use crate::core::framework::navigation::NavigationError;
 use crate::core::framework::render::RenderFrameworkError;
 use crate::core::framework::time::ProductTimePolicyError;
@@ -87,10 +87,20 @@ pub enum RuntimeDynamicSessionError {
         #[source]
         source: UiTreeError,
     },
+    #[error("advance runtime UI input timers: {source}")]
+    RuntimeUiInputTimers {
+        #[source]
+        source: UiTreeError,
+    },
 }
 
 #[derive(Debug, Error)]
 pub enum RuntimeProjectError {
+    #[error("admit declared runtime UI roots: {source}")]
+    AdmitRuntimeUi {
+        #[source]
+        source: CoreError,
+    },
     #[error("runtime project root must be UTF-8: {source}")]
     ProjectRootUtf8 {
         #[source]
@@ -183,6 +193,12 @@ pub enum RuntimeProjectError {
         root_path = display_project_path(root)
     )]
     PreparedProjectManagerTransferred { root: PathBuf },
+    #[error("failed to register runtime scene component codecs for project {root_path}: {source}", root_path = display_project_path(root))]
+    RegisterSceneComponentCodecs {
+        root: PathBuf,
+        #[source]
+        source: RuntimeExtensionRegistryError,
+    },
     #[error(
         "failed to load default scene {scene} from project {root_path}: {source}",
         root_path = display_project_path(root)
@@ -317,21 +333,5 @@ fn display_project_path(path: &Path) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::path::PathBuf;
-
-    use super::RuntimeProjectError;
-
-    #[cfg(windows)]
-    #[test]
-    fn runtime_project_error_displays_windows_operation_roots_without_verbatim_prefixes() {
-        let error = RuntimeProjectError::PreparedProjectManagerTransferred {
-            root: PathBuf::from(r"\\?\C:\ZirconBuilds\stage\project"),
-        };
-
-        assert_eq!(
-            error.to_string(),
-            "runtime project C:\\ZirconBuilds\\stage\\project already transferred its prepared ProjectManager to AssetModule"
-        );
-    }
-}
+#[path = "tests/error.rs"]
+mod tests;

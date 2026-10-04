@@ -1,0 +1,1764 @@
+penpot_host_theme_source = "zircon_editor/assets/ui/editor/theme/editor_tokens.zui"
+stylesheets = []
+penpot_dependency_sources = [ "zircon_editor/assets/ui/editor/theme/editor_tokens.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui", "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui", "zircon_editor/assets/icons/zircon_editor_shell/controls/search.svg", "zircon_editor/assets/icons/ionicons/close-outline.svg", "zircon_editor/assets/icons/zircon_editor_shell/controls/field-stepper.svg" ]
+penpot_original_source = "[asset]\nkind = \"component\"\nid = \"res://ui/editor/components/workbench/modules/extensions/animation/workbench_extension_motion_matching_workspace.zui\"\nversion = 2\ndisplay_name = \"Workbench Extension Motion Matching Workspace\"\n\n[imports]\nwidgets = [\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton\",\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown\",\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField\",\n  \"res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow\",\n  \"res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle\",\n  \"res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow\",\n  \"res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow\",\n]\nstyles = []\n\n[components.WorkbenchExtensionMotionMatchingWorkspace]\nroot = \"motion_matching_workspace\"\ndefault_classes = [\"workbench-module-body\", \"workbench-extension-module-body\"]\n\n[nodes.motion_matching_workspace]\ncomponent = \"Overlay\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingWorkspace\"\nclasses = [\"workbench-module-body\", \"workbench-extension-module-body\"]\nprops = { visibility = \"collapsed\" }\nlayout = { clip = true, container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [\n  { node = \"motion_matching_workspace_main\" },\n  { node = \"motion_matching_right\", slot = { layout = { alignment = { horizontal = \"End\", vertical = \"Fill\" }, z_order = 20 } } },\n]\n\n[nodes.motion_matching_workspace_main]\ncomponent = \"HorizontalGroup\"\nclasses = [\"workbench-module-layout-main\"]\nlayout = { clip = true, container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.medium\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"motion_matching_rail_gap\" }, { node = \"motion_matching_left\" }, { node = \"motion_matching_center\" }, { node = \"motion_matching_right_reserve\" }]\n\n[nodes.motion_matching_right_reserve]\ncomponent = \"Container\"\nclasses = [\"workbench-module-details-reserve\"]\nprops = { responsive_min_tier = \"wide\" }\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n[nodes.motion_matching_rail_gap]\ncomponent = \"Container\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingRailGap\"\nprops = { responsive_min_tier = \"narrow\" }\nlayout = { width = { min = \"$editor.chrome.activity_rail.width\", preferred = \"$editor.chrome.activity_rail.width\", max = \"$editor.chrome.activity_rail.width\", stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.motion_matching_left]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingLeftPanel\"\nclasses = [\"workbench-panel\", \"workbench-module-side\"]\nprops = { responsive_min_tier = \"narrow\" }\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"motion_matching_title\" }, { node = \"motion_matching_left_content\" }]\n\n[nodes.motion_matching_left_content]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingLeftContent\"\nprops = { input_hoverable = true }\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = \"$editor.density.gap.small\", scrollbar_visibility = \"Auto\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"motion_matching_locomotion_row\" }, { node = \"motion_matching_combat_row\" }, { node = \"motion_matching_traversal_row\" }]\n\n[nodes.motion_matching_title]\ncomponent = \"WorkbenchSectionTitle\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingTitle\"\nprops = { text = \"Motion Matching\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = \"Fixed\" } }\n\n[nodes.motion_matching_locomotion_row]\ncomponent = \"WorkbenchListRow\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingLocomotionRow\"\nclasses = [\"workbench-list-row\", \"workbench-row-selected\"]\nprops = { text = \"MM_Locomotion\", icon = \"play\", selected = true }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/MotionMatchingLocomotionRow\", event = \"Click\", route = \"workbench.extension.motion_matching.database.locomotion\" }]\n\n[nodes.motion_matching_combat_row]\ncomponent = \"WorkbenchListRow\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingCombatRow\"\nclasses = [\"workbench-list-row\"]\nprops = { text = \"MM_Combat\", icon = \"target\", selected = false }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/MotionMatchingCombatRow\", event = \"Click\", route = \"workbench.extension.motion_matching.database.combat\" }]\n\n[nodes.motion_matching_traversal_row]\ncomponent = \"WorkbenchListRow\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingTraversalRow\"\nclasses = [\"workbench-list-row\"]\nprops = { text = \"MM_Traversal\", icon = \"component\", selected = false }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/MotionMatchingTraversalRow\", event = \"Click\", route = \"workbench.extension.motion_matching.database.traversal\" }]\n\n[nodes.motion_matching_center]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingCenterPanel\"\nclasses = [\"workbench-panel\", \"workbench-module-center\"]\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"motion_matching_center_header\" }, { node = \"motion_matching_pose_table\" }, { node = \"motion_matching_output\" }]\n\n[nodes.motion_matching_center_header]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingCenterHeader\"\nclasses = [\"workbench-panel-toolbar\"]\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Horizontal\", gap = \"$editor.density.gap.medium\", scrollbar_visibility = \"Never\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"motion_matching_center_title\" }, { node = \"motion_matching_header_fill\" }, { node = \"motion_matching_preview_button\" }, { node = \"motion_matching_rebuild_button\" }]\n\n[nodes.motion_matching_center_title]\ncomponent = \"WorkbenchSectionTitle\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingCenterTitle\"\nprops = { text = \"Pose Search\" }\nlayout = { width = { min = 180.0, preferred = 180.0, max = 220.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.motion_matching_header_fill]\ncomponent = \"Container\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingHeaderFill\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.motion_matching_preview_button]\ncomponent = \"WorkbenchButton\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingPreviewButton\"\nclasses = [\"workbench-control-button\", \"workbench-module-command\"]\nprops = { text = \"Preview\", button_variant = \"outlined\", button_color = \"secondary\" }\nlayout = { width = { min = 78, preferred = 78, max = 88, stretch = \"Fixed\" }, height = { min = 28, preferred = 28, max = 28, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/MotionMatchingPreview\", event = \"Click\", route = \"workbench.extension.motion_matching.preview\" }]\n\n[nodes.motion_matching_rebuild_button]\ncomponent = \"WorkbenchButton\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingRebuildButton\"\nclasses = [\"workbench-control-button\", \"workbench-module-command\"]\nprops = { text = \"Rebuild\", button_variant = \"filled\", button_color = \"accent\" }\nlayout = { width = { min = 78, preferred = 78, max = 90, stretch = \"Fixed\" }, height = { min = 28, preferred = 28, max = 28, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/MotionMatchingRebuild\", event = \"Click\", route = \"workbench.extension.motion_matching.rebuild\" }]\n\n[nodes.motion_matching_pose_table]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingPoseTable\"\nclasses = [\"workbench-panel\", \"workbench-module-canvas\"]\nprops = { input_hoverable = true }\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = 0.0, scrollbar_visibility = \"Auto\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"motion_matching_idle_clip_table_row\" }, { node = \"motion_matching_start_clip_table_row\" }, { node = \"motion_matching_pivot_clip_table_row\" }, { node = \"motion_matching_stop_clip_table_row\" }]\n\n[nodes.motion_matching_idle_clip_table_row]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingIdleClipTableRow\"\nclasses = [\"workbench-table-row\", \"workbench-row-selected\"]\nprops = { text = \"Idle_Breath\", value_text = \"cost 0.04   stance relaxed   selected\", selected = true, options = [\"Idle_Breath\",\"cost 0.04\",\"stance relaxed\",\"selected\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/MotionMatchingIdleClipTableRow\", event = \"Click\", route = \"workbench.extension.motion_matching.pose.idle\" }]\n\n[nodes.motion_matching_start_clip_table_row]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingStartClipTableRow\"\nclasses = [\"workbench-table-row\"]\nprops = { text = \"Start_Forward\", value_text = \"cost 0.18   trajectory match   Ready\", options = [\"Start_Forward\",\"cost 0.18\",\"trajectory match\",\"Ready\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/MotionMatchingStartClipTableRow\", event = \"Click\", route = \"workbench.extension.motion_matching.pose.start\" }]\n\n[nodes.motion_matching_pivot_clip_table_row]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingPivotClipTableRow\"\nclasses = [\"workbench-table-row\"]\nprops = { text = \"Pivot_Left_90\", value_text = \"cost 0.31   turn bias   Warning\", options = [\"Pivot_Left_90\",\"cost 0.31\",\"turn bias\",\"Warning\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/MotionMatchingPivotClipTableRow\", event = \"Click\", route = \"workbench.extension.motion_matching.pose.pivot\" }]\n\n[nodes.motion_matching_stop_clip_table_row]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingStopClipTableRow\"\nclasses = [\"workbench-table-row\"]\nprops = { text = \"Stop_RightFoot\", value_text = \"cost 0.22   foot lock   Clean\", options = [\"Stop_RightFoot\",\"cost 0.22\",\"foot lock\",\"Clean\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/MotionMatchingStopClipTableRow\", event = \"Click\", route = \"workbench.extension.motion_matching.pose.stop\" }]\n\n[nodes.motion_matching_output]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingOutputRow\"\nclasses = [\"workbench-table-row\"]\nprops = { text = \"Motion Matching\", value_text = \"MM_Locomotion   184 clips   1 warning\", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false, options = [\"Motion Matching\",\"MM_Locomotion\",\"184 clips\",\"1 warning\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\n\n[nodes.motion_matching_right]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingRightPanel\"\nclasses = [\"workbench-panel\", \"workbench-module-side\"]\nprops = { responsive_min_tier = \"wide\", responsive_compact_drawer = \"module_details\" }\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"motion_matching_details_title\" }, { node = \"motion_matching_right_content\" }]\n\n[nodes.motion_matching_right_content]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingRightContent\"\nprops = { input_hoverable = true }\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = \"$editor.density.gap.small\", scrollbar_visibility = \"Auto\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"motion_matching_database_dropdown_property_row\" }, { node = \"motion_matching_trajectory_dropdown_property_row\" }, { node = \"motion_matching_cost_field_property_row\" }]\n\n[nodes.motion_matching_details_title]\ncomponent = \"WorkbenchSectionTitle\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingDetailsTitle\"\nprops = { text = \"Search Settings\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = \"Fixed\" } }\n\n[nodes.motion_matching_database_dropdown_property_row]\ncomponent = \"WorkbenchPropertyEditorRow\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingDatabaseDropdownPropertyRow\"\nprops = { text = \"Database\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"motion_matching_database_dropdown\", slot = { name = \"value\" } }]\n\n[nodes.motion_matching_database_dropdown]\ncomponent = \"WorkbenchDropdown\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingDatabaseDropdown\"\nclasses = [\"workbench-dropdown\", \"workbench-component-dropdown\"]\nprops = { value_text = \"MM_Locomotion\", value = \"MM_Locomotion\", options = [\"MM_Locomotion\", \"MM_Combat\", \"MM_Traversal\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\nevents = [\n  { id = \"WorkbenchExtension/MotionMatchingDatabaseEdit\", event = \"Change\", route = \"workbench.extension.motion_matching.database.edit\" },\n  { id = \"WorkbenchExtension/MotionMatchingDatabaseCommit\", event = \"Submit\", route = \"workbench.extension.motion_matching.database.commit\" },\n]\n\n[nodes.motion_matching_trajectory_dropdown_property_row]\ncomponent = \"WorkbenchPropertyEditorRow\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingTrajectoryDropdownPropertyRow\"\nprops = { text = \"Trajectory\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"motion_matching_trajectory_dropdown\", slot = { name = \"value\" } }]\n\n[nodes.motion_matching_trajectory_dropdown]\ncomponent = \"WorkbenchDropdown\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingTrajectoryDropdown\"\nclasses = [\"workbench-dropdown\", \"workbench-component-dropdown\"]\nprops = { value_text = \"Forward 0.8s\", value = \"Forward 0.8s\", options = [\"Forward 0.8s\", \"Strafe 0.6s\", \"Pivot 0.4s\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\nevents = [\n  { id = \"WorkbenchExtension/MotionMatchingTrajectoryEdit\", event = \"Change\", route = \"workbench.extension.motion_matching.trajectory.edit\" },\n  { id = \"WorkbenchExtension/MotionMatchingTrajectoryCommit\", event = \"Submit\", route = \"workbench.extension.motion_matching.trajectory.commit\" },\n]\n\n[nodes.motion_matching_cost_field_property_row]\ncomponent = \"WorkbenchPropertyEditorRow\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingCostFieldPropertyRow\"\nprops = { text = \"Cost\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"motion_matching_cost_field\", slot = { name = \"value\" } }]\n\n[nodes.motion_matching_cost_field]\ncomponent = \"WorkbenchField\"\ncontrol_id = \"WorkbenchExtensionMotionMatchingCostField\"\nclasses = [\"workbench-field\", \"workbench-component-field\"]\nprops = { value = \"Cost Bias: 0.42\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\nevents = [\n  { id = \"WorkbenchExtension/MotionMatchingCostEdit\", event = \"Change\", route = \"workbench.extension.motion_matching.cost.edit\" },\n  { id = \"WorkbenchExtension/MotionMatchingCostCommit\", event = \"Submit\", route = \"workbench.extension.motion_matching.cost.commit\" },\n]\n"
+
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/extensions/animation/workbench_extension_motion_matching_workspace.zui"
+version = 2
+display_name = "Workbench Extension Motion Matching Workspace"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchExtensionMotionMatchingWorkspace]
+root = "motion_matching_workspace"
+default_classes = [ "workbench-module-body", "workbench-extension-module-body" ]
+
+[nodes.motion_matching_workspace]
+component = "Overlay"
+control_id = "WorkbenchExtensionMotionMatchingWorkspace"
+classes = [ "workbench-module-body", "workbench-extension-module-body" ]
+
+[nodes.motion_matching_workspace.props]
+visibility = "visible"
+
+[nodes.motion_matching_workspace.layout]
+clip = true
+
+[nodes.motion_matching_workspace.layout.container]
+kind = "Overlay"
+
+[nodes.motion_matching_workspace.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_workspace.layout.height]
+stretch = "Stretch"
+
+[[nodes.motion_matching_workspace.children]]
+node = "motion_matching_workspace_main"
+
+[[nodes.motion_matching_workspace.children]]
+node = "motion_matching_right"
+
+[nodes.motion_matching_workspace.children.slot.layout]
+z_order = 20
+
+[nodes.motion_matching_workspace.children.slot.layout.alignment]
+horizontal = "End"
+vertical = "Fill"
+
+[nodes.motion_matching_workspace_main]
+component = "HorizontalGroup"
+classes = [ "workbench-module-layout-main" ]
+
+[nodes.motion_matching_workspace_main.layout]
+clip = true
+
+[nodes.motion_matching_workspace_main.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.motion_matching_workspace_main.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_workspace_main.layout.height]
+stretch = "Stretch"
+
+[[nodes.motion_matching_workspace_main.children]]
+node = "motion_matching_rail_gap"
+
+[[nodes.motion_matching_workspace_main.children]]
+node = "motion_matching_left"
+
+[[nodes.motion_matching_workspace_main.children]]
+node = "motion_matching_center"
+
+[[nodes.motion_matching_workspace_main.children]]
+node = "motion_matching_right_reserve"
+
+[nodes.motion_matching_right_reserve]
+component = "Container"
+classes = [ "workbench-module-details-reserve" ]
+
+[nodes.motion_matching_right_reserve.props]
+responsive_min_tier = "wide"
+
+[nodes.motion_matching_right_reserve.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.motion_matching_right_reserve.layout.width]
+min = 320
+preferred = 320
+max = 340
+stretch = "Fixed"
+
+[nodes.motion_matching_right_reserve.layout.height]
+stretch = "Stretch"
+
+[nodes.motion_matching_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionMotionMatchingRailGap"
+
+[nodes.motion_matching_rail_gap.props]
+responsive_min_tier = "narrow"
+
+[nodes.motion_matching_rail_gap.layout.width]
+min = "$editor.chrome.activity_rail.width"
+preferred = "$editor.chrome.activity_rail.width"
+max = "$editor.chrome.activity_rail.width"
+stretch = "Fixed"
+
+[nodes.motion_matching_rail_gap.layout.height]
+stretch = "Stretch"
+
+[nodes.motion_matching_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionMotionMatchingLeftPanel"
+classes = [ "workbench-panel", "workbench-module-side" ]
+
+[nodes.motion_matching_left.props]
+responsive_min_tier = "narrow"
+
+[nodes.motion_matching_left.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.motion_matching_left.layout.width]
+min = 270
+preferred = 270
+max = 290
+stretch = "Fixed"
+
+[nodes.motion_matching_left.layout.height]
+stretch = "Stretch"
+
+[[nodes.motion_matching_left.children]]
+node = "motion_matching_title"
+
+[[nodes.motion_matching_left.children]]
+node = "motion_matching_left_content"
+
+[nodes.motion_matching_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionMotionMatchingLeftContent"
+
+[nodes.motion_matching_left_content.props]
+input_hoverable = true
+
+[nodes.motion_matching_left_content.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.motion_matching_left_content.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = "$editor.density.gap.small"
+scrollbar_visibility = "Auto"
+
+[nodes.motion_matching_left_content.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_left_content.layout.height]
+stretch = "Stretch"
+
+[[nodes.motion_matching_left_content.children]]
+node = "motion_matching_locomotion_row"
+
+[[nodes.motion_matching_left_content.children]]
+node = "motion_matching_combat_row"
+
+[[nodes.motion_matching_left_content.children]]
+node = "motion_matching_traversal_row"
+
+[nodes.motion_matching_title]
+component = "Label"
+control_id = "WorkbenchExtensionMotionMatchingTitle"
+classes = [ "workbench-section-title", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle"
+
+[nodes.motion_matching_title.props]
+text = "Motion Matching"
+text_overflow = "ellipsis"
+component_variant = "section-title"
+font_size = "$editor.typography.heading.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "primary"
+
+[nodes.motion_matching_title.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_title.layout.height]
+min = 28
+preferred = 28
+max = 30
+stretch = "Fixed"
+
+[nodes.motion_matching_title.state]
+[nodes.motion_matching_title.style.self]
+[nodes.motion_matching_title.style.slot]
+[nodes.motion_matching_title.slots]
+[nodes.motion_matching_locomotion_row]
+component = "ListRow"
+control_id = "WorkbenchExtensionMotionMatchingLocomotionRow"
+classes = [ "workbench-list-row", "workbench-primitive", "workbench-row-selected" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow"
+
+[nodes.motion_matching_locomotion_row.props]
+text = "MM_Locomotion"
+text_overflow = "ellipsis"
+value = "item"
+selected = true
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+icon = "play"
+
+[nodes.motion_matching_locomotion_row.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_locomotion_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.motion_matching_locomotion_row.events]]
+id = "WorkbenchExtension/MotionMatchingLocomotionRow"
+event = "Click"
+route = "workbench.extension.motion_matching.database.locomotion"
+
+[nodes.motion_matching_locomotion_row.state]
+[nodes.motion_matching_locomotion_row.style.self]
+[nodes.motion_matching_locomotion_row.style.slot]
+[nodes.motion_matching_locomotion_row.slots]
+[nodes.motion_matching_combat_row]
+component = "ListRow"
+control_id = "WorkbenchExtensionMotionMatchingCombatRow"
+classes = [ "workbench-list-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow"
+
+[nodes.motion_matching_combat_row.props]
+text = "MM_Combat"
+text_overflow = "ellipsis"
+value = "item"
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+icon = "target"
+
+[nodes.motion_matching_combat_row.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_combat_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.motion_matching_combat_row.events]]
+id = "WorkbenchExtension/MotionMatchingCombatRow"
+event = "Click"
+route = "workbench.extension.motion_matching.database.combat"
+
+[nodes.motion_matching_combat_row.state]
+[nodes.motion_matching_combat_row.style.self]
+[nodes.motion_matching_combat_row.style.slot]
+[nodes.motion_matching_combat_row.slots]
+[nodes.motion_matching_traversal_row]
+component = "ListRow"
+control_id = "WorkbenchExtensionMotionMatchingTraversalRow"
+classes = [ "workbench-list-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow"
+
+[nodes.motion_matching_traversal_row.props]
+text = "MM_Traversal"
+text_overflow = "ellipsis"
+value = "item"
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+icon = "component"
+
+[nodes.motion_matching_traversal_row.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_traversal_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.motion_matching_traversal_row.events]]
+id = "WorkbenchExtension/MotionMatchingTraversalRow"
+event = "Click"
+route = "workbench.extension.motion_matching.database.traversal"
+
+[nodes.motion_matching_traversal_row.state]
+[nodes.motion_matching_traversal_row.style.self]
+[nodes.motion_matching_traversal_row.style.slot]
+[nodes.motion_matching_traversal_row.slots]
+[nodes.motion_matching_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionMotionMatchingCenterPanel"
+classes = [ "workbench-panel", "workbench-module-center" ]
+
+[nodes.motion_matching_center.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.motion_matching_center.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_center.layout.height]
+stretch = "Stretch"
+
+[[nodes.motion_matching_center.children]]
+node = "motion_matching_center_header"
+
+[[nodes.motion_matching_center.children]]
+node = "motion_matching_pose_table"
+
+[[nodes.motion_matching_center.children]]
+node = "motion_matching_output"
+
+[nodes.motion_matching_center_header]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionMotionMatchingCenterHeader"
+classes = [ "workbench-panel-toolbar" ]
+
+[nodes.motion_matching_center_header.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.motion_matching_center_header.layout.container]
+kind = "ScrollableBox"
+axis = "Horizontal"
+gap = "$editor.density.gap.medium"
+scrollbar_visibility = "Never"
+
+[nodes.motion_matching_center_header.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_center_header.layout.height]
+min = 34
+preferred = 34
+max = 36
+stretch = "Fixed"
+
+[[nodes.motion_matching_center_header.children]]
+node = "motion_matching_center_title"
+
+[[nodes.motion_matching_center_header.children]]
+node = "motion_matching_header_fill"
+
+[[nodes.motion_matching_center_header.children]]
+node = "motion_matching_preview_button"
+
+[[nodes.motion_matching_center_header.children]]
+node = "motion_matching_rebuild_button"
+
+[nodes.motion_matching_center_title]
+component = "Label"
+control_id = "WorkbenchExtensionMotionMatchingCenterTitle"
+classes = [ "workbench-section-title", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle"
+
+[nodes.motion_matching_center_title.props]
+text = "Pose Search"
+text_overflow = "ellipsis"
+component_variant = "section-title"
+font_size = "$editor.typography.heading.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "primary"
+
+[nodes.motion_matching_center_title.layout.width]
+stretch = "Fixed"
+min = 180
+preferred = 180
+max = 220
+
+[nodes.motion_matching_center_title.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.compact"
+stretch = "Stretch"
+
+[nodes.motion_matching_center_title.state]
+[nodes.motion_matching_center_title.style.self]
+[nodes.motion_matching_center_title.style.slot]
+[nodes.motion_matching_center_title.slots]
+[nodes.motion_matching_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionMotionMatchingHeaderFill"
+
+[nodes.motion_matching_header_fill.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_header_fill.layout.height]
+stretch = "Stretch"
+
+[nodes.motion_matching_preview_button]
+component = "Button"
+control_id = "WorkbenchExtensionMotionMatchingPreviewButton"
+classes = [ "workbench-control-button", "workbench-primitive", "workbench-module-command" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton"
+
+[nodes.motion_matching_preview_button.props]
+text = "Preview"
+text_overflow = "ellipsis"
+text_align = "center"
+button_variant = "outlined"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+validation_level = "normal"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font = "res://fonts/editor-ui.font.toml"
+font_family = "Fira Sans"
+font_weight = "$editor.typography.strong.weight"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.large"
+layout_padding_right = "$editor.density.gap.large"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.medium"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.motion_matching_preview_button.layout.width]
+stretch = "Fixed"
+min = 78
+preferred = 78
+max = 88
+
+[nodes.motion_matching_preview_button.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[[nodes.motion_matching_preview_button.events]]
+id = "WorkbenchExtension/MotionMatchingPreview"
+event = "Click"
+route = "workbench.extension.motion_matching.preview"
+
+[nodes.motion_matching_preview_button.state]
+[nodes.motion_matching_preview_button.style.self]
+[nodes.motion_matching_preview_button.style.slot]
+[nodes.motion_matching_preview_button.slots]
+[nodes.motion_matching_rebuild_button]
+component = "Button"
+control_id = "WorkbenchExtensionMotionMatchingRebuildButton"
+classes = [ "workbench-control-button", "workbench-primitive", "workbench-module-command" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton"
+
+[nodes.motion_matching_rebuild_button.props]
+text = "Rebuild"
+text_overflow = "ellipsis"
+text_align = "center"
+button_variant = "filled"
+button_color = "accent"
+button_size = "small"
+button_interaction_state = "normal"
+validation_level = "normal"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font = "res://fonts/editor-ui.font.toml"
+font_family = "Fira Sans"
+font_weight = "$editor.typography.strong.weight"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.large"
+layout_padding_right = "$editor.density.gap.large"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.medium"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.motion_matching_rebuild_button.layout.width]
+stretch = "Fixed"
+min = 78
+preferred = 78
+max = 90
+
+[nodes.motion_matching_rebuild_button.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[[nodes.motion_matching_rebuild_button.events]]
+id = "WorkbenchExtension/MotionMatchingRebuild"
+event = "Click"
+route = "workbench.extension.motion_matching.rebuild"
+
+[nodes.motion_matching_rebuild_button.state]
+[nodes.motion_matching_rebuild_button.style.self]
+[nodes.motion_matching_rebuild_button.style.slot]
+[nodes.motion_matching_rebuild_button.slots]
+[nodes.motion_matching_pose_table]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionMotionMatchingPoseTable"
+classes = [ "workbench-panel", "workbench-module-canvas" ]
+
+[nodes.motion_matching_pose_table.props]
+input_hoverable = true
+
+[nodes.motion_matching_pose_table.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.motion_matching_pose_table.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = 0
+scrollbar_visibility = "Auto"
+
+[nodes.motion_matching_pose_table.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_pose_table.layout.height]
+stretch = "Stretch"
+
+[[nodes.motion_matching_pose_table.children]]
+node = "motion_matching_idle_clip_table_row"
+
+[[nodes.motion_matching_pose_table.children]]
+node = "motion_matching_start_clip_table_row"
+
+[[nodes.motion_matching_pose_table.children]]
+node = "motion_matching_pivot_clip_table_row"
+
+[[nodes.motion_matching_pose_table.children]]
+node = "motion_matching_stop_clip_table_row"
+
+[nodes.motion_matching_idle_clip_table_row]
+component = "Table"
+control_id = "WorkbenchExtensionMotionMatchingIdleClipTableRow"
+classes = [ "workbench-table-row", "workbench-primitive", "workbench-row-selected" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.motion_matching_idle_clip_table_row.props]
+text = "Idle_Breath"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Idle_Breath", "cost 0.04", "stance relaxed", "selected" ]
+selected = true
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+value_text = "cost 0.04   stance relaxed   selected"
+
+[nodes.motion_matching_idle_clip_table_row.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_idle_clip_table_row.layout.height]
+min = 30
+preferred = 30
+max = 32
+stretch = "Fixed"
+
+[[nodes.motion_matching_idle_clip_table_row.events]]
+id = "WorkbenchExtension/MotionMatchingIdleClipTableRow"
+event = "Click"
+route = "workbench.extension.motion_matching.pose.idle"
+
+[nodes.motion_matching_idle_clip_table_row.state]
+[nodes.motion_matching_idle_clip_table_row.style.self]
+[nodes.motion_matching_idle_clip_table_row.style.slot]
+[nodes.motion_matching_idle_clip_table_row.slots]
+[nodes.motion_matching_start_clip_table_row]
+component = "Table"
+control_id = "WorkbenchExtensionMotionMatchingStartClipTableRow"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.motion_matching_start_clip_table_row.props]
+text = "Start_Forward"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Start_Forward", "cost 0.18", "trajectory match", "Ready" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+value_text = "cost 0.18   trajectory match   Ready"
+
+[nodes.motion_matching_start_clip_table_row.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_start_clip_table_row.layout.height]
+min = 30
+preferred = 30
+max = 32
+stretch = "Fixed"
+
+[[nodes.motion_matching_start_clip_table_row.events]]
+id = "WorkbenchExtension/MotionMatchingStartClipTableRow"
+event = "Click"
+route = "workbench.extension.motion_matching.pose.start"
+
+[nodes.motion_matching_start_clip_table_row.state]
+[nodes.motion_matching_start_clip_table_row.style.self]
+[nodes.motion_matching_start_clip_table_row.style.slot]
+[nodes.motion_matching_start_clip_table_row.slots]
+[nodes.motion_matching_pivot_clip_table_row]
+component = "Table"
+control_id = "WorkbenchExtensionMotionMatchingPivotClipTableRow"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.motion_matching_pivot_clip_table_row.props]
+text = "Pivot_Left_90"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Pivot_Left_90", "cost 0.31", "turn bias", "Warning" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+value_text = "cost 0.31   turn bias   Warning"
+
+[nodes.motion_matching_pivot_clip_table_row.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_pivot_clip_table_row.layout.height]
+min = 30
+preferred = 30
+max = 32
+stretch = "Fixed"
+
+[[nodes.motion_matching_pivot_clip_table_row.events]]
+id = "WorkbenchExtension/MotionMatchingPivotClipTableRow"
+event = "Click"
+route = "workbench.extension.motion_matching.pose.pivot"
+
+[nodes.motion_matching_pivot_clip_table_row.state]
+[nodes.motion_matching_pivot_clip_table_row.style.self]
+[nodes.motion_matching_pivot_clip_table_row.style.slot]
+[nodes.motion_matching_pivot_clip_table_row.slots]
+[nodes.motion_matching_stop_clip_table_row]
+component = "Table"
+control_id = "WorkbenchExtensionMotionMatchingStopClipTableRow"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.motion_matching_stop_clip_table_row.props]
+text = "Stop_RightFoot"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Stop_RightFoot", "cost 0.22", "foot lock", "Clean" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+value_text = "cost 0.22   foot lock   Clean"
+
+[nodes.motion_matching_stop_clip_table_row.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_stop_clip_table_row.layout.height]
+min = 30
+preferred = 30
+max = 32
+stretch = "Fixed"
+
+[[nodes.motion_matching_stop_clip_table_row.events]]
+id = "WorkbenchExtension/MotionMatchingStopClipTableRow"
+event = "Click"
+route = "workbench.extension.motion_matching.pose.stop"
+
+[nodes.motion_matching_stop_clip_table_row.state]
+[nodes.motion_matching_stop_clip_table_row.style.self]
+[nodes.motion_matching_stop_clip_table_row.style.slot]
+[nodes.motion_matching_stop_clip_table_row.slots]
+[nodes.motion_matching_output]
+component = "Table"
+control_id = "WorkbenchExtensionMotionMatchingOutputRow"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.motion_matching_output.props]
+text = "Motion Matching"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Motion Matching", "MM_Locomotion", "184 clips", "1 warning" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = false
+input_clickable = false
+input_hoverable = false
+input_focusable = false
+value_text = "MM_Locomotion   184 clips   1 warning"
+
+[nodes.motion_matching_output.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_output.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[nodes.motion_matching_output.state]
+[nodes.motion_matching_output.style.self]
+[nodes.motion_matching_output.style.slot]
+[nodes.motion_matching_output.slots]
+[nodes.motion_matching_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionMotionMatchingRightPanel"
+classes = [ "workbench-panel", "workbench-module-side" ]
+
+[nodes.motion_matching_right.props]
+responsive_min_tier = "wide"
+responsive_compact_drawer = "module_details"
+
+[nodes.motion_matching_right.layout]
+z_order = 20
+
+[nodes.motion_matching_right.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.motion_matching_right.layout.width]
+min = 320
+preferred = 320
+max = 340
+stretch = "Fixed"
+
+[nodes.motion_matching_right.layout.height]
+stretch = "Stretch"
+
+[nodes.motion_matching_right.layout.alignment]
+horizontal = "End"
+vertical = "Fill"
+
+[nodes.motion_matching_right.layout.anchor]
+x = 1
+
+[nodes.motion_matching_right.layout.pivot]
+x = 1
+
+[[nodes.motion_matching_right.children]]
+node = "motion_matching_details_title"
+
+[[nodes.motion_matching_right.children]]
+node = "motion_matching_right_content"
+
+[nodes.motion_matching_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionMotionMatchingRightContent"
+
+[nodes.motion_matching_right_content.props]
+input_hoverable = true
+
+[nodes.motion_matching_right_content.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.motion_matching_right_content.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = "$editor.density.gap.small"
+scrollbar_visibility = "Auto"
+
+[nodes.motion_matching_right_content.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_right_content.layout.height]
+stretch = "Stretch"
+
+[[nodes.motion_matching_right_content.children]]
+node = "motion_matching_database_dropdown_property_row"
+
+[[nodes.motion_matching_right_content.children]]
+node = "motion_matching_trajectory_dropdown_property_row"
+
+[[nodes.motion_matching_right_content.children]]
+node = "motion_matching_cost_field_property_row"
+
+[nodes.motion_matching_details_title]
+component = "Label"
+control_id = "WorkbenchExtensionMotionMatchingDetailsTitle"
+classes = [ "workbench-section-title", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle"
+
+[nodes.motion_matching_details_title.props]
+text = "Search Settings"
+text_overflow = "ellipsis"
+component_variant = "section-title"
+font_size = "$editor.typography.heading.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "primary"
+
+[nodes.motion_matching_details_title.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_details_title.layout.height]
+min = 28
+preferred = 28
+max = 30
+stretch = "Fixed"
+
+[nodes.motion_matching_details_title.state]
+[nodes.motion_matching_details_title.style.self]
+[nodes.motion_matching_details_title.style.slot]
+[nodes.motion_matching_details_title.slots]
+[nodes.motion_matching_database_dropdown_property_row]
+component = "PropertyRow"
+control_id = "WorkbenchExtensionMotionMatchingDatabaseDropdownPropertyRow"
+classes = [ "workbench-property-editor-row", "workbench-composite" ]
+events = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow"
+
+[nodes.motion_matching_database_dropdown_property_row.props]
+text = "Database"
+
+[nodes.motion_matching_database_dropdown_property_row.layout]
+clip = true
+
+[nodes.motion_matching_database_dropdown_property_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.motion_matching_database_dropdown_property_row.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_database_dropdown_property_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.motion_matching_database_dropdown_property_row.children]]
+node = "motion_matching_database_dropdown_property_row__name_column"
+
+[[nodes.motion_matching_database_dropdown_property_row.children]]
+node = "motion_matching_database_dropdown"
+
+[nodes.motion_matching_database_dropdown_property_row.children.slot]
+name = "value"
+
+[nodes.motion_matching_database_dropdown_property_row.children.slot.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_database_dropdown_property_row.children.slot.layout.height]
+stretch = "Stretch"
+
+[nodes.motion_matching_database_dropdown_property_row.state]
+[nodes.motion_matching_database_dropdown_property_row.style.self]
+[nodes.motion_matching_database_dropdown_property_row.style.slot]
+[nodes.motion_matching_database_dropdown_property_row.slots]
+[nodes.motion_matching_database_dropdown]
+component = "Dropdown"
+control_id = "WorkbenchExtensionMotionMatchingDatabaseDropdown"
+pixel_snapping = "disabled"
+classes = [ "workbench-field", "workbench-dropdown", "workbench-primitive", "workbench-component-dropdown" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown"
+
+[nodes.motion_matching_database_dropdown.props]
+value = "MM_Locomotion"
+value_text = "MM_Locomotion"
+options = [ "MM_Locomotion", "MM_Combat", "MM_Traversal" ]
+multiple = false
+popup_open = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+selection_state = "single"
+validation_level = "normal"
+background_color = "$editor.surface.recessed"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+open_background_color = "$editor.accent.soft"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+label_color = "$editor.text.secondary"
+icon_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+horizontal_inset = "$editor.density.gap.medium"
+caret_size = "$editor.typography.overlay.size"
+caret_right_inset = "$editor.density.gap.large"
+caret_gap = "$editor.density.gap.small"
+label_top = "$editor.control.border_width"
+label_font_size = "$editor.typography.caption.size"
+label_line_height_ratio = "$editor.typography.line_height"
+value_bottom_inset = "$editor.control.border_width"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.control.border_width"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.motion_matching_database_dropdown.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_database_dropdown.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Stretch"
+
+[[nodes.motion_matching_database_dropdown.events]]
+id = "WorkbenchExtension/MotionMatchingDatabaseEdit"
+event = "Change"
+route = "workbench.extension.motion_matching.database.edit"
+
+[[nodes.motion_matching_database_dropdown.events]]
+id = "WorkbenchExtension/MotionMatchingDatabaseCommit"
+event = "Submit"
+route = "workbench.extension.motion_matching.database.commit"
+
+[nodes.motion_matching_database_dropdown.state]
+[nodes.motion_matching_database_dropdown.style.self]
+[nodes.motion_matching_database_dropdown.style.slot]
+[nodes.motion_matching_database_dropdown.slots]
+[nodes.motion_matching_trajectory_dropdown_property_row]
+component = "PropertyRow"
+control_id = "WorkbenchExtensionMotionMatchingTrajectoryDropdownPropertyRow"
+classes = [ "workbench-property-editor-row", "workbench-composite" ]
+events = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow"
+
+[nodes.motion_matching_trajectory_dropdown_property_row.props]
+text = "Trajectory"
+
+[nodes.motion_matching_trajectory_dropdown_property_row.layout]
+clip = true
+
+[nodes.motion_matching_trajectory_dropdown_property_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.motion_matching_trajectory_dropdown_property_row.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_trajectory_dropdown_property_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.motion_matching_trajectory_dropdown_property_row.children]]
+node = "motion_matching_trajectory_dropdown_property_row__name_column"
+
+[[nodes.motion_matching_trajectory_dropdown_property_row.children]]
+node = "motion_matching_trajectory_dropdown"
+
+[nodes.motion_matching_trajectory_dropdown_property_row.children.slot]
+name = "value"
+
+[nodes.motion_matching_trajectory_dropdown_property_row.children.slot.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_trajectory_dropdown_property_row.children.slot.layout.height]
+stretch = "Stretch"
+
+[nodes.motion_matching_trajectory_dropdown_property_row.state]
+[nodes.motion_matching_trajectory_dropdown_property_row.style.self]
+[nodes.motion_matching_trajectory_dropdown_property_row.style.slot]
+[nodes.motion_matching_trajectory_dropdown_property_row.slots]
+[nodes.motion_matching_trajectory_dropdown]
+component = "Dropdown"
+control_id = "WorkbenchExtensionMotionMatchingTrajectoryDropdown"
+pixel_snapping = "disabled"
+classes = [ "workbench-field", "workbench-dropdown", "workbench-primitive", "workbench-component-dropdown" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown"
+
+[nodes.motion_matching_trajectory_dropdown.props]
+value = "Forward 0.8s"
+value_text = "Forward 0.8s"
+options = [ "Forward 0.8s", "Strafe 0.6s", "Pivot 0.4s" ]
+multiple = false
+popup_open = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+selection_state = "single"
+validation_level = "normal"
+background_color = "$editor.surface.recessed"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+open_background_color = "$editor.accent.soft"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+label_color = "$editor.text.secondary"
+icon_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+horizontal_inset = "$editor.density.gap.medium"
+caret_size = "$editor.typography.overlay.size"
+caret_right_inset = "$editor.density.gap.large"
+caret_gap = "$editor.density.gap.small"
+label_top = "$editor.control.border_width"
+label_font_size = "$editor.typography.caption.size"
+label_line_height_ratio = "$editor.typography.line_height"
+value_bottom_inset = "$editor.control.border_width"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.control.border_width"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.motion_matching_trajectory_dropdown.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_trajectory_dropdown.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Stretch"
+
+[[nodes.motion_matching_trajectory_dropdown.events]]
+id = "WorkbenchExtension/MotionMatchingTrajectoryEdit"
+event = "Change"
+route = "workbench.extension.motion_matching.trajectory.edit"
+
+[[nodes.motion_matching_trajectory_dropdown.events]]
+id = "WorkbenchExtension/MotionMatchingTrajectoryCommit"
+event = "Submit"
+route = "workbench.extension.motion_matching.trajectory.commit"
+
+[nodes.motion_matching_trajectory_dropdown.state]
+[nodes.motion_matching_trajectory_dropdown.style.self]
+[nodes.motion_matching_trajectory_dropdown.style.slot]
+[nodes.motion_matching_trajectory_dropdown.slots]
+[nodes.motion_matching_cost_field_property_row]
+component = "PropertyRow"
+control_id = "WorkbenchExtensionMotionMatchingCostFieldPropertyRow"
+classes = [ "workbench-property-editor-row", "workbench-composite" ]
+events = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow"
+
+[nodes.motion_matching_cost_field_property_row.props]
+text = "Cost"
+
+[nodes.motion_matching_cost_field_property_row.layout]
+clip = true
+
+[nodes.motion_matching_cost_field_property_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.motion_matching_cost_field_property_row.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_cost_field_property_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.motion_matching_cost_field_property_row.children]]
+node = "motion_matching_cost_field_property_row__name_column"
+
+[[nodes.motion_matching_cost_field_property_row.children]]
+node = "motion_matching_cost_field"
+
+[nodes.motion_matching_cost_field_property_row.children.slot]
+name = "value"
+
+[nodes.motion_matching_cost_field_property_row.children.slot.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_cost_field_property_row.children.slot.layout.height]
+stretch = "Stretch"
+
+[nodes.motion_matching_cost_field_property_row.state]
+[nodes.motion_matching_cost_field_property_row.style.self]
+[nodes.motion_matching_cost_field_property_row.style.slot]
+[nodes.motion_matching_cost_field_property_row.slots]
+[nodes.motion_matching_cost_field]
+component = "InputField"
+control_id = "WorkbenchExtensionMotionMatchingCostField"
+classes = [ "workbench-field", "workbench-primitive", "workbench-component-field" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField"
+
+[nodes.motion_matching_cost_field.props]
+value = "Cost Bias: 0.42"
+placeholder = ""
+validation_level = "normal"
+focused = false
+hovered = false
+disabled = false
+editable_text = true
+background_color = "$editor.surface.recessed"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+focused_background_color = "$editor.surface.recessed"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.separator.soft"
+hover_border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+placeholder_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.motion_matching_cost_field.layout.width]
+stretch = "Stretch"
+
+[nodes.motion_matching_cost_field.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Stretch"
+
+[[nodes.motion_matching_cost_field.events]]
+id = "WorkbenchExtension/MotionMatchingCostEdit"
+event = "Change"
+route = "workbench.extension.motion_matching.cost.edit"
+
+[[nodes.motion_matching_cost_field.events]]
+id = "WorkbenchExtension/MotionMatchingCostCommit"
+event = "Submit"
+route = "workbench.extension.motion_matching.cost.commit"
+
+[nodes.motion_matching_cost_field.state]
+[nodes.motion_matching_cost_field.style.self]
+[nodes.motion_matching_cost_field.style.slot]
+[nodes.motion_matching_cost_field.slots]
+[nodes.motion_matching_database_dropdown_property_row__name_column]
+component = "Container"
+
+[nodes.motion_matching_database_dropdown_property_row__name_column.layout.width]
+min = 60
+preferred = 105
+max = 105
+stretch = "Fixed"
+
+[nodes.motion_matching_database_dropdown_property_row__name_column.layout.height]
+stretch = "Stretch"
+
+[nodes.motion_matching_trajectory_dropdown_property_row__name_column]
+component = "Container"
+
+[nodes.motion_matching_trajectory_dropdown_property_row__name_column.layout.width]
+min = 60
+preferred = 105
+max = 105
+stretch = "Fixed"
+
+[nodes.motion_matching_trajectory_dropdown_property_row__name_column.layout.height]
+stretch = "Stretch"
+
+[nodes.motion_matching_cost_field_property_row__name_column]
+component = "Container"
+
+[nodes.motion_matching_cost_field_property_row__name_column.layout.width]
+min = 60
+preferred = 105
+max = 105
+stretch = "Fixed"
+
+[nodes.motion_matching_cost_field_property_row__name_column.layout.height]
+stretch = "Stretch"
+
+[penpot_host_colors]
+primary = "#60aeff"
+accent = "#60aeff"
+"material.primary" = "#60aeff"
+material_color_primary = "#60aeff"
+on_primary = "#151515"
+"material.on_primary" = "#151515"
+material_color_on_primary = "#151515"
+surface = "#2f2f2f"
+"material.surface" = "#2f2f2f"
+surface_inset = "#0f0f0f"
+"material.surface_inset" = "#0f0f0f"
+surface_hover = "#454545"
+"material.surface_hover" = "#454545"
+surface_pressed = "#383838"
+"material.surface_pressed" = "#383838"
+surface_selected = "#243f5a"
+"material.surface_selected" = "#243f5a"
+disabled = "#2b2b2b"
+"material.disabled" = "#2b2b2b"
+border = "#484848"
+outline = "#484848"
+"material.outline" = "#484848"
+focus = "#66b2ff"
+focus_ring = "#66b2ff"
+"material.focus_ring" = "#66b2ff"
+text = "#e8e8e8"
+on_surface = "#e8e8e8"
+"material.text" = "#e8e8e8"
+"material.on_surface" = "#e8e8e8"
+text_muted = "#b3b3b3"
+muted = "#b3b3b3"
+"material.text_muted" = "#b3b3b3"
+text_disabled = "#737373"
+"material.text_disabled" = "#737373"
+warning = "#dcac50"
+"material.warning" = "#dcac50"
+error = "#eb605c"
+danger = "#eb605c"
+"material.error" = "#eb605c"
+success = "#55be78"
+"material.success" = "#55be78"
+info = "#5faae6"
+"material.info" = "#5faae6"
+
+[penpot_host_palette]
+surface = [ "#151515", "#242424", "#2f2f2f", "#383838" ]
+surface_recessed = "#0f0f0f"
+surface_hover = "#454545"
+surface_selected = "#243f5a"
+surface_disabled = "#2b2b2b"
+accent = "#60aeff"
+accent_soft = "#253f59"
+border = "#484848"
+border_disabled = "#363636"
+separator_strong = "#565656"
+separator_soft = "#333333"
+text_primary = "#e8e8e8"
+text_secondary = "#b3b3b3"
+text_disabled = "#737373"
+success = "#55be78"
+success_container = "#1d472f"
+info = "#5faae6"
+info_container = "#18395b"
+warning = "#dcac50"
+warning_container = "#463112"
+error = "#eb605c"
+error_container = "#4c2427"
+popup = "#242424"
+track = "#3b3b3b"
+focus_ring = "#66b2ff"
+shadow = "#00000073"
+
+[tokens]
+"theme.palette.surface.0" = "#151515"
+"theme.palette.surface.1" = "#242424"
+"theme.palette.surface.2" = "#2f2f2f"
+"theme.palette.surface.3" = "#383838"
+"theme.palette.text.primary" = "#e8e8e8"
+"theme.palette.text.secondary" = "#b3b3b3"
+"theme.palette.text.disabled" = "#737373"
+"theme.palette.accent" = "#60aeff"
+"theme.palette.success" = "#55be78"
+"theme.palette.info" = "#5faae6"
+"theme.palette.warning" = "#dcac50"
+"theme.palette.error" = "#eb605c"
+"theme.palette.separator" = "#484848"
+"editor.surface.0" = "#151515"
+"editor.surface.1" = "#242424"
+"editor.surface.2" = "#2f2f2f"
+"editor.surface.3" = "#383838"
+"editor.surface.recessed" = "#0f0f0f"
+"editor.surface.hover" = "#454545"
+"editor.surface.selected" = "#243f5a"
+"editor.surface.disabled" = "#2b2b2b"
+"editor.accent" = "#60aeff"
+"editor.accent.soft" = "#253f59"
+"editor.border" = "#484848"
+"editor.border.disabled" = "#363636"
+"editor.separator.strong" = "#565656"
+"editor.separator.soft" = "#333333"
+"editor.text.primary" = "#e8e8e8"
+"editor.text.secondary" = "#b3b3b3"
+"editor.text.disabled" = "#737373"
+"editor.semantic.success" = "#55be78"
+"editor.semantic.success.container" = "#1d472f"
+"editor.semantic.info" = "#5faae6"
+"editor.semantic.info.container" = "#18395b"
+"editor.semantic.warning" = "#dcac50"
+"editor.semantic.warning.container" = "#463112"
+"editor.semantic.error" = "#eb605c"
+"editor.semantic.error.container" = "#4c2427"
+"editor.popup" = "#242424"
+"editor.track" = "#3b3b3b"
+"editor.focus.ring" = "#66b2ff"
+"editor.shadow" = "#00000073"
+"editor.typography.ui.family" = "Fira Sans"
+"editor.typography.ui.strong.family" = "Fira Sans"
+"editor.typography.code.family" = "Fira Mono"
+"editor.typography.utility_tab.text_role" = "ui"
+"editor.typography.font_smoothing" = "grayscale"
+"editor.typography.body.size" = 14
+"editor.typography.caption.size" = 12
+"editor.typography.overlay.size" = 12
+"editor.typography.heading.size" = 16
+"editor.typography.title.size" = 20
+"editor.typography.body.weight" = 400
+"editor.typography.medium.weight" = 500
+"editor.typography.strong.weight" = 600
+"editor.typography.emphasis.weight" = 700
+"editor.typography.code.weight" = 400
+"editor.typography.line_height" = 1.4
+"editor.control.height.large" = 48
+"editor.control.height.default" = 32
+"editor.control.height.compact" = 32
+"editor.control.height.dense" = 28
+"editor.control.radius.small" = 4
+"editor.control.radius.control" = 4
+"editor.control.radius.large" = 8
+"editor.control.radius.panel" = 0
+"editor.control.radius.pill" = 999
+"editor.control.border_width" = 1
+"editor.chrome.top_bar.height" = 25
+"editor.chrome.host_bar.height" = 32
+"editor.chrome.workbench_toolbar.height" = 66
+"editor.chrome.workbench_toolbar.command_row.height" = 34
+"editor.chrome.workbench_toolbar.popup.command_offset_y" = 29
+"editor.chrome.workbench_toolbar.popup.module_offset_y" = -6
+"editor.chrome.status_bar.height" = 24
+"editor.chrome.panel_header.height" = 30
+"editor.chrome.document_header.height" = 31
+"editor.chrome.viewport_toolbar.height" = 28
+"editor.chrome.activity_rail.width" = 34
+"editor.chrome.separator.thickness" = 1
+"editor.chrome.splitter.hit_size" = 8
+"editor.density.gap.xsmall" = 2
+"editor.density.gap.tight" = 4
+"editor.density.gap.small" = 4
+"editor.density.gap.regular" = 8
+"editor.density.gap.medium" = 8
+"editor.density.gap.large" = 12
+"editor.density.gap.group" = 24
+"editor.density.drawer_padding" = 12
+"editor.density.panel_padding" = 16
+"editor.density.toolbar_action_width" = 76
+"editor.density.toolbar_wide_action_width" = 96
+"editor.density.ui_asset_action.min_width" = 40
+"editor.density.ui_asset_action.preferred_width" = 52
+"editor.density.ui_asset_action.max_width" = 64
+"editor.density.ui_asset.side.min_width" = 128
+"editor.density.ui_asset.side.preferred_width" = 220
+"editor.density.ui_asset.center.min_width" = 256
+"editor.density.ui_asset.center.preferred_width" = 420
+"editor.density.ui_asset.header_kind.min_width" = 64
+"editor.density.ui_asset.header_kind.preferred_width" = 70
+"editor.density.ui_asset.header_kind.max_width" = 84
+"editor.density.ui_asset.tool.min_width" = 56
+"editor.density.ui_asset.tool.preferred_width" = 64
+"editor.density.ui_asset.tool.max_width" = 80
+"editor.density.command_palette.min_width" = 520
+"editor.density.command_palette.preferred_width" = 560
+"editor.density.command_palette.max_width" = 640
+"editor.density.command_palette.min_height" = 180
+"editor.density.command_palette.preferred_height" = 220
+"editor.density.command_palette.max_height" = 280
+"editor.density.dialog.min_width" = 420
+"editor.density.dialog.preferred_width" = 480
+"editor.density.dialog.max_width" = 560
+"editor.density.dialog.min_height" = 180
+"editor.density.dialog.preferred_height" = 220
+"editor.density.dialog.max_height" = 320
+"editor.density.confirm_dialog.preferred_width" = 460
+"editor.density.confirm_dialog.max_width" = 540
+"editor.density.confirm_dialog.min_height" = 174
+"editor.density.confirm_dialog.preferred_height" = 210
+"editor.density.confirm_dialog.max_height" = 300
+"editor.density.notification_panel.min_width" = 280
+"editor.density.notification_panel.preferred_width" = 320
+"editor.density.notification_panel.max_width" = 380
+"editor.density.notification_panel.min_height" = 160
+"editor.density.notification_panel.preferred_height" = 220
+"editor.density.notification_panel.max_height" = 320
+"editor.density.caption.min_height" = 20
+"editor.density.caption.preferred_height" = 22
+"editor.density.caption.max_height" = 24
+"editor.density.label.min_height" = 22
+"editor.density.label.preferred_height" = 24
+"editor.density.label.max_height" = 32
+"editor.density.chip.min_width" = 40
+"editor.density.chip.preferred_width" = 80
+"editor.density.chip.max_width" = 160
+"editor.density.axis_value_field.min_width" = 54
+"editor.density.axis_value_field.preferred_width" = 62
+"editor.density.axis_value_field.max_width" = 72
+"editor.density.row_height" = 28
+"editor.density.left_drawer_width" = 332
+"editor.density.right_drawer_width" = 404
+"editor.density.bottom_output_height" = 228
+"editor.density.breakpoint_ultra_width" = 480
+"editor.density.breakpoint_narrow_width" = 640
+"editor.density.breakpoint_wide_width" = 1260
+"editor.density.compact_side_width" = 1100
+"editor.density.ultra_compact_side_width" = 760
+"editor.density.compact_left_drawer_max_width" = 340
+"editor.density.compact_right_drawer_max_width" = 220
+"editor.density.compact_side_min_width" = 196
+"editor.density.minimum_document_width_fraction" = 0.5
+"editor.density.ultra_compact_left_drawer_max_width" = 220
+"editor.density.ultra_compact_right_drawer_max_width" = 160
+"editor.density.compact_bottom_available_height" = 900
+"editor.density.compact_bottom_max_height" = 148
+"editor.density.compact_bottom_max_available_fraction" = 0.23
+"editor.density.compact_bottom_min_height" = 120
+"editor.density.ultra_compact_bottom_available_height" = 420
+"editor.density.ultra_compact_bottom_max_height" = 96
+"editor.density.ultra_compact_bottom_max_available_fraction" = 0.2
+"editor.density.ultra_compact_bottom_min_height" = 80
+"editor.density.minimum_window_width" = 640
+"editor.density.minimum_window_height" = 420
+"editor.density.ultra_minimum_window_width" = 420
+"editor.density.ultra_minimum_window_height" = 360
+"editor.state.default" = "surface_1"
+"editor.state.hovered" = "surface_2"
+"editor.state.pressed" = "surface_3"
+"editor.state.selected" = "surface_selected"
+"editor.state.focused" = "surface_1"
+"editor.state.disabled" = "text_disabled"
+"editor.state.loading" = "accent"
+
+[penpot_original_imports]
+widgets = [ "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton", "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown", "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField", "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow", "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle", "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow", "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow" ]
+styles = []
+
+[penpot_field_icons]
+search = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Search\">\n  <circle cx=\"10.5\" cy=\"10.5\" r=\"5.4\" fill=\"none\" stroke=\"#cbd2dc\" stroke-width=\"1.8\"/>\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-width=\"1.9\" d=\"m14.5 14.5 4.5 4.5\"/>\n</svg>\n"
+clear = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"512\" height=\"512\" viewBox=\"0 0 512 512\"><line x1=\"368\" y1=\"368\" x2=\"144\" y2=\"144\" style=\"fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px\"/><line x1=\"368\" y1=\"144\" x2=\"144\" y2=\"368\" style=\"fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px\"/></svg>"
+stepper = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Field stepper\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\" d=\"m7 9 5-5 5 5M7 15l5 5 5-5\"/>\n</svg>\n"
+
+[penpot_dynamic_review_state]
+schema = "dev.zircon.zui.dynamic-review-state"
+version = 1
+sourcePath = "zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_motion_matching_workspace.zui"
+selectedNodeIds = [ "motion_matching_workspace" ]
+selectionPolicy = "authored-visible-root"

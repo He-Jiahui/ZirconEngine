@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 验证混合 GI 渲染统计的职责切分：混合 GI 指标 families 应子节点持有。
 class RuntimeHybridGiRenderStatsOwnerStructureTests(unittest.TestCase):
     def test_hybrid_gi_metric_families_are_child_owned(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]

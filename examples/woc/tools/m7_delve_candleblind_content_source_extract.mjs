@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码中提取Candleblind 地下探索感知倍率，供 m7_delve_candleblind_content_codegen.mjs 消费。
 // Extracts the source Delve perception multiplier without requiring a live run object.
 import { execFileSync } from 'node:child_process';
 import ts from 'typescript';

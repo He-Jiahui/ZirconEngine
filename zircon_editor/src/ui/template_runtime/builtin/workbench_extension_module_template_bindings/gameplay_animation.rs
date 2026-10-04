@@ -214,6 +214,26 @@ pub(super) const GAMEPLAY_ANIMATION_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.blend_space.interpolation.commit",
     ),
     click(
+        "BlendSpaceValidationFilterAll",
+        "workbench.extension.blend_space.validation.filter_all",
+    ),
+    click(
+        "BlendSpaceValidationFilterErrors",
+        "workbench.extension.blend_space.validation.filter_errors",
+    ),
+    click(
+        "BlendSpaceValidationFilterWarnings",
+        "workbench.extension.blend_space.validation.filter_warnings",
+    ),
+    click(
+        "BlendSpaceValidationFilterInfos",
+        "workbench.extension.blend_space.validation.filter_infos",
+    ),
+    click(
+        "BlendSpaceValidationClear",
+        "workbench.extension.blend_space.validation.clear",
+    ),
+    click(
         "PoseLibraryCombatRow",
         "workbench.extension.pose_library.combat_row.select",
     ),

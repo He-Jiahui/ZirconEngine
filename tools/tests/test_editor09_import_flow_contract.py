@@ -1,3 +1,4 @@
+# 核对编辑器导入入口由运行时资源管理器与受限作业流程共同承担，并通过 Rust 回归样例约束失败路径。
 import pathlib
 import re
 import unittest
@@ -61,7 +62,7 @@ class Editor09ImportFlowContractTests(unittest.TestCase):
             "model_ticket.rs",
             "state.rs",
             "submit.rs",
-            "tests.rs",
+            "tests/cases.rs",
         ):
             self.assertTrue((IMPORT_ROOT / name).is_file(), name)
         self.assertTrue((IMPORT_ROOT / "tests/concurrency.rs").is_file())
@@ -124,7 +125,7 @@ class Editor09ImportFlowContractTests(unittest.TestCase):
         job = read("zircon_editor/src/core/asset/import_flow/job.rs")
         submit = read("zircon_editor/src/core/asset/import_flow/submit.rs")
         index = read("zircon_editor/src/core/asset/index.rs")
-        index_tests = read("zircon_editor/src/core/asset/index/tests.rs")
+        index_tests = read("zircon_editor/src/core/asset/index/tests/cases.rs")
 
         for contract in (
             "EditorAssetImportReason",
@@ -204,7 +205,7 @@ class Editor09ImportFlowContractTests(unittest.TestCase):
     def test_rust_contract_covers_success_failure_serialization_and_cancel(self) -> None:
         tests = "\n".join(
             (
-                read("zircon_editor/src/core/asset/import_flow/tests.rs"),
+                read("zircon_editor/src/core/asset/import_flow/tests/cases.rs"),
                 read("zircon_editor/src/core/asset/import_flow/tests/concurrency.rs"),
                 read("zircon_editor/src/core/asset/import_flow/tests/diagnostics.rs"),
             )

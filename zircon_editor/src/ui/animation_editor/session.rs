@@ -74,6 +74,8 @@ impl AnimationEditorSession {
 }
 
 #[cfg(test)]
+#[path = "tests/route_loading_tests.rs"]
 mod route_loading_tests;
 #[cfg(test)]
+#[path = "session/tests/cases.rs"]
 mod tests;

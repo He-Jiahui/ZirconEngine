@@ -1,3 +1,5 @@
+//! 把注册命令按稳定菜单段聚合为当前语言的界面投影；分组身份来自声明ID，可用性与显示文字由当前命令上下文和本地化服务决定。
+
 use std::collections::BTreeMap;
 
 use crate::core::editor_event::{EditorEvent, EditorEventTransient};
@@ -18,6 +20,7 @@ const MENU_ORDER: [&str; 7] = [
     "help",
 ];
 
+// 构建一个上下文/语言下的菜单快照；调用方在上下文或目录代次改变后重新取得投影，不能缓存为执行权限。
 pub(super) fn menu_bar_model(
     registry: &EditorCommandRegistry,
     i18n: &EditorI18nService,
@@ -209,4 +212,5 @@ fn command_menu_item_from_path(
 }
 
 #[cfg(test)]
+#[path = "menu/tests/performance_tests.rs"]
 mod performance_tests;

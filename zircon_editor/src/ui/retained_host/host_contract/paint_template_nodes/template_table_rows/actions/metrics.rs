@@ -1,3 +1,5 @@
+//! 单元格先预留此操作列宽，按钮绘制再消费同一密度快照；改尺寸必须保持两处预留一致。
+
 use super::super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -31,24 +33,5 @@ fn table_action_metrics_from_host(metrics: HostControlMetrics) -> WorkbenchTable
 }
 
 #[cfg(test)]
-mod tests {
-    use super::super::super::super::super::paint_theme::METRICS;
-    use super::*;
-
-    #[test]
-    fn table_action_metrics_project_from_host_control_metrics() {
-        let mut host = METRICS;
-        host.gap_s = 5.0;
-        host.gap_m = 9.0;
-        host.border_width = 1.5;
-        host.radius_control = 6.0;
-
-        let metrics = table_action_metrics_from_host(host);
-
-        assert_eq!(metrics.icon_size, 18.0);
-        assert_eq!(metrics.button_size, 23.0);
-        assert_eq!(metrics.action_column_width, 28.0);
-        assert_eq!(metrics.border_width, 1.5);
-        assert_eq!(metrics.radius, 6.0);
-    }
-}
+#[path = "tests/metrics.rs"]
+mod tests;

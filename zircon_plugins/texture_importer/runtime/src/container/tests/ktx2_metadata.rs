@@ -38,7 +38,7 @@ fn ktx2_container_importer_reads_key_value_data_record() {
     match imported {
         ImportedAsset::Texture(texture) => {
             assert_eq!(texture.width, 16);
-            assert_eq!(texture.render_image_descriptor().array_layer_count, 12);
+            assert_eq!(texture.render_image_descriptor().depth_or_array_layers, 12);
             assert_eq!(texture.height, 16);
         }
         other => panic!("unexpected imported asset: {other:?}"),
@@ -288,7 +288,7 @@ fn ktx2_container_importer_accepts_key_value_data_after_data_format_descriptor_a
     match imported {
         ImportedAsset::Texture(texture) => {
             assert_eq!(texture.width, 16);
-            assert_eq!(texture.render_image_descriptor().array_layer_count, 12);
+            assert_eq!(texture.render_image_descriptor().depth_or_array_layers, 12);
             assert_eq!(texture.height, 16);
         }
         other => panic!("unexpected imported asset: {other:?}"),

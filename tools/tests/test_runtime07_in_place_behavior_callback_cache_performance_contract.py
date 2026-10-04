@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime/src/script/vm/behavior_bridge.rs"
 
-
+# 读取实现源码约束位置行为回调缓存：现有回调句柄应为替换位置，并回调键应为克隆仅对缓存未命中。
 class InPlaceBehaviorCallbackCachePerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

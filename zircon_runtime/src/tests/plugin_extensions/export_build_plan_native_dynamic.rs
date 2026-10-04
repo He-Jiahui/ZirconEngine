@@ -402,6 +402,8 @@ fn native_dynamic_materialization_sanitizes_package_directory_names() {
     let mut plan = native_dynamic_plan();
     plan.native_dynamic_packages = vec![package_id.to_string()];
     plan.generated_files.clear();
+    // This fixture bypasses normal planning to exercise native package path handling.
+    plan.seal_admitted_plan();
 
     let report = plan
         .materialize_with_native_packages(&plugin_root, &output_root)
@@ -440,6 +442,8 @@ fn native_dynamic_materialization_does_not_directly_resolve_package_id_outside_p
     let mut plan = native_dynamic_plan();
     plan.native_dynamic_packages = vec![package_id.clone()];
     plan.generated_files.clear();
+    // This fixture bypasses normal planning to exercise native package path handling.
+    plan.seal_admitted_plan();
     let report = plan
         .materialize_with_native_packages(&plugin_root, &output_root)
         .unwrap();

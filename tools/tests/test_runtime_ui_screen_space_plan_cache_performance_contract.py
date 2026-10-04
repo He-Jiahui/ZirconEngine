@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-from tools.runtime_ui_screen_space_plan_cache_pressure import run
+from tools.analysis.performance.runtime.runtime_ui_screen_space_plan_cache_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -17,16 +17,16 @@ RENDERER = ROOT / (
     "zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs"
 )
 CONSTRUCT = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/construct.rs"
-RUST_TESTS = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs"
+RUST_TESTS = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/cases.rs"
 RUST_PLAN_CACHE_TESTS = ROOT / (
     "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/plan_cache.rs"
 )
 RUST_BACKGROUND_TESTS = ROOT / (
     "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/background.rs"
 )
-PROFILE_MANIFEST = ROOT / "tools/profile-capture-manifest.ps1"
+PROFILE_MANIFEST = ROOT / "tools/analysis/profiling/shared/profile-capture-manifest.ps1"
 
-
+# 验证屏幕空间计划保留一份完整权威，缓存键覆盖全部输入，并复用未变更段和命令叶计划。
 class RuntimeUiScreenSpacePlanCachePerformanceContract(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

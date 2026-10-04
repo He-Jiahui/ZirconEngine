@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f5_vm_plugin_management_policy_uses_typed_validation_errors() {
     let management_mod = include_str!("../../../../../script/vm/plugin/management_policy/mod.rs");
@@ -20,10 +21,12 @@ fn review_f5_vm_plugin_management_policy_uses_typed_validation_errors() {
         include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let convention =
         include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
-    let host_reflection =
-        include_str!("../../../../../../../docs/zircon_runtime/script/vm/zr_vm_host_reflection.md");
-    let module_doc =
-        include_str!("../../../../../../../docs/zircon_runtime/structure/module-convention.md");
+    let host_reflection = include_str!(
+        "../../../../../../../docs/crates/zircon_runtime/script/vm/zr_vm_host_reflection.md"
+    );
+    let module_doc = include_str!(
+        "../../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
+    );
 
     for required in [
         "mod error;",

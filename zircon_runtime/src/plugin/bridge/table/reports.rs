@@ -15,6 +15,7 @@ impl fmt::Debug for super::InterfaceExport {
     }
 }
 
+/// 生命周期与编辑器共用的单 slot 后状态；一行同时记录 provider、代际和调用计数，便于解释禁用原因。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BridgeInterfaceSnapshot {
     pub slot: InterfaceSlot,
@@ -86,6 +87,7 @@ impl BridgeTableDiagnosticsSummary {
         );
     }
 
+    // 汇总直接消费 entry 的同一状态快照，避免为了计数再次构造含字符串的诊断行。
     pub(super) fn record_state(
         &mut self,
         status: BridgeInterfaceStatus,
@@ -129,6 +131,7 @@ impl BridgeDiagnosticsMatrix {
     }
 }
 
+/// 帧边界切换后的报告只覆盖此次 owner 实际命中的 slot；不代表整个表的原子事务。
 /// Post-operation diagnostics for batch bridge changes owned by one plugin module.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BridgeOwnerTransitionReport {
@@ -139,6 +142,7 @@ pub struct BridgeOwnerTransitionReport {
 }
 
 impl BridgeOwnerTransitionReport {
+    /// 生命周期日志使用稳定的一行文本；调用方需要结构化状态时应读取 snapshots。
     pub fn diagnostic(&self) -> String {
         let mut diagnostic =
             String::with_capacity(self.snapshots.len().saturating_mul(64).saturating_add(96));
@@ -171,5 +175,5 @@ impl BridgeOwnerTransitionReport {
 }
 
 #[cfg(test)]
-#[path = "reports/optimization_tests.rs"]
+#[path = "reports/tests/optimization_tests.rs"]
 mod optimization_tests;

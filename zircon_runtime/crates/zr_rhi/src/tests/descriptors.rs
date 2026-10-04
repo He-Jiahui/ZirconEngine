@@ -305,7 +305,9 @@ fn texture_descriptors_cover_hdr_arrays_cubes_mips_and_storage() {
     .with_mip_levels(5);
 
     assert_eq!(array_texture.dimension, TextureDimension::D2Array);
-    assert_eq!(array_texture.depth, 8);
+    assert_eq!(array_texture.depth, 1);
+    assert_eq!(array_texture.array_layers, 8);
+    assert_eq!(array_texture.depth_or_array_layers(), 8);
     assert_eq!(array_texture.mip_levels, 5);
     assert!(array_texture.format.is_hdr_color());
     assert!(array_texture.usage.contains(TextureUsage::STORAGE));
@@ -325,7 +327,9 @@ fn texture_descriptors_cover_hdr_arrays_cubes_mips_and_storage() {
     .with_array_layers(6);
 
     assert_eq!(cube_texture.dimension, TextureDimension::Cube);
-    assert_eq!(cube_texture.depth, 6);
+    assert_eq!(cube_texture.depth, 1);
+    assert_eq!(cube_texture.array_layers, 6);
+    assert_eq!(cube_texture.depth_or_array_layers(), 6);
     assert!(!cube_texture.format.is_hdr_color());
     assert_eq!(TextureFormat::Depth24PlusStencil8.bytes_per_pixel(), 4);
     assert_eq!(TextureFormat::Rg11b10Ufloat.bytes_per_pixel(), 4);
@@ -392,6 +396,61 @@ fn texture_descriptors_report_mip_capacity_for_shape_validation() {
     assert_eq!(d3.max_full_mip_levels(), 6);
     assert!(d2.mip_levels_fit_shape());
     assert!(!d2.with_mip_levels(10).mip_levels_fit_shape());
+}
+
+#[test]
+fn texture_descriptors_separate_volume_depth_from_addressable_array_layers() {
+    let d2_array = TextureDesc::new(
+        "layered-color",
+        64,
+        64,
+        TextureFormat::Rgba8Unorm,
+        TextureUsage::SAMPLED,
+    )
+    .with_dimension(TextureDimension::D2Array)
+    .with_array_layers(7);
+    let cube = TextureDesc::new(
+        "cube-color",
+        64,
+        64,
+        TextureFormat::Rgba8Unorm,
+        TextureUsage::SAMPLED,
+    )
+    .with_dimension(TextureDimension::Cube)
+    .with_array_layers(6);
+    let volume = TextureDesc::new(
+        "volume-color",
+        64,
+        32,
+        TextureFormat::Rgba16Float,
+        TextureUsage::SAMPLED | TextureUsage::STORAGE,
+    )
+    .with_dimension(TextureDimension::D3)
+    .with_depth(24);
+
+    assert_eq!(d2_array.array_layer_count(), 7);
+    assert_eq!(d2_array.depth, 1);
+    assert_eq!(d2_array.array_layers, 7);
+    assert_eq!(d2_array.depth_or_array_layers(), 7);
+    assert_eq!(cube.array_layer_count(), 6);
+    assert_eq!(cube.depth, 1);
+    assert_eq!(cube.array_layers, 6);
+    assert_eq!(cube.depth_or_array_layers(), 6);
+    assert_eq!(volume.depth, 24);
+    assert_eq!(volume.array_layers, 1);
+    assert_eq!(volume.array_layer_count(), 1);
+    assert_eq!(volume.depth_or_array_layers(), 24);
+    assert_eq!(d2_array.shape_validation_error(), None);
+    assert_eq!(cube.shape_validation_error(), None);
+    assert_eq!(volume.shape_validation_error(), None);
+    assert_eq!(
+        d2_array.clone().with_depth(2).shape_validation_error(),
+        Some("2D-array textures must declare depth as 1")
+    );
+    assert_eq!(
+        volume.clone().with_array_layers(2).shape_validation_error(),
+        Some("3D textures must declare array_layers as 1")
+    );
 }
 
 #[test]

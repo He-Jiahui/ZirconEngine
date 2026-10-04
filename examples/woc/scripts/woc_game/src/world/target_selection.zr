@@ -5,6 +5,7 @@ var container = %import("zr.container");
 // faction, pet, arena or Vale Cup policy.
 // The WOS command reducer materializes source-approved relationship rows into
 // this value-only input. Selection order remains owned by this module.
+/// 调用方已完成关系与存活过滤的值投影；各列需保持同一行序，顺序本身参与最近目标和友方轮换的等距决定。
 pub class CandidateSet {
     pub var enemyIds: container.Array<uint>;
     pub var enemyDx: container.Array<float>;
@@ -90,6 +91,7 @@ validateCandidates(candidates: CandidateSet): void {
     }
 }
 
+/// 最近敌方选择遵循严格范围边界；无候选时保留原目标，返回值不代表重新验证了原目标的存活或关系。
 pub nearestEnemy(candidates: CandidateSet, currentId: uint): uint {
     validateCandidates(candidates);
     var bestId = currentId;
@@ -145,6 +147,7 @@ tabCandidateBefore(
             leftDistance == rightDistance && leftId < rightId);
 }
 
+/// 在当前朝向下按可见性、交战分组和距离轮换；当前目标处于近组时继续限制在近组，没有后继时绕回组首。
 pub tabEnemy(candidates: CandidateSet, currentId: uint, facing: float): uint {
     validateCandidates(candidates);
     var math = %import("zr.zircon.math");
@@ -225,6 +228,7 @@ pub tabEnemy(candidates: CandidateSet, currentId: uint, facing: float): uint {
     return wrapFound ? wrapId : currentId;
 }
 
+/// 友方轮换按距离和候选原序消歧，而敌方轮换以实体编号消歧；调用方不能对两者共用重排后的候选。
 pub friendlyCycle(candidates: CandidateSet, currentId: uint): uint {
     validateCandidates(candidates);
     var currentCandidateIndex = -1;

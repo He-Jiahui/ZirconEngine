@@ -1,5 +1,6 @@
 // Scalar aura/timer rules from the reference simulation. The single-entry
 // shape is temporary until Plugins 08 accepts reliable helper dispatch.
+/// 为独立标量契约复现恢复、周期和光环计时的数值规则；kind 的参数协议由 auras_test_main 固定样例约束，不能把它当作世界光环存储入口。
 pub metric(
     kind: int,
     first: float,
@@ -81,6 +82,7 @@ pub metric(
     throw "aura rule metric is invalid";
 }
 
+/// aura_state 的局部存储调用此分类筛掉友善 NPC 不接受的负面光环；marker 是固定契约标记，分类不读取实体关系或施法权限。
 pub rejectedFriendlyNpcAura(kind: string, marker: int): bool {
     if (marker != 1) {
         throw "friendly NPC aura classification marker is invalid";

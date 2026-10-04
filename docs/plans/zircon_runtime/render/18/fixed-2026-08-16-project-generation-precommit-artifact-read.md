@@ -23,8 +23,6 @@ related_code:
   - zircon_runtime/src/asset/tests/project/binary_artifact_cache_assertions.rs
   - zircon_runtime/src/asset/tests/project/manager/restore_failure_migration.rs
   - zircon_runtime/tests/shader_import_dependency_contract.rs
-  - zircon_runtime/src/core/resource/io/transaction/engine/tests.rs
-  - zircon_runtime/src/core/resource/io/transaction/pathing.rs
 tests:
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_plugin_hybrid_gi_runtime -LibTests -TestFilter render_framework_stats_expose_scene_representation_screen_probe_and_radiance_cache_counts
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_plugin_hybrid_gi_runtime -LibTests

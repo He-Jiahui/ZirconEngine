@@ -1,0 +1,1764 @@
+penpot_host_theme_source = "zircon_editor/assets/ui/editor/theme/editor_tokens.zui"
+stylesheets = []
+penpot_dependency_sources = [ "zircon_editor/assets/ui/editor/theme/editor_tokens.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_property_row.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui", "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui", "zircon_editor/assets/icons/zircon_editor_shell/controls/search.svg", "zircon_editor/assets/icons/ionicons/close-outline.svg", "zircon_editor/assets/icons/zircon_editor_shell/controls/field-stepper.svg" ]
+penpot_original_source = "[asset]\nkind = \"component\"\nid = \"res://ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_post_process_workspace.zui\"\nversion = 2\ndisplay_name = \"Workbench Extension Post Process Workspace\"\n\n[imports]\nwidgets = [\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton\",\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown\",\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField\",\n  \"res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow\",\n  \"res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow\",\n  \"res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle\",\n  \"res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow\",\n  \"res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow\",\n]\nstyles = []\n[components.WorkbenchExtensionPostProcessWorkspace]\nroot = \"post_process_workspace\"\ndefault_classes = [\"workbench-module-body\", \"workbench-extension-module-body\"]\n\n[nodes.post_process_workspace]\ncomponent = \"Overlay\"\ncontrol_id = \"WorkbenchExtensionPostProcessWorkspace\"\nclasses = [\"workbench-module-body\", \"workbench-extension-module-body\"]\nprops = { visibility = \"collapsed\" }\nlayout = { clip = true, container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [\n  { node = \"post_process_workspace_main\" },\n  { node = \"post_process_right\", slot = { layout = { alignment = { horizontal = \"End\", vertical = \"Fill\" }, z_order = 20 } } },\n]\n\n[nodes.post_process_workspace_main]\ncomponent = \"HorizontalGroup\"\nclasses = [\"workbench-module-layout-main\"]\nlayout = { clip = true, container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.medium\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"post_process_rail_gap\" }, { node = \"post_process_left\" }, { node = \"post_process_center\" }, { node = \"post_process_right_reserve\" }]\n\n[nodes.post_process_right_reserve]\ncomponent = \"Container\"\nclasses = [\"workbench-module-details-reserve\"]\nprops = { responsive_min_tier = \"wide\" }\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n[nodes.post_process_rail_gap]\ncomponent = \"Container\"\ncontrol_id = \"WorkbenchExtensionPostProcessRailGap\"\nprops = { responsive_min_tier = \"narrow\" }\nlayout = { width = { min = \"$editor.chrome.activity_rail.width\", preferred = \"$editor.chrome.activity_rail.width\", max = \"$editor.chrome.activity_rail.width\", stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.post_process_left]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"WorkbenchExtensionPostProcessLeftPanel\"\nclasses = [\"workbench-panel\", \"workbench-module-side\"]\nprops = { responsive_min_tier = \"narrow\" }\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"post_process_title\" }, { node = \"post_process_left_content\" }]\n\n[nodes.post_process_left_content]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchExtensionPostProcessLeftContent\"\nprops = { input_hoverable = true }\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = \"$editor.density.gap.small\", scrollbar_visibility = \"Auto\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"post_process_global_row\" }, { node = \"post_process_cinematic_row\" }, { node = \"post_process_volume_row\" }]\n\n[nodes.post_process_title]\ncomponent = \"WorkbenchSectionTitle\"\ncontrol_id = \"WorkbenchExtensionPostProcessTitle\"\nprops = { text = \"Post Process\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = \"Fixed\" } }\n\n[nodes.post_process_global_row]\ncomponent = \"WorkbenchListRow\"\ncontrol_id = \"WorkbenchExtensionPostProcessGlobalStackRow\"\nclasses = [\"workbench-list-row\", \"workbench-row-selected\"]\nprops = { text = \"Global Stack\", icon = \"renderer\", selected = true }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/PostProcessGlobalStackRow\", event = \"Click\", route = \"workbench.extension.post_process.stack.global\" }]\n\n[nodes.post_process_cinematic_row]\ncomponent = \"WorkbenchListRow\"\ncontrol_id = \"WorkbenchExtensionPostProcessCinematicStackRow\"\nclasses = [\"workbench-list-row\"]\nprops = { text = \"Cinematic Grade\", icon = \"sun\", selected = false }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/PostProcessCinematicStackRow\", event = \"Click\", route = \"workbench.extension.post_process.stack.cinematic\" }]\n\n[nodes.post_process_volume_row]\ncomponent = \"WorkbenchListRow\"\ncontrol_id = \"WorkbenchExtensionPostProcessVolumeBlendRow\"\nclasses = [\"workbench-list-row\"]\nprops = { text = \"Volume Blend\", icon = \"cube\", selected = false }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/PostProcessVolumeBlendRow\", event = \"Click\", route = \"workbench.extension.post_process.volume_blend\" }]\n\n[nodes.post_process_center]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"WorkbenchExtensionPostProcessCenterPanel\"\nclasses = [\"workbench-panel\", \"workbench-module-center\"]\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"post_process_center_header\" }, { node = \"post_process_pass_table\" }, { node = \"post_process_output\" }]\n\n[nodes.post_process_center_header]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchExtensionPostProcessCenterHeader\"\nclasses = [\"workbench-panel-toolbar\"]\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Horizontal\", gap = \"$editor.density.gap.medium\", scrollbar_visibility = \"Never\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"post_process_center_title\" }, { node = \"post_process_header_fill\" }, { node = \"post_process_preview_button\" }, { node = \"post_process_apply_button\" }]\n\n[nodes.post_process_center_title]\ncomponent = \"WorkbenchSectionTitle\"\ncontrol_id = \"WorkbenchExtensionPostProcessCenterTitle\"\nprops = { text = \"Post Process Stack\" }\nlayout = { width = { min = 220.0, preferred = 220.0, max = 260.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.post_process_header_fill]\ncomponent = \"Container\"\ncontrol_id = \"WorkbenchExtensionPostProcessHeaderFill\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.post_process_preview_button]\ncomponent = \"WorkbenchButton\"\ncontrol_id = \"WorkbenchExtensionPostProcessPreviewButton\"\nclasses = [\"workbench-control-button\", \"workbench-module-command\"]\nprops = { text = \"Preview\", button_variant = \"outlined\", button_color = \"secondary\" }\nlayout = { width = { min = 78, preferred = 78, max = 88, stretch = \"Fixed\" }, height = { min = 28, preferred = 28, max = 28, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/PostProcessPreview\", event = \"Click\", route = \"workbench.extension.post_process.preview\" }]\n\n[nodes.post_process_apply_button]\ncomponent = \"WorkbenchButton\"\ncontrol_id = \"WorkbenchExtensionPostProcessApplyButton\"\nclasses = [\"workbench-control-button\", \"workbench-module-command\"]\nprops = { text = \"Apply\", button_variant = \"filled\", button_color = \"accent\" }\nlayout = { width = { min = 78, preferred = 78, max = 88, stretch = \"Fixed\" }, height = { min = 28, preferred = 28, max = 28, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/PostProcessApply\", event = \"Click\", route = \"workbench.extension.post_process.apply\" }]\n\n[nodes.post_process_pass_table]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchExtensionPostProcessPassTable\"\nclasses = [\"workbench-panel\", \"workbench-module-canvas\"]\nprops = { input_hoverable = true }\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = 0.0, scrollbar_visibility = \"Auto\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"post_process_bloom_row\" }, { node = \"post_process_tonemap_row\" }, { node = \"post_process_lut_row\" }, { node = \"post_process_exposure_warning_row\" }]\n\n[nodes.post_process_bloom_row]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionPostProcessBloomTableRow\"\nclasses = [\"workbench-table-row\"]\nprops = { text = \"Bloom\", value_text = \"0.65 intensity   threshold 1.0   Ready\", selected = false, options = [\"Bloom\",\"0.65 intensity\",\"threshold 1.0\",\"Ready\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/PostProcessBloomTableRow\", event = \"Click\", route = \"workbench.extension.post_process.pass.bloom\" }]\n\n[nodes.post_process_tonemap_row]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionPostProcessTonemapTableRow\"\nclasses = [\"workbench-table-row\", \"workbench-row-selected\"]\nprops = { text = \"Tonemap\", value_text = \"Filmic   exposure +0.4   Selected\", selected = true, options = [\"Tonemap\",\"Filmic\",\"exposure +0.4\",\"Selected\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/PostProcessTonemapTableRow\", event = \"Click\", route = \"workbench.extension.post_process.pass.tonemap\" }]\n\n[nodes.post_process_lut_row]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionPostProcessLutTableRow\"\nclasses = [\"workbench-table-row\"]\nprops = { text = \"Color LUT\", value_text = \"LUT_CityWarm   33 cube   Ready\", options = [\"Color LUT\",\"LUT_CityWarm\",\"33 cube\",\"Ready\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/PostProcessLutTableRow\", event = \"Click\", route = \"workbench.extension.post_process.pass.lut\" }]\n\n[nodes.post_process_exposure_warning_row]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionPostProcessExposureWarningTableRow\"\nclasses = [\"workbench-table-row\"]\nprops = { text = \"Exposure Warning\", value_text = \"Interior volume   EV +2.1   Warning\", options = [\"Exposure Warning\",\"Interior volume\",\"EV +2.1\",\"Warning\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/PostProcessExposureWarningTableRow\", event = \"Click\", route = \"workbench.extension.post_process.pass.exposure_warning\" }]\n\n[nodes.post_process_output]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionPostProcessOutputRow\"\nclasses = [\"workbench-table-row\"]\nprops = { text = \"Post Process\", value_text = \"Preview ready   1 warning   stack active\", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false, options = [\"Post Process\",\"Preview ready\",\"1 warning\",\"stack active\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\n\n[nodes.post_process_right]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"WorkbenchExtensionPostProcessRightPanel\"\nclasses = [\"workbench-panel\", \"workbench-module-side\"]\nprops = { responsive_min_tier = \"wide\", responsive_compact_drawer = \"module_details\" }\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"post_process_details_title\" }, { node = \"post_process_right_content\" }]\n\n[nodes.post_process_right_content]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchExtensionPostProcessRightContent\"\nprops = { input_hoverable = true }\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = \"$editor.density.gap.small\", scrollbar_visibility = \"Auto\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"post_process_profile_dropdown_property_row\" }, { node = \"post_process_volume_field_property_row\" }, { node = \"post_process_blend_dropdown_property_row\" }]\n\n[nodes.post_process_details_title]\ncomponent = \"WorkbenchSectionTitle\"\ncontrol_id = \"WorkbenchExtensionPostProcessDetailsTitle\"\nprops = { text = \"Stack Settings\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = \"Fixed\" } }\n\n[nodes.post_process_profile_dropdown_property_row]\ncomponent = \"WorkbenchPropertyEditorRow\"\ncontrol_id = \"WorkbenchExtensionPostProcessProfileDropdownPropertyRow\"\nprops = { text = \"Profile\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"post_process_profile_dropdown\", slot = { name = \"value\" } }]\n\n[nodes.post_process_profile_dropdown]\ncomponent = \"WorkbenchDropdown\"\ncontrol_id = \"WorkbenchExtensionPostProcessProfileDropdown\"\nclasses = [\"workbench-dropdown\", \"workbench-component-dropdown\"]\nprops = { value_text = \"Cinematic\", value = \"cinematic\", options = [\"gameplay|label=Gameplay\", \"cinematic|label=Cinematic\", \"debug|label=Debug\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\nevents = [\n  { id = \"WorkbenchExtension/PostProcessProfileEdit\", event = \"Change\", route = \"workbench.extension.post_process.profile.edit\" },\n  { id = \"WorkbenchExtension/PostProcessProfileCommit\", event = \"Submit\", route = \"workbench.extension.post_process.profile.commit\" },\n]\n\n[nodes.post_process_volume_field_property_row]\ncomponent = \"WorkbenchPropertyEditorRow\"\ncontrol_id = \"WorkbenchExtensionPostProcessVolumeFieldPropertyRow\"\nprops = { text = \"Volume\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"post_process_volume_field\", slot = { name = \"value\" } }]\n\n[nodes.post_process_volume_field]\ncomponent = \"WorkbenchField\"\ncontrol_id = \"WorkbenchExtensionPostProcessVolumeField\"\nclasses = [\"workbench-field\", \"workbench-component-field\"]\nprops = { value = \"PPV_CityGlobal\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\nevents = [\n  { id = \"WorkbenchExtension/PostProcessVolumeEdit\", event = \"Change\", route = \"workbench.extension.post_process.volume.edit\" },\n  { id = \"WorkbenchExtension/PostProcessVolumeCommit\", event = \"Submit\", route = \"workbench.extension.post_process.volume.commit\" },\n]\n\n[nodes.post_process_blend_dropdown_property_row]\ncomponent = \"WorkbenchPropertyEditorRow\"\ncontrol_id = \"WorkbenchExtensionPostProcessBlendDropdownPropertyRow\"\nprops = { text = \"Blend\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"post_process_blend_dropdown\", slot = { name = \"value\" } }]\n\n[nodes.post_process_blend_dropdown]\ncomponent = \"WorkbenchDropdown\"\ncontrol_id = \"WorkbenchExtensionPostProcessBlendDropdown\"\nclasses = [\"workbench-dropdown\", \"workbench-component-dropdown\"]\nprops = { value_text = \"Weighted\", value = \"weighted\", options = [\"override|label=Override\", \"weighted|label=Weighted\", \"additive|label=Additive\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\nevents = [\n  { id = \"WorkbenchExtension/PostProcessBlendEdit\", event = \"Change\", route = \"workbench.extension.post_process.blend.edit\" },\n  { id = \"WorkbenchExtension/PostProcessBlendCommit\", event = \"Submit\", route = \"workbench.extension.post_process.blend.commit\" },\n]\n"
+
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_post_process_workspace.zui"
+version = 2
+display_name = "Workbench Extension Post Process Workspace"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchExtensionPostProcessWorkspace]
+root = "post_process_workspace"
+default_classes = [ "workbench-module-body", "workbench-extension-module-body" ]
+
+[nodes.post_process_workspace]
+component = "Overlay"
+control_id = "WorkbenchExtensionPostProcessWorkspace"
+classes = [ "workbench-module-body", "workbench-extension-module-body" ]
+
+[nodes.post_process_workspace.props]
+visibility = "visible"
+
+[nodes.post_process_workspace.layout]
+clip = true
+
+[nodes.post_process_workspace.layout.container]
+kind = "Overlay"
+
+[nodes.post_process_workspace.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_workspace.layout.height]
+stretch = "Stretch"
+
+[[nodes.post_process_workspace.children]]
+node = "post_process_workspace_main"
+
+[[nodes.post_process_workspace.children]]
+node = "post_process_right"
+
+[nodes.post_process_workspace.children.slot.layout]
+z_order = 20
+
+[nodes.post_process_workspace.children.slot.layout.alignment]
+horizontal = "End"
+vertical = "Fill"
+
+[nodes.post_process_workspace_main]
+component = "HorizontalGroup"
+classes = [ "workbench-module-layout-main" ]
+
+[nodes.post_process_workspace_main.layout]
+clip = true
+
+[nodes.post_process_workspace_main.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.post_process_workspace_main.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_workspace_main.layout.height]
+stretch = "Stretch"
+
+[[nodes.post_process_workspace_main.children]]
+node = "post_process_rail_gap"
+
+[[nodes.post_process_workspace_main.children]]
+node = "post_process_left"
+
+[[nodes.post_process_workspace_main.children]]
+node = "post_process_center"
+
+[[nodes.post_process_workspace_main.children]]
+node = "post_process_right_reserve"
+
+[nodes.post_process_right_reserve]
+component = "Container"
+classes = [ "workbench-module-details-reserve" ]
+
+[nodes.post_process_right_reserve.props]
+responsive_min_tier = "wide"
+
+[nodes.post_process_right_reserve.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.post_process_right_reserve.layout.width]
+min = 320
+preferred = 320
+max = 340
+stretch = "Fixed"
+
+[nodes.post_process_right_reserve.layout.height]
+stretch = "Stretch"
+
+[nodes.post_process_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionPostProcessRailGap"
+
+[nodes.post_process_rail_gap.props]
+responsive_min_tier = "narrow"
+
+[nodes.post_process_rail_gap.layout.width]
+min = "$editor.chrome.activity_rail.width"
+preferred = "$editor.chrome.activity_rail.width"
+max = "$editor.chrome.activity_rail.width"
+stretch = "Fixed"
+
+[nodes.post_process_rail_gap.layout.height]
+stretch = "Stretch"
+
+[nodes.post_process_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionPostProcessLeftPanel"
+classes = [ "workbench-panel", "workbench-module-side" ]
+
+[nodes.post_process_left.props]
+responsive_min_tier = "narrow"
+
+[nodes.post_process_left.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.post_process_left.layout.width]
+min = 270
+preferred = 270
+max = 290
+stretch = "Fixed"
+
+[nodes.post_process_left.layout.height]
+stretch = "Stretch"
+
+[[nodes.post_process_left.children]]
+node = "post_process_title"
+
+[[nodes.post_process_left.children]]
+node = "post_process_left_content"
+
+[nodes.post_process_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionPostProcessLeftContent"
+
+[nodes.post_process_left_content.props]
+input_hoverable = true
+
+[nodes.post_process_left_content.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.post_process_left_content.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = "$editor.density.gap.small"
+scrollbar_visibility = "Auto"
+
+[nodes.post_process_left_content.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_left_content.layout.height]
+stretch = "Stretch"
+
+[[nodes.post_process_left_content.children]]
+node = "post_process_global_row"
+
+[[nodes.post_process_left_content.children]]
+node = "post_process_cinematic_row"
+
+[[nodes.post_process_left_content.children]]
+node = "post_process_volume_row"
+
+[nodes.post_process_title]
+component = "Label"
+control_id = "WorkbenchExtensionPostProcessTitle"
+classes = [ "workbench-section-title", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle"
+
+[nodes.post_process_title.props]
+text = "Post Process"
+text_overflow = "ellipsis"
+component_variant = "section-title"
+font_size = "$editor.typography.heading.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "primary"
+
+[nodes.post_process_title.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_title.layout.height]
+min = 28
+preferred = 28
+max = 30
+stretch = "Fixed"
+
+[nodes.post_process_title.state]
+[nodes.post_process_title.style.self]
+[nodes.post_process_title.style.slot]
+[nodes.post_process_title.slots]
+[nodes.post_process_global_row]
+component = "ListRow"
+control_id = "WorkbenchExtensionPostProcessGlobalStackRow"
+classes = [ "workbench-list-row", "workbench-primitive", "workbench-row-selected" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow"
+
+[nodes.post_process_global_row.props]
+text = "Global Stack"
+text_overflow = "ellipsis"
+value = "item"
+selected = true
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+icon = "renderer"
+
+[nodes.post_process_global_row.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_global_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.post_process_global_row.events]]
+id = "WorkbenchExtension/PostProcessGlobalStackRow"
+event = "Click"
+route = "workbench.extension.post_process.stack.global"
+
+[nodes.post_process_global_row.state]
+[nodes.post_process_global_row.style.self]
+[nodes.post_process_global_row.style.slot]
+[nodes.post_process_global_row.slots]
+[nodes.post_process_cinematic_row]
+component = "ListRow"
+control_id = "WorkbenchExtensionPostProcessCinematicStackRow"
+classes = [ "workbench-list-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow"
+
+[nodes.post_process_cinematic_row.props]
+text = "Cinematic Grade"
+text_overflow = "ellipsis"
+value = "item"
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+icon = "sun"
+
+[nodes.post_process_cinematic_row.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_cinematic_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.post_process_cinematic_row.events]]
+id = "WorkbenchExtension/PostProcessCinematicStackRow"
+event = "Click"
+route = "workbench.extension.post_process.stack.cinematic"
+
+[nodes.post_process_cinematic_row.state]
+[nodes.post_process_cinematic_row.style.self]
+[nodes.post_process_cinematic_row.style.slot]
+[nodes.post_process_cinematic_row.slots]
+[nodes.post_process_volume_row]
+component = "ListRow"
+control_id = "WorkbenchExtensionPostProcessVolumeBlendRow"
+classes = [ "workbench-list-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow"
+
+[nodes.post_process_volume_row.props]
+text = "Volume Blend"
+text_overflow = "ellipsis"
+value = "item"
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+icon = "cube"
+
+[nodes.post_process_volume_row.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_volume_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.post_process_volume_row.events]]
+id = "WorkbenchExtension/PostProcessVolumeBlendRow"
+event = "Click"
+route = "workbench.extension.post_process.volume_blend"
+
+[nodes.post_process_volume_row.state]
+[nodes.post_process_volume_row.style.self]
+[nodes.post_process_volume_row.style.slot]
+[nodes.post_process_volume_row.slots]
+[nodes.post_process_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionPostProcessCenterPanel"
+classes = [ "workbench-panel", "workbench-module-center" ]
+
+[nodes.post_process_center.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.post_process_center.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_center.layout.height]
+stretch = "Stretch"
+
+[[nodes.post_process_center.children]]
+node = "post_process_center_header"
+
+[[nodes.post_process_center.children]]
+node = "post_process_pass_table"
+
+[[nodes.post_process_center.children]]
+node = "post_process_output"
+
+[nodes.post_process_center_header]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionPostProcessCenterHeader"
+classes = [ "workbench-panel-toolbar" ]
+
+[nodes.post_process_center_header.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.post_process_center_header.layout.container]
+kind = "ScrollableBox"
+axis = "Horizontal"
+gap = "$editor.density.gap.medium"
+scrollbar_visibility = "Never"
+
+[nodes.post_process_center_header.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_center_header.layout.height]
+min = 34
+preferred = 34
+max = 36
+stretch = "Fixed"
+
+[[nodes.post_process_center_header.children]]
+node = "post_process_center_title"
+
+[[nodes.post_process_center_header.children]]
+node = "post_process_header_fill"
+
+[[nodes.post_process_center_header.children]]
+node = "post_process_preview_button"
+
+[[nodes.post_process_center_header.children]]
+node = "post_process_apply_button"
+
+[nodes.post_process_center_title]
+component = "Label"
+control_id = "WorkbenchExtensionPostProcessCenterTitle"
+classes = [ "workbench-section-title", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle"
+
+[nodes.post_process_center_title.props]
+text = "Post Process Stack"
+text_overflow = "ellipsis"
+component_variant = "section-title"
+font_size = "$editor.typography.heading.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "primary"
+
+[nodes.post_process_center_title.layout.width]
+stretch = "Fixed"
+min = 220
+preferred = 220
+max = 260
+
+[nodes.post_process_center_title.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.compact"
+stretch = "Stretch"
+
+[nodes.post_process_center_title.state]
+[nodes.post_process_center_title.style.self]
+[nodes.post_process_center_title.style.slot]
+[nodes.post_process_center_title.slots]
+[nodes.post_process_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionPostProcessHeaderFill"
+
+[nodes.post_process_header_fill.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_header_fill.layout.height]
+stretch = "Stretch"
+
+[nodes.post_process_preview_button]
+component = "Button"
+control_id = "WorkbenchExtensionPostProcessPreviewButton"
+classes = [ "workbench-control-button", "workbench-primitive", "workbench-module-command" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton"
+
+[nodes.post_process_preview_button.props]
+text = "Preview"
+text_overflow = "ellipsis"
+text_align = "center"
+button_variant = "outlined"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+validation_level = "normal"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font = "res://fonts/editor-ui.font.toml"
+font_family = "Fira Sans"
+font_weight = "$editor.typography.strong.weight"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.large"
+layout_padding_right = "$editor.density.gap.large"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.medium"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.post_process_preview_button.layout.width]
+stretch = "Fixed"
+min = 78
+preferred = 78
+max = 88
+
+[nodes.post_process_preview_button.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[[nodes.post_process_preview_button.events]]
+id = "WorkbenchExtension/PostProcessPreview"
+event = "Click"
+route = "workbench.extension.post_process.preview"
+
+[nodes.post_process_preview_button.state]
+[nodes.post_process_preview_button.style.self]
+[nodes.post_process_preview_button.style.slot]
+[nodes.post_process_preview_button.slots]
+[nodes.post_process_apply_button]
+component = "Button"
+control_id = "WorkbenchExtensionPostProcessApplyButton"
+classes = [ "workbench-control-button", "workbench-primitive", "workbench-module-command" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton"
+
+[nodes.post_process_apply_button.props]
+text = "Apply"
+text_overflow = "ellipsis"
+text_align = "center"
+button_variant = "filled"
+button_color = "accent"
+button_size = "small"
+button_interaction_state = "normal"
+validation_level = "normal"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font = "res://fonts/editor-ui.font.toml"
+font_family = "Fira Sans"
+font_weight = "$editor.typography.strong.weight"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.large"
+layout_padding_right = "$editor.density.gap.large"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.medium"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.post_process_apply_button.layout.width]
+stretch = "Fixed"
+min = 78
+preferred = 78
+max = 88
+
+[nodes.post_process_apply_button.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[[nodes.post_process_apply_button.events]]
+id = "WorkbenchExtension/PostProcessApply"
+event = "Click"
+route = "workbench.extension.post_process.apply"
+
+[nodes.post_process_apply_button.state]
+[nodes.post_process_apply_button.style.self]
+[nodes.post_process_apply_button.style.slot]
+[nodes.post_process_apply_button.slots]
+[nodes.post_process_pass_table]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionPostProcessPassTable"
+classes = [ "workbench-panel", "workbench-module-canvas" ]
+
+[nodes.post_process_pass_table.props]
+input_hoverable = true
+
+[nodes.post_process_pass_table.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.post_process_pass_table.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = 0
+scrollbar_visibility = "Auto"
+
+[nodes.post_process_pass_table.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_pass_table.layout.height]
+stretch = "Stretch"
+
+[[nodes.post_process_pass_table.children]]
+node = "post_process_bloom_row"
+
+[[nodes.post_process_pass_table.children]]
+node = "post_process_tonemap_row"
+
+[[nodes.post_process_pass_table.children]]
+node = "post_process_lut_row"
+
+[[nodes.post_process_pass_table.children]]
+node = "post_process_exposure_warning_row"
+
+[nodes.post_process_bloom_row]
+component = "Table"
+control_id = "WorkbenchExtensionPostProcessBloomTableRow"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.post_process_bloom_row.props]
+text = "Bloom"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Bloom", "0.65 intensity", "threshold 1.0", "Ready" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+value_text = "0.65 intensity   threshold 1.0   Ready"
+
+[nodes.post_process_bloom_row.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_bloom_row.layout.height]
+min = 30
+preferred = 30
+max = 32
+stretch = "Fixed"
+
+[[nodes.post_process_bloom_row.events]]
+id = "WorkbenchExtension/PostProcessBloomTableRow"
+event = "Click"
+route = "workbench.extension.post_process.pass.bloom"
+
+[nodes.post_process_bloom_row.state]
+[nodes.post_process_bloom_row.style.self]
+[nodes.post_process_bloom_row.style.slot]
+[nodes.post_process_bloom_row.slots]
+[nodes.post_process_tonemap_row]
+component = "Table"
+control_id = "WorkbenchExtensionPostProcessTonemapTableRow"
+classes = [ "workbench-table-row", "workbench-primitive", "workbench-row-selected" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.post_process_tonemap_row.props]
+text = "Tonemap"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Tonemap", "Filmic", "exposure +0.4", "Selected" ]
+selected = true
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+value_text = "Filmic   exposure +0.4   Selected"
+
+[nodes.post_process_tonemap_row.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_tonemap_row.layout.height]
+min = 30
+preferred = 30
+max = 32
+stretch = "Fixed"
+
+[[nodes.post_process_tonemap_row.events]]
+id = "WorkbenchExtension/PostProcessTonemapTableRow"
+event = "Click"
+route = "workbench.extension.post_process.pass.tonemap"
+
+[nodes.post_process_tonemap_row.state]
+[nodes.post_process_tonemap_row.style.self]
+[nodes.post_process_tonemap_row.style.slot]
+[nodes.post_process_tonemap_row.slots]
+[nodes.post_process_lut_row]
+component = "Table"
+control_id = "WorkbenchExtensionPostProcessLutTableRow"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.post_process_lut_row.props]
+text = "Color LUT"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Color LUT", "LUT_CityWarm", "33 cube", "Ready" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+value_text = "LUT_CityWarm   33 cube   Ready"
+
+[nodes.post_process_lut_row.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_lut_row.layout.height]
+min = 30
+preferred = 30
+max = 32
+stretch = "Fixed"
+
+[[nodes.post_process_lut_row.events]]
+id = "WorkbenchExtension/PostProcessLutTableRow"
+event = "Click"
+route = "workbench.extension.post_process.pass.lut"
+
+[nodes.post_process_lut_row.state]
+[nodes.post_process_lut_row.style.self]
+[nodes.post_process_lut_row.style.slot]
+[nodes.post_process_lut_row.slots]
+[nodes.post_process_exposure_warning_row]
+component = "Table"
+control_id = "WorkbenchExtensionPostProcessExposureWarningTableRow"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.post_process_exposure_warning_row.props]
+text = "Exposure Warning"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Exposure Warning", "Interior volume", "EV +2.1", "Warning" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+value_text = "Interior volume   EV +2.1   Warning"
+
+[nodes.post_process_exposure_warning_row.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_exposure_warning_row.layout.height]
+min = 30
+preferred = 30
+max = 32
+stretch = "Fixed"
+
+[[nodes.post_process_exposure_warning_row.events]]
+id = "WorkbenchExtension/PostProcessExposureWarningTableRow"
+event = "Click"
+route = "workbench.extension.post_process.pass.exposure_warning"
+
+[nodes.post_process_exposure_warning_row.state]
+[nodes.post_process_exposure_warning_row.style.self]
+[nodes.post_process_exposure_warning_row.style.slot]
+[nodes.post_process_exposure_warning_row.slots]
+[nodes.post_process_output]
+component = "Table"
+control_id = "WorkbenchExtensionPostProcessOutputRow"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.post_process_output.props]
+text = "Post Process"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Post Process", "Preview ready", "1 warning", "stack active" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = false
+input_clickable = false
+input_hoverable = false
+input_focusable = false
+value_text = "Preview ready   1 warning   stack active"
+
+[nodes.post_process_output.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_output.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[nodes.post_process_output.state]
+[nodes.post_process_output.style.self]
+[nodes.post_process_output.style.slot]
+[nodes.post_process_output.slots]
+[nodes.post_process_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionPostProcessRightPanel"
+classes = [ "workbench-panel", "workbench-module-side" ]
+
+[nodes.post_process_right.props]
+responsive_min_tier = "wide"
+responsive_compact_drawer = "module_details"
+
+[nodes.post_process_right.layout]
+z_order = 20
+
+[nodes.post_process_right.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.post_process_right.layout.width]
+min = 320
+preferred = 320
+max = 340
+stretch = "Fixed"
+
+[nodes.post_process_right.layout.height]
+stretch = "Stretch"
+
+[nodes.post_process_right.layout.alignment]
+horizontal = "End"
+vertical = "Fill"
+
+[nodes.post_process_right.layout.anchor]
+x = 1
+
+[nodes.post_process_right.layout.pivot]
+x = 1
+
+[[nodes.post_process_right.children]]
+node = "post_process_details_title"
+
+[[nodes.post_process_right.children]]
+node = "post_process_right_content"
+
+[nodes.post_process_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionPostProcessRightContent"
+
+[nodes.post_process_right_content.props]
+input_hoverable = true
+
+[nodes.post_process_right_content.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.post_process_right_content.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = "$editor.density.gap.small"
+scrollbar_visibility = "Auto"
+
+[nodes.post_process_right_content.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_right_content.layout.height]
+stretch = "Stretch"
+
+[[nodes.post_process_right_content.children]]
+node = "post_process_profile_dropdown_property_row"
+
+[[nodes.post_process_right_content.children]]
+node = "post_process_volume_field_property_row"
+
+[[nodes.post_process_right_content.children]]
+node = "post_process_blend_dropdown_property_row"
+
+[nodes.post_process_details_title]
+component = "Label"
+control_id = "WorkbenchExtensionPostProcessDetailsTitle"
+classes = [ "workbench-section-title", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle"
+
+[nodes.post_process_details_title.props]
+text = "Stack Settings"
+text_overflow = "ellipsis"
+component_variant = "section-title"
+font_size = "$editor.typography.heading.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "primary"
+
+[nodes.post_process_details_title.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_details_title.layout.height]
+min = 28
+preferred = 28
+max = 30
+stretch = "Fixed"
+
+[nodes.post_process_details_title.state]
+[nodes.post_process_details_title.style.self]
+[nodes.post_process_details_title.style.slot]
+[nodes.post_process_details_title.slots]
+[nodes.post_process_profile_dropdown_property_row]
+component = "PropertyRow"
+control_id = "WorkbenchExtensionPostProcessProfileDropdownPropertyRow"
+classes = [ "workbench-property-editor-row", "workbench-composite" ]
+events = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow"
+
+[nodes.post_process_profile_dropdown_property_row.props]
+text = "Profile"
+
+[nodes.post_process_profile_dropdown_property_row.layout]
+clip = true
+
+[nodes.post_process_profile_dropdown_property_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.post_process_profile_dropdown_property_row.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_profile_dropdown_property_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.post_process_profile_dropdown_property_row.children]]
+node = "post_process_profile_dropdown_property_row__name_column"
+
+[[nodes.post_process_profile_dropdown_property_row.children]]
+node = "post_process_profile_dropdown"
+
+[nodes.post_process_profile_dropdown_property_row.children.slot]
+name = "value"
+
+[nodes.post_process_profile_dropdown_property_row.children.slot.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_profile_dropdown_property_row.children.slot.layout.height]
+stretch = "Stretch"
+
+[nodes.post_process_profile_dropdown_property_row.state]
+[nodes.post_process_profile_dropdown_property_row.style.self]
+[nodes.post_process_profile_dropdown_property_row.style.slot]
+[nodes.post_process_profile_dropdown_property_row.slots]
+[nodes.post_process_profile_dropdown]
+component = "Dropdown"
+control_id = "WorkbenchExtensionPostProcessProfileDropdown"
+pixel_snapping = "disabled"
+classes = [ "workbench-field", "workbench-dropdown", "workbench-primitive", "workbench-component-dropdown" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown"
+
+[nodes.post_process_profile_dropdown.props]
+value = "cinematic"
+value_text = "Cinematic"
+options = [ "gameplay|label=Gameplay", "cinematic|label=Cinematic", "debug|label=Debug" ]
+multiple = false
+popup_open = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+selection_state = "single"
+validation_level = "normal"
+background_color = "$editor.surface.recessed"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+open_background_color = "$editor.accent.soft"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+label_color = "$editor.text.secondary"
+icon_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+horizontal_inset = "$editor.density.gap.medium"
+caret_size = "$editor.typography.overlay.size"
+caret_right_inset = "$editor.density.gap.large"
+caret_gap = "$editor.density.gap.small"
+label_top = "$editor.control.border_width"
+label_font_size = "$editor.typography.caption.size"
+label_line_height_ratio = "$editor.typography.line_height"
+value_bottom_inset = "$editor.control.border_width"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.control.border_width"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.post_process_profile_dropdown.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_profile_dropdown.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Stretch"
+
+[[nodes.post_process_profile_dropdown.events]]
+id = "WorkbenchExtension/PostProcessProfileEdit"
+event = "Change"
+route = "workbench.extension.post_process.profile.edit"
+
+[[nodes.post_process_profile_dropdown.events]]
+id = "WorkbenchExtension/PostProcessProfileCommit"
+event = "Submit"
+route = "workbench.extension.post_process.profile.commit"
+
+[nodes.post_process_profile_dropdown.state]
+[nodes.post_process_profile_dropdown.style.self]
+[nodes.post_process_profile_dropdown.style.slot]
+[nodes.post_process_profile_dropdown.slots]
+[nodes.post_process_volume_field_property_row]
+component = "PropertyRow"
+control_id = "WorkbenchExtensionPostProcessVolumeFieldPropertyRow"
+classes = [ "workbench-property-editor-row", "workbench-composite" ]
+events = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow"
+
+[nodes.post_process_volume_field_property_row.props]
+text = "Volume"
+
+[nodes.post_process_volume_field_property_row.layout]
+clip = true
+
+[nodes.post_process_volume_field_property_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.post_process_volume_field_property_row.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_volume_field_property_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.post_process_volume_field_property_row.children]]
+node = "post_process_volume_field_property_row__name_column"
+
+[[nodes.post_process_volume_field_property_row.children]]
+node = "post_process_volume_field"
+
+[nodes.post_process_volume_field_property_row.children.slot]
+name = "value"
+
+[nodes.post_process_volume_field_property_row.children.slot.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_volume_field_property_row.children.slot.layout.height]
+stretch = "Stretch"
+
+[nodes.post_process_volume_field_property_row.state]
+[nodes.post_process_volume_field_property_row.style.self]
+[nodes.post_process_volume_field_property_row.style.slot]
+[nodes.post_process_volume_field_property_row.slots]
+[nodes.post_process_volume_field]
+component = "InputField"
+control_id = "WorkbenchExtensionPostProcessVolumeField"
+classes = [ "workbench-field", "workbench-primitive", "workbench-component-field" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField"
+
+[nodes.post_process_volume_field.props]
+value = "PPV_CityGlobal"
+placeholder = ""
+validation_level = "normal"
+focused = false
+hovered = false
+disabled = false
+editable_text = true
+background_color = "$editor.surface.recessed"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+focused_background_color = "$editor.surface.recessed"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.separator.soft"
+hover_border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+placeholder_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.post_process_volume_field.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_volume_field.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Stretch"
+
+[[nodes.post_process_volume_field.events]]
+id = "WorkbenchExtension/PostProcessVolumeEdit"
+event = "Change"
+route = "workbench.extension.post_process.volume.edit"
+
+[[nodes.post_process_volume_field.events]]
+id = "WorkbenchExtension/PostProcessVolumeCommit"
+event = "Submit"
+route = "workbench.extension.post_process.volume.commit"
+
+[nodes.post_process_volume_field.state]
+[nodes.post_process_volume_field.style.self]
+[nodes.post_process_volume_field.style.slot]
+[nodes.post_process_volume_field.slots]
+[nodes.post_process_blend_dropdown_property_row]
+component = "PropertyRow"
+control_id = "WorkbenchExtensionPostProcessBlendDropdownPropertyRow"
+classes = [ "workbench-property-editor-row", "workbench-composite" ]
+events = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow"
+
+[nodes.post_process_blend_dropdown_property_row.props]
+text = "Blend"
+
+[nodes.post_process_blend_dropdown_property_row.layout]
+clip = true
+
+[nodes.post_process_blend_dropdown_property_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.post_process_blend_dropdown_property_row.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_blend_dropdown_property_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.post_process_blend_dropdown_property_row.children]]
+node = "post_process_blend_dropdown_property_row__name_column"
+
+[[nodes.post_process_blend_dropdown_property_row.children]]
+node = "post_process_blend_dropdown"
+
+[nodes.post_process_blend_dropdown_property_row.children.slot]
+name = "value"
+
+[nodes.post_process_blend_dropdown_property_row.children.slot.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_blend_dropdown_property_row.children.slot.layout.height]
+stretch = "Stretch"
+
+[nodes.post_process_blend_dropdown_property_row.state]
+[nodes.post_process_blend_dropdown_property_row.style.self]
+[nodes.post_process_blend_dropdown_property_row.style.slot]
+[nodes.post_process_blend_dropdown_property_row.slots]
+[nodes.post_process_blend_dropdown]
+component = "Dropdown"
+control_id = "WorkbenchExtensionPostProcessBlendDropdown"
+pixel_snapping = "disabled"
+classes = [ "workbench-field", "workbench-dropdown", "workbench-primitive", "workbench-component-dropdown" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown"
+
+[nodes.post_process_blend_dropdown.props]
+value = "weighted"
+value_text = "Weighted"
+options = [ "override|label=Override", "weighted|label=Weighted", "additive|label=Additive" ]
+multiple = false
+popup_open = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+selection_state = "single"
+validation_level = "normal"
+background_color = "$editor.surface.recessed"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+open_background_color = "$editor.accent.soft"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+label_color = "$editor.text.secondary"
+icon_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+horizontal_inset = "$editor.density.gap.medium"
+caret_size = "$editor.typography.overlay.size"
+caret_right_inset = "$editor.density.gap.large"
+caret_gap = "$editor.density.gap.small"
+label_top = "$editor.control.border_width"
+label_font_size = "$editor.typography.caption.size"
+label_line_height_ratio = "$editor.typography.line_height"
+value_bottom_inset = "$editor.control.border_width"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.control.border_width"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.post_process_blend_dropdown.layout.width]
+stretch = "Stretch"
+
+[nodes.post_process_blend_dropdown.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Stretch"
+
+[[nodes.post_process_blend_dropdown.events]]
+id = "WorkbenchExtension/PostProcessBlendEdit"
+event = "Change"
+route = "workbench.extension.post_process.blend.edit"
+
+[[nodes.post_process_blend_dropdown.events]]
+id = "WorkbenchExtension/PostProcessBlendCommit"
+event = "Submit"
+route = "workbench.extension.post_process.blend.commit"
+
+[nodes.post_process_blend_dropdown.state]
+[nodes.post_process_blend_dropdown.style.self]
+[nodes.post_process_blend_dropdown.style.slot]
+[nodes.post_process_blend_dropdown.slots]
+[nodes.post_process_profile_dropdown_property_row__name_column]
+component = "Container"
+
+[nodes.post_process_profile_dropdown_property_row__name_column.layout.width]
+min = 60
+preferred = 105
+max = 105
+stretch = "Fixed"
+
+[nodes.post_process_profile_dropdown_property_row__name_column.layout.height]
+stretch = "Stretch"
+
+[nodes.post_process_volume_field_property_row__name_column]
+component = "Container"
+
+[nodes.post_process_volume_field_property_row__name_column.layout.width]
+min = 60
+preferred = 105
+max = 105
+stretch = "Fixed"
+
+[nodes.post_process_volume_field_property_row__name_column.layout.height]
+stretch = "Stretch"
+
+[nodes.post_process_blend_dropdown_property_row__name_column]
+component = "Container"
+
+[nodes.post_process_blend_dropdown_property_row__name_column.layout.width]
+min = 60
+preferred = 105
+max = 105
+stretch = "Fixed"
+
+[nodes.post_process_blend_dropdown_property_row__name_column.layout.height]
+stretch = "Stretch"
+
+[penpot_host_colors]
+primary = "#60aeff"
+accent = "#60aeff"
+"material.primary" = "#60aeff"
+material_color_primary = "#60aeff"
+on_primary = "#151515"
+"material.on_primary" = "#151515"
+material_color_on_primary = "#151515"
+surface = "#2f2f2f"
+"material.surface" = "#2f2f2f"
+surface_inset = "#0f0f0f"
+"material.surface_inset" = "#0f0f0f"
+surface_hover = "#454545"
+"material.surface_hover" = "#454545"
+surface_pressed = "#383838"
+"material.surface_pressed" = "#383838"
+surface_selected = "#243f5a"
+"material.surface_selected" = "#243f5a"
+disabled = "#2b2b2b"
+"material.disabled" = "#2b2b2b"
+border = "#484848"
+outline = "#484848"
+"material.outline" = "#484848"
+focus = "#66b2ff"
+focus_ring = "#66b2ff"
+"material.focus_ring" = "#66b2ff"
+text = "#e8e8e8"
+on_surface = "#e8e8e8"
+"material.text" = "#e8e8e8"
+"material.on_surface" = "#e8e8e8"
+text_muted = "#b3b3b3"
+muted = "#b3b3b3"
+"material.text_muted" = "#b3b3b3"
+text_disabled = "#737373"
+"material.text_disabled" = "#737373"
+warning = "#dcac50"
+"material.warning" = "#dcac50"
+error = "#eb605c"
+danger = "#eb605c"
+"material.error" = "#eb605c"
+success = "#55be78"
+"material.success" = "#55be78"
+info = "#5faae6"
+"material.info" = "#5faae6"
+
+[penpot_host_palette]
+surface = [ "#151515", "#242424", "#2f2f2f", "#383838" ]
+surface_recessed = "#0f0f0f"
+surface_hover = "#454545"
+surface_selected = "#243f5a"
+surface_disabled = "#2b2b2b"
+accent = "#60aeff"
+accent_soft = "#253f59"
+border = "#484848"
+border_disabled = "#363636"
+separator_strong = "#565656"
+separator_soft = "#333333"
+text_primary = "#e8e8e8"
+text_secondary = "#b3b3b3"
+text_disabled = "#737373"
+success = "#55be78"
+success_container = "#1d472f"
+info = "#5faae6"
+info_container = "#18395b"
+warning = "#dcac50"
+warning_container = "#463112"
+error = "#eb605c"
+error_container = "#4c2427"
+popup = "#242424"
+track = "#3b3b3b"
+focus_ring = "#66b2ff"
+shadow = "#00000073"
+
+[tokens]
+"theme.palette.surface.0" = "#151515"
+"theme.palette.surface.1" = "#242424"
+"theme.palette.surface.2" = "#2f2f2f"
+"theme.palette.surface.3" = "#383838"
+"theme.palette.text.primary" = "#e8e8e8"
+"theme.palette.text.secondary" = "#b3b3b3"
+"theme.palette.text.disabled" = "#737373"
+"theme.palette.accent" = "#60aeff"
+"theme.palette.success" = "#55be78"
+"theme.palette.info" = "#5faae6"
+"theme.palette.warning" = "#dcac50"
+"theme.palette.error" = "#eb605c"
+"theme.palette.separator" = "#484848"
+"editor.surface.0" = "#151515"
+"editor.surface.1" = "#242424"
+"editor.surface.2" = "#2f2f2f"
+"editor.surface.3" = "#383838"
+"editor.surface.recessed" = "#0f0f0f"
+"editor.surface.hover" = "#454545"
+"editor.surface.selected" = "#243f5a"
+"editor.surface.disabled" = "#2b2b2b"
+"editor.accent" = "#60aeff"
+"editor.accent.soft" = "#253f59"
+"editor.border" = "#484848"
+"editor.border.disabled" = "#363636"
+"editor.separator.strong" = "#565656"
+"editor.separator.soft" = "#333333"
+"editor.text.primary" = "#e8e8e8"
+"editor.text.secondary" = "#b3b3b3"
+"editor.text.disabled" = "#737373"
+"editor.semantic.success" = "#55be78"
+"editor.semantic.success.container" = "#1d472f"
+"editor.semantic.info" = "#5faae6"
+"editor.semantic.info.container" = "#18395b"
+"editor.semantic.warning" = "#dcac50"
+"editor.semantic.warning.container" = "#463112"
+"editor.semantic.error" = "#eb605c"
+"editor.semantic.error.container" = "#4c2427"
+"editor.popup" = "#242424"
+"editor.track" = "#3b3b3b"
+"editor.focus.ring" = "#66b2ff"
+"editor.shadow" = "#00000073"
+"editor.typography.ui.family" = "Fira Sans"
+"editor.typography.ui.strong.family" = "Fira Sans"
+"editor.typography.code.family" = "Fira Mono"
+"editor.typography.utility_tab.text_role" = "ui"
+"editor.typography.font_smoothing" = "grayscale"
+"editor.typography.body.size" = 14
+"editor.typography.caption.size" = 12
+"editor.typography.overlay.size" = 12
+"editor.typography.heading.size" = 16
+"editor.typography.title.size" = 20
+"editor.typography.body.weight" = 400
+"editor.typography.medium.weight" = 500
+"editor.typography.strong.weight" = 600
+"editor.typography.emphasis.weight" = 700
+"editor.typography.code.weight" = 400
+"editor.typography.line_height" = 1.4
+"editor.control.height.large" = 48
+"editor.control.height.default" = 32
+"editor.control.height.compact" = 32
+"editor.control.height.dense" = 28
+"editor.control.radius.small" = 4
+"editor.control.radius.control" = 4
+"editor.control.radius.large" = 8
+"editor.control.radius.panel" = 0
+"editor.control.radius.pill" = 999
+"editor.control.border_width" = 1
+"editor.chrome.top_bar.height" = 25
+"editor.chrome.host_bar.height" = 32
+"editor.chrome.workbench_toolbar.height" = 66
+"editor.chrome.workbench_toolbar.command_row.height" = 34
+"editor.chrome.workbench_toolbar.popup.command_offset_y" = 29
+"editor.chrome.workbench_toolbar.popup.module_offset_y" = -6
+"editor.chrome.status_bar.height" = 24
+"editor.chrome.panel_header.height" = 30
+"editor.chrome.document_header.height" = 31
+"editor.chrome.viewport_toolbar.height" = 28
+"editor.chrome.activity_rail.width" = 34
+"editor.chrome.separator.thickness" = 1
+"editor.chrome.splitter.hit_size" = 8
+"editor.density.gap.xsmall" = 2
+"editor.density.gap.tight" = 4
+"editor.density.gap.small" = 4
+"editor.density.gap.regular" = 8
+"editor.density.gap.medium" = 8
+"editor.density.gap.large" = 12
+"editor.density.gap.group" = 24
+"editor.density.drawer_padding" = 12
+"editor.density.panel_padding" = 16
+"editor.density.toolbar_action_width" = 76
+"editor.density.toolbar_wide_action_width" = 96
+"editor.density.ui_asset_action.min_width" = 40
+"editor.density.ui_asset_action.preferred_width" = 52
+"editor.density.ui_asset_action.max_width" = 64
+"editor.density.ui_asset.side.min_width" = 128
+"editor.density.ui_asset.side.preferred_width" = 220
+"editor.density.ui_asset.center.min_width" = 256
+"editor.density.ui_asset.center.preferred_width" = 420
+"editor.density.ui_asset.header_kind.min_width" = 64
+"editor.density.ui_asset.header_kind.preferred_width" = 70
+"editor.density.ui_asset.header_kind.max_width" = 84
+"editor.density.ui_asset.tool.min_width" = 56
+"editor.density.ui_asset.tool.preferred_width" = 64
+"editor.density.ui_asset.tool.max_width" = 80
+"editor.density.command_palette.min_width" = 520
+"editor.density.command_palette.preferred_width" = 560
+"editor.density.command_palette.max_width" = 640
+"editor.density.command_palette.min_height" = 180
+"editor.density.command_palette.preferred_height" = 220
+"editor.density.command_palette.max_height" = 280
+"editor.density.dialog.min_width" = 420
+"editor.density.dialog.preferred_width" = 480
+"editor.density.dialog.max_width" = 560
+"editor.density.dialog.min_height" = 180
+"editor.density.dialog.preferred_height" = 220
+"editor.density.dialog.max_height" = 320
+"editor.density.confirm_dialog.preferred_width" = 460
+"editor.density.confirm_dialog.max_width" = 540
+"editor.density.confirm_dialog.min_height" = 174
+"editor.density.confirm_dialog.preferred_height" = 210
+"editor.density.confirm_dialog.max_height" = 300
+"editor.density.notification_panel.min_width" = 280
+"editor.density.notification_panel.preferred_width" = 320
+"editor.density.notification_panel.max_width" = 380
+"editor.density.notification_panel.min_height" = 160
+"editor.density.notification_panel.preferred_height" = 220
+"editor.density.notification_panel.max_height" = 320
+"editor.density.caption.min_height" = 20
+"editor.density.caption.preferred_height" = 22
+"editor.density.caption.max_height" = 24
+"editor.density.label.min_height" = 22
+"editor.density.label.preferred_height" = 24
+"editor.density.label.max_height" = 32
+"editor.density.chip.min_width" = 40
+"editor.density.chip.preferred_width" = 80
+"editor.density.chip.max_width" = 160
+"editor.density.axis_value_field.min_width" = 54
+"editor.density.axis_value_field.preferred_width" = 62
+"editor.density.axis_value_field.max_width" = 72
+"editor.density.row_height" = 28
+"editor.density.left_drawer_width" = 332
+"editor.density.right_drawer_width" = 404
+"editor.density.bottom_output_height" = 228
+"editor.density.breakpoint_ultra_width" = 480
+"editor.density.breakpoint_narrow_width" = 640
+"editor.density.breakpoint_wide_width" = 1260
+"editor.density.compact_side_width" = 1100
+"editor.density.ultra_compact_side_width" = 760
+"editor.density.compact_left_drawer_max_width" = 340
+"editor.density.compact_right_drawer_max_width" = 220
+"editor.density.compact_side_min_width" = 196
+"editor.density.minimum_document_width_fraction" = 0.5
+"editor.density.ultra_compact_left_drawer_max_width" = 220
+"editor.density.ultra_compact_right_drawer_max_width" = 160
+"editor.density.compact_bottom_available_height" = 900
+"editor.density.compact_bottom_max_height" = 148
+"editor.density.compact_bottom_max_available_fraction" = 0.23
+"editor.density.compact_bottom_min_height" = 120
+"editor.density.ultra_compact_bottom_available_height" = 420
+"editor.density.ultra_compact_bottom_max_height" = 96
+"editor.density.ultra_compact_bottom_max_available_fraction" = 0.2
+"editor.density.ultra_compact_bottom_min_height" = 80
+"editor.density.minimum_window_width" = 640
+"editor.density.minimum_window_height" = 420
+"editor.density.ultra_minimum_window_width" = 420
+"editor.density.ultra_minimum_window_height" = 360
+"editor.state.default" = "surface_1"
+"editor.state.hovered" = "surface_2"
+"editor.state.pressed" = "surface_3"
+"editor.state.selected" = "surface_selected"
+"editor.state.focused" = "surface_1"
+"editor.state.disabled" = "text_disabled"
+"editor.state.loading" = "accent"
+
+[penpot_original_imports]
+widgets = [ "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton", "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown", "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField", "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow", "res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow", "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle", "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow", "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow" ]
+styles = []
+
+[penpot_field_icons]
+search = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Search\">\n  <circle cx=\"10.5\" cy=\"10.5\" r=\"5.4\" fill=\"none\" stroke=\"#cbd2dc\" stroke-width=\"1.8\"/>\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-width=\"1.9\" d=\"m14.5 14.5 4.5 4.5\"/>\n</svg>\n"
+clear = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"512\" height=\"512\" viewBox=\"0 0 512 512\"><line x1=\"368\" y1=\"368\" x2=\"144\" y2=\"144\" style=\"fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px\"/><line x1=\"368\" y1=\"144\" x2=\"144\" y2=\"368\" style=\"fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px\"/></svg>"
+stepper = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Field stepper\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\" d=\"m7 9 5-5 5 5M7 15l5 5 5-5\"/>\n</svg>\n"
+
+[penpot_dynamic_review_state]
+schema = "dev.zircon.zui.dynamic-review-state"
+version = 1
+sourcePath = "zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_post_process_workspace.zui"
+selectedNodeIds = [ "post_process_workspace" ]
+selectionPolicy = "authored-visible-root"

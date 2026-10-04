@@ -4,6 +4,8 @@ use icu_properties::{CodePointMapData, CodePointMapDataBorrowed};
 static COMPILED_JOINING_TYPES: CodePointMapDataBorrowed<'static, JoiningType> =
     CodePointMapData::<JoiningType>::new();
 
+/// 两端对齐用来筛选阿拉伯延展候选的 Unicode 连写属性表，按逻辑字符顺序判断连接关系。
+/// 候选仍须由塑形后端按所选字体与语言确认；属性相连不等于可直接插入延展字形。
 #[derive(Clone, Copy)]
 pub(crate) struct TextJoiningTypeMap(CodePointMapDataBorrowed<'static, JoiningType>);
 
@@ -61,18 +63,5 @@ pub(crate) fn compiled_joining_type_map() -> TextJoiningTypeMap {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn compiled_map_exposes_all_joining_directions() {
-        let map = compiled_joining_type_map();
-
-        assert_eq!(map.get('\u{0620}'), TextJoiningType::DualJoining);
-        assert_eq!(map.get('\u{0870}'), TextJoiningType::RightJoining);
-        assert_eq!(map.get('\u{10acd}'), TextJoiningType::LeftJoining);
-        assert_eq!(map.get('\u{0640}'), TextJoiningType::JoinCausing);
-        assert_eq!(map.get('\u{064e}'), TextJoiningType::Transparent);
-        assert_eq!(map.get('A'), TextJoiningType::NonJoining);
-    }
-}
+#[path = "tests/joining_type.rs"]
+mod tests;

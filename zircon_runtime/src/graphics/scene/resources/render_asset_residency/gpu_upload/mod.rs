@@ -15,4 +15,5 @@ pub(crate) use submit::{
 };
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

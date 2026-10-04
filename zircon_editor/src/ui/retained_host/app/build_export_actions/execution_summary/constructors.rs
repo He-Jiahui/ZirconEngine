@@ -5,12 +5,24 @@ use super::{DesktopExportExecutionState, DesktopExportExecutionSummary};
 impl DesktopExportExecutionSummary {
     pub(in crate::ui::retained_host::app) fn from_report(
         output_root: PathBuf,
-        report: crate::ui::host::EditorExportBuildReport,
+        mut report: crate::ui::host::EditorExportBuildReport,
     ) -> Self {
+        let state = if let Some(reason) = report.failure_reason() {
+            if !report
+                .fatal_diagnostics
+                .iter()
+                .any(|message| message == reason)
+            {
+                report.fatal_diagnostics.push(reason.to_owned());
+            }
+            DesktopExportExecutionState::Failed
+        } else {
+            DesktopExportExecutionState::Exported
+        };
         Self {
             profile_name: report.plan.profile.name,
             output_root,
-            state: DesktopExportExecutionState::Exported,
+            state,
             invoked_cargo: report.invoked_cargo,
             generated_files: report.generated_files.len(),
             copied_packages: report.copied_packages.len(),
@@ -53,3 +65,7 @@ impl DesktopExportExecutionSummary {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "constructors/tests/astra_outcome_tests.rs"]
+mod astra_outcome_tests;

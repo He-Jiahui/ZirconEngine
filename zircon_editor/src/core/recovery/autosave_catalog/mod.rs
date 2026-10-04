@@ -10,10 +10,11 @@ pub use report::{
     AutosaveRecoveryCatalogDiagnostic, AutosaveRecoveryCatalogDiagnosticKind,
     AutosaveRecoveryCatalogReport,
 };
-pub(super) use snapshot_metadata::{
-    AutosaveSnapshotMetadata, snapshot_metadata_path, snapshot_metadata_sequence,
+pub(crate) use snapshot_metadata::{
+    snapshot_metadata_path, snapshot_metadata_sequence, AutosaveSnapshotMetadata,
 };
 pub use source_path::AutosaveSourcePath;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

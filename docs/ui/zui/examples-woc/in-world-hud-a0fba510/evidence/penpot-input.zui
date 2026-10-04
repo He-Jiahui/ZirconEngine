@@ -1,0 +1,5148 @@
+penpot_dependency_sources = [ "examples/woc/assets/ui/shell/shell_theme.zui", "examples/woc/assets/ui/hud/hud_theme.zui" ]
+penpot_original_source = "[asset]\nkind = \"view\"\nid = \"res://ui/hud/in_world_hud.zui\"\nversion = 2\ndisplay_name = \"World of ClaudeCraft In-World HUD\"\n\n[imports]\nwidgets = []\nstyles = [\"res://ui/shell/shell_theme.zui\", \"res://ui/hud/hud_theme.zui\"]\nresources = []\n\n[root]\nnode = \"hud_root\"\n\n[nodes.combat_live]\ncomponent = \"Label\"\ncontrol_id = \"CombatLiveRegion\"\nclasses = [\"woc-live-region\"]\nprops = { text = \"\", overflow = \"elide\" }\nlayout = { width = { min = 1.0, preferred = 1.0, max = 1.0, stretch = \"Fixed\" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = \"Fixed\" } }\n\n[nodes.target_live]\ncomponent = \"Label\"\ncontrol_id = \"TargetLiveRegion\"\nclasses = [\"woc-live-region\"]\nprops = { text = \"\", overflow = \"elide\" }\nlayout = { width = { min = 1.0, preferred = 1.0, max = 1.0, stretch = \"Fixed\" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = \"Fixed\" } }\n\n[nodes.chat_live]\ncomponent = \"Label\"\ncontrol_id = \"ChatLiveRegion\"\nclasses = [\"woc-live-region\"]\nprops = { text = \"\", overflow = \"elide\" }\nlayout = { width = { min = 1.0, preferred = 1.0, max = 1.0, stretch = \"Fixed\" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = \"Fixed\" } }\n\n[nodes.live_regions]\ncomponent = \"VerticalBox\"\ncontrol_id = \"HudLiveRegions\"\nlayout = { container = { kind = \"VerticalBox\", gap = 0.0 }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 1.0, y = 1.0 }, position = { x = -8.0, y = -8.0 }, width = { min = 1.0, preferred = 1.0, max = 1.0, stretch = \"Fixed\" }, height = { min = 3.0, preferred = 3.0, max = 3.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"combat_live\" }, { node = \"target_live\" }, { node = \"chat_live\" }]\n\n[nodes.target_portrait]\ncomponent = \"Space\"\ncontrol_id = \"TargetPortraitHost\"\nclasses = [\"woc-portrait\"]\nlayout = { width = { min = 60.0, preferred = 60.0, max = 60.0, stretch = \"Fixed\" }, height = { min = 60.0, preferred = 60.0, max = 60.0, stretch = \"Fixed\" } }\n\n[nodes.target_level]\ncomponent = \"Label\"\ncontrol_id = \"TargetLevel\"\nclasses = [\"woc-level-chip\"]\nprops = { text = \"\", text_align = \"center\" }\nlayout = { anchor = { x = 1.0, y = 1.0 }, pivot = { x = 1.0, y = 1.0 }, position = { x = 2.0, y = 2.0 }, width = { min = 24.0, preferred = 24.0, max = 24.0, stretch = \"Fixed\" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = \"Fixed\" } }\n\n[nodes.target_portrait_wrap]\ncomponent = \"Overlay\"\ncontrol_id = \"TargetPortrait\"\nlayout = { container = { kind = \"Overlay\" }, width = { min = 64.0, preferred = 64.0, max = 64.0, stretch = \"Fixed\" }, height = { min = 64.0, preferred = 64.0, max = 64.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"target_portrait\" }, { node = \"target_level\" }]\n\n[nodes.target_name]\ncomponent = \"Label\"\ncontrol_id = \"TargetName\"\nclasses = [\"woc-unit-name\"]\nprops = { text = \"\", overflow = \"elide\", text_align = \"right\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = \"Fixed\" } }\n\n[nodes.target_health_fill]\ncomponent = \"Space\"\ncontrol_id = \"TargetHealthFill\"\nclasses = [\"woc-health-fill\"]\nlayout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.target_absorb]\ncomponent = \"Space\"\ncontrol_id = \"TargetAbsorbFill\"\nclasses = [\"woc-absorb-fill\"]\nprops = { visibility = \"collapsed\" }\nlayout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.target_health_text]\ncomponent = \"Label\"\ncontrol_id = \"TargetHealthText\"\nclasses = [\"woc-bar-text\"]\nprops = { text = \"\", text_align = \"center\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.target_health]\ncomponent = \"Overlay\"\ncontrol_id = \"TargetHealth\"\nclasses = [\"woc-bar-rail\"]\nlayout = { container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"target_health_fill\" }, { node = \"target_absorb\" }, { node = \"target_health_text\" }]\n\n[nodes.target_resource_fill]\ncomponent = \"Space\"\ncontrol_id = \"TargetResourceFill\"\nclasses = [\"woc-resource-fill\"]\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.target_resource_text]\ncomponent = \"Label\"\ncontrol_id = \"TargetResourceText\"\nclasses = [\"woc-bar-text\"]\nprops = { text = \"\", text_align = \"center\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.target_resource]\ncomponent = \"Overlay\"\ncontrol_id = \"TargetResource\"\nclasses = [\"woc-bar-rail\"]\nlayout = { container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"target_resource_fill\" }, { node = \"target_resource_text\" }]\n\n[nodes.target_cast_fill]\ncomponent = \"Space\"\ncontrol_id = \"TargetCastFill\"\nclasses = [\"woc-cast-fill\"]\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.target_cast_text]\ncomponent = \"Label\"\ncontrol_id = \"TargetCastText\"\nclasses = [\"woc-bar-text\"]\nprops = { text = \"\", text_align = \"center\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.target_cast_bar]\ncomponent = \"Overlay\"\ncontrol_id = \"TargetCastBar\"\nclasses = [\"woc-bar-rail\"]\nprops = { visibility = \"collapsed\" }\nlayout = { container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"target_cast_fill\" }, { node = \"target_cast_text\" }]\n\n[nodes.target_info]\ncomponent = \"VerticalBox\"\ncontrol_id = \"TargetInfo\"\nlayout = { container = { kind = \"VerticalBox\", gap = 2.0 }, padding = { left = 8.0, right = 18.0, top = 5.0, bottom = 5.0 }, width = { min = 190.0, preferred = 190.0, max = 190.0, stretch = \"Fixed\" }, height = { min = 64.0, preferred = 64.0, max = 82.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"target_name\" }, { node = \"target_health\" }, { node = \"target_resource\" }, { node = \"target_cast_bar\" }]\n\n[nodes.target_body]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"TargetFrameBody\"\nclasses = [\"woc-unit-frame\", \"woc-unit-frame-target\"]\nlayout = { container = { kind = \"HorizontalBox\", gap = 0.0 }, width = { min = 244.0, preferred = 244.0, max = 244.0, stretch = \"Fixed\" }, height = { min = 68.0, preferred = 68.0, max = 88.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"target_info\" }, { node = \"target_portrait_wrap\" }]\n\n[nodes.target_debuffs]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"TargetDebuffs\"\nlayout = { container = { kind = \"HorizontalBox\", gap = 4.0 }, anchor = { x = 0.0, y = 1.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 6.0 }, width = { min = 190.0, preferred = 244.0, max = 320.0, stretch = \"Fixed\" }, height = { min = 28.0, preferred = 28.0, max = 56.0, stretch = \"Fixed\" } }\n\n[nodes.tot_portrait]\ncomponent = \"Space\"\ncontrol_id = \"TargetOfTargetPortraitHost\"\nclasses = [\"woc-portrait\"]\nlayout = { width = { min = 42.0, preferred = 42.0, max = 42.0, stretch = \"Fixed\" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = \"Fixed\" } }\n\n[nodes.tot_name]\ncomponent = \"Label\"\ncontrol_id = \"TargetOfTargetName\"\nclasses = [\"woc-unit-name\"]\nprops = { text = \"\", overflow = \"elide\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = \"Fixed\" } }\n\n[nodes.tot_health_fill]\ncomponent = \"Space\"\ncontrol_id = \"TargetOfTargetHealthFill\"\nclasses = [\"woc-health-fill\"]\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.tot_health_text]\ncomponent = \"Label\"\ncontrol_id = \"TargetOfTargetHealthText\"\nclasses = [\"woc-bar-text\"]\nprops = { text = \"\", text_align = \"center\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.tot_health]\ncomponent = \"Overlay\"\ncontrol_id = \"TargetOfTargetHealth\"\nclasses = [\"woc-bar-rail\"]\nlayout = { container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"tot_health_fill\" }, { node = \"tot_health_text\" }]\n\n[nodes.tot_info]\ncomponent = \"VerticalBox\"\nlayout = { container = { kind = \"VerticalBox\", gap = 2.0 }, padding = { left = 7.0, right = 7.0, top = 4.0, bottom = 4.0 }, width = { min = 132.0, preferred = 132.0, max = 132.0, stretch = \"Fixed\" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"tot_name\" }, { node = \"tot_health\" }]\n\n[nodes.target_of_target]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"TargetOfTargetFrame\"\nclasses = [\"woc-unit-frame\"]\nprops = { visibility = \"collapsed\" }\nlayout = { container = { kind = \"HorizontalBox\", gap = 0.0 }, anchor = { x = 1.0, y = 1.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = 0.0, y = 6.0 }, width = { min = 174.0, preferred = 174.0, max = 174.0, stretch = \"Fixed\" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"tot_info\" }, { node = \"tot_portrait\" }]\n\n[nodes.target_frame]\ncomponent = \"Overlay\"\ncontrol_id = \"TargetFrame\"\nprops = { visibility = \"collapsed\" }\nlayout = { container = { kind = \"Overlay\" }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 12.0, y = 12.0 }, width = { min = 244.0, preferred = 244.0, max = 320.0, stretch = \"Fixed\" }, height = { min = 68.0, preferred = 68.0, max = 148.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"target_body\" }, { node = \"target_debuffs\" }, { node = \"target_of_target\" }]\n\n[nodes.quest_title]\ncomponent = \"Label\"\ncontrol_id = \"QuestTrackerTitle\"\nclasses = [\"woc-section-title\"]\nprops = { text = \"Quests\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = \"Fixed\" } }\n\n[nodes.quest_name]\ncomponent = \"Label\"\ncontrol_id = \"QuestTrackerName\"\nclasses = [\"woc-label\"]\nprops = { text = \"\", overflow = \"elide\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = \"Fixed\" } }\n\n[nodes.quest_objective]\ncomponent = \"Label\"\ncontrol_id = \"QuestTrackerObjective\"\nclasses = [\"woc-muted\"]\nprops = { text = \"\", overflow = \"wrap\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 38.0, preferred = 44.0, max = 72.0, stretch = \"Fixed\" } }\n\n[nodes.quest_tracker]\ncomponent = \"VerticalBox\"\ncontrol_id = \"QuestTracker\"\nclasses = [\"woc-tracker\"]\nlayout = { container = { kind = \"VerticalBox\", gap = 3.0 }, padding = { left = 12.0, right = 12.0, top = 9.0, bottom = 9.0 }, width = { min = 220.0, preferred = 260.0, max = 320.0, stretch = \"Fixed\" }, height = { min = 92.0, preferred = 106.0, max = 148.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"quest_title\" }, { node = \"quest_name\" }, { node = \"quest_objective\" }]\n\n[nodes.tracker_stack]\ncomponent = \"VerticalBox\"\ncontrol_id = \"RightTrackerStack\"\nlayout = { container = { kind = \"VerticalBox\", gap = 8.0 }, anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -24.0, y = 226.0 }, width = { min = 220.0, preferred = 260.0, max = 320.0, stretch = \"Fixed\" }, height = { min = 92.0, preferred = 106.0, max = 360.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"quest_tracker\" }]\n\n[nodes.minimap_surface]\ncomponent = \"Space\"\ncontrol_id = \"MinimapSurfaceHost\"\nclasses = [\"woc-minimap\"]\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.zone_name]\ncomponent = \"Label\"\ncontrol_id = \"ZoneName\"\nclasses = [\"woc-section-title\"]\nprops = { text = \"Eastbrook Vale\", text_align = \"center\", overflow = \"elide\" }\nlayout = { anchor = { x = 0.5, y = 0.0 }, pivot = { x = 0.5, y = 1.0 }, position = { x = 0.0, y = -4.0 }, width = { min = 150.0, preferred = 180.0, max = 220.0, stretch = \"Fixed\" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = \"Fixed\" } }\n\n[nodes.minimap_coords]\ncomponent = \"Label\"\ncontrol_id = \"MinimapCoordinates\"\nclasses = [\"woc-muted\"]\nprops = { text = \"0, 0\", text_align = \"center\" }\nlayout = { anchor = { x = 0.5, y = 1.0 }, pivot = { x = 0.5, y = 0.0 }, position = { x = 0.0, y = 4.0 }, width = { min = 90.0, preferred = 120.0, max = 140.0, stretch = \"Fixed\" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = \"Fixed\" } }\n\n[nodes.minimap_cluster]\ncomponent = \"Overlay\"\ncontrol_id = \"MinimapCluster\"\nlayout = { container = { kind = \"Overlay\" }, anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -24.0, y = 28.0 }, width = { min = 180.0, preferred = 180.0, max = 180.0, stretch = \"Fixed\" }, height = { min = 180.0, preferred = 180.0, max = 180.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"minimap_surface\" }, { node = \"zone_name\" }, { node = \"minimap_coords\" }]\n\n[nodes.player_portrait]\ncomponent = \"Space\"\ncontrol_id = \"PlayerPortraitHost\"\nclasses = [\"woc-portrait\"]\nlayout = { width = { min = 60.0, preferred = 60.0, max = 60.0, stretch = \"Fixed\" }, height = { min = 60.0, preferred = 60.0, max = 60.0, stretch = \"Fixed\" } }\n\n[nodes.player_level]\ncomponent = \"Label\"\ncontrol_id = \"PlayerLevel\"\nclasses = [\"woc-level-chip\"]\nprops = { text = \"1\", text_align = \"center\" }\nlayout = { anchor = { x = 0.0, y = 1.0 }, pivot = { x = 0.0, y = 1.0 }, position = { x = -2.0, y = 2.0 }, width = { min = 24.0, preferred = 24.0, max = 24.0, stretch = \"Fixed\" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = \"Fixed\" } }\n\n[nodes.player_portrait_wrap]\ncomponent = \"Overlay\"\ncontrol_id = \"PlayerPortrait\"\nlayout = { container = { kind = \"Overlay\" }, width = { min = 64.0, preferred = 64.0, max = 64.0, stretch = \"Fixed\" }, height = { min = 64.0, preferred = 64.0, max = 64.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"player_portrait\" }, { node = \"player_level\" }]\n\n[nodes.player_name]\ncomponent = \"Label\"\ncontrol_id = \"PlayerName\"\nclasses = [\"woc-unit-name\"]\nprops = { text = \"\", overflow = \"elide\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = \"Fixed\" } }\n\n[nodes.player_health_fill]\ncomponent = \"Space\"\ncontrol_id = \"PlayerHealthFill\"\nclasses = [\"woc-health-fill\"]\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.player_absorb]\ncomponent = \"Space\"\ncontrol_id = \"PlayerAbsorbFill\"\nclasses = [\"woc-absorb-fill\"]\nprops = { visibility = \"collapsed\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.player_health_text]\ncomponent = \"Label\"\ncontrol_id = \"PlayerHealthText\"\nclasses = [\"woc-bar-text\"]\nprops = { text = \"\", text_align = \"center\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.player_health]\ncomponent = \"Overlay\"\ncontrol_id = \"PlayerHealth\"\nclasses = [\"woc-bar-rail\"]\nlayout = { container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"player_health_fill\" }, { node = \"player_absorb\" }, { node = \"player_health_text\" }]\n\n[nodes.player_resource_fill]\ncomponent = \"Space\"\ncontrol_id = \"PlayerResourceFill\"\nclasses = [\"woc-resource-fill\"]\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.player_resource_text]\ncomponent = \"Label\"\ncontrol_id = \"PlayerResourceText\"\nclasses = [\"woc-bar-text\"]\nprops = { text = \"\", text_align = \"center\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.player_resource]\ncomponent = \"Overlay\"\ncontrol_id = \"PlayerResource\"\nclasses = [\"woc-bar-rail\"]\nlayout = { container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"player_resource_fill\" }, { node = \"player_resource_text\" }]\n\n[nodes.player_info]\ncomponent = \"VerticalBox\"\ncontrol_id = \"PlayerInfo\"\nlayout = { container = { kind = \"VerticalBox\", gap = 2.0 }, padding = { left = 14.0, right = 8.0, top = 5.0, bottom = 5.0 }, width = { min = 520.0, preferred = 520.0, max = 520.0, stretch = \"Fixed\" }, height = { min = 64.0, preferred = 64.0, max = 64.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"player_name\" }, { node = \"player_health\" }, { node = \"player_resource\" }]\n\n[nodes.player_frame]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"PlayerFrame\"\nclasses = [\"woc-unit-frame\"]\nlayout = { container = { kind = \"HorizontalBox\", gap = 0.0 }, width = { min = 612.0, preferred = 612.0, max = 612.0, stretch = \"Fixed\" }, height = { min = 68.0, preferred = 68.0, max = 68.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"player_portrait_wrap\" }, { node = \"player_info\" }]\n\n[nodes.player_cast_fill]\ncomponent = \"Space\"\ncontrol_id = \"PlayerCastFill\"\nclasses = [\"woc-cast-fill\"]\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.player_cast_text]\ncomponent = \"Label\"\ncontrol_id = \"PlayerCastText\"\nclasses = [\"woc-bar-text\"]\nprops = { text = \"\", text_align = \"center\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.player_cast_bar]\ncomponent = \"Overlay\"\ncontrol_id = \"PlayerCastBar\"\nclasses = [\"woc-bar-rail\"]\nprops = { visibility = \"collapsed\" }\nlayout = { container = { kind = \"Overlay\" }, width = { min = 300.0, preferred = 420.0, max = 612.0, stretch = \"Fixed\" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"player_cast_fill\" }, { node = \"player_cast_text\" }]\n\n[nodes.xp_fill]\ncomponent = \"Space\"\ncontrol_id = \"ExperienceFill\"\nclasses = [\"woc-xp-fill\"]\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.xp_rested]\ncomponent = \"Space\"\ncontrol_id = \"ExperienceRestedFill\"\nclasses = [\"woc-xp-rested\"]\nprops = { visibility = \"collapsed\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.xp_text]\ncomponent = \"Label\"\ncontrol_id = \"ExperienceText\"\nclasses = [\"woc-bar-text\"]\nprops = { text = \"\", text_align = \"center\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.xp_bar]\ncomponent = \"Overlay\"\ncontrol_id = \"ExperienceBar\"\nclasses = [\"woc-bar-rail\"]\nlayout = { container = { kind = \"Overlay\" }, width = { min = 612.0, preferred = 612.0, max = 612.0, stretch = \"Fixed\" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"xp_fill\" }, { node = \"xp_rested\" }, { node = \"xp_text\" }]\n\n[nodes.action_slot_0]\ncomponent = \"Button\"\ncontrol_id = \"ActionSlot0\"\nclasses = [\"woc-action-slot\"]\nprops = { text = \"Attack\", button_variant = \"outlined\" }\nlayout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Action/0\", event = \"Click\", route = \"woc.hud.action.activate.0\" }]\n\n[nodes.action_slot_1]\ncomponent = \"Button\"\ncontrol_id = \"ActionSlot1\"\nclasses = [\"woc-action-slot\"]\nprops = { text = \"1\", button_variant = \"outlined\" }\nlayout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Action/1\", event = \"Click\", route = \"woc.hud.action.activate.1\" }]\n\n[nodes.action_slot_2]\ncomponent = \"Button\"\ncontrol_id = \"ActionSlot2\"\nclasses = [\"woc-action-slot\"]\nprops = { text = \"2\", button_variant = \"outlined\" }\nlayout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Action/2\", event = \"Click\", route = \"woc.hud.action.activate.2\" }]\n\n[nodes.action_slot_3]\ncomponent = \"Button\"\ncontrol_id = \"ActionSlot3\"\nclasses = [\"woc-action-slot\"]\nprops = { text = \"3\", button_variant = \"outlined\" }\nlayout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Action/3\", event = \"Click\", route = \"woc.hud.action.activate.3\" }]\n\n[nodes.action_slot_4]\ncomponent = \"Button\"\ncontrol_id = \"ActionSlot4\"\nclasses = [\"woc-action-slot\"]\nprops = { text = \"4\", button_variant = \"outlined\" }\nlayout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Action/4\", event = \"Click\", route = \"woc.hud.action.activate.4\" }]\n\n[nodes.action_slot_5]\ncomponent = \"Button\"\ncontrol_id = \"ActionSlot5\"\nclasses = [\"woc-action-slot\"]\nprops = { text = \"5\", button_variant = \"outlined\" }\nlayout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Action/5\", event = \"Click\", route = \"woc.hud.action.activate.5\" }]\n\n[nodes.action_slot_6]\ncomponent = \"Button\"\ncontrol_id = \"ActionSlot6\"\nclasses = [\"woc-action-slot\"]\nprops = { text = \"6\", button_variant = \"outlined\" }\nlayout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Action/6\", event = \"Click\", route = \"woc.hud.action.activate.6\" }]\n\n[nodes.action_slot_7]\ncomponent = \"Button\"\ncontrol_id = \"ActionSlot7\"\nclasses = [\"woc-action-slot\"]\nprops = { text = \"7\", button_variant = \"outlined\" }\nlayout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Action/7\", event = \"Click\", route = \"woc.hud.action.activate.7\" }]\n\n[nodes.action_slot_8]\ncomponent = \"Button\"\ncontrol_id = \"ActionSlot8\"\nclasses = [\"woc-action-slot\"]\nprops = { text = \"8\", button_variant = \"outlined\" }\nlayout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Action/8\", event = \"Click\", route = \"woc.hud.action.activate.8\" }]\n\n[nodes.action_slot_9]\ncomponent = \"Button\"\ncontrol_id = \"ActionSlot9\"\nclasses = [\"woc-action-slot\"]\nprops = { text = \"9\", button_variant = \"outlined\" }\nlayout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Action/9\", event = \"Click\", route = \"woc.hud.action.activate.9\" }]\n\n[nodes.action_slot_10]\ncomponent = \"Button\"\ncontrol_id = \"ActionSlot10\"\nclasses = [\"woc-action-slot\"]\nprops = { text = \"0\", button_variant = \"outlined\" }\nlayout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Action/10\", event = \"Click\", route = \"woc.hud.action.activate.10\" }]\n\n[nodes.action_slot_11]\ncomponent = \"Button\"\ncontrol_id = \"ActionSlot11\"\nclasses = [\"woc-action-slot\"]\nprops = { text = \"-\", button_variant = \"outlined\" }\nlayout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Action/11\", event = \"Click\", route = \"woc.hud.action.activate.11\" }]\n\n[nodes.action_slot_12]\ncomponent = \"Button\"\ncontrol_id = \"ActionSlot12\"\nclasses = [\"woc-action-slot\"]\nprops = { text = \"S1\", button_variant = \"outlined\" }\nlayout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Action/12\", event = \"Click\", route = \"woc.hud.action.activate.12\" }]\n\n[nodes.action_slot_13]\ncomponent = \"Button\"\ncontrol_id = \"ActionSlot13\"\nclasses = [\"woc-action-slot\"]\nprops = { text = \"S2\", button_variant = \"outlined\" }\nlayout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Action/13\", event = \"Click\", route = \"woc.hud.action.activate.13\" }]\n\n[nodes.action_slot_14]\ncomponent = \"Button\"\ncontrol_id = \"ActionSlot14\"\nclasses = [\"woc-action-slot\"]\nprops = { text = \"S3\", button_variant = \"outlined\" }\nlayout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Action/14\", event = \"Click\", route = \"woc.hud.action.activate.14\" }]\n\n[nodes.action_slot_15]\ncomponent = \"Button\"\ncontrol_id = \"ActionSlot15\"\nclasses = [\"woc-action-slot\"]\nprops = { text = \"S4\", button_variant = \"outlined\" }\nlayout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Action/15\", event = \"Click\", route = \"woc.hud.action.activate.15\" }]\n\n[nodes.action_slot_16]\ncomponent = \"Button\"\ncontrol_id = \"ActionSlot16\"\nclasses = [\"woc-action-slot\"]\nprops = { text = \"S5\", button_variant = \"outlined\" }\nlayout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Action/16\", event = \"Click\", route = \"woc.hud.action.activate.16\" }]\n\n[nodes.action_slot_17]\ncomponent = \"Button\"\ncontrol_id = \"ActionSlot17\"\nclasses = [\"woc-action-slot\"]\nprops = { text = \"S6\", button_variant = \"outlined\" }\nlayout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Action/17\", event = \"Click\", route = \"woc.hud.action.activate.17\" }]\n\n[nodes.action_slot_18]\ncomponent = \"Button\"\ncontrol_id = \"ActionSlot18\"\nclasses = [\"woc-action-slot\"]\nprops = { text = \"S7\", button_variant = \"outlined\" }\nlayout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Action/18\", event = \"Click\", route = \"woc.hud.action.activate.18\" }]\n\n[nodes.action_slot_19]\ncomponent = \"Button\"\ncontrol_id = \"ActionSlot19\"\nclasses = [\"woc-action-slot\"]\nprops = { text = \"S8\", button_variant = \"outlined\" }\nlayout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Action/19\", event = \"Click\", route = \"woc.hud.action.activate.19\" }]\n\n[nodes.action_slot_20]\ncomponent = \"Button\"\ncontrol_id = \"ActionSlot20\"\nclasses = [\"woc-action-slot\"]\nprops = { text = \"S9\", button_variant = \"outlined\" }\nlayout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Action/20\", event = \"Click\", route = \"woc.hud.action.activate.20\" }]\n\n[nodes.action_slot_21]\ncomponent = \"Button\"\ncontrol_id = \"ActionSlot21\"\nclasses = [\"woc-action-slot\"]\nprops = { text = \"S0\", button_variant = \"outlined\" }\nlayout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Action/21\", event = \"Click\", route = \"woc.hud.action.activate.21\" }]\n\n[nodes.action_slot_22]\ncomponent = \"Button\"\ncontrol_id = \"ActionSlot22\"\nclasses = [\"woc-action-slot\"]\nprops = { text = \"S-\", button_variant = \"outlined\" }\nlayout = { width = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Action/22\", event = \"Click\", route = \"woc.hud.action.activate.22\" }]\n\n[nodes.primary_action_bar]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"PrimaryActionBar\"\nclasses = [\"woc-action-bar\"]\nlayout = { container = { kind = \"HorizontalBox\", gap = 4.0 }, padding = { left = 6.0, right = 6.0, top = 6.0, bottom = 6.0 }, width = { min = 612.0, preferred = 612.0, max = 612.0, stretch = \"Fixed\" }, height = { min = 58.0, preferred = 58.0, max = 58.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"action_slot_0\" }, { node = \"action_slot_1\" }, { node = \"action_slot_2\" }, { node = \"action_slot_3\" }, { node = \"action_slot_4\" }, { node = \"action_slot_5\" }, { node = \"action_slot_6\" }, { node = \"action_slot_7\" }, { node = \"action_slot_8\" }, { node = \"action_slot_9\" }, { node = \"action_slot_10\" }, { node = \"action_slot_11\" }]\n\n[nodes.secondary_action_bar]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"SecondaryActionBar\"\nclasses = [\"woc-action-bar\"]\nprops = { visibility = \"collapsed\" }\nlayout = { container = { kind = \"HorizontalBox\", gap = 4.0 }, padding = { left = 6.0, right = 6.0, top = 4.0, bottom = 4.0 }, width = { min = 562.0, preferred = 562.0, max = 612.0, stretch = \"Fixed\" }, height = { min = 54.0, preferred = 54.0, max = 54.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"action_slot_12\" }, { node = \"action_slot_13\" }, { node = \"action_slot_14\" }, { node = \"action_slot_15\" }, { node = \"action_slot_16\" }, { node = \"action_slot_17\" }, { node = \"action_slot_18\" }, { node = \"action_slot_19\" }, { node = \"action_slot_20\" }, { node = \"action_slot_21\" }, { node = \"action_slot_22\" }]\n\n[nodes.desktop_bottom]\ncomponent = \"VerticalBox\"\ncontrol_id = \"DesktopBottomCluster\"\nlayout = { container = { kind = \"VerticalBox\", gap = 4.0 }, anchor = { x = 0.5, y = 1.0 }, pivot = { x = 0.5, y = 1.0 }, position = { x = 0.0, y = -6.0 }, width = { min = 612.0, preferred = 612.0, max = 612.0, stretch = \"Fixed\" }, height = { min = 144.0, preferred = 144.0, max = 268.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"player_cast_bar\" }, { node = \"player_frame\" }, { node = \"xp_bar\" }, { node = \"secondary_action_bar\" }, { node = \"primary_action_bar\" }]\n\n[nodes.low_health_vignette]\ncomponent = \"Space\"\ncontrol_id = \"LowHealthVignette\"\nclasses = [\"woc-low-health-vignette\"]\nprops = { visibility = \"collapsed\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.desktop_hud]\ncomponent = \"Overlay\"\ncontrol_id = \"DesktopHudLayer\"\nprops = { visibility = { xs = \"collapsed\", md = \"visible\" } }\nlayout = { container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"target_frame\" }, { node = \"tracker_stack\" }, { node = \"minimap_cluster\" }, { node = \"desktop_bottom\" }, { node = \"low_health_vignette\" }]\n\n[nodes.touch_player_name]\ncomponent = \"Label\"\ncontrol_id = \"TouchPlayerName\"\nclasses = [\"woc-unit-name\"]\nprops = { text = \"\", overflow = \"elide\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = \"Fixed\" } }\n\n[nodes.touch_player_health_fill]\ncomponent = \"Space\"\ncontrol_id = \"TouchPlayerHealthFill\"\nclasses = [\"woc-health-fill\"]\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.touch_player_health]\ncomponent = \"Overlay\"\ncontrol_id = \"TouchPlayerHealth\"\nclasses = [\"woc-bar-rail\"]\nlayout = { container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"touch_player_health_fill\" }]\n\n[nodes.touch_player_resource_fill]\ncomponent = \"Space\"\ncontrol_id = \"TouchPlayerResourceFill\"\nclasses = [\"woc-resource-fill\"]\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.touch_player_resource]\ncomponent = \"Overlay\"\ncontrol_id = \"TouchPlayerResource\"\nclasses = [\"woc-bar-rail\"]\nlayout = { container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"touch_player_resource_fill\" }]\n\n[nodes.touch_player_frame]\ncomponent = \"VerticalBox\"\ncontrol_id = \"TouchPlayerFrame\"\nclasses = [\"woc-unit-frame\"]\nlayout = { container = { kind = \"VerticalBox\", gap = 2.0 }, padding = { left = 8.0, right = 8.0, top = 5.0, bottom = 5.0 }, anchor = { x = 0.5, y = 1.0 }, pivot = { x = 0.5, y = 1.0 }, position = { x = 0.0, y = -12.0 }, width = { min = 220.0, preferred = 246.0, max = 280.0, stretch = \"Fixed\" }, height = { min = 54.0, preferred = 54.0, max = 54.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"touch_player_name\" }, { node = \"touch_player_health\" }, { node = \"touch_player_resource\" }]\n\n[nodes.touch_target_name]\ncomponent = \"Label\"\ncontrol_id = \"TouchTargetName\"\nclasses = [\"woc-unit-name\"]\nprops = { text = \"\", overflow = \"elide\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = \"Fixed\" } }\n\n[nodes.touch_target_health_fill]\ncomponent = \"Space\"\ncontrol_id = \"TouchTargetHealthFill\"\nclasses = [\"woc-health-fill\"]\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.touch_target_health]\ncomponent = \"Overlay\"\ncontrol_id = \"TouchTargetHealth\"\nclasses = [\"woc-bar-rail\"]\nlayout = { container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"touch_target_health_fill\" }]\n\n[nodes.touch_target_frame]\ncomponent = \"VerticalBox\"\ncontrol_id = \"TouchTargetFrame\"\nclasses = [\"woc-unit-frame\", \"woc-unit-frame-target\"]\nprops = { visibility = \"collapsed\" }\nlayout = { container = { kind = \"VerticalBox\", gap = 3.0 }, padding = { left = 8.0, right = 8.0, top = 6.0, bottom = 6.0 }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 18.0, y = 78.0 }, width = { min = 190.0, preferred = 210.0, max = 240.0, stretch = \"Fixed\" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"touch_target_name\" }, { node = \"touch_target_health\" }]\n\n[nodes.touch_move_zone]\ncomponent = \"Space\"\ncontrol_id = \"TouchMoveZone\"\nclasses = [\"woc-touch-zone\"]\nlayout = { anchor = { x = 0.0, y = 1.0 }, pivot = { x = 0.0, y = 1.0 }, position = { x = 18.0, y = -18.0 }, width = { min = 136.0, preferred = 156.0, max = 176.0, stretch = \"Fixed\" }, height = { min = 136.0, preferred = 156.0, max = 176.0, stretch = \"Fixed\" } }\n\n[nodes.touch_camera_zone]\ncomponent = \"Space\"\ncontrol_id = \"TouchCameraZone\"\nclasses = [\"woc-touch-zone\"]\nlayout = { anchor = { x = 1.0, y = 1.0 }, pivot = { x = 1.0, y = 1.0 }, position = { x = -18.0, y = -18.0 }, width = { min = 136.0, preferred = 156.0, max = 176.0, stretch = \"Fixed\" }, height = { min = 136.0, preferred = 156.0, max = 176.0, stretch = \"Fixed\" } }\n\n[nodes.touch_chat]\ncomponent = \"Button\"\ncontrol_id = \"TouchChat\"\nclasses = [\"woc-touch-action\"]\nprops = { text = \"Chat\", button_variant = \"outlined\" }\nlayout = { width = { min = 48.0, preferred = 54.0, max = 60.0, stretch = \"Fixed\" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Touch/Chat\", event = \"Click\", route = \"woc.hud.touch.open_chat\" }]\n\n[nodes.touch_social]\ncomponent = \"Button\"\ncontrol_id = \"TouchSocial\"\nclasses = [\"woc-touch-action\"]\nprops = { text = \"Social\", button_variant = \"outlined\" }\nlayout = { width = { min = 54.0, preferred = 58.0, max = 64.0, stretch = \"Fixed\" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Touch/Social\", event = \"Click\", route = \"woc.hud.touch.open_social\" }]\n\n[nodes.touch_quest]\ncomponent = \"Button\"\ncontrol_id = \"TouchQuest\"\nclasses = [\"woc-touch-action\"]\nprops = { text = \"Quests\", button_variant = \"outlined\" }\nlayout = { width = { min = 54.0, preferred = 58.0, max = 64.0, stretch = \"Fixed\" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Touch/Quest\", event = \"Click\", route = \"woc.hud.touch.open_quests\" }]\n\n[nodes.touch_menu]\ncomponent = \"Button\"\ncontrol_id = \"TouchMenu\"\nclasses = [\"woc-touch-action\"]\nprops = { text = \"Menu\", button_variant = \"outlined\" }\nlayout = { width = { min = 48.0, preferred = 54.0, max = 60.0, stretch = \"Fixed\" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Touch/Menu\", event = \"Click\", route = \"woc.hud.pause.open\" }]\n\n[nodes.touch_more]\ncomponent = \"Button\"\ncontrol_id = \"TouchMore\"\nclasses = [\"woc-touch-action\"]\nprops = { text = \"More\", button_variant = \"outlined\" }\nlayout = { width = { min = 48.0, preferred = 54.0, max = 60.0, stretch = \"Fixed\" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Touch/More\", event = \"Click\", route = \"woc.hud.touch.open_more\" }]\n\n[nodes.touch_top_actions]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"TouchTopActions\"\nlayout = { container = { kind = \"HorizontalBox\", gap = 5.0 }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 16.0, y = 16.0 }, width = { min = 280.0, preferred = 310.0, max = 340.0, stretch = \"Fixed\" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"touch_chat\" }, { node = \"touch_social\" }, { node = \"touch_quest\" }, { node = \"touch_menu\" }, { node = \"touch_more\" }]\n\n[nodes.touch_action_0]\ncomponent = \"Button\"\ncontrol_id = \"TouchAction0\"\nclasses = [\"woc-touch-action\"]\nprops = { text = \"1\", button_variant = \"outlined\" }\nlayout = { anchor = { x = 0.0, y = 0.0 }, position = { x = 4.0, y = 76.0 }, width = { min = 50.0, preferred = 50.0, max = 50.0, stretch = \"Fixed\" }, height = { min = 50.0, preferred = 50.0, max = 50.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Touch/Action/0\", event = \"Click\", route = \"woc.hud.touch.activate.0\" }]\n\n[nodes.touch_action_1]\ncomponent = \"Button\"\ncontrol_id = \"TouchAction1\"\nclasses = [\"woc-touch-action\"]\nprops = { text = \"2\", button_variant = \"outlined\" }\nlayout = { anchor = { x = 0.0, y = 0.0 }, position = { x = 42.0, y = 24.0 }, width = { min = 50.0, preferred = 50.0, max = 50.0, stretch = \"Fixed\" }, height = { min = 50.0, preferred = 50.0, max = 50.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Touch/Action/1\", event = \"Click\", route = \"woc.hud.touch.activate.1\" }]\n\n[nodes.touch_action_2]\ncomponent = \"Button\"\ncontrol_id = \"TouchAction2\"\nclasses = [\"woc-touch-action\"]\nprops = { text = \"3\", button_variant = \"outlined\" }\nlayout = { anchor = { x = 0.0, y = 0.0 }, position = { x = 102.0, y = 4.0 }, width = { min = 50.0, preferred = 50.0, max = 50.0, stretch = \"Fixed\" }, height = { min = 50.0, preferred = 50.0, max = 50.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Touch/Action/2\", event = \"Click\", route = \"woc.hud.touch.activate.2\" }]\n\n[nodes.touch_action_3]\ncomponent = \"Button\"\ncontrol_id = \"TouchAction3\"\nclasses = [\"woc-touch-action\"]\nprops = { text = \"4\", button_variant = \"outlined\" }\nlayout = { anchor = { x = 0.0, y = 0.0 }, position = { x = 162.0, y = 24.0 }, width = { min = 50.0, preferred = 50.0, max = 50.0, stretch = \"Fixed\" }, height = { min = 50.0, preferred = 50.0, max = 50.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Touch/Action/3\", event = \"Click\", route = \"woc.hud.touch.activate.3\" }]\n\n[nodes.touch_action_4]\ncomponent = \"Button\"\ncontrol_id = \"TouchAction4\"\nclasses = [\"woc-touch-action\"]\nprops = { text = \"5\", button_variant = \"outlined\" }\nlayout = { anchor = { x = 0.0, y = 0.0 }, position = { x = 200.0, y = 76.0 }, width = { min = 50.0, preferred = 50.0, max = 50.0, stretch = \"Fixed\" }, height = { min = 50.0, preferred = 50.0, max = 50.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Touch/Action/4\", event = \"Click\", route = \"woc.hud.touch.activate.4\" }]\n\n[nodes.touch_attack]\ncomponent = \"Button\"\ncontrol_id = \"TouchAttack\"\nclasses = [\"woc-touch-action\"]\nprops = { text = \"Attack\", button_variant = \"contained\" }\nlayout = { anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = 20.0 }, width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = \"Fixed\" }, height = { min = 72.0, preferred = 72.0, max = 72.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Touch/Attack\", event = \"Click\", route = \"woc.hud.touch.attack\" }]\n\n[nodes.touch_target]\ncomponent = \"Button\"\ncontrol_id = \"TouchTargetCycle\"\nclasses = [\"woc-touch-action\"]\nprops = { text = \"Target\", button_variant = \"outlined\" }\nlayout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -2.0, y = 132.0 }, width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = \"Fixed\" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Touch/Target\", event = \"Click\", route = \"woc.hud.touch.target_cycle\" }]\n\n[nodes.touch_interact]\ncomponent = \"Button\"\ncontrol_id = \"TouchInteract\"\nclasses = [\"woc-touch-action\"]\nprops = { text = \"Use\", button_variant = \"outlined\" }\nlayout = { anchor = { x = 0.0, y = 0.0 }, position = { x = 2.0, y = 132.0 }, width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = \"Fixed\" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Touch/Interact\", event = \"Click\", route = \"woc.hud.touch.interact\" }]\n\n[nodes.touch_jump]\ncomponent = \"Button\"\ncontrol_id = \"TouchJump\"\nclasses = [\"woc-touch-action\"]\nprops = { text = \"Jump\", button_variant = \"outlined\" }\nlayout = { anchor = { x = 0.5, y = 1.0 }, pivot = { x = 0.5, y = 1.0 }, position = { x = 0.0, y = 0.0 }, width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = \"Fixed\" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Touch/Jump\", event = \"Click\", route = \"woc.hud.touch.jump\" }]\n\n[nodes.touch_page]\ncomponent = \"Button\"\ncontrol_id = \"TouchActionPage\"\nclasses = [\"woc-touch-action\"]\nprops = { text = \"1 / 2\", button_variant = \"outlined\" }\nlayout = { anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = -28.0 }, width = { min = 48.0, preferred = 48.0, max = 48.0, stretch = \"Fixed\" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Touch/Page\", event = \"Click\", route = \"woc.hud.touch.next_page\" }]\n\n[nodes.touch_action_ring]\ncomponent = \"Overlay\"\ncontrol_id = \"TouchActionRing\"\nlayout = { container = { kind = \"Overlay\" }, anchor = { x = 1.0, y = 1.0 }, pivot = { x = 1.0, y = 1.0 }, position = { x = -14.0, y = -14.0 }, width = { min = 254.0, preferred = 254.0, max = 254.0, stretch = \"Fixed\" }, height = { min = 190.0, preferred = 190.0, max = 190.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"touch_action_0\" }, { node = \"touch_action_1\" }, { node = \"touch_action_2\" }, { node = \"touch_action_3\" }, { node = \"touch_action_4\" }, { node = \"touch_attack\" }, { node = \"touch_target\" }, { node = \"touch_interact\" }, { node = \"touch_jump\" }, { node = \"touch_page\" }]\n\n[nodes.touch_consumable_0]\ncomponent = \"Button\"\ncontrol_id = \"TouchConsumable0\"\nclasses = [\"woc-touch-action\"]\nprops = { text = \"1\", button_variant = \"outlined\" }\nlayout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = \"Fixed\" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Touch/Consume/0\", event = \"Click\", route = \"woc.hud.touch.consume.0\" }]\n\n[nodes.touch_consumable_1]\ncomponent = \"Button\"\ncontrol_id = \"TouchConsumable1\"\nclasses = [\"woc-touch-action\"]\nprops = { text = \"2\", button_variant = \"outlined\" }\nlayout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = \"Fixed\" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Touch/Consume/1\", event = \"Click\", route = \"woc.hud.touch.consume.1\" }]\n\n[nodes.touch_consumable_2]\ncomponent = \"Button\"\ncontrol_id = \"TouchConsumable2\"\nclasses = [\"woc-touch-action\"]\nprops = { text = \"3\", button_variant = \"outlined\" }\nlayout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = \"Fixed\" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Touch/Consume/2\", event = \"Click\", route = \"woc.hud.touch.consume.2\" }]\n\n[nodes.touch_consumable_3]\ncomponent = \"Button\"\ncontrol_id = \"TouchConsumable3\"\nclasses = [\"woc-touch-action\"]\nprops = { text = \"4\", button_variant = \"outlined\" }\nlayout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = \"Fixed\" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Touch/Consume/3\", event = \"Click\", route = \"woc.hud.touch.consume.3\" }]\n\n[nodes.touch_consumable_4]\ncomponent = \"Button\"\ncontrol_id = \"TouchConsumable4\"\nclasses = [\"woc-touch-action\"]\nprops = { text = \"5\", button_variant = \"outlined\" }\nlayout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = \"Fixed\" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Touch/Consume/4\", event = \"Click\", route = \"woc.hud.touch.consume.4\" }]\n\n[nodes.touch_consumable_5]\ncomponent = \"Button\"\ncontrol_id = \"TouchConsumable5\"\nclasses = [\"woc-touch-action\"]\nprops = { text = \"6\", button_variant = \"outlined\" }\nlayout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = \"Fixed\" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Touch/Consume/5\", event = \"Click\", route = \"woc.hud.touch.consume.5\" }]\n\n[nodes.touch_consumables]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"TouchConsumables\"\nprops = { visibility = \"collapsed\" }\nlayout = { container = { kind = \"HorizontalBox\", gap = 4.0 }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 16.0, y = 66.0 }, width = { min = 284.0, preferred = 284.0, max = 284.0, stretch = \"Fixed\" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"touch_consumable_0\" }, { node = \"touch_consumable_1\" }, { node = \"touch_consumable_2\" }, { node = \"touch_consumable_3\" }, { node = \"touch_consumable_4\" }, { node = \"touch_consumable_5\" }]\n\n[nodes.touch_consumables_toggle]\ncomponent = \"Button\"\ncontrol_id = \"TouchConsumablesToggle\"\nclasses = [\"woc-touch-action\"]\nprops = { text = \"Items\", button_variant = \"outlined\" }\nlayout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 16.0, y = 116.0 }, width = { min = 54.0, preferred = 58.0, max = 64.0, stretch = \"Fixed\" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Touch/Consumables\", event = \"Click\", route = \"woc.hud.touch.toggle_consumables\" }]\n\n[nodes.touch_hud]\ncomponent = \"Overlay\"\ncontrol_id = \"TouchHudLayer\"\nprops = { visibility = { xs = \"visible\", md = \"collapsed\" } }\nlayout = { container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"touch_move_zone\" }, { node = \"touch_camera_zone\" }, { node = \"touch_target_frame\" }, { node = \"touch_player_frame\" }, { node = \"touch_top_actions\" }, { node = \"touch_consumables\" }, { node = \"touch_consumables_toggle\" }, { node = \"touch_action_ring\" }]\n\n[nodes.pause_keybinds]\ncomponent = \"Button\"\ncontrol_id = \"PauseKeyBindings\"\nclasses = [\"woc-pause-action\"]\nprops = { text = \"Key Bindings\", button_variant = \"outlined\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Pause/KeyBindings\", event = \"Click\", route = \"woc.hud.pause.open.keybinds\" }]\n\n[nodes.pause_controller]\ncomponent = \"Button\"\ncontrol_id = \"PauseController\"\nclasses = [\"woc-pause-action\"]\nprops = { text = \"Controller\", button_variant = \"outlined\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Pause/Controller\", event = \"Click\", route = \"woc.hud.pause.open.controller\" }]\n\n[nodes.pause_graphics]\ncomponent = \"Button\"\ncontrol_id = \"PauseGraphics\"\nclasses = [\"woc-pause-action\"]\nprops = { text = \"Graphics\", button_variant = \"outlined\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Pause/Graphics\", event = \"Click\", route = \"woc.hud.pause.open.graphics\" }]\n\n[nodes.pause_interface]\ncomponent = \"Button\"\ncontrol_id = \"PauseInterface\"\nclasses = [\"woc-pause-action\"]\nprops = { text = \"Interface\", button_variant = \"outlined\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Pause/Interface\", event = \"Click\", route = \"woc.hud.pause.open.interface\" }]\n\n[nodes.pause_audio]\ncomponent = \"Button\"\ncontrol_id = \"PauseAudio\"\nclasses = [\"woc-pause-action\"]\nprops = { text = \"Audio\", button_variant = \"outlined\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Pause/Audio\", event = \"Click\", route = \"woc.hud.pause.open.audio\" }]\n\n[nodes.pause_performance]\ncomponent = \"Button\"\ncontrol_id = \"PausePerformance\"\nclasses = [\"woc-pause-action\"]\nprops = { text = \"Performance\", button_variant = \"outlined\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Pause/Performance\", event = \"Click\", route = \"woc.hud.pause.open.performance\" }]\n\n[nodes.pause_bug_report]\ncomponent = \"Button\"\ncontrol_id = \"PauseBugReport\"\nclasses = [\"woc-pause-action\"]\nprops = { text = \"Report a Bug\", button_variant = \"outlined\", visibility = \"collapsed\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Pause/BugReport\", event = \"Click\", route = \"woc.hud.pause.open.bug_report\" }]\n\n[nodes.pause_logout]\ncomponent = \"Button\"\ncontrol_id = \"PauseLogout\"\nclasses = [\"woc-pause-action\"]\nprops = { text = \"Log Out\", button_variant = \"outlined\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Pause/Logout\", event = \"Click\", route = \"woc.hud.pause.logout\" }]\n\n[nodes.pause_return]\ncomponent = \"Button\"\ncontrol_id = \"PauseReturnToGame\"\nclasses = [\"woc-primary-action\"]\nprops = { text = \"Return to Game\", button_variant = \"contained\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocHud/Pause/Return\", event = \"Click\", route = \"woc.hud.pause.return_to_game\" }]\n\n[nodes.pause_menu]\ncomponent = \"VerticalBox\"\ncontrol_id = \"PauseMenu\"\nclasses = [\"woc-pause-menu\"]\nlayout = { container = { kind = \"VerticalBox\", gap = 7.0 }, padding = { left = 20.0, right = 20.0, top = 20.0, bottom = 20.0 }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = 0.0 }, width = { min = 300.0, preferred = 340.0, max = 380.0, stretch = \"Fixed\" }, height = { min = 392.0, preferred = 448.0, max = 520.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"pause_keybinds\" }, { node = \"pause_controller\" }, { node = \"pause_graphics\" }, { node = \"pause_interface\" }, { node = \"pause_audio\" }, { node = \"pause_performance\" }, { node = \"pause_bug_report\" }, { node = \"pause_logout\" }, { node = \"pause_return\" }]\n\n[nodes.pause_scrim]\ncomponent = \"Space\"\ncontrol_id = \"PauseScrim\"\nclasses = [\"woc-pause-scrim\"]\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.pause_layer]\ncomponent = \"Overlay\"\ncontrol_id = \"PauseLayer\"\nprops = { visibility = \"collapsed\" }\nlayout = { container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"pause_scrim\" }, { node = \"pause_menu\" }]\n\n[nodes.hud_root]\ncomponent = \"Overlay\"\ncontrol_id = \"InWorldHud\"\nclasses = [\"woc-hud-root\"]\nlayout = { clip = true, container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"live_regions\" }, { node = \"desktop_hud\" }, { node = \"touch_hud\" }, { node = \"pause_layer\" }]\n"
+
+[asset]
+kind = "view"
+id = "res://ui/hud/in_world_hud.zui"
+version = 2
+display_name = "World of ClaudeCraft In-World HUD"
+
+[imports]
+widgets = []
+styles = []
+resources = []
+
+[root]
+node = "hud_root"
+
+[nodes.combat_live]
+component = "Label"
+control_id = "CombatLiveRegion"
+classes = [ "woc-live-region" ]
+
+[nodes.combat_live.props]
+text = ""
+overflow = "elide"
+
+[nodes.combat_live.layout.width]
+min = 1
+preferred = 1
+max = 1
+stretch = "Fixed"
+
+[nodes.combat_live.layout.height]
+min = 1
+preferred = 1
+max = 1
+stretch = "Fixed"
+
+[nodes.target_live]
+component = "Label"
+control_id = "TargetLiveRegion"
+classes = [ "woc-live-region" ]
+
+[nodes.target_live.props]
+text = ""
+overflow = "elide"
+
+[nodes.target_live.layout.width]
+min = 1
+preferred = 1
+max = 1
+stretch = "Fixed"
+
+[nodes.target_live.layout.height]
+min = 1
+preferred = 1
+max = 1
+stretch = "Fixed"
+
+[nodes.chat_live]
+component = "Label"
+control_id = "ChatLiveRegion"
+classes = [ "woc-live-region" ]
+
+[nodes.chat_live.props]
+text = ""
+overflow = "elide"
+
+[nodes.chat_live.layout.width]
+min = 1
+preferred = 1
+max = 1
+stretch = "Fixed"
+
+[nodes.chat_live.layout.height]
+min = 1
+preferred = 1
+max = 1
+stretch = "Fixed"
+
+[nodes.live_regions]
+component = "VerticalBox"
+control_id = "HudLiveRegions"
+
+[nodes.live_regions.layout.container]
+kind = "VerticalBox"
+gap = 0
+
+[nodes.live_regions.layout.anchor]
+x = 0
+y = 0
+
+[nodes.live_regions.layout.pivot]
+x = 1
+y = 1
+
+[nodes.live_regions.layout.position]
+x = -8
+y = -8
+
+[nodes.live_regions.layout.width]
+min = 1
+preferred = 1
+max = 1
+stretch = "Fixed"
+
+[nodes.live_regions.layout.height]
+min = 3
+preferred = 3
+max = 3
+stretch = "Fixed"
+
+[[nodes.live_regions.children]]
+node = "combat_live"
+
+[[nodes.live_regions.children]]
+node = "target_live"
+
+[[nodes.live_regions.children]]
+node = "chat_live"
+
+[nodes.target_portrait]
+component = "Space"
+control_id = "TargetPortraitHost"
+classes = [ "woc-portrait" ]
+
+[nodes.target_portrait.layout.width]
+min = 60
+preferred = 60
+max = 60
+stretch = "Fixed"
+
+[nodes.target_portrait.layout.height]
+min = 60
+preferred = 60
+max = 60
+stretch = "Fixed"
+
+[nodes.target_level]
+component = "Label"
+control_id = "TargetLevel"
+classes = [ "woc-level-chip" ]
+
+[nodes.target_level.props]
+text = ""
+text_align = "center"
+
+[nodes.target_level.layout.anchor]
+x = 1
+y = 1
+
+[nodes.target_level.layout.pivot]
+x = 1
+y = 1
+
+[nodes.target_level.layout.position]
+x = 2
+y = 2
+
+[nodes.target_level.layout.width]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.target_level.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.target_portrait_wrap]
+component = "Overlay"
+control_id = "TargetPortrait"
+
+[nodes.target_portrait_wrap.layout.container]
+kind = "Overlay"
+
+[nodes.target_portrait_wrap.layout.width]
+min = 64
+preferred = 64
+max = 64
+stretch = "Fixed"
+
+[nodes.target_portrait_wrap.layout.height]
+min = 64
+preferred = 64
+max = 64
+stretch = "Fixed"
+
+[[nodes.target_portrait_wrap.children]]
+node = "target_portrait"
+
+[[nodes.target_portrait_wrap.children]]
+node = "target_level"
+
+[nodes.target_name]
+component = "Label"
+control_id = "TargetName"
+classes = [ "woc-unit-name" ]
+
+[nodes.target_name.props]
+text = ""
+overflow = "elide"
+text_align = "right"
+
+[nodes.target_name.layout.width]
+stretch = "Stretch"
+
+[nodes.target_name.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[nodes.target_health_fill]
+component = "Space"
+control_id = "TargetHealthFill"
+classes = [ "woc-health-fill" ]
+
+[nodes.target_health_fill.layout.anchor]
+x = 0
+y = 0
+
+[nodes.target_health_fill.layout.pivot]
+x = 0
+y = 0
+
+[nodes.target_health_fill.layout.width]
+stretch = "Stretch"
+
+[nodes.target_health_fill.layout.height]
+stretch = "Stretch"
+
+[nodes.target_absorb]
+component = "Space"
+control_id = "TargetAbsorbFill"
+classes = [ "woc-absorb-fill" ]
+
+[nodes.target_absorb.props]
+visibility = "collapsed"
+
+[nodes.target_absorb.layout.anchor]
+x = 0
+y = 0
+
+[nodes.target_absorb.layout.pivot]
+x = 0
+y = 0
+
+[nodes.target_absorb.layout.width]
+stretch = "Stretch"
+
+[nodes.target_absorb.layout.height]
+stretch = "Stretch"
+
+[nodes.target_health_text]
+component = "Label"
+control_id = "TargetHealthText"
+classes = [ "woc-bar-text" ]
+
+[nodes.target_health_text.props]
+text = ""
+text_align = "center"
+
+[nodes.target_health_text.layout.width]
+stretch = "Stretch"
+
+[nodes.target_health_text.layout.height]
+stretch = "Stretch"
+
+[nodes.target_health]
+component = "Overlay"
+control_id = "TargetHealth"
+classes = [ "woc-bar-rail" ]
+
+[nodes.target_health.layout.container]
+kind = "Overlay"
+
+[nodes.target_health.layout.width]
+stretch = "Stretch"
+
+[nodes.target_health.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[[nodes.target_health.children]]
+node = "target_health_fill"
+
+[[nodes.target_health.children]]
+node = "target_absorb"
+
+[[nodes.target_health.children]]
+node = "target_health_text"
+
+[nodes.target_resource_fill]
+component = "Space"
+control_id = "TargetResourceFill"
+classes = [ "woc-resource-fill" ]
+
+[nodes.target_resource_fill.layout.width]
+stretch = "Stretch"
+
+[nodes.target_resource_fill.layout.height]
+stretch = "Stretch"
+
+[nodes.target_resource_text]
+component = "Label"
+control_id = "TargetResourceText"
+classes = [ "woc-bar-text" ]
+
+[nodes.target_resource_text.props]
+text = ""
+text_align = "center"
+
+[nodes.target_resource_text.layout.width]
+stretch = "Stretch"
+
+[nodes.target_resource_text.layout.height]
+stretch = "Stretch"
+
+[nodes.target_resource]
+component = "Overlay"
+control_id = "TargetResource"
+classes = [ "woc-bar-rail" ]
+
+[nodes.target_resource.layout.container]
+kind = "Overlay"
+
+[nodes.target_resource.layout.width]
+stretch = "Stretch"
+
+[nodes.target_resource.layout.height]
+min = 10
+preferred = 10
+max = 10
+stretch = "Fixed"
+
+[[nodes.target_resource.children]]
+node = "target_resource_fill"
+
+[[nodes.target_resource.children]]
+node = "target_resource_text"
+
+[nodes.target_cast_fill]
+component = "Space"
+control_id = "TargetCastFill"
+classes = [ "woc-cast-fill" ]
+
+[nodes.target_cast_fill.layout.width]
+stretch = "Stretch"
+
+[nodes.target_cast_fill.layout.height]
+stretch = "Stretch"
+
+[nodes.target_cast_text]
+component = "Label"
+control_id = "TargetCastText"
+classes = [ "woc-bar-text" ]
+
+[nodes.target_cast_text.props]
+text = ""
+text_align = "center"
+
+[nodes.target_cast_text.layout.width]
+stretch = "Stretch"
+
+[nodes.target_cast_text.layout.height]
+stretch = "Stretch"
+
+[nodes.target_cast_bar]
+component = "Overlay"
+control_id = "TargetCastBar"
+classes = [ "woc-bar-rail" ]
+
+[nodes.target_cast_bar.props]
+visibility = "collapsed"
+
+[nodes.target_cast_bar.layout.container]
+kind = "Overlay"
+
+[nodes.target_cast_bar.layout.width]
+stretch = "Stretch"
+
+[nodes.target_cast_bar.layout.height]
+min = 14
+preferred = 14
+max = 14
+stretch = "Fixed"
+
+[[nodes.target_cast_bar.children]]
+node = "target_cast_fill"
+
+[[nodes.target_cast_bar.children]]
+node = "target_cast_text"
+
+[nodes.target_info]
+component = "VerticalBox"
+control_id = "TargetInfo"
+
+[nodes.target_info.layout.container]
+kind = "VerticalBox"
+gap = 2
+
+[nodes.target_info.layout.padding]
+left = 8
+right = 18
+top = 5
+bottom = 5
+
+[nodes.target_info.layout.width]
+min = 190
+preferred = 190
+max = 190
+stretch = "Fixed"
+
+[nodes.target_info.layout.height]
+min = 64
+preferred = 64
+max = 82
+stretch = "Fixed"
+
+[[nodes.target_info.children]]
+node = "target_name"
+
+[[nodes.target_info.children]]
+node = "target_health"
+
+[[nodes.target_info.children]]
+node = "target_resource"
+
+[[nodes.target_info.children]]
+node = "target_cast_bar"
+
+[nodes.target_body]
+component = "HorizontalBox"
+control_id = "TargetFrameBody"
+classes = [ "woc-unit-frame", "woc-unit-frame-target" ]
+
+[nodes.target_body.layout.container]
+kind = "HorizontalBox"
+gap = 0
+
+[nodes.target_body.layout.width]
+min = 244
+preferred = 244
+max = 244
+stretch = "Fixed"
+
+[nodes.target_body.layout.height]
+min = 68
+preferred = 68
+max = 88
+stretch = "Fixed"
+
+[[nodes.target_body.children]]
+node = "target_info"
+
+[[nodes.target_body.children]]
+node = "target_portrait_wrap"
+
+[nodes.target_debuffs]
+component = "HorizontalBox"
+control_id = "TargetDebuffs"
+
+[nodes.target_debuffs.layout.container]
+kind = "HorizontalBox"
+gap = 4
+
+[nodes.target_debuffs.layout.anchor]
+x = 0
+y = 1
+
+[nodes.target_debuffs.layout.pivot]
+x = 0
+y = 0
+
+[nodes.target_debuffs.layout.position]
+x = 0
+y = 6
+
+[nodes.target_debuffs.layout.width]
+min = 190
+preferred = 244
+max = 320
+stretch = "Fixed"
+
+[nodes.target_debuffs.layout.height]
+min = 28
+preferred = 28
+max = 56
+stretch = "Fixed"
+
+[nodes.tot_portrait]
+component = "Space"
+control_id = "TargetOfTargetPortraitHost"
+classes = [ "woc-portrait" ]
+
+[nodes.tot_portrait.layout.width]
+min = 42
+preferred = 42
+max = 42
+stretch = "Fixed"
+
+[nodes.tot_portrait.layout.height]
+min = 42
+preferred = 42
+max = 42
+stretch = "Fixed"
+
+[nodes.tot_name]
+component = "Label"
+control_id = "TargetOfTargetName"
+classes = [ "woc-unit-name" ]
+
+[nodes.tot_name.props]
+text = ""
+overflow = "elide"
+
+[nodes.tot_name.layout.width]
+stretch = "Stretch"
+
+[nodes.tot_name.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[nodes.tot_health_fill]
+component = "Space"
+control_id = "TargetOfTargetHealthFill"
+classes = [ "woc-health-fill" ]
+
+[nodes.tot_health_fill.layout.width]
+stretch = "Stretch"
+
+[nodes.tot_health_fill.layout.height]
+stretch = "Stretch"
+
+[nodes.tot_health_text]
+component = "Label"
+control_id = "TargetOfTargetHealthText"
+classes = [ "woc-bar-text" ]
+
+[nodes.tot_health_text.props]
+text = ""
+text_align = "center"
+
+[nodes.tot_health_text.layout.width]
+stretch = "Stretch"
+
+[nodes.tot_health_text.layout.height]
+stretch = "Stretch"
+
+[nodes.tot_health]
+component = "Overlay"
+control_id = "TargetOfTargetHealth"
+classes = [ "woc-bar-rail" ]
+
+[nodes.tot_health.layout.container]
+kind = "Overlay"
+
+[nodes.tot_health.layout.width]
+stretch = "Stretch"
+
+[nodes.tot_health.layout.height]
+min = 14
+preferred = 14
+max = 14
+stretch = "Fixed"
+
+[[nodes.tot_health.children]]
+node = "tot_health_fill"
+
+[[nodes.tot_health.children]]
+node = "tot_health_text"
+
+[nodes.tot_info]
+component = "VerticalBox"
+
+[nodes.tot_info.layout.container]
+kind = "VerticalBox"
+gap = 2
+
+[nodes.tot_info.layout.padding]
+left = 7
+right = 7
+top = 4
+bottom = 4
+
+[nodes.tot_info.layout.width]
+min = 132
+preferred = 132
+max = 132
+stretch = "Fixed"
+
+[nodes.tot_info.layout.height]
+min = 42
+preferred = 42
+max = 42
+stretch = "Fixed"
+
+[[nodes.tot_info.children]]
+node = "tot_name"
+
+[[nodes.tot_info.children]]
+node = "tot_health"
+
+[nodes.target_of_target]
+component = "HorizontalBox"
+control_id = "TargetOfTargetFrame"
+classes = [ "woc-unit-frame" ]
+
+[nodes.target_of_target.props]
+visibility = "collapsed"
+
+[nodes.target_of_target.layout.container]
+kind = "HorizontalBox"
+gap = 0
+
+[nodes.target_of_target.layout.anchor]
+x = 1
+y = 1
+
+[nodes.target_of_target.layout.pivot]
+x = 1
+y = 0
+
+[nodes.target_of_target.layout.position]
+x = 0
+y = 6
+
+[nodes.target_of_target.layout.width]
+min = 174
+preferred = 174
+max = 174
+stretch = "Fixed"
+
+[nodes.target_of_target.layout.height]
+min = 44
+preferred = 44
+max = 44
+stretch = "Fixed"
+
+[[nodes.target_of_target.children]]
+node = "tot_info"
+
+[[nodes.target_of_target.children]]
+node = "tot_portrait"
+
+[nodes.target_frame]
+component = "Overlay"
+control_id = "TargetFrame"
+
+[nodes.target_frame.props]
+visibility = "collapsed"
+
+[nodes.target_frame.layout.container]
+kind = "Overlay"
+
+[nodes.target_frame.layout.anchor]
+x = 0
+y = 0
+
+[nodes.target_frame.layout.pivot]
+x = 0
+y = 0
+
+[nodes.target_frame.layout.position]
+x = 12
+y = 12
+
+[nodes.target_frame.layout.width]
+min = 244
+preferred = 244
+max = 320
+stretch = "Fixed"
+
+[nodes.target_frame.layout.height]
+min = 68
+preferred = 68
+max = 148
+stretch = "Fixed"
+
+[[nodes.target_frame.children]]
+node = "target_body"
+
+[[nodes.target_frame.children]]
+node = "target_debuffs"
+
+[[nodes.target_frame.children]]
+node = "target_of_target"
+
+[nodes.quest_title]
+component = "Label"
+control_id = "QuestTrackerTitle"
+classes = [ "woc-section-title" ]
+
+[nodes.quest_title.props]
+text = "Quests"
+
+[nodes.quest_title.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_title.layout.height]
+min = 22
+preferred = 22
+max = 22
+stretch = "Fixed"
+
+[nodes.quest_name]
+component = "Label"
+control_id = "QuestTrackerName"
+classes = [ "woc-label" ]
+
+[nodes.quest_name.props]
+text = ""
+overflow = "elide"
+
+[nodes.quest_name.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_name.layout.height]
+min = 20
+preferred = 20
+max = 20
+stretch = "Fixed"
+
+[nodes.quest_objective]
+component = "Label"
+control_id = "QuestTrackerObjective"
+classes = [ "woc-muted" ]
+
+[nodes.quest_objective.props]
+text = ""
+overflow = "wrap"
+
+[nodes.quest_objective.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_objective.layout.height]
+min = 38
+preferred = 44
+max = 72
+stretch = "Fixed"
+
+[nodes.quest_tracker]
+component = "VerticalBox"
+control_id = "QuestTracker"
+classes = [ "woc-tracker" ]
+
+[nodes.quest_tracker.layout.container]
+kind = "VerticalBox"
+gap = 3
+
+[nodes.quest_tracker.layout.padding]
+left = 12
+right = 12
+top = 9
+bottom = 9
+
+[nodes.quest_tracker.layout.width]
+min = 220
+preferred = 260
+max = 320
+stretch = "Fixed"
+
+[nodes.quest_tracker.layout.height]
+min = 92
+preferred = 106
+max = 148
+stretch = "Fixed"
+
+[[nodes.quest_tracker.children]]
+node = "quest_title"
+
+[[nodes.quest_tracker.children]]
+node = "quest_name"
+
+[[nodes.quest_tracker.children]]
+node = "quest_objective"
+
+[nodes.tracker_stack]
+component = "VerticalBox"
+control_id = "RightTrackerStack"
+
+[nodes.tracker_stack.layout.container]
+kind = "VerticalBox"
+gap = 8
+
+[nodes.tracker_stack.layout.anchor]
+x = 1
+y = 0
+
+[nodes.tracker_stack.layout.pivot]
+x = 1
+y = 0
+
+[nodes.tracker_stack.layout.position]
+x = -24
+y = 226
+
+[nodes.tracker_stack.layout.width]
+min = 220
+preferred = 260
+max = 320
+stretch = "Fixed"
+
+[nodes.tracker_stack.layout.height]
+min = 92
+preferred = 106
+max = 360
+stretch = "Fixed"
+
+[[nodes.tracker_stack.children]]
+node = "quest_tracker"
+
+[nodes.minimap_surface]
+component = "Space"
+control_id = "MinimapSurfaceHost"
+classes = [ "woc-minimap" ]
+
+[nodes.minimap_surface.layout.width]
+stretch = "Stretch"
+
+[nodes.minimap_surface.layout.height]
+stretch = "Stretch"
+
+[nodes.zone_name]
+component = "Label"
+control_id = "ZoneName"
+classes = [ "woc-section-title" ]
+
+[nodes.zone_name.props]
+text = "Eastbrook Vale"
+text_align = "center"
+overflow = "elide"
+
+[nodes.zone_name.layout.anchor]
+x = 0.5
+y = 0
+
+[nodes.zone_name.layout.pivot]
+x = 0.5
+y = 1
+
+[nodes.zone_name.layout.position]
+x = 0
+y = -4
+
+[nodes.zone_name.layout.width]
+min = 150
+preferred = 180
+max = 220
+stretch = "Fixed"
+
+[nodes.zone_name.layout.height]
+min = 22
+preferred = 22
+max = 22
+stretch = "Fixed"
+
+[nodes.minimap_coords]
+component = "Label"
+control_id = "MinimapCoordinates"
+classes = [ "woc-muted" ]
+
+[nodes.minimap_coords.props]
+text = "0, 0"
+text_align = "center"
+
+[nodes.minimap_coords.layout.anchor]
+x = 0.5
+y = 1
+
+[nodes.minimap_coords.layout.pivot]
+x = 0.5
+y = 0
+
+[nodes.minimap_coords.layout.position]
+x = 0
+y = 4
+
+[nodes.minimap_coords.layout.width]
+min = 90
+preferred = 120
+max = 140
+stretch = "Fixed"
+
+[nodes.minimap_coords.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[nodes.minimap_cluster]
+component = "Overlay"
+control_id = "MinimapCluster"
+
+[nodes.minimap_cluster.layout.container]
+kind = "Overlay"
+
+[nodes.minimap_cluster.layout.anchor]
+x = 1
+y = 0
+
+[nodes.minimap_cluster.layout.pivot]
+x = 1
+y = 0
+
+[nodes.minimap_cluster.layout.position]
+x = -24
+y = 28
+
+[nodes.minimap_cluster.layout.width]
+min = 180
+preferred = 180
+max = 180
+stretch = "Fixed"
+
+[nodes.minimap_cluster.layout.height]
+min = 180
+preferred = 180
+max = 180
+stretch = "Fixed"
+
+[[nodes.minimap_cluster.children]]
+node = "minimap_surface"
+
+[[nodes.minimap_cluster.children]]
+node = "zone_name"
+
+[[nodes.minimap_cluster.children]]
+node = "minimap_coords"
+
+[nodes.player_portrait]
+component = "Space"
+control_id = "PlayerPortraitHost"
+classes = [ "woc-portrait" ]
+
+[nodes.player_portrait.layout.width]
+min = 60
+preferred = 60
+max = 60
+stretch = "Fixed"
+
+[nodes.player_portrait.layout.height]
+min = 60
+preferred = 60
+max = 60
+stretch = "Fixed"
+
+[nodes.player_level]
+component = "Label"
+control_id = "PlayerLevel"
+classes = [ "woc-level-chip" ]
+
+[nodes.player_level.props]
+text = "1"
+text_align = "center"
+
+[nodes.player_level.layout.anchor]
+x = 0
+y = 1
+
+[nodes.player_level.layout.pivot]
+x = 0
+y = 1
+
+[nodes.player_level.layout.position]
+x = -2
+y = 2
+
+[nodes.player_level.layout.width]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.player_level.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.player_portrait_wrap]
+component = "Overlay"
+control_id = "PlayerPortrait"
+
+[nodes.player_portrait_wrap.layout.container]
+kind = "Overlay"
+
+[nodes.player_portrait_wrap.layout.width]
+min = 64
+preferred = 64
+max = 64
+stretch = "Fixed"
+
+[nodes.player_portrait_wrap.layout.height]
+min = 64
+preferred = 64
+max = 64
+stretch = "Fixed"
+
+[[nodes.player_portrait_wrap.children]]
+node = "player_portrait"
+
+[[nodes.player_portrait_wrap.children]]
+node = "player_level"
+
+[nodes.player_name]
+component = "Label"
+control_id = "PlayerName"
+classes = [ "woc-unit-name" ]
+
+[nodes.player_name.props]
+text = ""
+overflow = "elide"
+
+[nodes.player_name.layout.width]
+stretch = "Stretch"
+
+[nodes.player_name.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[nodes.player_health_fill]
+component = "Space"
+control_id = "PlayerHealthFill"
+classes = [ "woc-health-fill" ]
+
+[nodes.player_health_fill.layout.width]
+stretch = "Stretch"
+
+[nodes.player_health_fill.layout.height]
+stretch = "Stretch"
+
+[nodes.player_absorb]
+component = "Space"
+control_id = "PlayerAbsorbFill"
+classes = [ "woc-absorb-fill" ]
+
+[nodes.player_absorb.props]
+visibility = "collapsed"
+
+[nodes.player_absorb.layout.width]
+stretch = "Stretch"
+
+[nodes.player_absorb.layout.height]
+stretch = "Stretch"
+
+[nodes.player_health_text]
+component = "Label"
+control_id = "PlayerHealthText"
+classes = [ "woc-bar-text" ]
+
+[nodes.player_health_text.props]
+text = ""
+text_align = "center"
+
+[nodes.player_health_text.layout.width]
+stretch = "Stretch"
+
+[nodes.player_health_text.layout.height]
+stretch = "Stretch"
+
+[nodes.player_health]
+component = "Overlay"
+control_id = "PlayerHealth"
+classes = [ "woc-bar-rail" ]
+
+[nodes.player_health.layout.container]
+kind = "Overlay"
+
+[nodes.player_health.layout.width]
+stretch = "Stretch"
+
+[nodes.player_health.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[[nodes.player_health.children]]
+node = "player_health_fill"
+
+[[nodes.player_health.children]]
+node = "player_absorb"
+
+[[nodes.player_health.children]]
+node = "player_health_text"
+
+[nodes.player_resource_fill]
+component = "Space"
+control_id = "PlayerResourceFill"
+classes = [ "woc-resource-fill" ]
+
+[nodes.player_resource_fill.layout.width]
+stretch = "Stretch"
+
+[nodes.player_resource_fill.layout.height]
+stretch = "Stretch"
+
+[nodes.player_resource_text]
+component = "Label"
+control_id = "PlayerResourceText"
+classes = [ "woc-bar-text" ]
+
+[nodes.player_resource_text.props]
+text = ""
+text_align = "center"
+
+[nodes.player_resource_text.layout.width]
+stretch = "Stretch"
+
+[nodes.player_resource_text.layout.height]
+stretch = "Stretch"
+
+[nodes.player_resource]
+component = "Overlay"
+control_id = "PlayerResource"
+classes = [ "woc-bar-rail" ]
+
+[nodes.player_resource.layout.container]
+kind = "Overlay"
+
+[nodes.player_resource.layout.width]
+stretch = "Stretch"
+
+[nodes.player_resource.layout.height]
+min = 14
+preferred = 14
+max = 14
+stretch = "Fixed"
+
+[[nodes.player_resource.children]]
+node = "player_resource_fill"
+
+[[nodes.player_resource.children]]
+node = "player_resource_text"
+
+[nodes.player_info]
+component = "VerticalBox"
+control_id = "PlayerInfo"
+
+[nodes.player_info.layout.container]
+kind = "VerticalBox"
+gap = 2
+
+[nodes.player_info.layout.padding]
+left = 14
+right = 8
+top = 5
+bottom = 5
+
+[nodes.player_info.layout.width]
+min = 520
+preferred = 520
+max = 520
+stretch = "Fixed"
+
+[nodes.player_info.layout.height]
+min = 64
+preferred = 64
+max = 64
+stretch = "Fixed"
+
+[[nodes.player_info.children]]
+node = "player_name"
+
+[[nodes.player_info.children]]
+node = "player_health"
+
+[[nodes.player_info.children]]
+node = "player_resource"
+
+[nodes.player_frame]
+component = "HorizontalBox"
+control_id = "PlayerFrame"
+classes = [ "woc-unit-frame" ]
+
+[nodes.player_frame.layout.container]
+kind = "HorizontalBox"
+gap = 0
+
+[nodes.player_frame.layout.width]
+min = 612
+preferred = 612
+max = 612
+stretch = "Fixed"
+
+[nodes.player_frame.layout.height]
+min = 68
+preferred = 68
+max = 68
+stretch = "Fixed"
+
+[[nodes.player_frame.children]]
+node = "player_portrait_wrap"
+
+[[nodes.player_frame.children]]
+node = "player_info"
+
+[nodes.player_cast_fill]
+component = "Space"
+control_id = "PlayerCastFill"
+classes = [ "woc-cast-fill" ]
+
+[nodes.player_cast_fill.layout.width]
+stretch = "Stretch"
+
+[nodes.player_cast_fill.layout.height]
+stretch = "Stretch"
+
+[nodes.player_cast_text]
+component = "Label"
+control_id = "PlayerCastText"
+classes = [ "woc-bar-text" ]
+
+[nodes.player_cast_text.props]
+text = ""
+text_align = "center"
+
+[nodes.player_cast_text.layout.width]
+stretch = "Stretch"
+
+[nodes.player_cast_text.layout.height]
+stretch = "Stretch"
+
+[nodes.player_cast_bar]
+component = "Overlay"
+control_id = "PlayerCastBar"
+classes = [ "woc-bar-rail" ]
+
+[nodes.player_cast_bar.props]
+visibility = "collapsed"
+
+[nodes.player_cast_bar.layout.container]
+kind = "Overlay"
+
+[nodes.player_cast_bar.layout.width]
+min = 300
+preferred = 420
+max = 612
+stretch = "Fixed"
+
+[nodes.player_cast_bar.layout.height]
+min = 16
+preferred = 16
+max = 16
+stretch = "Fixed"
+
+[[nodes.player_cast_bar.children]]
+node = "player_cast_fill"
+
+[[nodes.player_cast_bar.children]]
+node = "player_cast_text"
+
+[nodes.xp_fill]
+component = "Space"
+control_id = "ExperienceFill"
+classes = [ "woc-xp-fill" ]
+
+[nodes.xp_fill.layout.width]
+stretch = "Stretch"
+
+[nodes.xp_fill.layout.height]
+stretch = "Stretch"
+
+[nodes.xp_rested]
+component = "Space"
+control_id = "ExperienceRestedFill"
+classes = [ "woc-xp-rested" ]
+
+[nodes.xp_rested.props]
+visibility = "collapsed"
+
+[nodes.xp_rested.layout.width]
+stretch = "Stretch"
+
+[nodes.xp_rested.layout.height]
+stretch = "Stretch"
+
+[nodes.xp_text]
+component = "Label"
+control_id = "ExperienceText"
+classes = [ "woc-bar-text" ]
+
+[nodes.xp_text.props]
+text = ""
+text_align = "center"
+
+[nodes.xp_text.layout.width]
+stretch = "Stretch"
+
+[nodes.xp_text.layout.height]
+stretch = "Stretch"
+
+[nodes.xp_bar]
+component = "Overlay"
+control_id = "ExperienceBar"
+classes = [ "woc-bar-rail" ]
+
+[nodes.xp_bar.layout.container]
+kind = "Overlay"
+
+[nodes.xp_bar.layout.width]
+min = 612
+preferred = 612
+max = 612
+stretch = "Fixed"
+
+[nodes.xp_bar.layout.height]
+min = 10
+preferred = 10
+max = 10
+stretch = "Fixed"
+
+[[nodes.xp_bar.children]]
+node = "xp_fill"
+
+[[nodes.xp_bar.children]]
+node = "xp_rested"
+
+[[nodes.xp_bar.children]]
+node = "xp_text"
+
+[nodes.action_slot_0]
+component = "Button"
+control_id = "ActionSlot0"
+classes = [ "woc-action-slot" ]
+
+[nodes.action_slot_0.props]
+text = "Attack"
+button_variant = "outlined"
+
+[nodes.action_slot_0.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.action_slot_0.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[[nodes.action_slot_0.events]]
+id = "WocHud/Action/0"
+event = "Click"
+route = "woc.hud.action.activate.0"
+
+[nodes.action_slot_1]
+component = "Button"
+control_id = "ActionSlot1"
+classes = [ "woc-action-slot" ]
+
+[nodes.action_slot_1.props]
+text = "1"
+button_variant = "outlined"
+
+[nodes.action_slot_1.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.action_slot_1.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[[nodes.action_slot_1.events]]
+id = "WocHud/Action/1"
+event = "Click"
+route = "woc.hud.action.activate.1"
+
+[nodes.action_slot_2]
+component = "Button"
+control_id = "ActionSlot2"
+classes = [ "woc-action-slot" ]
+
+[nodes.action_slot_2.props]
+text = "2"
+button_variant = "outlined"
+
+[nodes.action_slot_2.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.action_slot_2.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[[nodes.action_slot_2.events]]
+id = "WocHud/Action/2"
+event = "Click"
+route = "woc.hud.action.activate.2"
+
+[nodes.action_slot_3]
+component = "Button"
+control_id = "ActionSlot3"
+classes = [ "woc-action-slot" ]
+
+[nodes.action_slot_3.props]
+text = "3"
+button_variant = "outlined"
+
+[nodes.action_slot_3.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.action_slot_3.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[[nodes.action_slot_3.events]]
+id = "WocHud/Action/3"
+event = "Click"
+route = "woc.hud.action.activate.3"
+
+[nodes.action_slot_4]
+component = "Button"
+control_id = "ActionSlot4"
+classes = [ "woc-action-slot" ]
+
+[nodes.action_slot_4.props]
+text = "4"
+button_variant = "outlined"
+
+[nodes.action_slot_4.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.action_slot_4.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[[nodes.action_slot_4.events]]
+id = "WocHud/Action/4"
+event = "Click"
+route = "woc.hud.action.activate.4"
+
+[nodes.action_slot_5]
+component = "Button"
+control_id = "ActionSlot5"
+classes = [ "woc-action-slot" ]
+
+[nodes.action_slot_5.props]
+text = "5"
+button_variant = "outlined"
+
+[nodes.action_slot_5.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.action_slot_5.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[[nodes.action_slot_5.events]]
+id = "WocHud/Action/5"
+event = "Click"
+route = "woc.hud.action.activate.5"
+
+[nodes.action_slot_6]
+component = "Button"
+control_id = "ActionSlot6"
+classes = [ "woc-action-slot" ]
+
+[nodes.action_slot_6.props]
+text = "6"
+button_variant = "outlined"
+
+[nodes.action_slot_6.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.action_slot_6.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[[nodes.action_slot_6.events]]
+id = "WocHud/Action/6"
+event = "Click"
+route = "woc.hud.action.activate.6"
+
+[nodes.action_slot_7]
+component = "Button"
+control_id = "ActionSlot7"
+classes = [ "woc-action-slot" ]
+
+[nodes.action_slot_7.props]
+text = "7"
+button_variant = "outlined"
+
+[nodes.action_slot_7.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.action_slot_7.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[[nodes.action_slot_7.events]]
+id = "WocHud/Action/7"
+event = "Click"
+route = "woc.hud.action.activate.7"
+
+[nodes.action_slot_8]
+component = "Button"
+control_id = "ActionSlot8"
+classes = [ "woc-action-slot" ]
+
+[nodes.action_slot_8.props]
+text = "8"
+button_variant = "outlined"
+
+[nodes.action_slot_8.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.action_slot_8.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[[nodes.action_slot_8.events]]
+id = "WocHud/Action/8"
+event = "Click"
+route = "woc.hud.action.activate.8"
+
+[nodes.action_slot_9]
+component = "Button"
+control_id = "ActionSlot9"
+classes = [ "woc-action-slot" ]
+
+[nodes.action_slot_9.props]
+text = "9"
+button_variant = "outlined"
+
+[nodes.action_slot_9.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.action_slot_9.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[[nodes.action_slot_9.events]]
+id = "WocHud/Action/9"
+event = "Click"
+route = "woc.hud.action.activate.9"
+
+[nodes.action_slot_10]
+component = "Button"
+control_id = "ActionSlot10"
+classes = [ "woc-action-slot" ]
+
+[nodes.action_slot_10.props]
+text = "0"
+button_variant = "outlined"
+
+[nodes.action_slot_10.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.action_slot_10.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[[nodes.action_slot_10.events]]
+id = "WocHud/Action/10"
+event = "Click"
+route = "woc.hud.action.activate.10"
+
+[nodes.action_slot_11]
+component = "Button"
+control_id = "ActionSlot11"
+classes = [ "woc-action-slot" ]
+
+[nodes.action_slot_11.props]
+text = "-"
+button_variant = "outlined"
+
+[nodes.action_slot_11.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.action_slot_11.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[[nodes.action_slot_11.events]]
+id = "WocHud/Action/11"
+event = "Click"
+route = "woc.hud.action.activate.11"
+
+[nodes.action_slot_12]
+component = "Button"
+control_id = "ActionSlot12"
+classes = [ "woc-action-slot" ]
+
+[nodes.action_slot_12.props]
+text = "S1"
+button_variant = "outlined"
+
+[nodes.action_slot_12.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.action_slot_12.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[[nodes.action_slot_12.events]]
+id = "WocHud/Action/12"
+event = "Click"
+route = "woc.hud.action.activate.12"
+
+[nodes.action_slot_13]
+component = "Button"
+control_id = "ActionSlot13"
+classes = [ "woc-action-slot" ]
+
+[nodes.action_slot_13.props]
+text = "S2"
+button_variant = "outlined"
+
+[nodes.action_slot_13.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.action_slot_13.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[[nodes.action_slot_13.events]]
+id = "WocHud/Action/13"
+event = "Click"
+route = "woc.hud.action.activate.13"
+
+[nodes.action_slot_14]
+component = "Button"
+control_id = "ActionSlot14"
+classes = [ "woc-action-slot" ]
+
+[nodes.action_slot_14.props]
+text = "S3"
+button_variant = "outlined"
+
+[nodes.action_slot_14.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.action_slot_14.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[[nodes.action_slot_14.events]]
+id = "WocHud/Action/14"
+event = "Click"
+route = "woc.hud.action.activate.14"
+
+[nodes.action_slot_15]
+component = "Button"
+control_id = "ActionSlot15"
+classes = [ "woc-action-slot" ]
+
+[nodes.action_slot_15.props]
+text = "S4"
+button_variant = "outlined"
+
+[nodes.action_slot_15.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.action_slot_15.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[[nodes.action_slot_15.events]]
+id = "WocHud/Action/15"
+event = "Click"
+route = "woc.hud.action.activate.15"
+
+[nodes.action_slot_16]
+component = "Button"
+control_id = "ActionSlot16"
+classes = [ "woc-action-slot" ]
+
+[nodes.action_slot_16.props]
+text = "S5"
+button_variant = "outlined"
+
+[nodes.action_slot_16.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.action_slot_16.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[[nodes.action_slot_16.events]]
+id = "WocHud/Action/16"
+event = "Click"
+route = "woc.hud.action.activate.16"
+
+[nodes.action_slot_17]
+component = "Button"
+control_id = "ActionSlot17"
+classes = [ "woc-action-slot" ]
+
+[nodes.action_slot_17.props]
+text = "S6"
+button_variant = "outlined"
+
+[nodes.action_slot_17.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.action_slot_17.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[[nodes.action_slot_17.events]]
+id = "WocHud/Action/17"
+event = "Click"
+route = "woc.hud.action.activate.17"
+
+[nodes.action_slot_18]
+component = "Button"
+control_id = "ActionSlot18"
+classes = [ "woc-action-slot" ]
+
+[nodes.action_slot_18.props]
+text = "S7"
+button_variant = "outlined"
+
+[nodes.action_slot_18.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.action_slot_18.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[[nodes.action_slot_18.events]]
+id = "WocHud/Action/18"
+event = "Click"
+route = "woc.hud.action.activate.18"
+
+[nodes.action_slot_19]
+component = "Button"
+control_id = "ActionSlot19"
+classes = [ "woc-action-slot" ]
+
+[nodes.action_slot_19.props]
+text = "S8"
+button_variant = "outlined"
+
+[nodes.action_slot_19.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.action_slot_19.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[[nodes.action_slot_19.events]]
+id = "WocHud/Action/19"
+event = "Click"
+route = "woc.hud.action.activate.19"
+
+[nodes.action_slot_20]
+component = "Button"
+control_id = "ActionSlot20"
+classes = [ "woc-action-slot" ]
+
+[nodes.action_slot_20.props]
+text = "S9"
+button_variant = "outlined"
+
+[nodes.action_slot_20.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.action_slot_20.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[[nodes.action_slot_20.events]]
+id = "WocHud/Action/20"
+event = "Click"
+route = "woc.hud.action.activate.20"
+
+[nodes.action_slot_21]
+component = "Button"
+control_id = "ActionSlot21"
+classes = [ "woc-action-slot" ]
+
+[nodes.action_slot_21.props]
+text = "S0"
+button_variant = "outlined"
+
+[nodes.action_slot_21.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.action_slot_21.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[[nodes.action_slot_21.events]]
+id = "WocHud/Action/21"
+event = "Click"
+route = "woc.hud.action.activate.21"
+
+[nodes.action_slot_22]
+component = "Button"
+control_id = "ActionSlot22"
+classes = [ "woc-action-slot" ]
+
+[nodes.action_slot_22.props]
+text = "S-"
+button_variant = "outlined"
+
+[nodes.action_slot_22.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.action_slot_22.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[[nodes.action_slot_22.events]]
+id = "WocHud/Action/22"
+event = "Click"
+route = "woc.hud.action.activate.22"
+
+[nodes.primary_action_bar]
+component = "HorizontalBox"
+control_id = "PrimaryActionBar"
+classes = [ "woc-action-bar" ]
+
+[nodes.primary_action_bar.layout.container]
+kind = "HorizontalBox"
+gap = 4
+
+[nodes.primary_action_bar.layout.padding]
+left = 6
+right = 6
+top = 6
+bottom = 6
+
+[nodes.primary_action_bar.layout.width]
+min = 612
+preferred = 612
+max = 612
+stretch = "Fixed"
+
+[nodes.primary_action_bar.layout.height]
+min = 58
+preferred = 58
+max = 58
+stretch = "Fixed"
+
+[[nodes.primary_action_bar.children]]
+node = "action_slot_0"
+
+[[nodes.primary_action_bar.children]]
+node = "action_slot_1"
+
+[[nodes.primary_action_bar.children]]
+node = "action_slot_2"
+
+[[nodes.primary_action_bar.children]]
+node = "action_slot_3"
+
+[[nodes.primary_action_bar.children]]
+node = "action_slot_4"
+
+[[nodes.primary_action_bar.children]]
+node = "action_slot_5"
+
+[[nodes.primary_action_bar.children]]
+node = "action_slot_6"
+
+[[nodes.primary_action_bar.children]]
+node = "action_slot_7"
+
+[[nodes.primary_action_bar.children]]
+node = "action_slot_8"
+
+[[nodes.primary_action_bar.children]]
+node = "action_slot_9"
+
+[[nodes.primary_action_bar.children]]
+node = "action_slot_10"
+
+[[nodes.primary_action_bar.children]]
+node = "action_slot_11"
+
+[nodes.secondary_action_bar]
+component = "HorizontalBox"
+control_id = "SecondaryActionBar"
+classes = [ "woc-action-bar" ]
+
+[nodes.secondary_action_bar.props]
+visibility = "collapsed"
+
+[nodes.secondary_action_bar.layout.container]
+kind = "HorizontalBox"
+gap = 4
+
+[nodes.secondary_action_bar.layout.padding]
+left = 6
+right = 6
+top = 4
+bottom = 4
+
+[nodes.secondary_action_bar.layout.width]
+min = 562
+preferred = 562
+max = 612
+stretch = "Fixed"
+
+[nodes.secondary_action_bar.layout.height]
+min = 54
+preferred = 54
+max = 54
+stretch = "Fixed"
+
+[[nodes.secondary_action_bar.children]]
+node = "action_slot_12"
+
+[[nodes.secondary_action_bar.children]]
+node = "action_slot_13"
+
+[[nodes.secondary_action_bar.children]]
+node = "action_slot_14"
+
+[[nodes.secondary_action_bar.children]]
+node = "action_slot_15"
+
+[[nodes.secondary_action_bar.children]]
+node = "action_slot_16"
+
+[[nodes.secondary_action_bar.children]]
+node = "action_slot_17"
+
+[[nodes.secondary_action_bar.children]]
+node = "action_slot_18"
+
+[[nodes.secondary_action_bar.children]]
+node = "action_slot_19"
+
+[[nodes.secondary_action_bar.children]]
+node = "action_slot_20"
+
+[[nodes.secondary_action_bar.children]]
+node = "action_slot_21"
+
+[[nodes.secondary_action_bar.children]]
+node = "action_slot_22"
+
+[nodes.desktop_bottom]
+component = "VerticalBox"
+control_id = "DesktopBottomCluster"
+
+[nodes.desktop_bottom.layout.container]
+kind = "VerticalBox"
+gap = 4
+
+[nodes.desktop_bottom.layout.anchor]
+x = 0.5
+y = 1
+
+[nodes.desktop_bottom.layout.pivot]
+x = 0.5
+y = 1
+
+[nodes.desktop_bottom.layout.position]
+x = 0
+y = -6
+
+[nodes.desktop_bottom.layout.width]
+min = 612
+preferred = 612
+max = 612
+stretch = "Fixed"
+
+[nodes.desktop_bottom.layout.height]
+min = 144
+preferred = 144
+max = 268
+stretch = "Fixed"
+
+[[nodes.desktop_bottom.children]]
+node = "player_cast_bar"
+
+[[nodes.desktop_bottom.children]]
+node = "player_frame"
+
+[[nodes.desktop_bottom.children]]
+node = "xp_bar"
+
+[[nodes.desktop_bottom.children]]
+node = "secondary_action_bar"
+
+[[nodes.desktop_bottom.children]]
+node = "primary_action_bar"
+
+[nodes.low_health_vignette]
+component = "Space"
+control_id = "LowHealthVignette"
+classes = [ "woc-low-health-vignette" ]
+
+[nodes.low_health_vignette.props]
+visibility = "collapsed"
+
+[nodes.low_health_vignette.layout.width]
+stretch = "Stretch"
+
+[nodes.low_health_vignette.layout.height]
+stretch = "Stretch"
+
+[nodes.desktop_hud]
+component = "Overlay"
+control_id = "DesktopHudLayer"
+
+[nodes.desktop_hud.props.visibility]
+xs = "collapsed"
+md = "visible"
+
+[nodes.desktop_hud.layout.container]
+kind = "Overlay"
+
+[nodes.desktop_hud.layout.width]
+stretch = "Stretch"
+
+[nodes.desktop_hud.layout.height]
+stretch = "Stretch"
+
+[[nodes.desktop_hud.children]]
+node = "target_frame"
+
+[[nodes.desktop_hud.children]]
+node = "tracker_stack"
+
+[[nodes.desktop_hud.children]]
+node = "minimap_cluster"
+
+[[nodes.desktop_hud.children]]
+node = "desktop_bottom"
+
+[[nodes.desktop_hud.children]]
+node = "low_health_vignette"
+
+[nodes.touch_player_name]
+component = "Label"
+control_id = "TouchPlayerName"
+classes = [ "woc-unit-name" ]
+
+[nodes.touch_player_name.props]
+text = ""
+overflow = "elide"
+
+[nodes.touch_player_name.layout.width]
+stretch = "Stretch"
+
+[nodes.touch_player_name.layout.height]
+min = 16
+preferred = 16
+max = 16
+stretch = "Fixed"
+
+[nodes.touch_player_health_fill]
+component = "Space"
+control_id = "TouchPlayerHealthFill"
+classes = [ "woc-health-fill" ]
+
+[nodes.touch_player_health_fill.layout.width]
+stretch = "Stretch"
+
+[nodes.touch_player_health_fill.layout.height]
+stretch = "Stretch"
+
+[nodes.touch_player_health]
+component = "Overlay"
+control_id = "TouchPlayerHealth"
+classes = [ "woc-bar-rail" ]
+
+[nodes.touch_player_health.layout.container]
+kind = "Overlay"
+
+[nodes.touch_player_health.layout.width]
+stretch = "Stretch"
+
+[nodes.touch_player_health.layout.height]
+min = 16
+preferred = 16
+max = 16
+stretch = "Fixed"
+
+[[nodes.touch_player_health.children]]
+node = "touch_player_health_fill"
+
+[nodes.touch_player_resource_fill]
+component = "Space"
+control_id = "TouchPlayerResourceFill"
+classes = [ "woc-resource-fill" ]
+
+[nodes.touch_player_resource_fill.layout.width]
+stretch = "Stretch"
+
+[nodes.touch_player_resource_fill.layout.height]
+stretch = "Stretch"
+
+[nodes.touch_player_resource]
+component = "Overlay"
+control_id = "TouchPlayerResource"
+classes = [ "woc-bar-rail" ]
+
+[nodes.touch_player_resource.layout.container]
+kind = "Overlay"
+
+[nodes.touch_player_resource.layout.width]
+stretch = "Stretch"
+
+[nodes.touch_player_resource.layout.height]
+min = 10
+preferred = 10
+max = 10
+stretch = "Fixed"
+
+[[nodes.touch_player_resource.children]]
+node = "touch_player_resource_fill"
+
+[nodes.touch_player_frame]
+component = "VerticalBox"
+control_id = "TouchPlayerFrame"
+classes = [ "woc-unit-frame" ]
+
+[nodes.touch_player_frame.layout.container]
+kind = "VerticalBox"
+gap = 2
+
+[nodes.touch_player_frame.layout.padding]
+left = 8
+right = 8
+top = 5
+bottom = 5
+
+[nodes.touch_player_frame.layout.anchor]
+x = 0.5
+y = 1
+
+[nodes.touch_player_frame.layout.pivot]
+x = 0.5
+y = 1
+
+[nodes.touch_player_frame.layout.position]
+x = 0
+y = -12
+
+[nodes.touch_player_frame.layout.width]
+min = 220
+preferred = 246
+max = 280
+stretch = "Fixed"
+
+[nodes.touch_player_frame.layout.height]
+min = 54
+preferred = 54
+max = 54
+stretch = "Fixed"
+
+[[nodes.touch_player_frame.children]]
+node = "touch_player_name"
+
+[[nodes.touch_player_frame.children]]
+node = "touch_player_health"
+
+[[nodes.touch_player_frame.children]]
+node = "touch_player_resource"
+
+[nodes.touch_target_name]
+component = "Label"
+control_id = "TouchTargetName"
+classes = [ "woc-unit-name" ]
+
+[nodes.touch_target_name.props]
+text = ""
+overflow = "elide"
+
+[nodes.touch_target_name.layout.width]
+stretch = "Stretch"
+
+[nodes.touch_target_name.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[nodes.touch_target_health_fill]
+component = "Space"
+control_id = "TouchTargetHealthFill"
+classes = [ "woc-health-fill" ]
+
+[nodes.touch_target_health_fill.layout.width]
+stretch = "Stretch"
+
+[nodes.touch_target_health_fill.layout.height]
+stretch = "Stretch"
+
+[nodes.touch_target_health]
+component = "Overlay"
+control_id = "TouchTargetHealth"
+classes = [ "woc-bar-rail" ]
+
+[nodes.touch_target_health.layout.container]
+kind = "Overlay"
+
+[nodes.touch_target_health.layout.width]
+stretch = "Stretch"
+
+[nodes.touch_target_health.layout.height]
+min = 16
+preferred = 16
+max = 16
+stretch = "Fixed"
+
+[[nodes.touch_target_health.children]]
+node = "touch_target_health_fill"
+
+[nodes.touch_target_frame]
+component = "VerticalBox"
+control_id = "TouchTargetFrame"
+classes = [ "woc-unit-frame", "woc-unit-frame-target" ]
+
+[nodes.touch_target_frame.props]
+visibility = "collapsed"
+
+[nodes.touch_target_frame.layout.container]
+kind = "VerticalBox"
+gap = 3
+
+[nodes.touch_target_frame.layout.padding]
+left = 8
+right = 8
+top = 6
+bottom = 6
+
+[nodes.touch_target_frame.layout.anchor]
+x = 0
+y = 0
+
+[nodes.touch_target_frame.layout.pivot]
+x = 0
+y = 0
+
+[nodes.touch_target_frame.layout.position]
+x = 18
+y = 78
+
+[nodes.touch_target_frame.layout.width]
+min = 190
+preferred = 210
+max = 240
+stretch = "Fixed"
+
+[nodes.touch_target_frame.layout.height]
+min = 48
+preferred = 48
+max = 48
+stretch = "Fixed"
+
+[[nodes.touch_target_frame.children]]
+node = "touch_target_name"
+
+[[nodes.touch_target_frame.children]]
+node = "touch_target_health"
+
+[nodes.touch_move_zone]
+component = "Space"
+control_id = "TouchMoveZone"
+classes = [ "woc-touch-zone" ]
+
+[nodes.touch_move_zone.layout.anchor]
+x = 0
+y = 1
+
+[nodes.touch_move_zone.layout.pivot]
+x = 0
+y = 1
+
+[nodes.touch_move_zone.layout.position]
+x = 18
+y = -18
+
+[nodes.touch_move_zone.layout.width]
+min = 136
+preferred = 156
+max = 176
+stretch = "Fixed"
+
+[nodes.touch_move_zone.layout.height]
+min = 136
+preferred = 156
+max = 176
+stretch = "Fixed"
+
+[nodes.touch_camera_zone]
+component = "Space"
+control_id = "TouchCameraZone"
+classes = [ "woc-touch-zone" ]
+
+[nodes.touch_camera_zone.layout.anchor]
+x = 1
+y = 1
+
+[nodes.touch_camera_zone.layout.pivot]
+x = 1
+y = 1
+
+[nodes.touch_camera_zone.layout.position]
+x = -18
+y = -18
+
+[nodes.touch_camera_zone.layout.width]
+min = 136
+preferred = 156
+max = 176
+stretch = "Fixed"
+
+[nodes.touch_camera_zone.layout.height]
+min = 136
+preferred = 156
+max = 176
+stretch = "Fixed"
+
+[nodes.touch_chat]
+component = "Button"
+control_id = "TouchChat"
+classes = [ "woc-touch-action" ]
+
+[nodes.touch_chat.props]
+text = "Chat"
+button_variant = "outlined"
+
+[nodes.touch_chat.layout.width]
+min = 48
+preferred = 54
+max = 60
+stretch = "Fixed"
+
+[nodes.touch_chat.layout.height]
+min = 44
+preferred = 44
+max = 48
+stretch = "Fixed"
+
+[[nodes.touch_chat.events]]
+id = "WocHud/Touch/Chat"
+event = "Click"
+route = "woc.hud.touch.open_chat"
+
+[nodes.touch_social]
+component = "Button"
+control_id = "TouchSocial"
+classes = [ "woc-touch-action" ]
+
+[nodes.touch_social.props]
+text = "Social"
+button_variant = "outlined"
+
+[nodes.touch_social.layout.width]
+min = 54
+preferred = 58
+max = 64
+stretch = "Fixed"
+
+[nodes.touch_social.layout.height]
+min = 44
+preferred = 44
+max = 48
+stretch = "Fixed"
+
+[[nodes.touch_social.events]]
+id = "WocHud/Touch/Social"
+event = "Click"
+route = "woc.hud.touch.open_social"
+
+[nodes.touch_quest]
+component = "Button"
+control_id = "TouchQuest"
+classes = [ "woc-touch-action" ]
+
+[nodes.touch_quest.props]
+text = "Quests"
+button_variant = "outlined"
+
+[nodes.touch_quest.layout.width]
+min = 54
+preferred = 58
+max = 64
+stretch = "Fixed"
+
+[nodes.touch_quest.layout.height]
+min = 44
+preferred = 44
+max = 48
+stretch = "Fixed"
+
+[[nodes.touch_quest.events]]
+id = "WocHud/Touch/Quest"
+event = "Click"
+route = "woc.hud.touch.open_quests"
+
+[nodes.touch_menu]
+component = "Button"
+control_id = "TouchMenu"
+classes = [ "woc-touch-action" ]
+
+[nodes.touch_menu.props]
+text = "Menu"
+button_variant = "outlined"
+
+[nodes.touch_menu.layout.width]
+min = 48
+preferred = 54
+max = 60
+stretch = "Fixed"
+
+[nodes.touch_menu.layout.height]
+min = 44
+preferred = 44
+max = 48
+stretch = "Fixed"
+
+[[nodes.touch_menu.events]]
+id = "WocHud/Touch/Menu"
+event = "Click"
+route = "woc.hud.pause.open"
+
+[nodes.touch_more]
+component = "Button"
+control_id = "TouchMore"
+classes = [ "woc-touch-action" ]
+
+[nodes.touch_more.props]
+text = "More"
+button_variant = "outlined"
+
+[nodes.touch_more.layout.width]
+min = 48
+preferred = 54
+max = 60
+stretch = "Fixed"
+
+[nodes.touch_more.layout.height]
+min = 44
+preferred = 44
+max = 48
+stretch = "Fixed"
+
+[[nodes.touch_more.events]]
+id = "WocHud/Touch/More"
+event = "Click"
+route = "woc.hud.touch.open_more"
+
+[nodes.touch_top_actions]
+component = "HorizontalBox"
+control_id = "TouchTopActions"
+
+[nodes.touch_top_actions.layout.container]
+kind = "HorizontalBox"
+gap = 5
+
+[nodes.touch_top_actions.layout.anchor]
+x = 0
+y = 0
+
+[nodes.touch_top_actions.layout.pivot]
+x = 0
+y = 0
+
+[nodes.touch_top_actions.layout.position]
+x = 16
+y = 16
+
+[nodes.touch_top_actions.layout.width]
+min = 280
+preferred = 310
+max = 340
+stretch = "Fixed"
+
+[nodes.touch_top_actions.layout.height]
+min = 44
+preferred = 44
+max = 48
+stretch = "Fixed"
+
+[[nodes.touch_top_actions.children]]
+node = "touch_chat"
+
+[[nodes.touch_top_actions.children]]
+node = "touch_social"
+
+[[nodes.touch_top_actions.children]]
+node = "touch_quest"
+
+[[nodes.touch_top_actions.children]]
+node = "touch_menu"
+
+[[nodes.touch_top_actions.children]]
+node = "touch_more"
+
+[nodes.touch_action_0]
+component = "Button"
+control_id = "TouchAction0"
+classes = [ "woc-touch-action" ]
+
+[nodes.touch_action_0.props]
+text = "1"
+button_variant = "outlined"
+
+[nodes.touch_action_0.layout.anchor]
+x = 0
+y = 0
+
+[nodes.touch_action_0.layout.position]
+x = 4
+y = 76
+
+[nodes.touch_action_0.layout.width]
+min = 50
+preferred = 50
+max = 50
+stretch = "Fixed"
+
+[nodes.touch_action_0.layout.height]
+min = 50
+preferred = 50
+max = 50
+stretch = "Fixed"
+
+[[nodes.touch_action_0.events]]
+id = "WocHud/Touch/Action/0"
+event = "Click"
+route = "woc.hud.touch.activate.0"
+
+[nodes.touch_action_1]
+component = "Button"
+control_id = "TouchAction1"
+classes = [ "woc-touch-action" ]
+
+[nodes.touch_action_1.props]
+text = "2"
+button_variant = "outlined"
+
+[nodes.touch_action_1.layout.anchor]
+x = 0
+y = 0
+
+[nodes.touch_action_1.layout.position]
+x = 42
+y = 24
+
+[nodes.touch_action_1.layout.width]
+min = 50
+preferred = 50
+max = 50
+stretch = "Fixed"
+
+[nodes.touch_action_1.layout.height]
+min = 50
+preferred = 50
+max = 50
+stretch = "Fixed"
+
+[[nodes.touch_action_1.events]]
+id = "WocHud/Touch/Action/1"
+event = "Click"
+route = "woc.hud.touch.activate.1"
+
+[nodes.touch_action_2]
+component = "Button"
+control_id = "TouchAction2"
+classes = [ "woc-touch-action" ]
+
+[nodes.touch_action_2.props]
+text = "3"
+button_variant = "outlined"
+
+[nodes.touch_action_2.layout.anchor]
+x = 0
+y = 0
+
+[nodes.touch_action_2.layout.position]
+x = 102
+y = 4
+
+[nodes.touch_action_2.layout.width]
+min = 50
+preferred = 50
+max = 50
+stretch = "Fixed"
+
+[nodes.touch_action_2.layout.height]
+min = 50
+preferred = 50
+max = 50
+stretch = "Fixed"
+
+[[nodes.touch_action_2.events]]
+id = "WocHud/Touch/Action/2"
+event = "Click"
+route = "woc.hud.touch.activate.2"
+
+[nodes.touch_action_3]
+component = "Button"
+control_id = "TouchAction3"
+classes = [ "woc-touch-action" ]
+
+[nodes.touch_action_3.props]
+text = "4"
+button_variant = "outlined"
+
+[nodes.touch_action_3.layout.anchor]
+x = 0
+y = 0
+
+[nodes.touch_action_3.layout.position]
+x = 162
+y = 24
+
+[nodes.touch_action_3.layout.width]
+min = 50
+preferred = 50
+max = 50
+stretch = "Fixed"
+
+[nodes.touch_action_3.layout.height]
+min = 50
+preferred = 50
+max = 50
+stretch = "Fixed"
+
+[[nodes.touch_action_3.events]]
+id = "WocHud/Touch/Action/3"
+event = "Click"
+route = "woc.hud.touch.activate.3"
+
+[nodes.touch_action_4]
+component = "Button"
+control_id = "TouchAction4"
+classes = [ "woc-touch-action" ]
+
+[nodes.touch_action_4.props]
+text = "5"
+button_variant = "outlined"
+
+[nodes.touch_action_4.layout.anchor]
+x = 0
+y = 0
+
+[nodes.touch_action_4.layout.position]
+x = 200
+y = 76
+
+[nodes.touch_action_4.layout.width]
+min = 50
+preferred = 50
+max = 50
+stretch = "Fixed"
+
+[nodes.touch_action_4.layout.height]
+min = 50
+preferred = 50
+max = 50
+stretch = "Fixed"
+
+[[nodes.touch_action_4.events]]
+id = "WocHud/Touch/Action/4"
+event = "Click"
+route = "woc.hud.touch.activate.4"
+
+[nodes.touch_attack]
+component = "Button"
+control_id = "TouchAttack"
+classes = [ "woc-touch-action" ]
+
+[nodes.touch_attack.props]
+text = "Attack"
+button_variant = "contained"
+
+[nodes.touch_attack.layout.anchor]
+x = 0.5
+y = 0.5
+
+[nodes.touch_attack.layout.pivot]
+x = 0.5
+y = 0.5
+
+[nodes.touch_attack.layout.position]
+x = 0
+y = 20
+
+[nodes.touch_attack.layout.width]
+min = 72
+preferred = 72
+max = 72
+stretch = "Fixed"
+
+[nodes.touch_attack.layout.height]
+min = 72
+preferred = 72
+max = 72
+stretch = "Fixed"
+
+[[nodes.touch_attack.events]]
+id = "WocHud/Touch/Attack"
+event = "Click"
+route = "woc.hud.touch.attack"
+
+[nodes.touch_target]
+component = "Button"
+control_id = "TouchTargetCycle"
+classes = [ "woc-touch-action" ]
+
+[nodes.touch_target.props]
+text = "Target"
+button_variant = "outlined"
+
+[nodes.touch_target.layout.anchor]
+x = 1
+y = 0
+
+[nodes.touch_target.layout.pivot]
+x = 1
+y = 0
+
+[nodes.touch_target.layout.position]
+x = -2
+y = 132
+
+[nodes.touch_target.layout.width]
+min = 58
+preferred = 58
+max = 58
+stretch = "Fixed"
+
+[nodes.touch_target.layout.height]
+min = 48
+preferred = 48
+max = 48
+stretch = "Fixed"
+
+[[nodes.touch_target.events]]
+id = "WocHud/Touch/Target"
+event = "Click"
+route = "woc.hud.touch.target_cycle"
+
+[nodes.touch_interact]
+component = "Button"
+control_id = "TouchInteract"
+classes = [ "woc-touch-action" ]
+
+[nodes.touch_interact.props]
+text = "Use"
+button_variant = "outlined"
+
+[nodes.touch_interact.layout.anchor]
+x = 0
+y = 0
+
+[nodes.touch_interact.layout.position]
+x = 2
+y = 132
+
+[nodes.touch_interact.layout.width]
+min = 58
+preferred = 58
+max = 58
+stretch = "Fixed"
+
+[nodes.touch_interact.layout.height]
+min = 48
+preferred = 48
+max = 48
+stretch = "Fixed"
+
+[[nodes.touch_interact.events]]
+id = "WocHud/Touch/Interact"
+event = "Click"
+route = "woc.hud.touch.interact"
+
+[nodes.touch_jump]
+component = "Button"
+control_id = "TouchJump"
+classes = [ "woc-touch-action" ]
+
+[nodes.touch_jump.props]
+text = "Jump"
+button_variant = "outlined"
+
+[nodes.touch_jump.layout.anchor]
+x = 0.5
+y = 1
+
+[nodes.touch_jump.layout.pivot]
+x = 0.5
+y = 1
+
+[nodes.touch_jump.layout.position]
+x = 0
+y = 0
+
+[nodes.touch_jump.layout.width]
+min = 58
+preferred = 58
+max = 58
+stretch = "Fixed"
+
+[nodes.touch_jump.layout.height]
+min = 48
+preferred = 48
+max = 48
+stretch = "Fixed"
+
+[[nodes.touch_jump.events]]
+id = "WocHud/Touch/Jump"
+event = "Click"
+route = "woc.hud.touch.jump"
+
+[nodes.touch_page]
+component = "Button"
+control_id = "TouchActionPage"
+classes = [ "woc-touch-action" ]
+
+[nodes.touch_page.props]
+text = "1 / 2"
+button_variant = "outlined"
+
+[nodes.touch_page.layout.anchor]
+x = 0.5
+y = 0.5
+
+[nodes.touch_page.layout.pivot]
+x = 0.5
+y = 0.5
+
+[nodes.touch_page.layout.position]
+x = 0
+y = -28
+
+[nodes.touch_page.layout.width]
+min = 48
+preferred = 48
+max = 48
+stretch = "Fixed"
+
+[nodes.touch_page.layout.height]
+min = 40
+preferred = 40
+max = 40
+stretch = "Fixed"
+
+[[nodes.touch_page.events]]
+id = "WocHud/Touch/Page"
+event = "Click"
+route = "woc.hud.touch.next_page"
+
+[nodes.touch_action_ring]
+component = "Overlay"
+control_id = "TouchActionRing"
+
+[nodes.touch_action_ring.layout.container]
+kind = "Overlay"
+
+[nodes.touch_action_ring.layout.anchor]
+x = 1
+y = 1
+
+[nodes.touch_action_ring.layout.pivot]
+x = 1
+y = 1
+
+[nodes.touch_action_ring.layout.position]
+x = -14
+y = -14
+
+[nodes.touch_action_ring.layout.width]
+min = 254
+preferred = 254
+max = 254
+stretch = "Fixed"
+
+[nodes.touch_action_ring.layout.height]
+min = 190
+preferred = 190
+max = 190
+stretch = "Fixed"
+
+[[nodes.touch_action_ring.children]]
+node = "touch_action_0"
+
+[[nodes.touch_action_ring.children]]
+node = "touch_action_1"
+
+[[nodes.touch_action_ring.children]]
+node = "touch_action_2"
+
+[[nodes.touch_action_ring.children]]
+node = "touch_action_3"
+
+[[nodes.touch_action_ring.children]]
+node = "touch_action_4"
+
+[[nodes.touch_action_ring.children]]
+node = "touch_attack"
+
+[[nodes.touch_action_ring.children]]
+node = "touch_target"
+
+[[nodes.touch_action_ring.children]]
+node = "touch_interact"
+
+[[nodes.touch_action_ring.children]]
+node = "touch_jump"
+
+[[nodes.touch_action_ring.children]]
+node = "touch_page"
+
+[nodes.touch_consumable_0]
+component = "Button"
+control_id = "TouchConsumable0"
+classes = [ "woc-touch-action" ]
+
+[nodes.touch_consumable_0.props]
+text = "1"
+button_variant = "outlined"
+
+[nodes.touch_consumable_0.layout.width]
+min = 44
+preferred = 44
+max = 44
+stretch = "Fixed"
+
+[nodes.touch_consumable_0.layout.height]
+min = 44
+preferred = 44
+max = 44
+stretch = "Fixed"
+
+[[nodes.touch_consumable_0.events]]
+id = "WocHud/Touch/Consume/0"
+event = "Click"
+route = "woc.hud.touch.consume.0"
+
+[nodes.touch_consumable_1]
+component = "Button"
+control_id = "TouchConsumable1"
+classes = [ "woc-touch-action" ]
+
+[nodes.touch_consumable_1.props]
+text = "2"
+button_variant = "outlined"
+
+[nodes.touch_consumable_1.layout.width]
+min = 44
+preferred = 44
+max = 44
+stretch = "Fixed"
+
+[nodes.touch_consumable_1.layout.height]
+min = 44
+preferred = 44
+max = 44
+stretch = "Fixed"
+
+[[nodes.touch_consumable_1.events]]
+id = "WocHud/Touch/Consume/1"
+event = "Click"
+route = "woc.hud.touch.consume.1"
+
+[nodes.touch_consumable_2]
+component = "Button"
+control_id = "TouchConsumable2"
+classes = [ "woc-touch-action" ]
+
+[nodes.touch_consumable_2.props]
+text = "3"
+button_variant = "outlined"
+
+[nodes.touch_consumable_2.layout.width]
+min = 44
+preferred = 44
+max = 44
+stretch = "Fixed"
+
+[nodes.touch_consumable_2.layout.height]
+min = 44
+preferred = 44
+max = 44
+stretch = "Fixed"
+
+[[nodes.touch_consumable_2.events]]
+id = "WocHud/Touch/Consume/2"
+event = "Click"
+route = "woc.hud.touch.consume.2"
+
+[nodes.touch_consumable_3]
+component = "Button"
+control_id = "TouchConsumable3"
+classes = [ "woc-touch-action" ]
+
+[nodes.touch_consumable_3.props]
+text = "4"
+button_variant = "outlined"
+
+[nodes.touch_consumable_3.layout.width]
+min = 44
+preferred = 44
+max = 44
+stretch = "Fixed"
+
+[nodes.touch_consumable_3.layout.height]
+min = 44
+preferred = 44
+max = 44
+stretch = "Fixed"
+
+[[nodes.touch_consumable_3.events]]
+id = "WocHud/Touch/Consume/3"
+event = "Click"
+route = "woc.hud.touch.consume.3"
+
+[nodes.touch_consumable_4]
+component = "Button"
+control_id = "TouchConsumable4"
+classes = [ "woc-touch-action" ]
+
+[nodes.touch_consumable_4.props]
+text = "5"
+button_variant = "outlined"
+
+[nodes.touch_consumable_4.layout.width]
+min = 44
+preferred = 44
+max = 44
+stretch = "Fixed"
+
+[nodes.touch_consumable_4.layout.height]
+min = 44
+preferred = 44
+max = 44
+stretch = "Fixed"
+
+[[nodes.touch_consumable_4.events]]
+id = "WocHud/Touch/Consume/4"
+event = "Click"
+route = "woc.hud.touch.consume.4"
+
+[nodes.touch_consumable_5]
+component = "Button"
+control_id = "TouchConsumable5"
+classes = [ "woc-touch-action" ]
+
+[nodes.touch_consumable_5.props]
+text = "6"
+button_variant = "outlined"
+
+[nodes.touch_consumable_5.layout.width]
+min = 44
+preferred = 44
+max = 44
+stretch = "Fixed"
+
+[nodes.touch_consumable_5.layout.height]
+min = 44
+preferred = 44
+max = 44
+stretch = "Fixed"
+
+[[nodes.touch_consumable_5.events]]
+id = "WocHud/Touch/Consume/5"
+event = "Click"
+route = "woc.hud.touch.consume.5"
+
+[nodes.touch_consumables]
+component = "HorizontalBox"
+control_id = "TouchConsumables"
+
+[nodes.touch_consumables.props]
+visibility = "collapsed"
+
+[nodes.touch_consumables.layout.container]
+kind = "HorizontalBox"
+gap = 4
+
+[nodes.touch_consumables.layout.anchor]
+x = 0
+y = 0
+
+[nodes.touch_consumables.layout.pivot]
+x = 0
+y = 0
+
+[nodes.touch_consumables.layout.position]
+x = 16
+y = 66
+
+[nodes.touch_consumables.layout.width]
+min = 284
+preferred = 284
+max = 284
+stretch = "Fixed"
+
+[nodes.touch_consumables.layout.height]
+min = 44
+preferred = 44
+max = 44
+stretch = "Fixed"
+
+[[nodes.touch_consumables.children]]
+node = "touch_consumable_0"
+
+[[nodes.touch_consumables.children]]
+node = "touch_consumable_1"
+
+[[nodes.touch_consumables.children]]
+node = "touch_consumable_2"
+
+[[nodes.touch_consumables.children]]
+node = "touch_consumable_3"
+
+[[nodes.touch_consumables.children]]
+node = "touch_consumable_4"
+
+[[nodes.touch_consumables.children]]
+node = "touch_consumable_5"
+
+[nodes.touch_consumables_toggle]
+component = "Button"
+control_id = "TouchConsumablesToggle"
+classes = [ "woc-touch-action" ]
+
+[nodes.touch_consumables_toggle.props]
+text = "Items"
+button_variant = "outlined"
+
+[nodes.touch_consumables_toggle.layout.anchor]
+x = 0
+y = 0
+
+[nodes.touch_consumables_toggle.layout.pivot]
+x = 0
+y = 0
+
+[nodes.touch_consumables_toggle.layout.position]
+x = 16
+y = 116
+
+[nodes.touch_consumables_toggle.layout.width]
+min = 54
+preferred = 58
+max = 64
+stretch = "Fixed"
+
+[nodes.touch_consumables_toggle.layout.height]
+min = 44
+preferred = 44
+max = 48
+stretch = "Fixed"
+
+[[nodes.touch_consumables_toggle.events]]
+id = "WocHud/Touch/Consumables"
+event = "Click"
+route = "woc.hud.touch.toggle_consumables"
+
+[nodes.touch_hud]
+component = "Overlay"
+control_id = "TouchHudLayer"
+
+[nodes.touch_hud.props.visibility]
+xs = "visible"
+md = "collapsed"
+
+[nodes.touch_hud.layout.container]
+kind = "Overlay"
+
+[nodes.touch_hud.layout.width]
+stretch = "Stretch"
+
+[nodes.touch_hud.layout.height]
+stretch = "Stretch"
+
+[[nodes.touch_hud.children]]
+node = "touch_move_zone"
+
+[[nodes.touch_hud.children]]
+node = "touch_camera_zone"
+
+[[nodes.touch_hud.children]]
+node = "touch_target_frame"
+
+[[nodes.touch_hud.children]]
+node = "touch_player_frame"
+
+[[nodes.touch_hud.children]]
+node = "touch_top_actions"
+
+[[nodes.touch_hud.children]]
+node = "touch_consumables"
+
+[[nodes.touch_hud.children]]
+node = "touch_consumables_toggle"
+
+[[nodes.touch_hud.children]]
+node = "touch_action_ring"
+
+[nodes.pause_keybinds]
+component = "Button"
+control_id = "PauseKeyBindings"
+classes = [ "woc-pause-action" ]
+
+[nodes.pause_keybinds.props]
+text = "Key Bindings"
+button_variant = "outlined"
+
+[nodes.pause_keybinds.layout.width]
+stretch = "Stretch"
+
+[nodes.pause_keybinds.layout.height]
+min = 42
+preferred = 42
+max = 42
+stretch = "Fixed"
+
+[[nodes.pause_keybinds.events]]
+id = "WocHud/Pause/KeyBindings"
+event = "Click"
+route = "woc.hud.pause.open.keybinds"
+
+[nodes.pause_controller]
+component = "Button"
+control_id = "PauseController"
+classes = [ "woc-pause-action" ]
+
+[nodes.pause_controller.props]
+text = "Controller"
+button_variant = "outlined"
+
+[nodes.pause_controller.layout.width]
+stretch = "Stretch"
+
+[nodes.pause_controller.layout.height]
+min = 42
+preferred = 42
+max = 42
+stretch = "Fixed"
+
+[[nodes.pause_controller.events]]
+id = "WocHud/Pause/Controller"
+event = "Click"
+route = "woc.hud.pause.open.controller"
+
+[nodes.pause_graphics]
+component = "Button"
+control_id = "PauseGraphics"
+classes = [ "woc-pause-action" ]
+
+[nodes.pause_graphics.props]
+text = "Graphics"
+button_variant = "outlined"
+
+[nodes.pause_graphics.layout.width]
+stretch = "Stretch"
+
+[nodes.pause_graphics.layout.height]
+min = 42
+preferred = 42
+max = 42
+stretch = "Fixed"
+
+[[nodes.pause_graphics.events]]
+id = "WocHud/Pause/Graphics"
+event = "Click"
+route = "woc.hud.pause.open.graphics"
+
+[nodes.pause_interface]
+component = "Button"
+control_id = "PauseInterface"
+classes = [ "woc-pause-action" ]
+
+[nodes.pause_interface.props]
+text = "Interface"
+button_variant = "outlined"
+
+[nodes.pause_interface.layout.width]
+stretch = "Stretch"
+
+[nodes.pause_interface.layout.height]
+min = 42
+preferred = 42
+max = 42
+stretch = "Fixed"
+
+[[nodes.pause_interface.events]]
+id = "WocHud/Pause/Interface"
+event = "Click"
+route = "woc.hud.pause.open.interface"
+
+[nodes.pause_audio]
+component = "Button"
+control_id = "PauseAudio"
+classes = [ "woc-pause-action" ]
+
+[nodes.pause_audio.props]
+text = "Audio"
+button_variant = "outlined"
+
+[nodes.pause_audio.layout.width]
+stretch = "Stretch"
+
+[nodes.pause_audio.layout.height]
+min = 42
+preferred = 42
+max = 42
+stretch = "Fixed"
+
+[[nodes.pause_audio.events]]
+id = "WocHud/Pause/Audio"
+event = "Click"
+route = "woc.hud.pause.open.audio"
+
+[nodes.pause_performance]
+component = "Button"
+control_id = "PausePerformance"
+classes = [ "woc-pause-action" ]
+
+[nodes.pause_performance.props]
+text = "Performance"
+button_variant = "outlined"
+
+[nodes.pause_performance.layout.width]
+stretch = "Stretch"
+
+[nodes.pause_performance.layout.height]
+min = 42
+preferred = 42
+max = 42
+stretch = "Fixed"
+
+[[nodes.pause_performance.events]]
+id = "WocHud/Pause/Performance"
+event = "Click"
+route = "woc.hud.pause.open.performance"
+
+[nodes.pause_bug_report]
+component = "Button"
+control_id = "PauseBugReport"
+classes = [ "woc-pause-action" ]
+
+[nodes.pause_bug_report.props]
+text = "Report a Bug"
+button_variant = "outlined"
+visibility = "collapsed"
+
+[nodes.pause_bug_report.layout.width]
+stretch = "Stretch"
+
+[nodes.pause_bug_report.layout.height]
+min = 42
+preferred = 42
+max = 42
+stretch = "Fixed"
+
+[[nodes.pause_bug_report.events]]
+id = "WocHud/Pause/BugReport"
+event = "Click"
+route = "woc.hud.pause.open.bug_report"
+
+[nodes.pause_logout]
+component = "Button"
+control_id = "PauseLogout"
+classes = [ "woc-pause-action" ]
+
+[nodes.pause_logout.props]
+text = "Log Out"
+button_variant = "outlined"
+
+[nodes.pause_logout.layout.width]
+stretch = "Stretch"
+
+[nodes.pause_logout.layout.height]
+min = 42
+preferred = 42
+max = 42
+stretch = "Fixed"
+
+[[nodes.pause_logout.events]]
+id = "WocHud/Pause/Logout"
+event = "Click"
+route = "woc.hud.pause.logout"
+
+[nodes.pause_return]
+component = "Button"
+control_id = "PauseReturnToGame"
+classes = [ "woc-primary-action" ]
+
+[nodes.pause_return.props]
+text = "Return to Game"
+button_variant = "contained"
+
+[nodes.pause_return.layout.width]
+stretch = "Stretch"
+
+[nodes.pause_return.layout.height]
+min = 44
+preferred = 44
+max = 44
+stretch = "Fixed"
+
+[[nodes.pause_return.events]]
+id = "WocHud/Pause/Return"
+event = "Click"
+route = "woc.hud.pause.return_to_game"
+
+[nodes.pause_menu]
+component = "VerticalBox"
+control_id = "PauseMenu"
+classes = [ "woc-pause-menu" ]
+
+[nodes.pause_menu.layout.container]
+kind = "VerticalBox"
+gap = 7
+
+[nodes.pause_menu.layout.padding]
+left = 20
+right = 20
+top = 20
+bottom = 20
+
+[nodes.pause_menu.layout.anchor]
+x = 0.5
+y = 0.5
+
+[nodes.pause_menu.layout.pivot]
+x = 0.5
+y = 0.5
+
+[nodes.pause_menu.layout.position]
+x = 0
+y = 0
+
+[nodes.pause_menu.layout.width]
+min = 300
+preferred = 340
+max = 380
+stretch = "Fixed"
+
+[nodes.pause_menu.layout.height]
+min = 392
+preferred = 448
+max = 520
+stretch = "Fixed"
+
+[[nodes.pause_menu.children]]
+node = "pause_keybinds"
+
+[[nodes.pause_menu.children]]
+node = "pause_controller"
+
+[[nodes.pause_menu.children]]
+node = "pause_graphics"
+
+[[nodes.pause_menu.children]]
+node = "pause_interface"
+
+[[nodes.pause_menu.children]]
+node = "pause_audio"
+
+[[nodes.pause_menu.children]]
+node = "pause_performance"
+
+[[nodes.pause_menu.children]]
+node = "pause_bug_report"
+
+[[nodes.pause_menu.children]]
+node = "pause_logout"
+
+[[nodes.pause_menu.children]]
+node = "pause_return"
+
+[nodes.pause_scrim]
+component = "Space"
+control_id = "PauseScrim"
+classes = [ "woc-pause-scrim" ]
+
+[nodes.pause_scrim.layout.width]
+stretch = "Stretch"
+
+[nodes.pause_scrim.layout.height]
+stretch = "Stretch"
+
+[nodes.pause_layer]
+component = "Overlay"
+control_id = "PauseLayer"
+
+[nodes.pause_layer.props]
+visibility = "collapsed"
+
+[nodes.pause_layer.layout.container]
+kind = "Overlay"
+
+[nodes.pause_layer.layout.width]
+stretch = "Stretch"
+
+[nodes.pause_layer.layout.height]
+stretch = "Stretch"
+
+[[nodes.pause_layer.children]]
+node = "pause_scrim"
+
+[[nodes.pause_layer.children]]
+node = "pause_menu"
+
+[nodes.hud_root]
+component = "Overlay"
+control_id = "InWorldHud"
+classes = [ "woc-hud-root" ]
+
+[nodes.hud_root.layout]
+clip = true
+
+[nodes.hud_root.layout.container]
+kind = "Overlay"
+
+[nodes.hud_root.layout.width]
+stretch = "Stretch"
+
+[nodes.hud_root.layout.height]
+stretch = "Stretch"
+
+[[nodes.hud_root.children]]
+node = "live_regions"
+
+[[nodes.hud_root.children]]
+node = "desktop_hud"
+
+[[nodes.hud_root.children]]
+node = "touch_hud"
+
+[[nodes.hud_root.children]]
+node = "pause_layer"
+
+[tokens]
+woc_shell_bg = "#10121f"
+woc_shell_scrim = "#00000066"
+woc_panel_bg = "#11101ddd"
+woc_panel_bg_strong = "#0d0d16ee"
+woc_border = "#6f5a2a"
+woc_border_soft = "#3b3547"
+woc_gold = "#ffd100"
+woc_gold_dim = "#c8a94d"
+woc_gold_light = "#ffe46b"
+woc_control_hover = "#282737"
+woc_control_pressed = "#3a3018"
+woc_control_disabled = "#1b1a24"
+woc_text = "#f4ead3"
+woc_text_muted = "#998d6a"
+woc_input_bg = "#10101acc"
+woc_discord = "#5865f2"
+woc_discord_border = "#3c46b0"
+woc_success = "#9fdc7f"
+woc_error = "#e06c75"
+woc_shadow = "#00000073"
+woc_hud_panel = "#11101dee"
+woc_hud_panel_soft = "#17151ecc"
+woc_hud_rail = "#09090fcc"
+woc_hud_slot = "#17151f"
+woc_hud_slot_border = "#5b4618"
+woc_hud_health = "#3fa65a"
+woc_hud_absorb = "#d9e4f2aa"
+woc_hud_mana = "#2476d3"
+woc_hud_rage = "#a63838"
+woc_hud_energy = "#d5c536"
+woc_hud_cooldown = "#000000b8"
+woc_hud_danger = "#c73535"
+woc_hud_touch = "#282a3b"
+woc_hud_touch_border = "#8a6c2a"
+woc_hud_vignette = "#8d101066"
+woc_hud_focus = "#f7d45c"
+
+[[stylesheets]]
+id = "woc-shell"
+
+[[stylesheets.rules]]
+selector = ".woc-shell"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_shell_bg"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[[stylesheets.rules]]
+selector = ".woc-stage-scrim"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_shell_scrim"
+
+[[stylesheets.rules]]
+selector = ".woc-panel"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-panel-strong"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg_strong"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-screen-title"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.font]
+size = 22
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-welcome-title"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.font]
+size = 27
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-section-title"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold_dim"
+
+[stylesheets.rules.set.self.font]
+size = 15
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-label"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.font]
+size = 14
+weight = 600
+
+[[stylesheets.rules]]
+selector = ".woc-muted"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.font]
+size = 12
+
+[[stylesheets.rules]]
+selector = ".woc-error"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_error"
+
+[stylesheets.rules.set.self.font]
+size = 12
+weight = 600
+
+[[stylesheets.rules]]
+selector = ".woc-input"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_input_bg"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[stylesheets.rules.set.self.font]
+size = 14
+
+[[stylesheets.rules]]
+selector = ".woc-input:hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-input:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 2
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-input:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-class-button"
+
+[stylesheets.rules.set.self.background]
+color = "#11101d00"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 2
+radius = 31
+
+[stylesheets.rules.set.self.font]
+size = 12
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:hover"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_light"
+width = 3
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:checked"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:selected"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".class-warrior"
+
+[stylesheets.rules.set.self.foreground]
+color = "#c79c6e"
+
+[[stylesheets.rules]]
+selector = ".class-paladin"
+
+[stylesheets.rules.set.self.foreground]
+color = "#f58cba"
+
+[[stylesheets.rules]]
+selector = ".class-hunter"
+
+[stylesheets.rules.set.self.foreground]
+color = "#abd473"
+
+[[stylesheets.rules]]
+selector = ".class-rogue"
+
+[stylesheets.rules.set.self.foreground]
+color = "#fff569"
+
+[[stylesheets.rules]]
+selector = ".class-priest"
+
+[stylesheets.rules.set.self.foreground]
+color = "#fffff0"
+
+[[stylesheets.rules]]
+selector = ".class-shaman"
+
+[stylesheets.rules.set.self.foreground]
+color = "#0070de"
+
+[[stylesheets.rules]]
+selector = ".class-mage"
+
+[stylesheets.rules.set.self.foreground]
+color = "#69ccf0"
+
+[[stylesheets.rules]]
+selector = ".class-warlock"
+
+[stylesheets.rules.set.self.foreground]
+color = "#9482c9"
+
+[[stylesheets.rules]]
+selector = ".class-druid"
+
+[stylesheets.rules.set.self.foreground]
+color = "#ff7d0a"
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg_strong"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 2
+radius = 8
+
+[stylesheets.rules.set.self.font]
+size = 12
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:hover"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_hover"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_light"
+width = 3
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:checked"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:selected"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-primary-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.foreground]
+color = "#1a1608"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 16
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-primary-action:hover"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold_light"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-primary-action:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold_dim"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-primary-action:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_text"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-primary-action:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "#242431"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-secondary-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg_strong"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 14
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-secondary-action:hover"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-secondary-action:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-secondary-action:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_light"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-secondary-action:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-discord-strip"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_discord"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-discord-badge"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_discord"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_discord_border"
+width = 1
+radius = 10
+
+[[stylesheets.rules]]
+selector = ".woc-discord-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_discord"
+
+[stylesheets.rules.set.self.foreground]
+color = "#ffffff"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_discord_border"
+width = 1
+radius = 5
+
+[stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-ready-dot"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_success"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_success"
+width = 1
+radius = 4
+
+[[stylesheets.rules]]
+selector = ".woc-preview-host"
+
+[stylesheets.rules.set.self.background]
+color = "#090a12aa"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-roster-host"
+
+[stylesheets.rules.set.self.background]
+color = "#090a1299"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-roster-row:selected"
+
+[stylesheets.rules.set.self.background]
+color = "#3a301880"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-modal-card"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg_strong"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-danger-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_error"
+
+[stylesheets.rules.set.self.foreground]
+color = "#ffffff"
+
+[stylesheets.rules.set.self.border]
+color = "#8f343b"
+width = 1
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 14
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-danger-action:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "#2b252d"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-mode-trigger"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_input_bg"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 16
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-mode-option"
+
+[stylesheets.rules.set.self.background]
+color = "#11101d00"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[stylesheets.rules.set.self.font]
+size = 15
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-mode-option:selected"
+
+[stylesheets.rules.set.self.background]
+color = "#3a301880"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-play-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.foreground]
+color = "#1a1608"
+
+[stylesheets.rules.set.self.border]
+color = "#fff2a8"
+width = 2
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 20
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-contract-address"
+
+[stylesheets.rules.set.self.background]
+color = "#090a12aa"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 11
+weight = 600
+
+[[stylesheets.rules]]
+selector = ".woc-auth-form"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-auth-link"
+
+[stylesheets.rules.set.self.background]
+color = "#00000000"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold_dim"
+
+[stylesheets.rules.set.self.border]
+color = "#00000000"
+width = 1
+radius = 4
+
+[stylesheets.rules.set.self.font]
+size = 14
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-auth-link:hover"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold_light"
+
+[[stylesheets.rules]]
+selector = ".woc-auth-link:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[[stylesheets.rules]]
+selector = ".woc-auth-link:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_light"
+width = 2
+radius = 4
+
+[[stylesheets.rules]]
+selector = ".woc-auth-link:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "#00000000"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "#00000000"
+width = 1
+radius = 4
+
+[[stylesheets.rules]]
+selector = ".woc-auth-provider-host"
+
+[stylesheets.rules.set.self.background]
+color = "#090a1299"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-auth-status"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.font]
+size = 12
+weight = 600
+
+[[stylesheets]]
+id = "woc-hud"
+
+[[stylesheets.rules]]
+selector = ".woc-hud-root"
+
+[stylesheets.rules.set.self.background]
+color = "#00000000"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[[stylesheets.rules]]
+selector = ".woc-live-region"
+
+[stylesheets.rules.set.self.foreground]
+color = "#00000000"
+
+[stylesheets.rules.set.self.font]
+size = 1
+
+[[stylesheets.rules]]
+selector = ".woc-unit-frame"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-unit-frame-target"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-unit-frame-dead"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_danger"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-portrait"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel_soft"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 3
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-level-chip"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_slot"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 12
+
+[stylesheets.rules.set.self.font]
+size = 11
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-unit-name"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-bar-rail"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_rail"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 3
+
+[[stylesheets.rules]]
+selector = ".woc-health-fill"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_health"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-absorb-fill"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_absorb"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-resource-fill"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_mana"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-resource-rage"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_rage"
+
+[[stylesheets.rules]]
+selector = ".woc-resource-energy"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_energy"
+
+[[stylesheets.rules]]
+selector = ".woc-bar-text"
+
+[stylesheets.rules.set.self.foreground]
+color = "#ffffff"
+
+[stylesheets.rules.set.self.font]
+size = 10
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-cast-fill"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold_dim"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-xp-fill"
+
+[stylesheets.rules.set.self.background]
+color = "#8e3bc1"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-xp-rested"
+
+[stylesheets.rules.set.self.background]
+color = "#438ed0aa"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-action-bar"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 7
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_slot"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_slot_border"
+width = 2
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 10
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot:hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 3
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_rail"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot-queued"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot-out-of-range"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_danger"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot-proc"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-cooldown-overlay"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_cooldown"
+
+[stylesheets.rules.set.self.border]
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-keybind"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.font]
+size = 9
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-tracker"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel_soft"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-minimap"
+
+[stylesheets.rules.set.self.background]
+color = "#18362f"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 3
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-touch-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_touch"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_touch_border"
+width = 2
+radius = 8
+
+[stylesheets.rules.set.self.font]
+size = 11
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-touch-action:hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-touch-action:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-touch-action:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 3
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-touch-action:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-touch-zone"
+
+[stylesheets.rules.set.self.background]
+color = "#20222a22"
+
+[stylesheets.rules.set.self.border]
+color = "#a6b2c244"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-pause-scrim"
+
+[stylesheets.rules.set.self.background]
+color = "#05050acc"
+
+[[stylesheets.rules]]
+selector = ".woc-pause-menu"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-pause-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel_soft"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[stylesheets.rules.set.self.font]
+size = 14
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-pause-action:hover"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-pause-action:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-pause-action:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 2
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-pause-action:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-low-health-vignette"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_vignette"
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-window"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-ante"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel_soft"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_slot_border"
+width = 2
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-ante:hover"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-ante:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-ante:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 3
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-ante:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-board"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_rail"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_slot_border"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-timer"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_rail"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 4
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-timer-fill"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+radius = 3
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_slot"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_slot_border"
+width = 2
+radius = 5
+
+[stylesheets.rules.set.self.font]
+size = 12
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-action:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 3
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-feedback"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-coffer"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[penpot_original_imports]
+widgets = []
+styles = [ "res://ui/shell/shell_theme.zui", "res://ui/hud/hud_theme.zui" ]
+resources = []

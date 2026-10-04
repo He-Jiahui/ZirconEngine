@@ -53,7 +53,7 @@ The other three enlarged-workload runs produced P50 reductions of 58.972%, 61.72
 - Current session: `root-runtime-interface03-activate-link-failure-20260831`.
 - Shared static/model ticket: `4c6aa5481e1440819e427ac1568979ab` (queued, 20 Python tests).
 - Plugins21 Cargo behavior ticket: `8de2bc7a35914821915f40d3c8f037e4` (queued; exact shared-owner test).
-- Shared model: `tools/plugins_projection_sort_discovery_pressure.py`, source manifest `ECAB605B9EC8C342B696C4CEB59AE2FB270F75976140B7086BFDD497CC18CC05`.
+- Shared model: `tools/analysis/performance/plugins/plugins_projection_sort_discovery_pressure.py`, source manifest `ECAB605B9EC8C342B696C4CEB59AE2FB270F75976140B7086BFDD497CC18CC05`.
 - Current source hashes: `contract.rs` `380AFB0548365B2C70B2D79ECD25D6EFAB738A4235B17C498F786AB0D99385E3`; shared model `2F51A8F953D139FE68E7DB1AB87653DFCC769DA01571BC6CC429040974D34323`.
 
 The current-source model is deterministic structural evidence, not wall-clock timing. For 262,144 inputs with six clones each, the owned path performs `1,835,008` path-owner allocations while the shared path performs `524,288`, a `71.428571%` reduction; deep path-clone allocations change `1,572,864 -> 0` and are replaced by the same count of shared-handle clones. Historical alternating release evidence remains the timing claim: P50 `198.7112 -> 77.9511 ms` (`-60.772%`), P95 `361.4602 -> 144.8218 ms` (`-59.934%`), checksum `10711012688504291325`.

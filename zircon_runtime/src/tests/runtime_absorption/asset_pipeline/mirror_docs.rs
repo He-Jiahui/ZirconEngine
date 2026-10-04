@@ -1,3 +1,4 @@
+//! 资产管线吸收后，门禁与镜像文档共同约束管理器、工作池和产物路径。对照源文件与文档的当前锚点，记录尚待运行验证的结构约束。
 use std::path::Path;
 
 use super::cargo_gate::assert_runtime_04_mirror_docs;
@@ -42,7 +43,7 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
         include_str!("../../../asset/tests/assets/artifact_store/lazy_residency.rs"),
         include_str!("../../../asset/tests/assets/artifact_store/scene_components.rs"),
         include_str!("../../../asset/tests/assets/artifact_store/scene_script.rs"),
-        include_str!("../../../../crates/zr_resource/src/tests.rs"),
+        include_str!("../../../../crates/zr_resource/src/tests/cases.rs"),
         include_str!("../asset_surface.rs"),
         include_str!("../asset_surface/facade_query.rs"),
         include_str!("../asset_worker_policy.rs"),
@@ -67,7 +68,7 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
         include_str!("../../../asset/tests/assets/artifact_store/lazy_residency.rs"),
         include_str!("../../../asset/tests/assets/artifact_store/scene_components.rs"),
         include_str!("../../../asset/tests/assets/artifact_store/scene_script.rs"),
-        include_str!("../../../../crates/zr_resource/src/tests.rs"),
+        include_str!("../../../../crates/zr_resource/src/tests/cases.rs"),
         include_str!("../../../asset/facade/load_state.rs"),
     ]
     .join("\n");
@@ -94,10 +95,11 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
     );
     assert_contains_all(
         "Runtime 11 shared completion payload matrix",
-        include_str!("../../../asset/pipeline/worker_pool/tests.rs"),
+        include_str!("../../../asset/pipeline/worker_pool/tests/cases.rs"),
         RUNTIME_11_SHARED_COMPLETION_TEST_ANCHORS,
     );
-    let worker_pool_internal_tests = include_str!("../../../asset/pipeline/worker_pool/tests.rs");
+    let worker_pool_internal_tests =
+        include_str!("../../../asset/pipeline/worker_pool/tests/cases.rs");
     assert!(
         worker_pool_internal_tests.contains(
             "#[ignore = \"the Runtime11 256 MiB RSS matrix is an explicit pressure validation\"]\nfn payload_256_mib_matrix_rejects_oversize_retention"
@@ -106,7 +108,7 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
     );
     assert_contains_all(
         "Runtime 11 256 MiB pressure-matrix documentation",
-        include_str!("../../../../../docs/zircon_runtime/asset/worker_pool.md"),
+        include_str!("../../../../../docs/crates/zircon_runtime/asset/worker_pool.md"),
         &[
             "payload_256_mib_matrix_rejects_oversize_retention",
             "`--ignored`",

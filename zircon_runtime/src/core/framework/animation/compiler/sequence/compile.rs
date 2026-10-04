@@ -1,6 +1,6 @@
 //! Structural and semantic validation for sequence authoring assets.
 
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 
 use crate::core::framework::animation::{
     AnimationChannelAsset, AnimationChannelValueAsset, AnimationInterpolationAsset,
@@ -35,6 +35,8 @@ const INVALID_HERMITE_TANGENT: &str = "ZR-ANIM-COMP-SEQUENCE-013";
 ///
 /// Entity/property binding resolution belongs to the world-specific sequence compiler. This
 /// source-only phase protects that later compiler from malformed time/value/channel semantics.
+/// 本阶段只产出通过源数据校验的序列 IR；实体和属性路径的世界解析留给后续运行时编译。
+/// 任一错误诊断都会丢弃整份 IR，调用方不会拿到部分有效的序列产物。
 pub fn compile_animation_sequence(asset: &AnimationSequenceAsset) -> AnimationSequenceCompilation {
     let mut diagnostics = Vec::new();
     let duration_valid = asset.duration_seconds.is_finite() && asset.duration_seconds >= 0.0;
@@ -108,7 +110,7 @@ fn compile_binding(
         );
     }
 
-    let mut property_paths = BTreeSet::new();
+    let mut property_paths = HashSet::with_capacity(binding.tracks.len());
     let tracks = binding
         .tracks
         .iter()
@@ -412,3 +414,7 @@ fn push_error(
         message,
     ));
 }
+
+#[cfg(test)]
+#[path = "tests/compile_optimization_tests.rs"]
+mod optimization_tests;

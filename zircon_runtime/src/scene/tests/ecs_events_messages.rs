@@ -1,9 +1,9 @@
-use crate::scene::World;
 use crate::scene::ecs::{
     EventReaderParam, EventWriterParam, FunctionSceneSystem, Message, MessageReaderParam,
     MessageRetention, MessageWriterParam, ParamSet, ResParam, Resource, SceneSystemMetadata,
     ScheduleError, SystemOrderingConstraint, SystemRef, SystemStage, SystemState,
 };
+use crate::scene::World;
 
 #[derive(Debug, PartialEq, Eq)]
 struct FrameEvent(u32);
@@ -106,11 +106,9 @@ fn failed_tuple_system_param_initialization_releases_event_reader_lease() {
         Err(error) => error,
         Ok(_) => panic!("missing resource must reject system parameter initialization"),
     };
-    assert!(
-        error
-            .to_string()
-            .contains(std::any::type_name::<MissingRetirementResource>())
-    );
+    assert!(error
+        .to_string()
+        .contains(std::any::type_name::<MissingRetirementResource>()));
 
     let event_type_id = world.event_type_id::<FrameEvent>().unwrap();
     assert_eq!(world.event_reader_count(event_type_id), Some(0));
@@ -130,11 +128,9 @@ fn failed_param_set_initialization_releases_event_reader_lease() {
         Err(error) => error,
         Ok(_) => panic!("missing resource must reject parameter-set initialization"),
     };
-    assert!(
-        error
-            .to_string()
-            .contains(std::any::type_name::<MissingRetirementResource>())
-    );
+    assert!(error
+        .to_string()
+        .contains(std::any::type_name::<MissingRetirementResource>()));
 
     let event_type_id = world.event_type_id::<FrameEvent>().unwrap();
     assert_eq!(world.event_reader_count(event_type_id), Some(0));
@@ -169,23 +165,19 @@ fn unregister_native_system_retires_event_reader_lease() {
             "gameplay.event-reader-retirement",
             SystemStage::Update,
             0,
-            |_| {},
+            |_: crate::scene::ecs::EventReader<'_, FrameEvent>| {},
         )
         .unwrap();
     let event_type_id = world.event_type_id::<FrameEvent>().unwrap();
 
     assert_eq!(world.event_reader_count(event_type_id), Some(1));
-    assert!(
-        world
-            .unregister_native_system("gameplay.event-reader-retirement")
-            .unwrap()
-    );
+    assert!(world
+        .unregister_native_system("gameplay.event-reader-retirement")
+        .unwrap());
     assert_eq!(world.event_reader_count(event_type_id), Some(0));
-    assert!(
-        !world
-            .unregister_native_system("gameplay.event-reader-retirement")
-            .unwrap()
-    );
+    assert!(!world
+        .unregister_native_system("gameplay.event-reader-retirement")
+        .unwrap());
 }
 
 #[test]
@@ -240,7 +232,10 @@ fn event_store_send_by_id_uses_registered_channel_guard_source() {
     assert!(send_batch_by_id.contains("if self.channel(event_type_id).is_none()"));
     assert!(send_batch_by_id.contains("return 0;"));
     assert!(send_batch_by_id.contains("if written > 0"));
-    assert!(send_batch_by_id.contains("self.active_channels.insert(event_type_id);"));
+    assert!(send_batch_by_id.contains(".insert(event_type_id);"));
+    let grant_source = include_str!("../ecs/events/store/writer_grant.rs");
+    assert!(grant_source.contains("if written > 0"));
+    assert!(grant_source.contains(".insert(self.event_type_id);"));
     assert!(!send_batch_by_id.contains("is_active"));
     assert!(!send_batch_by_id.contains("reader_count"));
 }
@@ -249,7 +244,9 @@ fn event_store_send_by_id_uses_registered_channel_guard_source() {
 fn event_store_update_all_uses_the_canonical_active_channel_worklist() {
     let source = event_store_source();
     let update_all = event_store_section(source, "pub fn update_all", "pub fn drain<T: Event>");
-    assert!(update_all.contains("std::mem::take(&mut self.active_channels)"));
+    assert!(update_all.contains("let active_channels = std::mem::take("));
+    assert!(update_all.contains("self.active_channels"));
+    assert!(update_all.contains(".get_mut()"));
     assert!(update_all.contains("self.last_update_channel_visits = active_channels.len();"));
     assert!(update_all.contains("channel.events.requires_maintenance_erased()"));
     assert!(!update_all.contains("for channel in &mut self.channels"));
@@ -526,21 +523,97 @@ fn first_stage_is_the_single_message_age_retirement_authority() {
 #[test]
 fn message_store_advances_only_active_retention_channels() {
     let mut world = World::empty();
-    world.configure_message_retention::<RetainedMessage>(MessageRetention::new(8, usize::MAX, 60));
+    world.configure_message_retention::<RetainedMessage>(MessageRetention::new(8, usize::MAX, 2));
+    world.configure_message_retention::<WeightedMessage>(MessageRetention::new(8, 64, 0));
 
     world.run_internal_scene_systems_for_stage(SystemStage::First);
-    assert_eq!(world.last_message_advance_channel_visits(), 1);
-
+    assert_eq!(world.last_message_advance_channel_visits(), 2);
     world.run_internal_scene_systems_for_stage(SystemStage::First);
     assert_eq!(world.last_message_advance_channel_visits(), 0);
 
-    world.send_message(RetainedMessage(1));
+    assert_eq!(world.send_message(RetainedMessage(1)).id(), 0);
+    world.send_message(WeightedMessage {
+        value: 9,
+        retention_bytes: 6,
+    });
+
+    world.run_internal_scene_systems_for_stage(SystemStage::First);
+    assert_eq!(world.last_message_advance_channel_visits(), 2);
+    assert_eq!(world.messages::<RetainedMessage>().unwrap().len(), 1);
+    let short_lived = world
+        .message_retention_metrics::<WeightedMessage>()
+        .unwrap();
+    assert_eq!(short_lived.retained_entries, 0);
+    assert_eq!(short_lived.retained_bytes, 0);
+    assert_eq!(short_lived.age_dropped_entries, 1);
+    assert_eq!(short_lived.age_dropped_bytes, 6);
+
     world.run_internal_scene_systems_for_stage(SystemStage::First);
     assert_eq!(world.last_message_advance_channel_visits(), 1);
+    let at_age_limit = world
+        .message_retention_metrics::<RetainedMessage>()
+        .unwrap();
+    assert_eq!(at_age_limit.retained_entries, 1);
+    assert_eq!(
+        at_age_limit.retained_bytes,
+        std::mem::size_of::<RetainedMessage>()
+    );
+    assert_eq!(at_age_limit.age_dropped_entries, 0);
 
+    world.run_internal_scene_systems_for_stage(SystemStage::First);
+    assert_eq!(world.last_message_advance_channel_visits(), 1);
+    let retired = world
+        .message_retention_metrics::<RetainedMessage>()
+        .unwrap();
+    assert_eq!(retired.retained_entries, 0);
+    assert_eq!(retired.retained_bytes, 0);
+    assert_eq!(retired.age_dropped_entries, 1);
+    assert_eq!(
+        retired.age_dropped_bytes,
+        std::mem::size_of::<RetainedMessage>() as u64
+    );
+    world.run_internal_scene_systems_for_stage(SystemStage::First);
+    assert_eq!(world.last_message_advance_channel_visits(), 0);
+
+    assert_eq!(world.send_message(RetainedMessage(2)).id(), 1);
+    world.send_message(WeightedMessage {
+        value: 10,
+        retention_bytes: 6,
+    });
     world.clear_messages::<RetainedMessage>();
+    assert!(world.messages::<RetainedMessage>().unwrap().is_empty());
+    assert_eq!(world.messages::<WeightedMessage>().unwrap().len(), 1);
     world.run_internal_scene_systems_for_stage(SystemStage::First);
-    assert_eq!(world.last_message_advance_channel_visits(), 0);
+    assert_eq!(world.last_message_advance_channel_visits(), 1);
+    assert_eq!(
+        world
+            .message_retention_metrics::<RetainedMessage>()
+            .unwrap()
+            .age_dropped_entries,
+        1
+    );
+    assert_eq!(
+        world
+            .message_retention_metrics::<WeightedMessage>()
+            .unwrap()
+            .age_dropped_entries,
+        2
+    );
+
+    assert_eq!(world.send_message(RetainedMessage(3)).id(), 2);
+    world.run_internal_scene_systems_for_stage(SystemStage::First);
+    assert_eq!(world.last_message_advance_channel_visits(), 1);
+    assert_eq!(world.messages::<RetainedMessage>().unwrap().len(), 1);
+    world.clear_messages::<RetainedMessage>();
+
+    for idle_frame in 0..10_000 {
+        world.run_internal_scene_systems_for_stage(SystemStage::First);
+        assert_eq!(
+            world.last_message_advance_channel_visits(),
+            0,
+            "idle frame {idle_frame}"
+        );
+    }
 }
 
 #[test]
@@ -589,7 +662,6 @@ fn message_retention_source_has_single_first_stage_lifecycle_owner() {
     let store_source = include_str!("../ecs/messages/store.rs");
     assert!(store_source.contains("pub fn advance_frame(&mut self)"));
     assert!(store_source.contains("advance_message_queue::<T>"));
-    assert!(store_source.contains("std::mem::take(&mut self.active_channels)"));
     assert!(store_source.contains("last_advance_channel_visits"));
 
     let derived_state_source = world_derived_state_source();
@@ -648,3 +720,9 @@ fn event_store_section<'a>(source: &'a str, start: &str, end: &str) -> &'a str {
         })
         .0
 }
+
+#[path = "ecs_events_messages/lifecycle_scale.rs"]
+mod lifecycle_scale;
+
+#[path = "ecs_events_messages/writer_channels.rs"]
+mod writer_channels;

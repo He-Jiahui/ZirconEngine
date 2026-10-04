@@ -1,3 +1,4 @@
+# 核对虚拟几何调用方使用场景层遮罩的当前模式接口。
 import unittest
 from pathlib import Path
 

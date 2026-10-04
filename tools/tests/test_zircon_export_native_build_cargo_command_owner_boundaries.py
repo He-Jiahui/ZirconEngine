@@ -1,10 +1,11 @@
+# 核对原生构建命令辅助函数的实现归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-NATIVE_BUILD = REPO_ROOT / "tools/zircon_export/native_build.py"
-NATIVE_BUILD_COMMAND = REPO_ROOT / "tools/zircon_export/native_build_command.py"
+NATIVE_BUILD = REPO_ROOT / "tools/export/native_build.py"
+NATIVE_BUILD_COMMAND = REPO_ROOT / "tools/export/native_build_command.py"
 
 
 class ZirconExportNativeBuildCargoCommandOwnerBoundaryTests(unittest.TestCase):
@@ -49,8 +50,8 @@ class ZirconExportNativeBuildCargoCommandOwnerBoundaryTests(unittest.TestCase):
 
     def test_cargo_command_consumers_import_owner_directly(self):
         for relative_path in (
-            "tools/zircon_export/pipeline_report_native_dynamic_build_plan_package_details.py",
-            "tools/zircon_export/plugin_build_package.py",
+            "tools/export/pipeline_report_native_dynamic_build_plan_package_details.py",
+            "tools/export/plugin_build_package.py",
         ):
             text = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
             self.assertIn(
@@ -65,7 +66,7 @@ class ZirconExportNativeBuildCargoCommandOwnerBoundaryTests(unittest.TestCase):
             )
         build_plan_schema_text = (
             REPO_ROOT
-            / "tools/zircon_export/pipeline_report_native_dynamic_build_plan_schema.py"
+            / "tools/export/pipeline_report_native_dynamic_build_plan_schema.py"
         ).read_text(encoding="utf-8")
         self.assertIn(
             "from .pipeline_report_native_dynamic_build_plan_package_details import",

@@ -1,8 +1,9 @@
 //! Structural and semantic validation for state-machine authoring assets.
 
+//! 本阶段解析同一状态机资产内的入口、状态和转换引用；被引用的片段、图等外部资产仍由调用方加载。
 use std::collections::{BTreeMap, BTreeSet};
 
-use robust::{Coord, orient2d};
+use robust::{orient2d, Coord};
 
 use crate::core::framework::animation::{
     AnimationConditionOperatorAsset, AnimationParameterValue, AnimationStateAsset,
@@ -16,9 +17,8 @@ use super::model::{
     AnimationCompiledTransitionCondition, AnimationStateMachineCompilation,
 };
 use crate::core::framework::animation::compiler::{
-    AnimationCompileDiagnostic, AnimationCompileElement, AnimationCompileSeverity,
-    AnimationCompiledParameter, AnimationCompiledParameterKind, parameter_kind,
-    parameter_value_is_finite,
+    parameter_kind, parameter_value_is_finite, AnimationCompileDiagnostic, AnimationCompileElement,
+    AnimationCompileSeverity, AnimationCompiledParameter, AnimationCompiledParameterKind,
 };
 use crate::core::math::{Real, Vec2};
 
@@ -44,6 +44,7 @@ const COLLINEAR_BLEND_SPACE: &str = "ZR-ANIM-COMP-STATE-017";
 ///
 /// Referenced clips, graphs, and nested machines remain external dependencies; their loading and
 /// cross-asset compilation are intentionally outside this pure source-only pass.
+/// 出现错误诊断时不返回部分状态机；只有内部引用与参数约束全部通过后才生成可供运行时编译的 IR。
 pub fn compile_animation_state_machine(
     asset: &AnimationStateMachineAsset,
 ) -> AnimationStateMachineCompilation {
@@ -274,7 +275,11 @@ fn canonical_point_bits(point: Vec2) -> [u32; 2] {
 }
 
 fn canonical_real_bits(value: Real) -> u32 {
-    if value == 0.0 { 0 } else { value.to_bits() }
+    if value == 0.0 {
+        0
+    } else {
+        value.to_bits()
+    }
 }
 
 fn coord(point: Vec2) -> Coord<Real> {
@@ -622,45 +627,5 @@ fn merge_parameter_kinds(
 }
 
 #[cfg(test)]
-mod optimization_batch_20260830co_runtime_tests {
-    const SYNTHETIC_STATE_COUNT: usize = 32_768;
-
-    #[test]
-    fn optimization_batch_20260830co_runtime_state_collection_reserves_authored_upper_bound() {
-        let source = include_str!("compile.rs");
-        let implementation = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("state machine compiler implementation");
-
-        assert!(implementation.contains("Vec::with_capacity(asset.states.len())"));
-    }
-
-    #[test]
-    #[ignore = "managed Windows release performance evidence"]
-    fn optimization_batch_20260830co_runtime_state_collection_capacity_evidence() {
-        let legacy_growth_events = collect_growth_events(false);
-        let optimized_growth_events = collect_growth_events(true);
-
-        println!(
-            "RUNTIME502_STATE_MACHINE_STATE_CAPACITY_BENCH_V1 states={SYNTHETIC_STATE_COUNT} \
-legacy_growth_events={legacy_growth_events} optimized_growth_events={optimized_growth_events} \
-growth_event_reduction_pct=100"
-        );
-        assert!(legacy_growth_events > 0);
-        assert_eq!(optimized_growth_events, 0);
-    }
-
-    fn collect_growth_events(reserve_upper_bound: bool) -> usize {
-        let capacity = usize::from(reserve_upper_bound) * SYNTHETIC_STATE_COUNT;
-        let mut states = Vec::with_capacity(capacity);
-        let mut growth_events = 0;
-        for state in 0..SYNTHETIC_STATE_COUNT {
-            let previous_capacity = states.capacity();
-            states.push(state);
-            growth_events += usize::from(states.capacity() != previous_capacity);
-        }
-        std::hint::black_box(states);
-        growth_events
-    }
-}
+#[path = "tests/compile_optimization_batch_20260830co_runtime_tests.rs"]
+mod optimization_batch_20260830co_runtime_tests;

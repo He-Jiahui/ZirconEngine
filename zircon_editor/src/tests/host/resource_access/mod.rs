@@ -64,7 +64,9 @@ impl FakeResourceManager {
     fn new(records: Vec<ResourceRecord>) -> Self {
         let manager = zircon_runtime::core::resource::ResourceManager::new();
         for record in &records {
-            manager.register_record(record.clone());
+            manager
+                .register_record(record.clone())
+                .expect("resource access fixture must register");
         }
         Self {
             records,

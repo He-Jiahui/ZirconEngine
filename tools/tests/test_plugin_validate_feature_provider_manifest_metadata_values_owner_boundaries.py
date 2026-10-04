@@ -4,22 +4,22 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PLUGIN_VALIDATE_FEATURE_PROVIDER = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider.py"
+    REPO_ROOT / "tools/export/plugin_validate_feature_provider.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_MANIFEST_SCHEMA = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider_manifest_schema.py"
+    REPO_ROOT / "tools/export/plugin_validate_feature_provider_manifest_schema.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_MANIFEST_METADATA_VALUES = (
     REPO_ROOT
-    / "tools/zircon_export/plugin_validate_feature_provider_manifest_metadata_values.py"
+    / "tools/export/plugin_validate_feature_provider_manifest_metadata_values.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_MANIFEST_METADATA_VALUES_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/"
+    / "tools/export/tests/"
     "test_plugin_validate_feature_provider_manifest_metadata_value_schema.py"
 )
 
-
+# 验证校验特性提供者清单元数据值归属边界的职责切分：特性提供者清单元数据值留在模式叶。
 class PluginValidateFeatureProviderManifestMetadataValuesOwnerBoundaryTests(
     unittest.TestCase
 ):

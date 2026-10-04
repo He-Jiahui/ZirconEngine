@@ -1,0 +1,76 @@
+{
+  "artifact_state": "published bounded source-review snapshot; no test, product, or performance acceptance",
+  "imported_at_utc": "2026-09-30T12:43:15.572823+00:00",
+  "source_summary_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\current-source-review-wave-summary.json",
+  "source_summary_sha256": "844186ca0b0db2c58bbfe95e195eae59eca149966805bb24c186410a49534660",
+  "artifacts": {
+    "docs/plans/astra/optimize/01/2026-09-30-source-review-wave.jsonl": "8d6d68c499d52c354a992a76bc05ffb3ed41ff4ccb9abc21b1f487d3954aefc5",
+    "docs/plans/astra/optimize/01/2026-09-30-source-review-crosswalk.jsonl": "a767494fbc95ed76994efcb0b8b2660e6c0b9ddbb1fa111c35f1c1735d4db38f",
+    "docs/plans/astra/optimize/01/2026-09-30-source-refresh-drift.jsonl": "faafe9af67408d41c14053224d8c445a8b80ef3a6bd81aecea770c3bd8db5d59"
+  },
+  "freshness_at_import": {
+    "unique_captured_path_hash_pairs": 85,
+    "drift_count": 0,
+    "drift": []
+  },
+  "reviewed_finding_rows": 37,
+  "reviewed_relation_edges": 12,
+  "review_status_counts": {
+    "implemented_pending_validation": 8,
+    "confirmed_open": 5,
+    "partially_implemented": 24
+  },
+  "tests_run": 0,
+  "canonical_or_accepted_finding_count": null,
+  "producer_summary": {
+    "review_date": "2026-09-30",
+    "artifact_state": "private partial source-review wave; not shared docs and not W0 completion",
+    "reviewed_finding_rows": 37,
+    "reviewed_relation_edges": 12,
+    "prior_wave_snapshot": "snapshots/pre-source-refresh-2026-09-30/manifest.json",
+    "prior_capture_freshness": {
+      "unique_captured_path_hash_pairs": 85,
+      "source_evidence_path_hash_pairs": 78,
+      "report_path_hash_pairs": 10,
+      "source_evidence_report_path_hash_pair_overlap": 3,
+      "source_evidence_path_hash_pairs_excluding_reports": 75,
+      "changed_source_files": 10,
+      "affected_source_evidence_references": 21,
+      "bounded_report_hash_drift": 0,
+      "current_span_reinspection_complete": true,
+      "review_status_changed": false,
+      "refresh_audit_path": "source-refresh-drift-2026-09-30.jsonl"
+    },
+    "unique_report_qualified_ids": 37,
+    "review_status_counts": {
+      "confirmed_open": 5,
+      "implemented_pending_validation": 8,
+      "partially_implemented": 24
+    },
+    "tests_run": 0,
+    "inventory_path_counts_preserved": {
+      "source_checked": 61,
+      "unreviewed": 515
+    },
+    "inventory_report_count": 576,
+    "inventory_snapshot_as_of": "2026-09-29; compared against working tree on 2026-09-30",
+    "current_report_hash_drift_count": 1,
+    "current_report_hash_drift": [
+      {
+        "source_report": "docs/plans/optimize/zircon_runtime/174-runtime-ai-current-working-tree-world-agent-behavior-tree-blackboard-perception-execution-debug-review.md",
+        "recorded_2026_09_29": "26e39094d95e379b3ddd86c960d28c98e3b86629cc3374a856a405a7c4a8a3dd",
+        "current_2026_09_30": "113e762934127c142e3f0b1d3f60113b2e2614286370c398d3264bef360aa21d"
+      }
+    ],
+    "extraction_queue_candidate_tokens": 27629,
+    "unnumbered_report_count": 69,
+    "unnumbered_manual_anchor_count": 558,
+    "supplemental_out_of_denominator_note_count": 9,
+    "nested_candidate_count": 62,
+    "nested_markdown_outside_denominator_unread": 2316,
+    "source_unchecked_in_this_wave": [
+      "All other rows not listed in this exact-ID source-review wave"
+    ],
+    "canonical_or_accepted_finding_count": null
+  }
+}

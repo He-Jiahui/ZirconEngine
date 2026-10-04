@@ -10,15 +10,15 @@ fixing_child_dir: docs/plans/zircon_plugins/13
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/zircon_export/plugin_validate_modules.py
-  - tools/zircon_export/plugin_validate_module_rows.py
-  - tools/zircon_export/plugin_validate_feature_provider_module_schema.py
+  - tools/export/plugin_validate_modules.py
+  - tools/export/plugin_validate_module_rows.py
+  - tools/export/plugin_validate_feature_provider_module_schema.py
 tests:
   - tools/tests/test_plugin_validate_event_component_module_owner_boundaries.py
   - tools/tests/test_plugin_validate_feature_provider_module_owner_boundaries.py
   - tools/tests/test_plugin_validate_owner_boundaries.py
-  - tools/zircon_export/tests/test_plugin_validate_modules.py
-  - tools/zircon_export/tests/test_plugin_validate_feature_provider.py
+  - tools/export/tests/test_plugin_validate_modules.py
+  - tools/export/tests/test_plugin_validate_feature_provider.py
 resolved_at: 2026-08-31
 ---
 

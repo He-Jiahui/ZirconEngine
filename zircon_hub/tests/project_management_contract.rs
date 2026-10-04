@@ -6,7 +6,7 @@ use zircon_hub::projects::{
     load_shared_recent_projects, metadata_for_path, metadata_for_path_mut, project_metadata_key,
     project_paths_match, project_template_catalog, prune_empty_metadata,
     reconcile_shared_recent_projects, CreateProjectRequest, CreateProjectRequestError,
-    ProjectMetadata, ProjectMetadataMap, ProjectTemplate, RecentProject, RecycleDeleteCommand,
+    ProjectMetadata, ProjectMetadataMap, ProjectTemplateId, RecentProject, RecycleDeleteCommand,
 };
 use zircon_hub::settings::{HubConfig, HubSettings};
 use zircon_hub::state::{
@@ -78,13 +78,18 @@ fn hub_config_repair_converges_foundation_registries() {
         "prune_unowned_project_metadata(",
         "truncate_action_history(&mut self.action_history)",
         "repair_active_engine(",
-        "fn config_repair_deduplicates_and_prunes_foundation_registries()",
     ] {
         assert!(
             config.contains(snippet),
             "HubConfig should repair persisted project, metadata, engine, and action-history registries; missing {snippet}"
         );
     }
+
+    let config_tests = fs::read_to_string(crate_dir().join("src/settings/tests/hub_config.rs"))
+        .expect("HubConfig test source should be readable");
+    assert!(
+        config_tests.contains("fn config_repair_deduplicates_and_prunes_foundation_registries()")
+    );
 
     let runtime = fs::read_to_string(crate_dir().join("src/tauri_app/runtime_state.rs"))
         .expect("runtime_state.rs should be readable");
@@ -270,19 +275,22 @@ fn new_project_creation_only_accepts_enabled_templates() {
 
     assert_eq!(enabled_templates, vec!["renderable-empty"]);
     assert_eq!(
-        ProjectTemplate::from_enabled_id("renderable-empty"),
-        Some(ProjectTemplate::RenderableEmpty)
+        zircon_hub::projects::enabled_project_template_id("renderable-empty"),
+        Some(ProjectTemplateId::RenderableEmpty)
     );
-    assert_eq!(ProjectTemplate::from_enabled_id("3d-scene"), None);
+    assert_eq!(
+        zircon_hub::projects::enabled_project_template_id("3d-scene"),
+        None
+    );
 
     let request = CreateProjectRequest::new(
         "Demo",
         "E:/Projects",
-        ProjectTemplate::from_enabled_id("renderable-empty").unwrap(),
+        zircon_hub::projects::enabled_project_template_id("renderable-empty").unwrap(),
     );
 
     assert_eq!(request.project_name, "Demo");
-    assert_eq!(request.template.as_editor_arg(), "renderable-empty");
+    assert_eq!(request.template.as_str(), "renderable-empty");
     assert_eq!(request.validate_launch_fields(), Ok(()));
     assert_eq!(
         request.target_root(),
@@ -436,6 +444,7 @@ fn recent_project(
         ProjectManifestSummary {
             name: name.into(),
             engine_version_req: None,
+            template_receipt: None,
             default_scene: "res://scenes/main.scene.toml".to_string(),
             format_version: PROJECT_MANIFEST_FORMAT_VERSION,
             project_guid: None,

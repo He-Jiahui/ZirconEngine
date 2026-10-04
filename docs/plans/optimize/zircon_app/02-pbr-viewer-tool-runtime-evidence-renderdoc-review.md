@@ -2,14 +2,12 @@
 related_code:
   - zircon_app/Cargo.toml
   - zircon_app/src/bin/zircon_shader_pbr_viewer
-  - tools/shader-pbr-profile-contract.ps1
-  - tools/zircon_profile_shader_pbr_viewer.ps1
-  - tools/zircon_validate_shader_pbr_viewer_evidence.py
-  - tools/zircon_validate_shader_pbr_gpu_timing_evidence.py
-  - tools/zircon_validate_shader_pbr_renderdoc_replay.py
-  - tools/zircon_summarize_shader_pbr_profile.py
-  - tools/session_coordinator/artifact_receipts.py
-  - docs/tests/runtime/shader
+  - tools/analysis/profiling/shader_pbr/shader-pbr-profile-contract.ps1
+  - tools/analysis/profiling/shader_pbr/zircon_profile_shader_pbr_viewer.ps1
+  - tools/analysis/profiling/shader_pbr/zircon_validate_shader_pbr_viewer_evidence.py
+  - tools/analysis/profiling/shader_pbr/zircon_validate_shader_pbr_gpu_timing_evidence.py
+  - tools/analysis/profiling/shader_pbr/zircon_validate_shader_pbr_renderdoc_replay.py
+  - tools/analysis/profiling/shader_pbr/zircon_summarize_shader_pbr_profile.py
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_app/01-product-host-bootstrap-loop-dynamic-runtime-shutdown-review.md
@@ -182,9 +180,9 @@ ready validator 的像素正确性门槛是至少两个 distinct colors 和至�
 
 #### 2026-08-25 PBR-P0-03 实施设计：display oracle 先与 provenance 绑定
 
-在 renderer 提供可比较的线性 HDR readback 前，先建立窄的 display-output oracle，不伪造 HDR 或跨设备感知等价。`tools/zircon_pbr_visual_oracle.py` 接受一个版本化 JSON manifest；manifest 绑定同目录 reference PNG 的 SHA-256、非空 provenance 字段、全局 RGB mean-absolute-error/p99/error-pixel-fraction 阈值，以及命名的语义矩形区域。PNG 解码、CRC、尺寸、RGBA8 格式和像素预算由该模块单一负责；ready validator 将已解码 candidate 传给 oracle，避免同一 PNG 的第二次读取/解压。误差比较以一次 RGB 扫描和 256 桶直方图求 p99，不为整帧分配误差数组。
+在 renderer 提供可比较的线性 HDR readback 前，先建立窄的 display-output oracle，不伪造 HDR 或跨设备感知等价。`tools/analysis/visual/zircon_pbr_visual_oracle.py` 接受一个版本化 JSON manifest；manifest 绑定同目录 reference PNG 的 SHA-256、非空 provenance 字段、全局 RGB mean-absolute-error/p99/error-pixel-fraction 阈值，以及命名的语义矩形区域。PNG 解码、CRC、尺寸、RGBA8 格式和像素预算由该模块单一负责；ready validator 将已解码 candidate 传给 oracle，避免同一 PNG 的第二次读取/解压。误差比较以一次 RGB 扫描和 256 桶直方图求 p99，不为整帧分配误差数组。
 
-`tools/zircon_validate_shader_pbr_viewer_evidence.py --display-visual-oracle <manifest>` 仅在明确提供 manifest 时启用 gate，并在 JSON summary 回写 oracle/reference SHA、比较像素数、全局误差和语义区域误差。manifest 的 expected metadata 必须与 ready sidecar 匹配，因此离屏 CPU readback、scene、backend 或 host capability 不能与另一条基线混用。`tools/zircon_profile_shader_pbr_viewer.ps1 -DisplayVisualOracle <manifest>` 复用同一受控路径检查，将该 manifest 转发至 cold/warm/RenderDoc 的 ready validator，并在每次 run report 与 profile summary 写入 SHA-256 指纹。reference PNG 与 manifest 必须由受管 Windows run 后一同批准并置于 `docs/tests/runtime/shader` 的受控 oracle 目录；现有带日期的 PNG 仅是历史证据，不能倒灌为 current baseline。
+`tools/analysis/profiling/shader_pbr/zircon_validate_shader_pbr_viewer_evidence.py --display-visual-oracle <manifest>` 仅在明确提供 manifest 时启用 gate，并在 JSON summary 回写 oracle/reference SHA、比较像素数、全局误差和语义区域误差。manifest 的 expected metadata 必须与 ready sidecar 匹配，因此离屏 CPU readback、scene、backend 或 host capability 不能与另一条基线混用。`tools/analysis/profiling/shader_pbr/zircon_profile_shader_pbr_viewer.ps1 -DisplayVisualOracle <manifest>` 复用同一受控路径检查，将该 manifest 转发至 cold/warm/RenderDoc 的 ready validator，并在每次 run report 与 profile summary 写入 SHA-256 指纹。reference PNG 与 manifest 必须由受管 Windows run 后一同批准并置于 `docs/tests/runtime/shader` 的受控 oracle 目录；现有带日期的 PNG 仅是历史证据，不能倒灌为 current baseline。
 
 #### 2026-08-25 静态实施记录：PBR-P0-03 foundation
 

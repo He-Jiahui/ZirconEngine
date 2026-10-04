@@ -10,8 +10,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/session_coordinator/soak.py
-  - tools/session_coordinator/tests/test_soak.py
 tests:
   - python -u -B -m unittest tools.session_coordinator.tests.test_soak.SoakTests.test_short_fixture_soak_rolls_over_and_preserves_events -v
   - python -u -B -m unittest tools.session_coordinator.tests.test_soak -v

@@ -1,7 +1,7 @@
 use super::assemble::{
-    MaterialShaderTemplateAssembly, ShaderAssemblySegment, shader_assembly_source_location_for_line,
+    shader_assembly_source_location_for_line, MaterialShaderTemplateAssembly, ShaderAssemblySegment,
 };
-use super::reflection::{ShaderTemplateReflection, reflect_validated_shader_module};
+use super::reflection::{reflect_validated_shader_module, ShaderTemplateReflection};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct MaterialShaderTemplateValidation {
@@ -98,46 +98,5 @@ fn remap_shader_diagnostic_message(
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::core::framework::render::{
-        GEOMETRY_SOURCE_ID_STATIC_MESH, ShaderPassType, builtin_geometry_source_descriptor,
-    };
-
-    use super::{ShaderTemplateValidationError, validate_material_shader_template_assembly};
-    use crate::graphics::shader::template::assemble::{
-        MaterialShaderTemplateRequest, assemble_material_shader_template,
-    };
-
-    const INVALID_USER_SURFACE: &str = r#"
-fn user_surface(input: ZrVertexOutput) -> ZrSurfaceOutput {
-    let bad = vec4<f32>(1.0;
-    return zr_surface_from_base_color(input.color + bad);
-}
-"#;
-
-    #[test]
-    fn shader_template_validation_remaps_parse_errors_to_source_segment() {
-        let geometry_source = builtin_geometry_source_descriptor(GEOMETRY_SOURCE_ID_STATIC_MESH)
-            .expect("static geometry source");
-        let assembly = assemble_material_shader_template(
-            MaterialShaderTemplateRequest::new(
-                geometry_source,
-                ShaderPassType::Forward,
-                INVALID_USER_SURFACE,
-                "user_surface",
-            )
-            .with_material_surface_module_id("project::materials::invalid"),
-        )
-        .expect("template assembly");
-
-        let error = validate_material_shader_template_assembly(&assembly)
-            .expect_err("invalid user WGSL should fail");
-        let ShaderTemplateValidationError::Parse { message } = error else {
-            panic!("expected parse error");
-        };
-        assert!(
-            message.contains("Zircon shader source: project::materials::invalid:"),
-            "{message}"
-        );
-    }
-}
+#[path = "tests/validation.rs"]
+mod tests;

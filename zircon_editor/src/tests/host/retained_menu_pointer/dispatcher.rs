@@ -156,7 +156,8 @@ fn shared_menu_pointer_click_dispatches_editor_operation_payloads_from_extension
         action_id: Some(operation_path.to_string()),
         enabled: true,
         children: Vec::new(),
-    }]];
+    }]]
+    .into();
     pointer_bridge.sync(
         layout,
         HostMenuPointerState {
@@ -342,7 +343,8 @@ fn shared_menu_pointer_click_executes_registered_operation_factory_transaction()
         action_id: Some(operation_path.to_string()),
         enabled: true,
         children: Vec::new(),
-    }]];
+    }]]
+    .into();
     pointer_bridge.sync(
         layout,
         HostMenuPointerState {

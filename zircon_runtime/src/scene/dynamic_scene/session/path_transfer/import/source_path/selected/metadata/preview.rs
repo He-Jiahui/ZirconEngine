@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use super::super::super::super::super::super::{
-    RuntimeSessionArchiveError, RuntimeSessionMetadata, RuntimeSessionSlotImportPreviewReport,
-    RuntimeSessionSlotSelector, io, target_path as archive_target_path,
+    io, target_path as archive_target_path, RuntimeSessionArchiveError, RuntimeSessionMetadata,
+    RuntimeSessionSlotImportPreviewReport, RuntimeSessionSlotSelector,
 };
 use super::super::super::super::loaded::preview_import_selected_slot_from_archive_with_metadata_at_path;
 
@@ -13,6 +13,8 @@ pub(in crate::scene::dynamic_scene::session) fn preview_import_selected_slot_fro
     new_slot_id: impl Into<String>,
     metadata: RuntimeSessionMetadata,
 ) -> Result<RuntimeSessionSlotImportPreviewReport, RuntimeSessionArchiveError> {
+    // 先比较路径值及已有路径的规范化结果，再加载当次来源快照；检查不锁定随后路径解析。
+    // 目标预览复用 loaded 入口，双方槽位和文件保持原样；报告不保留后续选择或提交的锁。
     let path = path.as_ref();
     let source_path = source_path.as_ref();
     archive_target_path::reject_same_archive_paths(

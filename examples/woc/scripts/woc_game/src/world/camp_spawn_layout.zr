@@ -26,6 +26,7 @@ pub campConstructionDrawCount(required: bool): int {
     return terrain.campNonDummyMobCount(true) * 5;
 }
 
+// 每个非 dummy 出生槽保留连续 5 次构造期抽样；dummy 不推进游标，后续槽的偏移依赖此约定。
 pub drawsBeforeCampSpawn(campIndex: int, spawnIndex: int, required: bool): int {
     spawnIsValid(campIndex, spawnIndex, required);
     var draws = 0;

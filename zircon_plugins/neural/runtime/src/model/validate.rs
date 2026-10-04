@@ -6,18 +6,61 @@ use crate::{NnDataType, NnModelAsset, NnTensorKind};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NnModelValidationError {
     MissingTensors,
-    InvalidRank { tensor: usize, rank: u8 },
-    ZeroDimension { tensor: usize },
-    TensorElementCountOverflow { tensor: usize },
-    NonWeightOffset { tensor: usize, offset: u64 },
-    UnalignedWeightOffset { tensor: usize, offset: u64 },
-    WeightOffsetOutsideBlob { tensor: usize, offset: u64 },
-    WeightRangeOutsideBlob { tensor: usize, end: u64 },
+    InvalidRank {
+        tensor: usize,
+        rank: u8,
+    },
+    ZeroDimension {
+        tensor: usize,
+    },
+    TensorElementCountOverflow {
+        tensor: usize,
+    },
+    NonWeightOffset {
+        tensor: usize,
+        offset: u64,
+    },
+    UnalignedWeightOffset {
+        tensor: usize,
+        offset: u64,
+    },
+    WeightOffsetOutsideBlob {
+        tensor: usize,
+        offset: u64,
+    },
+    WeightRangeOutsideBlob {
+        tensor: usize,
+        end: u64,
+    },
     MixedWeightPrecision,
-    MissingOpInputs { op: usize },
-    MissingOpOutputs { op: usize },
-    InvalidTensorReference { op: usize, tensor: u16 },
-    InvalidOpAttrs { op: usize, error: NnOpAttrsError },
+    MissingOpInputs {
+        op: usize,
+    },
+    MissingOpOutputs {
+        op: usize,
+    },
+    InvalidTensorReference {
+        op: usize,
+        tensor: u16,
+    },
+    TensorUsedBeforeProduced {
+        op: usize,
+        tensor: u16,
+    },
+    InvalidOutputTensorKind {
+        op: usize,
+        tensor: u16,
+        kind: NnTensorKind,
+    },
+    DuplicateTensorProducer {
+        tensor: u16,
+        first_op: usize,
+        second_op: usize,
+    },
+    InvalidOpAttrs {
+        op: usize,
+        error: NnOpAttrsError,
+    },
 }
 
 impl fmt::Display for NnModelValidationError {
@@ -124,6 +167,53 @@ impl NnModelAsset {
                     error,
                 }
             })?;
+        }
+
+        self.validate_graph_topology()
+    }
+
+    fn validate_graph_topology(&self) -> Result<(), NnModelValidationError> {
+        if self.ops.is_empty() {
+            return Ok(());
+        }
+
+        let mut producers = vec![None; self.tensors.len()];
+        for (op_index, op) in self.ops.iter().enumerate() {
+            for &tensor_id in &op.inputs {
+                let tensor_index = usize::from(tensor_id);
+                match self.tensors[tensor_index].kind {
+                    NnTensorKind::Input | NnTensorKind::Weight => {}
+                    NnTensorKind::Intermediate | NnTensorKind::Output
+                        if producers[tensor_index].is_none() =>
+                    {
+                        return Err(NnModelValidationError::TensorUsedBeforeProduced {
+                            op: op_index,
+                            tensor: tensor_id,
+                        });
+                    }
+                    NnTensorKind::Intermediate | NnTensorKind::Output => {}
+                }
+            }
+
+            for &tensor_id in &op.outputs {
+                let tensor_index = usize::from(tensor_id);
+                let kind = self.tensors[tensor_index].kind;
+                if matches!(kind, NnTensorKind::Input | NnTensorKind::Weight) {
+                    return Err(NnModelValidationError::InvalidOutputTensorKind {
+                        op: op_index,
+                        tensor: tensor_id,
+                        kind,
+                    });
+                }
+                if let Some(first_op) = producers[tensor_index] {
+                    return Err(NnModelValidationError::DuplicateTensorProducer {
+                        tensor: tensor_id,
+                        first_op,
+                        second_op: op_index,
+                    });
+                }
+                producers[tensor_index] = Some(op_index);
+            }
         }
 
         Ok(())

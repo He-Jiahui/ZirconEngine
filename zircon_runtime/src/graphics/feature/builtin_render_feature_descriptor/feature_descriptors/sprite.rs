@@ -5,8 +5,9 @@ use crate::render_graph::QueueLane;
 use super::super::render_feature_descriptor::RenderFeatureDescriptor;
 use super::super::render_feature_pass_descriptor::RenderFeaturePassDescriptor;
 
-pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor()
--> RenderFeatureDescriptor {
+// Sprite 的二维 pass 共享 scene color/depth，依赖资源消费者而不是副作用标记维持存活。
+pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor(
+) -> RenderFeatureDescriptor {
     RenderFeatureDescriptor::new(
         "sprite",
         vec![
@@ -49,16 +50,5 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn sprite_passes_rely_on_scene_resource_consumers_instead_of_culling_roots() {
-        assert!(
-            descriptor()
-                .stage_passes
-                .iter()
-                .all(|pass| !pass.flags.has_side_effects)
-        );
-    }
-}
+#[path = "tests/sprite.rs"]
+mod tests;

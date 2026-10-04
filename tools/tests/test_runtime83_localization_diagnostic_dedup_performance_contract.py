@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 缺失本地化键先按借用身份去重，再为真正需要的诊断分配；合法键绕开诊断集合。
 
 ROOT = Path(__file__).resolve().parents[2]
 RESOLVE = ROOT / "zircon_runtime/src/ui/template/asset/localization/resolve.rs"
@@ -50,7 +50,7 @@ class Runtime83LocalizationDiagnosticDedupPerformanceContractTests(unittest.Test
         second_insert = dependency.rindex("emitted_diagnostics.insert(identity)")
         self.assertLess(valid_return, second_insert)
         self.assertIn("diagnostics.sort();", source)
-        performance = (ROOT / "zircon_runtime/src/ui/template/asset/localization/resolve/performance_tests.rs").read_text(encoding="utf-8")
+        performance = (ROOT / "zircon_runtime/src/ui/template/asset/localization/resolve/tests/performance_tests.rs").read_text(encoding="utf-8")
         self.assertIn("legacy_diagnostic_constructions={}", performance)
         self.assertIn("optimized_diagnostic_constructions=1", performance)
 

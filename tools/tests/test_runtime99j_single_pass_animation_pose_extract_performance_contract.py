@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 动画姿态从封存映射直接投影最终行，仅在最终结果物化向量；不保留候选或骨架中间列表。
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE = REPO_ROOT / "zircon_runtime/src/scene/level_system_render_extract.rs"

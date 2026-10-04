@@ -36,8 +36,8 @@ pub enum AssetEventExecutionError {
         #[source]
         source: serde_json::Error,
     },
-    #[error("invalid asset UUID `{asset_uuid}`: {source}")]
-    InvalidAssetUuid { asset_uuid: String, source: String },
+    #[error("invalid asset UUID `{asset_uuid}`: {detail}")]
+    InvalidAssetUuid { asset_uuid: String, detail: String },
     #[error("invalid asset relocation target `{target_locator}`: {source}")]
     InvalidRelocationTarget {
         target_locator: String,

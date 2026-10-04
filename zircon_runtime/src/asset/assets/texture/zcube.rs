@@ -199,13 +199,14 @@ pub fn texture_asset_from_encoded_source_cubemap_zcube(
 }
 
 #[cfg(test)]
-#[path = "zcube/single_append_tests.rs"]
+#[path = "zcube/tests/single_append_tests.rs"]
 mod single_append_tests;
 
 #[cfg(test)]
-#[path = "zcube/source_mip_encoding_tests.rs"]
+#[path = "zcube/tests/source_mip_encoding_tests.rs"]
 mod source_mip_encoding_tests;
 
+/// 从导入资产读取 IBL 捕获的 source-only cubemap；容器头、完整 mip 载荷以及纹理尺寸、mip 数和六面层元数据都必须吻合。
 pub fn decode_zcube_source_cubemap_texture(
     texture: &TextureAsset,
 ) -> Result<ZcubeSourceCubemap, ZcubeSourceCubemapError> {
@@ -328,7 +329,6 @@ fn zcube_source_cubemap_descriptor(mip_count: u32) -> TextureAssetDescriptor {
     descriptor.metadata.color_space = RenderImageColorSpace::Linear;
     descriptor.dimension = RenderImageDimension::Cube;
     descriptor.depth_or_array_layers = SOURCE_CUBEMAP_FACE_COUNT as u32;
-    descriptor.array_layer_count = SOURCE_CUBEMAP_FACE_COUNT as u32;
     descriptor.normalized()
 }
 

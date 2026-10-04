@@ -1,3 +1,4 @@
+# 核对特效选择由运行时初始化，应用反馈读取当前可编辑属性。
 import tomllib
 import unittest
 from pathlib import Path

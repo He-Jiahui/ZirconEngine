@@ -143,7 +143,7 @@ Unity本地参考只覆盖Graphics Runtime，不包含Unity Model Importer；本
 | ID | 状态 | 当前证据 | 必须重构 |
 |---|---|---|---|
 | P0-1 | `Partial` | production path-edit callback和import job已存在；仍无picker/drop/paste typed request，`.gltf` UI/Runtime准入矛盾，空路径默认不可形成完整产品 | `GeometryImportSourceRequest`统一picker/drop/paste/path，先做capability/admission，再生成job与receipt |
-| P0-2 | `Open` | Core `zircon.builtin.model.gltf` schema 2/priority 10与plugin `gltf_importer.gltf` schema 1/priority 120并存；registry按availability/priority选中不同语义 | 保留一个canonical glTF implementation，plugin只作package adapter；对旧provider硬切并做semantic corpus |
+| P0-2 | `Open` | Core `zircon.builtin.model.gltf`与plugin `gltf_importer.gltf`当前都走schema 2级 typed clip/skeleton路径（plugin importer version 4），但priority 10/120并存；registry按availability/priority选中不同语义 | 保留一个canonical glTF implementation，plugin只作package adapter；对provider authority硬切并做semantic corpus |
 | P0-3 | `Open` | Mesh skin只有IBM，multi-skin first-wins，Skeleton无stable ID，renderer不消费IBM，Scene skeleton/player为None | 独立Skin asset、stable joint map、IBM/reference-pose contract、typed Scene animation binding |
 | P0-4 | `Open` | root Model已reference-only，但overview/descriptor继续读取空inline，且dual payload仍合法 | exactly-one geometry authority、resolved Model artifact与qualification-aware overview |
 | P0-5 | `Open` | Model/Mesh/Skeleton无toolkit；LOD/Collision/Retarget workbench没有domain artifact或runtime receipt | isolated Preview Scene、dedicated toolkits、LOD/Collision/Retarget source/compiler/job/receipt |
@@ -257,7 +257,7 @@ Unity本地参考只覆盖Graphics Runtime，不包含Unity Model Importer；本
 | Quick Import | path string + Editor callback + Runtime job | picker/drop/paste与`.gltf`准入不一致 | typed Geometry Source admission |
 | 资产发布 | Runtime compound durable transaction | receipt后自动Scene insert | ProjectImportReceipt +独立AddToScene command |
 | Import settings | zmeta generic TOML | 无geometry schema/version/migration | Versioned GeometryImportRecipe |
-| glTF | Core schema 2与plugin schema 1 | priority/availability改变语义 | one canonical implementation |
+| glTF | Core与plugin均为schema 2级 typed clip/skeleton路径，plugin importer version 4 | priority/availability仍改变provider authority与剩余Skin/IBM语义 | one canonical implementation |
 | Model | reference-only root与dual-capable schema | overview只读inline | resolved qualified Model artifact |
 | Skin | Mesh内IBM vector + generic Data | 无joint/Skeleton ref，multi-skin first-wins | independent typed Skin asset |
 | Animation target | path ID compiler + legacy name fallback | Skeleton不持久化stable ID，renderer按name | stable target ID end-to-end |

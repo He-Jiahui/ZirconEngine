@@ -62,8 +62,30 @@ impl AssetManagementRecordSetSummary {
         materials: &RenderMaterialManagementRecordSet,
         shaders: &ShaderAssetManagementRecordSet,
     ) -> Self {
+        let mut summary = Self::from_asset_record_sets(
+            models,
+            meshes,
+            scenes,
+            scene_entities,
+            material_assets,
+            shaders,
+        );
+        summary.prepared_material_count = materials.summary.total_count;
+        summary.prepared_material_ready_count = materials.summary.ready_count;
+        summary.prepared_material_degraded_count = materials.summary.degraded_count();
+        summary.prepared_material_issue_row_count = materials.summary.issue_row_count();
+        summary
+    }
+
+    pub(crate) fn from_asset_record_sets(
+        models: &ModelAssetManagementRecordSet,
+        meshes: &MeshAssetManagementRecordSet,
+        scenes: &SceneAssetManagementRecordSet,
+        scene_entities: &SceneEntityManagementRecordSet,
+        material_assets: &MaterialAssetManagementRecordSet,
+        shaders: &ShaderAssetManagementRecordSet,
+    ) -> Self {
         let material_degraded_count = material_assets.summary.degraded_count();
-        let prepared_material_degraded_count = materials.summary.degraded_count();
         Self {
             managed_record_count: models.summary.model_count
                 + meshes.summary.mesh_count
@@ -120,10 +142,10 @@ impl AssetManagementRecordSetSummary {
                 .summary
                 .validation_diagnostic_count,
             material_direct_reference_count: material_assets.summary.direct_reference_count,
-            prepared_material_count: materials.summary.total_count,
-            prepared_material_ready_count: materials.summary.ready_count,
-            prepared_material_degraded_count,
-            prepared_material_issue_row_count: materials.summary.issue_row_count(),
+            prepared_material_count: 0,
+            prepared_material_ready_count: 0,
+            prepared_material_degraded_count: 0,
+            prepared_material_issue_row_count: 0,
             shader_count: shaders.summary.shader_count,
             shader_ready_count: shaders.summary.ready_count,
             shader_not_ready_count: shaders.summary.not_ready_count,

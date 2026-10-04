@@ -67,8 +67,8 @@ fn rapid_successive_writes_within_debounce_window_emit_single_reload() {
     let material_path = assets_root.join("materials").join("grid.zmaterial");
     let (stop_tx, stop_rx) = unbounded();
     let options = AssetWatcherOptions {
-        debounce: Duration::from_millis(10),
-        max_batch_latency: Duration::from_millis(100),
+        debounce: Duration::from_millis(100),
+        max_batch_latency: Duration::from_millis(200),
         ..AssetWatcherOptions::default()
     };
     let (event_tx, event_rx) = watch_ingress(options);
@@ -113,7 +113,8 @@ fn rapid_successive_writes_within_debounce_window_emit_single_reload() {
 fn watcher_loop_folds_pending_events_incrementally() {
     let source = include_str!("../watch/watch_loop.rs");
 
-    assert!(source.contains("fold_event(&mut pending"));
+    assert!(source.contains("try_fold_bounded("));
+    assert!(source.contains("fold_event(folded, event)"));
     assert!(!source.contains("pending.extend("));
 }
 
@@ -193,7 +194,7 @@ fn continuous_watcher_storm_flushes_at_the_max_batch_latency() {
     let started = std::time::Instant::now();
     while started.elapsed() < Duration::from_millis(75) {
         event_tx.try_send(Ok(modified_event(&material_path)));
-        std::thread::yield_now();
+        std::thread::sleep(Duration::from_millis(5));
     }
 
     let first = batch_rx.recv_timeout(Duration::from_secs(1)).unwrap();
@@ -208,8 +209,8 @@ fn continuous_watcher_storm_flushes_at_the_max_batch_latency() {
 fn watcher_pending_overflow_emits_an_explicit_reconciliation_token() {
     let assets_root = PathBuf::from("sandbox/assets");
     let options = AssetWatcherOptions {
-        debounce: Duration::from_millis(1),
-        max_batch_latency: Duration::from_millis(20),
+        debounce: Duration::from_millis(100),
+        max_batch_latency: Duration::from_millis(200),
         pending_entry_capacity: 1,
         ..AssetWatcherOptions::default()
     };

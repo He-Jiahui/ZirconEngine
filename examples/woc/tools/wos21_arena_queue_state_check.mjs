@@ -63,7 +63,7 @@ for (const needle of [
   'queueArenaUnitForParty(',
   'applyArenaLeaveCommand(state: WorldState, actorIndex: int): void',
   'arenaQueueStateIsValid(state: WorldState): bool',
-  'writer.u16(<uint>38, 1, 1);',
+  'writer.u16(schemaVersion, 1, 1);',
   'schemaVersion != <uint>20',
   'schemaVersion != <uint>21',
   'schemaVersion != <uint>22',
@@ -91,8 +91,8 @@ for (const needle of [
   invariant(state.includes(needle), `WOS21 arena-queue projection omitted: ${needle}`);
 }
 invariant(
-main.includes('\\"world_state\\":\\"WOS38\\",'),
-  'package stateSchema must expose the current WOS38 snapshot version',
+main.includes('\\"world_state\\":\\"WOS118\\",'),
+  'package stateSchema must expose the current WOS118 snapshot version',
 );
 
 process.stdout.write(`checked WOS21 arena-queue source projection: ${SOURCE_COMMIT.slice(0, 15)}\\n`);

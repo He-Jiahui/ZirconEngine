@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[path = "tests/hybrid_gi_probe_residency_state.rs"]
 mod hybrid_gi_probe_residency_state;
 mod hybrid_gi_probe_update_request;
 mod hybrid_gi_runtime_snapshot;

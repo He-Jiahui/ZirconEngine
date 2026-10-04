@@ -1,3 +1,7 @@
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::OnceLock;
+use std::time::Instant;
+
 use crate::core::editing::engine::EditCommandError;
 use crate::core::gateway::GatewaySessionIdentity;
 use crate::core::play::{
@@ -6,6 +10,7 @@ use crate::core::play::{
 };
 use crate::core::runtime_event_consumer::EditorRuntimeEventConsumerError;
 use crate::core::sync::WorldSyncShutdownReceipt;
+use crate::ui::workbench::shell_state::WorkbenchShellStateData;
 use crate::ui::workbench::state::EditorStateOperationError;
 
 use super::EditorHostEventController;
@@ -224,6 +229,26 @@ impl EditorHostEventController {
     ) -> Result<Option<(PlayInstanceId, GatewaySessionIdentity)>, EditorTerminalPlayDetachError>
     {
         self.retire_play_gizmo_local_state();
+        self.detach_terminal_play_gateway_after_local_state_retirement()
+    }
+
+    /// Detaches the terminal Play gateway while reusing the caller's shell-state guard.
+    ///
+    /// Menu actions already hold this guard for their full state transition. Passing it through
+    /// avoids recursively locking the non-recursive shell mutex during local gizmo retirement.
+    pub(in crate::ui::host) fn detach_terminal_play_gateway_with_shell(
+        &self,
+        shell: &mut WorkbenchShellStateData,
+    ) -> Result<Option<(PlayInstanceId, GatewaySessionIdentity)>, EditorTerminalPlayDetachError>
+    {
+        self.retire_play_gizmo_local_state_with_shell(shell);
+        self.detach_terminal_play_gateway_after_local_state_retirement()
+    }
+
+    fn detach_terminal_play_gateway_after_local_state_retirement(
+        &self,
+    ) -> Result<Option<(PlayInstanceId, GatewaySessionIdentity)>, EditorTerminalPlayDetachError>
+    {
         let discard_history = |instance| {
             self.context
                 .transactions()
@@ -269,7 +294,7 @@ impl EditorHostEventController {
             .edit_world_sync
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .shutdown(self.context().gateway());
+            .shutdown(self.context().authoring_gateway());
         let play_session = self.shutdown_play_session();
         let play_gateway = self.shutdown_play_gateway(&play_session);
         let play_backend_retirement = self.shutdown_play_backend_retirement(&play_gateway);
@@ -290,7 +315,22 @@ impl EditorHostEventController {
         let had_active_session = self.runtime_event_consumer_session_active();
         let had_pending_remote_cleanup =
             self.runtime_event_consumers.pending_remote_cleanup_count() > 0;
-        match self.runtime_event_consumers.shutdown() {
+        let trace_sequence = next_play_stop_trace_sequence();
+        let shutdown_started = trace_sequence.map(|sequence| {
+            eprintln!(
+                "mvp_play_trace component=editor_runtime_consumers seq={sequence} stage=shutdown_enter active={had_active_session} pending_remote_cleanup={had_pending_remote_cleanup}"
+            );
+            Instant::now()
+        });
+        let shutdown = self.runtime_event_consumers.shutdown();
+        if let (Some(sequence), Some(started)) = (trace_sequence, shutdown_started) {
+            eprintln!(
+                "mvp_play_trace component=editor_runtime_consumers seq={sequence} stage=shutdown_return result={} elapsed_us={}",
+                if shutdown.is_ok() { "ok" } else { "error" },
+                started.elapsed().as_micros()
+            );
+        }
+        match shutdown {
             Ok(()) if !had_active_session && !had_pending_remote_cleanup => {
                 RuntimeEventConsumerShutdownDisposition::NotActive
             }
@@ -414,4 +454,17 @@ impl EditorHostEventController {
             Err(error) => RuntimePlayBackendRetirementDisposition::RetirementRejected { error },
         }
     }
+}
+
+fn next_play_stop_trace_sequence() -> Option<u64> {
+    static TRACE_ENABLED: OnceLock<bool> = OnceLock::new();
+    let enabled = *TRACE_ENABLED.get_or_init(|| {
+        std::env::var("ZIRCON_TRACE_PLAY_STOP")
+            .is_ok_and(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+    });
+    if !enabled {
+        return None;
+    }
+    static SEQUENCE: AtomicU64 = AtomicU64::new(0);
+    Some(SEQUENCE.fetch_add(1, Ordering::Relaxed) + 1)
 }

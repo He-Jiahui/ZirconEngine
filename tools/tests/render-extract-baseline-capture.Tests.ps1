@@ -1,9 +1,10 @@
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $capture = Join-Path $repoRoot 'tools\mvp\Capture-RenderExtractBaseline.ps1'
-$resolverModule = Join-Path $repoRoot 'tools\WindowsPathResolver.psm1'
+$resolverModule = Join-Path $repoRoot 'tools\maintenance\WindowsPathResolver.psm1'
 $manifestModule = Join-Path $repoRoot 'tools\mvp\MvpProductInputManifest.psm1'
 $buildSetModule = Join-Path $repoRoot 'tools\mvp\MvpBuildSet.psm1'
 $artifactStorageModule = Join-Path $repoRoot 'tools\mvp\MvpArtifactStoragePolicy.psm1'
+$frozenInputModule = Join-Path $repoRoot 'tools\mvp\RenderExtractFrozenInput.psm1'
 $originalTestMode = $env:RENDER_EXTRACT_BASELINE_TEST_MODE
 
 Import-Module $resolverModule -Force -Global -ErrorAction Stop
@@ -92,6 +93,14 @@ function New-TestRenderExtractBuildSet {
 }
 
 Describe 'Render-extract baseline capture plan' {
+    It 'defaults to the Render02 five-run 120 warmup and 600 measured protocol' {
+        $captureSource = Get-Content -LiteralPath $capture -Raw
+
+        $captureSource | Should Match '\[int\]\$RepeatCount = 5'
+        $captureSource | Should Match '\[int\]\$WarmupPresentedFrameCount = 120'
+        $captureSource | Should Match '\[int\]\$MeasuredPresentedFrameCount = 600'
+    }
+
     BeforeEach {
         Import-Module $manifestModule -Force -ErrorAction Stop
         Import-Module $resolverModule -Force -ErrorAction Stop
@@ -153,19 +162,20 @@ Describe 'Render-extract baseline capture plan' {
         $captureSource = Get-Content -LiteralPath $capture -Raw
 
         $captureSource | Should Match '\[switch\]\$UseWpr'
+        $captureSource | Should Match '\[switch\]\$UseWprHeap'
+        $captureSource | Should Match 'RenderExtractWprCapture\.psm1'
+        $captureSource | Should Match 'Resolve-RenderExtractWprProfile'
         $captureSource | Should Match 'Start-RenderExtractWprCapture'
         $captureSource | Should Match 'Stop-RenderExtractWprCapture'
-        $captureSource | Should Match 'Join-ZirconWindowsPath -Path \$tracesRoot -ChildPath "\$sessionId.etl"'
-        $captureSource | Should Match 'Join-ZirconWindowsPath -Path \$tracesRoot -ChildPath "\$sessionId.wpr-temp"'
-        $captureSource | Should Match 'Start-RenderExtractWprCapture -TemporaryDirectory \$wprTemporaryDirectory'
-        $captureSource | Should Match '& \$wpr.Source ''-start'' ''CPU'' ''-filemode'' ''-recordtempto'' \$TemporaryDirectory \| Out-Null'
-        $captureSource | Should Match '& \$WprPath ''-stop'' \$TracePath \| Out-Null'
+        $captureSource | Should Match 'system_trace_profile = if \(\$null -ne \$wprReceipt\)'
+        $captureSource | Should Match 'system_trace_analysis = if \(\$null -ne \$wprReceipt\)'
+        $captureSource | Should Match 'system_trace_receipt = if \(\$null -ne \$wprReceipt\)'
     }
 
     It 'refuses to start WPR without a caller-owned temporary directory' {
         $missingDirectory = Join-Path $TestDrive 'missing-wpr-recording-directory'
 
-        { Start-RenderExtractWprCapture -TemporaryDirectory $missingDirectory } |
+        { Start-RenderExtractWprCapture -TemporaryDirectory $missingDirectory -Profile 'CPU' } |
             Should Throw 'temporary directory does not exist'
     }
 
@@ -513,6 +523,7 @@ Describe 'Render-extract baseline capture plan' {
 
     It 'publishes the source-bound percentile report after preserving the raw summary' {
         $captureSource = Get-Content -LiteralPath $capture -Raw
+        $frozenInputSource = Get-Content -LiteralPath $frozenInputModule -Raw
         $reporterPattern = [regex]::Escape("& (Join-Path `$PSScriptRoot 'Write-RenderExtractBaselineReport.ps1') -BaselineSummaryPath `$summaryPath | Out-Null")
         $invocationPattern = [regex]::Escape('invocation_id = $sessionLease.InvocationId')
 
@@ -526,10 +537,12 @@ Describe 'Render-extract baseline capture plan' {
         $captureSource | Should Match 'process_id = \$processId'
         $captureSource | Should Match 'process_elapsed_ms = \$processElapsedMs'
         $captureSource | Should Match 'schema_version = 5'
-        $captureSource | Should Match 'RenderExtractSourceIdentity\.psm1'
+        $captureSource | Should Match 'RenderExtractFrozenInput\.psm1'
+        $captureSource | Should Not Match 'RenderExtractSourceIdentity\.psm1'
+        $frozenInputSource | Should Match 'RenderExtractSourceIdentity\.psm1'
         $captureSource | Should Not Match 'Get-MvpSourceFingerprint -RepositoryRoot \$repoRoot'
         $assetFreezeIndex = $captureSource.IndexOf('$actualProductHashes = Assert-RenderExtractFrozenProductInput')
-        $wprIndex = $captureSource.IndexOf('$wprPath = Start-RenderExtractWprCapture')
+        $wprIndex = $captureSource.IndexOf('$wprCapture = Start-RenderExtractWprCapture')
         $stopwatchStartIndex = $captureSource.IndexOf('$processStopwatch.Start()')
         $processStartIndex = $captureSource.IndexOf('Start-RenderExtractBaselineAssignedProcess -Job $processJob -StartInfo $startInfo')
         $stopwatchStopIndex = $captureSource.IndexOf('$processStopwatch.Stop()')
@@ -888,7 +901,7 @@ Describe 'Render-extract baseline capture plan' {
         $captureSource | Should Match 'Stop-RenderExtractBaselineProcessJob -Job \$processJob'
         $cleanupIndex = $captureSource.IndexOf('Stop-RenderExtractBaselineProcessJob -Job $processJob')
         $statisticsIndex = $captureSource.IndexOf('$peakWorkingSetBytes = [Int64]$process.PeakWorkingSet64')
-        $wprStopIndex = $captureSource.IndexOf('Stop-RenderExtractWprCapture -WprPath $wprPath')
+        $wprStopIndex = $captureSource.IndexOf('$wprReceipt = Stop-RenderExtractWprCapture @wprStopParameters')
         $cleanupIndex | Should BeGreaterThan -1
         $cleanupIndex | Should BeGreaterThan $statisticsIndex
         $wprStopIndex | Should BeGreaterThan $cleanupIndex
@@ -1057,7 +1070,7 @@ Describe 'Render-extract baseline capture plan' {
                 -MaxProfileFrames 1 `
                 -MaxProfileSpans 1 `
                 -MaxProfileCounters 1 `
-                -UseWpr | Out-Null
+                -WprProfile 'CPU' | Out-Null
         }
         catch {
             $failure = $_

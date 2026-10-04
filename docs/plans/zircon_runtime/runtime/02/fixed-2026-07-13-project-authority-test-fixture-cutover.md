@@ -8,11 +8,8 @@ fixing_plan: docs/plans/zircon_editor/editor/09-editor-asset-management.md
 origin_child_dir: docs/plans/zircon_runtime/runtime/02
 fixing_child_dir: docs/plans/zircon_editor/editor/09
 related_code:
-  - zircon_editor/src/core/project/authority.rs
   - zircon_editor/src/ui/workbench/project/editor_project_document_save.rs
   - zircon_editor/src/tests/host/manager/support.rs
-  - zircon_editor/src/tests/host/manager/bootstrap_and_startup.rs
-  - zircon_editor/src/tests/host/manager/ui_asset_reference_and_promotion.rs
   - zircon_editor/src/tests/host/manager/ui_asset_reference_and_promotion/theme.rs
   - zircon_editor/src/tests/host/manager/ui_asset_session_preview.rs
   - zircon_editor/src/tests/host/manager/ui_asset_workspace_watcher.rs

@@ -12,6 +12,33 @@ pub(super) fn execute_viewport_event(
     shell: &mut WorkbenchShellStateData,
     event: &EditorViewportEvent,
 ) -> Result<ExecutionOutcome, EditorViewportStateError> {
+    let (target_view, event) = match event {
+        EditorViewportEvent::ForView { view_id, event } => {
+            // The event wire carries the core nominal ID while the Workbench manager retains its
+            // own UI nominal ID. Keep the manager lookup on the UI side and the viewport registry
+            // lookup on the core side; matching raw strings at this boundary would hide a type
+            // ownership error.
+            let manager_view_id =
+                crate::ui::workbench::view::ViewInstanceId::new(view_id.0.clone());
+            if !shell
+                .manager
+                .view_instance_ids_for_descriptor_key("editor.scene")
+                .iter()
+                .any(|candidate| candidate == &manager_view_id)
+                || shell
+                    .state
+                    .viewport_controller
+                    .session_if_live(view_id)
+                    .is_none()
+            {
+                return Err(EditorViewportStateError::StaleViewportView {
+                    view_id: view_id.clone(),
+                });
+            }
+            (Some(view_id), event.as_ref())
+        }
+        _ => (None, event),
+    };
     let command = match event {
         EditorViewportEvent::PointerMoved { x, y } => {
             ViewportCommand::PointerMoved { x: *x, y: *y }
@@ -73,8 +100,18 @@ pub(super) fn execute_viewport_event(
             }
         }
         EditorViewportEvent::FrameSelection => ViewportCommand::FrameSelection,
+        EditorViewportEvent::ForView { view_id, .. } => {
+            return Err(EditorViewportStateError::StaleViewportView {
+                view_id: view_id.clone(),
+            });
+        }
     };
-    let feedback = shell.state.apply_viewport_command(&command)?;
+    let feedback = match target_view {
+        Some(view_id) => shell
+            .state
+            .apply_viewport_command_for_view(view_id, &command)?,
+        None => shell.state.apply_viewport_command(&command)?,
+    };
     let structural_viewport_change = structural_viewport_event(event, &feedback);
     let chrome_projection_change = event.changes_chrome_projection();
     let changed = structural_viewport_change
@@ -112,25 +149,29 @@ fn viewport_effects(
     structural_viewport_change: bool,
     chrome_projection_change: bool,
 ) -> Vec<EditorEventEffect> {
-    let mut effects = Vec::new();
-
-    if structural_viewport_change
+    let render_changed = structural_viewport_change
         || feedback.camera_updated
         || feedback.transformed_node.is_some()
         || feedback.hovered_axis.is_some()
-        || feedback.interaction_extract_stale
-    {
+        || feedback.interaction_extract_stale;
+    let presentation_changed = (structural_viewport_change && !chrome_projection_change)
+        || feedback.transformed_node.is_some()
+        || feedback.hovered_axis.is_some();
+    let reflection_changed = structural_viewport_change || feedback.transformed_node.is_some();
+    let effect_count = usize::from(render_changed)
+        .saturating_add(usize::from(presentation_changed))
+        .saturating_add(usize::from(reflection_changed));
+    let mut effects = Vec::with_capacity(effect_count);
+
+    if render_changed {
         effects.push(EditorEventEffect::RenderChanged);
     }
 
-    if (structural_viewport_change && !chrome_projection_change)
-        || feedback.transformed_node.is_some()
-        || feedback.hovered_axis.is_some()
-    {
+    if presentation_changed {
         effects.push(EditorEventEffect::PresentationChanged);
     }
 
-    if structural_viewport_change || feedback.transformed_node.is_some() {
+    if reflection_changed {
         effects.push(EditorEventEffect::ReflectionChanged);
     }
 
@@ -138,78 +179,5 @@ fn viewport_effects(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::viewport_effects;
-    use crate::core::editor_event::{EditorEventEffect, EditorViewportEvent};
-    use crate::scene::viewport::{GridMode, ViewportFeedback};
-
-    #[test]
-    fn viewport_chrome_state_change_keeps_render_but_skips_full_presentation() {
-        let event = EditorViewportEvent::SetGridMode {
-            mode: GridMode::VisibleAndSnap,
-        };
-
-        let effects = viewport_effects(&event, &ViewportFeedback::default(), true, true);
-
-        assert!(effects.contains(&EditorEventEffect::RenderChanged));
-        assert!(effects.contains(&EditorEventEffect::ReflectionChanged));
-        assert!(!effects.contains(&EditorEventEffect::PresentationChanged));
-    }
-
-    #[test]
-    fn non_chrome_structural_change_still_requests_presentation() {
-        let event = EditorViewportEvent::Resized {
-            width: 1280,
-            height: 720,
-        };
-
-        let effects = viewport_effects(&event, &ViewportFeedback::default(), true, false);
-
-        assert!(effects.contains(&EditorEventEffect::PresentationChanged));
-    }
-
-    #[test]
-    fn empty_cancel_interaction_has_no_effects() {
-        let event = EditorViewportEvent::CancelInteraction;
-
-        assert!(!super::structural_viewport_event(
-            &event,
-            &ViewportFeedback::default()
-        ));
-        assert!(viewport_effects(&event, &ViewportFeedback::default(), false, false).is_empty());
-    }
-
-    #[test]
-    fn active_cancel_interaction_refreshes_viewport_projections() {
-        let event = EditorViewportEvent::CancelInteraction;
-        let feedback = ViewportFeedback {
-            transformed_node: Some(42),
-            ..ViewportFeedback::default()
-        };
-
-        let effects = viewport_effects(&event, &feedback, false, false);
-
-        assert!(effects.contains(&EditorEventEffect::RenderChanged));
-        assert!(effects.contains(&EditorEventEffect::PresentationChanged));
-        assert!(effects.contains(&EditorEventEffect::ReflectionChanged));
-    }
-
-    #[test]
-    fn stale_pointer_product_requests_a_render_rebuild_without_presentation_churn() {
-        let feedback = ViewportFeedback {
-            interaction_extract_stale: true,
-            ..ViewportFeedback::default()
-        };
-
-        let effects = viewport_effects(
-            &EditorViewportEvent::PointerMoved { x: 12.0, y: 24.0 },
-            &feedback,
-            false,
-            false,
-        );
-
-        assert!(effects.contains(&EditorEventEffect::RenderChanged));
-        assert!(!effects.contains(&EditorEventEffect::PresentationChanged));
-        assert!(!effects.contains(&EditorEventEffect::ReflectionChanged));
-    }
-}
+#[path = "tests/viewport_event.rs"]
+mod tests;

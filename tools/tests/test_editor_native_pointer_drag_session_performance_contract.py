@@ -1,3 +1,4 @@
+# 核对拖拽会话以标量状态和类型路由处理稳定移动，重复尺寸点提前退出。
 from pathlib import Path
 import unittest
 

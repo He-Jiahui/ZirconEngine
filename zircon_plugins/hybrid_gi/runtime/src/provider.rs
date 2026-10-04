@@ -68,6 +68,7 @@ impl Default for PluginHybridGiRuntimeState {
     }
 }
 
+// 每个视图持有独立运行时状态；准备帧导出中立数据，渲染后的 GPU 回读再反馈到下一帧。
 impl RuntimeStateContract for PluginHybridGiRuntimeState {
     fn prepare_frame(
         &mut self,
@@ -553,4 +554,5 @@ fn rgba_sample_is_present(rgba: [u8; 4]) -> bool {
 }
 
 #[cfg(test)]
+#[path = "provider/tests/cases.rs"]
 mod tests;

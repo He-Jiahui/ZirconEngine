@@ -440,8 +440,7 @@ columns = 12
         .unwrap();
     surface
         .tree
-        .slots
-        .push(UiSlot::new(root_id, old_child_id, UiSlotKind::Free));
+        .push_layout_slot(UiSlot::new(root_id, old_child_id, UiSlotKind::Free));
     surface.compute_layout(root_size()).unwrap();
     surface.clear_dirty_flags();
     assert_eq!(surface.tree.layout_slots()[0].kind, UiSlotKind::Grid);
@@ -460,8 +459,7 @@ columns = 12
         .unwrap();
     surface
         .tree
-        .slots
-        .push(UiSlot::new(root_id, new_child_id, UiSlotKind::Free));
+        .push_layout_slot(UiSlot::new(root_id, new_child_id, UiSlotKind::Free));
 
     let report = surface.rebuild_dirty(root_size()).unwrap();
 
@@ -520,8 +518,7 @@ fn pointer_node_crossing_hit_grid_cells_is_indexed_once() {
         .expect("pointer node should insert");
     surface
         .tree
-        .slots
-        .push(UiSlot::new(root_id, pointer_id, UiSlotKind::Free));
+        .push_layout_slot(UiSlot::new(root_id, pointer_id, UiSlotKind::Free));
     surface.compute_layout(root_size()).unwrap();
     surface.clear_dirty_flags();
 

@@ -9,6 +9,7 @@ use zircon_runtime_interface::ui::event_ui::{
 };
 
 #[cfg(test)]
+#[path = "reflection_store/tests/optimization_tests.rs"]
 mod optimization_tests;
 
 impl UiEventManager {
@@ -177,7 +178,16 @@ impl UiEventManager {
     }
 
     pub(crate) fn rebuild_node_index(&mut self) {
+        let node_count = self
+            .trees
+            .values()
+            .map(|tree| tree.nodes.len())
+            .sum::<usize>();
         self.node_index.clear();
+        let additional_capacity = node_count.saturating_sub(self.node_index.capacity());
+        if additional_capacity > 0 {
+            self.node_index.reserve(additional_capacity);
+        }
         for (tree_id, tree) in &self.trees {
             for (node_id, node) in &tree.nodes {
                 self.node_index

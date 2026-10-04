@@ -232,7 +232,20 @@ fn scene_assets_roundtrip_ambient_and_rect_light_product_fields() {
                 intensity: 72_000.0,
                 range: 18.0,
                 size: Vec2::new(3.5, 1.5),
+                casts_shadow: true,
                 volumetric: false,
+            }),
+        )
+        .unwrap();
+    let point = world
+        .spawn_node(NodeKind::PointLight)
+        .expect("test scene spawn should succeed");
+    world
+        .set_point_light(
+            point,
+            Some(PointLight {
+                casts_shadow: true,
+                ..PointLight::default()
             }),
         )
         .unwrap();
@@ -258,6 +271,16 @@ fn scene_assets_roundtrip_ambient_and_rect_light_product_fields() {
     assert_eq!(saved_rect.intensity, 72_000.0);
     assert_eq!(saved_rect.range, 18.0);
     assert_eq!(saved_rect.size, [3.5, 1.5]);
+    assert!(saved_rect.casts_shadow);
+    assert!(
+        saved
+            .entities
+            .iter()
+            .find(|entity| entity.entity == point)
+            .and_then(|entity| entity.point_light.as_ref())
+            .unwrap()
+            .casts_shadow
+    );
 
     let loaded = World::from_scene_asset(&project, &saved).unwrap();
     assert!(matches!(
@@ -279,6 +302,120 @@ fn scene_assets_roundtrip_ambient_and_rect_light_product_fields() {
         NodeKind::RectLight
     ));
     assert_eq!(loaded.rect_light(rect).unwrap().size, Vec2::new(3.5, 1.5));
+    assert!(loaded.rect_light(rect).unwrap().casts_shadow);
+    assert!(loaded.point_light(point).unwrap().casts_shadow);
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[cfg(feature = "graphics")]
+#[test]
+fn roundtripped_light_components_on_one_entity_keep_distinct_shadow_allocations() {
+    use crate::core::framework::render::{
+        GpuLightType, RenderExtractContext, RenderWorldSnapshotHandle, SceneViewportExtractRequest,
+        SHADOW_SLOT_NONE,
+    };
+    use crate::graphics::scene::{
+        build_shadow_frame_plan, pack_lighting_extract, ShadowAtlasAllocator,
+        ShadowAtlasResourceConfig,
+    };
+    use crate::graphics::types::ViewportRenderFrame;
+    use crate::scene::components::{DirectionalLight, SpotLight};
+
+    let root = unique_temp_project_root("shared_entity_shadow_identity");
+    let project = create_test_project(&root);
+    let mut world = World::empty();
+    let entity = world.spawn_node(NodeKind::PointLight).unwrap();
+    world
+        .set_point_light(
+            entity,
+            Some(PointLight {
+                casts_shadow: true,
+                ..PointLight::default()
+            }),
+        )
+        .unwrap();
+    world
+        .set_spot_light(
+            entity,
+            Some(SpotLight {
+                casts_shadow: true,
+                ..SpotLight::default()
+            }),
+        )
+        .unwrap();
+    world
+        .insert(
+            entity,
+            DirectionalLight {
+                casts_shadow: true,
+                ..DirectionalLight::default()
+            },
+        )
+        .unwrap();
+    world
+        .set_rect_light(
+            entity,
+            Some(RectLight {
+                casts_shadow: true,
+                ..RectLight::default()
+            }),
+        )
+        .unwrap();
+    let saved = world.to_scene_asset(&project).unwrap();
+    let reopened: SceneAsset = toml::from_str(&toml::to_string(&saved).unwrap()).unwrap();
+    let mut loaded = World::from_scene_asset(&project, &reopened).unwrap();
+    let extract = loaded.build_prepared_render_frame_extract(&RenderExtractContext::new(
+        RenderWorldSnapshotHandle::new(74),
+        SceneViewportExtractRequest::default(),
+    ));
+    let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(320, 240));
+    let mut allocator = ShadowAtlasAllocator::default();
+    let plan = build_shadow_frame_plan(
+        &mut allocator,
+        &frame,
+        ShadowAtlasResourceConfig::new(4096, 4096, 16),
+    );
+
+    assert_eq!(plan.slots().len(), 11);
+    assert_eq!(plan.atlas_passes().len(), 11);
+    for (kind, first_slot, slot_count) in [
+        (GpuLightType::Directional, 0, 4),
+        (GpuLightType::Point, 4, 6),
+        (GpuLightType::Spot, 10, 1),
+    ] {
+        let assignment = plan.light_slots().get(kind, entity).unwrap();
+        assert_eq!(
+            (assignment.first_slot, assignment.slot_count),
+            (first_slot, slot_count)
+        );
+    }
+    assert!(plan.light_slots().get(GpuLightType::Rect, entity).is_none());
+    for (index, left) in plan.atlas_passes().iter().enumerate() {
+        for right in &plan.atlas_passes()[index + 1..] {
+            assert_ne!(left.slot_key, right.slot_key);
+            assert!(!left.rect.intersects(right.rect));
+        }
+    }
+    let mut packed = pack_lighting_extract(&frame.extract.lighting, true);
+    plan.light_slots()
+        .apply_to_packed_lights(&frame.extract.lighting, &mut packed.lights);
+    assert_eq!(
+        packed
+            .lights
+            .iter()
+            .map(|light| light.shadow_slot_layer[0])
+            .collect::<Vec<_>>(),
+        vec![0, 4, 10, SHADOW_SLOT_NONE]
+    );
+    assert_eq!(
+        packed
+            .lights
+            .iter()
+            .map(|light| light.shadow_params[3])
+            .collect::<Vec<_>>(),
+        vec![4.0, 6.0, 1.0, 0.0]
+    );
 
     let _ = fs::remove_dir_all(root);
 }

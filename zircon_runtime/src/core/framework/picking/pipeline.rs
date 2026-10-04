@@ -5,6 +5,7 @@ use super::{
     PointerLocation, RayMap,
 };
 
+/// 单帧选取输入；pointer_locations 建射线，pointer_inputs 推进按键状态，后端只读取该帧的 RayMap。
 pub struct PickingPipelineInput<'a> {
     pub settings: PickingSettings,
     pub pointer_locations: &'a [PointerLocation],
@@ -36,6 +37,7 @@ impl<'a> PickingPipelineInput<'a> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+/// 同时返回解析结果与各阶段诊断，供交互分发和编辑器调试复用同一次命中投影。
 pub struct PickingPipelineOutput {
     pub ray_map: RayMap,
     pub backend_outputs: Vec<PointerHits>,
@@ -69,6 +71,7 @@ impl PickingPipelineStageReport {
     }
 }
 
+/// 一帧内依次建射线、收集后端命中、解析悬停并推进事件状态；关闭总开关会清空跨帧交互状态。
 pub fn run_picking_pipeline(
     event_state: &mut PickingEventState,
     input: PickingPipelineInput<'_>,
@@ -145,6 +148,7 @@ pub fn run_picking_pipeline(
     }
 }
 
+/// 已持有后端命中的调用方可跳过射线生成；编辑器视口适配器借此复用统一的排序和诊断语义。
 pub fn resolve_picking_outputs(
     outputs: &[PointerHits],
 ) -> (PickingHoverMap, PickingPipelineReport) {
@@ -155,6 +159,7 @@ fn resolve_picking_outputs_with_ray_map(
     ray_map: &RayMap,
     outputs: &[PointerHits],
 ) -> (PickingHoverMap, PickingPipelineReport) {
+    // BUG: [CR-PICKING-0001] 同一 PointerId 跨视口的命中在此合并；RayId 含 viewport，但 PointerHits 只保留指针，可能把另一视口的目标派发给当前指针。
     let sorted_hits = sorted_hits_by_pointer(outputs);
     let report =
         PickingPipelineReport::from_ray_map_outputs_and_sorted_hits(ray_map, outputs, &sorted_hits);
@@ -187,90 +192,5 @@ fn disabled_output(input: PickingPipelineInput<'_>) -> PickingPipelineOutput {
 }
 
 #[cfg(test)]
-mod optimization_batch_20260830ck_runtime_tests {
-    use std::hint::black_box;
-    use std::time::Instant;
-
-    const SAMPLE_PAIRS: usize = 17;
-    const BACKENDS_PER_SAMPLE: usize = 32;
-    const OUTPUTS_PER_BACKEND: usize = 128;
-
-    #[test]
-    fn picking_backend_collection_reserves_ray_output_estimate() {
-        let source = include_str!("pipeline.rs");
-        let implementation = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("picking pipeline implementation");
-
-        assert!(implementation.contains("input.backends.len().saturating_mul(ray_map.len())"));
-        assert!(implementation.contains("Vec::with_capacity(estimated_output_count)"));
-        assert!(implementation.contains("for backend in input.backends"));
-        assert!(implementation.contains("backend_outputs.extend(backend.collect_hits(&ray_map))"));
-        assert!(!implementation.contains(".flat_map(|backend| backend.collect_hits(&ray_map))"));
-    }
-
-    #[test]
-    #[ignore = "managed Windows release performance evidence"]
-    fn optimization_batch_20260830ck_runtime_picking_backend_capacity_p95() {
-        let backends = (0..BACKENDS_PER_SAMPLE)
-            .map(|backend| {
-                (0..OUTPUTS_PER_BACKEND)
-                    .map(|output| (backend * OUTPUTS_PER_BACKEND + output) as u64)
-                    .collect::<Vec<_>>()
-            })
-            .collect::<Vec<_>>();
-        let mut legacy = Vec::with_capacity(SAMPLE_PAIRS);
-        let mut optimized = Vec::with_capacity(SAMPLE_PAIRS);
-        for pair in 0..SAMPLE_PAIRS {
-            if pair % 2 == 0 {
-                legacy.push(measure(&backends, false));
-                optimized.push(measure(&backends, true));
-            } else {
-                optimized.push(measure(&backends, true));
-                legacy.push(measure(&backends, false));
-            }
-        }
-        let legacy_p95_ns = percentile(&legacy, 95);
-        let optimized_p95_ns = percentile(&optimized, 95);
-        println!("RUNTIME387_PICKING_BACKEND_CAPACITY_BENCH_V1 sample_pairs={SAMPLE_PAIRS} backends_per_sample={BACKENDS_PER_SAMPLE} outputs_per_backend={OUTPUTS_PER_BACKEND} legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} legacy_raw_ns={} optimized_raw_ns={}", csv(&legacy), csv(&optimized));
-        assert!(optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(70));
-    }
-
-    fn measure(backends: &[Vec<u64>], use_capacity: bool) -> u128 {
-        let started = Instant::now();
-        let mut checksum = 0usize;
-        for _ in 0..256 {
-            let outputs = if use_capacity {
-                let mut outputs = Vec::with_capacity(BACKENDS_PER_SAMPLE * OUTPUTS_PER_BACKEND);
-                for backend in black_box(backends) {
-                    outputs.extend(backend.iter().copied());
-                }
-                outputs
-            } else {
-                black_box(backends)
-                    .iter()
-                    .flat_map(|backend| backend.iter().copied())
-                    .collect::<Vec<_>>()
-            };
-            checksum ^= outputs.len();
-            black_box(outputs);
-        }
-        black_box(checksum);
-        started.elapsed().as_nanos().max(1)
-    }
-
-    fn percentile(samples: &[u128], p: usize) -> u128 {
-        let mut sorted = samples.to_vec();
-        sorted.sort_unstable();
-        sorted[(sorted.len() * p).div_ceil(100).saturating_sub(1)]
-    }
-
-    fn csv(samples: &[u128]) -> String {
-        samples
-            .iter()
-            .map(u128::to_string)
-            .collect::<Vec<_>>()
-            .join(",")
-    }
-}
+#[path = "tests/pipeline_optimization_batch_20260830ck_runtime_tests.rs"]
+mod optimization_batch_20260830ck_runtime_tests;

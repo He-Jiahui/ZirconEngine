@@ -1,10 +1,11 @@
+# 核对插件原生产物与资源包只做一次普通文件探测。
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_export import plugin_build_asset_pack, plugin_build_package
+from tools.export import plugin_build_asset_pack, plugin_build_package
 
 
 class Tooling03PluginBuildArtifactSingleProbePerformanceContractTests(unittest.TestCase):

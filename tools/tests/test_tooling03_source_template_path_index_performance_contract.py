@@ -1,3 +1,4 @@
+# 核对源模板路径重复检测与报告差集通过索引维持线性比较。
 from __future__ import annotations
 
 import tempfile
@@ -5,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_export import pipeline_report_source_template_generated_files as generated_files
+from tools.export import pipeline_report_source_template_generated_files as generated_files
 
 
 class CountingPath(str):

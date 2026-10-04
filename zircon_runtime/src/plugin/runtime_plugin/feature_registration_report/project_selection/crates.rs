@@ -12,6 +12,7 @@ pub(super) fn assign_feature_project_selection_crates(
     with_optional_editor_crate(selection, editor_crate)
 }
 
+// 默认 crate 取各模块类型在清单中的首个声明，并按类型分别投影。
 fn feature_module_crates(
     feature: &PluginFeatureBundleManifest,
 ) -> (Option<String>, Option<String>) {
@@ -45,5 +46,5 @@ fn with_optional_editor_crate(
 }
 
 #[cfg(test)]
-#[path = "crates/single_pass_module_crate_tests.rs"]
+#[path = "crates/tests/single_pass_module_crate_tests.rs"]
 mod single_pass_module_crate_tests;

@@ -1,3 +1,4 @@
+// 将选定的 M5 内容 JSON 目录转换为索引稳定的 Zr 查询函数。
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -28,6 +29,7 @@ const CATEGORIES = [
 
 main();
 
+// 将稳定索引转换为 Zr 访问函数前，先验证 JSON 契约模式。
 function main() {
   const document = JSON.parse(readFileSync(inputPath, 'utf8'));
   invariant(document.schema_version === 6, 'unsupported M5 content schema');
@@ -55,6 +57,7 @@ function main() {
   );
 }
 
+// 拒绝未知字段和畸形记录，防止生成的访问函数悄悄扩大契约。
 function validate(document) {
   const expectedCounts = {
     items: 82,

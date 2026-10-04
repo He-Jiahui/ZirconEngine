@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 扫描退役回执树、挂载与专用 Python 审计器引用，守住回执硬切换后的单一归属。
 class RuntimeReceiptHardCutTests(unittest.TestCase):
     def setUp(self) -> None:
         self.repo_root = Path(__file__).resolve().parents[2]

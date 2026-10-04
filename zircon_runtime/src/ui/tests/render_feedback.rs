@@ -23,6 +23,25 @@ fn feedback_tone_classification_does_not_join_or_lowercase_metadata() {
 }
 
 #[test]
+fn feedback_command_builders_reserve_their_fixed_upper_bounds() {
+    let source = include_str!("../surface/render/feedback.rs");
+
+    for required in [
+        "const ALERT_COMMAND_CAPACITY: usize = 4;",
+        "const TOOLTIP_COMMAND_CAPACITY: usize = 4;",
+        "const TOAST_COMMAND_CAPACITY: usize = 4;",
+        "let mut commands = Vec::with_capacity(ALERT_COMMAND_CAPACITY);",
+        "let mut commands = Vec::with_capacity(TOOLTIP_COMMAND_CAPACITY);",
+        "let mut commands = Vec::with_capacity(TOAST_COMMAND_CAPACITY);",
+    ] {
+        assert!(
+            source.contains(required),
+            "missing feedback capacity contract: {required}"
+        );
+    }
+}
+
+#[test]
 fn anchored_tooltip_uses_runtime_flip_and_clamp_geometry() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.feedback.tooltip.anchor"));
     surface.tree.insert_root(

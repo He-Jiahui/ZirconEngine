@@ -27,6 +27,8 @@ containsMember(members: container.Array<uint>, pid: uint): bool {
 // A zero result represents the source null result. A configured looter of zero
 // means the current leader; any configured looter absent from members falls
 // back to that leader, exactly as the source helper does.
+/// 供主拾取决策层在已知队长、成员和设置后解析唯一负责者；
+/// 返回零代表未启用，配置的人已离队时回退队长；不负责掉落分配。
 pub effectiveMasterLooter(
     enabled: bool,
     configuredLooter: uint,

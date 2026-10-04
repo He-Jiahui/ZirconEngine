@@ -1,12 +1,9 @@
-use std::sync::OnceLock;
-
 use crate::core::editor_event::{
     EditorEvent, EditorEventEffect, EditorEventRecord, EditorEventSource, EditorEventTransient,
     EditorViewportEvent, ViewInstanceId,
 };
 use crate::core::editor_message::{
-    EditorMessage, EditorMessageSchemaId, EditorTopic, EditorUiDeltaBarrierKind,
-    EditorViewInvalidationMask, EditorViewRefreshReport,
+    EditorUiDeltaBarrierKind, EditorViewInvalidationMask, EditorViewRefreshReport,
 };
 use crate::core::extension::{CapabilitySet, FieldEditorContainer, InspectorCustomizationChain};
 use crate::core::i18n::{EditorI18nService, EditorLocale};
@@ -26,15 +23,6 @@ use crate::ui::workbench::view::ViewDescriptor;
 use zircon_runtime_interface::ui::event_ui::{UiNodePath, UiReflectionNodePatch};
 
 const WORKBENCH_ROOT_VIEW_INSTANCE_ID: &str = "workbench.root";
-const VIEW_INVALIDATED_TOPIC: &str = "view.invalidated";
-
-fn debug_text_schema_id() -> &'static EditorMessageSchemaId {
-    static SCHEMA_ID: OnceLock<EditorMessageSchemaId> = OnceLock::new();
-    SCHEMA_ID.get_or_init(|| {
-        EditorMessageSchemaId::editor("debug-text")
-            .expect("the built-in debug-text schema id is valid")
-    })
-}
 
 impl EditorHostEventController {
     pub(crate) fn refresh_reflection(&self) {
@@ -114,24 +102,15 @@ impl EditorHostEventController {
         view: ViewInstanceId,
         mask: EditorViewInvalidationMask,
     ) -> EditorViewRefreshReport {
-        self.publish_view_invalidation(view, mask);
+        self.mark_view_invalidation(view, mask);
         self.drain_pending_view_refreshes()
     }
 
-    fn publish_view_invalidation(&self, view: ViewInstanceId, mask: EditorViewInvalidationMask) {
+    fn mark_view_invalidation(&self, view: ViewInstanceId, mask: EditorViewInvalidationMask) {
         if mask.is_empty() {
             return;
         }
-        let message = EditorMessage::custom(
-            debug_text_schema_id().clone(),
-            serde_json::Value::String(view.0.clone()),
-        )
-        .with_dirty(view.clone(), mask);
-        if let Ok(topic) = EditorTopic::parse(VIEW_INVALIDATED_TOPIC) {
-            self.context().bus().publish(topic, message);
-        } else {
-            self.context().bus().mark_view_dirty(view, mask);
-        }
+        self.context().bus().mark_view_dirty(view, mask);
     }
 
     pub fn drain_pending_view_refreshes(&self) -> EditorViewRefreshReport {
@@ -200,7 +179,7 @@ impl EditorHostEventController {
         if layout_changed || (reflection_changed && patch.is_none()) {
             // Events such as focus and drag also clear the previously active node. Until their
             // records carry that previous identity, preserve correctness with one deferred rebuild.
-            self.publish_view_invalidation(
+            self.mark_view_invalidation(
                 ViewInstanceId::new(WORKBENCH_ROOT_VIEW_INSTANCE_ID),
                 EditorViewInvalidationMask::PRESENTATION_DATA,
             );
@@ -308,7 +287,8 @@ fn invalidation_mask_for_effects(effects: &[EditorEventEffect]) -> EditorViewInv
             | EditorEventEffect::CommandPaletteOpenRequested
             | EditorEventEffect::SettingsWindowOpenRequested
             | EditorEventEffect::OpenScenePickerRequested
-            | EditorEventEffect::CreateScenePickerRequested => {
+            | EditorEventEffect::CreateScenePickerRequested
+            | EditorEventEffect::OpenedViewVisibilityRequested { .. } => {
                 mask.insert(EditorViewInvalidationMask::PRESENTATION_DATA);
             }
         }

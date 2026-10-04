@@ -210,8 +210,8 @@ fn text_input_keyboard_escape_cancels_composition_before_selection_collapse() {
     assert_eq!(int_attr(&surface, "caret_offset"), 3);
     assert_eq!(int_attr(&surface, "selection_anchor"), 3);
     assert_eq!(int_attr(&surface, "selection_focus"), 3);
-    assert_eq!(int_attr(&surface, "composition_start"), 3);
-    assert_eq!(int_attr(&surface, "composition_end"), 3);
+    assert_eq!(int_attr(&surface, "composition_start"), -1);
+    assert_eq!(int_attr(&surface, "composition_end"), -1);
     assert_eq!(text_attr(&surface, "composition_text"), "");
     assert_eq!(text_attr(&surface, "composition_restore_text"), "");
     assert_eq!(

@@ -11,4 +11,5 @@ pub use model::{
 };
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

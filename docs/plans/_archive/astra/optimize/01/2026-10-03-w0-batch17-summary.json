@@ -1,0 +1,30 @@
+{
+  "batch": "w0-batch17",
+  "recorded_at_utc": "2026-10-03T04:32:50.739549+00:00",
+  "finding_observations": 148,
+  "original_gate_rows": 144,
+  "qualification_gate_rows": 0,
+  "refresh_rows": 0,
+  "prior_author_qualification": "hold_private_partial",
+  "root_original_identity_corrections": "no new alias/finding minted; original atoms and declared gate rows retained",
+  "b17_four_p0_original_closing_contracts": {
+    "receipt_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0-b17-four-P0-closing-contract-qualification-r1\\review.json",
+    "sha256": "429d025a977a7035262478bc8906e1a3ee7bc4422124c0e8e3a182692d4c8ca0",
+    "gate_presence_erratum_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0-b17-four-P0-closing-contract-qualification-r1\\report-gate-presence-erratum-r1.json",
+    "gate_presence_erratum_sha256": "e263b3a85a1451234722b5d72bf5d9ac9a582730ebac11f5188651ee161b3394",
+    "all_referenced_gate_rows_exist_in_original_tables": true,
+    "qualified_original_p0_ids": [
+      "RUL-P0-001",
+      "RUL-P0-002",
+      "RUL-P0-003",
+      "RTS-P0-001"
+    ],
+    "synthetic_gate_rows_added": 0
+  },
+  "raw_source_captures": 38,
+  "current_source_hash_drifts": [],
+  "source_review_scope": "bounded atom/source observations; original statuses/forward generation kept separately",
+  "tests_run": 0,
+  "source_ready": false,
+  "acceptance": "open"
+}

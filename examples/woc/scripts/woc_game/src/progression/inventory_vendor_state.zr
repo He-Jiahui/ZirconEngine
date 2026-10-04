@@ -6,6 +6,7 @@ var catalog = %import("generated/m5_content_catalog");
 var vendorStacks = %import("progression/vendor_stack_state");
 var itemLevelRequirement = %import("progression/item_level_requirement_state");
 
+// 这是 M5 商人与背包合同夹具，持有复制的库存、装备、计时器和事件计数；生产 world/state 不导入它，调用方须在独立事务中维护权威字节状态。
 class InventoryState {
     pub var playerClass: string;
     pub var level: int;
@@ -198,6 +199,7 @@ pub canAddItem(state: InventoryState, itemId: string, count: int): bool {
     return count > 0 && countFit(state, itemId, count) >= count;
 }
 
+/// 此入口只做无损堆叠授予，不自行核验容量；购买/买回/卸装等事务必须先用 canAddItem 对同一快照预检。
 pub addItem(state: InventoryState, itemId: string, requestedCount: int): void {
     if (requestedCount <= 0 || itemIndex(itemId) < 0) { return; }
     var ids = state.inventoryIds;
@@ -381,6 +383,7 @@ setEquipment(state: InventoryState, slot: string, itemId: string): void {
 // The current M5 content projection owns these three single-item slots. The
 // source's additional ring/offhand/two-hand routing remains intentionally
 // outside this bounded catalog until its item definitions are projected.
+/// 换装先核验持有、职业和等级，再从背包取新件并退回旧件；本夹具仅承载头、脚、主手三槽，完整副手与实例语义在其他所有者。
 pub equipItem(state: InventoryState, itemId: string): bool {
     state.lastError = 0;
     var index = itemIndex(itemId);
@@ -585,6 +588,7 @@ pub useItem(state: InventoryState, itemId: string): bool {
     return false;
 }
 
+/// 商人购买把目录数量同时用于总价与容量预检，只有全部条件通过后才扣铜并入包；失败时两侧交易状态保持不变。
 pub buyItem(state: InventoryState, npcId: string, itemId: string): bool {
     state.lastError = 0;
     var npcIndex = catalog.indexOf("npc", npcId);
@@ -730,6 +734,7 @@ pub sellAllJunk(state: InventoryState): int {
     return total;
 }
 
+/// 回购按最近记录逐件处理，同一物品的多次出售合并数量；须再检查商人距离、支付能力和当前背包容量。
 pub buyBackItem(state: InventoryState, itemId: string): bool {
     state.lastError = 0;
     var item = itemIndex(itemId);

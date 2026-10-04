@@ -1,3 +1,6 @@
+// 图集采样值的语义解码库，由管线源码拼接使用。
+// 覆盖率与颜色字形采用不同 alpha 约定，子像素输出先与已知背景合成；SDF 的 0.5 等值线表示轮廓。
+
 struct GlyphAtlasTextColors {
     foreground: vec4<f32>,
     background: vec4<f32>,
@@ -8,6 +11,7 @@ fn glyph_atlas_decode_alpha_coverage(sample: vec4<f32>, colors: GlyphAtlasTextCo
     return vec4<f32>(colors.foreground.rgb, colors.foreground.a * coverage);
 }
 
+// 需要 CPU 提供与文字下面一致的不透明背景；输出已完成逐通道覆盖率合成，不能再次把它当单通道遮罩。
 fn glyph_atlas_decode_subpixel_rgb_coverage(sample: vec4<f32>, colors: GlyphAtlasTextColors) -> vec4<f32> {
     let coverage = clamp(sample.rgb, vec3<f32>(0.0), vec3<f32>(1.0));
     let foreground_alpha = clamp(colors.foreground.a, 0.0, 1.0);

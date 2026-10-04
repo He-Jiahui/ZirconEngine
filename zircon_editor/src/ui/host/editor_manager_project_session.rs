@@ -1,12 +1,12 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};
 
 use crate::core::hub_link::publish_focus_signal;
 use crate::core::project::{
-    ProjectAuthority, ProjectPreflightCompositionPlan, ProjectPreflightReceipt,
-    ProjectPreflightRevalidation,
+    ProjectAuthority, ProjectLaunchPreflightTarget, ProjectPreflightCompositionPlan,
+    ProjectPreflightReceipt, ProjectPreflightRevalidation,
 };
 use crate::core::recovery::{
     ProjectRecoveryAssessment, ProjectSessionAdmissionRecordV1, ProjectSessionEffect,
@@ -18,6 +18,7 @@ use crate::ui::workbench::startup::EditorStartupSessionDocument;
 use zircon_runtime_interface::hub_protocol::HubSessionToken;
 use zircon_runtime_interface::project::{
     session_lock::ProjectSessionAdmissionLifecycleV1, ProjectActivationOperationId,
+    ProjectCreationProvenance, ProjectEngineVersion,
 };
 
 use super::editor_error::EditorError;
@@ -94,16 +95,69 @@ impl EditorManager {
 
     pub(super) fn create_project_and_open_with_session(
         &self,
-        draft: crate::core::project::NewProjectDraft,
+        target: ProjectLaunchPreflightTarget,
         admission: &SessionAdmissionRequest,
     ) -> Result<EditorStartupSessionDocument, EditorError> {
+        let ProjectLaunchPreflightTarget::Create {
+            target_root,
+            rendered,
+            composition,
+        } = target
+        else {
+            return Err(EditorError::Project(
+                "project creation requires a create launch preflight".to_string(),
+            ));
+        };
         let _transition = self.begin_project_session_transition()?;
         let authority = ProjectAuthority::default();
-        let project = authority.create_project(&draft)?;
-        let preflight = authority.preflight_project(&project.root)?;
-        self.activate_prepared_project(project.into_project(), preflight, admission, |document| {
-            self.host.remember_prepared_project(document)
-        })
+        let creator_engine_version = ProjectEngineVersion::parse(env!("CARGO_PKG_VERSION"))
+            .map_err(|error| EditorError::Project(error.to_string()))?;
+        let provenance = ProjectCreationProvenance::new(
+            admission.operation_id(),
+            creator_engine_version,
+            admission.build_set_id().clone(),
+        );
+        let project = authority.create_preflighted_project_for_activation(
+            &target_root,
+            &rendered,
+            &provenance,
+        )?;
+        // Authority returns only after the created artifact is finalized. A different editor
+        // can claim it before our activation starts, so activation failure must retain it.
+        if project.preflight().composition() != &composition {
+            return Err(EditorError::Project(format!(
+                "project was created at `{}`, but its composition changed before activation; the project artifact remains available for a later open",
+                ProjectPaths::display_path(&project.root).display()
+            )));
+        }
+        let created_root = project.root.clone();
+        let activation = self.activate_project_from_preflight_with_disposition(
+            project.into_preflight(),
+            admission,
+            ProjectSessionAdmissionMode::NewSessionOnly,
+            |document| self.host.remember_prepared_project(document),
+        );
+        match activation {
+            Ok((completion, recovery)) => {
+                debug_assert!(recovery.is_none());
+                Ok(self.finalize_project_activation(completion))
+            }
+            Err(activation_failure) => {
+                let activation_error = match activation_failure.into_error() {
+                    EditorError::HubFocusForwarded { process_id } => {
+                        return Err(EditorError::HubFocusForwardedAfterCreate {
+                            process_id,
+                            project_root: created_root,
+                        });
+                    }
+                    error => error,
+                };
+                Err(EditorError::Project(format!(
+                    "project was created at `{}`, but activation failed: {activation_error}; the project artifact remains available for a later open",
+                    ProjectPaths::display_path(&created_root).display()
+                )))
+            }
+        }
     }
 
     /// Retains a partially torn-down session under an explicit recovery lifecycle.
@@ -222,37 +276,8 @@ impl EditorManager {
             .take()
     }
 
-    fn activate_prepared_project<T>(
-        &self,
-        project: ProjectManager,
-        preflight: ProjectPreflightReceipt,
-        admission: &SessionAdmissionRequest,
-        finish: impl FnOnce(EditorProjectDocument) -> Result<T, EditorError>,
-    ) -> Result<T, EditorError> {
-        let project_root = project.paths().root().to_path_buf();
-        let completion = self
-            .admit_project_session(
-                &project_root,
-                admission,
-                ProjectSessionAdmissionMode::NewSessionOnly,
-                |ledger| {
-                    self.activate_prepared_project_after_admission(
-                        project,
-                        preflight.composition(),
-                        admission.operation_id(),
-                        ledger,
-                        finish,
-                    )
-                },
-            )
-            .map_err(ProjectActivationFailure::into_error)?;
-        let (completion, recovery) = completion;
-        debug_assert!(recovery.is_none());
-        Ok(self.finalize_project_activation(completion))
-    }
-
-    /// The only existing-project materialization path. Canonical path resolution and preflight
-    /// are data-only; `ProjectManager` cannot be constructed until the writer lease is held.
+    /// The only project materialization path. Creation can publish a directory before admission;
+    /// `ProjectManager` cannot be constructed until the writer lease is held.
     fn activate_project_from_preflight<T>(
         &self,
         preflight: ProjectPreflightReceipt,
@@ -260,6 +285,30 @@ impl EditorManager {
         admission_mode: ProjectSessionAdmissionMode,
         finish: impl FnOnce(EditorProjectDocument) -> Result<T, EditorError>,
     ) -> Result<(T, Option<ProjectRecoveryAssessment>), EditorError> {
+        let (completion, recovery) = self
+            .activate_project_from_preflight_with_disposition(
+                preflight,
+                admission,
+                admission_mode,
+                finish,
+            )
+            .map_err(ProjectActivationFailure::into_error)?;
+        Ok((self.finalize_project_activation(completion), recovery))
+    }
+
+    fn activate_project_from_preflight_with_disposition<T>(
+        &self,
+        preflight: ProjectPreflightReceipt,
+        admission: &SessionAdmissionRequest,
+        admission_mode: ProjectSessionAdmissionMode,
+        finish: impl FnOnce(EditorProjectDocument) -> Result<T, EditorError>,
+    ) -> Result<
+        (
+            ProjectActivationCompletion<T>,
+            Option<ProjectRecoveryAssessment>,
+        ),
+        ProjectActivationFailure,
+    > {
         let authority = ProjectAuthority::default();
         let completion = self
             .admit_project_session(preflight.root(), admission, admission_mode, |ledger| {
@@ -282,10 +331,8 @@ impl EditorManager {
                     ledger,
                     finish,
                 )
-            })
-            .map_err(ProjectActivationFailure::into_error)?;
-        let (completion, recovery) = completion;
-        Ok((self.finalize_project_activation(completion), recovery))
+            })?;
+        Ok(completion)
     }
 
     fn activate_prepared_project_after_admission<T>(
@@ -486,37 +533,6 @@ impl EditorManager {
 
         match activation {
             Ok((value, mut ledger)) => {
-                if let Err(error) = guard.commit_ready() {
-                    let ledger_recovery_error = ledger.require_recovery_for_active_effects().err();
-                    let recovery_error = guard.mark_recovery_required().err();
-                    let mut guard_slot = self
-                        .project_session_guard
-                        .lock()
-                        .unwrap_or_else(|poisoned| poisoned.into_inner());
-                    if guard_slot.is_none() {
-                        *guard_slot = Some(guard);
-                    }
-                    let recovery_detail = recovery_error
-                        .map(|recovery_error| {
-                            format!(
-                                "; additionally failed to record recovery state: {recovery_error}"
-                            )
-                        })
-                        .unwrap_or_default();
-                    let ledger_recovery_detail = ledger_recovery_error
-                        .map(|ledger_recovery_error| {
-                            format!(
-                                "; additionally failed to record session-effect recovery state: {ledger_recovery_error}"
-                            )
-                        })
-                        .unwrap_or_default();
-                    return Err(ProjectActivationFailure::quarantined(EditorError::Project(
-                        format!(
-                            "project activation for `{}` completed but its Ready generation could not be committed: {error}{recovery_detail}{ledger_recovery_detail}; the exclusive project session guard remains held for recovery",
-                            ProjectPaths::display_path(project_root).display(),
-                        ),
-                    )));
-                }
                 if let Err(error) = ledger
                     .commit(ProjectSessionEffect::Session)
                     .and_then(|()| ledger.begin_ready())
@@ -546,7 +562,38 @@ impl EditorManager {
                         .unwrap_or_default();
                     return Err(ProjectActivationFailure::quarantined(EditorError::Project(
                         format!(
-                            "project activation for `{}` reached Ready but its session effect ledger could not be committed: {error}{recovery_detail}{ledger_recovery_detail}; the exclusive project session guard remains held for recovery",
+                            "project activation for `{}` completed but its session effect ledger could not be committed before Ready: {error}{recovery_detail}{ledger_recovery_detail}; the exclusive project session guard remains held for recovery",
+                            ProjectPaths::display_path(project_root).display(),
+                        ),
+                    )));
+                }
+                if let Err(error) = guard.commit_ready() {
+                    let ledger_recovery_error = ledger.require_recovery_for_active_effects().err();
+                    let recovery_error = guard.mark_recovery_required().err();
+                    let mut guard_slot = self
+                        .project_session_guard
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner());
+                    if guard_slot.is_none() {
+                        *guard_slot = Some(guard);
+                    }
+                    let recovery_detail = recovery_error
+                        .map(|recovery_error| {
+                            format!(
+                                "; additionally failed to record recovery state: {recovery_error}"
+                            )
+                        })
+                        .unwrap_or_default();
+                    let ledger_recovery_detail = ledger_recovery_error
+                        .map(|ledger_recovery_error| {
+                            format!(
+                                "; additionally failed to record session-effect recovery state: {ledger_recovery_error}"
+                            )
+                        })
+                        .unwrap_or_default();
+                    return Err(ProjectActivationFailure::quarantined(EditorError::Project(
+                        format!(
+                            "project activation for `{}` committed its session effect ledger but its Ready generation could not be committed: {error}{recovery_detail}{ledger_recovery_detail}; the exclusive project session guard remains held for recovery",
                             ProjectPaths::display_path(project_root).display(),
                         ),
                     )));
@@ -561,26 +608,38 @@ impl EditorManager {
                     .unwrap_or_else(|poisoned| poisoned.into_inner());
                 if guard_slot.is_some() {
                     drop(guard_slot);
-                    let concurrent_session =
-                        ProjectActivationFailure::releasable(EditorError::Project(format!(
-                            "project session for `{}` changed while activation was in progress",
+                    let ledger_recovery_detail = ledger
+                        .require_recovery_for_active_effects()
+                        .err()
+                        .map(|error| {
+                            format!(
+                                "; additionally failed to record session-effect recovery state: {error}"
+                            )
+                        })
+                        .unwrap_or_default();
+                    let ownership_recovery_detail = guard
+                        .release_ownership_for_recovery()
+                        .err()
+                        .map(|error| {
+                            format!(
+                                "; additionally failed to preserve the residual session owner: {error}"
+                            )
+                        })
+                        .unwrap_or_default();
+                    return Err(ProjectActivationFailure::quarantined(EditorError::Project(
+                        format!(
+                            "project session for `{}` changed after activation effects reached Ready; those effects and the published project remain quarantined for recovery instead of being rolled back{ledger_recovery_detail}{ownership_recovery_detail}",
                             ProjectPaths::display_path(project_root).display()
-                        )));
-                    return match guard.release() {
-                        Ok(_) => Err(concurrent_session),
-                        Err(release_error) => Err(ProjectActivationFailure::quarantined(
-                            EditorError::Project(format!(
-                                "{}; additionally failed to release the uncommitted session guard: {release_error}",
-                                concurrent_session.into_error()
-                            )),
-                        )),
-                    };
+                        ),
+                    )));
                 }
                 *guard_slot = Some(guard);
                 heartbeat.activate(Instant::now());
                 Ok((value, recovery_assessment))
             }
-            Err(activation_failure) if activation_failure.retains_session_guard() => {
+            Err(activation_failure)
+                if activation_failure.preserves_published_project_for_recovery() =>
+            {
                 let recovery_error = guard.mark_recovery_required().err();
                 let mut guard_slot = self
                     .project_session_guard
@@ -589,18 +648,27 @@ impl EditorManager {
                 if guard_slot.is_some() {
                     drop(guard_slot);
                     let activation_error = activation_failure.into_error();
-                    return match guard.release() {
-                        Ok(_) => Err(ProjectActivationFailure::releasable(EditorError::Project(
+                    let ownership_recovery_detail = guard
+                        .release_ownership_for_recovery()
+                        .err()
+                        .map(|error| {
                             format!(
-                                "project activation failed while another session guard was installed: {activation_error}"
-                            ),
-                        ))),
-                        Err(release_error) => Err(ProjectActivationFailure::quarantined(
-                            EditorError::Project(format!(
-                                "project activation failed while another session guard was installed: {activation_error}; additionally failed to release the uncommitted session guard: {release_error}"
-                            )),
-                        )),
-                    };
+                                "; additionally failed to preserve the residual session owner: {error}"
+                            )
+                        })
+                        .unwrap_or_default();
+                    let recovery_detail = recovery_error
+                        .map(|error| {
+                            format!(
+                                "; additionally failed to record the RecoveryRequired session state: {error}"
+                            )
+                        })
+                        .unwrap_or_default();
+                    return Err(ProjectActivationFailure::quarantined(EditorError::Project(
+                        format!(
+                            "project activation failed while another session guard was installed: {activation_error}; the published project remains quarantined for recovery{recovery_detail}{ownership_recovery_detail}"
+                        ),
+                    )));
                 }
                 *guard_slot = Some(guard);
                 match recovery_error {
@@ -736,5 +804,5 @@ fn session_effect_states(effects: &[ProjectSessionEffectRecoveryEntry]) -> Strin
 }
 
 #[cfg(test)]
-#[path = "editor_manager_project_session/tests.rs"]
+#[path = "editor_manager_project_session/tests/cases.rs"]
 mod tests;

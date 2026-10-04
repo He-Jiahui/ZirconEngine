@@ -3,6 +3,7 @@
 // WOS must supply its natural resource type, live bar type and parked mana
 // before using this value in an authoritative character snapshot.
 
+/// 保存调用方须同时提供职业本源资源和当前形态资源；变形时返回停放的法力池，不能把它当作当前资源条展示值。
 pub persistedResource(
     classResourceType: string,
     liveResourceType: string,

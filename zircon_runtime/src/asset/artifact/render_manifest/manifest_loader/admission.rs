@@ -9,7 +9,7 @@ use super::loader::{
     RenderArtifactManifestLoaderInner, RenderArtifactManifestTicket,
     RenderArtifactManifestTicketBatch,
 };
-use super::state::{RenderArtifactManifestEntry, register_ticket};
+use super::state::{register_ticket, RenderArtifactManifestEntry};
 use super::worker::atomic_add;
 
 struct PreparedGroup {
@@ -18,6 +18,7 @@ struct PreparedGroup {
 }
 
 impl RenderArtifactManifestLoaderInner {
+    // 按资源、revision 和平台合并请求；每个新 entry 预留最大编码清单大小与 metadata 定额，提交前检查预留字节总额。
     pub(super) fn request_batch(
         self: &Arc<Self>,
         requests: &[RenderArtifactManifestRequest],

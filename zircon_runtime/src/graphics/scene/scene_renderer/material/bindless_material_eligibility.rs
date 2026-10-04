@@ -26,6 +26,7 @@ impl BindlessMaterialEligibility {
 /// The current 224-byte payload mirrors only the Standard PBR uniform layout. A custom material
 /// surface, per-entity property override, or render-target texture therefore keeps the existing
 /// group-2 binding contract until it has an exact equivalent bindless representation.
+/// 上述 224 字节说明与当前定义不同；payload 行布局以 `GPU_BINDLESS_MATERIAL_PAYLOAD_STRIDE` 为准（当前为 288 字节）。
 pub(crate) const fn bindless_material_eligibility(
     uses_standard_surface: bool,
     has_property_uniform_override: bool,
@@ -50,39 +51,5 @@ pub(crate) const fn bindless_material_eligibility(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        BindlessMaterialEligibility, BindlessMaterialFallbackReason, bindless_material_eligibility,
-    };
-
-    #[test]
-    fn render_bindless_material_eligibility_accepts_only_the_representable_standard_case() {
-        assert_eq!(
-            bindless_material_eligibility(true, false, false),
-            BindlessMaterialEligibility::Eligible
-        );
-        assert!(bindless_material_eligibility(true, false, false).uses_bindless());
-    }
-
-    #[test]
-    fn render_bindless_material_eligibility_fails_closed_for_each_unrepresented_input() {
-        assert_eq!(
-            bindless_material_eligibility(false, false, false),
-            BindlessMaterialEligibility::PerMaterialFallback(
-                BindlessMaterialFallbackReason::NonStandardSurface
-            )
-        );
-        assert_eq!(
-            bindless_material_eligibility(true, true, false),
-            BindlessMaterialEligibility::PerMaterialFallback(
-                BindlessMaterialFallbackReason::PropertyUniformOverride
-            )
-        );
-        assert_eq!(
-            bindless_material_eligibility(true, false, true),
-            BindlessMaterialEligibility::PerMaterialFallback(
-                BindlessMaterialFallbackReason::OutputTargetTexture
-            )
-        );
-    }
-}
+#[path = "tests/bindless_material_eligibility.rs"]
+mod tests;

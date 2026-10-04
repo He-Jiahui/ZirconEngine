@@ -21,7 +21,18 @@ pub(super) enum NativePluginBehaviorDiagnosticError {
 impl std::fmt::Display for NativePluginBehaviorDiagnosticError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::FailedStatus { diagnostics, .. } => formatter.write_str(&diagnostics.join("; ")),
+            Self::FailedStatus { diagnostics, .. } => {
+                let mut diagnostics = diagnostics.iter();
+                let Some(first) = diagnostics.next() else {
+                    return Ok(());
+                };
+                formatter.write_str(first)?;
+                for diagnostic in diagnostics {
+                    formatter.write_str("; ")?;
+                    formatter.write_str(diagnostic)?;
+                }
+                Ok(())
+            }
         }
     }
 }
@@ -120,5 +131,9 @@ pub(super) fn sorted_unique_diagnostics(mut diagnostics: Vec<String>) -> Vec<Str
 }
 
 #[cfg(test)]
-#[path = "diagnostics/optimization_tests.rs"]
+#[path = "diagnostics/tests/optimization_tests.rs"]
 mod optimization_tests;
+
+#[cfg(test)]
+#[path = "diagnostics/tests/display_direct_write_tests.rs"]
+mod display_direct_write_tests;

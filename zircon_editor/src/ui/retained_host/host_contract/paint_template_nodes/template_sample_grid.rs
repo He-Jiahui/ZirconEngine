@@ -31,11 +31,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sa
         return true;
     }
 
-    let geometry = SampleGridGeometry::from_frame(rect);
+    let metrics = sample_grid_metrics();
+    let geometry = SampleGridGeometry::from_frame(rect, metrics.point_edge_inset);
     if geometry.plot.width <= 0.0 || geometry.plot.height <= 0.0 {
         return true;
     }
-    let metrics = sample_grid_metrics();
     let palette = sample_grid_palette();
     push_sample_grid_surface(
         commands, node, &geometry, clip, order, opacity, metrics, palette,
@@ -48,5 +48,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sa
 }
 
 #[cfg(test)]
-#[path = "template_sample_grid_tests/mod.rs"]
+#[path = "template_sample_grid_tests/tests/mod.rs"]
 mod tests;

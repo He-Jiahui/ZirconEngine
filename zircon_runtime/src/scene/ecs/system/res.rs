@@ -1,10 +1,10 @@
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
-use crate::scene::World;
 use crate::scene::ecs::{
     ChangeTickWindow, ComponentTicks, Resource, SystemParam, SystemParamAccess, SystemParamError,
 };
+use crate::scene::World;
 
 pub struct ResParam<T>(PhantomData<fn() -> T>);
 
@@ -72,6 +72,7 @@ impl<'world, T> ResMut<'world, T> {
     }
 
     pub fn set_changed(&mut self) {
+        // 写入访问以当前系统 tick 标记资源；后续 change-detection 读取同一窗口。
         self.changed_tick.set_changed(self.this_run);
         self.ticks = *self.changed_tick;
     }

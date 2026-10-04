@@ -68,17 +68,28 @@ fn task_pools_report_formats_pool_thread_diagnostics() {
 }
 
 #[test]
-fn core_runtime_owns_one_worker_set_and_keeps_job_scheduler_as_a_facade() {
+fn core_runtime_owns_three_domains_and_scheduler_uses_compute_workers() {
     let runtime =
         CoreRuntime::try_with_task_graph_options(EngineTaskGraphOptions::with_worker_threads(3))
             .expect("runtime task graph should initialize");
     let worker_pool = runtime.task_graph().worker_pool();
     let inventory = runtime.task_graph_worker_inventory();
 
-    assert_eq!(inventory.worker_set_count, 1);
-    assert_eq!(inventory.worker_count, 3);
+    assert_eq!(inventory.worker_set_count(), 3);
+    assert_eq!(inventory.worker_count(), 3);
+    for kind in [
+        TaskPoolKind::Compute,
+        TaskPoolKind::AsyncCompute,
+        TaskPoolKind::Io,
+    ] {
+        assert_eq!(inventory.domain(kind).unwrap().worker_count, 1);
+    }
+    assert_eq!(worker_pool.parallelism(), 1);
     assert_eq!(worker_pool.parallelism(), runtime.scheduler().parallelism());
-    assert!(runtime.scheduler().shares_execution_owner_with(worker_pool));
+    assert_eq!(
+        runtime.scheduler().install(|| std::thread::current().id()),
+        worker_pool.install(|| std::thread::current().id())
+    );
     assert_eq!(runtime.scheduler().install(|| 7), 7);
     assert_eq!(worker_pool.join(|| 2, || 5), (2, 5));
 }

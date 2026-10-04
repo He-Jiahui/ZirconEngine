@@ -1,3 +1,4 @@
+//! 挂载需要操作者选择的决策、发布票据和不可变回执契约；生产者的后续变更通过消费回执完成。
 mod center;
 mod error;
 mod id;
@@ -5,6 +6,7 @@ mod model;
 mod receipt;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 #[cfg(test)]

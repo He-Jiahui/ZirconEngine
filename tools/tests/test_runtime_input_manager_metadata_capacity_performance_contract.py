@@ -22,7 +22,7 @@ def rust_block(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated Rust block: {signature}")
 
-
+# 读取输入管理器分发元数据，确认顶层结果只遍历一次且已知重绘后停止效果扫描。
 class RuntimeInputManagerMetadataCapacityPerformanceContractTests(unittest.TestCase):
     def test_dispatch_metadata_uses_one_top_level_result_pass(self) -> None:
         source = OUTCOME.read_text(encoding="utf-8")

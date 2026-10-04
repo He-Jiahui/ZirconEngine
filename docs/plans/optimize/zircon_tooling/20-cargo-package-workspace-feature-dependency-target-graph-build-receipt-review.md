@@ -25,12 +25,10 @@ related_code:
   - examples/woc/native/Cargo.toml
   - examples/woc/native/Cargo.lock
   - examples/woc/native/apps/woc_client/Cargo.toml
-  - tools/session_tray/Cargo.toml
-  - tools/session_tray/Cargo.lock
   - .github/workflows/ci.yml
   - .github/workflows/profile-feature-contract.yml
   - .github/workflows/mvp-editor-windows.yml
-  - tools/runtime-profile-feature-presets.py
+  - tools/validation/runtime-profile-feature-presets.py
 tests:
   - tools/tests/test_frameworks_03_profile_feature_presets.py
   - tools/tests/test_frameworks_03_server_feature_boundary.py

@@ -67,5 +67,5 @@ fn parse_root_class_policy(value: &str) -> Option<UiRootClassPolicy> {
 }
 
 #[cfg(test)]
-#[path = "root_class_policy_state/borrowed_parse_tests.rs"]
+#[path = "root_class_policy_state/tests/borrowed_parse_tests.rs"]
 mod borrowed_parse_tests;

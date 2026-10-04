@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对着色器预热的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 const STATUS: &str = "render_plan08_prewarm_wgpu_render_pipeline_validation_gate_focused_tests_passed_product_deferred";
@@ -11,7 +12,8 @@ fn runtime_15_shader_prewarm_wgpu_render_pipeline_validation_is_wired() {
         read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mod.rs");
     let prewarm_route = read_runtime_src("graphics/shader/variant_cache/prewarm.rs");
     let prewarm_worker = read_runtime_src("graphics/shader/variant_cache/prewarm/worker.rs");
-    let prewarm_runtime_tests = read_runtime_src("graphics/shader/variant_cache/prewarm/tests.rs");
+    let prewarm_runtime_tests =
+        read_runtime_src("graphics/shader/variant_cache/prewarm/tests/cases.rs");
     let dynamic_api = read_runtime_src("dynamic_api/shader_prewarm.rs");
     let wgpu_validation = read_runtime_src("dynamic_api/shader_prewarm/wgpu_validation.rs");
     let dynamic_api_mod = read_runtime_src("dynamic_api/mod.rs");
@@ -20,8 +22,8 @@ fn runtime_15_shader_prewarm_wgpu_render_pipeline_validation_is_wired() {
     let args = read_runtime_src("bin/zircon_shader_prewarm/args.rs");
     let run = read_runtime_src("bin/zircon_shader_prewarm/run.rs");
     let build_tool = read_zircon_build_sources();
-    let build_prewarm = read_repo("tools/zircon_build_shader_prewarm.py");
-    let report_contract = read_repo("tools/zircon_build_shader_prewarm_report_contract.py");
+    let build_prewarm = read_repo("tools/build/zircon_build_shader_prewarm.py");
+    let report_contract = read_repo("tools/build/zircon_build_shader_prewarm_report_contract.py");
     let command_contract_tests =
         read_repo("tools/tests/test_zircon_build_shader_prewarm_command_contract.py");
     let prewarm_tests = read_repo("tools/tests/test_zircon_build_shader_prewarm.py");
@@ -55,6 +57,14 @@ fn runtime_15_shader_prewarm_wgpu_render_pipeline_validation_is_wired() {
             "create_shadow_mesh_pipeline",
             "create_velocity_mesh_pipeline",
             "create_taa_reactive_mask_mesh_pipeline",
+        ],
+    );
+    assert_contains_all(
+        "mesh prewarm validation creates real render pipelines for every material mesh pass",
+        &read_runtime_src(
+        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/tests/prewarm_pipeline_validation.rs",
+    ),
+        &[
             "mesh_prewarm_pipeline_validation_creates_all_builtin_pass_pipelines",
             "mesh_prewarm_pipeline_validation_rejects_raw_surface_only_wgsl",
         ],
@@ -123,6 +133,12 @@ fn runtime_15_shader_prewarm_wgpu_render_pipeline_validation_is_wired() {
             "OIT_MESH_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE",
             "required_storage_buffers_per_shader_stage",
             ".max(OIT_MESH_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE)",
+        ],
+    );
+    assert_contains_all(
+        "offscreen WGPU device limits cover mesh forward pipeline layout requirements",
+        &read_runtime_src("graphics/backend/render_backend/tests/request_device.rs"),
+        &[
             "offscreen_device_limits_cover_renderer_layout_requirements",
             "offscreen_device_limits_cover_oit_fragment_store_bindings",
             "offscreen_device_limits_keep_hzb_occlusion_optional_when_only_mesh_capacity_exists",
@@ -139,8 +155,12 @@ fn runtime_15_shader_prewarm_wgpu_render_pipeline_validation_is_wired() {
         &[
             "pub validate_wgpu_pipelines: bool",
             "\"--validate-wgpu-pipelines\"",
-            "shader_prewarm_args_parse_wgpu_pipeline_validation_flag",
         ],
+    );
+    assert_contains_all(
+        "shader prewarm CLI parses and prioritizes strict pipeline validation",
+        &read_runtime_src("bin/zircon_shader_prewarm/tests/args.rs"),
+        &["shader_prewarm_args_parse_wgpu_pipeline_validation_flag"],
     );
     assert_contains_all(
         "shader prewarm runner dispatches strict pipeline validation before module-only validation",
@@ -229,7 +249,7 @@ fn runtime_15_shader_prewarm_wgpu_render_pipeline_validation_is_wired() {
             prewarm_worker.as_str(),
         ),
         (
-            "zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests.rs",
+            "zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests/cases.rs",
             prewarm_runtime_tests.as_str(),
         ),
         (
@@ -241,7 +261,7 @@ fn runtime_15_shader_prewarm_wgpu_render_pipeline_validation_is_wired() {
             wgpu_validation.as_str(),
         ),
         (
-            "tools/zircon_build_shader_prewarm_report_contract.py",
+            "tools/build/zircon_build_shader_prewarm_report_contract.py",
             report_contract.as_str(),
         ),
         (

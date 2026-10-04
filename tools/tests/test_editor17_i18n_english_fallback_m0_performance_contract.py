@@ -1,3 +1,4 @@
+# 核对国际化英文回退借用静态语言标记，避免重复分配的源码路径。
 from pathlib import Path
 import unittest
 

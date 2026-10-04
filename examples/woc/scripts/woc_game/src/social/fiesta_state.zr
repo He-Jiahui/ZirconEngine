@@ -6,6 +6,8 @@
 // and never touch the shared combat/world stream.
 var container = %import("zr.container");
 
+// 四人历史场景夹具的平行数组必须共同增删；随机选项与事件序列
+// 是测试输入/输出，不能直接代替当前世界的实体和技能对象。
 class FiestaState {
     pub var tick: int;
     pub var matchTicks: int;
@@ -181,6 +183,8 @@ pub queuePrivateRandom(state: FiestaState, value: float): void {
     values.add(value < 0.0 ? 0.0 : value >= 1.0 ? 0.999999 : value);
 }
 
+// 波次选项和能量道具只消耗 Fiesta 私有序列；世界共享随机流
+// 必须由外层事务保留，场景测试据此检查两者没有串流。
 nextPrivateRandom(state: FiestaState): float {
     var value = <float>(((state.privateRandomIndex * 37 + 17) % 100)) / 100.0;
     if (state.privateRandomIndex < state.privateRandom.length) {
@@ -310,6 +314,8 @@ scoreTakedown(state: FiestaState, killer: int, victim: int): void {
     }
 }
 
+// 跨队伤害路径先处理吸血，再处理目标伤害；致命一击经 down
+// 清理施法和死亡附带状态，事件顺序由场景契约固定。
 pub dealCrossTeamDamage(
     state: FiestaState,
     source: int,

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::core::framework::project::ProjectPluginManifest;
 
+use super::feature_support::plugin_ids_match;
 use super::RuntimePluginFeatureRegistrationReport;
 
 pub(super) type ProjectFeatureProviderLookup<'a> = HashMap<&'a str, &'a str>;
@@ -31,11 +32,15 @@ pub(super) fn feature_registration_matches_project_selection(
     selected_providers: &ProjectFeatureProviderLookup<'_>,
     feature_id: &str,
 ) -> bool {
-    selected_providers
-        .get(feature_id)
-        .is_some_and(|provider| registration.provider_package_id_or_owner() == *provider)
+    selected_providers.get(feature_id).is_some_and(|provider| {
+        plugin_ids_match(registration.provider_package_id_or_owner(), provider)
+    })
 }
 
 #[cfg(test)]
-#[path = "feature_registration_match/capacity_tests.rs"]
+#[path = "feature_registration_match/tests/capacity_tests.rs"]
 mod capacity_tests;
+
+#[cfg(test)]
+#[path = "tests/feature_registration_match.rs"]
+mod tests;

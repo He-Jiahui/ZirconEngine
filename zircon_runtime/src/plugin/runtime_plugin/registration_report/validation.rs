@@ -3,6 +3,7 @@ mod interfaces;
 mod system_anchors;
 
 #[cfg(test)]
+#[path = "validation/tests/cases.rs"]
 mod tests;
 
 use crate::plugin::PluginPackageManifest;
@@ -39,6 +40,7 @@ use super::super::{
     },
 };
 
+// 一次构建包投影后供各类校验共享，诊断保持清单检查的既定顺序。
 pub(in crate::plugin::runtime_plugin::registration_report) fn validate_runtime_plugin_package_manifest<
     'a,
 >(

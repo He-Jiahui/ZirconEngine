@@ -7,14 +7,17 @@ use super::super::super::super::redraw::NativePointerDispatchResult;
 use super::super::super::super::window::UiHostWindow;
 use super::super::super::redraw_result::resize_pointer_redraw;
 use super::super::super::HOST_POINTER_UP;
+use zircon_runtime_interface::ui::dispatch::UiPointerId;
 
 pub(in crate::ui::retained_host::host_contract) fn finish_native_resize(
     ui: &UiHostWindow,
+    pointer_id: UiPointerId,
     x: f32,
     y: f32,
 ) -> Option<NativePointerDispatchResult> {
     let host = ui.global::<UiHostContext>();
-    if !host.get_resize_state().resize_active {
+    let resize_state = host.get_resize_state();
+    if !resize_state.resize_active || resize_state.capture_pointer_id != Some(pointer_id) {
         return None;
     }
     let _ui_perf_scenario = enter_ui_perf_scenario(UiPerfScenario::DrawerResize);

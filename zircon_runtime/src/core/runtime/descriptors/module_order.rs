@@ -18,6 +18,7 @@ pub(crate) struct FrozenModuleGraph {
     module_services: HashMap<String, FrozenModuleServices>,
 }
 
+/// 冻结模块的服务计划：启动仅选 Immediate 项，关闭则反转完整依赖顺序。
 #[derive(Clone, Debug)]
 pub(crate) struct FrozenModuleServices {
     service_names: Arc<[RegistryName]>,
@@ -57,7 +58,7 @@ impl FrozenModuleGraph {
         let Some((registered_name, _)) = self.module_dependencies.get_key_value(module_name) else {
             return Err(CoreError::MissingModule(module_name.to_owned()));
         };
-        let mut closure: HashSet<&str> = HashSet::new();
+        let mut closure: HashSet<&str> = HashSet::with_capacity(self.module_dependencies.len());
         let mut pending = vec![registered_name.as_str()];
         while let Some(current) = pending.pop() {
             if !closure.insert(current) {
@@ -82,7 +83,7 @@ impl FrozenModuleGraph {
         let Some((_, direct_dependents)) = self.module_dependents.get_key_value(module_name) else {
             return Err(CoreError::MissingModule(module_name.to_owned()));
         };
-        let mut closure: HashSet<&str> = HashSet::new();
+        let mut closure: HashSet<&str> = HashSet::with_capacity(self.module_dependents.len());
         let mut pending = direct_dependents
             .iter()
             .map(String::as_str)
@@ -352,6 +353,7 @@ fn validate_service_dependencies(
                     dependency_kind: dependency_node.kind,
                 });
             }
+            // 跨模块服务边只由所属模块的直接依赖声明授权；传递可达不替代显式边。
             if node.owner_module != dependency_node.owner_module {
                 let declared_modules = module_dependencies
                     .get(node.owner_module.as_str())
@@ -635,5 +637,9 @@ fn visit_module_iterative(
 }
 
 #[cfg(test)]
-#[path = "module_order_tests.rs"]
+#[path = "tests/module_order_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "module_order/tests/optimization_batch_im_runtime623_tests.rs"]
+mod optimization_batch_im_runtime623_tests;

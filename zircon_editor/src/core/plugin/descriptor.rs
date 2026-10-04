@@ -11,6 +11,7 @@ use crate::core::runtime_event_consumer::EditorRuntimeEventConsumerRegistry;
 use super::sdk::lifecycle::{EditorPluginLifecycleError, EditorPluginLifecycleEvent};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 插件目录登记的静态声明；登记时收集编辑器能力并核对运行时事件消费者清单，包 ID 是生命周期身份。
 pub struct EditorPluginDescriptor {
     pub package_id: String,
     pub display_name: String,
@@ -53,6 +54,7 @@ impl EditorPluginDescriptor {
         self
     }
 
+    /// 把编辑器模块附着到已有运行时包，供目录用同一个包身份管理两侧能力。
     pub fn attach_to_package(&self, manifest: PluginPackageManifest) -> PluginPackageManifest {
         manifest.with_editor_module(
             PluginModuleManifest::editor(
@@ -77,9 +79,11 @@ impl EditorPluginDescriptor {
 }
 
 #[cfg(test)]
-#[path = "descriptor/optimization_tests.rs"]
+#[path = "descriptor/tests/optimization_tests.rs"]
 mod optimization_tests;
 
+/// 编辑器插件在发现、贡献登记和生命周期阶段的回调合同。
+/// 扩展贡献先登记到隔离候选表，仅在该回调成功后采纳；Loaded/Enabled/Disabled 由管理器调度，不由插件自行广播。
 pub trait EditorPlugin {
     fn descriptor(&self) -> &EditorPluginDescriptor;
 

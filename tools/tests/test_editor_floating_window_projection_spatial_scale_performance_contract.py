@@ -1,3 +1,4 @@
+# 核对浮动窗口投影在构建、重算和指针补丁中记录候选规模与复用路径。
 import unittest
 from pathlib import Path
 

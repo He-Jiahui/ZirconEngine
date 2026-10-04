@@ -11,11 +11,12 @@ use zircon_runtime::core::framework::navigation::{
     NavigationGeneratedBakeSnapshot,
 };
 use zircon_runtime::core::math::Real;
-use zircon_runtime::scene::World;
+use zircon_runtime::scene::{LevelSystem, World, WorldPublicationSource};
 
 use super::task_pool::NavMeshBakeTaskHandle;
 use super::{
-    bake_runtime_counts, canonical_surface_key, finish_bake, prepare_bake, tiled, BakePreparation,
+    bake_runtime_counts, canonical_surface_key, finish_bake, prepare_bake,
+    publish_bake_with_source_fence, tiled, BakePreparation,
 };
 use crate::manager::state::TiledBakeIdentity;
 use crate::manager::DefaultNavigationManager;
@@ -64,10 +65,11 @@ enum PendingDirtyBakeState {
         completed: usize,
         results: Vec<Option<Result<NavMeshAsset, NavigationError>>>,
         preparation: BakePreparation,
-        world: World,
+        source: WorldPublicationSource,
         plan: RecastTiledBakePlan,
         identity: TiledBakeIdentity,
         generation: u64,
+        generated_mutation_epoch: u64,
         rebuilt_tile_ids: Vec<u32>,
         preserved_tile_ids: Vec<u32>,
     },
@@ -111,19 +113,35 @@ fn panic_error(context: &str) -> NavigationError {
 }
 
 impl DefaultNavigationManager {
+    // 脏块重建依赖同一表面的上次分块计划与配置身份；身份变化时要求完整重建。
     pub fn start_dirty_tile_rebuild(
         &self,
-        world: World,
+        level: &LevelSystem,
         request: NavMeshBakeRequest,
         dirty_bounds: NavMeshDirtyBounds,
     ) -> NavMeshBakeTaskHandle {
-        let surface_entity = canonical_surface_key(&world, request.surface_entity);
+        let source = level.capture();
+        let generated_mutation_epoch = self.capture_generated_mutation_epoch();
+        let surface_entity = canonical_surface_key(source.snapshot(), request.surface_entity);
         let shared = Arc::new(Mutex::new(PendingDirtyBakeState::Preparing));
         let (generation, handle) = {
             let mut state = self.lock_state();
-            let generation = state.advance_bake_context(surface_entity);
             let handle = NavMeshBakeTaskHandle(state.next_bake_task);
             state.next_bake_task = state.next_bake_task.saturating_add(1);
+            let generation = match state.try_advance_bake_context(surface_entity) {
+                Ok(generation) => generation,
+                Err(error) => {
+                    state.dirty_bake_tasks.insert(
+                        handle,
+                        PendingDirtyBake {
+                            shared: Arc::clone(&shared),
+                            surface_entity,
+                        },
+                    );
+                    *lock_task(&shared) = PendingDirtyBakeState::Failed(error);
+                    return handle;
+                }
+            };
             state.dirty_bake_tasks.insert(
                 handle,
                 PendingDirtyBake {
@@ -138,11 +156,12 @@ impl DefaultNavigationManager {
             let shared_for_work = Arc::clone(&shared);
             if catch_unwind(AssertUnwindSafe(|| {
                 manager.prepare_dirty_task(
-                    world,
+                    source,
                     request,
                     dirty_bounds,
                     surface_entity,
                     generation,
+                    generated_mutation_epoch,
                     shared_for_work,
                 );
             }))
@@ -171,14 +190,16 @@ impl DefaultNavigationManager {
 
     fn prepare_dirty_task(
         &self,
-        world: World,
+        source: WorldPublicationSource,
         request: NavMeshBakeRequest,
         dirty_bounds: NavMeshDirtyBounds,
         surface_entity: Option<u64>,
         generation: u64,
+        generated_mutation_epoch: u64,
         shared: Arc<Mutex<PendingDirtyBakeState>>,
     ) {
-        let prepared = self.prepare_dirty_bake(&world, request, dirty_bounds, surface_entity);
+        let prepared =
+            self.prepare_dirty_bake(source.snapshot(), request, dirty_bounds, surface_entity);
         let (preparation, identity, plan, rebuilt_tile_ids, preserved_tile_ids, mut results) =
             match prepared {
                 Ok(prepared) => prepared,
@@ -199,10 +220,11 @@ impl DefaultNavigationManager {
             completed,
             results: std::mem::take(&mut results),
             preparation,
-            world,
+            source,
             plan: plan.clone(),
             identity,
             generation,
+            generated_mutation_epoch,
             rebuilt_tile_ids: rebuilt_tile_ids.clone(),
             preserved_tile_ids,
         };
@@ -255,7 +277,7 @@ impl DefaultNavigationManager {
             ));
         }
         let geometry_is_empty = preparation.geometry.source_triangles() == 0;
-        let plan = match tiled::plan_for_preparation(self, &preparation)? {
+        let plan = match tiled::plan_for_preparation(&self.backend, &preparation)? {
             Some(plan) => plan,
             None if geometry_is_empty && preparation.surface.override_tile_size.is_some() => {
                 previous.plan.clone()
@@ -345,30 +367,33 @@ impl DefaultNavigationManager {
         let (
             mut results,
             preparation,
-            world,
+            source,
             plan,
             identity,
             generation,
+            generated_mutation_epoch,
             rebuilt_tile_ids,
             preserved_tile_ids,
         ) = match state {
             PendingDirtyBakeState::Baking {
                 results,
                 preparation,
-                world,
+                source,
                 plan,
                 identity,
                 generation,
+                generated_mutation_epoch,
                 rebuilt_tile_ids,
                 preserved_tile_ids,
                 ..
             } => (
                 results,
                 preparation,
-                world,
+                source,
                 plan,
                 identity,
                 generation,
+                generated_mutation_epoch,
                 rebuilt_tile_ids,
                 preserved_tile_ids,
             ),
@@ -389,19 +414,27 @@ impl DefaultNavigationManager {
             );
         }
         let mut asset = merge_tiled_assets(preparation.agent_type.clone(), assets)?;
-        let report = finish_bake(&world, preparation, &mut asset);
+        let source_world_generation = preparation.source_world_generation;
+        let project_asset_generation = preparation.project_asset_generation.clone();
+        let counts = preparation.counts;
+        let report = finish_bake(preparation, &mut asset);
         let generated_snapshot = NavigationGeneratedBakeSnapshot {
             surface_entity: context_surface,
             asset: report.asset.clone(),
             output_asset: report.output_asset.clone(),
         };
-        self.publish_bake(
+        publish_bake_with_source_fence(
+            self,
+            &source,
+            source_world_generation,
+            project_asset_generation.as_ref(),
             context_surface,
             generation,
+            generated_mutation_epoch,
             Some((identity, plan, asset)),
             generated_snapshot,
             report.diagnostics.clone(),
-            bake_runtime_counts(&world),
+            counts,
         )?;
         Ok(NavMeshDirtyBakeReport {
             report,

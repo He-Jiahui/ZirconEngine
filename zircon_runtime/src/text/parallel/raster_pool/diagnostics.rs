@@ -116,19 +116,19 @@ impl TextRasterWorkerPoolDiagnostics {
 
 impl TextRasterWorkerPoolFrameDiagnostics {
     pub(crate) fn record_diagnostics(&self, store: &mut DiagnosticStore, frame_index: u64) {
-        store.record(
+        store.record_static(
             TEXT_RASTER_WORKER_IN_FLIGHT_DIAGNOSTIC,
             frame_index,
             self.in_flight as f64,
             Some("glyph"),
-            ["text", "raster", "worker"],
+            &["text", "raster", "worker"],
         );
-        store.record(
+        store.record_static(
             TEXT_RASTER_WORKER_BUDGETED_THREADS_DIAGNOSTIC,
             frame_index,
             self.budgeted_threads as f64,
             Some("thread"),
-            [
+            &[
                 "text",
                 "raster",
                 "worker",
@@ -136,19 +136,19 @@ impl TextRasterWorkerPoolFrameDiagnostics {
                 self.thread_budget_source.as_str(),
             ],
         );
-        store.record(
+        store.record_static(
             TEXT_RASTER_WORKER_FRAME_COMPLETED_DIAGNOSTIC,
             frame_index,
             self.completed_delta as f64,
             Some("glyph"),
-            ["text", "raster", "worker", "frame"],
+            &["text", "raster", "worker", "frame"],
         );
-        store.record(
+        store.record_static(
             TEXT_RASTER_WORKER_FRAME_FAILED_DIAGNOSTIC,
             frame_index,
             self.failed_delta as f64,
             Some("glyph"),
-            ["text", "raster", "worker", "frame"],
+            &["text", "raster", "worker", "frame"],
         );
     }
 }
@@ -238,12 +238,12 @@ impl TextRasterWorkerPool {
                 diagnostics.request_backpressured as f64,
             ),
         ] {
-            store.record(
+            store.record_static(
                 path,
                 frame_index,
                 value,
                 Some("glyph"),
-                ["text", "raster", "worker"],
+                &["text", "raster", "worker"],
             );
         }
         for (path, value) in [
@@ -260,20 +260,20 @@ impl TextRasterWorkerPool {
                 diagnostics.completion_rejected_bytes as f64,
             ),
         ] {
-            store.record(
+            store.record_static(
                 path,
                 frame_index,
                 value,
                 Some("byte"),
-                ["text", "raster", "worker", "memory"],
+                &["text", "raster", "worker", "memory"],
             );
         }
-        store.record(
+        store.record_static(
             TEXT_RASTER_WORKER_BUDGETED_THREADS_DIAGNOSTIC,
             frame_index,
             diagnostics.budgeted_threads as f64,
             Some("thread"),
-            [
+            &[
                 "text",
                 "raster",
                 "worker",
@@ -283,3 +283,7 @@ impl TextRasterWorkerPool {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "tests/diagnostics_optimization_batch_hv_runtime605_tests.rs"]
+mod optimization_batch_hv_runtime605_tests;

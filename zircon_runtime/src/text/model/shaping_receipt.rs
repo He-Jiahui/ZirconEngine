@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use super::TextRange;
 use super::font::FontFaceId;
+use super::TextRange;
 
+// 文本整形失败码是跨阶段共享的固定协议；新增码必须同步 `COUNT`、`ALL`、字符串键和消费端统计。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[repr(u8)]
 #[non_exhaustive]
@@ -24,6 +25,7 @@ pub enum TextShapingFailureCode {
 }
 
 impl TextShapingFailureCode {
+    // `ALL` 的顺序与枚举判别值一致，`index` 直接把回执映射到固定统计槽位。
     pub const COUNT: usize = 14;
     pub const ALL: [Self; Self::COUNT] = [
         Self::ItemizationInvalidSourceRange,
@@ -107,6 +109,7 @@ pub enum TextShapingBudgetKind {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
+/// 回执把错误阶段、依赖和后续策略一起带过整形管线，供 fallback 与诊断共享同一事实。
 pub struct TextShapingFailureReceipt {
     pub code: TextShapingFailureCode,
     pub phase: TextShapingFailurePhase,

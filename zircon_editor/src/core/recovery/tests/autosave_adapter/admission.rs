@@ -28,23 +28,21 @@ fn autosave_adapter_defers_snapshot_capture_until_the_admitted_mutex_turn() {
         document.clone(),
         true,
     )];
-    assert!(
-        adapter
-            .schedule(
-                Duration::from_secs(10),
-                &dirty,
-                |_| 32,
-                |requested| {
-                    assert_eq!(requested, &document);
-                    Some(AutosaveDocumentRequest::new(
-                        requested.clone(),
-                        AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
-                        source.clone(),
-                    ))
-                },
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule(
+            Duration::from_secs(10),
+            &dirty,
+            |_| 32,
+            |requested| {
+                assert_eq!(requested, &document);
+                Some(AutosaveDocumentRequest::new(
+                    requested.clone(),
+                    AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
+                    source.clone(),
+                ))
+            },
+        )
+        .unwrap());
     assert_eq!(source.capture_count(), 0);
     assert!(adapter.is_in_flight());
 
@@ -232,25 +230,23 @@ fn autosave_adapter_advances_after_a_write_failure_and_shutdown_rejects_new_work
         document.clone(),
         true,
     )];
-    assert!(
-        adapter
-            .schedule(
-                Duration::from_secs(10),
-                &dirty,
-                |_| 1,
-                |requested| {
-                    assert_eq!(requested, &document);
-                    Some(AutosaveDocumentRequest::new(
-                        requested.clone(),
-                        AutosaveJobPolicy::for_save_mutex(
-                            MutexGroup::parse("save_scene_main").unwrap(),
-                        ),
-                        Arc::new(CountingSnapshotSource::failure()),
-                    ))
-                },
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule(
+            Duration::from_secs(10),
+            &dirty,
+            |_| 1,
+            |requested| {
+                assert_eq!(requested, &document);
+                Some(AutosaveDocumentRequest::new(
+                    requested.clone(),
+                    AutosaveJobPolicy::for_save_mutex(
+                        MutexGroup::parse("save_scene_main").unwrap(),
+                    ),
+                    Arc::new(CountingSnapshotSource::failure()),
+                ))
+            },
+        )
+        .unwrap());
     let completion = wait_for_autosave_completion(&mut adapter, Duration::from_secs(12));
     assert_eq!(completion.succeeded(), 0);
     assert_eq!(completion.failed(), 1);

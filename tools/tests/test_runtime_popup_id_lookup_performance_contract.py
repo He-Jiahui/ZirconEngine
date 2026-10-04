@@ -26,7 +26,7 @@ def function_body(source: str, name: str) -> str:
     next_functions = [boundary for boundary in boundaries if boundary >= 0]
     return source[start:] if not next_functions else source[start : min(next_functions)]
 
-
+# 读取弹窗 ID 查找路径，确认唯一项无需分配候选 ID，数字回退解析仍按借用路径匹配。
 class RuntimePopupIdLookupPerformanceContractTests(unittest.TestCase):
     def test_unique_popup_lookup_does_not_allocate_candidate_ids(self) -> None:
         source = POPUP_STACK.read_text(encoding="utf-8")

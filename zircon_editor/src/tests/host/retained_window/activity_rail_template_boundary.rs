@@ -5,11 +5,12 @@ fn source(relative: &str) -> String {
 
 #[test]
 fn host_side_activity_rails_use_projected_toml_template_nodes() {
-    let host_components = source("src/ui/retained_host/host_contract/data/host_components.rs");
+    let host_components =
+        source("src/ui/retained_host/host_contract/data/host_components/docks.rs");
     let chrome_projection =
         source("src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs");
     let scene_projection =
-        source("src/ui/layouts/windows/workbench_host_window/scene_projection.rs");
+        source("src/ui/layouts/windows/workbench_host_window/scene_projection/dock_patch.rs");
     let activity_asset = source("assets/ui/editor/workbench_activity_rail.zui");
 
     for required in ["rail_nodes", "rail_button_frames", "rail_active_control_id"] {
@@ -28,7 +29,10 @@ fn host_side_activity_rails_use_projected_toml_template_nodes() {
             "chrome projection missing `{required}`"
         );
     }
-    for required in ["activity_rail_nodes(", "activity_rail_button_frames("] {
+    for required in [
+        "activity_rail_nodes_for_surface(",
+        "activity_rail_button_frames(",
+    ] {
         assert!(
             scene_projection.contains(required),
             "scene projection missing `{required}`"

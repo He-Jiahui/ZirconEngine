@@ -1,7 +1,8 @@
+# 验证界面画像机器快照先于采集进程产生，并进入来源绑定清单。
 $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
-$script:ProfileCaptureScript = Join-Path $script:RepoRoot "tools\ui-profile-capture.ps1"
-$script:ProfileCaptureManifest = Join-Path $script:RepoRoot "tools\profile-capture-manifest.ps1"
-$script:ProfileMachineManifest = Join-Path $script:RepoRoot "tools\ui-profile-machine-manifest.ps1"
+$script:ProfileCaptureScript = Join-Path $script:RepoRoot "tools\analysis\profiling\ui\ui-profile-capture.ps1"
+$script:ProfileCaptureManifest = Join-Path $script:RepoRoot "tools\analysis\profiling\shared\profile-capture-manifest.ps1"
+$script:ProfileMachineManifest = Join-Path $script:RepoRoot "tools\analysis\profiling\ui\ui-profile-machine-manifest.ps1"
 
 if (Test-Path -LiteralPath $script:ProfileCaptureManifest) {
     . $script:ProfileCaptureManifest
@@ -64,7 +65,7 @@ Describe "UI profile machine manifest contract" {
             Should Not BeNullOrEmpty
 
         $toolPaths = @(Get-ZirconProfileCaptureToolPaths)
-        ($toolPaths -contains "tools/performance-machine-manifest.ps1") | Should Be $true
-        ($toolPaths -contains "tools/ui-profile-machine-manifest.ps1") | Should Be $true
+        ($toolPaths -contains "tools/analysis/profiling/shared/performance-machine-manifest.ps1") | Should Be $true
+        ($toolPaths -contains "tools/analysis/profiling/ui/ui-profile-machine-manifest.ps1") | Should Be $true
     }
 }

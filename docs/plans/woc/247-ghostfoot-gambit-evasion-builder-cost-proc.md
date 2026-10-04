@@ -1,6 +1,6 @@
 ---
 title: WOS247 Ghostfoot Gambit Evasion builder-cost proc
-status: planned
+status: implementation_complete_pending_coordinator_dynamic_validation
 source_commit: 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a
 owner: woc
 ---
@@ -79,3 +79,4 @@ builder, within eight seconds, a 50% energy-cost multiplier.
 
 | 里程碑 | 状态 | 日期 | Evidence |
 | --- | --- | --- | --- |
+| WOS247 | implementation_complete_pending_coordinator_dynamic_validation | 2026-09-13 | Added the source-ordered Evasion completion bridge: generated Ghostfoot proc metadata is rehydrated through `talent_proc_state`, the 30-energy response is capped by the existing precision resource path, and the eight builder ids are canonicalized before writing the persisted selection-code-68 `next_cast_cheap` modifier. Hemorrhage now reads the scoped modifier before resource admission, bills `ceil(baseCost * 0.5)` through the terrain numeric adapter, and consumes it only after successful spend. The `zr_vm:project` fixture covers selection metadata, no-RNG Evasion, refund cap, builder scope, rejected-cast retention, snapshot persistence, eight-second expiry, `ceil(35 * 0.5) == 18`, and one-shot consumption. All 198 WOC static guards, talent-proc and M4 generated-catalog checks, and the full WOC tool check pass. Local dynamic execution remains pending coordinator ownership; the available local CLI is still blocked by the existing WOC `%import` migration cutover. |

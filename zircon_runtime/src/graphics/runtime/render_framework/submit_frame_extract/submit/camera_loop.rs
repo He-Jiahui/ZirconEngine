@@ -1,3 +1,4 @@
+//! 一个视口可展开为多次相机提交；此处决定堆栈终结者与共享视口产品的唯一所有者。
 use crate::core::framework::render::{
     derive_planar_reflection_camera, resolve_camera_sequence_borrowed, CameraRenderDescriptor,
     CameraSequenceEntry, PlanarReflectionUpdateState, RenderCameraTarget, RenderFrameExtract,
@@ -416,4 +417,5 @@ impl From<CameraLoopOutputPolicy> for ViewportCameraStackOutputPolicy {
 }
 
 #[cfg(test)]
+#[path = "camera_loop/tests/cases.rs"]
 mod tests;

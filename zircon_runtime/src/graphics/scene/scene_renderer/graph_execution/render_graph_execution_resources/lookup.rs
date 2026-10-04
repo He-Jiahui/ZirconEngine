@@ -4,14 +4,14 @@ use crate::render_graph::{
 };
 use crate::rhi::{BufferDesc, TextureDesc};
 
-use super::RenderGraphExecutionResources;
 use super::texture_views::{
     texture_full_mip_view_descriptor, texture_mip_view_descriptor,
     texture_subresource_view_descriptor, validate_texture_view_descriptor,
 };
+use super::RenderGraphExecutionResources;
 
 impl RenderGraphExecutionResources {
-    pub(in crate::graphics::scene::scene_renderer::graph_execution) fn texture_view(
+    pub(in crate::graphics::scene::scene_renderer) fn texture_view(
         &self,
         name: &str,
     ) -> Option<&wgpu::TextureView> {
@@ -243,6 +243,31 @@ impl RenderGraphExecutionResources {
         range: RenderGraphTextureSubresourceRange,
     ) -> Result<wgpu::TextureView, String> {
         self.owned_texture_view_with_descriptor(name, &texture_subresource_view_descriptor(range))
+    }
+
+    /// Creates an exact subresource view from either a graph-owned transient
+    /// backing or an externally borrowed physical texture.  Frame targets such
+    /// as `scene-depth` are intentionally borrowed by the renderer, but the
+    /// compiled access table still needs a concrete view for every exact
+    /// transient access range.
+    pub(super) fn physical_texture_subresource_view(
+        &self,
+        name: &str,
+        range: RenderGraphTextureSubresourceRange,
+    ) -> Result<wgpu::TextureView, String> {
+        let descriptor = texture_subresource_view_descriptor(range);
+        let texture = self.physical_texture(name).ok_or_else(|| {
+            format!(
+                "render graph execution texture resource `{name}` has no physical texture backing"
+            )
+        })?;
+        let texture_desc = self.physical_texture_desc(name).ok_or_else(|| {
+            format!(
+                "render graph execution texture resource `{name}` has no physical texture descriptor"
+            )
+        })?;
+        validate_texture_view_descriptor(name, texture_desc, &descriptor)?;
+        Ok(texture.create_view(&descriptor))
     }
 
     pub(super) fn owned_texture_backing(&self, name: &str) -> Option<&str> {

@@ -1,3 +1,4 @@
+# 核对权重热图静态场缓存与动态选择代际在生成和绘制层之间的传递。
 from pathlib import Path
 import unittest
 

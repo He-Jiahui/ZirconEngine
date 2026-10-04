@@ -1,3 +1,4 @@
+//! 默认管线编译契约：阶段、图 pass、资源访问与历史绑定必须同时满足。
 use super::*;
 
 #[test]
@@ -61,6 +62,7 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
             "uber",
             "output-transfer",
             "fxaa",
+            "overlay-depth-reconstruct",
             "overlay-gizmo",
             "runtime-ui",
             "surface-present",
@@ -88,6 +90,7 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
         PostProcessGraphResourceNames::SCENE_DEPTH,
         RenderGraphResourceAccessKind::Write,
     );
+    // BUG: [CR-GRAPHICS-TESTPROV-0001] Forward+ 预期 pass 列表没有 gbuffer-mesh，却在这里要求查找其资源写入记录；helper 会 panic，使此用例必败。证据：同函数上方 pass 列表及 pipeline_compile.rs::pass_resource_access。
     pass_resource_access(
         &compiled,
         "gbuffer-mesh",
@@ -461,6 +464,7 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
             "uber",
             "output-transfer",
             "fxaa",
+            "overlay-depth-reconstruct",
             "overlay-gizmo",
             "runtime-ui",
             "surface-present",

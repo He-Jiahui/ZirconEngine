@@ -9,6 +9,7 @@ mod history;
 mod quality;
 
 #[cfg(test)]
+#[path = "backend_types/tests/cases.rs"]
 mod tests;
 
 pub use ambient_occlusion::{
@@ -122,6 +123,7 @@ impl RenderReflectionProbeWorkloadReport {
     }
 }
 
+/// 该汇总同时包含提交/执行回执与由输入推算的计划上界；scheduled、capacity、upper_bound 字段不能解读为已完成的 GPU 实测工作。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RenderStats {
     pub active_viewports: usize,
@@ -314,6 +316,12 @@ pub struct RenderStats {
     pub last_ui_text_visible_raster_placeholder_count: usize,
     pub last_ui_text_raster_worker_pending_count: usize,
     pub last_ui_text_raster_worker_failed_count: usize,
+    /// Native bitmap-atlas glyphs retained by the bounded retry queue for a later frame.
+    pub last_ui_text_raster_retry_queued_glyph_count: usize,
+    /// Retry glyphs the bounded queue could not retain during the latest frame.
+    pub last_ui_text_raster_retry_queue_overflow_glyph_count: usize,
+    /// Retry sources rejected by the latest frame's byte-budget policy.
+    pub last_ui_text_raster_retry_rejected_source_count: usize,
     pub last_ui_text_raster_renderer_upload_requeued_count: usize,
     pub last_ui_text_raster_renderer_upload_failure_count: usize,
     /// SDF/MSDF generation batches still owned by the bounded text scheduler.
@@ -392,6 +400,7 @@ pub struct RenderStats {
     pub last_mesh_command_cache_invalidated_transform_count: usize,
     pub last_mesh_command_cache_invalidated_geometry_count: usize,
     pub last_mesh_command_cache_invalidated_material_count: usize,
+    pub last_mesh_command_cache_invalidated_resolver_configuration_count: usize,
     pub last_mesh_replay_state_change_count: usize,
     pub last_mesh_replay_bind_skip_count: usize,
     /// Actual group-2 material `set_bind_group` calls encoded during mesh replay.
@@ -557,35 +566,5 @@ pub struct RenderStats {
 }
 
 #[cfg(test)]
-mod reflection_probe_workload_tests {
-    use super::RenderReflectionProbeWorkloadReport;
-    use crate::core::math::UVec2;
-
-    #[test]
-    fn reflection_probe_workload_derives_full_resolution_visit_upper_bound() {
-        let report = RenderReflectionProbeWorkloadReport {
-            active_probe_count: 4,
-            ..RenderReflectionProbeWorkloadReport::default()
-        }
-        .with_render_size(UVec2::new(1_920, 1_080));
-
-        assert_eq!(
-            report.full_resolution_fragment_probe_visit_upper_bound,
-            8_294_400
-        );
-    }
-
-    #[test]
-    fn reflection_probe_workload_visit_upper_bound_saturates() {
-        let report = RenderReflectionProbeWorkloadReport {
-            active_probe_count: usize::MAX,
-            ..RenderReflectionProbeWorkloadReport::default()
-        }
-        .with_render_size(UVec2::new(u32::MAX, u32::MAX));
-
-        assert_eq!(
-            report.full_resolution_fragment_probe_visit_upper_bound,
-            u64::MAX
-        );
-    }
-}
+#[path = "tests/backend_types_reflection_probe_workload_tests.rs"]
+mod reflection_probe_workload_tests;

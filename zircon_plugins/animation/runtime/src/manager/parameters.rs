@@ -1,3 +1,4 @@
+//! 管理器接收图参数默认值与覆盖；非有限值不进入图求值或状态机条件。
 use zircon_runtime::core::framework::animation::AnimationGraphAsset;
 use zircon_runtime::core::framework::animation::{AnimationParameterMap, AnimationParameterValue};
 use zircon_runtime::core::math::Real;
@@ -5,7 +6,7 @@ use zircon_runtime::core::math::Real;
 use super::sampling::animation_parameter_value_is_finite;
 
 #[cfg(test)]
-#[path = "parameters/performance_tests.rs"]
+#[path = "parameters/tests/performance_tests.rs"]
 mod optimization_batch_20260830cr_tests;
 
 pub(super) fn parameter_defaults(graph: &AnimationGraphAsset) -> AnimationParameterMap {

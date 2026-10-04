@@ -1,14 +1,35 @@
 use std::{
+    fmt,
+    marker::PhantomData,
     ops::{Index, IndexMut},
     slice,
     sync::Arc,
 };
 
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{
+    de::{SeqAccess, Visitor},
+    Deserialize, Deserializer, Serialize, Serializer,
+};
 
 pub const UI_PERSISTENT_SEQUENCE_SEGMENT_SIZE: usize = 64;
 const UI_PERSISTENT_SEQUENCE_DIRECTORY_FANOUT: usize = 32;
 const UI_PERSISTENT_SEQUENCE_MAX_DIRECTORY_DEPTH: usize = 16;
+
+#[cfg(test)]
+#[path = "persistent_sequence/tests/construction_performance_tests.rs"]
+mod construction_performance_tests;
+#[cfg(test)]
+#[path = "persistent_sequence/tests/deserialization_performance_tests.rs"]
+mod deserialization_performance_tests;
+#[cfg(test)]
+#[path = "persistent_sequence/tests/directory_performance_tests.rs"]
+mod directory_performance_tests;
+#[cfg(test)]
+#[path = "persistent_sequence/tests/extend_performance_tests.rs"]
+mod extend_performance_tests;
+#[cfg(test)]
+#[path = "persistent_sequence/tests/tail_segment_performance_tests.rs"]
+mod tail_segment_performance_tests;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct UiPersistentSequenceCowStats {
@@ -100,11 +121,96 @@ impl<T> UiPersistentSequence<T> {
     pub fn clear(&mut self) {
         *self = Self::default();
     }
+
+    fn from_owned_iter<I: Iterator<Item = T>>(mut items: I) -> Self {
+        let (lower_bound, _) = items.size_hint();
+        let mut nodes =
+            Vec::with_capacity(lower_bound.div_ceil(UI_PERSISTENT_SEQUENCE_SEGMENT_SIZE));
+        let mut len = 0usize;
+
+        while let Some(first) = items.next() {
+            let mut segment = Vec::with_capacity(Self::owned_segment_capacity(&items));
+            segment.push(first);
+            segment.extend(items.by_ref().take(UI_PERSISTENT_SEQUENCE_SEGMENT_SIZE - 1));
+            len += segment.len();
+            nodes.push(Arc::new(UiPersistentSequenceNode::Segment(segment.into())));
+        }
+
+        Self::from_segment_nodes(nodes, len)
+    }
+
+    fn owned_segment_capacity<I: Iterator<Item = T>>(items: &I) -> usize {
+        let (lower_bound, upper_bound) = items.size_hint();
+        if upper_bound == Some(lower_bound) {
+            1 + lower_bound.min(UI_PERSISTENT_SEQUENCE_SEGMENT_SIZE - 1)
+        } else {
+            UI_PERSISTENT_SEQUENCE_SEGMENT_SIZE
+        }
+    }
+
+    fn from_segment_nodes(mut nodes: Vec<Arc<UiPersistentSequenceNode<T>>>, len: usize) -> Self {
+        if nodes.is_empty() {
+            return Self::default();
+        }
+
+        let segment_count = nodes.len();
+        let mut directory_depth = 0_u8;
+        let mut directory_node_count = 0_usize;
+        loop {
+            nodes = Self::promote_directory_level(nodes, &mut directory_node_count);
+            directory_depth = directory_depth.saturating_add(1);
+            assert!(
+                usize::from(directory_depth) <= UI_PERSISTENT_SEQUENCE_MAX_DIRECTORY_DEPTH,
+                "persistent UI sequence directory depth exceeds the platform bound"
+            );
+            if nodes.len() == 1 {
+                break;
+            }
+        }
+
+        Self {
+            root: nodes.pop(),
+            len,
+            segment_count,
+            directory_depth,
+            directory_node_count,
+        }
+    }
+
+    fn promote_directory_level(
+        nodes: Vec<Arc<UiPersistentSequenceNode<T>>>,
+        directory_node_count: &mut usize,
+    ) -> Vec<Arc<UiPersistentSequenceNode<T>>> {
+        let parent_count = nodes
+            .len()
+            .div_ceil(UI_PERSISTENT_SEQUENCE_DIRECTORY_FANOUT);
+        let mut children = nodes.into_iter();
+        let mut parents = Vec::with_capacity(parent_count);
+
+        while let Some(first) = children.next() {
+            let child_capacity = 1 + children
+                .len()
+                .min(UI_PERSISTENT_SEQUENCE_DIRECTORY_FANOUT - 1);
+            let mut directory = Vec::with_capacity(child_capacity);
+            directory.push(first);
+            directory.extend(
+                children
+                    .by_ref()
+                    .take(UI_PERSISTENT_SEQUENCE_DIRECTORY_FANOUT - 1),
+            );
+            *directory_node_count += 1;
+            parents.push(Arc::new(UiPersistentSequenceNode::Directory(
+                directory.into(),
+            )));
+        }
+
+        parents
+    }
 }
 
 impl<T: Clone> UiPersistentSequence<T> {
     pub fn from_slice(items: &[T]) -> Self {
-        Self::from(items.to_vec())
+        Self::from_owned_iter(items.iter().cloned())
     }
 
     pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
@@ -150,67 +256,20 @@ impl<T: Clone> UiPersistentSequence<T> {
 
 impl<T> From<Vec<T>> for UiPersistentSequence<T> {
     fn from(items: Vec<T>) -> Self {
-        if items.is_empty() {
-            return Self::default();
-        }
-
-        let len = items.len();
-        let mut items = items.into_iter();
-        let mut nodes = Vec::with_capacity(len.div_ceil(UI_PERSISTENT_SEQUENCE_SEGMENT_SIZE));
-        loop {
-            let segment = items
-                .by_ref()
-                .take(UI_PERSISTENT_SEQUENCE_SEGMENT_SIZE)
-                .collect::<Vec<_>>();
-            if segment.is_empty() {
-                break;
-            }
-            nodes.push(Arc::new(UiPersistentSequenceNode::Segment(segment.into())));
-        }
-        let segment_count = nodes.len();
-        let mut directory_depth = 0_u8;
-        let mut directory_node_count = 0_usize;
-        loop {
-            nodes = nodes
-                .chunks(UI_PERSISTENT_SEQUENCE_DIRECTORY_FANOUT)
-                .map(|children| {
-                    directory_node_count += 1;
-                    Arc::new(UiPersistentSequenceNode::Directory(
-                        children.to_vec().into(),
-                    ))
-                })
-                .collect();
-            directory_depth = directory_depth.saturating_add(1);
-            assert!(
-                usize::from(directory_depth) <= UI_PERSISTENT_SEQUENCE_MAX_DIRECTORY_DEPTH,
-                "persistent UI sequence directory depth exceeds the platform bound"
-            );
-            if nodes.len() == 1 {
-                break;
-            }
-        }
-
-        Self {
-            root: nodes.pop(),
-            len,
-            segment_count,
-            directory_depth,
-            directory_node_count,
-        }
+        Self::from_owned_iter(items.into_iter())
     }
 }
 
 impl<T> FromIterator<T> for UiPersistentSequence<T> {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
-        iter.into_iter().collect::<Vec<_>>().into()
+        Self::from_owned_iter(iter.into_iter())
     }
 }
 
 impl<T: Clone> Extend<T> for UiPersistentSequence<T> {
     fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
-        let mut items = self.to_vec();
-        items.extend(iter);
-        *self = items.into();
+        let next = Self::from_owned_iter(self.iter().cloned().chain(iter));
+        *self = next;
     }
 }
 
@@ -251,6 +310,53 @@ impl<T: Serialize> Serialize for UiPersistentSequence<T> {
     }
 }
 
+struct UiPersistentSequenceVisitor<T>(PhantomData<fn() -> T>);
+
+impl<'de, T> Visitor<'de> for UiPersistentSequenceVisitor<T>
+where
+    T: Deserialize<'de>,
+{
+    type Value = UiPersistentSequence<T>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("a flat persistent UI sequence")
+    }
+
+    // 保持扁平序列的 serde 形状，同时边读取边组装固定大小叶段，避免先暂存整条 Vec<T>。
+    fn visit_seq<A>(self, mut sequence: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        let item_count = sequence.size_hint().unwrap_or(0);
+        let mut nodes =
+            Vec::with_capacity(item_count.div_ceil(UI_PERSISTENT_SEQUENCE_SEGMENT_SIZE));
+        let mut len = 0usize;
+
+        loop {
+            let Some(first) = sequence.next_element::<T>()? else {
+                break;
+            };
+            let mut segment = Vec::with_capacity(UI_PERSISTENT_SEQUENCE_SEGMENT_SIZE);
+            segment.push(first);
+            let mut reached_end = false;
+            while segment.len() < UI_PERSISTENT_SEQUENCE_SEGMENT_SIZE {
+                let Some(item) = sequence.next_element::<T>()? else {
+                    reached_end = true;
+                    break;
+                };
+                segment.push(item);
+            }
+            len += segment.len();
+            nodes.push(Arc::new(UiPersistentSequenceNode::Segment(segment.into())));
+            if reached_end {
+                break;
+            }
+        }
+
+        Ok(UiPersistentSequence::from_segment_nodes(nodes, len))
+    }
+}
+
 impl<'de, T> Deserialize<'de> for UiPersistentSequence<T>
 where
     T: Deserialize<'de>,
@@ -259,7 +365,7 @@ where
     where
         D: Deserializer<'de>,
     {
-        Vec::<T>::deserialize(deserializer).map(Into::into)
+        deserializer.deserialize_seq(UiPersistentSequenceVisitor::<T>(PhantomData))
     }
 }
 
@@ -463,65 +569,5 @@ fn collect_segments<'a, T>(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    struct NonClone(u32);
-
-    #[test]
-    fn owned_vector_construction_does_not_require_item_clones() {
-        let sequence: UiPersistentSequence<_> = vec![NonClone(1), NonClone(2)].into();
-
-        assert_eq!(sequence.len(), 2);
-        assert_eq!(sequence[1].0, 2);
-    }
-
-    #[test]
-    fn one_item_mutation_clones_only_its_leaf_path() {
-        let retained: UiPersistentSequence<_> = (0_u32..130).collect();
-        let mut next = retained.clone();
-
-        let (_, stats) = next
-            .get_mut_with_stats(65)
-            .map(|(item, stats)| {
-                *item = 9_999;
-                (item, stats)
-            })
-            .expect("mutable item");
-
-        assert_eq!(retained[65], 65);
-        assert_eq!(next[65], 9_999);
-        assert_eq!(retained.shared_segment_count(&next), 2);
-        assert_eq!(next.iter().copied().collect::<Vec<_>>().len(), 130);
-        assert_eq!(stats.cloned_item_count, 64);
-        assert_eq!(stats.cloned_segment_count, 1);
-        assert_eq!(stats.cloned_directory_node_count, 1);
-    }
-
-    #[test]
-    fn serde_keeps_the_flat_wire_contract() {
-        let sequence: UiPersistentSequence<_> = (0_u32..70).collect();
-        let encoded = serde_json::to_string(&sequence).expect("serialize persistent sequence");
-        let decoded: UiPersistentSequence<u32> =
-            serde_json::from_str(&encoded).expect("deserialize persistent sequence");
-
-        assert_eq!(decoded, sequence);
-        assert_eq!(
-            encoded,
-            serde_json::to_string(&(0_u32..70).collect::<Vec<_>>()).unwrap()
-        );
-    }
-
-    #[test]
-    fn unique_owner_mutation_uses_the_allocation_free_path() {
-        let mut sequence: UiPersistentSequence<_> = (0_u32..130).collect();
-
-        let (item, stats) = sequence
-            .get_mut_with_stats(65)
-            .expect("mutable unique-owner item");
-        *item = 7_777;
-
-        assert_eq!(sequence[65], 7_777);
-        assert_eq!(stats, UiPersistentSequenceCowStats::default());
-    }
-}
+#[path = "tests/persistent_sequence.rs"]
+mod tests;

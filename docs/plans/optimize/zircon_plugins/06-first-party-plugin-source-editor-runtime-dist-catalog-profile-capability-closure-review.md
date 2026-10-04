@@ -26,7 +26,7 @@ related_code:
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_runtime/runtime-feature-presets.toml
   - zircon_runtime/src/plugin/export_build_plan/plugin_selection_template.rs
-  - tools/audit_plugin_structure.py
+  - tools/audits/audit_plugin_structure.py
 tests:
   - zircon_plugins/first_party_runtime_catalog/src/tests.rs
   - zircon_plugins/first_party_runtime_catalog/src/tests/provider_snapshot.rs
@@ -146,7 +146,7 @@ ProjectPluginManifest selections
 
 本轮实际运行两条只读结构命令：
 
-1. `python tools/audit_plugin_structure.py --json`成功，返回39 manifests、29 runtime descriptor roots、41 dist matrix、0结构违规；脚本不比较30/25声明package与14/2 product catalog coverage。
+1. `python tools/audits/audit_plugin_structure.py --json`成功，返回39 manifests、29 runtime descriptor roots、41 dist matrix、0结构违规；脚本不比较30/25声明package与14/2 product catalog coverage。
 2. `cargo metadata --manifest-path zircon_plugins/Cargo.toml --no-deps --format-version 1`成功，解析139 packages/162 targets；`zircon_plugins/Cargo.lock`前后均未修改。
 
 本轮不运行Cargo compile/tests。Editor依赖lane仍受既有239个compile errors阻断；重跑同一未变化lane不会增加证据。metadata、manifest check、source-shape test和cfg下test数量都不能记为product startup或provider parity pass。

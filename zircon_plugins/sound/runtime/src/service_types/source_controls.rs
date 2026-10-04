@@ -1,3 +1,4 @@
+//! 声源控制先对活动句柄执行后端操作，再同步保存的描述；无活动输出时只调整描述供下次启动使用。
 use kira::backend::Backend;
 use zircon_runtime::core::framework::sound::{SoundError, SoundSourceId};
 
@@ -12,12 +13,14 @@ use super::DefaultSoundManager;
 impl DefaultSoundManager {
     pub(super) fn pause_source_impl(&self, source: SoundSourceId) -> Result<(), SoundError> {
         let mut state = crate::poison_recovery::lock_recover(&self.state);
+        state.kira.ensure_provider_not_retiring()?;
         state.poll_kira_completions();
         update_bound_source(&mut state, source, pause_bound_source)
     }
 
     pub(super) fn resume_source_impl(&self, source: SoundSourceId) -> Result<(), SoundError> {
         let mut state = crate::poison_recovery::lock_recover(&self.state);
+        state.kira.ensure_provider_not_retiring()?;
         state.poll_kira_completions();
         let mut voice = take_source(&mut state, source)?;
         let result = resume_bound_source(&mut state.kira, &mut voice)
@@ -31,6 +34,7 @@ impl DefaultSoundManager {
 
     pub(super) fn toggle_source_impl(&self, source: SoundSourceId) -> Result<(), SoundError> {
         let mut state = crate::poison_recovery::lock_recover(&self.state);
+        state.kira.ensure_provider_not_retiring()?;
         state.poll_kira_completions();
         let mut voice = take_source(&mut state, source)?;
         let result = if voice.descriptor.playing {
@@ -53,6 +57,7 @@ impl DefaultSoundManager {
     ) -> Result<(), SoundError> {
         ensure_finite_value("source gain", gain)?;
         let mut state = crate::poison_recovery::lock_recover(&self.state);
+        state.kira.ensure_provider_not_retiring()?;
         state.poll_kira_completions();
         update_bound_source(&mut state, source, |kira, voice| {
             set_bound_source_gain(kira, voice, gain)
@@ -66,6 +71,7 @@ impl DefaultSoundManager {
     ) -> Result<(), SoundError> {
         let speed = validate_playback_speed(speed)?;
         let mut state = crate::poison_recovery::lock_recover(&self.state);
+        state.kira.ensure_provider_not_retiring()?;
         state.poll_kira_completions();
         update_bound_source(&mut state, source, |kira, voice| {
             set_bound_source_speed(kira, voice, speed)
@@ -74,6 +80,7 @@ impl DefaultSoundManager {
 
     pub(super) fn mute_source_impl(&self, source: SoundSourceId) -> Result<(), SoundError> {
         let mut state = crate::poison_recovery::lock_recover(&self.state);
+        state.kira.ensure_provider_not_retiring()?;
         state.poll_kira_completions();
         update_bound_source(&mut state, source, |kira, voice| {
             mute_bound_source(kira, voice, true)
@@ -82,6 +89,7 @@ impl DefaultSoundManager {
 
     pub(super) fn unmute_source_impl(&self, source: SoundSourceId) -> Result<(), SoundError> {
         let mut state = crate::poison_recovery::lock_recover(&self.state);
+        state.kira.ensure_provider_not_retiring()?;
         state.poll_kira_completions();
         update_bound_source(&mut state, source, |kira, voice| {
             mute_bound_source(kira, voice, false)
@@ -90,6 +98,7 @@ impl DefaultSoundManager {
 
     pub(super) fn toggle_mute_source_impl(&self, source: SoundSourceId) -> Result<(), SoundError> {
         let mut state = crate::poison_recovery::lock_recover(&self.state);
+        state.kira.ensure_provider_not_retiring()?;
         state.poll_kira_completions();
         let muted = state
             .sources
@@ -107,6 +116,7 @@ pub(crate) fn pause_bound_source<B: Backend>(
     kira: &mut KiraEngine<B>,
     voice: &mut SourceVoice,
 ) -> Result<(), SoundError> {
+    kira.ensure_provider_not_retiring()?;
     if let Some(playback) = voice.kira_playback {
         kira.pause(playback)?;
     }
@@ -118,6 +128,7 @@ pub(crate) fn resume_bound_source<B: Backend>(
     kira: &mut KiraEngine<B>,
     voice: &mut SourceVoice,
 ) -> Result<(), SoundError> {
+    kira.ensure_provider_not_retiring()?;
     if let Some(playback) = voice.kira_playback {
         kira.resume(playback)?;
     }
@@ -130,6 +141,7 @@ pub(crate) fn set_bound_source_gain<B: Backend>(
     voice: &mut SourceVoice,
     gain: f32,
 ) -> Result<(), SoundError> {
+    kira.ensure_provider_not_retiring()?;
     if let Some(playback) = voice.kira_playback {
         kira.set_volume(playback, if voice.descriptor.muted { 0.0 } else { gain })?;
     }
@@ -142,6 +154,7 @@ pub(crate) fn set_bound_source_speed<B: Backend>(
     voice: &mut SourceVoice,
     speed: f32,
 ) -> Result<(), SoundError> {
+    kira.ensure_provider_not_retiring()?;
     if let Some(playback) = voice.kira_playback {
         kira.set_playback_rate(playback, speed)?;
     }
@@ -154,6 +167,7 @@ pub(crate) fn mute_bound_source<B: Backend>(
     voice: &mut SourceVoice,
     muted: bool,
 ) -> Result<(), SoundError> {
+    kira.ensure_provider_not_retiring()?;
     if let Some(playback) = voice.kira_playback {
         kira.set_volume(playback, if muted { 0.0 } else { voice.descriptor.gain })?;
     }
@@ -166,6 +180,7 @@ fn update_bound_source(
     source: SoundSourceId,
     update: impl FnOnce(&mut DefaultKiraEngine, &mut SourceVoice) -> Result<(), SoundError>,
 ) -> Result<(), SoundError> {
+    state.kira.ensure_provider_not_retiring()?;
     let mut voice = take_source(state, source)?;
     let result = update(&mut state.kira, &mut voice);
     state.sources.insert(source, voice);

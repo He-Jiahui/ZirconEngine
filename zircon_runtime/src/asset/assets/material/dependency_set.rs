@@ -1,3 +1,6 @@
+use std::collections::HashSet;
+use std::hash::Hash;
+
 use crate::asset::AssetReference;
 use crate::core::framework::render::RenderMaterialDependencySet;
 use crate::core::resource::ResourceLocator;
@@ -13,18 +16,31 @@ pub fn material_dependency_set(material: &MaterialAsset) -> RenderMaterialDepend
 }
 
 pub fn direct_references(material: &MaterialAsset) -> Vec<AssetReference> {
-    collect_direct_references(material, Clone::clone)
+    collect_direct_references(material, Clone::clone, asset_reference_key)
 }
 
 impl MaterialAsset {
     pub(crate) fn direct_reference_locators(&self) -> Vec<ResourceLocator> {
-        collect_direct_references(self, |reference| reference.locator.clone())
+        collect_direct_references(
+            self,
+            |reference| reference.locator.clone(),
+            reference_locator,
+        )
     }
 }
 
-fn collect_direct_references<T: PartialEq>(
-    material: &MaterialAsset,
+fn asset_reference_key(reference: &AssetReference) -> &AssetReference {
+    reference
+}
+
+fn reference_locator(reference: &AssetReference) -> &ResourceLocator {
+    &reference.locator
+}
+
+fn collect_direct_references<'a, T, K: Eq + Hash + 'a>(
+    material: &'a MaterialAsset,
     mut project: impl FnMut(&AssetReference) -> T,
+    key: impl Fn(&'a AssetReference) -> &'a K,
 ) -> Vec<T> {
     let texture_slots = material.all_texture_slots();
     let capacity = 1usize
@@ -32,10 +48,10 @@ fn collect_direct_references<T: PartialEq>(
         .saturating_add(usize::from(material.parent.is_some()));
     let mut references = Vec::with_capacity(capacity);
     references.push(project(&material.shader));
+    let mut texture_keys = HashSet::with_capacity(texture_slots.len());
     for (_, texture) in texture_slots {
-        let texture = project(texture);
-        if !references[1..].contains(&texture) {
-            references.push(texture);
+        if texture_keys.insert(key(texture)) {
+            references.push(project(texture));
         }
     }
     if let Some(parent) = material.parent.as_ref() {
@@ -45,47 +61,9 @@ fn collect_direct_references<T: PartialEq>(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::MaterialAsset;
+#[path = "tests/dependency_set.rs"]
+mod tests;
 
-    #[test]
-    fn direct_reference_projections_share_order_texture_dedup_and_parent() {
-        let material = MaterialAsset::from_toml_str(
-            r#"
-version = 2
-
-[shader]
-uuid = "00000000-0000-0000-0000-000000000001"
-url = "res://shaders/pbr.zshader"
-
-[parent]
-uuid = "00000000-0000-0000-0000-000000000002"
-url = "res://materials/parent.zmaterial"
-
-[textures.base_color]
-uuid = "00000000-0000-0000-0000-000000000003"
-url = "res://textures/shared.png"
-
-[textures.normal]
-uuid = "00000000-0000-0000-0000-000000000003"
-url = "res://textures/shared.png"
-"#,
-        )
-        .expect("material dependency fixture");
-
-        let references = material.direct_references();
-        let locators = material.direct_reference_locators();
-
-        assert_eq!(references.len(), 3);
-        assert_eq!(
-            locators,
-            references
-                .iter()
-                .map(|reference| reference.locator.clone())
-                .collect::<Vec<_>>()
-        );
-        assert_eq!(locators[0].to_string(), "res://shaders/pbr.zshader");
-        assert_eq!(locators[1].to_string(), "res://textures/shared.png");
-        assert_eq!(locators[2].to_string(), "res://materials/parent.zmaterial");
-    }
-}
+#[cfg(test)]
+#[path = "dependency_set/tests/optimization_batch_hy_runtime608_tests.rs"]
+mod optimization_batch_hy_runtime608_tests;

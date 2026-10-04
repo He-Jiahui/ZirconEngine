@@ -1,3 +1,4 @@
+// 从检查器载荷构造模板正文，约束保留式转换使用统一投影而非旧视图数据。
 use std::collections::BTreeMap;
 
 use zircon_runtime_interface::math::UVec2;
@@ -30,12 +31,14 @@ fn chrome_fixture() -> EditorChromeSnapshot {
         },
         scene_entries: Default::default(),
         inspector: Some(InspectorSnapshot {
+            rotation_degrees: None,
             id: 7,
             name: "Root".to_string(),
             parent: "Scene".to_string(),
             translation: ["1.0".to_string(), "2.0".to_string(), "3.0".to_string()],
             scale: ["1.0".to_string(), "1.0".to_string(), "1.0".to_string()],
             render_layer_mask: 1,
+            native_fields: Vec::new(),
             plugin_components: Vec::new(),
         }),
         status_line: "Inspector ready".to_string(),

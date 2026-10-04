@@ -112,5 +112,5 @@ fn apple_script_string(value: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "commands/single_buffer_quoting_tests.rs"]
+#[path = "commands/tests/single_buffer_quoting_tests.rs"]
 mod single_buffer_quoting_tests;

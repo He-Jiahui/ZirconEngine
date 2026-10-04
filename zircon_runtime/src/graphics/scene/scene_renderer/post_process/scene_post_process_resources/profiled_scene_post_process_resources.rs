@@ -1,12 +1,14 @@
+//! 在完整后处理资源与仅输出传输资源之间提供统一访问面；仅完整变体允许效果图执行。
 use std::ops::Deref;
 
 use super::{FullScenePostProcessResources, SceneOutputTransferResources};
 use crate::core::math::UVec2;
-use crate::graphics::CompiledAoProfile;
 use crate::graphics::scene::scene_renderer::post_process::params::ssao_params::SsaoParams;
+use crate::graphics::CompiledAoProfile;
 use crate::rhi::{BufferDesc, BufferUsage};
 use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
 
+/// 启动配置选取的后处理资源变体；`OutputTransferOnly` 在后续帧只支持终端颜色传输。
 pub(crate) enum ScenePostProcessResources {
     Full(FullScenePostProcessResources),
     OutputTransferOnly(SceneOutputTransferResources),
@@ -137,30 +139,5 @@ impl Deref for ScenePostProcessResources {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::SsaoParams;
-
-    #[test]
-    fn ssao_params_are_prepared_into_the_frame_upload_transaction() {
-        let source = include_str!("profiled_scene_post_process_resources.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("profiled post-process resources source");
-
-        assert!(!production.contains("queue.write_buffer"));
-        assert!(!production.contains("queue: &wgpu::Queue"));
-        assert!(production.contains("WgpuBufferUpload::from_bytes("));
-        assert!(production.contains("frame_uploads.push("));
-        assert!(production.contains("SsaoParams::from_compiled_profile("));
-        assert!(!production.contains("tuning: ["));
-    }
-
-    #[test]
-    fn ssao_params_share_the_feature_owned_abi_layout() {
-        assert_eq!(
-            std::mem::size_of::<SsaoParams>(),
-            std::mem::size_of::<([u32; 4], [u32; 4], [f32; 4], [f32; 4])>()
-        );
-    }
-}
+#[path = "tests/profiled_scene_post_process_resources.rs"]
+mod tests;

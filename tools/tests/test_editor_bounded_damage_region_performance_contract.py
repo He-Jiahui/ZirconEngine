@@ -1,3 +1,6 @@
+
+from tools.tests.rust_test_files import read_rust_test_file
+# 核对有界损伤区域在重绘合并、重试和最终提交时保留分区及指标。
 from pathlib import Path
 import unittest
 
@@ -25,9 +28,7 @@ UI_PERF = REPO_ROOT / "zircon_editor/src/ui/retained_host/ui_perf.rs"
 UI_PERF_COUNTER_CATALOG = REPO_ROOT / (
     "zircon_editor/src/ui/retained_host/ui_perf/counter_catalog.rs"
 )
-REDRAW_TESTS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/redraw_tests.rs"
-)
+REDRAW_TESTS = REPO_ROOT / "zircon_editor/src/ui/retained_host/host_contract/tests/redraw_tests.rs"
 
 
 class EditorBoundedDamageRegionPerformanceContract(unittest.TestCase):
@@ -135,7 +136,7 @@ class EditorBoundedDamageRegionPerformanceContract(unittest.TestCase):
         self.assertIn("redraw_region_simplifies_the_fourth_rect", source)
         self.assertIn("redraw_region_reports_exact_overlap_area", source)
         self.assertIn("redraw_region_preserves_the_legacy_f32_bounding_merge_order", source)
-        self.assertIn("retryable_surface_present_preserves_bounded_damage_pressure", present)
+        self.assertIn("retryable_surface_present_preserves_bounded_damage_pressure", read_rust_test_file("zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw/tests/present.rs"))
         self.assertIn(
             "let bounding_frame = union_frame(&self.bounding_frame, &next.bounding_frame);",
             damage,

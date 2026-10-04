@@ -10,23 +10,27 @@ use crate::text::{
 use super::super::ScreenSpaceUiGlyphArtifactLine;
 use super::ResolvedGlyphArtifactRejection;
 
-pub(super) struct RichTextGlyphArtifactRun {
-    pub(super) glyph_artifact_line: ScreenSpaceUiGlyphArtifactLine,
-    pub(super) style_source_range: Option<UiTextRange>,
+pub(in crate::graphics::scene::scene_renderer::ui::render) struct RichTextGlyphArtifactRun {
+    pub(in crate::graphics::scene::scene_renderer::ui::render) glyph_artifact_line:
+        ScreenSpaceUiGlyphArtifactLine,
+    pub(in crate::graphics::scene::scene_renderer::ui::render) style_source_range:
+        Option<UiTextRange>,
 }
 
-pub(super) enum RichTextGlyphArtifactRoute {
+pub(in crate::graphics::scene::scene_renderer::ui::render) enum RichTextGlyphArtifactRoute {
     Artifact(RichTextGlyphArtifactRun),
     VisualOnly,
     Rejected(ResolvedGlyphArtifactRejection),
 }
 
-pub(super) enum RichTextGlyphArtifactRouteBatch {
+pub(in crate::graphics::scene::scene_renderer::ui::render) enum RichTextGlyphArtifactRouteBatch {
     Complete(Vec<RichTextGlyphArtifactRoute>),
     PaintLayoutMismatch,
 }
 
-pub(super) fn rich_text_glyph_artifact_runs(
+/// 核对每个非空 run 的 paint 文字及范围，并依据行快照和 typed artifact 目录确定 glyph 路由。
+/// paint 不匹配使整批返回 PaintLayoutMismatch；匹配后的不可用产物按 run 保留拒绝原因，VisualOnly 仅用于布局已声明的视觉回退。
+pub(in crate::graphics::scene::scene_renderer::ui::render) fn rich_text_glyph_artifact_runs(
     layout: &UiResolvedTextLayout,
     paint_runs: &[UiTextPaintRun],
 ) -> RichTextGlyphArtifactRouteBatch {

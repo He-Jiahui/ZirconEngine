@@ -63,6 +63,10 @@ pub struct MaterialAsset {
     pub validation_diagnostics: Vec<String>,
 }
 
+#[cfg(test)]
+#[path = "material_asset/tests/optimization_batch_hz_runtime609_tests.rs"]
+mod optimization_batch_hz_runtime609_tests;
+
 impl MaterialAsset {
     #[cfg(test)]
     pub fn from_toml_str(document: &str) -> Result<Self, toml::de::Error> {
@@ -552,9 +556,14 @@ impl MaterialAsset {
             .into_iter()
             .map(|(slot, texture)| (slot.to_string(), texture))
             .collect::<Vec<_>>();
+        let schema_slot_count = slots.len();
         for (slot, texture) in &self.texture_slots {
             if let Some(reference) = texture.reference.as_ref() {
-                if !slots.iter().any(|(existing, _)| existing == slot) {
+                // BTreeMap already makes custom names unique; only schema entries can collide.
+                if !slots[..schema_slot_count]
+                    .iter()
+                    .any(|(existing, _)| existing == slot)
+                {
                     slots.push((slot.clone(), reference));
                 }
             }

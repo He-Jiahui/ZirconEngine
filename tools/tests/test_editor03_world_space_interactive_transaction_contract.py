@@ -50,8 +50,8 @@ class Editor03WorldSpaceInteractiveTransactionContractTests(unittest.TestCase):
         )
 
         self.assertIn("ViewportTransformRequest", feedback)
-        self.assertIn("target_world", feedback)
-        self.assertIn(".world_transform(entity)", controller)
+        self.assertIn("target_pivot_world", feedback)
+        self.assertIn("selection_pivot_transform(", controller)
         self.assertIn("InteractiveTransformSession", state)
         self.assertIn("active_camera_transform_before", state)
         self.assertIn("resync_after_interactive_transform", state)

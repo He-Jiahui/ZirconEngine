@@ -5,5 +5,19 @@ edition.workspace = true
 license.workspace = true
 description = "WOC headless RL role bootstrap."
 
+[features]
+default = ["engine-host"]
+engine-host = ["woc_runtime/engine-host"]
+
+[[bin]]
+name = "woc_headless"
+path = "src/main.rs"
+required-features = ["engine-host"]
+
 [dependencies]
 woc_runtime.workspace = true
+woc_protocol.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

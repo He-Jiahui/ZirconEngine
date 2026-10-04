@@ -9,6 +9,9 @@ use crate::ui::retained_host::host_contract::paint_geometry::{
     frame_from_template, intersect, translated,
 };
 use crate::ui::retained_host::host_contract::paint_template_nodes::TemplateNodePaintTransform;
+use crate::ui::retained_host::host_contract::paint_theme::{
+    current_host_metrics, logical_font_size_to_physical,
+};
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter_batch, UiPerfCounter};
 use crate::ui::workbench::asset_content_layout::{
@@ -424,8 +427,12 @@ fn apply_browser_slot_item(
             true
         }
         AssetBrowserPaintItem::Thumbnail(item) => {
-            let role = thumbnail_role?;
-            let slot_card = thumbnail_slot_card?;
+            let Some(role) = thumbnail_role else {
+                return false;
+            };
+            let Some(slot_card) = thumbnail_slot_card else {
+                return false;
+            };
             if role == BrowserThumbnailNodeRole::SelectionMarker && !binding.selected {
                 return false;
             }
@@ -457,11 +464,12 @@ fn apply_browser_slot_item(
                     node.text = if item.source_file_name.is_empty() {
                         item.name.clone()
                     } else {
-                        compact_thumbnail_file_name_to_width(
+                        compact_browser_thumbnail_file_name(
                             item.source_file_name.as_str(),
                             item.file_extension.as_str(),
                             node.frame.width,
                             node.font_size,
+                            current_host_metrics().scale_factor,
                         )
                     }
                     .into();
@@ -480,6 +488,21 @@ fn apply_browser_slot_item(
             true
         }
     }
+}
+
+pub(super) fn compact_browser_thumbnail_file_name(
+    source_file_name: &str,
+    extension: &str,
+    max_width: f32,
+    logical_font_size: f32,
+    scale_factor: f32,
+) -> String {
+    compact_thumbnail_file_name_to_width(
+        source_file_name,
+        extension,
+        max_width,
+        logical_font_size_to_physical(logical_font_size, scale_factor),
+    )
 }
 
 fn apply_thumbnail_item_frame(node: &mut TemplatePaneNodeData, frame: AssetContentRect) {

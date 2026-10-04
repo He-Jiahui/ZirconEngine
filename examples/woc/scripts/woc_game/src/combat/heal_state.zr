@@ -1,3 +1,4 @@
+// 世界调用方构造治疗与仇恨快照，再回写本模块产生的生命值和仇恨增量。
 var container = %import("zr.container");
 
 class HealEntity {
@@ -32,6 +33,7 @@ class HealEntity {
     }
 }
 
+// 七列按同一实体顺序投影；输出是治疗者的新增仇恨，调用方需按原顺序写回。
 class AwareMobProjection {
     pub var dead: container.Array<bool>;
     pub var hostile: container.Array<bool>;
@@ -139,6 +141,7 @@ takeRandomUnit(events: HealEvents): float {
     return result;
 }
 
+// 在缺血封顶之前消耗直接治疗的吸收预算；光环三列必须同序，满血也会耗预算。
 pub consumeHealAbsorb(target: HealEntity, healed: int): int {
     if (healed <= 0) { return healed; }
     var remaining = healed;
@@ -174,6 +177,7 @@ mobAwareOfTarget(mobs: AwareMobProjection, index: int, targetKind: string): bool
     return targetKind == "player" && <bool>mobs.ownedPetEntry[index];
 }
 
+// 只向已通过目标或其宠物建立知觉的战斗怪物分摊有效治疗仇恨。
 pub applyHealingThreat(
     source: HealEntity,
     target: HealEntity,
@@ -237,6 +241,8 @@ pub applyResolvedHeal(
     return healed;
 }
 
+// 活目标每次直接治疗消费一个暴击值，并保留零有效治疗的事件和武器触发时机。
+// 输入可为小数范围结果，须先乘暴击与治疗修正再统一取整。
 pub applyHeal(
     source: HealEntity,
     target: HealEntity,
@@ -255,6 +261,8 @@ pub applyHeal(
     return healed;
 }
 
+// 队列调用方先排除死亡目标；此周期路径仅应用受治疗修正，不抽暴击或消耗治疗吸收。
+// 来源缺失时仍恢复生命值，但不把仇恨归给已离场的施放者。
 pub applyHotTick(
     source: HealEntity,
     target: HealEntity,

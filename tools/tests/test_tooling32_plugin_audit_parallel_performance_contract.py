@@ -1,3 +1,4 @@
+# 核对独立插件审计进入单个有界执行池并逐名称收集结果。
 from __future__ import annotations
 
 import unittest

@@ -9,6 +9,7 @@ use crate::ui::template::{
     UiAssetImports, UiBindingRef, UiComponentParamSchema, UiComponentPublicContract,
     UiNamedSlotSchema, UiStyleScope,
 };
+use crate::ui::widget::UiWidgetContract;
 
 use super::{UiV2Repeat, UiV2RepeatValidationError, UiV2StyleDeclarationBlock, UiV2StyleSheet};
 
@@ -88,6 +89,8 @@ pub struct UiV2NodeDefinition {
     pub slots: BTreeMap<String, Value>,
     #[serde(default)]
     pub events: Vec<UiBindingRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub widget: Option<UiWidgetContract>,
     #[serde(default)]
     pub children: Vec<UiV2ChildMount>,
 }

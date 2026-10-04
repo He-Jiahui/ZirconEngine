@@ -18,15 +18,18 @@ class EditorTemplateSurfaceSinglePassPerformanceContractTests(unittest.TestCase)
 
         self.assertNotIn("nodes.iter().any(is_dispatchable)", source)
         self.assertEqual(source.count(".enumerate()"), 1)
-        self.assertIn("let mut dispatchable_nodes = nodes", source)
-        self.assertIn(".filter(|(_, node)| is_dispatchable(node))", source)
-        self.assertIn("let first_dispatchable = dispatchable_nodes.next()?;", source)
+        self.assertIn("let mut surface_nodes = nodes", source)
+        self.assertIn(
+            ".filter(|(_, node)| include_non_dispatchable || is_dispatchable(node))",
+            source,
+        )
+        self.assertIn("let first_node = surface_nodes.next()?;", source)
 
     def test_surface_build_consumes_first_and_remaining_rows_without_rescan(self) -> None:
         source = self.source()
 
         self.assertNotIn("fn template_nodes_surface_frame", source)
-        self.assertIn("std::iter::once(first_dispatchable).chain(dispatchable_nodes)", source)
+        self.assertIn("std::iter::once(first_node).chain(surface_nodes)", source)
         self.assertIn("Some(surface.surface_frame())", source)
 
 

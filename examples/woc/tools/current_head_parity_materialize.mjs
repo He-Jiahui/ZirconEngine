@@ -1,3 +1,6 @@
+// 调用端：node current_head_parity_materialize.mjs from examples/woc/tools；职责：核对摘要后从固定提交物化目录中列出的每份对齐用 golden。
+// 每条 golden 都经 git show 读取，并在写入前与目录记录的 SHA-256 核对。
+
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
@@ -16,6 +19,7 @@ const checkOnly = process.argv.includes('--check');
 
 main();
 
+// 写入任一 golden 前，先由对齐目录固定 54 个名称、源路径和 SHA-256 值。
 function main() {
   const catalog = JSON.parse(readFileSync(catalogPath, 'utf8'));
   invariant(catalog.schema_version === 1, 'current-head parity catalog schema drifted');
@@ -63,6 +67,7 @@ function sourceBlob(path) {
   }));
 }
 
+// 物化目录中的过期或多余 JSON 均须拒绝，嵌套的 golden 文件也在检查范围内。
 function assertExpectedPaths(expected) {
   if (!existsSync(outputRoot)) return;
   const actual = collectJsonPaths(outputRoot);
@@ -84,6 +89,7 @@ function collectJsonPaths(root) {
   return paths.sort();
 }
 
+// 检查模式比较原始字节；生成模式只创建预期的嵌套输出路径。
 function writeOrCheck(relativePath, contents) {
   const path = join(outputRoot, relativePath);
   if (checkOnly) {

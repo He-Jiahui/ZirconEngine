@@ -1,0 +1,331 @@
+{
+  "batch": 20,
+  "root_qualification_sha256": "0973fe9af1c153ea17ad42fe1a7f3e7f2f0418a55a4a5bcfe95098dfcbe9430e",
+  "bounded_companion_sha256": "429d025a977a7035262478bc8906e1a3ee7bc4422124c0e8e3a182692d4c8ca0",
+  "gate_presence_erratum_sha256": "e263b3a85a1451234722b5d72bf5d9ac9a582730ebac11f5188651ee161b3394",
+  "canonical_artifacts": [
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch20-review.jsonl",
+      "sha256": "02f9a44d927c697e2524995b978bcb692f28df0e85cfd1ca044b79c8b28e82b2",
+      "bytes": 879336
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch20-gates.jsonl",
+      "sha256": "943812c8bcf11ac8753dd429e64aab1d287be5ab7f666c646329920daf5c3641",
+      "bytes": 174016
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch20-refresh.jsonl",
+      "sha256": "90d73b3ed8b423dfac20dbcd767129c934efb57ac8eb33c43cace763b836631b",
+      "bytes": 371407
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch20-crosswalk.jsonl",
+      "sha256": "3dfbe63bcbe486efa5c48488af32b065495c62ee1b22c853ae8218fbfc9586af",
+      "bytes": 117525
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch20-summary.json",
+      "sha256": "e486d698e87435633afa6e4c856c8fe18bb81ee9e0257b00f029e379b241f413",
+      "bytes": 1724
+    }
+  ],
+  "raw_author_artifacts": [
+    {
+      "batch": 20,
+      "role": "review_jsonl",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch20\\review.jsonl",
+      "sha256": "b704c486f634b861ce44a2c8f98fc12e24cca3fa74e039823033c0d355b30496",
+      "bytes": 647035,
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-packets\\B20\\review_jsonl\\review.jsonl"
+    },
+    {
+      "batch": 20,
+      "role": "gates_jsonl",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch20\\gates.jsonl",
+      "sha256": "653debe1c3ca7a9d9f9da1e4d9d24d14726388b8eff09217067991a7768da9c9",
+      "bytes": 64248,
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-packets\\B20\\gates_jsonl\\gates.jsonl"
+    },
+    {
+      "batch": 20,
+      "role": "refresh_jsonl",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch20\\refresh.jsonl",
+      "sha256": "9a2ca95138e381651fe906f7b5619fa392c164cc5f800a3fc6b3fc7faef5b679",
+      "bytes": 296967,
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-packets\\B20\\refresh_jsonl\\refresh.jsonl"
+    },
+    {
+      "batch": 20,
+      "role": "manifest_json",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch20\\manifest.json",
+      "sha256": "e303c0e423e39d53f809078eecd0ad019a89082b73944c2155613c9098c5511c",
+      "bytes": 2513,
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-packets\\B20\\manifest_json\\manifest.json"
+    },
+    {
+      "batch": 20,
+      "role": "summary_json",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch20\\summary.json",
+      "sha256": "d5d8a7dd1476a44c451d4f940c6f3da79177071a884854fe5989a294b3df4c5d",
+      "bytes": 3637,
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-packets\\B20\\summary_json\\summary.json"
+    },
+    {
+      "batch": 20,
+      "role": "rawcaptures_manifest",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch20\\rawcaptures\\manifest.json",
+      "sha256": "2405dcfec6618104681ba73eb2c4eeee35cbb86dec33f1c3800e31998351b5ed",
+      "bytes": 23718,
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-packets\\B20\\rawcaptures_manifest\\manifest.json"
+    },
+    {
+      "batch": 20,
+      "role": "prior_independent_review",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0-b20-independent-qualification-r1\\review.json",
+      "sha256": "99e0af27fdd6fb970982bde71d2a94981a6169f4e1613c5c765ad21029da2295",
+      "bytes": 125128,
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-packets\\B20\\prior_independent_review\\review.json"
+    }
+  ],
+  "source_captures": [
+    {
+      "path": "docs/plans/optimize/zircon_editor/72-editor-scene-viewport-layout-split-view-orthographic-quadrant-maximize-link-sync-slot-focus-toolbar-persistence-performance-product-integration-current-source-review.md",
+      "authored_sha256": "1245a8e5f8c7d0dab2faf5682a301e49001d11096a06ed6c2e9e08dc89632670",
+      "current_sha256": "1245a8e5f8c7d0dab2faf5682a301e49001d11096a06ed6c2e9e08dc89632670",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\docs\\plans\\optimize\\zircon_editor\\72-editor-scene-viewport-layout-split-view-orthographic-quadrant-maximize-link-sync-slot-focus-toolbar-persistence-performance-product-integration-current-source-review.md",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\docs\\plans\\optimize\\zircon_editor\\72-editor-scene-viewport-layout-split-view-orthographic-quadrant-maximize-link-sync-slot-focus-toolbar-persistence-performance-product-integration-current-source-review.md"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_editor/193-editor-scene-viewport-layout-split-view-orthographic-quadrant-maximize-link-sync-slot-focus-toolbar-persistence-performance-product-integration-current-source-review.md",
+      "authored_sha256": "4ca063c913d2321dffbf0974495d853f34c3f26ba03b79f21f7935ca1c4af159",
+      "current_sha256": "4ca063c913d2321dffbf0974495d853f34c3f26ba03b79f21f7935ca1c4af159",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\docs\\plans\\optimize\\zircon_editor\\193-editor-scene-viewport-layout-split-view-orthographic-quadrant-maximize-link-sync-slot-focus-toolbar-persistence-performance-product-integration-current-source-review.md",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\docs\\plans\\optimize\\zircon_editor\\193-editor-scene-viewport-layout-split-view-orthographic-quadrant-maximize-link-sync-slot-focus-toolbar-persistence-performance-product-integration-current-source-review.md"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_editor/127-editor-workbench-shell-autolayout-constraint-language-responsive-region-binding-geometry-current-source-review.md",
+      "authored_sha256": "9aa9e6a1d87d77c2b02e5f93de0a0f8ed13bfaa7d67243fd616bdeca70ddf392",
+      "current_sha256": "9aa9e6a1d87d77c2b02e5f93de0a0f8ed13bfaa7d67243fd616bdeca70ddf392",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\docs\\plans\\optimize\\zircon_editor\\127-editor-workbench-shell-autolayout-constraint-language-responsive-region-binding-geometry-current-source-review.md",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\docs\\plans\\optimize\\zircon_editor\\127-editor-workbench-shell-autolayout-constraint-language-responsive-region-binding-geometry-current-source-review.md"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_editor/54-editor-workbench-shell-autolayout-constraint-language-responsive-region-binding-geometry-product-integration-review.md",
+      "authored_sha256": "54fa974fe3c9595f88c3d0ecc013d28c20115646eae405eaba42712c3a81679b",
+      "current_sha256": "54fa974fe3c9595f88c3d0ecc013d28c20115646eae405eaba42712c3a81679b",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\docs\\plans\\optimize\\zircon_editor\\54-editor-workbench-shell-autolayout-constraint-language-responsive-region-binding-geometry-product-integration-review.md",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\docs\\plans\\optimize\\zircon_editor\\54-editor-workbench-shell-autolayout-constraint-language-responsive-region-binding-geometry-product-integration-review.md"
+    },
+    {
+      "path": "zircon_editor/src/ui/workbench/model/document_tabs/collect.rs",
+      "authored_sha256": "c056d32a7e249ea94429daa238d547ad1217f9c71138dd9240045c8cbfa4b4d8",
+      "current_sha256": "c056d32a7e249ea94429daa238d547ad1217f9c71138dd9240045c8cbfa4b4d8",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\zircon_editor\\src\\ui\\workbench\\model\\document_tabs\\collect.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\zircon_editor\\src\\ui\\workbench\\model\\document_tabs\\collect.rs"
+    },
+    {
+      "path": "zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs",
+      "authored_sha256": "305b9d8b36e9fbf6f521e49b4cc752904b126145aa0d97eab9c4342669dde31a",
+      "current_sha256": "305b9d8b36e9fbf6f521e49b4cc752904b126145aa0d97eab9c4342669dde31a",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\zircon_editor\\src\\ui\\layouts\\windows\\workbench_host_window\\scene_projection.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\zircon_editor\\src\\ui\\layouts\\windows\\workbench_host_window\\scene_projection.rs"
+    },
+    {
+      "path": "zircon_editor/src/ui/retained_host/callback_dispatch/viewport/route_mapping.rs",
+      "authored_sha256": "718b5ebd25f90e70b981adec8f343e7a6abfae932d95d9f95695c9b3dc45209a",
+      "current_sha256": "718b5ebd25f90e70b981adec8f343e7a6abfae932d95d9f95695c9b3dc45209a",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\zircon_editor\\src\\ui\\retained_host\\callback_dispatch\\viewport\\route_mapping.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\zircon_editor\\src\\ui\\retained_host\\callback_dispatch\\viewport\\route_mapping.rs"
+    },
+    {
+      "path": "zircon_editor/src/ui/workbench/state/editor_state_viewport.rs",
+      "authored_sha256": "440247a636328f97942a2bfba5043ba96547600154793c117b60cb3fb716a358",
+      "current_sha256": "440247a636328f97942a2bfba5043ba96547600154793c117b60cb3fb716a358",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\zircon_editor\\src\\ui\\workbench\\state\\editor_state_viewport.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\zircon_editor\\src\\ui\\workbench\\state\\editor_state_viewport.rs"
+    },
+    {
+      "path": "zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute_viewport.rs",
+      "authored_sha256": "4db5c2780d49f47f42bb2192c8871a3d99f47d064b99b4868f0418e3a9993d2d",
+      "current_sha256": "4db5c2780d49f47f42bb2192c8871a3d99f47d064b99b4868f0418e3a9993d2d",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\zircon_editor\\src\\ui\\retained_host\\app\\host_lifecycle\\recompute_viewport.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\zircon_editor\\src\\ui\\retained_host\\app\\host_lifecycle\\recompute_viewport.rs"
+    },
+    {
+      "path": "zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell/builder.rs",
+      "authored_sha256": "61a0aebfe9ba0a8d4d4ca0207563147d151f5eb4ac3364774864971818e0d6d2",
+      "current_sha256": "61a0aebfe9ba0a8d4d4ca0207563147d151f5eb4ac3364774864971818e0d6d2",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\zircon_editor\\src\\ui\\retained_host\\app\\host_lifecycle\\recompute\\shell\\builder.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\zircon_editor\\src\\ui\\retained_host\\app\\host_lifecycle\\recompute\\shell\\builder.rs"
+    },
+    {
+      "path": "zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell/template_bridges.rs",
+      "authored_sha256": "202f74c95b1b366511eff6e940099f52bae8628bcdc4a5866a79f6794c685495",
+      "current_sha256": "202f74c95b1b366511eff6e940099f52bae8628bcdc4a5866a79f6794c685495",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\zircon_editor\\src\\ui\\retained_host\\app\\host_lifecycle\\recompute\\shell\\template_bridges.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\zircon_editor\\src\\ui\\retained_host\\app\\host_lifecycle\\recompute\\shell\\template_bridges.rs"
+    },
+    {
+      "path": "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/drawer_layout.rs",
+      "authored_sha256": "1be734ca717b43c9f08b87fdb704da0429b86cb9ac31f67e1fa6464d18715c2e",
+      "current_sha256": "6b77db8b887b9aad30fb3b17b398f28ce9e0afe4362468ff4743e91ec75bcb46",
+      "current_match": false,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\zircon_editor\\src\\ui\\retained_host\\callback_dispatch\\template_bridge\\workbench\\drawer_layout.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\zircon_editor\\src\\ui\\retained_host\\callback_dispatch\\template_bridge\\workbench\\drawer_layout.rs"
+    },
+    {
+      "path": "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/responsive_layout.rs",
+      "authored_sha256": "67e31bb0fb2cc5b25b8198e10c6f5e6e7a948cf22e16cfc1e40e74a7008bf74b",
+      "current_sha256": "67e31bb0fb2cc5b25b8198e10c6f5e6e7a948cf22e16cfc1e40e74a7008bf74b",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\zircon_editor\\src\\ui\\retained_host\\callback_dispatch\\template_bridge\\workbench\\responsive_layout.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\zircon_editor\\src\\ui\\retained_host\\callback_dispatch\\template_bridge\\workbench\\responsive_layout.rs"
+    },
+    {
+      "path": "zircon_editor/src/ui/workbench/autolayout/shell_regions_asset.rs",
+      "authored_sha256": "5774aad7fd26b3af914570858b28fc58678a0f262805ecfc501890db92cd7b09",
+      "current_sha256": "5774aad7fd26b3af914570858b28fc58678a0f262805ecfc501890db92cd7b09",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\zircon_editor\\src\\ui\\workbench\\autolayout\\shell_regions_asset.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\zircon_editor\\src\\ui\\workbench\\autolayout\\shell_regions_asset.rs"
+    },
+    {
+      "path": "zircon_editor/src/ui/workbench/autolayout/css_like_constraint/declaration_parser.rs",
+      "authored_sha256": "5c26606eefdddc90781ba3eb961bbe8ae52de60cb354d27e033559b24d313cad",
+      "current_sha256": "5c26606eefdddc90781ba3eb961bbe8ae52de60cb354d27e033559b24d313cad",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\zircon_editor\\src\\ui\\workbench\\autolayout\\css_like_constraint\\declaration_parser.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\zircon_editor\\src\\ui\\workbench\\autolayout\\css_like_constraint\\declaration_parser.rs"
+    },
+    {
+      "path": "zircon_runtime/src/ui/layout/constraints.rs",
+      "authored_sha256": "7517081e22ed5f82cc65ceed51b7e39405fc37db0de212725aa5440d97e00ef7",
+      "current_sha256": "7517081e22ed5f82cc65ceed51b7e39405fc37db0de212725aa5440d97e00ef7",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\zircon_runtime\\src\\ui\\layout\\constraints.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\zircon_runtime\\src\\ui\\layout\\constraints.rs"
+    },
+    {
+      "path": "zircon_runtime_interface/src/ui/layout/constraints.rs",
+      "authored_sha256": "c3f8026f8e12d77eff2e58a5ea3d506305498de0169cccdbac24b2c4d58e58c8",
+      "current_sha256": "c3f8026f8e12d77eff2e58a5ea3d506305498de0169cccdbac24b2c4d58e58c8",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\zircon_runtime_interface\\src\\ui\\layout\\constraints.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\zircon_runtime_interface\\src\\ui\\layout\\constraints.rs"
+    },
+    {
+      "path": "zircon_editor/src/ui/workbench/view/view_descriptor.rs",
+      "authored_sha256": "2b4b9ffc7d764a9a1365acc19a3a262a96cfba76b579baa53bfc38ae355ccfff",
+      "current_sha256": "2b4b9ffc7d764a9a1365acc19a3a262a96cfba76b579baa53bfc38ae355ccfff",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\zircon_editor\\src\\ui\\workbench\\view\\view_descriptor.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\zircon_editor\\src\\ui\\workbench\\view\\view_descriptor.rs"
+    },
+    {
+      "path": "zircon_editor/src/ui/workbench/view/view_instance.rs",
+      "authored_sha256": "2b6c1fa7286949f44d3e901bcbb5caeefb20ef414468106fe7157a51b507f61e",
+      "current_sha256": "2b6c1fa7286949f44d3e901bcbb5caeefb20ef414468106fe7157a51b507f61e",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\zircon_editor\\src\\ui\\workbench\\view\\view_instance.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\zircon_editor\\src\\ui\\workbench\\view\\view_instance.rs"
+    },
+    {
+      "path": "zircon_editor/src/ui/workbench/view/view_registry_open_descriptor.rs",
+      "authored_sha256": "40d1fff390e4c94f28f7bf050e54eaa5dd84fb04fe0f748ab79c81358e19cf02",
+      "current_sha256": "40d1fff390e4c94f28f7bf050e54eaa5dd84fb04fe0f748ab79c81358e19cf02",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\zircon_editor\\src\\ui\\workbench\\view\\view_registry_open_descriptor.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\zircon_editor\\src\\ui\\workbench\\view\\view_registry_open_descriptor.rs"
+    },
+    {
+      "path": "zircon_editor/src/ui/workbench/layout_preset.rs",
+      "authored_sha256": "664233771afba4e67ae0e70148ab4a16ae1b3ee0e2b3117df79b11adce4e4626",
+      "current_sha256": "664233771afba4e67ae0e70148ab4a16ae1b3ee0e2b3117df79b11adce4e4626",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\zircon_editor\\src\\ui\\workbench\\layout_preset.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\zircon_editor\\src\\ui\\workbench\\layout_preset.rs"
+    },
+    {
+      "path": "zircon_editor/src/ui/host/layout_persistence.rs",
+      "authored_sha256": "6c7f0db2acfac532d901904137d5dc4a0cc365f74b07a74a00eed8f21b68be77",
+      "current_sha256": "6c7f0db2acfac532d901904137d5dc4a0cc365f74b07a74a00eed8f21b68be77",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\zircon_editor\\src\\ui\\host\\layout_persistence.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\zircon_editor\\src\\ui\\host\\layout_persistence.rs"
+    },
+    {
+      "path": "zircon_editor/src/ui/retained_host/app/host_lifecycle/render_submission.rs",
+      "authored_sha256": "f1f0df4328fe177df0c66009696b8daf793edb4ec893f0135e146a0617af9d2b",
+      "current_sha256": "f1f0df4328fe177df0c66009696b8daf793edb4ec893f0135e146a0617af9d2b",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\zircon_editor\\src\\ui\\retained_host\\app\\host_lifecycle\\render_submission.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\zircon_editor\\src\\ui\\retained_host\\app\\host_lifecycle\\render_submission.rs"
+    },
+    {
+      "path": "zircon_editor/src/ui/retained_host/viewport/poll_viewport_product.rs",
+      "authored_sha256": "5b2fc0eb32cd47958b68e1953ef7311d9873e4e59d7f648c182018296f2c94f3",
+      "current_sha256": "5b2fc0eb32cd47958b68e1953ef7311d9873e4e59d7f648c182018296f2c94f3",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\zircon_editor\\src\\ui\\retained_host\\viewport\\poll_viewport_product.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\zircon_editor\\src\\ui\\retained_host\\viewport\\poll_viewport_product.rs"
+    },
+    {
+      "path": "zircon_editor/src/ui/retained_host/viewport/poll_captured_frame.rs",
+      "authored_sha256": "74d27f23e7d6d8ca3a65f8adba8cf760269a46a8de23de288cfa6cfff91ea601",
+      "current_sha256": "74d27f23e7d6d8ca3a65f8adba8cf760269a46a8de23de288cfa6cfff91ea601",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\zircon_editor\\src\\ui\\retained_host\\viewport\\poll_captured_frame.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\zircon_editor\\src\\ui\\retained_host\\viewport\\poll_captured_frame.rs"
+    },
+    {
+      "path": "zircon_editor/src/ui/retained_host/viewport/submit_extract.rs",
+      "authored_sha256": "27883e71aa3c2118633dcda5ba64c94978223bcb16124318e41caa5ee5cc3aa3",
+      "current_sha256": "27883e71aa3c2118633dcda5ba64c94978223bcb16124318e41caa5ee5cc3aa3",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\zircon_editor\\src\\ui\\retained_host\\viewport\\submit_extract.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\zircon_editor\\src\\ui\\retained_host\\viewport\\submit_extract.rs"
+    }
+  ],
+  "all_original_and_product_gates": "open",
+  "coordinator_calls": 0,
+  "tests_run": 0,
+  "source_ready": false
+}

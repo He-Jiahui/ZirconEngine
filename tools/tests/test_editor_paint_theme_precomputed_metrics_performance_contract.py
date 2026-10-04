@@ -1,3 +1,4 @@
+# 核对绘制主题尺寸表在发布时预缩放，热路径直接读取准备结果。
 from pathlib import Path
 import unittest
 

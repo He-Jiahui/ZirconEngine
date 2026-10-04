@@ -23,6 +23,7 @@ pub(in crate::graphics) mod realtime_ibl_gpu_resources;
 pub(in crate::graphics) mod realtime_ibl_gpu_timestamps;
 pub(in crate::graphics) mod realtime_ibl_graph_plan;
 #[cfg(test)]
+#[path = "tests/realtime_ibl_profile_test_support.rs"]
 pub(in crate::graphics::scene::scene_renderer) mod realtime_ibl_profile_test_support;
 pub(in crate::graphics) mod realtime_ibl_runtime;
 pub(in crate::graphics) mod realtime_ibl_time_slice;
@@ -63,9 +64,10 @@ pub(in crate::graphics::scene::scene_renderer) use ibl_bake_wgpu_pipeline_cache:
 pub(in crate::graphics::scene::scene_renderer) use lightmap_binding::{
     lightmap_bind_group_layout_entries, LightmapGpuBindings, SceneLightmapResources,
 };
-pub(in crate::graphics) use probe_buffer::{
-    reflection_probe_bind_group_layout_entries, ProbeCubemapSlotReservation,
-    ReflectionProbeGpuBindings, SceneReflectionProbeResources, PLANAR_REFLECTION_TEXTURE_SIZE,
+pub(in crate::graphics) use probe_buffer::ProbeCubemapSlotReservation;
+pub(in crate::graphics::scene::scene_renderer) use probe_buffer::{
+    reflection_probe_bind_group_layout_entries, ReflectionProbeGpuBindings,
+    SceneReflectionProbeResources, PLANAR_REFLECTION_TEXTURE_SIZE,
 };
 pub use realtime_ibl_cpu_timing::RealtimeIblCpuTimingReport;
 pub use realtime_ibl_gpu_timestamps::RealtimeIblGpuTimingReport;

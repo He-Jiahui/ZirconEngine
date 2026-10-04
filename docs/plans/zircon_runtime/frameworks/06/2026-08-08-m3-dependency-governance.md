@@ -3,14 +3,14 @@ related_code:
   - deny.toml
   - .github/workflows/ci.yml
   - tools/tests/test_frameworks_06_dependency_governance_contract.py
-  - tools/check_conventions.py
-  - tools/convention_exemptions.py
-  - tools/check-conventions.ps1
+  - tools/audits/check_conventions.py
+  - tools/audits/convention_exemptions.py
+  - tools/audits/check-conventions.ps1
   - tools/tests/test_check_conventions.py
-  - docs/cli-and-tooling/check-conventions.md
+  - docs/tooling/check-conventions.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
-  - docs/zircon_runtime/structure/module-convention.md
+  - docs/crates/zircon_runtime/structure/module-convention.md
   - docs/plans/zircon_runtime/runtime/05-scene-editor-boundary-closeout.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
@@ -20,7 +20,7 @@ plan_sources:
 tests:
   - python -B -m unittest tools.tests.test_frameworks_06_dependency_governance_contract -v
   - python -B -m unittest tools.tests.test_frameworks_06_ci_toolchain_contract tools.tests.test_check_conventions -v
-  - python -B tools/check_conventions.py --only docs --only guards --only exemptions --json
+  - python -B tools/audits/check_conventions.py --only docs --only guards --only exemptions --json
   - cargo deny --manifest-path Cargo.toml --all-features check advisories bans licenses sources
   - cargo deny --manifest-path zircon_plugins/Cargo.toml --all-features check advisories bans licenses sources
 ---
@@ -33,7 +33,7 @@ Milestone: M3
 
 Status: validation_pending
 
-Files: [".github/workflows/ci.yml","deny.toml","docs/cli-and-tooling/check-conventions.md","docs/plans/engine-code-review-findings-2026-06.md","docs/plans/engine-code-structure-convention.md","docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md","docs/plans/zircon_runtime/frameworks/06/2026-08-08-m3-dependency-governance.md","tools/check-conventions.ps1","tools/check_conventions.py","tools/convention_exemptions.py","tools/tests/test_check_conventions.py","tools/tests/test_frameworks_06_dependency_governance_contract.py"]
+Files: [".github/workflows/ci.yml","deny.toml","docs/tooling/check-conventions.md","docs/plans/engine-code-review-findings-2026-06.md","docs/plans/engine-code-structure-convention.md","docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md","docs/plans/zircon_runtime/frameworks/06/2026-08-08-m3-dependency-governance.md","tools/audits/check-conventions.ps1","tools/audits/check_conventions.py","tools/audits/convention_exemptions.py","tools/tests/test_check_conventions.py","tools/tests/test_frameworks_06_dependency_governance_contract.py"]
 
 Current status: `implementation_secondary_review_green_managed_contract_queued_cargo_deny_acceptance_pending`
 

@@ -564,7 +564,11 @@ fn visible_page_tab_indices(tabs: &ModelRc<TabData>, width: f32) -> Vec<usize> {
     let visible_cap = main_page_tab_visible_cap_for_width(width, tab_count);
     let force_overflow = visible_cap < tab_count;
     let mut x = MAIN_PAGE_TAB_CHROME_SIDE_INSET;
-    let mut visible = Vec::new();
+    let mut visible = Vec::with_capacity(page_tab_visible_capacity(
+        visible_cap,
+        tab_count,
+        max_tab_right,
+    ));
     for row in 0..tab_count {
         if visible.len() >= visible_cap {
             break;
@@ -598,6 +602,21 @@ fn visible_page_tab_indices(tabs: &ModelRc<TabData>, width: f32) -> Vec<usize> {
 
     visible.dedup();
     visible
+}
+
+fn page_tab_visible_capacity(visible_cap: usize, tab_count: usize, max_tab_right: f32) -> usize {
+    let width_bound = if max_tab_right.is_finite() {
+        let lane_width = (max_tab_right - MAIN_PAGE_TAB_CHROME_SIDE_INSET).max(0.0);
+        let minimum_slot = MAIN_PAGE_TAB_MIN_WIDTH + MAIN_PAGE_TAB_GAP;
+        (lane_width / minimum_slot).floor() as usize
+    } else {
+        usize::MAX
+    };
+
+    visible_cap
+        .min(tab_count)
+        .min(width_bound.saturating_add(1))
+        .max(1)
 }
 
 fn page_tab_width(tab: &TabData) -> f32 {

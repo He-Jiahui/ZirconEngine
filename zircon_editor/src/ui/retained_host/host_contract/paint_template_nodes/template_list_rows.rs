@@ -1,3 +1,6 @@
+//! 列表行的专用接管入口；先限制到行与祖先裁剪交集，再绘制状态底面、标题与尾部装饰。
+//! 已识别但完全不可见的行仍返回 handled，避免通用 fallback 重复渲染。
+
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::paint_geometry::intersect;
 use super::render_commands::HostPaintCommand;
@@ -18,7 +21,7 @@ use surface::push_list_row_surface;
 use text::push_list_row_label;
 
 #[cfg(test)]
-#[path = "template_list_rows_tests/mod.rs"]
+#[path = "template_list_rows_tests/tests/mod.rs"]
 mod tests;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_list_row_commands(

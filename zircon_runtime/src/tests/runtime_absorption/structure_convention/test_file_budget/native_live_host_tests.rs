@@ -1,8 +1,10 @@
+//! 核对原生宿主生命周期测试迁移后的父子分工与数量快照，并检查文件预算；出现次数来自源码文本，后续新增测试需按当前职责复核快照。
 use super::*;
 
 #[test]
 fn runtime_15_native_live_host_tests_are_folder_backed() {
-    let parent = read_runtime_src("plugin/native_plugin_loader/native_plugin_live_host/tests.rs");
+    let parent =
+        read_runtime_src("plugin/native_plugin_loader/native_plugin_live_host/tests/cases.rs");
     let runtime_behavior = read_runtime_src(
         "plugin/native_plugin_loader/native_plugin_live_host/tests/runtime_behavior.rs",
     );
@@ -93,7 +95,7 @@ fn runtime_15_native_live_host_tests_are_folder_backed() {
 
     for (path, source) in [
         (
-            "plugin/native_plugin_loader/native_plugin_live_host/tests.rs",
+            "plugin/native_plugin_loader/native_plugin_live_host/tests/cases.rs",
             parent.as_str(),
         ),
         (

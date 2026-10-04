@@ -10,8 +10,8 @@ fixing_child_dir: docs/plans/zircon_plugins/13
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/zircon_export/pipeline_report_platform_bundle_template_manifest_schema.py
-  - tools/zircon_export/pipeline_report_platform_bundle_template_manifest_loader.py
+  - tools/export/pipeline_report_platform_bundle_template_manifest_schema.py
+  - tools/export/pipeline_report_platform_bundle_template_manifest_loader.py
 tests:
   - tools/tests/test_zircon_export_platform_bundle_template_manifest_files_owner_boundaries.py
 resolved_at: 2026-08-31

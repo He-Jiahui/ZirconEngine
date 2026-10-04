@@ -1,3 +1,5 @@
+//! 精确评分把屏幕点与形状边界比较，容差内才参与拾取；非零评分用于候选排序，提前返回不能改变形状间相对接近度。
+
 use zircon_runtime_interface::math::Vec2;
 
 use super::PrecisionShape;
@@ -38,6 +40,7 @@ impl PrecisionShape {
                         if best <= *thickness_px {
                             return Some(0.0);
                         }
+                        // BUG: [CR-EDITOR-SP-0006] 容差内首段的非零分数还不是整环最小值；此处早退使候选排序依赖环的分段起点。
                         if best <= *thickness_px + *threshold_px {
                             return Some(best - *thickness_px);
                         }
@@ -51,9 +54,9 @@ impl PrecisionShape {
 }
 
 #[cfg(test)]
-#[path = "precision_shape_score/early_exit_tests.rs"]
+#[path = "precision_shape_score/tests/early_exit_tests.rs"]
 mod early_exit_tests;
 
 #[cfg(test)]
-#[path = "precision_shape_score/threshold_exit_tests.rs"]
+#[path = "precision_shape_score/tests/threshold_exit_tests.rs"]
 mod threshold_exit_tests;

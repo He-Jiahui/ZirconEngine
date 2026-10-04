@@ -217,6 +217,357 @@ Describe 'Render-extract baseline metrics' {
         }
     }
 
+    It 'reports mesh command preparation and parallel dispatch instrumentation coverage' {
+        $directory = Join-Path $TestDrive ("baseline-report-mesh-command-coverage-" + [guid]::NewGuid().ToString('N'))
+        try {
+            $summaryPath = New-RenderExtractBaselineFixture `
+                -Directory $directory `
+                -FrameDurationsUs @(1000, 2000, 3000) `
+                -ProcessDurationsMs @(10, 20, 30)
+            $summary = Get-Content -LiteralPath $summaryPath -Raw | ConvertFrom-Json
+            foreach ($run in $summary.runs) {
+                Add-MeshCommandPreparationSamples `
+                    -TimelinePath (Join-Path $run.profile_directory 'timeline.zrtrace.json')
+            }
+            Mock Assert-RenderExtractBaselineEvidenceDirectory {
+                param($Path)
+                Resolve-ZirconWindowsPath -Path $Path
+            }
+
+            $report = Write-RenderExtractBaselineReport -BaselineSummaryPath $summaryPath
+            $scenario = @($report.scenarios | Where-Object { $_.logical_id -eq 'pipelined-steady' })[0]
+
+            $scenario.mesh_command_preparation.status | Should Be 'measured'
+            $scenario.mesh_command_preparation.spans.Count | Should Be 12
+            $scenario.mesh_command_preparation.counters.Count | Should Be 30
+            $scenario.mesh_command_parallel_dispatch.status | Should Be 'measured'
+            $scenario.mesh_command_parallel_dispatch.counters.Count | Should Be 4
+            $report.measurement_coverage.mesh_command_preparation.status | Should Be 'measured'
+            $report.measurement_coverage.mesh_command_parallel_dispatch.status | Should Be 'measured'
+            $markdown = [IO.File]::ReadAllText((Join-Path $directory 'render-extract-baseline-report.md'))
+            $markdown | Should Match 'Mesh command preparation: measured'
+            $markdown | Should Match 'Mesh command parallel dispatch: measured'
+        }
+        finally {
+            if ([IO.Directory]::Exists($directory)) {
+                Remove-Item -LiteralPath $directory -Recurse -Force
+            }
+        }
+    }
+
+    It 'keeps the structural counter report schema bound to the product recorder' {
+        $productPath = Join-Path $repoRoot `
+            'zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mesh_draw_command_list\materialization_profile.rs'
+        $reportModulePath = Join-Path $repoRoot 'tools\mvp\RenderExtractMeshCommandMetrics.psm1'
+        $productNames = @(
+            [regex]::Matches([IO.File]::ReadAllText($productPath), 'mesh_commands\.[a-z0-9_.]+') |
+                ForEach-Object Value |
+                Sort-Object -Unique
+        )
+        $nonStructuralNames = @(
+            'mesh_commands.batch_count',
+            'mesh_commands.worker_count',
+            'mesh_commands.parallel_enabled',
+            'mesh_commands.dispatch_reason_code',
+            'mesh_commands.cache_hit_count',
+            'mesh_commands.cache_miss_count',
+            'mesh_commands.command_rebuild_count',
+            'mesh_commands.command_count'
+        )
+        $reportNames = @(
+            [regex]::Matches([IO.File]::ReadAllText($reportModulePath), 'mesh_commands\.[a-z0-9_.]+') |
+                ForEach-Object Value |
+                Where-Object { $nonStructuralNames -notcontains $_ } |
+                Sort-Object -Unique
+        )
+
+        $productNames.Count | Should Be 26
+        ($reportNames -join "`n") | Should Be ($productNames -join "`n")
+    }
+
+    It 'requires parallel CPU stages only when the dispatch decision enables workers' {
+        $spans = @(
+            [pscustomobject]@{
+                stream = 'render'
+                category = 'mesh_commands'
+                name = 'parallel_admission'
+            }
+        )
+        $counters = @(
+            [pscustomobject]@{ stream = 'render'; name = 'mesh_commands.batch_count'; value = 1 },
+            [pscustomobject]@{ stream = 'render'; name = 'mesh_commands.worker_count'; value = 1 },
+            [pscustomobject]@{ stream = 'render'; name = 'mesh_commands.parallel_enabled'; value = 0 },
+            [pscustomobject]@{ stream = 'render'; name = 'mesh_commands.dispatch_reason_code'; value = 2 }
+        )
+
+        $serial = Get-RenderExtractMeshCommandParallelDispatchCoverage `
+            -Spans $spans `
+            -Counters $counters
+        $serial.status | Should Be 'measured'
+
+        $counters[2].value = 1
+        $parallel = Get-RenderExtractMeshCommandParallelDispatchCoverage `
+            -Spans $spans `
+            -Counters $counters
+        $parallel.status | Should Be 'partial'
+        (@($parallel.missing_span_names) -join ',') |
+            Should Be 'owner_transaction,worker_projection_wait,ordered_merge'
+    }
+
+    It 'requires preparation stages for every dispatch branch observed in one attempt' {
+        $commonNames = @(
+            'extract_cached_pre_mesh_draw',
+            'pre_mesh_materialize',
+            'finalize_old_path',
+            'indirect_plan',
+            'replay_record'
+        )
+        $serialNames = @('prepare_cached_serial', 'serial_prepare_and_project', 'seal_phase_buffers')
+        $dispatchNames = @('prepare_cached_dispatch', 'normalize_source_order', 'parallel_admission')
+        $parallelNames = @('owner_transaction', 'worker_projection_wait', 'ordered_merge')
+        $span = {
+            param([string]$Name)
+            [pscustomobject]@{ stream = 'render'; category = 'mesh_commands'; name = $Name }
+        }
+        $spansFor = {
+            param([string[]]$Names)
+            @($Names | ForEach-Object { & $span $_ })
+        }
+        $reportSource = [IO.File]::ReadAllText(
+            (Join-Path $repoRoot 'tools\mvp\RenderExtractMeshCommandMetrics.psm1')
+        )
+        $preparationCounterNames = @(
+            [regex]::Matches($reportSource, 'mesh_commands\.[a-z0-9_.]+') |
+                ForEach-Object Value |
+                Where-Object {
+                    $_ -notin @(
+                        'mesh_commands.batch_count',
+                        'mesh_commands.worker_count',
+                        'mesh_commands.parallel_enabled',
+                        'mesh_commands.dispatch_reason_code'
+                    )
+                } |
+                Sort-Object -Unique
+        )
+        $preparationCounters = @($preparationCounterNames | ForEach-Object {
+                [pscustomobject]@{ stream = 'render'; name = $_; value = 1 }
+            })
+
+        $directSerial = Get-RenderExtractMeshCommandPreparationCoverage `
+            -Spans (& $spansFor ($commonNames + $serialNames)) `
+            -Counters $preparationCounters
+        $directSerial.status | Should Be 'measured'
+
+        $disabledCounters = @($preparationCounters) + [pscustomobject]@{
+            stream = 'render'; name = 'mesh_commands.parallel_enabled'; value = 0
+        }
+        $dispatchFallback = Get-RenderExtractMeshCommandPreparationCoverage `
+            -Spans (& $spansFor ($commonNames + $dispatchNames + $serialNames)) `
+            -Counters $disabledCounters
+        $dispatchFallback.status | Should Be 'measured'
+
+        $mixedCounters = @($disabledCounters) + [pscustomobject]@{
+            stream = 'render'; name = 'mesh_commands.parallel_enabled'; value = 1
+        }
+        $mixed = Get-RenderExtractMeshCommandPreparationCoverage `
+            -Spans (& $spansFor ($commonNames + $dispatchNames + $parallelNames + 'seal_phase_buffers')) `
+            -Counters $mixedCounters
+        $mixed.status | Should Be 'partial'
+        (@($mixed.missing_span_names) -join ',') |
+            Should Be 'prepare_cached_serial,serial_prepare_and_project'
+
+        $mixedAggregateCounters = @($preparationCounters) + [pscustomobject]@{
+            stream = 'render'
+            name = 'mesh_commands.parallel_enabled'
+            statistics = [ordered]@{ min = 0; max = 1 }
+        }
+        $mixedAggregate = Get-RenderExtractMeshCommandPreparationCoverage `
+            -Spans (& $spansFor ($commonNames + $dispatchNames + $parallelNames + 'seal_phase_buffers')) `
+            -Counters $mixedAggregateCounters
+        $mixedAggregate.status | Should Be 'partial'
+        (@($mixedAggregate.missing_span_names) -join ',') |
+            Should Be 'prepare_cached_serial,serial_prepare_and_project'
+    }
+
+    It 'marks mesh command preparation partial when a required structural cost counter is missing' {
+        $directory = Join-Path $TestDrive ("baseline-report-mesh-command-partial-" + [guid]::NewGuid().ToString('N'))
+        try {
+            $summaryPath = New-RenderExtractBaselineFixture `
+                -Directory $directory `
+                -FrameDurationsUs @(1000, 2000, 3000) `
+                -ProcessDurationsMs @(10, 20, 30)
+            $summary = Get-Content -LiteralPath $summaryPath -Raw | ConvertFrom-Json
+            foreach ($run in $summary.runs) {
+                Add-MeshCommandPreparationSamples `
+                    -TimelinePath (Join-Path $run.profile_directory 'timeline.zrtrace.json') `
+                    -OmitCounterNames 'mesh_commands.sort_command_visit_count'
+            }
+            Mock Assert-RenderExtractBaselineEvidenceDirectory {
+                param($Path)
+                Resolve-ZirconWindowsPath -Path $Path
+            }
+
+            $report = Write-RenderExtractBaselineReport -BaselineSummaryPath $summaryPath
+            $scenario = @($report.scenarios | Where-Object { $_.logical_id -eq 'pipelined-steady' })[0]
+
+            $scenario.mesh_command_preparation.status | Should Be 'partial'
+            (@($scenario.mesh_command_preparation.missing_counter_names) -join ',') |
+                Should Be 'mesh_commands.sort_command_visit_count'
+            $report.measurement_coverage.mesh_command_preparation.status | Should Be 'partial'
+        }
+        finally {
+            if ([IO.Directory]::Exists($directory)) {
+                Remove-Item -LiteralPath $directory -Recurse -Force
+            }
+        }
+    }
+
+    It 'marks mesh command preparation partial when a required CPU stage is missing' {
+        $directory = Join-Path $TestDrive ("baseline-report-mesh-command-span-partial-" + [guid]::NewGuid().ToString('N'))
+        try {
+            $summaryPath = New-RenderExtractBaselineFixture `
+                -Directory $directory `
+                -FrameDurationsUs @(1000, 2000, 3000) `
+                -ProcessDurationsMs @(10, 20, 30)
+            $summary = Get-Content -LiteralPath $summaryPath -Raw | ConvertFrom-Json
+            foreach ($run in $summary.runs) {
+                Add-MeshCommandPreparationSamples `
+                    -TimelinePath (Join-Path $run.profile_directory 'timeline.zrtrace.json') `
+                    -OmitSpanNames 'finalize_old_path'
+            }
+            Mock Assert-RenderExtractBaselineEvidenceDirectory {
+                param($Path)
+                Resolve-ZirconWindowsPath -Path $Path
+            }
+
+            $report = Write-RenderExtractBaselineReport -BaselineSummaryPath $summaryPath
+            $scenario = @($report.scenarios | Where-Object { $_.logical_id -eq 'pipelined-steady' })[0]
+
+            $scenario.mesh_command_preparation.status | Should Be 'partial'
+            (@($scenario.mesh_command_preparation.missing_span_names) -join ',') |
+                Should Be 'finalize_old_path'
+        }
+        finally {
+            if ([IO.Directory]::Exists($directory)) {
+                Remove-Item -LiteralPath $directory -Recurse -Force
+            }
+        }
+    }
+
+
+    It 'marks parallel preparation partial when a processor branch stage is missing' {
+        $directory = Join-Path $TestDrive ("baseline-report-mesh-command-branch-span-" + [guid]::NewGuid().ToString('N'))
+        try {
+            $summaryPath = New-RenderExtractBaselineFixture `
+                -Directory $directory `
+                -FrameDurationsUs @(1000, 2000, 3000) `
+                -ProcessDurationsMs @(10, 20, 30)
+            $summary = Get-Content -LiteralPath $summaryPath -Raw | ConvertFrom-Json
+            foreach ($run in $summary.runs) {
+                Add-MeshCommandPreparationSamples `
+                    -TimelinePath (Join-Path $run.profile_directory 'timeline.zrtrace.json') `
+                    -OmitSpanNames 'worker_projection_wait'
+            }
+            Mock Assert-RenderExtractBaselineEvidenceDirectory {
+                param($Path)
+                Resolve-ZirconWindowsPath -Path $Path
+            }
+
+            $report = Write-RenderExtractBaselineReport -BaselineSummaryPath $summaryPath
+            $scenario = @($report.scenarios | Where-Object { $_.logical_id -eq 'pipelined-steady' })[0]
+
+            $scenario.mesh_command_preparation.status | Should Be 'partial'
+            (@($scenario.mesh_command_preparation.missing_span_names) -join ',') |
+                Should Be 'worker_projection_wait'
+            $scenario.mesh_command_parallel_dispatch.status | Should Be 'partial'
+        }
+        finally {
+            if ([IO.Directory]::Exists($directory)) {
+                Remove-Item -LiteralPath $directory -Recurse -Force
+            }
+        }
+    }
+
+    It 'does not accept mesh command evidence emitted on a foreign stream' {
+        $directory = Join-Path $TestDrive ("baseline-report-mesh-command-stream-" + [guid]::NewGuid().ToString('N'))
+        try {
+            $summaryPath = New-RenderExtractBaselineFixture `
+                -Directory $directory `
+                -FrameDurationsUs @(1000, 2000, 3000) `
+                -ProcessDurationsMs @(10, 20, 30)
+            $summary = Get-Content -LiteralPath $summaryPath -Raw | ConvertFrom-Json
+            foreach ($run in $summary.runs) {
+                $timelinePath = Join-Path $run.profile_directory 'timeline.zrtrace.json'
+                Add-MeshCommandPreparationSamples -TimelinePath $timelinePath
+                $timeline = Get-Content -LiteralPath $timelinePath -Raw | ConvertFrom-Json
+                foreach ($span in @($timeline.spans | Where-Object { $_.category -eq 'mesh_commands' })) {
+                    $span.stream = 'runtime'
+                }
+                foreach ($counter in @($timeline.counters | Where-Object { $_.name -like 'mesh_commands.*' })) {
+                    $counter.stream = 'runtime'
+                }
+                [IO.File]::WriteAllText(
+                    $timelinePath,
+                    ($timeline | ConvertTo-Json -Depth 8),
+                    [Text.UTF8Encoding]::new($false)
+                )
+            }
+            Mock Assert-RenderExtractBaselineEvidenceDirectory {
+                param($Path)
+                Resolve-ZirconWindowsPath -Path $Path
+            }
+
+            $report = Write-RenderExtractBaselineReport -BaselineSummaryPath $summaryPath
+            $scenario = @($report.scenarios | Where-Object { $_.logical_id -eq 'pipelined-steady' })[0]
+
+            $scenario.mesh_command_preparation.status | Should Be 'not_emitted'
+            $scenario.mesh_command_parallel_dispatch.status | Should Be 'not_emitted'
+        }
+        finally {
+            if ([IO.Directory]::Exists($directory)) {
+                Remove-Item -LiteralPath $directory -Recurse -Force
+            }
+        }
+    }
+
+    It 'keeps mesh command coverage partial when different attempts omit different evidence' {
+        $directory = Join-Path $TestDrive ("baseline-report-mesh-command-attempt-partial-" + [guid]::NewGuid().ToString('N'))
+        try {
+            $summaryPath = New-RenderExtractBaselineFixture `
+                -Directory $directory `
+                -FrameDurationsUs @(1000, 2000, 3000) `
+                -ProcessDurationsMs @(10, 20, 30)
+            $summary = Get-Content -LiteralPath $summaryPath -Raw | ConvertFrom-Json
+            foreach ($run in $summary.runs) {
+                $omittedCounter = if ([int]$run.attempt % 2 -eq 0) {
+                    'mesh_commands.sort_command_visit_count'
+                }
+                else {
+                    'mesh_commands.partition_command_visit_count'
+                }
+                Add-MeshCommandPreparationSamples `
+                    -TimelinePath (Join-Path $run.profile_directory 'timeline.zrtrace.json') `
+                    -OmitCounterNames $omittedCounter
+            }
+            Mock Assert-RenderExtractBaselineEvidenceDirectory {
+                param($Path)
+                Resolve-ZirconWindowsPath -Path $Path
+            }
+
+            $report = Write-RenderExtractBaselineReport -BaselineSummaryPath $summaryPath
+            $scenario = @($report.scenarios | Where-Object { $_.logical_id -eq 'pipelined-steady' })[0]
+
+            $scenario.mesh_command_preparation.status | Should Be 'partial'
+            @($scenario.mesh_command_preparation.attempts | Where-Object { $_.status -ne 'partial' }).Count |
+                Should Be 0
+        }
+        finally {
+            if ([IO.Directory]::Exists($directory)) {
+                Remove-Item -LiteralPath $directory -Recurse -Force
+            }
+        }
+    }
+
     It 'rejects malformed scheduler worker occupancy samples instead of estimating a ratio' {
         $directory = Join-Path $TestDrive ("baseline-report-worker-occupancy-invalid-" + [guid]::NewGuid().ToString('N'))
         try {

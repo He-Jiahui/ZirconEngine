@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+// Rust ffi.rs 与本头文件按字段顺序共享 C ABI；动态分配的输出缓冲区由对应 free 入口释放。
 struct ZrNavRecastBakeSettings {
     float cell_size;
     float cell_height;

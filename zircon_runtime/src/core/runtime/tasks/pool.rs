@@ -212,6 +212,15 @@ impl TaskPool {
             .and_then(OwnedRayonPool::try_acquire_continuation)
     }
 
+    pub(crate) fn shutdown_until(&self, deadline: Instant) -> bool {
+        let census = self.close_and_join(deadline.saturating_duration_since(Instant::now()));
+        census.termination_signalled
+            && census.active_submission_count == 0
+            && census.exited_worker_count == census.expected_worker_count
+            && census.joined_worker_count == census.expected_worker_count
+    }
+
+    // 关闭会拒绝新普通提交，但已取得的 submission lease 仍可完成；先等活动 lease 归零，再丢弃唯一强池所有者并等待 worker join。
     pub(super) fn close_and_join(&self, timeout: Duration) -> TaskPoolShutdownCensus {
         let called_from_owned_worker = self
             .pool
@@ -461,5 +470,5 @@ fn default_parallelism() -> usize {
 }
 
 #[cfg(test)]
-#[path = "pool/tests.rs"]
+#[path = "pool/tests/cases.rs"]
 mod tests;

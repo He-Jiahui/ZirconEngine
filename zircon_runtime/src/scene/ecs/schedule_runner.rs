@@ -1,13 +1,13 @@
-use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
+use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 use std::time::Instant;
 
 use crate::core::{CoreError, CoreHandle, JobScheduler};
-use crate::scene::LevelSystem;
 use crate::scene::ecs::{
     BoxedSceneSystem, DeferredSystemKey, InternalSceneSystem, NativeSystemCallbackTiming,
     SceneStageTickContexts, SceneSystemDescriptor, SceneSystemTickPolicy, ScheduleConflictGraph,
     ScheduledSceneStep, ScheduledSceneStepRef, SystemStage,
 };
+use crate::scene::LevelSystem;
 
 pub(crate) struct SceneScheduleRunner;
 
@@ -282,6 +282,7 @@ fn flush_worker_batch(
             }
         }
     }
+    // 先归还系统并清空调度条目，再传播批次结果，使捕获异常后的再次调度能取得同一系统；已提交的 World 变更不会在此回滚。
     let batch_elapsed = batch_started_at.elapsed();
     level.with_world_mut(|world| {
         world.restore_worldless_native_scene_systems(systems);

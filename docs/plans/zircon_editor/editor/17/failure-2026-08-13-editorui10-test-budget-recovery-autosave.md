@@ -10,7 +10,13 @@ fixing_plan: docs/plans/zircon_editor/editor/17-editor-services-and-recovery.md
 origin_child_dir: docs/plans/zircon_editor/editor_ui/10
 fixing_child_dir: docs/plans/zircon_editor/editor/17
 related_code:
-  - zircon_editor/src/core/recovery/tests/autosave_adapter.rs
+  - zircon_editor/src/core/recovery/tests/autosave_adapter/mod.rs
+  - zircon_editor/src/core/recovery/tests/autosave_adapter/admission.rs
+  - zircon_editor/src/core/recovery/tests/autosave_adapter/completion.rs
+  - zircon_editor/src/core/recovery/tests/autosave_adapter/outcomes.rs
+  - zircon_editor/src/core/recovery/tests/autosave_adapter/scheduling.rs
+  - zircon_editor/src/core/recovery/tests/autosave_adapter/shutdown.rs
+  - zircon_editor/src/core/recovery/tests/autosave_adapter/support.rs
 tests:
   - python -B .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_editor_structure.py --json --repo-root E:\\Git\\ZirconEngine
   - cargo test -p zircon_editor --lib recovery --locked
@@ -56,3 +62,24 @@ Open state: `待修复`。本记录仅完成责任交接，未修改 recovery �
 | 时间 | 里程碑/切片 | 状态 | 完成项目与证据 | 后续门禁 |
 | --- | --- | --- | --- | --- |
 | 2026-08-13 | M3 recovery autosave test-budget handoff | `open` | 从准确 48/0 审计隔离 1023 行 autosave adapter owner。 | 取得源码 lease 后按 recovery 行为 folder-backed 拆分，受管 recovery 回归和结构审计复验。 |
+
+## 2026-09-06 current-source folder-backed ownership evidence
+
+The original `zircon_editor/src/core/recovery/tests/autosave_adapter.rs` path is absent. The
+adapter behavior is now represented by the folder-backed `mod.rs` plus admission, completion,
+outcomes, scheduling, shutdown, and support owners. The parent recovery ownership contract passes
+against this layout, and the current structure audit no longer reports the old 1,023-line owner.
+The old path remains in the handoff history as original evidence and is not recreated.
+
+The managed `cargo test -p zircon_editor --lib recovery --locked` gate remains required. This
+record therefore documents the completed source migration and keeps the lifecycle open until the
+coordinator can provide the dynamic recovery result and the full review/return evidence.
+
+### 2026-09-06 coordinator recovery admission
+
+The exact Windows Cargo request for `cargo test -p zircon_editor --lib recovery --locked` was
+submitted from the current folder-backed source snapshot, but coordinator admission rejected it
+before Cargo started with `validation_ticket_external_worktree_dirty` for `E:\Git\zr_vm`.
+No recovery test executed and no GREEN, fixed return, commit, or WeCom notification is claimed.
+The source migration and static ownership evidence remain reusable once that external worktree is
+clean and the coordinator dependency chain permits a fresh ticket.

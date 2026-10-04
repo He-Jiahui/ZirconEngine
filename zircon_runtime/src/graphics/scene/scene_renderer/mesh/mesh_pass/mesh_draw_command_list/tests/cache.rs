@@ -72,15 +72,15 @@ fn mesh_pass_command_buffers_report_static_cache_invalidation_reasons() {
         &mut cache,
         2,
         ShaderQualityTier::default(),
-    )
-    .stats();
+    );
+    let changed_stats = changed.stats();
 
-    assert_eq!(changed.cached_command_hit_count, 0);
-    assert_eq!(changed.cache_miss_count, 0);
-    assert_eq!(changed.cache_invalidated_transform_count, 0);
-    assert_eq!(changed.cache_invalidated_geometry_count, 0);
-    assert_eq!(changed.cache_invalidated_material_count, 3);
-    assert_eq!(changed.command_rebuild_count, 3);
+    assert_eq!(changed_stats.cached_command_hit_count, 0);
+    assert_eq!(changed_stats.cache_miss_count, 0);
+    assert_eq!(changed_stats.cache_invalidated_transform_count, 0);
+    assert_eq!(changed_stats.cache_invalidated_geometry_count, 0);
+    assert_eq!(changed_stats.cache_invalidated_material_count, 3);
+    assert_eq!(changed_stats.command_rebuild_count, 3);
     assert!(!Arc::ptr_eq(
         &first.opaque().commands()[0].static_payload(),
         &changed.opaque().commands()[0].static_payload()
@@ -117,6 +117,59 @@ fn cached_static_commands_rebuild_for_changed_shader_quality() {
         low.opaque().commands()[0].pipeline_variant_id,
         high.opaque().commands()[0].pipeline_variant_id
     );
+}
+
+#[test]
+fn cached_static_commands_rebuild_once_when_resolver_configuration_changes() {
+    let mut variants = MeshPipelineVariantRegistry::default();
+    let mut cache = CachedMeshDrawCommands::default();
+    let batch = static_batch(MeshDrawQueuePhase::Opaque, 10)
+        .with_cache_identity(7, 7 << 16, 0)
+        .with_static_state(RenderMeshStaticState::new(true, 11, 17));
+
+    let generic = build_mesh_pass_command_buffers_from_batches_cached(
+        [batch.clone()],
+        &mut variants,
+        &mut cache,
+        1,
+        ShaderQualityTier::High,
+    );
+    variants.enable_environment_only_pbr_base_profile();
+    let specialized = build_mesh_pass_command_buffers_from_batches_cached(
+        [batch.clone()],
+        &mut variants,
+        &mut cache,
+        2,
+        ShaderQualityTier::High,
+    );
+    let stable = build_mesh_pass_command_buffers_from_batches_cached(
+        [batch],
+        &mut variants,
+        &mut cache,
+        3,
+        ShaderQualityTier::High,
+    );
+
+    assert_eq!(specialized.stats().cached_command_hit_count, 0);
+    assert_eq!(
+        specialized
+            .stats()
+            .cache_invalidated_resolver_configuration_count,
+        2
+    );
+    assert_eq!(specialized.stats().command_rebuild_count, 2);
+    assert_ne!(
+        generic.opaque().commands()[0].pipeline_variant_id,
+        specialized.opaque().commands()[0].pipeline_variant_id
+    );
+    assert_eq!(stable.stats().cached_command_hit_count, 2);
+    assert_eq!(
+        stable
+            .stats()
+            .cache_invalidated_resolver_configuration_count,
+        0
+    );
+    assert_eq!(stable.stats().command_rebuild_count, 0);
 }
 
 #[test]

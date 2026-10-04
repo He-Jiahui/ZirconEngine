@@ -41,5 +41,5 @@ fn target_mode_status_name(mode: RuntimeTargetMode) -> &'static str {
 }
 
 #[cfg(test)]
-#[path = "status/direct_join_tests.rs"]
+#[path = "status/tests/direct_join_tests.rs"]
 mod direct_join_tests;

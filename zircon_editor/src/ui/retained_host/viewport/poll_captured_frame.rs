@@ -3,10 +3,36 @@ use crate::scene::viewport::{CapturedFrame, RenderViewportHandle};
 use super::retained_viewport_controller::RetainedViewportController;
 
 impl RetainedViewportController {
+    pub(crate) fn poll_captured_frames(
+        &self,
+    ) -> Vec<(String, RenderViewportHandle, CapturedFrame)> {
+        let surfaces = self
+            .lock_shared()
+            .viewports
+            .keys()
+            .cloned()
+            .collect::<Vec<_>>();
+        surfaces
+            .into_iter()
+            .filter_map(|surface| {
+                self.poll_captured_frame_for_surface(&surface)
+                    .map(|(viewport, frame)| (surface, viewport, frame))
+            })
+            .collect()
+    }
+
+    #[cfg(test)]
     pub(crate) fn poll_captured_frame(&self) -> Option<(RenderViewportHandle, CapturedFrame)> {
+        self.poll_captured_frame_for_surface("editor.viewport")
+    }
+
+    fn poll_captured_frame_for_surface(
+        &self,
+        surface_key: &str,
+    ) -> Option<(RenderViewportHandle, CapturedFrame)> {
         let poll_request = {
             let mut shared = self.lock_shared();
-            let Some(viewport) = shared.viewport.map(|viewport| viewport.handle) else {
+            let Some(viewport) = shared.viewports.get(surface_key).copied() else {
                 return None;
             };
             let render_framework = match shared.render_framework() {
@@ -16,7 +42,11 @@ impl RetainedViewportController {
                     return None;
                 }
             };
-            (viewport, render_framework, shared.latest_generation)
+            (
+                viewport.handle,
+                render_framework,
+                viewport.latest_generation,
+            )
         };
         let (viewport, render_framework, last_generation) = poll_request;
         match render_framework.poll_captured_frame_if_newer(viewport, last_generation) {
@@ -26,14 +56,17 @@ impl RetainedViewportController {
                     return None;
                 }
                 let mut shared = self.lock_shared();
-                if shared.viewport.map(|stored| stored.handle) != Some(viewport)
-                    || shared
+                let Some(stored) = shared.viewports.get_mut(surface_key) else {
+                    return None;
+                };
+                if stored.handle != viewport
+                    || stored
                         .latest_generation
                         .is_some_and(|latest| latest >= frame.generation)
                 {
                     return None;
                 }
-                shared.latest_generation = Some(frame.generation);
+                stored.latest_generation = Some(frame.generation);
                 shared.last_error = None;
                 Some((viewport, frame))
             }
@@ -48,8 +81,9 @@ impl RetainedViewportController {
     pub(super) fn record_viewport_error(&self, viewport: RenderViewportHandle, error: String) {
         let mut shared = self.lock_shared();
         if shared
-            .viewport
-            .is_some_and(|active| active.handle == viewport)
+            .viewports
+            .values()
+            .any(|active| active.handle == viewport)
         {
             shared.last_error = Some(error);
         }

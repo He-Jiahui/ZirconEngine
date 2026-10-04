@@ -160,7 +160,7 @@ publication/rebuild 负责构建或 patch fragment 与空间索引。paint 只�
 
 ### 确定性压力模型
 
-`tools/editor_template_command_fragment_cache_pressure.py` schema v2 将“每个节点总 command 数”与“changed role fragment command 数”分开。默认场景为10,000个可见节点、4,096次 region repaint、每次12个候选、1个 interaction-changed node、每节点4条总 command、changed interaction fragment 1条 command：
+`tools/analysis/performance/editor/editor_template_command_fragment_cache_pressure.py` schema v2 将“每个节点总 command 数”与“changed role fragment command 数”分开。默认场景为10,000个可见节点、4,096次 region repaint、每次12个候选、1个 interaction-changed node、每节点4条总 command、changed interaction fragment 1条 command：
 
 - current region extraction：49,152次 candidate visit，196,608次 command materialization；
 - replay-ready role fragments：49,152次 fragment lookup，4,096次 changed-fragment rebuild/materialization；

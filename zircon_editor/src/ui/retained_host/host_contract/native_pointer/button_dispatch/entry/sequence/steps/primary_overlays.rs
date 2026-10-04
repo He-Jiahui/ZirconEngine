@@ -17,6 +17,7 @@ pub(super) fn dispatch_primary_overlay_step(
     dispatch_primary_press_overlays_if_pressed(
         ui,
         &input.presentation,
+        input.pointer_id,
         state,
         input.button,
         x,

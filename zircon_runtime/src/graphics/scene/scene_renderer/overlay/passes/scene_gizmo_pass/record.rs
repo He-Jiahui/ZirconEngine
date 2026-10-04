@@ -1,11 +1,12 @@
 use crate::graphics::scene::scene_renderer::overlay::{
-    PreparedIconDraw, begin_line_pass_for_region,
+    begin_line_pass_for_region, PreparedIconDraw,
 };
 use crate::graphics::types::ViewportRenderRegion;
 
 use super::scene_gizmo_pass::SceneGizmoPass;
 
 impl SceneGizmoPass {
+    /// 仅在已有线条或图标绘制项时开启 pass；两类几何共享场景绑定，但图标按项切换绑定组。
     pub(crate) fn record(
         &self,
         encoder: &mut wgpu::CommandEncoder,

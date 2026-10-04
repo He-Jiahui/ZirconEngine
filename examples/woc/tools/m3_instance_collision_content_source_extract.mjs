@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码中提取实例内部碰撞体、路由与视线向量，供 m3_instance_collision_content_codegen.mjs 消费。
 const layout = await import('wocgit:///src/sim/dungeon_layout.ts');
 const data = await import('wocgit:///src/sim/data.ts');
 const yumi = await import('wocgit:///src/sim/yumi_maze_layout.ts');
@@ -21,6 +22,7 @@ const toCatalogCollider = (collider) => collider.type === 'circle' ? ({
   rotation: collider.rot,
 });
 
+// 投影碰撞体和副本路由时保持实例布局原始顺序。
 const layouts = [
   ['crypt', layout.CRYPT_LAYOUT],
   ['sanctum', layout.SANCTUM_LAYOUT],

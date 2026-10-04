@@ -2,11 +2,76 @@ use std::fs;
 use std::io;
 
 use super::super::authority::{
-    cleanup_failed_transaction_staging, commit_staged_directory, finalize_empty_target_backup,
-    rollback_committed_project,
+    cleanup_failed_transaction_staging, commit_staged_directory, finalize_published_project,
+    ProjectCreationLease,
 };
 use super::super::ProjectAuthorityError;
 use super::temp_root;
+
+#[test]
+fn project_creation_lease_serializes_the_same_canonical_target_until_drop() {
+    let root = temp_root("creation-lease");
+    let target = root.join("project");
+    let first = ProjectCreationLease::acquire(&target).unwrap();
+
+    assert!(matches!(
+        ProjectCreationLease::acquire(&target),
+        Err(ProjectAuthorityError::TargetCreationLeaseHeld { ref path }) if path == &target
+    ));
+
+    drop(first);
+    ProjectCreationLease::acquire(&target).unwrap();
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[cfg(any(windows, target_os = "linux"))]
+#[test]
+fn project_creation_lease_does_not_serialize_distinct_targets() {
+    let root = temp_root("creation-lease-distinct-targets");
+    let first = ProjectCreationLease::acquire(&root.join("first")).unwrap();
+    let second = ProjectCreationLease::acquire(&root.join("second")).unwrap();
+
+    drop((first, second));
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[cfg(windows)]
+#[test]
+fn project_creation_lease_uses_windows_case_insensitive_target_identity() {
+    let root = temp_root("creation-lease-case");
+    let first_target = root.join("Project");
+    let same_target = root.join("project");
+    let first = ProjectCreationLease::acquire(&first_target).unwrap();
+
+    assert!(matches!(
+        ProjectCreationLease::acquire(&same_target),
+        Err(ProjectAuthorityError::TargetCreationLeaseHeld { ref path }) if path == &same_target
+    ));
+
+    drop(first);
+    ProjectCreationLease::acquire(&same_target).unwrap();
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn project_creation_lease_identity_survives_parent_directory_replacement() {
+    let root = temp_root("creation-lease-parent-replacement");
+    let moved_root = root.with_extension("moved");
+    let target = root.join("project");
+    let first = ProjectCreationLease::acquire(&target).unwrap();
+    fs::rename(&root, &moved_root).unwrap();
+    fs::create_dir(&root).unwrap();
+
+    assert!(matches!(
+        ProjectCreationLease::acquire(&target),
+        Err(ProjectAuthorityError::TargetCreationLeaseHeld { ref path }) if path == &target
+    ));
+
+    drop(first);
+    ProjectCreationLease::acquire(&target).unwrap();
+    fs::remove_dir_all(root).unwrap();
+    fs::remove_dir_all(moved_root).unwrap();
+}
 
 #[test]
 fn target_that_becomes_non_empty_before_commit_is_restored_without_publishing() {
@@ -41,32 +106,37 @@ fn target_that_becomes_non_empty_before_commit_is_restored_without_publishing() 
 }
 
 #[test]
-fn target_that_changes_after_commit_forces_project_rollback() {
-    let root = temp_root("commit-post-publish-target-write");
+fn published_project_finalization_failure_preserves_target_and_backup_paths() {
+    let root = temp_root("published-finalization-failure");
     let target = root.join("project");
-    let staging = root.join("staging");
     let backup = root.join("backup");
     fs::create_dir(&target).unwrap();
     fs::write(target.join("published-project"), "published").unwrap();
     fs::create_dir(&backup).unwrap();
     fs::write(backup.join("caller-owned.txt"), "retain").unwrap();
 
-    let error = finalize_empty_target_backup(&target, &backup, true).unwrap_err();
+    let error = finalize_published_project(&target, &backup, true).unwrap_err();
 
-    assert!(matches!(
-        error,
-        ProjectAuthorityError::TargetNotEmpty { ref path } if path == &target
-    ));
-    rollback_committed_project(&staging, &target, &backup, true, |from, to| {
-        fs::rename(from, to)
-    })
-    .unwrap();
+    match &error {
+        ProjectAuthorityError::PublishedProjectFinalizationFailed {
+            target: published_target,
+            backup: recovery_backup,
+            source,
+        } => {
+            assert_eq!(published_target, &target);
+            assert_eq!(recovery_backup, &backup);
+            assert!(matches!(
+                source.as_ref(),
+                ProjectAuthorityError::TargetNotEmpty { .. }
+            ));
+        }
+        other => panic!("unexpected finalization error: {other}"),
+    }
+    assert!(target.join("published-project").is_file());
     assert_eq!(
-        fs::read_to_string(target.join("caller-owned.txt")).unwrap(),
+        fs::read_to_string(backup.join("caller-owned.txt")).unwrap(),
         "retain"
     );
-    assert!(staging.join("published-project").is_file());
-    assert!(!backup.exists());
     fs::remove_dir_all(root).unwrap();
 }
 
@@ -130,90 +200,6 @@ fn failed_restore_returns_typed_error_and_preserves_the_only_backup() {
     assert!(!target.exists());
     assert!(backup.is_dir());
     assert!(staging.is_dir());
-    fs::remove_dir_all(root).unwrap();
-}
-
-#[test]
-fn failed_post_commit_restore_preserves_the_original_backup_and_published_project() {
-    let root = temp_root("open-rollback-restore-failure");
-    let target = root.join("project");
-    let staging = root.join("staging");
-    let backup = root.join("backup");
-    fs::create_dir(&target).unwrap();
-    fs::write(target.join("new-project"), "published").unwrap();
-    fs::create_dir(&backup).unwrap();
-    let mut call = 0;
-
-    let error = rollback_committed_project(&staging, &target, &backup, true, |from, to| {
-        call += 1;
-        if call == 2 {
-            Err(io::Error::new(
-                io::ErrorKind::Other,
-                "injected original-target restore failure",
-            ))
-        } else {
-            fs::rename(from, to)
-        }
-    })
-    .unwrap_err();
-
-    assert!(matches!(
-        error,
-        ProjectAuthorityError::PostCommitRollbackFailed {
-            ref from,
-            ref to,
-            backup: Some(ref original_empty_target),
-            ..
-        } if from == &backup && to == &target && original_empty_target == &backup
-    ));
-    assert!(!target.exists());
-    assert!(
-        backup.is_dir(),
-        "the caller's original empty target is retained"
-    );
-    assert!(
-        staging.join("new-project").is_file(),
-        "the failed published project remains recoverable instead of being deleted"
-    );
-    fs::remove_dir_all(root).unwrap();
-}
-
-#[test]
-fn failed_post_commit_staging_move_preserves_the_published_project_and_backup() {
-    let root = temp_root("open-rollback-staging-move-failure");
-    let target = root.join("project");
-    let staging = root.join("staging");
-    let backup = root.join("backup");
-    fs::create_dir(&target).unwrap();
-    fs::write(target.join("new-project"), "published").unwrap();
-    fs::create_dir(&backup).unwrap();
-
-    let error = rollback_committed_project(&staging, &target, &backup, true, |_from, _to| {
-        Err(io::Error::new(
-            io::ErrorKind::Other,
-            "injected published-project staging move failure",
-        ))
-    })
-    .unwrap_err();
-
-    assert!(matches!(
-        error,
-        ProjectAuthorityError::PostCommitRollbackFailed {
-            ref from,
-            ref to,
-            backup: Some(ref original_empty_target),
-            ..
-        } if from == &target && to == &staging && original_empty_target == &backup
-    ));
-    assert!(
-        target.join("new-project").is_file(),
-        "the published project remains recoverable when it cannot move to staging"
-    );
-    assert!(
-        backup.is_dir(),
-        "the caller's original empty target is retained"
-    );
-    assert!(!staging.exists());
     fs::remove_dir_all(root).unwrap();
 }
 

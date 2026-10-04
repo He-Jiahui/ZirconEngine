@@ -13,6 +13,8 @@ use zircon_runtime_interface::ui::{
 
 use super::painter_state::UiRenderPainterStateSource;
 
+const DRAG_OVERLAY_COMMAND_CAPACITY: usize = 4;
+
 #[derive(Clone, Copy, Debug)]
 struct DragOverlayVisual {
     allowed_surface: UiRgbaColor,
@@ -157,7 +159,8 @@ pub(super) fn drag_overlay_render_commands(
     } else {
         (visual.blocked_surface, visual.blocked_accent)
     };
-    let mut commands = vec![quad_command(
+    let mut commands = Vec::with_capacity(DRAG_OVERLAY_COMMAND_CAPACITY);
+    commands.push(quad_command(
         node_id,
         preview,
         clip_frame,
@@ -168,7 +171,7 @@ pub(super) fn drag_overlay_render_commands(
         visual.corner_radius,
         state.preview_state,
         opacity,
-    )];
+    ));
     let icon = payload_icon(metadata);
     if let Some(icon) = icon {
         commands.push(image_command(
@@ -514,5 +517,5 @@ fn text_command(
 }
 
 #[cfg(test)]
-#[path = "drag_overlay/direct_hex_color_tests.rs"]
+#[path = "drag_overlay/tests/direct_hex_color_tests.rs"]
 mod direct_hex_color_tests;

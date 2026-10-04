@@ -1,3 +1,4 @@
+# Stage 终态收据一次性绑定运行、资格上下文和存储能力，区分尚未发布目录的准入失败；本组验证原子发布、不可覆盖及生产各终态分支的绑定。
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $receiptModule = Join-Path $repoRoot 'tools\mvp\MvpStagingTerminalReceipt.psm1'
 $qualificationContextModule = Join-Path $repoRoot 'tools\mvp\MvpProcessQualificationContext.psm1'

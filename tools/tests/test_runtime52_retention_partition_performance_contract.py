@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 保留分区 helper 一次遍历转移 ID，不额外建立删除集合；行为和性能证据与生产 helper 同属一处。
 
 ROOT = Path(__file__).resolve().parents[2]
 PLANNING = ROOT / "zircon_runtime/src/scene/dynamic_scene/session/retention/prune/planning.rs"

@@ -14,7 +14,7 @@ class EditorPaneVariantProjectionPerformanceContractTests(unittest.TestCase):
         self.source = PANE_PROJECTION.read_text(encoding="utf-8")
 
     def test_pane_projection_uses_one_kind_selected_native_body_builder(self) -> None:
-        self.assertIn("native_body: build_native_body(", self.source)
+        self.assertIn("let native_body = build_native_body(", self.source)
         self.assertRegex(
             self.source,
             re.compile(
@@ -27,7 +27,7 @@ class EditorPaneVariantProjectionPerformanceContractTests(unittest.TestCase):
 
     def test_heavy_payload_builders_are_confined_to_matching_kind_arms(self) -> None:
         builder_start = self.source.index("fn build_native_body(")
-        builder_end = self.source.index("\nfn ", builder_start + 1)
+        builder_end = self.source.index("\npub(crate) fn find_tab_snapshot", builder_start + 1)
         builder = self.source[builder_start:builder_end]
 
         expected_arms = {

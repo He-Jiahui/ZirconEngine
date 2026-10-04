@@ -1,3 +1,4 @@
+// 将固定的 M4 技能 JSON 目录转换为 Zr 技能与效果访问函数。
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -90,6 +91,7 @@ const METRIC_INDEX_BUCKET_SIZE = 8;
 
 main();
 
+// 将稳定索引转换为 Zr 访问函数前，先验证 JSON 契约模式。
 function main() {
   const document = JSON.parse(readFileSync(inputPath, 'utf8'));
   invariant(document.schema_version === 1, 'unsupported M4 ability catalog schema');
@@ -108,6 +110,8 @@ invariant(document.entries.length === 117, 'M4 ability catalog must contain 117 
   );
 }
 
+// 拒绝未知字段和畸形记录，防止生成的访问函数悄悄扩大契约。
+// 显式列出嵌套效果字段；新增源码效果必须有意更新投影。
 function validateEntries(entries) {
   const ids = new Set();
   for (const [index, entry] of entries.entries()) {

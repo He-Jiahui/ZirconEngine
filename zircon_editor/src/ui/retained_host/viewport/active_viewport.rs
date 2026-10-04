@@ -5,4 +5,5 @@ use zircon_runtime_interface::math::UVec2;
 pub(super) struct ActiveViewport {
     pub(super) handle: RenderViewportHandle,
     pub(super) size: UVec2,
+    pub(super) latest_generation: Option<u64>,
 }

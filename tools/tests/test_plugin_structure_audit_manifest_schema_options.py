@@ -1,10 +1,10 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema import (
+from tools.audits.plugins.manifest_schema import (
     collect_manifest_schema_violations,
 )
 
-
+# 用插件清单夹具验证选项：拒绝格式错误选项行，并拒绝枚举选项漂移。
 class PluginStructureAuditManifestSchemaOptionsTests(unittest.TestCase):
     def test_manifest_schema_rejects_malformed_option_row(self):
         violations: list[str] = []

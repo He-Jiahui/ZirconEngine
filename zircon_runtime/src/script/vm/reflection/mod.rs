@@ -9,4 +9,5 @@ pub use error::VmReflectionError;
 pub use schema::VmReflectionSchema;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

@@ -1,5 +1,9 @@
+// 把已完成显示映射与终端效果的局部颜色写入最终物理 viewport。
+// 本 pass 不重新做曝光或 tonemap；片元输出的目标编码还受 Rust 所选 attachment format 约束。
 @group(0) @binding(0) var tonemapped_tex: texture_2d<f32>;
 
+// Rust 上传最终物理 viewport 的原点，并设置同一物理 render region；
+// 源纹理从零开始，所以必须先移除目标原点再读取。
 struct TerminalRegionParams {
     viewport_origin: vec4<u32>,
 };

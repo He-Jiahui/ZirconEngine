@@ -23,7 +23,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/asset_pointer
   - zircon_editor/src/ui/retained_host/callback_dispatch/shared_pointer
   - zircon_editor/src/ui/layouts/views/asset_browser
-  - zircon_editor/src/ui/layouts/views/asset_surface_presentation.rs
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
   - zircon_editor/src/ui/workbench/snapshot/asset
 tests:

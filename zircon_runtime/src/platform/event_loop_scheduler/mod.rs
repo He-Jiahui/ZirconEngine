@@ -7,4 +7,5 @@ pub(crate) use snapshot::{
 };
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

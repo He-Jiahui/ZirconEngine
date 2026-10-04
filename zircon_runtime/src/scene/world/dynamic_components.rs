@@ -14,6 +14,7 @@ use super::World;
 use crate::scene::reflect::VmTypeBacking;
 
 #[cfg(test)]
+#[path = "dynamic_components/tests/registration_tests.rs"]
 mod registration_tests;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -505,9 +506,10 @@ impl World {
         let plugin_id = self
             .type_registry
             .registration(type_path)?
-            .plugin_id
-            .clone()
-            .unwrap_or_else(|| "<unknown>".to_string());
+            .type_path
+            .plugin_id()
+            .unwrap_or("<unknown>")
+            .to_string();
         Err(SceneError::PluginComponentsActive {
             plugin_id,
             active_components: active_components.join(", "),

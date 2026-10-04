@@ -212,6 +212,51 @@ fn runtime_diagnostics_live_body_surface_populates_debug_reflector_rows_without_
     assert_eq!(pane.runtime_diagnostics.overlay_primitives.row_count(), 0);
 }
 
+#[test]
+fn runtime_diagnostics_refresh_uses_published_body_frame_authority() {
+    let mut pane = runtime_diagnostics_dock(Vec::new()).pane;
+    pane.runtime_diagnostics.nodes = model_rc(vec![template_node(
+        "PublishedFrameNode",
+        "Label",
+        "published-frame-only",
+        8.0,
+        8.0,
+        160.0,
+        18.0,
+    )]);
+    pane.body_surface_frame = build_pane_template_surface_frame(&pane, UiSize::new(220.0, 84.0));
+    pane.runtime_diagnostics.nodes = model_rc(Vec::new());
+
+    assert!(
+        refresh_runtime_diagnostics_debug_reflector_from_body_surface(
+            &mut pane,
+            pane_size(220.0, 84.0),
+        )
+    );
+    let texts = model_texts(&pane.runtime_diagnostics.nodes);
+    assert!(
+        texts.iter().any(|text| {
+            text.contains("template_nodes/PublishedFrameNode.node")
+                && text.contains("input=Ignore")
+                && text.contains("clickable=false")
+        }),
+        "reflector must inspect the already-published body frame"
+    );
+}
+
+#[test]
+fn runtime_diagnostics_refresh_fails_closed_without_published_body_frame() {
+    let mut pane = runtime_diagnostics_dock(Vec::new()).pane;
+    pane.body_surface_frame = None;
+
+    assert!(
+        !refresh_runtime_diagnostics_debug_reflector_from_body_surface(
+            &mut pane,
+            pane_size(220.0, 84.0),
+        )
+    );
+}
+
 fn runtime_diagnostics_pane_with_overlay(primitive: UiDebugOverlayPrimitive) -> WorkbenchPaneData {
     WorkbenchPaneData {
         id: "runtime.diagnostics".into(),

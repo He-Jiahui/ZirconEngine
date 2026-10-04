@@ -12,7 +12,7 @@ SURFACE_SOURCE = (
 PROJECTION_SOURCE = ROOT / "zircon_editor/src/ui/template_runtime/runtime/projection.rs"
 
 sys.path.insert(0, str(ROOT / "tools"))
-from ui_component_patch_index_pressure import run
+from tools.analysis.performance.ui.ui_component_patch_index_pressure import run
 
 
 class EditorTemplateComponentPatchIndexPerformanceContract(unittest.TestCase):
@@ -64,9 +64,10 @@ class EditorTemplateComponentPatchIndexPerformanceContract(unittest.TestCase):
     def test_pane_attributes_are_built_once_and_moved_to_the_slot_anchor(self) -> None:
         source = SOURCE.read_text(encoding="utf-8")
         self.assertIn(") -> BTreeMap<String, Value>", source)
-        self.assertIn("append_hybrid_slot_anchor_projection(&mut projection.root, body, pane_attributes)", SURFACE_SOURCE.read_text(encoding="utf-8"))
-        anchor = source.split("pub(super) fn append_hybrid_slot_anchor_projection", 1)[1]
-        self.assertNotIn("pane_body_attributes(body)", anchor)
+        surface_source = SURFACE_SOURCE.read_text(encoding="utf-8")
+        self.assertIn("inject_pane_projection_attributes(&mut projection.root, body)", surface_source)
+        self.assertIn("inject_pane_projection_attributes", surface_source)
+        self.assertNotIn("pane_body_attributes(body)", surface_source)
 
     def test_action_resolution_indexes_controls_without_cloning_all_attributes(self) -> None:
         source = PROJECTION_SOURCE.read_text(encoding="utf-8")

@@ -1,3 +1,5 @@
+//! 弹层行的有限尺寸与包含性合同；部分clip仍可绘制，但行内文本与分隔线要完整属于自身行框。
+
 use super::super::super::data::FrameRect;
 
 pub(super) fn has_paintable_popup_row_extent(frame: &FrameRect) -> bool {
@@ -19,43 +21,5 @@ pub(super) fn frame_is_within(outer: &FrameRect, inner: &FrameRect) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn popup_row_frame_rejects_collapsed_non_finite_and_outside_geometry() {
-        let outer = FrameRect {
-            x: 4.0,
-            y: 8.0,
-            width: 24.0,
-            height: 18.0,
-        };
-
-        assert!(frame_is_within(
-            &outer,
-            &FrameRect {
-                x: 5.0,
-                y: 9.0,
-                width: 12.0,
-                height: 8.0,
-            }
-        ));
-        assert!(!has_paintable_popup_row_extent(&FrameRect {
-            width: 0.0,
-            ..outer.clone()
-        }));
-        assert!(!has_paintable_popup_row_extent(&FrameRect {
-            x: f32::NAN,
-            ..outer.clone()
-        }));
-        assert!(!frame_is_within(
-            &outer,
-            &FrameRect {
-                x: 20.0,
-                y: 9.0,
-                width: 12.0,
-                height: 8.0,
-            }
-        ));
-    }
-}
+#[path = "tests/geometry.rs"]
+mod tests;

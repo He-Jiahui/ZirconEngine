@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use super::super::super::{RuntimeSessionArchive, RuntimeSessionArchiveError, io};
+use super::super::super::{io, RuntimeSessionArchive, RuntimeSessionArchiveError};
 
 impl RuntimeSessionArchive {
     pub fn load_from_path(path: impl AsRef<Path>) -> Result<Self, RuntimeSessionArchiveError> {

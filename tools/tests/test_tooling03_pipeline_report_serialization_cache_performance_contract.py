@@ -1,3 +1,4 @@
+# 核对流水线报告只打印已由报告输入输出层序列化的载荷。
 from __future__ import annotations
 
 import unittest

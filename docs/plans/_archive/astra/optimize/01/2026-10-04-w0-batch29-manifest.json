@@ -1,0 +1,199 @@
+{
+  "batch": "w0-batch29",
+  "recorded_at_utc": "2026-10-04T00:32:22.111740+00:00",
+  "root_author_copy": "E:\\Git\\ZirconEngine\\.codex\\tmp\\astra-current-evidence-20261004-root-01a0f033\\w0-plugins-batch29-root-frozen-current-r1",
+  "raw_capture_root": "E:\\Git\\ZirconEngine\\.codex\\tmp\\astra-current-evidence-20261004-root-01a0f033\\w0-batch29-root-canonical-preparation-r2\\raw-author",
+  "raw_captures": [
+    {
+      "name": "canonical-joins.jsonl",
+      "bytes": 1031426,
+      "sha256": "acb97c4c8544096910a5a69a23b5f3252bd7ac5c80fad5ce985636aba8db457b"
+    },
+    {
+      "name": "findings.jsonl",
+      "bytes": 1133360,
+      "sha256": "e32d0d952f72ac7d563a7825d33945e989eb2a84dea40cf59d430f8bfe7ad7e9"
+    },
+    {
+      "name": "gates.jsonl",
+      "bytes": 2319988,
+      "sha256": "3b9e6ee0cdadc32ccbc08f3ad531fecf915a9b9ca0f99cbdf0076277a6fd5f3e"
+    },
+    {
+      "name": "report-ledger.json",
+      "bytes": 25226,
+      "sha256": "9b2e29a22cb8974d16de979d2dfd3e9f549327e5a3f70bf8372898499fb51c87"
+    },
+    {
+      "name": "root-current-copy-qualification.json",
+      "bytes": 3217,
+      "sha256": "266fe669a44490cf837fced3f7794b6be8b3f71bd0e41b517268f8892c73ebd2"
+    },
+    {
+      "name": "terminal.json",
+      "bytes": 14451,
+      "sha256": "331579649d213693bc91742d563690b91441f64dba8bef373fdd3e16737ce79f"
+    },
+    {
+      "name": "terminal.md",
+      "bytes": 2217,
+      "sha256": "209851fa64e2a23149e09d541f6a4f8f878b4b067f1dd93e764b96752f8b8e24"
+    }
+  ],
+  "original_reports": [
+    {
+      "report_path": "docs/plans/optimize/zircon_plugins/01-plugin-sdk-package-catalog-distribution-native-abi-review.md",
+      "bytes": 40265,
+      "sha256": "5b7e284f0e176310ee1189de9fb1b41a57d0b7f52c13ea4edd1e674ba17e78f3"
+    },
+    {
+      "report_path": "docs/plans/optimize/zircon_plugins/02-neural-model-onnx-inference-post-process-editor-product-integration-review.md",
+      "bytes": 43122,
+      "sha256": "8fd68d60b274ceabbc4cf11aee79c84b7c90a0a9292c27de8823a862fe347f6b"
+    },
+    {
+      "report_path": "docs/plans/optimize/zircon_plugins/03-desktop-export-native-window-source-dist-provider-integration-review.md",
+      "bytes": 34169,
+      "sha256": "b48a0300404bd5674cb20d8fb16b209f1fffaff5f7f066200ed8479a2763e293"
+    },
+    {
+      "report_path": "docs/plans/optimize/zircon_plugins/04-rendering-umbrella-feature-bundles-solari-native-provider-product-integration-review.md",
+      "bytes": 36508,
+      "sha256": "790639b55b0a1551ec8d702dddc4d392592599115454615e983d63f94329be39"
+    },
+    {
+      "report_path": "docs/plans/optimize/zircon_plugins/05-shader-wgsl-family-importer-compiler-artifact-native-product-integration-review.md",
+      "bytes": 31623,
+      "sha256": "75156663ed5cf2b7164761433d43f828e7f90924a2ba8798c6fddb92d192e0f4"
+    },
+    {
+      "report_path": "docs/plans/optimize/zircon_plugins/06-first-party-plugin-source-editor-runtime-dist-catalog-profile-capability-closure-review.md",
+      "bytes": 38442,
+      "sha256": "c8b7fd8e8f23a9b39dbfdc4197f9a66690404cdd91f1b05db9acae1b2173cc9c"
+    },
+    {
+      "report_path": "docs/plans/optimize/zircon_plugins/07-first-party-asset-importer-source-dependency-subasset-artifact-determinism-sandbox-product-integration-review.md",
+      "bytes": 42416,
+      "sha256": "18c873f589cde3f5ffd23d710442bbba36c1e1ebe0a831c4abe80b8be2e97d72"
+    },
+    {
+      "report_path": "docs/plans/optimize/zircon_plugins/08-first-party-editor-authoring-extension-document-operation-toolkit-runtime-contract-product-integration-review.md",
+      "bytes": 42728,
+      "sha256": "baee74f25693d2fc4dbe261ebe280542ac3538cc27710eefa44013a763ff9d6b"
+    },
+    {
+      "report_path": "docs/plans/optimize/zircon_plugins/09-first-party-particle-vfx-source-runtime-editor-dist-catalog-simulation-render-product-integration-review.md",
+      "bytes": 39614,
+      "sha256": "63912a3db425380e9b2d8f594db3027576ab443b922c9f2cc11f81a12395100c"
+    },
+    {
+      "report_path": "docs/plans/optimize/zircon_plugins/10-first-party-network-source-runtime-editor-dist-catalog-transport-rpc-replication-product-integration-review.md",
+      "bytes": 38254,
+      "sha256": "a8b348541a263c942f94e35b9b43eb3de279183d6de125433e99dab0bab30530"
+    },
+    {
+      "report_path": "docs/plans/optimize/zircon_plugins/11-first-party-sound-source-runtime-editor-dist-catalog-mixer-spatial-reverb-timeline-product-integration-review.md",
+      "bytes": 46475,
+      "sha256": "a5cbd4726e54b926c3314adf92adad8c10c1d87f362a7f4ea02ab04f186dc3f2"
+    },
+    {
+      "report_path": "docs/plans/optimize/zircon_plugins/12-first-party-physics-source-runtime-editor-dist-catalog-simulation-collision-joint-ragdoll-product-integration-review.md",
+      "bytes": 43490,
+      "sha256": "4c808fa6103b1cfadd0061dd3bbc7ecf13f8c5d05391a958273ecb4c9ad5af79"
+    },
+    {
+      "report_path": "docs/plans/optimize/zircon_plugins/13-first-party-animation-source-runtime-editor-dist-catalog-skeleton-clip-pose-graph-state-machine-ik-skinning-product-integration-review.md",
+      "bytes": 51458,
+      "sha256": "20cc99233d4b34784a2af84d9e29fa10c3af2774f230a81f24fe386160a52d2f"
+    },
+    {
+      "report_path": "docs/plans/optimize/zircon_plugins/14-first-party-navigation-source-native-runtime-editor-dist-catalog-recast-detour-crowd-tilecache-query-bake-product-integration-review.md",
+      "bytes": 46124,
+      "sha256": "272b40be3511cd141ee566b59777008f006de7919d06bad9c1cc91ececf09efa"
+    },
+    {
+      "report_path": "docs/plans/optimize/zircon_plugins/15-first-party-ai-source-runtime-editor-dist-catalog-behavior-tree-blackboard-perception-eqs-product-integration-review.md",
+      "bytes": 40380,
+      "sha256": "a102abd85891d8a8f3fab99e8c81031c3fac96222c073b98e7ae6839493cc59f"
+    },
+    {
+      "report_path": "docs/plans/optimize/zircon_plugins/16-first-party-zr-vm-language-source-runtime-dist-catalog-reflection-callsite-host-interface-gc-hot-reload-product-integration-review.md",
+      "bytes": 37154,
+      "sha256": "56c92ca96b3a52fa5bc1d2d463d0a32cfab8aab73b5ea54fef776354815e45c4"
+    },
+    {
+      "report_path": "docs/plans/optimize/zircon_plugins/17-first-party-virtual-geometry-source-runtime-editor-dist-catalog-asset-cook-cluster-page-streaming-culling-raster-product-integration-review.md",
+      "bytes": 40361,
+      "sha256": "f9259378956c12169248f34981950050fdcc4dbc7c3a85c2580512cd1d2f63ea"
+    },
+    {
+      "report_path": "docs/plans/optimize/zircon_plugins/18-first-party-texture-source-importer-runtime-editor-dist-catalog-image-cubemap-array-volume-compression-streaming-product-integration-review.md",
+      "bytes": 34451,
+      "sha256": "5ee03b23773c1464116348cd8bcc98f7a2ca14d70cf378b9d407667a14b1d662"
+    },
+    {
+      "report_path": "docs/plans/optimize/zircon_plugins/19-first-party-hybrid-gi-source-runtime-editor-dist-catalog-scene-representation-surface-cache-global-sdf-radiance-cache-probe-trace-denoise-product-integration-review.md",
+      "bytes": 45007,
+      "sha256": "b529253aa380b3cf00344c1066a1b4920ccf103611b5bd6fbaba5e9b6bb14d48"
+    },
+    {
+      "report_path": "docs/plans/optimize/zircon_plugins/20-plugin-sdk-example-native-editor-fixture-test-carrier-artifact-isolation-product-truth-review.md",
+      "bytes": 38603,
+      "sha256": "88f2048b31f9e5242e9c8c32267c9ba4feb70713a8e29be0f18f1c964b759549"
+    },
+    {
+      "report_path": "docs/plans/optimize/zircon_plugins/21-plugin-artifact-marketplace-third-party-package-install-update-trust-non-cargo-product-integration-review.md",
+      "bytes": 38240,
+      "sha256": "a37054c45bee4d3f582f60cfbb8499f4b4cecdaccf985e4f9076480fa68889cc"
+    },
+    {
+      "report_path": "docs/plans/optimize/zircon_plugins/22-desktop-export-native-window-source-dist-provider-current-source-review.md",
+      "bytes": 30982,
+      "sha256": "c2e837aabb788a4440633d48b915fd6985d0db87858e086f76d3613fe00dcecc"
+    }
+  ],
+  "independent_review_path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\w0-plugins-batch29-completeness-independent-review-foundation-r1\\review.json",
+  "independent_review_sha256": "ba62b1e2e8cfb40e0a3ad61b418f5fbacfa0851af15796ddf0d451abf7f8ac30",
+  "counts": {
+    "source_observations": 3501,
+    "report_qualified_keys": 3486,
+    "distinct_original_literal_ids": 2634,
+    "null_finding_ordinal_rows": 276,
+    "original_gate_rows": 1095,
+    "this_batch_original_findings": 1448,
+    "this_batch_literal_findings": 1256,
+    "this_batch_null_ordinals": 192,
+    "this_batch_priority_split": {
+      "P0": 42,
+      "P1": 1136,
+      "P2": 270
+    },
+    "this_batch_reports": 22,
+    "this_batch_mixed_context_rows": 3526,
+    "this_batch_context_taxonomy": {
+      "product-gate": 1373,
+      "declared-gate-context": 446,
+      "test-or-evidence": 177,
+      "failure-oracle": 178,
+      "milestone-or-plan-gate": 100,
+      "acceptance-checklist": 430,
+      "severity-section-context": 822
+    },
+    "this_batch_classified_acceptance_context_rows": 430,
+    "this_batch_original_declared_gate_rows_added": 0,
+    "this_batch_nonnew_relations": 38,
+    "whole_inventory": false
+  },
+  "qualifications": {
+    "finding_identity": "Exact full report path plus literal ID;192 original unnumbered severity items use report/severity ordinal. No ID invented for null items.",
+    "context_identity": "3526 mixed evidence rows remain context;430 acceptance-checklist-classified rows include headings/items, so no aggregate gate denominator increase. Raw indentation restored from exact source lines;910 author rows strip()normalized.",
+    "relations": "22 report inventory joins+16P0 handoff relations are NONNEW, no extra findings.",
+    "author_history": "Original drive-root E: author output differs from old C visualization packet; Root immutable six-file copy and peer finalba62... are authoritative observed raw lineage, unavailable early hashes not reconstructed.",
+    "source_currentness": "Only exact reports/doc identity ingested; actual plugins/native/provider/source parity and all product/performance/Jenkins gates remain open."
+  },
+  "prior_canonical_inventory_sha256": "dcf520d063dc19f229b71c93d5e84b988875a7984980b6d48eaad2b1ab6ea7b8",
+  "whole_inventory": false,
+  "source_writes": 0,
+  "tests_run": 0,
+  "acceptance": "open"
+}

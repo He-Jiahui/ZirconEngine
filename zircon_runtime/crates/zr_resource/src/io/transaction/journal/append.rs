@@ -7,7 +7,7 @@ use std::path::Path;
 use super::super::error::{DurableTransactionError, TransactionPhase};
 use super::super::schema::{JournalPhase, JournalState, JournalTransition};
 use super::super::stage::StagedFile;
-use super::frame_codec::{MAX_JOURNAL_BYTES, transition_frame};
+use super::frame_codec::{transition_frame, MAX_JOURNAL_BYTES};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::io::transaction) enum CommitPointRecord {
@@ -75,7 +75,9 @@ pub(in crate::io::transaction) fn record_phase(
             new_digest: None,
             retired_digests: Vec::new(),
         },
-        if phase == JournalPhase::CleanupIntent {
+        if phase == JournalPhase::CleanupActive {
+            TransactionPhase::Recovery
+        } else if phase == JournalPhase::CleanupIntent {
             TransactionPhase::Stage
         } else if matches!(
             phase,

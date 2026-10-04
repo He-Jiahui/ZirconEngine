@@ -27,7 +27,7 @@
   `25c7f008cc1c4ba78c8cef4c9b2aa495`, input manifest SHA-256
   `03addb7dd2f624372eced0c7304379c0dbe4506633e0105f1290b7c64027715d`, and pinned root validator
   SHA-256 `F90B4E4B1547C98EF9F96C1D6BB017A6E1EEDCB0F1729F4A0D80F78D81CDED13` failed before compilation:
-  the manual closure omitted `zircon_hub`, `tools/cargo-zircon`, and `zircon_runtime_host`, so Cargo
+  the manual closure omitted `zircon_hub`, `tools/cargo`, and `zircon_runtime_host`, so Cargo
   could not load the root workspace. No behavior or performance result from that run is accepted.
 - Replacement copy `a25ed2d18c064bb7bc3c67229ce59d9c` expands the manifest from 17,886 to
   18,185 paths by adding all 299 tracked files under those three workspace members. Its input hash

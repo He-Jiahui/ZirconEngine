@@ -3,9 +3,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.runtime_tree_logical_index_pressure import run, write_result
+from tools.analysis.performance.runtime.runtime_tree_logical_index_pressure import run, write_result
 
-
+# 调用树索引压力模型，验证点击成本不随逻辑树总量增长；同时拒绝非法参数和 C 盘输出路径。
 class RuntimeTreeLogicalIndexPressurePerformanceContractTests(unittest.TestCase):
     def test_generation_owned_index_decouples_clicks_from_logical_tree_size(self) -> None:
         result = run(

@@ -1,4 +1,0 @@
-interface:
-  display_name: "WSL 例外验证"
-  short_description: "仅在 Linux 特定需求下使用 WSL 收集验证证据"
-  default_prompt: "使用 $evidence-driven-wsl-validation 处理明确的 Linux 特定验证，并将 Cargo target 放在 /mnt/d、/mnt/e 或 /mnt/f 的独立 lane。"

@@ -1,3 +1,4 @@
+//! 从 surface 调试快照核对反射、绘制批次、命中网格和布局路由的可观测信息；快照来源为已发布帧。
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},

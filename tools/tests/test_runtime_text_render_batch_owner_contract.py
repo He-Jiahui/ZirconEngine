@@ -37,10 +37,13 @@ class RuntimeTextRenderBatchOwnerContractTests(unittest.TestCase):
         self.assertNotIn("fn push_text_batches(", root)
         self.assertNotIn("fn push_text_batch(", root)
         self.assertNotIn("struct ScreenSpaceUiTextBatch {", root)
-        self.assertIn("pub(super) use text_batches::{ScreenSpaceUiTextBatch", root)
+        self.assertIn("pub(super) use text_batches::ScreenSpaceUiTextBatch", root)
         self.assertIn("pub(super) fn push_text_batches(", batches)
         self.assertIn("pub(super) fn push_text_batch(", batches)
-        self.assertIn("pub(super) struct ScreenSpaceUiTextBatch {", batches)
+        self.assertIn(
+            "pub(in crate::graphics::scene::scene_renderer::ui) struct ScreenSpaceUiTextBatch {",
+            batches,
+        )
         self.assertIn("pub(super) enum TextPlanOutcome {", batches)
         self.assertIn("impl ScreenSpaceUiTextBatch", batches)
         self.assertIn(

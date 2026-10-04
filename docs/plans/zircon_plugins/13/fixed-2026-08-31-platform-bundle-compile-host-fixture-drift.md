@@ -10,10 +10,10 @@ fixing_child_dir: docs/plans/zircon_plugins/13
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/zircon_export/pipeline_report_compile_host.py
+  - tools/export/pipeline_report_compile_host.py
 tests:
-  - tools/zircon_export/tests/platform_bundle_report_test_support.py
-  - tools/zircon_export/tests/test_pipeline_report_platform_bundle_native_plugins_payload.py
+  - tools/export/tests/platform_bundle_report_test_support.py
+  - tools/export/tests/test_pipeline_report_platform_bundle_native_plugins_payload.py
 resolved_at: 2026-08-31
 ---
 
@@ -31,7 +31,7 @@ resolved_at: 2026-08-31
 Two PlatformBundle native-plugins acceptance cases fail before their target
 assertions. The shared fixture emits a retired CompileHost `link_plan`, omits
 `staged_engine_root`, and uses a direct Cargo command instead of the hard-cut
-`tools/zircon_build.py` command.
+`tools/build/zircon_build.py` command.
 
 ## 最低共享层根因
 

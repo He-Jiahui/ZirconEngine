@@ -6,12 +6,12 @@ related_code:
   - zircon_editor/assets/ui/editor/components/workbench/shell
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_main_band.zui
 design_references:
-  - docs/ui-and-layout/editor-workbench-designs/main-tabs-layout-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/tool-drawers-layout-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/scene-drawer-layout-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/drawer-expanded-state-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/split-editor-state-spec.png
-  - docs/ui-and-layout/ai-workbench-style/prototype/README.md
+  - docs/ui/editor-workbench-designs/main-tabs-layout-spec.png
+  - docs/ui/editor-workbench-designs/tool-drawers-layout-spec.png
+  - docs/ui/editor-workbench-designs/scene-drawer-layout-spec.png
+  - docs/ui/editor-workbench-designs/drawer-expanded-state-spec.png
+  - docs/ui/editor-workbench-designs/split-editor-state-spec.png
+  - docs/ui/ai-workbench-style/prototype/README.md
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/02-declarative-layout-interface.md
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
@@ -97,7 +97,7 @@ pub enum DrawerState { Expanded, Collapsed }
 | --- | --- | --- |
 | 新增 | `zircon_editor/assets/ui/editor/components/workbench/shell/workbench_skeleton.zui` | 骨架组合 |
 | 修改 | `workbench_main_band.zui` | 接入四角抽屉 + 分屏 center |
-| 新增 | `docs/ui-and-layout/workbench-skeleton-contract.md` | 骨架与抽屉行为规范 |
+| 新增 | `docs/ui/workbench-skeleton-contract.md` | 骨架与抽屉行为规范 |
 
 ## 6. 里程碑切片化
 
@@ -133,5 +133,5 @@ pub enum DrawerState { Expanded, Collapsed }
 
 | 日期 | 切片 | 状态 | 产出/证据 | 后续项 |
 | --- | --- | --- | --- | --- |
-| 2026-06-23 | 03.S1 工作台骨架 + 抽屉区职责落地 | implemented-static-passed-editor-cargo-blocked | 已新增 `zircon_editor/src/ui/workbench/autolayout/workbench_skeleton.rs`、`zircon_editor/assets/ui/editor/components/workbench/shell/workbench_skeleton.zui` 与 `docs/ui-and-layout/workbench-skeleton-contract.md`;骨架固定 left-top/left-bottom/right-top/right-bottom/bottom/center 六区域和抽屉默认状态,并通过 02 的职责校验复用区域语义。scoped rustfmt、`git diff --check`、新模块债务扫描通过。 | 03.S2:将展开/折叠/分屏/激活态落到运行时 docking 与壳资产。`zircon_editor` Cargo gate 当前在下层 `zircon_runtime` render mesh import 编译漂移处阻塞,未到 editor 测试代码。 |
+| 2026-06-23 | 03.S1 工作台骨架 + 抽屉区职责落地 | implemented-static-passed-editor-cargo-blocked | 已新增 `zircon_editor/src/ui/workbench/autolayout/workbench_skeleton.rs`、`zircon_editor/assets/ui/editor/components/workbench/shell/workbench_skeleton.zui` 与 `docs/ui/workbench-skeleton-contract.md`;骨架固定 left-top/left-bottom/right-top/right-bottom/bottom/center 六区域和抽屉默认状态,并通过 02 的职责校验复用区域语义。scoped rustfmt、`git diff --check`、新模块债务扫描通过。 | 03.S2:将展开/折叠/分屏/激活态落到运行时 docking 与壳资产。`zircon_editor` Cargo gate 当前在下层 `zircon_runtime` render mesh import 编译漂移处阻塞,未到 editor 测试代码。 |
 | 2026-06-23 | 03.S2 停靠语义(展开/折叠/分屏/激活) | implemented-static-passed-lower-ui-support-repaired-cargo-timeout | 已新增 `zircon_editor/src/ui/workbench/layout/layout_command_error.rs`,并把 `LayoutManager::apply(...)` / `attach_instance(...)` 的停靠命令失败从裸字符串收束为 `LayoutCommandError`;抽屉折叠清空 active view、活动栏激活抽屉 tab、center 文档分屏与 focus active-tab 语义由 `editor_layout_contracts.rs` 覆盖。scoped rustfmt、`git diff --check`、触及生产文件债务扫描、尾随空白扫描通过。 | 先前 focused `cargo test` / `cargo check` 均在约 604s 超时;23:06 复跑 focused test 因旧 target-dir `.fingerprint` 路径缺失失败;23:40 干净 target-dir 复跑暴露下层 `zircon_runtime::ui::template::asset::compiler::style_apply` split 漂移(`mui_slot_name` 未重新暴露、slot helper import 私有),已最小修复为 `style_apply` 父模块 re-export + `slot_contract` owner 保持实现。随后 `cargo check -p zircon_runtime --lib --offline --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-editor-0623-clean-2309` 606s 超时无诊断,仍未取得 Cargo 通过;后续继续从该下层支撑验证向上复跑。 |

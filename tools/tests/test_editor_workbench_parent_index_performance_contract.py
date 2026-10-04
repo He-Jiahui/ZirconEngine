@@ -1,3 +1,4 @@
+# 核对状态栏父链查找有界且不为每个节点分配哈希表。
 from pathlib import Path
 import unittest
 

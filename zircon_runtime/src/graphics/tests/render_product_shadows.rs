@@ -1,18 +1,18 @@
 use crate::core::framework::render::{
-    DEFAULT_RENDER_LAYER_MASK, FallbackSkyboxKind, LightShadowSettings, LightingExtract,
+    FallbackSkyboxKind, GpuLightType, LightShadowSettings, LightingExtract,
     PostProcessGraphResourceNames, PreviewEnvironmentExtract, RenderDirectionalLightSnapshot,
     RenderFrameExtract, RenderLayerSet, RenderSceneGeometryExtract, RenderSceneSnapshot,
     RenderSpotLightSnapshot, RenderWorldSnapshotHandle, ShadowPcfQuality, ShadowResolutionTier,
-    ViewportCameraSnapshot,
+    ViewportCameraSnapshot, DEFAULT_RENDER_LAYER_MASK,
 };
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
-use crate::graphics::RenderPipelineAsset;
 use crate::graphics::scene::{
-    ShadowAtlasAllocator, ShadowAtlasResourceConfig, ShadowLightSlotAssignment,
-    build_shadow_frame_plan,
+    build_shadow_frame_plan, ShadowAtlasAllocator, ShadowAtlasResourceConfig,
+    ShadowLightSlotAssignment,
 };
 use crate::graphics::types::ViewportRenderFrame;
 use crate::graphics::visibility::VisibilityViewKey;
+use crate::graphics::RenderPipelineAsset;
 use crate::render_graph::{
     QueueLane, RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps, RenderGraphAttachmentStoreOp,
     RenderGraphResourceAccessKind, RenderGraphResourceKind,
@@ -145,7 +145,7 @@ fn render_product_csm_directional() {
     assert_eq!(plan.slots().len(), 4);
     assert_eq!(plan.atlas_passes().len(), 4);
     assert_eq!(
-        plan.light_slots().get(9_001),
+        plan.light_slots().get(GpuLightType::Directional, 9_001),
         Some(ShadowLightSlotAssignment {
             first_slot: 0,
             slot_count: 4,
@@ -188,7 +188,7 @@ fn render_product_multi_spot_shadows() {
     for index in 0..3 {
         let light_id = 10_000 + index as u64;
         assert_eq!(
-            plan.light_slots().get(light_id),
+            plan.light_slots().get(GpuLightType::Spot, light_id),
             Some(ShadowLightSlotAssignment {
                 first_slot: index,
                 slot_count: 1,

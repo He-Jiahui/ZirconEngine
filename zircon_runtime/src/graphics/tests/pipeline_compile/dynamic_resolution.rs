@@ -1,11 +1,11 @@
 use super::*;
 use crate::core::framework::render::{
-    GEOMETRY_SOURCE_ID_STATIC_MESH, RenderResolutionPolicy, RenderUpscalerKind,
-    RenderViewFamilyPipeline, ShaderFeatureBits, builtin_geometry_source_descriptor,
+    builtin_geometry_source_descriptor, RenderResolutionPolicy, RenderUpscalerKind,
+    RenderViewFamilyPipeline, ShaderFeatureBits, GEOMETRY_SOURCE_ID_STATIC_MESH,
 };
 use crate::graphics::shader::{
-    DeferredGBufferShaderTemplateRequest, assemble_deferred_gbuffer_shader_template,
-    standard_material_surface_source_for_features,
+    assemble_deferred_gbuffer_shader_template, standard_material_surface_source_for_features,
+    DeferredGBufferShaderTemplateRequest,
 };
 
 fn deferred_gbuffer_test_shader() -> String {
@@ -419,6 +419,10 @@ fn default_core2d_pipeline_compiles_expected_stage_order_and_passes() {
             ("uber", Some("post.uber")),
             ("output-transfer", Some("post.output-transfer")),
             ("runtime-ui", Some("ui.screen-space")),
+            (
+                "overlay-depth-reconstruct",
+                Some("overlay.depth-reconstruct")
+            ),
             ("overlay-gizmo", Some("overlay.gizmo")),
             ("surface-present", Some("frame.surface-present")),
         ]

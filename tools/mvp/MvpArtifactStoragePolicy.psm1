@@ -5,7 +5,7 @@ $script:MvpArtifactStoragePolicyPath = Join-Path $PSScriptRoot 'mvp-artifact-sto
 $script:MvpArtifactStoragePolicyMaximumBytes = 32KB
 $script:MvpArtifactStoragePolicyUpperHexDigits = [char[]]'0123456789ABCDEF'
 $storagePolicyRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-Import-Module (Join-Path $storagePolicyRepoRoot 'tools\WindowsPathResolver.psm1') -ErrorAction Stop
+Import-Module (Join-Path $storagePolicyRepoRoot 'tools\maintenance\WindowsPathResolver.psm1') -ErrorAction Stop
 
 function ConvertTo-MvpArtifactStoragePolicyUpperHex {
     param([Parameter(Mandatory)][byte[]]$Bytes)
@@ -148,7 +148,7 @@ function Get-MvpArtifactStoragePolicySnapshot {
         if (-not $seenRootIds.Add($rootId)) {
             throw "MVP artifact storage policy contains duplicate root_id '$rootId'."
         }
-        if ($displayPath -notmatch '^[D-F]:\\ZirconBuilds$') {
+        if ($displayPath -notmatch '^[D-F]:\\cargo-targets$') {
             throw "MVP artifact storage root '$rootId' display_path '$displayPath' is invalid."
         }
         if (-not $seenRootPaths.Add($displayPath)) {

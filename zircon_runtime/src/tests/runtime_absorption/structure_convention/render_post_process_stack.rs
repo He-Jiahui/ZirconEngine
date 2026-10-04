@@ -1,12 +1,13 @@
 use super::{assert_contains_all, repo_path, runtime_src_path};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0131] 后处理效果栈的终端抗锯齿与动态分辨率的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_post_process_stack_is_folder_backed() {
     let post_process_mod = read_runtime_src("core/framework/render/post_process/mod.rs");
     let stack = read_runtime_src("core/framework/render/post_process/stack.rs");
     let graph_names =
         read_runtime_src("core/framework/render/post_process/graph_resource_names.rs");
-    let tests_parent = read_runtime_src("core/framework/render/post_process/stack/tests.rs");
+    let tests_parent = read_runtime_src("core/framework/render/post_process/stack/tests/cases.rs");
     let exposure_tests =
         read_runtime_src("core/framework/render/post_process/stack/tests/exposure.rs");
     let terminal_tests =
@@ -164,7 +165,7 @@ fn runtime_15_post_process_stack_is_folder_backed() {
             200,
         ),
         (
-            "core/framework/render/post_process/stack/tests.rs",
+            "core/framework/render/post_process/stack/tests/cases.rs",
             tests_parent.as_str(),
             100,
         ),

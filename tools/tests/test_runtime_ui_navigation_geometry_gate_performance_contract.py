@@ -1,13 +1,13 @@
 from pathlib import Path
 import unittest
 
-from tools.ui_navigation_geometry_gate_pressure import run, run_frame_patch
+from tools.analysis.performance.ui.ui_navigation_geometry_gate_pressure import run, run_frame_patch
 
 
 ROOT = Path(__file__).resolve().parents[2]
 NAVIGATION = ROOT / "zircon_runtime/src/ui/surface/navigation_index.rs"
 GEOMETRY_PATCH = ROOT / "zircon_runtime/src/ui/surface/navigation_index/geometry_patch.rs"
-NAVIGATION_TESTS = ROOT / "zircon_runtime/src/ui/surface/navigation_index/tests.rs"
+NAVIGATION_TESTS = ROOT / "zircon_runtime/src/ui/surface/navigation_index/tests/cases.rs"
 SURFACE_NAVIGATION_TESTS = (
     ROOT / "zircon_runtime/src/ui/tests/focus_navigation/tab_directional.rs"
 )
@@ -20,7 +20,7 @@ def read_surface_rebuild_source() -> str:
         + (rebuild_root / "incremental.rs").read_text(encoding="utf-8")
     )
 
-
+# 约束导航几何补丁只处理候选权威，结合下层回归核对非候选过滤、候选更新及代际可观测性。
 class RuntimeUiNavigationGeometryGatePerformanceContractTests(unittest.TestCase):
     def test_geometry_patch_uses_navigation_authorities_not_all_indexed_nodes(self) -> None:
         source = NAVIGATION.read_text(encoding="utf-8") + GEOMETRY_PATCH.read_text(

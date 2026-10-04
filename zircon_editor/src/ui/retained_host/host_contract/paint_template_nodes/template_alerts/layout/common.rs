@@ -1,3 +1,6 @@
+//! 提示几何的有限值和包含性合同；保留小数坐标，退化矩形不产生可绘制内容。
+//! 本模块的包含性参数顺序为 inner、outer，调用时须与 dialog 同名 helper 的相反顺序区分。
+
 use super::super::super::super::data::FrameRect;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn has_paintable_alert_extent(
@@ -64,22 +67,5 @@ pub(super) fn fitted_centered_square(rect: &FrameRect, left: f32, desired_size: 
 }
 
 #[cfg(test)]
-mod tests {
-    use super::paint_rect;
-    use crate::ui::retained_host::host_contract::data::FrameRect;
-
-    #[test]
-    fn alert_paint_rect_preserves_fractional_geometry_and_degenerate_extents() {
-        let aligned = paint_rect(&FrameRect {
-            x: 4.4,
-            y: 6.6,
-            width: 0.4,
-            height: -2.0,
-        });
-
-        assert_eq!(aligned.x, 4.4);
-        assert_eq!(aligned.y, 6.6);
-        assert_eq!(aligned.width, 0.0);
-        assert_eq!(aligned.height, 0.0);
-    }
-}
+#[path = "tests/common.rs"]
+mod tests;

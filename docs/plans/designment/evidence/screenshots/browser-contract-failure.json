@@ -1,0 +1,176 @@
+{
+  "error": "Error: UNKNOWN: unknown error, open 'E:\\Git\\ZirconEngine\\docs\\plans\\designment\\evidence\\screenshots\\segmented-browser-contract.png'",
+  "inputs": [
+    {
+      "label": "uploader",
+      "name": null,
+      "value": "",
+      "visible": false
+    },
+    {
+      "label": null,
+      "name": null,
+      "value": "100",
+      "visible": true
+    },
+    {
+      "label": null,
+      "name": null,
+      "value": "104",
+      "visible": true
+    },
+    {
+      "label": null,
+      "name": null,
+      "value": "28",
+      "visible": true
+    },
+    {
+      "label": null,
+      "name": null,
+      "value": "128",
+      "visible": true
+    },
+    {
+      "label": null,
+      "name": null,
+      "value": "23",
+      "visible": true
+    },
+    {
+      "label": null,
+      "name": null,
+      "value": "0",
+      "visible": true
+    },
+    {
+      "label": null,
+      "name": null,
+      "value": "on",
+      "visible": true
+    },
+    {
+      "label": "Font Size",
+      "title": "Font Size",
+      "name": null,
+      "value": "14",
+      "visible": true
+    },
+    {
+      "label": "Line Height",
+      "title": "Line Height",
+      "name": null,
+      "value": "1.4",
+      "visible": true
+    },
+    {
+      "label": "Letter Spacing",
+      "title": "Letter Spacing",
+      "name": null,
+      "value": "0",
+      "visible": true
+    },
+    {
+      "label": null,
+      "title": "Upper Case",
+      "name": null,
+      "value": "uppercase",
+      "visible": false
+    },
+    {
+      "label": null,
+      "title": "Capitalize",
+      "name": null,
+      "value": "capitalize",
+      "visible": false
+    },
+    {
+      "label": null,
+      "title": "Lower Case",
+      "name": null,
+      "value": "lowercase",
+      "visible": false
+    },
+    {
+      "label": null,
+      "name": null,
+      "value": "left",
+      "visible": false
+    },
+    {
+      "label": null,
+      "name": null,
+      "value": "center",
+      "visible": false
+    },
+    {
+      "label": null,
+      "name": null,
+      "value": "right",
+      "visible": false
+    },
+    {
+      "label": null,
+      "name": null,
+      "value": "justify",
+      "visible": false
+    },
+    {
+      "label": null,
+      "name": null,
+      "value": "fixed",
+      "visible": false
+    },
+    {
+      "label": null,
+      "name": null,
+      "value": "auto-width",
+      "visible": false
+    },
+    {
+      "label": null,
+      "name": null,
+      "value": "auto-height",
+      "visible": false
+    },
+    {
+      "label": "Color",
+      "name": null,
+      "value": "e8e8e8",
+      "visible": true
+    },
+    {
+      "label": null,
+      "name": null,
+      "value": "100",
+      "visible": true
+    }
+  ],
+  "sidebar": [
+    "ZUI components / Segmented Text Contract",
+    "Zircon / SegmentedSample",
+    "ZUI · Segmented Text Contract",
+    "segmented_sample · SegmentedControl",
+    "ZUI text option-2 · segmented_sample",
+    "ZUI text option-1 · segmented_sample",
+    "ZUI text option-0 · segmented_sample",
+    "ZUI text · segmented_sample",
+    "segmented divider-2",
+    "segmented underline-option-1",
+    "segmented selected-option-1",
+    "segmented divider-1",
+    "segmented surface",
+    "ZUI components / Slider Text Contract",
+    "Zircon / SliderSample",
+    "ZUI · Slider Text Contract",
+    "slider_sample · RangeSlider",
+    "ZUI text range-min · slider_sample",
+    "ZUI text label · slider_sample",
+    "ZUI text · slider_sample",
+    "slider primary",
+    "slider thumb",
+    "slider range-thumb",
+    "slider fill",
+    "slider track"
+  ]
+}

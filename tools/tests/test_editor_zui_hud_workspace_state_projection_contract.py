@@ -1,3 +1,4 @@
+# 核对抬头显示画布与预览共享运行时状态，反馈读取当前屏幕与地区。
 import tomllib
 import unittest
 from pathlib import Path

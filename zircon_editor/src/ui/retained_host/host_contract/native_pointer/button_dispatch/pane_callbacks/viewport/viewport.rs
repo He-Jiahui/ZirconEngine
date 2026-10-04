@@ -14,15 +14,18 @@ pub(in crate::ui::retained_host::host_contract) fn dispatch_viewport_button(
     cleared_text_input_frame: Option<FrameRect>,
 ) -> NativePointerDispatchResult {
     match &pointer.target {
-        PanePointerTarget::SceneViewport(_) => pane_host.invoke_scene_viewport_pointer_event(
-            kind,
-            button_id,
-            pointer.local_x,
-            pointer.local_y,
-            0.0,
-            modifiers.shift,
-            modifiers.control,
-        ),
+        PanePointerTarget::SceneViewport(surface_key) => {
+            pane_host.set_scene_viewport_surface_key(surface_key);
+            pane_host.invoke_scene_viewport_pointer_event(
+                kind,
+                button_id,
+                pointer.local_x,
+                pointer.local_y,
+                0.0,
+                modifiers.shift,
+                modifiers.control,
+            )
+        }
         PanePointerTarget::GameViewport(_) => pane_host.invoke_game_viewport_pointer_event(
             kind,
             button_id,

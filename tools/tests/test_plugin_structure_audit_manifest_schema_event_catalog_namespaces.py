@@ -1,10 +1,10 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema_event_catalog_namespaces import (
+from tools.audits.plugins.manifest_schema_event_catalog_namespaces import (
     collect_global_event_catalog_namespace_violations,
 )
 
-
+# 用插件清单夹具验证事件目录命名空间：拒绝全局事件目录命名空间重复。
 class PluginStructureAuditManifestSchemaEventCatalogNamespacesTests(unittest.TestCase):
     def test_manifest_schema_rejects_global_event_catalog_namespace_duplicates(self):
         violations: list[str] = []

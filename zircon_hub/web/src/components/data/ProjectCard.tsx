@@ -4,6 +4,7 @@ import { hubTokens } from "../../theme/tokens";
 import type { HubProjectSummary } from "../../types/hub";
 import { ProjectCover } from "./ProjectCover";
 
+// 项目摘要及当前选择由页面提供；打开回调接收原摘要，供页面按稳定项目身份进入详情。
 export interface ProjectCardProps {
   project: HubProjectSummary;
   selected?: boolean;
@@ -11,6 +12,7 @@ export interface ProjectCardProps {
   onOpen?: (project: HubProjectSummary) => void;
 }
 
+// 卡片和角落入口共用详情动作；此处只表达页面选择，实际打开编辑器仍由详情工作流发起。
 export function ProjectCard({ project, selected = false, openDetailsLabel, onOpen }: ProjectCardProps) {
   return (
     <Card
@@ -53,6 +55,7 @@ export function ProjectCard({ project, selected = false, openDetailsLabel, onOpe
         size="small"
         aria-label={`${openDetailsLabel}: ${project.name}`}
         onClick={(event) => {
+          // 角落入口与整张卡片指向同一详情，须阻止一次手势同时触发两个入口。
           event.stopPropagation();
           onOpen?.(project);
         }}
@@ -73,6 +76,7 @@ export function ProjectCard({ project, selected = false, openDetailsLabel, onOpe
   );
 }
 
+// 引擎与平台都属于摘要元数据，只以轻量色调区分信息层级，不赋予可点击或状态判断语义。
 function chipSx(tone: "accent" | "neutral") {
   return {
     height: 24,

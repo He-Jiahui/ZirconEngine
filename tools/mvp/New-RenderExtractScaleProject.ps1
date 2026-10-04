@@ -12,7 +12,7 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Import-Module (Join-Path $PSScriptRoot 'RenderExtractSourceIdentity.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpArtifactStoragePolicy.psm1') -Force -ErrorAction Stop
-Import-Module (Join-Path $repoRoot 'tools\WindowsPathResolver.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $repoRoot 'tools\maintenance\WindowsPathResolver.psm1') -Force -ErrorAction Stop
 
 if ([string]::IsNullOrWhiteSpace($ProjectRoot)) {
     $ProjectRoot = New-MvpArtifactStoragePath -NamespaceId 'render-extract-scale-projects'
@@ -75,7 +75,6 @@ function Write-RenderExtractScaleScene {
         '[[entities]]',
         'entity = 1',
         'name = "Camera"',
-        'parent = 0',
         'active = true',
         'render_layer_mask = 1',
         'transform = { translation = [21.0, 2.0, 14.5], rotation = [0.0, 0.0, 0.0, 1.0], scale = [1.0, 1.0, 1.0] }',
@@ -84,7 +83,6 @@ function Write-RenderExtractScaleScene {
         '[[entities]]',
         'entity = 2',
         'name = "Sun"',
-        'parent = 0',
         'active = true',
         'render_layer_mask = 1',
         'mobility = "Static"',
@@ -93,7 +91,7 @@ function Write-RenderExtractScaleScene {
     ) -join $lineEnding
     $Writer.Write($header)
 
-    $entityFormat = '{0}{0}[[entities]]{0}entity = {1}{0}name = "Cube_{2:D6}"{0}parent = 0{0}active = true{0}render_layer_mask = 1{0}mobility = "Static"{0}transform = {{ translation = [{3}, 0.0, {4}], rotation = [0.0, 0.0, 0.0, 1.0], scale = [1.0, 1.0, 1.0] }}{0}{0}[entities.mesh.model]{0}kind = "project"{0}guid = "00000000-0000-0000-0000-000000000002"{0}path_hint = "assets/models/cube.obj"{0}{0}[entities.mesh.material]{0}kind = "project"{0}guid = "00000000-0000-0000-0000-000000000003"{0}path_hint = "assets/materials/default.zmaterial"'
+    $entityFormat = '{0}{0}[[entities]]{0}entity = {1}{0}name = "Cube_{2:D6}"{0}active = true{0}render_layer_mask = 1{0}mobility = "Static"{0}transform = {{ translation = [{3}, 0.0, {4}], rotation = [0.0, 0.0, 0.0, 1.0], scale = [1.0, 1.0, 1.0] }}{0}{0}[entities.mesh.model]{0}kind = "project"{0}guid = "00000000-0000-0000-0000-000000000002"{0}path_hint = "assets/models/cube.obj"{0}{0}[entities.mesh.material]{0}kind = "project"{0}guid = "00000000-0000-0000-0000-000000000003"{0}path_hint = "assets/materials/default.zmaterial"'
 
     $gridWidth = [int][Math]::Ceiling([Math]::Sqrt($PrimitiveCount))
     $invariantCulture = [Globalization.CultureInfo]::InvariantCulture

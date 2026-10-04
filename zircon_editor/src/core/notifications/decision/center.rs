@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, VecDeque};
-use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Mutex;
 
 use crate::core::notifications::NotificationId;
 
@@ -140,15 +140,16 @@ impl DecisionNotificationCenter {
             .next_ticket_incarnation
             .checked_add(1)
             .ok_or(DecisionNotificationError::TicketSequenceExhausted)?;
+        let notification_id = notification.id().clone();
         state.entries.insert(
-            notification.id().clone(),
+            notification_id.clone(),
             DecisionEntry {
                 ticket: ticket.clone(),
                 notification,
                 resolved: None,
             },
         );
-        state.pending_order.push_back(notification.id().clone());
+        state.pending_order.push_back(notification_id);
         state.pending_count += 1;
         Ok(ticket)
     }

@@ -7,6 +7,7 @@ use std::time::Duration;
 use super::World;
 
 impl World {
+    /// 在 WorldDriver 开始新外帧时重置统计窗口，随后由查询、调度和派生状态路径累积本帧成本。
     pub fn reset_ecs_frame_performance_diagnostics(&mut self) {
         self.ecs_frame_performance_diagnostics = EcsFramePerformanceDiagnostics::default();
     }
@@ -50,16 +51,24 @@ impl World {
             .record_hierarchy_topology_rebuild(entity_count);
     }
 
-    pub(super) fn record_derived_state_active_propagation(&mut self, entity_count: usize) {
+    pub(super) fn record_derived_state_active_propagation(
+        &mut self,
+        visited_entities: usize,
+        written_entities: usize,
+    ) {
         self.ecs_frame_performance_diagnostics
             .derived_state_mut()
-            .record_active_propagation(entity_count);
+            .record_active_propagation(visited_entities, written_entities);
     }
 
-    pub(super) fn record_derived_state_world_matrix_propagation(&mut self, entity_count: usize) {
+    pub(super) fn record_derived_state_world_matrix_propagation(
+        &mut self,
+        visited_entities: usize,
+        written_entities: usize,
+    ) {
         self.ecs_frame_performance_diagnostics
             .derived_state_mut()
-            .record_world_matrix_propagation(entity_count);
+            .record_world_matrix_propagation(visited_entities, written_entities);
     }
 
     pub(super) fn record_derived_state_node_cache_rebuild(&mut self, entity_count: usize) {

@@ -5,19 +5,19 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PLUGIN_VALIDATE_FEATURE_PROVIDER_EXTENSION_METADATA = (
     REPO_ROOT
-    / "tools/zircon_export/plugin_validate_feature_provider_extension_metadata.py"
+    / "tools/export/plugin_validate_feature_provider_extension_metadata.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_EXTENSION_METADATA_SCHEMA = (
     REPO_ROOT
-    / "tools/zircon_export/plugin_validate_feature_provider_extension_metadata_schema.py"
+    / "tools/export/plugin_validate_feature_provider_extension_metadata_schema.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_EXTENSION_METADATA_SCHEMA_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/"
+    / "tools/export/tests/"
     "test_plugin_validate_feature_provider_extension_metadata_schema.py"
 )
 
-
+# 验证校验特性提供者扩展元数据模式归属边界的职责切分：特性提供者扩展元数据模式留在模式叶。
 class PluginValidateFeatureProviderExtensionMetadataSchemaOwnerBoundaryTests(
     unittest.TestCase
 ):

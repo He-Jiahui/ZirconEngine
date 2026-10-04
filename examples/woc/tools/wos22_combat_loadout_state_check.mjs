@@ -72,7 +72,7 @@ for (const player of fresh.players) {
 for (const spawn of encounter.spawns) validateCombat(spawn.combat, `Eastbrook ${spawn.source_entity_id}`);
 
 for (const needle of [
-  'writer.u16(<uint>38, 1, 1);',
+  'writer.u16(schemaVersion, 1, 1);',
   'schemaVersion != <uint>22',
   'if (schemaVersion >= <uint>22) {',
   'appendDefaultCombatLoadoutColumns(this);',
@@ -98,8 +98,8 @@ for (const field of [
   invariant((state.match(new RegExp(field, 'g')) ?? []).length >= 5,
     `WOS22 column lacks encode/decode coverage: ${field}`);
 }
-invariant(main.includes('\\"world_state\\":\\"WOS38\\",'),
-  'package stateSchema must expose the current WOS38 snapshot version');
+invariant(main.includes('\\"world_state\\":\\"WOS118\\",'),
+  'package stateSchema must expose the current WOS118 snapshot version');
 
 process.stdout.write(`checked WOS22 combat-loadout source projection: ${SOURCE_COMMIT.slice(0, 15)}\n`);
 

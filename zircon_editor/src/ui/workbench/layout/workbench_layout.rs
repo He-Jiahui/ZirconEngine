@@ -1,15 +1,16 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 
 use crate::ui::workbench::view::ViewDescriptorId;
 
+use super::document_node_id::DocumentNodeIdRepair;
 use super::{
     ActivityDrawerLayout, ActivityDrawerSlot, ActivityWindowHostMode, ActivityWindowId,
     ActivityWindowLayout, DocumentNode, FloatingWindowLayout, MainHostPageLayout, MainPageId,
 };
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct WorkbenchLayout {
     pub active_main_page: MainPageId,
@@ -17,6 +18,8 @@ pub struct WorkbenchLayout {
     pub activity_windows: BTreeMap<ActivityWindowId, ActivityWindowLayout>,
     pub floating_windows: Vec<FloatingWindowLayout>,
 }
+
+mod deserialize;
 
 impl Default for WorkbenchLayout {
     fn default() -> Self {
@@ -35,6 +38,41 @@ impl Default for WorkbenchLayout {
 }
 
 impl WorkbenchLayout {
+    pub(crate) fn normalize_document_node_ids(&mut self) {
+        self.normalize_document_node_ids_with_priority(None);
+    }
+
+    pub(crate) fn normalize_document_node_ids_prioritizing(
+        &mut self,
+        activity_window_id: &ActivityWindowId,
+    ) {
+        self.normalize_document_node_ids_with_priority(Some(activity_window_id));
+    }
+
+    fn normalize_document_node_ids_with_priority(&mut self, priority: Option<&ActivityWindowId>) {
+        let mut reserved = HashSet::new();
+        for window in self.activity_windows.values() {
+            window.content_workspace.collect_node_ids(&mut reserved);
+        }
+        for window in &self.floating_windows {
+            window.workspace.collect_node_ids(&mut reserved);
+        }
+
+        let mut repair = DocumentNodeIdRepair::new(reserved);
+        if let Some(window) = priority.and_then(|id| self.activity_windows.get_mut(id)) {
+            window.content_workspace.normalize_node_ids(&mut repair);
+        }
+        for (id, window) in &mut self.activity_windows {
+            if priority == Some(id) {
+                continue;
+            }
+            window.content_workspace.normalize_node_ids(&mut repair);
+        }
+        for window in &mut self.floating_windows {
+            window.workspace.normalize_node_ids(&mut repair);
+        }
+    }
+
     pub fn activity_windows(&self) -> &BTreeMap<ActivityWindowId, ActivityWindowLayout> {
         &self.activity_windows
     }

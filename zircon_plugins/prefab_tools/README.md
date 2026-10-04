@@ -25,6 +25,7 @@ retained losslessly until a future transaction-backed break operation can update
 the scene and source authority atomically.
 
 Validation rejects duplicate `(entity_path, property_path)` overrides. Effective
-override queries remain deterministic and retain latest-value precedence, but
-build their ordered index from borrowed paths and clone only the final values.
-This query behavior does not make duplicate paths admissible for mutation.
+override queries remain deterministic, build their ordered index from borrowed
+paths, and preserve every value for a duplicate path in input order so a conflict
+cannot be silently discarded. This query behavior does not make duplicate paths
+admissible for mutation.

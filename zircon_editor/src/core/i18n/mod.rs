@@ -6,6 +6,7 @@ mod macros;
 mod service;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 pub use bundle::{EditorLocalizationBundle, EditorLocalizationBundleId, EditorLocalizationKey};
@@ -17,4 +18,4 @@ pub use service::{
 };
 
 #[cfg(test)]
-use service::{MAX_PENDING_LOCALE_EVENT_BYTES, MAX_PENDING_LOCALE_EVENTS};
+use service::{MAX_PENDING_LOCALE_EVENTS, MAX_PENDING_LOCALE_EVENT_BYTES};

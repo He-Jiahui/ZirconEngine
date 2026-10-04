@@ -11,8 +11,8 @@ pub(crate) mod secure_text_policy;
 
 pub use crate::core::framework::ui::UI_MODULE_NAME;
 pub use module::{
-    UI_EVENT_MANAGER_NAME, UI_RUNTIME_DRIVER_NAME, UiConfig, UiModule, UiRuntimeDriver,
-    module_descriptor,
+    module_descriptor, UiConfig, UiModule, UiRuntimeDriver, UI_CONFIG_KEY, UI_EVENT_MANAGER_NAME,
+    UI_RUNTIME_DRIVER_NAME,
 };
 pub(crate) use public_runtime_frame::PublicRuntimeFrame;
 #[cfg(test)]

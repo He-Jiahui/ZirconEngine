@@ -1,0 +1,171 @@
+---
+related_code:
+  - zircon_runtime/src/core/framework/navigation/mod.rs
+  - zircon_runtime/src/core/framework/navigation/agent.rs
+  - zircon_runtime/src/core/framework/navigation/bake.rs
+  - zircon_runtime/src/core/framework/navigation/operation.rs
+  - zircon_runtime/src/core/framework/navigation/constants.rs
+  - zircon_runtime/src/core/framework/navigation/error.rs
+  - zircon_runtime/src/core/framework/navigation/gizmo.rs
+  - zircon_runtime/src/core/framework/navigation/handle.rs
+  - zircon_runtime/src/core/framework/navigation/manager.rs
+  - zircon_runtime/src/core/framework/navigation/modifier.rs
+  - zircon_runtime/src/core/framework/navigation/obstacle.rs
+  - zircon_runtime/src/core/framework/navigation/off_mesh_link.rs
+  - zircon_runtime/src/core/framework/navigation/query.rs
+  - zircon_runtime/src/core/framework/navigation/settings.rs
+  - zircon_runtime/src/core/framework/navigation/stats.rs
+  - zircon_runtime/src/core/framework/navigation/surface.rs
+  - zircon_runtime/src/core/framework/navigation/tests.rs
+  - zircon_runtime/src/core/framework/render/overlay.rs
+  - zircon_runtime/src/core/framework/mod.rs
+  - zircon_runtime/src/core/framework/navigation/asset/mod.rs
+  - zircon_runtime/src/core/framework/navigation/asset/v1.rs
+  - zircon_runtime/src/asset/assets/mod.rs
+  - zircon_runtime/src/asset/mod.rs
+  - zircon_runtime/src/asset/assets/imported.rs
+  - zircon_runtime/src/asset/artifact/store.rs
+  - zircon_runtime_interface/src/resource/marker.rs
+  - zircon_runtime_interface/src/resource/mod.rs
+  - zircon_runtime/src/scene/world/dynamic_components.rs
+  - zircon_runtime/src/scene/navigation.rs
+  - zircon_runtime/src/navigation/module.rs
+  - zircon_runtime/src/navigation/operation/
+  - zircon_plugins/navigation/editor/src/operation_command/
+  - zircon_plugins/navigation/runtime/src/lib.rs
+implementation_files:
+  - zircon_runtime/src/core/framework/navigation/mod.rs
+  - zircon_runtime/src/core/framework/navigation/agent.rs
+  - zircon_runtime/src/core/framework/navigation/bake.rs
+  - zircon_runtime/src/core/framework/navigation/operation.rs
+  - zircon_runtime/src/core/framework/navigation/constants.rs
+  - zircon_runtime/src/core/framework/navigation/error.rs
+  - zircon_runtime/src/core/framework/navigation/gizmo.rs
+  - zircon_runtime/src/core/framework/navigation/handle.rs
+  - zircon_runtime/src/core/framework/navigation/manager.rs
+  - zircon_runtime/src/core/framework/navigation/modifier.rs
+  - zircon_runtime/src/core/framework/navigation/obstacle.rs
+  - zircon_runtime/src/core/framework/navigation/off_mesh_link.rs
+  - zircon_runtime/src/core/framework/navigation/query.rs
+  - zircon_runtime/src/core/framework/navigation/settings.rs
+  - zircon_runtime/src/core/framework/navigation/stats.rs
+  - zircon_runtime/src/core/framework/navigation/surface.rs
+  - zircon_runtime/src/core/framework/render/overlay.rs
+  - zircon_runtime/src/core/framework/navigation/asset/mod.rs
+  - zircon_runtime/src/core/framework/navigation/asset/v1.rs
+  - zircon_runtime/src/asset/assets/mod.rs
+  - zircon_runtime/src/asset/mod.rs
+  - zircon_runtime/src/asset/artifact/store.rs
+  - zircon_runtime/src/scene/world/dynamic_components.rs
+  - zircon_runtime/src/scene/navigation.rs
+  - zircon_runtime/src/navigation/module.rs
+  - zircon_runtime/src/navigation/operation/handler.rs
+  - zircon_runtime/src/navigation/operation/registration.rs
+  - zircon_plugins/navigation/editor/src/operation_command/command.rs
+  - zircon_plugins/navigation/editor/src/operation_command/factory.rs
+  - zircon_plugins/navigation/runtime/src/lib.rs
+plan_sources:
+  - user: 2026-05-02 ZirconEngine navigation/pathfinding plugin completion plan
+  - user: 2026-06-04 plugin ecosystem infrastructure expansion
+tests:
+  - zircon_runtime/src/core/framework/navigation/tests.rs
+  - zircon_plugins/navigation/runtime/src/tests/operation.rs
+  - zircon_plugins/navigation/editor/src/tests/operation_command.rs
+  - tools/tests/test_frameworks_05_layer_direction.py::Frameworks05LayerDirectionTests::test_navigation_gizmo_contract_does_not_project_nav_mesh_assets
+  - off_mesh_bridge_descriptor_is_a_first_class_navigation_contract
+  - automatic_agent_tick_does_not_cross_manual_off_mesh_links
+  - automatic_agent_tick_respects_auto_traverse_links_opt_out
+  - explicit_path_query_can_still_cross_manual_off_mesh_links
+  - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/navigation/*.rs (2026-06-04 navigation boundary split: passed)
+  - git diff --check -- zircon_runtime/src/core/framework/navigation docs/crates/zircon_runtime/core/framework/navigation.md .codex/sessions/20260603-2304-plugin-ecosystem-continuation.md (2026-06-04 navigation boundary split: passed with expected LF-to-CRLF warnings)
+  - cargo test -p zircon_runtime --lib navigation --locked --jobs 1 --target-dir D:\cargo-targets\zircon-navigation-framework-split --message-format short --color never (planned for current navigation boundary split)
+  - cargo check -p zircon_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-navigation-runtime-check --message-format short --color never
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation_recast --locked --jobs 1 --target-dir E:\cargo-targets\zircon-navigation-validation --message-format short --color never
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-navigation-validation --message-format short --color never
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation_editor --locked --jobs 1 --target-dir E:\cargo-targets\zircon-navigation-validation --color never -vv
+doc_type: module-detail
+---
+
+# Navigation Framework Contracts
+
+## Purpose
+
+`zircon_runtime::core::framework::navigation` is the neutral data/query contract layer for 3D navigation. It does not own Recast state, editor panels, scene-authoring behavior, or concrete World execution. `NavigationManager` contains only baked asset loading, settings, path/sample/raycast queries, and stats.
+
+World bake and agent mutation belong to the scene-owned `SceneNavigationRuntime` driver contract. Both the built-in fallback and Navigation plugin register a concrete manager, the neutral query facade, and a `SceneNavigationRuntimeHandle` sharing that implementation. Script gameplay and automatic plugin systems resolve the scene driver for World work, so `core/framework/navigation` has no `crate::scene` dependency.
+
+The module follows the navigation plugin plan: Unity-style authoring components are represented as dynamic component descriptors, while Unreal/Recast-style runtime behavior is routed through a `NavigationManager` trait and baked `.znavmesh` assets.
+
+## Related Files
+
+The navigation framework now lives in a folder-backed subtree. `mod.rs` is only the structural boundary and public re-export surface. The child files own narrow responsibilities:
+
+- `constants.rs` and `handle.rs` define stable ids, area masks, and navmesh handles.
+- `settings.rs`, `surface.rs`, `modifier.rs`, `agent.rs`, `obstacle.rs`, and `off_mesh_link.rs` define the authoring and runtime component DTO families.
+- `bake.rs`, `query.rs`, `stats.rs`, `error.rs`, and `manager.rs` define runtime operations and their neutral result/error records.
+- `operation.rs` defines stable operation ids plus clear/restore payloads and generated-bake before/after snapshots. Runtime handlers live under `zircon_runtime::navigation::operation`; editor factories live in the Navigation editor plugin.
+- `gizmo.rs` owns neutral debug triangles/links and converts that snapshot into the shared scene gizmo overlay contract; it does not import or project concrete navmesh assets.
+- `tests.rs` keeps the framework-level contract checks out of the root wiring file.
+
+Baked navigation DTOs have one neutral owner under `core/framework/navigation/asset/`. The asset domain consumes those records through `ImportedAsset::{NavMesh, NavigationSettings}` and `ResourceKind::{NavMesh, NavigationSettings}` but no longer defines or re-exports the schema. Dynamic component property JSON conversion is extended in `zircon_runtime/src/scene/world/dynamic_components.rs`.
+
+## Behavior Model
+
+The framework defines six fixed dynamic component type ids:
+
+- `navigation.Component.NavMeshSurface`
+- `navigation.Component.NavMeshModifier`
+- `navigation.Component.NavMeshAgent`
+- `navigation.Component.NavMeshObstacle`
+- `navigation.Component.NavMeshOffMeshLink`
+- `navigation.Component.NavMeshOffMeshBridge`
+
+The default humanoid agent matches the plan values: radius `0.5`, height `2.0`, climb `0.4`, slope `45`, speed `3.5`, acceleration `8.0`, angular speed `360`, and stopping distance `0.1`. Areas reserve `0` for `not_walkable`, `1` for `walkable`, `2` for `jump`, and `3..63` for custom areas.
+
+Off-mesh links model a single traversal edge. Off-mesh bridges are a related authoring contract for wider multi-lane crossings: they keep the same endpoint, area, cost, bidirectionality, activation, agent-type, traversal-mode, motion, and arc-height semantics, then add `lane_count` so the runtime plugin can expand one bridge descriptor into bounded per-lane baked links. `MAX_OFF_MESH_BRIDGE_LANES` caps expansion at `32` lanes, keeping editor-authored bridge values from producing unbounded bake artifacts. `NavLinkTraversalMode`, `NavLinkMotion`, and `NavMeshAgentDescriptor::auto_traverse_links` are neutral policy inputs only: the framework preserves them in components and baked assets, while the active navigation runtime decides whether automatic movement may consume those links.
+
+`OffMeshTraverseState` exposes the neutral Approach/Traverse/Exit state shape, while `OffMeshTraverseEvent` reports started/completed transitions without exposing Detour pointers or plugin-owned capacity tables. `NavPathPoint::off_mesh_link_id` associates a path corner with the stable baked link id; the existing string flag remains a human-readable diagnostic, not the identity source.
+
+`NavMeshAsset` version 2 stores deterministic baked data: vertices, indices, polygons, tiles, off-mesh links, agent type, a stable settings hash, and per-area cost/walkability records. Each link records its non-zero asset-local id, authoring owner, lane, motion, arc height, and explicit `NavMeshLinkCapacity::{Unbounded, Shared}` policy. It can be constructed from a simple quad or from triangle input with per-triangle area ids, which lets the runtime bake collector preserve `NavMeshModifier` area overrides in the resulting polygons. It also exposes `debug_triangles()` so editor overlays can draw NavMesh area/tile triangles without understanding the serialized polygon layout, and `to_bytes()` / `from_bytes()` so `.znavmesh` artifacts round-trip through a binary payload instead of pretty JSON.
+
+`NavigationGizmoSnapshot` stores neutral debug triangles and off-mesh links and can convert itself into the existing `SceneGizmoOverlayExtract` line/pick-shape format using `SceneGizmoKind::NavigationMesh`. The retired `from_nav_mesh_asset` convenience API had no production callers and imported the concrete asset domain into framework, so the hard cut deletes it without a shim. Runtime/editor code that actually consumes `.znavmesh` must project asset debug data at its implementation boundary; the renderer still decides which overlay records it draws.
+
+`NavigationSettingsAsset` stores agent and area settings and is routed as a navigation settings resource. The runtime navigation plugin validates ids and finite numeric settings before installation. Bake output copies the active area costs into the navmesh asset so query code can apply the same walkability and cost semantics after the settings asset is no longer in memory.
+
+`NavQueryFilter` keeps its Detour-sized `[Real; 64]` cost table in memory and defines an explicit serde sequence contract for it. Serialized filters must contain exactly 64 finite, positive costs; short or long arrays and non-finite/non-positive values are rejected during deserialization instead of silently defaulting, truncating, or changing the fixed-area ABI.
+
+`NavigationManager::find_path_with_filter` carries that contract through the shared service trait, so consumers that resolve `NavigationManagerHandle` can use costs and include/exclude flags without downcasting to a concrete plugin manager. Backends that do not implement filtered routing must return an explicit error rather than silently ignoring the filter.
+
+## Design and Rationale
+
+The runtime framework deliberately stays backend-neutral. Recast/Detour concepts appear as general DTOs, not as C++ handles or plugin-owned memory. This lets the runtime asset manager, editor UI, scripting layer, and plugin loader share the same language without forcing `zircon_runtime` to link a native navigation library.
+
+`NavMeshAgentDescriptor` is intentionally limited to authoring and configuration fields such as speed, acceleration, angular speed, stopping distance, avoidance flags, link traversal preference, and destination. Concrete per-entity velocity, acceleration integration, arrival braking, rotation interpolation, and automatic off-mesh traversal filtering are owned by the active navigation runtime plugin. This keeps serialized dynamic components and framework DTOs stable while allowing DetourCrowd-style, custom ECS steering, or gameplay-scripted manual-link backends to maintain their own simulation state.
+
+The folder layout follows three reference-engine signals. Godot separates navigation agents, links, obstacles, and regions as distinct scene components; Unreal separates `NavigationSystem`, `NavMesh`, and `NavLink` families; Fyrox keeps navigational mesh runtime data as a dedicated scene subsystem instead of merging it into generic scene nodes. Zircon keeps the same domain split but lands it in the runtime framework contract layer so plugins and editor tooling share stable Rust DTOs.
+
+Dynamic components remain JSON-backed. Vector, entity, and resource values now round-trip through JSON for plugin-authored components: arrays map to `Vec2`/`Vec3`/`Vec4`, `{ "entity": id }` maps to entity references, and `{ "resource": "..." }` maps to resource references.
+
+## Control Flow
+
+Editor or importer code produces `NavMeshAsset` and `NavigationSettingsAsset` records. The artifact store routes navmeshes into `navigation/navmeshes/*.znavmesh` using `NavMeshAsset` binary serialization and settings into `navigation/settings/*.toml`. Runtime plugins load those assets through the resource system and pass them to an implementation of `NavigationManager`.
+
+Editor bake and clear commands cross the runtime boundary through the generic V2 operation lifecycle. Runtime captures `NavigationGeneratedBakeSnapshot` before and after the mutation and returns a `NavigationGeneratedBakeChange`. The editor command stores those snapshots in transaction history; undo and redo call the restore-snapshot operation and do not rebake. Runtime operation failures after submit are treated as potentially applied external effects.
+
+Scene-facing tools write the six navigation component ids as dynamic components. Property editing uses the component descriptors registered by the navigation runtime plugin and the JSON conversion helpers in the world layer.
+
+## Edge Cases
+
+The framework does not bake geometry by itself and does not expose a compatibility straight-line placeholder API. Empty navmesh data is represented as a valid asset but runtime queries should return structured no-path results. Area masks are `u64`, so custom areas must remain below index `64`, and area cost records are serialized with the navmesh to keep query behavior independent of later settings mutations. Navigation gizmo conversion currently emits wire/pick data, not filled translucent triangle draw commands.
+
+## Test Coverage
+
+Historical navigation validation: `cargo check -p zircon_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-navigation-runtime-check --message-format short --color never` passed with existing graphics/UI warnings. Inline framework tests verify the default humanoid contract, fixed component id prefixing, off-mesh bridge default/serde semantics, the exact 64-entry query-filter wire contract (including invalid length/value rejection), and neutral gizmo-snapshot to overlay edge projection. The Frameworks05 Python guard additionally rejects reintroducing asset projection into `gizmo.rs`. Plugin native/runtime/editor checks are tracked in the plugin docs because they depend on the plugin workspace.
+
+Current boundary split static validation passed: scoped rustfmt over `zircon_runtime/src/core/framework/navigation/*.rs`, a conflict-marker scan, and `git diff --check` over the touched navigation/doc/session files. The focused `cargo test -p zircon_runtime --lib navigation` run is still pending until active Cargo lanes from other sessions have enough capacity.
+
+2026-06-04 plugin runtime follow-up split `zircon_plugins/navigation/runtime/src/manager/bake.rs` into a structural bake facade plus `manager/bake/{asset,diagnostics,filter,geometry,modifier,surface}.rs`. This did not change the framework DTOs; it keeps plugin-owned scene scans, Recast/simple fallback dispatch, off-mesh embedding, and bake diagnostics out of the neutral `zircon_runtime::core::framework::navigation` contract layer. Focused plugin Cargo validation is still pending while active Cargo lanes from other sessions are running.
+
+2026-06-07 plugin runtime follow-up added manager-private agent motion state and focused acceleration/auto-braking coverage in `zircon_plugins/navigation/runtime/src/tests/manager.rs`. The framework contract did not change; this document records the boundary that runtime velocity is plugin-owned state, not a new serialized `NavMeshAgentDescriptor` field.
+
+M5 extends the framework contract only with backend-neutral link identity, motion, traversal state/event, and tick-report metrics. Capacity queues, interpolation, native user-id packing, and phase advancement remain plugin-owned. `NavMeshAsset` v2 dispatches by its leading wire version: v1 linked assets migrate through the isolated `core/framework/navigation/asset/v1.rs` DTO with deterministic non-zero ids, linear motion, and unbounded capacity, while unknown versions return `NavigationAssetError::UnsupportedVersion`. Framework serde and migration coverage protect the state/event and asset wire shapes; native/runtime behavior tests and their managed results are recorded by the Navigation 05 child plan.

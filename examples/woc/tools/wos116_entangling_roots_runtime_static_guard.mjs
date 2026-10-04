@@ -43,14 +43,14 @@ requireText(
 const generator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
 if (!/starfire',[\s\S]*?'entangling_roots'/.test(generator) ||
-    !generator.includes("EXPECTED_ABILITY_COUNT = 79") ||
-    !zrGenerator.includes("document.entries.length === 79")) {
+    !generator.includes("EXPECTED_ABILITY_COUNT = 117") ||
+    !zrGenerator.includes("document.entries.length === 117")) {
   throw new Error("M4 Entangling Roots projection scope is missing");
 }
 const entry = JSON.parse(read("contracts", "m4_abilities.json")).entries.find(
   (value) => value.id === "entangling_roots",
 );
-if (!entry || entry.index !== 56 || entry.definition.class !== "druid" ||
+if (!entry || entry.index !== 60 || entry.definition.class !== "druid" ||
     entry.definition.school !== "nature" || entry.definition.learnLevel !== 8 ||
     entry.definition.cost !== 35 || entry.definition.castTime !== 1.5 ||
     entry.definition.cooldown !== 0 || entry.definition.range !== 30 ||

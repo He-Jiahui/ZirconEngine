@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 
 use crate::core::framework::render::{
-    CastShadowsMode, GEOMETRY_SOURCE_ID_MORPHED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MESH,
-    GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH, GeometrySourceId,
-    RenderViewportPickPolicy, ShaderQualityTier,
+    CastShadowsMode, GeometrySourceId, RenderViewportPickPolicy, ShaderQualityTier,
+    GEOMETRY_SOURCE_ID_MORPHED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MESH,
+    GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
 };
 use crate::core::resource::ResourceId;
 use crate::graphics::scene::resources::{
-    MaterialDisabledPasses, MaterialDrawGenerationSelection, MaterialRuntime, PipelineKey,
-    ResourceStreamer, default_pipeline_key,
+    default_pipeline_key, MaterialDisabledPasses, MaterialDrawGenerationSelection, MaterialRuntime,
+    PipelineKey, ResourceStreamer,
 };
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshPassPipelineKind;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::PipelineCreationTarget;
@@ -28,6 +28,7 @@ struct MaterialPipelineCensusOwner {
 }
 
 #[derive(Default)]
+/// 按材质与已冻结代际合并绘制上下文的管线需求；准入和 miss 筛选沿用这一对身份，避免重读材质时混入另一代。
 pub(crate) struct MaterialPipelineRequirementCensus {
     rows: HashMap<MaterialPipelineCensusOwner, MaterialPipelineRequirementRow>,
 }
@@ -863,5 +864,5 @@ fn insert_requirement(
 }
 
 #[cfg(test)]
-#[path = "material_pipeline_requirements/tests.rs"]
+#[path = "material_pipeline_requirements/tests/cases.rs"]
 mod tests;

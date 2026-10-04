@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use crate::core::framework::render::{CapturedFrame, RenderCaptureReport};
 use crate::core::math::UVec2;
@@ -15,13 +15,9 @@ impl ViewportRecord {
         &self,
         generation: u64,
     ) -> AsyncViewportCaptureRequest {
-        let mailbox = Arc::clone(&self.capture_mailbox);
-        AsyncViewportCaptureRequest::new(Box::new(move |result| {
-            let mut mailbox = mailbox
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            mailbox.complete(generation, result);
-        }))
+        let reservation =
+            ViewportAsyncCaptureReservation::new(Arc::clone(&self.capture_mailbox), generation);
+        AsyncViewportCaptureRequest::new(Box::new(move |result| reservation.complete(result)))
     }
 
     pub(in crate::graphics::runtime::render_framework) fn register_async_capture(
@@ -76,14 +72,70 @@ impl ViewportRecord {
     }
 }
 
+struct ViewportAsyncCaptureReservation {
+    mailbox: Arc<Mutex<ViewportAsyncCaptureMailbox>>,
+    generation: u64,
+    active: bool,
+}
+
+impl ViewportAsyncCaptureReservation {
+    fn new(mailbox: Arc<Mutex<ViewportAsyncCaptureMailbox>>, generation: u64) -> Self {
+        mailbox
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .arm(generation);
+        Self {
+            mailbox,
+            generation,
+            active: true,
+        }
+    }
+
+    fn complete(mut self, result: Result<Vec<u8>, String>) {
+        self.mailbox
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .complete(self.generation, result);
+        self.active = false;
+    }
+}
+
+impl Drop for ViewportAsyncCaptureReservation {
+    fn drop(&mut self) {
+        if !self.active {
+            return;
+        }
+        self.mailbox
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .cancel(self.generation);
+    }
+}
+
 impl ViewportAsyncCaptureMailbox {
+    pub(super) fn arm(&mut self, generation: u64) {
+        self.armed.insert(generation);
+        self.trim_to_readback_window();
+    }
+
+    pub(super) fn cancel(&mut self, generation: u64) {
+        self.armed.remove(&generation);
+        self.pending.remove(&generation);
+        self.completed.remove(&generation);
+    }
+
     pub(super) fn register(&mut self, generation: u64, pending: PendingViewportCapture) {
+        if !self.armed.contains(&generation) {
+            return;
+        }
         self.pending.insert(generation, pending);
-        self.trim_to_readback_ring();
         self.promote(generation);
     }
 
     pub(super) fn complete(&mut self, generation: u64, result: Result<Vec<u8>, String>) {
+        if !self.armed.contains(&generation) {
+            return;
+        }
         self.completed.insert(generation, result);
         self.promote(generation);
     }
@@ -104,6 +156,7 @@ impl ViewportAsyncCaptureMailbox {
             self.completed.insert(generation, result);
             return;
         };
+        self.armed.remove(&generation);
         let Ok(rgba) = result else {
             return;
         };
@@ -126,13 +179,12 @@ impl ViewportAsyncCaptureMailbox {
         }
     }
 
-    fn trim_to_readback_ring(&mut self) {
-        while self.pending.len() > viewport_capture_pending_limit() {
-            let Some(generation) = self.pending.keys().next().copied() else {
+    fn trim_to_readback_window(&mut self) {
+        while self.armed.len() > viewport_capture_pending_limit() {
+            let Some(generation) = self.armed.iter().next().copied() else {
                 return;
             };
-            self.pending.remove(&generation);
-            self.completed.remove(&generation);
+            self.cancel(generation);
         }
     }
 }
@@ -144,6 +196,7 @@ pub(super) fn viewport_capture_pending_limit() -> usize {
 impl Default for ViewportAsyncCaptureMailbox {
     fn default() -> Self {
         Self {
+            armed: Default::default(),
             pending: Default::default(),
             completed: Default::default(),
             ready: None,
@@ -152,14 +205,5 @@ impl Default for ViewportAsyncCaptureMailbox {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::super::capture::capture_generation_is_newer;
-
-    #[test]
-    fn completed_capture_generation_never_moves_backwards() {
-        assert!(capture_generation_is_newer(None, 8));
-        assert!(capture_generation_is_newer(Some(8), 9));
-        assert!(!capture_generation_is_newer(Some(8), 8));
-        assert!(!capture_generation_is_newer(Some(8), 7));
-    }
-}
+#[path = "tests/capture_mailbox.rs"]
+mod tests;

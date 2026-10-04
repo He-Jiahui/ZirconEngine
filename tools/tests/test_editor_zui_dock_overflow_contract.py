@@ -10,6 +10,30 @@ def source(relative_path: str) -> str:
 
 
 class EditorZuiDockOverflowContractTests(unittest.TestCase):
+    def test_module_overflow_entries_use_semantic_icons(self):
+        overflow = source(
+            "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/"
+            "workbench/module_overflow_menu.rs"
+        )
+
+        expected_icons = {
+            'menu_action_id: "menu.item.perception"': "icon=eye",
+            'menu_action_id: "menu.item.material"': "icon=material",
+            'menu_action_id: "menu.item.behavior"': "icon=tree",
+            'menu_action_id: "menu.item.render"': "icon=rendering",
+            'menu_action_id: "menu.item.assets"': "icon=folder",
+            'menu_action_id: "menu.item.v_f_x"': "icon=sparkles",
+            'menu_action_id: "menu.item.h_u_d"': "icon=ui",
+            'menu_action_id: "menu.item.diff"': "icon=branch",
+            'menu_action_id: "menu.item.sim"': "icon=play",
+        }
+
+        for action, icon in expected_icons.items():
+            entry = overflow.split(action, 1)[1].split("OverflowCommand", 1)[0]
+            self.assertIn(f'icon_flag: "{icon}"', entry, action)
+
+        self.assertNotIn('icon_flag: "icon=grid"', overflow)
+
     def test_layout_publishes_one_reserved_anchor_and_hidden_tab_authority(self):
         layout = source(
             "zircon_editor/src/ui/layouts/windows/workbench_host_window/"

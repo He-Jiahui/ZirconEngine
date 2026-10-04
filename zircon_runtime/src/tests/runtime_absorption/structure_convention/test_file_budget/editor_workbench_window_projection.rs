@@ -1,3 +1,4 @@
+//! 保护编辑器工作台投影的子模块职责、检查入口与源码规模；这些约束读取检出文本，具体业务结果由被列出的行为测试另行验证。
 use super::{assert_contains_all, read_repo};
 
 const SLICE: &str =
@@ -9,7 +10,7 @@ const GUARD: &str =
 const WORKBENCH_PROJECTION: &str =
     "zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs";
 const WORKBENCH_PROJECTION_TESTS: &str =
-    "zircon_editor/src/ui/retained_host/ui/workbench_window_projection/tests.rs";
+    "zircon_editor/src/ui/retained_host/ui/workbench_window_projection/tests/cases.rs";
 const PARENT_FILE_BUDGET: usize = 1000;
 const TEST_FILE_BUDGET: usize = 800;
 

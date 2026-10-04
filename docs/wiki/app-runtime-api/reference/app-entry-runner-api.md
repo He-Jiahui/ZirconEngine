@@ -7,6 +7,7 @@ related_code:
   - zircon_app/src/entry/entry_runner/runtime.rs
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_app/src/entry/entry_runner/headless.rs
+  - zircon_app/src/entry/product_shutdown/terminal_outcome.rs
 implementation_files:
   - zircon_app/src/entry/entry_profile.rs
   - zircon_app/src/entry/entry_runner/mod.rs
@@ -113,9 +114,12 @@ EntryRunner::run_runtime_with_args(["--project", "examples/demo"])?;
 | `run_runtime_with_args<I,S>(args)` | `platform-winit` | 同上 | 解析诊断、项目、Play 和退出参数 |
 | `run_editor()` | `target-editor-host` | 同上 | 启动 retained editor host |
 | `run_editor_with_args<I,S>(args)` | `target-editor-host` | 同上 | 编辑器参数解析入口 |
-| `run_editor_with_args_exit_code<I,S>(args)` | `target-editor-host` | `Result<u8, ...>` | 将产品失败映射为进程退出码 |
+| `run_editor_with_args_terminal<I,S>(args)` | `target-editor-host` | `Result<ProductTerminalOutcome, Box<dyn Error>>` | 保留成功 Help/GUI 与 commandlet 的结果来源 |
+| `run_editor_with_args_exit_code<I,S>(args)` | `target-editor-host` | `Result<u8, Box<dyn Error>>` | 将成功的 terminal outcome 投影为 `u8`；错误仍交给调用方 |
 | `run_headless()` | `diagnostic-log` | `Result<(), Box<dyn Error>>` | 使用默认 `HeadlessController` 的无参数 headless 调度；内部会丢弃运行报告 |
 | `run_headless_with_args<I,S>(args, controller)` | `diagnostic-log` | `Result<HeadlessRunReport, Box<dyn Error>>` | 使用调用方提供的 `HeadlessController`，返回完整 headless 运行报告 |
+
+`run_editor_with_args_terminal` 的 commandlet 结果保留原始 `u8`，包括成功码 0 的 commandlet 来源。当前 boxed Editor runner 错误尚未提供 typed failure stage；binary 将其归为未分类失败码 1。有界 terminal 源码切片仍待 managed validation 和产品级验收。
 
 `run_headless_with_args` 的第二个参数不是可选配置，而是用于取消、优雅关闭 deadline 和运行时销毁协调的 `HeadlessController`。调用方应保留同一个 controller 以便信号处理器或宿主线程发出停止请求：
 

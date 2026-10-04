@@ -1,3 +1,4 @@
+# 核对已跟踪工具测试不依赖个人计划目录。
 import subprocess
 import unittest
 from pathlib import Path

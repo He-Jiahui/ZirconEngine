@@ -5,21 +5,21 @@ use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     surface::{UiEditableTextState, UiTextCaret, UiTextCaretAffinity},
     text::{
-        UI_NUMBER_MODEL_UPDATE_SCHEMA_VERSION, UiNumberModelId, UiNumberModelKey,
-        UiNumberModelRevision, UiNumberModelUpdateFailure, UiNumberModelUpdateId,
-        UiNumberModelUpdateOrigin, UiNumberModelUpdateReceipt, UiNumberModelUpdateRequest,
-        UiNumberModelUpdateStatus,
+        UiNumberModelId, UiNumberModelKey, UiNumberModelRevision, UiNumberModelUpdateFailure,
+        UiNumberModelUpdateId, UiNumberModelUpdateOrigin, UiNumberModelUpdateReceipt,
+        UiNumberModelUpdateRequest, UiNumberModelUpdateStatus,
+        UI_NUMBER_MODEL_UPDATE_SCHEMA_VERSION,
     },
 };
 
 use crate::ui::surface::{
-    UiSurface, UiSurfaceSessionIdentityHandle,
     input::{
-        NumberFieldRevisionError, UiEditableTextPropertyTransactionError,
         editable_text_state_for_node, editable_value_property, is_number_field_metadata,
         number_field_edit_is_active, number_field_value_revision,
-        prepare_number_field_model_update_properties,
+        prepare_number_field_model_update_properties, NumberFieldRevisionError,
+        UiEditableTextPropertyTransactionError,
     },
+    UiSurface, UiSurfaceSessionIdentityHandle,
 };
 
 use super::manager::UiInputManager;
@@ -289,5 +289,5 @@ fn receipt(
 }
 
 #[cfg(test)]
-#[path = "number_model_updates/tests.rs"]
+#[path = "number_model_updates/tests/cases.rs"]
 mod tests;

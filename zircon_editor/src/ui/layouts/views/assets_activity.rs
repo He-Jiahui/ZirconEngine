@@ -22,6 +22,7 @@ mod content_nodes;
 mod reference_nodes;
 mod responsive_layout;
 #[cfg(test)]
+#[path = "assets_activity/tests/responsive_layout_tests.rs"]
 mod responsive_layout_tests;
 
 use super::{asset_kind_filter_options, ASSETS_ACTIVITY_KIND_FILTER_CONTROL_ID};
@@ -206,17 +207,7 @@ pub(crate) fn assets_activity_pane_data(
 }
 
 #[cfg(test)]
-#[test]
-fn stable_assets_activity_snapshot_reuses_the_composed_model() {
-    super::view_projection::clear_view_template_projection_caches_for_tests();
-    let snapshot = AssetWorkspaceSnapshot::default();
-    let size = UiSize::new(420.0, 360.0);
-
-    let first = assets_activity_pane_data(&snapshot, size);
-    let stable = assets_activity_pane_data(&snapshot, size);
-
-    assert!(first.nodes.shares_values_with(&stable.nodes));
-}
+include!("tests/assets_activity_cases.rs");
 
 fn apply_assets_activity_visual_state(
     nodes: &mut [crate::ui::layouts::views::ViewTemplateNodeData],
@@ -354,26 +345,5 @@ fn mark_text_state(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{mark_panel_selected, mark_text_state, mark_toggle_state};
-    use crate::ui::layouts::views::ViewTemplateNodeData;
-
-    #[test]
-    fn visual_selection_state_does_not_impersonate_keyboard_focus() {
-        let mut nodes = vec![node("toggle"), node("panel"), node("label")];
-
-        mark_toggle_state(&mut nodes, "toggle", true);
-        mark_panel_selected(&mut nodes, "panel", true);
-        mark_text_state(&mut nodes, &["label"], true);
-
-        assert!(nodes.iter().all(|node| node.selected));
-        assert!(nodes.iter().all(|node| !node.focused));
-    }
-
-    fn node(control_id: &str) -> ViewTemplateNodeData {
-        ViewTemplateNodeData {
-            control_id: control_id.into(),
-            ..ViewTemplateNodeData::default()
-        }
-    }
-}
+#[path = "tests/assets_activity.rs"]
+mod tests;

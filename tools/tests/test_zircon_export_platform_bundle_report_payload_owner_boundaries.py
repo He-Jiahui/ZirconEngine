@@ -1,11 +1,12 @@
+# 核对平台包报告载荷的实现归属与模块行数。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PLATFORM_BUNDLE = REPO_ROOT / "tools/zircon_export/platform_bundle.py"
+PLATFORM_BUNDLE = REPO_ROOT / "tools/export/platform_bundle.py"
 PLATFORM_BUNDLE_REPORT_PAYLOAD = (
-    REPO_ROOT / "tools/zircon_export/platform_bundle_report_payload.py"
+    REPO_ROOT / "tools/export/platform_bundle_report_payload.py"
 )
 
 

@@ -5,7 +5,7 @@ use zircon_runtime::asset::registry::AssetRegistryIndex;
 use zircon_runtime::asset::{AssetReference, AssetUri, AssetUuid};
 
 use super::super::preview_refresh::display_name_for_locator::display_name_for_locator;
-use super::record::record_to_view;
+use super::record::{record_to_view, reference_record};
 use crate::ui::host::editor_asset_manager::{
     AssetCatalogRecord, EditorAssetDetailsGeneration, EditorAssetReferenceRecord,
     EditorAssetSubassetRecord,
@@ -17,25 +17,30 @@ pub(super) fn build_details_generation(
     uuid_by_locator: &HashMap<AssetUri, AssetUuid>,
     runtime_registry: &AssetRegistryIndex,
 ) -> Arc<EditorAssetDetailsGeneration> {
-    let mut direct_references = record
-        .direct_references
-        .iter()
-        .map(|reference| reference_to_view(reference, catalog_by_uuid, uuid_by_locator))
-        .collect::<Vec<_>>();
+    let mut direct_references = Vec::with_capacity(record.direct_references.len());
+    for reference in &record.direct_references {
+        direct_references.push(reference_to_view(
+            reference,
+            catalog_by_uuid,
+            uuid_by_locator,
+        ));
+    }
     direct_references.sort_by(reference_order);
 
-    let mut referenced_by = runtime_registry
-        .get_referencers_by_uuid(record.asset_uuid)
-        .into_iter()
-        .filter_map(|source_uuid| catalog_by_uuid.get(&source_uuid))
-        .map(|source| EditorAssetReferenceRecord {
+    let referencer_uuids = runtime_registry.get_referencers_by_uuid(record.asset_uuid);
+    let mut referenced_by = Vec::with_capacity(referencer_uuids.len());
+    for source_uuid in referencer_uuids {
+        let Some(source) = catalog_by_uuid.get(&source_uuid) else {
+            continue;
+        };
+        referenced_by.push(EditorAssetReferenceRecord {
             uuid: source.asset_uuid.to_string(),
             locator: source.locator.to_string(),
             display_name: source.display_name.clone(),
             kind: Some(source.kind),
             known_project_asset: true,
-        })
-        .collect::<Vec<_>>();
+        });
+    }
     referenced_by.sort_by(reference_order);
 
     Arc::new(EditorAssetDetailsGeneration {
@@ -73,11 +78,7 @@ fn reference_to_view(
     catalog_by_uuid: &HashMap<AssetUuid, AssetCatalogRecord>,
     uuid_by_locator: &HashMap<AssetUri, AssetUuid>,
 ) -> EditorAssetReferenceRecord {
-    if let Some(record) = catalog_by_uuid.get(&reference.uuid).or_else(|| {
-        uuid_by_locator
-            .get(&reference.locator)
-            .and_then(|uuid| catalog_by_uuid.get(uuid))
-    }) {
+    if let Some(record) = reference_record(reference, catalog_by_uuid, uuid_by_locator) {
         return EditorAssetReferenceRecord {
             uuid: record.asset_uuid.to_string(),
             locator: record.locator.to_string(),

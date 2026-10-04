@@ -1,3 +1,4 @@
+//! 编译图缓存键覆盖修订、相机目标、有效选项与设备能力；注册或重载管线必须使旧图失效。
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
@@ -32,6 +33,7 @@ impl fmt::Display for RenderGraphCompileInputError {
 
 impl std::error::Error for RenderGraphCompileInputError {}
 
+/// 一个编译图可复用的结构身份；有效视图变化须反映在键中。
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct CompiledGraphCacheKey {
     pub pipeline: RenderPipelineHandle,
@@ -447,4 +449,5 @@ impl CompiledGraphCache {
 }
 
 #[cfg(test)]
+#[path = "compiled_graph_cache/tests/cases.rs"]
 mod tests;

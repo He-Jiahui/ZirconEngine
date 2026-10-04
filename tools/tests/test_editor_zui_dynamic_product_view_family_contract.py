@@ -684,6 +684,47 @@ class EditorZuiDynamicProductViewFamilyContractTests(unittest.TestCase):
                 "Stretch", nodes[node_name]["layout"]["width"]["stretch"]
             )
 
+    def test_asset_browser_preserves_content_at_compact_tiers(self):
+        nodes = load_document("asset_browser.zui")["nodes"]
+
+        self.assertEqual("narrow", nodes["sources_panel"]["props"]["responsive_min_tier"])
+        for node_name in (
+            "details_content_panel",
+            "details_scroll_body",
+            "details_panel",
+        ):
+            self.assertEqual(
+                "regular",
+                nodes[node_name]["props"]["responsive_min_tier"],
+                node_name,
+            )
+        self.assertEqual("narrow", nodes["utility_panel"]["props"]["responsive_min_tier"])
+        self.assertEqual(
+            "$editor.control.radius.control",
+            nodes["content_panel"]["props"]["radius"],
+        )
+        self.assertEqual(
+            "$editor.control.radius.control",
+            nodes["content_asset_table"]["props"]["radius"],
+        )
+        column_budget = (
+            REPO_ROOT
+            / "zircon_editor/src/ui/layouts/views/asset_browser/compact_layout/column_budget.rs"
+        ).read_text(encoding="utf-8")
+        utility_layout = (
+            REPO_ROOT
+            / "zircon_editor/src/ui/layouts/views/asset_browser/compact_layout/utility_layout.rs"
+        ).read_text(encoding="utf-8")
+        self.assertIn("NARROW_BREAKPOINT_WIDTH: f32 = 640.0", column_budget)
+        self.assertIn(
+            "viewport_width < NARROW_BREAKPOINT_WIDTH",
+            column_budget,
+        )
+        self.assertIn(
+            "viewport_width < NARROW_BREAKPOINT_WIDTH",
+            utility_layout,
+        )
+
     def test_asset_browser_details_text_slots_preserve_workbench_line_heights(self):
         nodes = load_document("asset_browser.zui")["nodes"]
         caption_line_height = (8.0 * 96.0 / 72.0) * 1.2
@@ -812,6 +853,18 @@ class EditorZuiDynamicProductViewFamilyContractTests(unittest.TestCase):
         )
         self.assertNotIn(
             "root.width > density.compact_left_drawer_max_width", responsive_layout
+        )
+        self.assertIn(
+            "width < density.breakpoint_narrow_width", responsive_layout
+        )
+
+    def test_assets_activity_compact_surface_uses_the_shared_narrow_tier(self):
+        nodes = load_document("assets_activity.zui")["nodes"]
+        self.assertEqual("narrow", nodes["tree_panel"]["props"]["responsive_min_tier"])
+        self.assertEqual("narrow", nodes["utility_panel"]["props"]["responsive_min_tier"])
+        self.assertEqual(
+            "$editor.control.radius.control",
+            nodes["preview_panel"]["props"]["radius"],
         )
 
     def test_assets_activity_fixed_text_slots_preserve_authored_line_heights(self):

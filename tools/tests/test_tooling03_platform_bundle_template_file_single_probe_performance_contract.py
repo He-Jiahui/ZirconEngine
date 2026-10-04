@@ -1,3 +1,4 @@
+# 核对平台包模板文件以单次元数据探测区分检查错误。
 from __future__ import annotations
 
 import tempfile
@@ -5,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_export.platform_bundle_template_files_materialize import (
+from tools.export.platform_bundle_template_files_materialize import (
     materialize_platform_bundle_template_files,
 )
 
@@ -24,10 +25,10 @@ class Tooling03PlatformBundleTemplateFileSingleProbePerformanceContractTests(
             observed_source.__str__ = mock.Mock(return_value=str(source))
             observed_source.__truediv__ = mock.Mock(return_value=observed_source)
             with mock.patch(
-                "tools.zircon_export.platform_bundle_template_files_materialize.Path",
+                "tools.export.platform_bundle_template_files_materialize.Path",
                 return_value=observed_source,
             ), mock.patch(
-                "tools.zircon_export.platform_bundle_template_files_materialize.copy_platform_bundle_template_file",
+                "tools.export.platform_bundle_template_files_materialize.copy_platform_bundle_template_file",
                 return_value=True,
             ):
                 fatal, copied = materialize_platform_bundle_template_files(
@@ -60,7 +61,7 @@ class Tooling03PlatformBundleTemplateFileSingleProbePerformanceContractTests(
             "simulated permission failure"
         )
         with mock.patch(
-            "tools.zircon_export.platform_bundle_template_files_materialize.Path",
+            "tools.export.platform_bundle_template_files_materialize.Path",
             return_value=observed_source,
         ):
             fatal, copied = materialize_platform_bundle_template_files(

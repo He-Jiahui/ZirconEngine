@@ -2,7 +2,7 @@
 handoff_kind: failure
 status: open
 created_at: 2026-07-23
-updated_at: 2026-08-13
+updated_at: 2026-09-24
 summary_slug: autosave-job-admission-and-save-mutex-adapter
 origin_plan: docs/plans/zircon_editor/editor/17-editor-services-and-recovery.md
 fixing_plan: docs/plans/zircon_editor/editor/14-threading-and-job-scheduling.md
@@ -12,9 +12,14 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/core/jobs/mod.rs
   - zircon_editor/src/core/jobs/system/mod.rs
-  - zircon_editor/src/core/recovery/autosave.rs
-  - zircon_editor/src/core/recovery/autosave_adapter.rs
-  - zircon_editor/src/core/recovery/tests/autosave_adapter.rs
+  - zircon_editor/src/core/jobs/system/submission.rs
+  - zircon_editor/src/core/recovery/autosave/mod.rs
+  - zircon_editor/src/core/recovery/autosave/policy.rs
+  - zircon_editor/src/core/recovery/autosave/scheduler.rs
+  - zircon_editor/src/core/recovery/autosave_adapter/mod.rs
+  - zircon_editor/src/core/recovery/autosave_adapter/adapter.rs
+  - zircon_editor/src/core/recovery/autosave_adapter/write_job.rs
+  - zircon_editor/src/core/recovery/tests/autosave_adapter/mod.rs
 tests:
   - cargo test -p zircon_editor --lib --locked core::jobs::tests -- --test-threads=1
   - cargo test -p zircon_editor --lib --locked core::recovery::tests -- --test-threads=1
@@ -57,7 +62,7 @@ Editor14 的 job 门面是通用的，尚未为 Editor17 autosave 定义“计�
 
 ## 修复结果与回传
 
-Open state: `bounded_admission_and_completion_budget_source_repair_complete_pending_managed_validation`。`core/recovery/autosave_adapter.rs` 已通过唯一 `EditorJobSystem::reserve_batch_admission` 预留选中窗口，再以 `reservation.commit` 接收 immutable autosave plan；worker 真正开始后才向 document authority 捕获 snapshot，随后仅写入 autosave snapshot。atomic admission 拒绝会释放 scheduler single-flight；完成回流按显式 ticket budget 轮转并累计批次终态，全部 ticket terminal 后恰好一次推进下个 interval；shutdown 停止新 admission 并请求已属 ticket 协作取消。
+Open state: `bounded_admission_and_completion_budget_source_repair_complete_pending_managed_validation`。`core/recovery/autosave_adapter/adapter.rs` 已通过唯一 `EditorJobSystem::reserve_batch_admission` 预留选中窗口，再以 `reservation.commit` 接收 immutable autosave plan；worker 真正开始后才向 document authority 捕获 snapshot，随后仅写入 autosave snapshot。atomic admission 拒绝会释放 scheduler single-flight；完成回流按显式 ticket budget 轮转并累计批次终态，全部 ticket terminal 后恰好一次推进下个 interval；shutdown 停止新 admission 并请求已属 ticket 协作取消。
 
 2026-08-08 current-source performance review 证明旧 adapter 尚不能 return：`AutosaveScheduler::plan` 先为全部 dirty document 建立 `AutosavePlan::documents`，`AutosaveJobAdapter::schedule` 随后为整批请求构建 `BTreeMap`、`Vec<(EditorJobSpec, AutosaveWriteJob)>` 和 `submit_batch` 的 sender/task 容器，之后才由 `ensure_batch_pending_admissible` 拒绝 over-budget admission。故 snapshot bytes 虽为零，但 `1/100/10k` dirty 输入能够在 queue budget 决定前使 transient task/intention 数量随全量 dirty set 增长；这不满足 PERF-MVP-592 的 entry/bytes/age bounded admission window。
 
@@ -90,6 +95,7 @@ the PERF-MVP-592 matrix, and Editor17 upward acceptance remain required.
 | 2026-08-13 | `second-review-minors-forward-fixed / final-re-review-pending` | 独立二审 `Critical/Important/Minor = 0/0/2`；本轮补齐零预算、blocked-head/ready-tail 轮转、跨 tick 成功/失败累计、terminal 后全零复位与下一 interval 重排程回归，并导出默认预算、同步 recovery 文档累计消费语义。 | 同步修正顶部 Open state 的旧 `submit_batch` 表述和 `updated_at`。等待静态复验与最终独立 re-review；受管 Cargo、PERF-MVP-592 与 Editor17 上行验收仍待，failure 保持 `open`。 |
 | 2026-08-13 | `final-review-test-race-forward-fixed / re-review-pending` | 最终复审 `Critical/Important/Minor = 0/1/1` 指出 snapshot capture 计数早于 ticket channel terminal，直接断言下一次 budget-1 pump 会形成时序竞态。本轮改为有 deadline 的 budget-1 状态循环，每次断言 inspection 不超过 1，再等待目标累计状态；同时明确已提交后的取消属于 terminal `mark_finished`，不属于 `mark_submission_failed`。 | 中间混合终态只断言一个 terminal/一个 pending，不假定 success/failure 顺序；生产 VecDeque/累计状态机未发现行为缺陷。等待修复后静态复验与最终 clean re-review；受管 Cargo、PERF-MVP-592 与 Editor17 上行验收仍待，failure 保持 `open`。 |
 | 2026-08-13 | `implementation-complete / final-second-review-clean / managed-acceptance-pending` | 最终独立复审 `Critical/Important/Minor = 0/0/0`：budget-1 状态循环不会跳过目标中间态，累计计数、terminal exactly-once、复位和下一 interval 重排程合同均闭合。 | 五路径 scoped `rustfmt --check`、结构合同与 `git diff --check` 通过；未直接运行 Cargo。受管 Cargo、PERF-MVP-592 和 Editor17 上行验收仍只延迟 accepted closeout，failure 保持 `open`，未提前 return fixed。 |
+| 2026-09-24 | `current-path-reconciliation / managed-acceptance-pending` | 将 active `related_code` 的三个已迁移平铺路径指向现行 folder-backed owner，补充 `submission.rs` 原子准入、`policy.rs` 保存互斥 spec 与 `write_job.rs` admitted worker 写入的直接调用链；历史复现和旧审查记录原样保留。 | 当前 `autosave_adapter/adapter.rs` SHA256 `5c32c29183f083d8418fab81e21fd2411c9c871d21fc0ce3e2b342d6367fbf6e`、`tests/autosave_adapter/mod.rs` SHA256 `165f46a7d6b837ba0b488597a854c127d62b4aeb305db662421cba679a27c053`，与历史归属快照不符且为其他会话未归属改动；仅修本文档，不吸收源码、复用旧复审为当前动态验收或声称 PERF-MVP-592 规模门通过。受管 Cargo、性能矩阵及 Editor17 上行验收仍待，failure 保持 `open`。 |
 
 ## 2026-07-30 Performance01 性能验收补充
 

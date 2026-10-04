@@ -1,3 +1,4 @@
+use crate::text::layout_geometry::{finite_f32_or_geometry, finite_sum};
 use zircon_runtime_interface::ui::{
     layout::UiFrame,
     surface::{UiResolvedStyle, UiTextWritingMode},
@@ -42,18 +43,30 @@ impl TableAxes {
         block_extent: f32,
     ) -> UiFrame {
         match self {
-            Self::HorizontalTb => UiFrame::new(
-                container.x + inline_start,
-                container.y + block_start,
-                inline_extent,
-                block_extent,
-            ),
-            Self::VerticalRl => UiFrame::new(
-                container.right() - block_start - block_extent,
-                container.y + inline_start,
-                block_extent,
-                inline_extent,
-            ),
+            Self::HorizontalTb => {
+                let x = finite_f32_or_geometry(
+                    container.x + inline_start,
+                    f64::from(container.x) + f64::from(inline_start),
+                );
+                let y = finite_f32_or_geometry(
+                    container.y + block_start,
+                    f64::from(container.y) + f64::from(block_start),
+                );
+                UiFrame::new(x, y, inline_extent, block_extent)
+            }
+            Self::VerticalRl => {
+                let right_exact = f64::from(container.x) + f64::from(container.width);
+                let x_candidate = container.right() - block_start - block_extent;
+                let x = finite_f32_or_geometry(
+                    x_candidate,
+                    right_exact - f64::from(block_start) - f64::from(block_extent),
+                );
+                let y = finite_f32_or_geometry(
+                    container.y + inline_start,
+                    f64::from(container.y) + f64::from(inline_start),
+                );
+                UiFrame::new(x, y, block_extent, inline_extent)
+            }
         }
     }
 
@@ -69,7 +82,7 @@ impl TableAxes {
         match self {
             Self::HorizontalTb => UiFrame::new(
                 container.x,
-                container.y + consumed_block,
+                finite_sum([container.y, consumed_block]),
                 container.width,
                 (container.height - consumed_block).max(0.0),
             ),
@@ -102,3 +115,7 @@ impl TableAxes {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "tests/axes.rs"]
+mod tests;

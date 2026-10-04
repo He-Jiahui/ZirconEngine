@@ -133,12 +133,12 @@ runtime 框架侧(compute 框架 + readback):
 | `zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/render_feature_pass_descriptor.rs` | 增 `compute_pass: Option<ComputePassDescriptor>` 字段与 `.with_compute_pass(...)` builder | 修改 |
 | `zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/generic_compute_executor.rs` | `"compute.generic"` executor:按 schema 组 bind group(经 `RgResourceResolver` 解析句柄/名字)、三种 dispatch 录制、pipeline 缓存查询;含 `#[cfg(test)]` | 新增 |
 | `zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/compute_pipeline_cache.rs` | shader module + `wgpu::ComputePipeline` 缓存,热路径 bucket 键 = (shader source/entry point/binding schema 哈希),命中后仍按完整内容判等;条目以有界 LRU 管理,避免插件/NN 特化无界常驻;走计划 08 变体缓存同款键控策略 | 新增 |
-| `zircon_runtime/src/graphics/backend/render_backend/gpu_readback_queue/mod.rs` + `staging_ring.rs` + `ticket.rs` | `GpuReadbackQueue`/`ReadbackTicket`/staging ring;wgpu 类型只在此层 | 新增 |
-| `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs` | `SceneRendererCore` 增 `readback_queue: GpuReadbackQueue` 字段 | 修改 |
+| `zircon_runtime/crates/zr_rhi_wgpu/src/gpu_readback_queue/` + `production/diagnostics/readback/` | `GpuReadbackQueue` 与 production diagnostic readback service；前者服务 timer/UI 等低层消费者，后者经 `RenderBackend` product-diagnostic router 统一 scene/runtime admission、copy/map 与 callback 派发 | 新增/演进 |
+| `zircon_runtime/src/graphics/backend/render_backend/render_backend_diagnostics.rs` + `product_diagnostic_delivery_router.rs` | `RenderBackend` 持有 production diagnostic readback service，并由 product-diagnostic router 负责请求准入、提交与完成回调；当前实现不在 `SceneRendererCore` 内持有 `GpuReadbackQueue` | 修改 |
 | `zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs` | `with_builtin_noop_executors` 注册 `"compute.generic"`;迁移对象的手写 executor 注册行删除 | 修改 |
 | `zircon_runtime/src/core/framework/render/backend_types.rs` | `RenderStats` 增 `last_readback_in_flight_count: usize`、`last_readback_bytes: u64`、`last_named_compute_pass_micros: Vec<(String, u64)>`(纯数据,NN pass 以 pass 名出现,runtime 不识别 NN) | 修改 |
 | `zircon_runtime/src/graphics/scene/scene_renderer/hzb/mod.rs` + `feature_descriptors/hzb.rs`(计划 04 落点) | 迁移示范:HZB reduce 的手写 pipeline/bind/dispatch 样板删除,改 `with_compute_pass`;若实施时计划 04 未落地,迁移示范回退为 `execute_ssao.rs`(删本体,`ao.ssao-evaluate` 改挂 `compute.generic`,disabled 时的 clear 路径留在 feature 开关侧) | 修改 |
-| `zircon_runtime/src/graphics/tests/render_compute.rs`、`graphics/backend/render_backend/gpu_readback_queue/tests.rs` | 测试(注册进各自 `mod.rs`) | 新增 |
+| `zircon_runtime/src/graphics/feature/compute_pass_descriptor/tests.rs`、`graphics/scene/scene_renderer/graph_execution/compute_pipeline_cache/tests.rs`、`zircon_runtime/crates/zr_rhi_wgpu/src/gpu_readback_queue/{tests.rs,texture_tests.rs}`、`production/diagnostics/readback/tests.rs` | compute lowering/cache 与两条 readback owner 的现行测试 | 新增/演进 |
 
 NN 插件包族(`zircon_plugins/`,对照 `rendering/`、`particles/` 既有包形态;`zircon_plugins/Cargo.toml` workspace members 增三 crate):
 
@@ -266,7 +266,7 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
 ```
 
 ```rust
-// graphics/backend/render_backend/gpu_readback_queue/mod.rs(backend 层,wgpu 允许)
+// zircon_runtime/crates/zr_rhi_wgpu/src/gpu_readback_queue/mod.rs(wgpu backend 层)
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct ReadbackTicket(u64);   // 单调递增,跨帧唯一
 
@@ -301,12 +301,20 @@ staging ring 尺寸策略与 fence 语义:
 
 - 槽容量:初始 256 KiB;帧内请求总量(各请求按 256 字节对齐后求和)超容时按 2 的幂增长重建该槽;连续 240 帧使用率 < 25% 时减半(下限 256 KiB)。
 - 请求偏移对齐 256(同时满足 `COPY_BUFFER_ALIGNMENT`、map 切片与潜在 storage 复用)。
-- fence 语义:wgpu 无显式 fence,以 `map_async` 完成回调即完成信号;`poll_completed` 用非阻塞 poll,回调最早在帧 N+1、典型帧 N+2 送达(**N 帧延迟语义:调用方不得假设当帧可得**)。轮转回到同一槽位(帧 N+3)时若 map 仍未完成,仅对该槽阻塞等待(背压),次数计入 `RenderStats::last_readback_in_flight_count` 旁的诊断。
-- **私自 map_async 迁移禁令清单**(本计划落地后,以下调用点全部改走 `GpuReadbackQueue`,源码扫描测试封死):
+- fence 语义:wgpu 无显式 fence,以 `map_async` 完成回调即完成信号;`poll_completed` 用非阻塞 poll,回调最早在帧 N+1、典型帧 N+2 送达(**N 帧延迟语义:调用方不得假设当帧可得**)。轮转回到同一槽位(帧 N+3)时若 map 仍未完成,本帧以 `SlotReuseIncomplete` 非阻塞拒绝并累计 `slot_reuse_rejection_count`,不得 caller-thread wait。
+- **私自 map_async 迁移禁令清单**(本计划落地后,以下 ordinary production 调用点全部改走中央 readback owner,源码扫描测试覆盖这些调用点):
   1. `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/decode/read_buffer_u32s.rs:16`
   2. `zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/decode/read_buffer_u32s.rs:16`
   3. `zircon_plugins/particles/runtime/src/render/gpu/backend.rs:543`
-  4. `zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba.rs:49` —— **唯一白名单**:同步抓帧/测试产物路径(`finish_viewport_frame.rs` 消费),保留阻塞语义,文件头注释声明豁免;其余任何新增 `map_async` 由 `readback_no_private_map_async_source_scan` 测试拒绝。
+  4. 显式 screenshot/headless capture 可保留阻塞产品 API；scene/runtime 普通诊断由 `production/diagnostics/readback/` + product-diagnostic router 负责。IBL artifact persistence 和测试夹具须分别按其 owner/用途审查，不得把 `readback_no_private_map_async_source_scan` 的列举扫描误称为全树白名单。
+
+> 2026-09-21 current-source reconciliation：现行实现存在两个按角色划分的中央 owner，而非旧文所述单一 facade。`zr_rhi_wgpu::GpuReadbackQueue` 服务 timer/UI 等低层 consumer；scene/runtime production diagnostics 走 device-owned diagnostic service。viewport fallback mailbox 另以有界 armed-generation window 管理 callback-before-register 与晚到淘汰结果。该角色划分、真实 WGPU 产品证据和 mailbox 动态回归在完成前均不构成 CN-M1 accepted closeout。
+
+> 同日独立审查还确认 viewport fallback 尚未满足 4K/零冗余 copy 验收：product-diagnostic 默认
+> `max_request_bytes=16 MiB`，小于 4K RGBA8 的 33,177,600 bytes；direct-render 分支也未携带
+> async capture request。compiled fallback 当前至少保留 mapped bytes→`Vec<u8>` 与
+> `CapturedFrame`/RGBA clone 两次整帧 CPU copy。Editor 的 `viewport_lifecycle` mutex 与 resize
+> coalescing 另由其 foreign dirty owner 收敛；这些 Important 清零前 failure 保持 open。
 
 NN 插件侧核心类型(全部在 `zircon_plugin_neural_runtime`):
 
@@ -445,7 +453,7 @@ var<workgroup> tile_b: array<f32, 256>;
   - 要点:lowering 的 IO 自动声明;executor 的 schema→bind group 组装与三种 dispatch;pipeline 缓存。
   - 判据:check 过;插件示例 descriptor(测试夹具)能进 compiled graph 并被 noop 设备路径执行。
 - 切片 1.3 `GpuReadbackQueue`
-  - 触碰:`gpu_readback_queue/`(新)、`scene_renderer_core.rs`、`render/render.rs`(帧首 poll + 录制尾 encode 两个挂点)、`backend_types.rs`(RenderStats 字段)。
+  - 触碰:`zircon_runtime/crates/zr_rhi_wgpu/src/gpu_readback_queue/`、`production/diagnostics/readback/`、`zircon_runtime/src/graphics/backend/render_backend/render_backend_diagnostics.rs`、`product_diagnostic_delivery_router.rs`；帧级请求由现行 product-diagnostic admission/submit/poll 路径接入，不再假定 `SceneRendererCore` 自持队列字段。
   - 要点:三槽 ring、尺寸策略、`mark_readback` 校验、external 入口(为计划 13 留好签名)。
   - 判据:check 过;poll/encode 挂点就位且空队列零开销(无请求时不创建 staging)。
 - 切片 1.4 迁移示范(HZB reduce;计划 04 未落地则 SSAO)
@@ -477,7 +485,7 @@ var<workgroup> tile_b: array<f32, 256>;
 
 ### 测试与验收清单
 
-runtime 侧(`zircon_runtime/src/graphics/tests/render_compute.rs`、`gpu_readback_queue/tests.rs`、`render_graph/tests/`):
+runtime 侧(`zircon_runtime/src/graphics/feature/compute_pass_descriptor/tests.rs`、`graphics/scene/scene_renderer/graph_execution/{generic_compute_executor,compute_pipeline_cache}/`、`zircon_runtime/crates/zr_rhi_wgpu/src/gpu_readback_queue/{tests.rs,texture_tests.rs}`、`production/diagnostics/readback/tests.rs`、`zircon_runtime/src/render_graph/tests/`):
 
 | 测试函数 | 断言 |
 |---------|------|
@@ -489,11 +497,11 @@ runtime 侧(`zircon_runtime/src/graphics/tests/render_compute.rs`、`gpu_readbac
 | `render_compute_plugin_pass_absent_when_feature_disabled` | feature 关闭 → compiled graph 无 pass(§6.4) |
 | `render_product_hzb_unchanged_after_compute_migration` | 迁移前基准 mip 链 readback == 迁移后(逐 texel;基准在切片 1.4 前录制) |
 | `readback_callback_fires_after_n_frame_delay` | 帧 N 请求,模拟 poll:帧 N 不回调,帧 N+2 前回调且数据正确 |
-| `readback_slot_reuse_blocks_until_map_complete` | 第 4 帧复用槽位且 map 未完 → 阻塞等待路径走通,计数上报 |
+| `readback_slot_reuse_is_refused_without_waiting_for_map_completion` | 第 4 帧复用槽位且 map 未完 → 返回 `SlotReuseIncomplete`,不等待,拒绝计数 +1 |
 | `readback_ring_grows_to_fit_frame_requests` | 单帧 300 KiB 请求 → 槽容量 512 KiB;空闲 240 帧后回落 |
 | `readback_external_buffer_request_supported` | external 入口回调送达(SVT feedback / 粒子计数兼容面,计划 13) |
 | `readback_unmarked_buffer_rejected` | 未 `mark_readback` 的 `RgBufferHandle` → Err |
-| `readback_no_private_map_async_source_scan` | 源码扫描:`map_async` 仅出现于 `gpu_readback_queue/` 与 `read_texture_rgba.rs` 白名单(对照 `surface_targets.rs:536` 既有手法) |
+| `readback_no_private_map_async_source_scan` | 列举的 ordinary production consumers 不持有私有 `map_async`/`wait_indefinitely`;中央 diagnostic service、显式 capture、IBL artifact 与测试夹具按角色单独审查 |
 
 插件侧(`zircon_plugins/neural/runtime/src/tests/`、`features/post_process`):
 

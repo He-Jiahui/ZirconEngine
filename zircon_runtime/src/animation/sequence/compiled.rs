@@ -1,10 +1,13 @@
-use crate::core::framework::animation::{
-    AnimationResult, AnimationSequenceAsset, AnimationTrackPath,
+use std::sync::Arc;
+
+use crate::core::framework::animation::compiler::sequence::{
+    AnimationCompiledSequence, AnimationCompiledSequenceTrack,
 };
+use crate::core::framework::animation::{AnimationResult, AnimationTrackPath};
 use crate::core::math::Real;
 use crate::scene::world::{CompiledScenePropertyWriter, SceneResult, World};
 
-use super::channel_sample::AnimationChannelSampleExt;
+use super::channel_sample::AnimationCompiledSequenceTrackSampleExt;
 use super::conversion::scene_property_value_from_channel;
 use super::target::resolve_sequence_target_id;
 use super::time::resolve_sequence_sample_time;
@@ -18,6 +21,7 @@ use super::time::resolve_sequence_sample_time;
 pub struct CompiledAnimationSequence {
     duration_seconds: Real,
     binding_catalog_generation: u64,
+    source: Arc<AnimationCompiledSequence>,
     tracks: Vec<CompiledAnimationSequenceTrack>,
     missing_tracks: Vec<AnimationTrackPath>,
 }
@@ -44,48 +48,50 @@ struct CompiledAnimationSequenceTrack {
 /// recompile after the affected hierarchy changes.
 pub fn compile_sequence_for_world(
     world: &mut World,
-    sequence: &AnimationSequenceAsset,
+    source: AnimationCompiledSequence,
 ) -> SceneResult<CompiledAnimationSequence> {
-    let mut compiled = CompiledAnimationSequence {
-        duration_seconds: sequence.duration_seconds,
-        binding_catalog_generation: world.scene_binding_catalog_generation(),
-        tracks: Vec::new(),
-        missing_tracks: Vec::new(),
-    };
+    let duration_seconds = source.duration_seconds();
+    let binding_catalog_generation = world.scene_binding_catalog_generation();
+    let source_track_capacity = source.track_count();
+    let mut tracks = Vec::with_capacity(source_track_capacity);
+    let mut missing_tracks = Vec::new();
 
-    for (binding_index, binding) in sequence.bindings.iter().enumerate() {
+    for (binding_index, binding) in source.bindings().iter().enumerate() {
         let target = binding
-            .target_id
-            .as_deref()
+            .target_id()
             .and_then(|target_id| resolve_sequence_target_id(world, target_id))
-            .or_else(|| world.get_entity_by_path(&binding.entity_path));
+            .or_else(|| world.get_entity_by_path(binding.entity_path()));
         let target = target.and_then(|entity| world.entity_path(entity).map(|path| (entity, path)));
         let Some((entity, canonical_entity_path)) = target else {
-            compiled
-                .missing_tracks
-                .extend(binding.tracks.iter().map(|track| {
-                    AnimationTrackPath::new(
-                        binding.entity_path.clone(),
-                        track.property_path.clone(),
-                    )
-                }));
+            if missing_tracks.is_empty() {
+                missing_tracks.reserve(source_track_capacity);
+            }
+            missing_tracks.extend(binding.tracks().iter().map(|track| {
+                AnimationTrackPath::new(
+                    binding.entity_path().clone(),
+                    track.property_path().clone(),
+                )
+            }));
             continue;
         };
 
-        for (track_index, track) in binding.tracks.iter().enumerate() {
+        for (track_index, track) in binding.tracks().iter().enumerate() {
             let Some(writer) = world.compile_scene_property_writer_for_entity(
                 entity,
                 &canonical_entity_path,
-                &track.property_path,
+                track.property_path(),
             )?
             else {
-                compiled.missing_tracks.push(AnimationTrackPath::new(
-                    binding.entity_path.clone(),
-                    track.property_path.clone(),
+                if missing_tracks.is_empty() {
+                    missing_tracks.reserve(source_track_capacity);
+                }
+                missing_tracks.push(AnimationTrackPath::new(
+                    binding.entity_path().clone(),
+                    track.property_path().clone(),
                 ));
                 continue;
             };
-            compiled.tracks.push(CompiledAnimationSequenceTrack {
+            tracks.push(CompiledAnimationSequenceTrack {
                 binding_index,
                 track_index,
                 writer,
@@ -93,7 +99,13 @@ pub fn compile_sequence_for_world(
         }
     }
 
-    Ok(compiled)
+    Ok(CompiledAnimationSequence {
+        duration_seconds,
+        binding_catalog_generation,
+        source: Arc::new(source),
+        tracks,
+        missing_tracks,
+    })
 }
 
 impl CompiledAnimationSequence {
@@ -122,7 +134,6 @@ impl CompiledAnimationSequence {
 /// entity-path traversal, or property dispatch.
 pub fn apply_compiled_sequence_to_world(
     world: &mut World,
-    sequence: &AnimationSequenceAsset,
     compiled: &CompiledAnimationSequence,
     time_seconds: Real,
     looping: bool,
@@ -135,15 +146,16 @@ pub fn apply_compiled_sequence_to_world(
         resolve_sequence_sample_time(compiled.duration_seconds, time_seconds, looping);
 
     for compiled_track in &compiled.tracks {
-        let Some(track) = sequence
-            .bindings
+        let Some(track): Option<&AnimationCompiledSequenceTrack> = compiled
+            .source
+            .bindings()
             .get(compiled_track.binding_index)
-            .and_then(|binding| binding.tracks.get(compiled_track.track_index))
+            .and_then(|binding| binding.tracks().get(compiled_track.track_index))
         else {
             stats.missing_tracks = stats.missing_tracks.saturating_add(1);
             continue;
         };
-        let Some(sample) = track.channel.sample(sample_time) else {
+        let Some(sample) = track.sample_compiled(sample_time) else {
             stats.missing_tracks = stats.missing_tracks.saturating_add(1);
             continue;
         };
@@ -156,3 +168,7 @@ pub fn apply_compiled_sequence_to_world(
 
     Ok(stats)
 }
+
+#[cfg(test)]
+#[path = "tests/compiled_missing_track_capacity_tests.rs"]
+mod compiled_missing_track_capacity_tests;

@@ -23,10 +23,11 @@ fn block_style(wrap: UiTextWrap) -> UiResolvedStyle {
 #[test]
 fn runtime_text_rich_blocks_parse_paragraph_indent_and_nested_markers() {
     let parser = RichTextParser::default();
-    let parsed = parser.parse(
+    let compiled = parser.compile(
         "[p align=center indent=12]title[/p][indent]body[/indent][ol type=A][li]One[ul bullet=→][li]Inner[/li][/ul][/li][li]Two[/li][/ol]",
         RichTextFormat::BbCodeV1,
-    );
+    ).expect("compile admitted rich paragraph and list markup");
+    let parsed = compiled.parsed();
 
     assert_eq!(parsed.text.as_ref(), "title\nbody\nA. One\n→ Inner\nB. Two");
     assert!(parsed.paragraphs.iter().any(|(_, paragraph)| {
@@ -75,11 +76,10 @@ fn runtime_text_rich_blocks_layout_hanging_indent_and_inner_marker_width() {
     assert!(narrow_inner + 1 < narrow.lines.len());
     assert!(wide_inner + 1 < wide.lines.len());
     assert!(wide.lines[wide_inner + 1].frame.x > narrow.lines[narrow_inner + 1].frame.x);
-    assert!(
-        wide.lines
-            .iter()
-            .all(|line| line.frame.right() <= frame.right() + 0.01)
-    );
+    assert!(wide
+        .lines
+        .iter()
+        .all(|line| line.frame.right() <= frame.right() + 0.01));
 }
 
 #[test]

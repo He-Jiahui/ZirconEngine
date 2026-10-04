@@ -88,3 +88,15 @@ Current-source repair state: `tracked closure fixed / managed validation pending
   the untracked child before the exact overlay is materialized.
 - Exact-file rustfmt, scoped diff checks, and moved-contract static checks passed. No Runtime07 or
   Runtime90 Cargo pass is claimed until the next managed batch reaches Cargo.
+
+## 2026-09-01 immutable-copy retry
+
+The exact four-source Runtime90 union again passed Rust 1.94.1 rustfmt, scoped diff-check, the stale
+parent `include_str!` absence scan, and both child-owner guard presence checks. Validation-copy job
+`9db9ac58119242f7949cbd2a85093dd9` was accepted for the complete `zr_rhi_wgpu --lib` gate, but
+Cargo did not start. Artifact governance removed the copy during materialization because
+`E:\cargo-targets\zircon-engine\cache\cargo-metadata-home` was classified as unmanaged.
+
+The original missing `copy_commands.rs` closure defect was not reproduced; the run stopped at an
+earlier Coordinator-owned artifact boundary. The removed copy is terminal and must not be retried
+until the metadata-home lifecycle is committed and loaded.

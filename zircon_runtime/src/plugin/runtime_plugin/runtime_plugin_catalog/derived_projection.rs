@@ -281,6 +281,9 @@ impl RuntimePluginCatalogProjection {
         feature_registrations: &[RuntimePluginFeatureRegistrationReport],
     ) {
         for (index, registration) in feature_registrations.iter().enumerate() {
+            if !registration.is_product_catalog_eligible() {
+                continue;
+            }
             self.concrete_feature_provider_keys.insert(format!(
                 "{}@{}",
                 registration.manifest.id,
@@ -493,4 +496,5 @@ fn target_index(target: RuntimeTargetMode) -> usize {
 }
 
 #[cfg(test)]
+#[path = "derived_projection/tests/cases.rs"]
 mod tests;

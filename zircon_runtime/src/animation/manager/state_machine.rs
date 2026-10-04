@@ -13,6 +13,7 @@ use super::sampling::animation_parameter_value_is_finite;
 
 const STATE_INDEX_MIN_PROJECTED_COMPARISONS: usize = 128;
 
+// 运行时管理器按资产顺序选择第一个可达转移；小状态集直接查找，大状态集建立借用索引以保留同名状态的首项语义。
 pub(super) fn evaluate_state_machine(
     state_machine: &AnimationStateMachineAsset,
     current_state: Option<&str>,
@@ -88,6 +89,7 @@ pub(super) fn evaluate_state_machine(
     }
 }
 
+// 条件判定服务原始资产评估入口；编译后的插件状态机另有类型校验和执行路径。
 fn condition_matches(
     parameters: &AnimationParameterMap,
     condition: &crate::core::framework::animation::AnimationTransitionConditionAsset,
@@ -110,6 +112,7 @@ fn condition_matches(
         return matches!(current, AnimationParameterValue::Trigger);
     }
 
+    // BUG: [CR-ANIMATION-0003] 原始资产的数值比较遇到布尔或 Trigger 参数会被当作 0，可能触发无效转移；证据：numeric_parameter 的默认 0 与编译器对数值条件的类型约束。
     let Some(expected) = condition.value.as_ref() else {
         return false;
     };
@@ -133,5 +136,5 @@ fn condition_matches(
 }
 
 #[cfg(test)]
-#[path = "state_machine/borrowed_state_index_tests.rs"]
+#[path = "state_machine/tests/borrowed_state_index_tests.rs"]
 mod borrowed_state_index_tests;

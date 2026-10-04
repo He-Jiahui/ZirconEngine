@@ -2,11 +2,19 @@ use std::io;
 use std::path::PathBuf;
 
 use thiserror::Error;
+use zircon_runtime::plugin::PluginPackageRole;
 
 use super::super::export_process_support::ExportProcessError;
 
 #[derive(Debug, Error)]
 pub enum NativeDynamicPreparationError {
+    #[error(
+        "native dynamic package {package_id} has role {role:?} and cannot enter a product export"
+    )]
+    IneligibleProductPackage {
+        package_id: String,
+        role: PluginPackageRole,
+    },
     #[error(
         "{operation} for native dynamic package {package_id}{path_suffix}: {source}",
         path_suffix = path.as_ref().map(|path| format!(" at {}", path.display())).unwrap_or_default()

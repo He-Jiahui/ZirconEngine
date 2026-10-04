@@ -1,3 +1,6 @@
+// 调用端：npm run generate:talent-proc-contract (tools/package.json)；职责：从战斗和随机数模块固化天赋触发及抽取规则。
+// 输入边界：src/sim/combat/talent_procs.ts, src/sim/rng.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

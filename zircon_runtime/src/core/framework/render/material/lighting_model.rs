@@ -4,6 +4,7 @@ use std::str::FromStr;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// 资产中的光照模型令牌；内建别名在解析时归一，custom 名称须经 shading-model registry 注册后才能落到渲染 ID。
 pub enum RenderMaterialLightingModel {
     Pbr,
     BlinnPhong,
@@ -121,5 +122,5 @@ impl Display for RenderMaterialLightingModelParseError {
 impl std::error::Error for RenderMaterialLightingModelParseError {}
 
 #[cfg(test)]
-#[path = "lighting_model/allocation_tests.rs"]
+#[path = "lighting_model/tests/allocation_tests.rs"]
 mod allocation_tests;

@@ -14,6 +14,10 @@ use super::super::super::native_dynamic_export_preparation::NativeDynamicPrepara
 
 #[derive(Debug, Error)]
 pub enum EditorExportBuildError {
+    #[error("export build failed for profile {}: {}", report.plan.profile.name, report.failure_reason().unwrap_or("unknown failure"))]
+    ReportFailed {
+        report: Box<super::report::EditorExportBuildReport>,
+    },
     #[error(transparent)]
     Plan(#[from] ExportBuildPlanError),
     #[error("failed to resolve the export project root: {0}")]
@@ -47,6 +51,12 @@ pub enum EditorExportBuildError {
         #[source]
         source: io::Error,
     },
+    #[error("{failure}; failed to persist the core export failure receipt: {persistence}")]
+    CoreFailureReceipt {
+        #[source]
+        failure: Box<EditorExportBuildError>,
+        persistence: Box<EditorExportBuildError>,
+    },
     #[error("failed to load export project manifest {}: {source}", path.display())]
     ProjectManifest {
         path: std::path::PathBuf,
@@ -69,6 +79,11 @@ pub enum EditorExportBuildError {
     NativePreparation(#[from] NativeDynamicPreparationError),
     #[error("desktop export cancelled during {stage}")]
     Cancelled { stage: String },
+    #[error("export wizard plan for profile {profile} failed: {}", diagnostics.join("; "))]
+    WizardPlanFailed {
+        profile: String,
+        diagnostics: Vec<String>,
+    },
     #[error("export wizard stage {stage:?} failed with exit code {exit_code:?}")]
     WizardStageFailed {
         stage: ExportStage,
@@ -111,45 +126,5 @@ impl EditorExportBuildError {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::error::Error as _;
-    use std::io;
-    use std::path::PathBuf;
-
-    use super::*;
-
-    #[test]
-    fn cargo_error_preserves_process_and_io_sources() {
-        let error = EditorExportBuildError::cargo(ExportProcessError::io(
-            "failed to invoke Cargo",
-            "typed cargo test",
-            None,
-            Some(PathBuf::from("Cargo.toml")),
-            io::Error::new(io::ErrorKind::PermissionDenied, "cargo source"),
-        ));
-
-        let process = error
-            .source()
-            .and_then(|source| source.downcast_ref::<ExportProcessError>())
-            .expect("Cargo error must retain its process error");
-        let source = process
-            .source()
-            .and_then(|source| source.downcast_ref::<io::Error>())
-            .expect("process error must retain its IO error");
-        assert_eq!(source.kind(), io::ErrorKind::PermissionDenied);
-    }
-
-    #[test]
-    fn materialization_error_preserves_io_source() {
-        let error = EditorExportBuildError::materialize(io::Error::new(
-            io::ErrorKind::WriteZero,
-            "materialize source",
-        ));
-
-        let source = error
-            .source()
-            .and_then(|source| source.downcast_ref::<io::Error>())
-            .expect("materialization error must retain its IO error");
-        assert_eq!(source.kind(), io::ErrorKind::WriteZero);
-    }
-}
+#[path = "tests/error.rs"]
+mod tests;

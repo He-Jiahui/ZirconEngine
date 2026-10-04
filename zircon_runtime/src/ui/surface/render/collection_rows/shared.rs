@@ -14,6 +14,7 @@ use zircon_runtime_interface::ui::{
 use super::super::painter_state::UiRenderPainterStateSource;
 
 #[cfg(test)]
+#[path = "shared/tests/direct_hex_color_tests.rs"]
 mod direct_hex_color_tests;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -23,6 +24,8 @@ pub(super) enum CollectionRowKind {
     Table,
 }
 
+/// 行族共享的视觉状态投影；选中/勾选、展开和指针活动分别保留，不能由单一优先状态反推全部语义。
+/// 列表、树、表格仅在 painter 家族和样式角色上分流，输入与数据模型仍由各控件所有者负责。
 #[derive(Clone, Copy)]
 pub(super) struct RowRenderState {
     pub(super) family: UiPainterFamily,
@@ -156,6 +159,8 @@ pub(super) struct CollectionRowVisual {
 }
 
 impl CollectionRowVisual {
+    /// 在共享设计令牌基线上应用节点覆盖；基础色可覆盖多个角色，特定状态色随后拥有更精确的优先级。
+    /// 当前默认基线固定为工作台深色，缓存无需随节点重建；这不是动态主题会话或样式订阅。
     pub(super) fn resolve(metadata: &UiTemplateNodeMetadata) -> Self {
         let mut visual = *default_collection_row_visual();
         if let Some(color) = first_rgba_attribute(metadata, &["background_color"]) {
@@ -313,6 +318,7 @@ pub(super) fn string_attribute<'a>(
     metadata.attributes.get(key).and_then(Value::as_str)
 }
 
+/// 行内装饰继续使用原行节点身份及调用方几何，不建立独立命中目标；文字 shaping 留给提取器。
 pub(super) fn quad_command(
     node_id: UiNodeId,
     frame: UiFrame,

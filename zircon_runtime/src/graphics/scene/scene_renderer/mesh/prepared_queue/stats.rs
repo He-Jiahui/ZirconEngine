@@ -6,6 +6,7 @@ use crate::core::framework::render::{
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 各字段按抽取、准备或回放分别计数；缓存短路后的残余 MeshDraw 数量不能代表整帧总量。
 pub(crate) struct PreparedMeshQueueStats {
     pub(crate) draw_count: usize,
     pub(crate) opaque_draw_count: usize,
@@ -91,6 +92,7 @@ pub(crate) struct PreparedMeshQueueStats {
     pub(crate) cache_invalidated_transform_count: usize,
     pub(crate) cache_invalidated_geometry_count: usize,
     pub(crate) cache_invalidated_material_count: usize,
+    pub(crate) cache_invalidated_resolver_configuration_count: usize,
     pub(crate) indirect_count_draw_call_count: usize,
     pub(crate) fixed_multi_draw_call_count: usize,
     pub(crate) per_draw_indirect_draw_call_count: usize,
@@ -110,6 +112,7 @@ pub(crate) struct PreparedMeshVirtualGeometryIndirectStats {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 页与执行段分别去重，段状态只计一次；draw 保留重复提交量，不能把重复 draw 当作新增页驻留。
 pub(crate) struct PreparedMeshVirtualGeometryExecutionStats {
     pub(crate) draw_count: usize,
     pub(crate) segment_count: usize,
@@ -203,5 +206,5 @@ fn encode_virtual_geometry_execution_state(state: RenderVirtualGeometryExecution
 }
 
 #[cfg(test)]
-#[path = "stats/preallocated_sets_tests.rs"]
+#[path = "stats/tests/preallocated_sets_tests.rs"]
 mod preallocated_sets_tests;

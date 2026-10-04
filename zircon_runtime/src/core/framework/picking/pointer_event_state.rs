@@ -8,6 +8,7 @@ use super::{
 };
 
 #[derive(Clone, Debug, Default, PartialEq)]
+/// 跨帧保存悬停目标与按键拖动状态的派发器，由 picking pipeline 在每帧输入后调用。
 pub struct PickingEventState {
     previous_hover: PickingHoverMap,
     button_states: BTreeMap<(PointerId, PointerButton), PointerButtonEventState>,
@@ -29,6 +30,8 @@ impl PickingEventState {
             .retain(|(state_pointer, _), _| *state_pointer != pointer);
     }
 
+    /// 按退出、当前悬停变化、输入事件的顺序派发；释放与取消可据上一帧悬停目标完成收尾。
+    /// 输入位置覆盖采样位置；取消的指针不会进入新悬停快照，派发结束后其按键状态也会清除。
     pub fn dispatch_frame(
         &mut self,
         mut current_hover: PickingHoverMap,
@@ -109,12 +112,9 @@ impl PickingEventState {
                 ));
 
                 for button in active_buttons.iter().copied() {
-                    let dragged_targets = {
-                        let state = self.button_state_mut(pointer, button);
-                        state.dragging_over.remove(&hit.target);
-                        state.dragging.keys().copied().collect::<Vec<_>>()
-                    };
-                    for dragged in dragged_targets {
+                    let state = self.button_state_mut(pointer, button);
+                    state.dragging_over.remove(&hit.target);
+                    for dragged in state.dragging.keys().copied() {
                         events.push(PickingPointerEvent::new(
                             pointer,
                             location,
@@ -145,20 +145,16 @@ impl PickingEventState {
             let active_buttons = self.active_buttons(pointer);
             for hit in hits {
                 for button in active_buttons.iter().copied() {
-                    let dragged_targets = {
-                        let state = self.button_state_mut(pointer, button);
-                        if state.dragging.is_empty()
-                            || state
-                                .dragging_over
-                                .insert(hit.target, hit.hit.clone())
-                                .is_some()
-                        {
-                            Vec::new()
-                        } else {
-                            state.dragging.keys().copied().collect::<Vec<_>>()
-                        }
-                    };
-                    for dragged in dragged_targets {
+                    let state = self.button_state_mut(pointer, button);
+                    if state.dragging.is_empty()
+                        || state
+                            .dragging_over
+                            .insert(hit.target, hit.hit.clone())
+                            .is_some()
+                    {
+                        continue;
+                    }
+                    for dragged in state.dragging.keys().copied() {
                         events.push(PickingPointerEvent::new(
                             pointer,
                             location,
@@ -569,153 +565,9 @@ fn location_map(
 }
 
 #[cfg(test)]
-mod optimization_tests {
-    use std::hint::black_box;
-    use std::time::Instant;
+#[path = "tests/pointer_event_state_optimization_tests.rs"]
+mod optimization_tests;
 
-    use crate::core::framework::render::RenderViewportHandle;
-
-    use super::*;
-
-    fn pointer_location(pointer: u64, x: f32) -> PointerLocation {
-        PointerLocation::new(
-            PointerId::new(pointer),
-            RenderViewportHandle::new(3),
-            Vec2::new(x, x + 1.0),
-        )
-    }
-
-    #[test]
-    fn runtime47_batch_location_map_preserves_input_override() {
-        let initial = pointer_location(7, 10.0);
-        let other = pointer_location(9, 20.0);
-        let override_location = pointer_location(7, 30.0);
-        let input = PointerInput::new(
-            override_location,
-            PointerAction::Move {
-                delta: Vec2::new(20.0, 20.0),
-            },
-        );
-
-        let locations = location_map(&[initial, other], &[input]);
-
-        assert_eq!(locations.len(), 2);
-        assert_eq!(locations.get(&PointerId::new(7)), Some(&override_location));
-        assert_eq!(locations.get(&PointerId::new(9)), Some(&other));
-    }
-
-    #[test]
-    fn runtime47_batch_location_map_uses_capacity_hash_index() {
-        let source = include_str!("pointer_event_state.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("pointer event production source");
-        let location_map = production
-            .split("fn location_map")
-            .nth(1)
-            .expect("location map")
-            .split("mod optimization_tests")
-            .next()
-            .expect("bounded location map");
-
-        assert!(location_map.contains("HashMap<PointerId, PointerLocation>"));
-        assert!(location_map.contains("HashMap::with_capacity"));
-        assert!(!location_map.contains("collect::<BTreeMap"));
-        assert_eq!(
-            production
-                .matches("&HashMap<PointerId, PointerLocation>")
-                .count(),
-            2
-        );
-    }
-
-    #[test]
-    #[ignore = "release performance evidence; run through the validation coordinator"]
-    fn runtime47_batch_pointer_location_hash_map_performance_evidence() {
-        fn legacy_location_map(
-            pointer_locations: &[PointerLocation],
-            inputs: &[PointerInput],
-        ) -> BTreeMap<PointerId, PointerLocation> {
-            let mut locations = pointer_locations
-                .iter()
-                .copied()
-                .map(|location| (location.pointer, location))
-                .collect::<BTreeMap<_, _>>();
-            for input in inputs {
-                locations.insert(input.pointer(), input.location);
-            }
-            locations
-        }
-
-        let pointer_locations = (0..32_768_u64)
-            .map(|index| pointer_location(index, index as f32))
-            .collect::<Vec<_>>();
-        let inputs = (0..16_384_u64)
-            .map(|index| {
-                let location = pointer_location(index * 2, index as f32 + 0.5);
-                PointerInput::new(
-                    location,
-                    PointerAction::Move {
-                        delta: Vec2::new(0.5, 0.5),
-                    },
-                )
-            })
-            .collect::<Vec<_>>();
-        const SAMPLE_PAIRS: usize = 17;
-        let measure_legacy = || {
-            let started = Instant::now();
-            black_box(legacy_location_map(
-                black_box(&pointer_locations),
-                black_box(&inputs),
-            ));
-            started.elapsed().as_nanos().max(1)
-        };
-        let measure_hash = || {
-            let started = Instant::now();
-            black_box(location_map(
-                black_box(&pointer_locations),
-                black_box(&inputs),
-            ));
-            started.elapsed().as_nanos().max(1)
-        };
-        for _ in 0..3 {
-            black_box(measure_legacy());
-            black_box(measure_hash());
-        }
-
-        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
-        let mut hash_samples = Vec::with_capacity(SAMPLE_PAIRS);
-        for pair in 0..SAMPLE_PAIRS {
-            if pair % 2 == 0 {
-                legacy_samples.push(measure_legacy());
-                hash_samples.push(measure_hash());
-            } else {
-                hash_samples.push(measure_hash());
-                legacy_samples.push(measure_legacy());
-            }
-        }
-
-        legacy_samples.sort_unstable();
-        hash_samples.sort_unstable();
-        let legacy_p50 = legacy_samples[8];
-        let legacy_p95 = legacy_samples[16];
-        let hash_p50 = hash_samples[8];
-        let hash_p95 = hash_samples[16];
-        println!(
-            "RUNTIME47_POINTER_LOCATION_HASH_MAP_BENCH_V1 sample_pairs={SAMPLE_PAIRS} pair_order=alternating_legacy_even legacy_first_pairs=9 hash_first_pairs=8 pointer_locations={} input_overrides={} legacy_p50_ns={} legacy_p95_ns={} hash_p50_ns={} hash_p95_ns={} legacy_tree_writes={} hash_writes={} target_ratio_bp=6000",
-            pointer_locations.len(),
-            inputs.len(),
-            legacy_p50,
-            legacy_p95,
-            hash_p50,
-            hash_p95,
-            pointer_locations.len() + inputs.len(),
-            pointer_locations.len() + inputs.len(),
-        );
-        assert!(
-            hash_p95.saturating_mul(10_000) <= legacy_p95.saturating_mul(6_000),
-            "pointer location HashMap P95 {hash_p95} ns exceeded 60% of legacy {legacy_p95} ns"
-        );
-    }
-}
+#[cfg(test)]
+#[path = "pointer_event_state/tests/optimization_batch_hq_runtime598_tests.rs"]
+mod optimization_batch_hq_runtime598_tests;

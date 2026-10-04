@@ -17,7 +17,7 @@ plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 编辑器详细 Wiki
   - .codex/plans/Zircon UI 资产化 Widget Editor 与共享 Layout.md
   - .codex/plans/UI Asset Editor 与共享 Layout 未完成内容归档.md
-  - docs/editor-and-tooling/ui-asset-editor-host-session.md
+  - docs/editor/ui-asset-editor-host-session.md
 tests:
   - zircon_editor/src/ui/asset_editor
   - zircon_editor/src/ui/animation_editor

@@ -1,4 +1,5 @@
 use serde_json::json;
+use zircon_runtime::asset::{AssetModule, ASSET_MODULE_NAME};
 use zircon_runtime::core::framework::navigation::{
     nav_area_flag, NavLinkTraversalMode, NavMeshAgentDescriptor, NavPathQuery, NavPathStatus,
     NavQueryFilter, NavigationAreaSettings, NavigationManager, AREA_WALKABLE,
@@ -20,6 +21,8 @@ use crate::{module_descriptor, navigation_component_descriptors, NAVIGATION_MODU
 fn navigation_module_resolves_manager_and_queries_loaded_navmesh() {
     let runtime = CoreRuntime::new();
     runtime.register_module(TasksModule.descriptor()).unwrap();
+    runtime.register_module(AssetModule.descriptor()).unwrap();
+    runtime.activate_module(ASSET_MODULE_NAME).unwrap();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(NAVIGATION_MODULE_NAME).unwrap();
     let resolver = ManagerResolver::new(runtime.handle());
@@ -43,6 +46,8 @@ fn navigation_module_resolves_manager_and_queries_loaded_navmesh() {
 fn resolved_navigation_manager_exposes_filtered_path_query() {
     let runtime = CoreRuntime::new();
     runtime.register_module(TasksModule.descriptor()).unwrap();
+    runtime.register_module(AssetModule.descriptor()).unwrap();
+    runtime.activate_module(ASSET_MODULE_NAME).unwrap();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(NAVIGATION_MODULE_NAME).unwrap();
     let resolver = ManagerResolver::new(runtime.handle());

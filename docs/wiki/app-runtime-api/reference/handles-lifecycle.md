@@ -11,7 +11,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 为 ZirconEngine 构建引擎说明书级 Wiki
 tests:
-  - zircon_runtime_interface/src/runtime_api/session/session_identity_tests.rs
+  - zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs
 doc_type: api-reference
 ---
 

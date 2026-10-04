@@ -2,6 +2,7 @@ use crate::ui::retained_host::host_contract::data::FrameRect;
 
 use super::metrics::alert_bounded_extent;
 
+// 根框由命令序列消费；只收紧宽高，不扩张宿主分配的节点范围。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_rect(
     rect: &FrameRect,
 ) -> FrameRect {
@@ -14,22 +15,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_r
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn alert_root_stays_inside_tight_parent_bounds() {
-        let parent = FrameRect {
-            x: 10.4,
-            y: 20.8,
-            width: 0.4,
-            height: 0.6,
-        };
-        let frame = alert_rect(&parent);
-
-        assert!(frame.x >= parent.x);
-        assert!(frame.y >= parent.y);
-        assert!(frame.right() <= parent.right());
-        assert!(frame.bottom() <= parent.bottom());
-    }
-}
+#[path = "tests/root.rs"]
+mod tests;

@@ -51,6 +51,8 @@ impl std::fmt::Display for NativePluginBridgeLifecycleError {
 
 impl std::error::Error for NativePluginBridgeLifecycleError {}
 
+// 桥接提供者状态与原生库句柄是两份生命周期账；组合入口同步它们，并将桥接决议
+// 附到报告，供上层判断依赖是否仍可调用。
 impl NativePluginLiveHost {
     pub fn hot_reload_runtime_plugins_from_export_root_with_bridge_lifecycle(
         &self,
@@ -130,6 +132,7 @@ impl NativePluginLiveHost {
             .map_err(|error| error.to_string())
     }
 
+    // 卸载先让依赖图拒绝仍被强依赖的提供者；原生卸载失败时尝试恢复桥接可见性。
     pub(super) fn unload_runtime_plugin_with_bridge_lifecycle_result(
         &self,
         plugin_id: impl AsRef<str>,
@@ -178,6 +181,9 @@ impl NativePluginLiveHost {
             .map_err(|error| error.to_string())
     }
 
+    // 热重载先替换原生代次，再发布桥接代次；调用者需读取附带的桥接决议。
+    // TODO: [CR-PLUGIN-NATIVE-0303] 确认桥接 Reload 被拒绝时是否仍应返回 Ok；当前原生代次已替换，
+    // 但缺少拒绝场景的调用方契约与回滚测试；下一步覆盖强依赖和桥接表拒绝路径。
     pub(super) fn hot_reload_runtime_plugin_with_bridge_lifecycle_result(
         &self,
         root: impl AsRef<Path>,
@@ -279,5 +285,5 @@ fn runtime_bridge_lifecycle_report(
 }
 
 #[cfg(test)]
-#[path = "bridge_lifecycle/optimization_tests.rs"]
+#[path = "bridge_lifecycle/tests/optimization_tests.rs"]
 mod optimization_tests;

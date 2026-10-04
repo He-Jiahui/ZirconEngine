@@ -65,9 +65,9 @@ at least 70% P50 improvement, and at least 50% P95 improvement.
 ### Recovery Batch 2026-08-31
 
 - Ownership transfer apply: `6779c8224fc74a1aa211d8739d11592e`.
-- `tools/runtime85_project_root_dedup_model.rs` restores the allocation, deterministic work, parity,
+- `tools/analysis/performance/runtime/runtime85_project_root_dedup_model.rs` restores the allocation, deterministic work, parity,
   and paired P50/P95 gates described above under the current source tree.
-- Managed batch script: `tools/zircon-validation-runtime85-project-dedup-recovery-batch.ps1`.
+- Managed batch script: `tools/analysis/validation/zircon-validation-runtime85-project-dedup-recovery-batch.ps1`.
 - Coordinator ticket: `pending_submission`; exact current-run performance values will be copied from
   terminal managed evidence before closeout.
 

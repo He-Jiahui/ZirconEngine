@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 读取源码固定操作服务结构的边界：操作服务状态归属方应目录支撑。
 class RuntimeOperationServiceStructureTests(unittest.TestCase):
     def test_operation_service_state_owners_are_folder_backed(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]

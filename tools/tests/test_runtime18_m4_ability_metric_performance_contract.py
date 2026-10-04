@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+# M4 技能指标由当前生成目录的有界桶路由，所有索引恰好覆盖一次；本组将生成身份、脚本结果和基线分支比对。
 import json
 import math
 import re

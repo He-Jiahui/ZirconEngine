@@ -161,6 +161,7 @@ successfulAllocation(requested: FocusAllocation): FocusAllocation {
     return allocation;
 }
 
+/// 上层先根据选中城镇 hub 算距离，再把旧分配和请求交给此纯决策；失败沿用旧对象，成功只返回过滤零点后的新分配，持久化由上层提交。
 pub setTownFocus(
     previous: FocusAllocation, requested: FocusAllocation, isInTown: bool
 ): SetTownFocusResult {
@@ -231,6 +232,7 @@ validRespecTier(tierCode: int): bool {
 // Tier codes preserve the source type union order: 0 time, 1 timeAndPartial,
 // 2 instant. Invalid codes are rejected at the typed boundary rather than
 // silently inventing a fourth payment mode.
+/// 重分配费用按旧/新分配的逐项绝对差及选择的时间档位计算；调用方须在真正扣铜、扣材料和计时前重新验证授权与资源。
 pub computeRespecCost(
     previous: FocusAllocation, requested: FocusAllocation, tierCode: int
 ): RespecCost {

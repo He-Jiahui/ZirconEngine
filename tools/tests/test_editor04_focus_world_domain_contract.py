@@ -1,3 +1,4 @@
+# 核对焦点与选择消息携带世界域身份，并由消息保留策略按域区分。
 from pathlib import Path
 import unittest
 

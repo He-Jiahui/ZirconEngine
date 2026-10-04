@@ -4,6 +4,7 @@
 var container = %import("zr.container");
 var contract = %import("generated/social_aggro_contract");
 
+/// 社会仇恨查询中的可变候选投影；函数会修改列表内的对象，世界调用方须在所属拉怪事务中统一回写，不能当成只读快照。
 pub class FleeSocialAggroMob {
     pub var id: int;
     // Normal pull requires exact source template identity; flee rally uses
@@ -73,6 +74,7 @@ threatFor(mob: FleeSocialAggroMob, targetId: int): float {
 
 // The source grid callback is represented by a caller-owned local candidate
 // list. The predicate deliberately uses strict distance, matching the source.
+/// 为逃跑求援叶子投影更新同家族盟友；候选列表必须包含发起者，是否结束发起者逃跑由调用者消费返回数量决定。
 pub rallyFleeingAllies(
     candidates: container.Array<FleeSocialAggroMob>, fleeingMobId: int, targetId: int
 ): int {
@@ -127,6 +129,7 @@ pub normalSocialPullRadius(family: string, required: bool): float {
 // This is the social tail of aggroMob. The caller transitions the primary mob
 // first; each eligible ally copies its own source position into the leash
 // anchor, exactly as the source grid callback does for `m`.
+/// 主怪已进入战斗后再执行普通连带拉怪；精确模板身份决定盟友资格，回写时保留每个盟友自己的牵引锚点。
 pub normalSocialPull(
     candidates: container.Array<FleeSocialAggroMob>, pullingMobId: int, targetId: int
 ): int {
@@ -198,6 +201,7 @@ pub contractTest(): int {
     mobs.add(foreign);
     mobs.add(busy);
     mobs.add(owned);
+    // BUG: [CR-WOC-CW-2002] 测试中的盟友位于(3,4)，与逃跑者距离恰为5；求援半径也为5且判定严格小于，故该断言必返回-1并阻断后续普通拉怪契约检验；证据：rallyFleeingAllies 的距离谓词与 generated/social_aggro_contract.fleeHelpRadius。
     if (rallyFleeingAllies(mobs, 1, 99) != 1 || ally.aiState != "chase" ||
         ally.aggroTargetId != 99 || !ally.inCombat || ally.leashX != 0.0 ||
         ally.leashY != 3.0 || ally.leashZ != 0.0 || threatFor(ally, 99) != 5) return -1;

@@ -8,7 +8,7 @@ SOURCE = (
     / "zircon_runtime/src/plugin/runtime_plugin/registration_report/validation/interfaces.rs"
 )
 
-
+# 读取实现源码约束预分配注册接口集合：导出接口集合使用迭代器容量提示，并导入接口集合使用迭代器容量提示。
 class PreallocatedRegistrationInterfaceSetsPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

@@ -1,10 +1,11 @@
+# 核对资源包摘要入口只遍历载荷一次并沿用四种种子结果。
 from __future__ import annotations
 
 import unittest
 from unittest import mock
 
-from tools.zircon_export import pipeline_report_cook_assets_source_bytes
-from tools.zircon_export import pipeline_report_pack_file_evidence
+from tools.export import pipeline_report_cook_assets_source_bytes
+from tools.export import pipeline_report_pack_file_evidence
 
 
 ZRPACK_HASH_SEEDS = (

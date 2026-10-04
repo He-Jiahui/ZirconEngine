@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, btree_map::Entry};
+use std::collections::{btree_map::Entry, BTreeMap};
 use std::sync::{Mutex, MutexGuard};
 
 use zr_contracts::random::{
@@ -7,6 +7,7 @@ use zr_contracts::random::{
 
 use super::{RandomServiceError, RandomServiceLimits, RandomStream};
 
+// Available 保存已归还的流进度；Leased 表示该 key 的唯一可变租约尚未归还。
 #[derive(Debug)]
 enum RandomStreamEntry {
     Available(RandomStream),
@@ -19,6 +20,7 @@ struct RandomStreamRegistryState {
     active_leases: usize,
 }
 
+/// 按稳定键登记已暂停进度，并在租约未归还时拒绝会破坏快照一致性的操作。
 /// Canonical owner of parked stream state and stable-key admission.
 #[derive(Debug, Default)]
 pub(crate) struct RandomStreamRegistry {
@@ -107,6 +109,7 @@ impl RandomStreamRegistry {
         if active_leases > 0 {
             return Err(active_leases);
         }
+        // checkpoint 与 reseed 同按 registry → seed authority 加锁，保证流进度和种子代来自同一时期。
         // Keep the registry guard while entering the seed authority: reseed uses the same order.
         let authority = capture_authority();
         let master_seed_generation = authority.master_seed_generation();
@@ -157,6 +160,7 @@ impl RandomStreamRegistry {
         }
     }
 
+    // 先检查整组命中项的活动租约；任一未归还便整体失败，不会部分驱逐。
     pub(crate) fn evict_matching(
         &self,
         matches: impl Fn(RandomStreamKey) -> bool,
@@ -238,5 +242,5 @@ impl RandomStreamRegistry {
 }
 
 #[cfg(test)]
-#[path = "registry/evict_matching_tests.rs"]
+#[path = "registry/tests/evict_matching_tests.rs"]
 mod evict_matching_tests;

@@ -214,7 +214,9 @@ impl RagdollProfile {
             ..RagdollSpawn::default()
         };
         for (bone, body_world) in prepared {
-            let body = world.spawn_node(NodeKind::Empty);
+            let body = world
+                .spawn_node(NodeKind::Empty)
+                .map_err(|error| RagdollProfileError::SceneMutation(error.to_string()))?;
             if let Err(error) = configure_body(world, body, skeleton, bone, &spawn, body_world) {
                 rollback_spawn(world, &spawn);
                 let _ = world.remove_entity_recursive(body);

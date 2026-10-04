@@ -22,8 +22,8 @@ related_code:
   - zircon_plugins/plugin_sdk/src/manifest
   - zircon_plugins/net/features/content_download/runtime/src/manager
   - zircon_runtime/src/core/framework/net/download.rs
-  - tools/zircon_export/plugin_build_package.py
-  - tools/zircon_export/plugin_build_signature.py
+  - tools/export/plugin_build_package.py
+  - tools/export/plugin_build_signature.py
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_hub/01-project-engine-build-editor-launch-process-persistence-delivery-review.md

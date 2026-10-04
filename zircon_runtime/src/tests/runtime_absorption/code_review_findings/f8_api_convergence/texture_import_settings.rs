@@ -4,6 +4,7 @@ fn review_f8_texture_import_settings_use_fallible_apply_not_with() {
     let descriptor_settings =
         include_str!("../../../../asset/assets/texture/descriptor/settings.rs");
     let texture_asset = include_str!("../../../../asset/assets/texture/texture_asset.rs");
+    let import_context = include_str!("../../../../asset/importer/contract.rs");
     let runtime_importer = include_str!("../../../../asset/importer/ingest/import_texture.rs");
     let plugin_importer =
         include_str!("../../../../../../zircon_plugins/texture_importer/runtime/src/importers.rs");
@@ -18,9 +19,10 @@ fn review_f8_texture_import_settings_use_fallible_apply_not_with() {
         include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let convention =
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
-    let importer_doc = include_str!("../../../../../../docs/zircon_runtime/asset/importer.md");
+    let importer_doc =
+        include_str!("../../../../../../docs/crates/zircon_runtime/asset/importer.md");
     let render_asset_doc =
-        include_str!("../../../../../../docs/zircon_runtime/asset/render-assets.md");
+        include_str!("../../../../../../docs/crates/zircon_runtime/asset/render-assets.md");
 
     let old_fallible_with_name = ["with", "import", "settings"].join("_");
     for (name, source) in [
@@ -60,9 +62,16 @@ fn review_f8_texture_import_settings_use_fallible_apply_not_with() {
     }
     assert!(
         texture_asset.contains(".apply_import_settings(settings)?")
-            && runtime_importer.contains(".apply_import_settings(&context.import_settings)")
-            && plugin_importer.contains(".apply_import_settings(&context.import_settings)"),
+            && runtime_importer.contains(".apply_import_settings(context.import_settings())")
+            && plugin_importer.contains(".apply_import_settings(context.import_settings())"),
         "Runtime and plugin importers should call the fallible apply_import_settings entry"
+    );
+    assert!(
+        import_context.contains("    import_settings: toml::Table,")
+            && import_context.contains("pub fn import_settings(&self) -> &toml::Table")
+            && !import_context.contains("pub import_settings:")
+            && !import_context.contains("AssetImportSettings"),
+        "AssetImportContext settings must remain private behind the read-only table accessor"
     );
 
     for doc_anchor in [

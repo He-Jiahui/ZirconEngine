@@ -29,7 +29,7 @@ SESSION_TICK_ANCHORS = (
     "fn product_time_policy(self) -> ProductTimePolicy",
 )
 TIME_HANDOFF_ANCHORS = (
-    "pub(crate) fn tick(",
+    "pub fn tick(",
     "driver.tick_level(core, self, snapshot)",
     "pub(crate) fn tick_level(",
     "snapshot: FrameTimeSnapshot",

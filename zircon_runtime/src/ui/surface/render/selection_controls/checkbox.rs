@@ -6,8 +6,10 @@ use super::{
     commands::{push_label, quad_command},
     geometry::{label_rect_after_mark, leading_mark_rect},
     state::SelectionRenderState,
-    style::{SelectionVisual, checkbox_background, checkbox_border},
+    style::{checkbox_background, checkbox_border, SelectionVisual},
 };
+
+const CHECKBOX_COMMAND_CAPACITY: usize = 5;
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn checkbox_commands(
@@ -21,7 +23,8 @@ pub(super) fn checkbox_commands(
     opacity: f32,
 ) -> Vec<UiRenderCommand> {
     let mark = leading_mark_rect(frame, visual);
-    let mut commands = vec![quad_command(
+    let mut commands = Vec::with_capacity(CHECKBOX_COMMAND_CAPACITY);
+    commands.push(quad_command(
         node_id,
         mark,
         clip,
@@ -32,9 +35,10 @@ pub(super) fn checkbox_commands(
         visual.mark_radius,
         state,
         opacity,
-    )];
+    ));
     if state.active() {
-        commands.extend(checkbox_tick_commands(
+        push_checkbox_tick_commands(
+            &mut commands,
             node_id,
             mark,
             clip,
@@ -42,7 +46,7 @@ pub(super) fn checkbox_commands(
             state,
             visual,
             opacity,
-        ));
+        );
     }
     push_label(
         &mut commands,
@@ -58,7 +62,8 @@ pub(super) fn checkbox_commands(
     commands
 }
 
-fn checkbox_tick_commands(
+fn push_checkbox_tick_commands(
+    commands: &mut Vec<UiRenderCommand>,
     node_id: UiNodeId,
     mark: UiFrame,
     clip: Option<UiFrame>,
@@ -66,16 +71,14 @@ fn checkbox_tick_commands(
     state: &SelectionRenderState,
     visual: &SelectionVisual,
     opacity: f32,
-) -> Vec<UiRenderCommand> {
+) {
     let unit = mark.width * (3.0 / 16.0);
-    [
+    for (x, y, w, h) in [
         (3.0, 7.0, 3.0, 3.0),
         (5.0, 9.0, 3.0, 3.0),
         (8.0, 4.0, 3.0, 8.0),
-    ]
-    .into_iter()
-    .map(|(x, y, w, h)| {
-        quad_command(
+    ] {
+        commands.push(quad_command(
             node_id,
             UiFrame::new(
                 mark.x + x * unit / 3.0,
@@ -91,7 +94,6 @@ fn checkbox_tick_commands(
             visual.border_width,
             state,
             opacity,
-        )
-    })
-    .collect()
+        ));
+    }
 }

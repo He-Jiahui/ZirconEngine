@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime/src/plugin/export_build_plan/source_template_build_plan.rs"
 
-
+# 读取实现源码约束预分配源码模板命令：固定路径不实体化路径缓冲区，并发布版命令容量应为预分配。
 class PreallocatedSourceTemplateCommandPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

@@ -1,8 +1,8 @@
 import unittest
 
-from tools.runtime_path_module_validation_pressure import run
+from tools.analysis.performance.runtime.runtime_path_module_validation_pressure import run
 
-
+# 调用 Python 压力模型检验路径模块校验：实体路径计划容量不带额外扫描，并实体路径段所有权工作应为保留。
 class RuntimePathModuleValidationPressureTests(unittest.TestCase):
     def test_entity_path_plans_capacity_without_an_extra_scan(self) -> None:
         path = run()["entity_path"]

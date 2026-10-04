@@ -3,10 +3,12 @@
 use std::io::{self, BufReader, Read};
 use std::time::{Duration, Instant};
 
-use serde::de::{DeserializeOwned, DeserializeSeed, IgnoredAny, MapAccess, SeqAccess, Visitor};
+use serde::de::{
+    Deserialize, DeserializeOwned, DeserializeSeed, IgnoredAny, MapAccess, SeqAccess, Visitor,
+};
 
 use super::{
-    RuntimeForeignOutputBudget, RuntimeForeignOutputError,
+    budget::RuntimeForeignOutputPreflight, RuntimeForeignOutputBudget, RuntimeForeignOutputError,
     RUNTIME_FOREIGN_OUTPUT_JSON_MAX_NESTING_DEPTH,
 };
 
@@ -23,13 +25,24 @@ where
     E: std::fmt::Display,
 {
     let decode_started = Instant::now();
-    let deadline = decode_started + budget.max_decode_time;
+    let Some(deadline) = decode_started.checked_add(budget.max_decode_time) else {
+        return (
+            Err(RuntimeForeignOutputError::protocol_violation(format!(
+                "{operation} decode deadline exceeds the host clock range"
+            ))),
+            decode_started.elapsed(),
+        );
+    };
     // The interface item limit counts typed rows/deliveries, while the JSON graph also contains
     // envelopes and arbitrary payload values. Bound the allocation-free syntax pass by the wire
     // ceiling, then apply the exact typed item policy below.
     let json_value_limit = budget.max_encoded_bytes.saturating_add(1);
-    if let Err(error) = preflight_json_graph(bytes, json_value_limit, deadline, operation) {
+    if let Err(error) = preflight_json_graph(bytes, json_value_limit, budget, deadline, operation) {
         return (Err(error), decode_started.elapsed());
+    }
+    let preflight_time = decode_started.elapsed();
+    if let Err(error) = budget.validate_decode_duration(preflight_time, operation) {
+        return (Err(error), preflight_time);
     }
     let mut timed_out = false;
     let decoded = {
@@ -67,11 +80,23 @@ where
 fn preflight_json_graph(
     bytes: &[u8],
     max_json_values: usize,
+    budget: RuntimeForeignOutputBudget,
     deadline: Instant,
     operation: &'static str,
 ) -> Result<(), RuntimeForeignOutputError> {
     let mut timed_out = false;
-    let mut counter = JsonItemCounter::new(max_json_values);
+    let profile_files_limit = match budget.preflight {
+        RuntimeForeignOutputPreflight::None => None,
+        RuntimeForeignOutputPreflight::ProfileFiles => Some(budget.max_items.saturating_sub(1)),
+    };
+    let profile_items_limit = profile_files_limit.map(|_| budget.max_items);
+    let root_context = if profile_files_limit.is_some() {
+        JsonItemContext::ProfileRoot
+    } else {
+        JsonItemContext::General
+    };
+    let mut counter =
+        JsonItemCounter::new(max_json_values, profile_files_limit, profile_items_limit);
     let reader = DeadlineReader::new(bytes, deadline, &mut timed_out);
     let mut deserializer = serde_json::Deserializer::from_reader(BufReader::with_capacity(
         DECODE_READER_CHUNK_BYTES,
@@ -79,6 +104,8 @@ fn preflight_json_graph(
     ));
     let result = JsonItemSeed {
         counter: &mut counter,
+        context: root_context,
+        profile_item: None,
     }
     .deserialize(&mut deserializer)
     .and_then(|()| deserializer.end());
@@ -92,25 +119,63 @@ fn preflight_json_graph(
             "{operation} returned {observed} JSON values; syntax-graph maximum is {max_json_values}"
         )));
     }
+    if let Some(observed) = counter.profile_files_overflow_observed {
+        let maximum = counter.profile_files_limit.unwrap_or_default();
+        return Err(RuntimeForeignOutputError::protocol_violation(format!(
+            "{operation} returned {observed} profile files; maximum is {maximum}"
+        )));
+    }
+    if let Some(observed) = counter.profile_items_overflow_observed {
+        let maximum = counter.profile_items_limit.unwrap_or_default();
+        return Err(RuntimeForeignOutputError::protocol_violation(format!(
+            "{operation} returned {observed} profile items; maximum is {maximum}"
+        )));
+    }
     result.map_err(|error| {
         RuntimeForeignOutputError::protocol_violation(format!(
             "{operation} failed JSON item preflight (maximum nesting depth {RUNTIME_FOREIGN_OUTPUT_JSON_MAX_NESTING_DEPTH}): {error}"
         ))
-    })
+    })?;
+    if let Some(maximum) = counter.profile_items_limit {
+        if counter.profile_items_observed > maximum {
+            return Err(RuntimeForeignOutputError::protocol_violation(format!(
+                "{operation} returned {} profile items; maximum is {maximum}",
+                counter.profile_items_observed
+            )));
+        }
+    }
+    Ok(())
 }
 
 struct JsonItemCounter {
     observed: usize,
     limit: usize,
     overflow_observed: Option<usize>,
+    profile_files_observed: usize,
+    profile_files_limit: Option<usize>,
+    profile_files_overflow_observed: Option<usize>,
+    profile_items_observed: usize,
+    profile_items_limit: Option<usize>,
+    profile_items_overflow_observed: Option<usize>,
 }
 
 impl JsonItemCounter {
-    fn new(limit: usize) -> Self {
+    fn new(
+        limit: usize,
+        profile_files_limit: Option<usize>,
+        profile_items_limit: Option<usize>,
+    ) -> Self {
         Self {
             observed: 0,
             limit,
             overflow_observed: None,
+            profile_files_observed: 0,
+            profile_files_limit,
+            profile_files_overflow_observed: None,
+            // The response envelope is one typed item in item_count.rs.
+            profile_items_observed: if profile_items_limit.is_some() { 1 } else { 0 },
+            profile_items_limit,
+            profile_items_overflow_observed: None,
         }
     }
 
@@ -122,10 +187,59 @@ impl JsonItemCounter {
         self.overflow_observed = Some(self.observed);
         Err(E::custom("JSON item limit exceeded"))
     }
+
+    fn observe_profile_file<E: serde::de::Error>(&mut self) -> Result<(), E> {
+        self.profile_files_observed = self.profile_files_observed.saturating_add(1);
+        if self
+            .profile_files_limit
+            .is_none_or(|limit| self.profile_files_observed <= limit)
+        {
+            return Ok(());
+        }
+        self.profile_files_overflow_observed = Some(self.profile_files_observed);
+        Err(E::custom("profile file limit exceeded"))
+    }
+
+    fn observe_profile_item<E: serde::de::Error>(&mut self) -> Result<(), E> {
+        self.profile_items_observed = self.profile_items_observed.saturating_add(1);
+        if self
+            .profile_items_limit
+            .is_none_or(|limit| self.profile_items_observed <= limit)
+        {
+            return Ok(());
+        }
+        self.profile_items_overflow_observed = Some(self.profile_items_observed);
+        Err(E::custom("profile item limit exceeded"))
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum JsonItemContext {
+    General,
+    ProfileRoot,
+    ProfileFiles,
+    ProfileSnapshot,
+    ProfileRuntimeDiagnostics,
+    ProfileDiagnosticSeries,
+    ProfileHotspotReport,
+    ProfileCounterHotspotReport,
+    ProfileUiHotspotReport,
+    ProfileTypedArray,
+    ProfileDiagnosticSeriesArray,
+    ProfileCompositionReceipt,
+    ProfileHotspotHints,
+}
+
+#[derive(Clone, Copy)]
+enum ProfileItemKind {
+    File,
+    CollectionItem,
 }
 
 struct JsonItemSeed<'a> {
     counter: &'a mut JsonItemCounter,
+    context: JsonItemContext,
+    profile_item: Option<ProfileItemKind>,
 }
 
 impl<'de> DeserializeSeed<'de> for JsonItemSeed<'_> {
@@ -135,15 +249,27 @@ impl<'de> DeserializeSeed<'de> for JsonItemSeed<'_> {
     where
         D: serde::Deserializer<'de>,
     {
+        match self.profile_item {
+            Some(ProfileItemKind::File) => {
+                self.counter.observe_profile_file::<D::Error>()?;
+                self.counter.observe_profile_item::<D::Error>()?;
+            }
+            Some(ProfileItemKind::CollectionItem) => {
+                self.counter.observe_profile_item::<D::Error>()?;
+            }
+            None => {}
+        }
         self.counter.observe::<D::Error>()?;
         deserializer.deserialize_any(JsonItemVisitor {
             counter: self.counter,
+            context: self.context,
         })
     }
 }
 
 struct JsonItemVisitor<'a> {
     counter: &'a mut JsonItemCounter,
+    context: JsonItemContext,
 }
 
 impl<'de> Visitor<'de> for JsonItemVisitor<'_> {
@@ -195,6 +321,8 @@ impl<'de> Visitor<'de> for JsonItemVisitor<'_> {
     {
         JsonItemSeed {
             counter: self.counter,
+            context: self.context,
+            profile_item: None,
         }
         .deserialize(deserializer)
     }
@@ -205,6 +333,8 @@ impl<'de> Visitor<'de> for JsonItemVisitor<'_> {
     {
         JsonItemSeed {
             counter: self.counter,
+            context: self.context,
+            profile_item: None,
         }
         .deserialize(deserializer)
     }
@@ -213,12 +343,39 @@ impl<'de> Visitor<'de> for JsonItemVisitor<'_> {
     where
         A: SeqAccess<'de>,
     {
+        let profile_struct = self.context.is_profile_struct();
+        if self.context == JsonItemContext::ProfileCompositionReceipt {
+            self.counter.observe_profile_item::<A::Error>()?;
+        }
+        let (context, profile_item) = match self.context {
+            JsonItemContext::ProfileFiles => {
+                (JsonItemContext::General, Some(ProfileItemKind::File))
+            }
+            JsonItemContext::ProfileDiagnosticSeriesArray => (
+                JsonItemContext::ProfileDiagnosticSeries,
+                Some(ProfileItemKind::CollectionItem),
+            ),
+            JsonItemContext::ProfileTypedArray | JsonItemContext::ProfileHotspotHints => (
+                JsonItemContext::General,
+                Some(ProfileItemKind::CollectionItem),
+            ),
+            _ => (JsonItemContext::General, None),
+        };
+        let mut index = 0;
         while sequence
             .next_element_seed(JsonItemSeed {
                 counter: self.counter,
+                context: if profile_struct {
+                    self.context.position_context(index)
+                } else {
+                    context
+                },
+                profile_item: if profile_struct { None } else { profile_item },
             })?
             .is_some()
-        {}
+        {
+            index += 1;
+        }
         Ok(())
     }
 
@@ -226,12 +383,182 @@ impl<'de> Visitor<'de> for JsonItemVisitor<'_> {
     where
         A: MapAccess<'de>,
     {
-        while map.next_key::<IgnoredAny>()?.is_some() {
-            map.next_value_seed(JsonItemSeed {
-                counter: self.counter,
-            })?;
+        if self.context == JsonItemContext::ProfileCompositionReceipt {
+            self.counter.observe_profile_item::<A::Error>()?;
+        }
+        if self.context.is_profile_map() {
+            while let Some(key) = map.next_key::<ProfileFieldKey>()? {
+                map.next_value_seed(JsonItemSeed {
+                    counter: self.counter,
+                    context: self.context.field_context(key),
+                    profile_item: None,
+                })?;
+            }
+        } else {
+            while map.next_key::<IgnoredAny>()?.is_some() {
+                map.next_value_seed(JsonItemSeed {
+                    counter: self.counter,
+                    context: JsonItemContext::General,
+                    profile_item: None,
+                })?;
+            }
         }
         Ok(())
+    }
+}
+
+impl JsonItemContext {
+    fn is_profile_struct(self) -> bool {
+        self.is_profile_map() || self == Self::ProfileCompositionReceipt
+    }
+
+    fn is_profile_map(self) -> bool {
+        matches!(
+            self,
+            Self::ProfileRoot
+                | Self::ProfileSnapshot
+                | Self::ProfileRuntimeDiagnostics
+                | Self::ProfileDiagnosticSeries
+                | Self::ProfileHotspotReport
+                | Self::ProfileCounterHotspotReport
+                | Self::ProfileUiHotspotReport
+        )
+    }
+
+    fn position_context(self, index: usize) -> Self {
+        use JsonItemContext as Context;
+
+        // Serde's sequence form uses declaration order in the Interface profiling DTOs.
+        match (self, index) {
+            (Context::ProfileRoot, 2) => Context::ProfileSnapshot,
+            (Context::ProfileRoot, 3) => Context::ProfileRuntimeDiagnostics,
+            (Context::ProfileRoot, 4) => Context::ProfileCompositionReceipt,
+            (Context::ProfileRoot, 5) => Context::ProfileHotspotReport,
+            (Context::ProfileRoot, 6) => Context::ProfileCounterHotspotReport,
+            (Context::ProfileRoot, 7) => Context::ProfileUiHotspotReport,
+            (Context::ProfileRoot, 9) => Context::ProfileFiles,
+            (Context::ProfileSnapshot, 5..=8) => Context::ProfileTypedArray,
+            (Context::ProfileRuntimeDiagnostics, 8) => Context::ProfileDiagnosticSeriesArray,
+            (Context::ProfileRuntimeDiagnostics, 10) => Context::ProfileSnapshot,
+            (Context::ProfileDiagnosticSeries, 2 | 7) => Context::ProfileTypedArray,
+            (Context::ProfileHotspotReport, 3) => Context::ProfileTypedArray,
+            (Context::ProfileHotspotReport, 4) => Context::ProfileHotspotHints,
+            (Context::ProfileCounterHotspotReport, 3 | 4) => Context::ProfileTypedArray,
+            (Context::ProfileUiHotspotReport, 3 | 4) => Context::ProfileTypedArray,
+            _ => Context::General,
+        }
+    }
+
+    fn field_context(self, field: ProfileFieldKey) -> Self {
+        use JsonItemContext as Context;
+        use ProfileFieldKey as Field;
+
+        // Follow only schema-known paths; matching names in unknown fields stay general JSON.
+        match (self, field) {
+            (Context::ProfileRoot, Field::Files) => Context::ProfileFiles,
+            (Context::ProfileRoot, Field::Snapshot) => Context::ProfileSnapshot,
+            (Context::ProfileRoot, Field::RuntimeDiagnostics) => Context::ProfileRuntimeDiagnostics,
+            (Context::ProfileRoot, Field::ModuleCompositionReceipt) => {
+                Context::ProfileCompositionReceipt
+            }
+            (Context::ProfileRoot, Field::HotspotReport) => Context::ProfileHotspotReport,
+            (Context::ProfileRoot, Field::CounterHotspotReport) => {
+                Context::ProfileCounterHotspotReport
+            }
+            (Context::ProfileRoot, Field::UiHotspotReport) => Context::ProfileUiHotspotReport,
+            (
+                Context::ProfileSnapshot,
+                Field::Frames | Field::Spans | Field::Counters | Field::RecorderRetention,
+            ) => Context::ProfileTypedArray,
+            (Context::ProfileRuntimeDiagnostics, Field::DiagnosticSeries) => {
+                Context::ProfileDiagnosticSeriesArray
+            }
+            (Context::ProfileRuntimeDiagnostics, Field::Profile) => Context::ProfileSnapshot,
+            (Context::ProfileDiagnosticSeries, Field::SubsystemTags | Field::History) => {
+                Context::ProfileTypedArray
+            }
+            (Context::ProfileHotspotReport, Field::Hotspots) => Context::ProfileTypedArray,
+            (Context::ProfileHotspotReport, Field::Hints) => Context::ProfileHotspotHints,
+            (Context::ProfileCounterHotspotReport, Field::Counters | Field::Hints) => {
+                Context::ProfileTypedArray
+            }
+            (Context::ProfileUiHotspotReport, Field::Scenarios | Field::Alerts) => {
+                Context::ProfileTypedArray
+            }
+            _ => Context::General,
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum ProfileFieldKey {
+    Files,
+    Snapshot,
+    RuntimeDiagnostics,
+    ModuleCompositionReceipt,
+    HotspotReport,
+    CounterHotspotReport,
+    UiHotspotReport,
+    Frames,
+    Spans,
+    Counters,
+    RecorderRetention,
+    DiagnosticSeries,
+    Profile,
+    SubsystemTags,
+    History,
+    Hotspots,
+    Hints,
+    Scenarios,
+    Alerts,
+    Other,
+}
+
+impl<'de> Deserialize<'de> for ProfileFieldKey {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_identifier(ProfileFieldKeyVisitor)
+    }
+}
+
+struct ProfileFieldKeyVisitor;
+
+impl Visitor<'_> for ProfileFieldKeyVisitor {
+    type Value = ProfileFieldKey;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str("a profile response collection field")
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E> {
+        Ok(match value {
+            "files" => ProfileFieldKey::Files,
+            "snapshot" => ProfileFieldKey::Snapshot,
+            "runtime_diagnostics" => ProfileFieldKey::RuntimeDiagnostics,
+            "module_composition_receipt" => ProfileFieldKey::ModuleCompositionReceipt,
+            "hotspot_report" => ProfileFieldKey::HotspotReport,
+            "counter_hotspot_report" => ProfileFieldKey::CounterHotspotReport,
+            "ui_hotspot_report" => ProfileFieldKey::UiHotspotReport,
+            "frames" => ProfileFieldKey::Frames,
+            "spans" => ProfileFieldKey::Spans,
+            "counters" => ProfileFieldKey::Counters,
+            "recorder_retention" => ProfileFieldKey::RecorderRetention,
+            "diagnostic_series" => ProfileFieldKey::DiagnosticSeries,
+            "profile" => ProfileFieldKey::Profile,
+            "subsystem_tags" => ProfileFieldKey::SubsystemTags,
+            "history" => ProfileFieldKey::History,
+            "hotspots" => ProfileFieldKey::Hotspots,
+            "hints" => ProfileFieldKey::Hints,
+            "scenarios" => ProfileFieldKey::Scenarios,
+            "alerts" => ProfileFieldKey::Alerts,
+            _ => ProfileFieldKey::Other,
+        })
+    }
+
+    fn visit_borrowed_str<E: serde::de::Error>(self, value: &str) -> Result<Self::Value, E> {
+        self.visit_str(value)
     }
 }
 

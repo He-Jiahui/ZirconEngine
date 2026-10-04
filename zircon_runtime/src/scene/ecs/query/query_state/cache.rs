@@ -1,7 +1,7 @@
-use crate::scene::World;
 use crate::scene::ecs::{
     ArchetypeIndexPerformanceStats, QueryDataAccess, QueryFilter, StorageType,
 };
+use crate::scene::World;
 
 use super::{CachedArchetypePlan, QueryComponentBinding, QueryState};
 
@@ -12,6 +12,7 @@ where
 {
     pub fn update_cache(&mut self, world: &World) {
         let archetype_generation = world.archetype_generation();
+        // TODO: [CR-R02-runtime_ecs_query_change_windows-0001] 待确认跨 World 复用的拒绝或重绑契约；此处分支只比较代际并保留原类型/槽绑定，缺少身份检查与跨 World 用例；下一步用注册顺序不同且代际相同的两个 World 验证。
         if self.cached_archetype_generation == archetype_generation {
             self.refresh_plan_memberships(world);
             self.cache_hits = self.cache_hits.saturating_add(1);
@@ -159,6 +160,7 @@ where
             .saturating_add(delta.signature_membership_checks);
     }
 
+    // 保留已编译组件绑定，逐计划记录当前成员代际并重算数量；同代际命中路径也会执行此刷新。
     fn refresh_plan_memberships(&mut self, world: &World) {
         let mut candidate_count = 0_usize;
         for plan in &mut self.cached_archetype_plans {

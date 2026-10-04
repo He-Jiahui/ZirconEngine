@@ -19,7 +19,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束共享 ZR VM 后端：ZR VM 后端应为共享延迟 Arc，并解析克隆共享 Arc 不带后端分配。
 class SharedZrVmBackendPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

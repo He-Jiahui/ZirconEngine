@@ -105,10 +105,22 @@ class EditorSettingsWindowMutationWiringContractTests(unittest.TestCase):
             "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
             "template_settings_window/enum_controls.rs"
         )
+        scrollbars = self.read(
+            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "template_settings_window/scrollbars.rs"
+        )
+        visible_rows = self.read(
+            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "template_settings_window/visible_rows.rs"
+        )
 
         self.assertIn("mod enum_controls;", root)
+        self.assertIn("mod scrollbars;", root)
+        self.assertIn("mod visible_rows;", root)
         self.assertLessEqual(len(commands.splitlines()), 800)
         self.assertLessEqual(len(enum_controls.splitlines()), 800)
+        self.assertIn("fn push_preferences_scrollbars", scrollbars)
+        self.assertIn("fn settings_window_visible_rows", visible_rows)
 
     def test_numeric_step_is_schema_owned_instead_of_key_switched_in_ui(self) -> None:
         definition = self.read("zircon_editor/src/core/settings/definition.rs")

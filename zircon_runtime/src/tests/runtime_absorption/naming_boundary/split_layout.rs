@@ -1,3 +1,4 @@
+//! 命名策略扫描需区分生产源码、测试夹具和已分类的历史名称。通过源码文本核对父子路由、状态镜像和文件预算。
 const PARENT_SOURCE: &str = include_str!("../naming_boundary.rs");
 const CLASSIFIERS_SOURCE: &str = include_str!("classifiers.rs");
 const LEXICAL_SCAN_SOURCE: &str = include_str!("lexical_scan.rs");
@@ -17,10 +18,11 @@ const STRUCTURE_CONVENTION_PLAN: &str =
 const REVIEW_FINDINGS_PLAN: &str =
     include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
 const MODULE_CONVENTION_DOC: &str =
-    include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
+    include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 const FRAMEWORKS_02_PLAN: &str =
     include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md");
 
+// BUG: [CR-RUNTIME-TESTS-ABS-0005] 当前被读子文件已经超过此处明示的行数上限；该测试执行行数断言时会失败；证据：行数预算与原始源码快照。
 #[test]
 fn runtime_15_naming_boundary_route_owner_is_folder_backed() {
     assert_contains_all(

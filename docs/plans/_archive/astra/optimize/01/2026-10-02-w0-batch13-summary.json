@@ -1,0 +1,64 @@
+{
+  "record_type": "root_qualified_bounded_source_review",
+  "packet": "w0-batch13",
+  "root_verified_at_utc": "2026-10-02T12:10:41.817459+00:00",
+  "scope_rows": 12,
+  "scope": "Runtime186 PHY4-P1-001..012 original P1 table108-119; Runtime219 currentness relation only.",
+  "status_counts": {
+    "narrowed_open": 1,
+    "confirmed_open": 11
+  },
+  "canonical_counts_before": [
+    220,
+    216,
+    183
+  ],
+  "canonical_counts_with_this_batch": [
+    232,
+    228,
+    195
+  ],
+  "prior_twelve_batches_preserved": true,
+  "whole_report_inventory_counts_unchanged": [
+    576,
+    61,
+    515
+  ],
+  "whole_report_reviewed": false,
+  "current_input_count": 37,
+  "current_input_mismatches": 0,
+  "independent_review_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\reviews\\independent-source-qualification-o.json",
+  "independent_review_sha256": "975b0196d92ec6a05e315ccd8550b1a8c1a9e86456f3ac7b86a6bdb15c41c1af",
+  "original_artifacts": {
+    "review.jsonl": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\review.jsonl",
+      "sha256": "7c5478e3ec9dc7b34495676895be46e4dbbe86f35b65173d296c4103ed5db364"
+    },
+    "crosswalk.jsonl": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\crosswalk.jsonl",
+      "sha256": "e776c224b625fc4861a355bf30d9d53acd61bfbe0c91442fcd4f1ac833623c61"
+    },
+    "summary.json": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\summary.json",
+      "sha256": "38c47c91ee57f5a56f246c9c53f1011016828d34a4e5656b030b0989f3d55859"
+    },
+    "manifest.json": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\manifest.json",
+      "sha256": "f73bc41cf55ec529e8c137766662e838d532ffc312315beeb6a0cff6bdcfcbd0"
+    },
+    "reviews/independent-source-qualification-o.json": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\reviews\\independent-source-qualification-o.json",
+      "sha256": "975b0196d92ec6a05e315ccd8550b1a8c1a9e86456f3ac7b86a6bdb15c41c1af"
+    },
+    "reviews/independent-source-qualification-o.md": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\reviews\\independent-source-qualification-o.md",
+      "sha256": "a2bed3cbf31065bb11c1374dd9f10ba16a4df351095e70c0b30fa6dbc273f29d"
+    }
+  },
+  "author_placeholder_time_qualification": "Retained author00:00Z labels do not establish a historical immutable seal. Root verifies actual present source bytes and time.",
+  "tests_run": 0,
+  "compiler_or_cargo_run": false,
+  "source_integrated": false,
+  "acceptance": "open",
+  "original_lower_upward_native_product_performance_and_jenkins_gates": "open"
+}

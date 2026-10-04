@@ -1,3 +1,4 @@
+// 静态核对固定版本 WOC 源码与本地 Zr 投影中的固定源码中的寻路调用顺序与路径遍历投影。
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -109,6 +110,7 @@ function gitShow(path) {
   });
 }
 
+// 按顺序查找每个标记，保证源码中的路径遍历阶段没有重排。
 function assertOrder(text, needles) {
   let prior = -1;
   for (const needle of needles) {

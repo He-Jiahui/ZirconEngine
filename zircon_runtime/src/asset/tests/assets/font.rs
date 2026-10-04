@@ -1,3 +1,5 @@
+//! 覆盖字体清单从解析、源文件烹制到项目缓存再加载的链路；字体元数据和已烹制字节必须在原始字体文件移除后仍可用。
+
 use std::fs;
 use std::path::PathBuf;
 
@@ -46,7 +48,7 @@ fn font_importer_version_invalidates_pre_cooked_blob_artifacts() {
         .expect("font manifest importer should be registered");
 
     assert_eq!(descriptor.id, "zircon.builtin.toml.font");
-    assert_eq!(descriptor.importer_version, 2);
+    assert_eq!(descriptor.importer_version, 3);
 }
 
 #[test]

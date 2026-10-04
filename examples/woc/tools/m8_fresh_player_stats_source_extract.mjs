@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码中提取新建玩家属性与临时战斗状态快照，供 m8_fresh_player_stats_codegen.mjs 消费。
 const { CLASSES } = await import('wocgit:///src/sim/content/classes.ts');
 const { createPlayer, recalcPlayerStats } = await import('wocgit:///src/sim/entity.ts');
 
@@ -6,6 +7,7 @@ const players = classIds.map((classId) => freshPlayer(classId));
 
 process.stdout.write(JSON.stringify({ players }));
 
+// 逐职业重建源码实体，使等级和派生属性来自源码重算。
 function freshPlayer(classId) {
   const definition = CLASSES[classId];
   const equipment = { mainhand: definition.startWeapon, chest: definition.startChest };

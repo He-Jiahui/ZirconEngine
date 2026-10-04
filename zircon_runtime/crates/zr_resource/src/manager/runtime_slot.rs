@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{RuntimeResourceState, lease::ResourceLeaseIdentity};
+use crate::{lease::ResourceLeaseIdentity, RuntimeResourceState};
 
 #[derive(Debug)]
 pub(super) struct ResourceRuntimeSlot {

@@ -94,8 +94,8 @@ requireText(
 );
 
 const main = read("scripts", "woc_game", "src", "main.zr");
-if ((main.match(/world_state[^\r\n]*WOS83/g) ?? []).length !== 2) {
-  throw new Error("main schema metadata must publish WOS72 in both runtime paths");
+if ((main.match(/world_state[^\r\n]*WOS118/g) ?? []).length !== 2) {
+  throw new Error("main schema metadata must publish WOS118 in both runtime paths");
 }
 
 const contract = read("contracts", "world-state.md");

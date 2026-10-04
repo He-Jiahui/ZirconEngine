@@ -1,3 +1,4 @@
+// TODO: [CR-WOC-IPS-I-0011] 此事务断言入口当前未被.zrp或测试runner引用；需补可执行注册并运行后才能计入对应集成覆盖。
 var ledger = %import("progression/inventory_instance_ledger");
 var delve = %import("instances/delve_state");
 

@@ -5,12 +5,14 @@ use crate::graphics::scene::resources::ResourceStreamer;
 
 use super::blit_pipeline::LightCookieAtlasBlitPipeline;
 use super::profile::LightCookieAtlasProfile;
-use super::{COOKIE_ATLAS_GRID_SIZE, build_cookie_frame_plan};
+use super::{build_cookie_frame_plan, COOKIE_ATLAS_GRID_SIZE};
 
 pub(crate) const LIGHT_COOKIE_ATLAS_BINDING: u32 = 33;
 pub(crate) const LIGHT_COOKIE_SAMPLER_BINDING: u32 = 34;
 pub(crate) const LIGHT_COOKIE_ATLAS_SIZE: u32 = 1024;
 
+/// 网格管线缓存持有的固定图集与 blit 管线，跨帧复用。
+/// 重建时独立生成槽位计划，需与光缓冲保持相同帧输入与去重规则。
 pub(crate) struct LightCookieAtlasResources {
     texture: wgpu::Texture,
     view: Arc<wgpu::TextureView>,
@@ -130,53 +132,5 @@ pub(crate) fn light_cookie_bind_group_layout_entries() -> [wgpu::BindGroupLayout
 }
 
 #[cfg(test)]
-mod tests {
-    const SOURCE: &str = include_str!("resources.rs");
-    const BLIT_PIPELINE_SOURCE: &str = include_str!("blit_pipeline.rs");
-
-    fn production_source() -> &'static str {
-        SOURCE
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("light cookie resources should retain a test-module boundary")
-    }
-
-    #[test]
-    fn light_cookie_graph_pass_owns_initialization_and_measurement() {
-        let source = production_source();
-        let plan_scope = source
-            .find("\"light_cookie\", \"frame_plan\"")
-            .expect("light cookie frame-plan scope");
-        let plan = source
-            .find("build_cookie_frame_plan(cookies)")
-            .expect("light cookie frame plan");
-        let encode_scope = source
-            .find("\"light_cookie\", \"atlas_encode\"")
-            .expect("light cookie encode scope");
-        let encode = source
-            .find("self.blit_pipeline.encode(")
-            .expect("light cookie atlas encode");
-        let record = source
-            .find("self.profile.record_rebuild(")
-            .expect("light cookie work record");
-        let construct_scope = source
-            .find("\"light_cookie\", \"atlas_construct\"")
-            .expect("light cookie atlas construction scope");
-
-        assert!(construct_scope < plan_scope);
-        assert!(plan_scope < plan);
-        assert!(plan < encode_scope);
-        assert!(encode_scope < encode);
-        assert!(encode < record);
-        assert!(
-            source.contains(
-                "u64::from(LIGHT_COOKIE_ATLAS_SIZE) * u64::from(LIGHT_COOKIE_ATLAS_SIZE)"
-            )
-        );
-        assert!(!source.contains("wgpu::Queue"));
-        assert!(!source.contains("queue.write_texture("));
-        assert!(!source.contains("TextureUsages::COPY_DST"));
-        assert!(!source.contains("initial_white_upload"));
-        assert!(BLIT_PIPELINE_SOURCE.contains("load: wgpu::LoadOp::Clear(wgpu::Color::WHITE)"));
-    }
-}
+#[path = "tests/resources.rs"]
+mod tests;

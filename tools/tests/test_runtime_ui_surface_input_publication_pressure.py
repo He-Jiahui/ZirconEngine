@@ -2,7 +2,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from tools.runtime_ui_surface_input_publication_pressure import (
+from tools.analysis.performance.runtime.runtime_ui_surface_input_publication_pressure import (
     CRITICAL_SOURCE_CONTRACTS,
     SourceContractError,
     pressure_report,
@@ -129,7 +129,7 @@ class RuntimeUiSurfaceInputPublicationPressureTests(unittest.TestCase):
         binding = source_binding_report(ROOT)
 
         self.assertTrue(binding["ready"])
-        self.assertEqual(len(binding["critical_sources"]), 10)
+        self.assertEqual(len(binding["critical_sources"]), 11)
         self.assertRegex(binding["source_set_sha256"], r"^[0-9A-F]{64}$")
         paths = {
             source["relative_path"] for source in binding["critical_sources"]
@@ -140,29 +140,34 @@ class RuntimeUiSurfaceInputPublicationPressureTests(unittest.TestCase):
             self.assertGreater(source["byte_length"], 0)
 
     def test_current_source_binding_requires_the_unrouted_fast_path(self):
-        runtime_contract = dict(CRITICAL_SOURCE_CONTRACTS)[
+        contracts = dict(CRITICAL_SOURCE_CONTRACTS)
+        runtime_contract = contracts[
             "zircon_runtime/src/dynamic_api/session/runtime_ui.rs"
         ]
+        routing_contract = contracts[
+            "zircon_runtime/src/dynamic_api/session/runtime_ui/input_routing.rs"
+        ]
 
-        self.assertIn(
-            "if matches!(&event, UiInputEvent::MouseMotion(_))", runtime_contract
-        )
-        self.assertIn(
-            "ui.surface_set.input.unrouted_reject_count", runtime_contract
-        )
+        self.assertIn("mod input_routing;", runtime_contract)
         self.assertIn("focused_surface: Option<usize>", runtime_contract)
-        self.assertIn("input_requires_focus_owner(&event)", runtime_contract)
-        self.assertIn("input_requires_navigation_owner(&event)", runtime_contract)
         self.assertIn(
-            "ui.surface_set.input.focus_direct_route_count", runtime_contract
+            "if matches!(&event, UiInputEvent::MouseMotion(_))", routing_contract
         )
         self.assertIn(
-            ".query(viewport_size, point, previous_point)", runtime_contract
+            "ui.surface_set.input.unrouted_reject_count", routing_contract
         )
-        self.assertIn("RuntimeUiInputQueryAdmission::Rejected(reason)", runtime_contract)
+        self.assertIn("input_requires_focus_owner(&event)", routing_contract)
+        self.assertIn("input_requires_navigation_owner(&event)", routing_contract)
+        self.assertIn(
+            "ui.surface_set.input.focus_direct_route_count", routing_contract
+        )
+        self.assertIn(
+            ".query(viewport_size, point, previous_point)", routing_contract
+        )
+        self.assertIn("RuntimeUiInputQueryAdmission::Rejected(reason)", routing_contract)
         self.assertIn(
             "ui.surface_set.input.publication_unavailable_fallback_count",
-            runtime_contract,
+            routing_contract,
         )
 
     def test_source_binding_requires_retained_publication_patch_scratch(self):

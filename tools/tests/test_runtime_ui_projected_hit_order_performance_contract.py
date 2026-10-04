@@ -4,9 +4,9 @@ import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime/src/ui/surface/frame_hit_test.rs"
-TESTS = ROOT / "zircon_runtime/src/ui/surface/frame_hit_test/tests.rs"
+TESTS = ROOT / "zircon_runtime/src/ui/surface/frame_hit_test/tests/cases.rs"
 
-
+# 检查投影层保留显式 z 顺序缓存，不逐条展平覆盖层；弹窗重叠回归校验内层与栈顺序。
 class RuntimeUiProjectedHitOrderPerformanceContractTests(unittest.TestCase):
     def setUp(self) -> None:
         self.source = SOURCE.read_text(encoding="utf-8")

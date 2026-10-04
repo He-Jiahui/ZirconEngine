@@ -1,3 +1,5 @@
+// 终端空间抗锯齿按 edge → blend → resolve 三个入口执行，分别产生边缘、权重和最终颜色。
+// Rust 为前两阶段分配局部中间纹理，并让三阶段使用相同的局部坐标约定。
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
 };
@@ -5,6 +7,7 @@ struct VertexOutput {
 @group(0) @binding(0) var terminal_input_tex: texture_2d<f32>;
 @group(0) @binding(1) var smaa_stage_tex: texture_2d<f32>;
 
+// 目标原点与 render-region 设置必须一致；当前执行链为 Local，原点为零。
 struct TerminalRegionParams {
     viewport_origin: vec4<u32>,
 };
@@ -84,6 +87,7 @@ fn detect_smaa_edges(coord: vec2<u32>) -> vec2<f32> {
     return vec2<f32>(horizontal_edge, vertical_edge);
 }
 
+// stage 输入此时必须是 edge 产物；邻域连续性影响权重，不能把终端颜色误绑定到该槽。
 fn compute_smaa_blend_weights(coord: vec2<u32>) -> vec2<f32> {
     let extent = textureDimensions(smaa_stage_tex);
     let coord_i32 = vec2<i32>(coord);
@@ -100,6 +104,7 @@ fn compute_smaa_blend_weights(coord: vec2<u32>) -> vec2<f32> {
     return vec2<f32>(horizontal_weight, vertical_weight);
 }
 
+// stage 输入此时必须是 blend 产物；终端输入始终保留原颜色与 alpha。
 fn apply_smaa_resolve(coord: vec2<u32>, color: vec3<f32>) -> vec3<f32> {
     let terminal_extent = textureDimensions(terminal_input_tex);
     let stage_extent = textureDimensions(smaa_stage_tex);

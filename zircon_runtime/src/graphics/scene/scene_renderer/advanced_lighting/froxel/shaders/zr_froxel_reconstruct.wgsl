@@ -1,3 +1,5 @@
+// 介质注入、散射和积分共享深度切片与世界位置约定；Rust 端使用未抖动相机逆投影，
+// 散射阶段的采样抖动在调用点另行传入。
 struct ZrFroxelViewParams {
     world_from_clip: mat4x4<f32>,
     camera_position_projection: vec4<f32>,

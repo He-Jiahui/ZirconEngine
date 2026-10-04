@@ -1,3 +1,4 @@
+// 相机运动向量使用未抖动矩阵；CPU 在 cut 或无效投影时关闭此 pass 的时间重投影。
 struct VelocityCameraParams {
     viewport_and_flags: vec4<u32>,
     current_clip_from_world: mat4x4<f32>,

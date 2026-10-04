@@ -27,8 +27,8 @@ MANIFEST_FILES = (
 REQUIRED_VERSION_ANCHORS = (
     "0.31.0-beta.2",
     "9.0.0-rc.3",
-    'wgpu = "29.0.1"',
-    'naga = { version = "29.0.1"',
+    'wgpu = "=29.0.3"',
+    'naga = { version = "=29.0.3"',
     'glam = { version = "0.32.1"',
     'glyphon = { version = "0.11.0", optional = true }',
     'fontsdf = { version = "0.5.3", optional = true }',

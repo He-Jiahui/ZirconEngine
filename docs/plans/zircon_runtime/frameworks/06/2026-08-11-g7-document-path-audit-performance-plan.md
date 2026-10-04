@@ -1,12 +1,12 @@
 ---
 related_code:
-  - tools/check_conventions.py
-  - tools/convention_exemptions.py
+  - tools/audits/check_conventions.py
+  - tools/audits/convention_exemptions.py
   - tools/tests/test_check_conventions.py
   - tools/tests/check_conventions/document_paths.py
 implementation_files:
-  - tools/check_conventions.py
-  - tools/convention_exemptions.py
+  - tools/audits/check_conventions.py
+  - tools/audits/convention_exemptions.py
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md
@@ -135,8 +135,8 @@ current-source 五次 post 观测为 5.0486 / 5.3495 / 6.9385 / 6.3475 / 6.2924 
 Python 3.11 reparse 修复前的 accepted 样本也不冒充 current-source 证据。原始拒绝记录保存在
 `E:\ZirconBuilds\frameworks06-doc-audit-post-python311-final-20260811.json`。实现已完成，31/31
 static GREEN。fresh exact7 的内容复审 pre/post 指纹一致且结论 C0/I0/M0，但 closeout 输入审计随后
-发现 snapshot 1615 没有包含 runner 必需且仍为 untracked 的 `tools/convention_exemptions.py`；按该
-snapshot 提交会让 `tools/check_conventions.py` 导入不存在的模块，因此 snapshot 1615/exact7 已明确
+发现 snapshot 1615 没有包含 runner 必需且仍为 untracked 的 `tools/audits/convention_exemptions.py`；按该
+snapshot 提交会让 `tools/audits/check_conventions.py` 导入不存在的模块，因此 snapshot 1615/exact7 已明确
 拒绝，不得用于提交或 acceptance。候选范围扩为 exact8；其中 exemption inventory 已使用固定字符串
 `allow` 预筛，并由 clean tracked/untracked 的跨行 `#[allow\n(...)]` 回归锁定，不恢复逐行
 `allow(` 漏检。fresh exact8 内容与原子输入二次审查结论为 C0/I0/M0：Git inventory 对

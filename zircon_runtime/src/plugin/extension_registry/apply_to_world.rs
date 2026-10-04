@@ -1,6 +1,8 @@
+//! 把插件贡献转为可复用的 World 安装计划；每个 World 独立构造资源和系统实例。
 mod component;
 
 #[cfg(test)]
+#[path = "apply_to_world/tests/capacity_tests.rs"]
 mod capacity_tests;
 
 use crate::plugin::{RuntimeExtensionRegistry, RuntimeExtensionRegistryError};
@@ -9,6 +11,7 @@ use crate::scene::{
 };
 
 impl RuntimeExtensionRegistry {
+    /// 在现有 World 上应用本轮贡献并冻结注册表；失败可能保留已安装的前序项，调用方需决定重建或清理目标 World。
     pub fn apply_to_world(
         &mut self,
         world: &mut World,
@@ -19,6 +22,7 @@ impl RuntimeExtensionRegistry {
             .map_err(|error| RuntimeExtensionRegistryError::WorldRegistration(error.to_string()))
     }
 
+    /// 为场景驱动或动态会话取得可复用计划；其中的工厂在应用到每个 World 时重新运行。
     pub fn world_runtime_extension_plan(
         &self,
     ) -> Result<WorldRuntimeExtensionPlan, RuntimeExtensionRegistryError> {
@@ -85,6 +89,7 @@ impl RuntimeExtensionRegistry {
     }
 }
 
+// 计划预留数涵盖组件、资源、事件及两类系统，保持与上方注册顺序相同的家族集合。
 fn world_runtime_extension_registration_capacity(registry: &RuntimeExtensionRegistry) -> usize {
     registry
         .components()

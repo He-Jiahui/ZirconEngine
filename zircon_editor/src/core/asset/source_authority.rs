@@ -1,3 +1,4 @@
+//! 将资产类型的写入策略与来源共同投影为编辑器操作权限；只有允许项目写入的类型且来源属于项目时可变更，固定根目标与具体资源沿同一权限契约解析。
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::resource::{ResourceLocator, ResourceLocatorError, ResourceScheme};
 
@@ -129,5 +130,5 @@ impl AssetSourceAuthority {
 }
 
 #[cfg(test)]
-#[path = "source_authority/fixed_root_classification_tests.rs"]
+#[path = "source_authority/tests/fixed_root_classification_tests.rs"]
 mod fixed_root_classification_tests;

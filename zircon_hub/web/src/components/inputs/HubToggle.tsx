@@ -12,12 +12,14 @@ export interface HubToggleProps {
   value: string;
   options: HubToggleOption[];
   onChange: (value: string) => void;
+  ariaLabel: string;
 }
 
-export function HubToggle({ value, options, onChange }: HubToggleProps) {
+export function HubToggle({ value, options, onChange, ariaLabel }: HubToggleProps) {
   return (
     <ToggleButtonGroup
       exclusive
+      aria-label={ariaLabel}
       value={value}
       onChange={(_, nextValue: string | null) => {
         if (nextValue) {

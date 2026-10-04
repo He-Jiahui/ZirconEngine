@@ -1,7 +1,8 @@
 use zircon_runtime_interface::ui::{
     dispatch::{
-        UiDispatchEffect, UiDragDropInputEventKind, UiInputDiagnosticsMode, UiInputDispatchResult,
-        UiInputEvent, UiInputRoutePolicy, UiInputRouteTrace, UiPointerId, UiPointerInputEvent,
+        UiDispatchAppliedEffect, UiDispatchEffect, UiDragDropInputEventKind,
+        UiInputDiagnosticsMode, UiInputDispatchDiagnostics, UiInputDispatchResult, UiInputEvent,
+        UiInputRoutePolicy, UiInputRouteTrace, UiPointerId, UiPointerInputEvent,
         UiPointerRoutingReceipt, UiPointerSource,
     },
     event_ui::UiNodeId,
@@ -52,31 +53,58 @@ pub(super) fn annotate_route_policy(
     event: &UiInputEvent,
     result: &mut UiInputDispatchResult,
 ) {
-    let released_capture_target = annotate_route_policy_fields(surface, event, result);
-    populate_generic_route_trace(surface, event, result, released_capture_target);
+    let released_capture_target = annotate_route_policy_fields(
+        surface,
+        event,
+        &result.applied_effects,
+        &mut result.diagnostics,
+    );
+    populate_generic_route_trace(
+        surface,
+        event,
+        &mut result.diagnostics,
+        released_capture_target,
+    );
+}
+
+pub(super) fn annotate_result_route_policy(
+    surface: &UiSurface,
+    result: &mut UiInputDispatchResult,
+) {
+    let event = &result.event;
+    let released_capture_target = annotate_route_policy_fields(
+        surface,
+        event,
+        &result.applied_effects,
+        &mut result.diagnostics,
+    );
+    populate_generic_route_trace(
+        surface,
+        event,
+        &mut result.diagnostics,
+        released_capture_target,
+    );
 }
 
 fn annotate_route_policy_fields(
     surface: &UiSurface,
     event: &UiInputEvent,
-    result: &mut UiInputDispatchResult,
+    applied_effects: &[UiDispatchAppliedEffect],
+    diagnostics: &mut UiInputDispatchDiagnostics,
 ) -> Option<UiNodeId> {
-    let released_capture_target = pointer_capture_release_target(event, result);
-    result.diagnostics.route_policy = if released_capture_target.is_some() {
+    let released_capture_target = pointer_capture_release_target(event, applied_effects);
+    diagnostics.route_policy = if released_capture_target.is_some() {
         UiInputRoutePolicy::PointerCapture
     } else {
         route_policy_for_input_event(&surface.input, event)
     };
     if let UiInputEvent::Pointer(pointer) = event {
-        result.diagnostics.notes.push(format!(
+        diagnostics.notes.push(format!(
             "pointer_source={:?}",
             pointer.metadata.pointer_source
         ));
         if pointer.metadata.pointer_source.is_touch_like() {
-            result
-                .diagnostics
-                .notes
-                .push("touch_like_pointer".to_string());
+            diagnostics.notes.push("touch_like_pointer".to_string());
         }
     }
     released_capture_target
@@ -183,27 +211,23 @@ pub(super) fn annotate_navigation_route_trace(
 fn populate_generic_route_trace(
     surface: &UiSurface,
     event: &UiInputEvent,
-    result: &mut UiInputDispatchResult,
+    diagnostics: &mut UiInputDispatchDiagnostics,
     capture_override: Option<UiNodeId>,
 ) {
-    let target = event_owner(event).or(result.diagnostics.route_target);
+    let target = event_owner(event).or(diagnostics.route_target);
     let bubble_path = target
         .and_then(|target| surface.tree.bubble_route(target).ok())
         .unwrap_or_default();
     let focus_path = surface.focused_route();
-    let route_path = if bubble_path.is_empty() {
-        focus_path.clone()
+    let preview_source = if bubble_path.is_empty() {
+        &focus_path
     } else {
-        bubble_path.clone()
+        &bubble_path
     };
     let capture_target = capture_target_for_event(surface, event, capture_override);
-    result.diagnostics.route_trace = UiInputRouteTrace {
-        preview_tunnel: preview_tunnel_for_bubble(&route_path),
-        direct_target: direct_target_for_policy(
-            result.diagnostics.route_policy,
-            target,
-            capture_target,
-        ),
+    diagnostics.route_trace = UiInputRouteTrace {
+        preview_tunnel: preview_tunnel_for_bubble(preview_source),
+        direct_target: direct_target_for_policy(diagnostics.route_policy, target, capture_target),
         target,
         bubble_path,
         focus_path,
@@ -268,7 +292,7 @@ fn annotate_pointer_source(pointer_source: UiPointerSource, result: &mut UiInput
 
 fn pointer_capture_release_target(
     event: &UiInputEvent,
-    result: &UiInputDispatchResult,
+    applied_effects: &[UiDispatchAppliedEffect],
 ) -> Option<UiNodeId> {
     let UiInputEvent::Pointer(pointer) = event else {
         return None;
@@ -280,8 +304,7 @@ fn pointer_capture_release_target(
         return None;
     }
     let pointer_id = pointer.metadata.pointer_id.unwrap_or_default();
-    result
-        .applied_effects
+    applied_effects
         .iter()
         .find_map(|applied| match &applied.effect {
             UiDispatchEffect::ReleasePointerCapture {
@@ -413,3 +436,7 @@ fn popup_stack(surface: &UiSurface) -> Vec<String> {
         .map(|popup| popup.popup_id.clone())
         .collect()
 }
+
+#[cfg(test)]
+#[path = "tests/route_policy_tests.rs"]
+mod route_policy_tests;

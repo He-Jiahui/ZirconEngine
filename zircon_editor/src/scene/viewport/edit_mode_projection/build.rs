@@ -41,17 +41,27 @@ pub(crate) fn build_scene_edit_mode_projection(
         hierarchy_rows: inspection.hierarchy_rows_arc(),
         inspector_fields: selected_entity
             .and_then(|entity| scene.inspection_fields_artifact(entity))
-            .map(|artifact| {
-                artifact
-                    .fields()
-                    .iter()
-                    .filter_map(scene_inspector_field_from_runtime)
-                    .collect()
-            })
+            .map(|artifact| scene_inspector_fields_from_runtime(artifact.fields()))
             .unwrap_or_default(),
         toolbar: build_toolbar_state(settings, mode, selected_entity, handle_drag_active),
         stats: build_stats(inspection.summary(), selected_entity),
     }
+}
+
+fn scene_inspector_fields_from_runtime(
+    fields: &[WorldInspectionField],
+) -> Vec<SceneInspectorField> {
+    let mut projected = Vec::new();
+    for field in fields {
+        let Some(field) = scene_inspector_field_from_runtime(field) else {
+            continue;
+        };
+        if projected.is_empty() {
+            projected.reserve(fields.len());
+        }
+        projected.push(field);
+    }
+    projected
 }
 
 fn scene_inspector_field_from_runtime(field: &WorldInspectionField) -> Option<SceneInspectorField> {
@@ -186,8 +196,12 @@ fn title_case_identifier(value: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "build/title_case_tests.rs"]
+#[path = "build/tests/title_case_tests.rs"]
 mod title_case_tests;
+
+#[cfg(test)]
+#[path = "build/tests/field_capacity_tests.rs"]
+mod field_capacity_tests;
 
 fn build_toolbar_state(
     settings: &SceneViewportSettings,

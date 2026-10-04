@@ -76,15 +76,14 @@ impl EditorUiDeltaBatch {
     }
 
     pub fn reflection_patches(&self) -> Vec<UiReflectionNodePatch> {
-        self.entries
-            .iter()
-            .filter_map(|entry| match entry {
-                EditorUiDeltaEntry::Nodes(deltas) => Some(deltas),
-                EditorUiDeltaEntry::Barrier { .. } => None,
-            })
-            .flatten()
-            .map(|delta| delta.patch.clone())
-            .collect()
+        let mut patches = Vec::with_capacity(self.node_delta_count());
+        for entry in &self.entries {
+            let EditorUiDeltaEntry::Nodes(deltas) = entry else {
+                continue;
+            };
+            patches.extend(deltas.iter().map(|delta| delta.patch.clone()));
+        }
+        patches
     }
 }
 
@@ -138,82 +137,9 @@ impl EditorUiDeltaQueue {
 }
 
 #[cfg(test)]
-mod tests {
-    use serde_json::json;
-
-    use super::*;
-
-    fn hover_patch(value: bool) -> UiReflectionNodePatch {
-        UiReflectionNodePatch::new(UiNodePath::new("editor/workbench/scene"))
-            .with_property("transient.hovered", json!(value))
-    }
-
-    #[test]
-    fn continuous_properties_are_latest_wins_inside_one_frame_segment() {
-        let mut queue = EditorUiDeltaQueue::default();
-        let view = ViewInstanceId::new("workbench.root");
-
-        queue.push_patch(view.clone(), hover_patch(true));
-        queue.push_patch(view, hover_patch(false));
-        let batch = queue.drain();
-
-        assert_eq!(batch.node_delta_count(), 1);
-        assert_eq!(batch.barrier_count(), 0);
-        assert_eq!(
-            batch.reflection_patches()[0].properties["transient.hovered"],
-            json!(false)
-        );
-    }
-
-    #[test]
-    fn discrete_barriers_preserve_press_release_order_and_split_coalescing() {
-        let mut queue = EditorUiDeltaQueue::default();
-        let view = ViewInstanceId::new("workbench.root");
-        let path = UiNodePath::new("editor/workbench/scene");
-
-        queue.push_patch(
-            view.clone(),
-            UiReflectionNodePatch::new(path.clone()).with_pressed(true),
-        );
-        queue.push_barrier(
-            EditorUiDeltaBarrierKind::Press,
-            EditorEventSequence::new(10),
-        );
-        queue.push_patch(view, UiReflectionNodePatch::new(path).with_pressed(false));
-        queue.push_barrier(
-            EditorUiDeltaBarrierKind::Release,
-            EditorEventSequence::new(11),
-        );
-        let batch = queue.drain();
-
-        assert_eq!(batch.node_delta_count(), 2);
-        assert_eq!(batch.barrier_count(), 2);
-        assert!(matches!(
-            batch.entries(),
-            [
-                EditorUiDeltaEntry::Nodes(_),
-                EditorUiDeltaEntry::Barrier {
-                    kind: EditorUiDeltaBarrierKind::Press,
-                    sequence: EditorEventSequence(10)
-                },
-                EditorUiDeltaEntry::Nodes(_),
-                EditorUiDeltaEntry::Barrier {
-                    kind: EditorUiDeltaBarrierKind::Release,
-                    sequence: EditorEventSequence(11)
-                }
-            ]
-        ));
-        assert_eq!(
-            batch
-                .reflection_patches()
-                .iter()
-                .map(|patch| patch.pressed)
-                .collect::<Vec<_>>(),
-            vec![Some(true), Some(false)]
-        );
-    }
-}
+#[path = "tests/editor_ui_delta.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "editor_ui_delta/hash_coalescing_tests.rs"]
+#[path = "editor_ui_delta/tests/hash_coalescing_tests.rs"]
 mod hash_coalescing_tests;

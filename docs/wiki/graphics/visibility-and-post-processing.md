@@ -12,7 +12,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
-  - docs/assets-and-rendering/render-framework-architecture.md
+  - docs/rendering/render-framework-architecture.md
 tests:
   - zircon_runtime/src/graphics/tests/visibility
   - zircon_runtime/src/graphics/tests/render_product_post_process

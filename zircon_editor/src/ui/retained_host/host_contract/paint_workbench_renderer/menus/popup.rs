@@ -27,6 +27,7 @@ pub(super) fn menu_popup_palette(palette: HostMaterialPalette) -> MenuPopupPalet
     }
 }
 
+// 根菜单只消费当前打开项的投影状态；可见行、滚动条和后续子菜单在同一弹层几何下绘制。
 pub(in crate::ui::retained_host::host_contract) fn draw_open_menu_popup(
     frame: &mut HostRgbaFrame,
     presentation: &HostWindowPresentationData,
@@ -88,19 +89,5 @@ pub(in crate::ui::retained_host::host_contract) fn draw_open_menu_popup(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
-
-    #[test]
-    fn menu_popup_palette_uses_the_popup_and_border_theme_roles() {
-        let mut palette = PALETTE;
-        palette.popup = [18, 26, 35, 255];
-        palette.border = [67, 89, 101, 255];
-
-        let projected = menu_popup_palette(palette);
-
-        assert_eq!(projected.surface, palette.popup);
-        assert_eq!(projected.border, palette.border);
-    }
-}
+#[path = "tests/popup.rs"]
+mod tests;

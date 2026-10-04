@@ -3,7 +3,7 @@ use std::fs;
 
 use crate::core::plugin::EditorPluginState;
 use crate::core::project::{
-    NewProjectDraft, NewProjectTemplate, ProjectAuthority, RecentProjectValidation,
+    NewProjectDraft, ProjectAuthority, ProjectTemplateId, RecentProjectValidation,
 };
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::EditorManager;

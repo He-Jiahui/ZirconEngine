@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from tools.runtime_ui_taffy_parent_product_pressure import (
+from tools.analysis.performance.runtime.runtime_ui_taffy_parent_product_pressure import (
     SCHEMA,
     SOURCE_GUARDS,
     build_report,
@@ -16,11 +16,23 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 class RuntimeUiTaffyParentProductPressureTests(unittest.TestCase):
-    def test_schema_v2_binds_the_retained_order_index(self):
-        self.assertEqual(SCHEMA, "zircon.runtime.ui_taffy_parent_product_pressure.v2")
+    def test_schema_v5_binds_the_retained_order_and_parent_products(self):
+        self.assertEqual(SCHEMA, "zircon.runtime.ui_taffy_parent_product_pressure.v5")
         self.assertIn(
             "zircon_runtime/src/ui/layout/pass/slot.rs",
             SOURCE_GUARDS,
+        )
+        self.assertIn(
+            "zircon_runtime/src/ui/layout/pass/engine.rs",
+            SOURCE_GUARDS,
+        )
+        self.assertIn(
+            "zircon_runtime/src/ui/layout/taffy_bridge/product_cache.rs",
+            SOURCE_GUARDS,
+        )
+        self.assertIn(
+            "mutation_source_node_ids",
+            SOURCE_GUARDS["zircon_runtime/src/ui/layout/pass/engine.rs"],
         )
 
     def test_warm_parent_visit_reuses_order_without_sorting(self):
@@ -31,11 +43,11 @@ class RuntimeUiTaffyParentProductPressureTests(unittest.TestCase):
             changed_children_per_parent=1,
         )
 
-        current = report["current_scratch_rebuild"]
-        self.assertEqual(current["ordered_child_index_lookup_count"], 1_000)
-        self.assertEqual(current["ordered_child_sort_count"], 0)
-        self.assertEqual(current["ordered_child_sort_item_count"], 0)
-        self.assertEqual(current["taffy_node_create_count"], 1_025_000)
+        baseline = report["pre_retained_scratch_rebuild"]
+        self.assertEqual(baseline["ordered_child_index_lookup_count"], 1_000)
+        self.assertEqual(baseline["ordered_child_sort_count"], 0)
+        self.assertEqual(baseline["ordered_child_sort_item_count"], 0)
+        self.assertEqual(baseline["taffy_node_create_count"], 1_025_000)
 
     def test_wide_parent_separates_topology_solve_and_output_work(self):
         report = parent_work(
@@ -46,23 +58,23 @@ class RuntimeUiTaffyParentProductPressureTests(unittest.TestCase):
         )
 
         self.assertEqual(
-            report["current_scratch_rebuild"]["taffy_node_create_count"],
+            report["pre_retained_scratch_rebuild"]["taffy_node_create_count"],
             1_025_000,
         )
         self.assertEqual(
-            report["retained_topology_conservative"]["taffy_node_create_count"],
+            report["m1_retained_topology"]["taffy_node_create_count"],
             0,
         )
         self.assertEqual(
-            report["retained_topology_conservative"]["taffy_compute_count"],
+            report["m1_retained_topology"]["taffy_compute_count"],
             1_000,
         )
         self.assertEqual(
-            report["retained_topology_conservative"]["child_layout_read_count"],
+            report["m1_retained_topology"]["child_layout_read_count"],
             1_024_000,
         )
         self.assertEqual(
-            report["retained_delta_patch"]["child_contract_visit_count"], 1_000
+            report["m2_retained_delta_patch"]["child_contract_visit_count"], 1_000
         )
 
     def test_nested_layout_keeps_ancestor_solves_in_the_model(self):
@@ -71,17 +83,61 @@ class RuntimeUiTaffyParentProductPressureTests(unittest.TestCase):
         ]
 
         self.assertEqual(
-            report["current_scratch_rebuild"]["topology_build_count"], 8_000
+            report["pre_retained_scratch_rebuild"]["topology_build_count"], 8_000
         )
         self.assertEqual(
-            report["current_scratch_rebuild"]["taffy_node_create_count"], 72_000
+            report["pre_retained_scratch_rebuild"]["taffy_node_create_count"], 72_000
         )
         self.assertEqual(
-            report["retained_topology_conservative"]["taffy_compute_count"], 8_000
+            report["m1_retained_topology"]["taffy_compute_count"], 8_000
         )
         self.assertEqual(
-            report["comparison"]["conservative_compute_count_reduction"], 0
+            report["comparison"]["m3_avoided_compute_count"], 0
         )
+
+    def test_window_resize_reuses_child_contracts_but_not_solve_output(self):
+        report = pressure_suite(1_000)["scenarios"][
+            "window_resize_all_visible_parents"
+        ]
+
+        self.assertEqual(
+            report["m1_retained_topology"]["child_contract_visit_count"],
+            192_000,
+        )
+        self.assertEqual(
+            report["m2_retained_delta_patch"]["child_contract_visit_count"],
+            0,
+        )
+        self.assertEqual(
+            report["current_retained_solve_output_reuse"]["taffy_compute_count"],
+            12_000,
+        )
+        self.assertEqual(
+            report["current_retained_solve_output_reuse"]["child_layout_read_count"],
+            192_000,
+        )
+
+    def test_unchanged_child_contract_reuses_solve_and_publishes_exact_receipt(self):
+        report = pressure_suite(1_000)["scenarios"][
+            "wide_parent_unchanged_child_contract"
+        ]["current_retained_solve_output_reuse"]
+
+        self.assertEqual(report["child_contract_visit_count"], 1_000)
+        self.assertEqual(report["child_style_update_count"], 0)
+        self.assertEqual(report["taffy_compute_count"], 0)
+        self.assertEqual(report["taffy_compute_reuse_count"], 1_000)
+        self.assertEqual(report["child_layout_read_count"], 0)
+        self.assertEqual(report["published_child_frame_count"], 1_000)
+
+    def test_translation_reuses_solve_but_publishes_every_child(self):
+        report = pressure_suite(1_000)["scenarios"]["wide_parent_translation"][
+            "current_retained_solve_output_reuse"
+        ]
+
+        self.assertEqual(report["taffy_compute_count"], 0)
+        self.assertEqual(report["taffy_compute_reuse_count"], 1_000)
+        self.assertEqual(report["child_layout_read_count"], 0)
+        self.assertEqual(report["published_child_frame_count"], 1_024_000)
 
     def test_independent_forest_does_not_model_unrelated_parent_work(self):
         report = pressure_suite(100)["scenarios"][
@@ -91,7 +147,7 @@ class RuntimeUiTaffyParentProductPressureTests(unittest.TestCase):
         self.assertEqual(report["unrelated_parent_count"], 10_000)
         self.assertEqual(report["unrelated_parent_visit_count"], 0)
         self.assertEqual(
-            report["current_scratch_rebuild"]["parent_product_visit_count"], 100
+            report["pre_retained_scratch_rebuild"]["parent_product_visit_count"], 100
         )
 
     def test_rejects_invalid_pressure_inputs(self):
@@ -126,19 +182,19 @@ class RuntimeUiTaffyParentProductPressureTests(unittest.TestCase):
         }
         self.assertTrue(validate_source_texts(valid_sources)["ready"])
 
-        missing_clear = dict(valid_sources)
-        bridge_path = "zircon_runtime/src/ui/layout/taffy_bridge/compute.rs"
-        missing_clear[bridge_path] = missing_clear[bridge_path].replace(
-            "self.taffy.clear();", ""
+        missing_retained_insert = dict(valid_sources)
+        product_path = "zircon_runtime/src/ui/layout/taffy_bridge/product_cache.rs"
+        missing_retained_insert[product_path] = missing_retained_insert[product_path].replace(
+            "self.products.insert(parent_id, product)", ""
         )
-        result = validate_source_texts(missing_clear)
+        result = validate_source_texts(missing_retained_insert)
 
         self.assertFalse(result["ready"])
         self.assertIn(
             {
                 "code": "source_contract_changed",
-                "relative_path": bridge_path,
-                "missing_token": "self.taffy.clear();",
+                "relative_path": product_path,
+                "missing_token": "self.products.insert(parent_id, product)",
             },
             result["blockers"],
         )

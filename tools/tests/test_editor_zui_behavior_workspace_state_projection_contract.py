@@ -1,3 +1,4 @@
+# 核对行为编辑选择与图动作共享运行时投影，验证反馈读取当前详情。
 import tomllib
 import unittest
 from pathlib import Path

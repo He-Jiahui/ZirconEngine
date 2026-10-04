@@ -136,8 +136,12 @@ pub(super) fn line_height(
         .unwrap_or(default)
 }
 
-fn parse_css_color(value: &str) -> Option<UiRgbaColor> {
-    let encoded = value.trim().strip_prefix('#')?;
+pub(super) fn parse_css_color(value: &str) -> Option<UiRgbaColor> {
+    let value = value.trim();
+    if value.eq_ignore_ascii_case("transparent") {
+        return Some(UiRgbaColor::from_u8(0, 0, 0, 0));
+    }
+    let encoded = value.strip_prefix('#')?;
     if !encoded.as_bytes().iter().all(u8::is_ascii_hexdigit) {
         return None;
     }
@@ -158,3 +162,7 @@ fn parse_css_color(value: &str) -> Option<UiRgbaColor> {
     };
     Some(UiRgbaColor::from_u8(red, green, blue, alpha))
 }
+
+#[cfg(test)]
+#[path = "tests/metadata.rs"]
+mod tests;

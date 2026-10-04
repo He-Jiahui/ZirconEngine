@@ -6,8 +6,6 @@ related_code:
   - zircon_runtime/src/scene/dynamic_scene/document
   - zircon_runtime/src/core/framework/platform/preferences
   - zircon_runtime/src/platform/preferences
-  - zircon_runtime/src/core/resource/io/atomic_file
-  - zircon_runtime/src/core/resource/io/transaction
   - zircon_runtime_interface/src/serialization
   - zircon_runtime/src/plugin/native_plugin_loader/abi_declarations.rs
   - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls.rs

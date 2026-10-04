@@ -56,6 +56,25 @@ def load_document(path: Path) -> dict:
 
 
 class EditorZuiWorkbenchToolbarRadiusContractTests(unittest.TestCase):
+    def test_toolbar_is_a_single_bottom_divided_band_not_a_framed_card(self):
+        toolbar = load_document(TOOLBAR)
+        props = toolbar["nodes"]["top_toolbar"]["props"]
+        self.assertEqual(0.0, props.get("border_width"))
+        self.assertEqual("bottom", props["separator_edge"])
+        self.assertEqual("$editor.separator.soft", props["separator_color"])
+        self.assertEqual(
+            "$editor.control.border_width", props["separator_thickness"]
+        )
+
+        theme = load_document(THEME)
+        rules = {
+            rule["selector"]: rule["set"]["self"]
+            for stylesheet in theme["stylesheets"]
+            for rule in stylesheet.get("rules", [])
+        }
+        self.assertEqual(0.0, rules[".workbench-topbar"]["border_width"])
+        self.assertEqual(0.0, rules[".workbench-topbar"]["radius"])
+
     def test_toolbar_actions_use_the_larger_radius_tier(self):
         toolbar = load_document(TOOLBAR)
         nodes = toolbar["nodes"]
@@ -183,7 +202,7 @@ class EditorZuiWorkbenchToolbarRadiusContractTests(unittest.TestCase):
 
         regular_tab = load_document(WORKBENCH_TAB)["nodes"]["root"]
         self.assertEqual(
-            "$editor.control.radius.small",
+            "$editor.control.radius.panel",
             regular_tab["props"]["corner_radius"],
         )
 

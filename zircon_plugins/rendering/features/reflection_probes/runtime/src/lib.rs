@@ -1,3 +1,5 @@
+//! 反射探针的运行时公共契约；特性提供者将此处元数据提交到目录与图编译。
+//! 反射探针运行时公共面；默认启用只提供提取声明，捕获由显式框架请求和资源消费接口完成。
 use zircon_runtime::graphics::RenderFeatureDescriptor;
 
 mod capability;
@@ -25,6 +27,8 @@ pub use plugin::{
 
 pub const FEATURE_ID: &str = "rendering.reflection_probes";
 pub const FEATURE_NAME: &str = "reflection_probes";
+/// 声明探针需要的提取域，避免默认启用时自动发起捕获；捕获由框架句柄请求独立驱动。
+/// 仅登记探针相关提取域；捕获不会随普通帧或特性注册自动发生。
 pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
     RenderFeatureDescriptor::new(
         FEATURE_NAME,
@@ -38,21 +42,7 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
     )
 }
 
+// 此测试边界覆盖声明与注册约束；GPU 效果证据需由对应产品测试另行提供。
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn reflection_probes_feature_has_no_unrequested_capture_or_composite_pass() {
-        let report = plugin_feature_registration();
-
-        assert!(report.is_success(), "{:?}", report.diagnostics);
-        assert!(report.manifest.enabled_by_default);
-        assert!(
-            report.extensions.render_features()[0]
-                .stage_passes
-                .is_empty()
-        );
-        assert!(report.extensions.render_pass_executors().is_empty());
-    }
-}
+#[path = "tests/lib.rs"]
+mod tests;

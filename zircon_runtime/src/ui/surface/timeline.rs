@@ -5,10 +5,12 @@ use zircon_runtime_interface::ui::surface::{
     UiDebugTimelineSnapshot, UiSurfaceDebugOptions, UiSurfaceDebugSnapshot,
 };
 
+/// 调试快照的有界历史，供反射器选择过去的帧；不参与运行时帧调度或 surface 恢复。
+/// 捕获新帧会选中最新记录，容量满后旧句柄失效，外部应处理选择失败。
 #[derive(Clone, Debug)]
 pub struct UiDebugTimelineStore {
     capacity: usize,
-    next_handle: u64,
+    next_handle: Option<u64>,
     dropped_frame_count: u64,
     selected_frame: Option<UiDebugTimelineFrameHandle>,
     frames: VecDeque<UiDebugTimelineEntry>,
@@ -24,7 +26,7 @@ impl UiDebugTimelineStore {
     pub fn new(capacity: usize) -> Self {
         Self {
             capacity: capacity.max(1),
-            next_handle: 1,
+            next_handle: Some(1),
             dropped_frame_count: 0,
             selected_frame: None,
             frames: VecDeque::new(),
@@ -35,13 +37,21 @@ impl UiDebugTimelineStore {
         self.capacity
     }
 
+    /// Captures a snapshot with the next unique timeline handle.
+    ///
+    /// # Panics
+    ///
+    /// Panics after every nonzero `u64` frame handle has been issued.
     pub fn capture_snapshot(
         &mut self,
         snapshot: UiSurfaceDebugSnapshot,
         options: UiSurfaceDebugOptions,
     ) -> UiDebugTimelineFrameHandle {
-        let handle = UiDebugTimelineFrameHandle(self.next_handle);
-        self.next_handle = self.next_handle.saturating_add(1).max(1);
+        let handle_value = self
+            .next_handle
+            .expect("UI debug timeline frame handle space exhausted");
+        let handle = UiDebugTimelineFrameHandle(handle_value);
+        self.next_handle = handle_value.checked_add(1);
         let summary = frame_summary(handle, &snapshot, options);
 
         self.frames
@@ -102,6 +112,7 @@ impl UiDebugTimelineStore {
         }
     }
 
+    // 捕获按顺序分发句柄，淘汰只发生在队首，因此保留范围可用两端判断，无需扫描快照。
     fn contains_handle(&self, handle: UiDebugTimelineFrameHandle) -> bool {
         let Some((first, last)) = self.frames.front().zip(self.frames.back()) else {
             return false;
@@ -138,5 +149,5 @@ fn frame_summary(
 }
 
 #[cfg(test)]
-#[path = "timeline/handle_range_tests.rs"]
+#[path = "timeline/tests/handle_range_tests.rs"]
 mod handle_range_tests;

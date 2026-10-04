@@ -103,6 +103,7 @@ app_features = [
     "physics-contracts",
     "sound-contracts",
     "animation",
+    "first-party-runtime-plugins",
     "diagnostic-log",
     "dynamic-api",
     "graphics",
@@ -173,6 +174,7 @@ app_features = [
     "physics-contracts",
     "sound-contracts",
     "animation",
+    "first-party-runtime-plugins",
     "diagnostic-log",
     "dynamic-api",
     "graphics",
@@ -246,6 +248,7 @@ runtime_features = [
 ]
 app_features = [
     "zircon_runtime/target-editor-host",
+    "first-party-runtime-plugins",
     "first-party-advanced-render-runtime-plugins",
     "first-party-navigation-runtime-plugin",
     "first-party-navigation-editor-plugin",
@@ -315,6 +318,7 @@ runtime_features = [
 ]
 app_features = [
     "zircon_runtime/target-editor-host",
+    "first-party-runtime-plugins",
     "first-party-advanced-render-runtime-plugins",
     "first-party-navigation-runtime-plugin",
     "first-party-navigation-editor-plugin",
@@ -375,7 +379,13 @@ allow_externalized_required_plugins = false
 id = "server"
 rust_variant = "Server"
 cargo_feature = "target-server"
-runtime_features = ["core-min", "diagnostic-log", "platform-headless", "dep:naga"]
+runtime_features = [
+    "core-min",
+    "diagnostic-log",
+    "platform-headless",
+    "dep:naga",
+    "zr_dev_deps_dylib?/naga",
+]
 app_features = [
     "zircon_runtime/target-server",
     "diagnostic-log",

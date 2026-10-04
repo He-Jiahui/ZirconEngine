@@ -6,6 +6,7 @@ mod derive;
 mod fields;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 /// 为结构体或枚举生成反射元数据，以及按字段名和当期槽位访问的实现。

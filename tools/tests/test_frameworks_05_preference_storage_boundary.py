@@ -101,7 +101,11 @@ class Frameworks05PreferenceStorageBoundaryTests(unittest.TestCase):
         self.assertIn("QuotaExceeded", atomic)
         self.assertNotIn("FilesystemQuotaExceeded", atomic)
         self.assertIn("ReadOnlyFilesystem", atomic)
-        self.assertIn("sync_committed_value", atomic)
+        # The backend now gets file and namespace durability from the shared staged
+        # writer; the old backend-local sync helper was removed during that cutover.
+        self.assertIn("stage_atomic_write", atomic)
+        self.assertIn("staged.commit()", atomic)
+        self.assertIn("sync_parent_directory", atomic)
         self.assertIn("from_source", error)
         self.assertIn("fn source(&self)", error)
 

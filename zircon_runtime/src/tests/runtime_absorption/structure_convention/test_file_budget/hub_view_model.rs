@@ -1,3 +1,4 @@
+//! 保护项目中心视图的子模块职责、检查入口与源码规模；这些约束读取检出文本，具体业务结果由被列出的行为测试另行验证。
 use super::{assert_contains_all, read_repo};
 
 const SLICE: &str = "Runtime 15 M3 support Hub view-model quick-actions/tests child-owner split";
@@ -6,7 +7,7 @@ const DATE: &str = "2026-06-27";
 const GUARD: &str = "runtime_15_support_hub_view_model_quick_actions_tests_are_child_owners";
 const VIEW_MODEL: &str = "zircon_hub/src/tauri_app/view_model.rs";
 const VIEW_MODEL_QUICK_ACTIONS: &str = "zircon_hub/src/tauri_app/view_model/quick_actions.rs";
-const VIEW_MODEL_TESTS: &str = "zircon_hub/src/tauri_app/view_model/tests.rs";
+const VIEW_MODEL_TESTS: &str = "zircon_hub/src/tauri_app/view_model/tests/cases.rs";
 const FILE_BUDGET: usize = 800;
 
 #[test]

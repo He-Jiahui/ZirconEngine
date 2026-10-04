@@ -1,3 +1,5 @@
+//! 节点目录汇集内置描述符和插件实现；编译器冻结槽位快照，执行器按槽位取得实现。
+
 use std::fmt;
 use std::sync::Arc;
 use zircon_runtime::core::framework::ai::{
@@ -11,7 +13,7 @@ use zircon_runtime::plugin::{
 use super::nodes::standard_node_descriptors;
 
 #[cfg(test)]
-#[path = "catalog/borrowed_lookup_tests.rs"]
+#[path = "catalog/tests/borrowed_lookup_tests.rs"]
 mod borrowed_lookup_tests;
 
 pub(crate) const BOOTSTRAP_BEHAVIOR_NODE_OWNER: PluginModuleId = PluginModuleId::from_raw(u32::MAX);
@@ -93,6 +95,7 @@ impl<'a> BehaviorNodeTickContext<'a> {
     }
 }
 
+/// 外部节点的逐帧接口；活跃分支被撤销时，执行器调用 `on_abort` 清理其副作用。
 pub trait BehaviorNodeRuntime: fmt::Debug + Send {
     fn tick(&mut self, context: &BehaviorNodeTickContext<'_>) -> AiDecisionStatus;
 
@@ -307,6 +310,7 @@ impl BehaviorNodeCatalog {
     }
 }
 
+/// 插件通过运行时接口注册节点；撤销所有者时由管理器清理其依赖的树和实例。
 pub trait BehaviorNodeRegistry: Send + Sync {
     fn add_node(
         &self,
@@ -368,6 +372,7 @@ impl FrozenBehaviorNodeCatalog {
         self.descriptors.values()
     }
 
+    /// 以借用的实现 ID 查找冻结槽位，供编译器和调用方复用同一身份。
     pub fn resolve(&self, id: &str) -> Option<BehaviorNodeSlot> {
         self.descriptors.resolve_borrowed(id).map(BehaviorNodeSlot)
     }

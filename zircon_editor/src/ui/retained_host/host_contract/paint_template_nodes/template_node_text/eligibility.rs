@@ -18,7 +18,44 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn should_
 ) -> bool {
     property_row_text_painted
         || table_row_text_painted
+        || is_native_painter_owner(node)
         || (is_icon_only_node(node) && !fallback_text_role_allows_empty_label(node))
+}
+
+fn is_native_painter_owner(node: &TemplatePaneNodeData) -> bool {
+    matches!(
+        node.role.as_str(),
+        "AgentChat"
+            | "AgentPlan"
+            | "AgentApproval"
+            | "AIUsage"
+            | "ChatComposer"
+            | "DataGrid"
+            | "TreeView"
+            | "CommandPalette"
+            | "ConfirmDialog"
+            | "Dialog"
+            | "DragOverlay"
+            | "NotificationCenter"
+            | "ToolCalls"
+            | "WorkbenchToast"
+    ) || matches!(
+        node.component_role.as_str(),
+        "mui-x-agent-chat"
+            | "mui-x-agent-plan"
+            | "mui-x-agent-approval"
+            | "mui-x-ai-usage"
+            | "mui-x-chat-composer"
+            | "mui-x-data-grid"
+            | "mui-x-tree-view"
+            | "mui-x-command-palette"
+            | "mui-x-confirm-dialog"
+            | "mui-x-dialog"
+            | "mui-x-drag-overlay"
+            | "mui-x-notification-center"
+            | "mui-x-tool-calls"
+            | "mui-x-workbench-toast"
+    )
 }
 
 fn fallback_text_role_allows_empty_label(node: &TemplatePaneNodeData) -> bool {
@@ -26,18 +63,5 @@ fn fallback_text_role_allows_empty_label(node: &TemplatePaneNodeData) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn icon_only_node_skips_before_label_materialization() {
-        let node = TemplatePaneNodeData {
-            role: "IconButton".into(),
-            text: "unused fallback text".into(),
-            ..TemplatePaneNodeData::default()
-        };
-
-        assert!(should_skip_template_text_before_label(&node, false, false));
-        assert!(should_skip_template_text(&node, &node.text, false, false));
-    }
-}
+#[path = "tests/eligibility.rs"]
+mod tests;

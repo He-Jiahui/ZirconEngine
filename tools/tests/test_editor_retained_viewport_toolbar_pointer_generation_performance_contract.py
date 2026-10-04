@@ -37,6 +37,30 @@ class ViewportToolbarPointerGenerationPerformanceContract(unittest.TestCase):
         self.assertIn("surface_frame.hit_grid.entries", compact)
         self.assertNotIn("surface_frame.arranged_tree.nodes", compact)
 
+    def test_stable_frame_projection_reserves_the_retained_control_bound(self):
+        sync = source(
+            "zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/sync_surface_frame.rs"
+        )
+
+        self.assertIn("let existing_capacity = existing.len();", sync)
+        self.assertEqual(sync.count("Vec::with_capacity(existing_capacity)"), 1)
+        self.assertIn("let mut changes = Vec::new();", sync)
+        self.assertNotIn(
+            "Vec::with_capacity(surface_frame.hit_grid.entries.len())",
+            sync,
+        )
+
+        stable_control_count = 64
+        legacy_control_growth_events = 0
+        modeled_capacity = 0
+        while modeled_capacity < stable_control_count:
+            modeled_capacity = max(1, modeled_capacity * 2)
+            legacy_control_growth_events += 1
+
+        optimized_control_growth_events = 0
+        self.assertEqual(legacy_control_growth_events, 7)
+        self.assertEqual(optimized_control_growth_events, 0)
+
     def test_control_validation_uses_one_borrowed_descriptor(self):
         route = source(
             "zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/route_for_control.rs"

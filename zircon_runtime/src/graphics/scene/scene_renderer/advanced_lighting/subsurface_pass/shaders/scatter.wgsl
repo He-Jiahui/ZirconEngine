@@ -1,3 +1,5 @@
+// 仅处理 setup 输出的活动 tile，并以 profile、法线和世界空间厚度抑制不一致表面之间的串色。
+// 非次表面材质像素由 recombine 着色器丢弃，保留既有场景色。
 const SSS_SHADING_MODEL_ID: u32 = 16u;
 const BURLEY_SAMPLE_COUNT: u32 = 64u;
 const GOLDEN_ANGLE: f32 = 2.39996323;

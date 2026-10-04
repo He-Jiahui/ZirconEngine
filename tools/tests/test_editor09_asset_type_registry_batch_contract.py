@@ -1,3 +1,4 @@
+# 核对资源类型注册的单项和目录贡献共用批量准入核心并保留材料化回归入口。
 from __future__ import annotations
 
 import pathlib

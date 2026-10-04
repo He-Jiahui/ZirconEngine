@@ -9,7 +9,7 @@ LOADER_ROOT = REPO_ROOT / "zircon_runtime/src/plugin/native_plugin_loader"
 def _section(source: str, start: str, end: str) -> str:
     return source.split(start, 1)[1].split(end, 1)[0]
 
-
+# 沿原生插件发现门面读取请求、快照和根解析路径，确认预备根入队不触发文件系统查询或阻塞等待。
 class Runtime11NativePluginDiscoveryContractTests(unittest.TestCase):
     def test_canonical_namespace_exposes_prepared_root_ticket_and_snapshot(self) -> None:
         source = (REPO_ROOT / "zircon_runtime/src/plugin/native/discovery.rs").read_text(

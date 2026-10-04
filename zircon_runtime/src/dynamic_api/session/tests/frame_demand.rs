@@ -11,7 +11,7 @@ use super::super::ffi;
 use super::super::registry::{
     destroy_session_slot, insert_session, with_session, with_session_activity, RuntimeFrameDemand,
 };
-use super::super::state::animation_frame_demand;
+use super::super::state::{animation_frame_demand, merge_ui_timer_frame_demand};
 
 #[test]
 fn animation_runtime_state_maps_to_idle_or_immediate_frame_demand() {
@@ -27,6 +27,35 @@ fn animation_runtime_state_maps_to_idle_or_immediate_frame_demand() {
 
     level.record_animation_requires_continuous_frame(false);
     assert_eq!(animation_frame_demand(&level), RuntimeFrameDemand::Idle);
+}
+
+#[test]
+fn visible_ui_timer_requests_its_deadline_without_forcing_continuous_frames() {
+    assert_eq!(
+        merge_ui_timer_frame_demand(
+            RuntimeFrameDemand::Idle,
+            Some(std::time::Duration::from_millis(35)),
+        ),
+        RuntimeFrameDemand::After(std::time::Duration::from_millis(35))
+    );
+    assert_eq!(
+        merge_ui_timer_frame_demand(
+            RuntimeFrameDemand::After(std::time::Duration::from_millis(60)),
+            Some(std::time::Duration::from_millis(35)),
+        ),
+        RuntimeFrameDemand::After(std::time::Duration::from_millis(35))
+    );
+    assert_eq!(
+        merge_ui_timer_frame_demand(
+            RuntimeFrameDemand::Immediate,
+            Some(std::time::Duration::from_millis(35)),
+        ),
+        RuntimeFrameDemand::Immediate
+    );
+    assert_eq!(
+        merge_ui_timer_frame_demand(RuntimeFrameDemand::Idle, Some(std::time::Duration::ZERO)),
+        RuntimeFrameDemand::Immediate
+    );
 }
 
 #[test]

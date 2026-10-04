@@ -1,12 +1,13 @@
+# 核对宿主编译计划及输出证据的实现归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-COMPILE_HOST_STAGE = REPO_ROOT / "tools/zircon_export/compile_host.py"
-COMPILE_HOST_PLAN = REPO_ROOT / "tools/zircon_export/compile_host_plan.py"
+COMPILE_HOST_STAGE = REPO_ROOT / "tools/export/compile_host.py"
+COMPILE_HOST_PLAN = REPO_ROOT / "tools/export/compile_host_plan.py"
 COMPILE_HOST_PLAN_COMMAND_SEMANTICS = (
-    REPO_ROOT / "tools/zircon_export/compile_host_plan_command_semantics.py"
+    REPO_ROOT / "tools/export/compile_host_plan_command_semantics.py"
 )
 
 

@@ -20,10 +20,6 @@ related_code:
   - zircon_plugins/sound/runtime/src/dynamic_event_abi/callback.rs
   - zircon_plugins/sound/runtime/src/service_types/dynamic_event_executors/registration.rs
   - zircon_plugins/sound/runtime/src/service_types/dynamic_event_executors/unregistration.rs
-  - zircon_runtime/src/core/framework/state/hook_index.rs
-  - zircon_runtime/src/core/resource/lease.rs
-  - zircon_runtime/src/core/resource/manager/lease_ops.rs
-  - zircon_runtime/src/core/resource/manager/resource_manager.rs
   - zircon_runtime/src/core/runtime/descriptors/service_factory.rs
   - zircon_runtime/src/core/runtime/events/subscriber.rs
   - zircon_runtime/src/core/runtime/events/topic.rs
@@ -40,7 +36,6 @@ related_code:
   - zircon_runtime/src/scene/world/observers.rs
   - zircon_runtime/src/script/vm/gc_bridge/vm_object_ref.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
-  - zircon_runtime/src/ui/binding/router.rs
   - zircon_runtime/src/ui/dispatch/navigation/dispatcher.rs
   - zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs
   - zircon_runtime/src/ui/event_ui/manager/registration.rs

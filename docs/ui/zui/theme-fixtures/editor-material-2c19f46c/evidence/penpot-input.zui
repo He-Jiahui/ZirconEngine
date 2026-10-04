@@ -1,0 +1,628 @@
+penpot_dependency_sources = []
+penpot_original_source = "[asset]\nkind = \"style\"\nid = \"ui.theme.editor_material\"\nversion = 1\ndisplay_name = \"Editor Material\"\n\n[imports]\nwidgets = []\nstyles = []\n\n[tokens]\naccent = \"#35c7d0\"\npanel_bg = \"#202830\"\npanel_bg_soft = \"#2f4650\"\nfield_bg = \"#12181e\"\nborder = \"#4b626d\"\ntext = \"#e6f1f4\"\nmuted = \"#8fa3ac\"\nwarning = \"#f2b84b\"\nerror = \"#ef7066\"\nmaterial_surface = \"#202830\"\nmaterial_surface_inset = \"#12181e\"\nmaterial_surface_hover = \"#2f4650\"\nmaterial_surface_pressed = \"#103c4a\"\nmaterial_surface_selected = \"#0f6574\"\nmaterial_surface_disabled = \"#191d22\"\nmaterial_accent = \"#35c7d0\"\nmaterial_accent_soft = \"#0f6574\"\nmaterial_border = \"#4b626d\"\nmaterial_text = \"#e6f1f4\"\nmaterial_text_muted = \"#8fa3ac\"\nmaterial_text_disabled = \"#58656c\"\nmaterial_warning = \"#f2b84b\"\nmaterial_error = \"#ef7066\"\nmaterial_success = \"#5cbe7a\"\nmaterial_info = \"#63b3ff\"\nmaterial_warning_container = \"#463112\"\nmaterial_error_container = \"#4c2427\"\nmaterial_success_container = \"#1d472f\"\nmaterial_info_container = \"#18395b\"\nmaterial_popup = \"#0e1217\"\nmaterial_track = \"#2a343c\"\nmaterial_focus_ring = \"#80eaff\"\nmaterial_primary = \"#35c7d0\"\nmaterial_on_primary = \"#081416\"\nmaterial_surface_container = \"#202830\"\nmaterial_surface_container_low = \"#161e25\"\nmaterial_surface_container_high = \"#2f4650\"\nmaterial_outline = \"#4b626d\"\nmaterial_outline_variant = \"#334852\"\nmaterial_on_error = \"#fff0ee\"\nmaterial_on_success = \"#07140c\"\nmaterial_on_info = \"#07101a\"\nmaterial_shadow = \"#00000066\"\nmaterial_shadow_soft = \"#00000033\"\nmaterial_scrim = \"#0b1020cc\"\nmaterial_inverse_surface = \"#d2dceb\"\nmaterial_inverse_on_surface = \"#171a20\"\nmaterial_color_primary = \"$material_primary\"\nmaterial_color_on_primary = \"$material_on_primary\"\nmaterial_color_surface = \"$material_surface\"\nmaterial_color_surface_container = \"$material_surface_container\"\nmaterial_color_surface_container_low = \"$material_surface_container_low\"\nmaterial_color_surface_container_high = \"$material_surface_container_high\"\nmaterial_color_on_surface = \"$material_text\"\nmaterial_color_on_surface_variant = \"$material_text_muted\"\nmaterial_color_outline = \"$material_outline\"\nmaterial_color_outline_variant = \"$material_outline_variant\"\nmaterial_color_error = \"$material_error\"\nmaterial_color_on_error = \"$material_on_error\"\nmaterial_color_success = \"$material_success\"\nmaterial_color_on_success = \"$material_on_success\"\nmaterial_color_info = \"$material_info\"\nmaterial_color_on_info = \"$material_on_info\"\nmaterial_color_shadow = \"$material_shadow\"\nmaterial_color_scrim = \"$material_scrim\"\nmaterial_state_layer_opacity_hover = 0.12\nmaterial_state_layer_opacity_focus = 0.18\nmaterial_state_layer_opacity_pressed = 0.16\nmaterial_state_layer_opacity_disabled = 0.38\nmaterial_state_layer_opacity_dragged = 0.20\nmaterial_state_layer_opacity_press = \"$material_state_layer_opacity_pressed\"\nmaterial_state_layer_opacity_drag = \"$material_state_layer_opacity_dragged\"\nmaterial_disabled_opacity = 0.38\nmaterial_focus_ring_width = 2.0\nmaterial_focus_ring_offset = 1.0\nmaterial_elevation_level0 = 0.0\nmaterial_elevation_level1 = 1.0\nmaterial_elevation_level2 = 3.0\nmaterial_radius_none = 0.0\nmaterial_radius_control = 10.0\nmaterial_radius_surface = 12.0\nmaterial_radius_small = 8.0\nmaterial_radius_medium = 12.0\nmaterial_radius_large = 18.0\nmaterial_radius_pill = 999.0\nmaterial_border_width = 1.0\nmaterial_border_width_none = 0.0\nmaterial_density_compact_height = 32.0\nmaterial_density_default_height = 40.0\nmaterial_density_prominent_height = 56.0\nmaterial_density_compact_control_height = \"$material_density_compact_height\"\nmaterial_density_default_control_height = \"$material_density_default_height\"\nmaterial_density_field_control_height = \"$material_density_prominent_height\"\nmaterial_density_list_item_height = \"$material_density_default_height\"\nmaterial_spacing_button_content_x = 12.0\nmaterial_spacing_button_content_y = 6.0\nmaterial_spacing_button_gap = 6.0\nmaterial_spacing_field_content_x = 10.0\nmaterial_spacing_field_content_y = 4.0\nmaterial_spacing_list_item_content_x = 10.0\nmaterial_spacing_list_item_gap = 6.0\nmaterial_icon_size_button = 16.0\nmaterial_icon_size_standard = 18.0\nmaterial_font_size_body = 12.0\nmaterial_font_size_meta = 11.0\nmaterial_font_size_title = 15.0\n\n[[stylesheets]]\nid = \"editor_material\"\n\n[[stylesheets.rules]]\nselector = \".showcase-shell\"\nset = { self = { background = { color = \"$field_bg\" } } }\n\n[[stylesheets.rules]]\nselector = \".showcase-panel\"\nset = { self = { background = { color = \"$panel_bg\" }, border = { color = \"$border\", width = \"$material_border_width\", radius = \"$material_radius_surface\" } } }\n\n[[stylesheets.rules]]\nselector = \".showcase-field\"\nset = { self = { background = { color = \"$panel_bg_soft\" }, border = { color = \"$border\", width = \"$material_border_width\", radius = \"$material_radius_small\" } } }\n\n[[stylesheets.rules]]\nselector = \".showcase-title\"\nset = { self = { foreground = { color = \"$text\" }, font = { size = \"$material_font_size_title\" } } }\n\n[[stylesheets.rules]]\nselector = \".showcase-muted\"\nset = { self = { foreground = { color = \"$muted\" }, font = { size = \"$material_font_size_meta\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-state-layer\"\nset = { self = { background = { color = \"$material_surface_inset\" }, border = { color = \"$material_border\", width = \"$material_border_width\", radius = \"$material_radius_control\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-control\"\nset = { self = { background = { color = \"$material_surface\" }, foreground = { color = \"$material_text\" }, border = { color = \"$material_border\", width = \"$material_border_width\", radius = \"$material_radius_control\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-button\"\nset = { self = { background = { color = \"$material_surface_hover\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-button-primary\"\nset = { self = { background = { color = \"$material_color_primary\" }, foreground = { color = \"$material_color_on_primary\" }, border = { color = \"$material_focus_ring\", width = \"$material_focus_ring_width\", radius = \"$material_radius_control\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-button-base\"\nset = { self = { background = { color = \"$material_surface\" }, foreground = { color = \"$material_text\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-icon-button\"\nset = { self = { background = { color = \"$material_surface\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-toggle-button\"\nset = { self = { background = { color = \"$material_surface_inset\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-checkbox-row\"\nset = { self = { background = { color = \"$material_surface_inset\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-outlined-field\"\nset = { self = { background = { color = \"$material_surface_inset\" }, foreground = { color = \"$material_text\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-slider-field\"\nset = { self = { background = { color = \"$material_surface_inset\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-ripple\"\nset = { self = { background = { color = \"$material_surface_hover\" }, border = { color = \"$material_surface_hover\", width = \"$material_border_width_none\", radius = \"$material_radius_control\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-list-item\"\nset = { self = { background = { color = \"$material_surface_inset\" }, foreground = { color = \"$material_text\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-table-row\"\nset = { self = { background = { color = \"$material_surface_inset\" }, foreground = { color = \"$material_text\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-text-button\"\nset = { self = { background = { color = \"$material_surface\" }, foreground = { color = \"$material_accent\" }, border = { color = \"$material_surface\", width = \"$material_border_width_none\", radius = \"$material_radius_control\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-check-box\"\nset = { self = { background = { color = \"$material_surface_inset\" }, foreground = { color = \"$material_text\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-combo-box\"\nset = { self = { background = { color = \"$material_surface_inset\" }, foreground = { color = \"$material_text\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-popup-frame\"\nset = { self = { background = { color = \"$material_popup\" }, foreground = { color = \"$material_text\" }, border = { color = \"$material_border\", width = \"$material_border_width\", radius = \"$material_radius_control\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-date-picker-popup\"\nset = { self = { background = { color = \"$material_popup\" }, foreground = { color = \"$material_text\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-time-picker-popup\"\nset = { self = { background = { color = \"$material_popup\" }, foreground = { color = \"$material_text\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-group-box\"\nset = { self = { background = { color = \"$material_surface\" }, foreground = { color = \"$material_text\" }, border = { color = \"$material_border\", width = \"$material_border_width\", radius = \"$material_radius_control\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-line-edit\"\nset = { self = { background = { color = \"$material_surface_inset\" }, foreground = { color = \"$material_text\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-menu-bar\"\nset = { self = { background = { color = \"$material_surface\" }, border = { color = \"$material_border\", width = \"$material_border_width\", radius = \"$material_radius_control\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-menu-bar-item\"\nset = { self = { background = { color = \"$material_surface\" }, foreground = { color = \"$material_text\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-menu-frame\"\nset = { self = { background = { color = \"$material_popup\" }, foreground = { color = \"$material_text\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-menu-item\"\nset = { self = { background = { color = \"$material_surface_inset\" }, foreground = { color = \"$material_text\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-progress-indicator\"\nset = { self = { background = { color = \"$material_track\" }, foreground = { color = \"$material_accent\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-scroll-view\"\nset = { self = { background = { color = \"$material_surface_inset\" }, border = { color = \"$material_border\", width = \"$material_border_width\", radius = \"$material_radius_control\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-slider\"\nset = { self = { background = { color = \"$material_track\" }, foreground = { color = \"$material_accent\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-spin-box\"\nset = { self = { background = { color = \"$material_surface_inset\" }, foreground = { color = \"$material_text\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-spinner\"\nset = { self = { background = { color = \"$material_surface\" }, foreground = { color = \"$material_accent\" }, border = { color = \"$material_surface\", width = \"$material_border_width_none\", radius = \"$material_radius_control\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-switch\"\nset = { self = { background = { color = \"$material_surface_inset\" }, foreground = { color = \"$material_accent\" }, border = { color = \"$material_border\", width = \"$material_border_width\", radius = \"$material_radius_large\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-standard-table-view\"\nset = { self = { background = { color = \"$material_surface_inset\" }, foreground = { color = \"$material_text\" }, border = { color = \"$material_border\", width = \"$material_border_width\", radius = \"$material_radius_control\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-tab-widget\"\nset = { self = { background = { color = \"$material_surface\" }, border = { color = \"$material_border\", width = \"$material_border_width\", radius = \"$material_radius_control\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-tab-widget-impl\"\nset = { self = { background = { color = \"$material_surface\" }, border = { color = \"$material_border\", width = \"$material_border_width\", radius = \"$material_radius_control\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-tab-bar\"\nset = { self = { background = { color = \"$material_surface_inset\" }, border = { color = \"$material_border\", width = \"$material_border_width\", radius = \"$material_radius_control\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-tab-bar-horizontal\"\nset = { self = { background = { color = \"$material_surface_inset\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-tab-bar-vertical\"\nset = { self = { background = { color = \"$material_surface_inset\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-tab-impl\"\nset = { self = { background = { color = \"$material_surface_inset\" }, foreground = { color = \"$material_text\" }, border = { color = \"$material_surface_inset\", width = \"$material_border_width_none\", radius = \"$material_radius_none\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-text-edit\"\nset = { self = { background = { color = \"$material_surface_inset\" }, foreground = { color = \"$material_text\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-runtime-dialog\"\nset = { self = { background = { color = \"$material_popup\" }, foreground = { color = \"$material_text\" }, border = { color = \"$material_border\", width = \"$material_border_width\", radius = \"$material_radius_medium\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-runtime-hud\"\nset = { self = { background = { color = \"$material_surface_inset\" }, foreground = { color = \"$material_text\" }, border = { color = \"$material_border\", width = \"$material_border_width\", radius = \"$material_radius_surface\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-runtime-backdrop\"\nset = { self = { background = { color = \"$material_color_scrim\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-title\"\nset = { self = { foreground = { color = \"$material_text\" }, font = { size = \"$material_font_size_title\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-body\"\nset = { self = { foreground = { color = \"$material_text\" }, font = { size = \"$material_font_size_body\" } } }\n\n[[stylesheets.rules]]\nselector = \".material-meta\"\nset = { self = { foreground = { color = \"$material_text_muted\" }, font = { size = \"$material_font_size_meta\" } } }\n"
+
+[asset]
+kind = "style"
+id = "ui.theme.editor_material"
+version = 2
+display_name = "Editor Material"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+accent = "#35c7d0"
+panel_bg = "#202830"
+panel_bg_soft = "#2f4650"
+field_bg = "#12181e"
+border = "#4b626d"
+text = "#e6f1f4"
+muted = "#8fa3ac"
+warning = "#f2b84b"
+error = "#ef7066"
+material_surface = "#202830"
+material_surface_inset = "#12181e"
+material_surface_hover = "#2f4650"
+material_surface_pressed = "#103c4a"
+material_surface_selected = "#0f6574"
+material_surface_disabled = "#191d22"
+material_accent = "#35c7d0"
+material_accent_soft = "#0f6574"
+material_border = "#4b626d"
+material_text = "#e6f1f4"
+material_text_muted = "#8fa3ac"
+material_text_disabled = "#58656c"
+material_warning = "#f2b84b"
+material_error = "#ef7066"
+material_success = "#5cbe7a"
+material_info = "#63b3ff"
+material_warning_container = "#463112"
+material_error_container = "#4c2427"
+material_success_container = "#1d472f"
+material_info_container = "#18395b"
+material_popup = "#0e1217"
+material_track = "#2a343c"
+material_focus_ring = "#80eaff"
+material_primary = "#35c7d0"
+material_on_primary = "#081416"
+material_surface_container = "#202830"
+material_surface_container_low = "#161e25"
+material_surface_container_high = "#2f4650"
+material_outline = "#4b626d"
+material_outline_variant = "#334852"
+material_on_error = "#fff0ee"
+material_on_success = "#07140c"
+material_on_info = "#07101a"
+material_shadow = "#00000066"
+material_shadow_soft = "#00000033"
+material_scrim = "#0b1020cc"
+material_inverse_surface = "#d2dceb"
+material_inverse_on_surface = "#171a20"
+material_color_primary = "$material_primary"
+material_color_on_primary = "$material_on_primary"
+material_color_surface = "$material_surface"
+material_color_surface_container = "$material_surface_container"
+material_color_surface_container_low = "$material_surface_container_low"
+material_color_surface_container_high = "$material_surface_container_high"
+material_color_on_surface = "$material_text"
+material_color_on_surface_variant = "$material_text_muted"
+material_color_outline = "$material_outline"
+material_color_outline_variant = "$material_outline_variant"
+material_color_error = "$material_error"
+material_color_on_error = "$material_on_error"
+material_color_success = "$material_success"
+material_color_on_success = "$material_on_success"
+material_color_info = "$material_info"
+material_color_on_info = "$material_on_info"
+material_color_shadow = "$material_shadow"
+material_color_scrim = "$material_scrim"
+material_state_layer_opacity_hover = 0.12
+material_state_layer_opacity_focus = 0.18
+material_state_layer_opacity_pressed = 0.16
+material_state_layer_opacity_disabled = 0.38
+material_state_layer_opacity_dragged = 0.2
+material_state_layer_opacity_press = "$material_state_layer_opacity_pressed"
+material_state_layer_opacity_drag = "$material_state_layer_opacity_dragged"
+material_disabled_opacity = 0.38
+material_focus_ring_width = 2
+material_focus_ring_offset = 1
+material_elevation_level0 = 0
+material_elevation_level1 = 1
+material_elevation_level2 = 3
+material_radius_none = 0
+material_radius_control = 10
+material_radius_surface = 12
+material_radius_small = 8
+material_radius_medium = 12
+material_radius_large = 18
+material_radius_pill = 999
+material_border_width = 1
+material_border_width_none = 0
+material_density_compact_height = 32
+material_density_default_height = 40
+material_density_prominent_height = 56
+material_density_compact_control_height = "$material_density_compact_height"
+material_density_default_control_height = "$material_density_default_height"
+material_density_field_control_height = "$material_density_prominent_height"
+material_density_list_item_height = "$material_density_default_height"
+material_spacing_button_content_x = 12
+material_spacing_button_content_y = 6
+material_spacing_button_gap = 6
+material_spacing_field_content_x = 10
+material_spacing_field_content_y = 4
+material_spacing_list_item_content_x = 10
+material_spacing_list_item_gap = 6
+material_icon_size_button = 16
+material_icon_size_standard = 18
+material_font_size_body = 12
+material_font_size_meta = 11
+material_font_size_title = 15
+
+[[stylesheets]]
+id = "editor_material"
+
+[[stylesheets.rules]]
+selector = ".showcase-shell"
+
+[stylesheets.rules.set.self.background]
+color = "$field_bg"
+
+[[stylesheets.rules]]
+selector = ".showcase-panel"
+
+[stylesheets.rules.set.self.background]
+color = "$panel_bg"
+
+[stylesheets.rules.set.self.border]
+color = "$border"
+width = "$material_border_width"
+radius = "$material_radius_surface"
+
+[[stylesheets.rules]]
+selector = ".showcase-field"
+
+[stylesheets.rules.set.self.background]
+color = "$panel_bg_soft"
+
+[stylesheets.rules.set.self.border]
+color = "$border"
+width = "$material_border_width"
+radius = "$material_radius_small"
+
+[[stylesheets.rules]]
+selector = ".showcase-title"
+
+[stylesheets.rules.set.self.foreground]
+color = "$text"
+
+[stylesheets.rules.set.self.font]
+size = "$material_font_size_title"
+
+[[stylesheets.rules]]
+selector = ".showcase-muted"
+
+[stylesheets.rules.set.self.foreground]
+color = "$muted"
+
+[stylesheets.rules.set.self.font]
+size = "$material_font_size_meta"
+
+[[stylesheets.rules]]
+selector = ".material-state-layer"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-control"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-button"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_hover"
+
+[[stylesheets.rules]]
+selector = ".material-button-primary"
+
+[stylesheets.rules.set.self.background]
+color = "$material_color_primary"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_color_on_primary"
+
+[stylesheets.rules.set.self.border]
+color = "$material_focus_ring"
+width = "$material_focus_ring_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-button-base"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-icon-button"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[[stylesheets.rules]]
+selector = ".material-checkbox-row"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[[stylesheets.rules]]
+selector = ".material-outlined-field"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-slider-field"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[[stylesheets.rules]]
+selector = ".material-ripple"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_hover"
+
+[stylesheets.rules.set.self.border]
+color = "$material_surface_hover"
+width = "$material_border_width_none"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-list-item"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-table-row"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-text-button"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_accent"
+
+[stylesheets.rules.set.self.border]
+color = "$material_surface"
+width = "$material_border_width_none"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-check-box"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-combo-box"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-popup-frame"
+
+[stylesheets.rules.set.self.background]
+color = "$material_popup"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-date-picker-popup"
+
+[stylesheets.rules.set.self.background]
+color = "$material_popup"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-time-picker-popup"
+
+[stylesheets.rules.set.self.background]
+color = "$material_popup"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-group-box"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-line-edit"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-menu-bar"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-menu-bar-item"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-menu-frame"
+
+[stylesheets.rules.set.self.background]
+color = "$material_popup"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-menu-item"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-progress-indicator"
+
+[stylesheets.rules.set.self.background]
+color = "$material_track"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_accent"
+
+[[stylesheets.rules]]
+selector = ".material-scroll-view"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-slider"
+
+[stylesheets.rules.set.self.background]
+color = "$material_track"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_accent"
+
+[[stylesheets.rules]]
+selector = ".material-spin-box"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-spinner"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_accent"
+
+[stylesheets.rules.set.self.border]
+color = "$material_surface"
+width = "$material_border_width_none"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-switch"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_accent"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_large"
+
+[[stylesheets.rules]]
+selector = ".material-standard-table-view"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-tab-widget"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-tab-widget-impl"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-tab-bar"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-tab-bar-horizontal"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[[stylesheets.rules]]
+selector = ".material-tab-bar-vertical"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[[stylesheets.rules]]
+selector = ".material-tab-impl"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.border]
+color = "$material_surface_inset"
+width = "$material_border_width_none"
+radius = "$material_radius_none"
+
+[[stylesheets.rules]]
+selector = ".material-text-edit"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-runtime-dialog"
+
+[stylesheets.rules.set.self.background]
+color = "$material_popup"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_medium"
+
+[[stylesheets.rules]]
+selector = ".material-runtime-hud"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_surface"
+
+[[stylesheets.rules]]
+selector = ".material-runtime-backdrop"
+
+[stylesheets.rules.set.self.background]
+color = "$material_color_scrim"
+
+[[stylesheets.rules]]
+selector = ".material-title"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.font]
+size = "$material_font_size_title"
+
+[[stylesheets.rules]]
+selector = ".material-body"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.font]
+size = "$material_font_size_body"
+
+[[stylesheets.rules]]
+selector = ".material-meta"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text_muted"
+
+[stylesheets.rules.set.self.font]
+size = "$material_font_size_meta"
+
+[legacy_migration]
+source_path = "zircon_editor/src/tests/fixtures/ui_zui/theme/editor_material.zui"
+source_kind = "style"
+source_version = 1
+
+[penpot_original_imports]
+widgets = []
+styles = []

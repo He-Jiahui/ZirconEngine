@@ -1,3 +1,6 @@
+//! 汇集各业务消息命名空间，连接持久化的稳定字符串编号与运行时的类型化身份。
+//! 解析按命名空间查表，未知编号交给消息层的归档兼容分支处理。
+
 use crate::settings::HubLanguage;
 
 pub use super::build::BuildMessageId;
@@ -9,6 +12,7 @@ pub use super::project::ProjectMessageId;
 pub use super::settings::SettingsMessageId;
 pub use super::shell::ShellMessageId;
 
+/// 供运行时、配置和语言投影共同使用的消息身份；字符串编号是归档格式的一部分。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum HubMessageId {
     Shell(ShellMessageId),
@@ -22,6 +26,7 @@ pub enum HubMessageId {
 }
 
 impl HubMessageId {
+    /// 返回可持久化的语义编号；显示文本随语言变化时编号保持稳定。
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Shell(id) => id.as_str(),
@@ -35,6 +40,7 @@ impl HubMessageId {
         }
     }
 
+    /// 从配置中的精确编号恢复类型；未知编号返回空值，由消息反序列化保留原始内容。
     pub fn from_str_id(id: &str) -> Option<Self> {
         let (namespace, _) = id.split_once('.')?;
         match namespace {
@@ -82,6 +88,7 @@ impl HubMessageId {
         }
     }
 
+    /// 供模板全集审查使用的参数数量契约；消息构造和加载当前不会据此拒绝参数。
     pub fn param_count(self) -> usize {
         match self {
             Self::Shell(id) => id.param_count(),
@@ -95,6 +102,7 @@ impl HubMessageId {
         }
     }
 
+    /// 仅由显示路径按当前语言选模板；参数的替换和原始文本兼容属于消息层。
     pub fn template(self, language: HubLanguage) -> &'static str {
         match self {
             Self::Shell(id) => id.template(language),
@@ -108,6 +116,7 @@ impl HubMessageId {
         }
     }
 
+    /// 为枚举全集测试提供所有消息；单次编号解析应使用命名空间查表入口。
     pub fn all() -> Vec<Self> {
         let mut ids = Vec::new();
         ids.extend(ShellMessageId::ALL.iter().copied().map(Self::Shell));
@@ -123,34 +132,5 @@ impl HubMessageId {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::HubMessageId;
-    use crate::settings::HubLanguage;
-
-    #[test]
-    fn every_message_id_has_bilingual_templates_with_matching_placeholders() {
-        for id in HubMessageId::all() {
-            for language in [HubLanguage::English, HubLanguage::Chinese] {
-                let template = id.template(language);
-                assert!(!template.trim().is_empty(), "{id:?} missing {language:?}");
-                for index in 0..id.param_count() {
-                    assert!(
-                        template.contains(&format!("{{{index}}}")),
-                        "{id:?} {language:?} template is missing placeholder {{{index}}}: {template}"
-                    );
-                }
-                assert!(
-                    !template.contains(&format!("{{{}}}", id.param_count())),
-                    "{id:?} {language:?} template has an out-of-range placeholder: {template}"
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn message_id_round_trips_through_stable_string_ids() {
-        for id in HubMessageId::all() {
-            assert_eq!(HubMessageId::from_str_id(id.as_str()), Some(id));
-        }
-    }
-}
+#[path = "tests/id.rs"]
+mod tests;

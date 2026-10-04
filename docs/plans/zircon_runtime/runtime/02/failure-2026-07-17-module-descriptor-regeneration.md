@@ -71,3 +71,167 @@ Current state: `implemented_pending_managed_validation`. The old reservation `ed
 - The frozen `ResolvedPluginGroup` snapshot implementation described above remains in place. This review is static evidence only: the fresh exact source-bound `zircon_app --lib` gate, dynamic repeated-entry reclamation measurement, and report/activation parity gate remain required before renaming this handoff `fixed-*`.
 
 Open state: `descriptor generation and dynamic-text ownership source repairs are present; managed validation and reclamation evidence remain pending`; no dynamic pass or startup gain is claimed.
+
+## 2026-09-19 successor intake (failure-roll-01a084c8-runtime02-module-descriptor-r2)
+
+The stale Runtime02 reservations were not reused. The current coordinator
+index admitted a fresh successor and applied ownership-transfer fingerprint
+`a1d2d1da39b561665968a8452bc46d0d3352e863ea52718d404633637b594f95` for this
+failure record plus the four source/test paths in the successor scope. A live
+lease and baseline attribution were acquired for exactly those paths. Intake
+hashes were:
+
+- `zircon_app/src/entry/builtin_modules.rs`
+  `f0e21b1343a03d501f8bc1ab9d52366f900f9d232b3583d7bc67dc25928bae5e`
+- `zircon_app/src/plugins/builder.rs`
+  `2690203e565620046ba48c7fd1145b438d2c6685b46b229bcdadb930fc47a22a`
+- `zircon_runtime/src/engine_module/engine_module.rs`
+  `821f6a4a5d3045e1d0d6c849828eab21a31116fc6b80fa2ca596d2022bb653ae`
+- `zircon_runtime/src/engine_module/tests.rs`
+  `3a0523eb76b873d7fb0ebf5b3c78ea75d0052225e48738a4075d2f84771594f3`
+
+Current-source call-chain correction: the frozen composition and dynamic
+descriptor wrapper now live under
+`zircon_runtime/src/builtin/runtime_modules/{composition,assembly,plugin_modules}`
+and `BuiltinEngineEntry` consumes the composition snapshot. Those paths, plus
+the entry bootstrap and app-level parity tests, were inspected read-only and
+remain outside this successor's write scope because their current attributions
+belong to other archived sessions. The original `related_code` list is
+therefore retained as historical evidence; it is not evidence that the old
+app-only path is still the production owner.
+
+No source edit is inferred from this intake. The next coordinator ticket will
+check the owner-borrowed `EngineModule` contract, single-generation snapshot
+guards, and the dynamic wrapper's absence of `Box::leak`; managed
+`zircon_app --lib`/Runtime gates, report-versus-activation parity, repeated
+entry reclamation at 1/100/1,000 and 1/1,000/100,000 scales, independent
+review, fixed/return artifacts, and closeout remain pending.
+
+### Current call-chain scope expansion
+
+The same successor then applied transfer fingerprint
+`bd1d3f39642a2abde25647958235040bd0029197d21f535344038ae01122f5ca` for the
+current composition/entry implementation and its focused tests, extending the
+audited write scope (without editing any source) to:
+
+- `zircon_app/src/entry/engine_entry.rs`
+  `14e61568cfec32e48713b051f7da98e4c78d2f36ac80f9d587a18d75bad77c80`
+- `zircon_app/src/entry/entry_runner/bootstrap.rs`
+  `d10a4596b8c46ffd7a54490a49d43d8ed75fa83705daa10476ab3d9ae4d05ac7`
+- `zircon_app/src/entry/tests/builtin_engine_entry.rs`
+  `45688a85c3c823fadfc640cbb9a3259cac3d9480eca9db71d4fa4b02f1b06882`
+- `zircon_app/src/plugins/tests.rs`
+  `fcd07dabc343cf552ebe3171a8e7752df73925c24a1b8813eaa5528ddd7fcd82`
+- `zircon_runtime/src/builtin/runtime_modules/assembly/compiled_plan.rs`
+  `323dea1de64354d2057b26eb28e3dd764ab486854d5040a4ec311dd4f78c9358`
+- `zircon_runtime/src/builtin/runtime_modules/composition/outcome.rs`
+  `4e183dbae7e450198ea89d894e106c072e4c13f69bc3a3385a0f833b9e3883b7`
+- `zircon_runtime/src/builtin/runtime_modules/plugin_modules/descriptor_backed.rs`
+  `9909f70a8b39b1519b5c5309d81137c1ed8b18421d137cf1e834b5714d4defa0`
+
+This makes the validation snapshot cover the actual frozen-composition path,
+rather than treating the historical app-only `builtin_modules.rs` path as the
+whole fix. The source remains unchanged and the lifecycle remains open.
+
+### Coordinator validation receipts
+
+- The first submission was rejected during admission as
+  `validation_ticket_dependency_roots_missing` (ticket/request record
+  `12d99e3a0c5c449c8b30d2d956f3a863`); it did not execute and is not pass
+  evidence.
+- Corrected request: `failure-roll-01a084c8-runtime02-module-descriptor-20260919-r2`
+- Ticket: `abeead056d3b45f0b70ed7cdcdd47748`
+- Source-manifest hash:
+  `ab5ae4ab804f68eefc09a10705b4cfa8ff73472dd7dd76a952b6a0dc3d85eff8`
+- Admission: `queued`, execution kind `pending`, with no command output yet.
+  The static contract covers the owner-borrowed trait, frozen plugin-group and
+  runtime-composition snapshots, dynamic wrapper cardinality guard, entry
+ report/bootstrap consumers, and focused generation-count tests. It does not
+ satisfy managed Cargo, reclamation, parity, review, return, or closeout
+ requirements.
+
+The corrected ticket completed on managed job/run
+`b28630d3768440cb8cf506510e94e60b` with exit code 0 and marker
+`RUNTIME02_MODULE_DESCRIPTOR_SNAPSHOT_SOURCE_CONTRACT_PARSE_PASS`; cleanup
+completed. This receipt is static current-source evidence only. Managed app
+and runtime Cargo gates, descriptor reclamation/parity scale evidence,
+independent review, fixed return and closeout remain pending.
+
+## 2026-09-21 independent source review receipt
+
+- Reviewer Session `review-runtime02-module-descriptor-r2` inspected the eleven
+  current source/test paths in the successor manifest without editing them; all
+  hashes still match the sealed manifest `ab5ae4ab804f68eefc09a10705b4cfa8ff73472dd7dd76a952b6a0dc3d85eff8`.
+- The review re-ran `rustfmt +1.94.1 --edition 2021 --config
+  skip_children=true --check` over the complete scope and a scoped
+  `git diff --check`; both passed with markers `RUNTIME02_RUSTFMT_PASS` and
+  `RUNTIME02_DIFF_CHECK_PASS`.
+- The independent source probe passed as
+  `RUNTIME02_MODULE_DESCRIPTOR_INDEPENDENT_SOURCE_REVIEW_PASS`. It verified
+  the owner-borrowed `EngineModule` contract, one-generation descriptor
+  freezing and replacement invalidation in `ResolvedPluginGroup`, activation
+  order/module-descriptor cardinality invariants, nested snapshot tests,
+  descriptor-owned dynamic text at 1/100/1,000 cardinalities with no
+  `Box::leak`, composition snapshot reuse, compiled-plan handoff, and
+  BuiltinEngineEntry/bootstrap/report consumers.
+- Independent review result: **Critical=0 / Important=0 / Moderate=0**. No
+  foreign composition, Frameworks05 preference, or entry-owner source was
+  absorbed.
+- This receipt remains static/source-only. Fresh managed `zircon_app --lib` and
+  `zircon_runtime` Cargo gates, report-versus-activation parity, repeated-entry
+  reclamation measurements at the required scales, and Runtime02 upward gates
+  remain pending because external `E:\Git\zr_vm` is dirty. Canonical
+  `fixed-*` return, closeout, and WeCom notification remain pending until those
+  source-bound dynamic gates pass.
+
+## 2026-09-26 successor intake (failure-roll-01a084c8-runtime02-module-descriptor-r3)
+
+- The stale r2 lifecycle was not reused. Coordinator successor
+  `failure-roll-01a084c8-runtime02-module-descriptor-r3` was registered with a
+  doc-only write scope and acquired the failure-record lease after ownership
+  transfer fingerprint
+  `880b9d909c3d974fc1d6c00b9f84c310f54a6343eda032a3e0a3a543901023e8`.
+  Snapshot `3914` sealed the pre-review boundary at failure-record SHA
+  `afcb56293b5c9dde29f975d01c8788d495e98e599e29a4a93dac910becd8f96d`.
+- This successor deliberately does not claim the eleven production/test paths
+  from the r2 source manifest. The coordinator still attributes those paths to
+  the archived r2 session, and three current blobs have changed outside this
+  lifecycle: `zircon_app/src/entry/builtin_modules.rs` is now
+  `f2a8ee2c27a85f040b0781c91d8a59be336d6ff55c3f23690b053ef2ebfe086e`,
+  `zircon_app/src/entry/engine_entry.rs` is now
+  `a36cf668e85e880c9a4d78b9e6abd02ec8d66f1837172ad8f211ec8638365890`, and
+  `zircon_runtime/src/builtin/runtime_modules/composition/outcome.rs` is now
+  `6d8446bd0d49767318a72ab4832c3969c02f09f33869509747ead0424ce604b4`.
+  The other eight source/test hashes still match the sealed manifest
+  `ab5ae4ab804f68eefc09a10705b4cfa8ff73472dd7dd76a952b6a0dc3d85eff8`.
+  No foreign source edit is absorbed, and no source lease or attribution is
+  claimed by r3.
+- Consequently, the earlier managed ticket
+  `b28630d3768440cb8cf506510e94e60b` remains historical static evidence only;
+  its manifest no longer describes the complete current source chain. The
+  rejected admission `12d99e3a0c5c449c8b30d2d956f3a863` remains non-evidence.
+  A fresh source-bound ticket must be generated by the owner of the changed
+  paths after their current chain is stable; r3 will not submit a duplicate or
+  absorb that work.
+- The r3 handoff is therefore documentation and evidence reconciliation only.
+  Independent review must cover this successor record and the stale-manifest
+  boundary, while managed `zircon_app`/`zircon_runtime` Cargo gates,
+  report-versus-activation parity, repeated-entry reclamation at the required
+  scales, Runtime02 upward gates, canonical `fixed-*` return, closeout, and
+  WeCom notification remain pending. The failure remains open.
+
+## 2026-09-26 independent successor review receipt
+
+- Read-only independent reviewer `/root/review_editor03_gizmo_private` checked
+  the current successor record. The failure-record SHA still matches intake
+  snapshot `3915` (`dfc42632c2d768a4e9eb8df33d3b51ee5511dc9cfd854342e67f776f17c9e667`),
+  and the doc-only scope, transfer fingerprint, stale-manifest boundary, and
+  three foreign current-source drifts are explicit.
+- The review confirmed that no source lease or foreign change was absorbed,
+  historical/rejected validation tickets were not reused, and no dynamic pass
+  or closeout claim is present. C/I/M result: **Critical=0 / Important=0 /
+  Moderate=0**.
+- This is an evidence/reconciliation review only; the current-source owner
+  must issue a fresh source-bound ticket before any managed Cargo, parity,
+  reclamation-scale, or Runtime02 upward result can be accepted. The failure
+  remains open pending those gates and canonical return/closeout/WeCom records.

@@ -1,0 +1,141 @@
+{
+  "acceptance": "open",
+  "author_original_artifacts": {
+    "crosswalk.jsonl": {
+      "bytes": 2709,
+      "lines": 6,
+      "sha256": "001102192fdbea3979c09bd6d64a72dafe2ca2c32da531e1ded003f45dae4611"
+    },
+    "manifest.json": {
+      "bytes": 2742,
+      "lines": 1,
+      "sha256": "2cf24fbcb1382a1e72dc8fbb3cb48beec736f164f20488896c0ea4f39f42ca9f"
+    },
+    "review.jsonl": {
+      "bytes": 17685,
+      "lines": 12,
+      "sha256": "ca728aa729908543d1a314c4d423357796abbed451b47c86fd7fdb055e612f24"
+    },
+    "summary.json": {
+      "bytes": 2304,
+      "lines": 1,
+      "sha256": "9a3e5babb90dc9b3c044a75e07ebd214d5eb64a03e4a71723a4fcd30e72172a6"
+    }
+  },
+  "batch": "batch12",
+  "canonical_boundary": {
+    "publication_receipt_sha256": "33dc0c15ae88d2524a3af984121fa9d4122729f8670e5e087cff51d4fc8e416f",
+    "published_batches": 8,
+    "published_literal_ids": 136,
+    "published_observations": 172,
+    "published_qualified_keys": 168
+  },
+  "captured_current": {
+    "actual_files": 20,
+    "actual_files_sha256_complete": true,
+    "capture_total_bytes": 270771,
+    "claimed_files": 19
+  },
+  "coordinator_boundary_qualification": "Retired. User authorizes sealed independent local evidence; historical records and original acceptance gates remain intact.",
+  "gates_open": [
+    "per-item lower/original/upward Windows/product/fault/performance gates",
+    "named tests not executed",
+    "Cargo/compiler/rustfmt/product probes not run",
+    "source/readiness is not acceptance"
+  ],
+  "original_priority_counts": {
+    "P1": 12
+  },
+  "owner_correction_inputs": {
+    "w0/batch11-12-root-qualified-r2-correction/correction-receipt.json": "1cb3e5bcaac0b2c3e84b3c21bffd853f9f50a0766577395bbe79cc5f34c31285",
+    "w0/batch11-12-root-qualified-r2-correction/freeze-receipt.json": "956e86fbe1515c01d9146d5c4fd72f72dd2da3eb078189935f1a5fc72a6c18ea",
+    "w0/batch11-12-root-qualified-r2-correction/owner-correction.jsonl": "3fac86b114187293c2d676d7084f653a46ccbe9b4f03e8a652d9870abd1b0b49",
+    "w0/batch11-12-root-qualified-r2-correction/verification-receipt.json": "465c5b802122179bdcf3acd9f3065d84d46a91ce378c4fa2ecc894413c7a50d2",
+    "w0/batch11-12-root-qualified-r3-correction.json": "6f4584e7eca1f0163d22a4856a01ea6311aa3c0f50ca0788a7fe3cbc1fac3104",
+    "w0/batch11-root-qualified-r1-correction.json": "e89c5424714ca992efc3283a8809599e0c8bd6ca8d3e919c5b527d161067459c"
+  },
+  "prohibitions_observed": [
+    "no repository/source writes",
+    "no author packet mutation",
+    "no Cargo/compiler/CMake/tests/rustfmt/probes",
+    "no coordinator/session/lease/ownership/import/validation",
+    "no external messages/commit/push/WeCom"
+  ],
+  "publication_qualification": {
+    "acceptance": "open",
+    "coordinator_boundary": "Retired. User authorizes sealed independent local evidence; historical records and original acceptance gates remain intact.",
+    "coordinator_retired_at_utc": "2026-10-02T07:19:48.379193+00:00",
+    "foreign_source_consent": "not inferred",
+    "generation": "root-publication-candidate-r2",
+    "historical_relative_capture_paths_resolve_against": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch12-root-qualified-r1",
+    "normalized_current_capture_manifest": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\root-publication-candidate-r2\\batch12\\rawcaptures\\manifest.json",
+      "sha256": "27c724244dd34a130d5f85a42ea8555ddc0396685a6cc8c9361cbc3458f8cd1c"
+    },
+    "original_qualified_artifacts": {
+      "crosswalk": {
+        "bytes": 14538,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch12-root-qualified-r1\\crosswalk.jsonl",
+        "sha256": "10529a768a0a86e0f2a086841175d58bbe9a3306bd6eb7c959540819932b54a1"
+      },
+      "manifest": {
+        "bytes": 9448,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch12-root-qualified-r1\\manifest.json",
+        "sha256": "2a147555b9cfed0a945f904b01d0de4de804e1c747414b86a9c3578f138d9837"
+      },
+      "review": {
+        "bytes": 117632,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch12-root-qualified-r1\\review.jsonl",
+        "sha256": "df4e26685abca67b7783b0b47633831dc077d89b326a7062b83895b0b38ce893"
+      },
+      "summary": {
+        "bytes": 3364,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch12-root-qualified-r1\\summary.json",
+        "sha256": "2f0ff9cb2d681e6ea285292d36bd44eddedf42d8a2922dbdcef67b8d8f6f98a7"
+      }
+    },
+    "original_qualified_generation": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch12-root-qualified-r1",
+    "qualified_at_utc": "2026-10-02T09:27:45.157749+00:00",
+    "raw_evidence_root": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\root-publication-candidate-r2\\batch12",
+    "root_normal_claim_denial_observed_at_utc": "2026-10-02T07:35Z",
+    "tests_run": 0
+  },
+  "qualified_at_utc": "2026-10-02T07:36:38Z",
+  "qualified_collisions_with_peer": [],
+  "qualified_collisions_with_published": [],
+  "record_type": "root_qualified_w0_batch_summary",
+  "reports": [
+    {
+      "path": "docs/plans/optimize/zircon_runtime/188-runtime-asset-resource-lifecycle-locator-registry-load-cache-import-cook-current-working-tree-review.md",
+      "report_id": "Runtime188",
+      "report_lines": "112-117",
+      "sha256": "95b866f46c83855f243fd6173264d86688dad1432bb1609b89bd6798d611502c"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/189-runtime-material-shader-artifact-variant-pipeline-pso-cache-publication-current-working-tree-review.md",
+      "report_id": "Runtime189",
+      "report_lines": "103-108",
+      "sha256": "f0bb6452b8454b264007c863ce0b1cb09cf368098654c50d2019f26059c3f330"
+    }
+  ],
+  "root_publication_captured_source_count": 18,
+  "root_publication_current_context_count": 20,
+  "root_publication_scope_rows": 12,
+  "scope": "exact original 12 rows; no report-inventory promotion or invented acceptance",
+  "scope_rows": 12,
+  "semantic_corrections": {
+    "author_fields_preserved_as_provenance": true,
+    "coordinator_boundary": "Current coordinator/service/lease boundary retired at 2026-10-02T07:35Z; no replay/registration/validation was attempted.",
+    "manifest_json_correction": "Author manifest had one unmatched closing brace before ,\"canonical_boundary\":; raw bytes are preserved under author-original/manifest.json and qualified manifest is a valid corrected object with only that one brace removed.",
+    "source_capture_count_reconciled": {
+      "actual": 20,
+      "claimed": 19
+    }
+  },
+  "status_counts": {
+    "confirmed_open": 7,
+    "narrowed_open": 4,
+    "partially_narrowed_but_open": 1
+  },
+  "tests_run": 0
+}

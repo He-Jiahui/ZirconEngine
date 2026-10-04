@@ -14,7 +14,8 @@ use zircon_runtime::core::resource::{ResourceKind, ResourceState};
 use zircon_runtime::graphics::write_shader_ide_env_for_project;
 
 use crate::ui::host::editor_asset_manager::{
-    AssetCatalogRecord, EditorAssetSyncError, PreviewCache, PreviewScheduler,
+    AssetCatalogRecord, EditorAssetCatalogGeneration, EditorAssetSyncError, PreviewCache,
+    PreviewScheduler,
 };
 
 use super::super::super::{EditorAssetChangeKind, EditorAssetChangeRecord};
@@ -26,14 +27,14 @@ use super::record_projection::project_catalog_record;
 use crate::core::asset::EditorAssetIndex;
 
 impl DefaultEditorAssetManager {
-    pub(super) fn sync_from_project(
+    pub(in crate::ui::host::editor_asset_manager::manager) fn sync_from_project(
         &self,
         project: ProjectManager,
     ) -> Result<(), EditorAssetSyncError> {
         self.sync_from_project_with_runtime_generation(project, None)
     }
 
-    pub(super) fn sync_from_runtime_project_generation(
+    pub(in crate::ui::host::editor_asset_manager::manager) fn sync_from_runtime_project_generation(
         &self,
         project_asset_manager: &ProjectAssetManager,
         project: ProjectManager,
@@ -142,8 +143,9 @@ impl DefaultEditorAssetManager {
         debug_assert!(candidate_index
             .catalog_input_generation()
             .is_some_and(|candidate| Arc::ptr_eq(candidate, &pending_source_generation)));
-        let mut catalog_by_uuid = HashMap::new();
-        let mut uuid_by_locator = HashMap::new();
+        let catalog_capacity = candidate_index.len();
+        let mut catalog_by_uuid = HashMap::with_capacity(catalog_capacity);
+        let mut uuid_by_locator = HashMap::with_capacity(catalog_capacity);
         project_full_catalog(
             &candidate_index,
             &preview_cache,
@@ -156,15 +158,14 @@ impl DefaultEditorAssetManager {
             "asset_catalog.projection_catalog_record_count",
             catalog_by_uuid.len()
         );
-        let mut preview_scheduler = preview_scheduler_for(&catalog_by_uuid);
-
-        {
+        let current_preview_generation = {
             let state = self.read_state_recovering_poison();
-            if std::sync::Arc::ptr_eq(&state.catalog_generation, &expected_generation) {
-                merge_current_preview_results(&mut catalog_by_uuid, &state.catalog_generation);
-                preview_scheduler = preview_scheduler_for(&catalog_by_uuid);
-            }
+            snapshot_matching_preview_generation(&state.catalog_generation, &expected_generation)
+        };
+        if let Some(current_preview_generation) = current_preview_generation {
+            merge_current_preview_results(&mut catalog_by_uuid, &current_preview_generation);
         }
+        let mut preview_scheduler = preview_scheduler_for(&catalog_by_uuid);
 
         zircon_runtime::profile_counter!(
             "editor",
@@ -407,6 +408,13 @@ fn catalog_delta_affects_shader(delta: &ProjectCatalogInputDelta) -> bool {
         })
 }
 
+fn snapshot_matching_preview_generation(
+    current: &Arc<EditorAssetCatalogGeneration>,
+    expected: &Arc<EditorAssetCatalogGeneration>,
+) -> Option<Arc<EditorAssetCatalogGeneration>> {
+    Arc::ptr_eq(current, expected).then(|| Arc::clone(current))
+}
+
 fn merge_current_preview_results(
     pending: &mut HashMap<zircon_runtime::asset::AssetUuid, AssetCatalogRecord>,
     current: &crate::ui::host::editor_asset_manager::EditorAssetCatalogGeneration,
@@ -458,3 +466,7 @@ fn refresh_shader_ide_env_after_import(
         })
         .map_err(EditorAssetSyncError::from)
 }
+
+#[cfg(test)]
+#[path = "sync_from_project/tests/preview_scheduler_tests.rs"]
+mod preview_scheduler_tests;

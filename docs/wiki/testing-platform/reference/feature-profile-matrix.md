@@ -6,7 +6,7 @@ related_code:
   - zircon_app/src/entry/entry_profile.rs
   - .github/workflows/ci.yml
 implementation_files:
-  - tools/runtime-profile-feature-presets.py
+  - tools/analysis/validation/runtime-profile-feature-presets.py
   - .github/workflows/profile-feature-contract.yml
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
 plan_sources:
@@ -20,7 +20,7 @@ doc_type: configuration-reference
 
 # Feature/Profile 矩阵参考
 
-本页定义“产品角色、Cargo feature、内置模块、插件能力、验证命令”之间的关系。矩阵不是一份手工复制的清单：权威来源是 `zircon_runtime/runtime-feature-presets.toml`，CI 通过 `tools/runtime-profile-feature-presets.py matrix` 生成组合，再交给 Cargo 检查。
+本页定义“产品角色、Cargo feature、内置模块、插件能力、验证命令”之间的关系。矩阵不是一份手工复制的清单：权威来源是 `zircon_runtime/runtime-feature-presets.toml`，CI 通过 `tools/analysis/validation/runtime-profile-feature-presets.py matrix` 生成组合，再交给 Cargo 检查。
 
 ## 1. 先区分四个概念
 
@@ -49,9 +49,9 @@ doc_type: configuration-reference
 ## 3. 解析权威矩阵
 
 ```powershell
-python tools/runtime-profile-feature-presets.py matrix
-python tools/runtime-profile-feature-presets.py feature minimal
-python tools/runtime-profile-feature-presets.py feature editor
+python tools/analysis/validation/runtime-profile-feature-presets.py matrix
+python tools/analysis/validation/runtime-profile-feature-presets.py feature minimal
+python tools/analysis/validation/runtime-profile-feature-presets.py feature editor
 ```
 
 预期第一条输出是 JSON object，包含 `include` 数组；后两条分别输出 `core-min` 和 `target-editor-host`。未知 profile 必须以退出码 2 失败，不能默默回退到默认配置。
@@ -89,7 +89,7 @@ assert_eq!(config.runtime_profile(), RuntimeProfileId::Client3d);
 
 ```powershell
 foreach ($profile in @('minimal','client2d','client3d','editor','dev','server')) {
-  $feature = python tools/runtime-profile-feature-presets.py feature $profile
+  $feature = python tools/analysis/validation/runtime-profile-feature-presets.py feature $profile
   cargo +1.94.1 check -p zircon_app --lib --no-default-features --features $feature --locked
 }
 ```

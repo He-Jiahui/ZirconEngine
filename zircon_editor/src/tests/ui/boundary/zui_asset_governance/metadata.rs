@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 
 use toml::Value;
 
@@ -372,4 +373,56 @@ fn resource_like_string_offender(value: &str) -> Option<String> {
     value
         .contains("dev/")
         .then(|| format!("dev-tree resource path `{value}`"))
+}
+
+pub(super) fn duplicate_entries<'a>(values: impl IntoIterator<Item = &'a String>) -> Vec<String> {
+    let mut counts = BTreeMap::<&str, usize>::new();
+    for value in values {
+        let value = value.trim();
+        if !value.is_empty() {
+            *counts.entry(value).or_default() += 1;
+        }
+    }
+    counts
+        .into_iter()
+        .filter_map(|(value, count)| (count > 1).then(|| value.to_string()))
+        .collect()
+}
+
+pub(super) fn import_entry_metadata_offenders(
+    path: &PathBuf,
+    import_section: &str,
+    imports: &[String],
+) -> (usize, Vec<String>) {
+    let mut offenders = Vec::new();
+
+    for (import_index, import) in imports.iter().enumerate() {
+        if let Some(invalid_import) = string_metadata_offender(import, "import entry") {
+            offenders.push(format!(
+                "{} {import_section} #{} declares {invalid_import}",
+                path.display(),
+                import_index + 1
+            ));
+        }
+    }
+
+    (imports.len(), offenders)
+}
+
+pub(super) fn push_asset_header_metadata_offenders(
+    path: &PathBuf,
+    asset_id: &str,
+    display_name: &str,
+    offenders: &mut Vec<String>,
+) {
+    if let Some(invalid_asset_id) = string_metadata_offender(asset_id, "asset id") {
+        offenders.push(format!("{} declares {invalid_asset_id}", path.display()));
+    }
+    if let Some(invalid_display_name) = string_metadata_offender(display_name, "asset display_name")
+    {
+        offenders.push(format!(
+            "{} declares {invalid_display_name}",
+            path.display()
+        ));
+    }
 }

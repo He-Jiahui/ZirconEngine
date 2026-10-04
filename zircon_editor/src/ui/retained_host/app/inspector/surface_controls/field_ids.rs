@@ -15,5 +15,5 @@ pub(super) fn inspector_field_id(control_id: &str) -> Option<Cow<'_, str>> {
 }
 
 #[cfg(test)]
-#[path = "field_ids/borrowed_field_tests.rs"]
+#[path = "field_ids/tests/borrowed_field_tests.rs"]
 mod borrowed_field_tests;

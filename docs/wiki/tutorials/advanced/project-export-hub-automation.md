@@ -1,23 +1,23 @@
 ---
 related_code:
   - zircon_app/src/entry/export_bootstrap.rs
-  - tools/cargo-zircon/src/build/product_build.rs
-  - tools/cargo-zircon/src/build/product_build/batch.rs
-  - tools/cargo-zircon/src/build/receipt/product_receipt.rs
-  - tools/cargo-zircon/src/build/receipt/product_receipt_closure.rs
-  - tools/cargo-zircon/src/product_receipt_cli/run.rs
+  - tools/cargo/src/build/product_build.rs
+  - tools/cargo/src/build/product_build/batch.rs
+  - tools/cargo/src/build/receipt/product_receipt.rs
+  - tools/cargo/src/build/receipt/product_receipt_closure.rs
+  - tools/cargo/src/product_receipt_cli/run.rs
 implementation_files:
   - zircon_app/src/entry/export_bootstrap.rs
-  - tools/cargo-zircon/src/build/product_build
-  - tools/cargo-zircon/src/build/receipt
-  - tools/cargo-zircon/src/product_receipt_cli
+  - tools/cargo/src/build/product_build
+  - tools/cargo/src/build/receipt
+  - tools/cargo/src/product_receipt_cli
 plan_sources:
   - user: 2026-09-09 扩充 ZirconEngine 公开接口教程、机制案例与最佳实践
   - docs/plans/optimize/zircon_app/08-product-host-bootstrap-loop-dynamic-runtime-shutdown-current-source-review.md
 tests:
-  - tools/cargo-zircon/tests/product_receipt_cli.rs
-  - tools/cargo-zircon/tests/build_receipt.rs
-  - tools/cargo-zircon/tests/product_build_owner.rs
+  - tools/cargo/tests/product_receipt_cli.rs
+  - tools/cargo/tests/build_receipt.rs
+  - tools/cargo/tests/product_build_owner.rs
 doc_type: workflow-detail
 ---
 
@@ -596,10 +596,10 @@ Windows immutable BuildSet 行为测试还覆盖目录 lease、A-B-A 变更、re
 
 ## 参考 API 与源码
 
-- [`ProductBuildRequest` 与构建 owner](https://github.com/He-Jiahui/ZirconEngine/blob/main/tools/cargo-zircon/src/build/product_build.rs)
-- [`ProductBuildBatchRequest`](https://github.com/He-Jiahui/ZirconEngine/blob/main/tools/cargo-zircon/src/build/product_build/batch.rs)
-- [`ProductReceipt` 签发与验证](https://github.com/He-Jiahui/ZirconEngine/blob/main/tools/cargo-zircon/src/build/receipt/product_receipt.rs)
-- [`ProductReceiptClosure` 文件捕获](https://github.com/He-Jiahui/ZirconEngine/blob/main/tools/cargo-zircon/src/build/receipt/product_receipt_closure.rs)
-- [`product-receipt` CLI 路由](https://github.com/He-Jiahui/ZirconEngine/blob/main/tools/cargo-zircon/src/product_receipt_cli/run.rs)
+- [`ProductBuildRequest` 与构建 owner](https://github.com/He-Jiahui/ZirconEngine/blob/main/tools/cargo/src/build/product_build.rs)
+- [`ProductBuildBatchRequest`](https://github.com/He-Jiahui/ZirconEngine/blob/main/tools/cargo/src/build/product_build/batch.rs)
+- [`ProductReceipt` 签发与验证](https://github.com/He-Jiahui/ZirconEngine/blob/main/tools/cargo/src/build/receipt/product_receipt.rs)
+- [`ProductReceiptClosure` 文件捕获](https://github.com/He-Jiahui/ZirconEngine/blob/main/tools/cargo/src/build/receipt/product_receipt_closure.rs)
+- [`product-receipt` CLI 路由](https://github.com/He-Jiahui/ZirconEngine/blob/main/tools/cargo/src/product_receipt_cli/run.rs)
 - [CLI 与库 API 参考](../../hub-tooling/reference/cargo-zircon-cli.md)
 - [项目包、设备安装与 Receipt](../../hub-tooling/reference/packages-receipts.md)

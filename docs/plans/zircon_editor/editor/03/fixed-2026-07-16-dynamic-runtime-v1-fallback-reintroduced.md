@@ -37,7 +37,7 @@ resolved_at: 2026-07-16
 - `zircon_runtime/src/dynamic_api/exports.rs` 导出 `zircon_runtime_get_api_v1` 并保留 `RUNTIME_API_V1`；
 - `zircon_app/src/entry/runtime_library/loaded_runtime.rs` 在 V2 symbol 缺失时回退到 V1；
 - interface/runtime/app 测试与结构审计重新把 V1 table 当成受支持产品合同；
-- `docs/zircon_runtime/operation.md` 已明确要求 “There is no V1 table export, loader fallback, compatibility wrapper”。
+- `docs/crates/zircon_runtime/operation.md` 已明确要求 “There is no V1 table export, loader fallback, compatibility wrapper”。
 
 这直接违反用户要求的“不再兼容旧的架构情况，所有旧的架构设计改造升级为新版”，并使 Editor03 operation submit/poll/harvest 在 V1 分支上退化为 capability unavailable。
 

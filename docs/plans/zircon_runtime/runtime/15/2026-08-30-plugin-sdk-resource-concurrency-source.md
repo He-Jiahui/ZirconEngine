@@ -39,7 +39,7 @@ without leaving an orphaned resource entry.
 
 - `rustfmt --edition 2021 --check zircon_plugins/plugin_sdk/src/registration.rs`: passed.
 - `git diff --check`: passed.
-- `python tools/audit_plugin_structure.py --json`: passed with registration-builder
+- `python tools/audits/audit_plugin_structure.py --json`: passed with registration-builder
   violations `0`, manifest-schema violations `0`, skeleton migration debt `0`, and
   editor/runtime mirror violations `0`.
 - `python -m unittest tools.tests.test_plugin_structure_audit_capability -v`: passed
@@ -48,7 +48,7 @@ without leaving an orphaned resource entry.
 - Current source fingerprint (2026-08-30): `zircon_plugins/plugin_sdk/src/registration.rs`
   is 516 lines with SHA-256
   `CF0B279E49109FFE335E0B86090DA4A4CB9F7B25ECA17F8EB4778C01030AAE94`.
-- Global `python tools/check_conventions.py --only docs --json`: remains RED with
+- Global `python tools/audits/check_conventions.py --only docs --json`: remains RED with
   `1,522` shared-worktree stale-path findings. The two paths declared by this record
   exist, so this source slice does not claim or absorb that foreign documentation debt.
 - Managed Cargo focused SDK test: pending the coordinator Cargo lane; no Cargo pass is

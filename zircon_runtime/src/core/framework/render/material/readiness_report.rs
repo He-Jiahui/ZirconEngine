@@ -41,6 +41,7 @@ pub struct RenderMaterialReadinessDiagnostic {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 贯穿资产校验、依赖解析和 GPU 准备的材质观察快照；既保存阻断问题，也保存可继续绘制的非阻断诊断。
 pub struct RenderMaterialReadinessReport {
     pub material_name: Option<String>,
     pub dependencies: RenderMaterialDependencySet,
@@ -169,6 +170,7 @@ impl RenderMaterialIssueState {
 }
 
 impl RenderMaterialReadinessReport {
+    /// 只以校验错误和替代使用判定无需回退的就绪状态；非阻断 diagnostic 不改变该布尔值。
     pub fn is_ready(&self) -> bool {
         self.validation_errors.is_empty() && self.fallback_usages.is_empty()
     }
@@ -235,6 +237,7 @@ impl RenderMaterialReadinessReport {
         }
     }
 
+    /// 以资源 ID 固定诊断快照身份，供管理列表与详情使用；绘制仍以 streamer 发布状态为准。
     pub fn management_record(&self, material_id: ResourceId) -> RenderMaterialManagementRecord {
         RenderMaterialManagementRecord {
             material_id,
@@ -264,8 +267,9 @@ fn push_unique_with_recent_fast_path<T: PartialEq>(items: &mut Vec<T>, item: T) 
 }
 
 #[cfg(test)]
-#[path = "readiness_report/recent_duplicate_fast_path_tests.rs"]
+#[path = "readiness_report/tests/recent_duplicate_fast_path_tests.rs"]
 mod recent_duplicate_fast_path_tests;
 
 #[cfg(test)]
+#[path = "readiness_report/tests/cases.rs"]
 mod tests;

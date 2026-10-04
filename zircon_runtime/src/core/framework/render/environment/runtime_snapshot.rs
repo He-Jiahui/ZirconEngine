@@ -4,8 +4,83 @@ use thiserror::Error;
 
 use super::realtime_ibl_status::RealtimeIblStatusReport;
 use crate::core::framework::render::{
+    IblBakeArtifactRequest, RenderEnvironmentCaptureHandle, RenderEnvironmentCaptureReport,
     RenderFrameProfile, RenderReflectionProbeWorkloadReport, RenderSceneSubmissionCompletionReport,
+    SourceCubemapUploadKey,
 };
+
+pub const ENVIRONMENT_IBL_HYDRATION_REPORT_CAPACITY: usize = 4;
+
+/// Bounded cache observation copied without exposing hydrated cubemap payloads.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct EnvironmentIblHydrationReport {
+    pub observation_epoch: u64,
+    pub resident_count: u32,
+    pub pending_count: u32,
+    /// Unique source, PMREM, and irradiance texel allocations retained by the cache.
+    pub resident_decoded_texel_bytes: u64,
+    /// Unique pre-encoded RGBA16F upload-row allocations retained by the cache.
+    pub resident_prepared_upload_bytes: u64,
+    /// Sum of decoded texels and prepared upload rows, excluding allocation metadata.
+    pub resident_payload_bytes: u64,
+    pub hit_count: u64,
+    pub miss_count: u64,
+    pub insert_count: u64,
+    pub eviction_count: u64,
+    pub reservation_count: u64,
+    pub reservation_suppression_count: u64,
+    pub reservation_release_count: u64,
+    pub resident_requests:
+        [Option<IblBakeArtifactRequest>; ENVIRONMENT_IBL_HYDRATION_REPORT_CAPACITY],
+    pub pending_requests:
+        [Option<IblBakeArtifactRequest>; ENVIRONMENT_IBL_HYDRATION_REPORT_CAPACITY],
+}
+
+/// Bounded observation of environment cubemap upload staging and publication state.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct EnvironmentCubemapUploadReport {
+    pub observation_epoch: u64,
+    pub committed_upload_key: SourceCubemapUploadKey,
+    pub pending_upload_key: Option<SourceCubemapUploadKey>,
+    /// Bytes copied into the frame upload batch by the latest observation.
+    pub last_scheduled_upload_bytes: u64,
+    pub last_scheduled_copy_count: u64,
+    pub peak_scheduled_upload_bytes: u64,
+    pub peak_scheduled_copy_count: u64,
+    pub cumulative_scheduled_upload_bytes: u64,
+    pub scheduled_upload_batch_count: u64,
+    /// Current reusable host allocation retained by the staging arena.
+    pub host_staging_capacity_bytes: u64,
+    /// Current reusable GPU staging buffer allocation.
+    pub gpu_staging_capacity_bytes: u64,
+    /// Successful or failed staging observations in which host capacity increased.
+    pub host_staging_growth_batch_count: u64,
+    /// Staging observations in which the GPU buffer was replaced by a larger allocation.
+    pub gpu_staging_growth_batch_count: u64,
+    /// Logical RGBA16F texel bytes for the source cube's resident mip chain.
+    pub resident_source_texture_bytes: u64,
+    /// Logical RGBA16F texel bytes for the specular PMREM cube's resident mip chain.
+    pub resident_specular_texture_bytes: u64,
+    /// Logical RGBA16F texel bytes for the irradiance cube's resident mip.
+    pub resident_irradiance_texture_bytes: u64,
+    /// Sum of the three logical destination texture budgets above.
+    pub resident_texture_bytes: u64,
+}
+
+/// Bounded logical GPU-residency observation for completed environment captures.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct EnvironmentCaptureResidencyReport {
+    /// Saturating monotonic epoch advanced when a complete filtered capture becomes resident.
+    pub observation_epoch: u64,
+    /// Scheduler handle for the newest complete output accepted by residency.
+    pub last_published_handle: Option<RenderEnvironmentCaptureHandle>,
+    /// Output generation paired with `last_published_handle`; this is not a frame generation.
+    pub last_published_output_generation: Option<u64>,
+    pub resident_count: u32,
+    /// Logical bytes retained by completed filtered capture outputs.
+    pub resident_gpu_bytes: u64,
+    pub eviction_count: u64,
+}
 
 #[derive(Clone, Copy, Debug, Error, PartialEq, Eq)]
 pub enum EnvironmentRuntimeSnapshotError {
@@ -18,10 +93,11 @@ pub enum EnvironmentRuntimeSnapshotError {
     },
 }
 
-/// Coherent current environment state projected while the render framework owns its state lock.
+/// Current environment observations assembled from bounded subsystem reports.
 ///
-/// Asynchronous reports retain their own source identities. The current-frame profile is shared by
-/// `Arc` so querying this snapshot does not deep-clone pass or subsystem vectors.
+/// Asynchronous reports retain their own source identities and epochs; this is not a globally atomic
+/// snapshot. The current-frame profile is shared by `Arc` so querying does not deep-clone pass or
+/// subsystem vectors.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EnvironmentRuntimeSnapshot {
     pub frame_generation: Option<u64>,
@@ -29,6 +105,10 @@ pub struct EnvironmentRuntimeSnapshot {
     pub scene_submission: RenderSceneSubmissionCompletionReport,
     pub reflection_probes: RenderReflectionProbeWorkloadReport,
     pub realtime_ibl: RealtimeIblStatusReport,
+    pub hydration: EnvironmentIblHydrationReport,
+    pub capture: RenderEnvironmentCaptureReport,
+    pub capture_residency: EnvironmentCaptureResidencyReport,
+    pub cubemap_upload: EnvironmentCubemapUploadReport,
 }
 
 impl EnvironmentRuntimeSnapshot {
@@ -38,6 +118,10 @@ impl EnvironmentRuntimeSnapshot {
         scene_submission: RenderSceneSubmissionCompletionReport,
         reflection_probes: RenderReflectionProbeWorkloadReport,
         realtime_ibl: RealtimeIblStatusReport,
+        hydration: EnvironmentIblHydrationReport,
+        capture: RenderEnvironmentCaptureReport,
+        capture_residency: EnvironmentCaptureResidencyReport,
+        cubemap_upload: EnvironmentCubemapUploadReport,
     ) -> Result<Self, EnvironmentRuntimeSnapshotError> {
         let frame_profile = match frame_generation {
             None => None,
@@ -60,134 +144,14 @@ impl EnvironmentRuntimeSnapshot {
             scene_submission,
             reflection_probes,
             realtime_ibl,
+            hydration,
+            capture,
+            capture_residency,
+            cubemap_upload,
         })
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-
-    use super::*;
-    use crate::core::framework::render::{
-        IblBakeKey, RealtimeIblReadiness, RenderPassProfileEntry,
-        RenderSceneSubmissionCompletionStatus,
-    };
-
-    fn realtime_ibl_status() -> RealtimeIblStatusReport {
-        RealtimeIblStatusReport {
-            readiness: RealtimeIblReadiness::RefreshingLastGood,
-            current_frame_number: 91,
-            published_key: Some(IblBakeKey::source_cubemap(17, [1, 2, 3, 4])),
-            pending_key: None,
-            queued_key: None,
-            published_generation_frame_number: Some(83),
-            last_good_age_frame_count: Some(8),
-            active_generation_start_frame_number: Some(90),
-            active_generation_elapsed_frame_count: Some(2),
-            active_generation_coalesced_source_change_count: 3,
-            failure: None,
-        }
-    }
-
-    #[test]
-    fn no_current_frame_does_not_publish_the_default_profile() {
-        let profile = Arc::new(RenderFrameProfile::default());
-
-        let snapshot = EnvironmentRuntimeSnapshot::try_from_current_reports(
-            None,
-            &profile,
-            RenderSceneSubmissionCompletionReport::default(),
-            RenderReflectionProbeWorkloadReport::default(),
-            realtime_ibl_status(),
-        )
-        .expect("an empty framework state should form an explicit empty-frame snapshot");
-
-        assert_eq!(snapshot.frame_generation, None);
-        assert_eq!(snapshot.frame_profile, None);
-    }
-
-    #[test]
-    fn current_profile_shares_storage_and_delayed_completion_keeps_its_identity() {
-        let profile = Arc::new(RenderFrameProfile {
-            frame_generation: 42,
-            passes: vec![RenderPassProfileEntry::default()],
-            ..RenderFrameProfile::default()
-        });
-        let completion = RenderSceneSubmissionCompletionReport {
-            status: RenderSceneSubmissionCompletionStatus::Completed,
-            frame_generation: 39,
-            ..RenderSceneSubmissionCompletionReport::default()
-        };
-
-        let snapshot = EnvironmentRuntimeSnapshot::try_from_current_reports(
-            Some(42),
-            &profile,
-            completion,
-            RenderReflectionProbeWorkloadReport {
-                active_probe_count: 7,
-                ..RenderReflectionProbeWorkloadReport::default()
-            },
-            realtime_ibl_status(),
-        )
-        .expect("matching current reports should form a snapshot");
-
-        let shared = snapshot
-            .frame_profile
-            .as_ref()
-            .expect("a current frame must expose its matching profile");
-        assert!(Arc::ptr_eq(&profile, shared));
-        assert_eq!(shared.passes.as_ptr(), profile.passes.as_ptr());
-        assert_eq!(snapshot.scene_submission.frame_generation, 39);
-        assert_eq!(snapshot.reflection_probes.active_probe_count, 7);
-        assert_eq!(snapshot.realtime_ibl.last_good_age_frame_count, Some(8));
-    }
-
-    #[test]
-    fn mismatched_current_profile_fails_closed() {
-        let profile = Arc::new(RenderFrameProfile {
-            frame_generation: 43,
-            ..RenderFrameProfile::default()
-        });
-
-        assert_eq!(
-            EnvironmentRuntimeSnapshot::try_from_current_reports(
-                Some(42),
-                &profile,
-                RenderSceneSubmissionCompletionReport::default(),
-                RenderReflectionProbeWorkloadReport::default(),
-                realtime_ibl_status(),
-            ),
-            Err(
-                EnvironmentRuntimeSnapshotError::FrameProfileGenerationMismatch {
-                    frame_generation: 42,
-                    profile_generation: 43,
-                }
-            )
-        );
-    }
-
-    #[test]
-    fn repeated_projection_reuses_the_same_profile_payload() {
-        let profile = Arc::new(RenderFrameProfile {
-            frame_generation: 42,
-            passes: vec![RenderPassProfileEntry::default(); 64],
-            ..RenderFrameProfile::default()
-        });
-
-        for _ in 0..16_384 {
-            let snapshot = EnvironmentRuntimeSnapshot::try_from_current_reports(
-                Some(42),
-                &profile,
-                RenderSceneSubmissionCompletionReport::default(),
-                RenderReflectionProbeWorkloadReport::default(),
-                realtime_ibl_status(),
-            )
-            .expect("repeated projection should remain current");
-            assert!(Arc::ptr_eq(
-                &profile,
-                snapshot.frame_profile.as_ref().expect("matching profile")
-            ));
-        }
-    }
-}
+#[path = "tests/runtime_snapshot.rs"]
+mod tests;

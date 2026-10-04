@@ -56,7 +56,7 @@ source_extensions = [
     "ppm",
 ]
 output_kind = "Texture"
-importer_version = 1
+importer_version = 2
 required_capabilities = ["runtime.asset.importer.texture.image"]
 
 [[asset_importers]]
@@ -65,7 +65,7 @@ plugin_id = "texture_importer"
 priority = 90
 source_extensions = ["dds", "ktx", "ktx2", "astc"]
 output_kind = "Texture"
-importer_version = 1
+importer_version = 3
 required_capabilities = ["runtime.asset.importer.texture.container"]
 
 [[asset_importers]]
@@ -74,7 +74,7 @@ plugin_id = "texture_importer"
 priority = 100
 source_extensions = ["psd"]
 output_kind = "Texture"
-importer_version = 1
+importer_version = 2
 required_capabilities = ["runtime.asset.importer.texture.psd"]
 
 [[asset_importers]]
@@ -83,7 +83,7 @@ plugin_id = "texture_importer"
 priority = 130
 source_extensions = ["zcube"]
 output_kind = "Texture"
-importer_version = 1
+importer_version = 3
 required_capabilities = ["runtime.asset.importer.texture.cubemap"]
 
 [[asset_importers]]
@@ -92,7 +92,7 @@ plugin_id = "texture_importer"
 priority = 130
 source_extensions = ["zarray"]
 output_kind = "Texture"
-importer_version = 1
+importer_version = 2
 required_capabilities = ["runtime.asset.importer.texture.array"]
 
 [[asset_importers]]
@@ -101,7 +101,7 @@ plugin_id = "texture_importer"
 priority = 80
 source_extensions = ["cubemap", "dxgi"]
 output_kind = "Texture"
-importer_version = 1
+importer_version = 2
 required_capabilities = ["runtime.asset.importer.native"]
 
 [[modules]]

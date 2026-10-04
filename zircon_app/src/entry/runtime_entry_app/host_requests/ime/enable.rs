@@ -1,3 +1,6 @@
+//! Runtime 的启用输入法请求转为 Winit 窗口能力和默认编辑状态。
+//! 重复启用可成功返回；无效默认数据不提交窗口请求。
+
 use winit::dpi::{LogicalPosition, LogicalSize};
 use winit::window::{
     ImeCapabilities, ImeEnableRequest, ImeHint, ImePurpose, ImeRequest, ImeRequestData,
@@ -48,24 +51,5 @@ fn default_ime_request_data() -> Option<ImeRequestData> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{apply_ime_enable_with_request_data, default_ime_request_data};
-
-    #[test]
-    fn default_request_data_is_available_without_a_panic_contract() {
-        assert!(default_ime_request_data().is_some());
-    }
-
-    #[test]
-    fn invalid_default_request_data_skips_window_enable_submission() {
-        let mut submitted = false;
-
-        let result = apply_ime_enable_with_request_data(None, |_| {
-            submitted = true;
-            Ok(())
-        });
-
-        assert!(result.is_ok());
-        assert!(!submitted);
-    }
-}
+#[path = "tests/enable.rs"]
+mod tests;

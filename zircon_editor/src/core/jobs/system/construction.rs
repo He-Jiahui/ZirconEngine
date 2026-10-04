@@ -1,3 +1,4 @@
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 
 use zircon_runtime::core::runtime::tasks::JobScheduler;
@@ -82,9 +83,35 @@ pub(super) struct EditorJobSystemInner {
     pub(super) state: Mutex<EditorJobSystemState>,
     pub(super) promotion: Mutex<()>,
     pub(super) state_changed: Condvar,
+    pub(super) completion_barrier: AtomicUsize,
     pub(super) progress: EditorJobProgressSource,
     pub(super) progress_observer: Option<Arc<dyn EditorJobProgressObserver>>,
     pub(super) progress_observer_dispatch: Mutex<ProgressObserverDispatch>,
+}
+
+impl EditorJobSystemInner {
+    pub(super) fn completion_barrier_active(&self) -> bool {
+        self.completion_barrier.load(Ordering::Acquire) != 0
+    }
+}
+
+pub(super) struct CompletionBarrierGuard {
+    inner: Arc<EditorJobSystemInner>,
+}
+
+impl CompletionBarrierGuard {
+    pub(super) fn new(inner: Arc<EditorJobSystemInner>) -> Self {
+        inner.completion_barrier.fetch_add(1, Ordering::AcqRel);
+        Self { inner }
+    }
+}
+
+impl Drop for CompletionBarrierGuard {
+    fn drop(&mut self) {
+        let previous = self.inner.completion_barrier.fetch_sub(1, Ordering::AcqRel);
+        debug_assert!(previous > 0, "completion barrier underflow");
+        self.inner.state_changed.notify_all();
+    }
 }
 
 impl EditorJobSystem {
@@ -130,6 +157,7 @@ impl EditorJobSystem {
                 state: Mutex::new(EditorJobSystemState::default()),
                 promotion: Mutex::new(()),
                 state_changed: Condvar::new(),
+                completion_barrier: AtomicUsize::new(0),
                 progress: EditorJobProgressSource::default(),
                 progress_observer,
                 progress_observer_dispatch: Mutex::new(ProgressObserverDispatch::default()),

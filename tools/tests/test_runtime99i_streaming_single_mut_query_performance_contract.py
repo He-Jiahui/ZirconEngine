@@ -1,6 +1,6 @@
 import pathlib
 import unittest
-
+# 唯一可变查询流式筛选稳定位置并复用单个组件位置暂存，确认唯一之后才获取可变引用。
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 SOURCE_PATH = REPO_ROOT / "zircon_runtime/src/scene/ecs/query/query_state/mutable.rs"

@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node m6_yumi_maze_layout_source_check.mjs；缺少源码契约时脚本抛错退出。
+// 将锁定的迷宫种子、尺寸、挖通、死路编织、墙体合并和出生点标记与 Zr 布局及测试项目对应核对。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';

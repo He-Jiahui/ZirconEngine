@@ -55,7 +55,7 @@ impl RenderAssetGpuUploadPlan {
         })
     }
 
-    pub(crate) const fn ticket(&self) -> super::super::RenderAssetResidencyTicket {
+    pub(crate) fn ticket(&self) -> super::super::RenderAssetResidencyTicket {
         self.cpu_lease.ticket()
     }
 
@@ -126,6 +126,7 @@ pub(super) struct PreparedMeshLodUpload {
     pub(super) bytes: Arc<[u8]>,
 }
 
+/// 在 CPU 侧校验 manifest、子资源布局与上传预算；通过全部检查后才生成中性计划，由提交阶段创建 RHI 资源。
 pub(super) fn prepare_upload(
     manifest: &RenderArtifactManifest,
     blocks: Vec<UploadSourceBlock>,

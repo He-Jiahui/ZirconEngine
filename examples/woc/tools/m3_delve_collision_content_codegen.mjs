@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码投影地下探索模块的固定碰撞体与默认连接链，生成可核对的 JSON 和 Zr 内容。
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -152,6 +153,7 @@ function gitShow(sourcePath) {
   });
 }
 
+// 将已验证的地下探索模块的固定碰撞体与默认连接链转换为确定性的 Zr 访问函数。
 function renderZr(catalog) {
   const { layouts, default_chains: chains, routing } = catalog;
   return [

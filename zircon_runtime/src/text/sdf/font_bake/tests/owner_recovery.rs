@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::asset::{FontAsset, ProjectAssetManager};
+use crate::asset::FontAsset;
 
 use super::*;
 
@@ -30,8 +30,7 @@ fn sdf_unshaped_recovery_uses_the_requested_font_assets_composite_face() {
         bake_params: SdfBakeParams::default(),
     };
 
-    let faces =
-        bake.resolve_faces_for_key(&key, &mut font_database, &ProjectAssetManager::default());
+    let faces = bake.resolve_faces_for_key(&key, &mut font_database);
 
     assert_eq!(faces.first().copied(), Some(registered.faces[1]));
     assert_ne!(registered.faces[0], registered.faces[1]);

@@ -9,6 +9,7 @@ impl DefaultSoundManager {
         playback: SoundPlaybackId,
     ) -> Result<(), SoundError> {
         let mut state = lock_recover(&self.state);
+        state.kira.ensure_control_available()?;
         state.poll_kira_completions();
         if !state.playbacks.contains_key(&playback) {
             return Err(SoundError::UnknownPlayback { playback });
@@ -27,6 +28,7 @@ impl DefaultSoundManager {
         playback: SoundPlaybackId,
     ) -> Result<(), SoundError> {
         let mut state = lock_recover(&self.state);
+        state.kira.ensure_control_available()?;
         state.poll_kira_completions();
         let gain = state
             .playbacks
@@ -47,6 +49,7 @@ impl DefaultSoundManager {
         playback: SoundPlaybackId,
     ) -> Result<(), SoundError> {
         let mut state = lock_recover(&self.state);
+        state.kira.ensure_control_available()?;
         state.poll_kira_completions();
         let active = state
             .playbacks

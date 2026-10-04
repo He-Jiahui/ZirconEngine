@@ -3,6 +3,8 @@
 /// Logical packets describe work admitted by the frame owner. Flushed tickets and physical
 /// submissions come from the backend timeline sampled after the terminal scene packet. A caller
 /// receives no metrics when the backend owner changes or its monotonic counters regress.
+///
+/// 此 DTO 记录提交与上传计数、字节数，不含 GPU 执行耗时；耗时状态由帧剖析单独报告。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct RenderFrameSubmissionMetrics {
     admitted_logical_packet_count: u64,
@@ -73,20 +75,5 @@ impl RenderFrameSubmissionMetrics {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::RenderFrameSubmissionMetrics;
-
-    #[test]
-    fn frame_submission_metrics_keep_logical_and_physical_counts_distinct() {
-        let metrics = RenderFrameSubmissionMetrics::new(3, 3, 2, 1, 2, 4, 5, 4096);
-
-        assert_eq!(metrics.admitted_logical_packet_count(), 3);
-        assert_eq!(metrics.flushed_logical_ticket_count(), 3);
-        assert_eq!(metrics.physical_backend_submission_count(), 2);
-        assert_eq!(metrics.buffer_upload_batch_count(), 1);
-        assert_eq!(metrics.texture_upload_batch_count(), 2);
-        assert_eq!(metrics.buffer_write_count(), 4);
-        assert_eq!(metrics.texture_write_count(), 5);
-        assert_eq!(metrics.upload_payload_bytes(), 4096);
-    }
-}
+#[path = "tests/frame_submission_metrics.rs"]
+mod tests;

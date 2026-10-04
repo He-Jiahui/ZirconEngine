@@ -10,8 +10,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/session_coordinator/control_plane/artifact_downloads.py
-  - tools/session_coordinator/tests/test_artifact_downloads.py
 tests:
   - python -B -m unittest tools.session_coordinator.tests.test_artifact_downloads.ArtifactDownloadTests.test_extremely_long_range_numbers_are_typed -v
   - python -B -m unittest tools.session_coordinator.tests.test_artifact_downloads.ArtifactDownloadTests.test_non_ascii_range_digits_are_typed -v

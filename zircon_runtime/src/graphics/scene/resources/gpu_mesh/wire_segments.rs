@@ -4,6 +4,8 @@ use crate::core::math::Vec3;
 
 use super::gpu_mesh_vertex::GpuMeshVertex;
 
+/// 由上传用三角索引提取去重边，供线框调试渲染复用设备网格的几何身份。
+/// 此结果只用于可视化边线，不能代替网格拓扑校验。
 pub(super) fn build_wire_segments(vertices: &[GpuMeshVertex], indices: &[u32]) -> Vec<[Vec3; 2]> {
     let mut unique_edges = HashSet::with_capacity(indices.len());
     let mut segments = Vec::with_capacity(indices.len());
@@ -34,5 +36,5 @@ pub(super) fn build_wire_segments(vertices: &[GpuMeshVertex], indices: &[u32]) -
 }
 
 #[cfg(test)]
-#[path = "wire_segments/capacity_tests.rs"]
+#[path = "wire_segments/tests/capacity_tests.rs"]
 mod capacity_tests;

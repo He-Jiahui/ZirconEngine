@@ -1,3 +1,6 @@
+// 调用端：npm run generate:known-ability-catalog (tools/package.json)；职责：求值固定版本的职业技能并生成确定性的已知技能目录。
+// 输入边界：src/sim/content/classes.ts；--check 比较生成结果，不改写目标文件。
+
 import { spawnSync, execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -17,6 +20,7 @@ const checkOnly = process.argv.includes('--check');
 
 main();
 
+// 通过自定义加载器求值固定版本的职业关系，再校验技能元数据和等级后生成目录。
 function main() {
   const sourceBlob = execFileSync(
     'git',
@@ -127,6 +131,7 @@ function main() {
   );
 }
 
+// 根据规范化目录生成按职业查询的技能准入表，运行时无需读取参考 TypeScript。
 function renderZr(document) {
   const abilityCodeRows = document.abilities
     .map((ability) => `    if (id == ${JSON.stringify(ability.id)}) { return ${ability.code}; }`)

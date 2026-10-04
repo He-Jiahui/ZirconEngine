@@ -9,7 +9,7 @@ use crate::core::context::EditorContextBuilder;
 use crate::core::editing::authoring_world::{AuthoringWorldSeed, EditorAuthoringWorld};
 #[cfg(test)]
 use crate::core::jobs::test_job_scheduler;
-use crate::scene::viewport::SceneViewportController;
+use crate::scene::viewport::{SceneViewportController, SceneViewportSessionRegistry};
 use crate::ui::workbench::project::AssetWorkspaceState;
 use crate::ui::workbench::state::EditorState;
 
@@ -167,12 +167,17 @@ impl EditorState {
         let mut state = Self {
             context,
             world,
-            viewport_controller,
+            viewport_controller: SceneViewportSessionRegistry::new(
+                viewport_controller,
+                crate::core::editor_event::ViewInstanceId::new("editor.scene#1"),
+            ),
             name_field: String::new(),
             parent_field: String::new(),
             transform_fields: Default::default(),
             scale_fields: Default::default(),
             inspector_dynamic_fields: Default::default(),
+            inspector_edited_fields: Default::default(),
+            inspector_draft_context: None,
             mesh_import_path: String::new(),
             asset_workspace: AssetWorkspaceState::default(),
             project_path,

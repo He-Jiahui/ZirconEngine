@@ -62,7 +62,7 @@ CAPABILITY_BOUNDARY_METHODS = (
     "test_dependency_capabilities_lives_in_capabilities_owner",
 )
 
-
+# 验证校验能力归属边界的职责切分：能力边界移出通用归属文件，并根能力测试位于根能力测试归属。
 class PluginValidateCapabilityOwnerBoundaryTests(unittest.TestCase):
     def test_capability_boundaries_leave_general_owner_file(self):
         general_owner_text = PLUGIN_VALIDATE_OWNER_BOUNDARIES_TEST.read_text(

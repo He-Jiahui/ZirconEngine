@@ -1,3 +1,4 @@
+//! 资产管线吸收后，门禁与镜像文档共同约束管理器、工作池和产物路径。集中保存路径、锚点或预期清单；消费方负责读取实际源码。
 pub(super) const EXPECTED_RUNTIME_04_SOURCE_FILES: &[&str] = &[
     "src/asset/facade/handle.rs",
     "src/asset/facade/assets.rs",
@@ -41,7 +42,7 @@ pub(super) const EXPECTED_RUNTIME_04_GUARD_FILES: &[&str] = &[
     "src/asset/tests/assets/artifact_store/lazy_residency.rs",
     "src/asset/tests/assets/artifact_store/scene_components.rs",
     "src/asset/tests/assets/artifact_store/scene_script.rs",
-    "crates/zr_resource/src/tests.rs",
+    "crates/zr_resource/src/tests/cases.rs",
     "src/tests/runtime_absorption/asset_surface.rs",
     "src/tests/runtime_absorption/asset_surface/facade_query.rs",
     "src/tests/runtime_absorption/asset_worker_policy.rs",

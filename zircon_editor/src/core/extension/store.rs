@@ -9,4 +9,5 @@ pub use model::{
 };
 
 #[cfg(test)]
+#[path = "store/tests/cases.rs"]
 mod tests;

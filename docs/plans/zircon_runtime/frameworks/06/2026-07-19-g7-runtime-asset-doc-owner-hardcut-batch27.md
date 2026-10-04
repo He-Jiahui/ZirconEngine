@@ -1,8 +1,8 @@
 ---
 related_code:
-  - docs/zircon_runtime/asset/assets/mesh.md
-  - docs/zircon_runtime/asset/assets/scene.md
-  - docs/zircon_runtime/asset/render-assets.md
+  - docs/crates/zircon_runtime/asset/assets/mesh.md
+  - docs/crates/zircon_runtime/asset/assets/scene.md
+  - docs/crates/zircon_runtime/asset/render-assets.md
   - zircon_runtime/src/scene/components/scene/mod.rs
   - zircon_runtime/src/scene/components/scene/transform.rs
   - zircon_runtime/src/scene/components/scene/hierarchy.rs
@@ -14,17 +14,17 @@ related_code:
   - zircon_runtime/src/scene/components/scene/animation.rs
   - zircon_runtime/src/core/framework/scene/mobility.rs
 implementation_files:
-  - docs/zircon_runtime/asset/assets/mesh.md
-  - docs/zircon_runtime/asset/assets/scene.md
-  - docs/zircon_runtime/asset/render-assets.md
+  - docs/crates/zircon_runtime/asset/assets/mesh.md
+  - docs/crates/zircon_runtime/asset/assets/scene.md
+  - docs/crates/zircon_runtime/asset/render-assets.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
   - docs/plans/zircon_runtime/frameworks/06/2026-07-19-scene-component-owner-hardcut.md
 tests:
-  - python tools/check_conventions.py --only docs --json
-  - git diff --check -- docs/zircon_runtime/asset/assets/mesh.md docs/zircon_runtime/asset/assets/scene.md docs/zircon_runtime/asset/render-assets.md docs/plans/zircon_runtime/frameworks/06/2026-07-19-g7-runtime-asset-doc-owner-hardcut-batch27.md
+  - python tools/audits/check_conventions.py --only docs --json
+  - git diff --check -- docs/crates/zircon_runtime/asset/assets/mesh.md docs/crates/zircon_runtime/asset/assets/scene.md docs/crates/zircon_runtime/asset/render-assets.md docs/plans/zircon_runtime/frameworks/06/2026-07-19-g7-runtime-asset-doc-owner-hardcut-batch27.md
 ---
 
 # Frameworks06 G7 Runtime Asset 文档 Owner 硬切 Batch 27
@@ -32,7 +32,7 @@ tests:
 Plan: docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
 Milestone: M2
 Status: accepted
-Files: ["docs/zircon_runtime/asset/assets/mesh.md", "docs/zircon_runtime/asset/assets/scene.md", "docs/zircon_runtime/asset/render-assets.md"]
+Files: ["docs/crates/zircon_runtime/asset/assets/mesh.md", "docs/crates/zircon_runtime/asset/assets/scene.md", "docs/crates/zircon_runtime/asset/render-assets.md"]
 Date: 2026-07-19
 Session: `frameworks06-g7-runtime-asset-doc-owner-hardcut-batch27-20260719`
 

@@ -1,10 +1,11 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
+use super::super::super::super::componentized_workbench_regions::componentized_workbench_chrome_regions;
 use super::super::super::super::data::{
     paint_pane_interaction_state, paint_text_input_focus, paint_viewport_images,
-    paint_workbench_hit_index, FrameRect, HostTextInputFocusData, HostWindowLayoutData,
-    HostWindowPresentationData, TemplatePaneNodeData,
+    paint_workbench_hit_index, FrameRect, HostTextInputFocusData, HostWindowPresentationData,
+    TemplatePaneNodeData,
 };
 use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::paint_template_nodes::{
@@ -19,6 +20,9 @@ use super::modal;
 use super::page_overflow::draw_host_page_overflow_menu;
 use super::root_template::{draw_root_template_overlay, frame_bounds};
 use crate::ui::retained_host::primitives::ModelRc;
+
+mod panes;
+mod root_overlays;
 
 const EXTENSION_MODULE_WORKSPACES_HOST_CONTROL_ID: &str = "WorkbenchExtensionModuleWorkspacesHost";
 
@@ -74,15 +78,16 @@ pub(in crate::ui::retained_host::host_contract) fn draw_componentized_workbench_
     let root = resolve_root_frames(frame.width(), frame.height(), presentation);
     chrome::draw_top_chrome_layers(frame, &root, presentation);
     draw_componentized_workbench_chrome(frame, presentation, &frame_bounds);
-    // The template owns its mounted toolbar/status chrome and activated extension workspace.
-    // Host scene data remains authoritative for outer menu/page chrome, ordinary panes,
-    // viewport, splitters, and floating surfaces.
+    // Authored panes own their frames and ordinary controls. Native scene rows retain
+    // runtime identity, selection, scrolling and rename; the document retains its live viewport.
     dock_layer::draw_dock_layers(frame, presentation);
+    panes::draw_authored_panes(frame, presentation, &frame_bounds);
     draw_componentized_extension_workspace(frame, presentation, &frame_bounds);
     resize::draw_resize_layer(frame, presentation);
     dock_layer::draw_floating_layer(frame, presentation);
     draw_host_dock_overflow_menu(frame, presentation);
     draw_host_page_overflow_menu(frame, presentation);
+    root_overlays::draw_authored_root_overlays(frame, presentation, &frame_bounds);
     modal::draw_menu_and_prompt_layers(frame, presentation);
     draw_root_template_overlay(frame, presentation);
 }
@@ -317,8 +322,8 @@ fn draw_componentized_workbench_chrome(
     presentation: &HostWindowPresentationData,
     frame_bounds: &FrameRect,
 ) {
-    let Some((top_chrome, status_bar)) =
-        componentized_chrome_clips(&presentation.host_layout, frame_bounds)
+    let Some(regions) =
+        componentized_workbench_chrome_regions(&presentation.host_layout, frame_bounds)
     else {
         let transform = ComponentizedChromeFallbackTransform::from_presentation(presentation);
         let text_input_focus = paint_text_input_focus(presentation);
@@ -332,6 +337,8 @@ fn draw_componentized_workbench_chrome(
         );
         return;
     };
+    let top_chrome = regions.top_chrome;
+    let status_bar = regions.status_bar;
 
     let route = componentized_chrome_damage_route(frame, &top_chrome, &status_bar);
     if !route.top_chrome && !route.status_bar {
@@ -385,33 +392,15 @@ fn draw_componentized_workbench_chrome_clip(
     clip: &FrameRect,
     text_input_focus: &HostTextInputFocusData,
 ) {
-    draw_template_nodes(
+    let transform = root_overlays::RootOverlayRows::chrome_exclusion(presentation);
+    draw_template_nodes_with_transform(
         frame,
         &presentation.workbench_window_nodes,
         &zero_origin(),
         clip,
         Some(text_input_focus),
+        Some(&transform),
     );
-}
-
-fn componentized_chrome_clips(
-    layout: &HostWindowLayoutData,
-    frame_bounds: &FrameRect,
-) -> Option<(FrameRect, FrameRect)> {
-    if !visible_rect(&layout.center_band_frame) || !visible_rect(&layout.status_bar_frame) {
-        return None;
-    }
-
-    let top_height = layout.center_band_frame.y.clamp(0.0, frame_bounds.height);
-    Some((
-        FrameRect {
-            x: frame_bounds.x,
-            y: frame_bounds.y,
-            width: frame_bounds.width,
-            height: top_height,
-        },
-        layout.status_bar_frame.clone(),
-    ))
 }
 
 fn visible_rect(rect: &FrameRect) -> bool {
@@ -419,5 +408,5 @@ fn visible_rect(rect: &FrameRect) -> bool {
 }
 
 #[cfg(test)]
-#[path = "componentized/tests.rs"]
+#[path = "componentized/tests/cases.rs"]
 mod tests;

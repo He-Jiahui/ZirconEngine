@@ -131,11 +131,11 @@ fn applying_workspace_with_floating_window_syncs_native_window_bounds() {
         frame: ShellFrame::new(120.0, 80.0, 640.0, 480.0),
     });
     let workspace = ProjectEditorWorkspace {
-        layout_version: 1,
         workbench: layout,
         open_view_instances: vec![restored_instance],
         focused_view: None,
         active_drawers: Vec::new(),
+        scene_viewport_sessions: Default::default(),
     };
 
     manager

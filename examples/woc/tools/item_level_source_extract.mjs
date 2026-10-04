@@ -1,3 +1,6 @@
+// 调用端：item_level_catalog_contract_codegen.mjs；职责：通过 Git 加载器求值固定版本的物品等级定义，供上级目录生成器使用。
+// 上层生成器通过固定版本的 wocgit 加载器运行此脚本；标准输出为机器可读的 JSON。
+
 const data = await import('wocgit:///src/sim/data.ts');
 const itemLevel = await import('wocgit:///src/sim/item_level.ts');
 

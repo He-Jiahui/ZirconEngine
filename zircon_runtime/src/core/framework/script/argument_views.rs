@@ -1,3 +1,5 @@
+//! VM host export 的借用参数视图；读取可在调用栈内完成，拥有型转换由业务边界显式发起。
+
 #[path = "argument_views/argument_source.rs"]
 mod argument_source;
 #[path = "argument_views/byte_view.rs"]
@@ -14,5 +16,5 @@ pub use typed_conversion::ScriptHostFromArgument;
 pub use value_ref::ScriptHostValueRef;
 
 #[cfg(test)]
-#[path = "argument_views/tests.rs"]
+#[path = "argument_views/tests/cases.rs"]
 mod tests;

@@ -16,11 +16,7 @@ related_code:
   - tools/editor-workbench-preview/styles.css
   - tools/editor-workbench-preview/verify-designs.mjs
   - tools/editor-workbench-preview/verify-reference-negative-guard.mjs
-  - docs/ui-and-layout/editor-workbench-design-export.md
-  - docs/ui-and-layout/editor-workbench-designs
-  - docs/ui-and-layout/editor-workbench-designs/EXPORT-EVIDENCE.json
-  - docs/ui-and-layout/editor-workbench-designs/STYLE-NOTES.md
-  - docs/ui-and-layout/workbench.png
+  - docs/ui/editor-workbench-design-export.md
   - zircon_editor/assets/ui/editor/reference/workbench.png
   - zircon_editor/fixtures/workbench/default-layout.json
   - zircon_editor/fixtures/workbench/editor-data.json

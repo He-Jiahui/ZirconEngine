@@ -1,3 +1,4 @@
+//! 管理器是脚本包与宿主服务的稳定入口；它选后端、持发现缓存，委托协调器切换实例后发布可见的扩展快照。
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard, Weak};
 
@@ -183,6 +184,7 @@ impl VmPluginManager {
         self.selected_backend_selector().to_string()
     }
 
+    /// 更改之后装载时使用的默认选择器；既有槽位的后端身份不会因此被替换。
     pub fn select_default_backend(&self, backend_name: &str) -> Result<(), VmError> {
         self.backends.resolve(backend_name)?;
         *self.selected_backend_write() = Arc::from(backend_name);
@@ -214,6 +216,7 @@ impl VmPluginManager {
         self.load_package_with_backend(&backend_name, package)
     }
 
+    // TODO: [CR-SCRIPT-AUDIT-0006] 确认直接包 API 的清单校验责任；磁盘发现会验证管理策略，内存包装载和重载却跳过该步骤，需明确调用前提并覆盖非法策略。
     pub fn load_package_with_backend(
         &self,
         backend_name: &str,
@@ -368,6 +371,7 @@ impl VmPluginManager {
     }
 
     /// Invokes a stable callback handle against the owning slot's active generation.
+    /// 调用前以当前活动槽刷新句柄代际，调用者可以缓存符号句柄，但不能自行持有 VM 实例。
     pub fn invoke_callback(
         &self,
         handle: &mut VmCallbackHandle,
@@ -463,6 +467,7 @@ impl VmPluginManager {
         self.host_interfaces.active_snapshot()
     }
 
+    // 成功或失败的生命周期操作都重新投影当前槽位，避免暂存注册被当作已活动扩展。
     fn publish_active_interfaces(&self) {
         self.host_interfaces
             .publish_active_slots(self.coordinator.active_slots());
@@ -559,117 +564,5 @@ fn derive_plugin_roots(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn builtin_manager_retains_its_discovery_runtime_owner() {
-        let manager = VmPluginManager::with_builtin_backends(HostRegistry::default());
-
-        assert!(manager.base_plugin_context().core.upgrade().is_some());
-    }
-
-    #[test]
-    fn stale_plugin_context_rejects_discovery_without_a_process_pool_fallback() {
-        let runtime = CoreRuntime::new();
-        let plugin_context = PluginContext {
-            plugin_name: VM_PLUGIN_RUNTIME_NAME.to_string(),
-            core: runtime.handle().downgrade(),
-            package_root: None,
-            source_root: None,
-            data_root: None,
-        };
-        drop(runtime);
-        let manager = VmPluginManager::with_plugin_context(plugin_context, HostRegistry::default());
-
-        let error = manager
-            .submit_package_discovery(".")
-            .expect_err("stale runtime context must not fall back to a process I/O pool");
-
-        assert!(error
-            .to_string()
-            .contains("runtime task owner is unavailable"));
-    }
-
-    #[test]
-    fn discovery_rejects_after_an_external_runtime_owner_expires() {
-        let runtime = CoreRuntime::new();
-        let plugin_context = PluginContext {
-            plugin_name: VM_PLUGIN_RUNTIME_NAME.to_string(),
-            core: runtime.handle().downgrade(),
-            package_root: None,
-            source_root: None,
-            data_root: None,
-        };
-        let manager = VmPluginManager::with_plugin_context(plugin_context, HostRegistry::default());
-        drop(runtime);
-
-        let error = manager
-            .submit_package_discovery(".")
-            .expect_err("expired runtime owner must close discovery admission");
-
-        assert!(error
-            .to_string()
-            .contains("runtime task owner is unavailable"));
-    }
-
-    #[test]
-    fn vm_discovery_worker_has_no_process_global_constructor() {
-        let source = include_str!("../plugin/vm_plugin_package_discovery/io.rs");
-
-        for forbidden in [
-            "TaskPools::process_default",
-            "JobScheduler::process_io",
-            "impl Default for VmPluginDiscoveryWorker",
-            "pub(crate) fn new(limits: VmPluginDiscoveryLimits)",
-            "pub(crate) fn with_io_pool",
-        ] {
-            assert!(
-                !source.contains(forbidden),
-                "VM discovery worker must not retain process fallback `{forbidden}`"
-            );
-        }
-    }
-
-    #[test]
-    fn callback_and_system_dispatch_avoid_wide_record_clones() {
-        let source = include_str!("vm_plugin_manager.rs")
-            .split_once("#[cfg(test)]")
-            .unwrap()
-            .0;
-        let callback = source.split("pub fn invoke_callback").nth(1).unwrap();
-        let callback = callback
-            .split("pub fn run_registered_systems")
-            .next()
-            .unwrap();
-        let systems = source
-            .split("pub fn run_registered_systems")
-            .nth(1)
-            .unwrap();
-        let systems = systems.split("pub fn registered_systems").next().unwrap();
-
-        assert!(callback.contains(".coordinator"));
-        assert!(callback.contains(".generation(handle.slot)"));
-        assert!(!callback.contains("self.slot(handle.slot)"));
-        assert!(systems.contains("let system_count = systems.len();"));
-        assert!(systems.contains("for mut system in systems"));
-        assert!(!systems.contains("systems.iter().cloned()"));
-    }
-
-    #[test]
-    fn vm_plugin_manager_selected_backend_accessors_recover_poisoned_lock() {
-        let manager = VmPluginManager::with_builtin_backends(HostRegistry::default());
-        let poison = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            let mut selected = manager.selected_backend.write().unwrap();
-            *selected = Arc::from(DEFAULT_BACKEND_SELECTOR);
-            panic!("poison vm plugin manager selected backend lock");
-        }));
-        assert!(poison.is_err());
-
-        assert_eq!(manager.selected_backend_name(), DEFAULT_BACKEND_SELECTOR);
-        manager
-            .select_default_backend("builtin:mock")
-            .expect("poisoned selected backend lock should recover for writes");
-        assert_eq!(manager.selected_backend_name(), "builtin:mock");
-    }
-}
+#[path = "tests/vm_plugin_manager.rs"]
+mod tests;

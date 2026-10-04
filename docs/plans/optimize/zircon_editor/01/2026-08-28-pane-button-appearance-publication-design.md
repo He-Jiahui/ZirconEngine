@@ -198,7 +198,7 @@ accepted as product timing.
 
 ## Deterministic pressure evidence
 
-`tools/editor_button_appearance_classification_pressure.py` models the exact eight kind needles and
+`tools/analysis/performance/editor/editor_button_appearance_classification_pressure.py` models the exact eight kind needles and
 nine glyph needles against the six fields used by current source. Its default representative field
 lengths are 32, 24, 24, 9, 16 and 8 bytes. A secondary/non-matching identity is intentionally used
 because it executes every branch; actual matching buttons may short-circuit earlier.

@@ -1,5 +1,6 @@
 use zircon_runtime_interface::ui::component::UiValue;
 
+// 层级数据的身份/子数组别名须与树元数据解析约定配套；调用方负责提供唯一且稳定的项标识。
 const TREE_NODE_IDENTITY_PROPERTIES: [&str; 13] = [
     "itemId",
     "item_id",
@@ -17,6 +18,7 @@ const TREE_NODE_IDENTITY_PROPERTIES: [&str; 13] = [
 ];
 const TREE_CHILD_PROPERTIES: [&str; 4] = ["children", "nodes", "items", "options"];
 
+/// 新层级及前序位置回执；from/to 是遍历位置，二者相等仍可能发生真实父级变更。
 pub(super) struct UiTreeReparentedNodes {
     pub values: Vec<UiValue>,
     pub from: usize,
@@ -24,6 +26,8 @@ pub(super) struct UiTreeReparentedNodes {
     pub parent_id: String,
 }
 
+/// 对调用方交付的独占模型副本重挂节点，先拒绝自挂与祖先循环；失败不会发布已局部修改的副本。
+/// 只操作模型数组/映射，不修改 UiTree 的保留节点关系，最终提交及选择/展开同步属于 Surface 调用者。
 pub(super) fn reparent_tree_node_values(
     mut values: Vec<UiValue>,
     source_id: &str,
@@ -198,5 +202,5 @@ fn string_value(value: &UiValue) -> Option<&str> {
 }
 
 #[cfg(test)]
-#[path = "tree_view_reparent/borrowed_traversal_tests.rs"]
+#[path = "tree_view_reparent/tests/borrowed_traversal_tests.rs"]
 mod borrowed_traversal_tests;

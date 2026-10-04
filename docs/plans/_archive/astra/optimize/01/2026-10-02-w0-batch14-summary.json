@@ -1,0 +1,49 @@
+{
+  "record_type": "root_qualified_batch14_summary",
+  "root_observed_at_utc": "2026-10-02T19:44:33.084160+00:00",
+  "original_artifacts": {
+    "review": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\review.jsonl",
+      "sha256": "8becdbb589d055141cfeae251f5c3649b530caa34a5c0e908e45effdc3849c44"
+    },
+    "crosswalk": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\crosswalk.jsonl",
+      "sha256": "cd24c2000fdb4fd63709173afd1a263da9b654e084b80e020dab42c0c854d2f2"
+    },
+    "summary": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\summary.json",
+      "sha256": "80ddbdc033cae1d1ef2293e6eea24638a2842e7f50295f1b9b7f093c699bf92b"
+    },
+    "manifest": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\manifest.json",
+      "sha256": "71fcd29b43e6690658661846a6909418b8ed436179006894e5d17bbb18e3400c"
+    }
+  },
+  "independent_review": {
+    "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0-batch14-independent-qualification-r1\\independent-source-qualification-y-r1.json",
+    "sha256": "e6045d9b3ecc2c5ed6b46bcac1df93d1df19dc7d3ab161ea2c424ced5b192941"
+  },
+  "finding_atoms": 5,
+  "literal_finding_atoms": 5,
+  "unlabelled_finding_ordinals": 0,
+  "declared_gate_rows": 0,
+  "finding_status_counts": {
+    "confirmed_open": 4,
+    "narrowed_partial": 1
+  },
+  "gate_status_counts": {},
+  "captured_current_inputs": 38,
+  "current_input_mismatches": 0,
+  "whole_report_inventory_labels": {
+    "total_numbered_reports": 576,
+    "historically_source_observed_reports": 61,
+    "historically_unreviewed_reports": 515,
+    "source_observed_is_bounded_finding_evidence": true,
+    "whole_report_acceptance": false
+  },
+  "source_integrated": false,
+  "tests_run": 0,
+  "acceptance": "open",
+  "original_lower_upward_windows_product_performance_and_jenkins_gates": "open",
+  "historical_metadata_qualification": "Current38 inputs verified; authored summary30 and earlier db63 interval are retained, not proof of historical immutable seal. Runtime221 metadata only, report-qualified identity required for bare RT-AN overlaps."
+}

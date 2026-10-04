@@ -2,7 +2,7 @@
 use std::path::Component;
 use std::path::{Path, PathBuf};
 
-use crate::graphics::backend::{RenderBackend, read_texture_rgba};
+use crate::graphics::backend::{read_texture_rgba, RenderBackend};
 use crate::graphics::scene::scene_renderer::ui::render::text_decorations::ScreenSpaceUiTextDecorations;
 use crate::graphics::scene::scene_renderer::ui::render::text_effects::{
     ScreenSpaceUiTextEffects, ScreenSpaceUiTextGlow, ScreenSpaceUiTextOutline,
@@ -16,8 +16,8 @@ mod assertions;
 mod transforms;
 
 use assertions::{
-    FramebufferProof, assert_framebuffer_proof_is_outside_target,
-    framebuffer_proof_is_outside_target,
+    assert_framebuffer_proof_is_outside_target, framebuffer_proof_is_outside_target,
+    FramebufferProof,
 };
 use transforms::{perspective_about_clip_center, rotation_about_clip_center};
 
@@ -428,6 +428,7 @@ fn coordinator_target_root_is_approved(target_dir: &Path) -> bool {
         .is_some_and(|component| match component {
             Component::Prefix(prefix) => match prefix.kind() {
                 std::path::Prefix::Disk(letter) | std::path::Prefix::VerbatimDisk(letter) => {
+                    // BUG: [CR-R02-runtime_wave12_graphics_ui_atlas_sdf-0003] Windows 传入 D:\targets 等禁用目录仍获批准；这里只核对盘符，未核对盘根 cargo-targets，导出前校验会误报目录合规。
                     matches!(letter, b'D' | b'd' | b'E' | b'e' | b'F' | b'f')
                 }
                 _ => false,

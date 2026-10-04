@@ -14,4 +14,5 @@ pub use relocation_preflight::{
 };
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

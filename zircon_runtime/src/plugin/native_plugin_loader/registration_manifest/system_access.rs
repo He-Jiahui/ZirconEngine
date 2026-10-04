@@ -1,3 +1,6 @@
+//! 将原生注册清单中的访问声明编译为 ECS 调度冲突集。
+//! 清单解析先限制声明形式，注册前的 authority 校验所有权与授权，World 建立时才解析稳定 ID。
+
 use std::collections::BTreeMap;
 
 use serde::Deserialize;
@@ -17,6 +20,7 @@ pub(in crate::plugin::native_plugin_loader) use error::{
 pub(in crate::plugin::native_plugin_loader) const NATIVE_SYSTEM_WORKER_SAFE_CAPABILITY: &str =
     "runtime.native.system.worker_safe";
 
+/// 原生系统声明的线程契约；工作线程执行必须同时提供显式访问和宿主授予的能力。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub(in crate::plugin::native_plugin_loader) enum NativePluginRegistrationThreadAffinity {
@@ -53,6 +57,7 @@ pub(in crate::plugin::native_plugin_loader) struct NativeSystemAccessDeclaration
     pub(in crate::plugin::native_plugin_loader) stable_id: String,
 }
 
+/// 注册与调度之间传递的访问计划；稳定 ID 保留到具体 World 建立时再解析。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(in crate::plugin::native_plugin_loader) struct NativeSystemAccessPlan {
     affinity: SceneSystemThreadAffinity,
@@ -61,12 +66,14 @@ pub(in crate::plugin::native_plugin_loader) struct NativeSystemAccessPlan {
 }
 
 impl NativeSystemAccessPlan {
+    /// 解析主线程保守访问或显式组件/资源声明；工作线程缺少显式访问和声明能力时拒绝注册。
     pub(in crate::plugin::native_plugin_loader) fn from_manifest(
         thread_affinity: NativePluginRegistrationThreadAffinity,
         raw_access: &[String],
         capabilities: &[String],
     ) -> Result<Self, NativeSystemAccessContractError> {
         let affinity = thread_affinity.runtime_affinity();
+        // 旧清单未声明细粒度访问时按独占 World 参与调度，不能把它当作可并行系统。
         if raw_access.is_empty() || raw_access == ["write:world"] {
             if affinity == SceneSystemThreadAffinity::WorkerSafe {
                 return Err(NativeSystemAccessContractError::WorkerSafeRequiresExplicitAccess);
@@ -137,6 +144,8 @@ impl NativeSystemAccessPlan {
         self.conservative_world_access
     }
 
+    /// 注册闭包在具体 World 初始化期间把稳定 ID 解析为调度 ID；未安装的组件必须失败。
+    /// 资源 ID 是宿主状态的冲突身份，不表示此处在 World 中插入了资源值。
     pub(in crate::plugin::native_plugin_loader) fn compile(
         &self,
         world: &mut World,
@@ -245,72 +254,5 @@ fn invalid_declaration<T>(declaration: &str) -> Result<T, NativeSystemAccessCont
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::core::framework::scene::ComponentTypeDescriptor;
-
-    use super::*;
-
-    #[test]
-    fn native_system_access_authority_resolves_known_owned_ids() {
-        let plan = NativeSystemAccessPlan::from_manifest(
-            NativePluginRegistrationThreadAffinity::WorkerSafe,
-            &[
-                "read:component:physics.Body".to_string(),
-                "write:resource:physics.solver".to_string(),
-            ],
-            &[NATIVE_SYSTEM_WORKER_SAFE_CAPABILITY.to_string()],
-        )
-        .unwrap();
-        let authority = NativeSystemAccessAuthority::new(
-            "physics",
-            ["physics.Body".to_string()],
-            ["physics.solver".to_string()],
-            [NATIVE_SYSTEM_WORKER_SAFE_CAPABILITY.to_string()],
-        );
-        authority.authorize(&plan).unwrap();
-        let mut world = World::empty();
-        world
-            .register_component_type(ComponentTypeDescriptor::new(
-                "physics.Body",
-                "physics",
-                "Physics Body",
-            ))
-            .unwrap();
-
-        let access = plan.compile(&mut world).unwrap();
-
-        assert!(!access.has_conservative_world_access());
-        assert!(world
-            .registered_external_resource_id("physics.solver")
-            .is_some());
-    }
-
-    #[test]
-    fn native_system_access_authority_rejects_foreign_or_ungranted_worker_access() {
-        let plan = NativeSystemAccessPlan::from_manifest(
-            NativePluginRegistrationThreadAffinity::WorkerSafe,
-            &["read:component:render.Visible".to_string()],
-            &[NATIVE_SYSTEM_WORKER_SAFE_CAPABILITY.to_string()],
-        )
-        .unwrap();
-        let no_grants =
-            NativeSystemAccessAuthority::new("physics", ["render.Visible".to_string()], [], []);
-        assert!(matches!(
-            no_grants.authorize(&plan),
-            Err(NativeSystemAccessAuthorityError::WorkerSafeCapabilityNotGranted)
-        ));
-        let worker_only = NativeSystemAccessAuthority::new(
-            "physics",
-            ["render.Visible".to_string()],
-            [],
-            [NATIVE_SYSTEM_WORKER_SAFE_CAPABILITY.to_string()],
-        );
-        assert!(matches!(
-            worker_only.authorize(&plan),
-            Err(NativeSystemAccessAuthorityError::CapabilityNotGranted {
-                required_capability,
-                ..
-            }) if required_capability == "runtime.native.ecs.component.read.render.Visible"
-        ));
-    }
-}
+#[path = "tests/system_access.rs"]
+mod tests;

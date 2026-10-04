@@ -1,0 +1,217 @@
+{
+  "record_type": "w0_batch6_root_qualified_summary",
+  "qualified_at_utc": "2026-10-02T02:21:44.873198+00:00",
+  "review_rows": 18,
+  "crosswalk_edges": 17,
+  "prior_observations": 130,
+  "prior_unique_keys": 130,
+  "new_unique_keys": 14,
+  "refreshed_prior_keys": 4,
+  "projected_observations": 148,
+  "projected_unique_keys": 144,
+  "source_states": {
+    "narrowed_open": 8,
+    "confirmed_open": 10
+  },
+  "report_paths": 3,
+  "source_evidence_paths": 36,
+  "source_hashes": 34,
+  "missing_paths": [
+    "zircon_plugins/animation/runtime/src/ik/diagnostic.rs",
+    "zircon_plugins/animation/runtime/src/ik/execution_error.rs"
+  ],
+  "bounded_extra_test_source_paths": 8,
+  "inventory": {
+    "report_paths": 576,
+    "bounded_source_checked_report_paths": 61,
+    "unreviewed_report_paths": 515,
+    "status": "historical; not promoted by this batch"
+  },
+  "unreviewed_scope": "Other IDs/sections in these reports and all other inventory paths are not promoted by this batch.",
+  "tests_run": 0,
+  "cargo_submitted": false,
+  "source_written": false,
+  "finding_acceptance": "open",
+  "corrections_and_precise_gates": [
+    {
+      "qualified_key": "docs/plans/optimize/zircon_runtime/167-runtime-physics-current-working-tree-world-sync-jolt-fixed-step-query-event-ragdoll-review.md#PHY3-P1-001",
+      "metadata_corrections": [],
+      "root_rationale": "Production runtime_system calls tick_scene_world; world_sync scans node_records, computes capacities and rebuilds four vectors. Arc reuse in query readers does not remove producer full-scene work.",
+      "required_scenario_count": 2,
+      "reusable_test_count": 2
+    },
+    {
+      "qualified_key": "docs/plans/optimize/zircon_runtime/167-runtime-physics-current-working-tree-world-sync-jolt-fixed-step-query-event-ragdoll-review.md#PHY3-P1-002",
+      "metadata_corrections": [],
+      "root_rationale": "Manager still separates settings, clocks, snapshots, events, command queues and Jolt owners across shared maps; there is no single per-World owner/generation transaction in these spans.",
+      "required_scenario_count": 2,
+      "reusable_test_count": 1
+    },
+    {
+      "qualified_key": "docs/plans/optimize/zircon_runtime/167-runtime-physics-current-working-tree-world-sync-jolt-fixed-step-query-event-ragdoll-review.md#PHY3-P1-003",
+      "metadata_corrections": [],
+      "root_rationale": "advance_clock retains an accumulator/max_substeps path, while normal tick_scene_world calls fixed_update_step_plan with at most one step using incoming delta. FixedUpdate registration alone does not unify the clocks.",
+      "required_scenario_count": 2,
+      "reusable_test_count": 2
+    },
+    {
+      "qualified_key": "docs/plans/optimize/zircon_runtime/167-runtime-physics-current-working-tree-world-sync-jolt-fixed-step-query-event-ragdoll-review.md#PHY3-P1-004",
+      "metadata_corrections": [
+        {
+          "field": "working_tree_source_status",
+          "author_value": "confirmed_open",
+          "root_value": "narrowed_open"
+        }
+      ],
+      "root_rationale": "Current settings.rs persists through ConfigManager::set_value at 97-99 before clearing backend/commands or writing settings at 101-109. The historical memory-before-persist failure is source-repaired. Full validation, prepared rebuild and atomic generation publication remain absent in this entry; no execution acceptance is inferred.",
+      "required_scenario_count": 2,
+      "reusable_test_count": 1
+    },
+    {
+      "qualified_key": "docs/plans/optimize/zircon_runtime/167-runtime-physics-current-working-tree-world-sync-jolt-fixed-step-query-event-ragdoll-review.md#PHY3-P1-005",
+      "metadata_corrections": [],
+      "root_rationale": "synchronize_jolt_world holds a global Jolt map lock through native synchronize; record_jolt_error removes world/snapshot/event entries and stores a global error. Poison recovery tests do not prove the required per-World Faulted owner.",
+      "required_scenario_count": 2,
+      "reusable_test_count": 1
+    },
+    {
+      "qualified_key": "docs/plans/optimize/zircon_runtime/167-runtime-physics-current-working-tree-world-sync-jolt-fixed-step-query-event-ragdoll-review.md#PHY3-P1-006",
+      "metadata_corrections": [],
+      "root_rationale": "Level replacement epoch guards world mutation and snapshot publication, with an Arc snapshot and unchanged-value reuse. These spans do not carry one world/config/provider/body/tick receipt across separate Scene writeback/event and snapshot calls.",
+      "required_scenario_count": 2,
+      "reusable_test_count": 1
+    },
+    {
+      "qualified_key": "docs/plans/optimize/zircon_runtime/170-runtime-animation-current-working-tree-source-compiled-pose-skinning-ik-root-motion-event-editor-boundary-review.md#RT-AN-01",
+      "metadata_corrections": [
+        {
+          "field": "report_id",
+          "author_value": "Runtime221",
+          "root_value": "Runtime170"
+        }
+      ],
+      "root_rationale": "Builtin and plugin managers/modules remain distinct types. Within each module, the AnimationManager facade wraps that module's DefaultAnimationManager; it is not a second solver instance by itself. Source compiler products and plugin evaluator remain separate, with target activation/artifact parity unqualified.",
+      "required_scenario_count": 2,
+      "reusable_test_count": 2
+    },
+    {
+      "qualified_key": "docs/plans/optimize/zircon_runtime/170-runtime-animation-current-working-tree-source-compiled-pose-skinning-ik-root-motion-event-editor-boundary-review.md#RT-AN-02",
+      "metadata_corrections": [
+        {
+          "field": "report_id",
+          "author_value": "Runtime221",
+          "root_value": "Runtime170"
+        }
+      ],
+      "root_rationale": "Importer emits authored IBM as a detached Data subasset; plugin palette recomputes posed*bind.inverse and renderer independently does the same at skinning.rs 122-155. Pose-name reorder support is not mesh-joint remap or canonical IBM binding.",
+      "required_scenario_count": 2,
+      "reusable_test_count": 2
+    },
+    {
+      "qualified_key": "docs/plans/optimize/zircon_runtime/170-runtime-animation-current-working-tree-source-compiled-pose-skinning-ik-root-motion-event-editor-boundary-review.md#RT-AN-03",
+      "metadata_corrections": [
+        {
+          "field": "report_id",
+          "author_value": "Runtime221",
+          "root_value": "Runtime170"
+        }
+      ],
+      "root_rationale": "Hermite quaternion sampling uses slerp without tangents; glTF morph outputs are explicitly rejected. Typed channel dispatch and interval lookup exist, but do not qualify canonical cubic quaternion/compression/time semantics.",
+      "required_scenario_count": 2,
+      "reusable_test_count": 0
+    },
+    {
+      "qualified_key": "docs/plans/optimize/zircon_runtime/170-runtime-animation-current-working-tree-source-compiled-pose-skinning-ik-root-motion-event-editor-boundary-review.md#RT-AN-04",
+      "metadata_corrections": [
+        {
+          "field": "report_id",
+          "author_value": "Runtime221",
+          "root_value": "Runtime170"
+        }
+      ],
+      "root_rationale": "Registered PostUpdate runs a frame function with scene/resource scan, evaluation and multiple sequential publication phases. Existing deferred-entity restoration is reusable, but no unified per-World deadline/cancel/terminal worker receipt is established by these spans.",
+      "required_scenario_count": 2,
+      "reusable_test_count": 1
+    },
+    {
+      "qualified_key": "docs/plans/optimize/zircon_runtime/170-runtime-animation-current-working-tree-source-compiled-pose-skinning-ik-root-motion-event-editor-boundary-review.md#RT-AN-05",
+      "metadata_corrections": [
+        {
+          "field": "report_id",
+          "author_value": "Runtime221",
+          "root_value": "Runtime170"
+        }
+      ],
+      "root_rationale": "pose_apply writes scene transforms directly, guarded by replacement epoch; skeletal targets use normalized_weight=1.0. This guards replacement, but does not arbitrate animation/physics/IK/network/cinematic writer ownership or typed root motion.",
+      "required_scenario_count": 2,
+      "reusable_test_count": 2
+    },
+    {
+      "qualified_key": "docs/plans/optimize/zircon_runtime/170-runtime-animation-current-working-tree-source-compiled-pose-skinning-ik-root-motion-event-editor-boundary-review.md#RT-AN-06",
+      "metadata_corrections": [
+        {
+          "field": "report_id",
+          "author_value": "Runtime221",
+          "root_value": "Runtime170"
+        }
+      ],
+      "root_rationale": "Pure LookAt/TwoBone jobs and public exports exist; the two cited diagnostic paths are absent and no IK stage appears in the selected normal tick/runtime registration. Deleted files alone do not establish historical runtime regression; current production integration remains unqualified.",
+      "required_scenario_count": 2,
+      "reusable_test_count": 0
+    },
+    {
+      "qualified_key": "docs/plans/optimize/zircon_runtime/173-runtime-network-current-working-tree-authority-transport-session-rpc-replication-editor-boundary-review.md#NET-RT-001",
+      "metadata_corrections": [
+        {
+          "field": "working_tree_source_status",
+          "author_value": "confirmed_open",
+          "root_value": "narrowed_open"
+        }
+      ],
+      "root_rationale": "Current runtime catalog supplies Net root and, under base-runtime-plugins, HTTP and WebSocket feature registrations. App target and Editor catalog remain incomplete for the required six-feature/target product closure. It is inaccurate to claim all Net provider support is absent.",
+      "required_scenario_count": 2,
+      "reusable_test_count": 2
+    },
+    {
+      "qualified_key": "docs/plans/optimize/zircon_runtime/173-runtime-network-current-working-tree-authority-transport-session-rpc-replication-editor-boundary-review.md#NET-RT-002",
+      "metadata_corrections": [
+        {
+          "field": "working_tree_source_status",
+          "author_value": "confirmed_open",
+          "root_value": "narrowed_open"
+        }
+      ],
+      "root_rationale": "package.rs declares six optional bundles, but current catalog collector returns only HTTP and WebSocket. RPC/replication/reliable-UDP/content-download registration and dependency closure are still missing; the collector is not root-only anymore.",
+      "required_scenario_count": 2,
+      "reusable_test_count": 3
+    },
+    {
+      "qualified_key": "docs/plans/optimize/zircon_runtime/173-runtime-network-current-working-tree-authority-transport-session-rpc-replication-editor-boundary-review.md#NET-RT-003",
+      "metadata_corrections": [],
+      "root_rationale": "The Editor provider resolver dispatches Navigation/Neural and returns None for Net; runtime Net target declarations do not register an Editor provider.",
+      "required_scenario_count": 2,
+      "reusable_test_count": 0
+    },
+    {
+      "qualified_key": "docs/plans/optimize/zircon_runtime/173-runtime-network-current-working-tree-authority-transport-session-rpc-replication-editor-boundary-review.md#NET-RT-004",
+      "metadata_corrections": [],
+      "root_rationale": "HTTP/WebSocket resolve DefaultNetManager and install backends, so those factories are source-repaired. RPC/replication still construct private managers despite declared dependencies; exact shared root ownership across every feature remains open.",
+      "required_scenario_count": 2,
+      "reusable_test_count": 1
+    },
+    {
+      "qualified_key": "docs/plans/optimize/zircon_runtime/173-runtime-network-current-working-tree-authority-transport-session-rpc-replication-editor-boundary-review.md#NET-RT-005",
+      "metadata_corrections": [],
+      "root_rationale": "Root registers First ingress and Last egress anchors; egress is currently a no-op. RPC/replication files register managers only, not World feature systems. Root event publication is not the missing session/RPC/replication/download execution closure.",
+      "required_scenario_count": 2,
+      "reusable_test_count": 1
+    },
+    {
+      "qualified_key": "docs/plans/optimize/zircon_runtime/173-runtime-network-current-working-tree-authority-transport-session-rpc-replication-editor-boundary-review.md#NET-RT-006",
+      "metadata_corrections": [],
+      "root_rationale": "NetConfig explicitly documents unconsumed enabled/mode/budgets; package options are metadata and selected scene systems use fixed constants. No immutable validated effective activation snapshot is observed in this bounded chain.",
+      "required_scenario_count": 2,
+      "reusable_test_count": 1
+    }
+  ]
+}

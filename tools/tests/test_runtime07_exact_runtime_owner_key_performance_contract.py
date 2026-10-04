@@ -9,7 +9,7 @@ RUNTIME_CORE = (
     / "zircon_runtime/src/plugin/extension_registry/register/runtime_core.rs"
 )
 
-
+# 读取实现源码约束精确运行时归属键：运行时归属键预分配精确输出长度，并归属与模块注册共享运行时归属路径。
 class ExactRuntimeOwnerKeyPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

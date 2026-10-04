@@ -1,7 +1,11 @@
+// 调用端：tsx reference_full_trace_probe.ts --out <directory> [--all | scenarios]；职责：临时提升参考录制的采样帧为完整帧，并核对其投影后的 golden 形状。
+// 请求的场景核对并写入后，在 finally 中恢复录制器原型。
+
 import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+// BUG: [CR-M16-WOC-TOOLS-0001] 此处从实时检出目录导入场景，未绑定 golden 的固定提交；外来修改会改变探测执行。
 import { Recorder, record, SCENARIOS, type Trace } from '../../../dev/world-of-claudecraft/tests/parity/index.ts';
 
 const { values, positionals } = parseArgs({
@@ -23,6 +27,7 @@ const outputRoot = resolve(values.out);
 const projectRoot = resolve(import.meta.dirname, '..');
 mkdirSync(outputRoot, { recursive: true });
 
+// 只在本次探测期间改写录制器，使每个采样帧都包含玩家和实体状态。
 const prototype = Recorder.prototype as unknown as {
   pushFrame(label?: string, full?: boolean): void;
 };
@@ -56,6 +61,7 @@ try {
   prototype.pushFrame = originalPushFrame;
 }
 
+// 比较前移除签入的 golden 中不存在的字段，使完整录制匹配其预期形状。
 function projectGoldenShape(fullTrace: Trace, golden: Trace): Trace {
   const trace = structuredClone(fullTrace);
   for (let index = 0; index < trace.frames.length; index += 1) {

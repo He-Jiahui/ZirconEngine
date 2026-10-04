@@ -3,6 +3,8 @@ const INV_UINT_MAX_PLUS_ONE: f32 = 2.3283064365386963e-10;
 const FULL_ROUGHNESS_COSINE_THRESHOLD: f32 = 0.99;
 const FIS_SOLID_ANGLE_TEXEL_SCALE: f32 = 2.0;
 
+// 将源环境预滤波为按粗糙度选择 LOD 的镜面 PMREM；面偏移支持实时调度的部分六面切片。
+// 末级共同平均值是 CPU 制品契约，完整六面切片可只计算一次并广播。
 struct IblPrefilterParams {
     face_size: u32,
     mip_face_size: u32,

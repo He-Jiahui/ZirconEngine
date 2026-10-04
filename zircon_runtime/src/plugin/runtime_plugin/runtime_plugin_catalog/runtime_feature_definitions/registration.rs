@@ -4,6 +4,7 @@ use super::super::feature_definitions::FeatureDefinition;
 use super::super::RuntimePluginFeatureRegistrationReport;
 use super::conflict::append_package_registration_conflict;
 
+// 先按特性与提供者键拒绝重复运行时登记，避免为该重复项克隆清单；包声明冲突在构造定义后另行诊断。
 pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn merge_runtime_feature_registration(
     registration: &RuntimePluginFeatureRegistrationReport,
     definitions: &mut HashMap<String, FeatureDefinition>,
@@ -45,43 +46,5 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn merge_runtime_f
 }
 
 #[cfg(test)]
-mod optimization_tests {
-    #[test]
-    fn optimization_batch_20260830ek_runtime537_duplicate_registration_rejects_before_materialization(
-    ) {
-        let source = include_str!("registration.rs")
-            .split_once("#[cfg(test)]")
-            .expect("production/test boundary")
-            .0;
-        let key = source
-            .find("FeatureDefinition::key(")
-            .expect("registration key projection");
-        let duplicate_check = source
-            .find("registered_feature_ids.contains(&key)")
-            .expect("borrowed duplicate check");
-        let manifest_clone = source
-            .find("registration.manifest.clone()")
-            .expect("unique registration materialization");
-
-        assert!(key < duplicate_check);
-        assert!(duplicate_check < manifest_clone);
-        assert!(source.contains("FeatureDefinition::new_with_key("));
-    }
-
-    #[test]
-    #[ignore = "performance evidence"]
-    fn optimization_batch_20260830ek_runtime537_duplicate_registration_clone_evidence() {
-        const REGISTRATIONS: usize = 65_536;
-
-        let legacy_duplicate_manifest_clones = REGISTRATIONS - 1;
-        let optimized_duplicate_manifest_clones = 0usize;
-
-        assert_eq!(legacy_duplicate_manifest_clones, 65_535);
-        assert_eq!(optimized_duplicate_manifest_clones, 0);
-        println!(
-            "RUNTIME537_DUPLICATE_FEATURE_REGISTRATION_PREFLIGHT_BENCH_V1 \
-             legacy_duplicate_manifest_clones={legacy_duplicate_manifest_clones} \
-             optimized_duplicate_manifest_clones={optimized_duplicate_manifest_clones}"
-        );
-    }
-}
+#[path = "tests/registration_optimization_tests.rs"]
+mod optimization_tests;

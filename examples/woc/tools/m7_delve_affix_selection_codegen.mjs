@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码投影固定种子的英雄地下探索词缀池与选择向量，生成可核对的 JSON 和 Zr 内容。
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -26,6 +27,7 @@ const rulesPath = join(projectRoot, 'scripts', 'woc_game', 'src', 'instances', '
 const checkOnly = process.argv.includes('--check');
 
 main();
+// 投影源码选择器前核对种子、词缀池与向量哨兵值。
 function main() {
   const sourceManifest = JSON.parse(readFileSync(sourceManifestPath, 'utf8'));
   assert(sourceManifest.source_commit === SOURCE_COMMIT, 'Delve affix source manifest drifted');

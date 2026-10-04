@@ -11,7 +11,18 @@ pub(super) fn hierarchy_row_damage(
     if row_index < 0 {
         return None;
     }
-    let metrics = current_hierarchy_row_metrics();
+    hierarchy_row_damage_with_metrics(frame, row_index, scroll_px, current_hierarchy_row_metrics())
+}
+
+pub(super) fn hierarchy_row_damage_with_metrics(
+    frame: &FrameRect,
+    row_index: i32,
+    scroll_px: f32,
+    metrics: crate::ui::retained_host::hierarchy_pointer::HierarchyRowMetrics,
+) -> Option<FrameRect> {
+    if row_index < 0 {
+        return None;
+    }
     Some(FrameRect {
         x: frame.x + metrics.row_x,
         y: frame.y + hierarchy_row_y(metrics, row_index as usize, scroll_px),

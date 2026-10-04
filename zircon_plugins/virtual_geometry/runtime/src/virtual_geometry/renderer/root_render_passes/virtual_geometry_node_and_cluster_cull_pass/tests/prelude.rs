@@ -44,14 +44,15 @@ impl RenderBackend {
         }))
         .map_err(|_| GraphicsError::NoAdapter)?;
         let requested_features = adapter.features() & wgpu::Features::INDIRECT_FIRST_INSTANCE;
-        let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
-            label: Some("zircon-vg-node-and-cluster-cull-test-device"),
-            required_features: requested_features,
-            required_limits: wgpu::Limits::default(),
-            memory_hints: wgpu::MemoryHints::Performance,
-            trace: wgpu::Trace::Off,
-            experimental_features: wgpu::ExperimentalFeatures::disabled(),
-        }))?;
+        let (device, queue) =
+            pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
+                label: Some("zircon-vg-node-and-cluster-cull-test-device"),
+                required_features: requested_features,
+                required_limits: wgpu::Limits::default(),
+                memory_hints: wgpu::MemoryHints::Performance,
+                trace: wgpu::Trace::Off,
+                experimental_features: wgpu::ExperimentalFeatures::disabled(),
+            }))?;
 
         Ok(Self {
             _instance: instance,

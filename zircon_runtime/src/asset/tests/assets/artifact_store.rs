@@ -59,7 +59,7 @@ fn artifact_store_streams_compressed_bytes_into_final_payload() {
     assert!(residency_source.contains("struct ArtifactChunkResidency"));
     assert!(source.contains("pub fn open_chunk_inventory"));
     assert!(source.contains("pub fn read_compressed_chunk"));
-    assert!(source.contains("atomic_write(&artifact_path"));
+    assert!(source.contains("atomic_write(&prepared.artifact_path, &prepared.payload)?;"));
     assert!(source.contains("file.metadata()?.len() != expected_bytes"));
     assert!(source.contains("revision: metadata.revision"));
     assert!(source.contains("ARTIFACT_MANIFEST_SCHEMA_VERSION: u32 = 6"));
@@ -564,7 +564,9 @@ fn artifact_store_verifies_final_manifest_chunk_after_payload_deserializes() {
     fs::write(&manifest_path, rewritten).unwrap();
 
     assert_eq!(store.read(&paths, &artifact_uri).unwrap(), asset);
-    fs::write(final_chunk_path, b"corrupt final chunk").unwrap();
+    fs::write(final_chunk_path, vec![0; empty_frame.len()]).unwrap();
+    assert_eq!(store.read(&paths, &artifact_uri).unwrap(), asset);
+    store.trim_chunk_residency().unwrap();
     assert!(store.read(&paths, &artifact_uri).is_err());
 
     let _ = fs::remove_dir_all(root);

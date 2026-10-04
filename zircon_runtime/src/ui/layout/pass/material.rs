@@ -68,6 +68,8 @@ impl MaterialLayoutMetrics {
     }
 }
 
+/// 在叶内容测量后补充组件皮肤声明的空间需求；无已知组件或无作者指标时返回 None。
+/// 这里只影响期望尺寸，不选择绘制皮肤，也不从视觉内容反推作者未声明的外边距。
 pub(super) fn measure_material_content(
     metadata: Option<&UiTemplateNodeMetadata>,
     content: UiSize,
@@ -147,5 +149,5 @@ fn value_as_f32(value: &Value) -> Option<f32> {
 }
 
 #[cfg(test)]
-#[path = "material/single_pass_tests.rs"]
+#[path = "material/tests/single_pass_tests.rs"]
 mod single_pass_tests;

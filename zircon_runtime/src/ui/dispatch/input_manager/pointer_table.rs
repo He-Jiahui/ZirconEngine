@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use zircon_runtime_interface::ui::{
     dispatch::{UiPointerId, UiPointerSource},
     event_ui::UiNodeId,
@@ -12,6 +14,12 @@ const POINTER_BUTTON_MIDDLE_MASK: u8 = 0b100;
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UiActivePointerTable {
     entries: Vec<UiActivePointerEntry>,
+    indices_by_pointer_id: HashMap<UiPointerId, usize>,
+    // Primary touch/pen membership is queried for every newly-seen pointer.
+    // Keep the small source-specific counters beside the ordered table so that
+    // admitting a pointer does not rescan all active entries.
+    primary_touch_count: usize,
+    primary_pen_count: usize,
 }
 
 impl UiActivePointerTable {
@@ -20,15 +28,23 @@ impl UiActivePointerTable {
     }
 
     pub fn entry(&self, pointer_id: UiPointerId) -> Option<&UiActivePointerEntry> {
-        self.entries
-            .iter()
-            .find(|entry| entry.pointer_id == pointer_id)
+        let index = self.indices_by_pointer_id.get(&pointer_id).copied()?;
+        self.entries.get(index)
     }
 
     pub fn entry_mut(&mut self, pointer_id: UiPointerId) -> Option<&mut UiActivePointerEntry> {
-        self.entries
-            .iter_mut()
-            .find(|entry| entry.pointer_id == pointer_id)
+        let index = self.indices_by_pointer_id.get(&pointer_id).copied()?;
+        self.entries.get_mut(index)
+    }
+
+    /// Reports primary membership for sources that participate in touch-like
+    /// arbitration; Mouse and Unknown intentionally bypass this check.
+    pub fn has_primary_for_source(&self, source: UiPointerSource) -> bool {
+        match source {
+            UiPointerSource::Touch => self.primary_touch_count != 0,
+            UiPointerSource::Pen => self.primary_pen_count != 0,
+            UiPointerSource::Mouse | UiPointerSource::Unknown => false,
+        }
     }
 
     pub fn upsert(
@@ -37,17 +53,24 @@ impl UiActivePointerTable {
         source: UiPointerSource,
         is_primary: bool,
     ) -> &mut UiActivePointerEntry {
-        if let Some(index) = self
-            .entries
-            .iter()
-            .position(|entry| entry.pointer_id == pointer_id)
-        {
+        if let Some(index) = self.indices_by_pointer_id.get(&pointer_id).copied() {
+            let (previous_source, previous_is_primary) = {
+                let entry = &self.entries[index];
+                (entry.source, entry.is_primary)
+            };
+            if previous_is_primary && (previous_source != source || !is_primary) {
+                self.remove_primary_source(previous_source);
+            }
+            if is_primary && (previous_source != source || !previous_is_primary) {
+                self.add_primary_source(source);
+            }
             let entry = &mut self.entries[index];
             entry.source = source;
             entry.is_primary = is_primary;
             return entry;
         }
 
+        let index = self.entries.len();
         self.entries.push(UiActivePointerEntry {
             pointer_id,
             source,
@@ -58,19 +81,55 @@ impl UiActivePointerTable {
             capture_target: None,
             is_primary,
         });
-        self.entries.last_mut().expect("entry was just pushed")
+        self.indices_by_pointer_id.insert(pointer_id, index);
+        if is_primary {
+            self.add_primary_source(source);
+        }
+        self.entries.get_mut(index).expect("entry was just pushed")
     }
 
     pub fn remove(&mut self, pointer_id: UiPointerId) -> Option<UiActivePointerEntry> {
-        let index = self
-            .entries
-            .iter()
-            .position(|entry| entry.pointer_id == pointer_id)?;
-        Some(self.entries.remove(index))
+        let index = self.indices_by_pointer_id.remove(&pointer_id)?;
+        let removed = self.entries.remove(index);
+        if removed.is_primary {
+            self.remove_primary_source(removed.source);
+        }
+        for (moved_index, moved_entry) in self.entries.iter().enumerate().skip(index) {
+            self.indices_by_pointer_id
+                .insert(moved_entry.pointer_id, moved_index);
+        }
+        Some(removed)
     }
 
     pub fn clear(&mut self) {
         self.entries.clear();
+        self.indices_by_pointer_id.clear();
+        self.primary_touch_count = 0;
+        self.primary_pen_count = 0;
+    }
+
+    fn add_primary_source(&mut self, source: UiPointerSource) {
+        match source {
+            UiPointerSource::Touch => {
+                self.primary_touch_count = self.primary_touch_count.saturating_add(1);
+            }
+            UiPointerSource::Pen => {
+                self.primary_pen_count = self.primary_pen_count.saturating_add(1);
+            }
+            UiPointerSource::Mouse | UiPointerSource::Unknown => {}
+        }
+    }
+
+    fn remove_primary_source(&mut self, source: UiPointerSource) {
+        match source {
+            UiPointerSource::Touch => {
+                self.primary_touch_count = self.primary_touch_count.saturating_sub(1);
+            }
+            UiPointerSource::Pen => {
+                self.primary_pen_count = self.primary_pen_count.saturating_sub(1);
+            }
+            UiPointerSource::Mouse | UiPointerSource::Unknown => {}
+        }
     }
 
     pub fn record_point(&mut self, pointer_id: UiPointerId, point: UiPoint) {
@@ -157,90 +216,13 @@ fn pointer_button_mask(button: Option<UiPointerButton>) -> Option<u8> {
 }
 
 #[cfg(test)]
-mod tests {
-    use zircon_runtime_interface::ui::{
-        dispatch::{UiPointerId, UiPointerSource},
-        event_ui::UiNodeId,
-        layout::UiPoint,
-        surface::UiPointerButton,
-    };
-
-    use super::UiActivePointerTable;
-
-    #[test]
-    fn active_pointer_table_keeps_hover_press_and_capture_per_pointer() {
-        let first_pointer = UiPointerId::new(1);
-        let second_pointer = UiPointerId::new(2);
-        let mut table = UiActivePointerTable::default();
-
-        table.upsert(first_pointer, UiPointerSource::Touch, true);
-        table.record_point(first_pointer, UiPoint::new(10.0, 12.0));
-        table.set_hovered_path(first_pointer, vec![UiNodeId::new(3), UiNodeId::new(1)]);
-        table.press_button(
-            first_pointer,
-            Some(UiPointerButton::Primary),
-            Some(UiNodeId::new(3)),
-        );
-        table.set_capture_target(first_pointer, Some(UiNodeId::new(3)));
-
-        table.upsert(second_pointer, UiPointerSource::Touch, false);
-        table.record_point(second_pointer, UiPoint::new(80.0, 18.0));
-        table.set_hovered_path(second_pointer, vec![UiNodeId::new(4), UiNodeId::new(1)]);
-        table.press_button(
-            second_pointer,
-            Some(UiPointerButton::Primary),
-            Some(UiNodeId::new(4)),
-        );
-        table.set_capture_target(second_pointer, Some(UiNodeId::new(4)));
-
-        let first = table.entry(first_pointer).unwrap();
-        assert_eq!(first.last_point, Some(UiPoint::new(10.0, 12.0)));
-        assert_eq!(first.hovered, vec![UiNodeId::new(3), UiNodeId::new(1)]);
-        assert_eq!(first.pressed_buttons, 0b001);
-        assert_eq!(first.pressed_target, Some(UiNodeId::new(3)));
-        assert_eq!(first.capture_target, Some(UiNodeId::new(3)));
-        assert!(first.is_primary);
-
-        let second = table.entry(second_pointer).unwrap();
-        assert_eq!(second.last_point, Some(UiPoint::new(80.0, 18.0)));
-        assert_eq!(second.hovered, vec![UiNodeId::new(4), UiNodeId::new(1)]);
-        assert_eq!(second.pressed_buttons, 0b001);
-        assert_eq!(second.pressed_target, Some(UiNodeId::new(4)));
-        assert_eq!(second.capture_target, Some(UiNodeId::new(4)));
-        assert!(!second.is_primary);
-    }
-
-    #[test]
-    fn active_pointer_table_release_clears_only_matching_pointer_button_state() {
-        let first_pointer = UiPointerId::new(1);
-        let second_pointer = UiPointerId::new(2);
-        let mut table = UiActivePointerTable::default();
-
-        table.upsert(first_pointer, UiPointerSource::Mouse, true);
-        table.upsert(second_pointer, UiPointerSource::Mouse, false);
-        table.press_button(
-            first_pointer,
-            Some(UiPointerButton::Primary),
-            Some(UiNodeId::new(3)),
-        );
-        table.press_button(
-            second_pointer,
-            Some(UiPointerButton::Primary),
-            Some(UiNodeId::new(4)),
-        );
-
-        table.release_button(first_pointer, Some(UiPointerButton::Primary));
-
-        assert_eq!(table.entry(first_pointer).unwrap().pressed_buttons, 0);
-        assert_eq!(table.entry(first_pointer).unwrap().pressed_target, None);
-        assert_eq!(table.entry(second_pointer).unwrap().pressed_buttons, 0b001);
-        assert_eq!(
-            table.entry(second_pointer).unwrap().pressed_target,
-            Some(UiNodeId::new(4))
-        );
-    }
-}
+#[path = "tests/pointer_table.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "pointer_table/hovered_path_tests.rs"]
+#[path = "pointer_table/tests/hovered_path_tests.rs"]
 mod hovered_path_tests;
+
+#[cfg(test)]
+#[path = "pointer_table/tests/index_tests.rs"]
+mod index_tests;

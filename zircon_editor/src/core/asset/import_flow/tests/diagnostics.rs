@@ -247,7 +247,7 @@ fn pending_model_cancel_projects_one_warning_without_result_observation() {
     blocker.wait().unwrap();
 
     assert!(matches!(result, Err(JobError::Cancelled)));
-    assert_eq!(ticket.try_take(), None);
+    assert!(ticket.try_take().is_none());
     let records = import_records(logs.as_ref());
     assert_eq!(records.len(), 1);
 }

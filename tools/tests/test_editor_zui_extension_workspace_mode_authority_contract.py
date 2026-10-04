@@ -1,3 +1,4 @@
+# 核对扩展工作区移除无独立内容栈的标签状态。
 import re
 import tomllib
 import unittest

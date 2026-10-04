@@ -21,5 +21,5 @@ pub use plan::FullscreenPassPlan;
 pub use shader_ref::FullscreenShaderRef;
 
 #[cfg(test)]
-#[path = "fullscreen_pass/tests.rs"]
+#[path = "fullscreen_pass/tests/cases.rs"]
 mod tests;

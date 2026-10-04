@@ -1,12 +1,13 @@
 use super::*;
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0073] 延迟光照包含源的内建和自定义分派的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_deferred_lighting_include_source_dispatch_is_owned() {
     let lighting_shader_source = read_runtime_src(
         "graphics/scene/scene_renderer/deferred/lighting_pipeline/shader_source.rs",
     );
     let lighting_tests =
-        read_runtime_src("graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs");
+        read_runtime_src("graphics/scene/scene_renderer/deferred/lighting_pipeline/tests/cases.rs");
     let deferred_lighting_wgsl =
         read_runtime_src("graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl");
     let standard_pbr_include =

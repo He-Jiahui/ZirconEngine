@@ -33,9 +33,11 @@ lookups of the same complete ID.
 | Document payload clones | 0 | 0 |
 | Ordered traversal-policy changes | 0 | 0 |
 
-The ignored release gate runs 17 alternating sample pairs and emits
-`RUNTIME74_UI_V2_PROTOTYPE_HASH_INDEX_BENCH_V1`. Acceptance requires hash lookup P95 to be at least
-30% below ordered lookup. Exact Windows P50/P95 timings remain pending the coordinator run.
+The ignored Release probe now runs 101 alternating sample pairs and emits
+`RUNTIME74_UI_V2_PROTOTYPE_HASH_INDEX_BENCH_V1` with raw nearest-rank P50/P95/P99 values and
+balanced 51/50 first-order counts. Product acceptance still requires the complete prototype
+lookup caller under managed Windows validation and hash lookup P95 at least 30% below ordered
+lookup.
 
 ## Acceptance
 
@@ -43,7 +45,7 @@ The ignored release gate runs 17 alternating sample pairs and emits
   canonical lookup, alias lookup, Arc identity, and ordered document iteration.
 - `optimization_batch_20260826bq_ui_v2_prototype_hash_index_keeps_indexes_in_sync` covers alias
   replacement and complete synchronization between the ordered authority and hash index.
-- `optimization_batch_20260826bq_ui_v2_prototype_hash_index_p95` reports paired release P50/P95
+- `optimization_batch_20260826bq_ui_v2_prototype_hash_index_p95` reports paired release P50/P95/P99
   samples and enforces the 30% P95 reduction gate.
 
 ## Remaining Parent-plan Work

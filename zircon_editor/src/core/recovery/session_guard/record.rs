@@ -1,13 +1,13 @@
-use std::fs;
-use std::io;
+use std::fs::File;
+use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_runtime_interface::project::session_lock::{
-    PROJECT_SESSION_LOCK_FILE_NAME, ProjectSessionGenerationV1,
     decode_project_session_admission_record, encode_project_session_admission_record,
-    project_session_lock_path,
+    project_session_lock_path, ProjectSessionGenerationV1,
+    MAX_PROJECT_SESSION_ADMISSION_RECORD_BYTES, PROJECT_SESSION_LOCK_FILE_NAME,
 };
 
 use super::{SessionAdmissionRequest, SessionGuardError};
@@ -71,8 +71,8 @@ pub(super) fn inspect_lock(path: &Path) -> Result<SessionLockInspection, Session
 pub(super) fn read_lock(
     path: &Path,
 ) -> Result<Option<ProjectSessionAdmissionRecordV1>, SessionGuardError> {
-    let source = match fs::read_to_string(path) {
-        Ok(source) => source,
+    let file = match File::open(path) {
+        Ok(file) => file,
         Err(source) if source.kind() == io::ErrorKind::NotFound => return Ok(None),
         Err(source) => {
             return Err(SessionGuardError::Io {
@@ -82,6 +82,29 @@ pub(super) fn read_lock(
             });
         }
     };
+
+    let mut bytes = Vec::new();
+    file.take((MAX_PROJECT_SESSION_ADMISSION_RECORD_BYTES + 1) as u64)
+        .read_to_end(&mut bytes)
+        .map_err(|source| SessionGuardError::Io {
+            operation: "read session lock",
+            path: path.to_path_buf(),
+            source,
+        })?;
+    if bytes.len() > MAX_PROJECT_SESSION_ADMISSION_RECORD_BYTES {
+        return Err(SessionGuardError::InvalidRecord {
+            path: path.to_path_buf(),
+            message: format!(
+                "session lock exceeds the {MAX_PROJECT_SESSION_ADMISSION_RECORD_BYTES}-byte limit"
+            ),
+        });
+    }
+    let source = String::from_utf8(bytes).map_err(|source| SessionGuardError::Io {
+        operation: "read session lock",
+        path: path.to_path_buf(),
+        source: io::Error::new(io::ErrorKind::InvalidData, source.utf8_error()),
+    })?;
+
     decode_project_session_admission_record(&source)
         .map(Some)
         .map_err(|source| SessionGuardError::InvalidRecord {

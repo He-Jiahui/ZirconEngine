@@ -51,7 +51,7 @@ The other three runs produced P50 reductions of 91.34%, 90.95%, and 90.90%; P95 
 - Current session: `root-runtime-interface03-activate-link-failure-20260831`.
 - Shared static/model ticket: `4c6aa5481e1440819e427ac1568979ab` (queued, 20 Python tests).
 - Plugins12 Cargo behavior ticket: `0497da2f7bfd47e0bc66108bb2631eaf` (queued; exact owned-projection test).
-- Shared model: `tools/plugins_projection_sort_discovery_pressure.py`, source manifest `ECAB605B9EC8C342B696C4CEB59AE2FB270F75976140B7086BFDD497CC18CC05`.
+- Shared model: `tools/analysis/performance/plugins/plugins_projection_sort_discovery_pressure.py`, source manifest `ECAB605B9EC8C342B696C4CEB59AE2FB270F75976140B7086BFDD497CC18CC05`.
 - Current source hashes: `world_sync.rs` `3FE13312870C08CEB0BC275ABB61A7039FCA88C1FCE48315612397FD4C3863FA`; shared model `2F51A8F953D139FE68E7DB1AB87653DFCC769DA01571BC6CC429040974D34323`.
 
 The current-source model is deterministic structural evidence, not wall-clock timing. For 65,536 dense physics nodes it preserves one snapshot capture and 65,536 projection visits, adds the explicit 65,536-row capacity count, presizes four outputs, and changes modeled nested payload clones `196,608 -> 0` into `196,608` ownership moves. Historical alternating release evidence remains the performance claim: P50 `57.4550 -> 5.3678 ms` (`-90.66%`), P95 `90.9359 -> 14.8975 ms` (`-83.62%`), allocations `196,653 -> 3` (`-99.998474%`), checksum `6649329941810118656`.

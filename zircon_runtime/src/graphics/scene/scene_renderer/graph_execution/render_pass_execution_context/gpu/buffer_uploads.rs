@@ -10,6 +10,8 @@ pub struct RenderPassBufferUploadRecorder<'a> {
     uploads: &'a mut WgpuBufferUploadBatch,
 }
 
+/// 插件可接收的最小 CPU 上传能力，使准备阶段与 pass 录制共享写入接口。
+/// 生产 recorder 收集写入供图命令前提交；实际写入时机由实现决定，调用方无法经此接口取得队列或提交权限。
 pub trait RenderPassBufferUploadSink {
     fn write_buffer(&mut self, buffer: &wgpu::Buffer, offset: u64, bytes: &[u8]);
 }
@@ -74,22 +76,5 @@ impl RenderPassGpuExecutionContext<'_> {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn temporal_and_bloom_passes_append_pre_submit_uploads_to_the_pass_context() {
-        let temporal = include_str!("post_process/temporal.rs");
-        let effects = include_str!("post_process/effects.rs");
-
-        let taa = temporal
-            .find("execute_taa_resolve(")
-            .expect("TAA executor call");
-        let velocity = temporal
-            .find("execute_velocity_camera(")
-            .expect("velocity executor call");
-        assert!(temporal[taa..velocity].contains("self.append_pre_submit_buffer_uploads("));
-        assert!(temporal[velocity..].contains("self.append_pre_submit_buffer_uploads("));
-
-        let bloom = effects.find("execute_bloom(").expect("bloom executor call");
-        assert!(effects[bloom..].contains("self.append_pre_submit_buffer_uploads("));
-    }
-}
+#[path = "tests/buffer_uploads.rs"]
+mod tests;

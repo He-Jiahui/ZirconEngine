@@ -12,9 +12,7 @@ impl UiHostWindow {
             } else {
                 blocker.overlay_frame.clone()
             };
-            state.update_host_presentation(|presentation| {
-                presentation.asset_deletion_blocker = blocker;
-            });
+            state.replace_asset_deletion_blocker(blocker);
             damage
         };
         self.queue_external_redraw(HostRedrawRequest::region(damage));

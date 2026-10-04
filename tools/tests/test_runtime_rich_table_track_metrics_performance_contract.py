@@ -8,7 +8,7 @@ CELL_LAYOUT = ROOT / (
 )
 LAYOUT = ROOT / "zircon_runtime/src/ui/text/layout_engine/rich_table/layout.rs"
 
-
+# 读取富文本表格轨道指标，确认间距几何由单一权威计算并供各布局阶段复用。
 class RuntimeRichTableTrackMetricsPerformanceContract(unittest.TestCase):
     def test_one_track_metrics_authority_owns_gap_aware_geometry(self) -> None:
         source = CELL_LAYOUT.read_text(encoding="utf-8")

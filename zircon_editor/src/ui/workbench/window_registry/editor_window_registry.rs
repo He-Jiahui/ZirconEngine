@@ -12,9 +12,11 @@ use super::{
 };
 
 #[cfg(test)]
+#[path = "editor_window_registry/tests/optimization_tests.rs"]
 mod optimization_tests;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
+/// 权威布局的派生窗口索引；生产通过整轮sync重建，不应拿局部登记代替布局提交。
 pub struct EditorWindowRegistry {
     active_window: Option<ActivityWindowId>,
     windows: BTreeMap<ActivityWindowId, WindowInstance>,
@@ -30,6 +32,8 @@ impl EditorWindowRegistry {
         self.windows.insert(window.window_id.clone(), window);
     }
 
+    // TODO: [CR-EDITOR-WORKBENCH-0008] 明确重复登记同一抽屉实例的限制；换owner或槽位时这里只覆盖实例索引，旧窗口列表与选择未清理，应使用重绑入口或拒绝迁移。
+    /// 登记已存在且具抽屉能力的窗口归属；跨owner或槽迁移应使用bind_drawer保持双向索引一致。
     pub fn register_drawer_view(&mut self, drawer: DrawerViewInstance) -> Result<(), String> {
         let window = self
             .windows
@@ -62,6 +66,7 @@ impl EditorWindowRegistry {
         self.drawer_windows.insert(window.window_id.clone(), window);
     }
 
+    /// 先核验目标，再原地同步旧窗口、目标窗口和实例归属；失败不得部分解绑。
     pub fn bind_drawer(&mut self, binding: DrawerBinding) -> Result<(), String> {
         let DrawerBinding {
             window_id,
@@ -129,6 +134,7 @@ impl EditorWindowRegistry {
             .and_then(|window_id| self.windows.get(window_id))
     }
 
+    /// 派生索引中不存在的窗口使活动身份清空，调用方不能据此创建新布局窗口。
     pub fn activate_window(&mut self, window_id: ActivityWindowId) {
         self.active_window = self.windows.contains_key(&window_id).then_some(window_id);
     }
@@ -139,6 +145,7 @@ impl EditorWindowRegistry {
         self.drawer_views.get(selected)
     }
 
+    /// 从已提交layout与实例表重建派生索引；折叠抽屉保留登记，只取消选中态。
     pub fn sync_from_layout(layout: &WorkbenchLayout, instances: &[ViewInstance]) -> Self {
         let mut registry = Self::default();
         let instances = instances_by_id(instances);
@@ -178,6 +185,7 @@ impl EditorWindowRegistry {
     }
 }
 
+/// 仅识别明确的分离抽屉浮窗身份，普通文档浮窗不投影成抽屉窗口。
 fn sync_detached_drawer_window(
     registry: &mut EditorWindowRegistry,
     window: &FloatingWindowLayout,
@@ -288,18 +296,5 @@ fn instances_by_id(instances: &[ViewInstance]) -> HashMap<&str, &ViewInstance> {
 }
 
 #[cfg(test)]
-mod performance_tests {
-    #[test]
-    fn window_registry_indexes_instances_without_cloning_rows() {
-        let source = include_str!("editor_window_registry.rs");
-        let index = source
-            .split("fn instances_by_id")
-            .nth(1)
-            .expect("instances_by_id body")
-            .split("#[cfg(test)]")
-            .next()
-            .expect("instances_by_id implementation");
-        assert!(!index.contains(".cloned()"));
-        assert!(index.contains("&ViewInstance"));
-    }
-}
+#[path = "tests/editor_window_registry_performance_tests.rs"]
+mod performance_tests;

@@ -107,20 +107,20 @@ class EditorTestInfrastructurePerformanceContractTests(unittest.TestCase):
         )
 
         direct_parser_users = []
-        governance_files = list(governance_root.glob("*.rs"))
-        governance_files.append(governance_root.parent / "zui_asset_governance.rs")
+        governance_files = sorted(governance_root.rglob("*.rs"))
+        self.assertTrue(governance_files, "governance test sources must exist")
         for path in governance_files:
-            if path.name == "support.rs":
+            if path == governance_root / "support.rs":
                 continue
             source = path.read_text(encoding="utf-8")
             if "UiZuiAssetLoader::load_zui_str" in source:
-                direct_parser_users.append(path.name)
+                direct_parser_users.append(path.relative_to(governance_root).as_posix())
         self.assertEqual(direct_parser_users, [])
 
     def test_material_surface_import_graph_uses_set_membership(self) -> None:
         source = (
             ROOT
-            / "zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs"
+            / "zircon_editor/src/tests/ui/boundary/global_material_surface_assets/support.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn("let mut visited = BTreeSet::new()", source)

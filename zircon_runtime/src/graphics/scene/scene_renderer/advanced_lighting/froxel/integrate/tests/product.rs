@@ -10,15 +10,15 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{Mat4, UVec2, Vec3, Vec4};
 
-use super::super::super::GpuFroxelTemporalReprojection;
 use super::super::super::light_scatter::{FroxelLightScatterPipeline, FroxelLightScatterRequest};
 use super::super::super::media_inject::{FroxelMediaInjectPipeline, FroxelMediaInjectRequest};
+use super::super::super::GpuFroxelTemporalReprojection;
 use super::super::{FroxelIntegratePipeline, FroxelIntegrateRequest};
 use super::fixture::{
-    READBACK_BYTES_PER_ROW, TEST_GRID, TEST_OUTPUT, TEST_SHADOW_OCCLUDER_DEPTH,
-    TEST_SHADOWED_RECEIVER_DEPTH, clear_shadow_atlas, create_lighting_resources,
-    create_rgba16f_3d_texture, create_shadow_resources, d3_view_descriptor, test_froxel_view,
-    write_shadow_occluder_depth,
+    clear_shadow_atlas, create_lighting_resources, create_rgba16f_3d_texture,
+    create_shadow_resources, d3_view_descriptor, test_froxel_view, write_shadow_occluder_depth,
+    READBACK_BYTES_PER_ROW, TEST_GRID, TEST_OUTPUT, TEST_SHADOWED_RECEIVER_DEPTH,
+    TEST_SHADOW_OCCLUDER_DEPTH,
 };
 use super::support::{f16_bits_to_f32, render_test_output_dir, test_device, write_output_png};
 
@@ -203,7 +203,11 @@ fn run_volumetric_chain(
                     false,
                     false,
                 ),
-                light_buffer: &lighting.light_buffer,
+                light_buffer: wgpu::BufferBinding {
+                    buffer: &lighting.light_buffer,
+                    offset: 0,
+                    size: None,
+                },
                 light_count: 1,
                 light_grid_params_buffer: wgpu::BufferBinding {
                     buffer: &lighting.params_buffer,

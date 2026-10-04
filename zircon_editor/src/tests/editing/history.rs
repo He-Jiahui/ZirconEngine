@@ -55,22 +55,33 @@ fn scene_command_capture_does_not_mutate_and_uses_transaction_history() {
 #[test]
 fn undo_redo_restores_created_nodes() {
     let mut state = test_state();
-    let initial_count = state.world.snapshot().node_records().len();
+    let initial_count = state
+        .world
+        .expect_with_world(|scene| scene.node_records().len());
 
     assert!(state
         .apply_intent(EditorIntent::CreateNode(NodeKind::Cube))
         .unwrap());
     assert_eq!(
-        state.world.snapshot().node_records().len(),
+        state
+            .world
+            .expect_with_world(|scene| scene.node_records().len()),
         initial_count + 1
     );
 
     assert!(state.apply_intent(EditorIntent::Undo).unwrap());
-    assert_eq!(state.world.snapshot().node_records().len(), initial_count);
+    assert_eq!(
+        state
+            .world
+            .expect_with_world(|scene| scene.node_records().len()),
+        initial_count
+    );
 
     assert!(state.apply_intent(EditorIntent::Redo).unwrap());
     assert_eq!(
-        state.world.snapshot().node_records().len(),
+        state
+            .world
+            .expect_with_world(|scene| scene.node_records().len()),
         initial_count + 1
     );
 }
@@ -252,7 +263,9 @@ fn editor_snapshot_reuses_the_hierarchy_view_at_thousand_nodes() {
     const NODE_COUNT: usize = 1_000;
 
     let mut state = test_state();
-    let existing_count = state.world.snapshot().node_records().len();
+    let existing_count = state
+        .world
+        .expect_with_world(|scene| scene.node_records().len());
     state.world.expect_with_world_mut(|scene| {
         for _ in existing_count..NODE_COUNT {
             scene

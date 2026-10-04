@@ -11,6 +11,7 @@ const PAYLOAD_HEADER_WORD_COUNT: usize = 7;
 const PAYLOAD_ITEM_WORD_COUNT: usize = 4;
 const MAX_U32_DECIMAL_DIGITS: usize = 10;
 
+/// 汇总层级、页依赖和解释性载荷以定位烘焙关系；输出是诊断文本而非可回读资产格式。
 pub fn format_virtual_geometry_cook_inspection_dump(asset: &VirtualGeometryAsset) -> String {
     let mut dump = String::new();
     let payload_byte_count = asset.cluster_page_data.iter().map(Vec::len).sum::<usize>();
@@ -233,6 +234,7 @@ fn write_page(
         ),
     );
 
+    // 允许检查缺失或截断的页数据，将状态写入文本，而不假设输入一定来自当前烘焙器。
     let Some(payload) = payload else {
         write_line(
             dump,
@@ -270,6 +272,7 @@ fn write_page(
             payload.len() % 4
         ),
     );
+    // BUG: [CR-ASSET-COOK-0005] 仅含页头但条目数为 u32 最大值的载荷会触发数十亿次短条目输出；循环未受实际字数限制；证据：下方范围读取失败后仍持续写入诊断文本。
     for item_index in 0..item_count {
         let base = PAYLOAD_HEADER_WORD_COUNT + item_index * PAYLOAD_ITEM_WORD_COUNT;
         let item = words.get(base..base + PAYLOAD_ITEM_WORD_COUNT);
@@ -369,5 +372,5 @@ fn write_line(dump: &mut String, args: std::fmt::Arguments<'_>) {
 }
 
 #[cfg(test)]
-#[path = "inspection_dump/capacity_tests.rs"]
+#[path = "inspection_dump/tests/capacity_tests.rs"]
 mod capacity_tests;

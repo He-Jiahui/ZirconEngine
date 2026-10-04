@@ -1,5 +1,7 @@
 use super::*;
 
+const ACTIVITY_RAIL_EXPANDED_NODES_PER_TAB: usize = 2;
+
 #[derive(Clone)]
 struct ActivityRailCompositionGeneration {
     tabs: ModelRc<TabData>,
@@ -62,7 +64,11 @@ fn expand_activity_rail_button_nodes(
     tabs: &ModelRc<TabData>,
     shell_preset_id: &SharedString,
 ) -> Vec<ViewTemplateNodeData> {
-    let mut output_nodes = Vec::new();
+    let output_capacity = raw_nodes.len().saturating_add(
+        tabs.row_count()
+            .saturating_mul(ACTIVITY_RAIL_EXPANDED_NODES_PER_TAB),
+    );
+    let mut output_nodes = Vec::with_capacity(output_capacity);
     let mut button_templates = BTreeMap::new();
     let mut icon_templates = BTreeMap::new();
 
@@ -201,3 +207,7 @@ pub(super) fn fallback_activity_rail_nodes(
 
     model_rc(nodes)
 }
+
+#[cfg(test)]
+#[path = "tests/activity_rail_optimization_tests.rs"]
+mod optimization_tests;

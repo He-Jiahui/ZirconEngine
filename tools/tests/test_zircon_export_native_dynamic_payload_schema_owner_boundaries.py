@@ -1,14 +1,15 @@
+# 核对载荷模式辅助函数归属与主模块行数。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PAYLOAD_SCHEMA = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_native_dynamic_payload_schema.py"
+    REPO_ROOT / "tools/export/pipeline_report_native_dynamic_payload_schema.py"
 )
 PAYLOAD_SCHEMA_HELPERS = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_payload_schema_helpers.py"
+    / "tools/export/pipeline_report_native_dynamic_payload_schema_helpers.py"
 )
 
 

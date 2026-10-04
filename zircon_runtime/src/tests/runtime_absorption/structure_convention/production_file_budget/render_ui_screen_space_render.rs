@@ -1,11 +1,12 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0086] 屏幕界面几何计划与图形命令记录的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_screen_space_ui_render_tests_are_child_owner_split() {
     let parent = read_runtime_src("graphics/scene/scene_renderer/ui/render.rs");
     let geometry = read_runtime_src("graphics/scene/scene_renderer/ui/render/geometry.rs");
     let record = read_runtime_src("graphics/scene/scene_renderer/ui/render/record.rs");
-    let tests = read_runtime_src("graphics/scene/scene_renderer/ui/render/tests.rs");
+    let tests = read_runtime_src("graphics/scene/scene_renderer/ui/render/tests/cases.rs");
     let clipping = read_runtime_src("graphics/scene/scene_renderer/ui/render/tests/clipping.rs");
     let glyph_artifacts =
         read_runtime_src("graphics/scene/scene_renderer/ui/render/tests/glyph_artifacts.rs");
@@ -134,7 +135,7 @@ fn runtime_15_screen_space_ui_render_tests_are_child_owner_split() {
         ("scene_renderer/ui/render.rs", parent.as_str()),
         ("scene_renderer/ui/render/geometry.rs", geometry.as_str()),
         ("scene_renderer/ui/render/record.rs", record.as_str()),
-        ("scene_renderer/ui/render/tests.rs", tests.as_str()),
+        ("scene_renderer/ui/render/tests/cases.rs", tests.as_str()),
         (
             "scene_renderer/ui/render/tests/clipping.rs",
             clipping.as_str(),
@@ -165,7 +166,7 @@ fn runtime_15_screen_space_ui_render_tests_are_child_owner_split() {
                 "Screen-space UI render test owner split",
                 "render_plan14_screen_space_ui_render_test_owner_split_static_passed_cargo_deferred_active_compile_lane",
                 "graphics/scene/scene_renderer/ui/render.rs",
-                "graphics/scene/scene_renderer/ui/render/tests.rs",
+                "graphics/scene/scene_renderer/ui/render/tests/cases.rs",
                 "runtime_15_screen_space_ui_render_tests_are_child_owner_split",
             ],
         );

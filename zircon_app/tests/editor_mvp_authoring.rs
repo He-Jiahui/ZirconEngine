@@ -10,12 +10,17 @@ use zircon_app::EditorApplicationComposition;
 use zircon_editor::core::editor_event::{
     EditorEvent, EditorEventSource, InspectorFieldChange, MenuAction,
 };
-use zircon_editor::core::project::{NewProjectDraft, NewProjectTemplate, ProjectAuthority};
+use zircon_editor::core::project::{NewProjectDraft, ProjectAuthority, ProjectTemplateId};
 use zircon_editor::ui::binding::{
     EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind, SelectionCommand,
 };
 use zircon_runtime::asset::{project::ProjectPaths, ProjectInfo};
 use zircon_runtime::scene::Scene;
+use zircon_runtime_interface::project::{
+    ProjectActivationOperationIdGenerator, ProjectCreationProvenance, ProjectEngineVersion,
+    ProjectLaunchInstanceId,
+};
+use zircon_runtime_interface::runtime_build_set::ZrRuntimeBuildSetId;
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 
 #[test]
@@ -25,11 +30,14 @@ fn f4_project_authoring_survives_full_application_restart() {
     fs::create_dir_all(&location).unwrap();
     let _config_path = ConfigPathGuard::set(location.join("editor-config.json"));
     let created = ProjectAuthority::default()
-        .create_project(&NewProjectDraft {
-            project_name: "F4Authoring".to_string(),
-            location: location.to_string_lossy().into_owned(),
-            template: NewProjectTemplate::RenderableEmpty,
-        })
+        .create_project(
+            &NewProjectDraft {
+                project_name: "F4Authoring".to_string(),
+                location: location.to_string_lossy().into_owned(),
+                template: ProjectTemplateId::RenderableEmpty,
+            },
+            &test_project_creation_provenance(),
+        )
         .unwrap();
     let canonical_project_root = ProjectPaths::resolve_existing_path(&created.root).unwrap();
 
@@ -329,6 +337,23 @@ fn unique_mvp_project_directory(prefix: &str) -> PathBuf {
 fn config_environment_lock() -> &'static Mutex<()> {
     static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
     LOCK.get_or_init(|| Mutex::new(()))
+}
+
+fn test_project_creation_provenance() -> ProjectCreationProvenance {
+    static OPERATION_IDS: OnceLock<ProjectActivationOperationIdGenerator> = OnceLock::new();
+    let operation_id = OPERATION_IDS
+        .get_or_init(|| ProjectActivationOperationIdGenerator::new(ProjectLaunchInstanceId::new()))
+        .allocate()
+        .expect("test project creation operation sequence must remain available");
+    ProjectCreationProvenance::new(
+        operation_id,
+        ProjectEngineVersion::parse(env!("CARGO_PKG_VERSION"))
+            .expect("application package version must be a valid engine version"),
+        ZrRuntimeBuildSetId::parse(
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        )
+        .expect("test BuildSet fixture must be valid"),
+    )
 }
 
 struct ConfigPathGuard {

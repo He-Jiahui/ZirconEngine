@@ -1,8 +1,10 @@
+//! 绑定明细行将资产属性状态翻成宿主编辑字段；行身份须与提交动作的实例路径保持一致。
 use crate::ui::asset_editor;
 
 use super::row_model::{push_detail_row, UiAssetDetailFieldRow};
 
 #[cfg(test)]
+#[path = "binding/tests/capacity_tests.rs"]
 mod capacity_tests;
 
 const BINDING_DETAIL_ROW_CAPACITY: usize = 5;

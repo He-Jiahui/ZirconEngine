@@ -36,14 +36,14 @@ requireText(effects, /case 'weaponStrike':[\s\S]*?if \(hit && ability\.awardsCom
 const generator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
 if (!/rake',[\s\S]*?'claw'/.test(generator) ||
-    !generator.includes("EXPECTED_ABILITY_COUNT = 79") ||
-    !zrGenerator.includes("document.entries.length === 79")) {
+    !generator.includes("EXPECTED_ABILITY_COUNT = 117") ||
+    !zrGenerator.includes("document.entries.length === 117")) {
   throw new Error("M4 Claw projection scope is missing");
 }
 const entry = JSON.parse(read("contracts", "m4_abilities.json")).entries.find(
   (value) => value.id === "claw",
 );
-if (!entry || entry.index !== 62 || entry.definition.cost !== 45 ||
+if (!entry || entry.index !== 66 || entry.definition.cost !== 45 ||
     entry.definition.requiresForm !== "cat" || entry.definition.awardsCombo !== 1 ||
     entry.definition.effects?.[0]?.type !== "weaponStrike" ||
     entry.definition.effects[0].bonus !== 12 || entry.definition.ranks?.[0]?.effects?.[0]?.bonus !== 20) {

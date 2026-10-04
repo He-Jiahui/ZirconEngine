@@ -7,14 +7,14 @@ related_code:
   - zircon_editor
   - zircon_plugins
   - zircon_hub
-  - tools/cargo-zircon
+  - tools/cargo
   - zircon_reflect_derive
 plan_sources:
   - docs/plans/mvp/index.md
   - docs/plans/zircon_runtime/frameworks/index.md
   - docs/plans/zircon_runtime/frameworks/01-runtime-crate-decomposition.md
   - docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md
-  - docs/engine-architecture/workspace-root-rules-and-hard-cutover.md
+  - docs/architecture/workspace-root-rules-and-hard-cutover.md
 reference_engines:
   - dev/UnrealEngine
   - dev/Fyrox

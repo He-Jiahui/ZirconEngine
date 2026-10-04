@@ -1,3 +1,5 @@
+//! 字体源解码同时服务导入器与 SDF 构建工具；先执行大小/表目录预算，再暴露独立 SFNT face，避免把不受控的源字节交给字形解析器。
+
 use std::error::Error;
 use std::io::Cursor;
 
@@ -302,4 +304,5 @@ fn sfnt_checksum(bytes: &[u8]) -> u32 {
 }
 
 #[cfg(test)]
+#[path = "font_source/tests/cases.rs"]
 mod tests;

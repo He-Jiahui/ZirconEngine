@@ -15,6 +15,7 @@ pub enum UiBindingConversionProviderErrorCode {
     Unsupported,
 }
 
+/// provider 执行无法完成转换时保留的分类与说明；Runtime 将其作为调用错误向上传递。
 #[derive(Clone, Debug, Error, PartialEq, Eq, Serialize, Deserialize)]
 #[error("binding conversion provider failed with {code:?}: {detail}")]
 pub struct UiBindingConversionProviderError {
@@ -50,6 +51,7 @@ pub enum UiBindingConversionIdentityError {
     InvalidCharacter { character: char, byte_index: usize },
 }
 
+/// 经统一校验的转换身份；serde 解码也回到 try_new，避免绕开身份格式约束。
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 #[serde(transparent)]
 pub struct UiBindingConversionId(String);
@@ -86,6 +88,7 @@ impl<'de> Deserialize<'de> for UiBindingConversionId {
 #[error("binding conversion provider generation must be non-zero")]
 pub struct UiBindingConversionProviderGenerationError;
 
+/// 转换 provider 的非零代次；替换或卸载后 Runtime 用新代次拒绝旧句柄。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 #[serde(transparent)]
 pub struct UiBindingConversionProviderGeneration(u64);
@@ -130,6 +133,7 @@ impl UiBindingConversionSlot {
     }
 }
 
+/// Runtime 表槽位与 provider 代次的组合；查找时同时核对二者以识别失效句柄。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct UiBindingConversionHandle {
     slot: UiBindingConversionSlot,
@@ -156,6 +160,7 @@ impl UiBindingConversionHandle {
     }
 }
 
+/// 转换器接受的源值种类和产出的目标值种类，注册及调用时据此核对类型契约。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiBindingConversionSignature {
     pub source: UiValueKind,
@@ -202,18 +207,37 @@ fn validate_conversion_id(value: &str) -> Result<(), UiBindingConversionIdentity
             maximum_bytes: UI_BINDING_CONVERSION_ID_MAX_BYTES,
         });
     }
-    for (segment_index, segment) in value.split('.').enumerate() {
-        if segment.is_empty() {
-            return Err(UiBindingConversionIdentityError::EmptySegment { segment_index });
+    let mut segment_index = 0;
+    let mut segment_has_content = false;
+    let mut first_invalid = None;
+    for (byte_index, character) in value.char_indices() {
+        if character == '.' {
+            if !segment_has_content {
+                return Err(UiBindingConversionIdentityError::EmptySegment { segment_index });
+            }
+            segment_index += 1;
+            segment_has_content = false;
+            continue;
+        }
+        segment_has_content = true;
+        if first_invalid.is_none()
+            && !(character.is_ascii_alphanumeric() || matches!(character, '_' | '-'))
+        {
+            first_invalid = Some((byte_index, character));
         }
     }
-    for (byte_index, character) in value.char_indices() {
-        if !(character.is_ascii_alphanumeric() || matches!(character, '.' | '_' | '-')) {
-            return Err(UiBindingConversionIdentityError::InvalidCharacter {
-                character,
-                byte_index,
-            });
-        }
+    if !segment_has_content {
+        return Err(UiBindingConversionIdentityError::EmptySegment { segment_index });
+    }
+    if let Some((byte_index, character)) = first_invalid {
+        return Err(UiBindingConversionIdentityError::InvalidCharacter {
+            character,
+            byte_index,
+        });
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "conversion/tests/validation_performance_tests.rs"]
+mod validation_performance_tests;

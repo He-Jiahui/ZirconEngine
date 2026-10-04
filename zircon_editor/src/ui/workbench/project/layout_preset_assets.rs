@@ -15,6 +15,8 @@ use super::layout_preset_asset_document::{
 use super::layout_preset_asset_path::layout_preset_asset_path;
 use crate::ui::workbench::layout::WorkbenchLayout;
 
+// TODO: [CR-EDITOR-WORKBENCH-0009] 确认保存前是否按规范文件名处理名称碰撞；不同输入名可解析到同一路径并覆盖，当前宿主直接传原名。
+/// 保存项目preset资源；返回source路径后宿主还须导入目录，使发现列表进入新代次。
 pub(crate) fn save_layout_preset_asset(
     project: &ProjectManager,
     name: &str,
@@ -31,6 +33,7 @@ pub(crate) fn save_layout_preset_asset(
     Ok(path)
 }
 
+/// 项目资源缺失返回None供全局配置回退；文件无效保持错误，不伪装成缺失。
 pub(crate) fn load_layout_preset_asset(
     project: &ProjectManager,
     name: &str,
@@ -45,6 +48,7 @@ pub(crate) fn load_layout_preset_asset(
     Ok(Some(workbench))
 }
 
+/// 从当前source目录定位发现直接preset资源，按规范文件名排序去重。
 pub(crate) fn list_layout_preset_assets(
     locators: impl IntoIterator<Item = AssetUri>,
 ) -> Vec<String> {
@@ -74,5 +78,5 @@ fn layout_preset_name(locator: &AssetUri) -> Option<String> {
 }
 
 #[cfg(test)]
-#[path = "layout_preset_assets/optimization_tests.rs"]
+#[path = "layout_preset_assets/tests/optimization_tests.rs"]
 mod optimization_tests;

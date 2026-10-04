@@ -12,7 +12,7 @@ related_code:
   - zircon_runtime/src/core/framework/sound/tests.rs
 implementation_files:
   - tools/tests/test_frameworks_03_audio_contract_owner_boundary.py
-  - docs/zircon_runtime/core/framework/audio.md
+  - docs/crates/zircon_runtime/core/framework/audio.md
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
@@ -20,7 +20,7 @@ plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
 tests:
   - python -m unittest tools.tests.test_frameworks_03_audio_contract_owner_boundary -v
-  - python tools/check_conventions.py --only docs --json
+  - python tools/audits/check_conventions.py --only docs --json
   - rustfmt --edition 2021 --check on the owned Rust paths
   - managed cargo check -p zircon_runtime --lib --no-default-features --features sound-contracts --locked
 doc_type: milestone-detail
@@ -32,7 +32,7 @@ Plan: docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matr
 Milestone: M1
 Status: completed
 Date: 2026-07-22
-Files: ["docs/plans/zircon_runtime/frameworks/03/2026-07-22-audio-channel-layout-owner-hardcut.md", "docs/plans/zircon_runtime/frameworks/03/2026-07-22-audio-channel-layout-private-reexport-return.md", "docs/plans/zircon_runtime/frameworks/06/fixed-2026-07-22-audio-channel-layout-private-reexport.md", "docs/zircon_runtime/core/framework/audio.md", "tools/tests/test_frameworks_03_audio_contract_owner_boundary.py", "zircon_runtime/src/core/framework/audio/channel_layout.rs", "zircon_runtime/src/core/framework/sound/components.rs", "zircon_runtime/src/core/framework/sound/graph.rs", "zircon_runtime/src/core/framework/sound/mix.rs", "zircon_runtime/src/core/framework/sound/mod.rs", "zircon_runtime/src/core/framework/sound/options.rs", "zircon_runtime/src/core/framework/sound/output.rs", "zircon_runtime/src/core/framework/sound/playback.rs", "zircon_runtime/src/core/framework/sound/status.rs", "zircon_runtime/src/core/framework/sound/tests.rs"]
+Files: ["docs/plans/zircon_runtime/frameworks/03/2026-07-22-audio-channel-layout-owner-hardcut.md", "docs/plans/zircon_runtime/frameworks/03/2026-07-22-audio-channel-layout-private-reexport-return.md", "docs/plans/zircon_runtime/frameworks/06/fixed-2026-07-22-audio-channel-layout-private-reexport.md", "docs/crates/zircon_runtime/core/framework/audio.md", "tools/tests/test_frameworks_03_audio_contract_owner_boundary.py", "zircon_runtime/src/core/framework/audio/channel_layout.rs", "zircon_runtime/src/core/framework/sound/components.rs", "zircon_runtime/src/core/framework/sound/graph.rs", "zircon_runtime/src/core/framework/sound/mix.rs", "zircon_runtime/src/core/framework/sound/mod.rs", "zircon_runtime/src/core/framework/sound/options.rs", "zircon_runtime/src/core/framework/sound/output.rs", "zircon_runtime/src/core/framework/sound/playback.rs", "zircon_runtime/src/core/framework/sound/status.rs", "zircon_runtime/src/core/framework/sound/tests.rs"]
 
 ## Scope Delivered
 
@@ -56,7 +56,7 @@ Files: ["docs/plans/zircon_runtime/frameworks/03/2026-07-22-audio-channel-layout
 - `python -m unittest tools.tests.test_frameworks_03_audio_contract_owner_boundary -v`：6/6 GREEN。
 - scoped `rustfmt --edition 2021 --check` 与 `git diff --check`：GREEN。
 - 全仓 docs G7 当前仍有 583 个 foreign missing-path 违规；本记录与
-  `docs/zircon_runtime/core/framework/audio.md` 的 owned violation 为 0。
+  `docs/crates/zircon_runtime/core/framework/audio.md` 的 owned violation 为 0。
 - 旧间接 import、旧文件、旧 plugin 模块和 Sound root 重导出扫描均为 0。
 - managed job `46d9bf94358d4609b9b3866b65ecf71b` / run
   `9cd06735d00c47e1bb13900b258e3486`：5m05s、exit 0，仅 75 条既有 warning；启动前后

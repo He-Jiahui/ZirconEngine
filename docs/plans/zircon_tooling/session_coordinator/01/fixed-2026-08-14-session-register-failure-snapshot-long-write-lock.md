@@ -10,12 +10,6 @@ origin_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/command_requests.py
-  - tools/session_coordinator/failures.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/tests/test_failures.py
-  - tools/session_coordinator/tests/test_server.py
-  - tools/session_coordinator/tests/test_session_register_durability.py
 resolved_at: 2026-08-14
 ---
 

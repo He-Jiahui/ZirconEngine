@@ -9,11 +9,16 @@ use zircon_runtime_interface::ui::component::{UiComponentProjectionPatch, UiValu
 pub(super) fn inject_pane_projection_attributes(
     root: &mut RetainedUiNodeProjection,
     body: &PaneBodyPresentation,
-) -> BTreeMap<String, Value> {
+) {
     let pane_attributes = pane_body_attributes(body);
+    let Some((control_id, slot_name)) = hybrid_slot_anchor(body) else {
+        root.attributes.extend(pane_attributes);
+        inject_template_v2_component_patches(root, &body.payload);
+        return;
+    };
     root.attributes.extend(pane_attributes.clone());
     inject_template_v2_component_patches(root, &body.payload);
-    pane_attributes
+    append_hybrid_slot_anchor_projection(root, control_id, slot_name, pane_attributes);
 }
 
 pub(super) fn template_v2_component_patch_attributes(
@@ -582,15 +587,12 @@ fn ui_value_to_toml(value: &UiValue) -> Value {
     value.to_toml()
 }
 
-pub(super) fn append_hybrid_slot_anchor_projection(
+fn append_hybrid_slot_anchor_projection(
     root: &mut RetainedUiNodeProjection,
-    body: &PaneBodyPresentation,
+    control_id: &'static str,
+    slot_name: &'static str,
     mut pane_attributes: BTreeMap<String, Value>,
 ) {
-    let Some((control_id, slot_name)) = hybrid_slot_anchor(body) else {
-        return;
-    };
-
     pane_attributes.insert(
         "slot_name".to_string(),
         Value::String(slot_name.to_string()),
@@ -599,6 +601,9 @@ pub(super) fn append_hybrid_slot_anchor_projection(
     root.children.push(RetainedUiNodeProjection {
         component: "HybridSlotAnchor".to_string(),
         control_id: Some(control_id.to_string()),
+        source_path: None,
+        source_node_id: None,
+        instance_path: None,
         attributes: pane_attributes,
         style_tokens: BTreeMap::new(),
         binding_ids: Vec::new(),
@@ -633,3 +638,7 @@ fn hybrid_slot_anchor(body: &PaneBodyPresentation) -> Option<(&'static str, &'st
 fn string_array(items: &[String]) -> Value {
     Value::Array(items.iter().cloned().map(Value::String).collect())
 }
+
+#[cfg(test)]
+#[path = "tests/pane_payload_projection_performance_tests.rs"]
+mod performance_tests;

@@ -1,3 +1,4 @@
+# 核对复合字体激活、渲染批次和字体集合所有权贯穿文本管线。
 from __future__ import annotations
 
 import unittest
@@ -212,7 +213,7 @@ class Text01CompositeActivationTests(unittest.TestCase):
             "zircon_runtime/src/text/shaping/cosmic/font_system_cache.rs"
         )
         cache_tests = source(
-            "zircon_runtime/src/text/shaping/cosmic/font_system_cache/tests.rs"
+            "zircon_runtime/src/text/shaping/cosmic/font_system_cache/tests/cases.rs"
         )
         self.assertIn("RefCell<Option<LocaleFontSystemCache>>", cache)
         self.assertIn("LocaleFontSystemCache::new(font_collection)", cache)
@@ -361,11 +362,11 @@ class Text01CompositeActivationTests(unittest.TestCase):
         self.assertIn("break_boundaries.sort_unstable_by_key", line_break)
         self.assertIn(
             "line_break_chunks_normalize_visual_glyph_order_before_materializing_boundaries",
-            source("zircon_runtime/src/text/layout/line_break/tests.rs"),
+            source("zircon_runtime/src/text/layout/line_break/tests/cases.rs"),
         )
         self.assertIn(
             "line_break_chunks_fail_closed_on_non_utf8_cluster_ranges",
-            source("zircon_runtime/src/text/layout/line_break/tests.rs"),
+            source("zircon_runtime/src/text/layout/line_break/tests/cases.rs"),
         )
         self.assertIn("TextLayoutError::LayoutFailed", wrapping)
         cosmic_normalizer = between(

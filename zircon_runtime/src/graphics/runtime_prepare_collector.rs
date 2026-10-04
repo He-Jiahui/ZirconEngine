@@ -23,7 +23,7 @@ const DEFAULT_RUNTIME_PREPARE_MAX_IN_FLIGHT_READBACK_FRAMES: usize = 3;
 
 #[path = "runtime_prepare_collector/gpu_readback.rs"]
 mod gpu_readback;
-use gpu_readback::RuntimePrepareGpuReadbackRequest;
+pub(crate) use gpu_readback::RuntimePrepareGpuReadbackRequest;
 
 pub trait RuntimePrepareCollector: Send + Sync {
     fn requests_gpu_readback(&self) -> bool {
@@ -871,5 +871,5 @@ impl fmt::Debug for RuntimePrepareCollectorRegistration {
 }
 
 #[cfg(test)]
-#[path = "runtime_prepare_collector/tests.rs"]
+#[path = "runtime_prepare_collector/tests/cases.rs"]
 mod tests;

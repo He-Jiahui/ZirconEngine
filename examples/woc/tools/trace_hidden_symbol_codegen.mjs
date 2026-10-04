@@ -1,3 +1,6 @@
+// 调用端：node trace_hidden_symbol_codegen.mjs from examples/woc/tools；职责：扫描完整轨迹样本中基础 golden 符号目录未包含的字典符号。
+// 对历史的 51 条轨迹盘点，写入或核对 reference/trace_hidden_symbols.json。
+
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -30,6 +33,7 @@ const baseSymbols = new Set(
 const files = fs.readdirSync(inputRoot).filter((name) => name.endsWith(".full.json")).sort();
 assert.equal(files.length, 51, `expected 51 full reference traces, found ${files.length}`);
 
+// 汇集完整轨迹中的键和非摘要字符串，再扣除基础字典已有的字符串。
 const hidden = new Map();
 for (const file of files) {
   collect(JSON.parse(fs.readFileSync(path.resolve(inputRoot, file), "utf8")), hidden);

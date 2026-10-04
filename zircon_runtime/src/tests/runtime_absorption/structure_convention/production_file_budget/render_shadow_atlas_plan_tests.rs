@@ -1,12 +1,13 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0078] 阴影图集分配与级联帧计划测试的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_shadow_atlas_plan_tests_are_child_owners() {
     let allocator = read_runtime_src("graphics/scene/scene_renderer/shadow/atlas/allocator.rs");
     let allocator_tests =
-        read_runtime_src("graphics/scene/scene_renderer/shadow/atlas/allocator/tests.rs");
+        read_runtime_src("graphics/scene/scene_renderer/shadow/atlas/allocator/tests/cases.rs");
     let plan = read_runtime_src("graphics/scene/scene_renderer/shadow/plan.rs");
-    let plan_tests = read_runtime_src("graphics/scene/scene_renderer/shadow/plan/tests.rs");
+    let plan_tests = read_runtime_src("graphics/scene/scene_renderer/shadow/plan/tests/cases.rs");
 
     let plan_05 = read_repo(
         "docs/plans/zircon_runtime/render/05/2026-07-09-lighting-shadows-output-records.md",
@@ -105,7 +106,7 @@ fn runtime_15_shadow_atlas_plan_tests_are_child_owners() {
             allocator.as_str(),
         ),
         (
-            "graphics/scene/scene_renderer/shadow/atlas/allocator/tests.rs",
+            "graphics/scene/scene_renderer/shadow/atlas/allocator/tests/cases.rs",
             allocator_tests.as_str(),
         ),
         (
@@ -113,7 +114,7 @@ fn runtime_15_shadow_atlas_plan_tests_are_child_owners() {
             plan.as_str(),
         ),
         (
-            "graphics/scene/scene_renderer/shadow/plan/tests.rs",
+            "graphics/scene/scene_renderer/shadow/plan/tests/cases.rs",
             plan_tests.as_str(),
         ),
     ] {

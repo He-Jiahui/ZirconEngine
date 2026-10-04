@@ -1,3 +1,4 @@
+//! Markdown 将已注册或调用方提供的宿主描述符投影为文档；输出稳定排序以便 CLI 复现，能力列表记录接口调用限制。
 use crate::core::framework::script::{
     ScriptHostFieldDescriptor, ScriptHostFunctionDescriptor, ScriptHostModuleDescriptor,
     ScriptHostParameterDescriptor, ScriptHostPrototypeKind, ScriptHostTypeDescriptor,
@@ -309,5 +310,5 @@ fn push_line(output: &mut String, line: &str) {
 }
 
 #[cfg(test)]
-#[path = "markdown/capacity_tests.rs"]
+#[path = "markdown/tests/capacity_tests.rs"]
 mod capacity_tests;

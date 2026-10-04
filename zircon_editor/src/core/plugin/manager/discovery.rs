@@ -1,6 +1,6 @@
 //! Plugin discovery inputs and errors owned by the catalog publication boundary.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 
 use super::super::admission::EditorPluginCatalogAdmissionError;
@@ -148,11 +148,9 @@ pub(super) fn discovery_index(
     catalog: &EditorPluginCatalog,
     discoveries: impl IntoIterator<Item = EditorPluginDiscovery>,
 ) -> Result<BTreeMap<String, EditorPluginDiscovery>, EditorPluginDiscoveryError> {
-    let package_ids = catalog
-        .package_manifests()
-        .iter()
-        .map(|package| package.id.clone())
-        .collect::<BTreeSet<_>>();
+    let package_manifests = catalog.package_manifests();
+    let mut package_ids = HashSet::with_capacity(package_manifests.len());
+    package_ids.extend(package_manifests.iter().map(|package| package.id.as_str()));
     let mut result = BTreeMap::new();
     for discovery in discoveries {
         if !package_ids.contains(discovery.package_id()) {
@@ -171,3 +169,7 @@ pub(super) fn discovery_index(
     }
     Ok(result)
 }
+
+#[cfg(test)]
+#[path = "discovery/tests/optimization_batch_ia_editor610_tests.rs"]
+mod optimization_batch_ia_editor610_tests;

@@ -1,0 +1,44 @@
+{
+  "acceptance": "none; all rows source-only and not accepted",
+  "batch": "w0-batch4",
+  "coverage_note": "Four selected Runtime167/169/221/173 reports remain whole-report unreviewed. Twenty-four rows are a bounded source-audit slice and do not imply report-wide source_checked status or W0 completion.",
+  "crosswalk_edges": 14,
+  "highest_risk_deltas": [
+    "Physics catalog/editor composition, Ready qualification and Jolt query implementation remain open; PHY3-P0-01 was narrowed because runtime Physics registration is present.",
+    "Navigation no-source geometry, settings sensitivity, tile artifact and cancellation remain open; P0-02 was narrowed because current no-source bake returns an empty asset.",
+    "Animation authority, binding artifact, scheduler, pose writer, GPU deformation and event identity remain open; RT-AN-07 was narrowed because reverse sampling is implemented.",
+    "Network target closure, feature manager ownership, bounded ingress/cancellation, RUDP ACK namespace and download durability remain open; NET-RT-004 was narrowed because HTTP/WebSocket factories now resolve the root manager."
+  ],
+  "inventory_denominator": {
+    "batch_source_paths": 38,
+    "bounded_source_checked_paths": 61,
+    "manual_unnumbered_anchors": 558,
+    "nested_unreviewed_files": 2316,
+    "reports_total": 576,
+    "structural_candidate_tokens_not_canonical_findings": 27629,
+    "unnumbered_reports": 69,
+    "unreviewed_report_paths": 515
+  },
+  "prior_imported_wave_collisions": [],
+  "record_type": "w0_batch4_summary",
+  "reports": [
+    "Runtime167",
+    "Runtime169",
+    "Runtime221",
+    "Runtime173"
+  ],
+  "reviewed_at_utc": "2026-10-01",
+  "rows": 24,
+  "tests_run": 0,
+  "unique_report_qualified_ids": 24,
+  "unread_boundaries": [
+    "Only selected rows from Runtime167, Runtime169, Runtime221 and Runtime173 were read in this batch; all other W4-W6 reports remain unread.",
+    "Unnumbered/manual anchors and headings without exact IDs were excluded.",
+    "Tooling reports and prior canonical first37/second30/third15 identities were excluded.",
+    "No source_checked promotion, implementation admission or acceptance was performed."
+  ],
+  "working_tree_source_status_counts": {
+    "confirmed_open": 20,
+    "narrowed_open": 4
+  }
+}

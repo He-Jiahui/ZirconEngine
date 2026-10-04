@@ -1,3 +1,4 @@
+//! 资产管线吸收后，门禁与镜像文档共同约束管理器、工作池和产物路径。以结果断言检查当前接口或源码快照对应的边界。
 use super::support::assert_contains_all;
 
 pub(super) fn assert_runtime_04_mirror_docs() {
@@ -14,35 +15,31 @@ pub(super) fn assert_runtime_04_mirror_docs() {
         ),
         (
             "asset facade doc",
-            include_str!("../../../../../docs/zircon_runtime/asset/facade.md"),
+            include_str!("../../../../../docs/crates/zircon_runtime/asset/facade.md"),
         ),
         (
             "asset worker pool doc",
-            include_str!("../../../../../docs/zircon_runtime/asset/worker_pool.md"),
+            include_str!("../../../../../docs/crates/zircon_runtime/asset/worker_pool.md"),
         ),
         (
             "asset watcher doc",
-            include_str!("../../../../../docs/zircon_runtime/asset/watcher.md"),
+            include_str!("../../../../../docs/crates/zircon_runtime/asset/watcher.md"),
         ),
         (
             "asset artifact doc",
-            include_str!("../../../../../docs/zircon_runtime/asset/artifact.md"),
+            include_str!("../../../../../docs/crates/zircon_runtime/asset/artifact.md"),
         ),
         (
             "core resource doc",
-            include_str!("../../../../../docs/zircon_runtime/core/resource.md"),
+            include_str!("../../../../../docs/crates/zircon_runtime/core/resource.md"),
         ),
         (
             "M0 review",
-            include_str!(
-                "../../../../../docs/engine-architecture/runtime-architecture-review-m0.md"
-            ),
+            include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md"),
         ),
         (
             "runtime-interface convergence",
-            include_str!(
-                "../../../../../docs/engine-architecture/runtime-interface-convergence.md"
-            ),
+            include_str!("../../../../../docs/architecture/runtime-interface-convergence.md"),
         ),
     ];
 

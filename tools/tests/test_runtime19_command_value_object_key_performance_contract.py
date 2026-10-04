@@ -1,5 +1,5 @@
 from pathlib import Path
-
+# 命令对象构造和解码把唯一键移入 BTree vacant entry，重复键只在错误分支复制；检查真实入口的发布基准挂载；实际性能由该门禁另行执行。
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE = REPO_ROOT / (

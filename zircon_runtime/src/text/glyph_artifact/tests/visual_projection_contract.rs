@@ -81,6 +81,35 @@ fn visual_projection_binds_a_virtual_glyph_to_its_source_anchor() {
 }
 
 #[test]
+fn visual_projection_keeps_multicluster_glyph_advance_finite() {
+    let line = UiResolvedTextLine {
+        text: "ab".to_string(),
+        placement_frame: UiFrame::default(),
+        frame: UiFrame::new(0.0, 0.0, f32::MAX, 12.0),
+        source_range: UiTextRange { start: 0, end: 2 },
+        visual_range: UiTextRange { start: 0, end: 2 },
+        measured_width: f32::MAX,
+        glyph_advances: vec![f32::MAX, f32::MAX],
+        baseline: 9.0,
+        direction: UiTextDirection::LeftToRight,
+        runs: vec![visual_run("ab", 0, 2, 0, 2)],
+        ellipsized: false,
+    };
+
+    let projected = super::super::visual_projection::visual_glyphs_for_visual_line(
+        "ab",
+        0,
+        &line,
+        vec![glyph(13, 0..2)],
+    )
+    .expect("one backend glyph may own both visual clusters");
+
+    assert_eq!(projected.len(), 1);
+    assert_eq!(projected[0].advance, f32::MAX);
+    assert!(projected[0].advance.is_finite());
+}
+
+#[test]
 fn visual_projection_retains_many_distinct_ltr_virtual_anchors() {
     const ANCHOR_COUNT: usize = 64;
     const ELLIPSIS: &str = "…";
@@ -214,16 +243,14 @@ fn glyph_artifact_owner_republishes_an_ellipsized_virtual_glyph_for_a_new_font_g
 
     assert_eq!(republished.font_generation, published_generation);
     assert_ne!(republished.font_generation, artifact.font_generation);
-    assert!(
-        republished.lines[0]
-            .as_ref()
-            .expect("republished artifact line")
-            .glyphs
-            .iter()
-            .any(|glyph| {
-                glyph.flags.virtual_glyph && glyph.source_range == (1..1) && glyph.advance > 0.0
-            })
-    );
+    assert!(republished.lines[0]
+        .as_ref()
+        .expect("republished artifact line")
+        .glyphs
+        .iter()
+        .any(|glyph| {
+            glyph.flags.virtual_glyph && glyph.source_range == (1..1) && glyph.advance > 0.0
+        }));
 }
 
 #[test]

@@ -4,6 +4,8 @@ use crate::graphics::scene::scene_renderer::overlay::{
 use crate::graphics::types::{ViewportRenderFrame, ViewportRenderRegion};
 
 impl ViewportOverlayRenderer {
+    /// 在最终场景目标上依次叠加选中线框、显示线框、网格、实体辅助图形和操纵手柄。
+    /// prepared 必须来自同帧准备，图标上传必须在绘制前进入本帧提交事务。
     pub(crate) fn record_overlays(
         &mut self,
         encoder: &mut wgpu::CommandEncoder,
@@ -71,29 +73,5 @@ impl ViewportOverlayRenderer {
 }
 
 #[cfg(test)]
-mod tests {
-    const SOURCE: &str = include_str!("record_overlays.rs");
-
-    fn production_source() -> &'static str {
-        SOURCE
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("overlay recording should retain a test-module boundary")
-    }
-
-    #[test]
-    fn disabled_interaction_overlays_skip_render_pass_recording() {
-        let source = production_source();
-        let interaction_guard = source
-            .find("let Some(interaction_overlays) = self.interaction_overlays.as_mut() else {")
-            .expect("overlay recording should exit when interaction resources are absent");
-        let selection_record = source
-            .find("interaction_overlays.selection_outline.record(")
-            .expect("interactive overlays should still record selection outlines");
-
-        assert!(
-            interaction_guard < selection_record,
-            "the EnvironmentOnly path must exit before recording overlay passes"
-        );
-    }
-}
+#[path = "tests/record_overlays.rs"]
+mod tests;

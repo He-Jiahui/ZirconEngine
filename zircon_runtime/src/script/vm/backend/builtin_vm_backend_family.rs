@@ -1,3 +1,4 @@
+//! 内置家族把诊断用 mock 与明确不可用的后端接入统一选择器协议；真实语言后端由外部家族注册，不在此构造。
 use std::sync::{Arc, LazyLock};
 
 use super::{MockVmBackend, UnavailableVmBackend, VmBackend, VmBackendFamily, VmError};
@@ -31,21 +32,5 @@ impl VmBackendFamily for BuiltinVmBackendFamily {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-
-    use super::{BuiltinVmBackendFamily, VmBackendFamily};
-
-    #[test]
-    fn builtin_backend_resolutions_share_arc_storage() {
-        let family = BuiltinVmBackendFamily;
-        let mock = family.resolve("builtin:mock").unwrap();
-        let mock_alias = family.resolve("mock").unwrap();
-        let unavailable = family.resolve("builtin:unavailable").unwrap();
-        let unavailable_alias = family.resolve("unavailable").unwrap();
-
-        assert!(Arc::ptr_eq(&mock, &mock_alias));
-        assert!(Arc::ptr_eq(&unavailable, &unavailable_alias));
-        assert!(!Arc::ptr_eq(&mock, &unavailable));
-    }
-}
+#[path = "tests/builtin_vm_backend_family.rs"]
+mod tests;

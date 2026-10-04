@@ -109,8 +109,11 @@ pub(super) struct ImportFlowState {
     completed_order: BTreeMap<Instant, Vec<ImportGenerationKey>>,
     admission_bytes: usize,
     next_mutex_group: u64,
+    mutex_group_identity_exhausted: bool,
     next_flight_identity: u64,
+    flight_identity_exhausted: bool,
     next_uuid_lifecycle: u64,
+    uuid_lifecycle_identity_exhausted: bool,
 }
 
 impl ImportFlowState {
@@ -164,14 +167,40 @@ impl ImportFlowState {
             });
         }
 
-        let (mutex_group, begin_uuid) = match self.active_by_uuid.get_mut(&key.uuid) {
-            Some(active) => {
-                active.active_count = active.active_count.saturating_add(1);
-                (active.mutex_group.clone(), None)
+        let existing_active = self
+            .active_by_uuid
+            .get(&key.uuid)
+            .map(|active| {
+                let active_count = active.active_count.checked_add(1).ok_or(
+                    EditorAssetImportSubmitError::UuidActiveFlightCountExhausted { uuid: key.uuid },
+                )?;
+                Ok::<_, EditorAssetImportSubmitError>((active.mutex_group.clone(), active_count))
+            })
+            .transpose()?;
+        let flight_identity = self.flight_identity_candidate()?;
+        let new_uuid = match existing_active {
+            Some(_) => None,
+            None => Some((
+                self.mutex_group_candidate()?,
+                self.uuid_lifecycle_candidate(key.uuid)?,
+            )),
+        };
+
+        // All fallible identity work is complete before publishing a flight. This makes an
+        // exhausted counter a rejected admission rather than a partially live UUID lifecycle.
+        let (mutex_group, begin_uuid) = match (existing_active, new_uuid) {
+            (Some((mutex_group, active_count)), None) => {
+                let Some(active) = self.active_by_uuid.get_mut(&key.uuid) else {
+                    return Err(
+                        EditorAssetImportSubmitError::UuidLifecycleStateInconsistent {
+                            uri: key.uri.as_ref().clone(),
+                        },
+                    );
+                };
+                active.active_count = active_count;
+                (mutex_group, None)
             }
-            None => {
-                let mutex_group = self.allocate_mutex_group()?;
-                let token = self.allocate_uuid_lifecycle(key.uuid);
+            (None, Some((mutex_group, token))) => {
                 self.active_by_uuid.insert(
                     key.uuid,
                     ActiveUuidImports {
@@ -183,9 +212,20 @@ impl ImportFlowState {
                 );
                 (mutex_group, Some(token))
             }
+            _ => {
+                return Err(
+                    EditorAssetImportSubmitError::UuidLifecycleStateInconsistent {
+                        uri: key.uri.as_ref().clone(),
+                    },
+                );
+            }
         };
+        self.consume_flight_identity();
+        if begin_uuid.is_some() {
+            self.consume_mutex_group_identity();
+            self.consume_uuid_lifecycle_identity();
+        }
         let flight = Arc::new(ImportFlight::new(Arc::clone(&key.uri), reason));
-        let flight_identity = self.allocate_flight_identity();
         self.admission_bytes = self.admission_bytes.saturating_add(estimated_bytes);
         self.active_order.entry(now).or_default().push(key.clone());
         self.flights.insert(
@@ -375,36 +415,62 @@ impl ImportFlowState {
         }
     }
 
+    #[cfg(test)]
     fn allocate_mutex_group(&mut self) -> Result<MutexGroup, EditorAssetImportSubmitError> {
-        loop {
-            let value = self.next_mutex_group;
-            self.next_mutex_group = self.next_mutex_group.wrapping_add(1);
-            // Keep a future format change inside the submit error path instead of crashing the
-            // editor while starting an asset import.
-            let candidate = MutexGroup::parse(format!("asset_import_{value:016x}"))?;
-            if self
-                .active_by_uuid
-                .values()
-                .all(|active| active.mutex_group != candidate)
-            {
-                return Ok(candidate);
-            }
+        let candidate = self.mutex_group_candidate()?;
+        self.consume_mutex_group_identity();
+        Ok(candidate)
+    }
+
+    fn mutex_group_candidate(&self) -> Result<MutexGroup, EditorAssetImportSubmitError> {
+        if self.mutex_group_identity_exhausted {
+            return Err(EditorAssetImportSubmitError::MutexGroupIdentityExhausted);
         }
+        // Keep a future format change inside the submit error path instead of crashing the
+        // editor while starting an asset import.
+        MutexGroup::parse(format!("asset_import_{:016x}", self.next_mutex_group))
+            .map_err(Into::into)
     }
 
-    fn allocate_flight_identity(&mut self) -> FlightIdentity {
-        let identity = FlightIdentity(self.next_flight_identity);
-        self.next_flight_identity = self.next_flight_identity.wrapping_add(1);
-        identity
+    fn flight_identity_candidate(&self) -> Result<FlightIdentity, EditorAssetImportSubmitError> {
+        if self.flight_identity_exhausted {
+            return Err(EditorAssetImportSubmitError::FlightIdentityExhausted);
+        }
+        Ok(FlightIdentity(self.next_flight_identity))
     }
 
-    fn allocate_uuid_lifecycle(&mut self, uuid: AssetUuid) -> UuidLifecycleToken {
-        let token = UuidLifecycleToken {
+    fn uuid_lifecycle_candidate(
+        &self,
+        uuid: AssetUuid,
+    ) -> Result<UuidLifecycleToken, EditorAssetImportSubmitError> {
+        if self.uuid_lifecycle_identity_exhausted {
+            return Err(EditorAssetImportSubmitError::UuidLifecycleIdentityExhausted);
+        }
+        Ok(UuidLifecycleToken {
             uuid,
             identity: self.next_uuid_lifecycle,
-        };
-        self.next_uuid_lifecycle = self.next_uuid_lifecycle.wrapping_add(1);
-        token
+        })
+    }
+
+    fn consume_mutex_group_identity(&mut self) {
+        advance_identity(
+            &mut self.next_mutex_group,
+            &mut self.mutex_group_identity_exhausted,
+        );
+    }
+
+    fn consume_flight_identity(&mut self) {
+        advance_identity(
+            &mut self.next_flight_identity,
+            &mut self.flight_identity_exhausted,
+        );
+    }
+
+    fn consume_uuid_lifecycle_identity(&mut self) {
+        advance_identity(
+            &mut self.next_uuid_lifecycle,
+            &mut self.uuid_lifecycle_identity_exhausted,
+        );
     }
 }
 
@@ -474,6 +540,14 @@ fn duration_millis(duration: Duration) -> u64 {
     duration.as_millis().min(u64::MAX as u128) as u64
 }
 
+fn advance_identity(next: &mut u64, exhausted: &mut bool) {
+    if *next == u64::MAX {
+        *exhausted = true;
+    } else {
+        *next += 1;
+    }
+}
+
 fn oldest_entry(
     order: &BTreeMap<Instant, Vec<ImportGenerationKey>>,
 ) -> Option<(Instant, ImportGenerationKey)> {
@@ -499,17 +573,5 @@ fn remove_order_entry(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn generated_mutex_groups_are_distinct_valid_submission_values() {
-        let mut state = ImportFlowState::default();
-        let first = state.allocate_mutex_group().unwrap();
-        let second = state.allocate_mutex_group().unwrap();
-
-        assert_eq!(first.as_str(), "asset_import_0000000000000000");
-        assert_eq!(second.as_str(), "asset_import_0000000000000001");
-        assert_ne!(first, second);
-    }
-}
+#[path = "tests/state.rs"]
+mod tests;

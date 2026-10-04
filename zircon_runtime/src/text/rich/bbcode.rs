@@ -15,6 +15,7 @@ pub(super) enum BbCodeToken {
     },
 }
 
+/// BBCode 主扫描器只把受预算约束的完整方括号片段交给标签分派；无法识别的片段留给普通文本路径。
 pub(super) fn token_at(
     input: &str,
     tokenizer_budget: RichTokenizerBudget,
@@ -92,6 +93,7 @@ pub(super) fn apply_builtin_style(
     true
 }
 
+/// 保留标签生成真实字符而非样式；方向控制字符随后仍由解析器按源信任等级审查。
 pub(super) fn literal_tag_text(tag: &str) -> Option<&'static str> {
     match tag {
         "lb" => Some("["),
@@ -293,21 +295,5 @@ fn hex_nibble(value: u8) -> Option<u8> {
 }
 
 #[cfg(test)]
-mod optimization_tests {
-    use super::normalized_tag;
-
-    #[test]
-    fn normalized_tag_trims_and_folds_valid_ascii() {
-        assert_eq!(
-            normalized_tag("  Color_Accent  ").as_deref(),
-            Some("color_accent")
-        );
-    }
-
-    #[test]
-    fn normalized_tag_rejects_invalid_or_non_ascii_names() {
-        for tag in ["", "bad-tag", "bad tag", "café"] {
-            assert_eq!(normalized_tag(tag), None);
-        }
-    }
-}
+#[path = "tests/bbcode_optimization_tests.rs"]
+mod optimization_tests;

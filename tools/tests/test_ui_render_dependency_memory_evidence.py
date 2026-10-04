@@ -1,7 +1,8 @@
+# 核对渲染依赖内存证据的阶段生命周期、预算与驻留回收。
 from pathlib import Path
 import unittest
 
-from tools.ui_render_dependency_memory_evidence import (
+from tools.analysis.performance.ui.ui_render_dependency_memory_evidence import (
     MAX_IMAGE_POOL_BYTES,
     MAX_METADATA_BUDGET_BYTES,
     PREFIX,
@@ -109,7 +110,7 @@ def valid_manifest():
         "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/shared_image_registry.rs",
         "zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/stats.rs",
         "zircon_editor/src/ui/retained_host/ui_perf.rs",
-        "tools/ui-profile-process-evidence.ps1",
+        "tools/analysis/profiling/ui/ui-profile-process-evidence.ps1",
     )
     return {
         "schema_version": 2,

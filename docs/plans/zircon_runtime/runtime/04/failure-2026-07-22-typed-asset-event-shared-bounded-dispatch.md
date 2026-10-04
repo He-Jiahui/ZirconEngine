@@ -10,9 +10,18 @@ fixing_child_dir: docs/plans/zircon_runtime/runtime/04
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/asset/facade/event.rs
-  - zircon_runtime/src/core/resource/manager/resource_manager.rs
-  - zircon_runtime/src/core/resource/manager/events.rs
-  - zircon_runtime/src/scene/dynamic_scene/asset_reload
+  - zircon_runtime/src/asset/facade/event/declaration.rs
+  - zircon_runtime/src/asset/facade/event/projection.rs
+  - zircon_runtime/src/asset/facade/event/receiver.rs
+  - zircon_runtime/src/asset/facade/event/tests.rs
+  - zircon_runtime/crates/zr_resource/src/event_stream.rs
+  - zircon_runtime/crates/zr_resource/src/event_stream/event_order_tests.rs
+  - zircon_runtime/crates/zr_resource/src/event_stream/publication_index_tests.rs
+  - zircon_runtime/crates/zr_resource/src/manager/resource_manager.rs
+  - zircon_runtime/src/scene/dynamic_scene/asset_reload/mod.rs
+  - zircon_runtime/src/scene/dynamic_scene/asset_reload/queue/event_processing.rs
+  - zircon_runtime/src/scene/dynamic_scene/asset_reload/queue/reconciliation.rs
+  - zircon_runtime/src/scene/dynamic_scene/asset_reload/reports.rs
 tests:
   - cargo test -p zircon_runtime --lib typed_asset_receiver --locked --jobs 1 -- --nocapture --test-threads=1
   - asset event storm, stalled consumer, rename/remove ordering and bounded RSS fixtures
@@ -53,3 +62,57 @@ tests:
 ## 修复结果与回传
 
 Open state: typed facade局部止损已完成；共享有界分发与产品storm验收仍`待修复`，no pass is claimed.
+
+### 2026-09-09 current-source validation correction
+
+Current source already provides the Runtime04 shared bounded resource event log:
+an immutable publisher-owned cursor stream with entry/byte/age budgets,
+revision-aware coalescing, lifecycle-edge ordering, lag gaps, and stream
+diagnostics. `AssetEventReceiver<T>` consumes that receiver directly and filters
+in place, so the typed facade does not create a filter thread or a second queue.
+
+The declared typed facade regression was stale rather than a dispatch defect.
+It registered `Pending` records (whose resource revision is `0`) and asserted
+`revision() == 2`, confusing the second publication sequence with the resource
+revision. The test now asserts the `Added` event and the contract revision `0`.
+
+The first source-bound run on the prior input reproduced that exact failure:
+job `f2b0bf0b1ebd40d3b0d455d5469d4b37`, 0 passed / 1 failed. After the test-only
+correction, snapshot `3312` sealed the owned file with source manifest
+`03e62d73910441d6bfecf66677d1ef1c0d6ccf5269ecae3098936a8f63729520`.
+Windows native managed validation then ran the exact `typed_asset_receiver`
+filter under Cargo 1.94.1, no default features, static linking, and `--locked`:
+job `5585765421d948678c47137764abd1a0`, 1 passed / 0 failed / 0 ignored.
+The receipt log is
+`E:/cargo-targets/zircon-engine/cache/build-benchmarks/runtime04-typed-events-3312-20260909/results/runtime04-typed-events-3312-r1.log`.
+
+Source and test evidence for this narrow stale-assertion repair is complete.
+Independent C0/I0/M0 review, failure return, and coordinator closeout remain
+pending; external `zr_vm` work remains excluded.
+
+### 2026-09-11 canonical path correction
+
+The original `related_code` entries above the current-source correction named
+the pre-extraction paths `zircon_runtime/src/core/resource/manager/*` and the
+`asset_reload` directory. Those paths are retained only as historical failure
+evidence: they no longer exist after the Resource foundation moved to the
+`zircon_runtime/crates/zr_resource` crate. The lifecycle key is unchanged.
+The coordinator index now binds this lifecycle to the concrete facade,
+`zr_resource` event-stream/manager, and dynamic-scene consumer files listed in
+the frontmatter, including the exact regression tests. No compatibility alias
+or second dispatch path was introduced.
+
+### 2026-09-11 current-source Cargo admission blocker
+
+The fixing Session `failure-roll-01a084c8-runtime04-typed-events-r1` sealed the
+current canonical source manifest and submitted the direct structured Cargo
+command
+`cargo test -p zircon_runtime --no-default-features --locked --lib typed_asset_receiver`
+with Cargo/Rust 1.94.1, Windows MSVC, and static linking. Coordinator request
+`9148c1ff9bf34110a8972f42561a5260` was rejected during admission with
+`validation_ticket_external_worktree_dirty`: the external repository
+`E:\\Git\\zr_vm` has uncommitted changes. No validation ticket or Cargo run
+was created, so this is recorded as an external prerequisite rather than a
+pass. The Session is parked at `waiting_validation`; return, independent
+review, and closeout remain pending until the external owner provides a clean
+revision and the exact command is admitted and executed.

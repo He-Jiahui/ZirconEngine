@@ -19,8 +19,8 @@ related_code:
   - zircon_runtime/src/scene/world/project_io/scene_asset.rs
   - zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs
 tests:
-  - .\tools\zircon-session.ps1 ownership matrix --prefix zircon_editor/src -Json
-  - .\tools\zircon-session.ps1 ownership matrix --prefix zircon_runtime/src/scene/world/project_io -Json
+  - .\tools\dev\zircon-session.ps1 ownership matrix --prefix zircon_editor/src -Json
+  - .\tools\dev\zircon-session.ps1 ownership matrix --prefix zircon_runtime/src/scene/world/project_io -Json
 resolved_at: 2026-08-28
 ---
 

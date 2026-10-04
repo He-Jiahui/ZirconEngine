@@ -1,3 +1,4 @@
+//! 远程白字武器与魔杖配置选择的独立契约；当前只有测试入口使用，世界侧另有投射物快照与落地结算。
 // Pure selection of the profile used by an auto-shot or wand bolt.
 var contract = %import("generated/ranged_shot_contract");
 
@@ -25,6 +26,7 @@ pub class ClassRangedProfile {
     }
 }
 
+/// 魔杖优先使用职业远程配置，其他投射物读取携带武器；这里只返回副本，不生成投射物。
 pub rangedShotProfile(ranged: ClassRangedProfile, weapon: RangedProfile): RangedProfile {
     if (ranged.wand && contract.wandUsesClassProfile()) return new RangedProfile(ranged.min, ranged.max, ranged.speed);
     return new RangedProfile(weapon.min, weapon.max, weapon.speed);

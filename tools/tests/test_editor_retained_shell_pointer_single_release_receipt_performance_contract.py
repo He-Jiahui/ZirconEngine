@@ -1,3 +1,4 @@
+# 核对拖拽和尺寸调整释放动作只产生一次类型化回执及最终坐标提交。
 import unittest
 from pathlib import Path
 

@@ -1,7 +1,7 @@
 from pathlib import Path
 import re
 import unittest
-
+# 事件读取迭代器只维护一个状态判别位，next 一次匹配推进；检查 Rust 回归对空、部分和耗尽状态的声明。
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime/src/scene/ecs/events/cursor.rs"

@@ -27,5 +27,5 @@ pub(super) fn performance_timeline_action_status(
 }
 
 #[cfg(test)]
-#[path = "status/single_buffer_status_tests.rs"]
+#[path = "status/tests/single_buffer_status_tests.rs"]
 mod single_buffer_status_tests;

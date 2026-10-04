@@ -351,3 +351,7 @@ pub(super) fn plugin_id_from_runtime_module_name(module_name: &str) -> Option<&s
 fn status(code: ZrStatusCode) -> ZrStatus {
     ZrStatus::new(code, ZrByteSlice::empty())
 }
+
+#[cfg(test)]
+#[path = "tests/cases.rs"]
+mod tests;

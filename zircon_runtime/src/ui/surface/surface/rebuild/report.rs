@@ -9,6 +9,12 @@ use zircon_runtime_interface::ui::{
     tree::UiDirtyFlags,
 };
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// Work performed by the surface stages during a rebuild transaction.
+///
+/// The `*_rebuilt` flags retain their stage-update meaning, including local updates.
+/// The `*_patched` flags identify successful local routes rather than full rebuilds.
+/// A hit-grid patch can succeed without changing content: `hit_grid_rebuilt` remains
+/// the change/full-rebuild signal used by frame publication in that case.
 pub struct UiSurfaceRebuildReport {
     pub dirty_flags: UiDirtyFlags,
     pub dirty_node_count: usize,
@@ -16,6 +22,15 @@ pub struct UiSurfaceRebuildReport {
     pub arranged_rebuilt: bool,
     pub hit_grid_rebuilt: bool,
     pub render_rebuilt: bool,
+    #[serde(default)]
+    /// Whether the arranged-tree stage used a local patch instead of a full rebuild.
+    pub arranged_patched: bool,
+    #[serde(default)]
+    /// Whether the hit-test stage used a local patch instead of a full rebuild.
+    pub hit_grid_patched: bool,
+    #[serde(default)]
+    /// Whether the render stage used a local patch instead of a full rebuild.
+    pub render_patched: bool,
     pub arranged_node_count: usize,
     pub render_command_count: usize,
     pub hit_grid_entry_count: usize,
@@ -76,6 +91,18 @@ pub struct UiSurfaceRebuildReport {
 }
 
 impl UiSurfaceRebuildReport {
+    pub(super) fn arranged_updated(&self) -> bool {
+        self.arranged_rebuilt || self.arranged_patched
+    }
+
+    pub(super) fn hit_grid_stage_ran(&self) -> bool {
+        self.hit_grid_rebuilt || self.hit_grid_patched
+    }
+
+    pub(super) fn render_updated(&self) -> bool {
+        self.render_rebuilt || self.render_patched
+    }
+
     pub fn debug_stats(self) -> UiSurfaceRebuildDebugStats {
         UiSurfaceRebuildDebugStats {
             dirty_flags: self.dirty_flags,
@@ -84,6 +111,9 @@ impl UiSurfaceRebuildReport {
             arranged_rebuilt: self.arranged_rebuilt,
             hit_grid_rebuilt: self.hit_grid_rebuilt,
             render_rebuilt: self.render_rebuilt,
+            arranged_patched: self.arranged_patched,
+            hit_grid_patched: self.hit_grid_patched,
+            render_patched: self.render_patched,
             arranged_node_count: self.arranged_node_count,
             render_command_count: self.render_command_count,
             hit_grid_entry_count: self.hit_grid_entry_count,
@@ -157,7 +187,7 @@ impl UiSurfaceRebuildReport {
                 ),
                 measured_or_skipped_stage(
                     UiPipelineStage::PostLayout,
-                    self.arranged_rebuilt,
+                    self.arranged_updated(),
                     self.arranged_elapsed_micros,
                     dirty_reasons_for_post_layout(self.dirty_flags),
                     UiPipelineStageCounters {
@@ -170,13 +200,15 @@ impl UiSurfaceRebuildReport {
                 ),
                 measured_or_skipped_stage(
                     UiPipelineStage::Picking,
-                    self.hit_grid_rebuilt,
+                    self.hit_grid_stage_ran(),
                     self.hit_grid_elapsed_micros,
                     dirty_reasons_for_picking(self.dirty_flags),
                     UiPipelineStageCounters {
                         picking_candidate_count: self.hit_grid_entry_count as u64,
                         picking_outer_node_visit_count: self.hit_grid_outer_node_visit_count as u64,
-                        hit_grid_rebuild_count: u64::from(self.hit_grid_rebuilt),
+                        hit_grid_rebuild_count: u64::from(
+                            self.hit_grid_rebuilt && !self.hit_grid_patched,
+                        ),
                         ..UiPipelineStageCounters::default()
                     },
                     "picking grid did not rebuild",
@@ -188,7 +220,7 @@ impl UiSurfaceRebuildReport {
                 ),
                 measured_or_skipped_stage(
                     UiPipelineStage::RenderExtract,
-                    self.render_rebuilt,
+                    self.render_updated(),
                     self.render_elapsed_micros,
                     dirty_reasons_for_render(self.dirty_flags),
                     UiPipelineStageCounters {
@@ -238,7 +270,7 @@ pub(super) fn record_surface_rebuild_profile(
     report: &UiSurfaceRebuildReport,
     total_elapsed_us: u64,
 ) {
-    use crate::core::diagnostics::profiling::{record_counter, record_counter_batch};
+    use crate::core::runtime::diagnostics::profiling::{record_counter, record_counter_batch};
 
     record_counter_batch(
         "runtime",
@@ -284,14 +316,14 @@ pub(super) fn record_surface_rebuild_profile(
             report.layout_elapsed_micros as f64,
         );
     }
-    if report.arranged_rebuilt {
+    if report.arranged_updated() {
         record_counter(
             "runtime",
             "ui.surface_rebuild.post_layout_elapsed_us",
             report.arranged_elapsed_micros as f64,
         );
     }
-    let base_picking_ran = report.hit_grid_rebuilt
+    let base_picking_ran = report.hit_grid_stage_ran()
         || report.layout_recomputed
         || report.dirty_flags.hit_test
         || report.dirty_flags.input;
@@ -302,7 +334,7 @@ pub(super) fn record_surface_rebuild_profile(
             report.hit_grid_elapsed_micros as f64,
         );
     }
-    if report.render_rebuilt {
+    if report.render_updated() {
         record_counter(
             "runtime",
             "ui.surface_rebuild.render_extract_elapsed_us",

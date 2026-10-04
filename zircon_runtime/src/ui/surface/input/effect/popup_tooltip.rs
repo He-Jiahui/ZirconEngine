@@ -7,7 +7,7 @@ use zircon_runtime_interface::ui::{
 
 use super::super::super::surface::UiSurface;
 use super::super::{
-    UiSurfaceInputEffectError, UiSurfaceInputEffectResult, require_valid_input_owner,
+    require_valid_input_owner, UiSurfaceInputEffectError, UiSurfaceInputEffectResult,
 };
 
 pub(super) fn apply_popup_tooltip_effect(
@@ -35,6 +35,7 @@ pub(super) fn apply_popup_tooltip_effect(
     }
 }
 
+// 先校验请求 owner；Open/Toggle 优先更新声明式 popup，缺少声明状态时才使用临时栈；Close 交给统一关闭路径，返回 owner 供应用结果关联目标。
 fn apply_popup_effect(
     surface: &mut UiSurface,
     kind: UiPopupEffectKind,

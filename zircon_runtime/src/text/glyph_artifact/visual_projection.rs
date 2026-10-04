@@ -4,6 +4,7 @@ use zircon_runtime_interface::ui::surface::{
 };
 
 use crate::core::framework::text::TextGlyph;
+use crate::text::layout_geometry::finite_sum;
 
 use super::source_slice;
 
@@ -81,7 +82,8 @@ pub(super) fn presentation_glyphs_for_line(
     for (run_index, advance) in line.glyph_advances.iter().copied().enumerate() {
         let glyph_index = first_glyph_for_run[run_index]?;
         if advance.is_finite() {
-            glyphs[glyph_index].advance += advance.max(0.0);
+            glyphs[glyph_index].advance =
+                finite_sum([glyphs[glyph_index].advance, advance.max(0.0)]);
         }
     }
     Some(glyphs)
@@ -186,7 +188,8 @@ pub(super) fn visual_glyphs_for_visual_line(
     for (cluster_index, advance) in line.glyph_advances.iter().copied().enumerate() {
         let glyph_index = first_glyph_for_cluster[cluster_index]?;
         if advance.is_finite() {
-            glyphs[glyph_index].advance += advance.max(0.0);
+            glyphs[glyph_index].advance =
+                finite_sum([glyphs[glyph_index].advance, advance.max(0.0)]);
         }
     }
     Some(glyphs)
@@ -347,10 +350,15 @@ pub(super) fn apply_resolved_advances(
             continue;
         };
         if advance.is_finite() {
-            glyphs[glyph_index].glyph.advance += advance.max(0.0);
+            glyphs[glyph_index].glyph.advance =
+                finite_sum([glyphs[glyph_index].glyph.advance, advance.max(0.0)]);
         }
     }
 }
+
+#[cfg(test)]
+#[path = "tests/visual_projection.rs"]
+mod tests;
 
 struct RunSourceMap {
     visual_range: UiTextRange,

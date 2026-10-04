@@ -45,9 +45,13 @@ impl TransactionHistorySnapshot {
         let status = page.status();
         let records = page.into_records();
         let truncated = status.len > records.len();
+        // HistoryStore emits records in transaction-id order for each ordered page.
+        // Keep the projection lookup logarithmic; a missing top means it is on
+        // another page (or there is no current top), so no linear fallback is
+        // needed here.
         let visible_top_index = status
             .top
-            .and_then(|top| records.iter().position(|record| record.id == top));
+            .and_then(|top| records.binary_search_by_key(&top, |record| record.id).ok());
         let top_is_after_visible_page =
             truncated && status.top.is_some() && visible_top_index.is_none();
         let rows = records

@@ -75,12 +75,10 @@ fn rich_layout_word_wrap_projects_soft_hyphen_suffix_into_visual_line() {
                 && glyph.source_range.start == glyph.source_range.end
         })
     }));
-    assert!(
-        layout
-            .lines
-            .iter()
-            .all(|line| !line.text.contains('\u{00ad}'))
-    );
+    assert!(layout
+        .lines
+        .iter()
+        .all(|line| !line.text.contains('\u{00ad}')));
 }
 
 #[test]
@@ -104,12 +102,10 @@ fn rich_layout_vertical_word_wrap_projects_soft_hyphen_suffix_into_column() {
             && run.source_range.start == "pre\u{00ad}".len()
             && run.source_range.end == "pre\u{00ad}".len()
     }));
-    assert!(
-        layout
-            .lines
-            .iter()
-            .all(|line| !line.text.contains('\u{00ad}'))
-    );
+    assert!(layout
+        .lines
+        .iter()
+        .all(|line| !line.text.contains('\u{00ad}')));
     let artifact = crate::text::resolve_resolved_text_glyph_artifact(
         layout
             .rich_text_artifact

@@ -9,9 +9,6 @@ origin_child_dir: docs/plans/zircon_tooling/session_coordinator/02
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/legacy.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/tests/test_legacy_migration.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_legacy_migration tools.session_coordinator.tests.test_server
 resolved_at: 2026-07-17

@@ -16,6 +16,7 @@ mod registry;
 mod runtime;
 mod snapshot;
 #[cfg(test)]
+#[path = "tests/test_profile.rs"]
 mod test_profile;
 
 pub use data::ResourceData;
@@ -25,16 +26,17 @@ pub use event_stream::{
     ResourceEventStreamDiagnostics, ResourceEventTryRecvError,
 };
 pub use lease::ResourceLease;
+#[cfg(feature = "profiling")]
+pub use management_generation::ResourceManagementScanDiagnostics;
+pub(crate) use management_generation::{
+    resource_management_id_maps_from_ordered_pages, resource_management_pages_from_sorted_rows,
+    resource_management_row_order, ResourceManagementIdShard, ResourceManagementLocatorShard,
+};
 pub use management_generation::{
     ResourceManagementGeneration, ResourceManagementGenerationDiagnostics,
     ResourceManagementGenerationIdentity, ResourceManagementKindSummary, ResourceManagementPage,
     ResourceManagementQuery, ResourceManagementRow, ResourceManagementRowIdentity,
     ResourceManagementScan, ResourceManagementSummary,
-};
-pub(crate) use management_generation::{
-    ResourceManagementIdShard, ResourceManagementLocatorShard,
-    resource_management_id_maps_from_ordered_pages, resource_management_pages_from_sorted_rows,
-    resource_management_row_order,
 };
 pub use manager::{ResourceManager, ResourceProjectionSnapshot, ResourceRegistryReadGuard};
 pub(crate) use mutation::ResourceMutationOperation;
@@ -73,4 +75,5 @@ pub use zircon_runtime_interface::resource::{
 };
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

@@ -1,7 +1,7 @@
 use serde::{
-    Deserialize, Deserializer, Serialize, Serializer,
     de::Error as _,
     ser::{SerializeSeq, SerializeStruct},
+    Deserialize, Deserializer, Serialize, Serializer,
 };
 use std::{ops::Deref, slice, sync::Arc};
 
@@ -83,6 +83,7 @@ impl UiHitTestScope {
             || scoped_value_conflicts(&self.pointer_id, &query.pointer_id)
     }
 
+    /// 只有双方同时指定同一 scope 维度且值不同时才冲突；任一侧为 None 都是该维通配。
     pub fn accepts_query(&self, query: &Self) -> bool {
         !self.conflicts_with(query)
     }
@@ -194,6 +195,7 @@ impl UiHitTestQuery {
         }
     }
 
+    /// World 查询只有同时带虚拟指针和有限射线时才可映射到表面；Window/Screen 没有这条回投路径。
     pub fn uses_surface_coordinates(&self) -> bool {
         match self.coordinate_space {
             UiHitCoordinateSpace::Surface => true,
@@ -273,14 +275,16 @@ impl UiHitPath {
         bubble_route: Vec<UiNodeId>,
     ) -> Self {
         let expected_target = root_to_leaf.last().copied();
-        let expected_bubble_route: Vec<_> = root_to_leaf.iter().rev().copied().collect();
 
         assert_eq!(
             target, expected_target,
             "UiHitPath target must match the final root-to-leaf node"
         );
-        assert_eq!(
-            bubble_route, expected_bubble_route,
+        assert!(
+            bubble_route
+                .iter()
+                .copied()
+                .eq(root_to_leaf.iter().rev().copied()),
             "UiHitPath bubble route must be the reverse of root-to-leaf"
         );
 
@@ -589,33 +593,9 @@ fn scoped_value_conflicts<T: PartialEq>(grid_value: &Option<T>, query_value: &Op
 }
 
 #[cfg(test)]
-mod cell_entry_tests {
-    use super::*;
+#[path = "hit/tests/route_validation_performance_tests.rs"]
+mod route_validation_performance_tests;
 
-    #[test]
-    fn empty_membership_is_allocation_free_and_keeps_flat_serde() {
-        let entries = UiHitTestCellEntries::default();
-
-        assert!(entries.shared.is_none());
-        assert!(entries.is_empty());
-        assert_eq!(serde_json::to_string(&entries).unwrap(), "[]");
-        assert!(
-            serde_json::from_str::<UiHitTestCellEntries>("[]")
-                .unwrap()
-                .shared
-                .is_none()
-        );
-    }
-
-    #[test]
-    fn retained_membership_clones_only_the_mutated_cell_entries() {
-        let retained: UiHitTestCellEntries = vec![1, 2, 3].into();
-        let mut next = retained.clone();
-
-        let cloned_entry_count = next.insert(1, 9);
-
-        assert_eq!(cloned_entry_count, 3);
-        assert_eq!(retained.as_slice(), &[1, 2, 3]);
-        assert_eq!(next.as_slice(), &[1, 9, 2, 3]);
-    }
-}
+#[cfg(test)]
+#[path = "tests/hit_cell_entry_tests.rs"]
+mod cell_entry_tests;

@@ -1,3 +1,5 @@
+//! 虚拟替换、外部簇与省略号的几何契约：源范围可为空，但视觉宽度必须可追踪。
+
 use super::*;
 
 #[test]
@@ -148,6 +150,106 @@ fn omitted_source_maps_to_the_ellipsis_marker_geometry() {
             UiTextRange { start: 0, end: 6 },
         ),
         Some(vec![(0.0, 28.0)])
+    );
+}
+
+#[test]
+fn virtual_replacement_geometry_keeps_extreme_receipt_prefixes_finite() {
+    let _shared_font_database = crate::text::font::shared_font_database_test_serial_guard();
+    let line = UiResolvedTextLine {
+        text: "a\u{2026}".to_string(),
+        placement_frame: UiFrame::default(),
+        frame: UiFrame::new(0.0, 0.0, f32::MAX, 12.0),
+        source_range: UiTextRange { start: 0, end: 3 },
+        visual_range: UiTextRange { start: 0, end: 4 },
+        measured_width: f32::MAX,
+        glyph_advances: vec![f32::MAX, f32::MAX],
+        baseline: 9.0,
+        direction: UiTextDirection::LeftToRight,
+        runs: vec![
+            UiResolvedTextRun {
+                kind: UiTextRunKind::Plain,
+                text: "a".to_string(),
+                source_range: UiTextRange { start: 0, end: 1 },
+                visual_range: UiTextRange { start: 0, end: 1 },
+                direction: UiTextDirection::LeftToRight,
+            },
+            UiResolvedTextRun {
+                kind: UiTextRunKind::Plain,
+                text: "\u{2026}".to_string(),
+                source_range: UiTextRange { start: 3, end: 3 },
+                visual_range: UiTextRange { start: 1, end: 4 },
+                direction: UiTextDirection::LeftToRight,
+            },
+        ],
+        ellipsized: true,
+    };
+    let mut leading = glyph(11, 0..1);
+    leading.advance = f32::MAX;
+    leading.bidi_level = 0;
+    leading.flags = TextGlyphFlags {
+        cluster_start: true,
+        ..TextGlyphFlags::default()
+    };
+    let mut marker = glyph(12, 3..3);
+    marker.advance = f32::MAX;
+    marker.bidi_level = 0;
+    marker.flags = TextGlyphFlags {
+        cluster_start: true,
+        virtual_glyph: true,
+        ..TextGlyphFlags::default()
+    };
+    let sequence = LogicalVirtualLineSequence::new_with_source_receipts(
+        Arc::from("a\u{2026}"),
+        TextDirection::LeftToRight,
+        vec![
+            TextRange { start: 0, end: 1 },
+            TextRange { start: 3, end: 3 },
+        ],
+        vec![None, Some(TextRange { start: 0, end: 1 })],
+        vec![None, Some(TextRange { start: 1, end: 3 })],
+    )
+    .expect("extreme ellipsis sequence");
+    let artifact = ResolvedTextGlyphArtifact {
+        source_text: Arc::from("abc"),
+        source_text_origin: 0,
+        font_generation: shared_font_database_generation(),
+        font_lease: ResolvedTextGlyphArtifactFontLease::process_default(),
+        style: UiResolvedStyle::default(),
+        writing_mode: UiTextWritingMode::HorizontalTb,
+        lines: vec![Some(ResolvedTextGlyphArtifactLine {
+            glyphs: vec![leading, marker],
+            layout_line: line.clone(),
+        })],
+        logical_virtual_line_sequences: Some(vec![Some(sequence)]),
+    };
+
+    let caret_advance = resolved_text_glyph_artifact_caret_advance(
+        &artifact,
+        0,
+        &line,
+        &UiTextCaret {
+            offset: 2,
+            affinity: UiTextCaretAffinity::Downstream,
+        },
+    )
+    .expect("the replacement receipt must own its omitted source caret");
+    let spans = resolved_text_glyph_artifact_range_advance_spans(
+        &artifact,
+        0,
+        &line,
+        UiTextRange { start: 1, end: 2 },
+    )
+    .expect("the replacement receipt must retain a selection span");
+
+    assert_eq!(caret_advance, f32::MAX);
+    assert!(caret_advance.is_finite());
+    assert_eq!(spans, vec![(f32::MAX, f32::MAX)]);
+    assert!(spans
+        .iter()
+        .all(|(start, end)| start.is_finite() && end.is_finite()));
+    assert!(
+        resolved_text_glyph_artifact_caret_at_advance(&artifact, 0, &line, f32::MAX,).is_some()
     );
 }
 

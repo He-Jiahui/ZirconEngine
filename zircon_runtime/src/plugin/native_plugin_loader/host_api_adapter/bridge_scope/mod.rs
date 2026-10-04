@@ -1,3 +1,4 @@
+//! 桥接回调以冻结的接口槽和方法槽分派；scope 保留分发表与可选动态库世代直到在途调用结束。
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -19,6 +20,7 @@ use super::context_handles::{
     context_snapshot, insert_context, remove_context, NativeHostApiV3Context,
 };
 
+/// 把冻结的接口状态、方法指针和可选动态库世代绑定到同一个宿主句柄。
 pub(super) struct NativeHostBridgeCallContext {
     pub(super) table: FrozenBridgeTable,
     pub(super) methods: DenseBridgeMethodTable,
@@ -237,6 +239,7 @@ pub(super) struct DenseBridgeMethodTableMetrics {
 }
 
 #[derive(Clone)]
+/// 向插件暴露桥接回调的临时句柄；克隆共享注册所有权，最后一个 scope 释放时注销句柄。
 pub struct NativeHostBridgeCallScope {
     handle: ZrRuntimePluginHandle,
     _registration: Arc<NativeHostBridgeCallRegistration>,
@@ -258,6 +261,7 @@ impl NativeHostBridgeCallScope {
     /// Every supplied callback must remain valid until the last clone of the returned scope is
     /// dropped. Native ABI callbacks loaded from a dynamic library must use the live-host
     /// generation-owned construction path instead.
+    /// 回调有效期还必须覆盖 scope 注销前已进入、尚未返回的调用；注销只阻止之后的句柄解析。
     pub unsafe fn with_methods(
         table: FrozenBridgeTable,
         methods: impl IntoIterator<Item = (InterfaceSlot, u32, NativeBridgeMethodFn)>,
@@ -265,6 +269,7 @@ impl NativeHostBridgeCallScope {
         Self::with_methods_and_owner(table, methods, None)
     }
 
+    /// 运行时加载路径应同时交付动态库世代 owner，才能让回调指针跨加载代保持有效。
     pub(in super::super) fn with_methods_and_owner(
         table: FrozenBridgeTable,
         methods: impl IntoIterator<Item = (InterfaceSlot, u32, NativeBridgeMethodFn)>,
@@ -295,6 +300,7 @@ impl NativeHostBridgeCallScope {
     /// Every descriptor callback must remain valid until the last clone of the returned scope is
     /// dropped. Native ABI descriptors loaded from a dynamic library must use the live-host
     /// generation-owned construction path instead.
+    /// 回调有效期还必须覆盖所有已进入的在途调用，不能仅以最后一个 scope 被释放为结束。
     pub unsafe fn from_method_descriptors(
         table: FrozenBridgeTable,
         descriptors: impl IntoIterator<Item = NativeBridgeMethodDescriptor>,
@@ -323,6 +329,7 @@ impl NativeHostBridgeCallScope {
         Ok(Self::with_methods_and_owner(table, methods, library_owner))
     }
 
+    /// 从已按包清单核验的描述符借用方法元数据，建立与当前桥接表一致的槽位映射。
     pub(in super::super) fn from_method_descriptor_refs_with_owner<'a>(
         table: FrozenBridgeTable,
         descriptors: impl IntoIterator<Item = &'a NativeBridgeMethodDescriptor>,
@@ -355,6 +362,7 @@ impl NativeHostBridgeCallScope {
         }
     }
 
+    /// 返回只开放 bridge.call 的 V3 表；注册由 V4 scope 提供，其余域在这张表中为空。
     pub fn api(&self) -> ZrHostApiV3 {
         ZrHostApiV3 {
             abi_version: 3,
@@ -392,6 +400,11 @@ pub(super) fn bridge_context_for(
     Ok(NativeHostBridgeCallContextPin::new(context))
 }
 
+/// 桥接 ABI 入口在查表后同步调用方法；payload 与 output 只借给本次调用。
+///
+/// # Safety
+///
+/// 非空 payload 必须覆盖 len 个可读字节；output 的数据区与 written 指针须在被调方法写入时有效且互不冲突。
 pub(super) unsafe extern "C" fn native_host_bridge_call_v1(
     handle: ZrRuntimePluginHandle,
     interface_slot: u32,
@@ -431,6 +444,7 @@ unsafe fn native_host_bridge_call_v1_inner(
     let Some(method) = context.methods.get(interface_slot, method_slot) else {
         return status(ZrStatusCode::NotFound);
     };
+    // 调用前才取得动态库世代租约；生命周期切换时拒绝新调用，已进入者继续持有库。
     let callback_lease = match context.library_owner.as_ref() {
         Some(owner) => match owner.acquire_callback() {
             Ok(lease) => Some(lease),
@@ -462,4 +476,5 @@ fn status(code: ZrStatusCode) -> ZrStatus {
 }
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

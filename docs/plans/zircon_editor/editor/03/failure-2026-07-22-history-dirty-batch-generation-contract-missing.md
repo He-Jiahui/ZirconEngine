@@ -67,3 +67,15 @@ Rust 聚焦/整库 current-source Cargo、Editor09 产品规模计数、failure 
 - 2026-07-22：初审 `0/1/2` 与后续 `0/2/0` 的 suffix 全扫描、counter 假绿、helper 可见性、失败矩阵和
   文档 findings 均已关闭；两路最终独立复审为 `0/0/0`。受管 Cargo/产品 trace/fixed return/commit
   尚未完成，因此只提升到 `source_complete_static_green_review_clean_cargo_blocked`，不改名 fixed。
+- 2026-09-02：生产实现已将 transaction 行为拆分到 `engine_state.rs`、`lifecycle.rs`、`replay.rs`、
+  `exclusive_transition.rs` 与 `scope.rs`，旧静态 guard 仍只扫描结构 facade `transaction.rs`，形成
+  2 个假 RED 与 1 个解析错误。本次仅把 guard 同步到真实 owner 文件；未改生产源码，受管 Rust、
+  产品 trace、fixed return 与 managed SHA 仍未完成，状态继续保持 `open`。
+
+### 2026-09-18 static ticket terminal result
+
+The managed Editor03 static ticket `990215ffe4374e5980ee5d5c3c3f7519` reached
+terminal `passed` with job `34288a0642704a32bbef9ab4228411a4`, run
+`990215ffe4374e5980ee5d5c3c3f7519`, and exit code `0`; all 5 Python contract
+tests passed. This validates the typed dirty-batch owner and saved-top contract
+on its sealed source snapshot only; Cargo, product trace, fixed return, review,

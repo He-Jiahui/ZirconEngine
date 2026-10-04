@@ -1,3 +1,6 @@
+// 调用端：npm run generate:tool-effect-contract (tools/package.json)；职责：从专业工具、轮盘与内容模块提取工具效果和专长数值。
+// 输入边界：src/sim/professions/tools.ts, src/sim/professions/wheel.ts, src/sim/content/professions.ts；--check 比较生成结果，不改写目标文件。
+
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

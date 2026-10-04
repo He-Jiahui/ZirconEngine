@@ -1,10 +1,11 @@
-use std::collections::{BTreeMap, btree_map::Entry};
+use std::collections::{btree_map::Entry, BTreeMap};
 
-use crate::scene::ecs::{ComponentId, ComponentTicks, storage::StoredComponent};
+use crate::scene::ecs::{storage::StoredComponent, ComponentId, ComponentTicks};
 
 use super::ArchetypeTableError;
 
 /// Owns a fully validated set of values until one archetype table publishes it.
+/// 暂存待发布的组件行；collect 只拒绝重复 ID，仍需目标表校验完整列集合与类型。
 pub(crate) struct ArchetypePreflightedRow {
     components: BTreeMap<ComponentId, (StoredComponent, ComponentTicks)>,
 }

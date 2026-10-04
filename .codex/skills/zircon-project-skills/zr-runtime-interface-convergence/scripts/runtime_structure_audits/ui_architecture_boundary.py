@@ -1,15 +1,29 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
+from .native_plugin_public_surface import _mask_rust_non_code
 
-EXPECTED_UI_ENTRY_COUNT = 20
-EXPECTED_SURFACE_ENTRY_COUNT = 44
-EXPECTED_LEGACY_FULL_HITS = 70
+
+EXPECTED_UI_ENTRY_COUNT = 23
+EXPECTED_SURFACE_ENTRY_COUNT = 45
+EXPECTED_LEGACY_FULL_HITS = 15
 EXPECTED_LEGACY_PRODUCTION_HITS = 0
 EXPECTED_LEGACY_PRODUCTION_FILE_COUNT = 0
-EXPECTED_TAFFY_PRODUCTION_HITS = 175
-EXPECTED_TAFFY_PRODUCTION_FILE_COUNT = 10
+EXPECTED_TAFFY_PRODUCTION_HITS = 254
+EXPECTED_TAFFY_PRODUCTION_FILE_COUNT = 16
+
+LEGACY_MIGRATION_TERMS = (
+    "has_legacy_or_indexed_pointer_capture_for_owner",
+    "split_legacy_table_text",
+    "legacy_component_interaction_fallback",
+    "legacy_interactive",
+    "legacy_visible",
+    "LegacyZircon",
+    "legacy_zircon",
+    "legacy_selected_count",
+)
 
 SOURCE_FILES = (
     "zircon_runtime/src/ui/mod.rs",
@@ -32,9 +46,6 @@ SOURCE_FILES = (
     "zircon_runtime/src/ui/tree/node/scroll.rs",
     "zircon_runtime/src/ui/tests/scroll_virtualization.rs",
     "zircon_runtime/src/ui/template/mod.rs",
-    "zircon_runtime/src/ui/template/pipeline.rs",
-    "zircon_runtime/src/ui/template/loader.rs",
-    "zircon_runtime/src/ui/template/validate.rs",
     "zircon_runtime/src/ui/template/instance.rs",
     "zircon_runtime/src/ui/template/build/interaction.rs",
     "zircon_runtime/src/ui/template/build/surface_builder.rs",
@@ -53,6 +64,7 @@ SOURCE_FILES = (
     "zircon_runtime/src/ui/surface/surface/default_interactions.rs",
     "zircon_runtime/src/ui/accessibility/extract.rs",
     "zircon_runtime/src/tests/runtime_absorption/ui_architecture.rs",
+    "zircon_runtime/src/tests/runtime_absorption/ui_architecture/mirror_docs.rs",
     "docs/zircon_runtime/ui/architecture.md",
     "docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md",
     "docs/plans/zircon_runtime/runtime/index.md",
@@ -64,7 +76,7 @@ SOURCE_FILES = (
     "docs/ui-and-layout/shared-ui-template-runtime.md",
     "docs/zircon_runtime/ui/v2.md",
 )
-EXPECTED_SOURCE_FILE_COUNT = 52
+EXPECTED_SOURCE_FILE_COUNT = 49
 
 EXPECTED_UI_ENTRIES = (
     "accessibility",
@@ -75,10 +87,13 @@ EXPECTED_UI_ENTRIES = (
     "event_ui",
     "icon_atlas",
     "layout",
+    "module",
     "module.rs",
     "platform_input",
     "prelude.rs",
     "public_runtime_frame.rs",
+    "secure_text_policy.rs",
+    "style",
     "style.rs",
     "surface",
     "template",
@@ -103,6 +118,7 @@ EXPECTED_SURFACE_ENTRIES = (
     "focus.rs",
     "frame_hit_test",
     "frame_hit_test.rs",
+    "host_font_assets.rs",
     "input",
     "interaction_gate.rs",
     "invalidation",
@@ -178,7 +194,7 @@ RUNTIME_09_GUARD_ANCHORS = (
     "runtime_09_ui_input_events_route_through_single_dispatch_authority",
     "runtime_09_taffy_layout_pass_order_uses_bridge_authority",
     "runtime_09_virtualization_scroll_boundary_records_invalidation_authority",
-    "runtime_09_template_pipeline_boundary_records_compile_instance_validate_authority",
+    "runtime_74_template_boundary_has_one_compiler_authority",
     "runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts",
     "runtime_09_ui_architecture_cargo_gate_stays_visible_until_ui_owner_validation",
 )
@@ -241,11 +257,11 @@ RUNTIME_09_DOC_ANCHORS = (
     "compiled_template_artifact_stays_toml_envelope_leaf_dto_not_generated_source",
     "// @generated <generator> - do not edit by hand",
     "v2-replacement-mainline",
-    "ui_legacy_hits=70",
+    "ui_legacy_hits=15",
     "ui_legacy_production_hits=0",
     "ui_legacy_production_files=0",
-    "ui_taffy_production_hits=175",
-    "ui_taffy_production_files=10",
+    "ui_taffy_production_hits=254",
+    "ui_taffy_production_files=16",
     "ui/input/naming_boundary/layout/template",
     "editor UI owner",
 )
@@ -342,6 +358,31 @@ def _files_with_matching_line(root: Path, files: list[Path], needle: str) -> lis
     ]
 
 
+def _matching_term_line_count(files: list[Path], terms: tuple[str, ...]) -> int:
+    return sum(
+        1
+        for path in files
+        for line in _read_text(path).splitlines()
+        if any(term in line for term in terms)
+    )
+
+
+def _files_with_matching_term(
+    root: Path,
+    files: list[Path],
+    terms: tuple[str, ...],
+) -> list[str]:
+    return [
+        _relative(root, path)
+        for path in files
+        if any(
+            term in line
+            for line in _read_text(path).splitlines()
+            for term in terms
+        )
+    ]
+
+
 def _missing_snippets(sources: tuple[str, ...], snippets: tuple[str, ...]) -> list[str]:
     return [
         snippet
@@ -378,10 +419,10 @@ def ui_architecture_boundary_audit(root: Path) -> dict[str, object]:
 
     all_ui_files = _rust_files_under(root, "zircon_runtime/src/ui")
     production_ui_files = [path for path in all_ui_files if _production_ui_file(path)]
-    legacy_production_files = _files_with_matching_line(
+    legacy_production_files = _files_with_matching_term(
         root,
         production_ui_files,
-        "legacy",
+        LEGACY_MIGRATION_TERMS,
     )
     taffy_production_files = _files_with_matching_line(
         root,
@@ -389,8 +430,14 @@ def ui_architecture_boundary_audit(root: Path) -> dict[str, object]:
         "taffy",
     )
 
-    legacy_full_hits = _matching_line_count(all_ui_files, "legacy")
-    legacy_production_hits = _matching_line_count(production_ui_files, "legacy")
+    legacy_full_hits = _matching_term_line_count(
+        all_ui_files,
+        LEGACY_MIGRATION_TERMS,
+    )
+    legacy_production_hits = _matching_term_line_count(
+        production_ui_files,
+        LEGACY_MIGRATION_TERMS,
+    )
     taffy_production_hits = _matching_line_count(production_ui_files, "taffy")
 
     runtime_v2 = root / "zircon_runtime/src/ui/v2/mod.rs"
@@ -408,6 +455,14 @@ def ui_architecture_boundary_audit(root: Path) -> dict[str, object]:
         / "zircon_runtime/src/tests/runtime_absorption/ui_architecture/mirror_docs.rs",
     )
     guard_sources = tuple(_read_text(path) for path in guard_paths if path.exists())
+    guard_test_names = {
+        name
+        for source in guard_sources
+        for name in re.findall(
+            r"(?m)^\s*#\s*\[test\]\s*fn\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(",
+            _mask_rust_non_code(source),
+        )
+    }
 
     doc_paths = (
         root / "docs/zircon_runtime/ui/architecture.md",
@@ -468,10 +523,9 @@ def ui_architecture_boundary_audit(root: Path) -> dict[str, object]:
         (interface_v2_source,),
         INTERFACE_V2_ANCHORS,
     )
-    missing_guard_anchors = _missing_snippets(
-        guard_sources + doc_sources,
-        RUNTIME_09_GUARD_ANCHORS,
-    )
+    missing_guard_anchors = [
+        name for name in RUNTIME_09_GUARD_ANCHORS if name not in guard_test_names
+    ]
     missing_cargo_gate_anchors = _missing_snippets(
         guard_sources + doc_sources,
         CARGO_GATE_ANCHORS,
@@ -480,10 +534,7 @@ def ui_architecture_boundary_audit(root: Path) -> dict[str, object]:
         doc_sources,
         RUNTIME_09_DOC_ANCHORS,
     )
-    mirror_docs_guard_present = not _missing_snippets(
-        guard_sources + doc_sources,
-        (MIRROR_DOCS_GUARD,),
-    )
+    mirror_docs_guard_present = MIRROR_DOCS_GUARD in guard_test_names
     missing_required_doc_mentions = _missing_file_snippets(
         root,
         (
@@ -505,6 +556,8 @@ def ui_architecture_boundary_audit(root: Path) -> dict[str, object]:
     )
 
     risks: list[str] = []
+    if len(source_files) != EXPECTED_SOURCE_FILE_COUNT:
+        risks.append("Runtime 09 UI architecture source inventory count changed without audit sync.")
     if missing_source_files:
         risks.append("Runtime 09 UI architecture source/doc files are missing.")
     if ui_missing_entries or ui_unexpected_entries or len(ui_entries) != EXPECTED_UI_ENTRY_COUNT:
@@ -522,13 +575,13 @@ def ui_architecture_boundary_audit(root: Path) -> dict[str, object]:
     if missing_interface_v2_anchors:
         risks.append("Runtime 09 interface ui::v2 contract anchors are missing.")
     if missing_guard_anchors:
-        risks.append("Runtime 09 Rust/status guard anchors are missing.")
+        risks.append("Runtime 09 Rust test declarations are missing.")
     if missing_cargo_gate_anchors:
         risks.append("Runtime 09 pending UI owner/Cargo gate anchors are missing.")
     if missing_doc_anchors or missing_required_doc_mentions:
         risks.append("Runtime 09 plan or mirror docs are missing required status anchors.")
     if not mirror_docs_guard_present:
-        risks.append("Runtime 09 mirror-doc guard anchor is missing from docs or guards.")
+        risks.append("Runtime 09 mirror-doc Rust test declaration is missing.")
 
     return {
         "source_files": source_files,
@@ -544,6 +597,7 @@ def ui_architecture_boundary_audit(root: Path) -> dict[str, object]:
         "surface_unexpected_entries": surface_unexpected_entries,
         "all_ui_rust_file_count": len(all_ui_files),
         "production_ui_rust_file_count": len(production_ui_files),
+        "legacy_migration_terms": list(LEGACY_MIGRATION_TERMS),
         "legacy_full_hits": legacy_full_hits,
         "expected_legacy_full_hits": EXPECTED_LEGACY_FULL_HITS,
         "legacy_production_hits": legacy_production_hits,

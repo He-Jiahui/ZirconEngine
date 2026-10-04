@@ -109,7 +109,8 @@ fn runtime_15_ui_widget_text_input_keyboard_tests_are_folder_backed() {
     .sum::<usize>();
     assert_eq!(
         // BUG: [CR-UI-TEST-0207] 当前已跟踪的五个键盘子模块合计 69 个测试，此处仍要求迁移时的 52 个，导致本结构测试恒失败。
-        child_test_total, 52,
+        child_test_total,
+        52,
         "UI widget text input keyboard children should preserve all 52 parent tests"
     );
 

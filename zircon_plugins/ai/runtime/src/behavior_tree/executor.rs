@@ -1,18 +1,24 @@
 use zircon_runtime::core::framework::ai::{
-    AiBehaviorNodeParameterValue, AiBlackboardEntry, AiDecisionStatus, AiManagerError,
-    AiPerceptionSnapshot,
+    AiBehaviorEffectCommand, AiBehaviorNodeParameterValue, AiBehaviorTreeId, AiBlackboardEntry,
+    AiDecisionStatus, AiManagerError, AiPerceptionSnapshot,
 };
+use zircon_runtime::core::framework::scene::WorldHandle;
 
 use crate::blackboard::{
     BlackboardLayout, BlackboardObserver, BlackboardObserverSet, BlackboardSlot, BlackboardStore,
 };
 use crate::manager::parameters::{
-    parse_task_result, ParallelPolicy, PARALLEL_FAILURE_POLICY_PARAMETER_KEY,
-    PARALLEL_SUCCESS_POLICY_PARAMETER_KEY, SUBTREE_TARGET_PARAMETER_KEY, TASK_RESULT_PARAMETER_KEY,
+    parse_task_result, ParallelPolicy, BLACKBOARD_KEY_PARAMETER_KEY,
+    PARALLEL_FAILURE_POLICY_PARAMETER_KEY, PARALLEL_SUCCESS_POLICY_PARAMETER_KEY,
+    SUBTREE_TARGET_PARAMETER_KEY, TASK_RESULT_PARAMETER_KEY,
 };
 
 use self::abort::{abort_active_root, process_observer_aborts, AbortRequest};
 use self::condition::decorator_condition_passes;
+use self::effects::{
+    evaluate_effect_task, failed_effect_execution, BehaviorTreeEffectStaging,
+    EffectExecutionIdentity,
+};
 use self::integration::{evaluate_integration_task, evaluate_task};
 use self::selector::evaluate_selector;
 use self::support::*;
@@ -23,24 +29,35 @@ use super::{
 
 mod abort;
 mod condition;
+mod effects;
 mod integration;
 mod selector;
 mod support;
 
+/// Maximum number of behavior nodes an agent may evaluate during one tick.
+///
+/// This is intentionally a fixed executor admission budget for now. A future
+/// scheduler can make it profile- or importance-specific without changing the
+/// typed `Blocked` result used when admission is denied.
+const DEFAULT_BEHAVIOR_TREE_NODE_EVALUATION_BUDGET: usize = 4_096;
+
+/// Maximum nested node depth allowed during one behavior-tree evaluation.
+const DEFAULT_BEHAVIOR_TREE_EVALUATION_DEPTH_BUDGET: usize = 256;
+
 #[cfg(test)]
-#[path = "executor/parallel_allocation_tests.rs"]
+#[path = "executor/tests/parallel_allocation_tests.rs"]
 mod parallel_allocation_tests;
 
 #[cfg(test)]
-#[path = "executor/node_state_allocation_tests.rs"]
+#[path = "executor/tests/node_state_allocation_tests.rs"]
 mod node_state_allocation_tests;
 
 #[cfg(test)]
-#[path = "executor/observer_pass_allocation_tests.rs"]
+#[path = "executor/tests/observer_pass_allocation_tests.rs"]
 mod observer_pass_allocation_tests;
 
 #[cfg(test)]
-#[path = "executor/tree_stack_allocation_tests.rs"]
+#[path = "executor/tests/tree_stack_allocation_tests.rs"]
 mod tree_stack_allocation_tests;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -199,15 +216,47 @@ struct BehaviorTreeExecutionContext<'data, 'host> {
     tree_descriptors: &'data [CompiledBehaviorTree],
     blackboard_store: Option<&'data BlackboardStore>,
     entity: u64,
+    effect_identity: Option<EffectExecutionIdentity>,
+    effects: BehaviorTreeEffectStaging,
     integration_host: Option<&'host mut dyn BehaviorIntegrationHost>,
+    node_evaluations: usize,
+    evaluation_depth: usize,
 }
 
 impl BehaviorTreeExecutionContext<'_, '_> {
+    fn admit_node(&mut self) -> Result<(), BehaviorTreeEvaluationAdmissionError> {
+        if self.evaluation_depth >= DEFAULT_BEHAVIOR_TREE_EVALUATION_DEPTH_BUDGET {
+            return Err(BehaviorTreeEvaluationAdmissionError::DepthBudgetExceeded);
+        }
+        if self.node_evaluations >= DEFAULT_BEHAVIOR_TREE_NODE_EVALUATION_BUDGET {
+            return Err(BehaviorTreeEvaluationAdmissionError::NodeBudgetExceeded);
+        }
+        self.evaluation_depth += 1;
+        self.node_evaluations += 1;
+        Ok(())
+    }
+
+    fn leave_node(&mut self) {
+        debug_assert!(self.evaluation_depth > 0);
+        self.evaluation_depth -= 1;
+    }
+
     fn dense_blackboard_value(
         &self,
         tree_id: &str,
         node_index: u32,
     ) -> Option<Option<zircon_runtime::core::framework::ai::AiBlackboardValue>> {
+        let key = self
+            .tree_descriptors
+            .iter()
+            .find(|tree| tree.id() == tree_id)
+            .and_then(|tree| {
+                parameter(tree.node(node_index as usize), BLACKBOARD_KEY_PARAMETER_KEY)
+                    .and_then(AiBehaviorNodeParameterValue::as_string)
+            })?;
+        if let Some(value) = self.effects.blackboard_overlay().get(key) {
+            return Some(Some(value.clone()));
+        }
         let slot = self
             .instance
             .observers
@@ -217,9 +266,28 @@ impl BehaviorTreeExecutionContext<'_, '_> {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum BehaviorTreeEvaluationAdmissionError {
+    NodeBudgetExceeded,
+    DepthBudgetExceeded,
+}
+
+impl BehaviorTreeEvaluationAdmissionError {
+    const fn diagnostic_reason(self) -> &'static str {
+        match self {
+            Self::NodeBudgetExceeded => "exceeded the per-tick node evaluation budget",
+            Self::DepthBudgetExceeded => "exceeded the behavior-tree evaluation depth budget",
+        }
+    }
+}
+
 pub(crate) fn evaluate_behavior_tree(
     descriptor: &CompiledBehaviorTree,
     registered_trees: &[CompiledBehaviorTree],
+    world: WorldHandle,
+    behavior_tree: AiBehaviorTreeId,
+    compiled_tree_generation: u64,
+    effect_generation: Option<u64>,
     blackboard: &[AiBlackboardEntry],
     perception: Option<&AiPerceptionSnapshot>,
     delta_seconds: f32,
@@ -229,7 +297,7 @@ pub(crate) fn evaluate_behavior_tree(
     instance: &mut BehaviorTreeInstanceState,
     entity: u64,
     integration_host: Option<&mut dyn BehaviorIntegrationHost>,
-) -> Result<BehaviorTreeExecution, AiManagerError> {
+) -> Result<(BehaviorTreeExecution, Vec<AiBehaviorEffectCommand>), AiManagerError> {
     if let Some(layout) = blackboard_layout {
         bind_reachable_observers(instance, descriptor, registered_trees, layout)?;
     }
@@ -246,7 +314,17 @@ pub(crate) fn evaluate_behavior_tree(
         tree_descriptors: registered_trees,
         blackboard_store,
         entity,
+        effect_identity: Some(EffectExecutionIdentity {
+            world,
+            entity,
+            behavior_tree,
+            compiled_tree_generation,
+            effect_generation,
+        }),
+        effects: BehaviorTreeEffectStaging::default(),
         integration_host,
+        node_evaluations: 0,
+        evaluation_depth: 0,
     };
     if context.instance.root_tree.as_deref() != Some(descriptor.id()) {
         abort_active_root(&mut context);
@@ -254,7 +332,7 @@ pub(crate) fn evaluate_behavior_tree(
         context.instance.tick = 0;
         context.instance.root_tree = Some(descriptor.id().to_string());
     }
-    let result = evaluate_behavior_tree_with_stack(
+    let mut result = evaluate_behavior_tree_with_stack(
         descriptor,
         registered_trees,
         &mut context,
@@ -262,7 +340,9 @@ pub(crate) fn evaluate_behavior_tree(
     );
     context.instance.tree_stack_scratch = tree_stack;
     context.instance.tick = context.instance.tick.wrapping_add(1);
-    Ok(result)
+    let (commands, failure) = std::mem::take(&mut context.effects).finish();
+    failed_effect_execution(&mut result, failure);
+    Ok((result, commands))
 }
 
 pub(crate) fn abort_behavior_tree_instance(
@@ -284,7 +364,11 @@ pub(crate) fn abort_behavior_tree_instance(
         tree_descriptors: registered_trees,
         blackboard_store: None,
         entity,
+        effect_identity: None,
+        effects: BehaviorTreeEffectStaging::default(),
         integration_host,
+        node_evaluations: 0,
+        evaluation_depth: 0,
     };
     abort_active_root(&mut context);
     context.instance.trees.clear();
@@ -312,6 +396,10 @@ fn evaluate_node(
     tree_stack: &mut BehaviorTreeStack,
 ) -> BehaviorTreeExecution {
     let node = tree.node(node_index as usize);
+
+    if let Err(admission_error) = context.admit_node() {
+        return blocked(node.id(), admission_error.diagnostic_reason());
+    }
 
     let result = match node.semantics() {
         BehaviorNodeSemantics::Selector => evaluate_selector(
@@ -397,10 +485,11 @@ fn evaluate_node(
             evaluate_integration_task(node_index, node, tree, context)
         }
         BehaviorNodeSemantics::SetBlackboard | BehaviorNodeSemantics::EmitEvent => {
-            evaluate_task(node)
+            evaluate_effect_task(node, tree, context)
         }
         BehaviorNodeSemantics::External => evaluate_external(node_index, node, tree, context),
     };
+    context.leave_node();
     context.instance.node_mut(tree, node_index).is_active = matches!(
         &result.status,
         AiDecisionStatus::Running | AiDecisionStatus::Idle
@@ -487,6 +576,7 @@ fn evaluate_parallel(
                 }
                 AiDecisionStatus::Blocked => {
                     first_blocked_child.get_or_insert(*child);
+                    break;
                 }
                 AiDecisionStatus::Running | AiDecisionStatus::Idle => {}
             }
@@ -508,6 +598,7 @@ fn evaluate_parallel(
             AiDecisionStatus::Blocked => {
                 first_blocked_child.get_or_insert(*child);
                 cached.insert(*child, result);
+                break;
             }
             AiDecisionStatus::Running => {
                 if first_running.is_none() {
@@ -597,6 +688,7 @@ fn evaluate_decorator(
         context.blackboard,
         context.perception,
         dense_value.as_ref().map(Option::as_ref),
+        context.effects.blackboard_overlay(),
     ) {
         return BehaviorTreeExecution {
             status: AiDecisionStatus::Failed,

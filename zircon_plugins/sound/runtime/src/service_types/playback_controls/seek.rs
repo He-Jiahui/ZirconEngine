@@ -18,6 +18,7 @@ impl DefaultSoundManager {
             ));
         }
         let mut state = lock_recover(&self.state);
+        state.kira.ensure_control_available()?;
         state.poll_kira_completions();
         let (sample_rate, frame_count, range_start_frame, range_end_frame) = {
             let active = state

@@ -1,5 +1,8 @@
+//! 列表事件更新可见、请求和分页窗口的状态契约，供数据来源及模板投影消费；总量和行高需预先写入节点状态。
+
 use zircon_runtime_interface::ui::component::{UiComponentEventError, UiComponentState, UiValue};
 
+// 数据总量的已存在别名按约定优先读取；viewport 表示显示范围，requested 额外携带预取余量，别名输出供不同目录消费。
 pub(super) fn apply_visible_range(
     state: &mut UiComponentState,
     start: i64,
@@ -43,7 +46,7 @@ pub(super) fn apply_visible_range(
     } else {
         int_value_any(state, &["overscan", "overscan_count", "overscanCount"], 0).max(0)
     };
-    let requested_start = viewport_start.saturating_sub(overscan);
+    let requested_start = viewport_start.saturating_sub(overscan).max(0);
     let requested_end = visible_end.saturating_add(overscan).min(total_count);
     let requested_count = requested_end.saturating_sub(requested_start);
     let item_extent = float_value_any(
@@ -85,6 +88,7 @@ pub(super) fn apply_visible_range(
     Ok(())
 }
 
+// 事件页码为零基索引；空列表保留第零页与空范围，非空窗口限制在总量内，写入的是投影元数据。
 pub(super) fn apply_page_window(
     state: &mut UiComponentState,
     page_index: i64,

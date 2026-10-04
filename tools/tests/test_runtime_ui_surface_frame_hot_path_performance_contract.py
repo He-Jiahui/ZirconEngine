@@ -1,13 +1,13 @@
 from pathlib import Path
 import unittest
 
-from tools.ui_surface_frame_hot_path_pressure import run
+from tools.analysis.performance.ui.ui_surface_frame_hot_path_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_UI = ROOT / "zircon_runtime/src/dynamic_api/session/runtime_ui.rs"
 
-
+# 确认表面帧渲染直接读取预先发布的持久渲染域，压力模型计数因此避免的大域克隆。
 class RuntimeUiSurfaceFrameHotPathPerformanceContractTests(unittest.TestCase):
     def test_runtime_render_reads_the_pre_published_persistent_render_domain(self) -> None:
         source = RUNTIME_UI.read_text(encoding="utf-8")

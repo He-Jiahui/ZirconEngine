@@ -17,6 +17,8 @@ use zircon_runtime_interface::ui::component::{
 
 mod asset_browser;
 mod asset_metadata_and_fields;
+mod hierarchy_gesture;
+mod hierarchy_identity;
 mod scene_and_object;
 mod support;
 

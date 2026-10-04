@@ -139,13 +139,13 @@ fn editor_ui_host_runtime_builds_surface_backed_viewport_toolbar_group_frames() 
         .expect("projection mode group should exist");
     assert_eq!(
         set_projection_mode.frame,
-        UiFrame::new(1184.0, 0.0, 46.0, 28.0)
+        UiFrame::new(1220.0, 0.0, 28.0, 28.0)
     );
 
     let align_view = host_model
         .node_by_control_id("AlignView")
         .expect("align view group should exist");
-    assert_eq!(align_view.frame, UiFrame::new(1234.0, 0.0, 46.0, 28.0));
+    assert_eq!(align_view.frame, UiFrame::new(1252.0, 0.0, 28.0, 28.0));
 
     let frame_selection = host_model
         .node_by_control_id("FrameSelection")

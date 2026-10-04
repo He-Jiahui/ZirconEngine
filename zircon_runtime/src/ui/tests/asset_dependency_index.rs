@@ -383,11 +383,12 @@ use std::time::{Duration, Instant};
 
 const CASCADE_VISIT_COUNT: usize = 65_536;
 const UNIQUE_CASCADE_NODE_COUNT: usize = 8_192;
-const CASCADE_SAMPLE_COUNT: usize = 17;
+const CASCADE_SAMPLE_COUNT: usize = 101;
 
-fn cascade_percentile_95(samples: &mut [Duration]) -> Duration {
+fn cascade_percentile(samples: &mut [Duration], percentile: usize) -> Duration {
     samples.sort_unstable();
-    samples[(samples.len() - 1) * 95 / 100]
+    let rank = samples.len().saturating_mul(percentile).div_ceil(100);
+    samples[rank.saturating_sub(1)]
 }
 
 fn cascade_node_visits() -> Vec<String> {
@@ -454,14 +455,25 @@ fn optimization_batch_20260826x_runtime74_dependency_cascade_hash_visited_perfor
         }
     }
 
-    let ordered_p95 = cascade_percentile_95(&mut ordered_samples);
-    let hash_p95 = cascade_percentile_95(&mut hash_samples);
+    let ordered_p50 = cascade_percentile(&mut ordered_samples.clone(), 50);
+    let ordered_p95 = cascade_percentile(&mut ordered_samples.clone(), 95);
+    let ordered_p99 = cascade_percentile(&mut ordered_samples.clone(), 99);
+    let hash_p50 = cascade_percentile(&mut hash_samples.clone(), 50);
+    let hash_p95 = cascade_percentile(&mut hash_samples.clone(), 95);
+    let hash_p99 = cascade_percentile(&mut hash_samples, 99);
     println!(
         "RUNTIME74_DEPENDENCY_CASCADE_HASH_VISITED_BENCH_V1 visits={CASCADE_VISIT_COUNT} \
-         unique_nodes={UNIQUE_CASCADE_NODE_COUNT} ordered_lookup_class=log_n \
-         hash_lookup_class=average_constant ordered_p95_ns={} hash_p95_ns={}",
+         unique_nodes={UNIQUE_CASCADE_NODE_COUNT} sample_count={CASCADE_SAMPLE_COUNT} \
+         pair_order=alternating_ordered_even ordered_first_samples=51 hash_first_samples=50 \
+         ordered_lookup_class=log_n hash_lookup_class=average_constant \
+         ordered_p50_ns={} ordered_p95_ns={} ordered_p99_ns={} \
+         hash_p50_ns={} hash_p95_ns={} hash_p99_ns={}",
+        ordered_p50.as_nanos(),
         ordered_p95.as_nanos(),
+        ordered_p99.as_nanos(),
+        hash_p50.as_nanos(),
         hash_p95.as_nanos(),
+        hash_p99.as_nanos(),
     );
     assert!(
         hash_p95.as_nanos() * 100 <= ordered_p95.as_nanos() * 60,

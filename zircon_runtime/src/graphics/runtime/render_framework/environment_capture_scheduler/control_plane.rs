@@ -9,6 +9,7 @@ impl EnvironmentCaptureScheduler {
         if let Some(handle) = self.duplicate_live_handle(&request) {
             self.telemetry.duplicate_request_count =
                 self.telemetry.duplicate_request_count.saturating_add(1);
+            self.advance_observation();
             return Ok(handle);
         }
         if request.persistence_output_uri().is_some() && self.ready_source_payload.is_some() {
@@ -16,6 +17,7 @@ impl EnvironmentCaptureScheduler {
                 .telemetry
                 .source_payload_backpressure_count
                 .saturating_add(1);
+            self.advance_observation();
             return Err(
                 RenderFrameworkError::EnvironmentCapturePersistenceResultCapacityExceeded {
                     limit: ENVIRONMENT_CAPTURE_SOURCE_PAYLOAD_CAPACITY,
@@ -28,6 +30,7 @@ impl EnvironmentCaptureScheduler {
                     .telemetry
                     .stale_generation_rejection_count
                     .saturating_add(1);
+                self.advance_observation();
                 return Err(RenderFrameworkError::EnvironmentCaptureGenerationNotNewer {
                     capture_id: request.capture_id().to_string(),
                     requested_generation: request.output_generation(),
@@ -43,6 +46,7 @@ impl EnvironmentCaptureScheduler {
         if pending_match.is_none() && self.pending.len() >= ENVIRONMENT_CAPTURE_PENDING_CAPACITY {
             self.telemetry.capacity_rejection_count =
                 self.telemetry.capacity_rejection_count.saturating_add(1);
+            self.advance_observation();
             return Err(
                 RenderFrameworkError::EnvironmentCaptureQueueCapacityExceeded {
                     limit: ENVIRONMENT_CAPTURE_PENDING_CAPACITY,
@@ -51,6 +55,7 @@ impl EnvironmentCaptureScheduler {
         }
 
         let handle = self.allocate_handle()?;
+        let bake_key = request.ibl_bake_key();
         if let Some(index) = pending_match {
             let superseded = self
                 .pending
@@ -85,9 +90,11 @@ impl EnvironmentCaptureScheduler {
             handle,
             scene,
             request,
+            bake_key,
         });
         self.telemetry.accepted_request_count =
             self.telemetry.accepted_request_count.saturating_add(1);
+        self.advance_observation();
         Ok(handle)
     }
 
@@ -109,11 +116,16 @@ impl EnvironmentCaptureScheduler {
         if self
             .ready_source_payload
             .as_ref()
-            .is_some_and(|payload| payload.handle() == handle)
+            .is_some_and(|ready| ready.handle() == handle)
         {
             self.telemetry.source_payload_take_count =
                 self.telemetry.source_payload_take_count.saturating_add(1);
-            return Ok(self.ready_source_payload.take());
+            self.advance_observation();
+            let payload = self
+                .ready_source_payload
+                .take()
+                .map(ReadyEnvironmentCaptureSourcePayload::into_payload);
+            return Ok(payload);
         }
         if self.statuses.contains_key(&handle)
             || self.pending.iter().any(|queued| queued.handle == handle)
@@ -140,6 +152,7 @@ impl EnvironmentCaptureScheduler {
                 .expect("matched environment capture must still be queued");
             self.telemetry.cancellation_request_count =
                 self.telemetry.cancellation_request_count.saturating_add(1);
+            self.advance_observation();
             self.publish_terminal(
                 cancelled.handle,
                 RenderEnvironmentCapturePhase::Cancelled,
@@ -161,6 +174,7 @@ impl EnvironmentCaptureScheduler {
             }
             self.telemetry.cancellation_request_count =
                 self.telemetry.cancellation_request_count.saturating_add(1);
+            self.advance_observation();
             self.set_active_terminal_intent(
                 RenderEnvironmentCapturePhase::Cancelled,
                 "cancellation requested while GPU work is active",

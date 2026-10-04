@@ -1,3 +1,5 @@
+//! SceneAsset 是磁盘场景与 World 的中间模型；import_scene 解析后由依赖提取器登记直接引用，scene/world/project_io 再负责运行时实例化和保存。
+
 use crate::asset::assets::ProjectDocumentError;
 use crate::asset::{AssetReference, ReferenceResolutionError};
 use crate::core::resource::ResourceId;
@@ -15,6 +17,20 @@ pub struct SceneAsset {
 }
 
 impl SceneAsset {
+    /// Validates every opaque component reference table before dependencies or digests are
+    /// published.  This is fallible so project and cache consumers can reject malformed rows
+    /// before they allocate a World or mutate an index.
+    pub fn validate_component_references(&self) -> Result<(), String> {
+        self.entities
+            .iter()
+            .enumerate()
+            .try_for_each(|(entity_index, entity)| {
+                entity
+                    .validate_direct_references()
+                    .map_err(|error| format!("scene entity {entity_index}: {error}"))
+            })
+    }
+
     pub fn to_project_toml_string(
         &self,
         resolver: impl FnMut(
@@ -24,6 +40,8 @@ impl SceneAsset {
             ReferenceResolutionError,
         >,
     ) -> Result<String, ProjectDocumentError> {
+        self.validate_component_references()
+            .map_err(|message| ProjectDocumentError::Schema { message })?;
         crate::asset::assets::project_document::serialize_scene(self, resolver)
     }
 
@@ -33,7 +51,11 @@ impl SceneAsset {
             &zircon_runtime_interface::project::PersistedAssetReference,
         ) -> Result<AssetReference, ReferenceResolutionError>,
     ) -> Result<Self, ProjectDocumentError> {
-        crate::asset::assets::project_document::deserialize_scene(document, resolver)
+        let scene = crate::asset::assets::project_document::deserialize_scene(document, resolver)?;
+        scene
+            .validate_component_references()
+            .map_err(|message| ProjectDocumentError::Schema { message })?;
+        Ok(scene)
     }
 
     #[cfg(test)]
@@ -46,7 +68,11 @@ impl SceneAsset {
         toml::to_string_pretty(self)
     }
 
+    /// 供资产注册表建立场景的直接依赖边；保留实体顺序和重复引用，不做传递闭包。
     pub fn direct_references(&self) -> Vec<AssetReference> {
+        // Keep the historical infallible projection for callers that only need a best-effort
+        // view. Fallible asset registration/import paths call validate_component_references()
+        // before this method and therefore cannot publish malformed generic dependencies.
         let capacity = self
             .entities
             .iter()
@@ -128,4 +154,5 @@ impl SceneAsset {
 }
 
 #[cfg(test)]
+#[path = "asset/tests/performance_tests.rs"]
 mod performance_tests;

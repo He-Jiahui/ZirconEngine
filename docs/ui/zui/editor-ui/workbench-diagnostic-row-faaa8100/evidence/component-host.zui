@@ -1,0 +1,43 @@
+[asset]
+kind = "view"
+version = 2
+id = "res://ui/editor/components/workbench/composites/feedback/workbench_diagnostic_row.zui#review-host"
+display_name = "Workbench Diagnostic Row"
+
+[imports]
+widgets = [ "res://ui/editor/components/workbench/composites/feedback/workbench_diagnostic_row.zui", "res://ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui" ]
+styles = []
+
+[root]
+node = "review_component"
+
+[nodes.review_component]
+component = "res://ui/editor/components/workbench/composites/feedback/workbench_diagnostic_row.zui#WorkbenchDiagnosticRow"
+
+[[nodes.review_component.children]]
+node = "review_severity"
+
+[nodes.review_component.children.slot]
+name = "severity"
+
+[[nodes.review_component.children]]
+node = "review_message"
+
+[nodes.review_component.children.slot]
+name = "message"
+
+[nodes.review_severity]
+component = "res://ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui#WorkbenchStatusItem"
+
+[nodes.review_severity.props]
+text = "[Warning]"
+component_variant = "diagnostic_signal"
+validation_level = "warning"
+text_tone = "warning"
+
+[nodes.review_message]
+component = "res://ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui#WorkbenchStatusItem"
+
+[nodes.review_message.props]
+text = "Asset validation requires attention."
+text_tone = "subtle"

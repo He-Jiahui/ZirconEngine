@@ -1,3 +1,4 @@
+//! 描述新建资产操作的能力要求和可选初始文档，供扩展注册与菜单派发消费；描述符不承担文件写入或源路径授权。
 use serde::{Deserialize, Serialize};
 
 use crate::core::editor_operation::EditorOperationPath;
@@ -70,5 +71,5 @@ impl AssetCreationTemplateDescriptor {
 }
 
 #[cfg(test)]
-#[path = "creation_template/optimization_tests.rs"]
+#[path = "creation_template/tests/optimization_tests.rs"]
 mod optimization_tests;

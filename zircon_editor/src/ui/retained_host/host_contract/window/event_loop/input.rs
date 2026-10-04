@@ -18,7 +18,8 @@ impl UiHostWindowEventLoop {
     pub(in crate::ui::retained_host::host_contract) fn next_input_metadata(
         &mut self,
     ) -> UiInputEventMetadata {
-        let metadata = super::super::metadata::native_input_metadata(self.next_input_sequence);
+        let metadata =
+            super::super::metadata::native_input_metadata(&self.host, self.next_input_sequence);
         self.next_input_sequence = self.next_input_sequence.saturating_add(1);
         metadata
     }

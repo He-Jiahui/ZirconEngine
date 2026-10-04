@@ -5,12 +5,23 @@ const port = Number(args.port ?? 0);
 const output = args.output;
 const waitMs = Number(args["wait-ms"] ?? 8000);
 const expectedTitle = args.title ?? "Zircon Hub";
+const expectedViewportWidth = Number(args["viewport-width"] ?? 0);
+const expectedViewportHeight = Number(args["viewport-height"] ?? 0);
 
 if (!Number.isInteger(port) || port <= 0) {
   throw new Error("Missing or invalid --port.");
 }
 if (!output) {
   throw new Error("Missing --output.");
+}
+if (
+  !Number.isSafeInteger(expectedViewportWidth) ||
+  !Number.isSafeInteger(expectedViewportHeight) ||
+  expectedViewportWidth < 0 ||
+  expectedViewportHeight < 0 ||
+  (expectedViewportWidth === 0) !== (expectedViewportHeight === 0)
+) {
+  throw new Error("--viewport-width and --viewport-height must be positive integers provided together.");
 }
 
 const deadline = Date.now() + waitMs;
@@ -23,6 +34,18 @@ try {
   await client.send("Page.bringToFront");
 
   const state = await waitForRenderedHub(client, deadline);
+  // Tauri sizes the inner window in logical pixels, so check the CSS viewport, not PNG device pixels.
+  if (
+    expectedViewportWidth > 0 &&
+    (!Number.isFinite(state.viewportWidth) ||
+      !Number.isFinite(state.viewportHeight) ||
+      Math.abs(state.viewportWidth - expectedViewportWidth) > 2 ||
+      Math.abs(state.viewportHeight - expectedViewportHeight) > 2)
+  ) {
+    throw new Error(
+      `Requested Hub viewport ${expectedViewportWidth}x${expectedViewportHeight}, actual WebView viewport ${state.viewportWidth}x${state.viewportHeight}.`,
+    );
+  }
   const screenshot = await client.send("Page.captureScreenshot", {
     format: "png",
     captureBeyondViewport: false,
@@ -41,6 +64,8 @@ try {
       url: state.url,
       textLength: state.textLength,
       rootChildren: state.rootChildren,
+      viewportWidth: state.viewportWidth,
+      viewportHeight: state.viewportHeight,
     })}\n`,
   );
 } finally {
@@ -162,6 +187,8 @@ async function readPageState(client) {
       readyState: document.readyState,
       rootChildren: root ? root.children.length : -1,
       textLength: bodyText.trim().length,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
       bodyText: bodyText.slice(0, 200)
     };
   })()`;

@@ -75,5 +75,5 @@ pub(super) fn summary_pane_diagnostics(summary: &DesktopExportExecutionSummary) 
 }
 
 #[cfg(test)]
-#[path = "status/capacity_tests.rs"]
+#[path = "status/tests/capacity_tests.rs"]
 mod capacity_tests;

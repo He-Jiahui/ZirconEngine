@@ -6,7 +6,11 @@ use std::sync::Arc;
 use std::thread;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
-use crate::plugin::native::NativePluginLoader;
+use crate::plugin::native::discovery::{
+    discover_native_plugins, discover_native_plugins_from_load_manifest,
+    load_discovered_native_editor_plugins, load_discovered_native_plugins,
+    load_discovered_native_runtime_plugins, load_native_plugins_from_load_manifest,
+};
 
 #[path = "native_plugin_loader/real_fixture.rs"]
 mod real_fixture;
@@ -28,7 +32,7 @@ manifest = "plugins/weather/plugin.toml"
     )
     .unwrap();
 
-    let report = NativePluginLoader.discover_from_load_manifest(&root);
+    let report = discover_native_plugins_from_load_manifest(&root);
 
     assert!(
         report.diagnostics().is_empty(),
@@ -74,10 +78,10 @@ manifest = "plugins/weather/plugin.toml"
     )
     .unwrap();
 
-    let first = NativePluginLoader.discover_from_load_manifest(&root);
+    let first = discover_native_plugins_from_load_manifest(&root);
     assert_eq!(first.discovered()[0].plugin_id, "weather");
 
-    let root_scan = NativePluginLoader.discover(root.join("plugins").join("native_plugins.toml"));
+    let root_scan = discover_native_plugins(root.join("plugins").join("native_plugins.toml"));
     assert!(root_scan.discovered().is_empty());
     assert!(root_scan
         .diagnostics()
@@ -89,7 +93,7 @@ manifest = "plugins/weather/plugin.toml"
         runtime_plugin_manifest().replace("weather", "climate"),
     )
     .unwrap();
-    let refreshed = NativePluginLoader.discover_from_load_manifest(&root);
+    let refreshed = discover_native_plugins_from_load_manifest(&root);
 
     assert!(refreshed.discovered().is_empty());
     assert!(refreshed.diagnostics().iter().any(|message| {
@@ -119,10 +123,9 @@ manifest = "plugins/weather/plugin.toml"
 
     let root = Arc::new(root);
     let selection_root = Arc::clone(&root);
-    let selection = thread::spawn(move || {
-        NativePluginLoader.discover_from_load_manifest(selection_root.as_ref())
-    });
-    let root_scan = thread::spawn(move || NativePluginLoader.discover(load_manifest_path));
+    let selection =
+        thread::spawn(move || discover_native_plugins_from_load_manifest(selection_root.as_ref()));
+    let root_scan = thread::spawn(move || discover_native_plugins(load_manifest_path));
 
     let selection = selection.join().expect("selection discovery worker");
     let root_scan = root_scan.join().expect("root scan discovery worker");
@@ -156,7 +159,7 @@ manifest = "plugins/actual_weather/plugin.toml"
     )
     .unwrap();
 
-    let report = NativePluginLoader.load_all_from_load_manifest(&root);
+    let report = load_native_plugins_from_load_manifest(&root);
 
     assert!(report.discovered().is_empty());
     assert!(report.loaded().is_empty());
@@ -260,7 +263,7 @@ fn measure_load_manifest_admission(
 ) -> u128 {
     let started = Instant::now();
     for _ in 0..iterations {
-        let report = NativePluginLoader.load_all_from_load_manifest(root);
+        let report = load_native_plugins_from_load_manifest(root);
         assert_eq!(report.discovered().len(), expected_discovered);
         assert_eq!(
             report.runtime_plugin_registration_reports().len(),
@@ -308,7 +311,7 @@ manifest = "plugins/weather/plugin.toml"
     )
     .unwrap();
 
-    let report = NativePluginLoader.discover_from_load_manifest(&root);
+    let report = discover_native_plugins_from_load_manifest(&root);
 
     assert_eq!(report.discovered().len(), 1);
     assert_eq!(report.discovered()[0].plugin_id, "weather");
@@ -347,7 +350,7 @@ fn native_loader_discovers_editor_only_native_package() {
     )
     .unwrap();
 
-    let report = NativePluginLoader.discover(&root);
+    let report = discover_native_plugins(&root);
 
     assert!(
         report.diagnostics().is_empty(),
@@ -366,7 +369,7 @@ fn native_loader_discovers_editor_only_native_package() {
         report.runtime_plugin_registration_reports().is_empty(),
         "editor-only native packages must not enter runtime plugin registration"
     );
-    let runtime_report = NativePluginLoader.load_discovered_runtime(&root);
+    let runtime_report = load_discovered_native_runtime_plugins(&root);
     assert!(
         runtime_report.diagnostics().is_empty(),
         "runtime-only loading should skip editor-only packages without probing editor libraries: {:?}",
@@ -391,7 +394,7 @@ fn native_loader_discovers_feature_extension_package_from_feature_runtime_module
     )
     .unwrap();
 
-    let report = NativePluginLoader.discover(&root);
+    let report = discover_native_plugins(&root);
 
     assert!(
         report.diagnostics().is_empty(),
@@ -433,7 +436,7 @@ fn native_loader_uses_target_module_crate_for_split_native_package_loading() {
     )
     .unwrap();
 
-    let runtime_report = NativePluginLoader.load_discovered_runtime(&root);
+    let runtime_report = load_discovered_native_runtime_plugins(&root);
     assert!(runtime_report.diagnostics().iter().any(|message| {
         message.contains(&platform_library_file_name(
             "zircon_plugin_split_tool_runtime",
@@ -445,7 +448,7 @@ fn native_loader_uses_target_module_crate_for_split_native_package_loading() {
         ))
     }));
 
-    let editor_report = NativePluginLoader.load_discovered_editor(&root);
+    let editor_report = load_discovered_native_editor_plugins(&root);
     assert!(editor_report.diagnostics().iter().any(|message| {
         message.contains(&platform_library_file_name(
             "zircon_plugin_split_tool_editor",
@@ -457,7 +460,7 @@ fn native_loader_uses_target_module_crate_for_split_native_package_loading() {
         ))
     }));
 
-    let full_report = NativePluginLoader.load_discovered_all(&root);
+    let full_report = load_discovered_native_plugins(&root);
     assert!(full_report.diagnostics().iter().any(|message| {
         message.contains(&platform_library_file_name(
             "zircon_plugin_split_tool_runtime",
@@ -489,7 +492,7 @@ manifest = "plugins/weather/plugin.toml"
     )
     .unwrap();
 
-    let report = NativePluginLoader.load_all_from_load_manifest(&root);
+    let report = load_native_plugins_from_load_manifest(&root);
     let registrations = report.runtime_plugin_registration_reports();
 
     assert_eq!(registrations.len(), 1);

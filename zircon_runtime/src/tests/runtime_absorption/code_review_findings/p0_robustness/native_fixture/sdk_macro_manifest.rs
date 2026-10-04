@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_ds8_d3_native_fixture_uses_sdk_macro_and_single_manifest() {
     let fixture = include_str!(
@@ -29,7 +30,8 @@ fn review_ds8_d3_native_fixture_uses_sdk_macro_and_single_manifest() {
         "editor_entry: zircon_native_dynamic_fixture_editor_entry_v3",
         "invoke_command: Some(fixture_invoke_command)",
         "native::catch_native_callback_panic(STATUS_PANIC_DIAGNOSTICS",
-        "owned_bytes(response)",
+        "match owned_bytes(RUNTIME_STATE_BLOB.to_vec())",
+        "Err(error) => return error.status()",
     ] {
         assert!(
             fixture.contains(required),

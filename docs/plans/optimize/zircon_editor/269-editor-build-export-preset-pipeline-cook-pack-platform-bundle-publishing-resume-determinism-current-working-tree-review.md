@@ -101,7 +101,7 @@ Runtime `ExportProfile` 拥有 `target_platform`、target mode、runtime profile
 
 ### 3.3 八阶段只是 UI 计划，core executor 实际只有两阶段
 
-`ZirconBuildStageExecutor` 只实现 `CompileHost` 与 `PlatformBundle`，其他 stage 返回 `UnsupportedStage`；`zircon_build_stage_plan()` 固定为两节点。wizard 的 `plan.rs` 另行生成完整八阶段命令，六个阶段通过 `python -m tools.zircon_export` 执行，只有 CompileHost/PlatformBundle带 `core_projection`。
+`ZirconBuildStageExecutor` 只实现 `CompileHost` 与 `PlatformBundle`，其他 stage 返回 `UnsupportedStage`；`zircon_build_stage_plan()` 固定为两节点。wizard 的 `plan.rs` 另行生成完整八阶段命令，六个阶段通过 `python -m tools.export` 执行，只有 CompileHost/PlatformBundle带 `core_projection`。
 
 因此生产结构实际上是：
 

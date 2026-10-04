@@ -3,10 +3,10 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PLUGIN_VALIDATE = REPO_ROOT / "tools/zircon_export/plugin_validate.py"
-PLUGIN_VALIDATE_COMMON = REPO_ROOT / "tools/zircon_export/plugin_validate_common.py"
+PLUGIN_VALIDATE = REPO_ROOT / "tools/export/plugin_validate.py"
+PLUGIN_VALIDATE_COMMON = REPO_ROOT / "tools/export/plugin_validate_common.py"
 
-
+# 验证校验归属边界的职责切分：分发枚举辅助函数位于通用归属，并分发 allowed 值常量位于通用归属。
 class PluginValidateOwnerBoundaryTests(unittest.TestCase):
     def test_distribution_enum_helper_lives_in_common_owner(self):
         validate_text = PLUGIN_VALIDATE.read_text(encoding="utf-8")

@@ -12,7 +12,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
   - docs/plans/mvp/index.md
-  - docs/engine-architecture/index.md
+  - docs/architecture/index.md
 tests:
   - docs/plans/mvp/index.md
   - .github/workflows/ci.yml

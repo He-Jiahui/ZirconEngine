@@ -285,5 +285,5 @@ struct AdvancedProviderFeaturePaths {
 }
 
 #[cfg(test)]
-#[path = "advanced_provider/single_pass_aggregate_tests.rs"]
+#[path = "advanced_provider/tests/single_pass_aggregate_tests.rs"]
 mod single_pass_aggregate_tests;

@@ -153,13 +153,28 @@ impl WocShellController {
 
     pub fn complete_auth(
         &mut self,
+        request_id: super::AuthRequestId,
         completion: AuthCompletion,
     ) -> Result<Option<WocShellEffect>, WocShellError> {
         self.require_screen("complete_auth", WocShellScreen::Authentication)?;
         Ok(self
             .online
-            .complete_auth(completion)?
+            .complete_auth(request_id, completion)?
             .map(WocShellEffect::Online))
+    }
+
+    pub fn complete_password_reset_request(
+        &mut self,
+        request_id: super::AuthRequestId,
+        outcome: super::PasswordResetRequestOutcome,
+    ) -> Result<bool, WocShellError> {
+        self.require_screen(
+            "complete_password_reset_request",
+            WocShellScreen::Authentication,
+        )?;
+        Ok(self
+            .online
+            .complete_password_reset_request(request_id, outcome)?)
     }
 
     pub fn replace_realm_directory(
@@ -264,6 +279,23 @@ impl WocShellController {
         self.require_screen("finish_offline_loading", WocShellScreen::Loading)?;
         let launch = self.offline.finish_loading()?;
         Ok(WocShellEffect::EnterOfflineWorld { launch })
+    }
+
+    /// Lets the product host return a failed offline preparation/start to the
+    /// picker while retaining the user's draft for a bounded retry.
+    pub fn reject_offline_preparation(&mut self) -> Result<(), WocShellError> {
+        self.require_active("reject_offline_preparation", ActiveFlow::Offline)?;
+        if !matches!(
+            self.screen(),
+            WocShellScreen::Welcome | WocShellScreen::Loading
+        ) {
+            return Err(WocShellError::InvalidActiveFlow {
+                action: "reject_offline_preparation",
+                screen: self.screen(),
+            });
+        }
+        self.offline.reject_prepared_session()?;
+        Ok(())
     }
 
     fn require_active(

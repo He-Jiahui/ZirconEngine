@@ -1,3 +1,4 @@
+# 核对资产内容指针的状态回写、尺寸补丁与窗口指标更新避开整表重投影。
 from pathlib import Path
 import unittest
 
@@ -35,7 +36,7 @@ POINTER_SURFACES = (
 )
 COUNTER_CATALOG = ASSET_POINTER_ROOT / "ui_perf/counter_catalog.rs"
 UI_PERF = ASSET_POINTER_ROOT / "ui_perf.rs"
-COUNTER_GATE = ROOT / "tools/ui-profile-counter-evidence.ps1"
+COUNTER_GATE = ROOT / "tools/profiling/ui/ui-profile-counter-evidence.ps1"
 
 
 class EditorAssetContentPointerPerformanceContractTests(unittest.TestCase):

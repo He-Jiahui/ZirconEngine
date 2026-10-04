@@ -1,4 +1,7 @@
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::OnceLock;
+use std::time::Instant;
 
 use zircon_runtime::asset::project::ProjectPaths;
 
@@ -107,7 +110,29 @@ pub(super) fn execute_menu_action(
                     return Err(MenuActionExecutionError::NoProjectOpen);
                 }
             };
-            if let Err(source) = shell.manager.save_active_scene(&path, &scene) {
+            let live_scene_views = shell
+                .manager
+                .view_instance_ids_for_descriptor_key("editor.scene")
+                .into_iter()
+                .map(|instance_id| crate::core::editor_event::ViewInstanceId::new(instance_id.0))
+                .collect::<std::collections::BTreeSet<_>>();
+            let mut workspace = shell.manager.project_workspace();
+            workspace.scene_viewport_sessions = shell
+                .state
+                .viewport_controller
+                .snapshot_workspace_sessions(&live_scene_views)
+                .into_iter()
+                .map(|(instance_id, snapshot)| {
+                    (
+                        crate::ui::workbench::view::ViewInstanceId::new(instance_id.0),
+                        snapshot,
+                    )
+                })
+                .collect();
+            if let Err(source) = shell
+                .manager
+                .save_active_scene_with_workspace(&path, &scene, &workspace)
+            {
                 emit_project_save_log(
                     controller.context().logs(),
                     LogSeverity::Error,
@@ -269,7 +294,16 @@ pub(super) fn execute_menu_action(
                             .state
                             .sync_bridge_diagnostics_matrix(report.bridge_diagnostics.as_ref());
                         if backend_attachable {
-                            if let Err(source) = controller.begin_runtime_event_consumers() {
+                            let enabled_capabilities = shell
+                                .manager
+                                .capability_snapshot()
+                                .enabled_capabilities()
+                                .to_vec();
+                            if let Err(source) = controller
+                                .begin_runtime_event_consumers_with_capabilities(
+                                    &enabled_capabilities,
+                                )
+                            {
                                 if controller.runtime_event_consumer_session_active() {
                                     shell.state.set_status_line(format!(
                                         "Runtime event consumer startup cleanup failed; play mode remains active for retry: {source}"
@@ -289,7 +323,9 @@ pub(super) fn execute_menu_action(
                                         },
                                     );
                                 }
-                                if let Err(detach) = controller.detach_terminal_play_gateway() {
+                                if let Err(detach) =
+                                    controller.detach_terminal_play_gateway_with_shell(shell)
+                                {
                                     return Err(MenuActionExecutionError::RuntimeConsumerStartGatewayDetachFailed {
                                         source,
                                         detach,
@@ -382,9 +418,26 @@ pub(super) fn execute_menu_action(
             })
         }
         MenuAction::ExitPlayMode => {
-            let remote_consumer_cleanup_failure = match controller
-                .shutdown_runtime_event_consumers()
-            {
+            let trace_sequence = next_play_stop_trace_sequence();
+            trace_play_stop_stage(trace_sequence, "stop_menu_entry", None, None);
+            let consumer_shutdown_started =
+                trace_play_stop_stage(trace_sequence, "consumer_shutdown_enter", None, None);
+            let consumer_shutdown = controller.shutdown_runtime_event_consumers();
+            let consumer_shutdown_result = match &consumer_shutdown {
+                RuntimeEventConsumerShutdownDisposition::NotActive => "not_active",
+                RuntimeEventConsumerShutdownDisposition::Retired => "retired",
+                RuntimeEventConsumerShutdownDisposition::RetiredWithCleanupFailure { .. } => {
+                    "cleanup_failure"
+                }
+                RuntimeEventConsumerShutdownDisposition::RetirementDeferred { .. } => "deferred",
+            };
+            trace_play_stop_stage(
+                trace_sequence,
+                "consumer_shutdown_return",
+                Some(consumer_shutdown_result),
+                consumer_shutdown_started,
+            );
+            let remote_consumer_cleanup_failure = match consumer_shutdown {
                 RuntimeEventConsumerShutdownDisposition::NotActive
                 | RuntimeEventConsumerShutdownDisposition::Retired => None,
                 RuntimeEventConsumerShutdownDisposition::RetiredWithCleanupFailure { error } => {
@@ -397,22 +450,70 @@ pub(super) fn execute_menu_action(
                     return Err(MenuActionExecutionError::RuntimeConsumerStop { source: error });
                 }
             };
-            let transition = controller
-                .play_sessions()
-                .request_stop()
-                .map_err(|source| {
+            let stop_request_started =
+                trace_play_stop_stage(trace_sequence, "play_session_stop_enter", None, None);
+            let transition = match controller.play_sessions().request_stop() {
+                Ok(transition) => {
+                    trace_play_stop_stage(
+                        trace_sequence,
+                        "play_session_stop_return",
+                        Some("ok"),
+                        stop_request_started,
+                    );
+                    transition
+                }
+                Err(source) => {
+                    trace_play_stop_stage(
+                        trace_sequence,
+                        "play_session_stop_return",
+                        Some("error"),
+                        stop_request_started,
+                    );
                     shell.state.set_status_line(format!(
                         "Play session cleanup failed; play mode remains active for retry: {source}"
                     ));
-                    MenuActionExecutionError::PlayStop { source }
-                })?;
-            controller
-                .detach_terminal_play_gateway()
-                .map_err(|source| MenuActionExecutionError::PlayGatewayDetach { source })?;
-            let retirement = controller
-                .play_sessions()
-                .retire_terminal_backend()
-                .map_err(|source| MenuActionExecutionError::PlayStop { source })?;
+                    return Err(MenuActionExecutionError::PlayStop { source });
+                }
+            };
+            let gateway_detach_started =
+                trace_play_stop_stage(trace_sequence, "gateway_detach_enter", None, None);
+            if let Err(source) = controller.detach_terminal_play_gateway_with_shell(shell) {
+                trace_play_stop_stage(
+                    trace_sequence,
+                    "gateway_detach_return",
+                    Some("error"),
+                    gateway_detach_started,
+                );
+                return Err(MenuActionExecutionError::PlayGatewayDetach { source });
+            }
+            trace_play_stop_stage(
+                trace_sequence,
+                "gateway_detach_return",
+                Some("ok"),
+                gateway_detach_started,
+            );
+            let backend_retire_started =
+                trace_play_stop_stage(trace_sequence, "backend_retire_enter", None, None);
+            let retirement = match controller.play_sessions().retire_terminal_backend() {
+                Ok(retirement) => {
+                    trace_play_stop_stage(
+                        trace_sequence,
+                        "backend_retire_return",
+                        Some("ok"),
+                        backend_retire_started,
+                    );
+                    retirement
+                }
+                Err(source) => {
+                    trace_play_stop_stage(
+                        trace_sequence,
+                        "backend_retire_return",
+                        Some("error"),
+                        backend_retire_started,
+                    );
+                    return Err(MenuActionExecutionError::PlayStop { source });
+                }
+            };
             controller.log_play_backend_diagnostics(&retirement.backend_diagnostics);
             let changed = shell.state.exit_play_mode().map_err(|source| {
                 shell.state.sync_bridge_diagnostics_matrix(None);
@@ -423,7 +524,7 @@ pub(super) fn execute_menu_action(
             })?;
             let preview_restore_error = shell.restore_pre_play_view().err();
             controller.reconcile_pending_play_decision_from_controller()?;
-            let report = transition.activation;
+            let report = transition.activation.clone();
             let is_clean = report.is_clean();
             shell
                 .state
@@ -618,92 +719,49 @@ fn project_save_display_token(path: &Path) -> String {
     percent_encode_diagnostic_token(&display_path.to_string_lossy())
 }
 
-#[cfg(test)]
-mod tests {
-    use std::path::Path;
+fn next_play_stop_trace_sequence() -> Option<u64> {
+    static TRACE_ENABLED: OnceLock<bool> = OnceLock::new();
+    let enabled = *TRACE_ENABLED.get_or_init(|| {
+        std::env::var("ZIRCON_TRACE_PLAY_STOP")
+            .is_ok_and(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+    });
+    if !enabled {
+        return None;
+    }
+    static SEQUENCE: AtomicU64 = AtomicU64::new(0);
+    Some(SEQUENCE.fetch_add(1, Ordering::Relaxed) + 1)
+}
 
-    use crate::core::editing::engine::HistorySaveMarkOutcome;
-    use crate::core::logging::{EditorLogService, LogFilter, LogSeverity, LogSource};
-
-    use super::{
-        project_save_completed_diagnostic, project_save_failed_diagnostic,
-        project_save_started_diagnostic,
+fn trace_play_stop_stage(
+    sequence: Option<u64>,
+    stage: &str,
+    result: Option<&str>,
+    started: Option<Instant>,
+) -> Option<Instant> {
+    let Some(sequence) = sequence else {
+        return None;
     };
-
-    #[test]
-    fn project_save_diagnostics_record_the_save_generation_lifecycle() {
-        let path = Path::new("C:/projects/f3 save#1");
-        let started = project_save_started_diagnostic(path, true, 17, 17);
-        let completed = project_save_completed_diagnostic(
-            path,
-            17,
-            17,
-            Some(17),
-            HistorySaveMarkOutcome::Marked,
-        );
-
-        assert!(started.contains("result=started"));
-        assert!(started.contains("project=C%3A%2Fprojects%2Ff3%20save%231"));
-        assert!(started.contains("pre_save_dirty=true"));
-        assert!(started.contains("pre_save_dirty_generation=17"));
-        assert!(started.contains("save_token_generation=17"));
-        assert!(completed.contains("result=completed"));
-        assert!(completed.contains("project=C%3A%2Fprojects%2Ff3%20save%231"));
-        assert!(completed.contains("persisted_generation=17"));
-        assert!(completed.contains("save_mark=Marked"));
-
-        let failed = project_save_failed_diagnostic(path, "persist", "disk unavailable");
-        assert!(failed.contains("result=failed"));
-        assert!(failed.contains("project=C%3A%2Fprojects%2Ff3%20save%231"));
-        assert!(failed.contains("phase=persist"));
-
-        let resolve_failure = project_save_failed_diagnostic(path, "resolve_scene", "no project");
-        assert!(resolve_failure.contains("phase=resolve_scene"));
-    }
-
-    #[test]
-    fn project_save_lifecycle_diagnostics_enter_the_editor_log_service() {
-        let logs = EditorLogService::default();
-        let diagnostic = project_save_started_diagnostic(Path::new("C:/projects/demo"), true, 9, 9);
-
-        super::emit_project_save_log(&logs, LogSeverity::Info, diagnostic);
-
-        let records = logs.snapshot(&LogFilter::default());
-        assert_eq!(records.len(), 1);
-        let entry = records[0].entry();
-        assert_eq!(entry.source(), &LogSource::editor());
-        assert_eq!(entry.severity(), LogSeverity::Info);
-        assert_eq!(entry.timestamp_frame(), 0);
-        assert!(entry
-            .message()
-            .contains("editor_project_save result=started"));
-        assert!(entry.message().contains("save_token_generation=9"));
-    }
-
-    #[test]
-    fn oversized_project_save_diagnostic_preserves_its_error_severity_in_the_fallback() {
-        let logs = EditorLogService::default();
-
-        super::emit_project_save_log(&logs, LogSeverity::Error, "x".repeat(9 * 1024));
-
-        let records = logs.snapshot(&LogFilter::default());
-        assert_eq!(records.len(), 1);
-        let entry = records[0].entry();
-        assert_eq!(entry.source(), &LogSource::editor());
-        assert_eq!(entry.severity(), LogSeverity::Error);
-        assert_eq!(
-            entry.message(),
-            "editor_project_save diagnostic exceeds the log-entry limit."
-        );
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn project_save_diagnostics_expose_a_display_path_without_the_verbatim_prefix() {
-        let diagnostic =
-            project_save_started_diagnostic(Path::new(r"\\?\C:\projects\f3 save"), true, 17, 17);
-
-        assert!(diagnostic.contains("project=C%3A%5Cprojects%5Cf3%20save"));
-        assert!(!diagnostic.contains("%5C%5C%3F%5C"));
+    match result {
+        Some(result) => {
+            if let Some(started) = started {
+                eprintln!(
+                    "mvp_play_trace component=editor_stop_menu seq={sequence} stage={stage} result={result} elapsed_us={}",
+                    started.elapsed().as_micros()
+                );
+            } else {
+                eprintln!(
+                    "mvp_play_trace component=editor_stop_menu seq={sequence} stage={stage} result={result}"
+                );
+            }
+            None
+        }
+        None => {
+            eprintln!("mvp_play_trace component=editor_stop_menu seq={sequence} stage={stage}");
+            Some(Instant::now())
+        }
     }
 }
+
+#[cfg(test)]
+#[path = "tests/menu_action.rs"]
+mod tests;

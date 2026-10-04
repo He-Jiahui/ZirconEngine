@@ -7,6 +7,10 @@ use super::{
     UiRenderFrameExtract, UiRenderVisualizerSnapshot, UiRendererParitySnapshot,
 };
 
+#[cfg(test)]
+#[path = "debug/tests/performance_tests.rs"]
+mod performance_tests;
+
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiRenderDebugSnapshot {
     pub tree_id: UiTreeId,
@@ -25,6 +29,7 @@ impl UiRenderDebugSnapshot {
         Self::from_paint_elements(extract.tree_id.clone(), extract.list.to_paint_elements())
     }
 
+    /// 从接口帧重建 Editor/Runtime 可读取的调试投影，不读取后端私有缓存状态。
     pub fn from_render_frame_extract(extract: &UiRenderFrameExtract) -> Self {
         Self::from_paint_elements(extract.tree_id.clone(), extract.list.to_paint_elements())
     }
@@ -44,26 +49,28 @@ impl UiRenderDebugSnapshot {
             &elements,
             &plan,
         );
+        let stats = UiRenderDebugStatsV2 {
+            element_count: elements.len(),
+            batch_count: plan.stats.batch_count,
+            draw_call_count: plan.stats.draw_call_count,
+        };
+        let batches = plan
+            .batches
+            .into_iter()
+            .map(|batch| UiRenderBatchDebugEntry {
+                layer: batch.layer,
+                key: batch.key,
+                first_element: batch.range.first_element,
+                element_count: batch.range.element_count,
+                source_indices: batch.source_indices,
+                node_ids: batch.node_ids,
+                split_reason: batch.split_reason,
+            })
+            .collect();
         Self {
             tree_id,
-            stats: UiRenderDebugStatsV2 {
-                element_count: elements.len(),
-                batch_count: plan.stats.batch_count,
-                draw_call_count: plan.stats.draw_call_count,
-            },
-            batches: plan
-                .batches
-                .iter()
-                .map(|batch| UiRenderBatchDebugEntry {
-                    layer: batch.layer,
-                    key: batch.key.clone(),
-                    first_element: batch.range.first_element,
-                    element_count: batch.range.element_count,
-                    source_indices: batch.source_indices.clone(),
-                    node_ids: batch.node_ids.clone(),
-                    split_reason: batch.split_reason,
-                })
-                .collect(),
+            stats,
+            batches,
             cache,
             parity,
             visualizer,

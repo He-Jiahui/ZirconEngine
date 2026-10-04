@@ -1,3 +1,4 @@
+# 核对工作台工具栏优先级从模板到保留宿主和扩展插槽的取值路径。
 from pathlib import Path
 import unittest
 

@@ -3,16 +3,16 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PLUGIN_BUILD = REPO_ROOT / "tools/zircon_export/plugin_build.py"
-PLUGIN_BUILD_ASSET_PACK = REPO_ROOT / "tools/zircon_export/plugin_build_asset_pack.py"
-PLUGIN_BUILD_COMMAND = REPO_ROOT / "tools/zircon_export/plugin_build_command.py"
-PLUGIN_BUILD_PREFLIGHT = REPO_ROOT / "tools/zircon_export/plugin_build_preflight.py"
-PLUGIN_COMMAND = REPO_ROOT / "tools/zircon_export/plugin_command.py"
-PLUGIN_BUILD_PACKAGE = REPO_ROOT / "tools/zircon_export/plugin_build_package.py"
-PLUGIN_BUILD_SIGNATURE = REPO_ROOT / "tools/zircon_export/plugin_build_signature.py"
-ZIRCON_EXPORT_CLI = REPO_ROOT / "tools/zircon_export/cli.py"
+PLUGIN_BUILD = REPO_ROOT / "tools/export/plugin_build.py"
+PLUGIN_BUILD_ASSET_PACK = REPO_ROOT / "tools/export/plugin_build_asset_pack.py"
+PLUGIN_BUILD_COMMAND = REPO_ROOT / "tools/export/plugin_build_command.py"
+PLUGIN_BUILD_PREFLIGHT = REPO_ROOT / "tools/export/plugin_build_preflight.py"
+PLUGIN_COMMAND = REPO_ROOT / "tools/export/plugin_command.py"
+PLUGIN_BUILD_PACKAGE = REPO_ROOT / "tools/export/plugin_build_package.py"
+PLUGIN_BUILD_SIGNATURE = REPO_ROOT / "tools/export/plugin_build_signature.py"
+ZIRCON_EXPORT_CLI = REPO_ROOT / "tools/export/cli.py"
 
-
+# 沿插件构建命令的分发路径核对职责：子命令只编排，包实体化留在专属构建归属。
 class PluginBuildOwnerBoundaryTests(unittest.TestCase):
     def test_plugin_subcommand_dispatch_lives_in_plugin_command_owner(self):
         self.assertTrue(

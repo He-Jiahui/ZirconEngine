@@ -32,6 +32,7 @@ pub class BattlefieldXpObservation {
 
 // Applies the self-observation-only path. The caller resolves the target's
 // ITEMS and recipeForResultItem lookups into staticQuality and recipeProfession.
+/// 调用方先把观察物品、签名者和配方职业解析成观察记录；此处只增加观察者自签且属于活动专精的制作技能，不授予角色经验。
 pub battlefieldExperienceTrickle(
     state: crafting.CraftingTransactionState,
     observation: BattlefieldXpObservation

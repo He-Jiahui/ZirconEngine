@@ -1,8 +1,10 @@
 use crate::core::framework::text::TextLayoutError;
-use crate::text::SharedTextLayoutSession;
+use crate::text::{SharedTextLayoutSession, TextLayoutGeometryBudget};
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiResolvedTextLayout, UiTextDirection, UiTextRange,
 };
+
+use super::line_box::MIN_TEXT_FONT_SIZE;
 
 /// Owns the sole safe-publication fallback for shaping and layout failures.
 ///
@@ -18,6 +20,13 @@ pub(in crate::ui::text) fn text_layout_error_layout(
     provider: &mut SharedTextLayoutSession,
 ) -> UiResolvedTextLayout {
     provider.record_layout_error(error);
+    let geometry_budget = provider.geometry_budget();
+    let font_size = admitted_failure_extent(
+        font_size,
+        MIN_TEXT_FONT_SIZE.min(geometry_budget.max_axis_extent()),
+        geometry_budget,
+    );
+    let line_height = admitted_failure_extent(line_height, font_size, geometry_budget);
     UiResolvedTextLayout {
         text_align: style.text_align,
         wrap: style.wrap,
@@ -27,7 +36,7 @@ pub(in crate::ui::text) fn text_layout_error_layout(
         font_size,
         line_height,
         measured_width: 0.0,
-        measured_height: line_height.max(0.0),
+        measured_height: line_height,
         source_range: UiTextRange {
             start: 0,
             end: source_len,
@@ -39,3 +48,19 @@ pub(in crate::ui::text) fn text_layout_error_layout(
         rich_text_artifact: None,
     }
 }
+
+fn admitted_failure_extent(
+    value: f32,
+    fallback: f32,
+    geometry_budget: TextLayoutGeometryBudget,
+) -> f32 {
+    if value >= fallback && geometry_budget.admit_axis_extent(value).is_ok() {
+        value
+    } else {
+        fallback
+    }
+}
+
+#[cfg(test)]
+#[path = "tests/failure_layout.rs"]
+mod tests;

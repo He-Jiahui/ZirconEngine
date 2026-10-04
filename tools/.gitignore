@@ -1,0 +1,5 @@
+# Keep the relocated maintenance regression visible to Git.
+!/tests/
+
+# Dependencies installed for the relocated Workbench preview.
+workbench/node_modules/

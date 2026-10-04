@@ -1,3 +1,4 @@
+# 核对运行时绘制源帧在缓存重建后发布，穿过资产面板与记录范围保持一致。
 from pathlib import Path
 import unittest
 

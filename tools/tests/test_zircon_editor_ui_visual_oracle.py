@@ -1,3 +1,4 @@
+# 核对编辑器视觉基准的截图、进程与构建来源证据。
 import json
 import hashlib
 import tempfile
@@ -5,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tools.zircon_editor_ui_visual_oracle import (
+from tools.analysis.visual.zircon_editor_ui_visual_oracle import (
     _RgbImage,
     _validate_antialias_population,
     VisualOracleError,
@@ -429,7 +430,7 @@ class ZirconEditorUiVisualOracleTests(unittest.TestCase):
                 }
 
             with patch(
-                "tools.zircon_editor_ui_visual_oracle._analyze_corner",
+                "tools.analysis.visual.zircon_editor_ui_visual_oracle._analyze_corner",
                 side_effect=corner_report,
             ):
                 with self.assertRaisesRegex(

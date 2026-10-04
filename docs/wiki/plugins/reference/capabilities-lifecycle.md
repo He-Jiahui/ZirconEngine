@@ -9,7 +9,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 插件公开接口完整参考
 tests:
-  - zircon_plugins/plugin_sdk/src/native/tests.rs
+  - zircon_plugins/plugin_sdk/src/native/tests/cases.rs
   - zircon_app/tests/plugin_group_error_contract.rs
 doc_type: mechanism-guide
 title: Capability 协商与插件生命周期

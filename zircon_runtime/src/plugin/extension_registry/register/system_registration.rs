@@ -45,6 +45,7 @@ impl fmt::Debug for SharedSystemBuild {
     }
 }
 
+/// 原生场景系统的可复用注册行；构建函数在每个 World 上编译参数访问并生成私有回调。
 #[derive(Clone, Debug)]
 pub struct SystemRegistration {
     pub id: String,
@@ -61,6 +62,7 @@ impl SystemRegistration {
     }
 }
 
+/// 收集系统集和排序约束，最后向插件注册表提交 World 级系统工厂。
 pub struct SystemRegistrationBuilder<'registry, P, S>
 where
     P: SystemParam,
@@ -166,6 +168,7 @@ type ExternalAccessBuildFn =
 
 const DEFAULT_WORKER_COMMAND_BUFFER_CAPACITY: usize = 32;
 
+// 外部原生回调由宿主先编译访问计划；执行期不直接取得 World 借用。
 pub(crate) struct ExternalSystemRegistrationBuilder<'registry, S> {
     registry: &'registry mut RuntimeExtensionRegistry,
     owner: PluginModuleId,
@@ -270,6 +273,7 @@ where
     }
 }
 
+// 外部命令回调通过 World 的延迟命令缓冲区提交变更，避免并发 worker 直接修改 World。
 pub(crate) struct ExternalCommandSystemRegistrationBuilder<'registry, S> {
     registry: &'registry mut RuntimeExtensionRegistry,
     owner: PluginModuleId,
@@ -454,6 +458,7 @@ impl RuntimeExtensionRegistry {
         )
     }
 
+    // TODO: [CR-PLUGIN-BOUNDARY-0104] 确认公共注册入口是否应验证 owner 属于本表且与系统 ID 的命名空间一致；目前 `PluginModuleId::from_raw` 可传任意值，撤销真实 owner 时会留下回调；下一步加入错误 owner 的目录合并与卸载测试。
     pub fn register_system(
         &mut self,
         owner: PluginModuleId,
@@ -532,6 +537,7 @@ where
         self.state.access()
     }
 
+    // 参数状态绑定当前 World；计划复用时必须新建系统实例，不能跨 World 共享这一状态。
     fn run(&mut self, world: &mut World) {
         self.state.run(world, |params| {
             (self.system)(params);
@@ -582,6 +588,7 @@ where
         self.run_callback();
     }
 
+    // 对于外部无 World 回调，调度器可以按已编译访问集在 worker 上执行。
     fn run_without_world(&mut self) {
         self.run_callback();
     }
@@ -637,6 +644,7 @@ where
 
     fn run(&mut self, world: &mut World) {
         world.reclaim_worker_command_buffer(&mut self.command_buffer);
+        // 回调失败时丢弃未合并的命令；panic 仍向调度器传播，不在这里伪装为成功帧。
         let result = catch_unwind(AssertUnwindSafe(|| self.run_callback()));
         if let Err(payload) = result {
             self.command_buffer.discard_pending();
@@ -672,5 +680,5 @@ pub(super) fn validate_plugin_system_id(id: &str) -> Result<(), RuntimeExtension
 }
 
 #[cfg(test)]
-#[path = "system_registration/tests.rs"]
+#[path = "system_registration/tests/cases.rs"]
 mod tests;

@@ -46,6 +46,7 @@ pub(super) enum BlockClose {
     Paragraph { name: String },
 }
 
+/// 在 BBCode 扫描期间保存列表层级并产出段落元数据；实际换行、缩进和绘制由后续布局消费端解释。
 #[derive(Clone, Debug)]
 pub(super) struct BbCodeBlockState {
     lists: Vec<ListState>,
@@ -138,6 +139,7 @@ impl BbCodeBlockState {
         Ok(opened)
     }
 
+    // TODO: [CR-TEXT-LAYOUT-0002] 确认无匹配列表的结束标签是否应触发换行；此处仍返回 Container，调用方会设置待插入块边界；下一步为 a[/ul]b 的恢复策略补测试。
     pub(super) fn close(&mut self, name: &str) -> Option<BlockClose> {
         match name {
             "indent" | "p" | "li" => Some(BlockClose::Paragraph {
@@ -193,7 +195,7 @@ fn parse_align(value: &str) -> Option<TextAlign> {
 }
 
 #[cfg(test)]
-#[path = "bbcode_blocks/allocation_free_align_tests.rs"]
+#[path = "bbcode_blocks/tests/allocation_free_align_tests.rs"]
 mod allocation_free_align_tests;
 
 fn parse_indent(value: &str) -> Option<f32> {

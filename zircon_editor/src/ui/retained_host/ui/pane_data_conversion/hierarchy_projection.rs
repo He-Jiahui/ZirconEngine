@@ -59,27 +59,30 @@ fn hierarchy_template_projection(
 
     let mut nodes =
         super::project_pane_template_nodes_with_runtime(&presentation.body, content_size, runtime)?;
+    let mut has_selection = false;
+    let hierarchy_nodes: Vec<host_contract::SceneNodeData> = payload
+        .nodes
+        .iter()
+        .map(|node| {
+            has_selection |= node.selected;
+            host_contract::SceneNodeData {
+                id: node.node_id.to_string().into(),
+                name: node.name.clone().into(),
+                depth: i32::try_from(node.depth).unwrap_or(i32::MAX),
+                selected: node.selected,
+            }
+        })
+        .collect();
     apply_hierarchy_template_state(
         &mut nodes,
-        !payload.nodes.is_empty(),
-        payload.nodes.iter().any(|node| node.selected),
+        !hierarchy_nodes.is_empty(),
+        has_selection,
         hierarchy_filter_query,
     );
     let metadata = hierarchy_paint_metadata(nodes.iter().map(|node| node.control_id.as_str()));
     Some(host_contract::HierarchyPaneData {
         nodes: model_rc(nodes).replacing_metadata(metadata),
-        hierarchy_nodes: model_rc(
-            payload
-                .nodes
-                .iter()
-                .map(|node| host_contract::SceneNodeData {
-                    id: node.node_id.to_string().into(),
-                    name: node.name.clone().into(),
-                    depth: i32::try_from(node.depth).unwrap_or(i32::MAX),
-                    selected: node.selected,
-                })
-                .collect(),
-        ),
+        hierarchy_nodes: model_rc(hierarchy_nodes),
     })
 }
 
@@ -146,19 +149,5 @@ fn apply_hierarchy_template_state(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn hierarchy_template_state_projects_the_transient_search_query() {
-        let mut nodes = vec![host_contract::TemplatePaneNodeData {
-            control_id: "HierarchySearchQuery".into(),
-            ..host_contract::TemplatePaneNodeData::default()
-        }];
-
-        apply_hierarchy_template_state(&mut nodes, true, false, "sun");
-
-        assert_eq!(nodes[0].value_text.as_str(), "sun");
-        assert_eq!(nodes[0].text.as_str(), "sun");
-    }
-}
+#[path = "tests/hierarchy_projection.rs"]
+mod tests;

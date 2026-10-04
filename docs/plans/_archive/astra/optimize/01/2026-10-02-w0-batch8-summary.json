@@ -1,0 +1,52 @@
+{
+  "record_type": "root_qualified_batch8_bounded_source_review",
+  "qualified_at_utc": "2026-10-02T04:53:05.066561+00:00",
+  "published_prior": {
+    "observations": 148,
+    "unique_qualified_keys": 144,
+    "literal_ids": 112
+  },
+  "private_batch7_and8_projection": {
+    "observations": 172,
+    "unique_qualified_keys": 168,
+    "published": false
+  },
+  "rows": 12,
+  "status_counts": {
+    "narrowed_open": 7,
+    "confirmed_open": 5
+  },
+  "scope": {
+    "original_source_evidence_paths": 23,
+    "original_report_paths": 2,
+    "root_structural_raw_capture_files": 44,
+    "extra_normal_context_paths": 4,
+    "source_and_test_context_files": 32,
+    "crosswalk_target_reports_are_relationship_evidence_only": true
+  },
+  "existing_named_test_references": 30,
+  "metadata_corrections": {
+    "test_as_production_removed": 1,
+    "crosswalk_exact_literal_line_corrections": 16,
+    "setter_mount_and_descriptor_declaration_classification": true,
+    "author_timestamp_is_not_historical_seal": true
+  },
+  "source_premise_corrections": [
+    "Generational registry and stable query order already exist; no corruption follows merely from multiple derived structures.",
+    "Clone/load rebuild are owner-local reconstruction paths; arbitrary external reset was not established.",
+    "Sparse and dense values are disjoint; typed ComponentStorageLocation/query APIs already exist.",
+    "PendingComponentRow/final schema preflight already exists; no new valid-input partial-mutation failure is claimed from multi-step code alone.",
+    "Editor viewport supplies its camera snapshot and bypasses the global selector; product endpoint authority needs its own actual caller closure."
+  ],
+  "publication_admission": "Private source evidence only. Existing offline heartbeat queue gate is preserved; no shared canonical count/doc publication.",
+  "inventory_preserved": {
+    "top_level_reports": 576,
+    "source_checked_reports": 61,
+    "unreviewed_reports": 515,
+    "status": "historical"
+  },
+  "tests_run": 0,
+  "cargo_submitted": false,
+  "source_integrated": false,
+  "acceptance": "open"
+}

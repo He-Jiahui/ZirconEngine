@@ -15,6 +15,6 @@ impl EditorManager {
         self.runtime_task_diagnostics
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .pump(self.context.logs(), timestamp_frame)
+            .pump(self.context().logs(), timestamp_frame)
     }
 }

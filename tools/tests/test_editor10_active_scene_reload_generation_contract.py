@@ -1,3 +1,5 @@
+
+from tools.tests.rust_test_files import read_rust_test_file
 import unittest
 from pathlib import Path
 
@@ -31,7 +33,7 @@ RUNTIME_LEVEL_LIFECYCLE = (
     ROOT / "zircon_runtime/src/scene/module/level_manager_lifecycle.rs"
 )
 AUTHORING_WORLD = ROOT / "zircon_editor/src/core/editing/authoring_world.rs"
-PROJECT_CLOSE_SOURCE = ROOT / "zircon_editor/src/ui/retained_host/app/project_close.rs"
+PROJECT_CLOSE_SOURCE = ROOT / "zircon_editor/src/ui/host/editor_manager_project.rs"
 EDITOR_SAVE_BATCH = ROOT / "zircon_editor/src/ui/host/editor_save_batch.rs"
 DOCUMENT_SAVE = ROOT / "zircon_editor/src/ui/retained_host/app/document_save.rs"
 CLOSE_PROMPT_TESTS = (
@@ -94,7 +96,7 @@ class ActiveSceneReloadGenerationContract(unittest.TestCase):
             encoding="utf-8"
         )
         tests = (
-            ROOT / "zircon_editor/src/core/document/scene_reload_tests.rs"
+            ROOT / "zircon_editor/src/core/document/tests/scene_reload_tests.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn("activation_revision: u64", lifecycle)
@@ -204,6 +206,7 @@ class ActiveSceneReloadGenerationContract(unittest.TestCase):
         workspace_file = WORKSPACE.read_text(encoding="utf-8")
         workspace = reload_active_scene_source()
         project_close = PROJECT_CLOSE_SOURCE.read_text(encoding="utf-8")
+        retained_close = (ROOT / "zircon_editor/src/ui/retained_host/app/project_close.rs").read_text(encoding="utf-8")
         level_lifecycle = RUNTIME_LEVEL_LIFECYCLE.read_text(encoding="utf-8")
         authoring_world = AUTHORING_WORLD.read_text(encoding="utf-8")
 
@@ -216,7 +219,7 @@ class ActiveSceneReloadGenerationContract(unittest.TestCase):
         self.assertIn("active_scene_reload_retry_delay", workspace_file)
         self.assertIn("next_active_scene_reload_admission_retry", workspace_file)
         self.assertIn(
-            "admission_retry_backs_off_three_times_then_terminates", workspace_file
+            "admission_retry_backs_off_three_times_then_terminates", read_rust_test_file("zircon_editor/src/ui/retained_host/app/assets/tests/workspace_active_scene_reload_retry_tests.rs")
         )
         self.assertIn("checked_add", workspace)
         self.assertIn("admission retry limit", workspace)
@@ -226,15 +229,15 @@ class ActiveSceneReloadGenerationContract(unittest.TestCase):
         self.assertIn("active_scene_reload_admission_retry_deadline()", refresh)
         self.assertIn("asset_maintenance_frame_update(", refresh)
         self.assertIn(
-            "empty_refresh_preserves_active_scene_retry_deadline", refresh
+            "empty_refresh_preserves_active_scene_retry_deadline", read_rust_test_file("zircon_editor/src/ui/retained_host/app/assets/tests/refresh_maintenance_frame_update_tests.rs")
         )
         self.assertIn("active_scene_reload_admission:", app)
         self.assertIn("active_scene_reload_admission: None", assembly)
-        close_start = project_close.index("fn commit_project_close(")
+        close_start = project_close.index("pub(crate) fn commit_project_close(")
         close = project_close[close_start:]
         self.assertLess(
-            close.index("self.editor_manager.commit_project_close()"),
-            close.index("self.cancel_pending_active_scene_reload()"),
+            close.index("self.prepare_project_close_effect("),
+            close.index("self.commit_project_close_effect("),
         )
         self.assertIn("pub struct PreparedLevel", level_lifecycle)
         self.assertIn("pub struct PreparedLevelPublication", level_lifecycle)
@@ -315,6 +318,7 @@ class ActiveSceneReloadGenerationContract(unittest.TestCase):
         conflict = RELOAD_CONFLICT.read_text(encoding="utf-8")
         save_all = DOCUMENT_SAVE.read_text(encoding="utf-8")
         project_close = PROJECT_CLOSE_SOURCE.read_text(encoding="utf-8")
+        retained_close = (ROOT / "zircon_editor/src/ui/retained_host/app/project_close.rs").read_text(encoding="utf-8")
         app = APP.read_text(encoding="utf-8")
         assembly = HOST_ASSEMBLY.read_text(encoding="utf-8")
         behavior = CLOSE_PROMPT_TESTS.read_text(encoding="utf-8")
@@ -325,7 +329,7 @@ class ActiveSceneReloadGenerationContract(unittest.TestCase):
         self.assertIn("Busy { owner: DirtyDocumentSaveOwner }", coordinator)
         self.assertIn("OwnerMismatch", coordinator)
         self.assertIn("dirty_document_save_owner", coordinator)
-        self.assertIn("wrong_owner_poll_cannot_consume_a_real_completed_save_batch", coordinator)
+        self.assertIn("wrong_owner_poll_cannot_consume_a_real_completed_save_batch", read_rust_test_file("zircon_editor/src/ui/host/tests/editor_save_batch.rs"))
         self.assertIn("self.save_project_scene()", conflict)
         self.assertNotIn("DirtyDocumentSaveOwner", conflict)
         self.assertIn("queued_document_save_all", save_all)
@@ -333,13 +337,12 @@ class ActiveSceneReloadGenerationContract(unittest.TestCase):
         self.assertIn("DirtyDocumentSaveStart::Busy", save_all)
         self.assertIn("queued_document_save_all: bool", app)
         self.assertIn("queued_document_save_all: false", assembly)
-        self.assertIn("RetainedProjectCloseError::PendingDocumentSave", project_close)
-        close_start = project_close.index("fn commit_project_close(")
+        self.assertIn("RetainedProjectCloseError::PendingDocumentSave", retained_close)
+        close_start = project_close.index("pub(crate) fn commit_project_close(")
         manager_close = project_close.index(
-            "self.editor_manager.commit_project_close()", close_start
+            "self.commit_project_close_effect(", close_start
         )
-        owner_guard = project_close.index("dirty_document_save_owner()", close_start)
-        self.assertLess(owner_guard, manager_close)
+        self.assertIn("ProjectSessionEffect::Documents", project_close[close_start:])
         self.assertIn(
             "save_all_queues_behind_close_prompt_save_then_acquires_the_released_owner",
             behavior,

@@ -9,9 +9,6 @@ origin_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 fixing_child_dir: docs/plans/optimize/zircon_tooling/06
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/sessions.py
-  - tools/session_coordinator/models.py
-  - tools/session_coordinator/workflows/failure_closeouts.py
 tests:
   - failure closeout-review 843cfed86bb44b29b932bbda3968bcd1 from real reviewer task 01a07063-6f03-7803-a12d-13ea015ca645
   - automatic stale-retention archive followed by resuming the same native Codex task

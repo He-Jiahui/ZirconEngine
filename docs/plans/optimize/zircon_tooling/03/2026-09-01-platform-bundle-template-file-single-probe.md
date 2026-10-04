@@ -1,3 +1,7 @@
+---
+status: local_candidate
+---
+
 # PlatformBundle template file single metadata probe
 
 ## Change

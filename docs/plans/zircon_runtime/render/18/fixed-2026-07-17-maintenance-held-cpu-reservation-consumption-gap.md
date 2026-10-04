@@ -10,14 +10,6 @@ origin_child_dir: docs/plans/zircon_runtime/render/18
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/supervision/service.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/cli.py
-  - tools/session_coordinator/cargo_jobs.py
-  - tools/session_coordinator/cargo_reservations.py
-  - tools/session_coordinator/tests/test_supervision_service.py
-  - tools/session_coordinator/tests/test_maintenance_cpu_reservation_consume.py
-  - tools/session_coordinator/tests/test_cargo_jobs.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_supervision_service tools.session_coordinator.tests.test_server tools.session_coordinator.tests.test_cargo_jobs tools.session_coordinator.tests.test_cargo_reservations
 resolved_at: 2026-07-17

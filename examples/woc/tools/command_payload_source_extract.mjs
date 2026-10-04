@@ -1,3 +1,6 @@
+// 调用端：npm run generate:command-payload-source (tools/package.json)；职责：遍历固定版本的 TypeScript 客户端发送点和服务端字段以记录载荷形状。
+// 通过 git show 直接读取固定版本的客户端与服务端源文件，输出已观察发送形状的 JSON 目录。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -23,6 +26,7 @@ const historical = process.argv.includes('--historical');
 
 main();
 
+// 读取固定版本的客户端与服务端 TypeScript，将命令发送点对齐目录并输出源载荷形状。
 function main() {
   if (SOURCE_COMMIT !== CURRENT_SOURCE_COMMIT && !historical) {
     throw new Error('a non-current source commit requires --historical');
@@ -83,6 +87,7 @@ function parse(path, text) {
   return ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
 }
 
+// 服务端 ClientMessage 字段为每个已观察到的客户端字段提供可选性和声明类型。
 function clientMessageFieldTypes(sourceFile) {
   const declaration = sourceFile.statements.find(
     (statement) => ts.isTypeAliasDeclaration(statement) && statement.name.text === 'ClientMessage',
@@ -115,6 +120,7 @@ function findTypeLiteral(node) {
   return null;
 }
 
+// 遍历类型化 this.cmd/this.cmdWithOutcome 调用，保留每个字面载荷的方法名和源代码行号。
 function clientCommandSites(sourceFile) {
   const sites = [];
   visit(sourceFile, (node) => {
@@ -168,6 +174,7 @@ function commandFields(property, sourceFile) {
   throw new Error(`unsupported client command property: ${property.getText(sourceFile)}`);
 }
 
+// 只展开字面量条件扩展；无法解析的扩展须保留为显式未知字段。
 function conditionalObjectSpreadFields(expression, sourceFile) {
   expression = unwrap(expression);
   if (!ts.isConditionalExpression(expression)) return null;
@@ -183,6 +190,7 @@ function conditionalObjectSpreadFields(expression, sourceFile) {
   return [...new Map(fields.map((field) => [field.name, field])).values()];
 }
 
+// 保持目录顺序，并区分已观察发送、仅派发和未观察到发送的命令。
 function buildEntries(commands, sites, serverFieldTypes) {
   const known = new Map(commands.map((entry) => [entry.name, entry]));
   for (const site of sites) {

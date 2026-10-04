@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node wos140_autoloot_runtime_static_guard.mjs；缺少源码契约时脚本抛错退出。
+// 核对锁定的队伍自动拾取静默委托语义，再沿命令 ID 134 检查世界状态是否复用尸体拾取归约器及调用自测。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -21,6 +25,7 @@ requireText(interaction, /autoLootForParty[\s\S]*?r\.e\.dead[\s\S]*?isInRaidInst
 const payloads = read('scripts', 'woc_game', 'src', 'protocol', 'command_payloads.zr');
 requireText(payloads, /pub autoLootCommandId\(required: bool\): uint[\s\S]*?return <uint>134/,
   'autoloot command identity is missing');
+// 自动拾取必须委托尸体拾取归约器，沿用同一套权限判定。
 const world = read('scripts', 'woc_game', 'src', 'world', 'state.zr');
 requireText(world, /var autoLootCommand = payloads\.autoLootCommandId\(true\)/,
   'autoloot command reducer binding is missing');

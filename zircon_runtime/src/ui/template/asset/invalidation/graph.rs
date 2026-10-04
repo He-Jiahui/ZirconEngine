@@ -1,3 +1,6 @@
+//! 在编译缓存 miss 时比较同资产的前后输入修订，给出有序阶段与影响摘要。
+//! 分类不重新编译或修改 UI；watch 驱动的热重载执行使用独立计划。
+
 use std::collections::BTreeSet;
 
 use zircon_runtime_interface::ui::template::{
@@ -7,10 +10,13 @@ use zircon_runtime_interface::ui::template::{
 
 use super::collect_invalidation_diagnostics;
 
+/// 无状态的缓存输入分类器；快照一致性和资产身份配对由编译缓存调用方负责。
 #[derive(Clone, Debug, Default)]
 pub struct UiInvalidationGraph;
 
 impl UiInvalidationGraph {
+    /// 文档内容变化要求整体重建；其他修订单独变化时选择相关阶段并合并影响。
+    /// 没有前态时按首次编译报告整体重建，文档仅用于本次诊断。
     pub fn classify(
         previous: Option<&UiInvalidationSnapshot>,
         next: &UiInvalidationSnapshot,
@@ -107,6 +113,7 @@ impl UiInvalidationGraph {
     }
 }
 
+// 整体重建已覆盖 UI 工作影响，仍记录各修订变化，但不重复添加增量分类阶段。
 fn extend_incremental_stages(
     stages: &mut BTreeSet<UiInvalidationStage>,
     full_rebuild: bool,
@@ -117,6 +124,7 @@ fn extend_incremental_stages(
     }
 }
 
+// 这里是整体重建的代表阶段集；来源解析和文档形状已经让影响转换标记全部脏域。
 fn full_rebuild_stages() -> BTreeSet<UiInvalidationStage> {
     [
         UiInvalidationStage::SourceParse,
@@ -133,5 +141,5 @@ fn full_rebuild_stages() -> BTreeSet<UiInvalidationStage> {
 }
 
 #[cfg(test)]
-#[path = "graph/full_rebuild_tests.rs"]
+#[path = "graph/tests/full_rebuild_tests.rs"]
 mod full_rebuild_tests;

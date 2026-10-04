@@ -1,9 +1,10 @@
+# 核对着色器校验共用命令标志索引并保留缺失值诊断。
 from __future__ import annotations
 
 import unittest
 from unittest import mock
 
-from tools import zircon_build_shader_prewarm as shader_prewarm
+from tools.build import zircon_build_shader_prewarm as shader_prewarm
 from tools.tests.shader_prewarm_test_support import FakePrewarmConfig
 
 

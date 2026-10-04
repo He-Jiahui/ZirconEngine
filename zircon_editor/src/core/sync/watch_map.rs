@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::fmt;
 
 use zircon_runtime_interface::world_sync::{
@@ -9,7 +9,12 @@ use crate::core::editor_event::ViewInstanceId;
 use crate::core::editor_message::{EditorViewInvalidationMask, ViewDirtySet};
 
 #[cfg(test)]
+#[path = "watch_map/tests/cases.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "watch_map/tests/optimization_batch_ir_editor628_tests.rs"]
+mod optimization_batch_ir_editor628_tests;
 
 /// One editor-owned projection rule for a runtime-issued watch token.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -242,7 +247,7 @@ impl WorldWatchMap {
         }
 
         let mut dirty = ViewDirtySet::default();
-        let mut seen = BTreeSet::new();
+        let mut seen = HashSet::with_capacity(batch.dirty.len());
         let mut duplicates = BTreeSet::new();
         let mut unknown = BTreeSet::new();
         let mut matched_tokens = 0;

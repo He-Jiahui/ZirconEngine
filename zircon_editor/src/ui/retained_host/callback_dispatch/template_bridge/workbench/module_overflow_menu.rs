@@ -18,28 +18,52 @@ const LAYOUT_MIN_WIDTH: &str = "layout_min_width";
 
 const OVERFLOW_COMMANDS: &[OverflowCommand] = &[
     OverflowCommand {
+        label: "Scene",
+        menu_action_id: "menu.item.scene",
+        source_control_id: "WorkbenchModuleScene",
+        icon_flag: "icon=folder",
+    },
+    OverflowCommand {
+        label: "Effect",
+        menu_action_id: "menu.item.effect",
+        source_control_id: "WorkbenchModuleEffect",
+        icon_flag: "icon=folder",
+    },
+    OverflowCommand {
+        label: "Ability",
+        menu_action_id: "menu.item.ability",
+        source_control_id: "WorkbenchModuleAbility",
+        icon_flag: "icon=folder",
+    },
+    OverflowCommand {
+        label: "Tags",
+        menu_action_id: "menu.item.tags",
+        source_control_id: "WorkbenchModuleTags",
+        icon_flag: "icon=folder",
+    },
+    OverflowCommand {
         label: "Perception",
         menu_action_id: "menu.item.perception",
         source_control_id: "WorkbenchModulePerception",
-        icon_flag: "icon=grid",
+        icon_flag: "icon=eye",
     },
     OverflowCommand {
         label: "Material",
         menu_action_id: "menu.item.material",
         source_control_id: "WorkbenchModuleMaterial",
-        icon_flag: "icon=grid",
+        icon_flag: "icon=material",
     },
     OverflowCommand {
         label: "Behavior",
         menu_action_id: "menu.item.behavior",
         source_control_id: "WorkbenchModuleBehavior",
-        icon_flag: "icon=grid",
+        icon_flag: "icon=tree",
     },
     OverflowCommand {
         label: "Render",
         menu_action_id: "menu.item.render",
         source_control_id: "WorkbenchModuleRender",
-        icon_flag: "icon=grid",
+        icon_flag: "icon=rendering",
     },
     OverflowCommand {
         label: "Assets",
@@ -51,19 +75,19 @@ const OVERFLOW_COMMANDS: &[OverflowCommand] = &[
         label: "VFX",
         menu_action_id: "menu.item.v_f_x",
         source_control_id: "WorkbenchModuleVfx",
-        icon_flag: "icon=grid",
+        icon_flag: "icon=sparkles",
     },
     OverflowCommand {
         label: "HUD",
         menu_action_id: "menu.item.h_u_d",
         source_control_id: "WorkbenchModuleHud",
-        icon_flag: "icon=grid",
+        icon_flag: "icon=ui",
     },
     OverflowCommand {
         label: "Diff",
         menu_action_id: "menu.item.diff",
         source_control_id: "WorkbenchModuleDiff",
-        icon_flag: "icon=grid",
+        icon_flag: "icon=branch",
     },
     OverflowCommand {
         label: "Sim",
@@ -195,6 +219,20 @@ impl OverflowCommand {
         {
             flags.insert(0, "checked".to_string());
         }
-        format!("{}|{}", self.label, flags.join(","))
+        let key = match self.source_control_id {
+            "WorkbenchModuleScene" => "editor.workbench.module.scene",
+            "WorkbenchModuleEffect" => "editor.workbench.module.effect",
+            "WorkbenchModuleAbility" => "editor.workbench.module.ability",
+            "WorkbenchModuleTags" => "editor.workbench.module.tags",
+            "WorkbenchModulePerception" => "editor.workbench.module.perception",
+            "WorkbenchModuleMaterial" => "editor.workbench.module.material",
+            "WorkbenchModuleBehavior" => "editor.workbench.module.behavior",
+            "WorkbenchModuleRender" => "editor.workbench.module.render",
+            "WorkbenchModuleAssets" => "editor.workbench.module.assets",
+            "WorkbenchModuleVfx" => "editor.workbench.module.vfx",
+            "WorkbenchModuleHud" => "editor.workbench.module.hud",
+            _ => return format!("{}|{}", self.label, flags.join(",")),
+        };
+        format!("{}|{}", bridge.i18n.translate(key), flags.join(","))
     }
 }

@@ -1,8 +1,11 @@
 use std::fmt;
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+/// 总线按完整字符串匹配的命名通道；parse 接受含点分隔符的小写 ASCII 名段，内置入口使用约定常量。
+// TODO: [CR-EDITOR-SERVICES-0001] 确认反序列化边界是否也必须执行主题校验：派生 Deserialize 可绕过 parse，当前生产调用未发现外部解码入口。
+// Editor1036: deserialization now validates through parse; the TODO above records the prior gap.
 pub struct EditorTopic(String);
 
 impl EditorTopic {
@@ -26,6 +29,7 @@ impl EditorTopic {
         Self(super::topics::TOPIC_TOOL.to_owned())
     }
 
+    /// 校验命名空间与名段；保持缺少分隔符优先、随后首个名段错误的错误选择顺序，供调用方诊断。
     pub fn parse(value: impl Into<String>) -> Result<Self, EditorTopicError> {
         let value = value.into();
         if value.is_empty() {
@@ -82,6 +86,16 @@ impl EditorTopic {
     }
 }
 
+impl<'de> Deserialize<'de> for EditorTopic {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = String::deserialize(deserializer)?;
+        Self::parse(value).map_err(serde::de::Error::custom)
+    }
+}
+
 impl fmt::Display for EditorTopic {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.as_str())
@@ -123,35 +137,13 @@ fn topic_segment_byte_is_valid(byte: u8) -> bool {
 }
 
 #[cfg(test)]
-#[path = "topic/single_scan_tests.rs"]
+#[path = "topic/tests/single_scan_tests.rs"]
 mod single_scan_tests;
 
 #[cfg(test)]
-mod tests {
-    use super::EditorTopic;
+#[path = "topic/tests/deserialize_tests.rs"]
+mod deserialize_tests;
 
-    #[test]
-    fn built_in_transaction_topic_is_canonical_and_valid() {
-        assert_eq!(EditorTopic::transaction().as_str(), "editor.transaction");
-    }
-
-    #[test]
-    fn built_in_document_topic_is_canonical_and_valid() {
-        assert_eq!(EditorTopic::document().as_str(), "editor.document");
-    }
-
-    #[test]
-    fn built_in_log_topic_is_canonical_and_valid() {
-        assert_eq!(EditorTopic::log().as_str(), "editor.log");
-    }
-
-    #[test]
-    fn built_in_i18n_topic_is_canonical_and_valid() {
-        assert_eq!(EditorTopic::i18n().as_str(), "editor.i18n");
-    }
-
-    #[test]
-    fn built_in_tool_topic_is_canonical_and_valid() {
-        assert_eq!(EditorTopic::tool().as_str(), "editor.tool");
-    }
-}
+#[cfg(test)]
+#[path = "tests/topic.rs"]
+mod tests;

@@ -1,6 +1,8 @@
 const PI: f32 = 3.14159265358979323846;
 const INV_UINT_MAX_PLUS_ONE: f32 = 2.3283064365386963e-10;
 
+// 产出漫反射采样 cube，使用烘焙计划选定的源 mip；平均值约定与 CPU/SH9 基准一致，
+// 最终材质响应在采样端应用，因此这里不写材质颜色或重复乘 Lambert 的 PI。
 struct IblIrradianceCubeParams {
     source_face_size: u32,
     irradiance_face_size: u32,

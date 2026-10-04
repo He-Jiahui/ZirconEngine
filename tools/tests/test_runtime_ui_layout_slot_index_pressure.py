@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from tools.runtime_ui_layout_slot_index_pressure import (
+from tools.analysis.performance.runtime.runtime_ui_layout_slot_index_pressure import (
     pressure_report,
     pressure_suite,
     validate_output_path,
@@ -22,7 +22,7 @@ UNREAL_CHILDREN = ROOT / (
 def function_body(source: str, signature: str, next_signature: str) -> str:
     return source.split(signature, 1)[1].split(next_signature, 1)[0]
 
-
+# 以槽位索引模型比较缺边回退扫描、单子节点补丁和父顺序补丁，约束访问范围局限于受影响父节点。
 class RuntimeUiLayoutSlotIndexPressureTests(unittest.TestCase):
     def test_full_index_build_counts_repeated_missing_edge_fallback_scans(self):
         report = pressure_report(

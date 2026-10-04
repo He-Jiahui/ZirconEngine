@@ -12,7 +12,7 @@ implementation_files:
   - zircon_runtime/src/core/runtime/random
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
-  - docs/engine-architecture/runtime-foundation-precision-and-scene-authority.md
+  - docs/architecture/runtime-foundation-precision-and-scene-authority.md
 tests:
   - zircon_runtime/src/core/runtime/tests
   - zircon_runtime/src/core/runtime/random/tests

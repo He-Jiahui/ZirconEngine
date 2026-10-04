@@ -16,6 +16,7 @@ pub(crate) fn append_ring(
     if normal.length_squared() <= f32::EPSILON {
         return;
     }
+    // 先选不与法线平行的参考轴，再用两次叉积构成圆环平面基底。
     let tangent = if normal.cross(Vec3::Y).length_squared() > f32::EPSILON {
         normal.cross(Vec3::Y).normalize_or_zero()
     } else {
@@ -33,16 +34,5 @@ pub(crate) fn append_ring(
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::core::math::{Vec3, Vec4};
-
-    use super::{RING_VERTEX_CAPACITY, append_ring};
-
-    #[test]
-    fn ring_capacity_matches_non_degenerate_output() {
-        let mut vertices = Vec::new();
-        append_ring(&mut vertices, Vec3::ZERO, Vec3::Z, 1.0, Vec4::ONE);
-
-        assert_eq!(vertices.len(), RING_VERTEX_CAPACITY);
-    }
-}
+#[path = "tests/append_ring.rs"]
+mod tests;

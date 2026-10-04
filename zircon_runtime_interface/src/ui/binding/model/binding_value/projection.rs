@@ -1,8 +1,15 @@
+use std::fmt::Write as _;
+
 use serde_json::{json, Map, Value};
 
-use super::{types::quoted, UiBindingValue};
+use super::{types::quoted_into, UiBindingValue};
+
+#[cfg(test)]
+#[path = "projection/tests/native_repr_performance_tests.rs"]
+mod native_repr_performance_tests;
 
 impl UiBindingValue {
+    /// 投影为编辑器回调边界使用的 JSON；扩展类型用标签对象承载，空可选值与非有限浮点按契约投影为 null。
     pub fn to_json_value(&self) -> Value {
         match self {
             Self::String(value) => Value::String(value.clone()),
@@ -70,70 +77,116 @@ impl UiBindingValue {
         }
     }
 
+    /// 为已校验的绑定值生成原生文本；解析器按文本语法重建值，整数类别不在文本中单独编码。
     pub(crate) fn native_repr(&self) -> String {
+        let mut output = String::new();
+        self.native_repr_into(&mut output);
+        output
+    }
+
+    pub(crate) fn native_repr_into(&self, output: &mut String) {
         match self {
-            Self::String(value) => quoted(value),
-            Self::Unsigned(value) => value.to_string(),
-            Self::Signed(value) => value.to_string(),
+            Self::String(value) => quoted_into(value, output),
+            Self::Unsigned(value) => {
+                let _ = write!(output, "{value}");
+            }
+            Self::Signed(value) => {
+                let _ = write!(output, "{value}");
+            }
             Self::Float(value) => {
-                let mut rendered = value.to_string();
-                if !rendered.contains('.') && !rendered.contains('e') && !rendered.contains('E') {
-                    rendered.push_str(".0");
+                let start = output.len();
+                let _ = write!(output, "{value}");
+                if !output[start..].contains('.')
+                    && !output[start..].contains('e')
+                    && !output[start..].contains('E')
+                {
+                    output.push_str(".0");
                 }
-                rendered
             }
-            Self::Bool(value) => value.to_string(),
-            Self::Null => "null".to_string(),
-            Self::Array(values) => format!(
-                "[{}]",
-                values
-                    .iter()
-                    .map(Self::native_repr)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            Self::Record(fields) => format!(
-                "record({})",
-                fields
-                    .iter()
-                    .flat_map(|(field, value)| [quoted(field), value.native_repr()])
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            Self::Map(values) => format!(
-                "map({})",
-                values
-                    .iter()
-                    .flat_map(|(key, value)| [key.native_repr(), value.native_repr()])
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
+            Self::Bool(value) => {
+                let _ = write!(output, "{value}");
+            }
+            Self::Null => output.push_str("null"),
+            Self::Array(values) => {
+                output.push('[');
+                for (index, value) in values.iter().enumerate() {
+                    if index != 0 {
+                        output.push(',');
+                    }
+                    value.native_repr_into(output);
+                }
+                output.push(']');
+            }
+            Self::Record(fields) => {
+                output.push_str("record(");
+                for (index, (field, value)) in fields.iter().enumerate() {
+                    if index != 0 {
+                        output.push(',');
+                    }
+                    quoted_into(field, output);
+                    output.push(',');
+                    value.native_repr_into(output);
+                }
+                output.push(')');
+            }
+            Self::Map(values) => {
+                output.push_str("map(");
+                for (index, (key, value)) in values.iter().enumerate() {
+                    if index != 0 {
+                        output.push(',');
+                    }
+                    key.native_repr_into(output);
+                    output.push(',');
+                    value.native_repr_into(output);
+                }
+                output.push(')');
+            }
             Self::Enum(value) => {
-                let mut arguments = vec![quoted(value.type_id()), quoted(value.variant())];
+                output.push_str("enum(");
+                quoted_into(value.type_id(), output);
+                output.push(',');
+                quoted_into(value.variant(), output);
                 if let Some(payload) = value.payload() {
-                    arguments.push(payload.native_repr());
+                    output.push(',');
+                    payload.native_repr_into(output);
                 }
-                format!("enum({})", arguments.join(","))
+                output.push(')');
             }
-            Self::Asset(value) => format!("asset({})", quoted(value.locator())),
+            Self::Asset(value) => {
+                output.push_str("asset(");
+                quoted_into(value.locator(), output);
+                output.push(')');
+            }
             Self::Entity(value) => {
-                format!("entity({},{})", value.entity_id(), value.generation())
+                let _ = write!(
+                    output,
+                    "entity({},{})",
+                    value.entity_id(),
+                    value.generation()
+                );
             }
-            Self::Optional(value) => format!(
-                "optional({})",
-                value.as_deref().map(Self::native_repr).unwrap_or_default()
-            ),
-            Self::CollectionView(value) => format!(
-                "collection_view({},{},{},{},{},{},{},{})",
-                quoted(value.provider().id.as_str()),
-                value.provider().version.get(),
-                quoted(value.item_schema().id.as_str()),
-                value.item_schema().version.get(),
-                value.revision(),
-                value.offset(),
-                value.length(),
-                value.total_length(),
-            ),
+            Self::Optional(value) => {
+                output.push_str("optional(");
+                if let Some(value) = value.as_deref() {
+                    value.native_repr_into(output);
+                }
+                output.push(')');
+            }
+            Self::CollectionView(value) => {
+                output.push_str("collection_view(");
+                quoted_into(value.provider().id.as_str(), output);
+                let _ = write!(output, ",{},", value.provider().version.get());
+                quoted_into(value.item_schema().id.as_str(), output);
+                let _ = write!(
+                    output,
+                    ",{},{},{},{},{})",
+                    value.item_schema().version.get(),
+                    value.revision(),
+                    value.offset(),
+                    value.length(),
+                    value.total_length(),
+                );
+            }
         }
     }
 }

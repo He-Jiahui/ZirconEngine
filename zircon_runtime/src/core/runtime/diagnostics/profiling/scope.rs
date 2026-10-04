@@ -6,17 +6,25 @@ use super::with_recorder;
 
 thread_local! {
     static SPAN_STACK: RefCell<Vec<SpanStackEntry>> = const { RefCell::new(Vec::new()) };
-    static FRAME_STACK: RefCell<Vec<u64>> = const { RefCell::new(Vec::new()) };
+    static FRAME_STACK: RefCell<Vec<FrameStackEntry>> = const { RefCell::new(Vec::new()) };
 }
 
 #[derive(Clone, Debug)]
 struct SpanStackEntry {
+    capture_epoch: u64,
     id: u64,
     path: String,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct FrameStackEntry {
+    capture_epoch: u64,
+    frame_index: u64,
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct ProfileScopeToken {
+    capture_epoch: u64,
     id: u64,
     parent_id: Option<u64>,
     frame_index: Option<u64>,
@@ -30,6 +38,7 @@ pub(crate) struct ProfileScopeToken {
 
 #[derive(Clone, Debug)]
 pub(crate) struct ProfileFrameToken {
+    capture_epoch: u64,
     stream: &'static str,
     name: &'static str,
     frame_index: u64,
@@ -61,6 +70,7 @@ impl ProfileScope {
     }
 }
 
+// scope 退出时由 recorder 计算主机侧经过时间；GPU 耗时由独立的异步计时链提供。
 impl Drop for ProfileScope {
     fn drop(&mut self) {
         if let Some(token) = self.token.take() {
@@ -76,39 +86,67 @@ pub struct ProfileFrameScope {
 
 #[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct ProfileFrameContext {
+    capture_epoch: Option<u64>,
     frame_index: Option<u64>,
 }
 
 #[derive(Debug)]
 pub(crate) struct ProfileFrameContextGuard {
-    frame_index: Option<u64>,
+    frame: Option<FrameStackEntry>,
 }
 
 impl ProfileFrameContext {
+    // 工作线程可携带当前帧关联；attach 会再次校验 epoch，避免落入后续录制。
     pub(crate) fn capture() -> Self {
+        let capture_epoch = super::capture_epoch();
         Self {
-            frame_index: FRAME_STACK.with(|stack| stack.borrow().last().copied()),
+            capture_epoch,
+            frame_index: capture_epoch.and_then(|capture_epoch| {
+                FRAME_STACK.with(|stack| {
+                    stack
+                        .borrow()
+                        .iter()
+                        .rev()
+                        .find(|frame| frame.capture_epoch == capture_epoch)
+                        .map(|frame| frame.frame_index)
+                })
+            }),
         }
     }
 
     pub(crate) fn is_active() -> bool {
-        FRAME_STACK.with(|stack| !stack.borrow().is_empty())
+        let Some(capture_epoch) = super::capture_epoch() else {
+            return false;
+        };
+        FRAME_STACK.with(|stack| {
+            stack
+                .borrow()
+                .iter()
+                .any(|frame| frame.capture_epoch == capture_epoch)
+        })
     }
 
     pub(crate) fn attach(self) -> ProfileFrameContextGuard {
-        if let Some(frame_index) = self.frame_index {
-            FRAME_STACK.with(|stack| stack.borrow_mut().push(frame_index));
+        let frame =
+            self.capture_epoch
+                .zip(self.frame_index)
+                .and_then(|(capture_epoch, frame_index)| {
+                    (super::capture_epoch() == Some(capture_epoch)).then_some(FrameStackEntry {
+                        capture_epoch,
+                        frame_index,
+                    })
+                });
+        if let Some(frame) = frame {
+            FRAME_STACK.with(|stack| stack.borrow_mut().push(frame));
         }
-        ProfileFrameContextGuard {
-            frame_index: self.frame_index,
-        }
+        ProfileFrameContextGuard { frame }
     }
 }
 
 impl Drop for ProfileFrameContextGuard {
     fn drop(&mut self) {
-        if let Some(frame_index) = self.frame_index.take() {
-            detach_frame_index(frame_index);
+        if let Some(frame) = self.frame.take() {
+            detach_frame(frame);
         }
     }
 }
@@ -130,29 +168,45 @@ impl Drop for ProfileFrameScope {
 }
 
 pub(crate) fn begin_scope_named(
+    capture_epoch: u64,
     stream: &'static str,
     category: &'static str,
     name: String,
 ) -> Option<ProfileScopeToken> {
     let (parent_id, parent_path, depth) = SPAN_STACK.with(|stack| {
         let stack = stack.borrow();
-        let parent = stack.last();
+        let parent = stack
+            .iter()
+            .rev()
+            .find(|entry| entry.capture_epoch == capture_epoch);
         (
             parent.map(|entry| entry.id),
             parent.map(|entry| entry.path.clone()),
-            stack.len().min(u16::MAX as usize) as u16,
+            stack
+                .iter()
+                .filter(|entry| entry.capture_epoch == capture_epoch)
+                .count()
+                .min(u16::MAX as usize) as u16,
         )
     });
-    let frame_index = FRAME_STACK.with(|stack| stack.borrow().last().copied());
+    let frame_index = FRAME_STACK.with(|stack| {
+        stack
+            .borrow()
+            .iter()
+            .rev()
+            .find(|frame| frame.capture_epoch == capture_epoch)
+            .map(|frame| frame.frame_index)
+    });
     let path = match parent_path {
         Some(parent_path) => format!("{parent_path}/{category}:{name}"),
         None => format!("{stream}/{category}:{name}"),
     };
     let token = with_recorder(|recorder| {
-        if !recorder.is_active() {
+        if !recorder.is_active() || super::capture_epoch() != Some(capture_epoch) {
             return None;
         }
         Some(ProfileScopeToken {
+            capture_epoch,
             id: recorder.next_span_id(),
             parent_id,
             frame_index,
@@ -166,6 +220,7 @@ pub(crate) fn begin_scope_named(
     })?;
     SPAN_STACK.with(|stack| {
         stack.borrow_mut().push(SpanStackEntry {
+            capture_epoch: token.capture_epoch,
             id: token.id,
             path: token.path.clone(),
         });
@@ -174,17 +229,22 @@ pub(crate) fn begin_scope_named(
 }
 
 pub(crate) fn finish_scope(token: ProfileScopeToken) {
-    let end_us = with_recorder(|recorder| recorder.now_us());
-    let duration_us = end_us.saturating_sub(token.start_us);
     SPAN_STACK.with(|stack| {
         let mut stack = stack.borrow_mut();
-        if stack.last().is_some_and(|entry| entry.id == token.id) {
+        let is_token = |entry: &SpanStackEntry| {
+            entry.capture_epoch == token.capture_epoch && entry.id == token.id
+        };
+        if stack.last().is_some_and(is_token) {
             stack.pop();
-        } else if let Some(index) = stack.iter().rposition(|entry| entry.id == token.id) {
+        } else if let Some(index) = stack.iter().rposition(is_token) {
             stack.remove(index);
         }
     });
     with_recorder(|recorder| {
+        if super::capture_epoch_for_completion() != Some(token.capture_epoch) {
+            return;
+        }
+        let duration_us = recorder.now_us().saturating_sub(token.start_us);
         recorder.record_span(ProfileSpanSnapshot {
             id: token.id,
             parent_id: token.parent_id,
@@ -200,12 +260,17 @@ pub(crate) fn finish_scope(token: ProfileScopeToken) {
     });
 }
 
-pub(crate) fn begin_frame(stream: &'static str, name: &'static str) -> Option<ProfileFrameToken> {
+pub(crate) fn begin_frame(
+    capture_epoch: u64,
+    stream: &'static str,
+    name: &'static str,
+) -> Option<ProfileFrameToken> {
     let token = with_recorder(|recorder| {
-        if !recorder.is_active() {
+        if !recorder.is_active() || super::capture_epoch() != Some(capture_epoch) {
             return None;
         }
         Some(ProfileFrameToken {
+            capture_epoch,
             stream,
             name,
             frame_index: recorder.next_frame_index(stream),
@@ -213,15 +278,25 @@ pub(crate) fn begin_frame(stream: &'static str, name: &'static str) -> Option<Pr
             budget_ms: recorder.config().frame_budget_ms,
         })
     })?;
-    FRAME_STACK.with(|stack| stack.borrow_mut().push(token.frame_index));
+    FRAME_STACK.with(|stack| {
+        stack.borrow_mut().push(FrameStackEntry {
+            capture_epoch: token.capture_epoch,
+            frame_index: token.frame_index,
+        });
+    });
     Some(token)
 }
 
 pub(crate) fn finish_frame(token: ProfileFrameToken) {
-    let end_us = with_recorder(|recorder| recorder.now_us());
-    let duration_us = end_us.saturating_sub(token.start_us);
-    detach_frame_index(token.frame_index);
+    detach_frame(FrameStackEntry {
+        capture_epoch: token.capture_epoch,
+        frame_index: token.frame_index,
+    });
     with_recorder(|recorder| {
+        if super::capture_epoch_for_completion() != Some(token.capture_epoch) {
+            return;
+        }
+        let duration_us = recorder.now_us().saturating_sub(token.start_us);
         recorder.record_frame(ProfileFrameSnapshot {
             stream: token.stream.to_string(),
             name: token.name.to_string(),
@@ -234,21 +309,26 @@ pub(crate) fn finish_frame(token: ProfileFrameToken) {
     });
 }
 
-fn detach_frame_index(frame_index: u64) {
+fn detach_frame(frame: FrameStackEntry) {
     FRAME_STACK.with(|stack| {
         let mut stack = stack.borrow_mut();
-        if stack.last().copied() == Some(frame_index) {
+        if stack.last().copied() == Some(frame) {
             stack.pop();
-        } else if let Some(index) = stack.iter().rposition(|frame| *frame == frame_index) {
+        } else if let Some(index) = stack.iter().rposition(|entry| *entry == frame) {
             stack.remove(index);
         }
     });
 }
 
-pub(crate) fn record_counter(stream: &'static str, name: &'static str, value: f64) {
-    let frame_index = FRAME_STACK.with(|stack| stack.borrow().last().copied());
+pub(crate) fn record_counter(
+    capture_epoch: u64,
+    stream: &'static str,
+    name: &'static str,
+    value: f64,
+) {
+    let frame_index = current_frame_index(capture_epoch);
     with_recorder(|recorder| {
-        if !recorder.is_active() {
+        if !recorder.is_active() || super::capture_epoch() != Some(capture_epoch) {
             return;
         }
         recorder.record_counter(ProfileCounterSnapshot {
@@ -261,13 +341,17 @@ pub(crate) fn record_counter(stream: &'static str, name: &'static str, value: f6
     });
 }
 
-pub(crate) fn record_counter_batch(stream: &'static str, counters: &[(&'static str, f64)]) {
+pub(crate) fn record_counter_batch(
+    capture_epoch: u64,
+    stream: &'static str,
+    counters: &[(&'static str, f64)],
+) {
     if counters.is_empty() {
         return;
     }
-    let frame_index = FRAME_STACK.with(|stack| stack.borrow().last().copied());
+    let frame_index = current_frame_index(capture_epoch);
     with_recorder(|recorder| {
-        if !recorder.is_active() {
+        if !recorder.is_active() || super::capture_epoch() != Some(capture_epoch) {
             return;
         }
         let timestamp_us = recorder.now_us();
@@ -281,4 +365,15 @@ pub(crate) fn record_counter_batch(stream: &'static str, counters: &[(&'static s
             });
         }
     });
+}
+
+fn current_frame_index(capture_epoch: u64) -> Option<u64> {
+    FRAME_STACK.with(|stack| {
+        stack
+            .borrow()
+            .iter()
+            .rev()
+            .find(|frame| frame.capture_epoch == capture_epoch)
+            .map(|frame| frame.frame_index)
+    })
 }

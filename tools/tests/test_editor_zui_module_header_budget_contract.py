@@ -111,7 +111,7 @@ class EditorZuiModuleHeaderBudgetContract(unittest.TestCase):
 
         self.assertEqual(52, len(headers), "all writable module headers must be covered")
         self.assertEqual(
-            28,
+            25,
             len(narrow_secondary_actions),
             "only over-budget dual-action headers need responsive secondary actions",
         )
@@ -279,8 +279,12 @@ class EditorZuiModuleHeaderBudgetContract(unittest.TestCase):
                         self.assertEqual("ScrollableBox", node["component"], location)
                         self.assertTrue(node["layout"]["clip"], location)
                         self.assertEqual("Receive", node["layout"]["input_policy"], location)
+                        axis = container.get("axis")
+                        self.assertIn(axis, {"Horizontal", "Vertical"}, location)
                         self.assertEqual(
-                            "Auto", container["scrollbar_visibility"], location
+                            "Auto" if axis == "Vertical" else "Never",
+                            container["scrollbar_visibility"],
+                            location,
                         )
 
         self.assertGreater(len(covered_groups), 100)

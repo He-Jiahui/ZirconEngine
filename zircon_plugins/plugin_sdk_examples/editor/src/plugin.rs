@@ -10,7 +10,8 @@ use zircon_runtime::plugin::{
 };
 
 use crate::capability::{
-    ASSET_FIXTURE_CAPABILITY, EDITOR_CAPABILITIES, PLUGIN_ID, WINDOW_CAPABILITY,
+    ASSET_FIXTURE_CAPABILITY, EDITOR_CAPABILITIES, PLUGIN_ID, PLUGIN_SDK_EXAMPLES_DECLARATION,
+    WINDOW_CAPABILITY,
 };
 use crate::extensions::{register_example_window, register_importer_and_inspector};
 
@@ -134,6 +135,7 @@ fn base_package_manifest() -> PluginPackageManifest {
     editor_plugin()
         .declaration()
         .base_manifest()
+        .with_package_role(PLUGIN_SDK_EXAMPLES_DECLARATION.package_role().into())
         .with_default_packaging([
             ExportPackagingStrategy::SourceTemplate,
             ExportPackagingStrategy::LibraryEmbed,

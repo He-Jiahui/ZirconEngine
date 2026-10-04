@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 核对 winit 输入翻译各域迁入子模块，且结构状态镜像记录相同归属。
 class RuntimeUiWinitTranslationOwnerStructureTests(unittest.TestCase):
     STATUS = (
         "runtime_09_15_winit_translation_domain_owner_split_"

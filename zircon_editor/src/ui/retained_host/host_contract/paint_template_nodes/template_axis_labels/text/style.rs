@@ -1,3 +1,5 @@
+//! 轴文字命令从轴 palette 和字体密度组装样式；这里使用普通文本排版，不把标签当成可编辑字段。
+
 use super::super::super::super::data::TemplatePaneNodeData;
 use super::super::metrics::AxisLabelMetrics;
 use super::super::style::axis_label_color;
@@ -16,6 +18,9 @@ pub(super) fn axis_label_text_command_style(
 ) -> AxisLabelTextCommandStyle {
     AxisLabelTextCommandStyle {
         color: axis_label_color(node),
+        // TODO: [CR-EDITOR-PAINT-ROWS-0005] 变换轴 ZUI 为节点声明 caption font_size，
+        // 但专用命令固定用宿主 body+border 指标。需确认这是有意的视觉覆盖；
+        // 若声明字号应生效，需按节点字号及行高约束重新投影，而非只改颜色。
         font_size: metrics.font_size,
         line_height: metrics.line_height,
         paint_style: axis_label_text_paint_style(),
@@ -27,36 +32,5 @@ fn axis_label_text_paint_style() -> UiTextRunPaintStyle {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn text_node(control_id: &str, text: &str) -> TemplatePaneNodeData {
-        TemplatePaneNodeData {
-            control_id: control_id.into(),
-            role: "Label".into(),
-            text: text.into(),
-            ..TemplatePaneNodeData::default()
-        }
-    }
-
-    #[test]
-    fn axis_label_text_style_keeps_runtime_plain_text_route() {
-        let metrics = AxisLabelMetrics {
-            font_size: 12.0,
-            line_height: 15.0,
-            link_lobe_width: 6.0,
-            link_lobe_height: 7.0,
-            link_lobe_radius: 3.0,
-            link_overlap: 2.0,
-            link_connector_width: 1.0,
-        };
-        let style = axis_label_text_command_style(
-            &text_node("WorkbenchTransformRotationAxisZ", "Z"),
-            &metrics,
-        );
-
-        assert_eq!(style.font_size, 12.0);
-        assert_eq!(style.line_height, 15.0);
-        assert_eq!(style.paint_style, UiTextRunPaintStyle::default());
-    }
-}
+#[path = "tests/style.rs"]
+mod tests;

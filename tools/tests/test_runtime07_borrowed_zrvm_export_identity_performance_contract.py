@@ -31,7 +31,7 @@ def function_header(source: str, signature: str) -> str:
     start = source.index(signature)
     return source[start : source.index("{", start)]
 
-
+# 读取实现源码约束借用 ZRVM 导出标识：导出调用不实体化诊断标识，并导出调用转发借用标识组件。
 class BorrowedZrVmExportIdentityPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

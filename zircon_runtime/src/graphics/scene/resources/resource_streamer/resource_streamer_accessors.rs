@@ -1,8 +1,8 @@
 use core::ops::Range;
 
+use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::MeshAsset;
 use crate::asset::ShaderSurfaceSourceContract;
-use crate::asset::pipeline::manager::ProjectAssetManager;
 #[cfg(test)]
 use crate::asset::{
     AssetManagementFamilyIssueBucket, AssetManagementFamilyIssueIndex,
@@ -20,27 +20,29 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::Arc;
 
 use crate::core::framework::render::{
-    RenderCameraTargetGraphImportReport, RenderCameraTargetWritebackReport,
+    wgsl_include_paths, RenderCameraTargetGraphImportReport, RenderCameraTargetWritebackReport,
     RenderColorLookupTextureLayout, RenderMaterialReadinessReport, RenderMaterialReadinessSummary,
-    RenderMeshBounds, RenderMeshSnapshot, RenderShaderDefinitionValue, wgsl_include_paths,
+    RenderMeshBounds, RenderMeshSnapshot, RenderShaderDefinitionValue,
 };
 use crate::core::resource::ResourceId;
-use crate::graphics::GraphicsError;
 use crate::graphics::shader::ShaderTemplateInclude;
+use crate::graphics::GraphicsError;
 use crate::plugin::ShaderModuleSourceBinding;
 
 mod material_capture;
 #[cfg(test)]
+#[path = "resource_streamer_accessors/tests/material_diagnostics.rs"]
 mod material_diagnostics;
 
 use super::super::{
     GpuMaterialUniformResource, GpuMeshResource, GpuModelResource, GpuTextureResource,
     MaterialRuntime, OutputTargetFramePlan, OutputTargetTextureResource,
 };
-use super::ResourceStreamer;
 use super::resource_streamer_ensure_shader_source::shader_dependency_ids;
+use super::ResourceStreamer;
 
-fn geometry_seed_for_prepared(
+// mesh 与 model 共用形变规则：bounds 随 morph 更新，skinning 或有效 morph 使静态 SDF 失效；资源与形状修订共同约束几何缓存。
+pub(super) fn geometry_seed_for_prepared(
     local_bounds: RenderMeshBounds,
     resource_revision: u64,
     deformation: &super::super::prepared::PreparedGeometryDeformation,
@@ -830,21 +832,5 @@ impl ResourceStreamer {
 }
 
 #[cfg(test)]
-mod shader_profile_contract_tests {
-    #[test]
-    fn module_include_resolution_profiles_count_and_source_bytes() {
-        let source = include_str!("resource_streamer_accessors.rs")
-            .split("pub(crate) fn shader_module_include_sources")
-            .nth(1)
-            .and_then(|source| {
-                source
-                    .split("fn required_plugin_shader_module_tokens")
-                    .next()
-            })
-            .expect("module include resolution function");
-
-        assert!(source.contains("\"shader_pipeline\", \"module_include_resolution\""));
-        assert!(source.contains("shader_module_include_count"));
-        assert!(source.contains("shader_module_include_source_bytes"));
-    }
-}
+#[path = "tests/resource_streamer_accessors_shader_profile_contract_tests.rs"]
+mod shader_profile_contract_tests;

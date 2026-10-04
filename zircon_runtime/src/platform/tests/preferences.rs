@@ -199,19 +199,19 @@ fn platform_preference_storage_atomic_file_reloads_and_isolates_namespaces() {
     let account_a = PreferenceKey::new("woc.input.account-a", "keybinds").unwrap();
     let account_b = PreferenceKey::new("woc.input.account-b", "keybinds").unwrap();
 
-    submit_write(&first, account_a.clone(), b"account-a");
-    submit_write(&first, account_b.clone(), b"account-b");
-    wait_fence(&first);
+    submit_write(&*first, account_a.clone(), b"account-a");
+    submit_write(&*first, account_b.clone(), b"account-b");
+    wait_fence(&*first);
 
     let reloaded = manager_with_backend(Arc::new(AtomicFilePreferenceStorageBackend::new(
         root.clone(),
     )));
     assert_eq!(
-        wait_snapshot(&reloaded, &account_a).value(),
+        wait_snapshot(&*reloaded, &account_a).value(),
         Some(&b"account-a"[..])
     );
     assert_eq!(
-        wait_snapshot(&reloaded, &account_b).value(),
+        wait_snapshot(&*reloaded, &account_b).value(),
         Some(&b"account-b"[..])
     );
     assert_eq!(
@@ -243,7 +243,7 @@ fn platform_preference_storage_atomic_file_supports_maximum_length_keys() {
     )));
     let key = PreferenceKey::new("n".repeat(128), "k".repeat(512)).unwrap();
 
-    submit_write(&storage, key.clone(), b"maximum-length-key");
+    submit_write(&*storage, key.clone(), b"maximum-length-key");
     assert_eq!(
         storage.snapshot(&key).unwrap().value(),
         Some(&b"maximum-length-key"[..])
@@ -262,7 +262,7 @@ fn platform_preference_storage_atomic_file_supports_long_managed_temp_roots() {
     )));
     let key = PreferenceKey::new("woc.input", "long-managed-temp-root").unwrap();
 
-    submit_write(&storage, key.clone(), b"long-managed-temp-root");
+    submit_write(&*storage, key.clone(), b"long-managed-temp-root");
     assert_eq!(
         storage.snapshot(&key).unwrap().value(),
         Some(&b"long-managed-temp-root"[..])
@@ -278,7 +278,7 @@ fn platform_preference_storage_atomic_file_reports_path_stage_and_fsync_work() {
     let storage = manager_with_backend(backend.clone());
     let key = PreferenceKey::new("woc.input", "diagnostics").unwrap();
 
-    submit_write(&storage, key, b"diagnostics");
+    submit_write(&*storage, key, b"diagnostics");
     let diagnostics = PreferenceStorageBackend::diagnostics(backend.as_ref());
     assert_eq!(diagnostics.writes, 1);
     assert!(diagnostics.path_build_wall > Duration::ZERO);

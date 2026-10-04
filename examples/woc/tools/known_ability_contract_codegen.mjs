@@ -1,3 +1,6 @@
+// 调用端：npm run generate:known-ability-contract (tools/package.json)；职责：从职业定义固化已知技能的准入规则。
+// 输入边界：src/sim/content/classes.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

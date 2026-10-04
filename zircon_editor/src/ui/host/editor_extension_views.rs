@@ -56,12 +56,7 @@ impl EditorUiHost {
             .iter()
             .cloned()
             .collect::<std::collections::BTreeSet<_>>();
-        let instance_ids = self
-            .current_view_instances()
-            .into_iter()
-            .filter(|instance| descriptor_ids.contains(&instance.descriptor_id))
-            .map(|instance| instance.instance_id)
-            .collect::<Vec<_>>();
+        let instance_ids = self.view_instance_ids_for_descriptors(&descriptor_ids);
 
         // Preflight all document closes before changing layout state. Each lease rolls back on
         // drop, so a busy toolkit rejects the complete owner retirement.
@@ -177,32 +172,5 @@ fn validate_extension_view_descriptors(
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::ui::workbench::view::{ViewDescriptor, ViewDescriptorId, ViewKind, ViewRegistry};
-
-    use super::validate_extension_view_descriptors;
-
-    fn view(id: &str) -> ViewDescriptor {
-        ViewDescriptor::new(
-            ViewDescriptorId::new(id),
-            ViewKind::ActivityView,
-            format!("View {id}"),
-        )
-    }
-
-    #[test]
-    fn borrowed_view_validation_accepts_unique_ids() {
-        let registry = ViewRegistry::default();
-        let views = [view("plugin.example.first"), view("plugin.example.second")];
-
-        validate_extension_view_descriptors(&registry, &views).unwrap();
-    }
-
-    #[test]
-    fn borrowed_view_validation_rejects_a_batch_duplicate() {
-        let registry = ViewRegistry::default();
-        let views = [view("plugin.example.same"), view("plugin.example.same")];
-
-        assert!(validate_extension_view_descriptors(&registry, &views).is_err());
-    }
-}
+#[path = "tests/editor_extension_views.rs"]
+mod tests;

@@ -1,6 +1,6 @@
 import unittest
 from pathlib import Path
-
+# 着色器 include 批次构建一次共享分析，SCC 与组件图由多个消费入口复用；本组防止下游重建图结构。
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE = REPO_ROOT / (

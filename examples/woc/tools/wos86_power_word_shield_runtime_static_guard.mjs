@@ -62,10 +62,10 @@ requireText(
 const sourceGenerator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
 if (!/WOC_RETAINED_ABILITY_IDS\s*=\s*\[[\s\S]*?'renew',[\s\S]*?'power_word_shield'/.test(sourceGenerator) ||
-!sourceGenerator.includes("EXPECTED_ABILITY_COUNT = 83")) {
+!sourceGenerator.includes("EXPECTED_ABILITY_COUNT = 117")) {
   throw new Error("M4 Power Word Shield projection scope is missing");
 }
-if (!zrGenerator.includes("document.entries.length === 83")) {
+if (!zrGenerator.includes("document.entries.length === 117")) {
   throw new Error("M4 Power Word Shield Zr projection count is missing");
 }
 const m4 = JSON.parse(read("contracts", "m4_abilities.json"));

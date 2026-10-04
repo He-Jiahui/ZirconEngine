@@ -3,7 +3,7 @@
 Plan: docs/plans/optimize/zircon_runtime/74-runtime-ui-template-component-binding-expression-model-event-command-hot-reload-product-integration-review.md
 Milestone: P2 cleanup
 Status: validation_pending
-Files: ["docs/plans/optimize/zircon_runtime/74/2026-08-22-runtime-binding-expression-schema-naming.md","docs/ui-and-layout/ui-asset-documents-and-editor-protocol.md","docs/ui-and-layout/ui-asset-foundation-descriptors-contracts-invalidation.md","docs/zircon_runtime_interface/ui/mod.md","zircon_runtime/src/ui/template/asset/binding/validation.rs","zircon_runtime/src/ui/tests/asset_binding.rs","zircon_runtime/src/ui/tests/asset_binding/naming_contract.rs"]
+Files: ["docs/plans/optimize/zircon_runtime/74/2026-08-22-runtime-binding-expression-schema-naming.md","docs/ui/ui-asset-documents-and-editor-protocol.md","docs/ui/ui-asset-foundation-descriptors-contracts-invalidation.md","docs/crates/zircon_runtime_interface/ui/mod.md","zircon_runtime/src/ui/template/asset/binding/validation.rs","zircon_runtime/src/ui/tests/asset_binding.rs","zircon_runtime/src/ui/tests/asset_binding/naming_contract.rs"]
 
 - Date: 2026-08-22
 - Owner: `optimize-runtime74-param-ref-compile-r3-bee4c707-20260822`

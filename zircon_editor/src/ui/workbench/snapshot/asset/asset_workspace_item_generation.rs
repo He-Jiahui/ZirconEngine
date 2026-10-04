@@ -67,7 +67,12 @@ impl AssetWorkspaceItemGeneration {
         &self,
         replacements: impl IntoIterator<Item = AssetItemSnapshot>,
     ) -> Option<Self> {
-        let mut replacements_by_chunk = HashMap::<usize, Vec<(usize, AssetItemSnapshot)>>::new();
+        let replacements = replacements.into_iter();
+        let (lower_bound, _) = replacements.size_hint();
+        let mut replacements_by_chunk =
+            HashMap::<usize, Vec<(usize, AssetItemSnapshot)>>::with_capacity(
+                lower_bound.min(self.chunks.len()),
+            );
         for replacement in replacements {
             let index = self.selected_index(&replacement.uuid)?;
             let current = self.get(index)?;
@@ -170,6 +175,48 @@ impl AssetWorkspaceItemGeneration {
         }
     }
 
+    // Build every published product while consuming the source. In particular, avoid collecting
+    // filtered catalog iterators into a temporary item vector before chunking them.
+    fn from_items<T: IntoIterator<Item = AssetItemSnapshot>>(iter: T) -> Self {
+        let mut iterator = iter.into_iter();
+        let (lower_bound, _) = iterator.size_hint();
+        let mut indices_by_uuid = HashMap::with_capacity(lower_bound);
+        let mut indices_by_locator = HashMap::with_capacity(lower_bound);
+        let mut selected_indices = Vec::new();
+        let mut chunks = Vec::with_capacity(lower_bound.div_ceil(ASSET_WORKSPACE_ITEM_CHUNK_SIZE));
+        let mut chunk = Vec::with_capacity(ASSET_WORKSPACE_ITEM_CHUNK_SIZE);
+        let mut len = 0;
+
+        for item in iterator {
+            let index = len;
+            let replaced = indices_by_uuid.insert(item.uuid.clone(), index);
+            debug_assert!(replaced.is_none(), "visible asset UUIDs must be unique");
+            let replaced = indices_by_locator.insert(item.locator.clone(), index);
+            debug_assert!(replaced.is_none(), "visible asset locators must be unique");
+            if item.selected {
+                selected_indices.push(index);
+            }
+
+            chunk.push(item);
+            len += 1;
+            if chunk.len() == ASSET_WORKSPACE_ITEM_CHUNK_SIZE {
+                chunks.push(std::mem::take(&mut chunk).into());
+                chunk = Vec::with_capacity(ASSET_WORKSPACE_ITEM_CHUNK_SIZE);
+            }
+        }
+        if !chunk.is_empty() {
+            chunks.push(chunk.into());
+        }
+
+        Self {
+            chunks: chunks.into(),
+            len,
+            indices_by_uuid: Arc::new(indices_by_uuid),
+            indices_by_locator: Arc::new(indices_by_locator),
+            selected_indices: selected_indices.into(),
+        }
+    }
+
     pub(crate) fn shares_item_chunk_with(&self, index: usize, other: &Self) -> bool {
         let chunk_index = index / ASSET_WORKSPACE_ITEM_CHUNK_SIZE;
         self.chunks
@@ -254,46 +301,13 @@ impl Default for AssetWorkspaceItemGeneration {
 
 impl From<Vec<AssetItemSnapshot>> for AssetWorkspaceItemGeneration {
     fn from(items: Vec<AssetItemSnapshot>) -> Self {
-        let len = items.len();
-        let mut indices_by_uuid = HashMap::with_capacity(len);
-        let mut indices_by_locator = HashMap::with_capacity(len);
-        let mut selected_indices = Vec::new();
-        for (index, item) in items.iter().enumerate() {
-            let replaced = indices_by_uuid.insert(item.uuid.clone(), index);
-            debug_assert!(replaced.is_none(), "visible asset UUIDs must be unique");
-            let replaced = indices_by_locator.insert(item.locator.clone(), index);
-            debug_assert!(replaced.is_none(), "visible asset locators must be unique");
-            if item.selected {
-                selected_indices.push(index);
-            }
-        }
-
-        let mut chunks = Vec::with_capacity(len.div_ceil(ASSET_WORKSPACE_ITEM_CHUNK_SIZE));
-        let mut chunk = Vec::with_capacity(ASSET_WORKSPACE_ITEM_CHUNK_SIZE);
-        for item in items {
-            chunk.push(item);
-            if chunk.len() == ASSET_WORKSPACE_ITEM_CHUNK_SIZE {
-                chunks.push(std::mem::take(&mut chunk).into());
-                chunk = Vec::with_capacity(ASSET_WORKSPACE_ITEM_CHUNK_SIZE);
-            }
-        }
-        if !chunk.is_empty() {
-            chunks.push(chunk.into());
-        }
-
-        Self {
-            chunks: chunks.into(),
-            len,
-            indices_by_uuid: Arc::new(indices_by_uuid),
-            indices_by_locator: Arc::new(indices_by_locator),
-            selected_indices: selected_indices.into(),
-        }
+        Self::from_items(items)
     }
 }
 
 impl FromIterator<AssetItemSnapshot> for AssetWorkspaceItemGeneration {
     fn from_iter<T: IntoIterator<Item = AssetItemSnapshot>>(iter: T) -> Self {
-        iter.into_iter().collect::<Vec<_>>().into()
+        Self::from_items(iter)
     }
 }
 
@@ -307,113 +321,5 @@ impl Index<usize> for AssetWorkspaceItemGeneration {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::hint::black_box;
-    use std::time::Instant;
-
-    use zircon_runtime_interface::resource::ResourceKind;
-
-    use super::super::AssetTypeProjectionSnapshot;
-    use super::*;
-
-    fn item(index: usize) -> AssetItemSnapshot {
-        AssetItemSnapshot {
-            uuid: format!("asset-{index}"),
-            locator: format!("res://asset-{index}.zdata"),
-            display_name: format!("Asset {index}"),
-            file_name: format!("asset-{index}.zdata"),
-            extension: "zdata".to_string(),
-            kind: ResourceKind::Data,
-            asset_type: AssetTypeProjectionSnapshot::default(),
-            preview_artifact_path: String::new(),
-            dirty: false,
-            diagnostics: Vec::new(),
-            selected: index % 3 == 0,
-            resource_state: None,
-            resource_revision: None,
-        }
-    }
-
-    fn legacy_project_items_reusing(
-        source: &AssetWorkspaceItemGeneration,
-        previous_source: &AssetWorkspaceItemGeneration,
-        previous_projected: &AssetWorkspaceItemGeneration,
-    ) -> AssetWorkspaceItemGeneration {
-        let mut chunks = Vec::with_capacity(source.chunks.len());
-        let mut selected_indices = previous_projected.selected_indices.to_vec();
-        for (index, chunk) in source.chunks.iter().enumerate() {
-            if Arc::ptr_eq(chunk, &previous_source.chunks[index]) {
-                chunks.push(Arc::clone(&previous_projected.chunks[index]));
-            } else {
-                let chunk = project_chunk(chunk, &mut |_| {});
-                replace_chunk_selected_indices(&mut selected_indices, index, &chunk);
-                chunks.push(chunk);
-            }
-        }
-        AssetWorkspaceItemGeneration {
-            chunks: chunks.into(),
-            len: source.len,
-            indices_by_uuid: Arc::clone(&source.indices_by_uuid),
-            indices_by_locator: Arc::clone(&source.indices_by_locator),
-            selected_indices: selected_indices.into(),
-        }
-    }
-
-    #[test]
-    fn optimization_batch_gz_editor581_full_reuse_shares_projected_arrays() {
-        let source = (0..256).map(item).collect::<AssetWorkspaceItemGeneration>();
-        let projected = source.project_items(|item| item.display_name.push_str(" projected"));
-        let next = source.project_items_reusing(&source, &projected, |item| {
-            item.display_name.push_str(" should-not-run")
-        });
-
-        assert!(next.shares_items_with(&projected));
-        assert!(next.shares_item_identity_with(&projected));
-        assert!(next.shares_selected_indices_with(&projected));
-        assert_eq!(next[42].display_name, "Asset 42 projected");
-    }
-
-    #[test]
-    #[ignore = "release performance evidence; run through the validation coordinator"]
-    fn optimization_batch_gz_editor581_project_reuse_performance_evidence() {
-        let source = (0..8_192)
-            .map(item)
-            .collect::<AssetWorkspaceItemGeneration>();
-        let projected = source.project_items(|item| item.display_name.push_str(" projected"));
-        let mut legacy_samples = Vec::with_capacity(17);
-        let mut optimized_samples = Vec::with_capacity(17);
-        for _ in 0..17 {
-            let started = Instant::now();
-            black_box(legacy_project_items_reusing(
-                black_box(&source),
-                black_box(&source),
-                black_box(&projected),
-            ));
-            legacy_samples.push(started.elapsed().as_nanos());
-
-            let started = Instant::now();
-            black_box(source.project_items_reusing(
-                black_box(&source),
-                black_box(&projected),
-                |_| {},
-            ));
-            optimized_samples.push(started.elapsed().as_nanos());
-        }
-
-        legacy_samples.sort_unstable();
-        optimized_samples.sort_unstable();
-        let legacy_p95 = legacy_samples[16];
-        let optimized_p95 = optimized_samples[16];
-        println!(
-            "EDITOR581_PROJECT_REUSE_BENCH_V1 item_count={} chunks={} legacy_p95_ns={} optimized_p95_ns={} target_ratio_bp=7000",
-            source.len,
-            source.chunks.len(),
-            legacy_p95,
-            optimized_p95,
-        );
-        assert!(
-            optimized_p95.saturating_mul(10_000) <= legacy_p95.saturating_mul(7_000),
-            "projected asset reuse P95 {optimized_p95} ns exceeded 70% of legacy {legacy_p95} ns"
-        );
-    }
-}
+#[path = "tests/asset_workspace_item_generation.rs"]
+mod tests;

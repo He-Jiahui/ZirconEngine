@@ -5,6 +5,7 @@ mod selection;
 mod state;
 
 #[cfg(test)]
+#[path = "workbench_toast/tests/cases.rs"]
 mod tests;
 
 #[cfg(test)]

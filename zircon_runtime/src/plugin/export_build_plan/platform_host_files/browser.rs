@@ -140,29 +140,18 @@ fn browser_readme_template(profile: &ExportProfile, title: &str) -> String {
 
 fn browser_index_template(profile: &ExportProfile, script_name: &str) -> String {
     format!(
-        "<!doctype html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <title>{}</title>\n</head>\n<body>\n    <canvas id=\"zircon-canvas\"></canvas>\n    <script type=\"module\" src=\"./{}\"></script>\n</body>\n</html>\n",
+        "<!doctype html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <title>{}</title>\n</head>\n<body>\n    <canvas id=\"zircon-canvas\" style=\"touch-action: none\"></canvas>\n    <script type=\"module\" src=\"./{}\"></script>\n</body>\n</html>\n",
         html_escape(&profile.output_name),
         script_name
     )
 }
 
-#[allow(unreachable_code)]
 fn webgpu_host_script_template(profile: &ExportProfile) -> String {
-    return browser_runtime_host_script_template("webgpu", Some(&profile.name));
-
-    format!(
-        "const canvas = document.querySelector('#zircon-canvas');\nconst manifest = await fetch('./zircon-export.manifest.json').then((response) => response.json());\nif (!navigator.gpu) {{\n    throw new Error('WebGPU is unavailable for Zircon export profile {}');\n}}\nconst adapter = await navigator.gpu.requestAdapter();\nif (!adapter) {{\n    throw new Error('WebGPU adapter is unavailable for Zircon export profile {}');\n}}\nfunction zirconExportDispatchLifecycle(state) {{\n    window.zirconRuntime?.handleLifecycle?.(state);\n}}\nfunction zirconExportDispatchPointer(pointerId, phase, x, y) {{\n    window.zirconRuntime?.handleTouch?.({{ pointerId, phase, x, y }});\n}}\nfunction zirconExportDispatchKeyboard(action, code, text) {{\n    window.zirconRuntime?.handleKeyboard?.({{ action, code, text }});\n}}\nasync function zirconExportFetchResource(uri, {{ streaming = false }} = {{}}) {{\n    const response = await fetch(uri);\n    return streaming ? response.body : new Uint8Array(await response.arrayBuffer());\n}}\nfunction zirconExportDispatchViewportMetrics() {{\n    const rect = canvas.getBoundingClientRect();\n    window.zirconRuntime?.handleViewportMetrics?.({{ width: rect.width, height: rect.height, scale: window.devicePixelRatio || 1 }});\n}}\ncanvas.addEventListener('pointermove', (event) => zirconExportDispatchPointer(event.pointerId, 'moved', event.clientX, event.clientY));\nwindow.addEventListener('keydown', (event) => zirconExportDispatchKeyboard('pressed', event.code, event.key));\nwindow.addEventListener('keyup', (event) => zirconExportDispatchKeyboard('released', event.code, event.key));\nwindow.addEventListener('resize', zirconExportDispatchViewportMetrics);\nwindow.addEventListener('pageshow', () => zirconExportDispatchLifecycle('resumed'));\nwindow.addEventListener('pagehide', () => zirconExportDispatchLifecycle('suspended'));\nzirconExportDispatchLifecycle('resumed');\nzirconExportDispatchViewportMetrics();\nwindow.zirconExportHost = {{\n    target: 'web_gpu',\n    canvas,\n    adapter,\n    manifest,\n    resourceManifest: './assets/zircon-project.toml',\n    fetchResource: zirconExportFetchResource,\n}};\n",
-        javascript_string_escape(&profile.name),
-        javascript_string_escape(&profile.name)
-    )
+    browser_runtime_host_script_template("webgpu", Some(&profile.name))
 }
 
-#[allow(unreachable_code)]
 fn wasm_host_script_template(_profile: &ExportProfile) -> String {
-    return browser_runtime_host_script_template("wasm", None);
-
-    "const canvas = document.querySelector('#zircon-canvas');\nconst manifest = await fetch('./zircon-export.manifest.json').then((response) => response.json());\nconst wasmModule = await WebAssembly.compileStreaming(fetch(manifest.wasmModule));\nfunction zirconExportDispatchLifecycle(state) {\n    window.zirconRuntime?.handleLifecycle?.(state);\n}\nfunction zirconExportDispatchPointer(pointerId, phase, x, y) {\n    window.zirconRuntime?.handleTouch?.({ pointerId, phase, x, y });\n}\nfunction zirconExportDispatchKeyboard(action, code, text) {\n    window.zirconRuntime?.handleKeyboard?.({ action, code, text });\n}\nasync function zirconExportFetchResource(uri, { streaming = false } = {}) {\n    const response = await fetch(uri);\n    return streaming ? response.body : new Uint8Array(await response.arrayBuffer());\n}\nfunction zirconExportDispatchViewportMetrics() {\n    const rect = canvas.getBoundingClientRect();\n    window.zirconRuntime?.handleViewportMetrics?.({ width: rect.width, height: rect.height, scale: window.devicePixelRatio || 1 });\n}\ncanvas.addEventListener('pointermove', (event) => zirconExportDispatchPointer(event.pointerId, 'moved', event.clientX, event.clientY));\nwindow.addEventListener('keydown', (event) => zirconExportDispatchKeyboard('pressed', event.code, event.key));\nwindow.addEventListener('keyup', (event) => zirconExportDispatchKeyboard('released', event.code, event.key));\nwindow.addEventListener('resize', zirconExportDispatchViewportMetrics);\nwindow.addEventListener('pageshow', () => zirconExportDispatchLifecycle('resumed'));\nwindow.addEventListener('pagehide', () => zirconExportDispatchLifecycle('suspended'));\nzirconExportDispatchLifecycle('resumed');\nzirconExportDispatchViewportMetrics();\nwindow.zirconExportHost = {\n    target: 'wasm',\n    canvas,\n    manifest,\n    wasmModule,\n    resourceManifest: './assets/zircon-project.toml',\n    fetchResource: zirconExportFetchResource,\n};\n"
-        .to_string()
+    browser_runtime_host_script_template("wasm", None)
 }
 
 fn browser_runtime_host_script_template(host_name: &str, profile_name: Option<&str>) -> String {
@@ -175,12 +164,283 @@ fn browser_runtime_host_script_template(host_name: &str, profile_name: Option<&s
             )
         })
         .unwrap_or_else(|| "const adapter = null;\n".to_string());
-    let mut script = format!(
-        "const canvas = document.querySelector('#zircon-canvas');\nconst manifest = await fetch('./zircon-export.manifest.json').then((response) => response.json());\nconst zirconExportImports = {{\n    env: {{\n        zircon_host_fetch_resource: (uriPtr, uriLen, flags) => {{\n            console.warn('Zircon host fetch ABI callback requires generated memory adapter', uriPtr, uriLen, flags);\n            return 0;\n        }}\n    }}\n}};\nconst {{ instance: wasmInstance }} = await WebAssembly.instantiateStreaming(fetch(manifest.wasmModule), zirconExportImports);\nconst zirconRuntimeExports = wasmInstance.exports;\n{gpu_checks}function zirconExportLifecycleCode(state) {{\n    return state === 'resumed' ? 4 : state === 'suspended' ? 8 : 0;\n}}\nfunction zirconExportPointerPhaseCode(phase) {{\n    return phase === 'started' ? 1 : phase === 'moved' ? 2 : phase === 'ended' ? 3 : phase === 'cancelled' ? 4 : 0;\n}}\nfunction zirconExportKeyActionCode(action) {{\n    return action === 'pressed' ? 1 : action === 'released' ? 2 : 0;\n}}\nfunction zirconExportDispatchLifecycle(state) {{\n    window.zirconRuntime?.handleLifecycle?.(state);\n    zirconRuntimeExports.zircon_export_handle_lifecycle?.(zirconExportLifecycleCode(state));\n}}\nfunction zirconExportDispatchPointer(pointerId, phase, x, y) {{\n    window.zirconRuntime?.handleTouch?.({{ pointerId, phase, x, y }});\n    phase = zirconExportPointerPhaseCode(phase);\n    zirconRuntimeExports.zircon_export_handle_touch?.(BigInt(pointerId), phase, x, y);\n}}\nfunction zirconExportDispatchKeyboard(action, code, text) {{\n    window.zirconRuntime?.handleKeyboard?.({{ action, code, text }});\n    zirconRuntimeExports.zircon_export_handle_keyboard?.(zirconExportKeyActionCode(action), 0, 0, 0, 0);\n}}\nasync function zirconExportFetchResource(uri, {{ streaming = false }} = {{}}) {{\n    const url = new URL(uri, location.href);\n    if (!url.pathname.startsWith(new URL(manifest.allowedAssetRoot, location.href).pathname)) {{\n        throw new Error(`Blocked Zircon resource fetch outside ${{manifest.allowedAssetRoot}}: ${{uri}}`);\n    }}\n    const response = await fetch(url);\n    return streaming ? response.body : new Uint8Array(await response.arrayBuffer());\n}}\nfunction zirconExportDispatchViewportMetrics() {{\n    const rect = canvas.getBoundingClientRect();\n    window.zirconRuntime?.handleViewportMetrics?.({{ width: rect.width, height: rect.height, scale: window.devicePixelRatio || 1 }});\n    zirconRuntimeExports.zircon_export_handle_viewport_metrics?.(Math.trunc(rect.width), Math.trunc(rect.height), window.devicePixelRatio || 1);\n}}\ncanvas.addEventListener('pointermove', (event) => zirconExportDispatchPointer(event.pointerId, 'moved', event.clientX, event.clientY));\nwindow.addEventListener('keydown', (event) => zirconExportDispatchKeyboard('pressed', event.code, event.key));\nwindow.addEventListener('keyup', (event) => zirconExportDispatchKeyboard('released', event.code, event.key));\nwindow.addEventListener('resize', zirconExportDispatchViewportMetrics);\nwindow.addEventListener('pageshow', () => zirconExportDispatchLifecycle('resumed'));\nwindow.addEventListener('pagehide', () => zirconExportDispatchLifecycle('suspended'));\nzirconRuntimeExports.zircon_export_start?.();\nzirconExportDispatchLifecycle('resumed');\nzirconExportDispatchViewportMetrics();\nwindow.zirconExportHost = {{\n    target: '{host_name}',\n    canvas,\n    adapter,\n    manifest,\n    wasmInstance,\n    runtimeExports: zirconRuntimeExports,\n    resourceManifest: './assets/zircon-project.toml',\n    fetchResource: zirconExportFetchResource,\n}};\n",
-        host_name = javascript_string_escape(host_name)
-    );
+    let mut script = String::with_capacity(10_240);
     script.push_str(
-        "window.addEventListener('pagehide', (event) => {\n    if (!event.persisted) {\n        zirconRuntimeExports.zircon_export_shutdown?.();\n    }\n});\n",
+        r#"const canvas = document.querySelector('#zircon-canvas');
+const manifest = await fetch('./zircon-export.manifest.json').then((response) => response.json());
+const zirconExportImports = {
+    env: {
+        zircon_host_fetch_resource: (uriPtr, uriLen, flags) => {
+            console.warn('Zircon host fetch ABI callback requires generated memory adapter', uriPtr, uriLen, flags);
+            return 0;
+        }
+    }
+};
+const { instance: wasmInstance } = await WebAssembly.instantiateStreaming(fetch(manifest.wasmModule), zirconExportImports);
+const zirconRuntimeExports = wasmInstance.exports;
+"#,
+    );
+    script.push_str(&gpu_checks);
+    script.push_str(
+        r#"const zirconExportPendingPointerMoves = new Map();
+const zirconExportActivePointers = new Map();
+const zirconExportInputTelemetry = {
+    inputEventsReceived: 0,
+    inputEventsCoalesced: 0,
+    inputEventsDispatched: 0,
+    inputRawDeltaX: 0,
+    inputRawDeltaY: 0,
+    maxInputQueueAge: 0,
+    inputAbiWallTime: 0,
+    inputMainThreadWallTime: 0,
+};
+let zirconExportPendingViewportMetrics = null;
+let zirconExportFrameRequest = null;
+
+function zirconExportLifecycleCode(state) {
+    return state === 'resumed' ? 4 : state === 'suspended' ? 8 : 0;
+}
+function zirconExportPointerPhaseCode(phase) {
+    return phase === 'started' ? 1 : phase === 'moved' ? 2 : phase === 'ended' ? 3 : phase === 'cancelled' ? 4 : 0;
+}
+function zirconExportKeyActionCode(action) {
+    return action === 'pressed' ? 1 : action === 'released' ? 2 : 0;
+}
+function zirconExportMeasureAbi(operation) {
+    const startedAt = performance.now();
+    operation();
+    zirconExportInputTelemetry.inputAbiWallTime += performance.now() - startedAt;
+}
+function zirconExportMeasureMainThread(operation) {
+    const startedAt = performance.now();
+    try {
+        return operation();
+    } finally {
+        zirconExportInputTelemetry.inputMainThreadWallTime += performance.now() - startedAt;
+    }
+}
+function zirconExportDispatchLifecycle(state) {
+    window.zirconRuntime?.handleLifecycle?.(state);
+    zirconRuntimeExports.zircon_export_handle_lifecycle?.(zirconExportLifecycleCode(state));
+}
+function zirconExportDispatchPointer(pointerId, phase, x, y) {
+    window.zirconRuntime?.handleTouch?.({ pointerId, phase, x, y });
+    phase = zirconExportPointerPhaseCode(phase);
+    zirconRuntimeExports.zircon_export_handle_touch?.(BigInt(pointerId), phase, x, y);
+}
+function zirconExportDispatchKeyboard(action, code, text) {
+    window.zirconRuntime?.handleKeyboard?.({ action, code, text });
+    zirconRuntimeExports.zircon_export_handle_keyboard?.(zirconExportKeyActionCode(action), 0, 0, 0, 0);
+}
+async function zirconExportFetchResource(uri, { streaming = false } = {}) {
+    const url = new URL(uri, location.href);
+    if (!url.pathname.startsWith(new URL(manifest.allowedAssetRoot, location.href).pathname)) {
+        throw new Error(`Blocked Zircon resource fetch outside ${manifest.allowedAssetRoot}: ${uri}`);
+    }
+    const response = await fetch(url);
+    return streaming ? response.body : new Uint8Array(await response.arrayBuffer());
+}
+function zirconExportDispatchViewportMetrics() {
+    const rect = canvas.getBoundingClientRect();
+    window.zirconRuntime?.handleViewportMetrics?.({ width: rect.width, height: rect.height, scale: window.devicePixelRatio || 1 });
+    zirconRuntimeExports.zircon_export_handle_viewport_metrics?.(Math.trunc(rect.width), Math.trunc(rect.height), window.devicePixelRatio || 1);
+}
+function zirconExportScheduleFrameInput() {
+    if (zirconExportFrameRequest === null) {
+        zirconExportFrameRequest = requestAnimationFrame((now) =>
+            zirconExportMeasureMainThread(() => zirconExportFlushFrameInput(now)),
+        );
+    }
+}
+function zirconExportQueuePointerMove(event) {
+    const coalescedEvents = event.getCoalescedEvents?.();
+    const samples = coalescedEvents?.length ? coalescedEvents : [event];
+    let pending = zirconExportPendingPointerMoves.get(event.pointerId);
+    for (const sample of samples) {
+        zirconExportInputTelemetry.inputEventsReceived += 1;
+        if (pending) {
+            zirconExportInputTelemetry.inputEventsCoalesced += 1;
+        }
+        pending = {
+            latestEvent: sample,
+            deltaX: (pending?.deltaX ?? 0) + (sample.movementX ?? 0),
+            deltaY: (pending?.deltaY ?? 0) + (sample.movementY ?? 0),
+            queuedAt: pending?.queuedAt ?? performance.now(),
+        };
+    }
+    zirconExportPendingPointerMoves.set(event.pointerId, pending);
+    if (zirconExportActivePointers.has(event.pointerId)) {
+        zirconExportActivePointers.set(event.pointerId, {
+            pointerId: event.pointerId,
+            clientX: pending.latestEvent.clientX,
+            clientY: pending.latestEvent.clientY,
+        });
+    }
+    zirconExportScheduleFrameInput();
+}
+function zirconExportFlushPointerMove(pointerId, now = performance.now()) {
+    const pending = zirconExportPendingPointerMoves.get(pointerId);
+    if (!pending) {
+        return;
+    }
+    zirconExportPendingPointerMoves.delete(pointerId);
+    const event = pending.latestEvent;
+    zirconExportMeasureAbi(() => {
+        zirconExportDispatchPointer(event.pointerId, 'moved', event.clientX, event.clientY);
+    });
+    window.zirconRuntime?.handlePointerMotion?.({
+        pointerId: event.pointerId,
+        deltaX: pending.deltaX,
+        deltaY: pending.deltaY,
+    });
+    zirconExportInputTelemetry.inputRawDeltaX += pending.deltaX;
+    zirconExportInputTelemetry.inputRawDeltaY += pending.deltaY;
+    zirconExportInputTelemetry.inputEventsDispatched += 1;
+    zirconExportInputTelemetry.maxInputQueueAge = Math.max(
+        zirconExportInputTelemetry.maxInputQueueAge,
+        now - pending.queuedAt,
+    );
+}
+function zirconExportDrainFrameInput() {
+    if (zirconExportFrameRequest !== null) {
+        cancelAnimationFrame(zirconExportFrameRequest);
+    }
+    zirconExportFlushFrameInput();
+}
+function zirconExportDispatchPointerStart(event) {
+    zirconExportDrainFrameInput();
+    zirconExportActivePointers.set(event.pointerId, {
+        pointerId: event.pointerId,
+        clientX: event.clientX,
+        clientY: event.clientY,
+    });
+    canvas.setPointerCapture?.(event.pointerId);
+    zirconExportInputTelemetry.inputEventsReceived += 1;
+    zirconExportMeasureAbi(() => {
+        zirconExportDispatchPointer(event.pointerId, 'started', event.clientX, event.clientY);
+    });
+    zirconExportInputTelemetry.inputEventsDispatched += 1;
+}
+function zirconExportDispatchPointerEnd(event, phase) {
+    if (!zirconExportActivePointers.has(event.pointerId)) {
+        return;
+    }
+    zirconExportDrainFrameInput();
+    zirconExportActivePointers.delete(event.pointerId);
+    zirconExportInputTelemetry.inputEventsReceived += 1;
+    zirconExportMeasureAbi(() => {
+        zirconExportDispatchPointer(event.pointerId, phase, event.clientX, event.clientY);
+    });
+    zirconExportInputTelemetry.inputEventsDispatched += 1;
+    if (canvas.hasPointerCapture?.(event.pointerId)) {
+        canvas.releasePointerCapture(event.pointerId);
+    }
+}
+function zirconExportCancelActivePointers() {
+    while (zirconExportActivePointers.size > 0) {
+        const event = zirconExportActivePointers.values().next().value;
+        zirconExportDispatchPointerEnd(event, 'cancelled');
+    }
+}
+function zirconExportQueueViewportMetrics() {
+    zirconExportInputTelemetry.inputEventsReceived += 1;
+    if (zirconExportPendingViewportMetrics) {
+        zirconExportInputTelemetry.inputEventsCoalesced += 1;
+    }
+    zirconExportPendingViewportMetrics = {
+        queuedAt: zirconExportPendingViewportMetrics?.queuedAt ?? performance.now(),
+    };
+    zirconExportScheduleFrameInput();
+}
+function zirconExportFlushViewportMetrics(now = performance.now()) {
+    const pending = zirconExportPendingViewportMetrics;
+    if (!pending) {
+        return;
+    }
+    zirconExportPendingViewportMetrics = null;
+    zirconExportMeasureAbi(zirconExportDispatchViewportMetrics);
+    zirconExportInputTelemetry.inputEventsDispatched += 1;
+    zirconExportInputTelemetry.maxInputQueueAge = Math.max(
+        zirconExportInputTelemetry.maxInputQueueAge,
+        now - pending.queuedAt,
+    );
+}
+function zirconExportFlushFrameInput(now = performance.now()) {
+    zirconExportFrameRequest = null;
+    for (const pointerId of zirconExportPendingPointerMoves.keys()) {
+        zirconExportFlushPointerMove(pointerId, now);
+    }
+    zirconExportFlushViewportMetrics(now);
+}
+canvas.addEventListener('pointermove', (event) => {
+    zirconExportMeasureMainThread(() => zirconExportQueuePointerMove(event));
+});
+canvas.addEventListener('pointerdown', (event) => {
+    zirconExportMeasureMainThread(() => zirconExportDispatchPointerStart(event));
+});
+canvas.addEventListener('lostpointercapture', (event) => {
+    zirconExportMeasureMainThread(() => zirconExportDispatchPointerEnd(event, 'cancelled'));
+});
+window.addEventListener('pointerup', (event) => {
+    zirconExportMeasureMainThread(() => zirconExportDispatchPointerEnd(event, 'ended'));
+});
+window.addEventListener('pointercancel', (event) => {
+    zirconExportMeasureMainThread(() => zirconExportDispatchPointerEnd(event, 'cancelled'));
+});
+window.addEventListener('keydown', (event) => {
+    zirconExportMeasureMainThread(() => {
+        zirconExportDrainFrameInput();
+        zirconExportInputTelemetry.inputEventsReceived += 1;
+        zirconExportMeasureAbi(() => zirconExportDispatchKeyboard('pressed', event.code, event.key));
+        zirconExportInputTelemetry.inputEventsDispatched += 1;
+    });
+});
+window.addEventListener('keyup', (event) => {
+    zirconExportMeasureMainThread(() => {
+        zirconExportDrainFrameInput();
+        zirconExportInputTelemetry.inputEventsReceived += 1;
+        zirconExportMeasureAbi(() => zirconExportDispatchKeyboard('released', event.code, event.key));
+        zirconExportInputTelemetry.inputEventsDispatched += 1;
+    });
+});
+window.addEventListener('resize', () => {
+    zirconExportMeasureMainThread(zirconExportQueueViewportMetrics);
+});
+window.addEventListener('pageshow', () => {
+    zirconExportMeasureMainThread(() => zirconExportDispatchLifecycle('resumed'));
+});
+window.addEventListener('pagehide', () => {
+    zirconExportMeasureMainThread(() => {
+        zirconExportDrainFrameInput();
+        zirconExportCancelActivePointers();
+        zirconExportDispatchLifecycle('suspended');
+    });
+});
+zirconRuntimeExports.zircon_export_start?.();
+zirconExportDispatchLifecycle('resumed');
+zirconExportDispatchViewportMetrics();
+window.zirconExportHost = {
+    target: '"#,
+    );
+    script.push_str(&javascript_string_escape(host_name));
+    script.push_str(
+        r#"',
+    canvas,
+    adapter,
+    manifest,
+    wasmInstance,
+    runtimeExports: zirconRuntimeExports,
+    inputTelemetry: zirconExportInputTelemetry,
+    flushInput: () => zirconExportMeasureMainThread(zirconExportFlushFrameInput),
+    resourceManifest: './assets/zircon-project.toml',
+    fetchResource: zirconExportFetchResource,
+};
+window.addEventListener('pagehide', (event) => {
+    if (!event.persisted) {
+        zirconRuntimeExports.zircon_export_shutdown?.();
+    }
+});
+"#,
     );
     script
 }

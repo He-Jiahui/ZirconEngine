@@ -4,9 +4,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.plugin_structure_audits.manifest_schema import audit_plugin_manifest_schema
+from tools.audits.plugins.manifest_schema import audit_plugin_manifest_schema
 
-
+# 用插件清单夹具验证特性提供者包：审计特性提供者生成包投影。
 class PluginStructureAuditManifestSchemaFeatureProviderPackagesTests(unittest.TestCase):
     def test_manifest_schema_audits_feature_provider_generated_package_projection(
         self,

@@ -10,16 +10,18 @@ use crate::core::math::{Real, Vec3, Vec4};
 use super::constants::{NavAreaId, AREA_JUMP, AREA_NOT_WALKABLE, AREA_WALKABLE};
 
 #[cfg(test)]
-#[path = "gizmo/capacity_tests.rs"]
+#[path = "gizmo/tests/capacity_tests.rs"]
 mod capacity_tests;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+/// 从已加载网格抽出的调试视图，不承担寻路权威；编辑器把它转换成可绘制、可选取的场景覆盖层。
 pub struct NavigationGizmoSnapshot {
     pub triangles: Vec<NavigationGizmoTriangle>,
     pub off_mesh_links: Vec<NavigationGizmoLink>,
 }
 
 impl NavigationGizmoSnapshot {
+    /// 转交给场景覆盖层时保留 owner 与选中态，让离网格连接可被视口选取并追溯到原实体。
     pub fn to_scene_gizmo_overlay(&self, owner: EntityId, selected: bool) -> SceneGizmoOverlay {
         let mut lines = Vec::with_capacity(navigation_gizmo_line_capacity(
             self.triangles.len(),

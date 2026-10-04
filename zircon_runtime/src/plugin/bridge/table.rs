@@ -21,6 +21,7 @@ pub use self::reports::{
     BridgeTableDiagnosticsSummary,
 };
 
+/// 注册时封装类型化 trait provider；冻结表按接口 ID 建立固定 slot，热更新只替换 slot 内的 provider。
 #[derive(Clone)]
 pub struct InterfaceExport {
     pub(crate) interface_id: String,
@@ -47,6 +48,7 @@ impl InterfaceExport {
     }
 }
 
+/// 一个 owner 的接口槽。代际与 provider 同次原子发布，弱句柄才可按代际判断缓存有效性。
 pub struct BridgeEntry {
     interface_id: String,
     state: ArcSwap<BridgeEntryState>,
@@ -135,6 +137,7 @@ impl BridgeEntry {
         Ok((state.generation, (*provider).clone()))
     }
 
+    // Disable 保留 provider 以便恢复；Deactivate 才清空它。启用位切换后，先前的弱缓存失效。
     fn set_enabled(&self, enabled: bool) {
         self.state.rcu(|current| {
             let currently_enabled = current.generation % 2 == 0;
@@ -169,6 +172,7 @@ impl BridgeEntry {
         self.replace_erased_provider(Arc::new(provider));
     }
 
+    // 生命周期热更新沿原 slot 发布新 provider；启用态跳过一个奇数代次，禁用态等待后续启用。
     fn replace_erased_provider(&self, provider: Arc<dyn Any + Send + Sync>) {
         self.state.rcu(|current| {
             let generation = if current.generation % 2 == 0 {
@@ -237,6 +241,7 @@ struct BridgeEntrySnapshotState {
 }
 
 #[derive(Clone, Debug)]
+/// 注册表合并后的拓扑快照：接口 ID 到 slot 不再改变；每个 slot 的启停与 provider 可随生命周期发布。
 pub struct FrozenBridgeTable {
     inner: Arc<FrozenBridgeTableInner>,
 }
@@ -248,6 +253,7 @@ struct FrozenBridgeTableInner {
 }
 
 impl FrozenBridgeTable {
+    /// 仅用于已去重的注册表导出；遍历顺序决定 slot，调用方不得把未验证的重复 ID 直接送入。
     pub(crate) fn from_exports(
         exports: impl IntoIterator<Item = (PluginModuleId, String, InterfaceExport)>,
     ) -> Self {
@@ -360,6 +366,7 @@ impl FrozenBridgeTable {
         BridgeDiagnosticsMatrix::from_rows(self.interface_snapshots_owned_by(owner))
     }
 
+    /// 强句柄直接持有 provider；目录的强依赖检查必须先阻止目标停用，句柄本身不会自动撤销。
     pub fn resolve_strong<T>(&self) -> Result<StrongBridge<T>, RuntimeExtensionRegistryError>
     where
         T: PluginInterface + ?Sized,
@@ -377,6 +384,7 @@ impl FrozenBridgeTable {
         Ok(StrongBridge::new(provider))
     }
 
+    /// 弱句柄保留固定 slot 与冻结表，可观察禁用和热更新；不存在的接口留为 Absent。
     pub fn resolve_weak<T>(&self) -> WeakBridge<T>
     where
         T: PluginInterface + ?Sized,
@@ -435,6 +443,7 @@ impl FrozenBridgeTable {
         self.set_owner_enabled_with_report(owner, true)
     }
 
+    /// 停用清空 provider 后，按最终注册表同 owner 的导出恢复原 slot；报告用于生命周期诊断。
     pub(crate) fn restore_owner_exports_with_report<'a>(
         &self,
         owner: PluginModuleId,
@@ -460,6 +469,7 @@ impl FrozenBridgeTable {
         self.owner_transition_report(owner, BridgeOwnerTransitionMode::Activate, affected_slots)
     }
 
+    /// 替换注册表提供的新对象沿旧 slot 发布；调用方必须保证接口 ID 与原 trait 类型一致。
     pub(crate) fn reload_owner_exports_with_report<'a>(
         &self,
         owner: PluginModuleId,
@@ -510,6 +520,8 @@ impl FrozenBridgeTable {
         affected_slots
     }
 
+    /// 公开的按 slot 热更新入口；T 的静态接口 ID 应与该 slot 的接口 ID 相同。
+    // BUG: [CR-PLUGIN-BOUNDARY-0001] 这里只检查 slot 存在，未核对 T::INTERFACE_ID；错位替换会把 Enabled 槽变成类型下转失败的 NotEnabled 调用。
     pub fn replace_provider<T>(
         &self,
         slot: InterfaceSlot,
@@ -580,6 +592,7 @@ impl FrozenBridgeTable {
         summary
     }
 
+    // 在变更之后快照受影响 slot，向目录和编辑器报告同一 owner 的实际发布状态。
     fn owner_transition_report(
         &self,
         owner: PluginModuleId,
@@ -621,66 +634,9 @@ impl BridgeInvocationTable for FrozenBridgeTable {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    trait PoisonBridge: Send + Sync {
-        fn sample(&self) -> i32;
-    }
-
-    impl PluginInterface for dyn PoisonBridge {
-        const INTERFACE_ID: &'static str = "test.poison.bridge.v1";
-    }
-
-    struct PoisonBridgeProvider {
-        value: i32,
-    }
-
-    impl PoisonBridge for PoisonBridgeProvider {
-        fn sample(&self) -> i32 {
-            self.value
-        }
-    }
-
-    #[test]
-    fn bridge_entry_publishes_generation_and_provider_as_one_state() {
-        let entry = BridgeEntry::new(
-            <dyn PoisonBridge as PluginInterface>::INTERFACE_ID.to_string(),
-            erased_provider(7),
-            PluginModuleId::from_raw(7),
-        );
-
-        assert!(entry.provider_installed());
-        assert_eq!(entry.status(), BridgeInterfaceStatus::Enabled);
-        let (_, provider) = entry
-            .provider::<dyn PoisonBridge>()
-            .expect("initial provider");
-        assert_eq!(provider.sample(), 7);
-
-        entry.deactivate();
-        assert!(!entry.provider_installed());
-        assert_eq!(entry.status(), BridgeInterfaceStatus::Disabled);
-
-        entry.restore_provider(erased_provider(11));
-        let (_, provider) = entry
-            .provider::<dyn PoisonBridge>()
-            .expect("restored provider");
-        assert_eq!(provider.sample(), 11);
-
-        let replacement: Arc<dyn PoisonBridge> = Arc::new(PoisonBridgeProvider { value: 13 });
-        entry.replace_provider(replacement);
-        let (_, provider) = entry
-            .provider::<dyn PoisonBridge>()
-            .expect("replaced provider");
-        assert_eq!(provider.sample(), 13);
-    }
-
-    fn erased_provider(value: i32) -> Arc<dyn Any + Send + Sync> {
-        let provider: Arc<dyn PoisonBridge> = Arc::new(PoisonBridgeProvider { value });
-        Arc::new(provider)
-    }
-}
+#[path = "tests/table.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "table/optimization_tests.rs"]
+#[path = "table/tests/optimization_tests.rs"]
 mod optimization_tests;

@@ -2,7 +2,7 @@ import sys
 import unittest
 from pathlib import Path
 
-
+# 调用调度帧循环审计器核对 runtime03 子守卫，并约束时间门禁使用受管验证器与精确模块过滤。
 class RuntimeScheduleFrameLoopAuditTests(unittest.TestCase):
     def setUp(self) -> None:
         self.repo_root = Path(__file__).resolve().parents[2]

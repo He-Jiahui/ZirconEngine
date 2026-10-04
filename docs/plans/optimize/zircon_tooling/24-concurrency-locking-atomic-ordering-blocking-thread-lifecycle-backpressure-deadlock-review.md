@@ -16,7 +16,6 @@ related_code:
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
   - zircon_runtime/src/asset/watch/asset_watcher.rs
   - zircon_runtime/src/asset/watch/spawn.rs
-  - zircon_runtime/src/core/resource/event_stream.rs
   - zircon_runtime/src/core/runtime/events/topic.rs
   - zircon_runtime/src/core/runtime/tasks/diagnostics.rs
   - zircon_runtime/src/core/runtime/tasks/job_handle.rs

@@ -1,3 +1,4 @@
+# 编辑器运行库必须来自产品输入清单的逻辑项；此独立脚本只核对 Stage 源码的参数和逻辑路径，不能证明真实运行库复制成功。
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path

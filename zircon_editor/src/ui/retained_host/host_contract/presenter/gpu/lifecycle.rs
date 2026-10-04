@@ -17,6 +17,7 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
             native_resize_projection_size: clamp_size(size),
             native_resize_draw_list: None,
             native_resize_generation: 0,
+            submitted_text_profile: None,
             #[cfg(test)]
             native_resize_snapshot_build_count: 0,
             #[cfg(test)]

@@ -1,4 +1,5 @@
 mod catalog_input_generation;
+mod generation_authority;
 mod generation_observation;
 mod import_receipt;
 mod manager;
@@ -17,12 +18,15 @@ pub use catalog_input_generation::{
     ProjectCatalogInputDelta, ProjectCatalogInputGeneration, ProjectCatalogInputRecord,
     ProjectCatalogInputRename,
 };
+pub(crate) use generation_authority::lock_project_generation;
 pub(crate) use generation_observation::{ProjectGenerationObservation, ProjectGenerationPhase};
 pub use import_receipt::ProjectImportReceipt;
-pub use manager::ProjectManager;
 pub(crate) use manager::{
     mint_meta_for_migration, ImportSourceWatchEcho, PreparedProjectSourceDeletion,
     PreparedProjectSourceRelocation,
+};
+pub use manager::{
+    EditorDocumentCommitFault, EditorDocumentScope, ProjectManager, ScopedRuntimeProjectManager,
 };
 pub use manifest::{ProjectManifest, ProjectManifestError};
 pub use meta::{
@@ -34,6 +38,7 @@ pub use meta_preview_state::{
 };
 pub(crate) use meta_write_authority::{lock_meta_document_path, lock_meta_document_paths};
 pub use package_asset_registry::PackageAssetRegistry;
+pub(crate) use paths::LexicalProjectPathIdentity;
 pub use paths::{
     ProjectPaths, ResolvedProjectPath, ResolvedProjectPathIdentity, PROJECT_MANIFEST_FILE,
 };

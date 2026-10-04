@@ -4,7 +4,12 @@ use zircon_runtime_interface::ui::component::{
 };
 
 #[cfg(test)]
+#[path = "selection/tests/borrowed_option_id_tests.rs"]
 mod borrowed_option_id_tests;
+
+#[cfg(test)]
+#[path = "selection/tests/flags_capacity_tests.rs"]
+mod flags_capacity_tests;
 
 pub(super) fn apply_selection(
     state: &mut UiComponentState,
@@ -85,21 +90,29 @@ fn selection_array_value_mut<'a>(
     }
 }
 
+// 取走旧值以复用拥有的标识字符串；调用者完成增删后必须将新的 Flags 写回该属性。
 fn selection_flags_value(state: &mut UiComponentState, property: &str) -> Vec<String> {
     match state.values.remove(property) {
         Some(UiValue::Flags(values)) => values,
-        Some(UiValue::Array(values)) => values
-            .into_iter()
-            .filter_map(|value| match value {
-                UiValue::Enum(value) | UiValue::String(value) if !value.is_empty() => Some(value),
-                _ => None,
-            })
-            .collect(),
+        Some(UiValue::Array(values)) => selection_flags_from_array(values),
         Some(UiValue::Enum(value)) | Some(UiValue::String(value)) if !value.is_empty() => {
             vec![value]
         }
         _ => Vec::new(),
     }
+}
+
+fn selection_flags_from_array(values: Vec<UiValue>) -> Vec<String> {
+    let mut selected = Vec::with_capacity(values.len());
+    for value in values {
+        match value {
+            UiValue::Enum(value) | UiValue::String(value) if !value.is_empty() => {
+                selected.push(value);
+            }
+            _ => {}
+        }
+    }
+    selected
 }
 
 fn bool_setting(

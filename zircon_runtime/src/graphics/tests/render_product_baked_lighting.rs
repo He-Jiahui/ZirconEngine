@@ -7,18 +7,18 @@ use std::{
 use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::asset::assets::{
-    AlphaMode, MaterialAsset, ModelAsset, ModelPrimitiveAsset,
-    texture_asset_from_lightmap_bake_output,
+    texture_asset_from_lightmap_bake_output, AlphaMode, MaterialAsset, ModelAsset,
+    ModelPrimitiveAsset,
 };
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{AssetReference, AssetUri, MeshVertex, TextureAsset};
 use crate::core::framework::render::{
-    CapturedFrame, CorePipelineKind, DisplayMode, EnvironmentExtract, LightmapBakeOutput,
-    PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract, RenderFramework, RenderLayerSet,
-    RenderMeshSnapshot, RenderMeshStaticState, RenderOverlayExtract, RenderPipelineHandle,
-    RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot, RenderStats,
-    RenderViewportDescriptor, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
-    render_mesh_stable_instance_key,
+    render_mesh_stable_instance_key, CapturedFrame, CorePipelineKind, DisplayMode,
+    EnvironmentExtract, LightmapBakeOutput, PreviewEnvironmentExtract, ProjectionMode,
+    RenderFrameExtract, RenderFramework, RenderLayerSet, RenderMeshSnapshot, RenderMeshStaticState,
+    RenderOverlayExtract, RenderPipelineHandle, RenderQualityProfile, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderStats, RenderViewportDescriptor, RenderWorldSnapshotHandle,
+    ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};

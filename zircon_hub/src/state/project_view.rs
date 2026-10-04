@@ -1,5 +1,9 @@
+//! 保存项目页的过滤、排序、布局和内部子页选择；这些编号跨配置与 Web 请求保持一致。
+//! 外观布局选择不改变项目身份，过滤/排序由快照投影执行。
+
 use serde::{Deserialize, Serialize};
 
+/// 基于投影时路径可用性决定显示集合；不会删除记录或改变动作目标。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ProjectFilterMode {
@@ -44,6 +48,7 @@ impl ProjectFilterMode {
     }
 }
 
+/// 项目列表的持久化排序偏好，快照负责实际排序。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ProjectSortMode {
@@ -83,6 +88,7 @@ impl ProjectSortMode {
     }
 }
 
+/// 项目浏览器的展示形态偏好；同一项目身份可用于卡片和表格。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ProjectViewMode {
@@ -108,6 +114,7 @@ impl ProjectViewMode {
     }
 }
 
+/// 项目主页面内部流程的位置，供创建对话框、列表和详情的状态恢复使用。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ProjectSubpage {
@@ -142,49 +149,5 @@ impl ProjectSubpage {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{ProjectFilterMode, ProjectSortMode, ProjectSubpage, ProjectViewMode};
-
-    #[test]
-    fn project_filter_mode_cycles_through_supported_modes() {
-        assert_eq!(ProjectFilterMode::All.next(), ProjectFilterMode::Existing);
-        assert_eq!(
-            ProjectFilterMode::Existing.next(),
-            ProjectFilterMode::Missing
-        );
-        assert_eq!(ProjectFilterMode::Missing.next(), ProjectFilterMode::All);
-        assert_eq!(
-            ProjectFilterMode::from_id("available"),
-            Some(ProjectFilterMode::Existing)
-        );
-    }
-
-    #[test]
-    fn project_sort_mode_cycles_between_supported_modes() {
-        assert_eq!(ProjectSortMode::LastModified.next(), ProjectSortMode::Name);
-        assert_eq!(ProjectSortMode::Name.next(), ProjectSortMode::LastModified);
-    }
-
-    #[test]
-    fn project_view_mode_parses_ui_ids() {
-        assert_eq!(
-            ProjectViewMode::from_id("grid"),
-            Some(ProjectViewMode::Grid)
-        );
-        assert_eq!(
-            ProjectViewMode::from_id("TABLE"),
-            Some(ProjectViewMode::List)
-        );
-        assert_eq!(ProjectViewMode::from_id("unknown"), None);
-    }
-
-    #[test]
-    fn project_subpage_parses_internal_page_ids() {
-        assert_eq!(
-            ProjectSubpage::from_id("new-project"),
-            Some(ProjectSubpage::NewProject)
-        );
-        assert_eq!(ProjectSubpage::ProjectBrowser.id(), "project-browser");
-        assert_eq!(ProjectSubpage::from_id("missing"), None);
-    }
-}
+#[path = "tests/project_view.rs"]
+mod tests;

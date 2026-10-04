@@ -6,4 +6,5 @@ pub(crate) use runtime::{drive_ragdoll_bodies_from_animation, write_simulated_po
 pub use runtime::{RagdollMode, RagdollRuntime};
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

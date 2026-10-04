@@ -1,3 +1,5 @@
+//! 聚合内核样例测试的脚本入口，顺序运行失败码可定位的子合同。
+// TODO: [CR-WOC-KP-0002] 确认此聚合入口是否仍由构建或 CI 执行；当前 .zrp 未指向 kernel/test_main，产品 main.zr 也未导入 kernel/tests；下一步检查脚本编译清单与测试调度。
 var system = %import("zr.system");
 system.console.printLine("kernel-test-start");
 var tests = %import("kernel/tests");

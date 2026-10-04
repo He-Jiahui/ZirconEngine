@@ -32,4 +32,5 @@ pub use scene_mode_stack_error::SceneModeStackError;
 pub use viewport_overlay_builder::ViewportOverlayBuilder;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

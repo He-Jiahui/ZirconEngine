@@ -1,3 +1,4 @@
+# 核对视口可拾取对象按拥有者去重的延迟索引策略，以及有序和交错输入的回归案例。
 import re
 import unittest
 from pathlib import Path

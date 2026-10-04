@@ -1,8 +1,8 @@
 import unittest
 
-from tools.runtime_ui_mouse_motion_fast_path_pressure import pressure_report
+from tools.analysis.performance.runtime.runtime_ui_mouse_motion_fast_path_pressure import pressure_report
 
-
+# 用空表面和无路由运动模型，验证快速路径没有虚假路由工作或通用路由实体化。
 class RuntimeUiMouseMotionFastPathPressureTests(unittest.TestCase):
     def test_unrouted_fast_path_removes_generic_route_materialization(self):
         report = pressure_report(100_000, 12, 4, 3)

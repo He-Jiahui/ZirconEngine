@@ -8,6 +8,10 @@ STATUS_BAR = REPO_ROOT / (
     "zircon_editor/assets/ui/editor/components/workbench/shell/"
     "workbench_status_bar.zui"
 )
+ACTIVITY_RAIL = REPO_ROOT / (
+    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "workbench_activity_rail.zui"
+)
 TOP_TOOLBAR = REPO_ROOT / (
     "zircon_editor/assets/ui/editor/components/workbench/shell/"
     "workbench_top_toolbar.zui"
@@ -38,6 +42,27 @@ def load_rules() -> dict[str, dict]:
 
 
 class EditorZuiWorkbenchStatusBarStyleContractTests(unittest.TestCase):
+    def test_shell_edge_bands_use_one_directional_separator_without_a_full_frame(self):
+        rules = load_rules()
+
+        for path, node_id, selector, edge in (
+            (STATUS_BAR, "status_bar", ".workbench-status", "top"),
+            (ACTIVITY_RAIL, "activity_rail", ".workbench-rail", "right"),
+        ):
+            props = load_document(path)["nodes"][node_id]["props"]
+            self.assertEqual(0.0, props["border_width"], path.name)
+            self.assertEqual(edge, props["separator_edge"], path.name)
+            self.assertEqual(
+                "$editor.separator.soft", props["separator_color"], path.name
+            )
+            self.assertEqual(
+                "$editor.control.border_width",
+                props["separator_thickness"],
+                path.name,
+            )
+            self.assertEqual(0.0, rules[selector]["border_width"], selector)
+            self.assertEqual(0.0, rules[selector]["radius"], selector)
+
     def test_active_task_status_bar_fits_the_mid_width_product_target(self):
         document = load_document(STATUS_BAR)
         nodes = document["nodes"]

@@ -93,6 +93,8 @@ impl RuntimePluginBridgeLifecycleState {
         Self::from_snapshot_and_extension_report(snapshot, extension_report)
     }
 
+    // TODO: [CR-M16-RUNTIME-PLUGIN-0001] 确认目录快照与扩展报告是否必须同代；此处未校验，后续用快照查提供者却从报告冻结桥表；补跨代组合测试并确定约束。
+    /// 从扩展报告冻结桥表，再与传入的目录快照及报告一同保存为帧边界生命周期视图。
     pub fn from_snapshot_and_extension_report(
         snapshot: Arc<RuntimePluginCatalogSnapshot>,
         extension_report: Arc<RuntimeExtensionCatalogReport>,
@@ -224,29 +226,5 @@ impl RuntimeModuleLifecycleObserver for RuntimePluginBridgeLifecycleState {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-
-    use super::*;
-
-    #[test]
-    fn bridge_lifecycle_state_keeps_shared_catalog_and_extension_report_snapshots() {
-        let catalog = RuntimePluginCatalog::from_descriptors([]);
-        let extension_report = Arc::new(catalog.runtime_extensions());
-        let snapshot = Arc::new(RuntimePluginCatalogSnapshot::from_catalog(catalog));
-
-        let state = RuntimePluginBridgeLifecycleState::from_snapshot_and_extension_report(
-            Arc::clone(&snapshot),
-            Arc::clone(&extension_report),
-        );
-        let cloned = state.clone();
-
-        assert!(Arc::ptr_eq(&snapshot, state.snapshot()));
-        assert!(Arc::ptr_eq(&extension_report, &state.extension_report));
-        assert!(Arc::ptr_eq(state.snapshot(), cloned.snapshot()));
-        assert!(Arc::ptr_eq(
-            &state.extension_report,
-            &cloned.extension_report
-        ));
-    }
-}
+#[path = "tests/bridge_lifecycle_state.rs"]
+mod tests;

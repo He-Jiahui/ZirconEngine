@@ -1,8 +1,8 @@
 import unittest
 
-from tools.runtime_ui_analog_ownership_pressure import pressure_report
+from tools.analysis.performance.runtime.runtime_ui_analog_ownership_pressure import pressure_report
 
-
+# 用模拟量压力模型计数事件克隆和控制名归一化成本，并绑定 Zircon 与 Unreal 的输入源码。
 class RuntimeUiAnalogOwnershipPressureTests(unittest.TestCase):
     def test_canonical_control_avoids_event_clone_and_normalization_ownership(self):
         report = pressure_report(100_000, 12)

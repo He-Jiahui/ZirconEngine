@@ -3,7 +3,7 @@
 Plan: docs/plans/zircon_tooling/session_coordinator/02-codex-session-hook-sync.md
 Milestone: H2
 Status: completed
-Files: [".codex/config.toml", ".codex/hooks.json", ".codex/hooks/zircon_session_sync.py", "docs/cli-and-tooling/workflow-control-center.md", "docs/plans/zircon_tooling/session_coordinator/02/2026-07-13-h2-codex-lifecycle-hooks.md", "tools/install-codex-session-hook.ps1", "tools/session_coordinator/codex_sync/__init__.py", "tools/session_coordinator/codex_sync/hook.py", "tools/session_coordinator/codex_sync/spool.py", "tools/session_coordinator/tests/test_codex_hook.py", "tools/session_coordinator/tests/test_codex_spool.py", "tools/tests/codex-session-hook.Tests.ps1"]
+Files: [".codex/config.toml", ".codex/hooks.json", ".codex/hooks/zircon_session_sync.py", "docs/tooling/workflow-control-center.md", "docs/plans/zircon_tooling/session_coordinator/02/2026-07-13-h2-codex-lifecycle-hooks.md", "tools/setup/install-codex-session-hook.ps1", "tools/session_coordinator/codex_sync/__init__.py", "tools/session_coordinator/codex_sync/hook.py", "tools/session_coordinator/codex_sync/spool.py", "tools/session_coordinator/tests/test_codex_hook.py", "tools/session_coordinator/tests/test_codex_spool.py", "tools/tests/codex-session-hook.Tests.ps1"]
 
 ## 状态与产出记录
 

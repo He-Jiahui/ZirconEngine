@@ -16,7 +16,7 @@ const contentCodegen = read("tools", "m5_content_codegen.mjs");
 const contentProjection = read("tools", "m5_content_zr_codegen.mjs");
 const content = JSON.parse(read("contracts", "m5_content.json"));
 
-requireText(world, /writer\.u16\(<uint>67, 1, 1\)/, "current WOS writer must retain WOS45 semantics");
+requireText(world, /writer\.u16\(schemaVersion, 1, 1\)/, "current WOS writer must retain WOS45 semantics");
 requireText(
   world,
   /schemaVersion != <uint>44 &&\s*schemaVersion != <uint>45 &&\s*schemaVersion != <uint>46 &&\s*schemaVersion != <uint>47 &&\s*schemaVersion != <uint>48 &&\s*schemaVersion != <uint>49 &&\s*schemaVersion != <uint>50 &&\s*schemaVersion != <uint>51 &&\s*schemaVersion != <uint>52 &&\s*schemaVersion != <uint>53 &&\s*schemaVersion != <uint>54 &&\s*schemaVersion != <uint>55/,
@@ -69,14 +69,14 @@ requireText(
   "unarmed mainhand minimum fallback is missing",
 );
 
-requireText(main, /\\"world_state\\":\\"WOS67\\"/, "package WOS64 identity is missing");
-requireText(protocol, /WORLD_STATE_FORMAT: &str = "WOS67"/, "native WOS64 format is missing");
-requireText(protocol, /WORLD_STATE_SCHEMA_VERSION: u16 = 67/, "native WOS64 version is missing");
+requireText(main, /\\"world_state\\":\\"WOS118\\"/, "package WOS118 identity is missing");
+requireText(protocol, /WORLD_STATE_FORMAT: &str = "WOS118"/, "native WOS118 format is missing");
+requireText(protocol, /WORLD_STATE_SCHEMA_VERSION: u16 = 118/, "native WOS118 version is missing");
 requireText(contentCodegen, /EXPECTED_CLASS_STARTING_EQUIPMENT_ITEM_IDS/, "class starting equipment pin is missing");
 requireText(contentCodegen, /class_starting_equipment/, "class starting equipment provenance is missing");
-requireText(contentProjection, /items: 35/, "M5 content projection item count is stale");
+requireText(contentProjection, /items: 82/, "M5 content projection item count is stale");
 
-if (content.items.length !== 35) throw new Error("M5 content item count drifted");
+if (content.items.length !== 82) throw new Error("M5 content item count drifted");
 const legacyItemPrefix = [
   "baked_bread",
   "bandit_bandana",

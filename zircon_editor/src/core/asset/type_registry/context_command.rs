@@ -1,3 +1,4 @@
+//! 描述资产菜单如何进入类型化操作以及需要的能力和变更权限；描述符用于目录组合和派发前校验，不能直接绕过来源写入权限。
 use serde::{Deserialize, Serialize};
 
 use crate::core::editor_operation::EditorOperationPath;
@@ -89,5 +90,5 @@ impl AssetContextCommandDescriptor {
 }
 
 #[cfg(test)]
-#[path = "context_command/optimization_tests.rs"]
+#[path = "context_command/tests/optimization_tests.rs"]
 mod optimization_tests;

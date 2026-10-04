@@ -1,6 +1,7 @@
 use super::{HitTarget, PickingPipelineReport, PointerId};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 管线报告的诊断投影，供编辑器显示命中与遮挡原因；不参与实际目标选择。
 pub struct PickingDebugFeed {
     pub metrics: Vec<PickingDebugMetric>,
     pub pointers: Vec<PickingDebugPointerRow>,
@@ -121,5 +122,5 @@ impl PickingDebugPointerRow {
 }
 
 #[cfg(test)]
-#[path = "debug_feed/indexed_metric_tests.rs"]
+#[path = "debug_feed/tests/indexed_metric_tests.rs"]
 mod indexed_metric_tests;

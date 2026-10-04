@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 读取资源事件契约的声明与模块文件，确认事件定义由独立目录持有。
 class RuntimeAssetEventOwnerStructureTests(unittest.TestCase):
     def setUp(self) -> None:
         self.repo_root = Path(__file__).resolve().parents[2]

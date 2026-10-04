@@ -52,7 +52,7 @@ doc_type: milestone-detail
 
 ## UI 对位
 
-- 参考 `docs/ui-and-layout/ai-workbench-style/ai-navmesh-ai-layout.png` 的导航工具/中心工作区/右侧详情结构。
+- 参考 `docs/ui/ai-workbench-style/ai-navmesh-ai-layout.png` 的导航工具/中心工作区/右侧详情结构。
 - `bake.zui` 使用 surface list / settings / diagnostics 三栏和底部进度区。
 - `debug_gizmos.zui` 使用 overlay filter / viewport / PIE agent mirror 三栏。
 - 控件密度按 STYLE-NOTES 的 28–32 px 命令控件与暗色 editor shell 约定。

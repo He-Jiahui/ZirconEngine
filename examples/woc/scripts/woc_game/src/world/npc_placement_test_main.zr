@@ -11,6 +11,8 @@ closeEnough(value: float, expected: float): bool {
     return delta < 0.00000001;
 }
 
+// 静态 NPC 的源目录、世界种子和水面安全门槛共同决定最终位置；
+// 动态系统创建的 NPC 有各自生命周期，不纳入这些构造向量。
 var seed = <uint>20061;
 
 if (placement.staticNpcCount(true) != 31 ||

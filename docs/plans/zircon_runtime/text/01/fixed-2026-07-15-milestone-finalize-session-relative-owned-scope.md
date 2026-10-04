@@ -9,8 +9,6 @@ fixing_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-c
 origin_child_dir: docs/plans/zircon_runtime/text/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 related_code:
-  - tools/session_coordinator/git_finalize.py
-  - tools/session_coordinator/tests/test_git_finalize.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_git_finalize.GitFinalizeTests.test_milestone_commit_keeps_attributed_tracked_change_after_global_baseline_absorbs_hash -v
 ---

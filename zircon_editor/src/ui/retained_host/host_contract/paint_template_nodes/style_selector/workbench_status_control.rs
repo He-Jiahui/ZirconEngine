@@ -5,6 +5,7 @@ mod model;
 mod palette;
 mod signals;
 #[cfg(test)]
+#[path = "workbench_status_control/tests/cases.rs"]
 mod tests;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use chips::select_workbench_status_chip_style;

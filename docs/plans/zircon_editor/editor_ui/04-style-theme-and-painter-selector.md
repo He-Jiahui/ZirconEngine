@@ -12,7 +12,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer.rs
-  - docs/zircon_editor/ui/retained_host/host_contract/paint_template_nodes/style_selector.md
+  - docs/crates/zircon_editor/ui/retained_host/host_contract/paint_template_nodes/style_selector.md
   - dev/material-ui/packages/mui-material/src/styles
 plan_sources:
   - .codex/plans/Material UI 共享组件风格收束计划.md
@@ -215,7 +215,7 @@ impl UiV2StyleResolver {
 - v2 与 retained-host 绘制状态折叠同源；全组件状态矩阵快照双路一致。
 - template_* 投影文件无状态硬编码分支。
 - 实机：hover/press/focus/disabled 视觉无回归；改 theme 文件即时生效。
-- 验收命令组：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime_interface -SkipBuild -LibTests`、`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter theme`、`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests`、`node docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-component-contract.mjs`。
+- 验收命令组：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime_interface -SkipBuild -LibTests`、`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter theme`、`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests`、`node docs/ui/ai-workbench-style/component-prototype/verify-native-component-contract.mjs`。
 
 ## 12. 边界约束
 

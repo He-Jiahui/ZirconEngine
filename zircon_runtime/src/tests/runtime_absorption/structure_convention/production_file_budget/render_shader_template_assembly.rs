@@ -28,6 +28,7 @@ const DEFERRED_LIGHTING_INCLUDE_OWNER: &str = "tests/runtime_absorption/structur
 const GBUFFER_OWNER: &str = "tests/runtime_absorption/structure_convention/production_file_budget/render_shader_template_assembly/gbuffer_cache.rs";
 const WGSL_CONTRACTS_OWNER: &str = "tests/runtime_absorption/structure_convention/production_file_budget/render_shader_template_assembly/wgsl_contracts.rs";
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0072] 着色器模板装配的生产与测试责任的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_render_shader_template_assembly_is_folder_backed() {
     let sources = sources::read_render_shader_template_assembly_sources();
@@ -49,7 +50,7 @@ fn runtime_15_render_shader_template_assembly_support_children_are_folder_backed
     let mesh_cache_source =
         read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs");
     let mesh_cache_source_tests = read_runtime_src(
-        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests.rs",
+        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/cases.rs",
     );
     let runtime_shading_model_source_tests = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/runtime_shading_model_sources.rs",

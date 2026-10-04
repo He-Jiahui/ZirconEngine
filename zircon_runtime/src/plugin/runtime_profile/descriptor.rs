@@ -1,3 +1,6 @@
+//! profile 的拥有型装配意图：既可由生成预设构造，也可由测试或宿主定制。
+//! 默认插件可转为项目清单；可选项仅参与可用性展示，不自动启用。
+
 use serde::{Deserialize, Serialize};
 
 use crate::core::framework::project::{
@@ -10,6 +13,7 @@ use crate::{
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 单个 profile 默认插件及其是否为装配硬要求。
 pub struct RuntimeProfilePluginSelection {
     pub id: RuntimePluginId,
     #[serde(default)]
@@ -17,6 +21,7 @@ pub struct RuntimeProfilePluginSelection {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 运行时模块范围、默认插件、目标与成熟度门槛的组合声明。
 pub struct RuntimeProfileDescriptor {
     pub id: RuntimeProfileId,
     pub name: String,
@@ -27,6 +32,8 @@ pub struct RuntimeProfileDescriptor {
     #[serde(default)]
     pub optional_plugins: Vec<RuntimePluginId>,
     #[serde(default)]
+    // TODO: [CR-PLUGIN-BOUNDARY-0301] 明确能力要求何时由装配器裁决；
+    // 当前仅在生成预设和描述符中流转，既有审查归属 Runtime42 P1-13。
     pub required_capabilities: Vec<String>,
     pub minimum_maturity: PluginMaturity,
     #[serde(default)]
@@ -40,6 +47,7 @@ impl RuntimeProfilePluginSelection {
 }
 
 impl RuntimeProfileDescriptor {
+    /// 宿主或测试构造自定义 profile，不会隐式继承内置默认集合。
     pub fn new(
         id: RuntimeProfileId,
         name: impl Into<String>,
@@ -80,12 +88,14 @@ impl RuntimeProfileDescriptor {
         self
     }
 
+    /// 声明启动默认选择；该列表随后按原序转换为目标限定项目清单。
     pub fn with_default_plugin(mut self, id: RuntimePluginId, required: bool) -> Self {
         self.default_plugins
             .push(RuntimeProfilePluginSelection::new(id, required));
         self
     }
 
+    /// 仅登记可提示的候选，不让可选插件自动进入启动清单。
     pub fn with_optional_plugin(mut self, id: RuntimePluginId) -> Self {
         if !self.optional_plugins.contains(&id) {
             self.optional_plugins.push(id);
@@ -108,6 +118,7 @@ impl RuntimeProfileDescriptor {
         self
     }
 
+    /// 给默认启动装配生成目标限定清单；项目显式清单应由调用方另行提供。
     pub fn project_manifest(&self) -> ProjectPluginManifest {
         ProjectPluginManifest {
             selections: self
@@ -123,51 +134,5 @@ impl RuntimeProfileDescriptor {
 }
 
 #[cfg(test)]
-mod optimization_tests {
-    #[test]
-    fn optimization_batch_20260830df_profile_modules_reserve_input_lower_bound() {
-        let source = include_str!("descriptor.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("runtime profile descriptor production source");
-
-        assert!(production.contains("let (minimum_ids, _) = ids.size_hint()"));
-        assert!(production.contains("self.builtin_modules.reserve(minimum_ids)"));
-    }
-
-    #[test]
-    #[ignore = "release-only performance evidence"]
-    fn optimization_batch_20260830df_profile_module_capacity_evidence() {
-        const BATCH_COUNT: usize = 32_768;
-        const MODULE_COUNT: usize = 16;
-        const MARKER: &str = "RUNTIME518_PROFILE_MODULE_CAPACITY_BENCH_V1";
-
-        let legacy_growth_events = module_growth_events(BATCH_COUNT, MODULE_COUNT, false);
-        let optimized_growth_events = module_growth_events(BATCH_COUNT, MODULE_COUNT, true);
-
-        assert!(legacy_growth_events > 0);
-        assert_eq!(optimized_growth_events, 0);
-        println!(
-            "{MARKER} batches={BATCH_COUNT} modules={MODULE_COUNT} \
-             legacy_growth_events={legacy_growth_events} \
-             optimized_growth_events={optimized_growth_events} reduction_pct=100"
-        );
-    }
-
-    fn module_growth_events(batch_count: usize, module_count: usize, reserve: bool) -> usize {
-        let mut growth_events = 0;
-        for _ in 0..batch_count {
-            let mut modules = Vec::new();
-            if reserve {
-                modules.reserve(module_count);
-            }
-            for module in 0..module_count {
-                let previous_capacity = modules.capacity();
-                modules.push(module);
-                growth_events += usize::from(modules.capacity() != previous_capacity);
-            }
-        }
-        growth_events
-    }
-}
+#[path = "tests/descriptor_optimization_tests.rs"]
+mod optimization_tests;

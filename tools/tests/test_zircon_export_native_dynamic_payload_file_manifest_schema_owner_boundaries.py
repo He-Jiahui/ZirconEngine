@@ -1,14 +1,15 @@
+# 核对文件清单模式辅助函数归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PAYLOAD_SCHEMA = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_native_dynamic_payload_schema.py"
+    REPO_ROOT / "tools/export/pipeline_report_native_dynamic_payload_schema.py"
 )
 FILE_MANIFEST_SCHEMA = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_payload_file_manifest_schema.py"
+    / "tools/export/pipeline_report_native_dynamic_payload_file_manifest_schema.py"
 )
 
 

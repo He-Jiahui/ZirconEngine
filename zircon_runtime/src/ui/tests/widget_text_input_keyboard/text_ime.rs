@@ -147,19 +147,17 @@ fn text_input_ime_cancel_restores_selection_replacement_and_clears_owner() {
 
     assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
     assert_eq!(surface.input.input_method_owner, None);
-    assert!(
-        result
-            .diagnostics
-            .notes
-            .iter()
-            .any(|note| note == "ime owner cleared")
-    );
+    assert!(result
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note == "ime owner cleared"));
     assert_eq!(text_attr(&surface, "content"), "abcd");
     assert_eq!(int_attr(&surface, "caret_offset"), 3);
     assert_eq!(int_attr(&surface, "selection_anchor"), 3);
     assert_eq!(int_attr(&surface, "selection_focus"), 3);
-    assert_eq!(int_attr(&surface, "composition_start"), 3);
-    assert_eq!(int_attr(&surface, "composition_end"), 3);
+    assert_eq!(int_attr(&surface, "composition_start"), -1);
+    assert_eq!(int_attr(&surface, "composition_end"), -1);
     assert_eq!(text_attr(&surface, "composition_text"), "");
     assert_eq!(text_attr(&surface, "composition_restore_text"), "");
     assert_eq!(
@@ -188,8 +186,8 @@ fn text_input_ime_commit_replaces_composition_and_emits_commit_event() {
     assert_eq!(int_attr(&surface, "caret_offset"), 2);
     assert_eq!(int_attr(&surface, "selection_anchor"), 2);
     assert_eq!(int_attr(&surface, "selection_focus"), 2);
-    assert_eq!(int_attr(&surface, "composition_start"), 2);
-    assert_eq!(int_attr(&surface, "composition_end"), 2);
+    assert_eq!(int_attr(&surface, "composition_start"), -1);
+    assert_eq!(int_attr(&surface, "composition_end"), -1);
     assert_eq!(text_attr(&surface, "composition_text"), "");
     assert_eq!(text_attr(&surface, "composition_restore_text"), "");
     assert_eq!(result.component_events.len(), 1);

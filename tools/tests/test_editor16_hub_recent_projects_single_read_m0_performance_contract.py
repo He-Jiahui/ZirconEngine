@@ -1,3 +1,4 @@
+# 核对中心最近项目注册表缺失时以单次读取尝试完成回退的源码路径。
 from pathlib import Path
 import unittest
 

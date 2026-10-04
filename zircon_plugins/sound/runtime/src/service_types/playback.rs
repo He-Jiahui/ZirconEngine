@@ -1,3 +1,4 @@
+//! 一次性 clip 播放与持续声源分属两套身份；调用前须先装载 clip 并启动 Kira 输出。
 use zircon_runtime::core::framework::sound::{
     SoundClipId, SoundError, SoundPlaybackFinishReason, SoundPlaybackFinished, SoundPlaybackId,
     SoundPlaybackSettings,
@@ -20,6 +21,7 @@ impl DefaultSoundManager {
     ) -> Result<SoundPlaybackId, SoundError> {
         validate_playback_settings(&settings)?;
         let mut state = lock_recover(&self.state);
+        state.kira.ensure_control_available()?;
         state.poll_kira_completions();
         let (playback_range, data) = {
             let loaded_clip = state
@@ -72,6 +74,7 @@ impl DefaultSoundManager {
 
     pub(super) fn stop_playback_impl(&self, playback: SoundPlaybackId) -> Result<(), SoundError> {
         let mut state = lock_recover(&self.state);
+        state.kira.ensure_control_available()?;
         state.poll_kira_completions();
         state.kira.stop(playback)?;
         let active = state

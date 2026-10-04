@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f5_ui_surface_input_effects_use_typed_errors_before_rejected_reason_boundary() {
     let input_mod = include_str!("../../../../../ui/surface/input/mod.rs");
@@ -49,9 +50,11 @@ fn review_f5_ui_surface_input_effects_use_typed_errors_before_rejected_reason_bo
         include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let convention =
         include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
-    let module_doc =
-        include_str!("../../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let ui_doc = include_str!("../../../../../../../docs/zircon_runtime/ui/platform_input.md");
+    let module_doc = include_str!(
+        "../../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
+    );
+    let ui_doc =
+        include_str!("../../../../../../../docs/crates/zircon_runtime/ui/platform_input.md");
 
     for required in [
         "mod error;",

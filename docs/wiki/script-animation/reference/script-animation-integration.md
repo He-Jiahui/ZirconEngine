@@ -12,7 +12,7 @@ plan_sources:
   - user: 2026-09-09 扩展脚本、反射、动画与导航公开接口文档
 tests:
   - zircon_runtime/src/script/vm/tests
-  - zircon_runtime/src/animation/sequence/tests.rs
+  - zircon_runtime/src/animation/sequence/tests/cases.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_gameplay.rs
 doc_type: workflow-detail
 ---

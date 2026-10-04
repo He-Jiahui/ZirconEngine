@@ -5,6 +5,7 @@ var forms = %import("combat/forms_state");
 
 // Admission status: 1 instant, 2 timed, 3 channel, 4 next-swing, 5 tail-queued,
 // 6 next-swing toggled off. Negative values are stable rejection classes.
+/// 独立能力准入契约的可变施法者快照，冷却列须按 M4 目录的 abilityIndex 对齐；当前仅叶子测试构造此对象，产品世界使用 known_ability_state 与各能力专属命令链。
 class AbilityActor {
     pub var playerClass: string;
     pub var level: int;
@@ -79,6 +80,7 @@ class AbilityActor {
     }
 }
 
+/// 调用者先折叠目标关系、距离、视线与朝向的快照；本投影不读取世界实体，也不自行证明目标在本帧仍然有效。
 class TargetProjection {
     pub var exists: bool;
     pub var dead: bool;
@@ -194,6 +196,8 @@ spendResolvedCost(actor: AbilityActor, abilityIndex: int, formKind: string): voi
     actor.resource = actor.resource > cost ? actor.resource - cost : 0;
 }
 
+/// 将内容目录、资源、冷却、形态和目标条件合并成一次独立的施法准入；结果代码区分即时、读条、引导和待下次挥击，成功时会直接改动传入快照。
+/// 当前只由 ability_admission_test_main 调用，不能把该返回值直接视为产品世界中的事件、伤害或持久化施法状态。
 pub pressAbility(actor: AbilityActor, target: TargetProjection, abilityId: string): int {
     actor.lastError = 0;
     var abilityIndex = catalog.indexOf(abilityId);
@@ -304,6 +308,7 @@ pub pressAbility(actor: AbilityActor, target: TargetProjection, abilityId: strin
     return 1;
 }
 
+/// 仅在调用者已确认读条到期后结算资源与冷却，并归还目录索引；这里不复查目标生存、视线或施法者控制状态。
 pub completeTimedCast(actor: AbilityActor): int {
     if (actor.castingIndex < 0 || actor.channeling) { return 0; }
     var abilityIndex = actor.castingIndex;
@@ -333,6 +338,7 @@ pub advanceTimers(actor: AbilityActor, delta: float): void {
     }
 }
 
+/// 排队槽可在原施法结束且公共冷却退尽后再次调用准入；调用方须提供执行当刻的目标投影，并处理新返回的失败码。
 pub fireQueuedAbility(actor: AbilityActor, target: TargetProjection): int {
     if (actor.queuedCastIndex < 0 || actor.castingIndex >= 0 || actor.gcdRemaining > 0.0) {
         return 0;

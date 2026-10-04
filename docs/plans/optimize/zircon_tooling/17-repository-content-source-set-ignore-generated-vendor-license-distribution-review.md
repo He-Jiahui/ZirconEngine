@@ -1,7 +1,6 @@
 ---
 related_code:
   - .gitignore
-  - .rustc_info.json
   - Cargo.toml
   - Cargo.lock
   - deny.toml
@@ -9,12 +8,6 @@ related_code:
   - .github/workflows/ci.yml
   - .github/workflows/mvp-editor-windows.yml
   - tools/mvp/MvpProductInputManifest.psm1
-  - tools/session_coordinator/baselines.py
-  - tools/session_coordinator/artifact_receipts.py
-  - tools/session_coordinator/web/package.json
-  - tools/session_coordinator/web/package-lock.json
-  - tools/session_coordinator/web/dist
-  - tools/session_tray/dist
   - zircon_hub/package.json
   - zircon_hub/package-lock.json
   - examples/woc/LICENSES.md

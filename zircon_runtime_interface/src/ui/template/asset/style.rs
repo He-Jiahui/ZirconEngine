@@ -1,25 +1,30 @@
+//! UI 模板选择器的数据结构、受限解析和级联优先级；运行时样式编译解析规则文本，再按树路径匹配和应用。
 use serde::{Deserialize, Serialize};
 
 use crate::ui::template::UiAssetError;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 按从左到右的 compound selector 序列保存路径选择器；每段的 combinator 描述它与前一段的关系。
 pub struct UiSelector {
     pub segments: Vec<UiSelectorSegment>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 一个节点上的复合条件；tokens 必须同时匹配该节点，combinator 连接前一段与本段。
 pub struct UiSelectorSegment {
     pub combinator: Option<UiSelectorCombinator>,
     pub tokens: Vec<UiSelectorToken>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 段间关系：Descendant 可跨越祖先节点，Child 只匹配直接父子关系。
 pub enum UiSelectorCombinator {
     Descendant,
     Child,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 复合选择器解析出的条件 token：类型/通配符、class、id、state、part 或 host；`:part` 供公共部件契约校验但不匹配样式，`:host` 按节点的 host 标记匹配。
 pub enum UiSelectorToken {
     Type(String),
     Class(String),
@@ -40,6 +45,7 @@ pub struct UiSelectorSpecificity {
     type_count: usize,
 }
 
+/// 选择器级联按 ID、class-like、type 的三元组词典序比较；旧显示分值不参与这个比较。
 impl UiSelectorSpecificity {
     pub const fn new(id_count: usize, class_like_count: usize, type_count: usize) -> Self {
         Self {
@@ -59,39 +65,41 @@ impl UiSelectorSpecificity {
 }
 
 impl UiSelector {
+    /// 解析受支持的类型、通配符、class、id、state、`:part(...)`、`:host` 及空白/`>` 组合器；拒绝空段和尾随组合器。
     pub fn parse(input: &str) -> Result<Self, UiAssetError> {
-        let mut chars = input.chars().peekable();
+        let mut remaining = input;
         let mut segments = Vec::new();
         let mut combinator = None;
 
         loop {
-            skip_whitespace(&mut chars);
-            if chars.peek().is_none() {
+            (remaining, _) = split_whitespace_prefix(remaining);
+            if remaining.is_empty() {
                 break;
             }
 
-            let mut compound = String::new();
-            while let Some(&ch) = chars.peek() {
-                if ch.is_whitespace() || ch == '>' {
-                    break;
-                }
-                compound.push(ch);
-                let _ = chars.next();
-            }
-
+            let compound_end = remaining
+                .char_indices()
+                .find_map(|(offset, character)| {
+                    (character.is_whitespace() || character == '>').then_some(offset)
+                })
+                .unwrap_or(remaining.len());
+            let compound = &remaining[..compound_end];
             if compound.is_empty() {
                 return Err(UiAssetError::InvalidSelector(input.to_string()));
             }
 
             segments.push(UiSelectorSegment {
                 combinator,
-                tokens: parse_compound_tokens(&compound)?,
+                tokens: parse_compound_tokens(compound)?,
             });
 
-            let saw_space = skip_whitespace(&mut chars);
-            combinator = match chars.peek().copied() {
+            remaining = &remaining[compound_end..];
+            let saw_space;
+            (remaining, saw_space) = split_whitespace_prefix(remaining);
+            // 空白表示任意祖先关系，显式 `>` 表示直接父子；关系挂在右侧段上供路径匹配器回溯。
+            combinator = match remaining.chars().next() {
                 Some('>') => {
-                    let _ = chars.next();
+                    remaining = &remaining['>'.len_utf8()..];
                     Some(UiSelectorCombinator::Child)
                 }
                 Some(_) if saw_space => Some(UiSelectorCombinator::Descendant),
@@ -115,6 +123,7 @@ impl UiSelector {
         Ok(Self { segments })
     }
 
+    /// 汇总全路径 token 的三元组优先级；通配符不加类型权重，state/part/host 计入 class-like。
     pub fn specificity(&self) -> UiSelectorSpecificity {
         let mut specificity = UiSelectorSpecificity::default();
         self.segments
@@ -126,36 +135,51 @@ impl UiSelector {
                 | UiSelectorToken::State(_)
                 | UiSelectorToken::Part(_)
                 | UiSelectorToken::Host => specificity.class_like_count += 1,
-                UiSelectorToken::Type(_) => specificity.type_count += 1,
+                UiSelectorToken::Type(type_name) if type_name != "*" => specificity.type_count += 1,
+                UiSelectorToken::Type(_) => {}
             });
         specificity
     }
 }
 
+// 每个点号、井号或冒号最多开启一个 token，再加可能的前置类型名；先预留上界避免解析长规则反复扩容。
 fn parse_compound_tokens(input: &str) -> Result<Vec<UiSelectorToken>, UiAssetError> {
-    let chars: Vec<char> = input.chars().collect();
     let mut index = 0;
-    let mut tokens = Vec::new();
+    let delimiter_count = input
+        .bytes()
+        .filter(|byte| matches!(byte, b'.' | b'#' | b':'))
+        .count();
+    let has_leading_type = input
+        .as_bytes()
+        .first()
+        .is_some_and(|byte| !matches!(byte, b'.' | b'#' | b':'));
+    let token_capacity = delimiter_count + usize::from(has_leading_type);
+    let mut tokens = Vec::with_capacity(token_capacity);
 
-    while index < chars.len() {
-        let prefix = chars[index];
+    while index < input.len() {
+        let prefix = input[index..]
+            .chars()
+            .next()
+            .expect("selector index remains on a character boundary");
         let start = if matches!(prefix, '.' | '#' | ':') {
-            index + 1
+            index + prefix.len_utf8()
         } else {
             index
         };
-        let mut end = start;
-        while end < chars.len() && !matches!(chars[end], '.' | '#' | ':') {
-            end += 1;
-        }
-        let value: String = chars[start..end].iter().collect();
+        let end = input[start..]
+            .char_indices()
+            .find_map(|(offset, character)| {
+                matches!(character, '.' | '#' | ':').then_some(start + offset)
+            })
+            .unwrap_or(input.len());
+        let value = &input[start..end];
         if value.is_empty() {
             return Err(UiAssetError::InvalidSelector(input.to_string()));
         }
 
         match prefix {
-            '.' => tokens.push(UiSelectorToken::Class(value)),
-            '#' => tokens.push(UiSelectorToken::Id(value)),
+            '.' => tokens.push(UiSelectorToken::Class(value.to_string())),
+            '#' => tokens.push(UiSelectorToken::Id(value.to_string())),
             ':' if value == "host" => tokens.push(UiSelectorToken::Host),
             ':' if value.starts_with("part(") && value.ends_with(')') => {
                 let part = value
@@ -167,8 +191,8 @@ fn parse_compound_tokens(input: &str) -> Result<Vec<UiSelectorToken>, UiAssetErr
                 }
                 tokens.push(UiSelectorToken::Part(part.to_string()));
             }
-            ':' => tokens.push(UiSelectorToken::State(value)),
-            _ => tokens.push(UiSelectorToken::Type(value)),
+            ':' => tokens.push(UiSelectorToken::State(value.to_string())),
+            _ => tokens.push(UiSelectorToken::Type(value.to_string())),
         }
 
         index = end;
@@ -177,6 +201,12 @@ fn parse_compound_tokens(input: &str) -> Result<Vec<UiSelectorToken>, UiAssetErr
     Ok(tokens)
 }
 
+fn split_whitespace_prefix(input: &str) -> (&str, bool) {
+    let remaining = input.trim_start_matches(char::is_whitespace);
+    (remaining, remaining.len() != input.len())
+}
+
+#[cfg(test)]
 fn skip_whitespace(chars: &mut std::iter::Peekable<std::str::Chars<'_>>) -> bool {
     let mut saw_whitespace = false;
     while chars.peek().is_some_and(|ch| ch.is_whitespace()) {
@@ -185,3 +215,15 @@ fn skip_whitespace(chars: &mut std::iter::Peekable<std::str::Chars<'_>>) -> bool
     }
     saw_whitespace
 }
+
+#[cfg(test)]
+#[path = "style/tests/selector_token_performance_tests.rs"]
+mod selector_token_performance_tests;
+
+#[cfg(test)]
+#[path = "style/tests/selector_parse_performance_tests.rs"]
+mod selector_parse_performance_tests;
+
+#[cfg(test)]
+#[path = "style/tests/selector_capacity_performance_tests.rs"]
+mod selector_capacity_performance_tests;

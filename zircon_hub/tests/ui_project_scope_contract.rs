@@ -1,4 +1,5 @@
 //! Static contracts for React/MUI project scope projection.
+//! 检查项目范围由 Rust 快照解析并投影为 DTO，页面只传明确目标给运行时。
 
 use std::{fs, path::PathBuf};
 
@@ -13,6 +14,7 @@ fn repo_dir() -> PathBuf {
         .to_path_buf()
 }
 
+// 源码片段跨检出平台比较时统一换行；这里不会执行被检查的前端代码。
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
@@ -49,6 +51,7 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+// 项目元数据与选择状态由 Rust 快照统一解释，前端不拥有范围判定。
 #[test]
 fn rust_state_modules_own_project_scope_metadata_and_runtime_persistence() {
     let scope = read_crate_file("src/state/scope.rs");
@@ -108,8 +111,12 @@ fn rust_state_modules_own_project_scope_metadata_and_runtime_persistence() {
             "pub fn normalize(&mut self)",
             "self.selected_project_path = None;",
             "self.selected_template_id = default_selected_template_id();",
-            "runtime_state_normalizes_empty_persisted_inputs",
         ],
+    );
+    assert_contains_all(
+        "hub_config.rs",
+        &read_crate_file("src/settings/tests/hub_config.rs"),
+        &["runtime_state_normalizes_empty_persisted_inputs"],
     );
     assert_contains_all(
         "metadata.rs",
@@ -128,11 +135,13 @@ fn rust_state_modules_own_project_scope_metadata_and_runtime_persistence() {
     );
 }
 
+// 视图模型把范围结果投影成页面消费的字段和可见标签。
+// BUG: [CR-HUBTESTB-0006] 视图模型已增加可用性上下文且工作流动作分布到子模块，旧函数片段断言必失败；证据：tauri_view_model_exposes_project_scope_dtos_and_visible_labels 读取 view_model.rs。
 #[test]
 fn tauri_view_model_exposes_project_scope_dtos_and_visible_labels() {
     let view_model = read_crate_file("src/tauri_app/view_model.rs");
     let quick_actions = read_crate_file("src/tauri_app/view_model/quick_actions.rs");
-    let view_model_tests = read_crate_file("src/tauri_app/view_model/tests.rs");
+    let view_model_tests = read_crate_file("src/tauri_app/view_model/tests/cases.rs");
     let types = read_crate_file("web/src/types/hub.ts");
 
     assert_contains_all(
@@ -178,7 +187,7 @@ fn tauri_view_model_exposes_project_scope_dtos_and_visible_labels() {
         ],
     );
     assert_contains_all(
-        "view_model/tests.rs",
+        "view_model/tests/cases.rs",
         &view_model_tests,
         &["relative_time_uses_compact_labels"],
     );
@@ -207,6 +216,7 @@ fn tauri_view_model_exposes_project_scope_dtos_and_visible_labels() {
     );
 }
 
+// 卡片及详情页只显示范围 DTO，不重新寻找项目与引擎绑定。
 #[test]
 fn project_cards_and_detail_pages_render_project_scope_dtos_passively() {
     let project_card = read_crate_file("web/src/components/data/ProjectCard.tsx");
@@ -298,6 +308,7 @@ fn project_cards_and_detail_pages_render_project_scope_dtos_passively() {
     );
 }
 
+// 快速动作与工作流页应把目标交还 Rust 会话判定。
 #[test]
 fn quick_actions_and_workspace_pages_pass_scope_targets_to_runtime() {
     let quick_actions = read_crate_file("web/src/components/data/QuickActions.tsx");
@@ -461,6 +472,7 @@ fn quick_actions_and_workspace_pages_pass_scope_targets_to_runtime() {
     );
 }
 
+// 文档解释范围解析器、DTO 和动作目标间的所有权。
 #[test]
 fn project_scope_documentation_records_react_mui_contract_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -500,6 +512,7 @@ fn project_scope_documentation_records_react_mui_contract_cutover() {
     );
 }
 
+// 自检项目范围契约仍只追踪真实状态和页面资源。
 #[test]
 fn project_scope_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/ui_project_scope_contract.rs");

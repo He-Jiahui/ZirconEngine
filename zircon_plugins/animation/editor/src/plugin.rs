@@ -1,3 +1,5 @@
+//! 编辑器作者入口把动画视图、资产抽屉和模板成批注册；注册报告与运行时模块清单共享插件身份。
+//! 调用方须在 EditorHost 目标中加载它，不能把作者扩展当成运行时采样器。
 use zircon_editor::core::extension::InspectorCustomizationDescriptor;
 use zircon_plugin_editor_support::{
     register_authoring_contribution_batch, register_authoring_extensions,
@@ -93,5 +95,5 @@ pub fn plugin_registration() -> zircon_editor::EditorPluginRegistrationReport {
 }
 
 pub fn editor_host_contract_marker() -> &'static str {
-    zircon_editor::EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY
+    zircon_editor::ui::host::EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY
 }

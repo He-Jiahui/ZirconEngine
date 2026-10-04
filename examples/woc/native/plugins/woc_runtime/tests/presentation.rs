@@ -1,3 +1,4 @@
+use woc_protocol::{PRESENTATION_HZ, SIMULATION_HZ, SIMULATION_STEP_NS};
 use woc_runtime::{
     PresentationBlendMode, PresentationCadence, PresentationSnapshot, PresentationTimeline,
     PresentationTimelineError, PresentationTimelinePush,
@@ -27,13 +28,16 @@ fn snapshot(
 }
 
 #[test]
-fn default_cadence_is_twenty_authoritative_and_sixty_presentation_hz() {
+fn default_cadence_tracks_the_authoritative_protocol_rates() {
     let cadence = PresentationCadence::woc_default();
 
-    assert_eq!(cadence.simulation_hz(), 20);
-    assert_eq!(cadence.presentation_hz(), 60);
-    assert_eq!(cadence.simulation_step_ns(), 50_000_000);
-    assert_eq!(cadence.presentation_subframes_per_tick(), 3);
+    assert_eq!(cadence.simulation_hz(), SIMULATION_HZ);
+    assert_eq!(cadence.presentation_hz(), PRESENTATION_HZ);
+    assert_eq!(cadence.simulation_step_ns(), SIMULATION_STEP_NS);
+    assert_eq!(
+        cadence.presentation_subframes_per_tick(),
+        PRESENTATION_HZ / SIMULATION_HZ
+    );
 }
 
 #[test]

@@ -14,8 +14,8 @@ plan_sources:
   - user: 2026-09-09 扩展脚本、反射、动画与导航公开接口文档
 tests:
   - zircon_runtime/src/script/vm/tests
-  - zircon_runtime/src/dynamic_api/bounded_json/tests.rs
-  - zircon_runtime/src/navigation/runtime/tests.rs
+  - zircon_runtime/src/dynamic_api/bounded_json/tests/cases.rs
+  - zircon_runtime/src/navigation/runtime/tests/cases.rs
 doc_type: best-practice
 ---
 

@@ -7,6 +7,7 @@ mod quality;
 mod resolution;
 mod resolved_settings;
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 pub use debug_view::RenderHybridGiDebugView;

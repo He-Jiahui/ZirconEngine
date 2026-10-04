@@ -1,3 +1,4 @@
+# 验收树清单固定复制输入的路径、类型和摘要契约；本组检查清单遍历与读取器的归属和分配边界，源码形态断言不代表执行了完整复制流程。
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 

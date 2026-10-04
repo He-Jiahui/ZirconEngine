@@ -10,6 +10,7 @@ zircon_plugin_sdk::declare_plugin! {
         id: PLUGIN_ID = "editor_contribution_fixture",
         display_name: "Editor Contribution Fixture",
         category: sdk,
+        package_role: test_fixture,
         module: MODULE_NAME = "editor_contribution_fixture.editor",
         crate_name: NATIVE_CRATE_NAME = "zircon_plugin_editor_contribution_fixture_native",
         module_description: "Versioned serialized editor contribution ABI fixture",

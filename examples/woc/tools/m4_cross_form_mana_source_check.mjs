@@ -1,3 +1,4 @@
+// 静态核对固定版本 WOC 源码与本地 Zr 投影中的跨形态法力扣费与形态归属。
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';

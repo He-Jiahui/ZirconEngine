@@ -1,4 +1,5 @@
 use super::*;
+use crate::asset::{SceneAmbientOcclusionSettingsAsset, SceneAoQualityTierAsset};
 
 #[test]
 fn scene_asset_toml_roundtrip_preserves_post_process_components() {
@@ -124,6 +125,7 @@ fn scene_asset_toml_roundtrip_preserves_post_process_components() {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                components: Vec::new(),
                 script_bindings: Vec::new(),
             },
             SceneEntityAsset {
@@ -153,6 +155,7 @@ fn scene_asset_toml_roundtrip_preserves_post_process_components() {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                components: Vec::new(),
                 script_bindings: Vec::new(),
             },
         ],

@@ -5,7 +5,9 @@ mod graph;
 mod repeat;
 mod style;
 
-pub use arena::{UiV2ArenaChild, UiV2ArenaNode, UiV2NodeArena, UiV2NodeHandle};
+pub use arena::{
+    UiTemplateNodeInstancePathStep, UiV2ArenaChild, UiV2ArenaNode, UiV2NodeArena, UiV2NodeHandle,
+};
 pub use asset::{
     UiV2AssetDocument, UiV2AssetError, UiV2AssetHeader, UiV2AssetKind, UiV2ChildMount,
     UiV2ComponentDefinition, UiV2NodeDefinition, UiV2Root, UI_V2_ASSET_SCHEMA_VERSION,

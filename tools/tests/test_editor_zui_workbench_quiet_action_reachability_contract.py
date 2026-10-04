@@ -1,3 +1,4 @@
+# 核对工作台低强调动作保留可达命令身份与示例分发。
 import tomllib
 import unittest
 from pathlib import Path

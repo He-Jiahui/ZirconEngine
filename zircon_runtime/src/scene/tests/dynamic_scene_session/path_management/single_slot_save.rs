@@ -1,3 +1,4 @@
+//! 单槽导出测试确认从路径或内存档案生成独立文件，保存后可重载且源档案与临时文件状态保持稳定。
 use super::*;
 
 #[test]
@@ -46,22 +47,18 @@ fn runtime_session_archive_saves_single_slot_archive_from_path_atomically() {
             .expect("source archive payload should remain readable after export"),
         source_payload
     );
-    assert!(
-        temporary_archive_leftovers(
-            source_path
-                .parent()
-                .expect("source path should have parent")
-        )
-        .is_empty()
-    );
-    assert!(
-        temporary_archive_leftovers(
-            target_path
-                .parent()
-                .expect("target path should have parent")
-        )
-        .is_empty()
-    );
+    assert!(temporary_archive_leftovers(
+        source_path
+            .parent()
+            .expect("source path should have parent")
+    )
+    .is_empty());
+    assert!(temporary_archive_leftovers(
+        target_path
+            .parent()
+            .expect("target path should have parent")
+    )
+    .is_empty());
 
     let _ = fs::remove_dir_all(root);
 }
@@ -97,14 +94,12 @@ fn runtime_session_archive_saves_single_slot_archive_from_memory_atomically() {
         archive.slot_ids().collect::<Vec<_>>(),
         vec!["manual", "quicksave"]
     );
-    assert!(
-        temporary_archive_leftovers(
-            target_path
-                .parent()
-                .expect("target path should have parent")
-        )
-        .is_empty()
-    );
+    assert!(temporary_archive_leftovers(
+        target_path
+            .parent()
+            .expect("target path should have parent")
+    )
+    .is_empty());
 
     let _ = fs::remove_dir_all(root);
 }

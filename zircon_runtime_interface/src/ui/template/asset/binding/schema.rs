@@ -1,3 +1,4 @@
+//! 共享绑定协议术语、路由/动作名称语法和 payload 字段约束，供资产校验、编译及编辑器共用。
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -5,9 +6,11 @@ use thiserror::Error;
 
 use crate::ui::component::UiValueKind;
 
+/// 命名输入的 UTF-8 字节上限；长度在字符合法性检查前拒绝，避免超长 schema 名继续流入查表。
 pub const UI_BINDING_SCHEMA_NAME_MAX_BYTES: usize = 256;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+/// 绑定派发链的稳定术语：事件触发绑定，绑定可产生目标变更或动作，动作再选路由交给宿主命令处理。
 pub enum UiBindingContractTerm {
     Event,
     Binding,
@@ -51,6 +54,7 @@ impl UiBindingContractTerm {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 区分可扩展的 payload 键与协议定义的 route/action 名称；三者因下游用途不同而采用不同字符规则。
 pub enum UiBindingSchemaNameKind {
     PayloadField,
     Route,
@@ -74,6 +78,7 @@ impl UiBindingSchemaNameKind {
         }
     }
 
+    /// 先统一拒绝空名和超长名，再按 payload 字段或点分路由/动作分别验证字符及段边界。
     pub fn validate(self, value: &str) -> Result<(), UiBindingSchemaNameError> {
         if value.is_empty() {
             return Err(UiBindingSchemaNameError::Empty { kind: self });
@@ -123,6 +128,7 @@ pub enum UiBindingSchemaNameError {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+/// 共享动作 payload 的已知字段名登记表；它提供稳定拼写和固定类型约束，自定义字段仍可走通用键规则。
 pub enum UiActionPayloadFieldName {
     Additive,
     Axis,
@@ -205,11 +211,35 @@ impl UiActionPayloadFieldName {
     }
 
     pub fn from_schema_name(value: &str) -> Option<Self> {
-        Self::ALL
-            .into_iter()
-            .find(|field| field.schema_name() == value)
+        match value {
+            "additive" => Some(Self::Additive),
+            "axis" => Some(Self::Axis),
+            "channel" => Some(Self::Channel),
+            "checked" => Some(Self::Checked),
+            "committed" => Some(Self::Committed),
+            "confirm" => Some(Self::Confirm),
+            "context" => Some(Self::Context),
+            "count" => Some(Self::Count),
+            "delta" => Some(Self::Delta),
+            "enabled" => Some(Self::Enabled),
+            "fields" => Some(Self::Fields),
+            "force_full_rebuild" => Some(Self::ForceFullRebuild),
+            "index" => Some(Self::Index),
+            "payload_kind" => Some(Self::PayloadKind),
+            "primary" => Some(Self::Primary),
+            "reference" => Some(Self::Reference),
+            "scope" => Some(Self::Scope),
+            "selection_ids" => Some(Self::SelectionIds),
+            "source" => Some(Self::Source),
+            "subject" => Some(Self::Subject),
+            "surface_entity" => Some(Self::SurfaceEntity),
+            "value" => Some(Self::Value),
+            "visible" => Some(Self::Visible),
+            _ => None,
+        }
     }
 
+    /// 仅返回协议已固定为 bool/int 的字段类型；返回 None 表示保留调用方值类型，不代表字段名无效。
     pub const fn expected_value_kind(self) -> Option<UiValueKind> {
         match self {
             Self::Additive
@@ -225,6 +255,7 @@ impl UiActionPayloadFieldName {
     }
 }
 
+// Payload 键采用 ASCII 小写 snake_case，使序列化键稳定，并允许产品增补不在共享登记表中的字段。
 fn validate_payload_field(value: &str) -> Result<(), UiBindingSchemaNameError> {
     for (byte_index, character) in value.char_indices() {
         if !(character.is_ascii_lowercase() || character.is_ascii_digit() || character == '_') {
@@ -238,6 +269,7 @@ fn validate_payload_field(value: &str) -> Result<(), UiBindingSchemaNameError> {
     Ok(())
 }
 
+// Route/action 名允许点号分层，但不允许空段；先报出空段位置，再检查其余字符是否属于 ASCII 名称集。
 fn validate_dotted_name(
     kind: UiBindingSchemaNameKind,
     value: &str,
@@ -261,3 +293,8 @@ fn validate_dotted_name(
     }
     Ok(())
 }
+
+#[cfg(test)]
+// 用 ALL 与直接枚举分支核对每个协议字段可往返且未知名仍返回 None；release 基准比较直接分派与线性扫描。
+#[path = "tests/schema.rs"]
+mod tests;

@@ -65,7 +65,7 @@ class EditorPointerMoveBorrowedHitPerformanceContractTests(unittest.TestCase):
 
     def test_lower_regression_proves_generation_owned_string_identity(self) -> None:
         tests = (
-            SURFACE_HIT_TEST / "template_node_tests.rs"
+            SURFACE_HIT_TEST / "template_node/tests/pointer_move.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn(

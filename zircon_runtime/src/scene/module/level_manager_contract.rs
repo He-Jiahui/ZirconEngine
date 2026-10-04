@@ -2,14 +2,14 @@ use std::path::Path;
 use std::sync::Arc;
 
 use crate::asset::project::ProjectManager;
-use crate::asset::{AssetManager, asset_manager_handle};
-use crate::core::CoreError;
+use crate::asset::{asset_manager_handle, AssetManager};
 use crate::core::framework::scene::{
     LevelManager as LevelManagerContract, LevelManagerError, LevelSummary, SceneArtifactTicket,
     WorldHandle,
 };
 use crate::core::manager::resolve_manager_service;
 use crate::core::resource::ResourceLocator;
+use crate::core::CoreError;
 
 use super::DefaultLevelManager;
 
@@ -115,30 +115,5 @@ fn map_create_error(error: CoreError) -> LevelManagerError {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::atomic::Ordering;
-
-    use crate::core::framework::scene::{LevelManager, LevelManagerError};
-
-    use super::DefaultLevelManager;
-
-    const CONTRACT_SOURCE: &str = include_str!("level_manager_contract.rs");
-
-    #[test]
-    fn level_manager_asset_io_uses_the_active_project_generation_without_a_scan() {
-        assert!(CONTRACT_SOURCE.contains(concat!("current_project_", "snapshot()")));
-        assert!(!CONTRACT_SOURCE.contains(concat!("ProjectManager", "::open")));
-        assert!(!CONTRACT_SOURCE.contains(concat!("scan_and_", "import")));
-    }
-
-    #[test]
-    fn level_manager_contract_maps_kernel_handle_exhaustion_to_its_domain_error() {
-        let manager = DefaultLevelManager::default();
-        manager.next_handle.store(u64::MAX, Ordering::Relaxed);
-
-        assert_eq!(
-            LevelManager::create_default_level_handle(&manager),
-            Err(LevelManagerError::HandleSpaceExhausted)
-        );
-    }
-}
+#[path = "tests/level_manager_contract.rs"]
+mod tests;

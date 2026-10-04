@@ -140,24 +140,21 @@ impl SettingsPageProjection {
 }
 
 fn project_categories(pages: &[LocalizedSettingsPage]) -> Arc<[LocalizedSettingsCategory]> {
-    let mut categories = BTreeMap::<(Vec<Arc<str>>, Arc<str>), Vec<Arc<str>>>::new();
+    let mut categories = BTreeMap::<(&[Arc<str>], &Arc<str>), &[Arc<str>]>::new();
     for page in pages {
         for depth in 1..=page.category_keys.len() {
             categories
-                .entry((
-                    page.category_keys[..depth].to_vec(),
-                    Arc::clone(&page.localization_bundle_id),
-                ))
-                .or_insert_with(|| page.category_labels[..depth].to_vec());
+                .entry((&page.category_keys[..depth], &page.localization_bundle_id))
+                .or_insert(&page.category_labels[..depth]);
         }
     }
     categories
         .into_iter()
         .map(
             |((keys, localization_bundle_id), labels)| LocalizedSettingsCategory {
-                localization_bundle_id,
-                keys: keys.into(),
-                labels: labels.into(),
+                localization_bundle_id: Arc::clone(localization_bundle_id),
+                keys: Arc::from(keys),
+                labels: Arc::from(labels),
             },
         )
         .collect::<Vec<_>>()
@@ -175,161 +172,23 @@ fn localize_page(
         .copied()
         .expect("published settings pages retain their ticket-owned localization bundle");
     let translate = |key: &str| i18n.translate_bundle_for_locale(bundle, locale, key);
+    let category_count = page.category_keys().len();
+    let mut category_keys = Vec::with_capacity(category_count);
+    let mut category_labels = Vec::with_capacity(category_count);
+    for key in page.category_keys() {
+        category_keys.push(Arc::from(key));
+        category_labels.push(translate(key));
+    }
     LocalizedSettingsPage {
         id: Arc::from(page.id()),
         localization_bundle_id: Arc::from(page.localization_bundle_id()),
         label: translate(page.label_key()),
         description: translate(page.description_key()),
-        category_keys: page
-            .category_keys()
-            .map(Arc::from)
-            .collect::<Vec<_>>()
-            .into(),
-        category_labels: page
-            .category_keys()
-            .map(|key| translate(key))
-            .collect::<Vec<_>>()
-            .into(),
+        category_keys: category_keys.into(),
+        category_labels: category_labels.into(),
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use std::collections::BTreeMap;
-
-    use super::SettingsPageProjection;
-    use crate::core::extension::{
-        CapabilitySet, ContributionBatch, ContributionSource, ContributionStore,
-        PluginContributionId,
-    };
-    use crate::core::i18n::{EditorI18nService, EditorLocale, EditorLocalizationBundle};
-    use crate::core::settings::SettingsPageDescriptor;
-
-    fn plugin_source() -> ContributionSource {
-        ContributionSource::Plugin(PluginContributionId::parse("sample").unwrap())
-    }
-
-    fn localized_batch() -> ContributionBatch {
-        let bundle = EditorLocalizationBundle::from_locale_maps(
-            "sample",
-            BTreeMap::from([
-                (
-                    "en".to_string(),
-                    BTreeMap::from([
-                        ("settings.alpha.label".to_string(), "Alpha".to_string()),
-                        ("settings.zulu.label".to_string(), "Zulu".to_string()),
-                        ("settings.category.alpha".to_string(), "Zulu".to_string()),
-                        ("settings.category.zulu".to_string(), "Alpha".to_string()),
-                        ("settings.category.root".to_string(), "Settings".to_string()),
-                    ]),
-                ),
-                (
-                    "zh-CN".to_string(),
-                    BTreeMap::from([
-                        ("settings.alpha.label".to_string(), "甲".to_string()),
-                        ("settings.zulu.label".to_string(), "乙".to_string()),
-                        ("settings.category.alpha".to_string(), "乙类".to_string()),
-                        ("settings.category.zulu".to_string(), "甲类".to_string()),
-                        ("settings.category.root".to_string(), "设置".to_string()),
-                        (
-                            "settings.alpha.missing_description".to_string(),
-                            "甲描述".to_string(),
-                        ),
-                        (
-                            "settings.zulu.missing_description".to_string(),
-                            "乙描述".to_string(),
-                        ),
-                    ]),
-                ),
-            ]),
-        )
-        .unwrap();
-        let mut batch = ContributionBatch::default();
-        batch.register_localization_bundle(bundle).unwrap();
-        batch
-            .register_settings_page(
-                SettingsPageDescriptor::new(
-                    "plugin.sample.zulu",
-                    "sample",
-                    "settings.zulu.label",
-                    "settings.zulu.missing_description",
-                    ["settings.category.root", "settings.category.zulu"],
-                )
-                .unwrap(),
-            )
-            .unwrap();
-        batch
-            .register_settings_page(
-                SettingsPageDescriptor::new(
-                    "plugin.sample.alpha",
-                    "sample",
-                    "settings.alpha.label",
-                    "settings.alpha.missing_description",
-                    ["settings.category.root", "settings.category.alpha"],
-                )
-                .unwrap(),
-            )
-            .unwrap();
-        batch
-    }
-
-    #[test]
-    fn projection_is_locale_bound_key_ordered_and_invalidated_by_revoke() {
-        let mut store = ContributionStore::default();
-        let ticket = store
-            .contribute(plugin_source(), localized_batch())
-            .unwrap();
-        let capabilities = CapabilitySet::default();
-        let i18n = EditorI18nService::default();
-        let english = SettingsPageProjection::capture(&store.snapshot(), &capabilities, &i18n);
-
-        assert_eq!(
-            english
-                .pages()
-                .iter()
-                .map(|page| page.id())
-                .collect::<Vec<_>>(),
-            ["plugin.sample.alpha", "plugin.sample.zulu"]
-        );
-        assert_eq!(english.pages()[0].category_labels()[1].as_ref(), "Zulu");
-        assert_eq!(english.categories().len(), 3);
-        assert!(
-            english
-                .categories()
-                .iter()
-                .all(|category| category.localization_bundle_id() == "sample")
-        );
-        assert_eq!(english.categories()[0].keys().len(), 1);
-        assert_eq!(
-            english.pages()[0].description(),
-            "settings.alpha.missing_description",
-            "missing plugin translations must use the canonical raw-key fallback"
-        );
-
-        i18n.set_active_locale(EditorLocale::parse("zh-CN").unwrap())
-            .unwrap();
-        assert!(!english.is_current(&store.snapshot(), &i18n));
-        let chinese = SettingsPageProjection::capture(&store.snapshot(), &capabilities, &i18n);
-        assert_eq!(chinese.pages()[0].label(), "甲");
-        assert_eq!(chinese.pages()[0].category_labels()[1].as_ref(), "乙类");
-        assert_eq!(
-            chinese
-                .pages()
-                .iter()
-                .map(|page| page.id())
-                .collect::<Vec<_>>(),
-            ["plugin.sample.alpha", "plugin.sample.zulu"],
-            "translated collation must not affect page order"
-        );
-
-        let report = store.revoke(ticket);
-        assert_eq!(report.removed().localization_bundles(), 1);
-        assert_eq!(report.removed().settings_pages(), 2);
-        assert!(!chinese.is_current(&store.snapshot(), &i18n));
-        assert!(
-            SettingsPageProjection::capture(&store.snapshot(), &capabilities, &i18n)
-                .pages()
-                .is_empty()
-        );
-    }
-}
+#[path = "tests/settings_page_projection.rs"]
+mod tests;

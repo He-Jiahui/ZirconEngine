@@ -67,3 +67,68 @@ Open state: `implementation_complete / managed_validation_pending`。`EffectiveI
 | 2026-07-19 08:20 +08:00 | `implementation_complete / review_green / managed_validation_pending` | `face_glyph_id` 仅开放到 `crate::text` 的 SDF consumer；metadata/coverage helper 继续保持更窄的 `crate::text::font` 可见性；结构 guard 同步锁定。 | 独立终审 0/0/0 Ready。Editor03 source-raced job `0873f135...` 编译到当前 Text 后仅有 5 条 foreign plugin-bridge 错误，不能替代 fresh Text gate。 |
 | 2026-07-28 01:45 +08:00 | `implementation_complete / managed_broad_runtime_passed / editor_upward_running` | Managed Runtime job `8f1c073d40ce4bee8483c046e6ee6b9b` / run `48f0711c4ca1468d90b7545df7c6e047` completed the declared `text::font` broad compile-and-test return. | Exit 0: `79 passed / 0 failed / 2 ignored / 8922 filtered`; current `zircon_editor --lib --no-run` job `4eefa547982a4bd896813d9fad698f21` remains the required upward compile contract. |
 | 2026-07-28 02:42 +08:00 | `Text01_runtime_return_passed / external_editor_return_failed` | The same fresh editor upward job `4eefa547982a4bd896813d9fad698f21` / run `ceff37fc13224768af1c365287f242e5` compiled current Runtime/Text and then exited 101. | The 56 errors are all in `zircon_editor` API/DTO/test owners (private fields, pane projection, event initializer, plugin lifetime, and test type drift); no Text01 source diagnostic occurred. This failure is not closed until its external editor return is repaired and rerun. |
+
+### 2026-09-18 static ticket terminal result
+
+The managed static ticket `13ff80bceeae4b74ae43e7c039c9a95e` reached terminal
+`passed` with job `de4ab4f6bcfa44c9931787957433fd86`, run
+`13ff80bceeae4b74ae43e7c039c9a95e`, and exit code `0`. It emitted
+`TEXT01_FONT_CACHE_VISIBILITY_STATIC_PASS` with no coordinator blockers.
+This supplements the existing Runtime broad pass but does not replace the
+current-source Cargo, upward Editor, or fixed-return gates.
+
+## 2026-09-20 rolling repair reconciliation
+
+The stable successor Session is `failure-roll-01a084c8-text01-font-cache-r3`.
+Coordinator transfer fingerprint
+`47aadf3ff5e454850c15679e37eb6b3ea091baeb2655f7dd0f0996db4c934089` moved
+the current failure record and the three Text01 owner files from archived
+Sessions. Current hashes after transfer are:
+
+- failure record: `415d8bf3bf7ca097889b3a96e07a12753b9dcde20d521cf761cdbad298ea911f`
+- `database.rs`: `8a6d2c02323d0367a422086ac0eab2d9c090880deb0ef8bfab20857d04a1dd6a`
+- `fallback.rs`: `9d042f063e8a1ea0a5022a1050e78108f781c3681805b270503a42778d728ad7`
+- `vertical_metrics.rs`: `07f8017e75dc94f1f0e9853502650d64705940f26b0a2f580c355547c9d7a465`
+
+No production source edit was made in this successor. The current source
+continues to derive `FontDatabase: Debug` while exposing bounded cache reports,
+keeps coverage helpers at `pub(in crate::text::font)`, and routes vertical
+metrics through the shared metadata view. The only current diff in the two
+large owner files is import ordering; it is retained as an existing foreign
+working-tree change and is not rewritten here.
+
+Fresh current-source static evidence:
+
+- Replayed the exact `TEXT01_FONT_CACHE_VISIBILITY_STATIC_PASS` assertions
+  against the transferred hashes — `TEXT01_FONT_CACHE_VISIBILITY_STATIC_PASS_CURRENT`.
+- `rustfmt --edition 2021 --check` on `database.rs`, `fallback.rs`, and
+  `vertical_metrics.rs` — all exit 0.
+- Scoped `git diff --check` over the three source files and this record — exit 0.
+
+The prior managed static ticket `13ff80bceeae4b74ae43e7c039c9a95e` and Runtime
+`text::font` broad pass used earlier source manifests; their hashes do not
+match this successor snapshot and are not reused as current-source acceptance.
+Independent review Session `review-text01-font-cache-r3c` is required to check
+the bounded `Debug` contract, sibling visibility, vertical consumer, and
+forbidden public widening; no Cargo result is inferred from the static checks.
+
+This failure remains open / `implementation_complete / managed_validation_pending`
+until a fresh Windows managed Runtime focused test, the declared Editor upward
+no-run gate, and the required return/closeout evidence are available.
+
+The fresh managed Runtime focused request used `validate-matrix.ps1
+-Package zircon_runtime -LibTests -TestFilter text::font -VerboseOutput`. Job
+`44c6402223c24dfcaacdcdf0fd9333e0` was accepted with target
+`D:\\cargo-targets\\zircon-engine\\pool\\ee9758815731cf3153d770d1035c0bf80e509e425bbe730de0b31325d52a1106`,
+but exited `1` at the supervisor workspace-synchronization layer with the
+same `compile_workspaces.py` `JSONDecodeError` seen in the Editor03 attempt.
+There is no `cargo_job_runs` row or test stdout/stderr receipt, so no focused
+Runtime test result is claimed from this job. The current session remains
+`waiting_validation` pending a clean managed run and the Editor upward gate.
+
+### 2026-09-20 independent static review
+
+- Reviewer Session `review-text01-font-cache-r3c` independently inspected the three owned Text01 files. Findings are `Critical=0 / Important=0 / Moderate=0`.
+- `EffectiveInstanceCache` and `FallbackCaches` implement bounded `Debug` reports, satisfying the derived `FontDatabase: Debug` contract without test-only widening. Font coverage helpers remain scoped to `pub(in crate::text::font)`, and fallback callers use those sibling-only methods.
+- `FontDatabase::vertical_metrics` borrows the generation-owned `FontFaceMetadata` view once and returns the `FontVerticalMetrics` wrapper; it does not expose a crate-wide/public helper or repeat SFNT lookup per glyph. Rustfmt checks for all three files and scoped `git diff --check` passed.
+- This is static/read-only review evidence only. The fresh managed Runtime focused test and declared Editor upward no-run gate still have no Cargo receipt, so no dynamic pass or fixed return is claimed.

@@ -1,3 +1,5 @@
+//! 从专用项目入口运行目录与效果表的一致性向量；只校验投影数据，技能准入和效果执行另有状态测试。
+
 var console = %import("zr.system.console");
 var catalog = %import("generated/m4_ability_catalog");
 var effects = %import("generated/m4_ability_effects");

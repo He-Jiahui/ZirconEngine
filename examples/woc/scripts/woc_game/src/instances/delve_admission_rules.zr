@@ -15,6 +15,7 @@ requireTier(index: int, required: bool): void {
 }
 
 // 0=Collapsed Reliquary, 1=Drowned Litany.
+/// 这是固定内容的身份映射；未知标识返回负哨兵，后续名称和等级查询要求调用方先确认映射成功。
 pub delveIndex(delveId: string, required: bool): int {
     if (!required) { throw "woc Delve admission delve is required"; }
     if (delveId == "collapsed_reliquary") { return 0; }
@@ -60,6 +61,7 @@ pub tierMinimumLevel(delve: int, tier: int, required: bool): int {
 // Result codes follow source order. 0 is the source's silent early return for
 // an unresolved player or unknown delve; 13 joins an existing party run and 14
 // claims a free run. Codes 1..12 produce the corresponding error message.
+/// 入场夹具保留首个拒绝原因的优先级；结果只用于分支选择，队伍身份、槽位分配和传送仍须由状态所有者执行。
 pub admissionCode(
     hasResolver: bool,
     isDead: bool,
@@ -98,6 +100,7 @@ pub admissionCode(
     return freeRunAvailable ? 14 : 12;
 }
 
+/// 仅将已确定的入场结果转成文本；无文本既可能是静默退出，也可能是允许入场，不能用空字符串判断许可。
 pub errorMessage(code: int, delve: int, required: bool): string {
     requireDelve(delve, required);
     if (code == 0 || code == 13 || code == 14) { return ""; }

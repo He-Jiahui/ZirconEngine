@@ -12,8 +12,8 @@ plan_sources:
   - user: 2026-09-09 完善任务图、JobScheduler 与取消机制说明
 tests:
   - zircon_runtime/src/core/runtime/tests/tasks.rs
-  - zircon_runtime/src/core/runtime/tasks/job_scheduler/tests.rs
-  - zircon_runtime/src/core/runtime/tasks/task_graph/scope/tests.rs
+  - zircon_runtime/src/core/runtime/tasks/job_scheduler/tests/cases.rs
+  - zircon_runtime/src/core/runtime/tasks/task_graph/scope/tests/cases.rs
 doc_type: module-detail
 ---
 

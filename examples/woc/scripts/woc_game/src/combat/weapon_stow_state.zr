@@ -1,5 +1,4 @@
-// Primitive-only projection of src/sim/weapon_stow.ts. The WOS command reducer
-// will own persistence once stow_weapon receives a canonical payload schema.
+//! 武器收起动作的独立标量测试投影；当前未接入世界命令或持久化状态。
 pub class WeaponStowState {
     pub var dead: bool;
     pub var weaponStowed: bool;
@@ -10,6 +9,7 @@ pub class WeaponStowState {
     }
 }
 
+/// 存活者切换收起位，死亡者保留原状态；调用方若接入世界须自行提交持久化。
 pub toggleWeaponStow(state: WeaponStowState): bool {
     if (state.dead) return state.weaponStowed;
     state.weaponStowed = !state.weaponStowed;

@@ -36,8 +36,8 @@ current-head WOC simulation imports the registered module identity at 36 source
 sites and requires scalar `abs`, `atan2`, `ceil`, `cos`, `exp`, `floor`, `sin`,
 `sqrt`, and target-compatible exponentiation.
 
-The current Runtime13 source now registers those nine scalar exports in version
-`0.2.0` under `math.scalar`, with `libm 0.2.16`, explicit `Float` descriptors,
+The current Runtime13 source registers ten scalar exports, including `round`, in version
+`0.3.0` under `math.scalar`, with `libm 0.2.16`, explicit `Float` descriptors,
 finite argument/result rejection, reflection-ledger rows, and focused
 module-surface vectors. The runtime call boundary now rejects `Int` rather than
 silently widening it, so the executable ABI agrees with the published float
@@ -58,7 +58,7 @@ independent of the WOC package and belongs at the Runtime13 host boundary.
 ## 架构修复验收
 
 - Publish one stable `zr.zircon.math` scalar ABI that exposes `abs`, `atan2`,
-  `ceil`, `cos`, `exp`, `floor`, `sin`, `sqrt`, and `pow` with explicit float
+  `ceil`, `cos`, `exp`, `floor`, `round`, `sin`, `sqrt`, and `pow` with explicit float
   signatures and a documented deterministic precision and non-finite policy.
 - Register the functions through the same Runtime13 host export/capability and
   reflection-ledger path as the existing vector helpers; generated host-module
@@ -86,20 +86,22 @@ returned yet.
 
 Implemented, not yet accepted:
 
-- Runtime13 publishes `zr.zircon.math` version `0.2.0` with the required
+- Runtime13 publishes `zr.zircon.math` version `0.3.0` with the required
   `math.scalar` capability and scalar exports `abs`, `atan2`, `ceil`, `cos`,
-  `exp`, `floor`, `sin`, `sqrt`, and `pow` alongside the existing vector
+  `exp`, `floor`, `round`, `sin`, `sqrt`, and `pow` alongside the existing vector
   descriptors.
 - The scalar ABI uses the pinned `libm 0.2.16` implementation. Arguments and
   results must be finite; domain errors and overflow are rejected rather than
   leaking platform-specific non-finite values to a script.
+- `round` composes `libm::floor` and fractional comparison with ties toward
+  positive infinity and signed-zero preservation to match JavaScript.
 - Focused module-surface coverage now exercises signed zero, `atan2` quadrant
   boundaries, rounding, finite exponentiation, and rejected non-finite inputs
   and results. The host-function ledger documents the same ABI.
 
-Static evidence: the Runtime13 structure guard and selected `rustfmt --check`
-scope pass; `cargo metadata --no-deps --locked --format-version 1` succeeds.
-Neither is a source-bound test result.
+Current static evidence: the Runtime13 structure guard and selected `rustfmt --check`
+scope pass. The earlier metadata result does not validate the changed source;
+managed Runtime13 and real WOC tests have not executed against this revision.
 
 Required before `failure return`: run the declared Runtime13 script and
 module-surface managed Cargo gates against this source snapshot, then run the

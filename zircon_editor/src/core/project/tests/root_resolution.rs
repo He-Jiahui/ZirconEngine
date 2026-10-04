@@ -1,6 +1,6 @@
 use std::fs;
 
-use super::super::{NewProjectDraft, NewProjectTemplate, ProjectAuthority};
+use super::super::{NewProjectDraft, ProjectAuthority, ProjectTemplateId};
 use super::temp_root;
 use zircon_runtime::asset::project::{ProjectPaths, PROJECT_MANIFEST_FILE};
 
@@ -9,11 +9,14 @@ fn existing_project_root_resolves_an_alias_to_the_canonical_identity() {
     let location = temp_root("existing-project-root-alias");
     let authority = ProjectAuthority::default();
     let created = authority
-        .create_project(&NewProjectDraft {
-            project_name: "Canonical Project".to_string(),
-            location: location.to_string_lossy().into_owned(),
-            template: NewProjectTemplate::RenderableEmpty,
-        })
+        .create_project(
+            &NewProjectDraft {
+                project_name: "Canonical Project".to_string(),
+                location: location.to_string_lossy().into_owned(),
+                template: ProjectTemplateId::RenderableEmpty,
+            },
+            &crate::tests::support::test_project_creation_provenance(),
+        )
         .unwrap();
     let expected_root = created.root.clone();
     assert_eq!(created.identity().operation_path(), expected_root.as_path());
@@ -54,11 +57,14 @@ fn project_authority_resolves_a_manifest_alias_once_before_opening() {
     let location = temp_root("manifest-alias-single-resolution");
     let authority = ProjectAuthority::default();
     let created = authority
-        .create_project(&NewProjectDraft {
-            project_name: "Manifest Identity Project".to_string(),
-            location: location.to_string_lossy().into_owned(),
-            template: NewProjectTemplate::RenderableEmpty,
-        })
+        .create_project(
+            &NewProjectDraft {
+                project_name: "Manifest Identity Project".to_string(),
+                location: location.to_string_lossy().into_owned(),
+                template: ProjectTemplateId::RenderableEmpty,
+            },
+            &crate::tests::support::test_project_creation_provenance(),
+        )
         .unwrap();
     let expected_root = created.root.clone();
     drop(created);
@@ -105,17 +111,20 @@ fn create_project_resolves_an_alias_location_to_the_physical_target() {
     create_directory_link(&physical_location, &alias_location);
 
     let created = ProjectAuthority::default()
-        .create_project(&NewProjectDraft {
-            project_name: "Alias Created Project".to_string(),
-            location: alias_location.to_string_lossy().into_owned(),
-            template: NewProjectTemplate::RenderableEmpty,
-        })
+        .create_project(
+            &NewProjectDraft {
+                project_name: "Alias Created Project".to_string(),
+                location: alias_location.to_string_lossy().into_owned(),
+                template: ProjectTemplateId::RenderableEmpty,
+            },
+            &crate::tests::support::test_project_creation_provenance(),
+        )
         .unwrap();
     let expected_root =
         ProjectPaths::resolve_existing_path(physical_location.join("Alias Created Project"))
             .unwrap();
     assert_eq!(created.root, expected_root);
-    assert_eq!(created.project().paths().root(), expected_root.as_path());
+    assert_eq!(created.identity().operation_path(), expected_root.as_path());
 
     drop(created);
     fs::remove_dir_all(parent).unwrap();
@@ -147,11 +156,14 @@ fn project_authority_resolves_directory_symbolic_link_roots() {
     let location = temp_root("existing-project-root-symbolic-link");
     let authority = ProjectAuthority::default();
     let created = authority
-        .create_project(&NewProjectDraft {
-            project_name: "Symbolic Link Project".to_string(),
-            location: location.to_string_lossy().into_owned(),
-            template: NewProjectTemplate::RenderableEmpty,
-        })
+        .create_project(
+            &NewProjectDraft {
+                project_name: "Symbolic Link Project".to_string(),
+                location: location.to_string_lossy().into_owned(),
+                template: ProjectTemplateId::RenderableEmpty,
+            },
+            &crate::tests::support::test_project_creation_provenance(),
+        )
         .unwrap();
     let expected_root = created.root.clone();
     drop(created);
@@ -182,11 +194,14 @@ fn project_authority_resolves_subst_roots_and_uncreated_tails() {
     fs::create_dir(&physical_location).unwrap();
     let authority = ProjectAuthority::default();
     let created = authority
-        .create_project(&NewProjectDraft {
-            project_name: "Existing Project".to_string(),
-            location: physical_location.to_string_lossy().into_owned(),
-            template: NewProjectTemplate::RenderableEmpty,
-        })
+        .create_project(
+            &NewProjectDraft {
+                project_name: "Existing Project".to_string(),
+                location: physical_location.to_string_lossy().into_owned(),
+                template: ProjectTemplateId::RenderableEmpty,
+            },
+            &crate::tests::support::test_project_creation_provenance(),
+        )
         .unwrap();
     let expected_root = created.root.clone();
     drop(created);
@@ -207,11 +222,14 @@ fn project_authority_resolves_subst_roots_and_uncreated_tails() {
     );
 
     let created = authority
-        .create_project(&NewProjectDraft {
-            project_name: "Created Through Subst".to_string(),
-            location: subst.path().to_string_lossy().into_owned(),
-            template: NewProjectTemplate::RenderableEmpty,
-        })
+        .create_project(
+            &NewProjectDraft {
+                project_name: "Created Through Subst".to_string(),
+                location: subst.path().to_string_lossy().into_owned(),
+                template: ProjectTemplateId::RenderableEmpty,
+            },
+            &crate::tests::support::test_project_creation_provenance(),
+        )
         .unwrap();
     assert_eq!(
         created.root,

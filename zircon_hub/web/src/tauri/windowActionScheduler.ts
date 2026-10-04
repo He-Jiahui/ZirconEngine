@@ -1,10 +1,10 @@
-export type WindowActionKind = "close" | "minimize" | "toggle-maximize";
+export type WindowActionKind = "close" | "minimize" | "toggle-maximize" | "start-dragging";
 
 export type WindowActionFailureHandler = (action: WindowActionKind, error: unknown) => void;
 
 export interface WindowActionScheduler {
   inFlightCount(): number;
-  run(action: WindowActionKind, invoke: () => Promise<void>): Promise<boolean>;
+  run(action: WindowActionKind, invoke: () => Promise<void>, onAttemptFailure?: WindowActionFailureHandler): Promise<boolean>;
 }
 
 export function createWindowActionScheduler(onFailure: WindowActionFailureHandler): WindowActionScheduler {
@@ -12,7 +12,7 @@ export function createWindowActionScheduler(onFailure: WindowActionFailureHandle
 
   return {
     inFlightCount: () => inFlight.size,
-    run(action, invoke) {
+    run(action, invoke, onAttemptFailure) {
       const existing = inFlight.get(action);
       if (existing) {
         return existing;
@@ -23,7 +23,7 @@ export function createWindowActionScheduler(onFailure: WindowActionFailureHandle
         .then(
           () => true,
           (error: unknown) => {
-            onFailure(action, error);
+            (onAttemptFailure ?? onFailure)(action, error);
             return false;
           },
         )

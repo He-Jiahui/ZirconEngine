@@ -223,6 +223,52 @@ fn runtime_profile_bootstrap_can_link_optional_first_party_runtime_plugins() {
     }
 }
 
+#[cfg(all(feature = "first-party-runtime-plugins", feature = "ui"))]
+#[test]
+fn ordinary_first_party_bootstrap_admits_selected_net_http_and_websocket_features() {
+    use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+    use zircon_runtime::core::framework::project::{
+        ProjectPluginFeatureSelection, ProjectPluginManifest, ProjectPluginSelection,
+    };
+
+    let config_file = super::IsolatedConfigFile::new();
+    let net = ProjectPluginSelection::runtime_plugin(RuntimePluginId::Net, true, true)
+        .with_target_modes([RuntimeTargetMode::ClientRuntime])
+        .with_feature(ProjectPluginFeatureSelection::new("net.http").required(true))
+        .with_feature(ProjectPluginFeatureSelection::new("net.websocket").required(true));
+    let config =
+        EntryConfig::new(EntryProfile::Runtime).with_project_plugins(ProjectPluginManifest {
+            selections: vec![net],
+        });
+
+    let entry = BuiltinEngineEntry::for_config(&config)
+        .expect("ordinary first-party bootstrap should admit selected net feature providers")
+        .with_config_file_path(config_file.path())
+        .expect("the host config path should bind to Foundation");
+    let module_names = entry
+        .module_descriptors()
+        .into_iter()
+        .map(|descriptor| descriptor.name)
+        .collect::<Vec<_>>();
+
+    assert!(module_names.iter().any(|name| name == "net.runtime"));
+    assert!(module_names
+        .iter()
+        .any(|name| name == "NetHttpFeatureModule"));
+    assert!(module_names
+        .iter()
+        .any(|name| name == "NetWebSocketFeatureModule"));
+
+    let runtime = zircon_runtime::core::CoreRuntime::new();
+    entry
+        .bootstrap(&runtime)
+        .expect("ordinary bootstrap should activate selected HTTP and WebSocket modules");
+    let _core = runtime.handle();
+    {}
+    drop(_core);
+    super::super::product_composition::close_owner::close_runtime(&runtime);
+}
+
 #[cfg(feature = "first-party-advanced-render-runtime-plugins")]
 #[test]
 fn render_profile_runtime_plugins_do_not_link_advanced_providers_for_default_render() {
@@ -239,24 +285,28 @@ fn render_profile_runtime_plugins_do_not_link_advanced_providers_for_default_ren
 
 #[test]
 fn entry_defaults_enable_hybrid_gi_only_for_editor_rendering() {
-    let editor = EntryConfig::new(EntryProfile::Editor);
-    let runtime = EntryConfig::new(EntryProfile::Runtime);
+    let editor = EntryConfig::new(EntryProfile::Editor)
+        .resolve()
+        .expect("default editor configuration should resolve");
+    let runtime = EntryConfig::new(EntryProfile::Runtime)
+        .resolve()
+        .expect("default runtime configuration should resolve");
 
     assert!(
         editor
-            .render_profile
+            .render_profile()
             .has_feature(RenderProductFeature::HybridGlobalIllumination),
         "editor rendering should request Hybrid GI by default"
     );
     assert!(
         !editor
-            .render_profile
+            .render_profile()
             .has_feature(RenderProductFeature::VirtualGeometry),
         "editor Hybrid GI defaults should not implicitly opt into virtual geometry"
     );
     assert!(
         !runtime
-            .render_profile
+            .render_profile()
             .has_feature(RenderProductFeature::HybridGlobalIllumination),
         "client runtime rendering must keep Hybrid GI project opt-in"
     );

@@ -9,6 +9,7 @@ use crate::ui::{surface::resolve_inline_widget_layout_with_cache, text::UiTextMe
 
 use super::{
     arrange::{arrange_node, hide_subtree_layout},
+    child_frame::inset_frame,
     engine::UiLayoutPassEngineContext,
     slot::UiLayoutSlotIndex,
 };
@@ -39,7 +40,7 @@ pub(super) fn arrange_inline_widget_children(
             }
             resolve_inline_widget_layout_with_cache(
                 parent.template_metadata.as_ref(),
-                parent.layout_cache.frame,
+                inset_frame(parent.layout_cache.frame, parent.layout_padding),
                 parent.layout_cache.clip_frame,
                 text_measure_cache,
             )
@@ -53,12 +54,11 @@ pub(super) fn arrange_inline_widget_children(
             let parent = tree
                 .node(parent_id)
                 .ok_or(UiTreeError::MissingNode(parent_id))?;
-            (
-                parent.children.iter().copied().collect::<HashSet<_>>(),
-                parent.layout_cache.clip_frame,
-            )
+            let mut direct_children = HashSet::with_capacity(parent.children.len());
+            direct_children.extend(parent.children.iter().copied());
+            (direct_children, parent.layout_cache.clip_frame)
         };
-        let mut managed_children = HashSet::new();
+        let mut managed_children = HashSet::with_capacity(resolved.bindings().len());
         for binding in resolved.bindings() {
             let node_id = UiNodeId::new(binding.slot.value());
             if !direct_children.contains(&node_id) {
@@ -96,9 +96,10 @@ pub(super) fn arrange_inline_widget_children(
 }
 
 fn tree_preorder(tree: &UiTree, roots: &[UiNodeId]) -> Vec<UiNodeId> {
-    let mut result = Vec::new();
-    let mut visited = HashSet::new();
-    let mut pending = roots.iter().rev().copied().collect::<Vec<_>>();
+    let mut result = Vec::with_capacity(roots.len());
+    let mut visited = HashSet::with_capacity(roots.len());
+    let mut pending = Vec::with_capacity(roots.len());
+    pending.extend(roots.iter().rev().copied());
     while let Some(node_id) = pending.pop() {
         if !visited.insert(node_id) {
             continue;
@@ -111,3 +112,7 @@ fn tree_preorder(tree: &UiTree, roots: &[UiNodeId]) -> Vec<UiNodeId> {
     }
     result
 }
+
+#[cfg(test)]
+#[path = "tests/inline_widgets_performance_tests.rs"]
+mod performance_tests;

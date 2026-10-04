@@ -34,6 +34,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_floating_layer(
             interaction.as_ref(),
             viewport_images,
             Some(text_input_focus.as_ref()),
+            Some(window.window_id.as_str()),
         );
     }
 }

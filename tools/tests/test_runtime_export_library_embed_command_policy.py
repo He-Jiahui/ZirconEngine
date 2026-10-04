@@ -12,7 +12,7 @@ LIBRARY_EMBED_PLAN = (
     / "library_embed_compile_plan.rs"
 )
 
-
+# 读取库嵌入导出命令，确认编译宿主命令显式携带插件清单路径。
 class RuntimeExportLibraryEmbedCommandPolicyTests(unittest.TestCase):
     def test_library_embed_compile_host_command_carries_manifest_path(self) -> None:
         source = LIBRARY_EMBED_PLAN.read_text(encoding="utf-8")

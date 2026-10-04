@@ -19,7 +19,7 @@ pub(super) fn floating_preview_fixture(window_id: &MainPageId) -> PreviewFixture
     fixture.layout.floating_windows.push(FloatingWindowLayout {
         window_id: window_id.clone(),
         title: "Native Preview".to_string(),
-        workspace: DocumentNode::Tabs(TabStackLayout {
+        workspace: DocumentNode::tabs(TabStackLayout {
             tabs: vec![scene_instance.instance_id.clone()],
             active_tab: Some(scene_instance.instance_id.clone()),
         }),

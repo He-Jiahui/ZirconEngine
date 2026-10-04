@@ -4,6 +4,8 @@ use zircon_runtime_interface::{
     CounterHotspotEntry, CounterHotspotReport, ProfileCounterSnapshot, ProfileSnapshot,
 };
 
+/// 按 stream/name 汇总有限正值样本；frame_count 只统计带帧号的不同观测帧。
+/// 聚合结果用于定位采样集中处，不能单凭计数判定任务或 GPU 工作已经完成。
 pub fn analyze_counter_hotspots(snapshot: &ProfileSnapshot) -> CounterHotspotReport {
     let mut groups: HashMap<CounterHotspotKey, CounterHotspotAccumulator> = HashMap::new();
     let mut accepted_counter_count = 0;
@@ -39,19 +41,17 @@ pub fn analyze_counter_hotspots(snapshot: &ProfileSnapshot) -> CounterHotspotRep
     }
 }
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
-struct CounterHotspotKey {
-    stream: String,
-    name: String,
-    path: String,
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+struct CounterHotspotKey<'a> {
+    stream: &'a str,
+    name: &'a str,
 }
 
-impl From<&ProfileCounterSnapshot> for CounterHotspotKey {
-    fn from(counter: &ProfileCounterSnapshot) -> Self {
+impl<'a> From<&'a ProfileCounterSnapshot> for CounterHotspotKey<'a> {
+    fn from(counter: &'a ProfileCounterSnapshot) -> Self {
         Self {
-            stream: counter.stream.clone(),
-            name: counter.name.clone(),
-            path: format!("{}/counter:{}", counter.stream, counter.name),
+            stream: counter.stream.as_str(),
+            name: counter.name.as_str(),
         }
     }
 }
@@ -78,7 +78,7 @@ impl CounterHotspotAccumulator {
         }
     }
 
-    fn finish(mut self, key: CounterHotspotKey) -> CounterHotspotEntry {
+    fn finish(mut self, key: CounterHotspotKey<'_>) -> CounterHotspotEntry {
         self.values.sort_by(f64::total_cmp);
         let count = self.values.len() as u64;
         let total = self.values.iter().sum::<f64>();
@@ -91,9 +91,9 @@ impl CounterHotspotAccumulator {
         let p95 = percentile(&self.values, 95);
         let latest = self.latest.map(|(_, value)| value).unwrap_or(0.0);
         CounterHotspotEntry {
-            stream: key.stream,
-            name: key.name,
-            path: key.path,
+            stream: key.stream.to_owned(),
+            name: key.name.to_owned(),
+            path: format!("{}/counter:{}", key.stream, key.name),
             total,
             avg,
             p95,
@@ -127,61 +127,5 @@ fn counter_hints(counters: &[CounterHotspotEntry]) -> Vec<String> {
 }
 
 #[cfg(test)]
-mod tests {
-    use zircon_runtime_interface::{ProfileCounterSnapshot, ProfileSnapshot};
-
-    use super::analyze_counter_hotspots;
-
-    #[test]
-    fn counter_hotspots_group_sort_and_track_latest() {
-        let mut snapshot = ProfileSnapshot {
-            session_id: "counter-test".to_string(),
-            frame_budget_ms: 16.67,
-            ..ProfileSnapshot::default()
-        };
-        snapshot.counters = vec![
-            counter("runtime", "extract.rebuild_clones", 1.0, 10, Some(0)),
-            counter("runtime", "extract.rebuild_clones", 2.0, 20, Some(1)),
-            counter("runtime", "asset.worker.frame_completed", 4.0, 15, Some(1)),
-            counter("runtime", "ignored.zero", 0.0, 30, Some(2)),
-            counter("runtime", "ignored.nan", f64::NAN, 40, Some(2)),
-        ];
-
-        let report = analyze_counter_hotspots(&snapshot);
-
-        assert_eq!(report.generated_from_counter_count, 3);
-        assert_eq!(report.counters.len(), 2);
-        assert_eq!(
-            report.counters[0].path,
-            "runtime/counter:asset.worker.frame_completed"
-        );
-        assert_eq!(report.counters[0].total, 4.0);
-        assert_eq!(
-            report.counters[1].path,
-            "runtime/counter:extract.rebuild_clones"
-        );
-        assert_eq!(report.counters[1].count, 2);
-        assert_eq!(report.counters[1].frame_count, 2);
-        assert_eq!(report.counters[1].latest, 2.0);
-        assert!(report
-            .hints
-            .iter()
-            .any(|hint| hint.contains("runtime/counter:asset.worker.frame_completed")));
-    }
-
-    fn counter(
-        stream: &str,
-        name: &str,
-        value: f64,
-        timestamp_us: u64,
-        frame_index: Option<u64>,
-    ) -> ProfileCounterSnapshot {
-        ProfileCounterSnapshot {
-            stream: stream.to_string(),
-            name: name.to_string(),
-            value,
-            timestamp_us,
-            frame_index,
-        }
-    }
-}
+#[path = "tests/counter_hotspot.rs"]
+mod tests;

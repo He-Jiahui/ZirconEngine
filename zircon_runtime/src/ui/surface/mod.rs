@@ -9,9 +9,11 @@ mod diagnostics;
 mod ecs_projection;
 mod focus;
 mod frame_hit_test;
+mod host_font_assets;
 pub(crate) mod input;
 mod interaction_gate;
 mod invalidation;
+mod localized_text;
 mod mutation_snapshot;
 mod navigation_index;
 mod node_pool;
@@ -64,6 +66,7 @@ pub use frame_hit_test::{
     debug_hit_test_surface_frame, debug_hit_test_surface_frame_with_query, hit_test_surface_frame,
     hit_test_surface_frame_with_query,
 };
+pub use host_font_assets::{UiHostFontAssetError, UiHostFontAssetReady, UiHostFontAssets};
 pub(crate) use input::{editable_text_input_is_secure, text_input_constraints_for_node};
 pub use input::{UiSurfaceInputEffectError, UiSurfaceInputEffectResult, UiSurfaceInputState};
 pub(crate) use interaction_gate::{ui_surface_effective_disabled, ui_surface_node_disabled};
@@ -72,6 +75,7 @@ pub use invalidation::{
     UiInvalidationGenerations, UiInvalidationReason, UiInvalidationTransaction,
     UiSurfaceInvalidationApplyError, UiSurfaceInvalidationState,
 };
+pub use localized_text::UiLocalizedTextSynchronizationError;
 pub(crate) use mutation_snapshot::{UiSurfaceMutationDomains, UiSurfaceMutationSnapshot};
 pub use node_pool::{UiSurfaceNodePool, UiSurfaceNodePoolReport};
 pub use property_mutation::{
@@ -94,7 +98,8 @@ pub use surface::{
 pub use text_artifact::{
     current_resolved_text_font_generation, resolved_text_glyph_artifact_line,
     UiResolvedTextGlyphArtifactLine, UiTextGlyphArtifactFaceSnapshot,
-    UiTextGlyphArtifactRasterFace, UiTextGlyphArtifactRasterFaces,
+    UiTextGlyphArtifactRasterFace, UiTextGlyphArtifactRasterFaceReceipt,
+    UiTextGlyphArtifactRasterFaces,
 };
 pub use text_geometry::{text_caret_frame_for_layout, text_range_frames_for_layout};
 pub use text_shape::shape_text_line;

@@ -7,9 +7,7 @@ related_code:
   - zircon_editor/src/core/gateway/handle.rs
   - zircon_editor/src/core/gateway/in_process.rs
   - zircon_editor/src/core/gateway/mod.rs
-  - zircon_editor/src/core/gateway/session.rs
   - zircon_editor/src/tests/gateway/in_process.rs
-  - zircon_editor/src/tests/gateway/session.rs
   - zircon_editor/src/tests/ui/boundary/editor_event_cutover.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs

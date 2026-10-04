@@ -23,7 +23,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束借用反射归属校验：成功路径借用类型路径不带 preemptive 克隆，并每个错误分支拥有类型路径仅当 constructing 错误。
 class BorrowedReflectionOwnerValidationPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

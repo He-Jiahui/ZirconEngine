@@ -15,13 +15,19 @@ export interface HubTabsProps {
 }
 
 export function HubTabs({ value, options, onChange }: HubTabsProps) {
+  const tabListLabel = options.map((option) => option.label).join(", ");
+
   return (
     <Tabs
+      aria-label={tabListLabel || undefined}
       value={value}
       onChange={(_, nextValue: string) => onChange(nextValue)}
       variant="scrollable"
       scrollButtons="auto"
       sx={{
+        width: "100%",
+        minWidth: 0,
+        maxWidth: "100%",
         minHeight: 38,
         borderBottom: `1px solid ${hubTokens.colors.line}`,
         "& .MuiTabs-indicator": { backgroundColor: hubTokens.colors.accent },
@@ -36,6 +42,7 @@ export function HubTabs({ value, options, onChange }: HubTabsProps) {
           iconPosition="start"
           sx={{
             minHeight: 38,
+            minWidth: 0,
             px: 1.4,
             color: hubTokens.colors.textSoft,
             "&.Mui-selected": { color: hubTokens.colors.accent },

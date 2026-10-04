@@ -56,23 +56,59 @@ export class DebouncedSettingsDraft<Draft> {
   }
 }
 
-export function useDebouncedSettingsDraft<Draft>(dispatch: (draft: Draft) => void) {
+export class SettingsActionScheduler<Draft> {
+  readonly #drafts: DebouncedSettingsDraft<Draft>;
+  readonly #publishDraft: (draft: Draft) => void | Promise<void>;
+  #tail: Promise<void> = Promise.resolve();
+
+  constructor(
+    publishDraft: (draft: Draft) => void | Promise<void>,
+    delayMs: number = SETTINGS_DRAFT_QUIET_WINDOW_MS,
+    timer: DebounceTimer = systemTimer,
+  ) {
+    this.#publishDraft = publishDraft;
+    this.#drafts = new DebouncedSettingsDraft((draft) => {
+      void this.enqueue(() => this.#publishDraft(draft));
+    }, delayMs, timer);
+  }
+
+  schedule(draft: Draft) {
+    this.#drafts.schedule(draft);
+  }
+
+  cancelPending() {
+    this.#drafts.cancel();
+  }
+
+  runBarrier<Result>(action: () => Result | Promise<Result>): Promise<Result> {
+    this.#drafts.cancel();
+    return this.enqueue(action);
+  }
+
+  private enqueue<Result>(action: () => Result | Promise<Result>): Promise<Result> {
+    const result = this.#tail.then(action);
+    this.#tail = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    return result;
+  }
+}
+
+export function useDebouncedSettingsDraft<Draft>(dispatch: (draft: Draft) => void | Promise<void>) {
   const dispatchRef = useRef(dispatch);
   dispatchRef.current = dispatch;
   const dispatcher = useMemo(
-    () =>
-      new DebouncedSettingsDraft<Draft>(
-        (draft) => dispatchRef.current(draft),
-        SETTINGS_DRAFT_QUIET_WINDOW_MS,
-      ),
+    () => new SettingsActionScheduler<Draft>((draft) => dispatchRef.current(draft)),
     [],
   );
 
-  useEffect(() => () => dispatcher.cancel(), [dispatcher]);
+  useEffect(() => () => dispatcher.cancelPending(), [dispatcher]);
   return useMemo(
     () => ({
       scheduleDraftPublication: (draft: Draft) => dispatcher.schedule(draft),
-      cancelPendingDraft: () => dispatcher.cancel(),
+      cancelPendingDraft: () => dispatcher.cancelPending(),
+      runSettingsBarrier: <Result>(action: () => Result | Promise<Result>) => dispatcher.runBarrier(action),
     }),
     [dispatcher],
   );

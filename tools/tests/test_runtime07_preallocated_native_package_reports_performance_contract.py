@@ -20,7 +20,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束预分配原生包报告：包 directory 集合使用选中包容量，并报告预留复制包上界绑定。
 class PreallocatedNativePackageReportsPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

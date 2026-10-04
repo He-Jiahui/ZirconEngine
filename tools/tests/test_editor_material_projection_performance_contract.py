@@ -1,3 +1,4 @@
+# 核对材质诊断计数索引借用特性名称。
 from pathlib import Path
 import unittest
 

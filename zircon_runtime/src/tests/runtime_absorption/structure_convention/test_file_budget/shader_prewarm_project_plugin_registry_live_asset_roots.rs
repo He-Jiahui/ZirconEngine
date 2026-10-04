@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对着色器预热的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 const STATUS: &str =
@@ -14,7 +15,7 @@ fn runtime_15_shader_prewarm_project_plugin_registry_live_asset_roots_are_wired(
         "zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests/resource_registry.rs",
     );
     let registry_tests = read_repo(
-        "zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs",
+        "zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests/cases.rs",
     );
     let plan_08 = read_repo(
         "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
@@ -88,7 +89,7 @@ fn runtime_15_shader_prewarm_project_plugin_registry_live_asset_roots_are_wired(
             project_record_export.as_str(),
         ),
         (
-            "zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs",
+            "zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests/cases.rs",
             registry_tests.as_str(),
         ),
         (

@@ -1,3 +1,4 @@
+# 核对能力编辑菜单的触发入口、锚定覆盖层和扩展动作映射一致。
 import re
 import tomllib
 import unittest

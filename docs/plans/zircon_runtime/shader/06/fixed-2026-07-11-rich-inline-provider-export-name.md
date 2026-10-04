@@ -10,7 +10,6 @@ origin_child_dir: docs/plans/zircon_runtime/shader/06
 fixing_child_dir: docs/plans/zircon_runtime/text/07
 related_code:
   - zircon_runtime/src/ui/text/layout_engine.rs
-  - zircon_runtime/src/ui/text/layout_engine/rich_inline.rs
 tests:
   - direct rustc --test zircon_runtime/src/lib.rs using the current profiling dependency set
   - zircon_runtime_gpu_tests.exe graphics::scene::scene_renderer::environment::ibl_bake_

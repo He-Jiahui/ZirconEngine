@@ -3,7 +3,7 @@ use super::super::UiProfileNamedFrame;
 use super::pane_frames::collect_activity_rail_buttons;
 
 #[cfg(test)]
-#[path = "activity_rail_buttons/capacity_tests.rs"]
+#[path = "activity_rail_buttons/tests/capacity_tests.rs"]
 mod capacity_tests;
 
 pub(in crate::ui::retained_host::host_contract) fn collect_activity_rail_profile_buttons(

@@ -1,3 +1,6 @@
+// 调用端：node wtr1_verify.mjs --golden <golden> [--input <wtr1>]；职责：解码 WTR1 字节，并与对应的 golden JSON 精确比较。
+// 轨迹字典指纹和 golden 形状共同限定对齐证据的线格式。
+
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { parseArgs } from "node:util";
@@ -36,6 +39,7 @@ if (values.input) {
 let offset = 0;
 let currentFrame = -1;
 
+// 移动字节游标前先检查读取边界，使截断帧在对应字段报错。
 function take(length, context) {
   if (offset + length > bytes.length) {
     throw new Error(`truncated ${context} at ${offset}`);
@@ -77,6 +81,7 @@ function symbol(context) {
   return value;
 }
 
+// 递归解码 WTR1 类型标签，沿用编码器的 64 层深度上限。
 function value(depth = 0) {
   if (depth > 64) {
     throw new Error("WTR1 value nesting exceeds 64");
@@ -170,6 +175,7 @@ assert.equal(take(4, "magic").toString("ascii"), "WTR1");
 assert.equal(u16("version"), 1);
 assert.equal(u64("dictionary fingerprint"), expectedFingerprint);
 
+// 从解码后的完整状态重建规范化帧摘要；线格式的 full 标志决定暴露哪些状态字段。
 const trace = {
   scenario: symbol("scenario"),
   seed: u32("seed"),

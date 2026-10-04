@@ -124,7 +124,7 @@ zircon_editor/src/core/i18n/
 
 - 切片 1.1：`settings/` 四文件（registry/resolve 链/三层 IO/变更事件）；preferences 迁入删除；首批五组设置项登记。
 - 切片 1.2：`SettingsPageContribution`（06 贡献族）+ 设置窗口数据源（外观 editor_layout preferences-window 设计稿）。
-- 测试阶段：`cargo test -p zircon_editor --lib --locked`（preferences 既有测试迁移后须过 + resolve 覆盖链矩阵 + 热应用/requires_restart 分流 + 坏文件回退 default）。更新 `docs/zircon_editor/core/settings.md`。
+- 测试阶段：`cargo test -p zircon_editor --lib --locked`（preferences 既有测试迁移后须过 + resolve 覆盖链矩阵 + 热应用/requires_restart 分流 + 坏文件回退 default）。更新 `docs/crates/zircon_editor/core/settings.md`。
 
 ### M2 自动保存与崩溃恢复
 

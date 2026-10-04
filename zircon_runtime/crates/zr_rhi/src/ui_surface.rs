@@ -2,6 +2,10 @@ use std::collections::BTreeSet;
 
 mod compact_styles;
 mod image_resources;
+mod text_layout;
+pub use text_layout::{
+    UiSurfaceTextFace, UiSurfaceTextLayoutRun, UiSurfaceTextLayoutSnapshot, UiSurfaceTextLine,
+};
 
 use compact_styles::{compact_commands, resolved_kind};
 pub use compact_styles::{
@@ -14,7 +18,7 @@ use crate::{RenderNativeSurfaceTarget, SubmissionTicket};
 
 use super::RhiError;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, serde::Serialize)]
 pub struct UiSurfaceRect {
     pub x: f32,
     pub y: f32,
@@ -739,6 +743,12 @@ pub trait UiSurfacePresenter: Send {
     ) -> Result<UiSurfacePresentStats, RhiError> {
         self.present(&draw_list)
     }
+    /// Opt-in observation of the actual submitted GPU text preparation.
+    fn set_text_layout_observation(&mut self, _enabled: bool) {}
+    fn last_submitted_text_layout(&self) -> Option<UiSurfaceTextLayoutSnapshot> {
+        None
+    }
+
     fn last_present_stats(&self) -> UiSurfacePresentStats;
 }
 
@@ -766,11 +776,18 @@ impl<T: UiSurfacePresenter + ?Sized> UiSurfacePresenter for Box<T> {
         self.as_mut().present_owned(draw_list)
     }
 
+    fn set_text_layout_observation(&mut self, enabled: bool) {
+        self.as_mut().set_text_layout_observation(enabled);
+    }
+    fn last_submitted_text_layout(&self) -> Option<UiSurfaceTextLayoutSnapshot> {
+        self.as_ref().last_submitted_text_layout()
+    }
+
     fn last_present_stats(&self) -> UiSurfacePresentStats {
         self.as_ref().last_present_stats()
     }
 }
 
 #[cfg(test)]
-#[path = "ui_surface/tests.rs"]
+#[path = "ui_surface/tests/cases.rs"]
 mod tests;

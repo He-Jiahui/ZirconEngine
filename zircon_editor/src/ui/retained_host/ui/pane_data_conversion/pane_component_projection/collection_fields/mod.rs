@@ -23,4 +23,5 @@ pub(super) fn collection_fields_for_component(
 }
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 模型几何缓存借用资源 URI 做定位键，缓存未命中仍先记录依赖再加载；检查 Rust 回归中的相等定位语义。
 
 ROOT = Path(__file__).resolve().parents[2]
 MODEL_GEOMETRY = ROOT / (

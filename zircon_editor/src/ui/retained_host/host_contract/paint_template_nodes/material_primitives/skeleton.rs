@@ -10,6 +10,7 @@ use style::{
 mod geometry;
 mod style;
 
+/// 由 Material 分发器处理根节点；子槽位只标记已接管，根节点才产生骨架表面与可选波纹。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_skeleton_primitive_commands(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
@@ -83,5 +84,5 @@ fn skeleton_child_variant(component_variant: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "skeleton/single_scan_child_tests.rs"]
+#[path = "skeleton/tests/single_scan_child_tests.rs"]
 mod single_scan_child_tests;

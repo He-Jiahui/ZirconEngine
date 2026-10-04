@@ -68,5 +68,5 @@ fn restore_or_reuse_instance(
 }
 
 #[cfg(test)]
-#[path = "ensure_shell_instances/indexed_preservation_tests.rs"]
+#[path = "ensure_shell_instances/tests/indexed_preservation_tests.rs"]
 mod indexed_preservation_tests;

@@ -33,7 +33,7 @@ def _public_symbol_tokens(path: Path) -> set[str]:
         )
     return symbols
 
-
+# 读取源码固定门面的边界：运行时 API 门面使用显式域导出，并运行时构建集合门面保持生成目录显式。
 class RuntimeFacadeTests(unittest.TestCase):
     def test_runtime_api_facade_uses_explicit_domain_exports(self) -> None:
         facade = RUNTIME_API_FACADE.read_text(encoding="utf-8")

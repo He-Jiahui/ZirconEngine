@@ -1,11 +1,12 @@
-use crate::scene::World;
 use crate::scene::ecs::{
     ChangeTickWindow, SystemParam, SystemParamAccess, SystemParamError, WorkerCommandBuffer,
     WorldlessSystemParam,
 };
+use crate::scene::World;
 
 use super::facade::Commands;
 
+/// 系统参数独占生产者缓冲，获取时不借用 World；回调成功后才合并，参数组合只允许一个命令缓冲入口。
 pub struct CommandsParam;
 
 #[derive(Debug)]

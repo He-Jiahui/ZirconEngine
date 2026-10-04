@@ -33,4 +33,5 @@ pub mod ui;
 pub mod window;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

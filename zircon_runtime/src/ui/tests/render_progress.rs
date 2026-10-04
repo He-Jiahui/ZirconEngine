@@ -36,6 +36,14 @@ fn progress_renderer_classifies_before_visual_resolution_and_uses_shared_tokens(
 }
 
 #[test]
+fn progress_command_builder_reserves_its_fixed_upper_bound() {
+    let source = include_str!("../surface/render/progress.rs");
+
+    assert!(source.contains("const PROGRESS_COMMAND_CAPACITY: usize = 3;"));
+    assert!(source.contains("let mut commands = Vec::with_capacity(PROGRESS_COMMAND_CAPACITY);"));
+}
+
+#[test]
 fn render_extract_expands_linear_progress_with_tokenized_label_and_relative_fill() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.progress"));
     surface.tree.insert_root(

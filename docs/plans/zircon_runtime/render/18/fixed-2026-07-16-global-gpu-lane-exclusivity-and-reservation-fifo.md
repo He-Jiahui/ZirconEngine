@@ -9,8 +9,6 @@ fixing_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-c
 origin_child_dir: docs/plans/zircon_runtime/render/18
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 related_code:
-  - tools/session_coordinator/cargo_jobs.py
-  - tools/session_coordinator/server.py
 tests:
   - python -m unittest -v tools.session_coordinator.tests.test_cargo_jobs.CargoJobTests.test_gpu_lane_is_global_across_distinct_targets tools.session_coordinator.tests.test_cargo_jobs.CargoJobTests.test_gpu_reservation_keeps_fifo_until_nominated_job_reaches_terminal_state tools.session_coordinator.tests.test_cargo_jobs.CargoJobTests.test_gpu_startup_audit_reports_existing_leases tools.session_coordinator.tests.test_server.ServerTests.test_startup_audits_gpu_lease_that_predates_the_latest_reservation
   - python -m unittest -v tools.session_coordinator.tests.test_supervision_service.SupervisionServiceTests.test_explicit_stop_blocks_new_mutations_even_if_timeout_restores_healthy_state tools.session_coordinator.tests.test_supervision_actions.SupervisionActionTests.test_maintenance_hold_requires_explicit_resume_release

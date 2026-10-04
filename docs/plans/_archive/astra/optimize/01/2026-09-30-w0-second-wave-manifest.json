@@ -1,0 +1,3926 @@
+{
+  "generated_programmatically": true,
+  "generated_at_utc": "2026-09-30",
+  "artifact_scope": "Private W0 second-wave consolidation v5; source-only, not acceptance. Report freshness falls back to an exact same-row report evidence hash where the producer omits a top-level hash.",
+  "grouping_rule": "Exact normalized report path plus literal original finding ID only; every observation retained.",
+  "producer_manifests": [
+    {
+      "packet": "config-schema-layer-authority-batch2-2026-09-30",
+      "manifest_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\manifest-config-schema-layer-authority-batch2-2026-09-30.json",
+      "manifest_sha256": "c5424e9454de20b223ec63f93c89cd416f0d3abb87c208925e79531c17a5b15d",
+      "manifest_bytes": 3087,
+      "declared_artifacts": [
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\config-schema-layer-authority-batch2-2026-09-30-review.jsonl",
+          "sha256_declared": "9276de7487c36337f2b86069f760f7b13784077a338ee742f363f0a197cdda20",
+          "sha256_current": "9276de7487c36337f2b86069f760f7b13784077a338ee742f363f0a197cdda20",
+          "bytes_declared": null,
+          "bytes_current": 32565,
+          "exists": true,
+          "matches_manifest": true
+        },
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\config-schema-layer-authority-batch2-2026-09-30-edges.jsonl",
+          "sha256_declared": "5bbb42f1390526a47195d66309e31e463f11e4cc9b179d786b7c1fe69afb651e",
+          "sha256_current": "5bbb42f1390526a47195d66309e31e463f11e4cc9b179d786b7c1fe69afb651e",
+          "bytes_declared": null,
+          "bytes_current": 2231,
+          "exists": true,
+          "matches_manifest": true
+        },
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\config-schema-layer-authority-batch2-2026-09-30-summary.json",
+          "sha256_declared": "2cd8cb35283891e86cc8b88eee870ead4b9f8facd60173c7f34f7a42e2a96b78",
+          "sha256_current": "2cd8cb35283891e86cc8b88eee870ead4b9f8facd60173c7f34f7a42e2a96b78",
+          "bytes_declared": null,
+          "bytes_current": 3698,
+          "exists": true,
+          "matches_manifest": true
+        }
+      ],
+      "repo_source_hashes": [
+        {
+          "path": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md",
+          "sha256_declared": "6e52906a43ab58607c8de160626322ab9e2a7f9a78cb73885a5e60f65ab829fd",
+          "sha256_current": "6e52906a43ab58607c8de160626322ab9e2a7f9a78cb73885a5e60f65ab829fd",
+          "bytes_current": 30933,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md",
+          "sha256_declared": "cfc15f859b1f73b6ba0ea42c928a01d57498edbf12f2589a138f4f0fbd2aefb7",
+          "sha256_current": "cfc15f859b1f73b6ba0ea42c928a01d57498edbf12f2589a138f4f0fbd2aefb7",
+          "bytes_current": 43338,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md",
+          "sha256_declared": "30c690d9fe42636340d5933db9a410b505667aa057d7d75858b873daaf0c9f04",
+          "sha256_current": "30c690d9fe42636340d5933db9a410b505667aa057d7d75858b873daaf0c9f04",
+          "bytes_current": 22194,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/astra/optimize/01/2026-09-26-w0-report-inventory.md",
+          "sha256_declared": "9b15f21cf9ce0e5cb4f7f5c7b156979ff8bb8b5fea5fbda16a757e1064e0b5e8",
+          "sha256_current": "9b15f21cf9ce0e5cb4f7f5c7b156979ff8bb8b5fea5fbda16a757e1064e0b5e8",
+          "bytes_current": 264157,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/config_store.rs",
+          "sha256_declared": "b81611a562aa2549aa81e782ffaebce782f02f578dd399f5523f3866043d52c8",
+          "sha256_current": "b81611a562aa2549aa81e782ffaebce782f02f578dd399f5523f3866043d52c8",
+          "bytes_current": 4405,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/framework/foundation/config_manager.rs",
+          "sha256_declared": "b83527877216b2679d3e96816d4f45bee1960b0a18196c88d64faac68feebbc6",
+          "sha256_current": "b83527877216b2679d3e96816d4f45bee1960b0a18196c88d64faac68feebbc6",
+          "bytes_current": 853,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/foundation/runtime/config_manager.rs",
+          "sha256_declared": "9d9c705836818b291662876b6b20419e93e67cd2499cd1a9f9af03a6c289324e",
+          "sha256_current": "9d9c705836818b291662876b6b20419e93e67cd2499cd1a9f9af03a6c289324e",
+          "bytes_current": 5630,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/foundation/runtime/config_manager/worker.rs",
+          "sha256_declared": "4582964df02d4882a50972ed34e6cab6dc620ac8074a14dba9a4872600c78d6b",
+          "sha256_current": "4582964df02d4882a50972ed34e6cab6dc620ac8074a14dba9a4872600c78d6b",
+          "bytes_current": 10787,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/foundation/runtime/config_manager_tests.rs",
+          "sha256_declared": "f7ebe78f99f46084ddba8be0a255b711bf50a9015661bed6bf9021a02ea391e9",
+          "sha256_current": "f7ebe78f99f46084ddba8be0a255b711bf50a9015661bed6bf9021a02ea391e9",
+          "bytes_current": 22493,
+          "fresh": true
+        },
+        {
+          "path": "zircon_editor/src/ui/host/layout_persistence.rs",
+          "sha256_declared": "6c7f0db2acfac532d901904137d5dc4a0cc365f74b07a74a00eed8f21b68be77",
+          "sha256_current": "6c7f0db2acfac532d901904137d5dc4a0cc365f74b07a74a00eed8f21b68be77",
+          "bytes_current": 7151,
+          "fresh": true
+        }
+      ]
+    },
+    {
+      "packet": "config-write-authority-batch2-2026-09-30",
+      "manifest_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\manifest-config-write-authority-batch2-2026-09-30.json",
+      "manifest_sha256": "a184c2910636eff01489612df9676e7f9b14753aaf363ca6e4a4a4c7dadd942a",
+      "manifest_bytes": 3843,
+      "declared_artifacts": [
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\config-write-authority-batch2-2026-09-30-review.jsonl",
+          "sha256_declared": "0aac5a20863029936aff22bb21e66b4948914bc7cfd53919b22b297168b17f28",
+          "sha256_current": "0aac5a20863029936aff22bb21e66b4948914bc7cfd53919b22b297168b17f28",
+          "bytes_declared": 13066,
+          "bytes_current": 13066,
+          "exists": true,
+          "matches_manifest": true
+        },
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\config-write-authority-batch2-2026-09-30-edges.jsonl",
+          "sha256_declared": "a5f86c03e38bf1b23cbfee4570797541fa53239a494f778ce68e02cdd0e866cc",
+          "sha256_current": "a5f86c03e38bf1b23cbfee4570797541fa53239a494f778ce68e02cdd0e866cc",
+          "bytes_declared": 974,
+          "bytes_current": 974,
+          "exists": true,
+          "matches_manifest": true
+        },
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\config-write-authority-batch2-2026-09-30-summary.json",
+          "sha256_declared": "6064a7c10ffbb1912aaa2ea018d493c68230ce7494a4aa063a13c6eea0c1ac42",
+          "sha256_current": "6064a7c10ffbb1912aaa2ea018d493c68230ce7494a4aa063a13c6eea0c1ac42",
+          "bytes_declared": 3637,
+          "bytes_current": 3637,
+          "exists": true,
+          "matches_manifest": true
+        }
+      ],
+      "repo_source_hashes": [
+        {
+          "path": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md",
+          "sha256_declared": "6e52906a43ab58607c8de160626322ab9e2a7f9a78cb73885a5e60f65ab829fd",
+          "sha256_current": "6e52906a43ab58607c8de160626322ab9e2a7f9a78cb73885a5e60f65ab829fd",
+          "bytes_current": 30933,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md",
+          "sha256_declared": "cfc15f859b1f73b6ba0ea42c928a01d57498edbf12f2589a138f4f0fbd2aefb7",
+          "sha256_current": "cfc15f859b1f73b6ba0ea42c928a01d57498edbf12f2589a138f4f0fbd2aefb7",
+          "bytes_current": 43338,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md",
+          "sha256_declared": "6e52906a43ab58607c8de160626322ab9e2a7f9a78cb73885a5e60f65ab829fd",
+          "sha256_current": "6e52906a43ab58607c8de160626322ab9e2a7f9a78cb73885a5e60f65ab829fd",
+          "bytes_current": 30933,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md",
+          "sha256_declared": "cfc15f859b1f73b6ba0ea42c928a01d57498edbf12f2589a138f4f0fbd2aefb7",
+          "sha256_current": "cfc15f859b1f73b6ba0ea42c928a01d57498edbf12f2589a138f4f0fbd2aefb7",
+          "bytes_current": 43338,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/astra/optimize/01/2026-09-26-w0-report-inventory.md",
+          "sha256_declared": "9b15f21cf9ce0e5cb4f7f5c7b156979ff8bb8b5fea5fbda16a757e1064e0b5e8",
+          "sha256_current": "9b15f21cf9ce0e5cb4f7f5c7b156979ff8bb8b5fea5fbda16a757e1064e0b5e8",
+          "bytes_current": 264157,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/handle/events.rs",
+          "sha256_declared": "8e2dfb5526ac9aab78299044d3dacdc4130d751279e4710b5e9cde406d66560b",
+          "sha256_current": "8e2dfb5526ac9aab78299044d3dacdc4130d751279e4710b5e9cde406d66560b",
+          "bytes_current": 2084,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/foundation/runtime/config_manager.rs",
+          "sha256_declared": "9d9c705836818b291662876b6b20419e93e67cd2499cd1a9f9af03a6c289324e",
+          "sha256_current": "9d9c705836818b291662876b6b20419e93e67cd2499cd1a9f9af03a6c289324e",
+          "bytes_current": 5630,
+          "fresh": true
+        },
+        {
+          "path": "zircon_app/src/entry/engine_entry.rs",
+          "sha256_declared": "274ed6134b1928d8e1a74852185fb9fb75959ce03ceada0ebd65e277514e3d85",
+          "sha256_current": "274ed6134b1928d8e1a74852185fb9fb75959ce03ceada0ebd65e277514e3d85",
+          "bytes_current": 27478,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/dynamic_api/session/construction.rs",
+          "sha256_declared": "f7e80606d95042ec4ae0ead00381812c990358f8b44f1d861b59d3cf62b1cc27",
+          "sha256_current": "f7e80606d95042ec4ae0ead00381812c990358f8b44f1d861b59d3cf62b1cc27",
+          "bytes_current": 18988,
+          "fresh": true
+        },
+        {
+          "path": "zircon_plugins/animation/runtime/src/manager.rs",
+          "sha256_declared": "c5735be551395b91c73a714d4a7981c9bbd32430ac92da8db21165618a7cf763",
+          "sha256_current": "c5735be551395b91c73a714d4a7981c9bbd32430ac92da8db21165618a7cf763",
+          "bytes_current": 5098,
+          "fresh": true
+        },
+        {
+          "path": "zircon_plugins/physics/runtime/src/manager/settings.rs",
+          "sha256_declared": "d70aff1369c5974103e1acc9d9b7ba35273461583f4c247be83c9cc41fc9a474",
+          "sha256_current": "d70aff1369c5974103e1acc9d9b7ba35273461583f4c247be83c9cc41fc9a474",
+          "bytes_current": 4798,
+          "fresh": true
+        },
+        {
+          "path": "zircon_editor/src/ui/host/runtime_services.rs",
+          "sha256_declared": "9222246f28b61288243ea5669878cd7e03eb7e28936963b56f6b878db1ece735",
+          "sha256_current": "9222246f28b61288243ea5669878cd7e03eb7e28936963b56f6b878db1ece735",
+          "bytes_current": 8035,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/tests/extensions/manager_handles.rs",
+          "sha256_declared": "cb3168156d384ed04e3da09a415fa43bec26a624c3a3c8586c9bc96ce696737a",
+          "sha256_current": "cb3168156d384ed04e3da09a415fa43bec26a624c3a3c8586c9bc96ce696737a",
+          "bytes_current": 10730,
+          "fresh": true
+        },
+        {
+          "path": "zircon_app/src/entry/tests/entry_config_storage.rs",
+          "sha256_declared": "81fefcaa6ad9e4f4702377de162d8901e6a73bb6523e6092e334028b7a4fe5c3",
+          "sha256_current": "81fefcaa6ad9e4f4702377de162d8901e6a73bb6523e6092e334028b7a4fe5c3",
+          "bytes_current": 1719,
+          "fresh": true
+        }
+      ]
+    },
+    {
+      "packet": "core-execution-unload-batch2-2026-09-30",
+      "manifest_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\manifest-core-execution-unload-batch2-2026-09-30.json",
+      "manifest_sha256": "38bec4828682171a67ceb2f205bc68b2d22b41154b30a69a389008b5ad0a0a56",
+      "manifest_bytes": 3218,
+      "declared_artifacts": [
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\core-execution-unload-review-batch2-2026-09-30.jsonl",
+          "sha256_declared": "2e17a303253d303622a5a76ec2fb8e6c97cc931a6c277369d7ec29b5b9152d8c",
+          "sha256_current": "2e17a303253d303622a5a76ec2fb8e6c97cc931a6c277369d7ec29b5b9152d8c",
+          "bytes_declared": 32897,
+          "bytes_current": 32897,
+          "exists": true,
+          "matches_manifest": true
+        },
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\core-execution-unload-currentness-edge-batch2-2026-09-30.jsonl",
+          "sha256_declared": "eda643a216e8e0a186357c03c03a18c3d67cecbac3dc67fb9a411c9050708623",
+          "sha256_current": "eda643a216e8e0a186357c03c03a18c3d67cecbac3dc67fb9a411c9050708623",
+          "bytes_declared": 1026,
+          "bytes_current": 1026,
+          "exists": true,
+          "matches_manifest": true
+        },
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\core-execution-unload-summary-batch2-2026-09-30.json",
+          "sha256_declared": "624c129d5315b2f9dbca7d5feefaa5ac2361d5703ec15b6730249addf27be858",
+          "sha256_current": "624c129d5315b2f9dbca7d5feefaa5ac2361d5703ec15b6730249addf27be858",
+          "bytes_declared": 3682,
+          "bytes_current": 3682,
+          "exists": true,
+          "matches_manifest": true
+        }
+      ],
+      "repo_source_hashes": [
+        {
+          "path": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md",
+          "sha256_declared": "ca1e7cd1eb6cfdcc3ebfc15f05b9118bf773668d0ec0a57b6fcadd56a1ef3cb9",
+          "sha256_current": "ca1e7cd1eb6cfdcc3ebfc15f05b9118bf773668d0ec0a57b6fcadd56a1ef3cb9",
+          "bytes_current": 29772,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/optimize/zircon_runtime/158-runtime-core-events-tasks-timer-event-bus-task-graph-current-source-review.md",
+          "sha256_declared": "a88e3d92a8afee5ac08361deef262ed5bbef15cfd5ff2255934772e8005c7980",
+          "sha256_current": "a88e3d92a8afee5ac08361deef262ed5bbef15cfd5ff2255934772e8005c7980",
+          "bytes_current": 24778,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/runtime.rs",
+          "sha256_declared": "20103aa41a84999d577ac862d5acccb96910230dc202f786dca4bea11859921a",
+          "sha256_current": "20103aa41a84999d577ac862d5acccb96910230dc202f786dca4bea11859921a",
+          "bytes_current": 19093,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/pools.rs",
+          "sha256_declared": "1e0fe5789c0935df1ebd6e52adc9f96d2e9aaed0c1a9810354ec6187d3124fa3",
+          "sha256_current": "1e0fe5789c0935df1ebd6e52adc9f96d2e9aaed0c1a9810354ec6187d3124fa3",
+          "bytes_current": 9092,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/timer.rs",
+          "sha256_declared": "a4e222a74c57c2e2bcbedf380cf3b7858f0f75fa57bcd8552f51c63986d6d0ee",
+          "sha256_current": "a4e222a74c57c2e2bcbedf380cf3b7858f0f75fa57bcd8552f51c63986d6d0ee",
+          "bytes_current": 14851,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/callback_dispatcher.rs",
+          "sha256_declared": "c2ecb0bb9c2ee7bede4fe45539ae27b91df170284615957e99197847972195e5",
+          "sha256_current": "c2ecb0bb9c2ee7bede4fe45539ae27b91df170284615957e99197847972195e5",
+          "bytes_current": 11030,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_graph/engine_task_graph.rs",
+          "sha256_declared": "9f62e5153870ca6555ff466665d5335560c48dcc1c72226cba12728fb8896528",
+          "sha256_current": "9f62e5153870ca6555ff466665d5335560c48dcc1c72226cba12728fb8896528",
+          "bytes_current": 13386,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/dynamic_api/session/state.rs",
+          "sha256_declared": "056cb42e745ee8fee09289c2e8d1592d866841e0a6c89bbee6ec362c89d53e2b",
+          "sha256_current": "056cb42e745ee8fee09289c2e8d1592d866841e0a6c89bbee6ec362c89d53e2b",
+          "bytes_current": 34667,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/dynamic_api/session/registry/session_owner/runtime.rs",
+          "sha256_declared": "62ef5691950b41f11c1e534e1ca7eedf5b3d2a20791d1bc4e2d4d83b7759c763",
+          "sha256_current": "62ef5691950b41f11c1e534e1ca7eedf5b3d2a20791d1bc4e2d4d83b7759c763",
+          "bytes_current": 12876,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+          "sha256_declared": "f945d7bd887d82f9b940e0f14b572481a7e7a6968698b7a1e32d99c64bbb9433",
+          "sha256_current": "f945d7bd887d82f9b940e0f14b572481a7e7a6968698b7a1e32d99c64bbb9433",
+          "bytes_current": 22608,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs",
+          "sha256_declared": "4c1f8996e5de93844c04edfabc3e8a4eaa5620e268a3534ef7f1e425a35ef1b4",
+          "sha256_current": "4c1f8996e5de93844c04edfabc3e8a4eaa5620e268a3534ef7f1e425a35ef1b4",
+          "bytes_current": 14564,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/operation/maintenance.rs",
+          "sha256_declared": "bb770c542f22edcc99e1e5894da314230b7756e0a3f9a6a25de728449ceba476",
+          "sha256_current": "bb770c542f22edcc99e1e5894da314230b7756e0a3f9a6a25de728449ceba476",
+          "bytes_current": 8534,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/foundation/runtime/config_manager/worker.rs",
+          "sha256_declared": "4582964df02d4882a50972ed34e6cab6dc620ac8074a14dba9a4872600c78d6b",
+          "sha256_current": "4582964df02d4882a50972ed34e6cab6dc620ac8074a14dba9a4872600c78d6b",
+          "bytes_current": 10787,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/dynamic_api/session/registry/tests.rs",
+          "sha256_declared": "d88185fbd7bef31525568c01ad305d3e03ca1d43e678ecc7101dd3b063b64590",
+          "sha256_current": "d88185fbd7bef31525568c01ad305d3e03ca1d43e678ecc7101dd3b063b64590",
+          "bytes_current": 36181,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_graph/engine_task_graph/tests.rs",
+          "sha256_declared": "c60b8a2c380f8c5856f5c161c35d3f02ba623ba5797c9c482010bbcb10cf3696",
+          "sha256_current": "c60b8a2c380f8c5856f5c161c35d3f02ba623ba5797c9c482010bbcb10cf3696",
+          "bytes_current": 20020,
+          "fresh": true
+        }
+      ]
+    },
+    {
+      "packet": "diagnostic-query-supersession-batch2-2026-09-30",
+      "manifest_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\manifest-diagnostic-query-supersession-batch2-2026-09-30.json",
+      "manifest_sha256": "1ca84645ae81665dbb4698138eac7813cc47710487d8d247769548b9c2df9ede",
+      "manifest_bytes": 2884,
+      "declared_artifacts": [
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\diagnostic-query-supersession-batch2-2026-09-30-review.jsonl",
+          "sha256_declared": "65101a0d3175fd209a2efc124e2db231d2f4dfcbcdc7cdbda52a9fad9eb15855",
+          "sha256_current": "65101a0d3175fd209a2efc124e2db231d2f4dfcbcdc7cdbda52a9fad9eb15855",
+          "bytes_declared": 9775,
+          "bytes_current": 9775,
+          "exists": true,
+          "matches_manifest": true
+        },
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\diagnostic-query-supersession-batch2-2026-09-30-edges.jsonl",
+          "sha256_declared": "1ceaa54ce341e0b35ef87b7e16f0844c4e98bd7aacd2c556a2665ba2d6c16b85",
+          "sha256_current": "1ceaa54ce341e0b35ef87b7e16f0844c4e98bd7aacd2c556a2665ba2d6c16b85",
+          "bytes_declared": 732,
+          "bytes_current": 732,
+          "exists": true,
+          "matches_manifest": true
+        },
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\diagnostic-query-supersession-batch2-2026-09-30-summary.json",
+          "sha256_declared": "6727ad82b698c6086d7a2ada80a61923b9e94400e1c91693bc0be411624556e1",
+          "sha256_current": "6727ad82b698c6086d7a2ada80a61923b9e94400e1c91693bc0be411624556e1",
+          "bytes_declared": 2426,
+          "bytes_current": 2426,
+          "exists": true,
+          "matches_manifest": true
+        }
+      ],
+      "repo_source_hashes": [
+        {
+          "path": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md",
+          "sha256_declared": "6e52906a43ab58607c8de160626322ab9e2a7f9a78cb73885a5e60f65ab829fd",
+          "sha256_current": "6e52906a43ab58607c8de160626322ab9e2a7f9a78cb73885a5e60f65ab829fd",
+          "bytes_current": 30933,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md",
+          "sha256_declared": "cfc15f859b1f73b6ba0ea42c928a01d57498edbf12f2589a138f4f0fbd2aefb7",
+          "sha256_current": "cfc15f859b1f73b6ba0ea42c928a01d57498edbf12f2589a138f4f0fbd2aefb7",
+          "bytes_current": 43338,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/runtime_diagnostics/collect.rs",
+          "sha256_declared": "3b96772f69e9b62c7a5c628b1492f194daab6d5bda5278eb7e50aad85e67c150",
+          "sha256_current": "3b96772f69e9b62c7a5c628b1492f194daab6d5bda5278eb7e50aad85e67c150",
+          "bytes_current": 8833,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/handle/diagnostics.rs",
+          "sha256_declared": "73f2855495b951a690e5dc6ab6d36916ba5c9d4d48fa8fcfca751e1416ce79da",
+          "sha256_current": "73f2855495b951a690e5dc6ab6d36916ba5c9d4d48fa8fcfca751e1416ce79da",
+          "bytes_current": 7315,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/dynamic_api/session/state.rs",
+          "sha256_declared": "056cb42e745ee8fee09289c2e8d1592d866841e0a6c89bbee6ec362c89d53e2b",
+          "sha256_current": "056cb42e745ee8fee09289c2e8d1592d866841e0a6c89bbee6ec362c89d53e2b",
+          "bytes_current": 34667,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/dynamic_api/session/diagnostics.rs",
+          "sha256_declared": "8170fb1ae687907046d3917f921ed0127da31fe9b84f7301ff6528b974d14584",
+          "sha256_current": "8170fb1ae687907046d3917f921ed0127da31fe9b84f7301ff6528b974d14584",
+          "bytes_current": 15398,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/astra/optimize/01/2026-09-26-w0-report-inventory.md",
+          "sha256_declared": "9b15f21cf9ce0e5cb4f7f5c7b156979ff8bb8b5fea5fbda16a757e1064e0b5e8",
+          "sha256_current": "9b15f21cf9ce0e5cb4f7f5c7b156979ff8bb8b5fea5fbda16a757e1064e0b5e8",
+          "bytes_current": 264157,
+          "fresh": true
+        }
+      ]
+    },
+    {
+      "packet": "profile-export-path-publish-batch2-2026-09-30",
+      "manifest_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\manifest-profile-export-path-publish-batch2-2026-09-30.json",
+      "manifest_sha256": "0fd621c8598510806cffdc2b16b86bfa292afd7c5ea138c448750198ab9fffca",
+      "manifest_bytes": 2809,
+      "declared_artifacts": [
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "sha256_declared": "96ad5f2e85833ba5f3b9969a4dfe99fa7d795e8891cab6a095046ae554434384",
+          "sha256_current": "96ad5f2e85833ba5f3b9969a4dfe99fa7d795e8891cab6a095046ae554434384",
+          "bytes_declared": null,
+          "bytes_current": 30323,
+          "exists": true,
+          "matches_manifest": true
+        },
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\profile-export-path-publish-batch2-2026-09-30-edges.jsonl",
+          "sha256_declared": "9e5fbe231526b84d8138a8ed10f9d7d157746316d225ac69b518781590e86366",
+          "sha256_current": "9e5fbe231526b84d8138a8ed10f9d7d157746316d225ac69b518781590e86366",
+          "bytes_declared": null,
+          "bytes_current": 2258,
+          "exists": true,
+          "matches_manifest": true
+        },
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\profile-export-path-publish-batch2-2026-09-30-summary.json",
+          "sha256_declared": "6e71be62feed8de98101fc9616b2a9485c30528b47a232aebf4b4392149a1660",
+          "sha256_current": "6e71be62feed8de98101fc9616b2a9485c30528b47a232aebf4b4392149a1660",
+          "bytes_declared": null,
+          "bytes_current": 3557,
+          "exists": true,
+          "matches_manifest": true
+        }
+      ],
+      "repo_source_hashes": [
+        {
+          "path": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md",
+          "sha256_declared": "6e52906a43ab58607c8de160626322ab9e2a7f9a78cb73885a5e60f65ab829fd",
+          "sha256_current": "6e52906a43ab58607c8de160626322ab9e2a7f9a78cb73885a5e60f65ab829fd",
+          "bytes_current": 30933,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md",
+          "sha256_declared": "cfc15f859b1f73b6ba0ea42c928a01d57498edbf12f2589a138f4f0fbd2aefb7",
+          "sha256_current": "cfc15f859b1f73b6ba0ea42c928a01d57498edbf12f2589a138f4f0fbd2aefb7",
+          "bytes_current": 43338,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md",
+          "sha256_declared": "30c690d9fe42636340d5933db9a410b505667aa057d7d75858b873daaf0c9f04",
+          "sha256_current": "30c690d9fe42636340d5933db9a410b505667aa057d7d75858b873daaf0c9f04",
+          "bytes_current": 22194,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/astra/optimize/01/2026-09-26-w0-report-inventory.md",
+          "sha256_declared": "9b15f21cf9ce0e5cb4f7f5c7b156979ff8bb8b5fea5fbda16a757e1064e0b5e8",
+          "sha256_current": "9b15f21cf9ce0e5cb4f7f5c7b156979ff8bb8b5fea5fbda16a757e1064e0b5e8",
+          "bytes_current": 264157,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs",
+          "sha256_declared": "2ff53bffbc62806d9c7445e5b414455d648ef65a8d6490bbc79f8a842b82ee78",
+          "sha256_current": "2ff53bffbc62806d9c7445e5b414455d648ef65a8d6490bbc79f8a842b82ee78",
+          "bytes_current": 32206,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/diagnostics/profiling/export/session_owner.rs",
+          "sha256_declared": "969e3a57a330fe8c85bb941683d12654a149f1f4bb3e829409937a4e3d112d12",
+          "sha256_current": "969e3a57a330fe8c85bb941683d12654a149f1f4bb3e829409937a4e3d112d12",
+          "bytes_current": 2459,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/diagnostics/profiling/export/json_writer.rs",
+          "sha256_declared": "9b7c5d47b59bfcb7761080c0e404b4d4337f304cc4a80b22a19f589cdd2c1336",
+          "sha256_current": "9b7c5d47b59bfcb7761080c0e404b4d4337f304cc4a80b22a19f589cdd2c1336",
+          "bytes_current": 1740,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs",
+          "sha256_declared": "2c3aa2eec8fdd9068272489b88f63bdfafdd6875dd5687c3d3abb1c9a8b67921",
+          "sha256_current": "2c3aa2eec8fdd9068272489b88f63bdfafdd6875dd5687c3d3abb1c9a8b67921",
+          "bytes_current": 23838,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime_interface/src/profiling.rs",
+          "sha256_declared": "f6ced6f1d33b4d00eaa6be929f1b06f05d6550610618800c8e75f9f01c906c43",
+          "sha256_current": "f6ced6f1d33b4d00eaa6be929f1b06f05d6550610618800c8e75f9f01c906c43",
+          "bytes_current": 43447,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/diagnostics/profiling/export/streaming_tests.rs",
+          "sha256_declared": "6e6c4847d4d6806b7a177c3c825296fccd8657239a96fcb8ab2d3867522e1020",
+          "sha256_current": "6e6c4847d4d6806b7a177c3c825296fccd8657239a96fcb8ab2d3867522e1020",
+          "bytes_current": 10775,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/diagnostics/profiling/export/session_owner_tests.rs",
+          "sha256_declared": "db774bb4be13687a0e21d30030087f8862c093bb5fc9a3e2b7cb8978fc0773e8",
+          "sha256_current": "db774bb4be13687a0e21d30030087f8862c093bb5fc9a3e2b7cb8978fc0773e8",
+          "bytes_current": 6412,
+          "fresh": true
+        }
+      ]
+    },
+    {
+      "packet": "profile-metric-store-batch2-2026-09-30",
+      "manifest_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\manifest-profile-metric-store-batch2-2026-09-30.json",
+      "manifest_sha256": "637986f7d5a067bc67ba7b413ce02574c1614cd646c81810bd59bee542dd08df",
+      "manifest_bytes": 2602,
+      "declared_artifacts": [
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\profile-metric-store-batch2-2026-09-30-review.jsonl",
+          "sha256_declared": "f23b2e627aa547e748f5345833efa07c9cc91165eee6d41a5b447b95d3d3288a",
+          "sha256_current": "f23b2e627aa547e748f5345833efa07c9cc91165eee6d41a5b447b95d3d3288a",
+          "bytes_declared": null,
+          "bytes_current": 53725,
+          "exists": true,
+          "matches_manifest": true
+        },
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\profile-metric-store-batch2-2026-09-30-edges.jsonl",
+          "sha256_declared": "aba3ccc6d893f143b90325ca8618a47d5a6851199e79a19b45c05c137991709b",
+          "sha256_current": "aba3ccc6d893f143b90325ca8618a47d5a6851199e79a19b45c05c137991709b",
+          "bytes_declared": null,
+          "bytes_current": 5476,
+          "exists": true,
+          "matches_manifest": true
+        },
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\profile-metric-store-batch2-2026-09-30-summary.json",
+          "sha256_declared": "411692856de9a0e17efcecc371ae9c070be43905bc5d61d7408e10ba0808455d",
+          "sha256_current": "411692856de9a0e17efcecc371ae9c070be43905bc5d61d7408e10ba0808455d",
+          "bytes_declared": null,
+          "bytes_current": 3751,
+          "exists": true,
+          "matches_manifest": true
+        }
+      ],
+      "repo_source_hashes": [
+        {
+          "path": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md",
+          "sha256_declared": "6e52906a43ab58607c8de160626322ab9e2a7f9a78cb73885a5e60f65ab829fd",
+          "sha256_current": "6e52906a43ab58607c8de160626322ab9e2a7f9a78cb73885a5e60f65ab829fd",
+          "bytes_current": 30933,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md",
+          "sha256_declared": "cfc15f859b1f73b6ba0ea42c928a01d57498edbf12f2589a138f4f0fbd2aefb7",
+          "sha256_current": "cfc15f859b1f73b6ba0ea42c928a01d57498edbf12f2589a138f4f0fbd2aefb7",
+          "bytes_current": 43338,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md",
+          "sha256_declared": "30c690d9fe42636340d5933db9a410b505667aa057d7d75858b873daaf0c9f04",
+          "sha256_current": "30c690d9fe42636340d5933db9a410b505667aa057d7d75858b873daaf0c9f04",
+          "bytes_current": 22194,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/astra/optimize/01/2026-09-26-w0-report-inventory.md",
+          "sha256_declared": "9b15f21cf9ce0e5cb4f7f5c7b156979ff8bb8b5fea5fbda16a757e1064e0b5e8",
+          "sha256_current": "9b15f21cf9ce0e5cb4f7f5c7b156979ff8bb8b5fea5fbda16a757e1064e0b5e8",
+          "bytes_current": 264157,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs",
+          "sha256_declared": "2c3aa2eec8fdd9068272489b88f63bdfafdd6875dd5687c3d3abb1c9a8b67921",
+          "sha256_current": "2c3aa2eec8fdd9068272489b88f63bdfafdd6875dd5687c3d3abb1c9a8b67921",
+          "bytes_current": 23838,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/diagnostics/profiling/scope.rs",
+          "sha256_declared": "6e370fdcee114cfd67382f29c63424cc2ac4b444e131324bf1baf01cf2205e85",
+          "sha256_current": "6e370fdcee114cfd67382f29c63424cc2ac4b444e131324bf1baf01cf2205e85",
+          "bytes_current": 10766,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/diagnostics/profiling/recorder.rs",
+          "sha256_declared": "b0edd169ff9b997509964f8a4fbf0ee378df9adcf75def46f8d8ce6d13360967",
+          "sha256_current": "b0edd169ff9b997509964f8a4fbf0ee378df9adcf75def46f8d8ce6d13360967",
+          "bytes_current": 13186,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/diagnostics/profiling/macros.rs",
+          "sha256_declared": "1d9c417f5b8d999daef2b4eed66cbc889544d3c726b9f16f20b3f6de7cacc10c",
+          "sha256_current": "1d9c417f5b8d999daef2b4eed66cbc889544d3c726b9f16f20b3f6de7cacc10c",
+          "bytes_current": 3947,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/diagnostics/store.rs",
+          "sha256_declared": "3339a0b787aaf3c9e224d14b805362b6394548d6b51696242a4aa28280c6aa39",
+          "sha256_current": "3339a0b787aaf3c9e224d14b805362b6394548d6b51696242a4aa28280c6aa39",
+          "bytes_current": 15497,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/dynamic_api/tests/profile_control.rs",
+          "sha256_declared": "ed0e379b6135c452207f78f65636ce576290ce78fc2ed3d5b9257d669073b13d",
+          "sha256_current": "ed0e379b6135c452207f78f65636ce576290ce78fc2ed3d5b9257d669073b13d",
+          "bytes_current": 6671,
+          "fresh": true
+        }
+      ]
+    },
+    {
+      "packet": "runtime02-p1-1-batch2-2026-09-30",
+      "manifest_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\manifest-runtime02-p1-1-batch2-2026-09-30.json",
+      "manifest_sha256": "4da8c746906d09919a9449cc4ff125f2e1243f285a5a8f6af01ea15d00d124b1",
+      "manifest_bytes": 3176,
+      "declared_artifacts": [
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\runtime02-p1-1-current-source-review-batch2-2026-09-30.jsonl",
+          "sha256_declared": "425d1a9e158a1542ebff2e1141428e1982ba8df7598ea89bfe3f8be2f777f873",
+          "sha256_current": "425d1a9e158a1542ebff2e1141428e1982ba8df7598ea89bfe3f8be2f777f873",
+          "bytes_declared": 40274,
+          "bytes_current": 40274,
+          "exists": true,
+          "matches_manifest": true
+        },
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\runtime02-p1-1-currentness-edges-batch2-2026-09-30.jsonl",
+          "sha256_declared": "d94df1e7079e2ebb8e329d2c4bf502cb52f5e0795281b9460e4a0259a427da58",
+          "sha256_current": "d94df1e7079e2ebb8e329d2c4bf502cb52f5e0795281b9460e4a0259a427da58",
+          "bytes_declared": 838,
+          "bytes_current": 838,
+          "exists": true,
+          "matches_manifest": true
+        },
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\runtime02-p1-1-summary-batch2-2026-09-30.json",
+          "sha256_declared": "ac337e68f66bd573ccbee2957fb0f8e4940b3c451b3621e4ef477ff1aa89e45e",
+          "sha256_current": "ac337e68f66bd573ccbee2957fb0f8e4940b3c451b3621e4ef477ff1aa89e45e",
+          "bytes_declared": 3255,
+          "bytes_current": 3255,
+          "exists": true,
+          "matches_manifest": true
+        }
+      ],
+      "repo_source_hashes": [
+        {
+          "path": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md",
+          "sha256_declared": "ca1e7cd1eb6cfdcc3ebfc15f05b9118bf773668d0ec0a57b6fcadd56a1ef3cb9",
+          "sha256_current": "ca1e7cd1eb6cfdcc3ebfc15f05b9118bf773668d0ec0a57b6fcadd56a1ef3cb9",
+          "bytes_current": 29772,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/optimize/zircon_runtime/158-runtime-core-events-tasks-timer-event-bus-task-graph-current-source-review.md",
+          "sha256_declared": "a88e3d92a8afee5ac08361deef262ed5bbef15cfd5ff2255934772e8005c7980",
+          "sha256_current": "a88e3d92a8afee5ac08361deef262ed5bbef15cfd5ff2255934772e8005c7980",
+          "bytes_current": 24778,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/astra/optimize/01/2026-09-26-w0-report-inventory.md",
+          "sha256_declared": "9b15f21cf9ce0e5cb4f7f5c7b156979ff8bb8b5fea5fbda16a757e1064e0b5e8",
+          "sha256_current": "9b15f21cf9ce0e5cb4f7f5c7b156979ff8bb8b5fea5fbda16a757e1064e0b5e8",
+          "bytes_current": 264157,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/job_scheduler.rs",
+          "sha256_declared": "4f314ed406789204b4d53cd44988122c3b9fa3d71013f505771f99ccc1f98f32",
+          "sha256_current": "4f314ed406789204b4d53cd44988122c3b9fa3d71013f505771f99ccc1f98f32",
+          "bytes_current": 15581,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/job_scheduler/pending.rs",
+          "sha256_declared": "a3098be196c0cfd0d2b12075ea7027a9a835f950fb315173a53e31279fca7a2c",
+          "sha256_current": "a3098be196c0cfd0d2b12075ea7027a9a835f950fb315173a53e31279fca7a2c",
+          "bytes_current": 6431,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/job_handle.rs",
+          "sha256_declared": "aa5762847103a5f6f9c5f47104436883270c04b8d84e085e62ffe708237ae32f",
+          "sha256_current": "aa5762847103a5f6f9c5f47104436883270c04b8d84e085e62ffe708237ae32f",
+          "bytes_current": 15417,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/pool.rs",
+          "sha256_declared": "e542736bdc8b96a51bc38ccfee49ca5bb1573a20c7fc2e14bb48a0f31e946e22",
+          "sha256_current": "e542736bdc8b96a51bc38ccfee49ca5bb1573a20c7fc2e14bb48a0f31e946e22",
+          "bytes_current": 15358,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_graph/scope.rs",
+          "sha256_declared": "18177fc44b351d55dade369edaa0e392d4d36bc7b6103e480a73f92ea42de5fe",
+          "sha256_current": "18177fc44b351d55dade369edaa0e392d4d36bc7b6103e480a73f92ea42de5fe",
+          "bytes_current": 16153,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_graph/task_handle.rs",
+          "sha256_declared": "27c8127cef548286be20a867741c19a485438e1faa7602ed9fe765661e6c7866",
+          "sha256_current": "27c8127cef548286be20a867741c19a485438e1faa7602ed9fe765661e6c7866",
+          "bytes_current": 5917,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/job_scheduler/tests.rs",
+          "sha256_declared": "ce9b10597813f58a468c928e8cacfed0973f6540272a7a2bc2fd7577c5b49103",
+          "sha256_current": "ce9b10597813f58a468c928e8cacfed0973f6540272a7a2bc2fd7577c5b49103",
+          "bytes_current": 9902,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_graph/scope/tests.rs",
+          "sha256_declared": "e0bce0beadd38145a840759fa6d45014dc6151e78f11603f671a95ff0cfaa2e3",
+          "sha256_current": "e0bce0beadd38145a840759fa6d45014dc6151e78f11603f671a95ff0cfaa2e3",
+          "bytes_current": 30900,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_graph/scope/tests/panic_payload.rs",
+          "sha256_declared": "0282b2ab5f7c9117e719daa75c151bc5bed73a847ef3d6dc532f1471503bf48e",
+          "sha256_current": "0282b2ab5f7c9117e719daa75c151bc5bed73a847ef3d6dc532f1471503bf48e",
+          "bytes_current": 3587,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/job_handle/tests.rs",
+          "sha256_declared": "49bb372b66184354cf08d7825f521e96f242bbcf76a0758b4ad8b0b4826f2698",
+          "sha256_current": "49bb372b66184354cf08d7825f521e96f242bbcf76a0758b4ad8b0b4826f2698",
+          "bytes_current": 9965,
+          "fresh": true
+        }
+      ]
+    },
+    {
+      "packet": "runtime02-p1-2-batch2-2026-09-30",
+      "manifest_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\manifest-runtime02-p1-2-batch2-2026-09-30.json",
+      "manifest_sha256": "abe7ba2b139a46a3d5782c62e175a761ef05f3dc4b61f5692a6059dc1aef141f",
+      "manifest_bytes": 3717,
+      "declared_artifacts": [
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\runtime02-p1-2-current-source-review-batch2-2026-09-30.jsonl",
+          "sha256_declared": "e8f85b93d1b74d307de3825a0915e18480885adaef93f953aa92d82e9382b0a3",
+          "sha256_current": "e8f85b93d1b74d307de3825a0915e18480885adaef93f953aa92d82e9382b0a3",
+          "bytes_declared": 60533,
+          "bytes_current": 60533,
+          "exists": true,
+          "matches_manifest": true
+        },
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\runtime02-p1-2-currentness-edges-batch2-2026-09-30.jsonl",
+          "sha256_declared": "0c657f2d3edc33bc079331aa298fec49cbe7871e833e90cc0794c2e35074e8dc",
+          "sha256_current": "0c657f2d3edc33bc079331aa298fec49cbe7871e833e90cc0794c2e35074e8dc",
+          "bytes_declared": 970,
+          "bytes_current": 970,
+          "exists": true,
+          "matches_manifest": true
+        },
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\runtime02-p1-2-summary-batch2-2026-09-30.json",
+          "sha256_declared": "e18b47276dfc84539e9206583e14c90c0caeb965d18495fd7b999b111848b8ae",
+          "sha256_current": "e18b47276dfc84539e9206583e14c90c0caeb965d18495fd7b999b111848b8ae",
+          "bytes_declared": 3881,
+          "bytes_current": 3881,
+          "exists": true,
+          "matches_manifest": true
+        }
+      ],
+      "repo_source_hashes": [
+        {
+          "path": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md",
+          "sha256_declared": "ca1e7cd1eb6cfdcc3ebfc15f05b9118bf773668d0ec0a57b6fcadd56a1ef3cb9",
+          "sha256_current": "ca1e7cd1eb6cfdcc3ebfc15f05b9118bf773668d0ec0a57b6fcadd56a1ef3cb9",
+          "bytes_current": 29772,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/optimize/zircon_runtime/158-runtime-core-events-tasks-timer-event-bus-task-graph-current-source-review.md",
+          "sha256_declared": "a88e3d92a8afee5ac08361deef262ed5bbef15cfd5ff2255934772e8005c7980",
+          "sha256_current": "a88e3d92a8afee5ac08361deef262ed5bbef15cfd5ff2255934772e8005c7980",
+          "bytes_current": 24778,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/astra/optimize/01/2026-09-26-w0-report-inventory.md",
+          "sha256_declared": "9b15f21cf9ce0e5cb4f7f5c7b156979ff8bb8b5fea5fbda16a757e1064e0b5e8",
+          "sha256_current": "9b15f21cf9ce0e5cb4f7f5c7b156979ff8bb8b5fea5fbda16a757e1064e0b5e8",
+          "bytes_current": 264157,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/framework/tasks/mod.rs",
+          "sha256_declared": "224713be590a9acaec1c1d6429b775c6909971af4e928629d7e91f63ee71f03c",
+          "sha256_current": "224713be590a9acaec1c1d6429b775c6909971af4e928629d7e91f63ee71f03c",
+          "bytes_current": 157,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/framework/tasks/parallel_slice_executor.rs",
+          "sha256_declared": "3e9c6c3c445e499b3ef20b88da2175e74052577f3afa6f36bf62101ad82e82b1",
+          "sha256_current": "3e9c6c3c445e499b3ef20b88da2175e74052577f3afa6f36bf62101ad82e82b1",
+          "bytes_current": 2376,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_descriptor.rs",
+          "sha256_declared": "df7ed9c689ad29d91c0e3bd5575451c02bf5c9d792ae273485ae45c500ff2051",
+          "sha256_current": "df7ed9c689ad29d91c0e3bd5575451c02bf5c9d792ae273485ae45c500ff2051",
+          "bytes_current": 877,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_cancellation_policy.rs",
+          "sha256_declared": "7473997e1e036df7e78fa743022e6ae66bb1f26916a83726119bb565f7d27f01",
+          "sha256_current": "7473997e1e036df7e78fa743022e6ae66bb1f26916a83726119bb565f7d27f01",
+          "bytes_current": 511,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_status.rs",
+          "sha256_declared": "e9b441c72643c3915a85fd37e731df6ac73d854f383c53d1cb41f4c5bbda8348",
+          "sha256_current": "e9b441c72643c3915a85fd37e731df6ac73d854f383c53d1cb41f4c5bbda8348",
+          "bytes_current": 1885,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_state.rs",
+          "sha256_declared": "0d140608e8e3718e2a328e7eecf9ec79eaae2773dd9de6a9d3896dfaba446a34",
+          "sha256_current": "0d140608e8e3718e2a328e7eecf9ec79eaae2773dd9de6a9d3896dfaba446a34",
+          "bytes_current": 439,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_graph/scope_model.rs",
+          "sha256_declared": "69e1b28d0a6b62fa933fc128e5f3ed579189e70607136880f4014f875bb27145",
+          "sha256_current": "69e1b28d0a6b62fa933fc128e5f3ed579189e70607136880f4014f875bb27145",
+          "bytes_current": 1369,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_graph/scope.rs",
+          "sha256_declared": "18177fc44b351d55dade369edaa0e392d4d36bc7b6103e480a73f92ea42de5fe",
+          "sha256_current": "18177fc44b351d55dade369edaa0e392d4d36bc7b6103e480a73f92ea42de5fe",
+          "bytes_current": 16153,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_graph/task_handle.rs",
+          "sha256_declared": "27c8127cef548286be20a867741c19a485438e1faa7602ed9fe765661e6c7866",
+          "sha256_current": "27c8127cef548286be20a867741c19a485438e1faa7602ed9fe765661e6c7866",
+          "bytes_current": 5917,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/job_scheduler.rs",
+          "sha256_declared": "4f314ed406789204b4d53cd44988122c3b9fa3d71013f505771f99ccc1f98f32",
+          "sha256_current": "4f314ed406789204b4d53cd44988122c3b9fa3d71013f505771f99ccc1f98f32",
+          "bytes_current": 15581,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/state/core_runtime_state.rs",
+          "sha256_declared": "989abff0748ed6889803d141d7032921e62a4b27f593671c2d3afd13b81cd531",
+          "sha256_current": "989abff0748ed6889803d141d7032921e62a4b27f593671c2d3afd13b81cd531",
+          "bytes_current": 14143,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/scene/dynamic_scene/spawn_task/loader.rs",
+          "sha256_declared": "f3e2b86b351362e6613800b23142e2aa4c40e91d22c0f213c75cecc365e95765",
+          "sha256_current": "f3e2b86b351362e6613800b23142e2aa4c40e91d22c0f213c75cecc365e95765",
+          "bytes_current": 11889,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/bounded_stream_io/lane.rs",
+          "sha256_declared": "b0b8ab02e5a0bb9b48c8103cfbaf1bdaecb80a09ca876da42d72b7c7929b9dbd",
+          "sha256_current": "b0b8ab02e5a0bb9b48c8103cfbaf1bdaecb80a09ca876da42d72b7c7929b9dbd",
+          "bytes_current": 7851,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_graph/scope/tests.rs",
+          "sha256_declared": "e0bce0beadd38145a840759fa6d45014dc6151e78f11603f671a95ff0cfaa2e3",
+          "sha256_current": "e0bce0beadd38145a840759fa6d45014dc6151e78f11603f671a95ff0cfaa2e3",
+          "bytes_current": 30900,
+          "fresh": true
+        }
+      ]
+    },
+    {
+      "packet": "runtime02-p1-3-batch2-2026-09-30",
+      "manifest_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\manifest-runtime02-p1-3-batch2-2026-09-30.json",
+      "manifest_sha256": "c68f8c61ac5fc3b37467ebc573a4975e4ba149f7b300a38b723ab6a8d4783cc3",
+      "manifest_bytes": 4427,
+      "declared_artifacts": [
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\runtime02-p1-3-current-source-review-batch2-2026-09-30.jsonl",
+          "sha256_declared": "4f06c47209af2b867d2e7c695df114f89754b77a43a58ff9e275fc11f537cdaa",
+          "sha256_current": "4f06c47209af2b867d2e7c695df114f89754b77a43a58ff9e275fc11f537cdaa",
+          "bytes_declared": 65011,
+          "bytes_current": 65011,
+          "exists": true,
+          "matches_manifest": true
+        },
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\runtime02-p1-3-currentness-edges-batch2-2026-09-30.jsonl",
+          "sha256_declared": "d2ea585ae0c3fd2643b770269c371f9ae7078cd79422d373c22f3601bd262bd2",
+          "sha256_current": "d2ea585ae0c3fd2643b770269c371f9ae7078cd79422d373c22f3601bd262bd2",
+          "bytes_declared": 2033,
+          "bytes_current": 2033,
+          "exists": true,
+          "matches_manifest": true
+        },
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\runtime02-p1-3-summary-batch2-2026-09-30.json",
+          "sha256_declared": "0785d8c5dc28e4dab4dbb4a6cfed3545d31a1850d600b7d4283ee08affb8af69",
+          "sha256_current": "0785d8c5dc28e4dab4dbb4a6cfed3545d31a1850d600b7d4283ee08affb8af69",
+          "bytes_declared": 4676,
+          "bytes_current": 4676,
+          "exists": true,
+          "matches_manifest": true
+        }
+      ],
+      "repo_source_hashes": [
+        {
+          "path": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md",
+          "sha256_declared": "ca1e7cd1eb6cfdcc3ebfc15f05b9118bf773668d0ec0a57b6fcadd56a1ef3cb9",
+          "sha256_current": "ca1e7cd1eb6cfdcc3ebfc15f05b9118bf773668d0ec0a57b6fcadd56a1ef3cb9",
+          "bytes_current": 29772,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/optimize/zircon_runtime/158-runtime-core-events-tasks-timer-event-bus-task-graph-current-source-review.md",
+          "sha256_declared": "a88e3d92a8afee5ac08361deef262ed5bbef15cfd5ff2255934772e8005c7980",
+          "sha256_current": "a88e3d92a8afee5ac08361deef262ed5bbef15cfd5ff2255934772e8005c7980",
+          "bytes_current": 24778,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/astra/optimize/01/2026-09-26-w0-report-inventory.md",
+          "sha256_declared": "9b15f21cf9ce0e5cb4f7f5c7b156979ff8bb8b5fea5fbda16a757e1064e0b5e8",
+          "sha256_current": "9b15f21cf9ce0e5cb4f7f5c7b156979ff8bb8b5fea5fbda16a757e1064e0b5e8",
+          "bytes_current": 264157,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/job_scheduler.rs",
+          "sha256_declared": "4f314ed406789204b4d53cd44988122c3b9fa3d71013f505771f99ccc1f98f32",
+          "sha256_current": "4f314ed406789204b4d53cd44988122c3b9fa3d71013f505771f99ccc1f98f32",
+          "bytes_current": 15581,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/pool.rs",
+          "sha256_declared": "e542736bdc8b96a51bc38ccfee49ca5bb1573a20c7fc2e14bb48a0f31e946e22",
+          "sha256_current": "e542736bdc8b96a51bc38ccfee49ca5bb1573a20c7fc2e14bb48a0f31e946e22",
+          "bytes_current": 15358,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_descriptor.rs",
+          "sha256_declared": "df7ed9c689ad29d91c0e3bd5575451c02bf5c9d792ae273485ae45c500ff2051",
+          "sha256_current": "df7ed9c689ad29d91c0e3bd5575451c02bf5c9d792ae273485ae45c500ff2051",
+          "bytes_current": 877,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_graph/scope_model.rs",
+          "sha256_declared": "69e1b28d0a6b62fa933fc128e5f3ed579189e70607136880f4014f875bb27145",
+          "sha256_current": "69e1b28d0a6b62fa933fc128e5f3ed579189e70607136880f4014f875bb27145",
+          "bytes_current": 1369,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_graph/scope.rs",
+          "sha256_declared": "18177fc44b351d55dade369edaa0e392d4d36bc7b6103e480a73f92ea42de5fe",
+          "sha256_current": "18177fc44b351d55dade369edaa0e392d4d36bc7b6103e480a73f92ea42de5fe",
+          "bytes_current": 16153,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_graph/engine_task_graph.rs",
+          "sha256_declared": "9f62e5153870ca6555ff466665d5335560c48dcc1c72226cba12728fb8896528",
+          "sha256_current": "9f62e5153870ca6555ff466665d5335560c48dcc1c72226cba12728fb8896528",
+          "bytes_current": 13386,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/pool/tests.rs",
+          "sha256_declared": "62da1abde86a1abe877b967a6b30737c360ae1b9124156b6cc4b88375a3a8270",
+          "sha256_current": "62da1abde86a1abe877b967a6b30737c360ae1b9124156b6cc4b88375a3a8270",
+          "bytes_current": 3107,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/job_scheduler/tests.rs",
+          "sha256_declared": "ce9b10597813f58a468c928e8cacfed0973f6540272a7a2bc2fd7577c5b49103",
+          "sha256_current": "ce9b10597813f58a468c928e8cacfed0973f6540272a7a2bc2fd7577c5b49103",
+          "bytes_current": 9902,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_graph/scope/tests.rs",
+          "sha256_declared": "e0bce0beadd38145a840759fa6d45014dc6151e78f11603f671a95ff0cfaa2e3",
+          "sha256_current": "e0bce0beadd38145a840759fa6d45014dc6151e78f11603f671a95ff0cfaa2e3",
+          "bytes_current": 30900,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_graph/engine_task_graph/tests.rs",
+          "sha256_declared": "c60b8a2c380f8c5856f5c161c35d3f02ba623ba5797c9c482010bbcb10cf3696",
+          "sha256_current": "c60b8a2c380f8c5856f5c161c35d3f02ba623ba5797c9c482010bbcb10cf3696",
+          "bytes_current": 20020,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/bounded_keyed_io/tests.rs",
+          "sha256_declared": "c0283d566766b0917ae5fe3b4e317f2f59c54dcd2d105744348f27c818f5bc1a",
+          "sha256_current": "c0283d566766b0917ae5fe3b4e317f2f59c54dcd2d105744348f27c818f5bc1a",
+          "bytes_current": 26016,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/state/core_runtime_state.rs",
+          "sha256_declared": "989abff0748ed6889803d141d7032921e62a4b27f593671c2d3afd13b81cd531",
+          "sha256_current": "989abff0748ed6889803d141d7032921e62a4b27f593671c2d3afd13b81cd531",
+          "bytes_current": 14143,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/scene/module/scene_artifact_io.rs",
+          "sha256_declared": "0b089a287b2573def2969edfd898a57d8f1c9bf1cb0e5913e046cf5620347a14",
+          "sha256_current": "0b089a287b2573def2969edfd898a57d8f1c9bf1cb0e5913e046cf5620347a14",
+          "bytes_current": 7940,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery/io.rs",
+          "sha256_declared": "2956d2874d7869ca08f3490d9d0ba514c91efc4eec5a97eb826696975b834bf8",
+          "sha256_current": "2956d2874d7869ca08f3490d9d0ba514c91efc4eec5a97eb826696975b834bf8",
+          "bytes_current": 11130,
+          "fresh": true
+        },
+        {
+          "path": "zircon_editor/src/ui/host/editor_manager.rs",
+          "sha256_declared": "773b9dd6027b8107a93b9df69fcc8e2f978774c0e7dfea832dbdd79f83eba32f",
+          "sha256_current": "773b9dd6027b8107a93b9df69fcc8e2f978774c0e7dfea832dbdd79f83eba32f",
+          "bytes_current": 18671,
+          "fresh": true
+        },
+        {
+          "path": "zircon_plugins/animation/runtime/src/evaluation/pipeline/direct_clip_worker.rs",
+          "sha256_declared": "d0fdba7e6e3a5e9b6ad515332854cdcfa06c59e1b7fce67cf025b015575c73ed",
+          "sha256_current": "d0fdba7e6e3a5e9b6ad515332854cdcfa06c59e1b7fce67cf025b015575c73ed",
+          "bytes_current": 8349,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/platform/preferences/persistence/adapter.rs",
+          "sha256_declared": "c4b5421011a7be723c0abc22cb7a6cc8c491b548161737f0d17255154b5e5b2a",
+          "sha256_current": "c4b5421011a7be723c0abc22cb7a6cc8c491b548161737f0d17255154b5e5b2a",
+          "bytes_current": 27774,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/bounded_stream_io/lane.rs",
+          "sha256_declared": "b0b8ab02e5a0bb9b48c8103cfbaf1bdaecb80a09ca876da42d72b7c7929b9dbd",
+          "sha256_current": "b0b8ab02e5a0bb9b48c8103cfbaf1bdaecb80a09ca876da42d72b7c7929b9dbd",
+          "bytes_current": 7851,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/scene/dynamic_scene/spawn_task/loader.rs",
+          "sha256_declared": "f3e2b86b351362e6613800b23142e2aa4c40e91d22c0f213c75cecc365e95765",
+          "sha256_current": "f3e2b86b351362e6613800b23142e2aa4c40e91d22c0f213c75cecc365e95765",
+          "bytes_current": 11889,
+          "fresh": true
+        }
+      ]
+    },
+    {
+      "packet": "task-events-p1-batch2-2026-09-30",
+      "manifest_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\manifest-task-events-p1-batch2-2026-09-30.json",
+      "manifest_sha256": "7a0b17e55efdd6b302cf60057b8d7838791c39b572f97eab4a760a8f696e3a19",
+      "manifest_bytes": 4184,
+      "declared_artifacts": [
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\task-events-p1-batch2-2026-09-30-review.jsonl",
+          "sha256_declared": "6bd083c5a8df93688a8fc14bc574786290d4982459a086748e0e0394ddaa0d0b",
+          "sha256_current": "6bd083c5a8df93688a8fc14bc574786290d4982459a086748e0e0394ddaa0d0b",
+          "bytes_declared": 27117,
+          "bytes_current": 27117,
+          "exists": true,
+          "matches_manifest": true
+        },
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\task-events-p1-batch2-2026-09-30-currentness-edges.jsonl",
+          "sha256_declared": "03ca2f5d44f13d4c9cc0acdcbf5faf30d2f6b1a7075e5648a2fb8a0f4df0c76e",
+          "sha256_current": "03ca2f5d44f13d4c9cc0acdcbf5faf30d2f6b1a7075e5648a2fb8a0f4df0c76e",
+          "bytes_declared": 4168,
+          "bytes_current": 4168,
+          "exists": true,
+          "matches_manifest": true
+        },
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\task-events-p1-batch2-2026-09-30-summary.json",
+          "sha256_declared": "cd334ba9f053637123bb759d72260a47276c204a73048f3ef4f28dbf4a345316",
+          "sha256_current": "cd334ba9f053637123bb759d72260a47276c204a73048f3ef4f28dbf4a345316",
+          "bytes_declared": 4069,
+          "bytes_current": 4069,
+          "exists": true,
+          "matches_manifest": true
+        }
+      ],
+      "repo_source_hashes": [
+        {
+          "path": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md",
+          "sha256_declared": "ca1e7cd1eb6cfdcc3ebfc15f05b9118bf773668d0ec0a57b6fcadd56a1ef3cb9",
+          "sha256_current": "ca1e7cd1eb6cfdcc3ebfc15f05b9118bf773668d0ec0a57b6fcadd56a1ef3cb9",
+          "bytes_current": 29772,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/optimize/zircon_runtime/158-runtime-core-events-tasks-timer-event-bus-task-graph-current-source-review.md",
+          "sha256_declared": "a88e3d92a8afee5ac08361deef262ed5bbef15cfd5ff2255934772e8005c7980",
+          "sha256_current": "a88e3d92a8afee5ac08361deef262ed5bbef15cfd5ff2255934772e8005c7980",
+          "bytes_current": 24778,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/job_scheduler.rs",
+          "sha256_declared": "4f314ed406789204b4d53cd44988122c3b9fa3d71013f505771f99ccc1f98f32",
+          "sha256_current": "4f314ed406789204b4d53cd44988122c3b9fa3d71013f505771f99ccc1f98f32",
+          "bytes_current": 15581,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/pool.rs",
+          "sha256_declared": "e542736bdc8b96a51bc38ccfee49ca5bb1573a20c7fc2e14bb48a0f31e946e22",
+          "sha256_current": "e542736bdc8b96a51bc38ccfee49ca5bb1573a20c7fc2e14bb48a0f31e946e22",
+          "bytes_current": 15358,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/job_handle.rs",
+          "sha256_declared": "aa5762847103a5f6f9c5f47104436883270c04b8d84e085e62ffe708237ae32f",
+          "sha256_current": "aa5762847103a5f6f9c5f47104436883270c04b8d84e085e62ffe708237ae32f",
+          "bytes_current": 15417,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/job_scheduler/tests.rs",
+          "sha256_declared": "ce9b10597813f58a468c928e8cacfed0973f6540272a7a2bc2fd7577c5b49103",
+          "sha256_current": "ce9b10597813f58a468c928e8cacfed0973f6540272a7a2bc2fd7577c5b49103",
+          "bytes_current": 9902,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_descriptor.rs",
+          "sha256_declared": "df7ed9c689ad29d91c0e3bd5575451c02bf5c9d792ae273485ae45c500ff2051",
+          "sha256_current": "df7ed9c689ad29d91c0e3bd5575451c02bf5c9d792ae273485ae45c500ff2051",
+          "bytes_current": 877,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_graph/scope.rs",
+          "sha256_declared": "18177fc44b351d55dade369edaa0e392d4d36bc7b6103e480a73f92ea42de5fe",
+          "sha256_current": "18177fc44b351d55dade369edaa0e392d4d36bc7b6103e480a73f92ea42de5fe",
+          "bytes_current": 16153,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/text/render_state.rs",
+          "sha256_declared": "11a592f02b8526b2e92f2a4c981c85af6476fb3edfd77a369a662e667e55372b",
+          "sha256_current": "11a592f02b8526b2e92f2a4c981c85af6476fb3edfd77a369a662e667e55372b",
+          "bytes_current": 19505,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_graph/engine_task_graph.rs",
+          "sha256_declared": "9f62e5153870ca6555ff466665d5335560c48dcc1c72226cba12728fb8896528",
+          "sha256_current": "9f62e5153870ca6555ff466665d5335560c48dcc1c72226cba12728fb8896528",
+          "bytes_current": 13386,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_graph/scope_model.rs",
+          "sha256_declared": "69e1b28d0a6b62fa933fc128e5f3ed579189e70607136880f4014f875bb27145",
+          "sha256_current": "69e1b28d0a6b62fa933fc128e5f3ed579189e70607136880f4014f875bb27145",
+          "bytes_current": 1369,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/task_graph/scope/tests.rs",
+          "sha256_declared": "e0bce0beadd38145a840759fa6d45014dc6151e78f11603f671a95ff0cfaa2e3",
+          "sha256_current": "e0bce0beadd38145a840759fa6d45014dc6151e78f11603f671a95ff0cfaa2e3",
+          "bytes_current": 30900,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/thread_assignment.rs",
+          "sha256_declared": "038d1fcda7dd3644e0d8d7c1cadb08589f3523fbf979c43637aaf7cbfd02a35d",
+          "sha256_current": "038d1fcda7dd3644e0d8d7c1cadb08589f3523fbf979c43637aaf7cbfd02a35d",
+          "bytes_current": 3016,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tasks/pools.rs",
+          "sha256_declared": "1e0fe5789c0935df1ebd6e52adc9f96d2e9aaed0c1a9810354ec6187d3124fa3",
+          "sha256_current": "1e0fe5789c0935df1ebd6e52adc9f96d2e9aaed0c1a9810354ec6187d3124fa3",
+          "bytes_current": 9092,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/events/subscriber.rs",
+          "sha256_declared": "53659b4b4f529fe151e8ac8bf478d398586b74dabe496cf5874bc6a0e9833f97",
+          "sha256_current": "53659b4b4f529fe151e8ac8bf478d398586b74dabe496cf5874bc6a0e9833f97",
+          "bytes_current": 9594,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/events/publish.rs",
+          "sha256_declared": "e3eb72ecaf600cc957f48820beabe3066ff3724445ef6e9dcbf8e06c7476e6b0",
+          "sha256_current": "e3eb72ecaf600cc957f48820beabe3066ff3724445ef6e9dcbf8e06c7476e6b0",
+          "bytes_current": 3837,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/runtime/tests/events/behavior.rs",
+          "sha256_declared": "2dce1c215ad15dbebc645414b254620e3c9daf0a3da61fb7d89e07e28c753ee5",
+          "sha256_current": "2dce1c215ad15dbebc645414b254620e3c9daf0a3da61fb7d89e07e28c753ee5",
+          "bytes_current": 21018,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/core/framework/events.rs",
+          "sha256_declared": "48142d660ccbffa1917e13c72d889036613289cea9713d3589d63b4c2c792f0e",
+          "sha256_current": "48142d660ccbffa1917e13c72d889036613289cea9713d3589d63b4c2c792f0e",
+          "bytes_current": 3486,
+          "fresh": true
+        }
+      ]
+    },
+    {
+      "packet": "ui-accessibility-action-mapping-batch2-2026-09-30",
+      "manifest_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\manifest-ui-accessibility-action-mapping-batch2-2026-09-30.json",
+      "manifest_sha256": "1ce871c68911b5a9fbe8f6ccf8dc2aaab99011e58789ffca7cfcc08cbf98c825",
+      "manifest_bytes": 1570,
+      "declared_artifacts": [
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\ui-accessibility-action-mapping-review-batch2-2026-09-30.jsonl",
+          "sha256_declared": "36b9dfc5289d58c18d1bcab7345cb78691643f90950ea8ab1ec4a8ae9374854e",
+          "sha256_current": "36b9dfc5289d58c18d1bcab7345cb78691643f90950ea8ab1ec4a8ae9374854e",
+          "bytes_declared": 11927,
+          "bytes_current": 11927,
+          "exists": true,
+          "matches_manifest": true
+        },
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\ui-accessibility-action-mapping-summary-batch2-2026-09-30.json",
+          "sha256_declared": "9c0a1ff6e0e4d5fb2f377ed9bdda7152201fa2a8e80084a41d8799528b37b285",
+          "sha256_current": "9c0a1ff6e0e4d5fb2f377ed9bdda7152201fa2a8e80084a41d8799528b37b285",
+          "bytes_declared": 2271,
+          "bytes_current": 2271,
+          "exists": true,
+          "matches_manifest": true
+        }
+      ],
+      "repo_source_hashes": [
+        {
+          "path": "docs/plans/optimize/zircon_runtime/78-runtime-ui-accessibility-semantic-tree-name-description-relation-state-action-live-region-platform-adapter-product-integration-review.md",
+          "sha256_declared": "d2ec4d2a5777eadf8f44a218e7a180de80e9df0312e52eee3b6586bb614696dc",
+          "sha256_current": "d2ec4d2a5777eadf8f44a218e7a180de80e9df0312e52eee3b6586bb614696dc",
+          "bytes_current": 38579,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/ui/accessibility/accesskit.rs",
+          "sha256_declared": "fd3194c2d730d8672f23bcc36bf8c7ad6d72e1bc3b65d541b618677f36185bfe",
+          "sha256_current": "fd3194c2d730d8672f23bcc36bf8c7ad6d72e1bc3b65d541b618677f36185bfe",
+          "bytes_current": 11691,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/ui/tests/accesskit.rs",
+          "sha256_declared": "5c505af054bc4c6a8c157716c1dcd2e60438e67d688f8331cfcb59264db87eaa",
+          "sha256_current": "5c505af054bc4c6a8c157716c1dcd2e60438e67d688f8331cfcb59264db87eaa",
+          "bytes_current": 16713,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/optimize/zircon_runtime/200-runtime-ui-surface-input-focus-pointer-capture-ime-accessibility-frame-authority-current-working-tree-review.md",
+          "sha256_declared": "b7efaea4129669c8a82ea39231edfed54774081249948ca11ab7fffed3333fd6",
+          "sha256_current": "b7efaea4129669c8a82ea39231edfed54774081249948ca11ab7fffed3333fd6",
+          "bytes_current": 38886,
+          "fresh": true
+        }
+      ]
+    },
+    {
+      "packet": "ui-reply-transaction-batch2-2026-09-30",
+      "manifest_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\manifest-ui-reply-transaction-batch2-2026-09-30.json",
+      "manifest_sha256": "e077dae2e8f6c0c2e1d282f2b115cbd906cd225584ae48ea0478e0a7b2dae225",
+      "manifest_bytes": 2653,
+      "declared_artifacts": [
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\ui-reply-transaction-review-batch2-2026-09-30.jsonl",
+          "sha256_declared": "3a98ae69317ccbdc800db5964893e57cf846047b3efc91c92a4056c6d39f7008",
+          "sha256_current": "3a98ae69317ccbdc800db5964893e57cf846047b3efc91c92a4056c6d39f7008",
+          "bytes_declared": 25472,
+          "bytes_current": 25472,
+          "exists": true,
+          "matches_manifest": true
+        },
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\ui-reply-transaction-currentness-edges-batch2-2026-09-30.jsonl",
+          "sha256_declared": "dd353f513cea6c734ffd71a671e0534e7137847610853cfc677e9e6b4609fdb4",
+          "sha256_current": "dd353f513cea6c734ffd71a671e0534e7137847610853cfc677e9e6b4609fdb4",
+          "bytes_declared": 1051,
+          "bytes_current": 1051,
+          "exists": true,
+          "matches_manifest": true
+        },
+        {
+          "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\ui-reply-transaction-summary-batch2-2026-09-30.json",
+          "sha256_declared": "9b2bc94c58c5b6e97b62eed9ed4d327f03301f059dc7cab1b80da07078f7b7f6",
+          "sha256_current": "9b2bc94c58c5b6e97b62eed9ed4d327f03301f059dc7cab1b80da07078f7b7f6",
+          "bytes_declared": 3287,
+          "bytes_current": 3287,
+          "exists": true,
+          "matches_manifest": true
+        }
+      ],
+      "repo_source_hashes": [
+        {
+          "path": "docs/plans/optimize/zircon_runtime/77-runtime-ui-input-dispatch-routing-focus-navigation-pointer-capture-gesture-drag-drop-ime-window-lifecycle-product-integration-review.md",
+          "sha256_declared": "b280858d3288dcdcf28da1ebec0c387381a4bab8c3ca47b4fcf02a9bb48ce8e9",
+          "sha256_current": "b280858d3288dcdcf28da1ebec0c387381a4bab8c3ca47b4fcf02a9bb48ce8e9",
+          "bytes_current": 36607,
+          "fresh": true
+        },
+        {
+          "path": "docs/plans/optimize/zircon_runtime/200-runtime-ui-surface-input-focus-pointer-capture-ime-accessibility-frame-authority-current-working-tree-review.md",
+          "sha256_declared": "b7efaea4129669c8a82ea39231edfed54774081249948ca11ab7fffed3333fd6",
+          "sha256_current": "b7efaea4129669c8a82ea39231edfed54774081249948ca11ab7fffed3333fd6",
+          "bytes_current": 38886,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/ui/surface/input/effect.rs",
+          "sha256_declared": "c2cebca09859ec6d0770dbdf6c706962cae74cd53597930f446364467c638e39",
+          "sha256_current": "c2cebca09859ec6d0770dbdf6c706962cae74cd53597930f446364467c638e39",
+          "bytes_current": 10881,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/ui/surface/input/effect/transaction.rs",
+          "sha256_declared": "37f2137998b59f1ff1245aacfd214cb20bf10dcfe8f5e2548aa6cb6b138004af",
+          "sha256_current": "37f2137998b59f1ff1245aacfd214cb20bf10dcfe8f5e2548aa6cb6b138004af",
+          "bytes_current": 7413,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/ui/surface/mutation_snapshot.rs",
+          "sha256_declared": "34d6750e2bd1edb5c4560af6ad946b4032ef41c5253b7e2b13d6009dc3fde67b",
+          "sha256_current": "34d6750e2bd1edb5c4560af6ad946b4032ef41c5253b7e2b13d6009dc3fde67b",
+          "bytes_current": 4010,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/ui/dispatch/input_manager/manager.rs",
+          "sha256_declared": "f9a51f5fac3694dace32e90ffa0491d5ad9da4ac8531e24b5a5b87263d0cf654",
+          "sha256_current": "f9a51f5fac3694dace32e90ffa0491d5ad9da4ac8531e24b5a5b87263d0cf654",
+          "bytes_current": 27481,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/ui/tests/runtime_input_ownership/transaction.rs",
+          "sha256_declared": "a0ed632cfd8bb7c1cbb33e5ca548d109fe9b6fea2b9f88d8c7c0f93a4d67ba42",
+          "sha256_current": "a0ed632cfd8bb7c1cbb33e5ca548d109fe9b6fea2b9f88d8c7c0f93a4d67ba42",
+          "bytes_current": 7437,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/ui/surface/input/keyboard_clipboard.rs",
+          "sha256_declared": "bc1b080daf314caff910f8c8e0e133ee981972fd3e1ab84199b731218c48d655",
+          "sha256_current": "4e0f88c76a6d204eab5fe6012fd3ee47daf2165d574c7c5ff47cef186aca587d",
+          "bytes_current": 12704,
+          "fresh": false
+        },
+        {
+          "path": "zircon_runtime/src/ui/surface/input/rich_link.rs",
+          "sha256_declared": "9db07725fbb1019e0dd0fec7ee1a5db39da0ed626f52c8b5dfb3c2006b1ac1de",
+          "sha256_current": "9db07725fbb1019e0dd0fec7ee1a5db39da0ed626f52c8b5dfb3c2006b1ac1de",
+          "bytes_current": 14833,
+          "fresh": true
+        },
+        {
+          "path": "zircon_runtime/src/ui/surface/input/editable_text/mutation.rs",
+          "sha256_declared": "0039fbc526673e343d5aaee861f129698cdbfb4796584150d4f0717063876264",
+          "sha256_current": "0039fbc526673e343d5aaee861f129698cdbfb4796584150d4f0717063876264",
+          "bytes_current": 26603,
+          "fresh": true
+        }
+      ]
+    }
+  ],
+  "source_evidence_manifest": [
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-26-w0-report-inventory.md",
+      "sha256_in_packets": "9b15f21cf9ce0e5cb4f7f5c7b156979ff8bb8b5fea5fbda16a757e1064e0b5e8",
+      "sha256_current": "9b15f21cf9ce0e5cb4f7f5c7b156979ff8bb8b5fea5fbda16a757e1064e0b5e8",
+      "bytes_current": 264157,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-5",
+          "packet": "config-write-authority-batch2-2026-09-30",
+          "artifact": "config-write-authority-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-4",
+          "packet": "diagnostic-query-supersession-batch2-2026-09-30",
+          "artifact": "diagnostic-query-supersession-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-005",
+          "packet": "diagnostic-query-supersession-batch2-2026-09-30",
+          "artifact": "diagnostic-query-supersession-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-1",
+          "packet": "runtime02-p1-1-batch2-2026-09-30",
+          "artifact": "runtime02-p1-1-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-2",
+          "packet": "runtime02-p1-2-batch2-2026-09-30",
+          "artifact": "runtime02-p1-2-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "runtime02-p1-3-batch2-2026-09-30",
+          "artifact": "runtime02-p1-3-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md",
+      "sha256_in_packets": "ca1e7cd1eb6cfdcc3ebfc15f05b9118bf773668d0ec0a57b6fcadd56a1ef3cb9",
+      "sha256_current": "ca1e7cd1eb6cfdcc3ebfc15f05b9118bf773668d0ec0a57b6fcadd56a1ef3cb9",
+      "bytes_current": 29772,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-1",
+          "packet": "runtime02-p1-1-batch2-2026-09-30",
+          "artifact": "runtime02-p1-1-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-2",
+          "packet": "runtime02-p1-2-batch2-2026-09-30",
+          "artifact": "runtime02-p1-2-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "runtime02-p1-3-batch2-2026-09-30",
+          "artifact": "runtime02-p1-3-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md",
+      "sha256_in_packets": "6e52906a43ab58607c8de160626322ab9e2a7f9a78cb73885a5e60f65ab829fd",
+      "sha256_current": "6e52906a43ab58607c8de160626322ab9e2a7f9a78cb73885a5e60f65ab829fd",
+      "bytes_current": 30933,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-5",
+          "packet": "config-write-authority-batch2-2026-09-30",
+          "artifact": "config-write-authority-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-4",
+          "packet": "diagnostic-query-supersession-batch2-2026-09-30",
+          "artifact": "diagnostic-query-supersession-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md",
+      "sha256_in_packets": "cfc15f859b1f73b6ba0ea42c928a01d57498edbf12f2589a138f4f0fbd2aefb7",
+      "sha256_current": "cfc15f859b1f73b6ba0ea42c928a01d57498edbf12f2589a138f4f0fbd2aefb7",
+      "bytes_current": 43338,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-5",
+          "packet": "config-write-authority-batch2-2026-09-30",
+          "artifact": "config-write-authority-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#Runtime156-P1-008",
+          "packet": "config-write-authority-batch2-2026-09-30",
+          "artifact": "config-write-authority-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-4",
+          "packet": "diagnostic-query-supersession-batch2-2026-09-30",
+          "artifact": "diagnostic-query-supersession-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-005",
+          "packet": "diagnostic-query-supersession-batch2-2026-09-30",
+          "artifact": "diagnostic-query-supersession-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/158-runtime-core-events-tasks-timer-event-bus-task-graph-current-source-review.md",
+      "sha256_in_packets": "a88e3d92a8afee5ac08361deef262ed5bbef15cfd5ff2255934772e8005c7980",
+      "sha256_current": "a88e3d92a8afee5ac08361deef262ed5bbef15cfd5ff2255934772e8005c7980",
+      "bytes_current": 24778,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-1",
+          "packet": "runtime02-p1-1-batch2-2026-09-30",
+          "artifact": "runtime02-p1-1-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-2",
+          "packet": "runtime02-p1-2-batch2-2026-09-30",
+          "artifact": "runtime02-p1-2-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "runtime02-p1-3-batch2-2026-09-30",
+          "artifact": "runtime02-p1-3-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_app/src/entry/engine_entry.rs",
+      "sha256_in_packets": "274ed6134b1928d8e1a74852185fb9fb75959ce03ceada0ebd65e277514e3d85",
+      "sha256_current": "274ed6134b1928d8e1a74852185fb9fb75959ce03ceada0ebd65e277514e3d85",
+      "bytes_current": 27478,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-5",
+          "packet": "config-write-authority-batch2-2026-09-30",
+          "artifact": "config-write-authority-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#Runtime156-P1-008",
+          "packet": "config-write-authority-batch2-2026-09-30",
+          "artifact": "config-write-authority-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_app/src/entry/tests/entry_config_storage.rs",
+      "sha256_in_packets": "81fefcaa6ad9e4f4702377de162d8901e6a73bb6523e6092e334028b7a4fe5c3",
+      "sha256_current": "81fefcaa6ad9e4f4702377de162d8901e6a73bb6523e6092e334028b7a4fe5c3",
+      "bytes_current": 1719,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-5",
+          "packet": "config-write-authority-batch2-2026-09-30",
+          "artifact": "config-write-authority-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#Runtime156-P1-008",
+          "packet": "config-write-authority-batch2-2026-09-30",
+          "artifact": "config-write-authority-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_editor/src/ui/host/editor_manager.rs",
+      "sha256_in_packets": "773b9dd6027b8107a93b9df69fcc8e2f978774c0e7dfea832dbdd79f83eba32f",
+      "sha256_current": "773b9dd6027b8107a93b9df69fcc8e2f978774c0e7dfea832dbdd79f83eba32f",
+      "bytes_current": 18671,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "runtime02-p1-3-batch2-2026-09-30",
+          "artifact": "runtime02-p1-3-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_editor/src/ui/host/layout_persistence.rs",
+      "sha256_in_packets": "6c7f0db2acfac532d901904137d5dc4a0cc365f74b07a74a00eed8f21b68be77",
+      "sha256_current": "6c7f0db2acfac532d901904137d5dc4a0cc365f74b07a74a00eed8f21b68be77",
+      "bytes_current": 7151,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-6",
+          "packet": "config-schema-layer-authority-batch2-2026-09-30",
+          "artifact": "config-schema-layer-authority-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-009",
+          "packet": "config-schema-layer-authority-batch2-2026-09-30",
+          "artifact": "config-schema-layer-authority-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-015",
+          "packet": "config-schema-layer-authority-batch2-2026-09-30",
+          "artifact": "config-schema-layer-authority-batch2-2026-09-30-review.jsonl",
+          "line": 3,
+          "evidence_field": "current_source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_editor/src/ui/host/runtime_services.rs",
+      "sha256_in_packets": "9222246f28b61288243ea5669878cd7e03eb7e28936963b56f6b878db1ece735",
+      "sha256_current": "9222246f28b61288243ea5669878cd7e03eb7e28936963b56f6b878db1ece735",
+      "bytes_current": 8035,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-5",
+          "packet": "config-write-authority-batch2-2026-09-30",
+          "artifact": "config-write-authority-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#Runtime156-P1-008",
+          "packet": "config-write-authority-batch2-2026-09-30",
+          "artifact": "config-write-authority-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/evaluation/pipeline/direct_clip_worker.rs",
+      "sha256_in_packets": "d0fdba7e6e3a5e9b6ad515332854cdcfa06c59e1b7fce67cf025b015575c73ed",
+      "sha256_current": "d0fdba7e6e3a5e9b6ad515332854cdcfa06c59e1b7fce67cf025b015575c73ed",
+      "bytes_current": 8349,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "runtime02-p1-3-batch2-2026-09-30",
+          "artifact": "runtime02-p1-3-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/manager.rs",
+      "sha256_in_packets": "c5735be551395b91c73a714d4a7981c9bbd32430ac92da8db21165618a7cf763",
+      "sha256_current": "c5735be551395b91c73a714d4a7981c9bbd32430ac92da8db21165618a7cf763",
+      "bytes_current": 5098,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-5",
+          "packet": "config-write-authority-batch2-2026-09-30",
+          "artifact": "config-write-authority-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#Runtime156-P1-008",
+          "packet": "config-write-authority-batch2-2026-09-30",
+          "artifact": "config-write-authority-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/manager/settings.rs",
+      "sha256_in_packets": "d70aff1369c5974103e1acc9d9b7ba35273461583f4c247be83c9cc41fc9a474",
+      "sha256_current": "d70aff1369c5974103e1acc9d9b7ba35273461583f4c247be83c9cc41fc9a474",
+      "bytes_current": 4798,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-5",
+          "packet": "config-write-authority-batch2-2026-09-30",
+          "artifact": "config-write-authority-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#Runtime156-P1-008",
+          "packet": "config-write-authority-batch2-2026-09-30",
+          "artifact": "config-write-authority-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs",
+      "sha256_in_packets": "4c1f8996e5de93844c04edfabc3e8a4eaa5620e268a3534ef7f1e425a35ef1b4",
+      "sha256_current": "4c1f8996e5de93844c04edfabc3e8a4eaa5620e268a3534ef7f1e425a35ef1b4",
+      "bytes_current": 14564,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P0-1",
+          "packet": "core-execution-unload-batch2-2026-09-30",
+          "artifact": "core-execution-unload-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/events.rs",
+      "sha256_in_packets": "48142d660ccbffa1917e13c72d889036613289cea9713d3589d63b4c2c792f0e",
+      "sha256_current": "48142d660ccbffa1917e13c72d889036613289cea9713d3589d63b4c2c792f0e",
+      "bytes_current": 3486,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-6",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 6,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/foundation/config_manager.rs",
+      "sha256_in_packets": "b83527877216b2679d3e96816d4f45bee1960b0a18196c88d64faac68feebbc6",
+      "sha256_current": "b83527877216b2679d3e96816d4f45bee1960b0a18196c88d64faac68feebbc6",
+      "bytes_current": 853,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-6",
+          "packet": "config-schema-layer-authority-batch2-2026-09-30",
+          "artifact": "config-schema-layer-authority-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-009",
+          "packet": "config-schema-layer-authority-batch2-2026-09-30",
+          "artifact": "config-schema-layer-authority-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-015",
+          "packet": "config-schema-layer-authority-batch2-2026-09-30",
+          "artifact": "config-schema-layer-authority-batch2-2026-09-30-review.jsonl",
+          "line": 3,
+          "evidence_field": "current_source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/tasks/mod.rs",
+      "sha256_in_packets": "224713be590a9acaec1c1d6429b775c6909971af4e928629d7e91f63ee71f03c",
+      "sha256_current": "224713be590a9acaec1c1d6429b775c6909971af4e928629d7e91f63ee71f03c",
+      "bytes_current": 157,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-2",
+          "packet": "runtime02-p1-2-batch2-2026-09-30",
+          "artifact": "runtime02-p1-2-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/tasks/parallel_slice_executor.rs",
+      "sha256_in_packets": "3e9c6c3c445e499b3ef20b88da2175e74052577f3afa6f36bf62101ad82e82b1",
+      "sha256_current": "3e9c6c3c445e499b3ef20b88da2175e74052577f3afa6f36bf62101ad82e82b1",
+      "bytes_current": 2376,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-2",
+          "packet": "runtime02-p1-2-batch2-2026-09-30",
+          "artifact": "runtime02-p1-2-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/config_store.rs",
+      "sha256_in_packets": "b81611a562aa2549aa81e782ffaebce782f02f578dd399f5523f3866043d52c8",
+      "sha256_current": "b81611a562aa2549aa81e782ffaebce782f02f578dd399f5523f3866043d52c8",
+      "bytes_current": 4405,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-6",
+          "packet": "config-schema-layer-authority-batch2-2026-09-30",
+          "artifact": "config-schema-layer-authority-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-009",
+          "packet": "config-schema-layer-authority-batch2-2026-09-30",
+          "artifact": "config-schema-layer-authority-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-015",
+          "packet": "config-schema-layer-authority-batch2-2026-09-30",
+          "artifact": "config-schema-layer-authority-batch2-2026-09-30-review.jsonl",
+          "line": 3,
+          "evidence_field": "current_source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs",
+      "sha256_in_packets": "2ff53bffbc62806d9c7445e5b414455d648ef65a8d6490bbc79f8a842b82ee78",
+      "sha256_current": "2ff53bffbc62806d9c7445e5b414455d648ef65a8d6490bbc79f8a842b82ee78",
+      "bytes_current": 32206,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-7",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-011",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-011",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 3,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-012",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 4,
+          "evidence_field": "current_source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/diagnostics/profiling/export/json_writer.rs",
+      "sha256_in_packets": "9b7c5d47b59bfcb7761080c0e404b4d4337f304cc4a80b22a19f589cdd2c1336",
+      "sha256_current": "9b7c5d47b59bfcb7761080c0e404b4d4337f304cc4a80b22a19f589cdd2c1336",
+      "bytes_current": 1740,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-7",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-011",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-011",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 3,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-012",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 4,
+          "evidence_field": "current_source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/diagnostics/profiling/export/session_owner.rs",
+      "sha256_in_packets": "969e3a57a330fe8c85bb941683d12654a149f1f4bb3e829409937a4e3d112d12",
+      "sha256_current": "969e3a57a330fe8c85bb941683d12654a149f1f4bb3e829409937a4e3d112d12",
+      "bytes_current": 2459,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-7",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-011",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-011",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 3,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-012",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 4,
+          "evidence_field": "current_source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/diagnostics/profiling/export/session_owner_tests.rs",
+      "sha256_in_packets": "db774bb4be13687a0e21d30030087f8862c093bb5fc9a3e2b7cb8978fc0773e8",
+      "sha256_current": "db774bb4be13687a0e21d30030087f8862c093bb5fc9a3e2b7cb8978fc0773e8",
+      "bytes_current": 6412,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-7",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-011",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-011",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 3,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-012",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 4,
+          "evidence_field": "current_source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/diagnostics/profiling/export/streaming_tests.rs",
+      "sha256_in_packets": "6e6c4847d4d6806b7a177c3c825296fccd8657239a96fcb8ab2d3867522e1020",
+      "sha256_current": "6e6c4847d4d6806b7a177c3c825296fccd8657239a96fcb8ab2d3867522e1020",
+      "bytes_current": 10775,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-7",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-011",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-011",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 3,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-012",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 4,
+          "evidence_field": "current_source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/diagnostics/profiling/macros.rs",
+      "sha256_in_packets": "1d9c417f5b8d999daef2b4eed66cbc889544d3c726b9f16f20b3f6de7cacc10c",
+      "sha256_current": "1d9c417f5b8d999daef2b4eed66cbc889544d3c726b9f16f20b3f6de7cacc10c",
+      "bytes_current": 3947,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-1",
+          "packet": "profile-metric-store-batch2-2026-09-30",
+          "artifact": "profile-metric-store-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-001",
+          "packet": "profile-metric-store-batch2-2026-09-30",
+          "artifact": "profile-metric-store-batch2-2026-09-30-review.jsonl",
+          "line": 4,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-008",
+          "packet": "profile-metric-store-batch2-2026-09-30",
+          "artifact": "profile-metric-store-batch2-2026-09-30-review.jsonl",
+          "line": 7,
+          "evidence_field": "current_source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs",
+      "sha256_in_packets": "2c3aa2eec8fdd9068272489b88f63bdfafdd6875dd5687c3d3abb1c9a8b67921",
+      "sha256_current": "2c3aa2eec8fdd9068272489b88f63bdfafdd6875dd5687c3d3abb1c9a8b67921",
+      "bytes_current": 23838,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-7",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-011",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-011",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 3,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-012",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 4,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-1",
+          "packet": "profile-metric-store-batch2-2026-09-30",
+          "artifact": "profile-metric-store-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-2",
+          "packet": "profile-metric-store-batch2-2026-09-30",
+          "artifact": "profile-metric-store-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-2",
+          "packet": "profile-metric-store-batch2-2026-09-30",
+          "artifact": "profile-metric-store-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-001",
+          "packet": "profile-metric-store-batch2-2026-09-30",
+          "artifact": "profile-metric-store-batch2-2026-09-30-review.jsonl",
+          "line": 4,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-002",
+          "packet": "profile-metric-store-batch2-2026-09-30",
+          "artifact": "profile-metric-store-batch2-2026-09-30-review.jsonl",
+          "line": 5,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-002",
+          "packet": "profile-metric-store-batch2-2026-09-30",
+          "artifact": "profile-metric-store-batch2-2026-09-30-review.jsonl",
+          "line": 5,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-008",
+          "packet": "profile-metric-store-batch2-2026-09-30",
+          "artifact": "profile-metric-store-batch2-2026-09-30-review.jsonl",
+          "line": 7,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-009",
+          "packet": "profile-metric-store-batch2-2026-09-30",
+          "artifact": "profile-metric-store-batch2-2026-09-30-review.jsonl",
+          "line": 8,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-009",
+          "packet": "profile-metric-store-batch2-2026-09-30",
+          "artifact": "profile-metric-store-batch2-2026-09-30-review.jsonl",
+          "line": 8,
+          "evidence_field": "current_source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/diagnostics/profiling/recorder.rs",
+      "sha256_in_packets": "b0edd169ff9b997509964f8a4fbf0ee378df9adcf75def46f8d8ce6d13360967",
+      "sha256_current": "b0edd169ff9b997509964f8a4fbf0ee378df9adcf75def46f8d8ce6d13360967",
+      "bytes_current": 13186,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-1",
+          "packet": "profile-metric-store-batch2-2026-09-30",
+          "artifact": "profile-metric-store-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-001",
+          "packet": "profile-metric-store-batch2-2026-09-30",
+          "artifact": "profile-metric-store-batch2-2026-09-30-review.jsonl",
+          "line": 4,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-008",
+          "packet": "profile-metric-store-batch2-2026-09-30",
+          "artifact": "profile-metric-store-batch2-2026-09-30-review.jsonl",
+          "line": 7,
+          "evidence_field": "current_source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/diagnostics/profiling/scope.rs",
+      "sha256_in_packets": "6e370fdcee114cfd67382f29c63424cc2ac4b444e131324bf1baf01cf2205e85",
+      "sha256_current": "6e370fdcee114cfd67382f29c63424cc2ac4b444e131324bf1baf01cf2205e85",
+      "bytes_current": 10766,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-2",
+          "packet": "profile-metric-store-batch2-2026-09-30",
+          "artifact": "profile-metric-store-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-002",
+          "packet": "profile-metric-store-batch2-2026-09-30",
+          "artifact": "profile-metric-store-batch2-2026-09-30-review.jsonl",
+          "line": 5,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-009",
+          "packet": "profile-metric-store-batch2-2026-09-30",
+          "artifact": "profile-metric-store-batch2-2026-09-30-review.jsonl",
+          "line": 8,
+          "evidence_field": "current_source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/diagnostics/store.rs",
+      "sha256_in_packets": "3339a0b787aaf3c9e224d14b805362b6394548d6b51696242a4aa28280c6aa39",
+      "sha256_current": "3339a0b787aaf3c9e224d14b805362b6394548d6b51696242a4aa28280c6aa39",
+      "bytes_current": 15497,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-3",
+          "packet": "profile-metric-store-batch2-2026-09-30",
+          "artifact": "profile-metric-store-batch2-2026-09-30-review.jsonl",
+          "line": 3,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-004",
+          "packet": "profile-metric-store-batch2-2026-09-30",
+          "artifact": "profile-metric-store-batch2-2026-09-30-review.jsonl",
+          "line": 6,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-001",
+          "packet": "profile-metric-store-batch2-2026-09-30",
+          "artifact": "profile-metric-store-batch2-2026-09-30-review.jsonl",
+          "line": 9,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-006",
+          "packet": "profile-metric-store-batch2-2026-09-30",
+          "artifact": "profile-metric-store-batch2-2026-09-30-review.jsonl",
+          "line": 10,
+          "evidence_field": "current_source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/events/publish.rs",
+      "sha256_in_packets": "e3eb72ecaf600cc957f48820beabe3066ff3724445ef6e9dcbf8e06c7476e6b0",
+      "sha256_current": "e3eb72ecaf600cc957f48820beabe3066ff3724445ef6e9dcbf8e06c7476e6b0",
+      "bytes_current": 3837,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-5",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 5,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/events/subscriber.rs",
+      "sha256_in_packets": "53659b4b4f529fe151e8ac8bf478d398586b74dabe496cf5874bc6a0e9833f97",
+      "sha256_current": "53659b4b4f529fe151e8ac8bf478d398586b74dabe496cf5874bc6a0e9833f97",
+      "bytes_current": 9594,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-5",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 5,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-6",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 6,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/handle/diagnostics.rs",
+      "sha256_in_packets": "73f2855495b951a690e5dc6ab6d36916ba5c9d4d48fa8fcfca751e1416ce79da",
+      "sha256_current": "73f2855495b951a690e5dc6ab6d36916ba5c9d4d48fa8fcfca751e1416ce79da",
+      "bytes_current": 7315,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-4",
+          "packet": "diagnostic-query-supersession-batch2-2026-09-30",
+          "artifact": "diagnostic-query-supersession-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-005",
+          "packet": "diagnostic-query-supersession-batch2-2026-09-30",
+          "artifact": "diagnostic-query-supersession-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/handle/events.rs",
+      "sha256_in_packets": "8e2dfb5526ac9aab78299044d3dacdc4130d751279e4710b5e9cde406d66560b",
+      "sha256_current": "8e2dfb5526ac9aab78299044d3dacdc4130d751279e4710b5e9cde406d66560b",
+      "bytes_current": 2084,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-5",
+          "packet": "config-write-authority-batch2-2026-09-30",
+          "artifact": "config-write-authority-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#Runtime156-P1-008",
+          "packet": "config-write-authority-batch2-2026-09-30",
+          "artifact": "config-write-authority-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/runtime.rs",
+      "sha256_in_packets": "20103aa41a84999d577ac862d5acccb96910230dc202f786dca4bea11859921a",
+      "sha256_current": "20103aa41a84999d577ac862d5acccb96910230dc202f786dca4bea11859921a",
+      "bytes_current": 19093,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P0-1",
+          "packet": "core-execution-unload-batch2-2026-09-30",
+          "artifact": "core-execution-unload-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/state/core_runtime_state.rs",
+      "sha256_in_packets": "989abff0748ed6889803d141d7032921e62a4b27f593671c2d3afd13b81cd531",
+      "sha256_current": "989abff0748ed6889803d141d7032921e62a4b27f593671c2d3afd13b81cd531",
+      "bytes_current": 14143,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-2",
+          "packet": "runtime02-p1-2-batch2-2026-09-30",
+          "artifact": "runtime02-p1-2-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "runtime02-p1-3-batch2-2026-09-30",
+          "artifact": "runtime02-p1-3-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/bounded_keyed_io/tests.rs",
+      "sha256_in_packets": "c0283d566766b0917ae5fe3b4e317f2f59c54dcd2d105744348f27c818f5bc1a",
+      "sha256_current": "c0283d566766b0917ae5fe3b4e317f2f59c54dcd2d105744348f27c818f5bc1a",
+      "bytes_current": 26016,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "runtime02-p1-3-batch2-2026-09-30",
+          "artifact": "runtime02-p1-3-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/bounded_stream_io/lane.rs",
+      "sha256_in_packets": "b0b8ab02e5a0bb9b48c8103cfbaf1bdaecb80a09ca876da42d72b7c7929b9dbd",
+      "sha256_current": "b0b8ab02e5a0bb9b48c8103cfbaf1bdaecb80a09ca876da42d72b7c7929b9dbd",
+      "bytes_current": 7851,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-2",
+          "packet": "runtime02-p1-2-batch2-2026-09-30",
+          "artifact": "runtime02-p1-2-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "runtime02-p1-3-batch2-2026-09-30",
+          "artifact": "runtime02-p1-3-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/callback_dispatcher.rs",
+      "sha256_in_packets": "c2ecb0bb9c2ee7bede4fe45539ae27b91df170284615957e99197847972195e5",
+      "sha256_current": "c2ecb0bb9c2ee7bede4fe45539ae27b91df170284615957e99197847972195e5",
+      "bytes_current": 11030,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P0-1",
+          "packet": "core-execution-unload-batch2-2026-09-30",
+          "artifact": "core-execution-unload-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/job_handle.rs",
+      "sha256_in_packets": "aa5762847103a5f6f9c5f47104436883270c04b8d84e085e62ffe708237ae32f",
+      "sha256_current": "aa5762847103a5f6f9c5f47104436883270c04b8d84e085e62ffe708237ae32f",
+      "bytes_current": 15417,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-1",
+          "packet": "runtime02-p1-1-batch2-2026-09-30",
+          "artifact": "runtime02-p1-1-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-1",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/job_handle/tests.rs",
+      "sha256_in_packets": "49bb372b66184354cf08d7825f521e96f242bbcf76a0758b4ad8b0b4826f2698",
+      "sha256_current": "49bb372b66184354cf08d7825f521e96f242bbcf76a0758b4ad8b0b4826f2698",
+      "bytes_current": 9965,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-1",
+          "packet": "runtime02-p1-1-batch2-2026-09-30",
+          "artifact": "runtime02-p1-1-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/job_scheduler.rs",
+      "sha256_in_packets": "4f314ed406789204b4d53cd44988122c3b9fa3d71013f505771f99ccc1f98f32",
+      "sha256_current": "4f314ed406789204b4d53cd44988122c3b9fa3d71013f505771f99ccc1f98f32",
+      "bytes_current": 15581,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-1",
+          "packet": "runtime02-p1-1-batch2-2026-09-30",
+          "artifact": "runtime02-p1-1-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-2",
+          "packet": "runtime02-p1-2-batch2-2026-09-30",
+          "artifact": "runtime02-p1-2-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "runtime02-p1-3-batch2-2026-09-30",
+          "artifact": "runtime02-p1-3-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-1",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-2",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 3,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/job_scheduler/pending.rs",
+      "sha256_in_packets": "a3098be196c0cfd0d2b12075ea7027a9a835f950fb315173a53e31279fca7a2c",
+      "sha256_current": "a3098be196c0cfd0d2b12075ea7027a9a835f950fb315173a53e31279fca7a2c",
+      "bytes_current": 6431,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-1",
+          "packet": "runtime02-p1-1-batch2-2026-09-30",
+          "artifact": "runtime02-p1-1-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/job_scheduler/tests.rs",
+      "sha256_in_packets": "ce9b10597813f58a468c928e8cacfed0973f6540272a7a2bc2fd7577c5b49103",
+      "sha256_current": "ce9b10597813f58a468c928e8cacfed0973f6540272a7a2bc2fd7577c5b49103",
+      "bytes_current": 9902,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-1",
+          "packet": "runtime02-p1-1-batch2-2026-09-30",
+          "artifact": "runtime02-p1-1-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "runtime02-p1-3-batch2-2026-09-30",
+          "artifact": "runtime02-p1-3-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-1",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/pool.rs",
+      "sha256_in_packets": "e542736bdc8b96a51bc38ccfee49ca5bb1573a20c7fc2e14bb48a0f31e946e22",
+      "sha256_current": "e542736bdc8b96a51bc38ccfee49ca5bb1573a20c7fc2e14bb48a0f31e946e22",
+      "bytes_current": 15358,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-1",
+          "packet": "runtime02-p1-1-batch2-2026-09-30",
+          "artifact": "runtime02-p1-1-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "runtime02-p1-3-batch2-2026-09-30",
+          "artifact": "runtime02-p1-3-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-1",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-2",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-4",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 4,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/pool/tests.rs",
+      "sha256_in_packets": "62da1abde86a1abe877b967a6b30737c360ae1b9124156b6cc4b88375a3a8270",
+      "sha256_current": "62da1abde86a1abe877b967a6b30737c360ae1b9124156b6cc4b88375a3a8270",
+      "bytes_current": 3107,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "runtime02-p1-3-batch2-2026-09-30",
+          "artifact": "runtime02-p1-3-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/pools.rs",
+      "sha256_in_packets": "1e0fe5789c0935df1ebd6e52adc9f96d2e9aaed0c1a9810354ec6187d3124fa3",
+      "sha256_current": "1e0fe5789c0935df1ebd6e52adc9f96d2e9aaed0c1a9810354ec6187d3124fa3",
+      "bytes_current": 9092,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P0-1",
+          "packet": "core-execution-unload-batch2-2026-09-30",
+          "artifact": "core-execution-unload-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-4",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 4,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/task_cancellation_policy.rs",
+      "sha256_in_packets": "7473997e1e036df7e78fa743022e6ae66bb1f26916a83726119bb565f7d27f01",
+      "sha256_current": "7473997e1e036df7e78fa743022e6ae66bb1f26916a83726119bb565f7d27f01",
+      "bytes_current": 511,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-2",
+          "packet": "runtime02-p1-2-batch2-2026-09-30",
+          "artifact": "runtime02-p1-2-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/task_descriptor.rs",
+      "sha256_in_packets": "df7ed9c689ad29d91c0e3bd5575451c02bf5c9d792ae273485ae45c500ff2051",
+      "sha256_current": "df7ed9c689ad29d91c0e3bd5575451c02bf5c9d792ae273485ae45c500ff2051",
+      "bytes_current": 877,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-2",
+          "packet": "runtime02-p1-2-batch2-2026-09-30",
+          "artifact": "runtime02-p1-2-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "runtime02-p1-3-batch2-2026-09-30",
+          "artifact": "runtime02-p1-3-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-2",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/task_graph/engine_task_graph.rs",
+      "sha256_in_packets": "9f62e5153870ca6555ff466665d5335560c48dcc1c72226cba12728fb8896528",
+      "sha256_current": "9f62e5153870ca6555ff466665d5335560c48dcc1c72226cba12728fb8896528",
+      "bytes_current": 13386,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P0-1",
+          "packet": "core-execution-unload-batch2-2026-09-30",
+          "artifact": "core-execution-unload-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "runtime02-p1-3-batch2-2026-09-30",
+          "artifact": "runtime02-p1-3-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 3,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-4",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 4,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/task_graph/engine_task_graph/tests.rs",
+      "sha256_in_packets": "c60b8a2c380f8c5856f5c161c35d3f02ba623ba5797c9c482010bbcb10cf3696",
+      "sha256_current": "c60b8a2c380f8c5856f5c161c35d3f02ba623ba5797c9c482010bbcb10cf3696",
+      "bytes_current": 20020,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "runtime02-p1-3-batch2-2026-09-30",
+          "artifact": "runtime02-p1-3-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/task_graph/scope.rs",
+      "sha256_in_packets": "18177fc44b351d55dade369edaa0e392d4d36bc7b6103e480a73f92ea42de5fe",
+      "sha256_current": "18177fc44b351d55dade369edaa0e392d4d36bc7b6103e480a73f92ea42de5fe",
+      "bytes_current": 16153,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-1",
+          "packet": "runtime02-p1-1-batch2-2026-09-30",
+          "artifact": "runtime02-p1-1-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-2",
+          "packet": "runtime02-p1-2-batch2-2026-09-30",
+          "artifact": "runtime02-p1-2-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "runtime02-p1-3-batch2-2026-09-30",
+          "artifact": "runtime02-p1-3-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-2",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 3,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/task_graph/scope/tests.rs",
+      "sha256_in_packets": "e0bce0beadd38145a840759fa6d45014dc6151e78f11603f671a95ff0cfaa2e3",
+      "sha256_current": "e0bce0beadd38145a840759fa6d45014dc6151e78f11603f671a95ff0cfaa2e3",
+      "bytes_current": 30900,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-1",
+          "packet": "runtime02-p1-1-batch2-2026-09-30",
+          "artifact": "runtime02-p1-1-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-2",
+          "packet": "runtime02-p1-2-batch2-2026-09-30",
+          "artifact": "runtime02-p1-2-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "runtime02-p1-3-batch2-2026-09-30",
+          "artifact": "runtime02-p1-3-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 3,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/task_graph/scope/tests/panic_payload.rs",
+      "sha256_in_packets": "0282b2ab5f7c9117e719daa75c151bc5bed73a847ef3d6dc532f1471503bf48e",
+      "sha256_current": "0282b2ab5f7c9117e719daa75c151bc5bed73a847ef3d6dc532f1471503bf48e",
+      "bytes_current": 3587,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-1",
+          "packet": "runtime02-p1-1-batch2-2026-09-30",
+          "artifact": "runtime02-p1-1-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/task_graph/scope_model.rs",
+      "sha256_in_packets": "69e1b28d0a6b62fa933fc128e5f3ed579189e70607136880f4014f875bb27145",
+      "sha256_current": "69e1b28d0a6b62fa933fc128e5f3ed579189e70607136880f4014f875bb27145",
+      "bytes_current": 1369,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-2",
+          "packet": "runtime02-p1-2-batch2-2026-09-30",
+          "artifact": "runtime02-p1-2-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "runtime02-p1-3-batch2-2026-09-30",
+          "artifact": "runtime02-p1-3-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 3,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/task_graph/task_handle.rs",
+      "sha256_in_packets": "27c8127cef548286be20a867741c19a485438e1faa7602ed9fe765661e6c7866",
+      "sha256_current": "27c8127cef548286be20a867741c19a485438e1faa7602ed9fe765661e6c7866",
+      "bytes_current": 5917,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-1",
+          "packet": "runtime02-p1-1-batch2-2026-09-30",
+          "artifact": "runtime02-p1-1-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-2",
+          "packet": "runtime02-p1-2-batch2-2026-09-30",
+          "artifact": "runtime02-p1-2-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/task_state.rs",
+      "sha256_in_packets": "0d140608e8e3718e2a328e7eecf9ec79eaae2773dd9de6a9d3896dfaba446a34",
+      "sha256_current": "0d140608e8e3718e2a328e7eecf9ec79eaae2773dd9de6a9d3896dfaba446a34",
+      "bytes_current": 439,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-2",
+          "packet": "runtime02-p1-2-batch2-2026-09-30",
+          "artifact": "runtime02-p1-2-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/task_status.rs",
+      "sha256_in_packets": "e9b441c72643c3915a85fd37e731df6ac73d854f383c53d1cb41f4c5bbda8348",
+      "sha256_current": "e9b441c72643c3915a85fd37e731df6ac73d854f383c53d1cb41f4c5bbda8348",
+      "bytes_current": 1885,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-2",
+          "packet": "runtime02-p1-2-batch2-2026-09-30",
+          "artifact": "runtime02-p1-2-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/thread_assignment.rs",
+      "sha256_in_packets": "038d1fcda7dd3644e0d8d7c1cadb08589f3523fbf979c43637aaf7cbfd02a35d",
+      "sha256_current": "038d1fcda7dd3644e0d8d7c1cadb08589f3523fbf979c43637aaf7cbfd02a35d",
+      "bytes_current": 3016,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-4",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 4,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/timer.rs",
+      "sha256_in_packets": "a4e222a74c57c2e2bcbedf380cf3b7858f0f75fa57bcd8552f51c63986d6d0ee",
+      "sha256_current": "a4e222a74c57c2e2bcbedf380cf3b7858f0f75fa57bcd8552f51c63986d6d0ee",
+      "bytes_current": 14851,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P0-1",
+          "packet": "core-execution-unload-batch2-2026-09-30",
+          "artifact": "core-execution-unload-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tests/events/behavior.rs",
+      "sha256_in_packets": "2dce1c215ad15dbebc645414b254620e3c9daf0a3da61fb7d89e07e28c753ee5",
+      "sha256_current": "2dce1c215ad15dbebc645414b254620e3c9daf0a3da61fb7d89e07e28c753ee5",
+      "bytes_current": 21018,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-5",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 5,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/construction.rs",
+      "sha256_in_packets": "f7e80606d95042ec4ae0ead00381812c990358f8b44f1d861b59d3cf62b1cc27",
+      "sha256_current": "f7e80606d95042ec4ae0ead00381812c990358f8b44f1d861b59d3cf62b1cc27",
+      "bytes_current": 18988,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-5",
+          "packet": "config-write-authority-batch2-2026-09-30",
+          "artifact": "config-write-authority-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#Runtime156-P1-008",
+          "packet": "config-write-authority-batch2-2026-09-30",
+          "artifact": "config-write-authority-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/diagnostics.rs",
+      "sha256_in_packets": "8170fb1ae687907046d3917f921ed0127da31fe9b84f7301ff6528b974d14584",
+      "sha256_current": "8170fb1ae687907046d3917f921ed0127da31fe9b84f7301ff6528b974d14584",
+      "bytes_current": 15398,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-005",
+          "packet": "diagnostic-query-supersession-batch2-2026-09-30",
+          "artifact": "diagnostic-query-supersession-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_owner/runtime.rs",
+      "sha256_in_packets": "62ef5691950b41f11c1e534e1ca7eedf5b3d2a20791d1bc4e2d4d83b7759c763",
+      "sha256_current": "62ef5691950b41f11c1e534e1ca7eedf5b3d2a20791d1bc4e2d4d83b7759c763",
+      "bytes_current": 12876,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P0-1",
+          "packet": "core-execution-unload-batch2-2026-09-30",
+          "artifact": "core-execution-unload-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "sha256_in_packets": "f945d7bd887d82f9b940e0f14b572481a7e7a6968698b7a1e32d99c64bbb9433",
+      "sha256_current": "f945d7bd887d82f9b940e0f14b572481a7e7a6968698b7a1e32d99c64bbb9433",
+      "bytes_current": 22608,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P0-1",
+          "packet": "core-execution-unload-batch2-2026-09-30",
+          "artifact": "core-execution-unload-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/state.rs",
+      "sha256_in_packets": "056cb42e745ee8fee09289c2e8d1592d866841e0a6c89bbee6ec362c89d53e2b",
+      "sha256_current": "056cb42e745ee8fee09289c2e8d1592d866841e0a6c89bbee6ec362c89d53e2b",
+      "bytes_current": 34667,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P0-1",
+          "packet": "core-execution-unload-batch2-2026-09-30",
+          "artifact": "core-execution-unload-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-005",
+          "packet": "diagnostic-query-supersession-batch2-2026-09-30",
+          "artifact": "diagnostic-query-supersession-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/foundation/runtime/config_manager.rs",
+      "sha256_in_packets": "9d9c705836818b291662876b6b20419e93e67cd2499cd1a9f9af03a6c289324e",
+      "sha256_current": "9d9c705836818b291662876b6b20419e93e67cd2499cd1a9f9af03a6c289324e",
+      "bytes_current": 5630,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-6",
+          "packet": "config-schema-layer-authority-batch2-2026-09-30",
+          "artifact": "config-schema-layer-authority-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-009",
+          "packet": "config-schema-layer-authority-batch2-2026-09-30",
+          "artifact": "config-schema-layer-authority-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-015",
+          "packet": "config-schema-layer-authority-batch2-2026-09-30",
+          "artifact": "config-schema-layer-authority-batch2-2026-09-30-review.jsonl",
+          "line": 3,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-5",
+          "packet": "config-write-authority-batch2-2026-09-30",
+          "artifact": "config-write-authority-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#Runtime156-P1-008",
+          "packet": "config-write-authority-batch2-2026-09-30",
+          "artifact": "config-write-authority-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/foundation/runtime/config_manager/worker.rs",
+      "sha256_in_packets": "4582964df02d4882a50972ed34e6cab6dc620ac8074a14dba9a4872600c78d6b",
+      "sha256_current": "4582964df02d4882a50972ed34e6cab6dc620ac8074a14dba9a4872600c78d6b",
+      "bytes_current": 10787,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-6",
+          "packet": "config-schema-layer-authority-batch2-2026-09-30",
+          "artifact": "config-schema-layer-authority-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-009",
+          "packet": "config-schema-layer-authority-batch2-2026-09-30",
+          "artifact": "config-schema-layer-authority-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-015",
+          "packet": "config-schema-layer-authority-batch2-2026-09-30",
+          "artifact": "config-schema-layer-authority-batch2-2026-09-30-review.jsonl",
+          "line": 3,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P0-1",
+          "packet": "core-execution-unload-batch2-2026-09-30",
+          "artifact": "core-execution-unload-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/foundation/runtime/config_manager_tests.rs",
+      "sha256_in_packets": "f7ebe78f99f46084ddba8be0a255b711bf50a9015661bed6bf9021a02ea391e9",
+      "sha256_current": "f7ebe78f99f46084ddba8be0a255b711bf50a9015661bed6bf9021a02ea391e9",
+      "bytes_current": 22493,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-6",
+          "packet": "config-schema-layer-authority-batch2-2026-09-30",
+          "artifact": "config-schema-layer-authority-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-009",
+          "packet": "config-schema-layer-authority-batch2-2026-09-30",
+          "artifact": "config-schema-layer-authority-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-015",
+          "packet": "config-schema-layer-authority-batch2-2026-09-30",
+          "artifact": "config-schema-layer-authority-batch2-2026-09-30-review.jsonl",
+          "line": 3,
+          "evidence_field": "current_source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/operation/maintenance.rs",
+      "sha256_in_packets": "bb770c542f22edcc99e1e5894da314230b7756e0a3f9a6a25de728449ceba476",
+      "sha256_current": "bb770c542f22edcc99e1e5894da314230b7756e0a3f9a6a25de728449ceba476",
+      "bytes_current": 8534,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P0-1",
+          "packet": "core-execution-unload-batch2-2026-09-30",
+          "artifact": "core-execution-unload-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/platform/preferences/persistence/adapter.rs",
+      "sha256_in_packets": "c4b5421011a7be723c0abc22cb7a6cc8c491b548161737f0d17255154b5e5b2a",
+      "sha256_current": "c4b5421011a7be723c0abc22cb7a6cc8c491b548161737f0d17255154b5e5b2a",
+      "bytes_current": 27774,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "runtime02-p1-3-batch2-2026-09-30",
+          "artifact": "runtime02-p1-3-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/runtime_diagnostics/collect.rs",
+      "sha256_in_packets": "3b96772f69e9b62c7a5c628b1492f194daab6d5bda5278eb7e50aad85e67c150",
+      "sha256_current": "3b96772f69e9b62c7a5c628b1492f194daab6d5bda5278eb7e50aad85e67c150",
+      "bytes_current": 8833,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-4",
+          "packet": "diagnostic-query-supersession-batch2-2026-09-30",
+          "artifact": "diagnostic-query-supersession-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-005",
+          "packet": "diagnostic-query-supersession-batch2-2026-09-30",
+          "artifact": "diagnostic-query-supersession-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/dynamic_scene/spawn_task/loader.rs",
+      "sha256_in_packets": "f3e2b86b351362e6613800b23142e2aa4c40e91d22c0f213c75cecc365e95765",
+      "sha256_current": "f3e2b86b351362e6613800b23142e2aa4c40e91d22c0f213c75cecc365e95765",
+      "bytes_current": 11889,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-2",
+          "packet": "runtime02-p1-2-batch2-2026-09-30",
+          "artifact": "runtime02-p1-2-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "runtime02-p1-3-batch2-2026-09-30",
+          "artifact": "runtime02-p1-3-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/scene/module/scene_artifact_io.rs",
+      "sha256_in_packets": "0b089a287b2573def2969edfd898a57d8f1c9bf1cb0e5913e046cf5620347a14",
+      "sha256_current": "0b089a287b2573def2969edfd898a57d8f1c9bf1cb0e5913e046cf5620347a14",
+      "bytes_current": 7940,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "runtime02-p1-3-batch2-2026-09-30",
+          "artifact": "runtime02-p1-3-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery/io.rs",
+      "sha256_in_packets": "2956d2874d7869ca08f3490d9d0ba514c91efc4eec5a97eb826696975b834bf8",
+      "sha256_current": "2956d2874d7869ca08f3490d9d0ba514c91efc4eec5a97eb826696975b834bf8",
+      "bytes_current": 11130,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-3",
+          "packet": "runtime02-p1-3-batch2-2026-09-30",
+          "artifact": "runtime02-p1-3-current-source-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/tests/extensions/manager_handles.rs",
+      "sha256_in_packets": "cb3168156d384ed04e3da09a415fa43bec26a624c3a3c8586c9bc96ce696737a",
+      "sha256_current": "cb3168156d384ed04e3da09a415fa43bec26a624c3a3c8586c9bc96ce696737a",
+      "bytes_current": 10730,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-5",
+          "packet": "config-write-authority-batch2-2026-09-30",
+          "artifact": "config-write-authority-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#Runtime156-P1-008",
+          "packet": "config-write-authority-batch2-2026-09-30",
+          "artifact": "config-write-authority-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/text/render_state.rs",
+      "sha256_in_packets": "11a592f02b8526b2e92f2a4c981c85af6476fb3edfd77a369a662e667e55372b",
+      "sha256_current": "11a592f02b8526b2e92f2a4c981c85af6476fb3edfd77a369a662e667e55372b",
+      "bytes_current": 19505,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-2",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md#P1-4",
+          "packet": "task-events-p1-batch2-2026-09-30",
+          "artifact": "task-events-p1-batch2-2026-09-30-review.jsonl",
+          "line": 4,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/accesskit.rs",
+      "sha256_in_packets": "fd3194c2d730d8672f23bcc36bf8c7ad6d72e1bc3b65d541b618677f36185bfe",
+      "sha256_current": "fd3194c2d730d8672f23bcc36bf8c7ad6d72e1bc3b65d541b618677f36185bfe",
+      "bytes_current": 11691,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/78-runtime-ui-accessibility-semantic-tree-name-description-relation-state-action-live-region-platform-adapter-product-integration-review.md#RUIA-P1-034",
+          "packet": "ui-accessibility-action-mapping-batch2-2026-09-30",
+          "artifact": "ui-accessibility-action-mapping-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/dispatch/input_manager/manager.rs",
+      "sha256_in_packets": "f9a51f5fac3694dace32e90ffa0491d5ad9da4ac8531e24b5a5b87263d0cf654",
+      "sha256_current": "f9a51f5fac3694dace32e90ffa0491d5ad9da4ac8531e24b5a5b87263d0cf654",
+      "bytes_current": 27481,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/77-runtime-ui-input-dispatch-routing-focus-navigation-pointer-capture-gesture-drag-drop-ime-window-lifecycle-product-integration-review.md#RUII-P0-001",
+          "packet": "ui-reply-transaction-batch2-2026-09-30",
+          "artifact": "ui-reply-transaction-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/input/editable_text/mutation.rs",
+      "sha256_in_packets": "0039fbc526673e343d5aaee861f129698cdbfb4796584150d4f0717063876264",
+      "sha256_current": "0039fbc526673e343d5aaee861f129698cdbfb4796584150d4f0717063876264",
+      "bytes_current": 26603,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/77-runtime-ui-input-dispatch-routing-focus-navigation-pointer-capture-gesture-drag-drop-ime-window-lifecycle-product-integration-review.md#RUII-P0-001",
+          "packet": "ui-reply-transaction-batch2-2026-09-30",
+          "artifact": "ui-reply-transaction-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/input/effect.rs",
+      "sha256_in_packets": "c2cebca09859ec6d0770dbdf6c706962cae74cd53597930f446364467c638e39",
+      "sha256_current": "c2cebca09859ec6d0770dbdf6c706962cae74cd53597930f446364467c638e39",
+      "bytes_current": 10881,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/77-runtime-ui-input-dispatch-routing-focus-navigation-pointer-capture-gesture-drag-drop-ime-window-lifecycle-product-integration-review.md#RUII-P0-001",
+          "packet": "ui-reply-transaction-batch2-2026-09-30",
+          "artifact": "ui-reply-transaction-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/input/effect/transaction.rs",
+      "sha256_in_packets": "37f2137998b59f1ff1245aacfd214cb20bf10dcfe8f5e2548aa6cb6b138004af",
+      "sha256_current": "37f2137998b59f1ff1245aacfd214cb20bf10dcfe8f5e2548aa6cb6b138004af",
+      "bytes_current": 7413,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/77-runtime-ui-input-dispatch-routing-focus-navigation-pointer-capture-gesture-drag-drop-ime-window-lifecycle-product-integration-review.md#RUII-P0-001",
+          "packet": "ui-reply-transaction-batch2-2026-09-30",
+          "artifact": "ui-reply-transaction-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/input/keyboard_clipboard.rs",
+      "sha256_in_packets": "bc1b080daf314caff910f8c8e0e133ee981972fd3e1ab84199b731218c48d655",
+      "sha256_current": "4e0f88c76a6d204eab5fe6012fd3ee47daf2165d574c7c5ff47cef186aca587d",
+      "bytes_current": 12704,
+      "exists": true,
+      "fresh": false,
+      "freshness_status": "drift",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/77-runtime-ui-input-dispatch-routing-focus-navigation-pointer-capture-gesture-drag-drop-ime-window-lifecycle-product-integration-review.md#RUII-P0-001",
+          "packet": "ui-reply-transaction-batch2-2026-09-30",
+          "artifact": "ui-reply-transaction-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/input/rich_link.rs",
+      "sha256_in_packets": "9db07725fbb1019e0dd0fec7ee1a5db39da0ed626f52c8b5dfb3c2006b1ac1de",
+      "sha256_current": "9db07725fbb1019e0dd0fec7ee1a5db39da0ed626f52c8b5dfb3c2006b1ac1de",
+      "bytes_current": 14833,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/77-runtime-ui-input-dispatch-routing-focus-navigation-pointer-capture-gesture-drag-drop-ime-window-lifecycle-product-integration-review.md#RUII-P0-001",
+          "packet": "ui-reply-transaction-batch2-2026-09-30",
+          "artifact": "ui-reply-transaction-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/mutation_snapshot.rs",
+      "sha256_in_packets": "34d6750e2bd1edb5c4560af6ad946b4032ef41c5253b7e2b13d6009dc3fde67b",
+      "sha256_current": "34d6750e2bd1edb5c4560af6ad946b4032ef41c5253b7e2b13d6009dc3fde67b",
+      "bytes_current": 4010,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/77-runtime-ui-input-dispatch-routing-focus-navigation-pointer-capture-gesture-drag-drop-ime-window-lifecycle-product-integration-review.md#RUII-P0-001",
+          "packet": "ui-reply-transaction-batch2-2026-09-30",
+          "artifact": "ui-reply-transaction-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/accesskit.rs",
+      "sha256_in_packets": "5c505af054bc4c6a8c157716c1dcd2e60438e67d688f8331cfcb59264db87eaa",
+      "sha256_current": "5c505af054bc4c6a8c157716c1dcd2e60438e67d688f8331cfcb59264db87eaa",
+      "bytes_current": 16713,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/78-runtime-ui-accessibility-semantic-tree-name-description-relation-state-action-live-region-platform-adapter-product-integration-review.md#RUIA-P1-034",
+          "packet": "ui-accessibility-action-mapping-batch2-2026-09-30",
+          "artifact": "ui-accessibility-action-mapping-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/runtime_input_ownership/transaction.rs",
+      "sha256_in_packets": "a0ed632cfd8bb7c1cbb33e5ca548d109fe9b6fea2b9f88d8c7c0f93a4d67ba42",
+      "sha256_current": "a0ed632cfd8bb7c1cbb33e5ca548d109fe9b6fea2b9f88d8c7c0f93a4d67ba42",
+      "bytes_current": 7437,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/77-runtime-ui-input-dispatch-routing-focus-navigation-pointer-capture-gesture-drag-drop-ime-window-lifecycle-product-integration-review.md#RUII-P0-001",
+          "packet": "ui-reply-transaction-batch2-2026-09-30",
+          "artifact": "ui-reply-transaction-review-batch2-2026-09-30.jsonl",
+          "line": 1,
+          "evidence_field": "source_evidence"
+        }
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/profiling.rs",
+      "sha256_in_packets": "f6ced6f1d33b4d00eaa6be929f1b06f05d6550610618800c8e75f9f01c906c43",
+      "sha256_current": "f6ced6f1d33b4d00eaa6be929f1b06f05d6550610618800c8e75f9f01c906c43",
+      "bytes_current": 43447,
+      "exists": true,
+      "fresh": true,
+      "freshness_status": "fresh",
+      "referenced_by": [
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md#P1-7",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 1,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md#P1-011",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 2,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-011",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 3,
+          "evidence_field": "current_source_evidence"
+        },
+        {
+          "report_key": "docs/plans/optimize/zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md#RT212-P1-012",
+          "packet": "profile-export-path-publish-batch2-2026-09-30",
+          "artifact": "profile-export-path-publish-batch2-2026-09-30-review.jsonl",
+          "line": 4,
+          "evidence_field": "current_source_evidence"
+        }
+      ]
+    }
+  ],
+  "source_drift": [
+    {
+      "path": "zircon_runtime/src/ui/surface/input/keyboard_clipboard.rs",
+      "expected": "bc1b080daf314caff910f8c8e0e133ee981972fd3e1ab84199b731218c48d655",
+      "current": "4e0f88c76a6d204eab5fe6012fd3ee47daf2165d574c7c5ff47cef186aca587d",
+      "report_key": "docs/plans/optimize/zircon_runtime/77-runtime-ui-input-dispatch-routing-focus-navigation-pointer-capture-gesture-drag-drop-ime-window-lifecycle-product-integration-review.md#RUII-P0-001",
+      "packet": "ui-reply-transaction-batch2-2026-09-30",
+      "artifact": "ui-reply-transaction-review-batch2-2026-09-30.jsonl",
+      "span_validation": [
+        {
+          "start": 323,
+          "end": 328,
+          "range_valid": true,
+          "line_count": 353,
+          "snippet_checks": [
+            {
+              "line": 323,
+              "matches_current": false
+            },
+            {
+              "line": 324,
+              "matches_current": false
+            },
+            {
+              "line": 325,
+              "matches_current": false
+            },
+            {
+              "line": 326,
+              "matches_current": false
+            },
+            {
+              "line": 327,
+              "matches_current": false
+            },
+            {
+              "line": 328,
+              "matches_current": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "producer_artifact_integrity_exceptions": [],
+  "validation_errors": [],
+  "outputs": {
+    "review": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\combined-2026-09-30-v5\\2026-09-30-w0-second-wave-review.jsonl",
+      "sha256": "dccceb090592eea01f48f885ef84e53d202e6470c647b4481c44a4c23ec673d1",
+      "bytes": 652094,
+      "rows": 30
+    },
+    "crosswalk": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\combined-2026-09-30-v5\\2026-09-30-w0-second-wave-crosswalk.jsonl",
+      "sha256": "d1112228744c798263611bec04f1865d4addf5f3b9bf98bba532792bdb43f2f8",
+      "bytes": 53832,
+      "rows": 28
+    },
+    "summary": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch2\\combined-2026-09-30-v5\\2026-09-30-w0-second-wave-summary.json",
+      "sha256": "f6fda8ee41837ccbedb05174212e7ed693ac64d544e3f6ee7eb19f279f662d3c",
+      "bytes": 10157,
+      "rows": 1
+    }
+  },
+  "shared_documents_modified": false,
+  "shared_source_modified": false,
+  "tests_or_builds_run": 0,
+  "accepted": 0,
+  "preserved_inventory_counts": {
+    "reports": 576,
+    "source_checked_paths": 61,
+    "unreviewed_paths": 515,
+    "supplemental_notes_outside_denominator": 9,
+    "nested_files": 62,
+    "nested_unread": 2316,
+    "candidate_tokens_not_canonical_findings": 27629,
+    "unnumbered_reports": 69,
+    "manual_anchors": 558
+  }
+}

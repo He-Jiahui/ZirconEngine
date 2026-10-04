@@ -1,3 +1,4 @@
+# 核对资产浏览器的槽位、滚动与绘制计数能绑定源清单规模。
 import unittest
 from pathlib import Path
 
@@ -71,10 +72,10 @@ class EditorAssetBrowserProfileScaleContract(unittest.TestCase):
         self.assertNotIn("self.metadata.scroll_groups.iter().count()", projector)
 
     def test_capture_gate_binds_counters_to_the_source_manifest_scale(self) -> None:
-        evidence = (REPO_ROOT / "tools/ui-profile-counter-evidence.ps1").read_text(
+        evidence = (REPO_ROOT / "tools/profiling/ui/ui-profile-counter-evidence.ps1").read_text(
             encoding="utf-8"
         )
-        capture = (REPO_ROOT / "tools/ui-profile-capture.ps1").read_text(
+        capture = (REPO_ROOT / "tools/profiling/ui/ui-profile-capture.ps1").read_text(
             encoding="utf-8"
         )
 

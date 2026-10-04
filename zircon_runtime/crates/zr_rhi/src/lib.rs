@@ -68,7 +68,13 @@ pub use native_surface::RenderNativeSurfaceTarget;
 pub use submission::{
     SubmissionHistory, SubmissionLimits, SubmissionPollReceipt, SubmissionStatus, SubmissionTicket,
 };
-pub use submission_packet::RhiSubmissionPacket;
+pub use submission_packet::{
+    RhiGraphAccessId, RhiGraphAccessRange, RhiGraphExecutionAccess, RhiGraphExecutionPass,
+    RhiGraphExecutionReceipt, RhiGraphExecutionReceiptError, RhiGraphExecutionTransition,
+    RhiGraphPhysicalResourceLease, RhiGraphQueueLane, RhiGraphResourceAccessKind,
+    RhiGraphResourceBounds, RhiGraphResourceId, RhiGraphResourceKind, RhiGraphResourceState,
+    RhiSubmissionPacket,
+};
 pub use surface::{
     RenderSurfaceDescriptor, RenderSurfaceHandleAllocator, RenderSurfaceHandleError,
     SurfaceAcquireOutcome, SurfaceFrameId, SurfaceFrameLease, SurfaceFrameTerminal,
@@ -83,6 +89,7 @@ pub use ui_surface::{
     UiSurfaceImageUvRect, UiSurfacePresentOutcome, UiSurfacePresentStats,
     UiSurfacePresentStatsAccumulator, UiSurfacePresenter, UiSurfaceRect,
     UiSurfaceResolvedCommandKind, UiSurfaceStyle, UiSurfaceStyleHandle, UiSurfaceStyledPayload,
+    UiSurfaceTextFace, UiSurfaceTextLayoutRun, UiSurfaceTextLayoutSnapshot, UiSurfaceTextLine,
     UiSurfaceTextStyle,
 };
 pub use upload::{BufferUpload, BufferUploadBatch, TextureUpload, TextureUploadBatch};

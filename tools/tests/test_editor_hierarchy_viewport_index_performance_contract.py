@@ -1,3 +1,4 @@
+# 核对层级代际元数据发布稳定锚点行，视口只查询当前候选与实时行。
 from pathlib import Path
 import unittest
 

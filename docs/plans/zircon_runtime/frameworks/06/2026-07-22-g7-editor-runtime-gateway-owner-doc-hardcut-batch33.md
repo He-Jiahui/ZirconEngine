@@ -1,18 +1,17 @@
 ---
 related_code:
-  - docs/zircon_editor/ui/performance-timeline.md
+  - docs/crates/zircon_editor/ui/performance-timeline.md
   - zircon_editor/src/core/gateway/contract.rs
-  - zircon_editor/src/core/gateway/session.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
 implementation_files:
-  - docs/zircon_editor/ui/performance-timeline.md
+  - docs/crates/zircon_editor/ui/performance-timeline.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - python -B tools/check_conventions.py --repo-root E:\Git\ZirconEngine --only docs
-  - git diff --check -- docs/zircon_editor/ui/performance-timeline.md docs/plans/zircon_runtime/frameworks/06/2026-07-22-g7-editor-runtime-gateway-owner-doc-hardcut-batch33.md
+  - python -B tools/audits/check_conventions.py --repo-root E:\Git\ZirconEngine --only docs
+  - git diff --check -- docs/crates/zircon_editor/ui/performance-timeline.md docs/plans/zircon_runtime/frameworks/06/2026-07-22-g7-editor-runtime-gateway-owner-doc-hardcut-batch33.md
 ---
 
 # Frameworks06 G7 Editor Runtime Gateway Owner 文档硬切 Batch 33
@@ -20,7 +19,7 @@ tests:
 Plan: docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
 Milestone: M1
 Status: accepted
-Files: ["docs/zircon_editor/ui/performance-timeline.md"]
+Files: ["docs/crates/zircon_editor/ui/performance-timeline.md"]
 Date: 2026-07-22
 Session: `frameworks06-g7-editor-runtime-gateway-owner-batch33-20260722`
 

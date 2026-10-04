@@ -24,31 +24,43 @@ fn normalize_newlines(source: String) -> String {
 fn read_crate_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(crate_dir().join(path))
-            .unwrap_or_else(|error| panic!("failed to read Hub crate file {path}: {error}")),
+            .unwrap_or_else(|error| panic!("failed to read Hub crate file {}: {}", path, error)),
     )
 }
 
 fn read_repo_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(repo_dir().join(path))
-            .unwrap_or_else(|error| panic!("failed to read repository file {path}: {error}")),
+            .unwrap_or_else(|error| panic!("failed to read repository file {}: {}", path, error)),
     )
 }
 
 fn assert_contains_all(source_name: &str, source: &str, snippets: &[&str]) {
+    let mut missing = Vec::new();
     for snippet in snippets {
-        assert!(
-            source.contains(snippet),
-            "{source_name} should contain project-workflow snippet {snippet:?}"
+        if !source.contains(snippet) {
+            missing.push(*snippet);
+        }
+    }
+    if !missing.is_empty() {
+        panic!(
+            "{} should contain project-workflow snippets {:?}",
+            source_name, missing
         );
     }
 }
 
 fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
+    let mut found = Vec::new();
     for snippet in snippets {
-        assert!(
-            !source.contains(snippet),
-            "{source_name} should not contain obsolete project-workflow snippet {snippet:?}"
+        if source.contains(snippet) {
+            found.push(*snippet);
+        }
+    }
+    if !found.is_empty() {
+        panic!(
+            "{} should not contain obsolete project-workflow snippets {:?}",
+            source_name, found
         );
     }
 }
@@ -84,11 +96,11 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
     let action_id = read_crate_file("src/tauri_app/action_id.rs");
     let action_request = read_crate_file("src/tauri_app/action_request.rs");
     let runtime_state = read_crate_file("src/tauri_app/runtime_state.rs");
-    let runtime_state_tests = read_crate_file("src/tauri_app/runtime_state/tests.rs");
+    let runtime_state_tests = read_crate_file("src/tauri_app/runtime_state/tests/cases.rs");
     let action_tasks = read_crate_file("src/tauri_app/runtime_state/action_tasks.rs");
     let project_actions = read_crate_file("src/tauri_app/runtime_state/project_actions.rs");
     let project_action_tests =
-        read_crate_file("src/tauri_app/runtime_state/project_actions/tests.rs");
+        read_crate_file("src/tauri_app/runtime_state/project_actions/tests/cases.rs");
     let build_actions = read_crate_file("src/tauri_app/runtime_state/build_actions.rs");
     let editor_launch_actions =
         read_crate_file("src/tauri_app/runtime_state/editor_launch_actions.rs");
@@ -109,7 +121,7 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
         &action_id,
         &[
             "pub(crate) enum HubActionId",
-            "pub(crate) const ALL: [HubActionId; 31]",
+            "pub(crate) const ALL: [HubActionId; 32]",
             "Self::BuildProject => \"build-project\"",
             "Self::PackageProject => \"package-project\"",
             "Self::InstallDevice => \"install-device\"",
@@ -117,8 +129,12 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
             "\"page\" => Some(Self::ShowPage)",
             "\"project-subpage\" => Some(Self::ShowProjectSubpage)",
             "\"open-project\" => Some(Self::SelectProject)",
-            "every_action_id_round_trips_between_as_str_and_from_str",
         ],
+    );
+    assert_contains_all(
+        "action_id.rs",
+        &read_crate_file("src/tauri_app/tests/action_id.rs"),
+        &["every_action_id_round_trips_between_as_str_and_from_str"],
     );
     assert_contains_all(
         "action_request.rs",
@@ -134,7 +150,10 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
             "BrowseSettingsFolderPayload",
             "OpenResourcePayload",
             "OpenOutputFolderPayload",
-            "pub history_id: Option<String>",
+            "pub receipt_id: Option<String>",
+            "pub capability: Option<OpenOutputFolderCapability>",
+            "pub engine_id: Option<String>",
+            "pub(crate) enum OpenOutputFolderCapability",
             "pub settings: Option<HubSettingsPayload>",
             "pub(crate) fn action(&self) -> Result<HubActionId, HubError>",
             "pub(in crate::tauri_app) fn parse_as(",
@@ -152,16 +171,35 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
             "HubActionId::OpenResource => Ok(HubAction::OpenResource",
             "HubActionId::OpenOutputFolder => Ok(HubAction::OpenOutputFolder",
             "payload: parse_optional_payload(action, self.payload.as_ref())?",
+            "impl ValidatePayload for OpenOutputFolderPayload",
+            "targetId is not accepted; use receiptId or capability",
+            "fn invalid_output_folder_payload(detail: &str)",
+            "const MAX_PAYLOAD_BYTES: usize = 256 * 1024",
+            "const MAX_PAYLOAD_DEPTH: usize = 32",
+            "fn validate_payload_budget(action: HubActionId, payload: &Value)",
+            "let mut stack = vec![(payload, 0usize)]",
+            "payload exceeds the Hub budget",
             "impl ValidatePayload for CreateProjectActionPayload",
             "impl ValidatePayload for ProjectTargetActionPayload",
+            "HubActionId::CancelDelete => Ok(HubAction::CancelDelete",
+        ],
+    );
+    assert_contains_all(
+        "action_request.rs",
+        &read_crate_file("src/tauri_app/tests/action_request.rs"),
+        &[
             "project_target_envelope_payload_is_rejected_after_hard_cutover",
             "missing_required_payload_is_rejected_with_action_id",
             "settings_payload_requires_settings_wrapper",
-            "HubActionId::CancelDelete => Ok(HubAction::CancelDelete",
             "parses_cancel_delete_project_target_payload",
             "parses_create_project_payload_for_create_project_action",
             "parses_browse_settings_folder_payload_for_folder_action",
-            "parses_open_output_folder_flat_payload_for_output_action",
+            "parses_open_output_folder_receipt_payload_for_output_action",
+            "parses_open_output_root_capability_payload",
+            "open_output_folder_rejects_raw_path_payloads_at_the_ipc_boundary",
+            "open_output_folder_rejects_target_id_selector_at_ipc_boundary",
+            "payload_budget_rejects_oversized_string_before_typed_deserialization",
+            "payload_budget_rejects_excessive_nesting_without_recursive_walk",
             "unknown_action_is_rejected_before_runtime_routing",
         ],
     );
@@ -193,30 +231,30 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
             "HubAction::RestoreDefaultSettings => self.restore_default_settings()",
             "HubAction::BrowseSettingsFolder { target_id, payload } =>",
             "self.browse_settings_folder(target_id.as_deref(), payload)?",
-            "HubAction::CreateProject { payload } => self.create_project_from_payload(payload)?",
+            "HubAction::CreateProject { .. } =>",
+            "Create Project must run through the background Editor admission workflow",
             "HubAction::ImportProject { target_id, payload } =>",
             "HubAction::CancelDelete { target_id, payload } =>",
             "self.cancel_project_delete(target_id.as_deref(), payload.as_ref())?",
             "HubAction::OpenResource { target_id, payload } =>",
-            "HubAction::OpenOutputFolder { target_id, payload } =>",
+            "HubAction::OpenOutputFolder { payload } =>",
+            "self.open_output_folder(payload)?",
             "HubAction::BuildProject { target_id, payload } =>",
             "payload.as_ref(),",
-            "HubActionId::BuildProject,",
-            "self.build_selected_project_engine()?",
+            "BuildProject must be dispatched through the Hub background action runner",
             "HubAction::PackageProject { target_id, payload } =>",
-            "HubActionId::PackageProject,",
-            "self.package_recent_project()?",
+            "PackageProject must be dispatched through the Hub background action runner",
             "HubAction::InstallDevice { target_id, payload } =>",
-            "HubActionId::InstallDevice,",
-            "self.install_recent_project_to_device()?",
-            "HubAction::OpenEditor { target_id, payload } =>",
-            "HubActionId::OpenEditor,",
-            "self.open_selected_project_or_editor()?",
-            "Ok(self.view_model())",
+            "InstallDevice must be dispatched through the Hub background action runner",
+            "HubAction::OpenEditor { .. } =>",
+            "OpenEditor must be dispatched through the Hub background action runner",
+            "HubAction::CancelBackgroundTask { task_id } =>",
+            "self.request_background_task_cancellation(task_id)",
+            "Ok(self.publish_view_model())",
             "fn persist(&mut self) -> Result<(), HubError>",
             "config.runtime = self.runtime_state_for_config();",
             "fn persist_unchecked(&mut self) -> Result<(), HubError>",
-            "reconcile_shared_recent_projects(",
+            "reconcile_shared_recent_projects_snapshot(",
             "shared_recent_projects_snapshot",
             "fn refresh_shared_recent_projects_on_focus(&mut self) -> Result<bool, HubError>",
             "fn runtime_state_for_config(&self) -> HubRuntimeState",
@@ -229,7 +267,7 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
         ],
     );
     assert_contains_all(
-        "runtime_state/tests.rs",
+        "runtime_state/tests/cases.rs",
         &runtime_state_tests,
         &[
             "save_settings_refreshes_source_scoped_catalogs_in_returned_view_model",
@@ -248,6 +286,7 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
             "TaskStatus::running_operation(",
             "pub(in crate::tauri_app) trait BackgroundTask",
             "pub(in crate::tauri_app) fn execute_background_task",
+            "let result = pending.run(&context);",
             "pub(in crate::tauri_app) fn dispatch_background_request",
             "pub(in crate::tauri_app) fn run_background_worker_loop",
             "pub(in crate::tauri_app) fn lock_session",
@@ -269,8 +308,13 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
             "impl BackgroundTask for PendingEditorRuntimeBuild",
             "pub(in crate::tauri_app) fn prepare_background_editor_runtime_build",
             "pub(in crate::tauri_app) fn complete_background_editor_runtime_build",
-            "let result = pending_build.run()",
-            "record_active_build(",
+            "record_build_for_engine(",
+        ],
+    );
+    assert_contains_all(
+        "runtime_state/build_actions.rs",
+        &read_crate_file("src/tauri_app/runtime_state/tests/build_actions.rs"),
+        &[
             "background_build_prepares_command_without_running_or_recording_history",
             "background_build_completion_records_success_after_external_result",
         ],
@@ -280,14 +324,14 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
         &editor_launch_actions,
         &[
             "pub(in crate::tauri_app) struct PendingEditorLaunch",
-            "pub(super) fn open_selected_project_or_editor(&mut self) -> Result<(), HubError>",
+            "fn prepare_editor_launch(&mut self) -> Result<PendingEditorLaunch, HubError>",
             "pub(in crate::tauri_app) fn prepare_background_editor_launch",
             "pub(in crate::tauri_app) fn complete_background_editor_launch",
             "launch_editor(command)?",
-            "Command::new(executable).spawn()?",
+            "let child = launch_editor(&self.command)?;",
             "record_editor_launch_failure(",
-            "background_editor_launch_prepare_records_missing_executable_failure_without_spawn",
-            "background_editor_launch_completion_records_success_after_external_spawn",
+            "fn validate_source_engine_for_editor_launch(",
+            "#[path = \"editor_launch_actions/tests/cases.rs\"]",
         ],
     );
     assert_contains_all(
@@ -300,10 +344,16 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
             "pub(in crate::tauri_app) fn complete_background_project_package",
             "pub(in crate::tauri_app) fn prepare_background_device_install",
             "pub(in crate::tauri_app) fn complete_background_device_install",
-            "package_project(&self.request)",
-            "install_package_to_device(&install_request)",
+            "package_project(&self.request, context.cancellation())",
+            "install_package_to_device(&install_request, context.cancellation())",
             "report.receipt_path",
             "record_package_success(",
+        ],
+    );
+    assert_contains_all(
+        "runtime_state/project_delivery_actions.rs",
+        &read_crate_file("src/tauri_app/runtime_state/tests/project_delivery_actions.rs"),
+        &[
             "background_package_prepares_request_without_copying_or_recording_history",
             "background_package_completion_records_success_after_copy_result",
             "background_install_runs_package_then_device_copy_before_recording_history",
@@ -315,10 +365,13 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
         &[
             "pub receipt_path: PathBuf",
             "pub total_bytes: u64",
-            "write_install_receipt(install_dir)?",
-            "content_download_manifest",
-            "project/zircon-project.toml",
+            "write_install_receipt(install_dir, cancellation)?",
         ],
+    );
+    assert_contains_all(
+        "projects/device_install.rs",
+        &read_crate_file("src/projects/tests/device_install.rs"),
+        &["content_download_manifest", "project/zircon-project.toml"],
     );
     assert_contains_all(
         "projects/install_receipt.rs",
@@ -330,15 +383,18 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
             "pub struct HubContentDownloadChunk",
             "allow_range_resume: true",
             "fn sha256_hex(bytes: &[u8]) -> String",
-            "sha256_hex_matches_known_vectors",
         ],
+    );
+    assert_contains_all(
+        "projects/install_receipt.rs",
+        &read_crate_file("src/projects/tests/install_receipt.rs"),
+        &["sha256_hex_matches_known_vectors"],
     );
     assert_contains_all(
         "runtime_state/project_actions.rs",
         &project_actions,
         &[
             "pub(super) fn import_project_from_action(",
-            "CreateProjectActionPayload",
             "ImportProjectActionPayload",
             "FolderPickerRequest::new(",
             "(self.folder_picker)(",
@@ -353,7 +409,7 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
         ],
     );
     assert_contains_all(
-        "runtime_state/project_actions/tests.rs",
+        "runtime_state/project_actions/tests/cases.rs",
         &project_action_tests,
         &["import_project_folder_picker_title_uses_current_language"],
     );
@@ -368,23 +424,61 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
         &[
             "pub(super) fn open_output_folder(",
             "OpenOutputFolderPayload",
-            "if let Some(output_dir) = payload.output_dir.clone()",
-            "if let Some(path) = payload.path.clone()",
-            "action_history_id(record) == target",
+            "if let Some(receipt_id) = payload\n            .receipt_id",
+            "payload.capability",
+            "fn resolve_output_capability(",
+            "fn resolve_recorded_history_output(&self, history_id: &str)",
+            "fn resolve_source_build_receipt(&self, receipt_id: &str)",
+            "fn resolve_recorded_output_path(&self, candidate: &Path)",
+            "fn resolve_generated_output_path(&self, candidate: &Path)",
+            "has_generated_output",
+            "default_build_output_grants_open_capability()",
+            "default_device_install_grants_open_capability()",
+            "validate_output_path_shape(candidate)",
+            "path_contains_reparse_component(candidate)",
+            "trusted_root_contains(root, &canonical)",
+            "fn windows_path_contains(root: &Path, candidate: &Path)",
+            "legacy arbitrary-path record could self-authorize",
+            "OutputFolderNotRecorded",
+            "fn output_folder_not_recorded(path: &Path)",
             "OpenFolderCommand::new(output_dir.clone())",
             "HubActionKind::OpenOutput",
             "\"Output folder opened\"",
             "TaskStatus::error(\"Open Output failed\"",
             "record.action.id()",
-            "open_output_folder_resolves_record_id_before_path_fallback",
-            "open_output_folder_prefers_typed_output_dir_over_archived_path_payload",
+        ],
+    );
+    assert_contains_all(
+        "runtime_state/output_actions.rs",
+        &read_crate_file("src/tauri_app/runtime_state/tests/output_actions.rs"),
+        &[
+            "successful source-build receipt",
+            "open_output_folder_resolves_hub_receipt_without_path_fallback",
+            "open_output_folder_resolves_a_server_defined_output_capability",
+            "open_output_folder_resolves_exact_successful_source_build_receipt",
+            "open_output_folder_source_engine_capability_requires_a_generated_or_trusted_root",
+            "open_output_folder_rejects_webview_configured_default_root",
+            "open_output_folder_rejects_an_unrecorded_receipt",
+            "open_output_folder_rejects_legacy_success_path_outside_configured_roots",
+            "open_output_folder_rejects_a_target_only_history_selector",
+            "open_output_folder_rejects_parent_traversal_in_forged_receipt",
+            "open_output_folder_rejects_unrecorded_child_receipt",
+            "open_output_folder_rejects_symlink_or_junction_alias",
             "open_output_folder_missing_directory_is_recoverable_status",
         ],
     );
     assert_not_contains_any(
         "runtime_state/output_actions.rs",
         &output_actions,
-        &["payload.path.clone().or(payload.output_dir.clone())"],
+        &[
+            "payload.path.clone().or(payload.output_dir.clone())",
+            "payload.path.clone()",
+            "payload.output_dir.clone()",
+            "record.target == target",
+            "record.detail == target",
+            "Ok(PathBuf::from(target))",
+            "target_id.map(|receipt_id|",
+        ],
     );
     assert_contains_all(
         "runtime_state/settings_actions.rs",
@@ -398,11 +492,12 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
             "BrowseSettingsFolderPayload",
             "settings_payload: Option<HubSettingsPayload>",
             "self.settings_draft = draft;",
-            "update_settings_draft_recomputes_health_without_persisting",
             "self.save_settings(settings_payload)",
             "record_settings_save_failure",
             "text.status_label(\"Save Settings failed\")",
             "HubMessage::new(HubMessageId::Settings(",
+            "set_default_build_output_from_native_folder_picker(path)",
+            "set_default_device_install_from_native_folder_picker(path)",
             "SettingsMessageId::CheckValuesAndSave",
             "FolderPickerRequest::new(",
             "field.picker_title(text)",
@@ -413,10 +508,55 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
             "text.status_label(\"Folder selection cancelled\")",
             "text.status_label(\"Browse folder failed\")",
             "SettingsMessageId::ChooseExistingFolderOrManual",
+        ],
+    );
+    assert_contains_all(
+        "runtime_state/settings_actions.rs",
+        &read_crate_file("src/tauri_app/runtime_state/tests/settings_actions.rs"),
+        &[
+            "update_settings_draft_recomputes_health_without_persisting",
             "settings_draft_folder_changes_wait_for_save_settings",
+            "typed_settings_output_paths_require_native_selection_before_open_capability",
+            "typed WebView settings must not mint an output-open capability",
             "settings_folder_picker_title_uses_current_language",
             "save_settings_validation_errors_return_localized_view_model",
         ],
+    );
+    assert_contains_all(
+        "settings/hub_config.rs",
+        &config,
+        &[
+            "pub(crate) enum OutputRootProvenance",
+            "Unverified,",
+            "HubManaged,",
+            "NativeFolderPicker,",
+            "pub(crate) default_build_output_provenance: OutputRootProvenance",
+            "pub(crate) default_device_install_provenance: OutputRootProvenance",
+            "set_default_build_output_from_registered_engine",
+        ],
+    );
+    assert_contains_all(
+        "settings/hub_config.rs",
+        &read_crate_file("src/settings/tests/hub_config.rs"),
+        &[
+            "legacy_settings_without_output_provenance_fail_closed",
+            "selecting_the_same_registered_engine_output_preserves_native_provenance",
+            "selecting_a_different_registered_engine_output_clears_provenance",
+        ],
+    );
+    assert_contains_all(
+        "view_model/settings_dto.rs",
+        &settings_dto,
+        &[
+            "#[serde(deny_unknown_fields)]\n#[serde(rename_all = \"camelCase\")]\npub(crate) struct HubSettingsPayload",
+            "set_default_build_output_from_webview(path)",
+            "set_default_device_install_from_webview(path)",
+        ],
+    );
+    assert_contains_all(
+        "view_model/settings_dto.rs",
+        &read_crate_file("src/tauri_app/view_model/tests/settings_dto.rs"),
+        &["settings_payload_rejects_output_provenance_injection"],
     );
     assert_contains_all(
         "view_model/settings_dto.rs",
@@ -439,6 +579,12 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
             "fn path_command_extensions(has_extension: bool)",
             "env::var_os(\"PATHEXT\")",
             "fn directory_row(",
+        ],
+    );
+    assert_contains_all(
+        "view_model/settings_dto.rs",
+        &read_crate_file("src/tauri_app/view_model/tests/settings_dto.rs"),
+        &[
             "settings_health_includes_rustup_path_status",
             "settings_health_checks_path_command_availability",
         ],
@@ -465,14 +611,14 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
         &commands,
         &[
             "pub(super) fn hub_state(",
-            "Ok(session.view_model())",
+            "Ok(session.publish_view_model())",
             "pub(super) fn hub_action(",
             "if HubRuntimeSession::should_run_action_in_background(&request)",
             "let should_spawn = session.start_background_action_or_record_error(&request)?;",
-            "spawn_background_action(request, session_handle, app.clone());",
+            "spawn_background_action(\n                request,\n                session_handle,\n                state.editor_child_reaper(),\n                app.clone(),\n            );",
             "fn spawn_background_action(",
             "let emit_state = |view_model: &HubViewModel|",
-            "run_background_worker_loop(request, &session_handle, &emit_state);",
+            "run_background_worker_loop(request, &session_handle, &emit_state, &editor_child_reaper);",
             "app.emit(\"hub-state-changed\", view_model)",
         ],
     );
@@ -526,7 +672,7 @@ fn project_selection_detail_and_source_context_refresh_before_view_model() {
             "self.activate_project_engine_for_path(&project.path);",
             "self.refresh_project_context_views(",
             "self.config.active_engine_id != active_engine_before",
-            "self.persist(Some(&project.path))",
+            "self.persist()",
             "fn open_project_detail(&mut self, target: &str) -> Result<(), HubError>",
             "self.select_project_target(target)?;",
             "self.project_subpage = ProjectSubpage::ProjectDetail;",
@@ -586,12 +732,11 @@ fn backend_workflow_actions_record_history_and_visible_task_status() {
         "runtime_state/build_actions.rs",
         &build_actions,
         &[
-            "pub(super) fn build_selected_project_engine(&mut self) -> Result<(), HubError>",
+            "pub(in crate::tauri_app) fn prepare_background_editor_runtime_build",
             "fn prepare_editor_runtime_build(&mut self) -> Result<PendingEditorRuntimeBuild, HubError>",
-            "self.validate_active_source_engine_for_build(command_line.clone())?",
+            "self.validate_source_engine_for_build(&engine, command.command_line())?",
             "fn complete_editor_runtime_build(",
             "self.record_action_and_persist(HubActionRecord",
-            "TaskStatus::running_operation(",
             "TaskStatus::error(",
             "TaskStatus::success(",
         ],
@@ -602,30 +747,33 @@ fn backend_workflow_actions_record_history_and_visible_task_status() {
         &[
             "TaskStatus::error(",
             "pub(super) fn record_action_and_persist(",
-            "open_editor_action_records_recoverable_failure_without_falling_back_to_demo_state",
         ],
+    );
+    assert_contains_all(
+        "runtime_state/quick_actions.rs",
+        &read_crate_file("src/tauri_app/runtime_state/tests/quick_actions.rs"),
+        &["open_editor_action_records_recoverable_failure_without_falling_back_to_demo_state"],
     );
     assert_contains_all(
         "runtime_state/editor_launch_actions.rs",
         &editor_launch_actions,
         &[
-            "pub(super) fn open_selected_project_or_editor(&mut self) -> Result<(), HubError>",
-            "EditorLaunchCommand::from_preferred_engine(",
+            "pub(in crate::tauri_app) fn prepare_background_editor_launch",
+            "EditorLaunchCommand::from_staged_engine(",
             "record_editor_launch_failure(",
             "TaskStatus::success(",
-            "pub(in crate::tauri_app) fn prepare_background_editor_launch",
             "pub(in crate::tauri_app) fn complete_background_editor_launch",
-            "background_editor_launch_completion_records_success_after_external_spawn",
+            "#[path = \"editor_launch_actions/tests/cases.rs\"]",
         ],
     );
     assert_contains_all(
         "runtime_state/project_delivery_actions.rs",
         &project_delivery_actions,
         &[
-            "pub(super) fn package_recent_project(&mut self) -> Result<(), HubError>",
+            "pub(in crate::tauri_app) fn prepare_background_project_package",
             "ProjectPackageRequest::new(",
             "record_package_success(",
-            "pub(super) fn install_recent_project_to_device(&mut self) -> Result<(), HubError>",
+            "pub(in crate::tauri_app) fn prepare_background_device_install",
             "DeviceInstallRequest::new(",
             "HubActionKind::InstallProject",
             "record_project_action_failure(",
@@ -633,6 +781,12 @@ fn backend_workflow_actions_record_history_and_visible_task_status() {
             "pub(in crate::tauri_app) fn complete_background_project_package",
             "pub(in crate::tauri_app) fn prepare_background_device_install",
             "pub(in crate::tauri_app) fn complete_background_device_install",
+        ],
+    );
+    assert_contains_all(
+        "runtime_state/project_delivery_actions.rs",
+        &read_crate_file("src/tauri_app/runtime_state/tests/project_delivery_actions.rs"),
+        &[
             "background_package_completion_records_success_after_copy_result",
             "background_install_runs_package_then_device_copy_before_recording_history",
         ],
@@ -704,18 +858,17 @@ fn react_pages_dispatch_project_workflows_through_single_action_api() {
             "const handleAction: HubActionHandler = async (actionId, targetId, payload) =>",
             "const stateGenerationRef = useRef(0);",
             "const actionSequenceRef = useRef(0);",
-            "function applyHubState(nextState: HubShellState) {",
+            "function applyHubState(nextState: HubShellState, source: HubStateSource): boolean {",
             "stateGenerationRef.current += 1;",
             "const actionSequence = actionSequenceRef.current + 1;",
             "actionSequenceRef.current = actionSequence;",
             "const stateGenerationAtDispatch = stateGenerationRef.current;",
             "const nextState = await dispatchHubAction(actionId, targetId, payload);",
-            "if (actionSequence === actionSequenceRef.current && stateGenerationRef.current === stateGenerationAtDispatch) {",
-            "applyHubState(nextState);",
+            "applyHubState(nextState, \"invoke\");",
             "const shellText = stateRef.current.ui.shell;",
             "label: shellText.actionFailed",
             "detail: shellText.actionFailedDetail",
-            "<HubWindow state={state} onAction={handleAction} />",
+            "<HubWindow state={state} onAction={handleAction} onWindowActionFailure={handleWindowActionFailure} />",
         ],
     );
     assert_contains_all(
@@ -724,7 +877,8 @@ fn react_pages_dispatch_project_workflows_through_single_action_api() {
         &[
             "await invoke<unknown>(\"hub_action\", {",
             "request: { actionId, targetId, payload },",
-            "return assertHubShellState(await invoke<unknown>(\"hub_state\"));",
+            "payload = await invoke<unknown>(\"hub_state\");",
+            "return assertHubShellState(payload);",
         ],
     );
     assert_contains_all(
@@ -749,8 +903,12 @@ fn react_pages_dispatch_project_workflows_through_single_action_api() {
             "settings?: Partial<HubSettingsSummary>;",
             "export interface UpdateSettingsDraftPayload",
             "[HUB_ACTION.updateSettingsDraft]: UpdateSettingsDraftPayload;",
-            "export interface OpenOutputFolderPayload {\n  outputDir?: string;\n  historyId?: string;\n}",
-            "historyId?: string;",
+            "export type OpenOutputFolderCapability =",
+            "| \"default-build-output\"",
+            "| \"default-device-install\"",
+            "| \"source-engine-output\";",
+            "export interface OpenOutputFolderPayload {\n  receiptId?: string;\n  capability?: OpenOutputFolderCapability;\n  engineId?: string;\n}",
+            "receiptId?: string;",
             "[HUB_ACTION.searchProjects]: SearchProjectsPayload;",
             "[HUB_ACTION.updateNewProjectDraft]: NewProjectDraftPayload;",
             "[HUB_ACTION.buildProject]: ProjectTargetPayload;",
@@ -772,7 +930,7 @@ fn react_pages_dispatch_project_workflows_through_single_action_api() {
         "ProjectsDashboard.tsx",
         &dashboard,
         &[
-            "void onAction(HUB_ACTION.searchProjects, undefined, { query: value });",
+            "void onAction(HUB_ACTION.searchProjects, undefined, { query });",
             "void onAction(HUB_ACTION.setProjectFilter, value);",
             "void onAction(HUB_ACTION.setProjectSort, value);",
             "void onAction(HUB_ACTION.setProjectViewMode, value);",
@@ -787,7 +945,7 @@ fn react_pages_dispatch_project_workflows_through_single_action_api() {
         &[
             "void onAction(HUB_ACTION.showProjectSubpage, \"dashboard\")",
             "void onAction(HUB_ACTION.newProject)",
-            "void onAction(HUB_ACTION.searchProjects, undefined, { query: value });",
+            "void onAction(HUB_ACTION.searchProjects, undefined, { query });",
             "void onAction(HUB_ACTION.selectProject, project.id)",
             "void onAction(HUB_ACTION.openProjectDetail, project.id)",
         ],
@@ -831,11 +989,11 @@ fn react_pages_dispatch_project_workflows_through_single_action_api() {
             "void onAction(HUB_ACTION.packageProject, undefined, workflowProjectTarget)",
             "void onAction(HUB_ACTION.installDevice, undefined, workflowProjectTarget)",
             "void onAction(actionId, undefined, workflowProjectTarget)",
-            "void onAction(HUB_ACTION.openOutputFolder, item.id, { historyId: item.id })",
+            "void onAction(HUB_ACTION.openOutputFolder, undefined, { receiptId: item.id })",
             "item.id === \"build-output-root\"",
             "state.settings.defaultBuildOutputDir",
             "state.settings.defaultDeviceInstallDir",
-            "void onAction(HUB_ACTION.openOutputFolder, undefined, { outputDir });",
+            "void onAction(HUB_ACTION.openOutputFolder, undefined, { capability });",
             "void onAction(action.id, undefined, quickActionProjectTarget)",
         ],
     );
@@ -848,15 +1006,16 @@ fn react_pages_dispatch_project_workflows_through_single_action_api() {
         "CloudPage.tsx",
         &cloud,
         &[
-            "action.kind === \"package-project\"",
-            "action.kind === \"install-project\"",
+            "collectDeliveryActions(state.actionHistory)",
+            "packageActions",
+            "installActions",
             "const workflowProjectTarget = workflowProjectTargetPayload(state);",
             "const workflowProject = workflowTargetProject(state);",
             "const quickActionProjectTarget = quickActionProjectTargetPayload(project);",
             "void onAction(HUB_ACTION.packageProject, undefined, workflowProjectTarget)",
             "void onAction(HUB_ACTION.installDevice, undefined, workflowProjectTarget)",
-            "void onAction(HUB_ACTION.openOutputFolder, item.id, { historyId: item.id })",
-            "void onAction(HUB_ACTION.openOutputFolder, undefined, { outputDir: state.settings.defaultBuildOutputDir });",
+            "void onAction(HUB_ACTION.openOutputFolder, undefined, { receiptId: item.id })",
+            "void onAction(HUB_ACTION.openOutputFolder, undefined, { capability: \"default-build-output\" });",
             "void onAction(action.id, undefined, quickActionProjectTarget)",
         ],
     );
@@ -870,10 +1029,12 @@ fn react_pages_dispatch_project_workflows_through_single_action_api() {
         &editor,
         &[
             "action.kind === \"open-editor\" || action.kind === \"build-editor-runtime\"",
-            "const activeSourceEngine = state.sourceEngines.find((engine) => engine.active) ?? state.sourceEngines[0];",
+            "const activeSourceEngineId = admittedSourceEngineId(state.sourceEngines, state.activeSourceEngineId);",
+            "const activeSourceEngine = state.sourceEngines.find((engine) => engine.id === activeSourceEngineId);",
             "const projectTarget = projectTargetPayload(project);",
             "void onAction(HUB_ACTION.openEditor, undefined, projectTarget)",
-            "void onAction(HUB_ACTION.openOutputFolder, undefined, { outputDir: activeSourceEngine?.outputPath })",
+            "capability: \"source-engine-output\",",
+            "engineId: activeSourceEngine?.id,",
         ],
     );
     assert_contains_all(
@@ -882,8 +1043,8 @@ fn react_pages_dispatch_project_workflows_through_single_action_api() {
         &[
             "settingsDraftState(state)",
             "state.settingsDraft ?? state.settings",
-            "void onAction(HUB_ACTION.updateSettingsDraft, undefined, { settings: nextDraft });",
-            "void onAction(HUB_ACTION.browseSettingsFolder, field, { field, initialDir, settings: draft });",
+            "(nextDraft: SettingsDraft) => onAction(HUB_ACTION.updateSettingsDraft, undefined, { settings: nextDraft })",
+            "onAction(HUB_ACTION.browseSettingsFolder, field, { field, initialDir, settings: draft })",
             "<SettingsSection",
         ],
     );
@@ -915,8 +1076,12 @@ fn project_search_uses_typed_payload_instead_of_target_id() {
         &[
             "pub(crate) struct SearchProjectsPayload",
             "parse_payload::<SearchProjectsPayload>",
-            "parses_search_projects_typed_payload",
         ],
+    );
+    assert_contains_all(
+        "action_request.rs",
+        &read_crate_file("src/tauri_app/tests/action_request.rs"),
+        &["parses_search_projects_typed_payload"],
     );
     assert_contains_all(
         "types/hub.ts",
@@ -930,12 +1095,12 @@ fn project_search_uses_typed_payload_instead_of_target_id() {
     assert_contains_all(
         "ProjectsDashboard.tsx",
         &dashboard,
-        &["void onAction(HUB_ACTION.searchProjects, undefined, { query: value });"],
+        &["void onAction(HUB_ACTION.searchProjects, undefined, { query });"],
     );
     assert_contains_all(
         "ProjectBrowserPage.tsx",
         &browser,
-        &["void onAction(HUB_ACTION.searchProjects, undefined, { query: value });"],
+        &["void onAction(HUB_ACTION.searchProjects, undefined, { query });"],
     );
     assert_not_contains_any(
         "project pages",
@@ -1003,6 +1168,7 @@ fn project_workflow_documentation_records_tauri_react_cutover() {
 fn hub_build_target_routes_through_tauri_nsis_bundler() {
     let build_entry = read_repo_file("tools/zircon_build.py");
     let build_tool = read_repo_file("tools/zircon_build_hub.py");
+    let build_outputs = read_repo_file("tools/zircon_build_hub_outputs.py");
     let tauri_config = read_crate_file("tauri.conf.json");
     let actionable_doc = read_repo_file("docs/zircon_hub/pages/actionable-pages.md");
 
@@ -1018,8 +1184,8 @@ fn hub_build_target_routes_through_tauri_nsis_bundler() {
         "tools/zircon_build_hub.py",
         &build_tool,
         &[
-            "HUB_TAURI_BUNDLE_TARGET = \"nsis\"",
-            "HUB_INSTALLERS_DIR_NAME = \"installers\"",
+            "from .zircon_build_hub_outputs import (",
+            "HUB_TAURI_BUNDLE_TARGET,",
             "run_tauri_build(config, target_dir)",
             "stage_hub_tauri_outputs(config, target_dir)",
             "def run_tauri_build(config: object, target_dir: Path) -> None:",
@@ -1034,8 +1200,16 @@ fn hub_build_target_routes_through_tauri_nsis_bundler() {
             "command.append(\"--debug\")",
             "runner_args.append(\"--locked\")",
             "runner_args.extend([\"--jobs\", config.jobs])",
-            "env[\"CARGO_TARGET_DIR\"] = str(target_dir)",
+            "environment = managed_cargo_environment(target_dir, target_dir)",
             "subprocess.run(command, cwd=config.repo_root / \"zircon_hub\", check=True, env=env)",
+        ],
+    );
+    assert_contains_all(
+        "tools/zircon_build_hub_outputs.py",
+        &build_outputs,
+        &[
+            "HUB_TAURI_BUNDLE_TARGET = \"nsis\"",
+            "HUB_INSTALLERS_DIR_NAME = \"installers\"",
             "bundle_root = target_dir / config.profile_dir / \"bundle\" / HUB_TAURI_BUNDLE_TARGET",
             "installers_dir = config.engine_root / HUB_INSTALLERS_DIR_NAME",
         ],

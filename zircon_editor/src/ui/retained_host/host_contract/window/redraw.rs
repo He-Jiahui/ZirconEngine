@@ -9,6 +9,15 @@ use super::super::redraw::HostRedrawRequest;
 use super::UiHostWindow;
 
 const MAX_RUNTIME_FRAME_WAKE_DELAY: Duration = Duration::from_secs(60);
+const RUNTIME_FRAME_FAILURE_RETRY_BASE_DELAY: Duration = Duration::from_millis(50);
+const MAX_RUNTIME_FRAME_FAILURE_RETRY_DELAY: Duration = Duration::from_secs(1);
+
+fn runtime_frame_failure_retry_delay(attempt: u32) -> Duration {
+    let multiplier = 1_u32 << attempt.min(5);
+    RUNTIME_FRAME_FAILURE_RETRY_BASE_DELAY
+        .saturating_mul(multiplier)
+        .min(MAX_RUNTIME_FRAME_FAILURE_RETRY_DELAY)
+}
 
 impl UiHostWindow {
     pub(crate) fn background_event_wake_callback(
@@ -39,24 +48,74 @@ impl UiHostWindow {
         demand: EditorRuntimeFrameDemand,
         now: Instant,
     ) {
-        let queue_immediate_frame = match demand {
-            EditorRuntimeFrameDemand::OnDemand => {
-                self.state.borrow_mut().runtime_frame_wake_deadline = None;
-                false
-            }
-            EditorRuntimeFrameDemand::SleepUntil(delay) => {
-                let delay = delay.min(MAX_RUNTIME_FRAME_WAKE_DELAY);
-                self.state.borrow_mut().runtime_frame_wake_deadline =
-                    Some(now.checked_add(delay).unwrap_or(now));
-                false
-            }
-            EditorRuntimeFrameDemand::Continuous => {
-                self.state.borrow_mut().runtime_frame_wake_deadline = None;
-                true
+        let queue_immediate_frame = {
+            let mut state = self.state.borrow_mut();
+            state.runtime_frame_wake_tick_pending = false;
+            state.runtime_frame_failure_retry_attempts = 0;
+            match demand {
+                EditorRuntimeFrameDemand::OnDemand => {
+                    state.runtime_frame_wake_deadline = None;
+                    false
+                }
+                EditorRuntimeFrameDemand::SleepUntil(delay) => {
+                    let delay = delay.min(MAX_RUNTIME_FRAME_WAKE_DELAY);
+                    state.runtime_frame_wake_deadline = Some(now.checked_add(delay).unwrap_or(now));
+                    false
+                }
+                EditorRuntimeFrameDemand::Continuous => {
+                    state.runtime_frame_wake_deadline = None;
+                    true
+                }
             }
         };
         if queue_immediate_frame {
             self.queue_external_redraw(HostRedrawRequest::full_frame());
+        }
+    }
+
+    pub(crate) fn set_runtime_frame_owner(
+        &self,
+        owner: Option<(crate::core::play::PlayInstanceId, u64)>,
+    ) {
+        let mut state = self.state.borrow_mut();
+        if state.runtime_frame_owner != owner {
+            state.runtime_frame_owner = owner;
+            state.runtime_frame_wake_deadline = None;
+            state.runtime_frame_wake_tick_pending = false;
+            state.runtime_frame_failure_retry_attempts = 0;
+        }
+    }
+
+    pub(crate) fn complete_runtime_frame_tick<E>(
+        &self,
+        result: Result<EditorRuntimeFrameDemand, E>,
+        owner_before_pump: Option<(crate::core::play::PlayInstanceId, u64)>,
+        owner_after_pump: Option<(crate::core::play::PlayInstanceId, u64)>,
+        now: Instant,
+    ) -> Result<(), E> {
+        self.set_runtime_frame_owner(owner_after_pump);
+        match result {
+            Ok(demand) => {
+                if owner_before_pump == owner_after_pump {
+                    self.apply_runtime_frame_demand(demand, now);
+                }
+                Ok(())
+            }
+            Err(error) => {
+                let mut state = self.state.borrow_mut();
+                if state.runtime_frame_wake_tick_pending {
+                    state.runtime_frame_wake_tick_pending = false;
+                    if state.runtime_frame_owner.is_some() {
+                        let delay = runtime_frame_failure_retry_delay(
+                            state.runtime_frame_failure_retry_attempts,
+                        );
+                        state.runtime_frame_failure_retry_attempts =
+                            state.runtime_frame_failure_retry_attempts.saturating_add(1);
+                        state.runtime_frame_wake_deadline = now.checked_add(delay);
+                    }
+                }
+                Err(error)
+            }
         }
     }
 
@@ -70,13 +129,18 @@ impl UiHostWindow {
         &self,
         now: Instant,
     ) -> bool {
-        let due = self
-            .state
-            .borrow()
-            .runtime_frame_wake_deadline
-            .is_some_and(|deadline| deadline <= now);
+        let due = {
+            let mut state = self.state.borrow_mut();
+            let due = state
+                .runtime_frame_wake_deadline
+                .is_some_and(|deadline| deadline <= now);
+            if due {
+                state.runtime_frame_wake_deadline = None;
+                state.runtime_frame_wake_tick_pending = true;
+            }
+            due
+        };
         if due {
-            self.state.borrow_mut().runtime_frame_wake_deadline = None;
             self.queue_external_redraw(HostRedrawRequest::full_frame());
         }
         due
@@ -259,103 +323,5 @@ impl UiHostWindow {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::time::{Duration, Instant};
-
-    use crate::core::gateway::EditorRuntimeFrameDemand;
-    use crate::ui::retained_host::ui_perf::UiPerfScenario;
-
-    #[test]
-    fn runtime_frame_wake_replaces_stale_requests_and_bounds_extreme_delays() {
-        let host = super::UiHostWindow::new().expect("host window");
-        let now = Instant::now();
-
-        host.apply_runtime_frame_demand(EditorRuntimeFrameDemand::Continuous, now);
-        assert!(host.take_external_redraw().requires_frame_update());
-        assert_eq!(host.runtime_frame_wake_deadline(), None);
-
-        host.apply_runtime_frame_demand(
-            EditorRuntimeFrameDemand::SleepUntil(Duration::from_millis(25)),
-            now,
-        );
-        assert_eq!(
-            host.runtime_frame_wake_deadline(),
-            Some(now + Duration::from_millis(25))
-        );
-        host.apply_runtime_frame_demand(EditorRuntimeFrameDemand::OnDemand, now);
-        assert_eq!(host.runtime_frame_wake_deadline(), None);
-        assert!(!host.take_due_runtime_frame_wake(now + Duration::from_millis(25)));
-
-        host.apply_runtime_frame_demand(
-            EditorRuntimeFrameDemand::SleepUntil(Duration::from_millis(25)),
-            now,
-        );
-        assert!(!host.take_due_runtime_frame_wake(now));
-        assert!(host.take_due_runtime_frame_wake(now + Duration::from_millis(25)));
-        assert!(host.take_external_redraw().requires_frame_update());
-
-        host.apply_runtime_frame_demand(EditorRuntimeFrameDemand::SleepUntil(Duration::MAX), now);
-        assert_eq!(
-            host.runtime_frame_wake_deadline(),
-            Some(now + Duration::from_secs(60)),
-            "an extreme transport delay must remain a bounded native wake"
-        );
-    }
-
-    #[test]
-    fn maintenance_wake_queues_a_frame_update_without_visual_damage() {
-        let host = super::UiHostWindow::new().expect("host window");
-        let now = Instant::now();
-        let deadline = now + Duration::from_millis(25);
-
-        host.schedule_maintenance_frame_update(deadline);
-        assert_eq!(host.maintenance_frame_wake_deadline(), Some(deadline));
-        assert!(!host.take_due_maintenance_frame_wake(now));
-        assert!(host.take_due_maintenance_frame_wake(deadline));
-
-        let redraw = host.take_external_redraw();
-        assert!(redraw.requires_frame_update());
-        assert!(!redraw.requires_present());
-        assert_eq!(host.maintenance_frame_wake_deadline(), None);
-    }
-
-    #[test]
-    fn lifecycle_wake_remains_independent_from_asset_maintenance() {
-        let host = super::UiHostWindow::new().expect("host window");
-        let now = Instant::now();
-        let lifecycle_deadline = now + Duration::from_secs(5);
-        let asset_deadline = now + Duration::from_millis(25);
-
-        host.set_lifecycle_frame_update(Some(lifecycle_deadline));
-        host.schedule_maintenance_frame_update(asset_deadline);
-        host.clear_maintenance_frame_update();
-
-        assert_eq!(
-            host.lifecycle_frame_wake_deadline(),
-            Some(lifecycle_deadline)
-        );
-        assert!(host.take_due_lifecycle_frame_wake(lifecycle_deadline));
-        assert_eq!(
-            host.take_external_redraw().scenario(),
-            UiPerfScenario::SessionHeartbeat
-        );
-    }
-
-    #[test]
-    fn input_timer_wake_survives_asset_maintenance_clear() {
-        let host = super::UiHostWindow::new().expect("host window");
-        let now = Instant::now();
-        let input_deadline = now + Duration::from_millis(500);
-
-        host.set_input_timer_frame_update(Some(input_deadline));
-        host.schedule_maintenance_frame_update(now + Duration::from_millis(25));
-        host.clear_maintenance_frame_update();
-
-        assert_eq!(host.input_timer_frame_wake_deadline(), Some(input_deadline));
-        assert!(host.take_due_input_timer_frame_wake(input_deadline));
-        let redraw = host.take_external_redraw();
-        assert!(redraw.requires_frame_update());
-        assert!(!redraw.requires_present());
-        assert_eq!(redraw.scenario(), UiPerfScenario::IdleHover);
-    }
-}
+#[path = "tests/redraw.rs"]
+mod tests;

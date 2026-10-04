@@ -101,11 +101,7 @@ impl AssetRegistryIndex {
                 .get(&owner)
                 .cloned()
                 .unwrap_or_default();
-            for path in removed {
-                if let Some(index) = paths.iter().position(|candidate| candidate == &path) {
-                    paths.remove(index);
-                }
-            }
+            remove_dependency_paths(&mut paths, removed);
             for path in added {
                 paths.push(path);
             }
@@ -251,6 +247,23 @@ impl AssetRegistryIndex {
     }
 }
 
+fn remove_dependency_paths(paths: &mut Vec<AssetUri>, removed: Vec<AssetUri>) {
+    let mut remaining = HashMap::with_capacity(removed.len());
+    for path in removed {
+        *remaining.entry(path).or_insert(0_usize) += 1;
+    }
+    paths.retain(|path| {
+        let Some(count) = remaining.get_mut(path) else {
+            return true;
+        };
+        if *count == 0 {
+            return true;
+        }
+        *count -= 1;
+        false
+    });
+}
+
 fn resolve_unique_dependencies(
     paths: &[AssetUri],
     uuids_by_path: &HashMap<AssetUri, AssetUuid>,
@@ -287,169 +300,9 @@ fn dependency_paths(meta: &AssetMetaDocument) -> Vec<(AssetUuid, Vec<AssetUri>)>
 }
 
 #[cfg(test)]
-mod tests {
-    use std::collections::HashSet;
-    use std::hint::black_box;
-    use std::time::Instant;
-
-    use crate::asset::{AssetKind, AssetUri, AssetUuid};
-
-    use super::super::{AssetRegistryEntry, AssetRegistryIndex};
-    use super::resolve_unique_dependencies;
-
-    const DEPENDENCY_PATHS: usize = 4_096;
-    const UNIQUE_DEPENDENCIES: usize = 256;
-    const BENCHMARK_ITERATIONS: usize = 16;
-    const SAMPLE_PAIRS: usize = 21;
-
-    #[test]
-    fn dependency_owner_refresh_deduplicates_in_first_path_order() {
-        let (mut index, owner, mut paths, expected) = dependency_fixture(9, 3);
-        let missing = AssetUri::parse("res://dependency/missing").unwrap();
-        paths.push(missing.clone());
-        index.dependency_paths_by_uuid.insert(owner, paths);
-
-        index.refresh_dependency_owners(&HashSet::from([owner]));
-
-        assert_eq!(index.get_dependencies_by_uuid(owner), expected);
-        assert!(index.diagnostics().iter().any(|diagnostic| matches!(
-            diagnostic,
-            super::super::AssetRegistryDiagnostic::UnresolvedDependency {
-                owner: diagnostic_owner,
-                path,
-            } if *diagnostic_owner == owner && path == &missing
-        )));
-    }
-
-    #[test]
-    #[ignore = "release performance gate; run through the Runtime51 managed validator"]
-    fn asset_registry_dependency_owner_refresh_benchmark() {
-        let (index, _owner, paths, expected) =
-            dependency_fixture(DEPENDENCY_PATHS, UNIQUE_DEPENDENCIES);
-        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
-        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
-
-        for pair in 0..SAMPLE_PAIRS {
-            let measure_legacy = || {
-                measure_ns(BENCHMARK_ITERATIONS, || {
-                    legacy_resolve_unique_dependencies(&paths, &index.uuids_by_path)
-                })
-            };
-            let measure_optimized = || {
-                measure_ns(BENCHMARK_ITERATIONS, || {
-                    resolve_unique_dependencies(&paths, &index.uuids_by_path).0
-                })
-            };
-            if pair % 2 == 0 {
-                legacy_samples.push(measure_legacy());
-                optimized_samples.push(measure_optimized());
-            } else {
-                optimized_samples.push(measure_optimized());
-                legacy_samples.push(measure_legacy());
-            }
-        }
-
-        let legacy_p50 = nearest_rank(&legacy_samples, 50);
-        let legacy_p95 = nearest_rank(&legacy_samples, 95);
-        let optimized_p50 = nearest_rank(&optimized_samples, 50);
-        let optimized_p95 = nearest_rank(&optimized_samples, 95);
-        assert_eq!(
-            resolve_unique_dependencies(&paths, &index.uuids_by_path).0,
-            expected
-        );
-        println!(
-            "PERF-MVP-556 task=asset_registry_dependency_owner_refresh sample_pairs={} dependency_paths={} unique_dependencies={} iterations={} legacy_samples_ns={} optimized_samples_ns={} legacy_p50_ns={} legacy_p95_ns={} optimized_p50_ns={} optimized_p95_ns={}",
-            SAMPLE_PAIRS,
-            DEPENDENCY_PATHS,
-            UNIQUE_DEPENDENCIES,
-            BENCHMARK_ITERATIONS,
-            sample_csv(&legacy_samples),
-            sample_csv(&optimized_samples),
-            legacy_p50,
-            legacy_p95,
-            optimized_p50,
-            optimized_p95,
-        );
-        assert!(
-            optimized_p95.saturating_mul(100) <= legacy_p95.saturating_mul(75),
-            "optimized P95 {optimized_p95}ns must be at most 75% of legacy P95 {legacy_p95}ns"
-        );
-    }
-
-    fn dependency_fixture(
-        path_count: usize,
-        unique_count: usize,
-    ) -> (AssetRegistryIndex, AssetUuid, Vec<AssetUri>, Vec<AssetUuid>) {
-        assert!(unique_count > 0);
-        let owner = AssetUuid::new();
-        let dependencies = (0..unique_count)
-            .map(|index| {
-                let uuid = AssetUuid::new();
-                let path = AssetUri::parse(&format!("res://dependency/{index}")).unwrap();
-                (uuid, path)
-            })
-            .collect::<Vec<_>>();
-        let entries = std::iter::once(AssetRegistryEntry::new(
-            owner,
-            AssetUri::parse("res://dependency/owner").unwrap(),
-            AssetKind::Data,
-            "owner",
-        ))
-        .chain(dependencies.iter().map(|(uuid, path)| {
-            AssetRegistryEntry::new(*uuid, path.clone(), AssetKind::Data, "dependency")
-        }));
-        let index = AssetRegistryIndex::from_entries(entries).unwrap();
-        let paths = (0..path_count)
-            .map(|index| dependencies[index % unique_count].1.clone())
-            .collect::<Vec<_>>();
-        let expected = dependencies
-            .iter()
-            .map(|(uuid, _)| *uuid)
-            .collect::<Vec<_>>();
-        (index, owner, paths, expected)
-    }
-
-    fn legacy_resolve_unique_dependencies(
-        paths: &[AssetUri],
-        uuids_by_path: &std::collections::HashMap<AssetUri, AssetUuid>,
-    ) -> Vec<AssetUuid> {
-        let mut dependencies = Vec::new();
-        for path in paths {
-            if let Some(dependency) = uuids_by_path.get(path).copied() {
-                if !dependencies.contains(&dependency) {
-                    dependencies.push(dependency);
-                }
-            }
-        }
-        dependencies
-    }
-
-    fn measure_ns(iterations: usize, mut resolve: impl FnMut() -> Vec<AssetUuid>) -> u128 {
-        let started = Instant::now();
-        let mut checksum = 0usize;
-        for _ in 0..iterations {
-            checksum ^= black_box(resolve()).len();
-        }
-        black_box(checksum);
-        started.elapsed().as_nanos()
-    }
-
-    fn nearest_rank(samples: &[u128], percentile: usize) -> u128 {
-        let mut sorted = samples.to_vec();
-        sorted.sort_unstable();
-        let rank = sorted.len().saturating_mul(percentile).div_ceil(100);
-        sorted[rank.saturating_sub(1)]
-    }
-
-    fn sample_csv(samples: &[u128]) -> String {
-        samples
-            .iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>()
-            .join(",")
-    }
-}
+#[path = "tests/targeted.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "targeted/optimization_tests.rs"]
+#[path = "targeted/tests/optimization_tests.rs"]
 mod optimization_tests;

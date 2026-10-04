@@ -1,7 +1,8 @@
+# 核对交互帧提交与维护帧分开计数，点击关键路径仅包含交互阶段。
 from pathlib import Path
 import unittest
 
-from tools.editor_interactive_frame_commit_pressure import run
+from tools.analysis.performance.editor.editor_interactive_frame_commit_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -93,10 +94,10 @@ class EditorInteractiveFrameCommitPerformanceContractTests(unittest.TestCase):
         self.assertEqual(result["critical_path_stage_reduction_ratio"], 9.0)
 
     def test_product_click_profile_requires_the_interactive_commit_counter(self) -> None:
-        evidence = (ROOT / "tools/ui-profile-counter-evidence.ps1").read_text(
+        evidence = (ROOT / "tools/analysis/profiling/ui/ui-profile-counter-evidence.ps1").read_text(
             encoding="utf-8"
         )
-        capture = (ROOT / "tools/ui-profile-capture.ps1").read_text(encoding="utf-8")
+        capture = (ROOT / "tools/analysis/profiling/ui/ui-profile-capture.ps1").read_text(encoding="utf-8")
 
         self.assertIn("Test-ZirconInteractiveFrameCommitCounterGate", evidence)
         self.assertIn("ui.interactive_frame.maintenance_deferred_count", evidence)

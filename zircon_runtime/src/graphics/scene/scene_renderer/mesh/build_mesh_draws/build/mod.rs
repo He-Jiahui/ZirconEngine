@@ -1,3 +1,4 @@
+//! 从视图快照收集 pending draw，完成材质准入、变形与 GPUScene 准备，并把静态缓存命令和残余 MeshDraw 交给上层提交。
 mod build;
 mod build_mesh_draw_build_context;
 mod collect_pending_draws;
@@ -20,7 +21,7 @@ mod skinning;
 mod virtual_geometry_indirect;
 mod virtual_geometry_resident_upload;
 
-pub(crate) use build::{BuiltMeshDraws, build_mesh_draws};
+pub(crate) use build::{build_mesh_draws, BuiltMeshDraws};
 pub(crate) use material_pipeline_requirements::{
     MaterialPipelineFeatureSet, MaterialPipelineRequirementCensus,
 };

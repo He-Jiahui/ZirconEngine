@@ -21,7 +21,10 @@ pipeline caching, descriptor binding, or renderer product gates.
 ## Change
 
 - Keep the first schema pass as the sole declared-property projection owner.
-- Use the projected value map to reject already-handled string properties in the fallback pass.
+- Fuse the projected-value membership check and insertion into one `BTreeMap::entry` operation in
+  the fallback pass. Every string override for a declared property is already projected by the
+  first pass regardless of declared kind, while non-string values cannot enter the string
+  fallback; `or_insert_with` preserves that first projection without a second string allocation.
 - Remove the redundant schema membership scan: every string override is projected by the first
   pass regardless of declared kind, while non-string values cannot enter the string fallback.
 - Add split behavior, deterministic work, and ignored release P95 tests.
@@ -31,7 +34,7 @@ pipeline caching, descriptor binding, or renderer product gates.
 | 4,096 schema properties and 4,096 undeclared string overrides | Before | After |
 |---|---:|---:|
 | Pairwise schema-name comparisons per projection | 16,777,216 | 0 |
-| Fallback output-map membership probes | 4,096 | 4,096 |
+| Fallback output-map lookups (membership + insert) | 8,192 | 4,096 |
 | Temporary schema membership indexes | 0 | 0 |
 | Output ordering or value changes | 0 | 0 |
 
@@ -46,11 +49,12 @@ the coordinator run.
   legacy and optimized output across declared valid, declared invalid, declared string, unknown
   string, and unknown non-string overrides.
 - `runtime09c_batch_material_property_schema_rescan_eliminates_pairwise_work`
-  requires 16,777,216 legacy comparisons and rejects schema access in the fallback loop.
+  requires 16,777,216 legacy comparisons and rejects schema access plus the separate
+  `values.contains_key` probe in the fallback loop.
 - `runtime09c_batch_material_property_schema_rescan_p95` reports paired release
   P50/P95 samples and enforces the 80% P95 reduction gate.
 - The managed `runtime09c_batch_` release gate covers this task, material-option value hashing,
-  and shading-token hashing in one Cargo invocation: 3 source contracts, 9 Rust tests, and 3
+  and shading-token hashing in one Cargo invocation: 7 source contracts, 10 Rust tests, and 3
   performance rows. Dynamic marker values, integration commit, and WeCom delivery remain
   coordinator-owned and pending.
 

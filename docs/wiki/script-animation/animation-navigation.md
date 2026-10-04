@@ -15,10 +15,10 @@ plan_sources:
   - docs/plans/zircon_plugins/04/2026-08-01-current-state-and-performance-handoffs.md
   - docs/plans/zircon_runtime/runtime/07/2026-09-01-animation-compiled-channel-sampling-current-review.md
 tests:
-  - zircon_runtime/src/animation/sequence/tests.rs
-  - zircon_runtime/src/animation/manager/pose/performance_tests.rs
-  - zircon_runtime/src/navigation/runtime/tests.rs
-  - zircon_runtime/src/navigation/runtime/state/repath_entry_tests.rs
+  - zircon_runtime/src/animation/sequence/tests/cases.rs
+  - zircon_runtime/src/animation/manager/pose/tests/performance_tests.rs
+  - zircon_runtime/src/navigation/runtime/tests/cases.rs
+  - zircon_runtime/src/navigation/runtime/state/tests/repath_entry_tests.rs
 doc_type: module-detail
 ---
 

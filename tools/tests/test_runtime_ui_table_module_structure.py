@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 检查表格变更行为位于具名子模块，且归属文档记录相同的模块边界。
 class RuntimeUiTableModuleStructureTests(unittest.TestCase):
     def setUp(self) -> None:
         self.repo_root = Path(__file__).resolve().parents[2]
@@ -34,7 +34,7 @@ class RuntimeUiTableModuleStructureTests(unittest.TestCase):
 
     def test_table_mutation_owner_is_documented(self) -> None:
         module_doc = (
-            self.repo_root / "docs/zircon_runtime/ui/surface/default_interactions.md"
+            self.repo_root / "docs/crates/zircon_runtime/ui/surface/default_interactions.md"
         ).read_text(encoding="utf-8")
         acceptance_path = (
             self.repo_root / "tests/acceptance/runtime-ui-table-mutation-owner-split.md"

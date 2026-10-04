@@ -1,3 +1,4 @@
+# 核对标签拖拽借用排布锚点与身份，只物化最终选中结果。
 import unittest
 from pathlib import Path
 

@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, HashSet};
 
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
@@ -43,10 +43,22 @@ impl EffectiveHiddenIndex {
             );
         }
 
+        // Detached components are resolved one at a time. Keep their path and cycle table
+        // alive across components so a fragmented tree does not allocate two new collections
+        // for every detached node. `clear` preserves the HashSet bucket table for the next path.
+        let mut detached_path = Vec::new();
+        let mut detached_visited = HashSet::new();
         for node_id in tree.nodes.keys().copied() {
             check_deadline()?;
             if !hidden_by_node.contains_key(&node_id) {
-                resolve_detached_node(tree, node_id, &mut hidden_by_node, &mut check_deadline)?;
+                resolve_detached_node(
+                    tree,
+                    node_id,
+                    &mut hidden_by_node,
+                    &mut detached_path,
+                    &mut detached_visited,
+                    &mut check_deadline,
+                )?;
             }
         }
         Ok(Self { hidden_by_node })
@@ -61,10 +73,12 @@ fn resolve_detached_node<E>(
     tree: &UiTree,
     node_id: UiNodeId,
     hidden_by_node: &mut BTreeMap<UiNodeId, bool>,
+    path: &mut Vec<UiNodeId>,
+    visited: &mut HashSet<UiNodeId>,
     check_deadline: &mut impl FnMut() -> Result<(), E>,
 ) -> Result<(), E> {
-    let mut path = Vec::new();
-    let mut visited = BTreeSet::new();
+    path.clear();
+    visited.clear();
     let mut cursor = Some(node_id);
     let inherited_hidden = loop {
         check_deadline()?;
@@ -85,7 +99,7 @@ fn resolve_detached_node<E>(
     };
 
     let mut effectively_hidden = inherited_hidden;
-    for current_id in path.into_iter().rev() {
+    for &current_id in path.iter().rev() {
         check_deadline()?;
         let Some(node) = tree.nodes.get(&current_id) else {
             continue;
@@ -97,38 +111,5 @@ fn resolve_detached_node<E>(
 }
 
 #[cfg(test)]
-mod tests {
-    use zircon_runtime_interface::ui::{
-        event_ui::{UiNodeId, UiNodePath, UiTreeId},
-        tree::{UiTree, UiTreeNode, UiVisibility},
-    };
-
-    use super::EffectiveHiddenIndex;
-
-    #[test]
-    fn effective_hidden_index_propagates_hidden_ancestors() {
-        let mut tree = UiTree::new(UiTreeId::new("a11y.effective-hidden-index"));
-        tree.insert_root(UiTreeNode::new(id(1), UiNodePath::new("root")));
-        tree.insert_child(
-            id(1),
-            UiTreeNode::new(id(2), UiNodePath::new("root/hidden"))
-                .with_visibility(UiVisibility::Collapsed),
-        )
-        .unwrap();
-        tree.insert_child(
-            id(2),
-            UiTreeNode::new(id(3), UiNodePath::new("root/hidden/child")),
-        )
-        .unwrap();
-
-        let index = EffectiveHiddenIndex::build(&tree, || Ok::<_, ()>(())).unwrap();
-
-        assert!(!index.is_hidden(id(1)));
-        assert!(index.is_hidden(id(2)));
-        assert!(index.is_hidden(id(3)));
-    }
-
-    fn id(value: u64) -> UiNodeId {
-        UiNodeId::new(value)
-    }
-}
+#[path = "tests/visibility.rs"]
+mod tests;

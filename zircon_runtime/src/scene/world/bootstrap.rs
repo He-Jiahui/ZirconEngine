@@ -4,17 +4,17 @@ use crate::core::math::{Quat, Transform, Vec3};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 
 use super::{
-    World,
     compiled_binding::SceneBindingGenerations,
     entity_id_allocator::EntityIdAllocator,
     generation::{LifecycleVisibilityRevision, WorldGeneration},
+    World,
 };
-use crate::scene::EntityId;
 use crate::scene::components::{
-    ActiveSelf, AmbientLight, CameraComponent, DirectionalLight, MeshRenderer, Mobility, Name,
-    NodeKind, NodeRecord, PointLight, RectLight, SpotLight, default_render_layer_mask,
+    default_render_layer_mask, ActiveSelf, AmbientLight, CameraComponent, DirectionalLight,
+    MeshRenderer, Mobility, Name, NodeKind, NodeRecord, PointLight, RectLight, SpotLight,
 };
 use crate::scene::ecs::Schedule;
+use crate::scene::EntityId;
 use zircon_runtime_interface::world_sync::WorldFact;
 
 impl World {
@@ -59,6 +59,7 @@ impl World {
             archetype_assignment_counter: Default::default(),
             lifecycle_visibility_revision: LifecycleVisibilityRevision::default(),
             world_generation: WorldGeneration::default(),
+            detach_preparation_owner: Default::default(),
             scene_binding_generations: SceneBindingGenerations::default(),
             compiled_scene_property_access_diagnostics: Default::default(),
             change_tick: crate::scene::ecs::ChangeTick::INITIAL,

@@ -19,7 +19,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束流式 Cargo 清单：链接 crate 行流式写入进入清单输出，并包名称不构建完整临时字符串。
 class StreamingCargoManifestPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

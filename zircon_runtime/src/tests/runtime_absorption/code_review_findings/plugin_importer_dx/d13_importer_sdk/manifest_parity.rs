@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 use super::runtime_crates::IMPORTER_RUNTIME_CRATES;
 
 #[test]
@@ -10,7 +11,7 @@ fn review_d13_importer_manifest_parity_guard_lives_in_sdk_builder() {
         "../../../../../../../zircon_plugins/plugin_sdk/src/manifest/importer_runtime.rs"
     );
     let sdk_manifest_tests =
-        include_str!("../../../../../../../zircon_plugins/plugin_sdk/src/manifest/tests.rs");
+        include_str!("../../../../../../../zircon_plugins/plugin_sdk/src/manifest/tests/cases.rs");
     let sdk_lib = include_str!("../../../../../../../zircon_plugins/plugin_sdk/src/lib.rs");
     let sdk_prelude = include_str!("../../../../../../../zircon_plugins/plugin_sdk/src/prelude.rs");
 

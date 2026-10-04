@@ -116,6 +116,7 @@ fn node_and_cluster_cull_traversal_record(
     }
 }
 
+// 只有可解析且带子节点的 authored 节点才返回真实 child-table 区间；调用方否则保留 FixedFanout 标记。
 fn authored_hierarchy_child_range(
     work_item: VirtualGeometryNodeAndClusterCullClusterWorkItem,
     hierarchy_node_by_key: &HashMap<(u32, u32), RenderVirtualGeometryHierarchyNode>,
@@ -134,4 +135,5 @@ fn authored_hierarchy_child_range(
 }
 
 #[cfg(test)]
+#[path = "traversal/tests/allocation_tests.rs"]
 mod allocation_tests;

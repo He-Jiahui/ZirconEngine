@@ -107,7 +107,7 @@ impl WgpuResourceRegistry {
             size: wgpu::Extent3d {
                 width: desc.width,
                 height: desc.height,
-                depth_or_array_layers: desc.depth,
+                depth_or_array_layers: desc.depth_or_array_layers(),
             },
             mip_level_count: desc.mip_levels,
             sample_count: desc.sample_count,

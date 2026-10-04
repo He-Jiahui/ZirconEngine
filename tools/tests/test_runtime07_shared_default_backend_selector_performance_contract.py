@@ -19,7 +19,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束共享默认后端选择器：选中后端锁拥有共享字符串存储，并默认加载克隆 Arc 不字符串。
 class SharedDefaultBackendSelectorPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

@@ -1,3 +1,4 @@
+//! 这些值转换器在模板属性进入宿主模型前做宽松解析；调用方需区分缺失、非法与默认值。
 use toml::Value;
 
 pub(super) fn value_as_string(value: &Value) -> Option<String> {
@@ -26,6 +27,7 @@ pub(super) fn value_as_float_array(value: &Value) -> Option<Vec<f32>> {
     let Value::Array(values) = value else {
         return None;
     };
+    // BUG: [CR-PANE-DATA-0002] 数值数组跳过非法分量会改变位置；world_size 首项非法时后续值会被当作宽高发布。
     let components = values
         .iter()
         .filter_map(value_as_f64)
@@ -102,5 +104,5 @@ pub(super) fn value_as_options(value: &Value) -> Option<Vec<String>> {
 }
 
 #[cfg(test)]
-#[path = "pane_value_conversion/direct_hex_color_tests.rs"]
+#[path = "pane_value_conversion/tests/direct_hex_color_tests.rs"]
 mod direct_hex_color_tests;

@@ -1,6 +1,7 @@
 use thiserror::Error;
 
 use crate::core::context::ToolSchedulerServiceError;
+use crate::core::editor_event::ViewInstanceId;
 use crate::core::settings::{SettingsError, SettingsMutationError};
 use crate::core::tools::{AcquireDenial, ToolDefinitionIdError};
 use crate::scene::modes::{SceneModeActivationError, SceneModeRegistryError, SceneModeStackError};
@@ -31,4 +32,6 @@ pub(crate) enum SceneViewportControllerError {
     SceneToolDenied { reason: AcquireDenial },
     #[error("viewport snap step {value:?} must be finite")]
     InvalidSnapStep { value: f32 },
+    #[error("scene viewport view `{view_id:?}` is stale or retired")]
+    StaleView { view_id: ViewInstanceId },
 }

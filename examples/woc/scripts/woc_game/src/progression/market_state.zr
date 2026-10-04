@@ -6,6 +6,8 @@ var catalog = %import("generated/m5_content_catalog");
 
 var LISTING_STRIDE = 6;
 
+// M5 场景状态保留双人背包、全局挂单和各卖家的待领收款/退货；
+// 它仅供独立测试及 scenario_matrix 驱动，不是世界状态的市场存储。
 class MarketState {
     pub var sellerCopper: int;
     pub var buyerCopper: int;
@@ -246,6 +248,9 @@ activeListingsFor(state: MarketState, player: int): int {
     return count;
 }
 
+// BUG: [CR-WOC-IPS-P-0100] 已持有 heroic_mark 时此处仅排除 quest，仍可将 soulbound 物品挂单并转给买家；证据：目录索引 38 的 soulbound=true，源 marketList 同时拒绝 noMarketList/soulbound。
+/// 上架入口应在任何背包扣减前验证商人距离、物品可交易性、数量、价格和挂单上限；
+/// 成功后物品进入托管，编号及到期时间由本状态持有。
 pub listItem(
     state: MarketState,
     player: int,
@@ -322,6 +327,8 @@ pub collectedItemCount(state: MarketState, owner: int, itemId: string): int {
     return collectionCount(state, owner, itemId);
 }
 
+/// 买家在商人附近按挂单编号结算；货物直接入买家背包，扣除手续费后的货款
+/// 暂留卖家 collection，卖家之后须主动 collect，买入时不会即时加到卖家钱包。
 pub buy(state: MarketState, player: int, listingId: int): bool {
     state.lastError = 0;
     if (playerDead(state, player) || !playerNear(state, player)) {
@@ -386,6 +393,8 @@ expireListings(state: MarketState): void {
     }
 }
 
+/// M5 情景时钟以 20 tick 为一秒，仅秒边界迁移已到期挂单至卖家待领区；
+/// 调用者需持续推进时钟，单独 forceExpired 不会立刻清账。
 pub advanceTick(state: MarketState): void {
     state.tickCount = state.tickCount + 1;
     var seconds = state.tickCount;
@@ -393,6 +402,8 @@ pub advanceTick(state: MarketState): void {
     if (seconds == 0) { expireListings(state); }
 }
 
+/// 卖家在商人处领取成交货款及过期退货；背包放不下的退货继续保留在待领区，
+/// 已可领取的货款和其他退货仍会完成本次转移。
 pub collect(state: MarketState, player: int): bool {
     state.lastError = 0;
     if (!playerNear(state, player)) { state.lastError = -1; return false; }

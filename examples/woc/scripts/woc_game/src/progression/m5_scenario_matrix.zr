@@ -39,6 +39,7 @@ pub scenarioName(index: int): string {
     return "";
 }
 
+/// 固定索引只分派到各合同所有者的场景测试；返回值是本地夹具结果，不代表权威世界 WTR1 比对已经执行。
 pub runScenario(index: int): int {
     if (index == 0) { return xp.contractTest(); }
     if (index == 1) { return talents.contractTest(); }

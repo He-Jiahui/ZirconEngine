@@ -18,8 +18,15 @@ pub(super) struct RuntimeOperationTask {
     pub(super) payload: Option<serde_json::Value>,
     pub(super) prepared_command: Option<serde_json::Value>,
     pub(super) prepared_result: Option<serde_json::Value>,
+    pub(super) prepared_owner_state: Option<Box<dyn std::any::Any + Send>>,
+    pub(super) snapshot_owner_bytes: usize,
     pub(super) prepared_command_bytes: usize,
     pub(super) prepared_result_bytes: usize,
+    pub(super) prepared_owner_bytes: usize,
+    /// Bytes reserved while the immutable owner snapshot is held by a worker or
+    /// completion channel. This remains accounted after cancellation/expiry until
+    /// the worker input (or lost completion) actually drops.
+    pub(super) in_flight_owner_bytes: usize,
     pub(super) retained_bytes: usize,
     pub(super) result: Option<ZrRuntimeOperationResultV1>,
     pub(super) deadline: Option<Instant>,

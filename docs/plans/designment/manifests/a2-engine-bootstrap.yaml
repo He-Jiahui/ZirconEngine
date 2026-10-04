@@ -1,30 +1,50 @@
-milestone: A2
+milestone: A2-C
 status: in_progress
 mvp_gate: design-ready
 owner_sessions:
   - root-designment02-penpot-zui-roundtrip-20260831
 changed_scope:
   - zircon_runtime/tests/zui_penpot_bridge_contract.rs
+  - zircon_runtime/src/dynamic_api/session/tests/runtime_ui_surface.rs
   - zircon_runtime/tests/fixtures/ui/penpot_roundtrip.zui
+  - dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/roundtrip-fixture.zui
 packages:
   - zircon_runtime
 feature_profiles:
   - target-client-default
 interface_boundaries:
   - .zui v2 source -> UiZuiAssetLoader -> UiV2DocumentCompiler
+  - UiV2CompiledDocument -> UiV2SurfaceBuilder retained tree
+  - ProjectManifest.ui_roots -> persistent Runtime UI surfaces -> render/accessibility/input/action
 target_dir: coordinator-managed
 cargo_profile: development
 storage_mode: reuse
 commands:
   - validate-matrix.ps1 -Package zircon_runtime -SkipBuild -TestTarget zui_penpot_bridge_contract -DryRun
   - validate-matrix.ps1 -Package zircon_runtime -SkipBuild -TestTarget zui_penpot_bridge_contract
+  - validate-matrix.ps1 -Package zircon_runtime -LibTests -TestFilter project_runtime_ui_bootstraps_penpot_roundtrip_asset -DryRun
+  - validate-matrix.ps1 -Package zircon_runtime -LibTests -TestFilter project_runtime_ui_bootstraps_penpot_roundtrip_asset
 focused_tests:
   - zui_penpot_bridge_contract
+  - project_runtime_ui_bootstraps_penpot_roundtrip_asset
 product_evidence:
-  - generated Penpot roundtrip .zui fixture
+  - generated Penpot roundtrip .zui fixture; compact plugin and expanded Runtime TOML normalize to semanticMatch=true
+  - source-ready real project Runtime session regression across render, accessibility, input, and typed action
 failures_repaired:
   - virtual rows prototype ownership in fixture
+  - external RoundtripButton identity avoids recursive self-instancing
 deferred_external_checks:
-  - Managed Cargo result pending after command_post_timeout and cargo_cpu_lane_reserved
-  - Rendered Editor layout parity belongs to the Editor runtime UI owner
-unlocks: []
+  - Text04 synchronized the zircon_editor dependency removals into Cargo.lock, so the former live --locked preflight blocker is repaired
+  - Managed integration job 6526ab1f6ed141f2b73af12e148886aa reached rustc but zircon_runtime lib stopped with 246 shared-source compile errors before the A2 test binary or test body ran; validator wrapper exit 1, inner Cargo exit 101
+  - The job input was not stable: HEAD stayed 9963f8eb72e2d725d2536eb50b393b30387a1ffa while the Cargo.lock plus zircon_runtime plus zircon_runtime_interface diff fingerprint changed from 101865f3899a1eb2b5bc27366feb6e1dd5f0a8d8 to 2f2cc3b72a34dfba289c61c53eff25bc17eaa075 during compilation
+  - Representative compile errors match the foreign Runtime error family already recorded by zircon_editor/editor_ui/12, so designment does not patch render, scene, platform, or other shared owners and does not duplicate the same lib-test submission
+  - Clean pinned validation-copy materialization is separately blocked in closure_planning; 15 Cargo jobs across three sessions at HEAD 5798051603e7f7f565538125c9aba96d5beabae2 fail pinned_cargo_metadata_failed with exit 101, owned by Coordinator01 failure-2026-09-01-validation-copy-pinned-cargo-metadata-global-failure.md
+  - Exact retry job 5ff634d72d67424faa2b7f0370976d5a at main HEAD 9963f8eb72e2d725d2536eb50b393b30387a1ffa still fails pinned_cargo_metadata_failed in closure_planning with only exitCode 101; the managed copy was cleaned and no blind retry remains active
+  - Source audit proves _run_cargo_metadata captures a bounded stderr tail but _materialization_error_details drops it from durable status; Coordinator01 must restore that diagnostic before the Cargo 101 cause can be determined by another managed clean-pinned run
+  - Generic validation copy contains only explicitly requested overlay files and therefore has no workspace Cargo.toml; it is diagnostic evidence, not a Cargo validation substitute
+  - Earlier cargo.acquire request e872b8f5fbaf4403ae833019befe8f4c remains an unreconciled historical receipt and is not polled or duplicated
+  - nodes.<id>.layout.padding is authoring-roundtrip data but not a Runtime container content inset
+  - Top-level Penpot board normalization is asserted by source-ready test but still requires managed execution and product frame evidence
+  - Rendered Editor layout parity belongs to the Editor/runtime UI owners after MVP F0-F4
+unlocks:
+  - A2-P contract input only; no product acceptance

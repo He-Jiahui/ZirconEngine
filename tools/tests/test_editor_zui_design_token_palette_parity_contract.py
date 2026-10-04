@@ -1,3 +1,4 @@
+# 核对工作台与资源默认样式共享可读的调色板和交互角色。
 import re
 import tomllib
 import unittest
@@ -20,10 +21,7 @@ WORKBENCH_SPLITTER = ROOT / (
     "zircon_editor/src/ui/retained_host/host_contract/"
     "paint_workbench_renderer/scene_layers/resize.rs"
 )
-ASSET_BROWSER_ICON_TEST = ROOT / (
-    "zircon_editor/src/ui/retained_host/ui/"
-    "asset_browser_icon_button_painter_tests.rs"
-)
+ASSET_BROWSER_ICON_TEST = ROOT / "zircon_editor/src/ui/retained_host/ui/tests/asset_browser_icon_button_painter_tests.rs"
 WORKBENCH_BUTTON_PALETTE = ROOT / (
     "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
     "style_selector/workbench_button/palette.rs"

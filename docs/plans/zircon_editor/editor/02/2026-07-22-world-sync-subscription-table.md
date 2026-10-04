@@ -17,7 +17,7 @@ tests:
 Plan: docs/plans/zircon_editor/editor/02-data-sync-and-messaging.md
 Milestone: M2
 Status: source_complete_static_green_validation_pending_performance_failure_open
-Files: ["docs/zircon_runtime/scene/inspection/subscription.md", "tools/tests/test_editor02_world_sync_subscription_table_contract.py", "zircon_runtime/src/scene/inspection/mod.rs", "zircon_runtime/src/scene/inspection/subscription.rs", "zircon_runtime/src/scene/inspection/subscription/tests.rs", "zircon_runtime/tests/runtime_world_sync_subscription_table.rs"]
+Files: ["docs/crates/zircon_runtime/scene/inspection/subscription.md", "tools/tests/test_editor02_world_sync_subscription_table_contract.py", "zircon_runtime/src/scene/inspection/mod.rs", "zircon_runtime/src/scene/inspection/subscription.rs", "zircon_runtime/src/scene/inspection/subscription/tests.rs", "zircon_runtime/tests/runtime_world_sync_subscription_table.rs"]
 
 本切片完成 M2.1 的 runtime `SubscriptionTable` 最低共享层，并在 r3 接收 PERF-MVP-468 后完成 direct-index 与 bounded-coalesce hard cut；不把尚未接线的 session owner、mutation throat、gateway 或 retained-host pump 写成完成。
 

@@ -79,5 +79,5 @@ pub(in crate::ui::retained_host::app) fn parse_build_export_action(
 }
 
 #[cfg(test)]
-#[path = "action_ids/common_prefix_tests.rs"]
+#[path = "action_ids/tests/common_prefix_tests.rs"]
 mod common_prefix_tests;

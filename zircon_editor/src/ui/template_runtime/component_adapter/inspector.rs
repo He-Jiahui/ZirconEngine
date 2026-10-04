@@ -60,7 +60,18 @@ fn validate_field_path(
         | "transform.translation.x"
         | "transform.translation.y"
         | "transform.translation.z" => Ok(()),
-        other if state.can_edit_dynamic_component_field(other) => Ok(()),
+        other => match state.can_edit_dynamic_component_field(other) {
+            Ok(true) => Ok(()),
+            Ok(false) => Err(UiComponentAdapterError::UnsupportedTargetPath {
+                domain: envelope.target.domain.clone(),
+                path: envelope.target.path.clone(),
+            }),
+            Err(error) => Err(UiComponentAdapterError::HostMutation {
+                domain: envelope.target.domain.clone(),
+                path: envelope.target.path.clone(),
+                reason: error.to_string(),
+            }),
+        },
         _ => Err(UiComponentAdapterError::UnsupportedTargetPath {
             domain: envelope.target.domain.clone(),
             path: envelope.target.path.clone(),

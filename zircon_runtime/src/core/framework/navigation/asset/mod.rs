@@ -11,7 +11,7 @@ use crate::core::math::Real;
 mod v1;
 
 #[cfg(test)]
-#[path = "triangle_capacity_tests.rs"]
+#[path = "tests/triangle_capacity_tests.rs"]
 mod triangle_capacity_tests;
 
 pub type NavigationAssetResult<T> = std::result::Result<T, NavigationAssetError>;
@@ -29,6 +29,7 @@ pub enum NavigationAssetError {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 烘焙器产出的版本化网格载体；加载器、原生查询后端和调试覆盖层共享同一份区域及离网格连接数据。
 pub struct NavMeshAsset {
     pub version: u32,
     pub agent_type: String,
@@ -98,6 +99,7 @@ impl NavMeshAsset {
         Self::from_triangle_mesh_with_areas(agent_type, vertices, indices, Vec::new(), area)
     }
 
+    /// 将外部三角面源转为可加载网格；无效索引或不完整三角面会被丢弃，区域表仍按原始三角面序号对应。
     pub fn from_triangle_mesh_with_areas(
         agent_type: impl Into<String>,
         vertices: Vec<[Real; 3]>,
@@ -156,6 +158,7 @@ impl NavMeshAsset {
         self.vertices.is_empty() || self.polygons.is_empty()
     }
 
+    /// 调试投影只返回完整且顶点可解析的三角形；越界范围、无效顶点和不完整尾段会被跳过。
     pub fn debug_triangles(&self) -> Vec<NavMeshGizmoTriangleAsset> {
         self.polygons
             .iter()
@@ -186,6 +189,7 @@ impl NavMeshAsset {
         bincode::serialize(self).map_err(NavigationAssetError::Serialize)
     }
 
+    /// 读取持久化网格时先辨认线格式，再把旧版连接迁移到当前契约；调用方应在交给管理器前处理版本错误。
     pub fn from_bytes(bytes: &[u8]) -> NavigationAssetResult<Self> {
         let mut header = bytes;
         let version = bincode::deserialize_from::<_, u32>(&mut header)

@@ -1,0 +1,34 @@
+{
+  "batch": 24,
+  "counts": {
+    "source_observations": 1486,
+    "report_qualified_keys": 1482,
+    "distinct_original_literal_ids": 1301,
+    "unlabelled_original_finding_ordinals": 84,
+    "original_gate_rows": 707,
+    "new_original_finding_observations": 294,
+    "new_original_gate_rows": 109,
+    "successor_refresh_nonnew_finding_rows": 106,
+    "successor_gate_refresh_nonnew_rows": 36,
+    "inherited_owner_decision_nonfinding_rows": 5,
+    "nongate_acceptance_requirements": 16
+  },
+  "raw_finding_rows": 405,
+  "raw_gate_rows": 161,
+  "qualifying_original_gate_rows": 109,
+  "successor_gate_rows_nonnew": 36,
+  "qualified_key_collision_with_existing": 0,
+  "source_snapshot_paths": 33,
+  "Unreal_primary_reference_paths": 12,
+  "canonical_files": [
+    "docs/plans/astra/optimize/01/2026-10-03-w0-batch24-review.jsonl",
+    "docs/plans/astra/optimize/01/2026-10-03-w0-batch24-gates.jsonl",
+    "docs/plans/astra/optimize/01/2026-10-03-w0-batch24-refresh.jsonl",
+    "docs/plans/astra/optimize/01/2026-10-03-w0-batch24-crosswalk.jsonl",
+    "docs/plans/astra/optimize/01/2026-10-03-w0-batch24-inherited-owner-decisions.jsonl",
+    "docs/plans/astra/optimize/01/2026-10-03-w0-batch24-acceptance-requirements.jsonl",
+    "docs/plans/astra/optimize/01/2026-10-03-w0-batch24-manifest.json"
+  ],
+  "source_tests_gpu_native_performance_Jenkins_acceptance": "open; source-only",
+  "B25": "not included or inferred"
+}

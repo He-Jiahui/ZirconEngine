@@ -15,6 +15,7 @@ use super::transparent::{
 };
 
 #[cfg(test)]
+#[path = "backend/tests/test_readback.rs"]
 mod test_readback;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

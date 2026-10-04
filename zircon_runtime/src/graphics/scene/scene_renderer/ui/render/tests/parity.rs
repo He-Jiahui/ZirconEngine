@@ -1,5 +1,5 @@
 use super::*;
-use crate::text::raster::{GlyphRasterPath, raster_path_for};
+use crate::text::raster::{raster_path_for, GlyphRasterPath};
 use crate::text::sdf::SdfMode;
 
 const BITMAP_SIDE_SIZE: f32 = 23.5;
@@ -114,12 +114,10 @@ fn text_paragraph_parity_vertical_rl() {
             layout_for_mode(text, frame, &base_style, UiTextRenderMode::Native);
         assert!(native_layout.lines.len() > 1);
         assert_eq!(native_layout.writing_mode, UiTextWritingMode::VerticalRl);
-        assert!(
-            native_layout
-                .lines
-                .windows(2)
-                .all(|columns| columns[0].frame.x > columns[1].frame.x)
-        );
+        assert!(native_layout
+            .lines
+            .windows(2)
+            .all(|columns| columns[0].frame.x > columns[1].frame.x));
 
         for (distance_mode, expected_sdf_mode) in [
             (UiTextRenderMode::Sdf, SdfMode::Sdf),
@@ -129,6 +127,8 @@ fn text_paragraph_parity_vertical_rl() {
                 layout_for_mode(text, frame, &base_style, distance_mode);
             assert_layout_parity("vertical-rl", &native_layout, &distance_layout);
 
+            // BUG: [CR-W12-UI-TEXT-0003] 前置多列布局断言成立时，竖排批次被规划进 SDF，helper 却只取 native 队列，后续批次数断言必失败。
+            // 证据：text_batches 的 VerticalRl 分支先于显式模式选路，而 batches_for_mode 按请求模式取队列。
             let native = batches_for_mode(text, frame, native_style.clone(), &native_layout);
             let distance = batches_for_mode(text, frame, distance_style, &distance_layout);
             assert_batch_parity(

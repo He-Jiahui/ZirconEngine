@@ -6,6 +6,7 @@ use zircon_runtime::core::math::Vec3;
 
 use crate::DefaultAiManager;
 
+// 从公开 AiManager 入口验证错误类型与注册前置条件，而非只测试局部解析器。
 #[test]
 fn ai_manager_validates_behavior_tree_and_blackboard_contracts() {
     let manager = DefaultAiManager::default();
@@ -670,4 +671,72 @@ fn ai_manager_validates_behavior_tree_and_blackboard_contracts() {
             value_type: "object_ref".to_string()
         })
     );
+}
+
+#[test]
+fn effect_tasks_require_typed_parameters_and_reject_fake_result_statuses() {
+    let manager = DefaultAiManager::default();
+
+    let missing_blackboard_value = AiBehaviorTreeDescriptor::new(
+        "set_blackboard_without_value",
+        "Missing Blackboard Value",
+        "root",
+    )
+    .with_node(
+        AiBehaviorNodeDescriptor::new("root", AiBehaviorNodeKind::Task, "Set Blackboard")
+            .with_implementation("set_blackboard")
+            .with_parameter("blackboard_key", "score"),
+    );
+    assert!(manager
+        .register_behavior_tree(missing_blackboard_value)
+        .is_err());
+
+    let fake_set_result =
+        AiBehaviorTreeDescriptor::new("set_blackboard_fake_result", "Fake Set Result", "root")
+            .with_node(
+                AiBehaviorNodeDescriptor::new("root", AiBehaviorNodeKind::Task, "Set Blackboard")
+                    .with_implementation("set_blackboard")
+                    .with_parameter("blackboard_key", "score")
+                    .with_parameter("value", AiBehaviorNodeParameterValue::Integer(42))
+                    .with_parameter("result", "succeeded"),
+            );
+    assert!(manager.register_behavior_tree(fake_set_result).is_err());
+
+    let missing_event_name =
+        AiBehaviorTreeDescriptor::new("emit_event_without_name", "Missing Event Name", "root")
+            .with_node(
+                AiBehaviorNodeDescriptor::new("root", AiBehaviorNodeKind::Task, "Emit Event")
+                    .with_implementation("emit_event"),
+            );
+    assert!(manager.register_behavior_tree(missing_event_name).is_err());
+
+    let fake_event_result =
+        AiBehaviorTreeDescriptor::new("emit_event_fake_result", "Fake Event Result", "root")
+            .with_node(
+                AiBehaviorNodeDescriptor::new("root", AiBehaviorNodeKind::Task, "Emit Event")
+                    .with_implementation("emit_event")
+                    .with_parameter("event_name", "ai.guard_passed")
+                    .with_parameter("result", "succeeded"),
+            );
+    assert!(manager.register_behavior_tree(fake_event_result).is_err());
+
+    let valid_set = AiBehaviorTreeDescriptor::new("valid_effect_set", "Set", "root").with_node(
+        AiBehaviorNodeDescriptor::new("root", AiBehaviorNodeKind::Task, "Set Blackboard")
+            .with_implementation("set_blackboard")
+            .with_parameter("blackboard_key", "score")
+            .with_parameter("value", AiBehaviorNodeParameterValue::Integer(42)),
+    );
+    assert!(manager.register_behavior_tree(valid_set).is_ok());
+
+    let valid_event = AiBehaviorTreeDescriptor::new("valid_effect_event", "Event", "root")
+        .with_node(
+            AiBehaviorNodeDescriptor::new("root", AiBehaviorNodeKind::Task, "Emit Event")
+                .with_implementation("emit_event")
+                .with_parameter("event_name", "ai.guard_passed")
+                .with_parameter(
+                    "payload",
+                    AiBehaviorNodeParameterValue::String("confirmed".to_string()),
+                ),
+        );
+    assert!(manager.register_behavior_tree(valid_event).is_ok());
 }

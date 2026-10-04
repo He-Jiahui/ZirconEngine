@@ -14,6 +14,7 @@ use super::sparkline::draw_sparkline_raster;
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
 use crate::ui::retained_host::host_contract::paint_theme::current_host_palette;
 
+/// 折线、饼图、火花线与仪表盘共用这条位图路径；条形和聚合图已由上层矢量分支接管。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_chart_raster(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
@@ -59,27 +60,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
 }
 
 #[cfg(test)]
-mod tests {
-    use super::ChartRasterCacheKey;
-    use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-    use crate::ui::retained_host::host_contract::paint_template_nodes::mui_x_primitives::charts::ChartKind;
-    use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
-
-    #[test]
-    fn chart_resource_key_separates_dynamic_chart_content() {
-        let base = TemplatePaneNodeData::default();
-        let mut changed_value = base.clone();
-        changed_value.value_percent = 0.8;
-        let mut selected = base.clone();
-        selected.selected = true;
-
-        assert_ne!(
-            ChartRasterCacheKey::new(&base, 64, 32, ChartKind::Gauge, PALETTE),
-            ChartRasterCacheKey::new(&changed_value, 64, 32, ChartKind::Gauge, PALETTE),
-        );
-        assert_ne!(
-            ChartRasterCacheKey::new(&base, 64, 32, ChartKind::Pie, PALETTE),
-            ChartRasterCacheKey::new(&selected, 64, 32, ChartKind::Pie, PALETTE),
-        );
-    }
-}
+#[path = "tests/commands.rs"]
+mod tests;

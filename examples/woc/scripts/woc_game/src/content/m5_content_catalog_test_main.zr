@@ -1,7 +1,10 @@
+//! 固定内容切片的跨类别回归入口，锁定物品、任务及服务标志的关联；这些向量不覆盖世界交易的提交与回滚。
+
 var console = %import("zr.system.console");
 var catalog = %import("generated/m5_content_catalog");
 
 contractTest(): int {
+    // BUG: [CR-WOC-BASE-0002] 当前目录返回的摘要是2d3f839…而此断言仍期待9ff52d…，专用测试入口必先返回-1，后续关联向量不会执行；证据：generated/m5_content_catalog.catalogSha；既有 CONTENT-P1-063。
     if (catalog.catalogSha() !=
         "9ff52d9d80e5c269cb06850c7ad73da4ce6b18f741cb2f88f9de00fce1b730b6") {
         return -1;

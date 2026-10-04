@@ -4,38 +4,38 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FEATURE_PROVIDER_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_plugin_validate_feature_provider.py"
+    REPO_ROOT / "tools/export/tests/test_plugin_validate_feature_provider.py"
 )
 CAPABILITY_DEPENDENCY_SCHEMA_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_plugin_validate_feature_provider_capability_dependency_schema.py"
+    / "tools/export/tests/test_plugin_validate_feature_provider_capability_dependency_schema.py"
 )
 DISTRIBUTION_SCHEMA_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_plugin_validate_feature_provider_distribution_schema.py"
+    / "tools/export/tests/test_plugin_validate_feature_provider_distribution_schema.py"
 )
 EXTENSION_SCHEMA_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_plugin_validate_feature_provider_extension_schema.py"
+    / "tools/export/tests/test_plugin_validate_feature_provider_extension_schema.py"
 )
 EXTENSION_METADATA_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_plugin_validate_feature_provider_extension_metadata.py"
+    / "tools/export/tests/test_plugin_validate_feature_provider_extension_metadata.py"
 )
 EXTENSION_METADATA_SCHEMA_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_plugin_validate_feature_provider_extension_metadata_schema.py"
+    / "tools/export/tests/test_plugin_validate_feature_provider_extension_metadata_schema.py"
 )
 MANIFEST_SCHEMA_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_plugin_validate_feature_provider_manifest_schema.py"
+    / "tools/export/tests/test_plugin_validate_feature_provider_manifest_schema.py"
 )
 MODULE_SCHEMA_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_plugin_validate_feature_provider_module_schema.py"
+    / "tools/export/tests/test_plugin_validate_feature_provider_module_schema.py"
 )
 
-
+# 验证校验特性提供者测试归属边界的职责切分：生成投影用例位于专属测试归属方。
 class PluginValidateFeatureProviderTestOwnerBoundaryTests(unittest.TestCase):
     def test_generated_projection_cases_live_in_focused_test_owners(self):
         main_text = FEATURE_PROVIDER_TEST.read_text(encoding="utf-8")

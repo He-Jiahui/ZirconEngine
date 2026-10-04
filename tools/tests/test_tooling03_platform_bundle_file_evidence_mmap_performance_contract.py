@@ -1,3 +1,4 @@
+# 核对平台包文件证据以映射文件计算哈希并区分空文件与打开失败。
 from __future__ import annotations
 
 import hashlib
@@ -6,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_export.pipeline_report_platform_bundle_file_evidence import (
+from tools.export.pipeline_report_platform_bundle_file_evidence import (
     platform_bundle_file_sha256,
 )
 

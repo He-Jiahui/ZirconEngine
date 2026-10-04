@@ -16,6 +16,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::super::{ViewTemplateFrameData, ViewTemplateNodeData};
+use super::materialization::view_template_nodes_from_surface;
 use super::retained_binding::{ViewTemplateTextBinding, ViewTemplateTextOverrideSemantics};
 use super::{
     ViewTemplateNodeMaterialization, ViewTemplateNodePatch, ViewTemplateProjectionError,
@@ -400,23 +401,131 @@ where
         match update {
             ProjectionCacheUpdate::Ready(projection) => return Ok(projection),
             ProjectionCacheUpdate::TopologyChanged => {
-                let build = build
-                    .take()
-                    .expect("size topology fallback retains the projection builder");
-                let (surface, materialization) = build()?;
-                install_projection_cache_entry(
-                    document_tree_id,
-                    width_bits,
-                    height_bits,
-                    compiled,
-                    design_tokens,
-                    font_database_generation,
-                    surface,
-                    materialization,
-                );
+                // The builder may already have been consumed by this call's cache miss.
+                // Re-materialize the updated surface and retain its authored bindings so
+                // subsequent changes can still restore the document's original values.
+                let projection = PROJECTION_CACHE.with(|cache| {
+                    let mut cache = cache.borrow_mut();
+                    let entry = cache
+                        .get_mut(document_tree_id)
+                        .expect("projection cache entry was inserted above");
+                    rebase_projection_cache_entry(
+                        entry,
+                        width_bits,
+                        height_bits,
+                        text_overrides,
+                        node_patches,
+                    );
+                    CachedProjection {
+                        base_rows: Rc::clone(&entry.base_rows),
+                        row_patches: Rc::clone(&entry.row_patches),
+                        source_frame: entry.surface.surface_frame(),
+                    }
+                });
+                return Ok(projection);
             }
         }
     }
+}
+
+fn rebase_projection_cache_entry(
+    entry: &mut ProjectionCacheEntry,
+    width_bits: u32,
+    height_bits: u32,
+    text_overrides: &BTreeMap<String, String>,
+    node_patches: &BTreeMap<String, ViewTemplateNodePatch>,
+) {
+    let ViewTemplateNodeMaterialization {
+        mut nodes,
+        mut text_override_semantics,
+        text_bindings,
+        frame_source_node_ids,
+        row_signatures,
+    } = view_template_nodes_from_surface(&entry.surface, text_overrides);
+    debug_assert_eq!(nodes.len(), row_signatures.len());
+
+    let mut authored_node_patches = Vec::with_capacity(nodes.len());
+    let mut control_rows = BTreeMap::<String, Vec<usize>>::new();
+    let mut frame_source_rows = BTreeMap::<UiNodeId, Vec<usize>>::new();
+    for (row, node) in nodes.iter_mut().enumerate() {
+        let control_id = node.control_id.to_string();
+        let old_row = entry
+            .row_signatures
+            .iter()
+            .position(|signature| {
+                signature.node_id == row_signatures[row].node_id
+                    && signature.command_kind == row_signatures[row].command_kind
+                    && signature.render_command_ref == row_signatures[row].render_command_ref
+            })
+            .or_else(|| {
+                entry
+                    .control_rows
+                    .get(&control_id)
+                    .and_then(|rows| rows.first())
+                    .copied()
+            });
+        let authored = if let Some(old_row) = old_row {
+            text_override_semantics[row] = entry.text_override_semantics[old_row].clone();
+            let current_value_number = entry
+                .text_bindings
+                .get(&control_id)
+                .and_then(|binding| surface_value_number(&entry.surface, binding.node_id));
+            text_override_semantics[row].apply(
+                node,
+                text_overrides.get(&control_id).map(String::as_str),
+                current_value_number,
+            );
+            entry.authored_node_patches[old_row].clone()
+        } else {
+            ViewTemplateNodePatch::authored(node)
+        };
+        node_patches
+            .get(&control_id)
+            .unwrap_or(&authored)
+            .resolved_against(&authored)
+            .apply(node);
+        authored_node_patches.push(authored);
+        if !control_id.is_empty() {
+            control_rows.entry(control_id).or_default().push(row);
+        }
+        frame_source_rows
+            .entry(frame_source_node_ids[row])
+            .or_default()
+            .push(row);
+    }
+
+    let mut retained_bindings = text_bindings;
+    retained_bindings.extend(std::mem::take(&mut entry.text_bindings));
+    let rows = Rc::new(nodes.into_iter().map(Rc::new).collect::<Vec<_>>());
+    entry.width_bits = width_bits;
+    entry.height_bits = height_bits;
+    entry.text_override_semantics = Rc::new(text_override_semantics);
+    entry.text_bindings = retained_bindings;
+    entry.control_rows = Rc::new(control_rows);
+    entry.frame_source_node_ids = Rc::new(frame_source_node_ids);
+    entry.frame_source_rows = frame_source_rows;
+    entry.render_command_index =
+        ViewTemplateRenderCommandIndex::build(&entry.surface.render_extract.list.commands);
+    entry.surface_topology_signatures = Rc::new(row_signatures.clone());
+    entry.row_signatures = Rc::new(row_signatures);
+    entry.authored_node_patches = Rc::new(authored_node_patches);
+    entry.last_text_overrides = text_overrides.clone();
+    entry.last_node_patches = node_patches.clone();
+    entry.base_rows = rows;
+    entry.row_patches = Rc::new(BTreeMap::new());
+
+    zircon_runtime::profile_counter!(
+        "editor",
+        "ui.template_projection.full_materialization_count",
+        1
+    );
+    zircon_runtime::profile_counter!(
+        "editor",
+        "ui.template_projection.full_materialized_node_count",
+        entry.base_rows.len()
+    );
+    #[cfg(test)]
+    SURFACE_MATERIALIZATION_COUNT.set(SURFACE_MATERIALIZATION_COUNT.get() + 1);
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -945,60 +1054,5 @@ pub(super) fn surface_string_property_for_tests(
 }
 
 #[cfg(test)]
-mod tests {
-    use std::collections::BTreeMap;
-
-    use zircon_runtime_interface::ui::v2::{UiV2ComponentGraph, UiV2NodeArena};
-
-    use super::*;
-
-    #[test]
-    fn projection_resource_identity_ignores_size_but_rejects_resource_replacement() {
-        let compiled = Arc::new(UiV2CompiledDocument {
-            asset_id: "projection-cache-test".to_string(),
-            arena: UiV2NodeArena::default(),
-            node_handles: BTreeMap::new(),
-            component_graph: UiV2ComponentGraph::default(),
-        });
-        let replacement_compiled = Arc::new(compiled.as_ref().clone());
-        let design_tokens = Arc::new(EditorDesignTokens::workbench_dark());
-        let replacement_design_tokens = Arc::new(design_tokens.as_ref().clone());
-        let width_bits = 640.0_f32.to_bits();
-        let height_bits = 480.0_f32.to_bits();
-
-        assert!(projection_resource_identity_matches(
-            &compiled,
-            &design_tokens,
-            &compiled,
-            &design_tokens,
-            7,
-            7,
-        ));
-        assert_ne!(width_bits, 800.0_f32.to_bits());
-        assert_eq!(height_bits, 480.0_f32.to_bits());
-        assert!(!projection_resource_identity_matches(
-            &compiled,
-            &design_tokens,
-            &replacement_compiled,
-            &design_tokens,
-            7,
-            7,
-        ));
-        assert!(!projection_resource_identity_matches(
-            &compiled,
-            &design_tokens,
-            &compiled,
-            &replacement_design_tokens,
-            7,
-            7,
-        ));
-        assert!(!projection_resource_identity_matches(
-            &compiled,
-            &design_tokens,
-            &compiled,
-            &design_tokens,
-            7,
-            8,
-        ));
-    }
-}
+#[path = "tests/projection_cache.rs"]
+mod tests;

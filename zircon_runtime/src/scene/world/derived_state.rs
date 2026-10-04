@@ -2,7 +2,10 @@ use std::collections::{HashMap, HashSet};
 
 use crate::core::math::{transform_to_mat4, Mat4, Transform};
 
-use super::{dirty_state::DerivedStateFrontier, hierarchy_topology::HierarchyTopology, World};
+use super::{
+    dirty_state::DerivedStateFrontier, hierarchy_topology::HierarchyTopology, SceneError,
+    SceneResult, World,
+};
 use crate::scene::components::{
     ActiveInHierarchy, ActiveSelf, AmbientLight, AnimationGraphPlayerComponent,
     AnimationPlayerComponent, AnimationSequencePlayerComponent, AnimationSkeletonComponent,
@@ -134,7 +137,7 @@ impl World {
         self.flush_pending_scene_systems();
     }
 
-    fn flush_deferred_component_mutations(&mut self) {
+    pub(super) fn flush_deferred_component_mutations(&mut self) {
         for mutation in self.derived_state_dirty.take_component_mutations() {
             self.apply_deferred_component_mutation(mutation);
         }
@@ -211,7 +214,8 @@ impl World {
                     continue;
                 };
                 records.push(record);
-                stack.extend(self.hierarchy_mutation_index.children_of(current).rev());
+                let children = self.hierarchy_mutation_index.children_of(current).rev();
+                stack.extend(children.filter(|child| *child != entity));
             }
             return;
         }
@@ -233,7 +237,14 @@ impl World {
             let mut stack = vec![root];
             while let Some(entity) = stack.pop() {
                 entities.push(entity);
-                stack.extend(traversal.children_of(entity).iter().rev().copied());
+                stack.extend(
+                    traversal
+                        .children_of(entity)
+                        .iter()
+                        .rev()
+                        .copied()
+                        .filter(|child| *child != root),
+                );
             }
             return entities;
         }
@@ -242,7 +253,12 @@ impl World {
         let mut stack = vec![root];
         while let Some(entity) = stack.pop() {
             entities.push(entity);
-            stack.extend(self.hierarchy_mutation_index.children_of(entity).rev());
+            stack.extend(
+                self.hierarchy_mutation_index
+                    .children_of(entity)
+                    .rev()
+                    .filter(|child| *child != root),
+            );
         }
         entities
     }
@@ -270,7 +286,12 @@ impl World {
         {
             while let Some(entity) = stack.pop() {
                 count += usize::from(self.contains_component_id(entity, component_id));
-                stack.extend(self.hierarchy_mutation_index.children_of(entity).rev());
+                stack.extend(
+                    self.hierarchy_mutation_index
+                        .children_of(entity)
+                        .rev()
+                        .filter(|child| *child != root),
+                );
             }
             return count;
         }
@@ -278,7 +299,14 @@ impl World {
         let traversal = self.hierarchy_traversal_index();
         while let Some(entity) = stack.pop() {
             count += usize::from(self.contains_component_id(entity, component_id));
-            stack.extend(traversal.children_of(entity).iter().rev().copied());
+            stack.extend(
+                traversal
+                    .children_of(entity)
+                    .iter()
+                    .rev()
+                    .copied()
+                    .filter(|child| *child != root),
+            );
         }
         count
     }
@@ -386,19 +414,37 @@ impl World {
                 continue;
             };
             records.push(record);
-            stack.extend(traversal.children_of(current).iter().rev().copied());
+            let children = traversal.children_of(current).iter().rev().copied();
+            stack.extend(children.filter(|child| *child != entity));
         }
     }
 
-    pub(super) fn is_descendant(&self, entity: EntityId, ancestor: EntityId) -> bool {
+    pub(super) fn is_descendant(&self, entity: EntityId, ancestor: EntityId) -> SceneResult<bool> {
         let mut cursor = Some(entity);
+        let mut checkpoint = entity;
+        let mut checkpoint_span = 1_usize;
+        let mut steps_since_checkpoint = 0_usize;
         while let Some(current) = cursor {
+            // Preserve the requested-ancestor rejection before diagnosing an existing cycle.
             if current == ancestor {
-                return true;
+                return Ok(true);
+            }
+            // Brent's spaced checkpoints bound a corrupt chain without depth-sized scratch.
+            if steps_since_checkpoint != 0 && current == checkpoint {
+                return Err(SceneError::HierarchyParentChainCycle {
+                    start: entity,
+                    repeated: current,
+                });
+            }
+            if steps_since_checkpoint == checkpoint_span {
+                checkpoint = current;
+                checkpoint_span = checkpoint_span.saturating_mul(2);
+                steps_since_checkpoint = 0;
             }
             cursor = self.parent_of(current);
+            steps_since_checkpoint = steps_since_checkpoint.saturating_add(1);
         }
-        false
+        Ok(false)
     }
 
     pub(super) fn project_world_transform(&self, entity: EntityId) -> Option<Transform> {
@@ -453,26 +499,36 @@ impl World {
         })
     }
 
+    // 干净状态优先读已发布矩阵；缓存缺失或脏状态沿作者态父链即时投影，不刷新保留的节点缓存。
     pub(super) fn project_world_matrix_for_read(&self, entity: EntityId) -> Option<Mat4> {
-        let mut lineage = Vec::new();
-        let mut seen = HashSet::new();
-        let mut current = entity;
-        loop {
-            if !self.contains_entity(current) || !seen.insert(current) {
-                return None;
+        if !self.derived_state_dirty.hierarchy_or_transform_pending() {
+            if let Some(world_matrix) = self.get::<WorldMatrix>(entity) {
+                return Some(world_matrix.0);
             }
-            lineage.push(current);
-            let Some(parent) = self.parent_for_read(current) else {
-                break;
-            };
-            current = parent;
         }
 
         let mut world = Mat4::IDENTITY;
-        for current in lineage.iter().rev().copied() {
-            world = world * transform_to_mat4(self.local_transform_value(current));
+        let mut current = entity;
+        let mut slow = Some(entity);
+        let mut fast = Some(entity);
+        loop {
+            if !self.contains_entity(current) {
+                return None;
+            }
+            world = transform_to_mat4(self.local_transform_value(current)) * world;
+            let Some(parent) = self.parent_for_read(current) else {
+                return Some(world);
+            };
+            current = parent;
+
+            slow = slow.and_then(|ancestor| self.parent_for_read(ancestor));
+            fast = fast
+                .and_then(|ancestor| self.parent_for_read(ancestor))
+                .and_then(|ancestor| self.parent_for_read(ancestor));
+            if slow.is_some() && slow == fast {
+                return None;
+            }
         }
-        Some(world)
     }
 
     fn parent_for_read(&self, entity: EntityId) -> Option<EntityId> {
@@ -490,16 +546,25 @@ impl World {
     }
 
     fn active_self_chain_value(&self, entity: EntityId) -> bool {
-        let mut seen = HashSet::new();
         let mut current = entity;
+        let mut slow = Some(entity);
+        let mut fast = Some(entity);
         loop {
-            if !seen.insert(current) || !self.active_self_value(current) {
+            if !self.active_self_value(current) {
                 return false;
             }
             let Some(parent) = self.parent_for_read(current) else {
                 return true;
             };
             current = parent;
+
+            slow = slow.and_then(|ancestor| self.parent_for_read(ancestor));
+            fast = fast
+                .and_then(|ancestor| self.parent_for_read(ancestor))
+                .and_then(|ancestor| self.parent_for_read(ancestor));
+            if slow.is_some() && slow == fast {
+                return false;
+            }
         }
     }
 
@@ -507,42 +572,41 @@ impl World {
         let frontier = self.derived_state_dirty.take_active_frontier();
         self.ensure_hierarchy_mutation_index_current();
         let traversal = std::mem::take(&mut self.hierarchy_mutation_index);
-        let mut propagated_entities: usize = 0;
+        let mut visited_entities: usize = 0;
+        let mut written_entities: usize = 0;
         for root in self.derived_state_frontier_roots(&frontier, &traversal) {
             let inherited_active = traversal
                 .parent_of(root)
                 .and_then(|parent| self.get::<ActiveInHierarchy>(parent))
                 .map(|active| active.0)
                 .unwrap_or(true);
-            propagated_entities = propagated_entities.saturating_add(self.propagate_active_state(
-                root,
-                inherited_active,
-                &traversal,
-            ));
+            let (visited, written) =
+                self.propagate_active_state(root, inherited_active, &traversal);
+            visited_entities = visited_entities.saturating_add(visited);
+            written_entities = written_entities.saturating_add(written);
         }
         self.hierarchy_mutation_index = traversal;
-        self.record_derived_state_active_propagation(propagated_entities);
+        self.record_derived_state_active_propagation(visited_entities, written_entities);
     }
 
     fn rebuild_world_matrices(&mut self) {
         let frontier = self.derived_state_dirty.take_transform_frontier();
         self.ensure_hierarchy_mutation_index_current();
         let traversal = std::mem::take(&mut self.hierarchy_mutation_index);
-        let mut propagated_entities: usize = 0;
+        let mut visited_entities: usize = 0;
+        let mut written_entities: usize = 0;
         for root in self.derived_state_frontier_roots(&frontier, &traversal) {
             let inherited_world = traversal
                 .parent_of(root)
                 .and_then(|parent| self.get::<WorldMatrix>(parent))
                 .map(|world| world.0)
                 .unwrap_or(Mat4::IDENTITY);
-            propagated_entities = propagated_entities.saturating_add(self.propagate_world_matrix(
-                root,
-                inherited_world,
-                &traversal,
-            ));
+            let (visited, written) = self.propagate_world_matrix(root, inherited_world, &traversal);
+            visited_entities = visited_entities.saturating_add(visited);
+            written_entities = written_entities.saturating_add(written);
         }
         self.hierarchy_mutation_index = traversal;
-        self.record_derived_state_world_matrix_propagation(propagated_entities);
+        self.record_derived_state_world_matrix_propagation(visited_entities, written_entities);
     }
 
     fn propagate_active_state(
@@ -550,22 +614,43 @@ impl World {
         entity: EntityId,
         parent_active: bool,
         traversal: &HierarchyTopology,
-    ) -> usize {
-        let mut stack = vec![(entity, parent_active)];
-        let mut propagated_entities: usize = 0;
-        while let Some((current, inherited_active)) = stack.pop() {
+    ) -> (usize, usize) {
+        // Keep an iterator only where a parent has more than one child.
+        // Neither wide siblings nor a single-child chain fills this stack.
+        let mut pending = Vec::new();
+        let mut next = Some((entity, parent_active));
+        let mut visited_entities: usize = 0;
+        let mut written_entities: usize = 0;
+        while let Some((current, inherited_active)) = next {
             let active = inherited_active && self.active_self_value(current);
-            self.replace_derived_component(current, ActiveInHierarchy(active));
-            self.derived_state_dirty.mark_render_dirty_at(current);
-            propagated_entities = propagated_entities.saturating_add(1);
-            stack.extend(
-                traversal
-                    .children_of(current)
-                    .rev()
-                    .map(|child| (child, active)),
-            );
+            let next_active = ActiveInHierarchy(active);
+            if self.get::<ActiveInHierarchy>(current) != Some(&next_active) {
+                self.replace_derived_component(current, next_active);
+                written_entities = written_entities.saturating_add(1);
+                self.derived_state_dirty.mark_render_dirty_at(current);
+            }
+            visited_entities = visited_entities.saturating_add(1);
+
+            let mut children = traversal.children_of(current);
+            if let Some(first_child) = children.next() {
+                let mut remaining = children.peekable();
+                if remaining.peek().is_some() {
+                    pending.push((remaining, active));
+                }
+                next = Some((first_child, active));
+                continue;
+            }
+            next = loop {
+                let Some((siblings, inherited_active)) = pending.last_mut() else {
+                    break None;
+                };
+                if let Some(sibling) = siblings.next() {
+                    break Some((sibling, *inherited_active));
+                }
+                pending.pop();
+            };
         }
-        propagated_entities
+        (visited_entities, written_entities)
     }
 
     fn propagate_world_matrix(
@@ -573,10 +658,14 @@ impl World {
         entity: EntityId,
         parent_world: Mat4,
         traversal: &HierarchyTopology,
-    ) -> usize {
-        let mut stack = vec![(entity, parent_world)];
-        let mut propagated_entities: usize = 0;
-        while let Some((current, inherited_world)) = stack.pop() {
+    ) -> (usize, usize) {
+        // Keep inherited matrices only for branching ancestors, not each
+        // sibling of a wide parent or each node of a single-child chain.
+        let mut pending = Vec::new();
+        let mut next = Some((entity, parent_world));
+        let mut visited_entities: usize = 0;
+        let mut written_entities: usize = 0;
+        while let Some((current, inherited_world)) = next {
             let local = self.local_transform_value(current);
             let local_matrix = transform_to_mat4(local);
             let world = if traversal.parent_of(current).is_some() {
@@ -584,17 +673,34 @@ impl World {
             } else {
                 local_matrix
             };
-            self.replace_derived_component(current, WorldMatrix(world));
-            self.derived_state_dirty.mark_render_dirty_at(current);
-            propagated_entities = propagated_entities.saturating_add(1);
-            stack.extend(
-                traversal
-                    .children_of(current)
-                    .rev()
-                    .map(|child| (child, world)),
-            );
+            let next_world = WorldMatrix(world);
+            if self.get::<WorldMatrix>(current) != Some(&next_world) {
+                self.replace_derived_component(current, next_world);
+                written_entities = written_entities.saturating_add(1);
+                self.derived_state_dirty.mark_render_dirty_at(current);
+            }
+            visited_entities = visited_entities.saturating_add(1);
+
+            let mut children = traversal.children_of(current);
+            if let Some(first_child) = children.next() {
+                let mut remaining = children.peekable();
+                if remaining.peek().is_some() {
+                    pending.push((remaining, world));
+                }
+                next = Some((first_child, world));
+                continue;
+            }
+            next = loop {
+                let Some((siblings, inherited_world)) = pending.last_mut() else {
+                    break None;
+                };
+                if let Some(sibling) = siblings.next() {
+                    break Some((sibling, *inherited_world));
+                }
+                pending.pop();
+            };
         }
-        propagated_entities
+        (visited_entities, written_entities)
     }
 
     fn hierarchy_traversal_index(&self) -> HierarchyTraversalIndex {
@@ -759,3 +865,15 @@ pub(super) fn matrix_to_transform(matrix: Mat4) -> Transform {
         scale,
     }
 }
+
+#[cfg(test)]
+#[path = "../tests/derived_state/subtree_cycle_profile.rs"]
+mod subtree_cycle_profile;
+
+#[cfg(test)]
+#[path = "tests/derived_state_clean_world_matrix_profile.rs"]
+mod clean_world_matrix_profile;
+
+#[cfg(all(test, target_os = "windows"))]
+#[path = "tests/derived_state_scale_profile.rs"]
+mod derived_state_scale_profile;

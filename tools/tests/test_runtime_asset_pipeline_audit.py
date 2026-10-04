@@ -2,7 +2,7 @@ import sys
 import unittest
 from pathlib import Path
 
-
+# 调用资源流水线边界审计器核对 runtime04 子守卫归属，同时验证数据导入错误保留类型化来源。
 class RuntimeAssetPipelineAuditTests(unittest.TestCase):
     def setUp(self) -> None:
         self.repo_root = Path(__file__).resolve().parents[2]

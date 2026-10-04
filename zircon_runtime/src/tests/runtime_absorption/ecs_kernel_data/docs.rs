@@ -1,8 +1,9 @@
+//! 实体组件存储与标识能力吸收后，核心拥有者和文档锚点需一致。保存同组守卫使用的局部数据或辅助变换。
 pub(super) fn assert_runtime_08_mirror_docs() {
     let mirror_docs = [
         (
             "Runtime 08 ECS module doc",
-            include_str!("../../../../../docs/zircon_runtime/scene/ecs.md"),
+            include_str!("../../../../../docs/crates/zircon_runtime/scene/ecs.md"),
         ),
         (
             "Runtime 08 plan",
@@ -16,15 +17,11 @@ pub(super) fn assert_runtime_08_mirror_docs() {
         ),
         (
             "M0 review",
-            include_str!(
-                "../../../../../docs/engine-architecture/runtime-architecture-review-m0.md"
-            ),
+            include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md"),
         ),
         (
             "interface convergence",
-            include_str!(
-                "../../../../../docs/engine-architecture/runtime-interface-convergence.md"
-            ),
+            include_str!("../../../../../docs/architecture/runtime-interface-convergence.md"),
         ),
     ];
 

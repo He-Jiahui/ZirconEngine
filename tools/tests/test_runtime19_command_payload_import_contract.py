@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+# 共享及市场载荷解码器引用的命令 ID 必须全部来自生成目录；缺失 ID 由目录权威报告而非调用方另造常量。
 import re
 import unittest
 from pathlib import Path

@@ -126,3 +126,124 @@ Runtime11 只在 Runtime02 回传“Runtime drop 后 weak 无法 upgrade、线�
 - 修复后须将本文件按 failure 生命周期迁回
   `docs/plans/zircon_editor/editor/14/fixed-2026-07-13-editor-full-harness-runtime-thread-budget.md`，
   并回传 Runtime focused 资源测试、Editor manager 分区线程峰值和 Editor full-lib 自然 summary。
+
+## 2026-09-19 successor validation intake
+
+Successor Session `failure-roll-01a084c8-runtime11-editor-full-harness-r2`
+reclaimed the archived owner scope and sealed the current Runtime/Editor
+source snapshot with coordinator request
+`failure-roll-01a084c8-runtime11-editor-full-harness-20260919-r2`.
+Static current-source ticket `28b1e7f0e9c241019dea5129687c7a64` is queued
+(`status=queued`, source-manifest hash
+`c1bb9979b927b7dc31218f59ff4a156d2098497bde980312f24dce98ee618ee6`). It
+checks the Runtime task owner, shared IO-pool asset worker, typed event facade,
+and 128-fixture lifecycle anchors with Windows rustfmt; it is not dynamic
+acceptance. Managed `zircon_runtime` focused Cargo tests, 128-fixture and
+Editor full-lib natural summaries, Plugins12 shell-lock repair, external
+`E:\Git\zr_vm` clean source, independent C/I/M review, fixed return, and
+closeout remain pending.
+
+### 2026-09-19 corrected static checker receipt
+
+The first successor checker ticket `28b1e7f0e9c241019dea5129687c7a64`
+failed before asserting the source contract because its negative check scanned
+test-only strings in `runtime.rs` and treated the fixture's
+`TaskPools::default()`/`task_pools()` references as production construction.
+The corrected current-source ticket `7597f62490aa4ed289f5cddcec4bb19c`
+(`failure-roll-01a084c8-runtime11-editor-full-harness-20260919-r4`) sealed
+the current 11-file manifest (`81039600a8f23d638ae0ae500d0cebdf3249419501edbc22f71f8f36a09381a6`)
+and scopes that negative check to the production section before `#[cfg(test)]`.
+Coordinator job `7604effb2335451f8cf41b31fe155b34` / run
+`7597f62490aa4ed289f5cddcec4bb19c` completed with exit code 0 and terminal
+output `RUNTIME11_EDITOR_FULL_HARNESS_CURRENT_SOURCE_CONTRACT_PARSE_PASS`;
+cleanup was recorded complete. This is a static source-contract receipt only,
+not the required Runtime/Editor Cargo acceptance or closeout.
+
+## 2026-09-21 independent source review receipt
+
+- Reviewer Session `review-runtime11-editor-full-harness-r2` inspected all ten
+  Rust source/test paths in the corrected successor manifest without editing
+  them; each current SHA-256 still matches the sealed manifest
+  `81039600a8f23d638ae0ae500d0cebdf3249419501edbc22f71f8f36a09381a6`.
+- The review re-ran `rustfmt +1.94.1 --edition 2021 --config
+  skip_children=true --check` over the complete scope and scoped
+  `git diff --check`; both passed with markers `RUNTIME11_RUSTFMT_PASS` and
+  `RUNTIME11_DIFF_CHECK_PASS`.
+- The independent source probe passed as
+  `RUNTIME11_EDITOR_FULL_HARNESS_INDEPENDENT_SOURCE_REVIEW_PASS`. It verified
+  the Runtime-owned task-graph construction and weak lifecycle contract,
+  process-default/shared `TaskPools` ownership, production removal of an
+  unowned `TaskPools::default()` path, `AssetWorkerPool` binding to the IO
+  task pool without `spawn_named_thread`/independent worker counts, typed asset
+  events, and the required worker backpressure/drop/payload regressions. It
+  also verified the Editor fixtures and 128-runtime lifecycle/panic/failure
+  release anchors.
+- Independent review result: **Critical=0 / Important=0 / Moderate=0**. No
+  Plugins12, Runtime02, or Editor14 source was absorbed.
+- This is static/source-only evidence. Fresh managed Runtime focused Cargo,
+  128-fixture measurement, Plugins12 shell-lock repair, and Editor full-lib
+  natural-summary gates remain pending because external `E:\Git\zr_vm` is
+  dirty. Canonical `fixed-*` return, closeout, and WeCom notification remain
+  pending until those dynamic gates pass.
+
+## 2026-09-25 rolling successor r3 current-source reconciliation
+
+The stable fixing Session `failure-roll-01a084c8-runtime11-editor-full-harness-r3`
+was registered after the archived r2 retention window and claimed this record
+under request `364073bcf93d47049622afac3130d136`. The current eleven-path
+source manifest was re-read before any edit. Nine source paths still match the passed
+static ticket `7597f62490aa4ed289f5cddcec4bb19c`; the current hashes are:
+
+```text
+zircon_editor/src/tests/editor_event/support.rs
+  24fb7736ceae18eafbb2481fa711552ffc8146c57bbe857fcc8ce1fe2214e796
+zircon_editor/src/tests/host/manager/runtime_lifecycle.rs
+  cd8d6bc21930cc466ab93eb152ace46ad9affc15c87ea40cbbc748d2c5bc98d4
+zircon_editor/src/tests/host/manager/support.rs
+  466426fba5bdf72d2f8f57e1cc3db690c4d5ca86143e1c6693fa1f1652d84228
+zircon_runtime/src/asset/facade/event.rs
+  83c66535b296a8f16b3f29ccf7070fe934929e8f4c42703000a8ea67ebfb3348
+zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
+  4c1f8996e5de93844c04edfabc3e8a4eaa5620e268a3534ef7f1e425a35ef1b4
+zircon_runtime/src/asset/pipeline/worker_pool.rs
+  1cf11505bcad8a01d2976f6cd4eec96a45706233003c4bdd666de1478347d22d
+zircon_runtime/src/asset/pipeline/worker_pool/tests.rs
+  a0a2bb4214985261ca950e3a56a6ef97b87cc77d6678a9b4483d59c9fa47b1a7
+zircon_runtime/src/core/runtime/runtime.rs
+  41715baf6d01b4f164853fb5de785577d4af3b5d9c7cb106b525775d08ca5026
+zircon_runtime/src/core/runtime/tasks/thread_assignment.rs
+  65092cc9680c8a1ee758713a7b0435ee7379cb1e7218aa22cab9043843359616
+```
+
+`zircon_runtime/src/core/runtime/tasks/pools.rs` currently hashes to
+`1e0fe5789c0935df1ebd6e52adc9f96d2e9aaed0c1a9810354ec6187d3124fa3`, not the
+static ticket's `c7e4ad3f8415a3c584f70622c115aad2315567aebe020ebfa71077b800c81442`.
+The only observed delta is a foreign `#[cfg(test)]` conservative-budget test
+module; r3 neither edits nor absorbs it. The failure record itself also has a
+new r3 hash after this reconciliation, so the old source-manifest ticket is
+not reused as current validation. The external `E:\Git\zr_vm` dirty-worktree
+admission blocker remains active. Fresh independent review of the drifted
+path, managed Runtime/Editor gates, Plugins12 shell-lock repair, 128-fixture
+measurement, canonical fixed return, and closeout remain pending.
+
+### r3 independent review receipt
+
+Reviewer Session `review-runtime11-editor-full-harness-r3` re-read the current
+manifest and the `pools.rs` drift. It confirmed that the drifted hash is
+exclusively an appended `#[cfg(test)]` conservative-budget test module; no
+production task-pool or asset-worker contract changed. The remaining manifest
+hashes match the sealed values, and a dirty `runtime.rs` worktree status does
+not constitute hash drift because its current bytes match the manifest.
+Independent review result: **Critical=0 / Important=0 / Moderate=0**. Static
+ticket/review evidence remains non-Cargo evidence; the external dirty
+`E:\Git\zr_vm` admission and all dynamic/upward gates remain pending.
+
+## 2026-09-26 successor intake (failure-roll-01a084c8-runtime11-editor-full-harness-r4)
+
+- The stale r3 lifecycle was cancelled through the coordinator with no active lease. Successor failure-roll-01a084c8-runtime11-editor-full-harness-r4 now owns only this failure document; its document lease was acquired against base SHA-256 1622d389ca8a123227f874e61319547ae03aa3e4e3debbdb638ed1631914c6bf. No Runtime or Editor source path is leased or edited by this successor.
+- The ten current source paths from the r3 manifest were rehashed before intake and retain the recorded values: editor_event/support.rs 24fb7736ceae18eafbb2481fa711552ffc8146c57bbe857fcc8ce1fe2214e796; host/manager/runtime_lifecycle.rs cd8d6bc21930cc466ab93eb152ace46ad9affc15c87ea40cbbc748d2c5bc98d4; host/manager/support.rs 466426fba5bdf72d2f8f57e1cc3db690c4d5ca86143e1c6693fa1f1652d84228; asset/facade/event.rs 83c66535b296a8f16b3f29ccf7070fe934929e8f4c42703000a8ea67ebfb3348; project_asset_manager/construction.rs 4c1f8996e5de93844c04edfabc3e8a4eaa5620e268a3534ef7f1e425a35ef1b4; asset/pipeline/worker_pool.rs 1cf11505bcad8a01d2976f6cd4eec96a45706233003c4bdd666de1478347d22d; worker_pool/tests.rs a0a2bb4214985261ca950e3a56a6ef97b87cc77d6678a9b4483d59c9fa47b1a7; core/runtime/runtime.rs 41715baf6d01b4f164853fb5de785577d4af3b5d9c7cb106b525775d08ca5026; core/runtime/tasks/thread_assignment.rs 65092cc9680c8a1ee758713a7b0435ee7379cb1e7218aa22cab9043843359616; core/runtime/tasks/pools.rs 1e0fe5789c0935df1ebd6e52adc9f96d2e9aaed0c1a9810354ec6187d3124fa3. Foreign dirty state in editor_event/support.rs, manager support, construction.rs, runtime.rs, and the test-only pools.rs module remains unclaimed; no source change is absorbed.
+- The corrected static ticket and r3 review remain source-only evidence. Fresh managed Runtime focused Cargo, 128-fixture measurement, Plugins12 shell-lock repair, Editor full-lib natural-summary, independent successor review, canonical fixed return, coordinator closeout, and WeCom notification remain pending. The failure stays open.
+
+### r4 corrected intake independent review receipt
+
+Reviewer `/root/review_editor03_gizmo_private` re-read corrected intake snapshot 3934 (SHA-256 `3c7cc4157dcab6642cb38c2dbdca72ceea9511609ab64f40dd21a90a8d999acb`) after the event-facade hash correction. The stale r3 cancellation and absence of a source lease were verified. All ten current source hashes remain consistent with the r4 manifest, including the foreign test-only drift in `core/runtime/tasks/pools.rs`; no foreign change is absorbed. The ticket is static-only evidence: managed Runtime/Editor validation, the 128-fixture measurement, Plugins12 shell-lock repair, Editor full-lib natural-summary, canonical fixed return, coordinator closeout, and WeCom notification remain pending. Independent review result: **Critical=0 / Important=0 / Moderate=0**. The failure stays open.

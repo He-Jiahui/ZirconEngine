@@ -4,7 +4,7 @@ use crate::ui::retained_host::hierarchy_pointer::{
 
 use crate::ui::retained_host::host_contract::data::FrameRect;
 
-pub(super) fn hierarchy_row_frame(
+pub(in crate::ui::retained_host::host_contract) fn hierarchy_row_frame(
     viewport: &FrameRect,
     index: usize,
     scroll_px: f32,

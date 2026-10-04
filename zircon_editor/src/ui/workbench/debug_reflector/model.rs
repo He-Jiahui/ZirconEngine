@@ -224,8 +224,7 @@ fn details(snapshot: &UiSurfaceDebugSnapshot, selected_node: Option<UiNodeId>) -
                 .map(|node| node.0)
                 .collect::<Vec<_>>(),
             pick.hit_path
-                .bubble_route
-                .iter()
+                .bubble_route()
                 .map(|node| node.0)
                 .collect::<Vec<_>>(),
             pick.rejected.len()

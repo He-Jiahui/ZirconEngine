@@ -60,6 +60,7 @@ pub applyBuiltinTerrainEdits(
     return height;
 }
 
+// 地形专用阶段按 camp flatten→Sowfield→山脊→Mirefen→编辑层顺序叠加；groundHeight 再接结构表面。
 pub builtinTerrainHeight(x: float, z: float, seed: uint, required: bool): float {
     if (!required) {
         throw "woc builtin terrain height is required";

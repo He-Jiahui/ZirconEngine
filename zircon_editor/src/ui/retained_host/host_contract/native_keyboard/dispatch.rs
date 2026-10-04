@@ -6,8 +6,19 @@ use self::actions::{
 };
 use super::super::redraw::NativePointerDispatchResult;
 use super::super::window::UiHostWindow;
-use super::commands::WorkbenchPopupKeyboardCommand;
+use super::commands::{workbench_popup_keyboard_command, WorkbenchPopupKeyboardCommand};
 use super::target::{active_popup_keyboard_target_for_ui, PopupKeyboardMove};
+use winit::keyboard::Key;
+
+pub(in crate::ui::retained_host::host_contract) fn workbench_popup_accept_is_owned(
+    ui: &UiHostWindow,
+    key: &Key,
+) -> bool {
+    matches!(
+        workbench_popup_keyboard_command(key),
+        Some(WorkbenchPopupKeyboardCommand::Accept)
+    ) && active_popup_keyboard_target_for_ui(ui).is_some()
+}
 
 pub(in crate::ui::retained_host::host_contract) fn dispatch_workbench_popup_keyboard_command(
     ui: &UiHostWindow,

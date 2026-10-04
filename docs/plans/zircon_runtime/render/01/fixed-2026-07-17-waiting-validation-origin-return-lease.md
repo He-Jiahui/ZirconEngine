@@ -9,7 +9,6 @@ origin_child_dir: docs/plans/zircon_runtime/render/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/server.py
 tests:
   - tools/session_coordinator/tests/test_server.py::ServerTests::test_scoped_failure_return_allows_waiting_validation_origin_destination_lease
 resolved_at: 2026-07-17

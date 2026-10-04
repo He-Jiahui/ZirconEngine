@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 读取激活争用测试目录与守卫，确认并发压力用例由专属子模块持有。
 class RuntimeActivationContentionTestStructureTests(unittest.TestCase):
     def test_activation_contention_tests_are_child_owned(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]

@@ -8,6 +8,7 @@ use zircon_runtime_interface::ui::template::{UiAssetError, UiRawAssetPrototype};
 use super::{UiAssetLoader, UiPrototypeStore, UiPrototypeStoreBuilder};
 
 #[derive(Clone, Debug)]
+/// 文件加载结果与命中信息；共享原型快照可独立于文件缓存继续使用。
 pub struct UiPrototypeStoreLoadOutcome {
     pub root_asset_id: String,
     pub store: Arc<UiPrototypeStore>,
@@ -15,6 +16,7 @@ pub struct UiPrototypeStoreLoadOutcome {
 }
 
 #[derive(Clone, Debug, Default)]
+/// 缓存已验证导入的共享原型仓库；源元数据变化后重建，调用方仍可持有此前返回的快照。
 pub struct UiPrototypeStoreFileCache {
     entries: BTreeMap<UiPrototypeFileStoreCacheKey, UiPrototypeFileStoreCacheEntry>,
 }
@@ -48,6 +50,7 @@ impl UiPrototypeStoreFileCache {
             .map(|outcome| outcome.expect("required flat prototype loading always returns outcome"))
     }
 
+    /// 首份文本没有扁平节点表标记时返回 None，供调用方另选加载器；进入扁平加载后的读取、解析与导入错误继续传播。
     pub fn try_load_flat_store<P, I>(
         &mut self,
         paths: I,
@@ -144,6 +147,7 @@ impl UiPrototypeFileCacheSourceKey {
         Self::from_canonical_path(&path)
     }
 
+    // 新鲜度来自路径、修改时间与长度；这不是文件内容摘要，不能识别元数据完全不变的改写。
     fn from_canonical_path(path: &Path) -> Self {
         let metadata = std::fs::metadata(path).ok();
         let modified_unix_ns = metadata
@@ -280,11 +284,19 @@ fn resolve_resource_reference_path(source_path: &Path, reference: &str) -> Optio
 fn resource_alias_for_path(path: &Path) -> Option<String> {
     let asset_root = asset_root_for_path(path)?;
     let relative = path.strip_prefix(asset_root).ok()?;
-    let parts = relative
+    let mut parts = relative
         .components()
-        .filter_map(|component| component.as_os_str().to_str())
-        .collect::<Vec<_>>();
-    (!parts.is_empty()).then(|| format!("res://{}", parts.join("/")))
+        .filter_map(|component| component.as_os_str().to_str());
+    let first = parts.next()?;
+    let alias_capacity = "res://".len().saturating_add(relative.as_os_str().len());
+    let mut alias = String::with_capacity(alias_capacity);
+    alias.push_str("res://");
+    alias.push_str(first);
+    for part in parts {
+        alias.push('/');
+        alias.push_str(part);
+    }
+    Some(alias)
 }
 
 fn asset_root_for_path(path: &Path) -> Option<&Path> {
@@ -300,5 +312,9 @@ fn looks_like_flat_prototype_source(source: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "prototype_file_cache/canonical_revalidation_tests.rs"]
+#[path = "prototype_file_cache/tests/resource_alias_single_buffer_tests.rs"]
+mod resource_alias_single_buffer_tests;
+
+#[cfg(test)]
+#[path = "prototype_file_cache/tests/canonical_revalidation_tests.rs"]
 mod canonical_revalidation_tests;

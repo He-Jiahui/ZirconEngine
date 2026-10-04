@@ -107,10 +107,10 @@ fn rendering_plugin_toml_roundtrips_owner_features_and_modules() {
     assert_eq!(decoded, manifest);
     assert_eq!(manifest.id, "rendering");
     assert!(
-        manifest_source.contains(r#"sdk_api_version = "0.1.0""#),
+        manifest_source.contains(r#"sdk_api_version = "0.2.0""#),
         "rendering plugin should explicitly declare SDK API version"
     );
-    assert_eq!(manifest.sdk_api_version, "0.1.0");
+    assert_eq!(manifest.sdk_api_version, "0.2.0");
     assert_eq!(manifest.category, "rendering");
     assert_eq!(manifest.maturity, crate::plugin::PluginMaturity::Stable);
     assert_eq!(manifest.supported_targets, expected_targets);

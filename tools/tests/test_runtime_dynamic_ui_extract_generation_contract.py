@@ -1,3 +1,4 @@
+from tools.tests.rust_test_files import read_rust_test_file
 import unittest
 from pathlib import Path
 
@@ -45,8 +46,8 @@ class RuntimeDynamicUiExtractGenerationContractTests(unittest.TestCase):
             "viewport_resize_rebuilds_the_ui_extract_once",
             "stable_absent_ui_does_not_revisit_component_rows",
         ):
-            self.assertIn(f"fn {test_name}", cache)
-        self.assertIn("Arc::ptr_eq", cache)
+            self.assertIn(f"fn {test_name}", (read_rust_test_file("zircon_runtime/src/dynamic_api/session/tests/ui_extract_cache.rs") if f"fn {test_name}" in {"fn stable_absent_ui_does_not_revisit_component_rows", "fn stable_generation_reuses_the_same_ui_extract_allocation", "fn target_component_mutation_rebuilds_the_ui_extract_once", "fn unrelated_world_mutation_keeps_the_cached_ui_extract", "fn viewport_resize_rebuilds_the_ui_extract_once"} else cache))
+        self.assertIn("Arc::ptr_eq", read_rust_test_file("zircon_runtime/src/dynamic_api/session/tests/ui_extract_cache.rs"))
 
     def test_runtime_render_pipeline_uses_one_shared_ui_submission_handle(self) -> None:
         shared_handle_paths = (
@@ -79,14 +80,17 @@ class RuntimeDynamicUiExtractGenerationContractTests(unittest.TestCase):
 
     def test_project_ui_aggregate_reuses_its_published_submission(self) -> None:
         runtime_ui = read_runtime_source("dynamic_api/session/runtime_ui.rs")
+        runtime_ui_tests = read_runtime_source("dynamic_api/session/runtime_ui/tests/cases.rs")
 
         self.assertIn("render_cache: RuntimeUiAggregateRenderCache", runtime_ui)
         self.assertIn("Result<Option<Arc<UiRenderSubmission>>, UiTreeError>", runtime_ui)
         self.assertIn("Arc::clone", runtime_ui)
+        self.assertIn("mod tests;", runtime_ui)
         self.assertIn(
             "stable_project_ui_submission_reuses_the_same_allocation",
-            runtime_ui,
+            runtime_ui_tests,
         )
+        self.assertIn("Arc::ptr_eq", runtime_ui_tests)
 
     def test_editor_submission_chain_wraps_flat_producers_at_the_boundary(self) -> None:
         flat_producer_paths = (
@@ -95,7 +99,7 @@ class RuntimeDynamicUiExtractGenerationContractTests(unittest.TestCase):
             "ui/retained_host/viewport/world_space_ui.rs",
         )
         submission_consumer_paths = (
-            "ui/retained_host/viewport/test_render_framework.rs",
+            "ui/retained_host/viewport/tests/test_render_framework.rs",
             "ui/retained_host/viewport/tests/fake_render_framework.rs",
         )
 
@@ -139,7 +143,7 @@ class RuntimeDynamicUiExtractGenerationContractTests(unittest.TestCase):
             "viewport_hud_key_change_publishes_one_new_allocation",
             "Arc::ptr_eq",
         ):
-            self.assertIn(anchor, overlay)
+            self.assertIn(anchor, (read_rust_test_file("zircon_editor/src/scene/viewport/controller/tests/scene_viewport_controller_build_runtime_overlay_ui.rs") if anchor in {"Arc::ptr_eq", "stable_viewport_hud_generation_reuses_the_same_allocation", "viewport_hud_key_change_publishes_one_new_allocation"} else overlay))
 
     def test_editor_world_space_ui_merge_is_generation_owned(self) -> None:
         state = read_editor_source("ui/retained_host/viewport/viewport_state.rs")
@@ -156,7 +160,7 @@ class RuntimeDynamicUiExtractGenerationContractTests(unittest.TestCase):
             "stable_world_space_generation_reuses_the_merged_allocation",
             "empty_world_space_generation_preserves_the_base_allocation",
         ):
-            self.assertIn(anchor, world_space)
+            self.assertIn(anchor, (read_rust_test_file("zircon_editor/src/ui/retained_host/viewport/tests/world_space_ui.rs") if anchor in {"empty_world_space_generation_preserves_the_base_allocation", "stable_world_space_generation_reuses_the_merged_allocation"} else world_space))
 
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对深度预通道迁移的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::super::rust_source_view::{production_code_view, production_section};
 use super::*;
 
@@ -11,7 +12,7 @@ fn runtime_15_depth_prepass_pure_depth_product_migration_is_wired() {
     let shader_source =
         read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs");
     let shader_source_tests = read_runtime_src(
-        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests.rs",
+        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/cases.rs",
     );
     let ensure_depth_prepass = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_depth_prepass_pipeline.rs",
@@ -30,8 +31,14 @@ fn runtime_15_depth_prepass_pure_depth_product_migration_is_wired() {
     assert_contains_all(
         "depth prepass variant identity uses the depth pass type",
         &variant_registry,
+        &["MeshPassPipelineKind::DepthPrepass => ShaderPassType::DepthPrepass"],
+    );
+    assert_contains_all(
+        "depth prepass variant identity uses the depth pass type",
+        &read_runtime_src(
+        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/tests/mesh_pipeline_variant_registry.rs",
+    ),
         &[
-            "MeshPassPipelineKind::DepthPrepass => ShaderPassType::DepthPrepass",
             "mesh_pipeline_variant_registry_maps_depth_prepass_to_depth_prepass_pass_type",
         ],
     );
@@ -51,8 +58,16 @@ fn runtime_15_depth_prepass_pure_depth_product_migration_is_wired() {
         &ensure_depth_prepass,
         &[
             "DEPTH_PREPASS_MESH_SHADER_KEY_PREFIX",
-            "ShaderPassType::DepthPrepass",
             "variant_key.canonical_string()",
+        ],
+    );
+    assert_contains_all(
+        "depth prepass cache key carries depth prepass identity",
+        &read_runtime_src(
+        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/tests/ensure_depth_prepass_pipeline.rs",
+    ),
+        &[
+            "ShaderPassType::DepthPrepass",
         ],
     );
     assert_contains_all(

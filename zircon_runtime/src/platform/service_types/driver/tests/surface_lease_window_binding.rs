@@ -11,7 +11,7 @@ use crate::platform::{
     PlatformWindowCloseError, WindowParentKind, WindowRegistryError,
 };
 
-use super::display_topology;
+use super::fixtures::display_topology;
 
 fn surface_request(
     window: crate::core::framework::window::WindowId,

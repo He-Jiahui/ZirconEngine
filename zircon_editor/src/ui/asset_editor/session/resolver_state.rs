@@ -126,5 +126,5 @@ fn dedup_resource_diagnostics(diagnostics: &mut Vec<UiResourceDiagnostic>) {
 }
 
 #[cfg(test)]
-#[path = "resolver_state/hash_dedup_tests.rs"]
+#[path = "resolver_state/tests/hash_dedup_tests.rs"]
 mod hash_dedup_tests;

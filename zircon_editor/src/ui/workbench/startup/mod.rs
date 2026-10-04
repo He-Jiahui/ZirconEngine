@@ -16,6 +16,7 @@ pub(crate) use constants::{WELCOME_DESCRIPTOR_ID, WELCOME_INSTANCE_ID, WELCOME_P
 pub(crate) use display_project_path::display_project_title;
 pub use editor_session_mode::EditorSessionMode;
 pub use editor_startup_session_document::EditorStartupSessionDocument;
+pub(crate) use editor_state_project::SceneReloadDiscardAuthorization;
 pub use new_project_form_snapshot::NewProjectFormSnapshot;
 pub(crate) use now_unix_ms::now_unix_ms;
 pub use recent_project_item_snapshot::RecentProjectItemSnapshot;

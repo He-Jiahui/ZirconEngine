@@ -55,14 +55,16 @@ related_code:
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - docs/plans/zircon_runtime/runtime/12-input-stack-and-action-mapping.md
-  - docs/ui-and-layout/shared-ui-template-runtime.md
+  - docs/ui/shared-ui-template-runtime.md
 status: in_progress
 last_refined: 2026-07-23
 ---
 
 # 09 UI 子系统架构收束
 
-Current-source UI architecture mirror 2026-08-14: `ui_architecture_boundary` reports `expected_source_file_count = 52`, `expected_ui_entry_count = 20`, `expected_surface_entry_count = 26`, `legacy_full_hits = 70`, `expected_legacy_full_hits = 70`, `legacy_production_hits = 0`, `expected_legacy_production_hits = 0`, `legacy_production_file_count = 0`, `expected_legacy_production_file_count = 0`, `taffy_production_hits = 175`, `expected_taffy_production_hits = 175`, `taffy_production_file_count = 10`, `expected_taffy_production_file_count = 10`, `runtime_v2_anchor_count = 10`, `interface_v2_anchor_count = 9`, `guard_anchor_count = 19`, `cargo_gate_anchor_count = 7`, `doc_anchor_count = 61`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `mirror_docs_guard_present = true`, and `risks = []`. This current snapshot supersedes older dated counts without rewriting their history.
+Current-source UI architecture mirror 2026-09-10: `ui_architecture_boundary` reports `expected_source_file_count = 49`, `expected_ui_entry_count = 23`, `expected_surface_entry_count = 45`, `legacy_full_hits = 15`, `expected_legacy_full_hits = 15`, `legacy_production_hits = 0`, `expected_legacy_production_hits = 0`, `legacy_production_file_count = 0`, `expected_legacy_production_file_count = 0`, `taffy_production_hits = 254`, `expected_taffy_production_hits = 254`, `taffy_production_file_count = 16`, `expected_taffy_production_file_count = 16`, `runtime_v2_anchor_count = 10`, `interface_v2_anchor_count = 9`, `guard_anchor_count = 19`, `cargo_gate_anchor_count = 7`, `doc_anchor_count = 61`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `mirror_docs_guard_present = true`, and `risks = []`. The private `ui/module/` lifecycle/driver owner and `surface/host_font_assets.rs` are part of the current maps. The retained Taffy parent-product cache adds cache/contract identifiers while preserving the 16-file execution surface. The legacy metric is restricted to the declared unambiguous retired UI migration vocabulary; property benchmark comparator identifiers remain covered by owner-specific cutover tests and are not debt. This current snapshot supersedes older dated counts without rewriting their history.
+
+Sealed-source correction 2026-09-30 (`source_applied`, `managed_tests_pending`): `surface_source_module_entry_count = 43`. The raw 45 paths include local `navigation/` and `pointer/` directories that contain no Rust source and are absent from the sealed source-backed map. This corrected metric is pending managed validation; the dated 2026-09-10 mirror above remains unchanged.
 
 承接两条上游线：(a) 子计划 05 的 legacy debt bucket 中 **UI input/render、UI template/layout、input 三桶**的 owner 落点即本计划；(b) 文本栈职责归 01-M2（本计划不重复）。渲染提交路径（glyphon GPU 提交、ui surface render 的 wgpu 侧）归 render 计划与 rhi_wgpu owner。
 
@@ -128,7 +130,7 @@ editor_layout/(规范/契约,DTO 落 zircon_runtime_interface) → editor_ui/(�
 
 #### 切片 0.1 UI 模块边界图
 
-- 目标文件：`docs/zircon_runtime/ui/`（执行时核验既有镜像文档：`ls docs/zircon_runtime/ui/`；架构图落 `architecture.md`，有则扩展）。
+- 目标文件：`docs/crates/zircon_runtime/ui/`（执行时核验既有镜像文档：`ls docs/crates/zircon_runtime/ui/`；架构图落 `architecture.md`，有则扩展）。
 - 改动形态：纯文档。画出 17 模块的依赖方向图（layout ← surface ← dispatch；template → tree/component；binding/event_ui 的挂接位），每条边标注 owner 文件；对照 CLAUDE.md 职责声明标出越界边（若有）。
 - 验收：图覆盖全部 17 条目；越界边清单（可为空）。
 - DoD：`architecture.md` 落地，越界清单进 M2/M3 工作集。
@@ -201,7 +203,7 @@ editor_layout/(规范/契约,DTO 落 zircon_runtime_interface) → editor_ui/(�
 
 #### 切片 3.1 编译产物与 generated 规则衔接
 
-- 目标文件：`ui/template/{asset,build,instance.rs,loader.rs,validate.rs}` + `docs/ui-and-layout/shared-ui-template-runtime.md`（既有，口径刷新）。
+- 目标文件：`ui/template/{asset,build,instance.rs,loader.rs,validate.rs}` + `docs/ui/shared-ui-template-runtime.md`（既有，口径刷新）。
 - 改动形态：定稿 build（编译）→ instance（实例化）→ validate（校验）三段边界；编译产物若落盘为生成文件，必须符合 02-M4 的 `@generated` 标记规范且只含 leaf DTO/table；validate 失败路径补测试。
 - 调用方迁移：无公共面变化（边界声明 + 测试）。
 - 验收：`template_validate_rejects_unknown_component_contract`、`template_instance_failure_surfaces_loader_error`（名按实仓定稿）。

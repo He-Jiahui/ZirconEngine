@@ -10,8 +10,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 failure_scope: cross_plan
 related_code:
-  - tools/session_coordinator/baselines.py
-  - tools/session_coordinator/tests/test_baselines.py
 tests:
   - python -u -B -m unittest tools.session_coordinator.tests.test_baselines.BaselineTests.test_shared_index_readers_disable_git_optional_locks -v
   - python -u -B -m unittest tools.session_coordinator.tests.test_baselines -v

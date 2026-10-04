@@ -108,6 +108,14 @@ fn runtime_runner_forwards_session_profile_to_dynamic_runtime() {
         );
     }
     assert!(
+        runtime_runner_source.contains("fn record_runtime_report_failure(")
+            && runtime_runner_source.contains("fn finish_runtime_startup_failure(")
+            && runtime_runner_source.contains("let startup_report_failures = ProductFailureLedger::default();")
+            && runtime_runner_source.contains("merge_runtime_failure_report(&product_failure_ledger")
+            && runtime_runner_source.matches("record_runtime_report_failure(").count() >= 7,
+        "startup Play report writes must be retained as secondary ledger entries instead of replacing the primary startup error"
+    );
+    assert!(
         runtime_session_source.contains("wake_sink:")
             && runtime_runner_source.contains("RuntimeWakeRegistration::register")
             && runtime_runner_source.contains("event_loop.create_proxy()"),

@@ -132,11 +132,14 @@ class Editor09AssetCatalogGenerationContractTests(unittest.TestCase):
         self.assertIn("const MAX_PREVIEW_IN_FLIGHT: usize = 64", worker)
         self.assertIn("self.in_flight.len() >= MAX_PREVIEW_IN_FLIGHT", worker)
         self.assertIn(
-            "preview_scheduler_bounds_in_flight_assets_without_implicitly_retrying_completion",
+            "optimization_batch_20260830en_preview_scheduler_bounds_in_flight_without_retry",
             worker,
         )
         self.assertNotIn("fn retry_refresh", worker)
-        self.assertIn("stale_job_token_cannot_release_new_generation_admission", worker)
+        self.assertIn(
+            "optimization_batch_20260830en_stale_preview_token_preserves_current_admission",
+            worker,
+        )
         backend_refresh = BACKEND_REFRESH.read_text(encoding="utf-8")
         preview_branch = backend_refresh.split(
             "EditorAssetChangeKind::PreviewChanged =>", 1
@@ -191,7 +194,7 @@ class Editor09AssetCatalogGenerationContractTests(unittest.TestCase):
         self.assertNotIn("source_generation:", state)
         self.assertIn("EditorAssetIndex::from_runtime_project(&project)", sync)
         self.assertIn("state.asset_index", sync)
-        self.assertIn("replace_authoritative_projection(candidate_index.clone())", sync)
+        self.assertIn("replace_authoritative_projection(candidate_index);", sync)
         self.assertNotIn("= candidate_index.clone()", sync)
         index = (REPO_ROOT / "zircon_editor/src/core/asset/index.rs").read_text(
             encoding="utf-8"

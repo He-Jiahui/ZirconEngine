@@ -1,3 +1,4 @@
+//! 锁外生成的提交上下文携带视口代际；锁内读取或写回记录前须确认视口未变化。
 use std::collections::HashMap;
 
 use crate::core::framework::render::{RenderFrameworkError, RenderViewportHandle};
@@ -6,6 +7,7 @@ use super::super::render_framework_state::RenderFrameworkState;
 use super::super::viewport_record::ViewportRecord;
 use super::frame_submission_context::FrameSubmissionContext;
 
+// 锁外预检后、首次锁内资源准备前调用，防止重建视口沿用旧上下文。
 pub(super) fn validate_viewport_generation(
     state: &RenderFrameworkState,
     viewport: RenderViewportHandle,
@@ -58,18 +60,5 @@ pub(super) fn viewport_record_mut_after_generation_check_in<'a>(
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn optimization_batch_fj_runtime466_mutable_generation_guard_uses_one_viewport_lookup() {
-        let source = include_str!("viewport_generation_guard.rs");
-        let mutable_guard = source
-            .split("fn viewport_record_mut_after_generation_check_in")
-            .nth(1)
-            .expect("mutable generation guard source");
-        let nested_validation =
-            concat!("validate_viewport_generation(", "state, viewport, context");
-
-        assert!(!mutable_guard.contains(nested_validation));
-        assert_eq!(mutable_guard.matches(".get_mut(&viewport)").count(), 1);
-    }
-}
+#[path = "tests/viewport_generation_guard.rs"]
+mod tests;

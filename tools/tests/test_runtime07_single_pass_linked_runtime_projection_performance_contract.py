@@ -20,7 +20,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束单次遍历链接运行时投影：插件投影扫描启用插件一次，并投影输出预留启用插件上界绑定。
 class SinglePassLinkedRuntimeProjectionPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

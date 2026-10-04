@@ -1,19 +1,19 @@
 ---
 related_code:
-  - docs/zircon_runtime/plugin/bridge.md
+  - docs/crates/zircon_runtime/plugin/bridge.md
   - zircon_editor/src/core/play/controller.rs
   - zircon_editor/src/core/play/plugin_activation/native.rs
   - zircon_editor/src/core/play/plugin_activation/report.rs
   - zircon_editor/src/core/play/transition_report.rs
 implementation_files:
-  - docs/zircon_runtime/plugin/bridge.md
+  - docs/crates/zircon_runtime/plugin/bridge.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - python -B tools/check_conventions.py --repo-root E:\Git\ZirconEngine --only docs
-  - git diff --check -- docs/zircon_runtime/plugin/bridge.md docs/plans/zircon_runtime/frameworks/06/2026-07-22-g7-editor-play-plugin-bridge-owner-doc-hardcut-batch34.md
+  - python -B tools/audits/check_conventions.py --repo-root E:\Git\ZirconEngine --only docs
+  - git diff --check -- docs/crates/zircon_runtime/plugin/bridge.md docs/plans/zircon_runtime/frameworks/06/2026-07-22-g7-editor-play-plugin-bridge-owner-doc-hardcut-batch34.md
 ---
 
 # Frameworks06 G7 Editor Play Plugin Bridge Owner 文档硬切 Batch 34
@@ -21,7 +21,7 @@ tests:
 Plan: docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
 Milestone: M1
 Status: accepted
-Files: ["docs/zircon_runtime/plugin/bridge.md"]
+Files: ["docs/crates/zircon_runtime/plugin/bridge.md"]
 Date: 2026-07-22
 Session: `frameworks06-g7-editor-play-plugin-bridge-owner-batch34-20260722`
 

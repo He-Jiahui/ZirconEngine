@@ -1,0 +1,201 @@
+{
+  "acceptance": "open",
+  "author_original_artifacts": {
+    "crosswalk.jsonl": {
+      "bytes": 8066,
+      "lines": 15,
+      "sha256": "1c9c3a51a893d2793263ce7f7afbf2c6179d95dbe1c9cd03b9ad5ec62daa5f21"
+    },
+    "manifest.json": {
+      "bytes": 16974,
+      "lines": 462,
+      "sha256": "25056d12bf09f0e628041b6583f2eef70169b31534b874ca7ddb920e5dc9161f"
+    },
+    "review.jsonl": {
+      "bytes": 81917,
+      "lines": 12,
+      "sha256": "053fe4be2ee6d6bdc181be79ca35de4b1c7e821f403ea169a16b911e45df4560"
+    },
+    "summary.json": {
+      "bytes": 2737,
+      "lines": 50,
+      "sha256": "3a6b327ea2aa2d22a18a9dfe98fc657c6a0f09732afa74429633a6f9714a0e8c"
+    }
+  },
+  "batch": "batch11",
+  "canonical_boundary": {
+    "publication_receipt_sha256": "33dc0c15ae88d2524a3af984121fa9d4122729f8670e5e087cff51d4fc8e416f",
+    "published_batches": 8,
+    "published_literal_ids": 136,
+    "published_observations": 172,
+    "published_qualified_keys": 168
+  },
+  "captured_current": {
+    "actual_files": 62,
+    "actual_files_sha256_complete": true,
+    "capture_total_bytes": 454368,
+    "claimed_files": 62
+  },
+  "coordinator_boundary_qualification": "Retired. User authorizes sealed independent local evidence; historical records and original acceptance gates remain intact.",
+  "gates_open": [
+    "per-item lower/original/upward Windows/product/fault/performance gates",
+    "named tests not executed",
+    "Cargo/compiler/rustfmt/product probes not run",
+    "source/readiness is not acceptance"
+  ],
+  "original_priority_counts": {
+    "P0": 5,
+    "P1": 7
+  },
+  "owner_correction_inputs": {
+    "w0/batch11-12-root-qualified-r2-correction/correction-receipt.json": "1cb3e5bcaac0b2c3e84b3c21bffd853f9f50a0766577395bbe79cc5f34c31285",
+    "w0/batch11-12-root-qualified-r2-correction/freeze-receipt.json": "956e86fbe1515c01d9146d5c4fd72f72dd2da3eb078189935f1a5fc72a6c18ea",
+    "w0/batch11-12-root-qualified-r2-correction/owner-correction.jsonl": "3fac86b114187293c2d676d7084f653a46ccbe9b4f03e8a652d9870abd1b0b49",
+    "w0/batch11-12-root-qualified-r2-correction/verification-receipt.json": "465c5b802122179bdcf3acd9f3065d84d46a91ce378c4fa2ecc894413c7a50d2",
+    "w0/batch11-12-root-qualified-r3-correction.json": "6f4584e7eca1f0163d22a4856a01ea6311aa3c0f50ca0788a7fe3cbc1fac3104",
+    "w0/batch11-root-qualified-r1-correction.json": "e89c5424714ca992efc3283a8809599e0c8bd6ca8d3e919c5b527d161067459c"
+  },
+  "prohibitions_observed": [
+    "no repository/source writes",
+    "no author packet mutation",
+    "no Cargo/compiler/CMake/tests/rustfmt/probes",
+    "no coordinator/session/lease/ownership/import/validation",
+    "no external messages/commit/push/WeCom"
+  ],
+  "publication_qualification": {
+    "acceptance": "open",
+    "coordinator_boundary": "Retired. User authorizes sealed independent local evidence; historical records and original acceptance gates remain intact.",
+    "coordinator_retired_at_utc": "2026-10-02T07:19:48.379193+00:00",
+    "foreign_source_consent": "not inferred",
+    "generation": "root-publication-candidate-r2",
+    "historical_relative_capture_paths_resolve_against": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch11-root-qualified-r1",
+    "normalized_current_capture_manifest": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\root-publication-candidate-r2\\batch11\\rawcaptures\\manifest.json",
+      "sha256": "2624361fc7140b7c87036595e0079d7ce76190f4cca916f85b0e78db795d32b4"
+    },
+    "original_qualified_artifacts": {
+      "crosswalk": {
+        "bytes": 21411,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch11-root-qualified-r1\\crosswalk.jsonl",
+        "sha256": "7decc1c14cef915053a256b54742d18c6a97eb1992efc9c6e07e0990e09ff883"
+      },
+      "manifest": {
+        "bytes": 20117,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch11-root-qualified-r1\\manifest.json",
+        "sha256": "89ff703359b28b7e7d804f36b100a0acba91b0c60d6f30258a90125a780b7ca5"
+      },
+      "review": {
+        "bytes": 204269,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch11-root-qualified-r1\\review.jsonl",
+        "sha256": "77c42fdd1043868bbcdecc1897353d65098219812ac2bfbe8a0036f6807906d1"
+      },
+      "summary": {
+        "bytes": 4068,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch11-root-qualified-r1\\summary.json",
+        "sha256": "cb63deed5e45dbd5f951daf087135f54ec82af87a6d25aac74034b4029deb941"
+      }
+    },
+    "original_qualified_generation": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch11-root-qualified-r1",
+    "qualified_at_utc": "2026-10-02T09:27:45.157749+00:00",
+    "raw_evidence_root": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\root-publication-candidate-r2\\batch11",
+    "root_normal_claim_denial_observed_at_utc": "2026-10-02T07:35Z",
+    "tests_run": 0
+  },
+  "qualified_at_utc": "2026-10-02T07:36:38Z",
+  "qualified_collisions_with_peer": [],
+  "qualified_collisions_with_published": [],
+  "record_type": "root_qualified_w0_batch_summary",
+  "report_inventory_correction": {
+    "acceptance": "open",
+    "action": "Do not rewrite frozen generation; parent integration must use corrected_report_inventory for metadata presentation and retain frozen artifact bytes/hashes.",
+    "batch": "batch11",
+    "corrected_at_utc": "2026-10-02T08:01:57Z",
+    "corrected_report_inventory": [
+      {
+        "literal_lines": [
+          219,
+          220,
+          221,
+          222,
+          223,
+          229
+        ],
+        "path": "docs/plans/optimize/zircon_runtime/217-runtime-network-transport-session-rpc-replication-prediction-rollback-security-content-product-current-working-tree-review.md",
+        "report_id": "Runtime217",
+        "sha256": "3d828220e627aea709dd91bc782b76bdfb3d21781ab448fb430cb7585a78ac1d"
+      },
+      {
+        "literal_lines": [
+          107,
+          108,
+          109,
+          110,
+          111,
+          112
+        ],
+        "path": "docs/plans/optimize/zircon_runtime/222-runtime-gameplay-ability-effect-attribute-tag-cue-prediction-current-working-tree-review.md",
+        "report_id": "Runtime222",
+        "sha256": "c7048532d3df861a56afd4f20b6b46d2299d7b466e09b9d1f80a90d33b9e6846"
+      }
+    ],
+    "correction_id": "batch11-report-inventory-alias-dedup-r1",
+    "frozen_artifacts": {
+      "crosswalk.jsonl": "7decc1c14cef915053a256b54742d18c6a97eb1992efc9c6e07e0990e09ff883",
+      "freeze-receipt.json": "fdd0eb9535c5d4bbbc00a4626db7849f97239c474a0a1ef49108942308b11f7e",
+      "manifest.json": "89ff703359b28b7e7d804f36b100a0acba91b0c60d6f30258a90125a780b7ca5",
+      "review.jsonl": "77c42fdd1043868bbcdecc1897353d65098219812ac2bfbe8a0036f6807906d1",
+      "summary.json": "cb63deed5e45dbd5f951daf087135f54ec82af87a6d25aac74034b4029deb941"
+    },
+    "frozen_generation": "batch11-root-qualified-r1",
+    "frozen_generation_preserved": true,
+    "issue": "Frozen batch11 summary.json and manifest.json report inventory carried temporary numeric aliases 217 and 222 in addition to canonical Runtime217 and Runtime222 labels. The aliases are duplicate metadata only; no review row, qualified key, source hash, caller span, test selector, collision result, or canonical publication count is affected.",
+    "record_type": "root_qualified_distinct_correction_receipt",
+    "tests_run": 0
+  },
+  "reports": [
+    {
+      "literal_lines": [
+        219,
+        220,
+        221,
+        222,
+        223,
+        229
+      ],
+      "path": "docs/plans/optimize/zircon_runtime/217-runtime-network-transport-session-rpc-replication-prediction-rollback-security-content-product-current-working-tree-review.md",
+      "report_id": "Runtime217",
+      "sha256": "3d828220e627aea709dd91bc782b76bdfb3d21781ab448fb430cb7585a78ac1d"
+    },
+    {
+      "literal_lines": [
+        107,
+        108,
+        109,
+        110,
+        111,
+        112
+      ],
+      "path": "docs/plans/optimize/zircon_runtime/222-runtime-gameplay-ability-effect-attribute-tag-cue-prediction-current-working-tree-review.md",
+      "report_id": "Runtime222",
+      "sha256": "c7048532d3df861a56afd4f20b6b46d2299d7b466e09b9d1f80a90d33b9e6846"
+    }
+  ],
+  "root_publication_captured_source_count": 60,
+  "root_publication_current_context_count": 62,
+  "root_publication_scope_rows": 12,
+  "scope": "exact original 12 rows; no report-inventory promotion or invented acceptance",
+  "scope_rows": 12,
+  "semantic_corrections": {
+    "author_fields_preserved_as_provenance": true,
+    "coordinator_boundary": "Current coordinator/service/lease boundary retired at 2026-10-02T07:35Z; no replay/registration/validation was attempted.",
+    "source_capture_count_reconciled": {
+      "actual": 62,
+      "claimed": 62
+    }
+  },
+  "status_counts": {
+    "confirmed_open": 10,
+    "narrowed_open": 2
+  },
+  "tests_run": 0
+}

@@ -9,7 +9,7 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::tree::UiRuntimeTreeFocusExt;
 
-use super::{UiSurface, bool_attribute_any, is_valid_input_owner};
+use super::{bool_attribute_any, is_valid_input_owner, UiSurface};
 
 impl UiSurface {
     pub(crate) fn apply_mui_modal_focus_transition(
@@ -171,27 +171,17 @@ impl UiSurface {
                 .as_ref()
                 .map_or(entry.modal == node_id, |path| node_path == Some(path))
         })?;
-        // Opening order and visual z-order can differ. Splice every restore edge that still
-        // targets the closing scope instead of treating the Vec tail as the active modal.
-        let dependent_indices = self
-            .focus
-            .modal_restore_stack
-            .iter()
-            .enumerate()
-            .filter_map(|(candidate_index, candidate)| {
-                (candidate_index != index
-                    && self
-                        .resolve_restore_target(candidate)
-                        .is_some_and(|target| {
-                            self.modal_focus_scope_contains(node_id, root, target)
-                        }))
-                .then_some(candidate_index)
-            })
-            .collect::<Vec<_>>();
         let state = self.focus.modal_restore_stack.remove(index);
-        for dependent_index in dependent_indices {
-            let adjusted_index = dependent_index - usize::from(dependent_index > index);
-            let dependent = &mut self.focus.modal_restore_stack[adjusted_index];
+        // Restore-target resolution is tree-derived, so every surviving entry can be checked
+        // after removal without materializing its index first.
+        for dependent_index in 0..self.focus.modal_restore_stack.len() {
+            let targets_closing_scope = self
+                .resolve_restore_target(&self.focus.modal_restore_stack[dependent_index])
+                .is_some_and(|target| self.modal_focus_scope_contains(node_id, root, target));
+            if !targets_closing_scope {
+                continue;
+            }
+            let dependent = &mut self.focus.modal_restore_stack[dependent_index];
             if preserve_restore {
                 dependent.restore = state.restore;
                 dependent.restore_path = state.restore_path.clone();
@@ -203,6 +193,7 @@ impl UiSurface {
         Some(state)
     }
 
+    // 记录过路径时只按当前树路径恢复，避免树重建后旧节点数值 ID 被另一控件复用。
     fn resolve_restore_target(&self, state: &UiModalFocusRestoreState) -> Option<UiNodeId> {
         if let Some(path) = state.restore_path.as_ref() {
             return self
@@ -360,3 +351,7 @@ fn modal_bool_attribute_aliases(key: &str) -> &[&str] {
         _ => &[],
     }
 }
+
+#[cfg(test)]
+#[path = "tests/modal_scope_optimization_tests.rs"]
+mod optimization_tests;

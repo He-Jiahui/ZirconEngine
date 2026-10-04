@@ -1,3 +1,4 @@
+# 核对工作台嵌套布局载荷拒绝未知或缺失字段，并与默认布局夹具保持一致。
 import json
 import re
 import unittest

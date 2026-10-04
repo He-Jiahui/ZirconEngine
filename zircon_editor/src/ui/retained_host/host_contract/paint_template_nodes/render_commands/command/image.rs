@@ -28,10 +28,13 @@ impl HostPaintCommand {
         let (border_width, corner_radius) = fallback_image_frame_metrics_from_host(metrics);
         let (font_size, line_height) = Self::fallback_text_metrics();
         Self {
+            owner: None,
+            box_shadow: None,
             kind: HostPaintCommandKind::Image,
             frame,
             clip_frame,
             z_index,
+            source_surface_frame: None,
             source_render_command_ref: None,
             background_color: None,
             foreground_color: None,
@@ -49,6 +52,7 @@ impl HostPaintCommand {
         }
     }
 
+    /// 图像命令保留资源身份及共享像素；录制端依赖该身份去重，因此调用方须保证同键同代像素一致。
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn image_pixels(
         frame: FrameRect,
         clip_frame: Option<FrameRect>,
@@ -62,10 +66,13 @@ impl HostPaintCommand {
     ) -> Self {
         let (font_size, line_height) = Self::fallback_text_metrics();
         Self {
+            owner: None,
+            box_shadow: None,
             kind: HostPaintCommandKind::Image,
             frame,
             clip_frame,
             z_index,
+            source_surface_frame: None,
             source_render_command_ref: None,
             background_color: None,
             foreground_color: None,
@@ -91,32 +98,5 @@ impl HostPaintCommand {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ui::retained_host::host_contract::paint_theme::{METRICS, PALETTE};
-
-    #[test]
-    fn render_command_image_border_projects_from_host_palette() {
-        let mut palette = PALETTE;
-        palette.border = [10, 11, 12, 255];
-        palette.focus_ring = [13, 14, 15, 255];
-
-        assert_eq!(fallback_image_border_from_host(palette), [10, 11, 12, 255]);
-    }
-
-    #[test]
-    fn render_command_image_frame_metrics_project_from_host_metrics() {
-        assert_eq!(
-            fallback_image_frame_metrics_from_host(METRICS),
-            (METRICS.border_width, METRICS.radius_control)
-        );
-    }
-
-    #[test]
-    fn render_command_image_fallback_text_metrics_project_from_host_metrics() {
-        assert_eq!(
-            HostPaintCommand::fallback_text_metrics_from_host(METRICS),
-            (METRICS.font_body, METRICS.line_height(METRICS.font_body))
-        );
-    }
-}
+#[path = "tests/image.rs"]
+mod tests;

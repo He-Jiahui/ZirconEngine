@@ -1,3 +1,5 @@
+//! 字段文字使用共享节点标签源；依步进器或清除动作预留右侧空间，搜索字段使用单独的左侧缩进。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::WorkbenchTextFieldStyle;
@@ -10,6 +12,7 @@ use super::search::{
 };
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
+/// 已选择的文本颜色与步进/清除预留从入口传入；空标签或放不下完整行时只保留字段表面。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_field_text(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
@@ -67,6 +70,7 @@ fn field_label(node: &TemplatePaneNodeData) -> String {
     }
 }
 
+/// 样式选择器需在绘制前知道占位语义：禁用示例、空搜索与空资源导入路径均使用弱化字色。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn field_label_is_placeholder(
     node: &TemplatePaneNodeData,
 ) -> bool {
@@ -83,5 +87,5 @@ fn import_path_field_label_is_placeholder(node: &TemplatePaneNodeData, label: &s
 }
 
 #[cfg(test)]
-#[path = "text/capacity_tests.rs"]
+#[path = "text/tests/capacity_tests.rs"]
 mod capacity_tests;

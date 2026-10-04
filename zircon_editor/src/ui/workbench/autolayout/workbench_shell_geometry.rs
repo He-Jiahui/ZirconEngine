@@ -5,6 +5,7 @@ use crate::ui::workbench::layout::MainPageId;
 use super::{ResolutionContext, ShellFrame, ShellRegionId};
 
 #[derive(Clone, Debug, Default, PartialEq)]
+/// 完成解算后给host绘制、命中及native尺寸策略共用的结果；总入口返回时frame为物理坐标。
 pub struct WorkbenchShellGeometry {
     pub window_min_width: f32,
     pub window_min_height: f32,
@@ -17,6 +18,7 @@ pub struct WorkbenchShellGeometry {
 }
 
 impl WorkbenchShellGeometry {
+    /// 未占位region返回零frame，调用方还需结合模型决定是否绘制/交互。
     pub fn region_frame(&self, region: ShellRegionId) -> ShellFrame {
         self.region_frames.get(&region).copied().unwrap_or_default()
     }
@@ -28,6 +30,7 @@ impl WorkbenchShellGeometry {
             .unwrap_or_default()
     }
 
+    /// 按布局稳定窗口ID取浮层frame；缺失ID表示本轮没有对应几何。
     pub fn floating_window_frame(&self, window_id: &MainPageId) -> ShellFrame {
         self.floating_window_frames
             .get(window_id)
@@ -35,6 +38,7 @@ impl WorkbenchShellGeometry {
             .unwrap_or_default()
     }
 
+    /// 复用挂载布局只比较可见frames；native最小尺寸变化由宿主窗口策略独立处理。
     pub(crate) fn shares_mounted_layout_frames_with(&self, other: &Self) -> bool {
         self.center_band_frame == other.center_band_frame
             && self.status_bar_frame == other.status_bar_frame
@@ -45,6 +49,7 @@ impl WorkbenchShellGeometry {
     }
 
     /// Converts the finished logical layout to the physical host coordinate space once.
+    /// 总builder完成logical解算后调用一次；重复调用会再次缩放，不能对已发布结果使用。
     pub(crate) fn scaled_to_physical(mut self, resolution: ResolutionContext) -> Self {
         self.window_min_width = resolution.to_physical(self.window_min_width);
         self.window_min_height = resolution.to_physical(self.window_min_height);
@@ -65,22 +70,8 @@ impl WorkbenchShellGeometry {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn mounted_frame_reuse_ignores_window_constraints_but_not_visible_geometry() {
-        let previous = WorkbenchShellGeometry::default();
-        let mut next = previous.clone();
-        next.window_min_width = 720.0;
-        next.window_min_height = 480.0;
-
-        assert!(previous.shares_mounted_layout_frames_with(&next));
-
-        next.viewport_content_frame = ShellFrame::new(1.0, 0.0, 0.0, 0.0);
-        assert!(!previous.shares_mounted_layout_frames_with(&next));
-    }
-}
+#[path = "tests/workbench_shell_geometry.rs"]
+mod tests;
 
 fn scale_frame(frame: ShellFrame, resolution: ResolutionContext) -> ShellFrame {
     ShellFrame::new(

@@ -1,3 +1,4 @@
+# 核对连接消息排空预分配有界批次并避免嵌套锁。
 from __future__ import annotations
 
 import unittest

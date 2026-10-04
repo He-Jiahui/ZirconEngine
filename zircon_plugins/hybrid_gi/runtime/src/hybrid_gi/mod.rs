@@ -3,13 +3,13 @@ mod declarations;
 mod extract_registration;
 mod gpu_completion;
 #[cfg(test)]
-#[path = "test_sources/hybrid_gi_render_framework_stats.rs"]
+#[path = "test_sources/tests/hybrid_gi_render_framework_stats.rs"]
 mod hybrid_gi_render_framework_stats;
 #[cfg(test)]
-#[path = "test_sources/hybrid_gi_scene_prepare_material_fixtures.rs"]
+#[path = "test_sources/tests/hybrid_gi_scene_prepare_material_fixtures.rs"]
 mod hybrid_gi_scene_prepare_material_fixtures;
 #[cfg(test)]
-#[path = "test_sources/hybrid_gi_scene_representation.rs"]
+#[path = "test_sources/tests/hybrid_gi_scene_representation.rs"]
 mod hybrid_gi_scene_representation_tests;
 mod pending_completion;
 mod plan_ingestion;
@@ -22,6 +22,7 @@ mod scene_representation;
 mod scene_trace_support;
 mod snapshot;
 #[cfg(test)]
+#[path = "tests/test_accessors.rs"]
 mod test_accessors;
 mod types;
 

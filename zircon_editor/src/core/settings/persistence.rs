@@ -1,23 +1,77 @@
 use std::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 use zircon_runtime::core::runtime::tasks::{
     BoundedKeyedIoAdmissionError, BoundedKeyedIoCancelAuthority, BoundedKeyedIoCancelError,
-    BoundedKeyedIoDiagnostics, BoundedKeyedIoFence, BoundedKeyedIoLane, BoundedKeyedIoLimits,
-    BoundedKeyedIoShutdownGuard, BoundedKeyedIoShutdownReport, BoundedKeyedIoTerminal,
-    BoundedKeyedIoTicket, BoundedKeyedIoWaitResult, BoundedKeyedIoWorkDeadline, JobScheduler,
+    BoundedKeyedIoDiagnostics, BoundedKeyedIoFailure, BoundedKeyedIoFence, BoundedKeyedIoLane,
+    BoundedKeyedIoLimits, BoundedKeyedIoShutdownGuard, BoundedKeyedIoShutdownReport,
+    BoundedKeyedIoTerminal, BoundedKeyedIoTicket, BoundedKeyedIoWaitResult,
+    BoundedKeyedIoWorkDeadline, JobScheduler,
 };
 
+use super::io::SettingsPersistenceWriteDisposition;
 use super::{SettingChange, SettingsAuthority, SettingsKey, SettingsScope, SettingsStore};
+
+#[cfg(test)]
+#[path = "tests/persistence_suppressed_write_tests.rs"]
+mod suppressed_write_tests;
 
 const SETTINGS_PERSISTENCE_FAILURE_CODE: &str = "editor_settings_persistence_write_failed";
 const PERSISTENCE_ENTRY_OVERHEAD_BYTES: usize = 128;
 static NEXT_SETTINGS_FILE_GENERATION: AtomicU64 = AtomicU64::new(1);
 
 type SettingsPersistenceTerminalObserver =
-    Arc<dyn Fn(BoundedKeyedIoTerminal) + Send + Sync + 'static>;
+    Arc<dyn Fn(SettingsPersistenceTerminal) + Send + Sync + 'static>;
+type SettingsWriteDispositionSlot = Arc<Mutex<Option<SettingsPersistenceWriteDisposition>>>;
+
+/// The outcome of one Settings write request, after the Runtime I/O lane has terminalized it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SettingsPersistenceTerminal {
+    Written,
+    SkippedStale,
+    BlockedInvalid,
+    MissingWriteDisposition,
+    Failed(BoundedKeyedIoFailure),
+    DeadlineBeforeStart,
+    CancelledBeforeStart,
+    Superseded { successor: u64 },
+    Shutdown,
+}
+
+impl SettingsPersistenceTerminal {
+    fn from_lane(
+        terminal: BoundedKeyedIoTerminal,
+        disposition: Option<SettingsPersistenceWriteDisposition>,
+    ) -> Self {
+        match terminal {
+            BoundedKeyedIoTerminal::Succeeded => match disposition {
+                Some(SettingsPersistenceWriteDisposition::Written) => Self::Written,
+                Some(SettingsPersistenceWriteDisposition::SkippedStale) => Self::SkippedStale,
+                Some(SettingsPersistenceWriteDisposition::BlockedInvalid) => Self::BlockedInvalid,
+                None => Self::MissingWriteDisposition,
+            },
+            BoundedKeyedIoTerminal::Failed(failure) => Self::Failed(failure),
+            BoundedKeyedIoTerminal::DeadlineBeforeStart => Self::DeadlineBeforeStart,
+            BoundedKeyedIoTerminal::CancelledBeforeStart => Self::CancelledBeforeStart,
+            BoundedKeyedIoTerminal::Superseded { successor } => Self::Superseded { successor },
+            BoundedKeyedIoTerminal::Shutdown => Self::Shutdown,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SettingsPersistenceWaitResult {
+    Terminal(SettingsPersistenceTerminal),
+    ObserverTimedOut,
+}
+
+fn read_write_disposition(
+    slot: &Mutex<Option<SettingsPersistenceWriteDisposition>>,
+) -> Option<SettingsPersistenceWriteDisposition> {
+    *slot.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+}
 
 /// Process-monotonic identity for one accepted physical settings-file state.
 ///
@@ -144,7 +198,7 @@ impl std::error::Error for SettingsPersistenceSubmitError {}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SettingsPersistenceRetryError {
     SourceTicketNotFailed {
-        terminal: Option<BoundedKeyedIoTerminal>,
+        terminal: Option<SettingsPersistenceTerminal>,
     },
     LaneAdmission(BoundedKeyedIoAdmissionError),
 }
@@ -204,6 +258,7 @@ pub struct SettingsPersistenceTicket {
     request: SettingsPersistenceRequest,
     ticket: BoundedKeyedIoTicket,
     cancel_authority: BoundedKeyedIoCancelAuthority,
+    write_disposition: SettingsWriteDispositionSlot,
 }
 
 impl SettingsPersistenceTicket {
@@ -231,8 +286,31 @@ impl SettingsPersistenceTicket {
         self.ticket.terminal()
     }
 
+    pub fn persistence_terminal(&self) -> Option<SettingsPersistenceTerminal> {
+        self.ticket.terminal().map(|terminal| {
+            SettingsPersistenceTerminal::from_lane(
+                terminal,
+                read_write_disposition(&self.write_disposition),
+            )
+        })
+    }
+
     pub fn wait_until(&self, deadline: Instant) -> BoundedKeyedIoWaitResult {
         self.ticket.wait_until(deadline)
+    }
+
+    pub fn wait_for_persistence_until(&self, deadline: Instant) -> SettingsPersistenceWaitResult {
+        match self.ticket.wait_until(deadline) {
+            BoundedKeyedIoWaitResult::Terminal(terminal) => {
+                SettingsPersistenceWaitResult::Terminal(SettingsPersistenceTerminal::from_lane(
+                    terminal,
+                    read_write_disposition(&self.write_disposition),
+                ))
+            }
+            BoundedKeyedIoWaitResult::ObserverTimedOut => {
+                SettingsPersistenceWaitResult::ObserverTimedOut
+            }
+        }
     }
 
     pub fn cancel_before_start(&self) -> Result<(), BoundedKeyedIoCancelError> {
@@ -317,7 +395,7 @@ impl SettingsPersistenceService {
         change: &SettingChange,
         file_generation: SettingsFileGeneration,
         store: SettingsStore,
-        observer: impl Fn(BoundedKeyedIoTerminal) + Send + Sync + 'static,
+        observer: impl Fn(SettingsPersistenceTerminal) + Send + Sync + 'static,
     ) -> Result<SettingsPersistenceTicket, SettingsPersistenceSubmitError> {
         let request = SettingsPersistenceRequest::from_change(change, store, file_generation)?;
         self.submit_request(request, Some(Arc::new(observer)))
@@ -331,9 +409,12 @@ impl SettingsPersistenceService {
         &self,
         ticket: &SettingsPersistenceTicket,
     ) -> Result<SettingsPersistenceTicket, SettingsPersistenceRetryError> {
-        if !matches!(ticket.terminal(), Some(BoundedKeyedIoTerminal::Failed(_))) {
+        if !matches!(
+            ticket.persistence_terminal(),
+            Some(SettingsPersistenceTerminal::Failed(_))
+        ) {
             return Err(SettingsPersistenceRetryError::SourceTicketNotFailed {
-                terminal: ticket.terminal(),
+                terminal: ticket.persistence_terminal(),
             });
         }
 
@@ -355,11 +436,14 @@ impl SettingsPersistenceService {
     pub(super) fn retry_observed(
         &self,
         ticket: &SettingsPersistenceTicket,
-        observer: impl Fn(BoundedKeyedIoTerminal) + Send + Sync + 'static,
+        observer: impl Fn(SettingsPersistenceTerminal) + Send + Sync + 'static,
     ) -> Result<SettingsPersistenceTicket, SettingsPersistenceRetryError> {
-        if !matches!(ticket.terminal(), Some(BoundedKeyedIoTerminal::Failed(_))) {
+        if !matches!(
+            ticket.persistence_terminal(),
+            Some(SettingsPersistenceTerminal::Failed(_))
+        ) {
             return Err(SettingsPersistenceRetryError::SourceTicketNotFailed {
-                terminal: ticket.terminal(),
+                terminal: ticket.persistence_terminal(),
             });
         }
 
@@ -393,6 +477,8 @@ impl SettingsPersistenceService {
         let worker_store = request.store.clone();
         let authority = Arc::clone(&self.authority);
         let lane_key = Arc::clone(&request.target);
+        let write_disposition: SettingsWriteDispositionSlot = Arc::new(Mutex::new(None));
+        let worker_disposition = Arc::clone(&write_disposition);
         let admission = self
             .lane
             .try_admit(
@@ -401,7 +487,7 @@ impl SettingsPersistenceService {
                 request.retained_bytes(),
                 BoundedKeyedIoWorkDeadline::none(),
                 Box::new(move || {
-                    worker_store
+                    let disposition = worker_store
                         .save_authority_layer(worker_request.scope(), authority.as_ref())
                         .map_err(|error| {
                             tracing::warn!(
@@ -416,12 +502,22 @@ impl SettingsPersistenceService {
                             zircon_runtime::core::runtime::tasks::BoundedKeyedIoFailure::new(
                                 SETTINGS_PERSISTENCE_FAILURE_CODE,
                             )
-                        })
+                        })?;
+                    *worker_disposition
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(disposition);
+                    Ok(())
                 }),
             )
             .map_err(SettingsPersistenceSubmitError::LaneAdmission)?;
         if let Some(observer) = terminal_observer {
-            admission.observe_terminal(move |terminal| observer(terminal));
+            let observed_disposition = Arc::clone(&write_disposition);
+            admission.observe_terminal(move |terminal| {
+                observer(SettingsPersistenceTerminal::from_lane(
+                    terminal,
+                    read_write_disposition(&observed_disposition),
+                ));
+            });
         }
         let cancel_authority = admission.cancel_authority();
         let ticket = admission.activate();
@@ -429,6 +525,7 @@ impl SettingsPersistenceService {
             request,
             ticket,
             cancel_authority,
+            write_disposition,
         })
     }
 

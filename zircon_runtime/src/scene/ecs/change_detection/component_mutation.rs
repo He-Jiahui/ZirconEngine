@@ -1,9 +1,10 @@
+//! 记录组件写入，交由 World 的刷新入口收敛派生状态与渲染脏标记。
 use std::any::TypeId;
-use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Mutex;
 
-use crate::scene::EntityId;
 use crate::scene::ecs::Component;
+use crate::scene::EntityId;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct ComponentMutationRecord {
@@ -62,6 +63,7 @@ impl ComponentMutationSink {
     }
 
     pub(crate) fn drain(&self) -> Vec<ComponentMutationRecord> {
+        // World::flush_deferred_component_mutations 在派生系统的脏状态检查前排空，再把记录转成具体脏标记。
         let records = std::mem::take(
             &mut *self
                 .records

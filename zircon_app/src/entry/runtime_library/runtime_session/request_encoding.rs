@@ -1,3 +1,6 @@
+//! 动态 Runtime 请求的受限 JSON 编码入口，供会话在传递字节切片前调用。
+//! 调用方负责给出语义项数；编码器约束已写出的字节、嵌套深度和处理时限。
+
 use std::io::{self, Write};
 use std::time::Instant;
 
@@ -8,6 +11,7 @@ use super::RuntimeLibraryError;
 const REQUEST_WRITER_INITIAL_CAPACITY_BYTES: usize = 4 * 1024;
 const DEADLINE_CHECK_INTERVAL_BYTES: usize = 1024;
 
+/// 在调用 FFI 前编码请求；item_count 是调用方按请求协议给出的计数。
 pub(super) fn encode_runtime_request<T: serde::Serialize + ?Sized>(
     value: &T,
     limit: ZrRuntimePayloadLimitV1,
@@ -27,6 +31,7 @@ pub(super) fn encode_runtime_request<T: serde::Serialize + ?Sized>(
         .map_err(|error| RuntimeLibraryError::new(format!("{operation}: {error}")))
 }
 
+// 流式门禁保留首个限额失败，供 serde_json 返回后呈现原始原因。
 struct RuntimeRequestWriter {
     bytes: Vec<u8>,
     limit: ZrRuntimePayloadLimitV1,
@@ -177,4 +182,5 @@ impl Write for RuntimeRequestWriter {
 }
 
 #[cfg(test)]
+#[path = "request_encoding/tests/performance_tests.rs"]
 mod performance_tests;

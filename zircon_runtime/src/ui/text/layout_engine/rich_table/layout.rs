@@ -1,10 +1,10 @@
 use crate::core::framework::text::TextLayoutError;
+use crate::text::is_hard_line_separator;
+use crate::text::shaping::{TextLayoutOutcome, TextShapingOutcome};
 use crate::text::RichTable;
 use crate::text::SharedTextLayoutSession;
 use crate::text::TextLayoutAxisConstraint;
 use crate::text::TextLayoutGeometryOwner;
-use crate::text::is_hard_line_separator;
-use crate::text::shaping::{TextLayoutOutcome, TextShapingOutcome};
 use zircon_runtime_interface::ui::{
     layout::UiFrame,
     surface::{UiResolvedStyle, UiResolvedTextLayout, UiTextRange},
@@ -23,12 +23,12 @@ use super::super::{
 use super::{
     axes::TableAxes,
     cell_layout::{
-        PreparedTableCellLayout, TrackMetrics, preferred_column_extent, resolved_cell_boxes,
-        resolved_cell_padding, row_extent_constraint, translate_layout_and_clip,
+        preferred_column_extent, resolved_cell_boxes, resolved_cell_padding, row_extent_constraint,
+        translate_layout_and_clip, PreparedTableCellLayout, TrackMetrics,
     },
     geometry::{admit_aggregate_layout_geometry, finite_max_zero, whole_parsed_source_range},
     grid::TableGrid,
-    sizing::{PreferredColumnExtent, resolve_column_extents, resolve_row_extents},
+    sizing::{resolve_column_extents, resolve_row_extents, PreferredColumnExtent},
     source_slice::{
         layout_range_with_provider, shift_layout_source_ranges, slice_parsed,
         slice_parsed_with_table_depth,
@@ -726,25 +726,5 @@ fn trim_block_delimiters(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::trim_block_delimiters;
-
-    #[test]
-    fn trim_block_delimiters_uses_all_canonical_hard_line_separators() {
-        let text = "\r\n\u{2028}content\u{0085}\u{000b}";
-
-        assert_eq!(
-            trim_block_delimiters(text, 0, text.len()).expect("valid text range"),
-            "\r\n\u{2028}".len().."\r\n\u{2028}content".len()
-        );
-    }
-
-    #[test]
-    fn trim_block_delimiters_rejects_reversed_or_non_boundary_ranges() {
-        let text = "a\u{4e2d}b";
-
-        assert!(trim_block_delimiters(text, 3, 2).is_err());
-        assert!(trim_block_delimiters(text, 2, text.len()).is_err());
-        assert!(trim_block_delimiters(text, 0, text.len() + 1).is_err());
-    }
-}
+#[path = "tests/layout.rs"]
+mod tests;

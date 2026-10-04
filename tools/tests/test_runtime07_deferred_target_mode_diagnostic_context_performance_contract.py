@@ -8,8 +8,7 @@ TARGET_MODES = (
     / "zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/target_modes.rs"
 )
 ALLOCATION_TESTS = (
-    ROOT
-    / "zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/target_modes/allocation_tests.rs"
+    ROOT / "zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/target_modes/tests/allocation_tests.rs"
 )
 
 
@@ -26,7 +25,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束延迟目标模式诊断上下文：目标模式验证器借用格式参数，并选择与特性调用延迟上下文格式化。
 class DeferredTargetModeDiagnosticContextPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

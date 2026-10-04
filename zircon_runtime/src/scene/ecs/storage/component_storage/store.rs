@@ -1,6 +1,6 @@
 use std::any::TypeId;
-use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 use std::fmt;
 use std::marker::PhantomData;
 
@@ -11,6 +11,7 @@ use super::component_results::downcast_component;
 use super::entry::{PreflightedTransferredComponentRow, StoredComponent, TransferredComponentRow};
 use super::location::ComponentStorageLocation;
 use super::sparse::SparseComponentStorage;
+use super::sparse::SparseLocatorDiagnostics;
 
 /// Owns sparse-set values only. Dense table values live in `ArchetypeTable`.
 #[derive(Default)]
@@ -18,6 +19,27 @@ pub(crate) struct ComponentStorage {
     storage_types: HashMap<ComponentId, StorageType>,
     component_types: HashMap<ComponentId, TypeId>,
     sparse_components: HashMap<ComponentId, SparseComponentStorage>,
+}
+
+/// Aggregate structural memory snapshot for every sparse locator owned by a
+/// component store. Reading this snapshot does not mutate the storage or its
+/// hot lookup state.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct ComponentStorageLocatorDiagnostics {
+    pub(crate) sparse_component_storage_count: usize,
+    pub(crate) locator_entry_count: usize,
+    pub(crate) locator_page_count: usize,
+    pub(crate) locator_allocated_bytes: usize,
+}
+
+impl ComponentStorageLocatorDiagnostics {
+    fn add_locator(&mut self, locator: SparseLocatorDiagnostics) {
+        self.locator_entry_count = self.locator_entry_count.saturating_add(locator.entry_count);
+        self.locator_page_count = self.locator_page_count.saturating_add(locator.page_count);
+        self.locator_allocated_bytes = self
+            .locator_allocated_bytes
+            .saturating_add(locator.allocated_bytes);
+    }
 }
 
 /// Proves that a component insert's id and representation were validated
@@ -188,6 +210,63 @@ impl ComponentStorage {
         self.sparse_components.get(&component_id)?.get(entity)
     }
 
+    /// # Safety
+    /// Authorize the selected value/tick row without conflicting live access.
+    /// Keep allocation, layout and entity membership fixed for every returned
+    /// reference's complete lifetime; shared ownership proves no uniqueness.
+    pub(crate) unsafe fn get_mut_at_tick_unchecked<T>(
+        &self,
+        component_id: ComponentId,
+        entity: InternalEntity,
+        tick: ChangeTick,
+    ) -> Option<&mut T>
+    where
+        T: Send + Sync + 'static,
+    {
+        let storage = self.sparse_components.get(&component_id)?;
+        // SAFETY: the caller covers this exact row and its complete lifetime.
+        unsafe { storage.get_mut_at_tick_unchecked::<T>(entity, tick) }
+    }
+
+    /// # Safety
+    /// Authorize the selected value/tick row without conflicting live access.
+    /// Keep allocation, layout and entity membership fixed for every returned
+    /// reference's complete lifetime; shared ownership proves no uniqueness.
+    pub(crate) unsafe fn get_mut_with_ticks_unchecked<T>(
+        &self,
+        component_id: ComponentId,
+        entity: InternalEntity,
+    ) -> Option<(&mut T, &mut ComponentTicks)>
+    where
+        T: Send + Sync + 'static,
+    {
+        let storage = self.sparse_components.get(&component_id)?;
+        // SAFETY: the caller covers this exact row and its complete lifetime.
+        unsafe { storage.get_mut_with_ticks_unchecked::<T>(entity) }
+    }
+
+    pub(crate) fn ticks_at_location_for_type<T>(
+        &self,
+        location: ComponentStorageLocation,
+    ) -> Option<ComponentTicks>
+    where
+        T: Send + Sync + 'static,
+    {
+        if location.storage_type != StorageType::SparseSet
+            || location.table_row.is_some()
+            || location.table_archetype.is_some()
+            || location.table_column_slot.is_some()
+        {
+            return None;
+        }
+        // Keep actual row typing, not supplied metadata or an unproven
+        // preflight type-map invariant. The Any probe still borrows this
+        // candidate payload; unchecked dispatch must exclude a live conflict.
+        self.sparse_components
+            .get(&location.component_id)?
+            .ticks_for_type::<T>(location.entity)
+    }
+
     pub(crate) fn get_mut<T>(
         &mut self,
         component_id: ComponentId,
@@ -350,6 +429,7 @@ impl ComponentStorage {
             .is_some()
     }
 
+    // 恢复同一撤销批次时保留来源刻度；跨 World 的正常发布路径则重基到目标刻度。
     pub(crate) fn restore_preflighted_transferred_row(
         &mut self,
         entity: InternalEntity,
@@ -458,6 +538,17 @@ impl ComponentStorage {
             .map_or(0, SparseComponentStorage::len)
     }
 
+    pub(crate) fn sparse_locator_diagnostics(&self) -> ComponentStorageLocatorDiagnostics {
+        let mut diagnostics = ComponentStorageLocatorDiagnostics {
+            sparse_component_storage_count: self.sparse_components.len(),
+            ..Default::default()
+        };
+        for storage in self.sparse_components.values() {
+            diagnostics.add_locator(storage.locator_diagnostics());
+        }
+        diagnostics
+    }
+
     pub(crate) fn for_each_sparse_entity(
         &self,
         component_id: ComponentId,
@@ -523,12 +614,14 @@ impl fmt::Debug for ComponentStorage {
     }
 }
 
+// 此 Clone 不复制稀疏组件值或类型映射；World::clone 使用单独的组件投影重建路径。
 impl Clone for ComponentStorage {
     fn clone(&self) -> Self {
         Self::default()
     }
 }
 
+// 此比较忽略稀疏组件值与类型元数据；World 的派生比较不能据此证明组件存储内容相同。
 impl PartialEq for ComponentStorage {
     fn eq(&self, _other: &Self) -> bool {
         true
@@ -536,60 +629,5 @@ impl PartialEq for ComponentStorage {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[derive(Debug, PartialEq, Eq)]
-    struct SparseValue(u32);
-
-    #[test]
-    fn sparse_rows_rekey_at_the_target_tick() {
-        let component_id = ComponentId::new(1);
-        let source_entity = InternalEntity::new(7, 1);
-        let target_entity = InternalEntity::new(29, 3);
-        let source_tick = ChangeTick::new(11);
-        let target_tick = ChangeTick::new(37);
-        let mut source = ComponentStorage::default();
-        source
-            .insert_at_tick(
-                component_id,
-                StorageType::SparseSet,
-                source_entity,
-                SparseValue(9),
-                source_tick,
-            )
-            .expect("sparse source row should insert");
-
-        let mut rows = source.extract_entity_rows(source_entity, &[component_id]);
-        assert!(!source.contains(component_id, source_entity));
-        let row = rows.pop().expect("sparse row should transfer");
-        assert_eq!(row.source_ticks(), ComponentTicks::new(source_tick));
-
-        let mut target = ComponentStorage::default();
-        target
-            .insert_transferred_row(component_id, target_entity, row, target_tick)
-            .expect("validated sparse row transfer should succeed");
-        assert_eq!(
-            target.get::<SparseValue>(component_id, target_entity),
-            Some(&SparseValue(9))
-        );
-        assert_eq!(
-            target.ticks(component_id, target_entity),
-            Some(ComponentTicks::new(target_tick))
-        );
-    }
-
-    #[test]
-    fn dense_value_insertion_is_rejected_by_the_sparse_owner() {
-        let component_id = ComponentId::new(3);
-        let error = ComponentStorage::default()
-            .insert(
-                component_id,
-                StorageType::Table,
-                InternalEntity::new(1, 0),
-                7_u32,
-            )
-            .expect_err("dense values must be owned by ArchetypeTable");
-        assert_eq!(error, StorageError::TableOwnedByArchetype { component_id });
-    }
-}
+#[path = "tests/store.rs"]
+mod tests;

@@ -1,3 +1,4 @@
+# 核对路由意图只由节点绑定表解析，移除逆向身份查找。
 from pathlib import Path
 import unittest
 

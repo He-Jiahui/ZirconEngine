@@ -1,6 +1,6 @@
 use std::sync::{
-    Arc,
     atomic::{AtomicBool, Ordering},
+    Arc,
 };
 
 use crate::core::framework::render::{RenderCaptureReport, RenderFrameSubmissionReceipt};

@@ -30,7 +30,7 @@ fn runtime_13_script_binding_mirror_docs_match_structure_audit_counts() {
     );
     assert_file_line_budget(
         runtime_root,
-        "src/script/vm/gameplay_host/tests.rs",
+        "src/script/vm/gameplay_host/tests/cases.rs",
         GAMEPLAY_TEST_MAX_LINES,
         "Runtime 13 gameplay host tests",
     );
@@ -53,7 +53,7 @@ fn runtime_13_script_binding_mirror_docs_match_structure_audit_counts() {
     let gameplay_host = include_str!("../../../script/vm/gameplay_host.rs");
     assert_eq!(
         count_occurrences(builtin_host, "HostExportFunction::new("),
-        20,
+        21,
         "Runtime 13 builtin callback count should match script_binding_boundary"
     );
     assert_eq!(
@@ -88,7 +88,7 @@ fn runtime_13_script_binding_mirror_docs_match_structure_audit_counts() {
     let mirror_docs = [
         (
             "Runtime 13 function ledger",
-            include_str!("../../../../../docs/zircon_runtime/script/vm/host/function_ledger.md"),
+            include_str!("../../../../../docs/crates/zircon_runtime/script/vm/host/function_ledger.md"),
         ),
         (
             "Runtime 13 plan",
@@ -103,18 +103,42 @@ fn runtime_13_script_binding_mirror_docs_match_structure_audit_counts() {
         (
             "M0 review",
             include_str!(
-                "../../../../../docs/engine-architecture/runtime-architecture-review-m0.md"
+                "../../../../../docs/architecture/runtime-architecture-review-m0.md"
             ),
         ),
         (
             "interface convergence",
             include_str!(
-                "../../../../../docs/engine-architecture/runtime-interface-convergence.md"
+                "../../../../../docs/architecture/runtime-interface-convergence.md"
             ),
         ),
     ];
 
     for (doc_name, doc_source) in mirror_docs {
+        let inventories = doc_source
+            .lines()
+            .filter(|line| line.starts_with("Runtime13 current source contract inventory:"))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            inventories.len(),
+            1,
+            "{doc_name} needs one current inventory"
+        );
+        assert_contains_all(
+            doc_name,
+            inventories[0],
+            &[
+                "fixed_host_function_count = 63",
+                "builtin_callback_count = 21",
+                "gameplay_callback_count = 40",
+                "host_capability_count = 13",
+            ],
+        );
+        let unlabelled = unlabelled_host_inventories(doc_source);
+        assert!(
+            unlabelled.is_empty(),
+            "{doc_name} must label old inventories as historical: {unlabelled:?}"
+        );
         assert_contains_all(doc_name, doc_source, SCRIPT_BINDING_MIRROR_DOC_ANCHORS);
     }
 }
@@ -126,6 +150,46 @@ fn runtime_13_script_binding_cargo_gate_stays_visible_until_script_filters_pass(
     );
     assert!(plan.contains("cargo test -p zircon_runtime --lib script --locked -- --nocapture"));
     assert!(plan.contains("code_static_pending_cargo"));
+}
+
+#[test]
+fn runtime_13_script_binding_inventory_guard_requires_explicit_history() {
+    let current = "Runtime13 current source contract inventory: fixed_host_function_count = 63, builtin_callback_count = 21, gameplay_callback_count = 40, host_capability_count = 13";
+    let unlabelled = [
+        "Current evidence reports fixed_host_function_count = 52",
+        "Current owner hard-cut sync: builtin_callback_count = 11",
+        "- Runtime 13 binding inventory reports gameplay_callback_count = 39",
+        "  - python script_binding_boundary_audit (2026-06-14: host_capability_count = 11)",
+    ];
+    let source = format!("{current}\n{}", unlabelled.join("\n"));
+    assert_eq!(unlabelled_host_inventories(&source), unlabelled);
+
+    let labelled = [
+        "Historical Runtime13 source snapshot: fixed_host_function_count = 52",
+        "Historical Runtime13 source snapshot (2026-07-14): builtin_callback_count = 11",
+        "- Historical Runtime13 source snapshot: gameplay_callback_count = 39",
+        "  - python script_binding_boundary_audit (Historical Runtime13 source snapshot, 2026-06-14: host_capability_count = 11)",
+    ];
+    let source = format!("{current}\n{}", labelled.join("\n"));
+    assert!(unlabelled_host_inventories(&source).is_empty());
+}
+
+fn unlabelled_host_inventories(source: &str) -> Vec<&str> {
+    source
+        .lines()
+        .filter(|line| {
+            !line.starts_with("Runtime13 current source contract inventory:")
+                && !line.contains("Historical Runtime13 source snapshot")
+                && [
+                    "fixed_host_function_count",
+                    "builtin_callback_count",
+                    "gameplay_callback_count",
+                    "host_capability_count",
+                ]
+                .iter()
+                .any(|metric| line.contains(metric))
+        })
+        .collect()
 }
 
 fn assert_contains_all(label: &str, source: &str, required: &[&str]) {

@@ -9,6 +9,30 @@ use crate::scene::EntityId;
 
 use super::super::{SceneError, SceneResult, World};
 
+mod preparation_owner;
+mod prepared;
+mod restore_parent_validation;
+mod root_normalization;
+
+pub(in crate::scene::world) use preparation_owner::DetachPreparationOwner;
+pub use prepared::PreparedEntitySubtrees;
+
+#[cfg(test)]
+#[path = "detached_entity_batch/tests/raw_cycle_tests.rs"]
+mod raw_cycle_tests;
+#[cfg(test)]
+#[path = "detached_entity_batch/tests/restore_cycle_profile.rs"]
+mod restore_cycle_profile;
+#[cfg(test)]
+#[path = "detached_entity_batch/tests/restore_cycle_tests.rs"]
+mod restore_cycle_tests;
+#[cfg(test)]
+#[path = "detached_entity_batch/tests/root_normalization_profile.rs"]
+mod root_normalization_profile;
+#[cfg(test)]
+#[path = "detached_entity_batch/tests/cases.rs"]
+mod tests;
+
 /// Move-only ownership of recursively detached entity rows. The payload keeps
 /// exact erased values and change ticks rather than cloning a world snapshot.
 pub struct DetachedEntityBatch {
@@ -119,7 +143,24 @@ impl World {
         &mut self,
         roots: impl IntoIterator<Item = EntityId>,
     ) -> SceneResult<DetachedEntityBatch> {
-        let hierarchy_index_rebuild_rows = self.ensure_hierarchy_mutation_index_current();
+        let prepared = self.prepare_entity_subtrees(roots)?;
+        self.remove_prepared_entity_subtrees(prepared)
+    }
+
+    /// Preflights indexed subtree rows without removing them or publishing
+    /// lifecycle events. The returned counts remain valid only in this World
+    /// at the captured generation; stale preparations must be rebuilt.
+    /// 预备前会先归并已有 Query 可变访问的通知；拒绝预检也会记录诊断，因此不保证所有运行态字段零变化。
+    pub fn prepare_entity_subtrees(
+        &mut self,
+        roots: impl IntoIterator<Item = EntityId>,
+    ) -> SceneResult<PreparedEntitySubtrees> {
+        self.flush_deferred_component_mutations();
+        let world_generation = self.world_generation();
+        if world_generation == u64::MAX {
+            self.record_detached_entity_batch_rejected_preflight();
+            return Err(SceneError::DetachedEntityPreparationGenerationExhausted);
+        }
         let roots = roots.into_iter().collect::<BTreeSet<_>>();
         if roots.is_empty() {
             self.record_detached_entity_batch_rejected_preflight();
@@ -134,27 +175,22 @@ impl World {
             }
         }
 
-        let mut normalized_roots = roots
-            .iter()
-            .copied()
-            .filter(|root| {
-                let mut parent = self.parent_of(*root);
-                while let Some(candidate) = parent {
-                    if roots.contains(&candidate) {
-                        return false;
-                    }
-                    parent = self.parent_of(candidate);
+        let mut normalized_roots =
+            match root_normalization::normalize_roots(&roots, |entity| self.parent_of(entity)) {
+                Ok(roots) => roots,
+                Err(error) => {
+                    self.record_detached_entity_batch_rejected_preflight();
+                    return Err(error);
                 }
-                true
-            })
-            .collect::<Vec<_>>();
+            };
+        let hierarchy_index_rebuild_rows = self.ensure_hierarchy_mutation_index_current();
         normalized_roots.sort_unstable_by_key(|root| {
             self.stable_entity_order(*root)
                 .expect("validated detached root must retain stable order")
         });
         let mut entities_by_order = BTreeMap::new();
         let mut detach_preorder = Vec::new();
-        for root in normalized_roots {
+        for root in normalized_roots.iter().copied() {
             for entity in self.subtree_entity_ids(root) {
                 let order = self
                     .stable_entity_order(entity)
@@ -186,6 +222,52 @@ impl World {
             return Err(error);
         }
 
+        let affected_camera_count =
+            self.registered_component_id::<CameraComponent>()
+                .map_or(0, |component_id| {
+                    entities
+                        .iter()
+                        .filter(|entity| self.contains_component_id(**entity, component_id))
+                        .count()
+                });
+        Ok(PreparedEntitySubtrees {
+            owner: self.detach_preparation_owner.clone(),
+            world_generation,
+            normalized_roots,
+            entities,
+            detach_preorder,
+            restore_order,
+            world_camera_count: self.camera_count(),
+            affected_camera_count,
+            hierarchy_index_rebuild_rows,
+        })
+    }
+
+    /// Commits exactly the preflighted subtree union. A foreign or stale
+    /// preparation is rejected before any rows or lifecycle state are changed.
+    pub fn remove_prepared_entity_subtrees(
+        &mut self,
+        prepared: PreparedEntitySubtrees,
+    ) -> SceneResult<DetachedEntityBatch> {
+        if !self.detach_preparation_owner.is_same_world(&prepared.owner) {
+            self.record_detached_entity_batch_rejected_preflight();
+            return Err(SceneError::DetachedEntityPreparationWorldMismatch);
+        }
+        let current_generation = self.world_generation();
+        if prepared.world_generation != current_generation {
+            self.record_detached_entity_batch_rejected_preflight();
+            return Err(SceneError::DetachedEntityPreparationStale {
+                prepared_generation: prepared.world_generation,
+                current_generation,
+            });
+        }
+        let PreparedEntitySubtrees {
+            entities,
+            detach_preorder,
+            restore_order,
+            hierarchy_index_rebuild_rows,
+            ..
+        } = prepared;
         let detached_active_camera = (self.active_camera != 0
             && entities.contains(&self.active_camera))
         .then_some(self.active_camera);
@@ -232,6 +314,7 @@ impl World {
 
     /// Restores a detached batch. On preflight failure the batch is returned
     /// untouched and this World remains unmodified.
+    /// 预检失败仍会增加拒绝计数，原批次可用于撤销重试；通过后按预存父先子顺序恢复，再派发暂存的生命周期事件。
     pub fn restore_detached_entity_batch(
         &mut self,
         batch: DetachedEntityBatch,
@@ -413,6 +496,7 @@ impl World {
         self.entity_registry
             .ensure_capacity_for_additional(entity_ids.len())?;
         let hierarchy_component_id = self.registered_component_id::<Hierarchy>();
+        let mut batch_parents = HashMap::with_capacity(batch.entries.len());
         for entry in &batch.entries {
             if self.contains_entity(entry.entity)
                 || self.entity_registry.contains_stable(entry.entity)
@@ -449,6 +533,7 @@ impl World {
                     .ok_or(SceneError::DetachedEntityBatchInvariant {
                         reason: "detached entity batch is missing its hierarchy boundary",
                     })?;
+                batch_parents.insert(entry.entity, hierarchy.parent);
                 if let Some(parent) = hierarchy.parent {
                     if !self.contains_entity(parent) && !entity_ids.contains(&parent) {
                         return Err(SceneError::MissingParent {
@@ -457,6 +542,8 @@ impl World {
                         });
                     }
                 }
+            } else {
+                batch_parents.insert(entry.entity, None);
             }
         }
         if let Some(detached_active_camera) = batch.detached_active_camera {
@@ -477,6 +564,11 @@ impl World {
                 });
             }
         }
+        restore_parent_validation::validate_restore_parent_chains(
+            &batch_parents,
+            batch.entries.iter().map(|entry| entry.entity),
+            |entity| self.parent_of(entity),
+        )?;
         Ok(())
     }
 

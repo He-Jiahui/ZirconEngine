@@ -3,11 +3,10 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    ui_v2_asset_references, DataAsset, FontAsset, MaterialAsset, MaterialGraphAsset, MeshAsset,
-    ModelAsset, PhysicsMaterialAsset, PrefabAsset, SceneAsset, ShaderAsset, SoundAsset,
-    TerrainAsset, TerrainLayerStackAsset, TextureAsset, TileMapAsset, TileSetAsset, UiIconAsset,
-    UiLayoutAsset, UiStyleAsset, UiThemeAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset,
-    UiWidgetAsset,
+    DataAsset, FontAsset, MaterialAsset, MaterialGraphAsset, MeshAsset, ModelAsset,
+    PhysicsMaterialAsset, PrefabAsset, SceneAsset, ShaderAsset, SoundAsset, TerrainAsset,
+    TerrainLayerStackAsset, TextureAsset, TileMapAsset, TileSetAsset, UiIconAsset, UiLayoutAsset,
+    UiStyleAsset, UiThemeAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
 };
 use crate::asset::AssetReference;
 use crate::core::framework::animation::{
@@ -103,9 +102,9 @@ impl ImportedAsset {
             Self::TileSet(asset) => asset.direct_references(),
             Self::TileMap(asset) => asset.direct_references(),
             Self::Prefab(asset) => asset.direct_references(),
-            Self::UiV2View(asset) => ui_v2_asset_references(&asset.document),
-            Self::UiV2Component(asset) => ui_v2_asset_references(&asset.document),
-            Self::UiV2Style(asset) => ui_v2_asset_references(&asset.document),
+            Self::UiV2View(asset) => asset.direct_references(),
+            Self::UiV2Component(asset) => asset.direct_references(),
+            Self::UiV2Style(asset) => asset.direct_references(),
             Self::UiIcon(asset) => asset.direct_references(),
             _ => Vec::new(),
         }

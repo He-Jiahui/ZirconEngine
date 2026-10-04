@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 读取配置提交栅栏模块树，确认提交协调由专属目录持有。
 class RuntimeConfigCommitFenceOwnerStructureTests(unittest.TestCase):
     def setUp(self) -> None:
         self.repo_root = Path(__file__).resolve().parents[2]

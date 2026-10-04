@@ -2,14 +2,13 @@
 related_code:
   - docs/wiki/index.md
   - .codex/skills/zircon-project-skills/code-module-docs-maintenance/required-doc-header-format.md
-  - .codex/skills/zircon-project-skills/code-module-docs-maintenance/write-module-docs/SKILL.md
 implementation_files:
   - docs/wiki
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
-  - .codex/skills/zircon-project-skills/code-module-docs-maintenance/SKILL.md
+  - .codex/skills/zircon-dev/workflow/guide.md
 tests:
-  - tools/check_conventions.py
+  - tools/audits/check_conventions.py
   - docs/plans/mvp/index.md
 doc_type: testing-guide
 ---
@@ -47,7 +46,7 @@ doc_type: module-detail
 ---
 ```
 
-路径必须是仓库相对路径。若代码与文档分开提交，路径可以暂时尚未出现在当前 checkout；`tools/wiki_site.py validate` 会把这类元数据目标报告为 warning，并在源码快照齐全时用 `--strict-metadata` 将其升级为错误。描述多个 owner 时列出所有被解释的代码，不要只列最近编辑的文件。
+路径必须是仓库相对路径。若代码与文档分开提交，路径可以暂时尚未出现在当前 checkout；`tools/docs/wiki_site.py validate` 会把这类元数据目标报告为 warning，并在源码快照齐全时用 `--strict-metadata` 将其升级为错误。描述多个 owner 时列出所有被解释的代码，不要只列最近编辑的文件。
 
 ## 写作准则
 
@@ -79,7 +78,7 @@ Rust 示例分为三种层级：
 ```powershell
 rg --files docs/wiki
 rg -n '^---$|^related_code:|^doc_type:' docs/wiki
-python tools/check_conventions.py --help
+python tools/audits/check_conventions.py --help
 ```
 
 再用脚本检查 frontmatter 引用的路径、内部 Markdown 链接和标题重复。文档任务只新增/修改目标页面，不覆盖其他 Session 的工作区改动。

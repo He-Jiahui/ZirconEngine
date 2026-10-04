@@ -8,12 +8,12 @@ use std::time::{Duration, Instant};
 use crate::core::framework::text::{TextFontCollectionHandle, TextFontFaceHandle};
 use crate::text::{FontFaceId, InstancedFaceId};
 
-use super::{FontCollectionService, shared_font_collection_service};
+use super::{shared_font_collection_service, FontCollectionService};
 
 mod resolver_snapshot;
 pub(crate) use resolver_snapshot::{
-    FontHandleResolverSnapshot, font_handle_resolver_snapshot,
-    resolve_font_handle_batch_from_snapshot,
+    font_handle_resolver_snapshot, resolve_font_handle_batch_from_snapshot,
+    FontHandleResolverSnapshot,
 };
 
 pub(crate) type BackendFontHandlePair = (Option<FontFaceId>, Option<InstancedFaceId>);
@@ -709,7 +709,9 @@ pub(crate) fn resolve_font_handle_batch_for_collection(
 }
 
 #[cfg(test)]
+#[path = "handle_registry/tests/cases.rs"]
 mod tests;
 
 #[cfg(test)]
+#[path = "handle_registry/tests/optimization_tests.rs"]
 mod optimization_tests;

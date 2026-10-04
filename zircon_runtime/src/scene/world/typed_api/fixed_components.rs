@@ -1,4 +1,3 @@
-use crate::scene::EntityId;
 use crate::scene::components::{
     ActiveInHierarchy, ActiveSelf, AmbientLight, AnimationGraphPlayerComponent,
     AnimationPlayerComponent, AnimationSequencePlayerComponent, AnimationSkeletonComponent,
@@ -8,9 +7,11 @@ use crate::scene::components::{
     RenderLayerMask, RigidBodyComponent, SpotLight, Sprite2dComponent, WorldMatrix,
 };
 use crate::scene::ecs::Component;
+use crate::scene::EntityId;
 use std::collections::HashMap;
 
-use crate::scene::{SceneResult, World};
+use crate::scene::{SceneError, SceneResult, World};
+use std::any::TypeId;
 
 use super::super::transform_validation::validate_transform_for_write;
 
@@ -49,6 +50,56 @@ impl_component_for_scene_type!(
     PostProcessVolumeComponent,
     Mobility,
 );
+
+impl World {
+    pub(crate) fn protected_authored_component_name<T: Component>() -> Option<&'static str> {
+        let type_id = TypeId::of::<T>();
+        if type_id == TypeId::of::<Hierarchy>() {
+            Some("Hierarchy")
+        } else if type_id == TypeId::of::<LocalTransform>() {
+            Some("LocalTransform")
+        } else if type_id == TypeId::of::<Mobility>() {
+            Some("Mobility")
+        } else {
+            None
+        }
+    }
+
+    pub(crate) fn validate_generic_authored_mutation<T: Component>(
+        operation: &'static str,
+    ) -> SceneResult<()> {
+        match Self::protected_authored_component_name::<T>() {
+            Some(component) => Err(SceneError::ProtectedAuthoredComponentMutation {
+                component,
+                operation,
+            }),
+            None => Ok(()),
+        }
+    }
+
+    pub(crate) fn protected_derived_component_name<T: Component>() -> Option<&'static str> {
+        let type_id = TypeId::of::<T>();
+        if type_id == TypeId::of::<WorldMatrix>() {
+            Some("WorldMatrix")
+        } else if type_id == TypeId::of::<ActiveInHierarchy>() {
+            Some("ActiveInHierarchy")
+        } else {
+            None
+        }
+    }
+
+    pub(crate) fn validate_generic_derived_mutation<T: Component>(
+        operation: &'static str,
+    ) -> SceneResult<()> {
+        match Self::protected_derived_component_name::<T>() {
+            Some(component) => Err(SceneError::ProtectedDerivedComponentMutation {
+                component,
+                operation,
+            }),
+            None => Ok(()),
+        }
+    }
+}
 
 /// Temporary clone/rebuild transport for runtime-only post-process values.
 ///

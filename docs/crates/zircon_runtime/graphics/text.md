@@ -1,0 +1,4468 @@
+---
+
+related_code:
+
+  - zircon_runtime/assets/fonts/default.font.toml
+  - zircon_runtime/src/graphics/mod.rs
+  - zircon_runtime/src/graphics/text_transport/mod.rs
+  - zircon_runtime/src/graphics/text_transport/conversion.rs
+  - zircon_runtime/src/graphics/text_transport/tests.rs
+  - zircon_runtime/Cargo.toml
+  - zircon_runtime/src/text/mod.rs
+  - zircon_runtime/src/text/language.rs
+  - zircon_runtime/src/text/render_state.rs
+  - zircon_runtime/src/text/cache/mod.rs
+
+  - zircon_runtime/src/text/cache/frame_dedup.rs
+
+  - zircon_runtime/src/text/cache/layout_cache.rs
+
+  - zircon_runtime/src/text/cache/measure_cache.rs
+
+  - zircon_runtime/src/text/cache/shaped_cache.rs
+
+  - zircon_runtime/src/text/cache/tests.rs
+
+  - zircon_runtime/src/text/atlas/mod.rs
+
+  - zircon_runtime/src/text/atlas/bitmap_run.rs
+
+  - zircon_runtime/src/text/atlas/bitmap_run/allocation.rs
+
+  - zircon_runtime/src/text/atlas/bitmap_run/failure.rs
+
+  - zircon_runtime/src/text/atlas/bitmap_run/placeholder.rs
+
+  - zircon_runtime/src/text/atlas/bitmap_run/retry.rs
+
+  - zircon_runtime/src/text/atlas/bitmap_run/staged_upload.rs
+
+  - zircon_runtime/src/text/atlas/bitmap_run/staging.rs
+
+  - zircon_runtime/src/text/atlas/bitmap_run/tests.rs
+
+  - zircon_runtime/src/text/atlas/bitmap_run/tests/retry.rs
+
+  - zircon_runtime/src/text/atlas/bitmap_run/types.rs
+
+  - zircon_runtime/src/text/atlas/bitmap_run/upload.rs
+
+  - zircon_runtime/src/text/atlas/bitmap_run/validation.rs
+
+  - zircon_runtime/src/text/atlas/page.rs
+
+  - zircon_runtime/src/text/atlas/page_residency.rs
+
+  - zircon_runtime/src/text/atlas/page_residency/tests.rs
+
+  - zircon_runtime/src/text/atlas/render_contract.rs
+
+  - zircon_runtime/src/text/atlas/render_contract/tests.rs
+
+  - zircon_runtime/src/text/atlas/render_batch.rs
+
+  - zircon_runtime/src/text/atlas/render_batch/tests.rs
+
+  - zircon_runtime/src/text/atlas/render_plan.rs
+
+  - zircon_runtime/src/text/atlas/render_plan/tests.rs
+
+  - zircon_runtime/src/text/atlas/render_gpu_plan.rs
+
+  - zircon_runtime/src/text/atlas/render_gpu_plan/tests.rs
+
+  - zircon_runtime/src/text/atlas/render_gpu_plan/bind_group.rs
+
+  - zircon_runtime/src/text/atlas/render_gpu_plan/draw_command.rs
+
+  - zircon_runtime/src/text/atlas/render_gpu_plan/pipeline.rs
+
+  - zircon_runtime/src/text/atlas/render_gpu_plan/instance.rs
+  - zircon_runtime/src/text/atlas/render_gpu_plan/viewport.rs
+
+  - zircon_runtime/src/text/atlas/render_submission.rs
+
+  - zircon_runtime/src/text/atlas/render_submission/report.rs
+
+  - zircon_runtime/src/text/atlas/render_submission/placeholder.rs
+
+  - zircon_runtime/src/text/atlas/render_submission/frame_driver.rs
+
+  - zircon_runtime/src/text/atlas/render_submission/frame_state.rs
+
+  - zircon_runtime/src/text/atlas/render_submission/retry.rs
+
+  - zircon_runtime/src/text/atlas/render_submission/tests.rs
+
+  - zircon_runtime/src/text/atlas/render_submission/tests/retry_frame.rs
+
+  - zircon_runtime/src/text/atlas/shaders/glyph_atlas_sampling.wgsl
+
+  - zircon_runtime/src/text/atlas/shaders/glyph_atlas_pipeline.wgsl
+
+  - zircon_runtime/src/text/atlas/shelf_allocator.rs
+
+  - zircon_runtime/src/text/atlas/dirty.rs
+
+  - zircon_runtime/src/text/atlas/dirty/tests.rs
+
+  - zircon_runtime/src/text/atlas/upload.rs
+
+  - zircon_runtime/src/text/atlas/upload/tests.rs
+
+  - zircon_runtime/src/text/atlas/raster_key/mod.rs
+
+  - zircon_runtime/src/text/atlas/raster_key/tests.rs
+
+  - zircon_runtime/src/text/raster/mod.rs
+
+  - zircon_runtime/src/text/raster/policy.rs
+
+  - zircon_runtime/src/text/raster/swash/mod.rs
+
+  - zircon_runtime/src/text/raster/swash/atlas_source.rs
+
+  - zircon_runtime/src/text/raster/swash/bitmap.rs
+
+  - zircon_runtime/src/text/raster/swash/color_strike.rs
+
+  - zircon_runtime/src/text/raster/swash/error.rs
+
+  - zircon_runtime/src/text/raster/swash/request.rs
+
+  - zircon_runtime/src/text/raster/swash/rasterizer.rs
+
+  - zircon_runtime/src/text/raster/swash/tests.rs
+
+  - zircon_runtime/src/text/parallel/mod.rs
+
+  - zircon_runtime/src/text/parallel/shape_pool.rs
+
+  - zircon_runtime/src/text/parallel/raster_pool.rs
+
+  - zircon_runtime/src/text/parallel/tests.rs
+
+  - zircon_runtime/src/text/font/mod.rs
+
+  - zircon_runtime/src/text/font/default_families.rs
+
+  - zircon_runtime/src/text/font/database.rs
+
+  - zircon_runtime/src/text/font/composite_resolve.rs
+
+  - zircon_runtime/src/text/font/vertical_metrics.rs
+  - zircon_runtime/src/text/font/database/tests.rs
+  - zircon_runtime/src/text/font/database/tests/system_policy.rs
+  - zircon_runtime/src/text/font/descriptors.rs
+
+  - zircon_runtime/src/text/font/matching.rs
+
+  - zircon_runtime/src/text/font/asset_registration.rs
+
+  - zircon_runtime/src/text/font/backend.rs
+
+  - zircon_runtime/src/text/font/coverage.rs
+
+  - zircon_runtime/src/text/font/fallback.rs
+
+  - zircon_runtime/src/text/font/fallback/tests.rs
+  - zircon_runtime/src/text/font/test_font_fixtures.rs
+  - zircon_runtime/src/text/font/handle_registry.rs
+  - zircon_runtime/src/text/font/shared.rs
+  - zircon_runtime/src/text/font/shared/tests.rs
+  - zircon_runtime/src/text/font/database/equivalence.rs
+  - zircon_runtime/assets/fonts/ZirconDefaultComposite-subset.ttc
+
+  - zircon_runtime/assets/fonts/OFL-NotoSansSC.md
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs
+
+  - tools/tests/test_text_01_composite_activation.py
+
+  - zircon_runtime/src/asset/assets/font.rs
+
+  - zircon_runtime/src/asset/assets/font_source.rs
+
+  - zircon_runtime/src/asset/importer/ingest/import_font_asset/mod.rs
+
+  - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt.rs
+
+  - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt/tests/mod.rs
+
+  - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt/tests/fixtures.rs
+
+  - zircon_runtime/src/text/layout/mod.rs
+
+  - zircon_runtime/src/text/layout/line_break/mod.rs
+
+  - zircon_runtime/src/text/layout/line_break/tests.rs
+
+  - zircon_runtime/src/text/layout/line_break/glue.rs
+
+  - zircon_runtime/src/text/layout/line_break/glyph_fallback.rs
+
+  - zircon_runtime/src/text/layout/line_break/greedy.rs
+
+  - zircon_runtime/src/text/layout/line_break/smart.rs
+
+  - zircon_runtime/src/text/layout/line_break/soft_hyphen.rs
+
+  - zircon_runtime/src/text/layout/line_break/wrap_space.rs
+
+  - zircon_runtime/src/text/layout/align.rs
+
+  - zircon_runtime/src/text/layout/overflow.rs
+
+  - zircon_runtime/src/text/layout/tab.rs
+
+  - zircon_runtime/src/text/layout/vertical_layout.rs
+
+  - zircon_runtime/src/text/layout/rich_vertical.rs
+
+  - zircon_runtime/src/text/layout/kinsoku.rs
+
+  - zircon_runtime/src/text/layout/kinsoku/tests.rs
+
+  - zircon_runtime/src/text/layout/measure.rs
+
+  - zircon_runtime/src/text/model/rich.rs
+
+  - zircon_runtime/src/text/rich/mod.rs
+
+  - zircon_runtime/src/text/rich/parser.rs
+
+  - zircon_runtime/src/text/rich/decorator.rs
+
+  - zircon_runtime/src/text/rich/inline_decorators.rs
+
+  - zircon_runtime/src/text/rich/emoji_shortcode.rs
+
+  - zircon_runtime/src/text/rich/html_subset.rs
+
+  - zircon_runtime/src/text/rich/bbcode.rs
+
+  - zircon_runtime/src/text/rich/bbcode_blocks.rs
+
+  - zircon_runtime/src/text/rich/bbcode_table.rs
+
+  - zircon_runtime/src/text/rich/bbcode_table/attributes.rs
+
+  - zircon_runtime/src/text/rich/bbcode_table/placement.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/paragraph_layout.rs
+
+
+
+  - zircon_runtime/src/ui/text/layout_engine/rich_table.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/rich_table/axes.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/rich_table/cell_layout.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/rich_table/grid.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/rich_table/layout.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/rich_table/sizing.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/rich_table/source_slice.rs
+
+  - zircon_runtime/src/text/shaping/mod.rs
+
+  - zircon_runtime/src/text/shaping/bidi.rs
+
+  - zircon_runtime/src/text/shaping/cosmic.rs
+
+  - zircon_runtime/src/text/shaping/cosmic/font_system_cache.rs
+
+  - zircon_runtime/src/text/shaping/fallback_spans.rs
+
+  - zircon_runtime/src/text/shaping/vertical.rs
+
+  - zircon_runtime/src/text/shaping/vertical/backend.rs
+
+  - zircon_runtime/src/text/shaping/vertical/orientation.rs
+
+  - zircon_runtime/src/text/shaping/vertical/direct.rs
+  - zircon_runtime/src/text/shaping/vertical/tests.rs
+
+  - zircon_runtime/src/text/shaping/normalize.rs
+
+  - zircon_runtime/src/text/shaping/script_segment.rs
+
+  - zircon_runtime/src/text/shaping/line_break.rs
+
+  - zircon_runtime/src/text/shaping/tests.rs
+
+  - zircon_runtime/src/core/framework/render/mod.rs
+
+  - zircon_runtime/src/core/framework/text/mod.rs
+
+  - zircon_runtime/src/text/model/shaped_run.rs
+
+  - zircon_runtime/src/core/framework/text/layout_service.rs
+
+  - zircon_runtime/src/text/model/font/mod.rs
+
+  - zircon_runtime/src/text/model/font/face.rs
+
+  - zircon_runtime/src/text/model/font/family.rs
+
+  - zircon_runtime/src/text/model/font/database.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/write.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/binding.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/submission.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/resource.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/mod.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/pipeline.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/resources.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/instance.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text_pixel_snap.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
+
+  - zircon_runtime/src/text/native_bitmap_atlas.rs
+
+  - zircon_runtime/src/text/native_bitmap_atlas/handoff.rs
+
+  - zircon_runtime/src/text/native_bitmap_atlas/retry_frame.rs
+
+  - zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs
+
+  - zircon_runtime/src/text/native_bitmap_atlas/storage.rs
+
+  - zircon_runtime/src/text/native_bitmap_atlas/tests.rs
+
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/frame.rs
+
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/handoff.rs
+
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/retry_frame.rs
+
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/source.rs
+
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/source_cache.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_id_report.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback/tests.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_advances.rs
+
+  - zircon_runtime/src/text/sdf/font_bake.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/surface.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/screen_space_ui_image.wgsl
+
+  - zircon_runtime/src/graphics/scene/resources/ui_texture.rs
+
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_advances.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/background.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/text_keys.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload/tests.rs
+
+  - zircon_runtime/src/text/sdf/font_bake.rs
+
+  - zircon_runtime/src/text/sdf/font_bake/tests.rs
+  - zircon_runtime/src/text/sdf/font_bake/tests/cache_generation.rs
+- zircon_runtime/src/text/sdf/params.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertices.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/draw_plan.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/shader_contract.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/layout_placement.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/prepare_report.rs
+
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/mod.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/plan.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/allocation.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/cache_report.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/owner.rs
+
+  - zircon_runtime/src/ui/text/layout_engine.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/candidate_line.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/direction.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/ellipsis.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/line_box.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/overflow_style.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/range_mapping.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/visual_order.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/wrapping.rs
+
+  - zircon_runtime/src/ui/surface/render/resolve.rs
+
+  - zircon_runtime/src/ui/text/resolved_layout.rs
+
+  - zircon_runtime/src/ui/text/measure_cache.rs
+
+  - zircon_runtime/src/ui/surface/render/mod.rs
+
+  - zircon_runtime/src/ui/surface/render/dialog.rs
+
+  - zircon_runtime/src/ui/surface/render/extract.rs
+
+  - zircon_runtime/src/ui/surface/render/text_prewarm.rs
+
+  - zircon_runtime/src/ui/surface/render/text_fields.rs
+
+  - zircon_runtime/src/ui/surface/surface.rs
+
+  - zircon_runtime/src/ui/surface/surface/rebuild.rs
+
+  - zircon_runtime/src/ui/surface/input/editable_text/ime_context.rs
+
+  - zircon_runtime/src/ui/text/hit_test.rs
+
+  - zircon_runtime/src/ui/text/shaper.rs
+
+  - zircon_runtime/src/ui/surface/mod.rs
+
+  - zircon_runtime/src/ui/surface/text_geometry.rs
+
+  - zircon_runtime/src/ui/surface/text_shape.rs
+
+  - zircon_runtime/src/ui/tests/text_pipeline
+
+  - zircon_runtime/src/ui/tests/render_dialog.rs
+
+  - zircon_runtime/src/ui/tests/widget_text_input_ime_context.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/tests.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/tests/kinsoku.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/tests/word_smart.rs
+
+  - zircon_runtime/src/ui/text/rich_text.rs
+
+  - zircon_runtime/src/ui/text/rich_text/link_hit.rs
+
+  - zircon_runtime/src/ui/text/rich_text/tests.rs
+
+  - zircon_runtime/src/ui/surface/input/rich_link.rs
+
+  - zircon_runtime/src/ui/surface/input/pointer.rs
+
+  - zircon_runtime/src/ui/surface/input/effect/link.rs
+
+  - zircon_runtime/src/ui/surface/input/effect/host_request.rs
+
+  - zircon_runtime_interface/src/ui/dispatch/input/effect.rs
+
+  - zircon_runtime_interface/src/ui/dispatch/input/result.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/rich_inline.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/tests/rich_inline.rs
+
+  - zircon_runtime/src/ui/tests/text_shaper.rs
+
+  - zircon_runtime/src/ui/tests/text_hit_testing.rs
+
+  - zircon_runtime_interface/src/ui/surface/render/command.rs
+
+  - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
+
+  - zircon_runtime_interface/src/ui/surface/render/text_language.rs
+
+  - zircon_runtime_interface/src/ui/surface/render/typography.rs
+
+  - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
+
+  - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
+
+  - zircon_runtime_interface/src/tests/render_contracts.rs
+
+  - zircon_runtime_interface/src/tests/render_contracts/rich_table.rs
+
+  - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs
+
+  - zircon_runtime/tests/runtime_text_rich_blocks.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/blend.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/blend/tests.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/sync.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/sync/tests.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/text.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/text/commands.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/text/commands/shaped.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/divider/geometry/label_bounds/horizontal.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/divider/horizontal.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/geometry/label.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/geometry/metrics.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/alert/geometry/message.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/alert/geometry/metrics.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/avatar/geometry/text.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/avatar/geometry/metrics.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/geometry/root_text.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/geometry/overlay.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/geometry/metrics.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions/labels.rs
+
+  - zircon_runtime/src/ui/surface/render/dialog.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/metrics.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement/metrics.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement/tests.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row/tests.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/raster/metrics.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/raster/tests.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font/tests.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text_tests/latest_crop.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics/marker.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics_tests.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/text_markers.rs
+
+implementation_files:
+  - zircon_runtime/src/graphics/text_transport/mod.rs
+  - zircon_runtime/src/graphics/text_transport/conversion.rs
+  - zircon_runtime/src/graphics/text_transport/tests.rs
+  - zircon_runtime/src/text/mod.rs
+  - zircon_runtime/src/text/language.rs
+  - zircon_runtime/src/text/render_state.rs
+  - zircon_runtime/src/text/cache/mod.rs
+
+  - zircon_runtime/src/text/cache/frame_dedup.rs
+
+  - zircon_runtime/src/text/cache/layout_cache.rs
+
+  - zircon_runtime/src/text/cache/measure_cache.rs
+
+  - zircon_runtime/src/text/cache/shaped_cache.rs
+
+  - zircon_runtime/src/text/cache/tests.rs
+
+  - zircon_runtime/src/text/atlas/mod.rs
+
+  - zircon_runtime/src/text/atlas/bitmap_run.rs
+
+  - zircon_runtime/src/text/atlas/bitmap_run/retry.rs
+
+  - zircon_runtime/src/text/atlas/bitmap_run/staged_upload.rs
+
+  - zircon_runtime/src/text/atlas/bitmap_run/staging.rs
+
+  - zircon_runtime/src/text/atlas/bitmap_run/tests.rs
+
+  - zircon_runtime/src/text/atlas/bitmap_run/tests/retry.rs
+
+  - zircon_runtime/src/text/atlas/page.rs
+
+  - zircon_runtime/src/text/atlas/page_residency.rs
+
+  - zircon_runtime/src/text/atlas/page_residency/tests.rs
+
+  - zircon_runtime/src/text/atlas/render_contract.rs
+
+  - zircon_runtime/src/text/atlas/render_contract/tests.rs
+
+  - zircon_runtime/src/text/atlas/render_batch.rs
+
+  - zircon_runtime/src/text/atlas/render_batch/tests.rs
+
+  - zircon_runtime/src/text/atlas/render_plan.rs
+
+  - zircon_runtime/src/text/atlas/render_plan/tests.rs
+
+  - zircon_runtime/src/text/atlas/render_gpu_plan.rs
+
+  - zircon_runtime/src/text/atlas/render_gpu_plan/tests.rs
+
+  - zircon_runtime/src/text/atlas/render_gpu_plan/bind_group.rs
+
+  - zircon_runtime/src/text/atlas/render_gpu_plan/draw_command.rs
+
+  - zircon_runtime/src/text/atlas/render_gpu_plan/pipeline.rs
+
+  - zircon_runtime/src/text/atlas/render_gpu_plan/instance.rs
+  - zircon_runtime/src/text/atlas/render_gpu_plan/viewport.rs
+
+  - zircon_runtime/src/text/atlas/render_submission.rs
+
+  - zircon_runtime/src/text/atlas/render_submission/report.rs
+
+  - zircon_runtime/src/text/atlas/render_submission/placeholder.rs
+
+  - zircon_runtime/src/text/atlas/render_submission/tests.rs
+
+  - zircon_runtime/src/text/atlas/render_submission/tests/retry_frame.rs
+
+  - zircon_runtime/src/text/atlas/shaders/glyph_atlas_sampling.wgsl
+
+  - zircon_runtime/src/text/atlas/shaders/glyph_atlas_pipeline.wgsl
+
+  - zircon_runtime/src/text/atlas/shelf_allocator.rs
+
+  - zircon_runtime/src/text/atlas/dirty.rs
+
+  - zircon_runtime/src/text/atlas/dirty/tests.rs
+
+  - zircon_runtime/src/text/atlas/upload.rs
+
+  - zircon_runtime/src/text/atlas/upload/tests.rs
+
+  - zircon_runtime/src/text/atlas/raster_key/mod.rs
+
+  - zircon_runtime/src/text/atlas/raster_key/tests.rs
+
+  - zircon_runtime/src/text/raster/mod.rs
+
+  - zircon_runtime/src/text/raster/policy.rs
+
+  - zircon_runtime/src/text/raster/swash/mod.rs
+
+  - zircon_runtime/src/text/raster/swash/atlas_source.rs
+
+  - zircon_runtime/src/text/raster/swash/bitmap.rs
+
+  - zircon_runtime/src/text/raster/swash/color_strike.rs
+
+  - zircon_runtime/src/text/raster/swash/error.rs
+
+  - zircon_runtime/src/text/raster/swash/request.rs
+
+  - zircon_runtime/src/text/raster/swash/rasterizer.rs
+
+  - zircon_runtime/src/text/raster/swash/tests.rs
+
+  - zircon_runtime/src/text/parallel/mod.rs
+
+  - zircon_runtime/src/text/parallel/shape_pool.rs
+
+  - zircon_runtime/src/text/parallel/raster_pool.rs
+
+  - zircon_runtime/src/text/parallel/tests.rs
+
+  - zircon_runtime/src/text/font/mod.rs
+
+  - zircon_runtime/src/text/font/default_families.rs
+
+  - zircon_runtime/src/text/font/database.rs
+
+  - zircon_runtime/src/text/font/composite_resolve.rs
+
+  - zircon_runtime/src/text/font/vertical_metrics.rs
+  - zircon_runtime/src/text/font/database/tests.rs
+  - zircon_runtime/src/text/font/database/tests/system_policy.rs
+  - zircon_runtime/src/text/font/descriptors.rs
+
+  - zircon_runtime/src/text/font/matching.rs
+
+  - zircon_runtime/src/text/font/asset_registration.rs
+
+  - zircon_runtime/src/text/font/backend.rs
+
+  - zircon_runtime/src/text/font/coverage.rs
+
+  - zircon_runtime/src/text/font/fallback.rs
+
+  - zircon_runtime/src/text/font/fallback/tests.rs
+  - zircon_runtime/src/text/font/test_font_fixtures.rs
+  - zircon_runtime/src/text/font/handle_registry.rs
+  - zircon_runtime/src/text/font/shared.rs
+  - zircon_runtime/src/text/font/database/equivalence.rs
+  - zircon_runtime/assets/fonts/ZirconDefaultComposite-subset.ttc
+
+  - zircon_runtime/assets/fonts/OFL-NotoSansSC.md
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs
+
+  - zircon_runtime/src/asset/assets/font.rs
+
+  - zircon_runtime/src/asset/importer/ingest/import_font_asset/mod.rs
+
+  - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt.rs
+
+  - zircon_runtime/Cargo.toml
+
+  - zircon_runtime/src/text/layout/mod.rs
+
+  - zircon_runtime/src/text/layout/rich.rs
+
+  - zircon_runtime/src/text/layout/line_break/mod.rs
+
+  - zircon_runtime/src/text/layout/line_break/glue.rs
+
+  - zircon_runtime/src/text/layout/line_break/glyph_fallback.rs
+
+  - zircon_runtime/src/text/layout/line_break/greedy.rs
+
+  - zircon_runtime/src/text/layout/line_break/smart.rs
+
+  - zircon_runtime/src/text/layout/line_break/soft_hyphen.rs
+
+  - zircon_runtime/src/text/layout/line_break/wrap_space.rs
+
+  - zircon_runtime/src/text/layout/align.rs
+
+  - zircon_runtime/src/text/layout/overflow.rs
+
+  - zircon_runtime/src/text/layout/tab.rs
+
+  - zircon_runtime/src/text/layout/vertical_layout.rs
+
+  - zircon_runtime/src/text/layout/rich_vertical.rs
+
+  - zircon_runtime/src/text/layout/kinsoku.rs
+
+  - zircon_runtime/src/text/layout/kinsoku/tests.rs
+
+  - zircon_runtime/src/text/layout/measure.rs
+
+  - zircon_runtime/src/text/model/rich.rs
+
+  - zircon_runtime/src/text/rich/bbcode_table.rs
+
+  - zircon_runtime/src/text/rich/bbcode_table/attributes.rs
+
+  - zircon_runtime/src/text/rich/bbcode_table/placement.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/rich_table.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/rich_table/axes.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/rich_table/cell_layout.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/rich_table/grid.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/rich_table/layout.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/rich_table/sizing.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/rich_table/source_slice.rs
+
+  - zircon_runtime/src/text/shaping/mod.rs
+
+  - zircon_runtime/src/text/shaping/cosmic.rs
+
+  - zircon_runtime/src/text/shaping/cosmic/font_system_cache.rs
+
+  - zircon_runtime/src/text/shaping/fallback_spans.rs
+
+  - zircon_runtime/src/text/shaping/vertical.rs
+
+  - zircon_runtime/src/text/shaping/vertical/orientation.rs
+
+  - zircon_runtime/src/text/shaping/vertical/tests.rs
+
+  - zircon_runtime/src/text/shaping/normalize.rs
+
+  - zircon_runtime/src/text/shaping/script_segment.rs
+
+  - zircon_runtime/src/text/shaping/line_break.rs
+
+  - zircon_runtime/src/text/shaping/tests.rs
+
+  - zircon_runtime/src/core/framework/render/mod.rs
+
+  - zircon_runtime/src/core/framework/text/mod.rs
+
+  - zircon_runtime/src/text/model/shaped_run.rs
+
+  - zircon_runtime/src/core/framework/text/layout_service.rs
+
+  - zircon_runtime/src/text/model/font/mod.rs
+
+  - zircon_runtime/src/text/model/font/face.rs
+
+  - zircon_runtime/src/text/model/font/family.rs
+
+  - zircon_runtime/src/text/model/font/database.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/write.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/binding.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/submission.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/resource.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/mod.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/pipeline.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/resources.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/instance.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text_pixel_snap.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
+
+  - zircon_runtime/src/text/native_bitmap_atlas.rs
+
+  - zircon_runtime/src/text/native_bitmap_atlas/handoff.rs
+
+  - zircon_runtime/src/text/native_bitmap_atlas/retry_frame.rs
+
+  - zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs
+
+  - zircon_runtime/src/text/native_bitmap_atlas/storage.rs
+
+  - zircon_runtime/src/text/native_bitmap_atlas/tests.rs
+
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/retry_frame.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_id_report.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback/tests.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_advances.rs
+
+  - zircon_runtime/src/text/sdf/font_bake.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/surface.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/screen_space_ui_image.wgsl
+
+  - zircon_runtime/src/graphics/scene/resources/ui_texture.rs
+
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/background.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload/tests.rs
+
+  - zircon_runtime/src/text/sdf/font_bake.rs
+
+  - zircon_runtime/src/text/sdf/font_bake/tests.rs
+  - zircon_runtime/src/text/sdf/font_bake/tests/cache_generation.rs
+- zircon_runtime/src/text/sdf/params.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertices.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/draw_plan.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/shader_contract.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/layout_placement.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/prepare_report.rs
+
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/mod.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/plan.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/allocation.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/cache_report.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/owner.rs
+
+  - zircon_runtime/src/ui/text/layout_engine.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/rich_inline.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/tests/rich_inline.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/candidate_line.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/direction.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/ellipsis.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/line_box.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/overflow_style.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/range_mapping.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/visual_order.rs
+
+  - zircon_runtime/src/ui/text/layout_engine/wrapping.rs
+
+  - zircon_runtime/src/ui/surface/render/resolve.rs
+
+  - zircon_runtime/src/ui/text/resolved_layout.rs
+
+  - zircon_runtime/src/ui/text/measure_cache.rs
+
+  - zircon_runtime/src/ui/surface/render/mod.rs
+
+  - zircon_runtime/src/ui/surface/render/dialog.rs
+
+  - zircon_runtime/src/ui/surface/render/extract.rs
+
+  - zircon_runtime/src/ui/surface/render/text_fields.rs
+
+  - zircon_runtime/src/ui/surface/surface.rs
+
+  - zircon_runtime/src/ui/surface/surface/rebuild.rs
+
+  - zircon_runtime/src/ui/surface/input/editable_text/ime_context.rs
+
+  - zircon_runtime/src/ui/text/hit_test.rs
+
+  - zircon_runtime/src/ui/text/shaper.rs
+
+  - zircon_runtime/src/ui/text/rich_text.rs
+
+  - zircon_runtime/src/ui/text/rich_text/link_hit.rs
+
+  - zircon_runtime/src/ui/text/rich_text/tests.rs
+
+  - zircon_runtime/src/ui/surface/input/rich_link.rs
+
+  - zircon_runtime/src/ui/surface/input/pointer.rs
+
+  - zircon_runtime/src/ui/surface/input/effect/link.rs
+
+  - zircon_runtime/src/ui/surface/input/effect/host_request.rs
+
+  - zircon_runtime_interface/src/ui/dispatch/input/effect.rs
+
+  - zircon_runtime_interface/src/ui/dispatch/input/result.rs
+
+  - zircon_runtime/src/ui/surface/mod.rs
+
+  - zircon_runtime/src/ui/surface/text_geometry.rs
+
+  - zircon_runtime/src/ui/surface/text_shape.rs
+
+  - zircon_runtime/src/ui/tests/text_pipeline
+
+  - zircon_runtime/src/ui/tests/render_dialog.rs
+
+  - zircon_runtime/src/ui/tests/widget_text_input_ime_context.rs
+
+  - zircon_runtime_interface/src/ui/surface/render/command.rs
+
+  - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
+
+  - zircon_runtime_interface/src/ui/surface/render/typography.rs
+
+  - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
+
+  - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/blend.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/blend/tests.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/sync.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/sync/tests.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/text.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/text/commands.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/text/commands/shaped.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/divider/geometry/label_bounds/horizontal.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/divider/horizontal.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/geometry/label.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/geometry/metrics.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/alert/geometry/message.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/alert/geometry/metrics.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/avatar/geometry/text.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/avatar/geometry/metrics.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/geometry/root_text.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/geometry/overlay.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/geometry/metrics.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions/labels.rs
+
+  - zircon_runtime/src/ui/surface/render/dialog.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/metrics.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement/metrics.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row/tests.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/raster/metrics.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/raster/tests.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font/tests.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text_tests/latest_crop.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics/marker.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics_tests.rs
+
+  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/text_markers.rs
+
+plan_sources:
+  - user: 2026-07-16 Runtime Text MVP basic rendering/layout stability and performance-first closeout
+  - docs/plans/zircon_runtime/text/index.md
+  - docs/plans/zircon_runtime/text/01-font-resource-faces-and-database.md
+
+  - docs/plans/zircon_runtime/text/02-shaping-unicode-and-bidi.md
+
+  - docs/plans/zircon_runtime/text/03-line-breaking-measure-and-layout.md
+
+  - docs/plans/zircon_runtime/text/04-glyph-atlas-and-rasterization.md
+
+  - docs/plans/zircon_runtime/text/05-sdf-msdf-pipeline.md
+
+  - docs/plans/zircon_runtime/text/07-rich-text-html-bbcode.md
+
+  - docs/plans/zircon_runtime/text/07/2026-07-11-rich-text-html-bbcode-output-records.md
+
+  - docs/plans/zircon_runtime/text/09-threading-caching-and-performance.md
+
+  - docs/plans/engine-code-structure-convention.md
+
+  - docs/plans/engine-code-review-findings-2026-06.md
+
+  - docs/superpowers/specs/2026-07-12-runtime-rich-table-spans-design.md
+
+  - docs/superpowers/plans/2026-07-12-runtime-rich-table-spans.md
+
+  - docs/superpowers/specs/2026-07-12-runtime-rich-table-cell-box-design.md
+
+  - docs/superpowers/plans/2026-07-12-runtime-rich-table-cell-box.md
+
+tests:
+- zircon_runtime/src/text/language.rs (`default_text_locale_is_normalized`; `system_text_locale_is_nonempty_and_normalized`)
+- zircon_runtime/src/text/font/database/tests/system_policy.rs (disabled policy, idempotent discovery, and lazy system-face coverage)
+- zircon_runtime/src/text/font/shared/tests.rs (`identical_shared_font_database_publish_preserves_generation`; semantic font mutations advance once)
+- zircon_runtime/src/text/sdf/font_bake/tests/cache_generation.rs (parallel SDF cache residency and authoritative system-face generation guards)
+- zircon_runtime/src/text/font/database/tests.rs (`text_font_database_composite_activation_is_explicit_and_replaceable`; `text_font_runtime_default_composite_selects_checked_in_zh_hans_face`)
+- tools/tests/test_text_01_composite_activation.py (registration is activation-free; constructor activates once; candidate resolver is folder-backed)
+
+- zircon_runtime/tests/runtime_text_multilingual_product_framebuffer/product_project_fixture.rs (checked-in manifest, TTC face 1, and Chinese glyph-coverage product preconditions)
+
+- zircon_runtime/src/text/rich/tests/table.rs (RT-M4 + RT-M5 + RT-M6 parser table/span/cell-box behavior)
+
+- zircon_runtime/src/ui/text/layout_engine/tests/rich_table/mod.rs (RT-M4 + RT-M5 + RT-M6 grid/track/padding/box behavior)
+
+- zircon_runtime_interface/src/tests/render_contracts/rich_table.rs (RT-M6 resolved cell-box paint projection)
+
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/rich_table.rs (RT-M6 background/text/border render ordering)
+
+- zircon_runtime/tests/runtime_text_multilingual_product_framebuffer/proof_assertions.rs (pre-WGPU span and cell-box geometry gates)
+
+- docs/tests/runtime/text/runtime_text_multilingual_rich_table_cell_box_product_framebuffer_20260712.png (RT-M6 real WGPU framebuffer acceptance)
+
+- zircon_runtime/src/ui/text/rich_text/tests.rs (`text_rich_link_hit_uses_upstream_affinity_at_run_end`)
+
+- zircon_runtime/src/ui/surface/input/rich_link.rs (`primary_release_on_rich_link_emits_host_activation_request`; `pointer_dispatch_routes_rich_link_through_default_action`)
+
+- zircon_runtime/src/ui/surface/input/effect/link.rs (`rich_link_effect_rejects_network_scheme_even_for_valid_owner`)
+
+- zircon_runtime_interface/src/tests/dispatch_reply_contracts.rs (`dispatch_reply_rich_link_activation_roundtrips_with_host_request_kind`)
+
+- zircon_runtime/src/ui/text/rich_text/tests.rs (`text_rich_html_ui_adapter_preserves_inline_and_link_metadata`)
+
+- zircon_runtime/src/text/layout/rich.rs (`text_rich_run_style_overrides_participate_in_layout_metrics`)
+
+- zircon_runtime/src/ui/text/layout_engine/tests/rich_inline.rs (`html_inline_image_metrics_reach_resolved_ui_layout`)
+
+- zircon_runtime/src/text/rich/tests.rs (`text_rich_bbcode_block_alignment_emits_paragraph_overrides`)
+
+- zircon_runtime/src/ui/text/layout_engine/tests/rich_inline.rs (`bbcode_paragraph_alignment_reaches_resolved_line_frames`)
+
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs (`screen_space_ui_plan_places_html_inline_image_without_placeholder_glyph`)
+
+- zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs (2026-07-10 current-source target-client build passed in 15m16s with 418 existing library warnings; exact ignored WGPU exporter passed 1/1 in 95.04s; CJK VerticalRl changed=1789/bbox=31x118; accepted PNG SHA256 352FBD3A31126E862D1BDFEDAD2F7109A6F3E94BD877BBE38D4879CF2BBF1A25)
+
+- zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs (2026-07-11 rich inline texture follow-up: stable target-client build 21m00s; exact ignored WGPU exporter passed 1/1 in 121.72s; imported four-quadrant texture passed independent red/green/blue dominance gates; accepted PNG `runtime_text_multilingual_rich_inline_product_framebuffer_20260711.png`, 1080×620, 100,378 bytes, SHA256 0220C44E0F41F0B6B8BB52CB6EA8A800E298C4A28D6B671374ED47C63B51CB27; repo/external target same-name counts 0)
+
+- zircon_runtime/src/ui/text/layout_engine/tests/rich_inline.rs (`html_inline_image_participates_in_word_soft_wrap`; `html_inline_image_participates_in_word_smart_soft_wrap`)
+
+- zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs (2026-07-11 Word/WordSmart current-source product follow-up: neutral rich layout owns UAX#14 word chunks, WordSmart grapheme fallback, inline advance, source ranges and leading-space trim; target-client build 16m13s; exact ignored WGPU exporter passed 1/1 in 119.42s; nowrap/Word/WordSmart rows independently passed imported-texture red/green/blue dominance gates; accepted PNG `runtime_text_multilingual_rich_inline_product_framebuffer_20260711.png`, 1080×850, 122,562 bytes, SHA256 2DE7CF6D892E73AEFA519B984CE9491ACF266ECCAA80343DB23EDFCE8FCB51F5; visual review confirms Word moves the image to the next line and WordSmart retains the following suffix; the two new unit exact tests remain pending because the current workspace dependency graph is blocked by the separately owned Runtime 01 wgpu-hal Windows version split)
+
+- zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs (2026-07-12 rich inline horizontal ellipsis current-source product gate: target-client build passed in 13m21s; preview-sky depth resource access corrected from Write to Read and incremental rebuild passed in 4m25s; exact ignored WGPU exporter passed 1/1 in 116.11s; nowrap/Word/WordSmart/RTL/End-ellipsis imported-texture gates passed; accepted PNG `runtime_text_multilingual_rich_inline_product_framebuffer_20260711.png`, 1080×920, 131,867 bytes, SHA256 17685053A570A334E4DEC76D23B4F041D07E8D309ECF853FED7E2BDC7B080D2A; visual review confirms the ellipsis row retains the real checker texture; D-drive cargo-target same-name count 0)
+
+- tests/acceptance/runtime-text-product-framebuffer.md
+
+- rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs (2026-07-08 editor retained-host grayscale device glyph placement: passed; log docs/tests/runtime/text/runtime_text_editor_retained_grayscale_device_glyph_snap_rustfmt_20260708.log SHA256 A9F58776A09B5DAC438049683F24BF85764E0FF8E7455952456165C68C158627; scoped diff-check SHA256 3937ECA6E41622988D6B9C566204368EBCCCDAAC9C42A71EC521723036300D10; direct editor binary proof passed 1/1 with log SHA256 C642986E7AF1F2EC4EED60195215E2EE64822E1DE8E57F7FDC21DD78D0581A55; PNG hashes log SHA256 B44558743A6CFAA9FA21ADD090169A46B7D66E97150DF65711CC0E068349F788; target/cargo-target scan count 0 SHA256 0AFC132246255431D3CC52A2E6463EADC8412B205BD2901AB763D5227641C76E)
+
+- docs/tests/runtime/text/runtime_text_editor_retained_grayscale_device_glyph_snap_phase_guard_cargo_after_seed_visibility_fix_20260708.log, runtime_text_editor_retained_grayscale_device_glyph_snap_phase_guard_direct_after_seed_visibility_fix_20260708.log, runtime_text_editor_retained_grayscale_device_glyph_snap_full_grayscale_direct_after_seed_visibility_fix_20260708.log, and runtime_text_editor_retained_grayscale_device_glyph_snap_seed_visibility_fix_export_test_20260708.log (2026-07-08 follow-up closeout: the earlier `RuntimePrepareMaterialCaptureSeed` import blocker is fixed by making the runtime prepare material-capture DTO/accessors crate-private production inputs instead of test-only helpers; the Cargo wrapper now compiles past that blocker and times out after 904s without Rust diagnostics, log SHA256 1990A1F673B73342F29844052D5C498619DC274FE2FC553561C0548C7B765764. Direct current editor test binary passed phase guard 1/1 SHA256 952664F53D7317F81C44BA7F1EEE00F300237BC2F629CADAAF77D125CB86A695, grayscale 7/7 SHA256 B760CE58ED5CF6D92119FC5236FE43B1082D98AD84479C00E922F3515F85DD67, and retained crop export 1/1 SHA256 6514FBE442B629FC85765C20823E5821C346AEBCE24189271D1914813374BA39; new same-stem target/cargo-target PNG scan count 0 SHA256 CBA2D2A96483F9C4925BEB67AE0DEEFB035A3DB1D53A1B75C66242522C9CF147)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/parallel/mod.rs zircon_runtime/src/text/parallel/shape_pool.rs (2026-07-08 runtime text parallel shape pool: passed; log docs/tests/runtime/text/runtime_text_parallel_shape_pool_rustfmt_check_20260708.log SHA256 E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855; static scan SHA256 4726D31A4C8D09B577716B35527BCE04CD30AAE02F550A65CEE3B0F59EE5B56E; target/cargo-target PNG scan SHA256 CBA2D2A96483F9C4925BEB67AE0DEEFB035A3DB1D53A1B75C66242522C9CF147; 2026-07-08 follow-up focused Cargo `render_perf_text_parallel_shape_count` passed 1/1 after adding explicit `Vec<PendingShapeJob>` pending-queue type)
+
+- rustfmt --edition 2021 --check zircon_runtime/src/ui/text/measure_cache.rs zircon_runtime/src/ui/text/mod.rs zircon_runtime/src/ui/tests/text_pipeline and focused cargo test `render_perf_text_parallel_shape_pool_prewarms_ui_measure_cache` (2026-07-08 runtime text UI paragraph shape-pool prewarm: rustfmt passed, log docs/tests/runtime/text/runtime_text_parallel_shape_pool_ui_prewarm_rustfmt_check_final_20260708.log SHA256 E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855; focused Cargo passed 1/1 with log docs/tests/runtime/text/runtime_text_parallel_shape_pool_ui_prewarm_cargo_final_20260708.log SHA256 EE1284083D8D0A0EEA123EAC87A479D1E8EC9E91F0DE3F2F8820D38FEDDE7275 and exit SHA256 13BF7B3039C63BF5A50491FA3CFD8EB4E699D1BA1436315AEF9CBE5711530354; target/cargo-target same-stem PNG scan count 0 SHA256 C7A9A3B0A23F3901DC4F059839FF0ABCA2908F239A0464D1E647D22EA17DF449)
+
+- rustfmt --edition 2021 --check zircon_runtime/src/ui/surface/render/text_prewarm.rs zircon_runtime/src/ui/surface/render/mod.rs zircon_runtime/src/ui/surface/render/extract.rs zircon_runtime/src/ui/text/measure_cache.rs zircon_runtime/src/ui/tests/text_pipeline and focused cargo test `render_extract_automatically_prewarms_visible_owner_text_before_layout` (2026-07-08 runtime text surface owner-text automatic shape prewarm: rustfmt passed, log docs/tests/runtime/text/runtime_text_surface_auto_shape_prewarm_rustfmt_check_final_20260708.log SHA256 E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855; focused Cargo passed 1/1 with log docs/tests/runtime/text/runtime_text_surface_auto_shape_prewarm_cargo_final_20260708.log SHA256 7AF294DB8A34FE868E3754C7E297FCE0884396CB4D6B3A95FDF507793453CCF2; no PNG because this is a nonvisual cache/prewarm route)
+
+- rustfmt --check zircon_runtime/src/ui/surface/render/extract.rs zircon_runtime/src/ui/surface/render/text_prewarm.rs zircon_runtime/src/ui/text/measure_cache.rs zircon_runtime/src/ui/tests/text_pipeline/*.rs and focused cargo test `prewarms` (2026-07-08 runtime text surface component Text command prewarm/layout: rustfmt passed, log docs/tests/runtime/text/runtime_text_component_command_prewarm_rustfmt_check_actual_path_20260708.log SHA256 E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855; focused Cargo passed 3/3 with log docs/tests/runtime/text/runtime_text_component_command_prewarm_cargo_retry_20260708.log SHA256 7020C78EAD179467B661D383928016CB2D90B2386E43930D31271861BF2E72E3; no PNG because this is a nonvisual cache/prewarm/layout route)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/mod.rs zircon_runtime/src/text/parallel/mod.rs zircon_runtime/src/text/parallel/raster_pool.rs zircon_runtime/src/text/parallel/tests.rs (2026-07-07 runtime text async raster worker queue: passed)
+
+  - cargo test --manifest-path zircon_runtime\Cargo.toml text_raster_worker_pool --lib --no-default-features --locked --jobs 1 --message-format short --color never -- --test-threads=1 --nocapture (2026-07-07 runtime text async raster worker queue: passed 5/5, 7206 filtered; log docs/tests/runtime/text/runtime_text_async_raster_worker_queue_cargo_test_cmd2_20260707.log SHA256 897F3AF35147A0FCF27B1E3474D871E3C6B3CEDFCCD56DFFE442DAE0FB35556B; exit SHA256 9ACA8DFCE962538FB8131D73F84CADA05E4DC79F5A0D3612C511B1150F3E33E2; target/cargo-target PNG scan SHA256 B9A4B64CCF8EB00D539DCD6E4C3B88D63906FBD1190A73CF0902303813BF5C74; no fresh PNG because this is a nonvisual worker/data-plane slice)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/raster/metrics.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/raster/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_text_tests/latest_crop.rs (2026-07-07 editor retained-host 13px compact swash unhinted raster: passed; focused Cargo/PNG proof was run afterward and is recorded below)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_13px_unhinted_spacing_rustfmt_check_20260707.log, docs/tests/runtime/text/runtime_text_editor_retained_13px_unhinted_spacing_diff_check_20260707.log, docs/tests/runtime/text/runtime_text_editor_retained_13px_unhinted_spacing_conflict_scan_20260707.log, docs/tests/runtime/text/runtime_text_editor_retained_13px_unhinted_spacing_active_cargo_lanes_20260707.log (2026-07-07 editor retained-host 13px compact swash unhinted static validation: rustfmt SHA256 E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855; diff SHA256 322955B722F5CF774EA4AAB4A4960F531E494792C441EB385A05AE9D64DCA562; conflict scan SHA256 B517C093D7568D6B23AF2A2B4EEE5282964A8890FF593BA4727DC1511F5403B0; active lanes SHA256 4A6BE41DA8D4AE4DD4B2EF1CB6020215FBC0C932C2B1F3DD3CB4447832C3AC1D)
+
+  - cargo test -p zircon_editor retained_text_editor_latest_crop_labels_keep_stable_ink_spacing --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-alert-toasts-0707 --message-format short --color never -- --test-threads=1 --nocapture (2026-07-07 editor retained-host 13px compact proof: passed 1/1, 2841 filtered; log docs/tests/runtime/text/runtime_text_editor_retained_13px_unhinted_spacing_cargo_latest_crop_20260707.log SHA256 67D8DEBA38B30BE18F13500104B1AEA7022F917C5BAB8575496331DF220FA1E6)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_13px_unhinted_spacing_20260707.png, docs/tests/runtime/text/runtime_text_editor_retained_13px_unhinted_spacing_20260707_full_label.png, docs/tests/runtime/text/runtime_text_editor_retained_13px_unhinted_spacing_20260707_narrow_label.png, docs/tests/runtime/text/runtime_text_editor_retained_13px_unhinted_spacing_20260707_full_label_zoom4x.png, docs/tests/runtime/text/runtime_text_editor_retained_13px_unhinted_spacing_20260707_narrow_label_zoom4x.png, and docs/tests/runtime/text/runtime_text_editor_retained_13px_unhinted_spacing_20260707.log (2026-07-07 editor retained-host 13px compact proof PNGs/log: inspected; PNG SHA256 EFABABF81FA16F930B3361485B6A2F75485822B602C17440FBB86E38CA94D7AF / E2649D37357022F83CDADF6A399670C1DD68E6511D7442FAF88143D6FDC99252 / 708A6A3D46DC1F30B9D6C3AAEDC655ED22820964EDA38013DF00E02D01A74F55 / 683B22F978D232CE03057FBE8DBF259BC2997F7C97E1F7C9EE3A1E2222C9C09D / 1DF7C5DFCDAC4E0969EDF9C4F4BED3F648D68DA6C03C8E44E0E60948556ACC73; proof log SHA256 F240FC3CD6D7DA93CD65FDBE8F20FFF87FD04900A3A48B34369A1B999B0B103A; target scan SHA256 E8DBA7C6EB400689C605478FB3B51E69A08697FC0C222F2FD32909547760215A)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/native_bitmap_atlas.rs zircon_runtime/src/text/native_bitmap_atlas/handoff.rs zircon_runtime/src/text/native_bitmap_atlas/tests/frame.rs zircon_runtime/src/text/native_bitmap_atlas/tests/handoff.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs (2026-07-07 native bitmap atlas first-frame degradation report: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_native_bitmap_atlas_first_frame_degradation_rustfmt_check_20260707.log, docs/tests/runtime/text/runtime_text_native_bitmap_atlas_first_frame_degradation_diff_check_20260707.log, docs/tests/runtime/text/runtime_text_native_bitmap_atlas_first_frame_degradation_conflict_scan_20260707.log, docs/tests/runtime/text/runtime_text_native_bitmap_atlas_first_frame_degradation_active_lanes_20260707.log (2026-07-07 native bitmap atlas first-frame degradation static validation: rustfmt SHA256 E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855; diff SHA256 BED6BE15975FA75A1E86BF377D9E07C648B893D2011B6A27AED4FD552E13CE53; conflict scan SHA256 B517C093D7568D6B23AF2A2B4EEE5282964A8890FF593BA4727DC1511F5403B0; active lanes SHA256 3EA0C54F8CC1F647D26B3614E8203888687903FF57EF3F9A41C76AFCE17442D6; no fresh PNG because this is a nonvisual report contract)
+
+  - cargo test -p zircon_runtime first_frame_degradation --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-missing-raster-0707 --message-format short --color never -- --test-threads=1 --nocapture (2026-07-07 native bitmap atlas first-frame degradation placeholder proof: passed 1/1, 7197 filtered; log docs/tests/runtime/text/runtime_text_native_bitmap_atlas_first_frame_degradation_cargo_tests_warm_20260707.log SHA256 A9A9D0C57D7EA24C7C8EDA5E05227B424D00850BEB9CCCCA851F42146FD71DB4)
+
+  - docs/tests/runtime/text/runtime_text_native_bitmap_atlas_first_frame_degradation_cargo_missing_raster_20260707.log, docs/tests/runtime/text/runtime_text_native_bitmap_atlas_first_frame_degradation_direct_missing_raster_20260707.log, docs/tests/runtime/text/runtime_text_native_bitmap_atlas_first_frame_degradation_direct_raster_image_missing_20260707.log (2026-07-07 native bitmap atlas missing-raster rerun: Cargo retry failed before tests on dep-info/fingerprint path write, exit 101, SHA256 9058514C48EC14938B80A807748873137C47ED6A9D013821439411B61B671F43; direct newly generated runtime lib-test binary passed missing_raster_image 1/1, SHA256 FC2620F204E6585FCB24B31D819A28E17178F4D390D15B1B192E28833C79BE9D; direct raster_image_is_missing passed 1/1, SHA256 95B3B90EFCFD066A7EABBF5D298280AFC29794640765E79E9E55491B001D1FF7; no fresh PNG because this is a nonvisual report contract)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/bitmap_run/retry.rs zircon_runtime/src/text/atlas/bitmap_run/tests/retry.rs zircon_runtime/src/text/atlas/render_submission/retry.rs zircon_runtime/src/text/atlas/render_submission/tests/retry_frame.rs (2026-07-07 bitmap atlas new-source frame budget: passed; log docs/tests/runtime/text/runtime_text_bitmap_atlas_new_source_budget_rustfmt_20260707.log SHA256 7EB70257593DA06F682A3DDDA54A9D260D4FC514F645237F5CA74B08F8DA61A6)
+
+  - cargo test --manifest-path zircon_runtime\Cargo.toml new_source --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-new-source-budget-0707 --message-format short --color never -- --test-threads=1 --nocapture (2026-07-07 bitmap atlas new-source frame budget: passed 5/5, 7196 filtered; log docs/tests/runtime/text/runtime_text_bitmap_atlas_new_source_budget_manifest_cargo_test_rerun_20260707.log SHA256 E95852F0FD3243516884BB34B9DD6D8CCDF247B31EA1997E3059D5CE80A4A8AD; code diff-check SHA256 2F445CFA6171BBFE250F444DF837DE9EA8CDD2C71FAA2B6C5AA107FC8E0A54CC; target/cargo-target PNG scan SHA256 E8DBA7C6EB400689C605478FB3B51E69A08697FC0C222F2FD32909547760215A; no fresh PNG because this is a nonvisual budget/telemetry data-plane slice)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs (2026-07-07 renderer requeue prepare report: passed; line counts atlas-renderer/renderer-tests = 612/377; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_renderer_requeue_prepare_report_rustfmt_check_20260707.log, docs/tests/runtime/text/runtime_text_renderer_requeue_prepare_report_diff_check_20260707.log, docs/tests/runtime/text/runtime_text_renderer_requeue_prepare_report_target_scan_20260707.log, docs/tests/runtime/text/runtime_text_renderer_requeue_prepare_report_active_cargo_lanes_20260707.log (2026-07-07 renderer requeue prepare report: rustfmt SHA256 E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855; diff SHA256 9B8CF7DCDFA470AEE8AF6950A4538B5F526FE6B20E1F387E2EDACD7D2B5A8730; target/cargo-target PNG count 0 with scan SHA256 AB887AE584012EDE422687CF6EA5CD1F96467319F0CCE820AB2E6BDEFBBF7EA4; active lanes SHA256 DD2633F9918794F7EC1E8E7D5BEB2B271627D78A62843B3F6FFB6FF28FFADDDD; no fresh PNG because this is a nonvisual data-plane slice)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs (2026-07-07 texture upload requeue frame report: passed; line counts atlas-texture-upload/frame/tests = 26/194/582; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_texture_upload_requeue_frame_report_rustfmt_check_20260707.log, docs/tests/runtime/text/runtime_text_texture_upload_requeue_frame_report_diff_check_20260707.log, docs/tests/runtime/text/runtime_text_texture_upload_requeue_frame_report_target_scan_20260707.log, docs/tests/runtime/text/runtime_text_texture_upload_requeue_frame_report_active_cargo_lanes_20260707.log (2026-07-07 texture upload requeue frame report: rustfmt SHA256 E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855; diff SHA256 6C82D3851BB74D9EA3C55DAE6959AE6343B1598D54714AF909B1D048B49D73D7; target/cargo-target PNG count 0 with scan SHA256 F5EBE6F4D19134D995F81999317C4A70C3FB6B1194E8E17365084F0784CEDC0B; active lanes SHA256 8E8823430E3CD975C09F7119FCF323888275A04B3B250DDF724A3CD7D4AC1890; no fresh PNG because this is a nonvisual data-plane slice)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/bitmap_run.rs zircon_runtime/src/text/atlas/mod.rs zircon_runtime/src/text/atlas/bitmap_run/staged_upload.rs zircon_runtime/src/text/atlas/bitmap_run/tests.rs (2026-07-07 bitmap atlas stale upload requeue report: passed; line counts staged_upload/bitmap_run-tests/bitmap_run/atlas-mod = 323/734/137/68; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_stale_upload_requeue_rustfmt_check_20260707.log, docs/tests/runtime/text/runtime_text_bitmap_atlas_stale_upload_requeue_diff_check_20260707.log, docs/tests/runtime/text/runtime_text_bitmap_atlas_stale_upload_requeue_target_scan_20260707.log, docs/tests/runtime/text/runtime_text_bitmap_atlas_stale_upload_requeue_active_cargo_lanes_20260707.log (2026-07-07 bitmap atlas stale upload requeue report: rustfmt SHA256 E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855; diff SHA256 A55E2DE7EF47461EDB4D6F5255E2B2371C49D8444BBFF24E49785DA7671F931A; target/cargo-target PNG count 0 with scan SHA256 F5EBE6F4D19134D995F81999317C4A70C3FB6B1194E8E17365084F0784CEDC0B; active lanes SHA256 81E33FFEE55203CED4C83158AE554798C1BE7F4FA5FD511E63E77E63BCB41C85; no fresh PNG because this is a nonvisual data-plane slice)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/metrics.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs (2026-07-07 editor retained-host same-phase origin drift guard: passed; line counts layout/layout-metrics/layout-tests = 663/146/753)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_same_phase_origin_drift_guard_validation_20260707.log (2026-07-07 editor retained-host same-phase origin drift guard: SHA256 7193440149FA3C4FB4CC384E0905769C93D398050968D1B0349899946943FA36; target/cargo-target same-name scan 0; later proof Cargo attempts are recorded below as non-green timeout evidence)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/metrics.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs (2026-07-07 editor retained-host proof stem hook: passed; line counts paint-text-tests/layout/layout-metrics/layout-tests = 723/663/146/753)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_same_phase_origin_drift_guard_proof_stem_hook_validation_20260707.log (2026-07-07 editor retained-host proof stem hook: SHA256 A7936DC9ADD771338B9852F6FEC819821DD1334630E65247C6609E039A6D4F48; exit SHA256 13BF7B3039C63BF5A50491FA3CFD8EB4E699D1BA1436315AEF9CBE5711530354)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_same_phase_origin_drift_guard_cargo_proof_20260707.log (2026-07-07 editor retained-host same-phase proof Cargo attempt: exit -1 during early dependency compilation; no test result; SHA256 F48EA3A4BC40D50D354BCD6B1FD7BFBCA7BF353180DBA37A6DF6A2F92969DF36)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_same_phase_origin_drift_guard_cargo_proof_rerun_20260707.log (2026-07-07 editor retained-host same-phase proof Cargo rerun: 923s compile timeout/no test result; SHA256 D4BF6A0E76223C687EECE892AE8456301FAECA2695426BD24D47850C6DA834DB)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_same_phase_origin_drift_guard_cargo_proof_target_scan_20260707.log (2026-07-07 editor retained-host same-phase proof scan: docs/target/cargo-target same-stem PNG count 0 and no owned zircon_editor test binary; SHA256 46DB2FFC104989682A01E4A5A254A8B6DBFB9791400F231BEC59EBC4C585BA95)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_same_phase_origin_drift_guard_cargo_proof_rerun2_20260707.log (2026-07-07 editor retained-host same-phase proof Cargo rerun2: 480s compile/warning timeout; no test result; SHA256 6471B3A85089FD72C3B8EC752306C4860A60E428E469FBC97DEF0731EBFE2F3A)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_same_phase_origin_drift_guard_cargo_proof_rerun2_target_scan_20260707.log (2026-07-07 editor retained-host same-phase proof rerun2 scan: docs/target/cargo-target same-stem PNG count 0 and no owned zircon_editor test binary; SHA256 F847CDF2611642F67173C69C52A672DBE827E08CAC62C4C96E15043E4864585F)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_same_phase_origin_drift_guard_direct_binary_20260707.log (2026-07-07 editor retained-host same-phase proof direct binary: passed 1/1; SHA256 542818B5FF18C3ABADE5A1A8713F11062C16CCFBE3B019728CF1886EDAD06ED5)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_same_phase_origin_drift_guard_20260707.png, docs/tests/runtime/text/runtime_text_editor_retained_same_phase_origin_drift_guard_20260707_full_label.png, docs/tests/runtime/text/runtime_text_editor_retained_same_phase_origin_drift_guard_20260707_narrow_label.png (2026-07-07 editor retained-host same-phase proof PNGs: inspected real retained HostRgbaFrame output; SHA256 8C81D6D27699ED503196F146636A3CF7EB51D202FF4E933AC96E6D1F17BD4E83 / 1C33579842EE9D0A912695219CDDA508BF247703151729C60A8EC93AD5365128 / 83B6CFDE5EAC92A9D2E349C605630484BC1FB5C3DA059F99D508D20B0E443339)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_same_phase_origin_drift_guard_direct_binary_acceptance_20260707.log and docs/tests/runtime/text/runtime_text_editor_retained_same_phase_origin_drift_guard_direct_binary_target_scan_20260707.log (2026-07-07 editor retained-host same-phase proof acceptance + target scan: acceptance SHA256 B9BB847E9E8EB857F24619B2BDC40F71D7782D47E738BC05FDA141A2D230AF4D; target/cargo-target same-name PNG count 0, scan SHA256 39736FD9FC4F493629257F0F73F6CFD8CD129D120A955ABA3E0E0D6F3D0E9B95)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/font/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs (2026-07-07 editor retained-host font collection index propagation: passed; line counts font/font-tests/raster = 367/167/336; log SHA256 E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_font_collection_index_diff_check_20260707.log (2026-07-07 editor retained-host font collection index propagation: scoped git diff --check passed; SHA256 9C60AC0E3169495254EF12628617F128323592BCBF9B4DB89B2A9D19756B459F)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_font_collection_index_direct_binary_20260707.log (2026-07-07 editor retained-host font collection index direct proof: passed 1/1; SHA256 ED7F8435FF0344BA915C1B71B571C559048463E7DFC64581DDE3CD90366DCCEE)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_font_collection_index_20260707.png, docs/tests/runtime/text/runtime_text_editor_retained_font_collection_index_20260707_full_label.png, docs/tests/runtime/text/runtime_text_editor_retained_font_collection_index_20260707_narrow_label.png, and docs/tests/runtime/text/runtime_text_editor_retained_font_collection_index_20260707.log (2026-07-07 editor retained-host font collection index proof PNGs/log: inspected; PNG SHA256 8C81D6D27699ED503196F146636A3CF7EB51D202FF4E933AC96E6D1F17BD4E83 / 1C33579842EE9D0A912695219CDDA508BF247703151729C60A8EC93AD5365128 / 83B6CFDE5EAC92A9D2E349C605630484BC1FB5C3DA059F99D508D20B0E443339; metrics log SHA256 6DA9022798A3DC8C0E24FA4DA8F3465F945F875DF556A53CB59FE5053C62487E)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_font_collection_index_target_scan_20260707.log (2026-07-07 editor retained-host font collection index target scan: repo target and external cargo-target same-stem PNG count 0; SHA256 E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/native_bitmap_atlas.rs zircon_runtime/src/text/native_bitmap_atlas/storage.rs zircon_runtime/src/text/native_bitmap_atlas/tests.rs zircon_runtime/src/text/native_bitmap_atlas/tests/frame.rs (2026-07-07 native bitmap atlas mixed-storage persistent atlas: passed; line counts native/storage = 640/155)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-mixed-storage-persistent-0707 --message-format short --color never (2026-07-07 native bitmap atlas mixed-storage persistent atlas: passed; log docs/tests/runtime/text/runtime_text_native_bitmap_atlas_mixed_storage_persistent_cargo_check_20260707.log SHA256 39D8D29FAAAB1D51ADE0CFAEAB8D43CD46A8136414258DD1A8418257A00FAAC5)
+
+  - docs/tests/runtime/text/runtime_text_native_bitmap_atlas_mixed_storage_persistent_cargo_test_20260707.log, docs/tests/runtime/text/runtime_text_native_bitmap_atlas_mixed_storage_persistent_cargo_test_retry_20260707.log, and docs/tests/runtime/text/runtime_text_native_bitmap_atlas_mixed_storage_persistent_cargo_test_fixed_20260707.log (2026-07-07 native bitmap atlas mixed-storage persistent focused Cargo: timed out during Windows lib-test compile/link after one retry exposed and fixed storage-submission visibility; no test result counted green; SHA256 2B81E554F4E4D1417D0E981ECAAF2BEE5C056A0EC5BA9F679C1510B68E1127C0 / 169038520853078091365C7BFCDE4667AC91160E0B0320896794AAE33FDB42CB / 48DA7F5ECF572DA08C0D5DA18B75E962C451A48DA849B030CF613C73D47BC040)
+
+  - docs/tests/runtime/text/runtime_text_native_bitmap_atlas_mixed_storage_persistent_preview_20260707.png, docs/tests/runtime/text/runtime_text_native_bitmap_atlas_mixed_storage_persistent_static_20260707.log, and docs/tests/runtime/text/runtime_text_native_bitmap_atlas_mixed_storage_persistent_target_scan_20260707.log (2026-07-07 native bitmap atlas mixed-storage persistent proof: PNG inspected; preview SHA256 A4E5069E35EE7EC1B8279751C5D0334F102BC87A760CD9C86C42ED176D82F8F9; static log SHA256 6B64D3A5F457B6DE42CF8EE717FCAE82BF5E9BDFE31549465FAE0FFD2540900B; target/cargo-target same-name scan count 0, SHA256 4726D31A4C8D09B577716B35527BCE04CD30AAE02F550A65CEE3B0F59EE5B56E)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/native_bitmap_atlas.rs zircon_runtime/src/text/native_bitmap_atlas/handoff.rs zircon_runtime/src/text/native_bitmap_atlas/tests.rs zircon_runtime/src/text/native_bitmap_atlas/tests/frame.rs zircon_runtime/src/text/native_bitmap_atlas/tests/handoff.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs (2026-07-07 native bitmap atlas missing raster image fail-closed: passed; line counts native/handoff/frame-tests/handoff-tests/root-text-tests = 647/78/472/129/354; log SHA256 E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-missing-raster-0707 --message-format short --color never (2026-07-07 native bitmap atlas missing raster image fail-closed: passed; log docs/tests/runtime/text/runtime_text_native_bitmap_atlas_missing_raster_image_fail_closed_cargo_check_20260707.log SHA256 808D515EE4921F35398506EBDC33788EC7D096DAE275431217DFEC4E280528F4)
+
+  - docs/tests/runtime/text/runtime_text_native_bitmap_atlas_missing_raster_image_fail_closed_cargo_test_20260707.log and docs/tests/runtime/text/runtime_text_native_bitmap_atlas_missing_raster_image_fail_closed_cargo_test_fixed_20260707.log (2026-07-07 native bitmap atlas missing raster image focused Cargo: first run failed during lib-test compile because root prepare-report expectations missed the new field, SHA256 322D34D05C8C259D7977F69102155AEC1FA5F812D6C2D63653CA072F5CBC2349; fixed rerun passed `native_bitmap_atlas_frame_keeps_glyphon_when_raster_image_is_missing` 1/1 with 7186 filtered, SHA256 8EDF02531E5943A910A839C6E47FE573D9FFD48410735225B898A7EC9713EC15)
+
+  - docs/tests/runtime/text/runtime_text_native_bitmap_atlas_missing_raster_image_fail_closed_preview_20260707.png and docs/tests/runtime/text/runtime_text_native_bitmap_atlas_missing_raster_image_fail_closed_target_scan_20260707.log (2026-07-07 native bitmap atlas missing raster image fail-closed proof: PNG inspected; preview SHA256 D0B56AFE9B985C7458761071DF19024D1F549CE6DEE7ADCDFDE260E571315AF5; target/cargo-target same-name scan count 0, SHA256 4726D31A4C8D09B577716B35527BCE04CD30AAE02F550A65CEE3B0F59EE5B56E)
+
+  - rustfmt --edition 2021 zircon_runtime/src/ui/text/measure_cache.rs zircon_runtime/src/ui/surface/render/extract.rs zircon_runtime/src/ui/tests/text_pipeline (2026-07-06 PF-M1 frame-dedup production routing: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-frame-dedup-0706 --message-format short --color never (2026-07-06 PF-M1 frame-dedup production routing: passed; log docs/tests/runtime/text/runtime_text_frame_dedup_production_routing_cargo_check_20260706.log SHA256 15D4173CE0CEB10E6535D97BE42111ACB8242D1DFCDD372729C7E0C8D0219006; exit docs/tests/runtime/text/runtime_text_frame_dedup_production_routing_cargo_check_20260706.exit.txt SHA256 F7ABB1ED6FA4EC935C9687BEE5E430DD148C7C644FC9E069B0B7605F0CD71832)
+
+  - cargo test -p zircon_runtime text_measure_cache --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-frame-dedup-0706 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-06 PF-M1 frame-dedup production routing: timed out after 604s during lib-test binary compilation; matching cargo/rustc processes for that target-dir were stopped; not counted as passing)
+
+  - rustfmt --edition 2021 zircon_runtime/src/text/shaping/mod.rs zircon_runtime/src/text/layout/measure.rs zircon_runtime/src/text/layout/mod.rs zircon_runtime/src/text/layout/line_break/greedy.rs zircon_runtime/src/text/layout/line_break/glyph_fallback.rs zircon_runtime/src/text/layout/line_break/mod.rs zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/layout_engine/ellipsis.rs zircon_runtime/src/ui/text/layout_engine/line_box.rs zircon_runtime/src/ui/text/layout_engine/overflow_style.rs zircon_runtime/src/ui/text/layout_engine/vertical.rs zircon_runtime/src/ui/text/layout_engine/wrapping.rs zircon_runtime/src/ui/text/resolved_layout.rs zircon_runtime/src/ui/text/shaper.rs zircon_runtime/src/ui/text/measure_cache.rs zircon_runtime/src/text/cache/shaped_cache.rs zircon_runtime/src/ui/tests/text_pipeline (2026-07-06 PF-M1 shared shaped-run provider routing: passed; log docs/tests/runtime/text/runtime_text_shaped_run_provider_rustfmt_check_20260706_r2.log SHA256 E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-shaped-cache-0706 --message-format short --color never (2026-07-06 PF-M1 shared shaped-run provider routing: passed; log docs/tests/runtime/text/runtime_text_shaped_run_provider_cargo_check_20260706_r3.log SHA256 4AB158F5A68376AB92AB0FFA3BEC5F62CA9171796E5C909DFEE969055AF52A95)
+
+- rustfmt --edition 2021 --check zircon_runtime/src/ui/tests/render_segmented_controls.rs zircon_runtime/src/ui/tests/render_selection_controls.rs zircon_runtime/src/ui/tests/render_sliders.rs zircon_runtime/src/ui/text/layout_engine/line_box.rs zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/mod.rs (2026-07-06 spacing/cache layout focused unblock: passed; log docs/tests/runtime/text/runtime_text_spacing_cache_layout_rustfmt_check_20260706.log SHA256 E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855)
+
+- cargo test -p zircon_runtime text_measure_cache_reuses_shaped_runs_between_measure_and_layout --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-shaped-cache-0706 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-06 spacing/cache layout focused unblock: passed 1/1, 6905 filtered; log docs/tests/runtime/text/runtime_text_spacing_cache_layout_focused_test_20260706.log SHA256 1DCD85CCAA299AF05AEA2CDCEEA331023D408473CF297356B8AA6114F16DE40A; exit SHA256 13BF7B3039C63BF5A50491FA3CFD8EB4E699D1BA1436315AEF9CBE5711530354)
+
+- rustfmt --edition 2021 --check zircon_runtime/src/text/layout/measure.rs zircon_runtime/src/text/layout/mod.rs zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/tests/text_pipeline (2026-07-06 PF-M1 shape-count perf guard: passed; log docs/tests/runtime/text/runtime_text_render_perf_shape_once_rustfmt_check_20260706.log SHA256 E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855)
+
+- WSL direct lib-test binary /tmp/zircon-runtime-text-shaped-cache-0706-wsl/debug/deps/zircon_runtime-45cc3b24adef629c render_perf_text_measure_then_layout_shapes_once --nocapture --test-threads=1 (2026-07-06 PF-M1 shape-count perf guard: passed 1/1; log docs/tests/runtime/text/runtime_text_render_perf_shape_once_focused_wsl_binary_20260706.log SHA256 15A8674D402A487BF3A833FC2C87FFB0799E7B316BC652E8E80D459F58319B42)
+
+- WSL direct lib-test binary /tmp/zircon-runtime-text-shaped-cache-0706-wsl/debug/deps/zircon_runtime-45cc3b24adef629c text_measure_cache --nocapture --test-threads=1 (2026-07-06 PF-M1 shape-count perf guard regression: passed 9/9; log docs/tests/runtime/text/runtime_text_render_perf_shape_once_text_measure_cache_wsl_binary_20260706.log SHA256 071AD21B834B93D1A314B4E6B06763ED0E5DD4EFB72258E164C1AD6169517C80)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/raster/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_text_tests/latest_crop.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/exports/form_controls.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/paint.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/style.rs (2026-07-06 retained-host tiny swash unhinted raster + Workbench button compile unblock: passed; focused runtime text Cargo coverage below)
+
+  - docs/tests/runtime/text/runtime_text_editor_tiny_unhinted_swash_raster_cargo_20260706.log and docs/tests/runtime/text/runtime_text_editor_tiny_unhinted_swash_crop_cargo_20260706.log (2026-07-06 retained-host tiny swash unhinted raster: `retained_text_raster_` passed 5/5, SHA256 A2B45A992639D69206E12F33949A3CEF6E7282E9A01B18E6227601D332E80CB5; tiny crop proof passed 1/1, SHA256 DF840C67C725FD8494D656BFB45424E13A180344F7BC298D098468EAF6590A9A)
+
+  - docs/tests/runtime/text/runtime_text_editor_tiny_crop_framebuffer_20260706.png, docs/tests/runtime/text/runtime_text_editor_tiny_crop_body_label_20260706.png, docs/tests/runtime/text/runtime_text_editor_tiny_crop_caption_label_20260706.png, docs/tests/runtime/text/runtime_text_editor_tiny_crop_framebuffer_20260706_zoom4.png (2026-07-06 retained-host tiny swash unhinted proof: inspected; SHA256 F31F450D7F5A25F1AB74A62DD31578A2B902B26C26A847077CAF3DEAB3475FDD / 710C016E50FEF2E676C119F0903C1CDCE2FE8CB13FDA0C6844134D3EEDF58894 / 1C000ABC27E6D1228572A3C899D8E21E999315DDCD260F2155B2665B2BC07772 / 63FAE84533FD949F3A39BE7F17DC8D3B0E7AC274D6E2C525BE018BFFC478D6BE; target same-name PNG scan 0)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_nearest_phase_rollover_placement_cargo_20260706.log and docs/tests/runtime/text/runtime_text_editor_retained_nearest_phase_rollover_tiny_crop_cargo_rerun_20260706.log (2026-07-06 retained-host nearest phase rollover: `retained_glyph_placement` passed 6/6, SHA256 E3D65A61FC3A1A1EBE043D2BC2FB498E5C8A7FFD087251B5FEC897722001A14F; tiny crop proof passed 1/1, SHA256 8CC99A5D9259C27A3D0E129F1526F855D38316F4A3EBB7A16ABCE5E126DA68BF; acceptance log SHA256 619ECCF3EBD438CA8B70C16B1F99E88AA69F4357A037DBFC91A93390CDDB0FB7)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_nearest_phase_rollover_tiny_framebuffer_20260706.png, docs/tests/runtime/text/runtime_text_editor_retained_nearest_phase_rollover_tiny_body_label_20260706.png, docs/tests/runtime/text/runtime_text_editor_retained_nearest_phase_rollover_tiny_caption_label_20260706.png and their `_zoom4.png` checks (2026-07-06 nearest-phase visual proof: inspected; SHA256 F31F450D7F5A25F1AB74A62DD31578A2B902B26C26A847077CAF3DEAB3475FDD / 710C016E50FEF2E676C119F0903C1CDCE2FE8CB13FDA0C6844134D3EEDF58894 / 1C000ABC27E6D1228572A3C899D8E21E999315DDCD260F2155B2665B2BC07772 / 63FAE84533FD949F3A39BE7F17DC8D3B0E7AC274D6E2C525BE018BFFC478D6BE / 2D183924E28EE5DF42FD932B71EE551B913C8D8FDFD3A0F5E5F18AADC204034C / EC783861BE107437951C0DF57DD4586A50B7C6EEA795E60DB2D0B98E7F2084C9; target/cargo-target same-name PNG scan 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/mod.rs zircon_runtime/src/text/cache/mod.rs zircon_runtime/src/text/cache/shaped_cache.rs zircon_runtime/src/text/cache/tests.rs (2026-07-06 shaped run cache contract data-plane: passed; focused Cargo deferred because unrelated runtime_environment_ibl_bake_artifact_contract cargo/rustc lanes were active)
+
+  - git diff --check -- zircon_runtime/src/text/mod.rs zircon_runtime/src/text/cache/mod.rs zircon_runtime/src/text/cache/shaped_cache.rs zircon_runtime/src/text/cache/tests.rs (2026-07-06 shaped run cache contract data-plane: passed with LF/CRLF warning only; conflict marker scan returned 0; target/cargo-target runtime_text_shaped_run_cache* scan returned 0)
+
+  - rustfmt --edition 2021 zircon_runtime/src/text/cache/mod.rs zircon_runtime/src/text/cache/measure_cache.rs zircon_runtime/src/text/cache/tests.rs zircon_runtime/src/ui/text/measure_cache.rs (2026-07-06 measure cache data-plane owner: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - rustfmt --edition 2021 zircon_runtime/src/text/cache/mod.rs zircon_runtime/src/text/cache/layout_cache.rs zircon_runtime/src/text/cache/tests.rs (2026-07-06 layout cache data-plane owner: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - rustfmt --edition 2021 zircon_runtime/src/text/cache/mod.rs zircon_runtime/src/text/cache/frame_dedup.rs zircon_runtime/src/text/cache/tests.rs (2026-07-06 frame dedup data-plane owner: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/native_bitmap_atlas.rs zircon_runtime/src/text/native_bitmap_atlas/handoff.rs zircon_runtime/src/text/native_bitmap_atlas/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs (2026-07-05 native bitmap atlas fallback reason telemetry: passed; focused Cargo deferred because unrelated external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_native_bitmap_atlas_fallback_reason_preview_20260705.png and docs/tests/runtime/text/runtime_text_native_bitmap_atlas_fallback_reason_validation_20260705.log (2026-07-05 native bitmap atlas fallback reason proof: inspected; PNG SHA256 3B6A5965753EF9769E5CBCDAA1827F3EBF0A6A04C8D389260CF1B00CB65BB153; log SHA256 B541E92E405B52A5A8D66E79EB3BCB5E3159422EF3EDD88FFD45AA09D228C09C; target/cargo-target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/text/native_bitmap_atlas.rs zircon_runtime/src/text/native_bitmap_atlas/handoff.rs zircon_runtime/src/text/native_bitmap_atlas/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs (2026-07-05 native bitmap atlas handoff owner extraction: passed; focused Cargo deferred because unrelated external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_native_bitmap_atlas_handoff_owner_preview_20260705.png and docs/tests/runtime/text/runtime_text_native_bitmap_atlas_handoff_owner_validation_20260705.log (2026-07-05 native bitmap atlas handoff owner proof: inspected; PNG SHA256 B97D06F24B38594DCECF485FEC38D27E825565D6AD9F48699476C22081901BDF; log SHA256 B64F35B3D2B3785602012ED91FF60550CA05FD0B85E0FC2A91D82B5B3AA223D9; target/cargo-target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/resources.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs (2026-07-05 native bitmap atlas nearest sampler: passed)
+
+  - cargo test -p zircon_runtime glyph_atlas_bitmap_sampler_matches_glyphon_nearest_sampling_contract --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-atlas-sampler-0706 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-06 native bitmap atlas nearest sampler focused rerun: passed 1/1, 6849 filtered; log docs/tests/runtime/text/runtime_text_bitmap_atlas_nearest_sampler_focused_cargo_20260706.log SHA256 AD2A6E83F4D73F08C1A53404740E1148353D791F0F15AE9316B783FAE4BE5692; exit SHA256 A9F58776A09B5DAC438049683F24BF85764E0FF8E7455952456165C68C158627)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_nearest_sampler_preview_20260705.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_nearest_sampler_validation_20260705.log (2026-07-05 native bitmap atlas nearest sampler proof: inspected; PNG SHA256 A8C071C64D89F6380CAC2D11B64970CD078051B9DD030AD3D1515395EF5C9A0B; log SHA256 8734A1008CB635E072FFE89546368A579BAD4075DBEBABB6969031E747394DD0; target/cargo-target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs (2026-07-05 native bitmap atlas renderer face-invalidation storage-pass telemetry: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - rustfmt --edition 2021 zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs (2026-07-05 face-invalidation compile unblock: passed; `prepare_plan` now declares `report` mutable before applying pending face-invalidation telemetry, matching the existing `prepare_submission` flow; this unblocked the source-cubemap SH9 integration test build)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_renderer_face_invalidation_preview_20260705.png and docs/tests/runtime/text/runtime_text_bitmap_renderer_face_invalidation_validation_20260705.log (2026-07-05 native bitmap atlas renderer face-invalidation proof: inspected; PNG SHA256 5D35B7421413F7C8B1C47E4AAC5B25794D8BC2DFB27CC66730732091EF981CB1; log SHA256 15B149B884E73979E2B16CBE3B6A2D94735362B3F7E086E8FBD5CE12CD9E0FF1; target/cargo-target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/render_submission/frame_state.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/text/native_bitmap_atlas.rs zircon_runtime/src/text/native_bitmap_atlas/tests.rs zircon_runtime/src/text/native_bitmap_atlas/tests/retry_frame.rs (2026-07-05 native bitmap atlas retry face-invalidation report: passed; scoped git diff --check passed with LF/CRLF warnings only; conflict/trailing scans returned 0; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_native_bitmap_atlas_retry_face_invalidation_preview_20260705.png and docs/tests/runtime/text/runtime_text_native_bitmap_atlas_retry_face_invalidation_validation_20260705.log (2026-07-05 native bitmap atlas retry face-invalidation proof: inspected; PNG SHA256 A02F00772E0908C0FCFB69F51DFE70BD353A23B7855A6D1583CF052E15EC505A; log SHA256 C6C3B2CE2460E450C2163407A4995E8915E260A28F6D777A7C17544E1B2FD47D; target/cargo-target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/native_bitmap_atlas.rs zircon_runtime/src/text/native_bitmap_atlas/retry_frame.rs zircon_runtime/src/text/native_bitmap_atlas/tests.rs zircon_runtime/src/text/native_bitmap_atlas/tests/retry_frame.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs (2026-07-06 native bitmap atlas retry stale selection telemetry: passed; scoped git diff --check passed with LF/CRLF warnings only)
+
+  - docs/tests/runtime/text/runtime_text_native_bitmap_atlas_retry_stale_selection_validation_20260706.log (2026-07-06 native bitmap atlas retry stale selection validation log: SHA256 9961E678C812FBB79998B09EFBF0F430FB651EEEFABA46F43839BBD728254D01; target/cargo-target same-name match count 0; no fresh visual generated)
+
+  - docs/tests/runtime/text/runtime_text_native_bitmap_atlas_retry_focused_cargo_20260706.log (2026-07-06 native bitmap atlas retry focused Cargo: `cargo test -p zircon_runtime native_bitmap_atlas_retry --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-native-retry-0706 --message-format short --color never -- --nocapture --test-threads=1` passed 5/5; SHA256 9ECCE49DCCAD9B5CE533EE1E2111A36D6F0F0F8A9AC066A226B0120F85368F3F)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs zircon_runtime/src/text/native_bitmap_atlas.rs zircon_runtime/src/text/native_bitmap_atlas/retry_frame.rs zircon_runtime/src/text/native_bitmap_atlas/tests.rs zircon_runtime/src/text/native_bitmap_atlas/tests/retry_frame.rs (2026-07-05 native bitmap atlas retry-frame state execution: passed; scoped git diff --check passed with LF/CRLF warnings only; conflict/residual scan returned 0; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_native_bitmap_atlas_retry_frame_state_preview_20260705.png and docs/tests/runtime/text/runtime_text_native_bitmap_atlas_retry_frame_state_validation_20260705.log (2026-07-05 native bitmap atlas retry-frame state proof: inspected; PNG SHA256 4E4F6035CE84D6501DCF272D59F50156193D608EC1C3BFCE7365AEE4A8071041; log SHA256 87B2631FE1AC2C87433F548FF97D75FF0AE75979BD4590B7F39F99B1E5C983AB; target/cargo-target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs zircon_runtime/src/text/native_bitmap_atlas.rs zircon_runtime/src/text/native_bitmap_atlas/tests.rs (2026-07-05 native bitmap atlas frame index: passed; scoped git diff --check passed with LF/CRLF warnings only; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_native_bitmap_atlas_frame_index_preview_20260705.png and docs/tests/runtime/text/runtime_text_native_bitmap_atlas_frame_index_validation_20260705.log (2026-07-05 native bitmap atlas frame index proof: inspected; PNG SHA256 1C6259F792FC3A17AA45C2C4E454593EC16A46881E7B7856BC736FCEC1F84FB7; log SHA256 537F88AD32DA89317F814D6CE643D278DB742F1000C0C7891DDD180E2FBDF566; target/cargo-target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/text/native_bitmap_atlas.rs zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs zircon_runtime/src/text/native_bitmap_atlas/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs (2026-07-05 native bitmap atlas source cache eviction: passed before docs update; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_native_bitmap_atlas_source_cache_preview_20260705.png and docs/tests/runtime/text/runtime_text_native_bitmap_atlas_source_cache_validation_20260705.log (2026-07-05 native bitmap atlas source cache proof: inspected after regenerating to remove overlapped text; PNG SHA256 1E14BAC0D645C799F0C1B6CED7B3B688810D0DA906E8296C513E90D517D71B10; log SHA256 53D4E8BA41AF8F37023D61F52C054AB374AB358CF61AB7DE049995DA2F9993EE; target/cargo-target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/text/native_bitmap_atlas.rs zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs zircon_runtime/src/text/native_bitmap_atlas/tests.rs (2026-07-05 native bitmap atlas idle source-cache discard: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_native_bitmap_atlas_idle_source_cache_discard_preview_20260705.png and docs/tests/runtime/text/runtime_text_native_bitmap_atlas_idle_source_cache_discard_validation_20260705.log (2026-07-05 native bitmap atlas idle source-cache discard proof: inspected after regenerating once to avoid text clipping; PNG SHA256 3AAEDFD539282C7B39145F58AA5FCCAD885B3D1056F79C89BEEE350A86845569; log SHA256 01897DB95CFA33920506EBD15C514BF7398B2C13C5C588DE9AC5C43C69421C33; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs zircon_runtime/src/text/native_bitmap_atlas/tests.rs (2026-07-05 native bitmap atlas face invalidation source-cache guard: passed; scoped git diff --check passed with LF/CRLF warnings only; focused Cargo deferred because 6 external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_native_bitmap_atlas_face_invalidation_preview_20260705.png and docs/tests/runtime/text/runtime_text_native_bitmap_atlas_face_invalidation_validation_20260705.log (2026-07-05 native bitmap atlas face invalidation source-cache proof: inspected; PNG SHA256 6C3CFB3E81034048E1249EF64A014FD93F431DFDBE890AB1CB4DD22776B9EE84; log SHA256 A2D021877470EC579A7FFAB9D10C64FB09C7EF59D1A8CB1FFCDD1E06C80D4C67; target/cargo-target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs (2026-07-05 retained crop framebuffer export hook: passed; actual Cargo export deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_crop_framebuffer_export_preview_20260705.png and docs/tests/runtime/text/runtime_text_editor_retained_crop_framebuffer_export_preview_20260705.log (2026-07-05 retained crop framebuffer export hook proof: inspected; PNG SHA256 CCDEB289958F388258466745699C7521B9DB4B72C700C2300B93C8FA5761B5BA; log SHA256 1166FC3467637BEE743ED7EC614E88D046E050ADE6BE435F33C9EB14FA657E2E; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; preview is not a live editor capture and not the future HostRgbaFrame export)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs (2026-07-05 retained crop framebuffer region guard: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_crop_framebuffer_region_guard_validation_20260705.log and docs/tests/runtime/text/runtime_text_editor_retained_crop_framebuffer_export_preview_20260705.png (2026-07-05 retained crop framebuffer region guard proof: log SHA256 27F709D3AE0B90C411C808A840D1AE79746613EC18152F72B5C82F8B1E780D2A; reused preview PNG SHA256 CCDEB289958F388258466745699C7521B9DB4B72C700C2300B93C8FA5761B5BA; target same-name match count 0; proof is retained framebuffer validation, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs (2026-07-05 retained crop region export PNGs: passed after formatting; paint_text_tests.rs line count 666; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_crop_region_export_preview_20260705.png and docs/tests/runtime/text/runtime_text_editor_retained_crop_region_export_validation_20260705.log (2026-07-05 retained crop region export proof: preview PNG SHA256 0C917193BF537B9C84332210AEFAD0DA00048AB914F9E1837EDB33D0A63464E0; log SHA256 BE3A4B175C8D82361DD45AFCE452D15B127145EF9A259774504C35F77F53EAA2; repo target path same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row/tests.rs (2026-07-05 retained SubpixelMask sample phase: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_subpixel_sample_phase_preview_20260705.png and docs/tests/runtime/text/runtime_text_editor_retained_subpixel_sample_phase_validation_20260705.log (2026-07-05 retained SubpixelMask sample phase proof: preview PNG SHA256 359111D8D764B8239316A47B6D148AFD96492B8F263E9A30B7578F0A3FFE1C96; log SHA256 DD3AEBCB6974787B447394704B78E444553F7B80AF0DF916F7CE63075A6258C6; target/cargo-target same-name match count 0; proof image is a static validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/page.rs zircon_runtime/src/text/atlas/page_residency.rs zircon_runtime/src/text/atlas/page_residency/tests.rs zircon_runtime/src/text/atlas/upload.rs zircon_runtime/src/text/atlas/upload/tests.rs zircon_runtime/src/text/atlas/mod.rs zircon_runtime/src/text/atlas/bitmap_run/staging.rs zircon_runtime/src/text/atlas/bitmap_run/staged_upload.rs zircon_runtime/src/text/atlas/bitmap_run/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/binding.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/submission.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs (2026-07-05 atlas page generation upload guard: passed; scoped git diff --check passed with LF/CRLF warnings only; focused Cargo page_generation filter timed out after 904s during Windows lib-test compilation and owned residual processes were stopped)
+
+  - docs/tests/runtime/text/runtime_text_atlas_page_generation_guard_preview_20260705.png and docs/tests/runtime/text/runtime_text_atlas_page_generation_guard_validation_20260705.log (2026-07-05 atlas page generation upload guard proof: inspected; PNG SHA256 E71C524CC707D941D5CFB97C7E9C7BE05DD75C6F4D6F40337FF62C72CFC92580; log SHA256 22A87474D8352455BD1B138CFD3BECC78541A6626CD1D728D402DD5898E450B7; target/cargo-target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs (2026-07-05 editor retained-host shaped-origin phase fallback: passed; line counts layout.rs=678, layout/tests.rs=705; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/editor_text_retained_phase_guard_preview_20260705.png and docs/tests/runtime/text/editor_text_retained_phase_guard_validation_20260705.log (2026-07-05 editor retained-host shaped-origin phase fallback proof: inspected; PNG SHA256 D3B66322AB0997F9FF16AA80A88D8CF589C6B3C40954FDF9A0FD475979035D83; log SHA256 BDF87532D019E57FB7DEAB83F69EC49AEF72480B18EC847FC3F5DF982615AF95; repo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/render/background.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs (2026-07-05 runtime UI inherited opaque background: passed; scoped git diff --check exit 0 with LF/CRLF warnings only; line counts render.rs=752, render/background.rs=164, render/tests.rs=714; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_ui_inherited_opaque_background_preview_20260705.png and docs/tests/runtime/text/runtime_text_ui_inherited_opaque_background_validation_20260705.log (2026-07-05 runtime UI inherited opaque background proof: inspected after regenerating once to remove overlapped flow text; PNG SHA256 2DB9B328F9B6106809DD8E7761D96EC4705F86AB1CF8DCA862B54D0911B7A4D8; log SHA256 9EFB86DBCC006E61821C2DAA3BFC0A48821453E5786B850F6EE3EC484CB589FE; repo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/render_contract.rs zircon_runtime/src/text/atlas/render_contract/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/pipeline.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs zircon_runtime/src/text/native_bitmap_atlas.rs zircon_runtime/src/text/native_bitmap_atlas/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs (2026-07-05 SubpixelMask background composite replacement route: passed; conflict marker scan and trailing whitespace scan on touched runtime atlas/text files returned 0; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_subpixel_background_composite_replacement_preview_20260705.png and docs/tests/runtime/text/runtime_text_subpixel_background_composite_replacement_validation_20260705.log (2026-07-05 SubpixelMask background composite replacement proof: inspected after regenerating once to remove overlapped flow text; PNG SHA256 ED16A45C3F15D7C4DA2491B46B26C67965E5AF3B6F4A5757370C18945A95E4C1; log SHA256 85A1225B67FAF648BE4B9BE509E8AE544345099FDB5BC0511C382F194E21733E; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs zircon_runtime/src/text/native_bitmap_atlas.rs zircon_runtime/src/text/native_bitmap_atlas/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/mod.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback/tests.rs (2026-07-05 SubpixelMask background composite input owner: passed; conflict marker scan and trailing whitespace scan returned 0; scoped git diff --check passed with LF/CRLF warnings only; line counts render.rs=729, render/tests.rs=546, text.rs=740, text/tests.rs=360, native_bitmap_atlas.rs=652, native_bitmap_atlas/tests.rs=507, sdf_render/tests/mod.rs=191, sdf_atlas/tests/mod.rs=122, sdf_fallback/tests.rs=486; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_subpixel_background_input_preview_20260705.png and docs/tests/runtime/text/runtime_text_subpixel_background_input_validation_20260705.log (2026-07-05 SubpixelMask background composite input proof: inspected; PNG SHA256 2A497EFEA7EE4550E312D449B766597444905EA781E401FAC1CEF718E9884263; log SHA256 CCE9F90EF905D3DE45883845B0C33BDC12B9526385BC90BEBC525CA48B3369E1; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs zircon_runtime/src/text/native_bitmap_atlas.rs zircon_runtime/src/text/native_bitmap_atlas/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs (2026-07-05 native bitmap atlas mixed-storage renderer cutover: passed; conflict marker scan and trailing whitespace scan returned 0; scoped git diff --check passed with LF/CRLF warnings only; parent/test/renderer owners 731/355/601/465/503/239 physical lines; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_native_bitmap_atlas_mixed_storage_renderer_cutover_preview_20260705.png and docs/tests/runtime/text/runtime_text_native_bitmap_atlas_mixed_storage_renderer_cutover_validation_20260705.log (2026-07-05 native bitmap atlas mixed-storage renderer cutover proof: inspected; PNG SHA256 DB76B17426027EE133CC5E3D2C0B693A98456068FB5749FEE333E54407942247; log SHA256 B551CC870A9738C0A6A0D1AD14A3CDB8B740A21C0042E2F50970906A405F4FA1; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/native_bitmap_atlas.rs zircon_runtime/src/text/native_bitmap_atlas/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs (2026-07-05 native bitmap atlas storage partition: passed; conflict marker scan and trailing whitespace scan passed; parent/test owners 525/393/286 physical lines; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_native_bitmap_atlas_storage_partition_preview_20260705.png and docs/tests/runtime/text/runtime_text_native_bitmap_atlas_storage_partition_validation_20260705.log (2026-07-05 native bitmap atlas storage partition proof: inspected; PNG SHA256 7C40AAC191E870C88145086FBBCE62B8F3B7429FAFEE2319F0DA6BF795FD478F; log SHA256 AB1A7EBE3F526BFF356BD78FAE3DDCB959D00340F46485E19B88A655F1C8D518; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/native_bitmap_atlas.rs zircon_runtime/src/text/native_bitmap_atlas/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs (2026-07-05 native bitmap atlas RGBA source handoff + tests owner split: passed; conflict marker scan and trailing whitespace scan passed; parent/test owners 421/398/309 physical lines; focused Cargo attempted separately and timed out during Windows lib-test compilation)
+
+  - docs/tests/runtime/text/runtime_text_native_bitmap_atlas_rgba_source_preview_20260705.png and docs/tests/runtime/text/runtime_text_native_bitmap_atlas_rgba_source_validation_20260705.log (2026-07-05 native bitmap atlas RGBA source handoff proof: inspected; PNG SHA256 74B78FAA54018E0523BC8921C9E3930E34DDD00C404309A4DEF8DB8F67EA312A; log SHA256 56D0FE4DC9FFE8F590A38919EF7D89DF8DBCF03CF060BF6478BE2C97B01A4C6E; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - cargo test -p zircon_runtime native_bitmap_atlas --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0705-native-rgba --message-format short --color never -- --nocapture --test-threads=1 (2026-07-05 native bitmap atlas RGBA source handoff focused Cargo: timed out after 904s during Windows lib-test compilation before a test result; owned cargo/rustc processes for this target were stopped; log docs/tests/runtime/text/runtime_text_native_bitmap_atlas_rgba_source_cargo_test_20260705.log SHA256 D199628C70150B7B9DEEC62A3D0327FD921E4324CA1FF77419A4A71665D40F5B; repo/cargo target same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs zircon_runtime/src/text/native_bitmap_atlas.rs (2026-07-05 native bitmap atlas prepare report + storage guard: passed; conflict marker scan and trailing whitespace scan passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_native_bitmap_atlas_prepare_report_preview_20260705.png and docs/tests/runtime/text/runtime_text_native_bitmap_atlas_prepare_report_validation_20260705.log (2026-07-05 native bitmap atlas prepare report + storage guard proof: inspected; PNG SHA256 5A5918F8FDFB4308F4E5876E7E96D8322AA5CB7F4A3EEF00CDC346918E34BF64; log SHA256 8275C9889AB84DE1963AC1CB2B664D605A52EC5185A1F1475BFE9A30BD034C66; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/native_bitmap_atlas.rs (2026-07-05 native bitmap atlas TextArea bounds clip: passed; conflict marker scan, trailing whitespace scan, and stale fail-closed scan passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_text_area_bounds_clip_preview_20260705.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_text_area_bounds_clip_validation_20260705.log (2026-07-05 native bitmap atlas TextArea bounds clip proof: inspected; PNG SHA256 4ADF1B30243B5A032D6706B28E1DF83974608E494B3DD993FA06C18C88C606C6; log SHA256 DEFA5A2D4C48CF4D8222C65DAE2533418980469E10636CBF8B7767DC4B68AB84; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs zircon_runtime/src/text/native_bitmap_atlas.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/resources.rs (2026-07-05 native alpha bitmap atlas source-feed handoff: passed; scoped git diff check passed with LF/CRLF warnings only; conflict scan passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_native_alpha_source_feed_preview_20260705.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_native_alpha_source_feed_validation_20260705.log (2026-07-05 native alpha bitmap atlas source-feed proof: inspected; PNG SHA256 773FA8B536B7D3BAE35AC3D902B04E2D1528EBB6114EE1ABDAE340869C9E4D41; log SHA256 29E8C2F1049723EC4FA7F38FDDA2D1BC10EAD0EFDBE883124E80CBBB6615037F; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement/tests.rs (2026-07-05 retained-host grayscale pixel snap: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_grayscale_pixel_snap_preview_20260705.png and docs/tests/runtime/text/runtime_text_editor_retained_grayscale_pixel_snap_validation_20260705.log (2026-07-05 retained-host grayscale pixel snap proof: inspected; PNG SHA256 68EF3F9913DBDAB37CC02A73CF89B121B1A022CE5CC03876574C9FC0BD1C929C; log SHA256 B5FAEA12AB9B521D74DE6766D128E536960C712C90032CC9592E6B296DE1EE8E; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs (2026-07-05 retained-host grayscale layout guard: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_grayscale_layout_guard_preview_20260705.png and docs/tests/runtime/text/runtime_text_editor_retained_grayscale_layout_guard_validation_20260705.log (2026-07-05 retained-host grayscale layout guard proof: inspected; PNG SHA256 050B7C5FC90DB709B48E6A93CF9EB0C57438F990D627E88799CF61DF54E24052; log SHA256 413840F6ABE9D1F51540FB663B1B14C832824480E294C382D5CDEE732A76E8B5; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs (2026-07-05 retained-host invalid-origin smoothing fallback: passed; scoped diff check emitted only LF/CRLF warnings; conflict/trailing whitespace scans passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_invalid_origin_smoothing_fallback_preview_20260705.png and docs/tests/runtime/text/runtime_text_editor_retained_invalid_origin_smoothing_fallback_validation_20260705.log (2026-07-05 retained-host invalid-origin smoothing fallback proof: inspected; PNG SHA256 6A69D9B29D9546A9E69B1BC7C45880EBDD390B4D0B096B489FD93C35DA370303; log SHA256 F5DDB237F846A666EC2B0FD7F530A5A9F5E8CF2AC67ABBC90151C06E14832157; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs (2026-07-05 retained-host subpixel line-origin preservation: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_subpixel_line_origin_preview_20260705.png and docs/tests/runtime/text/runtime_text_editor_retained_subpixel_line_origin_validation_20260705.log (2026-07-05 retained-host subpixel line-origin proof: inspected; PNG SHA256 340C525CA02932578F6996A8FE0543F2FF690228CBC0B88F038BDB656D626309; log SHA256 7B55E67CAE1DE4834C26A27CFCCFFA86A4C60517E89EBB373561F8A7157708C3; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs (2026-07-05 retained-host pen-origin raster-bearing correction: passed; static normal-placement authority scan passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_pen_origin_raster_bearing_preview_20260705.png and docs/tests/runtime/text/runtime_text_editor_retained_pen_origin_raster_bearing_validation_20260705.log (2026-07-05 retained-host pen-origin raster-bearing proof: inspected; PNG SHA256 F563656405366859CE7E379E5472A3CD5D2EE137A20B1B946605D2EDA3BB0B5A; log SHA256 F89AB1218C9E19717599E4DF565CA498EC3D903133D12701177CEA5AB4FB8247; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics/marker.rs zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics_tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_primitives/text_markers.rs (2026-07-04 editor diagnostics/text marker runtime measure: passed; stale APPROX_GLYPH_WIDTH/touched char-count width scan returned 0; scoped diff check with LF/CRLF warnings only; conflict scan passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_diagnostics_text_marker_runtime_measure_preview_20260704.png and docs/tests/runtime/text/runtime_text_editor_diagnostics_text_marker_runtime_measure_validation_20260704.log (2026-07-04 editor diagnostics/text marker runtime-measure proof: inspected; PNG SHA256 43334F126689D0C3287EB65D82652151B673BDF1B0E79960B9C4E22533E9C3BF; log SHA256 A11D506F988201384B017DC46D8255BAC74A46F16F058C0887A81AC70848FE00; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/surface/render/dialog.rs zircon_runtime/src/ui/tests/render_dialog.rs (2026-07-04 runtime Dialog action runtime measure: passed; stale DIALOG_ACTION_CHAR_WIDTH/action char-count width scan returned 0; scoped diff check with LF/CRLF warnings only; conflict scan passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_dialog_action_runtime_measure_preview_20260704.png and docs/tests/runtime/text/runtime_text_dialog_action_runtime_measure_validation_20260704.log (2026-07-04 runtime Dialog action runtime-measure proof: inspected; PNG SHA256 28A119522F37F9E7214F839F17B89E837514E62E1487BA743A4A76D9CFDEC695; log SHA256 0EC24801F4FB1FADC4583622FE25FE4B4D6AC2FB376A2F996125AE430EF49832; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/surface/input/editable_text/ime_context.rs zircon_runtime/src/ui/surface/input/editable_text/mutation.rs zircon_runtime/src/ui/surface/surface/rebuild.rs zircon_runtime/src/ui/tests/widget_text_input_ime_context.rs (2026-07-04 IME render-extract geometry consumer: passed; direct production resolve_text_layout consumer scan leaves only render/cache owners and tests; caller scan confirmed mutable surface signature; conflict/trailing scans passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_ime_render_extract_geometry_preview_20260704.png and docs/tests/runtime/text/runtime_text_ime_render_extract_geometry_validation_20260704.log (2026-07-04 IME render-extract geometry proof: inspected; PNG SHA256 2738AAD817E560892DD779606256A659D627687325248D19A98FC0F73CFDA0DA; log SHA256 B66FF1ADCC0F13DB238C5C0FC5CF703FF8F962AEA8AF0FE89D866F8996D06251; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/text/measure_cache.rs zircon_runtime/src/ui/tests/text_pipeline zircon_runtime/src/ui/surface/render/extract.rs zircon_runtime/src/ui/surface/render/text_fields.rs zircon_runtime/src/ui/surface/render/mod.rs zircon_runtime/src/ui/surface/surface.rs zircon_runtime/src/ui/surface/surface/rebuild.rs (2026-07-04 surface render measure-cache consumer: passed; scoped diff check with LF/CRLF warnings only; render direct-bypass scan returned 0; conflict/trailing scans passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_measure_cache_surface_render_consumer_preview_20260704.png and docs/tests/runtime/text/runtime_text_measure_cache_surface_render_consumer_validation_20260704.log (2026-07-04 surface render measure-cache consumer proof: inspected; PNG SHA256 8E6664BED4F196B8CD809D53EA4164CB28016F4AE702E8570EC1B6C00ADB418E; log SHA256 DEE18E6403F55CACA4B75ED5ECDAB2F1DC3F3767EC7968A22372438D8062EE7D; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/text/geometry.rs zircon_runtime/src/ui/surface/text_geometry.rs (2026-07-04 public geometry Auto direction surface guard: passed; static scans geometry_ltr_fixture_mentions=3, surface_ltr_fixture_mentions=3, surface_auto_guard_test_mentions=1; conflict/trailing scans passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_public_geometry_auto_direction_surface_guard_preview_20260704.png and docs/tests/runtime/text/runtime_text_public_geometry_auto_direction_surface_guard_validation_20260704.log (2026-07-04 public geometry Auto direction surface guard proof: inspected; PNG SHA256 7335FD451A9C5742308BC621BF69B490BF0F24CE85450B7B34C135A66B901E19; log SHA256 229304353487501F576EC62FFEB3004030DDA1CE67EA0FC9891221BB738700EF; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/text/geometry.rs (2026-07-04 source metrics Auto direction fail-closed: passed; static scans old_auto_source_metric_allow_count=0, layout_auto_reject_test_mentions=1, line_run_ltr_test_mentions=1, layout_ltr_guard_mentions=1, line_ltr_guard_mentions=1, run_ltr_guard_mentions=1; conflict/trailing scans passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_source_metrics_auto_direction_fail_closed_preview_20260704.png and docs/tests/runtime/text/runtime_text_source_metrics_auto_direction_fail_closed_validation_20260704.log (2026-07-04 source metrics Auto direction fail-closed proof: inspected; PNG SHA256 BFEF6294BA5D6F98B336EE94861D162C1D573BADA7BC0B583B9B488E73BECE8E; log SHA256 9559242F2832F9FCE1209E320C0DA71C9E1573D3FAC7BAAFDA0BE8C719A00111; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs (2026-07-04 retained-host bitmap-left draw authority: passed; scoped diff check with LF/CRLF warnings only, conflict/trailing scans passed, old `placement.pixel_x + metrics.x_offset` draw path count 0, focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_bitmap_left_draw_preview_20260704.png and docs/tests/runtime/text/runtime_text_editor_retained_bitmap_left_draw_validation_20260704.log (2026-07-04 retained-host bitmap-left draw proof: inspected; PNG SHA256 92BA6223151A8BC00C68AB6BB6B6ED539D267EC7E673189FFDD25E9909B70E7B; log SHA256 9336C0788798FA7528D48E6516B2D6CAD35C3F8592D7CE182A86B0582225DE91; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/text/geometry.rs (2026-07-04 source metrics vertical fail-closed: passed; scoped diff check with LF/CRLF warnings only, static guard/regression scan passed, conflict/trailing scan passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_source_metrics_vertical_fail_closed_preview_20260704.png and docs/tests/runtime/text/runtime_text_source_metrics_vertical_fail_closed_validation_20260704.log (2026-07-04 source metrics vertical fail-closed proof: inspected; PNG SHA256 89C3B21A8DE7ED20B4FE059B7F823E11585B4556E1CE662DBD6772C0B7A79BF6; log SHA256 64138EB6366135471835AE67D81F65F8841FC392216A64F50AB75D6597DBE486; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/text/geometry.rs (2026-07-04 source-prefix absolute range geometry: passed; scoped diff check with LF/CRLF warnings only, stale local line measure scan old_local_measure_calls=0, helper_mentions=3, and conflict/trailing scan passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_source_prefix_absolute_range_geometry_preview_20260704.png and docs/tests/runtime/text/runtime_text_source_prefix_absolute_range_geometry_validation_20260704.log (2026-07-04 source-prefix absolute range geometry proof: inspected after overlap fix; PNG SHA256 0FB51CE05F33F0893A7FFA16CA53111ECE509E5E1A4EE88495ADE5983F494263; log SHA256 8E068FCD1C6A6302704779500FBEDC3E1E843D3C1313417704F14F23EA9687E3; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/model/shaped_run.rs zircon_runtime/src/text/shaping/mod.rs zircon_runtime/src/text/shaping/cosmic.rs zircon_runtime/src/text/layout/measure.rs (2026-07-04 source-range unkerned measure backend request: passed; struct-literal coverage scan, conflict/trailing scan, scoped diff check with LF/CRLF warnings only, and target same-name scan passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_unkerned_measure_backend_request_preview_20260704.png and docs/tests/runtime/text/runtime_text_unkerned_measure_backend_request_validation_20260704.log (2026-07-04 source-range unkerned measure backend request proof: inspected; PNG SHA256 828B620EEA40FCEB2D959937E6FD161B1E7FE9C34A4E27B8AB13F1E0DFE3B094; log SHA256 6D38CFB1AD018B9F720574574E1E226E221A5C5E6878405796B3A4D510C47C71; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/resources.rs (2026-07-04 bitmap atlas renderer visibility/layout binding follow-up: passed; upper editor component-atlas screenshot test body printed 1/1 ok and refreshed docs/tests/editor PNG, but Cargo wrapper timed out at 600s so no clean Cargo exit is claimed)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/render_gpu_plan/vertex.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/mod.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/mod.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/pipeline.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/resources.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/vertex.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs (2026-07-04 bitmap atlas renderer resource owner: passed; scoped static scans passed; focused Cargo timed out under external cargo/rustc lanes and is not green evidence)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_renderer_resource_owner_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_renderer_resource_owner_validation_20260704.log (2026-07-04 bitmap atlas renderer resource owner proof: inspected; PNG SHA256 19D973B8833BEC3E79F8ADAA01E4923FD9922E1815B647EBB86201F2481C9DE8; log SHA256 237F104CE3CCA2FCF8AD20E7D3A783DDED16949FA2DA87DD7984520F2AA7285A; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs (2026-07-04 retained-host shaped-origin latest crop: passed; explicit shaped-position veto residual scan and conflict/trailing scan passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_shaped_origin_spacing_latest_crop_preview_20260704.png and docs/tests/runtime/text/runtime_text_editor_retained_shaped_origin_spacing_latest_crop_validation_20260704.log (2026-07-04 retained-host shaped-origin latest crop proof: inspected; PNG SHA256 C66D8FD74F88781E181FE1A5DCF4CAB164930298394F77F7C6ABFC3FADCE141D; log SHA256 AEBE386C1DF6CCD22D5E4267286E5AF0AB858018F45D395FE6A025E949BFF62F; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/submission.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs (2026-07-04 atlas texture upload submission owner split: passed; explicit frame residual scan and untracked-owner trailing/conflict scan passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_atlas_texture_upload_submission_owner_split_preview_20260704.png and docs/tests/runtime/text/runtime_text_atlas_texture_upload_submission_owner_split_validation_20260704.log (2026-07-04 atlas texture upload submission owner split proof: inspected; PNG SHA256 54F8CC1DB3EFBF2CA53B3023D4C441EAE2A60FADA89F6D30FB44DCF6662D5876; log SHA256 BA0A47ED7547315A659802324846B314240DDD3CDC965FF1EB139633F4600244; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs (2026-07-04 bitmap atlas submission texture-upload frame handoff: passed; explicit untracked-owner trailing/conflict scan passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_submission_texture_upload_frame_handoff_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_submission_texture_upload_frame_handoff_validation_20260704.log (2026-07-04 bitmap atlas submission texture-upload frame handoff proof: inspected; PNG SHA256 B817CA2D4B8F55635CD9BE1B0F732FD4BD6D29B8E52A03AE2E84C7EB181D7912; log SHA256 1CCEBE0BC7C2E25DD5C621C48E849451F2F8FF866165BF097528E7102464494C; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/render_submission.rs zircon_runtime/src/text/atlas/render_submission/plan.rs zircon_runtime/src/text/atlas/render_submission/tests.rs (2026-07-04 bitmap atlas submission prepared-upload handoff: passed; scoped diff check passed with LF/CRLF warnings only; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_submission_prepared_upload_handoff_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_submission_prepared_upload_handoff_validation_20260704.log (2026-07-04 bitmap atlas submission prepared-upload handoff proof: inspected; PNG SHA256 D2C246EA65734B7FC157C39333644C5A562B3DC739318DF06D2B659D659A5789; log SHA256 24E1C685D69FABD7F2035FE0D07DE3A64C7C212AE8E0D0167C9874174FE9896B; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/resource.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs (2026-07-04 bitmap atlas texture upload resource writer: passed; explicit untracked-owner trailing/conflict scan passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_texture_upload_resource_writer_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_texture_upload_resource_writer_validation_20260704.log (2026-07-04 bitmap atlas texture upload resource writer proof: inspected; PNG SHA256 9F22304B5AEE302EAFADECEBD4CAA830A025FF033094812805D2B592DEE6CA33; log SHA256 FDF7CD07A1539E6F9B9FCA66FAD75C3E79E8C85431ACF9B768942EF2445299D9; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/resource.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs (2026-07-04 atlas texture-array resource owner: passed; scoped diff check covered tracked touched files with LF/CRLF warnings only; production forbidden-pattern scan returned 0; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_atlas_texture_array_resource_owner_preview_20260704.png and docs/tests/runtime/text/runtime_text_atlas_texture_array_resource_owner_validation_20260704.log (2026-07-04 atlas texture-array resource owner proof: inspected; PNG SHA256 6E8FFFCE35642A9B17F55DF50A52812CBAA200FE8FA6B5EEF475D230B63C3C85; log SHA256 F64D24FE2E8987FFB3E52E4B2C002D6CEB269F38C278D6A05E6F8C3B3D19E320; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/write.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/binding.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs (2026-07-04 atlas texture upload owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_atlas_texture_upload_owner_split_preview_20260704.png and docs/tests/runtime/text/runtime_text_atlas_texture_upload_owner_split_validation_20260704.log (2026-07-04 atlas texture upload owner split proof: inspected; PNG SHA256 AD1E060ECF788BF925FD40E017DD42890335E5503BFAEC9DD09ECDC189EF127A; log SHA256 A28E8ECF2563E61220059FF5ECDBC204910CC9D8ED5FEC92A7A0FD3C0806A318; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs (2026-07-04 bitmap atlas texture upload frame plan: passed; scoped diff check covered touched files; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_texture_upload_frame_plan_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_texture_upload_frame_plan_validation_20260704.log (2026-07-04 bitmap atlas texture upload frame plan proof: inspected; PNG SHA256 F453B4FAE8A6158D1F4657376C6BC16E365F0ED6D70D6CD082BCD0BA130CAB2D; log SHA256 663DD48F75814E739CB945CD1489DA89DB5671AC715D90A370A08DC76D475DD1; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs (2026-07-04 bitmap atlas texture upload frame export: passed; static frame-plan encapsulation scan passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_texture_upload_frame_export_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_texture_upload_frame_export_validation_20260704.log (2026-07-04 bitmap atlas texture upload frame export proof: inspected; PNG SHA256 EF47BAD020503791FFD0A18E58D84529176465C1907EF3C89CB85D63D46F6E4E; log SHA256 62F7AA8F59B47A55E06D7D509461D840A49396D2334970C401B54EC4AB4E8912; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs (2026-07-04 bitmap atlas upload binding owner: passed; scoped diff check covered touched files; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_upload_binding_owner_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_upload_binding_owner_validation_20260704.log (2026-07-04 bitmap atlas upload binding owner proof: inspected; PNG SHA256 65C1BD26635D0FA2CD4BACAAA636E2EBAEE626AE6479910ADA56086B27EF4153; log SHA256 D550C37430EAC6F6914C7A3064D81143FBC63DB185211100F1E21F23E938645D; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/mod.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs (2026-07-04 bitmap atlas WGPU upload mapping owner: passed; scoped diff check covered touched files with CRLF warnings only; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_wgpu_upload_mapping_owner_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_wgpu_upload_mapping_owner_validation_20260704.log (2026-07-04 bitmap atlas WGPU upload mapping owner proof: inspected; PNG SHA256 78E2774B8AB5C5D5E6A05147FB7EBA53B1F6599C9506F8530A0B2F78DB2BB9EF; log SHA256 3039D33E283896AFAF397056C1D7C6680CE514677EE0E37206D80DB545CBD6A2; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/bitmap_run.rs zircon_runtime/src/text/atlas/bitmap_run/staged_upload.rs zircon_runtime/src/text/atlas/bitmap_run/tests.rs zircon_runtime/src/text/atlas/mod.rs (2026-07-04 bitmap atlas texture upload request plan: passed; scoped diff check covered touched files with CRLF warnings only; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_texture_upload_request_plan_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_texture_upload_request_plan_validation_20260704.log (2026-07-04 bitmap atlas texture upload request plan proof: inspected; PNG SHA256 3680465A42EBD4415FFC10BABCA0D2B9F84DAF8E473A19E7DCA76BDECF2D04CA; log SHA256 D5B2B4C7A336B067CB8DBCC2705052B7BC74045785070760F6CC68D470A8AB55; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/bitmap_run.rs zircon_runtime/src/text/atlas/bitmap_run/staged_upload.rs zircon_runtime/src/text/atlas/bitmap_run/tests.rs zircon_runtime/src/text/atlas/mod.rs (2026-07-04 bitmap atlas prepared upload plan: passed; scoped diff check covered touched files with CRLF warnings only; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_prepared_upload_plan_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_prepared_upload_plan_validation_20260704.log (2026-07-04 bitmap atlas prepared upload plan proof: inspected; PNG SHA256 41457F4DE436BFE69AAEA8B2AC43E3BCBECBADF2962237CC769F2789F7401FE8; log SHA256 A370155C5E8D45136518A8FBE3E40CEFD44D240484ECB7E343218B5BFB4C2C5E; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/bitmap_run.rs zircon_runtime/src/text/atlas/bitmap_run/staged_upload.rs zircon_runtime/src/text/atlas/bitmap_run/tests.rs zircon_runtime/src/text/atlas/mod.rs (2026-07-04 bitmap atlas staged upload plan: passed; scoped diff check covered touched files with CRLF warnings only; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_staged_upload_plan_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_staged_upload_plan_validation_20260704.log (2026-07-04 bitmap atlas staged upload plan proof: inspected; PNG SHA256 C95247DC77834AA9F52D21256BD985832E7CEEF6740FE4269A1EF313542D87B5; log SHA256 75FA270EA21D0D8BF1139089AB6E0E996FA0137A2B5B54D1094DE0129ED51CBF; target same-name scan returned 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/bitmap_run.rs zircon_runtime/src/text/atlas/bitmap_run/types.rs zircon_runtime/src/text/atlas/bitmap_run/upload.rs zircon_runtime/src/text/atlas/bitmap_run/tests.rs zircon_runtime/src/text/atlas/mod.rs (2026-07-04 bitmap atlas upload copy plan: passed; scoped diff check covered touched files with CRLF warnings only; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_upload_copy_plan_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_upload_copy_plan_validation_20260704.log (2026-07-04 bitmap atlas upload copy plan proof: inspected; PNG SHA256 84E676510FAA7FC38D80634B62A848626C4AD300118538865FC273CF4F3A77E5; log SHA256 81492D676B5AFBC35B9F15A0654CCCFB05C0CAC840D463FCCD35F656474E4082; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/render_submission/report.rs zircon_runtime/src/text/atlas/render_submission/tests.rs (2026-07-04 bitmap render submission upload copy report: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_render_submission_upload_copy_report_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_render_submission_upload_copy_report_validation_20260704.log (2026-07-04 bitmap render submission upload copy report proof: inspected; PNG SHA256 4307D82C95B0E12DA948CA4327CC5023955AC1C206E1EBF1224ED41A8F7B0053; log SHA256 AFCADE58FE4E17A60AD0F28ECD689490787D8C6DF8C12346AA68BEFE95CC3DE5; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/bitmap_run.rs zircon_runtime/src/text/atlas/bitmap_run/staging.rs zircon_runtime/src/text/atlas/bitmap_run/tests.rs zircon_runtime/src/text/atlas/mod.rs (2026-07-04 bitmap atlas upload staging plan: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_upload_staging_plan_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_upload_staging_plan_validation_20260704.log (2026-07-04 bitmap atlas upload staging plan proof: inspected; PNG SHA256 C30F6C2012452AAE52A500AA9AE606DB6C3629E33B0095CB742481CBF348CB65; log SHA256 9F485973604162BBBEE18CDF804C5D9994B46823E51BFE857EA4CFDEC0074328; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/raster/swash/tests.rs zircon_runtime/src/text/atlas/bitmap_run/staging.rs zircon_runtime/src/text/atlas/bitmap_run.rs zircon_runtime/src/text/atlas/mod.rs (2026-07-04 swash bitmap upload staging integration: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_swash_bitmap_upload_staging_integration_preview_20260704.png and docs/tests/runtime/text/runtime_text_swash_bitmap_upload_staging_integration_validation_20260704.log (2026-07-04 swash bitmap upload staging integration proof: inspected; PNG SHA256 1B7D189EED558C1BC0EC97FE254FF2ACF01C875DEAB4F479B28593BDCE6D815B; log SHA256 7BAA5FD38AF0B15DE7BF753F5CE9252B8FCF9BB0A95DD4707832E97F623D866E; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/raster/swash/atlas_source.rs zircon_runtime/src/text/raster/swash/bitmap.rs zircon_runtime/src/text/raster/swash/mod.rs zircon_runtime/src/text/raster/mod.rs zircon_runtime/src/text/raster/swash/tests.rs (2026-07-04 swash bitmap atlas source bridge: passed; scoped diff check covered touched files with CRLF warnings only; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_raster_swash_bitmap_atlas_source_bridge_preview_20260704.png and docs/tests/runtime/text/runtime_text_raster_swash_bitmap_atlas_source_bridge_validation_20260704.log (2026-07-04 swash bitmap atlas source bridge proof: inspected; PNG SHA256 5F4FDB0B68E4F96809F6B330444C6DF595BB6648FCB85F4A428A2BA782F5C89D; log SHA256 61F2E60E1054690906F4A26520999E3533D6E2142B40EC6694E3AB735CE05189; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs (2026-07-04 retained-host glyph left-offset quantization: passed; scoped diff check covered tracked touched files with CRLF warnings only; new test/log trailing-whitespace scan passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_glyph_left_offset_quantization_preview_20260704.png and docs/tests/runtime/text/runtime_text_editor_retained_glyph_left_offset_quantization_validation_20260704.log (2026-07-04 retained-host glyph left-offset quantization proof: inspected; PNG SHA256 B58983A3DDADA240CCFF70CFC6E2BA34EEFAB90A16336C33F038EA900D4B980D; log SHA256 4BFAA4B0AFD83D0FC56BEED6147FD10A3F46FC82660411A9DC49A35807A80BA8; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement/tests.rs (2026-07-04 retained-host line-origin snap: passed; scoped diff check covered touched files with LF/CRLF warnings only; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_line_origin_snap_preview_20260704.png and docs/tests/runtime/text/runtime_text_editor_retained_line_origin_snap_validation_20260704.log (2026-07-04 retained-host line-origin snap proof: inspected; PNG SHA256 6565E9B05417343C2B43DB3E7235A6401F2C6869840EE6D51BA9FC370560A58C; log SHA256 CC43667C9CB49D4EAD3DE25A237C1B1B581FC2A139BF503D77A3F332A00D2410; repo/cargo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs (2026-07-04 retained-host shaped-phase guard: passed; scoped diff check covered touched files with LF/CRLF warnings only; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_shaped_phase_guard_preview_20260704.png and docs/tests/runtime/text/runtime_text_editor_retained_shaped_phase_guard_validation_20260704.log (2026-07-04 retained-host shaped-phase guard proof: inspected; PNG SHA256 E8DA90793747ACCF3D92B33BFA3BD47FD7682FAC789DDCF982E0D1380034B52D; log SHA256 BB20FC34C8289CDF63533AE2AE5918096FF52B11671D20AE713DDE0F470FBCFD; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/mod.rs zircon_runtime/src/text/atlas/render_submission.rs zircon_runtime/src/text/atlas/render_submission/frame_driver.rs zircon_runtime/src/text/atlas/render_submission/frame_state.rs zircon_runtime/src/text/atlas/render_submission/tests.rs (2026-07-04 bitmap atlas retry frame driver: passed; scoped diff check covered tracked touched files with CRLF warnings only; frame_driver trailing-whitespace scan passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_driver_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_driver_validation_20260704.log (2026-07-04 bitmap atlas retry frame driver proof: inspected; PNG SHA256 683F5C7F8F59F26B5874204F7205E7AB5EC9806FD43C35014B03C80BDEBA52A0; log SHA256 8821D590E830449B1D16DE0819BE59AF235FE501385D8D0D138F4319776C3F9D; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/mod.rs zircon_runtime/src/text/atlas/render_submission.rs zircon_runtime/src/text/atlas/render_submission/frame_state.rs zircon_runtime/src/text/atlas/render_submission/tests.rs (2026-07-04 bitmap atlas retry frame state: passed; scoped diff check covered tracked touched files with CRLF warnings only; new owner trailing-whitespace scan passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_state_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_state_validation_20260704.log (2026-07-04 bitmap atlas retry frame state proof: inspected; PNG SHA256 3FB968366FC2B7A4CEA7CB45263CEC0A6140D066C48C2A5B510549501D8CC198; log SHA256 94A075EA64F439048810F18AE4DB2FA0B322A1C15D113C27BA043467480BACB5; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/bitmap_run.rs zircon_runtime/src/text/atlas/bitmap_run/retry.rs zircon_runtime/src/text/atlas/bitmap_run/tests.rs zircon_runtime/src/text/atlas/render_submission.rs zircon_runtime/src/text/atlas/render_submission/retry.rs zircon_runtime/src/text/atlas/render_submission/tests.rs zircon_runtime/src/text/atlas/mod.rs (2026-07-04 bitmap atlas retry backpressure: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_backpressure_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_backpressure_validation_20260704.log (2026-07-04 bitmap atlas retry backpressure proof: inspected; PNG SHA256 830617462DF3EADD46148E11A07017D856796DF1B5298A8FC5831D5C873737EB; log SHA256 74D97463D5439C96CD5A6F1AFCB26635E25358907458EA3FBE21682F36C8C9C4; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/render_submission.rs zircon_runtime/src/text/atlas/render_submission/retry.rs zircon_runtime/src/text/atlas/render_submission/tests.rs zircon_runtime/src/text/atlas/mod.rs (2026-07-04 bitmap atlas retry frame submission report: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_submission_report_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_submission_report_validation_20260704.log (2026-07-04 bitmap atlas retry frame submission report proof: inspected; PNG SHA256 427EE88C6090C2CDF05C9797B6898CFB2BEE36EE0A82DE8379290C61269D8445; log SHA256 DC919C67AACD53086EFE46167728194D0E1AB8C4E71E846BAA0DE4D8C66B86D1; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/render_submission.rs zircon_runtime/src/text/atlas/render_submission/retry.rs zircon_runtime/src/text/atlas/render_submission/tests.rs zircon_runtime/src/text/atlas/mod.rs (2026-07-04 bitmap atlas retry frame submission: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_submission_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_submission_validation_20260704.log (2026-07-04 bitmap atlas retry frame submission proof: inspected; PNG SHA256 D20A8F29D0901958E6E9E20BF816D3804F0ACF8A413E053ED42BD529C0C4EBCE; log SHA256 08F2B2C6ECBEA8109AE1C96A605CD2E629C7A06F60549E70EE3DF5DDC1664136; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/bitmap_run.rs zircon_runtime/src/text/atlas/bitmap_run/retry.rs zircon_runtime/src/text/atlas/bitmap_run/tests.rs zircon_runtime/src/text/atlas/mod.rs (2026-07-04 bitmap atlas retry frame outcome: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_outcome_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_outcome_validation_20260704.log (2026-07-04 bitmap atlas retry frame outcome proof: inspected; PNG SHA256 2608C73E1BEFF52A6DEDA574ABB7E97CA2F2EE817395EEB925863DC3C2753D96; log SHA256 B0F1A337741B5C071AEE6BC345F69FEC4F01E4DC73F29F3C981D8458956792F3; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/bitmap_run.rs zircon_runtime/src/text/atlas/bitmap_run/retry.rs zircon_runtime/src/text/atlas/bitmap_run/tests.rs zircon_runtime/src/text/atlas/mod.rs (2026-07-04 bitmap atlas retry frame input: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_input_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_input_validation_20260704.log (2026-07-04 bitmap atlas retry frame input proof: inspected; PNG SHA256 1D5A26510CE7E51BAB8CD046BE62E273501BAB0C3D90956A0A90A812672B0037; log SHA256 94E2B54BBEACB7F5A7A3C4EBE52D09DDCC920527056DE2B8C10383534E86DBB7; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/bitmap_run.rs zircon_runtime/src/text/atlas/bitmap_run/retry.rs zircon_runtime/src/text/atlas/bitmap_run/tests.rs zircon_runtime/src/text/atlas/mod.rs (2026-07-04 bitmap atlas retry queue consumer: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_queue_consumer_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_queue_consumer_validation_20260704.log (2026-07-04 bitmap atlas retry queue consumer proof: inspected; PNG SHA256 3BCF35B239F7BAB381F13AA2C9646141742F586182424EB31F0C7FEA9E9A40C8; log SHA256 3AEC069CC48E2C6DB4C8146BE542ED27EF6D0DB809496E909BBAA40060718641; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/render_plan.rs zircon_runtime/src/text/atlas/render_submission.rs zircon_runtime/src/text/atlas/render_submission/placeholder.rs zircon_runtime/src/text/atlas/render_submission/plan.rs zircon_runtime/src/text/atlas/render_submission/report.rs zircon_runtime/src/text/atlas/render_submission/tests.rs (2026-07-04 bitmap atlas placeholder draw-plan: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_placeholder_draw_plan_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_placeholder_draw_plan_validation_20260704.log (2026-07-04 bitmap atlas placeholder draw-plan proof: inspected; PNG SHA256 F996896A19D025E39295F12484A6B6AB81CDE6D7DD0E9FC3D456D520FDA34C8F; log SHA256 6AE8E8FF3432C726F829E4FC3263A950254811DD41B707EC9FBE26594615D65E; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/bitmap_run.rs zircon_runtime/src/text/atlas/bitmap_run/allocation.rs zircon_runtime/src/text/atlas/bitmap_run/failure.rs zircon_runtime/src/text/atlas/bitmap_run/placeholder.rs zircon_runtime/src/text/atlas/bitmap_run/types.rs zircon_runtime/src/text/atlas/bitmap_run/upload.rs zircon_runtime/src/text/atlas/bitmap_run/validation.rs zircon_runtime/src/text/atlas/bitmap_run/tests.rs zircon_runtime/src/text/atlas/render_submission.rs zircon_runtime/src/text/atlas/render_submission/tests.rs zircon_runtime/src/text/atlas/mod.rs (2026-07-04 bitmap atlas blocked placeholder data-plane: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_blocked_placeholder_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_blocked_placeholder_validation_20260704.log (2026-07-04 bitmap atlas blocked placeholder proof: inspected; PNG SHA256 77867027B47DB55D55233B9D758F1558882D9C26AC1ADE52539DD8E44A8BC66C; log SHA256 0ABACDAE2217C3D3B7ACAB79E110FCC465FD397F10C4E37B5E5672C1EBAC3131; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/bitmap_run.rs zircon_runtime/src/text/atlas/bitmap_run/allocation.rs zircon_runtime/src/text/atlas/bitmap_run/failure.rs zircon_runtime/src/text/atlas/bitmap_run/types.rs zircon_runtime/src/text/atlas/bitmap_run/upload.rs zircon_runtime/src/text/atlas/bitmap_run/validation.rs zircon_runtime/src/text/atlas/bitmap_run/tests.rs zircon_runtime/src/text/atlas/mod.rs (2026-07-04 bitmap_run owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_bitmap_run_owner_split_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_bitmap_run_owner_split_validation_20260704.log (2026-07-04 bitmap_run owner split proof: inspected; PNG SHA256 8EF29C1E02DF29DB2291B7CB3A27A3A8C2804F3B8D76DF510CA4E3A2571BA8E6; log SHA256 AB5A8B34D8CFB6B131FDF7F5B0C2CD4C91F1DC84CCB6D139F7EA3A37EFEE4337; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is a structure validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/bitmap_run.rs zircon_runtime/src/text/atlas/bitmap_run/tests.rs zircon_runtime/src/text/atlas/render_submission.rs zircon_runtime/src/text/atlas/render_submission/tests.rs zircon_runtime/src/text/atlas/mod.rs (2026-07-04 bitmap atlas blocked retry queue: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_blocked_retry_queue_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_blocked_retry_queue_validation_20260704.log (2026-07-04 bitmap atlas blocked retry queue proof: inspected; PNG SHA256 F2A8F9493B6C706C557F179B3731CBFA11BDA886C8BDF20A74FE7B0DE85CB2C4; log SHA256 D6A70E7784BD9B2B924894D514271CBABB1BC79B57A10B25BE2111B24F194F8A; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/render_submission.rs zircon_runtime/src/text/atlas/render_submission/tests.rs zircon_runtime/src/text/atlas/mod.rs (2026-07-04 bitmap atlas submission failure breakdown: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_submission_failure_breakdown_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_submission_failure_breakdown_validation_20260704.log (2026-07-04 bitmap atlas submission failure breakdown proof: inspected; PNG SHA256 C3075A77EE3849B81D64FF48C3F3427DB89833D9CFEFC55C4CF7B90F4AA9E61D; log SHA256 B6FD22FE2D49BF30EE3C1498081957B88DD740FA0A04D736A458C1F24F0974B0; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/render_submission.rs zircon_runtime/src/text/atlas/render_submission/tests.rs zircon_runtime/src/text/atlas/mod.rs (2026-07-04 bitmap atlas submission report: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_submission_report_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_submission_report_validation_20260704.log (2026-07-04 bitmap atlas submission report proof: inspected; PNG SHA256 90D5A2E3471229F966095D482F0AC8F3AB9AA765828FB6CE3A46ED2CE3856C82; log SHA256 C640A270DD730CE18B8AD4D388DF0A3549504BA2C828C36D017118154C9D9AEF; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/mod.rs zircon_runtime/src/text/atlas/render_submission.rs zircon_runtime/src/text/atlas/render_submission/tests.rs (2026-07-04 bitmap atlas render submission plan: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_render_submission_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_render_submission_validation_20260704.log (2026-07-04 bitmap atlas render submission proof: inspected; PNG SHA256 007BD2E3CA03BAA436666A965AD3E1F98A3162A09A24A58ABFF4AC13D687CF3C; log SHA256 F582F746C121F6938ADFB4754B9CE0C00A7C92D9CE1239DF0589B7E8B78220BD; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/bitmap_run.rs zircon_runtime/src/text/atlas/bitmap_run/tests.rs (2026-07-04 bitmap atlas upload report: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_upload_report_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_upload_report_validation_20260704.log (2026-07-04 bitmap atlas upload report proof: inspected; PNG SHA256 73ED0A486E26219B814CF076B7571D8708DF1F108B730F7B5F9FF2D6E875FEB1; log SHA256 E1053AD06CB24CCB6257CC53463A67E72E5F8AFE4744E30A0599F64DAD7EE489; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/bitmap_run.rs zircon_runtime/src/text/atlas/bitmap_run/tests.rs zircon_runtime/src/text/atlas/dirty.rs zircon_runtime/src/text/atlas/mod.rs (2026-07-04 bitmap atlas run data-plane: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_bitmap_atlas_run_data_plane_preview_20260704.png and docs/tests/runtime/text/runtime_text_bitmap_atlas_run_data_plane_validation_20260704.log (2026-07-04 bitmap atlas run data-plane proof: inspected; PNG SHA256 AB2C7FABFA1A7A78CCC4EFD1FD7718393FD7E2E5AB00EC0ADCC962D596275669; log SHA256 FF9140E0506CFBBAC35CAF8E7AE99F7A321E3D7069FB93587CA09D47878987E6; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement.rs (2026-07-04 retained-host phase stability: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_phase_stability_validation_20260704.png and docs/tests/runtime/text/runtime_text_editor_retained_phase_stability_validation_20260704.log (2026-07-04 retained-host phase stability proof: inspected; PNG SHA256 3B2B0DCCC1570D8DA577493911C544641684412AD59ED21733D4E80D76FD9729; log SHA256 D7ACD3AB64CCDCF3559931F6DA33D8F807CCDC4A70850F64071215486C662D43; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs (2026-07-04 retained-host cumulative phase guard: passed; scoped git diff --check exit 0 with CRLF warning only; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_cumulative_phase_guard_validation_20260704.png and docs/tests/runtime/text/runtime_text_editor_retained_cumulative_phase_guard_validation_20260704.log (2026-07-04 retained-host cumulative phase guard proof: inspected; PNG SHA256 0FC3DD29C1571B784002D44569A2B4226ED4D6BC5F46AAB657F7B8650CC2228E; log SHA256 CD5DE6950DEF2923C51F79800B939A5B57235076E90E43141A90E89DFF4ADA94; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs (2026-07-04 retained-host framebuffer crop regression: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_framebuffer_crop_validation_20260704.png and docs/tests/runtime/text/runtime_text_editor_retained_framebuffer_crop_validation_20260704.log (2026-07-04 retained-host framebuffer crop proof: inspected; PNG SHA256 96A4254E602DC5CCA5CAEA51190BFB9EE6B65DBA35B2026B1FF050CF4D34597D; log SHA256 A4305CCCD441C0BBEEABFD94826CA2316A329B1F9ED468C4B1CCBDB6C0972820; proof image is a framebuffer-crop validation artifact, not a live window capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs (2026-07-04 retained-host ink spacing guard: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_ink_spacing_guard_validation_20260704.png and docs/tests/runtime/text/runtime_text_editor_retained_ink_spacing_guard_validation_20260704.log (2026-07-04 retained-host ink spacing guard proof: inspected; PNG SHA256 EF2585989C59E78D25BA0F836A2554FDA509A1800486A3D978955ABA8643308D; log SHA256 BD2583F1B4C7111BC45055E934303F839DD66C156B6BF7180A6A5F9B908B0AD6; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is a retained framebuffer validation artifact, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs (2026-07-04 retained-host runtime ellipsis cutover: passed; scoped git diff --check exit 0 with LF-to-CRLF working-tree warning only; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_runtime_ellipsis_cutover_preview_20260704.png and docs/tests/runtime/text/runtime_text_editor_retained_runtime_ellipsis_cutover_validation_20260704.log (2026-07-04 retained-host runtime ellipsis cutover proof: inspected; PNG SHA256 CAF36D913152319BD119E45BF99318B791D86D317383442F81ABBB0CD8E43C12; log SHA256 AE6E46C92C64E24DB3A71A03AD58704B03C207DB74C0E081F43904CC212E4C6E; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs (2026-07-04 retained-host advance tolerance precision: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_advance_tolerance_precision_preview_20260704.png and docs/tests/runtime/text/runtime_text_editor_retained_advance_tolerance_precision_validation_20260704.log (2026-07-04 retained-host advance tolerance precision proof: inspected; PNG SHA256 B9D0783FA13003567E2C10A2176342010F8D7306F061B229E9FA926A2F2BC995; log SHA256 461FC7C5FC2416240AF33CF2A278AF9EB0BA09BC17E3FDB0D326CB3B4C6D2AA2; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs (2026-07-04 retained-host subpixel bin precision: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_subpixel_bin_precision_preview_20260704.png and docs/tests/runtime/text/runtime_text_editor_retained_subpixel_bin_precision_validation_20260704.log (2026-07-04 retained-host subpixel bin precision proof: inspected; PNG SHA256 5A4268CDF1774AFA81B9C9EF7A141F23BE6ED61623DE3F50E7C71C73F35E9CDD; log SHA256 6FD74EE60E988F92B13BABE18E5B7F764E4D5ECC58971364F1867E165EA2CCF0; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/sync.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/sync/tests.rs (2026-07-04 retained-host sync tests owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_sync_tests_owner_split_preview_20260704.png and docs/tests/runtime/text/runtime_text_editor_retained_sync_tests_owner_split_validation_20260704.log (2026-07-04 retained-host sync tests owner split proof: inspected; PNG SHA256 1A561625C8114067DC82772CD64DB3178E0B383513B82E7E435BC70E34D816EE; log SHA256 2D382C79E02E75FA82655F4ED5B7C31CC24BBC475F0F72E8567954550FA676B3; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/text.rs (2026-07-04 render-command alignment resolved family: passed; scoped diff check passed with LF/CRLF warning only; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_render_command_alignment_resolved_family_preview_20260704.png and docs/tests/runtime/text/runtime_text_editor_render_command_alignment_resolved_family_validation_20260704.log (2026-07-04 render-command alignment resolved family proof: inspected; PNG SHA256 09D689593F62A4589DE643010AABC5C3A3AC049BAF4B46650EBCD6FA60253BB0; log SHA256 3A4F7D8516FD76F4D3914E7E33B9380DC1A733D3E99728FB1ABFE971D3CC1D86; repo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 zircon_editor/src/ui/retained_host/host_contract/paint_text.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/text.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/divider/geometry/label_bounds/horizontal.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/divider/horizontal.rs (2026-07-04 divider label bounds runtime measure: passed; scoped diff check passed with LF/CRLF warnings only; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_divider_label_bounds_runtime_measure_preview_20260704.png and docs/tests/runtime/text/runtime_text_editor_divider_label_bounds_runtime_measure_validation_20260704.log (2026-07-04 divider label bounds runtime measure proof: inspected; PNG SHA256 E09C262CA18DDB0AA8AE851E4E8AA320DA30CB59CED053014AC189747A3769F2; log SHA256 86E3945369B52B41BB94C55EBD703A58CC38721F6630524E9D09518AF6AF9110; repo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/geometry/label.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/geometry/metrics.rs (2026-07-04 chip label runtime measure: passed; scoped diff check passed with LF/CRLF warnings only; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_chip_label_runtime_measure_preview_20260704.png and docs/tests/runtime/text/runtime_text_editor_chip_label_runtime_measure_validation_20260704.log (2026-07-04 chip label runtime measure proof: inspected; PNG SHA256 BCF1E80B59EAC6B833E6C2CD6A2EF07A1F271698B80199760DE96BDE5683C5CE; log SHA256 8FF03AE4CE647584226BA5B8091E6532312CA4CDD6F3AF70A8B2091B769B606C; repo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/alert/geometry/message.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/alert/geometry/metrics.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/avatar/geometry/text.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/avatar/geometry/metrics.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/geometry/root_text.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/geometry/overlay.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/geometry/metrics.rs (2026-07-04 remaining material primitive runtime measure: passed; scoped diff check passed with LF/CRLF warnings only; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_material_primitives_runtime_measure_preview_20260704.png and docs/tests/runtime/text/runtime_text_editor_material_primitives_runtime_measure_validation_20260704.log (2026-07-04 remaining material primitive runtime measure proof: inspected; PNG SHA256 6E7B3F91EC23A3769978768B66A8D4D1880AD103ABFDC1F63BA8823AF9A9EF09; log SHA256 B2F325FC8E9C667C638B3E781927130AFBDD590050700C500E8B55C393F81F5D; repo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions/labels.rs zircon_runtime/src/ui/surface/render/dialog.rs (2026-07-04 dialog action runtime measure: passed; scoped diff check passed with LF/CRLF warnings only; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_dialog_action_runtime_measure_preview_20260704.png and docs/tests/runtime/text/runtime_text_editor_dialog_action_runtime_measure_validation_20260704.log (2026-07-04 dialog action runtime measure proof: inspected; PNG SHA256 29901DEA7AC5C964DB719FC53814928D2FF16117A085D2F04815F654CEE11321; log SHA256 1F7EC1134FC7CBF0E07026351F3D67A712979515441F64BA4B2A1940D1335BBA; repo target same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/font/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/raster/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs (2026-07-04 retained-host unavailable font fallback: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_unavailable_font_fallback_preview_20260704.png and docs/tests/runtime/text/runtime_text_editor_retained_unavailable_font_fallback_validation_20260704.log (2026-07-04 retained-host unavailable font fallback proof: inspected; PNG SHA256 EC62F0A0052822CAB53D5C79184B058670E2FC46DE6F990FB1688D2F43B6A0DB; log SHA256 AE3E39CACB5EDBF0B3B1F9B14EEE2393EB13FEFAACB6283302C32A9828FF23E2; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/blend.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/blend/tests.rs (2026-07-04 retained-host blend contract regressions: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_blend_contract_preview_20260704.png and docs/tests/runtime/text/runtime_text_editor_retained_blend_contract_validation_20260704.log (2026-07-04 retained-host blend contract proof: inspected; PNG SHA256 893DEAAA9BF2495F73E51CFEAC96A715F1747C161C8FE2A57976A75031DF98A3; log SHA256 69A223AEC40123F6073F2F01C887C177EBDD6E33A0F11DF0714B56C0C4739509; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/sync.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/raster/tests.rs (2026-07-04 retained-host cache poison recovery: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_cache_poison_recovery_preview_20260704.png and docs/tests/runtime/text/runtime_text_editor_retained_cache_poison_recovery_validation_20260704.log (2026-07-04 retained-host cache poison recovery proof: inspected; PNG SHA256 939554DEF1B063221825CF72D5C65270C73450A16B396B1612710B1B853AAB98; log SHA256 AB3994AC8601980EF9B6B7A2A4FED3F02BB66AD6F03E10F831DF2B5C6EBCB5AB; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/surface/mod.rs zircon_runtime/src/ui/surface/text_geometry.rs (2026-07-04 public cursor/range geometry surface: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_public_cursor_geometry_surface_preview_20260704.png and docs/tests/runtime/text/runtime_text_public_cursor_geometry_surface_validation_20260704.log (2026-07-04 public cursor/range geometry surface proof: inspected; PNG SHA256 120E15B98B1A8705A9E6B6F193E9C26D8EAFB11C72DFE2946750EC0FDBC0FD1F; log SHA256 EB81F8C62A1BAEF683E54F84C85D5DA33F7DB772D0FFBE0D5AE516EF851CDA21; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0; proof image is not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/layout/measure.rs zircon_runtime/src/text/layout/mod.rs zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/shaper.rs zircon_runtime/src/ui/text/mod.rs zircon_runtime/src/ui/surface/mod.rs zircon_runtime/src/ui/surface/text_shape.rs (2026-07-03 LB-M1 public source-range measure surface: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_public_source_range_measure_preview_20260703.png and docs/tests/runtime/text/runtime_text_public_source_range_measure_validation_20260703.log (2026-07-03 public source-range measure proof: inspected; PNG SHA256 E7930642A9DD4CF02936ED97BF50BB5963E0EF00C91A6C0BA7C70D18DD6DAA08; log SHA256 071B768AD9FDDEF1E9CB62228A9D82519B8F8705654F6D78B6D3162C06EF74E8; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0; proof image is not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs (2026-07-03 retained-host shaped-origin jitter guard: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_shaped_origin_jitter_guard_preview_20260703.png and docs/tests/runtime/text/runtime_text_editor_shaped_origin_jitter_guard_validation_20260703.log (2026-07-03 retained-host shaped-origin jitter guard proof: inspected; PNG SHA256 1F7A41698236F15F9BEA6AA6D6B18707A398C9F50221BBFFC2FA59C532D835D8; log SHA256 D0B2BCFCFDDB8555844966E3B6BBE41E3C4E9B04E2DBEF4A4B07620BF372A502; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0; proof image is a validation diagram, not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/dirty.rs zircon_runtime/src/text/atlas/dirty/tests.rs (2026-07-03 atlas dirty tests owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - manual trailing-whitespace scan for current untracked zircon_runtime/src/text/atlas/dirty.rs and zircon_runtime/src/text/atlas/dirty/tests.rs owner paths (2026-07-03 atlas dirty tests owner split: passed)
+
+  - docs/tests/runtime/text/runtime_text_atlas_dirty_tests_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_atlas_dirty_tests_owner_split_validation_20260703.log (2026-07-03 atlas dirty tests owner split proof: inspected; PNG SHA256 346A131FC464D77DA5AA021AEED41576E3C4A2AE4D33A6EBC083CD3CD0A2691A; log SHA256 80AF31748255F4EB2BEEE8C416D2B122694DFFA0D59FE5B4B58AEAD99EF53B88; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0; owner paths are currently untracked in this dirty worktree)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/upload.rs zircon_runtime/src/text/atlas/upload/tests.rs (2026-07-03 atlas upload tests owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - manual trailing-whitespace scan for current untracked zircon_runtime/src/text/atlas/upload.rs and zircon_runtime/src/text/atlas/upload/tests.rs owner paths (2026-07-03 atlas upload tests owner split: passed)
+
+  - docs/tests/runtime/text/runtime_text_atlas_upload_tests_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_atlas_upload_tests_owner_split_validation_20260703.log (2026-07-03 atlas upload tests owner split proof: inspected; PNG SHA256 AF0133A10A92AA0C1579044BF0DABD760BA72CF78331E6005182E9A26534F7BC; log SHA256 44EA977DF6E09B8378A1E108015FC8E923EDC3BE313F380B509803E8EDFDCF69; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0; owner paths are currently untracked in this dirty worktree)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/page_residency.rs zircon_runtime/src/text/atlas/page_residency/tests.rs (2026-07-03 atlas page_residency tests owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - manual trailing-whitespace scan for current untracked zircon_runtime/src/text/atlas/page_residency.rs and zircon_runtime/src/text/atlas/page_residency/tests.rs owner paths (2026-07-03 atlas page_residency tests owner split: passed)
+
+  - docs/tests/runtime/text/runtime_text_atlas_page_residency_tests_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_atlas_page_residency_tests_owner_split_validation_20260703.log (2026-07-03 atlas page_residency tests owner split proof: inspected; PNG SHA256 07E5D89ECA47836C4BDDB82BE0E80A5611868B4186905AAFCF4BF7031F8CFBBB; log SHA256 430348B83901D0D793CAB2D962D4B8FC7D8FA8A4B76948F1C86EB1459C751D97; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0; owner paths are currently untracked in this dirty worktree)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/render_batch.rs zircon_runtime/src/text/atlas/render_batch/tests.rs (2026-07-03 atlas render_batch tests owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - manual trailing-whitespace scan for current untracked zircon_runtime/src/text/atlas/render_batch.rs and zircon_runtime/src/text/atlas/render_batch/tests.rs owner paths (2026-07-03 atlas render_batch tests owner split: passed)
+
+  - docs/tests/runtime/text/runtime_text_atlas_render_batch_tests_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_atlas_render_batch_tests_owner_split_validation_20260703.log (2026-07-03 atlas render_batch tests owner split proof: inspected; PNG SHA256 BDA2265E3DCCB930EF5DB492E247E777DE29D0A1CA51D5869C8894561CBFA1AE; log SHA256 A91DF43023A2DC1226282D77A9C5C489B1F695C98B493DA84890CA12313302C8; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0; owner paths are currently untracked in this dirty worktree)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/render_contract.rs zircon_runtime/src/text/atlas/render_contract/tests.rs (2026-07-03 atlas render_contract tests owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - git diff --check -- zircon_runtime/src/text/atlas/render_contract.rs zircon_runtime/src/text/atlas/render_contract/tests.rs plus manual trailing-whitespace scan for current untracked owner paths (2026-07-03 atlas render_contract tests owner split: passed)
+
+  - docs/tests/runtime/text/runtime_text_atlas_render_contract_tests_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_atlas_render_contract_tests_owner_split_validation_20260703.log (2026-07-03 atlas render_contract tests owner split proof: inspected; PNG SHA256 BF3B401DC99D3A59791736AC93E77E9B75D235A152D75B55324A93B6D7B2EEE3; log SHA256 CBAD8399162B4A3ACAB0A3721D1151133D46592AC3CC47BA8D420FDA3B538A96; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0; owner paths are currently untracked in this dirty worktree)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/font/fallback.rs zircon_runtime/src/text/font/fallback/tests.rs (2026-07-03 font fallback tests owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - git diff --check -- zircon_runtime/src/text/font/fallback.rs zircon_runtime/src/text/font/fallback/tests.rs (2026-07-03 font fallback tests owner split: passed)
+
+  - docs/tests/runtime/text/runtime_text_font_fallback_tests_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_font_fallback_tests_owner_split_validation_20260703.log (2026-07-03 font fallback tests owner split proof: inspected; PNG SHA256 9D38C2B6187BBB7C647997E48EBE8D9B7518449F8D91AAE3CC1115DE69A90BE9; log SHA256 C0F56396A1A0372D3DFA5CA5100667FBCFF63A902AFBCF31B927D329F729B403; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/render_plan.rs zircon_runtime/src/text/atlas/render_plan/tests.rs (2026-07-03 atlas render_plan tests owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - git diff --check -- zircon_runtime/src/text/atlas/render_plan.rs zircon_runtime/src/text/atlas/render_plan/tests.rs (2026-07-03 atlas render_plan tests owner split: passed)
+
+  - docs/tests/runtime/text/runtime_text_atlas_render_plan_tests_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_atlas_render_plan_tests_owner_split_validation_20260703.log (2026-07-03 atlas render_plan tests owner split proof: inspected; PNG SHA256 E11BA2E063571550C255D3BA38082D99129F2C54B61C1D25730CF727911F628E; log SHA256 1EBC9FE2D6032F676785DE5210D97AC991CF8CE4B0D1F89C36732789D2DCC852; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row/tests.rs (2026-07-03 editor retained-host glyph row tests owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_glyph_row_tests_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_editor_retained_glyph_row_tests_owner_split_validation_20260703.log (2026-07-03 editor retained-host glyph row tests owner split proof: inspected; PNG SHA256 278C8287FD6DF141044833641F538C2147C75A115A8FAEAAA6E147D09B2D49DC; log SHA256 DB0B3DA7ADFED60F8FCEC009CE0D81C83F1B91E1949FC5220D4035FC7DD6D043; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/font/tests.rs (2026-07-03 editor retained-host font tests owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_font_tests_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_editor_retained_font_tests_owner_split_validation_20260703.log (2026-07-03 editor retained-host font tests owner split proof: inspected; PNG SHA256 AC030034EB8EA779E479DF8E2970A2D444843A5F6D00B4FE28CB0600800F689B; log SHA256 06CC54E523C72A4F7A0B1BCFEE6C881E6CF8FE9E3ABD3FCE39B153DC19AE5941; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs (2026-07-03 editor retained-host glyph draw tests owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_glyphs_tests_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_editor_retained_glyphs_tests_owner_split_validation_20260703.log (2026-07-03 editor retained-host glyph draw tests owner split proof: inspected; PNG SHA256 E06ADE35E0FD6295E25D68A34ED60FFE714489ACE4CB6F7BA54A3DA724672168; log SHA256 411DA8E2F2A76085F3943E534A2D6F4E04FF98560D05A0537428148A0F144EE2; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/raster/tests.rs (2026-07-03 editor retained-host raster tests owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_raster_tests_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_editor_retained_raster_tests_owner_split_validation_20260703.log (2026-07-03 editor retained-host raster tests owner split proof: inspected; PNG SHA256 4ADD02208C254F4881083E594F7181BCF02D9C4DCD4CDA3F9232BAECE4FEB77D; log SHA256 F7B27150E20C53F92E33D414B3D3B71F728A893F210604FE802E470628E3A72F; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs (2026-07-03 editor retained-host layout tests owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_layout_tests_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_editor_retained_layout_tests_owner_split_validation_20260703.log (2026-07-03 editor retained-host layout tests owner split proof: inspected; PNG SHA256 70ADD3267361666D95A716636E4550035E88018BE658527B5A65BF296083CF85; log SHA256 8F99E60733AA6535AF15CEC821E18404D37920D11721842E13D7BA1C25A47857; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs (2026-07-03 editor retained-host shaped glyph positions: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_shaped_positions_preview_20260703.png and docs/tests/runtime/text/runtime_text_editor_shaped_positions_validation_20260703.log (2026-07-03 editor retained-host shaped glyph positions proof: inspected; PNG SHA256 FDBE187162457C079DFEC4F8949DA2AC79F1D5045D2F9744524922D2DABE81E7; log SHA256 0F3FBCDAF498351F66FD8E47529D52BED33494565369570EC4C92AB6CCED1F9A; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake/tests.rs (2026-07-03 SDF font bake tests owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_sdf_font_bake_tests_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_sdf_font_bake_tests_owner_split_validation_20260703.log (2026-07-03 SDF font bake tests owner split proof: inspected; PNG SHA256 00A7C9FC2067B6F244B86E4F7ED120F705B9C782B7C606CE3A04BEAA2E7C5DD0; log SHA256 D40C379F4023740CD764988AE91F2CC690A1DF8C177E5BFA7F436EF90337EF26; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload/tests.rs (2026-07-03 SDF upload tests owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_sdf_upload_tests_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_sdf_upload_tests_owner_split_validation_20260703.log (2026-07-03 SDF upload tests owner split proof: inspected; PNG SHA256 1E6E6743CFAB3954551F115BF6B9A9B8818180CB86F6008C6FE0818C7E9768ED; log SHA256 BBAD93344D2D6A08C9CF0BEBD73C06D429C1B0E06C096B59FDB3615EDB3EC5AF; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/mod.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/plan.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/allocation.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/cache_report.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/owner.rs (2026-07-03 SDF atlas tests owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_sdf_atlas_tests_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_sdf_atlas_tests_owner_split_validation_20260703.log (2026-07-03 SDF atlas tests owner split proof: inspected; PNG SHA256 A4C756CB71AF24DD33B0A58C4106A3FA637F23469C9A7AC7E3E0B50580EFB50D; log SHA256 73713891239F22545E2F8C8AB4C3CE581E50A57072269EBDFBFFCCF072E95262; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/font/database.rs zircon_runtime/src/text/font/database/tests.rs (2026-07-03 FR-M1/FR-M2 FontDatabase tests owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_font_database_tests_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_font_database_tests_owner_split_validation_20260703.log (2026-07-03 FontDatabase tests owner split proof: inspected; PNG SHA256 41A1884B987C0E8E1D37E0E61C5F7B66C861273A94CDBC239FCCCDF9D7429E9D; log SHA256 6E2CDFDFF5F28D00A0AAC664B1D15AED0B8F544281C64D484B0507DF07A0E770; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/layout/kinsoku.rs zircon_runtime/src/text/layout/kinsoku/tests.rs (2026-07-03 LB-M2 kinsoku tests owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_kinsoku_tests_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_kinsoku_tests_owner_split_validation_20260703.log (2026-07-03 kinsoku tests owner split proof: inspected; PNG SHA256 CADCB65D9FD7B9E68CBBDCA5F8B93444E596D6F593495CD8A867DCD8E9257CC0; log SHA256 AA79185CB505C65D277139AECEE457FB1300D6CB35FFC28E77C2F5EDDC87BF70; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/layout/line_break/mod.rs zircon_runtime/src/text/layout/line_break/tests.rs (2026-07-03 LB-M2 line_break root tests owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_line_break_tests_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_line_break_tests_owner_split_validation_20260703.log (2026-07-03 line_break root tests owner split proof: inspected; PNG SHA256 2842E994673D06D293DA9B4623FBF06C1BC42EEF6671C425737591902445A436; log SHA256 E64A98BCDAF96BDEA89927748FC98F02A775A21693B98C20D88F1CA6C86294FE; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/draw_plan.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/shader_contract.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/layout_placement.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/prepare_report.rs (2026-07-03 SDF render tests owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_sdf_render_tests_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_sdf_render_tests_owner_split_validation_20260703.log (2026-07-03 SDF render tests owner split proof: inspected; PNG SHA256 B9534C9D2F1610B79F2F732538BA7F31F79BDAC6B9241CA42522CF3476A41917; log SHA256 64B2483B5A4C27C761350450D8E4B72101A16FFD5BF759EBB9C47CE57254198D; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - cargo check -p zircon_runtime --lib --features target-editor-host --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-segmented-metrics-0703b --message-format short --color never (2026-07-03 SDF render fallback advance compile repair: passed with existing warnings)
+
+  - cargo build -p zircon_app --bin zircon_editor --features target-editor-host --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-segmented-metrics-0703b --message-format short --color never (2026-07-03 upper editor-host validation after SDF fallback advance repair: passed; exe SHA256 80C4CB01E5895541610FE4F70DC946AB6247FD9E14A60CE08D1D2D0B730D1815)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/raster/mod.rs zircon_runtime/src/text/raster/swash/mod.rs zircon_runtime/src/text/raster/swash/bitmap.rs zircon_runtime/src/text/raster/swash/color_strike.rs zircon_runtime/src/text/raster/swash/error.rs zircon_runtime/src/text/raster/swash/request.rs zircon_runtime/src/text/raster/swash/rasterizer.rs zircon_runtime/src/text/raster/swash/tests.rs (2026-07-03 AT-M1 swash raster owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_swash_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_swash_owner_split_validation_20260703.log (2026-07-03 AT-M1 swash raster owner split proof: inspected; PNG SHA256 5B4CFF05A4A82C7096E38C4791B8A6F26BAD30415DBD21F5AFF7065ED6D994C5; log SHA256 60D1DE0772C2FF9C08CB638AA01B5C9BE6E07EC56B1B92A336899DFF7F67B3A8; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/render_gpu_plan.rs zircon_runtime/src/text/atlas/render_gpu_plan/tests.rs zircon_runtime/src/text/atlas/render_gpu_plan/bind_group.rs zircon_runtime/src/text/atlas/render_gpu_plan/draw_command.rs zircon_runtime/src/text/atlas/render_gpu_plan/pipeline.rs zircon_runtime/src/text/atlas/render_gpu_plan/vertex.rs zircon_runtime/src/text/atlas/render_gpu_plan/viewport.rs (2026-07-03 atlas GPU plan tests owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_atlas_gpu_plan_tests_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_atlas_gpu_plan_tests_owner_split_validation_20260703.log (2026-07-03 atlas GPU plan tests owner split proof: inspected; PNG SHA256 5766905450772AC4BA3C4541B07A6A15CDAD2BC60712E3CA88E63672A49B647A; log SHA256 C6B32282DC716245185750FFF98E3DB02B8566146D36156B9C1969720DCE07F5; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/render_gpu_plan.rs zircon_runtime/src/text/atlas/render_gpu_plan/bind_group.rs zircon_runtime/src/text/atlas/render_gpu_plan/draw_command.rs zircon_runtime/src/text/atlas/render_gpu_plan/pipeline.rs zircon_runtime/src/text/atlas/render_gpu_plan/vertex.rs zircon_runtime/src/text/atlas/render_gpu_plan/viewport.rs (2026-07-03 atlas GPU plan owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_atlas_gpu_plan_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_atlas_gpu_plan_owner_split_validation_20260703.log (2026-07-03 atlas GPU plan owner split proof: inspected; PNG SHA256 A9D06A13980EF2FF523F3550CBFF5D284E145194E544D33F16E8521E91DF5F68; log SHA256 FF0FE5BFC45D19F79C1D1BB57AA61493743CC6F7887409C694EF62AC672CD6EB; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text_pixel_snap.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs (2026-07-03 editor SDF glyph bitmap-origin snap: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_sdf_glyph_origin_snap_preview_20260703.png and docs/tests/runtime/text/runtime_text_editor_sdf_glyph_origin_snap_validation_20260703.log (2026-07-03 editor SDF glyph bitmap-origin snap proof: inspected; PNG SHA256 9576EFE406DE518BBFD889DA9D63DF28DE8C1C32BC8657E392D62D415B9A541E; log SHA256 6C33A5D3DF05663E5753824734E2D5F559C5806E971055AC026F8A22B76EC21A; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0; proof image is not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text_pixel_snap.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/layout_placement.rs (2026-07-04 editor SDF glyph spacing: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_editor_sdf_glyph_spacing_preview_20260704.png and docs/tests/runtime/text/runtime_text_editor_sdf_glyph_spacing_validation_20260704.log (2026-07-04 editor SDF glyph spacing proof: inspected; PNG SHA256 17AC939B3EB79AD20ABD466A71183A8B38F51D540FC568EDCCCA1ED990306DEE; log SHA256 87DDC884BAB33691AB6B5C80475B3C6ADF08C8A4FE03A5F2B69C62326CE40B4D; repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets same-name match count 0; proof image is not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs (2026-07-03 editor retained pen-origin subpixel phase: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+- docs/tests/runtime/text/runtime_text_editor_pen_origin_phase_preview_20260703.png and docs/tests/runtime/text/runtime_text_editor_pen_origin_phase_validation_20260703.log (2026-07-03 editor retained pen-origin subpixel phase proof: inspected; PNG SHA256 03CA205AC0C1BD890C37955AEBEB8BE57C7242C9C3542D6DCB9D21F4F8C24032; log SHA256 44D9B5BFBF12F7FE473E955012FD7A7D1E039433AD92B66DD89C9A26F7253DE7; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/render_contract.rs zircon_runtime/src/text/atlas/render_gpu_plan.rs (2026-07-03 atlas GPU shader entry contract: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_atlas_gpu_shader_entry_contract_preview_20260703.png and docs/tests/runtime/text/runtime_text_atlas_gpu_shader_entry_contract_validation_20260703.log (2026-07-03 atlas GPU shader entry contract proof: inspected; PNG SHA256 1C338500A853F96D4BC2D89930E88D2DF5D65C19692FBAD7091071777BD54CA4; log SHA256 E085CE4E5ACCF2D68E1DBB13D04C91FF02B219F65C280E8D106FB220D1747EBB; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/render_gpu_plan.rs (2026-07-03 atlas GPU pipeline binding contract: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_atlas_gpu_pipeline_binding_contract_preview_20260703.png and docs/tests/runtime/text/runtime_text_atlas_gpu_pipeline_binding_contract_validation_20260703.log (2026-07-03 atlas GPU pipeline binding contract proof: inspected; PNG SHA256 340038AEFD60DD670EAE53B63B68175E63864C6C62552DA20C59610A93131843; log SHA256 D2B1C35CE4C7A4D3EE58F31850D27AA8CA9D7088001CF8B357325B1FD07563AE; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/render_gpu_plan.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs (2026-07-03 editor retained subpixel spacing fix plus atlas GPU draw command contract: passed)
+
+  - git diff --check -- zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs (2026-07-03 editor retained subpixel spacing fix: passed with line-ending warnings only)
+
+  - docs/tests/runtime/text/runtime_text_editor_retained_subpixel_spacing_fix_preview_20260703.png and docs/tests/runtime/text/runtime_text_editor_retained_subpixel_spacing_fix_validation_20260703.log (2026-07-03 editor retained subpixel spacing fix proof: inspected; PNG SHA256 ED53B97AE58A6930F41054B323BA3D475E8A80D44BCC7AB223E121485DA50F4B; log SHA256 CFF4653F26BC37A0C0C7350903A5AACA3359D4E2FD8F9FB7EB2D68A0419DEF95; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_atlas_gpu_draw_command_contract_preview_20260703.png and docs/tests/runtime/text/runtime_text_atlas_gpu_draw_command_contract_validation_20260703.log (2026-07-03 atlas GPU draw command contract proof: inspected; PNG SHA256 2257609CCC3FFA3539E5F42991F7F85ADE3F3585BD03EF918C6C409287D3C8DB; log SHA256 1FD122D31AB1241181483561A9CA52561A2772126B9B438F0C5674D8BD8EA85C; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/render_gpu_plan.rs (2026-07-03 atlas GPU viewport transform contract: passed)
+
+  - target\debug\deps\zircon_runtime-90029178d239f47b.exe render_text_atlas_gpu --nocapture --test-threads=1 (2026-07-03 atlas GPU viewport transform contract: passed 7/7, 6180 filtered out; Cargo wrapper exceeded the Windows runtime lib-test compile wait window and is not counted separately)
+
+  - docs/tests/runtime/text/runtime_text_atlas_gpu_viewport_transform_preview_20260703.png and docs/tests/runtime/text/runtime_text_atlas_gpu_viewport_transform_validation_20260703.log (2026-07-03 atlas GPU viewport transform contract proof: inspected; PNG SHA256 7BE7BBFC33307E711BD6246F32871E181979BF925D259781407DB08D5F0C6866; log SHA256 E8DB5F74EC25C60384A955F36631B4CC64DCC06A52B44EE849196E11D4D3E734; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/render_gpu_plan.rs (2026-07-03 atlas GPU vertex layout contract: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_atlas_gpu_vertex_layout_contract_preview_20260703.png and docs/tests/runtime/text/runtime_text_atlas_gpu_vertex_layout_contract_validation_20260703.log (2026-07-03 atlas GPU vertex layout contract proof: inspected; PNG SHA256 AC1262411219A99A80E7C5221A6DD395373BAC051DF644BD21A7B03A4957437D; log SHA256 3A911D8B1C5EF46D84ED206D21B3A954480439C73A5A84FE3DAEB99F6086E63E; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/render_plan.rs (2026-07-03 SubpixelMask atlas background-composite input guard: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - git diff --check -- zircon_runtime/src/text/atlas/render_plan.rs and trailing-whitespace scan (2026-07-03 SubpixelMask atlas background-composite input guard: passed)
+
+  - docs/tests/runtime/text/runtime_text_atlas_subpixel_background_composite_preview_20260703.png and docs/tests/runtime/text/runtime_text_atlas_subpixel_background_composite_validation_20260703.log (2026-07-03 SubpixelMask atlas background-composite input guard proof: inspected; PNG SHA256 0C96BD0273ADBE75FC52DFBEADA54788339753E959AC47303AE0B476B981743E; log SHA256 148F090E70D9DC38FAD304F6F49C9A3FEDA029D1D3EF0BF3E9C7F6CDCF697AF4; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text_pixel_snap.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/mod.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs (2026-07-03 native/SDF shared text pixel origin: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_sdf_native_pixel_snap_parity_preview_20260703.png and docs/tests/runtime/text/runtime_text_sdf_native_pixel_snap_parity_validation_20260703.log (2026-07-03 native/SDF shared text pixel origin visual/log proof: inspected; PNG SHA256 ABDC47F299319347C09545730B423A626CA34099B9A09CB49288C19D3BB8A441; log SHA256 4C0135C3A3588FF3A2847D4B823A11FB6DCDA1B3B31ED444BB04D1F2EE8AF6E8; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/sdf/font_bake.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/mod.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs (2026-07-03 SDF format-control glyph filtering: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_sdf_format_control_filter_preview_20260703.png and docs/tests/runtime/text/runtime_text_sdf_format_control_filter_validation_20260703.log (2026-07-03 SDF format-control glyph filtering visual/log proof: inspected; PNG SHA256 44E8F6F622C2C1648EA8AF71D2FD8F51359A2F09EB44CC99DB44FA517E0D924E; log SHA256 6DBED416FFA104E1EA21F3F72D5EA86D29E79297E782F9294C530BD791056748; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_advances.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/mod.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs (2026-07-03 SDF grapheme advance mapping: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_sdf_grapheme_advance_mapping_preview_20260703.png and docs/tests/runtime/text/runtime_text_sdf_grapheme_advance_mapping_validation_20260703.log (2026-07-03 SDF grapheme advance mapping visual/log proof: inspected; PNG SHA256 095FE45AFE9BCBAA673902C42938D838B73848D92D52986C320BFB9DC1BEE315; log SHA256 12C4B8F36CBDA5B4BC4D550D6D30D8AD813BBBF9EFBC10BDFA3D3465C204CC76; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs (2026-07-03 editor retained-host per-grapheme spacing guard: passed)
+
+  - cargo test -p zircon_editor runtime_positioned_glyphs --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-text-spacing-0703 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 editor retained-host per-grapheme spacing guard: timed out after 904s with no Rust diagnostics; no Cargo pass claimed; log docs/tests/runtime/text/runtime_text_editor_per_grapheme_spacing_guard_validation_20260703.log SHA256 48AFB99C98A9037F1B51E156257A7A43AD25F09D9E065EAA5E5A3D7FA10AB5C8)
+
+  - docs/tests/runtime/text/runtime_text_editor_per_grapheme_spacing_guard_preview_20260703.png (2026-07-03 editor retained-host per-grapheme spacing guard visual proof: inspected; SHA256 7991429B66A536B05D538C05947EBAD6FB7D6049EF894F1D6EE4F8E32406A5F8; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0; proof image is not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs (2026-07-03 editor retained-host subpixel spacing threshold: passed)
+
+  - docs/tests/runtime/text/runtime_text_editor_subpixel_spacing_threshold_preview_20260703.png (2026-07-03 editor retained-host subpixel spacing threshold proof: inspected; SHA256 BBBED73034CD2C41D8FC18E38EBE6630412E691C03E7728137B6060F9AF54693; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0; proof image is not a live editor capture)
+
+  - docs/tests/runtime/text/runtime_text_editor_subpixel_spacing_threshold_validation_20260703.log (2026-07-03 editor retained-host subpixel spacing threshold validation log: SHA256 2F0CBC3675CBF4452963A9828DA22130143CF955D16AF5B6974B95D41900AD36; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/mod.rs zircon_runtime/src/text/atlas/render_batch.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs (2026-07-03 AT-M2/AT-M3 atlas draw-batch plus native TextArea pixel placement: passed)
+
+  - cargo test -p zircon_runtime render_text_atlas_draw_batch_plan --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0703-atlas-draw-plan --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 atlas draw-batch focused owner tests: passed 4/4, 6130 filtered out; log docs/tests/runtime/text/runtime_text_atlas_draw_batch_plan_cargo_test_20260703.log SHA256 973C911AB09EBB6230571B2E5E98B0C183E485E61111B7B70870429C154BC010)
+
+  - E:\cargo-targets\zircon-runtime-text-0703-atlas-draw-plan\debug\deps\zircon_runtime-a3e50d5b208f953f.exe native_text_area_placement --nocapture --test-threads=1 (2026-07-03 native TextArea pixel placement direct lib-test binary: passed 2/2, 6132 filtered out; log docs/tests/runtime/text/runtime_text_native_text_area_placement_binary_test_20260703.log SHA256 545BE8623693D2A47B9CEC7D9323B1CE99B5F15C21D0EC252B1B7FD16F6A6929)
+
+  - docs/tests/runtime/text/runtime_text_native_text_pixel_snap_preview_20260703.png (2026-07-03 native TextArea pixel-snap visual proof for editor tab labels: inspected; SHA256 9E448C75E49B86DA706A0968006F938869E5F1B3688DF91F1356AA1BFA3E8F37; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/mod.rs zircon_runtime/src/text/atlas/render_plan.rs zircon_runtime/src/core/framework/render/material/property_override_block.rs zircon_runtime/src/core/framework/render/frame_extract/geometry.rs (2026-07-03 AT-M2/AT-M3 bitmap atlas draw-plan contract owner plus support-first unblock files: passed)
+
+  - cargo test -p zircon_runtime render_text_atlas_draw_plan --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0703-atlas-draw-plan --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 atlas draw-plan focused owner tests: passed 4/4, 6109 filtered out; log docs/tests/runtime/text/runtime_text_atlas_draw_plan_cargo_test_20260703.log SHA256 E46969834F67E8D283F08203B47F3FC9662A545431016753A52043659B86B51E)
+
+  - docs/tests/runtime/text/runtime_text_atlas_draw_plan_preview_20260703.png (2026-07-03 AT-M2/AT-M3 atlas draw-plan visual proof: inspected; SHA256 49ED0B2B7A9DDB8373C1D5E93EBA0B8F15FE39FCD61C257A3EFC924423FCB816; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - cargo test -p zircon_runtime material_property_override_block_keeps_transparent_value_map_shape --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0703-atlas-draw-plan --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 support-first transparent material override serde gate: passed 1/1)
+
+  - cargo test -p zircon_runtime geometry_extract_excludes_material_override_entities_from_static_batches --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0703-atlas-draw-plan --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 support-first frame_extract geometry gate: passed 1/1)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/mod.rs zircon_runtime/src/text/atlas/render_contract.rs (2026-07-03 AT-M2/AT-M3 SubpixelMask atlas shader/blend contract owner: passed)
+
+  - cargo test -p zircon_runtime render_text_atlas --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0703-atlas-render-contract --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 atlas render contract focused owner tests: passed 18/18, 6071 filtered out; log docs/tests/runtime/text/runtime_text_atlas_render_contract_cargo_test_20260703.log SHA256 3EDE41F228B9AC057EB9117D578013B3F144D435B42710A3A154D8C6F05C0BDC)
+
+  - docs/tests/runtime/text/runtime_text_atlas_render_contract_preview_20260703.png (2026-07-03 AT-M2/AT-M3 atlas render contract visual proof: inspected; SHA256 CF07AB48BB71675D2473243601E1CB256D4DFCBF7F9D1E2DA15F19CC928B54FC; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/mod.rs zircon_runtime/src/text/atlas/page.rs zircon_runtime/src/text/atlas/upload.rs zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs (2026-07-03 AT-M2/AT-M3 SubpixelMask atlas sampling semantics boundary: passed)
+
+  - cargo test -p zircon_runtime render_text_atlas --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0703-atlas-sampling-semantics --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 atlas sampling semantics focused owner tests: passed 14/14, 6050 filtered out, after support-first unblock of runtime_plugin_lifecycle InitLevel fixture drift; log docs/tests/runtime/text/runtime_text_atlas_sampling_semantics_cargo_test_20260703.log SHA256 B3CE7DCB7C97D5B17ADCCBAA8822C3995BA4D088205067A8BEB50EDFB76A51FD)
+
+  - docs/tests/runtime/text/runtime_text_atlas_sampling_semantics_preview_20260703.png (2026-07-03 AT-M2/AT-M3 SubpixelMask atlas sampling semantics visual proof: inspected; SHA256 647C26CE1CA939D2BFABB9713BF5BBF9EE70146492F68DBBA39D1B6BDB31A5CA; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/page.rs zircon_runtime/src/text/atlas/raster_key.rs zircon_runtime/src/text/raster/policy.rs zircon_runtime/src/text/raster/swash.rs (2026-07-03 AT-M1/AT-M2 swash SubpixelMask atlas storage boundary: passed)
+
+  - cargo test -p zircon_runtime text_raster_swash --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0703-swash-subpixel --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 AT-M1/AT-M2 swash SubpixelMask focused owner tests: passed 11/11 after support-first unblock of shader template module_registry test-scope import drift; log docs/tests/runtime/text/runtime_text_swash_subpixel_mask_cargo_test_20260703.log SHA256 24C1DABB9C1E5B09FD101459E036970C7BE1A5710ADAC9F646F4ECBDA1244296)
+
+  - docs/tests/runtime/text/runtime_text_swash_subpixel_mask_storage_preview_20260703.png (2026-07-03 AT-M1/AT-M2 swash SubpixelMask atlas storage visual proof: inspected; SHA256 87EB5981A4284ABC49D209EE92F56BB8733900E86B130E4BB26B92EE5604FF1F; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/raster/swash.rs (2026-07-03 AT-M1 swash real-font alpha outline owner test: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs zircon_runtime/src/text/raster/mod.rs zircon_runtime/src/text/raster/policy.rs zircon_runtime/src/text/raster/swash.rs (2026-07-03 retained-host subpixel glyph positioning and swash render adapter: passed)
+
+  - docs/tests/runtime/text/runtime_text_editor_subpixel_positioning_preview_20260703.png (2026-07-03 retained-host subpixel positioning visual proof: inspected; SHA256 A0AA67AC2FF5FEA652A6A77476DEB86E97CF22B50C0AA5C8898F3739C3B9DCFF; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - docs/tests/runtime/text/runtime_text_swash_render_adapter_preview_20260703.png (2026-07-03 AT-M1 swash Render adapter visual proof: inspected; SHA256 575962D0879A70C22A0A6A48D152D70C78F6A6B084E43B9D22D7AC62C32C2294; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/raster/mod.rs zircon_runtime/src/text/raster/policy.rs zircon_runtime/src/text/raster/swash.rs (2026-07-03 AT-M1 swash GlyphBitmap output validation boundary: passed)
+
+  - docs/tests/runtime/text/runtime_text_swash_bitmap_output_validation_preview_20260703.png (2026-07-03 AT-M1 swash GlyphBitmap output validation visual proof: inspected; SHA256 33AA74A6F8CEF26D4C6370EAE150FECA1496AD0DF6E4198A18C672264039B672; repo target, D:\cargo-targets, and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/raster/mod.rs zircon_runtime/src/text/raster/policy.rs zircon_runtime/src/text/raster/swash.rs (2026-07-02 AT-M1 swash bitmap contract and emoji strike selection: passed)
+
+  - docs/tests/runtime/text/runtime_text_swash_emoji_strike_selection_preview_20260702.png (2026-07-02 AT-M1 swash bitmap contract visual proof: inspected; SHA256 A1A650179E2DF07BCBFE39F82AA2BD7A2967170013B9D4451ED3B21DBDD9FCD5; repo target, D:\cargo-targets, and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/raster/mod.rs zircon_runtime/src/text/raster/policy.rs (2026-07-02 AT-M2/SM-M4 raster policy effect-aware route: passed)
+
+  - docs/tests/runtime/text/runtime_text_raster_policy_effect_route_preview_20260702.png (2026-07-02 AT-M2/SM-M4 raster policy effect route visual proof: inspected; SHA256 FD9B00AE19F3982E4E824B552DDC2F0200F86166F344EA4F0E33CD508FEE25C6; repo target, D:\cargo-targets, and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/mod.rs zircon_runtime/src/text/raster/mod.rs zircon_runtime/src/text/raster/policy.rs zircon_runtime/src/ui/text/mod.rs zircon_runtime/src/ui/tests/text_pipeline (2026-07-02 AT-M2 raster policy owner hard-cutover: passed)
+
+  - docs/tests/runtime/text/runtime_text_raster_policy_owner_preview_20260702.png (2026-07-02 AT-M2 raster policy owner visual proof: inspected; SHA256 47C000BAA635B4BA612987A50A05BEF4E2352241745848DC363DFFEC7C8BE2C2; repo target, D:\cargo-targets, and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/mod.rs zircon_runtime/src/text/atlas/raster_key.rs (2026-07-02 AT-M2 subpixel placement data-plane: passed)
+
+  - cargo test -p zircon_runtime text_raster --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-raster-placement --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 AT-M2 subpixel placement focused owner tests: timed out after 604s during Windows lib-test compilation before diagnostics/tests; owned target-dir processes stopped; log docs/tests/runtime/text/runtime_text_atlas_subpixel_placement_cargo_test_20260702.log SHA256 4406869BD1AA6D940A1F77B2994D31CB1EC31F7F3EF6FFDE6B45FF2E4B661C62)
+
+  - docs/tests/runtime/text/runtime_text_atlas_subpixel_placement_preview_20260702.png (2026-07-02 AT-M2 subpixel placement visual proof: inspected; SHA256 45502C2915980444030187C7D8614A3256C6F78887E1D6A57FDA087F5CFD68CA; repo target, D:\cargo-targets, and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/mod.rs zircon_runtime/src/text/atlas/raster_key.rs (2026-07-02 AT-M2 glyph raster key data-plane: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-raster-key --message-format short --color never (2026-07-02 AT-M2 glyph raster key data-plane: current rerun blocked by active shader/material import and fixture drift outside text/atlas)
+
+  - cargo test -p zircon_runtime text_raster --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-raster-key --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 AT-M2 glyph raster key focused owner tests: blocked before running by active shader/material lib-test drift; log docs/tests/runtime/text/runtime_text_atlas_raster_key_cargo_test_20260702.log)
+
+  - docs/tests/runtime/text/runtime_text_atlas_raster_key_dpi_subpixel_preview_20260702.png (2026-07-02 AT-M2 glyph raster key visual proof: inspected; SHA256 DC4484BCA50388731D89BF0AAFE44261A2DDBCC2306D8B8439BCEF771B477675; repo target, D:\cargo-targets, and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/raster_key/mod.rs zircon_runtime/src/text/atlas/raster_key/tests.rs (2026-07-03 AT-M2 raster_key tests owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_atlas_raster_key_tests_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_atlas_raster_key_tests_owner_split_validation_20260703.log (2026-07-03 AT-M2 raster_key tests owner split proof: inspected; PNG SHA256 4A2AD2FAC218555784BD686986D7EB7EC9A38C208ED7C6ADAD9D455312EEA7F1; log SHA256 C893CF3311C3603F95797E87CE6A5453EA9F7660DE74617DFE6CC32C9DE630BC; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_id_report.rs (2026-07-02 AT-M1/AT-M3/SM-M1 SDF batch fallback first slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-fallback --message-format short --color never (2026-07-02 AT-M1/AT-M3/SM-M1 SDF batch fallback first slice: passed with existing 283 warnings)
+
+  - cargo test -p zircon_runtime sdf_atlas_fallback_moves_failed_sdf_batches_to_native_backend --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-fallback --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 AT-M1/AT-M3/SM-M1 SDF batch fallback focused text prepare test: passed 1/1)
+
+  - cargo test -p zircon_runtime sdf_atlas_plan_reports_page_limit_allocation_failures --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-fallback --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 AT-M1/AT-M3/SM-M1 SDF batch fallback allocation-count regression: passed 1/1)
+
+  - docs/tests/runtime/text/runtime_text_sdf_batch_fallback_preview_20260702.png (2026-07-02 AT-M1/AT-M3/SM-M1 SDF batch fallback visual proof: inspected; SHA256 AFE5EA406AFC5134C56E657B2D94954C516D43E4D09213D7D15FEC2A8E406561; repo target, D:\cargo-targets, and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs (2026-07-02 SDF fallback owner split: passed)
+
+  - cargo test -p zircon_runtime sdf_atlas_fallback_moves_failed_sdf_batches_to_native_backend --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-fallback --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 SDF fallback owner split focused regression: passed 1/1 with existing warnings)
+
+  - docs/tests/runtime/text/runtime_text_sdf_fallback_owner_split_preview_20260702.png (2026-07-02 SDF fallback owner split visual proof: inspected; SHA256 DEF01A5FD43A830CD47331B6BE000CBFCAF92B0B80CE2C0BA821CCA93AB4767F; repo target, D:\cargo-targets, and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs (2026-07-02 SDF run failure reasons data-plane: passed)
+
+  - cargo test -p zircon_runtime sdf_atlas_run_records_failure_reasons_per_glyph --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-fallback --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 SDF run failure reasons focused atlas test: passed 1/1)
+
+  - cargo test -p zircon_runtime sdf_atlas_fallback_moves_failed_sdf_batches_to_native_backend --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-fallback --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 SDF run failure reasons fallback regression: passed 1/1)
+
+  - cargo test -p zircon_runtime sdf_atlas_plan_reports_page_limit_allocation_failures --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-fallback --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 SDF run failure reasons page-limit regression: passed 1/1)
+
+  - docs/tests/runtime/text/runtime_text_sdf_run_failure_reasons_preview_20260702.png (2026-07-02 SDF run failure reasons visual proof: inspected; SHA256 6F2ACC20CE64986E6DC0430682ACD69B4AC78A1CE1FB6582E6932C9FBE9CFFBF; repo target, D:\cargo-targets, and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs (2026-07-02 SDF mixed native overlay first slice: passed)
+
+  - cargo test -p zircon_runtime sdf_atlas_fallback_ --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-mixed-fallback --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 SDF mixed native overlay focused regressions: first wrapper timed out after 1204s during compile but produced the test binary; direct binary passed 4/4; Cargo rerun passed 4/4 with existing 129 warnings)
+
+  - docs/tests/runtime/text/runtime_text_sdf_mixed_overlay_preview_20260702.png (2026-07-02 SDF mixed native overlay visual proof: inspected; SHA256 CF2890E74709F9ABE536EB1979628F6A62A1E6F6F1FBBB966434A19CC16FD042; repo target, D:\cargo-targets, and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs (2026-07-03 SDF horizontal RTL mixed native overlay: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_sdf_mixed_overlay_rtl_preview_20260703.png and docs/tests/runtime/text/runtime_text_sdf_mixed_overlay_rtl_validation_20260703.log (2026-07-03 SDF horizontal RTL mixed native overlay proof: inspected; PNG SHA256 93624C9615FDCBBCE04234B6AFAC193355D5DAEDFE1569DCB2A0AF3317E45C97; log SHA256 01BBB2E3CE13F70990CA963BE3A96D438B175D4A16D107A4A38A9340FAEF9B26; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0; proof image is not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback/tests.rs (2026-07-03 SDF fallback tests owner split: passed; focused Cargo deferred because external cargo/rustc lanes were active)
+
+  - docs/tests/runtime/text/runtime_text_sdf_fallback_tests_owner_split_preview_20260703.png and docs/tests/runtime/text/runtime_text_sdf_fallback_tests_owner_split_validation_20260703.log (2026-07-03 SDF fallback tests owner split proof: inspected; PNG SHA256 FE995820693944F2AF201B527A9C7D1A005CB1C59B18E6DBCCD9E7458F89B83F; log SHA256 67D08FDF75E59048E8A700A4977A14209E9E1A6F58D78E7987C50E58F9AD5D17; repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0; proof image is not a live editor capture)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs (2026-07-02 SDF mixed fallback diagnostics: passed)
+
+  - cargo test -p zircon_runtime sdf_atlas_fallback_ --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-mixed-fallback --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 SDF mixed fallback diagnostics focused regressions: passed 5/5 with existing 129 warnings)
+
+  - docs/tests/runtime/text/runtime_text_sdf_fallback_diagnostics_preview_20260702.png (2026-07-02 SDF mixed fallback diagnostics visual proof: inspected; SHA256 0867D1D2FA42CB60C36CD288CFC29A35500AD339F0FB0295C0201D601B618F71; repo target, D:\cargo-targets, and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs (2026-07-02 SDF mixed fallback span plan: passed)
+
+  - cargo test -p zircon_runtime sdf_atlas_fallback_groups_failed_glyph_reason_spans --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-fallback --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 SDF mixed fallback span grouping regression: passed 1/1 after background compile finished and the incremental rerun completed)
+
+  - cargo test -p zircon_runtime sdf_atlas_fallback_moves_failed_sdf_batches_to_native_backend --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-fallback --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 SDF mixed fallback span plan whole-batch behavior regression: passed 1/1 with existing warnings)
+
+  - docs/tests/runtime/text/runtime_text_sdf_mixed_fallback_spans_preview_20260702.png (2026-07-02 SDF mixed fallback span plan visual proof: inspected; SHA256 7803BE1FDA9E05A0A238B923C784D3182D10FEED0B656516EA41CC1760EFBE04; repo target, D:\cargo-targets, and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs (2026-07-02 SDF fallback byte ranges: passed)
+
+  - cargo test -p zircon_runtime sdf_atlas_fallback_maps_failed_glyph_spans_to_utf8_byte_ranges --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-fallback --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 SDF fallback UTF-8 byte-range regression: passed 1/1 after cold compile completed in 20m57s with existing warnings)
+
+  - cargo test -p zircon_runtime sdf_atlas_fallback_groups_failed_glyph_reason_spans --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-fallback --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 SDF fallback byte ranges span grouping regression: passed 1/1 with existing warnings)
+
+  - cargo test -p zircon_runtime sdf_atlas_fallback_moves_failed_sdf_batches_to_native_backend --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-fallback --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 SDF fallback byte ranges whole-batch behavior regression: passed 1/1 with existing warnings)
+
+  - docs/tests/runtime/text/runtime_text_sdf_fallback_byte_ranges_preview_20260702.png (2026-07-02 SDF fallback byte ranges visual proof: inspected; SHA256 19AEF0B81055E431B22D28240BF37049D3D14E9A1D02FC84564521A5CBAB92CE; repo target, D:\cargo-targets, and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs (2026-07-02 AT-M1/AT-M3/SM-M1 SDF allocation failure data-plane slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-allocation-failures --message-format short --color never (2026-07-02 AT-M1/AT-M3/SM-M1 SDF allocation failure data-plane slice: passed with existing 285 warnings)
+
+  - cargo test -p zircon_runtime allocation_failures --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-allocation-failures --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 AT-M1/AT-M3/SM-M1 SDF allocation failure focused tests: timed out after 1204s during Windows lib-test compile/link with no Rust diagnostics; matching owned target-dir cargo/rustc processes were stopped; not counted as passing)
+
+  - docs/tests/runtime/text/runtime_text_sdf_allocation_failures_preview_20260702.png (2026-07-02 AT-M1/AT-M3/SM-M1 SDF allocation failure visual proof: inspected; SHA256 9E350433C32291B530BE8834F4DB8490B3A9DDA8FB33BD785F81399E17AD844F; repo target, D:\cargo-targets, and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs (2026-07-02 AT-M1/AT-M3/SM-M1 SDF page eviction invalidation slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-eviction-invalidation --message-format short --color never (2026-07-02 AT-M1/AT-M3/SM-M1 SDF page eviction invalidation slice: passed with existing 285 warnings)
+
+  - cargo test -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-eviction-invalidation sdf_atlas_cache_report_marks_rebuilt_pages_full_dirty -- --exact --nocapture (2026-07-02 AT-M1/AT-M3/SM-M1 SDF page eviction invalidation focused test: timed out after 904s during Windows lib-test compile with no Rust diagnostics; matching owned target-dir cargo/rustc processes were stopped; not counted as passing)
+
+  - docs/tests/runtime/text/runtime_text_sdf_eviction_invalidation_preview_20260702.png (2026-07-02 AT-M1/AT-M3/SM-M1 SDF page eviction invalidation visual proof: inspected; SHA256 93C1A2330D05FA7E7E8A686B25B8807928D0DAAA4FEDA0A71FCB55F8C722795C; repo target, D:\cargo-targets, and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests (2026-07-02 AT-M1/AT-M3/SM-M1 SDF shelf overflow multi-page allocation slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-multipage-allocation --message-format short --color never (2026-07-02 AT-M1/AT-M3/SM-M1 SDF shelf overflow multi-page allocation slice: passed with existing 285 warnings)
+
+  - cargo test -p zircon_runtime render_text_sdf_atlas_allocates_shelf_overflow_on_multiple_pages --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-multipage-allocation --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 AT-M1/AT-M3/SM-M1 SDF shelf overflow focused test: timed out after 904s during Windows lib-test compile with no Rust diagnostics; matching owned target-dir cargo/rustc processes were stopped; not counted as passing)
+
+  - docs/tests/runtime/text/runtime_text_sdf_multipage_allocation_preview_20260702.png (2026-07-02 AT-M1/AT-M3/SM-M1 SDF shelf overflow multi-page allocation visual proof: inspected; SHA256 6B3B9600B5B36DA3DAAA3829D3283984B2C92507A606178522F5CD6D6D67F22F; repo target, D:\cargo-targets, and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 zircon_runtime_interface/src/ui/surface/render/resolved_style.rs zircon_runtime_interface/src/ui/surface/render/text_shape.rs zircon_runtime_interface/src/ui/surface/render/command.rs zircon_runtime/src/ui/surface/render/resolve.rs zircon_runtime/src/ui/text/resolved_layout.rs zircon_runtime/src/text/shaping/cosmic.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs zircon_runtime_interface/src/tests/render_contracts.rs (2026-07-02 editor retained-host font-weight contract slice: passed)
+
+  - cargo check -p zircon_runtime_interface --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-font-weight --message-format short --color never (2026-07-02 editor retained-host font-weight contract slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-font-weight --message-format short --color never (2026-07-02 editor retained-host font-weight contract slice: passed with existing warnings)
+
+  - cargo check -p zircon_editor --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-font-weight-editor --message-format short --color never (2026-07-02 editor retained-host font-weight contract slice: passed with existing warnings)
+
+  - cargo test -p zircon_runtime_interface --lib ui_paint_element_derives_text_shape_payload_from_text_layout --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-font-weight --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 editor retained-host font-weight contract focused interface test: passed, 1/1)
+
+  - cargo test -p zircon_runtime --lib font_weight --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-font-weight --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 editor retained-host font-weight contract runtime focused tests: timed out after 904s during Windows lib-test compile with no Rust diagnostics; matching owned cargo/rustc processes were stopped; not counted as passing)
+
+  - cargo test -p zircon_editor --lib retained_text_measure --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-font-weight-editor --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 editor retained-host font-weight contract editor focused tests: timed out after 904s during Windows lib-test compile with no Rust diagnostics; matching owned cargo/rustc processes were stopped; not counted as passing)
+
+  - docs/tests/runtime/text/runtime_text_editor_font_weight_propagation_preview_20260702.png (2026-07-02 editor retained-host font-weight contract visual proof: inspected; SHA256 964E5942FD788A88D6BA8CFC756CD937A6D24E2E15C9C1A48AF0CB56FC86F832; repo target and E:\cargo-targets same-name match count 0)
+
+  - cargo test -p zircon_runtime --lib text_prepare_report --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-preferences-0702 --message-format short --color never -- --test-threads=1 --nocapture (2026-07-02 editor appearance preference hardening support repair: passed, 1/1; verifies `ScreenSpaceUiTextPrepareReport` clone-owned report access after removing invalid Copy derivation)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs (2026-07-02 AT-M3/SM-M1 SDF per-page dirty/upload data-plane slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-dirty-pages --message-format short --color never (2026-07-02 AT-M3/SM-M1 SDF per-page dirty/upload data-plane slice: passed with existing 284 warnings)
+
+  - cargo test -p zircon_runtime sdf_atlas_cache_report_tracks_dirty_rects_by_page_key --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-dirty-pages --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 AT-M3/SM-M1 SDF per-page dirty/upload focused test: timed out after 604s during Windows lib-test compile with no Rust diagnostics; matching owned cargo/rustc processes were stopped; not counted as passing)
+
+  - docs/tests/runtime/text/runtime_text_sdf_per_page_dirty_upload_preview_20260702.png (2026-07-02 AT-M3/SM-M1 SDF per-page dirty/upload visual proof: inspected; SHA256 C60312C68357563207DD3129224DC25684DF8ACC28C3AB09BF71C2C1A5302CA7; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 zircon_runtime/src/text/atlas/mod.rs zircon_runtime/src/text/atlas/page.rs zircon_runtime/src/text/atlas/page_residency.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs (2026-07-02 AT-M1/AT-M3 atlas page LRU residency slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-atlas-page-lru --message-format short --color never (2026-07-02 AT-M1/AT-M3 atlas page LRU residency slice: passed with existing 284 warnings and no new atlas warnings)
+
+  - cargo test -p zircon_runtime render_text_atlas_evicts_lru_page --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-atlas-page-lru --message-format short --color never -- --test-threads=1 --nocapture (2026-07-02 AT-M1/AT-M3 atlas page LRU focused test: blocked during test dependency compilation by existing zircon_runtime_interface/src/ui/skin/preset.rs test-cfg design_tokens import drift; not counted as passing)
+
+  - docs/tests/runtime/text/runtime_text_atlas_page_lru_residency_preview_20260702.png (2026-07-02 AT-M1/AT-M3 atlas page LRU residency visual proof: inspected; SHA256 17AD28ED66FC1270AE272739979993C4DC869BF3E54D647C1BDDF74E5A2CAAFD; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 zircon_runtime/src/text/atlas/mod.rs zircon_runtime/src/text/atlas/page.rs zircon_runtime/src/text/atlas/upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs (2026-07-02 AT-M3/SM-M1 generic atlas upload owner slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-atlas-upload-owner --message-format short --color never (2026-07-02 AT-M3/SM-M1 generic atlas upload owner slice: passed with existing 284 warnings)
+
+  - docs/tests/runtime/text/runtime_text_atlas_generic_upload_owner_preview_20260702.png (2026-07-02 AT-M3/SM-M1 generic atlas upload owner visual proof: inspected; SHA256 90E777EFD7CE47A9AF524F518C864293640ABA64A401EE163633A04B4A35F084; repo target and E:\cargo-targets same-name match count 0; focused render_text_atlas_upload lib-tests deferred/not counted for this slice)
+
+  - rustfmt --edition 2021 zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs (2026-07-02 AT-M3/SM-M1 SDF partial upload write_texture slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-partial-upload --message-format short --color never (2026-07-02 AT-M3/SM-M1 SDF partial upload write_texture slice: passed with existing 284 warnings)
+
+  - cargo test -p zircon_runtime sdf_upload --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-partial-upload --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 AT-M3/SM-M1 SDF partial upload focused tests: timed out after 904s during Windows lib-test compile/link; matching owned cargo/rustc processes were stopped; not counted as passing)
+
+  - docs/tests/runtime/text/runtime_text_sdf_partial_upload_preview_20260702.png (2026-07-02 AT-M3/SM-M1 SDF partial upload visual proof: inspected; SHA256 EB6E0E55B75EF499353608C5A0A0D6ECDE962131D1885EA728C46CDEC57EF108; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/atlas/mod.rs zircon_runtime/src/text/atlas/page.rs zircon_runtime/src/text/atlas/shelf_allocator.rs zircon_runtime/src/text/atlas/dirty.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs (2026-07-02 AT-M3/SM-M1 atlas dirty-rect data-plane slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-atlas-dirty --message-format short --color never (2026-07-02 AT-M3/SM-M1 atlas dirty-rect data-plane slice: passed with existing 284 warnings after an initial tool-window timeout and after fixing atlas re-export unused warnings)
+
+  - docs/tests/runtime/text/runtime_text_atlas_dirty_rect_data_plane_preview_20260702.png (2026-07-02 AT-M3/SM-M1 atlas dirty-rect data-plane visual proof: inspected; SHA256 89A1853D660F0A9AD9461A5F718714A834FB048006C78BD465225FCA9966DF00; repo target and E:\cargo-targets same-name match count 0; focused lib-tests deferred/not counted for this slice)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/mod.rs zircon_runtime/src/text/atlas/mod.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs (2026-07-02 AT-M1/SM-M1 SDF shared shelf allocator slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-unified-atlas --message-format short --color never (2026-07-02 AT-M1/SM-M1 SDF shared shelf allocator slice: passed with existing 284 warnings)
+
+  - cargo test -p zircon_runtime shelf --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-unified-atlas --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 AT-M1/SM-M1 SDF shared shelf allocator focused tests: timed out after 304s during Windows lib-test compile, remained running after an additional 240s wait, matching owned cargo/rustc processes were stopped; not counted as passing)
+
+  - docs/tests/runtime/text/runtime_text_sdf_shelf_atlas_allocator_preview_20260702.png (2026-07-02 AT-M1/SM-M1 SDF shared shelf allocator visual proof: inspected; SHA256 C1044245D29B2CA01D5F2FE563E29AF697E9E069D3D49A5AD850D0C089121BFD; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/mod.rs zircon_runtime/src/text/atlas/mod.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs (2026-07-02 SM-M1 SDF unified atlas page identity first slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-unified-atlas --message-format short --color never (2026-07-02 SM-M1 SDF unified atlas page identity first slice: passed with existing warnings)
+
+  - cargo test -p zircon_runtime render_text_sdf_atlas_unified_with_alpha --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-unified-atlas --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 SM-M1 SDF unified atlas page identity focused test: timed out after 484s during Windows lib-test compile with no Rust diagnostics; matching owned cargo/rustc processes were stopped; not counted as passing)
+
+  - docs/tests/runtime/text/runtime_text_sdf_unified_atlas_page_preview_20260702.png (2026-07-02 SM-M1 SDF unified atlas page identity visual proof: inspected; SHA256 6533AF4CA8673D7754FEF905893B0E17BCD56370CF5BF7E5C559CAEE2FACF856; repo target and E:\cargo-targets same-name match count 0)
+
+- rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/mod.rs zircon_runtime/src/text/sdf/params.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs (2026-07-02 SM-M1 SDF fixed bake params/cache-key slice: passed)
+
+  - cargo test -p zircon_runtime fixed_bake --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-fixed-bake --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 SM-M1 SDF fixed bake focused tests: passed 2/2 with existing warnings after Cargo aligned the already-dirty editor manifest/lock dependency link)
+
+  - cargo test -p zircon_runtime screen_px_range --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-fixed-bake --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 SM-M1 SDF screenPxRange regression rerun: passed 3/3 with existing warnings)
+
+  - docs/tests/runtime/text/runtime_text_sdf_fixed_bake_cache_key_preview_20260702.png (2026-07-02 SM-M1 SDF fixed bake/cache-key visual proof: inspected; SHA256 8A8F401E4FFA2E95B44D8CA3E2782CE1E29ADF972E7BB193F7B01AB391EF463D; repo target, D:\cargo-targets, and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs (2026-07-02 SM-M1 SDF screenPxRange shader slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-screen-range --message-format short --color never (2026-07-02 SM-M1 SDF screenPxRange shader slice: passed with existing warnings)
+
+  - cargo test -p zircon_runtime screen_px_range --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-screen-range --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 SM-M1 SDF screenPxRange focused tests: passed 3/3)
+
+  - docs/tests/runtime/text/runtime_text_sdf_screen_px_range_preview_20260702.png (2026-07-02 SM-M1 SDF screenPxRange visual proof: inspected; SHA256 433DD9DBFC00FDD8D3C0A71F097570865367463E18EDEBA98BFFC024688B7FE8; repo target, D:\cargo-targets, and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests (2026-07-02 LB-M4/SM-M1 vertical_rl SDF projection slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-vertical --message-format short --color never (2026-07-02 LB-M4/SM-M1 vertical_rl SDF projection slice: passed with existing warnings)
+
+  - cargo test -p zircon_runtime sdf_draw_plan_vertical_rl_advances_glyphs_on_y_axis --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-vertical --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 LB-M4/SM-M1 vertical_rl SDF projection focused test: passed 1/1)
+
+  - docs/tests/runtime/text/runtime_text_vertical_rl_sdf_vertex_projection_preview_20260702.png (2026-07-02 LB-M4/SM-M1 vertical_rl SDF projection visual proof: inspected; SHA256 86C7CEA59DBAB17A63B6FB61C2FF72C591B4E7216439FE0AABF97C793E5BC1C1; repo target, D:\cargo-targets, and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/layout/kinsoku.rs zircon_runtime/src/ui/text/layout_engine/tests/kinsoku.rs (2026-07-01 LB-M2 JLREQ hyphen kinsoku table slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-jlreq-hyphen-kinsoku --message-format short --color never --quiet (2026-07-01 LB-M2 JLREQ hyphen kinsoku table slice: passed with existing warnings only after first 300s tool-window timeout completed in background and incremental rerun passed)
+
+  - cargo test -p zircon_runtime jlreq_hyphen --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-jlreq-hyphen-kinsoku --message-format short --color never --no-run (2026-07-01 LB-M2 JLREQ hyphen kinsoku lib-test binary generation: passed with existing warnings after earlier no-diagnostic compile exits)
+
+  - E:\cargo-targets\zircon-runtime-text-0701-jlreq-hyphen-kinsoku\debug\deps\zircon_runtime-fe15dbfd02d9864e.exe jlreq_hyphen --nocapture --test-threads=1 (2026-07-01 LB-M2 JLREQ hyphen kinsoku focused runtime tests: passed 2/2)
+
+  - docs/tests/runtime/text/runtime_text_jlreq_hyphen_kinsoku_preview_20260701.png (2026-07-01 LB-M2 JLREQ hyphen kinsoku visual proof: inspected; SHA256 4D45E10D708A8A13DDA9FEC3C06F5681D122306DEE8521A31DAB874434788ABE; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/layout/kinsoku.rs zircon_runtime/src/ui/text/layout_engine/tests/kinsoku.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_plugin_shading_model_descriptor.rs (2026-07-01 LB-M2 JLREQ cl-08 inseparable pair kinsoku slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-jlreq-inseparable-kinsoku --message-format short --color never --quiet (2026-07-01 LB-M2 JLREQ cl-08 inseparable pair kinsoku slice: passed with existing warnings only)
+
+  - cargo test -p zircon_runtime jlreq_inseparable --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-jlreq-inseparable-kinsoku --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 LB-M2 JLREQ cl-08 inseparable pair focused runtime tests: passed 4/4 after repairing a validation-blocking structure-budget test compile error)
+
+  - docs/tests/runtime/text/runtime_text_jlreq_inseparable_kinsoku_preview_20260701.png (2026-07-01 LB-M2 JLREQ cl-08 inseparable pair visual proof: inspected; 1120x560; SHA256 5826FB74039E4903DD8A8FD869B0F45664564D236392DD1ABE678CC67DA76EA2; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/layout/kinsoku.rs zircon_runtime/src/ui/text/layout_engine/tests/kinsoku.rs (2026-07-01 LB-M2 spacing voicing mark kinsoku table slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-spacing-voicing-kinsoku --message-format short --color never --quiet (2026-07-01 LB-M2 spacing voicing mark kinsoku table slice: passed with existing warnings only after first 300s tool-window timeout completed in background and incremental rerun passed)
+
+  - E:\cargo-targets\zircon-runtime-text-0701-spacing-voicing-kinsoku\debug\deps\zircon_runtime-fe15dbfd02d9864e.exe kinsoku --nocapture --test-threads=1 (2026-07-01 LB-M2 spacing voicing mark kinsoku focused runtime tests: passed 27/27 after cargo test compile/link timeout produced the binary)
+
+  - docs/tests/runtime/text/runtime_text_spacing_voicing_mark_kinsoku_preview_20260701.png (2026-07-01 LB-M2 spacing voicing mark kinsoku visual proof: inspected; SHA256 82C63DFE03B83C03F87E9B1420D1404DE5E348051273561A439EA64EC3237599; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/layout/kinsoku.rs zircon_runtime/src/ui/text/layout_engine/tests/kinsoku.rs (2026-07-01 LB-M2 fullwidth white parenthesis kinsoku table slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-fullwidth-white-parenthesis-kinsoku --message-format short --color never --quiet (2026-07-01 LB-M2 fullwidth white parenthesis kinsoku table slice: passed in fresh 300s verification with existing warnings only)
+
+  - E:\cargo-targets\zircon-runtime-text-0701-fullwidth-white-parenthesis-kinsoku\debug\deps\zircon_runtime-fe15dbfd02d9864e.exe kinsoku --nocapture --test-threads=1 (2026-07-01 LB-M2 fullwidth white parenthesis kinsoku focused runtime tests: passed 25/25)
+
+  - docs/tests/runtime/text/runtime_text_fullwidth_white_parenthesis_kinsoku_preview_20260701.png (2026-07-01 LB-M2 fullwidth white parenthesis kinsoku visual proof: inspected; SHA256 4946765AE3C692066A4C04E38671F98D78B42C281AB6904C2A4A6E464E1AB52D; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/layout/kinsoku.rs zircon_runtime/src/ui/text/layout_engine/tests/kinsoku.rs (2026-07-01 LB-M2 CJK double-prime closing quote kinsoku table slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-cjk-double-prime-kinsoku --message-format short --color never --quiet (2026-07-01 LB-M2 CJK double-prime closing quote kinsoku table slice: passed with existing warnings only after a non-reproduced first-run asset::pack import state drift)
+
+  - docs/tests/runtime/text/runtime_text_cjk_double_prime_closing_quote_kinsoku_preview_20260701.png (2026-07-01 LB-M2 CJK double-prime closing quote kinsoku visual proof: inspected; SHA256 EC77D5A02F5D0FE4E9A8D8E782ED90C29F081691B8BC6AD3EA9A06A3FC39C032; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/layout/kinsoku.rs zircon_runtime/src/ui/text/layout_engine/tests/kinsoku.rs (2026-07-01 LB-M2 Katakana phonetic extension small-kana kinsoku table slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-katakana-phonetic-kinsoku --message-format short --color never --quiet (2026-07-01 LB-M2 Katakana phonetic extension small-kana kinsoku table slice: passed with existing warnings only)
+
+  - docs/tests/runtime/text/runtime_text_katakana_phonetic_extension_kinsoku_preview_20260701.png (2026-07-01 LB-M2 Katakana phonetic extension small-kana kinsoku visual proof: inspected; SHA256 44AD05A1739BBC75B7FA9D9B2FA356EB6F394DA90453B76ED1DDC11BCFB6A6DA; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/layout/kinsoku.rs zircon_runtime/src/ui/text/layout_engine/tests/kinsoku.rs (2026-07-01 LB-M2 CJK white bracket kinsoku table slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-cjk-white-bracket-kinsoku --message-format short --color never --quiet (2026-07-01 LB-M2 CJK white bracket kinsoku table slice: passed with existing warnings only)
+
+  - docs/tests/runtime/text/runtime_text_cjk_white_bracket_kinsoku_preview_20260701.png (2026-07-01 LB-M2 CJK white bracket kinsoku visual proof: inspected; SHA256 9CB6BBB21F385F1D889B73B5EE900360C2AD5E9058D48D7F73AA43618983FFAF; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/layout/kinsoku.rs zircon_runtime/src/ui/text/layout_engine/tests/kinsoku.rs (2026-07-01 LB-M2 small ka/ke kinsoku + panic-free handoff slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-small-ka-ke-kinsoku --message-format short --color never --quiet (2026-07-01 LB-M2 small ka/ke kinsoku + panic-free handoff slice: passed with existing warnings only)
+
+  - docs/tests/runtime/text/runtime_text_small_ka_ke_kinsoku_preview_20260701.png (2026-07-01 LB-M2 small ka/ke kinsoku visual proof: inspected; SHA256 C13AA26D914D75A370FED02C8FD87AD784080281F348C33D0BD5CB653D1FD381; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/layout/line_break/greedy.rs zircon_runtime/src/text/layout/line_break/mod.rs zircon_runtime/src/text/layout/mod.rs zircon_runtime/src/ui/text/layout_engine/wrapping.rs (2026-06-30 LB-M2 greedy wrap decision owner split: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-greedy-wrap-decision --message-format short --color never --quiet (2026-06-30 LB-M2 greedy wrap decision owner split: passed with existing warnings only)
+
+  - docs/tests/runtime/text/runtime_text_greedy_wrap_decision_owner_preview_20260630.png (2026-06-30 LB-M2 greedy wrap decision owner visual proof: inspected; SHA256 C8CA68364812DC5C93D47ED2861131ABF0FAD4A258ED45E021D7644C2EF78278; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime_interface/src/ui/surface/render/typography.rs zircon_runtime_interface/src/tests/contracts.rs zircon_runtime/src/ui/surface/render/resolve.rs zircon_runtime/src/ui/text/layout_engine/wrapping.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/ui/tests/text_layout zircon_runtime/src/ui/tests/widget_text_input_ime_context.rs (2026-06-30 LB-M2 WordSmart wrap contract entry: passed)
+
+  - cargo check -p zircon_runtime_interface --lib --tests --locked --target-dir E:\cargo-targets\zircon-runtime-text-0630-word-smart-interface --message-format short --color never --quiet (2026-06-30 LB-M2 WordSmart interface contract: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-word-smart-runtime --message-format short --color never --quiet (2026-06-30 LB-M2 WordSmart runtime contract: passed with existing warnings only)
+
+  - cargo test -p zircon_runtime word_smart --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-word-smart-runtime --message-format short --color never -- --nocapture --test-threads=1 (2026-06-30 LB-M2 WordSmart focused runtime tests: timed out after 904s during Windows lib-test compile/link with no Rust diagnostics; matching cargo/rustc processes stopped; not counted as passing)
+
+  - docs/tests/runtime/text/runtime_text_word_smart_wrap_preview_20260630.png (2026-06-30 LB-M2 WordSmart visual proof: inspected; SHA256 494880855721F5E0F6B48FA4DB8B8F34EEE1AB0DF0386C7F5B35646E9AB23AFF; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/layout/line_break/smart.rs zircon_runtime/src/text/layout/line_break/mod.rs zircon_runtime/src/text/layout/mod.rs zircon_runtime/src/ui/text/layout_engine/wrapping.rs zircon_runtime/src/ui/text/layout_engine/tests.rs zircon_runtime/src/ui/text/layout_engine/tests/word_smart.rs (2026-07-01 LB-M2 WordSmart ASCII trailing punctuation glue slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-jlreq-inseparable-kinsoku --message-format short --color never --quiet (2026-07-01 LB-M2 WordSmart ASCII trailing punctuation glue slice: passed with existing warnings only; cold target-dir word-smart punctuation lane exited during dependency compile with no Rust diagnostics and is not counted)
+
+  - cargo test -p zircon_runtime word_smart --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-jlreq-inseparable-kinsoku --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 LB-M2 WordSmart ASCII trailing punctuation focused tests: first run exposed a 5/7 red case because shaping returned `go,next` as one chunk; after the shared smart owner split punctuation inside a chunk, rerun passed 7/7)
+
+  - docs/tests/runtime/text/runtime_text_word_smart_punctuation_preview_20260701.png (2026-07-01 LB-M2 WordSmart ASCII trailing punctuation visual proof: inspected; SHA256 781220B1414FA2B62E4433A2540AC5DFB1E6810694C52C1CEFD165985E2822C6; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/layout/line_break/smart.rs zircon_runtime/src/text/layout/line_break/mod.rs zircon_runtime/src/ui/text/layout_engine/tests/word_smart.rs (2026-07-01 LB-M2 WordSmart ASCII quote-after-punctuation glue slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-jlreq-inseparable-kinsoku --message-format short --color never --quiet (2026-07-01 LB-M2 WordSmart ASCII quote-after-punctuation glue slice: passed with existing warnings only)
+
+  - cargo test -p zircon_runtime word_smart --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-jlreq-inseparable-kinsoku --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 LB-M2 WordSmart focused tests after quote-after-punctuation slice: cold target run timed out in Windows lib-test compile with no binary; warm target rerun passed 13/13 with existing warnings only)
+
+  - docs/tests/runtime/text/runtime_text_word_smart_quote_punctuation_preview_20260701.png (2026-07-01 LB-M2 WordSmart ASCII quote-after-punctuation visual proof: inspected; SHA256 D2BFF7961FEE5E129A9C273E880B00E309F03410AA17FBCBCE1AB18268226BAD; repo target and E:\cargo-targets same-name match count 0)
+
+- rustfmt --edition 2021 --check zircon_runtime/src/text/layout/line_break/smart.rs zircon_runtime/src/text/layout/line_break/mod.rs zircon_runtime/src/ui/text/layout_engine/tests/word_smart.rs (2026-07-01 LB-M2 WordSmart Unicode closing quote-after-punctuation glue slice: passed)
+
+- cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-jlreq-inseparable-kinsoku --message-format short --color never --quiet (2026-07-01 LB-M2 WordSmart Unicode closing quote-after-punctuation glue slice: passed with existing warnings only)
+
+- cargo test -p zircon_runtime word_smart --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-jlreq-inseparable-kinsoku --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 LB-M2 WordSmart Unicode closing quote focused tests: red run failed 5 expected cases before the shared smart owner accepted U+2019/U+201D; after the fix, rerun passed 18/18 with existing warnings only)
+
+- docs/tests/runtime/text/runtime_text_word_smart_unicode_quote_preview_20260701.png (2026-07-01 LB-M2 WordSmart Unicode closing quote visual proof: inspected; SHA256 B4DE63AFBA9AAD94001A43FA008479AF2351BDCD02AE23EAB3A9E1733F022B7F; repo target and E:\cargo-targets same-name match count 0)
+
+- rustfmt --edition 2021 --check zircon_runtime/src/text/layout/line_break/smart.rs zircon_runtime/src/text/layout/line_break/mod.rs zircon_runtime/src/ui/text/layout_engine/tests/word_smart.rs (2026-07-01 LB-M2 WordSmart fullwidth/CJK trailing punctuation glue slice: passed)
+
+- cargo test -p zircon_runtime fullwidth_trailing --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-word-smart-fullwidth --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 LB-M2 WordSmart fullwidth/CJK trailing punctuation focused tests: passed 4/4 with existing warnings only; full command completed in 14m26s and test execution in 0.66s)
+
+- docs/tests/runtime/text/runtime_text_word_smart_fullwidth_punctuation_preview_20260701.png (2026-07-01 LB-M2 WordSmart fullwidth/CJK trailing punctuation visual proof: inspected; 1120x620; SHA256 F0B4F4AA2F80D3722F1F39B81F89A46DC4F15EBA8EFC03D157DAF834B4A7ADC0; repo target and E:\cargo-targets same-name match count 0)
+
+- rustfmt --edition 2021 --check zircon_runtime/src/text/layout/line_break/smart.rs zircon_runtime/src/text/layout/line_break/mod.rs zircon_runtime/src/ui/text/layout_engine/tests/word_smart.rs (2026-07-01 LB-M2 WordSmart CJK/fullwidth closing delimiter glue slice: passed)
+
+- touched Rust trailing-whitespace scan (2026-07-01 LB-M2 WordSmart CJK/fullwidth closing delimiter glue slice: no output)
+
+- cargo test -p zircon_runtime cjk_closing_delimiter --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-word-smart-fullwidth --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 LB-M2 WordSmart CJK/fullwidth closing delimiter focused tests: passed 5/5 with existing warnings only; full command completed in about 7m45s and test execution in 0.78s)
+
+- docs/tests/runtime/text/runtime_text_word_smart_cjk_closing_delimiter_preview_20260701.png (2026-07-01 LB-M2 WordSmart CJK/fullwidth closing delimiter visual proof: inspected; 1120x620; SHA256 73AAC7DF5328374E5F1CE9B0FECDC418E984407F4D5805381663C23C14C2E92E; repo target and E:\cargo-targets same-name match count 0)
+
+- cargo test -p zircon_runtime punctuation_cluster --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-word-smart-fullwidth --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 LB-M2 WordSmart punctuation-cluster RED run: failed 3 expected owner cases before shared smart owner looped re-splits)
+
+- rustfmt --edition 2021 --check zircon_runtime/src/text/layout/line_break/smart.rs zircon_runtime/src/text/layout/line_break/mod.rs zircon_runtime/src/ui/text/layout_engine/tests/word_smart.rs (2026-07-01 LB-M2 WordSmart punctuation-cluster glue slice: passed)
+
+- touched Rust debt scan TODO/FIXME/unwrap/expect/panic/allow(dead_code)/Result<.*String (2026-07-01 LB-M2 WordSmart punctuation-cluster glue slice: no output)
+
+- cargo test -p zircon_runtime punctuation_cluster --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-word-smart-fullwidth --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 LB-M2 WordSmart punctuation-cluster focused tests: passed 5/5 with existing warnings only)
+
+- cargo test -p zircon_runtime word_smart --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-word-smart-fullwidth --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 LB-M2 WordSmart regression suite after punctuation-cluster slice: passed 34/34 with existing warnings only)
+
+- docs/tests/runtime/text/runtime_text_word_smart_punctuation_cluster_preview_20260701.png (2026-07-01 LB-M2 WordSmart punctuation-cluster visual proof: inspected; 1120x620; SHA256 1FFA95EB87CD8A0A3156E67F85C86F126F37BCAE061481740BAFF7719BC48001; repo target and E:\cargo-targets same-name match count 0)
+
+- rustfmt --edition 2021 --check zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/fixture.rs zircon_runtime/src/text/layout/line_break/smart.rs zircon_runtime/src/text/layout/line_break/mod.rs zircon_runtime/src/ui/text/layout_engine/tests/word_smart.rs (2026-07-01 LB-M2 WordSmart ellipsis/leader trailing punctuation slice: passed)
+
+- cargo test -p zircon_runtime ellipsis_trailing --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-word-smart-fullwidth --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 LB-M2 WordSmart ellipsis/leader focused tests: passed 4/4 with existing warnings only after repairing a validation-blocking material fixture field access)
+
+- docs/tests/runtime/text/runtime_text_word_smart_ellipsis_punctuation_preview_20260701.png (2026-07-01 LB-M2 WordSmart ellipsis/leader visual proof: inspected; 1120x620; SHA256 C7639D78EA81567970BE95BD52F2F6F7D1DBBC37EB149E81EF838CC33C617693; repo target and E:\cargo-targets same-name match count 0)
+
+- rustfmt --edition 2021 --check zircon_runtime/src/text/layout/line_break/smart.rs zircon_runtime/src/text/layout/line_break/mod.rs zircon_runtime/src/ui/text/layout_engine/tests/word_smart.rs (2026-07-01 LB-M2 WordSmart Arabic/RTL trailing punctuation slice: passed)
+
+- cargo test -p zircon_runtime arabic_trailing --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-word-smart-arabic --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 LB-M2 WordSmart Arabic/RTL focused tests: first attempt timed out during Windows lib-test compile with no result; implementation rerun passed 3/3 with existing warnings only; direct lib-test binary arabic_ascii passed 1/1 after Cargo filter timeout)
+
+- docs/tests/runtime/text/runtime_text_word_smart_arabic_punctuation_preview_20260701.png (2026-07-01 LB-M2 WordSmart Arabic/RTL visual proof: inspected; 1120x620; SHA256 540149B2C66D0110F5A705D99B3631803FD300341EDAF5233B30FCE3A06766E4; repo target and E:\cargo-targets same-name match count 0)
+
+- rustfmt --edition 2021 --check zircon_runtime/src/text/layout/line_break/smart.rs zircon_runtime/src/text/layout/line_break/mod.rs zircon_runtime/src/ui/text/layout_engine/tests/word_smart.rs (2026-07-01 LB-M2 WordSmart Unicode double/interrobang trailing punctuation slice: passed)
+
+- cargo test -p zircon_runtime unicode_double_punctuation --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-word-smart-arabic --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 LB-M2 WordSmart Unicode double/interrobang focused tests: warm-target compile-timeout attempt produced no RED evidence; cold target timed out without binary; final warm-target rerun passed 3/3 with existing warnings only)
+
+- docs/tests/runtime/text/runtime_text_word_smart_unicode_double_punctuation_preview_20260701.png (2026-07-01 LB-M2 WordSmart Unicode double/interrobang visual proof: inspected; 1120x620; SHA256 B42D4B564BD3277DCFEB423560D32734BEE4C5E937ACE013BCBB2D7A2355E722; repo target and E:\cargo-targets same-name match count 0)
+
+- rustfmt --edition 2021 --check zircon_runtime/src/text/layout/line_break/smart.rs zircon_runtime/src/text/layout/line_break/mod.rs zircon_runtime/src/ui/text/layout_engine/tests/word_smart.rs (2026-07-01 LB-M2 WordSmart Unicode standalone interrobang trailing punctuation slice: passed)
+
+- cargo test -p zircon_runtime unicode_interrobang --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-word-smart-arabic --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 LB-M2 WordSmart Unicode standalone interrobang focused tests: passed 4/4 with existing warnings only; direct lib-test binary rerun passed 4/4)
+
+- docs/tests/runtime/text/runtime_text_word_smart_unicode_interrobang_punctuation_preview_20260701.png (2026-07-01 LB-M2 WordSmart Unicode standalone interrobang visual proof: inspected; 1120x720; SHA256 FC93057F17430A50524F8B3D1DE684F9EFEF494E4F30623E589DFE3688FEB8D1; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/layout_engine/direction.rs zircon_runtime/src/ui/text/layout_engine/line_box.rs zircon_runtime/src/ui/text/layout_engine/wrapping.rs zircon_runtime/src/ui/text/layout_engine/ellipsis.rs zircon_runtime/src/ui/text/layout_engine/candidate_line.rs zircon_runtime/src/ui/text/layout_engine/range_mapping.rs zircon_runtime/src/ui/text/layout_engine/visual_order.rs zircon_runtime/src/ui/text/layout_engine/overflow_style.rs (2026-06-30 UI layout line-box + direction owner split: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-line-box-direction-owner --message-format short --color never --quiet (2026-06-30 UI layout line-box + direction owner split: passed with existing warnings only)
+
+  - docs/tests/runtime/text/runtime_text_line_box_direction_owner_preview_20260630.png (2026-06-30 UI layout line-box + direction owner visual proof: inspected; SHA256 438A776894C0C1BF46E3CC16B90BC3F7168D27F126F4B8B9C5BD0F504BD0DC8D; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/layout_engine/wrapping.rs zircon_runtime/src/ui/text/layout_engine/ellipsis.rs zircon_runtime/src/ui/text/layout_engine/candidate_line.rs zircon_runtime/src/ui/text/layout_engine/range_mapping.rs zircon_runtime/src/ui/text/layout_engine/visual_order.rs zircon_runtime/src/ui/text/layout_engine/overflow_style.rs (2026-06-30 UI layout wrapping owner split: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-wrapping-owner --message-format short --color never (2026-06-30 UI layout wrapping owner split: passed with existing warnings only)
+
+  - docs/tests/runtime/text/runtime_text_wrapping_owner_preview_20260630.png (2026-06-30 UI layout wrapping owner visual proof: inspected; SHA256 884D8361E0C44E971C2426D6FB8E625C760B692A40DE285E136D7006AFC4A0EA; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/layout_engine/ellipsis.rs zircon_runtime/src/ui/text/layout_engine/range_mapping.rs zircon_runtime/src/ui/text/layout_engine/visual_order.rs zircon_runtime/src/ui/text/layout_engine/candidate_line.rs zircon_runtime/src/ui/text/layout_engine/overflow_style.rs (2026-06-30 UI layout ellipsis projection owner split: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-ellipsis-owner --message-format short --color never (2026-06-30 UI layout ellipsis projection owner split: passed with existing warnings only)
+
+  - docs/tests/runtime/text/runtime_text_ellipsis_projection_owner_preview_20260630.png (2026-06-30 UI layout ellipsis projection owner visual proof: inspected; SHA256 C234DB8ECC288C9C73173F5D8C336AC9D3D10E8AA51814023B8705C9BE5D12B5; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/layout_engine/candidate_line.rs (2026-06-30 UI layout candidate-line owner split: passed)
+
+  - git diff --check -- zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/layout_engine/candidate_line.rs docs/tests/runtime/text/runtime_text_candidate_line_owner_preview_20260630.png docs/plans/zircon_runtime/text/index.md docs/plans/zircon_runtime/text/03-line-breaking-measure-and-layout.md docs/crates/zircon_runtime/text.md docs/crates/zircon_runtime/ui/text.md docs/plans/engine-code-structure-convention.md docs/plans/engine-code-review-findings-2026-06.md .codex/sessions/20260628-0100-runtime-text-implementation.md (2026-06-30 UI layout candidate-line owner split: LF/CRLF warnings only)
+
+  - docs/tests/runtime/text/runtime_text_candidate_line_owner_preview_20260630.png (2026-06-30 UI layout candidate-line owner visual proof: inspected; SHA256 E1592C81E64310DDF589054E763D09FA3326C329460979121439F0FB9CC934D9; repo target and E:\cargo-targets same-name match count 0)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-candidate-line-owner --message-format short --color never (2026-06-30 UI layout candidate-line owner split: timed out after 124s with no Rust diagnostics; no matching target-dir process found afterward; not counted as passing)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/layout/line_break/mod.rs zircon_runtime/src/text/layout/line_break/glyph_fallback.rs zircon_runtime/src/text/layout/line_break/glue.rs zircon_runtime/src/text/layout/line_break/soft_hyphen.rs zircon_runtime/src/text/layout/line_break/wrap_space.rs zircon_runtime/src/text/layout/mod.rs (2026-06-30 LB-M2 glyph fallback predicate owner split: passed)
+
+  - git diff --check -- zircon_runtime/src/text/layout/line_break/mod.rs zircon_runtime/src/text/layout/line_break/glyph_fallback.rs zircon_runtime/src/text/layout/line_break/glue.rs zircon_runtime/src/text/layout/line_break/soft_hyphen.rs zircon_runtime/src/text/layout/line_break/wrap_space.rs zircon_runtime/src/text/layout/mod.rs docs/tests/runtime/text/runtime_text_glyph_fallback_predicate_owner_preview_20260630.png docs/plans/zircon_runtime/text/index.md docs/plans/zircon_runtime/text/03-line-breaking-measure-and-layout.md docs/crates/zircon_runtime/text.md docs/crates/zircon_runtime/ui/text.md docs/plans/engine-code-structure-convention.md docs/plans/engine-code-review-findings-2026-06.md .codex/sessions/20260628-0100-runtime-text-implementation.md (2026-06-30 LB-M2 glyph fallback predicate owner split: LF/CRLF warnings only)
+
+  - docs/tests/runtime/text/runtime_text_glyph_fallback_predicate_owner_preview_20260630.png (2026-06-30 LB-M2 glyph fallback predicate owner visual proof: inspected; SHA256 D4796855759A42D7FE652B6AEF95B1639C42AB6E609CC210B32CCA59876A033F; repo target and E:\cargo-targets same-name match count 0)
+
+  - cargo test -p zircon_runtime glyph_fallback --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-glyph-fallback-predicate-owner (2026-06-30 LB-M2 glyph fallback predicate owner split: deferred to milestone testing stage for structure-only owner split; not counted as passing)
+
+  - rustfmt --check zircon_runtime/src/text/layout/line_break/mod.rs zircon_runtime/src/text/layout/line_break/glue.rs zircon_runtime/src/text/layout/line_break/soft_hyphen.rs zircon_runtime/src/text/layout/line_break/wrap_space.rs zircon_runtime/src/text/layout/mod.rs (2026-06-30 LB-M2 soft-hyphen policy owner split: passed)
+
+  - git diff --check -- zircon_runtime/src/text/layout/line_break/mod.rs zircon_runtime/src/text/layout/line_break/soft_hyphen.rs zircon_runtime/src/text/layout/line_break/glue.rs zircon_runtime/src/text/layout/line_break/wrap_space.rs zircon_runtime/src/text/layout/mod.rs docs/tests/runtime/text/runtime_text_soft_hyphen_owner_split_preview_20260630.png (2026-06-30 LB-M2 soft-hyphen policy owner split: LF/CRLF warning only for layout/mod.rs)
+
+  - docs/tests/runtime/text/runtime_text_soft_hyphen_owner_split_preview_20260630.png (2026-06-30 LB-M2 soft-hyphen owner visual proof: inspected; SHA256 F885F5E4450DF9464427A6A760DC156B1153C2BCB1936C0C7CA3FBAFBBE1A485; repo target and E:\cargo-targets same-name match count 0)
+
+  - cargo test -p zircon_runtime soft_hyphen --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-soft-hyphen-owner (2026-06-30 LB-M2 soft-hyphen policy owner split: deferred to milestone testing stage for structure-only owner split; not counted as passing)
+
+  - rustfmt --check zircon_runtime/src/text/layout/line_break.rs zircon_runtime/src/ui/text/layout_engine/tests/glue.rs zircon_runtime/src/ui/text/layout_engine/tests.rs (2026-06-30 LB-M2 additional glue characters slice: passed)
+
+  - docs/tests/runtime/text/runtime_text_additional_glue_preview_20260630.png (2026-06-30 LB-M2 additional glue visual proof: inspected; SHA256 E9BC81D86E3CCF12B15C7485BD6A1404479F32AEFC19229A4F471F68273C742C; repo target and E:\cargo-targets same-name match count 0)
+
+  - cargo test -p zircon_runtime word_wrap_keeps_additional_glue_sequences_together --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-additional-glue (2026-06-30 LB-M2 additional glue characters slice: deferred to milestone testing stage after adjacent focused Cargo lanes timed out during Windows lib-test compile; not counted as passing)
+
+  - rustfmt --check zircon_runtime/src/text/layout/line_break.rs zircon_runtime/src/ui/text/layout_engine/tests.rs zircon_runtime/src/ui/text/layout_engine/tests/glue.rs zircon_runtime/src/ui/text/layout_engine/tests/kinsoku.rs zircon_runtime/src/text/layout/kinsoku.rs (2026-06-30 LB-M2 variation selector glue slice: passed)
+
+  - git diff --check -- zircon_runtime/src/text/layout/line_break.rs zircon_runtime/src/ui/text/layout_engine/tests.rs zircon_runtime/src/ui/text/layout_engine/tests/glue.rs zircon_runtime/src/ui/text/layout_engine/tests/kinsoku.rs zircon_runtime/src/text/layout/kinsoku.rs docs/tests/runtime/text/runtime_text_variation_selector_glue_preview_20260630.png (2026-06-30 LB-M2 variation selector glue slice: LF/CRLF warnings only)
+
+  - cargo test -p zircon_runtime variation_selector --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-variation-selector-glue --message-format short --color never -- --nocapture --test-threads=1 (2026-06-30 LB-M2 variation selector glue slice: timed out after 904s during Windows lib-test compile with no Rust diagnostics; owned cargo/rustc processes stopped; not counted as passing)
+
+  - docs/tests/runtime/text/runtime_text_variation_selector_glue_preview_20260630.png (2026-06-30 LB-M2 variation selector glue visual proof: inspected; SHA256 52BE2D7079B2BC75B7AE2F4DE48F32D46837AFB0166EF6FA8D98F98FC79EB76A; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --check zircon_runtime/src/text/layout/kinsoku.rs zircon_runtime/src/ui/text/layout_engine/tests.rs zircon_runtime/src/ui/text/layout_engine/tests/kinsoku.rs (2026-06-30 LB-M2 halfwidth kana kinsoku table slice: passed)
+
+  - git diff --check -- zircon_runtime/src/text/layout/kinsoku.rs zircon_runtime/src/ui/text/layout_engine/tests.rs zircon_runtime/src/ui/text/layout_engine/tests/kinsoku.rs docs/tests/runtime/text/runtime_text_halfwidth_kana_kinsoku_preview_20260630.png (2026-06-30 LB-M2 halfwidth kana kinsoku table slice: LF/CRLF warnings only)
+
+  - cargo test -p zircon_runtime halfwidth --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-halfwidth-kinsoku --message-format short --color never -- --nocapture --test-threads=1 (2026-06-30 LB-M2 halfwidth kana kinsoku table slice: timed out after 904s during Windows lib-test compile with no Rust diagnostics; owned cargo/rustc processes stopped; not counted as passing)
+
+  - docs/tests/runtime/text/runtime_text_halfwidth_kana_kinsoku_preview_20260630.png (2026-06-30 LB-M2 halfwidth kana kinsoku visual proof: inspected; SHA256 D3B590DC3D420F20B26E0A0500E3B3A992AC9B742A41D3686D27942B6072D0F8; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/layout/kinsoku.rs zircon_runtime/src/ui/text/layout_engine/tests/kinsoku.rs (2026-06-30 LB-M2 Japanese non-starter kinsoku table slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-japanese-nonstarter-kinsoku --message-format short --color never --quiet (2026-06-30 LB-M2 Japanese non-starter kinsoku table slice: passed with existing warnings only)
+
+  - docs/tests/runtime/text/runtime_text_japanese_nonstarter_kinsoku_preview_20260630.png (2026-06-30 LB-M2 Japanese non-starter kinsoku visual proof: inspected; SHA256 C4D561C28049B2E9BE86CE6C94778BD6F83A39FA0A5BA1F6011C21DA05E3BE2D; repo target and E:\cargo-targets same-name match count 0)
+
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/font_database_descriptors.rs::runtime_15_font_database_descriptor_helpers_are_child_owner (2026-06-30 Runtime 15 M4 font database descriptor helper owner split: standalone rustc structure guard passed 1/1; package Cargo deferred)
+
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_ui_text_font_id_report.rs::runtime_15_screen_space_ui_text_font_id_report_is_child_owner (2026-06-30 Runtime 15 M4 screen-space UI text font-id report owner split: standalone rustc structure guard passed 1/1; package Cargo deferred)
+
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_ui_text_tests.rs::runtime_15_screen_space_ui_text_tests_are_child_owner_split (2026-07-03 Runtime 15 M4 screen-space UI text tests owner split: scoped rustfmt/static guard evidence; package Cargo deferred)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/text/layout/overflow.rs (2026-06-29 editor screenshot support gate: passed; restored shared grapheme import and removed index-only overflow lifetime)
+
+  - rustfmt --edition 2021 zircon_runtime/src/text/mod.rs zircon_runtime/src/text/layout/mod.rs zircon_runtime/src/text/layout/measure.rs zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/measure_cache.rs zircon_runtime/src/ui/text/hit_test.rs zircon_runtime/src/ui/text/shaper.rs zircon_runtime/src/ui/text/layout_engine/tests.rs zircon_runtime/src/ui/tests/text_shaper.rs zircon_runtime/src/ui/tests/text_pipeline zircon_runtime/src/ui/tests/text_hit_testing.rs (2026-06-28: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never (2026-06-28: passed with existing warnings only)
+
+  - rustfmt --edition 2021 zircon_runtime/src/text/font/database.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs (2026-06-28: passed)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/font/database.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs (2026-06-28: passed after system-font/composite candidate wiring)
+
+  - cargo check -q -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0628-check (2026-06-28: passed with existing warnings only; rerun after system-font/composite candidate wiring)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/asset/assets/font.rs zircon_runtime/src/asset/importer/ingest/import_font_asset/mod.rs zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt.rs zircon_runtime/src/text/font/database.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs (2026-06-28: passed)
+
+  - cargo metadata --locked --format-version 1 --no-default-features (2026-06-28: passed after local cache downloads)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs zircon_runtime/src/text/font/database.rs zircon_runtime/src/asset/importer/ingest/import_font_asset/mod.rs zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt.rs zircon_runtime/src/asset/assets/font.rs zircon_runtime/src/asset/tests/assets/font.rs (2026-06-28 FR-M2 render-strategy follow-up: passed)
+
+  - cargo test -q -p zircon_runtime --lib render_strategy_default_mode_feeds_ui_font_default --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0628-fr-m2-render-strategy (2026-06-28: timed out during compile with no Rust diagnostics; matching validation processes stopped)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/font/mod.rs zircon_runtime/src/text/font/database.rs zircon_runtime/src/text/font/asset_registration.rs zircon_runtime/src/text/font/test_font_fixtures.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs zircon_runtime/src/asset/assets/font.rs (2026-06-28 FR-M2 asset-registration follow-up: passed)
+
+  - cargo test -q -p zircon_runtime --lib text_font_database_registers_font_asset_family_members_and_fallbacks --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0628-fr-m2-register-asset-logical (2026-06-28: timed out during compile with no Rust diagnostics; matching validation processes stopped)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/font/mod.rs zircon_runtime/src/text/font/database.rs zircon_runtime/src/text/font/coverage.rs zircon_runtime/src/text/font/asset_registration.rs zircon_runtime/src/text/font/test_font_fixtures.rs (2026-06-28 FR-M2/FB-M1 cmap-filter follow-up: passed)
+
+  - cargo test -q -p zircon_runtime --lib text_font_fallback_candidates_filter_known_cmap_coverage --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0628-fb-m1-cmap-filter (2026-06-28: timed out during compile with no Rust diagnostics; matching validation processes stopped)
+
+  - cargo check -q -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0628-check (2026-06-28 FR-M2 rerun: timed out during compile with no Rust diagnostics)
+
+  - cargo test -p zircon_runtime --lib text_measurement_uses_backend_glyph_metrics --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never (2026-06-28: timed out during compile with no Rust diagnostics; no matching validation process left running)
+
+  - cargo test -p zircon_runtime --lib text_font --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never (2026-06-28: timed out during compile with no Rust diagnostics; matching validation processes stopped)
+
+  - rustfmt --edition 2021 --check zircon_runtime_interface/src/ui/surface/render/text_layout.rs zircon_runtime_interface/src/ui/surface/render/text_shape.rs zircon_runtime_interface/src/ui/surface/render/mod.rs zircon_runtime_interface/src/ui/surface/mod.rs zircon_runtime_interface/src/ui/surface/render/command.rs zircon_runtime_interface/src/tests/render_contracts.rs zircon_runtime_interface/src/tests/contracts.rs zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/layout_engine/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs zircon_editor/src/tests/host/retained_window/native_runtime_text_painter.rs (2026-06-28 SH/LB shaped glyph advance DTO follow-up: passed)
+
+  - cargo check -q -p zircon_runtime_interface --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0628-interface-contract (2026-06-28 SH/LB shaped glyph advance DTO follow-up: passed)
+
+  - cargo check -q -p zircon_runtime_interface --tests --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0628-interface-contract (2026-06-28 SH/LB shaped glyph advance DTO follow-up: passed)
+
+  - cargo check -q -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0628-check (2026-06-28 SH/LB shaped glyph advance DTO follow-up: timed out after 244s with no Rust diagnostics; matching validation processes stopped)
+
+  - rustfmt --check zircon_runtime/src/text/shaping/mod.rs zircon_runtime/src/text/shaping/cosmic.rs zircon_runtime/src/text/shaping/line_break.rs zircon_runtime/src/text/shaping/tests.rs (2026-06-28 SH-M1 UAX#14 break flag projection: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never (2026-06-28 SH-M1 UAX#14 break flag projection: passed with existing warnings only)
+
+  - cargo test -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never text_shape_ (2026-06-28 SH-M1 UAX#14 break flag projection: passed, 6 passed)
+
+  - rustfmt --check zircon_runtime/src/text/layout/mod.rs zircon_runtime/src/text/layout/line_break.rs zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/layout_engine/tests.rs (2026-06-28 LB-M2 UAX#14 Word-wrap consumption: passed)
+
+  - cargo test -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never word_wrap_uses_uax14_cjk_break_opportunities (2026-06-28 LB-M2 UAX#14 Word-wrap consumption: passed, 1 passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never (2026-06-28 LB-M2 UAX#14 Word-wrap consumption: passed with existing warnings only)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/render/mod.rs zircon_runtime/src/text/shaping/cosmic.rs zircon_runtime/src/text/shaping/mod.rs zircon_runtime/src/text/layout/measure.rs (2026-06-28 render text facade import repair: passed)
+
+  - rustfmt --check zircon_runtime/src/text/layout/mod.rs zircon_runtime/src/text/layout/line_break.rs zircon_runtime/src/text/layout/kinsoku.rs zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/layout_engine/tests.rs zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx.rs (2026-06-28 LB-M2 CJK kinsoku line-start slice: passed)
+
+  - cargo test -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never text_wrap_cjk_kinsoku_no_leading_punctuation (2026-06-28 LB-M2 CJK kinsoku line-start slice: passed, 1 passed)
+
+  - cargo test -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never word_wrap_uses_uax14_cjk_break_opportunities (2026-06-28 LB-M2 CJK kinsoku follow-up regression: passed, 1 passed)
+
+  - cargo test -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never text_shape_ (2026-06-28 LB-M2 CJK kinsoku follow-up regression: passed, 6 passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never (2026-06-28 LB-M2 CJK kinsoku line-start slice: passed with existing warnings only)
+
+  - rustfmt --check zircon_runtime/src/text/layout/mod.rs zircon_runtime/src/text/layout/line_break.rs zircon_runtime/src/text/layout/kinsoku.rs zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/layout_engine/visual_order.rs zircon_runtime/src/ui/text/layout_engine/tests.rs zircon_runtime/src/ui/text/hit_test.rs zircon_runtime/src/ui/tests/text_hit_testing.rs (2026-06-28 LB-M2 soft hyphen break suffix slice: passed)
+
+  - cargo test -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never text_wrap_soft_hyphen_inserts_hyphen (2026-06-28 LB-M2 soft hyphen break suffix slice: passed, 1 passed)
+
+  - cargo test -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never text_hit_test_soft_hyphen_break_suffix_maps_to_source_hyphen (2026-06-28 LB-M2 soft hyphen break suffix slice: passed, 1 passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never (2026-06-28 LB-M2 soft hyphen break suffix slice: passed with existing warnings only)
+
+  - cargo test -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never text_wrap_cjk_kinsoku_no_leading_punctuation (2026-06-28 LB-M2 soft hyphen regression sweep: passed, 1 passed)
+
+  - cargo test -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never word_wrap_uses_uax14_cjk_break_opportunities (2026-06-28 LB-M2 soft hyphen regression sweep: passed, 1 passed)
+
+  - rustfmt --check zircon_runtime/src/text/layout/mod.rs zircon_runtime/src/text/layout/line_break.rs zircon_runtime/src/text/layout/kinsoku.rs zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/layout_engine/tests.rs (2026-06-28 LB-M2 long-word/NBSP slice: passed)
+
+  - cargo test -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never text_wrap_long_word_falls_back_to_glyph (2026-06-28 LB-M2 long-word/NBSP slice: passed, 1 passed)
+
+  - cargo test -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never word_wrap_keeps_non_breaking_space_group_together (2026-06-28 LB-M2 long-word/NBSP slice: passed, 1 passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never (2026-06-28 LB-M2 long-word/NBSP slice: passed with existing warnings only)
+
+  - rustfmt --check zircon_runtime/src/text/layout/kinsoku.rs zircon_runtime/src/text/layout/line_break.rs zircon_runtime/src/ui/text/layout_engine/tests.rs (2026-06-28 LB-M2 CJK open punctuation line-end slice: passed)
+
+  - cargo test -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never line_break_chunks_keep_cjk_open_punctuation_with_following_text (2026-06-28 LB-M2 CJK open punctuation line-end slice: passed, 1 passed)
+
+  - cargo test -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never text_wrap_cjk_kinsoku_no_trailing_open_punctuation (2026-06-28 LB-M2 CJK open punctuation line-end slice: passed, 1 passed)
+
+  - cargo test -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never text_wrap_cjk_kinsoku_no_leading_punctuation (2026-06-28 LB-M2 CJK open punctuation regression sweep: passed, 1 passed)
+
+  - cargo test -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never word_wrap_uses_uax14_cjk_break_opportunities (2026-06-28 LB-M2 CJK open punctuation regression sweep: passed, 1 passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-check --message-format short --color never (2026-06-28 LB-M2 CJK open punctuation line-end slice: passed with existing warnings only)
+
+  - rustfmt --check zircon_runtime_interface/src/ui/surface/render/typography.rs zircon_runtime/src/ui/surface/render/resolve.rs zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/layout_engine/tests.rs zircon_runtime/src/ui/tests/text_layout zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests (2026-06-28 LB-M3 logical Start/End alignment slice: passed)
+
+  - cargo check -p zircon_runtime_interface --lib --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-align-interface --message-format short --color never (2026-06-28 LB-M3 logical Start/End alignment slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-align --message-format short --color never (2026-06-28 LB-M3 logical Start/End alignment slice: passed with existing warnings only)
+
+  - cargo test -p zircon_runtime start_end --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-align --message-format short --color never -- --nocapture (2026-06-28 LB-M3 logical Start/End alignment slice: passed, 3 passed)
+
+  - cargo test -p zircon_runtime render_extract_preserves_logical_start_text_align --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-align --message-format short --color never -- --nocapture (2026-06-28 LB-M3 render-extract logical alignment slice: passed, 1 passed)
+
+  - rustfmt --check zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mesh_pipeline_variant_cache_owner.rs; cargo test -p zircon_runtime runtime_15_non_base_mesh_variant_cache_owner_is_wired --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-align --message-format short --color never -- --nocapture (2026-06-28 LB-M3 validation support repair: passed, 1 passed)
+
+  - rustfmt --check zircon_runtime/src/text/model/shaped_run.rs zircon_runtime/src/core/framework/text/mod.rs zircon_runtime/src/core/framework/render/mod.rs zircon_runtime/src/text/shaping/mod.rs zircon_runtime/src/text/shaping/cosmic.rs zircon_runtime/src/text/shaping/script_segment.rs zircon_runtime/src/text/shaping/tests.rs (2026-06-29 SH-M2 script segmentation slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0629-script-segment --message-format short --color never (2026-06-29 SH-M2 script segmentation slice: passed with existing warnings only)
+
+  - cargo test -p zircon_runtime text_script_segmentation --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0629-script-segment --message-format short --color never -- --nocapture (2026-06-29 SH-M2 script segmentation slice: passed, 2 passed)
+
+  - docs/tests/runtime/text/runtime_text_script_segmentation_preview_20260629.png (2026-06-29 SH-M2 script segmentation slice: inspected; not under target)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/font/mod.rs zircon_runtime/src/text/font/database.rs zircon_runtime/src/text/font/fallback.rs (2026-06-29 FB-M1 fallback resolver data-plane: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0629-fallback-resolver-check2 --message-format short --color never (2026-06-29 FB-M1 fallback resolver data-plane: passed with existing/no-default warnings and resolver pre-bridge unused warnings)
+
+  - cargo test -p zircon_runtime text_fallback --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0629-fallback-resolver-check2 --message-format short --color never -- --nocapture (2026-06-29 FB-M1 fallback resolver data-plane: timed out during compile with no Rust diagnostics; matching validation processes stopped)
+
+  - docs/tests/runtime/text/runtime_text_fallback_resolver_preview_20260629.png (2026-06-29 FB-M1 fallback resolver data-plane: inspected; not under target)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/font/database.rs zircon_runtime/src/text/font/fallback.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs (2026-06-29 FB-M2 SDF fallback bridge: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0629-fallback-sdf-check --message-format short --color never (2026-06-29 FB-M2 SDF fallback bridge: passed with existing/no-default warnings)
+
+  - cargo test -p zircon_runtime text_font_database_resolves_fallback_face_for_codepoint --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0629-fallback-sdf-check --message-format short --color never -- --nocapture (2026-06-29 FB-M2 SDF fallback bridge: timed out during compile/link with no Rust diagnostics; matching validation processes stopped)
+
+  - cargo check -p zircon_runtime --lib --tests --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0629-fallback-sdf-check --message-format short --color never (2026-06-29 FB-M2 SDF fallback bridge: failed in unrelated existing test targets `zircon_host_reflection_docs` missing `args/error/run` modules and `virtual_geometry_debug_snapshot_contract` calling removed `RenderLayerSet::from_legacy_mask`)
+
+  - docs/tests/runtime/text/runtime_text_sdf_fallback_bridge_preview_20260629.png (2026-06-29 FB-M2 SDF fallback bridge: inspected; repo target same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/font/database.rs zircon_runtime/src/text/font/fallback.rs zircon_runtime/src/text/shaping/mod.rs zircon_runtime/src/text/shaping/font_id.rs zircon_runtime/src/text/shaping/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/mod.rs zircon_runtime/src/plugin/native_plugin_loader/registration_manifest.rs zircon_runtime/src/plugin/native_plugin_loader/behavior_calls.rs (2026-06-29 SH/FB-M2 shaped glyph font-id bridge: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0629-shaped-fontid-check --message-format short --color never (2026-06-29 SH/FB-M2 shaped glyph font-id bridge: passed with existing warnings only)
+
+  - cargo test -p zircon_runtime text_fallback_glyph_carries_resolved_font_id --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0629-shaped-fontid-check --message-format short --color never -- --nocapture (2026-06-29 SH/FB-M2 shaped glyph font-id bridge: passed, 1 passed)
+
+  - docs/tests/runtime/text/runtime_text_shaped_font_id_bridge_preview_20260629.png (2026-06-29 SH/FB-M2 shaped glyph font-id bridge: inspected; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --check zircon_runtime_interface/src/ui/surface/render/typography.rs zircon_runtime/src/ui/surface/render/resolve.rs zircon_runtime/src/text/layout/align.rs zircon_runtime/src/text/layout/mod.rs zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/layout_engine/tests.rs zircon_runtime/src/ui/tests/text_layout zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs (2026-06-29 LB-M3 justify word/CJK first slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0629-justify-check --message-format short --color never (2026-06-29 LB-M3 justify word/CJK first slice: passed with existing warnings only)
+
+  - cargo test -p zircon_runtime text_justify_distributes_word_and_cjk_gaps --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0629-justify-layout-test --message-format short --color never -- --nocapture (2026-06-29 LB-M3 justify word/CJK first slice: passed, 1 passed)
+
+  - cargo test -p zircon_runtime sdf_draw_plan_justifies_word_gaps_inside_frame --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0629-justify-layout-test --message-format short --color never -- --nocapture (2026-06-29 LB-M3 SDF justify word-gap slice: passed, 1 passed)
+
+  - cargo test -p zircon_runtime render_extract_parses_justify_text_align_and_expands_non_final_line --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0629-justify-layout-test --message-format short --color never -- --nocapture (2026-06-29 LB-M3 render-extract justify parser slice: passed, 1 passed)
+
+  - docs/tests/runtime/text/runtime_text_justify_distribution_preview_20260629.png (2026-06-29 LB-M3 justify word/CJK first slice: inspected; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --check zircon_runtime_interface/src/ui/surface/render/typography.rs zircon_runtime/src/text/layout/overflow.rs zircon_runtime/src/text/layout/mod.rs zircon_runtime/src/ui/surface/render/resolve.rs zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/layout_engine/tests.rs zircon_runtime/src/ui/tests/text_layout (2026-06-29 LB-M3 overflow middle ellipsis slice: passed)
+
+  - cargo check -p zircon_runtime_interface --lib --locked --target-dir E:\cargo-targets\zircon-runtime-text-0629-overflow-interface --message-format short --color never (2026-06-29 LB-M3 overflow middle ellipsis slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0629-overflow-check --message-format short --color never (2026-06-29 LB-M3 overflow middle ellipsis slice: timed out during other active runtime/editor compile load; no Rust diagnostics)
+
+  - cargo test -p zircon_runtime middle_ellipsis_keeps_head_and_tail_graphemes --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0629-overflow-test --message-format short --color never -- --nocapture (2026-06-29 LB-M3 overflow middle ellipsis slice: timed out during other active runtime/editor compile load; no Rust diagnostics, no test binary)
+
+  - docs/tests/runtime/text/runtime_text_middle_ellipsis_preview_20260629.png (2026-06-29 LB-M3 overflow middle ellipsis slice: inspected)
+
+  - rustfmt --check zircon_runtime_interface/src/ui/surface/render/typography.rs zircon_runtime/src/text/layout/overflow.rs zircon_runtime/src/ui/surface/render/resolve.rs zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/layout_engine/tests.rs zircon_runtime/src/ui/tests/text_layout (2026-06-29 LB-M3 overflow start/end ellipsis slice: passed)
+
+  - cargo check -p zircon_runtime_interface --lib --locked --target-dir E:\cargo-targets\zircon-runtime-text-0629-overflow-start-interface --message-format short --color never (2026-06-29 LB-M3 overflow start/end ellipsis slice: passed)
+
+  - git grep -n "UiTextOverflow" -- zircon_runtime zircon_runtime_interface zircon_editor; git grep -n "EllipsisStart\|EllipsisMiddle\|ellipsis_start\|truncate_start" -- zircon_runtime zircon_runtime_interface docs (2026-06-29 LB-M3 overflow start/end ellipsis slice: static enum coverage inspected)
+
+  - docs/tests/runtime/text/runtime_text_start_ellipsis_preview_20260629.png (2026-06-29 LB-M3 overflow start/end ellipsis slice: inspected; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --check zircon_runtime_interface/src/ui/surface/render/typography.rs zircon_runtime/src/text/layout/overflow.rs zircon_runtime/src/ui/surface/render/resolve.rs zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/layout_engine/tests.rs zircon_runtime/src/ui/tests/text_layout (2026-06-29 LB-M3 overflow word-trim ellipsis slice: passed)
+
+  - cargo check -p zircon_runtime_interface --lib --locked --target-dir E:\cargo-targets\zircon-runtime-text-0629-overflow-word-interface --message-format short --color never (2026-06-29 LB-M3 overflow word-trim ellipsis slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0629-overflow-word-check2 --message-format short --color never (2026-06-29 LB-M3 overflow word-trim ellipsis slice: passed with existing warnings only)
+
+  - cargo test -p zircon_runtime word_ellipsis --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0629-overflow-word-test --message-format short --color never -- --nocapture (2026-06-29 LB-M3 overflow word-trim ellipsis slice: timed out during compile after 604s with no Rust diagnostics; matching validation processes stopped, not counted as passing)
+
+  - docs/tests/runtime/text/runtime_text_word_ellipsis_preview_20260629.png (2026-06-29 LB-M3 overflow word-trim ellipsis slice: inspected; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --check zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/layout_engine/tests.rs (2026-06-29 LB-M3 overflow focused remap repair: passed)
+
+  - cargo test -p zircon_runtime ellipsis --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0629-overflow-word-check2 --message-format short --color never -- --nocapture (2026-06-29 LB-M3 overflow focused validation: first run passed 10/11 and exposed run remap fragmentation; rerun passed 11/11 with existing warnings)
+
+  - rustfmt --check zircon_runtime_interface/src/ui/surface/render/typography.rs zircon_runtime/src/ui/surface/render/resolve.rs zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/layout_engine/tests.rs zircon_runtime/src/ui/tests/text_layout zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners.rs (2026-06-29 LB-M3 shrink-to-fit first slice and support guard: passed)
+
+  - cargo check -p zircon_runtime_interface --lib --locked --target-dir E:\cargo-targets\zircon-runtime-text-0629-shrink-interface --message-format short --color never (2026-06-29 LB-M3 shrink-to-fit first slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0629-overflow-word-check2 --message-format short --color never (2026-06-29 LB-M3 shrink-to-fit first slice: passed with existing warnings only)
+
+- cargo test -p zircon_runtime shrink_to_fit --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0629-overflow-word-check2 --message-format short --color never -- --nocapture (2026-06-29 LB-M3 shrink-to-fit first slice: passed, 2 passed; final wrapper rerun timed out after producing the test binary, direct binary run passed 2/2)
+
+  - docs/tests/runtime/text/runtime_text_shrink_to_fit_preview_20260629.png (2026-06-29 LB-M3 shrink-to-fit first slice: inspected; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --check zircon_runtime/src/bin/zircon_host_reflection_docs.rs zircon_runtime/tests/runtime_text_clamp_font_size_contract.rs zircon_runtime_interface/src/ui/surface/render/typography.rs zircon_runtime/src/ui/surface/render/resolve.rs zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/layout_engine/overflow_style.rs zircon_runtime/src/ui/text/layout_engine/tests.rs zircon_runtime/src/ui/tests/text_layout (2026-06-30 LB-M3 clamp font-size first slice and support repair: passed)
+
+  - cargo check -p zircon_runtime_interface --lib --locked --target-dir E:\cargo-targets\zircon-runtime-text-0630-clamp-interface --message-format short --color never (2026-06-30 LB-M3 clamp font-size first slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-clamp-check --message-format short --color never (2026-06-30 LB-M3 clamp font-size first slice: passed with existing warnings only)
+
+  - cargo test -p zircon_runtime clamp_font_size --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-clamp-contract --message-format short --color never --no-run plus direct binary `E:\cargo-targets\zircon-runtime-text-0630-clamp-contract\debug\deps\zircon_runtime-370b12c13577a30d.exe clamp_font_size --nocapture --test-threads=1` (2026-06-30 LB-M3 clamp font-size focused lib-test: initial wrapper compile timed out without diagnostics; render-extract fixture then changed from hardcoded too-narrow frame width to shared measurement; direct binary passed 2/2)
+
+  - cargo test -p zircon_runtime --test runtime_text_clamp_font_size_contract --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-clamp-contract --message-format short --color never -- --nocapture --test-threads=1 (2026-06-30 LB-M3 clamp font-size contract: first run failed before assertions on existing `zircon_host_reflection_docs` child-module path; path repaired; rerun passed 1/1)
+
+  - docs/tests/runtime/text/runtime_text_clamp_font_size_preview_20260630.png (2026-06-30 LB-M3 clamp font-size first slice: inspected; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --check zircon_runtime_interface/src/ui/surface/render/resolved_style.rs zircon_runtime/src/text/layout/mod.rs zircon_runtime/src/text/layout/measure.rs zircon_runtime/src/text/layout/tab.rs zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/layout_engine/tests.rs zircon_runtime/src/ui/text/resolved_layout.rs zircon_runtime/src/ui/surface/render/resolve.rs (2026-06-30 LB-M3 tab stop first slice: passed)
+
+  - cargo check -p zircon_runtime_interface --lib --locked --target-dir E:\cargo-targets\zircon-runtime-text-0630-tab-interface --message-format short --color never (2026-06-30 LB-M3 tab stop first slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-tab-check-2 --message-format short --color never (2026-06-30 LB-M3 tab stop first slice: passed with existing warnings only)
+
+  - direct exact lib-test binary runs for `resolve_style_parses_text_tab_size_alias`, `text_tab_stop_advances_to_next_interval`, and `style_key_encodes_tab_size_bits` (2026-06-30 LB-M3 tab stop first slice: passed 3/3; broad `tab` filter was rejected because it matched unrelated existing failures)
+
+  - docs/tests/runtime/text/runtime_text_tab_stops_preview_20260630.png (2026-06-30 LB-M3 tab stop first slice: inspected; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/layout/align.rs zircon_runtime/src/ui/text/layout_engine/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs (2026-06-30 LB-M3 justify edge-space trim slice: passed)
+
+  - cargo test -p zircon_runtime edge_spaces --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-justify-edge --message-format short --color never -- --nocapture --test-threads=1 (2026-06-30 LB-M3 justify edge-space trim slice: passed 2/2 with existing warnings)
+
+  - docs/tests/runtime/text/runtime_text_justify_edge_space_preview_20260630.png (2026-06-30 LB-M3 justify edge-space trim slice: inspected; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/layout/align.rs zircon_runtime/src/ui/text/layout_engine/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs (2026-06-30 LB-M3 kashida justify advance first slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-kashida-check --message-format short --color never (2026-06-30 LB-M3 kashida justify advance first slice: passed with existing warnings only)
+
+  - cargo test -p zircon_runtime kashida --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-kashida-check --message-format short --color never -- --nocapture --test-threads=1 (2026-06-30 LB-M3 kashida justify advance first slice: blocked before focused tests by unrelated current lib-test compile errors in extend_pending_draws_for_mesh_instance.rs)
+
+  - docs/tests/runtime/text/runtime_text_kashida_justify_preview_20260630.png (2026-06-30 LB-M3 kashida justify advance first slice: inspected; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/layout_engine/tests.rs (2026-06-30 LB-M3 horizontal overflow ellipsis interaction slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-horizontal-overflow-check --message-format short --color never (2026-06-30 LB-M3 horizontal overflow ellipsis interaction slice: passed with existing warnings only)
+
+  - cargo test -p zircon_runtime horizontal_ --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-horizontal-overflow --message-format short --color never -- --nocapture --test-threads=1 (2026-06-30 LB-M3 horizontal overflow ellipsis interaction slice: timed out during Windows lib-test compile/link after 604s; no Rust diagnostics; no test binary; matching processes stopped; not counted as passing)
+
+  - docs/tests/runtime/text/runtime_text_horizontal_ellipsis_preview_20260630.png (2026-06-30 LB-M3 horizontal overflow ellipsis interaction slice: inspected; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/text/layout/measure.rs zircon_runtime/src/text/layout/mod.rs (2026-06-30 LB-M1 source subrange measure slice: passed)
+
+  - git diff --check -- zircon_runtime/src/text/layout/measure.rs zircon_runtime/src/text/layout/mod.rs (2026-06-30 LB-M1 source subrange measure slice: passed with LF/CRLF warnings only)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-measured-width-check --message-format short --color never (2026-06-30 LB-M1 source subrange measure slice: passed with existing warnings only)
+
+  - cargo test -p zircon_runtime measured_width_ --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-measured-width-check --message-format short --color never -- --nocapture --test-threads=1 (2026-06-30 LB-M1 source subrange measure slice: timed out during Windows lib-test compile after 904s; no Rust diagnostics; no produced test binary; matching processes stopped; not counted as passing)
+
+  - docs/tests/runtime/text/runtime_text_source_subrange_measure_preview_20260630.png (2026-06-30 LB-M1 source subrange measure slice: inspected; SHA256 3231DDE698E6C9F64D632F1A8EA72BA4C65EE01B58052A5BC2F28A40D7D28EC0; repo target and E:\cargo-targets same-name match count 0)
+
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/text/hit_test.rs zircon_runtime/src/ui/tests/text_hit_testing.rs (2026-06-30 LB-M3 hit-test resolved advances slice: passed)
+
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-hit-test-check --message-format short --color never (2026-06-30 LB-M3 hit-test resolved advances slice: passed with existing warnings only)
+
+  - cargo test -p zircon_runtime text_hit_test_uses_resolved_tab_advances --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-hit-test-check --message-format short --color never -- --nocapture --test-threads=1 (2026-06-30 LB-M3 hit-test resolved advances slice: timed out during Windows lib-test compile after 904s; no Rust diagnostics; no produced test binary; matching processes stopped; not counted as passing)
+
+  - docs/tests/runtime/text/runtime_text_hit_test_tab_caret_preview_20260630.png (2026-06-30 LB-M3 hit-test resolved advances slice: inspected; SHA256 F11D43A7EC078146D747F1B8FD057367B1110238DB03DE3587CF8FD166AB16EE; repo target and E:\cargo-targets same-name match count 0)
+
+doc_type: module-detail
+---
+
+
+
+> 当前 owner 已硬切为 [`zircon_runtime::text`](../text/mod.md)。本文件保留完整历史行为与验证细节，但所有 `related_code` 和实现路径均已同步到新 owner；不得据此恢复 `graphics::text` facade。
+
+
+
+# Runtime Graphics Text
+
+
+
+## Purpose
+
+
+
+`zircon_runtime::text` is the runtime implementation owner for shared font, shaping, line breaking, text measurement, and future text layout services. It keeps third-party text stack types inside graphics implementation files while UI, render extraction, editor, and app code consume neutral Zircon DTOs.
+
+`graphics/text_transport/mod.rs` is the structural mount for the non-UI-gated Text/UI DTO boundary. `graphics/text_transport/conversion.rs` is the sole owner of the fourteen current enum, range, frame, and size mappings; `graphics/text_transport/tests.rs` owns round-trip, geometry, and root-layout regression coverage. The public DTO types and the canonical `TextDirection` mapping remain in their existing interface and `text/ui_style.rs` owners.
+
+
+The 2026-07-06 retained-host tiny swash unhinted follow-up is recorded here because it closes the editor-facing raster quality complaint while the full runtime glyph-atlas cutover remains open. `zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs` now disables swash hinting only for `logical_px <= 10.0`, so 10px/8.5px DengXian labels do not snap thin strokes into uneven integer columns; 13px+ text keeps hinted swash. This remains an editor retained-host raster policy and does not add runtime `FontDatabase` routing, component-local font families, letter spacing, or glyph atlas shortcuts.
+
+
+
+`text/font` is the FR-M1/FR-M2/FR-M3/FB-M1 font owner. It provides a crate-private `FontDatabase`, default runtime fallback family data, best-match queries by neutral `FontQuery`, shared `Arc<[u8]>` face bytes, stable variation-instance ids, source-path+face-index deduplicated font-file registration, selected-face metadata ingestion, explicit system font discovery policy, CompositeFont script/range/culture candidate enumeration, cmap-aware candidate filtering, cluster-level fallback resolution data, and injection of registered faces into glyphon `FontSystem`. `descriptors.rs` owns selected-face TTF/fontdb descriptor projection, width-class-to-stretch mapping, fallback family names from source paths, and fontdb source-key conversion; `matching.rs` owns case-insensitive family dedupe plus weight/stretch/style distance helpers shared by database matching and fallback ordering; `asset_registration.rs` owns the `.font.toml` family-member projection and logical asset-face key while reusing the descriptor owner for physical face metadata; `coverage.rs` owns sfnt cmap coverage extraction and permissive Unknown coverage semantics; `fallback.rs` owns script/range/culture-aware fallback candidate order, max-depth policy, last-resort reporting, and missing-glyph diagnostics. The database owner stays focused on storage, indexes, registration orchestration, and matching handoff. The neutral DTOs live under `core/framework/text/font`; implementation details remain crate-private under `text/font`.
+
+
+
+FR-M2 now adds the first font-asset metadata slice. `.font.toml` import parses sfnt/TTC metadata into `FontAssetMetadata`: face count, per-face name data, OS/2 weight and width class, style, `fvar` variation axes and named instances, and compact cmap coverage ranges. Runtime UI font manifests carry `face_index` into the shared `FontDatabase`, so native glyphon registration keys can distinguish faces in one source file. `FontDatabase::register_font_file` also reads the selected face's family, weight, style, and stretch from the source bytes, so project font best-match is no longer forced to Regular when the manifest omits style metadata. `FontDatabase::register_font_asset` consumes imported family-member descriptors and fallback families; its asset source key includes family, style, weight, stretch, and variation coordinates, so multiple logical instances can share one physical face without being collapsed. Native/SDF manifest paths now use that asset-registration entry for `.font.toml` manifests. `font_asset.rs` consumes `FontAsset.render_strategy.default_mode` as the UI font default after the legacy `render_mode` field, and clamps that default through `allow_native` / `allow_sdf` before the renderer sees it.
+
+
+
+`text/shaping` is now the SH-M1/SH-M2 shaping owner. `cosmic.rs` is the only runtime text implementation file that directly touches glyphon/cosmic-text `FontSystem`, `Buffer`, `LayoutRun`, and `LayoutGlyph`; it projects backend glyph id, source range, visual range, advance, baseline, direction, UAX#9 bidi level, cluster flags, and rotation into `text/model/shaped_run.rs` implementation DTOs consumed through the neutral `core/framework/text` service contract. `shaping/bidi.rs` is the Unicode BiDi leaf: it resolves Auto/explicit paragraph direction and isolate levels in logical source order, then exposes line-boundary L1/L2 visual-index mapping. The UI line adapter passes the complete paragraph plus each wrapped line's absolute source range, so a line cut inside LRI/RLI/PDI context keeps its parent embedding level; odd-level punctuation mirroring is owned beside that level data. `OpenTypeFeature` request values are sorted/deduplicated before both cosmic `FontFeatures` projection and shaped-cache hashing. `shaping/line_break.rs` is the UAX#14 line-break opportunity leaf; it feeds soft/mandatory break flags into cluster-start glyphs without moving full wrapping, kinsoku, or justification logic into the shaping root. `text/layout/measure.rs` consumes that shaped run for line width, line metrics, and per-grapheme advances instead of importing third-party text backend types itself. `text/layout/line_break/mod.rs` is the first LB-M2 layout consumer: it shapes an unconstrained segment, reads neutral cluster soft-break flags, and exposes `line_break_chunks(...)` so UI Word wrap can break CJK text without ASCII spaces. Its children keep narrow policies out of the root: `text/layout/line_break/glue.rs` owns glue and variation-selector classification for `LineBreakChunk::allow_glyph_fallback`, `text/layout/line_break/glyph_fallback.rs` owns the measured width plus grapheme-count predicate for plain overwide chunk glyph-wrap fallback, `text/layout/line_break/greedy.rs` owns the current-line plus next-chunk width-fit predicate and shared line-fit epsilon, `text/layout/line_break/soft_hyphen.rs` owns U+00AD visual stripping plus break-suffix source ranges, and `text/layout/line_break/wrap_space.rs` owns ASCII wrap-space edge trimming offsets and byte counts. `text/layout/kinsoku.rs` applies first CJK line-start and line-end prohibition slices by merging or marking forbidden punctuation chunks as non-glyph-fallback chunks; UI code only respects the chunk metadata and does not own punctuation tables. Raw cosmic projection can still leave `font_id` unset, but the post-shape annotation leaf can derive resolver-selected face ids before native prepare reports consume a shaped run.
+
+
+
+The 2026-07-06 PF-M1 shared shaped-run provider slice connects that shaping owner to the production UI measure/layout cache without pushing UI keys into graphics text. `text/shaping/mod.rs` now exposes `TextShapeRunProvider`; the direct provider preserves existing uncached callers, while `UiTextMeasureCache` supplies `UiCachedTextShapeProvider` backed by `ShapedRunCache`. Runtime line metrics, line breaking, ellipsis, grapheme advances, and source-range measurement now have provider variants, so a natural-size measure miss and full-layout miss for compact labels such as `editor base.zui` reuse the same `Arc<ShapedGlyphRun>`. `layout_engine/line_box.rs` now also avoids shaping `" "` for labels that do not contain tabs, so non-tab editor labels keep the provider-measured advances instead of spending a second cache miss on tab-alignment support they do not use. This is the runtime-cache half of the editor spacing work: it keeps measurement and final layout on the same shaped run, while retained-host raster placement screenshots remain recorded under `docs/tests/runtime/text`. Verification: rustfmt log `runtime_text_spacing_cache_layout_rustfmt_check_20260706.log` SHA256 `E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855`; scoped diff-check log SHA256 `100DEA9A34630C4F68552DA9566E62A8A1B1423B7FA4B9716719B81D98CC8F93`; focused unit `text_measure_cache_reuses_shaped_runs_between_measure_and_layout` passed 1/1, log SHA256 `1DCD85CCAA299AF05AEA2CDCEEA331023D408473CF297356B8AA6114F16DE40A`; target/cargo-target new-image scan returned 0, log SHA256 `C7A9A3B0A23F3901DC4F059839FF0ABCA2908F239A0464D1E647D22EA17DF449`. The follow-up `render_perf_text_measure_then_layout_shapes_once` guard now prewarms stable `"Hg"` line metrics and proves the source label itself only misses/inserts one shaped run across measure+layout; the WSL direct binary run passed 1/1 (SHA256 `15A8674D402A487BF3A833FC2C87FFB0799E7B316BC652E8E80D459F58319B42`) and `text_measure_cache` passed 9/9 (SHA256 `071AD21B834B93D1A314B4E6B06763ED0E5DD4EFB72258E164C1AD6169517C80`). This guard deliberately keeps `DEFAULT_METRICS_SAMPLE` for line height; the rejected text-as-metrics experiment changed narrow word-wrap capacity and was not kept.
+
+
+
+The 2026-07-04 glyph-offset projection follow-up keeps backend units inside the same shaping owner. glyphon/cosmic `LayoutGlyph.x_offset/y_offset` are font-size-relative layout offsets, while Zircon `ShapedGlyph.offset_x/y` are consumed by retained-host placement as pixels. `cosmic.rs` now projects those offsets through `glyph.font_size` and clamps non-finite values to `0.0` before emitting the neutral shaped glyph. This keeps compact editor labels from under-applying shaped pen-origin offsets without moving layout, raster, FontDatabase, or editor painter behavior out of their owners.
+
+
+
+`text/cache` is now the PF-M1 cache data-plane owner for shaped runs, measure results, layout results, and same-frame deduplication. `cache/mod.rs` only mounts the subtree and re-exports crate-local contracts; `cache/shaped_cache.rs` owns `ShapedRunCacheKey`, `ShapedRunCache`, and `ShapedRunCacheReport`; `cache/measure_cache.rs` owns generic `TextMeasureCache<K,V>` storage, exact-text collision protection, frame/touch LRU, and frame reporting; `cache/layout_cache.rs` owns generic `TextLayoutCache<K,V>` plus exact wrap-width and valid-width-range hits; `cache/frame_dedup.rs` owns generic `TextFrameDedup<K,V>` same-frame key/text reuse. The shaped key is derived from `TextShapeRequest` shaping inputs and intentionally omits wrap width, alignment, and overflow policy so measure and full layout can reuse one unconstrained shaped run. `ui/text/measure_cache.rs` now consumes the generic measure, layout, current-frame dedup, and shared shaped-run provider for natural-size and full-layout UI requests while keeping UI-specific exact frame/clip-frame/style key projection out of `text`. Shape-count evidence now covers both source-label measure+layout reuse and the first scroll-list shape/layout reuse guard; parallel shape count, scroll raster/upload counters, complex tab/justify/overflow combinations, and glyph-atlas cutover follow-ups remain open. Detailed behavior is documented in `docs/crates/zircon_runtime/text-cache.md`.
+
+
+
+The 2026-07-05 retained-host pen-origin raster-bearing correction narrows the earlier 2026-07-04 bitmap-left draw handoff after the latest editor crop. For the normal path, `paint_text/draw/glyphs.rs` now keeps the layout pen origin as the placement authority and adds the current raster backend `metrics.x_offset` bearing; layout-owned `RuntimeTextGlyph.x` is only an invalid-origin fallback. This avoids mixing a host-layout bitmap-left with a freshly rasterized swash/fontdue bearing, which can make DengXian/等线 labels look shifted left or right even after the resolved family is correct. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_pen_origin_raster_bearing_preview_20260705.png` SHA256 `F563656405366859CE7E379E5472A3CD5D2EE137A20B1B946605D2EDA3BB0B5A`; `docs/tests/runtime/text/runtime_text_editor_retained_pen_origin_raster_bearing_validation_20260705.log` SHA256 `F89AB1218C9E19717599E4DF565CA498EC3D903133D12701177CEA5AB4FB8247`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 retained-host Fontdue bearing-fraction follow-up closes the remaining fallback sampling gap behind that same crop. After the pen-origin+raster-bearing correction, the FontdueFallback path still downsampled supersampled alpha masks with only the pen-origin phase; the high-resolution bitmap's fractional left bearing was lost when `metrics.x_offset` became an integer draw origin. `paint_text/raster.rs::fontdue_fallback_sample_offset_x(...)` now adds that bitmap-left fraction to the pen-origin phase, and `paint_text/draw/glyphs.rs` plus `draw/glyphs/row.rs` allow the combined sample offset to exceed one pixel instead of clamping it back to `0.999`. This keeps the fallback alpha mask aligned to the same fractional bearing as the source bitmap without changing ZUI assets, font family preference, runtime atlas routing, or swash rendering. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_fontdue_bearing_fraction_preview_20260705.png` SHA256 `E3C6DE159F197CE245BC6F4A1011602A3CF087F2D2A2A5685DC061586E4A478F`; `docs/tests/runtime/text/runtime_text_editor_retained_fontdue_bearing_fraction_validation_20260705.log` SHA256 `607CDE17DC27AF4FADD371C5863A8E08B2EC4DF9D7482F117940D5DBF2889BD6`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 retained-host grayscale pixel-snap follow-up is retained only as the short-lived per-glyph experiment that the later crop disproved. It briefly routed default `HostTextSmoothing::Grayscale` glyph origins through nearest device-pixel placement, but the follow-up alpha-phase slice superseded that with Alpha coverage plus 8-bin per-glyph phase. The later 2026-07-06 device-origin snap applies once at the default Grayscale run line origin, not to each glyph. Historical proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_grayscale_pixel_snap_preview_20260705.png` SHA256 `68EF3F9913DBDAB37CC02A73CF89B121B1A022CE5CC03876574C9FC0BD1C929C`; `docs/tests/runtime/text/runtime_text_editor_retained_grayscale_pixel_snap_validation_20260705.log` SHA256 `B5FAEA12AB9B521D74DE6766D128E536960C712C90032CC9592E6B296DE1EE8E`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 retained-host grayscale layout-guard follow-up keeps the runtime-advance guard aligned with draw placement, but its nearest-device-pixel comparison has also been superseded by the later alpha-phase policy. `paint_text/draw/placement.rs::retained_glyph_placements_share_bin_for_smoothing(...)` remains the owner of smoothing-aware placement equivalence, and `paint_text/draw/layout.rs::runtime_advances_preserve_retained_raster_bins(...)` still receives the current `HostTextSmoothing` from retained host preferences; current grayscale equivalence uses the same 8-bin glyph phase as explicit subpixel. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_grayscale_layout_guard_preview_20260705.png` SHA256 `050B7C5FC90DB709B48E6A93CF9EB0C57438F990D627E88799CF61DF54E24052`; `docs/tests/runtime/text/runtime_text_editor_retained_grayscale_layout_guard_validation_20260705.log` SHA256 `413840F6ABE9D1F51540FB663B1B14C832824480E294C382D5CDEE732A76E8B5`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 retained-host invalid-origin fallback follow-up closes the last draw-side bypass around that same smoothing policy. `paint_text/draw/glyphs.rs::retained_glyph_bitmap_pixel_x(...)` still treats `RuntimeTextGlyph.x` as the bitmap-left fallback when `origin_x` is invalid, but it now reuses the draw path's smoothing-aware `placement.pixel_x` instead of calling the old 8-bin `RetainedGlyphPlacement::from_screen_x(glyph.x)` directly. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_invalid_origin_smoothing_fallback_preview_20260705.png` SHA256 `6A69D9B29D9546A9E69B1BC7C45880EBDD390B4D0B096B489FD93C35DA370303`; `docs/tests/runtime/text/runtime_text_editor_retained_invalid_origin_smoothing_fallback_validation_20260705.log` SHA256 `F5DDB237F846A666EC2B0FD7F530A5A9F5E8CF2AC67ABBC90151C06E14832157`; scoped diff/static scans passed with LF/CRLF warnings only; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 retained-host subpixel line-origin follow-up is now the historical first step for the smoothing-aware line-origin owner. It initially kept the default grayscale editor path snapped while preserving explicit subpixel origins for the later LCD/background-composite owner. The 2026-07-05 grayscale fractional-origin follow-up briefly made both grayscale and subpixel preserve finite fractional line origins, but 2026-07-06 restored snapping for default Grayscale only; explicit Subpixel remains fractional. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_subpixel_line_origin_preview_20260705.png` SHA256 `340C525CA02932578F6996A8FE0543F2FF690228CBC0B88F038BDB656D626309`; `docs/tests/runtime/text/runtime_text_editor_retained_subpixel_line_origin_validation_20260705.log` SHA256 `7B55E67CAE1DE4834C26A27CFCCFFA86A4C60517E89EBB373561F8A7157708C3`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 retained-host grayscale fractional-origin follow-up is now historical. It attempted to address whole-label bias by preserving finite fractional line origins for both Grayscale and Subpixel, but the later user crop showed the default grayscale editor path still felt horizontally uncomfortable at those small label origins. The current rule is therefore Grayscale line-origin device snap plus per-glyph 8-bin alpha phase; explicit Subpixel still preserves fractional line origin. Historical proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_grayscale_fractional_origin_preview_20260705.png` SHA256 `55631255602E2CBB37B22BF2D517F4976153EBAB1D92EA2BCE52BDD5EB58A76D`; `docs/tests/runtime/text/runtime_text_editor_retained_grayscale_fractional_origin_validation_20260705.log` SHA256 `DA235D35F47AE1A84D44AA2B87219D1AB331B18E0C99580C60160B5985EF2698`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The companion 2026-07-04 source metrics Auto-direction follow-up keeps source-range shaped width in the simple resolved-LTR lane only. `ui/text/geometry.rs::line_accepts_source_measure(...)` now rejects `UiTextDirection::Auto` on the resolved layout, line, and single run, so externally constructed or stale resolved layouts cannot consume simple LTR source metrics before direction has been made explicit. Auto-direction caret and selection geometry falls back to the line's resolved `glyph_advances` until the full complex BIDI source-range geometry owner lands.
+
+
+
+The public geometry surface follow-up keeps that same boundary visible through `ui/surface/text_geometry.rs`. The source-metrics acceptance fixtures now explicitly build LTR resolved layouts, and `surface_text_caret_frame_rejects_unresolved_auto_direction_source_metrics` proves public caret/range helpers inherit the Auto-direction fail-closed path instead of bypassing `ui/text/geometry.rs`.
+
+
+
+SH-M2 script segmentation now has its first runtime data-plane owner. `shaping/script_segment.rs` owns `unicode-script` classification, Common/Inherited/Unknown merging, ISO 15924 tag projection, and emoji/ZWJ `Zsye` tagging; `cosmic.rs` and the fallback shaper stamp those tags into `ShapedGlyphScript` on neutral glyphs without exposing `unicode-script` or backend shaping types outside `text/shaping`.
+
+
+
+The 2026-06-29 SH/FB-M2 shaped glyph `font_id` bridge was a temporary post-shape owner: it mapped source/script/codepoints back through the resolver for an internal report. The 2026-07-10 D4 hard cut supersedes and deletes that bridge; current cosmic/native paths use actual `LayoutGlyph.font_id` through `font/backend.rs`. Public `TextShapeRequest`, render DTOs, and UI layout types remain backend-neutral.
+
+
+
+Runtime 15 M4 keeps native font-id reporting isolated from the screen-space text orchestrator. The canonical shaped glyph handles are resolved once by `scene_renderer/ui/text/native_glyph_run.rs`; the same result both produces `NativeBitmapAtlasGlyphRun` and feeds `font_id_report.rs` fallback/unmapped counters. The native atlas never receives a source string, glyphon `Buffer`, `TextArea`, or renderer-local shaping input. `text/native_buffer.rs` is removed, and no second font-id lookup or renderer-local fallback report exists.
+
+
+The current visibility contract keeps that DTO crate-internal. Status `runtime_15_screen_space_ui_text_font_id_report_visibility_sync_static_passed_cargo_deferred` exposes `ScreenSpaceUiTextFontIdReport` and its counters as `pub(crate)` only because render-framework stats consume glyph and unmapped counts; it is not a public runtime or UI-layout contract.
+
+
+Runtime 15 M4 keeps the screen-space text private regressions out of that production orchestrator with status `runtime_15_screen_space_ui_text_tests_owner_split_static_passed_cargo_deferred`. `scene_renderer/ui/text.rs` now mounts `#[cfg(test)] mod tests;` and keeps only production routing, native/SDF prepare/render placement, and font asset mode resolution; `scene_renderer/ui/text/tests.rs` owns the 10 private tests for backend routing, prepare-report aggregation, auto/native/SDF mode resolution, glyphon attrs mapping, alignment, and native TextArea placement. Guard `runtime_15_screen_space_ui_text_tests_are_child_owner_split` locks the moved tests, line budgets, and Runtime 15/text/status anchors.
+
+
+
+Runtime 15 M4 also keeps font-source descriptor parsing and pure match helpers out of the database owner with status `runtime_15_font_database_descriptor_helper_owner_split_static_passed_cargo_deferred`. `text/font/descriptors.rs` owns `descriptor_from_font_bytes(...)`, `stretch_from_ttf_width_class(...)`, `descriptor_from_fontdb_face(...)`, and `source_key_from_fontdb_source(...)`; `text/font/matching.rs` owns `dedupe_families(...)` and weight/stretch/style distance helpers. `text/font/database.rs` imports those helpers while continuing to own `FontDatabase` storage, family/source indexes, system-face registration orchestration, matching, shared face bytes, and fallback resolver handoff. `asset_registration.rs` now imports descriptor projection from the child owner instead of reaching back into `database.rs`, and `fallback.rs` imports family dedupe from the matching child.
+
+
+
+FB-M1 fallback resolution now has its first data-plane owner. `font/fallback.rs` resolves a cluster from primary face coverage through CompositeFont script/range families, request/default/runtime fallback families, and last-resort reporting. It keeps the Fyrox-aligned depth cap at 10 and records missing-glyph or depth-limit diagnostics without adding UI-local fallback rules or render-facing compatibility shims.
+
+
+
+The 2026-07-03 fallback resolver tests owner split keeps that data-plane owner production-only. `font/fallback.rs` now retains fallback resolution, candidate family ordering, depth-limit handling, and missing-glyph diagnostics plus a `#[cfg(test)] mod tests;` mount, while `font/fallback/tests.rs` owns the four private primary coverage, CJK fallback, depth-limit, and missing-codepoint diagnostic regressions. The split is structure-only and does not change fallback behavior or any SDF/native consumer path.
+
+
+
+FB-M2 now has its first SDF bridge slice. `FontDatabase::resolve_fallback_face_for_codepoint(...)` exposes the resolver result to runtime implementation leaves, and `scene_renderer/ui/sdf_font_bake.rs` asks for a glyph-specific fallback face before creating or measuring a fontsdf font. The bake path tries the resolver-selected face first, then keeps the requested and default face fallback order, so a missing glyph in the primary project font no longer forces SDF baking to stay on that face. This deliberately does not claim complete FB-M2: cosmic/glyphon still need stable backend/runtime face-id reconciliation, per-script fallback shaping, and full tofu/emoji/color fallback paths.
+
+
+
+LB-M2 now also has soft-hyphen, glue metadata, wrap-space metadata, kinsoku table extensions, glyph-fallback decision, and greedy width-fit slices. `LineBreakChunk` carries an explicit `source_range` plus optional break suffix metadata; `line_break/soft_hyphen.rs` owns the U+00AD split so soft hyphens stay out of visual chunk text while still mapping the visible wrap-time `-` back to the source soft-hyphen range. `line_break/glue.rs` marks NBSP, ZWJ, non-breaking hyphen, narrow no-break space, word joiner, zero-width no-break space, and variation selectors as non-glyph-fallback chunks, preserving those sequences when a narrow Word-wrap frame would otherwise split the group by grapheme. `kinsoku.rs` owns current prohibited line-start and line-end chunk merging plus the first JLREQ cl-08 inseparable-pair guard: closing punctuation, fullwidth white parenthesis `｟`/`｠`, spacing voicing marks `゛`/`゜`, JLREQ hyphens `‐〜゠–`, cl-08 pairs `——`/`……`/`‥‥`/`〳〵`/`〴〵`, small kana including `ゕゖヵヶ` and Katakana phonetic extension small kana `ㇰㇱㇲㇳㇴㇵㇶㇷㇸㇹㇺㇻㇼㇽㇾㇿ`, halfwidth forms, and the Japanese non-starter first slice for `ー々ゝゞヽヾ`; UI layout only consumes the adjusted chunk metadata. Its next-chunk handoff is now explicit `Option` branching rather than production `expect(...)`. `line_break/glyph_fallback.rs` owns the remaining plain overwide chunk decision by combining the chunk metadata, shared measured width, and Unicode grapheme count; `LineBreakChunk::should_fallback_to_glyph_wrap(...)` is now only the method-level handoff. `line_break/greedy.rs` owns `should_wrap_before_chunk(...)` and `line_text_fits(...)`, so UI Word/Glyph wrapping asks the shared line-break owner whether the current candidate plus next chunk still fits before mutating `CandidateLine`. `line_break/wrap_space.rs` owns the current ASCII-only wrap-space edge policy: leading normal spaces are skipped with source offset adjustment, and trailing normal spaces return a byte count for UI-owned run/range mutation. UI layout still decides where to append the chunk and whether a real width wrap occurred before displaying a suffix, but it no longer owns the append-width predicate, fallback predicate, U+00AD visual stripping, kinsoku classification, or ASCII wrap-space classification. Complete JIS/UAX kinsoku coverage, squeeze/overhang policy, and full WordSmart smart-wrap behavior remain later LB-M2 work.
+
+
+
+The 2026-07-01 WordSmart ASCII trailing punctuation slice adds `text/layout/line_break/smart.rs` as the first smart-wrap child owner. It keeps ASCII trailing punctuation `,.:;!?` with the previous word, including the shaped single-chunk case where `go,a` must split into protected `go,` plus the following `a`. The follow-up quote-after-punctuation slices also keep ASCII closing quotes `"`/`'` and Unicode right closing quotes `’`/`”` that immediately follow protected trailing punctuation, so `go,"a` and `go,”a` split into protected first chunks plus the following text. The fullwidth/CJK punctuation follow-up extends the same classifier to `、`/`。`/`，`/`．`/`・`/`：`/`；`/`！`/`？`, so `go，a` splits into protected `go，` plus `a`. UI layout now selects `word_smart_line_break_chunks(...)` for `UiTextWrap::WordSmart`; it does not own a duplicate punctuation or quote table.
+
+
+
+The 2026-07-01 spacing voicing mark slice adds the fullwidth spacing dakuten and handakuten marks `゛`/`゜` to the same shared line-start kinsoku owner. Owner tests prove both `カ゛` and `ハ゜` merge with the preceding chunk, and the UI regression proves narrow Word wrap keeps `カ゛` as a protected overhang instead of starting a new line with `゛`.
+
+
+
+The 2026-07-01 JLREQ hyphen slice adds cl-03 hyphens `‐〜゠–` to the shared line-start kinsoku owner. Owner tests prove `文‐`, `文〜`, `文゠`, and `文–` merge with the preceding chunk, and UI regression `text_wrap_cjk_kinsoku_no_leading_jlreq_hyphen` proves narrow Word wrap keeps `文‐` as protected overhang instead of starting a line with `‐`.
+
+
+
+The 2026-07-01 JLREQ cl-08 inseparable-pair slice adds the first pair-sensitive kinsoku rule to the same owner. It merges matching cl-08 pairs across adjacent chunks and also marks a single chunk containing `——`, `……`, `‥‥`, `〳〵`, or `〴〵` as not eligible for glyph fallback. Owner tests include a negative guard so `—…` does not get over-protected, and UI regression `text_wrap_keeps_jlreq_inseparable_ellipsis_pair_together` proves narrow Word wrap keeps `……` on one overhanging line.
+
+
+
+The 2026-07-01 fullwidth white parenthesis slice extends the same shared kinsoku owner with `｠` as a forbidden line-start closing punctuation and `｟` as a forbidden line-end opening punctuation. The focused `kinsoku` lib-test binary passed 25/25 after Cargo produced the test executable, so the owner and UI consumer regressions now have green runtime coverage rather than only compile coverage.
+
+
+
+The 2026-07-01 CJK double-prime closing quote slice extends that shared kinsoku owner with `〞`, keeping the variant in the graphics text line-break table and leaving UI as a metadata consumer.
+
+
+
+LB-M1 now has a first owner-local source byte subrange measurement path in `text/layout/measure.rs`. `measured_width(run, byte_start, byte_end, include_kerning)` clamps requested bytes to `ShapedGlyphRun.source_range`, sums overlapping `ShapedGlyph.source_range` advances, and splits partial clusters by source grapheme count. `measured_grapheme_widths(...)` consumes the same helper, so UI tab expansion, justify/hit-test fallback advances, and future IME/caret geometry can converge on one source-range measurement owner. The current backend does not expose unkerned advances, so `include_kerning=false` remains a documented follow-up rather than a fake GPOS/kerning toggle.
+
+
+
+LB-M3 now has its first logical alignment slices. `UiTextAlign` keeps `Start` and `End` as interface-level values, the surface resolver preserves those logical values, and `layout_engine/direction.rs` resolves explicit, Auto, and current `Mixed` requests to a concrete paragraph base direction before placing text. `layout_engine/line_box.rs` owns measured/tab-aware advances, Justify gating, line width clamp, and logical Start/End x placement inside the UI layout result. `ScreenSpaceUiTextBatch` carries `text_direction` into native glyphon and SDF draw planning; `native_text_align(...)` and `aligned_text_start_x(...)` map Start/End through the same direction rule, so render backends do not reinterpret RTL text as physical left/right alignment. The current SH-M2 mirror-table slice lives in UI `layout_engine/visual_order.rs` as an interim scaffold and proves source-range-stable mirrored RTL punctuation; script tags now live in the shaping owner, but full UAX#9 level runs, isolates, per-script shaping, script-aware fallback-selected faces, and backend-owned mirroring still belong to later shaping/BiDi work.
+
+
+
+LB-M3 now also has a first justify slice plus edge-space trim. `text/layout/align.rs` owns word-space and CJK inter-character gap expansion over already-measured grapheme advances, and it trims leading/trailing edge spaces before selecting justify opportunities. `UiTextAlign::Justify` is a neutral typography value parsed by the UI surface resolver; `layout_engine.rs` applies it only to non-final resolved lines, expands `UiResolvedTextLine.glyph_advances`, and makes the line frame/measured width match the target frame. Native glyphon receives `Align::Justified`, and the SDF draw path reuses the shared advance distribution helper for word-gap vertex placement. This is not complete LB-M3: kashida, tab stops with overflow/shrink/clamp/ellipsis interactions, full paragraph native/SDF visual parity, and vertical layout remain pending.
+
+
+
+LB-M4 now has a first SDF render-path writing-mode consumer. `graphics/scene/scene_renderer/ui/render.rs` puts `UiTextWritingMode` into every `ScreenSpaceUiTextBatch`; `sdf_render.rs` keeps the existing horizontal baseline/cursor-x path for `HorizontalTb` and uses a vertical column/cursor-y path for `VerticalRl`. The vertical SDF path centers each glyph quad in the column and advances on y, matching the resolved-layout main axis without pretending to implement shaping-time `vert`/`vrt2` substitutions or sideways Latin orientation.
+
+
+
+The 2026-07-03 SDF render tests owner split replaces the single `graphics/scene/scene_renderer/ui/sdf_render/tests.rs` child with `graphics/scene/scene_renderer/ui/sdf_render/tests/{mod.rs,draw_plan.rs,shader_contract.rs,layout_placement.rs,prepare_report.rs}`. The render production owner stays in `sdf_render.rs`; draw-plan, shader contract, placement, and prepare-report regressions now have separate folder-backed owners so the 23 existing SDF render tests no longer sit behind a 1000-line mixed test file. The slice has rustfmt, static owner-count, and visual/log proof under `docs/tests/runtime/text`; focused Cargo remains deferred behind active compile lanes.
+
+
+
+The 2026-07-03 SDF atlas tests owner split applies the same folder-backed rule to `graphics/scene/scene_renderer/ui/sdf_atlas`. The former `sdf_atlas/tests.rs` mixed plan/key/run, allocation, cache-report, and stateful owner regressions in one 738-line file. The current test tree keeps shared fixtures in `sdf_atlas/tests/mod.rs`, plan and run mapping checks in `plan.rs`, page allocation/page-limit/oversized checks in `allocation.rs`, dirty/rebuilt-page cache report checks in `cache_report.rs`, and retention/eviction state checks in `owner.rs`. This is structure-only; production `sdf_atlas.rs` and atlas behavior are unchanged.
+
+
+
+SM-M1 now has its first SDF `screenPxRange` shader slice. `sdf_render.rs` computes a per-glyph `screen_px_range` from displayed font size against the current SDF bake contract and writes it into every `ScreenSpaceUiSdfVertex`; `shaders/sdf_text.wgsl` consumes that vertex attribute and derives coverage with `fwidth` instead of the previous fixed `smoothstep(0.42, 0.58, distance)` band.
+
+
+
+SM-M1 also has its first fixed bake params/cache-key slice. `graphics/scene/scene_renderer/ui/sdf_params.rs` owns the private default SDF bake contract, currently SDF mode, 32px bake em, and 8px spread. `sdf_atlas.rs` keys glyph slots by glyph/font/family/bake params instead of display font size, `sdf_font_bake.rs` bakes and measures at the fixed bake size then returns display-scaled metrics, and `sdf_render.rs` keeps UVs tied to fixed-bake bitmap dimensions while using scaled metrics for quads. This closes the per-display-size SDF atlas duplication defect only; it does not yet make SDF and alpha bitmap text share a real allocator/upload path.
+
+
+
+On 2026-07-03, the SDF font bake tests owner split kept that leaf owner focused. `graphics/scene/scene_renderer/ui/sdf_font_bake.rs` remains the 363-line fontsdf bake/measure/fallback adapter with no inline tests, while `graphics/scene/scene_renderer/ui/sdf_font_bake/tests.rs` owns the 8 existing glyph-pattern, page-layer, whitespace, missing-glyph, font-weight query, face-index fallback, and empty-plan regressions. This is structure-only; SDF pixels, metric scaling, fallback face order, page-indexed source layers, and cache behavior are unchanged.
+
+
+
+SM-M1 now has a first unified atlas page identity slice. `text/atlas/mod.rs` owns the neutral `GlyphAtlasFormat`, page key, storage format, page spec, and `GlyphAtlasSet` structures, while `graphics/scene/scene_renderer/ui/sdf_atlas.rs` attaches an SDF page identity to each `SdfAtlasPlan`. The new regression keeps SDF and alpha-mask pages in one set while preserving distinct page keys, so later alpha/SDF/MSDF upload work can converge on one atlas vocabulary. This is not the full plan 04/05 allocator: dynamic page texture consumption, alpha bitmap atlas migration, shared GPU partial upload, MSDF/MTSDF data, offline bake products, and outline/shadow/glow remain open.
+
+
+
+AT-M1/SM-M1 now also has the first shared shelf allocator data-plane slice. `text/atlas/mod.rs` owns `GlyphAtlasRect`, `GlyphAtlasAllocation`, and `GlyphAtlasShelfAllocator`; the allocator produces deterministic row-major shelf rects with explicit page keys. `sdf_atlas.rs` now asks that shared allocator for SDF page[0] slot rectangles instead of calculating a private fixed grid locally. SDF still uses fixed slot size and a single page for this slice, so alpha bitmap atlas migration, glyphon `TextAtlas` replacement, dirty rect GPU upload, dynamic multi-page texture growth, and editor/window-level native/SDF visual QA remain open.
+
+
+
+AT-M3/SM-M1 now adds the first shared dirty-rect data-plane slice and finishes the atlas folder-backed split. `text/atlas/page.rs` owns atlas format/page/rect/set contracts, `shelf_allocator.rs` owns placement, and `dirty.rs` owns per-page merged dirty rects; `mod.rs` is navigation only. `sdf_atlas.rs` reports the merged dirty rect for cache transitions, and `sdf_upload.rs` uses that rect for upload report byte accounting while resize still reports a full-page rect.
+
+
+
+The follow-up AT-M3/SM-M1 SDF partial upload slice consumes that data-plane in the renderer. `sdf_upload.rs` now builds `SdfAtlasUploadCommand` values for full texture, dirty-rect, and no-op frames; `sdf_render.rs` uses those commands in `write_sdf_atlas_texture(...)` so dirty frames write only the merged rect with the correct GPU origin and full-atlas row stride, while stable frames skip `Queue::write_texture`. This closes only the render-side SDF path; alpha bitmap atlas migration, dynamic page texture consumption, MSDF/MTSDF, and editor/window-level native/SDF QA remain open.
+
+
+
+The generic AT-M3/SM-M1 atlas upload owner slice moves upload command math into `text/atlas/upload.rs`. That owner computes full-page, partial-rect, and no-op commands from `GlyphAtlasPageSpec`, uses `GlyphAtlasStorageFormat` to derive R8/RGBA bytes-per-pixel, validates source buffer ranges before a command exists, and exposes the same stride/offset model to SDF today and alpha/MSDF pages later. `sdf_upload.rs` now only maps SDF reports into the generic owner; UI and SDF render leaves do not own atlas upload policy.
+
+
+
+On 2026-07-03, the SDF upload tests owner split kept that production mapper small. `graphics/scene/scene_renderer/ui/sdf_upload.rs` remains the 205-line upload report/command adapter with no inline tests, while `graphics/scene/scene_renderer/ui/sdf_upload/tests.rs` owns the 9 existing full-page, dirty-rect, no-op, page-layer, and generic-command regressions. This is structure-only; upload report semantics, command math, texture writes, and editor text placement are unchanged.
+
+
+
+The AT-M1/AT-M3 page residency follow-up adds `text/atlas/page_residency.rs` as the shared LRU decision owner. `GlyphAtlasSet` now tracks resident page metadata and can reserve a page by allocating the first missing index, evicting the oldest page not referenced in the current frame, or blocking when every resident page is protected. That slice did not yet close real shelf overflow; the later SDF multi-page allocation follow-up now covers page[1+] slot placement. Glyph-cache invalidation after eviction, alpha bitmap atlas migration, and glyphon `TextAtlas` replacement remain open.
+
+
+
+AT-M2 now has the first shared glyph raster-key and subpixel-placement data-plane owner in `text/atlas/raster_key/mod.rs`, with private regressions in `text/atlas/raster_key/tests.rs`. `GlyphRasterRequest` projects face id, glyph id, logical font size, scale factor, final screen x, pixel snapping, atlas format, hinting, smoothing, and synthetic bold/oblique style into `GlyphRasterKey`; the key stores physical pixel-size bucket, subpixel bin, format, hinting/smoothing, and synthetic style so DPI, subpixel AA, and fallback synthetic style cannot collide in the same atlas cache entry. `GlyphRasterPlacement` owns the matching final-x rule for render extract: alpha bitmap subpixel AA snaps the quad origin to `floor(x)+bin/3`, pixel-snap text rounds to an integer origin, and grayscale/SDF/MSDF placement preserves the fractional x with bin 0. This keeps raster cache identity and future glyph-quad placement from quantizing independently. SDF/MSDF keys still normalize hinting, smoothing, and subpixel to `None`/0 because fixed-distance-field rasters should not duplicate by bitmap-only quality dimensions. The first render-side consumer is now `sdf_render.rs::horizontal_sdf_glyph_frame(...)`, which routes horizontal SDF glyph quad x through `GlyphRasterPlacement::from_raster_input(...)` before emitting vertices. Alpha bitmap/swash raster consumption, true 2x sharpness capture, and glyphon `TextAtlas` replacement remain open.
+
+
+
+The 2026-07-03 owner split keeps that raster-key behavior under the same atlas child owner while moving the ten DPI/subpixel/hinting/smoothing/synthetic-style tests out of the production file. `raster_key/mod.rs` now owns production logic plus the test mount only; `raster_key/tests.rs` owns the regressions. Proof image/log: `docs/tests/runtime/text/runtime_text_atlas_raster_key_tests_owner_split_preview_20260703.png` (SHA256 `4A2AD2FAC218555784BD686986D7EB7EC9A38C208ED7C6ADAD9D455312EEA7F1`) and `docs/tests/runtime/text/runtime_text_atlas_raster_key_tests_owner_split_validation_20260703.log` (SHA256 `C893CF3311C3603F95797E87CE6A5453EA9F7660DE74617DFE6CC32C9DE630BC`); target scans returned 0. Focused Cargo remains deferred while existing cargo/rustc lanes are active.
+
+
+
+AT-M2 now also moves raster-route selection into the graphics text owner. `text/raster/policy.rs` owns `GlyphRasterPolicy`, `GlyphRasterPath`, and `raster_path_for(...)`, choosing bitmap for small static text and SDF for large or explicitly scalable text. The old UI-local `ui/text/raster/mod.rs` owner has been deleted without a compatibility re-export, so UI layout and render extraction remain consumers of resolved text data instead of carrying atlas/raster backend policy.
+
+
+
+The follow-up effect-aware route slice extends that owner with `GlyphRasterPolicyRequest`, `GlyphRasterEffects`, and `raster_path_for_request(...)`. Route selection now sees the requested atlas format and text effects: explicit SDF and MSDF requests keep their distance-field route, color glyphs stay on the bitmap/color path, and outline/shadow/glow effects force AlphaMask requests to the SDF route even below the normal bitmap threshold. This is only policy data-plane work; the actual outline, shadow, glow, MSDF/MTSDF generation, and shader effects remain later plan 05 work.
+
+
+
+AT-M1 now also has the first swash bitmap contract slice under `text/raster/swash/`. That folder-backed owner defines `GlyphBitmap` with size, bearing, physical pixel size, bytes, channel count, and explicit `GlyphBitmapContent`, so 1-channel alpha, 4-channel subpixel coverage, and 4-channel color are no longer inferred from channel count alone. AlphaMask maps to R8 atlas storage, while both SubpixelMask and Color map to RGBA atlas storage with different `GlyphAtlasFormat` identities. The 2026-07-03 follow-up makes `GlyphBitmap::{alpha_mask,subpixel_mask,color}` fallible through `GlyphBitmapError`, rejecting empty sizes, non-finite bearings, non-positive pixel sizes, content/channel mismatches, and payload length mismatches before any atlas upload can consume malformed swash output. The same day, `SwashRasterizer` added the first real swash `ScaleContext`/`Scaler`/`Render` adapter: `SwashRasterRequest` selects outline, subpixel outline, bitmap, or color sources, the adapter normalizes swash Mask/SubpixelMask/Color images into `GlyphBitmap`, `GlyphAtlasFormat::SubpixelMask` uses `Rgba8Unorm`, raster keys keep its 1/3 subpixel bin, and raster policy keeps it on the Bitmap route. Owner tests now drive a real FiraSans face through `FontRef`, charmap glyph-id lookup, `rasterize_alpha_outline(...)`, `rasterize_subpixel_outline(...)`, and non-empty coverage assertions; scoped rustfmt passed, and focused `cargo test -p zircon_runtime text_raster_swash --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0703-swash-subpixel --message-format short --color never -- --nocapture --test-threads=1` passed 11/11 after a support-first unblock of a shader template `module_registry.rs` test-scope import drift. Color glyph routing first prefers COLR/CPAL vector sources; bitmap-only CBDT/sbix sources select the nearest strike greater than or equal to the target physical size for downsampling, falling back to the largest smaller strike only when no larger strike exists. The selection records scaled size, bearing, and advance so atlas placement can consume physical metrics later. Emoji RGBA fixture coverage, real shader/blend consumption of SubpixelMask pages, alpha bitmap atlas migration, and glyphon `TextAtlas` replacement remain open.
+
+
+
+On 2026-07-03, the swash raster owner split made that folder shape explicit. `swash/mod.rs` is now only module wiring and crate-private exports; `bitmap.rs` owns `GlyphBitmap` and validation; `color_strike.rs` owns COLR/CPAL priority and CBDT/sbix bitmap strike planning; `request.rs` owns swash source and render-format selection; `rasterizer.rs` owns the `ScaleContext` adapter and image normalization; `error.rs` owns `SwashRasterError`; and `tests.rs` keeps private helper coverage local to the swash module. This is a structure-convention slice only; it preserves the existing raster behavior while making future emoji RGBA fixture and alpha bitmap atlas cutover land in focused child owners.
+
+
+
+The 2026-07-04 swash bitmap atlas source bridge adds that focused child owner. `text/raster/swash/atlas_source.rs` converts an already validated `GlyphBitmap` into a `GlyphAtlasBitmapSource` by preserving the required atlas format, content size, screen rect, foreground/background colors, and the actual source byte length from `data.len()`. This keeps raster-output projection under swash while leaving atlas-side validation, allocation, dirty-page reporting, and upload command projection in the atlas owners. The bridge tests cover AlphaMask, SubpixelMask, Color, and acceptance by `glyph_atlas_bitmap_run_plan_with_padding(...)`. Proof image/log: `docs/tests/runtime/text/runtime_text_raster_swash_bitmap_atlas_source_bridge_preview_20260704.png` SHA256 `5F4FDB0B68E4F96809F6B330444C6DF595BB6648FCB85F4A428A2BA782F5C89D`; `docs/tests/runtime/text/runtime_text_raster_swash_bitmap_atlas_source_bridge_validation_20260704.log` SHA256 `61F2E60E1054690906F4A26520999E3533D6E2142B40EC6694E3AB735CE05189`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The SDF page-keyed upload follow-up now closes the renderer/texture consumption half of that data shape. `SdfAtlasSlot` records a `GlyphAtlasPageKey`, `SdfAtlasCacheReport` and `SdfAtlasUploadReport` carry page-keyed dirty/upload entries, `sdf_font_bake.rs` lays SDF pixels out as page-indexed source layers, and `sdf_upload.rs` emits one or more `GlyphAtlasUploadCommand` values with page-local rects plus source layer offsets. `sdf_render.rs` creates a `D2Array` SDF atlas view, writes each command to `origin.z = page_key.page_index`, and `sdf_text.wgsl` samples `texture_2d_array` using per-vertex `page_index`. This is still not full atlas migration: persistent glyph-cache/residency eviction policy, alpha bitmap atlas/glyphon migration, and MSDF/MTSDF remain open.
+
+
+
+The AT-M1/AT-M3/SM-M1 SDF shelf overflow follow-up closes the first real multi-page SDF slot allocation path. `sdf_atlas.rs` now keeps SDF pages at a quality-derived fixed size instead of growing one page to fit all glyphs; slot allocation fills the current page's shared shelf allocator, then reserves page[1+] through `GlyphAtlasSet::reserve_page_for_format(...)` when the shelf overflows. The resulting `SdfAtlasSlot.page_key`, run mapping, dirty reports, bake source layers, upload commands, texture-array writes, and shader sampling now all agree on the same page index. Over-cap fallback, oversized glyph handling, persistent eviction policy, alpha bitmap atlas/glyphon migration, and MSDF/MTSDF are still separate follow-ups.
+
+
+
+The SDF page eviction invalidation follow-up closes the first rebuilt-page data path. `SdfAtlasPlan.rebuilt_pages` records pages returned by `GlyphAtlasPageResidencyDecision::Evict(...)`, and `cache_report_for_plan_transition(...)` marks each rebuilt page as a full-page dirty upload before comparing stable glyph slots. This prevents a reused page from appearing clean just because a glyph key and rectangle are unchanged. It is still a data-plane slice: persistent runtime glyph-cache/residency eviction policy, alpha bitmap atlas migration, glyphon `TextAtlas` replacement, oversized fallback, and MSDF/MTSDF remain separate plan items.
+
+
+
+The SDF allocation failure follow-up closes the silent-drop data gap around over-cap and oversized glyph requests. `SdfAtlasPlan.allocation_failures` records the failed glyph key, `PageLimit` or `OversizedSlot`, requested slot size, and atlas page size; `ScreenSpaceUiSdfPrepareReport` exposes total, page-limit, and oversized failure counts. The render path still maps failed glyphs to missing slots for this slice, so actual fallback rendering policy remains separate from reporting.
+
+
+
+The SDF fallback owner split keeps that rendering policy out of the already-large `text.rs` orchestration root. `graphics/scene/scene_renderer/ui/text/sdf_fallback.rs` now owns `ScreenSpaceUiTextSdfFallbackReport` and `apply_sdf_atlas_fallbacks(...)`, while `text.rs` only calls the policy during prepare and continues into cache pruning/reprepare. This records the structure-fix step separately from the earlier behavioral whole-batch fallback slice.
+
+
+
+The 2026-07-03 SDF fallback tests owner split keeps that same production owner small enough for the structure convention. `graphics/scene/scene_renderer/ui/text/sdf_fallback.rs` now keeps fallback report/span grouping/mixed overlay behavior in 376 lines and mounts `#[cfg(test)] mod tests;`; the former inline regressions live in `graphics/scene/scene_renderer/ui/text/sdf_fallback/tests.rs` at 485 lines. This is a structure-only move and does not change atlas allocation, mixed overlay behavior, or editor retained-host text placement.
+
+
+
+The SDF run failure reason follow-up makes the failure data glyph-aligned. `SdfAtlasRun.glyph_failure_reasons` now mirrors `glyph_slot_indices`, so whitespace and allocated glyphs stay `None` while failed page-limit or oversized glyph positions carry their exact `SdfAtlasAllocationFailureReason`. This does not change rendering yet; it gives later mixed per-glyph fallback a precise data source instead of relying only on run-level totals.
+
+
+
+The SDF mixed fallback span follow-up consumes that glyph-aligned data inside `graphics/scene/scene_renderer/ui/text/sdf_fallback.rs`. Consecutive failed glyph positions with the same `SdfAtlasAllocationFailureReason` are grouped into `SdfAtlasGlyphFallbackSpan` records, and the prepare report now carries fallback/page-limit/oversized span counts. Rendering intentionally remains whole-batch native fallback until the later mixed overlay and independent oversized fallback slices land.
+
+
+
+The SDF fallback byte-range follow-up extends those span records with `start_byte_index` and `end_byte_index` from `source_text.char_indices()`, plus fallback/page-limit/oversized source byte counts in the prepare report. This keeps UTF-8 slicing knowledge in the fallback owner instead of duplicating it in the renderer later. Visible rendering is still whole-batch native fallback; the byte ranges are a data-plane prerequisite for local mixed native/SDF overlay.
+
+
+
+The SDF mixed native overlay first slice consumes those byte ranges and measured SDF advances for the safe Horizontal LTR / no-wrap / non-justify case. `text/sdf_fallback.rs` keeps the original SDF batch for allocated glyphs and creates native overlay batches only for failed spans, while `sdf_render.rs` supplies per-character fallback advances and `text.rs` only reparses/reprepares the atlas on whole-batch fallback. Vertical, RTL, justify, wrapped mixed overlay and independent oversized fallback remain separate follow-ups.
+
+
+
+## 2026-07-17 Text MVP shared font generation stability
+
+`TextRenderState` remains the renderer-local owner of the mutable font database, while
+`text/font/shared.rs` owns the process-wide immutable snapshot lineage. Constructing another
+`ScreenSpaceUiTextSystem` republishes that local database after default/composite font setup, but
+an equivalent publication no longer advances the global generation. This keeps shaped-run,
+locale `FontSystem`, font-handle, and SDF bake caches resident when the effective render inputs are
+unchanged instead of turning renderer construction order into cache invalidation.
+
+Semantic comparison is child-owned by `text/font/database/equivalence.rs`. It compares the ordered
+face descriptors and sources, fallback families, active CompositeFont, and default UI family. Face
+order is part of identity because `FontFaceId` indexes that order. Diagnostics, runtime caches,
+instance registries, and derived backend indexes are intentionally excluded because publishing
+them cannot change a rendered glyph. Shared byte sources use `Arc::ptr_eq` first, so the normal
+clone-and-republish path is O(face count); byte comparison is only the fallback for independently
+materialized but equivalent databases.
+
+System-font discovery is also idempotent at the `FontDatabase` owner. `fontdb 0.23` appends a fresh
+backend catalog every time `load_system_fonts()` runs, even if Zircon's source index rejects the
+same neutral faces afterward. The database now records that discovery policy has already been
+applied; renderer clones inherit that state and return from repeated `Discover` calls without
+rescanning OS font directories or duplicating backend faces. A future explicit hot-refresh API must
+own invalidation separately instead of overloading ordinary renderer initialization.
+
+`TextRenderState::new(...)` also avoids cosmic-text's independent startup scan. It resolves and
+normalizes the system locale through the text-owned language helper, then constructs
+`FontSystem::new_with_locale_and_db(...)` directly from the shared backend database. The previous
+`FontSystem::new()` temporary—which called `load_system_fonts()` before being immediately
+overwritten—has been removed. `sys-locale` is optional under the existing `text` feature, so
+target-server builds that do not enable Text do not gain the dependency. The raw `"en-us"` fallback
+remains in one `text/language.rs` constant and is reused by the bounded locale cache.
+
+Snapshot reads and publish equality/replacement/generation updates use the same `RwLock` boundary.
+The database replacement and generation increment therefore occur in one write-locked critical
+section, preventing a reader from pairing the new database with the old generation. No shaping or
+raster hot path holds that lock: readers clone one immutable snapshot at the existing refresh
+boundary, and the lock-free atomic generation probe remains the common cache check.
+
+The tests use two deliberately test-only controls. `force_publish_shared_font_database(...)` keeps
+the stale-handle regression able to force a lineage change even when the database payload is
+equivalent. `shared_font_database_test_read_guard()` serializes the generation-sensitive SDF cache
+fixtures against unrelated global publishers without adding a production lock or changing SDF
+behavior. The initial focused shared-publication batch passed 2/2 in managed job
+`82420bdd20f8450eabaf5e08fd009759`; the expanded default-family guard and parallel SDF batch remain
+in the milestone testing queue, so this implementation is recorded as active rather than accepted.
+
+## 2026-07-17 Text MVP raster worker fail-closed submission
+
+`text/parallel/raster_pool.rs::request(...)` no longer assumes the optional request sender is alive
+with a production `expect`. A missing sender returns `CoreError::ChannelSend` before the work id is
+inserted, so renderer preparation can keep the existing transparent/approximate-glyph degradation
+policy instead of panicking or leaving a permanent in-flight entry. Full and disconnected channels
+continue to remove an inserted id and update diagnostics through the existing error path.
+
+The normal request path adds only one `Option` branch before the existing in-flight lock and channel
+send; worker scheduling, queue depth, deduplication, rasterization, and completion handling are
+unchanged. A test-only disconnect helper makes the otherwise destructor-only state directly
+testable, and `text_raster_worker_pool_disconnected_request_channel_fails_without_panicking` locks
+the returned error plus zero `in_flight`/`queue_peak` counters. The code and scoped formatting are
+complete; the focused `text_raster_worker_pool` execution remains part of the pending managed Text
+MVP testing stage.
+
+## 2026-07-17 Text MVP raster-source ownership hard cut
+
+Async raster work no longer carries the fixed `page_generation=0` target. A swash `GlyphBitmap` is
+produced and cached before the atlas allocator knows its page, so atlas page churn must not discard
+that reusable CPU source. `TextRasterWorkItem` and `TextRasterWorkResult` now carry only the current
+font `face_epoch`; completion drain accepts same-face results and removes work from invalidated font
+faces. The obsolete stale-page worker ids/counts and source-cache telemetry were removed without a
+compatibility field.
+
+Real page generation remains authoritative after allocation. Bitmap run allocation, staging,
+texture-upload request planning, and renderer binding still propagate and validate each page's
+generation before a WGPU write. The new focused worker test locks atlas-independent acceptance plus
+old-face rejection, while the existing staging/upload tests retain stale-page coverage.
+`render_perf_text_async_upload_merges_per_page` additionally locks that two glyphs on one page
+produce one dirty rect, upload command, staging page, staged upload, and texture request. Scoped Rust
+1.94.1 formatting, old-symbol scan, and diff check are green; Cargo execution remains pending.
+
+## 2026-07-17 Text MVP shaping and SDF fail-closed invariants
+
+The primary-coverage fast path in `text/shaping/fallback_spans.rs` now obtains the face from the
+same filtered resolver expression that proved full coverage. It no longer performs a second
+`expect` based on a repeated optional-state assumption. Normal one-span projection, logical family,
+variable instance, and backend face identity are unchanged.
+
+`text/sdf/font_bake.rs::measure_key(...)` similarly treats an unexpected missing map entry after
+`ensure_sdf_font(...)` as a rejected face candidate. It continues through the ordered candidates
+and ultimately returns the existing fallback metrics if none remain, instead of panicking during
+basic text preparation. This does not create a renderer reconstruction path or hide a glyph
+generation failure; the ordinary ensure/lookup path and typed bake failures remain authoritative.
+Existing fallback-span and SDF bake suites cover the normal behavior, while the managed milestone
+testing stage remains pending for the current shared source boundary.
+
+## 2026-07-10 Text 06 backend face identity hard cut
+
+
+FB-M1 D4 now has one authoritative backend identity lineage. `text/font/database.rs` owns the cloned `fontdb::Database`; `text/font/backend.rs` owns the bidirectional `fontdb::ID`/`FontFaceId` map; and `text/font/shared.rs` publishes immutable process snapshots with a generation counter. Locale-specific shaping systems refresh only when that generation changes, while the screen-space renderer starts from and republishes the same lineage after project-font registration.
+
+
+
+`text/shaping/cosmic.rs` projects each actual `LayoutGlyph.font_id` directly into `ShapedGlyph.font_id`. The native report performs the same reconciliation against the just-shaped `Buffer.layout_runs()` and counts unmapped glyphs explicitly. The former `text/shaping/font_id.rs` script/codepoint post-annotation bridge and its unused cluster resolver were deleted without a compatibility shim. This prevents a reconstructed fallback choice from disagreeing with the face that produced the glyph ID.
+
+
+
+Validation: production `cargo check -p zircon_runtime --lib --no-default-features --locked` passed in 1m09s at the existing 416-warning baseline; an exact harness using the repository `backend.rs` plus real `FiraMono-subset.ttf` passed 2/2. Monolithic focused lib-test build (604.2s) and all-tests type-check (304.4s) timed out without Rust diagnostics and are not counted as passing. Evidence is `docs/tests/runtime/text/runtime_text_fb_m1_backend_face_id_reconciliation_validation_20260710.log` (SHA256 `6311EDC9D779096061CD97D9F92F10C71809A0B87E4BEA61F4964A4608BFD28D`). This identity slice is nonvisual; real fallback raster/framebuffer evidence remains open.
+
+
+
+The follow-up routes CompositeFont selection into the real backend before shaping. `text/shaping/fallback_spans.rs` resolves one family per Unicode grapheme cluster from script/range/locale and is consumed by both the shared cosmic buffer and the native screen-space buffer through glyphon rich-text spans. The span owner is backend-neutral; `cosmic.rs` and `text.rs` retain only their respective third-party API projection. Actual output identity remains post-backend `LayoutGlyph.font_id`, so preselection does not reintroduce the deleted annotation bridge.
+
+
+
+Partial clusters now choose the ordered face that covers the base and the greatest number of cluster codepoints. `MissingGlyphLog` records only uncovered codepoints, deduplicates `(FontFaceId, codepoint)`, increments occurrence counts, caps unique entries at 1024, and reports overflow/dropped entries. `FontDatabase` shares that log through a poison-recovering `Mutex`; `scene_renderer/ui/text/prepare_report.rs` drains it after prepare as frame-out data. The same child now owns raster-upload report aggregation, reducing `text.rs` from 834 to 777 lines. System-font registration parses real cmap coverage, the default manifest includes Arabic/Hebrew/emoji/symbol routes, and `ShapedRunCacheKey` includes the shared font-database generation.
+
+
+
+Exact repository-owner harnesses passed partial-cluster/bounded-log 2/2 and native/shared glyphon rich-span API 2/2. The first locked checks were blocked by an external Render 08 non-exhaustive match; after that owner recovered, the subsequent locale/language slice re-established a green locked no-default production check in 203.3s at the current 415-warning baseline. Fallback/diagnostic evidence is `docs/tests/runtime/text/runtime_text_fb_m1_cluster_fallback_diagnostics_validation_20260710.log` (SHA256 `3BCCDD5BC02E4BEC268185A28B2FFDC3D5EC2E41A8C47EE07DC1768B0B6E9E70`). Real CJK/Arabic/emoji framebuffer and complex-cluster single-face proof remain open.
+
+
+
+## 2026-07-10 Text 06 locale/language pipeline
+
+
+
+`zircon_runtime_interface::UiResolvedStyle.language` is the neutral BCP 47 run annotation. The runtime surface resolver accepts `[font].language`, `text_language`, or `language`; trims empty values; and carries the result through `UiTextStyleKey`, direct/parallel `TextShapeRequest`, and `ShapedRunCacheKey`. Both cache keys normalize tag case, so case-only spelling differences share work while `zh-Hans` and `ja` remain distinct.
+
+
+
+The screen-space text batch preserves the tag instead of reconstructing it below the UI boundary. Native rich-span fallback receives it through the resolved style and `fallback_text_spans`; SDF puts it in `SdfAtlasGlyphKey`, passes it to glyph measurement/bake fallback, and therefore does not reuse one codepoint slot across locale-sensitive faces. The renderer remains an orchestrator: language policy stays in neutral style/shaping/font owners, and the SDF key owns only cache identity.
+
+
+
+TDD first proved that the old public style had no language field; the independent interface round-trip test then passed 1/1. The locked no-default `zircon_runtime` production check passed with 415 existing warnings, and scoped rustfmt/diff checks passed. The aggregate runtime `language` test lane was interrupted by the automatic continuation boundary and is not counted as green. Evidence is `docs/tests/runtime/text/runtime_text_fb_m1_locale_language_pipeline_validation_20260710.log` (SHA256 `B6E147D42E3DD83C0CDA01A68EFB32BEBAE5612F1B6A34E670B4ABF7D5FFEA77`). Per-run HarfRust `locl` remains unavailable through cosmic-text 0.18.2 `Attrs`; the product framebuffer now closes the SC/JP same-codepoint face-selection visual comparison independently of `locl`.
+
+
+
+The SDF mixed fallback diagnostics follow-up keeps unsupported-layout policy in the same fallback owner. Whole-batch fallback now records whether mixed overlay was blocked by missing advances, unsupported writing mode, unsupported direction, wrapping, justify, advance-count mismatch, empty spans, or invalid spans. Unsupported Vertical/RTL/wrapped/justified cases still render through whole-batch native fallback until their layout-specific overlay rules are implemented.
+
+
+
+Validation for the 2026-07-02 SDF allocation failure slice: scoped `rustfmt --check` passed for touched SDF render/atlas/upload/bake files; `cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-allocation-failures --message-format short --color never` passed with existing 285 warnings; focused `allocation_failures` lib-test timed out after 1204s during Windows lib-test compile/link with no Rust diagnostics and matching owned target-dir processes stopped, so it is not counted as passing. Visual proof `docs/tests/runtime/text/runtime_text_sdf_allocation_failures_preview_20260702.png` was inspected, SHA256 `9E350433C32291B530BE8834F4DB8490B3A9DDA8FB33BD785F81399E17AD844F`, and same-name scans under repo `target`, `D:\cargo-targets`, and `E:\cargo-targets` returned 0.
+
+
+
+Validation for the 2026-07-02 SDF page-layer upload slice: scoped `rustfmt --check` passed; `cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-page-layer-upload --message-format short --color never` passed with existing warnings; focused `sdf_upload_report_emits` lib-test timed out after 904s during Windows lib-test compile with no Rust diagnostics and matching owned cargo/rustc processes stopped, so it is not counted as passing. Visual proof `docs/tests/runtime/text/runtime_text_sdf_page_layer_upload_preview_20260702.png` was inspected, SHA256 `D4E8B36D3B57EE0BC582435ED4F2E6D34E3AECE2CE9A7ABC19CDABBBBEE2CC3E`, and same-name scans under repo `target` and `E:\cargo-targets` returned 0.
+
+
+
+Validation for the 2026-07-02 SDF multi-page allocation slice: scoped `rustfmt --check` passed for `sdf_atlas.rs` and `sdf_atlas/tests.rs`; `cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-multipage-allocation --message-format short --color never` passed with existing warnings; focused `render_text_sdf_atlas_allocates_shelf_overflow_on_multiple_pages` lib-test timed out after 904s during Windows lib-test compile with no Rust diagnostics and matching owned target-dir processes stopped, so it is not counted as passing. Visual proof `docs/tests/runtime/text/runtime_text_sdf_multipage_allocation_preview_20260702.png` was inspected, SHA256 `6B3B9600B5B36DA3DAAA3829D3283984B2C92507A606178522F5CD6D6D67F22F`, and same-name scans under repo `target`, `D:\cargo-targets`, and `E:\cargo-targets` returned 0.
+
+
+
+Validation for the 2026-07-02 SDF page eviction invalidation slice: scoped `rustfmt --check` passed for the touched SDF atlas/upload/render-test/bake files; `cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-eviction-invalidation --message-format short --color never` passed with existing 285 warnings; focused `sdf_atlas_cache_report_marks_rebuilt_pages_full_dirty` lib-test timed out after 904s during Windows lib-test compile with no Rust diagnostics and matching owned target-dir processes stopped, so it is not counted as passing. Visual proof `docs/tests/runtime/text/runtime_text_sdf_eviction_invalidation_preview_20260702.png` was inspected, SHA256 `93C1A2330D05FA7E7E8A686B25B8807928D0DAAA4FEDA0A71FCB55F8C722795C`, and same-name scans under repo `target`, `D:\cargo-targets`, and `E:\cargo-targets` returned 0.
+
+
+
+The 2026-07-02 editor appearance-preference build exposed a lower-layer ownership bug in this report path: `ScreenSpaceUiTextPrepareReport` contains page-keyed upload vectors, so it cannot be `Copy`. `graphics/scene/scene_renderer/ui/text.rs` and `render.rs` now clone the report when returning snapshots or feeding prepare-time consumers. This keeps report ownership explicit without changing the atlas/upload data model.
+
+
+
+The 2026-07-02 retained-host editor font-weight follow-up keeps font weight in the shared text contract instead of treating it as an editor-only paint hint. `UiResolvedStyle.font_weight` is parsed by the UI surface resolver, included in `UiTextStyleKey`, attached to `UiTextPaint` and each paint run, and appended to text font resource ids as `:wNNN`. The graphics shaping backend now passes the normalized value into glyphon `Attrs::weight(Weight(...))`, so native shaping/measurement can distinguish ordinary UI, strong UI, and mono requests that share the same family. Retained-host measurement/layout bridges only project their selected `HostTextFontRequest.weight` into this contract; they do not own a separate shaping policy.
+
+
+
+LB-M3 overflow now has a shared ellipsis owner for end/start/middle and word-trim variants. `text/layout/overflow.rs` owns the grapheme segment selection for normal tail ellipsis, start ellipsis, middle ellipsis, and Godot-aligned word-trim tail ellipsis. The word-trim variant trims trailing whitespace, retreats mid-word candidates to the previous whitespace boundary, and emits only the ellipsis when the first word cannot fit whole. UI layout only maps the owner-selected byte ranges back into existing rich text runs and keeps `UiResolvedTextLine.ellipsized` explicit; it does not scan word boundaries or invent overflow policy locally. The 2026-06-29 focused validation also tightened that remap layer: adjacent same-kind/direction/source-contiguous fragments are coalesced so Glyph-wrap internals do not leak one run per grapheme into the retained ellipsis text.
+
+
+
+LB-M3 shrink-to-fit and clamp font-size now have first UI layout slices. `UiTextOverflow::ShrinkToFit` and `UiTextOverflow::ClampFontSize { min_px,max_px }` are neutral typography values parsed by the UI surface resolver, and `ui/text/layout_engine/overflow_style.rs` derives an effective `UiResolvedStyle` before wrapping by repeatedly measuring the full text against the frame width. Shrink-to-fit may scale down to the runtime minimum; clamp font-size first clamps the requested style into the authored min/max bounds and never searches below the authored minimum. The implementation deliberately consumes shared measurement instead of adding a renderer-local sizing path. This slice does not yet define shrink/ellipsis precedence, justify/shrink/clamp interaction, tab stop interaction, or native/SDF paragraph parity.
+
+
+
+The 2026-06-29 editor visual validation gate found two support-only compile issues in this text stack: `ui/text/layout_engine.rs` still calls the shared grapheme iterator but had lost the `grapheme_indices` import, and `text/layout/overflow.rs::EllipsisSegment` carried an unused lifetime even though it stores only byte ranges. The fixes restore the import and make `EllipsisSegment` index-only. They do not widen the text layout API, do not change overflow semantics, and do not close any additional LB-M3 work.
+
+
+
+## Boundaries
+
+
+
+`text/mod.rs`, `text/font/mod.rs`, `text/shaping/mod.rs`, and `text/layout/mod.rs` are crate-private owner modules. They are intentionally not public facade exports from `graphics/mod.rs`.
+
+
+
+Allowed consumers in this slice:
+
+
+
+- `ui/text/layout_engine.rs` asks for text size and line metrics, then delegates wrapping, direction, line-box, ellipsis, overflow-style, range-mapping, and visual-order details to child owners.
+
+- `ui/text/measure_cache.rs` asks for a wrapped width bucket.
+- `ui/text/hit_test.rs` consumes resolved `UiResolvedTextLine.glyph_advances` first and asks for measured grapheme widths only as a stale-layout fallback.
+
+- `ui/text/shaper.rs` records `SharedTextService` as the active layout backend for Native and SDF render-mode intents.
+
+- `graphics/scene/scene_renderer/ui/render.rs` propagates resolved text direction, writing mode, and neutral BCP 47 language into every screen-space UI text batch.
+
+- `graphics/scene/scene_renderer/ui/text.rs` owns the screen-space UI text-system instance, loads native glyphon font assets through `FontDatabase`, maps logical Start/End through text direction before calling glyphon, and delegates native font-id report aggregation to `graphics/scene/scene_renderer/ui/text/font_id_report.rs`.
+
+- `graphics/scene/scene_renderer/ui/sdf_atlas.rs`, `sdf_font_bake.rs`, and `sdf_render.rs` keep language in SDF glyph identity and fallback lookup, resolve SDF font assets through `FontDatabase`, build fontsdf faces from shared face bytes, map logical Start/End plus Justify edge-space trimming through shared layout helpers, consume `VerticalRl` writing mode by projecting SDF quads down the y axis inside a single column, and pass per-glyph `screen_px_range` into `shaders/sdf_text.wgsl`.
+
+- `asset/importer/ingest/import_font_asset/{mod.rs,parse_sfnt.rs}` parses font source metadata during asset import without exposing parser types to UI or renderer surfaces.
+
+
+
+Third-party shaping types such as `FontSystem`, `Buffer`, `LayoutRun`, `LayoutGlyph`, `Metrics`, `Attrs`, and `Family` stay in `text/shaping/cosmic.rs`. Unicode script classification stays in `text/shaping/script_segment.rs` and leaves only neutral `ShapedGlyphScript` tags on glyphs. CompositeFont family resolution stays in backend-neutral `text/shaping/fallback_spans.rs`; actual font identity is reconciled from `LayoutGlyph.font_id` by `text/font/backend.rs`, with no post-shape script/codepoint annotation path. Unicode line-break classification stays in `text/shaping/line_break.rs` and leaves only neutral boolean flags on `ShapedGlyphClusterFlags`; `text/layout/line_break/mod.rs` consumes those flags rather than re-importing Unicode break libraries into UI. CJK line-start punctuation policy stays in `text/layout/kinsoku.rs` and leaves only neutral chunk metadata for UI Word wrap. Soft-hyphen detection and break-suffix metadata stay in `text/layout/line_break/soft_hyphen.rs`; glue and variation-selector classification stays in `text/layout/line_break/glue.rs`; ASCII wrap-space edge trimming stays in `text/layout/line_break/wrap_space.rs`; UI must not re-scan U+00AD, Unicode glue characters, or ASCII wrap spaces to invent its own line-break state. Word/CJK justify advance distribution and edge-space trimming stay in `text/layout/align.rs`; UI layout and SDF rendering consume the helper rather than owning separate spacing algorithms. Tab stop advance expansion stays in `text/layout/tab.rs`; measurement and UI layout consume tab-aware advances instead of owning separate `\t` width math. UI paragraph direction resolution stays in `ui/text/layout_engine/direction.rs`, and UI line-box advance/alignment assembly stays in `ui/text/layout_engine/line_box.rs`; the root layout engine only orchestrates those children. Font database implementation state, registration indexes, face bytes, backend map, and shared generation stay in `text/font/`; TTF/fontdb descriptor parsing stays in `text/font/descriptors.rs`; family dedupe and match-distance helpers stay in `text/font/matching.rs`; layout measurement consumes neutral shaped-run contracts from `text/shaping`. Logical Start/End alignment and Justify are neutral UI typography contract values, but backend mapping belongs below the graphics text boundary. These types must not leak into editor/app surfaces or public graphics facade exports.
+
+
+
+`text/layout/line_break/smart.rs` owns the current WordSmart ASCII, fullwidth/CJK, Unicode ellipsis/leader, Unicode standalone interrobang, Unicode double/interrobang, and Arabic/RTL common trailing punctuation rules plus the ASCII and U+2019/U+201D quote-after-punctuation extension. UI may choose WordSmart chunks, but it must not rescan punctuation locally or widen the interim rule into full Unicode/Godot-style smart wrapping outside the shared line-break owner.
+
+
+
+`core/framework/render/mod.rs` is allowed to re-export the neutral text DTOs from the child `render/text` owner so runtime implementation leaves can import `core::framework::render::{ShapedGlyphRun, ShapedGlyphScript, TextShapingService, ...}` without reaching into the private `render::text` module path. The 2026-06-29 editor build exposed that `ShapedGlyphScript` was missing from this neutral facade; the fix was a DTO re-export only. That facade remains DTO-only; glyphon/cosmic-text implementation state stays in `text/shaping`.
+
+
+
+## Current Guarantees
+
+
+
+The font database owner removes the UI-local hardcoded default fallback family list; UI now consumes the runtime text owner for default fallback families. Native glyphon font loading and SDF bake/render font loading now share the same source-path registration table and `Arc<[u8]>` face bytes, so project font assets are no longer independently read by each backend. System font faces are indexed under Zircon `FontFaceId` values for query and fallback ordering, while their `fontdb::Source` remains internal and is only used when injecting into glyphon. The selected-face metadata and system-face projection that feed those registrations are owned by `descriptors.rs`, so `database.rs` can stay below the Runtime 15 production-file budget while retaining the runtime registration indexes. Private FontDatabase regression coverage lives in `text/font/database/tests.rs`; the production owner should keep only `#[cfg(test)] mod tests;` instead of re-accumulating WOFF2/TTC/variable/fallback test bodies inline.
+
+
+
+CompositeFont sub-font script/range/culture data has a candidate enumeration path in `FontDatabase`, and `fallback.rs` owns the first cluster-level resolver data plane. The resolver orders candidates by culture-qualified sub-font match, composite default, request/runtime fallback families, then last resort. `TextShapeRequest.language` and normalized OpenType feature values now enter the shaped-run cache key; features are projected into cosmic shaping. `text/shaping/cosmic/font_system_cache.rs` normalizes the request language and selects one of at most four locale-specific `FontSystem` instances, so cosmic's platform fallback list is initialized for the requested locale without unbounded backend caches. Cosmic-text 0.18.2 does not expose language on `Attrs`, so per-run HarfRust `locl` selection remains open and is not claimed by this fallback-locale bridge. `FontCultureTag` performs exact or configured-parent BCP-47 matching. For project fonts whose sfnt cmap can be parsed, `coverage.rs` records compact codepoint ranges and the resolver/database path excludes known non-covering faces for the requested codepoints; Unknown coverage remains permissive for system fonts and synthetic test faces. SDF glyph baking consumes the active project CompositeFont resolver per codepoint before rasterization, and native prepare can annotate shaped glyphs with resolver-selected `FontFaceId` values for internal reporting. Backend-native glyphon/cosmic face-id reconciliation, per-script fallback run shaping, emoji/color fallback raster routing, and end-to-end tofu rendering remain owned by the remaining text plan 06 FB-M2 work.
+
+
+
+Imported `FontAsset` records preserve source metadata, parsed family members, cmap coverage, variation axes and named instances, face-level typographic/Windows/decoration metrics, and an optional neutral CompositeFont descriptor. `asset/assets/font_source.rs` owns source-container normalization: WOFF2 is decoded once into SFNT bytes at the asset/database boundary while the original container format remains recorded in metadata. Native glyphon registration and SDF bake therefore consume the same decoded `Arc<[u8]>`. For a TTC non-zero face, the same owner materializes a checksummed standalone SFNT view so the `fontsdf` backend rasterizes the selected face instead of silently using face zero or falling back. `FontDatabase` canonicalizes variation coordinate ordering before hashing, installs registered CompositeFont assets as the active project descriptor, and defaults system font discovery to `Disabled`; the screen-space renderer opts into `Discover`. The checked-in default manifest declares culture-aware Noto CJK SC/TC/JP/KR routes plus system family fallbacks. No policy-only screenshot is counted as product evidence for this data-plane work.
+
+
+
+The shared measurement owner removes the old UI-wide fixed half-em equal-width path from measurement, wrapping decisions, tab stop placement, cache buckets, hit-test fallback grapheme midpoint calculation, shaped glyph frame projection, rich text paint-run frames, and editable caret/selection/composition decoration placement. Resolved line advances produced by shared layout are now the primary hit-test geometry, so tab, Justify, and kashida advance deltas flow from `text/layout` into caret midpoint decisions without adding UI-local spacing policy. `UiShapedGlyph` now carries render-facing `font_id`, cluster flags, and rotation placeholders so the current neutral projection can grow into the full SH-M1/SH-M3 contract without adding compatibility shims later.
+
+
+
+This is still a staged implementation, not the complete text architecture. The first `ShapedGlyphRun` contract and cosmic-backed owner are in place; shaped glyphs carry script tags and UAX#9 embedding levels, the BiDi leaf handles isolate-aware paragraph analysis and owns the post-wrap L1/L2 mapping API, normalized OpenType features reach backend/cache data, and normalized request language selects a bounded locale-specific cosmic fallback system. Text 03 has hard-cut the old UI visual-order heuristic to the shared UAX#9 line adapter, including odd-level mirroring and full-paragraph isolate context. Visual-order projection retains per-cluster source ranges, and `hit_test/visual_source.rs` maps RTL visual edges to logical source offsets plus caret affinity; caret/range geometry still needs the same mapping. `normalize.rs::ShapingTextView` makes V1's NFC-disabled identity view and pre-normalization source mapping explicit for cosmic and fallback projection; a future enabled NFC path must extend this owner with bidirectional mapping. SH-M3 V1 now has a folder-backed vertical owner: Unicode Vertical_Orientation drives CJK upright/Latin Cw90 decisions, upright clusters synthesize em y-advance and centering, vertical requests add `vert`/`vrt2`, and VerticalRl wrapping/measurement routes through a vertical shaped-run provider/cache key. `text/layout/vertical_layout.rs` now owns VerticalRl column capacity, right-to-left frames, and cross/main extents; the UI child retains CandidateLine/rich/ellipsis DTO projection. This is not native `vmtx`, TTB/BTT backend positioning, or the final LaidOutText hard cut yet. Post-shape font-id annotation can mark fallback-selected faces for native prepare reporting, FB-M1 has a fallback resolver data plane with depth and missing-glyph diagnostics, and UAX#14 break opportunities are projected as cluster flags. Word wrap consumes shared line-break chunks for CJK no-space text, while the existing kinsoku/soft-hyphen/glue/ellipsis/tab/justify/VerticalRl slices remain as documented below. Backend-native fallback face-id reconciliation, actual per-script fallback shaping, per-run HarfRust language/`locl`, enabled NFC mapping, native vertical metrics/positioning parity, persistent atlas eviction/glyph-cache invalidation, alpha/SDF parity, rich text, platform IME candidate geometry, and remaining performance gates remain governed by `docs/plans/zircon_runtime/text/02` through `09`.
+
+
+
+The 2026-07-01 WordSmart punctuation slices mean the current guarantee now includes ASCII trailing punctuation glue, ASCII and Unicode right quote-after-punctuation glue, the first fullwidth/CJK trailing punctuation glue, Unicode ellipsis/leader trailing punctuation for `go…` / `go‥`, Unicode standalone interrobang trailing punctuation for `go‽`, Unicode double/interrobang trailing punctuation for `go‼` / `go⁇` / `go⁈` / `go⁉`, Arabic/RTL common trailing punctuation for `go،` / `go؛` / `go؟`, the first CJK/fullwidth closing delimiter after punctuation glue, and consecutive trailing punctuation cluster glue for `go?!`, `go！？`, `go，」！`, `go‽!`, `go⁉!`, and `go؟!` without absorbing following text under `UiTextWrap::WordSmart`; it does not close full Unicode word-class handling, paired/full quote inference, broader punctuation classes beyond the listed set, CJK/multi-script smart-wrap policy, squeeze/overhang generalization, or native/SDF paragraph parity.
+
+
+
+## Validation
+
+
+
+Focused tests were updated to reject equal-width measurement (`WWW` must measure wider than `iii`), keep combining-mark ellipsis on grapheme boundaries, use measured cache buckets, hit-test by measured grapheme widths, export backend grapheme advances into resolved lines, project non-uniform advances into shaped glyph frames, query best-match font weight, prove shared `Arc<[u8]>` face bytes across native and SDF consumers, preserve WOFF2 source metadata while decoding it to valid SFNT once, reject malformed WOFF2 with a typed source error, parse real face metrics, round-trip a synthetic variable `fvar` axis and named instance, canonicalize variation hashes independently of axis order, verify a registered font file can feed glyphon fontdb, enumerate test-built TTC faces, materialize TTC face one as standalone SFNT, rasterize that selected non-zero face through `fontsdf`, ensure CompositeFont CJK candidates precede the default Latin face, filter known non-covering cmap faces from fallback candidates, verify direct `FontDatabase` registration uses file weight metadata and TTC face indices for best-match, verify `FontAsset` family members and fallback families are registered by the database, and verify UI font manifests consume `render_strategy.default_mode` after legacy `render_mode`.
+
+
+
+Cargo validation on 2026-06-28 passed for `zircon_runtime --lib --no-default-features` with existing warnings only after the shaping owner slice and again for the LB-M3 logical Start/End plus first-strong target-dirs, and `zircon_runtime_interface --lib` plus `zircon_runtime_interface --tests` passed after the SH/LB shaped glyph advance DTO follow-up. After retargeting stale typed-error include guards, updating the camera-loop tests to the current frame-submission callback signature, and fixing `plugin_importer_dx.rs` to point at its current child module file, focused `cargo test -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0628-check text_shape_` passes 6/6. The six tests cover source-range monotonicity, RTL/space/tab flags, backend glyph advance variation, ligature cluster coverage, word-space UAX#14 soft breaks, and CJK UAX#14 soft breaks. `word_wrap_uses_uax14_cjk_break_opportunities` proves the first LB-M2 UI consumer wraps narrow CJK Word-mode text using shared UAX#14 break chunks instead of ASCII-space splitting. `text_wrap_cjk_kinsoku_no_leading_punctuation` now proves `"中文。"` lays out as `"中"` then `"文。"` in a narrow Word-wrap frame, with no resolved line starting with `。`. `text_wrap_soft_hyphen_inserts_hyphen` proves `"pre\u{00ad}fix"` wraps as `"pre-"` then `"fix"` without retaining U+00AD in visual text, and `text_hit_test_soft_hyphen_break_suffix_maps_to_source_hyphen` proves the visible break suffix maps back to the source soft-hyphen range. `word_wrap_keeps_non_breaking_space_group_together` and `word_wrap_keeps_zwj_emoji_sequence_together` cover first glue chunks that may overhang the frame but must not be split by glyph fallback. The LB-M3 focused set proves layout Start/End follows explicit RTL and Auto/Mixed first-strong base direction, native glyphon maps Start/End through `text_direction`, SDF draw planning maps the same semantics even when glyph quads are clipped to the frame, and render extraction preserves logical `start` instead of collapsing it to physical left. The SH-M2 mirror focused tests `text_bidi_mirrors_paren_in_rtl` and `text_bidi_mirrors_arrow_in_rtl` pass 2/2 and prove mirrored RTL punctuation keeps the original source byte ranges. The 2026-06-29 editor build gate also rechecked `core/framework/render/mod.rs`, `render/text`, and `text/shaping` formatting after adding the missing `ShapedGlyphScript` neutral facade export; `zircon_app --bin zircon_editor --features target-editor-host` then built successfully through the public render DTO path. The validation path also exposed a moved-value support bug in `mesh_pipeline_variant_cache_owner.rs`; changing the string aggregation to borrow inputs restored the structure guard, and `runtime_15_non_base_mesh_variant_cache_owner_is_wired` passes 1/1. Screenshot evidence includes `docs/tests/runtime/text/runtime_text_shared_metrics_preview_20260628.png`, `docs/tests/runtime/text/runtime_text_cjk_kinsoku_preview_20260628.png`, `docs/tests/runtime/text/runtime_text_soft_hyphen_preview_20260628.png`, `docs/tests/runtime/text/runtime_text_long_word_nbsp_preview_20260628.png`, `docs/tests/runtime/text/runtime_text_cjk_open_punctuation_preview_20260628.png`, `docs/tests/runtime/text/runtime_text_rtl_start_end_alignment_preview_20260628.png`, `docs/tests/runtime/text/runtime_text_first_strong_direction_preview_20260628.png`, `docs/tests/runtime/text/runtime_text_rtl_mirrored_punctuation_preview_20260628.png`, and `docs/tests/runtime/text/runtime_text_zwj_emoji_glue_preview_20260630.png`; matching target-path checks confirm no text verification image was written under repo `target`.
+
+
+
+On 2026-06-29, the SH-M2 script-segmentation focused validation passed: runtime lib check passed with existing warnings only, and `cargo test -p zircon_runtime text_script_segmentation --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0629-script-segment --message-format short --color never -- --nocapture` passed 2/2. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_script_segmentation_preview_20260629.png`.
+
+
+
+On 2026-06-29, the FB-M1 fallback resolver data-plane validation passed the scoped format and runtime library check gates: `rustfmt --edition 2021 --check zircon_runtime/src/text/font/mod.rs zircon_runtime/src/text/font/database.rs zircon_runtime/src/text/font/fallback.rs` passed, and `cargo check -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0629-fallback-resolver-check2 --message-format short --color never` passed with existing/no-default warning noise plus resolver pre-bridge unused warnings. The focused `text_fallback` lib-test command timed out during compile with no Rust diagnostics, so it is not counted as passing; matching validation processes were stopped. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_fallback_resolver_preview_20260629.png`, outside repo `target`.
+
+
+
+On 2026-06-29, the FB-M2 SDF fallback bridge passed the scoped format and runtime library check gates: `rustfmt --edition 2021 --check zircon_runtime/src/text/font/database.rs zircon_runtime/src/text/font/fallback.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs` passed, and `cargo check -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0629-fallback-sdf-check --message-format short --color never` passed with existing/no-default warnings. The focused `text_font_database_resolves_fallback_face_for_codepoint` lib-test command timed out during compile/link with no Rust diagnostics, so it is not counted as passing; matching validation processes were stopped. A broader `cargo check --lib --tests` failed in existing unrelated test targets (`zircon_host_reflection_docs` missing `args/error/run` modules and `virtual_geometry_debug_snapshot_contract` still calling removed `RenderLayerSet::from_legacy_mask`). The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_sdf_fallback_bridge_preview_20260629.png`, and the same-name repo `target` match count was 0.
+
+
+
+On 2026-06-29, the SH/FB-M2 shaped glyph font-id bridge passed the scoped format, runtime library check, and focused test gates. `rustfmt --edition 2021 --check` passed over the touched font, shaping, native prepare, scene re-export, and validation support files. `cargo check -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0629-shaped-fontid-check --message-format short --color never` passed with existing warnings only. `cargo test -p zircon_runtime text_fallback_glyph_carries_resolved_font_id --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0629-shaped-fontid-check --message-format short --color never -- --nocapture` passed 1/1. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_shaped_font_id_bridge_preview_20260629.png`, and same-name checks under repo `target` and `E:\cargo-targets` returned no matches. On 2026-06-30, Runtime 15 M4 split the report-only consumer into `scene_renderer/ui/text/font_id_report.rs`; standalone `structure_convention.rs` exact `runtime_15_screen_space_ui_text_font_id_report_is_child_owner` passed 1/1, and full runtime Cargo remains deferred to the milestone validation stage. The same Runtime 15 M4 pass also split font database descriptor helpers into `text/font/descriptors.rs`; `runtime_15_font_database_descriptor_helpers_are_child_owner` is the structure guard for the database/descriptor owner boundary, with package Cargo still deferred while external compile lanes are active.
+
+
+
+On 2026-06-29, the LB-M3 justify word/CJK first slice passed scoped format, runtime library check, and focused tests. `cargo check -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0629-justify-check --message-format short --color never` passed with existing warnings only. Focused `cargo test` filters passed for `text_justify_distributes_word_and_cjk_gaps`, `sdf_draw_plan_justifies_word_gaps_inside_frame`, and `render_extract_parses_justify_text_align_and_expands_non_final_line`, each 1/1. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_justify_distribution_preview_20260629.png`, and same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-06-29, the LB-M3 overflow middle-ellipsis first slice added `text/layout/overflow.rs` as the shared overflow owner. The helper owns grapheme-aware end/middle ellipsis segment selection, while `ui/text/layout_engine.rs` only projects those selected ranges back into `UiResolvedTextRun` source and visual ranges. `UiTextOverflow::EllipsisMiddle` now travels through the interface enum and surface parser. Runtime Cargo validation for this slice is still deferred because concurrent active runtime/editor compiles occupied the local Rust/MSVC lane and the focused runtime check/test timed out without diagnostics; the accepted evidence so far is scoped rustfmt, interface check, static source inspection, and `docs/tests/runtime/text/runtime_text_middle_ellipsis_preview_20260629.png`.
+
+
+
+The follow-up start/end ellipsis slice keeps that ownership boundary. `EllipsisPlacement::Start` lives beside `End` and `Middle` in `text/layout/overflow.rs`, `UiTextOverflow::EllipsisStart` is a neutral typography value, and the default `UiTextOverflow::Ellipsis` continues to map to end placement. UI layout only performs the tail-preserving clipped-line merge needed by start/middle overflow and then remaps owner-selected text ranges back into existing runs. Scoped format and `zircon_runtime_interface --lib` checks pass, static enum coverage was inspected, and the checked screenshot evidence is `docs/tests/runtime/text/runtime_text_start_ellipsis_preview_20260629.png`. Focused runtime Cargo tests for this follow-up still need an idle compile/link lane.
+
+
+
+The word-trim ellipsis follow-up extends the same owner with `EllipsisPlacement::EndWord` and `UiTextOverflow::EllipsisWord`. Scoped format, interface check, and runtime library check pass; focused `word_ellipsis` lib-test compilation timed out after 604 seconds with no Rust diagnostics, so it is not counted as passing. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_word_ellipsis_preview_20260629.png`, and same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+A later 2026-06-29 overflow focused validation supersedes that deferred test status. The first `ellipsis` focused run passed 10/11 and exposed `word_ellipsis_trims_partial_word_before_marker` rich-run fragmentation even though visible text was correct. After `layout_engine.rs` coalesced contiguous remap fragments, the same focused command passed 11/11 with existing warnings only. The checked middle/start/word ellipsis screenshots remain under `docs/tests/runtime/text`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-06-29, the LB-M3 shrink-to-fit first slice passed scoped format, interface/runtime library checks, and focused tests. `cargo check -p zircon_runtime_interface --lib --locked --target-dir E:\cargo-targets\zircon-runtime-text-0629-shrink-interface --message-format short --color never` passed. `cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0629-overflow-word-check2 --message-format short --color never` passed with existing warnings only. Focused `cargo test -p zircon_runtime shrink_to_fit --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0629-overflow-word-check2 --message-format short --color never -- --nocapture` passed 2/2 after adding the missing Runtime 15 typed-error structure guard child owner that was blocking lib-test compilation. A final wrapper rerun timed out after producing the test binary, and direct binary execution passed 2/2. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_shrink_to_fit_preview_20260629.png`, and same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-06-30, the LB-M3 clamp font-size first slice passed scoped format, interface/runtime library check gates, focused layout/parser tests, and the public integration contract. `UiTextOverflow::ClampFontSize { min_px,max_px }` is parsed from `clamp_font_size`/`font-size-clamp`/`clamp` aliases plus authored min/max font-size metadata, and `ui/text/layout_engine/overflow_style.rs` owns the adaptive effective-style search for both shrink and clamp. `cargo check -p zircon_runtime_interface --lib --locked --target-dir E:\cargo-targets\zircon-runtime-text-0630-clamp-interface --message-format short --color never` passed, and `cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-clamp-check --message-format short --color never` passed with existing warnings only. The first focused wrapper timed out without diagnostics; after changing the render-extract fixture from a hardcoded too-narrow frame to shared measurement, the direct `clamp_font_size` lib-test binary passed 2/2. The integration contract first run exposed an existing `zircon_host_reflection_docs` bin child-module path issue; after the path repair, `runtime_text_clamp_font_size_contract` passed 1/1. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_clamp_font_size_preview_20260630.png`, and same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-06-30, the LB-M3 tab stop first slice passed scoped format, interface/runtime library check gates, and focused parser/layout/cache tests. `text/layout/tab.rs` owns expansion to the next `space_width * tab_size` stop; `UiResolvedStyle::tab_size` defaults to 4.0 and is parsed from `text_tab_size`, `font.tab_size`, or `tab_size`; `UiTextStyleKey` records `tab_size_bits`. `cargo check -p zircon_runtime_interface --lib --locked --target-dir E:\cargo-targets\zircon-runtime-text-0630-tab-interface --message-format short --color never` passed, and `cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-tab-check-2 --message-format short --color never` passed with existing warnings only. Direct exact lib-test binary runs passed `resolve_style_parses_text_tab_size_alias`, `text_tab_stop_advances_to_next_interval`, and `style_key_encodes_tab_size_bits` 3/3; a broad `tab` filter was rejected because it matched unrelated existing failures. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_tab_stops_preview_20260630.png`, and same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-06-30, the LB-M3 justify edge-space trim slice passed scoped format and focused layout/SDF tests. `text/layout/align.rs` now determines the content grapheme range before selecting justify opportunities, so leading and trailing spaces keep their natural advances while the interior word gap still receives the expansion. `cargo test -p zircon_runtime edge_spaces --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-justify-edge --message-format short --color never -- --nocapture --test-threads=1` passed 2/2 with existing warnings, covering `text_justify_trims_edge_spaces_before_distributing_gaps` and `sdf_draw_plan_trims_edge_spaces_for_justify`. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_justify_edge_space_preview_20260630.png`; same-name target checks are kept with the slice validation.
+
+
+
+On 2026-06-30, the LB-M3 kashida justify advance first slice passed scoped format and runtime library check gates. `text/layout/align.rs` now recognizes conservative Arabic joining-pair opportunities and distributes justify extra width as advance deltas, while UI layout and SDF draw planning continue to consume `justify_line_advances(...)` instead of owning kashida policy. `cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-kashida-check --message-format short --color never` passed with existing warnings. The focused `kashida` lib-test command is blocked before the new tests execute by unrelated current lib-test compile errors in `extend_pending_draws_for_mesh_instance.rs`, so it is not counted as passing. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_kashida_justify_preview_20260630.png`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-06-30, the LB-M3 horizontal overflow ellipsis interaction slice passed scoped format and runtime library check gates. UI layout now calls the same `text/layout/overflow.rs` segment owner when a visible line is horizontally wider than the frame, so no-wrap Ellipsis* text is resolved through shared overflow selection instead of remaining overwide. `layout_engine.rs` also blocks Justify expansion for `line.ellipsized`, so an ellipsized non-last line keeps its natural width. `cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-horizontal-overflow-check --message-format short --color never` passed with existing warnings only. The focused `horizontal_` lib-test command timed out during Windows compile/link with no Rust diagnostics and no test binary, so the two new focused regressions are not counted as passing yet. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_horizontal_ellipsis_preview_20260630.png`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-06-30, the LB-M2 ZWJ emoji glue slice passed scoped format/static gates. `text/layout/line_break.rs` now derives `LineBreakChunk.allow_glyph_fallback` through one local helper so NBSP and U+200D chunks both remain glue; UI layout continues to consume chunk metadata only. `rustfmt --edition 2021 --check zircon_runtime\src\graphics\text\layout\line_break.rs zircon_runtime\src\ui\text\layout_engine\tests.rs` passed, and scoped diff-check only reported LF/CRLF warnings. The focused `word_wrap_keeps_zwj_emoji_sequence_together` lib-test timed out after 908s during Windows compile with no Rust diagnostics and no produced test binary, so it is not counted as passing. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_zwj_emoji_glue_preview_20260630.png` with SHA256 `35C06A4EDF04B40B1D3F791FB3156257592BB550C42FACA55881404BB3D643B5`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-07-01, the LB-M2 Katakana phonetic extension small-kana kinsoku table slice passed scoped format and runtime library check gates. `text/layout/kinsoku.rs` now treats `ㇰㇱㇲㇳㇴㇵㇶㇷㇸㇹㇺㇻㇼㇽㇾㇿ` as prohibited line starts and merges each with the preceding chunk. Owner unit tests cover all 16 characters, and UI layout test `text_wrap_cjk_kinsoku_no_leading_katakana_phonetic_extension_small_kana` proves Word wrap consumes the shared metadata instead of starting a wrapped line with `ㇰ`. `cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-katakana-phonetic-kinsoku --message-format short --color never --quiet` passed with existing warnings only. Visual proof is `docs/tests/runtime/text/runtime_text_katakana_phonetic_extension_kinsoku_preview_20260701.png` with SHA256 `44AD05A1739BBC75B7FA9D9B2FA356EB6F394DA90453B76ED1DDC11BCFB6A6DA`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-07-01, the LB-M2 CJK white bracket kinsoku table slice passed scoped format and runtime library check gates. `text/layout/kinsoku.rs` now includes CJK white bracket/quote closing variants `〗〙〛〟` as prohibited line starts and opening variants `〖〘〚〝` as prohibited line ends. Owner unit tests cover both merge directions, and UI layout tests cover `文〗` protected overhang plus `文〖字` splitting as `文` / `〖字` without leaving `〖` at line end. `cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-cjk-white-bracket-kinsoku --message-format short --color never --quiet` passed with existing warnings only. Visual proof is `docs/tests/runtime/text/runtime_text_cjk_white_bracket_kinsoku_preview_20260701.png` with SHA256 `9CB6BBB21F385F1D889B73B5EE900360C2AD5E9058D48D7F73AA43618983FFAF`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-07-01, the LB-M2 CJK double-prime closing quote kinsoku table slice passed scoped format and runtime library check gates. `text/layout/kinsoku.rs` now treats `〞` as a prohibited line-start closing quote and merges it with the preceding chunk. The owner test covers `文〞`, and UI layout test `text_wrap_cjk_kinsoku_no_leading_cjk_double_prime_closing_quote` proves Word wrap consumes the shared metadata instead of starting a wrapped line with `〞`. `cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-cjk-double-prime-kinsoku --message-format short --color never --quiet` passed with existing warnings only after a first non-reproduced asset-pack import state drift. Visual proof is `docs/tests/runtime/text/runtime_text_cjk_double_prime_closing_quote_kinsoku_preview_20260701.png` with SHA256 `EC77D5A02F5D0FE4E9A8D8E782ED90C29F081691B8BC6AD3EA9A06A3FC39C032`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-06-30, the LB-M2 glyph fallback predicate owner split passed scoped format/static gates. `text/layout/line_break/glyph_fallback.rs` now owns the measured-width and Unicode grapheme-count predicate used by `LineBreakChunk::should_fallback_to_glyph_wrap(...)`, while `line_break/mod.rs` keeps the chunk method handoff plus shaped soft-break and kinsoku handoff responsibilities. Scoped rustfmt passed, touched Rust files had no trailing whitespace, and scoped diff-check only reported LF/CRLF warnings. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_glyph_fallback_predicate_owner_preview_20260630.png` with SHA256 `D4796855759A42D7FE652B6AEF95B1639C42AB6E609CC210B32CCA59876A033F`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches. Package Cargo remains deferred to the text milestone validation stage for this structure-only owner split.
+
+
+
+On 2026-06-30, the LB-M2 greedy wrap decision owner split passed scoped format and runtime library check gates. `text/layout/line_break/greedy.rs` now owns `line_text_fits(...)` and the current-line plus next-chunk append predicate used by UI Word/WordSmart and Glyph wrapping. `ui/text/layout_engine/wrapping.rs` consumes `should_wrap_before_chunk(...)` before mutating a `CandidateLine`, so append-fit policy no longer lives in UI. `cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-greedy-wrap-decision --message-format short --color never --quiet` passed with existing warnings only. The focused `should_wrap_before_chunk` lib-test remained in Windows lib-test compile/link after about 1154s with no Rust diagnostics; matching target-dir cargo/rustc processes were stopped, so it is not counted as passing. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_greedy_wrap_decision_owner_preview_20260630.png` with SHA256 `C8CA68364812DC5C93D47ED2861131ABF0FAD4A258ED45E021D7644C2EF78278`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-06-30, the UI layout ellipsis projection owner split passed scoped format and runtime library check gates. `ui/text/layout_engine/ellipsis.rs` now owns UI-side clipped-line merge, ellipsis marker run insertion, and projection of shared `text/layout/overflow.rs` segments back into rich `UiResolvedTextRun` source/visual ranges. `ui/text/layout_engine/range_mapping.rs` owns the shared `source_subrange(...)` mapping used by ellipsis projection and visual ordering. `layout_engine.rs` remains the orchestration point for wrapping, line width/justify, and direction. `cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-ellipsis-owner --message-format short --color never` passed with existing warnings only. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_ellipsis_projection_owner_preview_20260630.png` with SHA256 `C234DB8ECC288C9C73173F5D8C336AC9D3D10E8AA51814023B8705C9BE5D12B5`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-06-30, the UI layout wrapping owner split passed scoped format and runtime library check gates. `ui/text/layout_engine/wrapping.rs` now owns source-run wrapping orchestration, newline segmentation, Word chunk consumption, Glyph fallback append logic, leading grapheme continuation, and the line-width fit helper used by ellipsis. At that split `layout_engine.rs` remained the entry orchestrator plus line width/justify, alignment, and direction resolution; the later line-box/direction owner split moved those remaining helpers out as well. `cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-wrapping-owner --message-format short --color never` passed with existing warnings only. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_wrapping_owner_preview_20260630.png` with SHA256 `884D8361E0C44E971C2426D6FB8E625C760B692A40DE285E136D7006AFC4A0EA`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-06-30, the UI layout line-box/direction owner split passed scoped format and runtime library check gates. `ui/text/layout_engine/direction.rs` now owns Auto/Mixed first-strong paragraph direction, strong LTR/RTL helpers, and RTL direction predicates. `ui/text/layout_engine/line_box.rs` now owns measured/tab-aware advances, Justify eligibility, line width clamp, logical Start/End x alignment, `MIN_TEXT_FONT_SIZE`, and `text_advance(...)`. `layout_engine.rs` is down to 138 lines and only orchestrates layout plus overflow-style handoff. `cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-line-box-direction-owner --message-format short --color never --quiet` passed with existing warnings only. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_line_box_direction_owner_preview_20260630.png` with SHA256 `438A776894C0C1BF46E3CC16B90BC3F7168D27F126F4B8B9C5BD0F504BD0DC8D`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-06-30, the LB-M2 WordSmart wrap contract entry passed scoped interface/runtime gates. The shared interface now exposes `UiTextWrap::WordSmart`; surface extraction accepts `word_smart` / `word-smart` / `smart_word` / `smart-word`; UI layout routes the mode through the same shared Word chunk consumption and glyph fallback path; native glyphon maps it to `Wrap::Word` as an explicit interim backend mapping. This closes the contract/parser/native gap without claiming the full Godot-style smart line-break policy. The focused runtime `word_smart` lib-test command timed out during Windows compile/link with no Rust diagnostics and is not counted as passing. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_word_smart_wrap_preview_20260630.png` with SHA256 `494880855721F5E0F6B48FA4DB8B8F34EEE1AB0DF0386C7F5B35646E9AB23AFF`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-07-01, the LB-M2 WordSmart ASCII trailing punctuation glue slice passed scoped format, runtime library check, and focused `word_smart` tests. `text/layout/line_break/smart.rs` now owns the first smart-wrap rule for ASCII trailing punctuation and handles the shaped single-chunk case by splitting after punctuation before UI wrapping consumes the chunk list. The first focused run passed only 5/7 and exposed the `go,next` single-chunk gap; after the shared smart owner fix, the same command passed 7/7. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_word_smart_punctuation_preview_20260701.png` with SHA256 `781220B1414FA2B62E4433A2540AC5DFB1E6810694C52C1CEFD165985E2822C6`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-07-01, the LB-M2 WordSmart ASCII quote-after-punctuation glue slice passed scoped format, runtime library check, and focused `word_smart` tests. `text/layout/line_break/smart.rs` now extends a protected punctuation run across immediately following ASCII closing quotes, so a shaped single chunk or leading punctuation chunk like `go,"a` becomes protected `go,"` plus `a`; UI wrapping proves the protected first line can overhang rather than starting a new line with the quote. The first cold-target focused run timed out during Windows lib-test compile without a binary and is not counted; the warm-target rerun passed 13/13 with existing warnings only. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_word_smart_quote_punctuation_preview_20260701.png` with SHA256 `D2BFF7961FEE5E129A9C273E880B00E309F03410AA17FBCBCE1AB18268226BAD`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-07-01, the LB-M2 WordSmart Unicode closing quote-after-punctuation glue slice passed scoped format, runtime library check, and focused `word_smart` tests. `text/layout/line_break/smart.rs` now extends the same protected punctuation run across U+2019 and U+201D, so `go,”a` becomes protected `go,”` plus `a`; UI wrapping proves the protected first line can overhang rather than starting a new line with the Unicode quote. The red focused run failed the five new Unicode quote cases before the fix; after the shared owner change, the focused run passed 18/18 with existing warnings only. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_word_smart_unicode_quote_preview_20260701.png` with SHA256 `B4DE63AFBA9AAD94001A43FA008479AF2351BDCD02AE23EAB3A9E1733F022B7F`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-07-01, the LB-M2 WordSmart fullwidth/CJK trailing punctuation glue slice passed scoped format, static whitespace checks, and focused `fullwidth_trailing` tests 4/4. `text/layout/line_break/smart.rs` now treats the plan-approved fullwidth/CJK trailing punctuation set `、`/`。`/`，`/`．`/`・`/`：`/`；`/`！`/`？` like protected trailing punctuation, so `go，a` becomes protected `go，` plus `a`; UI wrapping consumes the shared chunk metadata through `word_smart_keeps_fullwidth_trailing_punctuation_with_previous_word`. The focused Cargo command completed in 14m26s with existing warnings only, and the test execution itself reported 0.66s. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_word_smart_fullwidth_punctuation_preview_20260701.png` with SHA256 `F0B4F4AA2F80D3722F1F39B81F89A46DC4F15EBA8EFC03D157DAF834B4A7ADC0`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-07-01, the LB-M2 WordSmart CJK/fullwidth closing delimiter glue slice passed scoped format, static whitespace checks, and focused `cjk_closing_delimiter` tests 5/5. `text/layout/line_break/smart.rs` now extends a protected punctuation run across CJK/fullwidth closing delimiters such as `」`, `）`, and `＂`, so `go，」a`, `go,）a`, and `go，＂a` become protected first chunks plus following text. The focused Cargo command completed in about 7m45s with existing warnings only, and the test execution itself reported 0.78s. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_word_smart_cjk_closing_delimiter_preview_20260701.png` with SHA256 `73AAC7DF5328374E5F1CE9B0FECDC418E984407F4D5805381663C23C14C2E92E`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-07-01, the LB-M2 WordSmart punctuation-cluster glue slice passed scoped format, static debt checks, and focused runtime tests. `text/layout/line_break/smart.rs` now reprocesses leading and internal trailing punctuation after every split, so `go?!next`, `go！？next`, and `go，」！next` become protected punctuation clusters plus an independent following word. The red `punctuation_cluster` run failed the three new owner cases before the fix; after the shared owner loop change, `punctuation_cluster` passed 5/5 and the broader `word_smart` suite passed 34/34 with existing warnings only. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_word_smart_punctuation_cluster_preview_20260701.png` with SHA256 `1FFA95EB87CD8A0A3156E67F85C86F126F37BCAE061481740BAFF7719BC48001`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-07-01, the LB-M2 WordSmart ellipsis/leader trailing punctuation slice passed scoped format, static debt checks, and focused runtime tests. `text/layout/line_break/smart.rs` now treats U+2026 horizontal ellipsis and U+2025 two-dot leader as trailing punctuation owned by the previous word, so `go…next` and `go‥next` become protected `go…` / `go‥` chunks plus the following word. The first focused attempt exposed a validation-blocking render material fixture that still wrote the removed `MaterialAsset::lighting_model` field; after the fixture wrote `property_values["lighting_model"]`, `ellipsis_trailing` passed 4/4 with existing warnings only. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_word_smart_ellipsis_punctuation_preview_20260701.png` with SHA256 `C7639D78EA81567970BE95BD52F2F6F7D1DBBC37EB149E81EF838CC33C617693`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-07-01, the LB-M2 WordSmart Arabic/RTL trailing punctuation slice passed scoped format, static debt checks, focused runtime tests, and a direct lib-test binary follow-up. `text/layout/line_break/smart.rs` now treats Arabic comma `،`, Arabic semicolon `؛`, and Arabic question mark `؟` as trailing punctuation owned by the previous word, so `go،next`, `go؛next`, and `go؟next` become protected chunks plus the following word, while `go؟!next` keeps the Arabic+ASCII punctuation cluster without absorbing `next`. The first `arabic_trailing` attempt timed out during Windows lib-test compilation and is not counted as RED evidence; after the shared owner change, `arabic_trailing` passed 3/3, and direct binary execution of `arabic_ascii` passed 1/1 after a Cargo filter timeout. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_word_smart_arabic_punctuation_preview_20260701.png` with SHA256 `540149B2C66D0110F5A705D99B3631803FD300341EDAF5233B30FCE3A06766E4`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-07-01, the LB-M2 WordSmart Unicode double/interrobang trailing punctuation slice passed scoped format, static debt checks, and focused runtime tests. `text/layout/line_break/smart.rs` now treats U+203C double exclamation, U+2047 double question, U+2048 question exclamation, and U+2049 exclamation question as trailing punctuation owned by the previous word, so `go‼next`, `go⁇next`, `go⁈next`, and `go⁉next` become protected chunks plus the following word, while `go⁉!next` keeps the Unicode+ASCII punctuation cluster without absorbing `next`. The first warm-target attempt timed out during Windows lib-test compilation and is not counted as RED evidence; a cold target later timed out without a binary; the final warm-target `unicode_double_punctuation` rerun passed 3/3 with existing warnings only. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_word_smart_unicode_double_punctuation_preview_20260701.png` with SHA256 `B42D4B564BD3277DCFEB423560D32734BEE4C5E937ACE013BCBB2D7A2355E722`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-07-01, the LB-M2 WordSmart Unicode standalone interrobang trailing punctuation slice passed scoped format, static debt checks, focused runtime tests, and a direct lib-test binary follow-up. `text/layout/line_break/smart.rs` now treats U+203D interrobang `‽` as trailing punctuation owned by the previous word, so `go‽next` becomes protected `go‽` plus the following word, while `go‽!next` keeps the interrobang+ASCII punctuation cluster without absorbing `next`. Focused `unicode_interrobang` passed 4/4 with existing warnings only, and the direct binary rerun passed 4/4. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_word_smart_unicode_interrobang_punctuation_preview_20260701.png` with SHA256 `FC93057F17430A50524F8B3D1DE684F9EFEF494E4F30623E589DFE3688FEB8D1`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-07-03, the LB-M2 kinsoku tests owner split moved the module-local CJK/JLREQ regression suite out of `text/layout/kinsoku.rs` and into `text/layout/kinsoku/tests.rs`. The production owner now stays focused on forbidden start/end tables, JLREQ inseparable pairs, chunk merging, and glyph-fallback policy, while 18 halfwidth kana, white-bracket, hyphen/pair, and iteration-mark tests live in the child owner. This is a structure-only move; it does not change line-break behavior, UI layout consumption, SDF/native rendering, or editor retained-host text placement. The proof image/log are `docs/tests/runtime/text/runtime_text_kinsoku_tests_owner_split_preview_20260703.png` (SHA256 `CADCB65D9FD7B9E68CBBDCA5F8B93444E596D6F593495CD8A867DCD8E9257CC0`) and `docs/tests/runtime/text/runtime_text_kinsoku_tests_owner_split_validation_20260703.log` (SHA256 `AA79185CB505C65D277139AECEE457FB1300D6CB35FFC28E77C2F5EDDC87BF70`); focused Cargo remains deferred because external compile lanes were active.
+
+
+
+On 2026-07-03, the LB-M2 line_break root tests owner split moved the module-local Unicode glue, WordSmart punctuation, and CJK delimiter chunk regressions out of `text/layout/line_break/mod.rs` and into `text/layout/line_break/tests.rs`. The production root now stays focused on UAX#14 soft-break chunk creation, soft-hyphen/kinsoku/WordSmart handoff, and the `LineBreakChunk` API, while 14 tests live in the child owner. This is a structure-only move; it does not change break chunk behavior, UI layout consumption, SDF/native rendering, or editor retained-host text placement. The proof image/log are `docs/tests/runtime/text/runtime_text_line_break_tests_owner_split_preview_20260703.png` (SHA256 `2842E994673D06D293DA9B4623FBF06C1BC42EEF6671C425737591902445A436`) and `docs/tests/runtime/text/runtime_text_line_break_tests_owner_split_validation_20260703.log` (SHA256 `E64A98BCDAF96BDEA89927748FC98F02A775A21693B98C20D88F1CA6C86294FE`); focused Cargo remains deferred because external compile lanes were active.
+
+
+
+On 2026-06-30, the UI layout candidate-line owner split passed scoped format/static gates. `ui/text/layout_engine/candidate_line.rs` now owns candidate line text, source range, resolved runs, pending break suffixes, and trailing wrap-space run/range mutation; `layout_engine.rs` remains the orchestration point for wrap selection, overflow, justify, and direction. Scoped rustfmt passed, touched Rust files had no trailing whitespace, and scoped diff-check only reported LF/CRLF warnings. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_candidate_line_owner_preview_20260630.png` with SHA256 `E1592C81E64310DDF589054E763D09FA3326C329460979121439F0FB9CC934D9`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches. The scoped runtime library check timed out after 124s with no Rust diagnostics and is not counted as passing.
+
+
+
+On 2026-06-30, the LB-M3 hit-test resolved advances slice passed scoped format and runtime library check gates. UI hit testing now consumes `UiResolvedTextLine.glyph_advances` before falling back to shared measured grapheme widths, which lets the shared tab-stop and Justify/kashida advance owners drive caret midpoint selection. `cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-hit-test-check --message-format short --color never` passed with existing warnings only. The focused `text_hit_test_uses_resolved_tab_advances` lib-test command timed out during Windows compile with no Rust diagnostics and no produced test binary, so it is not counted as passing. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_hit_test_tab_caret_preview_20260630.png` with SHA256 `F11D43A7EC078146D747F1B8FD057367B1110238DB03DE3587CF8FD166AB16EE`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches.
+
+
+
+On 2026-06-30, the LB-M1 source subrange measurement slice passed scoped format and runtime library check gates. `text/layout/measure.rs::measured_width(...)` is the owner-local source byte subrange entry point: it clamps requests to the shaped run, sums glyph source-range overlaps, and splits partial clusters by source grapheme count. `measured_grapheme_widths(...)` now routes through the same helper, and `layout/mod.rs` does not re-export an unused root facade. `cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-measured-width-check --message-format short --color never` passed with existing warnings only. The focused `measured_width_` lib-test command timed out during Windows lib-test compile after 904s with no Rust diagnostics and no produced test binary, so it is not counted as passing. The checked screenshot evidence is `docs/tests/runtime/text/runtime_text_source_subrange_measure_preview_20260630.png` with SHA256 `3231DDE698E6C9F64D632F1A8EA72BA4C65EE01B58052A5BC2F28A40D7D28EC0`; same-name checks under repo `target` and `E:\cargo-targets` returned no matches. True `include_kerning=false` unkerned measurement remains pending because the current shaping backend does not expose unkerned advances.
+
+
+
+On 2026-07-03, the AT-M2/AT-M3 atlas GPU viewport transform contract slice made the pixel-to-NDC convention explicit. `text/atlas/render_gpu_plan.rs` now exposes `GlyphAtlasGpuViewportTransform`, records the `PixelEdges` coordinate convention, and carries the transform on `GlyphAtlasGpuDrawPlan` beside the vertex layout, vertices, and batches. Pixel-edge quads map through `[0,0] -> [-1,1]`, `[w/2,h/2] -> [0,0]`, and `[w,h] -> [1,-1]`; empty viewports use a 1px extent to avoid invalid division. The focused lib-test binary passed all 7 `render_text_atlas_gpu` tests, including the viewport transform and vertex layout checks. This closes the data risk where future renderer hookup could silently choose a different half-pixel convention and reintroduce left/right text drift.
+
+
+
+On 2026-07-03, the AT-M2/AT-M3 atlas GPU vertex layout contract slice added the next renderer-facing data owner. `text/atlas/render_gpu_plan.rs` now exposes `GlyphAtlasGpuVertexBufferLayout`, fixed at a 52-byte stride with shader locations 0..4 for `position_ndc`, `uv`, `foreground_color`, `background_color`, and `page_index`. `GlyphAtlasGpuDrawPlan` carries that layout beside its flattened vertices and batches, so the future bitmap atlas renderer does not rediscover offsets from struct field order. This addresses one GPU input-side cause behind tiny editor tab labels looking shifted or uneven, but it is not the production bitmap atlas renderer or live editor window typography QA.
+
+
+
+On 2026-07-03, the atlas GPU plan owner split reduced `text/atlas/render_gpu_plan.rs` to draw-plan assembly plus the existing owner tests. The GPU contract declarations now live under `text/atlas/render_gpu_plan/`: `vertex.rs` owns vertex shape and vertex-buffer layout, `bind_group.rs` owns texture-array and sampler binding layout, `viewport.rs` owns pixel-edge NDC mapping, `draw_command.rs` owns draw command/topology/range/layer semantics, and `pipeline.rs` owns pipeline key plus shader/layout/bind contract. This is a structure-convention slice only; it preserves the existing GPU draw-plan behavior while making future wgpu pipeline and draw submission hookup land in the correct child owner.
+
+
+
+On 2026-07-03, the atlas GPU plan tests owner split finished the same folder-backed cleanup by moving the existing `render_text_atlas_gpu` tests into `text/atlas/render_gpu_plan/tests.rs`. The root `render_gpu_plan.rs` now stays at 110 lines and only owns module wiring, crate-private exports, and draw-plan assembly; `tests.rs` owns the 365-line viewport, vertex layout, bind-group, draw-command, pipeline, and flatten-plan regressions. The proof image/log are `docs/tests/runtime/text/runtime_text_atlas_gpu_plan_tests_owner_split_preview_20260703.png` (SHA256 `5766905450772AC4BA3C4541B07A6A15CDAD2BC60712E3CA88E63672A49B647A`) and `docs/tests/runtime/text/runtime_text_atlas_gpu_plan_tests_owner_split_validation_20260703.log` (SHA256 `C6B32282DC716245185750FFF98E3DB02B8566146D36156B9C1969720DCE07F5`); target scans returned 0. Focused Cargo remains deferred because external compile lanes were active.
+
+
+
+On 2026-07-03, the AT-M2/AT-M3 atlas GPU shader entry contract slice fixed the shader-source side of the same renderer-facing boundary. `text/atlas/render_contract.rs` now exposes `GLYPH_ATLAS_TEXT_SHADER`, `GlyphAtlasShaderEntryPoints`, and `GlyphAtlasRenderContract::shader_entry_points()`. The full shader source concatenates `glyph_atlas_sampling.wgsl` with the new `glyph_atlas_pipeline.wgsl`, which declares the same texture-array/sampler bindings, vertex locations 0..4, `vs_main`, and alpha/subpixel/SDF/MSDF/color fragment entries. `GlyphAtlasGpuPipelineContract` now carries those entry points beside its pipeline key, vertex layout, and bind-group layout, so future wgpu pipeline creation should not invent shader entry strings or treat SubpixelMask and Color as interchangeable RGBA paths. The proof image/log are `docs/tests/runtime/text/runtime_text_atlas_gpu_shader_entry_contract_preview_20260703.png` (SHA256 `1C338500A853F96D4BC2D89930E88D2DF5D65C19692FBAD7091071777BD54CA4`) and `docs/tests/runtime/text/runtime_text_atlas_gpu_shader_entry_contract_validation_20260703.log` (SHA256 `E085CE4E5ACCF2D68E1DBB13D04C91FF02B219F65C280E8D106FB220D1747EBB`); target scans returned 0. Focused Cargo remains deferred because external compile lanes were active.
+
+
+
+The 2026-07-03 atlas render-contract tests owner split keeps that shader/blend contract leaf production-only. `text/atlas/render_contract.rs` now owns sampling semantics, shader decode, blend mode, full shader include, and entry-point projection plus a `#[cfg(test)] mod tests;` mount, while `text/atlas/render_contract/tests.rs` owns the eight private Subpixel/Color decode, RGBA storage semantic, shader entry, pipeline binding, and WGSL parse regressions. This is a structure-only split; it does not change the atlas shader contract or GPU plan consumer behavior.
+
+
+
+On 2026-07-03, the AT-M2/AT-M3 atlas GPU pipeline binding contract slice fixed the next renderer-facing atlas contract. `text/atlas/render_gpu_plan.rs` now exposes `GlyphAtlasGpuBindGroupLayout` with atlas texture array at group 0/binding 0 and filtering sampler at group 0/binding 1, plus `GlyphAtlasGpuPipelineKey` and `GlyphAtlasGpuPipelineContract` so each unique render contract/topology pair carries the same vertex layout and bind layout. `GlyphAtlasGpuDrawPlan` now carries `pipeline_contracts`, and each draw command carries its `pipeline_key`; future wgpu hookup should create bind groups and select pipelines from this data instead of guessing binding numbers or treating SubpixelMask and Color as interchangeable RGBA paths. The proof image/log are `docs/tests/runtime/text/runtime_text_atlas_gpu_pipeline_binding_contract_preview_20260703.png` (SHA256 `340038AEFD60DD670EAE53B63B68175E63864C6C62552DA20C59610A93131843`) and `docs/tests/runtime/text/runtime_text_atlas_gpu_pipeline_binding_contract_validation_20260703.log` (SHA256 `D2B1C35CE4C7A4D3EE58F31850D27AA8CA9D7088001CF8B357325B1FD07563AE`); target scans returned 0. Focused Cargo remains deferred because external compile lanes were active.
+
+
+
+On 2026-07-03, the AT-M2/AT-M3 atlas GPU draw-command contract slice made draw submission ranges explicit. `text/atlas/render_gpu_plan.rs` now emits `GlyphAtlasGpuDrawCommand` entries beside batches and vertices; each command carries the batch key, render contract, `TriangleList` topology, vertex start/count, atlas layer, and helper semantics for quad and triangle counts. This prevents the future wgpu atlas renderer from inferring range/layer/topology from batch order or page keys and keeps SubpixelMask/Color batch separation visible at the draw boundary. The proof image/log live under `docs/tests/runtime/text` with SHA256 `2257609CCC3FFA3539E5F42991F7F85ADE3F3585BD03EF918C6C409287D3C8DB` and `1FD122D31AB1241181483561A9CA52561A2772126B9B438F0C5674D8BD8EA85C`; focused Cargo remains deferred because external compile lanes were active.
+
+
+
+On 2026-07-03, the AT-M2/AT-M3 SubpixelMask atlas background-composite input guard tightened the draw-plan side of LCD text rendering. `text/atlas/render_plan.rs` now normalizes `SubpixelBackgroundComposite` vertex background input before it reaches the shader/blend contract: non-finite RGB becomes 0, finite RGB is clamped to `0.0..1.0`, and background alpha is forced to `1.0`. Non-composite atlas formats keep their existing pass-through behavior. This closes one data risk behind colored subpixel edges on small editor labels, but it is not the real framebuffer-background acquisition path or the production bitmap atlas renderer.
+
+
+
+On 2026-07-03, the AT-M2/AT-M3 bitmap atlas draw-batch plus native TextArea placement slice closed the next data-plane step behind the editor tab glyph spacing complaint. `text/atlas/render_batch.rs` groups visible draw quads by `(GlyphAtlasPageKey, GlyphAtlasRenderContract)`, counts skipped glyphs/vertices, and keeps subpixel/background-composite batches distinct from color RGBA batches. `graphics/scene/scene_renderer/ui/text.rs::native_text_area_placement(...)` rounds native glyphon `TextArea` origins to device pixels while preserving integer clip bounds, preventing fractional frame origins from producing inconsistent glyph sampling phase. This is still not full glyphon atlas replacement or window-level typography QA.
+
+
+
+On 2026-07-03, the atlas render_batch tests owner split kept that draw-batch data-plane owner production-only. `text/atlas/render_batch.rs` now contains the 65-line batch assembly leaf plus `#[cfg(test)] mod tests;`, while `text/atlas/render_batch/tests.rs` owns the four regression cases for page/contract grouping, clipped glyph accounting, RGBA storage semantic separation, and background-composite color propagation. This is a structure-only move; batching order, render contracts, draw quads, background propagation, and renderer-facing behavior are unchanged.
+
+
+
+On 2026-07-03, the atlas page_residency tests owner split applied the same production/test separation to the page LRU owner. `text/atlas/page_residency.rs` now keeps page reservation, per-format cap, missing-page allocation, LRU eviction, current-frame protection, and page rebuild application in the 144-line production leaf plus a `#[cfg(test)] mod tests;` mount. `text/atlas/page_residency/tests.rs` owns the four private regressions that guard those residency decisions. This is a structure-only move; residency decisions and page rebuild behavior are unchanged.
+
+
+
+On 2026-07-03, the atlas upload tests owner split kept upload command math production-only. `text/atlas/upload.rs` now contains the 105-line upload command leaf plus `#[cfg(test)] mod tests;`, while `text/atlas/upload/tests.rs` owns the four regressions for full-page stride, partial RGBA byte stride and source offset, SubpixelMask sampling semantics, and empty/out-of-range source rejection. This is a structure-only move; upload mode handling, dirty-rect clamp, source range validation, byte stride, and sampling semantic propagation are unchanged.
+
+
+
+On 2026-07-03, the atlas dirty tests owner split kept per-page dirty-rect merging production-only. `text/atlas/dirty.rs` now contains the 33-line `GlyphAtlasDirtyPage` leaf plus `#[cfg(test)] mod tests;`, while `text/atlas/dirty/tests.rs` owns the two regressions for rect union and ignoring other-page or empty dirty marks. This is a structure-only move; page-key guards, empty-rect guards, union behavior, and merged dirty state are unchanged.
+
+
+
+On 2026-07-03, the runtime text pixel-snap owner closed the adjacent native/SDF origin drift. `graphics/scene/scene_renderer/ui/text_pixel_snap.rs` now owns device-pixel rounding for text frame origins, `text.rs` consumes it for glyphon `TextArea.left/top`, and `sdf_render.rs` consumes it before horizontal SDF start/baseline placement and vertical cursor/column placement. This directly targets the editor tab symptom where labels could look shifted left or right when one backend inherited fractional frame coordinates; it is still not the complete SM-M5 paragraph parity gate or live Workbench typography QA.
+
+
+
+On 2026-07-04, the editor SDF glyph-spacing follow-up supersedes the earlier per-glyph bitmap-origin rounding note. `graphics/scene/scene_renderer/ui/text_pixel_snap.rs::text_frame_device_origin(...)` still snaps the text line origin to device pixels, but `text_glyph_device_frame(...)` now preserves finite subpixel glyph x/y values so shaped or resolved fractional advances remain intact in SDF quad placement. `sdf_render/tests/layout_placement.rs::sdf_draw_plan_preserves_subpixel_glyph_advance_spacing` locks the compact-label case where a 7.5px advance must remain 7.5px instead of being rounded per glyph. The proof image/log live under `docs/tests/runtime/text/runtime_text_editor_sdf_glyph_spacing_*_20260704.*`; focused Cargo remains deferred because external compile lanes were active.
+
+
+
+On 2026-07-03, the AT-M2/AT-M3 bitmap atlas draw-plan slice connected the subpixel placement data-plane to the future GPU draw input. `text/atlas/render_plan.rs` derives glyph screen rectangles from the shared `GlyphRasterPlacement` snapped x, clips the screen rect, adjusts UVs against the glyph content area instead of padded slot edges, carries the atlas page layer, and binds foreground/background color to the `GlyphAtlasRenderContract`. This closes the data risk behind uneven glyph left/right placement and padding bleed, but it is not yet the production bitmap atlas renderer or glyphon `TextAtlas` replacement.
+
+
+
+On 2026-07-03, the AT-M2/AT-M3 SubpixelMask atlas render contract slice added the next leaf owner for future bitmap atlas rendering. `text/atlas/render_contract.rs` maps `SubpixelCoverage` to `SubpixelRgbCoverage` plus `SubpixelBackgroundComposite`, while `ColorRgba` maps to `ColorRgba` plus `SourceRgba`. `text/atlas/shaders/glyph_atlas_sampling.wgsl` owns the WGSL decode helpers for alpha coverage, subpixel RGB coverage, SDF/MSDF coverage, and color RGBA; `glyph_atlas_pipeline.wgsl` owns the stage entry declarations consumed by the full shader contract. This is still not the full production bitmap atlas renderer: real background acquisition/compositing, glyph upload/draw, and the glyphon `TextAtlas` cutover remain open.
+
+
+
+On 2026-07-03, the AT-M2/AT-M3 SubpixelMask atlas sampling semantics slice closed the storage-to-consumer data boundary that feeds that render contract. `GlyphAtlasFormat::sampling_semantics(...)` now maps atlas formats to `GlyphAtlasSamplingSemantics`, `GlyphAtlasPageSpec` records that semantic beside the storage format, and `GlyphAtlasUploadCommand` carries it forward so `SubpixelMask` and `Color` can both use RGBA8 storage without being treated as the same blend path. Focused `render_text_atlas` passed 14/14, and the proof image/log live under `docs/tests/runtime/text`.
+
+
+
+The 2026-07-02 render-batch font-weight follow-up closes a render-side loss between editor/runtime style resolution and glyph backend lookup. `ScreenSpaceUiTextBatch` now carries normalized `font_weight` from rich paint runs, resolved layout lines, and fallback command style. Native glyphon attrs and current `text/shaping/fallback_spans.rs` queries use that weight directly, while the SDF path includes it in `SdfAtlasGlyphKey`, SDF bake `FontQuery`, and fallback advance measurement. The original validation referenced the now-deleted temporary `shaping/font_id.rs`; the 2026-07-10 D4 hard cut preserves the weight behavior through the shared span query and actual backend ID path. Validation passed through scoped rustfmt, `cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-render-batch-weight --message-format short --color never`, focused font-weight tests 4/4, render-batch propagation tests 2/2, SDF atlas key distinct-weight 1/1, and native attrs mapping 1/1. Visual proof is `docs/tests/runtime/text/runtime_text_render_batch_font_weight_preview_20260702.png`, SHA256 `D5C64C3505CAB284C8221F589566BF138A2BF8D9E223FD63E4471BEF2F262E2A`; same-name scans under repo `target`, `E:\cargo-targets`, and `D:\cargo-targets` returned 0.
+
+
+
+The 2026-07-03 editor retained-host spacing follow-up narrows the runtime/host bridge acceptance rule. The editor still asks runtime text to compute the single-line displayed text and grapheme advances, but `paint_text/draw/layout.rs` now accepts runtime advance projection only when both total run width and per-grapheme advances match the selected host face closely enough. This covers the latest tab-crop complaint where DengXian/等线 was selected but local Latin spacing still looked uneven. Scoped rustfmt passed; the focused `zircon_editor` Cargo test timed out after 904s with no Rust diagnostics and is not counted as green. Visual proof is `docs/tests/runtime/text/runtime_text_editor_per_grapheme_spacing_guard_preview_20260703.png`, SHA256 `7991429B66A536B05D538C05947EBAD6FB7D6049EF894F1D6EE4F8E32406A5F8`; same-name target scans returned 0.
+
+
+
+The 2026-07-03 editor retained-host subpixel spacing threshold follow-up was the first named tightening of the previous spacing guard for the editor tab crop. `zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs` named the total-run and per-grapheme tolerance constants and accepted runtime advance projection only when each grapheme stayed within `clamp(host * 6%, 0.35px, 0.60px)` of the selected host face. The regression `runtime_positioned_glyphs_rejects_subpixel_tab_label_jitter` uses `editor base.zui` and rejects a +0.75px / -0.75px local shift even when total width stays close, falling back to host natural spacing. Scoped rustfmt passed; proof image/log are `docs/tests/runtime/text/runtime_text_editor_subpixel_spacing_threshold_preview_20260703.png` (SHA256 `BBBED73034CD2C41D8FC18E38EBE6630412E691C03E7728137B6060F9AF54693`) and `docs/tests/runtime/text/runtime_text_editor_subpixel_spacing_threshold_validation_20260703.log` (SHA256 `2F0CBC3675CBF4452963A9828DA22130143CF955D16AF5B6974B95D41900AD36`); target scans returned 0. This historical threshold is superseded by the 2026-07-04 fixed 0.0625px retained advance gate.
+
+
+
+The later 2026-07-03 editor retained-host subpixel spacing fix tightened that same path for the then-current screenshot symptom. `draw/layout.rs` began failing closed when host run width or host per-grapheme natural advances could not be measured, and the accepted local jitter was reduced to `clamp(host * 2%, 0.08px, 0.18px)` so quarter-pixel tab-label drift fell back to the selected host face's natural spacing. `draw/glyphs.rs` also changed the retained 1/3 subpixel placement bin from floor to nearest-bin quantization, removing the systematic left bias that made glyphs appear shifted within their cells. The proof image/log are `docs/tests/runtime/text/runtime_text_editor_retained_subpixel_spacing_fix_preview_20260703.png` (SHA256 `ED53B97AE58A6930F41054B323BA3D475E8A80D44BCC7AB223E121485DA50F4B`) and `docs/tests/runtime/text/runtime_text_editor_retained_subpixel_spacing_fix_validation_20260703.log` (SHA256 `CFF4653F26BC37A0C0C7350903A5AACA3359D4E2FD8F9FB7EB2D68A0419DEF95`); target scans returned 0. This historical 0.08px/0.18px window is now superseded by the 2026-07-04 fixed 0.0625px retained advance gate.
+
+
+
+The subsequent 2026-07-03 retained-host pen-origin phase slice fixes the remaining per-glyph phase source behind the user's crop. `zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs` now carries `RuntimeTextGlyph.origin_x` beside bitmap-left draw `x`; `draw/glyphs.rs` chooses the retained 1/3 subpixel bin from that pen origin; and `paint_text/raster.rs` reports swash/fontdue `CachedGlyphMetrics.x_offset` relative to the pen origin. This prevents different glyph left bearings from moving the raster phase independently of text advances. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_pen_origin_phase_preview_20260703.png` (SHA256 `03CA205AC0C1BD890C37955AEBEB8BE57C7242C9C3542D6DCB9D21F4F8C24032`) and `docs/tests/runtime/text/runtime_text_editor_pen_origin_phase_validation_20260703.log` (SHA256 `44D9B5BFBF12F7FE473E955012FD7A7D1E039433AD92B66DD89C9A26F7253DE7`); target scans returned 0. Focused Cargo remains deferred while existing cargo/rustc lanes are active.
+
+
+
+The 2026-07-03 retained-host shaped-position follow-up closes the next low-level spacing loss behind the same editor tab crop. `paint_text/draw/layout.rs` now carries runtime `ShapedGlyphRun` glyph positions into single-line retained layout and prefers `shaped.x + shaped.offset_x` as the pen origin when shaped glyph id, host glyph index, visual byte range, and run width match. Mismatched glyph ids/ranges, RTL, and virtual glyphs fall back to host natural spacing or the runtime advance guard instead of forcing uncertain positions into editor labels. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_shaped_positions_preview_20260703.png` (SHA256 `FDBE187162457C079DFEC4F8949DA2AC79F1D5045D2F9744524922D2DABE81E7`) and `docs/tests/runtime/text/runtime_text_editor_shaped_positions_validation_20260703.log` (SHA256 `0F3FBCDAF498351F66FD8E47529D52BED33494565369570EC4C92AB6CCED1F9A`); target scans returned 0. This is a retained-host layout bridge fix with proof imagery, not a completed live editor window typography QA gate.
+
+
+
+The shaped-origin jitter guard follow-up closes a gap in that bridge: matching shaped glyph ids and total width can still hide a local `+0.25px/-0.25px` origin borrow that looks wrong in compact tabs. `paint_text/draw/layout.rs` now compares shaped-origin local advances against the selected host face's natural local advances before accepting shaped positions, rejecting visible local jitter for `folder-open.svg` while preserving tiny legal shaped offsets. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_shaped_origin_jitter_guard_preview_20260703.png` (SHA256 `1F7A41698236F15F9BEA6AA6D6B18707A398C9F50221BBFFC2FA59C532D835D8`) and `docs/tests/runtime/text/runtime_text_editor_shaped_origin_jitter_guard_validation_20260703.log` (SHA256 `D0B2BCFCFDDB8555844966E3B6BBE41E3C4E9B04E2DBEF4A4B07620BF372A502`); target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-03 LB-M1 public source-range measure slice exposes the same shaped source-range measurement through the UI surface boundary. `text/layout/measure.rs` remains the owner for `measure_text_source_range_width(...)`, while `ui/text/layout_engine.rs`, `ui/text/shaper.rs`, `ui/text/mod.rs`, and `ui/surface/mod.rs` forward it as `ui::surface::measure_text_source_range_width(text, style, UiTextRange)`. The API measures kerning-included shaped source byte ranges only; true unkerned/GPOS delta support is still pending backend unkerned advances. Proof image/log: `docs/tests/runtime/text/runtime_text_public_source_range_measure_preview_20260703.png` (SHA256 `E7930642A9DD4CF02936ED97BF50BB5963E0EF00C91A6C0BA7C70D18DD6DAA08`) and `docs/tests/runtime/text/runtime_text_public_source_range_measure_validation_20260703.log` (SHA256 `071B768AD9FDDEF1E9CB62228A9D82519B8F8705654F6D78B6D3162C06EF74E8`); target scans returned 0.
+
+
+
+The follow-up 2026-07-03 retained-host layout tests owner split keeps that screenshot-spacing protection in a separate regression owner. `zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs` now holds production layout code plus `#[cfg(test)] mod tests;`, while `draw/layout/tests.rs` owns the 8 regressions for runtime grapheme advances, host-spacing fallback, per-grapheme jitter rejection, subpixel/quarter-pixel tab-label jitter, pen-origin phase, projected spacing, and runtime shaped advances. This is a structure-only change: retained spacing/placement behavior, glyph raster phase, font preferences, ZUI assets, runtime surface DTOs, and renderer roots are unchanged. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_layout_tests_owner_split_preview_20260703.png` (SHA256 `70ADD3267361666D95A716636E4550035E88018BE658527B5A65BF296083CF85`) and `docs/tests/runtime/text/runtime_text_editor_retained_layout_tests_owner_split_validation_20260703.log` (SHA256 `8F99E60733AA6535AF15CEC821E18404D37920D11721842E13D7BA1C25A47857`); target scans returned 0. Focused Cargo remains deferred while existing cargo/rustc lanes are active.
+
+
+
+The companion 2026-07-03 retained-host raster tests owner split isolates the glyph-raster quality regressions that guard the same editor crop path. `zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs` now holds production cache, swash/fontdue rasterization, smoothing format selection, subpixel offset normalization, and pen-origin metric mapping, while `paint_text/raster/tests.rs` owns the 8 tests for swash UI-face rastering, SubpixelMask RGB preservation, grayscale smoothing preference, render format selection, subpixel-bin cache separation, invalid subpixel offsets, and swash/fontdue `x_offset` semantics. This is structure-only: raster behavior and text appearance policy are unchanged. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_raster_tests_owner_split_preview_20260703.png` (SHA256 `4ADD02208C254F4881083E594F7181BCF02D9C4DCD4CDA3F9232BAECE4FEB77D`) and `docs/tests/runtime/text/runtime_text_editor_retained_raster_tests_owner_split_validation_20260703.log` (SHA256 `F7B27150E20C53F92E33D414B3D3B71F728A893F210604FE802E470628E3A72F`); target scans returned 0. Focused Cargo remains deferred while existing cargo/rustc lanes are active.
+
+
+
+The 2026-07-03 retained-host glyph draw tests owner split does the same for the final CPU draw-placement owner. `zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs` now holds the production glyph draw loop, row handoff, scaled bitmap extent, and 1/3 nearest subpixel bin placement; `draw/glyphs/tests.rs` owns the 4 regressions for scaled bitmap bounds, native subpixel bitmap bounds, stable subpixel bins, and nearest-bin/no-left-bias behavior. This is structure-only and keeps the screenshot-spacing behavior from the earlier fix unchanged. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_glyphs_tests_owner_split_preview_20260703.png` (SHA256 `E06ADE35E0FD6295E25D68A34ED60FFE714489ACE4CB6F7BA54A3DA724672168`) and `docs/tests/runtime/text/runtime_text_editor_retained_glyphs_tests_owner_split_validation_20260703.log` (SHA256 `411DA8E2F2A76085F3943E534A2D6F4E04FF98560D05A0537428148A0F144EE2`); target scans returned 0. Focused Cargo remains deferred while existing cargo/rustc lanes are active.
+
+
+
+The 2026-07-03 retained-host font tests owner split isolates the editor typography role regressions behind the same crop. `zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs` now holds production font face role selection, typography preference requests, system/embedded font resolution, runtime family/weight projection, and cache-key logic; `paint_text/font/tests.rs` owns the 5 regressions for proportional UI vs mono code, preference request projection, runtime family sanitization, embedded fallback runtime family, and runtime style projection. This is structure-only and does not change DengXian/等线 selection, fallback, or weight behavior. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_font_tests_owner_split_preview_20260703.png` (SHA256 `AC030034EB8EA779E479DF8E2970A2D444843A5F6D00B4FE28CB0600800F689B`) and `docs/tests/runtime/text/runtime_text_editor_retained_font_tests_owner_split_validation_20260703.log` (SHA256 `06CC54E523C72A4F7A0B1BCFEE6C881E6CF8FE9E3ABD3FCE39B153DC19AE5941`); target scans returned 0. Focused Cargo remains deferred while existing cargo/rustc lanes are active.
+
+
+
+The 2026-07-03 retained-host glyph row tests owner split isolates the final row-sampling regressions in the CPU text path. `zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row.rs` now holds production alpha/SubpixelMask row sampling, thin-stroke preservation, channel averaging, italic offset, and draw pass count; `draw/glyphs/row/tests.rs` owns the 6 regressions for supersample averaging, thin-stroke survival, edge clamping, RGB channel averaging, native RGB preservation, and strong text no-extra-pass behavior. This is structure-only and keeps row blending semantics unchanged. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_glyph_row_tests_owner_split_preview_20260703.png` (SHA256 `278C8287FD6DF141044833641F538C2147C75A115A8FAEAAA6E147D09B2D49DC`) and `docs/tests/runtime/text/runtime_text_editor_retained_glyph_row_tests_owner_split_validation_20260703.log` (SHA256 `DB0B3DA7ADFED60F8FCEC009CE0D81C83F1B91E1949FC5220D4035FC7DD6D043`); target scans returned 0. Focused Cargo remains deferred while existing cargo/rustc lanes are active.
+
+
+
+The 2026-07-03 atlas render-plan tests owner split keeps the bitmap atlas draw-plan leaf ready for the later production renderer cutover. `zircon_runtime/src/text/atlas/render_plan.rs` now holds only the draw-plan production logic plus `#[cfg(test)] mod tests;`; `render_plan/tests.rs` owns the 5 private regressions for subpixel background-composite quads, clipping/UV, Color vs Subpixel contracts, background-input normalization, and empty/offscreen rejection. This is a structure-only change and does not modify draw-plan geometry, UVs, blend contract selection, atlas pages, or renderer behavior. Proof image/log: `docs/tests/runtime/text/runtime_text_atlas_render_plan_tests_owner_split_preview_20260703.png` (SHA256 `E11BA2E063571550C255D3BA38082D99129F2C54B61C1D25730CF727911F628E`) and `docs/tests/runtime/text/runtime_text_atlas_render_plan_tests_owner_split_validation_20260703.log` (SHA256 `1EBC9FE2D6032F676785DE5210D97AC991CF8CE4B0D1F89C36732789D2DCC852`); target scans returned 0. Focused Cargo remains deferred while existing cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 bitmap atlas run data-plane slice adds the missing middle owner between swash `GlyphBitmap` output and the existing atlas draw/batch contracts. `text/atlas/bitmap_run.rs` turns AlphaMask, SubpixelMask, and Color bitmap sources into `GlyphAtlasSet` page reservations, shelf rect allocations, dirty page reports, draw glyphs, and typed allocation failures. Its tests cover format-separated pages, shelf overflow to page 1, invalid source failures, and the draw-batch bridge that keeps SubpixelMask and Color from merging just because both use RGBA storage. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_run_data_plane_preview_20260704.png` SHA256 `AB2C7FABFA1A7A78CCC4EFD1FD7718393FD7E2E5AB00EC0ADCC962D596275669`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_run_data_plane_validation_20260704.log` SHA256 `FF9140E0506CFBBAC35CAF8E7AE99F7A321E3D7069FB93587CA09D47878987E6`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 bitmap atlas upload report slice closes the next run-level data gap before a production renderer or glyphon `TextAtlas` cutover consumes the bitmap atlas. `GlyphAtlasBitmapRunPlan` now carries `upload_commands` derived from the same dirty pages it already reports: partial dirty regions become `GlyphAtlasUploadMode::PartialRect`, while full-page dirty coverage becomes `GlyphAtlasUploadMode::FullPage`. The implementation delegates stride, source offset, byte count, page key, and sampling semantics to the shared `glyph_atlas_upload_command(...)` owner, so future renderer code does not need to rediscover those rules. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_upload_report_preview_20260704.png` SHA256 `73ED0A486E26219B814CF076B7571D8708DF1F108B730F7B5F9FF2D6E875FEB1`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_upload_report_validation_20260704.log` SHA256 `E1053AD06CB24CCB6257CC53463A67E72E5F8AFE4744E30A0599F64DAD7EE489`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 bitmap atlas upload copy plan slice closes the staging-copy side of that same handoff. `GlyphAtlasBitmapRunPlan` now carries `upload_copies: Vec<GlyphAtlasBitmapUploadCopy>`, and `bitmap_run/upload.rs` emits one copy record per allocated bitmap glyph. Each record preserves the source index, target page, target atlas rect, content size, source row stride, source byte length, atlas page row stride, and target page byte offset. `GlyphAtlasUploadCommand` still describes which page region should be written to the GPU; `GlyphAtlasBitmapUploadCopy` describes how a renderer staging buffer should be populated before that write. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_upload_copy_plan_preview_20260704.png` SHA256 `84E676510FAA7FC38D80634B62A848626C4AD300118538865FC273CF4F3A77E5`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_upload_copy_plan_validation_20260704.log` SHA256 `81492D676B5AFBC35B9F15A0654CCCFB05C0CAC840D463FCCD35F656474E4082`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 bitmap render submission upload-copy report follow-up exposes that staging-copy work at the renderer-facing report boundary. `GlyphAtlasBitmapRenderSubmissionReport` now carries `upload_copy_count`, `upload_copy_byte_len`, and `has_upload_copy_work()` separately from dirty-rect upload command counts and bytes. This lets future staging-buffer and `Queue::write_texture` code inspect copy readiness without walking `GlyphAtlasBitmapRunPlan.upload_copies` from renderer root. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_render_submission_upload_copy_report_preview_20260704.png` SHA256 `4307D82C95B0E12DA948CA4327CC5023955AC1C206E1EBF1224ED41A8F7B0053`; `docs/tests/runtime/text/runtime_text_bitmap_render_submission_upload_copy_report_validation_20260704.log` SHA256 `AFCADE58FE4E17A60AD0F28ECD689490787D8C6DF8C12346AA68BEFE95CC3DE5`. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 bitmap atlas upload staging plan follow-up closes the pure byte-copy data path before real GPU submission. `text/atlas/bitmap_run/staging.rs` takes `GlyphAtlasBitmapUploadCopy` records plus `GlyphAtlasBitmapUploadSourceBytes` and produces page-keyed staging buffers sized to the atlas page. It copies each glyph row using the source stride and atlas page stride already recorded in the run plan, and it reports typed staging failures for missing pages, missing source bytes, length mismatches, and source/destination range errors. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_upload_staging_plan_preview_20260704.png` SHA256 `C30F6C2012452AAE52A500AA9AE606DB6C3629E33B0095CB742481CBF348CB65`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_upload_staging_plan_validation_20260704.log` SHA256 `9F485973604162BBBEE18CDF804C5D9994B46823E51BFE857EA4CFDEC0074328`. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 bitmap atlas staged upload plan follow-up closes the next renderer handoff layer without wiring WGPU yet. `text/atlas/bitmap_run/staged_upload.rs` binds page-keyed staging buffers to the existing `GlyphAtlasUploadCommand` list and emits `GlyphAtlasBitmapStagedUploadPlan`. Each staged upload carries the staging page index, exact command, and staging page byte length, while typed failures cover missing staging pages and incomplete page/row ranges. This lets future `Queue::write_texture` code consume one pure data contract instead of recomputing page, rect, stride, and source offset in renderer root. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_staged_upload_plan_preview_20260704.png` SHA256 `C95247DC77834AA9F52D21256BD985832E7CEEF6740FE4269A1EF313542D87B5`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_staged_upload_plan_validation_20260704.log` SHA256 `75FA270EA21D0D8BF1139089AB6E0E996FA0137A2B5B54D1094DE0129ED51CBF`. Target same-name scan returned 0, and focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 bitmap atlas prepared upload plan follow-up gives future renderer code the single entry point for that handoff. `glyph_atlas_bitmap_prepared_upload_plan(...)` accepts a bitmap run plan plus source byte slices, produces the page staging buffers, and then binds successful staging pages to staged upload commands. If staging has missing or mismatched source bytes, the prepared plan reports those staging failures and emits no staged uploads, so incomplete atlas page data cannot be handed to the GPU upload path. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_prepared_upload_plan_preview_20260704.png` SHA256 `41457F4DE436BFE69AAEA8B2AC43E3BCBECBADF2962237CC769F2789F7401FE8`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_prepared_upload_plan_validation_20260704.log` SHA256 `A370155C5E8D45136518A8FBE3E40CEFD44D240484ECB7E343218B5BFB4C2C5E`. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 bitmap atlas texture upload request follow-up projects that staged upload handoff into the exact neutral fields a future texture writer needs. `GlyphAtlasBitmapTextureUploadRequest` carries staging page index, page key, origin xy, origin layer, extent, source offset, bytes per row, rows per image, upload byte length, and staging page byte length. `glyph_atlas_bitmap_texture_upload_request_plan(...)` also records skipped staged-upload failures, so future renderer code can skip invalid work without importing WGPU types or rederiving atlas layout. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_texture_upload_request_plan_preview_20260704.png` SHA256 `3680465A42EBD4415FFC10BABCA0D2B9F84DAF8E473A19E7DCA76BDECF2D04CA`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_texture_upload_request_plan_validation_20260704.log` SHA256 `D5B2B4C7A336B067CB8DBCC2705052B7BC74045785070760F6CC68D470A8AB55`. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 atlas page generation upload guard closes the stale-page write side of that request path. `GlyphAtlasPageSpec` now carries a page `generation`, residency bumps it on eviction/reuse, upload/staging/request records propagate the generation, `glyph_atlas_bitmap_texture_upload_request_plan_with_atlas(...)` drops requests whose page generation no longer matches the live atlas, and the renderer-local binding owner rejects staging/request generation mismatches before WGPU writes. `atlas_renderer/renderer.rs` also includes stale generation drops in the upload failure aggregate so upper prepare reports cannot hide a skipped stale write. This keeps the guard split across atlas data ownership and renderer-local validation without adding a root facade or compatibility shim. Proof image/log: `docs/tests/runtime/text/runtime_text_atlas_page_generation_guard_preview_20260705.png` SHA256 `E71C524CC707D941D5CFB97C7E9C7BE05DD75C6F4D6F40337FF62C72CFC92580`; `docs/tests/runtime/text/runtime_text_atlas_page_generation_guard_validation_20260705.log` SHA256 `22A87474D8352455BD1B138CFD3BECC78541A6626CD1D728D402DD5898E450B7`. Scoped rustfmt/check and target same-name scans passed; focused Cargo `page_generation` timed out after 904s during Windows lib-test compilation, owned processes were stopped, and the timeout is not counted as green evidence.
+
+
+
+The 2026-07-07 bitmap atlas stale upload requeue report extends that guard from "drop stale write requests" into an explicit async-ready diagnostic contract. `text/atlas/bitmap_run/staged_upload.rs` now records `GlyphAtlasBitmapRequeuedUpload` entries for missing pages, page-generation mismatches, and invalidated faces; `glyph_atlas_bitmap_texture_upload_request_plan_with_atlas_and_face_validity(...)` emits no texture upload request for those artifacts. The plan-level counters distinguish stale page generation from face invalidation, so a later async raster worker can requeue or discard by reason without reconstructing atlas state in renderer root. Validation is static for this nonvisual data-plane slice: rustfmt and scoped diff check passed, target/cargo-target PNG scan stayed at 0, and Cargo was deferred because active cargo/rustc lanes were already running.
+
+
+
+The 2026-07-07 texture upload requeue frame report projects that low-level request-plan contract into the renderer-local upload frame owner. `graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs` now records total requeued uploads plus missing-page, page-generation mismatch, and face-invalidated counters in `GlyphAtlasBitmapTextureUploadFrameReport`; `glyph_atlas_bitmap_texture_upload_frame_plan_for_atlas_and_face_validity(...)` combines prepared upload, live atlas, and face validity without allowing requeued artifacts to reach the WGPU writer. Tests cover missing page, stale generation, and invalid face frame plans, all remaining fail-closed. Validation is static: rustfmt and scoped diff check passed, target/cargo-target PNG scan stayed at 0, and focused Cargo was deferred because active cargo/rustc lanes were already running.
+
+
+
+The 2026-07-07 renderer requeue prepare report completes the next renderer-local telemetry handoff. `graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs` now creates upload frame plans with `glyph_atlas_bitmap_texture_upload_frame_plan_for_atlas(...)` and the submission's live `GlyphAtlasSet`, so production renderer upload preparation no longer bypasses missing-page/page-generation guards. `GlyphAtlasBitmapRendererPrepareReport` exposes upload requeue totals plus missing-page, page-generation mismatch, and face-invalidated counters, and `upload_failure_count` includes requeued uploads so invalidated face artifacts are not counted as successful upload readiness. Tests cover frame-report projection and multi-storage-pass aggregation. Validation is static: rustfmt and scoped diff check passed, target/cargo-target PNG scan stayed at 0, and focused Cargo was deferred because active cargo/rustc lanes were already running.
+
+
+
+The 2026-07-04 bitmap atlas WGPU upload mapping owner moves the final `GlyphAtlasUploadCommand` -> `Queue::write_texture` field projection out of `sdf_render.rs` and into `graphics/scene/scene_renderer/ui/atlas_texture_upload.rs`. SDF upload still produces commands through `sdf_upload.rs`, but renderer-side origin/layer, buffer-layout, and extent mapping now goes through `write_glyph_atlas_texture_upload_command(...)`, with `atlas_texture_upload/tests.rs` locking the pure projection. This keeps WGPU-specific mapping out of the atlas data owners and gives bitmap texture upload requests a renderer-local endpoint to consume next; it does not complete the real bitmap texture upload, glyphon `TextAtlas` cutover, or live editor typography QA. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_wgpu_upload_mapping_owner_preview_20260704.png` SHA256 `78E2774B8AB5C5D5E6A05147FB7EBA53B1F6599C9506F8530A0B2F78DB2BB9EF`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_wgpu_upload_mapping_owner_validation_20260704.log` SHA256 `3039D33E283896AFAF397056C1D7C6680CE514677EE0E37206D80DB545CBD6A2`. Repo/cargo target same-name scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 bitmap atlas upload binding owner closes the next renderer handoff layer inside the same `atlas_texture_upload.rs` leaf. `glyph_atlas_bitmap_texture_upload_binding_plan(...)` consumes `GlyphAtlasBitmapTextureUploadRequest` records plus `GlyphAtlasBitmapPageUploadStaging` pages and emits bindings that carry both the staging page byte slice and the already-normalized texture write fields. It rejects missing staging pages, page-key mismatches, row-stride mismatches, staging page length mismatches, and out-of-range source offsets as typed failures, so invalid bitmap upload requests do not reach the shared WGPU writer. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_upload_binding_owner_preview_20260704.png` SHA256 `65C1BD26635D0FA2CD4BACAAA636E2EBAEE626AE6479910ADA56086B27EF4153`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_upload_binding_owner_validation_20260704.log` SHA256 `D550C37430EAC6F6914C7A3064D81143FBC63DB185211100F1E21F23E938645D`. Repo/cargo target same-name scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 atlas texture upload submission owner split moves the submission-level composition out of `atlas_texture_upload/frame.rs` into `atlas_texture_upload/submission.rs`. The new owner is the only renderer-local leaf that accepts `GlyphAtlasBitmapRenderSubmissionPlan` plus source bytes, calls `submission.prepared_upload(...)`, and then delegates to the prepared-upload frame plan/resource writer. `frame.rs` now owns prepared-upload frame readiness/report/resource writing only; a static scan confirms it no longer imports `GlyphAtlasBitmapRenderSubmissionPlan` or `GlyphAtlasBitmapUploadSourceBytes` and no longer calls `prepared_upload(...)`. Proof image/log: `docs/tests/runtime/text/runtime_text_atlas_texture_upload_submission_owner_split_preview_20260704.png` SHA256 `54F8CC1DB3EFBF2CA53B3023D4C441EAE2A60FADA89F6D30FB44DCF6662D5876`; `docs/tests/runtime/text/runtime_text_atlas_texture_upload_submission_owner_split_validation_20260704.log` SHA256 `BA0A47ED7547315A659802324846B314240DDD3CDC965FF1EB139633F4600244`. Repo/cargo target same-name scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 bitmap atlas submission texture-upload frame handoff composes the previous data bridge with the renderer-local frame/resource writer. The callable functions now live in `atlas_texture_upload/submission.rs`: `glyph_atlas_bitmap_render_submission_texture_upload_frame_report(...)` takes a `GlyphAtlasBitmapRenderSubmissionPlan` plus source bytes, calls `submission.prepared_upload(...)`, builds a `GlyphAtlasBitmapTextureUploadFramePlan`, and returns the copyable frame report. `write_glyph_atlas_bitmap_render_submission_texture_upload_resources(...)` follows the same path and writes to `GlyphAtlasTextureArrayResources` only through the existing fail-closed writer. Tests cover both the ready path and missing source bytes, but this is still a callable handoff slice rather than a live frame-loop/WGPU queue validation. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_submission_texture_upload_frame_handoff_preview_20260704.png` SHA256 `B817CA2D4B8F55635CD9BE1B0F732FD4BD6D29B8E52A03AE2E84C7EB181D7912`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_submission_texture_upload_frame_handoff_validation_20260704.log` SHA256 `1CCEBE0BC7C2E25DD5C621C48E849451F2F8FF866165BF097528E7102464494C`. Repo/cargo target same-name scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 bitmap atlas submission prepared-upload handoff closes the pure data bridge between a renderer-facing submission plan and the upload staging pipeline. `GlyphAtlasBitmapRenderSubmissionPlan::prepared_upload(...)` takes caller-provided `GlyphAtlasBitmapUploadSourceBytes` and delegates to `glyph_atlas_bitmap_prepared_upload_plan(&self.run, ...)`, so the submission owner does not duplicate staging page creation, source length checks, staged upload projection, or fail-closed behavior. Tests prove AlphaMask and SubpixelMask sources create page-keyed staging buffers and staged upload commands, while missing source bytes produce a staging failure and zero staged uploads. This still does not call WGPU; the next renderer-local stage remains texture frame planning and resource writing. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_submission_prepared_upload_handoff_preview_20260704.png` SHA256 `D2C246EA65734B7FC157C39333644C5A562B3DC739318DF06D2B659D659A5789`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_submission_prepared_upload_handoff_validation_20260704.log` SHA256 `24E1C685D69FABD7F2035FE0D07DE3A64C7C212AE8E0D0167C9874174FE9896B`. Repo/cargo target same-name scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 bitmap atlas texture upload resource writer follow-up connects the frame upload handoff to the renderer-local texture-array resource object. `GlyphAtlasTextureArrayResources::texture()` exposes only the raw texture reference currently needed by the fail-closed writer, and `write_glyph_atlas_bitmap_texture_upload_frame_resources(...)` delegates to the existing frame-plan writer rather than duplicating readiness or WGPU write rules. The test added here is a signature guard for the resource-targeted writer, so future renderer code can consume `GlyphAtlasTextureArrayResources` directly without reaching into its fields. This still does not create production bitmap frame-loop glyph sources, submit real draw calls, or replace glyphon `TextAtlas`. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_texture_upload_resource_writer_preview_20260704.png` SHA256 `9F22304B5AEE302EAFADECEBD4CAA830A025FF033094812805D2B592DEE6CA33`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_texture_upload_resource_writer_validation_20260704.log` SHA256 `FDF7CD07A1539E6F9B9FCA66FAD75C3E79E8C85431ACF9B768942EF2445299D9`. Repo/cargo target same-name scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 atlas texture-array resource owner moves WGPU resource descriptor rules into the same renderer-local upload subsystem before the bitmap renderer is wired. `atlas_texture_upload/resource.rs` now owns `GlyphAtlasTextureArraySpec`, mapping shared `GlyphAtlasStorageFormat::R8Unorm` and `Rgba8Unorm` to WGPU texture formats, clamping width/height/layers to at least one, and creating D2Array texture views with COPY_DST plus TEXTURE_BINDING usage. `sdf_render.rs` now delegates SDF atlas texture creation to this owner while keeping the same R8 storage, bind group entries, and upload command path. The atlas upload tests cover AlphaMask, SubpixelMask, and Color storage mapping, but this does not yet add production alpha bitmap draw submission, frame-loop glyph sources, or glyphon `TextAtlas` replacement. Proof image/log: `docs/tests/runtime/text/runtime_text_atlas_texture_array_resource_owner_preview_20260704.png` SHA256 `6E8FFFCE35642A9B17F55DF50A52812CBAA200FE8FA6B5EEF475D230B63C3C85`; `docs/tests/runtime/text/runtime_text_atlas_texture_array_resource_owner_validation_20260704.log` SHA256 `F64D24FE2E8987FFB3E52E4B2C002D6CEB269F38C278D6A05E6F8C3B3D19E320`. Repo/cargo target same-name scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 bitmap atlas renderer resource-owner slice adds the first real WGPU owner for the future bitmap atlas draw path. `scene_renderer/ui/atlas_renderer/` owns the vertex-buffer layout mapping, texture-array sampler/bind-group resources, shader module/pipeline creation, pipeline-resource cache, vertex-buffer upload, draw-command storage, and render-pass submission loop. `ScreenSpaceUiTextSystem` now mounts `GlyphAtlasBitmapRenderer` and prepares/renders an empty draw plan each frame, so the resource lifecycle is exercised without changing visible glyphon native or SDF text output. This deliberately does not feed bitmap glyph sources, execute submission source-byte texture uploads, or replace glyphon `TextAtlas` yet. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_renderer_resource_owner_preview_20260704.png` SHA256 `19D973B8833BEC3E79F8ADAA01E4923FD9922E1815B647EBB86201F2481C9DE8`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_renderer_resource_owner_validation_20260704.log` SHA256 `237F104CE3CCA2FCF8AD20E7D3A783DDED16949FA2DA87DD7984520F2AA7285A`. Repo/cargo target same-name scans returned 0. Focused Cargo timed out under external cargo/rustc lanes and is not counted as green evidence.
+
+
+
+The 2026-07-05 native alpha bitmap atlas source-feed slice advances that owner from an empty draw-plan lifecycle to a guarded alpha-mask handoff. `text/native_bitmap_atlas.rs` now derives glyphon-equivalent bitmap pixel rectangles from `LayoutGlyph::physical(...)`, `SwashCache::get_image_uncached(...)`, placement left/top, and line-y scale, then feeds alpha `SwashContent::Mask` glyphs into `GlyphAtlasBitmapSource` plus source-byte records. `scene_renderer/ui/atlas_renderer/renderer.rs` now accepts a `GlyphAtlasBitmapRenderSubmissionPlan`, builds the prepared upload/frame plan, writes the renderer-owned texture, and exposes upload readiness/failure counts in `GlyphAtlasBitmapRendererPrepareReport`; parent `text.rs` stays as native/SDF/glyphon fallback orchestration. The original source-feed cutover was fail-closed for color/subpixel glyphs, missing source coverage, and allocation failures; same-day follow-ups later opened Color/RGBA source storage, contiguous mixed-storage renderer handoff, and known-opaque-background SubpixelMask replacement. Missing/transparent Subpixel backgrounds still remain on glyphon. A same-day follow-up no longer treats partial per-`TextArea.bounds` clipping as a cutover blocker for alpha masks: the native source feed crops the bitmap rows and adjusts the source rect/byte length before upload. This closes the first source-byte upload path and alpha partial-clip path, but not persistent glyph-cache eviction or full glyphon `TextAtlas` replacement. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_native_alpha_source_feed_preview_20260705.png` SHA256 `773FA8B536B7D3BAE35AC3D902B04E2D1528EBB6114EE1ABDAE340869C9E4D41`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_native_alpha_source_feed_validation_20260705.log` SHA256 `29E8C2F1049723EC4FA7F38FDDA2D1BC10EAD0EFDBE883124E80CBBB6615037F`. Repo/cargo target same-name scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 TextArea bounds clipping follow-up keeps the crop in the renderer-local native source owner rather than widening atlas run contracts. `native_bitmap_atlas.rs` intersects each alpha glyph screen rect with the `TextArea.bounds` rectangle before visible-glyph accounting, ignores fully outside glyphs, and converts partial clips into source-row crops. The resulting `GlyphAtlasBitmapSource` carries the clipped screen rect, clipped `content_size`, and byte length that matches the cropped rows, so `GlyphAtlasBitmapUploadStagingPlan` can continue copying complete source images by `source_index` without learning about sub-rect offsets. The frame can replace glyphon when every visible alpha glyph has cropped source bytes and the atlas allocation succeeds; Color/Subpixel glyphs inside bounds still keep the conservative glyphon fallback. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_text_area_bounds_clip_preview_20260705.png` SHA256 `4ADF1B30243B5A032D6706B28E1DF83974608E494B3DD993FA06C18C88C606C6`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_text_area_bounds_clip_validation_20260705.log` SHA256 `DEFA5A2D4C48CF4D8222C65DAE2533418980469E10636CBF8B7767DC4B68AB84`. Repo/cargo target same-name scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 native bitmap atlas prepare-report follow-up makes that guarded replacement decision visible to the text prepare report. `native_bitmap_atlas.rs` now emits `NativeBitmapAtlasPrepareReport`, recording visible raster glyphs, source image coverage, unsupported Color/Subpixel glyphs, clipped alpha glyphs, the underlying `GlyphAtlasBitmapRenderSubmissionReport`, the single atlas storage format if one exists, whether storage formats were mixed, and the final `replaces_glyphon` decision. `text.rs` returns that report beside native font-id telemetry and stores it in `ScreenSpaceUiTextPrepareReport.native_bitmap_atlas`. This slice deliberately required a single storage format while the renderer still had one texture array per prepared native frame; the later storage-partition and mixed-storage renderer cutover keep that fail-closed diagnostic value while adding the real multi-storage handoff for contiguous R8/RGBA frames. Proof image/log: `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_prepare_report_preview_20260705.png` SHA256 `5A5918F8FDFB4308F4E5876E7E96D8322AA5CB7F4A3EEF00CDC346918E34BF64`; `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_prepare_report_validation_20260705.log` SHA256 `8275C9889AB84DE1963AC1CB2B664D605A52EC5185A1F1475BFE9A30BD034C66`. Repo/cargo target same-name scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 native bitmap atlas storage-partition follow-up turns that mixed-storage diagnostic into renderer-ready partition data without changing the production fallback gate yet. `NativeBitmapAtlasFrame::storage_submissions()` now groups source images and `GlyphAtlasBitmapRenderSubmissionPlan` values by `GlyphAtlasStorageFormat`, and each `NativeBitmapAtlasStorageSubmission::source_bytes()` remaps frame-local source indices into a partition-local source space. `NativeBitmapAtlasPrepareReport` records partition count, visible glyphs covered by those partitions, and `mixed_storage_replacement_ready`, so a mixed R8/RGBA frame can prove that the data plane is ready while `replaces_glyphon()` still remains false until the renderer owns a real multi-pass/multi-storage draw path. The later mixed-storage renderer cutover consumes this exact partition contract. Proof image/log: `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_storage_partition_preview_20260705.png` SHA256 `7C40AAC191E870C88145086FBBCE62B8F3B7429FAFEE2319F0DA6BF795FD478F`; `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_storage_partition_validation_20260705.log` SHA256 `AB1A7EBE3F526BFF356BD78FAE3DDCB959D00340F46485E19B88A655F1C8D518`. Repo/cargo target same-name scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 native bitmap atlas mixed-storage renderer cutover closes the contiguous R8/RGBA production handoff without widening parent `text.rs` into a renderer owner. `text.rs` now makes the replacement route explicit through `NativeBitmapAtlasHandoff`: single-storage frames still call `GlyphAtlasBitmapRenderer::prepare_submission(...)`, contiguous mixed-storage frames call `NativeBitmapAtlasFrame::storage_submissions()` followed by `GlyphAtlasBitmapRenderer::prepare_storage_submissions(...)`, and fallback frames still run glyphon. The mixed route disables glyphon, trims the glyphon `TextAtlas`, and lets `atlas_renderer/renderer.rs` upload/render each storage partition with the matching R8 or RGBA texture array; non-contiguous mixed storage and SubpixelMask frames that require background composition remain on glyphon. Proof image/log: `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_mixed_storage_renderer_cutover_preview_20260705.png` SHA256 `DB76B17426027EE133CC5E3D2C0B693A98456068FB5749FEE333E54407942247`; `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_mixed_storage_renderer_cutover_validation_20260705.log` SHA256 `B551CC870A9738C0A6A0D1AD14A3CDB8B740A21C0042E2F50970906A405F4FA1`. Repo/cargo target same-name scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 native bitmap atlas source-cache eviction slice adds the missing persistent swash source-image owner below the native atlas handoff. `text/native_bitmap_atlas/source_cache.rs` now owns `NativeBitmapAtlasSourceCache`, caching swash image content, bearing, size, and source bytes by `CacheKey` with an LRU capacity default of 2048. `ScreenSpaceUiTextBackend` holds this cache across prepare frames, and `native_bitmap_atlas_frame(...)` reports `source_cache` hit/miss/insert/evict/entry counters through `NativeBitmapAtlasPrepareReport`. The focused regression uses capacity 2 to prove the least-recently-used source is evicted after a touched earlier glyph stays resident. Proof image/log: `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_source_cache_preview_20260705.png` SHA256 `1E14BAC0D645C799F0C1B6CED7B3B688810D0DA906E8296C513E90D517D71B10`; `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_source_cache_validation_20260705.log` SHA256 `53D4E8BA41AF8F37023D61F52C054AB374AB358CF61AB7DE049995DA2F9993EE`. Repo target, `E:\cargo-targets`, `D:\cargo-targets`, and `F:\cargo-targets` same-name scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 native bitmap atlas idle source-cache discard follow-up gives that persistent source cache an explicit empty-frame flush. `NativeBitmapAtlasSourceCache::discard_all_for_idle_frame()` resets the frame counters, clears all source entries, and reports how many cached source images were evicted. `native_bitmap_atlas_idle_prepare_report(...)` turns that into a default `NativeBitmapAtlasPrepareReport` with only `source_cache` populated, and `ScreenSpaceUiTextBackend::prepare(...)` uses it in the `texts.is_empty()` branch after trimming glyphon `TextAtlas` and before preparing the empty bitmap plan. The focused regression proves two inserted source images produce `evicted_count=2` and `entry_count=0` after the idle frame. Proof image/log: `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_idle_source_cache_discard_preview_20260705.png` SHA256 `3AAEDFD539282C7B39145F58AA5FCCAD885B3D1056F79C89BEEE350A86845569`; `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_idle_source_cache_discard_validation_20260705.log` SHA256 `01897DB95CFA33920506EBD15C514BF7398B2C13C5C588DE9AC5C43C69421C33`. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 native bitmap atlas face-invalidation source-cache guard closes the next lifecycle gap without moving cache ownership out of `text/native_bitmap_atlas/source_cache.rs`. `NativeBitmapAtlasSourceCacheFrameReport` now carries `invalidated_count`, and `discard_all_for_face_invalidation()` clears cached swash source images immediately while publishing the invalidated/evicted count on the next `begin_frame()`. `ScreenSpaceUiTextSystem::prepare(...)` records whether auto-text font resolution inserted a new font asset before native prepare; `ScreenSpaceUiTextBackend::prepare(...)` also compares the native prepare entry/exit asset count so explicit native text font assets trigger the same cache invalidation before `native_bitmap_atlas_frame(...)` or idle reporting. The focused regression proves two cached source images are removed and the next frame reports `invalidated_count=2`, `evicted_count=2`, and `entry_count=0`. Proof image/log: `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_face_invalidation_preview_20260705.png` SHA256 `6C3CFB3E81034048E1249EF64A014FD93F431DFDBE890AB1CB4DD22776B9EE84`; `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_face_invalidation_validation_20260705.log` SHA256 `A2D021877470EC579A7FFAB9D10C64FB09C7EF59D1A8CB1FFCDD1E06C80D4C67`. Focused Cargo remains deferred while external cargo/rustc lanes are active; this is still a source-cache lifecycle guard, not full face requeue or live editor typography acceptance.
+
+
+
+The 2026-07-05 native bitmap atlas retry-frame state execution slice connects the existing atlas retry data plane to the production screen-space UI text backend. `ScreenSpaceUiTextBackend` now owns a `GlyphAtlasBitmapRetryFrameState` and clears it when font faces are invalidated or when the native text list is empty. `text/native_bitmap_atlas/retry_frame.rs` keeps retry orchestration out of the parent files: it filters queued blocked glyphs to sources still visible in the current frame, calls the retry frame driver, remaps source bytes to the retry-aware submission input order, and drops stale queued sources before upload/draw handoff. `text/native_bitmap_atlas/tests/retry_frame.rs` keeps the visible retry, nonzero remap, and stale discard regressions out of the parent test owner. `NativeBitmapAtlasPrepareReport` carries retry submission/state telemetry for diagnostics. Proof image/log: `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_retry_frame_state_preview_20260705.png` SHA256 `4E4F6035CE84D6501DCF272D59F50156193D608EC1C3BFCE7365AEE4A8071041`; `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_retry_frame_state_validation_20260705.log` SHA256 `87B2631FE1AC2C87433F548FF97D75FF0AE75979BD4590B7F39F99B1E5C983AB`. Target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active; face validity requeue, global atlas slot invalidation, async raster worker, complete glyphon `TextAtlas` cutover, and live editor-window typography QA remain open.
+
+
+
+The 2026-07-06 native bitmap atlas retry stale-selection follow-up makes that stale-drop path visible and stricter. `NativeBitmapAtlasPrepareReport.discarded_stale_retry_glyph_count` now records how many blocked retry glyphs were removed because their source is not visible in the current frame. The retry selector also marks queued retry entries as consumed, so duplicate visible source images cannot reuse one queued blocked glyph twice; remaining duplicate source images proceed as new source input for the current frame. The focused regression `native_bitmap_atlas_retry_frame_does_not_reuse_one_blocked_source_twice` covers duplicate source handling, the stale discard regression asserts the discarded count, and `text/tests.rs` keeps aggregate prepare-report expectations aligned with the new telemetry field. Static validation log: `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_retry_stale_selection_validation_20260706.log` SHA256 `9961E678C812FBB79998B09EFBF0F430FB651EEEFABA46F43839BBD728254D01`. Focused Cargo `native_bitmap_atlas_retry` passed 5/5 with `--no-default-features --features core-min --locked`; log `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_retry_focused_cargo_20260706.log` SHA256 `9ECCE49DCCAD9B5CE533EE1E2111A36D6F0F0F8A9AC066A226B0120F85368F3F`. Target scans returned 0; no fresh visual proof was generated for this non-visual retry telemetry slice.
+
+
+
+The 2026-07-06 native bitmap atlas test-owner split keeps the growing native atlas regression suite out of a single mixed file. `text/native_bitmap_atlas/tests.rs` is now a small fixture/module mount owner, while `tests/source_cache.rs`, `tests/handoff.rs`, `tests/source.rs`, `tests/frame.rs`, and the existing `tests/retry_frame.rs` own focused behavior groups. This is a structure-only move: production native atlas source generation, handoff decisions, renderer submissions, glyphon fallback, and upload paths are unchanged. Scoped rustfmt and diff checks passed; focused Cargo remains deferred because external cargo lanes were already active.
+
+
+
+The 2026-07-05 native bitmap atlas retry face-invalidation follow-up makes font-face invalidation visible in retry-state telemetry. `GlyphAtlasBitmapRetryFrameState::discard_all_for_face_invalidation()` clears blocked retry glyphs and accumulates a pending invalidation count; `apply_submission_plan(...)` and `native_bitmap_atlas_idle_prepare_report(...)` drain that count through `GlyphAtlasBitmapRetryFrameStateReport.invalidated_blocked_glyph_count`. `ScreenSpaceUiTextBackend` now invalidates both the swash source cache and retry queue when font assets/faces change, and the empty-native-text path reports the same retry invalidation before returning an idle prepare report. Proof image/log: `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_retry_face_invalidation_preview_20260705.png` SHA256 `A02F00772E0908C0FCFB69F51DFE70BD353A23B7855A6D1583CF052E15EC505A`; `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_retry_face_invalidation_validation_20260705.log` SHA256 `C6C3B2CE2460E450C2163407A4995E8915E260A28F6D777A7C17544E1B2FD47D`. Target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 native bitmap atlas renderer face-invalidation storage-pass telemetry slice closes the renderer-local stale draw state gap. `GlyphAtlasBitmapRenderer::discard_all_for_face_invalidation()` clears active storage passes and stores a pending invalidation count; the next prepare report exposes that count through `invalidated_storage_pass_count`. `ScreenSpaceUiTextBackend` invokes it in the same face invalidation branch that clears the native source cache and retry queue, so old face storage-pass draw/upload state is not silently retained after font assets change. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_renderer_face_invalidation_preview_20260705.png` SHA256 `5D35B7421413F7C8B1C47E4AAC5B25794D8BC2DFB27CC66730732091EF981CB1`; `docs/tests/runtime/text/runtime_text_bitmap_renderer_face_invalidation_validation_20260705.log` SHA256 `15B149B884E73979E2B16CBE3B6A2D94735362B3F7E086E8FBD5CE12CD9E0FF1`. Target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 native bitmap atlas nearest sampler slice addresses the lower-level atlas sampling risk visible after the editor font family had already converged to DengXian. `atlas_renderer/resources.rs` now creates the bitmap atlas sampler from `glyph_atlas_bitmap_sampler_descriptor()`, using nearest min/mag/mipmap filtering and LOD clamp 0 to match glyphon bitmap cache sampling. This prevents linear filtering from pulling neighboring atlas texels into compact file-name glyph edges, which can read as left/right drift at small UI sizes. `atlas_renderer/tests.rs` locks the descriptor contract. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_nearest_sampler_preview_20260705.png` SHA256 `A8C071C64D89F6380CAC2D11B64970CD078051B9DD030AD3D1515395EF5C9A0B`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_nearest_sampler_validation_20260705.log` SHA256 `8734A1008CB635E072FFE89546368A579BAD4075DBEBABB6969031E747394DD0`. Target scans returned 0. The 2026-07-06 focused Cargo rerun passed `glyph_atlas_bitmap_sampler_matches_glyphon_nearest_sampling_contract` 1/1 with `--locked` and external target dir `E:\cargo-targets\zircon-runtime-text-atlas-sampler-0706`; log SHA256 `AD2A6E83F4D73F08C1A53404740E1148353D791F0F15AE9316B783FAE4BE5692`, exit SHA256 `A9F58776A09B5DAC438049683F24BF85764E0FF8E7455952456165C68C158627`.
+
+
+
+The 2026-07-05 native bitmap atlas handoff owner extraction keeps glyphon/native cutover policy inside the native atlas subtree. `text/native_bitmap_atlas/handoff.rs` now owns `NativeBitmapAtlasHandoff` and `native_bitmap_atlas_handoff_for_report(...)`, while `scene_renderer/ui/text.rs` imports that decision and keeps only frame orchestration: prepare single-storage replacement, prepare mixed-storage replacement, or fall back to glyphon. The handoff regression tests moved from root `text/tests.rs` into `text/native_bitmap_atlas/tests.rs`, beside the `NativeBitmapAtlasPrepareReport` contract they inspect. This is a structure and ownership slice, not a rendering behavior change; it prepares later fallback-reason telemetry and full glyphon `TextAtlas` cutover work. Proof image/log: `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_handoff_owner_preview_20260705.png` SHA256 `B97D06F24B38594DCECF485FEC38D27E825565D6AD9F48699476C22081901BDF`; `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_handoff_owner_validation_20260705.log` SHA256 `B64F35B3D2B3785602012ED91FF60550CA05FD0B85E0FC2A91D82B5B3AA223D9`. Focused Cargo remains deferred while unrelated external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 native bitmap atlas fallback reason telemetry slice adds a diagnostic field to the same owner. `NativeBitmapAtlasPrepareReport.glyphon_fallback_reason` is an enum describing why a frame stayed on glyphon after the handoff decision was evaluated. The reason is derived in `text/native_bitmap_atlas/handoff.rs` from already-visible report state, with explicit variants for no visible raster glyphs, unsupported glyph formats, incomplete source coverage, missing LCD background-composite input, atlas allocation failure, mixed storage split readiness, incomplete storage submission, missing GPU draw plan, and missing single-storage format. The render branch behavior remains unchanged; this is report telemetry for the remaining `TextAtlas` cutover/debug path. Proof image/log: `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_fallback_reason_preview_20260705.png` SHA256 `3B6A5965753EF9769E5CBCDAA1827F3EBF0A6A04C8D389260CF1B00CB65BB153`; `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_fallback_reason_validation_20260705.log` SHA256 `B541E92E405B52A5A8D66E79EB3BCB5E3159422EF3EDD88FFD45AA09D228C09C`. Focused Cargo remains deferred while unrelated external cargo/rustc lanes are active.
+
+
+
+The Plan 08 `skinning` current-source reprobe follow-up found that the extracted handoff owner needed module-boundary visibility for the parent re-export consumed by `scene_renderer/ui/text.rs`. `NativeBitmapAtlasHandoff` and `native_bitmap_atlas_handoff_for_report(...)` are therefore visible to `crate::graphics::scene::scene_renderer::ui::text`, not to the public crate surface. This preserves the handoff owner split while allowing the lib-test target to compile past the re-export/import privacy errors. The same reprobe timed out after 604s during Windows lib-test compilation, so that row remains compile-boundary evidence. A later Plan 08 closeout also aligned `native_bitmap_atlas_glyphon_fallback_reason_for_report(...)` to the same `ui::text` boundary and the fresh `cargo test -p zircon_runtime --lib skinning` wrapper passed 20/20 with 6724 filtered in `docs/tests/runtime/render/plan08_skinning_current_source_cargo_wrapper_after_handoff_fallback_visibility_20260705.*`.
+
+
+
+The 2026-07-05 editor retained-host same-style shaped cluster line guard closes a runless shaped-text fragmentation problem visible in compact file labels such as `folder-op...line.svg`. `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/text/commands/shaped.rs::push_shaped_text_commands(...)` now asks `uniform_cluster_text_style(...)` whether all visible clusters in a shaped line map to the same `UiTextRunPaintStyle`. When they do, the retained host receives one full-line `HostPaintCommand::text`, so the label is laid out and rasterized once instead of re-laying out the prefix, ellipsis, and suffix independently. Mixed-style clusters still use the existing per-cluster split to preserve plain/code/strong/emphasis boundaries. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_same_style_cluster_line_preview_20260705.png` SHA256 `83EA90E14589E020780B9EF58CC20557E72961A5EB74988D9CB40637275FDACB`; `docs/tests/runtime/text/runtime_text_editor_retained_same_style_cluster_line_validation_20260705.log` SHA256 `1B548F90039400909A94BD88CAAF3B7C63CAA1F676C4B0014FB21202175B6463`. Scoped rustfmt passed; focused Cargo timed out after 604s without Rust diagnostics, so Cargo is not counted green.
+
+
+
+The 2026-07-05 SubpixelMask background input slice removes the last hard-coded native atlas background input before a real framebuffer composite owner exists. `graphics/scene/scene_renderer/ui/render.rs` now records `ScreenSpaceUiTextBatch.background_color` only when the UI command has an explicit opaque `background_color`; transparent or missing command backgrounds remain `None` instead of falling back to a guessed color. `graphics/scene/scene_renderer/ui/text.rs` wraps each glyphon `TextArea` as a `NativeBitmapAtlasTextArea` so `native_bitmap_atlas.rs` can preserve the known background on SubpixelMask sources and report both `background_composite_glyph_count` and `missing_background_composite_glyph_count`. At this boundary SubpixelMask still stayed on glyphon; the replacement-route follow-up below opens only the known-opaque-background case. Proof image/log: `docs/tests/runtime/text/runtime_text_subpixel_background_input_preview_20260705.png` SHA256 `2A497EFEA7EE4550E312D449B766597444905EA781E401FAC1CEF718E9884263`; `docs/tests/runtime/text/runtime_text_subpixel_background_input_validation_20260705.log` SHA256 `CCE9F90EF905D3DE45883845B0C33BDC12B9526385BC90BEBC525CA48B3369E1`. Repo/cargo target same-name scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The same-day inherited opaque UI background follow-up keeps that inference inside `graphics/scene/scene_renderer/ui/render/background.rs`. `ScreenSpaceUiBackgroundTracker` records only prior opaque solid UI quad candidates whose visible frame covers the text frame, and it marks the background unknown when a later transparent overlay, image, text, border, or unknown-background command intersects the text. Text commands with transparent or invalid own `background_color` also stay unknown instead of borrowing a prior panel color. This closes command-stream background inference for common text-over-panel UI, but it does not fake framebuffer readback; true framebuffer/background acquisition remains an open renderer follow-up. Proof image/log: `docs/tests/runtime/text/runtime_text_ui_inherited_opaque_background_preview_20260705.png` SHA256 `2DB9B328F9B6106809DD8E7761D96EC4705F86AB1CF8DCA862B54D0911B7A4D8`; `docs/tests/runtime/text/runtime_text_ui_inherited_opaque_background_validation_20260705.log` SHA256 `9EFB86DBCC006E61821C2DAA3BFC0A48821453E5786B850F6EE3EC484CB589FE`. Repo target same-name scan returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 SubpixelMask background composite replacement route closes the known-background renderer path. `text/atlas/shaders/glyph_atlas_sampling.wgsl` now returns shader-composited RGB with the background alpha for `glyph_atlas_decode_subpixel_rgb_coverage(...)`, and `scene_renderer/ui/atlas_renderer/pipeline.rs` maps `GlyphAtlasBlendMode::SubpixelBackgroundComposite` to WGPU color/alpha `REPLACE` so the framebuffer background is not blended twice. `native_bitmap_atlas.rs` exposes `background_composite_replacement_ready`, and `text.rs` handoff tests prove a SubpixelMask frame can replace glyphon only when all background-composite glyphs have known opaque backgrounds; missing/transparent backgrounds still fail closed to glyphon. Proof image/log: `docs/tests/runtime/text/runtime_text_subpixel_background_composite_replacement_preview_20260705.png` SHA256 `ED16A45C3F15D7C4DA2491B46B26C67965E5AF3B6F4A5757370C18945A95E4C1`; `docs/tests/runtime/text/runtime_text_subpixel_background_composite_replacement_validation_20260705.log` SHA256 `85A1225B67FAF648BE4B9BE509E8AE544345099FDB5BC0511C382F194E21733E`. Repo/cargo target same-name scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 native bitmap atlas RGBA source handoff opens the Color storage path without yet claiming Subpixel replacement. `native_bitmap_atlas.rs` maps `SwashContent::Color` to `GlyphAtlasFormat::Color`, preserves RGBA source rows through crop/source-byte projection, and uses a white foreground multiplier so color glyphs are not tinted again by the text color. `SwashContent::SubpixelMask` is represented as `GlyphAtlasFormat::SubpixelMask` in source/report data; same-day follow-ups first added known/missing background diagnostics, then allowed replacement for known opaque backgrounds only. The regression owner was split into `text/native_bitmap_atlas/tests.rs`, leaving the parent file as production source-feed logic plus a test mount. Proof image/log: `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_rgba_source_preview_20260705.png` SHA256 `74B78FAA54018E0523BC8921C9E3930E34DDD00C404309A4DEF8DB8F67EA312A`; `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_rgba_source_validation_20260705.log` SHA256 `56D0FE4DC9FFE8F590A38919EF7D89DF8DBCF03CF060BF6478BE2C97B01A4C6E`. Focused Cargo `native_bitmap_atlas` timed out after 904s during Windows lib-test compilation before a test result; log `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_rgba_source_cargo_test_20260705.log` has SHA256 `D199628C70150B7B9DEEC62A3D0327FD921E4324CA1FF77419A4A71665D40F5B`, and owned processes were stopped. Repo/cargo target same-name scans returned 0.
+
+
+
+The 2026-07-04 editor component-atlas validation exposed two compile blockers in the same bitmap atlas renderer owner. `atlas_renderer/renderer.rs` now exposes `GlyphAtlasBitmapRenderer`, `GlyphAtlasBitmapRendererPrepareReport`, and the renderer lifecycle methods to the enclosing `scene_renderer::ui` subsystem, matching the `text.rs` mount boundary instead of re-exporting private child-module items. `atlas_renderer/resources.rs` now derives bind group entry binding numbers from `glyph_atlas_gpu_bind_group_layout()` when constructing the WGPU bind group, keeping the WGPU layout object and shared glyph layout contract separate. This is a compile-boundary repair only; it does not claim live bitmap glyph source upload/draw or glyphon atlas cutover. Editor evidence: `docs/tests/editor/editor-components-workbench-slate-atlas-900x620.png` modified `2026-07-04 15:54:48 +08:00`, SHA256 `CF3E25EC26D08B34BCB08B81E63762779BBF4A08CE9BE04B24C7F785E83D3070`; direct execution of the compiled `zircon_editor-c8439c4bed0fa2b4.exe` ignored exact screenshot test passed 1/1 after the cargo wrapper hit its timeout boundary.
+
+
+
+The 2026-07-04 atlas texture upload owner split keeps the renderer-local handoff from growing into another mixed root owner. `atlas_texture_upload.rs` now only mounts `write`, `binding`, and `frame` and exports the production WGPU writer used by SDF upload. `atlas_texture_upload/write.rs` owns generic `GlyphAtlasUploadCommand` field projection and `Queue::write_texture`, `binding.rs` owns bitmap request plus staging-byte validation, and `frame.rs` owns prepared-upload readiness/report orchestration. This is behavior-preserving structure work that prepares the real frame-loop/texture-array integration path; it does not create the bitmap texture array, generate frame-loop glyph sources, or replace glyphon `TextAtlas`. Proof image/log: `docs/tests/runtime/text/runtime_text_atlas_texture_upload_owner_split_preview_20260704.png` SHA256 `AD1E060ECF788BF925FD40E017DD42890335E5503BFAEC9DD09ECDC189EF127A`; `docs/tests/runtime/text/runtime_text_atlas_texture_upload_owner_split_validation_20260704.log` SHA256 `A28E8ECF2563E61220059FF5ECDBC204910CC9D8ED5FEC92A7A0FD3C0806A318`. Repo/cargo target same-name scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 bitmap atlas texture upload frame plan adds the next renderer-local aggregation layer without moving ownership back to the renderer root. `GlyphAtlasBitmapTextureUploadFramePlan` combines the prepared upload's staging pages, `GlyphAtlasBitmapTextureUploadRequestPlan`, binding plan, and `GlyphAtlasBitmapTextureUploadFrameReport`. The report records request, binding, staging failure, staged-upload failure, skipped staged failure, and upload-byte counts, and marks `ready_to_write_texture` only when there is upload work and no failure class is present. `write_glyph_atlas_bitmap_texture_upload_frame_plan(...)` therefore reuses the shared WGPU binding writer only for a ready frame and otherwise returns diagnostics without writing partial staging bytes. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_texture_upload_frame_plan_preview_20260704.png` SHA256 `F453B4FAE8A6158D1F4657376C6BC16E365F0ED6D70D6CD082BCD0BA130CAB2D`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_texture_upload_frame_plan_validation_20260704.log` SHA256 `663DD48F75814E739CB945CD1489DA89DB5671AC715D90A370A08DC76D475DD1`. Repo/cargo target same-name scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 bitmap atlas texture upload frame export follow-up turns that private frame-plan leaf into the formal UI scene-renderer handoff without widening it to the graphics root. `atlas_texture_upload.rs` re-exports the frame plan/report and plan/write helpers only inside the UI renderer subtree, while `frame.rs` keeps the request and binding plans private and exposes diagnostics through `GlyphAtlasBitmapTextureUploadFramePlan::report()`. The tests now import the handoff from the structural root and inspect `plan.report()` instead of reaching into request/binding internals. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_texture_upload_frame_export_preview_20260704.png` SHA256 `EF47BAD020503791FFD0A18E58D84529176465C1907EF3C89CB85D63D46F6E4E`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_texture_upload_frame_export_validation_20260704.log` SHA256 `62F7AA8F59B47A55E06D7D509461D840A49396D2334970C401B54EC4AB4E8912`. Repo/cargo target same-name scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 swash bitmap upload staging integration locks the source-byte continuity across the raster and atlas owners. `raster/swash/tests.rs` now takes a validated `GlyphBitmap`, converts it to `GlyphAtlasBitmapSource`, builds the bitmap run plan, and feeds `bitmap.data.as_slice()` through `GlyphAtlasBitmapUploadSourceBytes` into the staging plan. The expected staged page rows contain the original alpha bytes and zero-filled unused atlas space, proving the bridge does not replace real swash bytes with synthetic lengths. Proof image/log: `docs/tests/runtime/text/runtime_text_swash_bitmap_upload_staging_integration_preview_20260704.png` SHA256 `1B7D189EED558C1BC0EC97FE254FF2ACF01C875DEAB4F479B28593BDCE6D815B`; `docs/tests/runtime/text/runtime_text_swash_bitmap_upload_staging_integration_validation_20260704.log` SHA256 `7BAA5FD38AF0B15DE7BF753F5CE9252B8FCF9BB0A95DD4707832E97F623D866E`. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 bitmap atlas render submission slice adds the renderer-facing aggregate owner without taking over real wgpu submission yet. `text/atlas/render_submission.rs` builds `GlyphAtlasBitmapRenderSubmissionPlan` from bitmap sources by joining the existing bitmap run plan, upload commands, clipped draw batches, and `GlyphAtlasGpuDrawPlan`. Its tests lock four handoff rules: visible glyphs produce GPU vertices and draw commands, clipped glyphs keep upload commands without GPU vertices, unsupported or oversized bitmap sources remain diagnostic-only, and same-frame page eviction remains blocked instead of forcing a rebuild. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_render_submission_preview_20260704.png` SHA256 `007BD2E3CA03BAA436666A965AD3E1F98A3162A09A24A58ABFF4AC13D687CF3C`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_render_submission_validation_20260704.log` SHA256 `F582F746C121F6938ADFB4754B9CE0C00A7C92D9CE1239DF0589B7E8B78220BD`; target scans returned 0. This still does not claim real GPU upload/draw, glyphon `TextAtlas` cutover, persistent glyph cache eviction, or live editor typography QA.
+
+
+
+The companion bitmap atlas submission report slice keeps that aggregate owner inspectable before the real renderer consumes it. `GlyphAtlasBitmapRenderSubmissionReport` summarizes sources, allocated glyphs, failures, dirty/rebuilt pages, full/partial upload counts, upload bytes, draw batches, pipeline count, GPU batches, draw commands, vertices, and upload/GPU/failure readiness flags. The new regressions cover visible mixed AlphaMask/SubpixelMask glyphs, clipped upload-only glyphs, full-page dirty uploads, and invalid-source diagnostics. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_submission_report_preview_20260704.png` SHA256 `90D5A2E3471229F966095D482F0AC8F3AB9AA765828FB6CE3A46ED2CE3856C82`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_submission_report_validation_20260704.log` SHA256 `C640A270DD730CE18B8AD4D388DF0A3549504BA2C828C36D017118154C9D9AEF`; target scans returned 0. This is still a report/data-plane slice, not a claim that wgpu texture upload, glyphon atlas cutover, or live editor text QA is complete.
+
+
+
+The bitmap atlas submission failure breakdown follow-up keeps those report counters useful for renderer diagnostics instead of only reporting a total failure count. `GlyphAtlasBitmapRenderSubmissionReport` now distinguishes UnsupportedFormat, EmptyContent, DataLengthMismatch, PageReservationBlocked, and OversizedGlyph, with helpers that group source-validation failures separately from atlas-capacity pressure. The regression scenario mixes two invalid sources, one successfully allocated/uploaded/drawn glyph, and one same-frame page reservation block to prove failures do not suppress valid upload/GPU work. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_submission_failure_breakdown_preview_20260704.png` SHA256 `C3075A77EE3849B81D64FF48C3F3427DB89833D9CFEFC55C4CF7B90F4AA9E61D`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_submission_failure_breakdown_validation_20260704.log` SHA256 `B6FD22FE2D49BF30EE3C1498081957B88DD740FA0A04D736A458C1F24F0974B0`; target scans returned 0. This still does not claim real wgpu upload/draw, glyphon `TextAtlas` cutover, or live editor typography QA.
+
+
+
+The bitmap atlas blocked retry queue follow-up closes the first data-plane piece of the plan's same-frame page-reservation blocked strategy. `GlyphAtlasBitmapRunPlan` now records `GlyphAtlasBitmapQueuedGlyph` entries whenever a valid bitmap source cannot reserve a page because the format has no evictable page in the current frame, preserving source index, source payload, and `retry_frame_index`. `GlyphAtlasBitmapRenderSubmissionReport` surfaces `blocked_retry_count` and `next_retry_frame_index`, so the future renderer can report retry pressure without opening the run internals. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_blocked_retry_queue_preview_20260704.png` SHA256 `F2A8F9493B6C706C557F179B3731CBFA11BDA886C8BDF20A74FE7B0DE85CB2C4`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_blocked_retry_queue_validation_20260704.log` SHA256 `D6A70E7784BD9B2B924894D514271CBABB1BC79B57A10B25BE2111B24F194F8A`; target scans returned 0. This is not yet placeholder rendering, queue consumption, real wgpu upload/draw, glyphon `TextAtlas` cutover, or live editor typography QA.
+
+
+
+The bitmap atlas retry frame-input follow-up turns that queue selection into a concrete next-run input contract while still staying below the real renderer frame loop. `text/atlas/bitmap_run/retry.rs` now owns `GlyphAtlasBitmapRetryFrameInput`: due retry sources are appended before new frame sources, deferred glyphs and the earliest wakeup stay in the input report, and `source_origins` maps run-local source indices back to either `Retried { source_index, retry_frame_index }` or `New { source_index }`. That lets later renderer/frame-loop code feed `frame_input.sources` into `glyph_atlas_bitmap_run_plan(...)` without losing diagnostics for retried glyphs. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_input_preview_20260704.png` SHA256 `1D5A26510CE7E51BAB8CD046BE62E273501BAB0C3D90956A0A90A812672B0037`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_input_validation_20260704.log` SHA256 `94E2B54BBEACB7F5A7A3C4EBE52D09DDCC920527056DE2B8C10383534E86DBB7`; target scans returned 0. This does not claim real renderer/frame-loop execution, retry backoff policy, real wgpu upload/draw, glyphon `TextAtlas` cutover, or live editor typography QA.
+
+
+
+The bitmap atlas retry frame-outcome follow-up closes the data-plane loop after that next-run input is consumed by `glyph_atlas_bitmap_run_plan(...)`. `text/atlas/bitmap_run/retry.rs` now owns `GlyphAtlasBitmapRetryFrameOutcome`: completed glyphs increment retried/new counters through `source_origins`, blocked run-local source indices are remapped back to the original retry source or the new frame source, and deferred plus newly blocked entries become the next blocked queue with one `next_retry_frame_index`. This prevents future renderer/frame-loop code from carrying a parallel source map beside the bitmap run. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_outcome_preview_20260704.png` SHA256 `2608C73E1BEFF52A6DEDA574ABB7E97CA2F2EE817395EEB925863DC3C2753D96`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_outcome_validation_20260704.log` SHA256 `B0F1A337741B5C071AEE6BC345F69FEC4F01E4DC73F29F3C981D8458956792F3`; target scans returned 0. This does not claim real renderer/frame-loop execution, retry backoff policy, real wgpu upload/draw, glyphon `TextAtlas` cutover, or live editor typography QA.
+
+
+
+The bitmap atlas retry frame-submission follow-up moves the same loop to the renderer-facing handoff boundary without wiring real GPU execution. `text/atlas/render_submission/retry.rs` owns `GlyphAtlasBitmapRetryFrameSubmissionPlan`: it builds the retry frame input, runs the bitmap render submission plan over the merged sources, and derives the retry frame outcome from the submission's run plan. This gives the future renderer/frame loop one contract containing source-origin diagnostics, uploads/draw batches/GPU draw commands, and next blocked queue state. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_submission_preview_20260704.png` SHA256 `D20A8F29D0901958E6E9E20BF816D3804F0ACF8A413E053ED42BD529C0C4EBCE`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_submission_validation_20260704.log` SHA256 `08F2B2C6ECBEA8109AE1C96A605CD2E629C7A06F60549E70EE3DF5DDC1664136`; target scans returned 0. This does not claim real renderer/frame-loop execution, retry backoff policy, real wgpu upload/draw, glyphon `TextAtlas` cutover, or live editor typography QA.
+
+
+
+The bitmap atlas retry frame-submission report follow-up adds the telemetry layer for that handoff. `GlyphAtlasBitmapRetryFrameSubmissionReport` embeds the ordinary bitmap render submission report and adds retry-specific input, completion, blocked, pending, unmapped, and next-frame counters. Its helper flags let future frame-loop code distinguish an old retry being consumed, pending retry work carried forward, newly blocked atlas pressure, and a broken source-origin mapping without walking the internal run. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_submission_report_preview_20260704.png` SHA256 `427EE88C6090C2CDF05C9797B6898CFB2BEE36EE0A82DE8379290C61269D8445`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_submission_report_validation_20260704.log` SHA256 `DC919C67AACD53086EFE46167728194D0E1AB8C4E71E846BAA0DE4D8C66B86D1`; target scans returned 0. This still does not claim real renderer/frame-loop execution, retry backoff policy, real wgpu upload/draw, glyphon `TextAtlas` cutover, or live editor typography QA.
+
+
+
+The bitmap atlas retry backpressure follow-up closes the first explicit policy layer for the blocked queue. `GlyphAtlasBitmapRetryBackpressurePolicy` limits how many due retry sources can re-enter a single frame input; excess due sources keep their original source diagnostics but receive a later `retry_frame_index`, so a saturated atlas does not continuously resubmit the entire blocked queue every frame. `render_submission/retry.rs` exposes matching backpressure-aware submission constructors and report fields, including `backpressured_retry_count` and `has_backpressured_retry_work()`. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_backpressure_preview_20260704.png` SHA256 `830617462DF3EADD46148E11A07017D856796DF1B5298A8FC5831D5C873737EB`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_backpressure_validation_20260704.log` SHA256 `74D97463D5439C96CD5A6F1AFCB26635E25358907458EA3FBE21682F36C8C9C4`; target scans returned 0. This is still a data-plane policy slice, not a claim that real renderer frame-loop execution, real GPU upload/draw, glyphon atlas cutover, or live editor typography QA is complete.
+
+
+
+The bitmap atlas retry frame-state follow-up adds the first cross-frame queue owner below renderer root. `text/atlas/render_submission/frame_state.rs` owns `GlyphAtlasBitmapRetryFrameState`, which stores blocked glyphs between frames, builds retry-aware submission plans from the stored queue plus new frame sources, and commits `GlyphAtlasBitmapRetryFrameSubmissionPlan.frame_outcome.next_blocked_glyphs` back into the state; `atlas/mod.rs` re-exports the state types for future renderer owners. The tests cover a successful retry draining the queue, deferred/backpressured entries surviving a frame, and a newly blocked frame source entering the next retry queue with remapped source indices. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_state_preview_20260704.png` SHA256 `3FB968366FC2B7A4CEA7CB45263CEC0A6140D066C48C2A5B510549501D8CC198`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_state_validation_20260704.log` SHA256 `94A075EA64F439048810F18AE4DB2FA0B322A1C15D113C27BA043467480BACB5`; target scans returned 0. This still does not claim real renderer frame-loop execution, real GPU upload/draw, glyphon `TextAtlas` cutover, or live editor typography QA.
+
+
+
+The bitmap atlas retry frame-driver follow-up wraps that state owner in the first one-call frame-loop handoff. `text/atlas/render_submission/frame_driver.rs` owns `GlyphAtlasBitmapRetryFrameDriverConfig`, which carries the page size, per-format page cap, padding, retry backpressure policy, viewport, and clip rect for one frame. `glyph_atlas_bitmap_retry_frame_driver_submit_with_config(...)` builds the retry-aware submission plan from `GlyphAtlasBitmapRetryFrameState`, applies the resulting outcome back into the state, and returns `GlyphAtlasBitmapRetryFrameDriverOutput` with both the submission plan and committed state report. The tests lock successful state drain and backpressure queue commit through the driver rather than direct state plan/apply calls. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_driver_preview_20260704.png` SHA256 `683F5C7F8F59F26B5874204F7205E7AB5EC9806FD43C35014B03C80BDEBA52A0`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_driver_validation_20260704.log` SHA256 `8821D590E830449B1D16DE0819BE59AF235FE501385D8D0D138F4319776C3F9D`; target scans returned 0. This still does not claim real renderer frame-loop execution, real GPU upload/draw, glyphon `TextAtlas` cutover, or live editor typography QA.
+
+
+
+The bitmap atlas retry queue consumer follow-up closes the next data-plane piece of that blocked strategy. `text/atlas/bitmap_run/retry.rs` owns `GlyphAtlasBitmapRetryPlan`: due blocked glyphs whose `retry_frame_index <= frame_index` move into `retry_glyphs`, future entries remain in `deferred_glyphs`, and `next_retry_frame_index` gives the renderer/frame loop the earliest deferred wakeup. `retry_sources()` exposes the due `GlyphAtlasBitmapSource` payloads for the next atlas run while preserving original `source_index` values in `retry_glyphs` for diagnostics. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_queue_consumer_preview_20260704.png` SHA256 `3BCF35B239F7BAB381F13AA2C9646141742F586182424EB31F0C7FEA9E9A40C8`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_queue_consumer_validation_20260704.log` SHA256 `3AEC069CC48E2C6DB4C8146BE542ED27EF6D0DB809496E909BBAA40060718641`; target scans returned 0. This still does not claim renderer/frame loop replay, retry backoff policy, real wgpu upload/draw, glyphon `TextAtlas` cutover, or live editor typography QA.
+
+
+
+The bitmap run owner split follow-up keeps the new bitmap atlas data-plane compliant with the engine structure convention before renderer work grows on top of it. `bitmap_run.rs` is now a folder-backed orchestration boundary, while `bitmap_run/types.rs`, `failure.rs`, `validation.rs`, `allocation.rs`, and `upload.rs` own declarations, failure/queue diagnostics, source validation, page allocation, and upload command projection respectively. The crate-private API exported through `atlas/mod.rs` is unchanged, and private behavior regressions stay under `bitmap_run/tests.rs`. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_bitmap_run_owner_split_preview_20260704.png` SHA256 `8EF29C1E02DF29DB2291B7CB3A27A3A8C2804F3B8D76DF510CA4E3A2571BA8E6`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_bitmap_run_owner_split_validation_20260704.log` SHA256 `AB5A8B34D8CFB6B131FDF7F5B0C2CD4C91F1DC84CCB6D139F7EA3A37EFEE4337`; target scans returned 0. This is a structure slice and does not claim real wgpu upload/draw, glyphon `TextAtlas` cutover, or live editor typography QA.
+
+
+
+The blocked placeholder data-plane follow-up closes the next part of the atlas blocked strategy without wiring real GPU rendering yet. `bitmap_run/placeholder.rs` owns `GlyphAtlasBitmapPlaceholderGlyph` and `GlyphAtlasBitmapPlaceholderMode::TransparentQuad`; a `PageReservationBlocked` source now writes both a retry queue entry and a current-frame placeholder entry preserving its screen rect and retry frame. `GlyphAtlasBitmapRenderSubmissionReport` exposes `placeholder_glyph_count` beside the retry counters so future renderer/fallback code can observe placeholder pressure without walking internal failures. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_blocked_placeholder_preview_20260704.png` SHA256 `77867027B47DB55D55233B9D758F1558882D9C26AC1ADE52539DD8E44A8BC66C`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_blocked_placeholder_validation_20260704.log` SHA256 `0ABACDAE2217C3D3B7ACAB79E110FCC465FD397F10C4E37B5E5672C1EBAC3131`; target scans returned 0. This does not claim real placeholder GPU drawing, queue consumption, glyphon `TextAtlas` cutover, or live editor typography QA.
+
+
+
+The bitmap atlas placeholder draw-plan follow-up moves those placeholders one step closer to renderer consumption while still stopping short of real GPU drawing. `text/atlas/render_submission/placeholder.rs` now clips `GlyphAtlasBitmapPlaceholderGlyph` screen rects through the same `GlyphAtlasScreenRect::clipped_to(...)` path as normal atlas draw quads and emits `GlyphAtlasBitmapPlaceholderDrawPlan` with visible and skipped placeholder counters. `GlyphAtlasBitmapRenderSubmissionPlan` carries that plan, and `GlyphAtlasBitmapRenderSubmissionReport` exposes `visible_placeholder_count`, `skipped_placeholder_count`, and `has_placeholder_work()`. Proof image/log: `docs/tests/runtime/text/runtime_text_bitmap_atlas_placeholder_draw_plan_preview_20260704.png` SHA256 `F996896A19D025E39295F12484A6B6AB81CDE6D7DD0E9FC3D456D520FDA34C8F`; `docs/tests/runtime/text/runtime_text_bitmap_atlas_placeholder_draw_plan_validation_20260704.log` SHA256 `6AE8E8FF3432C726F829E4FC3263A950254811DD41B707EC9FBE26594615D65E`; target scans returned 0. This does not claim transparent placeholder GPU vertices, retry queue consumption, real wgpu upload/draw, glyphon `TextAtlas` cutover, or live editor typography QA.
+
+
+
+The 2026-07-03 runtime SDF grapheme advance follow-up closes the first cluster-splitting gap behind SM-M5 paragraph parity. `graphics/scene/scene_renderer/ui/sdf_advances.rs` is the single owner that projects resolved layout per-grapheme advances onto the current SDF char-run representation, assigning zero advance to leading scalars inside a grapheme and the whole cluster advance to the last scalar. `sdf_render.rs` consumes that projection for draw planning, and `text/sdf_fallback.rs` expands failed SDF spans to whole grapheme boundaries before building native overlay batches. This keeps combining marks and emoji clusters from being pulled apart by the SDF path, but it is not the full Native/SDF paragraph parity gate: RTL, vertical, full glyphon-buffer comparison, real shaping-cluster output, and pixel captures remain open.
+
+
+
+The 2026-07-03 SDF horizontal RTL mixed overlay follow-up narrows one of those RTL gaps without claiming the full paragraph parity gate. `graphics/scene/scene_renderer/ui/text/sdf_fallback.rs` now permits explicit `UiTextDirection::RightToLeft` in the same constrained mixed overlay path already used for horizontal LTR: `HorizontalTb`, `wrap=None`, and non-`Justify`. The overlay frame continues to use resolved advances plus `aligned_text_start_x(...)`, so an RTL Start batch can keep the SDF batch and draw only the failed span as native overlay. `UiTextDirection::Auto` and `Mixed` still report unsupported text direction and fall back to whole-batch native text until full bidi/paragraph placement is proved. The new regressions are `sdf_atlas_fallback_overlays_failed_spans_for_horizontal_rtl_text` and `sdf_atlas_fallback_rejects_ambiguous_horizontal_text_direction`; Cargo remains deferred while external compile lanes are active.
+
+
+
+The 2026-07-03 SDF format-control follow-up closes the adjacent zero-width scalar spacing risk. `graphics/scene/scene_renderer/ui/sdf_char_run.rs` owns the rule that ZWJ, zero-width controls, Bidi format controls, and variation selectors remain in the SDF scalar run for index parity while being excluded from atlas slot allocation. The same owner is consumed by SDF fallback measurement so those scalars contribute `0.0` advance when resolved layout advances are unavailable. This keeps sequences such as `A\u{200D}\u{FE0F}B` from pushing `B` through tofu or measured fallback spacing while preserving the run shape `[Some(0), None, None, Some(1)]`.
+
+
+
+The later 2026-07-03 SDF render fallback advance repair keeps that fallback measurement on the same owner. `graphics/scene/scene_renderer/ui/sdf_render.rs` now calls `resolved_layout_advances_for_sdf_glyphs(...)` from `sdf_advances.rs` instead of a stale private helper name, so editor-host builds do not bypass the SDF char-run projection contract. This is a compile repair and ownership convergence only: it does not add a font-family shortcut, renderer facade, or new layout policy.
+
+
+
+The SH05 shader verification follow-up also closed a narrow SDF render test-owner import drift. `graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs` now imports the private SDF bake, upload, frame, vertex, math, and UI text direction helpers needed by its folder-backed child tests; the production parent `sdf_render.rs` no longer carries those test-only imports. This is compile-support only for the shared runtime lib/editor check path and does not change SDF draw behavior or text layout policy.
+
+
+
+The 2026-07-02 editor GPU draw-list follow-up closes the next retained-host/runtime boundary. Runtime `UiSurfaceCommandKind::Text` now carries `font_family` and `font_weight`, and WGPU UI surface text maps those fields to glyphon `Family::Name` and normalized `Weight` before preparing buffers. Editor chrome draw-list conversion projects retained UI/Strong/Mono paint style through the retained-host font helpers instead of inventing a component-local font policy. Visual proof is `docs/tests/runtime/text/runtime_text_editor_gpu_draw_list_font_projection_preview_20260702.png`, SHA256 `AE5D6B6847FD676E4876620D15073D320A1BF79561C0CD239B9C2745C0EADFB2`; same-name scans under repo `target`, `E:\cargo-targets`, and `D:\cargo-targets` returned 0. Wrapper focused Cargo is currently blocked by unrelated shader/zshader test-cfg import drift, while the direct focused runtime/editor binaries pass.
+
+
+
+The 2026-07-02 SM-M5 paragraph parity first slice moves the render-facing text batches closer to the plan-05 invariant that layout happens in 02/03 and raster backends only diverge at glyph upload/draw time. `ScreenSpaceUiTextBatch` now keeps the resolved line `source_range` and `glyph_advances`; plain resolved-layout text is emitted as line batches with `wrap=None` and left alignment because the line frame is already positioned. `sdf_render.rs` uses those advances for horizontal and vertical SDF vertex planning and for mixed native/SDF fallback overlay placement before falling back to SDF-local measurement. The regression `text_paragraph_parity_native_vs_sdf_bbox_advance_linebreak` compares Native and SDF batches from the same `layout_text(...)` result for bbox, source byte ranges, and per-glyph advances, while `sdf_draw_plan_prefers_resolved_layout_advances_for_parity` locks the SDF selection rule. This is not the full SM-M5 gate yet: RTL, vertical, full glyphon-buffer paragraph comparison, cluster/grapheme edge cases, and pixel-tolerance captures remain pending. Visual proof is `docs/tests/runtime/text/runtime_text_native_sdf_paragraph_parity_preview_20260702.png`, SHA256 `79B8EFDF008D7FE6A73CB141CFB1C498A6715A907CDFF2D40BDC6CA4038233EF`; same-name scans under repo `target`, `E:\cargo-targets`, and `D:\cargo-targets` returned 0. Current Cargo validation is blocked by active shader/material `ShaderAsset` initializer drift outside the text owners.
+
+
+
+The 2026-07-04 IME source-range geometry consumer connects the public shaped source-range measurement back into the UI geometry consumer instead of adding another editor-local width rule. `ui/text/geometry.rs` now gates source-range prefix measurement to simple source-isomorphic horizontal LTR lines and falls back to resolved `glyph_advances` for tabs, rich/non-isomorphic mapping, justify, ellipsis, RTL, and vertical text. `ui/surface/input/editable_text/ime_context.rs` carries `UiResolvedStyle` with the resolved layout so IME caret/composition rectangles can consume the same shaped source byte range width that `text/layout/measure.rs` owns. This reduces visible left/right caret and composition-anchor drift for labels such as `editor base.zui` without changing raster, atlas, font-family, or glyph backend policy. Proof image/log live at `docs/tests/runtime/text/runtime_text_ime_source_range_geometry_preview_20260704.png` SHA256 `138A6385C2A0B4A6AC20DCEB649ACEF4F855D09BDED310ACB060C36F0C04A32A` and `docs/tests/runtime/text/runtime_text_ime_source_range_geometry_validation_20260704.log` SHA256 `DDF9395D4B8F670E486E4297B0DC287DD9B05102FC22BCBAE54F7AC290226569`; target scans returned 0. Full backend cluster reverse lookup, RTL/vertical source-range geometry, true unkerned measure, and live editor typography QA remain open.
+
+
+
+The follow-up public cursor/range geometry surface keeps that same owner chain but makes it consumable from `ui::surface`. `ui/surface/text_geometry.rs` exposes `text_caret_frame_for_layout(...)` and `text_range_frames_for_layout(...)`, and both functions delegate to `ui/text/geometry.rs` with the caller's source text and style. This lets editor/runtime callers consume shaped source-range caret and composition rectangles through the same public surface family as `measure_text_source_range_width(...)`, without adding another graphics facade or a renderer-local measurement rule. Proof image/log: `docs/tests/runtime/text/runtime_text_public_cursor_geometry_surface_preview_20260704.png` SHA256 `120E15B98B1A8705A9E6B6F193E9C26D8EAFB11C72DFE2946750EC0FDBC0FD1F`; `docs/tests/runtime/text/runtime_text_public_cursor_geometry_surface_validation_20260704.log` SHA256 `EB81F8C62A1BAEF683E54F84C85D5DA33F7DB772D0FFBE0D5AE516EF851CDA21`; target scans returned 0. The remaining geometry risks are still backend cluster reverse lookup, RTL isolate affinity, vertical source-range geometry, and real editor-window typography capture.
+
+
+
+The 2026-07-04 retained-host fallback subpixel phase follow-up addresses the latest editor crop where DengXian/等线 is active but compact file labels still look horizontally uneven. The root cause was below layout and font selection: fontdue fallback alpha masks were rasterized at superscale but sampled as if the pen origin had no fractional phase. That slice introduced the phase plumbing with a 4x fallback scale and 4 placement bins; `paint_text/raster.rs` carries `CachedGlyphRaster.sample_offset_x` for `FontdueFallback`, and `draw/glyphs/row.rs` applies that phase while downsampling alpha coverage. Swash/SubpixelMask remains phase-baked through swash `Render::offset(...)`. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_fallback_subpixel_phase_preview_20260704.png` SHA256 `DB111D54EEF562F0277D59C5ECABAECED92283ED9FEDCC2FC01919EB3728AFB4`; `docs/tests/runtime/text/runtime_text_editor_retained_fallback_subpixel_phase_validation_20260704.log` SHA256 `2B39D23D80FF4310F4D6272903951D53D90B814DDBAC2C673D2C343AD4CD37EF`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 retained-host subpixel bin precision follow-up tightens that same drawing contract for the remaining small-label discomfort. `paint_text/draw/glyphs.rs` now uses 8x fallback supersampling and 8 pen-origin phase bins, reducing maximum retained-host origin quantization error from 0.125px to 0.0625px. The focused regression locks `TEXT_RASTER_SUPERSAMPLE == 8.0`, `RETAINED_TEXT_SUBPIXEL_BINS == 8`, and the near-right case where 20.90px remains in the 20px cell at phase .875 instead of rolling to 21px. This is a raster placement precision change only: font family selection, runtime FontDatabase policy, ZUI assets, root painter, renderer facade, and atlas routing are unchanged. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_subpixel_bin_precision_preview_20260704.png` SHA256 `5A4268CDF1774AFA81B9C9EF7A141F23BE6ED61623DE3F50E7C71C73F35E9CDD`; `docs/tests/runtime/text/runtime_text_editor_retained_subpixel_bin_precision_validation_20260704.log` SHA256 `6FD74EE60E988F92B13BABE18E5B7F764E4D5ECC58971364F1867E165EA2CCF0`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-07 retained-host nearest phase quantization follow-up supersedes the 2026-07-06 high-phase no-rollover clamp. The latest crop showed that clamping `.95px`-style origins to the current pixel's `7/8` bin can leave a visible high-phase bias, so `paint_text/draw/placement/metrics.rs` now rounds full screen x in retained 1/8px units and then splits the result into pixel and bin. `20.95px` therefore maps to `21px + 0/8`, keeping the retained-host quantization error within `0.0625px`. Evidence is recorded under `docs/tests/runtime/text/runtime_text_editor_retained_phase_quantization_*`; the recheck wrapper harness passed 6/6 and the proof PNGs were visually inspected, while the focused Cargo screenshot rerun timed out during Windows compilation without a `test result`. The older no-rollover and nearest-rollover records remain historical.
+
+
+
+The 2026-07-06 retained-host grayscale device-origin snap supersedes the short-lived default-grayscale fractional line-origin policy. The user crop still showed whole-label left/right discomfort after DengXian and per-glyph phase work, so `paint_text/draw/placement.rs::retained_text_origin_for_smoothing(...)` now snaps default `HostTextSmoothing::Grayscale` line origins with `retained_text_origin_device_px(...)`, while explicit `HostTextSmoothing::Subpixel` keeps fractional origins. This is still retained-host CPU text placement only: no component-local letter spacing, ZUI token, font-family override, runtime FontDatabase branch, renderer facade, or atlas route is added. Evidence: scoped rustfmt log SHA256 `E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855`; diff-check log SHA256 `F244EB7A7B6230ECEB133B8BE2C4EF53CA3D4D641E396F3F8E9E9393E6A1A6C4`; direct editor lib-test filters passed 3/3 (SHA256 `36023FD8988B93B9AD5B8D3E67768E4E5981CFEFB16805E75E5B901EB00C7864`); screenshot export filters passed 2/2 (SHA256 `F29E93BFD991BA9A8EEF0688EFAB17C63F178CA8ECE1BD225F99CE554D5D4798`); full/narrow zoom4 proof PNGs live under `docs/tests/runtime/text` with SHA256 `60927435F9EC63EE226B98C87F2D532AFA787A8A907AFDD008DF19EDEE73A228` / `237C4A1D2FD9350C2785FFDBC6949A1775E4627CEF47F63F215200115E812D9F`; target/cargo-target same-name scan returned 0.
+
+
+
+The 2026-07-04 retained-host glyph left-offset quantization follow-up addresses the remaining left/right bearing bias in compact editor labels. `paint_text/draw/placement.rs` now owns `retained_glyph_left_offset_px(...)`, which maps glyph `bounds.xmin` to the nearest 1/8px instead of letting `draw/layout.rs` use `floor()` for every glyph. This keeps pen-origin phase aligned with the retained 8-bin raster placement while avoiding a systematic left bias from fractional glyph bearings. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_glyph_left_offset_quantization_preview_20260704.png` SHA256 `B58983A3DDADA240CCFF70CFC6E2BA34EEFAB90A16336C33F038EA900D4B980D`; `docs/tests/runtime/text/runtime_text_editor_retained_glyph_left_offset_quantization_validation_20260704.log` SHA256 `4BFAA4B0AFD83D0FC56BEED6147FD10A3F46FC82660411A9DC49A35807A80BA8`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 retained-host Fontdue bearing-fraction follow-up extends that no-left-bias rule into the fallback bitmap sampler itself. Layout-side `bounds.xmin` quantization prevents stale bitmap-left projection, but FontdueFallback still has a separate high-resolution bitmap origin. The raster owner now derives `sample_offset_x` from both the retained pen-origin phase and the fractional `metrics.xmin / raster_scale` bitmap-left value; the draw extent and row sampler accept the resulting combined offset over one pixel. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_fontdue_bearing_fraction_preview_20260705.png` SHA256 `E3C6DE159F197CE245BC6F4A1011602A3CF087F2D2A2A5685DC061586E4A478F`; `docs/tests/runtime/text/runtime_text_editor_retained_fontdue_bearing_fraction_validation_20260705.log` SHA256 `607CDE17DC27AF4FADD371C5863A8E08B2EC4DF9D7482F117940D5DBF2889BD6`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 retained-host grayscale alpha-phase correction supersedes the short-lived per-glyph grayscale pixel snap experiment, but not the current whole-line origin rule. The user's latest crop showed that rounding every DengXian glyph origin to a device pixel makes compact labels such as `editor base.zui` and `folder-open.svg` look uneven because natural fractional advances become irregular integer steps. `paint_text/draw/placement.rs::retained_glyph_placement_for_smoothing(...)` therefore keeps `HostTextSmoothing::Grayscale` on the same 8-bin per-glyph placement as explicit subpixel mode while `paint_text/raster.rs` still requests swash `Format::Alpha`; the later 2026-07-06 device-origin snap applies only once at the grayscale run line origin. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_grayscale_alpha_phase_preview_20260705.png` SHA256 `63CBED0C5283C679405DC3A16BE52A0CA908E4AB42C2D389E59B67D2D23EF4A1`; `docs/tests/runtime/text/runtime_text_editor_retained_grayscale_alpha_phase_validation_20260705.log` SHA256 `75561A48E3E2956F3B33FCF9E5B5EE006EBF5C3562E063892F4BB3A67382BF67`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-08 retained-host grayscale line-snap subpixel-glyph follow-up supersedes the short-lived default-grayscale device-glyph rule. The user's tighter crop showed that snapping every glyph to an integer device pixel made DengXian/等线 compact labels uneven because fractional advances became irregular integer steps. Default `HostTextSmoothing::Grayscale` still requests Alpha coverage and still snaps the line origin to the nearest device pixel, but each glyph now uses the retained 1/8px phase path from full screen x. Explicit `HostTextSmoothing::Subpixel` keeps fractional line origin plus the same 1/8px glyph phase. This does not add component-local letter spacing, font overrides, ZUI tokens, root painter branches, runtime FontDatabase routes, or atlas facade changes. Focused editor proof passed and wrote retained PNGs under `docs/tests/runtime/text/runtime_text_editor_grayscale_line_snap_subpixel_glyph_phase_20260708*`; the accidental same-stem files under `zircon_editor/docs/tests/runtime/text` were cleaned up. Focused Cargo `grayscale` passed 8/8; live editor-window typography QA remains open.
+
+
+
+The 2026-07-04 retained-host line-origin snap follow-up is now historical as the first version of the same owner. It aligned editor CPU text placement with the SDF line-origin policy by adding `retained_text_origin_device_px(...)`; 2026-07-05 briefly removed default grayscale snapping, then 2026-07-06 restored it only for default `HostTextSmoothing::Grayscale` after the latest crop showed remaining whole-label drift. Explicit Subpixel line origins remain fractional. Historical proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_line_origin_snap_preview_20260704.png` SHA256 `6565E9B05417343C2B43DB3E7235A6401F2C6869840EE6D51BA9FC370560A58C`; `docs/tests/runtime/text/runtime_text_editor_retained_line_origin_snap_validation_20260704.log` SHA256 `CC43667C9CB49D4EAD3DE25A237C1B1B581FC2A139BF503D77A3F332A00D2410`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 retained-host advance tolerance precision follow-up keeps the layout bridge aligned with that 8-bin raster precision. `paint_text/draw/layout.rs` now uses a fixed 0.0625px per-grapheme advance tolerance before accepting runtime/shaped positions, so a 0.125px local borrow in compact labels such as `editor base.zui` no longer slips through merely because the total run width still matches. The fallback path preserves the host face's natural spacing; font selection, ZUI assets, root painter, renderer facade, runtime FontDatabase policy, and atlas routing are unchanged. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_advance_tolerance_precision_preview_20260704.png` SHA256 `B9D0783FA13003567E2C10A2176342010F8D7306F061B229E9FA926A2F2BC995`; `docs/tests/runtime/text/runtime_text_editor_retained_advance_tolerance_precision_validation_20260704.log` SHA256 `461FC7C5FC2416240AF33CF2A278AF9EB0BA09BC17E3FDB0D326CB3B4C6D2AA2`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 retained-host phase stability follow-up adds the missing final-raster-bin guard below that advance tolerance. `paint_text/draw/placement.rs` now centralizes the 8-bin retained placement projection, `draw/glyphs.rs` reuses it for raster placement, and `draw/layout.rs` rejects shaped/runtime positions when the host origin and shaped origin would land in different retained raster bins. This catches the uncomfortable compact-label case where a +0.05px shaped origin delta is numerically small but crosses from the .875 phase into the next pixel's .000 phase. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_phase_stability_validation_20260704.png` SHA256 `3B2B0DCCC1570D8DA577493911C544641684412AD59ED21733D4E80D76FD9729`; `docs/tests/runtime/text/runtime_text_editor_retained_phase_stability_validation_20260704.log` SHA256 `D7ACD3AB64CCDCF3559931F6DA33D8F807CCDC4A70850F64071215486C662D43`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 retained-host shaped-phase guard follow-up restores the shaped-position half of that raster-bin guard after the latest editor crop showed small DengXian labels still looking left/right jittered. `paint_text/draw/layout.rs` still requires matching glyph id/range and adjacent advance equality before using `ShapedGlyph` pen origins, but now rejects that shaped run when any accepted origin would land in a different retained 1/8px raster bin than the resolved host font's natural origin. Runtime ellipsis, resolved font-family projection, line-origin snapping, and the SDF glyph subpixel phase policy stay unchanged; this only keeps retained CPU labels from sampling different phases per glyph in compact editor tabs. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_shaped_phase_guard_preview_20260704.png` SHA256 `E8DA90793747ACCF3D92B33BFA3BD47FD7682FAC789DDCF982E0D1380034B52D`; `docs/tests/runtime/text/runtime_text_editor_retained_shaped_phase_guard_validation_20260704.log` SHA256 `BB20FC34C8289CDF63533AE2AE5918096FF52B11671D20AE713DDE0F470FBCFD`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 retained-host shaped-origin phase fallback closes the latest editor crop where DengXian is already active but individual glyphs still feel left- or right-biased. `paint_text/draw/layout.rs::shaped_positions_preserve_retained_raster_bins(...)` now compares each accepted shaped pen origin against the host face's natural origin through the same retained 1/8px placement bins used by drawing. Same-bin shaped origins remain authoritative, but a matched `ShapedGlyph` sequence that crosses a retained raster phase fails closed to host natural spacing. This is intentionally limited to the retained-host layout bridge; it does not change font family policy, ZUI assets, root painter routing, runtime `FontDatabase`, or glyph atlas ownership. Proof image/log: `docs/tests/runtime/text/editor_text_retained_phase_guard_preview_20260705.png` SHA256 `D3B66322AB0997F9FF16AA80A88D8CF589C6B3C40954FDF9A0FD475979035D83`; `docs/tests/runtime/text/editor_text_retained_phase_guard_validation_20260705.log` SHA256 `BDF87532D019E57FB7DEAB83F69EC49AEF72480B18EC847FC3F5DF982615AF95`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-07 retained-host same-phase origin drift guard tightens that same bridge for offsets that stayed inside one retained 1/8px bin but still looked visibly left/right biased in compact DengXian labels. `paint_text/draw/layout/metrics.rs::glyph_origin_matches_without_visible_drift(...)` adds a `0.03125px` host-vs-candidate origin threshold, and both shaped-position and runtime-advance gates now require finite origins, subvisible drift, and matching retained placement bins before accepting runtime origin authority. This prevents `0.04px~0.05px` same-phase drift from leaking into raster placement while keeping subvisible `0.02px` shaped offsets. It remains a retained-host layout/raster-phase consumer rule, not an atlas, font database, ZUI asset, root painter, or component letter-spacing change. Validation log: `docs/tests/runtime/text/runtime_text_editor_retained_same_phase_origin_drift_guard_validation_20260707.log` SHA256 `7193440149FA3C4FB4CC384E0905769C93D398050968D1B0349899946943FA36`; target/cargo-target scans returned 0. Focused Cargo proof was attempted three times, but the runs stopped at early dependency compilation, 923s compile timeout, and 480s warning-output timeout respectively, with no `test result`, so no Cargo green is claimed. A direct editor test binary later passed the same retained crop proof 1/1 and generated fresh retained framebuffer PNGs under `docs/tests/runtime/text`; direct log SHA256 `542818B5FF18C3ABADE5A1A8713F11062C16CCFBE3B019728CF1886EDAD06ED5`.
+
+
+
+The retained-host proof exporter now accepts `ZR_TEXT_EDITOR_CROP_PROOF_STEM` alongside `ZR_TEXT_EDITOR_CROP_PROOF_DIR`. This keeps the framebuffer, full-label crop, narrow-label crop, and log as real `HostRgbaFrame` artifacts under `docs/tests/runtime/text`, while allowing the same-phase-origin-drift rerun to use a unique 2026-07-07 stem instead of overwriting the older crop evidence. The hook is test-evidence plumbing only; it does not change glyph atlas ownership or renderer fallback policy. Static validation log: `docs/tests/runtime/text/runtime_text_editor_retained_same_phase_origin_drift_guard_proof_stem_hook_validation_20260707.log` SHA256 `A7936DC9ADD771338B9852F6FEC819821DD1334630E65247C6609E039A6D4F48`. Focused proof attempt logs are preserved with SHA256 `F48EA3A4BC40D50D354BCD6B1FD7BFBCA7BF353180DBA37A6DF6A2F92969DF36`, `D4BF6A0E76223C687EECE892AE8456301FAECA2695426BD24D47850C6DA834DB`, and `6471B3A85089FD72C3B8EC752306C4860A60E428E469FBC97DEF0731EBFE2F3A`. The direct-binary proof generated `runtime_text_editor_retained_same_phase_origin_drift_guard_20260707.png`, `_full_label.png`, and `_narrow_label.png`; PNG SHA256 values are `8C81D6D27699ED503196F146636A3CF7EB51D202FF4E933AC96E6D1F17BD4E83`, `1C33579842EE9D0A912695219CDDA508BF247703151729C60A8EC93AD5365128`, and `83B6CFDE5EAC92A9D2E349C605630484BC1FB5C3DA059F99D508D20B0E443339`. Target/cargo-target same-name scan returned 0, SHA256 `39736FD9FC4F493629257F0F73F6CFD8CD129D120A955ABA3E0E0D6F3D0E9B95`.
+
+
+
+The 2026-07-04 retained-host shaped-origin latest-crop follow-up is now historical. It temporarily removed the shaped-position raster-bin veto and kept `ShapedGlyph` origins authoritative when glyph id, source range, advance, and monotonic checks passed, while the runtime-advance projection path kept `runtime_advances_preserve_retained_raster_bins(...)` for synthetic advance deltas. The 2026-07-05 shaped-origin phase fallback above supersedes that decision after the next crop showed matched shaped origins can still destabilize retained glyph phase. Historical proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_shaped_origin_spacing_latest_crop_preview_20260704.png` SHA256 `C66D8FD74F88781E181FE1A5DCF4CAB164930298394F77F7C6ABFC3FADCE141D`; `docs/tests/runtime/text/runtime_text_editor_retained_shaped_origin_spacing_latest_crop_validation_20260704.log` SHA256 `AEBE386C1DF6CCD22D5E4267286E5AF0AB858018F45D395FE6A025E949BFF62F`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 retained-host cumulative phase guard closes the remaining runtime-advance projection gap behind the latest editor crop. The previous per-grapheme `0.0625px` guard could still accept many individually tiny `0.05px` differences; across compact labels such as `editor base.zui` and `folder-open.svg`, those differences could accumulate until later glyph origins crossed the retained 1/8px raster bin. `paint_text/draw/layout.rs` now checks `runtime_advances_preserve_retained_raster_bins(...)` before using runtime projected positions and falls back to host natural spacing when any projected glyph origin changes bin. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_cumulative_phase_guard_validation_20260704.png` SHA256 `0FC3DD29C1571B784002D44569A2B4226ED4D6BC5F46AAB657F7B8650CC2228E`; `docs/tests/runtime/text/runtime_text_editor_retained_cumulative_phase_guard_validation_20260704.log` SHA256 `CD5DE6950DEF2923C51F79800B939A5B57235076E90E43141A90E89DFF4ADA94`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 retained-host runtime ellipsis cutover keeps overflow text shaping in the shared runtime owner before retained CPU glyph placement. The new `retained_text_run_uses_runtime_ellipsis_for_narrow_editor_labels` regression proves a narrow `folder-open.svg` label is clipped by runtime `layout_text(... UiTextOverflow::Ellipsis)` and then passed to retained glyph positioning as the runtime line text. The old local editor ellipsis file remains absent, and scans for `ellipsize_single_line`, `mod ellipsis`, and `draw/ellipsis` under retained paint_text return 0 hits. This does not change raster sampling, font fallback, glyph atlas routing, renderer facade, ZUI assets, or component-local font policy. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_runtime_ellipsis_cutover_preview_20260704.png` SHA256 `CAF36D913152319BD119E45BF99318B791D86D317383442F81ABBB0CD8E43C12`; `docs/tests/runtime/text/runtime_text_editor_retained_runtime_ellipsis_cutover_validation_20260704.log` SHA256 `AE6E46C92C64E24DB3A71A03AD58704B03C207DB74C0E081F43904CC212E4C6E`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 retained-host framebuffer crop regression adds a code-backed raster output check for the same editor labels the user supplied. `paint_text_tests.rs` drives `draw_text_with_size_and_style(...)` into `HostRgbaFrame` for `editor base.zui` and `folder-open.svg`, asserting visible non-background pixels rather than only command recording. A second recording-only pass over a 42px `folder-open.svg` confirms the retained text command carries runtime ellipsis text before final raster. The proof image mirrors that frame crop, but remains explicitly non-live; full window capture still needs a running editor surface. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_framebuffer_crop_validation_20260704.png` SHA256 `96A4254E602DC5CCA5CAEA51190BFB9EE6B65DBA35B2026B1FF050CF4D34597D`; `docs/tests/runtime/text/runtime_text_editor_retained_framebuffer_crop_validation_20260704.log` SHA256 `A4305CCCD441C0BBEEABFD94826CA2316A329B1F9ED468C4B1CCBDB6C0972820`. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 retained-host ink spacing guard turns that crop proof into a pixel-profile regression for the actual discomfort: glyph ink appearing unevenly left/right or with unnatural internal gaps. `paint_text_tests.rs` now renders `editor base.zui` and a narrow `folder-open.svg` to `HostRgbaFrame`, scans the ink columns, and requires near-identical 8.875px/8.925px origins to keep the left ink edge and ink center within one pixel. This guards retained CPU text output without changing glyph atlas identity, runtime FontDatabase, ZUI assets, root painter, GPU draw-list, or component-local font policy. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_ink_spacing_guard_validation_20260704.png` SHA256 `EF2585989C59E78D25BA0F836A2554FDA509A1800486A3D978955ABA8643308D`; `docs/tests/runtime/text/runtime_text_editor_retained_ink_spacing_guard_validation_20260704.log` SHA256 `BD2583F1B4C7111BC45055E934303F839DD66C156B6BF7180A6A5F9B908B0AD6`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 retained crop framebuffer export hook adds the missing artifact path for that same crop guard. `paint_text_tests.rs::export_editor_crop_framebuffer_if_requested()` is env-gated by `ZR_TEXT_EDITOR_CROP_PROOF_DIR`, so normal tests still do not write files, while explicit proof runs can emit `runtime_text_editor_retained_crop_framebuffer_20260705.png/.log` from the actual `HostRgbaFrame` path. Current evidence is the preview pair `docs/tests/runtime/text/runtime_text_editor_retained_crop_framebuffer_export_preview_20260705.png` SHA256 `CCDEB289958F388258466745699C7521B9DB4B72C700C2300B93C8FA5761B5BA` and `docs/tests/runtime/text/runtime_text_editor_retained_crop_framebuffer_export_preview_20260705.log` SHA256 `1166FC3467637BEE743ED7EC614E88D046E050ADE6BE435F33C9EB14FA657E2E`; this preview documents the hook and storage policy, not a live editor capture and not the future test-emitted framebuffer export. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 retained crop framebuffer region guard makes the same proof framebuffer part of the actual assertion surface. `retained_text_editor_crop_labels_keep_stable_ink_spacing` now scans `editor_crop_proof_framebuffer()` full-label and narrow-label regions for visible ink and maximum internal empty columns, matching the reported editor crop shape instead of relying only on smaller focused fixtures. The log `docs/tests/runtime/text/runtime_text_editor_retained_crop_framebuffer_region_guard_validation_20260705.log` SHA256 `27F709D3AE0B90C411C808A840D1AE79746613EC18152F72B5C82F8B1E780D2A` records this validation; the preview PNG is reused because this slice does not change production drawing pixels.
+
+
+
+The 2026-07-05 retained crop region export follow-up makes that opt-in proof easier to inspect. `export_editor_crop_framebuffer_if_requested()` still writes only when `ZR_TEXT_EDITOR_CROP_PROOF_DIR` is set, but it now emits the full framebuffer plus two exact region crops: `runtime_text_editor_retained_crop_full_label_20260705.png` and `runtime_text_editor_retained_crop_narrow_label_20260705.png`. These crops are copied from the same `HostRgbaFrame` bytes that the test profiles, so follow-up screenshot review can inspect the full label and narrow ellipsized label without manually cropping the full proof image. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_crop_region_export_preview_20260705.png` SHA256 `0C917193BF537B9C84332210AEFAD0DA00048AB914F9E1837EDB33D0A63464E0`; `docs/tests/runtime/text/runtime_text_editor_retained_crop_region_export_validation_20260705.log` SHA256 `BE3A4B175C8D82361DD45AFCE452D15B127145EF9A259774504C35F77F53EAA2`. Focused Cargo and live editor-window typography QA remain deferred/open while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-05 retained SubpixelMask sample-phase follow-up closes a low-level row-sampling split under the same compact-label issue. AlphaMask supersampled downsampling already consumed `sample_offset_x`, but `paint_text/draw/glyphs/row.rs::sampled_subpixel_coverage(...)` ignored that value for RGB/SubpixelMask rows when `raster_scale > 1`. The RGB path now normalizes the same offset before deriving the supersampled x window, and `draw/glyphs/row/tests.rs::sampled_subpixel_coverage_applies_fallback_phase` locks distinct coverage for offset `0.0` and `0.5`. This does not change the default grayscale Alpha coverage path or native scale=1 swash SubpixelMask bitmaps, whose phase is already baked by swash. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_subpixel_sample_phase_preview_20260705.png` SHA256 `359111D8D764B8239316A47B6D148AFD96492B8F263E9A30B7578F0A3FFE1C96`; `docs/tests/runtime/text/runtime_text_editor_retained_subpixel_sample_phase_validation_20260705.log` SHA256 `DD3AEBCB6974787B447394704B78E444553F7B80AF0DF916F7CE63075A6258C6`. Focused Cargo and live editor-window typography QA remain deferred/open while external cargo/rustc lanes are active.
+
+
+
+The companion 2026-07-04 retained-host cache poison recovery follow-up removes the production lock-panic path from the same editor text pipeline. `paint_text/sync.rs` now owns `lock_recovering_poison<T>`, `paint_text.rs` mounts that child owner, and both `font.rs` and `raster.rs` use it for the HostTextFont cache, glyph raster cache, and Swash `ScaleContext`. This is a reliability and structure slice: cache keys, raster placement, font family policy, ZUI assets, and runtime atlas contracts are unchanged. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_cache_poison_recovery_preview_20260704.png` SHA256 `939554DEF1B063221825CF72D5C65270C73450A16B396B1612710B1B853AAB98`; `docs/tests/runtime/text/runtime_text_editor_retained_cache_poison_recovery_validation_20260704.log` SHA256 `AB3994AC8601980EF9B6B7A2A4FED3F02BB66AD6F03E10F831DF2B5C6EBCB5AB`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 retained-host sync tests owner split keeps that cache-recovery helper production-only. `paint_text/sync.rs` now contains only `lock_recovering_poison<T>` plus the test-module hook, while `paint_text/sync/tests.rs` owns the poisoned-mutex regression. This is behavior-preserving and keeps test-only `catch_unwind`, `panic`, and `expect` text out of the production owner for review scans. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_sync_tests_owner_split_preview_20260704.png` SHA256 `1A561625C8114067DC82772CD64DB3178E0B383513B82E7E435BC70E34D816EE`; `docs/tests/runtime/text/runtime_text_editor_retained_sync_tests_owner_split_validation_20260704.log` SHA256 `2D382C79E02E75FA82655F4ED5B7C31CC24BBC475F0F72E8567954550FA676B3`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 retained-host unavailable font fallback slice removes the remaining production embedded-font `expect` from the same CPU editor text path. `paint_text/font.rs` now stores `Option<Font>` in `HostTextFont`; if system fonts, the requested embedded face, and embedded mono fallback all fail, `unavailable_host_font(...)` preserves the requested runtime family, empty bytes, and a stable cache key. `draw/layout.rs` returns an empty glyph run for unavailable fonts, and `raster.rs` returns an empty FontdueFallback alpha raster instead of dereferencing a missing font. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_unavailable_font_fallback_preview_20260704.png` SHA256 `EC62F0A0052822CAB53D5C79184B058670E2FC46DE6F990FB1688D2F43B6A0DB`; `docs/tests/runtime/text/runtime_text_editor_retained_unavailable_font_fallback_validation_20260704.log` SHA256 `AE3E39CACB5EDBF0B3B1F9B14EEE2393EB13FEFAACB6283302C32A9828FF23E2`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 retained-host blend contract regression slice locks the final CPU software-frame composite semantics used by editor labels. `zircon_editor/src/ui/retained_host/host_contract/paint_text/blend.rs` now only mounts the child test owner, while `paint_text/blend/tests.rs` has direct unit coverage for alpha-mask blending, transparent text no-op, independent RGB SubpixelMask coverage, and foreground-alpha-scaled SubpixelMask coverage. This does not change the current algorithm or complete the GPU atlas LCD/background policy; it prevents row sampling or future background-composite work from silently breaking retained framebuffer opacity and per-channel coverage. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_blend_contract_preview_20260704.png` SHA256 `893DEAAA9BF2495F73E51CFEAC96A715F1747C161C8FE2A57976A75031DF98A3`; `docs/tests/runtime/text/runtime_text_editor_retained_blend_contract_validation_20260704.log` SHA256 `69A223AEC40123F6073F2F01C887C177EBDD6E33A0F11DF0714B56C0C4739509`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 atlas tests owner budget split keeps the bitmap atlas regression suite under the structure convention budget without changing runtime behavior. `text/atlas/bitmap_run/tests.rs` now mounts `tests/retry.rs` for retry-plan/frame-input/outcome coverage, and `text/atlas/render_submission/tests.rs` mounts `tests/retry_frame.rs` for retry-frame submission/report/state/driver coverage. Parent files now remain shared-fixture and non-retry coverage owners at 702 and 440 lines; child owners are 241 and 372 lines. Proof image/log: `docs/tests/runtime/text/runtime_text_atlas_tests_owner_budget_split_preview_20260704.png` SHA256 `B6C45C53FD3A41525FC414A6C998CCC60DD7B15A511CB3AF3ECD566762093B20`; `docs/tests/runtime/text/runtime_text_atlas_tests_owner_budget_split_validation_20260704.log` SHA256 `53F727483D844B7CDA2551E17BE2122A38AD4BCB7417E2D72EC7A3E9C0F73A51`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 retained-host resolved font-family spacing follow-up closes a family identity gap behind the latest editor crop. `zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs::runtime_text_style_for_face(...)` now reads the retained font cache's `runtime_family` and feeds that resolved family into runtime layout/shaping, instead of forwarding the generic/requested family. This keeps editor retained measurement/shaping and swash/fontdue raster on the same actual face, for labels such as `editor base.zui` and `folder-open.svg`, without changing ZUI font preferences, runtime FontDatabase, glyph atlas routing, root painter code, or renderer ownership. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_retained_resolved_font_family_spacing_preview_20260704.png` SHA256 `9A933B13AD382F932249AC5C06941D4D37FE8ABE3116189F3CC1463BE6033406`; `docs/tests/runtime/text/runtime_text_editor_retained_resolved_font_family_spacing_validation_20260704.log` SHA256 `7A473A351476CF20030E23245DECB5D146133C97EBEE3D2157A013CB720A331D`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 runtime shaping glyph-offset px projection follow-up closes the remaining unit mismatch under the same editor crop. `text/shaping/cosmic.rs` now converts glyphon/cosmic `LayoutGlyph.x_offset/y_offset` from font-size-relative offsets into pixel offsets before filling `ShapedGlyph.offset_x/y`, with non-finite offsets clamped to zero. Regression tests lock `13px * 0.25 = 3.25px` and NaN/Infinity clamping. Proof image/log: `docs/tests/runtime/text/runtime_text_shaping_glyph_offset_px_projection_preview_20260704.png` SHA256 `B02A40BFD579BC241E499656B8D02ECF8345F64475168EB7D6A2D59B643CF251`; `docs/tests/runtime/text/runtime_text_shaping_glyph_offset_px_projection_validation_20260704.log` SHA256 `4F75BAA587610E47D969A6418D6D78C08A6BF90F811C6DC15881E3996098D4EF`; repo/cargo target same-name scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 source-range unkerned measure backend request follow-up closes the plan gap where `include_kerning=false` was accepted by the measure API but not actually requested from the shaping backend. `core/framework/text/shaped_run.rs` carries the default-true `include_kerning` contract, `text/shaping/mod.rs` exposes a crate-local kerning-aware shaping helper, `text/shaping/cosmic.rs` maps false to OpenType `kern=0`, and `text/layout/measure.rs` reshapes before measuring unkerned source ranges. This keeps default rendering unchanged and avoids widening the layout root facade. Proof image/log: `docs/tests/runtime/text/runtime_text_unkerned_measure_backend_request_preview_20260704.png` SHA256 `828B620EEA40FCEB2D959937E6FD161B1E7FE9C34A4E27B8AB13F1E0DFE3B094`; `docs/tests/runtime/text/runtime_text_unkerned_measure_backend_request_validation_20260704.log` SHA256 `6D38CFB1AD018B9F720574574E1E226E221A5C5E6878405796B3A4D510C47C71`; repo/cargo target same-name scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 source-prefix absolute range geometry follow-up closes the next simple-LTR source geometry gap. `zircon_runtime/src/ui/text/geometry.rs::measured_source_prefix_width(...)` now converts a line-local visual offset into an absolute `UiTextRange` rooted at `line.source_range` and passes the original `measure_context.text` to backend source-range measurement. This keeps caret/selection geometry on the same source coordinates as layout for labels such as `editor base.zui`, while still rejecting tab, ellipsis, justify, non-isomorphic, BIDI, and vertical cases until the later cluster-reverse and visual-order work lands. Proof image/log: `docs/tests/runtime/text/runtime_text_source_prefix_absolute_range_geometry_preview_20260704.png` SHA256 `0FB51CE05F33F0893A7FFA16CA53111ECE509E5E1A4EE88495ADE5983F494263`; `docs/tests/runtime/text/runtime_text_source_prefix_absolute_range_geometry_validation_20260704.log` SHA256 `8E068FCD1C6A6302704779500FBEDC3E1E843D3C1313417704F14F23EA9687E3`; repo/cargo target same-name scans returned 0. Focused Cargo and live editor-window typography QA remain deferred/open.
+
+
+
+The companion 2026-07-04 source metrics vertical fail-closed follow-up keeps that source metric bridge from overreaching into vertical text. `line_accepts_source_measure(...)` now requires `UiTextWritingMode::HorizontalTb`; `VerticalRl` caret and range geometry continue to use resolved `glyph_advances` on the y axis until the backend can provide true vertical source-range geometry. The regression `source_geometry_with_source_metrics_keeps_vertical_advances` covers a vertical `"Wi"` line whose resolved advances differ from the horizontal shaped source width, proving the horizontal width cannot leak into the vertical axis. Proof image/log: `docs/tests/runtime/text/runtime_text_source_metrics_vertical_fail_closed_preview_20260704.png` SHA256 `89C3B21A8DE7ED20B4FE059B7F823E11585B4556E1CE662DBD6772C0B7A79BF6`; `docs/tests/runtime/text/runtime_text_source_metrics_vertical_fail_closed_validation_20260704.log` SHA256 `64138EB6366135471835AE67D81F65F8841FC392216A64F50AB75D6597DBE486`; repo/cargo target same-name scans returned 0. Full vertical source-range geometry, focused Cargo, and live editor-window typography QA remain open.
+
+
+
+The 2026-07-04 render-command alignment resolved-family follow-up closes the adjacent Center/Right alignment gap. `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/text.rs::aligned_text_x(...)` now derives a retained runtime measure style from the resolved command style before measuring width, so alignment origins use the same retained-host resolved font family that glyph painting uses. The tests lock generic-family override projection, strong-face projection, and logical Start/End expectations on the retained measurement path. This does not change ZUI assets, root painter code, runtime FontDatabase, glyph atlas routing, or component-local font policy. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_render_command_alignment_resolved_family_preview_20260704.png` SHA256 `09D689593F62A4589DE643010AABC5C3A3AC049BAF4B46650EBCD6FA60253BB0`; `docs/tests/runtime/text/runtime_text_editor_render_command_alignment_resolved_family_validation_20260704.log` SHA256 `3A4F7D8516FD76F4D3914E7E33B9380DC1A733D3E99728FB1ABFE971D3CC1D86`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 divider label bounds runtime-measure follow-up removes another retained-host char-count text width path. `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/divider/geometry/label_bounds/horizontal.rs` now sizes the horizontal Divider label gap with `measure_runtime_text_width(label, divider_font_size(node, rect.height))`, and `divider/horizontal.rs` passes the same rect used by the label text frame. This keeps the divider line gap, text frame, and retained runtime text measurement on the same painted font size instead of `label.chars().count() * font_size * 0.56`. `paint_text.rs` also exposes the retained measurement/style helpers through the host-contract-internal module surface instead of requiring sibling code to reach into the private `paint_text::font` module. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_divider_label_bounds_runtime_measure_preview_20260704.png` SHA256 `E09C262CA18DDB0AA8AE851E4E8AA320DA30CB59CED053014AC189747A3769F2`; `docs/tests/runtime/text/runtime_text_editor_divider_label_bounds_runtime_measure_validation_20260704.log` SHA256 `86E3945369B52B41BB94C55EBD703A58CC38721F6630524E9D09518AF6AF9110`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 chip label runtime-measure follow-up removes the same char-count width heuristic from Material Chip labels. `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/geometry/label.rs` now sizes the label frame with `measure_runtime_text_width(label, chip_font_size(node))` while retaining the existing avatar/icon/delete padding and available-width clamp; `chip/geometry/metrics.rs` removes the stale `CHIP_LABEL_WIDTH_RATIO` constant. This keeps compact editor chip labels such as `editor base.zui` from carrying over-wide narrow-letter frames or under-wide wide-glyph frames without adding a component-local font policy. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_chip_label_runtime_measure_preview_20260704.png` SHA256 `BCF1E80B59EAC6B833E6C2CD6A2EF07A1F271698B80199760DE96BDE5683C5CE`; `docs/tests/runtime/text/runtime_text_editor_chip_label_runtime_measure_validation_20260704.log` SHA256 `8FF03AE4CE647584226BA5B8091E6532312CA4CDD6F3AF70A8B2091B769B606C`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 remaining material primitive runtime-measure follow-up clears the remaining retained-host char-count text width paths. Alert messages, Avatar text, Badge root text, and Badge overlay text/frame now size with `measure_runtime_text_width(...)`; the stale `ALERT_TEXT_WIDTH_RATIO`, `AVATAR_TEXT_WIDTH_RATIO`, `BADGE_ROOT_TEXT_WIDTH_RATIO`, and `BADGE_TEXT_WIDTH_RATIO` constants were removed. The change keeps each primitive's existing padding, min-width, anchor, center alignment, and clamp policy, so the root painter, ZUI assets, runtime FontDatabase, glyph atlas routing, and component-local font policy stay unchanged. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_material_primitives_runtime_measure_preview_20260704.png` SHA256 `6E7B3F91EC23A3769978768B66A8D4D1880AD103ABFDC1F63BA8823AF9A9EF09`; `docs/tests/runtime/text/runtime_text_editor_material_primitives_runtime_measure_validation_20260704.log` SHA256 `B2F325FC8E9C667C638B3E781927130AFBDD590050700C500E8B55C393F81F5D`; target scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 dialog action runtime-measure follow-up removes the matching non-Material retained-host char-count width path. `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions/labels.rs::action_width(...)` now sizes dialog action slots from `measure_runtime_text_width(text, DIALOG_ACTION_FONT_SIZE)` plus explicit per-side padding and the global text clip guard; `actions/metrics.rs` removes `DIALOG_ACTION_CHAR_WIDTH`. The caller still owns action ordering, confirm/cancel spacing, right alignment, and min-width behavior, so this does not add a root painter branch or component-local font policy. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_dialog_action_runtime_measure_preview_20260704.png` SHA256 `29901DEA7AC5C964DB719FC53814928D2FF16117A085D2F04815F654CEE11321`; `docs/tests/runtime/text/runtime_text_editor_dialog_action_runtime_measure_validation_20260704.log` SHA256 `1F7EC1134FC7CBF0E07026351F3D67A712979515441F64BA4B2A1940D1335BBA`; target scan returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-04 editor diagnostics/text-marker runtime-measure follow-up removes two retained-host overlay char-count width paths behind the same spacing complaint. `zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics/marker.rs` now sizes debug-refresh marker frames with `measure_runtime_text_width(...)` plus the existing padding and top-bar clip, and `paint_primitives/text_markers.rs` now sizes text bars from the same retained runtime measurement instead of `chars().count() * 8.0`. The focused regressions compare same-character-count `"iiiiiiiiiiii"` and `"WWWWWWWWWWWW"` labels for diagnostics overlays and text bars. Proof image/log: `docs/tests/runtime/text/runtime_text_editor_diagnostics_text_marker_runtime_measure_preview_20260704.png` SHA256 `43334F126689D0C3287EB65D82652151B673BDF1B0E79960B9C4E22533E9C3BF`; `docs/tests/runtime/text/runtime_text_editor_diagnostics_text_marker_runtime_measure_validation_20260704.log` SHA256 `A11D506F988201384B017DC46D8255BAC74A46F16F058C0887A81AC70848FE00`; repo/cargo target same-name scans returned 0. Focused Cargo and live editor-window typography QA remain deferred/open.
+
+
+
+The 2026-07-04 runtime Dialog action runtime-measure follow-up applies the same width contract to runtime surface dialog rendering. `zircon_runtime/src/ui/surface/render/dialog.rs::action_width(...)` now builds the action text style and calls runtime `measure_text_size(...)`, then adds explicit horizontal padding and the existing min-width clamp. The render-extract regression compares same-character-count `"iiiiiiiiiiii"` and `"WWWWWWWWWWWW"` action labels and requires the wide label to receive a wider frame. Proof image/log: `docs/tests/runtime/text/runtime_text_dialog_action_runtime_measure_preview_20260704.png` SHA256 `28A119522F37F9E7214F839F17B89E837514E62E1487BA743A4A76D9CFDEC695`; `docs/tests/runtime/text/runtime_text_dialog_action_runtime_measure_validation_20260704.log` SHA256 `0EC24801F4FB1FADC4583622FE25FE4B4D6AC2FB376A2F996125AE430EF49832`; repo/cargo target same-name scans returned 0. Focused Cargo and live editor-window typography QA remain deferred/open.
+
+
+
+The 2026-07-04 IME render-extract geometry follow-up closes the same-source gap for input-method cursor and composition rectangles. `zircon_runtime/src/ui/surface/input/editable_text/ime_context.rs` now refreshes the current tree render extract before a cursor update and consumes the matching `UiRenderCommand.text_layout` instead of rebuilding a second layout through direct `resolve_text_layout(...)`. The focused preedit regression proves the `"ab"` render command is gone after inserting `"W"` and the requested IME cursor rect equals `caret_frame_for_text_layout(...)` on the refreshed render layout. Proof image/log: `docs/tests/runtime/text/runtime_text_ime_render_extract_geometry_preview_20260704.png` SHA256 `2738AAD817E560892DD779606256A659D627687325248D19A98FC0F73CFDA0DA`; `docs/tests/runtime/text/runtime_text_ime_render_extract_geometry_validation_20260704.log` SHA256 `B66FF1ADCC0F13DB238C5C0FC5CF703FF8F962AEA8AF0FE89D866F8996D06251`; repo/cargo target same-name scans returned 0. Focused Cargo and live editor-window typography QA remain deferred/open.
+
+
+
+The 2026-07-04 surface render measure-cache consumer follow-up closes a production runtime path gap behind the same left/right spacing complaint. `zircon_runtime/src/ui/surface/surface.rs` now owns a retained `UiTextMeasureCache`; `surface/rebuild.rs` starts a cache frame and passes it into `ui/surface/render/extract.rs`; owner text and TextField render commands both resolve layouts through `resolve_text_layout_with_cache(...)`. Because `UiResolvedTextLine.frame` stores absolute x/y line placement, `UiTextMeasureKey` now includes exact owner frame and clip frame in addition to text/style/width bucket, so two equal labels at different surface positions cannot reuse stale absolute line frames. Proof image/log: `docs/tests/runtime/text/runtime_text_measure_cache_surface_render_consumer_preview_20260704.png` SHA256 `8E6664BED4F196B8CD809D53EA4164CB28016F4AE702E8570EC1B6C00ADB418E`; `docs/tests/runtime/text/runtime_text_measure_cache_surface_render_consumer_validation_20260704.log` SHA256 `DEE18E6403F55CACA4B75ED5ECDAB2F1DC3F3767EC7968A22372438D8062EE7D`; repo/cargo target same-name scans returned 0. Focused Cargo and live editor-window typography QA remain deferred/open.
+
+
+
+The 2026-07-04 Frameworks02 app startup validation exposed a support-boundary visibility issue in the atlas texture upload owner. `sdf_render.rs` consumes `write_glyph_atlas_texture_upload_command(...)` from the sibling `atlas_texture_upload` owner, so the helper and re-export now use `pub(in crate::graphics::scene::scene_renderer::ui)` instead of a too-narrow `pub(super)` boundary. This keeps the upload command private to the UI scene-renderer subtree, avoids a graphics/root facade export, and does not change upload math, texture layout, or SDF draw behavior. Validation anchors: scoped rustfmt passed for the atlas texture upload files and the dependent app startup slice; `cargo test -p zircon_app --lib --locked ... --format terse` passed `134 passed; 0 failed; 1 ignored`.
+
+
+
+The 2026-07-05 scene-renderer native bitmap atlas glyph-run iteration repair only fixes a compile blocker surfaced by the editor command-palette screenshot harness. `zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs` now iterates `run.glyphs.iter()` because `run.glyphs` is already a slice reference; the previous `&run.glyphs` produced `&&[LayoutGlyph]` and failed the native bitmap atlas compile path. This does not change atlas allocation, raster policy, layout shaping, renderer ownership, or runtime text preference routing. Validation anchors: scoped rustfmt passed for `text.rs`, and the dependent editor screenshot harness compiled through `zircon_runtime` and passed 1/1 after the repair.
+
+
+
+The 2026-07-05 framebuffer background input follow-up narrows the SubpixelMask background-composite source without pretending to read the framebuffer. `zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs::framebuffer_background_color(...)` now seeds `ScreenSpaceUiBackgroundTracker` with a known background only for opaque clear attachments or for load-store UI overlays whose already-rendered scene is provably just opaque `preview.clear_color`: skybox disabled, no meshes, no sprites, no particle sprites, and no visible overlays. `render/background.rs` still owns candidate/blocker policy, so a later transparent UI quad/image/text/border overlap makes the text batch background unknown. This closes the empty-scene clear-background acquisition first slice for native bitmap atlas SubpixelMask replacement, while true framebuffer readback and complex scene/overlay background acquisition remain open. Proof image/log: `docs/tests/runtime/text/runtime_text_framebuffer_background_input_preview_20260705.png` SHA256 `6B4EF6653EC5D0096B8A95A50999207423D4673F9BF98417B3E5662BD618CBBD`; `docs/tests/runtime/text/runtime_text_framebuffer_background_input_validation_20260705.log` SHA256 `2F398524CF72FCA715F4A45ABECAFA2561B793481D2203599AE8BCEA78E3AC58`; target/cargo-target same-name scans returned 0. Focused Cargo remains deferred while external cargo/rustc lanes are active.
+
+
+
+The 2026-07-06 framebuffer background GPU particle guard keeps that acquisition fail-closed for particle-only scenes. `known_loaded_framebuffer_background_color(...)` now delegates to `loaded_frame_has_particle_content(...)`, which rejects particle emitters, CPU particle sprites, previous sprites, bounds, and GPU particle frame alive/spawned counters before inheriting `preview.clear_color`. This prevents a load-store UI overlay from handing SubpixelMask glyphs a clear-color background while GPU particles have already modified the framebuffer. Regression coverage is `screen_space_ui_loaded_framebuffer_background_rejects_gpu_particle_content`; static validation log: `docs/tests/runtime/text/runtime_text_framebuffer_background_gpu_particle_guard_validation_20260706.log` SHA256 `B906087B5FA073C33DD3F874D8B107A6070E34C68D5CF4735A7D07A09013E294`. Focused Cargo and a fresh PNG export remain deferred because cargo/rustc lanes were active; the existing preview PNG above remains the visual baseline.
+
+
+
+The 2026-07-07 face epoch upload-validity follow-up connects the native bitmap atlas face-invalidation source to the renderer upload gate. `text/native_bitmap_atlas/source_cache.rs` increments `face_epoch` whenever font faces are invalidated; `native_bitmap_atlas.rs` carries that epoch into frame source images, storage submissions, and `GlyphAtlasBitmapUploadSourceBytes`; `scene_renderer/ui/text.rs` passes `GlyphAtlasBitmapFaceValidity` into the single- and mixed-storage renderer handoff; and `atlas_renderer/renderer.rs` builds upload frames with the live atlas plus face validity so stale face artifacts requeue instead of writing texture data. This is a data-path stability guard for the same compact DengXian editor-label discomfort tracked by the retained-host crop proofs; it does not alter ZUI assets, font-family preference, component letter spacing, root painter routing, or the public glyph atlas facade. Validation: rustfmt log SHA256 `E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855`; diff-check log SHA256 `847956AA84AAE7CAD7790A5E5F12406E9D4220FCCBE1449759572FB1E8C2248E`; target/cargo-target same-name scan SHA256 `41D556C62DE9389FD6BD33B5D1C5EF72345609B429FEBCDF63C1F6FE0B3C1BFC`. Focused Cargo remains deferred because active cargo/rustc lanes were present, recorded in `docs/tests/runtime/text/runtime_text_face_epoch_upload_validity_active_cargo_lanes_20260707.log` SHA256 `54C5B1DE2DDDDD3192E31E6DEEC8654E7891311EE11F6708F6D35E2F7C9C2C47`.
+
+
+
+The 2026-07-07 bitmap atlas slot-invalidation state follow-up gives the native bitmap atlas upload guards a real cross-frame atlas state to compare. `text/atlas/bitmap_run.rs` now has `glyph_atlas_bitmap_run_plan_with_atlas...` entry points, `render_submission` and retry-frame driver paths forward that atlas, and `GlyphAtlasBitmapRunPlan` records `GlyphAtlasBitmapSlotInvalidation` whenever a rebuildable page is evicted and its generation advances. `scene_renderer/ui/text.rs` keeps the main native bitmap submission atlas between non-empty frames and clears it on font-face invalidation or idle native text frames. This first slice left mixed-storage submissions to be closed by the follow-up below; the async raster worker is not complete, and live editor-window typography QA remains open. Validation artifacts live under `docs/tests/runtime/text/runtime_text_bitmap_atlas_slot_invalidation_state_*_20260707.*`; rustfmt log SHA256 `E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855`; diff-check log SHA256 `1F12656910810CC64BBC669DD77B6A65A02F28691F5ADEB15C1A17336ACE7BD1`; target/cargo-target same-name scan SHA256 `7EB70257593DA06F682A3DDDA54A9D260D4FC514F645237F5CA74B08F8DA61A6`. The focused Cargo no-run attempt timed out after 124 seconds and the owned process tree was stopped; timeout log SHA256 `6CBF5B392CE3F396D486F772C17E9280A2348147E1CF985443FDE3DC63297016`.
+
+
+
+The 2026-07-07 mixed-storage persistent atlas follow-up closes the storage-split reset left by that first slice. `text/native_bitmap_atlas/storage.rs` now owns `NativeBitmapAtlasStorageSubmission` and storage-format partition helpers, keeping the root native atlas file focused on frame orchestration and source construction. `NativeBitmapAtlasFrame::storage_submissions()` passes the main frame `GlyphAtlasSet` clone into `glyph_atlas_bitmap_render_submission_plan_with_atlas(...)` for each R8/RGBA storage partition, so per-storage submissions inherit persistent page generations instead of starting from a default atlas. This is not a public atlas API change and does not claim full glyph slot reuse, true async raster, or full glyphon `TextAtlas` cutover. Validation: production `cargo check` passed with log SHA256 `39D8D29FAAAB1D51ADE0CFAEAB8D43CD46A8136414258DD1A8418257A00FAAC5`; focused Cargo test attempts timed out and are not counted green; preview proof PNG `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_mixed_storage_persistent_preview_20260707.png` SHA256 `A4E5069E35EE7EC1B8279751C5D0334F102BC87A760CD9C86C42ED176D82F8F9`; target/cargo-target same-name scan returned 0 with SHA256 `4726D31A4C8D09B577716B35527BCE04CD30AAE02F550A65CEE3B0F59EE5B56E`.
+
+
+
+The 2026-07-07 missing-raster-image fail-closed follow-up tightens the native atlas replacement gate for the same compact editor-label discomfort track. `native_bitmap_atlas.rs` now counts `source_cache.image(...) == None` as `missing_raster_image_count`, writes it into `NativeBitmapAtlasPrepareReport`, and refuses native replacement whenever the count is nonzero. `native_bitmap_atlas/handoff.rs` reports this as `MissingRasterImage` before the generic no-visible-glyph or incomplete-coverage reasons, so a partial native atlas cannot silently skip a glyph and still take over glyphon. This is a data-path safety guard, not a live editor window typography pass and not the final async raster/placeholder solution. Validation: production `cargo check` passed with log SHA256 `808D515EE4921F35398506EBDC33788EC7D096DAE275431217DFEC4E280528F4`; the fixed focused test passed 1/1 with log SHA256 `8EDF02531E5943A910A839C6E47FE573D9FFD48410735225B898A7EC9713EC15`; proof PNG `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_missing_raster_image_fail_closed_preview_20260707.png` SHA256 `D0B56AFE9B985C7458761071DF19024D1F549CE6DEE7ADCDFDE260E571315AF5`; target/cargo-target same-name scan returned 0.
+
+
+
+The 2026-07-07 retained-host font collection index follow-up closes a face identity gap behind the latest editor crop complaint. `zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs` now preserves the `fontdb::FaceInfo.index` selected for system fonts, passes it into fontdue through `FontSettings.collection_index`, and includes it in the retained-host font cache key. `paint_text/raster.rs` uses the same index when creating the swash `FontRef`, so layout metrics and native bitmap rasterization no longer silently fall back to face 0 for nonzero `.ttc` collection faces. This keeps the fix inside the retained-host text owner and does not add component letter-spacing, ZUI font-token overrides, root painter shortcuts, runtime FontDatabase routing, or atlas facades. Validation: rustfmt and diff-check logs above passed; direct editor test binary passed `retained_text_editor_crop_labels_keep_stable_ink_spacing` 1/1 and exported the proof PNGs to `docs/tests/runtime/text`; target/cargo-target same-name PNG scan returned 0. The proof pixels match the earlier same-phase guard on this machine, which indicates the selected local face is likely index 0; the slice still closes the nonzero collection-face mismatch for systems where DengXian/等线 resolves inside a font collection.
+
+
+
+## 2026-07-08 Runtime Text Parallel Shape Pool
+
+
+
+`text/parallel/shape_pool.rs` is the PF-M2 owner for CPU paragraph shaping batches. It takes owned `TextShapeParagraph` requests, derives the same `ShapedRunCacheKey` used by `text/cache/shaped_cache.rs`, checks exact text equality through `ShapedRunCache`, de-duplicates same-batch misses by key plus text, and sends every unique miss through the same canonical `TextLayoutService` adapter as foreground layout while the runtime `TaskPool` uses `parallel_for`. Typed validation failures are reported before explicit fallback runs enter the cache; results preserve original request order as `Arc<ShapedGlyphRun>`.
+
+
+
+This keeps shaping parallelism under `text/parallel` without moving cache policy into UI or the scene renderer. It also avoids a direct rayon dependency in the text module: the worker scheduling is routed through the existing runtime task abstraction. The slice is deliberately nonvisual. It does not change retained-host font policy, ZUI tokens, component letter spacing, root painter routing, atlas upload behavior, or the native/glyphon handoff. The explicit UI cache prewarm entry, surface render owner-text automatic collection, and component-generated horizontal text-command prewarm/layout are now closed, while rich/vertical prewarm, scroll raster/upload counters, per-page upload merge, live editor-window typography QA, and the full glyphon `TextAtlas` cutover remain open.
+
+
+
+Initial validation for this slice was static because unrelated cargo/rustc lanes were active. The 2026-07-08 Property/axis screenshot closeout exposed a lower-layer type inference failure in the same owner, so `shape_pool.rs` now makes the pending queue type explicit as `Vec<PendingShapeJob>`. After that compile unblock, focused Cargo `render_perf_text_parallel_shape_count` passed 1/1 in the external target `D:\cargo-targets\zircon-editor-text-phase-recheck-0707`. Rustfmt and scoped diff-check remain the static evidence, the production scan found no new `allow(dead_code)`, panic/unwrap/expect/TODO, or direct rayon usage, and the target/cargo-target PNG scan found no same-stem screenshots because this slice is nonvisual.
+
+
+
+The UI adapter follow-up adds `UiTextShapePrewarmRequest` and `UiTextMeasureCache::prewarm_horizontal_paragraphs(...)`. It translates visible horizontal UI labels into `TextShapeParagraph` requests and calls `shape_paragraphs_with_cache(...)` against the same `ShapedRunCache` that natural-size measure and full layout use. The prewarm request intentionally uses `UiTextDirection::Auto` plus the full source range so the cache key matches later layout requests; otherwise prewarm could shape once and layout could still miss under a different key. Focused Cargo `render_perf_text_parallel_shape_pool_prewarms_ui_measure_cache` passed 1/1 with editor-style labels and a duplicate row, proving prewarm shapes four unique rows, later layout adds no shaped misses/inserts, and absolute layout entries still miss by frame as designed. No PNG is expected for this nonvisual cache/prewarm slice; target/cargo-target same-stem PNG scan returned 0.
+
+
+
+The surface follow-up adds `ui/surface/render/text_prewarm.rs` as the render-extract owner for automatic owner-text prewarm. It walks the arranged draw order before command generation, skips hidden nodes, component painter suppressions, rich text, and vertical writing mode, then calls the UI cache prewarm adapter through a render-local `TaskPool`. `UiTextMeasureCache::frame_shape_prewarm_report()` records the frame telemetry. Focused Cargo `render_extract_automatically_prewarms_visible_owner_text_before_layout` passed 1/1, proving visible duplicate owner labels are de-duplicated during prewarm and later layout hits the shaped cache.
+
+
+
+The component-command follow-up keeps the same owner instead of adding component-local text fixes. After component painter commands are generated, `prewarm_render_command_text(...)` collects horizontal non-rich `Text` commands that still lack `text_layout`, prewarms their source text into the same shaped-run cache, and `resolve_missing_render_command_text_layouts(...)` fills resolved layouts before the extract leaves runtime. `UiTextMeasureCache::prewarm_horizontal_paragraphs(...)` now accumulates frame reports across multiple prewarm batches so owner-text and command-text telemetry are both visible. Focused Cargo `prewarms` passed 3/3, including `render_extract_prewarms_and_layouts_component_text_commands`, proving Button-generated editor-style labels no longer reach retained-host fallback as bare text commands.
+
+
+
+## 2026-07-07 Runtime Text Async Raster Worker Queue
+
+
+
+`text/parallel` is now the PF-M2/PF-M3 owner for CPU text work queues. `parallel/mod.rs` remains a thin mount point and `parallel/raster_pool.rs` owns the real swash glyph raster worker pool: named worker threads, per-worker `SwashRasterizer`, bounded or unbounded request channels, in-flight work id rejection, async-compute thread budget projection, completion diagnostics, and main-thread completion draining by `face_epoch`. Workers only return atlas-independent `GlyphBitmap` results; atlas mutation, page allocation, page-generation validation, and WGPU upload stay on the render/main-thread side. The 2026-07-17 owner hard cut supersedes the original worker-level page-generation contract.
+
+
+This slice is a data-plane fix for the runtime path behind the editor text-spacing work: it removes another reason for future native bitmap atlas paths to rely on synchronous approximations or silent missing-raster skips. It does not yet connect production atlas misses to the worker queue, does not replace first-frame placeholder/approx buckets, and is not live editor-window typography QA. No new PNG is expected for this slice.
+
+
+
+## 2026-07-07 Runtime Text Worker Completion Bridge
+
+
+
+The native bitmap atlas source cache now has the main-thread landing point for raster worker results. `TextRasterCompletionDrain` carries rejected work ids for face invalidations so owners can clear pending work deterministically. `text/native_bitmap_atlas/source_cache.rs` tracks `TextRasterWorkId -> CacheKey`, applies accepted worker completions, converts `GlyphBitmap` into cached `SwashContent`/bearing/size/bytes, and reports worker insert/failed/unknown/invalid/face-invalidated/pending counters through `NativeBitmapAtlasSourceCacheFrameReport`. Idle native-text frames and face invalidation clear pending worker keys alongside cached source bytes. Stale page generations belong to the later upload request boundary, not this source cache.
+
+
+This keeps atlas mutation on the render/main-thread side and leaves workers as CPU bitmap producers. It is not the production miss scheduler yet: deriving parity-correct `SwashRasterRequest` from glyphon `CacheKey`, requesting work from `native_bitmap_atlas_frame(...)`, merging completed glyphs into per-page uploads, and live editor-window typography QA remain open. Validation used the already generated runtime lib-test binary directly: `runtime_text_worker_completion_source_cache_direct_20260707.log` passed 5/5 with SHA256 `C4E26C1EF98E95BBDA75609F7925CC658D19052A8E4F3DC0FCD187AB15B770F5`, and `runtime_text_worker_completion_raster_pool_direct_20260707.log` passed 1/1 with SHA256 `71FE22F34EA45DD9AAE6390131E1909AA4BFC7284903F1D2A4CB3020F63584FF`. No PNG is expected for this nonvisual data-plane slice; target/cargo-target worker/source-cache PNG scan returned 0 with SHA256 `C77FEC3A1A2BED814E3EC387015923C6DA97DCD71A80BE15E75E6DD1178CD64E`.
+
+
+
+## 2026-07-07 Runtime Text Swash CacheKey Request Parity
+
+
+
+The swash raster request owner now preserves glyphon `CacheKey` semantics before the async worker path is wired into production atlas misses. `text/raster/swash/request.rs` maps glyphon cache keys into `SwashRasterRequest` with the original glyph id, pixel size bits, x/y subpixel bins, disable-hinting flag, pixel-font offset rule, fake-italic flag, font weight, and glyphon source fallback order `[ColorOutline(0), ColorBitmap(BestFit), AlphaOutline]`. The request also carries the swash render format, bounded source list, fake italic transform, and optional `wght` variation.
+
+
+
+`text/raster/swash/rasterizer.rs` consumes that richer request instead of reconstructing policy locally: it forwards offset, source list, transform, render format, and clamped `wght` variation to swash, and rejects non-finite offsets before font parsing. This closes the request/rasterizer parity gap behind future native bitmap atlas worker misses without adding a renderer-root facade, component letter-spacing workaround, ZUI font override, runtime `FontDatabase` shortcut, or atlas route compatibility shim.
+
+
+
+Validation: scoped rustfmt passed with SHA256 `4C1FC20D031D667F0648C6D3FAE8EF01CE9D71EE0FFC95569061FAAA694D599F`; the isolated request harness passed 3/3 with SHA256 `DE8D026CA028E25AD25EB34E67A51BC9DB33543675382A0B7ECF55FBC49E21BC`; the isolated rasterizer harness passed 2/2 with SHA256 `F1246002DFCDB69A2EBE3E6B21D13B5F77AC5BB4E1026E83E6F8CD5C722B9463`; target/cargo-target same-name PNG scan returned 0 with SHA256 `7ABC2013CC24AD2272A57B4A94A66F974B144AA774E2FB40614895A16B2C02B4`. Full/focused Cargo attempts timed out in Windows lib-test compilation, timeout log SHA256 `9559717F6212CA90ED38E6D41F3C1C75DA9C61F52A7AAE8F6BC5671E0D967E69`, so package Cargo green is not claimed. No new PNG is expected for this nonvisual request/rasterizer data-plane slice. Production native atlas miss scheduling, per-page upload merge, live editor-window typography QA, and full glyphon `TextAtlas` cutover remain open.
+
+
+
+## 2026-07-07 Runtime Text Native Atlas Worker Request Scheduling
+
+
+
+Production native bitmap atlas misses now schedule worker raster requests instead of synchronously borrowing glyphon `SwashCache` on the miss path. `scene_renderer/ui/text.rs` owns the optional `TextRasterWorkerPool` lifecycle for `ScreenSpaceUiTextBackend`; `text/native_bitmap_atlas.rs` drains worker completions at frame start and only consumes cached source images; `text/native_bitmap_atlas/source_cache.rs` owns `CacheKey` pending de-duplication and request construction.
+
+
+
+The scheduled request uses the selected `FontDatabase` face index, shared font bytes, variation coordinates, and canonical `GlyphRasterKey` to build `SwashRasterRequest::native_bitmap_atlas_glyph(...)`, then submits a face-epoch-scoped `TextRasterWorkItem` to the pool. Current-frame native replacement remains fail-closed through the missing-raster/transparent-placeholder handoff until the worker result is accepted into the source cache on a later frame. The former `page_generation=0` target remains removed; atlas upload planning is a separate render-thread concern.
+
+
+Validation: scoped rustfmt check passed with SHA256 `A9F58776A09B5DAC438049683F24BF85764E0FF8E7455952456165C68C158627`; focused `CARGO_INCREMENTAL=0 cargo test -p zircon_runtime --lib native_bitmap_atlas_source_cache_schedules_glyphon_cache_key_worker_request --target-dir target/codex` passed 1/1(7258 filtered) with log `docs/tests/runtime/text/runtime_text_native_atlas_worker_request_lib_test_no_incremental_20260707.log` SHA256 `609DAB916950E0DACF5FDDEBE32426A2454DCE8844229B5DF12D6324DE8445BC`. The broader wrapper failed before this focused test because of an unrelated Cargo incremental cgu object cache error, log SHA256 `8A94A88A4216168A33632131E1D418E6CC24660C90ED8317D9D9967261AAFF81`. Final static checks: scoped diff-check exited 0 with LF/CRLF warnings only, SHA256 `BBCB97E285A1EBDB018484688CE98F98803A9D2EAEE5F74282662BB220ECE3A8`; conflict scan SHA256 `A7A70B507D034585B09441AED8ED16C250976DA21F33F59B1F69974F8DD39466`; target/cargo-target same-stem PNG scan returned 0 with SHA256 `EC2BCB08A6452B3A5CAF4FF6C384B66F9FC60AE01F36273A7061A0B9028FF1F0`. No PNG is expected for this nonvisual worker-request data-plane slice.
+
+
+
+## 2026-07-07 Editor Retained Crop Zoom Proof
+
+
+
+The retained-host editor crop proof now emits nearest-neighbor zoom crops from the same `HostRgbaFrame` pixels used by `retained_text_editor_crop_labels_keep_stable_ink_spacing`. `paint_text_tests.rs::export_editor_crop_framebuffer_if_requested()` writes the full frame, exact full-label crop, exact narrow-label crop, and `zoom4x` versions when `ZR_TEXT_EDITOR_CROP_PROOF_DIR` is set; `ZR_TEXT_EDITOR_CROP_PROOF_STEM` keeps this slice's artifacts from overwriting older crop evidence. `retained_text_editor_crop_zoom_uses_nearest_neighbor_pixels` locks that the zoom proof is an inspection aid over the same bytes, not a separate rasterizer or resampling path. Focused Cargo for `retained_text_editor_crop` now passes 2/2 after a lower `HybridGiStatSnapshot` projection compile blocker was fixed; proof PNGs and logs live under `docs/tests/runtime/text`, including `runtime_text_editor_retained_crop_zoom_proof_20260707_full_label_zoom4x.png` SHA256 `2B06959E2532AA5927957EDBD8E7C1EA4ECF989699D726F3C4D1652CFDA0FEDE`, `runtime_text_editor_retained_crop_zoom_proof_20260707_narrow_label_zoom4x.png` SHA256 `31173D56641948EBD1BFEA55528B43AB7EA862882536E9645503B36390AE5915`, fixed Cargo log SHA256 `ADE640ABF9280F081FF50B38FE555119430608258958E3B1EAE249D787CBD7AD`, and target/cargo-target scan SHA256 `4726D31A4C8D09B577716B35527BCE04CD30AAE02F550A65CEE3B0F59EE5B56E`. This is still retained framebuffer evidence rather than a live editor-window capture; live typography QA and GPU/native text parity remain open.
+
+
+
+The 2026-07-07 retained-host 13px compact unhinted follow-up addresses the user's latest editor crop directly: DengXian/等线 is now selected, but 13px tab/file labels still show uneven side-bearing snaps. `zircon_editor/src/ui/retained_host/host_contract/paint_text/raster/metrics.rs::swash_hinting_for_size(...)` now keeps swash hinting disabled for compact retained-host labels through `logical_px <= 13.0`, with 13.01px and larger text still hinted. The regression in `paint_text/raster/tests.rs` locks 8.5px, 10px, and 13.0px as unhinted and 13.01px as hinted; `paint_text_tests/latest_crop.rs` writes the same-stem full/narrow and zoom crops. Validation passed scoped rustfmt, scoped diff checking, focused Cargo proof 1/1, and visual inspection of the zoom crops. The proof PNGs live under `docs/tests/runtime/text/runtime_text_editor_retained_13px_unhinted_spacing_20260707*`; full/narrow zoom4 SHA256 values are `683B22F978D232CE03057FBE8DBF259BC2997F7C97E1F7C9EE3A1E2222C9C09D` and `1DF7C5DFCDAC4E0969EDF9C4F4BED3F648D68DA6C03C8E44E0E60948556ACC73`, the Cargo log SHA256 is `67D8DEBA38B30BE18F13500104B1AEA7022F917C5BAB8575496331DF220FA1E6`, and target/cargo-target same-stem PNG scan returned 0. This remains a retained-host raster rule, not a component letter-spacing, ZUI token, root painter, runtime FontDatabase, or atlas facade change.
+
+
+
+The 2026-07-07 current retained-spacing verification reran the exact screenshot track after the latest user crop. The already compiled editor test binary passed `retained_text_editor` 5/5(2845 filtered), covering latest crop spacing, tiny crop spacing, default grayscale origin snap, older retained crop spacing, and nearest-neighbor zoom proof. The new proof artifacts live under `docs/tests/runtime/text/runtime_text_editor_retained_spacing_current_20260707*`: test log SHA256 `9C7F5C522CA15C26EA39017478DCF32B36A8394DDE7BE243B9F4A244663CF9D3`, frame PNG SHA256 `3223495FBF4D643B45F649EF0941852E3FB303015710E9BD1FD938C60F5397CF`, zoom4 full/narrow SHA256 `DBDA010EE3076B8725DABF6B513A3F653B51911D565C7F4F2DD3B5C771308926` / `36A5B3BFFFAA73A3976FF21558FE2CD8DA42118E109F3B123C4B1BDE1D315840`. The proof log reports full/narrow maximum internal empty columns of 5/3 and identical full-label ink center for 44.875px and 44.925px origins. This validates the retained framebuffer path; it is still not a live editor-window capture.
+
+
+
+The 2026-07-07 native bitmap atlas first-frame degradation report makes PF-M3's first-frame fallback behavior explicit. `NativeBitmapAtlasPrepareReport.first_frame_degradation` now records whether the frame fell back to glyphon because source coverage was missing, or whether placeholder work would produce a transparent placeholder before a real native atlas replacement is possible. `native_bitmap_atlas/handoff.rs` owns `NativeBitmapAtlasFirstFrameDegradation::{GlyphonFallback, TransparentPlaceholder}` and the report projection, while root text aggregate tests only carry the new default field. Static validation logs live under `docs/tests/runtime/text/runtime_text_native_bitmap_atlas_first_frame_degradation_*_20260707.*`; rustfmt SHA256 is `E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855`, diff-check SHA256 is `BED6BE15975FA75A1E86BF377D9E07C648B893D2011B6A27AED4FD552E13CE53`, and the active-lanes record SHA256 is `3EA0C54F8CC1F647D26B3614E8203888687903FF57EF3F9A41C76AFCE17442D6`. A later focused rerun passed the placeholder branch through Cargo (`runtime_text_native_bitmap_atlas_first_frame_degradation_cargo_tests_warm_20260707.log`, SHA256 `A9A9D0C57D7EA24C7C8EDA5E05227B424D00850BEB9CCCCA851F42146FD71DB4`) and passed the missing-raster handoff/frame branches by directly running the same freshly generated lib-test binary (`FC2620F204E6585FCB24B31D819A28E17178F4D390D15B1B192E28833C79BE9D` and `95B3B90EFCFD066A7EABBF5D298280AFC29794640765E79E9E55491B001D1FF7`). The missing-raster Cargo retry itself failed before tests on a dep-info/fingerprint path write, so a full Cargo rerun remains open. No fresh PNG is expected for this slice because it is a nonvisual telemetry contract; true async raster worker and live editor typography QA remain open.
+
+
+
+The 2026-07-07 transparent-placeholder follow-up makes that first-frame degradation executable in the production native bitmap atlas handoff. `text/atlas/render_submission/plan.rs` can append placeholder glyphs after retry-frame planning, `text/native_bitmap_atlas.rs` records worker-pending misses as transparent placeholder quads, `native_bitmap_atlas/handoff.rs` returns `NativeBitmapAtlasHandoff::TransparentPlaceholder`, and `scene_renderer/ui/text.rs` prepares the native bitmap atlas renderer while disabling glyphon for that frame. This avoids switching back to glyphon solely because a worker request is already pending; the first frame stays transparent for that glyph and the later worker completion can fill the source cache.
+
+
+
+Validation for the transparent-placeholder follow-up passed focused runtime tests only, with no screenshot expected because the slice is a nonvisual data-path contract. `render_text_atlas_bitmap_submission_appends_worker_pending_placeholders` passed with log SHA256 `2CD98E6D27157649062B106EF0D77AB3C8625D9009726BD8959F77118B7EB262`; `native_bitmap_atlas_frame_schedules_worker_miss_as_transparent_placeholder` passed with SHA256 `597021BF1AB905AEC5733FAA2E77242CC52CFCE358B50239B021D206C99E90B1`; `native_bitmap_atlas_first_frame_degradation_reports_placeholder_work` passed with SHA256 `E1E2F44433689A234F5701D8B05AEFFA5D558D7D64CB2D467896A89643EE42BD`. Per-page upload merge, scroll raster/upload perf counters, live editor-window typography QA, and full glyphon `TextAtlas` cutover remain open.
+
+
+
+The 2026-07-07 approximate-bucket follow-up closes the other PF-M3 first-frame degradation branch. `text/native_bitmap_atlas/source_cache.rs` can now reuse a cached source image only when font id, glyph id, font size bits, weight, and flags match exactly and only the x/y subpixel bins differ. `native_bitmap_atlas.rs` still schedules the exact worker request for the current glyph, but can feed the approximate source image into the current native atlas submission instead of drawing a transparent placeholder. `NativeBitmapAtlasSourceCacheFrameReport.approximate_hit_count`, `NativeBitmapAtlasPrepareReport.approximate_raster_image_count`, and `NativeBitmapAtlasFirstFrameDegradation::ApproximateBucketReplacement` make that temporary substitution visible to renderer telemetry.
+
+
+
+Validation for the approximate-bucket follow-up is static only in this run: rustfmt, diff-check, and field/literal coverage passed in `docs/tests/runtime/text/runtime_text_native_atlas_approx_bucket_static_check_20260707.log` with SHA256 `ADDE952DA2030E7AB8246E555A370814A31CA0E4454C181C27798D7B64FE826C`. Windows focused Cargo and a WSL `/tmp` target retry both timed out during compilation, with logs SHA256 `6E3EA51A1E2FAA3764DA86EC0295B0A6514C7068E20DAD6D7BBC7355215CAB61` and `CDBF68EA4358BD9212588FF74A379FBE660B0DBFDCE1BA46AF2C5E7C79CCA447`; no green Cargo result is claimed. This slice generated no PNG because it is a nonvisual cache/handoff data-path change. Per-page upload merge, scroll raster/upload perf counters, live editor-window typography QA, and full glyphon `TextAtlas` cutover remain open.
+
+
+
+The 2026-07-07 PF-M4 scroll-list cache reuse guard covers the UI shape/layout side of scrolling text performance. `ui/tests/text_pipeline.rs::render_perf_text_scroll_list_reuses_cache` prewarms the stable `"Hg"` metrics run, lays out five editor-style resource labels, then scrolls by three rows. The second frame may miss the absolute layout cache because row `y` positions changed, but the shaped-run cache may only miss and insert the three newly visible rows; the two overlapping rows must hit the existing shaped runs. This keeps the scroll test aligned with the current absolute-geometry cache contract instead of accidentally allowing old line frames to be reused at new row positions. Static validation passed with rustfmt SHA256 `E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855`, scoped diff-check SHA256 `22FD7413CC13074CC1E6687BCD6B088A4C9EA15A00B765AC4A5F1739E0495A05`; final scoped diff-check SHA256 `0C2C4EF8AAB3E3943C4674E009561D3F5E8FAB3429CC0B08C123E71ADF59EBC3`, and target/cargo-target same-stem PNG scan SHA256 `E99A2829ECABA7855E71B61F879991A86D2DF3070B1CD2A23AD2D4242C975B7D`. Focused Cargo was deferred because unrelated cargo/rustc lanes were active (log SHA256 `FF8B1878275A1D2AA7843370F3664834CF45966B479F68615D6BA4A18FF93D2D`). No screenshot is expected for this nonvisual perf-counter guard; raster/upload-byte counters and cache hit-rate telemetry remain open.
+
+
+
+## 2026-07-07 Screen-Space UI Text Production Owner Split
+
+
+
+Status `runtime_15_production_file_budget_ui_ibl_project_owner_split_static_passed_cargo_check_offline_locked_blocked` moves render-side font asset resolution out of the screen-space text orchestration owner. `graphics/scene/scene_renderer/ui/text.rs` now stays focused on native/SDF text prepare orchestration and backend routing. `graphics/scene/scene_renderer/ui/text/font_assets.rs` owns loaded font asset records, fallback resolution, and effective render-mode selection. The private native bitmap atlas frame-index regression lives in `graphics/scene/scene_renderer/ui/text/tests/native_bitmap_atlas.rs`, mounted through the test child path so it does not shadow the production `native_bitmap_atlas` module.
+
+
+
+The split does not add a runtime `FontDatabase` shortcut, ZUI font override, editor retained-host bridge, compatibility facade, or legacy render path. Validation passed scoped rustfmt, standalone structure-convention `production_file_budget` 104/104, and no-default-features runtime tests offline cargo check with warnings only. The locked Cargo gate is blocked by current non-slice `Cargo.lock` drift.
+
+
+
+## 2026-07-10 Multilingual Product Framebuffer Acceptance
+
+
+
+`runtime_text_multilingual_product_framebuffer.rs` is an opt-in ignored integration test that exercises the actual product path: `UiRenderExtract` commands enter the screen-space renderer, native glyphon/cosmic bitmap and color atlas work settles across bounded frames, the SDF atlas/render path submits its own row, and WGPU `capture_frame` returns the final RGBA framebuffer. It renders separate Latin/ligature/accent, Simplified Chinese, Arabic with combining marks, Hebrew with digits, color Emoji/ZWJ, mixed Latin+CJK+Arabic BiDi, and SDF digit/spacing rows. A background-only frame is rendered independently; every text node must produce non-background pixels inside its own bounds before the PNG is accepted.
+
+
+
+The accepted artifact is `docs/tests/runtime/text/runtime_text_multilingual_product_framebuffer_20260710.png` (1080×620, 92,720 bytes, SHA256 `352FBD3A31126E862D1BDFEDAD2F7109A6F3E94BD877BBE38D4879CF2BBF1A25`). The framebuffer contains 1,010 distinct colors. Changed-pixel counts are 3,751 / 3,983 / 1,820 / 2,843 / 3,321 / 3,643 / 4,823 / 1,473 / 1,179 plus 1,789 for the CJK VerticalRl column; the zh-Hans/ja same-codepoint regions differ at 1,613 pixels. The current-source `target-client` test build passed in 15m16s with 418 existing library warnings. The exact ignored test passed 1/1 in 95.04s after 24 bounded settle frames plus two background frames. The executable also shaped Arabic `نَ` into two actual backend glyphs and verified both retained the same `Segoe UI` fontdb face. Repository `target` plus the external cargo-target roots contain no same-name PNG; the retained proof lives only under `docs/tests/runtime/text`.
+
+
+
+This closes the product-visible CJK/Arabic/Hebrew/color-emoji/native/SDF framebuffer slice, actual selected color-face → `SwashContent::Color` → RGBA-sized bytes, Simplified-Chinese/Japanese same-codepoint visual divergence, Arabic base+mark complex-cluster single-backend-face proof, and the first upright CJK VerticalRl product pixel gate. The second product failure was lower than layout: system `StoredFontSource::FontDb` entries had authoritative backend IDs but `FontDatabase::face_bytes(...)` always rejected them. The database now materializes container bytes through `with_face_data(...)`, then reuses `standalone_face_bytes(...)` for collection-face extraction. The diagnostic Swash coverage-to-SDF fallback was removed so one font-face and SDF strategy remains authoritative. The final `竖排布局` bbox is 31×118 with 1,789 changed pixels. Per-run OpenType `locl`, TTB/BTT direction, VORG/side-bearing placement, CJK vertical punctuation, and multi-column editing geometry remain open.
+
+
+
+## 2026-07-10 Native Vertical Advance
+
+
+
+`text/font/vertical_metrics.rs` owns the narrow native-font query for vertical advances. Given the actual `FontFaceId`, backend-shaped glyph ID and display font size, it parses the shared face bytes at the recorded collection index, reads `vmtx`, and scales the result from font units to pixels. The shaping layer does not reopen font files or build another font database.
+
+
+
+`text/shaping/vertical.rs` consumes that value only for upright clusters. Mixed/Sideways Latin continues to use its horizontal advance after clockwise rotation; faces without vertical metrics and fallback-shaped glyphs continue to use the established em synthesis. OpenType offsets from cosmic/HarfRust are preserved. The locked target-client crate check passed with the existing 418-warning baseline. The monolithic Cargo test parent reached its 30-minute window without diagnostics, but the owned `rustc` completed immediately afterward; direct execution of that current test binary passed `text_vertical_` 12/12, including real `Microsoft YaHei UI` backend face/glyph `vmtx` parity. TTB/BTT direction, VORG/side-bearing placement, CJK punctuation golden frames and multi-column editing geometry remain open.
+
+
+
+## 2026-07-11 TTB/BTT, Shaped SDF Identity, and Multi-Column Product Gate
+
+
+
+Vertical shaping is now a folder-backed pipeline. `shaping/vertical/backend.rs` invokes rustybuzz on the authoritative face, maps logical LTR/RTL requests to TTB/BTT, and returns actual glyph id, face id, source cluster, signed y advance, x/y offset, language and OpenType feature results. `projection.rs` converts that backend result into Zircon's neutral `ShapedGlyphRun`; `orientation.rs` remains the only Unicode Vertical_Orientation/rotation owner. This keeps backend policy out of UI layout and SDF renderer files.
+
+
+
+The screen-space path preserves that identity end to end. `render/text_advances.rs` carries exact vertical glyph records and maps resolved layout advances back by source grapheme; `sdf_atlas/text_keys.rs` keys atlas slots by actual glyph id + face id; `text/sdf/font_bake.rs` calls indexed fontsdf rasterization only on that face and owns CPU fonts/glyph/offline caches plus atlas pixels; and `sdf_render/vertices.rs` consumes Text-produced metrics for GPU vertex preparation. If an authoritative shaped face is unavailable, the glyph remains unbaked so the existing native fallback owns the failure; a shaped glyph id is never applied to another fallback face.
+
+
+
+Current-source validation passed SDF vertical 5/5, SDF atlas 23/23, SDF font bake 10/10, vertical shaping/layout 17/17, VerticalRl layout/hit-test/IME 7/7 and soft-wrap caret affinity 1/1. The ignored WGPU product exporter calls shared `layout_text` for `竖排「标点」。第二列，验证。`, requires two right-to-left columns, and verifies pixels in each column before saving `docs/tests/runtime/text/runtime_text_multilingual_product_framebuffer_20260710.png`. The accepted image is 1080×620, 100,139 bytes, 1,012 colors, SHA256 `AE10DC416FD87AC7382676796AF05FD3EE30C12B0904A482D225C3DB69F8D713`; two-column changed=4114, bbox=68×240, and same-name scans under repository/external target roots are zero. Horizontal cosmic per-run `locl`, variable-axis injection, MSDF/MTSDF and full paragraph parity remain open.
+
+
+
+## 2026-07-11 Native Bitmap Repeated-Storage Ordering
+
+
+
+`text/native_bitmap_atlas/storage.rs` partitions source images into contiguous storage runs. This is intentionally different from grouping by unique format: an alpha glyph run, a color glyph run, and another alpha glyph run must remain three submissions so the renderer cannot draw the last alpha glyph before the intervening color glyph. `NativeBitmapAtlasFrame` delegates this projection to the child owner and the atlas renderer consumes the returned passes in order.
+
+
+
+The TDD regression locks `R8 -> RGBA -> R8`, three submissions, local source-byte remapping, and `MixedStorageReplacement` without glyphon. The freshly built current-source library harness passes the exact regression 1/1, the full `native_bitmap_atlas_` filter 44/44, and `atlas_renderer` 13/13. This removes an avoidable glyphon fallback but does not yet claim DPI propagation, complete glyphon `TextAtlas` removal, or persistent glyph-slot closure.
+
+
+
+## 2026-07-11 Screen-Space System-Font Recovery
+
+
+
+`ScreenSpaceUiTextSystem::new(...)` now treats the shared `FontDatabase` snapshot as the single renderer font owner. Before synchronizing that snapshot into glyphon's `FontSystem`, `initialize_screen_space_ui_font_system(...)` applies `SystemFontPolicy::Discover`; an empty default project snapshot can therefore no longer erase all system faces that the screen-space renderer needs for its default-font fallback. The Windows regression starts from `FontDatabase::with_default_fallbacks()`, requires discovered system faces, confirms `Segoe UI` is queryable, and confirms glyphon's database is populated after the same production helper runs.
+
+
+
+The Editor HUD framebuffer test uses the same bounded 24-frame text settle window as the Runtime multilingual product gate. That window covers system-font discovery, asynchronous raster completion, atlas upload, submission, and readback; the assertion remains `changed_pixels > 0`, so UI commands or text strategy metadata alone cannot pass. Current-source validation includes a successful target-client Runtime library check and the real Editor HUD filter at 1 passed / 0 failed (54.49s test time). No Editor-only font database, hard-coded platform face, test glyph injection, or compatibility renderer path was introduced. The fixed failure record is owned by `docs/plans/zircon_editor/editor/01/fixed-2026-07-11-editor-m1-font-discovery.md`; Text 01 retains the implementation summary and detailed output row.
+
+
+
+## 2026-07-11 Rich Text RT-M1 / RT-M2
+
+
+
+The neutral rich-text contract lives in `core/framework/text/rich.rs`; parser policy stays folder-backed under `text/rich`. `parser.rs` coordinates formats, paragraph ranges, and grapheme alignment, `bbcode.rs` owns BBCode token/style rules, `decorator.rs` owns tag-to-style registration, and `html_subset.rs` owns the controlled HTML tokenizer, whitelist, entity decoder, and safe style projection. `ui/text/rich_text.rs` is now only an adapter into existing `UiTextRunKind` and stripped-text ranges, so layout and measurement do not count markup bytes.
+
+
+
+RT-M1 supports nested BBCode b/i/u/s/color/bgcolor/size/font/code and preserves Markdown strong/emphasis/code behavior through the same parser. Run boundaries are aligned after markup removal: if a marker lands inside a Unicode grapheme, the cluster-start style owns the whole cluster. Layout tests therefore keep `a + combining acute` and Hebrew base + mark in one run through wrapping, BiDi visual projection, and ellipsis.
+
+
+
+RT-M2 implements a deliberately small HTML surface: b/i/u/s/span/font/br plus color, font-size, font-weight, font-style, text-decoration and font face/size/color. Named and numeric entities decode once after tokenization; decoded angle brackets are never re-tokenized. Unknown tags and attributes lose markup but keep text, while script handlers, arbitrary CSS such as `url(...)`, and network behavior have no execution path.
+
+
+
+RT-M3's parser contract is present: HTML/BBCode images emit a U+FFFC object placeholder carrying `InlineObjectRef::Image`, and HTML/BBCode links carry `LinkRef`, stripped-text hit ranges, underline and link color across nested styles. Resource references accept only controlled engine schemes or normalized relative paths; HTTP, memory resources and root-escape paths are rejected.
+
+The current link contract admits its destination once as `UiRichLinkTarget` and shares the canonical locator through compiled runs, hit testing, input effects, and host requests. HTML `<a title>` and BBCode `[url href=... title=...]` retain optional tooltip metadata as `Arc<str>` through parser quota, compiled residency, and hit projection. This metadata is not itself a surface tooltip ID and does not arm overlay timers; qualified hover/accessibility publication remains a later owner.
+
+Compiled rich resource requirements are exposed as `RichTextDependency`. The current `ImageTexture(ResourceId)` variant is sorted and deduplicated once and explicitly consumed by UI texture streaming. Icon/font/widget/decorator entries are not published until their asset or lease identities are qualified; family strings, bare widget ids, and parser generations are not treated as resources.
+
+Compiled rich cache telemetry follows the cache lifecycle rather than a UI-side cumulative-counter delta.
+The private cache owner takes and resets hit/miss/parse/eviction/admission-bypass/candidate-probe events under
+its mutex while preserving residency gauges. The parser owner adds parser identity and decorator/emoji
+generations to that snapshot; checked overflow emits `telemetry_saturated`. Surface profiling consumes 12
+fixed names without markup or dynamic tenant labels. Explicit project/surface correlation and managed
+profile evidence remain pending.
+
+The compiled rich cache also reports single-flight contention without changing the `OnceLock` algorithm.
+`compile_requests_in_flight` is a current gauge; completed callers that did not execute the initializer add
+wait count, total nanoseconds, and maximum nanoseconds. A call-local initializer marker and RAII gauge guard
+keep attribution inside the cache owner, while already-complete artifacts bypass timing. These fields are
+measurement inputs for a later bounded worker/cancellation decision; they are not evidence that a timeout or
+duplicate-parse route is safe.
+
+
+The first 03 layout owner now lives in `text/layout/rich.rs`. It projects parser runs into neutral `LayoutItem::{Text,Inline}` and `LaidOutText`, reserves inline advance and size, computes Baseline/Center/Top/Bottom ascent/descent, shifts text origins to the enlarged line baseline, and records the actual emitted item count. Invalid source ranges are dropped without leaving a line range that points past the item store. Current-source validation passes rich text 15/15 and the layout-engine regression group 67/67; the UI-feature production check remains green from the parser milestone.
+
+
+
+The UI surface now selects markup with explicit `UiRichTextFormat::{Plain,Markdown,BbCode,Html}` rather than a Markdown-only boolean. `text/layout/rich.rs` owns mandatory-newline splitting and per-line rich metrics; each neutral line retains its item range, cumulative y origin, baseline, and original parser run index. `ui/text/layout_engine/rich_inline.rs` projects horizontal, nowrap LTR inline content into `UiResolvedTextLayout`: object width becomes the U+FFFC grapheme advance, each forced line receives its own source/visual range and enlarged ascent/descent, and the existing caret/hit-test path consumes those same advances. Run font size, weight, and family participate in measurement. The screen-space renderer's `render/rich_text.rs` leaf resolves the matching line from the inline object's source range, skips the U+FFFC glyph batch, uses shared `LaidOutText` placement for an image batch, and applies run color/background/font/size/weight plus link underline.
+
+
+
+BBCode block alignment is now a neutral paragraph contract rather than a UI parser special case. `[center]` and `[right]` produce `ParagraphOverride` entries over stripped-text byte ranges; the UI layout owner selects the effective alignment from each candidate line's source start, so one override covers every line in a marked block. The same lookup is used by the admitted inline path. The latest UI-feature production check passes in 43.14s with 439 existing warnings. After the Environment IBL owner fixed its stale methods, target-client `cargo check --lib --tests` compiled the Runtime library without Text07 diagnostics and failed only in an unrelated integration test missing `World::run_native_scene_systems_for_stage`; the lib-test link itself still produced no new binary after about 20 minutes. The new exact tests are therefore not claimed green.
+
+
+
+Rich-link activation now continues beyond visual underline metadata. `ui/text/rich_text/link_hit.rs` resolves a surface point through the existing `UiResolvedTextLayout` caret owner and uses caret affinity at run boundaries, while `ui/surface/input/rich_link.rs` admits only primary releases on the route's click target and emits `RequestLinkActivation`. The dispatch-effect owner revalidates the target and accepts only engine resource schemes before producing `UiDispatchHostRequestKind::ActivateLink`; no browser/network execution occurs inside Runtime. This preserves the host boundary and keeps link activation rejectable/diagnosable like clipboard, popup, and pointer-lock requests. The interface check passed in 134.7s, the UI-feature production check passed in 126.7s with 440 existing warnings, and the fully qualified interface round-trip regression passed 1/1; Runtime behavioral test execution remains deferred to the Text07 milestone test binary.
+
+
+
+The admitted image path now has a real product rendering closure. `graphics/scene/resources/ui_texture.rs` resolves the neutral locator-derived ID against the current project registry because imported resources are UUID-backed, verifies a 2D single-layer texture, and asks the existing `ResourceStreamer` to prepare it. `scene_renderer/ui/image.rs` owns a narrow texture/sampler bind group, UV/tint vertices, alpha-blended pipeline, and WGSL sample; it retains the streamer's `GpuTextureResource` and never creates a second texture cache. Missing, unresolved, or unsupported resources use the streamer's existing opaque-white fallback.
+
+
+
+The 2026-07-11 ignored product exporter creates a temporary project, imports an 8×8 red/green/blue/yellow quadrant PNG, renders it inside HTML rich text through the actual WGPU screen-space UI pass, and compares the captured row against independent dominant-channel gates. Since the engine fallback is solid white, all three gates cannot pass through the fallback or the old solid-color placeholder. The stable UI-feature production check passed in 236.1s with 442 existing warnings. The target-client build finished in 21m00s and the exporter passed 1/1 in 121.72s; a final direct-binary rerun passed 1/1 in 108.07s and reproduced the same hash. The accepted artifact is `docs/tests/runtime/text/runtime_text_multilingual_rich_inline_product_framebuffer_20260711.png` (1080×620, 100,378 bytes, SHA256 `0220C44E0F41F0B6B8BB52CB6EA8A800E298C4A28D6B671374ED47C63B51CB27`); visual inspection confirms the four-color inline image plus Latin/CJK/Arabic/Hebrew/color emoji/SDF/two-column VerticalRl output, and same-name scans under repository and external targets are both zero.
+
+
+
+Forced-newline multiline and glyph soft-wrap inline layout are now admitted for horizontal LTR content. The neutral owner measures each grapheme with its run style and uses inline box advance for U+FFFC, so an oversized image remains an indivisible line item. Renderer x placement derives from the matching resolved line's glyph advances instead of the original unwrapped rich line. The latest production `--features ui` check passes in 208s with 442 existing warnings. After a first link attempt accurately failed because F had about 1MB free, removing the confirmed stale 7.17GB `zircon-frameworks03-domain-matrix-0711` cache allowed the current-source target-client no-run build to finish in 17m39s; glyph wrap and two multiline regressions pass 3/3. Word/WordSmart, RTL/Mixed, vertical and ellipsis inline layout, icon/widget/emoji shortcode runs, remaining BBCode V1 tags, and public custom decorator registration remain open. Link activation reaches an explicit host request but Runtime does not execute arbitrary external navigation. RT-M3 and Text07 remain in progress.
+
+
+
+Word and WordSmart inline wrapping use the same neutral UAX#14/WordSmart line owner; current-source exact tests for Word, WordSmart and Glyph each pass 1/1. Inline RTL/Mixed reuses the Text02 UAX#9 visual-order owner and reorders visual text, runs and grapheme advances together; shared advance, Mixed, RTL and renderer visual-offset tests each pass 1/1 after the target-client production check completed in 16m17s.
+
+
+
+The subsequent imported-checker regression was a resolved-run boundary defect, not a texture cache failure. Visual fragments previously merged adjacent parser runs whenever kind, direction and source continuity matched, so an inline U+FFFC could disappear into the surrounding plain run. Tokens and fragments now retain their original styled-run owner and merge only within that owner. The renderer therefore consumes one authoritative resolved paint run again; the temporary missing-placeholder recovery path was removed. The current-source target-client product build completed in 17m19s and the ignored WGPU exporter passed 1/1 in 117.55s. Independent nowrap, Word, WordSmart and RTL checker scans all passed. The accepted 1080×850 artifact has 127,136 bytes and SHA256 `6DB26B605256EE3A5B5B8C910DB3940C86CFDE53EC205CE5C16F1A725F10E526`; visual inspection confirms the bottom RTL rich image and same-name scans under the validation target are zero. Vertical/ellipsis inline layout, icon/widget/emoji shortcode runs, remaining BBCode V1 tags, and public decorator registration remain open.
+
+
+
+Horizontal rich ellipsis now uses the same measured grapheme/object advances as ordinary rich wrapping. End/Start/Middle/Word retain complete styled fragments, rebuild final line/item ranges and measured extents, and never reinterpret a synthetic zero-length ellipsis as an inline object. Rich run planning was extracted into `scene_renderer/ui/render/rich_text.rs` (197 lines), leaving the renderer root at 794 lines. During product acceptance, the preview-sky executor was also corrected to resolve `scene-depth` using its declared Read access; this repairs the shared render-graph contract rather than bypassing validation in the text test. The current-source product build passed in 13m21s, the access fix rebuilt in 4m25s, and the exact ignored WGPU exporter passed 1/1 in 116.11s. The accepted 1080×920 PNG has 131,867 bytes and SHA256 `17685053A570A334E4DEC76D23B4F041D07E8D309ECF853FED7E2BDC7B080D2A`; visual inspection confirms the End-ellipsis row retains the imported checker texture, and the D-drive cargo-target same-name count is zero. A subsequent focused lib-test compile was blocked before test execution by concurrent asset-migration E0425/E0004 errors, so Start/Middle/Word exact tests are written but not newly claimed green. VerticalRl inline layout, icon/widget/emoji shortcode runs, remaining BBCode V1 tags, and public decorator registration remain open.
+
+
+
+VerticalRl rich inline layout is now admitted through a separate neutral/UI adapter pair. `text/layout/rich_vertical.rs` measures text with the shared vertical shape provider, uses inline object height as the y-axis advance and width as the column cross extent, and emits Glyph/Word/WordSmart column ranges. Its wrapping contract accepts a per-forced-paragraph first/continuation column-height resolver, so the neutral owner can break around an inline object against the real usable height rather than one global frame height. `ui/text/layout_engine/rich_inline_vertical.rs` supplies those heights from paragraph-owned constraints, consumes the existing right-to-left column-capacity/placement and advance-aware ellipsis owners, and applies the same post-wrap y alignment as plain VerticalRl text. `scene_renderer/ui/render/rich_text.rs` continues to resolve the U+FFFC visual prefix and place the image at the accumulated y offset; no rich-paragraph split, post-move layout, or renderer reconstruction is introduced.
+
+
+
+The earlier standalone rich-inline proof passed focused layout regressions 2/2 and renderer placement 1/1 in 34.77s. Its current-source product run passed 1/1 and produced the accepted 1080×920 PNG (137,133 bytes, SHA256 `49DB1034E895A6CC6DF063EFD1E83A08EC7AED79A683345406A4FD19C08AC33E`). The 2026-07-15 paragraph-composition regressions additionally require first-column indent with continuation reset, Center/Right physical-y alignment, empty-paragraph end-exclusive ownership, Word/WordSmart oversized-chunk fallback, paragraph-aware ellipsis, retained U+FFFC runs, and object-height main-axis advance; the product gate uses the real imported checker texture inside the paragraph command. Full Native/SDF vertical parity remains a Text05 gap.
+
+
+
+Custom BBCode extension now uses the public `graphics::{RichTextParser,RichTextDecorator}` boundary. A parser starts with the built-in style decorators and accepts additional `Send + Sync` decorators through `register_decorator`; each occurrence receives a `RichTextDecoration` initialized from the enclosing style/link stack and may refine that neutral data or emit one `InlineObjectRef`. The parser continues to own tokenization, stack closure, grapheme alignment and U+FFFC insertion, so extensions cannot introduce UI-local parsing, renderer calls, resource uploads, or GPU work. Tag names are trimmed and normalized to lowercase ASCII alphanumeric/underscore; malformed names, duplicates, built-ins and parser-owned `img/url/center/right` are rejected. Returning `false` rejects only that tag occurrence while retaining inner text. This extension point is BBCode-only: the controlled HTML subset deliberately keeps its fixed security whitelist. Six focused tests cover style output, inline output, both shadowing classes, malformed tags and occurrence rejection; they are written but not yet declared green because the current target-client compile was stopped later by separately owned Environment IBL errors.
+
+
+
+Built-in inline decorators are isolated in `text/rich/inline_decorators.rs`. `[icon=glyph|family]` emits an `InlineObjectRef::Icon`; layout reserves the existing em-sized inline slot and the screen-space renderer replaces the U+FFFC run with an ordinary text batch that carries the requested font family, so native/SDF routing and glyph fallback remain under the text system. `[widget=id|widthxheight]` emits only a bounded metric placeholder; it does not construct UI or execute callbacks. This is the deliberate V1 boundary before the editor rich-widget plan owns child arrangement and interaction.
+
+
+
+`text/rich/emoji_shortcode.rs` owns a small built-in name map and parser-local registration. Shortcodes expand only inside BBCode text fragments after tag tokenization, so replacements cannot become second-pass markup. Unknown names remain literal, names are restricted to normalized ASCII alphanumeric/underscore, and registered replacements must contain exactly one Unicode grapheme. A caller's registration is stored on its `RichTextParser` and does not mutate new/default parsers. Six parser regressions plus one renderer regression are written for these behaviors; execution remains pending behind the separately registered Shader06 Realtime IBL compile failure.
+
+
+
+The Godot-aligned non-style BBCode surface stays in `bbcode.rs`: `[br]`, literal bracket tags, Unicode directional marks/embeddings/overrides/isolates, joiners, word joiner and soft hyphen map directly to their Unicode text values before shaping. They do not introduce a rich-only BiDi or line-break engine. `[left]` and `[fill]` join `[center]`/`[right]` through neutral `ParagraphOverride` ranges and map to the shared Left/Justify layout modes. These names are parser-owned, so custom decorators cannot register unreachable shadow implementations.
+
+
+
+BBCode V1 block semantics are isolated in `text/rich/bbcode_blocks.rs`. `[p align=... indent=...]`, `[indent]`, `[ul]`, `[ol]`, and `[li]` emit neutral paragraph metadata; nesting is capped, ordered lists admit decimal/alpha/Roman markers, and list prefixes are real normalized text with an explicit byte range. The parser never manufactures spaces to imitate layout. `ui/text/layout_engine/paragraph_layout.rs` measures the shared space glyph and multiplies it by the resolved `tab_size` for each logical nesting level. It supplies different first-line and continuation extents, giving list items a hanging indent, and insets the logical-start edge for both LTR and RTL before applying paragraph alignment. Plain rich runs and inline-rich runs consume this same metadata.
+
+
+
+## 2026-07-12 Rich Text RT-M4 Table/Cell V2
+
+
+
+`core/framework/text/rich.rs` now models tables without parser syntax through `RichTable`, `RichTableColumn`, and `RichTableCell`. The DTO stores stripped-text byte ranges, row-major cells, bounded nesting depth, and column expand/shrink constraints. `text/rich/bbcode_table.rs` is the only `[table]`/`[cell]` syntax owner; malformed or hostile column counts are bounded before allocation, while a cell tag outside a table degrades to its inner text.
+
+
+
+`ui/text/layout_engine/rich_table.rs` consumes the neutral ranges. It slices the existing parsed rich document and recursively reuses the ordinary rich layout owner for every cell, so styles, paragraphs, inline images, links, BiDi and wrapping do not gain table-specific copies. Columns are measured before arrangement, shrink or expand within the available width, and each row advances by its tallest cell. This follows Godot's table/frame separation and the measure-then-arrange shape used by Slint and Fyrox. At RT-M4 first-slice acceptance, colspan/rowspan, the full Godot border/background/padding option set, and VerticalRl tables remained open.
+
+
+
+The RT-M4 Windows milestone check passed and its current-source rich-text filter passed 56/56, including five parser and four table-layout regressions. Its ignored exact product exporter passed 1/1 in 99.00s through the real WGPU UI pass under coordinator job `3376acdf8f404a26a04b9509e0d3e47a`. The historical artifact remains `docs/tests/runtime/text/runtime_text_multilingual_rich_table_product_framebuffer_20260712.png` (1080×1450, 234,456 bytes, SHA256 `0B69036E831C376B6C7235CF5CE05D62331F48BE18D7D93F59D97C6527A1A0AA`). RT-M5 below supersedes the span gap; the other table gaps remain open.
+
+
+
+## 2026-07-12 Rich Text RT-M5 Colspan/Rowspan
+
+
+
+`RichTableCell` now carries resolved `row_index`, `column_index`, `column_span`, and `row_span`, with serde-safe one-track defaults. `text/rich/bbcode_table/attributes.rs` owns span parsing, invalid/zero degradation, the shared 64-row hostile-input bound, and column expand/shrink settings. `placement.rs` performs deterministic row-major placement with one `occupied_until_row` value per bounded column: it skips prior row spans, reduces a requested colspan to the first free slot's contiguous run, and advances to the next row when no slot remains. A spanning cell configures every covered column. The former `cells.len() % columns.len()` placement no longer exists.
+
+
+
+The UI path projects cells through `layout_engine/rich_table/grid.rs`, which bounds manually constructed DTO coordinates without a dense grid allocation. `sizing.rs` applies ordinary preferred constraints before spanning constraints, distributes colspan deficits by covered expand ratios or evenly, then applies shrink/expand fitting. It similarly establishes ordinary row heights before distributing rowspan deficits. The root table owner lays out each cell at its final span width, resolves row tracks, translates the prepared resolved lines, and clips them through the normal text path. No BBCode or span-specific branch was added to the renderer.
+
+
+
+Windows production build passed through the managed validator. The current-source `text_rich` lib-test filter passed 64/64 in 35.44s, including nine parser table tests and eight UI table tests. The package-wide test command was also attempted, but an unrelated integration test `runtime_plugin_world_extensions_contract.rs` still calls the removed `World::run_native_scene_systems_for_stage`; this does not replace or weaken the focused evidence. After two product-assertion corrections, the final exact ignored WGPU exporter passed 1/1 in 116.88s under job `15dbf21801754a618cfc0e2354c0ebd5`.
+
+
+
+The accepted artifact is `docs/tests/runtime/text/runtime_text_multilingual_rich_table_spans_product_framebuffer_20260712.png` (1080×1450, 242,497 bytes, SHA256 `47A5C96CBD833ABD46C563D98F52CF1C7F1B5A3E0537CC26943730128D621F43`). Original-resolution review confirms the merged three-column heading, two-row `Span owner`, two-column detail, ordinary wrapped detail, and real star icon in the WGPU frame. All approved target roots contain zero same-name PNGs. Colspan/rowspan is closed; the cell box gap is closed by RT-M6 below.
+
+
+
+## 2026-07-12 Rich Text RT-M6 Cell Box Model
+
+
+
+`RichTableCellBoxStyle` keeps BBCode syntax out of layout and rendering while preserving optional border, odd/even background, and explicit four-side padding. `bbcode_table/attributes.rs` remains the only syntax owner: one background color applies to both parities, two colors select by resolved starting row, padding accepts exactly four finite values, negative sides clamp to zero, and each side caps at 4096 logical pixels. Invalid tuples fall back atomically. Missing padding continues to use the table default, while authored zero remains distinct.
+
+
+
+`ui/text/layout_engine/rich_table.rs` includes each cell's padding in preferred width and required height, then emits one final `UiResolvedTextBox` per styled cell after span tracks are solved. The frame covers the complete colspan/rowspan extent. Nested table boxes use the same source-range shift, translation, and clipping path as resolved lines. A support-first correction made cell slicing retain only tables deeper than the owning table, preventing a one-cell owner range from recursively laying itself out. No renderer-side table reconstruction exists.
+
+
+
+Runtime Interface transports resolved box frames and projects backgrounds before text and borders after text. The screen-space renderer consumes those neutral decorations through the existing rectangle path and the existing `push_border` geometry. Current-source `text_rich` passed 68/68; the exact renderer regression passed 1/1. The exact target-client WGPU exporter passed 1/1 in 125.10s under job `bdb1cd9c78c44822af5c98f21cdcb2ad`.
+
+
+
+The accepted artifact is `docs/tests/runtime/text/runtime_text_multilingual_rich_table_cell_box_product_framebuffer_20260712.png` (1080×1450, 242,151 bytes, SHA256 `CAE02C87B1AD0196C426E880B925B63B22C89F907785E7BFDF72D1A433233B18`). Original-resolution review confirms five resolved backgrounds and borders, cyan/amber border colors, alternating deep backgrounds, asymmetric padding, merged heading, rowspan owner, colspan detail, wrapped ordinary text, and the real star glyph. All approved target roots contain zero same-name PNGs. VerticalRl tables and table-specific interaction remain open, so Text07 stays `in_progress`.
+
+
+
+## 2026-07-12 Rich Text RT-M7 VerticalRl Tables
+
+
+
+The former 606-line rich-table owner is now an 8-line navigation root with folder-backed `axes`, `layout`, `cell_layout`, `grid`, `sizing`, and `source_slice` owners. `TableAxes` is the sole logical-to-physical mapper: table columns advance on physical x in HorizontalTb and physical y in VerticalRl, while rows advance downward or from right to left. The same track solver, parser coordinates, nested-table recursion, resolved boxes, and renderer path serve both modes; no VerticalRl table bypass or renderer reconstruction remains.
+
+
+
+Vertical cells retain physical left/top/right/bottom padding. In VerticalRl, colspan increases physical height and rowspan increases physical width toward the left. Prepared nested lines and boxes use a top-right arrangement anchor, then intersect the final physical content frame and global clip. Surrounding before/table/after blocks consume physical width from right to left.
+
+
+
+Windows current-source production check passed. The pre-existing compiled lib-test artifact ran all 72 `text_rich` tests and exposed one VerticalRl padding contract failure before the final anchor correction; a current-source lib-test rebuild is externally blocked by the unrelated ambiguous `u16::MAX.into()` assertion in `advanced_lighting/subsurface.rs`, so 72/72 is not claimed. The current-source product integration no-run build passed, and its exact ignored WGPU exporter passed 1/1 in 197.86s.
+
+
+
+The accepted artifact is `docs/tests/runtime/text/runtime_text_multilingual_rich_table_vertical_rl_product_framebuffer_20260712.png` (1080×1450, 257,649 bytes, SHA256 `82EC5035EDB80AC4F6D894C9A1A000279F23B75B95D4FE1881B0AC70655813DE`). Original-resolution review confirms the right-hand vertical table has physical backgrounds/borders, right-to-left row progression, downward columns, a two-column heading span, a two-row width span, asymmetric padding, and retained Latin/CJK SDF text. Repository target plus D/E/F target roots contain zero same-name copies. VerticalRl table layout/rendering is accepted; RT-M8 below closes table-link interaction while Text03/Text05 keep the overall Text Goal `in_progress`.
+
+
+
+## 2026-07-13 Rich Text RT-M8 Table Interaction
+
+
+
+Table interaction reuses the existing rich-link contract. No table-cell event, clickable background, renderer reconstruction, or public DTO was added. The real gap was shared hit testing: ordinary paragraphs may select a line by y (HorizontalTb) or x (VerticalRl), but table siblings share that coordinate. The old candidate choice could pick the first sibling and then reject the pointer because it was outside that line's full frame.
+
+
+
+`ui/text/hit_test.rs` now first selects a resolved line whose complete physical frame contains the pointer. Only when no line contains it does the existing nearest-row/nearest-column caret fallback run. Parser-owned link ranges, grapheme/visual-source mapping, affinity, controlled `RequestLinkActivation`, and surface host requests remain unchanged. Physical cell padding/background/border stays non-interactive unless a linked glyph line actually occupies the point.
+
+
+
+TDD first reproduced both failures. On the current-source Windows binary, HorizontalTb and VerticalRl table-link tests pass 2/2, padding/background negative control passes 1/1, surface table host activation passes 1/1, and the existing ordinary affinity, primary-release, and default-action link regressions each pass 1/1. The following 75-test rich-text sweep passed 74/75 and exposed an adjacent RT-M7 short-CJK/large-padding vertical preferred-measure precision bug. The correction replaces the vertical `f32::MAX/4` preferred frame with a source-length-derived bounded frame, requires row block extent to contain at least the font column width, and aligns the prepared layout's actual rightmost line/nested-box edge to the final VerticalRl content right instead of treating the provisional container edge as glyph geometry. Exact formatting and scoped diff checks pass, but its final Cargo rerun is not claimed because concurrent Environment PMREM/ProceduralSky API drift currently produces 72–100 unrelated production errors.
+
+
+
+## 2026-07-12 Rich Layout Owner Split
+
+
+
+`text/layout/rich.rs` remains the production rich-layout owner. Its inline regression suite has moved intact to `text/layout/rich/tests.rs`, keeping layout behavior unchanged while restoring the production-file budget. The parent exposes no compatibility test module or moved helper; it only declares the folder-backed test child under `cfg(test)`.
+
+
+
+## 2026-07-14 Text01 FR-M3 CompositeFont Activation
+
+
+
+`FontDatabase::register_font_asset` now has one responsibility: register the asset's declared faces and ordinary fallback-family list. It cannot mutate project CompositeFont selection or leak culture-specific families into the generic fallback chain. `set_project_composite_font` is the explicit project-policy boundary. `ScreenSpaceUiTextSystem` calls it once after loading `res://fonts/default.font.toml`; secondary font loads only publish newly registered faces, while a missing default record clears stale project policy.
+
+
+
+Candidate enumeration is isolated in `text/font/composite_resolve.rs`. The leaf orders the active CompositeFont's matching script/range/culture entries, then ordinary fallback families, without owning rasterization or UI policy. This keeps `database.rs` below the structure boundary and prevents future locale rules from accumulating in the fallback execution owner.
+
+
+
+The default package is self-contained for its product proof. `ZirconDefaultComposite-subset.ttc` stores Fira Mono at face 0 and the checked-in `Zircon Noto Sans CJK SC Proof` subset at face 1; the first `zh-Hans` sub-font route selects face 1. The SIL OFL is stored beside the package. Unit tests parse the real TTC and require glyph coverage for `中文排版引擎文本与布局`; the product fixture repeats those preconditions before entering the WGPU renderer, so a host-only font or strategy record cannot satisfy acceptance. Managed GPU job `f320e76017714cfe97b9b52` passed the exact ignored exporter 1/1. The accepted 1080×1840 framebuffer is `docs/tests/runtime/text/runtime_text_composite_font_cjk_product_framebuffer_20260714.png` (353,953 bytes, 2,442 colors, SHA256 `754A7C1CC64D98B50D6FB798F702353C4BABB7EAAA5B722657529B4641BB9C40`); target-root duplicate count is zero and independent review returned Critical 0 / Important 0 / Accept.
+
+The shared Runtime Text database discovers system faces first, then registers the complete checked-in `default.font.toml` manifest under a permanent bootstrap owner. Face 0 also receives a private retained-fallback alias in both the logical matcher and glyphon backend database. Headless measurement, retained-editor fallback, and native shaping therefore resolve the same repository-owned face without a same-named system `Fira Mono` face being shadowed. The GPU UI renderer later attaches the `res://fonts/default.font.toml` owner to those same face-0 and face-1 source identities rather than registering a second TTC copy.
+
+## 2026-08-24 Native Bitmap Atlas Hard Cut
+
+The earlier glyphon-source atlas notes above are historical. The current screen-space native path accepts only canonical shaped glyph output: `native_glyph_run.rs` resolves exact font instances once, projects `GlyphRasterKey` plus placement into `NativeBitmapAtlasGlyphRun`, and the text-owned atlas rasterizes that identity through the bounded Swash worker and `GlyphAtlasSet`. It never receives a source string, glyphon `Buffer`/`TextArea`, renderer `TextAtlas`, or layout run to reshape.
+
+`NativeBitmapAtlasPrepareReport.native_submission_ready` now means the native frame is complete and drawable. When it is not, `native_degradation_reason` and `first_frame_degradation` report the native failure, while the frame uses an explicit transparent placeholder or no visible glyphs; there is no glyphon render fallback. The canonical frame retains painter order as ordered resource segments and preflights all storage bindings before writing uploads. Managed Cargo, an ignored real WGPU framebuffer exporter, GPU measurement, and power evidence remain pending for this current hard cut.

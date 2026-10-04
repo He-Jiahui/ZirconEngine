@@ -60,3 +60,34 @@ Open state: `Editor05 slice 迭代源码修复与静态门已完成；受管 cur
 | 2026-07-30 22:15 +08:00 | `validation-copy attribution 未完成` | 使用固定 `E:/Git/zr_vm@d06c8cd2e70eddd5b31ee1cca46066183f1ef7ed`、`mountPath=zr_vm` 及双 crate include root 创建新副本 `f9509361dde2417cbe395f3df2b86094`。 | copy 在 Cargo 前的 `overlay_ownership` 失败，`errorCode=validation_copy_overlay_not_owned`、`errorPath=precision_candidates_from_layout.rs`；有效 lease 未能接管旧 baseline attribution。该跨会话 union-attribution 根因归现有 Coordinator01 `live-lease-attribution-validation-copy-divergence` handoff；无 source root/Cargo/PID/测试计数，本 failure 继续 `open`。 |
 | 2026-07-31 23:xx +08:00 | `independent source review 0/0/0` | 审查确认三处 `.iter()` 正确消费 `Arc<[T]>`，handles/scene gizmos/renderables 的稳定前向候选顺序不变；每次 pipeline 只构建一个短生命周期 projection context，预分配上界不低估、无 Arc clone 或 `Vec` 双轨回退。 | 此为源码审查，不替代受管 current-source Cargo；既有 attribution failure 未解决，artifact 保持 `open`。 |
 | 2026-08-27 | `managed compile reached / foreign RuntimeHost blocker` | Ownership transfer `7bea8cae036d445ead60670fde0305a0` received the clean HEAD consumer and this handoff from stale/archived owners. Fresh rustfmt and static scans passed: all three shared slices use `.iter()`, with zero retired `&layout.<Arc>` loops. Managed job `62f609ebdaeb4db985b582882dd4876a` ran `cargo test -p zircon_editor --locked --lib viewport`. | `zircon_runtime_interface` compiled as a normal library, then Cargo exited 101 in `zircon_runtime_host/src/foreign_output/item_count.rs:80` because `WorldQueryResult::TransformSnapshot` is not covered. No Editor05 source was diagnosed and selected viewport tests did not execute. The lower defect is routed to [RuntimeInterface01](../../../optimize/zircon_runtime_interface/01/failure-2026-08-27-world-query-transform-snapshot-item-count.md); this failure remains `open`. |
+
+## 2026-09-11 rolling repair admission
+
+- Stable fixing Session `failure-roll-01a084c8-editor05-viewport-arc-slice` owns this record and
+  `precision_candidates_from_layout.rs`; snapshot `3407` freezes the exact current bytes at HEAD
+  `c37155ba304740b3762b20585f77fb53a6da47fb`.
+- Request `viewport-arc-slice-20260911-r1` submitted the focused `cargo test -p zircon_editor
+  --lib viewport --locked` gate without a caller-owned jobs override.
+- Admission rejected the request with `validation_ticket_external_worktree_dirty` for external
+  repository `E:\Git\zr_vm` before creating a ticket or starting Cargo. No dynamic viewport result,
+  upward acceptance, performance result, or fixed return is claimed; the external worktree was not
+  modified and this failure remains open.
+
+## 2026-09-19 rolling repair successor
+
+- Successor Session `failure-roll-01a084c8-editor05-viewport-arc-slice-r2` now owns this handoff
+  and `precision_candidates_from_layout.rs`. Archived ownership was transferred after preview
+  fingerprint `5a9991422a52cb16b31532b2a332c499baa511fa3625fa4e4cd51c793ea3fc2a`; apply request
+  `d40d19e5f38b490ea9b5440a62edaa75`, lease claim `e3476957a9de47ab95da6f5db3faa32d`, and fresh
+  baseline attribution `5b0e2b50885a4fdfa1f2597c9289773f` were accepted.
+- The exact current source retains the three narrow `.iter()` repairs for `Arc<[T]>` handles,
+  scene gizmos, and renderables; no `Arc` content clone or `Vec` rollback is introduced. The
+  prior foreign-runtime compile failure and external `E:\Git\zr_vm` admission blocker remain
+  preserved as evidence and are not reused as a current-source pass.
+- A corrected static source-contract ticket will be submitted first. It can establish the slice
+  consumer contract only; fresh managed Editor05 viewport Cargo, lower RuntimeInterface gate,
+  independent review, fixed return, and closeout remain required.
+- Static ticket `8d2c126fe5804ce79d335d768872c856` (request
+  `failure-roll-01a084c8-editor05-viewport-arc-slice-20260919-r1`) was admitted and source-sealed,
+  but the coordinator queued it behind 373 open dependency failures (`validation_dependency_failed`).
+  No validator or Cargo process started; this receipt is not a pass and the failure remains open.

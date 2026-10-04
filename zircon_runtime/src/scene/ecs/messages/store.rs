@@ -1,17 +1,25 @@
-use std::any::{Any, TypeId, type_name};
+use std::any::{Any, TypeId};
 use std::collections::{HashMap, HashSet};
 use std::fmt;
+use std::sync::Mutex;
 
+use crate::scene::ecs::channel::OwnedChannel;
 use crate::scene::ecs::messages::id::{Message, MessageId};
 use crate::scene::ecs::messages::queue::{MessageRetention, MessageRetentionMetrics, Messages};
 
+mod writer_grant;
+use writer_grant::MessageActivity;
+pub(in crate::scene) use writer_grant::MessageWriterGrant;
+
+/// 按消息 `TypeId` 分区的世界内消息队列注册表。
+///
+/// `active_channels` 只包含仍需在下一帧推进的类型，因此 `advance_frame` 不必扫描
+/// 已注册但当前为空的所有队列。
 #[derive(Default)]
 pub struct MessageStore {
     stores: HashMap<TypeId, Box<dyn Any + Send + Sync>>,
-    type_names: HashMap<TypeId, &'static str>,
     advance_operations: HashMap<TypeId, fn(&mut (dyn Any + Send + Sync), u64) -> bool>,
-    // RUNTIME130_MESSAGE_STORE_HASH_ACTIVE_CHANNELS_BENCH_V1
-    active_channels: HashSet<TypeId>,
+    activity: Mutex<MessageActivity>,
     active_channel_spare: HashSet<TypeId>,
     last_advance_channel_visits: usize,
     frame: u64,
@@ -23,24 +31,41 @@ impl MessageStore {
         T: Message,
     {
         let store = self.stores.get(&TypeId::of::<T>())?;
-        store.downcast_ref::<Messages<T>>()
+        store
+            .downcast_ref::<OwnedChannel<Option<Messages<T>>>>()?
+            .get()
+            .as_ref()
     }
 
     pub fn messages_mut<T>(&mut self) -> &mut Messages<T>
     where
         T: Message,
     {
+        // 首次取得可变队列时同时登记类型名、推进回调和活跃集合。
+        self.prepare_writer::<T>();
+        self.activity
+            .get_mut()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .publish::<T>();
+        self.stores
+            .get_mut(&TypeId::of::<T>())
+            .expect("prepared message type must resolve to a slot")
+            .downcast_mut::<OwnedChannel<Option<Messages<T>>>>()
+            .expect("message store type id must match message slot type")
+            .get_mut()
+            .get_or_insert_with(Messages::default)
+    }
+
+    /// Reserve a stable typed slot under the original exclusive World loan. This is private
+    /// preparation: it publishes no queue/name and adds no active maintenance work.
+    pub(in crate::scene) fn prepare_writer<T: Message>(&mut self) {
         let type_id = TypeId::of::<T>();
-        self.type_names.entry(type_id).or_insert(type_name::<T>());
         self.advance_operations
             .entry(type_id)
             .or_insert(advance_message_queue::<T>);
-        self.active_channels.insert(type_id);
         self.stores
             .entry(type_id)
-            .or_insert_with(|| Box::<Messages<T>>::default())
-            .downcast_mut::<Messages<T>>()
-            .expect("message store type id must match message queue type")
+            .or_insert_with(|| Box::new(OwnedChannel::new(None::<Messages<T>>)));
     }
 
     pub fn write<T>(&mut self, message: T) -> MessageId<T>
@@ -67,7 +92,11 @@ impl MessageStore {
     {
         let type_id = TypeId::of::<T>();
         self.messages_mut::<T>().clear();
-        self.active_channels.remove(&type_id);
+        self.activity
+            .get_mut()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .active_channels
+            .remove(&type_id);
     }
 
     pub fn configure_retention<T>(&mut self, retention: MessageRetention)
@@ -85,9 +114,17 @@ impl MessageStore {
     }
 
     pub fn advance_frame(&mut self) {
+        // 双集合交换把本帧新写入的 channel 与上一帧待推进的 channel 分开。
         self.frame = self.frame.saturating_add(1);
-        std::mem::swap(&mut self.active_channels, &mut self.active_channel_spare);
-        self.active_channels.clear();
+        let activity = self
+            .activity
+            .get_mut()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        std::mem::swap(
+            &mut activity.active_channels,
+            &mut self.active_channel_spare,
+        );
+        activity.active_channels.clear();
         self.last_advance_channel_visits = self.active_channel_spare.len();
         for type_id in self.active_channel_spare.drain() {
             let Some(advance) = self.advance_operations.get(&type_id) else {
@@ -97,7 +134,7 @@ impl MessageStore {
                 continue;
             };
             if advance(store.as_mut(), self.frame) {
-                self.active_channels.insert(type_id);
+                activity.active_channels.insert(type_id);
             }
         }
     }
@@ -107,8 +144,12 @@ impl MessageStore {
     }
 
     pub fn registered_type_names(&self) -> Vec<&'static str> {
-        let mut names = Vec::with_capacity(self.type_names.len());
-        for name in self.type_names.values() {
+        let activity = self
+            .activity
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut names = Vec::with_capacity(activity.type_names.len());
+        for name in activity.type_names.values() {
             names.push(*name);
         }
         names.sort_unstable();
@@ -120,9 +161,13 @@ fn advance_message_queue<T>(store: &mut (dyn Any + Send + Sync), frame: u64) -> 
 where
     T: Message,
 {
-    let messages = store
-        .downcast_mut::<Messages<T>>()
-        .expect("message store type id must match message queue type");
+    let slot = store
+        .downcast_mut::<OwnedChannel<Option<Messages<T>>>>()
+        .expect("message store type id must match message slot type")
+        .get_mut();
+    let Some(messages) = slot.as_mut() else {
+        return false;
+    };
     messages.advance_frame(frame);
     !messages.is_empty()
 }
@@ -132,7 +177,15 @@ impl fmt::Debug for MessageStore {
         formatter
             .debug_struct("MessageStore")
             .field("registered_type_names", &self.registered_type_names())
-            .field("active_channel_count", &self.active_channels.len())
+            .field(
+                "active_channel_count",
+                &self
+                    .activity
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner())
+                    .active_channels
+                    .len(),
+            )
             .finish()
     }
 }
@@ -150,5 +203,5 @@ impl PartialEq for MessageStore {
 }
 
 #[cfg(test)]
-#[path = "store/hash_active_channel_tests.rs"]
+#[path = "store/tests/hash_active_channel_tests.rs"]
 mod hash_active_channel_tests;

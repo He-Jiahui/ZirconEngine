@@ -1,3 +1,4 @@
+//! 启用 physics-contracts 时从 manager service 读取后端状态，投影为稳定的诊断字符串和可选字段。
 use crate::core::diagnostics::{RuntimePhysicsBackendDiagnostics, RuntimePhysicsDiagnostics};
 use crate::core::framework::physics::{
     PhysicsBackendState, PhysicsBackendStatus, PhysicsSimulationMode,
@@ -5,6 +6,7 @@ use crate::core::framework::physics::{
 use crate::core::manager::{physics_manager_handle, resolve_manager_service};
 use crate::core::CoreHandle;
 
+// registry 解析失败直接转为 unavailable；成功后只读取 settings/backend_status，不在诊断采集路径推进物理状态。
 pub(super) fn collect(core: &CoreHandle) -> RuntimePhysicsDiagnostics {
     let physics = match physics_manager_handle(core)
         .and_then(|handle| resolve_manager_service(core, handle))
@@ -51,51 +53,5 @@ fn simulation_mode_name(mode: PhysicsSimulationMode) -> &'static str {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn backend_contract_projects_to_stable_neutral_diagnostics() {
-        let projected = project_backend_status(PhysicsBackendStatus {
-            requested_backend: "jolt".to_string(),
-            active_backend: Some("jolt".to_string()),
-            state: PhysicsBackendState::Ready,
-            detail: Some("native backend active".to_string()),
-            simulation_mode: PhysicsSimulationMode::QueryOnly,
-            feature_gate: Some("backend-jolt".to_string()),
-        });
-
-        assert_eq!(projected.requested_backend, "jolt");
-        assert_eq!(projected.active_backend.as_deref(), Some("jolt"));
-        assert_eq!(projected.state, "ready");
-        assert_eq!(projected.detail.as_deref(), Some("native backend active"));
-        assert_eq!(projected.simulation_mode, "query_only");
-        assert_eq!(projected.feature_gate.as_deref(), Some("backend-jolt"));
-    }
-
-    #[test]
-    fn backend_contract_enum_names_are_complete_and_stable() {
-        assert_eq!(
-            backend_state_name(PhysicsBackendState::Disabled),
-            "disabled"
-        );
-        assert_eq!(
-            backend_state_name(PhysicsBackendState::Unavailable),
-            "unavailable"
-        );
-        assert_eq!(backend_state_name(PhysicsBackendState::Ready), "ready");
-
-        assert_eq!(
-            simulation_mode_name(PhysicsSimulationMode::Disabled),
-            "disabled"
-        );
-        assert_eq!(
-            simulation_mode_name(PhysicsSimulationMode::Simulate),
-            "simulate"
-        );
-        assert_eq!(
-            simulation_mode_name(PhysicsSimulationMode::QueryOnly),
-            "query_only"
-        );
-    }
-}
+#[path = "tests/physics_collection_enabled.rs"]
+mod tests;

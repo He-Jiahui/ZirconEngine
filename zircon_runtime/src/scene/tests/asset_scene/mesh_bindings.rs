@@ -233,13 +233,11 @@ fn render_extract_keeps_asset_bound_meshes_without_editor_selection_overlay() {
         project_material_handle(&project, "res://materials/grid.zmaterial")
     );
     assert!(extract.overlays.highlights.is_none());
-    assert!(
-        extract
-            .scene
-            .meshes
-            .iter()
-            .any(|mesh| mesh.node_id == mesh_node)
-    );
+    assert!(extract
+        .scene
+        .meshes
+        .iter()
+        .any(|mesh| mesh.node_id == mesh_node));
 
     let _ = fs::remove_dir_all(root);
 }
@@ -296,6 +294,7 @@ fn scene_assets_roundtrip_primitive_mesh_material_bindings() {
             terrain: None,
             tilemap: None,
             prefab_instance: None,
+            components: Vec::new(),
             script_bindings: Vec::new(),
         }],
     };

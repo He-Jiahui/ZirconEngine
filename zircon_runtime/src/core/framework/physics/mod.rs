@@ -1,4 +1,5 @@
 //! Physics framework contracts for backend status, world stepping, queries, contacts, and scene sync.
+//! 物理框架只定义场景与插件共享的状态、查询和逐帧载荷；后端选择及求解由物理插件负责。
 
 mod backend_state;
 mod backend_status;
@@ -63,4 +64,5 @@ pub use world_step_plan::PhysicsWorldStepPlan;
 pub use world_sync_state::PhysicsWorldSyncState;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

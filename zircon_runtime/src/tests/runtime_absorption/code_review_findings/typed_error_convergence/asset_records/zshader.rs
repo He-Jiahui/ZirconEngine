@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f5_zshader_v2_replaces_user_shader_definitions() {
     let zshader = include_str!("../../../../../asset/assets/shader/zshader.rs");
@@ -17,8 +18,9 @@ fn review_f5_zshader_v2_replaces_user_shader_definitions() {
         include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let convention =
         include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
-    let shader_material_doc =
-        include_str!("../../../../../../../docs/zircon_runtime/asset/zmeta-shader-material.md");
+    let shader_material_doc = include_str!(
+        "../../../../../../../docs/crates/zircon_runtime/asset/zmeta-shader-material.md"
+    );
 
     for required in [
         "pub enum ZShaderDocumentV2",

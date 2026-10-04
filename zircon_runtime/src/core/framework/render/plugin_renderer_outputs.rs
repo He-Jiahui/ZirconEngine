@@ -21,6 +21,8 @@ pub use self::virtual_geometry::{
     RenderVirtualGeometryPageReplacementRecord, RenderVirtualGeometryReadbackOutputs,
 };
 
+/// 虚拟几何、混合 GI 与粒子运行时的回读/反馈汇合点。
+/// 帧提交端收集后再交回各运行时提供者，核心渲染器不持有插件私有状态。
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RenderPluginRendererOutputs {
     pub virtual_geometry: RenderVirtualGeometryReadbackOutputs,
@@ -35,4 +37,5 @@ impl RenderPluginRendererOutputs {
 }
 
 #[cfg(test)]
+#[path = "plugin_renderer_outputs/tests/cases.rs"]
 mod tests;

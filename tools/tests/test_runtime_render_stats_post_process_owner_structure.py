@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 读取后处理渲染统计模块，确认诊断从产品回读归属读取而不在统计层重复实现。
 class RuntimeRenderStatsPostProcessOwnerStructureTests(unittest.TestCase):
     def setUp(self) -> None:
         self.repo_root = Path(__file__).resolve().parents[2]

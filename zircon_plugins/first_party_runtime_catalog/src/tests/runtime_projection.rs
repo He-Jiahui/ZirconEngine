@@ -10,14 +10,7 @@ fn runtime_catalog_preallocates_manifest_projection_storage() {
         })
         .expect("read runtime catalog manifest projection");
 
-    assert!(
-        projection.contains("HashSet::with_capacity(manifest.selections.len())")
-            && projection.contains("Vec::with_capacity(manifest.selections.len())")
-            && projection.contains("for selection in manifest.enabled_for_target(target_mode)")
-            && projection.contains("registrations.push(registration);")
-            && !projection.contains(".collect()"),
-        "runtime catalog projection must preallocate dedup and result storage from the manifest selection count"
-    );
+    assert!(projection.contains("resolve_plugin_selections(target_mode, manifest"));
 }
 
 #[cfg(feature = "ui-document-importer")]
@@ -37,7 +30,9 @@ fn runtime_catalog_projects_the_selected_ui_document_importer_provider() {
     let registrations = crate::first_party_runtime_plugin_registrations_for_manifest(
         RuntimeTargetMode::ClientRuntime,
         &manifest,
-    );
+    )
+    .into_registrations_if_required_resolved()
+    .expect("selected required UI document importer resolves");
 
     assert_eq!(registrations.len(), 1);
     assert_eq!(

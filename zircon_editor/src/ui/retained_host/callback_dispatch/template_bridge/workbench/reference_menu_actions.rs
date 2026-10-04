@@ -284,7 +284,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 BLEND_SPACE_VALIDATION_ROWS,
             ),
             "workbench.extension.blend_space.validation.filter_errors" => {
-                (Some("WorkbenchValidationLogErrors"), &[])
+                (Some("WorkbenchValidationLogErrors"), &[] as &[&str])
             }
             "workbench.extension.blend_space.validation.filter_warnings" => (
                 Some("WorkbenchValidationLogWarnings"),
@@ -298,7 +298,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                     "WorkbenchValidationLogInfoDuplicatesRow",
                 ][..],
             ),
-            "workbench.extension.blend_space.validation.clear" => (None, &[]),
+            "workbench.extension.blend_space.validation.clear" => (None, &[] as &[&str]),
             _ => return Ok(false),
         };
 

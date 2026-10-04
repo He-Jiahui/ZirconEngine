@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
+use crate::scene::ecs::{storage::StoredComponent, ComponentId, ComponentTicks};
 use crate::scene::EntityId;
-use crate::scene::ecs::{ComponentId, ComponentTicks, storage::StoredComponent};
 
+/// 从 archetype 表移出的整行；可携带 swap-remove 后需要修复位置的实体。
 pub(crate) struct ArchetypeTakenRow {
     entity: EntityId,
     swapped_entity: Option<EntityId>,

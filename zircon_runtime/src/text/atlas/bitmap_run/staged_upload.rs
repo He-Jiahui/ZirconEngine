@@ -3,13 +3,13 @@ use std::collections::HashSet;
 use crate::core::math::UVec2;
 
 use super::super::{
-    GlyphAtlasBitmapPageShadowCommit, GlyphAtlasBitmapPageShadowPatch, GlyphAtlasPageKey,
-    GlyphAtlasSet, GlyphAtlasUploadCommand, GlyphAtlasUploadMode, glyph_atlas_upload_command,
+    glyph_atlas_upload_command, GlyphAtlasBitmapPageShadowCommit, GlyphAtlasBitmapPageShadowPatch,
+    GlyphAtlasPageKey, GlyphAtlasSet, GlyphAtlasUploadCommand, GlyphAtlasUploadMode,
 };
 use super::staging::{
+    glyph_atlas_bitmap_upload_staging_plan, glyph_atlas_bitmap_upload_staging_plan_for_commands,
     GlyphAtlasBitmapPageUploadStaging, GlyphAtlasBitmapUploadSourceBytes,
-    GlyphAtlasBitmapUploadStagingPlan, glyph_atlas_bitmap_upload_staging_plan,
-    glyph_atlas_bitmap_upload_staging_plan_for_commands,
+    GlyphAtlasBitmapUploadStagingPlan,
 };
 use super::types::GlyphAtlasBitmapRunPlan;
 
@@ -282,7 +282,7 @@ pub(crate) fn glyph_atlas_bitmap_staged_upload_plan(
     staging: &GlyphAtlasBitmapUploadStagingPlan,
     upload_commands: &[GlyphAtlasUploadCommand],
 ) -> GlyphAtlasBitmapStagedUploadPlan {
-    let mut uploads = Vec::new();
+    let mut uploads = Vec::with_capacity(upload_commands.len());
     let mut failures = Vec::new();
     let mut claimed_staging_pages = vec![false; staging.pages.len()];
 

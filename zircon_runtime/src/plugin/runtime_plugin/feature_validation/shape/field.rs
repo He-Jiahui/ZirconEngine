@@ -1,3 +1,5 @@
+/// 对显示名和机器字段共同要求非空且没有首尾空白；允许字段内部的展示空白。
+/// 原值保持不变，调用方继续完成相应标识符规则并汇总所有诊断。
 pub(in crate::plugin::runtime_plugin::feature_validation) fn validate_runtime_plugin_feature_field(
     field_name: &str,
     value: &str,
@@ -12,5 +14,5 @@ pub(in crate::plugin::runtime_plugin::feature_validation) fn validate_runtime_pl
 }
 
 #[cfg(test)]
-#[path = "field/single_trim_tests.rs"]
+#[path = "field/tests/single_trim_tests.rs"]
 mod single_trim_tests;

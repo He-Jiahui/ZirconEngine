@@ -1,11 +1,13 @@
 use std::path::Path;
 
 use super::super::super::super::super::super::{
-    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionMetadata,
-    RuntimeSessionSlotImportPreviewReport, path_transfer,
+    path_transfer, RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionMetadata,
+    RuntimeSessionSlotImportPreviewReport,
 };
 
 impl RuntimeSessionArchive {
+    /// 载入已有档案，按原值查找源槽位后预览复制摘要，整体采用规范化后的替换元数据。
+    /// 新 ID 修剪后须非空且未占用；报告不绑定后续提交。
     pub fn preview_copy_slot_with_metadata_from_path(
         path: impl AsRef<Path>,
         source_slot_id: &str,

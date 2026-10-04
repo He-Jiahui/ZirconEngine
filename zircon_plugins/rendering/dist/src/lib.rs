@@ -1,9 +1,11 @@
+//! 原生动态库包装主包的静态 ABI 元数据；可选渲染特性的实现仍由宿主的独立注册链提供。
 use zircon_plugin_rendering_runtime::{
     NATIVE_PLUGIN_ID, NATIVE_REQUESTED_CAPABILITIES, NATIVE_RUNTIME_ENTRY,
     NATIVE_RUNTIME_REGISTRATION_MANIFEST,
 };
 use zircon_plugin_sdk::native::{self, ZIRCON_NATIVE_PLUGIN_ABI_VERSION};
 
+// 编译期清单及终止符随动态库存活；宿主只能在该库仍加载时借用宏导出的静态指针。
 const PLUGIN_MANIFEST: &str = concat!(include_str!("../../plugin.toml"), "\0");
 
 const RUNTIME_DIAGNOSTICS: &[u8] =
@@ -12,6 +14,7 @@ const MISSING_HOST_DIAGNOSTICS: &[u8] =
     b"rendering dist entry requires runtime.plugin.rendering host capability\0";
 const EMPTY_MANIFEST: &[u8] = b"\0";
 
+// 先协商宿主主包能力再报告无状态行为；没有命令或卸载回调，也没有特性 executor 的原生注册。
 zircon_plugin_sdk::native_dist_runtime_plugin_v3! {
     plugin_id: NATIVE_PLUGIN_ID,
     package_manifest: PLUGIN_MANIFEST,
@@ -42,57 +45,7 @@ zircon_plugin_sdk::native_dist_runtime_plugin_v3! {
     },
 }
 
+// ABI 测试使用同一库内的静态返回值和有效宿主表，确认符号与报告连接；不验证 GPU 效果。
 #[cfg(test)]
-mod tests {
-    use std::ffi::CStr;
-
-    use zircon_plugin_sdk::native::{
-        NativePluginHostFunctionTableV3, ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
-    };
-
-    use super::*;
-
-    #[test]
-    fn rendering_dist_descriptor_exports_runtime_entry() {
-        let descriptor = zircon_native_plugin_descriptor_v3();
-
-        assert!(!descriptor.is_null());
-        let descriptor = unsafe { &*descriptor };
-        assert_eq!(descriptor.abi_version, ZIRCON_NATIVE_PLUGIN_ABI_VERSION);
-        assert_eq!(
-            unsafe { CStr::from_ptr(descriptor.plugin_id) },
-            CStr::from_bytes_with_nul(NATIVE_PLUGIN_ID).expect("plugin id is nul terminated")
-        );
-        assert_eq!(
-            unsafe { CStr::from_ptr(descriptor.runtime_entry_name) },
-            CStr::from_bytes_with_nul(NATIVE_RUNTIME_ENTRY.cstr())
-                .expect("runtime entry is nul terminated")
-        );
-    }
-
-    #[test]
-    fn rendering_dist_runtime_entry_reports_registration_manifest() {
-        let granted = b"runtime.plugin.rendering\0";
-        let host = NativePluginHostFunctionTableV3 {
-            abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
-            host_handle: 43,
-            granted_capabilities: granted.as_ptr().cast(),
-            host_abi_version: Some(host_abi_version),
-            host_has_capability: None,
-            host_log: None,
-            host_diagnostic: None,
-        };
-
-        let report = zircon_plugin_rendering_runtime_entry_v3(&host);
-
-        assert!(!report.is_null());
-        let report = unsafe { &*report };
-        assert!(!report.behavior.is_null());
-        let behavior = unsafe { &*report.behavior };
-        assert!(!behavior.registration_manifest.is_null());
-    }
-
-    unsafe extern "C" fn host_abi_version() -> u32 {
-        ZIRCON_NATIVE_PLUGIN_ABI_VERSION
-    }
-}
+#[path = "tests/lib.rs"]
+mod tests;

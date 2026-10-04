@@ -2,6 +2,8 @@
 
 This document is the authoritative execution policy for validation under `docs/plans/`. It replaces any local default that asks contributors to run Cargo compilation or broad tests after every implementation slice. It does not weaken acceptance criteria or remove regression tests.
 
+The local coordinator and its managed matrix, registration, lease, ticket and commit workflows are retired. Older plan commands that require them are historical. Use the current [validation guidance](../../.codex/skills/zircon-dev/validation/guide.md) for independent command evidence and retain every applicable acceptance gate. Jenkins migration acceptance remains pending; do not restore the old service or infer acceptance from a dry run. See [retirement](../tooling/coordinator-retirement.md).
+
 ## 0. Foundation Priority
 
 Apply [`minimum-viable-engine-foundation.md`](minimum-viable-engine-foundation.md) before selecting a milestone. Until its F0-F5 gates are accepted, batch validation capacity belongs first to foundation work; deferred advanced rendering, complete text, AI, networking, and plugin-expansion work may run only when it directly unblocks an earlier foundation gate.

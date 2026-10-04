@@ -9,4 +9,5 @@ pub(super) use status::{packaging_status_label, target_modes_status_label};
 pub(super) use transitions::{next_packaging, next_target_modes};
 
 #[cfg(test)]
+#[path = "project_policy/tests/cases.rs"]
 mod tests;

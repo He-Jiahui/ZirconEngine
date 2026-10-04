@@ -1,10 +1,10 @@
 # Feature Evidence And Test Checklist
 
-Use this checklist before presenting a `zirconEngine` feature design or calling an implementation complete.
+Use applicable parts of this checklist for complex semantic changes. It is a reference menu, not a mandatory report schema for every feature.
 
 ## 1. Evidence Capture
 
-Fill in or state each item explicitly:
+Capture the items that resolve the current design questions:
 
 - Feature name
 - Current milestone from the plan under `.codex/plans/`
@@ -18,13 +18,7 @@ Fill in or state each item explicitly:
 - Performance, memory, and ownership implications
 - Upstream tests or regression files consulted
 
-Minimum bar:
-
-- At least 2 reference languages
-- At least 1 implementation file
-- At least 1 test source
-
-Raise the bar to 3 or more reference languages when the feature affects GC, native interop, module loading, exceptions, types, or code generation.
+Prefer concrete implementation and test evidence from the best-fitting reference. Add sources when they resolve an uncertainty; no fixed number of languages or engines is required.
 
 ## 2. Foundation Adequacy Review
 
@@ -33,7 +27,7 @@ Answer these before accepting any implementation strategy:
 - Can the feature be expressed through an existing general protocol or abstraction?
 - If not, which foundational abstraction must be generalized?
 - Would the proposed change introduce checks on concrete type names, object names, syntax spellings, or single feature flags inside shared runtime or compiler paths?
-- If yes, stop and redesign the lower layer first.
+- If yes, examine the responsible contract and repair it within the authorized scope.
 - What is the reusable contract after the redesign?
 - Which future features should become easier once this foundation exists?
 
@@ -78,7 +72,7 @@ Translate upstream coverage into repository layers instead of stopping at one en
 
 ## 4. Boundary Catalog
 
-Pick all boundary classes that apply. Omitted boundary classes must be explained.
+Select boundary classes affected by the change or a known regression. Explain material coverage gaps, not every inapplicable category.
 
 - empty input
 - null or missing values
@@ -131,4 +125,4 @@ When reporting design or implementation results, include:
 - stress coverage
 - remaining gaps
 
-If any layer is still missing, report the work as partial.
+Report any missing required layer as an acceptance gap. Unaffected layers do not make the task partial.

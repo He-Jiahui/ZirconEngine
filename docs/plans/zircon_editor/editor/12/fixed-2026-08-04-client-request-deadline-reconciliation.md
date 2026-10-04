@@ -9,8 +9,7 @@ origin_child_dir: docs/plans/zircon_editor/editor/12
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/zircon-session.ps1
-  - tools/session_coordinator
+  - tools/dev/zircon-session.ps1
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
 tests:
   - coordinator client deadline-after-submit reconciliation regression

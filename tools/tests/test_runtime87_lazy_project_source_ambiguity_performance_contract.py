@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+# 项目来源查找遇唯一匹配立即返回，第二个匹配出现后才建立歧义列表；缺失与歧义错误语义保持原样。
 import re
 import unittest
 from pathlib import Path

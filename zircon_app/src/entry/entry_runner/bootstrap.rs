@@ -10,7 +10,10 @@ use super::EntryRunner;
 
 impl EntryRunner {
     /// Builds one complete product composition from an entry request.
-    pub fn compose(config: EntryConfig) -> Result<ProductComposition, CoreError> {
+    /// 返回值持有 Core 和插件生命周期；调用方须在宿主执行期间保留它，并安排其与动态会话的释放顺序。
+    pub fn compose(
+        config: EntryConfig,
+    ) -> Result<ProductComposition, crate::entry::ProductCompositionFailure> {
         ProductCompositionRequest::new(config).compose()
     }
 
@@ -26,10 +29,11 @@ impl EntryRunner {
         ProductCompositionRequest::new(config).module_selection_diagnostics()
     }
 
+    /// 编辑器在预检本地插件后沿相同组合路径装配，避免报告与实际注册使用不同配置。
     pub(crate) fn compose_resolved_with_runtime_plugin_registrations(
         config: ResolvedProductHostConfig,
         registrations: impl IntoIterator<Item = RuntimePluginRegistrationReport>,
-    ) -> Result<ProductComposition, CoreError> {
+    ) -> Result<ProductComposition, crate::entry::ProductCompositionFailure> {
         ProductCompositionRequest::from_resolved_config(config)
             .with_runtime_plugin_registrations(registrations)
             .compose()

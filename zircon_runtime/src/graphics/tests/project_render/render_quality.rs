@@ -1,9 +1,9 @@
 use std::fs;
 
-use crate::asset::AssetUri;
 use crate::asset::pipeline::manager::AssetManager;
 use crate::asset::project::ProjectManager;
 use crate::asset::project::{ProjectManifest, ProjectPaths};
+use crate::asset::AssetUri;
 use crate::core::framework::render::{
     PostProcessGraphResourceNames, RenderDirectionalLightSnapshot, RenderFramework, RenderLayerSet,
     RenderMeshSnapshot, RenderPipelineHandle, RenderQualityProfile, RenderStats,
@@ -12,7 +12,7 @@ use crate::core::framework::render::{
 use crate::core::math::{UVec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker};
 use crate::graphics::WgpuRenderFramework;
-use crate::scene::components::{Mobility, default_render_layer_mask};
+use crate::scene::components::{default_render_layer_mask, Mobility};
 
 use super::super::plugin_render_feature_fixtures::default_rendering_feature_descriptors;
 use super::{
@@ -339,12 +339,10 @@ fn ssao_product_default_is_fail_closed_and_preserves_scene_output() {
         .unwrap();
     let requested_ao_frame = submit_snapshot(&server, requested_ao_viewport, snapshot.clone());
     let requested_ao_stats = server.query_stats().unwrap();
-    assert!(
-        requested_ao_stats
-            .last_graph_executed_passes
-            .iter()
-            .all(|pass| pass != "ssao-evaluate")
-    );
+    assert!(requested_ao_stats
+        .last_graph_executed_passes
+        .iter()
+        .all(|pass| pass != "ssao-evaluate"));
 
     let no_ao_viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))

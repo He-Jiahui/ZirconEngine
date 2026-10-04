@@ -311,6 +311,12 @@ def _classify_editor_reference(
     if relative_path.startswith("zircon_runtime/src/ui/template/"):
         return "runtime-ui-template-editor-profile"
     if (
+        relative_path == "zircon_runtime/src/text/module.rs"
+        and tokens
+        and all(token.casefold() in {"editor", "editorhost"} for token in tokens)
+    ):
+        return "runtime-text-editor-host-contract"
+    if (
         relative_path.startswith("zircon_runtime/src/ui/surface/render/")
         and tokens
         and all(
@@ -322,6 +328,7 @@ def _classify_editor_reference(
     if relative_path in {
         "zircon_runtime/src/ui/surface/surface.rs",
         "zircon_runtime/src/ui/surface/text_artifact.rs",
+        "zircon_runtime/src/ui/surface/host_font_assets.rs",
         "zircon_runtime/src/ui/text/measure_cache.rs",
         "zircon_runtime/src/ui/v2/cache.rs",
         "zircon_runtime/src/ui/v2/compiler.rs",

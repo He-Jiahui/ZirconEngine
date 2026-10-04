@@ -1,13 +1,13 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
-use crate::graphics::CompiledRenderPipeline;
-use crate::graphics::RenderFeatureDescriptor;
 use crate::graphics::feature::COMPUTE_GENERIC_EXECUTOR_ID;
 use crate::graphics::scene::anti_alias::fxaa::FXAA_EXECUTOR_ID;
 use crate::graphics::scene::anti_alias::smaa::SMAA_EXECUTOR_ID;
 use crate::graphics::scene::scene_renderer::environment::ibl_bake_compute_executor::ibl_bake_compute_executor_registrations;
+use crate::graphics::CompiledRenderPipeline;
+use crate::graphics::RenderFeatureDescriptor;
 
 use super::builtin_postprocess_executors::{
     bloom_extract_executor, bloom_postprocess_executor, blur_postprocess_executor,
@@ -29,15 +29,16 @@ use super::builtin_scene_executors::{
     advanced_pbr_opaque_executor, deferred_gbuffer_executor, deferred_lighting_executor,
     depth_prepass_executor, half_resolution_transparency_composite_executor,
     half_resolution_transparency_depth_downsample_executor, mesh_executor,
-    output_target_direct_import_executor, output_target_writeback_executor, overlay_gizmo_executor,
-    particle_billboard_executor, screen_space_ui_executor, shadow_atlas_executor, sprite_executor,
-    surface_present_executor, transmission_mesh_executor, transmission_scene_copy_executor,
+    output_target_direct_import_executor, output_target_writeback_executor,
+    overlay_depth_reconstruct_executor, overlay_gizmo_executor, particle_billboard_executor,
+    screen_space_ui_executor, shadow_atlas_executor, sprite_executor, surface_present_executor,
+    transmission_mesh_executor, transmission_scene_copy_executor,
 };
 use super::generic_compute_executor::generic_compute_executor;
 use super::preview_sky_executor::preview_sky_scene_color_executor;
 use super::render_pass_executor_registration::{
-    RenderPassExecutor, RenderPassRecordingPolicy, render_pass_executor_from_fn,
-    render_pass_executor_from_parallel_safe_fn,
+    render_pass_executor_from_fn, render_pass_executor_from_parallel_safe_fn, RenderPassExecutor,
+    RenderPassRecordingPolicy,
 };
 use super::{RenderPassExecutionContext, RenderPassExecutorId, RenderPassExecutorRegistration};
 
@@ -225,6 +226,10 @@ impl RenderPassExecutorRegistry {
         );
         registry.register("post.uber".into(), uber_postprocess_executor);
         registry.register("ui.screen-space".into(), screen_space_ui_executor);
+        registry.register(
+            "overlay.depth-reconstruct".into(),
+            overlay_depth_reconstruct_executor,
+        );
         registry.register("overlay.gizmo".into(), overlay_gizmo_executor);
         registry.register(
             crate::graphics::pipeline::SURFACE_PRESENT_EXECUTOR_ID.into(),
@@ -440,8 +445,9 @@ fn registry_register_builtin_noop_executor(
 }
 
 #[cfg(test)]
+#[path = "render_pass_executor_registry/tests/cases.rs"]
 mod tests;
 
 #[cfg(test)]
-#[path = "render_pass_executor_registry/hash_index_tests.rs"]
+#[path = "render_pass_executor_registry/tests/hash_index_tests.rs"]
 mod hash_index_tests;

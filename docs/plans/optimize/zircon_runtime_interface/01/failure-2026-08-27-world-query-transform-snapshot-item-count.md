@@ -140,3 +140,22 @@ The current-source RuntimeHost retry was deduplicated into managed ticket
 `runtime-interface01-world-query-recovery-20260831-r2`, coordinator receipt
 `a66b5a506141489db1519275df799e54`). It runs the Windows Rust 1.94.1 release command with the
 five-path union manifest; no Cargo status is polled here.
+
+### 2026-09-02 current-source closure admission rejection
+
+- The live source union is already clean on `main` at `9963f8eb72e2d725d2536eb50b393b30387a1ffa`;
+  no production or test edits were required. The exhaustive item-count arm and six-variant
+  regression remain present, with source hashes unchanged: `item_count.rs =
+  7e643d75bc34a77a5a596a59351184ad679a10197b613a7c7255b7d00f66e322`, `tests.rs =
+  10ac7626f4e51874388f2ec9c96fb23f09e69c423ebd958c6529513ab0e87b5c`, `query.rs =
+  56f357dddd79e119ca894b195966658025731b67bc102377a386fda62a7aaa47`, and `frame.rs =
+  0eaf943ff6c0ca122ad18f29150a4edb090dd69115f1f156330cb8322d3b3dfc`.
+- Attempted coordinator registration for the complete failure-plus-four-source union under
+  `close-runtime-interface01-item-count-20260902` was accepted then terminally rejected by
+  request `12c853380aac47fcb05621544c558c7e`: `plan_wip_limit_reached`. The coordinator reports
+  executable primary `optimize-interface08-runtime-abi-current-review-r1-20260824` in
+  `finalizing` for plan family `docs/plans/optimize/zircon_runtime_interface/01`.
+- No transfer, claim, attribution, or new validation was legally possible after that rejection.
+  Existing managed tickets `32c6ac74ba4247e6b4c34c4e42fd9739` and
+  `7f4763e1c3b7458faee271b5c5dd0ee6` remain terminal `failed`; no status was polled or retried.
+  Failure status remains `open` and upstream replay gates remain pending.

@@ -19,7 +19,7 @@ CONTRACTS_RS = (
     / "ui_ecs_node_lookup_contracts.rs"
 )
 
-
+# 读取实现源码约束接口单次阶段影响：快照与增量查询仅指定阶段，并单次阶段聚合不构建全部阶段桶。
 def test_snapshot_and_delta_query_only_the_requested_stage() -> None:
     source = ECS_RS.read_text(encoding="utf-8")
     schedule_impact_bodies = source.split(

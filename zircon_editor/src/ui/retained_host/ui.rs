@@ -1,7 +1,7 @@
 #[path = "ui/apply_presentation.rs"]
 mod apply_presentation_impl;
 #[cfg(test)]
-#[path = "ui/asset_browser_icon_button_painter_tests.rs"]
+#[path = "ui/tests/asset_browser_icon_button_painter_tests.rs"]
 mod asset_browser_icon_button_painter_tests;
 #[path = "ui/component_contract_metadata.rs"]
 mod component_contract_metadata;
@@ -9,10 +9,10 @@ mod component_contract_metadata;
 mod floating_pane_geometry;
 mod pane_data_conversion;
 #[cfg(test)]
-#[path = "ui/reference_component_tests.rs"]
+#[path = "ui/tests/reference_component_tests.rs"]
 mod reference_component_tests;
 #[cfg(test)]
-#[path = "ui/reference_overlay_apply_tests.rs"]
+#[path = "ui/tests/reference_overlay_apply_tests.rs"]
 mod reference_overlay_apply_tests;
 #[path = "ui/root_template_overlay.rs"]
 mod root_template_overlay;
@@ -21,7 +21,7 @@ mod scoped_presentation;
 #[path = "ui/shell_content_presentation.rs"]
 mod shell_content_presentation;
 #[cfg(test)]
-#[path = "ui/structure_component_tests.rs"]
+#[path = "ui/tests/structure_component_tests.rs"]
 mod structure_component_tests;
 #[path = "ui/template_layout_context.rs"]
 mod template_layout_context;
@@ -31,6 +31,45 @@ mod template_node_conversion;
 mod tests;
 #[path = "ui/workbench_window_projection.rs"]
 mod workbench_window_projection;
+
+pub(crate) fn capture_zui_visual_evidence(
+) -> Result<pane_data_conversion::zui_visual_acceptance::CaptureSummary, String> {
+    pane_data_conversion::zui_visual_acceptance::capture_catalog()
+}
+
+pub(crate) fn capture_zui_visual_evidence_with_context(
+    repo_root: &std::path::Path,
+    core: &zircon_runtime::core::CoreHandle,
+    build_set: &zircon_runtime_interface::runtime_build_set::ZrRuntimeBuildSetId,
+) -> Result<pane_data_conversion::zui_visual_acceptance::CaptureSummary, String> {
+    pane_data_conversion::zui_visual_acceptance::capture_catalog_with_context(
+        repo_root, core, build_set,
+    )
+}
+
+pub(crate) fn export_zui_workbench_product_snapshots(
+    repo_root: &std::path::Path,
+    output_path: &std::path::Path,
+) -> Result<(), String> {
+    pane_data_conversion::zui_visual_acceptance::export_product_workbench_case_snapshots(
+        repo_root,
+        output_path,
+    )
+}
+
+pub(crate) fn export_zui_workbench_product_snapshots_with_context(
+    repo_root: &std::path::Path,
+    output_path: &std::path::Path,
+    core: &zircon_runtime::core::CoreHandle,
+    build_set: &zircon_runtime_interface::runtime_build_set::ZrRuntimeBuildSetId,
+) -> Result<(), String> {
+    pane_data_conversion::zui_visual_acceptance::export_product_workbench_case_snapshots_with_context(
+        repo_root,
+        output_path,
+        core,
+        build_set,
+    )
+}
 
 pub(crate) use apply_presentation_impl::{
     apply_presentation, apply_presentation_with_template_v2_data,

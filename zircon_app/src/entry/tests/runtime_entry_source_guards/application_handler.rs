@@ -1,5 +1,7 @@
 use super::super::source_assertions::assert_source_order;
-use super::sources::{entry_root, runtime_application_handler_source};
+use super::sources::{
+    entry_root, runtime_application_handler_source, runtime_window_events_source,
+};
 
 #[test]
 fn runtime_entry_application_handler_stays_folder_backed_hook_surface() {
@@ -7,6 +9,7 @@ fn runtime_entry_application_handler_stays_folder_backed_hook_surface() {
     let application_handler_root_source =
         include_str!("../../runtime_entry_app/application_handler/mod.rs");
     let runtime_handler_source = runtime_application_handler_source();
+    let runtime_window_events_source = runtime_window_events_source();
     let root = entry_root();
 
     assert!(
@@ -39,13 +42,11 @@ fn runtime_entry_application_handler_stays_folder_backed_hook_surface() {
             "fn destroy_surfaces",
             "zircon_runtime::profile_scope!(\"app\", \"runtime_entry\", \"destroy_surfaces\");",
             "self.handle_surface_destruction(event_loop);",
-            "fn exiting",
-            "zircon_runtime::profile_scope!(\"app\", \"runtime_entry\", \"exiting\");",
-            "self.handle_application_exit(event_loop);",
             "fn proxy_wake_up",
             "self.request_runtime_frame();",
             "fn window_event",
-            "self.handle_window_event(event_loop, event);",
+            "window_id: WindowId",
+            "self.handle_window_event(event_loop, window_id, event);",
             "fn about_to_wait",
             "self.application_lifecycle.allows_frame_pump()",
             "self.pump_frame_loop(event_loop);",
@@ -53,6 +54,16 @@ fn runtime_entry_application_handler_stays_folder_backed_hook_surface() {
             "self.handle_device_event(event_loop, event);",
         ],
         "runtime ApplicationHandler hooks should remain a narrow profile-and-delegate surface",
+    );
+    assert_source_order(
+        runtime_window_events_source.as_str(),
+        &[
+            "fn handle_window_event",
+            "if !window_event_belongs_to_primary(",
+            "if window_event_requests_runtime_frame(",
+            "match event",
+        ],
+        "foreign window events must be rejected before frame scheduling or event dispatch",
     );
     assert!(
         runtime_app_source.contains("mod application_lifecycle;"),

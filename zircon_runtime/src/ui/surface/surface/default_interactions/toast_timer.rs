@@ -6,7 +6,7 @@ use zircon_runtime_interface::ui::{
     tree::{UiTemplateNodeMetadata, UiTreeError},
 };
 
-use super::{UiSurface, semantics::component_role_is_one_of};
+use super::{semantics::component_role_is_one_of, UiSurface};
 
 const CURRENT_TOAST_ID: &str = "current_toast_id";
 const AUTO_HIDE_DURATION_MS: &str = "auto_hide_duration_ms";
@@ -17,6 +17,14 @@ impl UiSurface {
         &self,
         node_id: UiNodeId,
     ) -> Option<(String, u64)> {
+        self.toast_timer_for_component_node_ref(node_id)
+            .map(|(toast_id, timeout_ms)| (toast_id.to_owned(), timeout_ms))
+    }
+
+    pub(crate) fn toast_timer_for_component_node_ref(
+        &self,
+        node_id: UiNodeId,
+    ) -> Option<(&str, u64)> {
         let node = self.tree.node(node_id)?;
         let metadata = node.template_metadata.as_ref()?;
         if !is_toast_component(metadata)
@@ -26,7 +34,7 @@ impl UiSurface {
         }
 
         let component_state = self.component_states.get(node_id);
-        let toast_id = string_retained_value(metadata, component_state, CURRENT_TOAST_ID)?;
+        let toast_id = string_retained_value_ref(metadata, component_state, CURRENT_TOAST_ID)?;
         let timeout_ms = u64_retained_value(
             metadata,
             component_state,
@@ -40,7 +48,7 @@ impl UiSurface {
         node_id: UiNodeId,
         toast_id: &str,
     ) -> Result<Vec<UiComponentEventReport>, UiTreeError> {
-        let Some((current_id, _)) = self.toast_timer_for_component_node(node_id) else {
+        let Some((current_id, _)) = self.toast_timer_for_component_node_ref(node_id) else {
             return Ok(Vec::new());
         };
         if toast_id.is_empty() || current_id != toast_id {
@@ -63,14 +71,14 @@ fn is_toast_component(metadata: &UiTemplateNodeMetadata) -> bool {
     component_role_is_one_of(metadata, &["snackbar", "toast"])
 }
 
-fn string_retained_value(
-    metadata: &UiTemplateNodeMetadata,
-    component_state: Option<&UiComponentState>,
+fn string_retained_value_ref<'a>(
+    metadata: &'a UiTemplateNodeMetadata,
+    component_state: Option<&'a UiComponentState>,
     property: &str,
-) -> Option<String> {
+) -> Option<&'a str> {
     component_state
-        .and_then(|state| string_component_state_value(state, property))
-        .or_else(|| string_attribute_value(metadata, property))
+        .and_then(|state| string_component_state_value_ref(state, property))
+        .or_else(|| string_attribute_value_ref(metadata, property))
         .filter(|value| !value.is_empty())
 }
 
@@ -86,12 +94,14 @@ fn u64_retained_value(
     })
 }
 
-fn string_attribute_value(metadata: &UiTemplateNodeMetadata, property: &str) -> Option<String> {
+fn string_attribute_value_ref<'a>(
+    metadata: &'a UiTemplateNodeMetadata,
+    property: &str,
+) -> Option<&'a str> {
     metadata
         .attributes
         .get(property)
         .and_then(toml::Value::as_str)
-        .map(str::to_string)
 }
 
 fn u64_attribute_value(metadata: &UiTemplateNodeMetadata, property: &str) -> Option<u64> {
@@ -102,9 +112,12 @@ fn u64_attribute_value(metadata: &UiTemplateNodeMetadata, property: &str) -> Opt
         .map(|value| value.max(0) as u64)
 }
 
-fn string_component_state_value(state: &UiComponentState, property: &str) -> Option<String> {
+fn string_component_state_value_ref<'a>(
+    state: &'a UiComponentState,
+    property: &str,
+) -> Option<&'a str> {
     match state.value(property) {
-        Some(UiValue::String(value) | UiValue::Enum(value)) => Some(value.clone()),
+        Some(UiValue::String(value) | UiValue::Enum(value)) => Some(value.as_str()),
         _ => None,
     }
 }
@@ -117,3 +130,7 @@ fn u64_component_state_value(state: &UiComponentState, property: &str) -> Option
         _ => None,
     }
 }
+
+#[cfg(test)]
+#[path = "tests/toast_timer.rs"]
+mod tests;

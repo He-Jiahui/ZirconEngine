@@ -1,6 +1,6 @@
 Set-StrictMode -Version Latest
 
-$windowsPathResolverModule = Join-Path $PSScriptRoot '..\WindowsPathResolver.psm1'
+$windowsPathResolverModule = Join-Path $PSScriptRoot '..\common\WindowsPathResolver.psm1'
 Import-Module $windowsPathResolverModule -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpArtifactStoragePolicy.psm1') -Force -ErrorAction Stop
 

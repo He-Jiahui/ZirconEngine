@@ -1,3 +1,4 @@
+//! 物理模拟姿态在动画姿态生成后按骨名和归一权重叠加；无效变换或缺失骨架不进入呈现姿态。
 use std::collections::BTreeMap;
 
 use zircon_runtime::asset::AssetId;
@@ -87,5 +88,5 @@ fn valid_weight(weight: Real) -> bool {
 }
 
 #[cfg(test)]
-#[path = "simulated_pose_blend/performance_tests.rs"]
+#[path = "simulated_pose_blend/tests/performance_tests.rs"]
 mod optimization_batch_20260830cw_tests;

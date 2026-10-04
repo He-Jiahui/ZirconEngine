@@ -22,7 +22,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束流式原生加载清单：包行流式写入进入清单输出，并包行不分配字段格式化字符串。
 class StreamingNativeLoadManifestPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

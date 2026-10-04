@@ -1,3 +1,4 @@
+# 受监督进程的标准输出和错误输出共享有界保留预算；本组验证独立尾部、原子额度及监督器写入收据时保持同一容量契约。
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 

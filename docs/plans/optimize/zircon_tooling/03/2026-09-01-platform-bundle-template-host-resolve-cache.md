@@ -1,3 +1,7 @@
+---
+status: local_candidate
+---
+
 # PlatformBundle template host resolve cache
 
 ## Change

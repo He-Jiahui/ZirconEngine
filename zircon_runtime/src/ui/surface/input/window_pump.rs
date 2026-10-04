@@ -15,6 +15,8 @@ use super::{
 };
 use crate::ui::dispatch::{UiNavigationDispatcher, UiPointerDispatcher};
 
+/// 将窗口生命周期先反映到 surface，再把光标、取消捕获或悬停清理转换为 UI 输入。
+/// resize/scale 只标脏根节点，正常帧重建才发布新几何。
 pub(crate) fn dispatch_window_event(
     surface: &mut UiSurface,
     pointer_dispatcher: &UiPointerDispatcher,
@@ -51,6 +53,12 @@ pub(crate) fn dispatch_window_event(
                 diagnostics_mode,
             )?;
             append_window_hover_clear_result(surface, &event, &mut result, diagnostics_mode)?;
+            if matches!(
+                event.kind,
+                UiWindowEventKind::Closed | UiWindowEventKind::Destroyed
+            ) {
+                append_fallback_pointer_interaction_clear(surface, &mut result, diagnostics_mode)?;
+            }
             mark_optional_window_event_result(&mut result, retained_note, diagnostics_mode);
             mark_window_event_result(&mut result, "window_pointer_cancel", diagnostics_mode);
             return Ok(result);
@@ -79,6 +87,13 @@ pub(crate) fn dispatch_window_event(
                 .in_phase(UiDispatchPhase::DefaultAction)
                 .with_effect(effect),
         );
+        if matches!(
+            event.kind,
+            UiWindowEventKind::Focused { focused: false }
+                | UiWindowEventKind::ApplicationActivation { is_active: false }
+        ) {
+            append_fallback_pointer_interaction_clear(surface, &mut result, diagnostics_mode)?;
+        }
         mark_optional_window_event_result(&mut result, retained_note, diagnostics_mode);
         mark_window_event_result(&mut result, "window_transient_dismissal", diagnostics_mode);
         return Ok(result);
@@ -316,7 +331,7 @@ fn append_component_events(
 }
 
 #[cfg(test)]
-#[path = "window_pump/root_iteration_tests.rs"]
+#[path = "window_pump/tests/root_iteration_tests.rs"]
 mod root_iteration_tests;
 
 fn window_event_transient_input(event: &UiWindowEvent) -> UiInputEvent {

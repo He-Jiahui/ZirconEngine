@@ -3,7 +3,7 @@
 Plan: docs/plans/zircon_runtime/render/18-advanced-lighting-features.md
 Milestone: M5
 Status: completed
-Files: ["docs/plans/zircon_runtime/render/18/2026-07-09-advanced-lighting-features-output-records.md", "docs/plans/zircon_runtime/render/18/2026-07-14-hybrid-gi-editor-product-acceptance.md", "docs/zircon_plugins/hybrid_gi/usage.md", "docs/tests/runtime/render/plan18_hybrid_gi_editor_runtime_diagnostics_20260714.md", "docs/tests/runtime/render/plan18_hybrid_gi_editor_runtime_diagnostics_actual_20260714.png", "docs/tests/runtime/render/plan18_hybrid_gi_editor_runtime_diagnostics_fallback_20260714.png", "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs"]
+Files: ["docs/plans/zircon_runtime/render/18/2026-07-09-advanced-lighting-features-output-records.md", "docs/plans/zircon_runtime/render/18/2026-07-14-hybrid-gi-editor-product-acceptance.md", "docs/crates/zircon_plugins/hybrid_gi/usage.md", "docs/tests/runtime/render/plan18_hybrid_gi_editor_runtime_diagnostics_20260714.md", "docs/tests/runtime/render/plan18_hybrid_gi_editor_runtime_diagnostics_actual_20260714.png", "docs/tests/runtime/render/plan18_hybrid_gi_editor_runtime_diagnostics_fallback_20260714.png", "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs"]
 
 ## Scope Delivered
 

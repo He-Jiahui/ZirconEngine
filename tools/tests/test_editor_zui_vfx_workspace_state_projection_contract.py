@@ -1,3 +1,4 @@
+# 核对视觉特效上下文和参数选择由运行时投影，模拟反馈读取当前状态。
 import tomllib
 import unittest
 from pathlib import Path

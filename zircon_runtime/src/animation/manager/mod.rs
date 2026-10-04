@@ -14,12 +14,17 @@ use crate::core::framework::animation::{
     AnimationPlaybackSettings, AnimationPoseOutput, AnimationResult,
     AnimationStateMachineEvaluation, AnimationTrackPath,
 };
+use crate::core::framework::foundation::ConfigManager;
+use crate::core::manager::{
+    config_manager_handle, resolve_manager_service, ManagerServiceHandle, CONFIG_MANAGER_NAME,
+};
 use crate::core::{CoreError, CoreHandle, CoreWeak};
 
 #[derive(Clone, Debug)]
 pub struct DefaultAnimationManager {
     // The registry owns this service, so its runtime back-reference must not complete an Arc cycle.
     core: Option<CoreWeak>,
+    config_manager: Option<ManagerServiceHandle<dyn ConfigManager>>,
     playback_settings: Arc<Mutex<AnimationPlaybackSettings>>,
 }
 
@@ -31,14 +36,19 @@ impl Default for DefaultAnimationManager {
 
 impl DefaultAnimationManager {
     pub fn new(core: Option<&CoreHandle>) -> Self {
+        let config_manager = core.and_then(|core| config_manager_handle(core).ok());
         let playback_settings = core
-            .and_then(|core| {
-                core.load_config(crate::animation::ANIMATION_PLAYBACK_CONFIG_KEY)
-                    .ok()
+            .zip(config_manager.as_ref())
+            .and_then(|(core, handle)| resolve_manager_service(core, handle.clone()).ok())
+            .and_then(|config| {
+                config
+                    .get_value(crate::animation::ANIMATION_PLAYBACK_CONFIG_KEY)
+                    .and_then(|value| serde_json::from_value(value).ok())
             })
             .unwrap_or_default();
         Self {
             core: core.map(CoreHandle::downgrade),
+            config_manager,
             playback_settings: Arc::new(Mutex::new(playback_settings)),
         }
     }
@@ -47,13 +57,30 @@ impl DefaultAnimationManager {
         &self,
         playback_settings: AnimationPlaybackSettings,
     ) -> Result<(), CoreError> {
-        *self.lock_playback_settings() = playback_settings.clone();
-        if let Some(core) = self.core.as_ref().and_then(CoreWeak::upgrade) {
-            core.store_config(
-                crate::animation::ANIMATION_PLAYBACK_CONFIG_KEY,
-                &playback_settings,
-            )?;
+        match (
+            self.core.as_ref().and_then(CoreWeak::upgrade),
+            self.config_manager.clone(),
+        ) {
+            (Some(core), Some(handle)) => {
+                let value = serde_json::to_value(&playback_settings).map_err(|error| {
+                    CoreError::ConfigParse(
+                        crate::animation::ANIMATION_PLAYBACK_CONFIG_KEY.to_owned(),
+                        error.to_string(),
+                    )
+                })?;
+                let config = resolve_manager_service(&core, handle)?;
+                config
+                    .set_value(crate::animation::ANIMATION_PLAYBACK_CONFIG_KEY, value)
+                    .map_err(|error| {
+                        CoreError::Initialization(CONFIG_MANAGER_NAME.to_owned(), error.to_string())
+                    })?;
+            }
+            (Some(_), None) => {
+                return Err(CoreError::MissingService(CONFIG_MANAGER_NAME.to_owned()));
+            }
+            (None, _) => {}
         }
+        *self.lock_playback_settings() = playback_settings;
         Ok(())
     }
 
@@ -123,27 +150,5 @@ impl AnimationManager for DefaultAnimationManager {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::panic::{self, AssertUnwindSafe};
-
-    use crate::core::framework::animation::{AnimationManager, AnimationPlaybackSettings};
-
-    use super::DefaultAnimationManager;
-
-    #[test]
-    fn animation_manager_playback_settings_recover_poisoned_lock() {
-        let manager = DefaultAnimationManager::default();
-        let _ = panic::catch_unwind(AssertUnwindSafe(|| {
-            let _guard = manager.lock_playback_settings();
-            panic!("poison animation playback settings");
-        }));
-
-        let mut playback_settings = AnimationPlaybackSettings::default();
-        playback_settings.enabled = false;
-        manager
-            .store_playback_settings(playback_settings.clone())
-            .expect("store playback settings after poisoned lock");
-
-        assert_eq!(manager.playback_settings(), playback_settings);
-    }
-}
+#[path = "tests/cases.rs"]
+mod tests;

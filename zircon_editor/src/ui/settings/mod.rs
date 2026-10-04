@@ -25,4 +25,5 @@ pub use settings_navigation_category::SettingsNavigationCategory;
 pub use settings_window_projection::SettingsWindowProjection;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

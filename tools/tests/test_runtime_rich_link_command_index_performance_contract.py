@@ -21,7 +21,7 @@ def function_body(source: str, name: str) -> str:
     next_functions = [boundary for boundary in boundaries if boundary >= 0]
     return source[start:] if not next_functions else source[start : min(next_functions)]
 
-
+# 读取富文本链接点击路由，确认目标节点的命令范围被索引复用，链接目标移动进分发效果。
 class RuntimeRichLinkCommandIndexPerformanceContractTests(unittest.TestCase):
     def test_rich_link_click_uses_target_node_command_range(self) -> None:
         source = RICH_LINK.read_text(encoding="utf-8")

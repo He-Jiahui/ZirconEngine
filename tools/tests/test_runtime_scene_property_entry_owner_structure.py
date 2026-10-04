@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 验证场景属性条目的职责切分：组件属性条目 families 应子节点持有，并属性条目归属状态应为镜像。
 class RuntimeScenePropertyEntryOwnerStructureTests(unittest.TestCase):
     STATUS = (
         "runtime_08_15_scene_property_entry_component_owner_split_"

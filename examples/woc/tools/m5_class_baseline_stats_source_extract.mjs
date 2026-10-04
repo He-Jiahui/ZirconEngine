@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码中提取各职业各等级的基础属性及初始装备贡献，供 m5_class_baseline_stats_codegen.mjs 消费。
 const { CLASSES } = await import('wocgit:///src/sim/content/classes.ts');
 const { BASE_ITEMS } = await import('wocgit:///src/sim/content/items.ts');
 const { createPlayer, recalcPlayerStats } = await import('wocgit:///src/sim/entity.ts');
@@ -8,6 +9,7 @@ const classes = classIds.map((classId) => classBaseline(classId));
 
 process.stdout.write(JSON.stringify({ max_level: MAX_LEVEL, classes }));
 
+// 逐职业重建源码实体，使等级和派生属性来自源码重算。
 function classBaseline(classId) {
   const definition = CLASSES[classId];
   const equipment = { mainhand: definition.startWeapon, chest: definition.startChest };

@@ -1,5 +1,5 @@
 use std::borrow::Borrow;
-use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::fmt;
 use std::fs::File;
 use std::io::{self, Read, Seek, SeekFrom};
@@ -121,7 +121,8 @@ impl ZrPackWriter {
 
 struct ZrPackAssembler {
     bytes: Vec<u8>,
-    chunk_offsets: BTreeMap<[u8; 32], u64>,
+    // Hash membership alone decides deduplication; chunk offsets live in chunk_entries.
+    chunk_hashes: BTreeSet<[u8; 32]>,
     chunk_entries: Vec<ZrChunkEntry>,
     asset_entries: Vec<ZrPackAssetEntry>,
     deduplicated_assets: Vec<String>,
@@ -131,7 +132,7 @@ impl ZrPackAssembler {
     fn new(asset_count: usize) -> Self {
         Self {
             bytes: vec![0; ZRPACK_HEADER_SIZE],
-            chunk_offsets: BTreeMap::new(),
+            chunk_hashes: BTreeSet::new(),
             chunk_entries: Vec::with_capacity(asset_count),
             asset_entries: Vec::with_capacity(asset_count),
             deduplicated_assets: Vec::with_capacity(asset_count),
@@ -141,7 +142,8 @@ impl ZrPackAssembler {
     fn push_bytes(&mut self, path: &str, payload: &[u8]) -> Result<(), ZrPackError> {
         let hash = zrpack_content_hash(payload);
         let size = u32::try_from(payload.len()).map_err(|_| ZrPackError::SizeOverflow)?;
-        if self.record_deduplicated(path, hash, u64::from(size)) {
+        if !self.chunk_hashes.insert(hash) {
+            self.record_duplicate(path, hash, u64::from(size));
             return Ok(());
         }
 
@@ -157,7 +159,8 @@ impl ZrPackAssembler {
             source: error,
         })?;
         let (hash, payload_size) = scan_file(&mut file, source, None, |_| {})?;
-        if self.record_deduplicated(path, hash, payload_size) {
+        if !self.chunk_hashes.insert(hash) {
+            self.record_duplicate(path, hash, payload_size);
             return Ok(());
         }
 
@@ -183,19 +186,13 @@ impl ZrPackAssembler {
         Ok(())
     }
 
-    fn record_deduplicated(&mut self, path: &str, hash: [u8; 32], size: u64) -> bool {
-        let Some(offset) = self.chunk_offsets.get(&hash).copied() else {
-            return false;
-        };
+    fn record_duplicate(&mut self, path: &str, hash: [u8; 32], size: u64) {
         self.deduplicated_assets.push(path.to_string());
         self.asset_entries
             .push(ZrPackAssetEntry::new(path, hash, size));
-        debug_assert!(offset <= self.bytes.len() as u64);
-        true
     }
 
     fn record_unique(&mut self, path: &str, hash: [u8; 32], offset: u64, size: u32) {
-        self.chunk_offsets.insert(hash, offset);
         self.chunk_entries
             .push(ZrChunkEntry::new(hash, offset, size));
         self.asset_entries
@@ -336,5 +333,5 @@ pub(super) fn header_size() -> usize {
 }
 
 #[cfg(test)]
-#[path = "writer/optimization_tests.rs"]
+#[path = "writer/tests/optimization_tests.rs"]
 mod optimization_tests;

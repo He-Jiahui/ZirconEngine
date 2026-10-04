@@ -54,6 +54,7 @@ impl TaskDiagnosticJournal {
         }
     }
 
+    // 先把源切换和保留区溢出折算为 recovery cursor 与 drop count，再按有序序号分页；返回游标只越过实际返回的记录。
     pub(super) fn read_after(
         &self,
         cursor: TaskDiagnosticCursor,
@@ -78,13 +79,23 @@ impl TaskDiagnosticJournal {
         };
         let recovered_sequence = requested_sequence.max(oldest_sequence);
         let read_limit = max_entries.min(TASK_DIAGNOSTIC_MAX_BATCH_ENTRIES);
-        let observations = state
-            .entries
-            .iter()
-            .filter(|entry| entry.observation_sequence() >= recovered_sequence)
-            .take(read_limit)
-            .cloned()
-            .collect::<Vec<_>>();
+        let start = if read_limit == 0 {
+            state.entries.len()
+        } else {
+            state
+                .entries
+                .partition_point(|entry| entry.observation_sequence() < recovered_sequence)
+        };
+        let page_capacity = read_limit.min(state.entries.len().saturating_sub(start));
+        let mut observations = Vec::with_capacity(page_capacity);
+        observations.extend(
+            state
+                .entries
+                .iter()
+                .skip(start)
+                .take(page_capacity)
+                .cloned(),
+        );
         let next_sequence = observations
             .last()
             .map(|entry| entry.observation_sequence().saturating_add(1))

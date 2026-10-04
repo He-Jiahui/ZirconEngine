@@ -1,3 +1,5 @@
+
+from tools.tests.rust_test_files import read_rust_test_file
 from pathlib import Path
 import unittest
 
@@ -7,16 +9,17 @@ SUBMISSION = ROOT / "zircon_runtime/src/core/framework/render/ui_submission.rs"
 FRAMEWORK = ROOT / "zircon_runtime/src/core/framework/render/framework.rs"
 RENDER_MOD = ROOT / "zircon_runtime/src/core/framework/render/mod.rs"
 RUNTIME_UI = ROOT / "zircon_runtime/src/dynamic_api/session/runtime_ui.rs"
+RUNTIME_UI_TESTS = ROOT / "zircon_runtime/src/dynamic_api/session/runtime_ui/tests/cases.rs"
 VIEWPORT_FRAME = ROOT / "zircon_runtime/src/graphics/types/viewport_render_frame.rs"
 PUBLIC_RUNTIME_FRAME = ROOT / "zircon_runtime/src/ui/public_runtime_frame.rs"
 RENDERER = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs"
-RENDERER_TESTS = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs"
+RENDERER_TESTS = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/cases.rs"
 RENDERER_CONTEXT_GUARDS = ROOT / (
     "zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/"
     "render_pass_executor_registry/tests/renderer_context_guards.rs"
 )
 UI_TEXTURE = ROOT / "zircon_runtime/src/graphics/scene/resources/ui_texture.rs"
-PROFILE_MANIFEST = ROOT / "tools/profile-capture-manifest.ps1"
+PROFILE_MANIFEST = ROOT / "tools/analysis/profiling/shared/profile-capture-manifest.ps1"
 PRODUCT_TEXT_RENDERERS = (
     ROOT / "zircon_runtime/tests/runtime_text_multilingual_product_framebuffer/product_renderer.rs",
     ROOT / "zircon_runtime/tests/runtime_ui_text_render_contract.rs",
@@ -45,10 +48,10 @@ class RuntimeUiSegmentedSubmissionPerformanceContract(unittest.TestCase):
         self.assertIn("pub fn from_segments", source)
         self.assertIn("pub fn from_frame_segments", source)
         self.assertIn("pub fn commands", source)
-        self.assertIn("ordered_segments_preserve_extract_allocations", source)
+        self.assertIn("ordered_segments_preserve_extract_allocations", read_rust_test_file("zircon_runtime/src/core/framework/render/tests/ui_submission.rs"))
         self.assertIn(
             "projected_segment_shares_commands_and_projects_only_route_identity",
-            source,
+            read_rust_test_file("zircon_runtime/src/core/framework/render/tests/ui_submission.rs"),
         )
         self.assertIn("UiRenderNodeIdProjection", render_mod)
         self.assertIn("UiRenderSubmissionSegment", render_mod)
@@ -77,6 +80,7 @@ class RuntimeUiSegmentedSubmissionPerformanceContract(unittest.TestCase):
 
     def test_runtime_project_publication_keeps_segments_and_never_flattens(self) -> None:
         source = RUNTIME_UI.read_text(encoding="utf-8")
+        tests = RUNTIME_UI_TESTS.read_text(encoding="utf-8")
         self.assertIn(
             "pub(super) fn render_submission",
             source,
@@ -89,7 +93,7 @@ class RuntimeUiSegmentedSubmissionPerformanceContract(unittest.TestCase):
         self.assertIn("UiRenderSubmission::from_submission_segments(segments)", publication)
         self.assertIn(
             "local_surface_change_reuses_unchanged_segment_allocation",
-            source,
+            tests,
         )
         self.assertIn("surface.render_frame_extract()", publication)
         self.assertIn("UiRenderSubmissionSegment::projected(", publication)
@@ -115,9 +119,21 @@ class RuntimeUiSegmentedSubmissionPerformanceContract(unittest.TestCase):
         self.assertIn("for segment in submission.segments()", product_planner)
         self.assertIn("extract: &UiRenderFrameExtract", renderer)
         self.assertIn("segment.project_node_id(node_id)", renderer)
-        self.assertIn("submission.commands()", texture)
+        self.assertIn(".segments()", texture)
+        self.assertIn(
+            ".flat_map(|segment| segment.extract().command_segments())",
+            texture,
+        )
+        self.assertNotIn("submission.commands()", texture)
         self.assertNotIn("extract: &UiRenderExtract", texture)
-        self.assertIn("ui_texture_discovery_walks_all_submission_segments", texture)
+        self.assertIn(
+            "ui_texture_dependencies_reuse_stable_submission_and_segment_products",
+            read_rust_test_file("zircon_runtime/src/graphics/scene/resources/tests/ui_texture.rs"),
+        )
+        self.assertIn(
+            "ui_texture_dependencies_publish_exact_local_command_leaf_delta",
+            read_rust_test_file("zircon_runtime/src/graphics/scene/resources/tests/ui_texture.rs"),
+        )
         self.assertIn(
             "screen_space_ui_plan_blocks_framebuffer_background_across_segments",
             RENDERER_TESTS.read_text(encoding="utf-8"),

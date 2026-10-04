@@ -1,19 +1,26 @@
+use std::sync::{Arc, Mutex};
+
 use zircon_editor::core::asset::{
     AssetCreationTemplateDescriptor, AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId,
     AssetTypePresentation, ThumbnailProviderDescriptor,
 };
 use zircon_editor::core::commands::{EditorCommandDescriptor, EditorCommandMenuPath};
-use zircon_editor::core::editor_event::{EditorEvent, MenuAction, ViewDescriptorId};
+use zircon_editor::core::editor_event::{
+    EditorEvent, EditorViewportEvent, MenuAction, ViewDescriptorId,
+};
 use zircon_editor::core::editor_extension::{
     EditorExtensionRegistry, EditorExtensionRegistryError, EditorUiTemplateDescriptor,
     ViewDescriptor,
 };
 use zircon_editor::core::editor_operation::EditorOperationPath;
+use zircon_editor::core::runtime_event_consumer::EditorRuntimeEventConsumerRegistry;
+use zircon_editor::{EditorPlugin, EditorPluginDescriptor, EditorPluginRegistrationReport};
 use zircon_plugin_editor_support::{
     register_authoring_extensions, register_authoring_surface, EditorAuthoringExtensions,
     EditorAuthoringSurface,
 };
-use zircon_plugin_sdk::{authoring_plugin, EditorPluginDeclaration};
+use zircon_plugin_sdk::EditorPluginDeclaration;
+use zircon_runtime::plugin::{PluginMaturity, PluginPackageManifest};
 
 use crate::capability::{EDITOR_CAPABILITIES, PLUGIN_ID};
 use crate::extension_ids::{
@@ -21,18 +28,79 @@ use crate::extension_ids::{
     PHYSICS_DIAGNOSTICS_VIEW_ID, PHYSICS_DRAWER_ID, PHYSICS_RAGDOLL_PROFILE_VIEW_ID,
     PHYSICS_TEMPLATE_ID, PHYSICS_TOGGLE_OVERLAY_OPERATION, RAGDOLL_PROFILE_ASSET_KIND,
 };
+use crate::overlay::PHYSICS_OVERLAY_PROVIDER_ID;
+use crate::runtime_mirror::{physics_runtime_event_consumers_with_mirror, PhysicsPieMirror};
+use crate::viewport_overlay_provider::register_physics_viewport_overlay_provider;
 
-authoring_plugin! {
-    pub struct PhysicsEditorPlugin {
-        package_id: PLUGIN_ID,
-        display_name: "Physics",
-        crate_name: "zircon_plugin_physics_editor",
-        category: "runtime",
-        description: "Physics editor authoring extensions.",
-        maturity: zircon_runtime::plugin::PluginMaturity::Experimental,
-        mirrors_runtime_manifest: zircon_plugin_physics_runtime::package_manifest(),
-        capabilities: EDITOR_CAPABILITIES,
-        register_extensions: register_physics_authoring_extensions,
+#[derive(Clone, Debug)]
+pub struct PhysicsEditorPlugin {
+    declaration: EditorPluginDeclaration,
+    pie_mirror: Arc<Mutex<PhysicsPieMirror>>,
+}
+
+impl Default for PhysicsEditorPlugin {
+    fn default() -> Self {
+        let pie_mirror = Arc::new(Mutex::new(PhysicsPieMirror::default()));
+        let declaration = physics_runtime_event_consumers_with_mirror(pie_mirror.clone())
+            .into_iter()
+            .fold(
+                EditorPluginDeclaration::new(PLUGIN_ID, "Physics", "zircon_plugin_physics_editor")
+                    .with_category("runtime")
+                    .with_description("Physics editor authoring extensions.")
+                    .with_maturity(PluginMaturity::Experimental)
+                    .mirrors_runtime_manifest(zircon_plugin_physics_runtime::package_manifest())
+                    .with_capabilities(EDITOR_CAPABILITIES.iter().copied()),
+                |declaration, registration| {
+                    declaration.with_runtime_event_consumer_registration(registration)
+                },
+            );
+        Self {
+            declaration,
+            pie_mirror,
+        }
+    }
+}
+
+impl PhysicsEditorPlugin {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn declaration(&self) -> &EditorPluginDeclaration {
+        &self.declaration
+    }
+
+    pub fn pie_mirror(&self) -> Arc<Mutex<PhysicsPieMirror>> {
+        self.pie_mirror.clone()
+    }
+
+    pub fn package_manifest(&self) -> PluginPackageManifest {
+        self.declaration.package_manifest()
+    }
+
+    pub fn editor_capabilities(&self) -> Vec<String> {
+        self.declaration.capabilities().to_vec()
+    }
+
+    pub fn registration_report(&self) -> EditorPluginRegistrationReport {
+        self.declaration.registration_report(self)
+    }
+}
+
+impl EditorPlugin for PhysicsEditorPlugin {
+    fn descriptor(&self) -> &EditorPluginDescriptor {
+        self.declaration.descriptor()
+    }
+
+    fn register_editor_extensions(
+        &self,
+        registry: &mut EditorExtensionRegistry,
+    ) -> Result<(), EditorExtensionRegistryError> {
+        register_physics_authoring_extensions(registry, self.pie_mirror())
+    }
+
+    fn runtime_event_consumers(&self) -> EditorRuntimeEventConsumerRegistry {
+        self.declaration.runtime_event_consumers()
     }
 }
 
@@ -42,6 +110,7 @@ pub fn editor_plugin_declaration() -> EditorPluginDeclaration {
 
 fn register_physics_authoring_extensions(
     registry: &mut EditorExtensionRegistry,
+    pie_mirror: Arc<Mutex<PhysicsPieMirror>>,
 ) -> Result<(), EditorExtensionRegistryError> {
     register_authoring_extensions(
         registry,
@@ -58,6 +127,7 @@ fn register_physics_authoring_extensions(
         },
     )?;
     register_physics_debug_overlay(registry)?;
+    register_physics_viewport_overlay_provider(registry, pie_mirror)?;
     registry.register_ui_template(EditorUiTemplateDescriptor::new(
         PHYSICS_DIAGNOSTICS_VIEW_ID,
         "plugins://physics/editor/diagnostics.zui",
@@ -95,9 +165,11 @@ fn register_physics_debug_overlay(
             ))
             .with_callable_from_remote(false)
             .with_required_capabilities([crate::capability::PHYSICS_AUTHORING_CAPABILITY])
-            .with_event(EditorEvent::WorkbenchMenu(MenuAction::OpenView(
-                ViewDescriptorId::new(PHYSICS_DEBUG_VIEW_ID),
-            ))),
+            .with_event(EditorEvent::Viewport(
+                EditorViewportEvent::ToggleOverlayProvider {
+                    provider_id: PHYSICS_OVERLAY_PROVIDER_ID.to_owned(),
+                },
+            )),
     )?;
     Ok(())
 }
@@ -182,5 +254,5 @@ pub fn plugin_registration() -> zircon_editor::EditorPluginRegistrationReport {
 }
 
 pub fn editor_host_contract_marker() -> &'static str {
-    zircon_editor::EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY
+    zircon_editor::ui::host::EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY
 }

@@ -1,6 +1,7 @@
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::metrics::BADGE_CIRCULAR_OFFSET_RATIO;
 
+// 覆盖层按圆形重叠和上下左右锚点定位计数框；variant 别名在此解析一次。
 pub(super) fn badge_anchor_point(node: &TemplatePaneNodeData, rect: &FrameRect) -> (f32, f32) {
     let variant = badge_anchor_variant(&node.component_variant);
     let offset_x = if variant.circular {
@@ -51,5 +52,5 @@ fn badge_anchor_variant(component_variant: &str) -> BadgeAnchorVariant {
 }
 
 #[cfg(test)]
-#[path = "anchor/single_scan_variant_tests.rs"]
+#[path = "anchor/tests/single_scan_variant_tests.rs"]
 mod single_scan_variant_tests;

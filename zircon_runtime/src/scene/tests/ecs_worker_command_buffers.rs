@@ -1,14 +1,14 @@
 use std::sync::{
-    Arc,
     atomic::{AtomicBool, AtomicUsize, Ordering},
+    Arc,
 };
 
 use crate::plugin::RuntimeExtensionRegistry;
-use crate::scene::World;
 use crate::scene::ecs::{
     CommandQueue, DeferredSystemKey, Resource, SceneSystemThreadAffinity, SystemParamAccess,
     SystemStage, WorkerCommandBuffer,
 };
+use crate::scene::World;
 
 #[derive(Debug, PartialEq, Eq)]
 struct WorkerMergeOrder(Vec<u8>);

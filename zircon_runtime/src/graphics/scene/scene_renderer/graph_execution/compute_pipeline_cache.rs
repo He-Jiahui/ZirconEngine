@@ -1,3 +1,6 @@
+//! 为运行时与插件提供的计算着色器维护有界管线缓存。
+//! 候选着色器失败时，只有相同设备代际和绑定 ABI 的已发布 family 才可回退。
+
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
@@ -298,6 +301,8 @@ struct ComputePipelineCacheRecord {
     last_used: u64,
 }
 
+/// 按完整源码与绑定布局判等，同时保存最近可用 family 的帧间录制缓存。
+/// 设备代际或场景 bind-group 布局变化后，旧 WGPU 句柄不得参与解析。
 pub(super) struct ComputePipelineCache {
     active_device_epoch: Option<RenderPassDeviceEpoch>,
     scene_bind_group_layout: Option<wgpu::BindGroupLayout>,
@@ -310,6 +315,8 @@ pub(super) struct ComputePipelineCache {
 
 impl ComputePipelineCache {
     #[allow(clippy::too_many_arguments)]
+    /// 由 generic-compute executor 为本次 dispatch 解析候选管线及回退状态。
+    /// LastGood 需要物化设备代际；调用方应把返回的 resolution 写入执行记录。
     pub(super) fn resolve(
         &mut self,
         device: &wgpu::Device,
@@ -804,4 +811,5 @@ impl Default for ComputePipelineCache {
 }
 
 #[cfg(test)]
+#[path = "compute_pipeline_cache/tests/cases.rs"]
 mod tests;

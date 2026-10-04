@@ -56,6 +56,7 @@ impl RenderViewportPickPolicy {
     }
 }
 
+/// 编辑器对已展示帧的异步拾取请求；视口、像素、帧代次与输入序号共同限定身份。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RenderViewportPickRequest {
     pub viewport: RenderViewportHandle,
@@ -111,6 +112,7 @@ pub enum RenderViewportPickDisposition {
     Cancelled,
 }
 
+/// GPU 拾取的终态载荷；消费端必须同时核对票据和原请求，避免迟到结果误选新帧。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RenderViewportPickResult {
     pub disposition: RenderViewportPickDisposition,
@@ -241,88 +243,5 @@ impl RenderViewportPickResult {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn request() -> RenderViewportPickRequest {
-        RenderViewportPickRequest::new(
-            RenderViewportHandle::new(7),
-            UVec2::new(1280, 720),
-            UVec2::new(640, 360),
-            19,
-            23,
-            RenderViewportPickPurpose::Press,
-            RenderViewportPickPolicy::default(),
-        )
-    }
-
-    #[test]
-    fn request_and_result_retain_presented_frame_identity() {
-        let request = request();
-        let ticket = RenderViewportPickTicket::new(3);
-        let result = RenderViewportPickResult::hit(
-            ticket,
-            request,
-            29,
-            31,
-            37,
-            41,
-            2.0,
-            [1.0, 2.0, 3.0],
-            [0.0, 1.0, 0.0],
-        );
-
-        assert!(request.is_valid());
-        assert!(result.matches_request(request));
-        assert_eq!(result.entity, 31);
-        assert_eq!(result.instance, 37);
-        assert_eq!(result.subobject, 41);
-    }
-
-    #[test]
-    fn result_rejects_cross_frame_and_non_finite_geometry() {
-        let request = request();
-        let mut result = RenderViewportPickResult::hit(
-            RenderViewportPickTicket::new(3),
-            request,
-            29,
-            31,
-            0,
-            0,
-            2.0,
-            [1.0, 2.0, 3.0],
-            [0.0, 1.0, 0.0],
-        );
-        let mut another_frame = request;
-        another_frame.frame_generation += 1;
-        assert!(!result.matches_request(another_frame));
-
-        let mut another_ticket = result;
-        another_ticket.ticket = RenderViewportPickTicket::new(5);
-        assert!(!another_ticket.matches_ticketed_request(RenderViewportPickTicket::new(3), request));
-
-        let mut another_pixel = request;
-        another_pixel.pixel.x += 1;
-        assert!(!result.matches_request(another_pixel));
-
-        result.depth = f32::NAN;
-        assert!(!result.is_valid());
-    }
-
-    #[test]
-    fn pick_policy_exposes_typed_translucent_and_backface_decisions() {
-        let translucent =
-            RenderViewportPickPolicy::from_bits(RenderViewportPickPolicy::INCLUDE_TRANSLUCENT)
-                .unwrap();
-        let both = RenderViewportPickPolicy::from_bits(
-            RenderViewportPickPolicy::INCLUDE_TRANSLUCENT
-                | RenderViewportPickPolicy::INCLUDE_BACKFACES,
-        )
-        .unwrap();
-
-        assert!(translucent.includes_translucent());
-        assert!(!translucent.includes_backfaces());
-        assert!(both.includes_translucent());
-        assert!(both.includes_backfaces());
-    }
-}
+#[path = "tests/viewport_pick.rs"]
+mod tests;

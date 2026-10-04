@@ -1,3 +1,4 @@
+//! 合并测试分别核对预览无副作用、冲突拒绝、代际过期和路径原子提交，确保 merge 后续读取看到完整档案。
 use std::fs;
 use std::io::ErrorKind;
 
@@ -297,22 +298,18 @@ fn runtime_session_archive_path_merge_preview_commit_and_same_path_guard_are_ato
         Some("Incoming Manual")
     );
     assert_eq!(replaced.metadata.tags, vec!["incoming"]);
-    assert!(
-        temporary_archive_leftovers(
-            target_path
-                .parent()
-                .expect("target path should have parent")
-        )
-        .is_empty()
-    );
-    assert!(
-        temporary_archive_leftovers(
-            source_path
-                .parent()
-                .expect("source path should have parent")
-        )
-        .is_empty()
-    );
+    assert!(temporary_archive_leftovers(
+        target_path
+            .parent()
+            .expect("target path should have parent")
+    )
+    .is_empty());
+    assert!(temporary_archive_leftovers(
+        source_path
+            .parent()
+            .expect("source path should have parent")
+    )
+    .is_empty());
 
     let committed_payload =
         fs::read_to_string(&target_path).expect("committed target payload should be readable");

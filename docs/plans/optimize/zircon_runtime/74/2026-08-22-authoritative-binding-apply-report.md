@@ -3,7 +3,7 @@
 Plan: docs/plans/optimize/zircon_runtime/74-runtime-ui-template-component-binding-expression-model-event-command-hot-reload-product-integration-review.md
 Milestone: M4
 Status: validation_pending
-Files: ["docs/plans/optimize/zircon_runtime/74/2026-08-22-authoritative-binding-apply-report.md","docs/zircon_runtime/ui/surface/binding_targets.md","zircon_runtime/src/ui/surface/binding_targets.rs","zircon_runtime/src/ui/surface/binding_transaction.rs","zircon_runtime/src/ui/tests/asset_binding.rs","zircon_runtime/src/ui/tests/asset_binding/apply_report_performance.rs","zircon_runtime/src/ui/tests/event_routing/component_events.rs","zircon_runtime_interface/src/ui/binding/model/mutation_receipt.rs"]
+Files: ["docs/plans/optimize/zircon_runtime/74/2026-08-22-authoritative-binding-apply-report.md","docs/crates/zircon_runtime/ui/surface/binding_targets.md","zircon_runtime/src/ui/surface/binding_targets.rs","zircon_runtime/src/ui/surface/binding_transaction.rs","zircon_runtime/src/ui/tests/asset_binding.rs","zircon_runtime/src/ui/tests/asset_binding/apply_report_performance.rs","zircon_runtime/src/ui/tests/event_routing/component_events.rs","zircon_runtime_interface/src/ui/binding/model/mutation_receipt.rs"]
 
 - Date: 2026-08-22
 - Owner: `optimize-runtime74-param-ref-compile-r3-bee4c707-20260822`

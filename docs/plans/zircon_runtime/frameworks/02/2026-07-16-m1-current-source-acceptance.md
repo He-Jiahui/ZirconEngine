@@ -23,7 +23,7 @@ Files: ["docs/plans/zircon_runtime/frameworks/02/2026-07-16-m1-current-source-ac
 - `zircon_runtime/src/core/runtime/handle/activation/batch.rs`
 - `zircon_runtime/src/core/runtime/tests/activation/behavior/module_lifecycle.rs`
 - `zircon_runtime/src/core/runtime/tests/registration/behavior/module_order.rs`
-- `docs/zircon_runtime/core/runtime/lifecycle.md`
+- `docs/crates/zircon_runtime/core/runtime/lifecycle.md`
 
 ### Frameworks02 M1 本批修改范围
 
@@ -35,14 +35,14 @@ Files: ["docs/plans/zircon_runtime/frameworks/02/2026-07-16-m1-current-source-ac
 - `zircon_runtime/src/prelude.rs`：只精选导出 canonical `CoreError/CoreResult`。
 - `zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/animation_resource.rs`：根导出结构断言硬切为 `CoreError/CoreResult`。
 - `tools/tests/test_frameworks_02_core_error_single_source.py`：锁定 enum、根导出、prelude、task 与 asset 映射，并扫描全部生产 Rust consumer。
-- `docs/zircon_runtime/core/framework/error.md`
-- `docs/zircon_runtime/core/runtime/tasks.md`
-- `docs/zircon_runtime/asset/worker_pool.md`
+- `docs/crates/zircon_runtime/core/framework/error.md`
+- `docs/crates/zircon_runtime/core/runtime/tasks.md`
+- `docs/crates/zircon_runtime/asset/worker_pool.md`
 - `docs/plans/zircon_runtime/frameworks/02/2026-07-16-m1-current-source-acceptance.md`：本验收记录随 M1 精确 manifest 提交。
 
 ### 已提交的 current-docs 前置依赖
 
-- maintenance commit `a6a3bc72990c8af99ae227bf65364ad78ccf6d64` 以三文件精确 manifest 更新 `docs/engine-architecture/core-runtime-service-registry.md`、Runtime02 与 Runtime04 parent plan 的当前错误合同。Frameworks02-owned hunk 将 live facade 改为 `CoreError/CoreResult`、补入 M1 plan/test 反向映射并删除三份 current docs 的旧符号；`core-runtime-service-registry.md` 同文件已有的 Runtime15 `dependency_cycles.rs` related-code、rustfmt 清单与结构收敛证据原样保留并在该 maintenance commit 中显式采用。该文档已独立提交，因此不进入后续 M1 business manifest。
+- maintenance commit `a6a3bc72990c8af99ae227bf65364ad78ccf6d64` 以三文件精确 manifest 更新 `docs/architecture/core-runtime-service-registry.md`、Runtime02 与 Runtime04 parent plan 的当前错误合同。Frameworks02-owned hunk 将 live facade 改为 `CoreError/CoreResult`、补入 M1 plan/test 反向映射并删除三份 current docs 的旧符号；`core-runtime-service-registry.md` 同文件已有的 Runtime15 `dependency_cycles.rs` related-code、rustfmt 清单与结构收敛证据原样保留并在该 maintenance commit 中显式采用。该文档已独立提交，因此不进入后续 M1 business manifest。
 
 ### 同文件保留并显式采用的外部有效 hunk
 

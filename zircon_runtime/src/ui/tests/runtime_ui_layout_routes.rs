@@ -534,19 +534,25 @@ fn assert_public_runtime_frame_uses_surface_render_extract(manager: &RuntimeUiMa
         .ui
         .as_ref()
         .expect("runtime public frame should carry the surface UI extract");
+    let submitted = ui
+        .segments()
+        .first()
+        .expect("runtime public frame should carry one UI segment")
+        .extract();
 
     assert_eq!(
-        ui,
-        &surface_frame.render_extract.to_extract(),
+        submitted.as_ref(),
+        surface_frame.render_extract.as_ref(),
         "public runtime frame UI extract drifted from UiSurfaceFrame"
     );
     assert_eq!(
-        ui, &surface.render_extract,
+        submitted.as_ref().to_extract(),
+        surface.render_extract,
         "public runtime frame UI extract drifted from UiSurface"
     );
-    assert_eq!(ui.tree_id, surface_frame.tree_id);
+    assert_eq!(submitted.tree_id, surface_frame.tree_id);
     assert!(
-        !ui.list.commands.is_empty(),
+        !submitted.list.commands.is_empty(),
         "runtime fixture public frame should include rendered UI commands"
     );
 }

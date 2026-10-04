@@ -17,11 +17,11 @@ implementation_files:
   - zircon_runtime_host/src/foreign_output/state.rs
 plan_sources:
   - user: 2026-09-09 为 ZirconEngine 构建引擎说明书级 Wiki
-  - docs/zircon_runtime_interface/runtime_api.md
+  - docs/crates/zircon_runtime_interface/runtime_api.md
 tests:
   - zircon_runtime_interface/src/tests/abi_safety_contracts.rs
-  - zircon_runtime_host/src/foreign_output/tests.rs
-  - zircon_app/src/entry/runtime_library/tests.rs
+  - zircon_runtime_host/src/foreign_output/tests/cases.rs
+  - zircon_app/src/entry/runtime_library/tests/cases.rs
 doc_type: testing-guide
 ---
 

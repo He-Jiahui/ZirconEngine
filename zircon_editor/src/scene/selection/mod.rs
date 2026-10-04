@@ -7,4 +7,5 @@ pub use selection_model::SelectionModel;
 pub use selection_mutation::SelectionMutation;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

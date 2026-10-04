@@ -24,7 +24,8 @@ pub(crate) use console_output_snapshot::{
 pub use editor_chrome_snapshot::EditorChromeSnapshot;
 pub use editor_data_snapshot::EditorDataSnapshot;
 pub use inspector_snapshot::{
-    InspectorPluginComponentPropertySnapshot, InspectorPluginComponentSnapshot, InspectorSnapshot,
+    InspectorNativeFieldSnapshot, InspectorPluginComponentPropertySnapshot,
+    InspectorPluginComponentSnapshot, InspectorSnapshot,
 };
 pub use project_overview_snapshot::ProjectOverviewSnapshot;
 pub(crate) use scene_entry::SceneEntryProjectionCache;

@@ -8,6 +8,7 @@ use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
 use super::super::scene_post_process_resources::ScenePostProcessResources;
 
 impl ScenePostProcessResources {
+    /// 为半分辨率透明绘制准备保守深度和颜色目标，区域与附件操作由渲染图决定。
     #[allow(clippy::too_many_arguments)]
     pub(in crate::graphics::scene::scene_renderer) fn execute_half_resolution_transparency_depth_downsample(
         &self,
@@ -54,6 +55,7 @@ impl ScenePostProcessResources {
     }
 
     #[allow(clippy::too_many_arguments)]
+    /// 以深度一致性权重把半分辨率透明结果合成回场景；返回的参数上传须随 pass 提交。
     pub(in crate::graphics::scene::scene_renderer) fn execute_half_resolution_transparency_composite(
         &self,
         device: &wgpu::Device,
@@ -118,17 +120,5 @@ impl ScenePostProcessResources {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn half_resolution_transparency_passes_keep_cached_pipelines() {
-        let source = include_str!("execute_half_res_transparency.rs");
-
-        assert!(source.contains("half_res_transparency_depth_downsample_pipeline"));
-        assert!(source.contains("half_res_transparency_composite_pipeline"));
-        assert!(!source.contains("queue.write_buffer("));
-        assert!(source.contains("WgpuBufferUpload::from_bytes("));
-        assert!(source.contains("WgpuBufferUploadBatch"));
-        assert!(source.contains("binding: 4"));
-        assert!(!source.contains("create_render_pipeline"));
-    }
-}
+#[path = "tests/execute_half_res_transparency.rs"]
+mod tests;

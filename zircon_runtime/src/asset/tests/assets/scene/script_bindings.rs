@@ -1,3 +1,5 @@
+//! 验证场景脚本绑定的包、模块、更新开关和属性能在文档往返后保留，供运行时脚本装配读取。
+
 use super::*;
 
 #[test]
@@ -30,6 +32,7 @@ fn scene_asset_toml_roundtrip_preserves_script_bindings() {
             terrain: None,
             tilemap: None,
             prefab_instance: None,
+            components: Vec::new(),
             script_bindings: vec![SceneScriptBindingAsset {
                 package: "vampire_game".to_string(),
                 module: "player".to_string(),

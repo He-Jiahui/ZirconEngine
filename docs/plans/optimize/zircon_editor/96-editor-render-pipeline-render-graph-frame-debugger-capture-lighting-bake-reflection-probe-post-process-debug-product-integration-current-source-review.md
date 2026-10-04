@@ -34,8 +34,6 @@ related_code:
   - zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering
   - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering
   - zircon_editor/assets/ui/editor/components/workbench/modules/generated
-  - zircon_editor/src/core/editor_manager
-  - zircon_editor/src/core/editor_plugin
   - zircon_editor/src/scene/viewport
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
   - zircon_editor/src/ui/template_runtime/builtin

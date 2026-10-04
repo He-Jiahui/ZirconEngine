@@ -1,6 +1,8 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
-use zircon_runtime_interface::project::{validate_engine_version_req, RelPath};
+use zircon_runtime_interface::project::{
+    validate_engine_version_req, ProjectManifestSummaryError, RelPath, MAX_PROJECT_ASSET_ROOTS,
+};
 use zircon_runtime_interface::resource::ResourceScheme;
 
 use super::{ProjectManifest, ProjectManifestError};
@@ -14,34 +16,47 @@ pub(super) fn default_asset_roots() -> Vec<RelPath> {
 impl ProjectManifest {
     pub fn validate(&self) -> Result<(), ProjectManifestError> {
         validate_engine_version_req(self.engine_version_req.as_deref())?;
+        if let Some(receipt) = &self.template_receipt {
+            if receipt.project_guid() != self.project_guid {
+                return Err(ProjectManifestError::TemplateReceiptProjectGuidMismatch {
+                    manifest_guid: self.project_guid,
+                    receipt_guid: receipt.project_guid(),
+                });
+            }
+            if receipt.descriptor().engine_version_req() != self.engine_version_req.as_deref() {
+                return Err(ProjectManifestError::TemplateReceiptEngineRequirementMismatch);
+            }
+        }
         if self.asset_roots.is_empty() {
             return Err(ProjectManifestError::EmptyAssetRoots);
         }
-        let mut roots = HashSet::new();
-        for root in &self.asset_roots {
-            if !roots.insert(root.as_str()) {
-                return Err(ProjectManifestError::DuplicateAssetRoot {
-                    root: root.to_string(),
+        if self.asset_roots.len() > MAX_PROJECT_ASSET_ROOTS {
+            return Err(ProjectManifestError::Summary(
+                ProjectManifestSummaryError::TooManyAssetRoots {
+                    max: MAX_PROJECT_ASSET_ROOTS,
+                    found: self.asset_roots.len(),
+                },
+            ));
+        }
+        if self.asset_roots.len() > 1 {
+            let mut roots = HashMap::with_capacity(self.asset_roots.len());
+            for (index, root) in self.asset_roots.iter().enumerate() {
+                if roots.insert(root.as_str(), index).is_some() {
+                    return Err(ProjectManifestError::DuplicateAssetRoot {
+                        root: root.to_string(),
+                    });
+                }
+            }
+            if let Some((ancestor, descendant)) =
+                first_overlapping_asset_roots(&self.asset_roots, &roots)
+            {
+                return Err(ProjectManifestError::OverlappingAssetRoots {
+                    ancestor: self.asset_roots[ancestor].to_string(),
+                    descendant: self.asset_roots[descendant].to_string(),
                 });
             }
         }
-        for (index, left) in self.asset_roots.iter().enumerate() {
-            for right in self.asset_roots.iter().skip(index + 1) {
-                if is_descendant(left, right) {
-                    return Err(ProjectManifestError::OverlappingAssetRoots {
-                        ancestor: left.to_string(),
-                        descendant: right.to_string(),
-                    });
-                }
-                if is_descendant(right, left) {
-                    return Err(ProjectManifestError::OverlappingAssetRoots {
-                        ancestor: right.to_string(),
-                        descendant: left.to_string(),
-                    });
-                }
-            }
-        }
-        let mut ui_roots = HashSet::new();
+        let mut ui_roots = HashSet::with_capacity(self.ui_roots.len());
         for root in &self.ui_roots {
             if root.scheme() != ResourceScheme::Res {
                 return Err(ProjectManifestError::InvalidUiRootScheme {
@@ -56,7 +71,7 @@ impl ProjectManifest {
                     root: root.to_string(),
                 });
             }
-            if !ui_roots.insert(root.to_string()) {
+            if !ui_roots.insert(root.path()) {
                 return Err(ProjectManifestError::DuplicateUiRoot {
                     root: root.to_string(),
                 });
@@ -86,133 +101,34 @@ impl ProjectManifest {
     }
 }
 
-fn is_descendant(ancestor: &RelPath, candidate: &RelPath) -> bool {
-    candidate
-        .as_str()
-        .strip_prefix(ancestor.as_str())
-        .is_some_and(|suffix| suffix.starts_with('/'))
+fn first_overlapping_asset_roots(
+    roots: &[RelPath],
+    indices: &HashMap<&str, usize>,
+) -> Option<(usize, usize)> {
+    let mut first: Option<(usize, usize)> = None;
+    for (descendant, root) in roots.iter().enumerate() {
+        for (boundary, _) in root.as_str().match_indices('/') {
+            let Some(&ancestor) = indices.get(&root.as_str()[..boundary]) else {
+                continue;
+            };
+            // Keep the original nested-loop error precedence, independent of hash order.
+            let pair = (ancestor.min(descendant), ancestor.max(descendant));
+            if first.is_none_or(|(a, d)| pair < (a.min(d), a.max(d))) {
+                first = Some((ancestor, descendant));
+            }
+        }
+    }
+    first
 }
 
 #[cfg(test)]
-mod optimization_tests {
-    use std::collections::BTreeSet;
-    use std::hint::black_box;
-    use std::time::{Duration, Instant};
+#[path = "validation/tests/astra_root_tests.rs"]
+mod astra_root_tests;
 
-    use crate::asset::AssetUri;
+#[cfg(test)]
+#[path = "tests/validation_optimization_tests.rs"]
+mod optimization_tests;
 
-    use super::*;
-
-    const ROOT_ADMISSION_COUNT: usize = 65_536;
-    const UNIQUE_ROOT_COUNT: usize = 8_192;
-    const SAMPLE_COUNT: usize = 17;
-
-    fn percentile_95(samples: &mut [Duration]) -> Duration {
-        samples.sort_unstable();
-        samples[(samples.len() - 1) * 95 / 100]
-    }
-
-    fn root_ids() -> Vec<String> {
-        (0..ROOT_ADMISSION_COUNT)
-            .map(|index| {
-                format!(
-                    "generated/project/assets/with/long/shared/root_{:05}",
-                    (index * 4_099) % UNIQUE_ROOT_COUNT
-                )
-            })
-            .collect()
-    }
-
-    fn ordered_unique_count(roots: &[String]) -> usize {
-        let mut unique = BTreeSet::new();
-        roots
-            .iter()
-            .filter(|root| unique.insert(root.as_str()))
-            .count()
-    }
-
-    fn hash_unique_count(roots: &[String]) -> usize {
-        let mut unique = HashSet::new();
-        roots
-            .iter()
-            .filter(|root| unique.insert(root.as_str()))
-            .count()
-    }
-
-    #[test]
-    fn optimization_batch_20260826ae_runtime04_hash_root_validation_preserves_first_duplicate_error(
-    ) {
-        let mut manifest = ProjectManifest::new(
-            "Hash Root Validation",
-            AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
-            1,
-        );
-        manifest.asset_roots = vec![
-            RelPath::parse("assets").unwrap(),
-            RelPath::parse("shared-assets").unwrap(),
-            RelPath::parse("assets").unwrap(),
-        ];
-
-        assert!(matches!(
-            manifest.validate(),
-            Err(ProjectManifestError::DuplicateAssetRoot { root }) if root == "assets"
-        ));
-    }
-
-    #[test]
-    fn optimization_batch_20260826ae_runtime04_project_root_validation_uses_hash_membership() {
-        let source = include_str!("validation.rs");
-        let production = source.split("#[cfg(test)]").next().unwrap();
-
-        assert!(production.contains("use std::collections::HashSet;"));
-        assert_eq!(production.matches("HashSet::new()").count(), 2);
-        assert!(production.contains("roots.insert(root.as_str())"));
-        assert!(production.contains("ui_roots.insert(root.to_string())"));
-        assert!(!production.contains("BTreeSet"));
-    }
-
-    #[test]
-    #[ignore = "release performance evidence"]
-    fn optimization_batch_20260826ae_runtime04_project_root_hash_validation_performance_evidence() {
-        let roots = root_ids();
-        assert_eq!(ordered_unique_count(&roots), hash_unique_count(&roots));
-
-        let mut ordered_samples = Vec::with_capacity(SAMPLE_COUNT);
-        let mut hash_samples = Vec::with_capacity(SAMPLE_COUNT);
-        for sample in 0..SAMPLE_COUNT {
-            if sample % 2 == 0 {
-                let started = Instant::now();
-                black_box(ordered_unique_count(black_box(&roots)));
-                ordered_samples.push(started.elapsed());
-
-                let started = Instant::now();
-                black_box(hash_unique_count(black_box(&roots)));
-                hash_samples.push(started.elapsed());
-            } else {
-                let started = Instant::now();
-                black_box(hash_unique_count(black_box(&roots)));
-                hash_samples.push(started.elapsed());
-
-                let started = Instant::now();
-                black_box(ordered_unique_count(black_box(&roots)));
-                ordered_samples.push(started.elapsed());
-            }
-        }
-
-        let ordered_p95 = percentile_95(&mut ordered_samples);
-        let hash_p95 = percentile_95(&mut hash_samples);
-        println!(
-            "RUNTIME04_PROJECT_ROOT_HASH_VALIDATION_BENCH_V1 \
-             admissions={ROOT_ADMISSION_COUNT} unique_roots={UNIQUE_ROOT_COUNT} \
-             borrowed_asset_root_identity=true ordered_p95_ns={} hash_p95_ns={}",
-            ordered_p95.as_nanos(),
-            hash_p95.as_nanos(),
-        );
-        assert!(
-            hash_p95.as_nanos() * 100 <= ordered_p95.as_nanos() * 60,
-            "hash-validation P95 {:?} exceeded 60% of ordered-validation P95 {:?}",
-            hash_p95,
-            ordered_p95,
-        );
-    }
-}
+#[cfg(test)]
+#[path = "validation/tests/optimization_batch_ir_runtime629_tests.rs"]
+mod optimization_batch_ir_runtime629_tests;

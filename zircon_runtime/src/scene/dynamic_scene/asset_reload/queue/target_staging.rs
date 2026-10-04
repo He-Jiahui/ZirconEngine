@@ -3,8 +3,8 @@ use std::time::Instant;
 use crate::{
     core::JobScheduler,
     scene::{
-        DynamicSceneError, LevelSystem,
         dynamic_scene::{PreparedDynamicSceneSpawn, StagedDynamicSceneSpawn},
+        DynamicSceneError, LevelSystem,
     },
 };
 
@@ -18,7 +18,7 @@ use super::{
             DynamicSceneAssetReloadAppliedScene, DynamicSceneAssetReloadApplyFailure,
             DynamicSceneAssetReloadStaleResult,
         },
-        stage_task::{DynamicSceneAssetReloadStageTask, estimate_stage_task_metadata_bytes},
+        stage_task::{estimate_stage_task_metadata_bytes, DynamicSceneAssetReloadStageTask},
     },
     DynamicSceneAssetReloadQueue, ORDER_ENTRY_METADATA_BYTES,
 };

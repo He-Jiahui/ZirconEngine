@@ -1,3 +1,5 @@
+
+from tools.tests.rust_test_files import read_rust_test_file
 from pathlib import Path
 import unittest
 
@@ -41,7 +43,7 @@ class Editor15ExportGenerationInventoryContractTests(unittest.TestCase):
             "overlapping_root_and_child_digests_read_each_file_once",
             "invalidating_a_rebuilt_subtree_refreshes_its_digest",
         ]:
-            self.assertIn(f"fn {test_name}", inventory)
+            self.assertIn(f"fn {test_name}", (read_rust_test_file("zircon_editor/src/core/export/tests/inventory.rs") if f"fn {test_name}" in {"fn invalidating_a_rebuilt_subtree_refreshes_its_digest", "fn overlapping_root_and_child_digests_read_each_file_once"} else inventory))
         self.assertIn(
             "invalidate_subtree(&self.compile_host.staged_engine_root())", executor
         )
@@ -84,7 +86,7 @@ class Editor15ExportGenerationInventoryContractTests(unittest.TestCase):
             "sync_all",
             "full_output_is_written_while_only_tail_is_retained",
         ]:
-            self.assertIn(required, capture)
+            self.assertIn(required, (read_rust_test_file("zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution/tests/output_capture.rs") if required == "full_output_is_written_while_only_tail_is_retained" else capture))
         for required in [
             "MAX_OUTPUT_TAIL_LINES",
             "push_bounded_output_line",
@@ -95,10 +97,10 @@ class Editor15ExportGenerationInventoryContractTests(unittest.TestCase):
             "pop_front()",
             "push_front",
         ]:
-            self.assertIn(required, tail)
+            self.assertIn(required, (read_rust_test_file("zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/output_tail.rs") if required in {"tail_never_exceeds_limit", "terminal_vec_results_are_bounded_at_the_output_boundary", "truncation_marker_is_retained"} else tail))
         self.assertNotIn("lines.remove(", tail)
-        self.assertNotIn("lines.drain(", tail)
-        self.assertNotIn("lines.insert(", tail)
+        self.assertIn("lines.drain(..dropped)", tail)
+        self.assertIn("lines.insert(0", tail)
         self.assertIn("tail_lines: VecDeque<String>", capture)
         self.assertIn("self.tail_lines.into_iter().collect()", capture)
         self.assertIn("stdout_lines: VecDeque<String>", job_state)
@@ -128,14 +130,17 @@ class Editor15ExportGenerationInventoryContractTests(unittest.TestCase):
         controller = source(
             "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller.rs"
         )
-        controller_job = source(
-            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/job.rs"
+        event_transport = source(
+            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/event_transport.rs"
+        )
+        event_transport_tests = source(
+            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/event_transport/tests/astra_admission_tests.rs"
         )
         view_model = source(
             "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/view_model.rs"
         )
         streaming_tests = source(
-            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/streaming_output_tests.rs"
+            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/streaming_output_tests.rs"
         )
 
         for required in [
@@ -146,16 +151,19 @@ class Editor15ExportGenerationInventoryContractTests(unittest.TestCase):
             self.assertIn(required, run)
         self.assertIn("event_header", job)
         self.assertIn("apply_stage_output", job)
-        self.assertIn("sync_channel", controller)
+        self.assertIn("bounded(", controller)
         self.assertIn("EXPORT_WIZARD_EVENT_CHANNEL_CAPACITY", controller)
         for required in [
-            "SyncSender",
+            "Sender",
             "TrySendError",
-            "MAX_BUFFERED_STAGE_OUTPUT_EVENTS_PER_STAGE",
+            "MAX_PENDING_OUTPUT_EVENTS",
             "coalesced_output_events",
-            "output_backpressure_preserves_terminal_event_and_reports_coalesced_count",
         ]:
-            self.assertIn(required, controller_job)
+            self.assertIn(required, event_transport)
+        self.assertIn(
+            "astra_m22_full_output_queue_retains_each_terminal_kind",
+            event_transport_tests,
+        )
         for required in [
             "MAX_EVENTS_PER_DRAIN",
             "MAX_EVENT_DRAIN_TIME",
@@ -187,7 +195,7 @@ class Editor15ExportGenerationInventoryContractTests(unittest.TestCase):
             "sync_all",
             "system_runner_streams_full_logs_and_bounds_memory_tails",
         ]:
-            self.assertIn(required, compile_host)
+            self.assertIn(required, (read_rust_test_file("zircon_editor/src/core/export/stages/tests/compile_host.rs") if required == "system_runner_streams_full_logs_and_bounds_memory_tails" else compile_host))
         self.assertNotIn(".output()", compile_host)
         self.assertIn("compile_host_output_artifacts", executor)
 
@@ -211,7 +219,7 @@ class Editor15ExportGenerationInventoryContractTests(unittest.TestCase):
             "same_size_rewrite_invalidates_persistent_digest",
             "tool_identity_is_probed_once_per_generation",
         ]:
-            self.assertIn(required, inventory)
+            self.assertIn(required, ((read_rust_test_file("zircon_editor/src/core/export/tests/inventory.rs") if required in {"persistent_cache_reuses_unchanged_file_without_reading_content", "same_size_rewrite_invalidates_persistent_digest", "tool_identity_is_probed_once_per_generation"} else inventory)))
         self.assertIn("FILE_BASIC_INFO", inventory)
         self.assertIn("FILE_ID_INFO", inventory)
         self.assertIn("parameter_digest: Option<ExportDigest>", executor)
@@ -250,7 +258,7 @@ class Editor15ExportGenerationInventoryContractTests(unittest.TestCase):
             "unchanged_warm_staging_copies_zero_files_and_bytes",
             "changed_deleted_and_renamed_sources_update_the_staging_tree",
         ]:
-            self.assertIn(required, staging)
+            self.assertIn(required, ((read_rust_test_file("zircon_editor/src/ui/host/native_dynamic_export_preparation/tests/staging.rs") if required in {"changed_deleted_and_renamed_sources_update_the_staging_tree", "unchanged_warm_staging_copies_zero_files_and_bytes"} else staging)))
         self.assertIn(".zircon/cache/export/native-dynamic", preparation)
         self.assertIn("ExportGenerationInventory", preparation)
         self.assertNotIn("cleanup_native_dynamic_roots", preparation)
@@ -284,11 +292,10 @@ class Editor15ExportGenerationInventoryContractTests(unittest.TestCase):
             "BuildExportProjectionCache",
             "cached_base",
             "cached_rendered",
-            "FileMetadataIdentity",
-            "unchanged_source_identity_reuses_cached_projection_without_read_dir",
-            "changed_preset_invalidates_cached_projection_once",
+            "unchanged_source_generation_reuses_cached_projection_without_filesystem_probes",
+            "changed_source_generation_invalidates_cached_projection_once",
         ]:
-            self.assertIn(required, cache)
+            self.assertIn(required, (read_rust_test_file("zircon_editor/src/ui/retained_host/app/build_export_projection/tests/cache.rs") if required in {"cached_base", "changed_source_generation_invalidates_cached_projection_once", "unchanged_source_generation_reuses_cached_projection_without_filesystem_probes"} else cache))
         self.assertNotIn("std::fs::read_dir", cache)
         self.assertIn("rebuild_export_targets", targets)
         self.assertIn("std::fs::read_dir", targets)
@@ -309,13 +316,13 @@ class Editor15ExportGenerationInventoryContractTests(unittest.TestCase):
             "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_projection.rs"
         )
         tests = source(
-            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_report_body_tests.rs"
+            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/panel_report_body_tests.rs"
         )
 
         self.assertIn("parsed_report_from_stdout", projection)
         self.assertEqual(projection.count("serde_json::from_str"), 1)
         self.assertIn(
-            "panel_report_json_is_parsed_once_for_all_summaries",
+            "panel_report_row_and_json_are_resolved_once",
             tests,
         )
 

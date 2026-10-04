@@ -1,3 +1,4 @@
+# 核对面板诊断、插件和导出载荷构造器借用运行快照与行数据。
 from pathlib import Path
 import unittest
 

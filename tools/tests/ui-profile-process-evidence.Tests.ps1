@@ -1,4 +1,5 @@
-$script:ProcessEvidenceModule = Join-Path $PSScriptRoot '..\ui-profile-process-evidence.ps1'
+# 用完整进程证据夹具验证处理器、内存和静稳样本的预算边界。
+$script:ProcessEvidenceModule = Join-Path $PSScriptRoot '..\profiling\ui\ui-profile-process-evidence.ps1'
 if (Test-Path -LiteralPath $script:ProcessEvidenceModule) {
     . $script:ProcessEvidenceModule
 }

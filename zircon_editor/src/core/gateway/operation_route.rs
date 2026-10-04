@@ -15,6 +15,7 @@ pub struct EditorRuntimeOperationRoute {
 }
 
 impl EditorRuntimeOperationRoute {
+    /// 在命令开始时比对完整会话身份；捕获失败即停止，防止使用旧编辑状态驱动新运行时。
     pub fn capture_at_identity(
         gateway: &EditorRuntimeGatewayHandle,
         expected_identity: &GatewaySessionIdentity,
@@ -33,6 +34,15 @@ impl EditorRuntimeOperationRoute {
 
     pub fn identity(&self) -> &GatewaySessionIdentity {
         self.origin.identity()
+    }
+
+    /// Advances the captured runtime endpoint before polling an asynchronous operation.
+    ///
+    /// DynamicSession owns operation progress during its normal frame tick. Keeping the tick on
+    /// this identity-pinned route lets an editor command drive the same endpoint without opening a
+    /// second replaceable-gateway path in the submit/poll/harvest chain.
+    pub fn tick_frame(&self) -> Result<super::EditorRuntimeFrameDemand, GatewayError> {
+        self.origin.gateway().tick_frame()
     }
 
     pub fn submit_operation(

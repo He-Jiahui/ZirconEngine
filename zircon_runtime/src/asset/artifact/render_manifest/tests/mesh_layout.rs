@@ -8,7 +8,7 @@ use crate::asset::artifact::{
 use crate::core::framework::render::RenderMeshTopology;
 use crate::core::resource::ResourceKind;
 
-use super::{RenderArtifactResidencyClass, RenderSubresourceId, block, resource};
+use super::{block, resource, RenderArtifactResidencyClass, RenderSubresourceId};
 
 pub(super) fn mesh_test_layout(
     platform_format: &str,

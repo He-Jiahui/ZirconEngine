@@ -20,6 +20,7 @@ pub(in crate::ui::retained_host::host_contract) struct GpuChromePresenter<P: UiS
     native_resize_projection_size: (u32, u32),
     native_resize_draw_list: Option<UiSurfaceDrawList>,
     native_resize_generation: u64,
+    submitted_text_profile: Option<serde_json::Value>,
     #[cfg(test)]
     native_resize_snapshot_build_count: u64,
     #[cfg(test)]
@@ -61,10 +62,14 @@ impl<P: UiSurfacePresenter> HostChromePresenter for GpuChromePresenter<P> {
         )
     }
 
+    fn submitted_text_profile(&self) -> Option<serde_json::Value> {
+        self.submitted_text_profile.clone()
+    }
     fn diagnostics_snapshot(&self) -> HostRefreshDiagnostics {
         GpuChromePresenter::diagnostics_snapshot(self)
     }
 }
 
 #[cfg(test)]
+#[path = "gpu/tests/cases.rs"]
 mod tests;

@@ -1,4 +1,7 @@
+//! 验证场景资产缓存保留渲染目标、网格引用和物理组件；它覆盖缓存线格式，不代替项目文档的引用解析测试。
+
 use super::*;
+use crate::asset::SceneComponentAssetRecord;
 
 #[test]
 fn artifact_store_roundtrips_scene_assets_with_mesh_references() {
@@ -8,6 +11,66 @@ fn artifact_store_roundtrips_scene_assets_with_mesh_references() {
         .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
         .unwrap();
 
+    let sprite = crate::asset::SceneSprite2dAsset {
+        image: asset_reference("res://textures/checker.png"),
+        material: Some(asset_reference("res://materials/grid.zmaterial")),
+        atlas_region: Some(crate::core::framework::render::RenderSpriteAtlasRegion {
+            min: crate::core::math::Vec2::new(0.25, 0.5),
+            max: crate::core::math::Vec2::new(0.5, 0.75),
+        }),
+        rect: None,
+        flip_x: true,
+        flip_y: false,
+        anchor: crate::core::framework::render::RenderSpriteAnchor::TOP_LEFT,
+        custom_size: Some([2.0, 4.0]),
+        image_mode: crate::core::framework::render::RenderSpriteImageMode::Tiled {
+            tile_x: true,
+            tile_y: false,
+            stretch_value: 0.5,
+        },
+        color: [0.5, 0.75, 1.0, 0.6],
+        z_order: 3,
+        material_alpha_mode: crate::core::framework::render::RenderMaterialAlphaMode::Blend,
+    };
+    let mesh_2d = crate::asset::SceneMesh2dAsset {
+        model: asset_reference("res://models/triangle.obj"),
+        material: asset_reference("res://materials/grid.zmaterial"),
+        color: [1.0, 0.25, 0.5, 1.0],
+        z_order: -2,
+        material_alpha_mode: crate::core::framework::render::RenderMaterialAlphaMode::Mask {
+            cutoff: 0.37,
+        },
+    };
+    let components = vec![
+        SceneComponentAssetRecord::from_typed(
+            "zircon.render2d.sprite",
+            "zircon.render2d.sprite.v1",
+            1,
+            "zircon.runtime.render2d",
+            &sprite,
+        )
+        .unwrap(),
+        SceneComponentAssetRecord::from_typed(
+            "zircon.render2d.mesh",
+            "zircon.render2d.mesh.v1",
+            1,
+            "zircon.runtime.render2d",
+            &mesh_2d,
+        )
+        .unwrap(),
+        SceneComponentAssetRecord::from_typed(
+            "tests.scene.third_component",
+            "tests.scene.third_component.v1",
+            1,
+            "tests.scene.registry",
+            &serde_json::json!({
+                "enabled": true,
+                "source": asset_reference("res://textures/checker.png"),
+                "nested": {"weight": 0.75}
+            }),
+        )
+        .unwrap(),
+    ];
     let scene = SceneAsset {
         entities: vec![SceneEntityAsset {
             entity: 338_863_232_448_440,
@@ -54,6 +117,7 @@ fn artifact_store_roundtrips_scene_assets_with_mesh_references() {
             terrain: None,
             tilemap: None,
             prefab_instance: None,
+            components,
             script_bindings: Vec::new(),
         }],
     };
@@ -116,6 +180,7 @@ fn artifact_store_roundtrips_scene_assets_with_camera_targets() {
             terrain: None,
             tilemap: None,
             prefab_instance: None,
+            components: Vec::new(),
             script_bindings: Vec::new(),
         }],
     };
@@ -219,6 +284,7 @@ fn artifact_store_roundtrips_scene_assets_with_physics_components() {
             terrain: None,
             tilemap: None,
             prefab_instance: None,
+            components: Vec::new(),
             script_bindings: Vec::new(),
         }],
     };
@@ -238,4 +304,187 @@ fn artifact_store_roundtrips_scene_assets_with_physics_components() {
     assert_eq!(loaded, ImportedAsset::Scene(scene));
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn generic_component_rows_roundtrip_through_project_document_and_artifact_consumers() {
+    use zircon_runtime_interface::project::PersistedAssetReference;
+
+    let reference = asset_reference("builtin://texture/checkerboard");
+    let row = SceneComponentAssetRecord::from_typed(
+        "tests.scene.generic",
+        "tests.scene.generic.v1",
+        1,
+        "tests.scene.provider",
+        &serde_json::json!({ "asset": reference.clone(), "nested": { "enabled": true } }),
+    )
+    .unwrap();
+    let scene = SceneAsset {
+        entities: vec![SceneEntityAsset {
+            entity: 7,
+            name: "GenericConsumer".into(),
+            parent: None,
+            transform: TransformAsset::default(),
+            active: true,
+            render_layer_mask: 1,
+            mobility: SceneMobilityAsset::Dynamic,
+            camera: None,
+            mesh: None,
+            ambient_light: None,
+            directional_light: None,
+            point_light: None,
+            rect_light: None,
+            spot_light: None,
+            post_process_volume: None,
+            rigid_body: None,
+            collider: None,
+            joint: None,
+            animation_skeleton: None,
+            animation_player: None,
+            animation_sequence_player: None,
+            animation_graph_player: None,
+            animation_state_machine_player: None,
+            terrain: None,
+            tilemap: None,
+            prefab_instance: None,
+            components: vec![row.clone()],
+            script_bindings: Vec::new(),
+        }],
+    };
+    let document = scene
+        .to_project_toml_string(|reference| {
+            Ok::<_, crate::asset::ReferenceResolutionError>(PersistedAssetReference::builtin(
+                reference.locator.clone(),
+            ))
+        })
+        .unwrap();
+    let reopened = SceneAsset::from_project_toml_str(&document, |reference| {
+        Ok::<_, crate::asset::ReferenceResolutionError>(AssetReference::from_locator(
+            reference.builtin_locator().unwrap().clone(),
+        ))
+    })
+    .unwrap();
+    assert_eq!(reopened.entities[0].components, vec![row]);
+    assert_eq!(reopened.direct_references(), vec![reference]);
+}
+
+#[test]
+fn artifact_store_scene_component_rows_preserve_canonical_digest_and_codec_identity() {
+    let root = unique_temp_project_root("artifact_store_scene_component_digest");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
+    let row = SceneComponentAssetRecord::from_typed(
+        "tests.scene.digest",
+        "tests.scene.digest.v1",
+        1,
+        "tests.scene.provider",
+        &serde_json::json!({ "stable": true }),
+    )
+    .unwrap();
+    let scene = SceneAsset {
+        entities: vec![SceneEntityAsset {
+            entity: 1,
+            name: "Digest".into(),
+            parent: None,
+            transform: TransformAsset::default(),
+            active: true,
+            render_layer_mask: 1,
+            mobility: SceneMobilityAsset::Dynamic,
+            camera: None,
+            mesh: None,
+            ambient_light: None,
+            directional_light: None,
+            point_light: None,
+            rect_light: None,
+            spot_light: None,
+            post_process_volume: None,
+            rigid_body: None,
+            collider: None,
+            joint: None,
+            animation_skeleton: None,
+            animation_player: None,
+            animation_sequence_player: None,
+            animation_graph_player: None,
+            animation_state_machine_player: None,
+            terrain: None,
+            tilemap: None,
+            prefab_instance: None,
+            components: vec![row.clone()],
+            script_bindings: Vec::new(),
+        }],
+    };
+    let metadata = ResourceRecord::new(
+        AssetId::new(),
+        AssetKind::Scene,
+        AssetUri::parse("res://scenes/generic_digest.scene.toml").unwrap(),
+    );
+    let store = ArtifactStore::default();
+    let artifact = store
+        .write(&paths, &metadata, &ImportedAsset::Scene(scene.clone()))
+        .unwrap();
+    let first = store.read(&paths, &artifact).unwrap();
+    let second = store.read(&paths, &artifact).unwrap();
+    assert_eq!(first, second);
+    let ImportedAsset::Scene(first) = first else {
+        panic!("scene expected")
+    };
+    assert_eq!(first.entities[0].components[0], row);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn malformed_component_reference_rows_never_publish_scene_dependencies() {
+    let malformed = SceneComponentAssetRecord {
+        type_id: "tests.scene.malformed".into(),
+        schema_id: "tests.scene.malformed.v1".into(),
+        schema_version: 1,
+        provider_id: "tests.scene.provider".into(),
+        payload: serde_json::json!({"value": true}),
+        references: vec![asset_reference("builtin://orphan")],
+    };
+    let scene = SceneAsset {
+        entities: vec![SceneEntityAsset {
+            entity: 99,
+            name: "Malformed".into(),
+            parent: None,
+            transform: TransformAsset::default(),
+            active: true,
+            render_layer_mask: 1,
+            mobility: SceneMobilityAsset::Dynamic,
+            camera: None,
+            mesh: None,
+            ambient_light: None,
+            directional_light: None,
+            point_light: None,
+            rect_light: None,
+            spot_light: None,
+            post_process_volume: None,
+            rigid_body: None,
+            collider: None,
+            joint: None,
+            animation_skeleton: None,
+            animation_player: None,
+            animation_sequence_player: None,
+            animation_graph_player: None,
+            animation_state_machine_player: None,
+            terrain: None,
+            tilemap: None,
+            prefab_instance: None,
+            components: vec![malformed],
+            script_bindings: Vec::new(),
+        }],
+    };
+    assert!(scene.validate_component_references().is_err());
+    assert!(scene.direct_references().is_empty());
+    assert!(scene
+        .to_project_toml_string(|reference| {
+            Ok::<_, crate::asset::ReferenceResolutionError>(
+                zircon_runtime_interface::project::PersistedAssetReference::builtin(
+                    reference.locator.clone(),
+                ),
+            )
+        })
+        .is_err());
 }

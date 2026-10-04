@@ -11,8 +11,8 @@ pub(super) use crate::ui::retained_host::callback_dispatch::{
 };
 use crate::ui::retained_host::measure_runtime_text_width;
 pub(super) use crate::ui::retained_host::menu_pointer::{
-    build_host_menu_pointer_layout, HostMenuPointerBridge, HostMenuPointerLayout,
-    HostMenuPointerRoute, HostMenuPointerState, MenuItemSpec,
+    build_host_menu_pointer_geometry_layout, build_host_menu_pointer_layout, HostMenuPointerBridge,
+    HostMenuPointerLayout, HostMenuPointerRoute, HostMenuPointerState, MenuItemSpec,
 };
 use crate::ui::workbench::menu_bar::{
     workbench_menu_slot_width_from_label_width, WORKBENCH_MENU_SLOT_FONT_SIZE,
@@ -41,19 +41,21 @@ pub(super) fn default_menu_layout() -> HostMenuPointerLayout {
 
     HostMenuPointerLayout {
         shell_frame: UiFrame::new(0.0, 0.0, 1280.0, 720.0),
+        menu_bar_frame: UiFrame::new(0.0, 0.0, 1280.0, 720.0),
         button_frames,
         menu_bar_content_width,
-        popup_widths: Vec::new(),
+        popup_widths: Vec::new().into(),
+        intrinsic_popup_widths: Vec::new().into(),
         save_project_enabled: true,
         undo_enabled: true,
         redo_enabled: true,
         delete_enabled: true,
-        preset_names: vec!["rider".to_string(), "compact".to_string()],
-        active_preset_name: "rider".to_string(),
-        resolved_preset_name: "rider".to_string(),
+        preset_names: vec!["rider".to_string(), "compact".to_string()].into(),
+        active_preset_name: "rider".into(),
+        resolved_preset_name: "rider".into(),
         window_popup_height: 132.0,
         menu_overflow_mode: MenuOverflowMode::Auto,
-        menus: Vec::new(),
+        menus: Vec::new().into(),
     }
 }
 
@@ -61,7 +63,8 @@ pub(super) fn window_menu_layout(preset_count: usize) -> HostMenuPointerLayout {
     let mut layout = default_menu_layout();
     layout.preset_names = (0..preset_count)
         .map(|index| format!("alpha-{index:02}"))
-        .collect();
+        .collect::<Vec<_>>()
+        .into();
     layout.window_popup_height = 192.0;
     layout
 }

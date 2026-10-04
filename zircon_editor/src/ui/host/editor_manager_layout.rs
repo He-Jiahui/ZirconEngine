@@ -1,6 +1,5 @@
-use std::collections::BTreeMap;
-
 use crate::core::asset::{DirtyExternalEffectId, DirtyExternalEffectRevision};
+use crate::core::editor_event::DocumentCloseRevision;
 use crate::core::editor_message::DocumentId;
 use crate::core::extension::{
     DocumentToolkitDescriptor, DocumentToolkitSnapshot, ToolkitInstanceId,
@@ -16,12 +15,23 @@ use super::editor_manager::EditorManager;
 pub(crate) struct DirtyDocumentToolkitView {
     pub(crate) document_id: DocumentId,
     pub(crate) dirty_generation: u64,
+    pub(crate) close_revision: DocumentCloseRevision,
     pub(crate) instance_id: ViewInstanceId,
     pub(crate) title: String,
 }
 
 impl EditorManager {
     pub fn apply_layout_command(&self, cmd: LayoutCommand) -> Result<bool, EditorError> {
+        if let LayoutCommand::CloseView { instance_id } = &cmd {
+            return self.close_view(instance_id);
+        }
+        if let LayoutCommand::CloseViews {
+            window_id,
+            instance_ids,
+        } = &cmd
+        {
+            return self.close_views_with_discard(window_id, instance_ids, &[]);
+        }
         self.host.apply_layout_command(cmd)
     }
 
@@ -34,7 +44,48 @@ impl EditorManager {
     }
 
     pub fn close_view(&self, instance_id: &ViewInstanceId) -> Result<bool, EditorError> {
+        let save = self
+            .dirty_save
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if save.owner().is_some() {
+            return Err(EditorError::DocumentCloseSaveInProgress);
+        }
         self.host.close_view(instance_id)
+    }
+
+    pub(crate) fn close_view_discarding(
+        &self,
+        instance_id: &ViewInstanceId,
+        document: DocumentId,
+        close_revision: DocumentCloseRevision,
+    ) -> Result<bool, EditorError> {
+        let save = self
+            .dirty_save
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if save.owner().is_some() {
+            return Err(EditorError::DocumentCloseSaveInProgress);
+        }
+        self.host
+            .close_view_discarding(instance_id, document, close_revision)
+    }
+
+    pub(crate) fn close_views_with_discard(
+        &self,
+        window_id: &MainPageId,
+        instance_ids: &[ViewInstanceId],
+        discard: &[(ViewInstanceId, DocumentId, DocumentCloseRevision)],
+    ) -> Result<bool, EditorError> {
+        let save = self
+            .dirty_save
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if save.owner().is_some() {
+            return Err(EditorError::DocumentCloseSaveInProgress);
+        }
+        self.host
+            .close_views_with_discard(window_id, instance_ids, discard)
     }
 
     pub fn focus_view(&self, instance_id: &ViewInstanceId) -> Result<bool, EditorError> {
@@ -89,32 +140,23 @@ impl EditorManager {
         &self,
     ) -> Result<Vec<DirtyDocumentToolkitView>, EditorError> {
         let toolkits = self.host.document_toolkit_snapshot();
-        let descriptors = toolkits
-            .descriptors()
-            .iter()
-            .map(|descriptor| (descriptor.document_id(), descriptor))
-            .collect::<BTreeMap<_, _>>();
-        self.context()
-            .dirty_documents()
-            .changes_since(None)?
-            .snapshots()
-            .iter()
-            .filter(|snapshot| snapshot.is_dirty())
-            .map(|snapshot| {
-                let descriptor = descriptors.get(&snapshot.document()).ok_or_else(|| {
-                    EditorError::Registry(format!(
-                        "dirty document {:?} has no document toolkit",
-                        snapshot.document()
-                    ))
-                })?;
-                Ok(DirtyDocumentToolkitView {
-                    document_id: snapshot.document(),
-                    dirty_generation: snapshot.generation(),
-                    instance_id: ViewInstanceId::new(descriptor.instance_id().as_str()),
+        let mut dirty = Vec::new();
+        for descriptor in toolkits.descriptors() {
+            let instance_id = ViewInstanceId::new(descriptor.instance_id().as_str());
+            let (is_dirty, close_revision) = self
+                .host
+                .document_close_state(&instance_id, descriptor.document_id())?;
+            if is_dirty {
+                dirty.push(DirtyDocumentToolkitView {
+                    document_id: descriptor.document_id(),
+                    dirty_generation: close_revision.external_generation,
+                    close_revision,
+                    instance_id,
                     title: descriptor.title().to_string(),
-                })
-            })
-            .collect()
+                });
+            }
+        }
+        Ok(dirty)
     }
 
     pub(crate) fn mark_document_external_effect(

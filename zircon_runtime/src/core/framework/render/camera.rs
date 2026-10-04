@@ -1,3 +1,5 @@
+//! 相机配置由场景抽取为视口快照，再交给渲染框架解析目标、层和输出尺寸。
+//! 此模块承载跨场景与渲染器的中立契约；具体 GPU 资源由后端持有。
 mod camera_snapshot;
 mod clear_color;
 mod defaults;
@@ -35,4 +37,5 @@ pub use viewport_rect::RenderViewportRect;
 pub use viewport_settings::ViewportRenderSettings;
 
 #[cfg(test)]
+#[path = "camera/tests/cases.rs"]
 mod tests;

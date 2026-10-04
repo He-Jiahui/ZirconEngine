@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::collections::{HashMap, hash_map::RandomState};
+use std::collections::{hash_map::RandomState, HashMap};
 use std::fmt;
 use std::hash::{BuildHasher, Hash, Hasher};
 use std::sync::Arc;
@@ -265,16 +265,35 @@ pub struct ResourceManagementScan {
     yielded_count: usize,
     total_matching_count: usize,
     #[cfg(feature = "profiling")]
-    profile_metrics: ResourceManagementScanProfileMetrics,
+    profile_metrics: ResourceManagementScanDiagnostics,
 }
 
-/// Query-local work counters read after a profiling scan completes.
+/// Read-only query-local work counters for a profiling-enabled immutable generation scan.
+/// Capturing this value does not advance the cursor, acquire a manager lock, or clone rows.
 #[cfg(feature = "profiling")]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub(crate) struct ResourceManagementScanProfileMetrics {
-    pub(crate) shard_candidate_checks: u64,
-    pub(crate) filtered_rows_skipped: u64,
-    pub(crate) rows_emitted: u64,
+pub struct ResourceManagementScanDiagnostics {
+    shard_candidate_checks: u64,
+    filtered_rows_skipped: u64,
+    rows_emitted: u64,
+}
+
+#[cfg(feature = "profiling")]
+impl ResourceManagementScanDiagnostics {
+    /// Ordered page candidates entered by this scan so far.
+    pub fn shard_candidate_checks(&self) -> u64 {
+        self.shard_candidate_checks
+    }
+
+    /// Rows visited and rejected by this scan's query so far.
+    pub fn filtered_rows_skipped(&self) -> u64 {
+        self.filtered_rows_skipped
+    }
+
+    /// Matching rows emitted by this scan so far.
+    pub fn rows_emitted(&self) -> u64 {
+        self.rows_emitted
+    }
 }
 
 impl ResourceManagementScan {
@@ -322,7 +341,8 @@ impl ResourceManagementScan {
     }
 
     #[cfg(feature = "profiling")]
-    pub(crate) fn profile_metrics(&self) -> ResourceManagementScanProfileMetrics {
+    /// Captures work performed so far; exhausting next_row includes trailing filtered rows.
+    pub fn diagnostics(&self) -> ResourceManagementScanDiagnostics {
         self.profile_metrics
     }
 }
@@ -448,12 +468,10 @@ impl ResourceManagementGeneration {
             RESOURCE_MANAGEMENT_LOCATOR_SHARD_COUNT
         );
         debug_assert!(ordered_pages.iter().all(|page| !page.is_empty()));
-        debug_assert!(
-            ordered_pages
-                .iter()
-                .flat_map(|page| page.iter())
-                .is_sorted_by(|left, right| { resource_management_row_order(left, right).is_le() })
-        );
+        debug_assert!(ordered_pages
+            .iter()
+            .flat_map(|page| page.iter())
+            .is_sorted_by(|left, right| { resource_management_row_order(left, right).is_le() }));
         Self {
             diagnostics,
             summary,
@@ -560,7 +578,7 @@ impl ResourceManagementGeneration {
             yielded_count: 0,
             total_matching_count: self.summary.matching_count(query),
             #[cfg(feature = "profiling")]
-            profile_metrics: ResourceManagementScanProfileMetrics::default(),
+            profile_metrics: ResourceManagementScanDiagnostics::default(),
         }
     }
 

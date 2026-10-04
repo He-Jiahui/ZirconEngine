@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::core::resource::io::{AtomicWriteFault, atomic_write_with_fault};
+use crate::core::resource::io::{atomic_write_with_fault, AtomicWriteFault};
 
 use super::{AssetRegistryDiagnostic, AssetRegistryEntry, AssetRegistryError, AssetRegistryIndex};
 
@@ -36,11 +36,14 @@ impl AssetRegistryIndex {
     ) -> Result<Self, AssetRegistryError> {
         let registry_root = registry_root.as_ref();
         let path = registry_path(registry_root);
-        if !path.exists() {
-            return Self::rebuild_from_project(asset_roots, registry_root);
-        }
         match load(&path) {
             Ok(index) => Ok(index),
+            Err(AssetRegistryError::Io { source, .. })
+                if source.kind() == std::io::ErrorKind::NotFound =>
+            {
+                Self::rebuild_from_project(asset_roots, registry_root)
+            }
+            Err(error @ AssetRegistryError::Io { .. }) => Err(error),
             Err(error) => {
                 let reason = error.to_string();
                 let mut rebuilt = Self::rebuild_from_project(asset_roots, registry_root)?;
@@ -110,32 +113,9 @@ pub(super) fn registry_path(registry_root: &Path) -> PathBuf {
 }
 
 #[cfg(test)]
-mod optimization_batch_20260830ec_runtime_tests {
-    #[test]
-    fn optimization_batch_20260830ec_runtime534_registry_persistence_borrows_entries() {
-        let source = include_str!("persistence.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("asset registry persistence production source");
+#[path = "persistence/tests/load_disposition_tests.rs"]
+mod load_disposition_tests;
 
-        assert!(production.contains("struct PersistedAssetRegistryRef<'a>"));
-        assert!(production.contains("entries: Vec<&'a AssetRegistryEntry>"));
-        assert!(!production.contains("self.entries().into_iter().cloned().collect()"));
-    }
-
-    #[test]
-    #[ignore = "release-only performance evidence"]
-    fn optimization_batch_20260830ec_runtime534_registry_entry_clone_evidence() {
-        const ENTRY_COUNT: usize = 65_536;
-        const MARKER: &str = "RUNTIME534_REGISTRY_PERSISTENCE_BORROW_BENCH_V1";
-        let legacy_entry_deep_clones = ENTRY_COUNT;
-        let optimized_entry_deep_clones = 0;
-
-        assert!(legacy_entry_deep_clones > 0);
-        assert_eq!(optimized_entry_deep_clones, 0);
-        println!(
-            "{MARKER} entry_count={ENTRY_COUNT} legacy_entry_deep_clones={legacy_entry_deep_clones} optimized_entry_deep_clones={optimized_entry_deep_clones} reduction_pct=100"
-        );
-    }
-}
+#[cfg(test)]
+#[path = "tests/persistence_optimization_batch_20260830ec_runtime_tests.rs"]
+mod optimization_batch_20260830ec_runtime_tests;

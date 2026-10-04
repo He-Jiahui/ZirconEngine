@@ -8,6 +8,7 @@ pub struct HostHandle {
 }
 
 impl HostHandle {
+    // HostRegistry 用 index 定位槽位、用 generation 拒绝旧句柄；两者合并为脚本侧的 u64 身份。
     const INDEX_MASK: u64 = u32::MAX as u64;
     const GENERATION_SHIFT: u32 = u32::BITS;
 
@@ -36,17 +37,5 @@ impl HostHandle {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn raw_generation_roundtrip() {
-        let handle = HostHandle::from_parts(0x89ab_cdef, 0xfedc_ba98);
-        let raw = handle.into_raw();
-
-        assert_eq!(HostHandle::from_raw(raw), handle);
-        assert_eq!(HostHandle::from_raw(raw).index(), 0x89ab_cdef);
-        assert_eq!(HostHandle::from_raw(raw).generation(), 0xfedc_ba98);
-        assert_eq!(raw as i64 as u64, raw);
-    }
-}
+#[path = "tests/host_handle.rs"]
+mod tests;

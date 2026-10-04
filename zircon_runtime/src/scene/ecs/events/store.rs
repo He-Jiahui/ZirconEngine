@@ -1,8 +1,9 @@
-use std::any::{Any, TypeId, type_name};
+use std::any::{type_name, Any, TypeId};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
+use crate::scene::ecs::channel::OwnedChannel;
 use crate::scene::ecs::events::{
     Event, EventCapacityMetrics, EventObserverHandle, EventObserverId, EventPayloadProfile,
     EventReaderLease, EventTypeId, Events,
@@ -10,6 +11,9 @@ use crate::scene::ecs::events::{
 
 use super::lease::EventReaderLeaseRegistry;
 use super::observer::{ErasedEventObserver, TypedEventObserver};
+
+mod writer_grant;
+pub(in crate::scene) use writer_grant::EventWriterGrant;
 
 trait ErasedEventQueue: Any + Send + Sync {
     fn as_any(&self) -> &dyn Any;
@@ -20,7 +24,7 @@ trait ErasedEventQueue: Any + Send + Sync {
     fn capacity_metrics_erased(&self) -> EventCapacityMetrics;
 }
 
-impl<T> ErasedEventQueue for Events<T>
+impl<T> ErasedEventQueue for OwnedChannel<Events<T>>
 where
     T: Event,
 {
@@ -33,19 +37,19 @@ where
     }
 
     fn update_erased(&mut self) {
-        self.update();
+        self.get_mut().update();
     }
 
     fn clear_erased(&mut self) {
-        self.clear();
+        self.get_mut().clear();
     }
 
     fn requires_maintenance_erased(&self) -> bool {
-        self.requires_maintenance()
+        self.get().requires_maintenance()
     }
 
     fn capacity_metrics_erased(&self) -> EventCapacityMetrics {
-        self.capacity_metrics()
+        self.get().capacity_metrics()
     }
 }
 
@@ -68,7 +72,7 @@ impl EventChannel {
 pub struct EventStore {
     channels: Vec<EventChannel>,
     type_ids: HashMap<TypeId, EventTypeId>,
-    active_channels: BTreeSet<EventTypeId>,
+    active_channels: Mutex<BTreeSet<EventTypeId>>,
     last_update_channel_visits: usize,
     next_observer_id: u64,
 }
@@ -85,7 +89,7 @@ impl EventStore {
             type_id,
             type_name: type_name::<T>(),
             payload_profile: EventPayloadProfile::of::<T>(),
-            events: Box::<Events<T>>::default(),
+            events: Box::new(OwnedChannel::new(Events::<T>::default())),
             reader_leases: Arc::new(EventReaderLeaseRegistry::new()),
             observers: BTreeMap::new(),
         });
@@ -154,7 +158,10 @@ impl EventStore {
     }
 
     pub fn active_channel_count(&self) -> usize {
-        self.active_channels.len()
+        self.active_channels
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .len()
     }
 
     pub fn last_update_channel_visits(&self) -> usize {
@@ -191,7 +198,11 @@ impl EventStore {
         if channel.type_id != TypeId::of::<T>() {
             return None;
         }
-        channel.events.as_any().downcast_ref::<Events<T>>()
+        channel
+            .events
+            .as_any()
+            .downcast_ref::<OwnedChannel<Events<T>>>()
+            .map(OwnedChannel::get)
     }
 
     pub fn events_mut<T: Event>(&mut self) -> &mut Events<T> {
@@ -200,7 +211,10 @@ impl EventStore {
     }
 
     pub fn events_mut_by_id<T: Event>(&mut self, event_type_id: EventTypeId) -> &mut Events<T> {
-        self.active_channels.insert(event_type_id);
+        self.active_channels
+            .get_mut()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .insert(event_type_id);
         let channel = self
             .channel_mut(event_type_id)
             .expect("registered event type id must resolve to a channel");
@@ -212,8 +226,9 @@ impl EventStore {
         channel
             .events
             .as_any_mut()
-            .downcast_mut::<Events<T>>()
+            .downcast_mut::<OwnedChannel<Events<T>>>()
             .expect("event store type id must match event queue type")
+            .get_mut()
     }
 
     pub fn send<T: Event>(&mut self, event: T) -> bool {
@@ -221,6 +236,7 @@ impl EventStore {
         self.send_by_id(event_type_id, event)
     }
 
+    /// 槽须来自本 Store 且与 T 匹配；未知槽返回 false，已知槽汇总同步观察者接收结果，拒绝仍会写入普通队列。
     pub fn send_by_id<T: Event>(&mut self, event_type_id: EventTypeId, event: T) -> bool {
         if self.channel(event_type_id).is_none() {
             return false;
@@ -260,8 +276,9 @@ impl EventStore {
             let event_queue = channel
                 .events
                 .as_any_mut()
-                .downcast_mut::<Events<T>>()
-                .expect("event store type id must match event queue type");
+                .downcast_mut::<OwnedChannel<Events<T>>>()
+                .expect("event store type id must match event queue type")
+                .get_mut();
             event_queue.send_batch(events.into_iter().inspect(|event| {
                 for observer in observers.values() {
                     let _ = observer.notify(event);
@@ -269,7 +286,10 @@ impl EventStore {
             }))
         };
         if written > 0 {
-            self.active_channels.insert(event_type_id);
+            self.active_channels
+                .get_mut()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .insert(event_type_id);
         }
         written
     }
@@ -285,7 +305,11 @@ impl EventStore {
     }
 
     pub fn update_all(&mut self) {
-        let active_channels = std::mem::take(&mut self.active_channels);
+        let active_channels = std::mem::take(
+            self.active_channels
+                .get_mut()
+                .unwrap_or_else(|poisoned| poisoned.into_inner()),
+        );
         self.last_update_channel_visits = active_channels.len();
         for event_type_id in active_channels {
             let keep_active = self.channel_mut(event_type_id).is_some_and(|channel| {
@@ -293,17 +317,24 @@ impl EventStore {
                 channel.events.requires_maintenance_erased()
             });
             if keep_active {
-                self.active_channels.insert(event_type_id);
+                self.active_channels
+                    .get_mut()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner())
+                    .insert(event_type_id);
             }
         }
     }
 
     pub(crate) fn clear_all(&mut self) {
-        self.active_channels.clear();
+        let active_channels = self
+            .active_channels
+            .get_mut()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        active_channels.clear();
         for (index, channel) in self.channels.iter_mut().enumerate() {
             channel.events.clear_erased();
             if channel.events.requires_maintenance_erased() {
-                self.active_channels.insert(EventTypeId::new(index as u32));
+                active_channels.insert(EventTypeId::new(index as u32));
             }
         }
     }
@@ -336,10 +367,14 @@ impl EventStore {
         let keep_active = self
             .channel(event_type_id)
             .is_some_and(|channel| channel.events.requires_maintenance_erased());
+        let active_channels = self
+            .active_channels
+            .get_mut()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         if keep_active {
-            self.active_channels.insert(event_type_id);
+            active_channels.insert(event_type_id);
         } else {
-            self.active_channels.remove(&event_type_id);
+            active_channels.remove(&event_type_id);
         }
     }
 

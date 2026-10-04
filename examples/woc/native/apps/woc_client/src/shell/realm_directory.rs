@@ -155,16 +155,31 @@ pub enum RealmDirectoryError {
     EmptyRealmName { index: usize },
     DuplicateRealmName { realm_name: String },
     RealmNotFound { realm_name: String },
+    StaleGeneration { expected: u64, actual: u64 },
 }
 
-#[derive(Default)]
 pub struct RealmDirectoryModel {
     entries: Vec<RealmDirectoryRow>,
+    generation: u64,
+}
+
+impl Default for RealmDirectoryModel {
+    fn default() -> Self {
+        Self {
+            entries: Vec::new(),
+            generation: 0,
+        }
+    }
 }
 
 impl RealmDirectoryModel {
     pub fn entries(&self) -> &[RealmDirectoryRow] {
         &self.entries
+    }
+
+    /// Identifies the directory snapshot that status probes belong to.
+    pub const fn generation(&self) -> u64 {
+        self.generation
     }
 
     pub fn replace_directory(
@@ -181,6 +196,7 @@ impl RealmDirectoryModel {
                 recommended: false,
             })
             .collect::<Vec<_>>();
+        self.generation = self.generation.saturating_add(1);
         let remembered = remembered_realm.and_then(|remembered| {
             entries
                 .iter()
@@ -199,6 +215,18 @@ impl RealmDirectoryModel {
         realm_name: &str,
         status: RealmStatus,
     ) -> Result<(), RealmDirectoryError> {
+        self.set_status_for_generation(self.generation, realm_name, status)
+    }
+
+    /// Applies a probe only when it belongs to the currently displayed
+    /// directory. Late responses from a replaced directory are rejected.
+    pub fn set_status_for_generation(
+        &mut self,
+        generation: u64,
+        realm_name: &str,
+        status: RealmStatus,
+    ) -> Result<(), RealmDirectoryError> {
+        self.require_generation(generation)?;
         let row = self.entry_mut(realm_name)?;
         row.status = RealmStatusState::Resolved {
             status,
@@ -209,6 +237,15 @@ impl RealmDirectoryModel {
     }
 
     pub fn finish_status_refresh(&mut self) {
+        self.finish_status_refresh_for_generation(self.generation);
+    }
+
+    /// Completes recommendation calculation for one directory generation.
+    /// Returns `false` when the refresh was stale and no state changed.
+    pub fn finish_status_refresh_for_generation(&mut self, generation: u64) -> bool {
+        if self.require_generation(generation).is_err() {
+            return false;
+        }
         let mut best: Option<(usize, u32)> = None;
         for (index, entry) in self.entries.iter_mut().enumerate() {
             entry.recommended = false;
@@ -222,6 +259,7 @@ impl RealmDirectoryModel {
         if let Some((index, _)) = best {
             self.entries[index].recommended = true;
         }
+        true
     }
 
     pub fn recommended_realm_name(&self) -> Option<&str> {
@@ -262,6 +300,17 @@ impl RealmDirectoryModel {
             .ok_or_else(|| RealmDirectoryError::RealmNotFound {
                 realm_name: realm_name.to_string(),
             })
+    }
+
+    fn require_generation(&self, generation: u64) -> Result<(), RealmDirectoryError> {
+        if generation == self.generation {
+            Ok(())
+        } else {
+            Err(RealmDirectoryError::StaleGeneration {
+                expected: self.generation,
+                actual: generation,
+            })
+        }
     }
 }
 

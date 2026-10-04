@@ -1,3 +1,6 @@
+// 调用端：npm run generate:talent-modifier-catalog (tools/package.json)；职责：把求值后的天赋修正归一化为按职业稠密排列的来源和技能效果记录。
+// 输入边界：src/sim/content/talents.ts, src/sim/content/talent_rows.ts, src/sim/content/talents_warrior.ts, src/sim/content/talents_classic.ts；--check 比较生成结果，不改写目标文件。
+
 import { spawnSync, execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -80,6 +83,7 @@ writeOrCheck(jsonPath, `${JSON.stringify(document, null, 2)}\n`, 'modifier JSON 
 writeOrCheck(zrPath, renderZr(document), 'modifier Zr catalog');
 console.log(`${check ? 'checked' : 'generated'} ${entries.length} current talent modifier entries (${document.catalog_sha256.slice(0, 15)})`);
 
+// 将求值后的修饰项来源映射到选择目录编码，并拒绝未知的数值效果字段。
 function normalize(raw, index, specCodes, optionCodes) {
   if (!raw || typeof raw !== 'object' || (raw.origin !== 'spec' && raw.origin !== 'option')) {
     throw new Error(`invalid modifier origin at ${index}`);
@@ -102,6 +106,7 @@ function normalize(raw, index, specCodes, optionCodes) {
   };
 }
 
+// 输出数字行索引前，确保每个职业固定为三个专精、十八个选项。
 function validateDenseOriginLayout(entries, classes) {
   if (entries.length !== classes.length * ENTRY_COUNT_PER_CLASS) {
     throw new Error('modifier entries do not fill the dense per-class layout');
@@ -170,6 +175,7 @@ function normalizeAbilities(value, label) {
   });
 }
 
+// 嵌套效果只接受封闭的编码集合和有类型的字段，避免 Zr 读取任意源对象。
 function normalizeNestedEffects(value, label) {
   if (value === undefined) return [];
   if (!Array.isArray(value)) throw new Error(`invalid addEffects ${label}`);

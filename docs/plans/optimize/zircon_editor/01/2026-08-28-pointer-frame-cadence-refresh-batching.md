@@ -80,7 +80,7 @@ the exact heap/list implementation.
 
 ## Deterministic pressure model
 
-`tools/editor_pointer_frame_cadence_refresh_pressure.py` counts refresh-stage
+`tools/analysis/performance/editor/editor_pointer_frame_cadence_refresh_pressure.py` counts refresh-stage
 executions for 1,000 changed events on one continuously changing visual property.
 It is not CPU or latency timing. Input routing and semantic state writes remain
 1,000 in both designs.

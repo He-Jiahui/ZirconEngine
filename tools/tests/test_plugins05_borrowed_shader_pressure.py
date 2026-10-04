@@ -1,15 +1,17 @@
 import unittest
 from pathlib import Path
 
-from tools.plugins05_borrowed_shader_pressure import run
+from tools.analysis.performance.plugins.plugins05_borrowed_shader_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_SOURCE = ROOT / "zircon_runtime/src/asset/importer/contract.rs"
+CONTRACT_TESTS = CONTRACT_SOURCE.parent / "tests/contract.rs"
 WGSL_SOURCE = ROOT / "zircon_plugins/shader_wgsl_importer/runtime/src/lib.rs"
+WGSL_TESTS = WGSL_SOURCE.parent / "tests/lib.rs"
 FAMILY_SOURCE = ROOT / "zircon_plugins/asset_importers/shader/runtime/src/lib.rs"
 
-
+# 调用借用着色器压力模型，核对源码零克隆字节及解析次数与 UTF8 视图计数。
 class Plugins05BorrowedShaderPressureTests(unittest.TestCase):
     def test_borrowed_validation_eliminates_all_source_clone_bytes(self) -> None:
         validation = run()["validation"]
@@ -36,7 +38,7 @@ class Plugins05BorrowedShaderPressureTests(unittest.TestCase):
 
         self.assertIn("std::str::from_utf8(&self.source_bytes)", body)
         self.assertIn("Ok(source) => Ok(source)", body)
-        self.assertIn("source_str_borrows_the_context_utf8_buffer", source)
+        self.assertIn("source_str_borrows_the_context_utf8_buffer", CONTRACT_TESTS.read_text(encoding="utf-8"))
 
     def test_current_wgsl_and_glsl_providers_validate_borrowed_text(self) -> None:
         wgsl = WGSL_SOURCE.read_text(encoding="utf-8")
@@ -47,7 +49,7 @@ class Plugins05BorrowedShaderPressureTests(unittest.TestCase):
         self.assertNotIn("let source = context.source_text()?;", family)
 
     def test_release_contract_uses_the_exact_enlarged_workload(self) -> None:
-        source = WGSL_SOURCE.read_text(encoding="utf-8")
+        source = WGSL_TESTS.read_text(encoding="utf-8")
         acceptance = run()["acceptance"]
 
         self.assertIn("PERF-MVP-PLUGINS05-BORROWED-SHADER-SOURCE", source)

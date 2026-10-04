@@ -5,6 +5,10 @@ use crate::ui::event_ui::UiNodeId;
 use super::{clip::UiBatchClipStates, UiBatchKey, UiBatchRange, UiBatchSplitReason, UiBatchStats};
 use crate::ui::surface::UiPaintElement;
 
+#[cfg(test)]
+#[path = "plan/tests/performance_tests.rs"]
+mod performance_tests;
+
 /// Ordered draw-call plan derived from paint elements.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiBatchPlan {
@@ -17,6 +21,7 @@ pub struct UiBatchPlan {
 }
 
 impl UiBatchPlan {
+    /// 为诊断和关联构造接口侧批次投影；后端提交计划由 Runtime RHI 编译。
     pub fn from_paint_elements(elements: &[UiPaintElement]) -> Self {
         let ordered_element_indices = ordered_element_indices(elements);
 
@@ -39,9 +44,17 @@ impl UiBatchPlan {
                     continue;
                 }
 
+                let next_split_reason = if active_layer != element.z_index {
+                    UiBatchSplitReason::LayerChanged
+                } else {
+                    UiBatchSplitReason::between(current_key, &key)
+                };
+                let previous_key = active_key
+                    .replace(key)
+                    .expect("active batch key exists after the non-empty guard");
                 batches.push(UiBatch {
                     layer: active_layer,
-                    key: current_key.clone(),
+                    key: previous_key,
                     range: UiBatchRange {
                         first_element: active_start,
                         element_count: ordered_index - active_start,
@@ -50,14 +63,9 @@ impl UiBatchPlan {
                     node_ids: std::mem::take(&mut active_node_ids),
                     split_reason: active_split_reason,
                 });
-                active_split_reason = if active_layer != element.z_index {
-                    UiBatchSplitReason::LayerChanged
-                } else {
-                    UiBatchSplitReason::between(current_key, &key)
-                };
+                active_split_reason = next_split_reason;
                 active_layer = element.z_index;
                 active_start = ordered_index;
-                active_key = Some(key);
                 active_source_indices.push(source_index);
                 active_node_ids.push(element.node_id);
             } else {
@@ -109,6 +117,7 @@ fn ordered_element_indices(elements: &[UiPaintElement]) -> Vec<usize> {
         return indices;
     }
 
+    // 输入未按合成顺序排列时，用原索引作最终键稳定处理同层同 paint_order 的元素。
     indices.sort_by_key(|&index| {
         let element = &elements[index];
         (element.z_index, element.paint_order, index)

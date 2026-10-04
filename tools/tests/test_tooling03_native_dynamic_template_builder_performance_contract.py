@@ -1,11 +1,12 @@
+# 核对原生动态模板在包与文件循环外构建字符串并维持输出。
 from __future__ import annotations
 
 import ast
 import inspect
 import unittest
 
-from tools.zircon_export import native_dynamic_templates
-from tools.zircon_export.native_dynamic_contract import (
+from tools.export import native_dynamic_templates
+from tools.export.native_dynamic_contract import (
     NATIVE_DYNAMIC_ABI_STRING_FIELDS,
 )
 

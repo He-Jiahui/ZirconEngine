@@ -7,7 +7,7 @@ HOST_OUTPUT_ROOT = ROOT / "zircon_runtime_host/src/foreign_output"
 STATE = HOST_OUTPUT_ROOT / "state.rs"
 DIAGNOSTIC = HOST_OUTPUT_ROOT / "state/diagnostic.rs"
 
-
+# 读取实现源码约束接口诊断渲染：诊断渲染器使用一个预分配字符串，并诊断契约有精确输出与发布版证据。
 class RuntimeInterface09DiagnosticRenderPerformanceContractTests(unittest.TestCase):
     def test_diagnostic_renderer_uses_one_preallocated_string(self) -> None:
         state = STATE.read_text(encoding="utf-8")

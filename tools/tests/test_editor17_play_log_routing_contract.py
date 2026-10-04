@@ -1,3 +1,4 @@
+# 核对播放后端诊断在已附着与未附着状态下的日志身份路由。
 from pathlib import Path
 import unittest
 

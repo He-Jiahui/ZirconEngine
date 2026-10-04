@@ -27,6 +27,9 @@ impl ProjectAssetManager {
                 active_project.clone(),
             )
         };
+        let project_generation =
+            crate::asset::project::lock_project_generation(candidate.paths().root())
+                .map_err(asset_error)?;
         let prepared_files = candidate
             .prepare_project_source_deletion(target_uuid)
             .map_err(asset_error)?;
@@ -62,6 +65,7 @@ impl ProjectAssetManager {
                 drop(project);
             },
         )?;
+        drop(project_generation);
         self.publish_project_generation(
             generation,
             vec![AssetChange::new(AssetChangeKind::Removed, source, None)],

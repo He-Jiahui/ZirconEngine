@@ -33,7 +33,7 @@ pub enum EnvironmentIblSourceStagingError {
     #[error("decode captured source cubemap: {0}")]
     SourceZcube(#[source] ZcubeSourceCubemapError),
     #[error("stage environment IBL source bundle: {0}")]
-    Stage(#[source] IblSourceCubemapStagingError),
+    Stage(#[from] IblSourceCubemapStagingError),
     #[error("inspect staged environment IBL output {path}: {source}")]
     OutputMetadata {
         path: PathBuf,

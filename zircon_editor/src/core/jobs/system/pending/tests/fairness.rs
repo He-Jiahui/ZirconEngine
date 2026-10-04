@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::hint::black_box;
 use std::time::Instant;
 
 use super::super::*;
@@ -182,6 +183,99 @@ fn dependency_blocked_background_reenters_fair_selection_after_dependency_comple
             .id,
         JobId::new(1)
     );
+}
+
+#[test]
+fn optimization_batch_r6_wave4_editor639_dependency_ready_reserves_dependent_bound() {
+    const DEPENDENT_COUNT: usize = 256;
+    let mut pending = PendingJobQueue::default();
+    let dependency = JobId::new(639);
+    let admitted_at = Instant::now();
+    for id in 1..=DEPENDENT_COUNT as u64 {
+        pending.insert(
+            PendingJob::new(
+                JobId::new(id),
+                EditorJobSpec::new(format!("dependent-{id}"), JobCategory::Index),
+                Box::new(ReplaceablePendingTask),
+                Box::new(|_| {}),
+                admitted_at,
+            ),
+            &[dependency],
+        );
+    }
+
+    pending.mark_dependency_schedulable(dependency);
+
+    assert!(pending.waiting_counts.is_empty());
+    assert_eq!(
+        pending.ready.values().map(|ids| ids.len()).sum::<usize>(),
+        DEPENDENT_COUNT
+    );
+
+    let source = include_str!("../../pending.rs");
+    assert!(source.contains("let mut ready = Vec::with_capacity(dependents.len());"));
+}
+
+#[test]
+#[ignore = "managed Windows release performance evidence"]
+fn optimization_batch_r6_wave4_editor639_dependency_ready_capacity_p95() {
+    const SAMPLE_PAIRS: usize = 17;
+    const DEPENDENTS_PER_SAMPLE: usize = 65_536;
+    let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+    let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+    for pair in 0..SAMPLE_PAIRS {
+        if pair % 2 == 0 {
+            legacy_samples.push(editor639_measure_ready_projection(
+                DEPENDENTS_PER_SAMPLE,
+                false,
+            ));
+            optimized_samples.push(editor639_measure_ready_projection(
+                DEPENDENTS_PER_SAMPLE,
+                true,
+            ));
+        } else {
+            optimized_samples.push(editor639_measure_ready_projection(
+                DEPENDENTS_PER_SAMPLE,
+                true,
+            ));
+            legacy_samples.push(editor639_measure_ready_projection(
+                DEPENDENTS_PER_SAMPLE,
+                false,
+            ));
+        }
+    }
+
+    let legacy_p95 = editor639_p95(&legacy_samples);
+    let optimized_p95 = editor639_p95(&optimized_samples);
+    println!(
+        "EDITOR639_PREALLOCATED_DEPENDENCY_READY_JOBS_BENCH_V1 sample_pairs={SAMPLE_PAIRS} dependents_per_sample={DEPENDENTS_PER_SAMPLE} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} ratio={:.4}",
+        optimized_p95 as f64 / legacy_p95.max(1) as f64
+    );
+    assert!(
+        optimized_p95.saturating_mul(100) <= legacy_p95.saturating_mul(85),
+        "preallocated dependency-ready jobs must be at least 15% faster at P95"
+    );
+}
+
+fn editor639_measure_ready_projection(output_count: usize, optimized: bool) -> u128 {
+    let mut outputs = if optimized {
+        Vec::with_capacity(output_count)
+    } else {
+        Vec::new()
+    };
+    let started = Instant::now();
+    for value in 0..output_count {
+        outputs.push(JobId::new(black_box(value as u64)));
+    }
+    let elapsed = started.elapsed().as_nanos().max(1);
+    black_box(outputs);
+    elapsed
+}
+
+fn editor639_p95(samples: &[u128]) -> u128 {
+    let mut sorted = samples.to_vec();
+    sorted.sort_unstable();
+    sorted[(sorted.len() * 95).div_ceil(100) - 1]
 }
 
 #[test]

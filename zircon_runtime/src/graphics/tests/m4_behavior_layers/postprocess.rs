@@ -1,12 +1,12 @@
 use super::{
-    RenderFixture, average_channel, centered_quad_transform, fullscreen_quad_transform, ring_luma,
+    average_channel, centered_quad_transform, fullscreen_quad_transform, ring_luma, RenderFixture,
 };
 use crate::core::framework::render::{
     RenderBloomSettings, RenderColorGradingSettings, RenderLayerSet, RenderMeshSnapshot,
     RenderQualityProfile,
 };
 use crate::core::math::{Vec3, Vec4};
-use crate::scene::components::{Mobility, default_render_layer_mask};
+use crate::scene::components::{default_render_layer_mask, Mobility};
 
 #[test]
 fn bloom_quality_profile_spreads_bright_pixels_when_enabled() {

@@ -1,3 +1,4 @@
+// 静态核对固定版本 WOC 源码与本地 Zr 投影中的掉落分配的所有权与接收人状态。
 import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';

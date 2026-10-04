@@ -1,3 +1,4 @@
+# 核对界面帧提取缓存按布局域选择几何快照并跳过重复提取。
 from pathlib import Path
 import unittest
 

@@ -25,8 +25,8 @@ fn public_subscription_table_lifecycle_and_flush_contract() {
 #[test]
 fn public_subscription_table_matches_subtree_and_asset_throats() {
     let mut world = World::empty();
-    let root = world.spawn_node(NodeKind::Empty);
-    let child = world.spawn_node(NodeKind::Empty);
+    let root = world.spawn_node(NodeKind::Empty).unwrap();
+    let child = world.spawn_node(NodeKind::Empty).unwrap();
     world.set_parent_checked(child, Some(root)).unwrap();
 
     let scene = ResourceId::from_stable_label("tests.scene");

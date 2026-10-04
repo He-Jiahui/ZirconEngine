@@ -1,8 +1,10 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f5_asset_meta_uses_typed_error() {
     let meta = include_str!("../../../../../asset/project/meta.rs");
     let asset_mod = include_str!("../../../../../asset/mod.rs");
-    let importer_doc = include_str!("../../../../../../../docs/zircon_runtime/asset/importer.md");
+    let importer_doc =
+        include_str!("../../../../../../../docs/crates/zircon_runtime/asset/importer.md");
     let review_findings =
         include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
     let runtime_15_plan = include_str!(

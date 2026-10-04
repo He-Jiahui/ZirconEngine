@@ -1,3 +1,4 @@
+//! SDF 文本装饰线的字体度量换算；缺少字体指标时使用可见的兜底尺寸。
 use std::collections::HashMap;
 
 use crate::asset::{FontAssetFaceMetrics, FontAssetLineMetrics};
@@ -32,6 +33,7 @@ pub(crate) enum TextDecorationKind {
     Strikethrough,
 }
 
+/// 由 SDF bake 持有、按 face 与显示字号复用；字体代际变化时 owner 必须丢弃本缓存。
 #[derive(Default)]
 pub(crate) struct TextDecorationMetricsCache {
     entries: HashMap<(FontFaceId, u32), TextDecorationMetrics>,
@@ -67,6 +69,7 @@ impl TextDecorationMetrics {
         Self::from_font_units(FontAssetFaceMetrics::default(), display_px)
     }
 
+    /// 一行混用回退字体时取较粗的装饰线，避免字符跨字体后线条忽粗忽细。
     pub(crate) fn aggregate_fallback_thicknesses(
         mut self,
         fallback_metrics: impl IntoIterator<Item = Self>,
@@ -169,5 +172,5 @@ fn normalized_display_px(display_px: f32) -> f32 {
 }
 
 #[cfg(test)]
-#[path = "decoration_metrics/tests.rs"]
+#[path = "decoration_metrics/tests/cases.rs"]
 mod tests;

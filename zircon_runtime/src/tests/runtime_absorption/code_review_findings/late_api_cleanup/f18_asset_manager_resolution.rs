@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f18_asset_manager_resolution_returns_registered_handle() {
     let handle = include_str!("../../../../asset/pipeline/manager/asset_manager/handle.rs");
@@ -21,8 +22,9 @@ fn review_f18_asset_manager_resolution_returns_registered_handle() {
     let runtime_index =
         include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let dynamic_session_doc =
-        include_str!("../../../../../../docs/zircon_runtime/dynamic_api/session.md");
-    let asset_facade_doc = include_str!("../../../../../../docs/zircon_runtime/asset/facade.md");
+        include_str!("../../../../../../docs/crates/zircon_runtime/dynamic_api/session.md");
+    let asset_facade_doc =
+        include_str!("../../../../../../docs/crates/zircon_runtime/asset/facade.md");
     let f18_row = review_findings
         .lines()
         .find(|line| line.starts_with("| F18 |"))

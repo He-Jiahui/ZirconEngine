@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 窗口创建只把描述符需要的显示器索引交给有界解析器；两槽上下文去重且非索引路径不被误改，检查 Rust 回归的身份语义断言。
 
 ROOT = Path(__file__).resolve().parents[2]
 MONITOR = (

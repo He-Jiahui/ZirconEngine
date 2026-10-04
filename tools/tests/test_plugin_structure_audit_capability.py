@@ -14,9 +14,10 @@ from plugin_structure_audits.capability import (  # noqa: E402
     collect_navigation_runtime_mirror_contract_violations,
     collect_native_abi_projection_violations,
     parse_capability_string_constants,
+    rust_code_mask,
 )
 
-
+# 以神经网络插件为样本调用第一方结构审计，验证编辑器镜像与运行时能力归属都被发现。
 class PluginStructureAuditCapabilityTests(unittest.TestCase):
     def test_neural_editor_mirror_is_in_the_first_party_audit(self):
         self.assertIn("neural", FIRST_PARTY_EDITOR_RUNTIME_MIRROR_ROOTS)
@@ -113,6 +114,76 @@ const REQUESTED_CAPABILITIES: &[u8] = b"editor.extension.native_fixture\0";
                     "generated from the plugin declaration",
                 ],
                 collect_native_abi_projection_violations(repo_root),
+            )
+
+    def test_string_constants_ignore_comments_and_raw_string_declarations(self):
+        source = r'''pub const REAL_CAPABILITY: &str = "runtime.real";
+// pub const LINE_CAPABILITY: &str = "runtime.line";
+/* outer /* pub const BLOCK_CAPABILITY: &str = "runtime.block"; */ */
+const EXAMPLE: &str = r#"pub const REAL_CAPABILITY: &str = "runtime.shadow";"#;
+'''
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            capability_path = Path(temporary_directory) / "capability.rs"
+            capability_path.write_text(source, encoding="utf-8")
+            self.assertEqual(
+                {"REAL_CAPABILITY": "runtime.real"},
+                parse_capability_string_constants(capability_path),
+            )
+
+    def test_capabilities_after_lifetimes_and_labels_are_preserved(self):
+        prefixes = {
+            "static": "const LABEL: &'static str = \"label\";",
+            "elided": "const LABEL: &'_ str = \"label\";",
+            "named": "fn borrow<'a>(value: &'a str) -> &'a str { value }",
+            "raw": "fn borrow<'r#type>(value: &'r#type str) -> &'r#type str { value }",
+            "unicode": "fn borrow<'名>(value: &'名 str) -> &'名 str { value }",
+            "combining": "fn borrow<'a\u0301>(value: &'a\u0301 str) -> &'a\u0301 str { value }",
+            "label": "fn labeled() { 'outer: loop { break; } }",
+        }
+        declarations = '''pub const REAL_CAPABILITY: &str = "runtime.real";
+zircon_plugin_sdk::declare_plugin! {
+    pub DECLARED {
+        capabilities: [DECLARED_CAPABILITY = "runtime.declared" => runtime_registration],
+        maturity: stable,
+    }
+}
+'''
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            capability_path = Path(temporary_directory) / "capability.rs"
+            for name, prefix in prefixes.items():
+                with self.subTest(lifetime=name):
+                    capability_path.write_text(prefix + "\n" + declarations, encoding="utf-8")
+                    self.assertEqual(
+                        {
+                            "REAL_CAPABILITY": "runtime.real",
+                            "DECLARED_CAPABILITY": "runtime.declared",
+                        },
+                        parse_capability_string_constants(capability_path),
+                    )
+
+    def test_character_literals_remain_non_code(self):
+        literals = ["'a'", "'_'", "'0'", "'中'", "'{'", "'}'", r"'\''", r"'\n'", r"'\u{1F600}'"]
+        prefix = "const CHARS: &[char] = &[" + ", ".join(literals) + "];\n"
+        declarations = '''pub const REAL_CAPABILITY: &str = "runtime.real";
+zircon_plugin_sdk::declare_plugin! {
+    pub DECLARED {
+        capabilities: [DECLARED_CAPABILITY = "runtime.declared" => runtime_registration],
+        maturity: stable,
+    }
+}
+'''
+        source = prefix + declarations
+        mask = rust_code_mask(source)
+        for literal in literals:
+            with self.subTest(literal=literal):
+                start = source.index(literal)
+                self.assertEqual([False] * len(literal), mask[start : start + len(literal)])
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            capability_path = Path(temporary_directory) / "capability.rs"
+            capability_path.write_text(source, encoding="utf-8")
+            self.assertEqual(
+                {"REAL_CAPABILITY": "runtime.real", "DECLARED_CAPABILITY": "runtime.declared"},
+                parse_capability_string_constants(capability_path),
             )
 
     def test_macro_capabilities_ignore_non_code_and_parse_each_declaration(self):

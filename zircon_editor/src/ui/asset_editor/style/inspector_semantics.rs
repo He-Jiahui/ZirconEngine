@@ -613,5 +613,5 @@ fn selected_child_mount_mut<'a>(
 }
 
 #[cfg(test)]
-#[path = "inspector_semantics/streaming_path_tests.rs"]
+#[path = "inspector_semantics/tests/streaming_path_tests.rs"]
 mod streaming_path_tests;

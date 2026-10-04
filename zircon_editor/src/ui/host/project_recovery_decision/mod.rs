@@ -5,8 +5,9 @@ mod model;
 mod service;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 #[cfg(test)]
-pub(super) use coordinator::ProjectRecoveryDecisionCoordinator;
-pub(super) use service::{ProjectRecoveryDecisionService, RecoveryExecutionCompletion};
+use coordinator::ProjectRecoveryDecisionCoordinator;
+pub(crate) use service::{ProjectRecoveryDecisionService, RecoveryExecutionCompletion};

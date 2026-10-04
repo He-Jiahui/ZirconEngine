@@ -199,10 +199,343 @@ fn android_strings_template(profile: &ExportProfile) -> String {
 }
 
 fn android_activity_template(profile: &ExportProfile) -> String {
-    format!(
-        "package dev.zircon.export\n\nimport android.app.Activity\nimport android.os.Bundle\nimport android.view.KeyEvent\nimport android.view.MotionEvent\nimport android.view.View\n\nprivate const val ZIRCON_LIFECYCLE_FOREGROUND = 1\nprivate const val ZIRCON_LIFECYCLE_BACKGROUND = 2\nprivate const val ZIRCON_LIFECYCLE_RESUMED = 4\nprivate const val ZIRCON_TOUCH_STARTED = 1\nprivate const val ZIRCON_TOUCH_MOVED = 2\nprivate const val ZIRCON_TOUCH_ENDED = 3\nprivate const val ZIRCON_TOUCH_CANCELLED = 4\nprivate const val ZIRCON_KEY_PRESSED = 1\nprivate const val ZIRCON_KEY_RELEASED = 2\n\nclass MainActivity : Activity() {{\n    override fun onCreate(savedInstanceState: Bundle?) {{\n        super.onCreate(savedInstanceState)\n        System.loadLibrary(\"zircon_export_{}\")\n        ZirconRuntime.start()\n        window.decorView.setOnTouchListener {{ _: View, event: MotionEvent ->\n            forwardTouch(event)\n            true\n        }}\n        window.decorView.addOnLayoutChangeListener {{ view, _, _, _, _, _, _, _, _ ->\n            val width = view.width\n            val height = view.height\n            ZirconRuntime.dispatchViewportMetrics(width, height, resources.displayMetrics.density)\n        }}\n    }}\n\n    override fun onResume() {{\n        super.onResume()\n        ZirconRuntime.dispatchLifecycle(ZIRCON_LIFECYCLE_RESUMED)\n    }}\n\n    override fun onStart() {{\n        super.onStart()\n        ZirconRuntime.dispatchLifecycle(ZIRCON_LIFECYCLE_FOREGROUND)\n    }}\n\n    override fun onStop() {{\n        ZirconRuntime.dispatchLifecycle(ZIRCON_LIFECYCLE_BACKGROUND)\n        super.onStop()\n    }}\n\n    override fun onDestroy() {{\n        ZirconRuntime.shutdown()\n        super.onDestroy()\n    }}\n\n    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {{\n        ZirconRuntime.dispatchKeyboard(ZIRCON_KEY_PRESSED, event.keyCode, event.scanCode, null)\n        return super.onKeyDown(keyCode, event)\n    }}\n\n    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {{\n        ZirconRuntime.dispatchKeyboard(ZIRCON_KEY_RELEASED, event.keyCode, event.scanCode, null)\n        return super.onKeyUp(keyCode, event)\n    }}\n\n    private fun forwardTouch(event: MotionEvent) {{\n        val phase = when (event.actionMasked) {{\n            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> ZIRCON_TOUCH_STARTED\n            MotionEvent.ACTION_MOVE -> ZIRCON_TOUCH_MOVED\n            MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> ZIRCON_TOUCH_ENDED\n            MotionEvent.ACTION_CANCEL -> ZIRCON_TOUCH_CANCELLED\n            else -> return\n        }}\n        for (index in 0 until event.pointerCount) {{\n            ZirconRuntime.dispatchTouch(event.getPointerId(index).toLong(), phase, event.getX(index), event.getY(index))\n        }}\n    }}\n}}\n",
-        native_library_stem(&profile.output_name)
+    let mut source = String::with_capacity(9_216);
+    source.push_str(
+        r#"package dev.zircon.export
+
+import android.app.Activity
+import android.os.Bundle
+import android.view.KeyEvent
+import android.view.MotionEvent
+import android.view.View
+
+private const val ZIRCON_LIFECYCLE_FOREGROUND = 1
+private const val ZIRCON_LIFECYCLE_BACKGROUND = 2
+private const val ZIRCON_LIFECYCLE_RESUMED = 4
+private const val ZIRCON_LIFECYCLE_SUSPENDED = 8
+private const val ZIRCON_TOUCH_STARTED = 1
+private const val ZIRCON_TOUCH_MOVED = 2
+private const val ZIRCON_TOUCH_ENDED = 3
+private const val ZIRCON_TOUCH_CANCELLED = 4
+private const val ZIRCON_KEY_PRESSED = 1
+private const val ZIRCON_KEY_RELEASED = 2
+
+private data class PendingTouchMove(
+    val pointerId: Long,
+    val x: Float,
+    val y: Float,
+    val deltaX: Float,
+    val deltaY: Float,
+    val queuedAtNanos: Long,
+)
+
+private data class PendingViewportMetrics(
+    val width: Int,
+    val height: Int,
+    val scale: Float,
+    val queuedAtNanos: Long,
+)
+
+class MainActivity : Activity() {
+    private lateinit var frameView: View
+    private val pendingTouchMoves = linkedMapOf<Long, PendingTouchMove>()
+    private val lastTouchPositions = linkedMapOf<Long, Pair<Float, Float>>()
+    private var pendingViewportMetrics: PendingViewportMetrics? = null
+    private var frameInputScheduled = false
+    private var isInputActive = false
+    private val frameInputCallback = Runnable {
+        if (frameInputScheduled) {
+            frameInputScheduled = false
+            measureInputMainThread { flushFrameInputState() }
+        }
+    }
+
+    private var inputEventsReceived = 0L
+    private var inputEventsCoalesced = 0L
+    private var inputEventsDispatched = 0L
+    private var inputRawDeltaX = 0.0
+    private var inputRawDeltaY = 0.0
+    private var maxInputQueueAge = 0.0
+    private var inputAbiWallTime = 0.0
+    private var inputMainThreadWallTime = 0.0
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        System.loadLibrary("zircon_export_"#,
+    );
+    source.push_str(&native_library_stem(&profile.output_name));
+    source.push_str(
+        r#"")
+
+        ZirconRuntime.start()
+        frameView = window.decorView
+        frameView.setOnTouchListener { _: View, event: MotionEvent ->
+            measureInputMainThread { forwardTouch(event) }
+            true
+        }
+        frameView.addOnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
+            measureInputMainThread {
+                val width = view.width
+                val height = view.height
+                queueViewportMetrics(width, height, resources.displayMetrics.density)
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        measureInputMainThread { resumeInput() }
+    }
+
+    override fun onPause() {
+        measureInputMainThread { suspendInput() }
+        super.onPause()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        ZirconRuntime.dispatchLifecycle(ZIRCON_LIFECYCLE_FOREGROUND)
+    }
+
+    override fun onStop() {
+        measureInputMainThread { flushFrameInput() }
+        ZirconRuntime.dispatchLifecycle(ZIRCON_LIFECYCLE_BACKGROUND)
+        super.onStop()
+    }
+
+    override fun onDestroy() {
+        measureInputMainThread { flushFrameInput() }
+        ZirconRuntime.shutdown()
+        super.onDestroy()
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        measureInputMainThread {
+            flushFrameInput()
+            inputEventsReceived += 1
+            measureInputAbi {
+                ZirconRuntime.dispatchKeyboard(ZIRCON_KEY_PRESSED, event.keyCode, event.scanCode, null)
+            }
+            inputEventsDispatched += 1
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        measureInputMainThread {
+            flushFrameInput()
+            inputEventsReceived += 1
+            measureInputAbi {
+                ZirconRuntime.dispatchKeyboard(ZIRCON_KEY_RELEASED, event.keyCode, event.scanCode, null)
+            }
+            inputEventsDispatched += 1
+        }
+        return super.onKeyUp(keyCode, event)
+    }
+
+    fun inputTelemetry(): Map<String, Double> = mapOf(
+        "inputEventsReceived" to inputEventsReceived.toDouble(),
+        "inputEventsCoalesced" to inputEventsCoalesced.toDouble(),
+        "inputEventsDispatched" to inputEventsDispatched.toDouble(),
+        "inputRawDeltaX" to inputRawDeltaX,
+        "inputRawDeltaY" to inputRawDeltaY,
+        "maxInputQueueAge" to maxInputQueueAge,
+        "inputAbiWallTime" to inputAbiWallTime,
+        "inputMainThreadWallTime" to inputMainThreadWallTime,
     )
+
+    private fun forwardTouch(event: MotionEvent) {
+        if (!isInputActive) {
+            return
+        }
+        when (event.actionMasked) {
+            MotionEvent.ACTION_MOVE -> queueTouchMoves(event)
+            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
+                dispatchTouchEdge(event, event.actionIndex, ZIRCON_TOUCH_STARTED)
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
+                dispatchTouchEdge(event, event.actionIndex, ZIRCON_TOUCH_ENDED)
+            }
+            MotionEvent.ACTION_CANCEL -> dispatchCancelledTouches(event)
+        }
+    }
+
+    private fun queueTouchMoves(event: MotionEvent) {
+        val now = System.nanoTime()
+        for (index in 0 until event.pointerCount) {
+            val pointerId = event.getPointerId(index).toLong()
+            val x = event.getX(index)
+            val y = event.getY(index)
+            val previousPosition = lastTouchPositions[pointerId]
+            val pending = pendingTouchMoves[pointerId]
+            inputEventsReceived += 1
+            if (pending != null) {
+                inputEventsCoalesced += 1
+            }
+            pendingTouchMoves[pointerId] = PendingTouchMove(
+                pointerId = pointerId,
+                x = x,
+                y = y,
+                deltaX = (pending?.deltaX ?: 0.0f) + x - (previousPosition?.first ?: x),
+                deltaY = (pending?.deltaY ?: 0.0f) + y - (previousPosition?.second ?: y),
+                queuedAtNanos = pending?.queuedAtNanos ?: now,
+            )
+            lastTouchPositions[pointerId] = Pair(x, y)
+        }
+        scheduleFrameInput()
+    }
+
+    private fun dispatchTouchEdge(event: MotionEvent, index: Int, phase: Int) {
+        flushFrameInput()
+        val pointerId = event.getPointerId(index).toLong()
+        inputEventsReceived += 1
+        dispatchTouchEvent(event, index, phase)
+        inputEventsDispatched += 1
+        if (phase == ZIRCON_TOUCH_ENDED) {
+            lastTouchPositions.remove(pointerId)
+        } else {
+            lastTouchPositions[pointerId] = Pair(event.getX(index), event.getY(index))
+        }
+    }
+
+    private fun dispatchCancelledTouches(event: MotionEvent) {
+        flushFrameInput()
+        for (index in 0 until event.pointerCount) {
+            val pointerId = event.getPointerId(index).toLong()
+            inputEventsReceived += 1
+            dispatchTouchEvent(event, index, ZIRCON_TOUCH_CANCELLED)
+            inputEventsDispatched += 1
+            lastTouchPositions.remove(pointerId)
+        }
+    }
+
+    private fun dispatchTouchEvent(event: MotionEvent, index: Int, phase: Int) {
+        measureInputAbi {
+            ZirconRuntime.dispatchTouch(event.getPointerId(index).toLong(), phase, event.getX(index), event.getY(index))
+        }
+    }
+
+    private fun dispatchPendingTouchMove(pending: PendingTouchMove, now: Long) {
+        measureInputAbi {
+            ZirconRuntime.dispatchTouch(pending.pointerId, ZIRCON_TOUCH_MOVED, pending.x, pending.y)
+        }
+        inputRawDeltaX += pending.deltaX
+        inputRawDeltaY += pending.deltaY
+        inputEventsDispatched += 1
+        maxInputQueueAge = maxOf(
+            maxInputQueueAge,
+            (now - pending.queuedAtNanos).toDouble() / 1_000_000.0,
+        )
+    }
+
+    private fun queueCurrentViewportMetrics() {
+        if (!frameView.isLaidOut || frameView.isLayoutRequested) {
+            return
+        }
+        queueViewportMetrics(frameView.width, frameView.height, resources.displayMetrics.density)
+    }
+
+    private fun queueViewportMetrics(width: Int, height: Int, scale: Float) {
+        if (!isInputActive || width <= 0 || height <= 0) {
+            return
+        }
+        val now = System.nanoTime()
+        inputEventsReceived += 1
+        if (pendingViewportMetrics != null) {
+            inputEventsCoalesced += 1
+        }
+        pendingViewportMetrics = PendingViewportMetrics(
+            width = width,
+            height = height,
+            scale = scale,
+            queuedAtNanos = pendingViewportMetrics?.queuedAtNanos ?: now,
+        )
+        scheduleFrameInput()
+    }
+
+    private fun scheduleFrameInput() {
+        if (frameInputScheduled) {
+            return
+        }
+        frameInputScheduled = true
+        frameView.postOnAnimation(frameInputCallback)
+    }
+
+    private fun flushFrameInput() {
+        if (frameInputScheduled) {
+            frameView.removeCallbacks(frameInputCallback)
+            frameInputScheduled = false
+        }
+        flushFrameInputState()
+    }
+
+    private fun flushFrameInputState() {
+        val now = System.nanoTime()
+        val moveIterator = pendingTouchMoves.entries.iterator()
+        while (moveIterator.hasNext()) {
+            val pending = moveIterator.next().value
+            moveIterator.remove()
+            dispatchPendingTouchMove(pending, now)
+        }
+        val metrics = pendingViewportMetrics ?: return
+        pendingViewportMetrics = null
+        measureInputAbi {
+            ZirconRuntime.dispatchViewportMetrics(metrics.width, metrics.height, metrics.scale)
+        }
+        inputEventsDispatched += 1
+        maxInputQueueAge = maxOf(
+            maxInputQueueAge,
+            (now - metrics.queuedAtNanos).toDouble() / 1_000_000.0,
+        )
+    }
+
+    private fun suspendInput() {
+        if (!isInputActive) {
+            return
+        }
+        flushFrameInput()
+        isInputActive = false
+        for ((pointerId, position) in lastTouchPositions.entries.sortedBy { it.key }) {
+            inputEventsReceived += 1
+            measureInputAbi {
+                ZirconRuntime.dispatchTouch(pointerId, ZIRCON_TOUCH_CANCELLED, position.first, position.second)
+            }
+            inputEventsDispatched += 1
+        }
+        lastTouchPositions.clear()
+        pendingTouchMoves.clear()
+        pendingViewportMetrics = null
+        measureInputAbi {
+            ZirconRuntime.dispatchLifecycle(ZIRCON_LIFECYCLE_SUSPENDED)
+        }
+    }
+
+    private fun resumeInput() {
+        if (isInputActive) {
+            return
+        }
+        isInputActive = true
+        measureInputAbi {
+            ZirconRuntime.dispatchLifecycle(ZIRCON_LIFECYCLE_RESUMED)
+        }
+        queueCurrentViewportMetrics()
+    }
+
+    private inline fun measureInputAbi(operation: () -> Unit) {
+        val startedAt = System.nanoTime()
+        operation()
+        inputAbiWallTime += (System.nanoTime() - startedAt).toDouble() / 1_000_000.0
+    }
+
+    private inline fun measureInputMainThread(operation: () -> Unit) {
+        val startedAt = System.nanoTime()
+        operation()
+        inputMainThreadWallTime += (System.nanoTime() - startedAt).toDouble() / 1_000_000.0
+    }
+}
+"#,
+    );
+    source
 }
 
 fn android_runtime_binding_template() -> String {
@@ -279,10 +612,405 @@ fn ios_info_plist_template(profile: &ExportProfile) -> String {
 }
 
 fn ios_host_template(profile: &ExportProfile) -> String {
-    format!(
-        "import SwiftUI\nimport UIKit\n\nlet ZIRCON_LIFECYCLE_RESUMED: UInt32 = 4\nlet ZIRCON_TOUCH_MOVED: UInt32 = 2\nlet ZIRCON_KEY_TEXT: UInt32 = 3\n\n@_silgen_name(\"zircon_export_start\")\nfunc zircon_export_start() -> Bool\n@_silgen_name(\"zircon_export_shutdown\")\nfunc zircon_export_shutdown() -> Bool\n@_silgen_name(\"zircon_export_handle_lifecycle\")\nfunc zircon_export_handle_lifecycle(_ state: UInt32) -> Bool\n@_silgen_name(\"zircon_export_handle_touch\")\nfunc zircon_export_handle_touch(_ pointerId: UInt64, _ phase: UInt32, _ x: Float, _ y: Float) -> Bool\n@_silgen_name(\"zircon_export_handle_keyboard\")\nfunc zircon_export_handle_keyboard(_ action: UInt32, _ keyCode: UInt32, _ scanCode: UInt32, _ text: UnsafePointer<UInt8>?, _ textLen: Int) -> Bool\n@_silgen_name(\"zircon_export_handle_viewport_metrics\")\nfunc zircon_export_handle_viewport_metrics(_ logicalWidth: UInt32, _ logicalHeight: UInt32, _ scale: Float) -> Bool\n\nfinal class ZirconRuntimeApplicationDelegate: NSObject, UIApplicationDelegate {{\n    func applicationWillTerminate(_ application: UIApplication) {{\n        _ = zircon_export_shutdown()\n    }}\n}}\n\nstruct ZirconRuntimeView: UIViewRepresentable {{\n    func makeUIView(context: Context) -> ZirconTouchView {{ ZirconTouchView() }}\n    func updateUIView(_ uiView: ZirconTouchView, context: Context) {{ }}\n}}\n\nfinal class ZirconTouchView: UIView {{\n    override func layoutSubviews() {{\n        super.layoutSubviews()\n        let size = bounds.size\n        let scale = window?.screen.scale ?? UIScreen.main.scale\n        _ = zircon_export_handle_viewport_metrics(UInt32(size.width), UInt32(size.height), Float(scale))\n    }}\n\n    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {{\n        for touch in touches {{\n            let point = touch.location(in: self)\n            _ = zircon_export_handle_touch(UInt64(touch.hash), ZIRCON_TOUCH_MOVED, Float(point.x), Float(point.y))\n        }}\n    }}\n}}\n\n@main\nstruct ZirconRuntimeHostApp: App {{\n    @UIApplicationDelegateAdaptor(ZirconRuntimeApplicationDelegate.self) private var applicationDelegate\n\n    init() {{\n        _ = zircon_export_start()\n        _ = zircon_export_handle_lifecycle(ZIRCON_LIFECYCLE_RESUMED)\n        let text = Array(\"{}\".utf8)\n        text.withUnsafeBufferPointer {{ buffer in\n            _ = zircon_export_handle_keyboard(ZIRCON_KEY_TEXT, 0, 0, buffer.baseAddress, buffer.count)\n        }}\n    }}\n\n    var body: some Scene {{\n        WindowGroup {{\n            ZirconRuntimeView()\n        }}\n    }}\n}}\n",
-        swift_string_escape(&profile.output_name)
-    )
+    let mut source = String::with_capacity(9_216);
+    source.push_str(
+        r#"import QuartzCore
+import SwiftUI
+import UIKit
+
+let ZIRCON_LIFECYCLE_RESUMED: UInt32 = 4
+let ZIRCON_LIFECYCLE_SUSPENDED: UInt32 = 8
+let ZIRCON_TOUCH_STARTED: UInt32 = 1
+let ZIRCON_TOUCH_MOVED: UInt32 = 2
+let ZIRCON_TOUCH_ENDED: UInt32 = 3
+let ZIRCON_TOUCH_CANCELLED: UInt32 = 4
+let ZIRCON_KEY_TEXT: UInt32 = 3
+
+@_silgen_name("zircon_export_start")
+func zircon_export_start() -> Bool
+@_silgen_name("zircon_export_shutdown")
+func zircon_export_shutdown() -> Bool
+@_silgen_name("zircon_export_handle_lifecycle")
+func zircon_export_handle_lifecycle(_ state: UInt32) -> Bool
+@_silgen_name("zircon_export_handle_touch")
+func zircon_export_handle_touch(_ pointerId: UInt64, _ phase: UInt32, _ x: Float, _ y: Float) -> Bool
+@_silgen_name("zircon_export_handle_keyboard")
+func zircon_export_handle_keyboard(_ action: UInt32, _ keyCode: UInt32, _ scanCode: UInt32, _ text: UnsafePointer<UInt8>?, _ textLen: Int) -> Bool
+@_silgen_name("zircon_export_handle_viewport_metrics")
+func zircon_export_handle_viewport_metrics(_ logicalWidth: UInt32, _ logicalHeight: UInt32, _ scale: Float) -> Bool
+
+private struct PendingTouchMove {
+    let touchId: UInt64
+    let point: CGPoint
+    let deltaX: CGFloat
+    let deltaY: CGFloat
+    let queuedAt: CFTimeInterval
+}
+
+private struct ActiveTouch {
+    let touchId: UInt64
+    let point: CGPoint
+}
+
+private final class ZirconDisplayLinkTarget: NSObject {
+    weak var owner: ZirconTouchView?
+
+    init(owner: ZirconTouchView) {
+        self.owner = owner
+    }
+
+    @objc func tick(_ displayLink: CADisplayLink) {
+        owner?.flushScheduledFrameInput()
+    }
+}
+
+final class ZirconRuntimeApplicationDelegate: NSObject, UIApplicationDelegate {
+    func applicationWillTerminate(_ application: UIApplication) {
+        _ = zircon_export_shutdown()
+    }
+}
+
+struct ZirconRuntimeView: UIViewRepresentable {
+    func makeUIView(context: Context) -> ZirconTouchView { ZirconTouchView(frame: .zero) }
+    func updateUIView(_ uiView: ZirconTouchView, context: Context) { }
+}
+
+final class ZirconTouchView: UIView {
+    private var pendingTouchMoves: [ObjectIdentifier: PendingTouchMove] = [:]
+    private var pendingTouchOrder: [ObjectIdentifier] = []
+    private var touchIds: [ObjectIdentifier: UInt64] = [:]
+    private var activeTouches: [ObjectIdentifier: ActiveTouch] = [:]
+    private var nextTouchId: UInt64 = 1
+    private var pendingViewportMetricsAt: CFTimeInterval?
+    private var displayLink: CADisplayLink?
+    private lazy var displayLinkTarget = ZirconDisplayLinkTarget(owner: self)
+    private var lifecycleObservers: [NSObjectProtocol] = []
+    private var isInputActive = true
+
+    private var inputEventsReceived: UInt64 = 0
+    private var inputEventsCoalesced: UInt64 = 0
+    private var inputEventsDispatched: UInt64 = 0
+    private var inputRawDeltaX: Double = 0
+    private var inputRawDeltaY: Double = 0
+    private var maxInputQueueAge: Double = 0
+    private var inputAbiWallTime: Double = 0
+    private var inputMainThreadWallTime: Double = 0
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        configureInput()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        configureInput()
+    }
+
+    private func configureInput() {
+        isMultipleTouchEnabled = true
+        registerLifecycleObservers()
+    }
+
+    deinit {
+        displayLink?.invalidate()
+        for observer in lifecycleObservers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+
+    var inputTelemetry: [String: Double] {
+        [
+            "inputEventsReceived": Double(inputEventsReceived),
+            "inputEventsCoalesced": Double(inputEventsCoalesced),
+            "inputEventsDispatched": Double(inputEventsDispatched),
+            "inputRawDeltaX": inputRawDeltaX,
+            "inputRawDeltaY": inputRawDeltaY,
+            "maxInputQueueAge": maxInputQueueAge,
+            "inputAbiWallTime": inputAbiWallTime,
+            "inputMainThreadWallTime": inputMainThreadWallTime,
+        ]
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        measureInputMainThread { queueViewportMetrics() }
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        measureInputMainThread {
+            dispatchTouchEdges(touches, phase: ZIRCON_TOUCH_STARTED)
+        }
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        measureInputMainThread { queueTouchMoves(touches) }
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        measureInputMainThread {
+            dispatchTouchEdges(touches, phase: ZIRCON_TOUCH_ENDED)
+        }
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        measureInputMainThread {
+            dispatchTouchEdges(touches, phase: ZIRCON_TOUCH_CANCELLED)
+        }
+    }
+
+    private func queueTouchMoves(_ touches: Set<UITouch>) {
+        guard isInputActive else {
+            return
+        }
+        let now = CACurrentMediaTime()
+        for (touch, identifier, touchId) in orderedTouches(touches) {
+            let point = touch.location(in: self)
+            let previousPoint = touch.previousLocation(in: self)
+            let pending = pendingTouchMoves[identifier]
+            inputEventsReceived += 1
+            if pending != nil {
+                inputEventsCoalesced += 1
+            } else {
+                pendingTouchOrder.append(identifier)
+            }
+            pendingTouchMoves[identifier] = PendingTouchMove(
+                touchId: touchId,
+                point: point,
+                deltaX: (pending?.deltaX ?? 0) + point.x - previousPoint.x,
+                deltaY: (pending?.deltaY ?? 0) + point.y - previousPoint.y,
+                queuedAt: pending?.queuedAt ?? now
+            )
+            activeTouches[identifier] = ActiveTouch(touchId: touchId, point: point)
+        }
+        scheduleFrameInput()
+    }
+
+    private func dispatchTouchEdges(_ touches: Set<UITouch>, phase: UInt32) {
+        guard isInputActive else {
+            return
+        }
+        flushFrameInput()
+        for (touch, identifier, touchId) in orderedTouches(touches) {
+            let point = touch.location(in: self)
+            inputEventsReceived += 1
+            measureInputAbi {
+                _ = zircon_export_handle_touch(touchId, phase, Float(point.x), Float(point.y))
+            }
+            inputEventsDispatched += 1
+            if phase == ZIRCON_TOUCH_ENDED || phase == ZIRCON_TOUCH_CANCELLED {
+                activeTouches.removeValue(forKey: identifier)
+                touchIds.removeValue(forKey: identifier)
+            } else {
+                activeTouches[identifier] = ActiveTouch(touchId: touchId, point: point)
+            }
+        }
+    }
+
+    private func registerLifecycleObservers() {
+        let center = NotificationCenter.default
+        lifecycleObservers.append(
+            center.addObserver(
+                forName: UIApplication.willResignActiveNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                guard let self else { return }
+                self.measureInputMainThread { self.suspendInput() }
+            }
+        )
+        lifecycleObservers.append(
+            center.addObserver(
+                forName: UIApplication.didBecomeActiveNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                guard let self else { return }
+                self.measureInputMainThread { self.resumeInput() }
+            }
+        )
+    }
+
+    private func touchObjectSortKey(_ touch: UITouch) -> UInt {
+        UInt(bitPattern: Unmanaged.passUnretained(touch).toOpaque())
+    }
+
+    private func touchId(for touch: UITouch) -> UInt64 {
+        let identifier = ObjectIdentifier(touch)
+        if let existing = touchIds[identifier] {
+            return existing
+        }
+        precondition(nextTouchId < UInt64.max, "Zircon touch identifier space exhausted")
+        let allocated = nextTouchId
+        nextTouchId += 1
+        touchIds[identifier] = allocated
+        return allocated
+    }
+
+    private func orderedTouches(
+        _ touches: Set<UITouch>
+    ) -> [(touch: UITouch, identifier: ObjectIdentifier, touchId: UInt64)] {
+        let ordered = touches.sorted { left, right in
+            let leftIdentifier = ObjectIdentifier(left)
+            let rightIdentifier = ObjectIdentifier(right)
+            switch (touchIds[leftIdentifier], touchIds[rightIdentifier]) {
+            case let (leftId?, rightId?):
+                return leftId < rightId
+            case (_?, nil):
+                return true
+            case (nil, _?):
+                return false
+            case (nil, nil):
+                return touchObjectSortKey(left) < touchObjectSortKey(right)
+            }
+        }
+        return ordered.map { touch in
+            (touch, ObjectIdentifier(touch), touchId(for: touch))
+        }
+    }
+
+    private func suspendInput() {
+        guard isInputActive else { return }
+        flushFrameInput()
+        isInputActive = false
+        for active in activeTouches.values.sorted(by: { $0.touchId < $1.touchId }) {
+            inputEventsReceived += 1
+            measureInputAbi {
+                _ = zircon_export_handle_touch(
+                    active.touchId,
+                    ZIRCON_TOUCH_CANCELLED,
+                    Float(active.point.x),
+                    Float(active.point.y)
+                )
+            }
+            inputEventsDispatched += 1
+        }
+        activeTouches.removeAll(keepingCapacity: true)
+        touchIds.removeAll(keepingCapacity: true)
+        pendingTouchMoves.removeAll(keepingCapacity: true)
+        pendingTouchOrder.removeAll(keepingCapacity: true)
+        pendingViewportMetricsAt = nil
+        displayLink?.isPaused = true
+        measureInputAbi {
+            _ = zircon_export_handle_lifecycle(ZIRCON_LIFECYCLE_SUSPENDED)
+        }
+    }
+
+    private func resumeInput() {
+        guard !isInputActive else { return }
+        isInputActive = true
+        measureInputAbi {
+            _ = zircon_export_handle_lifecycle(ZIRCON_LIFECYCLE_RESUMED)
+        }
+        queueViewportMetrics()
+    }
+
+    private func queueViewportMetrics() {
+        guard isInputActive else {
+            return
+        }
+        inputEventsReceived += 1
+        if pendingViewportMetricsAt != nil {
+            inputEventsCoalesced += 1
+        } else {
+            pendingViewportMetricsAt = CACurrentMediaTime()
+        }
+        scheduleFrameInput()
+    }
+
+    private func scheduleFrameInput() {
+        if displayLink == nil {
+            let link = CADisplayLink(
+                target: displayLinkTarget,
+                selector: #selector(ZirconDisplayLinkTarget.tick(_:))
+            )
+            link.add(to: .main, forMode: .common)
+            link.isPaused = true
+            displayLink = link
+        }
+        displayLink?.isPaused = false
+    }
+
+    fileprivate func flushScheduledFrameInput() {
+        measureInputMainThread { flushFrameInput() }
+    }
+
+    private func flushFrameInput() {
+        displayLink?.isPaused = true
+        let now = CACurrentMediaTime()
+        for identifier in pendingTouchOrder {
+            flushPendingTouchMove(identifier, now: now)
+        }
+        pendingTouchOrder.removeAll(keepingCapacity: true)
+        guard let queuedAt = pendingViewportMetricsAt else {
+            return
+        }
+        pendingViewportMetricsAt = nil
+        let size = bounds.size
+        let scale = window?.screen.scale ?? UIScreen.main.scale
+        measureInputAbi {
+            _ = zircon_export_handle_viewport_metrics(UInt32(size.width), UInt32(size.height), Float(scale))
+        }
+        inputEventsDispatched += 1
+        maxInputQueueAge = max(maxInputQueueAge, (now - queuedAt) * 1_000)
+    }
+
+    private func flushPendingTouchMove(_ identifier: ObjectIdentifier, now: CFTimeInterval) {
+        guard let pending = pendingTouchMoves.removeValue(forKey: identifier) else {
+            return
+        }
+        measureInputAbi {
+            _ = zircon_export_handle_touch(
+                pending.touchId,
+                ZIRCON_TOUCH_MOVED,
+                Float(pending.point.x),
+                Float(pending.point.y)
+            )
+        }
+        inputRawDeltaX += Double(pending.deltaX)
+        inputRawDeltaY += Double(pending.deltaY)
+        inputEventsDispatched += 1
+        maxInputQueueAge = max(maxInputQueueAge, (now - pending.queuedAt) * 1_000)
+    }
+
+    private func measureInputAbi(_ operation: () -> Void) {
+        let startedAt = CACurrentMediaTime()
+        operation()
+        inputAbiWallTime += (CACurrentMediaTime() - startedAt) * 1_000
+    }
+
+    private func measureInputMainThread(_ operation: () -> Void) {
+        let startedAt = CACurrentMediaTime()
+        operation()
+        inputMainThreadWallTime += (CACurrentMediaTime() - startedAt) * 1_000
+    }
+}
+
+@main
+struct ZirconRuntimeHostApp: App {
+    @UIApplicationDelegateAdaptor(ZirconRuntimeApplicationDelegate.self) private var applicationDelegate
+
+    init() {
+        _ = zircon_export_start()
+        _ = zircon_export_handle_lifecycle(ZIRCON_LIFECYCLE_RESUMED)
+        let text = Array(""#,
+    );
+    source.push_str(&swift_string_escape(&profile.output_name));
+    source.push_str(
+        r#"".utf8)
+        text.withUnsafeBufferPointer { buffer in
+            _ = zircon_export_handle_keyboard(ZIRCON_KEY_TEXT, 0, 0, buffer.baseAddress, buffer.count)
+        }
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            ZirconRuntimeView()
+        }
+    }
+}
+"#,
+    );
+    source
 }
 
 fn ios_readme_template(profile: &ExportProfile) -> String {

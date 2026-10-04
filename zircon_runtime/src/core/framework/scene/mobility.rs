@@ -91,5 +91,5 @@ impl Default for Mobility {
 }
 
 #[cfg(test)]
-#[path = "mobility/borrowed_parse_tests.rs"]
+#[path = "mobility/tests/borrowed_parse_tests.rs"]
 mod borrowed_parse_tests;

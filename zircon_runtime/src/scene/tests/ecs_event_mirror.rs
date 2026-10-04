@@ -1,12 +1,12 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicUsize, Ordering};
+use std::sync::Arc;
 
 use serde::Serialize;
 
 use crate::scene::{
+    RuntimeEventMirrorError, RuntimeEventMirrorRegistration, SceneError, World,
     RUNTIME_EVENT_MIRROR_PAGE_MAX_EVENTS, RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES,
-    RUNTIME_EVENT_MIRROR_QUEUE_MAX_EVENTS, RuntimeEventMirrorError, RuntimeEventMirrorRegistration,
-    SceneError, World,
+    RUNTIME_EVENT_MIRROR_QUEUE_MAX_EVENTS,
 };
 
 const EVENT_ID: &str = "tests.events.mirrored";
@@ -49,12 +49,10 @@ fn runtime_event_mirror_is_schema_bound_send_boundary_and_reference_counted() {
         .unwrap();
     assert_eq!(world.event_reader_count(event_type_id), Some(2));
     assert_eq!(readers.load(Ordering::SeqCst), 1);
-    assert!(
-        world
-            .drain_runtime_event_mirror(&mut first)
-            .unwrap()
-            .is_empty()
-    );
+    assert!(world
+        .drain_runtime_event_mirror(&mut first)
+        .unwrap()
+        .is_empty());
 
     world.send_event(MirroredEvent { value: 2 });
     world.update_events::<MirroredEvent>();
@@ -157,11 +155,9 @@ fn runtime_event_mirror_unsubscribe_rolls_back_when_reader_callback_fails() {
     assert_eq!(readers.load(Ordering::SeqCst), 1);
 
     fail_disconnect.store(false, Ordering::SeqCst);
-    assert!(
-        world
-            .unsubscribe_runtime_event_mirror(&mut subscription)
-            .unwrap()
-    );
+    assert!(world
+        .unsubscribe_runtime_event_mirror(&mut subscription)
+        .unwrap());
     assert_eq!(readers.load(Ordering::SeqCst), 0);
 }
 
@@ -303,11 +299,9 @@ fn runtime_event_mirror_rejects_foreign_world_ownership_without_disconnect() {
         .subscribe_runtime_event_mirror(EVENT_ID, PAYLOAD_SCHEMA)
         .unwrap();
 
-    assert!(
-        !foreign
-            .unsubscribe_runtime_event_mirror(&mut subscription)
-            .unwrap()
-    );
+    assert!(!foreign
+        .unsubscribe_runtime_event_mirror(&mut subscription)
+        .unwrap());
     assert_eq!(
         owner
             .runtime_event_mirror_lifecycle_diagnostics(EVENT_ID)
@@ -315,11 +309,9 @@ fn runtime_event_mirror_rejects_foreign_world_ownership_without_disconnect() {
             .live_subscriptions,
         1
     );
-    assert!(
-        owner
-            .unsubscribe_runtime_event_mirror(&mut subscription)
-            .unwrap()
-    );
+    assert!(owner
+        .unsubscribe_runtime_event_mirror(&mut subscription)
+        .unwrap());
 }
 
 #[test]
@@ -338,11 +330,9 @@ fn runtime_event_mirror_mixes_explicit_and_drop_reclaim_without_double_retiremen
         .subscribe_runtime_event_mirror(EVENT_ID, PAYLOAD_SCHEMA)
         .unwrap();
 
-    assert!(
-        world
-            .unsubscribe_runtime_event_mirror(&mut explicit)
-            .unwrap()
-    );
+    assert!(world
+        .unsubscribe_runtime_event_mirror(&mut explicit)
+        .unwrap());
     drop(explicit);
     drop(dropped);
 
@@ -454,6 +444,60 @@ fn runtime_event_mirror_shutdown_reports_callback_failure_until_retry_succeeds()
 }
 
 #[test]
+fn runtime_event_mirror_shutdown_commits_late_success_without_replay() {
+    let zero_edges = Arc::new(AtomicUsize::new(0));
+    let zero_edges_for_callback = Arc::clone(&zero_edges);
+    let callback_readers = Arc::new(AtomicU32::new(0));
+    let callback_readers_for_callback = Arc::clone(&callback_readers);
+    let mut world = World::empty();
+    world
+        .register_runtime_event_mirror(
+            RuntimeEventMirrorRegistration::typed::<MirroredEvent>(EVENT_ID, PAYLOAD_SCHEMA)
+                .with_reader_count_callback_until(move |_world, count, deadline| {
+                    if count == 0 {
+                        zero_edges_for_callback.fetch_add(1, Ordering::SeqCst);
+                        let deadline = deadline.expect("bounded reclaim supplies its deadline");
+                        while std::time::Instant::now() <= deadline {
+                            std::thread::yield_now();
+                        }
+                    }
+                    callback_readers_for_callback.store(count, Ordering::SeqCst);
+                    Ok(())
+                }),
+        )
+        .unwrap();
+    let event_type_id = world.event_store_mut().register::<MirroredEvent>();
+    let subscription = world
+        .subscribe_runtime_event_mirror(EVENT_ID, PAYLOAD_SCHEMA)
+        .unwrap();
+    drop(subscription);
+
+    let deadline = std::time::Instant::now() + std::time::Duration::from_millis(25);
+    let completed = world.shutdown_runtime_event_mirrors_until(deadline);
+    assert!(std::time::Instant::now() > deadline);
+    assert_eq!(completed.attempted, 1);
+    assert_eq!(completed.reclaimed, 1);
+    assert_eq!(completed.retry_pending, 0);
+    assert_eq!(completed.callback_failures, 0);
+    assert_eq!(zero_edges.load(Ordering::SeqCst), 1);
+    assert_eq!(callback_readers.load(Ordering::SeqCst), 0);
+    assert_eq!(world.event_reader_count(event_type_id), Some(0));
+    let retired = world
+        .runtime_event_mirror_lifecycle_diagnostics(EVENT_ID)
+        .unwrap();
+    assert_eq!(retired.live_subscriptions, 0);
+    assert_eq!(retired.pending_reclaims, 0);
+    assert_eq!(retired.reader_count, 0);
+
+    let retry = world.shutdown_runtime_event_mirrors_until(
+        std::time::Instant::now() + std::time::Duration::from_secs(1),
+    );
+    assert_eq!(retry.attempted, 0);
+    assert_eq!(retry.reclaimed, 0);
+    assert_eq!(zero_edges.load(Ordering::SeqCst), 1);
+}
+
+#[test]
 fn world_driver_reclaims_dropped_event_mirrors_before_the_first_schedule_stage() {
     let source = include_str!("../module/world_driver.rs");
     let reclaim = source
@@ -501,11 +545,9 @@ fn runtime_event_mirror_pages_persist_across_world_event_updates_without_loss() 
     }
 
     assert_eq!(received, (0..EVENT_COUNT).collect::<Vec<_>>());
-    assert!(
-        world
-            .unsubscribe_runtime_event_mirror(&mut subscription)
-            .unwrap()
-    );
+    assert!(world
+        .unsubscribe_runtime_event_mirror(&mut subscription)
+        .unwrap());
 }
 
 #[test]
@@ -581,10 +623,8 @@ fn runtime_event_mirror_rejects_a_payload_larger_than_one_wire_page() {
             ..
         })
     ));
-    assert!(
-        world
-            .drain_runtime_event_mirror(&mut subscription)
-            .unwrap()
-            .is_empty()
-    );
+    assert!(world
+        .drain_runtime_event_mirror(&mut subscription)
+        .unwrap()
+        .is_empty());
 }

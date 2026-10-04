@@ -1,3 +1,4 @@
+# 核对预览选择只物化目标属性值，嵌套动作复用同一条目。
 import re
 import unittest
 from pathlib import Path

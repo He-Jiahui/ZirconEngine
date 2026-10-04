@@ -1,12 +1,14 @@
 use super::super::rust_source_view::production_section;
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0051] 非存储纹理不申请存储绑定的旧测试名称未在指定子模块出现；需定位迁移后的格式能力测试及覆盖，再调整归属断言。
 #[test]
 fn runtime_15_render_graph_materialization_tests_are_child_owner_split() {
     let parent =
         read_runtime_src("graphics/scene/scene_renderer/graph_execution/materialization.rs");
-    let tests =
-        read_runtime_src("graphics/scene/scene_renderer/graph_execution/materialization/tests.rs");
+    let tests = read_runtime_src(
+        "graphics/scene/scene_renderer/graph_execution/materialization/tests/cases.rs",
+    );
 
     let plan_01 = read_repo(
         "docs/plans/zircon_runtime/render/01/2026-07-09-render-graph-rdg-alignment-output-records.md",
@@ -72,7 +74,10 @@ fn runtime_15_render_graph_materialization_tests_are_child_owner_split() {
 
     for (path, source) in [
         ("graph_execution/materialization.rs", parent.as_str()),
-        ("graph_execution/materialization/tests.rs", tests.as_str()),
+        (
+            "graph_execution/materialization/tests/cases.rs",
+            tests.as_str(),
+        ),
     ] {
         let line_count = source.lines().count();
         assert!(
@@ -99,13 +104,14 @@ fn runtime_15_render_graph_materialization_tests_are_child_owner_split() {
                 "RenderGraph materialization test owner split",
                 "render_plan01_materialization_tests_owner_split_static_passed_cargo_deferred_active_compile_lane",
                 "graphics/scene/scene_renderer/graph_execution/materialization.rs",
-                "graphics/scene/scene_renderer/graph_execution/materialization/tests.rs",
+                "graphics/scene/scene_renderer/graph_execution/materialization/tests/cases.rs",
                 "runtime_15_render_graph_materialization_tests_are_child_owner_split",
             ],
         );
     }
 }
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0050] 图执行资源未匹配向物化入口传递暂态池的旧委托表达式；尚缺现行池参数流证据，需沿资源物化调用核对必需池约束。
 #[test]
 fn runtime_15_render_graph_materialization_requires_transient_pool() {
     let materialization =

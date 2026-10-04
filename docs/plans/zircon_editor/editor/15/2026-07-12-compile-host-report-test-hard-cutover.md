@@ -3,23 +3,23 @@ status: complete
 owner_plan: docs/plans/zircon_editor/editor/15-build-export-and-publishing.md
 recorded_at: 2026-07-12
 related_code:
-  - tools/zircon_export
+  - tools/export
 tests:
-  - python -m unittest tools.zircon_export.tests
+  - python -m unittest tools.export.tests
 ---
 
 # CompileHost 旧报告测试硬切到 staged-build 合同
 
 ## 失败边界
 
-`tools.zircon_export.tests.test_pipeline_report_compile_host_command_semantics` 与共享 fixture 曾继续
+`tools.export.tests.test_pipeline_report_compile_host_command_semantics` 与共享 fixture 曾继续
 构造 Cargo 直编命令和旧 `link_plan` 字段。新版严格 schema 正确拒绝这些旧报告，最初产生
 10 tests / 18 assertion failures。该失败归 Editor 15 测试合同迁移，生产代码未恢复任何兼容分支。
 
 ## Owner 修复
 
 - CompileHost test fixture 改为 `staged/ZirconEngine/zircon_hub.exe` 与
-  `python tools/zircon_build.py --targets ... --out ... --mode ...`。
+  `python tools/build/zircon_build.py --targets ... --out ... --mode ...`。
 - command semantics、stage schema、metadata/linkage 与 PlatformBundle handoff tests 删除旧
   Cargo/report 权威断言，改测 staged-build 参数、legacy option rejection、preset mode 权威与
   staged root/launcher 传递。

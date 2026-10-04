@@ -1,6 +1,6 @@
 use std::sync::{
-    Arc, OnceLock,
     atomic::{AtomicUsize, Ordering},
+    Arc, OnceLock,
 };
 
 use crate::asset::pipeline::manager::{ProjectAssetManager, ProjectAssetManagerAccess};
@@ -84,6 +84,7 @@ impl RenderPassExecutor for ParallelRecordingExecutor {
         let pass_name = context.pass_name.clone();
         context
             .require_gpu()?
+            .native_context()
             .encoder
             .insert_debug_marker(&pass_name);
         Ok(())

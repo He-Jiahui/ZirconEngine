@@ -1,15 +1,16 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 const D9_EDITOR_RUNTIME_MIRROR_CRATES: &[(&str, &str, &str, &str, &str)] = &[
     (
         "animation",
         include_str!("../../../../../../zircon_plugins/animation/editor/src/plugin.rs"),
-        include_str!("../../../../../../zircon_plugins/animation/editor/src/tests.rs"),
+        include_str!("../../../../../../zircon_plugins/animation/editor/src/tests/cases.rs"),
         include_str!("../../../../../../zircon_plugins/animation/editor/Cargo.toml"),
         "zircon_plugin_animation_runtime::ANIMATION_RUNTIME_CAPABILITY",
     ),
     (
         "physics",
         include_str!("../../../../../../zircon_plugins/physics/editor/src/plugin.rs"),
-        include_str!("../../../../../../zircon_plugins/physics/editor/src/tests.rs"),
+        include_str!("../../../../../../zircon_plugins/physics/editor/src/tests/cases.rs"),
         include_str!("../../../../../../zircon_plugins/physics/editor/Cargo.toml"),
         "zircon_plugin_physics_runtime::PHYSICS_RUNTIME_CAPABILITY",
     ),
@@ -30,9 +31,8 @@ fn review_d9_editor_runtime_mirror_consumers_use_sdk_declaration() {
         include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
         include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
     );
-    let capability_audit =
-        include_str!("../../../../../../tools/plugin_structure_audits/capability.py");
-    let audit_report = include_str!("../../../../../../tools/audit_plugin_structure.py");
+    let capability_audit = include_str!("../../../../../../tools/audits/plugins/capability.py");
+    let audit_report = include_str!("../../../../../../tools/audits/audit_plugin_structure.py");
     let catalog =
         include_str!("../../../../../../zircon_plugins/first_party_runtime_catalog/src/lib.rs");
 

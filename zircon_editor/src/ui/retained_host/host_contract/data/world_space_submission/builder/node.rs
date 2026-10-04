@@ -24,12 +24,16 @@ pub(super) fn extend_world_space_ui_surface_submissions(
     nodes: &ModelRc<TemplatePaneNodeData>,
     submissions: &mut Vec<WorldSpaceUiSurfaceSubmission>,
 ) {
-    submissions.extend(
-        nodes
-            .iter()
-            .filter(|node| node.world_space_enabled)
-            .filter_map(|node| world_space_submission_for_node(surface_id, node)),
-    );
+    let initial_len = submissions.len();
+    for node in nodes.iter().filter(|node| node.world_space_enabled) {
+        let Some(submission) = world_space_submission_for_node(surface_id, node) else {
+            continue;
+        };
+        if submissions.len() == initial_len {
+            submissions.reserve(nodes.row_count());
+        }
+        submissions.push(submission);
+    }
 }
 
 fn world_space_submission_for_node(
@@ -90,5 +94,9 @@ fn positive_or_projected_world_extent(
 }
 
 #[cfg(test)]
-#[path = "node/direct_append_tests.rs"]
+#[path = "node/tests/direct_append_tests.rs"]
 mod direct_append_tests;
+
+#[cfg(test)]
+#[path = "node/tests/capacity_tests.rs"]
+mod capacity_tests;

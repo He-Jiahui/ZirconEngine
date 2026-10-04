@@ -1,3 +1,4 @@
+# 核对渲染编辑入口、锚定工具菜单与扩展动作身份。
 import re
 import tomllib
 import unittest

@@ -19,7 +19,12 @@ asset_filter = "shipping"
 "#;
 
     let manifest: ProjectManifest = toml::from_str(source).unwrap();
-    let plan = ExportBuildPlan::from_project_manifest(&manifest, "windows-release").unwrap();
+    let plan = ExportBuildPlan::from_project_manifest_with_plugin_root(
+        &manifest,
+        "windows-release",
+        project_plugin_root(),
+    )
+    .unwrap();
 
     assert_eq!(plan.profile.name, "windows-release");
     assert_eq!(plan.profile.target_mode, RuntimeTargetMode::ClientRuntime);
@@ -135,7 +140,12 @@ fn validate_report_summarizes_profile_plan_and_fatal_state() {
     .with_feature_selection("net", ["http".to_string()])
     .with_asset_filter("shipping")];
 
-    let plan = ExportBuildPlan::from_project_manifest(&manifest, "net-library").unwrap();
+    let plan = ExportBuildPlan::from_project_manifest_with_plugin_root(
+        &manifest,
+        "net-library",
+        project_plugin_root(),
+    )
+    .unwrap();
     let report = ExportValidateReport::from_build_plan(
         "zircon-project.toml",
         Some("E:/zircon-export/stages/validate".to_string()),
@@ -203,7 +213,12 @@ fn feature_matrix_links_selected_plugins_only() {
     ])
     .with_feature_selection("net", ["http".to_string(), "websocket".to_string()])];
 
-    let plan = ExportBuildPlan::from_project_manifest(&manifest, "windows-release").unwrap();
+    let plan = ExportBuildPlan::from_project_manifest_with_plugin_root(
+        &manifest,
+        "windows-release",
+        project_plugin_root(),
+    )
+    .unwrap();
     let compile_host = plan
         .library_embed_compile_host
         .as_ref()
@@ -270,4 +285,11 @@ fn feature_matrix_links_selected_plugins_only() {
         "{:?}",
         plan.effective_fatal_diagnostics()
     );
+}
+
+fn project_plugin_root() -> std::path::PathBuf {
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("runtime crate has workspace parent")
+        .join("zircon_plugins")
 }

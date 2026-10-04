@@ -1,5 +1,5 @@
 // Pure Area Echo/Sweeping Strikes qualification, replay magnitude and charge state.
-// WOS owns hostile radius ordering, line of sight, damage and aura-loss events.
+// 当前只有叶子测试消费；若接入世界，半径顺序、视线、伤害与光环事件仍由世界拥有。
 var container = %import("zr.container");
 var contract = %import("generated/area_echo_contract");
 
@@ -60,6 +60,7 @@ pub echoReplayDamage(amount: float): int { return replayDamage(amount, contract.
 pub sweepReplayDamage(amount: float): int { return replayDamage(amount, contract.sweepMultiplier()); }
 
 // Mutates exactly the first matching echo aura, mirroring Array.findIndex.
+/// 只消耗快照中第一项回响光环的一层，归还是否找到与是否移除；调用方须把同一数组对象的改变提交到权威光环列，并按世界顺序另行结算重放伤害。
 pub consumeAreaEchoCharge(auras: container.Array<AreaEchoAura>): AreaEchoChargeResult {
     var result = new AreaEchoChargeResult(), i = 0;
     while (i < auras.length) {

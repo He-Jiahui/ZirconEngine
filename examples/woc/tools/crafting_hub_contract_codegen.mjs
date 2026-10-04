@@ -1,3 +1,6 @@
+// 调用端：npm run generate:crafting-hub-contract (tools/package.json)；职责：提取制造枢纽与区域连接关系，供专业工作站放置使用。
+// 输入边界：src/sim/professions/crafting_hub.ts, src/sim/content/professions.ts, src/sim/content/zone3.ts；--check 比较生成结果，不改写目标文件。
+
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

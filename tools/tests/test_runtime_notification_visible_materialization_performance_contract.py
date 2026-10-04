@@ -38,7 +38,7 @@ def function_body(source: str, signature: str) -> str:
         raise AssertionError(f"unterminated Rust function: {signature}")
     return source[match.end() : index - 1]
 
-
+# 读取通知渲染与键盘解码器，确认递归实体化在可见数量与深度界限停止。
 class RuntimeNotificationVisibleMaterializationPerformanceContractTests(unittest.TestCase):
     def test_render_decoder_stops_recursive_materialization_at_visible_limit(self):
         source = RENDER_PATH.read_text(encoding="utf-8")

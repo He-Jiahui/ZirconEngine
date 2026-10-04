@@ -7,10 +7,12 @@ export interface HubPopoverProps extends PropsWithChildren {
   open: boolean;
   width?: number;
   align?: "left" | "right";
+  id?: string;
+  ariaLabel?: string;
   onClose: () => void;
 }
 
-export function HubPopover({ anchorEl, open, width = 340, align = "left", onClose, children }: HubPopoverProps) {
+export function HubPopover({ anchorEl, open, width = 340, align = "left", id, ariaLabel, onClose, children }: HubPopoverProps) {
   return (
     <Popover
       anchorEl={anchorEl}
@@ -26,6 +28,9 @@ export function HubPopover({ anchorEl, open, width = 340, align = "left", onClos
       }}
       slotProps={{
         paper: {
+          id,
+          role: "dialog",
+          "aria-label": ariaLabel,
           sx: {
             mt: 1,
             width,

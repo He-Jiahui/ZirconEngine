@@ -4,6 +4,7 @@ use super::metrics::{
     divider_inset_horizontal_inset, divider_middle_horizontal_inset, divider_middle_vertical_inset,
 };
 
+/// 中间和内缩变体先改变可用线段范围，再交给标签布局留缝，保持线与文字同一轴。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn horizontal_divider_extent(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
@@ -73,5 +74,5 @@ fn divider_extent_variant(component_variant: &str) -> DividerExtentVariant {
 }
 
 #[cfg(test)]
-#[path = "extents/single_scan_variant_tests.rs"]
+#[path = "extents/tests/single_scan_variant_tests.rs"]
 mod single_scan_variant_tests;

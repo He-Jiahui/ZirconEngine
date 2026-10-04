@@ -69,7 +69,7 @@ Current source hashes:
 - Editor appearance-preference migration naming remains an Editor owner
   decision; this slice does not turn it into an allowed classification.
 - The clean architecture mirror
-  `docs/engine-architecture/hard-cutover-migration-smells-m1.md` still records
+  `docs/architecture/hard-cutover-migration-smells-m1.md` still records
   the older `9593 / 85 / 0` inventory from commit
   `facb719f4da98953ec83f682175389916da51b6b`; a future architecture-document
   owner must refresh it from the current `10834 / 10` audit without widening

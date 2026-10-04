@@ -22,7 +22,9 @@ class EditorSettingsWindowProductWiringContractTests(unittest.TestCase):
         )
 
         self.assertIn('"editor.settings.open"', commands)
-        self.assertIn('"Edit/Editor Settings"', commands)
+        self.assertIn('"editor.settings.open"', commands)
+        locale = self.read("zircon_editor/assets/i18n/en.toml")
+        self.assertIn('"command.editor.settings.open.label" = "Editor Settings"', locale)
         self.assertIn("OpenSettingsWindow", event_types)
         self.assertIn("SettingsWindowOpenRequested", event_types)
         self.assertIn("EditorEventEffect::SettingsWindowOpenRequested", dispatch)
@@ -61,7 +63,7 @@ class EditorSettingsWindowProductWiringContractTests(unittest.TestCase):
         )
 
         self.assertIn("workbench_preferences.zui#WorkbenchPreferences", window)
-        self.assertIn('{ node = "settings_window" }', window)
+        self.assertIn('node = "settings_window"', window)
         for prop in ("categories", "settings", "plugin_pages", "settings_generation"):
             with self.subTest(prop=prop):
                 self.assertIn(prop, preferences)
@@ -82,6 +84,10 @@ class EditorSettingsWindowProductWiringContractTests(unittest.TestCase):
             "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
             "template_settings_window/commands.rs"
         )
+        visible_rows = self.read(
+            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "template_settings_window/visible_rows.rs"
+        )
         dispatch = self.read(
             "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
             "template_nodes/specialized/secondary.rs"
@@ -101,9 +107,9 @@ class EditorSettingsWindowProductWiringContractTests(unittest.TestCase):
         self.assertIn("projected_settings_window_data", projection)
         self.assertIn('component_role != "settings-window"', projection)
         self.assertIn("settings_window_visible_rows", painter)
-        self.assertIn("SETTINGS_WINDOW_PAINT_OVERSCAN_ROWS", painter)
+        self.assertIn("SETTINGS_WINDOW_PAINT_OVERSCAN_ROWS", visible_rows)
         self.assertIn("node.settings_entries.get(row)", painter)
-        self.assertNotIn("0..row_count", painter)
+        self.assertNotIn("0..row_count", visible_rows)
         self.assertIn("push_settings_window_commands", dispatch)
         self.assertIn("SettingsWindowLayout", hit_test)
         self.assertIn("node.settings_categories", hit_test)

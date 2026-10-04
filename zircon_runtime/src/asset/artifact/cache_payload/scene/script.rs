@@ -2,10 +2,11 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use super::super::json_value::{ArtifactCacheJsonValue, cache_table_to_json, json_table_to_cache};
+use super::super::json_value::{cache_table_to_json, json_table_to_cache, ArtifactCacheJsonValue};
 use crate::asset::AssetImportError;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+// 脚本属性使用顺序 JSON 缓存值，并保留包、模块、启用状态及两类更新开关，供场景实体缓存往返。
 pub(super) struct ArtifactCacheSceneScriptBindingAsset {
     package: String,
     module: String,
@@ -29,6 +30,7 @@ impl From<&crate::asset::SceneScriptBindingAsset> for ArtifactCacheSceneScriptBi
 }
 
 impl ArtifactCacheSceneScriptBindingAsset {
+    // 属性还原会拒绝非法十进制或非有限数值；失败沿实体缓存读取路径传播，避免返回不完整的脚本绑定。
     pub(super) fn into_asset(
         self,
     ) -> Result<crate::asset::SceneScriptBindingAsset, AssetImportError> {

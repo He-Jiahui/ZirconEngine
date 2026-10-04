@@ -1,3 +1,5 @@
+//! 活动状态和局部变换经反射修改后必须传播 World 脏状态，且旋转字段仍服从当前只读约束。
+
 use super::*;
 
 #[test]
@@ -103,14 +105,6 @@ fn local_transform_rotation_is_readable_but_not_writable_in_m8() {
     let entity = world
         .spawn_node(NodeKind::Mesh)
         .expect("test scene spawn should succeed");
-    world
-        .insert(
-            entity,
-            LocalTransform {
-                transform: Transform::default(),
-            },
-        )
-        .unwrap();
     let address = fixed_component_address(entity, "LocalTransform");
 
     assert_eq!(

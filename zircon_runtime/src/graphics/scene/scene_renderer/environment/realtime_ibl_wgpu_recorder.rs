@@ -47,6 +47,8 @@ pub(in crate::graphics) struct RealtimeIblWgpuRecordReport {
     pub source_mip_binding_creation_micros: u64,
 }
 
+/// 回放编译器顺序中的实时 IBL 切片，复用同设备管线和按槽/切片固定的烘焙绑定。
+/// 编码成功只返回待提交信息；槽位发布、失败退避和报告收录由 runtime 决定。
 pub(in crate::graphics) struct RealtimeIblWgpuRecorder {
     capture: RealtimeIblCaptureWgpuPipelines,
     timestamps: Option<RealtimeIblGpuTimestampRecorder>,
@@ -59,6 +61,7 @@ pub(in crate::graphics) struct RealtimeIblWgpuRecordResult {
 }
 
 #[derive(Default)]
+// 仅缓存参数由布局/切片决定的 PMREM 与 SH9 命令；变化的天空捕获参数不进入此缓存。
 struct RealtimeIblWgpuBindingCache {
     layout: Option<RealtimeIblWgpuBindingCacheLayout>,
     entries: Vec<RealtimeIblWgpuBindingCacheEntry>,
@@ -477,4 +480,5 @@ const fn mip_dimension(base_size: u32, mip_level: u32) -> u32 {
 }
 
 #[cfg(test)]
+#[path = "realtime_ibl_wgpu_recorder/tests/cases.rs"]
 mod tests;

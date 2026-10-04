@@ -5,12 +5,17 @@ mod access_index;
 mod compute_binding_access_packet;
 mod compute_dispatch_access_packet;
 mod external_access_packet;
+mod resource_state_plan;
 mod transient_allocation;
 
 use super::access::{
     RenderGraphResourceAccessId, RenderGraphResourceAccessMetadata, RenderGraphVersionedAccessKey,
 };
 use super::error::RenderGraphError;
+use super::store_lint::{
+    build_attachment_bandwidth_ledger, build_store_lint_report,
+    RenderGraphAttachmentBandwidthLedger, RenderGraphStoreLintReport,
+};
 use super::types::{
     PassFlags, QueueLane, RenderGraphComputePassMetadata, RenderGraphComputeWorkload,
     RenderGraphPassResourceAccess, RenderGraphResource, RenderGraphResourceAccessKind,
@@ -34,6 +39,10 @@ pub use compute_dispatch_access_packet::{
 use external_access_packet::build_external_access_packet;
 pub use external_access_packet::{
     CompiledRenderGraphExternalAccess, CompiledRenderGraphExternalAccessPacket,
+};
+pub use resource_state_plan::{
+    CompiledRenderGraphResourceStatePlan, CompiledRenderGraphResourceStateTransition,
+    RenderGraphResourceState,
 };
 use transient_allocation::{
     build_transient_allocation_plan, validate_resource_lifetime_storage_sizes,
@@ -121,6 +130,11 @@ pub struct CompiledRenderGraph {
     transient_allocation_plan: CompiledRenderGraphTransientAllocationPlan,
     physical_allocation_ids: HashMap<RenderGraphResource, RenderGraphPhysicalAllocationId>,
     access_allocation_table: CompiledRenderGraphAccessAllocationTable,
+    resource_state_plan: CompiledRenderGraphResourceStatePlan,
+    // Compile-time diagnostics are retained as immutable artifacts so steady
+    // frames only clone/read the result instead of rescanning graph metadata.
+    pub(crate) store_lint_report: RenderGraphStoreLintReport,
+    pub(crate) attachment_bandwidth_ledger: RenderGraphAttachmentBandwidthLedger,
     // Frame statistics are compiled with the graph so steady-frame diagnostics
     // do not rescan pass, access, and lifetime metadata.
     stats: CompiledRenderGraphStats,
@@ -135,6 +149,7 @@ impl CompiledRenderGraph {
         pass_resource_versions: Vec<Vec<RenderGraphResourceVersion>>,
         pass_resource_input_versions: Vec<Vec<Option<RenderGraphResourceVersion>>>,
         pass_resource_access_metadata: Vec<Vec<RenderGraphResourceAccessMetadata>>,
+        resource_state_plan: CompiledRenderGraphResourceStatePlan,
         compile_work: CompiledRenderGraphCompileWork,
     ) -> Result<Self, RenderGraphError> {
         let pass_indices = passes
@@ -186,7 +201,7 @@ impl CompiledRenderGraph {
             &resource_lifetimes,
             compile_work,
         );
-        Ok(Self {
+        let mut graph = Self {
             name,
             passes,
             pass_indices,
@@ -202,8 +217,16 @@ impl CompiledRenderGraph {
             transient_allocation_plan,
             physical_allocation_ids,
             access_allocation_table,
+            resource_state_plan,
+            store_lint_report: RenderGraphStoreLintReport::default(),
+            attachment_bandwidth_ledger: RenderGraphAttachmentBandwidthLedger::default(),
             stats,
-        })
+        };
+        let store_lint_report = build_store_lint_report(&graph);
+        let attachment_bandwidth_ledger = build_attachment_bandwidth_ledger(&graph);
+        graph.store_lint_report = store_lint_report;
+        graph.attachment_bandwidth_ledger = attachment_bandwidth_ledger;
+        Ok(graph)
     }
 
     pub fn name(&self) -> &str {
@@ -456,6 +479,10 @@ impl CompiledRenderGraph {
 
     pub fn dump(&self) -> RenderGraphDump {
         RenderGraphDump::from_graph(self)
+    }
+
+    pub fn resource_state_plan(&self) -> &CompiledRenderGraphResourceStatePlan {
+        &self.resource_state_plan
     }
 
     pub fn transient_allocation_plan(&self) -> &CompiledRenderGraphTransientAllocationPlan {

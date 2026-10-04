@@ -68,7 +68,9 @@ class PluginV2PaneContractTests(unittest.TestCase):
         self.assertNotIn("navigation", projection.lower())
 
     def test_plugin_template_sync_prepares_all_owner_candidates_before_publishing(self) -> None:
-        app = (EDITOR / "ui" / "retained_host" / "app.rs").read_text(encoding="utf-8")
+        app = (
+            EDITOR / "ui" / "retained_host" / "app" / "plugin_template_documents.rs"
+        ).read_text(encoding="utf-8")
         plugin_documents = (
             EDITOR / "ui" / "template_runtime" / "runtime" / "plugin_documents.rs"
         ).read_text(encoding="utf-8")

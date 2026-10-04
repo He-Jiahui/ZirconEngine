@@ -1,8 +1,10 @@
+//! 溺亡祷文遭遇的测试状态投影：钟绳、唱诗者、终钟和圣物仪式在一份局部快照上推进，实体与奖励发放仍由宿主承担。
 // Stateful M4 projection of the Drowned Litany parity encounter: bell ropes,
 // Sister Nhalia's combat gates and the initial Reliquary Rite playback.
 var container = %import("zr.container");
 var riteRules = %import("instances/drowned_litany_rite_rules");
 
+// 测试状态把首领计时、仪式回放和事件顺序并列保存；每个公开操作只修改这份快照。
 class DrownedLitanyState {
     pub var bossHp: int;
     pub var bossMaxHp: int;
@@ -232,6 +234,7 @@ tickTollingBells(state: DrownedLitanyState): void {
     state.eventOrder.add("bellVolley");
 }
 
+/// 仅在首领入战或追击时按唱诗者、护盾、印记、终钟、钟雨顺序推进一个固定步。
 pub tickBoss(state: DrownedLitanyState): void {
     if (!state.bossInCombat &&
         state.bossAiState != "attack" && state.bossAiState != "chase") {
@@ -244,6 +247,7 @@ pub tickBoss(state: DrownedLitanyState): void {
     tickTollingBells(state);
 }
 
+/// 首领死亡后的仪式重置入口，保留预先设置的 run seed 并清除上次回放与奖励结果。
 pub spawnRite(state: DrownedLitanyState): void {
     state.riteSpawned = true;
     state.riteAwaitingChoice = true;
@@ -282,6 +286,7 @@ pub interactReliquary(state: DrownedLitanyState): void {
     }
 }
 
+/// 玩家选择强度后锁定长度、尝试次数和回放次数；无效强度不改变等待选择状态。
 pub chooseRite(state: DrownedLitanyState, intensity: string): bool {
     if (!state.riteAwaitingChoice) { return false; }
     var intensityIndex = riteRules.intensityIndex(intensity, true);
@@ -302,6 +307,7 @@ pub chooseRite(state: DrownedLitanyState, intensity: string): bool {
     return true;
 }
 
+/// 仅在回放阶段推进 0.05 秒，并按规则表记录脉冲和下个序列游标。
 pub tickRite(state: DrownedLitanyState): void {
     if (!state.ritePuzzleActive || !state.riteSequencePlaying) { return; }
     state.ritePlaybackTimer = state.ritePlaybackTimer - 0.05;
@@ -350,6 +356,7 @@ openRite(state: DrownedLitanyState, tier: int): void {
 
 // The state model receives a source-valid shrine kind index. Entity/object
 // lookup and feedback events remain with the future DelveRun reducer.
+/// 回放停止后比较当前序列项；错误触摸计入伤害与重播，达成或耗尽尝试才计算奖励层级。
 pub touchRiteShrine(state: DrownedLitanyState, shrineKind: int): bool {
     riteRules.shrineKind(shrineKind, true);
     if (state.riteAwaitingChoice || !state.ritePuzzleActive || state.riteOpened ||

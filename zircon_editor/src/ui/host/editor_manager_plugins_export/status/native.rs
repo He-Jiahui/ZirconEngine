@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use zircon_runtime::asset::project::ProjectManifest;
 
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::core::framework::project::ProjectPluginManifest;
 use zircon_runtime::plugin::native::NativePluginLoadReport;
 use zircon_runtime::{
     core::framework::project::ExportPackagingStrategy, plugin::PluginModuleKind,
@@ -38,10 +39,18 @@ impl EditorManager {
         native_report: &NativePluginLoadReport,
     ) -> EditorPluginStatusReport {
         let native_projection = native_report.projection();
-        let native_packages = native_projection.package_manifests().to_vec();
+        let native_packages = product_native_packages(native_projection.package_manifests());
         let mut status_report = self.plugin_status_report(manifest);
         let status_target = RuntimeTargetMode::EditorHost;
-        let native_runtime_registrations = native_projection.runtime_plugin_registration_reports();
+        let native_runtime_registrations = native_projection
+            .runtime_plugin_registration_reports()
+            .into_iter()
+            .filter(|registration| {
+                registration
+                    .package_manifest
+                    .package_role
+                    .is_product_catalog_eligible()
+            });
         let status_runtime_catalog = RuntimePluginCatalog::from_registration_reports(
             self.runtime_plugin_catalog()
                 .registrations()
@@ -88,6 +97,47 @@ impl EditorManager {
         status_report
             .diagnostics
             .extend(feature_report.diagnostics.iter().cloned());
+        for missing in missing_native_selection_statuses(
+            &manifest.plugins,
+            native_projection.package_manifests(),
+            status_target,
+        ) {
+            status_report
+                .diagnostics
+                .extend(missing.diagnostics.iter().cloned());
+            if let Some(existing) = status_report
+                .plugins
+                .iter_mut()
+                .find(|plugin| plugin.plugin_id == missing.plugin_id)
+            {
+                existing.enabled = missing.enabled;
+                existing.required = missing.required;
+                existing.packaging = missing.packaging;
+                existing.load_state = missing.load_state;
+                existing.diagnostics.extend(missing.diagnostics);
+                existing.diagnostics.sort();
+                existing.diagnostics.dedup();
+            } else {
+                status_report.plugins.push(missing);
+            }
+        }
+        for package in native_projection
+            .package_manifests()
+            .iter()
+            .filter(|package| !package.package_role.is_product_catalog_eligible())
+        {
+            if manifest
+                .plugins
+                .selections
+                .iter()
+                .any(|selection| selection.enabled && selection.id == package.id)
+            {
+                status_report.diagnostics.push(format!(
+                    "selected native plugin {} has role {:?} and is excluded from the product catalog",
+                    package.id, package.package_role
+                ));
+            }
+        }
 
         for package in native_packages {
             let package_diagnostics = native_projection.diagnostics_for_plugin(&package.id);
@@ -167,6 +217,57 @@ impl EditorManager {
             .sort_by(|left, right| left.plugin_id.cmp(&right.plugin_id));
         status_report
     }
+}
+
+fn product_native_packages(packages: &[PluginPackageManifest]) -> Vec<PluginPackageManifest> {
+    packages
+        .iter()
+        .filter(|package| package.package_role.is_product_catalog_eligible())
+        .cloned()
+        .collect()
+}
+
+fn missing_native_selection_statuses(
+    selections: &ProjectPluginManifest,
+    discovered: &[PluginPackageManifest],
+    target: RuntimeTargetMode,
+) -> Vec<EditorPluginStatus> {
+    let discovered_ids = discovered
+        .iter()
+        .map(|package| package.id.as_str())
+        .collect::<HashSet<_>>();
+    selections
+        .selections
+        .iter()
+        .filter(|selection| {
+            selection.enabled
+                && selection.packaging == ExportPackagingStrategy::NativeDynamic
+                && selection.supports_target(target)
+                && !discovered_ids.contains(selection.id.as_str())
+        })
+        .map(|selection| {
+            let reason = format!(
+                "selected native editor plugin {} has no discovered package; native load is unavailable",
+                selection.id
+            );
+            EditorPluginStatus {
+                plugin_id: selection.id.clone(),
+                display_name: selection.id.clone(),
+                package_source: "project selection".to_owned(),
+                load_state: "missing package".to_owned(),
+                enabled: true,
+                required: selection.required,
+                target_modes: selection.target_modes.clone(),
+                packaging: selection.packaging,
+                runtime_crate: selection.runtime_crate.clone(),
+                editor_crate: selection.editor_crate.clone(),
+                runtime_capabilities: Vec::new(),
+                editor_capabilities: Vec::new(),
+                optional_features: Vec::new(),
+                diagnostics: vec![reason],
+            }
+        })
+        .collect()
 }
 
 fn native_plugin_status(
@@ -259,3 +360,7 @@ fn default_packaging_for_native_package(
             .unwrap_or(ExportPackagingStrategy::NativeDynamic)
     }
 }
+
+#[cfg(test)]
+#[path = "tests/native_product_catalog_tests.rs"]
+mod product_catalog_tests;

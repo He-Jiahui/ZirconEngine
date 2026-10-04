@@ -5,5 +5,21 @@ edition.workspace = true
 license.workspace = true
 description = "WOC network bot role bootstrap."
 
+[features]
+default = ["engine-host"]
+engine-host = ["woc_runtime/engine-host"]
+
+[[bin]]
+name = "woc_bot"
+path = "src/main.rs"
+required-features = ["engine-host"]
+
 [dependencies]
+woc_protocol.workspace = true
 woc_runtime.workspace = true
+
+[dependencies.serde_json]
+workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码投影Litany 干地祭坛与岛屿几何，生成可核对的 JSON 和 Zr 内容。
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -93,6 +94,7 @@ function gitShow(sourcePath) {
   });
 }
 
+// 将已验证的Litany 干地祭坛与岛屿几何转换为确定性的 Zr 访问函数。
 function renderZr(modules) {
   const lines = [
     '// Generated authored Drowned Litany dais and island safe-ground geometry.',

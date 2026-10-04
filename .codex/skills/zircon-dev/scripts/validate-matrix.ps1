@@ -1,6 +1,8 @@
 [CmdletBinding()]
 param(
     [string]$RepoRoot,
+    [string]$SourceSnapshot,
+    [string]$SourceSnapshotDigest,
     [string]$ManifestPath,
     [string]$Package,
     [string]$TargetDir,
@@ -9,6 +11,15 @@ param(
     [switch]$Ephemeral,
     [switch]$SkipBuild,
     [switch]$SkipTest,
+    [switch]$CheckOnly,
+    [switch]$BuildBeforeTest,
+    [switch]$RuntimeProductDll,
+    [switch]$Run,
+    [string[]]$RunArguments,
+    [ValidateSet("auto", "static", "dev-dynamic")]
+    [string]$LinkMode = "auto",
+    [ValidateSet("auto", "lld", "system")]
+    [string]$Linker = "auto",
     [switch]$LibTests,
     [string]$TestTarget,
     [string]$Bin,
@@ -17,26 +28,35 @@ param(
     [switch]$MvpProductInputArtifactOutput,
     [string]$TestFilter,
     [switch]$IgnoredTests,
+    [int]$TestThreads = 0,
+    [switch]$NoCapture,
     [switch]$RunExportPlatformContract,
     [string]$ExportContractPlatform,
     [switch]$RunProfileFeatureContract,
     [string]$ProfileFeatureContractLabel,
     [switch]$RunConventionStructure,
     [switch]$RunConventionClippy,
-    [ValidateSet("development", "release", "profiling")]
+    [ValidateSet("development", "release", "profiling", "shipping", "shipping-symbols")]
     [string]$CargoProfile = "development",
     [ValidateSet("reuse", "compact", "diagnostic")]
     [string]$StorageMode = "reuse",
     [switch]$NoLocked,
     [switch]$VerboseOutput,
+    [switch]$CargoTimings,
     [switch]$DryRun
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+throw 'The local coordinator and validate-matrix workflow are retired. Use tools/dev/local-cargo.ps1 for independent command evidence; Jenkins migration acceptance is pending.'
+$script:TestThreadsProvided = $PSBoundParameters.ContainsKey('TestThreads')
 $windowsPathResolverRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..\..")).Path
-Import-Module (Join-Path $windowsPathResolverRepoRoot "tools\WindowsPathResolver.psm1") -Force -ErrorAction Stop
+Import-Module (Join-Path $windowsPathResolverRepoRoot "tools\maintenance\WindowsPathResolver.psm1") -Force -ErrorAction Stop
 . (Join-Path $PSScriptRoot "managed-cargo-storage.ps1")
+. (Join-Path $PSScriptRoot "validation-stages.ps1")
+. (Join-Path $PSScriptRoot "managed-build-policy.ps1")
+. (Join-Path $PSScriptRoot "managed-build-metrics.ps1")
+. (Join-Path $PSScriptRoot "coordinator-request-recovery.ps1")
 
 $script:ExportContractPlatforms = @(
     "windows",
@@ -169,8 +189,8 @@ function Resolve-ManagedCargoTargetPath {
     if ($targetResolution.DisplayPath -notmatch '^[D-F]:\\') {
         throw "Managed Cargo target must physically resolve under D:, E:, or F:, not '$($targetResolution.DisplayPath)'."
     }
-    if ($targetResolution.DisplayPath -notmatch '^[D-F]:\\(?:cargo-targets|targets|ZirconBuilds)(?:\\|$)') {
-        throw "Managed Cargo target must resolve under an approved root such as D:\cargo-targets, D:\targets, or D:\ZirconBuilds, not '$($targetResolution.DisplayPath)'."
+    if ($targetResolution.DisplayPath -notmatch '^[D-F]:\\cargo-targets(?:\\|$)') {
+        throw "Managed Cargo target must physically resolve below D:\cargo-targets, E:\cargo-targets, or F:\cargo-targets, not '$($targetResolution.DisplayPath)'."
     }
     return $targetResolution
 }
@@ -253,52 +273,21 @@ function New-CargoCompatibilityJson {
     param(
         [string]$ResolvedRepoRoot,
         [string]$WorkspaceManifest = "Cargo.toml",
-        [ValidateSet("development", "release", "profiling")]
+        [ValidateSet("development", "release", "profiling", "shipping", "shipping-symbols")]
         [string]$CargoProfile = "development",
         [ValidateSet("reuse", "compact", "diagnostic")]
         [string]$StorageMode = "reuse",
         [switch]$DryRunMode
     )
 
-    $rust = Get-RustCompatibilityIdentity -DryRunMode:$DryRunMode
-    $compactOutputs = $StorageMode -in @("reuse", "compact")
-    $buildDirectoryIdentity = switch ($StorageMode) {
-        "reuse" { "persistent-target-v1" }
-        "compact" { "ephemeral-v1" }
-        default {
-            if ([string]::IsNullOrWhiteSpace($env:CARGO_BUILD_BUILD_DIR)) {
-                "cargo-default"
-            } else {
-                [string]$env:CARGO_BUILD_BUILD_DIR
-            }
-        }
-    }
-    $configuration = [ordered]@{
-        profile_feature_contract = if ($RunProfileFeatureContract) {
-            if ([string]::IsNullOrWhiteSpace($ProfileFeatureContractLabel)) { "all" } else { $ProfileFeatureContractLabel }
-        } else { "off" }
-        export_platform_contract = if ($RunExportPlatformContract) {
-            if ([string]::IsNullOrWhiteSpace($ExportContractPlatform)) { "all" } else { $ExportContractPlatform }
-        } else { "off" }
-        rustflags = [string]$env:RUSTFLAGS
-        storage_mode = $StorageMode
-        cargo_incremental = if ($compactOutputs) { "0" } else { [string]$env:CARGO_INCREMENTAL }
-        cargo_profile = $CargoProfile
-        build_dir = $buildDirectoryIdentity
-        compiler_cache = if ($compactOutputs) { "sccache" } else { "optional-sccache" }
-        dev_debug = if ($compactOutputs) { "0" } else { [string]$env:CARGO_PROFILE_DEV_DEBUG }
-        test_debug = if ($compactOutputs) { "0" } else { [string]$env:CARGO_PROFILE_TEST_DEBUG }
-        release_debug = [string]$env:CARGO_PROFILE_RELEASE_DEBUG
-        profiling_debug = [string]$env:CARGO_PROFILE_PROFILING_DEBUG
-    }
-    $compatibility = [ordered]@{
-        platform = "windows"
-        toolchain = $rust.Toolchain
-        target_architecture = $rust.TargetArchitecture
-        workspace = $WorkspaceManifest
-        build_config = ($configuration | ConvertTo-Json -Compress)
-    }
-    return ($compatibility | ConvertTo-Json -Compress)
+    $script:ResolvedLinkMode = 'static'
+    $policyCommand = @(Get-CargoArgs -Subcommand $(if ($RuntimeProductDll) { 'rustc' } elseif ($SkipTest -or $CheckOnly) { 'check' } else { 'test' }) `
+        -ResolvedTargetDir '' -WorkspaceManifest $WorkspaceManifest -CargoProfile $CargoProfile)
+    $script:ManagedBuildPolicy = Get-ManagedBuildPolicy -RepoRoot $ResolvedRepoRoot -Command $policyCommand `
+        -SourceRoot $SourceSnapshot `
+        -StorageMode $StorageMode -LinkMode $LinkMode -Linker $Linker -DryRunMode:$DryRunMode
+    $script:ResolvedLinkMode = [string]$script:ManagedBuildPolicy.environment.ZIRCON_LINK_MODE
+    return ($script:ManagedBuildPolicy.compatibility | ConvertTo-Json -Depth 12 -Compress)
 }
 
 function Get-ManagedTextSha256 {
@@ -404,17 +393,51 @@ function Invoke-SessionCoordinatorJson {
         [string[]]$Arguments
     )
 
-    $client = Join-Path $RepoRoot "tools\zircon-session.ps1"
+    $client = Join-Path $RepoRoot "tools\dev\zircon-session.ps1"
     if (-not (Test-Path -LiteralPath $client)) {
         throw "Session coordinator client is missing: $client"
     }
     $command = $Arguments[0]
     $remaining = if ($Arguments.Count -gt 1) { $Arguments[1..($Arguments.Count - 1)] } else { @() }
-    $raw = & $client -Command $command -RepoRoot $RepoRoot -Json @remaining
+    $raw = Invoke-CoordinatorUnacceptedRequest -Invoke {
+        & $client -Command $command -RepoRoot $RepoRoot -Json @remaining
+    } -Parse {
+        param($rawOutput)
+        ConvertFrom-StrictCoordinatorJson -Command $command -RawOutput $rawOutput
+    } -CargoAcquire:($command -eq 'cargo' -and $remaining.Count -gt 0 -and $remaining[0] -eq 'acquire')
     if ($LASTEXITCODE -ne 0) {
-        throw "Session coordinator command failed: $($raw -join [Environment]::NewLine)"
+        $failure = ConvertFrom-StrictCoordinatorJson -Command $command -RawOutput $raw
+        $recovered = Wait-CoordinatorAcceptedRequest -Failure $failure -Query {
+            param($requestId)
+            $statusJson = & $client -Command 'request-status' -RepoRoot $RepoRoot -Json $requestId
+            $statusExitCode = $LASTEXITCODE
+            $statusResponse = ConvertFrom-StrictCoordinatorJson -Command 'request-status' -RawOutput $statusJson
+            $queryError = $statusResponse.PSObject.Properties['error']
+            if ($statusExitCode -ne 0 -and ($null -eq $queryError -or $queryError.Value.code -ne 'request_overloaded')) {
+                throw "Coordinator request $requestId status query failed: $($statusJson -join [Environment]::NewLine)"
+            }
+            $statusResponse
+        }
+        if ($null -ne $recovered) { return $recovered }
+        $commandFailureException = [InvalidOperationException]::new("Session coordinator command failed: $($raw -join [Environment]::NewLine)")
+        $commandFailureException.Data['CoordinatorResponse'] = $failure
+        throw $commandFailureException
     }
-    return ConvertFrom-StrictCoordinatorJson -Command $command -RawOutput $raw
+    $response = ConvertFrom-StrictCoordinatorJson -Command $command -RawOutput $raw
+    $responseStatus = $response.PSObject.Properties['status']
+    if ($null -ne $responseStatus -and $responseStatus.Value -eq 'queued') {
+        return Wait-CoordinatorQueuedRequest -Response $response -Query {
+            $statusRaw = & $client -Command 'status' -RepoRoot $RepoRoot -Json
+            ConvertFrom-StrictCoordinatorJson -Command 'status' -RawOutput $statusRaw
+        } -Resume {
+            $resumeRaw = & $client -Command $command -RepoRoot $RepoRoot -Json @remaining
+            if ($LASTEXITCODE -ne 0) {
+                throw "Session coordinator queued command '$command' failed on replay: $($resumeRaw -join [Environment]::NewLine)"
+            }
+            ConvertFrom-StrictCoordinatorJson -Command $command -RawOutput $resumeRaw
+        }
+    }
+    return $response
 }
 
 function Resolve-CoordinatorCargoTarget {
@@ -423,7 +446,7 @@ function Resolve-CoordinatorCargoTarget {
         [string]$ManualTargetDir,
         [string]$LaneKind,
         [string]$WorkspaceManifest,
-        [ValidateSet("development", "release", "profiling")]
+        [ValidateSet("development", "release", "profiling", "shipping", "shipping-symbols")]
         [string]$CargoProfile = "development",
         [ValidateSet("reuse", "compact", "diagnostic")]
         [string]$StorageMode = "reuse",
@@ -574,6 +597,56 @@ function Start-CoordinatorCargoTarget {
     ) | Out-Null
 }
 
+function Invoke-CoordinatorCargoRelease {
+    param(
+        [string]$RepoRoot,
+        [object]$ResolvedTarget
+    )
+
+    $arguments = @("cargo", "release", $ResolvedTarget.JobId, "--session-id", $ResolvedTarget.OwnerId)
+    for ($attempt = 1; $attempt -le 18; $attempt++) {
+        try {
+            Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments $arguments | Out-Null
+            return
+        }
+        catch {
+            $releaseFailure = $_
+            $response = $_.Exception.Data['CoordinatorResponse']
+            if ($null -eq $response -or $null -eq $response.PSObject.Properties['error'] -or
+                $response.error.code -ne 'internal_error' -or
+                $null -eq $response.error.PSObject.Properties['details'] -or
+                $null -eq $response.error.details.PSObject.Properties['requestId']) {
+                throw
+            }
+            $requestId = [string]$response.error.details.requestId
+            if ($requestId -cnotmatch '^[a-f0-9]{32}$') { throw }
+
+            $missing = $false
+            try {
+                $journal = Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments @('request-status', $requestId)
+            }
+            catch {
+                $queryResponse = $_.Exception.Data['CoordinatorResponse']
+                if ($null -ne $queryResponse -and
+                    $null -ne $queryResponse.PSObject.Properties['error'] -and
+                    $queryResponse.error.code -eq 'command_request_not_found') {
+                    $missing = $true
+                } else {
+                    throw $releaseFailure
+                }
+            }
+            if (-not $missing) {
+                # A recorded request may still be running or may have changed the job.
+                # Preserve that request for exact reconciliation instead of replaying it.
+                throw $releaseFailure
+            }
+            if ($attempt -eq 18) { throw $releaseFailure }
+            Write-Warning "Cargo release request $requestId was not admitted; retrying the same job after coordinator contention."
+            Start-Sleep -Milliseconds 750
+        }
+    }
+}
+
 function Complete-CoordinatorCargoTarget {
     param(
         [string]$RepoRoot,
@@ -586,10 +659,7 @@ function Complete-CoordinatorCargoTarget {
         return
     }
     if (-not $StartAttempted) {
-        Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments @(
-            "cargo", "release", $ResolvedTarget.JobId,
-            "--session-id", $ResolvedTarget.OwnerId
-        ) | Out-Null
+        Invoke-CoordinatorCargoRelease -RepoRoot $RepoRoot -ResolvedTarget $ResolvedTarget
         return
     }
 
@@ -606,10 +676,7 @@ function Complete-CoordinatorCargoTarget {
     }
 
     try {
-        Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments @(
-            "cargo", "release", $ResolvedTarget.JobId,
-            "--session-id", $ResolvedTarget.OwnerId
-        ) | Out-Null
+        Invoke-CoordinatorCargoRelease -RepoRoot $RepoRoot -ResolvedTarget $ResolvedTarget
     }
     catch {
         if ($null -eq $finishFailure) {
@@ -660,26 +727,23 @@ function Invoke-Step {
         [scriptblock]$Action
     )
 
-    Write-Host ""
-    Write-Host "==> $Name" -ForegroundColor Cyan
-
-    $code = 0
+    # Pipeline cancellation can bypass catch and leave the action unfinished.
+    $result = [pscustomobject]@{ Stage = $Name; ExitCode = 1 }
+    $script:Results.Add($result)
+    $code = 1
     $global:LASTEXITCODE = 0
 
     try {
-        & $Action
-        if ($LASTEXITCODE -ne 0) {
-            $code = $LASTEXITCODE
-        }
+        Write-Host ""
+        Write-Host "==> $Name" -ForegroundColor Cyan
+        & $Action | Out-Host
+        $code = $LASTEXITCODE
     } catch {
         $code = if ($LASTEXITCODE -ne 0) { $LASTEXITCODE } else { 1 }
         Write-Host $_.Exception.Message -ForegroundColor Red
+    } finally {
+        $result.ExitCode = $code
     }
-
-    $script:Results.Add([pscustomobject]@{
-            Stage    = $Name
-            ExitCode = $code
-        }) | Out-Null
 
     if ($code -eq 0) {
         Write-Host "[OK] $Name" -ForegroundColor Green
@@ -691,7 +755,7 @@ function Invoke-Step {
 function Add-CargoProfileArguments {
     param(
         [System.Collections.Generic.List[string]]$Arguments,
-        [ValidateSet("development", "release", "profiling")]
+        [ValidateSet("development", "release", "profiling", "shipping", "shipping-symbols")]
         [string]$CargoProfile = "development"
     )
 
@@ -703,6 +767,14 @@ function Add-CargoProfileArguments {
             $Arguments.Add("--profile") | Out-Null
             $Arguments.Add("profiling") | Out-Null
         }
+        "shipping" {
+            $Arguments.Add("--profile") | Out-Null
+            $Arguments.Add("shipping") | Out-Null
+        }
+        "shipping-symbols" {
+            $Arguments.Add("--profile") | Out-Null
+            $Arguments.Add("shipping-symbols") | Out-Null
+        }
     }
 }
 
@@ -711,7 +783,7 @@ function Get-CargoArgs {
         [string]$Subcommand,
         [string]$ResolvedTargetDir,
         [string]$WorkspaceManifest,
-        [ValidateSet("development", "release", "profiling")]
+        [ValidateSet("development", "release", "profiling", "shipping", "shipping-symbols")]
         [string]$CargoProfile = "development"
     )
 
@@ -752,27 +824,77 @@ function Get-CargoArgs {
         $args.Add("--verbose") | Out-Null
     }
 
+    if ($CargoTimings -and $Subcommand -ne 'run') {
+        $args.Add("--timings") | Out-Null
+    }
+
     Add-CargoProfileArguments -Arguments $args -CargoProfile $CargoProfile
 
-    if ($Subcommand -eq "test") {
+    if ($Subcommand -eq "rustc") {
+        $args.Add("--lib") | Out-Null
+        $args.Add("--crate-type") | Out-Null
+        $args.Add("cdylib") | Out-Null
+    }
+    if ($Subcommand -in @("test", "check")) {
         if ($LibTests) {
-            $args.Add("--lib") | Out-Null
+            $args.Add($(if ($Subcommand -eq 'check' -and $CargoProfile -ne 'development') { '--tests' } else { '--lib' })) | Out-Null
         } elseif (-not [string]::IsNullOrWhiteSpace($TestTarget)) {
             $args.Add("--test") | Out-Null
             $args.Add($TestTarget) | Out-Null
         }
 
-        if (-not [string]::IsNullOrWhiteSpace($TestFilter)) {
+        if ($Subcommand -eq 'test' -and -not [string]::IsNullOrWhiteSpace($TestFilter)) {
             $args.Add($TestFilter) | Out-Null
         }
     }
 
-    $args.Add("--target-dir") | Out-Null
-    $args.Add($ResolvedTargetDir) | Out-Null
+    if (Get-Variable ResolvedLinkMode -Scope Script -ErrorAction SilentlyContinue) {
+        if ($script:ResolvedLinkMode -eq 'dev-dynamic') {
+            $devPackages = if ($Package) { @($Package) } else { @('zircon_runtime', 'zircon_editor', 'zircon_app') }
+            foreach ($devPackage in $devPackages) {
+                if ($devPackage -in @('zircon_runtime', 'zircon_editor', 'zircon_app')) {
+                    $args.Add('--features') | Out-Null
+                    $args.Add("$devPackage/dev-dynamic-linking") | Out-Null
+                }
+            }
+            if (Get-Variable ManagedBuildPolicy -Scope Script -ErrorAction SilentlyContinue) {
+                foreach ($argument in $script:ManagedBuildPolicy.cargoProfileArguments) {
+                    $args.Add([string]$argument) | Out-Null
+                }
+            }
+        }
+    }
+    if ($ResolvedTargetDir) {
+        $args.Add("--target-dir") | Out-Null
+        $args.Add($ResolvedTargetDir) | Out-Null
+    }
+    if ($Subcommand -eq 'check' -and ($LibTests -or $TestTarget) -and $CargoProfile -eq 'development') {
+        $args.Add('--profile') | Out-Null
+        $args.Add('test') | Out-Null
+    }
+    if ($Subcommand -eq 'check' -and $CargoProfile -ne 'development' -and
+        -not $LibTests -and -not $TestTarget -and -not $SkipTest -and -not $CheckOnly) {
+        $args.Add('--tests') | Out-Null
+    }
 
-    if ($Subcommand -eq "test" -and $IgnoredTests) {
-        $args.Add("--") | Out-Null
-        $args.Add("--ignored") | Out-Null
+    if ($Subcommand -eq "test") {
+        $harnessArguments = [System.Collections.Generic.List[string]]::new()
+        if ($TestThreads -gt 0) {
+            $harnessArguments.Add("--test-threads") | Out-Null
+            $harnessArguments.Add([string]$TestThreads) | Out-Null
+        }
+        if ($NoCapture) {
+            $harnessArguments.Add("--nocapture") | Out-Null
+        }
+        if ($IgnoredTests) {
+            $harnessArguments.Add("--ignored") | Out-Null
+        }
+        if ($harnessArguments.Count -gt 0) {
+            $args.Add("--") | Out-Null
+            foreach ($harnessArgument in $harnessArguments) {
+                $args.Add($harnessArgument) | Out-Null
+            }
+        }
     }
 
     return $args.ToArray()
@@ -824,14 +946,12 @@ function Assert-ArtifactOutputDirectory {
         throw "-ArtifactOutputDirectory must resolve to a local drive: $displayPath"
     }
     if ($MvpProductInputArtifactOutput) {
-        if ($displayPath -notmatch '^[D-F]:\\ZirconBuilds\\mvp-product-inputs-(?:[A-Za-z0-9][A-Za-z0-9._-]*)(?:\\|$)') {
-            throw "-ArtifactOutputDirectory MVP product input artifact output must resolve under D:\ZirconBuilds\mvp-product-inputs-*: $displayPath"
+        if ($displayPath -notmatch '^[D-F]:\\cargo-targets\\mvp-product-inputs-(?:[A-Za-z0-9][A-Za-z0-9._-]*)(?:\\|$)') {
+            throw "-ArtifactOutputDirectory MVP product input artifact output must resolve under D:\cargo-targets\mvp-product-inputs-*: $displayPath"
         }
         return $resolvedPath
     }
-    if ($driveRoot -in @("D:\", "E:\", "F:\")) {
-        throw "-ArtifactOutputDirectory must be outside coordinator-governed D/E/F roots: $displayPath"
-    }
+    $resolvedPath = (Resolve-ManagedCargoTargetPath -TargetDirectory $displayPath).OperationalPath
 
     return $resolvedPath
 }
@@ -861,9 +981,12 @@ function Publish-BuildArtifacts {
         [string]$ArtifactOutputDirectory,
         [Parameter(Mandatory)]
         [string[]]$ArtifactName,
-        [ValidateSet("development", "release", "profiling")]
+        [ValidateSet("development", "release", "profiling", "shipping", "shipping-symbols")]
         [string]$CargoProfile = "development",
-        [switch]$MvpProductInputArtifactOutput
+        [string]$CargoTarget,
+        [switch]$MvpProductInputArtifactOutput,
+        [switch]$DevelopmentDlls,
+        [switch]$RuntimeOnlyDevelopmentDlls
     )
 
     $resolvedTargetDirectory = (Resolve-ZirconWindowsPath -Path $TargetDirectory).OperationalPath
@@ -874,9 +997,30 @@ function Publish-BuildArtifacts {
         "development" { "debug" }
         "release" { "release" }
         "profiling" { "profiling" }
+        "shipping" { "shipping" }
+        "shipping-symbols" { "shipping-symbols" }
     }
-    $profileDirectory = Join-ZirconWindowsPath -Path $resolvedTargetDirectory -ChildPath $profileDirectoryName
+    $artifactRoot = $resolvedTargetDirectory
+    if (-not [string]::IsNullOrWhiteSpace($CargoTarget)) {
+        $targetDirectoryName = if ([System.IO.Path]::GetExtension($CargoTarget) -eq '.json') {
+            [System.IO.Path]::GetFileNameWithoutExtension($CargoTarget)
+        } else { $CargoTarget }
+        if ($targetDirectoryName -in @('.', '..') -or
+            $targetDirectoryName -ne [System.IO.Path]::GetFileName($targetDirectoryName)) {
+            throw "Cargo target must identify one artifact subdirectory: '$CargoTarget'."
+        }
+        $artifactRoot = Join-ZirconWindowsPath -Path $artifactRoot -ChildPath $targetDirectoryName
+    }
+    $profileDirectory = Join-ZirconWindowsPath -Path $artifactRoot -ChildPath $profileDirectoryName
     [System.IO.Directory]::CreateDirectory($resolvedArtifactOutputDirectory) | Out-Null
+    if ($DevelopmentDlls) {
+        $developmentArguments = @('--profile-directory', $profileDirectory, '--output-directory', $resolvedArtifactOutputDirectory)
+        if (-not [string]::IsNullOrWhiteSpace($CargoTarget)) { $developmentArguments += @('--target', $CargoTarget) }
+        if ($RuntimeOnlyDevelopmentDlls) { $developmentArguments += '--runtime-only' }
+        & python (Join-Path $windowsPathResolverRepoRoot 'tools/session_coordinator/development_artifacts.py') `
+            @developmentArguments | Out-Host
+        if ($LASTEXITCODE -ne 0) { throw 'Development DLL staging failed.' }
+    }
 
     foreach ($name in $ArtifactName) {
         if ([string]::IsNullOrWhiteSpace($name) -or
@@ -912,7 +1056,7 @@ function Publish-BuildArtifacts {
 function Get-ExportPlatformContractArgs {
     param(
         [string]$ResolvedTargetDir,
-        [ValidateSet("development", "release", "profiling")]
+        [ValidateSet("development", "release", "profiling", "shipping", "shipping-symbols")]
         [string]$CargoProfile = "development"
     )
 
@@ -942,7 +1086,7 @@ function Get-ProfileFeatureContractArgs {
     param(
         [object]$Case,
         [string]$ResolvedTargetDir,
-        [ValidateSet("development", "release", "profiling")]
+        [ValidateSet("development", "release", "profiling", "shipping", "shipping-symbols")]
         [string]$CargoProfile = "development"
     )
 
@@ -1021,8 +1165,22 @@ function Format-Command {
     return "cargo {0}" -f ($rendered -join " ")
 }
 
+function Get-CargoPipelineOptions {
+    param(
+        [Parameter(Mandatory)][string]$MetricsPath,
+        [switch]$SkipCheck
+    )
+
+    $options = @('--receipt', $MetricsPath)
+    if ($SkipCheck) { $options += '--skip-check' }
+    return $options
+}
+
 function Invoke-Cargo {
-    param([string[]]$Arguments)
+    param(
+        [string[]]$Arguments,
+        [switch]$SkipCheck
+    )
 
     Write-Host (Format-Command -Arguments $Arguments) -ForegroundColor DarkGray
 
@@ -1030,7 +1188,38 @@ function Invoke-Cargo {
         return
     }
 
-    & cargo @Arguments
+    $metricsDirectory = Join-Path $env:CARGO_TARGET_DIR '.zircon-compile\metrics'
+    $metricsPath = Join-Path $metricsDirectory ([guid]::NewGuid().ToString('N') + '.json')
+    $pipelineOptions = Get-CargoPipelineOptions -MetricsPath $metricsPath -SkipCheck:$SkipCheck
+    $script:BuildMetricPaths.Add($metricsPath)
+    & python (Join-Path $windowsPathResolverRepoRoot 'tools/session_coordinator/cargo_pipeline.py') `
+        @pipelineOptions -- cargo @Arguments
+}
+
+function Get-ManagedSnapshotCommandsJson {
+    param([object]$Stages, [string]$WorkspaceManifest)
+    $commands = [System.Collections.Generic.List[object]]::new()
+    if ($Stages.Check) {
+        $kind = if ($LibTests -or $TestTarget) { 'test' } else { 'check' }
+        $commands.Add(@('cargo') + @(Get-CargoArgs -Subcommand $kind -ResolvedTargetDir '' -WorkspaceManifest $WorkspaceManifest -CargoProfile $CargoProfile))
+    }
+    if ($Stages.Build) {
+        $kind = if ($RuntimeProductDll) { 'rustc' } else { 'build' }
+        $commands.Add(@('cargo') + @(Get-CargoArgs -Subcommand $kind -ResolvedTargetDir '' -WorkspaceManifest $WorkspaceManifest -CargoProfile $CargoProfile))
+    }
+    if ($Stages.Test) {
+        $commands.Add(@('cargo') + @(Get-CargoArgs -Subcommand test -ResolvedTargetDir '' -WorkspaceManifest $WorkspaceManifest -CargoProfile $CargoProfile))
+    }
+    if ($RunConventionStructure) { $commands.Add(@('cargo') + @(Get-ConventionStructureArgs -ResolvedTargetDir '')) }
+    if ($RunConventionClippy) { $commands.Add(@('cargo') + @(Get-ConventionClippyArgs -ResolvedTargetDir '')) }
+    if ($RunExportPlatformContract) { $commands.Add(@('cargo') + @(Get-ExportPlatformContractArgs -ResolvedTargetDir '' -CargoProfile $CargoProfile)) }
+    if ($RunProfileFeatureContract) {
+        foreach ($case in (Get-SelectedProfileFeatureContractCases -Label $ProfileFeatureContractLabel)) {
+            $commands.Add(@('cargo') + @(Get-ProfileFeatureContractArgs -Case $case -ResolvedTargetDir '' -CargoProfile $CargoProfile))
+        }
+    }
+    if ($commands.Count -eq 0) { $commands.Add(@('cargo', 'check', '--workspace', '--locked')) }
+    return ConvertTo-Json -InputObject $commands.ToArray() -Depth 5 -Compress
 }
 
 function Invoke-CargoWithEnvironment {
@@ -1057,7 +1246,7 @@ function Invoke-CargoWithEnvironment {
             [Environment]::SetEnvironmentVariable($entry.Name, [string]$entry.Value, "Process")
         }
 
-        & cargo @Arguments
+        Invoke-Cargo -Arguments $Arguments
     } finally {
         foreach ($entry in $Environment.GetEnumerator()) {
             [Environment]::SetEnvironmentVariable($entry.Name, $previousValues[$entry.Name], "Process")
@@ -1067,6 +1256,9 @@ function Invoke-CargoWithEnvironment {
 
 function Invoke-ValidateMatrixMain {
     $script:Results = [System.Collections.Generic.List[object]]::new()
+    $script:BuildMetricPaths = [System.Collections.Generic.List[string]]::new()
+    $script:StageCheckPassed = $false
+    if ($RunProfileFeatureContract -and $LinkMode -eq 'auto') { $LinkMode = 'static' }
 
     if (-not $RunExportPlatformContract -and -not [string]::IsNullOrWhiteSpace($ExportContractPlatform)) {
         throw "-ExportContractPlatform requires -RunExportPlatformContract."
@@ -1113,6 +1305,56 @@ function Invoke-ValidateMatrixMain {
         throw "-Bin cannot be combined with -LibTests."
     }
     $requestedPublishedArtifacts = @($PublishArtifact | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    if ('zircon_runtime.dll' -in $requestedPublishedArtifacts) { $RuntimeProductDll = $true }
+    if ($RuntimeProductDll) {
+        if ($Package -ne 'zircon_runtime' -or $Bin -or $LibTests -or $TestTarget -or $CheckOnly) {
+            throw '-RuntimeProductDll requires -Package zircon_runtime without binary/test/check selectors.'
+        }
+        $productFeatureTokens = @()
+        if (-not $NoDefaultFeatures) {
+            # The runtime default preset carries the versioned C ABI feature.
+            $productFeatureTokens += 'target-client'
+        }
+        if (-not [string]::IsNullOrWhiteSpace($Features)) {
+            $productFeatureTokens += @($Features -split '[,\s]+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        }
+        $productAbiEnabled = @($productFeatureTokens | Where-Object {
+            $_ -match '^(?:zircon_runtime/)?dynamic-api$' -or
+            $_ -in @(
+                'target-client',
+                'target-editor-host',
+                'shipping-runtime',
+                'runtime-shipping',
+                'shipping-editor',
+                'editor-shipping',
+                'zircon_runtime/shipping-runtime',
+                'zircon_runtime/shipping-editor'
+            )
+        }).Count -gt 0
+        if (-not $productAbiEnabled) {
+            throw '-RuntimeProductDll requires the runtime dynamic-api feature (use target-client, target-editor-host, or dynamic-api).'
+        }
+        if ($LinkMode -eq 'dev-dynamic') { throw 'Runtime product DLLs cannot use development dynamic linking.' }
+        $LinkMode = 'static'
+        $SkipTest = $true
+    }
+    if ($MvpProductInputArtifactOutput) { $LinkMode = 'static' }
+    if ($Run -and (-not $Bin -or -not $SkipTest -or $SkipBuild -or $CheckOnly -or $RuntimeProductDll)) {
+        throw '-Run requires -Bin and -SkipTest with the build stage enabled.'
+    }
+    $stagePlan = Get-ValidationStagePlan -SkipBuild:$SkipBuild -SkipTest:$SkipTest `
+        -CheckOnly:$CheckOnly -BuildBeforeTest:$BuildBeforeTest -LibTests:$LibTests `
+        -TestTarget $TestTarget -Bin $Bin -PublishArtifactCount $requestedPublishedArtifacts.Count
+    if ($script:TestThreadsProvided -and $TestThreads -le 0) {
+        throw "-TestThreads must be a positive integer."
+    }
+    if (($NoCapture -or $TestThreads -gt 0) -and -not $stagePlan.Test) {
+        throw "-NoCapture and -TestThreads require a test stage."
+    }
+    if ($CheckOnly -and ($RunExportPlatformContract -or $RunProfileFeatureContract -or
+            $RunConventionStructure -or $RunConventionClippy)) {
+        throw "-CheckOnly cannot be combined with additional contract gates."
+    }
     if ($requestedPublishedArtifacts.Count -eq 0 -and -not [string]::IsNullOrWhiteSpace($ArtifactOutputDirectory)) {
         throw "-ArtifactOutputDirectory requires -PublishArtifact."
     }
@@ -1159,8 +1401,15 @@ function Invoke-ValidateMatrixMain {
     } else {
         Find-RepoRoot $PSScriptRoot
     }
+    if ([string]::IsNullOrWhiteSpace($SourceSnapshot) -ne [string]::IsNullOrWhiteSpace($SourceSnapshotDigest)) {
+        throw '-SourceSnapshot and -SourceSnapshotDigest must be provided together.'
+    }
+    if ($SourceSnapshot) {
+        if ($SourceSnapshotDigest -notmatch '^[0-9a-fA-F]{64}$') { throw 'Source snapshot digest must be a SHA-256 manifest digest.' }
+        $SourceSnapshot = (Resolve-ZirconWindowsPath -Path $SourceSnapshot).DisplayExistingPath
+    }
     $resolvedWorkspace = Resolve-WorkspaceManifest `
-        -RepoRoot $resolvedRepoRoot `
+        -RepoRoot $(if ($SourceSnapshot) { $SourceSnapshot } else { $resolvedRepoRoot }) `
         -RequestedManifestPath $ManifestPath
     if (($RunConventionStructure -or $RunConventionClippy) -and
         $resolvedWorkspace.RelativePath -ne "Cargo.toml") {
@@ -1176,7 +1425,7 @@ function Invoke-ValidateMatrixMain {
     } elseif ($RunConventionClippy) {
         "check"
     } elseif (-not [string]::IsNullOrWhiteSpace($Package)) {
-        if ($SkipTest) { "check" } else { "test" }
+        if ($SkipTest -or $CheckOnly) { "check" } else { "test" }
     } else {
         "workspace"
     }
@@ -1189,6 +1438,7 @@ function Invoke-ValidateMatrixMain {
     $compilerCacheExecutable = Resolve-ManagedCompilerCacheExecutable `
         -StorageMode $StorageMode `
         -DryRunMode:$DryRun
+    $admissionTimer = [System.Diagnostics.Stopwatch]::StartNew()
     $resolvedTarget = Resolve-CoordinatorCargoTarget `
         -RepoRoot $resolvedRepoRoot `
         -ManualTargetDir $TargetDir `
@@ -1199,19 +1449,36 @@ function Invoke-ValidateMatrixMain {
         -PrecomputedCompatibilityJson $compatibilityJson `
         -EphemeralLane:$Ephemeral `
         -DryRunMode:$DryRun
+    $admissionTimer.Stop()
 
     $coordinatorJobFailed = $false
+    $validationCompleted = $false
     $coordinatorJobStartAttempted = $false
     $primaryFailure = $null
     $locationPushed = $false
     $cargoEnvironmentLease = $null
+    $compileWorkspace = $null
     try {
     if (-not $resolvedTarget.DryRun) {
+        $coordinatorJobStartAttempted = $true
+        Start-CoordinatorCargoTarget -RepoRoot $resolvedRepoRoot -ResolvedTarget $resolvedTarget
+        $compileWorkspace = Initialize-ManagedCompileWorkspace -RepoRoot $resolvedRepoRoot -TargetDirectory $resolvedTarget.TargetDir `
+            -SourceRoot $SourceSnapshot -ExpectedDigest $SourceSnapshotDigest `
+            -CommandsJson (Get-ManagedSnapshotCommandsJson -Stages $stagePlan -WorkspaceManifest $resolvedWorkspace.RelativePath)
+        Assert-ManagedCompilePolicy -RepoRoot $resolvedRepoRoot -SourceRoot $compileWorkspace.sourceRoot `
+            -Policy $script:ManagedBuildPolicy -StorageMode $StorageMode -LinkMode $LinkMode -Linker $Linker
+        $preparedCompilerCache = $null
+        if (-not [string]::IsNullOrWhiteSpace($compilerCacheExecutable)) {
+            $preparedCompilerCache = Invoke-CoordinatorCompilerCachePrepare -RepoRoot $resolvedRepoRoot -ResolvedTarget $resolvedTarget
+        }
         $cargoEnvironmentLease = Push-ManagedCargoEnvironment `
             -TargetDirectory $resolvedTarget.TargetDir `
             -JobId $resolvedTarget.JobId `
             -StorageMode $StorageMode `
-            -CompilerCacheExecutable $compilerCacheExecutable
+            -CompilerCacheExecutable $compilerCacheExecutable `
+            -RepoRoot $resolvedRepoRoot -SessionId $resolvedTarget.OwnerId -PreparedCompilerCacheBinding $preparedCompilerCache `
+            -ClearEnvironment $(if ($script:ManagedBuildPolicy.PSObject.Properties['clearEnvironment']) { @($script:ManagedBuildPolicy.clearEnvironment) } else { @() }) `
+            -BuildEnvironment (ConvertTo-ManagedEnvironment $script:ManagedBuildPolicy)
         Write-Host ("Job scratch temp: {0}" -f $cargoEnvironmentLease.TemporaryDisplayPath)
         if ($StorageMode -eq "compact") {
             Write-Host ("Build scratch: {0}" -f $cargoEnvironmentLease.BuildDisplayPath)
@@ -1227,9 +1494,12 @@ function Invoke-ValidateMatrixMain {
                 $cargoEnvironmentLease.SccacheServerProcessId
         )
     }
+    $cargoWorkingDirectory = if ($compileWorkspace) {
+        Join-Path $compileWorkspace.sourceRoot (Split-Path $resolvedWorkspace.RelativePath -Parent)
+    } else { $resolvedWorkspace.Directory }
     Write-Host "Repo root: $resolvedRepoRoot"
     Write-Host "Workspace manifest: $($resolvedWorkspace.RelativePath)"
-    Write-Host "Cargo working directory: $($resolvedWorkspace.Directory)"
+    Write-Host "Cargo working directory: $cargoWorkingDirectory"
     Write-Host ("Scope: {0}" -f $(if ([string]::IsNullOrWhiteSpace($Package)) { "workspace" } else { "package $Package" }))
     Write-Host ("Locked mode: {0}" -f $(if ($NoLocked) { "off" } else { "on" }))
     Write-Host "Cargo profile: $CargoProfile"
@@ -1247,30 +1517,48 @@ function Invoke-ValidateMatrixMain {
         $storageAdmission = Get-PrebuildStorageAdmissionStatus -AbsoluteTargetDir $resolvedTarget.AbsoluteTargetDir
         Write-Host ("Free space on {0}: {1} (required reserve {2})" -f $storageAdmission.DriveRoot, (Format-ByteCount -Bytes $storageAdmission.FreeBytes), (Format-ByteCount -Bytes $storageAdmission.MinimumFreeBytes))
         if (-not $storageAdmission.IsAdmitted) {
-            throw ("Cargo validation refused to preserve the disk reserve. Run .\tools\cleanup-stale-targets.ps1, review the plan, then apply it with -Apply. Free={0}; required reserve={1}." -f (Format-ByteCount -Bytes $storageAdmission.FreeBytes), (Format-ByteCount -Bytes $storageAdmission.MinimumFreeBytes))
+            throw ("Cargo validation refused to preserve the disk reserve. Run .\tools\maintenance\cleanup-stale-targets.ps1, review the plan, then apply it with -Apply. Free={0}; required reserve={1}." -f (Format-ByteCount -Bytes $storageAdmission.FreeBytes), (Format-ByteCount -Bytes $storageAdmission.MinimumFreeBytes))
         }
     }
 
-    $coordinatorJobStartAttempted = -not $resolvedTarget.DryRun
-    Start-CoordinatorCargoTarget -RepoRoot $resolvedRepoRoot -ResolvedTarget $resolvedTarget
-    Push-Location $resolvedWorkspace.Directory
+    if ($resolvedTarget.DryRun) { Start-CoordinatorCargoTarget -RepoRoot $resolvedRepoRoot -ResolvedTarget $resolvedTarget }
+    Push-Location $cargoWorkingDirectory
     $locationPushed = $true
-        if (-not $SkipBuild) {
+        $buildSucceeded = $true
+        if ($stagePlan.Check) {
+            Invoke-Step "Cargo check" {
+                Invoke-Cargo -Arguments (Get-CargoArgs `
+                    -Subcommand "check" `
+                    -ResolvedTargetDir $resolvedTarget.TargetDir `
+                    -WorkspaceManifest $resolvedWorkspace.InvocationManifestPath `
+                    -CargoProfile $CargoProfile)
+            }
+            $buildSucceeded = ($Results | Select-Object -Last 1).ExitCode -eq 0
+            $script:StageCheckPassed = $buildSucceeded
+        }
+        if ($stagePlan.Build -and $buildSucceeded) {
             Invoke-Step "Cargo build" {
                 Invoke-Cargo -Arguments (Get-CargoArgs `
-                    -Subcommand "build" `
+                    -Subcommand $(if ($RuntimeProductDll) { 'rustc' } else { 'build' }) `
                     -ResolvedTargetDir $resolvedTarget.TargetDir `
                     -WorkspaceManifest $resolvedWorkspace.InvocationManifestPath `
                     -CargoProfile $CargoProfile)
             }
 
-            if (($Results | Select-Object -Last 1).ExitCode -eq 0 -and $requestedPublishedArtifacts.Count -gt 0) {
+            $buildSucceeded = ($Results | Select-Object -Last 1).ExitCode -eq 0
+            if ($buildSucceeded -and $requestedPublishedArtifacts.Count -gt 0) {
                 Invoke-Step "Publish build artifacts" {
+                    if (-not $resolvedTarget.DryRun) {
+                        Test-ManagedCompileWorkspace -TargetDirectory $resolvedTarget.TargetDir | Out-Null
+                    }
                     Publish-BuildArtifacts `
                         -TargetDirectory $resolvedTarget.TargetDir `
                         -ArtifactOutputDirectory $ArtifactOutputDirectory `
                         -ArtifactName $requestedPublishedArtifacts `
                         -CargoProfile $CargoProfile `
+                        -CargoTarget $script:ManagedBuildPolicy.cargoTarget `
+                        -DevelopmentDlls:($script:ResolvedLinkMode -eq 'dev-dynamic') `
+                        -RuntimeOnlyDevelopmentDlls:($Package -eq 'zircon_runtime') `
                         -MvpProductInputArtifactOutput:$MvpProductInputArtifactOutput | ForEach-Object {
                         Write-Host ("Published {0} ({1}, SHA256 {2})" -f $_.Name, (Format-ByteCount -Bytes $_.Bytes), $_.Sha256)
                     }
@@ -1278,13 +1566,26 @@ function Invoke-ValidateMatrixMain {
             }
         }
 
-        if (-not $SkipTest) {
+        if ($stagePlan.Test -and $buildSucceeded) {
             Invoke-Step "Cargo test" {
                 Invoke-Cargo -Arguments (Get-CargoArgs `
                     -Subcommand "test" `
                     -ResolvedTargetDir $resolvedTarget.TargetDir `
                     -WorkspaceManifest $resolvedWorkspace.InvocationManifestPath `
-                    -CargoProfile $CargoProfile)
+                    -CargoProfile $CargoProfile) `
+                    -SkipCheck:$script:StageCheckPassed
+            }
+        }
+
+        if ($stagePlan.Test -and -not $buildSucceeded) {
+            Write-Host "Cargo test skipped because the prerequisite build failed." -ForegroundColor Yellow
+        }
+        if ($Run -and $buildSucceeded) {
+            Invoke-Step 'Cargo run' {
+                $runCommand = @(Get-CargoArgs -Subcommand 'run' -ResolvedTargetDir $resolvedTarget.TargetDir `
+                    -WorkspaceManifest $resolvedWorkspace.InvocationManifestPath -CargoProfile $CargoProfile)
+                if ($RunArguments) { $runCommand += @('--') + $RunArguments }
+                Invoke-Cargo -Arguments $runCommand
             }
         }
 
@@ -1324,16 +1625,30 @@ function Invoke-ValidateMatrixMain {
                 }
             }
         }
+        $validationCompleted = $true
     } catch {
         $coordinatorJobFailed = $true
         $primaryFailure = $_
         throw
     } finally {
+        if (-not $validationCompleted) { $coordinatorJobFailed = $true }
+        if ($compileWorkspace) {
+            try { Test-ManagedCompileWorkspace -TargetDirectory $resolvedTarget.TargetDir | Out-Null }
+            catch { $coordinatorJobFailed = $true; if (-not $primaryFailure) { $primaryFailure = $_ } }
+        }
         if ($locationPushed) {
             Pop-Location
         }
         $hasFailedStep = $null -ne ($Results | Where-Object { $_.ExitCode -ne 0 } | Select-Object -First 1)
         $jobExitCode = if ($coordinatorJobFailed -or $hasFailedStep) { 1 } else { 0 }
+        try {
+            Write-ManagedValidationMetrics -ResolvedTarget $resolvedTarget -CompileWorkspace $compileWorkspace `
+                -MetricPaths $script:BuildMetricPaths.ToArray() -QueueSeconds $admissionTimer.Elapsed.TotalSeconds -ExitCode $jobExitCode
+        } catch {
+            $coordinatorJobFailed = $true
+            $jobExitCode = 1
+            if (-not $primaryFailure) { $primaryFailure = $_ }
+        }
         $cleanupFailure = $null
         try {
             Complete-CoordinatorCargoTarget `
@@ -1357,10 +1672,15 @@ function Invoke-ValidateMatrixMain {
                     -WarningAction Continue
             }
         }
-        Resolve-ValidationCleanupFailure `
-            -CleanupFailure $cleanupFailure `
-            -PrimaryFailure $primaryFailure `
-            -HasFailedStep:$hasFailedStep
+        try {
+            Resolve-ValidationCleanupFailure `
+                -CleanupFailure $cleanupFailure `
+                -PrimaryFailure $primaryFailure `
+                -HasFailedStep:$hasFailedStep
+        } finally {
+            # Cleanup commands also set LASTEXITCODE, including during pipeline stop.
+            $global:LASTEXITCODE = if ($cleanupFailure) { 1 } else { $jobExitCode }
+        }
     }
 
     Write-Host ""
@@ -1375,7 +1695,8 @@ function Invoke-ValidateMatrixMain {
     }
 
     $failed = $Results | Where-Object { $_.ExitCode -ne 0 }
-    if ($failed) {
+    if ($failed -or $primaryFailure -or $coordinatorJobFailed) {
+        if ($primaryFailure) { Write-Error $primaryFailure -ErrorAction Continue }
         return 1
     }
 

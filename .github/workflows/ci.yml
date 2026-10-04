@@ -50,7 +50,7 @@ jobs:
 
       - name: Export canonical runtime profile matrix
         id: profile-matrix
-        run: echo "matrix=$(python tools/runtime-profile-feature-presets.py matrix)" >> "$GITHUB_OUTPUT"
+        run: echo "matrix=$(python tools/analysis/validation/runtime-profile-feature-presets.py matrix)" >> "$GITHUB_OUTPUT"
 
   runtime-profile-feature-matrix:
     name: Runtime profile feature (${{ matrix.profile }})
@@ -172,10 +172,16 @@ jobs:
         run: python -m unittest tools.tests.test_validate_cargo_test_reachability -v
 
       - name: Guard Cargo test reachability
-        run: python tools/validate_cargo_test_reachability.py --json
+        run: python tools/audits/validate_cargo_test_reachability.py --json
+
+      - name: Test Rust test separation guard
+        run: python -B -m unittest tools.tests.test_separate_rust_tests -v
+
+      - name: Guard Rust test directories
+        run: python -B tools/audits/separate_rust_tests.py --check
 
       - name: Run convention gates
-        run: python tools/check_conventions.py --json
+        run: python tools/audits/check_conventions.py --json
 
       - name: Build workspace
         run: cargo build --workspace --locked --verbose
@@ -190,7 +196,7 @@ jobs:
         run: cargo build --manifest-path zircon_plugins/Cargo.toml --workspace --locked --verbose
 
       - name: Guard plugin Cargo test reachability
-        run: python tools/validate_cargo_test_reachability.py --manifest-path zircon_plugins/Cargo.toml --json
+        run: python tools/audits/validate_cargo_test_reachability.py --manifest-path zircon_plugins/Cargo.toml --json
 
       - name: Check Rust plugin declarations, artifacts, and catalog wiring
         run: cargo run --locked -p cargo-zircon -- plugin check --root . --artifact-root zircon_plugins/target/debug
@@ -210,7 +216,7 @@ jobs:
           python-version: '3.11'
 
       - name: Validate standalone plugin manifests
-        run: python -m tools.zircon_export plugin validate --all --repo-root . --json
+        run: python -m tools.export plugin validate --all --repo-root . --json
 
   plugin-standalone-dist:
     name: Plugin standalone dist (${{ matrix.plugin_id }})
@@ -255,12 +261,16 @@ jobs:
             package: zircon_plugin_native_window_hosting_dist
           - plugin_id: editor_build_export_desktop
             package: zircon_plugin_editor_build_export_desktop_dist
+          - plugin_id: editor_contribution_fixture
+            package: zircon_plugin_editor_contribution_fixture_native
           - plugin_id: plugin_sdk_examples
             package: zircon_plugin_sdk_examples_dist
           - plugin_id: texture
             package: zircon_plugin_texture_dist
           - plugin_id: net
             package: zircon_plugin_net_dist
+          - plugin_id: neural
+            package: zircon_plugin_neural_dist
           - plugin_id: asset_importer.data
             package: zircon_plugin_asset_importer_data_dist
           - plugin_id: asset_importer.audio

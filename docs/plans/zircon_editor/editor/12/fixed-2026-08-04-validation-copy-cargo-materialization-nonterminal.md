@@ -9,10 +9,6 @@ origin_child_dir: docs/plans/zircon_editor/editor/12
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/workspace_copy.py
-  - tools/session_coordinator/workspace_copy_terminal.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/tests/test_workspace_copy.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_workspace_copy
   - validation_copy.materialize_cargo persists a terminal materialized or failed state after closure persistence

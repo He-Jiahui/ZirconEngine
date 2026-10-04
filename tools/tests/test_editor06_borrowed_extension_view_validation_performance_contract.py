@@ -1,3 +1,4 @@
+# 核对扩展视图描述符校验借用候选切片并保留其回归入口。
 from pathlib import Path
 import unittest
 

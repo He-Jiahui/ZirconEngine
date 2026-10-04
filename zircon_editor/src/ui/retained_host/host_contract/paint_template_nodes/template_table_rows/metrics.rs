@@ -1,3 +1,5 @@
+//! 表格表面圆角和行分隔厚度跟随动态宿主密度；粗边框时圆角可退化为零，不能产生负圆角。
+
 use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -20,31 +22,5 @@ fn table_row_surface_metrics_from_host(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::super::super::super::paint_theme::METRICS;
-    use super::*;
-
-    #[test]
-    fn table_row_surface_metrics_project_from_host_control_metrics() {
-        let mut host = METRICS;
-        host.radius_control = 6.0;
-        host.border_width = 1.5;
-
-        let metrics = table_row_surface_metrics_from_host(host);
-
-        assert_eq!(metrics.radius, 4.5);
-        assert_eq!(metrics.separator_height, 1.5);
-    }
-
-    #[test]
-    fn table_row_surface_radius_clamps_when_border_exceeds_radius() {
-        let mut host = METRICS;
-        host.radius_control = 1.0;
-        host.border_width = 2.0;
-
-        let metrics = table_row_surface_metrics_from_host(host);
-
-        assert_eq!(metrics.radius, 0.0);
-        assert_eq!(metrics.separator_height, 2.0);
-    }
-}
+#[path = "tests/metrics.rs"]
+mod tests;

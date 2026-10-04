@@ -1,7 +1,9 @@
 use super::*;
 use zircon_runtime::ui::v2::UiZuiAssetLoader;
 
-pub(super) fn parse_ui_asset_source(source: &str) -> Result<UiAssetDocument, UiAssetError> {
+pub(in crate::ui::asset_editor::session) fn parse_ui_asset_source(
+    source: &str,
+) -> Result<UiAssetDocument, UiAssetError> {
     EditorTemplateRuntimeService.parse_document_source(source)
 }
 
@@ -176,24 +178,25 @@ pub(super) fn flatten_legacy_projection_nodes_into(
                     .or_insert_with(|| toml::Value::String(slot_name.clone()));
             }
         }
+        let previous_node = previous.and_then(|document| document.nodes.get(&node.node_id));
         let next = UiV2NodeDefinition {
             component,
             control_id: node.control_id,
-            pixel_snapping: previous
-                .and_then(|document| document.nodes.get(&node.node_id))
-                .and_then(|node| node.pixel_snapping),
+            pixel_snapping: previous_node.and_then(|node| node.pixel_snapping),
             params: node.params,
             classes: node.classes,
             props,
-            state: previous
-                .and_then(|document| document.nodes.get(&node.node_id))
+            state: previous_node
                 .map(|node| node.state.clone())
                 .unwrap_or_default(),
             layout: node.layout,
-            repeat: None,
+            repeat: previous_node.and_then(|node| node.repeat.clone()),
             style: v2_style_block(&node.style_overrides),
-            slots: BTreeMap::new(),
+            slots: previous_node
+                .map(|node| node.slots.clone())
+                .unwrap_or_default(),
             events: node.bindings,
+            widget: node.widget,
             children,
         };
         if let Some(existing) = nodes.get(&node.node_id) {
@@ -373,7 +376,7 @@ pub(super) fn legacy_projection_node(
         navigation: None,
         picking: None,
         a11y: None,
-        widget: None,
+        widget: source.widget.clone(),
         children,
     }
 }
@@ -451,228 +454,8 @@ pub(super) fn reconcile_selected_palette_index<T>(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn v2_projection_roundtrip_preserves_reference_component_and_named_mount() {
-        let external_reference = UiNodeDefinition {
-            node_id: "external_button".to_string(),
-            kind: UiNodeDefinitionKind::Reference,
-            component_ref: Some("res://ui/widgets/button.zui#ToolbarButton".to_string()),
-            ..Default::default()
-        };
-        let local_component = UiNodeDefinition {
-            node_id: "local_card".to_string(),
-            kind: UiNodeDefinitionKind::Component,
-            component: Some("Card".to_string()),
-            ..Default::default()
-        };
-        let slot = UiNodeDefinition {
-            node_id: "footer_slot".to_string(),
-            kind: UiNodeDefinitionKind::Slot,
-            slot_name: Some("footer".to_string()),
-            ..Default::default()
-        };
-        let root = UiNodeDefinition {
-            node_id: "root".to_string(),
-            kind: UiNodeDefinitionKind::Native,
-            widget_type: Some("VerticalBox".to_string()),
-            children: vec![
-                UiChildMount {
-                    mount: Some("footer".to_string()),
-                    node: external_reference,
-                    ..Default::default()
-                },
-                UiChildMount {
-                    node: local_component,
-                    ..Default::default()
-                },
-                UiChildMount {
-                    node: slot,
-                    ..Default::default()
-                },
-            ],
-            ..Default::default()
-        };
-        let component_root = UiNodeDefinition {
-            node_id: "card_root".to_string(),
-            kind: UiNodeDefinitionKind::Native,
-            widget_type: Some("Panel".to_string()),
-            ..Default::default()
-        };
-        let document = UiAssetDocument {
-            asset: UiAssetHeader {
-                kind: UiAssetKind::Layout,
-                id: "ui.test.projection".to_string(),
-                version: 1,
-                display_name: "Projection".to_string(),
-            },
-            imports: Default::default(),
-            tokens: Default::default(),
-            root: Some(root),
-            components: BTreeMap::from([(
-                "Card".to_string(),
-                UiComponentDefinition {
-                    root: component_root,
-                    ..Default::default()
-                },
-            )]),
-            stylesheets: Vec::new(),
-        };
-
-        let v2 = legacy_projection_document_to_v2_document(&document, None)
-            .expect("legacy authoring projection should convert to v2");
-        assert_eq!(v2.asset.version, UI_V2_ASSET_SCHEMA_VERSION);
-        assert_eq!(
-            v2.nodes["external_button"].component,
-            "res://ui/widgets/button.zui#ToolbarButton"
-        );
-        assert_eq!(v2.nodes["local_card"].component, "Card");
-        assert_eq!(v2.nodes["footer_slot"].component, "Slot");
-        assert_eq!(
-            v2.nodes["footer_slot"].props["name"].as_str(),
-            Some("footer")
-        );
-        assert_eq!(
-            v2.nodes["root"].children[0].slot["name"].as_str(),
-            Some("footer")
-        );
-
-        let projected = v2_document_to_legacy_projection_document(&v2)
-            .expect("v2 authoring document should project back to the editor model");
-        let children = &projected.root.expect("projected root").children;
-        assert_eq!(children[0].mount.as_deref(), Some("footer"));
-        assert_eq!(children[0].node.kind, UiNodeDefinitionKind::Reference);
-        assert_eq!(
-            children[0].node.component_ref.as_deref(),
-            Some("res://ui/widgets/button.zui#ToolbarButton")
-        );
-        assert_eq!(children[1].node.kind, UiNodeDefinitionKind::Component);
-        assert_eq!(children[1].node.component.as_deref(), Some("Card"));
-        assert_eq!(children[2].node.kind, UiNodeDefinitionKind::Slot);
-        assert_eq!(children[2].node.slot_name.as_deref(), Some("footer"));
-    }
-
-    #[test]
-    fn product_binding_fixture_projection_roundtrip_preserves_params_and_prior_state() {
-        let source = r#"
-[asset]
-kind = "view"
-id = "ui.test.param_projection"
-version = 2
-
-[root]
-node = "root"
-
-[nodes.root]
-component = "BindingRow"
-params = { label = "Before" }
-state = { selected = true }
-"#;
-        let v2 = UiZuiAssetLoader::load_zui_str(source).expect("v2 param projection source");
-        let mut projected = v2_document_to_legacy_projection_document(&v2)
-            .expect("v2 params should project into the editor model");
-        let root = projected.root.as_mut().expect("projected root");
-        assert_eq!(
-            root.params.get("label").and_then(toml::Value::as_str),
-            Some("Before")
-        );
-        assert!(!root.params.contains_key("selected"));
-        root.params.insert(
-            "label".to_string(),
-            toml::Value::String("After".to_string()),
-        );
-
-        let rebuilt = legacy_projection_document_to_v2_document(&projected, Some(&v2))
-            .expect("editor projection should rebuild v2 params");
-
-        assert_eq!(
-            rebuilt.nodes["root"]
-                .params
-                .get("label")
-                .and_then(toml::Value::as_str),
-            Some("After")
-        );
-        assert_eq!(
-            rebuilt.nodes["root"]
-                .state
-                .get("selected")
-                .and_then(toml::Value::as_bool),
-            Some(true)
-        );
-    }
-
-    #[test]
-    fn component_projection_uses_component_root_without_view_root() {
-        let document = component_projection_document();
-
-        let v2 = legacy_projection_document_to_v2_document(&document, None)
-            .expect("component projection should convert to v2");
-
-        assert_eq!(v2.asset.kind, UiV2AssetKind::Component);
-        assert!(
-            v2.root.is_none(),
-            "component assets must not declare a view root"
-        );
-        assert_eq!(v2.components["Button"].root, "button_root");
-        assert!(v2.nodes.contains_key("button_root"));
-    }
-
-    #[test]
-    fn v2_serializer_rejects_component_assets_with_multiple_components() {
-        let mut document = component_projection_document();
-        let _ = document.components.insert(
-            "SecondaryButton".to_string(),
-            UiComponentDefinition {
-                root: UiNodeDefinition {
-                    node_id: "secondary_button_root".to_string(),
-                    kind: UiNodeDefinitionKind::Native,
-                    widget_type: Some("Button".to_string()),
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
-        );
-
-        let error = serialize_v2_projection_document(&document, None)
-            .expect_err("component serialization must enforce the v2 loader profile");
-
-        assert!(matches!(
-            error,
-            UiAssetEditorSessionError::V2Asset(UiV2AssetError::InvalidDocument { detail, .. })
-                if detail.contains("must declare exactly one component")
-        ));
-    }
-
-    fn component_projection_document() -> UiAssetDocument {
-        let component_root = UiNodeDefinition {
-            node_id: "button_root".to_string(),
-            kind: UiNodeDefinitionKind::Native,
-            widget_type: Some("Button".to_string()),
-            ..Default::default()
-        };
-        UiAssetDocument {
-            asset: UiAssetHeader {
-                kind: UiAssetKind::Widget,
-                id: "ui.widgets.button".to_string(),
-                version: 1,
-                display_name: "Button".to_string(),
-            },
-            imports: Default::default(),
-            tokens: Default::default(),
-            root: Some(component_root.clone()),
-            components: BTreeMap::from([(
-                "Button".to_string(),
-                UiComponentDefinition {
-                    root: component_root,
-                    ..Default::default()
-                },
-            )]),
-            stylesheets: Vec::new(),
-        }
-    }
-}
+#[path = "tests/v2_projection.rs"]
+mod tests;
 
 pub(in crate::ui::asset_editor::session) fn structured_compile_diagnostics(
     document: &UiAssetDocument,

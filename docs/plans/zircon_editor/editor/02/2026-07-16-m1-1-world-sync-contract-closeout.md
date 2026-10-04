@@ -3,7 +3,7 @@
 Plan: docs/plans/zircon_editor/editor/02-data-sync-and-messaging.md
 Milestone: M1.1
 Status: completed
-Files: ["zircon_runtime_interface/src/world_sync/query.rs", "zircon_runtime_interface/src/tests/world_sync_contracts.rs", "docs/zircon_runtime_interface/world_sync.md", "docs/plans/zircon_editor/editor/02/2026-07-16-m1-1-world-sync-contract-closeout.md"]
+Files: ["zircon_runtime_interface/src/world_sync/query.rs", "zircon_runtime_interface/src/tests/world_sync_contracts.rs", "docs/crates/zircon_runtime_interface/world_sync.md", "docs/plans/zircon_editor/editor/02/2026-07-16-m1-1-world-sync-contract-closeout.md"]
 
 ## 产出记录与时间
 

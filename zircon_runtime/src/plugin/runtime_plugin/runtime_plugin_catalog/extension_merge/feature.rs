@@ -45,6 +45,7 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn merge_feature_e
     );
 }
 
+// 先复制登记诊断，再注册 manager；目标模式只用于筛选后续按模块归属的扩展贡献。
 fn merge_feature_extensions_with_module_filter(
     registration: &RuntimePluginFeatureRegistrationReport,
     selected_module_names: Option<&HashSet<&str>>,
@@ -52,6 +53,8 @@ fn merge_feature_extensions_with_module_filter(
     diagnostics: &mut Vec<String>,
     fatal_diagnostics: &mut Vec<String>,
 ) {
+    let registry_before = registry.clone();
+    let fatal_diagnostic_start = fatal_diagnostics.len();
     for diagnostic in &registration.diagnostics {
         push_fatal_diagnostic(
             diagnostics,
@@ -84,5 +87,12 @@ fn merge_feature_extensions_with_module_filter(
             diagnostics,
             fatal_diagnostics,
         );
+    }
+    if fatal_diagnostics.len() != fatal_diagnostic_start {
+        *registry = registry_before;
+        diagnostics.push(format!(
+            "runtime feature {} contribution transaction rolled back",
+            registration.manifest.id
+        ));
     }
 }

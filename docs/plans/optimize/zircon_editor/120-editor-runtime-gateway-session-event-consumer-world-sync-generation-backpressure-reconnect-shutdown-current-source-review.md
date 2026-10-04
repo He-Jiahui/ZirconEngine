@@ -36,7 +36,6 @@ tests:
   - zircon_editor/src/core/sync/watch_map/tests.rs
   - zircon_editor/src/tests/gateway
   - zircon_editor/src/tests/runtime_event_consumer.rs
-  - zircon_editor/src/tests/runtime_event_consumer_bounded_pump.rs
   - zircon_editor/src/tests/runtime_event_consumer_bounded_pump
 plan_sources:
   - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md

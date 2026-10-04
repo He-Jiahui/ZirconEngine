@@ -1,6 +1,7 @@
 use std::{
     cmp::Ordering,
-    collections::{BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet, HashMap},
+    hash::Hash,
 };
 
 use zircon_runtime_interface::ui::{
@@ -21,6 +22,11 @@ use super::{arranged_node_indexed, frame_hit_test::UiProjectedHitTestIndex, surf
 mod profile;
 #[cfg(feature = "profiling")]
 use profile::record_navigation_rebuild_profile;
+mod candidate_buckets;
+use candidate_buckets::{
+    clear_candidate_buckets, prune_empty_candidate_buckets, prune_first_group_candidates,
+    push_group_candidate, reset_first_group_candidates, FirstGroupCandidate,
+};
 mod geometry_patch;
 mod semantics;
 
@@ -35,13 +41,15 @@ pub(super) struct UiSurfaceNavigationIndex {
     tab_base: Vec<UiNodeId>,
     tab_groups: BTreeMap<UiNavigationGroupId, Vec<UiNodeId>>,
     tab_mui_roots: BTreeMap<UiNodeId, Vec<UiNodeId>>,
-    tab_base_positions: BTreeMap<UiNodeId, usize>,
-    tab_group_positions: BTreeMap<UiNavigationGroupId, BTreeMap<UiNodeId, usize>>,
-    tab_mui_root_positions: BTreeMap<UiNodeId, BTreeMap<UiNodeId, usize>>,
+    // Candidate ordering stays in the sorted vectors above; these maps are lookup-only
+    // and retain nested buckets so stable scopes do not reallocate on every rebuild.
+    tab_base_positions: HashMap<UiNodeId, usize>,
+    tab_group_positions: HashMap<UiNavigationGroupId, HashMap<UiNodeId, usize>>,
+    tab_mui_root_positions: HashMap<UiNodeId, HashMap<UiNodeId, usize>>,
     spatial_all: Vec<UiNodeId>,
     spatial_groups: BTreeMap<UiNavigationGroupId, Vec<UiNodeId>>,
     spatial_mui_roots: BTreeMap<UiNodeId, Vec<UiNodeId>>,
-    first_candidate_by_group: BTreeMap<UiNavigationGroupId, UiNodeId>,
+    first_candidate_by_group: HashMap<UiNavigationGroupId, FirstGroupCandidate>,
     declared_modal_scope: Option<UiRankedNavigationScope>,
 }
 
@@ -175,15 +183,13 @@ impl UiSurfaceNavigationIndex {
         self.geometry_authority_node_ids.clear();
         self.referenced_modal_root_node_ids.clear();
         self.tab_base.clear();
-        self.tab_groups.clear();
-        self.tab_mui_roots.clear();
+        clear_candidate_buckets(&mut self.tab_groups);
+        clear_candidate_buckets(&mut self.tab_mui_roots);
         self.tab_base_positions.clear();
-        self.tab_group_positions.clear();
-        self.tab_mui_root_positions.clear();
         self.spatial_all.clear();
-        self.spatial_groups.clear();
-        self.spatial_mui_roots.clear();
-        self.first_candidate_by_group.clear();
+        clear_candidate_buckets(&mut self.spatial_groups);
+        clear_candidate_buckets(&mut self.spatial_mui_roots);
+        reset_first_group_candidates(&mut self.first_candidate_by_group);
         self.declared_modal_scope = None;
     }
 
@@ -324,44 +330,56 @@ impl UiSurfaceNavigationIndex {
     }
 
     fn finish_lists(&mut self) {
-        let candidate_ids: Vec<_> = self
-            .nodes
-            .iter()
-            .filter_map(|(node_id, node)| node.focus_candidate.then_some(*node_id))
-            .collect();
-        for node_id in candidate_ids {
-            let node = self
-                .nodes
-                .get(&node_id)
-                .expect("candidate id must resolve in navigation index");
-            self.spatial_all.push(node_id);
+        let nodes = &self.nodes;
+        for (node_id, node) in &self.nodes {
+            if !node.focus_candidate {
+                continue;
+            }
+            self.spatial_all.push(*node_id);
+            if let Some(group_id) = &node.group_id {
+                if let Some(candidate) = self.first_candidate_by_group.get_mut(group_id) {
+                    if !candidate.seen
+                        || compare_tab_nodes(nodes, *node_id, candidate.node_id) == Ordering::Less
+                    {
+                        candidate.node_id = *node_id;
+                    }
+                    candidate.seen = true;
+                } else {
+                    self.first_candidate_by_group.insert(
+                        group_id.clone(),
+                        FirstGroupCandidate {
+                            node_id: *node_id,
+                            seen: true,
+                        },
+                    );
+                }
+            }
             if let Some(group_id) = &node.modal_group_id {
-                self.spatial_groups
-                    .entry(group_id.clone())
-                    .or_default()
-                    .push(node_id);
+                push_group_candidate(&mut self.spatial_groups, group_id, *node_id);
                 if node.tabbable {
-                    self.tab_groups
-                        .entry(group_id.clone())
-                        .or_default()
-                        .push(node_id);
+                    push_group_candidate(&mut self.tab_groups, group_id, *node_id);
                 }
             }
             if let Some(root) = node.mui_modal_root {
                 self.spatial_mui_roots
                     .entry(root)
                     .or_default()
-                    .push(node_id);
+                    .push(*node_id);
                 if node.tabbable {
-                    self.tab_mui_roots.entry(root).or_default().push(node_id);
+                    self.tab_mui_roots.entry(root).or_default().push(*node_id);
                 }
             }
             if node.modal_group_id.is_none() && node.mui_modal_root.is_none() && node.tabbable {
-                self.tab_base.push(node_id);
+                self.tab_base.push(*node_id);
             }
         }
 
-        let nodes = &self.nodes;
+        prune_empty_candidate_buckets(&mut self.spatial_groups);
+        prune_empty_candidate_buckets(&mut self.tab_groups);
+        prune_empty_candidate_buckets(&mut self.spatial_mui_roots);
+        prune_empty_candidate_buckets(&mut self.tab_mui_roots);
+        prune_first_group_candidates(&mut self.first_candidate_by_group);
+
         self.spatial_all
             .sort_by(|left, right| compare_spatial_nodes(nodes, *left, *right));
         for candidates in self.spatial_groups.values_mut() {
@@ -379,36 +397,9 @@ impl UiSurfaceNavigationIndex {
             candidates.sort_by(|left, right| compare_tab_nodes(nodes, *left, *right));
         }
 
-        self.tab_base_positions = position_map(&self.tab_base);
-        self.tab_group_positions = self
-            .tab_groups
-            .iter()
-            .map(|(group_id, candidates)| (group_id.clone(), position_map(candidates)))
-            .collect();
-        self.tab_mui_root_positions = self
-            .tab_mui_roots
-            .iter()
-            .map(|(root, candidates)| (*root, position_map(candidates)))
-            .collect();
-
-        let mut group_candidates: BTreeMap<UiNavigationGroupId, Vec<UiNodeId>> = BTreeMap::new();
-        for (node_id, node) in &self.nodes {
-            if node.focus_candidate {
-                if let Some(group_id) = &node.group_id {
-                    group_candidates
-                        .entry(group_id.clone())
-                        .or_default()
-                        .push(*node_id);
-                }
-            }
-        }
-        for (group_id, candidates) in &mut group_candidates {
-            candidates.sort_by(|left, right| compare_tab_nodes(nodes, *left, *right));
-            if let Some(first) = candidates.first() {
-                self.first_candidate_by_group
-                    .insert(group_id.clone(), *first);
-            }
-        }
+        rebuild_position_map(&mut self.tab_base_positions, &self.tab_base);
+        rebuild_group_position_maps(&mut self.tab_group_positions, &self.tab_groups);
+        rebuild_root_position_maps(&mut self.tab_mui_root_positions, &self.tab_mui_roots);
     }
 
     fn next_tab_target(
@@ -513,9 +504,11 @@ impl UiSurfaceNavigationIndex {
                     .filter(|node| node.focus_candidate)
                     .map(|_| *node_id),
             ),
-            UiDirectionalNavigationTarget::Group(group_id) => {
-                Some(self.first_candidate_by_group.get(group_id).copied())
-            }
+            UiDirectionalNavigationTarget::Group(group_id) => Some(
+                self.first_candidate_by_group
+                    .get(group_id)
+                    .map(|candidate| candidate.node_id),
+            ),
         }
     }
 
@@ -879,12 +872,49 @@ fn compare_spatial_nodes(
         .then_with(|| left.cmp(&right))
 }
 
-fn position_map(candidates: &[UiNodeId]) -> BTreeMap<UiNodeId, usize> {
-    candidates
-        .iter()
-        .enumerate()
-        .map(|(index, node_id)| (*node_id, index))
-        .collect()
+fn rebuild_position_map<K>(positions: &mut HashMap<K, usize>, candidates: &[K])
+where
+    K: Copy + Eq + Hash,
+{
+    positions.clear();
+    positions.reserve(candidates.len());
+    positions.extend(
+        candidates
+            .iter()
+            .copied()
+            .enumerate()
+            .map(|(index, node_id)| (node_id, index)),
+    );
+}
+
+fn rebuild_group_position_maps(
+    positions: &mut HashMap<UiNavigationGroupId, HashMap<UiNodeId, usize>>,
+    candidates: &BTreeMap<UiNavigationGroupId, Vec<UiNodeId>>,
+) {
+    positions.retain(|group_id, _| candidates.contains_key(group_id));
+    positions.reserve(candidates.len());
+    for (group_id, group_candidates) in candidates {
+        if let Some(position_map) = positions.get_mut(group_id) {
+            rebuild_position_map(position_map, group_candidates);
+            continue;
+        }
+
+        let mut position_map = HashMap::with_capacity(group_candidates.len());
+        rebuild_position_map(&mut position_map, group_candidates);
+        positions.insert(group_id.clone(), position_map);
+    }
+}
+
+fn rebuild_root_position_maps(
+    positions: &mut HashMap<UiNodeId, HashMap<UiNodeId, usize>>,
+    candidates: &BTreeMap<UiNodeId, Vec<UiNodeId>>,
+) {
+    positions.retain(|root, _| candidates.contains_key(root));
+    positions.reserve(candidates.len());
+    for (root, root_candidates) in candidates {
+        let position_map = positions.entry(*root).or_default();
+        rebuild_position_map(position_map, root_candidates);
+    }
 }
 
 fn target_for_direction(
@@ -954,4 +984,5 @@ fn bool_attribute_any(metadata: &UiTemplateNodeMetadata, keys: &[&str]) -> bool 
 }
 
 #[cfg(test)]
+#[path = "navigation_index/tests/cases.rs"]
 mod tests;

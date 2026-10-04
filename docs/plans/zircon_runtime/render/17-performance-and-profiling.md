@@ -9,7 +9,6 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler/gpu_resolution.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/scope.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store.rs
   - zircon_runtime/src/core/runtime/tasks/pool.rs
   - dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Public/ProfilingDebugging/RealtimeGPUProfiler.h
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/SceneRendering.h
@@ -207,7 +206,7 @@ F4 native UI presenter的逐文件审查还发现per-present command sort、三�
 | `zircon_runtime/src/core/runtime/diagnostics/render_stats_store.rs`(及分文件) | 镜像层级 profile 给诊断/编辑器消费 |
 | `zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs`(族) | miss 路径接 `PipelineAsyncCompiler`(占位策略),同步路径保留为 `allow_async_compile=false` 档 |
 | `zircon_runtime/src/render_graph/mod.rs` | 仅 wiring:声明 `store_lint` 模块 |
-| `tools/zircon_build.py` | 预热钩子:staged 启动脚本消费 08 prewarm 清单(衔接 08 的 `--prewarm-shaders`,不重复实现) |
+| `tools/build/zircon_build.py` | 预热钩子:staged 启动脚本消费 08 prewarm 清单(衔接 08 的 `--prewarm-shaders`,不重复实现) |
 
 ### 核心类型与接口
 

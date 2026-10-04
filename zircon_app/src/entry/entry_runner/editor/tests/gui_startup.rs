@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use super::super::{
+    admit_builtin_editor_ui_selection, disable_unlinked_editor_render_features,
     editor_host_startup_error, editor_host_startup_request, editor_startup_argument_error,
     prepare_editor_gui_startup, EditorGuiStartupRequestArgs,
 };
@@ -10,7 +11,10 @@ use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
 use zircon_runtime::asset::AssetUri;
 use zircon_runtime::builtin::RuntimePluginId;
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
-use zircon_runtime::core::framework::project::{ExportPackagingStrategy, ProjectPluginSelection};
+use zircon_runtime::core::framework::project::{
+    ExportPackagingStrategy, ProjectPluginFeatureSelection, ProjectPluginManifest,
+    ProjectPluginSelection,
+};
 use zircon_runtime_interface::project::{
     ProjectActivationOperationId, ProjectActivationOperationIdGenerator, ProjectLaunchInstanceId,
     ProjectLaunchIntent, ProjectLaunchProfile, ProjectLaunchSource, ProjectLaunchTarget,
@@ -26,7 +30,7 @@ fn editor_gui_startup_parser_accepts_project_path() {
     .unwrap()
     .unwrap();
 
-    let EditorGuiStartupRequest::Project { intent } = request else {
+    let EditorGuiStartupRequest::Project { intent, .. } = request else {
         panic!("--project must produce a versioned project launch intent");
     };
     assert_eq!(intent.source(), ProjectLaunchSource::Cli);
@@ -89,7 +93,7 @@ fn editor_gui_startup_parser_accepts_create_project_request() {
     .unwrap()
     .unwrap();
 
-    let EditorGuiStartupRequest::Project { intent } = request else {
+    let EditorGuiStartupRequest::Project { intent, .. } = request else {
         panic!("--create-project must produce a versioned project launch intent");
     };
     assert_eq!(intent.source(), ProjectLaunchSource::Cli);
@@ -199,11 +203,10 @@ fn editor_host_startup_request_hides_windows_verbatim_project_path_prefixes() {
 }
 
 #[test]
-fn create_startup_request_reenters_the_admission_path_without_a_prepared_project() {
+fn create_startup_request_remains_unmaterialized_until_editor_admission() {
     let location = unique_temp_project_root("editor-startup-create");
     std::fs::create_dir_all(&location).unwrap();
     let project_root = location.join("StartupProject");
-    let resolved_project_root = ProjectPaths::resolve_path(&project_root).unwrap();
 
     let prepared = prepare_editor_gui_startup(Some(create_project_request(
         "StartupProject",
@@ -211,19 +214,62 @@ fn create_startup_request_reenters_the_admission_path_without_a_prepared_project
     )))
     .unwrap();
 
-    assert_startup_project_path(
-        prepared.startup_request.as_ref(),
-        resolved_project_root.operation_path(),
+    let Some(EditorGuiStartupRequest::Project { intent, .. }) = prepared.startup_request.as_ref()
+    else {
+        panic!("create startup must retain its versioned project launch intent");
+    };
+    assert_eq!(
+        intent.target(),
+        &ProjectLaunchTarget::CreateProject {
+            project_name: "StartupProject".to_string(),
+            location: location.clone(),
+            template: ProjectTemplateId::RenderableEmpty,
+        }
     );
-    assert!(prepared.entry_config.project_plugin_manifest().is_none());
-    assert!(project_root.join("zircon-project.toml").is_file());
+    let plugins = prepared
+        .entry_config
+        .project_plugin_manifest()
+        .expect("template provider manifest must participate in App composition");
+    assert_eq!(plugins.selections.len(), 4);
+    assert!(plugins
+        .selections
+        .iter()
+        .filter(|selection| selection.id != RuntimePluginId::Ui.key())
+        .all(|selection| selection.required));
+    assert!(prepared
+        .startup_request
+        .as_ref()
+        .and_then(EditorGuiStartupRequest::project_preflight)
+        .is_some());
+    assert!(
+        !project_root.exists(),
+        "App startup preparation must not publish or materialize a project before Editor admission"
+    );
 
     drop(prepared);
     std::fs::remove_dir_all(location).unwrap();
 }
 
 #[test]
-fn editor_gui_startup_keeps_existing_projects_as_unmaterialized_launch_intents() {
+fn hub_handshake_targets_the_prospective_create_root_without_retargeting_the_intent() {
+    let location = unique_temp_project_root("editor-startup-hub-create-root");
+    let request = create_project_request("Hub Project", &location);
+    let EditorGuiStartupRequest::Project { intent, .. } = &request else {
+        panic!("create request must carry a project launch intent");
+    };
+
+    assert_eq!(
+        super::super::hub_handshake_project_root(intent),
+        location.join("Hub Project")
+    );
+    assert!(matches!(
+        intent.target(),
+        ProjectLaunchTarget::CreateProject { .. }
+    ));
+}
+
+#[test]
+fn editor_gui_startup_preflights_existing_project_without_materializing_runtime_state() {
     let root = unique_temp_project_root("startup_manifest_input");
     write_project_manifest_with_plugins(&root, 1_000);
     let manifest = root.join(zircon_runtime::asset::project::PROJECT_MANIFEST_FILE);
@@ -231,14 +277,24 @@ fn editor_gui_startup_keeps_existing_projects_as_unmaterialized_launch_intents()
     let prepared = prepare_editor_gui_startup(Some(project_request(&manifest))).unwrap();
 
     assert_startup_project_path(prepared.startup_request.as_ref(), &manifest);
-    assert!(prepared.entry_config.project_plugin_manifest().is_none());
+    let plugins = prepared.entry_config.project_plugin_manifest().unwrap();
+    assert_eq!(plugins.selections.len(), 5);
+    assert!(plugins
+        .selections
+        .iter()
+        .any(|selection| selection.id == RuntimePluginId::Navigation.key()));
+    assert!(prepared
+        .startup_request
+        .as_ref()
+        .and_then(EditorGuiStartupRequest::project_preflight)
+        .is_some());
 
     drop(prepared);
     std::fs::remove_dir_all(root).unwrap();
 }
 
 #[test]
-fn editor_entry_defers_project_materialization_and_plugin_selection_to_admission() {
+fn editor_entry_preflights_provider_selection_without_materializing_project_runtime() {
     let source = include_str!("../../editor.rs");
 
     assert!(source.contains("prepare_editor_gui_startup(gui_startup_request)"));
@@ -254,11 +310,7 @@ fn editor_entry_defers_project_materialization_and_plugin_selection_to_admission
         !source.contains("prepare_open_project("),
         "the retired App-side project materialization helper must not remain"
     );
-    assert!(
-        !source
-            .contains("first_party_runtime_plugin_registrations_for_manifest_with_render_profile("),
-        "project manifest must not select runtime providers before admission"
-    );
+    assert!(source.contains(".with_project_plugins(project_plugins)"));
     assert!(
         !source.contains("first_party_editor_plugin_registrations_for_manifest("),
         "project manifest must not select editor providers before admission"
@@ -286,16 +338,104 @@ fn editor_entry_defers_project_materialization_and_plugin_selection_to_admission
 }
 
 #[test]
-fn editor_gui_startup_never_projects_manifest_plugins_into_the_bootstrap_configuration() {
+fn editor_gui_startup_projects_manifest_plugins_once_into_bootstrap_configuration() {
     let root = unique_temp_project_root("startup_project_plugin_boundary");
     write_project_manifest_with_plugins(&root, 1_000);
 
     let prepared = prepare_editor_gui_startup(Some(project_request(&root))).unwrap();
 
-    assert!(prepared.entry_config.project_plugin_manifest().is_none());
+    let plugins = prepared.entry_config.project_plugin_manifest().unwrap();
+    assert_eq!(plugins.selections.len(), 5);
+    assert!(plugins
+        .selections
+        .iter()
+        .any(|selection| selection.id == RuntimePluginId::Navigation.key()));
 
     drop(prepared);
     std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn editor_welcome_bootstrap_includes_the_minimum_renderable_project_providers() {
+    let prepared = prepare_editor_gui_startup(None).unwrap();
+    let plugins = prepared.entry_config.project_plugin_manifest().unwrap();
+    let required = plugins
+        .selections
+        .iter()
+        .filter(|selection| selection.required)
+        .map(|selection| selection.id.as_str())
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        required,
+        vec!["rendering", "obj_importer", "shader_wgsl_importer"]
+    );
+}
+
+#[test]
+fn editor_builtin_ui_does_not_require_an_external_plugin_registration() {
+    let prepared = prepare_editor_gui_startup(None).unwrap();
+    let ui = prepared
+        .entry_config
+        .project_plugin_manifest()
+        .unwrap()
+        .selections
+        .iter()
+        .find(|selection| selection.id == RuntimePluginId::Ui.key())
+        .unwrap();
+    assert!(ui.enabled);
+    assert!(!ui.required);
+
+    let mut external_ui = ProjectPluginManifest {
+        selections: vec![
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Ui, true, true)
+                .with_runtime_crate("vendor_ui_runtime"),
+        ],
+    };
+    admit_builtin_editor_ui_selection(&mut external_ui);
+    assert!(external_ui.selections[0].required);
+}
+
+#[test]
+fn editor_bootstrap_disables_unlinked_optional_render_features() {
+    let prepared = prepare_editor_gui_startup(None).unwrap();
+    let rendering = prepared
+        .entry_config
+        .project_plugin_manifest()
+        .unwrap()
+        .selections
+        .iter()
+        .find(|selection| selection.id == RuntimePluginId::Rendering.key())
+        .unwrap();
+    for feature_id in [
+        "rendering.post_process",
+        "rendering.reflection_probes",
+        "rendering.baked_lighting",
+    ] {
+        assert!(rendering
+            .features
+            .iter()
+            .any(|feature| feature.id == feature_id && !feature.enabled));
+    }
+}
+
+#[test]
+fn editor_render_feature_override_preserves_an_explicit_project_request() {
+    let mut manifest = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::Rendering,
+            true,
+            true,
+        )
+        .with_feature(ProjectPluginFeatureSelection::new("rendering.post_process"))],
+    };
+    disable_unlinked_editor_render_features(&mut manifest);
+    let rendering = &manifest.selections[0];
+    assert!(rendering
+        .features
+        .iter()
+        .any(|feature| feature.id == "rendering.post_process" && feature.enabled));
+    assert_eq!(rendering.features.len(), 3);
 }
 
 #[test]
@@ -388,7 +528,7 @@ fn assert_startup_project_path(
     request: Option<&EditorGuiStartupRequest>,
     expected_path: &std::path::Path,
 ) {
-    let Some(EditorGuiStartupRequest::Project { intent }) = request else {
+    let Some(EditorGuiStartupRequest::Project { intent, .. }) = request else {
         panic!("startup must retain a project launch intent");
     };
     assert_eq!(

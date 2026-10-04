@@ -1,3 +1,6 @@
+// 调用端：npm run generate:archetype-contract (tools/package.json)；职责：合并职业原型、专业、配方和轮盘定义中的等级与连携约定。
+// 输入边界：src/sim/professions/archetype.ts, src/sim/content/professions.ts, src/sim/content/recipes.ts, src/sim/professions/wheel.ts；--check 比较生成结果，不改写目标文件。
+
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

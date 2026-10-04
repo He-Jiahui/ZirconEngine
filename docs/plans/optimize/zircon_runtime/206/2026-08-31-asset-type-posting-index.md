@@ -47,14 +47,27 @@ not CPU time, allocator, RSS, or power measurements.
 ## Validation
 
 - The new source contract failed 3/4 checks before implementation and passed after the posting was
-  wired into both mutation directions and query paths.
+  wired into both mutation directions and query paths. Its multiline-call assertion was later made
+  whitespace-stable without changing the production query semantics.
 - The focused asset performance batch passes 11/11.
+- The related Runtime85 root-dedup source contract was also made insensitive to rustfmt import
+  ordering; the focused Runtime206/Runtime85 repair set passes 7/7.
 - Python bytecode compilation and scoped diff checks pass.
 - Managed Windows Rust compilation and the focused registry behavior tests remain pending in the
   next asynchronous multi-task validation batch.
 
+## Follow-up
+
+The tag/package/path-prefix candidate-posting slice is recorded in
+`2026-09-13-secondary-query-postings.md`. It keeps this type-posting change
+backward-compatible while extending P1-041's non-type filter path.
+
+The adjacent referencer binary-key and bulk-build staging follow-ups are
+recorded in `2026-09-13-referencer-binary-sort.md` and
+`2026-09-13-registry-build-capacity-and-streamed-dependency-bootstrap.md`.
+
 ## Remaining Work
 
-Runtime206 P1-041 remains partially open for tag/path/package postings. Compiled query plans,
-visitor/cursor APIs, generation leases, result/deadline budgets, large-corpus allocator/RSS data,
-and product query qualification remain owned by the parent plan.
+Runtime206 P1-041 remains partially open for compiled query plans, visitor/cursor APIs,
+generation leases, result/deadline budgets, large-corpus allocator/RSS data, and product query
+qualification; the new secondary postings still use the public `Vec<&AssetRegistryEntry>` API.

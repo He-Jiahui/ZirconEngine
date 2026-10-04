@@ -1,3 +1,4 @@
+//! 验证 SVG 元数据解析与图集规划契约；这里只检查槽位、尺寸和携带的文档，不执行光栅化或 GPU 上传。
 use crate::asset::{UiIconAsset, UiIconSource, UiIconSourceKind};
 use crate::ui::icon_atlas::{
     parse_ui_svg_icon, UiIconAtlasBuilder, UiIconRasterRequest, UiSvgIconElement,
@@ -27,6 +28,7 @@ fn icon_atlas_parses_supported_svg_subset() {
 }
 
 #[test]
+// 故意按 save、open 的逆序提交，确认槽位来自显式 ID 排序；两槽共用最大图标加双侧 padding 的格子。
 fn icon_atlas_assigns_stable_slots_and_uvs() {
     let plan = UiIconAtlasBuilder::new()
         .with_min_side_px(32)
@@ -133,6 +135,7 @@ fn icon_atlas_never_rasterizes_below_native_dpi_but_preserves_supersampling() {
 }
 
 #[test]
+// 编译期嵌入编辑器的真实图标文档，串联 TOML 资产校验与内嵌 SVG 规划；不依赖运行时 URI 加载。
 fn editor_default_icon_pack_parses_and_enters_atlas_plan() {
     let icons = [
         (
@@ -149,7 +152,7 @@ fn editor_default_icon_pack_parses_and_enters_atlas_plan() {
         ),
     ]
     .into_iter()
-    .map(|(icon_id, source)| {
+    .map(|(icon_id, source): (&str, &str)| {
         let asset = UiIconAsset::from_toml_str(source).unwrap();
         UiIconRasterRequest {
             icon_id: icon_id.to_string(),

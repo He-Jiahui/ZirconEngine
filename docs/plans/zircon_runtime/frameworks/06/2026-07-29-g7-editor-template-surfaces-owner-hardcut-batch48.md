@@ -15,7 +15,7 @@ plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md
 tests:
-  - python tools/check_conventions.py --only docs --json
+  - python tools/audits/check_conventions.py --only docs --json
   - exact10 retired wildcard and existing-directory guard
   - git diff --check -- exact10 Batch48 paths
 ---

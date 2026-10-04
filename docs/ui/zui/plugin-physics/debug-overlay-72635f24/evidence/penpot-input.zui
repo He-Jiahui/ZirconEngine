@@ -1,0 +1,56 @@
+penpot_original_source = "[asset]\nkind = \"view\"\nid = \"physics.debug_overlay\"\nversion = 2\ndisplay_name = \"Physics Debug Overlay\"\n\n[imports]\nstyles = [\"res://ui/theme/editor_base.zui\"]\n\n[root]\nnode = \"physics_debug_root\"\n\n[nodes.physics_debug_filters]\ncomponent = \"Space\"\ncontrol_id = \"PhysicsDebugOverlayFilters\"\nlayout = { width = { min = 240.0, preferred = 280.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.physics_collider_wireframes]\ncomponent = \"Space\"\ncontrol_id = \"PhysicsColliderWireframeGizmos\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.physics_debug_root]\ncomponent = \"HorizontalGroup\"\ncontrol_id = \"PhysicsDebugOverlayRoot\"\nclasses = [\"editor-shell\"]\nlayout = { container = { kind = \"HorizontalBox\", gap = 8 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"physics_collider_wireframes\" }, { node = \"physics_debug_filters\" }]\n"
+
+[asset]
+kind = "view"
+id = "physics.debug_overlay"
+version = 2
+display_name = "Physics Debug Overlay"
+
+[imports]
+styles = [ "res://ui/theme/editor_base.zui" ]
+
+[root]
+node = "physics_debug_root"
+
+[nodes.physics_debug_filters]
+component = "Space"
+control_id = "PhysicsDebugOverlayFilters"
+
+[nodes.physics_debug_filters.layout.width]
+min = 240
+preferred = 280
+stretch = "Fixed"
+
+[nodes.physics_debug_filters.layout.height]
+stretch = "Stretch"
+
+[nodes.physics_collider_wireframes]
+component = "Space"
+control_id = "PhysicsColliderWireframeGizmos"
+
+[nodes.physics_collider_wireframes.layout.width]
+stretch = "Stretch"
+
+[nodes.physics_collider_wireframes.layout.height]
+stretch = "Stretch"
+
+[nodes.physics_debug_root]
+component = "HorizontalGroup"
+control_id = "PhysicsDebugOverlayRoot"
+classes = [ "editor-shell" ]
+
+[nodes.physics_debug_root.layout.container]
+kind = "HorizontalBox"
+gap = 8
+
+[nodes.physics_debug_root.layout.width]
+stretch = "Stretch"
+
+[nodes.physics_debug_root.layout.height]
+stretch = "Stretch"
+
+[[nodes.physics_debug_root.children]]
+node = "physics_collider_wireframes"
+
+[[nodes.physics_debug_root.children]]
+node = "physics_debug_filters"

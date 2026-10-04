@@ -10,7 +10,10 @@ use std::time::Instant;
 
 #[cfg(test)]
 use super::NativeBridgeMethodBinding;
-use super::{LoadedNativePlugin, NativePluginCallbackDiagnostics, NativePluginLoader};
+use super::{
+    LoadedNativePlugin, NativePluginArtifactAuthority, NativePluginCallbackDiagnostics,
+    NativePluginLoader,
+};
 use crate::plugin::PluginModuleKind;
 
 mod bridge_lifecycle;
@@ -52,6 +55,11 @@ use keys::live_key;
 use lifecycle::{load_for_module_kind, NativePluginLiveHostLifecycleError};
 #[cfg(test)]
 use loading::{lock_loaded_native_plugins, NativePluginLiveHostLoadingError};
+pub use loading::{
+    NativePluginProjectActivationCleanupReceipt, NativePluginProjectActivationRequest,
+    NativePluginProjectActivationResult, NativePluginProjectActivationSelection,
+    NativePluginProjectActivationSelectionResult, NativePluginProjectActivationSelectionStatus,
+};
 #[cfg(test)]
 use registration_replay::NativePluginRegistrationReplayError;
 pub use reports::{
@@ -167,6 +175,7 @@ impl NativePluginLiveHostTestGateHook {
 #[derive(Debug, Default)]
 pub struct NativePluginLiveHost {
     loader: NativePluginLoader,
+    artifact_authority: NativePluginArtifactAuthority,
     loaded: ObservedLoadedNativePlugins,
     runtime_bridge_method_bindings:
         Mutex<NativePluginLiveRegistry<ValidatedRuntimeBridgeMethodBindings>>,
@@ -180,12 +189,26 @@ pub struct NativePluginLiveHost {
     runtime_registration_replay_generation_build_lock: Mutex<()>,
     // The revision prevents a late builder from publishing an older load or binding generation.
     runtime_registration_replay_generation_revisions: Mutex<NativePluginLiveRegistry<u64>>,
+    project_activation_recovery: Mutex<Vec<loading::PendingNativePluginProjectActivationRecovery>>,
     #[cfg(test)]
     registration_replay_context_build_counters: RegistrationReplayContextBuildCounters,
     #[cfg(test)]
     registration_replay_source_test_hook: NativePluginLiveHostTestGateHook,
     #[cfg(test)]
     registration_replay_before_cache_test_hook: NativePluginLiveHostTestGateHook,
+}
+
+impl NativePluginLiveHost {
+    pub fn with_artifact_authority(artifact_authority: NativePluginArtifactAuthority) -> Self {
+        Self {
+            artifact_authority,
+            ..Self::default()
+        }
+    }
+
+    pub fn artifact_authority(&self) -> &NativePluginArtifactAuthority {
+        &self.artifact_authority
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -331,5 +354,5 @@ impl NativePluginLiveHost {
 }
 
 #[cfg(test)]
-#[path = "native_plugin_live_host/tests.rs"]
+#[path = "native_plugin_live_host/tests/cases.rs"]
 mod tests;

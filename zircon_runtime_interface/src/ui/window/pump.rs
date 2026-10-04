@@ -30,10 +30,17 @@ pub struct UiWindowInputPumpBatch {
 }
 
 impl UiWindowInputPumpBatch {
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            events: Vec::with_capacity(capacity),
+        }
+    }
+
     pub fn push(&mut self, event: UiWindowInputPumpEvent) {
         self.events.push(event);
     }
 
+    /// 只合并队尾相邻的 redraw；中间出现输入或窗口状态事件时保留后续 redraw，避免改写批次状态转移顺序。
     pub fn push_coalesced(&mut self, event: UiWindowInputPumpEvent) {
         if event.is_redraw_request()
             && self

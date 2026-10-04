@@ -1,5 +1,6 @@
 use super::parser::path_elements;
 
+/// 模块图标的内联文档只服务本地 SVG 解析；路径 d 与 opacity 插入前须转义，避免源属性值改变文档结构。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn module_svg(
     source: &str,
 ) -> Option<String> {
@@ -48,5 +49,5 @@ fn escape_xml_attribute(value: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "svg_document/single_pass_escape_tests.rs"]
+#[path = "svg_document/tests/single_pass_escape_tests.rs"]
 mod single_pass_escape_tests;

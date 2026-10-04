@@ -183,6 +183,7 @@ pub yumiLocalCoordinate(x: float, z: float, axis: int, required: bool): float {
         z - (content.yumiMazeOriginZ0(true) + <float>slot * content.yumiMazeSlotSpacing(true));
 }
 
+// 先依据世界 X 选 dungeon/arena/Yumi，再按最近 slot 转成局部坐标；活跃 Delve 的选择不在此接口。
 pub resolveWorldCoordinate(
     x: float,
     z: float,

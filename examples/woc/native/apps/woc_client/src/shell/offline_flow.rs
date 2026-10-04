@@ -23,6 +23,7 @@ pub enum OfflineShellAction {
     SubmitOfflinePicker,
     ContinueWelcome,
     FinishLoading,
+    RejectPreparedSession,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -146,6 +147,24 @@ impl OfflineShellController {
             .clone();
         self.state = OfflineShellState::InWorld;
         Ok(launch)
+    }
+
+    /// Rolls back a host-side preparation/start failure without discarding the
+    /// user's picker draft. The launch is only considered committed once the
+    /// host reports that the world entered `InWorld`.
+    pub fn reject_prepared_session(&mut self) -> Result<(), OfflineShellError> {
+        if !matches!(
+            self.state,
+            OfflineShellState::Welcome | OfflineShellState::Loading
+        ) {
+            return Err(OfflineShellError::InvalidTransition {
+                action: OfflineShellAction::RejectPreparedSession,
+                state: self.state,
+            });
+        }
+        self.prepared_launch = None;
+        self.state = OfflineShellState::OfflinePicker;
+        Ok(())
     }
 
     fn require_picker(&self, action: OfflineShellAction) -> Result<(), OfflineShellError> {

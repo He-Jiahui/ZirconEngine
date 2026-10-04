@@ -7,18 +7,23 @@ use zircon_runtime::core::framework::channel::ChannelWakeCallback;
 #[cfg(debug_assertions)]
 use zircon_runtime::plugin::native::discovery::discover_native_plugins;
 use zircon_runtime::plugin::native::host::NativePluginHostHandle;
+use zircon_runtime::plugin::PluginModuleKind;
 
 use crate::core::jobs::EditorJobSystem;
+use crate::core::play::NativePluginArtifactAuthorityResolver;
+use crate::core::plugin::project_native_plugin_directory;
 
 #[cfg(debug_assertions)]
 use super::development_watch::{DevelopmentPluginWatch, DevelopmentPluginWatchKey};
 use super::types::{
     ModulePluginDevelopmentWatchPoll, ModulePluginLiveHostBackend, ModulePluginLiveHostCommand,
-    ModulePluginLiveHostOutcome, ModulePluginLiveHostRequest,
+    ModulePluginLiveHostCompletion, ModulePluginLiveHostOutcome, ModulePluginLiveHostProject,
+    ModulePluginLiveHostRequest,
 };
 
 pub(in crate::ui::retained_host::app) struct NativePluginDevelopmentLiveHostBackend {
     live_host: NativePluginHostHandle,
+    authority_resolver: Option<NativePluginArtifactAuthorityResolver>,
     #[cfg(debug_assertions)]
     editor_jobs: EditorJobSystem,
     #[cfg(debug_assertions)]
@@ -37,6 +42,7 @@ impl NativePluginDevelopmentLiveHostBackend {
         let _ = (editor_jobs, wake_host);
         Self {
             live_host,
+            authority_resolver: None,
             #[cfg(debug_assertions)]
             editor_jobs,
             #[cfg(debug_assertions)]
@@ -46,14 +52,23 @@ impl NativePluginDevelopmentLiveHostBackend {
         }
     }
 
+    pub(in crate::ui::retained_host::app) fn with_authority_resolver(
+        mut self,
+        authority_resolver: NativePluginArtifactAuthorityResolver,
+    ) -> Self {
+        self.authority_resolver = Some(authority_resolver);
+        self
+    }
+
     #[cfg(debug_assertions)]
     fn ensure_development_watch(
         &self,
-        project_root: &std::path::Path,
+        project: &ModulePluginLiveHostProject,
         plugin_id: &str,
     ) -> Result<bool, String> {
-        let artifact_path = development_artifact_path(project_root, plugin_id)?;
-        let key = DevelopmentPluginWatchKey::new(project_root, plugin_id, &artifact_path)?;
+        let native_plugin_root = project_native_plugin_directory(project.root());
+        let artifact_path = development_artifact_path(&native_plugin_root, plugin_id)?;
+        let key = DevelopmentPluginWatchKey::new(project.clone(), plugin_id, &artifact_path)?;
         let mut watches = self
             .development_watches
             .lock()
@@ -66,6 +81,7 @@ impl NativePluginDevelopmentLiveHostBackend {
             self.editor_jobs.clone(),
             self.wake_host.clone(),
             key.clone(),
+            self.authority_resolver.clone(),
         )?;
         replace_development_watch(&mut watches, key, watch);
         Ok(true)
@@ -83,10 +99,10 @@ impl NativePluginDevelopmentLiveHostBackend {
 
 #[cfg(debug_assertions)]
 fn development_artifact_path(
-    project_root: &std::path::Path,
+    native_plugin_root: &std::path::Path,
     plugin_id: &str,
 ) -> Result<std::path::PathBuf, String> {
-    let report = discover_native_plugins(project_root);
+    let report = discover_native_plugins(native_plugin_root);
     let candidates = report
         .discovered()
         .iter()
@@ -152,11 +168,20 @@ impl ModulePluginLiveHostBackend for NativePluginDevelopmentLiveHostBackend {
                 outcome
             }
             ModulePluginLiveHostCommand::HotReload => {
-                let mut outcome = self
-                    .live_host
-                    .hot_reload_editor_plugin(request.project_root, request.plugin_id)?;
+                let native_plugin_root = project_native_plugin_directory(request.project.root());
+                let mut outcome = if let Some(resolver) = self.authority_resolver.as_ref() {
+                    let authority = resolver(request.project.root())?;
+                    self.live_host.hot_reload_editor_plugin_with_authority(
+                        &native_plugin_root,
+                        request.plugin_id,
+                        &authority,
+                    )?
+                } else {
+                    self.live_host
+                        .hot_reload_editor_plugin(&native_plugin_root, request.plugin_id)?
+                };
                 #[cfg(debug_assertions)]
-                match self.ensure_development_watch(request.project_root, request.plugin_id) {
+                match self.ensure_development_watch(request.project, request.plugin_id) {
                     Ok(true) => outcome.diagnostics.push(format!(
                         "native.development_watch.active: plugin `{}` will hot reload after native artifact changes",
                         request.plugin_id
@@ -176,7 +201,14 @@ impl ModulePluginLiveHostBackend for NativePluginDevelopmentLiveHostBackend {
         })
     }
 
-    fn poll_development_watches(&self) -> ModulePluginDevelopmentWatchPoll {
+    fn loaded_editor_plugin_ids(&self) -> Result<Vec<String>, String> {
+        self.live_host.loaded_plugin_ids(PluginModuleKind::Editor)
+    }
+
+    fn poll_development_watches(
+        &self,
+        project: Option<&ModulePluginLiveHostProject>,
+    ) -> ModulePluginDevelopmentWatchPoll {
         #[cfg(debug_assertions)]
         {
             let now = std::time::Instant::now();
@@ -190,67 +222,30 @@ impl ModulePluginLiveHostBackend for NativePluginDevelopmentLiveHostBackend {
                     return poll;
                 }
             };
+            // Dropping a retired watch cancels its pending job before further admission.
+            watches.retain(|key, _| project == Some(key.project()));
             let mut aggregate = ModulePluginDevelopmentWatchPoll::default();
-            for watch in watches.values_mut() {
+            for (key, watch) in watches.iter_mut() {
                 let poll = watch.poll(now);
-                if let Some(diagnostic) = poll.diagnostic {
-                    aggregate.push_diagnostic(diagnostic);
+                if let Some(result) = poll.result {
+                    aggregate.push_completion(ModulePluginLiveHostCompletion {
+                        project: key.project().clone(),
+                        plugin_id: key.plugin_id().to_string(),
+                        result,
+                    });
                 }
                 aggregate.include_deadline(poll.next_deadline);
             }
             return aggregate;
         }
         #[cfg(not(debug_assertions))]
-        ModulePluginDevelopmentWatchPoll::default()
+        {
+            let _ = project;
+            ModulePluginDevelopmentWatchPoll::default()
+        }
     }
 }
 
 #[cfg(all(test, debug_assertions))]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn development_watch_cleanup_failure_is_reported_without_replacing_the_host_outcome() {
-        let mut diagnostics = vec!["native plugin unloaded".to_string()];
-
-        append_development_watch_cleanup_diagnostic(
-            &mut diagnostics,
-            Err("watch registry is poisoned".to_string()),
-        );
-
-        assert_eq!(diagnostics.len(), 2);
-        assert_eq!(diagnostics[0], "native plugin unloaded");
-        assert!(diagnostics[1].contains("native.development_watch.cleanup_failed"));
-    }
-
-    #[test]
-    fn development_watch_replaces_an_old_project_root_for_the_same_plugin() {
-        let base = std::env::temp_dir().join(format!(
-            "zircon-editor-development-watch-registry-{}",
-            std::process::id()
-        ));
-        let first_root = base.join("first");
-        let second_root = base.join("second");
-        std::fs::create_dir_all(&first_root).unwrap();
-        std::fs::create_dir_all(&second_root).unwrap();
-        let first_artifact = first_root.join("demo.dll");
-        let second_artifact = second_root.join("demo.dll");
-        let other_artifact = first_root.join("other.dll");
-        std::fs::write(&first_artifact, []).unwrap();
-        std::fs::write(&second_artifact, []).unwrap();
-        std::fs::write(&other_artifact, []).unwrap();
-        let first = DevelopmentPluginWatchKey::new(&first_root, "demo", &first_artifact).unwrap();
-        let second =
-            DevelopmentPluginWatchKey::new(&second_root, "demo", &second_artifact).unwrap();
-        let other = DevelopmentPluginWatchKey::new(&first_root, "other", &other_artifact).unwrap();
-        let mut watches = BTreeMap::from([(first.clone(), 1), (other.clone(), 2)]);
-
-        replace_development_watch(&mut watches, second.clone(), 3);
-
-        assert_eq!(watches.len(), 2);
-        assert!(!watches.contains_key(&first));
-        assert_eq!(watches.get(&second), Some(&3));
-        assert_eq!(watches.get(&other), Some(&2));
-        std::fs::remove_dir_all(base).unwrap();
-    }
-}
+#[path = "tests/native_backend.rs"]
+mod tests;

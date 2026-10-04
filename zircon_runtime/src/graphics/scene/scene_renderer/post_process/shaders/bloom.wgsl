@@ -1,3 +1,7 @@
+// Bloom pass 从场景线性 HDR 提取亮部，写入独立的局部目标，再由后处理合成。
+// 调用方负责在效果关闭时清黑；本 pass 不做显示映射，也不直接改写场景颜色。
+// 与 execute_bloom 的 CPU 参数对应：xy 是有效局部尺寸，zw 是场景颜色源原点；
+// 邻域限制在本视口内，避免分屏相机从相邻区域借入亮部。
 struct BloomParams {
     viewport: vec4<u32>,
     tuning: vec4<f32>,
@@ -26,6 +30,7 @@ fn luminance(color: vec3<f32>) -> f32 {
     return dot(color, vec3<f32>(0.2126, 0.7152, 0.0722));
 }
 
+// 输出已乘效果强度的亮部颜色；后续合成的权重须与 CPU 的效果调度约定一致。
 @fragment
 fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
     let viewport_size = params.viewport.xy;

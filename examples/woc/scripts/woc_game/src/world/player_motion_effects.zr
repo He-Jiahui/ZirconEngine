@@ -7,6 +7,7 @@ var playerMotion = %import("world/player_motion");
 
 // `wantsMove` includes jump, so the source stands a sitting actor before it
 // checks planar control, steepness or cast mobility.
+/// 给世界的起立和消耗品清理路径提供意图；跳跃也能触发起立，因此应在检查实际平面移动之前调用。
 pub standUpRequested(
     forward: bool,
     back: bool,
@@ -28,6 +29,7 @@ pub standUpRequested(
 // `slideActive` separately represents terrainDownhill at the exact pose.
 // Sliding is independent and always cancels an active cast, including a cast
 // otherwise marked mobile.
+/// 给世界现有施法取消路径提供判定；坡度约束与实际滑坡状态是两项输入，滑坡能取消原本允许移动的施法。
 pub cancelCastRequested(
     forward: bool,
     back: bool,

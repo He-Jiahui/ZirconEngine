@@ -1,3 +1,5 @@
+//! 列表、表格、树和弹出行共同使用当前宿主主题的强调色作为持久选中轮廓；各控件仍独立决定焦点轮廓的优先级。
+
 use crate::ui::retained_host::host_contract::paint_theme::{
     current_host_palette, HostMaterialPalette,
 };
@@ -30,20 +32,5 @@ pub(super) fn selected_row_outline_color_from_palette(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
-
-    #[test]
-    fn row_selection_palette_projects_selected_outline_from_host_palette() {
-        let mut palette = PALETTE;
-        palette.accent = [10, 11, 12, 255];
-
-        let selection_palette = workbench_row_selection_palette_from_host(palette);
-
-        assert_eq!(
-            selected_row_outline_color_from_palette(selection_palette),
-            [10, 11, 12, 255]
-        );
-    }
-}
+#[path = "tests/workbench_row_selection.rs"]
+mod tests;

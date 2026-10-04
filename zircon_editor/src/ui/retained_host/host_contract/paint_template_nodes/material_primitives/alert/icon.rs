@@ -1,7 +1,9 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
-use super::geometry::{alert_icon_frame, alert_icon_mark_frame};
-use super::style::{alert_icon_color, alert_icon_cutout_color};
+use super::super::super::style_selector::WorkbenchAlertTone;
+use super::super::super::template_alert_glyphs::push_alert_mark;
+use super::geometry::alert_icon_frame;
+use super::style::{alert_color_token, alert_icon_color};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_alert_icon(
     commands: &mut Vec<HostPaintCommand>,
@@ -13,50 +15,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_al
 ) {
     let frame = alert_icon_frame(rect);
     let color = alert_icon_color(node);
-    let mark = alert_icon_mark_frame(&frame);
-    let mark_radius = mark.height * 0.5;
-    commands.push(HostPaintCommand::quad(
-        mark.clone(),
-        Some(clip.clone()),
-        order,
-        Some(color),
-        None,
-        0.0,
-        mark_radius,
-        opacity,
-    ));
-
-    let center_x = mark.x + mark.width * 0.5;
-    let center_y = mark.y + mark.height * 0.5;
-    let cutout = alert_icon_cutout_color(node);
-    commands.push(HostPaintCommand::quad(
-        FrameRect {
-            x: center_x - 1.0,
-            y: center_y - 4.0,
-            width: 2.0,
-            height: 6.0,
-        },
-        Some(clip.clone()),
-        order + 1,
-        Some(cutout),
-        None,
-        0.0,
-        1.0,
-        opacity,
-    ));
-    commands.push(HostPaintCommand::quad(
-        FrameRect {
-            x: center_x - 1.0,
-            y: center_y + 4.0,
-            width: 2.0,
-            height: 2.0,
-        },
-        Some(clip.clone()),
-        order + 1,
-        Some(cutout),
-        None,
-        0.0,
-        1.0,
-        opacity,
-    ));
+    let tone = match alert_color_token(node) {
+        "success" => WorkbenchAlertTone::Success,
+        "warning" => WorkbenchAlertTone::Warning,
+        "error" | "danger" => WorkbenchAlertTone::Error,
+        _ => WorkbenchAlertTone::Info,
+    };
+    push_alert_mark(commands, &frame, clip, order, tone, color, opacity);
 }

@@ -1,0 +1,120 @@
+{
+  "all_original_acceptance_gates": "open",
+  "batch": "w0-batch11",
+  "crosswalk_metadata_rows": 28,
+  "current_context_count": 62,
+  "manifest_self_hash": "Omitted. Final artifact hashes including this manifest are sealed by the external preparation receipt.",
+  "original_qualified_manifest": {
+    "bytes": 20117,
+    "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch11-root-qualified-r1\\manifest.json",
+    "sha256": "89ff703359b28b7e7d804f36b100a0acba91b0c60d6f30258a90125a780b7ca5"
+  },
+  "owner_correction_inputs": {
+    "w0/batch11-12-root-qualified-r2-correction/correction-receipt.json": "1cb3e5bcaac0b2c3e84b3c21bffd853f9f50a0766577395bbe79cc5f34c31285",
+    "w0/batch11-12-root-qualified-r2-correction/freeze-receipt.json": "956e86fbe1515c01d9146d5c4fd72f72dd2da3eb078189935f1a5fc72a6c18ea",
+    "w0/batch11-12-root-qualified-r2-correction/owner-correction.jsonl": "3fac86b114187293c2d676d7084f653a46ccbe9b4f03e8a652d9870abd1b0b49",
+    "w0/batch11-12-root-qualified-r2-correction/verification-receipt.json": "465c5b802122179bdcf3acd9f3065d84d46a91ce378c4fa2ecc894413c7a50d2",
+    "w0/batch11-12-root-qualified-r3-correction.json": "6f4584e7eca1f0163d22a4856a01ea6311aa3c0f50ca0788a7fe3cbc1fac3104",
+    "w0/batch11-root-qualified-r1-correction.json": "e89c5424714ca992efc3283a8809599e0c8bd6ca8d3e919c5b527d161067459c"
+  },
+  "prior_counts": [
+    172,
+    168,
+    136
+  ],
+  "publication_qualification": {
+    "acceptance": "open",
+    "coordinator_boundary": "Retired. User authorizes sealed independent local evidence; historical records and original acceptance gates remain intact.",
+    "coordinator_retired_at_utc": "2026-10-02T07:19:48.379193+00:00",
+    "foreign_source_consent": "not inferred",
+    "generation": "root-publication-candidate-r2",
+    "historical_relative_capture_paths_resolve_against": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch11-root-qualified-r1",
+    "normalized_current_capture_manifest": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\root-publication-candidate-r2\\batch11\\rawcaptures\\manifest.json",
+      "sha256": "2624361fc7140b7c87036595e0079d7ce76190f4cca916f85b0e78db795d32b4"
+    },
+    "original_qualified_artifacts": {
+      "crosswalk": {
+        "bytes": 21411,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch11-root-qualified-r1\\crosswalk.jsonl",
+        "sha256": "7decc1c14cef915053a256b54742d18c6a97eb1992efc9c6e07e0990e09ff883"
+      },
+      "manifest": {
+        "bytes": 20117,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch11-root-qualified-r1\\manifest.json",
+        "sha256": "89ff703359b28b7e7d804f36b100a0acba91b0c60d6f30258a90125a780b7ca5"
+      },
+      "review": {
+        "bytes": 204269,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch11-root-qualified-r1\\review.jsonl",
+        "sha256": "77c42fdd1043868bbcdecc1897353d65098219812ac2bfbe8a0036f6807906d1"
+      },
+      "summary": {
+        "bytes": 4068,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch11-root-qualified-r1\\summary.json",
+        "sha256": "cb63deed5e45dbd5f951daf087135f54ec82af87a6d25aac74034b4029deb941"
+      }
+    },
+    "original_qualified_generation": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch11-root-qualified-r1",
+    "qualified_at_utc": "2026-10-02T09:27:45.157749+00:00",
+    "raw_evidence_root": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\root-publication-candidate-r2\\batch11",
+    "root_normal_claim_denial_observed_at_utc": "2026-10-02T07:35Z",
+    "tests_run": 0
+  },
+  "qualified_artifacts": {
+    "crosswalk": {
+      "bytes": 86726,
+      "path": "2026-10-02-w0-batch11-crosswalk.jsonl",
+      "sha256": "78895597f305eea775ebc3a77f52f9f78817e3b8a48045e29cdedb530fa6ae97"
+    },
+    "review": {
+      "bytes": 261601,
+      "path": "2026-10-02-w0-batch11-review.jsonl",
+      "sha256": "90409b12f8e3259b7454cb44eadc1a94ce76b4a4591af79d695289063abc13a0"
+    },
+    "summary": {
+      "bytes": 9279,
+      "path": "2026-10-02-w0-batch11-summary.json",
+      "sha256": "9b0a9131335c60a6cc4363fed853cf1e41f6bc3f6e51652a56a038766752675d"
+    }
+  },
+  "raw_capture_manifest_sha256": "2624361fc7140b7c87036595e0079d7ce76190f4cca916f85b0e78db795d32b4",
+  "record_type": "root_normalized_bounded_w0_publication_manifest",
+  "reports": [
+    {
+      "literal_lines": [
+        219,
+        220,
+        221,
+        222,
+        223,
+        229
+      ],
+      "path": "docs/plans/optimize/zircon_runtime/217-runtime-network-transport-session-rpc-replication-prediction-rollback-security-content-product-current-working-tree-review.md",
+      "report_id": "Runtime217",
+      "sha256": "3d828220e627aea709dd91bc782b76bdfb3d21781ab448fb430cb7585a78ac1d"
+    },
+    {
+      "literal_lines": [
+        107,
+        108,
+        109,
+        110,
+        111,
+        112
+      ],
+      "path": "docs/plans/optimize/zircon_runtime/222-runtime-gameplay-ability-effect-attribute-tag-cue-prediction-current-working-tree-review.md",
+      "report_id": "Runtime222",
+      "sha256": "c7048532d3df861a56afd4f20b6b46d2299d7b466e09b9d1f80a90d33b9e6846"
+    }
+  ],
+  "rows": 12,
+  "source_context_scope": "Current source/report/caller/test definitions in the exact captured manifests and owner corrections; no whole report completion or execution inference.",
+  "source_unit_count": 60,
+  "tests_run": 0,
+  "whole_report_inventory": [
+    576,
+    61,
+    515
+  ]
+}

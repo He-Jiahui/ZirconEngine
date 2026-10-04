@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from tools.runtime_ui_text_prepare_cache_pressure import run
+from tools.analysis.performance.runtime.runtime_ui_text_prepare_cache_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -115,9 +115,9 @@ class RuntimeUiTextSegmentCachePerformanceContract(unittest.TestCase):
 
         self.assertIn("mod segment_cache;", text_source)
         self.assertIn("ScreenSpaceUiTextSegmentCache", segment_source)
-        self.assertIn("frame_segments: Vec<Weak<PlannedScreenSpaceUi>>", segment_source)
-        self.assertIn("render_segments: &[Arc<PlannedScreenSpaceUi>]", text_source)
-        self.assertIn("&prepared.render_segments", record_source)
+        self.assertIn("segment_product_entries: Vec<ScreenSpaceUiTextSegmentProductEntry>", segment_source)
+        self.assertIn("let render_segments = prepared.render_segments();", segment_source)
+        self.assertIn("prepared.render_segments.iter()", record_source)
         self.assertNotIn("&prepared.auto_texts", record_source)
         self.assertNotIn("&prepared.native_texts", record_source)
         self.assertNotIn("&prepared.sdf_texts", record_source)
@@ -177,7 +177,7 @@ class RuntimeUiTextSegmentCachePerformanceContract(unittest.TestCase):
         render_state_source = TEXT_RENDER_STATE.read_text(encoding="utf-8")
         atlas_frame_source = NATIVE_BITMAP_FRAME.read_text(encoding="utf-8")
         frame_definition = segment_source.split(
-            "pub(super) struct ScreenSpaceUiTextFrameProduct {", 1
+            "struct ScreenSpaceUiTextFrameProduct {", 1
         )[1].split("}", 1)[0]
 
         self.assertNotIn("native_glyph_runs:", frame_definition)
@@ -243,20 +243,16 @@ class RuntimeUiTextSegmentCachePerformanceContract(unittest.TestCase):
             "if let Some(resolved_texts) = fallback_resolved_texts.as_ref()",
             text_source,
         )
-        self.assertIn("prepare_retained_segments", text_source)
+        self.assertIn("prepare_retained_frame", text_source)
 
     def test_frame_product_publishes_segment_local_global_run_spans(self) -> None:
         segment_source = SEGMENT_CACHE.read_text(encoding="utf-8")
         run_index_source = SEGMENT_RUN_INDEX.read_text(encoding="utf-8")
 
-        self.assertIn("mod run_index;", segment_source)
-        self.assertIn("ScreenSpaceUiTextFrameRunIndex", segment_source)
-        self.assertIn("run_index: ScreenSpaceUiTextFrameRunIndex", segment_source)
-        self.assertIn("from_segment_run_counts", segment_source)
+        self.assertIn("run_index_segment_count", segment_source)
         self.assertIn("resolved_texts.native_texts().len()", segment_source)
         self.assertIn("resolved_texts.sdf_texts().len()", segment_source)
-        self.assertIn("native_run_base", run_index_source)
-        self.assertIn("sdf_run_base", run_index_source)
+        self.assertIn("ScreenSpaceUiTextFrameRunIndex", run_index_source)
         self.assertIn("run_index_segment_count", segment_source)
         self.assertIn("sdf_run_index_run_count", segment_source)
         text_source = TEXT.read_text(encoding="utf-8")
@@ -275,12 +271,13 @@ class RuntimeUiTextSegmentCachePerformanceContract(unittest.TestCase):
         cpu_source = SDF_CPU_FRAME.read_text(encoding="utf-8")
         render_state_source = TEXT_RENDER_STATE.read_text(encoding="utf-8")
 
-        self.assertIn("pub(super) fn sdf_text_segments", segment_source)
-        self.assertIn("pub(super) fn native_text_segments", segment_source)
-        self.assertIn("prepare_retained_segments", atlas_source)
-        self.assertIn("prepare_retained_segments", cpu_source)
-        self.assertIn("frame_product.sdf_text_segments()", text_source)
-        self.assertIn("frame_product.native_text_segments()", text_source)
+        self.assertIn("fn sdf_text_segments", segment_source)
+        self.assertIn("fn native_text_segments", segment_source)
+        self.assertIn("prepare_retained_frame", atlas_source)
+        self.assertIn("prepare_retained_frame", cpu_source)
+        self.assertIn("frame_product.segment_products()", text_source)
+        self.assertIn("prepare_retained(", atlas_source)
+        self.assertIn("prepare_retained(", cpu_source)
         self.assertIn("fn matches_iter", prepared_source)
         self.assertIn("fn replace_iter", prepared_source)
         self.assertIn("collect_sdf_atlas_text_keys_iter", key_source)
@@ -296,9 +293,9 @@ class RuntimeUiTextSegmentCachePerformanceContract(unittest.TestCase):
         vertices_source = SDF_VERTICES.read_text(encoding="utf-8")
         material_source = SDF_MATERIAL.read_text(encoding="utf-8")
 
-        self.assertIn("prepare_retained_segments", render_source)
-        self.assertIn("frame_product.sdf_text_segments()", text_source)
-        self.assertIn("frame_product.native_text_segments()", text_source)
+        self.assertIn("prepare_retained_frame(", render_source)
+        self.assertIn("frame_product.segment_products()", text_source)
+        self.assertIn("prepare_with_retained_text_iter(", render_source)
         self.assertIn("frame_product.sdf_run_count()", text_source)
         self.assertIn("matches_iter", compiled_source)
         self.assertIn("replace_iter", compiled_source)
@@ -313,7 +310,7 @@ class RuntimeUiTextSegmentCachePerformanceContract(unittest.TestCase):
         segment_source = SEGMENT_CACHE.read_text(encoding="utf-8")
         report_source = TEXT_PREPARE_REPORT.read_text(encoding="utf-8")
         frame_definition = segment_source.split(
-            "pub(super) struct ScreenSpaceUiTextFrameProduct {", 1
+            "struct ScreenSpaceUiTextFrameProduct {", 1
         )[1].split("}", 1)[0]
         fallback_branch = text_source.split("if needs_sdf_fallback {", 1)[1].split(
             "} else {", 1

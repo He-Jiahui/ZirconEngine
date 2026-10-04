@@ -15,6 +15,8 @@ pub enum ShellMessageId {
     CheckActionTarget,
     CheckConfigPath,
     BackgroundTaskPanicked,
+    TaskCancellationRequested,
+    TaskCancelled,
     VisualVerificationError,
     VisualVerificationWarning,
     VisualVerificationSuccess,
@@ -37,6 +39,8 @@ impl ShellMessageId {
         Self::CheckActionTarget,
         Self::CheckConfigPath,
         Self::BackgroundTaskPanicked,
+        Self::TaskCancellationRequested,
+        Self::TaskCancelled,
         Self::VisualVerificationError,
         Self::VisualVerificationWarning,
         Self::VisualVerificationSuccess,
@@ -59,6 +63,8 @@ impl ShellMessageId {
             Self::CheckActionTarget => "shell.check-action-target",
             Self::CheckConfigPath => "shell.check-config-path",
             Self::BackgroundTaskPanicked => "shell.background-task-panicked",
+            Self::TaskCancellationRequested => "shell.task-cancellation-requested",
+            Self::TaskCancelled => "shell.task-cancelled",
             Self::VisualVerificationError => "shell.visual-verification-error",
             Self::VisualVerificationWarning => "shell.visual-verification-warning",
             Self::VisualVerificationSuccess => "shell.visual-verification-success",
@@ -127,6 +133,14 @@ impl ShellMessageId {
             (HubLanguage::Chinese, Self::CheckConfigPath) => "检查 Hub 配置路径后重试操作",
             (HubLanguage::English, Self::BackgroundTaskPanicked) => "Background task panicked: {0}",
             (HubLanguage::Chinese, Self::BackgroundTaskPanicked) => "后台任务已中止：{0}",
+            (HubLanguage::English, Self::TaskCancellationRequested) => {
+                "Cancellation requested; waiting for the current operation to stop"
+            }
+            (HubLanguage::Chinese, Self::TaskCancellationRequested) => {
+                "已请求取消，正在等待当前操作停止"
+            }
+            (HubLanguage::English, Self::TaskCancelled) => "Background task was cancelled",
+            (HubLanguage::Chinese, Self::TaskCancelled) => "后台任务已取消",
             (HubLanguage::English, Self::VisualVerificationError) => {
                 "Visual verification error state"
             }

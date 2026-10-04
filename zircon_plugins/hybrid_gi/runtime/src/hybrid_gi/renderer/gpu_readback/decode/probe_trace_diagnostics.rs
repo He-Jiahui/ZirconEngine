@@ -12,6 +12,7 @@ pub(in crate::hybrid_gi::renderer::gpu_readback) fn probe_trace_diagnostics(
     word_count: usize,
 ) -> Result<Vec<RenderHybridGiProbeTraceDiagnosticRecord>, GraphicsError> {
     let words = read_buffer_u32s(bytes, word_count)?;
+    // WGSL 首字为记录数，每条固定 13 字；字段偏移必须与 trace_probe_tiles_output.wgsl 同步。
     let record_count = words.first().copied().unwrap_or_default() as usize;
     Ok(words
         .get(1..)
@@ -61,47 +62,5 @@ fn decode_record(words: &[u32]) -> RenderHybridGiProbeTraceDiagnosticRecord {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn decodes_bounded_trace_provenance_and_cost_records() {
-        let words = [
-            1_u32,
-            17,
-            2,
-            2,
-            6,
-            12,
-            3.5_f32.to_bits(),
-            0.75_f32.to_bits(),
-            1,
-            4,
-            8,
-            6,
-            3,
-            0,
-        ];
-
-        let records = probe_trace_diagnostics(bytemuck::cast_slice(&words), words.len()).unwrap();
-
-        assert_eq!(records.len(), 1);
-        assert_eq!(records[0].probe_id, 17);
-        assert_eq!(
-            records[0].intersection_source,
-            RenderHybridGiTraceIntersectionSource::GlobalSdf
-        );
-        assert_eq!(records[0].intersection_backend_mask, 6);
-        assert_eq!(records[0].lighting_source_mask, 12);
-        assert_eq!(
-            records[0].lighting_source,
-            RenderHybridGiTraceLightingSource::ProbeLineage
-        );
-        assert_eq!(
-            records[0].fallback_reason,
-            RenderHybridGiTraceFallbackReason::ScreenDataUnavailable
-        );
-        assert_eq!(records[0].cost.page_tests, 8);
-        assert_eq!(records[0].cost.sdf_steps, 6);
-    }
-}
+#[path = "tests/probe_trace_diagnostics.rs"]
+mod tests;

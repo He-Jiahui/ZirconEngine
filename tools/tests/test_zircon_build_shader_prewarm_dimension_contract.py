@@ -1,9 +1,10 @@
+# 核对预热报告的请求维度与实际数量保持一致。
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from tools.zircon_build_shader_prewarm import validate_shader_prewarm_report_contract
+from tools.build.zircon_build_shader_prewarm import validate_shader_prewarm_report_contract
 
 
 class ZirconBuildShaderPrewarmDimensionContractTests(unittest.TestCase):

@@ -1,0 +1,254 @@
+[asset]
+kind = "view"
+id = "res://ui/tests/reactbits_workbench_interaction_surfaces.zui"
+version = 2
+display_name = "ReactBits Workbench Interaction Surfaces"
+
+[tokens]
+"surface.canvas" = "#0f1117"
+"surface.panel" = "#171b24"
+"surface.elevated" = "#1d2330"
+"surface.inset" = "#11151d"
+"border.default" = "#2a3342"
+"border.strong" = "#3a4658"
+"text.primary" = "#f4f7fb"
+"text.secondary" = "#a9b4c5"
+"text.muted" = "#718096"
+"accent.primary" = "#8b7cff"
+"accent.info" = "#5da9ff"
+"status.success" = "#55d6a0"
+"status.warning" = "#f4bd62"
+"status.error" = "#ff7d8a"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalBox"
+control_id = "ReactBitsWorkbenchInteractionRoot"
+classes = ["rb-interaction-surfaces"]
+props = {
+  background_color = "$surface.canvas",
+  foreground_color = "$text.primary",
+  fixture_data_only = true,
+  reference_primary = "https://pro.reactbits.dev/docs/app-ui/app-shell/app-shell-4",
+  reference_supporting = [
+    "https://pro.reactbits.dev/docs/app-ui/command-menu",
+    "https://pro.reactbits.dev/docs/app-ui/app-dialog",
+    "https://pro.reactbits.dev/docs/app-ui/notifications",
+    "https://pro.reactbits.dev/docs/app-ui/mobile",
+  ],
+  responsive_wide = "command palette leads; dialog and notification surfaces share a row",
+  responsive_intermediate = "sidebar/rail remains available; popup surfaces use a bounded drawer",
+  responsive_compact = "feedback surfaces keep equal priority and retain their action affordances",
+  responsive_mobile = "rows stay readable at the narrow tier; toast remains full width",
+  layout_modes = ["full-shell", "adaptive-rail", "centered-editor", "mobile-bottom-actions"],
+  accessibility_label = "Workbench interaction surface reference",
+}
+layout = {
+  clip = true,
+  input_policy = "Receive",
+  width = { min = 360, preferred = 960, max = 1280, stretch = "Stretch" },
+  height = { min = 360, preferred = 620, max = 820, stretch = "Stretch" },
+  container = { kind = "VerticalBox", gap = 6 },
+  padding = { left = 10, right = 10, top = 10, bottom = 10 },
+}
+children = [
+  { node = "header" },
+  { node = "command_palette" },
+  { node = "dialog_row" },
+  { node = "system_row" },
+  { node = "toast" },
+]
+
+[nodes.header]
+component = "HorizontalBox"
+control_id = "ReactBitsWorkbenchInteractionHeader"
+props = { background_color = "$surface.panel", border_color = "$border.default", border_width = 1, corner_radius = 8 }
+layout = { width = { stretch = "Stretch" }, height = { min = 28, preferred = 28, max = 28, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8 }, padding = { left = 10, right = 10, top = 4, bottom = 4 } }
+children = [{ node = "header_title" }, { node = "header_status" }]
+
+[nodes.header_title]
+component = "Label"
+control_id = "ReactBitsWorkbenchInteractionTitle"
+props = { text = "Interaction surfaces", foreground_color = "$text.primary", font_size = 13, font_weight = 650, accessibility_label = "Interaction surfaces" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.header_status]
+component = "Label"
+control_id = "ReactBitsWorkbenchInteractionStatus"
+props = { text = "PENPOT PARITY", foreground_color = "$status.success", font_size = 9, font_weight = 700, letter_spacing = 0.8, text_align = "right" }
+layout = { width = { min = 96, preferred = 108, max = 124, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.command_palette]
+component = "CommandPalette"
+control_id = "ReactBitsWorkbenchCommandPalette"
+classes = ["rb-surface", "rb-command-palette", "rb-open"]
+props = {
+  open = true,
+  popup_open = true,
+  query = "build",
+  placeholder = "Search commands",
+  command_source = "workbench",
+  commands = [
+    "open_scene|label=Open Scene|shortcut=Ctrl+O",
+    "build_project|label=Build Project|shortcut=Ctrl+B",
+    "toggle_console|label=Toggle Console|shortcut=Ctrl+`",
+  ],
+  filtered_commands = ["build_project", "open_scene"],
+  recent_commands = ["build_project"],
+  selected_command_id = "build_project",
+  focused_index = 0,
+  keyboard_navigation = true,
+  empty_text = "No commands found",
+  input_interactive = true,
+  input_clickable = true,
+  input_hoverable = true,
+  input_focusable = true,
+  accessibility_label = "Search and run workbench commands",
+}
+layout = { clip = true, width = { stretch = "Stretch" }, height = { min = 100, preferred = 108, max = 120, stretch = "Fixed" }, container = { kind = "VerticalBox" }, padding = { left = 8, right = 8, top = 6, bottom = 6 } }
+events = [{ id = "ReactBitsWorkbench/CommandCommit", event = "Submit", route = "workbench.command.commit" }]
+
+[nodes.dialog_row]
+component = "HorizontalBox"
+control_id = "ReactBitsWorkbenchDialogRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 108, preferred = 120, max = 136, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8 } }
+children = [{ node = "dialog" }, { node = "confirm_dialog" }]
+
+[nodes.dialog]
+component = "Dialog"
+control_id = "ReactBitsWorkbenchDialog"
+classes = ["rb-surface", "rb-dialog"]
+props = {
+  open = true,
+  popup_open = true,
+  title = "Review layout changes",
+  text = "Review layout changes",
+  message = "The retained host has a new compact interaction row.",
+  action = "Review",
+  input_interactive = true,
+  input_clickable = true,
+  input_hoverable = true,
+  input_focusable = true,
+  accessibility_label = "Review layout changes dialog",
+}
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox" }, padding = { left = 6, right = 6, top = 5, bottom = 5 } }
+events = [{ id = "ReactBitsWorkbench/DialogReview", event = "Click", route = "workbench.dialog.review" }]
+
+[nodes.confirm_dialog]
+component = "ConfirmDialog"
+control_id = "ReactBitsWorkbenchConfirmDialog"
+classes = ["rb-surface", "rb-confirm-dialog", "rb-destructive"]
+props = {
+  open = true,
+  popup_open = true,
+  title = "Apply generated patch?",
+  text = "Apply generated patch?",
+  message = "This writes the reviewed ZUI fixture into the project.",
+  confirm_text = "Apply",
+  cancel_text = "Later",
+  severity = "warning",
+  destructive = false,
+  confirm_enabled = true,
+  requires_explicit_action = true,
+  input_interactive = true,
+  input_clickable = true,
+  input_hoverable = true,
+  input_focusable = true,
+  accessibility_label = "Confirm generated patch",
+}
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox" }, padding = { left = 6, right = 6, top = 5, bottom = 5 } }
+events = [{ id = "ReactBitsWorkbench/ConfirmPatch", event = "Click", route = "workbench.patch.confirm" }]
+
+[nodes.system_row]
+component = "HorizontalBox"
+control_id = "ReactBitsWorkbenchSystemRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 150, preferred = 165, max = 180, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8 } }
+children = [{ node = "notifications" }, { node = "drag_overlay" }]
+
+[nodes.notifications]
+component = "NotificationCenter"
+control_id = "ReactBitsWorkbenchNotificationCenter"
+classes = ["rb-surface", "rb-notifications"]
+props = {
+  open = true,
+  popup_open = true,
+  title = "Notifications",
+  unread_count = 2,
+  overflow_count = 0,
+  notifications = [
+    "build|title=Build finished|message=ZUI fixture exported|severity=success|unread=true",
+    "review|title=Review requested|message=Check the narrow viewport|severity=info|unread=true",
+    "sync|title=Source synced|message=No local conflicts|severity=info|unread=false",
+  ],
+  selected_notification_id = "review",
+  focused_index = 1,
+  visible_limit = 2,
+  empty_text = "No notifications",
+  input_interactive = true,
+  input_clickable = true,
+  input_hoverable = true,
+  input_focusable = true,
+  accessibility_label = "Workbench notifications",
+}
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox" }, padding = { left = 6, right = 6, top = 5, bottom = 5 } }
+
+[nodes.drag_overlay]
+component = "DragOverlay"
+control_id = "ReactBitsWorkbenchDragOverlay"
+classes = ["rb-surface", "rb-drag-overlay", "rb-dragging"]
+props = {
+  open = true,
+  dragging = true,
+  drop_hovered = true,
+  active_drag_target = true,
+  payload_kind = "asset",
+  payload_label = "StoneWall.mesh",
+  payload_reference = "assets/stone_wall.mesh",
+  source_control_id = "WorkbenchAssetBrowser",
+  target_control_id = "WorkbenchSceneTree",
+  drop_allowed = true,
+  drop_indicator_edge = "bottom",
+  drop_indicator_text = "Drop into scene",
+  input_interactive = true,
+  input_clickable = true,
+  input_hoverable = true,
+  input_focusable = true,
+  accessibility_label = "Dragging asset preview",
+}
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox" }, padding = { left = 6, right = 6, top = 5, bottom = 5 } }
+
+[nodes.toast]
+component = "WorkbenchToast"
+control_id = "ReactBitsWorkbenchToast"
+classes = ["rb-toast", "rb-toast-success"]
+props = {
+  open = true,
+  popup_open = true,
+  text = "Layout exported to Penpot",
+  value = "Layout exported to Penpot",
+  severity = "success",
+  action_label = "Open",
+  current_toast_id = "layout-exported",
+  input_interactive = true,
+  input_clickable = true,
+  input_hoverable = true,
+  input_focusable = true,
+  accessibility_label = "Layout export notification",
+}
+layout = { clip = true, width = { stretch = "Stretch" }, height = { min = 38, preferred = 40, max = 46, stretch = "Fixed" }, container = { kind = "HorizontalBox" }, padding = { left = 6, right = 6, top = 4, bottom = 4 } }
+events = [{ id = "ReactBitsWorkbench/OpenExport", event = "Click", route = "workbench.export.open" }]
+
+[nodes.root.zircon_extension]
+owner = "reactbits-reference-slice"
+reference_profile = "reactbits-workbench-interaction-surfaces-v1"
+source_of_truth = "zui"
+penpot_visual_check = "required"
+
+[[stylesheets]]
+id = "reactbits-ui-typography"
+
+[[stylesheets.rules]]
+selector = "*"
+set = { self = { font = { asset = "res://fonts/editor-ui.font.toml", family = "Fira Sans" } } }

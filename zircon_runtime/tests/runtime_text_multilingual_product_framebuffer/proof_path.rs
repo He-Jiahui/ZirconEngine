@@ -178,15 +178,13 @@ mod tests {
             &output,
             &workspace_root.join("target"),
         ));
-        assert!(
-            work_root.starts_with(
-                workspace_root
-                    .join("docs")
-                    .join("tests")
-                    .join("runtime")
-                    .join("text"),
-            )
-        );
+        assert!(work_root.starts_with(
+            workspace_root
+                .join("docs")
+                .join("tests")
+                .join("runtime")
+                .join("text"),
+        ));
         assert!(product_proof_is_outside_target(
             &work_root,
             &workspace_root.join("target"),

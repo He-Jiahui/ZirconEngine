@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 from tools.tests.frameworks_05_module_identity import Frameworks05ModuleIdentityChecks
-from tools.runtime_domain_dependency_audit import audit_runtime_domain_dependencies
+from tools.audits.runtime_domain_dependency_audit import audit_runtime_domain_dependencies
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -637,13 +637,14 @@ class Frameworks05LayerDirectionTests(Frameworks05ModuleIdentityChecks, unittest
 
         for required in (
             "pub struct ManagerServiceHandle<T: ?Sized>",
-            "pub index: u32",
-            "pub generation: u32",
-            "pub service: RegistryName",
+            "pub(crate) index: u32",
+            "pub(crate) generation: u32",
+            "pub(crate) service: RegistryName",
             "pub struct RegisteredManagerService",
             "pub trait ManagerServiceResolver",
         ):
             self.assertIn(required, service_source)
+        self.assertIn("pub fn service_name(&self)", service_source)
         self.assertIn("StaleServiceHandle", error_source)
         self.assertIn("ServiceUnavailable", error_source)
         self.assertIn("manager_service_handle(core, $service_name)", resolver_source)
@@ -814,7 +815,8 @@ class Frameworks05LayerDirectionTests(Frameworks05ModuleIdentityChecks, unittest
                 ):
                     continue
                 source = path.read_text(encoding="utf-8")
-                if concrete_level_manager_pattern.search(source):
+                production_source = source.split("#[cfg(test)]", 1)[0]
+                if concrete_level_manager_pattern.search(production_source):
                     concrete_level_manager_violations.append(relative)
         self.assertEqual(
             concrete_level_manager_violations,
@@ -836,12 +838,16 @@ class Frameworks05LayerDirectionTests(Frameworks05ModuleIdentityChecks, unittest
                 or relative.endswith("_tests.rs")
             ):
                 continue
-            lines = path.read_text(encoding="utf-8").splitlines()
-            for index, line in enumerate(lines):
+            source = path.read_text(encoding="utf-8")
+            # Test-only fixtures may intentionally pass a concrete manager into
+            # helpers, but this audit is about production layer ownership.  A
+            # preceding-line check is insufficient when the helper is nested
+            # many lines below its `#[cfg(test)]` module declaration, so remove
+            # the test module from the scanned source while preserving the
+            # production line numbers.
+            production_source = source.split("#[cfg(test)]", 1)[0]
+            for index, line in enumerate(production_source.splitlines()):
                 if graphics_storage.search(line):
-                    preceding = "\n".join(lines[max(0, index - 5) : index])
-                    if "#[cfg(test)]" in preceding:
-                        continue
                     graphics_violations.append(f"{relative}:{index + 1} {line.strip()}")
         self.assertEqual(
             graphics_violations,
@@ -859,9 +865,11 @@ class Frameworks05LayerDirectionTests(Frameworks05ModuleIdentityChecks, unittest
             "EditorAssetManager as EditorAssetManagerContract", retained_assets
         )
         self.assertIn("impl RetainedEditorHost", retained_assets)
-        self.assertIn(".resolve(self.asset_manager.clone())", retained_assets)
-        self.assertIn(".resolve(self.editor_asset_manager.clone())", retained_assets)
-        self.assertIn(".resolve(self.resource_manager.clone())", retained_assets)
+        self.assertIn("self.asset_runtime_access.asset_manager()", retained_assets)
+        self.assertIn(
+            "self.asset_runtime_access.editor_asset_manager()", retained_assets
+        )
+        self.assertIn("self.asset_runtime_access.resource_manager()", retained_assets)
 
         editor_render_fixture = (
             REPO_ROOT / "zircon_editor/src/tests/editing/state/viewport.rs"
@@ -879,7 +887,8 @@ class Frameworks05LayerDirectionTests(Frameworks05ModuleIdentityChecks, unittest
         ).read_text(encoding="utf-8")
         self.assertNotIn("DefaultLevelManager", project_access)
         self.assertNotIn("resolve_manager::<", project_access)
-        self.assertIn("zircon_runtime::scene::create_level", project_access)
+        self.assertIn("runtime_services.prepare_authoring_world(scene)", project_access)
+        self.assertIn("AuthoringWorldSeed", project_access)
 
 
 if __name__ == "__main__":

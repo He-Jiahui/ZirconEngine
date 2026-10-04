@@ -19,6 +19,8 @@ var bountifulRules = %import("instances/delve_bountiful_rules");
 var rngModule = %import("kernel/rng");
 var rngObserver = %import("instances/m7_rng_observer");
 
+/// 单玩家、单同伴的M7生命周期夹具，当前由专用测试及场景矩阵消费；它合并房间计数、进度账本和命令结果，不能直接当作世界实体容器。
+/// 带sourceRunBound的路径绑定不可变布局输入；未绑定路径使用固定场景默认值，两个入口的坐标和对象身份前提不同。
 class DelveState {
     pub var tick: int;
     pub var runActive: bool;
@@ -221,6 +223,7 @@ absFloat(value: float): float {
     return value < 0.0 ? -value : value;
 }
 
+// TODO: [CR-WOC-IPS-I-0007] 此近似距离用于同伴追击/治疗/跟随边界；需补对角线临界样本并核对源二维距离，现有同轴场景无法确定其适用域。
 distance(ax: float, az: float, bx: float, bz: float): float {
     var dx = absFloat(ax - bx);
     var dz = absFloat(az - bz);
@@ -269,6 +272,8 @@ spawnCompanion(state: DelveState): void {
     recordEvent(state, 2);
 }
 
+/// 设置本轮会话、源布局标记和死亡预算；账户账本/商店clear/lore/daily仍保留，调用方随后显式spawnModule。
+// TODO: [CR-WOC-IPS-I-0012] 重新claim时尚未清除rewardChestAvailable/chestOpen/pendingLootCount；现有重启样本仅检查Bountiful或延迟墓穴，需确认失败后宝箱状态的重置契约。
 pub enterRun(state: DelveState, moduleCount: int): bool {
     state.lastError = 0;
     if (state.runActive || moduleCount < 1) { state.lastError = -1; return false; }
@@ -361,6 +366,7 @@ pub activeRunModuleOriginCoordinate(state: DelveState, axis: int): float {
     );
 }
 
+/// 输入世界坐标并由已绑定run取得局部布局原点；查询两个axis时传相同原始位置/半径，逐轴结果属于同一次碰撞判定。
 pub resolveActiveRunCollisionCoordinate(
     state: DelveState,
     x: float,
@@ -382,6 +388,7 @@ pub resolveActiveRunCollisionCoordinate(
     );
 }
 
+/// 扫掠从原始起点到原始终点；两轴查询保持同一段运动及ignoreFences约束，不能先改一轴再用它重查另一轴。
 pub resolveActiveRunMovementCoordinate(
     state: DelveState,
     fromX: float,
@@ -513,6 +520,7 @@ pub tryTriggerActiveRunPuzzleAt(
     return triggerActiveRunPuzzle(state, puzzleOffset);
 }
 
+/// 调用方在claim或走出口后调用一次，重置本房间拼图与计数；重复直接调用会再次记spawn并重建房间状态，不是幂等确保存在。
 pub spawnModule(state: DelveState): bool {
     if (!state.runActive || state.moduleIndex < 0 || state.moduleIndex >= state.moduleCount) {
         return false;
@@ -602,6 +610,7 @@ pub killFinalBoss(state: DelveState): bool {
     return true;
 }
 
+// 会话是棋盘/时限/尝试数的唯一写入来源，下面标量仅供夹具断言；每次结果提交先同步，避免两个状态机各自推进。
 syncLockpickProjection(state: DelveState): void {
     var session = state.lockpickSession;
     if (!session.initialized) {
@@ -666,6 +675,7 @@ pub lockpickEngage(state: DelveState, ante: int): bool {
     return true;
 }
 
+// 此M7夹具提交固定奖励计数并推进lore/clear；完整目录物品与每成员奖励由独立规则合同描述，不能把这里的常量视为通用结算API。
 lockpickSucceed(state: DelveState): void {
     state.lockpickActive = false;
     state.chestAttemptAvailable = false;
@@ -726,6 +736,7 @@ applyLockpickResult(state: DelveState, result: int): void {
     if (result == 7) { recordEvent(state, 24); }
 }
 
+/// 先处理权威tick上的过期，再交会话校验owner/sid及动作；返回局部转移码并同步箱状态，UI投影不能跳过该提交层。
 pub lockpickAction(
     state: DelveState,
     action: int,
@@ -840,6 +851,7 @@ shopIndexIsValid(state: DelveState, delveIndex: int): bool {
 
 // Mirrors unlockNextDelveLore: the next source-order id is added exactly once
 // per successful clear, and exhaustion leaves the state unchanged.
+/// 只追加连续目录前缀；恢复或外部写入须保持已解锁数组顺序与长度一致，任意ID集合不符合nextLoreId的计数前提。
 pub unlockNextDelveLore(state: DelveState): bool {
     state.lastDelveLoreId = "";
     var loreId = loreRules.nextLoreId(state.unlockedDelveLoreIds.length);
@@ -893,6 +905,7 @@ pub queueRestlessGrave(
     );
 }
 
+// 到期批次仅增加活动怪物总数并记一个批次事件，具体每只实体位置/模板仍属于世界层；已打开出口的生命周期由上层解释。
 tickRestlessGraves(state: DelveState): void {
     if (!state.runActive) { return; }
     var spawned = restlessRules.tick(state.restlessGraves, <float>state.tick * 0.05);
@@ -1072,6 +1085,8 @@ updateCompanion(state: DelveState, stream: rngModule.Mulberry32): void {
     }
 }
 
+/// 每次推进一个50ms固定步，顺序为墓穴到期、同伴、开锁期限；caller持续传同一共享流，已被其他系统推进的draw/state也会同步。
+/// 本模块只观察/推进命中的随机轨迹，不返回伤害随机值；事件数组为累积夹具记录，宿主消费须自行记录游标。
 pub tickOnce(state: DelveState, stream: rngModule.Mulberry32): void {
     syncObservedRng(state, stream);
     state.tick = state.tick + 1;
@@ -1122,6 +1137,7 @@ pub delveLockpickFailScenarioTest(): int {
         return -1;
     }
     tickMany(state, 64, stream);
+    // BUG: [CR-WOC-IPS-I-0015] 本场景ante=1仅有一次机会，超时直接失败，不产生重试事件12；下面却要求该事件为1，若完成初始化并执行到此断言必失败。
     if (state.lockpickActive || state.chestAttemptAvailable || !state.surfaceExitOpen ||
         eventCount(state, 12) != 1 || eventCount(state, 11) != 1) {
         return -2;

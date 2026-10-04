@@ -7,6 +7,7 @@ mod surface;
 mod text;
 
 #[cfg(test)]
+#[path = "workbench_text_field/tests/cases.rs"]
 mod tests;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use model::WorkbenchTextFieldStyle;

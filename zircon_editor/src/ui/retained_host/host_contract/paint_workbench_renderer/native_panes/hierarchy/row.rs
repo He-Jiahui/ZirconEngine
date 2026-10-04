@@ -9,7 +9,7 @@ use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::paint_geometry::intersect;
 use super::super::super::super::paint_primitives::{draw_border_clipped, draw_rect_clipped};
 
-use self::frame::hierarchy_row_frame;
+pub(in crate::ui::retained_host::host_contract) use self::frame::hierarchy_row_frame;
 use self::style::hierarchy_row_color;
 use self::text::draw_hierarchy_row_text;
 use super::super::super::ACCENT;

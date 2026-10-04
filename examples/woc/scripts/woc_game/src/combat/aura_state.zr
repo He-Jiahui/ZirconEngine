@@ -1,6 +1,7 @@
 var container = %import("zr.container");
 var auraRules = %import("combat/auras");
 
+/// 单项光环应用的独立测试输入，包含来源生命快照、周期参数和属性脏标记；这些输入不与产品世界实体或持久化列自动同步。
 class AuraSpec {
     pub var id: string;
     pub var sourceId: uint;
@@ -31,6 +32,7 @@ class AuraSpec {
     }
 }
 
+/// 独立光环存储契约使用的并行列与事件计数，所有行须由同一对象的应用和移除路径维护；当前只有 aura_state_test_main 消费。
 class AuraState {
     pub var hp: int;
     pub var maxHp: int;
@@ -123,6 +125,7 @@ percentValue(value: float): float {
     return value > 1.0 ? value / 100.0 : value;
 }
 
+/// 在该局部存储中替换同一身份与同一来源的应用，再接入新的周期时钟；友善 NPC 的排除规则复用 auras 模块，调用者不能把成功当成世界光环已经提交。
 pub applyAura(state: AuraState, spec: AuraSpec): bool {
     if (spec.id == "" || spec.kind == "" || spec.duration <= 0.0 ||
         spec.remaining <= 0.0 || spec.tickInterval < 0.0) {
@@ -168,6 +171,7 @@ pub cleanseFriendlyNpcAuras(state: AuraState): void {
     }
 }
 
+/// 供独立契约每 50 毫秒推进一次：倒序访问保持删除索引稳定，周期伤害致死后立即停止本帧剩余光环；属性重算请求只在完整处理后合并。
 pub updateAuras(state: AuraState): void {
     if (state.dead) { refreshStealth(state); return; }
     var statsDirty = false;

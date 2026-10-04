@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use crate::core::framework::render::{
-    RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryInstance,
-    ViewportCameraSnapshot, render_mesh_stable_instance_key,
+    render_mesh_stable_instance_key, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
+    RenderVirtualGeometryInstance, ViewportCameraSnapshot,
 };
 
 use super::super::super::declarations::{
@@ -796,4 +796,5 @@ fn highest_nonresident_ancestor_page_before_visible(
 }
 
 #[cfg(test)]
+#[path = "build/tests/hash_membership_tests.rs"]
 mod hash_membership_tests;

@@ -8,13 +8,13 @@ use std::{collections::HashMap, time::Instant};
 
 use crate::{
     asset::{
-        AssetEvent, AssetEventReceiver, AssetId, AssetUri, ProjectAssetManager, SceneAsset,
-        facade::AssetEventPoll, project::ProjectManager,
+        facade::AssetEventPoll, project::ProjectManager, AssetEvent, AssetEventReceiver, AssetId,
+        AssetUri, ProjectAssetManager, SceneAsset,
     },
     core::{
-        JobScheduler, TaskGraphScope,
         framework::channel::{ChannelReceiver, ChannelWakeCallback},
         resource::ResourceManager,
+        JobScheduler, TaskGraphScope,
     },
     scene::LevelSystem,
 };
@@ -187,6 +187,23 @@ impl DynamicSceneAssetReloadQueue {
         self.runtime_frame_wake_token = Some(asset_manager.subscribe_project_generation_wake(wake));
     }
 
+    #[cfg(test)]
+    pub(crate) fn assert_no_admitted_reload_storage(&self) {
+        assert!(self.pending.is_empty());
+        assert!(self.pending_order.is_empty());
+        assert!(self.deferred.is_empty());
+        assert!(self.deferred_order.is_empty());
+        assert!(self.ready.is_empty());
+        assert!(self.ready_order.is_empty());
+        assert!(self.target_staging.is_empty());
+        assert!(self.target_staging_order.is_empty());
+        assert_eq!(
+            self.pending_metadata_bytes,
+            self.latest_revisions.len() * LATEST_REVISION_METADATA_BYTES
+                + self.latest_order.len() * ORDER_ENTRY_METADATA_BYTES
+        );
+    }
+
     pub fn limits(&self) -> DynamicSceneAssetReloadLimits {
         self.limits
     }
@@ -224,8 +241,9 @@ impl DynamicSceneAssetReloadQueue {
         world: &mut World,
     ) -> DynamicSceneAssetReloadFrameApplyReport {
         self.drain_runtime_frame_wake_token();
-        let drain = self.drain_events(scheduler);
+        let mut drain = self.drain_events(scheduler);
         let mut apply = self.commit_staged_into_world(world);
+        apply.failed.append(&mut drain.failed);
         let ready = self.collect_ready_report();
         self.stage_ready_for_world(scheduler, world, ready, &mut apply);
         apply.pending_count = self.pending_count();
@@ -243,8 +261,9 @@ impl DynamicSceneAssetReloadQueue {
         level: &LevelSystem,
     ) -> DynamicSceneAssetReloadFrameApplyReport {
         self.drain_runtime_frame_wake_token();
-        let drain = self.drain_events(scheduler);
+        let mut drain = self.drain_events(scheduler);
         let mut apply = self.commit_staged_into_level(level);
+        apply.failed.append(&mut drain.failed);
         let ready = self.collect_ready_report();
         self.stage_ready_for_level(scheduler, level, ready, &mut apply);
         apply.pending_count = self.pending_count();

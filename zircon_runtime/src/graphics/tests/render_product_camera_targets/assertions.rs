@@ -101,7 +101,11 @@ pub(super) fn average_channel_in_region(
             count += 1.0;
         }
     }
-    if count <= 0.0 { 0.0 } else { total / count }
+    if count <= 0.0 {
+        0.0
+    } else {
+        total / count
+    }
 }
 
 fn dominant_pixels_in_region(

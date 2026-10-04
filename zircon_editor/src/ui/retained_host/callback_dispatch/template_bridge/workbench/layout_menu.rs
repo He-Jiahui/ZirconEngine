@@ -1,6 +1,7 @@
 use crate::core::editor_event::MenuAction;
-use crate::ui::binding::EditorUiBinding;
 use crate::ui::workbench::event::menu_action_binding;
+
+use crate::ui::binding::EditorUiBinding;
 use zircon_runtime_interface::ui::component::UiValue;
 
 use super::super::popup_primitives::{

@@ -68,7 +68,12 @@ pub(super) fn build_style_inspector(
 }
 
 pub(super) fn local_style_rule_entries(document: &UiAssetDocument) -> Vec<LocalStyleRuleEntry> {
-    let mut entries = Vec::new();
+    let rule_count = document
+        .stylesheets
+        .iter()
+        .map(|stylesheet| stylesheet.rules.len())
+        .sum();
+    let mut entries = Vec::with_capacity(rule_count);
     for (stylesheet_index, stylesheet) in document.stylesheets.iter().enumerate() {
         for (rule_index, rule) in stylesheet.rules.iter().enumerate() {
             entries.push(LocalStyleRuleEntry {
@@ -297,5 +302,9 @@ fn toml_value_to_json(value: &Value) -> JsonValue {
 }
 
 #[cfg(test)]
-#[path = "style_inspection/selected_rule_tests.rs"]
+#[path = "style_inspection/tests/selected_rule_tests.rs"]
 mod selected_rule_tests;
+
+#[cfg(test)]
+#[path = "style_inspection/tests/optimization_batch_jb_editor641_tests.rs"]
+mod optimization_batch_jb_editor641_tests;

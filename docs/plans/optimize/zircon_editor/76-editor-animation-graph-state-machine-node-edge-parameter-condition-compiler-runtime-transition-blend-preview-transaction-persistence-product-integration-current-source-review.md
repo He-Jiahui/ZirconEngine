@@ -13,7 +13,6 @@ related_code:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/animation_graph.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/animation_projection.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs
-  - zircon_editor/assets/ui/editor/animation_editor.zui
   - zircon_editor/assets/ui/editor/host/animation_graph_body.zui
   - zircon_plugins/animation_graph/editor
   - zircon_plugins/animation/runtime/src/evaluation/compiled_graph

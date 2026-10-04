@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node wos46_bag_command_static_guard.mjs；缺少源码契约时脚本抛错退出。
+// 核对 Zr 与原生协议中的背包命令 ID 126、127 及载荷长度，再检查世界状态的装备、卸除分派和命令生命周期标记。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

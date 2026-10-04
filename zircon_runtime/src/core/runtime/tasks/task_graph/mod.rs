@@ -1,7 +1,7 @@
 //! Explicitly owned task execution for runtime and module lifecycle work.
 
 mod admission;
-mod engine_task_graph;
+pub(super) mod engine_task_graph;
 mod lease;
 mod options;
 mod scope;
@@ -20,4 +20,6 @@ pub use scope_model::{
 };
 pub use shutdown::{TaskGraphShutdownError, TaskGraphShutdownReport};
 pub use task_handle::TaskHandle;
-pub use worker_inventory::{TaskGraphWorkerInventory, TaskGraphWorkerShutdownCensus};
+pub use worker_inventory::{
+    TaskGraphWorkerDomainInventory, TaskGraphWorkerInventory, TaskGraphWorkerShutdownCensus,
+};

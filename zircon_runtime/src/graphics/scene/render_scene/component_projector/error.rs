@@ -37,6 +37,10 @@ pub(crate) enum RenderSceneComponentProjectionError {
         expected: RenderWorldSnapshotHandle,
         incoming: RenderWorldSnapshotHandle,
     },
+    ArtifactAheadOfFrame {
+        frame_generation: u64,
+        artifact_generation: u64,
+    },
     WorldMismatch {
         expected: RenderComponentSourceWorldId,
         incoming: RenderComponentSourceWorldId,
@@ -74,6 +78,12 @@ pub(crate) enum RenderSceneComponentProjectionError {
     Apply(RenderSceneApplyError),
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum RenderSceneComponentProjectionTransactionError<StageError> {
+    Projection(RenderSceneComponentProjectionError),
+    Staging(StageError),
+}
+
 impl fmt::Display for RenderSceneComponentProjectionError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -83,6 +93,13 @@ impl fmt::Display for RenderSceneComponentProjectionError {
             Self::FrameWorldMismatch { expected, incoming } => write!(
                 formatter,
                 "render frame world mismatch: expected {expected:?}, incoming {incoming:?}"
+            ),
+            Self::ArtifactAheadOfFrame {
+                frame_generation,
+                artifact_generation,
+            } => write!(
+                formatter,
+                "render-component artifact source generation {artifact_generation} is newer than frame generation {frame_generation}"
             ),
             Self::WorldMismatch { expected, incoming } => write!(
                 formatter,
@@ -133,6 +150,30 @@ impl fmt::Display for RenderSceneComponentProjectionError {
 }
 
 impl Error for RenderSceneComponentProjectionError {}
+
+impl<StageError> fmt::Display for RenderSceneComponentProjectionTransactionError<StageError>
+where
+    StageError: fmt::Display,
+{
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Projection(error) => write!(formatter, "render-scene projection failed: {error}"),
+            Self::Staging(error) => write!(formatter, "render-scene staging failed: {error}"),
+        }
+    }
+}
+
+impl<StageError> Error for RenderSceneComponentProjectionTransactionError<StageError>
+where
+    StageError: Error + 'static,
+{
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Projection(error) => Some(error),
+            Self::Staging(error) => Some(error),
+        }
+    }
+}
 
 impl From<RenderScenePrimitiveInputError> for RenderSceneComponentProjectionError {
     fn from(value: RenderScenePrimitiveInputError) -> Self {

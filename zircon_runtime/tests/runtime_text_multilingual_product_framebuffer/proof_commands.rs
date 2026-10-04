@@ -144,12 +144,10 @@ mod tests {
         assert_eq!(layout.lines.len(), 2);
         assert!(first_line.text.contains('\u{0640}'));
         assert_eq!(first_line.source_range.end, "سَلَام".len());
-        assert!(
-            first_line
-                .runs
-                .iter()
-                .any(|run| { run.text == "ـ" && run.source_range.start == run.source_range.end })
-        );
+        assert!(first_line
+            .runs
+            .iter()
+            .any(|run| { run.text == "ـ" && run.source_range.start == run.source_range.end }));
         assert!((first_line.glyph_advances.iter().sum::<f32>() - command.frame.width).abs() < 0.1);
     }
 

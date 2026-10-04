@@ -2,21 +2,48 @@ use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Mutex, MutexGuard, OnceLock};
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 
+#[cfg(feature = "platform-winit")]
 use winit::event_loop::EventLoopProxy;
 use zircon_runtime_interface::ZrRuntimeWakeSinkV1;
 
 static NEXT_WAKE_TOKEN: AtomicU64 = AtomicU64::new(1);
-static WAKE_REGISTRY: OnceLock<Mutex<HashMap<u64, EventLoopProxy>>> = OnceLock::new();
+static WAKE_REGISTRY: OnceLock<Mutex<HashMap<u64, Arc<RuntimeWakeTarget>>>> = OnceLock::new();
+
+enum RuntimeWakeTarget {
+    #[cfg(feature = "platform-winit")]
+    Windowed(EventLoopProxy),
+    Callback(Box<dyn Fn() + Send + Sync>),
+}
+
+impl RuntimeWakeTarget {
+    fn wake_up(&self) {
+        match self {
+            #[cfg(feature = "platform-winit")]
+            Self::Windowed(proxy) => proxy.wake_up(),
+            Self::Callback(callback) => callback(),
+        }
+    }
+}
 
 pub(in crate::entry) struct RuntimeWakeRegistration {
     token: u64,
-    proxy: EventLoopProxy,
+    proxy: Arc<RuntimeWakeTarget>,
 }
 
 impl RuntimeWakeRegistration {
+    #[cfg(feature = "platform-winit")]
     pub(in crate::entry) fn register(proxy: EventLoopProxy) -> Self {
+        Self::register_target(RuntimeWakeTarget::Windowed(proxy))
+    }
+
+    pub(in crate::entry) fn register_callback(callback: impl Fn() + Send + Sync + 'static) -> Self {
+        Self::register_target(RuntimeWakeTarget::Callback(Box::new(callback)))
+    }
+
+    fn register_target(target: RuntimeWakeTarget) -> Self {
+        let proxy = Arc::new(target);
         loop {
             let token = NEXT_WAKE_TOKEN.fetch_add(1, Ordering::Relaxed);
             if token == 0 {
@@ -66,90 +93,17 @@ fn wake_token(token: u64) {
     }
 }
 
-fn lock_registry() -> MutexGuard<'static, HashMap<u64, EventLoopProxy>> {
+fn lock_registry() -> MutexGuard<'static, HashMap<u64, Arc<RuntimeWakeTarget>>> {
     WAKE_REGISTRY
         .get_or_init(|| Mutex::new(HashMap::new()))
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
+#[cfg(all(test, feature = "platform-winit"))]
+#[path = "tests/wake_registry.rs"]
+mod tests;
+
 #[cfg(test)]
-mod tests {
-    use std::fmt;
-    use std::sync::atomic::{AtomicUsize, Ordering};
-    use std::sync::Arc;
-
-    use winit::event_loop::{EventLoopProxy, EventLoopProxyProvider};
-
-    use super::{runtime_wake_trampoline, RuntimeWakeRegistration};
-
-    struct CountingWakeTarget {
-        wakes: Arc<AtomicUsize>,
-        panic_on_wake: bool,
-    }
-
-    impl fmt::Debug for CountingWakeTarget {
-        fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-            formatter.debug_struct("CountingWakeTarget").finish()
-        }
-    }
-
-    impl EventLoopProxyProvider for CountingWakeTarget {
-        fn wake_up(&self) {
-            self.wakes.fetch_add(1, Ordering::SeqCst);
-            assert!(!self.panic_on_wake, "test wake target panic");
-        }
-    }
-
-    fn test_proxy(wakes: Arc<AtomicUsize>, panic_on_wake: bool) -> EventLoopProxy {
-        EventLoopProxy::new(Arc::new(CountingWakeTarget {
-            wakes,
-            panic_on_wake,
-        }))
-    }
-
-    #[test]
-    fn runtime_wake_registration_routes_only_while_token_is_registered() {
-        let wakes = Arc::new(AtomicUsize::new(0));
-        let mut registration =
-            RuntimeWakeRegistration::register(test_proxy(Arc::clone(&wakes), false));
-        let sink = registration.sink();
-        assert!(sink.is_valid());
-
-        registration.wake();
-        unsafe { sink.wake.unwrap()(sink.token) };
-        assert_eq!(wakes.load(Ordering::SeqCst), 2);
-
-        registration.unregister();
-        registration.wake();
-        unsafe { sink.wake.unwrap()(sink.token) };
-        assert_eq!(wakes.load(Ordering::SeqCst), 2);
-    }
-
-    #[test]
-    fn host_wake_uses_the_registration_owned_proxy() {
-        let source = include_str!("wake_registry.rs");
-        let wake_body = source
-            .split("pub(super) fn wake(&self) {")
-            .nth(1)
-            .and_then(|tail| tail.split("\n    }").next())
-            .expect("wake method source");
-
-        assert!(wake_body.contains("self.proxy.wake_up()"));
-        assert!(!wake_body.contains("wake_token"));
-    }
-
-    #[test]
-    fn runtime_wake_trampoline_contains_host_proxy_panics() {
-        let wakes = Arc::new(AtomicUsize::new(0));
-        let registration = RuntimeWakeRegistration::register(test_proxy(Arc::clone(&wakes), true));
-        let sink = registration.sink();
-
-        let result = std::panic::catch_unwind(|| unsafe {
-            runtime_wake_trampoline(sink.token);
-        });
-
-        assert!(result.is_ok());
-        assert_eq!(wakes.load(Ordering::SeqCst), 1);
-    }
-}
+#[path = "tests/wake_registry_callback_tests.rs"]
+mod callback_tests;

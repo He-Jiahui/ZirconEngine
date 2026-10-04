@@ -1,3 +1,4 @@
+// 用户可见名称在形成注册报告前校验，避免空白或外侧空白进入目录显示与诊断。
 pub(super) fn validate_runtime_plugin_display_field(
     field_name: &str,
     value: &str,
@@ -12,5 +13,5 @@ pub(super) fn validate_runtime_plugin_display_field(
 }
 
 #[cfg(test)]
-#[path = "display/single_trim_tests.rs"]
+#[path = "display/tests/single_trim_tests.rs"]
 mod single_trim_tests;

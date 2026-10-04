@@ -19,6 +19,7 @@ const definitions = {
   ...litany.DROWNED_LITANY_MODULES,
 };
 
+// 投影出生点、谜题和危险区数组时保持模块原始顺序。
 const modules = moduleIds.map((id, moduleIndex) => {
   const definition = definitions[id];
   if (!definition) throw new Error(`missing Delve module definition for ${id}`);

@@ -1,5 +1,4 @@
 mod commands;
-mod geometry;
 mod identity;
 
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
@@ -45,5 +44,5 @@ pub(in crate::ui::retained_host::host_contract) fn is_viewport_fallback_scene_no
 }
 
 #[cfg(test)]
-#[path = "template_viewport_scene_tests/mod.rs"]
+#[path = "template_viewport_scene_tests/tests/mod.rs"]
 mod tests;

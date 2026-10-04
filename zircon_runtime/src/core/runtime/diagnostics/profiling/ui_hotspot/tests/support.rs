@@ -1,6 +1,6 @@
 use super::*;
 
-fn counter(name: &str, value: f64) -> ProfileCounterSnapshot {
+pub(super) fn counter(name: &str, value: f64) -> ProfileCounterSnapshot {
     ProfileCounterSnapshot {
         stream: "editor".to_string(),
         name: name.to_string(),

@@ -1,3 +1,4 @@
+// 静态核对固定版本 WOC 源码与本地 Zr 投影中的宠物跟随指令与移动归属。
 import { execFileSync } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';

@@ -16,7 +16,8 @@ thread_local! {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct DiamondRasterKey {
-    edge: u32,
+    source_edge: u32,
+    target_edge_bits: u32,
     color: [u8; 4],
 }
 
@@ -30,39 +31,42 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_aa
     commands: &mut Vec<HostPaintCommand>,
     x: f32,
     y: f32,
-    radius: i32,
+    radius: f32,
     color: [u8; 4],
     clip: &FrameRect,
     order: i32,
     opacity: f32,
 ) {
-    let Ok(radius) = u32::try_from(radius) else {
+    if !radius.is_finite() || radius < 0.0 {
         return;
-    };
-    let Some(edge) = radius
-        .checked_mul(2)
-        .and_then(|diameter| diameter.checked_add(1))
-    else {
+    }
+    let target_edge = radius.mul_add(2.0, 1.0);
+    if !target_edge.is_finite() || target_edge <= 0.0 {
         return;
-    };
-    if edge > MAX_DIAMOND_RASTER_EDGE {
+    }
+    let source_edge = target_edge.ceil() as u32;
+    if source_edge == 0 || source_edge > MAX_DIAMOND_RASTER_EDGE {
         return;
     }
 
-    let raster = cached_diamond_raster(DiamondRasterKey { edge, color });
-    let half_edge = edge as f32 * 0.5;
+    let raster = cached_diamond_raster(DiamondRasterKey {
+        source_edge,
+        target_edge_bits: target_edge.to_bits(),
+        color,
+    });
+    let half_edge = target_edge * 0.5;
     commands.push(HostPaintCommand::image_pixels(
         FrameRect {
             x: x - half_edge,
             y: y - half_edge,
-            width: edge as f32,
-            height: edge as f32,
+            width: target_edge,
+            height: target_edge,
         },
         Some(clip.clone()),
         order,
         raster.resource_key,
-        edge,
-        edge,
+        source_edge,
+        source_edge,
         raster.rgba,
         None,
         opacity,
@@ -86,7 +90,12 @@ fn cached_diamond_raster(key: DiamondRasterKey) -> CachedDiamondRaster {
         let entry = CachedDiamondRaster {
             key,
             resource_key: diamond_resource_key(key),
-            rgba: diamond_pixels(key.edge, key.color).into(),
+            rgba: diamond_pixels_for_target(
+                key.source_edge,
+                f32::from_bits(key.target_edge_bits),
+                key.color,
+            )
+            .into(),
         };
         let result = CachedDiamondRaster {
             key: entry.key,
@@ -100,10 +109,15 @@ fn cached_diamond_raster(key: DiamondRasterKey) -> CachedDiamondRaster {
 }
 
 fn diamond_pixels(edge: u32, color: [u8; 4]) -> Vec<u8> {
+    diamond_pixels_for_target(edge, edge as f32, color)
+}
+
+fn diamond_pixels_for_target(source_edge: u32, target_edge: f32, color: [u8; 4]) -> Vec<u8> {
+    let edge = source_edge;
     let mut rgba = vec![0; edge as usize * edge as usize * 4];
     for y in 0..edge {
         for x in 0..edge {
-            let coverage = diamond_sample_coverage(x, y, edge);
+            let coverage = diamond_sample_coverage(x, y, source_edge, target_edge);
             if coverage == 0 {
                 continue;
             }
@@ -115,14 +129,17 @@ fn diamond_pixels(edge: u32, color: [u8; 4]) -> Vec<u8> {
     rgba
 }
 
-fn diamond_sample_coverage(x: u32, y: u32, edge: u32) -> u8 {
-    let center = edge as f32 * 0.5;
+fn diamond_sample_coverage(x: u32, y: u32, source_edge: u32, target_edge: f32) -> u8 {
+    let source_to_target = target_edge / source_edge as f32;
+    let center = target_edge * 0.5;
     let radius = center;
     let mut covered_samples = 0;
     for sample_y in 0..DIAMOND_SAMPLES_PER_AXIS {
         for sample_x in 0..DIAMOND_SAMPLES_PER_AXIS {
-            let px = x as f32 + (sample_x as f32 + 0.5) / DIAMOND_SAMPLES_PER_AXIS as f32;
-            let py = y as f32 + (sample_y as f32 + 0.5) / DIAMOND_SAMPLES_PER_AXIS as f32;
+            let px = (x as f32 + (sample_x as f32 + 0.5) / DIAMOND_SAMPLES_PER_AXIS as f32)
+                * source_to_target;
+            let py = (y as f32 + (sample_y as f32 + 0.5) / DIAMOND_SAMPLES_PER_AXIS as f32)
+                * source_to_target;
             if (px - center).abs() + (py - center).abs() <= radius {
                 covered_samples += 1;
             }
@@ -138,62 +155,16 @@ fn scale_alpha_by_coverage(alpha: u8, coverage: u8) -> u8 {
 
 fn diamond_resource_key(key: DiamondRasterKey) -> String {
     format!(
-        "icon-raster:analytic-diamond:{}:{:02x}{:02x}{:02x}{:02x}",
-        key.edge, key.color[0], key.color[1], key.color[2], key.color[3]
+        "icon-raster:analytic-diamond:{}:{:08x}:{:02x}{:02x}{:02x}{:02x}",
+        key.source_edge,
+        key.target_edge_bits,
+        key.color[0],
+        key.color[1],
+        key.color[2],
+        key.color[3]
     )
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn diamond_raster_contains_transparent_opaque_and_fractional_pixels() {
-        let rgba = diamond_pixels(7, [20, 30, 40, 255]);
-        let alphas = rgba.chunks_exact(4).map(|pixel| pixel[3]);
-
-        assert!(alphas.clone().any(|alpha| alpha == 0));
-        assert!(alphas.clone().any(|alpha| alpha == 255));
-        assert!(alphas.any(|alpha| (1..=254).contains(&alpha)));
-    }
-
-    #[test]
-    fn repeated_diamond_rasters_share_pixel_storage() {
-        let key = DiamondRasterKey {
-            edge: 7,
-            color: [50, 60, 70, 255],
-        };
-        let first = cached_diamond_raster(key);
-        let second = cached_diamond_raster(key);
-
-        assert_eq!(first.resource_key, second.resource_key);
-        assert!(Arc::ptr_eq(&first.rgba, &second.rgba));
-    }
-
-    #[test]
-    fn one_diamond_emits_one_image_command() {
-        let mut commands = Vec::new();
-        push_aa_diamond(
-            &mut commands,
-            20.0,
-            30.0,
-            3,
-            [80, 90, 100, 255],
-            &FrameRect {
-                x: 0.0,
-                y: 0.0,
-                width: 100.0,
-                height: 100.0,
-            },
-            7,
-            1.0,
-        );
-
-        assert_eq!(commands.len(), 1);
-        assert_eq!(commands[0].frame.x, 16.5);
-        assert_eq!(commands[0].frame.y, 26.5);
-        assert_eq!(commands[0].frame.width, 7.0);
-        assert_eq!(commands[0].frame.height, 7.0);
-        assert!(commands[0].image_pixels.is_some());
-    }
-}
+#[path = "tests/template_diamond_glyph.rs"]
+mod tests;

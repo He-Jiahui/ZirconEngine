@@ -1,3 +1,4 @@
+//! 性能热点的结构守卫核对拥有者、文件预算和证据文档。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn runtime_07_render_product_diagnostics_owner_split_keeps_families_folder_backed() {
     let product_root =
@@ -28,16 +29,18 @@ fn runtime_07_render_product_diagnostics_owner_split_keeps_families_folder_backe
     let sprite =
         include_str!("../../../../core/runtime/diagnostics/render_stats_store/product/sprite.rs");
     let ui = include_str!("../../../../core/runtime/diagnostics/render_stats_store/product/ui.rs");
-    let diagnostics_doc = include_str!("../../../../../../docs/zircon_runtime/core/diagnostics.md");
+    let diagnostics_doc =
+        include_str!("../../../../../../docs/crates/zircon_runtime/core/diagnostics.md");
     let runtime_07_plan = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
     );
     let runtime_index =
         include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let hotspot_doc =
-        include_str!("../../../../../../docs/zircon_runtime/performance/hotspot_inventory.md");
+    let hotspot_doc = include_str!(
+        "../../../../../../docs/crates/zircon_runtime/performance/hotspot_inventory.md"
+    );
     let large_file_doc =
-        include_str!("../../../../../../docs/engine-architecture/large-file-ownership-m1.md");
+        include_str!("../../../../../../docs/architecture/large-file-ownership-m1.md");
 
     for module_decl in [
         "mod camera;",

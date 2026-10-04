@@ -15,8 +15,8 @@ plan_sources:
   - user: 2026-09-09 完善 ZirconEngine 公开接口、机制案例、教程与最佳实践
 tests:
   - zircon_editor/src/core/plugin
-  - zircon_editor/src/ui/host/editor_event_runtime_access/tests.rs
-  - zircon_app/src/plugins/tests.rs
+  - zircon_editor/src/ui/host/editor_event_runtime_access/tests/cases.rs
+  - zircon_app/src/plugins/tests/cases.rs
 doc_type: module-detail
 ---
 
@@ -150,7 +150,7 @@ Unreal module/plugin 主要以 module load + tab/menu extender 扩展；ZirconEn
 - Plugin：[zircon_editor/src/core/plugin](https://github.com/He-Jiahui/ZirconEngine/tree/main/zircon_editor/src/core/plugin)
 - Registration：[zircon_editor/src/ui/host/editor_extension_registration.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_editor/src/ui/host/editor_extension_registration.rs)
 - Error：[zircon_editor/src/ui/host/editor_error.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_editor/src/ui/host/editor_error.rs)
-- App plugin tests：[zircon_app/src/plugins/tests.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_app/src/plugins/tests.rs)
+- App plugin tests：[zircon_app/src/plugins/tests/cases.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_app/src/plugins/tests/cases.rs)
 
 ## API 级编译模板
 

@@ -1,10 +1,11 @@
 use crate::core::framework::scene::ScenePropertyValue;
-use crate::scene::EntityId;
 use crate::scene::components::{AmbientLight, DirectionalLight, PointLight, RectLight, SpotLight};
+use crate::scene::EntityId;
 
 use super::super::super::World;
 
 impl World {
+    // 灯光字段按具体组件投影；枚举顺序同时是检查器和动画访问器看到的稳定顺序。
     pub(super) fn visit_lighting_property_entries<F>(
         &self,
         entity: EntityId,

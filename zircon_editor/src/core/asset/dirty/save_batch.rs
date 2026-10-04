@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use thiserror::Error;
@@ -96,13 +96,15 @@ impl SaveDirtyViewsRequest {
         let mut candidates = candidates.into_iter().collect::<Vec<_>>();
         candidates.sort_by_key(|candidate| candidate.snapshot.document());
         let mut previous_document = None;
-        let mut failures = Vec::new();
+        let mut failures = Vec::with_capacity(candidates.len());
         let mut total_estimated_bytes = 0_u64;
-        let toolkit_by_document = toolkits
-            .descriptors()
-            .iter()
-            .map(|descriptor| (descriptor.document_id(), descriptor))
-            .collect::<BTreeMap<_, _>>();
+        let toolkit_descriptors = toolkits.descriptors();
+        let mut toolkit_by_document = HashMap::with_capacity(toolkit_descriptors.len());
+        toolkit_by_document.extend(
+            toolkit_descriptors
+                .iter()
+                .map(|descriptor| (descriptor.document_id(), descriptor)),
+        );
 
         for candidate in &candidates {
             let document = candidate.snapshot.document();
@@ -202,12 +204,9 @@ impl SaveDirtyViewsRequest {
         dirty: &DirtyRegistry,
         transactions: &EditorTransactionEngine,
     ) -> Result<SaveDirtyViewsResult, SaveDirtyViewsApplyError> {
-        let expected = self
-            .intents
-            .iter()
-            .map(SaveDirtyViewIntent::document_id)
-            .collect::<BTreeSet<_>>();
-        let mut completions_by_document = BTreeMap::new();
+        let mut expected = HashSet::with_capacity(self.intents.len());
+        expected.extend(self.intents.iter().map(SaveDirtyViewIntent::document_id));
+        let mut completions_by_document = HashMap::with_capacity(self.intents.len());
         for (document, completion) in completions {
             if !expected.contains(&document) {
                 return Err(SaveDirtyViewsApplyError::UnknownCompletion { document });
@@ -455,4 +454,9 @@ pub enum SaveDirtyViewsApplyError {
 }
 
 #[cfg(test)]
+#[path = "save_batch/tests/cases.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "save_batch/tests/capacity_tests.rs"]
+mod capacity_tests;

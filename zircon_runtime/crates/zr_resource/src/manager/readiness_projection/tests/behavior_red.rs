@@ -75,6 +75,39 @@ fn cycle_failure_propagates_to_dependants_independent_of_update_order() {
 }
 
 #[test]
+fn failure_propagates_across_multiple_strongly_connected_components() {
+    let first = ready_record("component-order/first", Vec::new());
+    let second = ready_record("component-order/second", vec![first.id]);
+    let first = first.with_dependency_ids(vec![second.id]);
+    let third = ready_record("component-order/third", vec![second.id]);
+    let fourth = ready_record("component-order/fourth", vec![third.id]);
+    let third = third.with_dependency_ids(vec![fourth.id]);
+    let dependant = ready_record("component-order/dependant", vec![first.id, third.id]);
+    let ids = [first.id, second.id, third.id, fourth.id, dependant.id];
+    let mut projection = ResourceReadinessProjection::default();
+
+    projection.apply_updates([
+        source_update(dependant),
+        source_update(third),
+        source_update(first),
+        source_update(fourth),
+        source_update(second),
+    ]);
+
+    for id in ids {
+        assert_eq!(
+            projection
+                .generation
+                .row(id)
+                .expect("multi-component readiness row")
+                .recursive_dependency_state,
+            ResourceReadinessState::Failed,
+            "cycle failure did not cross SCC boundary for {id}"
+        );
+    }
+}
+
+#[test]
 fn removing_a_cycle_member_recomputes_and_recovers_the_remaining_graph() {
     let first = ready_record("cycle-removal/first", Vec::new());
     let second = ready_record("cycle-removal/second", vec![first.id]);
@@ -250,4 +283,57 @@ fn deep_chain_10000_publishes_without_native_stack_growth() {
             .recursive_dependency_state,
         ResourceReadinessState::Loaded
     );
+}
+
+#[test]
+fn pending_parent_recovers_dependency_failure_without_publishing_loaded() {
+    let dependency = ready_record("pending-recovery/dependency", Vec::new());
+    let parent = ready_record("pending-recovery/parent", vec![dependency.id])
+        .with_state(ResourceState::Pending);
+    let parent_id = parent.id;
+    let pending_update = || ResourceReadinessSourceUpdate {
+        id: parent_id,
+        record: Some(parent.clone()),
+        runtime_state: RuntimeResourceState::Unloaded,
+        payload_type_id: None,
+    };
+    let mut projection = ResourceReadinessProjection::default();
+
+    projection.apply_updates([pending_update()]);
+    let failed = projection.generation();
+    let failed_row = failed
+        .row(parent_id)
+        .expect("pending parent with missing dependency");
+    assert_eq!(failed_row.load_state, ResourceReadinessState::Loading);
+    assert_eq!(
+        failed_row.direct_dependency_state,
+        ResourceReadinessState::Failed
+    );
+    assert_eq!(
+        failed_row.recursive_dependency_state,
+        ResourceReadinessState::Failed
+    );
+
+    projection.apply_updates([source_update(dependency.clone())]);
+    let recovered = projection.generation();
+    let recovered_row = recovered
+        .row(parent_id)
+        .expect("pending parent after dependency arrival");
+    assert_eq!(recovered_row.load_state, ResourceReadinessState::Loading);
+    assert_eq!(
+        recovered_row.direct_dependency_state,
+        ResourceReadinessState::Loaded
+    );
+    assert_eq!(
+        recovered_row.recursive_dependency_state,
+        ResourceReadinessState::Loading
+    );
+    assert!(!Arc::ptr_eq(&failed, &recovered));
+    assert_eq!(
+        failed_row.recursive_dependency_state,
+        ResourceReadinessState::Failed
+    );
+
+    projection.apply_updates([pending_update(), source_update(dependency)]);
+    assert!(Arc::ptr_eq(&recovered, &projection.generation()));
 }

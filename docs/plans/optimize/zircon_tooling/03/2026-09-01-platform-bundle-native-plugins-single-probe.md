@@ -1,3 +1,7 @@
+---
+status: local_candidate
+---
+
 # PlatformBundle native plugins single metadata probe
 
 ## Change

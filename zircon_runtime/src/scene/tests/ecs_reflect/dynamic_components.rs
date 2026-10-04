@@ -23,10 +23,7 @@ fn dynamic_component_descriptor_registers_reflected_json_component() {
         .expect("dynamic schema should be reflected");
     assert_eq!(registration.type_path.type_path(), descriptor.type_id);
     assert_eq!(registration.type_path.short_type_path(), "CloudLayer");
-    assert_eq!(
-        registration.type_path.plugin_id(),
-        Some("weather".to_string())
-    );
+    assert_eq!(registration.type_path.plugin_id(), Some("weather"));
     assert_eq!(registration.display_name, "Cloud Layer");
     assert_eq!(registration.type_info.kind, ReflectTypeKind::Json);
     assert!(registration.is_component());

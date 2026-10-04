@@ -1,5 +1,4 @@
 use super::*;
-use crate::ui::workbench::layout::MainPageId;
 use crate::ui::workbench::snapshot::{EditorChromeSnapshot, MainPageSnapshot, WorkbenchSnapshot};
 
 impl RetainedEditorHost {
@@ -10,8 +9,8 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn active_activity_window_template_document_is(&self, document_id: &str) -> bool {
-        let chrome = self.runtime.chrome_snapshot();
-        active_activity_window_template_document_id(&chrome) == Some(document_id)
+        self.runtime
+            .active_activity_window_template_document_is(document_id)
     }
 }
 
@@ -50,15 +49,4 @@ pub(super) fn welcome_recent_project_paths(chrome: &EditorChromeSnapshot) -> Vec
         .iter()
         .map(|recent| recent.path.clone())
         .collect()
-}
-
-pub(super) fn floating_window_id_for_surface_key(
-    workbench: &WorkbenchSnapshot,
-    surface_key: &str,
-) -> Option<MainPageId> {
-    workbench
-        .floating_windows
-        .iter()
-        .find(|window| window.window_id.0 == surface_key)
-        .map(|window| window.window_id.clone())
 }

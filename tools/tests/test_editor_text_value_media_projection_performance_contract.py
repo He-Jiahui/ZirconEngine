@@ -1,3 +1,4 @@
+# 核对文本与媒体投影保留视觉定位符，在绘制边界按实际尺寸加载图像。
 from pathlib import Path
 import unittest
 

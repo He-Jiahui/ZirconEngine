@@ -4,7 +4,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_page_pointer/build_host_page_pointer_layout.rs
   - zircon_editor/src/ui/retained_host/host_page_pointer/host_page_pointer_layout.rs
   - zircon_editor/src/ui/retained_host/host_page_pointer/handle_click.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/handle_overflow_click.rs
   - zircon_editor/src/ui/retained_host/host_page_pointer/host_page_pointer_route.rs
   - zircon_editor/src/ui/retained_host/host_page_pointer/sync.rs
   - zircon_editor/src/ui/retained_host/app/pointer_layout/shell_chrome.rs
@@ -20,8 +19,8 @@ related_code:
   - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui
   - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui
 design_references:
-  - docs/ui-and-layout/editor-workbench-designs/main-tabs-layout-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/tab-overflow-window-spec.png
+  - docs/ui/editor-workbench-designs/main-tabs-layout-spec.png
+  - docs/ui/editor-workbench-designs/tab-overflow-window-spec.png
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Private/Styling/StarshipCoreStyle.cpp
 tests:
   - cargo test -p zircon_editor host_page_overflow_keyboard --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-editor-overflow-keyboard-0711 -- --nocapture

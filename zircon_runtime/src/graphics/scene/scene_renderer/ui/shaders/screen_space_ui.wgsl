@@ -1,3 +1,4 @@
+// UI 几何与渲染顶点布局共享解析圆角参数；输出为直 alpha，最终混合由管线配置负责。
 struct VertexIn {
     @location(0) position: vec2<f32>,
     @location(1) color: vec4<f32>,

@@ -47,6 +47,7 @@ pub(in crate::ui::retained_host::ui) use self::timeline_strip::projected_timelin
 pub(in crate::ui::retained_host::ui) use self::weight_heatmap::projected_weight_heatmap_data;
 
 #[cfg(test)]
+#[path = "tests/drag_overlay_tests.rs"]
 mod drag_overlay_tests;
 #[cfg(test)]
 mod tests;

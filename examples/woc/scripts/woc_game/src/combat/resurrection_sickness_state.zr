@@ -34,6 +34,7 @@ roundPositive(value: float): int {
 
 // Mirrors resSicknessDuration exactly, including its intentionally unclamped
 // extrapolation above MAX_LEVEL for direct callers.
+// 最高时长是等级曲线的端点；直接调用超过最高等级仍会外推，调用方不能假定自动封顶。
 pub resSicknessDuration(level: float): int {
     if (level < <float>resSicknessMinLevel()) { return 0; }
     var span = maxLevel() - resSicknessMinLevel();

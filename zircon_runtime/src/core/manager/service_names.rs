@@ -1,8 +1,8 @@
+//! 这些完整服务名是 ManagerDescriptor 的注册键，resolver 的 trait 映射按同一值查询；测试固定内置和可选插件名。
 pub const RESOURCE_MANAGER_NAME: &str = "AssetModule.Manager.ResourceManager";
 pub const INPUT_MANAGER_NAME: &str = "InputModule.Manager.InputManager";
 pub const INPUT_ACTION_MANAGER_NAME: &str = "InputModule.Manager.InputActionManager";
 pub const CONFIG_MANAGER_NAME: &str = "FoundationModule.Manager.ConfigManager";
-pub const EVENT_MANAGER_NAME: &str = "FoundationModule.Manager.EventManager";
 pub const RENDERING_MANAGER_NAME: &str = "GraphicsModule.Manager.RenderingManager";
 pub const RENDER_FRAMEWORK_NAME: &str = "GraphicsModule.Manager.RenderFramework";
 pub const LEVEL_MANAGER_NAME: &str = "SceneModule.Manager.LevelManager";

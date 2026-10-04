@@ -9,14 +9,14 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 COMMAND_SEMANTICS = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_validate_compile_host_command_semantics.py"
+    / "tools/export/pipeline_report_validate_compile_host_command_semantics.py"
 )
 COMMAND_VALUE_SEMANTICS = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_validate_compile_host_command_value_semantics.py"
+    / "tools/export/pipeline_report_validate_compile_host_command_value_semantics.py"
 )
 COMPILE_HOST_PLAN_COMMAND_SEMANTICS = (
-    REPO_ROOT / "tools/zircon_export/compile_host_plan_command_semantics.py"
+    REPO_ROOT / "tools/export/compile_host_plan_command_semantics.py"
 )
 
 VALUE_SEMANTIC_FUNCTIONS = (

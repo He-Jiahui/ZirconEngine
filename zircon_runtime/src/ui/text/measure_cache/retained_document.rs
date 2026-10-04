@@ -3,7 +3,7 @@ use std::mem::size_of;
 use crate::core::framework::text::TextLayoutError;
 use crate::text::{RichTextFormat, SharedTextLayoutSession, TextDocumentKey};
 
-use super::super::rich_text::{UiParsedText, parse_source_text_with_provider};
+use super::super::rich_text::{parse_source_text_with_provider, UiParsedText};
 
 pub(super) const RETAINED_PLAIN_DOCUMENT_CAPACITY: usize = 16;
 pub(super) const RETAINED_PLAIN_DOCUMENT_MAX_BYTES: usize = 32 * 1024 * 1024;

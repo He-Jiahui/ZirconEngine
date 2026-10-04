@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node wos79_pet_follow_runtime_static_guard.mjs；缺少源码契约时脚本抛错退出。
+// 将锁定的跟随速度和距离与 Zr 纯规则及世界空旷地形分支对应核对，排除未实现的路径状态调用并检查文档边界。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -40,6 +44,7 @@ for (const expected of [
   'pub emberkinFollowStateTest(): int',
 ]) requireText(world, expected, 'WOS79 reducer');
 
+// 反向扫描排除在空旷地形跟随投影中调用尚无状态支撑的寻路操作。
 for (const forbidden of [
   'petFollow.shouldWarpAfterFreshPath(',
   'petFollow.shouldRecomputePath(',

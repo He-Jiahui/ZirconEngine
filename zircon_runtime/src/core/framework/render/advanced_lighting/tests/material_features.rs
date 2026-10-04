@@ -1,0 +1,158 @@
+use super::{
+    StandardPbrMaterialFeatures, STANDARD_PBR_DEFAULT_CLEARCOAT_ROUGHNESS,
+    STANDARD_PBR_DEFAULT_DIELECTRIC_F0, STANDARD_PBR_DEFAULT_IOR,
+    STANDARD_PBR_NO_ATTENUATION_DISTANCE, STANDARD_PBR_TRANSMISSION_RENDER_QUEUE,
+};
+use crate::core::framework::render::{CorePipelineKind, RenderPhase, RenderQueueValue};
+
+#[test]
+fn render_advanced_material_features_default_has_no_feature_work() {
+    let features = StandardPbrMaterialFeatures::default();
+
+    assert_eq!(
+        features.clearcoat_perceptual_roughness,
+        STANDARD_PBR_DEFAULT_CLEARCOAT_ROUGHNESS
+    );
+    assert_eq!(features.ior, STANDARD_PBR_DEFAULT_IOR);
+    assert_eq!(features.dielectric_f0(), STANDARD_PBR_DEFAULT_DIELECTRIC_F0);
+    assert_eq!(
+        features.attenuation_distance,
+        STANDARD_PBR_NO_ATTENUATION_DISTANCE
+    );
+    assert_eq!(STANDARD_PBR_NO_ATTENUATION_DISTANCE, 1.0e30);
+    assert!(features.is_default());
+    assert!(!features.uses_clearcoat());
+    assert!(!features.uses_anisotropy());
+    assert!(!features.uses_transmission());
+    assert!(!features.uses_dielectric_f0_override());
+    assert!(!features.requires_forward_path());
+    assert!(!features.requires_scene_color_copy());
+
+    let encoded = toml::to_string(&features).expect("default material features serialize");
+    let decoded: StandardPbrMaterialFeatures =
+        toml::from_str(&encoded).expect("default material features deserialize");
+    assert_eq!(decoded, features);
+}
+
+#[test]
+fn render_advanced_material_features_derive_finite_dielectric_f0_from_ior() {
+    let vacuum_boundary = StandardPbrMaterialFeatures {
+        ior: 1.0,
+        ..Default::default()
+    };
+    assert_eq!(vacuum_boundary.dielectric_f0(), 0.0);
+    assert!(vacuum_boundary.uses_dielectric_f0_override());
+    assert!(vacuum_boundary.requires_forward_path());
+
+    let high_ior = StandardPbrMaterialFeatures {
+        ior: 2.5,
+        ..Default::default()
+    };
+    assert!((high_ior.dielectric_f0() - 0.18367347).abs() < 0.000001);
+    assert!(high_ior.uses_dielectric_f0_override());
+
+    let invalid = StandardPbrMaterialFeatures {
+        ior: f32::NAN,
+        ..Default::default()
+    };
+    assert_eq!(invalid.dielectric_f0(), STANDARD_PBR_DEFAULT_DIELECTRIC_F0);
+    assert!(!invalid.uses_dielectric_f0_override());
+}
+
+#[test]
+fn render_advanced_material_features_enable_only_authored_lobes() {
+    let clearcoat = StandardPbrMaterialFeatures {
+        clearcoat: 0.75,
+        ..Default::default()
+    };
+    assert!(clearcoat.uses_clearcoat());
+    assert!(clearcoat.requires_forward_path());
+    assert!(!clearcoat.requires_scene_color_copy());
+
+    let anisotropy = StandardPbrMaterialFeatures {
+        anisotropy_strength: 0.5,
+        anisotropy_rotation: 1.25,
+        ..Default::default()
+    };
+    assert!(anisotropy.uses_anisotropy());
+    assert!(anisotropy.requires_forward_path());
+    assert!(!anisotropy.requires_scene_color_copy());
+
+    let diffuse_transmission = StandardPbrMaterialFeatures {
+        diffuse_transmission: 0.25,
+        ..Default::default()
+    };
+    assert!(diffuse_transmission.uses_transmission());
+    assert!(diffuse_transmission.requires_forward_path());
+    assert!(!diffuse_transmission.requires_scene_color_copy());
+
+    let specular_transmission = StandardPbrMaterialFeatures {
+        specular_transmission: 0.5,
+        ..Default::default()
+    };
+    assert!(specular_transmission.uses_transmission());
+    assert!(specular_transmission.requires_forward_path());
+    assert!(specular_transmission.requires_scene_color_copy());
+}
+
+#[test]
+fn render_advanced_material_features_normalize_invalid_values() {
+    let resolved = StandardPbrMaterialFeatures {
+        clearcoat: 2.0,
+        clearcoat_perceptual_roughness: f32::NAN,
+        clearcoat_normal_scale: f32::NAN,
+        anisotropy_strength: -1.0,
+        anisotropy_rotation: f32::INFINITY,
+        specular_transmission: 1.5,
+        diffuse_transmission: f32::NAN,
+        thickness: -4.0,
+        ior: 0.5,
+        attenuation_color: [2.0, -1.0, f32::NAN],
+        attenuation_distance: f32::INFINITY,
+        ..Default::default()
+    }
+    .normalized();
+
+    assert_eq!(resolved.clearcoat, 1.0);
+    assert_eq!(
+        resolved.clearcoat_perceptual_roughness,
+        STANDARD_PBR_DEFAULT_CLEARCOAT_ROUGHNESS
+    );
+    assert_eq!(resolved.anisotropy_strength, 0.0);
+    assert_eq!(resolved.clearcoat_normal_scale, 1.0);
+    assert_eq!(resolved.anisotropy_rotation, 0.0);
+    assert_eq!(resolved.specular_transmission, 1.0);
+    assert_eq!(resolved.diffuse_transmission, 0.0);
+    assert_eq!(resolved.thickness, 0.0);
+    assert_eq!(resolved.ior, 1.0);
+    assert_eq!(resolved.attenuation_color, [1.0, 0.0, 1.0]);
+    assert_eq!(
+        resolved.attenuation_distance,
+        STANDARD_PBR_NO_ATTENUATION_DISTANCE
+    );
+}
+
+#[test]
+fn render_advanced_material_features_canonicalize_legacy_unbounded_distance() {
+    let resolved = StandardPbrMaterialFeatures {
+        attenuation_distance: f32::MAX,
+        ..Default::default()
+    }
+    .normalized();
+
+    assert_eq!(
+        resolved.attenuation_distance,
+        STANDARD_PBR_NO_ATTENUATION_DISTANCE
+    );
+    assert!(resolved.is_default());
+}
+
+#[test]
+fn render_transmission_queue_value_is_2900_in_transparent_band() {
+    assert_eq!(STANDARD_PBR_TRANSMISSION_RENDER_QUEUE.raw(), 2_900);
+    assert_eq!(
+        STANDARD_PBR_TRANSMISSION_RENDER_QUEUE.phase(CorePipelineKind::Core3d),
+        RenderPhase::Transparent3d
+    );
+    assert!(STANDARD_PBR_TRANSMISSION_RENDER_QUEUE < RenderQueueValue::TRANSPARENT);
+}

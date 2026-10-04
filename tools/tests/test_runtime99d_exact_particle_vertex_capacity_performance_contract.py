@@ -1,7 +1,7 @@
 from pathlib import Path
 import re
 import unittest
-
+# 粒子顶点按可渲染项精确一次预留；容量计数与实际构造共享准入谓词，检查 Rust 回归对两个绘制通道的断言。
 
 ROOT = Path(__file__).resolve().parents[2]
 PARTICLE_VERTICES = (

@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 读取动画运行时的拆分测试模块，确认辅助模块自行导入 Arc，父契约不再保留旧的局部导入。
 class AnimationRuntimeHelpersArcImportTests(unittest.TestCase):
     def test_runtime_helpers_imports_arc_for_asset_manager_return_type(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from tools.plugin_structure_audits.manifest_schema import (
+from tools.audits.plugins.manifest_schema import (
     collect_manifest_schema_violations,
 )
 
-
+# 构造可选特性清单夹具，供模式测试只变更目标特性字段而保留其他插件约束。
 def plugin_manifest(
     *,
     optional_features: list[dict[str, object]] | None = None,

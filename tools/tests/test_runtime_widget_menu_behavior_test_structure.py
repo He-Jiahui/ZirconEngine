@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 约束控件锚定菜单覆盖层的行为测试由子测试模块持有。
 class RuntimeWidgetMenuBehaviorTestStructureTests(unittest.TestCase):
     def test_control_anchored_overlay_tests_are_child_owned(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]

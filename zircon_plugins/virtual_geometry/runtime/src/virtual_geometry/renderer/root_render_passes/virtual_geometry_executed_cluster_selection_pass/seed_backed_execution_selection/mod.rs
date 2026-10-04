@@ -1,5 +1,6 @@
 mod build_records;
 #[cfg(test)]
+#[path = "tests/build_selections.rs"]
 mod build_selections;
 mod collect;
 mod frontier_ranking;

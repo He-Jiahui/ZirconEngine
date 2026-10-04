@@ -7,7 +7,8 @@ pub use gap::EditorJobEventJournalGap;
 pub use limits::EditorJobEventJournalLimits;
 pub use snapshot::EditorJobEventJournalSnapshot;
 
-pub(super) use journal::{EditorJobEventJournal, EditorJobEventJournalRecord};
+pub(crate) use journal::{EditorJobEventJournal, EditorJobEventJournalRecord};
 
 #[cfg(test)]
+#[path = "tests/integration_tests.rs"]
 mod integration_tests;

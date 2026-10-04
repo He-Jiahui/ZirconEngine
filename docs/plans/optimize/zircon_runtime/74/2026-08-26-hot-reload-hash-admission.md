@@ -32,10 +32,11 @@ transactional tree replacement, state migration, binding reinstallation, or roll
 | Owned string allocations | 73,728 | 16,384 | 77.8% removed |
 | Published target order | first-seen | first-seen | unchanged |
 
-The product builder applies the same admission helper to seven work channels. The ignored release
-gate benchmarks one representative channel with 17 alternating samples and emits
-`RUNTIME74_HOT_RELOAD_HASH_ADMISSION_BENCH_V1`; acceptance requires hash-admission P95 to be at
-most 60% of tree-admission P95. Exact Windows timings remain pending the coordinator run.
+The product builder applies the same admission helper to seven work channels. The ignored Release
+probe now benchmarks one representative channel with 101 alternating samples and emits
+`RUNTIME74_HOT_RELOAD_HASH_ADMISSION_BENCH_V1` with raw nearest-rank P50/P95/P99 values and
+balanced 51/50 first-order counts. Product acceptance still requires the complete caller workload
+under managed Windows validation and hash-admission P95 at most 60% of tree-admission P95.
 
 ## Acceptance
 
@@ -44,7 +45,7 @@ most 60% of tree-admission P95. Exact Windows timings remain pending the coordin
 - `runtime74_batch_hot_reload_uses_hash_admission_sets` requires all eight
   hash membership boundaries and rejects production tree sets.
 - `runtime74_batch_hot_reload_hash_admission_performance_evidence` emits
-  workload/allocation counts and both P95 values, then enforces the 60% threshold.
+  workload/allocation counts and paired P50/P95/P99 values, then enforces the 60% threshold.
 - Exact-file Rust 1.94.1 formatting, scoped diff checks, and source contracts must pass before
   managed validation submission.
 

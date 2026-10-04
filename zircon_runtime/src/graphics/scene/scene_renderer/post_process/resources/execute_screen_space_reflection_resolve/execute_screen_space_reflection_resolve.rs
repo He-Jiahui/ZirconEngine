@@ -11,6 +11,8 @@ use super::super::execute_post_process::{
 };
 
 impl ScenePostProcessResources {
+    /// 使用当前遮挡、颜色/深度金字塔和有效历史解析 SSR，写入当前反射历史供组合与后续帧读取。
+    /// 调用方负责各先行资源和历史可用性；当前输出历史不能同时作为本 pass 的采样输入，上传须随节点提交。
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn execute_screen_space_reflection_resolve(
         &self,
@@ -117,17 +119,5 @@ impl ScenePostProcessResources {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn reflection_resolve_params_are_returned_as_pre_submit_uploads() {
-        let source = include_str!("execute_screen_space_reflection_resolve.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("reflection-resolve source");
-
-        assert!(!production.contains("queue.write_buffer"));
-        assert!(!production.contains("create_post_process_params_buffer"));
-        assert!(production.contains("post_process_params_upload("));
-    }
-}
+#[path = "tests/execute_screen_space_reflection_resolve.rs"]
+mod tests;

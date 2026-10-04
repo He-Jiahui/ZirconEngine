@@ -3,7 +3,7 @@ import re
 import unittest
 from pathlib import Path
 
-from tools.runtime_domain_dependency_audit import _rust_code_view
+from tools.audits.runtime_domain_dependency_audit import _rust_code_view
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -57,7 +57,7 @@ def product_rust_files() -> list[Path]:
                     result.append(directory_path / file_name)
     return result
 
-
+# 读取时钟契约与内核策略实现，守住观测接口、预设和摘要算法的分层归属。
 class Frameworks01TimeProductPolicyOwnerBoundaryTests(unittest.TestCase):
     def test_production_clock_contract_exposes_observation_not_mutation_authority(self) -> None:
         clock_source = CONTRACT_CLOCK.read_text(encoding="utf-8")

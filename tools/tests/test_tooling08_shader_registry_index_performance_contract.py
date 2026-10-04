@@ -1,3 +1,4 @@
+# 核对着色器资源登记在结构校验时构建索引。
 from __future__ import annotations
 
 import json
@@ -6,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools import zircon_build_shader_resource_registry as resource_registry
+from tools.build import zircon_build_shader_resource_registry as resource_registry
 
 
 class _CountingRecords(list[object]):

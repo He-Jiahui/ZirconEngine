@@ -1,3 +1,4 @@
+# 核对原生键盘弹窗复用代际候选与借用节点，不分配小写匹配串。
 from pathlib import Path
 import unittest
 

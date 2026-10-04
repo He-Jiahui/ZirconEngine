@@ -9,13 +9,6 @@ origin_child_dir: docs/plans/zircon_editor/editor_layout/15
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/cargo_jobs.py
-  - tools/session_coordinator/cli.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/processes.py
-  - tools/session_coordinator/migrations.py
-  - tools/session_coordinator/tests/test_cargo_jobs.py
-  - tools/session_coordinator/tests/test_database.py
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
 tests:
   - python -m unittest tools.session_coordinator.tests.test_cargo_jobs

@@ -93,9 +93,13 @@ pub(super) fn apply_assets_activity_responsive_layout(
         (height - toolbar_height - gap * 2.0 - minimum_main_height).max(0.0);
     let preferred_utility_height = row_height * PREFERRED_UTILITY_ROW_COUNT;
     let minimum_utility_height = row_height * MINIMUM_UTILITY_ROW_COUNT + gap;
-    let utility_height = preferred_utility_height
-        .min(maximum_utility_height)
-        .max(minimum_utility_height.min(maximum_utility_height));
+    let utility_height = if width < density.breakpoint_narrow_width {
+        0.0
+    } else {
+        preferred_utility_height
+            .min(maximum_utility_height)
+            .max(minimum_utility_height.min(maximum_utility_height))
+    };
     let main_y = root.y + toolbar_height + gap;
     let main_height = (height - toolbar_height - utility_height - gap * 2.0).max(0.0);
     let utility_y = main_y + main_height + gap;
@@ -539,27 +543,9 @@ const REFERENCE_CONTROLS: &[&str] = &[
 ];
 
 #[cfg(test)]
-mod tests {
-    use super::fit_horizontal_pair;
-
-    #[test]
-    fn horizontal_pair_never_exceeds_an_ultra_narrow_budget() {
-        let (primary, secondary, gap) = fit_horizontal_pair(16.0, 28.0, 64.0, 4.0);
-
-        assert_eq!(primary, 16.0);
-        assert_eq!(secondary, 0.0);
-        assert_eq!(gap, 0.0);
-        assert!(primary + gap + secondary <= 16.0);
-    }
-
-    #[test]
-    fn horizontal_pair_keeps_preferred_controls_and_standard_gap_when_space_allows() {
-        let (primary, secondary, gap) = fit_horizontal_pair(120.0, 32.0, 40.0, 4.0);
-
-        assert_eq!((primary, secondary, gap), (32.0, 40.0, 4.0));
-        assert!(primary + gap + secondary <= 120.0);
-    }
-}
+#[path = "tests/responsive_layout.rs"]
+mod tests;
 
 #[cfg(test)]
+#[path = "responsive_layout/tests/control_index_tests.rs"]
 mod control_index_tests;

@@ -46,9 +46,13 @@ pub(in crate::ui::retained_host::app::module_plugin_projection) fn module_plugin
 }
 
 fn module_plugin_feature_action_id(prefix: &str, plugin_id: &str, feature_id: &str) -> String {
-    format!("{prefix}.{plugin_id}.{feature_id}")
+    if plugin_id.contains('.') {
+        format!("{prefix}.#{}:{plugin_id}.{feature_id}", plugin_id.len())
+    } else {
+        format!("{prefix}.{plugin_id}.{feature_id}")
+    }
 }
 
 #[cfg(test)]
-#[path = "action/single_pass_priority_tests.rs"]
+#[path = "action/tests/single_pass_priority_tests.rs"]
 mod single_pass_priority_tests;

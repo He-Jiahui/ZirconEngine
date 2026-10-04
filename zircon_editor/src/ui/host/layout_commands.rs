@@ -1,3 +1,7 @@
+use crate::core::editing::context::CoreEditContext;
+use crate::core::editor_event::DocumentCloseRevision;
+use crate::core::editor_message::DocumentId;
+use crate::core::extension::DocumentCloseLease;
 use crate::ui::workbench::layout::{
     DocumentNode, LayoutCommand, MainHostPageLayout, MainPageId, WorkbenchLayout,
 };
@@ -13,6 +17,13 @@ impl EditorUiHost {
     pub(super) fn apply_layout_command(&self, cmd: LayoutCommand) -> Result<bool, EditorError> {
         if let LayoutCommand::CloseView { instance_id } = &cmd {
             return self.close_view(instance_id);
+        }
+        if let LayoutCommand::CloseViews {
+            window_id,
+            instance_ids,
+        } = &cmd
+        {
+            return self.close_views_with_discard(window_id, instance_ids, &[]);
         }
         self.apply_layout_command_inner(cmd)
     }
@@ -51,7 +62,7 @@ impl EditorUiHost {
                 return Ok(diff.changed);
             }
             LayoutCommand::ResetToDefault => {
-                self.clear_document_toolkits()?;
+                self.clear_document_toolkits_if_clean()?;
                 let mut session = self.lock_session();
                 let mut registry = self.lock_view_registry();
                 let snapshot = self.lock_capability_snapshot().clone();
@@ -126,15 +137,187 @@ impl EditorUiHost {
     }
 
     pub(super) fn close_view(&self, instance_id: &ViewInstanceId) -> Result<bool, EditorError> {
+        self.close_view_with_discard(instance_id, None)
+    }
+
+    pub(super) fn close_view_discarding(
+        &self,
+        instance_id: &ViewInstanceId,
+        document: DocumentId,
+        close_revision: DocumentCloseRevision,
+    ) -> Result<bool, EditorError> {
+        self.close_view_with_discard(instance_id, Some((document, close_revision)))
+    }
+
+    pub(super) fn close_views_with_discard(
+        &self,
+        window_id: &MainPageId,
+        instance_ids: &[ViewInstanceId],
+        discard: &[(ViewInstanceId, DocumentId, DocumentCloseRevision)],
+    ) -> Result<bool, EditorError> {
+        let mut seen = std::collections::BTreeSet::new();
+        let mut leases = Vec::with_capacity(instance_ids.len());
+        for instance_id in instance_ids {
+            if !seen.insert(instance_id) {
+                return Err(EditorError::Registry(format!(
+                    "duplicate close instance {}",
+                    instance_id.0
+                )));
+            }
+            if self.non_closeable_instance(instance_id)
+                || !self
+                    .lock_session()
+                    .open_view_instances
+                    .contains_key(instance_id)
+            {
+                return Err(EditorError::Registry(format!(
+                    "view {} is not closeable",
+                    instance_id.0
+                )));
+            }
+            let decision = discard
+                .iter()
+                .find(|(planned, ..)| planned == instance_id)
+                .map(|(_, document, revision)| (*document, *revision));
+            leases.push(self.begin_document_close_with_discard(instance_id, decision)?);
+        }
+        if discard.len()
+            != discard
+                .iter()
+                .map(|(instance, ..)| instance)
+                .collect::<std::collections::BTreeSet<_>>()
+                .len()
+            || discard
+                .iter()
+                .any(|(instance, ..)| !seen.contains(instance))
+        {
+            return Err(EditorError::Registry(
+                "invalid close decision set".to_string(),
+            ));
+        }
+        if leases.iter().any(Option::is_some) {
+            self.transactions
+                .with_context_mut::<CoreEditContext, _>(|context| {
+                    self.commit_close_views_with_leases(
+                        window_id,
+                        instance_ids,
+                        leases,
+                        Some(context),
+                    )
+                })
+                .map_err(|error| EditorError::UiAsset(error.to_string()))?
+                .ok_or_else(|| {
+                    EditorError::UiAsset("animation transaction context type mismatch".to_string())
+                })?
+        } else {
+            self.commit_close_views_with_leases(window_id, instance_ids, leases, None)
+        }
+    }
+
+    fn commit_close_views_with_leases(
+        &self,
+        window_id: &MainPageId,
+        instance_ids: &[ViewInstanceId],
+        leases: Vec<Option<DocumentCloseLease<'_, EditorUiHost>>>,
+        mut context: Option<&mut CoreEditContext>,
+    ) -> Result<bool, EditorError> {
+        debug_assert!(context.is_some() || leases.iter().all(Option::is_none));
+        let mut session = self.lock_session();
+        if instance_ids
+            .iter()
+            .any(|instance_id| !session.open_view_instances.contains_key(instance_id))
+        {
+            return Err(EditorError::Registry(
+                "floating window close membership changed".to_string(),
+            ));
+        }
+        let mut candidate = session.layout.clone();
+        let diff = self
+            .layout_manager
+            .apply(
+                &mut candidate,
+                LayoutCommand::CloseViews {
+                    window_id: window_id.clone(),
+                    instance_ids: instance_ids.to_vec(),
+                },
+            )
+            .map_err(|error| EditorError::Layout(error.to_string()))?;
+        session.layout = candidate;
+        for instance_id in instance_ids {
+            session.open_view_instances.remove(instance_id);
+        }
+        if session
+            .focused_view
+            .as_ref()
+            .is_some_and(|focused| instance_ids.contains(focused))
+        {
+            session.focused_view = active_main_page_view_for_layout(&session.layout);
+        }
+        self.recompute_session_metadata(&mut session);
+        drop(session);
+        for instance_id in instance_ids {
+            self.lock_animation_editor_sessions().remove(instance_id);
+            self.lock_ui_asset_sessions().remove(instance_id);
+            self.lock_ui_asset_dependency_generation()
+                .remove(instance_id);
+            self.lock_view_registry().remove_instance(instance_id);
+        }
+        for close in leases.into_iter().flatten() {
+            let descriptor = self.commit_document_close_without_animation(close)?;
+            if let Some(context) = context.as_deref_mut() {
+                context
+                    .animation_documents_mut()
+                    .detach(descriptor.document_id());
+            }
+        }
+        Ok(diff.changed)
+    }
+
+    fn close_view_with_discard(
+        &self,
+        instance_id: &ViewInstanceId,
+        discard: Option<(DocumentId, DocumentCloseRevision)>,
+    ) -> Result<bool, EditorError> {
         if self.non_closeable_instance(instance_id) {
             return Ok(false);
         }
+        let document_close = self.begin_document_close_with_discard(instance_id, discard)?;
+        self.close_view_with_lease(instance_id, document_close)
+    }
+
+    fn close_view_with_lease(
+        &self,
+        instance_id: &ViewInstanceId,
+        document_close: Option<DocumentCloseLease<'_, EditorUiHost>>,
+    ) -> Result<bool, EditorError> {
+        let Some(document_close) = document_close else {
+            return self.close_view_with_lease_in_context(instance_id, None, None);
+        };
+        self.transactions
+            .with_context_mut::<CoreEditContext, _>(|context| {
+                self.close_view_with_lease_in_context(
+                    instance_id,
+                    Some(document_close),
+                    Some(context),
+                )
+            })
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?
+            .ok_or_else(|| {
+                EditorError::UiAsset("animation transaction context type mismatch".to_string())
+            })?
+    }
+
+    fn close_view_with_lease_in_context(
+        &self,
+        instance_id: &ViewInstanceId,
+        document_close: Option<DocumentCloseLease<'_, EditorUiHost>>,
+        context: Option<&mut CoreEditContext>,
+    ) -> Result<bool, EditorError> {
         let previous_host = self
             .lock_session()
             .open_view_instances
             .get(instance_id)
             .map(|instance| instance.host.clone());
-        let document_close = self.begin_document_close(instance_id)?;
         let changed = self.apply_layout_command_inner(LayoutCommand::CloseView {
             instance_id: instance_id.clone(),
         })?;
@@ -154,7 +337,12 @@ impl EditorUiHost {
                 .remove(instance_id);
             self.lock_view_registry().remove_instance(instance_id);
             if let Some(document_close) = document_close {
-                self.commit_document_close(document_close)?;
+                let descriptor = self.commit_document_close_without_animation(document_close)?;
+                if let Some(context) = context {
+                    context
+                        .animation_documents_mut()
+                        .detach(descriptor.document_id());
+                }
             }
         }
         Ok(changed)
@@ -202,11 +390,7 @@ impl EditorUiHost {
         })?;
         if changed {
             if let Some(window_id) = previous_floating_window {
-                let window_still_exists = self
-                    .current_layout()
-                    .floating_windows
-                    .iter()
-                    .any(|window| window.window_id == window_id);
+                let window_still_exists = self.floating_window_exists(&window_id);
                 if !window_still_exists {
                     self.lock_window_host_manager()
                         .reattach_window(&window_id, &drop_target);
@@ -222,13 +406,7 @@ impl EditorUiHost {
         target: ViewHost,
     ) -> Result<ViewInstanceId, EditorError> {
         let floating_window_to_open = match &target {
-            ViewHost::FloatingWindow(window_id, _)
-                if !self
-                    .current_layout()
-                    .floating_windows
-                    .iter()
-                    .any(|window| &window.window_id == window_id) =>
-            {
+            ViewHost::FloatingWindow(window_id, _) if !self.floating_window_exists(window_id) => {
                 Some(window_id.clone())
             }
             ViewHost::Drawer(_)

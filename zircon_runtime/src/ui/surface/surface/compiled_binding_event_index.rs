@@ -10,9 +10,9 @@ use zircon_runtime_interface::ui::{
 use super::UiSurface;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) struct UiCompiledBindingEventEntry {
+pub(in crate::ui::surface) struct UiCompiledBindingEventEntry {
     pub(super) source_binding_index: usize,
-    pub(super) handle: UiCompiledBindingHandle,
+    pub(in crate::ui::surface) handle: UiCompiledBindingHandle,
     pub(super) component_event: Option<UiComponentEventKind>,
 }
 

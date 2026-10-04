@@ -1,6 +1,6 @@
 $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
-$script:ScaleFixtureScript = Join-Path $PSScriptRoot "..\ui-profile-scale-fixture.ps1"
-$script:ProfileManifestScript = Join-Path $PSScriptRoot "..\profile-capture-manifest.ps1"
+$script:ScaleFixtureScript = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-scale-fixture.ps1"
+$script:ProfileManifestScript = Join-Path $PSScriptRoot "..\profiling\shared\profile-capture-manifest.ps1"
 if (Test-Path -LiteralPath $script:ScaleFixtureScript) {
     . $script:ScaleFixtureScript
 }
@@ -31,6 +31,8 @@ Describe "ui profile scale fixture" {
             $fixture.scene.byte_length | Should BeGreaterThan 0
             $fixture.project_manifest.relative_path | Should Be "zircon-project.toml"
             $fixture.project_manifest.sha256 | Should Match "^[0-9a-f]{64}$"
+            (Get-Content -LiteralPath $fixture.project_manifest.path -Raw) |
+                Should Match '(?m)^project_guid = "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"\r?$'
 
             Test-Path -LiteralPath (Join-Path $projectRoot "zircon-project.toml") |
                 Should Be $true
@@ -38,6 +40,7 @@ Describe "ui profile scale fixture" {
             $sceneSource = Get-Content -LiteralPath $scenePath -Raw
             ([regex]::Matches($sceneSource, "(?m)^\[\[entities\]\]\r?$").Count) |
                 Should Be 12
+            $sceneSource | Should Not Match '(?m)^parent\s*='
             $sceneSource | Should Match 'name = "Profile Hierarchy Node 000012"'
         }
         finally {
@@ -65,6 +68,8 @@ Describe "ui profile scale fixture" {
             $fixture.selectable_node_count | Should Be 12
             $fixture.scene_entity_count | Should Be 14
             $fixture.mobility | Should Be "dynamic"
+            (Get-Content -LiteralPath $fixture.project_manifest.path -Raw) |
+                Should Match '(?m)^project_guid = "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"\r?$'
             $fixture.scene.relative_path | Should Be "assets/scenes/main.scene.toml"
             $fixture.scene.sha256 | Should Match "^[0-9a-f]{64}$"
 
@@ -76,6 +81,7 @@ Describe "ui profile scale fixture" {
                 Should Be 12
             ([regex]::Matches($sceneSource, '(?m)^\[entities\.mesh\.model\]\r?$').Count) |
                 Should Be 12
+            $sceneSource | Should Not Match '(?m)^parent\s*='
             $sceneSource | Should Match 'name = "Profile Viewport Node 000012"'
         }
         finally {
@@ -187,6 +193,10 @@ Describe "ui profile scale fixture" {
             $validated.selectable_node_count | Should Be 4
             $validated.scene_entity_count | Should Be 6
             $validated.mobility | Should Be "static"
+            $sceneSource = Get-Content -LiteralPath $validated.scene.path -Raw
+            ([regex]::Matches($sceneSource, '(?m)^mobility = "Static"\r?$').Count) |
+                Should Be 4
+            $sceneSource | Should Not Match '(?m)^parent\s*='
 
             $fixture.mobility = "dynamic"
             {
@@ -223,6 +233,8 @@ Describe "ui profile scale fixture" {
             $fixture.asset_sources.file_name_prefix | Should Be "profile_catalog_asset_"
             $fixture.asset_sources.sha256 | Should Match "^[0-9a-f]{64}$"
             $fixture.asset_sources.total_byte_length | Should BeGreaterThan 0
+            (Get-Content -LiteralPath $fixture.project_manifest.path -Raw) |
+                Should Match '(?m)^project_guid = "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"\r?$'
             $fixture.workspace.relative_path | Should Be ".zircon/editor-workspace.json"
             $fixture.workspace.sha256 | Should Match "^[0-9a-f]{64}$"
 

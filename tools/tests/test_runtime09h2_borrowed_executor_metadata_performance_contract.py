@@ -1,7 +1,7 @@
 from pathlib import Path
 import re
 import unittest
-
+# GPU 内建执行器临时借出上下文元数据并在调用后归还，避免每次复制字符串；检查缺失 GPU 等恢复边界的 Rust 回归入口。
 
 ROOT = Path(__file__).resolve().parents[2]
 EXECUTORS_RS = ROOT / (

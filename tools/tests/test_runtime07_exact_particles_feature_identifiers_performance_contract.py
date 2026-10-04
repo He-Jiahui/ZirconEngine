@@ -8,7 +8,7 @@ SOURCE = (
     / "zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/particles_features/manifest.rs"
 )
 
-
+# 读取实现源码约束精确粒子特性标识符：标识符连接预分配借用部分，并特性路径使用精确连接不带格式器增长。
 class ExactParticlesFeatureIdentifiersPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

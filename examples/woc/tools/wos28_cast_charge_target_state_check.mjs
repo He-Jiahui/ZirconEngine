@@ -39,12 +39,12 @@ for (const field of [
 ]) invariant(state.includes(`pub var ${field}`), `WOS28 column is missing: ${field}`);
 for (const needle of [
   'appendDefaultCastChargeTargetColumns(this);', 'appendDefaultCastChargeTargetColumns(state);',
-  'writer.u16(<uint>38, 1, 1);', 'schemaVersion != <uint>28',
+  'writer.u16(schemaVersion, 1, 1);', 'schemaVersion != <uint>28',
   'if (schemaVersion >= <uint>28) {', 'm8FreshPlayerStats.castChargeTargetFlag',
   'm8EastbrookEncounter.castChargeTargetId', 'entityState.entityCastAimPresent[0] = true;',
   'entityState.entityChargeTimeLeft[0] = 1.5;',
 ]) invariant(state.includes(needle), `WOS28 cast-charge projection omitted: ${needle}`);
-invariant(main.includes('\\"world_state\\":\\"WOS38\\",'), 'package stateSchema must expose WOS38');
+invariant(main.includes('\\"world_state\\":\\"WOS118\\",'), 'package stateSchema must expose WOS118');
 
 process.stdout.write(`checked WOS28 cast-charge source projection: ${SOURCE_COMMIT.slice(0, 15)}\n`);
 

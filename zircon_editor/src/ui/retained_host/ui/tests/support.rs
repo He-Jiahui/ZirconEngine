@@ -2,7 +2,10 @@ pub(super) use std::collections::BTreeMap;
 
 pub(super) use super::super::{
     apply_presentation as apply_presentation_with_module_plugins,
-    apply_presentation_impl::to_host_contract_host_scene_data, pane_data_conversion,
+    apply_presentation_impl::{
+        to_host_contract_host_scene_data, to_host_contract_host_scene_geometry_with_retained_panes,
+    },
+    pane_data_conversion,
 };
 pub(super) use crate::core::project::RecentProjectValidation;
 pub(super) use crate::scene::modes::SceneModeActivation;

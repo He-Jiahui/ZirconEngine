@@ -150,6 +150,7 @@ fn cs_update(@builtin(global_invocation_id) global_id: vec3<u32>) {
         );
         return;
     }
+    // 复用已提交辐射时只更新代际，保留 atlas 内容；下游 consume 仍以代际匹配为门槛。
     if (update_input.reuse_committed_radiance != 0u) {
         if (params.stage == RADIANCE_CACHE_STAGE_BORDER_MIP) {
             let previous_entry = cache_entries[update_input.slot];

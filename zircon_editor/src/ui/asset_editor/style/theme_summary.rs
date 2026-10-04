@@ -113,7 +113,7 @@ fn theme_source_entries(
     document: &UiAssetDocument,
     imported_styles: &BTreeMap<String, UiAssetDocument>,
 ) -> Vec<UiAssetThemeSourceEntry> {
-    let mut entries = Vec::new();
+    let mut entries = Vec::with_capacity(document.imports.styles.len().saturating_add(1));
     if can_promote_local_theme_to_external_style_asset(document) {
         let token_count = document.tokens.len();
         let rule_count = total_rule_count(document);
@@ -203,5 +203,9 @@ fn total_rule_count(document: &UiAssetDocument) -> usize {
 }
 
 #[cfg(test)]
-#[path = "theme_summary/lightweight_selection_tests.rs"]
+#[path = "theme_summary/tests/lightweight_selection_tests.rs"]
 mod lightweight_selection_tests;
+
+#[cfg(test)]
+#[path = "theme_summary/tests/optimization_batch_jh_editor647_tests.rs"]
+mod optimization_batch_jh_editor647_tests;

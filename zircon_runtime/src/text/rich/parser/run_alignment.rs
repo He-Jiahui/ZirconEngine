@@ -1,12 +1,13 @@
 use unicode_segmentation::UnicodeSegmentation;
 
-use super::{RichTextParseError, StyleOverride, StyledRun, range_contains, styled_run};
+use super::{range_contains, styled_run, RichTextParseError, StyleOverride, StyledRun};
 
 pub(super) fn align_runs_to_graphemes(text: &str, runs: &[StyledRun]) -> Vec<StyledRun> {
     align_runs_to_graphemes_bounded(text, runs, usize::MAX)
         .expect("unbounded test alignment must fit its representable run index")
 }
 
+/// 解析完成后整理样式运行的字素边界与相邻元数据，并限制输出运行数。
 pub(super) fn align_runs_to_graphemes_bounded(
     text: &str,
     runs: &[StyledRun],
@@ -19,6 +20,7 @@ pub(super) fn align_runs_to_graphemes_bounded(
         });
     }
     if ascii_runs_are_canonical(text, runs) {
+        // BUG: [CR-TEXT-RICH-ASCII-GRAPHEME-0001] 不同样式把 "\r\n" 分为 (0, 1)/(1, 2) 时，此快路径拆开同一字素；HTML "<b>\r</b>\n" 可达，GB3 要求 CRLF 不断开。
         return Ok(runs.to_vec());
     }
 

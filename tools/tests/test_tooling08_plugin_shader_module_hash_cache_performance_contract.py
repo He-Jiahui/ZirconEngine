@@ -1,9 +1,10 @@
+# 核对插件共享着色器源在单次清单内只计算一次摘要。
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools import zircon_build_plugin_shader_descriptors as descriptors
+from tools.build import zircon_build_plugin_shader_descriptors as descriptors
 
 
 class Tooling08PluginShaderModuleHashCachePerformanceContractTests(unittest.TestCase):

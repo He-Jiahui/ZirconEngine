@@ -11,6 +11,10 @@ use crate::module::module_descriptor_with_manager;
 use crate::runtime_system::{
     register_runtime_systems, PHYSICS_STEP_SYSTEM, PHYSICS_SYNC_TO_SCENE_SYSTEM, PHYSICS_SYSTEM_SET,
 };
+use crate::{
+    physics_event_catalog, PhysicsDebugOverlayCapture, PhysicsOverlayFrame,
+    PHYSICS_OVERLAY_FRAME_EVENT_ID,
+};
 use zircon_runtime::core::framework::physics::{PhysicsQueryInterface, PHYSICS_QUERY_INTERFACE_ID};
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
@@ -56,6 +60,7 @@ impl RuntimePlugin for PhysicsRuntimePlugin {
 
     fn package_manifest(&self) -> PluginPackageManifest {
         let mut manifest = self.descriptor().package_manifest();
+        manifest = manifest.with_event_catalog(physics_event_catalog());
         manifest = manifest.with_native_module(
             PluginModuleManifest::native("physics.dist", PHYSICS_DIST_CRATE_NAME)
                 .with_target_modes([
@@ -85,7 +90,31 @@ impl RuntimePlugin for PhysicsRuntimePlugin {
             .module(PLUGIN_RUNTIME_MODULE_NAME)?;
         let manager: Arc<dyn PhysicsQueryInterface> = self.manager.clone();
         module.export_interface::<dyn PhysicsQueryInterface>(manager)?;
-        register_runtime_systems(&mut module)
+        module.resource(PhysicsDebugOverlayCapture::default)?;
+        register_runtime_systems(&mut module)?;
+        let owner = module.owner();
+        drop(module);
+
+        let overlay_event = physics_event_catalog()
+            .events
+            .into_iter()
+            .find(|event| event.id == PHYSICS_OVERLAY_FRAME_EVENT_ID)
+            .expect("physics overlay event manifest exists");
+        registry.register_mirrored_event::<PhysicsOverlayFrame>(
+            owner,
+            overlay_event,
+            |world, reader_count| {
+                let capture = world
+                    .get_resource_mut::<PhysicsDebugOverlayCapture>()
+                    .ok_or_else(|| {
+                        zircon_runtime::scene::SceneError::Message(
+                            "physics debug overlay capture resource is not registered".to_string(),
+                        )
+                    })?;
+                capture.enabled = reader_count > 0;
+                Ok(())
+            },
+        )
     }
 }
 

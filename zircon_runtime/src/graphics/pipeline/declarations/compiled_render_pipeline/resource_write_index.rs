@@ -74,5 +74,5 @@ impl CompiledRenderPipelineResourceWriteIndex {
 }
 
 #[cfg(test)]
-#[path = "resource_write_index/direct_write_bits_tests.rs"]
+#[path = "resource_write_index/tests/direct_write_bits_tests.rs"]
 mod direct_write_bits_tests;

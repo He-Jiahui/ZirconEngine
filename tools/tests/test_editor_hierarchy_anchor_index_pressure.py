@@ -1,9 +1,10 @@
+# 核对层级锚点压力模型以有界候选替代全绘制扫描，并约束输入和输出路径。
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from tools.editor_hierarchy_anchor_index_pressure import run, write_result
+from tools.analysis.performance.editor.editor_hierarchy_anchor_index_pressure import run, write_result
 
 
 class EditorHierarchyAnchorIndexPressureTests(unittest.TestCase):
@@ -48,7 +49,7 @@ class EditorHierarchyAnchorIndexPressureTests(unittest.TestCase):
 
     def test_output_is_stable_json_on_external_storage(self) -> None:
         result = run(template_node_count=8, pane_paint_count=3)
-        with tempfile.TemporaryDirectory(dir=Path("E:/zircon-profiles")) as directory:
+        with tempfile.TemporaryDirectory(dir=Path(tempfile.gettempdir())) as directory:
             output = Path(directory) / "hierarchy-anchor-index-pressure.json"
             write_result(output, result)
             self.assertEqual(json.loads(output.read_text(encoding="utf-8")), result)

@@ -4,6 +4,7 @@ use crate::ui::workbench::layout::{
 use crate::ui::workbench::view::{ViewHost, ViewInstanceId};
 
 #[cfg(test)]
+#[path = "host_resolution/tests/preferred_drawer_scan_tests.rs"]
 mod preferred_drawer_scan_tests;
 
 pub(crate) fn drop_host_for_group(

@@ -7,13 +7,13 @@ use image::{ImageBuffer, ImageFormat, Rgba};
 use crate::core::framework::render::{FroxelGridParams, ViewportCameraSnapshot};
 use crate::core::math::{UVec2, Vec3};
 
-use super::super::super::GpuFroxelTemporalReprojection;
 use super::super::super::light_scatter::{FroxelLightScatterPipeline, FroxelLightScatterRequest};
+use super::super::super::GpuFroxelTemporalReprojection;
 use super::super::FroxelViewReconstruction;
 use super::fixture::{
+    clear_shadow_atlas, create_lighting_resources, create_shadow_resources, d3_view_descriptor,
     LightingResources, READBACK_BYTES_PER_ROW, TEST_GRID, TEST_OUTPUT,
-    TEST_SHADOWED_RECEIVER_DEPTH, clear_shadow_atlas, create_lighting_resources,
-    create_shadow_resources, d3_view_descriptor,
+    TEST_SHADOWED_RECEIVER_DEPTH,
 };
 use super::support::{f16_bits_to_f32, render_test_output_dir, test_device};
 
@@ -264,7 +264,11 @@ fn encode_scatter(
                     jitter_enabled,
                     history_available,
                 ),
-                light_buffer: &lighting.light_buffer,
+                light_buffer: wgpu::BufferBinding {
+                    buffer: &lighting.light_buffer,
+                    offset: 0,
+                    size: None,
+                },
                 light_count: 1,
                 light_grid_params_buffer: wgpu::BufferBinding {
                     buffer: &lighting.params_buffer,

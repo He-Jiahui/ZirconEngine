@@ -1,18 +1,6 @@
 use super::line_break::LineBreakChunk;
 use crate::text::TextRange;
 
-const JLREQ_INSEPARABLE_PAIRS: &[(char, char)] = &[
-    ('—', '—'),
-    ('…', '…'),
-    ('‥', '‥'),
-    ('〳', '〵'),
-    ('〴', '〵'),
-];
-const FORBIDDEN_LINE_END_OPENING_PUNCTUATION: &[char] = &[
-    '（', '｛', '｟', '［', '【', '〔', '〈', '《', '「', '『', '〖', '〘', '〚', '‘', '“', '〝',
-    '｢',
-];
-
 pub(super) fn apply_kinsoku_start_rules<'a>(
     text: &'a str,
     chunks: Vec<LineBreakChunk<'a>>,
@@ -116,7 +104,11 @@ fn starts_with_forbidden_line_end(text: &str) -> bool {
 }
 
 fn ends_with_forbidden_line_end(text: &str) -> bool {
-    text.chars().count() > 1 && text.chars().next_back().is_some_and(is_forbidden_line_end)
+    let mut chars = text.chars();
+    let Some(last) = chars.next_back() else {
+        return false;
+    };
+    chars.next_back().is_some() && is_forbidden_line_end(last)
 }
 
 fn split_forbidden_line_end_suffix<'a>(
@@ -202,19 +194,26 @@ fn has_jlreq_inseparable_pair(text: &str) -> bool {
 }
 
 fn is_jlreq_inseparable_pair(previous_char: char, current_char: char) -> bool {
-    JLREQ_INSEPARABLE_PAIRS.contains(&(previous_char, current_char))
+    matches!(
+        (previous_char, current_char),
+        ('—', '—') | ('…', '…') | ('‥', '‥') | ('〳', '〵') | ('〴', '〵')
+    )
 }
 
 fn has_protected_forbidden_prefix(text: &str) -> bool {
-    text.chars().count() > 1 && text.chars().next().is_some_and(is_forbidden_line_end)
+    let mut chars = text.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    chars.next().is_some() && is_forbidden_line_end(first)
 }
 
 fn has_protected_forbidden_suffix(text: &str) -> bool {
-    text.chars().count() > 1
-        && text
-            .chars()
-            .next_back()
-            .is_some_and(is_forbidden_line_start)
+    let mut chars = text.chars();
+    let Some(last) = chars.next_back() else {
+        return false;
+    };
+    chars.next_back().is_some() && is_forbidden_line_start(last)
 }
 
 fn is_forbidden_line_start(ch: char) -> bool {
@@ -239,11 +238,31 @@ fn is_forbidden_line_start(ch: char) -> bool {
 }
 
 fn is_forbidden_line_end(ch: char) -> bool {
-    FORBIDDEN_LINE_END_OPENING_PUNCTUATION.contains(&ch)
+    matches!(
+        ch,
+        '（' | '｛'
+            | '｟'
+            | '［'
+            | '【'
+            | '〔'
+            | '〈'
+            | '《'
+            | '「'
+            | '『'
+            | '〖'
+            | '〘'
+            | '〚'
+            | '‘'
+            | '“'
+            | '〝'
+            | '｢'
+    )
 }
 
 #[cfg(test)]
+#[path = "kinsoku/tests/cases.rs"]
 mod tests;
 
 #[cfg(test)]
+#[path = "kinsoku/tests/match_dispatch_tests.rs"]
 mod match_dispatch_tests;

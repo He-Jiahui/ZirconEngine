@@ -16,10 +16,11 @@ use crate::core::framework::render::{
 };
 
 use super::super::toml_value::{
-    ArtifactCacheTomlTable, ArtifactCacheTomlValue, cache_table_to_toml, toml_table_to_cache,
+    cache_table_to_toml, toml_table_to_cache, ArtifactCacheTomlTable, ArtifactCacheTomlValue,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+// 保存着色器来源及派生字段；读回后会按当前材质生成规则重建布局、选项表和生成 WGSL。
 pub(in super::super) struct ArtifactCacheShaderAsset {
     uri: AssetUri,
     #[serde(default = "default_artifact_shader_asset_kind")]
@@ -117,6 +118,7 @@ impl From<&ShaderAsset> for ArtifactCacheShaderAsset {
 }
 
 impl ArtifactCacheShaderAsset {
+    // 属性、选项及 editor 表转换成功后，重新生成材质工件，替换缓存中的派生字段；非材质类型会清空这些字段。
     pub(in super::super) fn into_asset(self) -> Result<ShaderAsset, AssetImportError> {
         let mut asset = ShaderAsset {
             uri: self.uri,

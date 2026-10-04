@@ -8,6 +8,8 @@ var content = %import("instances/delve_lockpick_content");
 // State: 0 idle, 1 in_progress, 2 success, 3 failed, 4 abandoned.
 // Result: 0 ignored, 1 engaged, 2 advanced, 3 retry, 4 page_cleared,
 // 5 success, 6 fail, 7 aborted.
+/// 持有一次开锁尝试的局部权威状态；owner/id是命令校验身份，page为零基索引，deadline使用调用方的20Hz源tick。
+/// public字段供同仓夹具/投影读取；外部命令应走engage/action/tick/abandon，避免绕过生命周期与重试seed。
 pub class LockpickSession {
     pub var initialized: bool;
     pub var active: bool;
@@ -79,6 +81,7 @@ pub sourceSessionId(chestId: uint, tick: int, required: bool): string {
     return "lp_" + <string>chestId + "_" + <string>tick;
 }
 
+/// 底层只检查会话忙闲与配置，调用方先完成宝箱归属、距离和付费等业务门槛；成功后才将一次尝试暴露给命令/投影。
 pub engage(
     session: LockpickSession,
     runSeed: uint,
@@ -153,6 +156,8 @@ burnTry(session: LockpickSession, tick: int): int {
     return 3;
 }
 
+/// 返回的是局部转移码，调用方负责对应宝箱结算/终止；可选sid只在显式提供时校验，owner始终校验。
+/// 动作路径不检查deadline，过期处理须由上层在既定tick顺序调用tick，避免自行改变源命令与时钟优先级。
 pub applyAction(
     session: LockpickSession,
     action: int,
@@ -200,6 +205,7 @@ pub applyAction(
     return 2;
 }
 
+/// 使用单调源tick推进超时；一次调用最多烧掉一次机会并以本次tick重设期限，大跨度补时不会回放所有遗漏超时。
 pub tick(session: LockpickSession, currentTick: int, required: bool): int {
     requireSession(session, required);
     if (currentTick < 0 || !session.active || currentTick < session.deadline) { return 0; }

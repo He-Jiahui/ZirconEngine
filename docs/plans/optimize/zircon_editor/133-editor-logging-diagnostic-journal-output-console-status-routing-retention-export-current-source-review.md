@@ -389,6 +389,19 @@ tracing / Runtime / Editor / Plugin / Import / Build / Play / Provider
 - Editor132拥有toast/decision/progress Notification Center；本报告只提供可被通知引用的durable diagnostic identity和delivery input。
 - Runtime task/process diagnostics的runtime source authority由相应`zircon_runtime`计划拥有；本报告拥有Editor bridge、journal和产品呈现。
 
-## 12. 本轮未实施内容
+## 12. 原审查轮次未实施内容
 
-本轮没有修改Rust生产代码、ZUI资产、Cargo manifest、测试或参考引擎源码；没有执行format、Cargo、真实窗口、磁盘故障或性能测试。交付物仅为当前源码差距账本、目标架构、重构顺序和验收门。实施必须从M0开始，先封闭producer阻塞、虚假delivery、持久化health和硬编码Diagnostics产品状态，不能继续在旧字符串协议上叠加功能。
+原审查轮次没有修改Rust生产代码、ZUI资产、Cargo manifest、测试或参考引擎源码；没有执行format、Cargo、真实窗口、磁盘故障或性能测试。该轮交付物仅为当前源码差距账本、目标架构、重构顺序和验收门。后续实施仍必须从M0开始，先封闭producer阻塞、虚假delivery、持久化health和硬编码Diagnostics产品状态，不能继续在旧字符串协议上叠加功能。
+
+## 13. 2026-09-19 narrow collector-capacity follow-up
+
+Editor807 adds a bounded allocation-shape follow-up in
+`ui/workbench/state/console_history.rs`: `push_with_level` reuses the
+clipping helper's retained logical-line count, filtered visible append
+reserves the retained-entered bound, and `set_filter` reserves the
+retained-history bound before extending its existing collectors. The lower
+source regression and source/model contract cover the three sites without
+adding a second line-count scan. This does not change diagnostic authority,
+journal routing, 256-line retention, filter semantics, source/slot identity,
+or output deltas; the Editor11 architecture and product acceptance gates stay
+open. Managed Cargo/Release and Console p50/p95/p99 evidence remain pending.

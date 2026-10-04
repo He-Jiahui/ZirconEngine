@@ -1,6 +1,7 @@
 use super::super::super::super::super::data::TemplatePaneNodeData;
 use super::super::super::first_non_empty;
 
+// 覆盖层背景和前景共用颜色令牌；variant 优先于校验状态与文字语气。
 pub(super) fn badge_color_token(node: &TemplatePaneNodeData) -> &str {
     if let Some(token) = badge_color_variant(&node.component_variant) {
         return token;
@@ -51,5 +52,5 @@ fn badge_color_variant(component_variant: &str) -> Option<&'static str> {
 }
 
 #[cfg(test)]
-#[path = "tokens/single_scan_color_tests.rs"]
+#[path = "tokens/tests/single_scan_color_tests.rs"]
 mod single_scan_color_tests;

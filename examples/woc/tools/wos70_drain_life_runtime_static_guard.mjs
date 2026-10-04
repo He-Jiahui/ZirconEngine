@@ -28,7 +28,7 @@ requireText(
 );
 requireText(
   world,
-  /startOfflineDrainLifeCast[\s\S]*?catalogAdmission\(state, casterIndex, abilityCode, "", false\)[\s\S]*?channelDuration[\s\S]*?channelTicks[\s\S]*?cast\.armChannel[\s\S]*?entityResources\[casterIndex\] = <int>state\.entityResources\[casterIndex\] - cost/,
+  /startOfflineDrainLifeCast[\s\S]*?catalogAdmission\(state, casterIndex, abilityCode, "", false\)[\s\S]*?channelDuration[\s\S]*?channelTicks[\s\S]*?cast\.armChannel[\s\S]*?cast\.lockTargets\(false, true\)[\s\S]*?spendOfflineAbilityResource\(state, casterIndex, cost\)[\s\S]*?state\.entityCastTargetIds\[casterIndex\] = targetId/,
   "Drain Life must bill at channel start and arm a target-locked five-tick channel",
 );
 requireText(

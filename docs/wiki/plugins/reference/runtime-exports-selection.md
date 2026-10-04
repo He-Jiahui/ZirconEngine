@@ -10,7 +10,7 @@ plan_sources:
   - user: 2026-09-09 插件公开接口完整参考
 tests:
   - zircon_plugins/plugin_sdk/src/runtime.rs
-  - zircon_app/src/plugins/tests.rs
+  - zircon_app/src/plugins/tests/cases.rs
 doc_type: api-reference
 title: Runtime 导出宏与选择流程
 status: source-audited

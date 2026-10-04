@@ -1,8 +1,9 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0052] 材质管理的记录视图与查询测试的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_render_material_management_tests_are_child_owners() {
-    let root = read_runtime_src("core/framework/render/material/management/tests.rs");
+    let root = read_runtime_src("core/framework/render/material/management/tests/cases.rs");
     let record_views =
         read_runtime_src("core/framework/render/material/management/tests/record_views.rs");
     let query_execution =
@@ -70,7 +71,7 @@ fn runtime_15_render_material_management_tests_are_child_owners() {
     );
 
     for (path, source) in [
-        ("material/management/tests.rs", root.as_str()),
+        ("material/management/tests/cases.rs", root.as_str()),
         (
             "material/management/tests/record_views.rs",
             record_views.as_str(),
@@ -100,7 +101,7 @@ fn runtime_15_render_material_management_tests_are_child_owners() {
             &[
                 "Render material management tests owner split",
                 "render_plan08_material_management_tests_owner_split_static_passed_cargo_deferred_active_compile_lane",
-                "core/framework/render/material/management/tests.rs",
+                "core/framework/render/material/management/tests/cases.rs",
                 "core/framework/render/material/management/tests/record_views.rs",
                 "core/framework/render/material/management/tests/query_execution.rs",
                 "runtime_15_render_material_management_tests_are_child_owners",

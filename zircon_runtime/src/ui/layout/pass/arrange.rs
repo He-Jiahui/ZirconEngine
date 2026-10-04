@@ -2,7 +2,7 @@ use crate::ui::layout::plan_scrollable_virtual_window;
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::{
-        DesiredSize, UiAxis, UiContainerKind, UiFrame, UiScrollableBoxConfig, UiSize,
+        DesiredSize, UiAxis, UiContainerKind, UiFrame, UiMargin, UiScrollableBoxConfig, UiSize,
         UiVirtualListWindow, UiWrapBoxConfig,
     },
     tree::{UiTree, UiTreeError},
@@ -10,13 +10,16 @@ use zircon_runtime_interface::ui::{
 
 mod grid_masonry;
 #[cfg(test)]
+#[path = "arrange/tests/cases.rs"]
 mod tests;
 mod virtual_list;
 
 use self::grid_masonry::{arrange_grid_children, arrange_masonry_children};
 use self::virtual_list::arrange_materialized_virtual_list_children;
 use super::axis::{frame_axis_extent, resolve_linear_child_main_extents, size_axis_extent};
-use super::child_frame::{free_child_frame, linear_child_frame, scrollable_child_frame};
+use super::child_frame::{
+    free_child_frame, inset_frame, linear_child_frame, scrollable_child_frame,
+};
 use super::clip::resolve_clip_frame;
 use super::engine::UiLayoutPassEngineContext;
 use super::measure::measure_wrap_content_size_for_width;
@@ -40,6 +43,7 @@ pub(crate) fn arrange_node(
         previous_clip_frame,
         structure_dirty,
         container,
+        layout_padding,
     ) = {
         let node = tree
             .node(node_id)
@@ -51,6 +55,7 @@ pub(crate) fn arrange_node(
             node.layout_cache.clip_frame,
             node.dirty.input,
             node.container,
+            node.layout_padding,
         )
     };
     if !node_occupies_layout {
@@ -110,6 +115,11 @@ pub(crate) fn arrange_node(
             inherited_clip
         }
     };
+    // Keep the node frame authoritative for painting and hit testing, while
+    // passing only its content box to child layout algorithms. This mirrors
+    // CSS/ReactBits shell semantics and preserves the authored inset on every
+    // backend (Taffy and Zircon-owned fallbacks).
+    let content_frame = inset_frame(frame, layout_padding);
     if sparse_children {
         // A descendant-only invalidation can skip clean siblings; all structural and parent
         // layout changes were rejected by can_sparse_arrange_independent_children above.
@@ -141,7 +151,7 @@ pub(crate) fn arrange_node(
                         let slot = slot_for_container_child(
                             tree, slot_index, node_id, child_id, container,
                         );
-                        free_child_frame(tree, child_id, frame, slot)?
+                        free_child_frame(tree, child_id, content_frame, slot)?
                     };
                     arrange_node(
                         tree,
@@ -158,7 +168,7 @@ pub(crate) fn arrange_node(
                     tree,
                     node_id,
                     children,
-                    frame,
+                    content_frame,
                     next_clip,
                     slot_index,
                     engine_context,
@@ -167,7 +177,7 @@ pub(crate) fn arrange_node(
                         tree,
                         node_id,
                         children,
-                        frame,
+                        content_frame,
                         next_clip,
                         slot_index,
                         engine_context,
@@ -186,7 +196,7 @@ pub(crate) fn arrange_node(
                     tree,
                     node_id,
                     children,
-                    frame,
+                    content_frame,
                     next_clip,
                     config,
                     slot_index,
@@ -198,7 +208,7 @@ pub(crate) fn arrange_node(
                     tree,
                     node_id,
                     children,
-                    frame,
+                    content_frame,
                     next_clip,
                     slot_index,
                     engine_context,
@@ -207,7 +217,7 @@ pub(crate) fn arrange_node(
                         tree,
                         node_id,
                         children,
-                        frame,
+                        content_frame,
                         next_clip,
                         UiAxis::Horizontal,
                         config.gap,
@@ -222,7 +232,7 @@ pub(crate) fn arrange_node(
                     tree,
                     node_id,
                     children,
-                    frame,
+                    content_frame,
                     next_clip,
                     slot_index,
                     engine_context,
@@ -231,7 +241,7 @@ pub(crate) fn arrange_node(
                         tree,
                         node_id,
                         children,
-                        frame,
+                        content_frame,
                         next_clip,
                         UiAxis::Vertical,
                         config.gap,
@@ -247,7 +257,7 @@ pub(crate) fn arrange_node(
                     tree,
                     node_id,
                     children,
-                    frame,
+                    content_frame,
                     next_clip,
                     config,
                     slot_index,
@@ -259,7 +269,7 @@ pub(crate) fn arrange_node(
                     tree,
                     node_id,
                     children,
-                    frame,
+                    content_frame,
                     next_clip,
                     slot_index,
                     engine_context,
@@ -268,7 +278,7 @@ pub(crate) fn arrange_node(
                         tree,
                         node_id,
                         children,
-                        frame,
+                        content_frame,
                         next_clip,
                         config,
                         &mut child_scratch.wrap_row_items,
@@ -282,21 +292,21 @@ pub(crate) fn arrange_node(
                     node_id,
                     children,
                     config,
-                    frame.width,
+                    content_frame.width,
                     &mut child_scratch.wrap_content_desired,
                     slot_index,
                 )?;
                 let node = tree
                     .node_mut(node_id)
                     .ok_or(UiTreeError::MissingNode(node_id))?;
-                node.layout_cache.content_size = content_size;
+                node.layout_cache.content_size = add_layout_padding(content_size, layout_padding);
             }
             UiContainerKind::GridBox(config) => {
                 if !try_arrange_taffy_owned_children(
                     tree,
                     node_id,
                     children,
-                    frame,
+                    content_frame,
                     next_clip,
                     slot_index,
                     engine_context,
@@ -305,7 +315,7 @@ pub(crate) fn arrange_node(
                         tree,
                         node_id,
                         children,
-                        frame,
+                        content_frame,
                         next_clip,
                         config,
                         slot_index,
@@ -319,7 +329,7 @@ pub(crate) fn arrange_node(
                     tree,
                     node_id,
                     children,
-                    frame,
+                    content_frame,
                     next_clip,
                     config,
                     &mut child_scratch.masonry,
@@ -329,7 +339,7 @@ pub(crate) fn arrange_node(
                 let node = tree
                     .node_mut(node_id)
                     .ok_or(UiTreeError::MissingNode(node_id))?;
-                node.layout_cache.content_size = content_size;
+                node.layout_cache.content_size = add_layout_padding(content_size, layout_padding);
             }
         }
         Ok(())
@@ -347,13 +357,14 @@ pub(crate) fn arrange_resized_root(
     slot_index: &UiLayoutSlotIndex,
     engine_context: &mut UiLayoutPassEngineContext,
 ) -> Result<(), UiTreeError> {
-    let (container, has_children, can_use_dependency_index) = {
+    let (container, has_children, layout_padding, can_use_dependency_index) = {
         let node = tree
             .node(node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
         (
             node.container,
             !node.children.is_empty(),
+            node.layout_padding,
             node.effective_visibility().occupies_layout()
                 && !node.clip_to_bounds
                 && !node.container.clips_to_bounds()
@@ -390,11 +401,12 @@ pub(crate) fn arrange_resized_root(
 
     let mut child_scratch = slot_index.take_arrange_child_scratch();
     slot_index.copy_parent_size_dependent_children(tree, node_id, &mut child_scratch.children);
+    let content_frame = inset_frame(frame, layout_padding);
     let arrange_result = (|| -> Result<(), UiTreeError> {
         for child_id in child_scratch.children.iter().copied() {
             let child_frame = {
                 let slot = slot_for_container_child(tree, slot_index, node_id, child_id, container);
-                free_child_frame(tree, child_id, frame, slot)?
+                free_child_frame(tree, child_id, content_frame, slot)?
             };
             arrange_node(
                 tree,
@@ -420,6 +432,13 @@ fn record_zircon_owned_container(
     if !children.is_empty() {
         engine_context.record_zircon_owned(node_id, container);
     }
+}
+
+fn add_layout_padding(size: UiSize, padding: UiMargin) -> UiSize {
+    UiSize::new(
+        size.width + padding.horizontal().max(0.0),
+        size.height + padding.vertical().max(0.0),
+    )
 }
 
 fn arrange_size_box_children(
@@ -462,6 +481,7 @@ fn arrange_block_children(
 ) -> Result<(), UiTreeError> {
     let container = UiContainerKind::BlockBox;
     let mut cursor = 0.0;
+    let mut content_width = 0.0_f32;
 
     for child_id in children.iter().copied() {
         let Some(node) = tree.node(child_id) else {
@@ -491,8 +511,22 @@ fn arrange_block_children(
             slot_index,
             engine_context,
         )?;
+        // Track the outer width for this child so scroll containers can compute
+        // their content size correctly (same accounting WrapBox and MasonryBox use).
+        let child_outer_width = tree
+            .node(child_id)
+            .map(|n| n.layout_cache.desired_size.width + slot_padding(slot).horizontal())
+            .unwrap_or(0.0);
+        content_width = content_width.max(child_outer_width);
         cursor += main_extent;
     }
+
+    let node = tree
+        .node_mut(parent_id)
+        .ok_or(UiTreeError::MissingNode(parent_id))?;
+    let padding = node.layout_padding;
+    node.layout_cache.content_size =
+        add_layout_padding(UiSize::new(content_width, cursor), padding);
 
     Ok(())
 }
@@ -589,6 +623,7 @@ fn arrange_linear_children(
     let gap = gap.max(0.0);
     let mut cursor = 0.0;
     let mut placed_count = 0usize;
+    let mut cross_extent = 0.0_f32;
 
     for (index, child_id) in children.iter().copied().enumerate() {
         let occupies_layout = tree
@@ -618,10 +653,33 @@ fn arrange_linear_children(
             engine_context,
         )?;
         if occupies_layout {
+            // Track cross-axis extent for content_size so scroll containers that
+            // contain a linear box get the correct scrollable content dimensions.
+            let child_cross = tree
+                .node(child_id)
+                .map(|n| match axis {
+                    UiAxis::Vertical => n.layout_cache.desired_size.width,
+                    UiAxis::Horizontal => n.layout_cache.desired_size.height,
+                })
+                .unwrap_or(0.0);
+            cross_extent = cross_extent.max(child_cross);
             cursor += linear_scratch.resolved[index].resolved;
             placed_count += 1;
         }
     }
+
+    let content_size = match axis {
+        UiAxis::Vertical => UiSize::new(cross_extent, cursor),
+        UiAxis::Horizontal => UiSize::new(cursor, cross_extent),
+    };
+    let padding = tree
+        .node(parent_id)
+        .map(|n| n.layout_padding)
+        .unwrap_or_default();
+    let node = tree
+        .node_mut(parent_id)
+        .ok_or(UiTreeError::MissingNode(parent_id))?;
+    node.layout_cache.content_size = add_layout_padding(content_size, padding);
 
     Ok(())
 }

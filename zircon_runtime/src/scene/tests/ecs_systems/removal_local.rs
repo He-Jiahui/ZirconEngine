@@ -64,12 +64,10 @@ fn removed_component_update_events_reclaims_expired_entries_without_reader() {
     world.run_internal_scene_system(InternalSceneSystem::UpdateEvents);
 
     let mut reader = RemovedComponentReader::<Health>::default();
-    assert!(
-        reader
-            .read(world.removed_component_events())
-            .next()
-            .is_none()
-    );
+    assert!(reader
+        .read(world.removed_component_events())
+        .next()
+        .is_none());
     let metrics = world
         .removed_component_retention_metrics::<Health>()
         .unwrap();
@@ -92,12 +90,10 @@ fn removed_component_clear_trackers_reclaims_expired_entries() {
     world.clear_trackers();
 
     let mut reader = RemovedComponentReader::<Health>::default();
-    assert!(
-        reader
-            .read(world.removed_component_events())
-            .next()
-            .is_none()
-    );
+    assert!(reader
+        .read(world.removed_component_events())
+        .next()
+        .is_none());
     assert_eq!(
         world
             .removed_component_retention_metrics::<Health>()
@@ -183,12 +179,10 @@ fn removed_component_explicit_clear_does_not_count_as_reader_lag() {
 
     let mut reader = RemovedComponentReader::<Health>::default();
     world.clear_removed_component_events::<Health>();
-    assert!(
-        reader
-            .read(world.removed_component_events())
-            .next()
-            .is_none()
-    );
+    assert!(reader
+        .read(world.removed_component_events())
+        .next()
+        .is_none());
 
     let current = world
         .spawn((Name("Current".to_string()), Health(2)))
@@ -219,11 +213,9 @@ fn removed_components_reader_observes_direct_and_deferred_removals() {
     type RemovedHealth = RemovedComponentsParam<Health>;
     let mut system = SystemState::<RemovedHealth>::new(&mut world).unwrap();
 
-    assert!(
-        system
-            .run(&mut world, |mut removed| removed.read().collect::<Vec<_>>())
-            .is_empty()
-    );
+    assert!(system
+        .run(&mut world, |mut removed| removed.read().collect::<Vec<_>>())
+        .is_empty());
 
     world.remove::<Health>(direct).unwrap();
     {

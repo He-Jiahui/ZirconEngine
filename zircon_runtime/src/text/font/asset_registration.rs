@@ -1,3 +1,4 @@
+//! 把字体资产及 TTC 家族成员投影为数据库注册项；主成员先入库，供未指定 face 的请求保持稳定入口。
 use std::path::{Path, PathBuf};
 
 use crate::asset::{FontAsset, FontAssetFaceStyle, FontAssetFamilyMember, FontAssetVariationCoord};
@@ -12,6 +13,7 @@ pub(super) struct FontAssetFaceRegistration {
     pub(super) metadata: FontFaceMetadata,
 }
 
+/// 注册来源的身份包含内容指纹与有效变化轴；不同 owner 可共享同一字形源而保留各自资产关系。
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub(super) struct FontAssetSourceKey {
     path: PathBuf,
@@ -25,6 +27,7 @@ pub(super) struct FontAssetSourceKey {
 }
 
 impl FontAssetSourceKey {
+    /// 调用方须先用本源的 face 元数据归一有效变化轴，否则相同渲染实例可能形成不同注册身份。
     pub(super) fn from_descriptor(
         source_path: &Path,
         descriptor: &FontFaceDescriptor,
@@ -67,6 +70,7 @@ impl From<FontStyle> for FontStyleKey {
     }
 }
 
+/// 字体数据库替换资产时调用；显式 primary 成员优先，其余成员按清单顺序接续。
 pub(super) fn font_asset_faces(
     asset: &FontAsset,
     bytes: &[u8],
@@ -185,20 +189,5 @@ fn variation_tag(tag: &str) -> Option<u32> {
 }
 
 #[cfg(test)]
-mod optimization_tests {
-    use super::normalized_family_matches;
-
-    #[test]
-    fn runtime80_batch_primary_family_match_trims_and_folds_ascii_case() {
-        assert!(normalized_family_matches(
-            "  Runtime Sans Regular  ",
-            "runtime sans regular"
-        ));
-    }
-
-    #[test]
-    fn runtime80_batch_primary_family_match_keeps_non_ascii_case_strict() {
-        assert!(normalized_family_matches("Familie Ö", "familie Ö"));
-        assert!(!normalized_family_matches("Familie Ö", "familie ö"));
-    }
-}
+#[path = "tests/asset_registration_optimization_tests.rs"]
+mod optimization_tests;

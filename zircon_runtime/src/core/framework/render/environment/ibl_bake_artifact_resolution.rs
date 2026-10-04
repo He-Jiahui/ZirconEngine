@@ -142,6 +142,8 @@ impl IblBakeArtifactResolvedPayload {
     }
 }
 
+/// 在候选 blob 中执行与 descriptor 选择器相同的优先级，并返回实际可消费的载荷。
+/// 缺少匹配 blob 时返回运行时计算意图；调用方不得仅凭候选顺序跳过当前性检查。
 pub fn resolve_ibl_bake_artifact_payload(
     request: &IblBakeArtifactRequest,
     candidates: &[IblBakeArtifactBlobCandidate],
@@ -178,5 +180,5 @@ fn descriptor_is_current_for_source(
 }
 
 #[cfg(test)]
-#[path = "ibl_bake_artifact_resolution/tests.rs"]
+#[path = "ibl_bake_artifact_resolution/tests/cases.rs"]
 mod tests;

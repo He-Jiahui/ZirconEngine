@@ -13,13 +13,14 @@ use super::retained_viewport_controller::RetainedViewportController;
 impl RetainedViewportController {
     pub(crate) fn submit_extract_with_ui(
         &self,
+        surface_key: &str,
         mut extract: RenderFrameExtract,
         ui: Option<Arc<UiRenderExtract>>,
         size: UVec2,
     ) -> Result<bool, RenderFrameworkError> {
         zircon_runtime::profile_scope!("editor", "viewport", "submit_extract_with_ui");
         let _operation = self.lock_viewport_lifecycle();
-        let Some((viewport, render_framework)) = self.ensure_viewport(size)? else {
+        let Some((viewport, render_framework)) = self.ensure_viewport(surface_key, size)? else {
             return Ok(false);
         };
         let ui = {
@@ -32,7 +33,8 @@ impl RetainedViewportController {
         render_framework.submit_frame_extract_with_ui(viewport, extract, ui)?;
         let mut shared = self.lock_shared();
         if shared
-            .viewport
+            .viewports
+            .get(surface_key)
             .is_some_and(|active| active.handle == viewport)
         {
             shared.last_error = None;
@@ -42,11 +44,12 @@ impl RetainedViewportController {
 
     pub(crate) fn visible_spatial_snapshot(
         &self,
+        surface_key: &str,
     ) -> Result<Option<RenderVisibleSpatialQuerySnapshot>, RenderFrameworkError> {
         let _operation = self.lock_viewport_lifecycle();
         let (viewport, render_framework) = {
             let shared = self.lock_shared();
-            let Some(viewport) = shared.viewport else {
+            let Some(viewport) = shared.viewports.get(surface_key).copied() else {
                 return Ok(None);
             };
             let Some(render_framework) = shared.resolve_stored_render_framework()? else {
@@ -65,7 +68,8 @@ impl RetainedViewportController {
     ) -> Result<bool, RenderFrameworkError> {
         zircon_runtime::profile_scope!("editor", "viewport", "submit_extract");
         let _operation = self.lock_viewport_lifecycle();
-        let Some((viewport, render_framework)) = self.ensure_viewport(size)? else {
+        let Some((viewport, render_framework)) = self.ensure_viewport("editor.viewport", size)?
+        else {
             return Ok(false);
         };
         extract.apply_viewport_size(size);
@@ -73,7 +77,8 @@ impl RetainedViewportController {
         render_framework.submit_frame_extract(viewport, extract)?;
         let mut shared = self.lock_shared();
         if shared
-            .viewport
+            .viewports
+            .get("editor.viewport")
             .is_some_and(|active| active.handle == viewport)
         {
             shared.last_error = None;

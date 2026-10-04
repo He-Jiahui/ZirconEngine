@@ -10,9 +10,9 @@ related_code:
   - zircon_editor/src/ui/workbench/layout/main_host_page_layout.rs
   - zircon_editor/src/ui/workbench/layout/workbench_layout.rs
 design_references:
-  - docs/ui-and-layout/editor-workbench-designs/main-tabs-layout-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/drawer-expanded-state-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/split-editor-state-spec.png
+  - docs/ui/editor-workbench-designs/main-tabs-layout-spec.png
+  - docs/ui/editor-workbench-designs/drawer-expanded-state-spec.png
+  - docs/ui/editor-workbench-designs/split-editor-state-spec.png
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/03-jetbrains-docking-workbench.md
   - docs/plans/zircon_editor/editor_layout/04-layout-presets-and-persistence.md

@@ -5,6 +5,9 @@ use events::AssetRefreshEvents;
 use zircon_runtime_interface::resource::ResourceLocator;
 
 mod apply;
+#[cfg(test)]
+#[path = "refresh/tests/capacity_tests.rs"]
+mod capacity_tests;
 mod counters;
 mod events;
 mod snapshots;
@@ -114,17 +117,11 @@ impl RetainedEditorHost {
             return Ok(());
         }
 
-        let selected_asset_uuid = self
-            .runtime
-            .editor_snapshot()
-            .asset_activity
-            .selected_asset_uuid;
         let active_scene_uri = self
             .editor_manager
             .active_scene_identity_for_session()
             .map(|identity| identity.scene_uri().to_owned());
         let mut plan = plan_asset_backend_refresh(
-            selected_asset_uuid.as_deref(),
             active_scene_uri.as_deref(),
             &events.asset_changes,
             &events.editor_asset_changes,
@@ -164,33 +161,8 @@ fn asset_maintenance_frame_update(
 }
 
 #[cfg(test)]
-mod maintenance_frame_update_tests {
-    use std::time::{Duration, Instant};
-
-    use super::{asset_maintenance_frame_update, AssetMaintenanceFrameUpdate};
-
-    #[test]
-    fn empty_refresh_preserves_active_scene_retry_deadline() {
-        let retry_deadline = Instant::now() + Duration::from_millis(128);
-
-        assert_eq!(
-            asset_maintenance_frame_update(false, None, Some(retry_deadline)),
-            AssetMaintenanceFrameUpdate::At(retry_deadline)
-        );
-    }
-
-    #[test]
-    fn earliest_asset_owner_deadline_drives_the_shared_maintenance_slot() {
-        let now = Instant::now();
-        let accumulator_deadline = now + Duration::from_millis(32);
-        let retry_deadline = now + Duration::from_millis(128);
-
-        assert_eq!(
-            asset_maintenance_frame_update(false, Some(accumulator_deadline), Some(retry_deadline)),
-            AssetMaintenanceFrameUpdate::At(accumulator_deadline)
-        );
-    }
-}
+#[path = "tests/refresh_maintenance_frame_update_tests.rs"]
+mod maintenance_frame_update_tests;
 
 #[derive(Debug, PartialEq, Eq)]
 enum VisualAssetCacheRefresh {
@@ -207,11 +179,12 @@ fn visual_asset_cache_refresh(events: &AssetRefreshEvents) -> VisualAssetCacheRe
     if events.resource_generation_lagged {
         return VisualAssetCacheRefresh::Reconcile;
     }
+    let capacity_hint = visual_asset_path_capacity_hint(events);
     let mut paths = Vec::new();
     for change in &events.asset_changes {
-        push_visual_asset_locator(&mut paths, &change.uri);
+        push_visual_asset_locator(&mut paths, &change.uri, capacity_hint);
         if let Some(previous_uri) = &change.previous_uri {
-            push_visual_asset_locator(&mut paths, previous_uri);
+            push_visual_asset_locator(&mut paths, previous_uri, capacity_hint);
         }
     }
     for change in &events.editor_asset_changes {
@@ -220,15 +193,16 @@ fn visual_asset_cache_refresh(events: &AssetRefreshEvents) -> VisualAssetCacheRe
             .as_deref()
             .filter(|path| path_is_visual_asset(path))
         {
+            reserve_visual_asset_paths(&mut paths, capacity_hint);
             paths.push(locator.to_owned());
         }
     }
     for change in &events.resource_changes {
         if let Some(locator) = &change.locator {
-            push_visual_asset_locator(&mut paths, locator);
+            push_visual_asset_locator(&mut paths, locator, capacity_hint);
         }
         if let Some(previous_locator) = &change.previous_locator {
-            push_visual_asset_locator(&mut paths, previous_locator);
+            push_visual_asset_locator(&mut paths, previous_locator, capacity_hint);
         }
     }
     paths.sort();
@@ -240,6 +214,15 @@ fn visual_asset_cache_refresh(events: &AssetRefreshEvents) -> VisualAssetCacheRe
     } else {
         VisualAssetCacheRefresh::Paths(paths)
     }
+}
+
+fn visual_asset_path_capacity_hint(events: &AssetRefreshEvents) -> usize {
+    events
+        .asset_changes
+        .len()
+        .saturating_mul(2)
+        .saturating_add(events.editor_asset_changes.len())
+        .saturating_add(events.resource_changes.len().saturating_mul(2))
 }
 
 fn events_reference_sprite_atlas(events: &AssetRefreshEvents) -> bool {
@@ -270,9 +253,20 @@ fn locator_is_visual_asset(locator: &ResourceLocator) -> bool {
     path_is_visual_asset(locator.path())
 }
 
-fn push_visual_asset_locator(paths: &mut Vec<String>, locator: &ResourceLocator) {
+fn push_visual_asset_locator(
+    paths: &mut Vec<String>,
+    locator: &ResourceLocator,
+    capacity_hint: usize,
+) {
     if locator_is_visual_asset(locator) {
+        reserve_visual_asset_paths(paths, capacity_hint);
         paths.push(locator.path().to_owned());
+    }
+}
+
+fn reserve_visual_asset_paths(paths: &mut Vec<String>, capacity_hint: usize) {
+    if paths.is_empty() && capacity_hint > 0 {
+        paths.reserve(capacity_hint);
     }
 }
 
@@ -292,89 +286,5 @@ fn path_is_visual_asset(path: &str) -> bool {
 }
 
 #[cfg(test)]
-mod cache_invalidation_tests {
-    use super::{
-        path_is_sprite_atlas_source, path_is_visual_asset, visual_asset_cache_refresh,
-        AssetRefreshEvents, VisualAssetCacheRefresh,
-    };
-    use zircon_runtime::resource::ResourceEvent;
-    use zircon_runtime_interface::resource::{ResourceEventKind, ResourceId, ResourceKind};
-
-    #[test]
-    fn visual_asset_detection_ignores_non_image_resource_churn() {
-        assert!(!path_is_visual_asset("models/cube.mesh"));
-        assert!(!path_is_visual_asset("scenes/main.scene.toml"));
-        assert!(!path_is_visual_asset(".zircon/cache/assets/chunks/01.bin"));
-    }
-
-    #[test]
-    fn visual_asset_detection_accepts_supported_image_sources() {
-        assert!(path_is_visual_asset("icons/Save.SVG"));
-        assert!(path_is_visual_asset("textures/albedo.png#preview"));
-    }
-
-    #[test]
-    fn sprite_atlas_products_keep_the_conservative_full_invalidation_path() {
-        assert!(path_is_sprite_atlas_source(
-            ".zircon/cache/editor-sprite-atlases/icons.png"
-        ));
-        assert!(path_is_sprite_atlas_source(
-            "editor-sprite-atlases/icons.toml"
-        ));
-        assert!(!path_is_sprite_atlas_source("assets/icons/save.svg"));
-    }
-
-    #[test]
-    fn resource_stream_lag_reconciles_resident_sources_instead_of_clearing_all_caches() {
-        let events = AssetRefreshEvents {
-            resource_generation_lagged: true,
-            ..AssetRefreshEvents::default()
-        };
-
-        assert_eq!(
-            visual_asset_cache_refresh(&events),
-            VisualAssetCacheRefresh::Reconcile
-        );
-    }
-
-    #[test]
-    fn unlocated_runtime_texture_does_not_invalidate_file_backed_visual_assets() {
-        let events = AssetRefreshEvents {
-            resource_changes: vec![ResourceEvent {
-                kind: ResourceEventKind::Updated,
-                resource_kind: ResourceKind::Texture,
-                id: ResourceId::new(),
-                locator: None,
-                previous_locator: None,
-                revision: 1,
-            }],
-            ..AssetRefreshEvents::default()
-        };
-
-        assert_eq!(
-            visual_asset_cache_refresh(&events),
-            VisualAssetCacheRefresh::None
-        );
-    }
-
-    #[test]
-    fn resource_stream_lag_reconciles_even_with_unlocated_runtime_texture_churn() {
-        let events = AssetRefreshEvents {
-            resource_changes: vec![ResourceEvent {
-                kind: ResourceEventKind::Updated,
-                resource_kind: ResourceKind::Texture,
-                id: ResourceId::new(),
-                locator: None,
-                previous_locator: None,
-                revision: 1,
-            }],
-            resource_generation_lagged: true,
-            ..AssetRefreshEvents::default()
-        };
-
-        assert_eq!(
-            visual_asset_cache_refresh(&events),
-            VisualAssetCacheRefresh::Reconcile
-        );
-    }
-}
+#[path = "tests/refresh_cache_invalidation_tests.rs"]
+mod cache_invalidation_tests;

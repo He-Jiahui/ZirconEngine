@@ -51,7 +51,7 @@ impl Drop for ProductFixtureWorkRoot {
 mod tests {
     use zircon_runtime::asset::pipeline::manager::AssetManager;
 
-    use super::{ProductFixtureWorkRoot, product_fixture, product_proof_work_path};
+    use super::{product_fixture, product_proof_work_path, ProductFixtureWorkRoot};
 
     #[test]
     fn product_fixture_work_root_removes_a_failed_fixture_directory() {
@@ -86,13 +86,11 @@ mod tests {
             .expect("load default font artifact");
 
         assert!(!font_root.join("ZirconDefaultComposite-subset.ttc").exists());
-        assert!(
-            default_font
-                .metadata
-                .as_ref()
-                .and_then(|metadata| metadata.cooked_blob.as_ref())
-                .is_some_and(|blob| blob.has_valid_content_hash())
-        );
+        assert!(default_font
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.cooked_blob.as_ref())
+            .is_some_and(|blob| blob.has_valid_content_hash()));
 
         #[cfg(target_os = "windows")]
         {
@@ -107,13 +105,11 @@ mod tests {
                 .expect("load variable font artifact");
 
             assert!(!font_root.join("bahnschrift-variable.ttf").exists());
-            assert!(
-                variable_font
-                    .metadata
-                    .as_ref()
-                    .and_then(|metadata| metadata.cooked_blob.as_ref())
-                    .is_some_and(|blob| blob.has_valid_content_hash())
-            );
+            assert!(variable_font
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.cooked_blob.as_ref())
+                .is_some_and(|blob| blob.has_valid_content_hash()));
         }
     }
 }
@@ -193,11 +189,9 @@ fn assert_checked_in_default_composite_package() {
     let bytes = std::fs::read(font_dir.join(&asset.source))
         .expect("checked-in default CompositeFont source");
     let face = ttf_parser::Face::parse(&bytes, 1).expect("checked-in CJK face 1");
-    assert!(
-        "中文排版引擎文本与布局竖排标点验证"
-            .chars()
-            .all(|character| face.glyph_index(character).is_some())
-    );
+    assert!("中文排版引擎文本与布局竖排标点验证"
+        .chars()
+        .all(|character| face.glyph_index(character).is_some()));
 }
 
 fn copy_checked_in_default_composite_font_package(asset_root: &std::path::Path) {

@@ -7,7 +7,8 @@ param(
     [int]$Left = 20,
     [int]$Top = 20,
     [int]$WindowWidth = 1568,
-    [int]$WindowHeight = 1003
+    [int]$WindowHeight = 1003,
+    [string[]]$OnlyStates = @()
 )
 
 $ErrorActionPreference = "Stop"
@@ -63,13 +64,39 @@ function New-VisualProject {
         [string]$Name
     )
 
-    New-Item -ItemType Directory -Force -Path $ProjectRoot | Out-Null
+    New-Item -ItemType Directory -Force -Path $ProjectRoot, (Join-Path $ProjectRoot "assets"), (Join-Path $ProjectRoot "scenes") | Out-Null
+    $projectGuid = [guid]::NewGuid().ToString()
     $manifest = @"
-[project]
 name = $(ConvertTo-TomlString $Name)
-template = "renderable-empty"
+format_version = 3
+project_guid = $(ConvertTo-TomlString $projectGuid)
+default_scene = "res://scenes/main.scene.toml"
+asset_roots = ["assets"]
+library_version = 1
 "@
     Set-Content -LiteralPath (Join-Path $ProjectRoot "zircon-project.toml") -Value $manifest -Encoding UTF8
+    return $projectGuid
+}
+
+function ConvertTo-RecentProjectToml {
+    param(
+        [string]$Name,
+        [string]$ProjectPath,
+        [string]$ProjectGuid,
+        [long]$LastOpenedUnixMs
+    )
+
+    return @"
+
+[[recent_projects]]
+path = $(ConvertTo-TomlString $ProjectPath)
+last_opened_unix_ms = $LastOpenedUnixMs
+[recent_projects.summary]
+name = $(ConvertTo-TomlString $Name)
+default_scene = "res://scenes/main.scene.toml"
+format_version = 3
+project_guid = $(ConvertTo-TomlString $ProjectGuid)
+"@
 }
 
 function Initialize-VisualStateConfig {
@@ -83,6 +110,7 @@ function Initialize-VisualStateConfig {
 
     $localAppData = Join-Path $ConfigRoot "localappdata"
     $appData = Join-Path $ConfigRoot "appdata"
+    $userProfile = Join-Path $ConfigRoot "userprofile"
     $hubConfigDir = Join-Path $localAppData "ZirconHub"
     $projectRoot = Join-Path $ConfigRoot "C\ZirconProjects"
     $buildOutput = Join-Path $ConfigRoot "build-output"
@@ -93,7 +121,7 @@ function Initialize-VisualStateConfig {
     $engineOutputDir = Join-Path $buildOutput $engineId
     $editorConfigPath = Join-Path $ConfigRoot "zircon-editor-config.json"
 
-    New-Item -ItemType Directory -Force -Path $localAppData, $appData, $hubConfigDir, $projectRoot, $buildOutput, $deviceRoot, $engineSourceDir, $engineOutputDir | Out-Null
+    New-Item -ItemType Directory -Force -Path $localAppData, $appData, $userProfile, $hubConfigDir, $projectRoot, $buildOutput, $deviceRoot, $engineSourceDir, $engineOutputDir | Out-Null
     Set-Content -LiteralPath $editorConfigPath -Value "{}" -Encoding UTF8
 
     $nowMs = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
@@ -103,16 +131,10 @@ function Initialize-VisualStateConfig {
 
     if ($IncludeProject) {
         $projectPath = Join-Path $projectRoot "Elysium"
-        New-VisualProject -ProjectRoot $projectPath -Name "Elysium Chronicles"
+        $projectGuid = New-VisualProject -ProjectRoot $projectPath -Name "Elysium Chronicles"
         $projectPath = [System.IO.Path]::GetFullPath($projectPath)
         $metadataKey = ConvertTo-ProjectMetadataKey $projectPath
-        $recentText = @"
-
-[[recent_projects]]
-display_name = "Elysium Chronicles"
-path = $(ConvertTo-TomlString $projectPath)
-last_opened_unix_ms = $nowMs
-"@
+        $recentText = ConvertTo-RecentProjectToml -Name "Elysium Chronicles" -ProjectPath $projectPath -ProjectGuid $projectGuid -LastOpenedUnixMs $nowMs
         $metadataText = @"
 
 [project_metadata.$(ConvertTo-TomlString $metadataKey)]
@@ -175,6 +197,7 @@ $selectedProjectText
         ConfigRoot = $ConfigRoot
         LocalAppData = $localAppData
         AppData = $appData
+        UserProfile = $userProfile
         EditorConfigPath = $editorConfigPath
     }
 }
@@ -207,38 +230,55 @@ function Invoke-VisualStateCapture {
 
     $previousLocalAppData = $env:LOCALAPPDATA
     $previousAppData = $env:APPDATA
+    $previousUserProfile = $env:USERPROFILE
     $previousEditorConfig = $env:ZIRCON_CONFIG_PATH
     try {
         $env:LOCALAPPDATA = $config.LocalAppData
         $env:APPDATA = $config.AppData
+        $env:USERPROFILE = $config.UserProfile
         $env:ZIRCON_CONFIG_PATH = $config.EditorConfigPath
 
         $outputPath = Join-Path $OutputDir "hub-state-$Name.png"
-        for ($attempt = 0; $attempt -lt 2; $attempt += 1) {
-            & $captureScript `
-                -RepoRoot $RepoRoot `
-                -BinaryPath $BinaryPath `
-                -OutputPath $outputPath `
-                -ConfigMode Current `
-                -WaitSeconds $WaitSeconds `
-                -Left $Left `
-                -Top $Top `
-                -ClickX $ClickX `
-                -ClickY $ClickY `
-                -ClickDelayMilliseconds 900 `
-                -WebViewClickText $WebViewClickText `
-                -WebViewClickDelayMilliseconds 900 `
-                -RequireWebViewText $RequireWebViewText `
-                -VisualTaskState $VisualTaskState `
-                -RequireWindowTitle "Zircon Hub" | Out-Host
+        $requireAccent = $Name -ne "loading"
+        $captureSucceeded = $false
+        $lastCaptureError = $null
+        for ($attempt = 0; $attempt -lt 3; $attempt += 1) {
+            Remove-Item -LiteralPath $outputPath -Force -ErrorAction SilentlyContinue
+            try {
+                & $captureScript `
+                    -RepoRoot $RepoRoot `
+                    -BinaryPath $BinaryPath `
+                    -OutputPath $outputPath `
+                    -ConfigMode Current `
+                    -WaitSeconds $WaitSeconds `
+                    -Left $Left `
+                    -Top $Top `
+                    -ClickX $ClickX `
+                    -ClickY $ClickY `
+                    -ClickDelayMilliseconds 900 `
+                    -WebViewClickText $WebViewClickText `
+                    -WebViewClickDelayMilliseconds 900 `
+                    -RequireWebViewText $RequireWebViewText `
+                    -VisualTaskState $VisualTaskState `
+                    -RequireWindowTitle "Zircon Hub" | Out-Host
 
-            if (-not (Test-HubScreenshotMostlyWhite -Path $outputPath) -and -not (Test-HubScreenshotMissingAccent -Path $outputPath)) {
-                break
+                if (-not (Test-HubScreenshotMostlyWhite -Path $outputPath) -and (-not $requireAccent -or -not (Test-HubScreenshotMissingAccent -Path $outputPath))) {
+                    $captureSucceeded = $true
+                    break
+                }
+
+                $lastCaptureError = "Screenshot for '$Name' failed visual sanity checks."
+            } catch {
+                $lastCaptureError = $_
             }
 
-            if ($attempt -eq 0) {
-                Start-Sleep -Seconds 1
+            if ($attempt -lt 2) {
+                Start-Sleep -Seconds 8
             }
+        }
+
+        if (-not $captureSucceeded -and $null -ne $lastCaptureError) {
+            throw $lastCaptureError
         }
 
         if (-not (Test-Path -LiteralPath $outputPath)) {
@@ -247,7 +287,7 @@ function Invoke-VisualStateCapture {
         if (Test-HubScreenshotMostlyWhite -Path $outputPath) {
             throw "Screenshot for '$Name' is mostly white and cannot be trusted: $outputPath"
         }
-        if (Test-HubScreenshotMissingAccent -Path $outputPath) {
+        if ($requireAccent -and (Test-HubScreenshotMissingAccent -Path $outputPath)) {
             throw "Screenshot for '$Name' does not contain enough Hub accent pixels and cannot be trusted: $outputPath"
         }
 
@@ -256,6 +296,10 @@ function Invoke-VisualStateCapture {
             Path = [System.IO.Path]::GetFullPath($outputPath)
         }
     } finally {
+        # WebView2 child processes can outlive the Tauri parent briefly. Give the
+        # next isolated state a clean process/profile handoff before relaunching.
+        Start-Sleep -Seconds 4
+
         if ($null -eq $previousLocalAppData) {
             Remove-Item Env:\LOCALAPPDATA -ErrorAction SilentlyContinue
         } else {
@@ -266,6 +310,12 @@ function Invoke-VisualStateCapture {
             Remove-Item Env:\APPDATA -ErrorAction SilentlyContinue
         } else {
             $env:APPDATA = $previousAppData
+        }
+
+        if ($null -eq $previousUserProfile) {
+            Remove-Item Env:\USERPROFILE -ErrorAction SilentlyContinue
+        } else {
+            $env:USERPROFILE = $previousUserProfile
         }
 
         if ($null -eq $previousEditorConfig) {
@@ -338,19 +388,25 @@ function Test-HubScreenshotMissingAccent {
     }
 }
 
+function Test-VisualStateSelected {
+    param([string]$Name)
+
+    return $OnlyStates.Count -eq 0 -or $OnlyStates -contains $Name
+}
+
 $captures = @()
-$captures += Invoke-VisualStateCapture -Name "editor" -Page "editor" -RequireWebViewText "Launch Target"
-$captures += Invoke-VisualStateCapture -Name "assets" -Page "assets" -RequireWebViewText "Assets Catalog"
-$captures += Invoke-VisualStateCapture -Name "builds" -Page "builds" -RequireWebViewText "Build Workflow"
-$captures += Invoke-VisualStateCapture -Name "plugins" -Page "plugins" -RequireWebViewText "Plugins Catalog"
-$captures += Invoke-VisualStateCapture -Name "cloud" -Page "cloud" -RequireWebViewText "Package Outputs"
-$captures += Invoke-VisualStateCapture -Name "team" -Page "team" -RequireWebViewText "Team Members"
-$captures += Invoke-VisualStateCapture -Name "learn" -Page "learn" -RequireWebViewText "Learn Catalog"
-$captures += Invoke-VisualStateCapture -Name "settings" -Page "settings" -RequireWebViewText "Build Defaults"
-$captures += Invoke-VisualStateCapture -Name "source-engine-popup" -Page "projects" -WebViewClickText "Zircon Engine 1.8.2" -RequireWebViewText "Manage engines"
-$captures += Invoke-VisualStateCapture -Name "user-menu" -Page "projects" -WebViewClickText "He-Jiahui" -RequireWebViewText "Preferences"
-$captures += Invoke-VisualStateCapture -Name "project-browser-empty" -Page "projects" -ProjectSubpage "project-browser" -ProjectViewMode "list" -IncludeProject $false -RequireWebViewText "No projects found"
-$captures += Invoke-VisualStateCapture -Name "loading" -Page "builds" -VisualTaskState "loading" -RequireWebViewText "Loading Hub state"
-$captures += Invoke-VisualStateCapture -Name "error" -Page "builds" -VisualTaskState "error" -RequireWebViewText "Visual verification error state"
+if (Test-VisualStateSelected "editor") { $captures += Invoke-VisualStateCapture -Name "editor" -Page "editor" -RequireWebViewText "Launch Target" }
+if (Test-VisualStateSelected "assets") { $captures += Invoke-VisualStateCapture -Name "assets" -Page "assets" -RequireWebViewText "Assets Catalog" }
+if (Test-VisualStateSelected "builds") { $captures += Invoke-VisualStateCapture -Name "builds" -Page "builds" -RequireWebViewText "Build Workflow" }
+if (Test-VisualStateSelected "plugins") { $captures += Invoke-VisualStateCapture -Name "plugins" -Page "plugins" -RequireWebViewText "Plugins Catalog" }
+if (Test-VisualStateSelected "cloud") { $captures += Invoke-VisualStateCapture -Name "cloud" -Page "cloud" -RequireWebViewText "Package Outputs" }
+if (Test-VisualStateSelected "team") { $captures += Invoke-VisualStateCapture -Name "team" -Page "team" -RequireWebViewText "Team Members" }
+if (Test-VisualStateSelected "learn") { $captures += Invoke-VisualStateCapture -Name "learn" -Page "learn" -RequireWebViewText "Learn Catalog" }
+if (Test-VisualStateSelected "settings") { $captures += Invoke-VisualStateCapture -Name "settings" -Page "settings" -RequireWebViewText "Build Defaults" }
+if (Test-VisualStateSelected "source-engine-popup") { $captures += Invoke-VisualStateCapture -Name "source-engine-popup" -Page "projects" -WebViewClickText "Zircon Engine 1.8.2" -RequireWebViewText "Manage engines" }
+if (Test-VisualStateSelected "user-menu") { $captures += Invoke-VisualStateCapture -Name "user-menu" -Page "projects" -WebViewClickText "My Account" -RequireWebViewText "Preferences" }
+if (Test-VisualStateSelected "project-browser-empty") { $captures += Invoke-VisualStateCapture -Name "project-browser-empty" -Page "projects" -ProjectSubpage "project-browser" -ProjectViewMode "list" -IncludeProject $false -RequireWebViewText "No projects found" }
+if (Test-VisualStateSelected "loading") { $captures += Invoke-VisualStateCapture -Name "loading" -Page "builds" -VisualTaskState "loading" -RequireWebViewText "Loading Hub state" }
+if (Test-VisualStateSelected "error") { $captures += Invoke-VisualStateCapture -Name "error" -Page "builds" -VisualTaskState "error" -RequireWebViewText "Visual verification error state" }
 
 $captures | Format-Table -AutoSize

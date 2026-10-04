@@ -22,5 +22,5 @@ pub(super) fn push_candidate(candidates: &mut Vec<PathBuf>, path: PathBuf) {
 }
 
 #[cfg(test)]
-#[path = "variants/last_candidate_tests.rs"]
+#[path = "variants/tests/last_candidate_tests.rs"]
 mod last_candidate_tests;

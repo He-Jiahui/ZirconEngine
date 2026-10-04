@@ -11,8 +11,6 @@ plan_link_mode: child_record_only
 failure_scope: local
 related_code:
   - .codex/skills/zircon-project-skills/handle-plan-failure-handoffs/scripts/validate_plan_failure_handoffs.py
-  - tools/session_coordinator/failures.py
-  - tools/session_coordinator/tests/test_failures.py
 tests:
   - python .codex/skills/zircon-project-skills/handle-plan-failure-handoffs/scripts/validate_plan_failure_handoffs.py --repo-root E:\\Git\\ZirconEngine
   - python -u -m tools.session_coordinator.cli failure audit

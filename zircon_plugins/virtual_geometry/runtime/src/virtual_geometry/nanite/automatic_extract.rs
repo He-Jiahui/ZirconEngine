@@ -293,6 +293,12 @@ fn build_virtual_geometry_automatic_extract_with_config(
                 size_bytes,
             });
         }
+        let mut cluster_remap = BTreeMap::new();
+        for cluster in &instance.asset.cluster_headers {
+            let global_cluster_id = next_cluster_id;
+            next_cluster_id = next_cluster_id.saturating_add(1);
+            cluster_remap.insert(cluster.cluster_id, global_cluster_id);
+        }
         page_dependencies.extend(render_extract_page_dependencies_for_asset(
             &instance.asset,
             &page_remap,
@@ -302,14 +308,8 @@ fn build_virtual_geometry_automatic_extract_with_config(
             &instance.vertices,
             &instance.indices,
             &page_remap,
+            &cluster_remap,
         ));
-
-        let mut cluster_remap = BTreeMap::new();
-        for cluster in &instance.asset.cluster_headers {
-            let global_cluster_id = next_cluster_id;
-            next_cluster_id = next_cluster_id.saturating_add(1);
-            cluster_remap.insert(cluster.cluster_id, global_cluster_id);
-        }
 
         let transform_matrix = instance.transform.matrix();
         let bounds_scale = instance.transform.scale.abs().max_element();

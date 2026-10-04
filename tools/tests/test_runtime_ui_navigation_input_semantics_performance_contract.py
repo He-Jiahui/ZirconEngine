@@ -7,7 +7,7 @@ REBUILD = ROOT / "zircon_runtime/src/ui/surface/surface/rebuild/incremental.rs"
 NAVIGATION = ROOT / "zircon_runtime/src/ui/surface/navigation_index.rs"
 NAVIGATION_SEMANTICS = ROOT / "zircon_runtime/src/ui/surface/navigation_index/semantics.rs"
 
-
+# 检查局部导航语义域共用保留门禁，并以完整导航签名判定是否重建；纯指针变更不触发导航。
 class RuntimeUiNavigationInputSemanticsPerformanceContractTests(unittest.TestCase):
     def setUp(self) -> None:
         self.rebuild = REBUILD.read_text(encoding="utf-8")

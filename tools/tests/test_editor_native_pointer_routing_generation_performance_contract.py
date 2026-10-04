@@ -1,3 +1,4 @@
+# 核对指针路由按顶层优先顺序查找，并借用候选行及显式交互状态。
 from pathlib import Path
 import unittest
 
@@ -43,7 +44,7 @@ class EditorNativePointerRoutingGenerationPerformanceContractTests(unittest.Test
 
     def test_console_scroll_route_has_nonzero_interaction_regression(self) -> None:
         tests = (
-            ROUTING / "panes/entry/route/tests.rs"
+            ROUTING / "panes/entry/route/tests/cases.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn(

@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录执行 npm run check:m6-duel-state-source；入口由 package.json 登记；缺少源码契约时脚本抛错退出。
+// 读取锁定的决斗与队伍邀请源码，核对邀请、倒计时、弃赛和共享邀请条件，并限定 Zr 决斗状态的测试导入者。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
@@ -6,6 +10,7 @@ const SOURCE_COMMIT = '7c10f280eec380e9877e66ce16333089e171fe42';
 const sourceRoot = resolve('..', '..', '..', 'dev', 'world-of-claudecraft');
 const duel = gitShow('src/sim/social/duel.ts');
 const party = gitShow('src/sim/social/party.ts');
+// 仅为锁定源码的文本匹配消除空白；本地投影的导入边界仍按原文检查。
 const compactDuel = duel.replace(/\s+/g, '');
 const compactParty = party.replace(/\s+/g, '');
 const request = functionBlock(duel, 'duelRequest');
@@ -78,6 +83,7 @@ function functionBlock(source, name) {
   return braceBlock(source, source.indexOf('{', start), name);
 }
 
+// 提取源码块时按大括号配对并跳过引号内字符。
 function braceBlock(source, start, label) {
   let depth = 0;
   let quote = '';

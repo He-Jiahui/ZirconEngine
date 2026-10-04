@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 const D8_RUNTIME_REGISTRATION_CRATES: &[(&str, &str, &str)] = &[
     (
         "animation",
@@ -24,9 +25,8 @@ fn review_d8_runtime_registration_builder_original_evidence_paths_use_sdk_builde
     );
     let sdk_registration =
         include_str!("../../../../../../zircon_plugins/plugin_sdk/src/registration.rs");
-    let registration_audit =
-        include_str!("../../../../../../tools/plugin_structure_audits/registration.py");
-    let audit_report = include_str!("../../../../../../tools/audit_plugin_structure.py");
+    let registration_audit = include_str!("../../../../../../tools/audits/plugins/registration.py");
+    let audit_report = include_str!("../../../../../../tools/audits/audit_plugin_structure.py");
 
     assert_eq!(
         D8_RUNTIME_REGISTRATION_CRATES.len(),

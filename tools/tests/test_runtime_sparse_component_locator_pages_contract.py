@@ -1,3 +1,5 @@
+
+from tools.tests.rust_test_files import read_rust_test_file
 from pathlib import Path
 import unittest
 
@@ -8,14 +10,16 @@ SPARSE_SOURCE = (
     / "zircon_runtime/src/scene/ecs/storage/component_storage/sparse.rs"
 )
 SPARSE_TESTS = (
-    REPO_ROOT
-    / "zircon_runtime/src/scene/ecs/storage/component_storage/sparse/tests.rs"
+    REPO_ROOT / "zircon_runtime/src/scene/ecs/storage/component_storage/sparse/tests/cases.rs"
 )
 LOCATOR_SOURCE = (
     REPO_ROOT
     / "zircon_runtime/src/scene/ecs/storage/component_storage/sparse/locator.rs"
 )
-STATUS = "runtime_08_60_sparse_component_locator_algorithm_source_passed_diagnostics_cargo_product_profile_deferred"
+COMPONENT_STORAGE_SOURCE = (
+    REPO_ROOT / "zircon_runtime/src/scene/ecs/storage/component_storage/store.rs"
+)
+STATUS = "runtime_08_60_sparse_component_locator_source_complete_cargo_product_profile_pending"
 STATUS_DOCS = (
     "docs/plans/zircon_runtime/runtime/08-ecs-kernel-data-alignment.md",
     "docs/plans/zircon_runtime/runtime/08/failure-2026-07-22-ecs-archetype-columnar-storage.md",
@@ -70,7 +74,7 @@ class RuntimeSparseComponentLocatorPagesContractTests(unittest.TestCase):
         source = SPARSE_SOURCE.read_text(encoding="utf-8")
         tests = SPARSE_TESTS.read_text(encoding="utf-8")
 
-        self.assertIn('#[path = "sparse/tests.rs"]', source)
+        self.assertIn("#[path = \"sparse/tests/cases.rs\"]", source)
         for anchor in (
             "highest_valid_entity_index_allocates_one_locator_page",
             "removing_the_last_row_retires_the_locator_hierarchy",
@@ -90,6 +94,30 @@ class RuntimeSparseComponentLocatorPagesContractTests(unittest.TestCase):
             "locator_matches_a_reference_map_during_mixed_operations",
         ):
             self.assertIn(anchor, tests)
+
+    def test_locator_memory_diagnostics_aggregate_through_component_storage(self) -> None:
+        sparse = SPARSE_SOURCE.read_text(encoding="utf-8")
+        locator = LOCATOR_SOURCE.read_text(encoding="utf-8")
+        storage = COMPONENT_STORAGE_SOURCE.read_text(encoding="utf-8")
+
+        for anchor in (
+            "struct SparseLocatorDiagnostics",
+            "fn locator_diagnostics(&self) -> SparseLocatorDiagnostics",
+        ):
+            self.assertIn(anchor, sparse)
+        self.assertIn("fn diagnostics(&self) -> SparseLocatorDiagnostics", locator)
+        for anchor in (
+            "pub(crate) struct ComponentStorageLocatorDiagnostics",
+            "pub(crate) fn sparse_locator_diagnostics(&self) -> ComponentStorageLocatorDiagnostics",
+            "storage.locator_diagnostics()",
+            "sparse_locator_diagnostics_aggregate_all_sparse_component_owners",
+            "sparse_component_storage_count",
+            "locator_entry_count",
+            "locator_page_count",
+            "locator_allocated_bytes",
+            "populated.locator_allocated_bytes <= 2 * 16 * 1024",
+        ):
+            self.assertIn(anchor, ((read_rust_test_file("zircon_runtime/src/scene/ecs/storage/component_storage/tests/store.rs") if anchor in {"populated.locator_allocated_bytes <= 2 * 16 * 1024", "sparse_locator_diagnostics_aggregate_all_sparse_component_owners"} else storage)))
 
     def test_sparse_locator_status_is_mirrored_by_canonical_plans(self) -> None:
         for relative_path in STATUS_DOCS:

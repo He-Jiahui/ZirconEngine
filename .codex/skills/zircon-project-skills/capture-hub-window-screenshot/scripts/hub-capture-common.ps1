@@ -78,7 +78,9 @@ function Invoke-HubCaptureWebViewScreenshot {
         [int]$Port,
         [string]$OutputPath,
         [int]$WaitSeconds = 20,
-        [string]$Title = "Zircon Hub"
+        [string]$Title = "Zircon Hub",
+        [int]$ViewportWidth = 0,
+        [int]$ViewportHeight = 0
     )
 
     $captureScript = Join-Path $PSScriptRoot "capture-webview-screenshot.mjs"
@@ -86,7 +88,15 @@ function Invoke-HubCaptureWebViewScreenshot {
         throw "WebView capture helper not found at '$captureScript'."
     }
 
-    $nodeOutput = & node.exe $captureScript --port $Port --output $OutputPath --wait-ms ([Math]::Max(1, $WaitSeconds) * 1000) --title $Title 2>&1
+    $viewportArgs = @()
+    if ($ViewportWidth -gt 0 -or $ViewportHeight -gt 0) {
+        if ($ViewportWidth -le 0 -or $ViewportHeight -le 0) {
+            throw "ViewportWidth and ViewportHeight must be provided together."
+        }
+        $viewportArgs = @("--viewport-width", "$ViewportWidth", "--viewport-height", "$ViewportHeight")
+    }
+
+    $nodeOutput = & node.exe $captureScript --port $Port --output $OutputPath --wait-ms ([Math]::Max(1, $WaitSeconds) * 1000) --title $Title @viewportArgs 2>&1
     if ($LASTEXITCODE -ne 0) {
         throw "WebView screenshot capture failed for '$OutputPath': $($nodeOutput -join "`n")"
     }

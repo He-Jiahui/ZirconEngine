@@ -1,3 +1,4 @@
+# 核对中心插件范围匹配借用输入片段，并由发布证据绑定实际辅助函数。
 import re
 import unittest
 from pathlib import Path

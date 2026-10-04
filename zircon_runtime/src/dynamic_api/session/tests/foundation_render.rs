@@ -8,7 +8,6 @@ use crate::core::framework::render::RenderStats;
 use crate::core::manager::resolve_manager_service;
 use crate::core::resource::ResourceState;
 use crate::runtime_diagnostics::collect_runtime_diagnostics;
-use image::ImageFormat;
 use zircon_runtime_interface::project::{render_project_template, ProjectTemplateId};
 use zircon_runtime_interface::{
     ZrByteSlice, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeViewportHandle,
@@ -21,13 +20,26 @@ use super::super::{RuntimeDynamicSession, RuntimeDynamicSessionProfile, RuntimeP
 
 const CAPTURE_WIDTH: u32 = 640;
 const CAPTURE_HEIGHT: u32 = 360;
-const CAPTURE_ENV: &str = "ZR_F2_BASIC_SCENE_CAPTURE_PNG";
+// The persisted one-unit cube face projects to about 11 x 11 pixels here; require over half.
+const MIN_VISIBLE_PRIMITIVE_PIXELS: usize = 64;
+
+#[path = "foundation_render/f2_evidence.rs"]
+mod f2_evidence;
+#[path = "foundation_render/ui_input_frame_profile.rs"]
+mod ui_input_frame_profile;
+use self::f2_evidence::{
+    assert_f2_capture_png, write_f2_capture_png, FrameEvidence, FramePixelCounts, FrameSlot,
+    ProductFrame,
+};
 
 #[test]
 fn render_product_f2_persisted_basic_scene_renders_accepts_input_and_shuts_down() {
     let project = F2Project::create();
     let config = RuntimeProjectConfig::from_root(project.root.clone())
         .expect("F2 project root should resolve before session creation");
+    let evidence = FrameEvidence::from_current_environment()
+        .expect("initialize F2 managed product evidence capture");
+    let reference_frames = capture_cube_free_reference_frames(&project.cube_free_root, 2);
 
     let (first, second_gpu_upload_bytes) = {
         let mut session =
@@ -38,12 +50,14 @@ fn render_product_f2_persisted_basic_scene_renders_accepts_input_and_shuts_down(
         session.tick_frame().expect("F2 runtime tick");
 
         let first = capture_product_frame(&mut session);
-        assert_basic_scene_frame(&first, "first launch");
+        let first_counts = assert_basic_scene_frame(&first, &reference_frames[0], "first launch");
         assert_product_diagnostics(&session);
-        export_capture_if_requested(&first);
+        evidence.record_frame(&first, FrameSlot::FirstLaunch, first_counts);
 
         let second = capture_product_frame(&mut session);
-        assert_basic_scene_frame(&second, "unchanged second frame");
+        let second_counts =
+            assert_basic_scene_frame(&second, &reference_frames[1], "unchanged second frame");
+        evidence.record_frame(&second, FrameSlot::UnchangedSecondFrame, second_counts);
         assert_steady_state_performance(&first.stats, &second.stats);
         (first, second.stats.last_gpu_scene_uploaded_bytes)
     };
@@ -56,7 +70,16 @@ fn render_product_f2_persisted_basic_scene_renders_accepts_input_and_shuts_down(
         session.tick_frame().expect("restarted F2 runtime tick");
         capture_product_frame(&mut session)
     };
-    assert_basic_scene_frame(&restarted, "second launch after teardown");
+    let restarted_counts = assert_basic_scene_frame(
+        &restarted,
+        &reference_frames[0],
+        "second launch after teardown",
+    );
+    evidence.record_frame(
+        &restarted,
+        FrameSlot::SecondLaunchAfterTeardown,
+        restarted_counts,
+    );
     assert_eq!(
         restarted.stats.last_mesh_draw_count, first.stats.last_mesh_draw_count,
         "restarting the persisted project must reproduce the same visible mesh draw count"
@@ -94,6 +117,28 @@ fn f2_exported_png_roundtrips_captured_rgba() {
     assert_f2_capture_png(&path, 2, 2, &rgba);
 
     std::fs::remove_dir_all(root).expect("remove F2 PNG roundtrip fixture");
+}
+
+#[test]
+fn identical_spatially_varying_background_has_no_visible_primitive_pixels() {
+    let background = [
+        4, 8, 12, 255, 32, 48, 64, 255, 96, 80, 64, 255, 160, 176, 192, 255,
+    ];
+    assert_ne!(&background[0..4], &background[4..8]);
+    assert_ne!(&background[4..8], &background[8..12]);
+    assert_eq!(
+        count_rgba_pixels_different_from_reference(&background, &background),
+        0,
+        "a spatially varying but identical background must contribute zero primitive pixels"
+    );
+
+    let mut with_primitive = background;
+    with_primitive[4..8].copy_from_slice(&[220, 180, 140, 255]);
+    assert_eq!(
+        count_rgba_pixels_different_from_reference(&with_primitive, &background),
+        1,
+        "the reference comparison must count a pixel changed by a visible primitive"
+    );
 }
 
 #[test]
@@ -269,12 +314,26 @@ fn capture_product_frame(session: &mut RuntimeDynamicSession) -> ProductFrame {
     }
 }
 
-fn assert_basic_scene_frame(frame: &ProductFrame, label: &str) {
+fn assert_basic_scene_frame(
+    frame: &ProductFrame,
+    cube_free_reference: &ProductFrame,
+    label: &str,
+) -> FramePixelCounts {
     assert_eq!((frame.width, frame.height), (CAPTURE_WIDTH, CAPTURE_HEIGHT));
+    assert_eq!(
+        (cube_free_reference.width, cube_free_reference.height),
+        (frame.width, frame.height),
+        "{label} and its cube-free reference must use the same viewport"
+    );
     assert_eq!(
         frame.rgba.len(),
         (CAPTURE_WIDTH * CAPTURE_HEIGHT * 4) as usize,
         "{label} must return a complete RGBA frame"
+    );
+    assert_eq!(
+        cube_free_reference.rgba.len(),
+        frame.rgba.len(),
+        "{label} and its cube-free reference must return complete RGBA frames"
     );
     let non_transparent_pixels = frame
         .rgba
@@ -285,15 +344,23 @@ fn assert_basic_scene_frame(frame: &ProductFrame, label: &str) {
         non_transparent_pixels > 0,
         "{label} must contain non-transparent pixels in the presented RGBA frame"
     );
-    let background = &frame.rgba[..4];
-    let changed_pixels = frame
-        .rgba
-        .chunks_exact(4)
-        .filter(|pixel| *pixel != background)
-        .count();
+    assert_eq!(
+        cube_free_reference.stats.last_mesh_draw_count, 0,
+        "{label} reference scene must preserve Camera and Sun while omitting the Cube mesh"
+    );
     assert!(
-        changed_pixels > 100,
-        "{label} must contain visible non-background output, changed_pixels={changed_pixels}"
+        cube_free_reference.stats.last_graph_executed_pass_count > 0,
+        "{label} cube-free reference must execute the RenderGraph"
+    );
+    assert!(
+        cube_free_reference.stats.last_directional_light_count > 0,
+        "{label} cube-free reference must preserve the persisted directional light"
+    );
+    let visible_primitive_pixels =
+        count_rgba_pixels_different_from_reference(&frame.rgba, &cube_free_reference.rgba);
+    assert!(
+        visible_primitive_pixels >= MIN_VISIBLE_PRIMITIVE_PIXELS,
+        "{label} must show the persisted Cube changing at least {MIN_VISIBLE_PRIMITIVE_PIXELS} pixels relative to the same-scene cube-free capture, visible_primitive_pixels={visible_primitive_pixels}"
     );
     assert!(
         frame.stats.last_graph_executed_pass_count > 0,
@@ -315,6 +382,52 @@ fn assert_basic_scene_frame(frame: &ProductFrame, label: &str) {
         frame.stats.last_material_fallback_count, 0,
         "{label} must render the persisted material without fallback resources"
     );
+
+    FramePixelCounts {
+        primitive_pixels: visible_primitive_pixels,
+        non_transparent_pixels,
+    }
+}
+
+fn capture_cube_free_reference_frames(
+    project_root: &Path,
+    frame_count: usize,
+) -> Vec<ProductFrame> {
+    assert!(frame_count > 0, "F2 reference capture must include a frame");
+    let config = RuntimeProjectConfig::from_root(project_root.to_path_buf())
+        .expect("F2 cube-free reference project root should resolve");
+    let mut session =
+        RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Runtime, Some(config))
+            .expect("F2 runtime session should load the persisted cube-free reference scene");
+    session
+        .tick_frame()
+        .expect("F2 cube-free reference runtime tick");
+    assert_product_diagnostics(&session);
+
+    (0..frame_count)
+        .map(|_| {
+            let frame = capture_product_frame(&mut session);
+            assert_eq!(
+                frame.stats.last_mesh_draw_count, 0,
+                "F2 cube-free reference must not submit a mesh"
+            );
+            assert!(
+                frame.stats.last_directional_light_count > 0,
+                "F2 cube-free reference must retain the persisted directional light"
+            );
+            frame
+        })
+        .collect()
+}
+
+fn count_rgba_pixels_different_from_reference(actual: &[u8], reference: &[u8]) -> usize {
+    assert_eq!(actual.len(), reference.len());
+    assert_eq!(actual.len() % 4, 0, "RGBA reference must have whole pixels");
+    actual
+        .chunks_exact(4)
+        .zip(reference.chunks_exact(4))
+        .filter(|(actual, reference)| *actual != *reference)
+        .count()
 }
 
 fn assert_product_diagnostics(session: &RuntimeDynamicSession) {
@@ -370,42 +483,6 @@ fn assert_steady_state_performance(first: &RenderStats, second: &RenderStats) {
     );
 }
 
-fn export_capture_if_requested(frame: &ProductFrame) {
-    let Ok(path) = std::env::var(CAPTURE_ENV) else {
-        return;
-    };
-    let path = Path::new(&path);
-    write_f2_capture_png(path, frame.width, frame.height, &frame.rgba);
-    assert_f2_capture_png(path, frame.width, frame.height, &frame.rgba);
-}
-
-fn write_f2_capture_png(path: &Path, width: u32, height: u32, rgba: &[u8]) {
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).expect("create F2 capture output directory");
-    }
-    let image = image::RgbaImage::from_raw(width, height, rgba.to_vec())
-        .expect("F2 capture buffer must match dimensions");
-    image
-        .save_with_format(path, ImageFormat::Png)
-        .expect("write F2 product capture PNG");
-}
-
-fn assert_f2_capture_png(path: &Path, width: u32, height: u32, rgba: &[u8]) {
-    let captured = image::open(path)
-        .expect("read F2 product capture PNG")
-        .to_rgba8();
-    assert_eq!(
-        captured.dimensions(),
-        (width, height),
-        "F2 product capture must preserve frame dimensions"
-    );
-    assert_eq!(
-        captured.as_raw(),
-        rgba,
-        "F2 product capture must preserve RGBA pixels, including alpha and visible primitive output"
-    );
-}
-
 fn unique_f2_capture_root(label: &str) -> PathBuf {
     static NEXT_ID: AtomicU64 = AtomicU64::new(1);
 
@@ -434,15 +511,9 @@ fn unique_f2_fixture_root(label: impl AsRef<str>) -> PathBuf {
         .join(label.as_ref())
 }
 
-struct ProductFrame {
-    width: u32,
-    height: u32,
-    rgba: Vec<u8>,
-    stats: RenderStats,
-}
-
 struct F2Project {
     root: PathBuf,
+    cube_free_root: PathBuf,
 }
 
 impl F2Project {
@@ -453,45 +524,106 @@ impl F2Project {
             .duration_since(UNIX_EPOCH)
             .expect("system time after unix epoch")
             .as_nanos();
-        let root = unique_f2_fixture_root(format!(
+        let unique = format!(
             "basic-scene-{}_{}_{}",
             std::process::id(),
             NEXT_ID.fetch_add(1, Ordering::Relaxed),
             unique
-        ));
-        write_project(&root);
-        Self { root }
+        );
+        let root = unique_f2_fixture_root(&unique);
+        let cube_free_root = unique_f2_fixture_root(format!("{unique}-cube-free"));
+        let rendered = render_project_template(ProjectTemplateId::RenderableEmpty, "F2BasicScene")
+            .expect("render F2 product template");
+        write_project(&root, &rendered, true);
+        write_project(&cube_free_root, &rendered, false);
+        Self {
+            root,
+            cube_free_root,
+        }
     }
 
     fn assert_removable_after_sessions_drop(&self) {
-        std::fs::remove_dir_all(&self.root)
-            .expect("F2 project directory must be removable after runtime-session teardown");
-        assert!(
-            !self.root.exists(),
-            "F2 project directory must not retain runtime-owned file handles after teardown"
-        );
+        for root in [&self.root, &self.cube_free_root] {
+            std::fs::remove_dir_all(root)
+                .expect("F2 project directory must be removable after runtime-session teardown");
+            assert!(
+                !root.exists(),
+                "F2 project directory must not retain runtime-owned file handles after teardown"
+            );
+        }
     }
 }
 
 impl Drop for F2Project {
     fn drop(&mut self) {
         let _ = std::fs::remove_dir_all(&self.root);
+        let _ = std::fs::remove_dir_all(&self.cube_free_root);
     }
 }
 
-fn write_project(root: &Path) {
-    let rendered = render_project_template(ProjectTemplateId::RenderableEmpty, "F2BasicScene")
-        .expect("render F2 product template");
-    for entry in rendered.entries {
+fn write_project(
+    root: &Path,
+    rendered: &zircon_runtime_interface::project::RenderedProjectTemplate,
+    include_cube: bool,
+) {
+    for entry in &rendered.entries {
         let destination = entry.path.join_to(root);
         if let Some(parent) = destination.parent() {
             std::fs::create_dir_all(parent).expect("create F2 template directory");
         }
-        std::fs::write(destination, entry.bytes).expect("write F2 template entry");
+        let bytes = if !include_cube && entry.path.as_str() == "assets/scenes/main.scene.toml" {
+            cube_free_scene_bytes(&entry.bytes)
+        } else {
+            entry.bytes.clone()
+        };
+        std::fs::write(destination, bytes).expect("write F2 template entry");
     }
 
     let paths = ProjectPaths::from_root(root).expect("F2 project paths");
     paths
         .ensure_derived_layout()
         .expect("F2 project derived layout");
+}
+
+fn cube_free_scene_bytes(scene_bytes: &[u8]) -> Vec<u8> {
+    let source = std::str::from_utf8(scene_bytes).expect("F2 template scene must be UTF-8");
+    let mut scene = toml::from_str::<toml::Value>(source).expect("F2 template scene must be TOML");
+    let entities = scene
+        .get_mut("entities")
+        .and_then(toml::Value::as_array_mut)
+        .expect("F2 template scene must contain entities");
+    let original_entity_count = entities.len();
+    let camera = entities
+        .iter()
+        .find(|entity| entity.get("name").and_then(toml::Value::as_str) == Some("Camera"))
+        .expect("F2 template scene must contain the persisted Camera")
+        .clone();
+    let sun = entities
+        .iter()
+        .find(|entity| entity.get("name").and_then(toml::Value::as_str) == Some("Sun"))
+        .expect("F2 template scene must contain the persisted Sun")
+        .clone();
+    entities.retain(|entity| entity.get("name").and_then(toml::Value::as_str) != Some("Cube"));
+    assert_eq!(
+        entities.len() + 1,
+        original_entity_count,
+        "F2 cube-free scene variant must remove exactly the persisted Cube"
+    );
+    assert_eq!(
+        entities
+            .iter()
+            .find(|entity| entity.get("name").and_then(toml::Value::as_str) == Some("Camera")),
+        Some(&camera),
+        "F2 cube-free reference must preserve the complete persisted Camera entity"
+    );
+    assert_eq!(
+        entities
+            .iter()
+            .find(|entity| entity.get("name").and_then(toml::Value::as_str) == Some("Sun")),
+        Some(&sun),
+        "F2 cube-free reference must preserve the complete persisted Sun entity"
+    );
+    toml::to_string_pretty(&scene)
+        .expect("encode F2 cube-free reference scene")
+        .into_bytes()
 }

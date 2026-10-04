@@ -1,13 +1,14 @@
+# 核对导出命令参数与阶段实现维持模块归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-ZIRCON_EXPORT_CLI = REPO_ROOT / "tools/zircon_export/cli.py"
-CLI_ARGUMENTS = REPO_ROOT / "tools/zircon_export/cli_arguments.py"
-VALIDATE_STAGE = REPO_ROOT / "tools/zircon_export/validate_stage.py"
-PACK_STAGE = REPO_ROOT / "tools/zircon_export/pack_stage.py"
-PACK_STAGE_PATHS = REPO_ROOT / "tools/zircon_export/pack_stage_paths.py"
+ZIRCON_EXPORT_CLI = REPO_ROOT / "tools/export/cli.py"
+CLI_ARGUMENTS = REPO_ROOT / "tools/export/cli_arguments.py"
+VALIDATE_STAGE = REPO_ROOT / "tools/export/validate_stage.py"
+PACK_STAGE = REPO_ROOT / "tools/export/pack_stage.py"
+PACK_STAGE_PATHS = REPO_ROOT / "tools/export/pack_stage_paths.py"
 
 
 class ZirconExportCliOwnerBoundaryTests(unittest.TestCase):

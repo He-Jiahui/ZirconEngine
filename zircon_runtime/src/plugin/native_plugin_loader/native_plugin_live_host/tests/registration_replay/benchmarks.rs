@@ -121,7 +121,7 @@ fn native_registration_replay_scale_host(
     host
 }
 
-fn native_registration_replay_scale_plugin(
+pub(super) fn native_registration_replay_scale_plugin(
     system_count: usize,
     method_count: usize,
 ) -> LoadedNativePlugin {

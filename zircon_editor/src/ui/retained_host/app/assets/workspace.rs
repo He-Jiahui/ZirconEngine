@@ -1,6 +1,7 @@
 use super::super::*;
 use crate::core::asset::EditorModelImportTicket;
 use crate::core::document::ActiveSceneDocumentIdentity;
+use crate::core::editing::authoring_world::AuthoringWorldSeed;
 use crate::core::jobs::JobSubmitError;
 use crate::core::project::{
     ProjectAuthority, ProjectSceneDocument, ProjectSceneLoadTicket, SceneOpenRequest,
@@ -17,6 +18,10 @@ use zircon_runtime::asset::ProjectImportReceipt;
 
 mod active_scene_reload_conflict;
 
+#[cfg(test)]
+#[path = "workspace/tests/reload_tests.rs"]
+mod reload_tests;
+
 pub(in crate::ui::retained_host::app) use active_scene_reload_conflict::ActiveSceneReloadConflict;
 
 const ACTIVE_SCENE_RELOAD_ADMISSION_RETRY_LIMIT: u8 = 3;
@@ -24,6 +29,7 @@ const ACTIVE_SCENE_RELOAD_ADMISSION_RETRY_BASE_DELAY: Duration = Duration::from_
 
 pub(in crate::ui::retained_host::app) struct PendingActiveSceneReload {
     ticket: ProjectSceneLoadTicket,
+    prepared: Option<AuthoringWorldSeed>,
     generation: ProjectAssetGenerationToken,
     identity: ActiveSceneDocumentIdentity,
     dirty_policy: PreparedActiveSceneReloadDirtyPolicy,
@@ -48,6 +54,7 @@ pub(in crate::ui::retained_host::app) enum ActiveSceneReloadOutcome {
     Committed,
     Superseded,
     Discarded,
+    Deferred,
     Conflict {
         identity: ActiveSceneDocumentIdentity,
         generation: ProjectAssetGenerationToken,
@@ -153,6 +160,7 @@ impl RetainedEditorHost {
         self.active_scene_reload_admission = None;
         self.pending_active_scene_reload = Some(PendingActiveSceneReload {
             ticket,
+            prepared: None,
             generation,
             identity,
             dirty_policy,
@@ -166,25 +174,38 @@ impl RetainedEditorHost {
         if self.pending_active_scene_reload.is_none() {
             self.reconcile_active_scene_reload_conflict();
         }
-        let Some(pending) = self.pending_active_scene_reload.take() else {
+        let Some(mut pending) = self.pending_active_scene_reload.take() else {
             return;
         };
-        let Some(result) = pending.ticket.try_take() else {
-            self.pending_active_scene_reload = Some(pending);
-            return;
+        let result = if pending.prepared.is_some() {
+            Ok(None)
+        } else {
+            let Some(result) = pending.ticket.try_take() else {
+                self.pending_active_scene_reload = Some(pending);
+                return;
+            };
+            result.map(Some)
         };
         let reload_requested = pending.reload_requested;
         let completed_identity = pending.identity.clone();
         let completed_generation = pending.generation.clone();
-        let dirty_policy = pending.dirty_policy;
+        let discard_requested = matches!(
+            &pending.dirty_policy,
+            PreparedActiveSceneReloadDirtyPolicy::Discard(_),
+        );
         let completion = result
             .map_err(|error| error.to_string())
-            .and_then(|document| self.complete_active_scene_reload(pending, document));
+            .and_then(|document| self.complete_active_scene_reload(&mut pending, document));
         let superseded = matches!(&completion, Ok(ActiveSceneReloadOutcome::Superseded));
-        if reload_requested || superseded {
+        if !matches!(&completion, Ok(ActiveSceneReloadOutcome::Deferred))
+            && (reload_requested || superseded)
+        {
             self.queue_active_scene_reload_retry();
         }
         match completion {
+            Ok(ActiveSceneReloadOutcome::Deferred) => {
+                self.pending_active_scene_reload = Some(pending);
+            }
             Ok(ActiveSceneReloadOutcome::Committed) => {
                 self.clear_active_scene_reload_conflict_for_identity(&completed_identity);
                 zircon_runtime::profile_counter!(
@@ -216,7 +237,7 @@ impl RetainedEditorHost {
                 self.install_active_scene_reload_conflict(identity, generation);
             }
             Err(error) => {
-                if dirty_policy == PreparedActiveSceneReloadDirtyPolicy::Discard {
+                if discard_requested {
                     self.restore_active_scene_reload_conflict_after_discard_failure(
                         completed_identity,
                         completed_generation,
@@ -332,8 +353,8 @@ impl RetainedEditorHost {
 
     fn complete_active_scene_reload(
         &mut self,
-        pending: PendingActiveSceneReload,
-        document: ProjectSceneDocument,
+        pending: &mut PendingActiveSceneReload,
+        document: Option<ProjectSceneDocument>,
     ) -> Result<ActiveSceneReloadOutcome, String> {
         let project_asset_manager = self
             .asset_runtime_access
@@ -348,31 +369,36 @@ impl RetainedEditorHost {
                 newer_same_project_generation: false,
             } => return Ok(ActiveSceneReloadOutcome::Discarded),
         }
-        if document.scene_uri().to_string() != pending.identity.scene_uri() {
-            return Err("prepared scene reload does not match the active scene source".to_owned());
-        }
-        let authoring_world = {
+        if let Some(document) = document {
+            if document.scene_uri().to_string() != pending.identity.scene_uri() {
+                return Err(
+                    "prepared scene reload does not match the active scene source".to_owned(),
+                );
+            }
             zircon_runtime::profile_scope!(
                 "editor",
                 "retained_host",
                 "active_scene_authoring_prepare"
             );
-            self.editor_manager
-                .prepare_authoring_world(document.into_world())
-                .map_err(|error| error.to_string())?
-        };
+            pending.prepared = Some(
+                self.editor_manager
+                    .prepare_authoring_world(document.into_world())
+                    .map_err(|error| error.to_string())?,
+            );
+        }
         match self.runtime.commit_prepared_active_scene_reload(
             project_asset_manager.as_ref(),
             &pending.generation,
             pending.identity.clone(),
-            authoring_world,
-            pending.dirty_policy,
+            &mut pending.prepared,
+            &pending.dirty_policy,
         )? {
             PreparedActiveSceneReloadOutcome::Reloaded => Ok(ActiveSceneReloadOutcome::Committed),
+            PreparedActiveSceneReloadOutcome::Deferred => Ok(ActiveSceneReloadOutcome::Deferred),
             PreparedActiveSceneReloadOutcome::Superseded => Ok(ActiveSceneReloadOutcome::Discarded),
             PreparedActiveSceneReloadOutcome::Conflict => Ok(ActiveSceneReloadOutcome::Conflict {
-                identity: pending.identity,
-                generation: pending.generation,
+                identity: pending.identity.clone(),
+                generation: pending.generation.clone(),
             }),
             PreparedActiveSceneReloadOutcome::ProjectGenerationSuperseded {
                 newer_same_project_generation: true,
@@ -548,25 +574,5 @@ fn next_active_scene_reload_admission_retry(
 }
 
 #[cfg(test)]
-mod active_scene_reload_retry_tests {
-    use std::time::Duration;
-
-    use super::next_active_scene_reload_admission_retry;
-
-    #[test]
-    fn admission_retry_backs_off_three_times_then_terminates() {
-        assert_eq!(
-            next_active_scene_reload_admission_retry(None),
-            Some((1, Duration::from_millis(64)))
-        );
-        assert_eq!(
-            next_active_scene_reload_admission_retry(Some(1)),
-            Some((2, Duration::from_millis(128)))
-        );
-        assert_eq!(
-            next_active_scene_reload_admission_retry(Some(2)),
-            Some((3, Duration::from_millis(256)))
-        );
-        assert_eq!(next_active_scene_reload_admission_retry(Some(3)), None);
-    }
-}
+#[path = "tests/workspace_active_scene_reload_retry_tests.rs"]
+mod active_scene_reload_retry_tests;

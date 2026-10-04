@@ -26,6 +26,45 @@ fn render_probe_slot_allocator_rounds_capacity_to_power_of_two() {
 }
 
 #[test]
+fn render_probe_slot_allocator_supports_in_place_capture_without_a_spare_layer() {
+    let cubemap = ResourceId::from_stable_label("probe:capture-in-place");
+    let mut allocator = ProbeCubemapSlotAllocator::new_with_physical_slot_count(1, 1);
+    let ready = acquire_and_commit(&mut allocator, cubemap, 1, 1);
+
+    let reservation = allocator
+        .reserve_for_capture(cubemap, 2, 2)
+        .expect("an existing probe can refresh in place when no spare slot exists");
+
+    assert_eq!(allocator.physical_slot_count(), 1);
+    assert_eq!(reservation.slot(), ready.slot);
+    assert_eq!(
+        allocator.available(cubemap, 1, 3).map(|slot| slot.slot),
+        Some(ready.slot)
+    );
+
+    allocator.cancel(reservation);
+
+    assert_eq!(allocator.physical_slot_count(), 1);
+    assert_eq!(
+        allocator.available(cubemap, 1, 4).map(|slot| slot.slot),
+        Some(ready.slot)
+    );
+    let replacement = allocator
+        .reserve_for_capture(cubemap, 2, 5)
+        .expect("cancelled in-place refresh must leave the slot reusable");
+    allocator.commit(
+        replacement.cubemap(),
+        replacement.revision(),
+        replacement.slot(),
+        replacement.prepare_epoch(),
+    );
+    assert_eq!(
+        allocator.available(cubemap, 2, 6).map(|slot| slot.slot),
+        Some(ready.slot)
+    );
+}
+
+#[test]
 fn render_probe_slot_allocator_evicts_lru_on_pressure() {
     let first = ResourceId::from_stable_label("probe:first");
     let second = ResourceId::from_stable_label("probe:second");

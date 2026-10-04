@@ -1,3 +1,4 @@
+//! 一次性播放和声源绑定共用此句柄表；调用方在查询前轮询已停止句柄并把完成事件归还对应身份。
 use kira::{
     backend::Backend,
     sound::static_sound::{StaticSoundData, StaticSoundHandle},
@@ -15,6 +16,7 @@ impl<B: Backend> KiraEngine<B> {
         track: SoundTrackId,
         data: StaticSoundData,
     ) -> Result<(), SoundError> {
+        self.ensure_control_available()?;
         if self.playbacks.len() >= self.logical_voice_capacity {
             return Err(SoundError::BackendUnavailable {
                 detail: format!(
@@ -116,6 +118,7 @@ impl<B: Backend> KiraEngine<B> {
     }
 
     pub(crate) fn stop(&mut self, playback: SoundPlaybackId) -> Result<(), SoundError> {
+        self.ensure_control_available()?;
         let mut handle = self
             .playbacks
             .remove(&playback)
@@ -128,6 +131,7 @@ impl<B: Backend> KiraEngine<B> {
         &mut self,
         playback: SoundPlaybackId,
     ) -> Result<&mut StaticSoundHandle, SoundError> {
+        self.ensure_control_available()?;
         self.playbacks
             .get_mut(&playback)
             .ok_or(SoundError::UnknownPlayback { playback })

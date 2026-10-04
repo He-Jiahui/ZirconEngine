@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "path": "E:\\Git\\ZirconEngine\\docs\\plans\\zircon_tooling\\source_comment_audit\\02\\2026-09-30-stage-status.md",
+  "before_sha256": "3dd834f5b27fa868da1c41224ed2b05a0f709cf62fdb9006687d53d64c6d8cb9",
+  "after_sha256": "bcd6fc18576c55268da16d02b52eeccae56753232f1413433f3c0d6a74589bba",
+  "authority": [
+    "d01e7c58333587b0a552d521a04f8738ae0de001c6ed14572231645f1eacc33b",
+    "6791f9a01adb11d33906291ef660441fbef1778a9b266942ca6f295bb3cd2861"
+  ],
+  "verification": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-residency-stage-20261002-r11\\verification.json",
+    "sha256": "9f1f26cbfc253cd6b7a4a04761b8f992830d712d55b94849c6ae3d9200fbde14"
+  },
+  "helper": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\update_residency_stage_20261002_r11.py",
+    "sha256": "58c6160074205d7bbb9d95639433c2863c80a42cd63f195b8ab16e6a6e267b1a"
+  },
+  "links_checked": true,
+  "whitespace_checked": true,
+  "source_writes": 0,
+  "canonical_writes": 0,
+  "status": "coarse_stage_status_updated",
+  "completed_at_utc": "2026-10-03T00:41:30.027328+00:00",
+  "plan_status_writes": 1,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "goal_status_changed": false,
+  "full_repository_scan_complete": false
+}

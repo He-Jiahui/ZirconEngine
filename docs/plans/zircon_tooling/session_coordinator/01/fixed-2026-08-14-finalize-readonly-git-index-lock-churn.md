@@ -11,10 +11,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/session_coordinator/git_finalize.py
-  - tools/session_coordinator/git_index_lock.py
-  - tools/session_coordinator/processes.py
-  - tools/session_coordinator/tests/test_git_index_lock.py
 tests:
   - python -X dev -W error::ResourceWarning -m unittest tools.session_coordinator.tests.test_git_index_lock -v
 ---

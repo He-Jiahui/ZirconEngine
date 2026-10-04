@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码投影Litany 洗礼室常量与手工布置槽位，生成可核对的 JSON 和 Zr 内容。
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -82,6 +83,7 @@ function gitShow(sourcePath) {
   });
 }
 
+// 将已验证的Litany 洗礼室常量与手工布置槽位转换为确定性的 Zr 访问函数。
 function renderZr(content) {
   return [
     '// Generated Sinkhole Baptistry waves, egg-sac positions and constants.',

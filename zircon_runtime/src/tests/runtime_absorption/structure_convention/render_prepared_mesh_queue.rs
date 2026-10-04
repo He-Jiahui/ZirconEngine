@@ -5,6 +5,7 @@ const CPU_MORPHED_GPU_SKINNING_DRAW_SOURCE_STATUS: &str =
 const DIRECT_CPU_MORPHED_DRAW_SOURCE_STATUS: &str =
     "render_plan08_direct_cpu_morphed_draw_source_metadata_check_passed_wgpu_deferred";
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0133] 准备网格队列的统计投影和缓存身份 超出当前结构预算；需核对职责边界和预算来源，区分新增责任与历史门槛过时。
 #[test]
 fn runtime_15_prepared_mesh_queue_is_folder_backed() {
     let parent = read_runtime_src("graphics/scene/scene_renderer/mesh/prepared_queue.rs");
@@ -13,14 +14,16 @@ fn runtime_15_prepared_mesh_queue_is_folder_backed() {
     let stats_bridge_gpu_scene = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge/gpu_scene_stats.rs",
     );
-    let stats_bridge_tests =
-        read_runtime_src("graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge_tests.rs");
+    let stats_bridge_tests = read_runtime_src(
+        "graphics/scene/scene_renderer/mesh/prepared_queue/tests/stats_bridge_tests.rs",
+    );
     let stats_bridge_virtual_geometry_tests = read_runtime_src(
-        "graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge_tests/virtual_geometry.rs",
+        "graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge_tests/tests/virtual_geometry.rs",
     );
     let stats_owner =
         read_runtime_src("graphics/scene/scene_renderer/mesh/prepared_queue/stats.rs");
-    let tests = read_runtime_src("graphics/scene/scene_renderer/mesh/prepared_queue/tests.rs");
+    let tests =
+        read_runtime_src("graphics/scene/scene_renderer/mesh/prepared_queue/tests/cases.rs");
     let gpu_source_tests =
         read_runtime_src("graphics/scene/scene_renderer/mesh/prepared_queue/tests/gpu_sources.rs");
     let mesh_draw_geometry_source =
@@ -246,7 +249,7 @@ fn runtime_15_prepared_mesh_queue_is_folder_backed() {
             220,
         ),
         (
-            "graphics/scene/scene_renderer/mesh/prepared_queue/tests.rs",
+            "graphics/scene/scene_renderer/mesh/prepared_queue/tests/cases.rs",
             tests.as_str(),
             620,
         ),
@@ -256,12 +259,12 @@ fn runtime_15_prepared_mesh_queue_is_folder_backed() {
             180,
         ),
         (
-            "graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge_tests.rs",
+            "graphics/scene/scene_renderer/mesh/prepared_queue/tests/stats_bridge_tests.rs",
             stats_bridge_tests.as_str(),
             220,
         ),
         (
-            "graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge_tests/virtual_geometry.rs",
+            "graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge_tests/tests/virtual_geometry.rs",
             stats_bridge_virtual_geometry_tests.as_str(),
             160,
         ),

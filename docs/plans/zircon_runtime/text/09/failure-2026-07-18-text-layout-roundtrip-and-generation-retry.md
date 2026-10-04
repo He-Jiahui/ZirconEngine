@@ -67,3 +67,38 @@ neutral contract DTO同时被当作跨模块接口和runtime内部canonical stor
 - Canonical glyph-artifact rebuilding now borrows the session-owned run, completes visual ordering and line metrics before its final generation comparison, and returns the line together with the verified generation. The UI caller performs a second current-generation check at the install boundary, preventing a stale rebuilt line from being published after a concurrent font update.
 - Artifact projection performs one face/instance registration batch and no neutral `TextShapeResult` round trip. The external DTO remains confined to the framework service boundary, while the existing two-attempt stable-generation policy retains typed defer instead of an unbounded caller loop.
 - Independent read-only second review found no P0/P1/P2 across the canonical Arc path, complete-rebuild generation checks, install boundary, batch registration, and bounded service retry. Managed Cargo plus workbench/Console and framebuffer evidence remain pending, so this handoff remains open.
+
+### 2026-09-08 Bounded Retry Test Borrow Repair
+
+Fixing Session `failure-roll-01a07160-text09` preserves this open lifecycle.
+Managed job `3db36b30be88485bb06b0a5ff2c6d3e4` failed library compilation with
+90 errors and zero tests; the bounded-generation regression held simultaneous
+mutable borrows of one iterator in its snapshot and probe closures.
+
+`zircon_runtime/src/text/service.rs` was HEAD-identical at
+`e048dc9aa7649d4a83db52a4917b588673f66d8a9712c6201de94f2ad2c23fd1`.
+Transfer `91d2107cf86a4bdc8cd1d31118b41292` and pre-edit snapshot `3062` retain
+the old provenance. Source `3063`, request `811470e732f54b62a1ed940cb0ddfa7e`,
+has hash `2515196053f05d70e3b9d30ae3acbb4155f5c2e41dbea336adcd789fb55f2d2a`.
+The fixture now uses a test-local `RefCell` around the same 10/11/12/13 iterator.
+Each callback releases its borrow before the next callback; all two-attempt,
+restart and typed-deferral assertions are preserved. Production retry and DTO
+projection are unchanged. Formatting and whitespace checks pass; actual
+execution, scale/product evidence and independent review remain pending.
+
+The exact source was included in managed job `94560adfdb1a45daa7e2d5785ae6677c`,
+input `runtime-graphics-text-test-support-3067-20260908`, digest
+`c93b37d1c23413b5f1ff16f4705abfbf56ec2511dfb45f89a1b1c85500a839da`.
+No diagnostic remains in `service.rs`; unrelated library errors still total 67,
+so zero tests executed. Input hashes were verified after the command. Bounded
+retry and projection assertions still require actual execution before return.
+
+The existing task `优化协调器验证效率` reviewed source `3063` with Critical 0,
+Important 0, Moderate 0. Report:
+`.codex/tmp/text-framework-3080-review-20260908-result.txt`.
+It verified the snapshot/ObjectStore/current attribution and the unchanged
+10/11/12/13 sequence, two attempts, restart count and typed deferral.
+The later Text-only job `1f242fb1789e44ce87d7a5cacc569d5f`, input digest
+`4e5f800cd19e5748464ac759b4e1efbfae073ecf1c05d419327a6d6739cbe9e2`,
+reports three library errors and zero tests, none in this file. Actual retry,
+projection and product trace acceptance remain pending.

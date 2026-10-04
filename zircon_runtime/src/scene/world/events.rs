@@ -1,6 +1,6 @@
 use crate::scene::ecs::{
     Event, EventCapacityMetrics, EventObserverHandle, EventPayloadProfile, EventReadIter,
-    EventStore, EventSubscription, EventTypeId, Events,
+    EventStore, EventSubscription, EventTypeId, EventWriterGrant, Events,
 };
 
 use super::World;
@@ -13,6 +13,7 @@ impl World {
         self.events.register::<T>();
     }
 
+    /// 向 World 的分帧事件通道发布一次事件；需要跨帧保留的调用者应显式配置订阅与读取时序。
     pub fn send_event<T>(&mut self, event: T) -> bool
     where
         T: Event,
@@ -126,5 +127,26 @@ impl World {
 
     pub(crate) fn event_store_mut(&mut self) -> &mut EventStore {
         &mut self.events
+    }
+
+    /// # Safety
+    /// The original World grant and its fixed event registry must outlive the Item. Access
+    /// admission permits only this channel's writer and no readers for the same payload type.
+    pub(in crate::scene) unsafe fn event_writer_grant<'world, T: Event>(
+        world: *mut Self,
+        event_type_id: EventTypeId,
+    ) -> EventWriterGrant<'world, T> {
+        unsafe { EventStore::writer_grant(std::ptr::addr_of_mut!((*world).events), event_type_id) }
+            .expect("event writer channel must be registered before the system runs")
+    }
+
+    /// # Safety
+    /// The original World grant admits shared reads for this channel, no same-type writes, and
+    /// no event registry mutation while any channel Item exists.
+    pub(in crate::scene) unsafe fn event_reader_grant<'world, T: Event>(
+        world: *const Self,
+        event_type_id: EventTypeId,
+    ) -> Option<&'world Events<T>> {
+        unsafe { EventStore::reader_grant(std::ptr::addr_of!((*world).events), event_type_id) }
     }
 }

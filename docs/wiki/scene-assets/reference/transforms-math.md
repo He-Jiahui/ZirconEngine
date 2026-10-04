@@ -10,7 +10,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 变换、层级与数学 API 详解
 tests:
-  - zircon_runtime/src/scene/world/compiled_binding/tests.rs
+  - zircon_runtime/src/scene/world/compiled_binding/tests/cases.rs
   - zircon_runtime/src/graphics/tests/project_render/project_scenes
 doc_type: module-detail
 ---

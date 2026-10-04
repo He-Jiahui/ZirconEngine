@@ -22,7 +22,7 @@ DIST_CRATE_BOUNDARY_METHODS = (
     "test_dist_crate_feature_constant_does_not_borrow_build_owner",
 )
 
-
+# 验证校验分发 crate 归属边界的职责切分：分发 crate 边界移出通用归属文件，并分发 crate Cargo 预检位于分发 crate 归属。
 class PluginValidateDistCrateOwnerBoundaryTests(unittest.TestCase):
     def test_dist_crate_boundaries_leave_general_owner_file(self):
         general_owner_text = PLUGIN_VALIDATE_OWNER_BOUNDARIES_TEST.read_text(

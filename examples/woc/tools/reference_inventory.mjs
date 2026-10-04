@@ -1,3 +1,6 @@
+// 调用端：npm run generate:current-reference (tools/package.json)；职责：把固定版本的 WOC Git 树盘点为命令、世界接口、测试、对齐、资源和 UI 流程目录。
+// 目录读取使用选定的 Git 提交；输出前核对当前版本的预期总数。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
@@ -8,6 +11,7 @@ import ts from 'typescript';
 const HISTORICAL_REFERENCE_COMMIT = '7c10f280eec380e9877e66ce16333089e171fe42';
 const CURRENT_REFERENCE_COMMIT = '5ef9f7cb21cd8875b6d2c49701015dfcd78de35a';
 const REFERENCE_COMMIT = readOption('--commit') ?? CURRENT_REFERENCE_COMMIT;
+// TODO: [CR-M16-WOC-TOOLS-0002] package 的重设基线脚本传入此标志，但后续分支从不读取；需定义或移除该约定。
 const rebaseline = process.argv.includes('--rebaseline');
 const historical = process.argv.includes('--historical');
 const EXPECTED = Object.freeze({
@@ -95,6 +99,7 @@ const referenceTextCache = new Map();
 
 main();
 
+// 盘点固定提交的 Git 树，核对当前版本总数，再生成目录和带摘要的清单。
 function main() {
   if (REFERENCE_COMMIT !== CURRENT_REFERENCE_COMMIT && !historical) {
     throw new Error('a non-current reference commit requires --historical');
@@ -149,6 +154,7 @@ function main() {
   process.stdout.write(`${mode} ${documents.size} WOC reference catalogs for ${REFERENCE_COMMIT} at ${outputRoot}\n`);
 }
 
+// 命令归属取自世界接口分面映射；无分面的客户端发送命令必须有显式归属条目。
 function extractCommands(worldFacets) {
   const relativePath = 'src/world_api.ts';
   const sourceFile = parseTypeScript(relativePath);
@@ -176,6 +182,7 @@ function extractCommands(worldFacets) {
   });
 }
 
+// 通过导入的分面解析聚合 IWorld 接口，并按所属模块分类每个成员。
 function extractWorldApi() {
   const aggregatePath = 'src/world_api.ts';
   const aggregate = parseTypeScript(aggregatePath);
@@ -257,6 +264,7 @@ function assertUnfacetedClientCommandOwnership(names, dispatchOnly, commandFacet
   );
 }
 
+// 从固定版本解析已注册测试，并保留文件级生成器以计算审计总数。
 function extractTests(trackedFiles) {
   const testFiles = trackedFiles.filter((path) => path.endsWith('.test.ts'));
   const files = testFiles.map((path) => ({
@@ -298,6 +306,7 @@ function extractTests(trackedFiles) {
   return { entries, files, generators };
 }
 
+// 将对齐场景注册项与固定版本的 golden 及归属元数据配对。
 function extractParity(trackedFiles) {
   const scenariosPath = 'tests/parity/scenarios.ts';
   const sourceFile = parseTypeScript(scenariosPath);
@@ -338,6 +347,7 @@ function extractParity(trackedFiles) {
   return entries;
 }
 
+// 读取 GLB 头统计资源、动画片段和蒙皮，无需运行实时资源构建。
 function extractAssets(trackedFiles) {
   const paths = trackedFiles.filter((path) => path.startsWith('public/models/') && path.endsWith('.glb'));
   const entries = paths.map((path) => {
@@ -369,6 +379,7 @@ function extractAssets(trackedFiles) {
   return { entries, totals };
 }
 
+// 把 UI 入口源文件归类到参考盘点使用的职责流程。
 function extractUiFlows(trackedFiles) {
   const sourcePrefixes = [
     ['src/ui/', 'gameplay_ui', 'client'],
@@ -407,6 +418,7 @@ function extractUiFlows(trackedFiles) {
   return entries;
 }
 
+// 清单把源文件数量和树身份绑定到全部生成目录所使用的同一提交。
 function buildSourceManifest(trackedFiles, commands, world, tests, parity, assets, uiFlows) {
   const sourceFiles = trackedFiles.filter((path) => SOURCE_EXTENSIONS.has(extname(path)));
   const sourceCharacters = sourceFiles.reduce((sum, path) =>
@@ -711,6 +723,7 @@ function referenceText(path) {
   return text;
 }
 
+// 批量读取 Git 源文件，避免 AST 提取期间反复启动进程。
 function primeReferenceText(paths) {
   const pending = paths.filter((path) => !referenceTextCache.has(path));
   if (pending.length === 0) return;

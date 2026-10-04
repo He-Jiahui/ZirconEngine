@@ -1,3 +1,4 @@
+//! 直接并行库调用只由核心任务原语拥有，生产扫描负责报告越界引用。通过源码文本核对父子路由、状态镜像和文件预算。
 const PARENT_SOURCE: &str = include_str!("../rayon_boundary.rs");
 const CUTOVER_STATUS_SOURCE: &str = include_str!("cutover_status.rs");
 const PRODUCTION_SCAN_SOURCE: &str = include_str!("production_scan.rs");
@@ -16,7 +17,7 @@ const STRUCTURE_CONVENTION_PLAN: &str =
 const REVIEW_FINDINGS_PLAN: &str =
     include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md");
 const MODULE_CONVENTION_DOC: &str =
-    include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
+    include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 #[rustfmt::skip]
 const NUMBERED_STATUS_RECORDS: &str = concat!(
     include_str!("../../../../../docs/plans/zircon_runtime/runtime/11/2026-07-09-job-system-task-model-output-records.md"),

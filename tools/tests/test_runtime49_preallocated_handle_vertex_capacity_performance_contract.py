@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 交互手柄顶点构造按公共几何拓扑预留容量；容量常量由线段 helper 导出，并与非退化形状的真实输出核对。
 
 ROOT = Path(__file__).resolve().parents[2]
 PRIMITIVES = (

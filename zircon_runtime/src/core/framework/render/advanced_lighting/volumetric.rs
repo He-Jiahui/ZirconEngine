@@ -9,6 +9,7 @@ use crate::core::math::{Real, Vec3};
 
 pub const VOLUMETRIC_FOG_COMPONENT_ID: &str = "lighting.volumetric-fog";
 
+/// 视图体积系统解析后的全局雾参数；提交到 froxel 通道前需 sanitized，以免无效参数进入 GPU 积分。
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct VolumetricFogSettings {
     pub density: Real,
@@ -79,6 +80,7 @@ impl FogVolumeData {
     }
 }
 
+/// 将 shader 质量档映射到 froxel 容量和可用特性；图编译与执行端必须使用同一档位。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FroxelGridQuality {
     Low,
@@ -230,6 +232,7 @@ const VOLUMETRIC_FOG_PARAMS: [VolumeParamSchema; 7] = [
     ),
 ];
 
+/// 把场景体积覆盖接到共享后处理求值器，随后由高级光照帧提取传给 froxel 阶段。
 pub const VOLUMETRIC_FOG_VOLUME_COMPONENT: VolumeComponentDescriptor =
     VolumeComponentDescriptor::new(
         VOLUMETRIC_FOG_COMPONENT_ID,
@@ -282,4 +285,5 @@ fn finite_or(value: Real, fallback: Real) -> Real {
 }
 
 #[cfg(test)]
+#[path = "volumetric/tests/cases.rs"]
 mod tests;

@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::ui::workbench::layout::{
     ActivityDrawerLayout, ActivityDrawerSlot, ActivityWindowId, WorkbenchLayout,
@@ -18,6 +18,7 @@ pub(in crate::ui::host) fn repair_builtin_shell_layout(
     subsystems: &EditorSubsystemReport,
 ) {
     let baseline = builtin_hybrid_layout_for_subsystems(subsystems);
+    let open_instance_index = OpenInstanceIndex::new(open_instances);
     let mut present: HashSet<_> = collect_instance_hosts(layout).into_keys().collect();
     let workbench_window_id = ActivityWindowId::workbench();
     let baseline_workbench_window = baseline
@@ -37,7 +38,7 @@ pub(in crate::ui::host) fn repair_builtin_shell_layout(
         repair_drawers(
             &mut workbench_window.activity_drawers,
             &baseline_workbench_window.activity_drawers,
-            open_instances,
+            &open_instance_index,
             &mut activity_present,
         );
         present.extend(activity_present);
@@ -49,7 +50,7 @@ pub(in crate::ui::host) fn repair_builtin_shell_layout(
 
     let stack = first_tab_stack_mut(ensure_host_document_root(layout));
     for instance_id in baseline_stack.tabs {
-        if let Some(repaired_id) = matching_open_instance(&instance_id, open_instances) {
+        if let Some(repaired_id) = open_instance_index.matching(&instance_id) {
             if admit_present_instance(&mut present, &repaired_id) {
                 stack.tabs.push(repaired_id);
             }
@@ -64,26 +65,45 @@ pub(in crate::ui::host) fn repair_builtin_shell_layout(
         stack.active_tab = baseline_stack
             .active_tab
             .as_ref()
-            .and_then(|active| matching_open_instance(active, open_instances))
+            .and_then(|active| open_instance_index.matching(active))
             .filter(|active| stack.tabs.contains(active))
             .or_else(|| stack.tabs.first().cloned());
     }
 }
 
-fn matching_open_instance(
-    instance_id: &ViewInstanceId,
-    open_instances: &[ViewInstance],
-) -> Option<ViewInstanceId> {
-    open_instances
-        .iter()
-        .find(|instance| &instance.instance_id == instance_id)
-        .or_else(|| {
-            let descriptor_id = instance_id.0.rsplit_once('#')?.0;
-            open_instances
-                .iter()
-                .find(|instance| instance.descriptor_id.0 == descriptor_id)
-        })
-        .map(|instance| instance.instance_id.clone())
+struct OpenInstanceIndex<'a> {
+    by_instance_id: HashMap<&'a ViewInstanceId, &'a ViewInstance>,
+    by_descriptor_id: HashMap<&'a str, &'a ViewInstance>,
+}
+
+impl<'a> OpenInstanceIndex<'a> {
+    fn new(open_instances: &'a [ViewInstance]) -> Self {
+        let mut by_instance_id = HashMap::with_capacity(open_instances.len());
+        let mut by_descriptor_id = HashMap::with_capacity(open_instances.len());
+        for instance in open_instances {
+            by_instance_id
+                .entry(&instance.instance_id)
+                .or_insert(instance);
+            by_descriptor_id
+                .entry(instance.descriptor_id.0.as_str())
+                .or_insert(instance);
+        }
+        Self {
+            by_instance_id,
+            by_descriptor_id,
+        }
+    }
+
+    fn matching(&self, instance_id: &ViewInstanceId) -> Option<ViewInstanceId> {
+        self.by_instance_id
+            .get(instance_id)
+            .copied()
+            .or_else(|| {
+                let descriptor_id = instance_id.0.rsplit_once('#')?.0;
+                self.by_descriptor_id.get(descriptor_id).copied()
+            })
+            .map(|instance| instance.instance_id.clone())
+    }
 }
 
 fn admit_present_instance(
@@ -100,7 +120,7 @@ fn admit_present_instance(
 fn repair_drawers(
     drawers: &mut BTreeMap<ActivityDrawerSlot, ActivityDrawerLayout>,
     baseline_drawers: &BTreeMap<ActivityDrawerSlot, ActivityDrawerLayout>,
-    open_instances: &[ViewInstance],
+    open_instance_index: &OpenInstanceIndex<'_>,
     present: &mut HashSet<ViewInstanceId>,
 ) {
     for (slot, baseline_drawer) in baseline_drawers {
@@ -110,7 +130,7 @@ fn repair_drawers(
         let mut inserted_baseline_tab = false;
 
         for instance_id in &baseline_drawer.tab_stack.tabs {
-            if let Some(repaired_id) = matching_open_instance(instance_id, open_instances) {
+            if let Some(repaired_id) = open_instance_index.matching(instance_id) {
                 if admit_present_instance(present, &repaired_id) {
                     target_drawer.tab_stack.tabs.push(repaired_id);
                     inserted_baseline_tab = true;
@@ -119,7 +139,7 @@ fn repair_drawers(
         }
 
         if inserted_baseline_tab
-            || has_repaired_shell_tab(target_drawer, baseline_drawer, open_instances)
+            || has_repaired_shell_tab(target_drawer, baseline_drawer, open_instance_index)
         {
             target_drawer.mode = baseline_drawer.mode;
             target_drawer.extent = baseline_drawer.extent;
@@ -136,7 +156,7 @@ fn repair_drawers(
                 .tab_stack
                 .active_tab
                 .as_ref()
-                .and_then(|active| matching_open_instance(active, open_instances))
+                .and_then(|active| open_instance_index.matching(active))
                 .filter(|active| target_drawer.tab_stack.tabs.contains(active))
                 .or_else(|| target_drawer.tab_stack.tabs.first().cloned());
         }
@@ -154,149 +174,20 @@ fn repair_drawers(
 fn has_repaired_shell_tab(
     drawer: &ActivityDrawerLayout,
     baseline_drawer: &ActivityDrawerLayout,
-    open_instances: &[ViewInstance],
+    open_instance_index: &OpenInstanceIndex<'_>,
 ) -> bool {
     (!drawer.visible || !drawer.extent.is_finite() || drawer.extent <= 0.0)
         && baseline_drawer.tab_stack.tabs.iter().any(|instance_id| {
-            matching_open_instance(instance_id, open_instances)
+            open_instance_index
+                .matching(instance_id)
                 .is_some_and(|repaired_id| drawer.tab_stack.tabs.contains(&repaired_id))
         })
 }
 
 #[cfg(test)]
-mod optimization_tests {
-    use std::collections::BTreeSet;
-    use std::hint::black_box;
-    use std::time::{Duration, Instant};
+#[path = "tests/repair_builtin_shell_layout_optimization_tests.rs"]
+mod optimization_tests;
 
-    use super::*;
-
-    const ADMISSION_COUNT: usize = 65_536;
-    const UNIQUE_INSTANCE_COUNT: usize = 8_192;
-    const SAMPLE_COUNT: usize = 17;
-
-    fn percentile_95(samples: &mut [Duration]) -> Duration {
-        samples.sort_unstable();
-        samples[(samples.len() - 1) * 95 / 100]
-    }
-
-    fn instance_ids() -> Vec<ViewInstanceId> {
-        (0..ADMISSION_COUNT)
-            .map(|index| {
-                ViewInstanceId::new(format!(
-                    "editor.builtin.shell.instance.{:05}",
-                    (index * 4_099) % UNIQUE_INSTANCE_COUNT
-                ))
-            })
-            .collect()
-    }
-
-    fn ordered_admission_count(instance_ids: &[ViewInstanceId]) -> usize {
-        let mut present: BTreeSet<ViewInstanceId> = BTreeSet::new();
-        let mut admitted = 0;
-        for instance_id in instance_ids {
-            if present.insert(instance_id.clone()) {
-                admitted += 1;
-            }
-        }
-        admitted
-    }
-
-    fn hash_admission_count(instance_ids: &[ViewInstanceId]) -> usize {
-        let mut present = HashSet::new();
-        let mut admitted = 0;
-        for instance_id in instance_ids {
-            if admit_present_instance(&mut present, instance_id) {
-                admitted += 1;
-            }
-        }
-        admitted
-    }
-
-    #[test]
-    fn optimization_batch_20260826x_editor13_shell_repair_hash_admission_preserves_first_seen_order(
-    ) {
-        let instance_ids = [
-            ViewInstanceId::new("editor.b"),
-            ViewInstanceId::new("editor.a"),
-            ViewInstanceId::new("editor.b"),
-            ViewInstanceId::new("editor.c"),
-        ];
-        let mut present = HashSet::new();
-        let admitted = instance_ids
-            .iter()
-            .filter(|instance_id| admit_present_instance(&mut present, instance_id))
-            .cloned()
-            .collect::<Vec<_>>();
-
-        assert_eq!(
-            admitted,
-            vec![
-                ViewInstanceId::new("editor.b"),
-                ViewInstanceId::new("editor.a"),
-                ViewInstanceId::new("editor.c"),
-            ]
-        );
-    }
-
-    #[test]
-    fn optimization_batch_20260826x_editor13_shell_repair_uses_borrowed_hash_admission() {
-        let source = include_str!("repair_builtin_shell_layout.rs");
-        let production = source.split("#[cfg(test)]").next().unwrap();
-
-        assert!(production.contains("let mut present: HashSet<_>"));
-        assert!(production.contains("present: &mut HashSet<ViewInstanceId>"));
-        assert!(production.contains("present.contains(instance_id)"));
-        assert!(production.contains("admit_present_instance(&mut present, &repaired_id)"));
-        assert!(production.contains("admit_present_instance(present, &repaired_id)"));
-        assert!(!production.contains("BTreeSet"));
-    }
-
-    #[test]
-    #[ignore = "release performance evidence"]
-    fn optimization_batch_20260826x_editor13_shell_repair_hash_admission_performance_evidence() {
-        let instance_ids = instance_ids();
-        assert_eq!(
-            ordered_admission_count(&instance_ids),
-            hash_admission_count(&instance_ids)
-        );
-
-        let mut ordered_samples = Vec::with_capacity(SAMPLE_COUNT);
-        let mut hash_samples = Vec::with_capacity(SAMPLE_COUNT);
-        for sample in 0..SAMPLE_COUNT {
-            if sample % 2 == 0 {
-                let started = Instant::now();
-                black_box(ordered_admission_count(black_box(&instance_ids)));
-                ordered_samples.push(started.elapsed());
-
-                let started = Instant::now();
-                black_box(hash_admission_count(black_box(&instance_ids)));
-                hash_samples.push(started.elapsed());
-            } else {
-                let started = Instant::now();
-                black_box(hash_admission_count(black_box(&instance_ids)));
-                hash_samples.push(started.elapsed());
-
-                let started = Instant::now();
-                black_box(ordered_admission_count(black_box(&instance_ids)));
-                ordered_samples.push(started.elapsed());
-            }
-        }
-
-        let ordered_p95 = percentile_95(&mut ordered_samples);
-        let hash_p95 = percentile_95(&mut hash_samples);
-        println!(
-            "EDITOR13_SHELL_REPAIR_HASH_ADMISSION_BENCH_V1 admissions={ADMISSION_COUNT} \
-             unique_instances={UNIQUE_INSTANCE_COUNT} ordered_set_clones={ADMISSION_COUNT} \
-             hash_set_clones={UNIQUE_INSTANCE_COUNT} ordered_p95_ns={} hash_p95_ns={}",
-            ordered_p95.as_nanos(),
-            hash_p95.as_nanos(),
-        );
-        assert!(
-            hash_p95.as_nanos() * 100 <= ordered_p95.as_nanos() * 60,
-            "hash-admission P95 {:?} exceeded 60% of ordered-admission P95 {:?}",
-            hash_p95,
-            ordered_p95,
-        );
-    }
-}
+#[cfg(test)]
+#[path = "repair_builtin_shell_layout/tests/optimization_batch_iy_editor636_tests.rs"]
+mod optimization_batch_iy_editor636_tests;

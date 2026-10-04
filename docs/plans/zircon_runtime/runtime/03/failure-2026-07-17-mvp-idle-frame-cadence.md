@@ -19,7 +19,7 @@ related_code:
   - zircon_runtime/src/scene/dynamic_scene/asset_reload/queue.rs
 tests:
   - reactive_cadence_coalesces_requests_and_suppresses_idle_frames
-  - continuous_cadence_never_suppresses_frame_pumps
+  - foreground_game_and_explicit_continuous_cadence_never_suppress_frame_pumps
   - headless_cadence_uses_fixed_wait_deadlines
   - headless_early_wake_does_not_pump_or_move_fixed_deadline
   - redraw_delivery_does_not_schedule_another_reactive_frame
@@ -76,3 +76,23 @@ Desktop 路径设置 `ControlFlow::Wait`，但 `about_to_wait` 仍无条件 tick
 - 新增行为/源码合同覆盖 callback reentry 拒绝、容量 1 token 合并、receiver backlog 与 budget-exhaustion demand。scoped `rustfmt --edition 2021`、`git diff --check` 和 current-source 静态合同已通过；未执行 Cargo、WPR 或产品运行验收。
 
 Open state: `source_repair_complete_pending_managed_cargo_wpr_and_product_wake_regression`。当前仍不得写 fixed return：需要受管 runtime/app focused/source-guard Cargo、Desktop 30 秒 WPR CPU/wakeup 证据，以及真实项目资源变更在 reactive idle 下完成 reload 的产品回归；不能用静态合同代替这些验收。
+
+### 2026-09-25 current-source rolling reconciliation (Runtime03 owner)
+
+- Session `failure-roll-01a084c8-runtime03-idle-cadence-r2` owns this reconciliation. Snapshot `3815` seals the eight current source paths:
+  - `zircon_app/src/entry/runtime_entry_app/application_handler/hooks.rs` — `a48f07312fb531785a957c5a0c0cc63af3be92c7ebc8c33de3c6163b3b1c85f0`
+  - `zircon_app/src/entry/runtime_entry_app/event_loop_policy/frame_cadence.rs` — `afc2623b937294362420069c746f09d45c40d502481c3eaa975d44c76ca3f555`
+  - `zircon_app/src/entry/runtime_entry_app/frame_loop.rs` — `4246760218dc469fec8353520edca565bf4abbf3d8bba1813bfa3a307a7e218c`
+  - `zircon_app/src/entry/runtime_entry_app/surface_present/lifecycle.rs` — `6af247a347d9adee940f3de9b5cac0d8732a71d08c9090e9e348160006ac4aad`
+  - `zircon_runtime/src/dynamic_api/session/registry/wake_registration.rs` — `fc927b2731d451cefd3e24a8bd4589f5164b6a4d86aa0f6dc7b4d106bdd5ae88`
+  - `zircon_runtime/src/dynamic_api/session/ffi.rs` — `0cec0b1add47c8cd245dd0d9e21c5be153950bc207e84927698aa0d47bc38cd6`
+  - `zircon_runtime/src/dynamic_api/session/state.rs` — `356680001a44f8c60b2a0b2fbab6c4633cc523b646aa8a57b39c002870c8ac01`
+  - `zircon_runtime/src/scene/dynamic_scene/asset_reload/queue.rs` — `b1b00154c9ceacb0470d4e98dd938a6ff6827e2ca735fbd750e5f8e04933ac76`
+- The app `hooks.rs` and runtime wake/asset-reload files are already dirty in the shared checkout; no source edits were made or absorbed in this reconciliation. `rustfmt +1.94.1 --edition 2021 --config skip_children=true --check` passes all eight paths, and scoped `git diff --check` reports no whitespace errors (only normal LF→CRLF notices).
+- The frontmatter's prior `continuous_cadence_never_suppresses_frame_pumps` filter was stale; it now names the current exact unit `foreground_game_and_explicit_continuous_cadence_never_suppress_frame_pumps`. An eight-filter source contract probe resolves every current test: reactive/continuous/headless cadence, early wake, redraw suppression, wake registration, pending asset reload demand, and session-to-asset completion wiring (`RUNTIME03_CURRENT_SOURCE_CONTRACT_PASS 8 filters`). `python -X utf8 tools/tests/test_runtime_scene_asset_reload_diagnostics_m0_performance_contract.py` ran `3/3`, and `python -X utf8 -m tools.tests.test_editor_pointer_frame_cadence_refresh_pressure` ran `6/6`; these are static contracts and do not replace Rust Cargo.
+- Managed Windows runtime/app Cargo, focused source guards, Desktop 30-second WPR CPU/wakeup trace, continuous Game cadence regression, real project asset-reload/reactive-idle product test, fixed return, closeout, and WeCom remain pending; the failure stays `open`/`resolving_failure`.
+
+### 2026-09-25 independent static review receipt
+
+- Reviewer `review_editor03_gizmo_private` checked snapshot `3815`, all eight hashes, dirty provenance, and the corrected exact filter names. Result: Critical/Important/Moderate = `0/0/0`.
+- The review confirms profile-separated cadence, fixed `WaitUntil` deadlines and early-wake behavior, reactive coalescing/redraw suppression, wake callback wiring, capacity-one asset-generation tokens, and `Immediate` demand while reload work remains pending. Static evidence is not promoted to Cargo/WPR/product acceptance.

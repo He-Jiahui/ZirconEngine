@@ -32,10 +32,16 @@ fn read_repo_file(path: &str) -> String {
 }
 
 fn assert_contains_all(source_name: &str, source: &str, snippets: &[&str]) {
+    let mut missing = Vec::new();
     for snippet in snippets {
-        assert!(
-            source.contains(snippet),
-            "{source_name} should contain Source Engine snippet {snippet:?}"
+        if !source.contains(snippet) {
+            missing.push(*snippet);
+        }
+    }
+    if !missing.is_empty() {
+        panic!(
+            "{} should contain Source Engine snippets {:?}",
+            source_name, missing
         );
     }
 }
@@ -94,9 +100,9 @@ fn new_project_default_engine_follows_active_source_context_in_tauri_session() {
         "CreateProjectDialog.tsx",
         &create_dialog,
         &[
-            "const [engineId, setEngineId] = useState(activeSourceEngineId ?? sourceEngines[0]?.id ?? \"\");",
+            "const [engineId, setEngineId] = useState(() => admittedSourceEngineId(sourceEngines, activeSourceEngineId) ?? \"\");",
             "sourceEngines.some((engine) => engine.id === currentEngineId)",
-            "return activeSourceEngineId ?? sourceEngines[0]?.id ?? \"\";",
+            "return admittedSourceEngineId(sourceEngines, activeSourceEngineId) ?? \"\";",
             "placeholder={text.sourceEngine}",
             "options={sourceEngines.map((engine) => ({",
             "detail: engine.sourcePath",
@@ -139,8 +145,12 @@ fn source_engine_registration_uses_shared_filesystem_path_key() {
             "source_engine_path_key(left) == source_engine_path_key(right)",
             "fn source_engine_path_key(path: &Path) -> String",
             "project_filesystem_path_key(path)",
-            "source_engine_paths_share_project_filesystem_key_normalization",
         ],
+    );
+    assert_contains_all(
+        "source_engine_paths.rs",
+        &read_crate_file("src/engines/tests/source_engine_paths.rs"),
+        &["source_engine_paths_share_project_filesystem_key_normalization"],
     );
     assert_not_contains_any(
         "source_engine_paths.rs",
@@ -184,8 +194,12 @@ fn source_engine_registry_validation_history_and_dtos_are_current_owners() {
             "pub fn upsert_source_engine",
             "pub fn prune_project_engine_bindings",
             "pub fn remove_source_engine",
-            "prune_project_engine_bindings_removes_stale_engine_ids",
         ],
+    );
+    assert_contains_all(
+        "registry.rs",
+        &read_crate_file("src/engines/tests/registry.rs"),
+        &["prune_project_engine_bindings_removes_stale_engine_ids"],
     );
     assert_contains_all(
         "validation.rs",
@@ -200,8 +214,12 @@ fn source_engine_registry_validation_history_and_dtos_are_current_owners() {
             "pub fn validate_source_engine(path: impl AsRef<Path>) -> SourceEngineValidation",
             "path.join(\"Cargo.toml\").is_file()",
             "path.join(\"tools\").join(\"zircon_build.py\").is_file()",
-            "source_engine_validation_requires_manifest_and_build_tool",
         ],
+    );
+    assert_contains_all(
+        "validation.rs",
+        &read_crate_file("src/engines/tests/validation.rs"),
+        &["source_engine_validation_requires_manifest_and_build_tool"],
     );
     assert_contains_all(
         "source_engine_install.rs",
@@ -212,8 +230,12 @@ fn source_engine_registry_validation_history_and_dtos_are_current_owners() {
             "pub fn staged_engine_dir(&self) -> PathBuf",
             "pub fn record_build(&mut self, record: SourceBuildRecord)",
             "self.build_history.truncate(BUILD_HISTORY_LIMIT);",
-            "record_build_keeps_newest_history_and_last_success",
         ],
+    );
+    assert_contains_all(
+        "source_engine_install.rs",
+        &read_crate_file("src/engines/tests/source_engine_install.rs"),
+        &["record_build_keeps_newest_history_and_last_success"],
     );
     assert_contains_all(
         "view_model.rs",
@@ -301,7 +323,8 @@ fn editor_page_renders_source_engine_build_history_from_backend_dtos() {
         &[
             "const sourceBuildHistory = useMemo(",
             "activeSourceEngine?.buildHistory ?? []",
-            "void onAction(HUB_ACTION.openOutputFolder, undefined, { outputDir: activeSourceEngine?.outputPath })",
+            "capability: \"source-engine-output\",",
+            "engineId: activeSourceEngine?.id,",
             "HubPanel title={text.sourceBuildHistory}",
             "sourceBuildHistory.map((record)",
             "title: record.detail",
@@ -310,7 +333,7 @@ fn editor_page_renders_source_engine_build_history_from_backend_dtos() {
             "meta: record.finished",
             "disabled: !record.outputDir",
             "const record = sourceBuildHistory.find((history) => history.id === item.id);",
-            "void onAction(HUB_ACTION.openOutputFolder, item.id, { outputDir: record?.outputDir });",
+            "receiptId: record?.id,",
         ],
     );
     assert_not_contains_any(

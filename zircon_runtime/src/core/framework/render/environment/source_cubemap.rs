@@ -144,6 +144,8 @@ pub(super) struct CubemapFaceMipOutput<'a> {
     pub(super) texels: &'a mut [[Real; 4]],
 }
 
+/// 导入阶段生成并可跨帧共享的源 mip、反射 PMREM 与漫反射 SH9 组合。
+/// 源 mip 与 PMREM 可采用不同尺寸；替换烘焙 PMREM 时仍保留不可变源图供重配置。
 #[derive(Clone, Debug, PartialEq)]
 pub struct SourceCubemapMipChain {
     source_face_size: u32,
@@ -772,4 +774,5 @@ fn average_last_mip_faces(texels: &mut [[Real; 4]], face_size: u32, mip_count: u
 }
 
 #[cfg(test)]
+#[path = "source_cubemap/tests/cases.rs"]
 mod tests;

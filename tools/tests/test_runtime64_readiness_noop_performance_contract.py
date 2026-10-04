@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 资源就绪投影先借用字段做无变化预检，真正变化后才移动源 Arc；检查 Rust 回归对无操作身份与依赖慢路径的声明。
 
 ROOT = Path(__file__).resolve().parents[2]
 READINESS = (
@@ -8,8 +8,7 @@ READINESS = (
     / "zircon_runtime/crates/zr_resource/src/manager/readiness_projection.rs"
 )
 READINESS_TESTS = (
-    ROOT
-    / "zircon_runtime/crates/zr_resource/src/manager/readiness_projection/tests.rs"
+    ROOT / "zircon_runtime/crates/zr_resource/src/manager/readiness_projection/tests/cases.rs"
 )
 READINESS_BEHAVIOR_TESTS = (
     ROOT

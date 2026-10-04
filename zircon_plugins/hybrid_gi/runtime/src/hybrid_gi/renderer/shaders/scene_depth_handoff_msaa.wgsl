@@ -47,6 +47,7 @@ fn pack_octahedral_normal_6bit(encoded_normal: vec3<f32>) -> u32 {
     return quantized.x | (quantized.y << 3u);
 }
 
+// 选最近的深度样本及同一样本的法线，保持遮挡与法线来源一致。
 fn conservative_resolved_surface(coord: vec2<i32>) -> ResolvedSurfaceSample {
     let sample_count = textureNumSamples(scene_depth_tex);
     var resolved = 1.0;

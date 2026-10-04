@@ -1,13 +1,12 @@
-use std::io;
-
-use zircon_runtime::asset::{AssetUri, project::ProjectManager};
+use zircon_runtime::asset::{
+    project::{EditorDocumentScope, ProjectManager},
+    AssetUri,
+};
 use zircon_runtime::scene::world::SceneProjectError;
 use zircon_runtime::scene::Scene;
 
 use super::editor_project_document::EditorProjectDocument;
-use super::editor_workspace_persistence::{
-    capture_editor_workspace, restore_editor_workspace, save_editor_workspace,
-};
+use super::editor_workspace_document::encode_editor_workspace_document;
 use super::project_editor_workspace::ProjectEditorWorkspace;
 
 impl EditorProjectDocument {
@@ -18,23 +17,21 @@ impl EditorProjectDocument {
         editor_workspace: Option<&ProjectEditorWorkspace>,
     ) -> Result<(), SceneProjectError> {
         let root = project.paths().root();
-        // The scene is the F3 authoring authority. Persist the auxiliary workspace first so a
-        // workspace I/O failure cannot report a failed save after the scene has already changed.
-        let previous_workspace = capture_editor_workspace(root)?;
-        save_editor_workspace(root, editor_workspace)?;
-        if let Err(scene_error) = world.save_scene_to_project(project, scene_uri) {
-            // A scene write can still fail after the workspace has committed. Restore the exact
-            // previous workspace so a failed project save never leaves a split persisted document.
-            restore_editor_workspace(root, previous_workspace).map_err(|restore_error| {
-                SceneProjectError::Io(io::Error::new(
-                    io::ErrorKind::Other,
-                    format!(
-                        "scene save failed: {scene_error}; editor workspace rollback failed: {restore_error}"
-                    ),
-                ))
-            })?;
-            return Err(scene_error);
-        }
-        Ok(())
+        let scope = EditorDocumentScope::new(
+            root.to_path_buf(),
+            project.catalog_input_generation().sequence(),
+        );
+        let scoped = project
+            .scoped_editor_document(&scope)
+            .map_err(SceneProjectError::Asset)?;
+        let outcome = match editor_workspace {
+            Some(workspace) => {
+                let workspace_document =
+                    encode_editor_workspace_document(workspace).map_err(std::io::Error::other)?;
+                scoped.commit_scene_workspace(scene_uri, world, workspace_document.as_bytes())?
+            }
+            None => scoped.commit_scene_without_workspace(scene_uri, world)?,
+        };
+        outcome.ensure_durable()
     }
 }

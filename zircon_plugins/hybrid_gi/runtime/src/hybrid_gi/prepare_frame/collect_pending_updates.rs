@@ -15,6 +15,7 @@ pub(super) fn collect_pending_updates(
         .filter(|update| !has_pending_ancestor_update(runtime, update.probe_id()))
         .cloned()
         .collect::<Vec<_>>();
+    // 优先级依次考虑近期追踪支持、驻留后代、层级深度与请求代次。
     pending_updates.sort_by_cached_key(|update| {
         (
             Reverse(lineage_trace_support_sort_key(runtime, update.probe_id())),
@@ -98,23 +99,5 @@ fn lineage_trace_support_score(runtime: &HybridGiRuntimeState, probe_id: u32) ->
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::hybrid_gi::HybridGiProbeUpdateRequest;
-
-    #[test]
-    fn cached_pending_update_sort_preserves_priority_order() {
-        let mut runtime = HybridGiRuntimeState::default();
-        runtime.push_pending_update_request(HybridGiProbeUpdateRequest::new(30, 3, 2));
-        runtime.push_pending_update_request(HybridGiProbeUpdateRequest::new(20, 2, 1));
-        runtime.push_pending_update_request(HybridGiProbeUpdateRequest::new(10, 1, 1));
-
-        let pending_updates = collect_pending_updates(&runtime);
-        let projected = pending_updates
-            .iter()
-            .map(|update| (update.probe_id, update.ray_budget, update.generation))
-            .collect::<Vec<_>>();
-
-        assert_eq!(projected, vec![(10, 1, 1), (20, 2, 1), (30, 3, 2)]);
-    }
-}
+#[path = "tests/collect_pending_updates.rs"]
+mod tests;

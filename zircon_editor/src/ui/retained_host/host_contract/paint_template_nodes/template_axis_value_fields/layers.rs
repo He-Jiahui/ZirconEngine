@@ -1,3 +1,5 @@
+//! 轴值文字在同一字段表面上一层绘制；调用者提供的基础 order 需要给此偏移保留范围。
+
 const VALUE_TEXT_OFFSET: i32 = 1;
 
 pub(super) fn value_text_order(surface_order: i32) -> i32 {
@@ -5,13 +7,5 @@ pub(super) fn value_text_order(surface_order: i32) -> i32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn axis_value_text_paints_above_field_surface() {
-        let surface = 40;
-
-        assert!(surface < value_text_order(surface));
-    }
-}
+#[path = "tests/layers.rs"]
+mod tests;

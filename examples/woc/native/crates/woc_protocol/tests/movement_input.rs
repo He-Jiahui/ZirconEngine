@@ -222,6 +222,43 @@ fn relay_rejects_tick_regression_before_mutating_input_state() {
     assert_eq!(retained.flags, flags(true, false));
 }
 
+#[test]
+fn relay_cleanup_is_idempotent_and_reset_starts_a_new_generation() {
+    let player = actor(23, 9);
+    let first = MovementFrameBatch::new(vec![frame(player, 6, flags(true, false), Some(1.0))])
+        .expect("frame is valid");
+    let mut relay = MovementInputRelay::default();
+    relay.apply_batch(40, &first).expect("batch applies");
+    assert_eq!(relay.retained_count(), 1);
+
+    let removed = relay.remove_actor(player).expect("despawn removes input");
+    assert_eq!(removed.actor, player);
+    assert_eq!(removed.acknowledgement, 6);
+    assert!(
+        relay.remove_actor(player).is_none(),
+        "cleanup is idempotent"
+    );
+    assert_eq!(relay.retained_count(), 0);
+    assert!(relay.input(player).is_none());
+
+    let replacement = MovementFrameBatch::new(vec![frame(player, 1, flags(false, true), None)])
+        .expect("replacement frame is valid");
+    relay
+        .apply_batch(41, &replacement)
+        .expect("replacement actor can start a sequence");
+    assert_eq!(relay.acknowledgement(player), Some(1));
+
+    relay.reset();
+    assert_eq!(relay.retained_count(), 0);
+    assert!(relay.input(player).is_none());
+    let after_reset = MovementFrameBatch::new(vec![frame(player, 1, flags(true, true), None)])
+        .expect("new generation frame is valid");
+    relay
+        .apply_batch(0, &after_reset)
+        .expect("reset permits a fresh tick domain");
+    assert_eq!(relay.acknowledgement(player), Some(1));
+}
+
 const PERFORMANCE_ACTOR_COUNT: usize = 8_192;
 const PERFORMANCE_WARMUPS: usize = 5;
 const PERFORMANCE_SAMPLES: usize = 31;

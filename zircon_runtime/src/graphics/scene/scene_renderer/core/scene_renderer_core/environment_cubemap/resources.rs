@@ -1,0 +1,16 @@
+pub(super) struct CubemapResources {
+    pub(super) source_texture: wgpu::Texture,
+    pub(super) source_view: wgpu::TextureView,
+    pub(super) specular_texture: wgpu::Texture,
+    pub(super) specular_view: wgpu::TextureView,
+    pub(super) irradiance_texture: wgpu::Texture,
+    pub(super) irradiance_view: wgpu::TextureView,
+    pub(super) source_face_size: u32,
+    pub(super) source_mip_count: u32,
+    pub(super) pmrem_face_size: u32,
+    pub(super) pmrem_mip_count: u32,
+    pub(super) irradiance_face_size: u32,
+    pub(super) resident_source_texture_bytes: u64,
+    pub(super) resident_specular_texture_bytes: u64,
+    pub(super) resident_irradiance_texture_bytes: u64,
+}

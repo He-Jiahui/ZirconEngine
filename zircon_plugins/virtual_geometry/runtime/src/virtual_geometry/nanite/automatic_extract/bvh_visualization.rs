@@ -94,6 +94,7 @@ fn render_bvh_visualization_instance(
     }
 }
 
+// 为每个叶 cluster 单独向上汇总；本次叶遍历的 visited 集合防止父关系环重复计入。
 fn subtree_leaf_cluster_index<'a>(
     nodes_by_id: &HashMap<u32, &VirtualGeometryHierarchyNodeAsset>,
     leaf_clusters: &'a [VirtualGeometryCpuReferenceLeafCluster],
@@ -132,4 +133,5 @@ fn subtree_leaf_cluster_index<'a>(
 }
 
 #[cfg(test)]
+#[path = "bvh_visualization/tests/performance_tests.rs"]
 mod performance_tests;

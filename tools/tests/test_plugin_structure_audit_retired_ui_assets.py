@@ -2,11 +2,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.plugin_structure_audits.retired_ui_assets import (
+from tools.audits.plugins.retired_ui_assets import (
     audit_retired_ui_asset_conformance,
 )
 
-
+# 扫描退役 UI 资源引用，要求旧式 UI 清单被报告，同时确认当前 ZUI 路径可保持干净。
 class PluginStructureAuditRetiredUiAssetsTests(unittest.TestCase):
     def test_retired_ui_asset_audit_reports_legacy_ui_toml_files(self):
         with tempfile.TemporaryDirectory() as temp_dir:

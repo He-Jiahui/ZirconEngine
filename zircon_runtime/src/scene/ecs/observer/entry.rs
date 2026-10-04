@@ -4,8 +4,8 @@ use std::sync::Arc;
 use crate::scene::ecs::{ComponentId, ComponentLifecycleEvent, LifecycleEventKind};
 use crate::scene::{EntityId, World};
 
-use super::ObserverId;
 use super::callback_registry::IndexedObserver;
+use super::ObserverId;
 use super::{EntityEventCallback, EventCallback, LifecycleCallback};
 
 pub(super) type LifecycleObserverKey = (LifecycleEventKind, ComponentId);

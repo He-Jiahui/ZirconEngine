@@ -25,7 +25,12 @@ impl UiSurface {
         route: &UiPointerRoute,
         event: &UiPointerEvent,
     ) -> Result<Vec<UiPointerComponentEvent>, UiTreeError> {
-        let mut events = Vec::new();
+        let event_capacity = route
+            .entered
+            .len()
+            .saturating_add(route.left.len())
+            .saturating_add(2);
+        let mut events = Vec::with_capacity(event_capacity);
         for node_id in &route.entered {
             self.push_pointer_component_events(
                 &mut events,
@@ -429,3 +434,7 @@ impl UiSurface {
         events.push(component_event);
     }
 }
+
+#[cfg(test)]
+#[path = "tests/pointer_component_events_optimization_tests.rs"]
+mod optimization_tests;

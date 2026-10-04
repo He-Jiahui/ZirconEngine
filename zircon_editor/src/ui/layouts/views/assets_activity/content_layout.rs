@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use slint::SharedString;
 use zircon_runtime_interface::ui::design_tokens::{EditorDensityTokens, EditorTypographyTokens};
 
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 use crate::ui::retained_host::measure_runtime_text_width;
+use crate::ui::retained_host::primitives::SharedString;
 use crate::ui::workbench::asset_content_layout::{
     compact_file_like_display_name, AssetContentLayoutMetrics, AssetContentSurfaceProfile,
     RuntimeFileNameCompaction, ACTIVITY_CONTENT_PANEL_CONTROL_ID,
@@ -283,4 +283,5 @@ fn hide_controls<'a>(
 }
 
 #[cfg(test)]
+#[path = "content_layout/tests/indexed_lookup_tests.rs"]
 mod indexed_lookup_tests;

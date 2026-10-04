@@ -78,6 +78,7 @@ fn jetbrains_docking_state_commands_drive_drawer_split_and_active_contracts(
         ratio,
         first,
         second,
+        ..
     } = document_workspace
     else {
         panic!("expected split document root");
@@ -171,6 +172,26 @@ fn built_in_layout_presets_match_authoring_review_focus_debug_contracts() {
             LayoutPresetName::Debug,
         ]
     );
+    let authoring = presets
+        .iter()
+        .find(|preset| preset.name == LayoutPresetName::Authoring)
+        .unwrap();
+    assert!(authoring.drawer_states.iter().any(|state| {
+        state.slot == ActivityDrawerSlot::LeftTop && state.mode == ActivityDrawerMode::Pinned
+    }));
+    assert!(authoring.drawer_states.iter().any(|state| {
+        state.slot == ActivityDrawerSlot::Bottom && state.mode == ActivityDrawerMode::Collapsed
+    }));
+    let review = presets
+        .iter()
+        .find(|preset| preset.name == LayoutPresetName::Review)
+        .unwrap();
+    assert!(review.drawer_states.iter().any(|state| {
+        state.slot == ActivityDrawerSlot::RightBottom && state.mode == ActivityDrawerMode::Pinned
+    }));
+    assert!(review.drawer_states.iter().any(|state| {
+        state.slot == ActivityDrawerSlot::Bottom && state.mode == ActivityDrawerMode::Collapsed
+    }));
     assert!(presets
         .iter()
         .find(|preset| preset.name == LayoutPresetName::Focus)

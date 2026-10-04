@@ -6,6 +6,7 @@ mod shapes;
 mod text_markers;
 
 #[cfg(test)]
+#[path = "paint_primitives/tests/cases.rs"]
 mod tests;
 
 pub(in crate::ui::retained_host::host_contract) use image::{

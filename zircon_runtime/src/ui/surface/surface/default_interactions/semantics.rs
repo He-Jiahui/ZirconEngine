@@ -1,6 +1,8 @@
 use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
 use zircon_runtime_interface::ui::widget::UI_WIDGET_COMPONENT_ROLE_ATTRIBUTE;
 
+/// 默认交互以显式语义角色为授权依据；组件显示名可被作者包装，不能据名称赋予排序、滚动等行为。
+/// 匹配保持精确字符串约定，与展示层宽松的 painter 别名匹配分别承担不同职责。
 pub(super) fn component_role(metadata: &UiTemplateNodeMetadata) -> Option<&str> {
     metadata
         .attributes
@@ -17,32 +19,5 @@ pub(super) fn component_role_is_one_of(metadata: &UiTemplateNodeMetadata, roles:
 }
 
 #[cfg(test)]
-mod tests {
-    use std::collections::BTreeMap;
-
-    use super::*;
-
-    fn metadata(component: &str, role: Option<&str>) -> UiTemplateNodeMetadata {
-        let mut attributes = BTreeMap::new();
-        if let Some(role) = role {
-            attributes.insert(
-                UI_WIDGET_COMPONENT_ROLE_ATTRIBUTE.to_string(),
-                toml::Value::String(role.to_string()),
-            );
-        }
-        UiTemplateNodeMetadata {
-            component: component.to_string(),
-            attributes,
-            ..Default::default()
-        }
-    }
-
-    #[test]
-    fn semantic_role_does_not_fall_back_to_component_name() {
-        assert!(!component_role_is(&metadata("DataGrid", None), "data-grid"));
-        assert!(component_role_is(
-            &metadata("ProductTable", Some("data-grid")),
-            "data-grid"
-        ));
-    }
-}
+#[path = "tests/semantics.rs"]
+mod tests;

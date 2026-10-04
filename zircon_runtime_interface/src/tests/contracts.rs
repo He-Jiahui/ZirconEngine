@@ -18,18 +18,19 @@ use crate::{
             UiDispatchHostRequestKind, UiDispatchPhase, UiDispatchRejectedEffect, UiDispatchReply,
             UiDispatchReplyStep, UiDispatchReplyStepTrace, UiDragDropEffectKind,
             UiDragDropInputEvent, UiDragDropInputEventKind, UiDragSessionId, UiFocusEffectReason,
-            UiImeInputEvent, UiImeInputEventKind, UiInputDispatchDiagnostics,
-            UiInputDispatchResult, UiInputEvent, UiInputEventMetadata, UiInputMethodRequest,
-            UiInputMethodRequestKind, UiInputMethodSurroundingText,
-            UiInputMethodSurroundingTextError, UiInputRoutePolicy, UiInputRouteTrace,
-            UiInputSequence, UiInputTimestamp, UiKeyboardInputEvent, UiKeyboardInputState,
-            UiMouseMotionInputEvent, UiNavigationInputEvent, UiNavigationRequestPolicy,
-            UiPointerCaptureReason, UiPointerComponentEvent, UiPointerComponentEventReason,
-            UiPointerDispatchContext, UiPointerDispatchEffect, UiPointerDispatchResult,
-            UiPointerEvent, UiPointerId, UiPointerInputEvent, UiPointerLockPolicy, UiPointerSource,
-            UiPopupEffectKind, UiPopupInputEvent, UiPopupInputEventKind, UiPreciseScrollDelta,
-            UiRedrawRequestReason, UiScrollDeltaUnit, UiSubmenuHoverTimerInputEvent, UiSurfaceId,
-            UiTextByteRange, UiTextInputEvent, UiToastTimerInputEvent, UiTooltipEffectKind,
+            UiImeInputEvent, UiImeInputEventKind, UiInputDiagnosticsMode,
+            UiInputDiagnosticsTruncationReceipt, UiInputDispatchDiagnostics, UiInputDispatchResult,
+            UiInputEvent, UiInputEventMetadata, UiInputMethodRequest, UiInputMethodRequestKind,
+            UiInputMethodSurroundingText, UiInputMethodSurroundingTextError, UiInputRoutePolicy,
+            UiInputRouteTrace, UiInputSequence, UiInputTimestamp, UiKeyboardInputEvent,
+            UiKeyboardInputState, UiMouseMotionInputEvent, UiNavigationInputEvent,
+            UiNavigationRequestPolicy, UiPointerCaptureReason, UiPointerComponentEvent,
+            UiPointerComponentEventReason, UiPointerDispatchContext, UiPointerDispatchEffect,
+            UiPointerDispatchResult, UiPointerEvent, UiPointerId, UiPointerInputEvent,
+            UiPointerLockPolicy, UiPointerRoutingReceipt, UiPointerSource, UiPopupEffectKind,
+            UiPopupInputEvent, UiPopupInputEventKind, UiPreciseScrollDelta, UiRedrawRequestReason,
+            UiScrollDeltaUnit, UiSubmenuHoverTimerInputEvent, UiSurfaceId, UiTextByteRange,
+            UiTextInputEvent, UiToastTimerInputEvent, UiTooltipEffectKind,
             UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind, UiTypeaheadTimerInputEvent,
             UiUserId, UiWindowId,
         },
@@ -528,6 +529,7 @@ fn ui_surface_debug_snapshot_zircon_layout_report_recovers_fallback_reason_count
         .get_mut("layout_engine_report")
         .and_then(|value| value.as_object_mut())
         .expect("layout report object");
+    // 旧快照缺少新汇总字段；同时注入与唯一 selection 冲突的计数，确认反序列化按来源重建。
     report_json.remove("fallback_reason_counts");
     report_json.insert("request_count".to_string(), serde_json::json!(99));
     report_json.insert("fallback_count".to_string(), serde_json::json!(0));
@@ -755,7 +757,7 @@ fn runtime_api_table_records_size_and_version() {
 
     assert_eq!(api.abi_version, ZIRCON_RUNTIME_API_VERSION_V8);
     assert_eq!(api.size_bytes, core::mem::size_of::<ZrRuntimeApiV8>());
-    assert_eq!(core::mem::size_of::<ZrRuntimeApiV8>(), 200);
+    assert_eq!(core::mem::size_of::<ZrRuntimeApiV8>(), 224);
     assert!(api.create_session.is_none());
     assert!(api.release_allocation.is_none());
     assert!(api.capture_frame.is_none());
@@ -776,6 +778,9 @@ fn runtime_api_table_records_size_and_version() {
     assert!(api.watch_world.is_none());
     assert!(api.unwatch_world.is_none());
     assert!(api.drain_world_invalidations.is_none());
+    assert!(api.request_viewport_pick.is_none());
+    assert!(api.poll_viewport_pick.is_none());
+    assert!(api.cancel_viewport_pick.is_none());
     assert_eq!(
         core::mem::offset_of!(ZrRuntimeApiV8, bind_viewport_surface),
         core::mem::offset_of!(ZrRuntimeApiV8, capture_accessibility_tree)
@@ -835,6 +840,21 @@ fn runtime_api_table_records_size_and_version() {
         core::mem::offset_of!(ZrRuntimeApiV8, drain_world_invalidations),
         core::mem::offset_of!(ZrRuntimeApiV8, unwatch_world)
             + core::mem::size_of::<Option<crate::ZrRuntimeUnwatchWorldFnV1>>()
+    );
+    assert_eq!(
+        core::mem::offset_of!(ZrRuntimeApiV8, request_viewport_pick),
+        core::mem::offset_of!(ZrRuntimeApiV8, drain_world_invalidations)
+            + core::mem::size_of_val(&api.drain_world_invalidations)
+    );
+    assert_eq!(
+        core::mem::offset_of!(ZrRuntimeApiV8, poll_viewport_pick),
+        core::mem::offset_of!(ZrRuntimeApiV8, request_viewport_pick)
+            + core::mem::size_of_val(&api.request_viewport_pick)
+    );
+    assert_eq!(
+        core::mem::offset_of!(ZrRuntimeApiV8, cancel_viewport_pick),
+        core::mem::offset_of!(ZrRuntimeApiV8, poll_viewport_pick)
+            + core::mem::size_of_val(&api.poll_viewport_pick)
     );
 }
 
@@ -1908,7 +1928,7 @@ fn ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize() {
 
     assert_eq!(extract.list.commands.len(), 1);
     assert_eq!(context.route.point.x, 1.0);
-    let pointer_result = crate::ui::dispatch::UiPointerDispatchResult::new(route);
+    let pointer_result = crate::ui::dispatch::UiPointerDispatchResult::new(route.clone());
     assert!(pointer_result.diagnostics.pointer_routed);
     assert!(pointer_result.diagnostics.ignored_same_target_hover);
     assert!(!pointer_result.diagnostics.click_target_resolved);
@@ -1989,6 +2009,22 @@ fn ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize() {
     assert!(serde_json::to_string(&extract)
         .unwrap()
         .contains("commands"));
+}
+
+#[test]
+fn ui_dispatch_root_exports_retain_typed_input_diagnostics_contracts() {
+    let mode = UiInputDiagnosticsMode::Summary;
+    assert!(!mode.captures_full_trace());
+
+    let truncation = UiInputDiagnosticsTruncationReceipt::default();
+    assert!(truncation.is_empty());
+
+    let receipt = UiPointerRoutingReceipt::default();
+    assert!(receipt.physical_root_to_leaf().is_empty());
+    assert!(receipt.dispatch_root_to_leaf().is_empty());
+
+    let encoded = serde_json::to_value((mode, truncation, receipt)).unwrap();
+    assert!(encoded.is_array());
 }
 
 #[test]

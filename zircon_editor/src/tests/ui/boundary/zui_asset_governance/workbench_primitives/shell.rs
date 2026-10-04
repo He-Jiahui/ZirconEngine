@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
 use super::super::support::{editor_asset_root, load_zui_document};
-use super::WORKBENCH_SHELL_SURFACE_CONTRACTS;
+use super::shell_contracts::WORKBENCH_SHELL_SURFACE_CONTRACTS;
 
 #[test]
 fn workbench_shell_surface_component_assets_keep_bottom_up_composition_contract() {

@@ -7,19 +7,8 @@ baseline_head: bee4c707b714738346b49bba15c59468b8bd9b39
 baseline_epoch: 339
 related_code:
   - zircon_editor/src/core/extension/inspector.rs
-  - zircon_editor/src/core/extension/field_editor.rs
-  - zircon_editor/src/core/state/editor_state_selection.rs
-  - zircon_editor/src/core/state/editor_state_snapshot_build.rs
-  - zircon_editor/src/core/state/inspector.rs
-  - zircon_editor/src/ui/retained_host/binding_dispatch/inspector
   - zircon_editor/src/ui/retained_host/app/inspector
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
-  - zircon_editor/src/ui/runtime_component/adapter/inspector.rs
-  - zircon_editor/src/ui/runtime_component/adapter/reflection.rs
-  - zircon_editor/src/ui/scene_inspection_publication.rs
-  - zircon_editor/assets/ui/editor/inspector
-  - zircon_editor/assets/ui/editor/workbench/components/workbench_inspector_panel.zui
-  - zircon_runtime/src/scene/reflection
   - zircon_runtime/src/scene/world
 tests:
   - zircon_editor/src/tests/editing/inspector.rs

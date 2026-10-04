@@ -22,7 +22,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束有界观察者队列容量：完整非空队列预留剩余预算精确，并小型空队列保持延迟 Vec 分配。
 class BoundedObserverQueueCapacityPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

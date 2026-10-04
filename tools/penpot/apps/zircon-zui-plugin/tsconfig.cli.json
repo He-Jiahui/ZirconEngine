@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../dist/out-tsc/zircon-zui-plugin-cli",
+    "types": ["node"],
+    "moduleResolution": "bundler"
+  },
+  "files": ["src/cli.ts"]
+}

@@ -1,0 +1,41 @@
+penpot_original_source = "[asset]\r\nkind = \"view\"\r\nid = \"navigation.surfaces\"\r\nversion = 2\r\ndisplay_name = \"Navigation Surfaces\"\r\n\r\n[imports]\r\nstyles = [\"res://ui/theme/editor_base.zui\"]\r\n\r\n[root]\r\nnode = \"navigation_surfaces_root\"\r\n\r\n[nodes.navigation_surfaces_list]\r\ncomponent = \"Space\"\r\ncontrol_id = \"NavigationSurfacesList\"\r\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\n\r\n[nodes.navigation_surfaces_root]\r\ncomponent = \"VerticalGroup\"\r\ncontrol_id = \"NavigationSurfacesRoot\"\r\nclasses = [\"editor-shell\"]\r\nlayout = { container = { kind = \"VerticalBox\", gap = 8 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\nchildren = [{ node = \"navigation_surfaces_list\" }]\r\n"
+
+[asset]
+kind = "view"
+id = "navigation.surfaces"
+version = 2
+display_name = "Navigation Surfaces"
+
+[imports]
+styles = [ "res://ui/theme/editor_base.zui" ]
+
+[root]
+node = "navigation_surfaces_root"
+
+[nodes.navigation_surfaces_list]
+component = "Space"
+control_id = "NavigationSurfacesList"
+
+[nodes.navigation_surfaces_list.layout.width]
+stretch = "Stretch"
+
+[nodes.navigation_surfaces_list.layout.height]
+stretch = "Stretch"
+
+[nodes.navigation_surfaces_root]
+component = "VerticalGroup"
+control_id = "NavigationSurfacesRoot"
+classes = [ "editor-shell" ]
+
+[nodes.navigation_surfaces_root.layout.container]
+kind = "VerticalBox"
+gap = 8
+
+[nodes.navigation_surfaces_root.layout.width]
+stretch = "Stretch"
+
+[nodes.navigation_surfaces_root.layout.height]
+stretch = "Stretch"
+
+[[nodes.navigation_surfaces_root.children]]
+node = "navigation_surfaces_list"

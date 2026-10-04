@@ -1,4 +1,5 @@
 //! Static contracts for React/MUI selected-project runtime state.
+//! 检查选中项目从持久化状态经运行时解析和 DTO 投影进入 React 页面。
 
 use std::{fs, path::PathBuf};
 
@@ -13,6 +14,7 @@ fn repo_dir() -> PathBuf {
         .to_path_buf()
 }
 
+// 源码片段跨检出平台比较时统一换行；这里不会执行被检查的前端代码。
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
@@ -49,6 +51,7 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+// 单一范围解析器决定选中项目、最近项目和引擎回退关系。
 #[test]
 fn scope_model_remains_canonical_project_and_source_engine_resolver() {
     let scope = read_crate_file("src/state/scope.rs");
@@ -76,6 +79,12 @@ fn scope_model_remains_canonical_project_and_source_engine_resolver() {
             "pub fn has_stale_selected_project(&self) -> bool",
             "pub fn can_build(&self) -> bool",
             "pub fn engine_id(&self) -> Option<&str>",
+        ],
+    );
+    assert_contains_all(
+        "scope.rs",
+        &read_crate_file("src/state/tests/scope.rs"),
+        &[
             "stale_selected_project_does_not_fallback_to_latest_recent",
             "selected_project_without_engine_binding_reports_project_unbound",
             "selected_project_with_missing_engine_reports_unavailable_binding",
@@ -92,15 +101,21 @@ fn scope_model_remains_canonical_project_and_source_engine_resolver() {
             "&self.project_metadata",
             "&self.engines",
             "self.active_engine_id.as_deref()",
-            "snapshot_scope_exposes_selected_project_without_latest_recent_fallback",
         ],
+    );
+    assert_contains_all(
+        "hub_snapshot.rs",
+        &read_crate_file("src/state/tests/hub_snapshot.rs"),
+        &["snapshot_scope_exposes_selected_project_without_latest_recent_fallback"],
     );
 }
 
+// Tauri 会话恢复选择并在动作后刷新相关项目上下文。
+// BUG: [CR-HUBTESTB-0008] 选中项目恢复、视图模型及前端启动状态链已调整，旧的精确片段断言必失败；证据：tauri_runtime_persists_selected_project_and_refreshes_context 读取 runtime_state.rs。
 #[test]
 fn tauri_runtime_persists_selected_project_and_refreshes_context() {
     let runtime_state = read_crate_file("src/tauri_app/runtime_state.rs");
-    let runtime_state_tests = read_crate_file("src/tauri_app/runtime_state/tests.rs");
+    let runtime_state_tests = read_crate_file("src/tauri_app/runtime_state/tests/cases.rs");
 
     assert_contains_all(
         "runtime_state.rs",
@@ -133,7 +148,7 @@ fn tauri_runtime_persists_selected_project_and_refreshes_context() {
         ],
     );
     assert_contains_all(
-        "runtime_state/tests.rs",
+        "runtime_state/tests/cases.rs",
         &runtime_state_tests,
         &[
             "startup_selection_preserves_persisted_stale_project_path",
@@ -142,10 +157,11 @@ fn tauri_runtime_persists_selected_project_and_refreshes_context() {
     );
 }
 
+// 视图模型将选择和缺失项目情形投影成前端 DTO。
 #[test]
 fn tauri_view_model_projects_selected_state_into_react_dtos() {
     let view_model = read_crate_file("src/tauri_app/view_model.rs");
-    let view_model_tests = read_crate_file("src/tauri_app/view_model/tests.rs");
+    let view_model_tests = read_crate_file("src/tauri_app/view_model/tests/cases.rs");
     let types = read_crate_file("web/src/types/hub.ts");
 
     assert_contains_all(
@@ -180,7 +196,7 @@ fn tauri_view_model_projects_selected_state_into_react_dtos() {
         ],
     );
     assert_contains_all(
-        "view_model/tests.rs",
+        "view_model/tests/cases.rs",
         &view_model_tests,
         &["view_model_projects_come_from_snapshot_filtering_and_state_ids"],
     );
@@ -201,6 +217,7 @@ fn tauri_view_model_projects_selected_state_into_react_dtos() {
     );
 }
 
+// 页面消费选中项目事实，并把工作流目标明确传回运行时。
 #[test]
 fn react_pages_consume_selected_project_state_passively() {
     let dashboard = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
@@ -328,6 +345,7 @@ fn react_pages_consume_selected_project_state_passively() {
     );
 }
 
+// 前端异步派发需保留权威状态，失败反馈不应覆盖成功快照。
 #[test]
 fn frontend_dispatch_uses_tauri_state_and_keeps_current_state_on_action_error() {
     let hub_api = read_crate_file("web/src/tauri/hubApi.ts");
@@ -366,6 +384,7 @@ fn frontend_dispatch_uses_tauri_state_and_keeps_current_state_on_action_error() 
     assert_not_contains_any("App.tsx", &app, &["setState(nextState);"]);
 }
 
+// 文档描述持久化、DTO 与页面被动消费的关系。
 #[test]
 fn selected_project_runtime_documentation_records_react_mui_contract_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -400,6 +419,7 @@ fn selected_project_runtime_documentation_records_react_mui_contract_cutover() {
     );
 }
 
+// 自检本契约不重新引用迁移前的页面入口。
 #[test]
 fn selected_project_runtime_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/ui_selected_project_runtime_contract.rs");

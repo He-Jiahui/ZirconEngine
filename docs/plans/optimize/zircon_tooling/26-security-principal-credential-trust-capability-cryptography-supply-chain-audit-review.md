@@ -25,16 +25,9 @@ related_code:
   - zircon_hub/tauri.conf.json
   - zircon_hub/src/settings/hub_config.rs
   - zircon_hub/src/tauri_app/view_model/coming_soon.rs
-  - tools/zircon_export/plugin_build_signature.py
-  - tools/zircon_export/native_signing.py
-  - tools/zircon_export/plugin_build.py
-  - tools/session_coordinator/control_plane/auth.py
-  - tools/session_coordinator/control_plane/http_security.py
-  - tools/session_coordinator/control_plane/actions/permissions.py
-  - tools/session_coordinator/audit.py
-  - tools/session_tray/src/runtime_descriptor.rs
-  - tools/session_tray/src/coordinator_client.rs
-  - tools/session_tray/capabilities/default.json
+  - tools/export/plugin_build_signature.py
+  - tools/export/native_signing.py
+  - tools/export/plugin_build.py
 tests:
   - zircon_plugins/net/features/http/runtime/src/tests/security.rs
   - zircon_plugins/net/features/websocket/runtime/src/tests/security.rs

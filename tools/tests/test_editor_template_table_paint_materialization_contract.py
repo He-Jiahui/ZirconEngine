@@ -1,3 +1,4 @@
+# 核对模板表格先拒绝不可见单元，再物化实际需要的绘制数据。
 from pathlib import Path
 import unittest
 

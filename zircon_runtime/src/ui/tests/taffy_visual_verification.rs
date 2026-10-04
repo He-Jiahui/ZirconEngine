@@ -1,3 +1,5 @@
+//! 此结构检查锁定布局可视验收脚本与文档的入口词汇，实际画面和交互证据由外部采集流程承担。
+
 use std::path::PathBuf;
 
 #[test]
@@ -7,7 +9,7 @@ fn taffy_layout_docs_keep_visual_profile_gate() {
         .expect("runtime crate should live under repository root")
         .to_path_buf();
     let doc_path = repo_root.join("docs/zircon_runtime/ui/layout/pass.md");
-    let script_path = repo_root.join("tools/ui-profile-capture.ps1");
+    let script_path = repo_root.join("tools/analysis/profiling/ui/ui-profile-capture.ps1");
 
     let doc = std::fs::read_to_string(&doc_path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", doc_path.display()));
@@ -16,7 +18,7 @@ fn taffy_layout_docs_keep_visual_profile_gate() {
 
     for token in [
         "Visual Verification Gate",
-        "tools/ui-profile-capture.ps1",
+        "tools/analysis/profiling/ui/ui-profile-capture.ps1",
         "material_lab_startup,material_lab_hover,material_lab_click,drawer_resize",
         "-CaptureSoftbufferScreenshot",
         "screenshot_gpu.png",

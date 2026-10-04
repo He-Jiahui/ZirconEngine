@@ -16,6 +16,7 @@ roundPositive(value: float): int {
     return <int>(value + 0.5);
 }
 
+/// 到期判定必须使用更新前的计时值，再保存这里返回的新值；到期返回零本身无法区分触发与初始状态。
 pub advanceBlackwaterTimer(timer: float, deltaSeconds: float, required: bool): float {
     if (!required || timer < 0.0 || deltaSeconds < 0.0) {
         throw "woc blackwater timer input is invalid";
@@ -32,6 +33,7 @@ pub blackwaterTickDue(timer: float, deltaSeconds: float, required: bool): bool {
     return timer + deltaSeconds >= 1.0;
 }
 
+/// 坐标与危险区目录须属于同一模块的局部空间；重叠区只取最高等级，不能将多个区域当成独立伤害叠加。
 pub worstHazardTier(
     moduleIndex: int,
     localX: float,
@@ -89,6 +91,7 @@ pub damageForHazardTier(
     return damage < 1 ? 1 : damage;
 }
 
+/// 调用方先完成房间与存活对象筛选；空中或安全地面优先免伤，本函数仅返回本轮数值，不推进计时或写生命。
 pub blackwaterDamageAt(
     moduleIndex: int,
     localX: float,

@@ -24,7 +24,7 @@ class ContributionMaterializerContractTests(unittest.TestCase):
     def test_materializer_covers_all_six_kinds_and_candidate_rollback_in_rust(self) -> None:
         source = MATERIALIZER.read_text(encoding="utf-8")
 
-        self.assertIn("materializes_every_supported_contribution_kind", source)
+        self.assertIn("materialize_serialized_contribution_batch", source)
         self.assertIn("failed_batch_does_not_publish_partial_contributions", source)
         self.assertIn("registry.command_ids().count(), 1", source)
         self.assertIn("registry.command_ids().count(), 0", source)

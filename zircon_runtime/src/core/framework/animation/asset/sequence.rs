@@ -12,7 +12,7 @@ use crate::core::framework::scene::{ComponentPropertyPath, EntityPath};
 use crate::core::math::Real;
 
 #[cfg(test)]
-#[path = "sequence/borrowed_encoding_tests.rs"]
+#[path = "sequence/tests/borrowed_encoding_tests.rs"]
 mod borrowed_encoding_tests;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -65,6 +65,8 @@ impl TryFrom<AnimationSequenceAssetV1> for AnimationSequenceAsset {
     }
 }
 
+/// 时间线序列的持久化源；编辑器按绑定与关键帧投影视图，
+/// 运行时先验证通道语义，再针对具体 World 解析实体和属性路径。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AnimationSequenceAsset {
     pub name: Option<String>,
@@ -118,6 +120,7 @@ impl AnimationSequenceAsset {
             .collect()
     }
 
+    /// 同时提供稳定目标 ID 与路径回退，供重绑定等调用方保留旧资产的定位信息。
     pub fn target_track_paths(&self) -> Vec<(Option<String>, AnimationTrackPath)> {
         self.bindings
             .iter()

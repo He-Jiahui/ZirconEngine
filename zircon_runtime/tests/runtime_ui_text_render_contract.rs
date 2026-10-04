@@ -5,9 +5,10 @@ use std::sync::Arc;
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::core::framework::render::{
     EnvironmentExtract, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode,
-    RenderFrameExtract, RenderFramework, RenderOverlayExtract, RenderQualityProfile,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderViewportDescriptor,
-    RenderWorldSnapshotHandle, UiRenderSubmission, ViewportCameraSnapshot,
+    RenderCameraTarget, RenderFrameExtract, RenderFramework, RenderOverlayExtract,
+    RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
+    RenderViewportDescriptor, RenderWorldSnapshotHandle, UiRenderSubmission,
+    ViewportCameraSnapshot,
 };
 use zircon_runtime::core::math::{Transform, UVec2, Vec4};
 use zircon_runtime::graphics::WgpuRenderFramework;
@@ -346,16 +347,45 @@ fn template_surface_text_opacity_modulates_glyph_delta_through_formal_ui_pipelin
 
 #[test]
 fn text_capture_settle_requires_two_consecutive_clean_raster_frames() {
-    assert!(text_raster_frame_is_settled(0, 0, 0, 0, 0, 0, 0, 0, 0));
-    assert!(!text_raster_frame_is_settled(1, 0, 0, 0, 0, 0, 0, 0, 0));
-    assert!(!text_raster_frame_is_settled(0, 1, 0, 0, 0, 0, 0, 0, 0));
-    assert!(!text_raster_frame_is_settled(0, 0, 1, 0, 0, 0, 0, 0, 0));
-    assert!(!text_raster_frame_is_settled(0, 0, 0, 1, 0, 0, 0, 0, 0));
-    assert!(!text_raster_frame_is_settled(0, 0, 0, 0, 1, 0, 0, 0, 0));
-    assert!(!text_raster_frame_is_settled(0, 0, 0, 0, 0, 1, 0, 0, 0));
-    assert!(!text_raster_frame_is_settled(0, 0, 0, 0, 0, 0, 1, 0, 0));
-    assert!(!text_raster_frame_is_settled(0, 0, 0, 0, 0, 0, 0, 1, 0));
-    assert!(!text_raster_frame_is_settled(0, 0, 0, 0, 0, 0, 0, 0, 1));
+    assert!(text_raster_frame_is_settled(
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+    ));
     assert!(!text_raster_capture_is_stable(false, true));
     assert!(!text_raster_capture_is_stable(true, false));
     assert!(text_raster_capture_is_stable(true, true));
@@ -474,6 +504,9 @@ fn render_ui_extract_frame(
             stats.last_ui_text_sdf_generation_pending_batch_count,
             stats.last_ui_text_sdf_generation_completion_backlog_count,
             stats.last_ui_text_sdf_generation_failure_count,
+            stats.last_ui_text_raster_retry_queued_glyph_count,
+            stats.last_ui_text_raster_retry_queue_overflow_glyph_count,
+            stats.last_ui_text_raster_retry_rejected_source_count,
         );
         final_stats = Some(stats);
         capture_is_stable = text_raster_capture_is_stable(raster_was_settled, raster_is_settled);
@@ -510,6 +543,9 @@ fn text_raster_frame_is_settled(
     sdf_generation_pending_batch_count: usize,
     sdf_generation_completion_backlog_count: usize,
     sdf_generation_failure_count: usize,
+    retry_queued_glyph_count: usize,
+    retry_queue_overflow_glyph_count: usize,
+    retry_rejected_source_count: usize,
 ) -> bool {
     pending_count == 0
         && failed_count == 0
@@ -520,6 +556,9 @@ fn text_raster_frame_is_settled(
         && sdf_generation_pending_batch_count == 0
         && sdf_generation_completion_backlog_count == 0
         && sdf_generation_failure_count == 0
+        && retry_queued_glyph_count == 0
+        && retry_queue_overflow_glyph_count == 0
+        && retry_rejected_source_count == 0
 }
 
 fn text_raster_capture_is_stable(
@@ -675,7 +714,7 @@ fn empty_extract(viewport_size: UVec2, snapshot_id: u64) -> RenderFrameExtract {
     };
     camera.apply_viewport_size(viewport_size);
 
-    RenderFrameExtract::from_snapshot(
+    let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(snapshot_id),
         RenderSceneSnapshot {
             scene: RenderSceneGeometryExtract {
@@ -697,7 +736,17 @@ fn empty_extract(viewport_size: UVec2, snapshot_id: u64) -> RenderFrameExtract {
             },
             virtual_geometry_debug: None,
         },
-    )
+    );
+    // The contract renderer is texture-backed and has no acquired window
+    // surface; compile the frame for the same headless target it captures.
+    extract
+        .view
+        .selected_camera_descriptor_mut()
+        .expect("test extract should carry a selected camera descriptor")
+        .target = RenderCameraTarget::Headless {
+        size: viewport_size,
+    };
+    extract
 }
 
 fn assert_sparse_text_footprint(rgba: &[u8], width: u32, height: u32) {

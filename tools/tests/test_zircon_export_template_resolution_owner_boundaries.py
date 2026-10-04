@@ -1,13 +1,14 @@
+# 核对导出模板解析与校验的实现归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-EXPORT_TEMPLATE = REPO_ROOT / "tools/zircon_export/export_template.py"
+EXPORT_TEMPLATE = REPO_ROOT / "tools/export/export_template.py"
 EXPORT_TEMPLATE_RESOLUTION = (
-    REPO_ROOT / "tools/zircon_export/export_template_resolution.py"
+    REPO_ROOT / "tools/export/export_template_resolution.py"
 )
-PLATFORM_BUNDLE = REPO_ROOT / "tools/zircon_export/platform_bundle.py"
+PLATFORM_BUNDLE = REPO_ROOT / "tools/export/platform_bundle.py"
 
 
 class ZirconExportTemplateResolutionOwnerBoundaryTests(unittest.TestCase):

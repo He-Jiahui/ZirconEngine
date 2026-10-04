@@ -90,7 +90,7 @@ class EditorZuiWelcomeVisualDensityContractTests(unittest.TestCase):
         self.assertNotIn("Pinned startup workspace", source)
         self.assertIn("assert_eq!(commands.len(), 1);", source)
 
-    def test_wide_welcome_content_is_centered_between_equal_safe_margins(self):
+    def test_welcome_content_keeps_a_readable_center_at_wide_and_narrow_widths(self):
         with WELCOME_LAYOUT.open("rb") as source:
             nodes = tomllib.load(source)["nodes"]
 
@@ -104,7 +104,20 @@ class EditorZuiWelcomeVisualDensityContractTests(unittest.TestCase):
         self.assertEqual(0.0, outer_width["min"])
         self.assertEqual(1000.0, outer_width["preferred"])
         self.assertEqual(1000.0, outer_width["max"])
+        self.assertEqual(12.0, outer_width["weight"])
         self.assertEqual("Stretch", outer_width["stretch"])
+        self.assertEqual("$editor.density.panel_padding", left_width["min"])
+        with EDITOR_TOKENS.open("rb") as source:
+            panel_padding = tomllib.load(source)["density"]["panel_padding"]
+        narrow_content_share = (
+            (640.0 - panel_padding * 2)
+            * outer_width["weight"]
+            / (left_width["weight"] + outer_width["weight"] + right_width["weight"])
+        )
+        self.assertGreaterEqual(
+            narrow_content_share,
+            nodes["recent_panel"]["layout"]["width"]["min"] + 240.0,
+        )
 
         self.assertEqual(
             ["left_space", "outer_panel", "right_space"],
@@ -188,7 +201,7 @@ class EditorZuiWelcomeVisualDensityContractTests(unittest.TestCase):
         )
         self.assertEqual(
             {
-                "min": 280.0,
+                "min": 0.0,
                 "preferred": 560.0,
                 "max": 760.0,
                 "weight": 4.0,
@@ -299,7 +312,7 @@ class EditorZuiWelcomeVisualDensityContractTests(unittest.TestCase):
             len(nodes["startup_chooser_row"]["children"]),
         )
 
-    def test_ultra_width_prioritizes_the_project_task_over_recent_history(self):
+    def test_ultra_width_keeps_project_and_recent_panels_responsive(self):
         with WELCOME_LAYOUT.open("rb") as source:
             nodes = tomllib.load(source)["nodes"]
         with EDITOR_TOKENS.open("rb") as source:
@@ -313,7 +326,8 @@ class EditorZuiWelcomeVisualDensityContractTests(unittest.TestCase):
         panel_padding = tokens["density"]["panel_padding"]
         recent_min = recent["layout"]["width"]["min"]
         main_min = main["layout"]["width"]["min"]
-        self.assertGreater(recent_min + main_min + panel_padding * 2.0, logical_width)
+        self.assertEqual(0.0, main_min)
+        self.assertLessEqual(recent_min + main_min + panel_padding * 2.0, logical_width)
         self.assertLessEqual(main_min + panel_padding * 2.0, logical_width)
         self.assertLessEqual(logical_width, tokens["density"]["breakpoint_ultra_width"])
 

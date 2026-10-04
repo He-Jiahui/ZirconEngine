@@ -1,3 +1,4 @@
+// TODO: [CR-WOC-CW-2003] 确认交互选择契约测试由哪个可执行项目接管；当前清单没有指向此入口，缺少运行回执；下一步按既有世界审查计划的 WORLD-P0-006 核对测试项目与产物归属。
 var console = %import("zr.system.console");
 var interaction = %import("world/interaction_selection");
 

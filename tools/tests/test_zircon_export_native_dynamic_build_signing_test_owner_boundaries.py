@@ -8,10 +8,10 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 NATIVE_DYNAMIC_BUILD_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_native_dynamic_build_signing.py"
+    REPO_ROOT / "tools/export/tests/test_native_dynamic_build_signing.py"
 )
 NATIVE_DYNAMIC_SIGNING_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_native_dynamic_signing_notarization.py"
+    REPO_ROOT / "tools/export/tests/test_native_dynamic_signing_notarization.py"
 )
 
 SIGNING_NOTARIZATION_TEST_METHODS = (

@@ -25,7 +25,7 @@ fn floating_windows_project_tabs_and_active_pane_for_host_presentation() {
     fixture.layout.floating_windows.push(FloatingWindowLayout {
         window_id: window_id.clone(),
         title: "Preview Popout".to_string(),
-        workspace: DocumentNode::Tabs(TabStackLayout {
+        workspace: DocumentNode::tabs(TabStackLayout {
             tabs: vec![
                 scene_instance.instance_id.clone(),
                 game_instance.instance_id.clone(),
@@ -99,7 +99,7 @@ fn floating_windows_ignore_stale_focused_view_when_projecting_focus_target() {
     fixture.layout.floating_windows.push(FloatingWindowLayout {
         window_id: window_id.clone(),
         title: "Preview Popout".to_string(),
-        workspace: DocumentNode::Tabs(TabStackLayout {
+        workspace: DocumentNode::tabs(TabStackLayout {
             tabs: vec![
                 scene_instance.instance_id.clone(),
                 game_instance.instance_id.clone(),
@@ -163,7 +163,7 @@ fn floating_window_overlay_snapshot_captures_shared_frame_and_route_keys() {
     fixture.layout.floating_windows.push(FloatingWindowLayout {
         window_id: window_id.clone(),
         title: "Preview Popout".to_string(),
-        workspace: DocumentNode::Tabs(TabStackLayout {
+        workspace: DocumentNode::tabs(TabStackLayout {
             tabs: vec![
                 scene_instance.instance_id.clone(),
                 game_instance.instance_id.clone(),
@@ -259,7 +259,7 @@ fn floating_window_overlay_route_keys_match_shared_shell_pointer_route_normaliza
     fixture.layout.floating_windows.push(FloatingWindowLayout {
         window_id: window_id.clone(),
         title: "Preview Popout".to_string(),
-        workspace: DocumentNode::Tabs(TabStackLayout {
+        workspace: DocumentNode::tabs(TabStackLayout {
             tabs: vec![scene_instance.instance_id.clone()],
             active_tab: Some(scene_instance.instance_id.clone()),
         }),
@@ -353,7 +353,7 @@ fn collect_floating_windows_does_not_fall_back_to_legacy_geometry_when_projectio
     fixture.layout.floating_windows.push(FloatingWindowLayout {
         window_id: window_id.clone(),
         title: "Preview Popout".to_string(),
-        workspace: DocumentNode::Tabs(TabStackLayout {
+        workspace: DocumentNode::tabs(TabStackLayout {
             tabs: vec![scene_instance.instance_id.clone()],
             active_tab: Some(scene_instance.instance_id.clone()),
         }),

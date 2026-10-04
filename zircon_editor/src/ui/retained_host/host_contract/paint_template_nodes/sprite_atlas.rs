@@ -103,11 +103,12 @@ fn insert_cached_resolution(
 
 fn resolve_atlas_uncached(entry_name: &str, source_path: &Path) -> Option<AtlasResolution> {
     for manifest_path in discovery::atlas_manifest_candidates(source_path) {
-        let atlas = cache::load_atlas_manifest(&manifest_path)?;
-        let entry = atlas
-            .entries
-            .iter()
-            .find(|entry| entry.name == entry_name)?;
+        let Some(atlas) = cache::load_atlas_manifest(&manifest_path) else {
+            continue;
+        };
+        let Some(entry) = atlas.entries.iter().find(|entry| entry.name == entry_name) else {
+            continue;
+        };
         return Some(AtlasResolution {
             manifest_path,
             resource_key: atlas.atlas_texture.to_string(),
@@ -124,5 +125,9 @@ static ATLAS_RESOLUTION_CACHE: OnceLock<
 > = OnceLock::new();
 
 #[cfg(test)]
-#[path = "sprite_atlas_tests/mod.rs"]
+#[path = "sprite_atlas_tests/tests/mod.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "sprite_atlas/tests/astra_lookup_tests.rs"]
+mod astra_lookup_tests;

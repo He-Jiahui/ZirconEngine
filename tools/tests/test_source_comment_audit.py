@@ -1,3 +1,4 @@
+# 核对源码注释审计命令的库存、复核新鲜度、批量标记原子性及并发锁契约。
 import contextlib
 import hashlib
 import io
@@ -18,7 +19,7 @@ class SourceCommentAuditTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
-        self.data = self.root / "docs/cli-and-tooling/source-comment-audit"
+        self.data = self.root / "docs/tooling/source-comment-audit"
         subprocess.run(["git", "init", "-q"], cwd=self.root, check=True)
 
     def write(self, relative: str, content: str | bytes) -> Path:
@@ -62,7 +63,7 @@ class SourceCommentAuditTests(unittest.TestCase):
         self.write("examples/vampire/assets/actor.zmeta", "source_digest = '123'\n")
         self.write("examples/vampire/assets/animation/attack.zranim", "[graph]\nname = 'attack'\n")
         self.write("templates/projects/example/export/desktop.zpreset", "[export]\n")
-        self.write("tools/zircon_export/export-templates/macos/Info.plist", "<plist></plist>\n")
+        self.write("tools/export/export-templates/macos/Info.plist", "<plist></plist>\n")
         self.write("zircon_plugins/navigation/native/vendor/recastnavigation/lib.cpp", "void f() {}\n")
         self.write("zircon_runtime/.zircon-cache/shader_variants/v1/cache.meta", "digest = '123'\n")
         self.write("tools/session_tray/gen/schemas/windows-schema.json", "{}\n")
@@ -85,7 +86,7 @@ class SourceCommentAuditTests(unittest.TestCase):
         self.assertEqual("generated_metadata", rows["examples/vampire/assets/actor.zmeta"]["reason"])
         self.assertEqual("included", rows["examples/vampire/assets/animation/attack.zranim"]["scope"])
         self.assertEqual("included", rows["templates/projects/example/export/desktop.zpreset"]["scope"])
-        self.assertEqual("included", rows["tools/zircon_export/export-templates/macos/Info.plist"]["scope"])
+        self.assertEqual("included", rows["tools/export/export-templates/macos/Info.plist"]["scope"])
         self.assertEqual("third_party", rows["zircon_plugins/navigation/native/vendor/recastnavigation/lib.cpp"]["reason"])
         self.assertEqual("cache_or_build_output", rows["zircon_runtime/.zircon-cache/shader_variants/v1/cache.meta"]["reason"])
         self.assertEqual("generated", rows["tools/session_tray/gen/schemas/windows-schema.json"]["reason"])
@@ -132,7 +133,7 @@ class SourceCommentAuditTests(unittest.TestCase):
             "// TODO: [CR-runtime-0001] Investigate the loader.\n",
         )
         self.write("zircon_hub/deploy/local/deployment.json", '{}\n')
-        self.write("docs/cli-and-tooling/source-comment-audit/README.md", "// BUG: [CR-runtime-8888] sample\n")
+        self.write("docs/_data/source-comment-audit/README.md", "// BUG: [CR-runtime-8888] sample\n")
         self.assertEqual(0, self.run_cli("inventory", "--write")[0])
         issues = self.data / "issues/runtime.jsonl"
         issues.parent.mkdir(parents=True, exist_ok=True)

@@ -1,3 +1,4 @@
+# 核对中心产物查找命中后不递归扫描，安装清单只遍历目录一次。
 from __future__ import annotations
 
 import tempfile
@@ -5,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_build_hub_outputs import _find_artifact
+from tools.build.zircon_build_hub_outputs import _find_artifact
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "zircon_build_hub_outputs.py"

@@ -44,7 +44,7 @@ source_recheck_required: true
 
 Zircon Animation 不是纯占位实现。当前插件已经有真正的 `animation.evaluate` scene system、typed ECS projection、asset revision 检查、compiled skeleton target table、compiled clip/graph/state-machine cache、PosePool、四个 direct-clip worker shard、clip/graph/state-machine/sequence 求值、layer/mask/additive blend、two-bone/look-at IK，以及 animation 到 physics 的 `SkeletalPoseTargets` 和 simulated pose 回灌。最近的 current-source 修改还补入 world replacement epoch、事件 admission/defer、可续采样游标、生产批次原子性和 deferred entity 的时间/姿态/状态回滚。事件入口按范围数、事件数、字节和单次时间跨度设有硬预算。这些都是值得保留的正确基础，不能在重构时退回全场景字符串扫描、无界事件或无 replacement generation 的旧 hook。
 
-但从“导入一个带骨骼动画的 glTF，在 App/Editor 中稳定播放并由 GPU 蒙皮显示”这条最短产品链看，当前仍存在数个阻断级断点。高优先级 first-party `gltf_importer` 把动画导成写有“not implemented yet”的 `DataAsset`，而低优先级 Runtime builtin importer 才会产生 `AnimationClipAsset`；builtin 又把非根骨骼的 leaf name 写进要求完整 canonical path 的 `target_id`，导致 compiled target table 无法解析。inverse bind matrices 被装进无人消费的通用 JSON data asset，GPU skinning readiness 永远是默认 disabled，所谓 `SkinningPaletteDoubleBuffer` 只在 CPU 上 clone `Vec`，没有 renderer upload consumer。因此公开 asset、runtime、render surface 并没有形成 skinned mesh 产品闭环。
+但从“导入一个带骨骼动画的 glTF，在 App/Editor 中稳定播放并由 GPU 蒙皮显示”这条最短产品链看，当前仍存在数个阻断级断点。历史高优先级 first-party `gltf_importer` 的“not implemented yet”动画 placeholder 已被移除；内建与 plugin 现在通过共享 helper 生成 typed `AnimationClipAsset`/`AnimationSkeletonAsset`，并对 skeleton target path 做 canonical 校验。inverse bind matrices 与 Skin payload 仍是无人消费的通用 JSON data asset，GPU skinning readiness 永远是默认 disabled，所谓 `SkinningPaletteDoubleBuffer` 只在 CPU 上 clone `Vec`，没有 renderer upload consumer。因此公开 asset、runtime、render surface 并没有形成 skinned mesh 产品闭环。
 
 运行时还有一个直接影响产品正确性的缺口：`animation_frame_demand` 依赖 `LevelSystem::animation_requires_continuous_frame()`，但全仓生产代码没有任何调用点在动画播放时写入 `animation_requires_continuous_frame`；只有测试和 failed-tick reset 访问该位。事件 backlog 会单独保持帧循环，但没有事件的普通 clip/graph/state machine 在反应式宿主中可能只推进一次。这个问题说明现有 pipeline tests 不能替代 App/session cadence 验收。
 
@@ -111,11 +111,11 @@ session frame demand仅在 `LevelSystem::animation_requires_continuous_frame()` 
 
 目标由animation runtime在同一replacement epoch中发布 `AnimationFrameDemandSnapshot`，内容至少包含active advancing instances、pending tasks、event backlog、transition/sequence、paused-but-dirty和next scheduled wake。session只消费immutable generation，不推断pose map是否非空。空world、pause、speed=0、once-at-end、asset unavailable、world replacement和failed tick都要有exact transition测试；App与Editor在reactive cadence下实测持续播放、最终回idle和无busy loop。
 
-### P1-3：glTF importer authority反转，高优先级first-party插件把动画降级成placeholder
+### P1-3：glTF importer authority分叉（历史 placeholder 已修复，artifact 仍未统一）
 
-Runtime builtin `zircon.builtin.model.gltf` priority 10 能生成 `AnimationSkeletonAsset` 和 `AnimationClipAsset`。first-party `gltf_importer.gltf` priority 120却为每个animation输出通用 `DataAsset`，文字明确写着channel import未实现；它只导skin与inverse bind data。安装正常插件后，产品更可能选择更高优先级但更不完整的实现，形成“fallback比正式插件完整”的反向能力。
+Runtime builtin `zircon.builtin.model.gltf` priority 10 与 first-party `gltf_importer.gltf` priority 120 当前都生成 typed `AnimationSkeletonAsset`/`AnimationClipAsset`，并调用共享 glTF animation/skin helper；历史“每个 animation 是 DataAsset placeholder”的断点不再描述当前 source。安装 plugin 后仍会因 priority 120 覆盖 builtin 10 而改变 provider authority，且两者的 Skin/inverse-bind、extension 与 cook/artifact qualification 仍需证明完全一致，形成“选择语义可漂移”的产品风险。
 
-目标选择一个canonical glTF decode/cook owner，插件和builtin不得各维护一套subasset逻辑。若插件是产品owner，应迁入已验证的skeleton/clip逻辑后删除builtin重复路径；若Runtime owner被保留，插件只能注册该owner而不能复制/占位。importer descriptor必须列出真实additional outputs和feature status。门禁从真实多骨、skin、多个animation、external buffer glTF经过import、asset resolve、runtime sample、render capture，不能只断言placeholder/JSON shape。
+目标选择一个canonical glTF decode/cook owner，插件和builtin不得各维护一套独立 artifact 语义。当前共享 skeleton/clip helper 已完成一半收敛；下一步仍需统一 provider 选择、SkinBinding/inverse-bind schema、descriptor/output qualification 与 product gate。importer descriptor必须列出真实additional outputs和feature status。门禁从真实多骨、skin、多个animation、external buffer glTF经过import、asset resolve、runtime sample、render capture，不能只断言 typed clip 存在或 JSON shape。
 
 ### P1-4：builtin glTF对非根骨骼生成错误target_id，导入资产可在compiled evaluation时失配
 
@@ -125,7 +125,7 @@ Runtime builtin `zircon.builtin.model.gltf` priority 10 能生成 `AnimationSkel
 
 ### P1-5：Skeleton、Skin、inverse bind、mesh与clip没有形成一个版本化资产关系
 
-core importer把inverse bind matrices单独序列化成 `kind=gltf_inverse_bind_matrices` 的JSON `DataAsset`；全仓没有animation/render consumer。plugin importer的skin也没有生成AnimationSkeleton。runtime pose以skeleton asset为准，renderer skinning binding没有获得joint remap、inverse bind、mesh skin index或asset generation。skeleton target path、scene descendant name和mesh joint顺序分别存在，缺少同一identity。
+core/plugin importer 都把 inverse bind matrices 单独序列化成 `kind=gltf_inverse_bind_matrices` 的JSON `DataAsset`，Skin 也仍是 generic Data；全仓没有 animation/render consumer。两者现在都会生成 `AnimationSkeleton`，但 runtime pose、renderer skinning binding 仍没有共享 joint remap、inverse bind、mesh skin index 或 asset generation；skeleton target path、scene descendant name 和 mesh joint 顺序仍缺少同一 typed identity。
 
 目标建立 `SkeletalRigCookArtifact`：stable rig id/generation、parent table、bind local/model pose、inverse bind、joint-to-dense-slot、mesh skin remap、retarget metadata、bounds和format version。clip artifact依赖rig signature；skinned mesh依赖同一rig/skin signature。reimport先prepare所有artifact与dependency graph，成功后原子publish generation；旧instances/renderer lease继续使用旧generation直到retire。JSON debug view可以派生，但不能是runtime真相。
 
@@ -294,7 +294,7 @@ two-bone/look-at不足以覆盖procedural rig、constraints、foot contact、fac
 ## 8. 必须硬切的旧路径
 
 1. 删除core/plugin重复的animation module/manager implementation，只保留一个production owner和Runtime contract。
-2. 删除高优先级glTF animation placeholder路径；canonical importer必须生成同一rig/clip artifact。
+2. 保留并扩大当前共享 glTF skeleton/clip helper；将 generic Skin/inverse-bind 与 provider priority 分叉收敛为同一 rig/clip/skin artifact，禁止历史 placeholder 或未资格化 Data 进入 Ready。
 3. 禁止runtime frame调用owned `load_animation_*_asset`；改为prepared lease admission。
 4. 禁止internal hot path生成带bone String的AoS pose；只在inspection边界materialize。
 5. 禁止每bone写普通scene node作为skinning主路径；socket/attachment使用选择性projection。

@@ -62,7 +62,7 @@ fn template_tree_builder_preserves_overlay_slot_z_order_contracts() {
         .unwrap();
 
     let background_slot = tree
-        .slots
+        .layout_slots()
         .iter()
         .find(|slot| {
             tree.node(slot.child_id)
@@ -72,7 +72,7 @@ fn template_tree_builder_preserves_overlay_slot_z_order_contracts() {
         })
         .expect("background overlay slot");
     let foreground_slot = tree
-        .slots
+        .layout_slots()
         .iter()
         .find(|slot| {
             tree.node(slot.child_id)

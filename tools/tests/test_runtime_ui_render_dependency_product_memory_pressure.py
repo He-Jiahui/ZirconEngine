@@ -1,12 +1,12 @@
 from pathlib import Path
 import unittest
 
-from tools.runtime_ui_render_dependency_product_memory_pressure import (
+from tools.analysis.performance.runtime.runtime_ui_render_dependency_product_memory_pressure import (
     run,
     validate_output_path,
 )
 
-
+# 以多段增量模型约束渲染依赖产品只保留一份源载荷、有限目录元数据及每代受影响路径。
 class RuntimeUiRenderDependencyProductMemoryPressureTests(unittest.TestCase):
     def test_default_model_retains_one_source_payload_and_bounded_metadata(self):
         result = run()

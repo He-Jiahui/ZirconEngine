@@ -42,7 +42,7 @@ Build {
 **脚本子系统是自研 VM**（`zircon_runtime/src/script/vm/` 实测条目：`backend/ gameplay_host/ host/ module/ plugin/ runtime/ scene_hook/ + capability_set.rs handles.rs runtime_context.rs`）。**编译接缝已定位**：`vm/backend/zr_vm_project_backend/real_backend/package.rs` 是当前唯一含 compile 语义的文件——M2 会签的 VM 编译入口以该 backend 为锚点，不另起炉灶。依 `runtime/13` 权威计划（现状节实测）：
 
 - 绑定宏三族：`zircon_host_function / zircon_host_module / ZirconScriptType`（经 `zircon_runtime_reflection_macros` 再导出）；
-- 宿主函数权威清册：52 函数 / 6 模块 / 2 类型描述符（`docs/zircon_runtime/script/vm/host/function_ledger.md`）；
+- 宿主函数权威清册：52 函数 / 6 模块 / 2 类型描述符（`docs/crates/zircon_runtime/script/vm/host/function_ledger.md`）；
 - marshalling 三分类：值类型（serde）/ 句柄（handles.rs）/ 序列化缓冲；
 - 脚本-ECS 单点：`gameplay_host` facade 是唯一玩法面。
 
@@ -62,7 +62,7 @@ Build {
 3. **产物热接入**：VM 模块产物走资产热重载队列（脚本模块注册为资产类型——09 `AssetTypeRegistry` 一条目 + importer 一枚）；应用报告 `AssetReloadFrameApplyReport` 已按帧回流 → 02 `WorldFact::AssetReloadApplied` → 编辑器提示；**实例状态迁移**：VM 层 reload 前对模块实例状态做 serde 快照、reload 后按字段名重放（runtime/13 的 marshalling 值类型通道复用），字段失配处置（缺省填/丢弃）入报告——UE 教训的显式防线；迁移失败 → 保持旧模块运行 + 诊断。
 4. **Play 链路与互斥**：`Building` 期间 Play 按钮转等待（04 状态机）；编译失败 → 中止 Play 并聚焦诊断面板；编译 job 与导入 job 在 14 门面同属互斥资源（脚本产物即资产，避免编译写/导入读竞态）。
 5. **CI/无头**：`build-scripts` commandlet（16 注册表）：全量编译 + 诊断 JSON 输出 + 非零退出码——`zircon_editor --run build-scripts` 是唯一产品无头入口。
-6. **（条件）Rust crate 形态**：若 runtime/13 落地 dylib 玩法路线——cargo 子进程封装（继承 `tools/dev-fast-build.ps1` 的 profile/共享 target-dir/磁盘策略纪律）、产物校验、重载即重启 PIE（不做状态迁移的诚实降级）。
+6. **（条件）Rust crate 形态**：若 runtime/13 落地 dylib 玩法路线——cargo 子进程封装（继承 `tools/dev/dev-fast-build.ps1` 的 profile/共享 target-dir/磁盘策略纪律）、产物校验、重载即重启 PIE（不做状态迁移的诚实降级）。
 
 ## 非目标
 
@@ -103,7 +103,7 @@ zircon_runtime_interface/src/script_diagnostics/   # DTO
 
 - 切片 1.1：`orchestrator.rs` 状态机 + 三触发源（watch 去抖合批/命令/Play 委托接口）+ 队列语义（前步失败即止）；假编译器夹具。2026-07-18 已完成纯领域生产核心与测试夹具；异步 completion 绑定原 dispatch 的 request+step 双身份，拒绝同 request 旧步骤迟到推进当前步骤。2026-08-11 已补 first-event max latency、20 路径/64KiB 双预算、单 pending generation、Command/Play single-flight、Play precedence 与显式 Cancelled outcome；受管 Rust 测试仍待仓库级 artifact gate 解禁，见 [子计划记录](13/2026-07-18-script-build-orchestrator-m1.md)与 [open failure](13/failure-2026-07-22-script-build-debounce-admission-backpressure.md)。
 - 切片 1.2：`script_diagnostics` DTO + `diagnostics_sink.rs`（分组/过滤/跳转动作发 bus 消息）+ 状态栏徽标数据源。2026-08-11 已完成 DTO、Editor17 canonical log severity/jump 投影与 generation/request/step 有界去重的 current-source 实现；静态合同 8/8、scoped rustfmt/diff check GREEN，受管 Rust 测试仍被仓库级未登记 D/E/F artifact gate 阻塞，failure 保持 open，见 [交接记录](13/failure-2026-08-05-script-build-diagnostics-editor-log-source-bridge.md)。
-- 测试阶段：`cargo test -p zircon_editor --lib --locked`（状态机全迁移矩阵/去抖合批时序/队列中断/诊断汇聚分组）+ `cargo test -p zircon_runtime_interface --locked`（DTO 往返）。更新 `docs/zircon_editor/core/script_build.md`。
+- 测试阶段：`cargo test -p zircon_editor --lib --locked`（状态机全迁移矩阵/去抖合批时序/队列中断/诊断汇聚分组）+ `cargo test -p zircon_runtime_interface --locked`（DTO 往返）。更新 `docs/crates/zircon_editor/core/script_build.md`。
 
 ### M2 真实 VM 接线与热接入
 

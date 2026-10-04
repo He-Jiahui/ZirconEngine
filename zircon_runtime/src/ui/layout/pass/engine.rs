@@ -10,6 +10,8 @@ use zircon_runtime_interface::ui::{
     tree::UiTree,
 };
 
+use crate::ui::layout::taffy_bridge::UiTaffyChildContractScope;
+
 #[derive(Debug, Default)]
 pub(super) struct UiLayoutPassEngineContext {
     selections: Vec<UiLayoutEngineSelection>,
@@ -18,6 +20,7 @@ pub(super) struct UiLayoutPassEngineContext {
     required_children_by_parent: BTreeMap<UiNodeId, Vec<UiNodeId>>,
     // A propagated ancestor may be required without changing its own layout contract.
     layout_source_node_ids: BTreeSet<UiNodeId>,
+    mutation_source_node_ids: BTreeSet<UiNodeId>,
     visited_node_ids: BTreeSet<UiNodeId>,
     geometry_changed_node_ids: BTreeSet<UiNodeId>,
     arrangement_probe_node_count: usize,
@@ -53,6 +56,20 @@ impl UiLayoutPassEngineContext {
                 .entry(parent_id)
                 .or_default()
                 .push(*node_id);
+        }
+        self.mutation_source_node_ids = tree.pending_mutation_node_ids().clone();
+        for node_id in tree.pending_mutation_node_ids().iter().copied() {
+            let mut current = node_id;
+            while let Some(parent_id) = tree.node(current).and_then(|node| node.parent) {
+                let children = self
+                    .required_children_by_parent
+                    .entry(parent_id)
+                    .or_default();
+                if !children.contains(&current) {
+                    children.push(current);
+                }
+                current = parent_id;
+            }
         }
     }
 
@@ -99,6 +116,21 @@ impl UiLayoutPassEngineContext {
             && previous_clip_frame == next_clip_frame
     }
 
+    pub(super) fn taffy_child_contract_scope(
+        &self,
+        parent_id: UiNodeId,
+        structure_dirty: bool,
+    ) -> UiTaffyChildContractScope {
+        if !self.reuse_geometry
+            || structure_dirty
+            || self.layout_source_node_ids.contains(&parent_id)
+            || self.mutation_source_node_ids.contains(&parent_id)
+        {
+            return UiTaffyChildContractScope::Full;
+        }
+        UiTaffyChildContractScope::Exact
+    }
+
     pub(super) fn can_reuse_geometry(
         &self,
         node_id: UiNodeId,
@@ -135,17 +167,18 @@ impl UiLayoutPassEngineContext {
         &mut self,
         node_id: UiNodeId,
         container: UiContainerKind,
-        taffy_tree_build: UiLayoutEngineTaffyTreeBuildStats,
+        taffy_tree_build: Option<UiLayoutEngineTaffyTreeBuildStats>,
     ) {
-        self.selections.push(
-            UiLayoutEngineSelection::select(
-                &UiLayoutEngineRequest::from_container_kind(container),
-                &UiLayoutEngineCapability::taffy_flex_grid_wrap_block(),
-                &UiLayoutEngineCapability::zircon(),
-            )
-            .with_node_id(node_id)
-            .with_taffy_tree_build(taffy_tree_build),
-        );
+        let selection = UiLayoutEngineSelection::select(
+            &UiLayoutEngineRequest::from_container_kind(container),
+            &UiLayoutEngineCapability::taffy_flex_grid_wrap_block(),
+            &UiLayoutEngineCapability::zircon(),
+        )
+        .with_node_id(node_id);
+        self.selections.push(match taffy_tree_build {
+            Some(tree_build) => selection.with_taffy_tree_build(tree_build),
+            None => selection,
+        });
     }
 
     pub(super) fn record_taffy_fallback(

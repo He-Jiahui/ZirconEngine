@@ -73,7 +73,7 @@ streaming粒度也与artifact形态冲突。64 KiB chunk只切分压缩后的完
 | artifact store/cache payload | 17 / 5,030 | E3：manifest/chunk/residency、zstd+bincode read/write与typed payload |
 | texture assets/upload support | 23 / 5,733 | E3：descriptor/payload/container layout/readiness/cubemap/lightmap |
 | mesh/model assets | 23 / 2,361 | E3：CPU layout、conversion、bounds、SDF、usage和serialization |
-| glTF importer | 6 / 3,028 | E3：source import、geometry/image/material/model/mesh subasset与placeholder |
+| glTF importer | 6 / 3,028 | E3：source import、geometry/image/material/model/mesh subasset；当前 animation clip/skeleton 为 typed，Skin/inverse-bind 仍是 generic Data |
 | OBJ/model importers | 12 / 1,832 | E3：parse、root model、mesh subasset、VG/SDF cook与registration |
 | legacy texture importer surface | 3 / 290 | E3 descriptor；E0 production registration/implementation |
 | ProjectAssetManager loading | 7 / 639 | E3：ensure resident、clone load与lease acquire |

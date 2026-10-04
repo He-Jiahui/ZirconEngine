@@ -1,7 +1,10 @@
+//! 实验组件类名由模板节点属性与显式 slot 共同决定，供 TabPanel 和 Timeline 的样式规则在展开后匹配。
+
 use zircon_runtime_interface::ui::template::UiTemplateNode;
 
 use super::{append_class, bool_attribute_any, mui_slot_name, pascal_case, string_attribute_any};
 
+/// 从组件类名分发入口接收 Lab 组件；返回已接管状态以停止后续组件族分发；通用类的抑制由另一个查询单独决定。
 pub(super) fn append_component_classes(
     node: &mut UiTemplateNode,
     component: &str,
@@ -88,6 +91,7 @@ fn timeline_position_class(position: &str) -> String {
     }
 }
 
+// TabPanel 仅在自身值与上下文选中值都存在且不相同时隐藏；借用查询避免重复复制字符串。
 fn has_mismatched_tab_value(node: &UiTemplateNode) -> bool {
     let Some(value) = borrowed_lab_attribute(node, &["value", "value_text"]) else {
         return false;
@@ -114,6 +118,7 @@ fn borrowed_lab_attribute<'a>(node: &'a UiTemplateNode, names: &[&str]) -> Optio
     })
 }
 
+// Timeline 的 oppositeContent 可能来自显式 slot 或带 slot 标记的普通子节点，两条装配路径都需识别。
 fn has_opposite_content(node: &UiTemplateNode) -> bool {
     bool_attribute_any(
         node,
@@ -134,5 +139,5 @@ fn has_opposite_content(node: &UiTemplateNode) -> bool {
 }
 
 #[cfg(test)]
-#[path = "mui_lab_classes/borrowed_tab_value_tests.rs"]
+#[path = "mui_lab_classes/tests/borrowed_tab_value_tests.rs"]
 mod borrowed_tab_value_tests;

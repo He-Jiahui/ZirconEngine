@@ -10,6 +10,7 @@ impl EditorUiHost {
         &self,
         instance_id: &ViewInstanceId,
     ) -> Result<(), EditorError> {
+        let _edit = self.begin_document_edit_if_registered(instance_id)?;
         let (widget_refs, style_refs) = {
             let sessions = self.lock_ui_asset_sessions();
             let entry = sessions.get(instance_id).ok_or_else(|| {

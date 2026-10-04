@@ -2,6 +2,10 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use super::super::super::{UiResolvedTextLine, UiResolvedTextRun, UiTextDirection, UiTextRange};
 
+#[cfg(test)]
+#[path = "cluster/tests/performance_tests.rs"]
+mod performance_tests;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct UiTextVisualSourceCluster {
     pub(super) source_range: UiTextRange,
@@ -10,24 +14,55 @@ pub(super) struct UiTextVisualSourceCluster {
     pub(super) source_isomorphic: bool,
 }
 
+/// 按视觉文本的 grapheme 建立 source 映射；跨样式 run 的组合字符仍聚合成一个 cluster。
 pub(super) fn visual_source_clusters(line: &UiResolvedTextLine) -> Vec<UiTextVisualSourceCluster> {
+    if !runs_are_visually_ordered(&line.runs) {
+        return visual_source_clusters_linear(line);
+    }
+
     // Layout normally provides one visual advance per grapheme, so reserve the
     // exact cluster count before a geometry or hit-test consumer walks it.
+    let mut clusters = Vec::with_capacity(line.glyph_advances.len());
+    let mut run_start = 0;
+    for (start, grapheme) in line.text.grapheme_indices(true) {
+        let visual_range = UiTextRange {
+            start: line.visual_range.start + start,
+            end: line.visual_range.start + start + grapheme.len(),
+        };
+        while line
+            .runs
+            .get(run_start)
+            .is_some_and(|run| run.visual_range.end <= visual_range.start)
+        {
+            run_start += 1;
+        }
+        if let Some(cluster) =
+            cluster_for_visual_grapheme_in_runs(&line.runs[run_start..], visual_range, true)
+        {
+            clusters.push(cluster);
+        }
+    }
+    clusters
+}
+
+fn visual_source_clusters_linear(line: &UiResolvedTextLine) -> Vec<UiTextVisualSourceCluster> {
     let mut clusters = Vec::with_capacity(line.glyph_advances.len());
     for (start, grapheme) in line.text.grapheme_indices(true) {
         let visual_range = UiTextRange {
             start: line.visual_range.start + start,
             end: line.visual_range.start + start + grapheme.len(),
         };
-        if let Some(cluster) = cluster_for_visual_grapheme(line, visual_range) {
+        if let Some(cluster) = cluster_for_visual_grapheme_in_runs(&line.runs, visual_range, false)
+        {
             clusters.push(cluster);
         }
     }
-    debug_assert!(
-        line.glyph_advances.is_empty() || clusters.len() == line.glyph_advances.len(),
-        "resolved text line must provide one advance per visual grapheme"
-    );
     clusters
+}
+
+fn runs_are_visually_ordered(runs: &[UiResolvedTextRun]) -> bool {
+    runs.windows(2)
+        .all(|pair| pair[0].visual_range.start <= pair[1].visual_range.start)
 }
 
 pub(super) fn logical_start_visual_offset(cluster: &UiTextVisualSourceCluster) -> usize {
@@ -62,16 +97,20 @@ pub(super) fn trailing_source_offset(cluster: &UiTextVisualSourceCluster) -> usi
     }
 }
 
-fn cluster_for_visual_grapheme(
-    line: &UiResolvedTextLine,
+fn cluster_for_visual_grapheme_in_runs<'a>(
+    runs: &'a [UiResolvedTextRun],
     visual_range: UiTextRange,
+    runs_are_ordered: bool,
 ) -> Option<UiTextVisualSourceCluster> {
     let mut source_start = usize::MAX;
     let mut source_end = 0;
     let mut direction = None;
     let mut only_overlapping_run = None;
     let mut has_multiple_overlapping_runs = false;
-    for run in &line.runs {
+    for run in runs {
+        if runs_are_ordered && run.visual_range.start >= visual_range.end {
+            break;
+        }
         if run.visual_range.start >= visual_range.end || visual_range.start >= run.visual_range.end
         {
             continue;

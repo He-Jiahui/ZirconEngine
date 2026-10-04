@@ -22,7 +22,7 @@ def rust_block(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated Rust block: {signature}")
 
-
+# 读取实现源码约束键盘准入：键盘文本合并控制与空白分类，并接受键盘文本保留借用。
 class RuntimeKeyboardAdmissionPerformanceContractTests(unittest.TestCase):
     def test_keyboard_text_combines_control_and_whitespace_classification(self) -> None:
         source = KEYBOARD_ACTION.read_text(encoding="utf-8")

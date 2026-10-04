@@ -1,8 +1,8 @@
 import unittest
 
-from tools.runtime_keyboard_admission_pressure import run
+from tools.analysis.performance.runtime.runtime_keyboard_admission_pressure import run
 
-
+# 调用 Python 压力模型检验键盘准入：全部空白文本减半字符扫描与访问，并近似匹配方向键规范化一次每 check。
 class RuntimeKeyboardAdmissionPressureTests(unittest.TestCase):
     def test_all_whitespace_text_halves_character_scans_and_visits(self) -> None:
         text = run()["keyboard_text"]

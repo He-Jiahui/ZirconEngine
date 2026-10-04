@@ -17,6 +17,7 @@ pub isOccupied(
         math.abs(entityZ - originZ) < occupancyRadius;
 }
 
+/// 这是每秒采样次数，不是每次固定步都累加的计时；调用方须先通过检查节拍，再根据实例占用状态推进。
 pub nextEmptyFor(emptyFor: int, occupied: bool): int {
     if (emptyFor < 0) { throw "woc Delve empty timer is invalid"; }
     return occupied ? 0 : emptyFor + 1;

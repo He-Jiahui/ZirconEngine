@@ -12,7 +12,7 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/script/vm/gameplay_host.rs
   - zircon_runtime/src/script/vm/gameplay_host/scene_transition.rs
-  - docs/zircon_runtime/script/vm/host/function_ledger.md
+  - docs/crates/zircon_runtime/script/vm/host/function_ledger.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/script_binding_boundary.py
 tests:
   - cargo test -p zircon_runtime --lib script::vm::tests::module_surface --locked --jobs 1 -- --nocapture --test-threads=1

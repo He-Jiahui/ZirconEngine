@@ -10,10 +10,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 failure_scope: local
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/baselines.py
-  - tools/session_coordinator/client.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/tests/test_control_load.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_control_load.ControlLoadTests.test_z_health_and_action_preview_p95_targets -v
   - python -m unittest tools.session_coordinator.tests.test_control_load.ControlLoadTests.test_reused_health_connection_observes_fresh_database_state -v

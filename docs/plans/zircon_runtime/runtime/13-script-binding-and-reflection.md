@@ -23,7 +23,6 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/script_host_ledger/ecs_facade.rs
   - zircon_runtime/src/tests/runtime_absorption/script_binding/mirror_docs.rs
   - tools/tests/test_runtime_script_binding_audit.py
-  - tests/acceptance/runtime-script-binding-audit-owner-sync.md
   - zircon_runtime/src/tests/runtime_absorption/script_binding/inventory.rs
   - zircon_runtime/src/tests/runtime_absorption/script_binding/support.rs
   - zircon_runtime/src/tests/runtime_absorption/script_binding/split_layout.rs
@@ -34,16 +33,16 @@ related_code:
   - zircon_runtime_interface/src/reflect
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
-  - docs/zircon_runtime/script/vm/host/function_ledger.md
+  - docs/crates/zircon_runtime/script/vm/host/function_ledger.md
 status: in_progress
 last_refined: 2026-08-15
 ---
 
 # 13 脚本绑定面与反射收束
 
-Runtime13 scene-transition contract sync (2026-08-15, source-owner inventory updated 2026-08-29): `script_binding_boundary` reports `expected_source_file_count = 28`, `expected_test_file_count = 3`, `expected_guard_file_count = 8`, `gameplay_callback_count = 40`, `host_capability_count = 13`, `missing_source_files = []`, `missing_guard_files = []`, and `risks = []`. `script.rs` remains the public facade for `argument_views`, `call_frame`, `descriptors`, `hot_path_metrics`, and `value_contracts`; `argument_views.rs` is now a folder-backed route over byte transport, borrowed value, argument source, and typed conversion owners. Capability-gated `request_scene_transition` produces a canonical `ReplaceActive` pending request only. It is not a scene replacement or completion contract: the missing frame-boundary consumer, staged prepare/rollback, lifecycle handoff, and terminal result publication remain Runtime10's [project-script-scene-transition-host-request](10/failure-2026-07-19-project-script-scene-transition-host-request.md) failure. The managed script Cargo gates remain pending.
+Runtime13 current source contract inventory: `script_binding_boundary` reports `expected_source_file_count = 28`, `expected_test_file_count = 3`, `expected_guard_file_count = 8`, `fixed_host_function_count = 63`, `builtin_callback_count = 21`, `gameplay_callback_count = 40`, `host_capability_count = 13`, `missing_source_files = []`, `missing_guard_files = []`, and `risks = []`. `script.rs` remains the public facade for `argument_views`, `call_frame`, `descriptors`, `hot_path_metrics`, and `value_contracts`; `argument_views.rs` is now a folder-backed route over byte transport, borrowed value, argument source, and typed conversion owners. Capability-gated `request_scene_transition` produces a canonical `ReplaceActive` pending request only. It is not a scene replacement or completion contract: the missing frame-boundary consumer, staged prepare/rollback, lifecycle handoff, and terminal result publication remain Runtime10's [project-script-scene-transition-host-request](10/failure-2026-07-19-project-script-scene-transition-host-request.md) failure. The managed script Cargo gates remain pending.
 
-Runtime 13 current child-owner sync (2026-08-02): `script_binding_boundary` reports `expected_source_file_count = 18`, `expected_test_file_count = 3`, `expected_guard_file_count = 9`, `missing_source_files = []`, `missing_guard_files = []`, `fixed_host_module_count = 6`, `fixed_host_function_count = 61`, `type_descriptor_count = 2`, `builtin_callback_count = 20`, `gameplay_callback_count = 39`, `macro_host_function_count = 2`, `host_capability_count = 12`, `guard_anchor_count = 9`, `native_ecs_abi_references = []`, `oversized_test_files = []`, `mirror_docs_guard_present = true`, and `risks = []`. The nine guard owners include the two route parents plus ledger/capability/ECS-facade, gameplay-host/mirror, despawn behavior, and Runtime 13 Cargo children. `runtime_13_script_binding_mirror_docs_match_structure_audit_counts` keeps the plan, runtime index, function ledger, M0 review, and interface-convergence mirror aligned; script package gates remain pending.
+Historical Runtime13 source snapshot (2026-08-02): `script_binding_boundary` reports `expected_source_file_count = 18`, `expected_test_file_count = 3`, `expected_guard_file_count = 9`, `missing_source_files = []`, `missing_guard_files = []`, `fixed_host_module_count = 6`, `fixed_host_function_count = 61`, `type_descriptor_count = 2`, `builtin_callback_count = 20`, `gameplay_callback_count = 39`, `macro_host_function_count = 2`, `host_capability_count = 12`, `guard_anchor_count = 9`, `native_ecs_abi_references = []`, `oversized_test_files = []`, `mirror_docs_guard_present = true`, and `risks = []`. The nine guard owners include the two route parents plus ledger/capability/ECS-facade, gameplay-host/mirror, despawn behavior, and Runtime 13 Cargo children. `runtime_13_script_binding_mirror_docs_match_structure_audit_counts` keeps the plan, runtime index, function ledger, M0 review, and interface-convergence mirror aligned; script package gates remain pending.
 
 06 管 VM 插件生命周期（activate/空参数修复/热重载），10 管函数表 ABI 结构——本计划管两者之间的**语义层**：host function/module 注册面、`ZirconScriptType` 反射 marshalling、脚本对 ECS/资产/事件的能力面（capability）治理。
 
@@ -51,7 +50,7 @@ Runtime 13 current child-owner sync (2026-08-02): `script_binding_boundary` repo
 
 - **绑定面三件**：反射宏家族 `zircon_host_function`/`zircon_host_module`/`ZirconScriptType`（`zircon_runtime_reflection_macros` crate 经 `lib.rs:32-34` 再导出）；使用点实测 4 文件——`script/vm/host/builtin_host_modules.rs`（内建宿主模块注册）、`core/framework/script.rs`（契约层）、`script/vm/tests.rs`、`lib.rs`。
 - **VM 子系统形状**（`script/vm/` 当前根）：`backend/`（zr_vm 真实后端 + fallback，06 已细化）、`host/`（宿主函数注册）、`gameplay_host(.rs+/)`（玩法宿主面）、`capability_set.rs`（**能力门控已有雏形**）、`handles.rs`（脚本句柄）、`module/`、`plugin/`、`runtime/` + `runtime_context.rs`、`scene_system.rs`。旧 `scene_hook.rs` 已被硬切替换，不是可恢复的并行入口。
-- **缺口 1——宿主面无清册**：Runtime 13 M0.1 已在 `docs/zircon_runtime/script/vm/host/function_ledger.md` 建立当前权威清册，记录固定内建面 6 个模块、52 个函数、2 个类型描述符，以及 `zr.zircon.bridge` 动态模块形状；新增宿主函数的机器守卫仍归 M1。
+- **缺口 1——宿主面无清册**：Runtime 13 M0.1 已在 `docs/crates/zircon_runtime/script/vm/host/function_ledger.md` 建立当前权威清册，记录固定内建面 6 个模块、52 个函数、2 个类型描述符，以及 `zr.zircon.bridge` 动态模块形状；新增宿主函数的机器守卫仍归 M1。
 - **缺口 2——类型 marshalling 规则已裁决**：Runtime 13 M0.2 已把 `ZirconScriptType`/VM host 跨界形状定为 value descriptors / host handles / serialized payloads 三类，并声明 `zircon_runtime_interface::reflect` 保持 editor/remote schema 面，VM host calls 仍走 `ScriptHostValue` 描述符。
 - **缺口 3——脚本-ECS 能力面已静态收束**：Runtime 13 M0.2/M2 已裁决脚本侧 ECS 默认访问路径为 `zr.zircon.gameplay` gameplay facade，经 `ScriptRuntimeCallContext` 持有 `LevelSystem`、实体与帧上下文；`ZrHostEcsApiV1` 保持 native/plugin ABI 层，脚本源码旁路由 `script_ecs_access_path_stays_on_gameplay_facade_not_native_ecs_abi` 守卫。
 - 参考锚点（2026-06-13 实测核验，动工前先读——index 公约 §7.9）：
@@ -86,7 +85,7 @@ Runtime 13 current child-owner sync (2026-08-02): `script_binding_boundary` repo
 
 ### M0 宿主面与 marshalling 审计
 
-- 切片 0.1（清册）：`docs/zircon_runtime/script/`（执行时核验镜像文档）落宿主面清册——逐 builtin host module 列函数/签名/capability；来源 = `builtin_host_modules.rs` + Grep `zircon_host_function` 全集。DoD：清册覆盖全部注册点，每函数有 capability 列。
+- 切片 0.1（清册）：`docs/crates/zircon_runtime/script/`（执行时核验镜像文档）落宿主面清册——逐 builtin host module 列函数/签名/capability；来源 = `builtin_host_modules.rs` + Grep `zircon_host_function` 全集。DoD：清册覆盖全部注册点，每函数有 capability 列。
 - 切片 0.2（裁决）：marshalling 三分类判词（值类型 serde / 句柄经 `handles.rs` / 大负载序列化缓冲）+ 与 `interface/reflect` 的关系声明；脚本-ECS 路径裁决（gameplay_host vs EcsApi 分层判词，与 10 的 0.1 清册互引）。DoD：判词落文档，越界形状清单（可为空）。
 
 ### M1 清册守卫与 capability 审计化

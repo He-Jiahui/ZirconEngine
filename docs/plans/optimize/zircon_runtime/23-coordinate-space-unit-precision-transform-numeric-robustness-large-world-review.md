@@ -1,6 +1,6 @@
 ---
 related_code:
-  - docs/engine-architecture/runtime-foundation-precision-and-scene-authority.md
+  - docs/architecture/runtime-foundation-precision-and-scene-authority.md
   - zircon_runtime_interface/src/math.rs
   - zircon_runtime_interface/src/reflect/reflected_value.rs
   - zircon_runtime_interface/src/ui/surface/hit.rs

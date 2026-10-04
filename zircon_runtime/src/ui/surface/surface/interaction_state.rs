@@ -13,6 +13,7 @@ use crate::ui::surface::ui_surface_effective_disabled;
 use super::UiSurface;
 
 impl UiSurface {
+    /// 汇集节点、祖先、组件和模板禁用状态供行为层门禁使用；可见性、只读性、命中与路由权限仍由各入口检查。
     pub(super) fn node_interaction_enabled(&self, node_id: UiNodeId) -> Result<bool, UiTreeError> {
         let node = self
             .tree
@@ -45,6 +46,8 @@ impl UiSurface {
         !ui_surface_effective_disabled(self, node_id, node, metadata)
     }
 
+    /// 窗口离开/路由清空时消费旧悬停路径，先清标志并标脏，再返回已有 Hover 绑定的离开报告。
+    /// 调用者负责发布报告；这一步不重新命中，也不会自动重建表面。
     pub(crate) fn clear_hovered_input_path(
         &mut self,
     ) -> Result<Vec<UiComponentEventReport>, UiTreeError> {
@@ -63,15 +66,25 @@ impl UiSurface {
         Ok(reports)
     }
 
+    /// 无有效路由时统一收束按压、捕获、最后光标和悬停，供窗口退出或丢失输入所有权的清理路径调用。
     pub(crate) fn clear_pointer_interaction_without_route(
         &mut self,
     ) -> Result<Vec<UiComponentEventReport>, UiTreeError> {
+        let presses = std::mem::take(&mut self.input.pointer_presses);
+        for press in presses.values() {
+            if self.tree.node(press.owner).is_some() {
+                self.set_node_pressed_dirty(press.owner, false)?;
+            }
+        }
         if let Some(pressed) = self.focus.pressed.take() {
-            if self.component_states.set_pressed(pressed, false) {
-                self.mark_component_state_render_dirty(pressed)?;
+            if self.tree.node(pressed).is_some() {
+                self.set_node_pressed_dirty(pressed, false)?;
             }
         }
         self.release_pointer_capture();
+        self.input.clear_pointer_capture();
+        self.input.pointer_drags.clear();
+        self.input.high_precision_owner = None;
         self.input.clear_last_cursor_point();
         self.clear_hovered_input_path()
     }
@@ -107,51 +120,5 @@ impl UiSurface {
 }
 
 #[cfg(test)]
-mod optimization_tests {
-    #[test]
-    fn optimization_batch_20260830cz_hover_leave_reports_reserve_binding_bound() {
-        let source = include_str!("interaction_state.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("interaction state production source");
-
-        assert!(production.contains("reports.reserve(metadata.bindings.len());"));
-    }
-
-    #[test]
-    #[ignore = "release-only performance evidence"]
-    fn optimization_batch_20260830cz_hover_leave_report_capacity_evidence() {
-        const BATCH_COUNT: usize = 32_768;
-        const BINDINGS_PER_BATCH: usize = 32;
-        const MARKER: &str = "RUNTIME512_HOVER_LEAVE_REPORT_CAPACITY_BENCH_V1";
-
-        let legacy_growth_events = report_growth_events(BATCH_COUNT, BINDINGS_PER_BATCH, false);
-        let optimized_growth_events = report_growth_events(BATCH_COUNT, BINDINGS_PER_BATCH, true);
-
-        assert!(legacy_growth_events > 0);
-        assert_eq!(optimized_growth_events, 0);
-        println!(
-            "{MARKER} batches={BATCH_COUNT} bindings_per_batch={BINDINGS_PER_BATCH} \
-             legacy_growth_events={legacy_growth_events} \
-             optimized_growth_events={optimized_growth_events} reduction_pct=100"
-        );
-    }
-
-    fn report_growth_events(batch_count: usize, bindings_per_batch: usize, reserve: bool) -> usize {
-        let mut growth_events = 0;
-        for _ in 0..batch_count {
-            let mut reports = if reserve {
-                Vec::with_capacity(bindings_per_batch)
-            } else {
-                Vec::new()
-            };
-            for report in 0..bindings_per_batch {
-                let previous_capacity = reports.capacity();
-                reports.push(report);
-                growth_events += usize::from(reports.capacity() != previous_capacity);
-            }
-        }
-        growth_events
-    }
-}
+#[path = "tests/interaction_state_optimization_tests.rs"]
+mod optimization_tests;

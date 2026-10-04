@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f5_export_cli_uses_typed_errors_before_cli_boundary() {
     let pack_args = include_str!("../../../../bin/zircon_export_pack/args.rs");
@@ -18,11 +19,10 @@ fn review_f5_export_cli_uses_typed_errors_before_cli_boundary() {
         include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let convention =
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
-    let export_tool_doc =
-        include_str!("../../../../../../docs/cli-and-tooling/zircon-export-tool.md");
-    let pack_doc = include_str!("../../../../../../docs/zircon_runtime/asset/pack.md");
+    let export_tool_doc = include_str!("../../../../../../docs/tooling/zircon-export-tool.md");
+    let pack_doc = include_str!("../../../../../../docs/crates/zircon_runtime/asset/pack.md");
     let validate_doc =
-        include_str!("../../../../../../docs/zircon_runtime/plugin/export_build_plan.md");
+        include_str!("../../../../../../docs/crates/zircon_runtime/plugin/export_build_plan.md");
 
     for required in [
         "mod error;",

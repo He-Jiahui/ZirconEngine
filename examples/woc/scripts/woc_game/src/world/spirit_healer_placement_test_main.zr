@@ -12,6 +12,8 @@ closeEnough(value: float, expected: float): bool {
 
 var seed = <uint>20061;
 
+// 复活者共用身份与朝向、按墓地目录分布；这些大世界构造向量
+// 不代表实例内复活者，也不执行玩家复活事务。
 if (placement.healerCount(true) != 7 || placement.healerId(true) != "spirit_healer" ||
     placement.healerName(true) != "The Pale Keeper" ||
     !closeEnough(placement.healerFacing(true), 3.141592653589793)) {

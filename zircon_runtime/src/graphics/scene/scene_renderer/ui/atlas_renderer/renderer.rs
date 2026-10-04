@@ -3,20 +3,20 @@ use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch, WgpuTextureUploadBatc
 
 use crate::core::math::UVec2;
 use crate::text::atlas::render_gpu_plan::{
-    GlyphAtlasGpuDrawPlan, GlyphAtlasGpuPipelineContract, GlyphAtlasGpuPipelineKey,
-    GlyphAtlasGpuViewportTransform, glyph_atlas_gpu_bind_group_layout,
+    glyph_atlas_gpu_bind_group_layout, GlyphAtlasGpuDrawPlan, GlyphAtlasGpuPipelineContract,
+    GlyphAtlasGpuPipelineKey, GlyphAtlasGpuViewportTransform,
 };
 use crate::text::atlas::{
-    GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT, GlyphAtlasBitmapFaceValidity,
-    GlyphAtlasBitmapPageShadowCommit, GlyphAtlasBitmapPreparedUploadPlan,
-    GlyphAtlasBitmapRenderSubmissionPlan, GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasFormat,
-    GlyphAtlasSet, GlyphAtlasStorageFormat,
+    GlyphAtlasBitmapFaceValidity, GlyphAtlasBitmapPageShadowCommit,
+    GlyphAtlasBitmapPreparedUploadPlan, GlyphAtlasBitmapRenderSubmissionPlan,
+    GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasFormat, GlyphAtlasSet, GlyphAtlasStorageFormat,
+    GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
 };
 
 use super::super::atlas_texture_upload::{
-    GlyphAtlasBitmapTextureUploadFramePlan, GlyphAtlasBitmapTextureUploadFrameReport,
     glyph_atlas_bitmap_texture_upload_frame_plan_for_atlas_and_face_validity,
     prepare_glyph_atlas_bitmap_texture_upload_for_resources,
+    GlyphAtlasBitmapTextureUploadFramePlan, GlyphAtlasBitmapTextureUploadFrameReport,
 };
 use super::instance_buffer::glyph_atlas_bitmap_renderer_write_instance_buffer;
 use super::pipeline::{
@@ -259,6 +259,7 @@ impl GlyphAtlasBitmapRenderer {
             }
             pass.set_vertex_buffer(0, instance_buffer.slice(..));
             let mut bound_format = None;
+            // 保留原画家顺序并在相邻命令间切换图集；按格式重排会改变重叠字形的合成结果。
             for command in &draw_pass.draw_commands {
                 let atlas_format = command.key.page_key.format;
                 if bound_format != Some(atlas_format) {

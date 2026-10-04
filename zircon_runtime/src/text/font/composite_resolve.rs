@@ -8,7 +8,7 @@ use crate::text::{CompositeFontDescriptor, FontFaceId, FontFamilyName, FontQuery
 
 use super::database::FontDatabase;
 use super::matching::{
-    FontFamilyCandidateScope, ScopedFontFamilyCandidate, dedupe_scoped_families,
+    dedupe_scoped_families, FontFamilyCandidateScope, ScopedFontFamilyCandidate,
 };
 
 #[derive(Clone, Debug)]

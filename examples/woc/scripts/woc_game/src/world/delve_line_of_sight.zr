@@ -44,6 +44,8 @@ moduleOverlaps(moduleIndex: int, localX: float, localZ: float, radius: float): b
     return false;
 }
 
+/// 用调用者选定的探险模块检查射线内部采样点；原点和布局编号须来自同一活动场次或同一默认布局。
+/// 此查询不检查两个端点，也不验证实体间关系；调用者须保留相应交互或施法权限检查。
 pub isClearInModule(
     fromX: float,
     fromZ: float,

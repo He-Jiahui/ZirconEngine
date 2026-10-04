@@ -22,5 +22,5 @@ pub(super) fn asset_id_for_watched_path(asset_roots: &[PathBuf], path: &Path) ->
 }
 
 #[cfg(test)]
-#[path = "path_identity/direct_join_tests.rs"]
+#[path = "path_identity/tests/direct_join_tests.rs"]
 mod direct_join_tests;

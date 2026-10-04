@@ -1,10 +1,11 @@
 use super::{assert_contains_all, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0083] 界面图像绑定缓存和裁剪几何的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_screen_space_ui_image_bindings_are_instance_cached() {
     let image = read_runtime_src("graphics/scene/scene_renderer/ui/image.rs");
     let geometry = read_runtime_src("graphics/scene/scene_renderer/ui/render/geometry.rs");
-    let tests = read_runtime_src("graphics/scene/scene_renderer/ui/image/tests.rs");
+    let tests = read_runtime_src("graphics/scene/scene_renderer/ui/image/tests/cases.rs");
 
     assert_contains_all(
         "screen-space UI image binding cache",

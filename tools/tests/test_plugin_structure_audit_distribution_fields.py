@@ -1,10 +1,10 @@
 import unittest
 
-from tools.plugin_structure_audits.dependency_boundary import (
+from tools.audits.plugins.dependency_boundary import (
     collect_distribution_matrix_entry,
 )
 
-
+# 直接调用分发矩阵收集器，分别验证根分发段和特性扩展分发段会拒绝未知字段，并保留各自的诊断路径。
 class PluginStructureAuditDistributionFieldsTests(unittest.TestCase):
     def test_distribution_section_rejects_unknown_root_distribution_field(self):
         distribution_violations: list[str] = []

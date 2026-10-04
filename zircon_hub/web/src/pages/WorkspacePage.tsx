@@ -106,25 +106,21 @@ export function WorkspacePage({ state, onAction }: WorkspacePageProps) {
         },
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, mb: 2.5 }}>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="h4">{state.pageTitle}</Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.9 }}>
-            {state.pageSubtitle}
-          </Typography>
-        </Box>
-        <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap", justifyContent: "flex-end" }}>
+      <PageHeader title={state.pageTitle} subtitle={state.pageSubtitle} actions={<>
           <HubButton startIcon={<FolderOutlinedIcon />} onClick={() => void onAction(HUB_ACTION.showPage, "projects")}>
             {state.ui.projects.title}
           </HubButton>
           <HubButton tone="primary" startIcon={<SettingsOutlinedIcon />} onClick={() => void onAction(HUB_ACTION.showPage, "settings")}>
             {state.ui.shell.settings}
           </HubButton>
-        </Box>
-      </Box>
+        </>} />
 
       <Box sx={{ mb: 1.4 }}>
-        <HubStatusBanner task={state.taskSummary} />
+        <HubStatusBanner
+          task={state.taskSummary}
+          cancelLabel={state.ui.common.cancelTask}
+          onCancel={() => void onAction(HUB_ACTION.cancelBackgroundTask, String(state.taskSummary.taskId))}
+        />
       </Box>
 
       <Box
@@ -212,3 +208,4 @@ export function WorkspacePage({ state, onAction }: WorkspacePageProps) {
     </Box>
   );
 }
+import { PageHeader } from "../components/data/PageHeader";

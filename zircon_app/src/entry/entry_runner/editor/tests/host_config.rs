@@ -3,6 +3,35 @@ use std::ffi::OsString;
 use zircon_editor::{EditorGuiStartupRequest, EditorHostRunConfig};
 use zircon_runtime::asset::{project::ProjectPaths, AssetUri};
 use zircon_runtime_interface::hub_protocol::HubSessionToken;
+use zircon_runtime_interface::runtime_build_set::ZrRuntimeBuildSetId;
+
+#[test]
+fn projectless_host_config_retains_build_set_for_later_project_admission() {
+    let build_set = ZrRuntimeBuildSetId::parse(
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    )
+    .expect("fixture BuildSet id must be valid");
+
+    for startup_request in [
+        None,
+        Some(EditorGuiStartupRequest::open_builtin_view(
+            "editor.material_component_lab",
+        )),
+    ] {
+        let config = super::super::editor_host_run_config_with_first_frame_exit(
+            startup_request.clone(),
+            None,
+            None,
+            false,
+            None,
+            Some(build_set.clone()),
+        );
+
+        assert_eq!(config.startup_request(), startup_request.as_ref());
+        assert_eq!(config.project_runtime_build_set(), Some(&build_set));
+        assert!(!config.exit_after_first_presented_frame());
+    }
+}
 
 #[test]
 fn first_frame_exit_flag_projects_into_editor_host_config() {

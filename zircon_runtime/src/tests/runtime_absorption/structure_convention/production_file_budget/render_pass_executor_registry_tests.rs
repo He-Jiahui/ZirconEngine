@@ -1,9 +1,10 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0057] 渲染执行器注册及后处理契约测试的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_render_pass_executor_registry_tests_are_child_owners() {
     let root = read_runtime_src(
-        "graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs",
+        "graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests/cases.rs",
     );
     let registry = read_runtime_src(
         "graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests/registry_contracts.rs",
@@ -86,7 +87,7 @@ fn runtime_15_render_pass_executor_registry_tests_are_child_owners() {
 
     for (path, source) in [
         (
-            "graph_execution/render_pass_executor_registry/tests.rs",
+            "graph_execution/render_pass_executor_registry/tests/cases.rs",
             root.as_str(),
         ),
         (
@@ -122,7 +123,7 @@ fn runtime_15_render_pass_executor_registry_tests_are_child_owners() {
             &[
                 "Render pass executor registry test owner split",
                 "render_plan01_executor_registry_test_owner_split_static_passed_cargo_deferred_active_compile_lane",
-                "graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs",
+                "graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests/cases.rs",
                 "graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests/registry_contracts.rs",
                 "graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests/postprocess_context_guards.rs",
                 "graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests/renderer_context_guards.rs",

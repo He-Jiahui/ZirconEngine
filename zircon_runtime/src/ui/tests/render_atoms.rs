@@ -12,6 +12,7 @@ fn render_cache_reuses_the_owned_incoming_command_without_cloning() {
     let source = include_str!("../surface/render/cache.rs");
 
     assert!(
+        // BUG: [CR-R02-runtime_wave5_surface_widget_render-0001] 运行此测试时，cache.rs 已无旧 push 文本，contains 必为 false 并使此断言失败；当前 update 原样返回传入 extract。
         source.contains("retained_commands.push(command);"),
         "a stable cache hit should keep the already-owned incoming command"
     );
@@ -25,6 +26,7 @@ fn render_cache_reuses_the_owned_incoming_command_without_cloning() {
 fn render_extract_rejects_invisible_nodes_before_resolving_visual_data() {
     let source = include_str!("../surface/render/extract.rs");
     let visibility_check = source
+        // BUG: [CR-R02-runtime_wave5_surface_widget_render-0002] extract.rs 已改用可见性索引早退，旧条件文本不存在使 find 返回 None 并在下方 expect panic；现有早退仍先于视觉解析。
         .find("if !is_arranged_render_visible(arranged_tree, node_id)")
         .expect("render extraction should test arranged visibility");
     let visual_resolution = source
@@ -34,6 +36,16 @@ fn render_extract_rejects_invisible_nodes_before_resolving_visual_data() {
     assert!(
         visibility_check < visual_resolution,
         "invisible nodes should exit before style, text, image, and editable-state resolution"
+    );
+}
+
+#[test]
+fn render_extract_reserves_the_arranged_node_command_lower_bound() {
+    let source = include_str!("../surface/render/extract.rs");
+
+    assert!(
+        source.contains("let mut commands = Vec::with_capacity(arranged_tree.draw_order.len());"),
+        "render extraction should reserve at least one command slot per arranged draw-order node"
     );
 }
 

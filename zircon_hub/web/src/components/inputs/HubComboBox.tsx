@@ -11,12 +11,13 @@ export interface HubComboBoxOption {
 export interface HubComboBoxProps {
   value: string;
   options: HubComboBoxOption[];
+  label?: string;
   placeholder?: string;
   minWidth?: number;
   onChange: (value: string) => void;
 }
 
-export function HubComboBox({ value, options, placeholder, minWidth = 176, onChange }: HubComboBoxProps) {
+export function HubComboBox({ value, options, label, placeholder, minWidth = 176, onChange }: HubComboBoxProps) {
   const selected = options.find((option) => option.value === value) ?? null;
 
   return (
@@ -42,7 +43,7 @@ export function HubComboBox({ value, options, placeholder, minWidth = 176, onCha
           backgroundColor: "rgba(31,31,31,0.72)",
         },
       }}
-      renderInput={(params) => <TextField {...params} placeholder={placeholder} />}
+      renderInput={(params) => <TextField {...params} label={label} placeholder={placeholder} />}
       renderOption={(props, option) => (
         <Box component="li" {...props} sx={{ display: "grid", gap: 0.3 }}>
           <Typography variant="body2">{option.label}</Typography>

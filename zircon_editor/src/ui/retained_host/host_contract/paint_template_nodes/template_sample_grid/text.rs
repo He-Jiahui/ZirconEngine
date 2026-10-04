@@ -1,3 +1,4 @@
+// 将生成数据的借用标签落到 runtime 文本命令；测量、相邻刻度空间与帧门槛决定是否生成文字，所有权只在命令实际入队时转移。
 use std::borrow::Cow;
 
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
@@ -13,7 +14,7 @@ use super::metrics::{
 use super::palette::SampleGridPalette;
 
 #[cfg(test)]
-#[path = "text/capacity_tests.rs"]
+#[path = "text/tests/capacity_tests.rs"]
 mod capacity_tests;
 
 pub(super) fn push_sample_grid_text(
@@ -47,6 +48,8 @@ pub(super) fn push_sample_grid_text(
             }
         })
         .collect::<Vec<_>>();
+    // TODO: [CR-EDITOR-PAINT-SAMPLE-0001] 此相邻检查按输入顺序推断屏幕顺序；投影器只过滤数值，不保证 x_ticks 升序。
+    // 目前正式 ZUI 按升序声明。若运行时允许乱序刻度，需在数据入口明确排序/拒绝，或在此按绘制坐标判断重叠。
     if x_tick_frames
         .windows(2)
         .all(|pair| pair[0].right() + AXIS_TITLE_GAP <= pair[1].x)
@@ -139,6 +142,7 @@ fn measured_text_frame_width(text: &str, font_size: f32, available_width: f32) -
     (measure_runtime_text_width(text, font_size) + 2.0).min(available_width)
 }
 
+/// 网格刻度、轴标题及选中点标签共用的最后一道文字帧门槛；借用文本到真正发命令后才转为拥有值。
 pub(super) fn push_text<'a>(
     commands: &mut Vec<HostPaintCommand>,
     frame: FrameRect,

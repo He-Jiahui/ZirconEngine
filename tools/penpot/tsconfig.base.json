@@ -1,0 +1,35 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": "../..",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "bundler",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "es2015",
+    "module": "esnext",
+    "lib": [
+      "es2022",
+      "dom"
+    ],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "paths": {
+      "@penpot/plugin-types": [
+        "../../third_party/penpot/plugins/libs/plugin-types/index.d.ts"
+      ],
+      "plugins-runtime": [
+        "../../third_party/penpot/plugins/libs/plugins-runtime/src/index.ts"
+      ],
+      "plugins-styles/*": [
+        "../../third_party/penpot/plugins/libs/plugins-styles/src/*"
+      ]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    "tmp"
+  ]
+}

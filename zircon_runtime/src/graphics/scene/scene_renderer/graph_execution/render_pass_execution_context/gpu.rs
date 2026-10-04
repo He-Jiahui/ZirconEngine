@@ -1,9 +1,10 @@
 use std::cell::Cell;
 
 use crate::core::framework::render::{
-    DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA, MotionVectorCameraStatus, PostProcessExtract,
-    PostProcessGraphResourceNames, RenderFrameExtract, RenderPassNativeResourceCreateMetrics,
-    RenderPipelinePhase, RenderPluginRendererOutputs, ShaderQualityTier, VolumetricFogSettings,
+    MotionVectorCameraStatus, PostProcessExtract, PostProcessGraphResourceNames,
+    RenderFrameExtract, RenderPassNativeResourceCreateMetrics, RenderPipelinePhase,
+    RenderPluginRendererOutputs, RenderVirtualGeometryDebugSnapshot, ShaderQualityTier,
+    VolumetricFogSettings, DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
 };
 use crate::core::math::UVec2;
 use crate::graphics::backend::{
@@ -233,6 +234,10 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
 
     pub fn frame_extract(&self) -> &RenderFrameExtract {
         &self.frame.extract
+    }
+
+    pub fn virtual_geometry_debug_snapshot(&self) -> Option<&RenderVirtualGeometryDebugSnapshot> {
+        self.frame.virtual_geometry_debug_snapshot.as_deref()
     }
 
     pub fn post_process(&self) -> &PostProcessExtract {
@@ -635,4 +640,5 @@ pub(in crate::graphics::scene::scene_renderer) fn writes_physical_output_resourc
 }
 
 #[cfg(test)]
+#[path = "gpu/tests/cases.rs"]
 mod tests;

@@ -25,6 +25,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const CHIP
 const CHIP_LABEL_LINE_HEIGHT_RATIO: f32 = 1.5;
 const CHIP_LABEL_VERTICAL_CENTER_RATIO: f32 = 0.5;
 
+/// 模板显式字号优先；最终字号受 Chip 当前帧约束，避免标签超过极窄控件。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_font_size(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
@@ -84,33 +85,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_la
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn node(font_size: f32) -> TemplatePaneNodeData {
-        TemplatePaneNodeData {
-            font_size,
-            ..TemplatePaneNodeData::default()
-        }
-    }
-
-    #[test]
-    fn chip_label_metrics_project_font_line_height_and_y() {
-        let rect = FrameRect {
-            x: 0.0,
-            y: 10.0,
-            width: 120.0,
-            height: 32.0,
-        };
-        let line_height = chip_label_line_height(chip_font_size(&node(13.0), &rect), &rect);
-
-        assert!((line_height - 19.5).abs() <= 0.01);
-        assert!((chip_label_y(&rect, line_height) - 16.25).abs() <= 0.01);
-    }
-
-    #[test]
-    fn chip_label_width_clamps_to_available_bounds() {
-        assert!((chip_label_width(80.0, 44.0) - 44.0).abs() <= 0.01);
-        assert!((chip_label_width(0.0, 44.0) - 0.0).abs() <= 0.01);
-    }
-}
+#[path = "tests/metrics.rs"]
+mod tests;

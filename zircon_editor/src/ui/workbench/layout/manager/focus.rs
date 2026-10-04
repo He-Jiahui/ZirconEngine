@@ -10,6 +10,7 @@ fn active_main_page_differs(active: &MainPageId, candidate: &MainPageId) -> bool
 }
 
 impl LayoutManager {
+    /// 在现有布局内寻找实例并激活相应owner；宿主仍负责输入焦点和会话聚焦身份。
     pub(crate) fn focus_instance(
         &self,
         layout: &mut WorkbenchLayout,
@@ -100,6 +101,7 @@ impl LayoutManager {
         false
     }
 
+    /// 仅激活包含目标实例的叶tab栈；空选项表示未找到，布尔值表示选择是否变化。
     fn focus_in_document_node(
         node: &mut DocumentNode,
         instance_id: &ViewInstanceId,
@@ -125,21 +127,9 @@ impl LayoutManager {
 }
 
 #[cfg(test)]
-#[path = "focus/borrowed_exclusive_page_comparison_tests.rs"]
+#[path = "focus/tests/borrowed_exclusive_page_comparison_tests.rs"]
 mod borrowed_exclusive_page_comparison_tests;
 
 #[cfg(test)]
-mod source_guards {
-    #[test]
-    fn production_focus_path_is_fail_closed_without_legacy_window_synthesis() {
-        let source = include_str!("focus.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("production focus source");
-
-        assert!(!production.contains(".expect("));
-        assert!(!production.contains("activity_windows.is_empty()"));
-        assert!(!production.contains("default_activity_window_mut()"));
-    }
-}
+#[path = "tests/focus_source_guards.rs"]
+mod source_guards;

@@ -1,3 +1,4 @@
+# 核对图形捕获审计区分计数器未暴露、无样本和实测样本。
 from __future__ import annotations
 
 import importlib.util

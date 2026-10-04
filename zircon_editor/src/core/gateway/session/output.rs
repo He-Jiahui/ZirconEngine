@@ -47,7 +47,9 @@ impl GatewayOwnedOutput {
         let Some(raw) = self.raw.take() else {
             return Ok(());
         };
-        match release_owned_result(raw, self.releaser, "release runtime gateway output") {
+        // GatewayOwnedOutput can only be captured from this releaser's live gateway session.
+        match unsafe { release_owned_result(raw, self.releaser, "release runtime gateway output") }
+        {
             Ok(()) => Ok(()),
             Err(error) => self
                 .foreign_output
@@ -63,7 +65,9 @@ impl GatewayOwnedOutput {
         let error = RuntimeForeignOutputError::protocol_violation(error.to_string());
         let error = match self.raw.take() {
             Some(raw) => {
-                match release_owned_result(raw, self.releaser, "release runtime gateway output") {
+                match unsafe {
+                    release_owned_result(raw, self.releaser, "release runtime gateway output")
+                } {
                     Ok(()) => error,
                     Err(release_error) => error.with_cleanup_failure(&release_error),
                 }
@@ -82,14 +86,18 @@ impl Drop for GatewayOwnedOutput {
             return;
         };
         if let Err(error) =
-            release_owned_result(raw, self.releaser, "release runtime gateway output")
+            unsafe { release_owned_result(raw, self.releaser, "release runtime gateway output") }
         {
             let _ = self.foreign_output.reject_protocol::<()>(self.kind, error);
         }
     }
 }
 
-pub(super) fn capture_owned_output(
+/// # Safety
+///
+/// `status` and `output` must originate from the live gateway session bound to `releaser`, with
+/// unique release authority transferred to this function.
+pub(super) unsafe fn capture_owned_output(
     foreign_output: Arc<RuntimeForeignOutputState>,
     status: ZrStatus,
     output: ZrOwnedResultV2,
@@ -97,25 +105,29 @@ pub(super) fn capture_owned_output(
     operation: &'static str,
 ) -> Result<GatewayOwnedOutput, GatewayError> {
     let kind = RuntimeForeignOutputKind::SessionProtocol;
-    let output = foreign_output.ensure_call_succeeded(
-        status,
-        output,
-        releaser,
-        kind,
-        operation,
-        "release runtime frame output",
-    )?;
-    let output = match validate_owned_result_releasing_on_error(
-        output,
-        releaser,
-        operation,
-        "release runtime frame output after invalid capture",
-    ) {
+    let output = unsafe {
+        foreign_output.ensure_call_succeeded(
+            status,
+            output,
+            releaser,
+            kind,
+            operation,
+            "release runtime frame output",
+        )?
+    };
+    let output = match unsafe {
+        validate_owned_result_releasing_on_error(
+            output,
+            releaser,
+            operation,
+            "release runtime frame output after invalid capture",
+        )
+    } {
         Ok(output) => output,
         Err(error) => {
             return foreign_output
                 .reject_protocol(kind, error)
-                .map_err(Into::into)
+                .map_err(Into::into);
         }
     };
     Ok(GatewayOwnedOutput::new(

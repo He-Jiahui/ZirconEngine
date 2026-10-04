@@ -2,6 +2,7 @@ use zircon_runtime_interface::ui::surface::UiResolvedStyle;
 
 use super::super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 
+/// 可解析的显式文本色覆盖宿主缺省色；颜色缺失或无法解析时回退到当前色板。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn runtime_foreground_color(
     style: &UiResolvedStyle,
 ) -> [u8; 4] {
@@ -64,33 +65,5 @@ fn parse_nibble(byte: u8) -> Option<u8> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
-
-    #[test]
-    fn runtime_foreground_fallback_projects_from_host_palette() {
-        let mut palette = PALETTE;
-        palette.text = [10, 11, 12, 255];
-        let style = UiResolvedStyle::default();
-
-        assert_eq!(
-            runtime_foreground_color_from_host(&style, palette),
-            [10, 11, 12, 255]
-        );
-    }
-
-    #[test]
-    fn runtime_foreground_declared_color_overrides_palette() {
-        let palette = PALETTE;
-        let style = UiResolvedStyle {
-            foreground_color: Some("#123456".to_owned()),
-            ..UiResolvedStyle::default()
-        };
-
-        assert_eq!(
-            runtime_foreground_color_from_host(&style, palette),
-            [0x12, 0x34, 0x56, 255]
-        );
-    }
-}
+#[path = "tests/colors.rs"]
+mod tests;

@@ -1,5 +1,7 @@
 mod bubbles;
 mod commands;
+mod content;
+mod messages;
 mod streaming;
 mod surface;
 

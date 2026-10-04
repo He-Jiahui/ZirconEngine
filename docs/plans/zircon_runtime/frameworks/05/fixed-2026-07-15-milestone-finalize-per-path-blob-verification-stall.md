@@ -8,8 +8,6 @@ fixing_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-c
 origin_child_dir: docs/plans/zircon_runtime/frameworks/05
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 related_code:
-  - tools/session_coordinator/git_finalize.py
-  - tools/session_coordinator/tests/test_git_finalize.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_git_finalize -v
   - python -m unittest tools.session_coordinator.tests.test_workflow_commit -v

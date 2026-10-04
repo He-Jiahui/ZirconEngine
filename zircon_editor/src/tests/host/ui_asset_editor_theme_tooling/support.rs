@@ -5,11 +5,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use zircon_runtime::asset::project::ProjectManager;
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
-    FOUNDATION_MODULE_NAME, module_descriptor as foundation_module_descriptor,
+    module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
 use zircon_runtime::scene::DefaultLevelManager;
 
-use crate::core::project::{NewProjectDraft, NewProjectTemplate, ProjectAuthority};
+use crate::core::project::{NewProjectDraft, ProjectAuthority, ProjectTemplateId};
 use crate::ui::host::module::{self, module_descriptor};
 use crate::ui::workbench::project::EditorProjectDocument;
 
@@ -175,11 +175,14 @@ pub(crate) fn setup_theme_project(
         .expect("theme project root must have a UTF-8 final component");
     let location = project_root.parent().expect("theme project root parent");
     ProjectAuthority::default()
-        .create_project(&NewProjectDraft {
-            project_name: project_name.to_string(),
-            location: location.to_string_lossy().into_owned(),
-            template: NewProjectTemplate::RenderableEmpty,
-        })
+        .create_project(
+            &NewProjectDraft {
+                project_name: project_name.to_string(),
+                location: location.to_string_lossy().into_owned(),
+                template: ProjectTemplateId::RenderableEmpty,
+            },
+            &crate::tests::support::test_project_creation_provenance(),
+        )
         .expect("theme fixture project should be created");
     let mut project =
         ProjectManager::open(&project_root).expect("theme fixture project should open");

@@ -1,6 +1,7 @@
+# 核对延迟指针反馈按帧合并表面重建，并拒绝无效规模与输出路径。
 import unittest
 
-from tools.editor_ui_pointer_feedback_deferred_pressure import (
+from tools.analysis.performance.editor.editor_ui_pointer_feedback_deferred_pressure import (
     pressure_report,
     validate_output_path,
 )

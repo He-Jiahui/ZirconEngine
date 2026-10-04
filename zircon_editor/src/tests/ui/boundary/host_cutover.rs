@@ -138,12 +138,18 @@ fn editor_ui_host_uses_typed_runtime_services_instead_of_a_core_locator() {
         "struct EditorCapabilityConfiguration",
         "fn capability_configuration(",
         "fn store_enabled_subsystems(",
+        "config: Arc<dyn ConfigManager>",
+        ".set_value(",
     ] {
         assert!(
             services_source.contains(required),
             "expected the capability transaction owner to expose `{required}`"
         );
     }
+    assert!(
+        !services_source.contains(".store_config_value("),
+        "editor capability persistence must use ConfigManager rather than the CoreHandle bypass"
+    );
     for forbidden in [
         "pub(crate) fn editor_subsystem_report_from_core",
         "pub(crate) fn editor_runtime_sandbox_enabled",
@@ -401,9 +407,10 @@ fn editor_ui_host_owns_layout_project_and_workspace_orchestration() {
     let project_wrapper = std::fs::read_to_string(host_root.join("editor_manager_project.rs"))
         .expect("editor manager project wrapper");
     for required in [
-        "self.open_project_document_with_admission(path, &admission)",
-        "self.preflight_existing_project_launch(&intent, path.as_ref())",
-        "self.session_admission_request(&intent)",
+        "self.local_open_project_intent(path.as_ref())?",
+        "self.preflight_existing_project_launch(&intent, path.as_ref())?",
+        "self.session_admission_request(&intent)?",
+        "self.open_project_document_with_admission(preflight, &admission)",
         "save_active_scene(&project_root, &scene_uri, world)",
         "self.host.prepare_authoring_world(scene)",
     ] {
@@ -603,6 +610,9 @@ fn editor_ui_host_owns_startup_and_welcome_orchestration() {
     for required in [
         "self.host.resolve_startup_session()",
         "self.execute_project_launch_intent(self.local_open_project_intent(path.as_ref())?)",
+        "ProjectAuthority::default()",
+        ".preflight_project_launch(intent)",
+        "self.execute_project_launch_preflight(preflight)",
         "SessionAdmissionRequest::from_launch_intent",
         "project admission requires the BuildSet App authenticated during startup",
         "self.host.recent_projects_snapshot()",
@@ -614,6 +624,20 @@ fn editor_ui_host_owns_startup_and_welcome_orchestration() {
         assert!(
             startup_wrapper.contains(required),
             "expected startup wrapper to stay thin for `{required}`"
+        );
+    }
+    for forbidden in [
+        "ProjectPreflightCompositionProfile::Normal",
+        "ProjectPreflightCompositionProfile::Safe",
+        "ProjectPreflightCompositionProfile::Recovery",
+        "ProjectEngineVersion::parse",
+        "preflight_project_with_composition_profile",
+        "preflight_project_launch(intent)\n            .map_err(|error| EditorError::Project(error.to_string()))",
+        "preflight_project_launch(intent.clone())\n            .map_err(|error| EditorError::Project(error.to_string()))",
+    ] {
+        assert!(
+            !startup_wrapper.contains(forbidden),
+            "startup wrapper must leave project policy `{forbidden}` to ProjectAuthority"
         );
     }
     assert!(

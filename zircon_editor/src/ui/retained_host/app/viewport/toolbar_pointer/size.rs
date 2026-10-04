@@ -9,26 +9,22 @@ impl RetainedEditorHost {
         &self,
         surface_key: &str,
     ) -> UiSize {
-        let current_instance = self
-            .runtime
-            .current_view_instances()
-            .into_iter()
-            .find(|instance| instance.instance_id.0 == surface_key);
-        if let Some(instance) = current_instance.as_ref() {
-            if let ViewHost::FloatingWindow(window_id, _) = &instance.host {
-                return UiSize::new(
-                    self.resolve_floating_window_content_frame_for_window(window_id)
-                        .unwrap_or_default()
-                        .width
-                        .max(1.0),
-                    VIEWPORT_TOOLBAR_HEIGHT,
-                );
-            }
+        let toolbar_height =
+            VIEWPORT_TOOLBAR_HEIGHT * self.callback_source_ui().window().scale_factor();
+        let current_host = self.runtime.view_host_for_instance_key(surface_key);
+        if let Some(ViewHost::FloatingWindow(window_id, _)) = current_host.as_ref() {
+            return UiSize::new(
+                self.resolve_floating_window_content_frame_for_window(window_id)
+                    .unwrap_or_default()
+                    .width
+                    .max(1.0),
+                toolbar_height,
+            );
         }
 
         let workbench_layout_frames = self.workbench_window_bridge.layout_frames();
-        let width = current_instance
-            .map(|instance| match instance.host {
+        let width = current_host
+            .map(|host| match host {
                 ViewHost::FloatingWindow(_, _) => unreachable!(
                     "floating window toolbar size should return early through the projection helper"
                 ),
@@ -59,7 +55,7 @@ impl RetainedEditorHost {
                     .unwrap_or_default()
             });
 
-        UiSize::new(width.max(1.0), VIEWPORT_TOOLBAR_HEIGHT)
+        UiSize::new(width.max(1.0), toolbar_height)
     }
 
     fn componentized_document_viewport_toolbar_width(&self) -> Option<f32> {

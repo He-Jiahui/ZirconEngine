@@ -27,6 +27,8 @@ pub use plugin::{
     ZR_VM_LANGUAGE_DIST_CRATE_NAME, ZR_VM_LANGUAGE_DIST_RUNTIME_ENTRY,
     ZR_VM_LANGUAGE_MAIN_SYSTEM_SET,
 };
+#[cfg(feature = "backend-zr-vm")]
+pub use real_backend::build_zr_vm_native_host_modules;
 pub use reflection_host::{ReflectionHostError, ReflectionHostModule};
 pub use zircon_runtime::script::{
     HostHandle, VmGcBudget, VmGcDiagnostics, VmGcRootRegistrationError, VmGcRootRegistry,

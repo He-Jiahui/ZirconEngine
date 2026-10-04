@@ -19,7 +19,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束移动编辑器镜像根：资源根移动移出先于清单替换，并内容根移动移出先于清单替换。
 class MovedEditorMirrorRootsPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

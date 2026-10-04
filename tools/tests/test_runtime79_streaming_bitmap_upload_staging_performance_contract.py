@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+# 位图上传命令复用首个符合页与目标区域的复制操作，不为筛选临时生成向量或再扫描一遍。
 import re
 import unittest
 from pathlib import Path

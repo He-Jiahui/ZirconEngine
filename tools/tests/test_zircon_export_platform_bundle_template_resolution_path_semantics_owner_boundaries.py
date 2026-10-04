@@ -1,3 +1,4 @@
+# 核对模板解析路径语义的实现归属。
 import unittest
 from pathlib import Path
 
@@ -5,11 +6,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RESOLUTION_SEMANTICS = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_platform_bundle_template_resolution_semantics.py"
+    / "tools/export/pipeline_report_platform_bundle_template_resolution_semantics.py"
 )
 PATH_SEMANTICS = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_platform_bundle_template_resolution_path_semantics.py"
+    / "tools/export/pipeline_report_platform_bundle_template_resolution_path_semantics.py"
 )
 
 

@@ -1,10 +1,10 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema_option_capability_gates import (
+from tools.audits.plugins.manifest_schema_option_capability_gates import (
     collect_option_required_capability_gate_violations,
 )
 
-
+# 用插件清单夹具验证选项能力门禁：拒绝未声明选项必需能力，并接受可选特性选项必需能力。
 class PluginStructureAuditManifestSchemaOptionCapabilityGatesTests(unittest.TestCase):
     def test_manifest_schema_rejects_undeclared_option_required_capability(self):
         violations: list[str] = []

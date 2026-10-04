@@ -6,6 +6,8 @@ use crate::render_graph::RenderGraphAttachmentOps;
 use super::super::scene_post_process_resources::ScenePostProcessResources;
 
 impl ScenePostProcessResources {
+    /// 在局部显示颜色上串联边缘识别、权重和解析；缓存的中间纹理必须匹配该视口局部尺寸。
+    /// 各阶段输入与输出分离，最终解析仍写局部目标；物理输出偏移由后续传输阶段处理。
     pub(in crate::graphics::scene::scene_renderer) fn execute_smaa(
         &self,
         device: &wgpu::Device,
@@ -114,6 +116,8 @@ impl ScenePostProcessResources {
         })
     }
 
+    /// 记录 SMAA 单阶段，共享布局用可选辅助纹理满足各阶段的采样契约。
+    /// 调用方选定区域空间并保证 pipeline 与附件格式相容；此辅助方法不更改中间纹理缓存。
     fn record_smaa_stage(
         &self,
         encoder: &mut wgpu::CommandEncoder,
@@ -154,6 +158,7 @@ impl ScenePostProcessResources {
     }
 }
 
+// 显式区分局部显示链和物理输出区域；当前 SMAA 三阶段均由调用方选择 Local。
 #[derive(Clone, Copy)]
 enum TerminalRegionSpace {
     Local,
@@ -161,11 +166,5 @@ enum TerminalRegionSpace {
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::graphics::scene::scene_renderer::post_process::SMAA_STAGE_FORMAT;
-
-    #[test]
-    fn smaa_stage_textures_store_edge_and_blend_weights() {
-        assert_eq!(SMAA_STAGE_FORMAT, wgpu::TextureFormat::Rgba8Unorm);
-    }
-}
+#[path = "tests/cases.rs"]
+mod tests;

@@ -1,3 +1,4 @@
+//! 内建管线提供默认视图的作者模板，后续仍走与自定义管线相同的编译及能力校验。
 use crate::core::framework::render::{CorePipelineKind, RenderPipelineHandle};
 
 use crate::graphics::pipeline::declarations::RenderPipelineAsset;
@@ -30,24 +31,5 @@ impl RenderPipelineAsset {
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::core::framework::render::CorePipelineKind;
-
-    use super::RenderPipelineAsset;
-
-    #[test]
-    fn default_pipeline_handles_match_builtin_assets() {
-        assert_eq!(
-            RenderPipelineAsset::default_handle_for_core_pipeline(CorePipelineKind::Core3d),
-            RenderPipelineAsset::default_forward_plus().handle
-        );
-        assert_eq!(
-            RenderPipelineAsset::DEFAULT_DEFERRED_HANDLE,
-            RenderPipelineAsset::default_deferred().handle
-        );
-        assert_eq!(
-            RenderPipelineAsset::default_handle_for_core_pipeline(CorePipelineKind::Core2d),
-            RenderPipelineAsset::default_core2d().handle
-        );
-    }
-}
+#[path = "tests/builtin.rs"]
+mod tests;

@@ -23,6 +23,8 @@ pub class CardDuelCommandResult {
         this.forfeiter = <uint>0;
     }
 }
+// 只有调用前确有对局、调用后已移除对局时，才把 Service 的终局信息
+// 交给世界命令层；拒绝命令与仍在进行的回合不能冒充终局事件。
 
 finishedResult(
     state: serviceModule.CardDuelService,

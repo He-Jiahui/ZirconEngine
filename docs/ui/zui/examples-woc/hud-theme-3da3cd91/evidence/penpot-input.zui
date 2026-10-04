@@ -1,0 +1,3305 @@
+penpot_dependency_sources = [ "examples/woc/assets/ui/shell/shell_theme.zui", "examples/woc/assets/ui/hud/in_world_hud.zui", "examples/woc/assets/ui/hud/lockpick_window.zui" ]
+penpot_original_source = "[asset]\nkind = \"style\"\nid = \"res://ui/hud/hud_theme.zui\"\nversion = 2\ndisplay_name = \"World of ClaudeCraft HUD Theme\"\n\n[imports]\nwidgets = []\nstyles = [\"res://ui/shell/shell_theme.zui\"]\n\n[tokens]\nwoc_hud_panel = \"#11101dee\"\nwoc_hud_panel_soft = \"#17151ecc\"\nwoc_hud_rail = \"#09090fcc\"\nwoc_hud_slot = \"#17151f\"\nwoc_hud_slot_border = \"#5b4618\"\nwoc_hud_health = \"#3fa65a\"\nwoc_hud_absorb = \"#d9e4f2aa\"\nwoc_hud_mana = \"#2476d3\"\nwoc_hud_rage = \"#a63838\"\nwoc_hud_energy = \"#d5c536\"\nwoc_hud_cooldown = \"#000000b8\"\nwoc_hud_danger = \"#c73535\"\nwoc_hud_touch = \"#282a3b\"\nwoc_hud_touch_border = \"#8a6c2a\"\nwoc_hud_vignette = \"#8d101066\"\nwoc_hud_focus = \"#f7d45c\"\n\n[[stylesheets]]\nid = \"woc-hud\"\n\n[[stylesheets.rules]]\nselector = \".woc-hud-root\"\nset = { self = { background = { color = \"#00000000\" }, foreground = { color = \"$woc_text\" } } }\n\n[[stylesheets.rules]]\nselector = \".woc-live-region\"\nset = { self = { foreground = { color = \"#00000000\" }, font = { size = 1.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-unit-frame\"\nset = { self = { background = { color = \"$woc_hud_panel\" }, foreground = { color = \"$woc_text\" }, border = { color = \"$woc_border\", width = 2.0, radius = 6.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-unit-frame-target\"\nset = { self = { border = { color = \"$woc_gold_dim\", width = 2.0, radius = 6.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-unit-frame-dead\"\nset = { self = { foreground = { color = \"$woc_text_muted\" }, border = { color = \"$woc_hud_danger\", width = 2.0, radius = 6.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-portrait\"\nset = { self = { background = { color = \"$woc_hud_panel_soft\" }, border = { color = \"$woc_border\", width = 3.0, radius = 31.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-level-chip\"\nset = { self = { background = { color = \"$woc_hud_slot\" }, foreground = { color = \"$woc_gold\" }, border = { color = \"$woc_gold_dim\", width = 2.0, radius = 12.0 }, font = { size = 11.0, weight = 700.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-unit-name\"\nset = { self = { foreground = { color = \"$woc_text\" }, font = { size = 13.0, weight = 700.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-bar-rail\"\nset = { self = { background = { color = \"$woc_hud_rail\" }, border = { color = \"$woc_border_soft\", width = 1.0, radius = 3.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-health-fill\"\nset = { self = { background = { color = \"$woc_hud_health\" }, border = { radius = 2.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-absorb-fill\"\nset = { self = { background = { color = \"$woc_hud_absorb\" }, border = { radius = 2.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-resource-fill\"\nset = { self = { background = { color = \"$woc_hud_mana\" }, border = { radius = 2.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-resource-rage\"\nset = { self = { background = { color = \"$woc_hud_rage\" } } }\n\n[[stylesheets.rules]]\nselector = \".woc-resource-energy\"\nset = { self = { background = { color = \"$woc_hud_energy\" } } }\n\n[[stylesheets.rules]]\nselector = \".woc-bar-text\"\nset = { self = { foreground = { color = \"#ffffff\" }, font = { size = 10.0, weight = 700.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-cast-fill\"\nset = { self = { background = { color = \"$woc_gold_dim\" }, border = { radius = 2.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-xp-fill\"\nset = { self = { background = { color = \"#8e3bc1\" }, border = { radius = 2.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-xp-rested\"\nset = { self = { background = { color = \"#438ed0aa\" }, border = { radius = 2.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-action-bar\"\nset = { self = { background = { color = \"$woc_hud_panel\" }, border = { color = \"$woc_border_soft\", width = 1.0, radius = 7.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-action-slot\"\nset = { self = { background = { color = \"$woc_hud_slot\" }, foreground = { color = \"$woc_text\" }, border = { color = \"$woc_hud_slot_border\", width = 2.0, radius = 6.0 }, font = { size = 10.0, weight = 700.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-action-slot:hover\"\nset = { self = { border = { color = \"$woc_gold\", width = 2.0, radius = 6.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-action-slot:pressed\"\nset = { self = { background = { color = \"$woc_control_pressed\" }, foreground = { color = \"$woc_gold\" }, border = { color = \"$woc_gold_dim\", width = 2.0, radius = 6.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-action-slot:focus\"\nset = { self = { border = { color = \"$woc_hud_focus\", width = 3.0, radius = 6.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-action-slot:disabled\"\nset = { self = { background = { color = \"$woc_hud_rail\" }, foreground = { color = \"$woc_text_muted\" }, border = { color = \"$woc_border_soft\", width = 1.0, radius = 6.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-action-slot-queued\"\nset = { self = { border = { color = \"$woc_gold\", width = 3.0, radius = 6.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-action-slot-out-of-range\"\nset = { self = { border = { color = \"$woc_hud_danger\", width = 2.0, radius = 6.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-action-slot-proc\"\nset = { self = { foreground = { color = \"$woc_gold\" }, border = { color = \"$woc_gold\", width = 3.0, radius = 6.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-cooldown-overlay\"\nset = { self = { background = { color = \"$woc_hud_cooldown\" }, border = { radius = 5.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-keybind\"\nset = { self = { foreground = { color = \"$woc_text_muted\" }, font = { size = 9.0, weight = 700.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-tracker\"\nset = { self = { background = { color = \"$woc_hud_panel_soft\" }, foreground = { color = \"$woc_text\" }, border = { color = \"$woc_border_soft\", width = 1.0, radius = 6.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-minimap\"\nset = { self = { background = { color = \"#18362f\" }, border = { color = \"$woc_gold_dim\", width = 3.0, radius = 8.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-touch-action\"\nset = { self = { background = { color = \"$woc_hud_touch\" }, foreground = { color = \"$woc_text\" }, border = { color = \"$woc_hud_touch_border\", width = 2.0, radius = 8.0 }, font = { size = 11.0, weight = 700.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-touch-action:hover\"\nset = { self = { border = { color = \"$woc_gold\", width = 2.0, radius = 8.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-touch-action:pressed\"\nset = { self = { background = { color = \"$woc_control_pressed\" }, foreground = { color = \"$woc_gold\" }, border = { color = \"$woc_gold_dim\", width = 2.0, radius = 8.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-touch-action:focus\"\nset = { self = { border = { color = \"$woc_hud_focus\", width = 3.0, radius = 8.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-touch-action:disabled\"\nset = { self = { background = { color = \"$woc_control_disabled\" }, foreground = { color = \"$woc_text_muted\" }, border = { color = \"$woc_border_soft\", width = 1.0, radius = 8.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-touch-zone\"\nset = { self = { background = { color = \"#20222a22\" }, border = { color = \"#a6b2c244\", width = 1.0, radius = 8.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-pause-scrim\"\nset = { self = { background = { color = \"#05050acc\" } } }\n\n[[stylesheets.rules]]\nselector = \".woc-pause-menu\"\nset = { self = { background = { color = \"$woc_hud_panel\" }, foreground = { color = \"$woc_text\" }, border = { color = \"$woc_border\", width = 2.0, radius = 8.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-pause-action\"\nset = { self = { background = { color = \"$woc_hud_panel_soft\" }, foreground = { color = \"$woc_text\" }, border = { color = \"$woc_border_soft\", width = 1.0, radius = 5.0 }, font = { size = 14.0, weight = 700.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-pause-action:hover\"\nset = { self = { background = { color = \"$woc_control_hover\" }, border = { color = \"$woc_gold_dim\", width = 1.0, radius = 5.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-pause-action:pressed\"\nset = { self = { background = { color = \"$woc_control_pressed\" }, foreground = { color = \"$woc_gold\" }, border = { color = \"$woc_gold_dim\", width = 1.0, radius = 5.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-pause-action:focus\"\nset = { self = { border = { color = \"$woc_hud_focus\", width = 2.0, radius = 5.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-pause-action:disabled\"\nset = { self = { background = { color = \"$woc_control_disabled\" }, foreground = { color = \"$woc_text_muted\" }, border = { color = \"$woc_border_soft\", width = 1.0, radius = 5.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-low-health-vignette\"\nset = { self = { background = { color = \"$woc_hud_vignette\" } } }\n\n[[stylesheets.rules]]\nselector = \".woc-lockpick-window\"\nset = { self = { background = { color = \"$woc_hud_panel\" }, foreground = { color = \"$woc_text\" }, border = { color = \"$woc_gold_dim\", width = 2.0, radius = 8.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-lockpick-ante\"\nset = { self = { background = { color = \"$woc_hud_panel_soft\" }, foreground = { color = \"$woc_text\" }, border = { color = \"$woc_hud_slot_border\", width = 2.0, radius = 6.0 }, font = { size = 13.0, weight = 700.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-lockpick-ante:hover\"\nset = { self = { background = { color = \"$woc_control_hover\" }, border = { color = \"$woc_gold_dim\", width = 2.0, radius = 6.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-lockpick-ante:pressed\"\nset = { self = { background = { color = \"$woc_control_pressed\" }, foreground = { color = \"$woc_gold\" }, border = { color = \"$woc_gold_dim\", width = 2.0, radius = 6.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-lockpick-ante:focus\"\nset = { self = { border = { color = \"$woc_hud_focus\", width = 3.0, radius = 6.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-lockpick-ante:disabled\"\nset = { self = { background = { color = \"$woc_control_disabled\" }, foreground = { color = \"$woc_text_muted\" }, border = { color = \"$woc_border_soft\", width = 1.0, radius = 6.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-lockpick-board\"\nset = { self = { background = { color = \"$woc_hud_rail\" }, border = { color = \"$woc_hud_slot_border\", width = 2.0, radius = 6.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-lockpick-timer\"\nset = { self = { background = { color = \"$woc_hud_rail\" }, border = { color = \"$woc_border_soft\", width = 1.0, radius = 4.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-lockpick-timer-fill\"\nset = { self = { background = { color = \"$woc_gold\" }, border = { radius = 3.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-lockpick-action\"\nset = { self = { background = { color = \"$woc_hud_slot\" }, foreground = { color = \"$woc_text\" }, border = { color = \"$woc_hud_slot_border\", width = 2.0, radius = 5.0 }, font = { size = 12.0, weight = 700.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-lockpick-action:focus\"\nset = { self = { border = { color = \"$woc_hud_focus\", width = 3.0, radius = 5.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-lockpick-feedback\"\nset = { self = { foreground = { color = \"$woc_gold\" }, font = { size = 13.0, weight = 700.0 } } }\n\n[[stylesheets.rules]]\nselector = \".woc-lockpick-coffer\"\nset = { self = { foreground = { color = \"$woc_gold\" }, font = { size = 13.0, weight = 700.0 } } }\n"
+
+[asset]
+kind = "style"
+id = "res://ui/hud/hud_theme.zui"
+version = 2
+display_name = "World of ClaudeCraft HUD Theme"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+woc_shell_bg = "#10121f"
+woc_shell_scrim = "#00000066"
+woc_panel_bg = "#11101ddd"
+woc_panel_bg_strong = "#0d0d16ee"
+woc_border = "#6f5a2a"
+woc_border_soft = "#3b3547"
+woc_gold = "#ffd100"
+woc_gold_dim = "#c8a94d"
+woc_gold_light = "#ffe46b"
+woc_control_hover = "#282737"
+woc_control_pressed = "#3a3018"
+woc_control_disabled = "#1b1a24"
+woc_text = "#f4ead3"
+woc_text_muted = "#998d6a"
+woc_input_bg = "#10101acc"
+woc_discord = "#5865f2"
+woc_discord_border = "#3c46b0"
+woc_success = "#9fdc7f"
+woc_error = "#e06c75"
+woc_shadow = "#00000073"
+woc_hud_panel = "#11101dee"
+woc_hud_panel_soft = "#17151ecc"
+woc_hud_rail = "#09090fcc"
+woc_hud_slot = "#17151f"
+woc_hud_slot_border = "#5b4618"
+woc_hud_health = "#3fa65a"
+woc_hud_absorb = "#d9e4f2aa"
+woc_hud_mana = "#2476d3"
+woc_hud_rage = "#a63838"
+woc_hud_energy = "#d5c536"
+woc_hud_cooldown = "#000000b8"
+woc_hud_danger = "#c73535"
+woc_hud_touch = "#282a3b"
+woc_hud_touch_border = "#8a6c2a"
+woc_hud_vignette = "#8d101066"
+woc_hud_focus = "#f7d45c"
+
+[[stylesheets]]
+id = "woc-shell"
+
+[[stylesheets.rules]]
+selector = ".woc-shell"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_shell_bg"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[[stylesheets.rules]]
+selector = ".woc-stage-scrim"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_shell_scrim"
+
+[[stylesheets.rules]]
+selector = ".woc-panel"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-panel-strong"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg_strong"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-screen-title"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.font]
+size = 22
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-welcome-title"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.font]
+size = 27
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-section-title"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold_dim"
+
+[stylesheets.rules.set.self.font]
+size = 15
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-label"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.font]
+size = 14
+weight = 600
+
+[[stylesheets.rules]]
+selector = ".woc-muted"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.font]
+size = 12
+
+[[stylesheets.rules]]
+selector = ".woc-error"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_error"
+
+[stylesheets.rules.set.self.font]
+size = 12
+weight = 600
+
+[[stylesheets.rules]]
+selector = ".woc-input"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_input_bg"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[stylesheets.rules.set.self.font]
+size = 14
+
+[[stylesheets.rules]]
+selector = ".woc-input:hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-input:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 2
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-input:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-class-button"
+
+[stylesheets.rules.set.self.background]
+color = "#11101d00"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 2
+radius = 31
+
+[stylesheets.rules.set.self.font]
+size = 12
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:hover"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_light"
+width = 3
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:checked"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:selected"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".class-warrior"
+
+[stylesheets.rules.set.self.foreground]
+color = "#c79c6e"
+
+[[stylesheets.rules]]
+selector = ".class-paladin"
+
+[stylesheets.rules.set.self.foreground]
+color = "#f58cba"
+
+[[stylesheets.rules]]
+selector = ".class-hunter"
+
+[stylesheets.rules.set.self.foreground]
+color = "#abd473"
+
+[[stylesheets.rules]]
+selector = ".class-rogue"
+
+[stylesheets.rules.set.self.foreground]
+color = "#fff569"
+
+[[stylesheets.rules]]
+selector = ".class-priest"
+
+[stylesheets.rules.set.self.foreground]
+color = "#fffff0"
+
+[[stylesheets.rules]]
+selector = ".class-shaman"
+
+[stylesheets.rules.set.self.foreground]
+color = "#0070de"
+
+[[stylesheets.rules]]
+selector = ".class-mage"
+
+[stylesheets.rules.set.self.foreground]
+color = "#69ccf0"
+
+[[stylesheets.rules]]
+selector = ".class-warlock"
+
+[stylesheets.rules.set.self.foreground]
+color = "#9482c9"
+
+[[stylesheets.rules]]
+selector = ".class-druid"
+
+[stylesheets.rules.set.self.foreground]
+color = "#ff7d0a"
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg_strong"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 2
+radius = 8
+
+[stylesheets.rules.set.self.font]
+size = 12
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:hover"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_hover"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_light"
+width = 3
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:checked"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:selected"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-primary-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.foreground]
+color = "#1a1608"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 16
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-primary-action:hover"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold_light"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-primary-action:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold_dim"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-primary-action:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_text"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-primary-action:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "#242431"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-secondary-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg_strong"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 14
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-secondary-action:hover"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-secondary-action:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-secondary-action:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_light"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-secondary-action:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-discord-strip"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_discord"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-discord-badge"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_discord"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_discord_border"
+width = 1
+radius = 10
+
+[[stylesheets.rules]]
+selector = ".woc-discord-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_discord"
+
+[stylesheets.rules.set.self.foreground]
+color = "#ffffff"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_discord_border"
+width = 1
+radius = 5
+
+[stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-ready-dot"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_success"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_success"
+width = 1
+radius = 4
+
+[[stylesheets.rules]]
+selector = ".woc-preview-host"
+
+[stylesheets.rules.set.self.background]
+color = "#090a12aa"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-roster-host"
+
+[stylesheets.rules.set.self.background]
+color = "#090a1299"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-roster-row:selected"
+
+[stylesheets.rules.set.self.background]
+color = "#3a301880"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-modal-card"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg_strong"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-danger-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_error"
+
+[stylesheets.rules.set.self.foreground]
+color = "#ffffff"
+
+[stylesheets.rules.set.self.border]
+color = "#8f343b"
+width = 1
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 14
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-danger-action:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "#2b252d"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-mode-trigger"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_input_bg"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 16
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-mode-option"
+
+[stylesheets.rules.set.self.background]
+color = "#11101d00"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[stylesheets.rules.set.self.font]
+size = 15
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-mode-option:selected"
+
+[stylesheets.rules.set.self.background]
+color = "#3a301880"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-play-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.foreground]
+color = "#1a1608"
+
+[stylesheets.rules.set.self.border]
+color = "#fff2a8"
+width = 2
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 20
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-contract-address"
+
+[stylesheets.rules.set.self.background]
+color = "#090a12aa"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 11
+weight = 600
+
+[[stylesheets.rules]]
+selector = ".woc-auth-form"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-auth-link"
+
+[stylesheets.rules.set.self.background]
+color = "#00000000"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold_dim"
+
+[stylesheets.rules.set.self.border]
+color = "#00000000"
+width = 1
+radius = 4
+
+[stylesheets.rules.set.self.font]
+size = 14
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-auth-link:hover"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold_light"
+
+[[stylesheets.rules]]
+selector = ".woc-auth-link:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[[stylesheets.rules]]
+selector = ".woc-auth-link:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_light"
+width = 2
+radius = 4
+
+[[stylesheets.rules]]
+selector = ".woc-auth-link:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "#00000000"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "#00000000"
+width = 1
+radius = 4
+
+[[stylesheets.rules]]
+selector = ".woc-auth-provider-host"
+
+[stylesheets.rules.set.self.background]
+color = "#090a1299"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-auth-status"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.font]
+size = 12
+weight = 600
+
+[[stylesheets]]
+id = "woc-hud"
+
+[[stylesheets.rules]]
+selector = ".woc-hud-root"
+
+[stylesheets.rules.set.self.background]
+color = "#00000000"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[[stylesheets.rules]]
+selector = ".woc-live-region"
+
+[stylesheets.rules.set.self.foreground]
+color = "#00000000"
+
+[stylesheets.rules.set.self.font]
+size = 1
+
+[[stylesheets.rules]]
+selector = ".woc-unit-frame"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-unit-frame-target"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-unit-frame-dead"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_danger"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-portrait"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel_soft"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 3
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-level-chip"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_slot"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 12
+
+[stylesheets.rules.set.self.font]
+size = 11
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-unit-name"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-bar-rail"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_rail"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 3
+
+[[stylesheets.rules]]
+selector = ".woc-health-fill"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_health"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-absorb-fill"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_absorb"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-resource-fill"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_mana"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-resource-rage"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_rage"
+
+[[stylesheets.rules]]
+selector = ".woc-resource-energy"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_energy"
+
+[[stylesheets.rules]]
+selector = ".woc-bar-text"
+
+[stylesheets.rules.set.self.foreground]
+color = "#ffffff"
+
+[stylesheets.rules.set.self.font]
+size = 10
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-cast-fill"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold_dim"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-xp-fill"
+
+[stylesheets.rules.set.self.background]
+color = "#8e3bc1"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-xp-rested"
+
+[stylesheets.rules.set.self.background]
+color = "#438ed0aa"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-action-bar"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 7
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_slot"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_slot_border"
+width = 2
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 10
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot:hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 3
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_rail"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot-queued"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot-out-of-range"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_danger"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot-proc"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-cooldown-overlay"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_cooldown"
+
+[stylesheets.rules.set.self.border]
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-keybind"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.font]
+size = 9
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-tracker"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel_soft"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-minimap"
+
+[stylesheets.rules.set.self.background]
+color = "#18362f"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 3
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-touch-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_touch"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_touch_border"
+width = 2
+radius = 8
+
+[stylesheets.rules.set.self.font]
+size = 11
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-touch-action:hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-touch-action:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-touch-action:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 3
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-touch-action:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-touch-zone"
+
+[stylesheets.rules.set.self.background]
+color = "#20222a22"
+
+[stylesheets.rules.set.self.border]
+color = "#a6b2c244"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-pause-scrim"
+
+[stylesheets.rules.set.self.background]
+color = "#05050acc"
+
+[[stylesheets.rules]]
+selector = ".woc-pause-menu"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-pause-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel_soft"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[stylesheets.rules.set.self.font]
+size = 14
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-pause-action:hover"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-pause-action:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-pause-action:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 2
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-pause-action:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-low-health-vignette"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_vignette"
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-window"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-ante"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel_soft"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_slot_border"
+width = 2
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-ante:hover"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-ante:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-ante:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 3
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-ante:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-board"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_rail"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_slot_border"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-timer"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_rail"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 4
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-timer-fill"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+radius = 3
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_slot"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_slot_border"
+width = 2
+radius = 5
+
+[stylesheets.rules.set.self.font]
+size = 12
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-action:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 3
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-feedback"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-coffer"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[penpot_original_imports]
+widgets = []
+styles = [ "res://ui/shell/shell_theme.zui" ]
+
+[penpot_review_host.asset]
+kind = "view"
+version = 2
+id = "res://ui/hud/hud_theme.zui#review-host"
+display_name = "World of ClaudeCraft HUD Theme"
+
+[penpot_review_host.imports]
+widgets = []
+styles = []
+
+[penpot_review_host.root]
+node = "review_theme_host"
+
+[penpot_review_host.nodes.review_theme_host]
+component = "Overlay"
+classes = [ "woc-shell" ]
+
+[penpot_review_host.nodes.review_theme_host.layout.container]
+kind = "Overlay"
+
+[penpot_review_host.nodes.review_theme_host.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_theme_host.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_theme_host.children]]
+node = "review_theme_title"
+
+[[penpot_review_host.nodes.review_theme_host.children]]
+node = "sample_0_label"
+
+[[penpot_review_host.nodes.review_theme_host.children]]
+node = "sample_0"
+
+[[penpot_review_host.nodes.review_theme_host.children]]
+node = "sample_1_label"
+
+[[penpot_review_host.nodes.review_theme_host.children]]
+node = "sample_1"
+
+[[penpot_review_host.nodes.review_theme_host.children]]
+node = "sample_2_label"
+
+[[penpot_review_host.nodes.review_theme_host.children]]
+node = "sample_2"
+
+[[penpot_review_host.nodes.review_theme_host.children]]
+node = "sample_3_label"
+
+[[penpot_review_host.nodes.review_theme_host.children]]
+node = "sample_3"
+
+[penpot_review_host.nodes.review_theme_title]
+component = "Label"
+classes = [ "woc-screen-title" ]
+
+[penpot_review_host.nodes.review_theme_title.props]
+text = "World of ClaudeCraft HUD Theme"
+
+[penpot_review_host.nodes.review_theme_title.layout.position]
+x = 32
+y = 24
+
+[penpot_review_host.nodes.review_theme_title.layout.width]
+preferred = 800
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_theme_title.layout.height]
+preferred = 40
+stretch = "Fixed"
+
+[penpot_review_host.nodes.sample_0_label]
+component = "Label"
+classes = [ "woc-section-title" ]
+
+[penpot_review_host.nodes.sample_0_label.props]
+text = "Action slot"
+
+[penpot_review_host.nodes.sample_0_label.layout.position]
+x = 32
+y = 104
+
+[penpot_review_host.nodes.sample_0_label.layout.width]
+preferred = 344
+stretch = "Fixed"
+
+[penpot_review_host.nodes.sample_0_label.layout.height]
+preferred = 24
+stretch = "Fixed"
+
+[penpot_review_host.nodes.sample_0]
+component = "Button"
+control_id = "ActionSlot0"
+classes = [ "woc-action-slot" ]
+
+[penpot_review_host.nodes.sample_0.props]
+text = "Attack"
+button_variant = "outlined"
+
+[penpot_review_host.nodes.sample_0.layout.width]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[penpot_review_host.nodes.sample_0.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[penpot_review_host.nodes.sample_0.layout.anchor]
+x = 0
+y = 0
+
+[penpot_review_host.nodes.sample_0.layout.pivot]
+x = 0
+y = 0
+
+[penpot_review_host.nodes.sample_0.layout.position]
+x = 32
+y = 140
+
+[[penpot_review_host.nodes.sample_0.events]]
+id = "WocHud/Action/0"
+event = "Click"
+route = "woc.hud.action.activate.0"
+
+[penpot_review_host.nodes.sample_1_label]
+component = "Label"
+classes = [ "woc-section-title" ]
+
+[penpot_review_host.nodes.sample_1_label.props]
+text = "Touch action"
+
+[penpot_review_host.nodes.sample_1_label.layout.position]
+x = 432
+y = 104
+
+[penpot_review_host.nodes.sample_1_label.layout.width]
+preferred = 344
+stretch = "Fixed"
+
+[penpot_review_host.nodes.sample_1_label.layout.height]
+preferred = 24
+stretch = "Fixed"
+
+[penpot_review_host.nodes.sample_1]
+component = "Button"
+control_id = "TouchJump"
+classes = [ "woc-touch-action" ]
+
+[penpot_review_host.nodes.sample_1.props]
+text = "Jump"
+button_variant = "outlined"
+
+[penpot_review_host.nodes.sample_1.layout.anchor]
+x = 0
+y = 0
+
+[penpot_review_host.nodes.sample_1.layout.pivot]
+x = 0
+y = 0
+
+[penpot_review_host.nodes.sample_1.layout.position]
+x = 432
+y = 140
+
+[penpot_review_host.nodes.sample_1.layout.width]
+min = 58
+preferred = 58
+max = 58
+stretch = "Fixed"
+
+[penpot_review_host.nodes.sample_1.layout.height]
+min = 48
+preferred = 48
+max = 48
+stretch = "Fixed"
+
+[[penpot_review_host.nodes.sample_1.events]]
+id = "WocHud/Touch/Jump"
+event = "Click"
+route = "woc.hud.touch.jump"
+
+[penpot_review_host.nodes.sample_2_label]
+component = "Label"
+classes = [ "woc-section-title" ]
+
+[penpot_review_host.nodes.sample_2_label.props]
+text = "Pause action"
+
+[penpot_review_host.nodes.sample_2_label.layout.position]
+x = 32
+y = 288
+
+[penpot_review_host.nodes.sample_2_label.layout.width]
+preferred = 344
+stretch = "Fixed"
+
+[penpot_review_host.nodes.sample_2_label.layout.height]
+preferred = 24
+stretch = "Fixed"
+
+[penpot_review_host.nodes.sample_2]
+component = "Button"
+control_id = "PauseKeyBindings"
+classes = [ "woc-pause-action" ]
+
+[penpot_review_host.nodes.sample_2.props]
+text = "Key Bindings"
+button_variant = "outlined"
+
+[penpot_review_host.nodes.sample_2.layout.width]
+min = 280
+preferred = 280
+max = 280
+stretch = "Fixed"
+
+[penpot_review_host.nodes.sample_2.layout.height]
+min = 42
+preferred = 42
+max = 42
+stretch = "Fixed"
+
+[penpot_review_host.nodes.sample_2.layout.anchor]
+x = 0
+y = 0
+
+[penpot_review_host.nodes.sample_2.layout.pivot]
+x = 0
+y = 0
+
+[penpot_review_host.nodes.sample_2.layout.position]
+x = 32
+y = 324
+
+[[penpot_review_host.nodes.sample_2.events]]
+id = "WocHud/Pause/KeyBindings"
+event = "Click"
+route = "woc.hud.pause.open.keybinds"
+
+[penpot_review_host.nodes.sample_3_label]
+component = "Label"
+classes = [ "woc-section-title" ]
+
+[penpot_review_host.nodes.sample_3_label.props]
+text = "Lockpick ante"
+
+[penpot_review_host.nodes.sample_3_label.layout.position]
+x = 432
+y = 288
+
+[penpot_review_host.nodes.sample_3_label.layout.width]
+preferred = 344
+stretch = "Fixed"
+
+[penpot_review_host.nodes.sample_3_label.layout.height]
+preferred = 24
+stretch = "Fixed"
+
+[penpot_review_host.nodes.sample_3]
+component = "Button"
+control_id = "LockpickAntePremium"
+classes = [ "woc-lockpick-ante" ]
+
+[penpot_review_host.nodes.sample_3.props]
+text = "Premium\n3 locks • 1 try • 3s"
+
+[penpot_review_host.nodes.sample_3.layout.width]
+min = 240
+preferred = 240
+max = 240
+stretch = "Fixed"
+
+[penpot_review_host.nodes.sample_3.layout.height]
+min = 100
+preferred = 100
+max = 100
+stretch = "Fixed"
+
+[penpot_review_host.nodes.sample_3.layout.anchor]
+x = 0
+y = 0
+
+[penpot_review_host.nodes.sample_3.layout.pivot]
+x = 0
+y = 0
+
+[penpot_review_host.nodes.sample_3.layout.position]
+x = 432
+y = 324
+
+[[penpot_review_host.nodes.sample_3.events]]
+id = "WocLockpick/Engage/Premium"
+event = "Click"
+route = "woc.hud.lockpick.engage.1"
+
+[penpot_review_host.tokens]
+woc_shell_bg = "#10121f"
+woc_shell_scrim = "#00000066"
+woc_panel_bg = "#11101ddd"
+woc_panel_bg_strong = "#0d0d16ee"
+woc_border = "#6f5a2a"
+woc_border_soft = "#3b3547"
+woc_gold = "#ffd100"
+woc_gold_dim = "#c8a94d"
+woc_gold_light = "#ffe46b"
+woc_control_hover = "#282737"
+woc_control_pressed = "#3a3018"
+woc_control_disabled = "#1b1a24"
+woc_text = "#f4ead3"
+woc_text_muted = "#998d6a"
+woc_input_bg = "#10101acc"
+woc_discord = "#5865f2"
+woc_discord_border = "#3c46b0"
+woc_success = "#9fdc7f"
+woc_error = "#e06c75"
+woc_shadow = "#00000073"
+woc_hud_panel = "#11101dee"
+woc_hud_panel_soft = "#17151ecc"
+woc_hud_rail = "#09090fcc"
+woc_hud_slot = "#17151f"
+woc_hud_slot_border = "#5b4618"
+woc_hud_health = "#3fa65a"
+woc_hud_absorb = "#d9e4f2aa"
+woc_hud_mana = "#2476d3"
+woc_hud_rage = "#a63838"
+woc_hud_energy = "#d5c536"
+woc_hud_cooldown = "#000000b8"
+woc_hud_danger = "#c73535"
+woc_hud_touch = "#282a3b"
+woc_hud_touch_border = "#8a6c2a"
+woc_hud_vignette = "#8d101066"
+woc_hud_focus = "#f7d45c"
+
+[[penpot_review_host.stylesheets]]
+id = "woc-shell"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-shell"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_shell_bg"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-stage-scrim"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_shell_scrim"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-panel"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_panel_bg"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 8
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-panel-strong"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_panel_bg_strong"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 8
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-screen-title"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 22
+weight = 700
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-welcome-title"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 27
+weight = 700
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-section-title"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_gold_dim"
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 15
+weight = 700
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-label"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 14
+weight = 600
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-muted"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 12
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-error"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_error"
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 12
+weight = 600
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-input"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_input_bg"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 14
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-input:hover"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 5
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-input:focus"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 2
+radius = 5
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-input:disabled"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-class-button"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "#11101d00"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 2
+radius = 31
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 12
+weight = 700
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-class-button:hover"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 31
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-class-button:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 31
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-class-button:focus"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_light"
+width = 3
+radius = 31
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-class-button:checked"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 31
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-class-button:selected"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 31
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-class-button:disabled"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 31
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".class-warrior"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "#c79c6e"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".class-paladin"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "#f58cba"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".class-hunter"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "#abd473"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".class-rogue"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "#fff569"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".class-priest"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "#fffff0"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".class-shaman"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "#0070de"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".class-mage"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "#69ccf0"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".class-warlock"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "#9482c9"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".class-druid"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "#ff7d0a"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-skin-swatch"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_panel_bg_strong"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 2
+radius = 8
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 12
+weight = 700
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-skin-swatch:hover"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_control_hover"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 8
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-skin-swatch:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 8
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-skin-swatch:focus"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_light"
+width = 3
+radius = 8
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-skin-swatch:checked"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 8
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-skin-swatch:selected"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 8
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-skin-swatch:disabled"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 8
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-primary-action"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_gold"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "#1a1608"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 6
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 16
+weight = 700
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-primary-action:hover"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_gold_light"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 1
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-primary-action:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_gold_dim"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-primary-action:focus"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_text"
+width = 2
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-primary-action:disabled"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "#242431"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-secondary-action"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_panel_bg_strong"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 6
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 14
+weight = 700
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-secondary-action:hover"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_control_hover"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-secondary-action:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-secondary-action:focus"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_light"
+width = 2
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-secondary-action:disabled"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-discord-strip"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_panel_bg"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_discord"
+width = 1
+radius = 8
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-discord-badge"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_discord"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_discord_border"
+width = 1
+radius = 10
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-discord-action"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_discord"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "#ffffff"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_discord_border"
+width = 1
+radius = 5
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-ready-dot"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_success"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_success"
+width = 1
+radius = 4
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-preview-host"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "#090a12aa"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-roster-host"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "#090a1299"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-roster-row:selected"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "#3a301880"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-modal-card"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_panel_bg_strong"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 2
+radius = 8
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-danger-action"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_error"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "#ffffff"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "#8f343b"
+width = 1
+radius = 6
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 14
+weight = 700
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-danger-action:disabled"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "#2b252d"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-mode-trigger"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_input_bg"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 6
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 16
+weight = 700
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-mode-option"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "#11101d00"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 15
+weight = 700
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-mode-option:selected"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "#3a301880"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 5
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-play-action"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_gold"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "#1a1608"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "#fff2a8"
+width = 2
+radius = 6
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 20
+weight = 700
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-contract-address"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "#090a12aa"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 6
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 11
+weight = 600
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-auth-form"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 8
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-auth-link"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "#00000000"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_gold_dim"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "#00000000"
+width = 1
+radius = 4
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 14
+weight = 700
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-auth-link:hover"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_gold_light"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-auth-link:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-auth-link:focus"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_light"
+width = 2
+radius = 4
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-auth-link:disabled"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "#00000000"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "#00000000"
+width = 1
+radius = 4
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-auth-provider-host"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "#090a1299"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-auth-status"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 12
+weight = 600
+
+[[penpot_review_host.stylesheets]]
+id = "woc-hud"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-hud-root"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "#00000000"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-live-region"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "#00000000"
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 1
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-unit-frame"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_hud_panel"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 2
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-unit-frame-target"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-unit-frame-dead"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_hud_danger"
+width = 2
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-portrait"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_hud_panel_soft"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 3
+radius = 31
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-level-chip"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_hud_slot"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 12
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 11
+weight = 700
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-unit-name"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-bar-rail"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_hud_rail"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 3
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-health-fill"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_hud_health"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+radius = 2
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-absorb-fill"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_hud_absorb"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+radius = 2
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-resource-fill"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_hud_mana"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+radius = 2
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-resource-rage"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_hud_rage"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-resource-energy"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_hud_energy"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-bar-text"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "#ffffff"
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 10
+weight = 700
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-cast-fill"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_gold_dim"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+radius = 2
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-xp-fill"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "#8e3bc1"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+radius = 2
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-xp-rested"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "#438ed0aa"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+radius = 2
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-action-bar"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_hud_panel"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 7
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-action-slot"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_hud_slot"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_hud_slot_border"
+width = 2
+radius = 6
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 10
+weight = 700
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-action-slot:hover"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 2
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-action-slot:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-action-slot:focus"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 3
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-action-slot:disabled"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_hud_rail"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-action-slot-queued"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-action-slot-out-of-range"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_hud_danger"
+width = 2
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-action-slot-proc"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-cooldown-overlay"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_hud_cooldown"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+radius = 5
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-keybind"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 9
+weight = 700
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-tracker"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_hud_panel_soft"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-minimap"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "#18362f"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 3
+radius = 8
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-touch-action"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_hud_touch"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_hud_touch_border"
+width = 2
+radius = 8
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 11
+weight = 700
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-touch-action:hover"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 2
+radius = 8
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-touch-action:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 8
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-touch-action:focus"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 3
+radius = 8
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-touch-action:disabled"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 8
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-touch-zone"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "#20222a22"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "#a6b2c244"
+width = 1
+radius = 8
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-pause-scrim"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "#05050acc"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-pause-menu"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_hud_panel"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 2
+radius = 8
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-pause-action"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_hud_panel_soft"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 14
+weight = 700
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-pause-action:hover"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_control_hover"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 5
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-pause-action:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 5
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-pause-action:focus"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 2
+radius = 5
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-pause-action:disabled"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-low-health-vignette"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_hud_vignette"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-lockpick-window"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_hud_panel"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 8
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-lockpick-ante"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_hud_panel_soft"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_hud_slot_border"
+width = 2
+radius = 6
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-lockpick-ante:hover"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_control_hover"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-lockpick-ante:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-lockpick-ante:focus"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 3
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-lockpick-ante:disabled"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-lockpick-board"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_hud_rail"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_hud_slot_border"
+width = 2
+radius = 6
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-lockpick-timer"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_hud_rail"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 4
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-lockpick-timer-fill"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_gold"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+radius = 3
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-lockpick-action"
+
+[penpot_review_host.stylesheets.rules.set.self.background]
+color = "$woc_hud_slot"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_hud_slot_border"
+width = 2
+radius = 5
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 12
+weight = 700
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-lockpick-action:focus"
+
+[penpot_review_host.stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 3
+radius = 5
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-lockpick-feedback"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".woc-lockpick-coffer"
+
+[penpot_review_host.stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[penpot_review_host.stylesheets.rules.set.self.font]
+size = 13
+weight = 700

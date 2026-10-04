@@ -15,6 +15,8 @@ const MANAGEMENT_SCAN_VERY_SPARSE_READY_MAX_RECORDS: usize = 64;
 const MANAGEMENT_SCAN_LARGE_REGISTRY_DENSITY_DIVISOR: usize = 10;
 const MANAGEMENT_SCAN_MID_REGISTRY_DENSITY_DIVISOR: usize = 4;
 
+// 注册表与管理投影必须取自同一次读取；后续排序和扫描脱离权威锁，不阻塞资源发布。
+// 投影扫描不完整或与记录不一致时退回目录扫描，两条路径仍返回同一快照的结果。
 struct ResourceRegistryExportSnapshot {
     registry: ResourceRegistry,
     management: Arc<ResourceManagementGeneration>,
@@ -134,67 +136,17 @@ fn should_scan_management_generation(total_count: usize, ready_count: usize) -> 
 }
 
 impl ResourceManager {
+    /// 导出指定种类、已声明 Ready 且有有效版本的记录，按定位符显示顺序稳定排列，供预热和清单构建。
+    /// 此处 Ready 表示元数据可加载；不要求运行时载荷驻留，也不会触发加载。
     pub fn ready_records_for_kind(&self, kind: ResourceKind) -> Vec<ResourceRecord> {
         ResourceRegistryExportSnapshot::capture(self).ready_records_for_kind(kind)
     }
 }
 
 #[cfg(test)]
-#[path = "registry_export/optimization_tests.rs"]
+#[path = "registry_export/tests/optimization_tests.rs"]
 mod optimization_tests;
 
 #[cfg(test)]
-mod tests {
-    use crate::{
-        ResourceId, ResourceKind, ResourceLocator, ResourceManager, ResourceRecord, ResourceState,
-    };
-
-    #[derive(Debug)]
-    struct TestPayload;
-
-    fn record(locator_text: &str, kind: ResourceKind) -> ResourceRecord {
-        let locator = ResourceLocator::parse(locator_text).expect("valid locator");
-        ResourceRecord::new(ResourceId::from_locator(&locator), kind, locator)
-    }
-
-    #[test]
-    fn resource_manager_exports_ready_records_for_kind_with_live_revisions() {
-        let manager = ResourceManager::new();
-
-        let first_shader = record("res://shaders/live.wgsl", ResourceKind::Shader)
-            .with_source_hash("shader-hash-a");
-        let shader_id = first_shader.id;
-        manager.register_ready(first_shader, TestPayload).unwrap();
-        manager
-            .register_ready(
-                record("res://shaders/live.wgsl", ResourceKind::Shader)
-                    .with_source_hash("shader-hash-b"),
-                TestPayload,
-            )
-            .unwrap();
-        manager
-            .register_ready(
-                record("res://models/mesh.glb", ResourceKind::Model).with_source_hash("model-hash"),
-                TestPayload,
-            )
-            .unwrap();
-        manager
-            .register_record(record("res://shaders/pending.wgsl", ResourceKind::Shader))
-            .unwrap();
-        manager
-            .register_record(
-                record("res://shaders/error.wgsl", ResourceKind::Shader)
-                    .with_state(ResourceState::Error),
-            )
-            .unwrap();
-
-        let records = manager.ready_records_for_kind(ResourceKind::Shader);
-
-        assert_eq!(records.len(), 1);
-        assert_eq!(records[0].id, shader_id);
-        assert_eq!(records[0].kind, ResourceKind::Shader);
-        assert_eq!(records[0].state, ResourceState::Ready);
-        assert_eq!(records[0].revision, 2);
-        assert_eq!(records[0].source_hash, "shader-hash-b");
-    }
-}
+#[path = "tests/registry_export.rs"]
+mod tests;

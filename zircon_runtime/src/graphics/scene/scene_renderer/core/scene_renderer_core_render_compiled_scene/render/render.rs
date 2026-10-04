@@ -1,7 +1,7 @@
-use crate::core::TaskPool;
 use crate::core::framework::render::{
     RenderCapabilitySummary, RenderFrameSubmissionProducer, RenderFrameSubmissionTransaction,
 };
+use crate::core::TaskPool;
 use crate::graphics::backend::{
     GpuPassTimer, GpuPipelineStatisticsTimer, OffscreenTarget, RenderBackend, ViewportSurface,
 };
@@ -28,17 +28,72 @@ use super::frame_lifecycle::{
 };
 use super::prepare_compiled_scene_graph_frame::PreparedCompiledSceneGraphFrame;
 use super::prepare_compiled_scene_mesh_submission::{
-    PreparedCompiledSceneMeshSubmission, project_compiled_scene_mesh_draw_lists,
+    project_compiled_scene_mesh_draw_lists, PreparedCompiledSceneMeshSubmission,
 };
 use super::prepare_overlay_buffers::prepare_overlay_buffers;
 use super::submit_compiled_scene_frame::{
-    CompiledSceneFrameSubmissionContext, prepare_environment_ibl_runtime_cache_writeback,
+    prepare_environment_ibl_runtime_cache_writeback, CompiledSceneFrameSubmissionContext,
 };
-use super::terminal_frame_packet::{TerminalFramePacketContext, prepare_terminal_frame_packet};
+use super::terminal_frame_packet::{prepare_terminal_frame_packet, TerminalFramePacketContext};
 
 impl SceneRendererCore {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn render_compiled_scene(
+        &mut self,
+        backend: &RenderBackend,
+        streamer: &mut ResourceStreamer,
+        frame: &ViewportRenderFrame,
+        target: &mut OffscreenTarget,
+        pipeline: &CompiledRenderPipeline,
+        capabilities: &RenderCapabilitySummary,
+        render_pass_executors: &RenderPassExecutorRegistry,
+        runtime_features: SceneRuntimeFeatureFlags,
+        history_textures: Option<&mut SceneFrameHistoryTextures>,
+        history_frame_transaction: SceneHistoryFrameTransaction,
+        history_initialization_command_buffer: Option<wgpu::CommandBuffer>,
+        frame_generation: u64,
+        submission_transaction: &mut RenderFrameSubmissionTransaction,
+        gpu_pass_timer: Option<&mut GpuPassTimer>,
+        gpu_pipeline_statistics_timer: Option<&mut GpuPipelineStatisticsTimer>,
+        compute_task_pool: Option<&TaskPool>,
+        parallel_record_min_passes_per_bucket: Option<usize>,
+        hzb_diagnostics_readback_enabled: bool,
+        viewport_capture: Option<AsyncViewportCaptureRequest>,
+        environment_ibl_bake_reservation: Option<EnvironmentIblBakeReservation>,
+        viewport_product_copy: Option<&zr_rhi_wgpu::WgpuUiExternalImageCopyTarget>,
+        surface_frame: Option<(&ViewportSurface, &zr_rhi_wgpu::WgpuNativeSurfaceFrameTarget)>,
+    ) -> Result<SceneRendererCompiledSceneOutputs, GraphicsError> {
+        let mut environment_frame = self.begin_scene_environment_frame();
+        environment_frame
+            .core()
+            .render_compiled_scene_in_environment_frame(
+                backend,
+                streamer,
+                frame,
+                target,
+                pipeline,
+                capabilities,
+                render_pass_executors,
+                runtime_features,
+                history_textures,
+                history_frame_transaction,
+                history_initialization_command_buffer,
+                frame_generation,
+                submission_transaction,
+                gpu_pass_timer,
+                gpu_pipeline_statistics_timer,
+                compute_task_pool,
+                parallel_record_min_passes_per_bucket,
+                hzb_diagnostics_readback_enabled,
+                viewport_capture,
+                environment_ibl_bake_reservation,
+                viewport_product_copy,
+                surface_frame,
+            )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn render_compiled_scene_in_environment_frame(
         &mut self,
         backend: &RenderBackend,
         streamer: &mut ResourceStreamer,
@@ -431,6 +486,7 @@ impl SceneRendererCore {
         let scene_submission =
             self.submit_compiled_scene_frame(CompiledSceneFrameSubmissionContext {
                 backend,
+                pipeline,
                 #[cfg(test)]
                 device,
                 #[cfg(test)]
@@ -483,5 +539,5 @@ impl SceneRendererCore {
 }
 
 #[cfg(test)]
-#[path = "tests.rs"]
+#[path = "tests/cases.rs"]
 mod tests;

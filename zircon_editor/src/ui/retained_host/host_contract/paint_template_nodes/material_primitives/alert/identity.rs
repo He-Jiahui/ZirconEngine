@@ -1,6 +1,7 @@
 use super::super::super::super::data::TemplatePaneNodeData;
 use super::super::component_variant_contains;
 
+// 模板角色与 variant 令牌决定根节点和子槽归属；子槽应由根绘制器吞掉通用回退。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_alert_root_node(
     node: &TemplatePaneNodeData,
 ) -> bool {
@@ -52,5 +53,5 @@ fn alert_slot_variant(component_variant: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "identity/single_scan_slot_tests.rs"]
+#[path = "identity/tests/single_scan_slot_tests.rs"]
 mod single_scan_slot_tests;

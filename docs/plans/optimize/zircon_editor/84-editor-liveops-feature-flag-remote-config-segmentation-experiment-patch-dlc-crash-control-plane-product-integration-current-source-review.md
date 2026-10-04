@@ -11,8 +11,7 @@ refreshes:
 related_code:
   - tools/editor-workbench-preview/design-manifest.mjs
   - tools/editor-workbench-preview/design.js
-  - docs/ui-and-layout/index.md
-  - docs/ui-and-layout/editor-workbench-designs/STYLE-NOTES.md
+  - docs/ui/index.md
   - zircon_editor/src/ui/workbench/page_layout_template.rs
   - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings.rs
   - zircon_editor/src/core/settings
@@ -159,7 +158,7 @@ Zircon 101文件由以下可复算集合组成：frontmatter中列出的产品/�
 
 ### 3.2 DesignSpec仍宣称不可证明的结果
 
-`design-manifest.mjs:215-222`仍把八项全部标为`kind: "editor-page"`，没有实现状态字段。`design.js`仍固定提供`12 live / 2 staged`、`Live v42 / 3 drafts`、`24 changes`、`8 packs`、`184 crashes / 92% resolved`、`42k users`和`3 live`，并输出“validated / refreshed / grouped / resolved”等完成式反馈。`docs/ui-and-layout/index.md:387`仍称其为LiveOps pages。
+`design-manifest.mjs:215-222`仍把八项全部标为`kind: "editor-page"`，没有实现状态字段。`design.js`仍固定提供`12 live / 2 staged`、`Live v42 / 3 drafts`、`24 changes`、`8 packs`、`184 crashes / 92% resolved`、`42k users`和`3 live`，并输出“validated / refreshed / grouped / resolved”等完成式反馈。`docs/ui/index.md:387`仍称其为LiveOps pages。
 
 这些文件不属于本轮实现范围，不能通过本报告修改来伪造M0完成。产品实现开始前，Editor46必须消费Tooling14提供的typed DesignSpec status，只有provider-backed且qualified的页面才可进入产品能力投影。
 

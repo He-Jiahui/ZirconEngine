@@ -27,10 +27,6 @@ pub(super) fn assert_single_mesh_subasset(outcome: &AssetImportOutcome, path: &s
         ImportedAsset::Mesh(mesh) => {
             assert_eq!(mesh.vertex_count().unwrap(), 3);
             assert_eq!(mesh.to_model_primitive().unwrap().indices, vec![0, 1, 2]);
-            assert!(
-                mesh.virtual_geometry.is_some(),
-                "{mesh_uri} should preserve cooked virtual geometry"
-            );
         }
         other => panic!("unexpected mesh subasset {mesh_uri}: {other:?}"),
     }

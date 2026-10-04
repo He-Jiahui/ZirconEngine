@@ -26,12 +26,12 @@ if (!sunder || sunder.class !== "warrior" || sunder.learnLevel !== 5 ||
 const world = read("scripts", "woc_game", "src", "world", "state.zr");
 requireText(
   world,
-  /writer\.u16\(<uint>78, 1, 1\)[\s\S]*?entitySunderArmorStacks[\s\S]*?entitySunderArmorRemaining[\s\S]*?entitySunderArmorValues/,
+  /writer\.byte\(<uint>state\.entitySunderArmorStacks\[sunderIndex\], 1\)[\s\S]*?entitySunderArmorRemaining[\s\S]*?entitySunderArmorValues/,
   "WOS59 must retain the durable Sunder Armor tail in the current codec",
 );
 requireText(
   world,
-  /schemaVersion != <uint>58 &&[\s\S]*?schemaVersion != <uint>59 && schemaVersion != <uint>60 &&[\s\S]*?schemaVersion != <uint>61[\s\S]*?schemaVersion >= <uint>59[\s\S]*?historicalSunderIndex/,
+  /schemaVersion != <uint>58\s*&&[\s\S]*?schemaVersion != <uint>59\s*&&[\s\S]*?schemaVersion != <uint>60\s*&&[\s\S]*?schemaVersion != <uint>61[\s\S]*?schemaVersion >= <uint>59[\s\S]*?historicalSunderIndex/,
   "WOS59 must decode its Sunder tail and default legacy snapshots",
 );
 requireText(
@@ -46,7 +46,7 @@ requireText(
 );
 requireText(
   world,
-  /startOfflineSunderArmorCast[\s\S]*?catalogAdmission\(state, casterIndex, abilityCode, "", false\)[\s\S]*?sunderArmorTargetIndex[\s\S]*?entityResources\[casterIndex\] = <int>state\.entityResources\[casterIndex\] - cost[\s\S]*?nextAuthoritativeRandomUnit\(state\)[\s\S]*?sourceSwingMissChance[\s\S]*?enterOfflineSunderArmorCombat/,
+  /startOfflineSunderArmorCast[\s\S]*?catalogAdmission\(state, casterIndex, abilityCode, "", false\)[\s\S]*?sunderArmorTargetIndex[\s\S]*?spendOfflineAbilityResource\(state, casterIndex, cost\)[\s\S]*?nextAuthoritativeRandomUnit\(state\)[\s\S]*?sourceSwingMissChance[\s\S]*?enterOfflineSunderArmorCombat/,
   "Sunder Armor must validate, bill, draw one melee miss roll, and enter combat",
 );
 requireText(
@@ -86,8 +86,8 @@ requireText(
 );
 
 const main = read("scripts", "woc_game", "src", "main.zr");
-if ((main.match(/world_state[^\r\n]*WOS78/g) ?? []).length !== 2) {
-  throw new Error("main schema metadata must publish WOS72 in both runtime paths");
+if ((main.match(/world_state[^\r\n]*WOS118/g) ?? []).length !== 2) {
+  throw new Error("main schema metadata must publish WOS118 in both runtime paths");
 }
 
 const contract = read("contracts", "world-state.md");

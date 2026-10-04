@@ -6,6 +6,7 @@ use crate::ui::style::{
 
 #[test]
 fn ui_painter_primary_state_uses_one_priority_for_every_family() {
+    // 每项同时点亮相邻候选状态，逐层确认主状态优先级，而非只测孤立状态映射。
     let cases = [
         (
             UiPainterState {
@@ -201,9 +202,12 @@ fn button_interaction_keeps_legacy_focus_without_changing_primary_state() {
         ..UiPainterState::normal()
     };
 
+    let visual = keyboard_focus.visual_state_for_family(UiPainterFamily::Button);
+    assert_eq!(visual.primary, UiPainterResolvedState::Normal);
+    assert!(visual.focus_visible);
     assert_eq!(
         keyboard_focus.resolved_state_for_family(UiPainterFamily::Button),
-        UiPainterResolvedState::Normal
+        UiPainterResolvedState::Focused
     );
     assert_eq!(
         keyboard_focus.button_interaction_state(),

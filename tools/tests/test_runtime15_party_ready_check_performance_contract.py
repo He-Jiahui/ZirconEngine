@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+# 队伍准备检查由世界 tick 交给线性到期扫描，成员移除时立即结算；本组结合脚本契约和对抗规模模型约束时限增长。
 import re
 import unittest
 from pathlib import Path

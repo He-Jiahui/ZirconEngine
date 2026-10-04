@@ -14,8 +14,8 @@ implementation_files:
   - zircon_plugins/plugin_sdk/src/lib.rs
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
-  - docs/engine-architecture/runtime-interface-convergence.md
-  - docs/engine-architecture/native-plugin-boundary.md
+  - docs/architecture/runtime-interface-convergence.md
+  - docs/architecture/native-plugin-boundary.md
 tests:
   - zircon_runtime/src/tests
   - zircon_runtime_interface/src/tests

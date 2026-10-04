@@ -1,3 +1,5 @@
+//! MUI 作者属性经属性变更入口映射到布局、可见范围、文字和输入脏域，表面按域选择后续重建。
+
 use crate::ui::{
     surface::{UiPropertyMutationRequest, UiPropertyMutationStatus, UiSurface},
     tree::UiRuntimeTreeLayoutExt,

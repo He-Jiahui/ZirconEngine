@@ -1,10 +1,8 @@
-use std::marker::PhantomData;
-
 use super::{
     ActiveTransaction, CommandBox, CommandEffect, EditCommand, EditCommandError, EditContext,
-    EditorTransactionEngine, ExclusiveTransition, HistoryContextId, HistoryStore, MergeMode,
-    MergeOutcome, SelectionSnapshot, TransactionEvent, TransactionEventDelivery,
-    TransactionEventKind, TransactionId, TransactionRecord,
+    EditorTransactionEngine, HistoryContextId, HistoryStore, MergeMode, MergeOutcome,
+    SelectionSnapshot, TransactionEvent, TransactionEventDelivery, TransactionEventKind,
+    TransactionId, TransactionRecord,
 };
 
 impl EditorTransactionEngine {
@@ -28,28 +26,8 @@ impl EditorTransactionEngine {
             }
         };
         let result = context.as_any_mut().downcast_mut::<T>().map(inspect);
-        self.restore_active(context, active, false);
+        self.finish_active(context, active, false);
         Ok(result)
-    }
-
-    pub(crate) fn begin_exclusive_transition(
-        &self,
-        operation: &'static str,
-    ) -> Result<ExclusiveTransition<'_>, EditCommandError> {
-        self.flush_operation_group()?;
-        self.start_operation(operation)?;
-        let mut state = self.lock_state();
-        if !state.active.is_empty() {
-            self.clear_operation_locked(&mut state);
-            return Err(EditCommandError::InvariantViolation {
-                invariant: "exclusive editor transitions require no active transaction scope",
-            });
-        }
-        drop(state);
-        Ok(ExclusiveTransition {
-            engine: self,
-            not_send: PhantomData,
-        })
     }
 
     pub(super) fn push(
@@ -58,6 +36,17 @@ impl EditorTransactionEngine {
         mut command: CommandBox,
     ) -> Result<(), EditCommandError> {
         self.start_operation("push command")?;
+        // Reserve before client code mutates the world; never wrap into a stale token.
+        let applied_revision = {
+            let mut state = self.lock_state();
+            match state.applied_command_revision.checked_add(1) {
+                Some(revision) => revision,
+                None => {
+                    self.clear_operation_locked(&mut state);
+                    return Err(EditCommandError::AppliedCommandRevisionExhausted);
+                }
+            }
+        };
         let (mut context, mut active) = match self.take_top_scope(scope) {
             Ok(parts) => parts,
             Err(error) => {
@@ -71,7 +60,7 @@ impl EditorTransactionEngine {
             if apply_effect == CommandEffect::Applied {
                 if let Err(rollback_error) = command.revert(context.as_mut()) {
                     active.commands.push(command);
-                    self.restore_active(context, active, true);
+                    self.finish_active(context, active, true);
                     return Err(EditCommandError::RollbackFailed {
                         command_error: Box::new(apply_error),
                         rollback_error: Box::new(rollback_error.source),
@@ -90,7 +79,7 @@ impl EditorTransactionEngine {
                     Err(apply_error)
                 }
                 Err(cancel_error) => {
-                    self.restore_active(context, active, true);
+                    self.finish_active(context, active, true);
                     Err(EditCommandError::RollbackFailed {
                         command_error: Box::new(apply_error),
                         rollback_error: Box::new(cancel_error),
@@ -105,7 +94,8 @@ impl EditorTransactionEngine {
         } else {
             active.commands.push(command);
         }
-        self.restore_active(context, active, false);
+        self.lock_state().applied_command_revision = applied_revision;
+        self.finish_active(context, active, false);
         Ok(())
     }
 
@@ -119,21 +109,34 @@ impl EditorTransactionEngine {
         mut after_apply: impl FnMut(&SelectionSnapshot) -> Result<(), EditCommandError>,
     ) -> Result<TransactionId, EditCommandError> {
         self.start_operation("commit transaction")?;
+        let mut event = None;
+        let result = self.commit_after_apply_reserved(scope, &mut after_apply, &mut event);
+        self.clear_operation();
+        if let Some(event) = event {
+            self.publish_event(event);
+        }
+        result
+    }
+
+    /// Executes commit under its caller's reservation without releasing admission.
+    pub(super) fn commit_after_apply_reserved(
+        &self,
+        scope: TransactionId,
+        after_apply: &mut impl FnMut(&SelectionSnapshot) -> Result<(), EditCommandError>,
+        deferred_event: &mut Option<TransactionEvent>,
+    ) -> Result<TransactionId, EditCommandError> {
         let history_mutation = {
-            let mut state = self.lock_state();
+            let state = self.lock_state();
             let Some(active) = state.active.last() else {
-                self.clear_operation_locked(&mut state);
                 return Err(EditCommandError::ScopeClosed);
             };
             if active.id != scope {
-                self.clear_operation_locked(&mut state);
                 return Err(EditCommandError::ScopeClosed);
             }
             if active.root && !active.commands.is_empty() {
                 match Self::reserve_history_mutation(&state, active.history) {
                     Ok(reservation) => Some(reservation),
                     Err(error) => {
-                        self.clear_operation_locked(&mut state);
                         return Err(error);
                     }
                 }
@@ -144,7 +147,6 @@ impl EditorTransactionEngine {
         let (mut context, mut active) = match self.take_top_scope(scope) {
             Ok(parts) => parts,
             Err(error) => {
-                self.clear_operation();
                 return Err(error);
             }
         };
@@ -153,9 +155,9 @@ impl EditorTransactionEngine {
             let event = active.root.then(|| Self::canceled_event(&active));
             return match Self::cancel_frame(&mut active, context.as_mut()) {
                 Ok(()) => {
-                    self.finish_canceled(context);
+                    self.restore_operation_context(context, false);
                     if let Some(event) = event {
-                        self.publish_event(event);
+                        *deferred_event = Some(event);
                     }
                     Err(error)
                 }
@@ -224,20 +226,36 @@ impl EditorTransactionEngine {
             record.finalize(context.as_mut());
         }
         let id = active.id;
-        self.finish_operation(context, false);
-        self.publish_event(event);
+        self.restore_operation_context(context, false);
+        *deferred_event = Some(event);
         Ok(id)
     }
 
     pub(super) fn cancel(&self, scope: TransactionId) -> Result<(), EditCommandError> {
         self.start_operation("cancel transaction")?;
-        let mut context = {
+        let (mut context, canceled_revision) = {
             let mut state = self.lock_state();
             if !state.active.iter().any(|active| active.id == scope) {
                 self.clear_operation_locked(&mut state);
                 return Err(EditCommandError::ScopeClosed);
             }
-            Self::take_context_from(&mut state)?
+            let changed = state
+                .active
+                .iter()
+                .skip_while(|active| active.id != scope)
+                .any(|active| !active.commands.is_empty());
+            let canceled_revision = if changed {
+                match state.applied_command_revision.checked_add(1) {
+                    Some(revision) => Some(revision),
+                    None => {
+                        self.clear_operation_locked(&mut state);
+                        return Err(EditCommandError::AppliedCommandRevisionExhausted);
+                    }
+                }
+            } else {
+                None
+            };
+            (Self::take_context_from(&mut state)?, canceled_revision)
         };
 
         let mut event = None;
@@ -273,6 +291,9 @@ impl EditorTransactionEngine {
                     return Err(error);
                 }
             }
+        }
+        if let Some(revision) = canceled_revision {
+            self.lock_state().applied_command_revision = revision;
         }
         self.finish_operation(context, false);
         if let Some(event) = event {
@@ -360,6 +381,18 @@ impl EditorTransactionEngine {
     }
 
     fn restore_active(
+        &self,
+        context: Box<dyn EditContext>,
+        active: ActiveTransaction,
+        faulted: bool,
+    ) {
+        let mut state = self.lock_state();
+        state.active.push(active);
+        state.context = Some(context);
+        state.faulted |= faulted;
+    }
+
+    fn finish_active(
         &self,
         context: Box<dyn EditContext>,
         active: ActiveTransaction,

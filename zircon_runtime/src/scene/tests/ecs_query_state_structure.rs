@@ -1,3 +1,4 @@
+//! QueryState 仅持有原型计划，点查询由 World 的当前稳定位置投影；定长多取值另有初始化安全约束。
 fn source_between<'a>(source: &'a str, start: &str, end: &str) -> &'a str {
     source
         .split(start)
@@ -16,7 +17,7 @@ fn cached_point_queries_project_entity_through_the_matching_archetype_plan() {
     assert!(plan.contains("find_cached_archetype_plan(plans"));
     assert!(plan.contains("plan.write_component_locations(world, stable_location"));
     for source in [cached_direct, read_only_cached] {
-        assert!(source.contains("self.project_entity(world, entity, &mut component_locations)"));
+        assert!(source.contains("self.project_entity(&*world, entity, &mut component_locations)"));
         assert!(!source.contains("cached_entity_index"));
         assert!(!source.contains("cached_component_location_offsets"));
     }
@@ -31,26 +32,26 @@ fn cached_count_and_empty_helpers_iterate_compiled_plans_without_projection_buff
 
     let read_count = source_between(
         read_only_cached,
-        "pub(crate) fn count_cached_with_ticks",
-        "pub(crate) fn contains_cached_with_ticks",
+        "pub(crate) unsafe fn count_cached_with_ticks",
+        "pub(crate) unsafe fn contains_cached_with_ticks",
     );
     let read_empty = source_between(
         read_only_cached,
-        "pub(crate) fn is_empty_cached_with_ticks",
-        "pub(crate) fn count_cached_with_ticks",
+        "pub(crate) unsafe fn is_empty_cached_with_ticks",
+        "pub(crate) unsafe fn count_cached_with_ticks",
     );
     assert!(read_count.contains("self.iter_cached_with_ticks(world, ticks).count()"));
     assert!(read_empty.contains("self.iter_cached_with_ticks(world, ticks).next().is_none()"));
 
     let direct_count = source_between(
         cached_direct,
-        "pub(crate) fn count_cached_direct_with_ticks",
-        "pub(crate) fn contains_cached_direct_with_ticks",
+        "pub(crate) unsafe fn count_cached_direct_with_ticks",
+        "pub(crate) unsafe fn contains_cached_direct_with_ticks",
     );
     let direct_empty = source_between(
         cached_direct,
-        "pub(crate) fn is_empty_cached_direct_with_ticks",
-        "pub(crate) fn count_cached_direct_with_ticks",
+        "pub(crate) unsafe fn is_empty_cached_direct_with_ticks",
+        "pub(crate) unsafe fn count_cached_direct_with_ticks",
     );
     assert!(direct_count.contains("self.iter_cached_direct_with_ticks(world, ticks).count()"));
     assert!(direct_empty.contains("self.iter_cached_direct_with_ticks(world, ticks)"));

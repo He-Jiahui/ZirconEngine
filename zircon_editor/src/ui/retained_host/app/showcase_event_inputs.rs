@@ -2,7 +2,7 @@ use crate::ui::template_runtime::UiComponentShowcaseDemoEventInput;
 
 mod action;
 #[cfg(test)]
-#[path = "showcase_event_inputs/action_key_match_tests.rs"]
+#[path = "showcase_event_inputs/tests/action_key_match_tests.rs"]
 mod action_key_match_tests;
 mod edit;
 

@@ -1,13 +1,14 @@
 use std::fmt;
 use std::marker::PhantomData;
-use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
+use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 
-use crate::scene::World;
 use crate::scene::ecs::{
     ChangeTick, ChangeTickWindow, SystemParam, SystemParamAccess, SystemParamError,
     WorkerCommandBuffer, WorldlessSystemParam,
 };
+use crate::scene::World;
 
+/// 持有参数缓存、访问集与逐系统的变更窗口；调度系统在多次调用间复用，并在所属 World 退出时退休。
 pub struct SystemState<P>
 where
     P: SystemParam,
@@ -66,6 +67,7 @@ where
     pub fn rebind(&mut self, world: &mut World) -> Result<(), SystemParamError> {
         let mut access = SystemParamAccess::default();
         let state = P::init_state(world, &mut access)?;
+        // BUG: [CR-R02-runtime_ecs_schedule_systems-0005] 活跃 EventReaderParam 跨 World rebind 且启用调试断言时，旧 lease 被交给新 World，retire 的归属检查触发 panic。证据：此调用传新 World，disconnect_reader 检查 registry 身份；同 World 已退休测试未覆盖。
         self.retire(world);
         self.state = state;
         self.access = access;
@@ -88,11 +90,16 @@ where
             buffer.begin_run();
             world.reclaim_worker_command_buffer(buffer);
         }
+        // 参数获取与回调共享活动 tick；二者展开时先恢复 World 的活动 tick，last_run 保留原窗口以供重试。
         let this_run = world.advance_change_tick();
         let ticks = ChangeTickWindow::new(self.last_run, this_run);
         let result = {
             let mut active_tick_guard = ActiveChangeTickGuard::enter(world, this_run);
             catch_unwind(AssertUnwindSafe(|| {
+                // One original grant spans all Params and the callback. Items
+                // drop before this scope ends and before diagnostics/deferred merge.
+                // Their access and retained-leaf contracts must compose; a short
+                // scoped parent read is not a substitute for that compatibility.
                 let item =
                     unsafe { P::get_param(active_tick_guard.world_ptr(), &mut self.state, ticks) };
                 f(item)

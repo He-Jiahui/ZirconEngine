@@ -12,7 +12,7 @@ related_code:
   - zircon_runtime_interface/src/runtime_api/mod.rs
   - zircon_app/src/bin/editor.rs
   - zircon_hub/src
-  - tools/zircon_build.py
+  - tools/build/zircon_build.py
 reference_sources:
   - dev/Fyrox/editor/src/lib.rs
   - dev/godot/editor
@@ -104,4 +104,4 @@ cargo test -p zircon_runtime_interface --locked  # 触及 ABI/DTO 时
 cargo fmt --all --check
 ```
 
-验收证据与状态记录写回各计划文档状态节；涉及的行为模块按源路径镜像更新 `docs/zircon_editor/**`。
+验收证据与状态记录写回各计划文档状态节；涉及的行为模块按源路径镜像更新 `docs/crates/zircon_editor/**`。

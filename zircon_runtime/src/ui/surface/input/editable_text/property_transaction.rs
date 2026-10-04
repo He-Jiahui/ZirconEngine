@@ -11,13 +11,17 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::{
     binding::component_state_value_update_with_source_kind,
-    editable_text_composition::composition_clauses_value,
+    editable_text_composition::{composition_clauses_value, INACTIVE_COMPOSITION_OFFSET},
     surface::{
-        UiSurface, input::is_number_field_metadata,
-        property_mutation::mutate_tree_metadata_properties,
+        input::is_number_field_metadata, property_mutation::mutate_tree_metadata_properties,
+        UiSurface,
     },
-    text::{CommittedTextEditIntent, clamp_grapheme_boundary},
+    text::{clamp_grapheme_boundary, CommittedTextEditIntent},
 };
+
+#[cfg(test)]
+#[path = "property_transaction/tests/cases.rs"]
+mod tests;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::ui) enum UiEditableTextPropertyTransactionError {
@@ -66,11 +70,18 @@ pub(in crate::ui) struct PreparedUiEditableTextPropertyTransaction<'surface> {
     supplemental_properties: [Option<(String, UiValue)>; 4],
     source_kind: UiBindingSourceKind,
     committed_edit: Option<CommittedTextEditIntent>,
+    preserve_committed_source_epoch: bool,
     number_input: Option<UiNumberInputReceiptV1>,
     number_publish_value: Option<f64>,
 }
 
 impl PreparedUiEditableTextPropertyTransaction<'_> {
+    // Preedit and cancellation change visible text while keeping the committed source.
+    pub(in crate::ui) fn preserving_committed_source(mut self) -> Self {
+        self.preserve_committed_source_epoch = true;
+        self
+    }
+
     pub(in crate::ui) fn commit(
         self,
     ) -> Result<UiEditableTextPropertyTransactionReceipt, UiEditableTextPropertyTransactionError>
@@ -85,6 +96,7 @@ impl PreparedUiEditableTextPropertyTransaction<'_> {
             supplemental_properties,
             source_kind,
             committed_edit,
+            preserve_committed_source_epoch,
             number_input,
             number_publish_value,
         } = self;
@@ -98,6 +110,9 @@ impl PreparedUiEditableTextPropertyTransaction<'_> {
         )
         .map_err(|_| UiEditableTextPropertyTransactionError::MissingNode)?;
         if batch.changes.is_empty() {
+            if committed_edit.is_some() {
+                surface.input.advance_text_document_epoch(target);
+            }
             return Ok(UiEditableTextPropertyTransactionReceipt {
                 committed_edit,
                 number_input,
@@ -167,7 +182,7 @@ impl PreparedUiEditableTextPropertyTransaction<'_> {
         surface
             .mark_node_dirty(target, combined_dirty)
             .map_err(|_| UiEditableTextPropertyTransactionError::MissingNode)?;
-        if text_changed {
+        if committed_edit.is_some() || (text_changed && !preserve_committed_source_epoch) {
             surface.input.advance_text_document_epoch(target);
         }
         surface.invalidate_clipboard_transfers_for(target);
@@ -262,7 +277,7 @@ pub(in crate::ui) fn prepare_editable_text_properties_with_edit<'surface>(
             surface,
             target,
             value_property,
-            UiValue::String(state.text.clone()),
+            None,
             value_property,
             UiValue::String(state.text.clone()),
             [None, None, None],
@@ -334,7 +349,7 @@ pub(in crate::ui) fn prepare_editable_text_properties_with_value<'surface>(
             surface,
             target,
             value_property,
-            value.clone(),
+            None,
             value_property,
             value,
             [None, None, None],
@@ -433,7 +448,7 @@ fn prepare_number_field_properties_with_edit<'surface>(
         surface,
         target,
         value_property,
-        value,
+        Some(value),
         "value_text",
         UiValue::String(state.text.clone()),
         [
@@ -459,7 +474,7 @@ fn prepare_editable_text_properties_with_values_and_edit<'surface>(
     surface: &'surface mut UiSurface,
     target: UiNodeId,
     value_property: &str,
-    value: UiValue,
+    value: Option<UiValue>,
     text_property: &str,
     text_value: UiValue,
     additional_properties: [Option<(String, UiValue)>; 3],
@@ -471,11 +486,18 @@ fn prepare_editable_text_properties_with_values_and_edit<'surface>(
     PreparedUiEditableTextPropertyTransaction<'surface>,
     UiEditableTextPropertyTransactionError,
 > {
+    // The shared-value callers own only the text payload. Distinct canonical values
+    // (such as NumberField's numeric value) retain their own validation and projection.
+    let proposed_value = match value.as_ref() {
+        Some(value) => value,
+        None if value_property == text_property => &text_value,
+        None => return Err(UiEditableTextPropertyTransactionError::InvalidState),
+    };
     prepare_editable_text_property_transaction(
         surface,
         target,
         value_property,
-        &value,
+        proposed_value,
         text_property,
         &text_value,
         &additional_properties,
@@ -489,13 +511,16 @@ fn prepare_editable_text_properties_with_values_and_edit<'surface>(
         text_property: text_property.to_string(),
         properties: editable_text_properties(text_property, text_value, state),
         supplemental_properties: [
-            (value_property != text_property).then(|| (value_property.to_string(), value)),
+            value
+                .filter(|_| value_property != text_property)
+                .map(|value| (value_property.to_string(), value)),
             additional_properties[0].clone(),
             additional_properties[1].clone(),
             additional_properties[2].clone(),
         ],
         source_kind,
         committed_edit,
+        preserve_committed_source_epoch: false,
         number_input: number_edit.map(|decision| decision.receipt),
         number_publish_value: number_edit.and_then(|decision| decision.publish_value),
     })
@@ -527,13 +552,11 @@ fn prepare_editable_text_property_transaction(
         metadata
             .attributes
             .get(property)
-            .map(UiValue::from_toml)
-            .is_none_or(|current| {
-                std::mem::discriminant(&current) == std::mem::discriminant(proposed)
-            })
+            .is_none_or(|current| borrowed_toml_kind_matches(current, proposed))
     };
     if !kind_matches(value_property, value)
-        || !kind_matches(text_property, text_value)
+        || ((value_property != text_property || !std::ptr::eq(value, text_value))
+            && !kind_matches(text_property, text_value))
         || additional_properties
             .iter()
             .flatten()
@@ -541,13 +564,38 @@ fn prepare_editable_text_property_transaction(
     {
         return Err(UiEditableTextPropertyTransactionError::ValueKindMismatch);
     }
-    if text_value.display_text() != state.text || !editable_text_state_is_valid(state) {
+    if !display_text_matches(text_value, &state.text) || !editable_text_state_is_valid(state) {
         return Err(UiEditableTextPropertyTransactionError::InvalidState);
     }
     if committed_edit.is_some_and(|intent| !intent.is_valid_for_state(state)) {
         return Err(UiEditableTextPropertyTransactionError::InvalidEditIntent);
     }
     Ok(())
+}
+
+fn borrowed_toml_kind_matches(current: &toml::Value, proposed: &UiValue) -> bool {
+    matches!(
+        (current, proposed),
+        (
+            toml::Value::String(_) | toml::Value::Datetime(_),
+            UiValue::String(_)
+        ) | (toml::Value::Integer(_), UiValue::Int(_))
+            | (toml::Value::Float(_), UiValue::Float(_))
+            | (toml::Value::Boolean(_), UiValue::Bool(_))
+            | (toml::Value::Array(_), UiValue::Array(_))
+            | (toml::Value::Table(_), UiValue::Map(_))
+    )
+}
+
+fn display_text_matches(value: &UiValue, text: &str) -> bool {
+    match value {
+        UiValue::String(value)
+        | UiValue::Color(value)
+        | UiValue::AssetRef(value)
+        | UiValue::InstanceRef(value)
+        | UiValue::Enum(value) => value == text,
+        _ => value.display_text() == text,
+    }
 }
 
 fn canonical_value(
@@ -580,16 +628,16 @@ fn editable_text_properties(
             .as_ref()
             .map(|composition| {
                 (
-                    composition.range.start,
-                    composition.range.end,
+                    composition.range.start as i64,
+                    composition.range.end as i64,
                     composition.text.clone(),
                     composition.restore_text.clone().unwrap_or_default(),
                     composition_clauses_value(&composition.preedit_clauses),
                 )
             })
             .unwrap_or((
-                state.caret.offset,
-                state.caret.offset,
+                INACTIVE_COMPOSITION_OFFSET,
+                INACTIVE_COMPOSITION_OFFSET,
                 String::new(),
                 String::new(),
                 UiValue::Array(Vec::new()),
@@ -615,12 +663,9 @@ fn editable_text_properties(
         ),
         (
             "composition_start".to_string(),
-            UiValue::Int(composition_start as i64),
+            UiValue::Int(composition_start),
         ),
-        (
-            "composition_end".to_string(),
-            UiValue::Int(composition_end as i64),
-        ),
+        ("composition_end".to_string(), UiValue::Int(composition_end)),
         (
             "composition_text".to_string(),
             UiValue::String(composition_text),

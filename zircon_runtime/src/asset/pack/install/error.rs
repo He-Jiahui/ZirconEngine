@@ -4,6 +4,18 @@ use crate::asset::pack::ZrPackError;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ZrPackDeltaInstallError {
+    InvalidPromotionPaths(String),
+    TransactionFailed {
+        journal_directory: PathBuf,
+        error: String,
+    },
+    RecoveryRequired {
+        journal_directory: PathBuf,
+    },
+    BackupPackMismatch {
+        path: PathBuf,
+        error: String,
+    },
     ReadFailed {
         path: PathBuf,
         error: String,
@@ -26,6 +38,27 @@ pub enum ZrPackDeltaInstallError {
 impl fmt::Display for ZrPackDeltaInstallError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::InvalidPromotionPaths(error) => {
+                write!(formatter, "invalid pack promotion paths: {error}")
+            }
+            Self::TransactionFailed {
+                journal_directory,
+                error,
+            } => write!(
+                formatter,
+                "pack promotion transaction at {} failed: {error}",
+                journal_directory.display()
+            ),
+            Self::RecoveryRequired { journal_directory } => write!(
+                formatter,
+                "pack promotion durability is unresolved at {}; recover before continuing",
+                journal_directory.display()
+            ),
+            Self::BackupPackMismatch { path, error } => write!(
+                formatter,
+                "backup pack {} does not match the delta base: {error}",
+                path.display()
+            ),
             Self::ReadFailed { path, error } => {
                 write!(
                     formatter,

@@ -7,9 +7,9 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::popup_rows::{
-    PopupAttributeIdSet, PopupRowPaintState, option_popup_frame_within, option_popup_layout_bounds,
-    popup_base_z, popup_row_frame, push_popup_background, push_popup_row_label,
-    push_popup_row_surface,
+    option_popup_frame_within, option_popup_layout_bounds, popup_base_z, popup_row_frame,
+    push_popup_background, push_popup_row_label, push_popup_row_surface, PopupAttributeIdSet,
+    PopupRowPaintState,
 };
 
 pub(super) fn popup_option_render_commands(

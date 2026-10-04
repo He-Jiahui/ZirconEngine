@@ -33,7 +33,9 @@ impl WhenClause {
     }
 
     pub(crate) fn all(clauses: impl IntoIterator<Item = WhenClause>) -> Self {
-        let mut flattened = Vec::new();
+        let clauses = clauses.into_iter();
+        let (clause_lower_bound, _) = clauses.size_hint();
+        let mut flattened = Vec::with_capacity(clause_lower_bound);
         for clause in clauses {
             match clause {
                 Self::Always => {}
@@ -519,3 +521,7 @@ where
 {
     capabilities.into_iter().map(Into::into).collect()
 }
+
+#[cfg(test)]
+#[path = "when/tests/optimization_batch_is_editor631_tests.rs"]
+mod optimization_batch_is_editor631_tests;

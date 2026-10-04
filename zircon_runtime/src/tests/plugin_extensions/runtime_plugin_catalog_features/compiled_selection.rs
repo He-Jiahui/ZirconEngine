@@ -52,6 +52,68 @@ fn does_not_reenable_an_explicitly_disabled_alias_package() {
 }
 
 #[test]
+fn canonical_alias_selection_resolves_owner_and_dependency_feature() {
+    let catalog = RuntimePluginCatalog::from_registration_reports(
+        [sound_registration()],
+        [sound_spatial_registration("sound.spatial.runtime", None)],
+    );
+    let manifest = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin("audio", true, false)
+            .with_feature(ProjectPluginFeatureSelection::new("sound.spatial").enabled(true))],
+    };
+
+    let plan = catalog.compiled_project_plan(&manifest, RuntimeTargetMode::ClientRuntime);
+
+    assert_eq!(
+        plan.feature_dependency_report().available_features,
+        ["sound.spatial"]
+    );
+    assert_eq!(
+        proposal_module_names(&plan),
+        ["sound.runtime", "sound.spatial.runtime"]
+    );
+    assert_eq!(
+        plan.completed_manifest()
+            .selections
+            .iter()
+            .filter(|selection| selection.enabled)
+            .map(|selection| selection.id.as_str())
+            .collect::<Vec<_>>(),
+        ["audio"]
+    );
+}
+
+#[test]
+fn canonical_alias_feature_provider_registration_matches_project_provider() {
+    let catalog = RuntimePluginCatalog::from_registration_reports(
+        [sound_registration()],
+        [sound_spatial_registration(
+            "sound.spatial.alias.runtime",
+            Some("audio".to_string()),
+        )],
+    );
+    let manifest = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin("audio", true, false)
+            .with_feature(
+                ProjectPluginFeatureSelection::new("sound.spatial")
+                    .enabled(true)
+                    .with_provider_package_id("sound"),
+            )],
+    };
+
+    let plan = catalog.compiled_project_plan(&manifest, RuntimeTargetMode::ClientRuntime);
+
+    assert_eq!(
+        plan.feature_dependency_report().available_features,
+        ["sound.spatial"]
+    );
+    assert_eq!(
+        proposal_module_names(&plan),
+        ["sound.runtime", "sound.spatial.alias.runtime"]
+    );
+}
+
+#[test]
 fn disabled_plugin_registration_cannot_satisfy_dependent_feature_capabilities() {
     let mut registration = sound_registration();
     registration.project_selection.enabled = false;

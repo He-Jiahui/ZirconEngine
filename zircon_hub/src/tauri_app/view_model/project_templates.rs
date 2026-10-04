@@ -1,3 +1,6 @@
+//! 把模板目录的稳定身份与可用性投影为本地化选择项和项目详情标签。
+//! 模板启用由目录定义，界面显示的标题与原因不能当作模板身份传回。
+
 use serde::Serialize;
 
 use crate::projects::project_template_catalog;
@@ -5,6 +8,7 @@ use crate::settings::HubLanguage;
 
 use super::HubTextBundle;
 
+/// 创建表单和详情共同使用的模板显示协议；身份、可用性和文案各有独立字段。
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct HubProjectTemplate {
@@ -18,6 +22,7 @@ pub(crate) struct HubProjectTemplate {
     pub disabled_reason: Option<String>,
 }
 
+/// 从当前模板目录投影选项；页面直接显示完整选择标签，并遵循禁用原因。
 pub(super) fn project_template_rows(language: HubLanguage) -> Vec<HubProjectTemplate> {
     let text = HubTextBundle::new(language);
     project_template_catalog()
@@ -50,6 +55,7 @@ pub(super) fn project_template_rows(language: HubLanguage) -> Vec<HubProjectTemp
         .collect()
 }
 
+/// 供历史项目元数据只读显示；没有记录或未知模板不应被解释为可创建选项。
 pub(super) fn project_template_label(template_id: Option<&str>, language: HubLanguage) -> String {
     let text = HubTextBundle::new(language);
     let Some(template_id) = template_id.map(str::trim).filter(|id| !id.is_empty()) else {
@@ -59,6 +65,7 @@ pub(super) fn project_template_label(template_id: Option<&str>, language: HubLan
     localized_template_title(template_id, language).to_string()
 }
 
+// 选择项标签在此完成语言相关标点组合，页面不再拼接标题与状态。
 fn template_option_label(
     title: &str,
     status: &str,
@@ -114,31 +121,5 @@ fn localized_template_description(id: &str, language: HubLanguage) -> &'static s
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn disabled_template_option_label_is_localized_before_react_renders_it() {
-        let templates = project_template_rows(HubLanguage::Chinese);
-        let template = templates
-            .iter()
-            .find(|template| template.id == "2d-scene")
-            .expect("disabled 2D template should be present");
-
-        assert!(!template.enabled);
-        assert_eq!(template.status, "敬请期待");
-        assert_eq!(template.option_label, "2D 场景（敬请期待）");
-    }
-
-    #[test]
-    fn selected_project_template_label_localizes_stable_template_ids() {
-        assert_eq!(
-            project_template_label(Some("renderable-empty"), HubLanguage::Chinese),
-            "可渲染空项目"
-        );
-        assert_eq!(
-            project_template_label(None, HubLanguage::Chinese),
-            "未记录模板"
-        );
-    }
-}
+#[path = "tests/project_templates.rs"]
+mod tests;

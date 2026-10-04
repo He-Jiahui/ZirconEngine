@@ -13,8 +13,8 @@ use zircon_runtime_interface::ui::{
 #[cfg(feature = "profiling")]
 use super::record_surface_rebuild_profile;
 use super::{
-    dirty_summary, dirty_summary_for_nodes, elapsed_micros, merge_dirty_flag_values,
-    requires_layout_rebuild, UiSurface, UiSurfaceRebuildReport,
+    elapsed_micros, merge_dirty_flag_values, requires_layout_rebuild, sanitized_layout_root_size,
+    UiSurface, UiSurfaceRebuildReport,
 };
 
 // Incremental layout is beneficial only while the dirty set is genuinely smaller than the
@@ -30,6 +30,7 @@ impl UiSurface {
     ) -> Result<UiSurfaceRebuildReport, UiTreeError> {
         #[cfg(feature = "profiling")]
         let rebuild_profile_start = Instant::now();
+        let root_size = sanitized_layout_root_size(root_size);
         if self.invalidate_for_changed_text_font_generation()? {
             crate::profile_counter!("runtime", "ui.text.font_generation_rebuild_count", 1);
             self.compute_layout(root_size)?;
@@ -40,16 +41,7 @@ impl UiSurface {
             || !self.arranged_tree.nodes.is_empty(),
             |previous| previous != root_size,
         );
-        let mut dirty_candidates = self.dirty_node_ids.clone();
-        dirty_candidates.extend(self.invalidation.pending_changed_node_ids());
-        dirty_candidates.extend(self.tree.pending_mutation_node_ids().iter().copied());
-        let dirty_summary = if !self.dirty_index_initialized {
-            dirty_summary(&self.tree)
-        } else {
-            dirty_summary_for_nodes(&self.tree, &dirty_candidates)
-        };
-        self.dirty_index_initialized = true;
-        self.record_dirty_summary(&dirty_summary);
+        let dirty_summary = self.collect_dirty_summary();
         let mut dirty =
             merge_dirty_flag_values(dirty_summary.dirty, self.invalidation.pending_dirty_flags());
         let layout_dirty_before_resize = requires_layout_rebuild(dirty);
@@ -292,8 +284,11 @@ impl UiSurface {
                 dirty_node_count,
                 layout_recomputed: true,
                 arranged_rebuilt: true,
+                arranged_patched,
                 hit_grid_rebuilt: hit_grid_changed || hit_grid_full_rebuild,
+                hit_grid_patched: hit_grid_patch.as_ref().is_some_and(Result::is_ok),
                 render_rebuilt: true,
+                render_patched: render_local_patch.is_some(),
                 arranged_outer_node_visit_count: if arranged_patched {
                     arranged_patch_node_ids.as_ref().map_or(0, BTreeSet::len)
                 } else {
@@ -424,8 +419,8 @@ impl UiSurface {
             self.clear_dirty_flags();
             self.reset_pending_pool_report();
             self.mark_surface_frame_rebuild_dirty(
-                report.arranged_rebuilt,
-                report.render_rebuilt,
+                report.arranged_updated(),
+                report.render_updated(),
                 report.hit_grid_rebuilt || projected_hit_changed,
                 render_local_patch
                     .as_ref()
@@ -481,7 +476,9 @@ impl UiSurface {
             }
             report.hit_grid_elapsed_micros = elapsed_micros(hit_start);
             report.arranged_rebuilt = true;
+            report.arranged_patched = input_patch_node_ids.is_some();
             report.hit_grid_rebuilt = hit_grid_changed || hit_grid_full_rebuild;
+            report.hit_grid_patched = input_patch_node_ids.is_some() && !hit_grid_full_rebuild;
             report.arranged_outer_node_visit_count = input_patch_node_ids
                 .as_ref()
                 .map_or(self.tree.nodes.len(), BTreeSet::len);
@@ -532,6 +529,7 @@ impl UiSurface {
                 .map(|_| render_patch_node_ids.clone());
             report.render_elapsed_micros = elapsed_micros(render_start);
             report.render_rebuilt = true;
+            report.render_patched = render_local_patch.is_some();
             report.render_command_reused_count = render_stats.reused_command_count;
             report.render_command_rebuilt_count = render_stats.rebuilt_command_count;
             report.render_damage_rect_count = render_stats.damage_rect_count;
@@ -612,8 +610,8 @@ impl UiSurface {
         self.clear_dirty_flags();
         self.reset_pending_pool_report();
         self.mark_surface_frame_rebuild_dirty(
-            report.arranged_rebuilt,
-            report.render_rebuilt,
+            report.arranged_updated(),
+            report.render_updated(),
             report.hit_grid_rebuilt || projected_geometry_changed,
             render_local_patch_node_ids.as_ref(),
         );
@@ -643,7 +641,12 @@ fn merge_incremental_layout_engine_report(
     visited_node_ids: &BTreeSet<UiNodeId>,
     tree: &UiTree,
 ) -> UiLayoutEngineSelectionReport {
-    let mut selections = Vec::new();
+    let mut selections = Vec::with_capacity(
+        previous
+            .selections
+            .len()
+            .saturating_add(incremental.selections.len()),
+    );
 
     for selection in &previous.selections {
         let Some(node_id) = selection.node_id else {
@@ -676,7 +679,7 @@ fn patch_incremental_layout_engine_report(
         .iter()
         .filter_map(|selection| selection.node_id.map(|node_id| (node_id, selection)))
         .collect::<std::collections::BTreeMap<_, _>>();
-    let mut replacements = Vec::new();
+    let mut replacements = Vec::with_capacity(visited_node_ids.len());
 
     for node_id in visited_node_ids {
         match (

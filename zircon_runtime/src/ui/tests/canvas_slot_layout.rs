@@ -245,6 +245,25 @@ fn canvas_container_groups_same_z_order_children_into_one_layer() {
     assert!(!rendered_node_ids.contains(&UiNodeId::new(5)));
 }
 
+#[test]
+fn canvas_layer_projection_reserves_known_slot_capacity() {
+    let source = include_str!("../surface/arranged.rs");
+    let start = source
+        .find("fn arranged_canvas_layers(")
+        .expect("canvas layer projection");
+    let end = source[start..]
+        .find("\nfn is_tree_render_visible(")
+        .map(|offset| start + offset)
+        .expect("canvas visibility boundary");
+    let implementation = &source[start..end];
+
+    assert!(implementation.contains("let mut layers = Vec::with_capacity(canvas_slot_count);"));
+    assert!(
+        implementation.contains("let mut children = Vec::with_capacity(parent_canvas_slot_count);")
+    );
+    assert!(implementation.contains("canvas_slot_count += 1;"));
+}
+
 fn pointer_node(id: UiNodeId, path: impl Into<String>, constraints: BoxConstraints) -> UiTreeNode {
     UiTreeNode::new(id, UiNodePath::new(path))
         .with_constraints(constraints)

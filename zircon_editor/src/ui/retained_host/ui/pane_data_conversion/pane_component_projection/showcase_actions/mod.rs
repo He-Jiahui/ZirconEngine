@@ -15,4 +15,5 @@ pub(super) use self::edit_action::preferred_showcase_edit_action_id;
 pub(super) use self::primary_action::preferred_showcase_action_id;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

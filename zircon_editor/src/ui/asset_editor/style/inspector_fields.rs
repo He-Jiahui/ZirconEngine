@@ -473,7 +473,7 @@ fn node_label(node: &UiNodeDefinition) -> String {
 }
 
 #[cfg(test)]
-#[path = "inspector_fields/capacity_tests.rs"]
+#[path = "inspector_fields/tests/capacity_tests.rs"]
 mod capacity_tests;
 
 fn set_selected_child_numeric_slot_value(

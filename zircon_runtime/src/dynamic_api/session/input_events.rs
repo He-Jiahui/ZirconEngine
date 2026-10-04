@@ -91,24 +91,8 @@ fn keyboard_button_name(key_code: u32) -> Option<&'static str> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::keyboard_logical_key;
-
-    #[test]
-    fn keyboard_logical_key_maps_wasd_runtime_key_codes_for_gameplay_scripts() {
-        assert_eq!(keyboard_logical_key(87, None), Some("W".to_string()));
-        assert_eq!(keyboard_logical_key(65, None), Some("A".to_string()));
-        assert_eq!(keyboard_logical_key(83, None), Some("S".to_string()));
-        assert_eq!(keyboard_logical_key(68, None), Some("D".to_string()));
-    }
-
-    #[test]
-    fn keyboard_logical_key_maps_digit_runtime_key_codes_for_choice_inputs() {
-        assert_eq!(keyboard_logical_key(49, None), Some("1".to_string()));
-        assert_eq!(keyboard_logical_key(50, None), Some("2".to_string()));
-        assert_eq!(keyboard_logical_key(51, None), Some("3".to_string()));
-    }
-}
+#[path = "tests/input_events.rs"]
+mod tests;
 
 pub(in crate::dynamic_api::session) fn ime_cursor(
     event: ZrRuntimeEventV1,
@@ -140,6 +124,7 @@ pub(in crate::dynamic_api::session) fn ime_cursor_area(
     }
 }
 
+// 先借用验证 UTF-8；只有有效载荷才分配 Runtime 需要持有的字符串。
 fn owned_utf8_payload(payload: &[u8]) -> Option<String> {
     std::str::from_utf8(payload).ok().map(str::to_owned)
 }
@@ -234,5 +219,5 @@ pub(in crate::dynamic_api::session) fn nonzero_u16(value: u32) -> Option<u16> {
 }
 
 #[cfg(test)]
-#[path = "input_events/borrowed_utf8_tests.rs"]
+#[path = "input_events/tests/borrowed_utf8_tests.rs"]
 mod borrowed_utf8_tests;

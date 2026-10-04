@@ -10,11 +10,9 @@ use super::super::rows::{
 pub(super) fn module_plugin_status_rows(
     report: &EditorPluginStatusReport,
 ) -> Vec<ModulePluginStatusViewData> {
-    report
-        .plugins
-        .iter()
-        .map(module_plugin_status_row)
-        .collect()
+    let mut rows = Vec::with_capacity(report.plugins.len());
+    rows.extend(report.plugins.iter().map(module_plugin_status_row));
+    rows
 }
 
 fn module_plugin_status_row(plugin: &EditorPluginStatus) -> ModulePluginStatusViewData {
@@ -72,5 +70,5 @@ fn target_mode_summary(target_modes: &[RuntimeTargetMode]) -> String {
 }
 
 #[cfg(test)]
-#[path = "view_rows/target_mode_join_tests.rs"]
+#[path = "view_rows/tests/target_mode_join_tests.rs"]
 mod target_mode_join_tests;

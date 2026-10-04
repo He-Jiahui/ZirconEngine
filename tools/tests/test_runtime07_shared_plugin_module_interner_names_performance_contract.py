@@ -19,7 +19,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束共享插件模块驻留表名称：驻留表存储一个共享名称类型两侧索引，并重复查找发生先于共享名称构造。
 class SharedPluginModuleInternerNamesPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

@@ -1,8 +1,8 @@
-use crate::scene::World;
 use crate::scene::ecs::{
     DeferredSystemKey, SceneSystem, SceneSystemMetadata, SystemParam, SystemParamAccess,
     SystemParamError, SystemState, WorkerCommandBuffer, WorldlessSystemParam,
 };
+use crate::scene::World;
 use std::marker::PhantomData;
 
 pub struct FunctionSceneSystem<P, F>

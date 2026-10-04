@@ -12,6 +12,7 @@ struct ShadowLayer {
     color: [u8; 4],
 }
 
+/// 三层阴影沿用宿主阴影色并早于 Paper 表面提交；调用方负责只在非 outlined 高架状态调用。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_paper_shadow(
     commands: &mut Vec<HostPaintCommand>,
     rect: &FrameRect,
@@ -22,16 +23,26 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_pa
     opacity: f32,
 ) {
     for (index, layer) in shadow_layers(elevation).into_iter().enumerate() {
-        commands.push(HostPaintCommand::quad(
-            expanded_offset_rect(rect, layer.offset_y, layer.grow),
-            Some(clip.clone()),
-            order + index as i32,
-            Some(layer.color),
-            None,
-            0.0,
-            (corner_radius + layer.grow).max(0.0),
-            opacity,
-        ));
+        commands.push(
+            HostPaintCommand::quad(
+                expanded_offset_rect(rect, layer.offset_y, layer.grow),
+                Some(clip.clone()),
+                order + index as i32,
+                Some(layer.color),
+                None,
+                0.0,
+                (corner_radius + layer.grow).max(0.0),
+                opacity,
+            )
+            .with_box_shadow(
+                0.0,
+                layer.offset_y,
+                0.0,
+                layer.grow,
+                (corner_radius + layer.grow).max(0.0),
+                false,
+            ),
+        );
     }
 }
 
@@ -82,31 +93,5 @@ fn expanded_offset_rect(rect: &FrameRect, offset_y: f32, grow: f32) -> FrameRect
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
-
-    #[test]
-    fn paper_shadow_layers_project_from_host_shadow_color() {
-        let mut palette = PALETTE;
-        palette.shadow = [10, 20, 30, 200];
-
-        let layers = shadow_layers_from_host(9.0, palette);
-
-        assert_eq!(layers[0].color, [10, 20, 30, 54]);
-        assert_eq!(layers[1].color, [10, 20, 30, 62]);
-        assert_eq!(layers[2].color, [10, 20, 30, 88]);
-    }
-
-    #[test]
-    fn paper_shadow_layers_keep_elevation_geometry() {
-        let layers = shadow_layers_from_host(9.0, PALETTE);
-
-        assert_eq!(layers[0].offset_y, 3.0);
-        assert_eq!(layers[0].grow, 1.0);
-        assert_eq!(layers[1].offset_y, 9.0);
-        assert_eq!(layers[1].grow, 0.0);
-        assert_eq!(layers[2].offset_y, 9.0);
-        assert_eq!(layers[2].grow, 0.0);
-    }
-}
+#[path = "tests/shadow.rs"]
+mod tests;

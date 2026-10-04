@@ -42,5 +42,5 @@ pub(super) fn should_humanize_control_label(control_id: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "attribute_values/capacity_tests.rs"]
+#[path = "attribute_values/tests/capacity_tests.rs"]
 mod capacity_tests;

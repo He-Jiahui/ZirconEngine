@@ -1,3 +1,4 @@
+//! 虚拟几何调试快照汇聚提取输入、CPU 对照、页依赖、驻留载荷和执行来源；它只观测提交状态，不接管 provider 的页生命周期。
 mod bvh_visualization;
 mod cpu_reference;
 mod cull_input;
@@ -40,7 +41,10 @@ pub use node_and_cluster_cull::{
     RenderVirtualGeometryNodeAndClusterCullTraversalOp,
     RenderVirtualGeometryNodeAndClusterCullTraversalRecord,
 };
-pub use page_payload::{RenderVirtualGeometryPagePayload, RenderVirtualGeometryPagePayloadVertex};
+pub use page_payload::{
+    RenderVirtualGeometryPagePayload, RenderVirtualGeometryPagePayloadClusterRange,
+    RenderVirtualGeometryPagePayloadVertex,
+};
 pub use snapshot::RenderVirtualGeometryDebugSnapshot;
 pub use sources::{
     RenderVirtualGeometryClusterSelectionInputSource,
@@ -50,4 +54,5 @@ pub use sources::{
 };
 
 #[cfg(test)]
+#[path = "virtual_geometry_debug_snapshot/tests/cases.rs"]
 mod tests;

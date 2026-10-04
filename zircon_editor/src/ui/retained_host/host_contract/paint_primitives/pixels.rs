@@ -15,4 +15,5 @@ pub(in crate::ui::retained_host::host_contract) use geometry::{
 pub(in crate::ui::retained_host::host_contract) use span::{fill_pixel_span, write_pixel};
 
 #[cfg(test)]
+#[path = "pixels/tests/cases.rs"]
 mod tests;

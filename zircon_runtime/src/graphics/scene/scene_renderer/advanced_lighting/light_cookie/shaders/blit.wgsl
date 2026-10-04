@@ -1,3 +1,4 @@
+// 此着色器只把流送纹理重采样到图集单元；光类型投影由照明着色器使用帧计划的元数据完成。
 @group(0) @binding(0) var source_texture: texture_2d<f32>;
 @group(0) @binding(1) var source_sampler: sampler;
 

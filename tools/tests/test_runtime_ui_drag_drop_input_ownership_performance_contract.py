@@ -26,7 +26,7 @@ def rust_block(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated Rust block: {signature}")
 
-
+# 约束拖放载荷在平台归一化后共享、分发时移动事件与回执，并避免稳定目标更新复制整张表面。
 class RuntimeUiDragDropInputOwnershipPerformanceContractTests(unittest.TestCase):
     def test_payload_authority_is_shared_after_platform_normalization(self) -> None:
         input_event = INPUT_EVENT.read_text(encoding="utf-8")

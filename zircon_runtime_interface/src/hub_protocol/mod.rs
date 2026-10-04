@@ -1,3 +1,4 @@
+//! Versioned DTOs for the Hub-to-Editor file-mailbox handshake.
 //! Hub 与 Editor 共用的启动、聚焦与最近项目协议。
 //!
 //! 启动和聚焦文件邮箱由宿主读写；最近项目文件事务由本模块的存储实现负责。
@@ -13,6 +14,7 @@ mod recent_projects;
 mod session_token;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 pub use focus_ack::{HubEditorFocusAckDispositionV1, HubEditorFocusAckV1};

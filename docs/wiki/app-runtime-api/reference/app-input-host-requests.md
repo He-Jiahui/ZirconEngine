@@ -16,7 +16,7 @@ plan_sources:
   - user: 2026-09-09 扩展 zircon_app 公开接口、机制案例、教程和最佳实践
 tests:
   - zircon_app/src/entry/tests/runtime_entry_input_guards
-  - zircon_app/src/entry/runtime_entry_app/ime_input/tests.rs
+  - zircon_app/src/entry/runtime_entry_app/ime_input/tests/cases.rs
 doc_type: module-detail
 ---
 

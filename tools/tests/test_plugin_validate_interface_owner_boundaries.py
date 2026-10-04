@@ -4,12 +4,12 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PLUGIN_VALIDATE_OWNER_BOUNDARIES_TEST = REPO_ROOT / "tools/tests/test_plugin_validate_owner_boundaries.py"
-PLUGIN_VALIDATE_DEPENDENCIES = REPO_ROOT / "tools/zircon_export/plugin_validate_dependencies.py"
-PLUGIN_VALIDATE_INTERFACES = REPO_ROOT / "tools/zircon_export/plugin_validate_interfaces.py"
-PLUGIN_VALIDATE_INTERFACE_METHODS = REPO_ROOT / "tools/zircon_export/plugin_validate_interface_methods.py"
-PLUGIN_VALIDATE_INTERFACE_SIGNATURES = REPO_ROOT / "tools/zircon_export/plugin_validate_interface_signatures.py"
-PLUGIN_VALIDATE_TEST = REPO_ROOT / "tools/zircon_export/tests/test_plugin_validate.py"
-PLUGIN_VALIDATE_INTERFACES_TEST = REPO_ROOT / "tools/zircon_export/tests/test_plugin_validate_interfaces.py"
+PLUGIN_VALIDATE_DEPENDENCIES = REPO_ROOT / "tools/export/plugin_validate_dependencies.py"
+PLUGIN_VALIDATE_INTERFACES = REPO_ROOT / "tools/export/plugin_validate_interfaces.py"
+PLUGIN_VALIDATE_INTERFACE_METHODS = REPO_ROOT / "tools/export/plugin_validate_interface_methods.py"
+PLUGIN_VALIDATE_INTERFACE_SIGNATURES = REPO_ROOT / "tools/export/plugin_validate_interface_signatures.py"
+PLUGIN_VALIDATE_TEST = REPO_ROOT / "tools/export/tests/test_plugin_validate.py"
+PLUGIN_VALIDATE_INTERFACES_TEST = REPO_ROOT / "tools/export/tests/test_plugin_validate_interfaces.py"
 
 INTERFACE_BOUNDARY_METHODS = (
     "test_interface_contracts_live_in_interfaces_owner",
@@ -18,7 +18,7 @@ INTERFACE_BOUNDARY_METHODS = (
     "test_interface_tests_live_in_interface_test_owner",
 )
 
-
+# 验证校验接口归属边界的职责切分：接口边界移出通用归属文件，并接口契约位于接口归属。
 class PluginValidateInterfaceOwnerBoundaryTests(unittest.TestCase):
     def test_interface_boundaries_leave_general_owner_file(self):
         general_owner_text = PLUGIN_VALIDATE_OWNER_BOUNDARIES_TEST.read_text(

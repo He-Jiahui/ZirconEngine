@@ -1,3 +1,5 @@
+//! 阴影需有完整容器余量，气泡始终使用已通过布局检查的框；显式圆角优先于主题默认。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::layers::bubble_order;
@@ -25,16 +27,19 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
         height: bubble.height,
     };
     if frame_is_within(rect, &shadow_rect) {
-        commands.push(HostPaintCommand::quad(
-            shadow_rect,
-            Some(clip.clone()),
-            order,
-            Some(shadow),
-            None,
-            0.0,
-            radius,
-            opacity,
-        ));
+        commands.push(
+            HostPaintCommand::quad(
+                shadow_rect,
+                Some(clip.clone()),
+                order,
+                Some(shadow),
+                None,
+                0.0,
+                radius,
+                opacity,
+            )
+            .with_box_shadow(0.0, metrics.shadow_offset_y, 0.0, 0.0, radius, false),
+        );
     }
     commands.push(HostPaintCommand::quad(
         bubble.clone(),

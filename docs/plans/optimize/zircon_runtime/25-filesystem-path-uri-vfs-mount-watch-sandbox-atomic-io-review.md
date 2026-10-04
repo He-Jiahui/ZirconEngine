@@ -4,8 +4,6 @@ related_code:
   - zircon_runtime_interface/src/project/rel_path
   - zircon_runtime_interface/src/hub_protocol
   - zircon_runtime/src/core/resource/io
-  - zircon_runtime/src/core/resource/io/atomic_file
-  - zircon_runtime/src/core/resource/io/transaction
   - zircon_runtime/src/core/framework/asset.rs
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/asset/pipeline/manager/driver/asset_io_driver.rs

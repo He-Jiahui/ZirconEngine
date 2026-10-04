@@ -1,8 +1,9 @@
+//! 核对脚本虚拟机测试迁移后的父子分工与数量快照，并检查文件预算；出现次数来自源码文本，后续新增测试需按当前职责复核快照。
 use super::super::*;
 
 pub(super) fn assert_hot_reload_coordinator_tests_are_folder_backed() {
     let parent = read_runtime_src("script/vm/runtime/hot_reload_coordinator.rs");
-    let child = read_runtime_src("script/vm/runtime/hot_reload_coordinator/tests.rs");
+    let child = read_runtime_src("script/vm/runtime/hot_reload_coordinator/tests/cases.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -62,7 +63,7 @@ pub(super) fn assert_hot_reload_coordinator_tests_are_folder_backed() {
             parent.as_str(),
         ),
         (
-            "script/vm/runtime/hot_reload_coordinator/tests.rs",
+            "script/vm/runtime/hot_reload_coordinator/tests/cases.rs",
             child.as_str(),
         ),
     ] {

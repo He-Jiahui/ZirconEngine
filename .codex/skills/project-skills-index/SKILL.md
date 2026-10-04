@@ -1,31 +1,32 @@
 ---
 name: project-skills-index
-description: Catalog and scaffold repository-local Codex skills with progressive disclosure. Use at the start of work in this repo when Codex needs a shallow inventory of `.codex/skills`, needs to capture or refresh each skill's top-level summary, or needs to create/update a local skill using a parent-skill plus child-skill chunked layout.
+description: Maintain the Codex repository skill library, its discovery entries, and generated catalog.
 ---
 
 # Project Skills Index
 
-## Start Here
+`.codex/skills` is the canonical source. This library is maintained for Codex. Independently useful workflows use `SKILL.md` with valid `name` and `description`; categories use `index.md`, and supporting procedures use `guide.md` or references.
 
-- Enumerate project skills before reading any deep skill content.
-- Use a shallow directory listing only. Do not recursively read the full tree by default.
-- On PowerShell, run `.\.codex\skills\project-skills-index\scripts\list-skill-tree.ps1`.
-- On WSL/Linux, run `bash ./.codex/skills/project-skills-index/scripts/list-skill-tree.sh`.
-- Read only each top-level skill's `SKILL.md` frontmatter unless the current task requires deeper detail.
-- Refresh the recorded summaries whenever a local skill is added, renamed, split, or materially repurposed.
+## Keep discovery small
 
-## Progressive Disclosure Index
+- Give each distinct workflow one entry in [the catalog](catalog-existing-skills/current-project-skills.md). Reuse an existing owner before adding a skill.
+- Put a policy, technique, operating mode, or checklist in that owner's guides. A numbered plan or another rule does not by itself need a new skill.
+- Descriptions state concrete triggers. Avoid overlapping triggers covering every feature, failure, or completion.
+- Link each policy's authority instead of copying validation, ownership, permissions, or acceptance rules into every helper.
+- Select references for the current operation. A parent tour, all child guides, extra approval, or delegation is not required merely because a skill was selected.
+- Preserve supported metadata and invocation policy unless the requested change includes them.
 
-- If you need to enumerate current skills and refresh the recorded summaries, read `enumerate-existing-skills.md`, then `catalog-existing-skills/SKILL.md`.
-- If you need to create or refactor a skill into the indexed chunked layout, read `generate-indexed-skill-layout.md`, then `scaffold-indexed-skill/SKILL.md`.
+Reference collections: [engine guides](../zircon-project-skills/index.md) and [development techniques](../superpowers/index.md). For a new layout, use [scaffolding](scaffold-indexed-skill/index.md) and [the template](scaffold-indexed-skill/layout-template.md).
 
-## Rules
+## Refresh the catalog
 
-- Keep the parent `SKILL.md` short and navigational.
-- In repository-local `.codex/skills`, any folder whose primary job is grouping child skills must own a short parent `SKILL.md` that explains the category and indexes the child skills.
-- Keep root-level instruction files short enough that their filenames advertise the next branch to read.
-- Put deeper, topic-specific guidance in child folders with their own `SKILL.md`.
-- Prefer one extra layer of child folders. Add deeper nesting only when the skill would otherwise become hard to scan from a shallow listing.
-- Resource/support folders such as `agents/`, `assets/`, `references/`, `scripts/`, or similar non-skill internals are exempt; they are not category skills and do not need parent `SKILL.md`.
-- Treat a repository-local skill-group folder without `SKILL.md` as structure debt to fix, not as the preferred end state.
-- Treat the project skill catalog as a maintained index, not as the source of truth. Rebuild it from the filesystem when in doubt.
+After changing discovery entries, use an available Python interpreter with PyYAML:
+
+```powershell
+python -B .codex/skills/project-skills-index/scripts/refresh_catalog.py --write
+python -B .codex/skills/project-skills-index/scripts/refresh_catalog.py --check
+```
+
+The helper reads source frontmatter and writes only the generated Codex catalog. It does not manage another client, register a session, or require a service. If `python` resolves to an unavailable Windows alias, use the existing `.jenkins/runtime/python/python.exe` interpreter.
+
+Validate actual skills with the current skill-creator validator, check local routes, and run helper checks when the helper changes. Skill prose maintenance needs structural checks instead of Rust builds.

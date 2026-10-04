@@ -35,14 +35,14 @@ requireText(casting, /Ground-targeted channels[\s\S]*?targetMode === 'position'[
 const generator = read('tools', 'm4_ability_codegen.mjs');
 const zrGenerator = read('tools', 'm4_ability_zr_codegen.mjs');
 if (!/rip',[\s\S]*?'hurricane'/.test(generator) ||
-    !generator.includes('EXPECTED_ABILITY_COUNT = 79') ||
-    !zrGenerator.includes('document.entries.length === 79')) {
+    !generator.includes('EXPECTED_ABILITY_COUNT = 117') ||
+    !zrGenerator.includes('document.entries.length === 117')) {
   throw new Error('M4 Hurricane projection scope is missing');
 }
 const entry = JSON.parse(read('contracts', 'm4_abilities.json')).entries.find(
   (value) => value.id === 'hurricane',
 );
-if (!entry || entry.index !== 77 || entry.definition.cost !== 90 ||
+if (!entry || entry.index !== 81 || entry.definition.cost !== 90 ||
     entry.definition.cooldown !== 12 || entry.definition.targetMode !== 'position' ||
     entry.definition.channel?.duration !== 6 || entry.definition.channel?.ticks !== 6 ||
     entry.definition.effects?.[0]?.type !== 'aoeDamage' ||

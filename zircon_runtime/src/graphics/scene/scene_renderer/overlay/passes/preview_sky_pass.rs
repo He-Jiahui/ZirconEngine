@@ -4,6 +4,7 @@ use crate::graphics::scene::scene_renderer::attachment_ops::{
 use crate::graphics::types::{ViewportRenderFrame, ViewportRenderRegion};
 use crate::render_graph::RenderGraphAttachmentOps;
 
+/// 场景内容前的天空与附件初始化阶段；未启用天空时仍执行调用方要求的清理或保留操作。
 pub(crate) struct PreviewSkyPass;
 
 impl PreviewSkyPass {
@@ -36,6 +37,8 @@ impl PreviewSkyPass {
         );
     }
 
+    /// 图执行路径须传入其编译出的附件策略和视口区域，避免单个相机清除其他相机的内容。
+    /// 体积光资源缺失时使用渲染器的回退绑定，与启用天空的着色管线布局保持一致。
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn record_with_attachment_ops(
         &self,
@@ -109,23 +112,5 @@ impl PreviewSkyPass {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn disabled_sky_skips_volumetric_gpu_objects_before_recording() {
-        let source = include_str!("preview_sky_pass.rs");
-        let implementation = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("preview sky implementation");
-        let enabled_guard = implementation
-            .find("let skybox_enabled = frame.environment().skybox.is_enabled()")
-            .expect("skybox enabled guard");
-        let params_buffer = implementation
-            .find("volumetric_apply.create_params_buffer")
-            .expect("volumetric params buffer creation");
-
-        assert!(enabled_guard < params_buffer);
-        assert!(implementation.contains("let volumetric_binding = skybox_enabled.then(||"));
-        assert!(implementation.contains("if let Some((_params_buffer, bind_group))"));
-    }
-}
+#[path = "tests/preview_sky_pass.rs"]
+mod tests;

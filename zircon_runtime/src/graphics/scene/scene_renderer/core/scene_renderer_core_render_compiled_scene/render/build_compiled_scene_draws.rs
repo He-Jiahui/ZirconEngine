@@ -16,6 +16,7 @@ use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 
 use super::super::super::scene_renderer_core::SceneRendererAdvancedPluginResources;
 
+/// 一帧 mesh 提交的所有权聚合：draw 顺序、GPU scene 上传、间接参数和管线需求随同一图执行。
 pub(super) struct CompiledSceneDraws {
     draws: Vec<MeshDraw>,
     prepared_mesh_queue_stats: PreparedMeshQueueStats,
@@ -154,6 +155,7 @@ impl CompiledSceneDraws {
     }
 }
 
+/// 在图资源绑定前从 frame extract 和插件能力构造执行 draw；返回的上传仍由帧事务统一提交。
 pub(super) fn build_compiled_scene_draws(
     advanced_plugin_resources: &SceneRendererAdvancedPluginResources,
     backend: &RenderBackend,
@@ -194,38 +196,5 @@ fn saturated_u32_index(index: usize) -> u32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn compiled_scene_draws_report_virtual_geometry_indirect_counts_without_buffers() {
-        let mut draws = CompiledSceneDraws {
-            draws: Vec::new(),
-            prepared_mesh_queue_stats: PreparedMeshQueueStats::default(),
-            prebuilt_mesh_pass_command_buffers: MeshPassCommandBuffers::default(),
-            gpu_scene_prepared_upload: None,
-            gpu_scene_upload_report: GpuSceneUploadReport::default(),
-            indirect_segment_count: 2,
-            indirect_args_count: 3,
-            indirect_args_buffer: None,
-            indirect_submission_buffer: None,
-            indirect_authority_buffer: None,
-            indirect_draw_ref_buffer: None,
-            indirect_segment_buffer: None,
-            pending_command_cache_plan_stats: PendingMeshCommandCachePlanStats::default(),
-            pending_command_cache_extraction_stats: Default::default(),
-            material_pipeline_requirements: Default::default(),
-        };
-
-        let stats = draws.virtual_geometry_indirect_stats();
-
-        assert_eq!(stats.draw_count, 3);
-        assert_eq!(stats.args_count, 3);
-        assert_eq!(stats.segment_count, 2);
-        assert_eq!(stats.buffer_count, 0);
-        assert!(matches!(
-            draws.take_gpu_scene_prepared_upload(),
-            Err(GraphicsError::MissingPreparedGpuSceneUpload)
-        ));
-    }
-}
+#[path = "tests/build_compiled_scene_draws.rs"]
+mod tests;

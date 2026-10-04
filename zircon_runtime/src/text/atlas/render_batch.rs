@@ -1,8 +1,8 @@
-use super::GlyphAtlasPageKey;
 use super::render_contract::GlyphAtlasRenderContract;
 use super::render_plan::{
-    GlyphAtlasDrawGlyph, GlyphAtlasDrawInstance, GlyphAtlasScreenRect, glyph_atlas_draw_instance,
+    glyph_atlas_draw_instance, GlyphAtlasDrawGlyph, GlyphAtlasDrawInstance, GlyphAtlasScreenRect,
 };
+use super::GlyphAtlasPageKey;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct GlyphAtlasDrawBatchKey {
@@ -65,4 +65,5 @@ where
 }
 
 #[cfg(test)]
+#[path = "render_batch/tests/cases.rs"]
 mod tests;

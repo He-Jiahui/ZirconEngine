@@ -1,3 +1,4 @@
+//! 选择测试覆盖选择器解析、次级索引维护、保留与传输，以及路径恢复/应用/差异对已解析槽位的复用。
 use std::fs;
 
 use crate::scene::{
@@ -418,14 +419,12 @@ fn runtime_session_archive_selected_single_slot_export_to_path_is_atomic() {
         archive.slot_ids().collect::<Vec<_>>(),
         vec!["autosave", "manual-new", "manual-old"]
     );
-    assert!(
-        temporary_archive_leftovers(
-            target_path
-                .parent()
-                .expect("target path should have parent")
-        )
-        .is_empty()
-    );
+    assert!(temporary_archive_leftovers(
+        target_path
+            .parent()
+            .expect("target path should have parent")
+    )
+    .is_empty());
 
     let _ = fs::remove_dir_all(root);
 }
@@ -511,12 +510,10 @@ fn runtime_session_archive_selected_restore_apply_and_diff_use_resolved_slots() 
     assert_eq!(restore_report.entity_count, 1);
     assert_eq!(level.metadata().display_name.as_deref(), Some("Old Manual"));
     level.with_world(|world| {
-        assert!(
-            world
-                .node_records()
-                .iter()
-                .all(|record| record.name != "Stale Light")
-        );
+        assert!(world
+            .node_records()
+            .iter()
+            .all(|record| record.name != "Stale Light"));
         assert_eq!(
             world
                 .find_node(old_entity)

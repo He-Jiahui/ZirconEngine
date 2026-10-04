@@ -12,8 +12,8 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
-  - docs/assets-and-rendering/environment-lightmap-probe-consumption.md
-  - docs/assets-and-rendering/hybrid-gi-lumen-scene-representation.md
+  - docs/rendering/environment-lightmap-probe-consumption.md
+  - docs/rendering/hybrid-gi-lumen-scene-representation.md
 tests:
   - zircon_runtime/src/graphics/tests/render_product_shadows
   - zircon_runtime/src/graphics/tests/render_product_shadow_captures

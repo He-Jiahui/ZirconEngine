@@ -1,3 +1,4 @@
+//! Mulberry32 算法与抽样摘要的共同来源；产品用纯 mix/fold 或显式流，模块共享流仅供场景夹具。
 var math = %import("zr.zircon.math");
 
 mixState(stateValue: uint, marker: int): uint {
@@ -11,6 +12,7 @@ mixState(stateValue: uint, marker: int): uint {
     return (value ^ (value >> 14)) & <uint>4294967295;
 }
 
+/// 产品世界、战斗和社交状态传入已推进的游标，取得对应 32 位随机值。
 pub mix(stateValue: uint, marker: int): uint {
     return mixState(stateValue, marker);
 }
@@ -34,6 +36,7 @@ foldDrawDigest(hashValue: uint, value: uint, marker: int): uint {
     return ((digest ^ octet) * <uint>16777619) & <uint>4294967295;
 }
 
+/// 消费方在实际抽样后折叠摘要，用以比较重放时的抽样顺序。
 pub fold(hashValue: uint, value: uint, marker: int): uint {
     return foldDrawDigest(hashValue, value, marker);
 }
@@ -43,6 +46,7 @@ var sharedState: uint = <uint>0;
 var sharedDrawCount: uint = <uint>0;
 var sharedDrawDigest: uint = <uint>2166136261;
 
+/// 独立随机流；实例、副本与服务可保存完整游标，避免随机抽样在域间相互扰动。
 pub class Mulberry32 {
     pri var stateValue: uint = <uint>0;
     pri var drawCountValue: uint = <uint>0;
@@ -111,6 +115,7 @@ pub class Mulberry32 {
         return this.next() < probability;
     }
 
+    // BUG: [CR-WOC-KP-0007] 合法零游标经 copy 的构造器被替换为 2654435769，后续随机序列分叉；证据：restore 可保留零值而构造器将零归一化。
     pub copy(): Mulberry32 {
         var result = new Mulberry32(this.stateValue);
         result.drawCountValue = this.drawCountValue;
@@ -129,6 +134,7 @@ pub class Mulberry32 {
 
 }
 
+/// 重置内核场景夹具的模块共享流；运行产品的状态式随机数应使用自己的游标。
 pub resetShared(seed: uint, marker: int, observe: bool): void {
     if (marker != 1 || !observe) {
         throw "shared rng reset contract is invalid";
@@ -171,6 +177,7 @@ pub prepareSharedAfterConstruction(
     sharedInitialized = true;
 }
 
+/// 供 lifecycle/locomotion/roster 场景夹具消费并记录抽样摘要；须先初始化观察流。
 pub sharedNextU32(observe: bool): uint {
     if (!sharedInitialized || !observe) {
         throw "shared rng is not initialized for observed draws";

@@ -13,11 +13,11 @@ implementation_files:
   - zircon_runtime_interface/src/buffer.rs
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
-  - docs/engine-architecture/runtime-interface-cdylib-loader.md
-  - docs/zircon_runtime_interface/runtime_api.md
+  - docs/architecture/runtime-interface-cdylib-loader.md
+  - docs/crates/zircon_runtime_interface/runtime_api.md
 tests:
-  - zircon_runtime_interface/src/runtime_api/abi/api_shape_tests.rs
-  - zircon_runtime_interface/src/runtime_api/session/session_identity_tests.rs
+  - zircon_runtime_interface/src/runtime_api/abi/tests/api_shape_tests.rs
+  - zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs
   - zircon_runtime/src/dynamic_api/tests
 doc_type: module-detail
 ---

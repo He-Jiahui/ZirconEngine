@@ -1,7 +1,9 @@
-use super::*;
+use super::super::super::support::{env_lock, BuiltinWorkbenchWindowTemplateSurfaceBridge, UiSize};
+use super::super::support::{control_string, control_visibility};
 use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
 use crate::ui::workbench::fixture::default_preview_fixture;
 use crate::ui::workbench::model::WorkbenchViewModel;
+use zircon_runtime_interface::ui::tree::UiVisibility;
 
 #[test]
 fn toolbar_priority_uses_logical_width_under_scale() {

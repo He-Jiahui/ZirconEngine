@@ -1,3 +1,4 @@
+# 核对折叠画布可视化先退出耗时绘制路径，并拒绝无效画布尺寸。
 from pathlib import Path
 import unittest
 

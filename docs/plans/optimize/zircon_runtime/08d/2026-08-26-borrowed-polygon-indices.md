@@ -30,6 +30,16 @@ this candidate. The changed `baked_mesh.rs` file and its topology tests were cle
 - Existing tests retain the canonical edge-key, shared-edge adjacency, and two-triangle mesh
   behavior oracles. A Python source contract prevents `to_vec()` from returning to this path.
 
+## Follow-up contract compatibility (2026-09-20)
+
+Runtime862 extracted the vertex projection into `polygon_vertices` so the
+validated borrowed index slice can reserve its bounded capacity before
+filtering. The existing Runtime08d source contract was updated to assert that
+the `from_asset` owner passes the borrowed slice to this helper, while the
+helper itself still uses `index_set.iter()` and contains no index copy. Its
+expanded navigation batch remains green (`38/38`); the updated contract SHA-256
+is `2D76031EF2A617942501FFF2B45C1512897AEE4E7E4F80C40D4E8F7A9F3490EC`.
+
 ## Deterministic Performance Evidence
 
 The independent release model projects 32,768 polygons with two triangles and six indices each.

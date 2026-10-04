@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use serde::{Deserialize, Deserializer, Serialize};
 use thiserror::Error;
@@ -337,7 +337,7 @@ pub fn parse_editor_component_catalog_manifest(
         return Err(EditorComponentCatalogManifestError::Empty);
     }
 
-    let mut component_ids = BTreeSet::new();
+    let mut component_ids = HashSet::with_capacity(catalog.components.len());
     for descriptor in &catalog.components {
         if !is_builtin_editor_component_document_id(&descriptor.document_id) {
             return Err(
@@ -347,7 +347,7 @@ pub fn parse_editor_component_catalog_manifest(
                 },
             );
         }
-        let mut slot_names = BTreeSet::new();
+        let mut slot_names = HashSet::with_capacity(descriptor.slots.len());
         for slot in &descriptor.slots {
             if !slot_names.insert(slot.name.as_str()) {
                 return Err(EditorComponentCatalogManifestError::DuplicateSlot {
@@ -356,7 +356,7 @@ pub fn parse_editor_component_catalog_manifest(
                 });
             }
         }
-        let mut property_names = BTreeSet::new();
+        let mut property_names = HashSet::with_capacity(descriptor.props.len());
         for property in &descriptor.props {
             if !property_names.insert(property.name.as_str()) {
                 return Err(EditorComponentCatalogManifestError::DuplicateProperty {
@@ -446,3 +446,7 @@ impl EditorComponentCatalog {
         self.descriptors.values().collect()
     }
 }
+
+#[cfg(test)]
+#[path = "catalog/tests/optimization_batch_it_editor630_tests.rs"]
+mod optimization_batch_it_editor630_tests;

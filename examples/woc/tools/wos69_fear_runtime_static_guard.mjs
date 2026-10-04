@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node wos69_fear_runtime_static_guard.mjs；缺少源码契约时脚本抛错退出。
+// 检查恐惧的 M4 参数及世界施法、投射物持久化、命中、受伤解除、移动、命令、自测和文档中的 PvP 边界。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,6 +22,7 @@ if (!fear || fear.class !== "warlock" || fear.learnLevel !== 14 || fear.cost !==
   throw new Error("M4 Fear contract drifted from the source-pinned rank-one profile");
 }
 
+// 词法检查从锁定目标的施法追到投射物命中、移动、受伤解除与自测；它不执行战斗模拟。
 const world = read("scripts", "woc_game", "src", "world", "state.zr");
 requireText(
   world,

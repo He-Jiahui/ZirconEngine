@@ -5,6 +5,11 @@ use zircon_runtime_interface::{
 
 use super::{AbiDecodeError, AbiDecodeResult};
 
+/// 把插件提供的字符串列表复制到宿主内存，供系统注册与排序约束使用。
+///
+/// # Safety
+///
+/// 非空列表指针必须指向调用期间有效、已初始化的 `count` 个元素；本函数另行拒绝空指针、超限数量和未对齐地址。
 pub(in super::super) unsafe fn read_byte_slices(
     values: *const ZrByteSlice,
     count: usize,
@@ -22,6 +27,7 @@ pub(in super::super) unsafe fn read_byte_slices(
             count,
         });
     }
+    // SAFETY: 已排除空指针、未对齐地址及不可表示的跨度；已初始化且同分配区的存储由列表输入合约限定。
     unsafe { std::slice::from_raw_parts(values, count) }
         .iter()
         .copied()
@@ -29,6 +35,7 @@ pub(in super::super) unsafe fn read_byte_slices(
         .collect()
 }
 
+/// V4 字段名会进入解码错误；实际内存形状由共用列表读取器检查。
 pub(in super::super) unsafe fn read_v4_byte_slices(
     field: &'static str,
     values: *const ZrByteSlice,
@@ -47,10 +54,16 @@ pub(in super::super) unsafe fn read_utf8(slice: ZrByteSlice) -> AbiDecodeResult<
     unsafe { read_utf8_with(slice, str::to_string) }
 }
 
+/// 在借用的 ABI 字节视图仍有效时执行映射，避免无条件建立中间字符串。
+///
+/// # Safety
+///
+/// 非空字节指针必须在本次同步映射期间可读；形状、长度与 UTF-8 由下层检查。
 pub(in super::super) unsafe fn read_utf8_with<T>(
     slice: ZrByteSlice,
     visitor: impl FnOnce(&str) -> T,
 ) -> AbiDecodeResult<T> {
+    // SAFETY: 输入合约要求非空 data 覆盖 len 个已初始化字节；checked_slice 另外校验空指针和长度上限。
     let bytes = unsafe { slice.checked_slice(ZR_RUNTIME_NATIVE_STRING_MAX_ENCODED_BYTES_V1) }
         .map_err(|_| AbiDecodeError::InvalidV4StringListPointer {
             field: "string value",
@@ -62,37 +75,5 @@ pub(in super::super) unsafe fn read_utf8_with<T>(
 }
 
 #[cfg(test)]
-mod tests {
-    use std::mem::MaybeUninit;
-
-    use super::*;
-
-    #[test]
-    fn byte_slice_list_rejects_misaligned_storage_before_dereference() {
-        let storage = [MaybeUninit::<ZrByteSlice>::uninit(); 2];
-        let misaligned = unsafe { storage.as_ptr().cast::<u8>().add(1).cast::<ZrByteSlice>() };
-
-        let error = unsafe { read_byte_slices(misaligned, 1) }
-            .expect_err("misaligned foreign list storage must be rejected");
-
-        assert!(matches!(
-            error,
-            AbiDecodeError::InvalidV4StringListPointer {
-                field: "string list",
-                count: 1
-            }
-        ));
-    }
-
-    #[test]
-    fn borrowed_utf8_mapping_preserves_exact_projection() {
-        let projected = unsafe {
-            read_utf8_with(ZrByteSlice::from_static(b"weather.velocity"), |stable_id| {
-                format!("read:component:{stable_id}")
-            })
-        }
-        .unwrap();
-
-        assert_eq!(projected, "read:component:weather.velocity");
-    }
-}
+#[path = "tests/read.rs"]
+mod tests;

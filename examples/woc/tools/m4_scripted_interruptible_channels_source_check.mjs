@@ -1,3 +1,4 @@
+// 静态核对固定版本 WOC 源码与本地 Zr 投影中的脚本治疗引导与中断规则。
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';

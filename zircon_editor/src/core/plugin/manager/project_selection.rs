@@ -1,6 +1,6 @@
 //! Project-manifest selection policy for manager-owned editor packages.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, HashSet};
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
@@ -80,10 +80,8 @@ pub(super) fn editor_package_enablement(
     manifest: &ProjectPluginManifest,
     entries: &[EditorPluginManagerEntry],
 ) -> Result<BTreeMap<String, bool>, EditorPluginTransitionError> {
-    let editor_package_ids = entries
-        .iter()
-        .map(|entry| entry.package_id().to_string())
-        .collect::<BTreeSet<_>>();
+    let mut editor_package_ids = HashSet::with_capacity(entries.len());
+    editor_package_ids.extend(entries.iter().map(EditorPluginManagerEntry::package_id));
     let mut enablement = BTreeMap::new();
 
     for selection in &manifest.selections {
@@ -100,3 +98,7 @@ pub(super) fn editor_package_enablement(
 
     Ok(enablement)
 }
+
+#[cfg(test)]
+#[path = "project_selection/tests/optimization_batch_io_editor625_tests.rs"]
+mod optimization_batch_io_editor625_tests;

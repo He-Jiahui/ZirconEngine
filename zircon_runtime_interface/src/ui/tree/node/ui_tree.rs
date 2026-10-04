@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::ui::event_ui::{UiNodeId, UiTreeId};
 use crate::ui::layout::{UiSlot, UiSlotKind};
 
-use super::{UiTreeError, UiTreeNode};
+use super::{UiDirtyFlags, UiTreeError, UiTreeNode};
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct UiTree {
@@ -177,6 +177,8 @@ impl UiTree {
         }
     }
 
+    /// 按需维护已初始化的端点索引；parent/child/kind/order 变化会增加父级布局顺序代次并标脏。
+    /// placement、z_order 等槽载荷变化的布局或绘制失效仍由调用方按域显式传播。
     pub fn mutate_layout_slot(
         &mut self,
         slot_index: usize,
@@ -302,11 +304,7 @@ impl UiLayoutSlotAuthority {
                 self.indices_by_edge.remove(&previous_edge);
             }
         }
-        let slot = &slots[slot_index];
-        self.indices_by_edge
-            .entry((slot.parent_id, slot.child_id))
-            .or_default()
-            .push(slot_index);
+        self.insert_if_initialized(slots, slot_index);
     }
 
     fn first_index(&self, parent_id: UiNodeId, child_id: UiNodeId) -> Option<usize> {
@@ -361,15 +359,90 @@ pub struct UiTreeNodes {
     layout_source_node_ids: BTreeSet<UiNodeId>,
     #[serde(skip)]
     paint_order_cursor: PaintOrderCursor,
+    /// Incremental dirty-domain aggregate. Mutable entry points enqueue only the affected node;
+    /// the first query after deserialization performs the one required full index build.
+    #[serde(skip)]
+    dirty_index: RefCell<UiTreeDirtyIndex>,
+    #[serde(skip)]
+    dirty_index_pending_node_ids: RefCell<BTreeSet<UiNodeId>>,
     #[cfg(test)]
     #[serde(skip)]
     paint_order_cursor_rebuild_node_visits: usize,
 }
 
+#[derive(Clone, Debug, Default)]
+struct UiTreeDirtyIndex {
+    initialized: bool,
+    node_flags: BTreeMap<UiNodeId, UiDirtyFlags>,
+    domain_counts: [usize; 7],
+    #[cfg(test)]
+    node_visits: usize,
+}
+
+impl UiTreeDirtyIndex {
+    fn update(&mut self, node_id: UiNodeId, next: UiDirtyFlags) {
+        let previous = self.node_flags.get(&node_id).copied().unwrap_or_default();
+        if previous == next {
+            return;
+        }
+        self.remove_counts(previous);
+        if next.any() {
+            self.node_flags.insert(node_id, next);
+            self.add_counts(next);
+        } else {
+            self.node_flags.remove(&node_id);
+        }
+    }
+
+    fn flags(&self) -> UiDirtyFlags {
+        UiDirtyFlags {
+            layout: self.domain_counts[0] != 0,
+            hit_test: self.domain_counts[1] != 0,
+            render: self.domain_counts[2] != 0,
+            style: self.domain_counts[3] != 0,
+            text: self.domain_counts[4] != 0,
+            input: self.domain_counts[5] != 0,
+            visible_range: self.domain_counts[6] != 0,
+        }
+    }
+
+    fn add_counts(&mut self, flags: UiDirtyFlags) {
+        for (count, enabled) in self.domain_counts.iter_mut().zip([
+            flags.layout,
+            flags.hit_test,
+            flags.render,
+            flags.style,
+            flags.text,
+            flags.input,
+            flags.visible_range,
+        ]) {
+            if enabled {
+                *count = count.saturating_add(1);
+            }
+        }
+    }
+
+    fn remove_counts(&mut self, flags: UiDirtyFlags) {
+        for (count, enabled) in self.domain_counts.iter_mut().zip([
+            flags.layout,
+            flags.hit_test,
+            flags.render,
+            flags.style,
+            flags.text,
+            flags.input,
+            flags.visible_range,
+        ]) {
+            if enabled {
+                *count = count.saturating_sub(1);
+            }
+        }
+    }
+}
+
 impl UiTreeNodes {
     pub fn get_mut(&mut self, node_id: &UiNodeId) -> Option<&mut UiTreeNode> {
         if self.nodes.contains_key(node_id) {
-            self.mutation_node_ids.insert(*node_id);
+            self.mark_mutation(*node_id);
             self.paint_order_cursor.invalidate();
         }
         self.nodes.get_mut(node_id)
@@ -377,7 +450,7 @@ impl UiTreeNodes {
 
     pub fn mark_layout_dirty_source(&mut self, node_id: UiNodeId) {
         if self.nodes.contains_key(&node_id) {
-            self.mutation_node_ids.insert(node_id);
+            self.mark_mutation(node_id);
             self.layout_source_node_ids.insert(node_id);
             if let Some(node) = self.nodes.get_mut(&node_id) {
                 node.layout_cache.invalidate_measure();
@@ -386,14 +459,14 @@ impl UiTreeNodes {
     }
 
     pub fn insert(&mut self, node_id: UiNodeId, mut node: UiTreeNode) -> Option<UiTreeNode> {
-        self.mutation_node_ids.insert(node_id);
+        self.mark_mutation(node_id);
         // Keep allocation identity and paint order on the same monotonic insertion serial.
         node.paint_order = self.allocate_paint_order();
         self.nodes.insert(node_id, node)
     }
 
     pub fn remove(&mut self, node_id: &UiNodeId) -> Option<UiTreeNode> {
-        self.mutation_node_ids.insert(*node_id);
+        self.mark_mutation(*node_id);
         self.layout_source_node_ids.remove(node_id);
         self.nodes.remove(node_id)
     }
@@ -430,21 +503,149 @@ impl UiTreeNodes {
         &self.layout_source_node_ids
     }
 
+    /// Returns the aggregate dirty domain mask, refreshing only nodes changed since the last
+    /// query (or all nodes once for a newly deserialized tree).
+    pub fn dirty_flags(&self) -> UiDirtyFlags {
+        self.refresh_dirty_index();
+        self.dirty_index.borrow().flags()
+    }
+
+    /// Returns the number of nodes with at least one effective dirty domain.
+    pub fn dirty_node_count(&self) -> usize {
+        self.refresh_dirty_index();
+        self.dirty_index.borrow().node_flags.len()
+    }
+
+    /// Returns the currently dirty node IDs from the aggregate index.
+    pub fn dirty_node_ids(&self) -> BTreeSet<UiNodeId> {
+        self.refresh_dirty_index();
+        self.dirty_index
+            .borrow()
+            .node_flags
+            .keys()
+            .copied()
+            .collect()
+    }
+
+    /// Extends a caller-owned set with dirty node IDs without allocating an intermediate set.
+    /// This is the hot-path form used when a surface already has a candidate collection ready.
+    pub fn extend_dirty_node_ids(&self, target: &mut BTreeSet<UiNodeId>) {
+        self.refresh_dirty_index();
+        target.extend(self.dirty_index.borrow().node_flags.keys().copied());
+    }
+
+    /// Extends a caller-owned entry buffer directly from the dirty index, avoiding a temporary
+    /// vector when a consumer already owns the destination used for its summary or delta.
+    pub fn extend_dirty_node_entries(&self, target: &mut Vec<(UiNodeId, UiDirtyFlags)>) {
+        self.refresh_dirty_index();
+        let index = self.dirty_index.borrow();
+        target.reserve(index.node_flags.len());
+        target.extend(
+            index
+                .node_flags
+                .iter()
+                .map(|(node_id, flags)| (*node_id, *flags)),
+        );
+    }
+
+    /// Returns the effective dirty domains for every currently dirty node. The index refresh is
+    /// shared with `dirty_flags`/`dirty_node_count`, so repeated idle queries remain O(1) apart
+    /// from the caller's requested result materialization.
+    pub fn dirty_node_entries(&self) -> Vec<(UiNodeId, UiDirtyFlags)> {
+        self.refresh_dirty_index();
+        self.dirty_index
+            .borrow()
+            .node_flags
+            .iter()
+            .map(|(node_id, flags)| (*node_id, *flags))
+            .collect()
+    }
+
+    /// Returns one node's effective dirty domains without scanning unrelated nodes.
+    pub fn dirty_node_flags(&self, node_id: &UiNodeId) -> UiDirtyFlags {
+        self.refresh_dirty_index();
+        self.dirty_index
+            .borrow()
+            .node_flags
+            .get(node_id)
+            .copied()
+            .unwrap_or_default()
+    }
+
     pub fn clear_pending_mutation_node_ids(&mut self) {
+        // Reconcile mutable references before dropping their candidate IDs. This keeps the
+        // aggregate correct for callers that mutate a node and clear bookkeeping directly. A
+        // newly constructed/deserialized map can defer its first full index build until a dirty
+        // query; clearing mutation bookkeeping alone must not force that O(N) scan.
+        let index_initialized = self.dirty_index.borrow().initialized;
+        if index_initialized {
+            self.refresh_dirty_index();
+        }
         self.mutation_node_ids.clear();
+        self.dirty_index_pending_node_ids.borrow_mut().clear();
         self.layout_source_node_ids.clear();
     }
 
     fn track_all_nodes(&mut self) {
-        self.mutation_node_ids.extend(self.nodes.keys().copied());
+        let mut dirty_index_pending_node_ids = self.dirty_index_pending_node_ids.borrow_mut();
+        for node_id in self.nodes.keys().copied() {
+            self.mutation_node_ids.insert(node_id);
+            dirty_index_pending_node_ids.insert(node_id);
+        }
         self.paint_order_cursor.invalidate();
     }
 
     fn get_mut_preserving_paint_order(&mut self, node_id: &UiNodeId) -> Option<&mut UiTreeNode> {
         if self.nodes.contains_key(node_id) {
-            self.mutation_node_ids.insert(*node_id);
+            self.mark_mutation(*node_id);
         }
         self.nodes.get_mut(node_id)
+    }
+
+    fn mark_mutation(&mut self, node_id: UiNodeId) {
+        self.mutation_node_ids.insert(node_id);
+        self.dirty_index_pending_node_ids
+            .borrow_mut()
+            .insert(node_id);
+    }
+
+    fn refresh_dirty_index(&self) {
+        let pending = {
+            let mut pending = self.dirty_index_pending_node_ids.borrow_mut();
+            let is_initialized = self.dirty_index.borrow().initialized;
+            if pending.is_empty() && is_initialized {
+                return;
+            }
+            std::mem::take(&mut *pending)
+        };
+
+        let mut index = self.dirty_index.borrow_mut();
+        if !index.initialized {
+            index.node_flags.clear();
+            index.domain_counts = [0; 7];
+            for (node_id, node) in &self.nodes {
+                #[cfg(test)]
+                {
+                    index.node_visits = index.node_visits.saturating_add(1);
+                }
+                index.update(*node_id, effective_dirty_flags(node));
+            }
+            index.initialized = true;
+            return;
+        }
+
+        for node_id in pending {
+            #[cfg(test)]
+            {
+                index.node_visits = index.node_visits.saturating_add(1);
+            }
+            let dirty = self
+                .nodes
+                .get(&node_id)
+                .map(effective_dirty_flags)
+                .unwrap_or_default();
+            index.update(node_id, dirty);
+        }
     }
 
     fn allocate_paint_order(&mut self) -> u64 {
@@ -460,6 +661,11 @@ impl UiTreeNodes {
     }
 
     #[cfg(test)]
+    fn dirty_index_node_visits(&self) -> usize {
+        self.dirty_index.borrow().node_visits
+    }
+
+    #[cfg(test)]
     fn paint_order_cursor_rebuild_node_visits(&self) -> usize {
         self.paint_order_cursor_rebuild_node_visits
     }
@@ -472,6 +678,8 @@ impl Default for UiTreeNodes {
             mutation_node_ids: BTreeSet::new(),
             layout_source_node_ids: BTreeSet::new(),
             paint_order_cursor: PaintOrderCursor::new(),
+            dirty_index: RefCell::new(UiTreeDirtyIndex::default()),
+            dirty_index_pending_node_ids: RefCell::new(BTreeSet::new()),
             #[cfg(test)]
             paint_order_cursor_rebuild_node_visits: 0,
         }
@@ -496,7 +704,7 @@ impl Index<&UiNodeId> for UiTreeNodes {
 
 impl IndexMut<&UiNodeId> for UiTreeNodes {
     fn index_mut(&mut self, node_id: &UiNodeId) -> &mut Self::Output {
-        self.mutation_node_ids.insert(*node_id);
+        self.mark_mutation(*node_id);
         self.paint_order_cursor.invalidate();
         self.nodes.get_mut(node_id).expect("no entry found for key")
     }
@@ -517,6 +725,8 @@ impl From<BTreeMap<UiNodeId, UiTreeNode>> for UiTreeNodes {
             mutation_node_ids: BTreeSet::new(),
             layout_source_node_ids: BTreeSet::new(),
             paint_order_cursor,
+            dirty_index: RefCell::new(UiTreeDirtyIndex::default()),
+            dirty_index_pending_node_ids: RefCell::new(BTreeSet::new()),
             #[cfg(test)]
             paint_order_cursor_rebuild_node_visits: 0,
         }
@@ -573,6 +783,7 @@ impl PaintOrderCursor {
         next
     }
 
+    // 只扫描当前节点会丢失已移除节点的序号；保留历史高水位可避免重新插入相同 UiNodeId 时复用退役的 node_incarnation。
     fn rebuild(&mut self, paint_orders: impl Iterator<Item = u64>) {
         let observed_next = paint_orders
             .max()
@@ -602,375 +813,16 @@ fn mark_structure_dirty(node: &mut UiTreeNode) {
     node.dirty.input = true;
 }
 
-#[cfg(test)]
-mod tests {
-    use std::collections::{BTreeMap, BTreeSet};
-    use std::hint::black_box;
-    use std::time::Instant;
-
-    use serde_json;
-
-    use super::{mark_structure_dirty, UiTree};
-    use crate::ui::event_ui::{UiNodeId, UiNodePath, UiTreeId};
-    use crate::ui::layout::{UiSlot, UiSlotKind};
-    use crate::ui::tree::UiTreeNode;
-
-    #[test]
-    fn bulk_insert_assigns_dense_paint_order_without_rescanning_existing_nodes() {
-        const NODE_COUNT: u64 = 10_000;
-        let mut tree = UiTree::new(UiTreeId::new("paint-order.bulk"));
-
-        for index in 0..NODE_COUNT {
-            tree.insert_root(node(index));
-        }
-
-        assert_eq!(tree.nodes.len(), NODE_COUNT as usize);
-        assert_eq!(tree.node(UiNodeId::new(0)).unwrap().paint_order, 0);
-        assert_eq!(
-            tree.node(UiNodeId::new(NODE_COUNT - 1))
-                .unwrap()
-                .paint_order,
-            NODE_COUNT - 1
-        );
-        assert_eq!(tree.nodes.paint_order_cursor_rebuild_node_visits(), 0);
+fn effective_dirty_flags(node: &UiTreeNode) -> UiDirtyFlags {
+    let mut dirty = node.dirty;
+    if node.state_flags.dirty {
+        dirty.hit_test = true;
+        dirty.render = true;
+        dirty.input = true;
     }
-
-    #[test]
-    fn bulk_child_insert_preserves_the_cursor_while_mutating_the_parent() {
-        const CHILD_COUNT: u64 = 10_000;
-        let mut tree = UiTree::new(UiTreeId::new("paint-order.children"));
-        let root_id = UiNodeId::new(0);
-        tree.insert_root(node(0));
-
-        for index in 1..=CHILD_COUNT {
-            tree.insert_child(root_id, node(index)).unwrap();
-        }
-
-        assert_eq!(
-            tree.node(root_id).unwrap().children.len(),
-            CHILD_COUNT as usize
-        );
-        assert_eq!(
-            tree.node(UiNodeId::new(CHILD_COUNT)).unwrap().paint_order,
-            CHILD_COUNT
-        );
-        assert_eq!(tree.nodes.paint_order_cursor_rebuild_node_visits(), 0);
-    }
-
-    #[test]
-    fn child_structure_changes_invalidate_the_parent_measurement_cache() {
-        let root_id = UiNodeId::new(0);
-        let mut tree = UiTree::new(UiTreeId::new("layout-cache.structure"));
-        tree.insert_root(node(0));
-        tree.node_mut(root_id)
-            .expect("root")
-            .layout_cache
-            .complete_measure();
-        tree.clear_pending_mutation_node_ids();
-
-        tree.insert_child(root_id, node(1)).expect("child");
-
-        assert!(!tree.node(root_id).expect("root").layout_cache.measure_valid);
-    }
-
-    #[test]
-    fn layout_order_generation_ignores_non_order_slot_mutations() {
-        let root_id = UiNodeId::new(0);
-        let child_id = UiNodeId::new(1);
-        let mut tree = UiTree::new(UiTreeId::new("layout-order.generation"));
-        tree.insert_root(node(0));
-        tree.insert_child(root_id, node(1)).expect("child");
-        tree.push_layout_slot(UiSlot::new(root_id, child_id, UiSlotKind::Free));
-        tree.clear_pending_mutation_node_ids();
-        let stable_generation = tree.layout_order_generation();
-
-        tree.mutate_layout_slot(0, |slot| slot.z_order = 7)
-            .expect("mutate non-order slot field");
-
-        assert_eq!(tree.layout_order_generation(), stable_generation);
-        assert!(tree.pending_layout_order_parent_ids().is_empty());
-
-        tree.mutate_layout_slot(0, |slot| slot.order = 2)
-            .expect("mutate slot order");
-
-        assert_ne!(tree.layout_order_generation(), stable_generation);
-        assert_eq!(
-            tree.pending_layout_order_parent_ids(),
-            &BTreeSet::from([root_id])
-        );
-    }
-
-    #[test]
-    fn deserialized_layout_slot_authority_rebuilds_once_and_keeps_missing_edges_authoritative() {
-        let parent_id = UiNodeId::new(0);
-        let child_id = UiNodeId::new(1);
-        let mut original = UiTree::new(UiTreeId::new("layout-slot.deserialize"));
-        original.insert_root(node(0));
-        original.insert_child(parent_id, node(1)).expect("child");
-        original.push_layout_slot(UiSlot::new(parent_id, child_id, UiSlotKind::Linear));
-        let serialized = serde_json::to_vec(&original).expect("serialize UI tree");
-        let restored: UiTree = serde_json::from_slice(&serialized).expect("deserialize UI tree");
-
-        assert_eq!(restored.layout_slot_authority_rebuild_count(), 0);
-        assert_eq!(
-            restored.layout_slot_index_for_edge_kind(parent_id, child_id, UiSlotKind::Linear),
-            Some(0)
-        );
-        assert_eq!(restored.layout_slot_authority_rebuild_count(), 1);
-        for missing_child in 2..=1_000 {
-            assert_eq!(
-                restored.layout_slot_index_for_edge_kind(
-                    parent_id,
-                    UiNodeId::new(missing_child),
-                    UiSlotKind::Linear,
-                ),
-                None
-            );
-        }
-        assert_eq!(restored.layout_slot_authority_rebuild_count(), 1);
-    }
-
-    #[test]
-    fn same_cardinality_slot_rebind_updates_the_edge_authority_without_rebuilding() {
-        let parent_id = UiNodeId::new(0);
-        let first_child_id = UiNodeId::new(1);
-        let next_child_id = UiNodeId::new(2);
-        let mut tree = UiTree::new(UiTreeId::new("layout-slot.rebind"));
-        tree.push_layout_slot(UiSlot::new(parent_id, first_child_id, UiSlotKind::Linear));
-        assert_eq!(
-            tree.layout_slot_index_for_edge_kind(parent_id, first_child_id, UiSlotKind::Linear,),
-            Some(0)
-        );
-        assert_eq!(tree.layout_slot_authority_rebuild_count(), 1);
-
-        tree.mutate_layout_slot(0, |slot| slot.child_id = next_child_id)
-            .expect("rebind slot");
-
-        assert_eq!(
-            tree.layout_slot_index_for_edge_kind(parent_id, first_child_id, UiSlotKind::Linear,),
-            None
-        );
-        assert_eq!(
-            tree.layout_slot_index_for_edge_kind(parent_id, next_child_id, UiSlotKind::Linear),
-            Some(0)
-        );
-        assert_eq!(tree.layout_slot_authority_rebuild_count(), 1);
-    }
-
-    #[test]
-    fn slot_rebind_preserves_flat_slot_precedence_on_an_existing_edge() {
-        let parent_id = UiNodeId::new(0);
-        let first_child_id = UiNodeId::new(1);
-        let next_child_id = UiNodeId::new(2);
-        let mut tree = UiTree::new(UiTreeId::new("layout-slot.rebind-order"));
-        tree.push_layout_slot(UiSlot::new(parent_id, first_child_id, UiSlotKind::Linear));
-        tree.push_layout_slot(UiSlot::new(parent_id, next_child_id, UiSlotKind::Linear));
-        assert_eq!(
-            tree.first_layout_slot_index_for_edge(parent_id, next_child_id),
-            Some(1)
-        );
-
-        tree.mutate_layout_slot(0, |slot| slot.child_id = next_child_id)
-            .expect("rebind slot");
-
-        assert_eq!(
-            tree.first_layout_slot_index_for_edge(parent_id, next_child_id),
-            Some(0)
-        );
-        assert_eq!(tree.layout_slot_authority_rebuild_count(), 1);
-    }
-
-    #[test]
-    fn bulk_slot_retention_reindexes_once_and_removes_the_retired_edge() {
-        let parent_id = UiNodeId::new(0);
-        let retained_child_id = UiNodeId::new(1);
-        let removed_child_id = UiNodeId::new(2);
-        let mut tree = UiTree::new(UiTreeId::new("layout-slot.retain"));
-        tree.push_layout_slot(UiSlot::new(
-            parent_id,
-            retained_child_id,
-            UiSlotKind::Linear,
-        ));
-        tree.push_layout_slot(UiSlot::new(parent_id, removed_child_id, UiSlotKind::Linear));
-        assert_eq!(
-            tree.layout_slot_index_for_edge_kind(parent_id, removed_child_id, UiSlotKind::Linear,),
-            Some(1)
-        );
-
-        tree.retain_layout_slots(|slot| slot.child_id != removed_child_id);
-
-        assert_eq!(tree.layout_slot_authority_rebuild_count(), 2);
-        assert_eq!(
-            tree.layout_slot_index_for_edge_kind(parent_id, retained_child_id, UiSlotKind::Linear,),
-            Some(0)
-        );
-        assert_eq!(
-            tree.layout_slot_index_for_edge_kind(parent_id, removed_child_id, UiSlotKind::Linear,),
-            None
-        );
-
-        tree.retain_layout_slots(|_| true);
-        assert_eq!(tree.layout_slot_authority_rebuild_count(), 2);
-    }
-
-    #[test]
-    fn deserialized_tree_rebuilds_paint_order_cursor_only_once() {
-        const EXISTING_NODE_COUNT: u64 = 4_096;
-        let mut original = UiTree::new(UiTreeId::new("paint-order.deserialize"));
-        for index in 0..EXISTING_NODE_COUNT {
-            original.insert_root(node(index));
-        }
-        let serialized = serde_json::to_vec(&original).expect("serialize UI tree");
-        let mut restored: UiTree =
-            serde_json::from_slice(&serialized).expect("deserialize UI tree");
-
-        restored.insert_root(node(EXISTING_NODE_COUNT));
-        restored.insert_root(node(EXISTING_NODE_COUNT + 1));
-
-        assert_eq!(
-            restored
-                .node(UiNodeId::new(EXISTING_NODE_COUNT))
-                .unwrap()
-                .paint_order,
-            EXISTING_NODE_COUNT
-        );
-        assert_eq!(
-            restored
-                .node(UiNodeId::new(EXISTING_NODE_COUNT + 1))
-                .unwrap()
-                .paint_order,
-            EXISTING_NODE_COUNT + 1
-        );
-        assert_eq!(
-            restored.nodes.paint_order_cursor_rebuild_node_visits(),
-            EXISTING_NODE_COUNT as usize
-        );
-    }
-
-    #[test]
-    fn mutable_node_access_invalidates_the_paint_order_cursor() {
-        let mut tree = UiTree::new(UiTreeId::new("paint-order.mutation"));
-        for index in 0..3 {
-            tree.insert_root(node(index));
-        }
-        tree.node_mut(UiNodeId::new(1)).unwrap().paint_order = 40;
-
-        tree.insert_root(node(3));
-        tree.insert_root(node(4));
-
-        assert_eq!(tree.node(UiNodeId::new(3)).unwrap().paint_order, 41);
-        assert_eq!(tree.node(UiNodeId::new(4)).unwrap().paint_order, 42);
-        assert_eq!(tree.nodes.paint_order_cursor_rebuild_node_visits(), 3);
-    }
-
-    #[test]
-    fn cursor_rebuild_does_not_reuse_a_retired_high_water_order() {
-        let mut tree = UiTree::new(UiTreeId::new("paint-order.retired"));
-        tree.insert_root(node(0));
-        tree.insert_root(node(1));
-        tree.node_mut(UiNodeId::new(0)).unwrap().dirty.layout = false;
-        tree.nodes.remove(&UiNodeId::new(1));
-
-        tree.insert_root(node(2));
-
-        assert_eq!(tree.node(UiNodeId::new(2)).unwrap().paint_order, 2);
-        assert_eq!(tree.nodes.paint_order_cursor_rebuild_node_visits(), 1);
-    }
-
-    #[test]
-    fn clearing_nodes_does_not_reuse_a_retired_node_incarnation() {
-        let mut tree = UiTree::new(UiTreeId::new("node-incarnation.clear"));
-        tree.insert_root(node(0));
-        let retired = tree.node_incarnation(UiNodeId::new(0)).unwrap();
-
-        tree.roots.clear();
-        tree.nodes.clear();
-        tree.insert_root(node(0));
-
-        assert!(tree.node_incarnation(UiNodeId::new(0)).unwrap() > retired);
-    }
-
-    #[test]
-    #[ignore = "release-only paint-order performance evidence"]
-    fn paint_order_cursor_release_benchmark_evidence() {
-        const NODE_COUNT: u64 = 10_000;
-        const SAMPLE_PAIRS: usize = 21;
-        let mut legacy_micros = Vec::with_capacity(SAMPLE_PAIRS);
-        let mut cursor_micros = Vec::with_capacity(SAMPLE_PAIRS);
-
-        for sample_index in 0..SAMPLE_PAIRS {
-            let mut measure_legacy = || {
-                let started = Instant::now();
-                let mut legacy_nodes = BTreeMap::<UiNodeId, UiTreeNode>::new();
-                let mut legacy_roots = Vec::with_capacity(NODE_COUNT as usize);
-                for index in 0..NODE_COUNT {
-                    let paint_order = legacy_nodes
-                        .values()
-                        .map(|node| node.paint_order)
-                        .max()
-                        .map_or(0, |paint_order| paint_order.saturating_add(1));
-                    let mut node = node(index);
-                    node.paint_order = paint_order;
-                    mark_structure_dirty(&mut node);
-                    legacy_roots.push(node.node_id);
-                    legacy_nodes.insert(node.node_id, node);
-                }
-                black_box((&legacy_nodes, &legacy_roots));
-                legacy_micros.push(started.elapsed().as_micros());
-            };
-            let mut measure_cursor = || {
-                let started = Instant::now();
-                let mut tree = UiTree::new(UiTreeId::new("paint-order.benchmark"));
-                for index in 0..NODE_COUNT {
-                    tree.insert_root(node(index));
-                }
-                black_box(&tree);
-                cursor_micros.push(started.elapsed().as_micros());
-                assert_eq!(tree.nodes.paint_order_cursor_rebuild_node_visits(), 0);
-            };
-            if sample_index % 2 == 0 {
-                measure_legacy();
-                measure_cursor();
-            } else {
-                measure_cursor();
-                measure_legacy();
-            }
-        }
-
-        let legacy_csv = legacy_micros
-            .iter()
-            .map(u128::to_string)
-            .collect::<Vec<_>>()
-            .join(",");
-        let cursor_csv = cursor_micros
-            .iter()
-            .map(u128::to_string)
-            .collect::<Vec<_>>()
-            .join(",");
-        let legacy_p95_us = nearest_rank_percentile(&legacy_micros, 95);
-        let cursor_p95_us = nearest_rank_percentile(&cursor_micros, 95);
-        println!(
-            "UI_TREE_PAINT_ORDER_BENCH_V1 node_count={NODE_COUNT} sample_pairs={SAMPLE_PAIRS} legacy_scan_visits=49995000 cursor_scan_visits=0 legacy_p95_us={legacy_p95_us} cursor_p95_us={cursor_p95_us} legacy_us={legacy_csv} cursor_us={cursor_csv}"
-        );
-        assert!(
-            cursor_p95_us.saturating_mul(4) <= legacy_p95_us,
-            "cursor P95 {cursor_p95_us}us must be at most 25% of legacy P95 {legacy_p95_us}us"
-        );
-    }
-
-    fn nearest_rank_percentile(samples: &[u128], percentile: usize) -> u128 {
-        assert!(!samples.is_empty());
-        assert!((1..=100).contains(&percentile));
-        let mut ordered = samples.to_vec();
-        ordered.sort_unstable();
-        let index = (ordered.len() * percentile).div_ceil(100) - 1;
-        ordered[index]
-    }
-
-    fn node(index: u64) -> UiTreeNode {
-        UiTreeNode::new(
-            UiNodeId::new(index),
-            UiNodePath::new(format!("root/{index}")),
-        )
-    }
+    dirty
 }
+
+#[cfg(test)]
+#[path = "tests/ui_tree.rs"]
+mod tests;

@@ -93,5 +93,5 @@ fn normalized_text_filter_ref(text_filter: &Option<String>) -> Option<&str> {
 }
 
 #[cfg(test)]
-#[path = "query_state/borrowed_text_filter_tests.rs"]
+#[path = "query_state/tests/borrowed_text_filter_tests.rs"]
 mod borrowed_text_filter_tests;

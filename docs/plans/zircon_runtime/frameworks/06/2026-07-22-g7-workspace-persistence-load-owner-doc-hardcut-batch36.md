@@ -1,19 +1,19 @@
 ---
 related_code:
-  - docs/zircon_editor/ui/workbench/project/workspace_persistence.md
+  - docs/crates/zircon_editor/ui/workbench/project/workspace_persistence.md
   - zircon_editor/src/ui/host/project_access.rs
   - zircon_editor/src/ui/workbench/project/editor_project_document.rs
   - zircon_editor/src/ui/workbench/project/editor_project_document_load.rs
   - zircon_editor/src/ui/workbench/project/editor_workspace_persistence.rs
 implementation_files:
-  - docs/zircon_editor/ui/workbench/project/workspace_persistence.md
+  - docs/crates/zircon_editor/ui/workbench/project/workspace_persistence.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - python -B tools/check_conventions.py --repo-root E:\Git\ZirconEngine --only docs
-  - git diff --check -- docs/zircon_editor/ui/workbench/project/workspace_persistence.md docs/plans/zircon_runtime/frameworks/06/2026-07-22-g7-workspace-persistence-load-owner-doc-hardcut-batch36.md
+  - python -B tools/audits/check_conventions.py --repo-root E:\Git\ZirconEngine --only docs
+  - git diff --check -- docs/crates/zircon_editor/ui/workbench/project/workspace_persistence.md docs/plans/zircon_runtime/frameworks/06/2026-07-22-g7-workspace-persistence-load-owner-doc-hardcut-batch36.md
 ---
 
 # Frameworks06 G7 Workspace Persistence Load Owner 文档硬切 Batch 36
@@ -21,7 +21,7 @@ tests:
 Plan: docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
 Milestone: M1
 Status: accepted
-Files: ["docs/zircon_editor/ui/workbench/project/workspace_persistence.md"]
+Files: ["docs/crates/zircon_editor/ui/workbench/project/workspace_persistence.md"]
 Date: 2026-07-22
 Session: `frameworks06-g7-workspace-persistence-load-owner-batch36-20260722`
 

@@ -1,13 +1,14 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 const D5_EDITOR_AUTHORING_MACRO_CRATES: &[(&str, &str, &str)] = &[
     (
         "animation",
         include_str!("../../../../../../zircon_plugins/animation/editor/src/plugin.rs"),
-        include_str!("../../../../../../zircon_plugins/animation/editor/src/tests.rs"),
+        include_str!("../../../../../../zircon_plugins/animation/editor/src/tests/cases.rs"),
     ),
     (
         "physics",
         include_str!("../../../../../../zircon_plugins/physics/editor/src/plugin.rs"),
-        include_str!("../../../../../../zircon_plugins/physics/editor/src/tests.rs"),
+        include_str!("../../../../../../zircon_plugins/physics/editor/src/tests/cases.rs"),
     ),
     (
         "net",
@@ -29,13 +30,13 @@ fn review_d5_editor_authoring_plugins_use_sdk_macro() {
     let plugins_12 = include_str!(
         "../../../../../../docs/plans/zircon_plugins/12-plugin-dx-and-structure-framework.md"
     );
-    let plugin_sdk_doc = include_str!("../../../../../../docs/zircon_plugins/plugin-sdk.md");
+    let plugin_sdk_doc = include_str!("../../../../../../docs/crates/zircon_plugins/plugin-sdk.md");
     let runtime_15 = crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT;
     let runtime_index = include_str!(
         "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
     );
     let module_convention =
-        include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md");
+        include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
     let sdk_editor = include_str!("../../../../../../zircon_plugins/plugin_sdk/src/editor.rs");
 
     assert_eq!(

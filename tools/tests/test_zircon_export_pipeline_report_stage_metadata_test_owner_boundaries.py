@@ -8,18 +8,18 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 STAGE_METADATA_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_pipeline_report_stage_metadata.py"
+    REPO_ROOT / "tools/export/tests/test_pipeline_report_stage_metadata.py"
 )
 STAGE_METADATA_ASSETS_PACK_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_pipeline_report_stage_metadata_assets_pack_schema.py"
+    / "tools/export/tests/test_pipeline_report_stage_metadata_assets_pack_schema.py"
 )
 STAGE_METADATA_TEST_SUPPORT = (
-    REPO_ROOT / "tools/zircon_export/tests/pipeline_report_stage_metadata_test_support.py"
+    REPO_ROOT / "tools/export/tests/pipeline_report_stage_metadata_test_support.py"
 )
 COMPILE_HOST_STAGE_SCHEMA_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_pipeline_report_compile_host_stage_schema.py"
+    / "tools/export/tests/test_pipeline_report_compile_host_stage_schema.py"
 )
 
 ASSETS_PACK_TEST_METHODS = (
@@ -113,7 +113,7 @@ class PipelineReportStageMetadataTestOwnerBoundaryTests(unittest.TestCase):
             else ""
         )
         self.assertIn(
-            "from tools.zircon_export.tests.pipeline_report_stage_metadata_test_support import",
+            "from tools.export.tests.pipeline_report_stage_metadata_test_support import",
             assets_pack_text,
         )
         self.assertIn("write_library_embed_reports", assets_pack_text)

@@ -10,6 +10,7 @@ use super::append_directional_light_icon_fallback_lines::append_directional_ligh
 const CAMERA_ICON_FALLBACK_VERTEX_CAPACITY: usize = 12;
 const DIRECTIONAL_LIGHT_ICON_FALLBACK_VERTEX_CAPACITY: usize = 8;
 
+/// 与 append_icon_fallback_lines 使用同一图标分类，供上层精确预留回退顶点容量。
 pub(in crate::graphics::scene::scene_renderer::primitives::scene_gizmo) fn icon_fallback_vertex_capacity(
     icon: &OverlayBillboardIcon,
 ) -> usize {
@@ -19,6 +20,7 @@ pub(in crate::graphics::scene::scene_renderer::primitives::scene_gizmo) fn icon_
     }
 }
 
+/// 在图标 atlas 无对应资源时按图标语义补线框；调用方用 has 判定，Pending 上传仍视为有资源。
 pub(in crate::graphics::scene::scene_renderer::primitives::scene_gizmo) fn append_icon_fallback_lines(
     vertices: &mut Vec<LineVertex>,
     icon: &OverlayBillboardIcon,
@@ -37,34 +39,5 @@ pub(in crate::graphics::scene::scene_renderer::primitives::scene_gizmo) fn appen
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::core::framework::render::{OverlayBillboardIcon, ViewportIconId};
-    use crate::core::math::{Vec3, Vec4};
-
-    use super::{append_icon_fallback_lines, icon_fallback_vertex_capacity};
-
-    #[test]
-    fn scene_gizmo_line_capacity_matches_icon_fallbacks() {
-        let icons = [
-            OverlayBillboardIcon {
-                id: ViewportIconId::Camera,
-                position: Vec3::ZERO,
-                tint: Vec4::ONE,
-                size: 1.0,
-            },
-            OverlayBillboardIcon {
-                id: ViewportIconId::DirectionalLight,
-                position: Vec3::ONE,
-                tint: Vec4::ONE,
-                size: 1.0,
-            },
-        ];
-
-        for icon in icons {
-            let mut vertices = Vec::new();
-            append_icon_fallback_lines(&mut vertices, &icon, Vec3::X, Vec3::Y);
-
-            assert_eq!(vertices.len(), icon_fallback_vertex_capacity(&icon));
-        }
-    }
-}
+#[path = "tests/append_icon_fallback_lines.rs"]
+mod tests;

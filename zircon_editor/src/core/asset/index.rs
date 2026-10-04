@@ -172,11 +172,13 @@ impl EditorAssetIndex {
     }
 
     pub fn rows(&self) -> Vec<EditorAssetRow<'_>> {
-        self.runtime_registry
-            .entries()
-            .into_iter()
-            .map(|runtime_entry| self.project_row(runtime_entry))
-            .collect()
+        let mut rows = Vec::with_capacity(self.runtime_registry.len());
+        rows.extend(
+            self.runtime_registry
+                .entries_iter()
+                .map(|runtime_entry| self.project_row(runtime_entry)),
+        );
+        rows
     }
 
     pub fn row_by_uuid(&self, uuid: AssetUuid) -> Option<EditorAssetRow<'_>> {
@@ -195,14 +197,7 @@ impl EditorAssetIndex {
         &mut self,
         document: Arc<AssetMetaDocument>,
     ) -> Result<(), EditorAssetIndexError> {
-        let entry_indices = projected_entry_indices(&document)?;
-        let projections = entry_indices
-            .into_iter()
-            .map(|entry_index| AssetMetaProjection {
-                document: Arc::clone(&document),
-                entry_index,
-            })
-            .collect::<Vec<_>>();
+        let (projections, projected_uuids) = projected_metadata(&document)?;
 
         for projection in &projections {
             let runtime_entry = self
@@ -215,10 +210,6 @@ impl EditorAssetIndex {
         }
 
         let document_uuid = document.uuid;
-        let projected_uuids = projections
-            .iter()
-            .map(AssetMetaProjection::uuid)
-            .collect::<HashSet<_>>();
         for uuid in &projected_uuids {
             if let Some(existing) = self
                 .metadata_by_uuid
@@ -505,30 +496,35 @@ impl<'a> EditorAssetRow<'a> {
     }
 }
 
-fn projected_entry_indices(
-    document: &AssetMetaDocument,
-) -> Result<Vec<Option<usize>>, EditorAssetIndexError> {
-    let mut entry_indices = Vec::with_capacity(document.entries.len() + 1);
-    if !document
+fn projected_metadata(
+    document: &Arc<AssetMetaDocument>,
+) -> Result<(Vec<AssetMetaProjection>, HashSet<AssetUuid>), EditorAssetIndexError> {
+    let includes_synthetic_root = !document
         .entries
         .iter()
-        .any(|entry| entry.url.label().is_none())
-    {
-        entry_indices.push(None);
-    }
-    entry_indices.extend((0..document.entries.len()).map(Some));
-
-    let mut seen = HashSet::with_capacity(entry_indices.len());
-    for entry_index in &entry_indices {
-        let uuid = entry_index
-            .and_then(|index| document.entries.get(index))
-            .map(|entry| entry.uuid)
-            .unwrap_or(document.uuid);
-        if !seen.insert(uuid) {
+        .any(|entry| entry.url.label().is_none());
+    let projection_count = document.entries.len() + usize::from(includes_synthetic_root);
+    let mut projections = Vec::with_capacity(projection_count);
+    let mut projected_uuids = HashSet::with_capacity(projection_count);
+    let mut project = |entry_index| -> Result<(), EditorAssetIndexError> {
+        let projection = AssetMetaProjection {
+            document: Arc::clone(document),
+            entry_index,
+        };
+        let uuid = projection.uuid();
+        if !projected_uuids.insert(uuid) {
             return Err(EditorAssetIndexError::DuplicateMetadataUuid { uuid });
         }
+        projections.push(projection);
+        Ok(())
+    };
+    if includes_synthetic_root {
+        project(None)?;
     }
-    Ok(entry_indices)
+    for entry_index in 0..document.entries.len() {
+        project(Some(entry_index))?;
+    }
+    Ok((projections, projected_uuids))
 }
 
 fn validate_projection(
@@ -560,5 +556,5 @@ fn validate_projection(
 }
 
 #[cfg(test)]
-#[path = "index/tests.rs"]
+#[path = "index/tests/cases.rs"]
 mod tests;

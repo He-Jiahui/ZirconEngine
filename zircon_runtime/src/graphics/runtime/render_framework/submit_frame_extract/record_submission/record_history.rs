@@ -1,3 +1,4 @@
+//! 历史登记把本次图句柄与相机键一起发布；旧句柄由成功提交后的调用链释放。
 use crate::core::framework::render::{
     FrameHistoryHandle, FrameHistoryStatus, RenderFrameworkError,
 };
@@ -82,16 +83,5 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn missing_history_rotation_fails_with_a_typed_framework_error() {
-        let production = include_str!("record_history.rs")
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("history record production boundary");
-
-        assert!(production.contains("RenderFrameworkError::InvalidSubmissionState"));
-        assert!(!production.contains("unreachable!"));
-        assert!(!production.contains("panic!"));
-    }
-}
+#[path = "tests/record_history.rs"]
+mod tests;

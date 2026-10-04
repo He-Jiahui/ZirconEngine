@@ -20,13 +20,15 @@ use crate::scene::components::{
     AmbientLight, AnimationGraphPlayerComponent, AnimationPlayerComponent,
     AnimationSequencePlayerComponent, AnimationSkeletonComponent,
     AnimationStateMachinePlayerComponent, CameraComponent, ColliderComponent, DirectionalLight,
-    JointComponent, JointKind, Mobility, NodeKind, PointLight, PostProcessSettingsComponent,
-    PostProcessVolumeComponent, RectLight, RigidBodyComponent, RigidBodyType, SpotLight,
+    JointComponent, JointKind, Mobility, NodeKind, NodeRecord, PointLight,
+    PostProcessSettingsComponent, PostProcessVolumeComponent, RectLight, RigidBodyComponent,
+    RigidBodyType, SpotLight,
 };
 
-use super::super::World;
 use super::super::transform_validation::validate_persisted_transforms;
+use super::super::World;
 use super::camera::{camera_target_from_asset, camera_to_asset, viewport_rect_from_asset};
+use super::components::SceneComponentSerializerRegistry;
 use super::mesh::{mesh_from_asset, mesh_to_asset};
 use super::physics::{collider_shape_from_asset, collider_shape_to_asset};
 use super::post_process::{
@@ -38,7 +40,7 @@ use super::references::{handle_for_reference, reference_for_handle};
 use super::script::script_bindings_for_record;
 use super::transform::{transform_from_asset, transform_to_asset};
 use super::{
-    BUILTIN_CUBE, PREFAB_INSTANCE_COMPONENT, SCRIPT_BINDINGS_COMPONENT, SceneProjectError,
+    SceneProjectError, BUILTIN_CUBE, PREFAB_INSTANCE_COMPONENT, SCRIPT_BINDINGS_COMPONENT,
 };
 
 impl World {
@@ -54,6 +56,34 @@ impl World {
         uri: &ResourceLocator,
         max_raw_payload_bytes: u64,
     ) -> Result<Self, SceneProjectError> {
+        let registry = project.scene_component_serializer_registry();
+        Self::load_scene_from_uri_with_component_registry_and_raw_payload_limit(
+            project,
+            uri,
+            &registry,
+            max_raw_payload_bytes,
+        )
+    }
+
+    pub(crate) fn load_scene_from_uri_with_component_registry(
+        project: &ProjectManager,
+        uri: &ResourceLocator,
+        registry: &SceneComponentSerializerRegistry,
+    ) -> Result<Self, SceneProjectError> {
+        Self::load_scene_from_uri_with_component_registry_and_raw_payload_limit(
+            project,
+            uri,
+            registry,
+            u64::MAX,
+        )
+    }
+
+    fn load_scene_from_uri_with_component_registry_and_raw_payload_limit(
+        project: &ProjectManager,
+        uri: &ResourceLocator,
+        registry: &SceneComponentSerializerRegistry,
+        max_raw_payload_bytes: u64,
+    ) -> Result<Self, SceneProjectError> {
         let result = (|| {
             let ImportedAsset::Scene(scene) =
                 project.load_artifact_with_raw_payload_limit(uri, max_raw_payload_bytes)?
@@ -62,7 +92,7 @@ impl World {
                     "asset {uri} is not a scene"
                 )));
             };
-            Self::from_scene_asset(project, &scene)
+            Self::from_scene_asset_with_component_registry(project, &scene, registry)
         })();
         publish_scene_reference_diagnostics(
             project,
@@ -77,7 +107,32 @@ impl World {
         project: &ProjectManager,
         scene: &SceneAsset,
     ) -> Result<Self, SceneProjectError> {
+        let registry = project.scene_component_serializer_registry();
+        Self::from_scene_asset_with_component_registry(project, scene, &registry)
+    }
+
+    /// Create a World with every descriptor registered on this project owner.
+    ///
+    /// Dynamic component providers must be registered on the same `ProjectManager`
+    /// before this entrypoint is called. The owner snapshot is installed before any
+    /// entity can attach a provider payload.
+    pub fn empty_for_project(project: &ProjectManager) -> Result<Self, SceneProjectError> {
+        let registry = project.scene_component_serializer_registry();
         let mut world = Self::empty();
+        registry.install_into_world(&mut world)?;
+        Ok(world)
+    }
+
+    pub(crate) fn from_scene_asset_with_component_registry(
+        project: &ProjectManager,
+        scene: &SceneAsset,
+        component_registry: &SceneComponentSerializerRegistry,
+    ) -> Result<Self, SceneProjectError> {
+        // Validate every row before allocating/inserting a node. Unknown, duplicate,
+        // or mismatched provider/schema rows therefore cannot partially mutate a World.
+        component_registry.validate_scene(scene)?;
+        let mut world = Self::empty();
+        component_registry.install_into_world(&mut world)?;
 
         for entity in &scene.entities {
             let kind = if entity.camera.is_some() {
@@ -228,7 +283,7 @@ impl World {
                 })
                 .transpose()?;
 
-            world.insert_node_record(crate::scene::components::NodeRecord {
+            let mut record = NodeRecord {
                 id: entity.entity,
                 name: entity.name.clone(),
                 kind,
@@ -252,6 +307,7 @@ impl World {
                         direction: crate::core::math::Vec3::from_array(light.direction),
                         color: crate::core::math::Vec3::from_array(light.color),
                         intensity: light.intensity,
+                        casts_shadow: light.casts_shadow,
                         volumetric: light.volumetric,
                     }
                 }),
@@ -259,6 +315,7 @@ impl World {
                     color: crate::core::math::Vec3::from_array(light.color),
                     intensity: light.intensity,
                     range: light.range,
+                    casts_shadow: light.casts_shadow,
                     volumetric: light.volumetric,
                 }),
                 spot_light: entity.spot_light.clone().map(|light| SpotLight {
@@ -268,6 +325,7 @@ impl World {
                     range: light.range,
                     inner_angle_radians: light.inner_angle_radians,
                     outer_angle_radians: light.outer_angle_radians,
+                    casts_shadow: light.casts_shadow,
                     volumetric: light.volumetric,
                 }),
                 rect_light: entity.rect_light.clone().map(|light| RectLight {
@@ -275,6 +333,7 @@ impl World {
                     intensity: light.intensity,
                     range: light.range,
                     size: crate::core::math::Vec2::from_array(light.size),
+                    casts_shadow: light.casts_shadow,
                     volumetric: light.volumetric,
                 }),
                 active: entity.active,
@@ -331,7 +390,15 @@ impl World {
                 animation_sequence_player,
                 animation_graph_player,
                 animation_state_machine_player,
-            })?;
+            };
+            let dynamic_components =
+                component_registry.instantiate(project, entity, &mut record)?;
+            world.insert_node_record(record)?;
+            for (component_id, value) in dynamic_components {
+                world
+                    .set_dynamic_component(entity.entity, &component_id, value)
+                    .map_err(|error| SceneProjectError::SceneAsset(error.to_string()))?;
+            }
             if let Some(camera_post_process) = entity
                 .camera
                 .as_ref()
@@ -390,13 +457,26 @@ impl World {
         &self,
         project: &ProjectManager,
     ) -> Result<SceneAsset, SceneProjectError> {
+        let registry = project.scene_component_serializer_registry();
+        self.to_scene_asset_with_component_registry(project, &registry)
+    }
+
+    pub(crate) fn to_scene_asset_with_component_registry(
+        &self,
+        project: &ProjectManager,
+        component_registry: &SceneComponentSerializerRegistry,
+    ) -> Result<SceneAsset, SceneProjectError> {
         validate_persisted_transforms(self)?;
+        // Validate every retained dynamic row before reference extraction or serialization. This
+        // keeps a revoked provider from silently disappearing from the saved document.
+        component_registry.validate_live_world_components(self)?;
         let entities = self
             .entities
             .iter()
             .copied()
             .filter_map(|entity| self.node_record(entity))
             .map(|record| {
+                let components = component_registry.capture(project, self, &record)?;
                 let mesh = mesh_to_asset(project, record.mesh)?;
 
                 let prefab_instance = prefab_instance_for_record(self, record.id)?;
@@ -430,6 +510,7 @@ impl World {
                         .map(|camera| camera_to_asset(project, camera, post_process_settings))
                         .transpose()?,
                     mesh,
+                    components,
                     ambient_light: record.ambient_light.map(|light| SceneAmbientLightAsset {
                         color: light.color.to_array(),
                         intensity: light.intensity,
@@ -440,6 +521,7 @@ impl World {
                             direction: light.direction.to_array(),
                             color: light.color.to_array(),
                             intensity: light.intensity,
+                            casts_shadow: light.casts_shadow,
                             volumetric: light.volumetric,
                         }
                     }),
@@ -447,6 +529,7 @@ impl World {
                         color: light.color.to_array(),
                         intensity: light.intensity,
                         range: light.range,
+                        casts_shadow: light.casts_shadow,
                         volumetric: light.volumetric,
                     }),
                     rect_light: record.rect_light.map(|light| SceneRectLightAsset {
@@ -454,6 +537,7 @@ impl World {
                         intensity: light.intensity,
                         range: light.range,
                         size: light.size.to_array(),
+                        casts_shadow: light.casts_shadow,
                         volumetric: light.volumetric,
                     }),
                     spot_light: record.spot_light.map(|light| SceneSpotLightAsset {
@@ -463,6 +547,7 @@ impl World {
                         range: light.range,
                         inner_angle_radians: light.inner_angle_radians,
                         outer_angle_radians: light.outer_angle_radians,
+                        casts_shadow: light.casts_shadow,
                         volumetric: light.volumetric,
                     }),
                     post_process_volume,
@@ -625,12 +710,27 @@ impl World {
         project: &ProjectManager,
         uri: &ResourceLocator,
     ) -> Result<(), SceneProjectError> {
+        let registry = project.scene_component_serializer_registry();
+        self.save_scene_to_project_with_component_registry(project, uri, &registry)
+    }
+
+    pub(crate) fn save_scene_to_project_with_component_registry(
+        &self,
+        project: &ProjectManager,
+        uri: &ResourceLocator,
+        component_registry: &SceneComponentSerializerRegistry,
+    ) -> Result<(), SceneProjectError> {
         let result = (|| {
-            let scene = self.to_scene_asset(project)?;
-            let path = project.existing_or_primary_project_source_path_for_uri(uri)?;
+            let scene = self.to_scene_asset_with_component_registry(project, component_registry)?;
+            let resolved_path =
+                project.resolve_existing_or_primary_project_source_path_for_uri(uri)?;
             let document = scene
                 .to_project_toml_string(|reference| project.persist_runtime_reference(reference))?;
-            atomic_write(&path, document.as_bytes())?;
+            // Recheck the physical destination immediately before publication. A junction or
+            // symlink can be replaced after URI selection and before serialization completes;
+            // never let that race redirect an otherwise admitted scene write outside the roots.
+            project.validate_project_source_path_for_write(&resolved_path)?;
+            atomic_write(resolved_path.operation_path(), document.as_bytes())?;
             Ok(())
         })();
         publish_scene_reference_diagnostics(
@@ -716,74 +816,5 @@ fn persisted_reference_diagnostic(
 }
 
 #[cfg(test)]
-mod reference_diagnostic_tests {
-    use super::*;
-    use crate::asset::project::ProjectReferenceDiagnosticKind;
-    use crate::asset::{AssetUri, AssetUuid};
-    use crate::core::resource::ResourceId;
-
-    #[test]
-    fn typed_scene_errors_project_to_the_runtime_reference_diagnostic_contract() {
-        let document = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
-        let locator = AssetUri::parse("res://models/missing.glb").unwrap();
-        let uuid = AssetUuid::new();
-        let dangling = scene_reference_diagnostic(
-            &document,
-            ProjectReferenceDiagnosticPhase::Load,
-            &SceneProjectError::DanglingAssetReference {
-                uuid,
-                locator: locator.clone(),
-            },
-        )
-        .unwrap();
-        assert!(matches!(
-            dangling.kind(),
-            ProjectReferenceDiagnosticKind::DanglingAssetReference {
-                uuid: observed,
-                locator: observed_locator,
-            } if *observed == uuid && observed_locator == &locator
-        ));
-
-        let persisted = scene_reference_diagnostic(
-            &document,
-            ProjectReferenceDiagnosticPhase::Load,
-            &SceneProjectError::Asset(AssetImportError::ProjectDocument(
-                ProjectDocumentError::Reference(ReferenceResolutionError::DanglingSubasset {
-                    guid: uuid,
-                    path: "assets/models/hero.glb".to_owned(),
-                    label: "MissingMesh".to_owned(),
-                    candidates: Vec::new(),
-                }),
-            )),
-        )
-        .unwrap();
-        assert!(matches!(
-            persisted.kind(),
-            ProjectReferenceDiagnosticKind::PersistedDanglingReference {
-                uuid: observed,
-                path_hint,
-                subasset: Some(subasset),
-            } if *observed == uuid
-                && path_hint.as_ref() == "assets/models/hero.glb"
-                && subasset.as_ref() == "MissingMesh"
-        ));
-
-        let resource_id = ResourceId::new();
-        let unresolved = scene_reference_diagnostic(
-            &document,
-            ProjectReferenceDiagnosticPhase::Save,
-            &SceneProjectError::UnresolvedResourceHandle {
-                resource_id,
-                role: "material",
-            },
-        )
-        .unwrap();
-        assert!(matches!(
-            unresolved.kind(),
-            ProjectReferenceDiagnosticKind::UnresolvedResourceHandle {
-                resource_id: observed,
-                role,
-            } if *observed == resource_id && role.as_ref() == "material"
-        ));
-    }
-}
+#[path = "tests/scene_asset_reference_diagnostic_tests.rs"]
+mod reference_diagnostic_tests;

@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 
 use super::*;
 use crate::test_profile::{
-    AllocationSnapshot, begin_allocation_profile, finish_allocation_profile,
+    begin_allocation_profile, finish_allocation_profile, AllocationSnapshot,
 };
 
 const MIN_PROFILE_SAMPLE_COUNT: usize = 31;

@@ -1,5 +1,7 @@
 use super::*;
 
+mod meta_preconditions;
+
 #[test]
 fn targeted_import_preserves_unrelated_generation_records_after_source_deletion() {
     let root = unique_temp_project_root("project_manager_targeted_import");

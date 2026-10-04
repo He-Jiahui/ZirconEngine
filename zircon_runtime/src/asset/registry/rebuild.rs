@@ -125,7 +125,7 @@ pub(super) fn normalize_duplicate_guids(
     preferred_owners: &HashMap<AssetUuid, AssetUri>,
 ) -> Result<Vec<AssetUri>, AssetRegistryError> {
     let mut first_path_by_uuid = preferred_owners.clone();
-    let mut reminted_paths = Vec::new();
+    let mut reminted_paths = Vec::with_capacity(metas.len());
     for scanned in metas {
         let changed = normalize_duplicate_guid_document(
             &mut scanned.document,
@@ -142,6 +142,14 @@ pub(super) fn normalize_duplicate_guids(
     }
     Ok(reminted_paths)
 }
+
+#[cfg(test)]
+#[path = "rebuild/tests/optimization_batch_jh_runtime647_tests.rs"]
+mod optimization_batch_jh_runtime647_tests;
+
+#[cfg(test)]
+#[path = "rebuild/tests/deterministic_scan_tests.rs"]
+mod deterministic_scan_tests;
 
 fn normalize_duplicate_guid_document(
     document: &mut AssetMetaDocument,
@@ -417,9 +425,25 @@ fn collect_meta_paths(
     }
     let entries =
         fs::read_dir(directory).map_err(|source| AssetRegistryError::io(directory, source))?;
-    for entry in entries {
-        let entry = entry.map_err(|source| AssetRegistryError::io(directory, source))?;
-        let path = entry.path();
+    let entries = entries
+        .map(|entry| {
+            entry
+                .map(|entry| entry.path())
+                .map_err(|source| AssetRegistryError::io(directory, source))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    collect_meta_entries(entries, canonical_root, visited, paths)
+}
+
+fn collect_meta_entries(
+    mut entries: Vec<PathBuf>,
+    canonical_root: &Path,
+    visited: &mut HashSet<PathBuf>,
+    paths: &mut Vec<PathBuf>,
+) -> Result<(), AssetRegistryError> {
+    // Freeze sibling order before recursion so GUID ownership and diagnostics are repeatable.
+    entries.sort_unstable();
+    for path in entries {
         let metadata =
             fs::symlink_metadata(&path).map_err(|source| AssetRegistryError::io(&path, source))?;
         reject_link_or_reparse(canonical_root, &path, &metadata)?;
@@ -466,7 +490,7 @@ fn reject_link_or_reparse(
 }
 
 #[cfg(test)]
-#[path = "rebuild/optimization_tests.rs"]
+#[path = "rebuild/tests/optimization_tests.rs"]
 mod optimization_tests;
 
 #[cfg(windows)]

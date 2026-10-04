@@ -1,3 +1,6 @@
+//! 验证 native bind/resize/present、首帧捕获/诊断/退出以及释放先于窗口失效的完整接线。
+//! 该守卫约束源级接线，仍需结合被调用实现理解运行时契约。
+
 use super::super::source_assertions::assert_source_order;
 use super::sources::{
     runtime_app_source, runtime_application_handler_source, runtime_frame_loop_source,
@@ -158,13 +161,15 @@ fn runtime_surface_present_bind_resize_redraw_and_teardown_paths_stay_source_vis
         runtime_surface_present_source.as_str(),
         &[
             "fn teardown_primary_window(&mut self) -> bool",
+            "self.retire_native_ime_composition();",
             "let surface_released = self.teardown_surface_present();",
+            "self.session.destroy_for_host_resource_release();",
             "if let Some(presenter) = self.presenter.take() {",
             "presenter.publish_summary();",
             "self.window = None;",
             "surface_released",
             "fn disable_surface_present",
-            "write_warn(",
+            "self.teardown_surface_present()",
             "fn teardown_surface_present(&mut self) -> bool",
             "self.report_fatal_failure(",
             "fn release_surface_present",

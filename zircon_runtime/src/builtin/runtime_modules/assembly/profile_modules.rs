@@ -115,5 +115,5 @@ fn runtime_modules_for_profile_descriptor_manifest_with_plugin_and_feature_regis
 }
 
 #[cfg(test)]
-#[path = "profile_modules/direct_iterator_forwarding_tests.rs"]
+#[path = "profile_modules/tests/direct_iterator_forwarding_tests.rs"]
 mod direct_iterator_forwarding_tests;

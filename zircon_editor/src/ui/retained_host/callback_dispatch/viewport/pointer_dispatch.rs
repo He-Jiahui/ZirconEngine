@@ -1,6 +1,7 @@
 use zircon_runtime::ui::dispatch::UiPointerDispatcher;
 use zircon_runtime_interface::ui::{
     dispatch::{UiInputModifiers, UiPointerDispatchEffect, UiPointerEvent},
+    layout::UiPoint,
     surface::{UiPointerButton, UiPointerEventKind, UiPointerRoute},
 };
 
@@ -10,6 +11,23 @@ use crate::ui::retained_host::event_bridge::UiHostEventEffects;
 
 use super::super::constants::VIEWPORT_SURFACE_NODE_ID;
 use super::{dispatch_viewport_event, SharedViewportPointerBridge};
+
+impl SharedViewportPointerBridge {
+    pub(crate) fn cancel_interaction(
+        &mut self,
+        runtime: &EditorHostEventController,
+    ) -> Result<UiHostEventEffects, String> {
+        // Native Escape/focus loss must terminate the same Surface capture as pointer Cancel.
+        self.surface
+            .dispatch_pointer_event(
+                &self.dispatcher,
+                UiPointerEvent::new(UiPointerEventKind::Cancel, UiPoint::new(0.0, 0.0)),
+            )
+            .map_err(|error| error.to_string())?;
+        // A controller transaction may also need cancellation when no Surface capture exists.
+        dispatch_viewport_event(runtime, EditorViewportEvent::CancelInteraction)
+    }
+}
 
 pub(crate) fn dispatch_viewport_pointer_event(
     runtime: &EditorHostEventController,

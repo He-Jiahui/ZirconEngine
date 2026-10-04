@@ -1,3 +1,5 @@
+//! 图标按钮内部层级协议：图标放在表面上方；基础排序边界问题见 CR-EDITOR-PAINT-0002。
+
 const GLYPH_OFFSET: i32 = 2;
 
 pub(super) fn glyph_order(surface_order: i32) -> i32 {
@@ -5,15 +7,5 @@ pub(super) fn glyph_order(surface_order: i32) -> i32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn icon_button_glyph_order_stays_above_surface() {
-        let surface = 10;
-        let glyph = glyph_order(surface);
-
-        assert_eq!(glyph, 12);
-        assert!(surface < glyph);
-    }
-}
+#[path = "tests/layers.rs"]
+mod tests;

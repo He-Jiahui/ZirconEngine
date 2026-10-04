@@ -23,10 +23,7 @@ related_code:
   - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_readback_queue/tests.rs
   - zircon_runtime_interface/src/serialization/tests/write_contract.rs
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
-  - tools/check_conventions.py
-  - tools/session_coordinator/web/package.json
-  - tools/session_coordinator/web/scripts/run-tests.mjs
-  - tools/session_coordinator/web/scripts/verify-dist.mjs
+  - tools/audits/check_conventions.py
   - tools/editor-workbench-preview/package.json
 tests:
   - .codex/skills/zircon-dev/scripts/validate-matrix.Tests.ps1
@@ -37,8 +34,8 @@ tests:
   - tools/tests/mvp-staging-release.Tests.ps1
   - tools/tests/session-coordinator-smoke.Tests.ps1
   - tools/tests/ui-profile-latency-evidence.Tests.ps1
-  - tools/zircon_export/tests/test_pack_stage_cli.py
-  - tools/zircon_export/tests/test_pipeline_report_compile_host_stage_schema.py
+  - tools/export/tests/test_pack_stage_cli.py
+  - tools/export/tests/test_pipeline_report_compile_host_stage_schema.py
   - tools/session_coordinator/tests/test_action_execution.py
   - tools/session_coordinator/tests/test_validation_tickets.py
   - tools/session_coordinator/tests/test_workspace_copy.py

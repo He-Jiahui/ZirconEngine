@@ -5,12 +5,12 @@ use std::sync::Arc;
 use self_cell::self_cell;
 use ttf_parser::Face;
 
-use crate::core::runtime::tasks::{TaskPool, parallel_for};
+use crate::core::runtime::tasks::{parallel_for, TaskPool};
 use crate::text::{StableContentDigest, VariationCoords};
 
 use super::fdsm_gen::{generate_distance_field_glyph_from_face, parse_distance_field_face};
 use super::{
-    SdfBakeParams, SdfGlyphData, SdfGlyphGenerationError, sdf_font_source_hash, sdf_variation_hash,
+    sdf_font_source_hash, sdf_variation_hash, SdfBakeParams, SdfGlyphData, SdfGlyphGenerationError,
 };
 
 type ParsedSdfFace<'a> = Face<'a>;
@@ -103,6 +103,7 @@ impl SdfGenerationSourceContext {
         let variation_hash = sdf_variation_hash(variations.as_ref());
         let source_byte_len = font_bytes.len();
         let variation_coordinate_count = variations.0.len();
+        // self_cell 将 Arc 字体字节的所有权与借用的 ttf-parser Face 绑定，避免并行 glyph 生成持有失效借用。
         let parsed = ParsedSdfFaceCell::try_new(font_bytes, |bytes| {
             parse_distance_field_face(bytes.as_ref(), face_index, variations.as_ref())
         })?;
@@ -172,6 +173,7 @@ impl SdfGenerationSourceContext {
 }
 
 fn pending_batch_glyphs(glyph_ids: &[u16]) -> Vec<SdfGenerationBatchGlyph> {
+    // 先排序去重使批次与后续 report 的 unique/duplicate 计数一致，初始结果保持按 glyph id 可重现。
     let mut unique_glyph_ids = glyph_ids.to_vec();
     unique_glyph_ids.sort_unstable();
     unique_glyph_ids.dedup();

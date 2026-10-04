@@ -25,6 +25,22 @@ impl EditorUiHost {
                 retry_asset_ids: BTreeSet::new(),
             });
         }
+        // Admit every participating document before the dependency -> session commit lock.
+        let instances = batch
+            .direct_results
+            .iter()
+            .map(|result| &result.plan.instance_id)
+            .chain(
+                batch
+                    .import_results
+                    .iter()
+                    .map(|result| &result.plan.instance_id),
+            )
+            .collect::<BTreeSet<_>>();
+        let _edits = instances
+            .into_iter()
+            .map(|instance_id| self.begin_document_edit_if_registered(instance_id))
+            .collect::<Result<Vec<_>, _>>()?;
         // This gate makes dependency validation and every reverse-edge update
         // one commit epoch; no filesystem or parsing work runs while held.
         let mut dependency_generation = self.lock_ui_asset_dependency_generation();
@@ -119,6 +135,7 @@ impl EditorUiHost {
                         ) {
                             Ok(()) => {
                                 entry.session = session;
+                                entry.reported_dirty_source_revision = None;
                                 entry.update_disk_baseline(external_source);
                                 entry.conflict = None;
                                 entry.diff_snapshot = None;

@@ -3,7 +3,7 @@
 Plan: docs/plans/optimize/zircon_runtime/74-runtime-ui-template-component-binding-expression-model-event-command-hot-reload-product-integration-review.md
 Milestone: M0
 Status: validation_pending
-Files: ["docs/plans/optimize/zircon_runtime/74/2026-08-22-atomic-binding-target-executor.md","docs/zircon_runtime/ui/surface/binding_targets.md","zircon_runtime/src/ui/surface/mod.rs","zircon_runtime/src/ui/surface/binding_targets.rs","zircon_runtime/src/ui/surface/surface/event_routing.rs","zircon_runtime/src/ui/surface/surface/pointer_component_events.rs","zircon_runtime/src/ui/tests/event_routing/component_events.rs"]
+Files: ["docs/plans/optimize/zircon_runtime/74/2026-08-22-atomic-binding-target-executor.md","docs/crates/zircon_runtime/ui/surface/binding_targets.md","zircon_runtime/src/ui/surface/mod.rs","zircon_runtime/src/ui/surface/binding_targets.rs","zircon_runtime/src/ui/surface/surface/event_routing.rs","zircon_runtime/src/ui/surface/surface/pointer_component_events.rs","zircon_runtime/src/ui/tests/event_routing/component_events.rs"]
 
 - Date: 2026-08-22
 - Owner: `optimize-runtime74-param-ref-compile-r3-bee4c707-20260822`

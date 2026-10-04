@@ -55,32 +55,50 @@ fn dynamic_component_descriptor_projections_use_pre_sized_vectors() {
 }
 
 #[test]
-fn dynamic_component_registration_moves_descriptor_after_reflection_setup() {
+fn dynamic_component_registration_preflights_all_participants_before_publication() {
     let source = dynamic_components_source();
     let register = section_between(
         source,
         "pub fn register_component_type",
-        "pub fn component_type_descriptor",
+        "pub(in crate::scene) fn publish_prevalidated_dynamic_component_type",
     );
+    let position = |needle: &str| {
+        register
+            .find(needle)
+            .unwrap_or_else(|| panic!("registration must contain `{needle}`"))
+    };
+
+    let reflection_registration =
+        position("crate::scene::reflect::registration_from_component_descriptor(&descriptor)?");
+    let descriptor_validation =
+        position("self.component_types.validate_new_descriptor(&descriptor)?;");
+    let duplicate_type_path = position("return Err(ReflectError::DuplicateTypePath");
+    let component_adapter =
+        position("crate::scene::reflect::reflect_component_for_dynamic_descriptor(&descriptor);");
+    let reflection_validation = position(".validate_new_registration(&runtime_registration)?;");
+    let component_import_preflight = position(".preflight_dynamic_descriptor_import(");
+    let component_import_publish =
+        position(".publish_preflighted_transferred_descriptor_imports(descriptor_imports);");
+    let catalog_publish = position("self.publish_prevalidated_dynamic_component_type(");
 
     assert!(
-        register.contains(
-            "crate::scene::reflect::registration_from_component_descriptor(&descriptor)?"
-        ) && register.contains("return Err(ReflectError::DuplicateTypePath")
-            && register.contains(".into());")
-            && register.contains("let component =")
-            && register.contains(
-                "crate::scene::reflect::reflect_component_for_dynamic_descriptor(&descriptor);"
-            )
-            && register.contains("self.component_types.register(descriptor)?;")
-            && register.contains("self.type_registry.register(RuntimeTypeRegistration")
-            && register.contains("})?;")
-            && register.contains("component: Some(component),")
-            && !register.contains("self.component_types.register(descriptor.clone())")
-            && !register.contains("reflect_component_for_dynamic_descriptor(&descriptor),")
+        reflection_registration < descriptor_validation
+            && descriptor_validation < duplicate_type_path
+            && duplicate_type_path < component_adapter
+            && component_adapter < reflection_validation
+            && reflection_validation < component_import_preflight
+            && component_import_preflight < component_import_publish
+            && component_import_publish < catalog_publish,
+        "dynamic component registration must preflight reflection, descriptor, and component-import participants before publishing any catalog state"
+    );
+    assert!(
+        register.contains("component: Some(component),")
+            && register.contains("resource: None,")
+            && !register.contains("self.component_types.register(")
+            && !register.contains("self.type_registry.register(")
             && !register.contains("error.to_string()")
             && !register.contains("Result<(), String>"),
-        "dynamic component registration must build reflection state and preserve typed SceneError sources before moving the descriptor into the registry"
+        "dynamic component registration must preserve typed errors and use prevalidated publication instead of independently fallible live registry writes"
     );
 }
 

@@ -10,6 +10,8 @@ closeEnough(value: float, expected: float): bool {
     return delta < 0.00000001;
 }
 
+// 邮箱位置先经安全落点再采样地面；第三处向量覆盖偏离目录
+// 原坐标的修正结果，避免把原始位置当作最终实体落点。
 var seed = <uint>20061;
 
 if (placement.mailboxCount(true) != 3 ||

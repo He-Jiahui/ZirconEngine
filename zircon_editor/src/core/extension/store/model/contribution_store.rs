@@ -175,7 +175,7 @@ impl ContributionStore {
         let ticket = ContributionTicket(self.next_ticket);
         let keys = ContributionKeys::from_batch(&batch);
         let retained_batch = batch.clone();
-        let capabilities: Arc<[String]> = batch.required_capabilities.clone().into();
+        let capabilities = Arc::clone(&batch.required_capabilities);
         let mut candidate = (*self.current).clone();
         let mut counts = ContributionCounts::default();
 
@@ -428,7 +428,7 @@ impl ContributionStore {
         replacement_batch.replace_ui_template_contributions(templates, pane_data_sources)?;
         validate_source_namespace(&source, &replacement_batch)?;
 
-        let capabilities: Arc<[String]> = replacement_batch.required_capabilities.clone().into();
+        let capabilities = Arc::clone(&replacement_batch.required_capabilities);
         let mut candidate = (*self.current).clone();
         remove_keys(&mut candidate.ui_templates, &old_template_keys);
         remove_keys(

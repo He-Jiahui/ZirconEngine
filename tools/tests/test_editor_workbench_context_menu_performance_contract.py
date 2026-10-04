@@ -1,3 +1,4 @@
+# 核对工作台上下文菜单仅解析一次目标并写入最终缓冲区。
 from pathlib import Path
 import unittest
 

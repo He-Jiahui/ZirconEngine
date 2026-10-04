@@ -14,6 +14,12 @@ pub(super) fn execute_layout_command(
         crate::ui::workbench::layout::LayoutCommand::CloseView { instance_id } => {
             shell.manager.close_view(&instance_id)
         }
+        crate::ui::workbench::layout::LayoutCommand::CloseViews {
+            window_id,
+            instance_ids,
+        } => shell
+            .manager
+            .close_views_with_discard(&window_id, &instance_ids, &[]),
         command => shell.manager.apply_layout_command(command),
     }?;
     match command {

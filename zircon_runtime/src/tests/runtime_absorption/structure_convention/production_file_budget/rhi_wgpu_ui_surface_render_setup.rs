@@ -1,11 +1,12 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0100] 原生界面表面的设备、缓存和提交生命周期的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
     let parent = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs");
     let batching = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching.rs");
     let batching_tests =
-        read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching/tests.rs");
+        read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching/tests/cases.rs");
     let image_cache = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/image_cache.rs");
     let image_resource =
         read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/image_cache/resource.rs");
@@ -16,7 +17,7 @@ fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
         read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/retained_cache.rs");
     let surface_setup =
         read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/surface_setup.rs");
-    let tests = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests.rs");
+    let tests = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests/cases.rs");
     let native_submission_tests =
         read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests/native_submission.rs");
     let text = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/text.rs");

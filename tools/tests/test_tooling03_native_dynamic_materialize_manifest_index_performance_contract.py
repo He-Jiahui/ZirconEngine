@@ -1,3 +1,4 @@
+# 核对原生动态物化阶段共享回退清单扫描但保留逐包诊断。
 from __future__ import annotations
 
 import tempfile
@@ -5,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_export import native_dynamic_materialize
+from tools.export import native_dynamic_materialize
 
 
 class Tooling03NativeDynamicMaterializeManifestIndexPerformanceContractTests(

@@ -35,6 +35,22 @@ def write_rust_with_cfg_test_attribute(path: Path, line_count: int) -> None:
         output.write("\n#[cfg(test)]\nmod contract_fixture {}\n")
 
 
+def write_rust_with_documented_attributes(
+    path: Path, *, filler_lines: int, real_test: bool
+) -> int:
+    write_rust(path, filler_lines)
+    with path.open("a", encoding="utf-8") as output:
+        output.write(
+            '\nconst RAW: &str = r###"\n#[test]\n"###;\n'
+            r'const MULTILINE: &str = "escaped \"quote\"'
+            '\n#[cfg(test)]\n";\n'
+            '/* outer\n/* inner\n#[test]\n*/\n*/\n'
+        )
+        if real_test:
+            output.write("#[cfg(test)]\nmod actual_tests {}\n")
+    return len(path.read_text(encoding="utf-8").splitlines())
+
+
 class EditorUi10TestFileBudgetContractTests(unittest.TestCase):
     def test_audit_reports_budget_owners_by_functional_test_domain(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -191,6 +207,46 @@ class EditorUi10TestFileBudgetContractTests(unittest.TestCase):
                     "owner_class": "editor-ui",
                 },
             ],
+        )
+
+    def test_attributes_inside_literals_and_nested_comments_keep_production_owner(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            documented = root / "zircon_editor/src/ui/example/documented_tests.rs"
+            documented_lines = write_rust_with_documented_attributes(
+                documented, filler_lines=1001, real_test=False
+            )
+
+            audit = editor_module_convention_audit(root).to_json()
+
+        self.assertEqual(audit["oversized_test_files"], [])
+        self.assertEqual(
+            audit["oversized_production_files"],
+            [{
+                "path": "zircon_editor/src/ui/example/documented_tests.rs",
+                "lines": documented_lines,
+                "owner_class": "editor-ui",
+            }],
+        )
+
+    def test_real_attribute_after_documentation_keeps_test_owner(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            behavior = root / "zircon_editor/src/ui/example/behavior_tests.rs"
+            behavior_lines = write_rust_with_documented_attributes(
+                behavior, filler_lines=801, real_test=True
+            )
+
+            audit = editor_module_convention_audit(root).to_json()
+
+        self.assertEqual(audit["oversized_production_files"], [])
+        self.assertEqual(
+            audit["oversized_test_files"],
+            [{
+                "path": "zircon_editor/src/ui/example/behavior_tests.rs",
+                "lines": behavior_lines,
+                "owner_class": "editor-ui-tests",
+            }],
         )
 
     def test_blank_test_budget_exemption_reason_is_rejected(self) -> None:

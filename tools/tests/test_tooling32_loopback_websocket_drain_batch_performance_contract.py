@@ -1,3 +1,4 @@
+# 核对本地连接消息排空在有界批次内预分配容量。
 from __future__ import annotations
 
 import unittest

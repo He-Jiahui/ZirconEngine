@@ -10,13 +10,8 @@ fixing_child_dir: docs/plans/zircon_runtime/runtime/04
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/core/resource/io/mod.rs
-  - zircon_runtime/src/core/resource/io/resource_io.rs
-  - zircon_runtime/src/core/resource/io/error.rs
-  - zircon_runtime/src/core/resource/io/atomic_file.rs
   - zircon_runtime/src/asset/artifact/store.rs
-  - zircon_runtime/src/asset/migration/transaction/journal.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
-  - zircon_runtime/src/asset/project/manager/targeted_transaction.rs
   - zircon_runtime/src/asset/registry/incremental.rs
   - zircon_runtime/src/asset/registry/persistence.rs
   - zircon_runtime/src/asset/project/meta_preview_state.rs

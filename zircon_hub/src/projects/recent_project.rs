@@ -68,6 +68,7 @@ impl RecentProject {
             summary: ProjectManifestSummary {
                 name: display_name.into(),
                 engine_version_req: None,
+                template_receipt: None,
                 default_scene: "res://scenes/main.scene.toml".to_string(),
                 format_version: PROJECT_MANIFEST_FORMAT_VERSION,
                 project_guid: None,

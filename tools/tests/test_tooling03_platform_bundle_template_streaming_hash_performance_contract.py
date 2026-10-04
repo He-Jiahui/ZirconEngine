@@ -1,3 +1,4 @@
+# 核对平台包模板文件流式哈希且保留空文件摘要。
 from __future__ import annotations
 
 import hashlib
@@ -6,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_export.pipeline_report_platform_bundle_template import (
+from tools.export.pipeline_report_platform_bundle_template import (
     platform_bundle_file_sha256,
 )
 

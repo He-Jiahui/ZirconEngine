@@ -1,3 +1,6 @@
+//! 光栅键到图集槽的索引与页级反向索引，不保存字体或字形像素。
+//! 页驱逐或上传失效时整页移除关联键；槽命中的世代、尺寸和格式仍由图集集合核验。
+
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::core::math::UVec2;
@@ -8,6 +11,8 @@ use super::{
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 可跨帧复用的位置快照；必须以当前页世代和同一光栅输入验证后才能绘制。
+/// 一次字形出现的屏幕位置与颜色不属于这个缓存槽。
 pub(crate) struct GlyphAtlasPersistentSlot {
     pub(crate) page_key: GlyphAtlasPageKey,
     pub(crate) page_generation: u64,
@@ -113,9 +118,9 @@ impl GlyphAtlasSlotCache {
 }
 
 #[cfg(test)]
-#[path = "slot_cache/tests.rs"]
+#[path = "slot_cache/tests/cases.rs"]
 mod tests;
 
 #[cfg(test)]
-#[path = "slot_cache/hash_allocator_tests.rs"]
+#[path = "slot_cache/tests/hash_allocator_tests.rs"]
 mod hash_allocator_tests;

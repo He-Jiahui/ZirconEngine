@@ -12,6 +12,8 @@ mod reflection;
 mod runtime;
 mod runtime_context;
 mod scene_system;
+#[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 pub use backend::{BuiltinVmBackendFamily, VmBackendFamily};

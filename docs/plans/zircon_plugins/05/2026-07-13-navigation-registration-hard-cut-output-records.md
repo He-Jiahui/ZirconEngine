@@ -42,7 +42,7 @@ doc_type: milestone-detail
 
 ## 验证记录
 
-- `python tools/audit_plugin_structure.py --json`：exit 0；注册硬切换、descriptor single-source、runtime registration builder、capability single-source、SDK mirror、distribution boundary 与 skeleton debt 门禁均无违规。
+- `python tools/audits/audit_plugin_structure.py --json`：exit 0；注册硬切换、descriptor single-source、runtime registration builder、capability single-source、SDK mirror、distribution boundary 与 skeleton debt 门禁均无违规。
 - `python -m unittest tools.tests.test_plugin_structure_audit_registration`：10 tests，全部通过。
 - 旧路径扫描：`zircon_plugins/navigation/editor/src/registration` 不存在；源码中不存在 `crate::registration` 或旧 `src/registration` 引用。
 - 独立只读复审：`Ready`，0 Critical / 0 Important / 0 Minor；scoped `rustfmt --check` 与 `git diff --check` 通过。

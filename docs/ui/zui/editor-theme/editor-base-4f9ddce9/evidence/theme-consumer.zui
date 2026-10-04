@@ -1,0 +1,527 @@
+[asset]
+kind = "view"
+version = 2
+id = "res://ui/theme/editor_base.zui#review-host"
+display_name = "Editor Base"
+
+[imports]
+widgets = []
+styles = [ "res://ui/theme/editor_base.zui" ]
+
+[root]
+node = "review_theme_host"
+
+[nodes.review_theme_host]
+component = "Panel"
+control_id = "EditorThemeReviewHost"
+classes = [ "workbench-panel" ]
+
+[nodes.review_theme_host.style.self.background]
+color = "$editor.surface.0"
+
+[nodes.review_theme_host.style.self.foreground]
+color = "$editor.text.primary"
+
+[nodes.review_theme_host.layout.container]
+kind = "Overlay"
+
+[nodes.review_theme_host.layout.width]
+stretch = "Stretch"
+
+[nodes.review_theme_host.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_title"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_label_0"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_component_0"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_label_1"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_component_1"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_label_2"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_component_2"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_label_3"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_component_3"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_label_4"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_component_4"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_label_5"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_component_5"
+
+[nodes.review_theme_title]
+component = "Label"
+control_id = "EditorThemeReviewTitle"
+
+[nodes.review_theme_title.props]
+text = "Editor component states"
+font_size = "$editor.typography.title.size"
+font_weight = "$editor.typography.strong.weight"
+
+[nodes.review_theme_title.layout.position]
+x = 32
+y = 32
+
+[nodes.review_theme_title.layout.width]
+preferred = 560
+stretch = "Fixed"
+
+[nodes.review_theme_title.layout.height]
+preferred = 32
+stretch = "Fixed"
+
+[nodes.review_theme_label_0]
+component = "Label"
+control_id = "review_theme_component_0Label"
+
+[nodes.review_theme_label_0.props]
+text = "Primary action"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.medium.weight"
+text_tone = "secondary"
+
+[nodes.review_theme_label_0.layout.position]
+x = 32
+y = 120
+
+[nodes.review_theme_label_0.layout.width]
+preferred = 280
+stretch = "Fixed"
+
+[nodes.review_theme_label_0.layout.height]
+preferred = 20
+stretch = "Fixed"
+
+[nodes.review_theme_component_0]
+component = "Button"
+control_id = "review_theme_component_0Control"
+classes = [ "showcase-field", "material-control", "material-button" ]
+
+[nodes.review_theme_component_0.props]
+text = "Primary Button"
+surface_variant = "accent"
+button_variant = "primary"
+button_color = "primary"
+button_size = "medium"
+icon_placement = "none"
+text_tone = "primary"
+validation_level = "normal"
+hovered = false
+pressed = false
+focused = false
+selected = false
+checked = false
+disabled = false
+corner_radius = "$editor.control.radius.control"
+border_width = "$editor.control.border_width"
+layout_padding_left = "$editor.density.gap.large"
+layout_padding_right = "$editor.density.gap.large"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+layout_icon_size = 16
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.review_theme_component_0.layout.width]
+min = 280
+preferred = 280
+max = 280
+stretch = "Fixed"
+
+[nodes.review_theme_component_0.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.review_theme_component_0.layout.position]
+x = 32
+y = 148
+
+[[nodes.review_theme_component_0.events]]
+id = "UiComponentShowcase/ButtonCommit"
+event = "Click"
+component_event = "Commit"
+route = "component_lab.showcase.commit.button"
+
+[nodes.review_theme_label_1]
+component = "Label"
+control_id = "review_theme_component_1Label"
+
+[nodes.review_theme_label_1.props]
+text = "Outlined action"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.medium.weight"
+text_tone = "secondary"
+
+[nodes.review_theme_label_1.layout.position]
+x = 328
+y = 120
+
+[nodes.review_theme_label_1.layout.width]
+preferred = 280
+stretch = "Fixed"
+
+[nodes.review_theme_label_1.layout.height]
+preferred = 20
+stretch = "Fixed"
+
+[nodes.review_theme_component_1]
+component = "Button"
+control_id = "review_theme_component_1Control"
+classes = [ "showcase-field", "material-control", "material-button" ]
+
+[nodes.review_theme_component_1.props]
+text = "Outlined Button"
+button_variant = "outlined"
+button_color = "primary"
+button_size = "medium"
+icon_placement = "none"
+text_tone = "primary"
+validation_level = "normal"
+hovered = false
+pressed = false
+focused = true
+selected = false
+checked = false
+disabled = false
+corner_radius = "$editor.control.radius.control"
+border_width = "$editor.control.border_width"
+layout_padding_left = "$editor.density.gap.large"
+layout_padding_right = "$editor.density.gap.large"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+layout_icon_size = 16
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.review_theme_component_1.layout.width]
+min = 280
+preferred = 280
+max = 280
+stretch = "Fixed"
+
+[nodes.review_theme_component_1.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.review_theme_component_1.layout.position]
+x = 328
+y = 148
+
+[nodes.review_theme_label_2]
+component = "Label"
+control_id = "review_theme_component_2Label"
+
+[nodes.review_theme_label_2.props]
+text = "Checkbox"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.medium.weight"
+text_tone = "secondary"
+
+[nodes.review_theme_label_2.layout.position]
+x = 32
+y = 240
+
+[nodes.review_theme_label_2.layout.width]
+preferred = 280
+stretch = "Fixed"
+
+[nodes.review_theme_label_2.layout.height]
+preferred = 20
+stretch = "Fixed"
+
+[nodes.review_theme_component_2]
+component = "Checkbox"
+control_id = "review_theme_component_2Control"
+classes = [ "showcase-field", "material-control" ]
+
+[nodes.review_theme_component_2.props]
+text = "Checkbox"
+checked = true
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.review_theme_component_2.layout.width]
+min = 280
+preferred = 280
+max = 280
+stretch = "Fixed"
+
+[nodes.review_theme_component_2.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[nodes.review_theme_component_2.layout.position]
+x = 32
+y = 268
+
+[[nodes.review_theme_component_2.events]]
+id = "UiComponentShowcase/CheckboxChanged"
+event = "Toggle"
+route = "component_lab.showcase.change.checkbox"
+
+[nodes.review_theme_label_3]
+component = "Label"
+control_id = "review_theme_component_3Label"
+
+[nodes.review_theme_label_3.props]
+text = "Text field"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.medium.weight"
+text_tone = "secondary"
+
+[nodes.review_theme_label_3.layout.position]
+x = 328
+y = 240
+
+[nodes.review_theme_label_3.layout.width]
+preferred = 280
+stretch = "Fixed"
+
+[nodes.review_theme_label_3.layout.height]
+preferred = 20
+stretch = "Fixed"
+
+[nodes.review_theme_component_3]
+component = "InputField"
+control_id = "review_theme_component_3Control"
+classes = [ "showcase-field", "material-control", "material-outlined-field" ]
+
+[nodes.review_theme_component_3.props]
+value = "Runtime retained text"
+placeholder = "Type here"
+validation_level = "normal"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.review_theme_component_3.layout.width]
+min = 280
+preferred = 280
+max = 280
+stretch = "Fixed"
+
+[nodes.review_theme_component_3.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.review_theme_component_3.layout.position]
+x = 328
+y = 268
+
+[[nodes.review_theme_component_3.events]]
+id = "UiComponentShowcase/InputFieldChanged"
+event = "Change"
+component_event = "ValueChanged"
+route = "component_lab.showcase.value_changed.input_field"
+
+[[nodes.review_theme_component_3.events]]
+id = "UiComponentShowcase/InputFieldCommitted"
+event = "Submit"
+component_event = "Commit"
+route = "component_lab.showcase.commit.input_field"
+
+[nodes.review_theme_label_4]
+component = "Label"
+control_id = "review_theme_component_4Label"
+
+[nodes.review_theme_label_4.props]
+text = "Toggle action"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.medium.weight"
+text_tone = "secondary"
+
+[nodes.review_theme_label_4.layout.position]
+x = 32
+y = 360
+
+[nodes.review_theme_label_4.layout.width]
+preferred = 280
+stretch = "Fixed"
+
+[nodes.review_theme_label_4.layout.height]
+preferred = 20
+stretch = "Fixed"
+
+[nodes.review_theme_component_4]
+component = "ToggleButton"
+control_id = "review_theme_component_4Control"
+classes = [ "showcase-field", "material-control" ]
+
+[nodes.review_theme_component_4.props]
+text = "Toggle Button"
+checked = true
+layout_padding_left = "$editor.density.gap.large"
+layout_padding_right = "$editor.density.gap.large"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+layout_icon_size = 16
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.review_theme_component_4.layout.width]
+min = 280
+preferred = 280
+max = 280
+stretch = "Fixed"
+
+[nodes.review_theme_component_4.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.review_theme_component_4.layout.position]
+x = 32
+y = 388
+
+[[nodes.review_theme_component_4.events]]
+id = "UiComponentShowcase/ToggleButtonChanged"
+event = "Toggle"
+route = "component_lab.showcase.change.toggle_button"
+
+[nodes.review_theme_label_5]
+component = "Label"
+control_id = "review_theme_component_5Label"
+
+[nodes.review_theme_label_5.props]
+text = "Number field"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.medium.weight"
+text_tone = "secondary"
+
+[nodes.review_theme_label_5.layout.position]
+x = 328
+y = 360
+
+[nodes.review_theme_label_5.layout.width]
+preferred = 280
+stretch = "Fixed"
+
+[nodes.review_theme_label_5.layout.height]
+preferred = 20
+stretch = "Fixed"
+
+[nodes.review_theme_component_5]
+component = "NumberField"
+control_id = "review_theme_component_5Control"
+classes = [ "showcase-field", "material-control", "material-outlined-field" ]
+
+[nodes.review_theme_component_5.props]
+value = 42
+min = 0
+max = 100
+step = 1
+large_step = 10
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.review_theme_component_5.layout.width]
+min = 280
+preferred = 280
+max = 280
+stretch = "Fixed"
+
+[nodes.review_theme_component_5.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.review_theme_component_5.layout.position]
+x = 328
+y = 388
+
+[[nodes.review_theme_component_5.events]]
+id = "UiComponentShowcase/NumberFieldDragBegin"
+event = "DragBegin"
+component_event = "BeginDrag"
+route = "component_lab.showcase.begin_drag.number_field"
+
+[[nodes.review_theme_component_5.events]]
+id = "UiComponentShowcase/NumberFieldDragUpdate"
+event = "DragUpdate"
+component_event = "DragDelta"
+route = "component_lab.showcase.drag_delta.number_field"
+
+[[nodes.review_theme_component_5.events]]
+id = "UiComponentShowcase/NumberFieldLargeDragUpdate"
+event = "DragUpdate"
+component_event = "LargeDragDelta"
+route = "component_lab.showcase.large_drag_delta.number_field"
+
+[[nodes.review_theme_component_5.events]]
+id = "UiComponentShowcase/NumberFieldDragEnd"
+event = "DragEnd"
+component_event = "EndDrag"
+route = "component_lab.showcase.end_drag.number_field"
+
+[[nodes.review_theme_component_5.events]]
+id = "UiComponentShowcase/NumberFieldChanged"
+event = "Change"
+component_event = "ValueChanged"
+route = "component_lab.showcase.value_changed.number_field"
+
+[[nodes.review_theme_component_5.events]]
+id = "UiComponentShowcase/NumberFieldCommitted"
+event = "Submit"
+component_event = "Commit"
+route = "component_lab.showcase.commit.number_field"

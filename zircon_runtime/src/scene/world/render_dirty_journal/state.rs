@@ -1,13 +1,14 @@
 use std::sync::Arc;
 
-use crate::scene::EntityId;
 use crate::scene::ecs::{
     ChangeTick, Component, ComponentMutationRecord, ComponentMutationRecorder,
     ComponentMutationSink,
 };
+use crate::scene::EntityId;
 
 use super::{RenderDirtyEntityJournal, RenderDirtyWorldId};
 
+/// World 内部累积待发布实体和组件变更；publish 只在边界生成新的不可变 journal。
 #[derive(Clone, Debug)]
 pub(in crate::scene::world) struct RenderDirtyJournalState {
     world: RenderDirtyWorldId,
@@ -45,8 +46,17 @@ impl RenderDirtyJournalState {
     }
 
     pub(in crate::scene::world) fn mark(&mut self, entity: EntityId) {
-        if !self.pending_all {
-            self.pending_entities.push(entity);
+        unsafe { Self::mark_unchecked(self, entity) }
+    }
+
+    /// # Safety
+    /// The caller must exclusively own the pending fields. Only the disjoint
+    /// component-mutation sink may be retained by live query items, not this state.
+    pub(in crate::scene::world) unsafe fn mark_unchecked(state: *mut Self, entity: EntityId) {
+        unsafe {
+            if !std::ptr::addr_of!((*state).pending_all).read() {
+                (&mut *std::ptr::addr_of_mut!((*state).pending_entities)).push(entity);
+            }
         }
     }
 
@@ -68,6 +78,23 @@ impl RenderDirtyJournalState {
         T: Component,
     {
         self.component_mutations.recorder::<T>(entity)
+    }
+
+    /// # Safety
+    /// The sink leaf must remain allocated for `'world`. The owner must keep this
+    /// state fixed and prevent exclusive parent/sink access while the recorder lives.
+    pub(in crate::scene::world) unsafe fn component_mutation_recorder_unchecked<'world, T>(
+        state: *const Self,
+        entity: EntityId,
+    ) -> ComponentMutationRecorder<'world>
+    where
+        T: Component,
+    {
+        unsafe {
+            let sink: &'world ComponentMutationSink =
+                &*std::ptr::addr_of!((*state).component_mutations);
+            sink.recorder::<T>(entity)
+        }
     }
 
     pub(in crate::scene::world) fn take_component_mutations(&self) -> Vec<ComponentMutationRecord> {

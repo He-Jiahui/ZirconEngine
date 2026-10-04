@@ -8,8 +8,8 @@ use std::{
 use crate::{
     asset::{AssetEventKind, AssetUri, Assets, ImportedAsset, ProjectManager, SceneAsset},
     core::{
-        JobScheduler, TaskCancellationPolicy, TaskPool, TaskPoolDescriptor, TaskPools,
         resource::{ResourceDiagnostic, ResourceId, ResourceKind, ResourceManager, ResourceRecord},
+        JobScheduler, TaskCancellationPolicy, TaskPool, TaskPoolDescriptor, TaskPools,
     },
     scene::{
         DefaultLevelManager, DynamicSceneAssetReloadDrainReport, DynamicSceneAssetReloadLimits,
@@ -668,6 +668,7 @@ fn drain_until_events(
         let drain = queue.drain_events(scheduler);
         total.events_drained += drain.events_drained;
         total.scheduled += drain.scheduled;
+        total.failed.extend(drain.failed);
         total.skipped.extend(drain.skipped);
         total.superseded_pending.extend(drain.superseded_pending);
         total.receiver_disconnected |= drain.receiver_disconnected;
@@ -795,4 +796,60 @@ impl SceneReloadFixture {
     fn cleanup(self) {
         let _ = fs::remove_dir_all(self.root);
     }
+}
+
+#[test]
+fn reload_closed_scope_refusal_publishes_failure_without_pending_task() {
+    use crate::core::{
+        EngineTaskGraph, EngineTaskGraphOptions, TaskGraphAdmissionError, TaskGraphScopeDescriptor,
+        TaskPoolKind,
+    };
+    use crate::scene::DynamicSceneError;
+    let fixture = SceneReloadFixture::new("reload_closed_scope_refusal");
+    let events = Assets::<SceneAsset>::new(fixture.resources.clone()).subscribe_events();
+    let runtime = EngineTaskGraph::try_new(EngineTaskGraphOptions::with_worker_threads(3)).unwrap();
+    let scope = runtime
+        .create_scope(TaskGraphScopeDescriptor::new("reload-closed"))
+        .unwrap();
+    scope.close_admission();
+    let scheduler = runtime.scheduler(TaskPoolKind::Io);
+    let mut queue = DynamicSceneAssetReloadQueue::new(
+        fixture.project.clone(),
+        events,
+        fixture.resources.clone(),
+    )
+    .with_task_graph_scope(scope.clone());
+    fixture.register_ready_revision("refused-v1");
+    let drain = drain_until_events(&mut queue, &scheduler, 1);
+    assert_eq!(drain.scheduled, 0);
+    assert_eq!(drain.failed.len(), 1);
+    assert!(matches!(
+        drain.failed[0].error(),
+        DynamicSceneError::SpawnTaskAdmission {
+            reason: TaskGraphAdmissionError::ScopeClosed { .. },
+            ..
+        }
+    ));
+    assert_eq!(queue.pending_report().pending_count(), 0);
+    queue.assert_no_admitted_reload_storage();
+    assert_eq!(queue.pending_count(), 0);
+    assert_eq!(scope.census().submitted, 0);
+    fixture.register_ready_revision("refused-v2");
+    let deadline = Instant::now() + EVENT_DRAIN_TIMEOUT;
+    let mut failures = 0;
+    let mut world = World::empty();
+    loop {
+        let frame = queue.tick_into(&scheduler, &mut world);
+        assert_eq!(frame.scheduled_count(), 0);
+        assert_eq!(frame.pending_count(), 0);
+        failures += frame.failed_count();
+        if frame.events_drained() > 0 {
+            break;
+        }
+        assert!(Instant::now() < deadline, "must receive second revision");
+        thread::sleep(Duration::from_millis(1));
+    }
+    assert_eq!(failures, 1);
+    assert_eq!(queue.tick_into(&scheduler, &mut world).failed_count(), 0);
+    runtime.shutdown(Duration::from_secs(1)).unwrap();
 }

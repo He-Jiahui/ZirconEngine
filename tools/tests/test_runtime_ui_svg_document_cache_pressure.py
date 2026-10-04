@@ -1,8 +1,8 @@
 import unittest
 
-from tools.runtime_ui_svg_document_cache_pressure import run
+from tools.analysis.performance.runtime.runtime_ui_svg_document_cache_pressure import run
 
-
+# 用稳定工作集模型验证缓存消除重复 SVG 解析，并拒绝容量不足及非法输入。
 class RuntimeUiSvgDocumentCachePressureTests(unittest.TestCase):
     def test_stable_working_set_eliminates_repeated_parses(self):
         result = run(1_000, 64, 512)

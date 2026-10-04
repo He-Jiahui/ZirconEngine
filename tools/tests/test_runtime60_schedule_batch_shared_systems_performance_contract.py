@@ -1,7 +1,7 @@
 import re
 import unittest
 from pathlib import Path
-
+# 已编译调度批次冻结共享系统 ID 存储，执行器只借用该集合；发布证据另追踪堆分配减少。
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CONFLICT_GRAPH = (

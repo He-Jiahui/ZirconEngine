@@ -1,6 +1,7 @@
 mod declarations;
 mod selection;
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 pub(in crate::hybrid_gi) use declarations::{

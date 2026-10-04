@@ -1,3 +1,4 @@
+//! 运行时技术栈、清单和结构文档维持共同的基础门禁。通过源码文本核对父子路由、状态镜像和文件预算。
 const PARENT_SOURCE: &str = include_str!("../tech_stack.rs");
 const MANIFEST_INVENTORY_SOURCE: &str = include_str!("manifest_inventory.rs");
 const GUARD_ANCHORS_SOURCE: &str = include_str!("guard_anchors.rs");
@@ -27,8 +28,9 @@ const REVIEW_FINDINGS_OUTPUT_ARCHIVE: &str = include_str!(
     "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
 );
 const MODULE_CONVENTION_DOC: &str =
-    include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
+    include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 
+// BUG: [CR-RUNTIME-TESTS-ABS-0007] 当前被读子文件已经超过此处明示的行数上限；该测试执行行数断言时会失败；证据：行数预算与原始源码快照。
 #[test]
 fn runtime_15_tech_stack_route_owner_is_folder_backed() {
     assert_contains_all(

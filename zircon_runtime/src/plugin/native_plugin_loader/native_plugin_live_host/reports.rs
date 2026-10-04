@@ -53,6 +53,7 @@ impl NativePluginLiveHostBridgeLifecycleReport {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 一次原生句柄迁移的结果；桥接报告可能缺席，调用方需按入口决定是否另行同步提供者状态。
 pub struct NativePluginLiveHostOutcome {
     pub plugin_id: String,
     pub module_kind: PluginModuleKind,
@@ -176,6 +177,7 @@ impl NativePluginRuntimeHotUpdateReport {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
+/// 注册回放的逐系统结果及跳过的插件；非 clean 不代表已注册系统自动撤销。
 pub struct NativePluginRuntimeRegistrationReplayReport {
     pub registered_systems: Vec<NativePluginRuntimeRegistrationSystemReplay>,
     pub skipped_plugin_ids: Vec<String>,
@@ -208,6 +210,7 @@ pub struct NativePluginRuntimeRegistrationSystemReplay {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 查询已装载运行时插件的命令、事件及注册清单；用于构建调用界面和验证可用能力。
 pub struct NativePluginRuntimeBehaviorDescriptor {
     pub plugin_id: String,
     pub is_stateless: Option<bool>,
@@ -339,7 +342,7 @@ fn report_diagnostic_capacity(calls: &[NativePluginRuntimeBehaviorCall]) -> usiz
 }
 
 #[cfg(test)]
-#[path = "reports/optimization_tests.rs"]
+#[path = "reports/tests/optimization_tests.rs"]
 mod optimization_tests;
 
 /// Native runtime plugin state captured when editor play mode begins.

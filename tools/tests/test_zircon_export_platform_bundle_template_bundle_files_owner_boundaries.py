@@ -1,14 +1,15 @@
+# 核对模板包文件模式的实现归属与模块规模。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE_SCHEMA = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_platform_bundle_template_schema.py"
+    REPO_ROOT / "tools/export/pipeline_report_platform_bundle_template_schema.py"
 )
 TEMPLATE_BUNDLE_FILES_SCHEMA = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_platform_bundle_template_bundle_files_schema.py"
+    / "tools/export/pipeline_report_platform_bundle_template_bundle_files_schema.py"
 )
 
 

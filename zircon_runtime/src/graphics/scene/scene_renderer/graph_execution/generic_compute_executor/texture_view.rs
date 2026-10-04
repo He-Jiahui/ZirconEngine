@@ -11,38 +11,22 @@ pub(super) fn resolve_compute_texture_view(
     binding_access: RenderGraphVersionedAccessKey,
 ) -> Result<wgpu::TextureView, String> {
     match binding_access.resource.kind() {
-        RenderGraphResourceKind::TransientTexture => {
-            return gpu
-                .resources
-                .transient_texture_view_for_access(binding_access.access_id)
-                .cloned();
-        }
+        // The compiled access-ID table already carries the canonical mip and array range.
+        RenderGraphResourceKind::TransientTexture => gpu
+            .resources
+            .transient_texture_view_for_access(binding_access.access_id)
+            .cloned(),
         // External physical views are resolved from the compiler's immutable access-ID packet.
         // Descriptor-less report-only imports remain valid for view-only compatibility; any
         // schema that needs a physical descriptor fails closed in `resolve_compute_texture_desc`.
-        RenderGraphResourceKind::External => {
-            return gpu
-                .resources
-                .external_texture_view_for_access(binding_access.access_id)
-                .cloned();
-        }
-        RenderGraphResourceKind::TransientBuffer => {
-            return Err(format!(
+        RenderGraphResourceKind::External => gpu
+            .resources
+            .external_texture_view_for_access(binding_access.access_id)
+            .cloned(),
+        RenderGraphResourceKind::TransientBuffer => Err(format!(
                 "compute binding `{}` resource `{}` resolves to a transient buffer access, not a texture",
                 binding.binding, binding.resource
-            ));
-        }
-    }
-    if binding.texture_full_mip_chain {
-        return gpu.texture_view_with_full_mip_fallback(&binding.resource, binding_access.access);
-    }
-    match binding.texture_mip_level {
-        Some(mip_level) => {
-            gpu.require_owned_texture_mip_view(&binding.resource, binding_access.access, mip_level)
-        }
-        None => gpu
-            .require_texture_view(&binding.resource, binding_access.access)
-            .cloned(),
+            )),
     }
 }
 
@@ -79,3 +63,7 @@ pub(super) fn resolve_compute_texture_desc(
         )),
     }
 }
+
+#[cfg(test)]
+#[path = "tests/texture_view.rs"]
+mod tests;

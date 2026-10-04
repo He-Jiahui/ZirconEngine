@@ -1,3 +1,4 @@
+# Stage 发布前检查项目目录可释放、预检预算和原生文件边界；此独立脚本混合模块行为与源码断言，重点阻止越界路径、句柄残留及临时重命名冲突。
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
@@ -8,7 +9,7 @@ if (-not (Test-Path -LiteralPath $modulePath -PathType Leaf)) {
 }
 Import-Module $modulePath -Force -ErrorAction Stop
 Import-Module $fixturePathsModule -Force -ErrorAction Stop
-$resolverModule = Join-Path $PSScriptRoot '..\..\tools\WindowsPathResolver.psm1'
+$resolverModule = Join-Path $PSScriptRoot '..\..\tools\maintenance\WindowsPathResolver.psm1'
 Import-Module $resolverModule -Force -ErrorAction Stop
 
 function Assert-True {

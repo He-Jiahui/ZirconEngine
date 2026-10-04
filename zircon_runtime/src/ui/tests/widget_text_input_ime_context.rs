@@ -239,11 +239,9 @@ fn text_input_ime_surrounding_text_trims_a_wide_grapheme_window_to_the_byte_limi
         .expect("byte-limited surrounding text");
     assert!(surrounding.text.len() < 4_000);
     assert!(surrounding.text.graphemes(true).count() < 512);
-    assert!(
-        surrounding
-            .text
-            .is_char_boundary(surrounding.cursor_byte as usize)
-    );
+    assert!(surrounding
+        .text
+        .is_char_boundary(surrounding.cursor_byte as usize));
     assert_eq!(surrounding.anchor_byte, surrounding.cursor_byte);
 }
 
@@ -615,6 +613,17 @@ fn text_attr(surface: &UiSurface, key: &str) -> String {
         .and_then(toml::Value::as_str)
         .unwrap_or_default()
         .to_string()
+}
+
+fn int_attr(surface: &UiSurface, key: &str) -> i64 {
+    surface
+        .tree
+        .nodes
+        .get(&UiNodeId::new(2))
+        .and_then(|node| node.template_metadata.as_ref())
+        .and_then(|metadata| metadata.attributes.get(key))
+        .and_then(toml::Value::as_integer)
+        .unwrap_or_default()
 }
 
 fn usize_attr(surface: &UiSurface, key: &str) -> Option<usize> {

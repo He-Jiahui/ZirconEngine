@@ -1,4 +1,6 @@
+//! 首领阈值及固定战斗场景的独立断言；真实遭遇计时和实体结算不经由此标量模块。
 // Encounter thresholds and split outcomes shared by the M4 scripted fights.
+/// 将生命比例、阶段阈值和周期脉冲数量映射为独立测试使用的数值。
 pub metric(
     kind: int,
     first: float,
@@ -32,6 +34,7 @@ pub metric(
     throw "encounter metric is invalid";
 }
 
+/// 固定场景计数只验证预期的钟绳与尼斯拉克斯关键事件，未运行首领实体状态机。
 pub scenarioContract(scenarioKind: int, seed: int, ticks: int): float {
     if (scenarioKind == 0) {
         if (seed != 3131 || ticks != 507) { return 0.0; }

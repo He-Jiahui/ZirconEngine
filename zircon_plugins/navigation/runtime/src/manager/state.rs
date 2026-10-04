@@ -4,7 +4,8 @@ use std::sync::Arc;
 use zircon_plugin_navigation_recast::RecastTiledBakePlan;
 use zircon_runtime::core::framework::navigation::NavMeshBakeDiagnostic;
 use zircon_runtime::core::framework::navigation::{
-    NavMeshAsset, NavigationGeneratedBakeSnapshot, NavigationSettingsAsset,
+    NavMeshAsset, NavigationError, NavigationErrorKind, NavigationGeneratedBakeSnapshot,
+    NavigationSettingsAsset,
 };
 use zircon_runtime::core::framework::navigation::{
     NavMeshHandle, NavMeshSurfaceDescriptor, NavigationRuntimeStats,
@@ -42,6 +43,16 @@ pub(super) struct BakeContextState {
     pub(super) last_tiled_bake: Option<LastTiledBake>,
 }
 
+/// Immutable generation fence captured before a worker prepares a bake. Applying the prepared
+/// result atomically advances this context only when both counters still match.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) struct BakeGenerationToken {
+    pub(super) surface: Option<u64>,
+    pub(super) current_generation: u64,
+    pub(super) next_generation: u64,
+    pub(super) generated_mutation_epoch: u64,
+}
+
 impl Default for BakeContextState {
     fn default() -> Self {
         Self {
@@ -53,9 +64,11 @@ impl Default for BakeContextState {
 }
 
 #[derive(Debug)]
+// 生成快照与加载句柄成对更新；叠加层代次随网格替换递增，供编辑器过滤过期帧。
 pub(crate) struct NavigationRuntimeState {
     pub(super) next_handle: u64,
     pub(super) overlay_generation: u64,
+    pub(super) generated_mutation_epoch: u64,
     pub(super) loaded: BTreeMap<u64, Arc<NavMeshAsset>>,
     pub(super) generated_bakes: HashMap<Option<u64>, GeneratedBakeState>,
     pub(super) settings: NavigationSettingsAsset,
@@ -78,6 +91,7 @@ impl Default for NavigationRuntimeState {
         Self {
             next_handle: 1,
             overlay_generation: 0,
+            generated_mutation_epoch: 0,
             loaded: BTreeMap::new(),
             generated_bakes: HashMap::new(),
             settings: NavigationSettingsAsset::default(),
@@ -97,6 +111,32 @@ impl Default for NavigationRuntimeState {
 }
 
 impl NavigationRuntimeState {
+    pub(super) fn ensure_generated_mutation_epoch_available(&self) -> Result<(), NavigationError> {
+        self.generated_mutation_epoch
+            .checked_add(1)
+            .map(|_| ())
+            .ok_or_else(|| {
+                NavigationError::new(
+                    NavigationErrorKind::InvalidConfiguration,
+                    "navigation generated-state mutation epoch exhausted",
+                )
+            })
+    }
+
+    pub(super) fn ensure_bake_generations_available(&self) -> Result<(), NavigationError> {
+        if self
+            .bake_contexts
+            .values()
+            .any(|context| context.next_generation.checked_add(1).is_none())
+        {
+            return Err(NavigationError::new(
+                NavigationErrorKind::InvalidConfiguration,
+                "navigation bake generation exhausted",
+            ));
+        }
+        Ok(())
+    }
+
     pub(super) fn advance_overlay_generation(&mut self) {
         self.overlay_generation = self.overlay_generation.saturating_add(1);
     }
@@ -122,7 +162,19 @@ impl NavigationRuntimeState {
             .unwrap_or_else(|| NavigationGeneratedBakeSnapshot::empty(surface_entity))
     }
 
-    pub(super) fn replace_generated_snapshot(&mut self, snapshot: NavigationGeneratedBakeSnapshot) {
+    pub(super) fn replace_generated_snapshot(
+        &mut self,
+        snapshot: NavigationGeneratedBakeSnapshot,
+    ) -> Result<(), NavigationError> {
+        let next_mutation_epoch =
+            self.generated_mutation_epoch
+                .checked_add(1)
+                .ok_or_else(|| {
+                    NavigationError::new(
+                        NavigationErrorKind::InvalidConfiguration,
+                        "navigation generated-state mutation epoch exhausted",
+                    )
+                })?;
         let key = snapshot.surface_entity;
         if let Some(previous) = self.generated_bakes.remove(&key) {
             if let Some(handle) = previous.loaded_handle {
@@ -150,9 +202,20 @@ impl NavigationRuntimeState {
         }
         self.stats.loaded_nav_meshes = self.loaded.len();
         self.advance_overlay_generation();
+        self.generated_mutation_epoch = next_mutation_epoch;
+        Ok(())
     }
 
-    pub(super) fn clear_generated_snapshots(&mut self) {
+    pub(super) fn clear_generated_snapshots(&mut self) -> Result<(), NavigationError> {
+        let next_mutation_epoch =
+            self.generated_mutation_epoch
+                .checked_add(1)
+                .ok_or_else(|| {
+                    NavigationError::new(
+                        NavigationErrorKind::InvalidConfiguration,
+                        "navigation generated-state mutation epoch exhausted",
+                    )
+                })?;
         let handles = self
             .generated_bakes
             .drain()
@@ -163,17 +226,56 @@ impl NavigationRuntimeState {
         }
         self.stats.loaded_nav_meshes = self.loaded.len();
         self.advance_overlay_generation();
+        self.generated_mutation_epoch = next_mutation_epoch;
+        Ok(())
     }
 
-    pub(super) fn advance_bake_context(&mut self, surface: Option<u64>) -> u64 {
+    pub(super) fn try_advance_bake_context(
+        &mut self,
+        surface: Option<u64>,
+    ) -> Result<u64, NavigationError> {
+        let next_generation = self
+            .bake_contexts
+            .get(&surface)
+            .map_or(BakeContextState::default().next_generation, |context| {
+                context.next_generation
+            });
+        let incremented_generation = next_generation.checked_add(1).ok_or_else(|| {
+            NavigationError::new(
+                NavigationErrorKind::InvalidConfiguration,
+                "navigation bake generation exhausted",
+            )
+        })?;
         let context = self.bake_contexts.entry(surface).or_default();
         let generation = context.next_generation;
-        context.next_generation = context.next_generation.saturating_add(1);
+        context.next_generation = incremented_generation;
         context.current_generation = generation;
         self.bake_tasks
             .retain(|_, task| task.surface_entity() != surface);
         self.dirty_bake_tasks
             .retain(|_, task| task.surface_entity() != surface);
-        generation
+        Ok(generation)
+    }
+
+    pub(super) fn bake_generation_token(&self, surface: Option<u64>) -> BakeGenerationToken {
+        let context = self
+            .bake_contexts
+            .get(&surface)
+            .cloned()
+            .unwrap_or_default();
+        BakeGenerationToken {
+            surface,
+            current_generation: context.current_generation,
+            next_generation: context.next_generation,
+            generated_mutation_epoch: self.generated_mutation_epoch,
+        }
+    }
+
+    pub(super) fn generated_mutation_epoch(&self) -> u64 {
+        self.generated_mutation_epoch
     }
 }
+
+#[cfg(test)]
+#[path = "tests/state.rs"]
+mod tests;

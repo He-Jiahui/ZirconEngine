@@ -6,9 +6,10 @@ use crate::scene::ecs::{
 };
 use crate::scene::{EntityId, World};
 
-use super::{CachedArchetypePlan, QueryStateCacheStats, project_entity_from_plans};
+use super::{project_entity_from_plans, CachedArchetypePlan, QueryStateCacheStats};
 
 #[derive(Clone, Debug)]
+/// 保存创建 World 的组件访问摘要、原型绑定计划和统计；使用时需保持 World 配对，原型代际本身不校验身份。
 pub struct QueryState<D, F = ()> {
     pub(super) access: QueryAccess,
     pub(super) cached_archetype_plans: Vec<CachedArchetypePlan>,
@@ -37,7 +38,7 @@ where
     F: QueryFilter,
 {
     pub fn new(world: &mut World) -> Self {
-        Self::try_new(world).expect("query data must not request conflicting component access")
+        Self::try_new(world).expect("query data access must be valid")
     }
 
     pub fn try_new(world: &mut World) -> Result<Self, QueryAccessError> {

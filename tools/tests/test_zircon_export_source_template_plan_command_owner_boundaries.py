@@ -1,14 +1,15 @@
+# 核对源模板计划命令诊断的实现归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SOURCE_TEMPLATE_STAGE = REPO_ROOT / "tools/zircon_export/source_template.py"
+SOURCE_TEMPLATE_STAGE = REPO_ROOT / "tools/export/source_template.py"
 SOURCE_TEMPLATE_PLAN_COMMAND = (
-    REPO_ROOT / "tools/zircon_export/source_template_plan_command.py"
+    REPO_ROOT / "tools/export/source_template_plan_command.py"
 )
 COMPILE_HOST_SOURCE_TEMPLATE_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_compile_host_source_template.py"
+    REPO_ROOT / "tools/export/tests/test_compile_host_source_template.py"
 )
 
 
@@ -57,7 +58,7 @@ class ZirconExportSourceTemplatePlanCommandOwnerBoundaryTests(unittest.TestCase)
             "SourceTemplate stage runner should consume the plan/command owner",
         )
         self.assertIn(
-            "from tools.zircon_export.source_template_plan_command import source_template_command",
+            "from tools.export.source_template_plan_command import source_template_command",
             compile_host_test_text,
             "SourceTemplate command unit tests should consume the plan/command owner directly",
         )

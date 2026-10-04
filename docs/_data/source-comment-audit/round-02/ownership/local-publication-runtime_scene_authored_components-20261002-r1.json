@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "owner": "runtime_scene_authored_components",
+  "prepared_at_utc": "2026-10-02T11:15:42.953155+00:00",
+  "files": [
+    {
+      "path": "docs/_data/source-comment-audit/round-02/coverage/runtime_scene_authored_components.jsonl",
+      "before_exists": false,
+      "before_sha256": null,
+      "after_sha256": "7732bf5ad269bf8d7b90fd6b523afa7de6553f4c0e61ff73f7cdd82350d9808c"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/issues/runtime_scene_authored_components.jsonl",
+      "before_exists": false,
+      "before_sha256": null,
+      "after_sha256": "5bd33eff69c418357abedb6e9d1893f8dc69cf4b6bb0a5290e8c0f21977395f4"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/inventory.jsonl",
+      "before_exists": true,
+      "before_sha256": "ccacf6191d935535d91975f0e2626d82f80e19534ec9dd4661e21b19fd1b7037",
+      "after_sha256": "d77c489dbdccb100c282be4ee88ff6d93f4702cdef6457982f33ad371e5e6a84"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/batches.jsonl",
+      "before_exists": true,
+      "before_sha256": "1b314ef4b564803a921f519a2fe24331e1faad8f4d9e004c960fe487c4903889",
+      "after_sha256": "d38e9e9a91e4a6096549acf37b3c8d37af0a03b98f29851704b43d4a04a60cc4"
+    }
+  ],
+  "source_hashes": {
+    "zircon_runtime/src/scene/components/mod.rs": "399bc592ead25e162832db5c9031f9f99ad2d4d53a30b83c2e019b171589ff13",
+    "zircon_runtime/src/scene/components/render2d/mesh2d.rs": "25b1f3553d414293ab1795006d58a9996027061d090867eb4bccf30b67b27151",
+    "zircon_runtime/src/scene/components/render2d/mod.rs": "d41d6411815278783a68c9558f28e1bce8600b5afd044836d0b9856027eda1a0",
+    "zircon_runtime/src/scene/components/render2d/sprite.rs": "7905ad4b31171ade1b684c0c813cf4b96d396df6122bd0d8e697079dcff99825",
+    "zircon_runtime/src/scene/components/scene/activation.rs": "aad56bb30b0b2ce377c7f28a11005c6683546caa9dbaffd3efa708bd1e74e944",
+    "zircon_runtime/src/scene/components/scene/animation.rs": "1e24bc38ce4213596e2d8e3ae9b8dae5c31f768680129aa6991e6dffd6d6adde",
+    "zircon_runtime/src/scene/components/scene/camera.rs": "802aff4efbecc504f6e45927089bca0f72a8004b4ea5e86a68bd20a26f07058b",
+    "zircon_runtime/src/scene/components/scene/hierarchy.rs": "2118f5f1d49dac7470f2c2af1b2ca58b4eea5513a70b8c8279ccbec5a9ec350e",
+    "zircon_runtime/src/scene/components/scene/identity.rs": "1720c9c5998194d86af1e4e649976e52ccd0f84a4988c951934708fad397999b",
+    "zircon_runtime/src/scene/components/scene/lighting.rs": "cb929cb0ba992d6bd6c96180fe246bd1cca7043531770e32b64e93e7fc2f680c",
+    "zircon_runtime/src/scene/components/scene/mesh_renderer.rs": "c8913a437f7d8e8374ca19ad0f22293937c00cc069e5ebdf538cba02d91f50f2",
+    "zircon_runtime/src/scene/components/scene/mod.rs": "75baef7a7d611e25b58bf64ff365a5189f1f1f1e09bcbcd2d5ffa80998ca4866",
+    "zircon_runtime/src/scene/components/scene/node.rs": "2d3c4d94ad408e08a521daa87e3d5c3cb04eb7a49871dcc27929cca027b85bfe",
+    "zircon_runtime/src/scene/components/scene/physics.rs": "90d2aa64801a0aae26e7fe832ec75e1bfb3d5f6d3afbd207102eae0a9df9cc22",
+    "zircon_runtime/src/scene/components/scene/post_process.rs": "d42aa807949863320f83f3f6a6a235e60d890811b6a31594dbf33afafc3d397e",
+    "zircon_runtime/src/scene/components/scene/transform.rs": "046fd8e2b5eaed5c3760641ff4238adbff13cf50790eb37c981a04095e531943",
+    "zircon_runtime/src/scene/semantics/mod.rs": "1ad195aa34205d2ce8c63545cb18d84fb2790ffad067bf8c47efc7defc9fde61",
+    "zircon_runtime/src/scene/tests/authoring_boundary.rs": "45b279bf5fb95a1f3d55216962bf9adc54eace5bf4b94b839bb75838e2337e3d",
+    "zircon_runtime/src/scene/tests/physics_animation_components.rs": "2dde9445938761ca85bb997401373d6aa377b0dfa0ce8293c054ea58fada43f1",
+    "zircon_runtime/src/scene/tests/semantics.rs": "eaeb52cca138c99e9f029a2b36304c2ad768f35ce7159dc62fe6e76df7582d9f",
+    "zircon_runtime/src/scene/tests/world_basics.rs": "2b8814f50c6561ffe8ee42839968d306875b7de76c0e176d74c6a8ea85d6e093",
+    "zircon_runtime/src/scene/tests/world_basics/world_state.rs": "ddd8fffbea4e7e31169b8fba02afacfaa4c84400fcc7c925bca4c0435ac11b24",
+    "zircon_runtime/src/scene/world/bootstrap.rs": "417b0197bfe165f4698fe7a72068d64ae2861ccc4284ce4c43d85571df2846fa"
+  },
+  "installation": {
+    "path": "E:\\Git\\ZirconEngine\\docs\\cli-and-tooling\\source-comment-audit\\round-02\\ownership\\local-install-runtime_scene_authored_components-20261002-r1.json",
+    "sha256": "d54bb7bba6a6ad8d2a8fcc328b16fc1ed846011c8e643b670d7a384197e7ef0f"
+  },
+  "root_semantic_proof": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_scene_authored_components-root-semantic-proof-20261002-r1.json",
+    "sha256": "565aafdb416086f2f2cc94e8b865c781d254d1ab43f54ee783487f45654e482d"
+  },
+  "coverage_records": 23,
+  "reviewed_current_records": 22,
+  "deferred_source_paths": [
+    "zircon_runtime/src/scene/world/bootstrap.rs"
+  ],
+  "new_issues": 1,
+  "historical_issue_references": 1,
+  "source_writes": 0,
+  "canonical_writes": 0,
+  "status": "available_paths_final_coverage_published_foreign_path_pending",
+  "completed_at_utc": "2026-10-02T11:16:24.903857+00:00",
+  "intent": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-publish-runtime_scene_authored_components-20261002-r1\\intent.json",
+    "sha256": "aaa4faf279bfc9f9e2d47ccb3fdc4a799eb0a0c36ef2e20118c3130476df52c5"
+  },
+  "inventory_reviewed_current_records": 3947,
+  "canonical_batch_records": 103,
+  "canonical_ledger_writes": 4,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "business_adoption": false,
+  "dynamic_acceptance": false,
+  "future_source_edit_pending_paths": [
+    "zircon_runtime/src/scene/world/bootstrap.rs"
+  ],
+  "submission": "pending_index_ownership_resolution"
+}

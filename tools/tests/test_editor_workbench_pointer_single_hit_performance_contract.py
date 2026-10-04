@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from tools.editor_workbench_pointer_single_hit_pressure import run
+from tools.analysis.performance.editor.editor_workbench_pointer_single_hit_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -47,7 +47,14 @@ class EditorWorkbenchPointerSingleHitPerformanceContract(unittest.TestCase):
         self.assertIn("node.has_workbench_icon_tooltip", dispatch)
         self.assertIn("accepts_pointer_move(node)", index)
         self.assertIn("is_dispatchable(node) && template_node_accepts_point", hit)
-        self.assertIn("accepts_node(node) && template_node_accepts_point", hit)
+        candidate = hit.split(
+            "fn hit_test_workbench_template_target_with_index", 1
+        )[1].split("fn template_node_accepts_point", 1)[0]
+        accepts = candidate.index("accepts_node(node)")
+        painted = candidate.index("index.row_is_painted_at(row, &frame, x, y)")
+        geometry = candidate.index("template_node_accepts_point(node, origin, x, y)")
+        self.assertLess(accepts, painted)
+        self.assertLess(painted, geometry)
         self.assertIn("is_dispatchable)?", hit)
         self.assertIn("accepts_pointer_move,", hit)
 

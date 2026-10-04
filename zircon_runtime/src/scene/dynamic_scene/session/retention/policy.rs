@@ -1,3 +1,5 @@
+/// 会话裁剪规则；max_slots 约束匹配范围内的普通槽位，显式保护项优先于数量上限。
+/// 标签裁剪只计入对应标签桶，捕获并裁剪时会额外保护本次新槽位。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RuntimeSessionArchiveRetentionPolicy {
     pub max_slots: Option<usize>,
@@ -48,5 +50,5 @@ fn trim_slot_id_in_place(slot_id: &mut String) {
 }
 
 #[cfg(test)]
-#[path = "policy/in_place_tests.rs"]
+#[path = "policy/tests/in_place_tests.rs"]
 mod in_place_tests;

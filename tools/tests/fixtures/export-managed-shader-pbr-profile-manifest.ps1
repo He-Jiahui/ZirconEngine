@@ -1,3 +1,4 @@
+# Shader PBR 集成测试调用此夹具生成受控的工具链、构建来源和采集清单；固定票据及收据仅模拟协调器成功态，供导出链路验证，不能作为真实构建验收凭据。
 param(
     [Parameter(Mandatory = $true)]
     [string]$RepoRoot,
@@ -17,8 +18,8 @@ $RepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
 $ProfileRoot = [System.IO.Path]::GetFullPath($ProfileRoot)
 $ViewerExe = [System.IO.Path]::GetFullPath($ViewerExe)
 $HdriPath = [System.IO.Path]::GetFullPath($HdriPath)
-$writer = Join-Path $RepoRoot "tools\write_zircon_shader_pbr_build_provenance.ps1"
-$capture = Join-Path $RepoRoot "tools\zircon_profile_shader_pbr_viewer.ps1"
+$writer = Join-Path $RepoRoot "tools\analysis\profiling\shader_pbr\write_zircon_shader_pbr_build_provenance.ps1"
+$capture = Join-Path $RepoRoot "tools\analysis\profiling\shader_pbr\zircon_profile_shader_pbr_viewer.ps1"
 $provenancePath = Join-Path $ProfileRoot "viewer-build-provenance.json"
 $toolchainPath = Join-Path $ProfileRoot "capture-toolchain.json"
 

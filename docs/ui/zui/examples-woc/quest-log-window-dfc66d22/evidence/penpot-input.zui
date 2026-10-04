@@ -1,0 +1,2354 @@
+penpot_dependency_sources = [ "examples/woc/assets/ui/shell/shell_theme.zui", "examples/woc/assets/ui/hud/hud_theme.zui" ]
+penpot_original_source = "[asset]\nkind = \"view\"\nid = \"res://ui/windows/quest_log_window.zui\"\nversion = 2\ndisplay_name = \"World of ClaudeCraft Quest Log Window\"\n\n[imports]\nwidgets = []\nstyles = [\"res://ui/shell/shell_theme.zui\", \"res://ui/hud/hud_theme.zui\"]\nresources = []\n\n[root]\nnode = \"quest_root\"\n\n[nodes.quest_title]\ncomponent = \"Label\"\ncontrol_id = \"QuestLogTitle\"\nclasses = [\"woc-screen-title\"]\nprops = { text = \"Quest Log\", overflow = \"elide\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 32.0, stretch = \"Fixed\" } }\n\n[nodes.quest_summary]\ncomponent = \"Label\"\ncontrol_id = \"QuestLogSummary\"\nclasses = [\"woc-muted\"]\nprops = { text = \"0 active / 0 completed\", text_align = \"right\" }\nlayout = { width = { min = 160.0, preferred = 220.0, max = 260.0, stretch = \"Fixed\" }, height = { min = 24.0, preferred = 24.0, max = 28.0, stretch = \"Fixed\" } }\n\n[nodes.quest_close]\ncomponent = \"Button\"\ncontrol_id = \"QuestLogClose\"\nclasses = [\"woc-secondary-action\"]\nprops = { text = \"Close\" }\nlayout = { width = { min = 64.0, preferred = 72.0, max = 88.0, stretch = \"Fixed\" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocQuestLog/Close\", event = \"Click\", route = \"woc.window.quest_log.close\" }]\n\n[nodes.quest_header]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"QuestLogHeader\"\nlayout = { container = { kind = \"HorizontalBox\", gap = 10.0 }, width = { stretch = \"Stretch\" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"quest_title\" }, { node = \"quest_summary\" }, { node = \"quest_close\" }]\n\n[nodes.quest_desktop_list_host]\ncomponent = \"VerticalBox\"\ncontrol_id = \"QuestDesktopListHost\"\nlayout = { container = { kind = \"VerticalBox\", gap = 4.0 }, width = { stretch = \"Stretch\" }, height = { min = 360.0, preferred = 500.0, max = 660.0, stretch = \"Stretch\" } }\nchildren = []\n\n[nodes.quest_desktop_empty]\ncomponent = \"Label\"\ncontrol_id = \"QuestDesktopEmpty\"\nclasses = [\"woc-muted\"]\nprops = { text = \"Your quest log is empty.\", visibility = \"collapsed\", overflow = \"wrap\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 60.0, preferred = 80.0, max = 100.0, stretch = \"Fixed\" } }\n\n[nodes.quest_desktop_list]\ncomponent = \"ScrollBox\"\ncontrol_id = \"QuestDesktopList\"\nclasses = [\"woc-panel-strong\"]\nprops = { scroll_axis = \"vertical\", scroll_x = false, scroll_y = true, show_scrollbars = true, clip_content = true }\nlayout = { container = { kind = \"VerticalBox\", gap = 6.0 }, padding = { left = 8.0, right = 8.0, top = 8.0, bottom = 8.0 }, width = { min = 260.0, preferred = 300.0, max = 340.0, stretch = \"Fixed\" }, height = { min = 440.0, preferred = 580.0, max = 720.0, stretch = \"Stretch\" } }\nchildren = [{ node = \"quest_desktop_list_host\" }, { node = \"quest_desktop_empty\" }]\n\n[nodes.quest_desktop_detail_title]\ncomponent = \"Label\"\ncontrol_id = \"QuestDesktopDetailTitle\"\nclasses = [\"woc-screen-title\"]\nprops = { text = \"\", overflow = \"wrap\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 40.0, max = 72.0, stretch = \"Fixed\" } }\n\n[nodes.quest_desktop_group]\ncomponent = \"Label\"\ncontrol_id = \"QuestDesktopGroupHint\"\nclasses = [\"woc-muted\"]\nprops = { text = \"\", visibility = \"collapsed\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 22.0, preferred = 22.0, max = 28.0, stretch = \"Fixed\" } }\n\n[nodes.quest_desktop_narrative]\ncomponent = \"Label\"\ncontrol_id = \"QuestDesktopNarrative\"\nclasses = [\"woc-label\"]\nprops = { text = \"\", overflow = \"wrap\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 72.0, preferred = 104.0, max = 180.0, stretch = \"Fixed\" } }\n\n[nodes.quest_desktop_objectives_title]\ncomponent = \"Label\"\nclasses = [\"woc-section-title\"]\nprops = { text = \"Objectives\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 24.0, preferred = 24.0, max = 28.0, stretch = \"Fixed\" } }\n\n[nodes.quest_desktop_objectives]\ncomponent = \"VerticalBox\"\ncontrol_id = \"QuestDesktopObjectiveHost\"\nlayout = { container = { kind = \"VerticalBox\", gap = 6.0 }, width = { stretch = \"Stretch\" }, height = { min = 80.0, preferred = 132.0, max = 240.0, stretch = \"Fixed\" } }\nchildren = []\n\n[nodes.quest_desktop_rewards_title]\ncomponent = \"Label\"\nclasses = [\"woc-section-title\"]\nprops = { text = \"Rewards\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 24.0, preferred = 24.0, max = 28.0, stretch = \"Fixed\" } }\n\n[nodes.quest_desktop_rewards]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"QuestDesktopRewardHost\"\nlayout = { container = { kind = \"HorizontalBox\", gap = 8.0 }, width = { stretch = \"Stretch\" }, height = { min = 52.0, preferred = 64.0, max = 88.0, stretch = \"Fixed\" } }\nchildren = []\n\n[nodes.quest_desktop_turn_in]\ncomponent = \"Label\"\ncontrol_id = \"QuestDesktopTurnIn\"\nclasses = [\"woc-muted\"]\nprops = { text = \"\", overflow = \"wrap\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 36.0, max = 56.0, stretch = \"Fixed\" } }\n\n[nodes.quest_desktop_abandon]\ncomponent = \"Button\"\ncontrol_id = \"QuestDesktopAbandon\"\nclasses = [\"woc-secondary-action\"]\nprops = { text = \"Abandon\" }\nlayout = { width = { min = 92.0, preferred = 108.0, max = 132.0, stretch = \"Fixed\" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocQuestLog/DesktopAbandon\", event = \"Click\", route = \"woc.window.quest_log.abandon\" }]\n\n[nodes.quest_desktop_share]\ncomponent = \"Button\"\ncontrol_id = \"QuestDesktopShare\"\nclasses = [\"woc-primary-action\"]\nprops = { text = \"Share\" }\nlayout = { width = { min = 84.0, preferred = 96.0, max = 120.0, stretch = \"Fixed\" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocQuestLog/DesktopShare\", event = \"Click\", route = \"woc.window.quest_log.share\" }]\n\n[nodes.quest_desktop_actions]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"QuestDesktopActions\"\nlayout = { container = { kind = \"HorizontalBox\", gap = 8.0 }, width = { stretch = \"Stretch\" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"quest_desktop_abandon\" }, { node = \"quest_desktop_share\" }]\n\n[nodes.quest_desktop_detail]\ncomponent = \"ScrollBox\"\ncontrol_id = \"QuestDesktopDetail\"\nclasses = [\"woc-panel-strong\"]\nprops = { scroll_axis = \"vertical\", scroll_x = false, scroll_y = true, show_scrollbars = true, clip_content = true }\nlayout = { container = { kind = \"VerticalBox\", gap = 8.0 }, padding = { left = 14.0, right = 14.0, top = 12.0, bottom = 12.0 }, width = { min = 360.0, preferred = 500.0, max = 620.0, stretch = \"Stretch\" }, height = { min = 440.0, preferred = 580.0, max = 720.0, stretch = \"Stretch\" } }\nchildren = [{ node = \"quest_desktop_detail_title\" }, { node = \"quest_desktop_group\" }, { node = \"quest_desktop_narrative\" }, { node = \"quest_desktop_objectives_title\" }, { node = \"quest_desktop_objectives\" }, { node = \"quest_desktop_rewards_title\" }, { node = \"quest_desktop_rewards\" }, { node = \"quest_desktop_turn_in\" }, { node = \"quest_desktop_actions\" }]\n\n[nodes.quest_desktop_columns]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"QuestDesktopColumns\"\nlayout = { container = { kind = \"HorizontalBox\", gap = 10.0 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"quest_desktop_list\" }, { node = \"quest_desktop_detail\" }]\n\n[nodes.quest_desktop]\ncomponent = \"Container\"\ncontrol_id = \"QuestDesktopLayout\"\nprops = { visibility = { xs = \"collapsed\", md = \"visible\" } }\nlayout = { container = { kind = \"VerticalBox\", gap = 0.0 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"quest_desktop_columns\" }]\n\n[nodes.quest_compact_list_host]\ncomponent = \"VerticalBox\"\ncontrol_id = \"QuestCompactListHost\"\nlayout = { container = { kind = \"VerticalBox\", gap = 4.0 }, width = { stretch = \"Stretch\" }, height = { min = 120.0, preferred = 180.0, max = 260.0, stretch = \"Stretch\" } }\nchildren = []\n\n[nodes.quest_compact_list]\ncomponent = \"ScrollBox\"\ncontrol_id = \"QuestCompactList\"\nclasses = [\"woc-panel-strong\"]\nprops = { scroll_axis = \"vertical\", scroll_x = false, scroll_y = true, show_scrollbars = true, clip_content = true }\nlayout = { container = { kind = \"VerticalBox\", gap = 4.0 }, padding = { left = 8.0, right = 8.0, top = 8.0, bottom = 8.0 }, width = { stretch = \"Stretch\" }, height = { min = 140.0, preferred = 200.0, max = 280.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"quest_compact_list_host\" }]\n\n[nodes.quest_compact_detail_title]\ncomponent = \"Label\"\ncontrol_id = \"QuestCompactDetailTitle\"\nclasses = [\"woc-section-title\"]\nprops = { text = \"\", overflow = \"wrap\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 36.0, max = 64.0, stretch = \"Fixed\" } }\n\n[nodes.quest_compact_narrative]\ncomponent = \"Label\"\ncontrol_id = \"QuestCompactNarrative\"\nclasses = [\"woc-label\"]\nprops = { text = \"\", overflow = \"wrap\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 64.0, preferred = 92.0, max = 160.0, stretch = \"Fixed\" } }\n\n[nodes.quest_compact_objectives]\ncomponent = \"VerticalBox\"\ncontrol_id = \"QuestCompactObjectiveHost\"\nlayout = { container = { kind = \"VerticalBox\", gap = 6.0 }, width = { stretch = \"Stretch\" }, height = { min = 72.0, preferred = 112.0, max = 220.0, stretch = \"Fixed\" } }\nchildren = []\n\n[nodes.quest_compact_rewards]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"QuestCompactRewardHost\"\nlayout = { container = { kind = \"HorizontalBox\", gap = 8.0 }, width = { stretch = \"Stretch\" }, height = { min = 52.0, preferred = 60.0, max = 84.0, stretch = \"Fixed\" } }\nchildren = []\n\n[nodes.quest_compact_turn_in]\ncomponent = \"Label\"\ncontrol_id = \"QuestCompactTurnIn\"\nclasses = [\"woc-muted\"]\nprops = { text = \"\", overflow = \"wrap\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 36.0, max = 56.0, stretch = \"Fixed\" } }\n\n[nodes.quest_compact_abandon]\ncomponent = \"Button\"\ncontrol_id = \"QuestCompactAbandon\"\nclasses = [\"woc-secondary-action\"]\nprops = { text = \"Abandon\" }\nlayout = { width = { min = 92.0, preferred = 108.0, max = 132.0, stretch = \"Stretch\" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocQuestLog/CompactAbandon\", event = \"Click\", route = \"woc.window.quest_log.abandon\" }]\n\n[nodes.quest_compact_share]\ncomponent = \"Button\"\ncontrol_id = \"QuestCompactShare\"\nclasses = [\"woc-primary-action\"]\nprops = { text = \"Share\" }\nlayout = { width = { min = 84.0, preferred = 96.0, max = 120.0, stretch = \"Stretch\" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocQuestLog/CompactShare\", event = \"Click\", route = \"woc.window.quest_log.share\" }]\n\n[nodes.quest_compact_actions]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"QuestCompactActions\"\nlayout = { container = { kind = \"HorizontalBox\", gap = 8.0 }, width = { stretch = \"Stretch\" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"quest_compact_abandon\" }, { node = \"quest_compact_share\" }]\n\n[nodes.quest_compact_detail]\ncomponent = \"ScrollBox\"\ncontrol_id = \"QuestCompactDetail\"\nclasses = [\"woc-panel-strong\"]\nprops = { scroll_axis = \"vertical\", scroll_x = false, scroll_y = true, show_scrollbars = true, clip_content = true }\nlayout = { container = { kind = \"VerticalBox\", gap = 8.0 }, padding = { left = 10.0, right = 10.0, top = 10.0, bottom = 10.0 }, width = { stretch = \"Stretch\" }, height = { min = 280.0, preferred = 380.0, max = 520.0, stretch = \"Stretch\" } }\nchildren = [{ node = \"quest_compact_detail_title\" }, { node = \"quest_compact_narrative\" }, { node = \"quest_compact_objectives\" }, { node = \"quest_compact_rewards\" }, { node = \"quest_compact_turn_in\" }, { node = \"quest_compact_actions\" }]\n\n[nodes.quest_compact_stack]\ncomponent = \"VerticalBox\"\ncontrol_id = \"QuestCompactStack\"\nlayout = { container = { kind = \"VerticalBox\", gap = 8.0 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"quest_compact_list\" }, { node = \"quest_compact_detail\" }]\n\n[nodes.quest_compact]\ncomponent = \"Container\"\ncontrol_id = \"QuestCompactLayout\"\nprops = { visibility = { xs = \"visible\", md = \"collapsed\" } }\nlayout = { container = { kind = \"VerticalBox\", gap = 0.0 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"quest_compact_stack\" }]\n\n[nodes.quest_root]\ncomponent = \"Container\"\ncontrol_id = \"QuestLogWindow\"\nclasses = [\"woc-panel\"]\nprops = { visibility = \"collapsed\" }\nlayout = { container = { kind = \"VerticalBox\", gap = 10.0 }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = 0.0 }, padding = { left = 14.0, right = 14.0, top = 12.0, bottom = 14.0 }, width = { min = 340.0, preferred = 900.0, max = 980.0, stretch = \"Fixed\" }, height = { min = 560.0, preferred = 700.0, max = 840.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"quest_header\" }, { node = \"quest_desktop\" }, { node = \"quest_compact\" }]\n"
+
+[asset]
+kind = "view"
+id = "res://ui/windows/quest_log_window.zui"
+version = 2
+display_name = "World of ClaudeCraft Quest Log Window"
+
+[imports]
+widgets = []
+styles = []
+resources = []
+
+[root]
+node = "quest_root"
+
+[nodes.quest_title]
+component = "Label"
+control_id = "QuestLogTitle"
+classes = [ "woc-screen-title" ]
+
+[nodes.quest_title.props]
+text = "Quest Log"
+overflow = "elide"
+
+[nodes.quest_title.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_title.layout.height]
+min = 28
+preferred = 28
+max = 32
+stretch = "Fixed"
+
+[nodes.quest_summary]
+component = "Label"
+control_id = "QuestLogSummary"
+classes = [ "woc-muted" ]
+
+[nodes.quest_summary.props]
+text = "0 active / 0 completed"
+text_align = "right"
+
+[nodes.quest_summary.layout.width]
+min = 160
+preferred = 220
+max = 260
+stretch = "Fixed"
+
+[nodes.quest_summary.layout.height]
+min = 24
+preferred = 24
+max = 28
+stretch = "Fixed"
+
+[nodes.quest_close]
+component = "Button"
+control_id = "QuestLogClose"
+classes = [ "woc-secondary-action" ]
+
+[nodes.quest_close.props]
+text = "Close"
+
+[nodes.quest_close.layout.width]
+min = 64
+preferred = 72
+max = 88
+stretch = "Fixed"
+
+[nodes.quest_close.layout.height]
+min = 40
+preferred = 40
+max = 44
+stretch = "Fixed"
+
+[[nodes.quest_close.events]]
+id = "WocQuestLog/Close"
+event = "Click"
+route = "woc.window.quest_log.close"
+
+[nodes.quest_header]
+component = "HorizontalBox"
+control_id = "QuestLogHeader"
+
+[nodes.quest_header.layout.container]
+kind = "HorizontalBox"
+gap = 10
+
+[nodes.quest_header.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_header.layout.height]
+min = 40
+preferred = 40
+max = 44
+stretch = "Fixed"
+
+[[nodes.quest_header.children]]
+node = "quest_title"
+
+[[nodes.quest_header.children]]
+node = "quest_summary"
+
+[[nodes.quest_header.children]]
+node = "quest_close"
+
+[nodes.quest_desktop_list_host]
+component = "VerticalBox"
+control_id = "QuestDesktopListHost"
+children = []
+
+[nodes.quest_desktop_list_host.layout.container]
+kind = "VerticalBox"
+gap = 4
+
+[nodes.quest_desktop_list_host.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_desktop_list_host.layout.height]
+min = 360
+preferred = 500
+max = 660
+stretch = "Stretch"
+
+[nodes.quest_desktop_empty]
+component = "Label"
+control_id = "QuestDesktopEmpty"
+classes = [ "woc-muted" ]
+
+[nodes.quest_desktop_empty.props]
+text = "Your quest log is empty."
+visibility = "collapsed"
+overflow = "wrap"
+
+[nodes.quest_desktop_empty.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_desktop_empty.layout.height]
+min = 60
+preferred = 80
+max = 100
+stretch = "Fixed"
+
+[nodes.quest_desktop_list]
+component = "ScrollBox"
+control_id = "QuestDesktopList"
+classes = [ "woc-panel-strong" ]
+
+[nodes.quest_desktop_list.props]
+scroll_axis = "vertical"
+scroll_x = false
+scroll_y = true
+show_scrollbars = true
+clip_content = true
+
+[nodes.quest_desktop_list.layout.container]
+kind = "VerticalBox"
+gap = 6
+
+[nodes.quest_desktop_list.layout.padding]
+left = 8
+right = 8
+top = 8
+bottom = 8
+
+[nodes.quest_desktop_list.layout.width]
+min = 260
+preferred = 300
+max = 340
+stretch = "Fixed"
+
+[nodes.quest_desktop_list.layout.height]
+min = 440
+preferred = 580
+max = 720
+stretch = "Stretch"
+
+[[nodes.quest_desktop_list.children]]
+node = "quest_desktop_list_host"
+
+[[nodes.quest_desktop_list.children]]
+node = "quest_desktop_empty"
+
+[nodes.quest_desktop_detail_title]
+component = "Label"
+control_id = "QuestDesktopDetailTitle"
+classes = [ "woc-screen-title" ]
+
+[nodes.quest_desktop_detail_title.props]
+text = ""
+overflow = "wrap"
+
+[nodes.quest_desktop_detail_title.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_desktop_detail_title.layout.height]
+min = 30
+preferred = 40
+max = 72
+stretch = "Fixed"
+
+[nodes.quest_desktop_group]
+component = "Label"
+control_id = "QuestDesktopGroupHint"
+classes = [ "woc-muted" ]
+
+[nodes.quest_desktop_group.props]
+text = ""
+visibility = "collapsed"
+
+[nodes.quest_desktop_group.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_desktop_group.layout.height]
+min = 22
+preferred = 22
+max = 28
+stretch = "Fixed"
+
+[nodes.quest_desktop_narrative]
+component = "Label"
+control_id = "QuestDesktopNarrative"
+classes = [ "woc-label" ]
+
+[nodes.quest_desktop_narrative.props]
+text = ""
+overflow = "wrap"
+
+[nodes.quest_desktop_narrative.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_desktop_narrative.layout.height]
+min = 72
+preferred = 104
+max = 180
+stretch = "Fixed"
+
+[nodes.quest_desktop_objectives_title]
+component = "Label"
+classes = [ "woc-section-title" ]
+
+[nodes.quest_desktop_objectives_title.props]
+text = "Objectives"
+
+[nodes.quest_desktop_objectives_title.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_desktop_objectives_title.layout.height]
+min = 24
+preferred = 24
+max = 28
+stretch = "Fixed"
+
+[nodes.quest_desktop_objectives]
+component = "VerticalBox"
+control_id = "QuestDesktopObjectiveHost"
+children = []
+
+[nodes.quest_desktop_objectives.layout.container]
+kind = "VerticalBox"
+gap = 6
+
+[nodes.quest_desktop_objectives.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_desktop_objectives.layout.height]
+min = 80
+preferred = 132
+max = 240
+stretch = "Fixed"
+
+[nodes.quest_desktop_rewards_title]
+component = "Label"
+classes = [ "woc-section-title" ]
+
+[nodes.quest_desktop_rewards_title.props]
+text = "Rewards"
+
+[nodes.quest_desktop_rewards_title.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_desktop_rewards_title.layout.height]
+min = 24
+preferred = 24
+max = 28
+stretch = "Fixed"
+
+[nodes.quest_desktop_rewards]
+component = "HorizontalBox"
+control_id = "QuestDesktopRewardHost"
+children = []
+
+[nodes.quest_desktop_rewards.layout.container]
+kind = "HorizontalBox"
+gap = 8
+
+[nodes.quest_desktop_rewards.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_desktop_rewards.layout.height]
+min = 52
+preferred = 64
+max = 88
+stretch = "Fixed"
+
+[nodes.quest_desktop_turn_in]
+component = "Label"
+control_id = "QuestDesktopTurnIn"
+classes = [ "woc-muted" ]
+
+[nodes.quest_desktop_turn_in.props]
+text = ""
+overflow = "wrap"
+
+[nodes.quest_desktop_turn_in.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_desktop_turn_in.layout.height]
+min = 28
+preferred = 36
+max = 56
+stretch = "Fixed"
+
+[nodes.quest_desktop_abandon]
+component = "Button"
+control_id = "QuestDesktopAbandon"
+classes = [ "woc-secondary-action" ]
+
+[nodes.quest_desktop_abandon.props]
+text = "Abandon"
+
+[nodes.quest_desktop_abandon.layout.width]
+min = 92
+preferred = 108
+max = 132
+stretch = "Fixed"
+
+[nodes.quest_desktop_abandon.layout.height]
+min = 40
+preferred = 40
+max = 44
+stretch = "Fixed"
+
+[[nodes.quest_desktop_abandon.events]]
+id = "WocQuestLog/DesktopAbandon"
+event = "Click"
+route = "woc.window.quest_log.abandon"
+
+[nodes.quest_desktop_share]
+component = "Button"
+control_id = "QuestDesktopShare"
+classes = [ "woc-primary-action" ]
+
+[nodes.quest_desktop_share.props]
+text = "Share"
+
+[nodes.quest_desktop_share.layout.width]
+min = 84
+preferred = 96
+max = 120
+stretch = "Fixed"
+
+[nodes.quest_desktop_share.layout.height]
+min = 40
+preferred = 40
+max = 44
+stretch = "Fixed"
+
+[[nodes.quest_desktop_share.events]]
+id = "WocQuestLog/DesktopShare"
+event = "Click"
+route = "woc.window.quest_log.share"
+
+[nodes.quest_desktop_actions]
+component = "HorizontalBox"
+control_id = "QuestDesktopActions"
+
+[nodes.quest_desktop_actions.layout.container]
+kind = "HorizontalBox"
+gap = 8
+
+[nodes.quest_desktop_actions.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_desktop_actions.layout.height]
+min = 40
+preferred = 40
+max = 44
+stretch = "Fixed"
+
+[[nodes.quest_desktop_actions.children]]
+node = "quest_desktop_abandon"
+
+[[nodes.quest_desktop_actions.children]]
+node = "quest_desktop_share"
+
+[nodes.quest_desktop_detail]
+component = "ScrollBox"
+control_id = "QuestDesktopDetail"
+classes = [ "woc-panel-strong" ]
+
+[nodes.quest_desktop_detail.props]
+scroll_axis = "vertical"
+scroll_x = false
+scroll_y = true
+show_scrollbars = true
+clip_content = true
+
+[nodes.quest_desktop_detail.layout.container]
+kind = "VerticalBox"
+gap = 8
+
+[nodes.quest_desktop_detail.layout.padding]
+left = 14
+right = 14
+top = 12
+bottom = 12
+
+[nodes.quest_desktop_detail.layout.width]
+min = 360
+preferred = 500
+max = 620
+stretch = "Stretch"
+
+[nodes.quest_desktop_detail.layout.height]
+min = 440
+preferred = 580
+max = 720
+stretch = "Stretch"
+
+[[nodes.quest_desktop_detail.children]]
+node = "quest_desktop_detail_title"
+
+[[nodes.quest_desktop_detail.children]]
+node = "quest_desktop_group"
+
+[[nodes.quest_desktop_detail.children]]
+node = "quest_desktop_narrative"
+
+[[nodes.quest_desktop_detail.children]]
+node = "quest_desktop_objectives_title"
+
+[[nodes.quest_desktop_detail.children]]
+node = "quest_desktop_objectives"
+
+[[nodes.quest_desktop_detail.children]]
+node = "quest_desktop_rewards_title"
+
+[[nodes.quest_desktop_detail.children]]
+node = "quest_desktop_rewards"
+
+[[nodes.quest_desktop_detail.children]]
+node = "quest_desktop_turn_in"
+
+[[nodes.quest_desktop_detail.children]]
+node = "quest_desktop_actions"
+
+[nodes.quest_desktop_columns]
+component = "HorizontalBox"
+control_id = "QuestDesktopColumns"
+
+[nodes.quest_desktop_columns.layout.container]
+kind = "HorizontalBox"
+gap = 10
+
+[nodes.quest_desktop_columns.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_desktop_columns.layout.height]
+stretch = "Stretch"
+
+[[nodes.quest_desktop_columns.children]]
+node = "quest_desktop_list"
+
+[[nodes.quest_desktop_columns.children]]
+node = "quest_desktop_detail"
+
+[nodes.quest_desktop]
+component = "Container"
+control_id = "QuestDesktopLayout"
+
+[nodes.quest_desktop.props.visibility]
+xs = "collapsed"
+md = "visible"
+
+[nodes.quest_desktop.layout.container]
+kind = "VerticalBox"
+gap = 0
+
+[nodes.quest_desktop.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_desktop.layout.height]
+stretch = "Stretch"
+
+[[nodes.quest_desktop.children]]
+node = "quest_desktop_columns"
+
+[nodes.quest_compact_list_host]
+component = "VerticalBox"
+control_id = "QuestCompactListHost"
+children = []
+
+[nodes.quest_compact_list_host.layout.container]
+kind = "VerticalBox"
+gap = 4
+
+[nodes.quest_compact_list_host.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_compact_list_host.layout.height]
+min = 120
+preferred = 180
+max = 260
+stretch = "Stretch"
+
+[nodes.quest_compact_list]
+component = "ScrollBox"
+control_id = "QuestCompactList"
+classes = [ "woc-panel-strong" ]
+
+[nodes.quest_compact_list.props]
+scroll_axis = "vertical"
+scroll_x = false
+scroll_y = true
+show_scrollbars = true
+clip_content = true
+
+[nodes.quest_compact_list.layout.container]
+kind = "VerticalBox"
+gap = 4
+
+[nodes.quest_compact_list.layout.padding]
+left = 8
+right = 8
+top = 8
+bottom = 8
+
+[nodes.quest_compact_list.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_compact_list.layout.height]
+min = 140
+preferred = 200
+max = 280
+stretch = "Fixed"
+
+[[nodes.quest_compact_list.children]]
+node = "quest_compact_list_host"
+
+[nodes.quest_compact_detail_title]
+component = "Label"
+control_id = "QuestCompactDetailTitle"
+classes = [ "woc-section-title" ]
+
+[nodes.quest_compact_detail_title.props]
+text = ""
+overflow = "wrap"
+
+[nodes.quest_compact_detail_title.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_compact_detail_title.layout.height]
+min = 28
+preferred = 36
+max = 64
+stretch = "Fixed"
+
+[nodes.quest_compact_narrative]
+component = "Label"
+control_id = "QuestCompactNarrative"
+classes = [ "woc-label" ]
+
+[nodes.quest_compact_narrative.props]
+text = ""
+overflow = "wrap"
+
+[nodes.quest_compact_narrative.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_compact_narrative.layout.height]
+min = 64
+preferred = 92
+max = 160
+stretch = "Fixed"
+
+[nodes.quest_compact_objectives]
+component = "VerticalBox"
+control_id = "QuestCompactObjectiveHost"
+children = []
+
+[nodes.quest_compact_objectives.layout.container]
+kind = "VerticalBox"
+gap = 6
+
+[nodes.quest_compact_objectives.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_compact_objectives.layout.height]
+min = 72
+preferred = 112
+max = 220
+stretch = "Fixed"
+
+[nodes.quest_compact_rewards]
+component = "HorizontalBox"
+control_id = "QuestCompactRewardHost"
+children = []
+
+[nodes.quest_compact_rewards.layout.container]
+kind = "HorizontalBox"
+gap = 8
+
+[nodes.quest_compact_rewards.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_compact_rewards.layout.height]
+min = 52
+preferred = 60
+max = 84
+stretch = "Fixed"
+
+[nodes.quest_compact_turn_in]
+component = "Label"
+control_id = "QuestCompactTurnIn"
+classes = [ "woc-muted" ]
+
+[nodes.quest_compact_turn_in.props]
+text = ""
+overflow = "wrap"
+
+[nodes.quest_compact_turn_in.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_compact_turn_in.layout.height]
+min = 28
+preferred = 36
+max = 56
+stretch = "Fixed"
+
+[nodes.quest_compact_abandon]
+component = "Button"
+control_id = "QuestCompactAbandon"
+classes = [ "woc-secondary-action" ]
+
+[nodes.quest_compact_abandon.props]
+text = "Abandon"
+
+[nodes.quest_compact_abandon.layout.width]
+min = 92
+preferred = 108
+max = 132
+stretch = "Stretch"
+
+[nodes.quest_compact_abandon.layout.height]
+min = 44
+preferred = 44
+max = 48
+stretch = "Fixed"
+
+[[nodes.quest_compact_abandon.events]]
+id = "WocQuestLog/CompactAbandon"
+event = "Click"
+route = "woc.window.quest_log.abandon"
+
+[nodes.quest_compact_share]
+component = "Button"
+control_id = "QuestCompactShare"
+classes = [ "woc-primary-action" ]
+
+[nodes.quest_compact_share.props]
+text = "Share"
+
+[nodes.quest_compact_share.layout.width]
+min = 84
+preferred = 96
+max = 120
+stretch = "Stretch"
+
+[nodes.quest_compact_share.layout.height]
+min = 44
+preferred = 44
+max = 48
+stretch = "Fixed"
+
+[[nodes.quest_compact_share.events]]
+id = "WocQuestLog/CompactShare"
+event = "Click"
+route = "woc.window.quest_log.share"
+
+[nodes.quest_compact_actions]
+component = "HorizontalBox"
+control_id = "QuestCompactActions"
+
+[nodes.quest_compact_actions.layout.container]
+kind = "HorizontalBox"
+gap = 8
+
+[nodes.quest_compact_actions.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_compact_actions.layout.height]
+min = 44
+preferred = 44
+max = 48
+stretch = "Fixed"
+
+[[nodes.quest_compact_actions.children]]
+node = "quest_compact_abandon"
+
+[[nodes.quest_compact_actions.children]]
+node = "quest_compact_share"
+
+[nodes.quest_compact_detail]
+component = "ScrollBox"
+control_id = "QuestCompactDetail"
+classes = [ "woc-panel-strong" ]
+
+[nodes.quest_compact_detail.props]
+scroll_axis = "vertical"
+scroll_x = false
+scroll_y = true
+show_scrollbars = true
+clip_content = true
+
+[nodes.quest_compact_detail.layout.container]
+kind = "VerticalBox"
+gap = 8
+
+[nodes.quest_compact_detail.layout.padding]
+left = 10
+right = 10
+top = 10
+bottom = 10
+
+[nodes.quest_compact_detail.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_compact_detail.layout.height]
+min = 280
+preferred = 380
+max = 520
+stretch = "Stretch"
+
+[[nodes.quest_compact_detail.children]]
+node = "quest_compact_detail_title"
+
+[[nodes.quest_compact_detail.children]]
+node = "quest_compact_narrative"
+
+[[nodes.quest_compact_detail.children]]
+node = "quest_compact_objectives"
+
+[[nodes.quest_compact_detail.children]]
+node = "quest_compact_rewards"
+
+[[nodes.quest_compact_detail.children]]
+node = "quest_compact_turn_in"
+
+[[nodes.quest_compact_detail.children]]
+node = "quest_compact_actions"
+
+[nodes.quest_compact_stack]
+component = "VerticalBox"
+control_id = "QuestCompactStack"
+
+[nodes.quest_compact_stack.layout.container]
+kind = "VerticalBox"
+gap = 8
+
+[nodes.quest_compact_stack.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_compact_stack.layout.height]
+stretch = "Stretch"
+
+[[nodes.quest_compact_stack.children]]
+node = "quest_compact_list"
+
+[[nodes.quest_compact_stack.children]]
+node = "quest_compact_detail"
+
+[nodes.quest_compact]
+component = "Container"
+control_id = "QuestCompactLayout"
+
+[nodes.quest_compact.props.visibility]
+xs = "visible"
+md = "collapsed"
+
+[nodes.quest_compact.layout.container]
+kind = "VerticalBox"
+gap = 0
+
+[nodes.quest_compact.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_compact.layout.height]
+stretch = "Stretch"
+
+[[nodes.quest_compact.children]]
+node = "quest_compact_stack"
+
+[nodes.quest_root]
+component = "Container"
+control_id = "QuestLogWindow"
+classes = [ "woc-panel" ]
+
+[nodes.quest_root.props]
+visibility = "collapsed"
+
+[nodes.quest_root.layout.container]
+kind = "VerticalBox"
+gap = 10
+
+[nodes.quest_root.layout.anchor]
+x = 0.5
+y = 0.5
+
+[nodes.quest_root.layout.pivot]
+x = 0.5
+y = 0.5
+
+[nodes.quest_root.layout.position]
+x = 0
+y = 0
+
+[nodes.quest_root.layout.padding]
+left = 14
+right = 14
+top = 12
+bottom = 14
+
+[nodes.quest_root.layout.width]
+min = 340
+preferred = 900
+max = 980
+stretch = "Fixed"
+
+[nodes.quest_root.layout.height]
+min = 560
+preferred = 700
+max = 840
+stretch = "Fixed"
+
+[[nodes.quest_root.children]]
+node = "quest_header"
+
+[[nodes.quest_root.children]]
+node = "quest_desktop"
+
+[[nodes.quest_root.children]]
+node = "quest_compact"
+
+[tokens]
+woc_shell_bg = "#10121f"
+woc_shell_scrim = "#00000066"
+woc_panel_bg = "#11101ddd"
+woc_panel_bg_strong = "#0d0d16ee"
+woc_border = "#6f5a2a"
+woc_border_soft = "#3b3547"
+woc_gold = "#ffd100"
+woc_gold_dim = "#c8a94d"
+woc_gold_light = "#ffe46b"
+woc_control_hover = "#282737"
+woc_control_pressed = "#3a3018"
+woc_control_disabled = "#1b1a24"
+woc_text = "#f4ead3"
+woc_text_muted = "#998d6a"
+woc_input_bg = "#10101acc"
+woc_discord = "#5865f2"
+woc_discord_border = "#3c46b0"
+woc_success = "#9fdc7f"
+woc_error = "#e06c75"
+woc_shadow = "#00000073"
+woc_hud_panel = "#11101dee"
+woc_hud_panel_soft = "#17151ecc"
+woc_hud_rail = "#09090fcc"
+woc_hud_slot = "#17151f"
+woc_hud_slot_border = "#5b4618"
+woc_hud_health = "#3fa65a"
+woc_hud_absorb = "#d9e4f2aa"
+woc_hud_mana = "#2476d3"
+woc_hud_rage = "#a63838"
+woc_hud_energy = "#d5c536"
+woc_hud_cooldown = "#000000b8"
+woc_hud_danger = "#c73535"
+woc_hud_touch = "#282a3b"
+woc_hud_touch_border = "#8a6c2a"
+woc_hud_vignette = "#8d101066"
+woc_hud_focus = "#f7d45c"
+
+[[stylesheets]]
+id = "woc-shell"
+
+[[stylesheets.rules]]
+selector = ".woc-shell"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_shell_bg"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[[stylesheets.rules]]
+selector = ".woc-stage-scrim"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_shell_scrim"
+
+[[stylesheets.rules]]
+selector = ".woc-panel"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-panel-strong"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg_strong"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-screen-title"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.font]
+size = 22
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-welcome-title"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.font]
+size = 27
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-section-title"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold_dim"
+
+[stylesheets.rules.set.self.font]
+size = 15
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-label"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.font]
+size = 14
+weight = 600
+
+[[stylesheets.rules]]
+selector = ".woc-muted"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.font]
+size = 12
+
+[[stylesheets.rules]]
+selector = ".woc-error"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_error"
+
+[stylesheets.rules.set.self.font]
+size = 12
+weight = 600
+
+[[stylesheets.rules]]
+selector = ".woc-input"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_input_bg"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[stylesheets.rules.set.self.font]
+size = 14
+
+[[stylesheets.rules]]
+selector = ".woc-input:hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-input:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 2
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-input:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-class-button"
+
+[stylesheets.rules.set.self.background]
+color = "#11101d00"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 2
+radius = 31
+
+[stylesheets.rules.set.self.font]
+size = 12
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:hover"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_light"
+width = 3
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:checked"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:selected"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".class-warrior"
+
+[stylesheets.rules.set.self.foreground]
+color = "#c79c6e"
+
+[[stylesheets.rules]]
+selector = ".class-paladin"
+
+[stylesheets.rules.set.self.foreground]
+color = "#f58cba"
+
+[[stylesheets.rules]]
+selector = ".class-hunter"
+
+[stylesheets.rules.set.self.foreground]
+color = "#abd473"
+
+[[stylesheets.rules]]
+selector = ".class-rogue"
+
+[stylesheets.rules.set.self.foreground]
+color = "#fff569"
+
+[[stylesheets.rules]]
+selector = ".class-priest"
+
+[stylesheets.rules.set.self.foreground]
+color = "#fffff0"
+
+[[stylesheets.rules]]
+selector = ".class-shaman"
+
+[stylesheets.rules.set.self.foreground]
+color = "#0070de"
+
+[[stylesheets.rules]]
+selector = ".class-mage"
+
+[stylesheets.rules.set.self.foreground]
+color = "#69ccf0"
+
+[[stylesheets.rules]]
+selector = ".class-warlock"
+
+[stylesheets.rules.set.self.foreground]
+color = "#9482c9"
+
+[[stylesheets.rules]]
+selector = ".class-druid"
+
+[stylesheets.rules.set.self.foreground]
+color = "#ff7d0a"
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg_strong"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 2
+radius = 8
+
+[stylesheets.rules.set.self.font]
+size = 12
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:hover"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_hover"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_light"
+width = 3
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:checked"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:selected"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-primary-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.foreground]
+color = "#1a1608"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 16
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-primary-action:hover"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold_light"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-primary-action:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold_dim"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-primary-action:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_text"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-primary-action:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "#242431"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-secondary-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg_strong"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 14
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-secondary-action:hover"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-secondary-action:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-secondary-action:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_light"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-secondary-action:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-discord-strip"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_discord"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-discord-badge"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_discord"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_discord_border"
+width = 1
+radius = 10
+
+[[stylesheets.rules]]
+selector = ".woc-discord-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_discord"
+
+[stylesheets.rules.set.self.foreground]
+color = "#ffffff"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_discord_border"
+width = 1
+radius = 5
+
+[stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-ready-dot"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_success"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_success"
+width = 1
+radius = 4
+
+[[stylesheets.rules]]
+selector = ".woc-preview-host"
+
+[stylesheets.rules.set.self.background]
+color = "#090a12aa"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-roster-host"
+
+[stylesheets.rules.set.self.background]
+color = "#090a1299"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-roster-row:selected"
+
+[stylesheets.rules.set.self.background]
+color = "#3a301880"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-modal-card"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg_strong"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-danger-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_error"
+
+[stylesheets.rules.set.self.foreground]
+color = "#ffffff"
+
+[stylesheets.rules.set.self.border]
+color = "#8f343b"
+width = 1
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 14
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-danger-action:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "#2b252d"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-mode-trigger"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_input_bg"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 16
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-mode-option"
+
+[stylesheets.rules.set.self.background]
+color = "#11101d00"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[stylesheets.rules.set.self.font]
+size = 15
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-mode-option:selected"
+
+[stylesheets.rules.set.self.background]
+color = "#3a301880"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-play-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.foreground]
+color = "#1a1608"
+
+[stylesheets.rules.set.self.border]
+color = "#fff2a8"
+width = 2
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 20
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-contract-address"
+
+[stylesheets.rules.set.self.background]
+color = "#090a12aa"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 11
+weight = 600
+
+[[stylesheets.rules]]
+selector = ".woc-auth-form"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-auth-link"
+
+[stylesheets.rules.set.self.background]
+color = "#00000000"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold_dim"
+
+[stylesheets.rules.set.self.border]
+color = "#00000000"
+width = 1
+radius = 4
+
+[stylesheets.rules.set.self.font]
+size = 14
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-auth-link:hover"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold_light"
+
+[[stylesheets.rules]]
+selector = ".woc-auth-link:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[[stylesheets.rules]]
+selector = ".woc-auth-link:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_light"
+width = 2
+radius = 4
+
+[[stylesheets.rules]]
+selector = ".woc-auth-link:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "#00000000"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "#00000000"
+width = 1
+radius = 4
+
+[[stylesheets.rules]]
+selector = ".woc-auth-provider-host"
+
+[stylesheets.rules.set.self.background]
+color = "#090a1299"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-auth-status"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.font]
+size = 12
+weight = 600
+
+[[stylesheets]]
+id = "woc-hud"
+
+[[stylesheets.rules]]
+selector = ".woc-hud-root"
+
+[stylesheets.rules.set.self.background]
+color = "#00000000"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[[stylesheets.rules]]
+selector = ".woc-live-region"
+
+[stylesheets.rules.set.self.foreground]
+color = "#00000000"
+
+[stylesheets.rules.set.self.font]
+size = 1
+
+[[stylesheets.rules]]
+selector = ".woc-unit-frame"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-unit-frame-target"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-unit-frame-dead"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_danger"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-portrait"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel_soft"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 3
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-level-chip"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_slot"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 12
+
+[stylesheets.rules.set.self.font]
+size = 11
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-unit-name"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-bar-rail"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_rail"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 3
+
+[[stylesheets.rules]]
+selector = ".woc-health-fill"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_health"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-absorb-fill"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_absorb"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-resource-fill"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_mana"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-resource-rage"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_rage"
+
+[[stylesheets.rules]]
+selector = ".woc-resource-energy"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_energy"
+
+[[stylesheets.rules]]
+selector = ".woc-bar-text"
+
+[stylesheets.rules.set.self.foreground]
+color = "#ffffff"
+
+[stylesheets.rules.set.self.font]
+size = 10
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-cast-fill"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold_dim"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-xp-fill"
+
+[stylesheets.rules.set.self.background]
+color = "#8e3bc1"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-xp-rested"
+
+[stylesheets.rules.set.self.background]
+color = "#438ed0aa"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-action-bar"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 7
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_slot"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_slot_border"
+width = 2
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 10
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot:hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 3
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_rail"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot-queued"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot-out-of-range"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_danger"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot-proc"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-cooldown-overlay"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_cooldown"
+
+[stylesheets.rules.set.self.border]
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-keybind"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.font]
+size = 9
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-tracker"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel_soft"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-minimap"
+
+[stylesheets.rules.set.self.background]
+color = "#18362f"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 3
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-touch-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_touch"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_touch_border"
+width = 2
+radius = 8
+
+[stylesheets.rules.set.self.font]
+size = 11
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-touch-action:hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-touch-action:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-touch-action:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 3
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-touch-action:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-touch-zone"
+
+[stylesheets.rules.set.self.background]
+color = "#20222a22"
+
+[stylesheets.rules.set.self.border]
+color = "#a6b2c244"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-pause-scrim"
+
+[stylesheets.rules.set.self.background]
+color = "#05050acc"
+
+[[stylesheets.rules]]
+selector = ".woc-pause-menu"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-pause-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel_soft"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[stylesheets.rules.set.self.font]
+size = 14
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-pause-action:hover"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-pause-action:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-pause-action:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 2
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-pause-action:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-low-health-vignette"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_vignette"
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-window"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-ante"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel_soft"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_slot_border"
+width = 2
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-ante:hover"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-ante:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-ante:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 3
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-ante:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-board"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_rail"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_slot_border"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-timer"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_rail"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 4
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-timer-fill"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+radius = 3
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_slot"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_slot_border"
+width = 2
+radius = 5
+
+[stylesheets.rules.set.self.font]
+size = 12
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-action:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 3
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-feedback"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-coffer"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[penpot_original_imports]
+widgets = []
+styles = [ "res://ui/shell/shell_theme.zui", "res://ui/hud/hud_theme.zui" ]
+resources = []

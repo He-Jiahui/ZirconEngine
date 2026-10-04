@@ -15,6 +15,7 @@ use crate::core::gateway::{
 use super::{WorldWatchMap, WorldWatchMapError};
 
 #[cfg(test)]
+#[path = "pump/tests/cases.rs"]
 mod tests;
 
 /// Bus topic for transport-neutral runtime world facts.

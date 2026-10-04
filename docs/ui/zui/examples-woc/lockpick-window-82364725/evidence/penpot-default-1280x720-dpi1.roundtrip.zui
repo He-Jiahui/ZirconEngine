@@ -1,0 +1,214 @@
+[asset]
+kind = "view"
+id = "res://ui/hud/lockpick_window.zui"
+version = 2
+display_name = "World of ClaudeCraft Tumbler's Path"
+
+[imports]
+widgets = []
+styles = ["res://ui/shell/shell_theme.zui", "res://ui/hud/hud_theme.zui"]
+resources = []
+
+[root]
+node = "lockpick_root"
+
+[nodes.lockpick_selector_title]
+component = "Label"
+control_id = "LockpickSelectorTitle"
+classes = ["woc-screen-title"]
+props = { text = "Tumbler's Path", overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 34.0, max = 40.0, stretch = "Fixed" } }
+
+[nodes.lockpick_selector_close]
+component = "Button"
+control_id = "LockpickSelectorClose"
+classes = ["woc-secondary-action"]
+props = { text = "Close" }
+layout = { width = { min = 64.0, preferred = 72.0, max = 88.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = "Fixed" } }
+events = [{ id = "WocLockpick/SelectorClose", event = "Click", route = "woc.hud.lockpick.close" }]
+
+[nodes.lockpick_selector_header]
+component = "HorizontalBox"
+control_id = "LockpickSelectorHeader"
+layout = { container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 48.0, max = 52.0, stretch = "Fixed" } }
+children = [{ node = "lockpick_selector_title" }, { node = "lockpick_selector_close" }]
+
+[nodes.lockpick_selector_blurb]
+component = "Label"
+control_id = "LockpickSelectorBlurb"
+classes = ["woc-muted"]
+props = { text = "Choose an ante. Every page must be cleared without a slip.", overflow = "wrap" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 58.0, max = 76.0, stretch = "Fixed" } }
+
+[nodes.lockpick_coffer_hint]
+component = "Label"
+control_id = "LockpickCofferHint"
+classes = ["woc-lockpick-coffer"]
+props = { text = "Only Premium can open this coffer.", visibility = "collapsed", overflow = "wrap" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 36.0, max = 52.0, stretch = "Fixed" } }
+
+[nodes.lockpick_ante_premium]
+component = "Button"
+control_id = "LockpickAntePremium"
+classes = ["woc-lockpick-ante"]
+props = { text = "Premium\n3 locks • 1 try • 3s" }
+layout = { width = { min = 128.0, preferred = 180.0, max = 240.0, stretch = "Stretch" }, height = { min = 88.0, preferred = 100.0, max = 112.0, stretch = "Fixed" } }
+events = [{ id = "WocLockpick/Engage/Premium", event = "Click", route = "woc.hud.lockpick.engage.1" }]
+
+[nodes.lockpick_ante_medium]
+component = "Button"
+control_id = "LockpickAnteMedium"
+classes = ["woc-lockpick-ante"]
+props = { text = "Medium\n2 locks • 2 tries • 6s" }
+layout = { width = { min = 128.0, preferred = 180.0, max = 240.0, stretch = "Stretch" }, height = { min = 88.0, preferred = 100.0, max = 112.0, stretch = "Fixed" } }
+events = [{ id = "WocLockpick/Engage/Medium", event = "Click", route = "woc.hud.lockpick.engage.2" }]
+
+[nodes.lockpick_ante_low]
+component = "Button"
+control_id = "LockpickAnteLow"
+classes = ["woc-lockpick-ante"]
+props = { text = "Modest\n1 lock • 3 tries • 9s" }
+layout = { width = { min = 128.0, preferred = 180.0, max = 240.0, stretch = "Stretch" }, height = { min = 88.0, preferred = 100.0, max = 112.0, stretch = "Fixed" } }
+events = [{ id = "WocLockpick/Engage/Low", event = "Click", route = "woc.hud.lockpick.engage.3" }]
+
+[nodes.lockpick_ante_row]
+component = "Stack"
+control_id = "LockpickAnteRow"
+layout = { container = { kind = "Stack", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 88.0, preferred = 100.0, max = 224.0, stretch = "Fixed" } }
+children = [{ node = "lockpick_ante_premium" }, { node = "lockpick_ante_medium" }, { node = "lockpick_ante_low" }]
+
+[nodes.lockpick_selector]
+component = "Container"
+control_id = "LockpickSelector"
+layout = { container = { kind = "VerticalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "lockpick_selector_header" }, { node = "lockpick_selector_blurb" }, { node = "lockpick_coffer_hint" }, { node = "lockpick_ante_row" }]
+
+[nodes.lockpick_live_title]
+component = "Label"
+control_id = "LockpickLiveTitle"
+classes = ["woc-screen-title"]
+props = { text = "Tumbler's Path", overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 34.0, max = 40.0, stretch = "Fixed" } }
+
+[nodes.lockpick_abort]
+component = "Button"
+control_id = "LockpickAbort"
+classes = ["woc-secondary-action"]
+props = { text = "Withdraw" }
+layout = { width = { min = 84.0, preferred = 96.0, max = 116.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = "Fixed" } }
+events = [{ id = "WocLockpick/Abort", event = "Click", route = "woc.hud.lockpick.abort" }]
+
+[nodes.lockpick_live_header]
+component = "HorizontalBox"
+control_id = "LockpickLiveHeader"
+layout = { container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 48.0, max = 52.0, stretch = "Fixed" } }
+children = [{ node = "lockpick_live_title" }, { node = "lockpick_abort" }]
+
+[nodes.lockpick_page]
+component = "Label"
+control_id = "LockpickPageStatus"
+classes = ["woc-section-title"]
+props = { text = "Lock 1 / 3" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.lockpick_tries]
+component = "Label"
+control_id = "LockpickTriesStatus"
+classes = ["woc-muted"]
+props = { text = "1 / 1 tries", text_align = "right" }
+layout = { width = { min = 96.0, preferred = 116.0, max = 144.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.lockpick_status]
+component = "HorizontalBox"
+control_id = "LockpickStatus"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "lockpick_page" }, { node = "lockpick_tries" }]
+
+[nodes.lockpick_timer_fill]
+component = "Space"
+control_id = "LockpickTimerFill"
+classes = ["woc-lockpick-timer-fill"]
+layout = { width = { min = 0.0, preferred = 100.0, max = 100.0, stretch = "Stretch" }, height = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" } }
+
+[nodes.lockpick_timer]
+component = "Container"
+control_id = "LockpickTimer"
+classes = ["woc-lockpick-timer"]
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" } }
+children = [{ node = "lockpick_timer_fill" }]
+
+[nodes.lockpick_board_host]
+component = "GridGroup"
+control_id = "LockpickTumblerTrackHost"
+classes = ["woc-lockpick-board"]
+props = { dynamic_route_prefix = "woc.hud.lockpick.track" }
+layout = { container = { kind = "GridBox", columns = 16, rows = 6, column_gap = 4.0, row_gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 184.0, preferred = 244.0, max = 340.0, stretch = "Stretch" } }
+children = []
+
+[nodes.lockpick_feedback]
+component = "Label"
+control_id = "LockpickFeedback"
+classes = ["woc-lockpick-feedback"]
+props = { text = "", visibility = "collapsed", overflow = "wrap", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 36.0, max = 52.0, stretch = "Fixed" } }
+
+[nodes.lockpick_action_hard_set]
+component = "Button"
+control_id = "LockpickActionHardSet"
+classes = ["woc-lockpick-action"]
+props = { text = "Q  Hard Set" }
+layout = { width = { min = 96.0, preferred = 120.0, max = 156.0, stretch = "Stretch" }, height = { min = 44.0, preferred = 48.0, max = 52.0, stretch = "Fixed" } }
+events = [{ id = "WocLockpick/Action/HardSet", event = "Click", route = "woc.hud.lockpick.action.hard_set" }]
+
+[nodes.lockpick_action_set]
+component = "Button"
+control_id = "LockpickActionSet"
+classes = ["woc-lockpick-action"]
+props = { text = "W  Set" }
+layout = { width = { min = 84.0, preferred = 104.0, max = 132.0, stretch = "Stretch" }, height = { min = 44.0, preferred = 48.0, max = 52.0, stretch = "Fixed" } }
+events = [{ id = "WocLockpick/Action/Set", event = "Click", route = "woc.hud.lockpick.action.set" }]
+
+[nodes.lockpick_action_steady]
+component = "Button"
+control_id = "LockpickActionSteady"
+classes = ["woc-lockpick-action"]
+props = { text = "E  Steady" }
+layout = { width = { min = 88.0, preferred = 108.0, max = 136.0, stretch = "Stretch" }, height = { min = 44.0, preferred = 48.0, max = 52.0, stretch = "Fixed" } }
+events = [{ id = "WocLockpick/Action/Steady", event = "Click", route = "woc.hud.lockpick.action.steady" }]
+
+[nodes.lockpick_action_ease]
+component = "Button"
+control_id = "LockpickActionEase"
+classes = ["woc-lockpick-action"]
+props = { text = "A  Ease" }
+layout = { width = { min = 84.0, preferred = 104.0, max = 132.0, stretch = "Stretch" }, height = { min = 44.0, preferred = 48.0, max = 52.0, stretch = "Fixed" } }
+events = [{ id = "WocLockpick/Action/Ease", event = "Click", route = "woc.hud.lockpick.action.ease" }]
+
+[nodes.lockpick_action_drop]
+component = "Button"
+control_id = "LockpickActionDrop"
+classes = ["woc-lockpick-action"]
+props = { text = "Z  Drop" }
+layout = { width = { min = 84.0, preferred = 108.0, max = 136.0, stretch = "Stretch" }, height = { min = 44.0, preferred = 48.0, max = 52.0, stretch = "Fixed" } }
+events = [{ id = "WocLockpick/Action/Drop", event = "Click", route = "woc.hud.lockpick.action.drop" }]
+
+[nodes.lockpick_actions]
+component = "Stack"
+control_id = "LockpickActions"
+layout = { container = { kind = "Stack", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 48.0, max = 112.0, stretch = "Fixed" } }
+children = [{ node = "lockpick_action_hard_set" }, { node = "lockpick_action_set" }, { node = "lockpick_action_steady" }, { node = "lockpick_action_ease" }, { node = "lockpick_action_drop" }]
+
+[nodes.lockpick_live]
+component = "Container"
+control_id = "LockpickLiveBoard"
+props = { visibility = "collapsed" }
+layout = { container = { kind = "VerticalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "lockpick_live_header" }, { node = "lockpick_status" }, { node = "lockpick_timer" }, { node = "lockpick_board_host" }, { node = "lockpick_feedback" }, { node = "lockpick_actions" }]
+
+[nodes.lockpick_root]
+component = "Container"
+control_id = "LockpickWindow"
+classes = ["woc-lockpick-window"]
+props = { visibility = "collapsed" }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = 0.0 }, padding = { left = 18.0, right = 18.0, top = 16.0, bottom = 16.0 }, width = { min = 320.0, preferred = 720.0, max = 840.0, stretch = "Fixed" }, height = { min = 360.0, preferred = 480.0, max = 640.0, stretch = "Fixed" } }
+children = [{ node = "lockpick_selector" }, { node = "lockpick_live" }]

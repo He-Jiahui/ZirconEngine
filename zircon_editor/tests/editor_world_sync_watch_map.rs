@@ -12,11 +12,12 @@ use zircon_editor::core::editor_message::{
     SharedEditorMessageBus,
 };
 use zircon_editor::core::sync::WorldWatchMap;
-use zircon_editor::ui::host::{EditorHostEventController, EditorManager};
+use zircon_editor::ui::host::{
+    EditorHostEventController, EditorManager, EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY,
+};
 use zircon_editor::ui::workbench::state::EditorState;
 use zircon_editor::{
-    module_descriptor as editor_module_descriptor, EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY,
-    EDITOR_MANAGER_NAME, EDITOR_MODULE_NAME,
+    module_descriptor as editor_module_descriptor, EDITOR_MANAGER_NAME, EDITOR_MODULE_NAME,
 };
 use zircon_runtime::core::framework::scene::SCENE_MODULE_NAME;
 use zircon_runtime::core::CoreRuntime;

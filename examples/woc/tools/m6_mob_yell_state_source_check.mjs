@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node m6_mob_yell_state_source_check.mjs；缺少源码契约时脚本抛错退出。
+// 核对锁定的怪物喊话事件字段、范围和接收者筛选，以及 Zr 投影、测试入口和项目元数据。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';

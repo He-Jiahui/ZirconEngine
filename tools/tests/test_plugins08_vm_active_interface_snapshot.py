@@ -140,7 +140,12 @@ class Plugins08VmActiveInterfaceSnapshotTests(unittest.TestCase):
         manager = MANAGER.read_text(encoding="utf-8")
 
         self.assertIn("BoundedKeyedIoLane", discovery_io)
-        self.assertIn("JobScheduler::process_io()", discovery_io)
+        self.assertIn("JobScheduler::from_pool(worker_pool.clone())", discovery_io)
+        self.assertNotIn(
+            "JobScheduler::process_io()",
+            discovery_io,
+            "VM discovery must use the runtime-owned worker pool rather than a global scheduler",
+        )
         self.assertIn("BoundedKeyedIoWorkDeadline::at", discovery_io)
         self.assertIn("cancel_before_start", discovery_io)
         self.assertIn("AtomicBool", discovery_io)

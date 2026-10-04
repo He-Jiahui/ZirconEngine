@@ -1,0 +1,284 @@
+{
+  "record_type": "root_qualified_batch8_manifest",
+  "qualified_at_utc": "2026-10-02T04:53:05.066561+00:00",
+  "author_original_artifacts": {
+    "review": "66a4837d88f4addcaed1b99560570107db23703b9a0933763cbb050b29edf29f",
+    "crosswalk": "f11c4ed76cb538f9b5245624f72754aba73fd09a449c3c63d0c3590c1236bdf8",
+    "summary": "9942647a8d7f3d56791463bdba33731182133af8df4546b529558f9c35d0efb9",
+    "manifest": "c74964a71589ec430bc2438b25b9ba56a3534a6a90d1e59c7a9717b7c7ab9da1"
+  },
+  "root_structural_receipt_sha256": "0f7dcbe115c3f5f4ac554cf3a08bc99a278ca16e748995a2183ae17cc661e0fe",
+  "qualified_artifacts": {
+    "review": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch8-root-qualified-r1\\2026-10-02-w0-batch8-review.jsonl",
+      "sha256": "6ee6790c7739ff8065143c7e4abb7f209168b022847f7c59729074bf941b74cc"
+    },
+    "crosswalk": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch8-root-qualified-r1\\2026-10-02-w0-batch8-crosswalk.jsonl",
+      "sha256": "a3b5ac7671ca1376a543e1d89e931aa9e92258c6ed69b25ef0bcdbb332af4d28"
+    },
+    "summary": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch8-root-qualified-r1\\2026-10-02-w0-batch8-summary.json",
+      "sha256": "db395e0304a8eba6ce75120a64427b243971db442cd9b85c9893272f8a987f02"
+    }
+  },
+  "captured_raw_files": [
+    {
+      "path": "docs/plans/optimize/zircon_editor/187-editor-scene-viewport-camera-navigation-orbit-pan-zoom-fly-projection-alignment-frame-selection-bookmark-pilot-persistence-input-product-integration-current-source-review.md",
+      "sha256": "f25516b28fab49d142c11847454bea2107f6c21207ba57db054e88967a59e677"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_editor/246-editor-physics-authoring-preview-debug-current-working-tree-review.md",
+      "sha256": "e837f3eefb17647beb833560146115a73b8e62e327555d216c06a26fff82f3c0"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_editor/249-editor-material-shader-graph-instance-toolkit-preview-compiler-current-working-tree-review.md",
+      "sha256": "f4486aef62125978629234eacd07be0cd6f91fa93afe51c0053a2b4008b3ada6"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/103-runtime-clock-time-policy-world-fixed-step-timer-cadence-current-source-review.md",
+      "sha256": "ebc8ce696c7a10d92bca2ae917913a3d8c130bc8af1d135e092b529e18725a95"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/175-runtime-gameplay-ability-effect-attribute-tag-cue-prediction-current-working-tree-authority-artifact-execution-review.md",
+      "sha256": "63bea54f6ba1c5cf99df63aae534177b2ff992b2f7c4bce3fb40b69606606b4f"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/186-runtime-physics-backend-shape-query-event-lifecycle-current-working-tree-review.md",
+      "sha256": "25eb5e307d2bf52d853183dcd7891e4e62812cb6c114eaca834e062f4a613d3a"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/187-runtime-scene-ecs-world-archetype-query-schedule-generation-current-working-tree-review.md",
+      "sha256": "c1bbc0d522bb7d0b49aa6b5f72f117c5742188084a5789e1a1a32cfed59abb04"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/189-runtime-material-shader-artifact-variant-pipeline-pso-cache-publication-current-working-tree-review.md",
+      "sha256": "f0bb6452b8454b264007c863ce0b1cb09cf368098654c50d2019f26059c3f330"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/190-runtime-camera-view-director-history-multiview-current-working-tree-review.md",
+      "sha256": "af9bb919cf55591b3ec61e7b31cae6ef650e2bf68572ad6da5b562568cb9a6ed"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/37-camera-endpoint-director-rig-controller-blend-shake-cinematic-cut-history-multiview-network-save-scalability-product-integration-review.md",
+      "sha256": "339d39aa43d44de26243a98fdbce297fadba5d9405a0a65770a01536cefa4277"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/99i-runtime-scene-ecs-entity-component-storage-archetype-query-access-change-detection-command-schedule-parallel-event-product-integration-current-source-review.md",
+      "sha256": "cc3ed8ff7b66ad42ca26a72c5242ca404d87fd634cc96280e317f6b6f665c5a1"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/99j-runtime-scene-world-level-registry-lifecycle-project-io-snapshot-clone-serialization-schema-transaction-product-integration-current-source-review.md",
+      "sha256": "84127f0d53928043668be9e7ad36e278e7fc9c6f4daa898eef4c4b6bd42597bc"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/99k-runtime-scene-hierarchy-transform-propagation-reparent-activation-mobility-visibility-bounds-render-product-integration-current-source-review.md",
+      "sha256": "8140527c4d8dc08a3556703574cee966af7605f1b2249f93cfe3bfba25ce9974"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/99za-runtime-camera-endpoint-director-rig-controller-blend-shake-cut-history-multiview-product-integration-current-source-review.md",
+      "sha256": "4d0aeac8d69df903d26dbdd3a892be84f3301fb5a70d2c6a1ec02a9723d00cd2"
+    },
+    {
+      "path": "docs/plans/zircon_runtime/runtime/07/failure-2026-07-22-level-system-runtime-state-frame-snapshot.md",
+      "sha256": "7cd4b69cbc666f71c3f86f968d73a1bc7d5fb861581c8d129abee3e01c162bde"
+    },
+    {
+      "path": "docs/plans/zircon_runtime/runtime/08/failure-2026-07-22-world-fixed-component-storage-and-stable-query-index.md",
+      "sha256": "13997cae576f206d5904cf5c38deb34619f54b69ef188e59fd067cd37727674f"
+    },
+    {
+      "path": "zircon_editor/src/core/project/scene_document.rs",
+      "sha256": "aa48dc616fc41dc3d89e7184e86fcec798bec8ef00f8c0fb343a08ef43dcbcb0"
+    },
+    {
+      "path": "zircon_editor/src/scene/viewport/render_packet.rs",
+      "sha256": "a19a0e5fc2680fa70374588d67d579b47d6af59a2e4640840bf2dae22e49018d"
+    },
+    {
+      "path": "zircon_editor/src/ui/workbench/project/editor_project_document_load.rs",
+      "sha256": "44d6c6b9536c7ac073527605ef2637306c9d6fea4c7c8107a68d3f9cd8e205a5"
+    },
+    {
+      "path": "zircon_runtime/src/asset/assets/scene/camera.rs",
+      "sha256": "0662896e5fd62bb5104866f7cd6bca5bb65e414bffd93ea2076320aa752ecaac"
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/render/camera_stack.rs",
+      "sha256": "f1b253ea0a3c9b52587a7997eb56d1ce0c435dee63e1bb348545505ff7612404"
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/camera_controller.rs",
+      "sha256": "846075652f48fc4ae9e5dcda10767b323206d0fde7560fd3d4504b9668da0886"
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/extract_cache.rs",
+      "sha256": "772170067a12fd437e7fddecdfada750965580b0f191a75da261286892b2b0bb"
+    },
+    {
+      "path": "zircon_runtime/src/scene/components/scene/camera.rs",
+      "sha256": "802aff4efbecc504f6e45927089bca0f72a8004b4ea5e86a68bd20a26f07058b"
+    },
+    {
+      "path": "zircon_runtime/src/scene/ecs/archetype/index.rs",
+      "sha256": "f414555c50ab3a97214752a0e2ec24105c0a36fce379291df31589e7ed4d1d28"
+    },
+    {
+      "path": "zircon_runtime/src/scene/ecs/archetype/table/table.rs",
+      "sha256": "a448d708fcb6da720a0101d4be2a80842ede2510b7503a9d0e7504a0125f0655"
+    },
+    {
+      "path": "zircon_runtime/src/scene/ecs/entity/registry.rs",
+      "sha256": "3aa19ea35fd41593ff2c0839cc779fa825fce2d27e8942736ee770465759c422"
+    },
+    {
+      "path": "zircon_runtime/src/scene/ecs/storage/component_storage/location.rs",
+      "sha256": "e1cf5c2aec6ae04569a15ecae2c39d93a67c46ec39fcd6be5f38bd15f80e45eb"
+    },
+    {
+      "path": "zircon_runtime/src/scene/ecs/storage/component_storage/store.rs",
+      "sha256": "fb155c7167aaba9e852961dac992bb1c5a96dbb1e4477d1af1c7dc60cdf9c75a"
+    },
+    {
+      "path": "zircon_runtime/src/scene/inspection/artifact/data.rs",
+      "sha256": "74f2c7f45e1e0bcb29ab531c87a4d2dff28e6c3f44189a36e64dc47201513fad"
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/asset_scene/product_fields.rs",
+      "sha256": "968064e7a74c182433f0208ceb31966d1d9fe15998747f8065db136200dde7f4"
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_identity_storage.rs",
+      "sha256": "1e6edef7e20a54972693625826459fd3a1543ebcad473314018f3bb990a79ced"
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_system_query_cache.rs",
+      "sha256": "493ef0ef7ffbdbb3d1a2360ab165f9a116afaea6526e67e57f2629ce17cf2998"
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_typed_api/bundle_transactions.rs",
+      "sha256": "13f1854a8e7516cc2002a69c7105e6e66df8eabcd6dff450ec669fc0114df362"
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_typed_api/component_registry.rs",
+      "sha256": "ceeb0dac7f843d1bbf0b23e072c9e591c0355ef1a9940819956ceecf6871f31d"
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/render_extract/camera_order.rs",
+      "sha256": "a53a5c632163dcbe291825cffe1fd772bc1dbc47c8d46e13c66e1e325d7f4719"
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/identity.rs",
+      "sha256": "71de1aae3b50596c9d4b7c9d4576ceff6da175fb8b2c92210f1df394b0ba9b7d"
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/project_io/camera.rs",
+      "sha256": "ecd9cfe0d54131b096ee49dfa221ab00815b78a2f39b1af7fb80405942ad19af"
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/project_io/document.rs",
+      "sha256": "6dada0ca4274cfbcf8e618c3cb01b5c7fcd0a063d243b74e39c830984f2a24a1"
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/project_io/scene_asset.rs",
+      "sha256": "8d8d1e6c9155af293e5db7ca17291bb199204515fdc6a9b5f80ce3b00ddc4b6d"
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/query.rs",
+      "sha256": "d46d8a788577de71c8ab0cd65d7b55130e640a12f5e9c2fecf2ae18b515dc794"
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/query_order.rs",
+      "sha256": "05e2837b1210f46533da68d2333e0196f566e00fe84809e0823d248b41811c62"
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/records.rs",
+      "sha256": "8eb72e723c74f6f82dd17ac2186377919c57688a126e993508db2aae11121560"
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/render.rs",
+      "sha256": "9894d6d487e12d4a6ceea7585ec1d9bbfda0cba7dd012d41ebf09422036ea948"
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/typed_api/component_row.rs",
+      "sha256": "17e7cb84d54074b7bc0b28dfaafa3b935702719995224dcd114cec2c934150a2"
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/typed_api/projection_rebuild.rs",
+      "sha256": "51fc97d6e1112f36b479e058959a0992bcd6d5392e98ba724a3b67034c6449dd"
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/world.rs",
+      "sha256": "45d8bcaf11d5287f860c0f6be23aa3507b21f9b3d13d1a0ed56ffc2922d540e1"
+    },
+    {
+      "path": "zircon_runtime/tests/runtime_camera_core_pipeline_contract.rs",
+      "sha256": "26d02d20c9900aa615a1a4695484d5ad757d0497553b41521bb9363c49c952b1"
+    }
+  ],
+  "canonical_prior_hashes": [
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-source-review-wave.jsonl",
+      "sha256": "8d6d68c499d52c354a992a76bc05ffb3ed41ff4ccb9abc21b1f487d3954aefc5",
+      "rows": 37
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-second-wave-review.jsonl",
+      "sha256": "dccceb090592eea01f48f885ef84e53d202e6470c647b4481c44a4c23ec673d1",
+      "rows": 30
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-batch3-review.jsonl",
+      "sha256": "4b4137f6ef0feeb0fc4ef6f55664a80f3c8a14473c0f94ab4361d85728a68fbe",
+      "rows": 15
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch4-review.jsonl",
+      "sha256": "9ca9bc4ea5b83865c219c8fb9b3c7ac73d7d078460bf8b92c6cded896996fb2c",
+      "rows": 24
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch5-review.jsonl",
+      "sha256": "4bd6dcae8255f6d770f06cb471a1ead80b64be2c2038ed5705f256dff6a1b7cc",
+      "rows": 24
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch6-review.jsonl",
+      "sha256": "e0a4798dea7a20c842e177f4ae2007858fbd487278fd87220f2b1e3c61ec0eb3",
+      "rows": 18
+    }
+  ],
+  "qualified_keys": [
+    "docs/plans/optimize/zircon_runtime/187-runtime-scene-ecs-world-archetype-query-schedule-generation-current-working-tree-review.md#ECS4-P1-001",
+    "docs/plans/optimize/zircon_runtime/187-runtime-scene-ecs-world-archetype-query-schedule-generation-current-working-tree-review.md#ECS4-P1-002",
+    "docs/plans/optimize/zircon_runtime/187-runtime-scene-ecs-world-archetype-query-schedule-generation-current-working-tree-review.md#ECS4-P1-003",
+    "docs/plans/optimize/zircon_runtime/187-runtime-scene-ecs-world-archetype-query-schedule-generation-current-working-tree-review.md#ECS4-P1-004",
+    "docs/plans/optimize/zircon_runtime/187-runtime-scene-ecs-world-archetype-query-schedule-generation-current-working-tree-review.md#ECS4-P1-005",
+    "docs/plans/optimize/zircon_runtime/187-runtime-scene-ecs-world-archetype-query-schedule-generation-current-working-tree-review.md#ECS4-P1-006",
+    "docs/plans/optimize/zircon_runtime/190-runtime-camera-view-director-history-multiview-current-working-tree-review.md#RCM6-P1-001",
+    "docs/plans/optimize/zircon_runtime/190-runtime-camera-view-director-history-multiview-current-working-tree-review.md#RCM6-P1-002",
+    "docs/plans/optimize/zircon_runtime/190-runtime-camera-view-director-history-multiview-current-working-tree-review.md#RCM6-P1-003",
+    "docs/plans/optimize/zircon_runtime/190-runtime-camera-view-director-history-multiview-current-working-tree-review.md#RCM6-P1-004",
+    "docs/plans/optimize/zircon_runtime/190-runtime-camera-view-director-history-multiview-current-working-tree-review.md#RCM6-P1-005",
+    "docs/plans/optimize/zircon_runtime/190-runtime-camera-view-director-history-multiview-current-working-tree-review.md#RCM6-P1-006"
+  ],
+  "new_qualified_keys": 12,
+  "prior_overlap_keys": [],
+  "private_batch7_overlap_keys": [],
+  "tests_run": 0,
+  "acceptance": "open",
+  "source_integrated": false,
+  "shared_publication": false,
+  "canonical_publication": {
+    "meaning": "Prepared publication of bounded source records only; actual exact byte publication and terminal owner attribution require separate receipts.",
+    "source_and_product_acceptance": "open",
+    "historical_summary_note": "Summary retains the private qualification boundary at its timestamp. Subsequent publication is recorded independently; that captured boundary is not a Cargo or source acceptance receipt."
+  },
+  "publication_preparation": {
+    "prepared_at_utc": "2026-10-02T05:20:22.892797+00:00",
+    "owner_session": "astra-goal-20260929-01a0f033",
+    "parent_qualified_manifest_sha256": "d00b44a61a27ac6f20f2643ec07512e83d1424f9d16f36501f8d798ab0f31ad5",
+    "new_session_or_failure": false,
+    "foreign_owner_status_or_lease_reclaimed": false
+  }
+}

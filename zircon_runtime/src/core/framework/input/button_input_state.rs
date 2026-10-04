@@ -3,6 +3,7 @@ use std::collections::BTreeSet;
 use serde::{Deserialize, Serialize};
 
 #[cfg(test)]
+#[path = "button_input_state/tests/release_all_tests.rs"]
 mod release_all_tests;
 
 /// 同时保留跨帧按住状态与本帧边沿，供输入管理器和动作求值器共享同一状态语义。

@@ -270,7 +270,7 @@ claim, and it continues to prohibit a partial crate or compatibility projection.
 Shared main advanced again to `601472078e848164d2221967c55a77fea2452928`, so the preceding
 `b41b0c0b` report remains historical admission evidence rather than an implementation fingerprint.
 Frameworks01 now owns a RED-to-GREEN deterministic scanner at
-`tools/frameworks_01_resource_consumer_manifest.py`. The scanner enumerates Git tracked plus
+`tools/maintenance/resource_migration/frameworks_01_resource_consumer_manifest.py`. The scanner enumerates Git tracked plus
 nonignored untracked Rust current source, excludes deleted tracked paths and the Resource owner
 tree, unions code-view literal matches with structured Rust use-tree matches, fingerprints every
 candidate, and refuses output unless HEAD, candidate membership, and every candidate byte hash are
@@ -633,7 +633,7 @@ attributions transfer and a current stable source/move report exists.
 ### Resource hard-cut patch composer implementation result
 
 The deterministic composer is source-complete, but this is not an accepted M1 result. Its fixed
-contract is split between `tools/frameworks_01_resource_hard_cut_spec.py` and the composer so the
+contract is split between `tools/maintenance/resource_migration/frameworks_01_resource_hard_cut_spec.py` and the composer so the
 production owner remains below the large-file threshold. The focused suite is `9/9` GREEN and
 proves deterministic output, isolated `git apply --check` plus apply, exact consumer-role and source
 shape rejection, CRLF fail-closed behavior, code-view-only path rewriting, hidden assembly versus
@@ -1310,7 +1310,7 @@ pre-applied `Cargo.toml` remains
 `4ee6898de02a4e799750fe911ae8edc7abf9dc78969d07f903ff063899900f67`. A final process query found
 zero Cargo, rustc, or sccache processes from this review.
 
-`python tools/check_conventions.py --only structure --json` is not a static parser: its dry run
+`python tools/audits/check_conventions.py --only structure --json` is not a static parser: its dry run
 expands to `cargo +1.94.1 test -p zircon_runtime --lib structure_convention --locked --jobs 1`.
 An exploratory invocation exceeded 125 seconds with no captured result and left its unmanaged
 Python/Cargo/rustc child tree running against workspace `target`. The exact process tree was stopped

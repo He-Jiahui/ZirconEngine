@@ -106,5 +106,5 @@ fn replace_or_push_selection_at(
 }
 
 #[cfg(test)]
-#[path = "project/single_scan_upsert_tests.rs"]
+#[path = "project/tests/single_scan_upsert_tests.rs"]
 mod single_scan_upsert_tests;

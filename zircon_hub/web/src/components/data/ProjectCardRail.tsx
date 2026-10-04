@@ -4,6 +4,7 @@ import { Box } from "@mui/material";
 import { hubTokens } from "../../theme/tokens";
 import { HubIconButton } from "../inputs";
 
+// 调用页先截取概览卡片，并依据完整结果计算是否还有项目；更多入口由页面负责切换浏览范围。
 export interface ProjectCardRailProps {
   children: ReactNode;
   hasMore: boolean;
@@ -11,6 +12,7 @@ export interface ProjectCardRailProps {
   onMore: () => void;
 }
 
+// 为已截取的概览卡片排列网格；右侧提示引导进入完整浏览页，不能被当作加载下一批的分页容器。
 export function ProjectCardRail({ children, hasMore, moreLabel, onMore }: ProjectCardRailProps) {
   return (
     <Box sx={{ position: "relative" }}>

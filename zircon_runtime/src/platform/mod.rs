@@ -12,6 +12,7 @@ pub mod preferences;
 mod service_types;
 mod target;
 #[cfg(test)]
+#[path = "tests/test_support.rs"]
 pub(crate) mod test_support;
 mod window_registry;
 mod window_state_registry;

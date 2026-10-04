@@ -1,3 +1,4 @@
+//! 可序列化的绑定表达式语法树和有预算的文本解析器；资产验证/编译据此检查引用，运行时求值器再取值。
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -15,9 +16,14 @@ pub const UI_BINDING_EXPRESSION_MAX_DEPTH: usize = 64;
 pub const UI_BINDING_EXPRESSION_INLINE_STACK_CAPACITY: usize = 8;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 绑定表达式的语法树：保存字面量、参数/属性引用、同树控制属性引用及其比较与逻辑组合。
+/// 引用是否存在以及目标类型由组件描述符驱动的资产验证和编译阶段确认。
 pub enum UiBindingExpression {
+    /// 不再依赖外部状态的常量值。
     Literal(UiValue),
+    /// 当前组件实例参数；编译器按组件参数表替换或解析该名称。
     ParamRef(String),
+    /// 当前控件属性；编译器将名称解析为编译程序的属性索引。
     PropRef(String),
     /// References a descriptor-owned property on another control in the current tree.
     ControlPropRef {
@@ -32,6 +38,8 @@ pub enum UiBindingExpression {
 }
 
 impl UiBindingExpression {
+    /// 解析绑定表达式子集：`param`、`prop`、`control.X.prop.Y`、类型化字面量，以及逻辑非、与/或和相等/不等运算。
+    /// 开头的 `=` 是资产表达式标记；源码字节、token、节点和嵌套深度均受预算限制。
     pub fn parse(input: &str) -> Result<Self, UiBindingExpressionParseError> {
         Parser::new(input)?.parse()
     }
@@ -44,6 +52,7 @@ impl UiBindingExpression {
         Self::probe_param_reference(input).unwrap_or(false)
     }
 
+    /// 只探测 token 中独立的 `param.<name>` 路径根；保留 token 化错误供验证器生成诊断。
     pub fn probe_param_reference(input: &str) -> Result<bool, UiBindingExpressionParseError> {
         probe_path_root(input, "param", 1)
     }
@@ -54,6 +63,7 @@ impl UiBindingExpression {
         Self::probe_control_reference(input).unwrap_or(false)
     }
 
+    /// 只探测形如 `control.<id>.prop.<name>` 的路径，不要求编辑器预览表达式整体可被运行时语法解析。
     pub fn probe_control_reference(input: &str) -> Result<bool, UiBindingExpressionParseError> {
         probe_path_root(input, "control", 3)
     }
@@ -78,6 +88,7 @@ fn probe_path_root(
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 文本语法、token 化或输入预算错误；此处不表示参数/属性引用已经通过资产契约解析。
 pub enum UiBindingExpressionParseError {
     Empty,
     BudgetExceeded { budget: &'static str, limit: usize },
@@ -124,6 +135,7 @@ enum Token {
     Or,
     Not,
     Unsupported(String),
+    Consumed,
 }
 
 struct Parser {
@@ -151,6 +163,7 @@ impl Parser {
         Ok(expression)
     }
 
+    // 分层入口给出优先级：一元非、相等比较、&&、||；各层循环按左结合构造同级表达式。
     fn parse_or(
         &mut self,
         depth: usize,
@@ -229,6 +242,7 @@ impl Parser {
                     Ok(UiBindingExpression::PropRef(name))
                 }
             }
+            // 跨控件读取只接受 descriptor-owned prop 路径，不能把 state 等内部访问器带入表达式 AST。
             Token::Ident(value) if value == "control" => {
                 self.expect_dot()?;
                 let control_id = self.expect_ident()?;
@@ -315,7 +329,35 @@ impl Parser {
         Ok(value)
     }
 
+    // vec2/vec3/vec4 的长度由构造子固定；直接写入定长数组，避免临时堆分配后再转数组。
     fn expect_float_arguments<const N: usize>(
+        &mut self,
+        constructor: &str,
+    ) -> Result<[f64; N], UiBindingExpressionParseError> {
+        let mut values = [0.0; N];
+        for index in 0..N {
+            if index > 0 && !self.consume(|token| matches!(token, Token::Comma)) {
+                return Err(UiBindingExpressionParseError::UnexpectedToken(format!(
+                    "{constructor} requires {N} comma-separated numbers"
+                )));
+            }
+            values[index] = match self.next() {
+                Some(Token::Integer(value)) => value as f64,
+                Some(Token::Float(value)) => value,
+                Some(token) => return Err(parse_error_from_token(&token)),
+                None => {
+                    return Err(UiBindingExpressionParseError::UnexpectedToken(format!(
+                        "{constructor} requires {N} numbers"
+                    )));
+                }
+            };
+        }
+        self.expect_right_paren(constructor)?;
+        Ok(values)
+    }
+
+    #[cfg(test)]
+    fn expect_float_arguments_allocating<const N: usize>(
         &mut self,
         constructor: &str,
     ) -> Result<[f64; N], UiBindingExpressionParseError> {
@@ -408,7 +450,15 @@ impl Parser {
         self.tokens.get(self.index)
     }
 
+    // token 内可能持有长字符串；推进索引后移出旧值，避免克隆，再用 sentinel 占住已消费槽位。
     fn next(&mut self) -> Option<Token> {
+        let token = self.tokens.get_mut(self.index)?;
+        self.index += 1;
+        Some(std::mem::replace(token, Token::Consumed))
+    }
+
+    #[cfg(test)]
+    fn next_cloned(&mut self) -> Option<Token> {
         let token = self.tokens.get(self.index).cloned()?;
         self.index += 1;
         Some(token)
@@ -426,6 +476,7 @@ fn ensure_expression_depth(depth: usize) -> Result<(), UiBindingExpressionParseE
     }
 }
 
+// 迭代遍历同时限制总节点数和树深；平坦布尔链可能很浅但节点很多，不能只依赖递归深度检查。
 fn validate_expression_budget(
     root: &UiBindingExpression,
 ) -> Result<(), UiBindingExpressionParseError> {
@@ -465,6 +516,7 @@ fn binding_expression_budget_error(
     UiBindingExpressionParseError::BudgetExceeded { budget, limit }
 }
 
+// 先按 UTF-8 源字节拒绝超限输入，再开始字符和 token 分配；tokenizer 在每个新增 token 后提前止损。
 fn tokenize_with_budget(input: &str) -> Result<Vec<Token>, UiBindingExpressionParseError> {
     if input.len() > UI_BINDING_EXPRESSION_MAX_SOURCE_BYTES {
         return Err(binding_expression_budget_error(
@@ -472,17 +524,10 @@ fn tokenize_with_budget(input: &str) -> Result<Vec<Token>, UiBindingExpressionPa
             UI_BINDING_EXPRESSION_MAX_SOURCE_BYTES,
         ));
     }
-    let tokens = tokenize(input);
-    if tokens.len() > UI_BINDING_EXPRESSION_MAX_TOKENS {
-        return Err(binding_expression_budget_error(
-            "tokens",
-            UI_BINDING_EXPRESSION_MAX_TOKENS,
-        ));
-    }
-    Ok(tokens)
+    tokenize(input, UI_BINDING_EXPRESSION_MAX_TOKENS)
 }
 
-fn tokenize(input: &str) -> Vec<Token> {
+fn tokenize(input: &str, max_tokens: usize) -> Result<Vec<Token>, UiBindingExpressionParseError> {
     let trimmed = normalize_expression_input(input);
     let chars = trimmed.chars().collect::<Vec<_>>();
     let mut tokens = Vec::new();
@@ -550,16 +595,40 @@ fn tokenize(input: &str) -> Vec<Token> {
                 Some(value) => tokens.push(Token::String(value)),
                 None => {
                     tokens.push(Token::Unsupported("unterminated string".to_string()));
-                    break;
+                    index = chars.len();
                 }
             },
             '-' | '0'..='9' => tokens.push(parse_number_or_ident(&chars, &mut index)),
             _ => tokens.push(parse_ident(&chars, &mut index)),
         }
+        if tokens.len() > max_tokens {
+            return Err(binding_expression_budget_error("tokens", max_tokens));
+        }
     }
-    tokens
+    Ok(tokens)
 }
 
+#[cfg(test)]
+fn tokenize_with_budget_unbounded_scan(
+    input: &str,
+) -> Result<Vec<Token>, UiBindingExpressionParseError> {
+    if input.len() > UI_BINDING_EXPRESSION_MAX_SOURCE_BYTES {
+        return Err(binding_expression_budget_error(
+            "source bytes",
+            UI_BINDING_EXPRESSION_MAX_SOURCE_BYTES,
+        ));
+    }
+    let tokens = tokenize(input, usize::MAX)?;
+    if tokens.len() > UI_BINDING_EXPRESSION_MAX_TOKENS {
+        return Err(binding_expression_budget_error(
+            "tokens",
+            UI_BINDING_EXPRESSION_MAX_TOKENS,
+        ));
+    }
+    Ok(tokens)
+}
+
+// 资产中的 `=...` 表示动态表达式；去掉首尾空白和单个前缀标记后才进入同一套语法。
 fn normalize_expression_input(input: &str) -> &str {
     let trimmed = input.trim();
     trimmed
@@ -596,7 +665,26 @@ fn parse_string(chars: &[char], index: &mut usize, quote: char) -> Option<String
     None
 }
 
+// Unicode 转义固定读取四个 ASCII 十六进制字符到栈上缓冲；无效码点（含代理项）直接作为字符串错误处理。
 fn parse_unicode_escape(chars: &[char], index: &mut usize) -> Option<char> {
+    let end = index.checked_add(4)?;
+    let source = chars.get(*index..end)?;
+    *index = end;
+    let mut digits = [0_u8; 4];
+    for (byte, digit) in digits.iter_mut().zip(source) {
+        if !digit.is_ascii() {
+            return None;
+        }
+        *byte = *digit as u8;
+    }
+    let digits = std::str::from_utf8(&digits).ok()?;
+    u32::from_str_radix(digits, 16)
+        .ok()
+        .and_then(char::from_u32)
+}
+
+#[cfg(test)]
+fn parse_unicode_escape_allocating(chars: &[char], index: &mut usize) -> Option<char> {
     let end = index.checked_add(4)?;
     let digits = chars.get(*index..end)?.iter().collect::<String>();
     *index = end;
@@ -613,6 +701,63 @@ fn is_typed_literal_constructor(value: &str) -> bool {
 }
 
 fn parse_number_or_ident(chars: &[char], index: &mut usize) -> Token {
+    let start = *index;
+    if chars[*index] == '-' {
+        *index += 1;
+    }
+    while *index < chars.len() && chars[*index].is_ascii_digit() {
+        *index += 1;
+    }
+    let has_fraction = *index < chars.len() && chars[*index] == '.';
+    if has_fraction {
+        *index += 1;
+        while *index < chars.len() && chars[*index].is_ascii_digit() {
+            *index += 1;
+        }
+    }
+    let number = &chars[start..*index];
+    if !has_fraction {
+        if let Some(value) = parse_i64_chars(number) {
+            return Token::Integer(value);
+        }
+    }
+    let text = chars[start..*index].iter().collect::<String>();
+    if text == "-" {
+        return Token::Unsupported("-".to_string());
+    }
+    if has_fraction {
+        text.parse::<f64>()
+            .map(Token::Float)
+            .unwrap_or(Token::Unsupported(text))
+    } else {
+        Token::Unsupported(text)
+    }
+}
+
+// 逐位用 checked 算术解析整数，负数从零向下累积以覆盖 i64::MIN，且不先构造临时字符串。
+fn parse_i64_chars(chars: &[char]) -> Option<i64> {
+    let (negative, digits) = match chars {
+        ['-', digits @ ..] => (true, digits),
+        digits => (false, digits),
+    };
+    if digits.is_empty() {
+        return None;
+    }
+
+    let mut value = 0_i64;
+    for digit in digits {
+        let digit = i64::from(digit.to_digit(10)?);
+        value = if negative {
+            value.checked_mul(10)?.checked_sub(digit)?
+        } else {
+            value.checked_mul(10)?.checked_add(digit)?
+        };
+    }
+    Some(value)
+}
+
+#[cfg(test)]
+fn parse_number_or_ident_allocating(chars: &[char], index: &mut usize) -> Token {
     let start = *index;
     if chars[*index] == '-' {
         *index += 1;
@@ -641,7 +786,27 @@ fn parse_number_or_ident(chars: &[char], index: &mut usize) -> Token {
     }
 }
 
+// 关键字直接匹配字符切片可避免为 true/false/null 分配 String；普通标识符仍保留原拼写。
 fn parse_ident(chars: &[char], index: &mut usize) -> Token {
+    let start = *index;
+    while *index < chars.len()
+        && (chars[*index].is_ascii_alphanumeric() || chars[*index] == '_' || chars[*index] == '-')
+    {
+        *index += 1;
+    }
+    if start == *index {
+        *index += 1;
+    }
+    match &chars[start..*index] {
+        ['t', 'r', 'u', 'e'] => Token::Bool(true),
+        ['f', 'a', 'l', 's', 'e'] => Token::Bool(false),
+        ['n', 'u', 'l', 'l'] => Token::Null,
+        identifier => Token::Ident(identifier.iter().collect::<String>()),
+    }
+}
+
+#[cfg(test)]
+fn parse_ident_allocating(chars: &[char], index: &mut usize) -> Token {
     let start = *index;
     while *index < chars.len()
         && (chars[*index].is_ascii_alphanumeric() || chars[*index] == '_' || chars[*index] == '-')
@@ -673,124 +838,13 @@ fn parse_error_from_token(token: &Token) -> UiBindingExpressionParseError {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
+#[path = "expression/tests/integer_token_performance_tests.rs"]
+mod integer_token_performance_tests;
 
-    #[test]
-    fn typed_binding_literal_parser_preserves_supported_value_kinds_and_escapes() {
-        let cases = [
-            (
-                r#"color("quote\" slash\\ newline\n return\r tab\t back\b form\f unit\u001f")"#,
-                UiValue::Color(
-                    "quote\" slash\\ newline\n return\r tab\t back\u{0008} form\u{000c} unit\u{001f}"
-                        .to_string(),
-                ),
-            ),
-            (
-                r#"asset_ref("asset://ui/status")"#,
-                UiValue::AssetRef("asset://ui/status".to_string()),
-            ),
-            (
-                r#"instance_ref("StatusRoot")"#,
-                UiValue::InstanceRef("StatusRoot".to_string()),
-            ),
-            (
-                r#"enum("layout.horizontal")"#,
-                UiValue::Enum("layout.horizontal".to_string()),
-            ),
-            ("vec2(1, -2.5)", UiValue::Vec2([1.0, -2.5])),
-            ("vec3(1, 2.25, -3)", UiValue::Vec3([1.0, 2.25, -3.0])),
-            (
-                "vec4(0, 0.5, 1, -4.75)",
-                UiValue::Vec4([0.0, 0.5, 1.0, -4.75]),
-            ),
-            (
-                r#"flags("read", "write")"#,
-                UiValue::Flags(vec!["read".to_string(), "write".to_string()]),
-            ),
-            ("flags()", UiValue::Flags(Vec::new())),
-        ];
+#[cfg(test)]
+#[path = "expression/tests/parser_token_performance_tests.rs"]
+mod parser_token_performance_tests;
 
-        for (source, value) in cases {
-            assert_eq!(
-                UiBindingExpression::parse(source).unwrap(),
-                UiBindingExpression::Literal(value),
-                "typed literal source: {source}"
-            );
-        }
-    }
-
-    #[test]
-    fn typed_binding_literal_param_probe_requires_a_path_root() {
-        assert!(UiBindingExpression::contains_param_reference("param.title"));
-        assert!(UiBindingExpression::contains_param_reference(
-            "=concat(param.title, prop.text)"
-        ));
-        assert!(!UiBindingExpression::contains_param_reference(
-            r#"=concat("param.title", prop.text)"#
-        ));
-        assert!(!UiBindingExpression::contains_param_reference(
-            "control.param.prop.value"
-        ));
-    }
-
-    #[test]
-    fn control_reference_probe_ignores_quoted_preview_text() {
-        assert!(UiBindingExpression::contains_control_reference(
-            "control.Value.prop.text"
-        ));
-        assert!(UiBindingExpression::contains_control_reference(
-            "=control.Value.prop.text == \"Ready\""
-        ));
-        assert!(!UiBindingExpression::contains_control_reference(
-            r#"=concat("control.Value.prop.text", prop.text)"#
-        ));
-        assert!(!UiBindingExpression::contains_control_reference(
-            "model.control.Value.prop.text"
-        ));
-    }
-
-    #[test]
-    fn binding_expression_parse_budgets_reject_oversized_or_deep_input() {
-        let oversized = "x".repeat(UI_BINDING_EXPRESSION_MAX_SOURCE_BYTES + 1);
-        assert_eq!(
-            UiBindingExpression::parse(&oversized),
-            Err(UiBindingExpressionParseError::BudgetExceeded {
-                budget: "source bytes",
-                limit: UI_BINDING_EXPRESSION_MAX_SOURCE_BYTES,
-            })
-        );
-        assert_eq!(
-            UiBindingExpression::probe_param_reference(&oversized),
-            Err(UiBindingExpressionParseError::BudgetExceeded {
-                budget: "source bytes",
-                limit: UI_BINDING_EXPRESSION_MAX_SOURCE_BYTES,
-            })
-        );
-        assert_eq!(
-            UiBindingExpression::probe_control_reference(&oversized),
-            Err(UiBindingExpressionParseError::BudgetExceeded {
-                budget: "source bytes",
-                limit: UI_BINDING_EXPRESSION_MAX_SOURCE_BYTES,
-            })
-        );
-
-        let excessive_tokens = format!("{}true", "!".repeat(UI_BINDING_EXPRESSION_MAX_TOKENS));
-        assert_eq!(
-            UiBindingExpression::parse(&excessive_tokens),
-            Err(UiBindingExpressionParseError::BudgetExceeded {
-                budget: "tokens",
-                limit: UI_BINDING_EXPRESSION_MAX_TOKENS,
-            })
-        );
-
-        let excessive_depth = format!("{}true", "!".repeat(UI_BINDING_EXPRESSION_MAX_DEPTH));
-        assert_eq!(
-            UiBindingExpression::parse(&excessive_depth),
-            Err(UiBindingExpressionParseError::BudgetExceeded {
-                budget: "depth",
-                limit: UI_BINDING_EXPRESSION_MAX_DEPTH,
-            })
-        );
-    }
-}
+#[cfg(test)]
+#[path = "tests/expression.rs"]
+mod tests;

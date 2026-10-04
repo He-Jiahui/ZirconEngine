@@ -1,6 +1,7 @@
 mod standalone;
 
 #[cfg(test)]
+#[path = "projection/tests/metrics.rs"]
 mod metrics;
 
 use crate::plugin::PluginFeatureBundleManifest;
@@ -16,10 +17,13 @@ pub(in crate::plugin::runtime_plugin) use metrics::{
     observed_standalone_feature_projection_builds,
 };
 
+/// 向行验证提供相同的重复查询接口，避免包内每个功能重新构建独立索引。
+/// 查询中的行号必须来自建索引时的清单；投影建成后不得换序或改用另一份功能。
 pub(super) struct RuntimePluginFeatureValidationProjection<'projection, 'manifest> {
     source: ProjectionSource<'projection, 'manifest>,
 }
 
+// 独立来源只保存重复位置，拥有自身数据；内嵌来源借用包级索引并保留列表种类和行号。
 enum ProjectionSource<'projection, 'manifest> {
     Standalone(StandaloneFeatureValidationProjection),
     Embedded {
@@ -30,6 +34,7 @@ enum ProjectionSource<'projection, 'manifest> {
 }
 
 impl RuntimePluginFeatureValidationProjection<'static, 'static> {
+    /// 为脱离包清单注册的功能创建局部索引；结果不借用功能清单本身。
     pub(super) fn standalone(feature: &PluginFeatureBundleManifest) -> Self {
         #[cfg(test)]
         metrics::observe_standalone_feature_projection_build();
@@ -43,6 +48,7 @@ impl RuntimePluginFeatureValidationProjection<'static, 'static> {
 }
 
 impl<'projection, 'manifest> RuntimePluginFeatureValidationProjection<'projection, 'manifest> {
+    /// 借用本次包审查已建立的索引；种类和功能行号应由所属包列表的枚举传入。
     pub(super) fn embedded(
         package: &'projection RuntimePluginPackageValidationProjection<'manifest>,
         kind: EmbeddedFeatureKind,

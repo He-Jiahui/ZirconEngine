@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对虚拟几何链路的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 const STATUS: &str =
@@ -29,7 +30,7 @@ fn runtime_15_virtual_geometry_asset_payload_decode_is_wired() {
     );
     let provider = read_repo("zircon_plugins/virtual_geometry/runtime/src/provider.rs");
     let imported_extract_test = read_repo(
-        "zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_imported_extract.rs",
+        "zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/tests/virtual_geometry_imported_extract.rs",
     );
     let plan_08 = read_repo(
         "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
@@ -56,6 +57,14 @@ fn runtime_15_virtual_geometry_asset_payload_decode_is_wired() {
             "primitive.virtual_geometry.clone()",
             "page_remap",
             "resident_page_payloads",
+        ],
+    );
+    assert_contains_all(
+        "nanite automatic extract owns cooked page payload decode in a separate module",
+        &read_repo(
+        "zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/nanite/tests/page_payload.rs",
+    ),
+        &[
             "render_page_payloads_decode_cooked_triangle_vertices_with_global_page_ids",
         ],
     );

@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use super::super::super::{
-    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveMergePolicy,
-    RuntimeSessionArchiveMergeReport, io,
+    io, RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveMergePolicy,
+    RuntimeSessionArchiveMergeReport,
 };
 
 pub(in crate::scene::dynamic_scene::session) fn merge_archive_at_path_atomically(

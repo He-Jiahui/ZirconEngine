@@ -7,6 +7,8 @@ use zircon_runtime_interface::ui::{
     tree::UiTree,
 };
 
+/// surface 持有的组件值与交互伪状态，供属性事务、样式选择器和绘制共同读取。
+/// 写入方须经 surface 的事务入口同步失效域；单独改变此存储不会重建布局或渲染。
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiSurfaceComponentStateStore {
     states: BTreeMap<UiNodeId, UiComponentState>,
@@ -54,6 +56,8 @@ impl UiSurfaceComponentStateStore {
         self.states.get(&node_id)
     }
 
+    /// 热重载仅迁移两棵树中均唯一的组件稳定键，避免重复 control_id 让状态串到另一控件。
+    /// 保留持久值，清除焦点、悬停、按压、拖拽和弹层等依赖旧会话的瞬态状态。
     pub(crate) fn migrate_stable_from(
         &mut self,
         previous: &Self,
@@ -154,6 +158,8 @@ impl UiSurfaceComponentStateStore {
         }
     }
 
+    /// 将已接受的属性写入同步到组件状态，并区分值变化与伪状态变化。
+    /// 上层用这一区分决定是否重新匹配运行时样式，普通数值更新无需走伪状态路径。
     pub(crate) fn sync_from_property(
         &mut self,
         node_id: UiNodeId,
@@ -428,99 +434,5 @@ fn bool_attribute(values: &std::collections::BTreeMap<String, toml::Value>, key:
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use zircon_runtime_interface::ui::{
-        event_ui::{UiNodePath, UiTreeId},
-        tree::{UiTemplateNodeMetadata, UiTreeNode},
-    };
-
-    #[test]
-    fn virtual_window_numeric_property_change_is_not_a_runtime_pseudo_state_change() {
-        let mut states = UiSurfaceComponentStateStore::default();
-        let node_id = UiNodeId::new(7);
-
-        let change = states.sync_from_property(node_id, "viewport_start", &UiValue::Int(12));
-
-        assert_eq!(
-            change,
-            UiComponentStatePropertyChange {
-                value_changed: true,
-                pseudo_state_changed: false,
-            }
-        );
-        assert_eq!(
-            states
-                .get(node_id)
-                .and_then(|state| state.value("viewport_start")),
-            Some(&UiValue::Int(12))
-        );
-    }
-
-    #[test]
-    fn virtual_window_pseudo_state_change_reports_only_real_flag_transitions() {
-        let mut states = UiSurfaceComponentStateStore::default();
-        let node_id = UiNodeId::new(9);
-
-        let first = states.sync_from_property(node_id, "hovered", &UiValue::Bool(true));
-        let alias = states.sync_from_property(node_id, "hover", &UiValue::Bool(true));
-        let unchanged = states.sync_from_property(node_id, "hover", &UiValue::Bool(true));
-
-        assert_eq!(
-            first,
-            UiComponentStatePropertyChange {
-                value_changed: true,
-                pseudo_state_changed: true,
-            }
-        );
-        assert_eq!(
-            alias,
-            UiComponentStatePropertyChange {
-                value_changed: true,
-                pseudo_state_changed: false,
-            }
-        );
-        assert_eq!(unchanged, UiComponentStatePropertyChange::default());
-    }
-
-    #[test]
-    fn hot_reload_state_migration_rejects_duplicate_stable_keys() {
-        let tree_id = UiTreeId::new("runtime.ui.duplicate-state-key");
-        let mut previous_tree = UiTree::new(tree_id.clone());
-        previous_tree.insert_root(state_node(1, "Shared", "TextInput"));
-        previous_tree.insert_root(state_node(2, "Shared", "TextInput"));
-        let mut replacement_tree = UiTree::new(tree_id);
-        replacement_tree.insert_root(state_node(10, "Shared", "TextInput"));
-
-        let mut previous = UiSurfaceComponentStateStore::default();
-        previous.set_value(
-            UiNodeId::new(1),
-            "text",
-            UiValue::String("first".to_string()),
-        );
-        previous.set_value(
-            UiNodeId::new(2),
-            "text",
-            UiValue::String("second".to_string()),
-        );
-        let mut replacement = UiSurfaceComponentStateStore::default();
-
-        let report = replacement.migrate_stable_from(&previous, &previous_tree, &replacement_tree);
-
-        assert_eq!(report.migrated, 0);
-        assert_eq!(report.reset, 2);
-        assert!(replacement.get(UiNodeId::new(10)).is_none());
-    }
-
-    fn state_node(node_id: u64, control_id: &str, component: &str) -> UiTreeNode {
-        UiTreeNode::new(
-            UiNodeId::new(node_id),
-            UiNodePath::new(format!("reload/{node_id}")),
-        )
-        .with_template_metadata(UiTemplateNodeMetadata {
-            component: component.to_string(),
-            control_id: Some(control_id.to_string()),
-            ..Default::default()
-        })
-    }
-}
+#[path = "tests/component_state.rs"]
+mod tests;

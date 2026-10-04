@@ -18,7 +18,7 @@ mod header_wire;
 mod payload_codec;
 
 #[cfg(test)]
-#[path = "ibl_bake_artifact/tests.rs"]
+#[path = "ibl_bake_artifact/tests/cases.rs"]
 mod tests;
 
 use header_wire::{
@@ -94,6 +94,7 @@ impl BitOrAssign for IblBakeArtifactContents {
     }
 }
 
+/// 烘焙或命中缓存时的需求身份；源图布局、目标 PMREM 布局和必需分段共同决定可复用性。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct IblBakeArtifactRequest {
     bake_key: IblBakeKey,
@@ -157,6 +158,8 @@ impl IblBakeArtifactRequest {
     }
 }
 
+/// 持久化工件的生产者与布局声明，选择器据此拒绝旧算法或不匹配的源图。
+/// `contents` 可包含请求之外的已知分段，消费方仍须按实际分段验证载荷。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct IblBakeArtifactDescriptor {
     bake_key: IblBakeKey,
@@ -580,6 +583,8 @@ impl IblBakeArtifactSelection {
     }
 }
 
+/// 先选择当前的资产派生产物，再选择当前的运行时缓存，最后要求 GPU 计算。
+/// 这个顺序让导入阶段产物成为首选，同时把旧版本和不同积分器的缓存隔离。
 pub fn select_ibl_bake_artifact(
     request: &IblBakeArtifactRequest,
     candidates: &[IblBakeArtifactCandidate],

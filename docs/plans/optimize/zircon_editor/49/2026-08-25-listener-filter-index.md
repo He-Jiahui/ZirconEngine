@@ -53,7 +53,7 @@ nanoseconds. Exact elapsed time is accepted only from coordinator terminal evide
 
 ## Documentation Decision
 
-`docs/zircon_editor/core/editor_event.md` already states that listener prefixes are normalized
+`docs/crates/zircon_editor/core/editor_event.md` already states that listener prefixes are normalized
 once and that per-record matching is borrowed. The group index preserves that contract and does
 not make the retained architecture document false, so this scoped optimization record is the only
 documentation change.

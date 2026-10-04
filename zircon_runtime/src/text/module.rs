@@ -1,74 +1,117 @@
 use std::sync::Arc;
+use std::time::Instant;
 
+use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::manager::{
-    ManagerServiceHandle, RegisteredManagerService, manager_service_handle, resolve_manager_service,
+    manager_service_handle, resolve_manager_service, ManagerServiceHandle, RegisteredManagerService,
 };
 use crate::core::runtime::ServiceObject;
 use crate::core::{
-    CoreError, CoreHandle, InitLevel, ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode,
+    CoreError, CoreHandle, CoreResult, InitLevel, ManagerDescriptor, ModuleContext,
+    ModuleDescriptor, ModuleLifecycle, ServiceKind, StartupMode,
 };
-use crate::engine_module::{EngineModule, factory, qualified_name};
+use crate::engine_module::{factory, qualified_name, EngineModule};
 
-use super::font::FontCollectionService;
+use super::context::{TextRuntimeContext, TextSystemFontPolicy};
 
 pub const TEXT_MODULE_NAME: &str = "TextModule";
-pub(crate) const FONT_SERVICES_MANAGER_NAME: &str = "TextModule.Manager.FontServices";
+// Keep the registry name stable until Graphics' declared dependency migrates with its owner.
+pub(crate) const TEXT_RUNTIME_CONTEXT_MANAGER_NAME: &str = "TextModule.Manager.FontServices";
 
 const TEXT_MODULE_DESCRIPTION: &str = "Runtime text shaping, layout, and font services";
 
-#[derive(Debug)]
-pub(crate) struct TextRuntimeServices {
-    font_collection: Arc<FontCollectionService>,
+pub(crate) fn text_runtime_context_handle(
+    core: &CoreHandle,
+) -> Result<ManagerServiceHandle<TextRuntimeContext>, CoreError> {
+    manager_service_handle(core, TEXT_RUNTIME_CONTEXT_MANAGER_NAME)
 }
 
-impl TextRuntimeServices {
-    fn new() -> Arc<Self> {
-        Arc::new(Self {
-            font_collection: FontCollectionService::new(),
-        })
+pub fn text_runtime_context_for_core(
+    core: &CoreHandle,
+) -> Result<Arc<TextRuntimeContext>, CoreError> {
+    resolve_manager_service(core, text_runtime_context_handle(core)?)
+}
+
+#[derive(Debug, Default)]
+struct TextModuleLifecycle;
+
+impl ModuleLifecycle for TextModuleLifecycle {
+    fn cleanup(&self, context: &ModuleContext) -> CoreResult<()> {
+        let core = context
+            .core
+            .upgrade()
+            .ok_or(CoreError::RuntimeUnavailable)?;
+        let runtime_context = text_runtime_context_for_core(&core)?;
+        runtime_context.begin_draining();
+        runtime_context.close();
+        Ok(())
     }
 
-    pub(crate) fn font_collection(&self) -> Arc<FontCollectionService> {
-        Arc::clone(&self.font_collection)
+    fn cleanup_until(&self, context: &ModuleContext, deadline: Instant) -> CoreResult<()> {
+        if Instant::now() >= deadline {
+            return Err(CoreError::ModuleCleanupTimeout {
+                module: context.module_name.clone(),
+                operation: "text_runtime_context".to_owned(),
+                budget: std::time::Duration::ZERO,
+                incomplete_entries: 1,
+                failed: 0,
+                cancelled: 0,
+            });
+        }
+        self.cleanup(context)
     }
-}
-
-pub(crate) fn text_runtime_services_handle(
-    core: &CoreHandle,
-) -> Result<ManagerServiceHandle<TextRuntimeServices>, CoreError> {
-    manager_service_handle(core, FONT_SERVICES_MANAGER_NAME)
-}
-
-pub(crate) fn resolve_text_runtime_services(
-    core: &CoreHandle,
-) -> Result<Arc<TextRuntimeServices>, CoreError> {
-    resolve_manager_service(core, text_runtime_services_handle(core)?)
-}
-
-pub(crate) fn font_collection_service_for_core(
-    core: &CoreHandle,
-) -> Result<Arc<FontCollectionService>, CoreError> {
-    resolve_text_runtime_services(core).map(|services| services.font_collection())
 }
 
 pub fn module_descriptor() -> ModuleDescriptor {
+    module_descriptor_with_system_font_policy(TextSystemFontPolicy::PackagedOnly)
+}
+
+fn module_descriptor_with_system_font_policy(
+    system_font_policy: TextSystemFontPolicy,
+) -> ModuleDescriptor {
     ModuleDescriptor::new(TEXT_MODULE_NAME, TEXT_MODULE_DESCRIPTION)
         .with_init_level(InitLevel::Services)
+        .with_lifecycle(Arc::new(TextModuleLifecycle))
         .with_manager(ManagerDescriptor::new(
             qualified_name(TEXT_MODULE_NAME, ServiceKind::Manager, "FontServices"),
             StartupMode::Immediate,
             Vec::new(),
-            factory(|_| {
-                Ok(
-                    Arc::new(RegisteredManagerService::new(TextRuntimeServices::new()))
-                        as ServiceObject,
-                )
+            factory(move |_| {
+                let context = TextRuntimeContext::new_with_system_font_policy(system_font_policy)
+                    .map_err(|error| {
+                    CoreError::Initialization(TEXT_MODULE_NAME.to_owned(), error.to_string())
+                })?;
+                Ok(Arc::new(RegisteredManagerService::new(context)) as ServiceObject)
             }),
         ))
 }
 
-#[derive(Clone, Copy, Debug, Default)]
-pub struct TextModule;
+#[derive(Clone, Copy, Debug)]
+pub struct TextModule {
+    system_font_policy: TextSystemFontPolicy,
+}
+
+impl TextModule {
+    pub const fn for_target(target: RuntimeTargetMode) -> Self {
+        let system_font_policy = match target {
+            RuntimeTargetMode::ClientRuntime | RuntimeTargetMode::EditorHost => {
+                TextSystemFontPolicy::DiscoverPlatform
+            }
+            RuntimeTargetMode::ServerRuntime => TextSystemFontPolicy::PackagedOnly,
+        };
+        Self { system_font_policy }
+    }
+
+    pub const fn with_system_font_policy(system_font_policy: TextSystemFontPolicy) -> Self {
+        Self { system_font_policy }
+    }
+}
+
+impl Default for TextModule {
+    fn default() -> Self {
+        Self::with_system_font_policy(TextSystemFontPolicy::PackagedOnly)
+    }
+}
 
 impl EngineModule for TextModule {
     fn module_name(&self) -> &'static str {
@@ -80,42 +123,10 @@ impl EngineModule for TextModule {
     }
 
     fn descriptor(&self) -> ModuleDescriptor {
-        module_descriptor()
+        module_descriptor_with_system_font_policy(self.system_font_policy)
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-
-    use crate::core::CoreRuntime;
-
-    use super::{TEXT_MODULE_NAME, font_collection_service_for_core, module_descriptor};
-
-    fn runtime_with_text_services() -> CoreRuntime {
-        let runtime = CoreRuntime::new();
-        runtime
-            .register_module(module_descriptor())
-            .expect("text module should register");
-        runtime
-            .activate_module(TEXT_MODULE_NAME)
-            .expect("text module should activate");
-        runtime
-    }
-
-    #[test]
-    fn text_font_services_are_stable_within_one_runtime_and_isolated_across_runtimes() {
-        let first_runtime = runtime_with_text_services();
-        let second_runtime = runtime_with_text_services();
-        let first = font_collection_service_for_core(&first_runtime.handle())
-            .expect("first runtime font collection");
-        let first_again = font_collection_service_for_core(&first_runtime.handle())
-            .expect("first runtime font collection should remain resolvable");
-        let second = font_collection_service_for_core(&second_runtime.handle())
-            .expect("second runtime font collection");
-
-        assert!(Arc::ptr_eq(&first, &first_again));
-        assert!(!Arc::ptr_eq(&first, &second));
-        assert_ne!(first.collection_id(), second.collection_id());
-    }
-}
+#[path = "tests/module.rs"]
+mod tests;

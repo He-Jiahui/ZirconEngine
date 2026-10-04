@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap, VecDeque};
 
 use toml::Value as TomlValue;
-use zircon_runtime::ui::component::{apply_component_event, UiComponentDescriptorRegistry};
+use zircon_runtime::ui::component::{UiComponentDescriptorRegistry, UiComponentStateModel};
 use zircon_runtime_interface::ui::component::{
     UiComponentEventEnvelope, UiComponentState, UiDragSourceMetadata, UiValue,
 };
@@ -30,11 +30,25 @@ pub(crate) struct UiComponentShowcaseDemoLogEntry {
     pub value_text: Option<String>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub(crate) struct UiComponentShowcaseDemoState {
     selected_category: String,
-    states: HashMap<String, UiComponentState>,
+    states: HashMap<String, UiComponentStateModel>,
     event_log: VecDeque<UiComponentShowcaseDemoLogEntry>,
+}
+
+impl PartialEq for UiComponentShowcaseDemoState {
+    fn eq(&self, other: &Self) -> bool {
+        self.selected_category == other.selected_category
+            && self.event_log == other.event_log
+            && self.states.len() == other.states.len()
+            && self.states.iter().all(|(control_id, state)| {
+                other
+                    .states
+                    .get(control_id)
+                    .is_some_and(|other_state| state.state() == other_state.state())
+            })
+    }
 }
 
 impl Default for UiComponentShowcaseDemoState {
@@ -63,7 +77,7 @@ impl UiComponentShowcaseDemoState {
         if let Some(value) = self
             .states
             .get(control_id)
-            .and_then(|state| state.value(property))
+            .and_then(|state| state.state().value(property))
         {
             return Some(value.display_text());
         }
@@ -106,11 +120,13 @@ impl UiComponentShowcaseDemoState {
             let state = self
                 .states
                 .entry(control_id.to_string())
-                .or_insert_with(|| default_state_for_control(control_id));
-            let result = apply_component_event(state, descriptor, envelope.event.clone());
+                .or_insert_with(|| {
+                    UiComponentStateModel::new(default_state_for_control(control_id))
+                });
+            let result = state.apply_event(descriptor, envelope.event.clone());
             let changed_value = if result.is_ok() {
                 changed_property
-                    .and_then(|property| state.value(property))
+                    .and_then(|property| state.state().value(property))
                     .cloned()
             } else {
                 None
@@ -200,7 +216,7 @@ impl UiComponentShowcaseDemoState {
             if let Some(explicit_state) = self.states.get(control_id) {
                 node.attributes.insert(
                     "popup_open".to_string(),
-                    TomlValue::Boolean(explicit_state.flags.popup_open),
+                    TomlValue::Boolean(explicit_state.state().flags.popup_open),
                 );
             }
             project_state_value_attribute(&mut node.attributes, &state, "popup_anchor_x");
@@ -354,7 +370,7 @@ impl UiComponentShowcaseDemoState {
     fn state_for_control(&self, control_id: &str) -> Option<UiComponentState> {
         self.states
             .get(control_id)
-            .cloned()
+            .map(|state| state.state().clone())
             .or_else(|| self.default_state_for_control(control_id))
     }
 
@@ -521,34 +537,9 @@ fn toml_value(value: &UiValue) -> TomlValue {
 }
 
 #[cfg(test)]
-mod performance_tests {
-    use super::{UiComponentShowcaseDemoState, SHOWCASE_EVENT_LOG_LIMIT};
-
-    #[test]
-    fn showcase_event_log_retains_a_bounded_recent_window() {
-        let mut state = UiComponentShowcaseDemoState::default();
-        for index in 0..=SHOWCASE_EVENT_LOG_LIMIT {
-            state.push_log("Change", &format!("control-{index}"), None);
-        }
-
-        assert_eq!(state.event_log.len(), SHOWCASE_EVENT_LOG_LIMIT);
-        assert_eq!(
-            state
-                .event_log
-                .front()
-                .map(|entry| entry.control_id.as_str()),
-            Some("control-1")
-        );
-        assert_eq!(
-            state
-                .event_log
-                .back()
-                .map(|entry| entry.control_id.as_str()),
-            Some("control-128")
-        );
-    }
-}
+#[path = "tests/showcase_demo_state_performance_tests.rs"]
+mod performance_tests;
 
 #[cfg(test)]
-#[path = "showcase_demo_state/hash_state_tests.rs"]
+#[path = "showcase_demo_state/tests/hash_state_tests.rs"]
 mod hash_state_tests;

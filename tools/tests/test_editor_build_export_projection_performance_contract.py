@@ -1,3 +1,5 @@
+
+from tools.tests.rust_test_files import read_rust_test_file
 from pathlib import Path
 import unittest
 
@@ -16,6 +18,11 @@ WIZARD_PANEL = ROOT / (
     "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/"
     "build_export_wizard_panel.rs"
 )
+WIZARD_PANEL_PROJECTION = ROOT / (
+    "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/"
+    "wizard/panel_projection.rs"
+)
+WIZARD_PANEL_PROJECTION_TESTS = ROOT / "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_projection/tests/astra_artifact_truth_tests.rs"
 
 
 class EditorBuildExportProjectionPerformanceContractTests(unittest.TestCase):
@@ -30,9 +37,9 @@ class EditorBuildExportProjectionPerformanceContractTests(unittest.TestCase):
         self.assertNotIn("base.clone()", projection)
         self.assertIn(
             "cached_base_reuses_the_same_projection_allocation",
-            cache,
+            read_rust_test_file("zircon_editor/src/ui/retained_host/app/build_export_projection/tests/cache.rs"),
         )
-        self.assertIn("Arc::ptr_eq", cache)
+        self.assertIn("Arc::ptr_eq", read_rust_test_file("zircon_editor/src/ui/retained_host/app/build_export_projection/tests/cache.rs"))
 
     def test_base_cache_hit_reads_a_watcher_epoch_without_filesystem_probes(self) -> None:
         cache = CACHE.read_text(encoding="utf-8")
@@ -65,10 +72,10 @@ class EditorBuildExportProjectionPerformanceContractTests(unittest.TestCase):
             "source_generation == token.source_generation", store
         )
         self.assertIn("!source_generation_unchanged", store)
-        self.assertIn("preset_write_advances_the_watcher_generation", cache)
+        self.assertIn("preset_write_advances_the_watcher_generation", read_rust_test_file("zircon_editor/src/ui/retained_host/app/build_export_projection/tests/cache.rs"))
         self.assertIn(
             "created_export_directory_is_watched_for_followup_preset_changes",
-            cache,
+            read_rust_test_file("zircon_editor/src/ui/retained_host/app/build_export_projection/tests/cache.rs"),
         )
 
     def test_wizard_projection_borrows_the_published_view_model(self) -> None:
@@ -84,11 +91,11 @@ class EditorBuildExportProjectionPerformanceContractTests(unittest.TestCase):
         self.assertNotIn("data.wizard_view_model.clone()", selector)
         self.assertIn(
             "published_wizard_view_model_is_borrowed_without_a_payload_clone",
-            source,
+            read_rust_test_file("zircon_editor/src/ui/retained_host/ui/pane_data_conversion/tests/build_export_wizard_panel_performance_tests.rs"),
         )
         self.assertIn(
             "missing_wizard_view_model_constructs_an_owned_fallback",
-            source,
+            read_rust_test_file("zircon_editor/src/ui/retained_host/ui/pane_data_conversion/tests/build_export_wizard_panel_performance_tests.rs"),
         )
 
     def test_wizard_projection_consumes_owned_node_payloads(self) -> None:
@@ -139,6 +146,41 @@ class EditorBuildExportProjectionPerformanceContractTests(unittest.TestCase):
         self.assertIn(
             "Vec::with_capacity(BUILD_EXPORT_NODES_PER_TARGET)", row_source
         )
+
+    def test_wizard_projects_only_announced_artifacts_without_plan_merge(self) -> None:
+        source = WIZARD_PANEL_PROJECTION.read_text(encoding="utf-8")
+        artifact_entries = source.split("fn artifact_path_entries", 1)[1].split(
+            "fn report_body_entries", 1
+        )[0]
+        report_entries = source.split("fn report_body_entries", 1)[1].split(
+            "fn pipeline_report_body_entry", 1
+        )[0]
+        artifact_lookup = source.split("fn artifact_path_for_key", 1)[1].split(
+            "fn progress_label", 1
+        )[0]
+        compact_report_entries = "".join(report_entries.split())
+        regression_tests = WIZARD_PANEL_PROJECTION_TESTS.read_text(encoding="utf-8")
+
+        self.assertIn("for artifact in &row.artifact_paths", artifact_entries)
+        self.assertNotIn("planned_artifacts", artifact_entries)
+        self.assertNotIn("merged_artifacts", source)
+        self.assertNotIn("planned_artifacts", artifact_lookup)
+        self.assertIn(
+            'report.artifact_paths.iter().any(|artifact|artifact.key=="report"||'
+            'artifact.key=="pipeline_report").then(||'
+            "parsed_report_from_stdout(&report.stdout_lines)).flatten()",
+            compact_report_entries,
+        )
+        self.assertNotIn(
+            "let parsed_report = parsed_report_from_stdout(&report.stdout_lines);",
+            report_entries,
+        )
+        for test_name in (
+            "astra_m23_planned_paths_never_become_reported_results",
+            "astra_m23_latest_announced_path_is_preserved_even_on_failure",
+            "astra_m23_report_body_does_not_treat_stdout_json_as_report_artifact",
+        ):
+            self.assertIn(f"fn {test_name}", regression_tests)
 
 
 if __name__ == "__main__":

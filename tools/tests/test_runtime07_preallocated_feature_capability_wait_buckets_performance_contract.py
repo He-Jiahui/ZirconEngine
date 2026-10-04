@@ -13,7 +13,7 @@ SOURCE_PATH = (
     / "feature_resolution.rs"
 )
 
-
+# 读取实现源码约束预分配特性能力等待桶：等待索引预留待处理特性计数，并等待索引不开始带无界增长。
 class PreallocatedFeatureCapabilityWaitBucketsPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

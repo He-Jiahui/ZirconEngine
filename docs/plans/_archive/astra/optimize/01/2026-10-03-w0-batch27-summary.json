@@ -1,0 +1,41 @@
+{
+  "batch": "w0-batch27",
+  "counts": {
+    "source_observations": 2053,
+    "report_qualified_keys": 2038,
+    "distinct_original_literal_ids": 1533,
+    "unlabelled_original_finding_ordinals": 84,
+    "original_gate_rows": 1095,
+    "this_batch_original_findings": 275,
+    "this_batch_finding_locations": 286,
+    "this_batch_repeat_location_observations": 11,
+    "this_batch_original_gates": 212,
+    "this_batch_priority_split": {
+      "P1": 202,
+      "P2": 49,
+      "P0": 24
+    },
+    "this_batch_unique_original_literal_ids": 43,
+    "this_batch_report_count": 12,
+    "preserved_nonnew_bounded_relations": 21,
+    "whole_inventory": false
+  },
+  "status": "Original identity intake only; all source/native/product/performance/Jenkins open",
+  "qualified_key_collisions": 0,
+  "original_identity_location_gate_rows_verified": 773,
+  "canonical_scan_boundary": "B26 1767observations/1763keys/1533literal/84null/883gate; no incoming275key matches",
+  "qualifications": {
+    "author_terminal_inner_self_pin": "Stale self-entry09309c...3305B preserved; actual8daf...3439B and outputmanifest agree. No historical seal reconstruction.",
+    "independent_review_path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\w0-runtime-batch27-completeness-independent-review-foundation-r1\\review.json",
+    "independent_review_sha256": "972148469fae03bd885a319671e130f8023890aebb9058cedec3fddc0696b23a",
+    "identity": "Full report path + literal ID; repeat locations share original key; null gates use stable perreport ordinals.",
+    "reported_source_paths": "Owner hints only; current source and behavior unchecked.",
+    "relations": "21 bounded aliases/baseline relations NONNEW; no individual pairings inferred."
+  },
+  "primary_report_denominator": 576,
+  "supplemental_paths": 9,
+  "supplemental_primary_findings_added": 0,
+  "whole_inventory": false,
+  "source_writes": 0,
+  "tests_run": 0
+}

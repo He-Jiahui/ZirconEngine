@@ -1,10 +1,11 @@
+# 核对 PBR 图形处理器计时证据的采样、统计与截图一致性。
 import hashlib
 import unittest
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from tools.zircon_validate_shader_pbr_gpu_timing_evidence import (
+from tools.analysis.profiling.shader_pbr.zircon_validate_shader_pbr_gpu_timing_evidence import (
     GPU_TIMING_EVIDENCE_SCHEMA,
     GPU_TIMING_MEASURED_SAMPLE_COUNT,
     GPU_TIMING_WARMUP_SAMPLE_COUNT,

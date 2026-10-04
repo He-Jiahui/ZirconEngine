@@ -1,7 +1,9 @@
+//! 回退候选的 cmap 覆盖预筛：已知覆盖压缩为有序区间，未知覆盖不在此阶段误拒绝。
 use std::collections::HashSet;
 
 const HASH_DEDUP_CODEPOINT_THRESHOLD: usize = 128;
 
+/// Unknown 表示尚不能证明缺字，可保留候选；最终字形能力仍由后续 shaping/raster 阶段决定。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) enum FontCoverage {
     Known(Vec<(u32, u32)>),
@@ -85,19 +87,9 @@ fn normalize_codepoint_values(mut codepoints: Vec<u32>) -> Vec<u32> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::FontCoverage;
-
-    #[test]
-    fn coverage_contains_uses_ordered_ranges_without_gap_false_positives() {
-        let coverage = FontCoverage::Known(vec![(0x0020, 0x007E), (0x0400, 0x04FF)]);
-
-        assert!(coverage.contains('A'));
-        assert!(coverage.contains('\u{416}'));
-        assert!(!coverage.contains('\u{4e2d}'));
-    }
-}
+#[path = "tests/coverage.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "coverage/hash_dedup_tests.rs"]
+#[path = "coverage/tests/hash_dedup_tests.rs"]
 mod hash_dedup_tests;

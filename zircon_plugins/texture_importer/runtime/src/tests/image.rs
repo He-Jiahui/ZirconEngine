@@ -282,7 +282,7 @@ dimension = "3d"
 usage = ["sampled", "storage"]
 asset_usage = ["render_world"]
 mip_count = 2
-depth_or_array_layers = 4
+depth = 4
 
 [sampler]
 address_mode_u = "repeat"
@@ -471,7 +471,6 @@ row_height = 2
                 assert_eq!(texture.rgba.len(), 2 * 4 * 4, "{layout_name}");
                 let descriptor = texture.render_image_descriptor();
                 assert_eq!(descriptor.height, 2, "{layout_name}");
-                assert_eq!(descriptor.array_layer_count, 2, "{layout_name}");
                 assert_eq!(descriptor.depth_or_array_layers, 2, "{layout_name}");
                 assert_eq!(
                     descriptor.dimension,

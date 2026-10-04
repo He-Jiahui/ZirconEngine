@@ -1,3 +1,4 @@
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
 use thiserror::Error;
@@ -5,10 +6,11 @@ use zircon_runtime::asset::project::ProjectPaths;
 
 use super::{
     AutosaveError, AutosaveRecoveryCatalogDiagnostic, AutosaveStore,
-    ProjectSessionAdmissionRecordV1, ProjectSessionEffect, ProjectSessionEffectLedgerError,
-    ProjectSessionEffectLedgerPhase, ProjectSessionEffectLedgerStore,
-    ProjectSessionEffectRecoveryEntry, ProjectSessionRecoveryStatus, RestoreFlow, RestoreFlowError,
-    RestoreStartup, SessionGuard, SessionGuardError, SessionLockInspection,
+    ProjectSessionAdmissionRecordV1, ProjectSessionEffect, ProjectSessionEffectDisposition,
+    ProjectSessionEffectLedgerError, ProjectSessionEffectLedgerPhase,
+    ProjectSessionEffectLedgerStore, ProjectSessionEffectRecoveryEntry,
+    ProjectSessionRecoveryStatus, RestoreFlow, RestoreFlowError, RestoreStartup, SessionGuard,
+    SessionGuardError, SessionLockInspection,
 };
 
 /// The recovery policy applied to the session effect ledger referenced by a residual session lock.
@@ -275,50 +277,26 @@ pub(crate) enum ProjectRecoveryAssessmentError {
 }
 
 fn session_effect_states(effects: &[ProjectSessionEffectRecoveryEntry]) -> String {
-    effects
-        .iter()
-        .map(|entry| format!("{}={:?}", entry.effect().as_str(), entry.disposition()))
-        .collect::<Vec<_>>()
-        .join(", ")
+    let mut states = String::new();
+    for (index, entry) in effects.iter().enumerate() {
+        if index > 0 {
+            states.push_str(", ");
+        }
+        write!(
+            &mut states,
+            "{}={:?}",
+            entry.effect().as_str(),
+            entry.disposition()
+        )
+        .expect("writing to a String cannot fail");
+    }
+    states
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        ProjectRecoveryTakeoverDisposition, ProjectSessionEffect, ProjectSessionEffectDisposition,
-        ProjectSessionEffectLedgerPhase, ProjectSessionEffectRecoveryEntry,
-        ProjectSessionRecoveryStatus,
-    };
+#[path = "project_recovery_assessment/tests/session_effect_state_tests.rs"]
+mod session_effect_state_tests;
 
-    #[test]
-    fn only_a_terminal_ledger_allows_recovery_takeover() {
-        assert!(ProjectRecoveryTakeoverDisposition::from_status(
-            &ProjectSessionRecoveryStatus::Terminal,
-        )
-        .allows_takeover());
-        assert!(!ProjectRecoveryTakeoverDisposition::from_status(
-            &ProjectSessionRecoveryStatus::Missing,
-        )
-        .allows_takeover());
-        assert!(!ProjectRecoveryTakeoverDisposition::from_status(
-            &ProjectSessionRecoveryStatus::Incomplete {
-                phase: ProjectSessionEffectLedgerPhase::Ready,
-                effects: vec![ProjectSessionEffectRecoveryEntry::new(
-                    ProjectSessionEffect::Runtime,
-                    ProjectSessionEffectDisposition::Committed,
-                )],
-            },
-        )
-        .allows_takeover());
-        assert!(!ProjectRecoveryTakeoverDisposition::from_status(
-            &ProjectSessionRecoveryStatus::RecoveryRequired {
-                phase: ProjectSessionEffectLedgerPhase::RecoveryRequired,
-                effects: vec![ProjectSessionEffectRecoveryEntry::new(
-                    ProjectSessionEffect::Documents,
-                    ProjectSessionEffectDisposition::RecoveryRequired,
-                )],
-            },
-        )
-        .allows_takeover());
-    }
-}
+#[cfg(test)]
+#[path = "tests/project_recovery_assessment.rs"]
+mod tests;

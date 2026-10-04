@@ -9,7 +9,7 @@ use super::arrange::arrange_node;
 use super::engine::UiLayoutPassEngineContext;
 use super::inline_widgets::arrange_inline_widget_children;
 use super::measure::measure_node;
-use super::pipeline::{UiLayoutPassStage, assert_layout_pass_stage};
+use super::pipeline::{assert_layout_pass_stage, UiLayoutPassStage};
 use super::responsive_mui::apply_mui_responsive_layout;
 use super::slot::UiLayoutSlotIndex;
 

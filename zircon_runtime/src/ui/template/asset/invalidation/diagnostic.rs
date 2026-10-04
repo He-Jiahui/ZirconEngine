@@ -1,3 +1,5 @@
+//! 把作者文档的节点规模、宽选择器和滚动子树压力投影为编译失效报告的提示。
+
 use toml::Value;
 
 use crate::ui::template::UiAssetDocumentRuntimeExt;
@@ -6,10 +8,12 @@ use zircon_runtime_interface::ui::template::{
     UiSelector, UiSelectorToken,
 };
 
+// 这些阈值只控制作者诊断提示，不限制文档接纳，也不替代运行时成本测量。
 pub const LARGE_DOCUMENT_NODE_WARNING_THRESHOLD: usize = 1000;
 pub const NON_VIRTUALIZED_SCROLL_CHILD_WARNING_THRESHOLD: usize = 250;
 pub const BROAD_SELECTOR_WARNING_THRESHOLD: usize = 50;
 
+/// 为编译缓存 miss 与包验证生成启发式警告；不改变阶段分类或执行失效。
 pub fn collect_invalidation_diagnostics(
     document: &UiAssetDocument,
 ) -> Vec<UiInvalidationDiagnostic> {
@@ -66,6 +70,7 @@ fn warning(code: impl Into<String>, message: impl Into<String>) -> UiInvalidatio
     }
 }
 
+// 仅识别源格式中的虚拟化声明存在性；不能据此证明宿主已经启用运行时虚拟化。
 fn node_has_non_virtualized_scroll_child_pressure(node: &UiNodeDefinition) -> bool {
     if node.children.len() < NON_VIRTUALIZED_SCROLL_CHILD_WARNING_THRESHOLD {
         return false;
@@ -96,5 +101,5 @@ fn selector_is_broad(selector: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "diagnostic/scroll_pressure_tests.rs"]
+#[path = "diagnostic/tests/scroll_pressure_tests.rs"]
 mod scroll_pressure_tests;

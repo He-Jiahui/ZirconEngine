@@ -16,6 +16,12 @@ use super::super::world_space::ProjectedWorldSpace;
 pub(in super::super) struct ProjectedTemplateNodeParts {
     pub(in super::super) node_id: String,
     pub(in super::super) control_id: String,
+    pub(in super::super) source_path: String,
+    pub(in super::super) source_node_id: String,
+    pub(in super::super) instance_path: String,
+    pub(in super::super) parent_source_path: String,
+    pub(in super::super) parent_source_node_id: String,
+    pub(in super::super) parent_instance_path: String,
     pub(in super::super) role: String,
     pub(in super::super) component_role: String,
     pub(in super::super) text_layout: ProjectedTextLayout,

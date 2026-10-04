@@ -11,6 +11,8 @@ pub type CoreResult<T> = std::result::Result<T, CoreError>;
 pub enum CoreError {
     #[error("channel send failed: {0}")]
     ChannelSend(String),
+    #[error("runtime timer deadline is out of range")]
+    DeadlineOutOfRange,
     #[error("thread spawn failed: {0}")]
     ThreadSpawn(String),
     #[error("invalid registry name: {0}")]
@@ -144,6 +146,12 @@ pub enum CoreError {
     },
     #[error("service factory panicked while initializing {service}")]
     ServiceFactoryPanicked { service: String },
+    #[error("service retirement panicked while {command} was running for {service} in {module}")]
+    ServiceRetirementPanicked {
+        module: String,
+        service: String,
+        command: &'static str,
+    },
     #[error("service initialization failed for {0}: {1}")]
     Initialization(String, String),
     #[error("runtime is no longer available")]
@@ -151,7 +159,7 @@ pub enum CoreError {
     #[error("service unload blocked for {0}; still referenced by {1:?}")]
     UnloadBlocked(String, Vec<String>),
     #[error(
-        "module unload blocked for {module}; dependent modules are still running: {dependents:?}"
+        "module unload blocked for {module}; dependent modules still own live state: {dependents:?}"
     )]
     ModuleUnloadBlocked {
         module: String,
@@ -178,6 +186,7 @@ pub enum CoreError {
 }
 
 impl CoreError {
+    /// 保留激活错误为主因；只有回滚清理也失败时才组合两个错误。
     pub(crate) fn module_activation_failed(activation: Self, cleanup: Option<Self>) -> Self {
         match cleanup {
             Some(cleanup) => Self::ModuleActivationRollback {
@@ -188,6 +197,7 @@ impl CoreError {
         }
     }
 
+    /// 批量回滚失败时同时保留主激活错误及每个模块的清理错误。
     pub(crate) fn module_batch_activation_failed(
         activation: Self,
         cleanup_failures: Vec<(String, Self)>,

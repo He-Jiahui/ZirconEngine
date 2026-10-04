@@ -126,17 +126,22 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
         &[
             "RuntimeSession::create_with_profile_and_project(",
             "runtime_session_args.profile.as_bytes(),",
-            "project_root.as_ref().map(ResolvedProjectPath::operation_path),",
+            ".map(ResolvedProjectPath::operation_path),",
             "runtime_session_args.play_scene.as_ref(),",
             "runtime_session_args.play_report_pipe.as_deref(),",
             ".map_err(|error|",
-            "\"runtime_session\"",
-            "runtime_session_startup_request(",
+            "runtime_session_create_diagnostic(",
             "runtime_session_args.profile,",
             "project_root.as_ref(),",
-            "runtime_project_diagnostic_cause(project_root.as_ref(), error)",
+            "error,",
         ],
         "runtime session creation should retain the selected profile and resolved project identity through the typed product diagnostic boundary",
+    );
+    assert!(
+        runtime_runner_source.contains("error.cleanup_recovery_context()")
+            && runtime_runner_source.contains("retry_runtime_startup_cleanup")
+            && !runtime_runner_source.contains("error.retry_cleanup()"),
+        "runtime startup failure must keep retained-session cleanup explicit and non-blocking"
     );
     assert!(
         runtime_window_creation_source.contains("self.window_descriptor.primary_window.is_none()"),
@@ -150,7 +155,7 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
             "resolve_runtime_project_root(runtime_session_args.project_root.as_deref())",
             "runtime_presented_frame_exit_limit_from_env()",
             "RuntimeSession::create_with_profile_and_project",
-            "project_root.as_ref().map(ResolvedProjectPath::operation_path)",
+            ".map(ResolvedProjectPath::operation_path)",
             "runtime_entry_app_config_for_session_profile_with_presented_frame_exit_limit",
             "presented_frame_exit_limit",
             ".with_persisted_scene_diagnostics(project_root.is_some())",

@@ -136,12 +136,14 @@ fn resolver_index_keeps_one_generation_and_order_for_reference_and_root_scale_ma
             [],
         )
         .unwrap();
+        assert_eq!(index.lookup_count(), 0);
         println!(
             "RESOLVER_INDEX_BUILD roots={root_count} entries={MAX_REFERENCES} elapsed_ms={:.3} resolver_backend=index",
             build_started.elapsed().as_secs_f64() * 1_000.0,
         );
 
         for reference_count in [1, 1_000, MAX_REFERENCES] {
+            let lookups_before = index.lookup_count();
             let lookup_started = Instant::now();
             let forward = expected
                 .iter()
@@ -154,6 +156,7 @@ fn resolver_index_keeps_one_generation_and_order_for_reference_and_root_scale_ma
                 .map(|(_, hint, _)| index.locator_for_project_hint(hint).unwrap().unwrap())
                 .collect::<Vec<_>>();
             let lookup_elapsed = lookup_started.elapsed();
+            let observed_lookups = index.lookup_count() - lookups_before;
 
             assert_eq!(
                 forward,
@@ -172,9 +175,10 @@ fn resolver_index_keeps_one_generation_and_order_for_reference_and_root_scale_ma
                     .collect::<Vec<_>>()
             );
             assert_eq!(forward.len() + reverse.len(), reference_count * 2);
+            assert_eq!(observed_lookups, reference_count * 2);
             println!(
                 "RESOLVER_INDEX_LOOKUP roots={root_count} references={reference_count} lookups={} elapsed_ms={:.3} resolver_backend=index",
-                reference_count * 2,
+                observed_lookups,
                 lookup_elapsed.as_secs_f64() * 1_000.0,
             );
         }
@@ -363,6 +367,197 @@ fn compound_zmeta_binding_produces_the_persisted_project_hint() {
     assert_eq!(
         migrated["shader"]["path_hint"].as_str(),
         Some("assets/shaders/redirect_surface.zmeta")
+    );
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn compound_sidecar_with_mismatched_url_is_rejected_before_authoring_writes() {
+    let root = fixture_root("indexed-resolver-compound-mismatched-url");
+    write_manifest(&root, &["assets"]);
+    let guid: AssetUuid = "a5111111-2222-4333-8444-555555555555".parse().unwrap();
+    fs::create_dir_all(root.join("assets/shaders/actual.bin")).unwrap();
+    let target_source = root.join("assets/textures/target.bin");
+    fs::create_dir_all(target_source.parent().unwrap()).unwrap();
+    fs::write(&target_source, b"auxiliary inventory projection").unwrap();
+
+    let sidecar = root.join("assets/shaders/actual.bin.zmeta");
+    let mut meta = crate::asset::project::AssetMetaDocument::new(
+        guid,
+        AssetUri::parse("res://textures/target.bin").unwrap(),
+        AssetKind::Shader,
+    );
+    meta.unit = crate::asset::project::AssetSourceUnit::Compound;
+    meta.save(&sidecar).unwrap();
+    let sidecar_before = fs::read(&sidecar).unwrap();
+
+    let material = root.join("assets/materials/redirect.zmaterial");
+    fs::create_dir_all(material.parent().unwrap()).unwrap();
+    fs::write(
+        &material,
+        format!(
+            "version = 2\n\n[shader]\nuuid = \"{guid}\"\nurl = \"res://textures/target.bin\"\n"
+        ),
+    )
+    .unwrap();
+    let material_before = fs::read(&material).unwrap();
+
+    let report =
+        migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
+            .unwrap();
+
+    assert!(!report.succeeded(), "{}", report.format_text());
+    assert_eq!(report.issues().len(), 1, "{}", report.format_text());
+    let issue = &report.issues()[0];
+    assert_eq!(issue.kind(), AssetMigrationIssueKind::InvalidDocument);
+    assert!(issue
+        .path()
+        .is_some_and(|path| path.ends_with("actual.bin.zmeta")));
+    assert!(report.changed_files().is_empty());
+    assert_eq!(fs::read(&material).unwrap(), material_before);
+    assert_eq!(fs::read(&sidecar).unwrap(), sidecar_before);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn unreferenced_compound_sidecar_with_labeled_url_is_rejected() {
+    let root = fixture_root("indexed-resolver-compound-labeled-url");
+    write_manifest(&root, &["assets"]);
+    let guid: AssetUuid = "a6111111-2222-4333-8444-555555555555".parse().unwrap();
+    fs::create_dir_all(root.join("assets/shaders/actual.bin")).unwrap();
+
+    let sidecar = root.join("assets/shaders/actual.bin.zmeta");
+    let mut meta = crate::asset::project::AssetMetaDocument::new(
+        guid,
+        AssetUri::parse("res://shaders/actual.bin#Part").unwrap(),
+        AssetKind::Shader,
+    );
+    meta.unit = crate::asset::project::AssetSourceUnit::Compound;
+    meta.save(&sidecar).unwrap();
+    let sidecar_before = fs::read(&sidecar).unwrap();
+
+    let report =
+        migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
+            .unwrap();
+
+    assert!(!report.succeeded(), "{}", report.format_text());
+    assert_eq!(report.issues().len(), 1, "{}", report.format_text());
+    let issue = &report.issues()[0];
+    assert_eq!(issue.kind(), AssetMigrationIssueKind::InvalidDocument);
+    assert!(issue
+        .path()
+        .is_some_and(|path| path.ends_with("actual.bin.zmeta")));
+    assert!(report.changed_files().is_empty());
+    assert_eq!(fs::read(&sidecar).unwrap(), sidecar_before);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn retired_compound_sidecar_with_mismatched_url_is_not_renamed_or_deleted() {
+    let root = fixture_root("indexed-resolver-retired-compound-mismatched-url");
+    write_manifest(&root, &["assets"]);
+    let guid: AssetUuid = "a7111111-2222-4333-8444-555555555555".parse().unwrap();
+    fs::create_dir_all(root.join("assets/shaders/actual.bin")).unwrap();
+    let target_source = root.join("assets/textures/target.bin");
+    fs::create_dir_all(target_source.parent().unwrap()).unwrap();
+    fs::write(&target_source, b"auxiliary inventory projection").unwrap();
+
+    let retired_sidecar = root.join("assets/shaders/actual.bin.meta.toml");
+    let retired_bytes = format!(
+        "format_version = 6\nuuid = \"{guid}\"\nurl = \"res://textures/target.bin\"\nasset_kind = \"Shader\"\nunit = \"compound\"\nsource_hash = \"legacy-digest\"\n"
+    )
+    .into_bytes();
+    fs::write(&retired_sidecar, &retired_bytes).unwrap();
+
+    let material = root.join("assets/materials/redirect.zmaterial");
+    fs::create_dir_all(material.parent().unwrap()).unwrap();
+    fs::write(
+        &material,
+        format!(
+            "version = 2\n\n[shader]\nuuid = \"{guid}\"\nurl = \"res://textures/target.bin\"\n"
+        ),
+    )
+    .unwrap();
+    let material_before = fs::read(&material).unwrap();
+    let current_sidecar = root.join("assets/shaders/actual.bin.zmeta");
+
+    let report =
+        migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
+            .unwrap();
+
+    assert!(!report.succeeded(), "{}", report.format_text());
+    assert_eq!(report.issues().len(), 1, "{}", report.format_text());
+    let issue = &report.issues()[0];
+    assert_eq!(issue.kind(), AssetMigrationIssueKind::InvalidDocument);
+    assert!(issue
+        .path()
+        .is_some_and(|path| path.ends_with("actual.bin.meta.toml")));
+    assert!(report.changed_files().is_empty());
+    assert_eq!(fs::read(&retired_sidecar).unwrap(), retired_bytes);
+    assert!(!current_sidecar.exists());
+    assert_eq!(fs::read(&material).unwrap(), material_before);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn unreferenced_valid_compound_sidecar_is_admitted() {
+    let root = fixture_root("indexed-resolver-unreferenced-valid-compound");
+    write_manifest(&root, &["assets"]);
+    let guid: AssetUuid = "a8111111-2222-4333-8444-555555555555".parse().unwrap();
+    fs::create_dir_all(root.join("assets/shaders/orphan_surface")).unwrap();
+
+    let sidecar = root.join("assets/shaders/orphan_surface.zmeta");
+    let mut meta = crate::asset::project::AssetMetaDocument::new(
+        guid,
+        AssetUri::parse("res://shaders/orphan_surface").unwrap(),
+        AssetKind::Shader,
+    );
+    meta.unit = crate::asset::project::AssetSourceUnit::Compound;
+    meta.save(&sidecar).unwrap();
+    let sidecar_before = fs::read(&sidecar).unwrap();
+
+    let report =
+        migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
+            .unwrap();
+
+    assert!(report.succeeded(), "{}", report.format_text());
+    assert!(report.changed_files().is_empty());
+    assert_eq!(fs::read(&sidecar).unwrap(), sidecar_before);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[cfg(windows)]
+#[test]
+fn compound_sidecar_binding_uses_published_root_relative_identity_for_case_alias_root() {
+    let root = fixture_root("indexed-resolver-compound-case-alias-root");
+    // These roots are lexically distinct, but Windows resolves them into nested physical roots.
+    // Admission must use all published root projections after physical-directory deduplication.
+    write_manifest(&root, &["assets", "ASSETS/NESTED"]);
+    let guid: AssetUuid = "a9111111-2222-4333-8444-555555555555".parse().unwrap();
+    fs::create_dir_all(root.join("assets/nested/actual.bin")).unwrap();
+    let sidecar = root.join("assets/nested/actual.bin.zmeta");
+    let mut meta = crate::asset::project::AssetMetaDocument::new(
+        guid,
+        AssetUri::parse("res://actual.bin").unwrap(),
+        AssetKind::Shader,
+    );
+    meta.unit = crate::asset::project::AssetSourceUnit::Compound;
+    meta.save(&sidecar).unwrap();
+    let material = root.join("assets/materials/redirect.zmaterial");
+    fs::create_dir_all(material.parent().unwrap()).unwrap();
+    fs::write(
+        &material,
+        format!("version = 2\n\n[shader]\nuuid = \"{guid}\"\nurl = \"res://actual.bin\"\n"),
+    )
+    .unwrap();
+    let report =
+        migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
+            .unwrap();
+    assert!(report.succeeded(), "{}", report.format_text());
+    let migrated: toml::Value = toml::from_str(&fs::read_to_string(&material).unwrap()).unwrap();
+    assert_eq!(
+        migrated["shader"]["path_hint"].as_str(),
+        Some("ASSETS/NESTED/actual.bin.zmeta")
     );
     fs::remove_dir_all(root).unwrap();
 }

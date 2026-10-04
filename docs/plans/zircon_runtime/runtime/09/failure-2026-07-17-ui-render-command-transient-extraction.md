@@ -17,6 +17,9 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sliders
+tests:
+  - cargo test -p zircon_runtime_interface --no-default-features --locked --lib ui_render_command_cache_generation
+  - cargo test -p zircon_runtime_interface --no-default-features --locked --lib
 ---
 
 # Runtime09 failure handoff: UI render command transient extraction
@@ -107,3 +110,56 @@ Open state: `generation streaming managed gate green; Layout18/19 lower failures
 - Runtime focused command `cargo +1.94.1 test -p zircon_runtime --lib runtime_slider_tick_commands_are_capped_by_shared_budget_and_track_columns --locked --jobs 1 -- --nocapture --test-threads=1` 已由新 reservation `d773dbcc5a554d85afca017aa26e96a3` 绑定同一 snapshot943 exact8 manifest，compatibility key 为 `267f55fac285e3e2c6260e2934bb04896515027b800b7d05fd2aa1de9a1ea72f`。记录时它仍为 pending/no-job，前方存在 Frameworks03 active job 与 Text01、Performance01 pending reservations；后续只按 terminal job/run 与原始 stdout 记账。
 
 Open state: `slider interface package gate green；Runtime exact8 source-bound retry pending/no job；Editor、pixel-parity、fixed 与 commit 均不声明完成`.
+
+### 2026-09-08 Current Cache Generation Regression
+
+Current locked/static Windows library job `26fad5951ec5484ab28b327f5e53c597` ran
+746 passing, 17 failing and 101 ignored tests using
+`interface-shadow-prefilter-3151-20260908`, manifest
+`6e44b3cb8cb9abee5a271e2ee9aa39b58eca21987ee7d54466e2a6e155f3a0d8`.
+The generation regression passed its actual JSON/hash and 1/4-element output assertions,
+then failed its old source-string count (0 instead of 2): current cached/transient/scratch
+conversion expresses the precomputed value through `PaintElementMetadata`, so the old
+local-variable spelling no longer appears. Original evidence remains in that input's
+`results/interface-library-3151.{json,log}`.
+
+Stable fixing Session `failure-roll-01a07160-runtime09` retains this lifecycle.
+Transfer `af5877a7c4ed44c39865623902e7f476` and pre-edit snapshot 3153 preserve command,
+test and record bytes. The existing test hash still equals historical snapshot 940;
+the command matches its archived Interface03 attribution. No foreign active ownership
+was acquired. Source snapshot 3154 records two paths:
+
+- `command.rs`: `57de7adf64216f12aa81d6c4cc1e59d167fb59e6f14ebd118a72a88b9a3927ec`.
+- `tests/render_contracts/cache_generation.rs`:
+  `f016a367d960fdb6241289b92b2d2dbc21d879f978d7fe89371f5fafa02333bb`.
+
+The obsolete variable-name and helper-signature assertions are replaced by an actual
+thread-local serialization invocation counter compiled only under `cfg(test)`. The
+existing test retains independent legacy byte-hash parity and streamed-writer/no-Vec guards;
+it now requires one generation per single/multiple/scratch cached conversion and zero new
+generation calls for both transient APIs. Existing paint payload, geometry, ordering and
+metadata assertions remain, with scratch/vector output equality added. Production builds
+have no counter or new public API. Final command snapshot 3159 only changes the test-only
+macro spelling to prelude `thread_local!`, avoiding a lexical boundary guard that mistakes
+`std::thread_local!` for production threading. Its hash is
+`ba9fd09782e75b65d0f2ddbc8694c249f6990cc15c7a8eb4eeaf7f4a84707f6c`;
+the test hash from 3154 is unchanged.
+
+Managed Windows locked/static library job `893e5568e6364fd9944fd431c04c6ffa` actually ran
+the generation tests on `interface-cache-generation-3159-20260908`, manifest
+`e275ded38d2cd913d9bac17ee5ec8fdcff1f9e17e75306de307a82d6b5c38038`.
+The original once-per-conversion regression now passes, including cached single/vector/
+scratch counts, zero transient calls and unchanged legacy byte-hash parity. Whole-library
+results are 747 passed, 16 failed, 101 ignored and 0 filtered; the remaining failures are
+not accepted as passing. Exact evidence is `results/interface-library-3159.{json,log}`.
+Independent review remains pending;
+scale, slider, typed-range, Runtime/Editor pixels and formal closeout requirements are unchanged.
+
+Independent review in the existing task "优化协调器验证效率" completed on
+2026-09-08 with C0/I0/M0. Report:
+`.codex/tmp/interface02-runtime09-3173-review-20260908-result.txt`.
+Both source hashes matched attribution, ObjectStore and managed input before and
+after review. The reviewer confirmed cfg(test)-only counter isolation, cached and
+transient call counts, independent FNV parity and direct Runtime/Editor consumers.
+Scale, slider, typed-range, Runtime/Editor pixel and formal closeout gates remain
+pending; the review accepts the source repair only.

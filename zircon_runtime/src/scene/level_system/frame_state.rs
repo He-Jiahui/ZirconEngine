@@ -20,6 +20,7 @@ use super::AnimationStateTransitionRuntime;
 
 #[cfg(feature = "animation")]
 #[derive(Clone, Debug)]
+// LevelSystem 保留的动画运行状态；World 被替换时必须与物理和脚本状态一起清空，避免旧实体姿态进入新帧。
 pub(super) struct AnimationRuntimeState {
     pub(super) animation_requires_continuous_frame: bool,
     pub(super) animation_event_backlog_requires_continuous_frame: bool,
@@ -134,6 +135,13 @@ impl AnimationRuntimeState {
         sample: PendingAnimationClipEventSample,
     ) {
         self.clip_event_samples.push_back(sample);
+    }
+
+    pub(super) fn requeue_clip_event_sample_front(
+        &mut self,
+        sample: PendingAnimationClipEventSample,
+    ) {
+        self.clip_event_samples.push_front(sample);
     }
 
     pub(super) fn clip_event_backlog(&self) -> (usize, u64) {

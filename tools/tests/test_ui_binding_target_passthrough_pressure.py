@@ -1,6 +1,7 @@
+# 核对空绑定目标在压力规模下跳过回执准备，空事件保持零增量。
 import unittest
 
-from tools.ui_binding_target_passthrough_pressure import model_pressure
+from tools.analysis.performance.ui.ui_binding_target_passthrough_pressure import model_pressure
 
 
 class UiBindingTargetPassthroughPressureTests(unittest.TestCase):

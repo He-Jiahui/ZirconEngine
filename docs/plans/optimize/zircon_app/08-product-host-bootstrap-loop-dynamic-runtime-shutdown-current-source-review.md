@@ -16,7 +16,6 @@ related_code:
   - zircon_app/src/bin/runtime_preview.rs
   - zircon_app/src/entry
   - zircon_app/src/plugins
-  - zircon_app/src/runtime_presenter.rs
 related_consumers:
   - zircon_editor/src/core/play
   - zircon_editor/src/core/gateway/session
@@ -49,7 +48,7 @@ reference_engines:
   - dev/Graphics/Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/HDRenderPipeline.cs
 doc_type: current-source-review-and-refactor-plan
 review_status: review_complete
-implementation_status: pending
+implementation_status: partial_p1_30_secondary_failure_preservation_pending_validation
 source_recheck_required: true
 ---
 
@@ -63,9 +62,9 @@ App01 的核心判断仍成立：`zircon_app` 当前是“Editor 宿主 + 桌面
 
 但产品生命周期的主断口没有关闭。`RuntimeSession::drop` 仍从运行态直接 unbind viewport 1 并 destroy；destroy 失败只能 `abort`，没有 quiesce、worker/callback drain、deadline、module deactivation 与 evidence flush 的统一顺序。Winit host 丢弃 `WindowId`/`DeviceId`，没有 suspended/exiting，`Destroyed` 不清理 host owner，resize 直接重 bind。更严重的是 native surface target 目前只生成 Win32 handle：即使 Cargo 宣称 X11/Wayland/Android/Web，非 Win32 路径仍退回完整 CPU readback/pixel conversion。
 
-Play 边界也仍未形成协议。`--play-report-pipe` 只是 stdout 行文本中的 outlet 标签；Editor 的 bounded output pump只把它当 diagnostic line，不解析或驱动状态。Editor 在 backend spawn 返回后立即进入 Playing，而 runtime 在 session create 后、world/scene 与首帧 ready 前就发送 Ready。当前 report 写失败还会通过 `?` 覆盖原本的 startup/terminal 错误，降低故障归因质量。
+Play 边界也仍未形成协议。`--play-report-pipe` 只是 stdout 行文本中的 outlet 标签；Editor 的 bounded output pump只把它当 diagnostic line，不解析或驱动状态。Editor 在 backend spawn 返回后立即进入 Playing，而 runtime 在 session create 后、world/scene 与首帧 ready 前就发送 Ready。当前 runtime 已把 report 写失败保留为 failure-ledger secondary，但 outlet 仍未绑定 token、长度、背压或真正的 child-process handshake。
 
-本轮按 App01 原编号复判：**4 项 P0 全 Open**；原 27 项 P1 为 **23 Open、3 Partial、1 Closed**，新增 P1-28..30 后合计 **26 Open、3 Partial、1 Closed**；8 项 P2 为 **7 Open、0 Partial、1 Closed**。17 项产品资格门为 **15 Fail、2 Partial、0 Pass**。这是一份 current-source refresh，不与 App01 重复累计分类总数。
+本轮按 App01 原编号复判：**4 项 P0 全 Open**；原 27 项 P1 为 **19 Open、3 Partial、1 Closed、4 implemented_pending_validation**，新增 P1-28..30 后合计 **21 Open、4 Partial、1 Closed、4 implemented_pending_validation**；8 项 P2 为 **7 Open、0 Partial、1 Closed**。17 项产品资格门为 **15 Fail、2 Partial、0 Pass**。这是一份 current-source refresh，不与 App01 重复累计分类总数。
 
 ## 2. 审查边界、统计与 currentness
 
@@ -90,7 +89,7 @@ App production focused set包括 `zircon_app/src/entry`、`src/plugins`、`src/l
 
 1. 从 `Cargo.toml` 与 `EntryConfig` 沿 profile/target/manifest/render/window 解析到 builtin module、first-party plugin group、Core register/activate与bootstrap返回 owner。
 2. 分别追踪 Editor GUI、authoring automation、export/headless与runtime binary，比较 linked/dynamic deployment、project composition与退出路径。
-3. 从 V7 API load/validate 到 session create、foreign output、wake、surface bind、frame capture、host request、session Drop与DLL unload逐项核对owner。
+3. 从 V8 API load/validate 到 session create、foreign output、wake、surface bind、frame capture、host request、session Drop与DLL unload逐项核对owner。
 4. 从 Winit `ApplicationHandler` 沿 window/device/input/IME/gamepad/host request/cadence/present/resize/destroy追踪平台生命周期。
 5. 从 Editor `request_play`、process spawn/output pump到runtime CLI reporter和terminal result追踪跨进程状态真值。
 6. 对 App01 的全部 P0/P1/P2 与14项 gate逐项复判；新增问题只使用 P1-28..30，不重编号旧项。
@@ -177,11 +176,11 @@ Runtime Play: stdout text Starting/Ready/Terminal; no framed consumer/ack
 
 | ID | 状态 | 当前源码证据 | 必须重构为 |
 |---|---|---|---|
-| P1-6 | Open | V7先实现size/offset-aware读取，随后仍要求`size_bytes == size_of::<ZrRuntimeApiV7>()` | 明确选择exact-frozen或prefix-compatible policy，并以older/newer table fixture验证 |
-| P1-7 | Open | runtime library仍从env、sibling与`deps`猜路径，只校验symbol/version/slots | shipping manifest、hash/signature、build ID、target triple、channel与允许目录 |
+| P1-6 | `implemented_pending_validation` | 当前合同已硬切到 `ZrRuntimeApiV8`：loader 先检查 required V8 prefix，再明确拒绝同版本 oversized table，保持 exact-frozen policy；`api_v8_layout` 覆盖 optional-tail availability、required tail boundary 与 oversized table rejection。受管 release、真实 DLL 及 older/newer artifact skew 矩阵仍未执行。 | 保持 exact-frozen V8 policy；补齐受管 older/newer/truncated real-DLL fixture 矩阵，并将结果绑定 BuildSet/toolchain receipt |
+| P1-7 | `implemented_pending_validation` | runtime library 仍支持 env/product-relative path selection，但在 `Library::new` 前后已读取并复核 sidecar artifact manifest、DLL SHA-256、BuildSet ID、当前 target model 与 host artifact identity；symbol/version/required-slot 也在 load 前校验。允许目录、签名/频道策略、TOCTOU-resistant handle 与真实 staged DLL 矩阵仍未完成。 | 继续把 shipping manifest 的 path/trust/channel policy 与 validated library lease 绑定，并完成真实 BuildSet/DLL skew、replacement 与 dependency closure 验收 |
 | P1-8 | Open | linked与dynamic load都传`ZrHostApiV1::empty(...)` | 最小稳定host services table、capability negotiation、thread/reentrancy/shutdown lease |
-| P1-9 | Open | Editor gateway仍逐字段重建一张部分V7 table | 带library lease、size、version与capability的validated `RuntimeApiView` |
-| P1-10 | Open | surface lifecycle仍是一枚共享`AtomicBool`，Drop硬编码unbind viewport 1 | session-owned viewport/surface generation registry，反向枚举解绑 |
+| P1-9 | `implemented_pending_validation` | `SessionGateway` 现在接收完整 `ZrRuntimeApiV8`，复用 shared V8 shape validation、检查 required slots，并保留 `runtime_owner`；gateway 回归覆盖错误 version/size 与 surface binding。真实 DLL/BuildSet identity、capability handshake 和受管产品批次仍未执行。 | 继续把 validated V8 view 与 library/session lease、BuildSet identity 绑定，并完成真实 DLL/Editor gateway 矩阵 |
+| P1-10 | `implemented_pending_validation` | `RuntimeSession` 与 Editor `SessionGateway` 共享 `ViewportSurfaceBindings`；bind/rebind/release 使用可回滚 transition token，teardown 按稳定 handle 枚举所有已绑定 viewport，而非固定 viewport 1。并发、失败恢复与 shared-owner 回归已存在；真实多窗口/surface-loss/Windows 产品矩阵仍未执行。 | 将 registry 与 surface generation/device-loss policy、session shutdown receipt 绑定，并完成多 viewport staged product 验收 |
 | P1-11 | Open | 运行态直接destroy，无request-stop/quiesce/cancel/drain/poll-shutdown阶段 | versioned session shutdown protocol与deadline；失败后durable evidence再emergency abort |
 | P1-12 | **Closed** | shared foreign-output层已为六类输出统一bytes/items/decode-time/nesting/empty policy，并由App与Editor gateway复用 | 保持单一policy registry；后续真实fault DLL资格由P1-26/gate 7承载 |
 | P1-13 | Open | 控制面仍以whole-buffer JSON为主；缺schema hash、unknown-field policy、cursor/page、large blob handle | 高频POD、低频versioned bounded envelope、大对象stream/shared blob；计量bytes与CPU |
@@ -211,7 +210,7 @@ Runtime Play: stdout text Starting/Ready/Terminal; no framed consumer/ack
 | P1-27 | Open | 有局部cadence/foreign-output计数，但无同workload host startup/frame/idle/shutdown/serialization基线 | 固定硬件/OS/build/workload的P50/P95/P99、RSS/power/bytes/crossing预算和回归门 |
 | P1-28 | **Open（新增）** | `runtime_native_surface_target()`只匹配Win32；X11/Wayland/macOS/Android/Web均返回None并退回CPU capture | 每个声明平台的native surface adapter、capability/build closure、present/suspend/loss资格；无adapter即BuildSet拒绝 |
 | P1-29 | **Open（新增）** | `NativePluginRuntimeBootstrap`注释要求host比runtime graph长寿，但public `into_core(self)`只返回Core并drop host | 删除owner-losing API或让`ProductComposition`/Core lease持有host；用drop/late-call fixture证明卸载顺序 |
-| P1-30 | **Open（新增）** | startup/terminal路径先`report_play_startup(...)?`再返回primary error；stdout写失败可覆盖原始失败，outlet又未framing/校验 | report failure作为secondary ledger项，永不替换primary；framed writer校验token/长度并定义backpressure |
+| P1-30 | **Partial（新增）** | startup/terminal路径已通过 `ProductFailureLedger` 记录 Play report 写入失败；启动失败时先保留 `runtime_startup` primary，再合并 `runtime_play_report` secondary，Ready/Terminal 也不再用 `?` 覆盖主错误。outlet 仍是未绑定 token/长度/背压的 newline-delimited stdout 文本 | report failure继续作为secondary ledger项，永不替换primary；补 framed writer、token/长度校验与backpressure |
 
 ## 7. P2 当前源码重判
 
@@ -266,7 +265,7 @@ stdout/stderr只承担human diagnostics。独立framed control channel必须携�
 ### M0：冻结合同，停止扩散
 
 - 冻结ProductRole/artifact/platform/linkage/capability矩阵和exit code。
-- 定义composition receipt、host/shutdown state machine、failure ledger与V7兼容政策。
+- 定义composition receipt、host/shutdown state machine、failure ledger与V8兼容政策。
 - 禁止新增`bootstrap_with_*`、裸Core owner丢失API和未归档env product switch。
 
 ### M1：真实Server与统一shutdown
@@ -278,7 +277,7 @@ stdout/stderr只承担human diagnostics。独立framed control channel必须携�
 ### M2：收敛composition与dynamic runtime
 
 - `ProductComposition`持有Core、API view、session与native plugin host，删除owner-losing helper。
-- 明确V7 exact/prefix policy，加入host services/capability/build/trust handshake。
+- 明确V8 exact/prefix policy，加入host services/capability/build/trust handshake。
 - 增加session quiesce、operation/watch/subscription/callback drain和fault DLL。
 
 ### M3：平台host与presentation工程化
@@ -320,12 +319,12 @@ stdout/stderr只承担human diagnostics。独立framed control channel必须携�
 | G14 paired reference benchmark | **Fail** | 同硬件、OS、build、场景、画质、窗口/帧率与原始trace可复现 |
 | G15 native surface platform closure | **Fail** | 所有声明desktop/mobile/web平台有native present或BuildSet明确拒绝 |
 | G16 native plugin owner lifetime | **Fail** | public API不能丢host，retirement/unload顺序有drop/late-call fixture |
-| G17 primary failure preservation | **Fail** | report/IPC写失败只能成为secondary，不能覆盖startup/terminal primary |
+| G17 primary failure preservation | **Partial** | runtime startup/Ready/Terminal report writes now enter the failure ledger as secondary and preserve a startup primary; framed IPC/token/length/backpressure and real child-process evidence remain missing |
 
 ## 12. 相邻责任边界
 
 - `zircon_runtime/01`与Runtime46拥有Core module activation、rollback、反向cleanup与service revoke；App负责让产品host真实调用并把结果纳入terminal receipt。
-- `zircon_runtime_interface/01`拥有V7布局、handle、FFI与version policy；App拥有validated view、library/session lease与产品deployment/trust使用方式。
+- `zircon_runtime_interface` 的当前 `runtime_api/abi` owner 拥有 V8 布局、handle、FFI 与 version policy；App 拥有 validated view、library/session lease 与产品 deployment/trust 使用方式。
 - `zircon_runtime_interface/05`与`zircon_runtime_host`拥有foreign output safe owner/budget/fuse；App只负责所有调用点统一消费并通过真实fault DLL资格。
 - `zircon_editor/07`拥有Editor Play UI/state/controller；App与Editor共同拥有typed child protocol，任何一侧单独写stdout或单独改UI都不能关闭P0-4。
 - `zircon_plugins/01`拥有native discovery/signature/hot reload与generation retirement；App composition必须持有native host并参加shutdown。
@@ -334,6 +333,6 @@ stdout/stderr只承担human diagnostics。独立framed control channel必须携�
 
 ## 13. 本轮完成定义
 
-本轮完成当前源码静态review、App01全量编号复判、五引擎selected reference对照和分阶段重构计划；没有修改production/Test/Cargo代码，也没有运行动态资格或宣称性能优于Unreal。App08替代App01的currentness，但App01保留历史证据和原始问题定义；统计时两者不得重复累计。
+本轮完成当前源码静态review、App01全量编号复判、五引擎selected reference对照和分阶段重构计划；本轮补充了 P1-30 的最小 production/test source slice：启动、Ready 与 Terminal 的 Play report 写入失败进入 `ProductFailureLedger`，启动 primary 保持在 ledger 首位。该切片仅有 rustfmt、静态 source guard 与 focused non-Cargo evidence，未运行动态资格或宣称性能优于 Unreal。App08替代App01的currentness，但App01保留历史证据和原始问题定义；统计时两者不得重复累计。
 
 实施前必须重新计算本文selected fingerprints并核对工作树owner。任何单点修复只有在对应产品gate通过后才能从Open/Partial变为Closed；新增类型名、source guard或linked fixture不能单独构成工程级完成证据。

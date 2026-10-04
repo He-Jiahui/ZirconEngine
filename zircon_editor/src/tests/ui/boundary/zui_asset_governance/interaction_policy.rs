@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::core::commands::EditorCommandRegistry;
+use crate::core::editor_operation::EditorOperationPath;
 use zircon_runtime_interface::ui::binding::UiEventKind;
 
 use super::support::{collect_zui_document_files, editor_asset_root, load_zui_document};
@@ -287,8 +288,10 @@ fn removed_command_route_aliases(
     REMOVED_COMMAND_ROUTE_ALIASES
         .iter()
         .map(|(route, command)| {
+            let command_path = EditorOperationPath::parse(*command)
+                .expect("removed alias must target a valid command operation path");
             assert!(
-                registry.command(command).is_some(),
+                registry.command(&command_path).is_some(),
                 "removed route alias `{}` must resolve to registered command `{}`",
                 route,
                 command

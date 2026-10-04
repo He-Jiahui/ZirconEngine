@@ -208,37 +208,37 @@ fn template_builder_maps_grid_and_flow_slots_into_shared_runtime_layout_contract
 
     let grid_slot = surface
         .tree
-        .slots
+        .layout_slots()
         .iter()
         .find(|slot| slot.child_id == grid_child.node_id)
         .expect("grid child should carry a parent slot");
     let grid_flow_slot = surface
         .tree
-        .slots
+        .layout_slots()
         .iter()
         .find(|slot| slot.child_id == flow_child.node_id)
         .expect("flow child should carry a parent slot");
     let flow_item_slot = surface
         .tree
-        .slots
+        .layout_slots()
         .iter()
         .find(|slot| slot.child_id == flow_item.node_id)
         .expect("flow item should carry a parent slot");
     let mui_grid_item_slot = surface
         .tree
-        .slots
+        .layout_slots()
         .iter()
         .find(|slot| slot.child_id == mui_grid_item.node_id)
         .expect("mui grid item should carry a parent slot");
     let grid_masonry_slot = surface
         .tree
-        .slots
+        .layout_slots()
         .iter()
         .find(|slot| slot.child_id == masonry_child.node_id)
         .expect("masonry child should carry a parent slot");
     let masonry_item_slot = surface
         .tree
-        .slots
+        .layout_slots()
         .iter()
         .find(|slot| slot.child_id == masonry_item.node_id)
         .expect("masonry item should carry a parent slot");
@@ -439,7 +439,7 @@ fn grid_item_slot(
 ) -> &zircon_runtime_interface::ui::layout::UiSlot {
     surface
         .tree
-        .slots
+        .layout_slots()
         .iter()
         .find(|slot| slot.child_id == child_id)
         .expect("mui grid item should have a slot")

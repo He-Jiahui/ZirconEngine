@@ -1,3 +1,5 @@
+//! 标题从对象图标末端开始，并预留两个右侧操作位置，避免文字与行操作相互覆盖。
+
 use super::super::super::data::FrameRect;
 use super::metrics::{tree_line_height, tree_metrics};
 
@@ -5,11 +7,26 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tree_la
     rect: &FrameRect,
     icon: &FrameRect,
 ) -> FrameRect {
+    tree_label_rect_for_variant(rect, icon, false)
+}
+
+#[cfg(test)]
+#[path = "tests/labels.rs"]
+mod tests;
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tree_label_rect_for_variant(
+    rect: &FrameRect,
+    icon: &FrameRect,
+    content: bool,
+) -> FrameRect {
     let metrics = tree_metrics();
     let line_height = tree_line_height();
     let text_x = icon.x + icon.width + metrics.tree_text_gap;
-    let right_reserve =
-        metrics.tree_right_inset + metrics.tree_action_size * 2.0 + metrics.tree_action_gap;
+    let right_reserve = if content {
+        metrics.tree_right_inset
+    } else {
+        metrics.tree_right_inset + metrics.tree_action_size * 2.0 + metrics.tree_action_gap
+    };
     FrameRect {
         x: text_x,
         y: rect.y + (rect.height - line_height).max(0.0) * 0.5,

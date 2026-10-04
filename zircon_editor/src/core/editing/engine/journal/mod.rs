@@ -9,8 +9,9 @@ pub use codec::{
 };
 pub use durable::{
     DurableJournal, DurableJournalEntry, DurableJournalError, JournalCompactionReport,
-    JournalDocumentKey, JournalDocumentKeyError, JournalReadReport, JournalRecordPreparationError,
-    JournalTailFault, JournalWriter, PreparedJournalRecord,
+    JournalDiscoveryEntry, JournalDiscoveryIssue, JournalDiscoveryReport, JournalDocumentKey,
+    JournalDocumentKeyError, JournalReadReport, JournalRecordPreparationError, JournalTailFault,
+    JournalWriter, PreparedJournalRecord,
 };
 pub use payload::{CommandJournalPayload, CommandJournalUnavailable};
 pub use transaction::{

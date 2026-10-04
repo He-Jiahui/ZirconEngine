@@ -1,10 +1,10 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema_dependency_capability_targets import (
+from tools.audits.plugins.manifest_schema_dependency_capability_targets import (
     collect_dependency_capability_target_violations,
 )
 
-
+# 用依赖清单夹具拒绝未在包内声明的能力目标，并限制外部依赖只能引用宿主能力。
 class PluginStructureAuditManifestSchemaDependencyCapabilityTargetsTests(
     unittest.TestCase
 ):

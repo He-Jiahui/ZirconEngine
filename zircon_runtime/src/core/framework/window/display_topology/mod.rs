@@ -1,3 +1,5 @@
+//! Host 发布的不可变显示拓扑。窗口放置和表面租约都以稳定显示身份与发布代数校验，避免热插拔后复用旧索引。
+
 mod capabilities;
 mod display_id;
 mod error;
@@ -17,4 +19,5 @@ pub use snapshot::{
 };
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

@@ -42,7 +42,7 @@ Error writing files: failed to resolve mod `typed_canvas`:
 zircon_editor/src/ui/retained_host/ui/typed_canvas.rs does not exist
 ```
 
-同一问题也令 `pwsh -NoProfile -File tools/check-conventions.ps1 -Only fmt -Json` 返回非零。单独对 `workbench_window_projection.rs` 执行 `rustfmt --edition 2021 --check` 为 exit 0，说明格式内容本身不是根因；失败只在 Cargo 从 `ui.rs` 的 path-attributed module tree 解析时出现。
+同一问题也令 `pwsh -NoProfile -File tools/audits/check-conventions.ps1 -Only fmt -Json` 返回非零。单独对 `workbench_window_projection.rs` 执行 `rustfmt --edition 2021 --check` 为 exit 0，说明格式内容本身不是根因；失败只在 Cargo 从 `ui.rs` 的 path-attributed module tree 解析时出现。
 
 ## 最低共享层根因
 

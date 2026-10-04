@@ -24,7 +24,7 @@ requireText(casting, /firesProjectile = ability\.projectile \?\? ability\.school
 
 const generator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
-if (!/earth_shock',[\s\S]*?'frost_shock'/.test(generator) || !generator.includes("EXPECTED_ABILITY_COUNT = 79") || !zrGenerator.includes("document.entries.length === 79")) throw new Error("M4 Frost Shock scope is missing");
+if (!/earth_shock',[\s\S]*?'frost_shock'/.test(generator) || !generator.includes("EXPECTED_ABILITY_COUNT = 117") || !zrGenerator.includes("document.entries.length === 117")) throw new Error("M4 Frost Shock scope is missing");
 const m4 = JSON.parse(read("contracts", "m4_abilities.json"));
 const entry = m4.entries.find((value) => value.id === "frost_shock");
 if (!entry || entry.index !== 35 || entry.definition.school !== "frost" || entry.definition.effects?.[1]?.type !== "slow") throw new Error("M4 Frost Shock projection drifted");

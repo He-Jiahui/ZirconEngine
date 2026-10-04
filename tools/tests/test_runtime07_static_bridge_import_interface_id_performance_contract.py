@@ -19,7 +19,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束静态桥接导入接口 ID：擦除类型的导入借用静态接口 ID，并构造器不分配接口 ID。
 class StaticBridgeImportInterfaceIdPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

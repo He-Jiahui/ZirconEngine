@@ -1,3 +1,4 @@
+//! 构造可比较的静态工作台参考树；区域、控件身份和路径供布局及命中测试复用。
 mod nodes;
 mod panels;
 
@@ -15,6 +16,7 @@ use super::{
 };
 use nodes::{fixed_height_box, fixed_size_box, spacer_node, stretch_box};
 
+/// 保持参考控件路径的历史命名，并供各样本面板共用。
 fn normalized_reference_path_segment(label: &str) -> String {
     let mut segment = String::with_capacity(label.len());
     segment.extend(label.chars().map(|character| {
@@ -60,6 +62,7 @@ impl ReferenceSurfaceBuilder {
         })
     }
 
+    /// 建立参考树的根布局，再按顶栏、主区、组件画廊和状态栏附着子区。
     fn build_root(&mut self) -> Result<(), UiTreeError> {
         self.surface.tree.insert_root(self.panel_node(
             self.ids.root,
@@ -267,5 +270,5 @@ impl ReferenceSurfaceBuilder {
 }
 
 #[cfg(test)]
-#[path = "path_segment_tests.rs"]
+#[path = "tests/path_segment_tests.rs"]
 mod path_segment_tests;

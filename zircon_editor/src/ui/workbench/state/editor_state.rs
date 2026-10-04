@@ -7,8 +7,9 @@ use crate::core::editing::context::CoreEditContext;
 use crate::core::editing::engine::SelectionSnapshot;
 use crate::core::editor_message::DocumentId;
 use crate::core::logging::{LogEntry, LogSeverity, LogSource};
+use crate::core::play::WorldDomain;
 use crate::scene::selection::SelectionModel;
-use crate::scene::viewport::SceneViewportController;
+use crate::scene::viewport::SceneViewportSessionRegistry;
 use crate::ui::workbench::project::AssetWorkspaceState;
 use crate::ui::workbench::snapshot::{
     EditorBridgeDiagnosticsSnapshot, SceneEntryProjectionCache, StatusTaskProgressSnapshot,
@@ -19,6 +20,7 @@ use super::console_history::EditorConsoleHistory;
 use super::editor_state_play_mode::EditorPlaySession;
 use super::EditorStateOperationError;
 use crate::core::editing::interactive_transform::InteractiveTransformSession;
+use zircon_runtime::scene::NodeId;
 use zircon_runtime_interface::math::Vec3;
 
 /// UI state which must be restored if a binding batch fails after changing selection.
@@ -33,20 +35,50 @@ pub(crate) struct InspectorBindingUiCheckpoint {
     transform_fields: [String; 3],
     scale_fields: [String; 3],
     dynamic_fields: BTreeMap<String, String>,
+    edited_fields: InspectorEditedFields,
+    draft_context: Option<InspectorDraftContext>,
     orbit_target: Vec3,
     status_line: String,
     console_history: EditorConsoleHistory,
 }
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct InspectorEditedFields {
+    pub(crate) name: bool,
+    pub(crate) parent: bool,
+    pub(crate) translation: [bool; 3],
+    pub(crate) scale: [bool; 3],
+}
+
+impl InspectorEditedFields {
+    pub(crate) fn is_empty(self) -> bool {
+        !self.name
+            && !self.parent
+            && !self.translation.contains(&true)
+            && !self.scale.contains(&true)
+    }
+}
+
+/// Pending draft edits belong to one selection revision in one world domain.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct InspectorDraftContext {
+    domain: WorldDomain,
+    selection_generation: u64,
+    primary: Option<NodeId>,
+}
+
 /// Editor shell state shared between the UI host and runtime scene inspection.
 pub struct EditorState {
     pub(crate) context: Arc<EditorContext>,
     pub(crate) world: EditorAuthoringWorld,
-    pub(crate) viewport_controller: SceneViewportController,
+    pub(crate) viewport_controller: SceneViewportSessionRegistry,
     pub(crate) name_field: String,
     pub(crate) parent_field: String,
     pub(crate) transform_fields: [String; 3],
     pub(crate) scale_fields: [String; 3],
     pub(crate) inspector_dynamic_fields: BTreeMap<String, String>,
+    pub(crate) inspector_edited_fields: InspectorEditedFields,
+    pub(crate) inspector_draft_context: Option<InspectorDraftContext>,
     pub(crate) mesh_import_path: String,
     pub(crate) asset_workspace: AssetWorkspaceState,
     pub(crate) project_path: String,
@@ -96,6 +128,30 @@ impl EditorState {
         self.context.transactions()
     }
 
+    pub(crate) fn focus_scene_viewport(
+        &mut self,
+        view_id: crate::core::editor_event::ViewInstanceId,
+    ) -> bool {
+        self.viewport_controller.focus(view_id)
+    }
+
+    pub(crate) fn retain_scene_viewports(
+        &mut self,
+        retained: &std::collections::BTreeSet<crate::core::editor_event::ViewInstanceId>,
+    ) {
+        self.viewport_controller.retain(retained);
+    }
+
+    /// Establishes a retained Scene session while the owning workbench view is
+    /// opened or restored. Input and command execution use the non-creating
+    /// session accessors so stale IDs cannot allocate a replacement session.
+    pub(crate) fn ensure_scene_viewport_session(
+        &mut self,
+        view_id: crate::core::editor_event::ViewInstanceId,
+    ) {
+        let _ = self.viewport_controller.session(&view_id);
+    }
+
     pub(crate) fn ensure_inspector_binding_can_begin(
         &self,
     ) -> Result<(), EditorStateOperationError> {
@@ -108,6 +164,33 @@ impl EditorState {
 
     pub(crate) fn has_active_gizmo_interaction(&self) -> bool {
         self.interactive_transform.is_some() || self.viewport_controller.is_handle_drag_active()
+    }
+
+    pub(crate) fn inspector_draft_context_is_current(&self) -> bool {
+        self.inspector_draft_context == Some(self.current_inspector_draft_context())
+    }
+
+    fn current_inspector_draft_context(&self) -> InspectorDraftContext {
+        let selection = self.viewport_controller.selection();
+        InspectorDraftContext {
+            domain: selection.active_domain(),
+            selection_generation: selection.generation(selection.active_domain()),
+            primary: selection.active_primary(),
+        }
+    }
+
+    pub(crate) fn begin_inspector_draft_edit(&mut self) {
+        let context = self.current_inspector_draft_context();
+        if self.inspector_draft_context != Some(context) {
+            self.clear_inspector_draft_edits();
+            self.inspector_draft_context = Some(context);
+        }
+    }
+
+    pub(crate) fn clear_inspector_draft_edits(&mut self) {
+        self.inspector_edited_fields = Default::default();
+        self.inspector_dynamic_fields.clear();
+        self.inspector_draft_context = None;
     }
 
     pub(crate) fn inspector_binding_ui_checkpoint(
@@ -125,6 +208,8 @@ impl EditorState {
             transform_fields: self.transform_fields.clone(),
             scale_fields: self.scale_fields.clone(),
             dynamic_fields: self.inspector_dynamic_fields.clone(),
+            edited_fields: self.inspector_edited_fields,
+            draft_context: self.inspector_draft_context,
             orbit_target: self.viewport_controller.orbit_target(),
             status_line: self.status_line.clone(),
             console_history: self.console_history.clone(),
@@ -147,6 +232,8 @@ impl EditorState {
             transform_fields,
             scale_fields,
             dynamic_fields,
+            edited_fields,
+            draft_context,
             orbit_target,
             status_line,
             console_history,
@@ -157,6 +244,8 @@ impl EditorState {
         self.transform_fields = transform_fields;
         self.scale_fields = scale_fields;
         self.inspector_dynamic_fields = dynamic_fields;
+        self.inspector_edited_fields = edited_fields;
+        self.inspector_draft_context = draft_context;
         self.viewport_controller.set_orbit_target(orbit_target);
         self.status_line = status_line;
         self.console_history = console_history;

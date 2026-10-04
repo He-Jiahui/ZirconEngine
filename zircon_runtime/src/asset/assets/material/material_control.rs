@@ -1,3 +1,5 @@
+//! 通用 TOML 属性在此解释为渲染控制字段；校验和同步共用字段名/默认约定，避免作者文档与运行时材质状态分叉。
+
 use std::collections::BTreeMap;
 
 use crate::core::framework::render::{
@@ -394,21 +396,8 @@ pub(super) fn override_bool(values: &BTreeMap<String, toml::Value>, key: &str) -
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn material_subsurface_profile_index_rejects_out_of_gpu_table_range() {
-        let mut values = BTreeMap::new();
-        values.insert(
-            SUBSURFACE_PROFILE_PROPERTY.to_string(),
-            toml::Value::Integer(16),
-        );
-
-        assert_eq!(subsurface_profile_index(&values), None);
-        assert_eq!(subsurface_profile_validation_errors(&values).len(), 1);
-    }
-}
+#[path = "tests/material_control.rs"]
+mod tests;
 
 fn sync_default_true_bool_override(
     values: &mut BTreeMap<String, toml::Value>,

@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::{self, Write};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, TryLockError};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
@@ -13,6 +13,7 @@ use super::super::settings::DiagnosticLogSinkSettings;
 use super::super::timestamp::current_log_timestamp;
 use super::diagnostic_log_line;
 use super::metrics::{DiagnosticLogSinkSnapshot, SinkMetrics};
+use crate::core::runtime::tasks::thread_is_join_ready;
 use crate::diagnostic_log::DiagnosticLogLevel;
 
 pub(super) const SINK_THREAD_NAME: &str = "zircon-diagnostic-log";
@@ -206,7 +207,7 @@ impl SinkRuntime {
     pub(super) fn shutdown_for_library_unload(&self, timeout: Duration) -> bool {
         let deadline = deadline_after(timeout);
         if self.closed.swap(true, Ordering::AcqRel) {
-            return self.wait_for_worker_close(deadline) && self.join_worker();
+            return self.wait_for_worker_close(deadline) && self.join_worker_until(deadline);
         }
 
         while self.active_senders.load(Ordering::Acquire) != 0 {
@@ -225,7 +226,7 @@ impl SinkRuntime {
         let Ok(_output_result) = receiver.recv_timeout(remaining(deadline)) else {
             return false;
         };
-        self.join_worker()
+        self.join_worker_until(deadline)
     }
 
     pub(super) fn outputs_succeeded(&self) -> bool {
@@ -242,11 +243,36 @@ impl SinkRuntime {
         true
     }
 
-    fn join_worker(&self) -> bool {
-        let Some(worker) = self.worker.lock().ok().and_then(|mut worker| worker.take()) else {
-            return self.metrics.is_closed();
-        };
-        worker.join().is_ok()
+    fn join_worker_until(&self, deadline: Instant) -> bool {
+        loop {
+            let mut slot = match self.worker.try_lock() {
+                Ok(slot) => slot,
+                Err(TryLockError::Poisoned(poisoned)) => poisoned.into_inner(),
+                Err(TryLockError::WouldBlock) => {
+                    if Instant::now() >= deadline {
+                        return false;
+                    }
+                    thread::yield_now();
+                    continue;
+                }
+            };
+            let Some(worker) = slot.as_ref() else {
+                return self.metrics.is_closed();
+            };
+            // A shutdown acknowledgement precedes output destruction and thread exit.
+            if thread_is_join_ready(worker) {
+                return slot
+                    .take()
+                    .expect("finished worker retains join authority")
+                    .join()
+                    .is_ok();
+            }
+            drop(slot);
+            if Instant::now() >= deadline {
+                return false;
+            }
+            thread::yield_now();
+        }
     }
 
     pub(super) fn snapshot(&self) -> DiagnosticLogSinkSnapshot {

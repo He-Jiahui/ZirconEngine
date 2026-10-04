@@ -19,4 +19,5 @@ pub use error::{
     AssetEventExecutionError, AssetKindFilterError, EditorEventExecutionError,
     MenuActionExecutionError,
 };
+pub(crate) use execution_outcome::ExecutionOutcome;
 pub(crate) use undo_policy::undo_policy_for_event;

@@ -123,6 +123,7 @@ pub(super) fn radiance_probe_interpolation_corners(
     world_position: Vec3,
     clipmaps: &[HybridGiRadianceCacheClipmapDescriptor],
 ) -> Vec<HybridGiRadianceProbeInterpolationCorner> {
+    // 依层级顺序选首个能提供完整八角点的 clipmap；细层边缘不完整时尝试较粗层。
     let Some((clipmap, (bottom, fractional))) = clipmaps.iter().copied().find_map(|clipmap| {
         clipmap
             .interpolation_coordinates(world_position)
@@ -209,28 +210,5 @@ fn rounded_divide(numerator: u64, denominator: u64) -> u64 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn radiance_cache_midpoint_marks_all_eight_weighted_corners() {
-        let clipmap = HybridGiRadianceCacheClipmapDescriptor {
-            level: 0,
-            anchor: Vec3::ZERO,
-            anchor_cell: [0, 0, 0],
-            cell_size: 1.0,
-            resolution: RADIANCE_CACHE_CLIPMAP_RESOLUTION,
-        };
-
-        let corners = radiance_probe_interpolation_corners(Vec3::ZERO, &[clipmap]);
-
-        assert_eq!(corners.len(), RADIANCE_CACHE_INTERPOLATION_CORNER_COUNT);
-        assert!(corners.iter().all(|corner| corner.weight_q16 > 0));
-        assert!(corners
-            .iter()
-            .any(|corner| corner.demand.probe_coord == [23, 23, 23]));
-        assert!(corners
-            .iter()
-            .any(|corner| corner.demand.probe_coord == [24, 24, 24]));
-    }
-}
+#[path = "tests/interpolation.rs"]
+mod tests;

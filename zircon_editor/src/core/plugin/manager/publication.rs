@@ -4,14 +4,14 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use super::super::admission::validate_catalog_admission;
-use super::discovery::{EditorPluginSource, discovery_index};
+use super::discovery::{discovery_index, EditorPluginSource};
 use super::snapshot::entries_for_catalog;
 use super::state::activate_eligible_entries;
 use super::{
-    EditorPluginCatalog, EditorPluginCatalogSnapshot, EditorPluginDiscovery,
-    EditorPluginDiscoveryError, EditorPluginManager, EditorPluginManagerEntry,
-    EditorPluginManagerSnapshot, dispatch_hot_reloaded_replacements, replaced_live_package_ids,
-    reset_replaced_active_entries, retire_replaced_active_entries,
+    dispatch_hot_reloaded_replacements, replaced_live_package_ids, reset_replaced_active_entries,
+    retire_replaced_active_entries, EditorPluginCatalog, EditorPluginCatalogSnapshot,
+    EditorPluginDiscovery, EditorPluginDiscoveryError, EditorPluginManager,
+    EditorPluginManagerEntry, EditorPluginManagerSnapshot,
 };
 
 impl EditorPluginManager {

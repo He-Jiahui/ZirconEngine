@@ -1,3 +1,4 @@
+//! 将组件状态存储中的变化投影到一次完整重建，核对多种控件共享的绘制状态优先级。
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},

@@ -1,3 +1,5 @@
+//! 验证欢迎页模板投影把项目操作置于近期历史之前，并适配窄短窗口。
+
 use crate::ui::layouts::views::welcome_pane_nodes;
 use zircon_runtime::ui::v2::UiV2AssetLoader;
 use zircon_runtime_interface::ui::design_tokens::EditorTypographyTokens;
@@ -74,7 +76,6 @@ fn welcome_projection_maps_bootstrap_asset_into_mount_nodes() {
         "WelcomeRecentHeaderPanel",
         "WelcomeRecentListPanel",
         "WelcomeMainPanel",
-        "WelcomeHeroPanel",
         "WelcomeStatusPanel",
         "WelcomeNewProjectHeaderPanel",
         "WelcomeProjectNameField",
@@ -159,12 +160,14 @@ fn welcome_projection_maps_bootstrap_asset_into_mount_nodes() {
     assert!(validation.frame.y >= location.frame.y + location.frame.height);
     assert!(actions.frame.y >= validation.frame.y + validation.frame.height);
     assert!(hero.frame.y >= actions.frame.y + actions.frame.height);
-    assert!(status.frame.y >= hero.frame.y + hero.frame.height);
-    assert!(preview.frame.y >= status.frame.y + status.frame.height);
+    assert!(status.frame.y >= main.frame.y);
+    assert!(new_project_header.frame.y >= status.frame.y + status.frame.height);
+    assert!(validation.frame.y >= location.frame.y + location.frame.height);
+    assert!(preview.frame.y >= actions.frame.y + actions.frame.height);
 }
 
 #[test]
-fn welcome_mvp_project_actions_remain_inside_short_viewports_before_optional_content() {
+fn welcome_mvp_error_status_and_project_actions_remain_inside_short_viewports() {
     const EPSILON: f32 = 0.01;
 
     for viewport in [
@@ -184,6 +187,7 @@ fn welcome_mvp_project_actions_remain_inside_short_viewports_before_optional_con
         };
 
         let main = node("WelcomeMainPanel");
+        let status = node("WelcomeStatusPanel");
         let header = node("WelcomeNewProjectHeaderPanel");
         let project_name = node("WelcomeProjectNameField");
         let location = node("WelcomeLocationField");
@@ -196,6 +200,10 @@ fn welcome_mvp_project_actions_remain_inside_short_viewports_before_optional_con
             actions.frame.y + actions.frame.height <= main.frame.y + main.frame.height + EPSILON,
             "project actions must stay reachable inside a {viewport:?} welcome main panel"
         );
+        assert!(status.frame.width > 0.0 && status.frame.height > 0.0);
+        assert!(status.frame.y >= main.frame.y - EPSILON);
+        assert!(header.frame.y >= status.frame.y + status.frame.height - EPSILON);
+        assert!(status.frame.y + status.frame.height <= main.frame.y + main.frame.height + EPSILON);
         assert!(project_name.frame.y >= header.frame.y + header.frame.height - EPSILON);
         assert!(location.frame.y >= project_name.frame.y + project_name.frame.height - EPSILON);
         assert!(validation.frame.y >= location.frame.y + location.frame.height - EPSILON);
@@ -219,7 +227,6 @@ fn welcome_mvp_project_actions_remain_inside_short_viewports_before_optional_con
 
         for optional_control in [
             "WelcomeHeroPanel",
-            "WelcomeStatusPanel",
             "WelcomePreviewPanel",
             "WelcomeStartupChooserRow",
         ] {

@@ -12,7 +12,7 @@ pub use super::layout::{
     UiLayoutPassStage, UI_LAYOUT_PASS_ORDER,
 };
 pub use super::module::{
-    module_descriptor, UiConfig, UiModule, UiRuntimeDriver, UI_EVENT_MANAGER_NAME,
+    module_descriptor, UiConfig, UiModule, UiRuntimeDriver, UI_CONFIG_KEY, UI_EVENT_MANAGER_NAME,
     UI_RUNTIME_DRIVER_NAME,
 };
 pub use super::style::{

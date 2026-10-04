@@ -15,6 +15,7 @@ use self::tooltip::{dispatch_tooltip_dismiss, tooltip_dismissal_target};
 mod result;
 mod tooltip;
 
+// 先查询实际弹层 owner，再退化到 tooltip；请求目标可能是弹层子节点，不能直接写其本地 open 属性。
 pub(super) fn dispatch_dismiss(
     surface: &mut UiSurface,
     target: UiNodeId,
@@ -45,5 +46,5 @@ fn popup_dismiss_mutation_request(
 }
 
 #[cfg(test)]
-#[path = "popup/owned_property_tests.rs"]
+#[path = "popup/tests/owned_property_tests.rs"]
 mod owned_property_tests;

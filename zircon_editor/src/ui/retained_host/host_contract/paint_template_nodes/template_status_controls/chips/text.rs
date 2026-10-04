@@ -1,3 +1,5 @@
+//! 状态 chip 将冒号前标签与右侧值分开布局；裁剪先于拆分，避免离屏帧反复分配文字。
+
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_text::measure_runtime_text_width;
 use super::super::super::render_commands::HostPaintCommand;
@@ -9,7 +11,7 @@ use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 #[cfg(test)]
-#[path = "text/capacity_tests.rs"]
+#[path = "text/tests/capacity_tests.rs"]
 mod capacity_tests;
 
 pub(super) fn push_status_chip_text(
@@ -67,6 +69,7 @@ pub(super) fn push_status_chip_text(
     }
 }
 
+// 两种文本载荷让纯值 chip 不额外占用左侧标签空间。
 enum StatusChipText {
     LabelAndValue { label: String, value: String },
     Value(String),

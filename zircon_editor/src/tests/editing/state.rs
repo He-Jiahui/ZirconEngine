@@ -108,7 +108,9 @@ fn editor_state_snapshot_projects_structured_asset_workspace() {
             ResourceState::Reloading,
         ),
     ] {
-        resource_manager.register_record(record);
+        resource_manager
+            .register_record(record)
+            .expect("snapshot fixture resource must register");
     }
     state.sync_asset_resources(resource_manager.management_generation());
     state.select_asset_folder("res://materials");

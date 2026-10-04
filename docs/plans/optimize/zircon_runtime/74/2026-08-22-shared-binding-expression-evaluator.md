@@ -3,7 +3,7 @@
 Plan: docs/plans/optimize/zircon_runtime/74-runtime-ui-template-component-binding-expression-model-event-command-hot-reload-product-integration-review.md
 Milestone: M1
 Status: validation_pending
-Files: ["docs/plans/optimize/zircon_runtime/74/2026-08-22-shared-binding-expression-evaluator.md","docs/zircon_runtime/ui/template/pipeline.md","zircon_editor/src/ui/template_runtime/runtime/projection.rs","zircon_runtime/src/ui/surface/surface/pointer_component_events.rs","zircon_runtime_interface/src/ui/template/asset/binding/expression.rs","zircon_runtime_interface/src/ui/template/asset/binding/expression/evaluator.rs","zircon_runtime_interface/src/ui/template/asset/binding/mod.rs","zircon_runtime_interface/src/ui/template/asset/mod.rs","zircon_runtime_interface/src/ui/template/mod.rs"]
+Files: ["docs/plans/optimize/zircon_runtime/74/2026-08-22-shared-binding-expression-evaluator.md","docs/crates/zircon_runtime/ui/template/pipeline.md","zircon_editor/src/ui/template_runtime/runtime/projection.rs","zircon_runtime/src/ui/surface/surface/pointer_component_events.rs","zircon_runtime_interface/src/ui/template/asset/binding/expression.rs","zircon_runtime_interface/src/ui/template/asset/binding/expression/evaluator.rs","zircon_runtime_interface/src/ui/template/asset/binding/mod.rs","zircon_runtime_interface/src/ui/template/asset/mod.rs","zircon_runtime_interface/src/ui/template/mod.rs"]
 
 - Date: 2026-08-22
 - Owner: `optimize-runtime74-param-ref-compile-r3-bee4c707-20260822`

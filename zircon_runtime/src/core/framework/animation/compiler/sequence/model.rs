@@ -1,5 +1,6 @@
 //! Immutable sequence compiler products.
 
+//! 这些类型承载已校验的序列源数据，不负责把路径绑定到某个运行时世界中的实体或组件。
 use crate::core::framework::animation::{AnimationChannelValueAsset, AnimationInterpolationAsset};
 use crate::core::framework::scene::{ComponentPropertyPath, EntityPath};
 use crate::core::math::Real;
@@ -139,6 +140,7 @@ impl AnimationCompiledSequenceBinding {
 pub struct AnimationCompiledSequence {
     duration_seconds: Real,
     frames_per_second: Real,
+    track_count: usize,
     bindings: Vec<AnimationCompiledSequenceBinding>,
 }
 
@@ -148,9 +150,13 @@ impl AnimationCompiledSequence {
         frames_per_second: Real,
         bindings: Vec<AnimationCompiledSequenceBinding>,
     ) -> Self {
+        let track_count = bindings.iter().fold(0usize, |count, binding| {
+            count.saturating_add(binding.tracks.len())
+        });
         Self {
             duration_seconds,
             frames_per_second,
+            track_count,
             bindings,
         }
     }
@@ -161,6 +167,10 @@ impl AnimationCompiledSequence {
 
     pub fn frames_per_second(&self) -> Real {
         self.frames_per_second
+    }
+
+    pub fn track_count(&self) -> usize {
+        self.track_count
     }
 
     pub fn bindings(&self) -> &[AnimationCompiledSequenceBinding] {
@@ -188,6 +198,11 @@ impl AnimationSequenceCompilation {
 
     pub fn artifact(&self) -> Option<&AnimationCompiledSequence> {
         self.artifact.as_ref()
+    }
+
+    /// Transfers the validated source IR to a downstream compiler without cloning its tracks.
+    pub fn into_artifact(self) -> Option<AnimationCompiledSequence> {
+        self.artifact
     }
 
     pub fn diagnostics(&self) -> &[AnimationCompileDiagnostic] {

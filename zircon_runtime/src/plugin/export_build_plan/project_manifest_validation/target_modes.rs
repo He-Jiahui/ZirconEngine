@@ -1,3 +1,4 @@
+//! 目标模式诊断与清理只处理本次导出消费的行；清理保留首次声明次序。
 use std::fmt;
 
 use crate::core::framework::platform::RuntimeTargetMode;
@@ -5,6 +6,7 @@ use crate::core::framework::project::ProjectPluginManifest;
 
 use super::tokens::{target_consumes_feature, target_consumes_selection};
 
+/// 从生成视图去除重复目标声明；只处理当前目标消费的行，保留原始清单供诊断。
 pub(in crate::plugin::export_build_plan) fn sanitize_project_target_mode_rows(
     manifest: &mut ProjectPluginManifest,
     target: RuntimeTargetMode,
@@ -25,6 +27,7 @@ pub(in crate::plugin::export_build_plan) fn sanitize_project_target_mode_rows(
     }
 }
 
+/// required 行的重复目标声明升级为 fatal，避免导出依赖含糊的配置。
 pub(in crate::plugin::export_build_plan) fn project_target_mode_diagnostics(
     manifest: &ProjectPluginManifest,
     target: RuntimeTargetMode,
@@ -97,5 +100,5 @@ const fn project_target_mode_bit(target_mode: RuntimeTargetMode) -> u8 {
 }
 
 #[cfg(test)]
-#[path = "target_modes/allocation_tests.rs"]
+#[path = "target_modes/tests/allocation_tests.rs"]
 mod allocation_tests;

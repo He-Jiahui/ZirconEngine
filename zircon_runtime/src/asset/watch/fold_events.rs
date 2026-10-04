@@ -8,11 +8,13 @@ use super::{
 };
 
 #[cfg(test)]
+#[path = "fold_events/tests/cases.rs"]
 mod tests;
 
 pub(super) type FoldedAssetChangeMap = BTreeMap<AssetUri, (AssetChangeKind, Option<AssetUri>)>;
 
 impl AssetWatcher {
+    /// 将同一批原始事件压缩为按 URI 排序的变化；用于调用方复用 watcher 的批处理语义。
     pub fn fold_events(events: &[AssetWatchEvent]) -> Vec<AssetChange> {
         let mut folded = FoldedAssetChangeMap::new();
         for event in events {
@@ -59,6 +61,7 @@ fn fold_event_ref(folded: &mut FoldedAssetChangeMap, event: &AssetWatchEvent) {
     }
 }
 
+// BUG: [CR-ASSET-PIPELINE-0006] 连续 A→B→C 重命名会把原始 A 丢掉，只发布 B→C；订阅者无法获知需要刷新 A。借用版 fold_event_ref 同样如此。
 pub(super) fn fold_event(folded: &mut FoldedAssetChangeMap, event: AssetWatchEvent) {
     match event {
         AssetWatchEvent::Added(uri) => {

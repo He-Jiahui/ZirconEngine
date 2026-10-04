@@ -57,17 +57,17 @@ impl ViewportToolbarPointerBridge {
                 .zip(&layout.surfaces)
                 .any(|(current, next)| current.key != next.key);
         let previous_layout = std::mem::replace(&mut self.layout, layout);
-        let valid_surface_keys = self
-            .layout
-            .surfaces
-            .iter()
-            .map(|surface| surface.key.as_str())
-            .collect::<BTreeSet<_>>();
-        self.controls_by_surface
-            .retain(|surface_key, _| valid_surface_keys.contains(surface_key.as_str()));
-        self.applied_surface_frames
-            .retain(|surface_key, _| valid_surface_keys.contains(surface_key.as_str()));
         if topology_changed {
+            let valid_surface_keys = self
+                .layout
+                .surfaces
+                .iter()
+                .map(|surface| surface.key.as_str())
+                .collect::<BTreeSet<_>>();
+            self.controls_by_surface
+                .retain(|surface_key, _| valid_surface_keys.contains(surface_key.as_str()));
+            self.applied_surface_frames
+                .retain(|surface_key, _| valid_surface_keys.contains(surface_key.as_str()));
             self.apply_surface_delta(ViewportToolbarSurfaceDelta::Topology);
             return true;
         }

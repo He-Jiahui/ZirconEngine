@@ -1,8 +1,9 @@
-use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use crate::core::editor_event::{ConsoleMessageFilter, ConsoleSourceFilter};
-use crate::core::logging::{EditorLogService, LogChannel, LogFilter, LogRecord, LogSeverity};
+use crate::core::logging::{
+    EditorLogService, LogChannel, LogFilter, LogRecord, LogSeverity, LogTailIdentity,
+};
 use crate::ui::workbench::snapshot::{
     ConsoleOutputLevelCounts, ConsoleOutputLineDelta, ConsoleOutputLineGeneration,
     ConsoleOutputLineSnapshot, ConsoleOutputSnapshot, EditorConsoleMessageLevel,
@@ -16,6 +17,7 @@ pub(crate) struct ActivityLogConsoleProjection {
     initialized: bool,
     message_filter: ConsoleMessageFilter,
     source_filter: ConsoleSourceFilter,
+    tail_identity: Option<LogTailIdentity>,
     output: ConsoleOutputSnapshot,
 }
 
@@ -27,23 +29,35 @@ impl ActivityLogConsoleProjection {
         source_filter: ConsoleSourceFilter,
     ) -> ConsoleOutputSnapshot {
         let filter = activity_log_filter(message_filter, source_filter);
-        let records = logs.snapshot_tail(&filter, CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY);
         let same_filter = self.initialized
             && self.message_filter == message_filter
             && self.source_filter == source_filter;
-
-        let next = if same_filter && self.matches_cached_generation(&records) {
-            self.output.clone()
-        } else if same_filter {
-            self.append_projection(&records, message_filter, source_filter)
-                .unwrap_or_else(|| self.full_projection(&records, message_filter, source_filter))
+        let known_identity = if same_filter {
+            self.tail_identity
         } else {
-            self.full_projection(&records, message_filter, source_filter)
+            None
+        };
+        let (tail_identity, records) = logs.snapshot_tail_if_changed(
+            &filter,
+            CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY,
+            known_identity,
+        );
+
+        let next = match records {
+            None => self.output.clone(),
+            Some(records) if same_filter && self.matches_cached_generation(&records) => {
+                self.output.clone()
+            }
+            Some(records) if same_filter => self
+                .append_projection(&records, message_filter, source_filter)
+                .unwrap_or_else(|| self.full_projection(&records, message_filter, source_filter)),
+            Some(records) => self.full_projection(&records, message_filter, source_filter),
         };
 
         self.initialized = true;
         self.message_filter = message_filter;
         self.source_filter = source_filter;
+        self.tail_identity = Some(tail_identity);
         self.output = next.clone();
         next
     }
@@ -96,10 +110,10 @@ impl ActivityLogConsoleProjection {
             return None;
         }
 
-        let entered = records[entered_start..]
-            .iter()
-            .map(activity_log_line)
-            .collect::<Vec<_>>();
+        let mut entered = Vec::with_capacity(records.len().saturating_sub(entered_start));
+        for record in &records[entered_start..] {
+            entered.push(activity_log_line(record));
+        }
         let (next, append_delta) =
             trimmed.append_bounded(entered, CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY);
         let total_expired = expired_before_append.saturating_add(append_delta.expired);
@@ -123,7 +137,10 @@ impl ActivityLogConsoleProjection {
         message_filter: ConsoleMessageFilter,
         source_filter: ConsoleSourceFilter,
     ) -> ConsoleOutputSnapshot {
-        let lines = records.iter().map(activity_log_line).collect::<Vec<_>>();
+        let mut lines = Vec::with_capacity(records.len());
+        for record in records {
+            lines.push(activity_log_line(record));
+        }
         let generation = ConsoleOutputLineGeneration::from_lines(lines);
         let counts = ConsoleOutputLevelCounts::from_lines(&generation);
         let entered = generation.len();
@@ -150,10 +167,7 @@ fn activity_log_filter(
         ConsoleMessageFilter::Warning => LogSeverity::Warning,
         ConsoleMessageFilter::Error => LogSeverity::Error,
     };
-    let channels = source_channel(source_filter)
-        .into_iter()
-        .collect::<BTreeSet<_>>();
-    LogFilter::new(channels, minimum_severity)
+    LogFilter::from_channel(source_channel(source_filter), minimum_severity)
 }
 
 fn source_channel(filter: ConsoleSourceFilter) -> Option<LogChannel> {
@@ -204,53 +218,9 @@ fn console_level(severity: LogSeverity) -> EditorConsoleMessageLevel {
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::core::logging::{EditorLogConfig, LogEntry, LogSource};
+#[path = "activity_log_console_projection/tests/capacity_tests.rs"]
+mod capacity_tests;
 
-    use super::*;
-
-    #[test]
-    fn append_reuses_retained_chunks_and_publishes_an_exact_sequence_delta() {
-        let logs = EditorLogService::new(
-            EditorLogConfig::new(CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY + 1, 128 * 1024).unwrap(),
-        );
-        for index in 0..CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY {
-            emit(&logs, index);
-        }
-        let mut projection = ActivityLogConsoleProjection::default();
-        let before = projection.project(&logs, ConsoleMessageFilter::All, ConsoleSourceFilter::All);
-        emit(&logs, CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY);
-
-        let after = projection.project(&logs, ConsoleMessageFilter::All, ConsoleSourceFilter::All);
-
-        assert_eq!(
-            after.line_delta(),
-            ConsoleOutputLineDelta {
-                entered: 1,
-                expired: 1,
-                retained: CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY - 1,
-            }
-        );
-        assert!(before.shares_logical_storage_chunk_with(&after, 64, 63));
-        assert!(!after.has_materialized_flat_text());
-
-        let unchanged =
-            projection.project(&logs, ConsoleMessageFilter::All, ConsoleSourceFilter::All);
-        assert!(after.shares_logical_generation_with(&unchanged));
-        assert_eq!(unchanged.line_delta(), after.line_delta());
-    }
-
-    fn emit(logs: &EditorLogService, index: usize) {
-        logs.emit(
-            LogEntry::new(
-                LogSource::editor(),
-                LogSeverity::Info,
-                format!("record-{index}"),
-                index as u64,
-                None,
-            )
-            .unwrap(),
-        )
-        .unwrap();
-    }
-}
+#[cfg(test)]
+#[path = "tests/activity_log_console_projection.rs"]
+mod tests;

@@ -10,7 +10,8 @@ fixing_plan: docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-intera
 origin_child_dir: docs/plans/zircon_editor/editor_ui/10
 fixing_child_dir: docs/plans/zircon_editor/editor/01
 related_code:
-  - zircon_editor/src/tests/gateway/session.rs
+  - zircon_editor/src/tests/gateway/mod.rs
+  - zircon_editor/src/tests/gateway/session
 tests:
   - python -B .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_editor_structure.py --json --repo-root E:\\Git\\ZirconEngine
   - cargo test -p zircon_editor --lib gateway --locked
@@ -54,15 +55,51 @@ Open state: `source hard-cut complete / managed validation blocked`。旧
 demand、output ownership、plugin operations 与 world sync 拆为 folder-backed owner，
 `SessionGateway` 生产实现也按 ABI output、protocol、world sync、frame、overlay、profile、
 plugin event 和 operation 职责拆入同域目录，没有 compatibility mount、`#[path]` 或
-test-budget exemption。frame capture 现于 gateway 边界复制 RGBA 到 `EditorRuntimeFrame`
-的 `Vec<u8>`，并在返回前恰好释放 runtime buffer；不再向 editor 公开 provider-backed
-pixel trait、`from_pixels` 或 `release` 路径。当前 source-bound Cargo 在测试开始前被
-validation-copy 的 compile-time template 闭包缺失阻断，故本 handoff 保持 open，不把静态
-检查或未执行的测试当作回传。
+test-budget exemption。
+
+当前 gateway frame 合同不是本 test-budget failure 的修复面：provider-backed frame storage
+由返回的 `EditorRuntimeFrame` 保持，并在显式 `release()` 或 drop 时恰好释放一次；
+`output_ownership.rs` 直接覆盖该生命周期。2026-08-14 记录中的 host-owned `Vec<u8>` 描述
+只反映当时快照，已被后续 gateway 合同演进超越，不得作为当前回传事实。早期
+validation-copy compile-time template 缺件同样只保留为历史失败证据；当前仍待执行的是与
+现行源码匹配的 gateway Cargo、全局 structure gate 及向上验收。
 
 ## 产出记录与时间
 
 | 时间 | 里程碑/切片 | 状态 | 完成项目与证据 | 后续门禁 |
 | --- | --- | --- | --- | --- |
 | 2026-08-13 | M3 gateway session test-budget handoff | `open` | 从准确 48/0 审计隔离 1137 行 gateway session owner。 | 取得源码 lease 后按 session contract folder-backed 拆分，受管 gateway 回归和结构审计复验。 |
-| 2026-08-14 | Editor01 gateway session hard cut and frame ownership | `implemented / validation_blocked` | 删除 flat test/source `session.rs`；`tests/gateway/session/mod.rs` 加六个行为 owner 保留 26 个测试，各叶子低于 800 行；`core/gateway/session/` 的 11 个具名 leaf 分离 ABI output、protocol、world sync、frame、overlay、profile、plugin event、operation 与 trait dispatch，最大 188 行。`EditorRuntimeFrame` 硬切为 host-owned `Vec<u8>`；`capture_frame` 验证后 `to_vec()` 并在返回前恰好释放 runtime output，provider pixel trait/`from_pixels`/`release` 均为零。精确 `rustfmt --check`、diff check、静态 hard-cut guard 与独立复审均无 findings；结构审计当前全局为 migration debt 32、oversized production 2、oversized test 28，未将其他 owner 债务计入本项。先前 source manifest `31655886ca6a5cc8fddbca07d666646caa319ddddbb65d38ddd1e28481c1ff95` 的受管 run `d219061daebe4a8e9b31d80c83a0dd15` 于测试前 `exit 101`：validation copy 未物化 `zircon_runtime_interface/templates/projects/renderable-empty/**`，`include_bytes!` 无法编译；该证据已被当前源码硬切超越，不能作验收。 | Tooling 修复 Cargo validation-copy 的 compile-time resource closure 后，重建 current-source manifest，运行 gateway focused gate、全局 structure audit 与 frame ownership tests；通过前不得关闭 handoff、提交里程碑或发送完成通知。 |
+| 2026-08-14 | Editor01 gateway session hard cut and frame ownership | `implemented / validation_blocked / historical snapshot` | 删除 flat test/source `session.rs`；`tests/gateway/session/mod.rs` 加六个行为 owner，当时保留 26 个测试，各叶子低于 800 行；`core/gateway/session/` 的 11 个具名 leaf 分离 ABI output、protocol、world sync、frame、overlay、profile、plugin event、operation 与 trait dispatch，最大 188 行。当时快照把 `EditorRuntimeFrame` 改为 host-owned `Vec<u8>`；该 frame 所有权描述后来被 provider-backed release/drop 合同超越，当前事实见下方 2026-09-21 reconciliation。精确 `rustfmt --check`、diff check、静态 hard-cut guard 与独立复审均无 findings；结构审计当时全局为 migration debt 32、oversized production 2、oversized test 28，未将其他 owner 债务计入本项。先前 source manifest `31655886ca6a5cc8fddbca07d666646caa319ddddbb65d38ddd1e28481c1ff95` 的受管 run `d219061daebe4a8e9b31d80c83a0dd15` 于测试前 `exit 101`：validation copy 未物化 `zircon_runtime_interface/templates/projects/renderable-empty/**`，`include_bytes!` 无法编译；该证据已被当前源码硬切超越，不能作验收。 | 以现行源码重建 manifest，运行 gateway focused gate、全局 structure audit 与 frame ownership tests；通过前不得关闭 handoff、提交里程碑或发送完成通知。 |
+
+## 2026-09-21 current-source reconciliation
+
+- Successor Session `failure-roll-01a084c8-editor01-gateway-session-budget-r1` corrected the stale
+  `related_code` entry from the deleted flat file to the current parent module and folder-backed
+  owner. Snapshot `3717` binds the failure record plus the eight current test/module files.
+- The current tree contains six behavior owners plus the thin session `mod.rs`; the largest file is
+  `fixture.rs` at 644 lines and the five behavior files now contain 27 tests. The old flat file is
+  absent, the parent mounts `mod session;`, and no `#[path]` mount or test-budget exemption exists.
+- The current structure audit exits successfully and no longer lists this gateway-session owner.
+  It still reports unrelated global debt: 17 migration items, 3 oversized production files,
+  12 oversized test files, and 2 duplicate test-tree pairs. Those results are not promoted to a
+  global GREEN claim.
+- Independent review found one documentation-only Important because the prior current-state text
+  still described the superseded host-owned frame contract and 26 tests. The reconciliation above
+  fixes that record drift without editing or absorbing the concurrently owned gateway production
+  files. A zero-finding re-review is required before return.
+- Initial managed static ticket `b4f9ba9e6e364e65b40e1d6612a24737` failed before any source
+  assertion because its generated Python checker embedded a newline inside a quoted join string and
+  raised `SyntaxError: unterminated string literal`. This is a checker-command failure, not a product
+  finding.
+- Corrected successor ticket `970d16651bd74d1d939cbea425c6ebfc` resealed snapshot `3719`
+  (manifest `71bfccc253ec8387ac2aa909327906056e0305361fc1975006f333ac419dc4e3`).
+  Coordinator job `026eecdf7cb84c0c8c20e1e1b6bb9da5` / run
+  `970d16651bd74d1d939cbea425c6ebfc` exited 0 with
+  `EDITOR01_GATEWAY_SESSION_TEST_BUDGET_CURRENT_SOURCE_PASS`,
+  `MAX_TEST_OWNER_LINES=644`, and `GATEWAY_SESSION_TEST_COUNT=27`.
+- Corrected independent review is `Critical=0 / Important=0 / Moderate=0`. It confirmed the
+  folder-backed test boundary and current provider-owned frame lifetime while preserving the
+  unrelated global structure debt. This receipt append changes only the failure record after the
+  ticket snapshot; the eight checked Rust files retain their sealed hashes.
+- Focused gateway Cargo, the full structure gate after other owners clear their debt, canonical
+  fixed return, and closeout remain pending.

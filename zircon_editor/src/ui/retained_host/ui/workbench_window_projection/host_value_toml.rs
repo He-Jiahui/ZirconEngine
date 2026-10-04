@@ -104,5 +104,5 @@ pub(super) fn notification_text_copy_count() -> usize {
 }
 
 #[cfg(test)]
-#[path = "host_value_toml/missing_alias_lookup_tests.rs"]
+#[path = "host_value_toml/tests/missing_alias_lookup_tests.rs"]
 mod missing_alias_lookup_tests;

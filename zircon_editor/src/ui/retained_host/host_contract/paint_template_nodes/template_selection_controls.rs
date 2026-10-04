@@ -1,3 +1,5 @@
+//! primary 专用链的复选、单选与开关入口；共享组件家族负责判定，局部模块负责各自标记。
+
 mod checkbox;
 mod commands;
 mod identity;
@@ -36,5 +38,5 @@ use style::{
 };
 
 #[cfg(test)]
-#[path = "template_selection_controls_tests/mod.rs"]
+#[path = "template_selection_controls_tests/tests/mod.rs"]
 mod tests;

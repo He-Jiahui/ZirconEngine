@@ -1,3 +1,4 @@
+# 核对各计划与桌面文档不再把旧界面后缀描述为当前权威。
 import unittest
 from pathlib import Path
 
@@ -17,25 +18,25 @@ class ZuiDocsSuffixConvergenceTests(unittest.TestCase):
                 ".zui/.ui.toml 加载",
                 ".zui` 只允许单组件 profile",
             ],
-            "docs/editor-and-tooling/zui-asset-governance.md": [
+            "docs/editor/zui-asset-governance.md": [
                 "Production `.v2.ui.toml`",
                 "current view/style roots",
                 "deprecated `.v2.ui.toml` roots",
                 "both `.v2.ui.toml` and `.zui`",
             ],
-            "docs/ui-and-layout/ui-asset-documents-and-editor-protocol.md": [
+            "docs/ui/ui-asset-documents-and-editor-protocol.md": [
                 "tree-shaped `.ui.toml`",
                 "zircon_editor/assets/ui/**/*.ui.toml",
                 "zircon_runtime/assets/ui/runtime/fixtures/*.ui.toml",
             ],
-            "docs/editor-and-tooling/ui-asset-editor-host-session.md": [
+            "docs/editor/ui-asset-editor-host-session.md": [
                 "watch `project_root/assets` 下的 `.ui.toml`",
                 "structural frames from `.ui.toml` assets",
                 "current implementation and tests must use `retained_host`, `.ui.toml`",
                 "All pane shell topology now comes from `.ui.toml` assets",
                 "EditorTemplateRuntimeService` now owns the high-level editor façade for `.ui.toml` parsing",
             ],
-            "docs/editor-and-tooling/editor-template-compatibility-migration.md": [
+            "docs/editor/editor-template-compatibility-migration.md": [
                 "Editor UI templates are `.ui.toml` documents",
                 "loads `.ui.toml` documents",
                 "backing file remains named `workbench_shell.ui.toml`",
@@ -178,7 +179,7 @@ class ZuiDocsSuffixConvergenceTests(unittest.TestCase):
     def test_editor_build_export_desktop_doc_current_templates_use_zui(self):
         repo_root = Path(__file__).resolve().parents[2]
         doc_text = (
-            repo_root / "docs/zircon_plugins/editor-build-export-desktop.md"
+            repo_root / "docs/crates/zircon_plugins/editor-build-export-desktop.md"
         ).read_text(encoding="utf-8")
         current_sections = "\n".join(
             [
@@ -220,7 +221,7 @@ class ZuiDocsSuffixConvergenceTests(unittest.TestCase):
     def test_editor_workbench_shell_current_authority_uses_zui_host_assets(self):
         repo_root = Path(__file__).resolve().parents[2]
         shell_text = (
-            repo_root / "docs/editor-and-tooling/editor-workbench-shell.md"
+            repo_root / "docs/editor/editor-workbench-shell.md"
         ).read_text(encoding="utf-8")
         current_sections = "\n".join(
             [

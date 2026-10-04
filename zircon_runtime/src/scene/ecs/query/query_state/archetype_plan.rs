@@ -1,7 +1,7 @@
 use std::any::TypeId;
 
-use crate::scene::World;
 use crate::scene::ecs::{ArchetypeId, ComponentId, ComponentStorageLocation, StableEntityLocation};
+use crate::scene::World;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum QueryComponentBinding {
@@ -25,6 +25,7 @@ impl QueryComponentBinding {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+/// 为同一原型预绑定组件类型与存储槽；实体当前行在每次投影时补入，不持久缓存实体位置。
 pub(crate) struct CachedArchetypePlan {
     archetype_id: ArchetypeId,
     membership_generation: u64,

@@ -1,0 +1,1338 @@
+{
+  "record_type": "root_qualified_batch16_manifest",
+  "root_captured_at_utc": "2026-10-02T21:50:41.548627+00:00",
+  "canonical_artifacts": [
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch16-review.jsonl",
+      "bytes": 1563508,
+      "sha256": "850db3b75f8c8b1a526aa8cfdd8bf0e77f9f7ced425a15bbaff213cada43e9ec"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch16-gates.jsonl",
+      "bytes": 770552,
+      "sha256": "9525e90dfbebaba33fc4251feee4f3a7f391639cc805b884d6100fc8149a274f"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch16-refresh.jsonl",
+      "bytes": 1201722,
+      "sha256": "7a1d96ccd42017d22bd6cedfa8665f15ca2a94ad8025db82bdb1e58097e4c20d"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch16-crosswalk.jsonl",
+      "bytes": 3335,
+      "sha256": "2805198d733bb7d650567edb7a5ad896e79611a9347903dacb40a557528a5816"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch16-summary.json",
+      "bytes": 2126,
+      "sha256": "409a4dde86cae239c1f3e3ff822a5817f0d0281368d0d35ffe449efd5bd67b4f"
+    }
+  ],
+  "raw_inputs": [
+    {
+      "path": "docs/plans/optimize/zircon_app/09-product-launch-request-cli-config-resolution-provenance-diagnostics-exit-semantics-current-working-tree-review.md",
+      "captured_path": "captured-current/docs__plans__optimize__zircon_app__09-product-launch-request-cli-config-resolution-provenance-diagnostics-exit-semantics-current-working-tree-review.md",
+      "bytes": 39982,
+      "lines": 349,
+      "sha256": "e4df038f9e38a47db8ecdd93dc323e1a72c624594acfc2a5d5169cfdafec5d97",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\optimize\\zircon_app\\09-product-launch-request-cli-config-resolution-provenance-diagnostics-exit-semantics-current-working-tree-review.md",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__optimize__zircon_app__09-product-launch-request-cli-config-resolution-provenance-diagnostics-exit-semantics-current-working-tree-review.md",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime_interface/07-contract-certification-abi-layout-version-skew-cross-language-fuzz-test-architecture-review.md",
+      "captured_path": "captured-current/docs__plans__optimize__zircon_runtime_interface__07-contract-certification-abi-layout-version-skew-cross-language-fuzz-test-architecture-review.md",
+      "bytes": 36217,
+      "lines": 501,
+      "sha256": "df7bf2c6b0ae05ae6d222af19cdc9576de462a2ce4bf9e9e4da1f12ba6c793fb",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\optimize\\zircon_runtime_interface\\07-contract-certification-abi-layout-version-skew-cross-language-fuzz-test-architecture-review.md",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__optimize__zircon_runtime_interface__07-contract-certification-abi-layout-version-skew-cross-language-fuzz-test-architecture-review.md",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime_interface/15-contract-certification-abi-layout-buildset-real-dll-skew-cross-language-corpus-fuzz-current-source-review.md",
+      "captured_path": "captured-current/docs__plans__optimize__zircon_runtime_interface__15-contract-certification-abi-layout-buildset-real-dll-skew-cross-language-corpus-fuzz-current-source-review.md",
+      "bytes": 29630,
+      "lines": 286,
+      "sha256": "df16de8e07f70f3f25b44cdd824b564baab06d5a3ef35b26b2d383712ea01a8c",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\optimize\\zircon_runtime_interface\\15-contract-certification-abi-layout-buildset-real-dll-skew-cross-language-corpus-fuzz-current-source-review.md",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__optimize__zircon_runtime_interface__15-contract-certification-abi-layout-buildset-real-dll-skew-cross-language-corpus-fuzz-current-source-review.md",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/bin/editor.rs",
+      "captured_path": "captured-current/zircon_app__src__bin__editor.rs",
+      "bytes": 5726,
+      "lines": 158,
+      "sha256": "cb45388a24552961e0e610bbe878621b20ec61913ebaa3e9451fefc1280d1ab1",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\bin\\editor.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__bin__editor.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/bin/runtime_preview.rs",
+      "captured_path": "captured-current/zircon_app__src__bin__runtime_preview.rs",
+      "bytes": 4723,
+      "lines": 135,
+      "sha256": "f0dea701a966fbf0bc53b312e85ad9523ff60d966161c1c1dd8d8fd80bd92f25",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\bin\\runtime_preview.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__bin__runtime_preview.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/cli/diagnostic_log_args.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__cli__diagnostic_log_args.rs",
+      "bytes": 12691,
+      "lines": 365,
+      "sha256": "7f2fa61718f932bb037485438722d2fe735bf9ecaf4c4d6a4c14e68ca821fb36",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\cli\\diagnostic_log_args.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__cli__diagnostic_log_args.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/cli/launch_args.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__cli__launch_args.rs",
+      "bytes": 35002,
+      "lines": 947,
+      "sha256": "4b0caa81616c3a1a5572419ba3fe6274b30be17cca957577949e4c6d037bfd9a",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\cli\\launch_args.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__cli__launch_args.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/entry_runner/runtime.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__entry_runner__runtime.rs",
+      "bytes": 50927,
+      "lines": 1316,
+      "sha256": "7c09a60ca517ea96c41375c4d0857d81be93249d11287574bfe201dc2d710bdd",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\entry_runner\\runtime.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__entry_runner__runtime.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/entry_runner/editor.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__entry_runner__editor.rs",
+      "bytes": 30351,
+      "lines": 701,
+      "sha256": "06819ad329ef862764b9ecc442f2a889774a8bbfc64731720c0544387793b305",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\entry_runner\\editor.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__entry_runner__editor.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/entry_runner/runtime_session_args.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__entry_runner__runtime_session_args.rs",
+      "bytes": 29680,
+      "lines": 806,
+      "sha256": "35f0958da4a82b8b85e6c5b18cc7ebe88be4434483d1e05d12dd187166a9f941",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\entry_runner\\runtime_session_args.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__entry_runner__runtime_session_args.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/product_host_config/entry_config.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__product_host_config__entry_config.rs",
+      "bytes": 1268,
+      "lines": 26,
+      "sha256": "0187fd86e32e7b189e6996dba8dd17ffa45a05a1be05fb6252910ee2d5e30132",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\product_host_config\\entry_config.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__product_host_config__entry_config.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/product_host_config/request.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__product_host_config__request.rs",
+      "bytes": 4363,
+      "lines": 122,
+      "sha256": "41e34c92487b467e29ff203e238fe63b0a41a365837fb9165fdaaf210ffd8e76",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\product_host_config\\request.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__product_host_config__request.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/product_host_config/resolution.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__product_host_config__resolution.rs",
+      "bytes": 15006,
+      "lines": 391,
+      "sha256": "5ea6fa6d0e94f0d24bcc1649d33587b44d844b95d1e26964e5b0e71c0f9f65dc",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\product_host_config\\resolution.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__product_host_config__resolution.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/product_host_config/resolved_product_host_config.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__product_host_config__resolved_product_host_config.rs",
+      "bytes": 2792,
+      "lines": 84,
+      "sha256": "617ea6a90cb5b3700254f2d314cd9c65947da0a177df2615174396dfde934cea",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\product_host_config\\resolved_product_host_config.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__product_host_config__resolved_product_host_config.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/product_host_config/product_host_config_provenance.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__product_host_config__product_host_config_provenance.rs",
+      "bytes": 1826,
+      "lines": 58,
+      "sha256": "9ae5bab38609738adf4dceaf3c77deab259607c5b6f49ea5f3360811358e10f7",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\product_host_config\\product_host_config_provenance.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__product_host_config__product_host_config_provenance.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/product_host_config/product_config_source.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__product_host_config__product_config_source.rs",
+      "bytes": 235,
+      "lines": 8,
+      "sha256": "d01f1243c88322f049d8bdaeed28bd92d293a70d9960ba659623cd820999f0b4",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\product_host_config\\product_config_source.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__product_host_config__product_config_source.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/product_host_config/product_config_source_set.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__product_host_config__product_config_source_set.rs",
+      "bytes": 1552,
+      "lines": 55,
+      "sha256": "a485c7629622dc10b4601cbe7efc791874cbb26d0d26138b97c0ea857fb0a478",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\product_host_config\\product_config_source_set.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__product_host_config__product_config_source_set.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/product_host_config/product_role_catalog.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__product_host_config__product_role_catalog.rs",
+      "bytes": 8023,
+      "lines": 200,
+      "sha256": "4fb2603092acc9c77d42db9aa88c78afbcf64542b5871ae2ce7586116aa3467d",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\product_host_config\\product_role_catalog.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__product_host_config__product_role_catalog.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/product_host_config/product_role_descriptor.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__product_host_config__product_role_descriptor.rs",
+      "bytes": 5977,
+      "lines": 200,
+      "sha256": "ebc8d1e75707ba65beef2217ae3896b253acbe7bf57c08a4ef52edb032bb328f",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\product_host_config\\product_role_descriptor.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__product_host_config__product_role_descriptor.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/product_host_config/product_host_capability_policy.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__product_host_config__product_host_capability_policy.rs",
+      "bytes": 2798,
+      "lines": 97,
+      "sha256": "78585ef1a4c2346d2b8d29c4bb55af3a24a416e75f95462397f94866734ffe8e",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\product_host_config\\product_host_capability_policy.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__product_host_config__product_host_capability_policy.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/product_shutdown/terminal.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__product_shutdown__terminal.rs",
+      "bytes": 3646,
+      "lines": 122,
+      "sha256": "202eda990dafffe8360e29e1f97b255ff164b8a32734ff82c464d39b9e66b5bd",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\product_shutdown\\terminal.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__product_shutdown__terminal.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/product_shutdown/terminal_outcome.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__product_shutdown__terminal_outcome.rs",
+      "bytes": 6694,
+      "lines": 198,
+      "sha256": "28cef866b034e6ea2408f577ef2c33bd052cbbd390b6fb4095b68db4787765ee",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\product_shutdown\\terminal_outcome.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__product_shutdown__terminal_outcome.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/product_shutdown/failure_ledger.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__product_shutdown__failure_ledger.rs",
+      "bytes": 4218,
+      "lines": 116,
+      "sha256": "3e3a21b09a9f6694d59e8199af0d8d21776c070d44a5f2fa7618252b3ccdb369",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\product_shutdown\\failure_ledger.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__product_shutdown__failure_ledger.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/product_shutdown/tests.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__product_shutdown__tests.rs",
+      "bytes": 10866,
+      "lines": 313,
+      "sha256": "12c31988d6f0d1f412774e45e231878d3f3745131b672f044ca4167a5afb1457",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\product_shutdown\\tests.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__product_shutdown__tests.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/runtime_library/loaded_runtime.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__runtime_library__loaded_runtime.rs",
+      "bytes": 28239,
+      "lines": 726,
+      "sha256": "dde5875b6b1d7801cdbe1cdd1d47a36e01d717542604af380cdb14cdf2e43ed1",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\runtime_library\\loaded_runtime.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__runtime_library__loaded_runtime.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/runtime_library/artifact_manifest.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__runtime_library__artifact_manifest.rs",
+      "bytes": 7275,
+      "lines": 193,
+      "sha256": "5a7941d1ceb16554c2be2e138cb9d03ff2c9096af65475a992c870d605a33d36",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\runtime_library\\artifact_manifest.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__runtime_library__artifact_manifest.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/runtime_library/library_path.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__runtime_library__library_path.rs",
+      "bytes": 14514,
+      "lines": 371,
+      "sha256": "36d2c62458426ec425427d4f5f1067ba6431969bd1fdf7d648c04f8667ac4e66",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\runtime_library\\library_path.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__runtime_library__library_path.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/runtime_library/runtime_session.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__runtime_library__runtime_session.rs",
+      "bytes": 29832,
+      "lines": 774,
+      "sha256": "ad61770763aea0d851525c8bae009da299c9376a99a4fe708f6f2d29d6980d9f",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\runtime_library\\runtime_session.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__runtime_library__runtime_session.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/runtime_library/tests.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__runtime_library__tests.rs",
+      "bytes": 29696,
+      "lines": 859,
+      "sha256": "b3c314fdf95a9f5de21717aacd90e8d401cd53cc142f49256ca02851b225b805",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\runtime_library\\tests.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__runtime_library__tests.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/runtime_library/runtime_session/foreign_output/tests.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__runtime_library__runtime_session__foreign_output__tests.rs",
+      "bytes": 24168,
+      "lines": 653,
+      "sha256": "c996e3c2fda83030f1f7f2505dbe856dd0d4fabf7252874b1fe716f2b6e0f76c",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\runtime_library\\runtime_session\\foreign_output\\tests.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__runtime_library__runtime_session__foreign_output__tests.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/platform_preferences.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__platform_preferences.rs",
+      "bytes": 11823,
+      "lines": 311,
+      "sha256": "ac8196fa0ee17b852b094469bcc2abbf9fd7a30b42ea3567e2f7cbb94eb6a4ed",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\platform_preferences.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__platform_preferences.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/export_bootstrap.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__export_bootstrap.rs",
+      "bytes": 15185,
+      "lines": 399,
+      "sha256": "0fd3d5454a36702fd4681a8d9ad2e32f342ec91f0534d2e1b1bfd809a7033424",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\export_bootstrap.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__export_bootstrap.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_app/src/entry/tests/product_host_config.rs",
+      "captured_path": "captured-current/zircon_app__src__entry__tests__product_host_config.rs",
+      "bytes": 16733,
+      "lines": 494,
+      "sha256": "14e4ea1db0bab64be9386bd7a2bcceedeadba4586c91438fd365645013fc3e17",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_app\\src\\entry\\tests\\product_host_config.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_app__src__entry__tests__product_host_config.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_build_set/interface_spec_v1.json",
+      "captured_path": "captured-current/zircon_runtime_interface__src__runtime_build_set__interface_spec_v1.json",
+      "bytes": 993,
+      "lines": 42,
+      "sha256": "db3c639db8e6a8385dad4959d178b0c95894b51ae87531f46d87ced6955e1fa4",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\runtime_build_set\\interface_spec_v1.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__src__runtime_build_set__interface_spec_v1.json",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_build_set/payload_schema_set_v1.json",
+      "captured_path": "captured-current/zircon_runtime_interface__src__runtime_build_set__payload_schema_set_v1.json",
+      "bytes": 174,
+      "lines": 7,
+      "sha256": "bc4ad0c8579ef005788657c4f83eaaa79ce09cf6c288115d980c781a55592e7b",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\runtime_build_set\\payload_schema_set_v1.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__src__runtime_build_set__payload_schema_set_v1.json",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_build_set/interface_spec.rs",
+      "captured_path": "captured-current/zircon_runtime_interface__src__runtime_build_set__interface_spec.rs",
+      "bytes": 1539,
+      "lines": 40,
+      "sha256": "3bad1af95a00462c08a83ecfb0db9bd8d511e527097c33dc678f248c42a8af5e",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\runtime_build_set\\interface_spec.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__src__runtime_build_set__interface_spec.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_build_set/slot_catalog.rs",
+      "captured_path": "captured-current/zircon_runtime_interface__src__runtime_build_set__slot_catalog.rs",
+      "bytes": 137,
+      "lines": 2,
+      "sha256": "b73fa8e6ce97f0e32270a391aaba3043f55066bfac18f81d4e453f102258e46a",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\runtime_build_set\\slot_catalog.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__src__runtime_build_set__slot_catalog.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_build_set/artifact_manifest.rs",
+      "captured_path": "captured-current/zircon_runtime_interface__src__runtime_build_set__artifact_manifest.rs",
+      "bytes": 8674,
+      "lines": 203,
+      "sha256": "23d168862d1f5c8be2c332eb55547283986522f5250f97cc43a6117cf160f0fb",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\runtime_build_set\\artifact_manifest.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__src__runtime_build_set__artifact_manifest.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_build_set/build_set_expectation.rs",
+      "captured_path": "captured-current/zircon_runtime_interface__src__runtime_build_set__build_set_expectation.rs",
+      "bytes": 2367,
+      "lines": 67,
+      "sha256": "6d08af9507b71a47c6576f707c21037995924886a740f372a599daf1ba3a7ac0",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\runtime_build_set\\build_set_expectation.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__src__runtime_build_set__build_set_expectation.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_build_set/build_set_id.rs",
+      "captured_path": "captured-current/zircon_runtime_interface__src__runtime_build_set__build_set_id.rs",
+      "bytes": 1330,
+      "lines": 42,
+      "sha256": "0b32c8a246ef6fd2ccebe2587346bc849d20c46a5a2220c8332b3543b4f7484f",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\runtime_build_set\\build_set_id.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__src__runtime_build_set__build_set_id.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_build_set/target_model.rs",
+      "captured_path": "captured-current/zircon_runtime_interface__src__runtime_build_set__target_model.rs",
+      "bytes": 2035,
+      "lines": 65,
+      "sha256": "e3f5feebd2656c81b4a27bf3e53b4bae2d7f258a8445dbccd08bd3f4df6f0ff0",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\runtime_build_set\\target_model.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__src__runtime_build_set__target_model.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_build_set/tests.rs",
+      "captured_path": "captured-current/zircon_runtime_interface__src__runtime_build_set__tests.rs",
+      "bytes": 10799,
+      "lines": 296,
+      "sha256": "6dc0f699e29227b22c2f6ff5b1f542a41588e929df05641efc545969765c1785",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\runtime_build_set\\tests.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__src__runtime_build_set__tests.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_build_set/slot_catalog_build_tests.rs",
+      "captured_path": "captured-current/zircon_runtime_interface__src__runtime_build_set__slot_catalog_build_tests.rs",
+      "bytes": 167,
+      "lines": 4,
+      "sha256": "03939e26fea88e980167b9a9fe0da080eba6e1b2e22851bcdf91c3905e18747f",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\runtime_build_set\\slot_catalog_build_tests.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__src__runtime_build_set__slot_catalog_build_tests.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/build.rs",
+      "captured_path": "captured-current/zircon_runtime_interface__build.rs",
+      "bytes": 12779,
+      "lines": 348,
+      "sha256": "61a43eb15485994b3955ae80de4a5a361c898d8a0fda60bef052900229da4146",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\build.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__build.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/abi/api_shape.rs",
+      "captured_path": "captured-current/zircon_runtime_interface__src__runtime_api__abi__api_shape.rs",
+      "bytes": 1436,
+      "lines": 40,
+      "sha256": "2cde4d3035febc16e0932c38638b8999b247d66536c9b66022d00dddb6bd899f",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\runtime_api\\abi\\api_shape.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__src__runtime_api__abi__api_shape.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/abi/api_shape_tests.rs",
+      "captured_path": "captured-current/zircon_runtime_interface__src__runtime_api__abi__api_shape_tests.rs",
+      "bytes": 1547,
+      "lines": 55,
+      "sha256": "2276690b903fd368f523f4dc6b49b8b0db5dcc4eaf61262bb3e4d6f5d3f790e5",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\runtime_api\\abi\\api_shape_tests.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__src__runtime_api__abi__api_shape_tests.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/abi/host_api_shape.rs",
+      "captured_path": "captured-current/zircon_runtime_interface__src__runtime_api__abi__host_api_shape.rs",
+      "bytes": 3128,
+      "lines": 89,
+      "sha256": "fe68da90bae75cfd151fc014aa64ffa3a64518beaec4b5db009b1af94c580369",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\runtime_api\\abi\\host_api_shape.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__src__runtime_api__abi__host_api_shape.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/abi/host_api_shape_tests.rs",
+      "captured_path": "captured-current/zircon_runtime_interface__src__runtime_api__abi__host_api_shape_tests.rs",
+      "bytes": 2080,
+      "lines": 66,
+      "sha256": "b094a9a20504ca1c91d784d256aca74ef5dea0a3750173eaf1e62f42f929fb39",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\runtime_api\\abi\\host_api_shape_tests.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__src__runtime_api__abi__host_api_shape_tests.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/abi/api_table.rs",
+      "captured_path": "captured-current/zircon_runtime_interface__src__runtime_api__abi__api_table.rs",
+      "bytes": 11873,
+      "lines": 285,
+      "sha256": "61d3bc871934e5e02e4652d26e0aa3ae82c96e50e9eeac5a1529ad7cd34c1b95",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\runtime_api\\abi\\api_table.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__src__runtime_api__abi__api_table.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/abi_safety_contracts.rs",
+      "captured_path": "captured-current/zircon_runtime_interface__src__tests__abi_safety_contracts.rs",
+      "bytes": 17620,
+      "lines": 526,
+      "sha256": "915e4532906ac2665046de9b1e1d584904da04b9347d380460f8d26030644859",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\tests\\abi_safety_contracts.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__src__tests__abi_safety_contracts.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "captured_path": "captured-current/zircon_runtime_interface__src__tests__contracts.rs",
+      "bytes": 118171,
+      "lines": 2991,
+      "sha256": "42f97dddd3fa48e200047535d405d893e71efd78facd913b95aeffe8decd6349",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\tests\\contracts.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__src__tests__contracts.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/runtime_owned_result.rs",
+      "captured_path": "captured-current/zircon_runtime_interface__src__tests__runtime_owned_result.rs",
+      "bytes": 3576,
+      "lines": 98,
+      "sha256": "aaa6e7192e790aed913a5b09535532fb9d5e1489dfd174a558b9322fcd3ec14e",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\tests\\runtime_owned_result.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__src__tests__runtime_owned_result.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/mod.rs",
+      "captured_path": "captured-current/zircon_runtime_interface__src__serialization__mod.rs",
+      "bytes": 796,
+      "lines": 30,
+      "sha256": "92b8ed54c057097a522e72173945419c2526941150fd2472d1561fff487c6e82",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\serialization\\mod.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__src__serialization__mod.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/versioned_schema.rs",
+      "captured_path": "captured-current/zircon_runtime_interface__src__serialization__versioned_schema.rs",
+      "bytes": 370,
+      "lines": 10,
+      "sha256": "fdf06e96d6d70d17aff539e867d5661532b974ee49f71cee78334545b4e25bfd",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\serialization\\versioned_schema.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__src__serialization__versioned_schema.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/serialization/payload_header.rs",
+      "captured_path": "captured-current/zircon_runtime_interface__src__serialization__payload_header.rs",
+      "bytes": 510,
+      "lines": 12,
+      "sha256": "d3cf22421fb7f10d1ebc22724a8a88e705e26d2b300e264cc71c957ff1c72fff",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\serialization\\payload_header.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__src__serialization__payload_header.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/export/tests.rs",
+      "captured_path": "captured-current/zircon_runtime_interface__src__export__tests.rs",
+      "bytes": 2813,
+      "lines": 85,
+      "sha256": "5e94e93641ddabfd6ee2ef71204d695cb335a88c44ed6f54a88ce6d1ff56ef84",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\export\\tests.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__src__export__tests.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_host/src/foreign_output/tests.rs",
+      "captured_path": "captured-current/zircon_runtime_host__src__foreign_output__tests.rs",
+      "bytes": 40854,
+      "lines": 1125,
+      "sha256": "99aeae9a5c7e13e655edfd39544bb119f80f4d8baa9c024279dee71a5173993c",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_host\\src\\foreign_output\\tests.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_host__src__foreign_output__tests.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_editor/src/tests/runtime_event_consumer_bounded_pump/real_runtime_abi.rs",
+      "captured_path": "captured-current/zircon_editor__src__tests__runtime_event_consumer_bounded_pump__real_runtime_abi.rs",
+      "bytes": 10500,
+      "lines": 260,
+      "sha256": "7e56a96587e745d10894f2880951fed34cc19d421cd9a01e455d8ecd35c0833e",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_editor\\src\\tests\\runtime_event_consumer_bounded_pump\\real_runtime_abi.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_editor__src__tests__runtime_event_consumer_bounded_pump__real_runtime_abi.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "w0-current-coverage-audit-r1/independent-current-coverage-audit-r1.json",
+      "captured_path": "captured-current/w0-current-coverage-audit-r1__independent-current-coverage-audit-r1.json",
+      "bytes": 331186,
+      "lines": 6069,
+      "sha256": "f91f3659d4bc79c98de71d4445378f033d7b0fd90a29391dd2bf7768eade2636",
+      "absolute_current": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0-current-coverage-audit-r1\\independent-current-coverage-audit-r1.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\w0-current-coverage-audit-r1__independent-current-coverage-audit-r1.json",
+      "root_current_match": true
+    },
+    {
+      "path": "w0-current-coverage-audit-r1/independent-current-coverage-audit-r1.md",
+      "captured_path": "captured-current/w0-current-coverage-audit-r1__independent-current-coverage-audit-r1.md",
+      "bytes": 8321,
+      "lines": 43,
+      "sha256": "601949087d617ca98a9eb4706800d1ee15bccdd9c2d34b0da2d1d9cbfc2147da",
+      "absolute_current": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0-current-coverage-audit-r1\\independent-current-coverage-audit-r1.md",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\w0-current-coverage-audit-r1__independent-current-coverage-audit-r1.md",
+      "root_current_match": true
+    },
+    {
+      "path": "private/w0/batch14/review.jsonl",
+      "captured_path": "captured-current/private__w0__batch14__review.jsonl",
+      "bytes": 38313,
+      "lines": 5,
+      "sha256": "8becdbb589d055141cfeae251f5c3649b530caa34a5c0e908e45effdc3849c44",
+      "absolute_current": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\review.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\private__w0__batch14__review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "private/P/w0/batch15/review.jsonl",
+      "captured_path": "captured-current/private__P__w0__batch15__review.jsonl",
+      "bytes": 936505,
+      "lines": 64,
+      "sha256": "45b7eb5d119fdd1cd21f2313c1aaec1674b97ab5867184f823a19d910b658dd0",
+      "absolute_current": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\review.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\private__P__w0__batch15__review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "private/w0/batch14/crosswalk.jsonl",
+      "captured_path": "captured-current/private__w0__batch14__crosswalk.jsonl",
+      "bytes": 3849,
+      "lines": 8,
+      "sha256": "cd24c2000fdb4fd63709173afd1a263da9b654e084b80e020dab42c0c854d2f2",
+      "absolute_current": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\crosswalk.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\private__w0__batch14__crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "private/P/w0/batch15/crosswalk.jsonl",
+      "captured_path": "captured-current/private__P__w0__batch15__crosswalk.jsonl",
+      "bytes": 4873,
+      "lines": 5,
+      "sha256": "0495bc7ee105f07778cf1690916fdb32b24a1be970c4ef7a8d28f6220fb4df0d",
+      "absolute_current": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\crosswalk.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\private__P__w0__batch15__crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "private/w0/batch14/summary.json",
+      "captured_path": "captured-current/private__w0__batch14__summary.json",
+      "bytes": 1796,
+      "lines": 52,
+      "sha256": "80ddbdc033cae1d1ef2293e6eea24638a2842e7f50295f1b9b7f093c699bf92b",
+      "absolute_current": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\summary.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\private__w0__batch14__summary.json",
+      "root_current_match": true
+    },
+    {
+      "path": "private/P/w0/batch15/summary.json",
+      "captured_path": "captured-current/private__P__w0__batch15__summary.json",
+      "bytes": 12967,
+      "lines": 288,
+      "sha256": "24b53f1c22d79f03014a7ce683845162cb3eb8760157ccb1ffc0d1095ac7395c",
+      "absolute_current": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\summary.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\private__P__w0__batch15__summary.json",
+      "root_current_match": true
+    },
+    {
+      "path": "private/w0/batch14/manifest.json",
+      "captured_path": "captured-current/private__w0__batch14__manifest.json",
+      "bytes": 14001,
+      "lines": 272,
+      "sha256": "71fcd29b43e6690658661846a6909418b8ed436179006894e5d17bbb18e3400c",
+      "absolute_current": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch14\\manifest.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\private__w0__batch14__manifest.json",
+      "root_current_match": true
+    },
+    {
+      "path": "private/P/w0/batch15/manifest.json",
+      "captured_path": "captured-current/private__P__w0__batch15__manifest.json",
+      "bytes": 33959,
+      "lines": 761,
+      "sha256": "044d2698a183f15e731086c0d1b0f5551ace0a9132b75fff2544f36ac572011c",
+      "absolute_current": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\manifest.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\private__P__w0__batch15__manifest.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-source-refresh-drift.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-09-30-source-refresh-drift.jsonl",
+      "bytes": 15292,
+      "lines": 10,
+      "sha256": "faafe9af67408d41c14053224d8c445a8b80ef3a6bd81aecea770c3bd8db5d59",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-09-30-source-refresh-drift.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-09-30-source-refresh-drift.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-source-review-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-09-30-source-review-crosswalk.jsonl",
+      "bytes": 21716,
+      "lines": 12,
+      "sha256": "a767494fbc95ed76994efcb0b8b2660e6c0b9ddbb1fa111c35f1c1735d4db38f",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-09-30-source-review-crosswalk.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-09-30-source-review-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-source-review-wave.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-09-30-source-review-wave.jsonl",
+      "bytes": 594805,
+      "lines": 37,
+      "sha256": "8d6d68c499d52c354a992a76bc05ffb3ed41ff4ccb9abc21b1f487d3954aefc5",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-09-30-source-review-wave.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-09-30-source-review-wave.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-batch3-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-09-30-w0-batch3-crosswalk.jsonl",
+      "bytes": 1417,
+      "lines": 3,
+      "sha256": "952396c0c146b947094dc9ec1fdf707789e928d0da69c32ae316845571372cb1",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-09-30-w0-batch3-crosswalk.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-09-30-w0-batch3-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-batch3-manifest.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-09-30-w0-batch3-manifest.json",
+      "bytes": 5631,
+      "lines": 119,
+      "sha256": "73f304162d51d9f323a11d563750deb8e3c8e41c6ba28aa157959ee512f1715a",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-09-30-w0-batch3-manifest.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-09-30-w0-batch3-manifest.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-batch3-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-09-30-w0-batch3-review.jsonl",
+      "bytes": 61460,
+      "lines": 15,
+      "sha256": "4b4137f6ef0feeb0fc4ef6f55664a80f3c8a14473c0f94ab4361d85728a68fbe",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-09-30-w0-batch3-review.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-09-30-w0-batch3-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-batch3-summary.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-09-30-w0-batch3-summary.json",
+      "bytes": 1388,
+      "lines": 32,
+      "sha256": "e56a25f936d274995912e3ca6722fc3def274fc01a78ca1f85caf1f7f916d1ae",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-09-30-w0-batch3-summary.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-09-30-w0-batch3-summary.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-second-wave-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-09-30-w0-second-wave-crosswalk.jsonl",
+      "bytes": 53832,
+      "lines": 28,
+      "sha256": "d1112228744c798263611bec04f1865d4addf5f3b9bf98bba532792bdb43f2f8",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-09-30-w0-second-wave-crosswalk.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-09-30-w0-second-wave-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-second-wave-manifest.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-09-30-w0-second-wave-manifest.json",
+      "bytes": 196942,
+      "lines": 3926,
+      "sha256": "449ac7901e99fccc5839d7bd8aeee5fd85e147cb85c85270191852b6d7b11bf3",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-09-30-w0-second-wave-manifest.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-09-30-w0-second-wave-manifest.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-second-wave-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-09-30-w0-second-wave-review.jsonl",
+      "bytes": 652094,
+      "lines": 30,
+      "sha256": "dccceb090592eea01f48f885ef84e53d202e6470c647b4481c44a4c23ec673d1",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-09-30-w0-second-wave-review.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-09-30-w0-second-wave-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-second-wave-summary.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-09-30-w0-second-wave-summary.json",
+      "bytes": 10157,
+      "lines": 174,
+      "sha256": "f6fda8ee41837ccbedb05174212e7ed693ac64d544e3f6ee7eb19f279f662d3c",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-09-30-w0-second-wave-summary.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-09-30-w0-second-wave-summary.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch4-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-01-w0-batch4-crosswalk.jsonl",
+      "bytes": 7482,
+      "lines": 14,
+      "sha256": "1fe60a3d24cd1998f2052fafc8e9a50eaa5c3091ae60df79b16016d340c85c9c",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-01-w0-batch4-crosswalk.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-01-w0-batch4-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch4-manifest.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-01-w0-batch4-manifest.json",
+      "bytes": 10036,
+      "lines": 205,
+      "sha256": "2036a604804c94a68902aa17a081847ab994196af57a246757139c01a8b11d6a",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-01-w0-batch4-manifest.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-01-w0-batch4-manifest.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch4-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-01-w0-batch4-review.jsonl",
+      "bytes": 116983,
+      "lines": 24,
+      "sha256": "9ca9bc4ea5b83865c219c8fb9b3c7ac73d7d078460bf8b92c6cded896996fb2c",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-01-w0-batch4-review.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-01-w0-batch4-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch4-summary.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-01-w0-batch4-summary.json",
+      "bytes": 2273,
+      "lines": 44,
+      "sha256": "e68ff8229e494d57fa33b02cda2268ac77cb9c7b0d28e4bd49a422ab888e7685",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-01-w0-batch4-summary.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-01-w0-batch4-summary.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch5-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-01-w0-batch5-crosswalk.jsonl",
+      "bytes": 12181,
+      "lines": 21,
+      "sha256": "69a0205f8baa42ad5cd16dc6fee176c8fa2308b441b484647ef3bafe30d9cae0",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-01-w0-batch5-crosswalk.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-01-w0-batch5-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch5-manifest.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-01-w0-batch5-manifest.json",
+      "bytes": 10983,
+      "lines": 218,
+      "sha256": "1a38ea4fe7233e36646fa3ee98536eb6e7ebebcaff3ee2676bb8e754bc991a5d",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-01-w0-batch5-manifest.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-01-w0-batch5-manifest.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch5-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-01-w0-batch5-review.jsonl",
+      "bytes": 105131,
+      "lines": 24,
+      "sha256": "4bd6dcae8255f6d770f06cb471a1ead80b64be2c2038ed5705f256dff6a1b7cc",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-01-w0-batch5-review.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-01-w0-batch5-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch5-summary.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-01-w0-batch5-summary.json",
+      "bytes": 2936,
+      "lines": 57,
+      "sha256": "4e24aac70b4d1d6dfea15969f7b17e89be04ef430273c8ccf0baffcbdbac8b72",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-01-w0-batch5-summary.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-01-w0-batch5-summary.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch10-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch10-crosswalk.jsonl",
+      "bytes": 80633,
+      "lines": 23,
+      "sha256": "e8f58ae13e1c8cab083ca2153762f0b106abd7cfe733621db570493cfb5adc54",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch10-crosswalk.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch10-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch10-manifest.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch10-manifest.json",
+      "bytes": 4384,
+      "lines": 84,
+      "sha256": "890117b7492f6624557c8a473746fbb6f07070dfaae87f06bae12f0de824ae70",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch10-manifest.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch10-manifest.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch10-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch10-review.jsonl",
+      "bytes": 319774,
+      "lines": 12,
+      "sha256": "a7c4b5b31b99cfecabc92add058844b3694e59a607d8ef038a3727c50c7258b9",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch10-review.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch10-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch10-summary.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch10-summary.json",
+      "bytes": 10592,
+      "lines": 236,
+      "sha256": "10b68151b3ca9d4391366058f30158bcebf532b2b95465e8287317a39d898afc",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch10-summary.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch10-summary.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch11-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch11-crosswalk.jsonl",
+      "bytes": 86726,
+      "lines": 28,
+      "sha256": "78895597f305eea775ebc3a77f52f9f78817e3b8a48045e29cdedb530fa6ae97",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch11-crosswalk.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch11-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch11-manifest.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch11-manifest.json",
+      "bytes": 5947,
+      "lines": 120,
+      "sha256": "2c3f0fa11abf1485e641946bb901b797843386ddf0a5f1d2de759b975ce33f44",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch11-manifest.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch11-manifest.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch11-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch11-review.jsonl",
+      "bytes": 261601,
+      "lines": 12,
+      "sha256": "90409b12f8e3259b7454cb44eadc1a94ce76b4a4591af79d695289063abc13a0",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch11-review.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch11-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch11-summary.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch11-summary.json",
+      "bytes": 9279,
+      "lines": 201,
+      "sha256": "9b0a9131335c60a6cc4363fed853cf1e41f6bc3f6e51652a56a038766752675d",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch11-summary.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch11-summary.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch12-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch12-crosswalk.jsonl",
+      "bytes": 59074,
+      "lines": 19,
+      "sha256": "4ec0818d122a44ee27ad68d51d8c35f8acc5ae62bb891fbb0ccecc9dc594bd43",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch12-crosswalk.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch12-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch12-manifest.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch12-manifest.json",
+      "bytes": 5116,
+      "lines": 92,
+      "sha256": "5013e07c1b53f3d3487f0e1cfd5f0968c3a702d086c5466f16d4ad2963b99994",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch12-manifest.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch12-manifest.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch12-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch12-review.jsonl",
+      "bytes": 185909,
+      "lines": 12,
+      "sha256": "39363242f17fc9581abaf4866e32339f15301fbcd70fb4aa2fe6b12381756d95",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch12-review.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch12-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch12-summary.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch12-summary.json",
+      "bytes": 7083,
+      "lines": 141,
+      "sha256": "a1110bd666fb9b27dc70d38aaf1d852b23496feebc3601fb5cd72e7df67c3beb",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch12-summary.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch12-summary.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch13-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch13-crosswalk.jsonl",
+      "bytes": 6715,
+      "lines": 15,
+      "sha256": "e776c224b625fc4861a355bf30d9d53acd61bfbe0c91442fcd4f1ac833623c61",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch13-crosswalk.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch13-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch13-manifest.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch13-manifest.json",
+      "bytes": 24316,
+      "lines": 360,
+      "sha256": "2df3384b309f791ddc2ea92bf2ae54a84466352275b01c9a893aa4c263893233",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch13-manifest.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch13-manifest.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch13-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch13-review.jsonl",
+      "bytes": 80292,
+      "lines": 12,
+      "sha256": "2f0068518174e3799c33a68beccd36f082cf938288d91b99f72659fcd6b1d210",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch13-review.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch13-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch13-summary.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch13-summary.json",
+      "bytes": 3055,
+      "lines": 64,
+      "sha256": "491a72e4800ef03aab0ecf7f7a5260a9921a2cac86c024b2e9912f34fadc884b",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch13-summary.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch13-summary.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch14-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch14-crosswalk.jsonl",
+      "bytes": 5481,
+      "lines": 8,
+      "sha256": "c7b28c7cba62c3df92f77ecd444f79234f57f92b6d3388ad5dbd3902472468b1",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch14-crosswalk.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch14-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch14-manifest.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch14-manifest.json",
+      "bytes": 24850,
+      "lines": 354,
+      "sha256": "4f3b37dd7f85c0dd6338392b5c9546fd048c11d0c37a0535995a8f32138db647",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch14-manifest.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch14-manifest.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch14-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch14-review.jsonl",
+      "bytes": 43943,
+      "lines": 5,
+      "sha256": "19272991aac36217ce8206c56b162e57d232adc16a0fa4db01be3464fa04ad73",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch14-review.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch14-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch14-summary.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch14-summary.json",
+      "bytes": 2412,
+      "lines": 49,
+      "sha256": "0904696e1dcb7a7cb6e8d646257823f81ac63fdb93288e63518b59c87f45733c",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch14-summary.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch14-summary.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch15-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch15-crosswalk.jsonl",
+      "bytes": 6266,
+      "lines": 5,
+      "sha256": "035ea9ae70a6f9349925cb5ec12696e097655f939140c0353e7afd8767b2d00f",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch15-crosswalk.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch15-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch15-gates.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch15-gates.jsonl",
+      "bytes": 374709,
+      "lines": 24,
+      "sha256": "5da7e11af42facd28b9503fec499aaa6616004d1fff75a080634e6f0c120cfc0",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch15-gates.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch15-gates.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch15-manifest.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch15-manifest.json",
+      "bytes": 38012,
+      "lines": 577,
+      "sha256": "6dd4fccdcd670ee5475c4716f1f7c48bff795c937d8323360d4e3793b4f7bf41",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch15-manifest.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch15-manifest.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch15-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch15-review.jsonl",
+      "bytes": 628777,
+      "lines": 40,
+      "sha256": "39e759db96d1f9d5fc15a1e3698b7566e2f4a025e40705fa6c95020a77d94a1a",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch15-review.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch15-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch15-summary.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch15-summary.json",
+      "bytes": 4233,
+      "lines": 99,
+      "sha256": "8960857365afe066fdd8890c9f36877b718f19352b0b1297a74b62f0045d5420",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch15-summary.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch15-summary.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch6-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch6-crosswalk.jsonl",
+      "bytes": 9332,
+      "lines": 17,
+      "sha256": "dc272a91c3c254a9dc790300da829f3716d667a7a6dae794f184e476466dc71f",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch6-crosswalk.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch6-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch6-manifest.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch6-manifest.json",
+      "bytes": 12556,
+      "lines": 304,
+      "sha256": "9df9c887ad0c074cc6d6dfda463323ec7652d4b919cade2ce2284f058c465af4",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch6-manifest.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch6-manifest.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch6-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch6-review.jsonl",
+      "bytes": 159783,
+      "lines": 18,
+      "sha256": "e0a4798dea7a20c842e177f4ae2007858fbd487278fd87220f2b1e3c61ec0eb3",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch6-review.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch6-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch6-summary.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch6-summary.json",
+      "bytes": 12851,
+      "lines": 217,
+      "sha256": "a3e8e090fd7f21af576b775b8ca6cb67881febbb442ea71268922660ac07e941",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch6-summary.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch6-summary.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch7-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch7-crosswalk.jsonl",
+      "bytes": 4413,
+      "lines": 4,
+      "sha256": "5bf38c9bfb4007f021e617bb51568d9b8ab6f97096ac2d6fe0c6e65e48a5d488",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch7-crosswalk.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch7-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch7-manifest.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch7-manifest.json",
+      "bytes": 20787,
+      "lines": 417,
+      "sha256": "11b99670a3104694384fa38af9b43df7ada328cca2489eff8730f3e25a7ec622",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch7-manifest.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch7-manifest.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch7-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch7-review.jsonl",
+      "bytes": 126773,
+      "lines": 12,
+      "sha256": "ec3c9b5feb2eebdd4192b4aec98730466a7ed3d4f7efab56cb0c8d9f098449e2",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch7-review.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch7-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch7-summary.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch7-summary.json",
+      "bytes": 7852,
+      "lines": 167,
+      "sha256": "21ea1e7bb1eb9179730bf8b8b97080858635aa0dee77c49b4b42fd82102cdfd5",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch7-summary.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch7-summary.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch8-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch8-crosswalk.jsonl",
+      "bytes": 17575,
+      "lines": 16,
+      "sha256": "a3b5ac7671ca1376a543e1d89e931aa9e92258c6ed69b25ef0bcdbb332af4d28",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch8-crosswalk.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch8-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch8-manifest.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch8-manifest.json",
+      "bytes": 14981,
+      "lines": 284,
+      "sha256": "4922a9287dc9049606187a192b8e5ce0c06161ffc9dc6787dd4f86b3fcb88d1e",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch8-manifest.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch8-manifest.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch8-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch8-review.jsonl",
+      "bytes": 186399,
+      "lines": 12,
+      "sha256": "6ee6790c7739ff8065143c7e4abb7f209168b022847f7c59729074bf941b74cc",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch8-review.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch8-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch8-summary.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch8-summary.json",
+      "bytes": 2101,
+      "lines": 52,
+      "sha256": "db395e0304a8eba6ce75120a64427b243971db442cd9b85c9893272f8a987f02",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch8-summary.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch8-summary.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch9-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch9-crosswalk.jsonl",
+      "bytes": 52488,
+      "lines": 14,
+      "sha256": "5364ee53a072160a85397ae9387b61d27084fb48b16d9fe36444f6ec662b6a79",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch9-crosswalk.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch9-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch9-manifest.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch9-manifest.json",
+      "bytes": 4366,
+      "lines": 84,
+      "sha256": "cea67c9d004177d1f9fbaedc9e8ce5c0f2a8dcf16447585602e86f26403ea158",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch9-manifest.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch9-manifest.json",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch9-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch9-review.jsonl",
+      "bytes": 264228,
+      "lines": 12,
+      "sha256": "6d12b5a3ac0b2b468683c63ba59d6e82232c387e49380dc9efcbe3aa2beba384",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch9-review.jsonl",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch9-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch9-summary.json",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch9-summary.json",
+      "bytes": 10424,
+      "lines": 230,
+      "sha256": "d9bfa846f46da875e1d9f803cfc59b5b4f7834e5e753789f1c3930fcf8646aa2",
+      "absolute_current": "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-10-02-w0-batch9-summary.json",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch9-summary.json",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/mod.rs",
+      "captured_path": "captured-current/zircon_runtime_interface__src__tests__mod.rs",
+      "bytes": 996,
+      "lines": 36,
+      "sha256": "3b3b1f5686d3ec537e3b3fa04f0747627a01012aad3e6554ff67cf7b8649155c",
+      "absolute_current": "E:\\Git\\ZirconEngine\\zircon_runtime_interface\\src\\tests\\mod.rs",
+      "absolute_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch16\\captured-current\\zircon_runtime_interface__src__tests__mod.rs",
+      "root_current_match": true
+    }
+  ],
+  "original_artifacts": {
+    "manifest.json": "97169b5750a655e7b4ed36c6bce3b406668f7367399892b1d619da0bff91d925",
+    "review.jsonl": "cdd630812f91aaaae097ff2404e5a944884ef3b25624fb205993d8c30c78947c",
+    "crosswalk.jsonl": "2805198d733bb7d650567edb7a5ad896e79611a9347903dacb40a557528a5816",
+    "summary.json": "0cbbd41ad28f5119ac8d959045750c74738e00dc4f7acff3dd5412df9d842751"
+  },
+  "independent_review": {
+    "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0-batch16-independent-qualification-r1\\independent-qualification.json",
+    "sha256": "8212ba9b62e8140177bf1df24677ec2379efff40d3e6520810bd9a00211253ef"
+  },
+  "whole_compiler_dependency_closure": false,
+  "source_ready": false,
+  "tests_run": 0,
+  "acceptance": "open",
+  "self_hash_qualification": "Manifest exact hash is in Root terminal receipt; no self hash claim."
+}

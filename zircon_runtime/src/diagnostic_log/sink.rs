@@ -69,7 +69,16 @@ impl ProcessLogController {
     }
 
     fn release_dynamic_session_with_timeout(&self, timeout: Duration) -> bool {
-        let mut lifecycle = self.lock_lifecycle();
+        let Some(deadline) = std::time::Instant::now().checked_add(timeout) else {
+            return false;
+        };
+        self.release_dynamic_session_until(deadline)
+    }
+
+    fn release_dynamic_session_until(&self, deadline: std::time::Instant) -> bool {
+        let Some(mut lifecycle) = self.lock_lifecycle_until(deadline) else {
+            return false;
+        };
         if lifecycle.dynamic_session_count == 0 {
             return false;
         }
@@ -79,7 +88,9 @@ impl ProcessLogController {
         }
 
         if self
-            .shutdown_active_state_for_library_unload(timeout)
+            .shutdown_active_state_for_library_unload(
+                deadline.saturating_duration_since(std::time::Instant::now()),
+            )
             .is_none()
         {
             return false;
@@ -89,15 +100,22 @@ impl ProcessLogController {
     }
 
     fn shutdown_when_idle(&self, timeout: Duration) -> bool {
-        let lifecycle = self.lock_lifecycle();
+        let Some(deadline) = std::time::Instant::now().checked_add(timeout) else {
+            return false;
+        };
+        let Some(lifecycle) = self.lock_lifecycle_until(deadline) else {
+            return false;
+        };
         if lifecycle.dynamic_session_count != 0 {
             return false;
         }
         if self.active_state.load().is_none() {
             return true;
         }
-        self.shutdown_active_state_for_library_unload(timeout)
-            .is_some_and(|state| state.outputs_succeeded())
+        self.shutdown_active_state_for_library_unload(
+            deadline.saturating_duration_since(std::time::Instant::now()),
+        )
+        .is_some_and(|state| state.outputs_succeeded())
     }
 
     fn shutdown_active_state_for_library_unload(
@@ -133,6 +151,26 @@ impl ProcessLogController {
         self.lifecycle
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn lock_lifecycle_until(
+        &self,
+        deadline: std::time::Instant,
+    ) -> Option<MutexGuard<'_, ProcessLogLifecycle>> {
+        loop {
+            match self.lifecycle.try_lock() {
+                Ok(lifecycle) => return Some(lifecycle),
+                Err(std::sync::TryLockError::Poisoned(poisoned)) => {
+                    return Some(poisoned.into_inner());
+                }
+                Err(std::sync::TryLockError::WouldBlock) => {
+                    if std::time::Instant::now() >= deadline {
+                        return None;
+                    }
+                    std::thread::yield_now();
+                }
+            }
+        }
     }
 
     #[cfg(test)]
@@ -178,24 +216,59 @@ impl ProcessLogController {
 
 pub(crate) struct DynamicProcessLogLease {
     released: bool,
+    #[cfg(test)]
+    shutdown_for_test: Option<Arc<dyn Fn(Duration) -> bool + Send + Sync>>,
 }
 
 impl DynamicProcessLogLease {
     pub(crate) fn shutdown(&mut self) -> bool {
+        let Some(deadline) =
+            std::time::Instant::now().checked_add(DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT)
+        else {
+            return false;
+        };
+        self.shutdown_until(deadline)
+    }
+
+    pub(crate) fn shutdown_until(&mut self, deadline: std::time::Instant) -> bool {
         if self.released {
             return true;
         }
-        if !process_log_controller().release_dynamic_session() {
+        #[cfg(test)]
+        let timeout = deadline.saturating_duration_since(std::time::Instant::now());
+        #[cfg(test)]
+        let shutdown = self.shutdown_for_test.as_ref().map_or_else(
+            || process_log_controller().release_dynamic_session_until(deadline),
+            |shutdown| shutdown(timeout),
+        );
+        #[cfg(not(test))]
+        let shutdown = process_log_controller().release_dynamic_session_until(deadline);
+        if !shutdown {
             return false;
         }
         self.released = true;
         true
+    }
+
+    #[cfg(test)]
+    pub(crate) fn from_test_shutdown(
+        shutdown: impl Fn(Duration) -> bool + Send + Sync + 'static,
+    ) -> Self {
+        Self {
+            released: false,
+            shutdown_for_test: Some(Arc::new(shutdown)),
+        }
     }
 }
 
 impl Drop for DynamicProcessLogLease {
     fn drop(&mut self) {
         if !self.released {
+            #[cfg(test)]
+            if self.shutdown_for_test.is_some() {
+                let _ = self.shutdown();
+                return;
+            }
             let _ = process_log_controller().release_dynamic_session();
         }
     }
@@ -307,7 +380,11 @@ pub(crate) fn acquire_dynamic_unity_process_log(
 ) -> DynamicProcessLogLease {
     let settings = DiagnosticLogSettings::unity_compatible(channel);
     let _state = process_log_controller().acquire_dynamic_session(settings);
-    DynamicProcessLogLease { released: false }
+    DynamicProcessLogLease {
+        released: false,
+        #[cfg(test)]
+        shutdown_for_test: None,
+    }
 }
 
 pub fn write_diagnostic_log(scope: &str, message: impl AsRef<str>) {

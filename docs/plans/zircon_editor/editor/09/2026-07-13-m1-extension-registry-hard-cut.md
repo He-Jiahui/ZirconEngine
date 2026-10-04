@@ -10,7 +10,6 @@ related_code:
   - zircon_editor/src/core/plugin/catalog_gen.rs
   - zircon_editor/src/core/plugin/sdk/
   - zircon_editor/src/ui/host/editor_extension_registration.rs
-  - zircon_editor/src/ui/host/editor_event_runtime_access.rs
   - zircon_plugins/editor_support/src/lib.rs
 tests:
   - zircon_editor/src/tests/editor_asset_type_registry/extension_registry.rs

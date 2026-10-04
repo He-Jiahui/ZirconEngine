@@ -1,12 +1,13 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 
+use crate::asset::importer::{
+    AssetImportBuildContext, AssetImportBuildIdentity, AssetImportRecipe,
+};
 use crate::asset::project::{AssetMetaDocument, AssetMetaEntry};
 use crate::asset::{
     AssetId, AssetImportError, AssetImportOutcome, AssetImporterDescriptor, AssetKind, AssetUri,
     AssetUuid, ImportedAssetEntry,
 };
-
-use super::super::hash_bytes::hash_bytes;
 
 pub(super) fn clear_schema_migration_metadata(meta: &mut AssetMetaDocument) {
     meta.source_schema_version = None;
@@ -180,11 +181,34 @@ pub(super) fn importer_contract_matches(
 }
 
 #[cfg(test)]
-#[path = "metadata/allocation_tests.rs"]
+#[path = "metadata/tests/allocation_tests.rs"]
 mod allocation_tests;
 
-pub(super) fn config_hash_for_settings(settings: &toml::Table) -> String {
-    toml::to_string(settings)
-        .map(|document| hash_bytes(document.as_bytes()))
-        .unwrap_or_default()
+#[cfg(test)]
+#[path = "tests/metadata_build_identity_tests.rs"]
+mod build_identity_tests;
+
+pub(super) fn build_identity_for_import(
+    settings: &toml::Table,
+    input_digest: &str,
+    descriptor: Option<&AssetImporterDescriptor>,
+    persisted_importer: Option<(&str, u32)>,
+) -> AssetImportBuildIdentity {
+    let recipe = AssetImportRecipe::from_legacy_settings(settings.clone());
+    let (function_identity, importer_version) = descriptor
+        .map(|descriptor| (descriptor.id.clone(), descriptor.importer_version))
+        .or_else(|| {
+            persisted_importer
+                .filter(|(importer_id, _)| !importer_id.is_empty())
+                .map(|(importer_id, version)| (importer_id.to_string(), version))
+        })
+        .unwrap_or_else(|| ("zircon.runtime.asset.unresolved_importer".to_string(), 0));
+    let toolchain_identity = format!(
+        "zircon-runtime@{};{}@{}",
+        env!("CARGO_PKG_VERSION"),
+        function_identity,
+        importer_version
+    );
+    let build_context = AssetImportBuildContext::project_import(toolchain_identity);
+    AssetImportBuildIdentity::new(function_identity, recipe, input_digest, build_context)
 }

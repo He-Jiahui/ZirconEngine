@@ -1,6 +1,6 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc;
+use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -14,8 +14,8 @@ use super::super::{
 };
 use super::{document_id, extension, recovery_source_path, remove_temporary_root, temporary_root};
 use crate::core::jobs::{
-    EditorJob, EditorJobAdmissionLimits, EditorJobLimits, EditorJobSpec, JobCategory, JobContext,
-    JobError, MutexGroup, test_job_system_with_limits,
+    test_job_system_with_limits, EditorJob, EditorJobAdmissionLimits, EditorJobLimits,
+    EditorJobSpec, JobCategory, JobContext, JobError, MutexGroup,
 };
 
 mod admission;
@@ -26,6 +26,6 @@ mod shutdown;
 mod support;
 
 use support::{
-    CountingSnapshotSource, GateJob, wait_for_autosave_completion,
-    wait_for_autosave_completion_state, wait_for_capture_count,
+    wait_for_autosave_completion, wait_for_autosave_completion_state, wait_for_capture_count,
+    CountingSnapshotSource, GateJob,
 };

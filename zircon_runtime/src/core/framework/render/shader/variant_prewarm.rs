@@ -18,6 +18,7 @@ pub use source::{
 };
 pub use toolchain::{SHADER_VARIANT_CACHE_NAGA_VERSION, SHADER_VARIANT_CACHE_WGPU_VERSION};
 
+/// 预热清单以内容寻址源表关联变体请求；完整性校验先确认源 ID 与引用，再交给运行时预热，报告计数只描述请求处理状态。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ShaderVariantPrewarmManifest {
@@ -88,7 +89,7 @@ impl ShaderVariantPrewarmManifest {
                     },
                 );
             }
-            if !source_ids.insert(source.id.clone()) {
+            if !source_ids.insert(&source.id) {
                 return Err(
                     ShaderVariantPrewarmManifestIntegrityError::DuplicateSourceId {
                         source_id: source.id.as_str().to_string(),
@@ -125,7 +126,7 @@ impl ShaderVariantPrewarmManifest {
         let referenced_source_ids = self
             .variants
             .iter()
-            .map(|request| request.source_id.clone())
+            .map(|request| &request.source_id)
             .collect::<HashSet<_>>();
         self.sources
             .retain(|existing| referenced_source_ids.contains(&existing.id));
@@ -467,57 +468,9 @@ fn record_dimension(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        ShaderVariantPrewarmManifest, ShaderVariantPrewarmManifestIntegrityError,
-        ShaderVariantPrewarmOutcome, ShaderVariantPrewarmSource,
-        ShaderVariantPrewarmSourceProvenanceSummary,
-    };
+#[path = "tests/variant_prewarm.rs"]
+mod tests;
 
-    #[test]
-    fn source_provenance_aggregates_repeated_source_outcomes() {
-        let source = ShaderVariantPrewarmSource::new(
-            "res://shared.wgsl",
-            "fn main() {}",
-            vec!["include-a".to_string()],
-            "template-r1",
-            "naga-r1",
-            "wgpu-r1",
-        );
-        let mut summary = ShaderVariantPrewarmSourceProvenanceSummary::default();
-
-        summary.record(&source, ShaderVariantPrewarmOutcome::Written);
-        summary.record(&source, ShaderVariantPrewarmOutcome::Failed);
-
-        assert_eq!(summary.source_count, 1);
-        assert_eq!(summary.variant_count, 2);
-        let entry = summary
-            .sources
-            .get(source.id.as_str())
-            .expect("shared source should have one provenance entry");
-        assert_eq!(entry.source_hash, source.source_hash());
-        assert_eq!(entry.requested_count, 2);
-        assert_eq!(entry.written_count, 1);
-        assert_eq!(entry.failed_count, 1);
-    }
-
-    #[test]
-    fn manifest_integrity_reports_duplicate_source_id_as_typed_error() {
-        let source = ShaderVariantPrewarmSource::new(
-            "res://shared.wgsl",
-            "fn main() {}",
-            Vec::new(),
-            "template-r1",
-            "naga-r1",
-            "wgpu-r1",
-        );
-
-        let error = ShaderVariantPrewarmManifest::new(vec![source.clone(), source], Vec::new())
-            .validate_integrity()
-            .expect_err("duplicate source ids must fail manifest integrity validation");
-        assert!(matches!(
-            error,
-            ShaderVariantPrewarmManifestIntegrityError::DuplicateSourceId { .. }
-        ));
-    }
-}
+#[cfg(test)]
+#[path = "variant_prewarm/tests/optimization_batch_hx_runtime607_tests.rs"]
+mod optimization_batch_hx_runtime607_tests;

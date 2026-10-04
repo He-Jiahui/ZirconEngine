@@ -2,7 +2,7 @@ import re
 import unittest
 from pathlib import Path
 
-from tools.runtime_ui_arranged_visibility_pressure import run
+from tools.analysis.performance.runtime.runtime_ui_arranged_visibility_pressure import run
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -20,7 +20,7 @@ POPUP_ANCHOR = (
     REPO_ROOT / "zircon_runtime/src/ui/surface/render/extract/popup_anchor.rs"
 )
 SURFACE_MODULE = REPO_ROOT / "zircon_runtime/src/ui/surface/mod.rs"
-PROFILE_MANIFEST = REPO_ROOT / "tools/profile-capture-manifest.ps1"
+PROFILE_MANIFEST = REPO_ROOT / "tools/analysis/profiling/shared/profile-capture-manifest.ps1"
 
 
 class RuntimeUiArrangedVisibilityIndexPerformanceContract(unittest.TestCase):
@@ -88,6 +88,21 @@ class RuntimeUiArrangedVisibilityIndexPerformanceContract(unittest.TestCase):
     def test_visibility_index_is_compact_and_iterative(self):
         self.assertIn("node_ids: Vec<UiNodeId>", self.visibility_index)
         self.assertIn("render_visible_words: Vec<u64>", self.visibility_index)
+        self.assertIn("let node_count = node_indices.len();", self.visibility_index)
+        self.assertIn("self.node_ids.reserve(node_count)", self.visibility_index)
+        self.assertIn("rebuild_reserves_published_node_id_capacity", self.visibility_index)
+        self.assertIn(
+            "for (sorted_index, (node_id, arranged_index)) in node_indices.iter().enumerate()",
+            self.visibility_index,
+        )
+        self.assertIn(
+            "rebuild_publishes_sorted_ids_and_visibility_bits_in_one_index_pass",
+            self.visibility_index,
+        )
+        self.assertNotIn(
+            "node_indices.get(&node_id)",
+            self.visibility_index,
+        )
         self.assertIn("while let Some", self.visibility_index)
         self.assertNotIn("fn resolve_recursive", self.visibility_index)
         self.assertNotIn("BTreeMap<UiNodeId, bool>", self.visibility_index)

@@ -2,11 +2,12 @@ use crate::core::commands::{
     EditorCommandDescriptor, EditorCommandDispatchError, EditorCommandRegistry,
 };
 use crate::core::editor_event::{
-    EditorAnimationEvent, EditorEvent, EditorEventDispatcher, EditorEventEffect,
-    EditorEventEnvelope, EditorEventListenerControlRequest, EditorEventListenerControlResponse,
-    EditorEventRecord, EditorEventResult, EditorEventSource, EditorEventTransient,
-    EditorOperationEvent, MenuAction,
+    DocumentCloseRevision, EditorAnimationEvent, EditorEvent, EditorEventDispatcher,
+    EditorEventEffect, EditorEventEnvelope, EditorEventListenerControlRequest,
+    EditorEventListenerControlResponse, EditorEventRecord, EditorEventResult, EditorEventSource,
+    EditorEventTransient, EditorOperationEvent, EditorViewportEvent, MenuAction,
 };
+use crate::core::editor_message::DocumentId;
 use crate::core::editor_operation::{
     EditorOperationInvocation, EditorOperationPath, EditorOperationPathError, EditorOperationSource,
 };
@@ -18,13 +19,17 @@ use crate::ui::binding_dispatch::editor_event_normalization::{
 use crate::ui::host::EditorHostEventController;
 use crate::ui::host::EditorOperationDispatchError;
 use crate::ui::retained_host::workbench_preview_actions::is_workbench_preview_action;
+use crate::ui::workbench::event::core_layout_command_from_ui;
+use crate::ui::workbench::layout::{LayoutCommand as UiLayoutCommand, MainPageId};
 use crate::ui::workbench::snapshot::EditorConsoleMessageLevel;
+use crate::ui::workbench::view::ViewInstanceId;
 use serde_json::Value;
 use thiserror::Error;
 use zircon_runtime_interface::ui::binding::{UiBindingValue, UiEventBinding};
 
 use super::editor_event_execution::{
     event_result_value, execute_event, undo_policy_for_event, EditorEventExecutionError,
+    ExecutionOutcome,
 };
 
 #[derive(Debug, Error)]
@@ -67,6 +72,10 @@ pub enum EditorEventBindingDispatchError {
     Operation(#[from] EditorOperationDispatchError),
     #[error(transparent)]
     EventDispatch(#[from] EditorEventDispatchError),
+    #[error("viewport binding target `{view_id:?}` is stale or retired")]
+    StaleViewportView {
+        view_id: crate::core::editor_event::ViewInstanceId,
+    },
 }
 
 #[derive(Debug, Error)]
@@ -78,6 +87,42 @@ pub enum EditorEventDispatcherError {
 }
 
 impl EditorHostEventController {
+    pub(crate) fn dispatch_authorized_close_views(
+        &self,
+        window_id: MainPageId,
+        instance_ids: Vec<ViewInstanceId>,
+        discard: Vec<(ViewInstanceId, DocumentId, DocumentCloseRevision)>,
+    ) -> Result<EditorEventRecord, EditorEventDispatchError> {
+        let event = EditorEvent::Layout(core_layout_command_from_ui(UiLayoutCommand::CloseViews {
+            window_id: window_id.clone(),
+            instance_ids: instance_ids.clone(),
+        }));
+        self.dispatch_normalized_event_with_metadata_using(
+            EditorEventSource::RetainedHost,
+            event,
+            None,
+            None,
+            None,
+            EventRecordPolicy::Durable,
+            move |controller, _| {
+                let changed = controller
+                    .shell()
+                    .lock()
+                    .manager
+                    .close_views_with_discard(&window_id, &instance_ids, &discard)
+                    .map_err(|source| EditorEventExecutionError::Layout { source })?;
+                Ok(ExecutionOutcome {
+                    changed,
+                    effects: vec![
+                        EditorEventEffect::LayoutChanged,
+                        EditorEventEffect::PresentationChanged,
+                        EditorEventEffect::ReflectionChanged,
+                    ],
+                })
+            },
+        )
+    }
+
     pub fn handle_event_listener_control_request(
         &self,
         request: EditorEventListenerControlRequest,
@@ -146,6 +191,30 @@ impl EditorHostEventController {
         result_override: Option<EditorEventResult>,
         record_policy: EventRecordPolicy,
     ) -> Result<EditorEventRecord, EditorEventDispatchError> {
+        self.dispatch_normalized_event_with_metadata_using(
+            source,
+            event,
+            operation,
+            binding_path,
+            result_override,
+            record_policy,
+            execute_event,
+        )
+    }
+
+    fn dispatch_normalized_event_with_metadata_using(
+        &self,
+        source: EditorEventSource,
+        event: EditorEvent,
+        operation: Option<(EditorOperationPath, String, Value, Option<String>)>,
+        binding_path: Option<String>,
+        result_override: Option<EditorEventResult>,
+        record_policy: EventRecordPolicy,
+        execute: impl FnOnce(
+            &EditorHostEventController,
+            &EditorEvent,
+        ) -> Result<ExecutionOutcome, EditorEventExecutionError>,
+    ) -> Result<EditorEventRecord, EditorEventDispatchError> {
         let stamp = if record_policy.advances_revision() {
             self.context().events().begin_event()
         } else {
@@ -183,7 +252,7 @@ impl EditorHostEventController {
                 ),
             };
 
-        let execution = match execute_event(self, &event) {
+        let execution = match execute(self, &event) {
             Ok(outcome) => outcome,
             Err(error) => {
                 let error_message = error.to_string();
@@ -428,145 +497,12 @@ fn failure_effects_for_event(event: &EditorEvent) -> Vec<EditorEventEffect> {
 }
 
 #[cfg(test)]
-mod failure_effect_tests {
-    use super::*;
-
-    #[test]
-    fn viewport_failure_invalidates_render_and_presentation() {
-        let effects = failure_effects_for_event(&EditorEvent::Viewport(
-            crate::core::editor_event::EditorViewportEvent::LeftReleased,
-        ));
-
-        assert!(effects.contains(&EditorEventEffect::RenderChanged));
-        assert!(effects.contains(&EditorEventEffect::PresentationChanged));
-        assert!(effects.contains(&EditorEventEffect::ReflectionChanged));
-    }
-
-    #[test]
-    fn mvp_authoring_trace_keeps_binding_operation_and_generation_correlation() {
-        let trace = mvp_authoring_product_trace_diagnostic(
-            "completed",
-            "inspector",
-            Some("Inspector/TransformPositionXCommit"),
-            Some("inspector.transform.position.x.commit"),
-            Some(42),
-            Some(8),
-        );
-
-        assert!(trace.contains("result=completed"));
-        assert!(trace.contains("event=inspector"));
-        assert!(trace.contains("binding=Inspector/TransformPositionXCommit"));
-        assert!(trace.contains("operation=inspector.transform.position.x.commit"));
-        assert!(trace.contains("transaction_id=42"));
-        assert!(trace.contains("save_generation=8"));
-        assert_eq!(
-            mvp_authoring_trace_event_kind(&EditorEvent::WorkbenchMenu(MenuAction::SaveProject)),
-            Some("save_project")
-        );
-    }
-}
+#[path = "tests/editor_event_dispatch_failure_effect_tests.rs"]
+mod failure_effect_tests;
 
 #[cfg(test)]
-mod failure_log_tests {
-    use super::emit_failed_event_log;
-    use crate::core::editor_event::{
-        EditorEvent, EditorEventEffect, EditorEventId, EditorEventRecord, EditorEventResult,
-        EditorEventSequence, EditorEventSource, EditorEventUndoPolicy, MenuAction,
-    };
-    use crate::core::logging::{EditorLogService, LogFilter, LogSeverity, LogSource};
-
-    fn failed_record(error: impl Into<String>) -> EditorEventRecord {
-        EditorEventRecord {
-            event_id: EditorEventId::new(7),
-            sequence: EditorEventSequence::new(11),
-            source: EditorEventSource::RetainedHost,
-            event: EditorEvent::WorkbenchMenu(MenuAction::SaveProject),
-            binding_path: Some("WorkbenchMenu/SaveProject".to_string()),
-            operation_id: Some("project.save".to_string()),
-            operation_display_name: Some("Save Project".to_string()),
-            operation_arguments: None,
-            operation_group: None,
-            transaction_id: None,
-            save_generation: None,
-            effects: vec![EditorEventEffect::PresentationChanged],
-            undo_policy: EditorEventUndoPolicy::NonUndoable,
-            before_revision: 4,
-            after_revision: 4,
-            result: EditorEventResult::failure(error),
-        }
-    }
-
-    #[test]
-    fn failed_editor_event_emits_a_structured_error_log() {
-        let logs = EditorLogService::default();
-
-        emit_failed_event_log(&logs, &failed_record("disk is read-only"));
-
-        let records = logs.snapshot(&LogFilter::default());
-        assert_eq!(records.len(), 1);
-        let entry = records[0].entry();
-        assert_eq!(entry.source(), &LogSource::editor());
-        assert_eq!(entry.severity(), LogSeverity::Error);
-        assert_eq!(entry.timestamp_frame(), 0);
-        assert_eq!(
-            entry.message(),
-            "Editor event `project.save` failed: disk is read-only"
-        );
-    }
-
-    #[test]
-    fn oversized_editor_event_diagnostic_uses_a_bounded_fallback_log() {
-        let logs = EditorLogService::default();
-        let oversized_error = "x".repeat(9 * 1024);
-
-        emit_failed_event_log(&logs, &failed_record(oversized_error));
-
-        let records = logs.snapshot(&LogFilter::default());
-        assert_eq!(records.len(), 1);
-        assert_eq!(
-            records[0].entry().message(),
-            "Editor event 11 failed; diagnostic exceeds the log-entry limit."
-        );
-    }
-
-    #[test]
-    fn authoring_trace_uses_the_editor_log_service() {
-        let logs = EditorLogService::default();
-        let record = failed_record("disk is read-only");
-
-        super::emit_mvp_authoring_product_trace(&logs, &record, "failed");
-
-        let records = logs.snapshot(&LogFilter::default());
-        assert_eq!(records.len(), 1);
-        let entry = records[0].entry();
-        assert_eq!(entry.source(), &LogSource::editor());
-        assert_eq!(entry.severity(), LogSeverity::Info);
-        assert_eq!(entry.timestamp_frame(), 0);
-        assert_eq!(
-            entry.message(),
-            "editor_authoring_trace result=failed event=save_project binding=WorkbenchMenu/SaveProject operation=project.save transaction_id=none save_generation=none"
-        );
-    }
-
-    #[test]
-    fn oversized_authoring_trace_uses_a_bounded_fallback_log() {
-        let logs = EditorLogService::default();
-        let mut record = failed_record("disk is read-only");
-        record.binding_path = Some("x".repeat(9 * 1024));
-
-        super::emit_mvp_authoring_product_trace(&logs, &record, "failed");
-
-        let records = logs.snapshot(&LogFilter::default());
-        assert_eq!(records.len(), 1);
-        let entry = records[0].entry();
-        assert_eq!(entry.source(), &LogSource::editor());
-        assert_eq!(entry.severity(), LogSeverity::Info);
-        assert_eq!(
-            entry.message(),
-            "editor_authoring_trace result=failed event=save_project sequence=11 diagnostic exceeds the log-entry limit."
-        );
-    }
-}
+#[path = "tests/editor_event_dispatch_failure_log_tests.rs"]
+mod failure_log_tests;
 
 fn dynamic_operation_for_event(
     registry: &EditorCommandRegistry,
@@ -642,6 +578,61 @@ impl EditorHostEventController {
         Ok(self.dispatch_normalized_event_with_metadata(
             source,
             event,
+            None,
+            Some(binding.path().native_prefix()),
+            None,
+            EventRecordPolicy::Durable,
+        )?)
+    }
+
+    /// Dispatch a retained viewport binding for the committed Scene leaf that
+    /// produced the surface event.  This deliberately reuses normalization,
+    /// journal recording, and the ordinary executor instead of mutating a
+    /// retained callback/session directly.
+    pub(crate) fn dispatch_binding_typed_for_view(
+        &self,
+        binding: UiEventBinding,
+        source: EditorEventSource,
+        view_id: crate::core::editor_event::ViewInstanceId,
+    ) -> Result<EditorEventRecord, EditorEventBindingDispatchError> {
+        let live = {
+            let shell = self.shell().lock();
+            let manager_view_id =
+                crate::ui::workbench::view::ViewInstanceId::new(view_id.0.clone());
+            let manager_live = shell
+                .manager
+                .view_instance_ids_for_descriptor_key("editor.scene")
+                .iter()
+                .any(|candidate| candidate == &manager_view_id);
+            manager_live
+                && shell
+                    .state
+                    .viewport_controller
+                    .session_if_live(&view_id)
+                    .is_some()
+        };
+        if !live {
+            return Err(EditorEventBindingDispatchError::StaleViewportView { view_id });
+        }
+        let binding = EditorUiBinding::from_ui_binding(binding)?;
+        let context = self.context().command_eval().snapshot();
+        let event = {
+            let commands = self.commands().lock();
+            normalize_editor_event_binding(&binding, &commands, &context)?
+        };
+        let EditorEvent::Viewport(event) = event else {
+            return Err(EditorEventBindingDispatchError::Normalization(
+                EditorEventNormalizationError::UnsupportedBinding {
+                    native_binding: binding.native_binding(),
+                },
+            ));
+        };
+        Ok(self.dispatch_normalized_event_with_metadata(
+            source,
+            EditorEvent::Viewport(EditorViewportEvent::ForView {
+                view_id,
+                event: Box::new(event),
+            }),
             None,
             Some(binding.path().native_prefix()),
             None,
@@ -839,31 +830,5 @@ fn ui_binding_value_to_json(value: &UiBindingValue) -> Value {
 }
 
 #[cfg(test)]
-mod binding_dispatch_error_tests {
-    use super::{operation_invocation, registered_command_path};
-    use crate::core::commands::{EditorCommandDispatchError, EditorCommandRegistry};
-    use crate::core::editor_operation::EditorOperationPathError;
-
-    #[test]
-    fn operation_binding_preserves_invalid_operation_path() {
-        let error = operation_invocation("not a valid operation", &[])
-            .expect_err("operation id with whitespace must be rejected");
-
-        assert_eq!(
-            error,
-            EditorOperationPathError::InvalidOperationPath("not a valid operation".to_string())
-        );
-    }
-
-    #[test]
-    fn editor_command_binding_preserves_unknown_command() {
-        let error =
-            registered_command_path(&EditorCommandRegistry::default(), "scene.node.missing")
-                .expect_err("unregistered editor command must be rejected");
-
-        assert_eq!(
-            error,
-            EditorCommandDispatchError::UnknownCommand("scene.node.missing".to_string())
-        );
-    }
-}
+#[path = "tests/editor_event_dispatch_binding_dispatch_error_tests.rs"]
+mod binding_dispatch_error_tests;

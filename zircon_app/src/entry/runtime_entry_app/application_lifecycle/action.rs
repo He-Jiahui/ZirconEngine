@@ -1,5 +1,5 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) enum SurfaceReleaseAction {
+pub(in crate::entry::runtime_entry_app) enum SurfaceReleaseAction {
     Noop,
     Release,
 }

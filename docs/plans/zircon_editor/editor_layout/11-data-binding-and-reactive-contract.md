@@ -7,12 +7,11 @@ related_code:
   - zircon_runtime_interface/src/ui/component/data_binding/projection_patch.rs
   - zircon_runtime_interface/src/ui/component/data_binding/event_envelope.rs
   - zircon_runtime/src/ui/binding/mod.rs
-  - zircon_runtime/src/ui/binding/router.rs
   - zircon_runtime/src/ui/binding/update_report.rs
   - zircon_editor/src/core/editor_message/view_dirty_set.rs
   - zircon_editor/src/core/editor_event/service/state.rs
 design_references:
-  - docs/ui-and-layout/ai-workbench-style/component-prototype/web-native-handoff-matrix.md
+  - docs/ui/ai-workbench-style/component-prototype/web-native-handoff-matrix.md
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/09-incremental-message-bus-and-refresh.md
   - docs/plans/zircon_editor/editor_layout/01-design-tokens-and-language-contract.md
@@ -135,7 +134,7 @@ impl BindingDependencyGraph {
 | 新增 | `zircon_editor/src/core/editor_binding/dependency_graph.rs` | 数据键↔绑定依赖图 |
 | 修改 | `runtime ui/binding/update_report.rs` | 局部写回挂依赖图失效 |
 | 修改 | `core/editor_event/runtime/editor_event_runtime_state.rs` | 派生接 09 脏集,替全量物化 |
-| 新增 | `docs/ui-and-layout/data-binding-contract.md` | 单向流 + `$` 分流 + 派生 + 写回规范 |
+| 新增 | `docs/ui/data-binding-contract.md` | 单向流 + `$` 分流 + 派生 + 写回规范 |
 
 ## 6. 里程碑切片化
 

@@ -185,5 +185,5 @@ fn collect_deferred_paths(
 }
 
 #[cfg(test)]
-#[path = "service/deferred_capacity_tests.rs"]
+#[path = "service/tests/deferred_capacity_tests.rs"]
 mod deferred_capacity_tests;

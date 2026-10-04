@@ -1,10 +1,11 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0053] 材质产品调试计数的聚合覆盖的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_render_material_product_debug_counts_tests_are_child_owner() {
-    let parent = read_runtime_src("graphics/scene/render_product_material_property_tests.rs");
+    let parent = read_runtime_src("graphics/scene/tests/render_product_material_property_tests.rs");
     let debug_counts = read_runtime_src(
-        "graphics/scene/render_product_material_property_tests/uniform_debug_counts.rs",
+        "graphics/scene/render_product_material_property_tests/tests/uniform_debug_counts.rs",
     );
 
     let plan_08 = read_repo(
@@ -54,11 +55,11 @@ fn runtime_15_render_material_product_debug_counts_tests_are_child_owner() {
 
     for (path, source) in [
         (
-            "graphics/scene/render_product_material_property_tests.rs",
+            "graphics/scene/tests/render_product_material_property_tests.rs",
             parent.as_str(),
         ),
         (
-            "graphics/scene/render_product_material_property_tests/uniform_debug_counts.rs",
+            "graphics/scene/render_product_material_property_tests/tests/uniform_debug_counts.rs",
             debug_counts.as_str(),
         ),
     ] {

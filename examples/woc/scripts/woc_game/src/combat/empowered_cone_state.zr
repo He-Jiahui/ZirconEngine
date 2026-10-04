@@ -101,6 +101,7 @@ roundNonnegative(value: float): int {
     return <int>(value + 0.5);
 }
 
+/// 根据世界施法时钟给出的等级选择目录中的锥形范围与效果标识；等级在此被夹取，调用者须保证等级源于当前权威施法而非客户端自报。
 pub beginCast(ability: uint, requestedLevel: int): EmpoweredConeCast {
     var result = new EmpoweredConeCast();
     var level = clampStage(requestedLevel, cone.stageCount(ability));
@@ -117,6 +118,7 @@ pub beginCast(ability: uint, requestedLevel: int): EmpoweredConeCast {
 // made only after the target passes alive/LOS/cone filtering in effect_dispatch.
 // `targetSurvivesDamage` is supplied after the owning damage reducer runs, so
 // slow/root/incapacitate preserve the source's `if (m.dead) continue` boundary.
+/// 世界先完成目标生存、视线与锥形过滤，才给出两次随机观测；伤害提交后的生存状态决定是否计划控制光环，调用方必须按这一前后顺序使用结果。
 pub resolveHitWithStageDamage(
     ability: uint,
     requestedLevel: int,

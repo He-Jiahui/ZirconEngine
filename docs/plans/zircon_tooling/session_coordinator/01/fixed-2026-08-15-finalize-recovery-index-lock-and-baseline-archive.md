@@ -10,10 +10,6 @@ origin_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/git_finalize.py
-  - tools/session_coordinator/tests/test_git_finalize.py
-  - tools/session_coordinator/baselines.py
-  - tools/session_coordinator/tests/test_baselines.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_git_finalize
   - python -m unittest tools.session_coordinator.tests.test_baselines

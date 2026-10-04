@@ -1,7 +1,9 @@
+// 从固定版本 WOC 源码中提取野外圆形、旋转矩形与围栏碰撞几何，供 m3_collision_content_codegen.mjs 消费。
 const data = await import('wocgit:///src/sim/data.ts');
 const valeCup = await import('wocgit:///src/sim/vale_cup_layout.ts');
 
 const props = data.BUILTIN_WORLD.props;
+// 先收集手工编写的世界碰撞体和围栏段，再展平几何。
 const colliders = [];
 const fenceSegments = [];
 

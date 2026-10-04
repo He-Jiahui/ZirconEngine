@@ -1,3 +1,5 @@
+//! 交互产品独立持有 Handle、gizmo 和渲染网格副本，渲染与指针共享其只读所有权而不借用实时世界。
+
 use std::sync::Arc;
 
 use crate::scene::viewport::{HandleOverlayExtract, RenderMeshSnapshot, SceneGizmoOverlayExtract};
@@ -40,5 +42,5 @@ fn cloned_arc_slice<T: Clone>(source: &[T]) -> Arc<[T]> {
 }
 
 #[cfg(test)]
-#[path = "extract/direct_arc_slice_tests.rs"]
+#[path = "extract/tests/direct_arc_slice_tests.rs"]
 mod direct_arc_slice_tests;

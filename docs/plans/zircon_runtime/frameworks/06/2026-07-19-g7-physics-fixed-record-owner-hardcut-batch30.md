@@ -12,7 +12,7 @@ plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
   - docs/plans/zircon_plugins/03-physics.md
 tests:
-  - python tools/check_conventions.py --only docs --json
+  - python tools/audits/check_conventions.py --only docs --json
   - git diff --check -- docs/plans/zircon_editor/editor/01/fixed-2026-07-12-collider-shape-consumer-exhaustiveness.md docs/plans/zircon_editor/editor/08/fixed-2026-07-12-rigid-body-sleep-policy-consumer-cutover.md docs/plans/zircon_runtime/frameworks/06/2026-07-19-g7-physics-fixed-record-owner-hardcut-batch30.md
 ---
 

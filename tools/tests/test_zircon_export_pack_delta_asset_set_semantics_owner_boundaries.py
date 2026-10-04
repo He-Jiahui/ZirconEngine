@@ -8,11 +8,14 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PACK_DELTA_SEMANTICS = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_pack_delta_semantics.py"
+    REPO_ROOT / "tools/export/pipeline_report_pack_delta_semantics.py"
 )
 PACK_DELTA_ASSET_SET_SEMANTICS = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_pack_delta_asset_set_semantics.py"
+    / "tools/export/pipeline_report_pack_delta_asset_set_semantics.py"
+)
+PACK_DELTA_ASSET_PROJECTION = (
+    REPO_ROOT / "tools/export/pipeline_report_pack_delta_asset_projection.py"
 )
 
 ASSET_SET_TYPE_ALIASES = (
@@ -36,6 +39,13 @@ ASSET_SET_FUNCTIONS = (
     "delta_manifest_base_chunk_hashes",
     "delta_manifest_assets",
     "manifest_asset_paths",
+)
+
+ASSET_PROJECTION_FUNCTIONS = (
+    "delta_removed_asset_paths_from_assets",
+    "delta_changed_and_reused_asset_paths_from_projection",
+    "delta_changed_asset_chunk_hashes_match_entries",
+    "delta_manifest_asset_projection",
 )
 
 
@@ -76,6 +86,22 @@ class PackDeltaAssetSetSemanticsOwnerBoundaryTests(unittest.TestCase):
         if failures:
             self.fail("\n".join(failures))
 
+    def test_projection_helpers_live_in_projection_owner(self) -> None:
+        asset_set_text = PACK_DELTA_ASSET_SET_SEMANTICS.read_text(encoding="utf-8")
+        self.assertTrue(PACK_DELTA_ASSET_PROJECTION.exists())
+        projection_text = PACK_DELTA_ASSET_PROJECTION.read_text(encoding="utf-8")
+        for function_name in ASSET_PROJECTION_FUNCTIONS:
+            self.assertNotIn(f"def {function_name}(", asset_set_text)
+            self.assertIn(f"def {function_name}(", projection_text)
+        self.assertIn(
+            "from .pipeline_report_pack_delta_asset_projection import (",
+            asset_set_text,
+        )
+        self.assertNotIn(
+            "from .pipeline_report_pack_delta_asset_set_semantics import",
+            projection_text,
+        )
+
     def test_parent_imports_asset_set_owner_without_reverse_import(self) -> None:
         parent_text = PACK_DELTA_SEMANTICS.read_text(encoding="utf-8")
         asset_set_text = (
@@ -100,6 +126,7 @@ class PackDeltaAssetSetSemanticsOwnerBoundaryTests(unittest.TestCase):
             "Pack delta asset-set semantics owner file is missing",
         )
         self.assertLess(_line_count(PACK_DELTA_ASSET_SET_SEMANTICS), 340)
+        self.assertLess(_line_count(PACK_DELTA_ASSET_PROJECTION), 150)
 
 
 if __name__ == "__main__":

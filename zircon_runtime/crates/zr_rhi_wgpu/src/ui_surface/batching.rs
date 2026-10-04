@@ -1,3 +1,4 @@
+//! 批处理保留重叠绘制的画家顺序，仅把互不依赖的图元并入同层以减少绘制调用。
 use std::collections::BTreeMap;
 use std::ops::Index;
 use std::sync::Arc;
@@ -200,6 +201,7 @@ pub(super) struct ResolvedBatchDrawPlan {
 }
 
 impl CompiledUiBatchPlanCache {
+    // 生产者须在内容变化时更新代际；只改变目标尺寸时可复用原投影的几何和依赖计划。
     pub(super) fn resolve(
         &mut self,
         draw_list: &UiSurfaceDrawList,
@@ -620,5 +622,5 @@ fn union_rects(left: UiSurfaceRect, right: UiSurfaceRect) -> UiSurfaceRect {
 }
 
 #[cfg(test)]
-#[path = "batching/tests.rs"]
+#[path = "batching/tests/cases.rs"]
 mod tests;

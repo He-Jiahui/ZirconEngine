@@ -46,14 +46,14 @@ for (const field of [
 for (const needle of [
   'appendDefaultBossCadenceColumns(this);',
   'appendDefaultBossCadenceColumns(state);',
-  'writer.u16(<uint>38, 1, 1);', 'schemaVersion != <uint>37',
+  'writer.u16(schemaVersion, 1, 1);', 'schemaVersion != <uint>37',
   'if (schemaVersion >= <uint>37) {',
   'm8FreshPlayerStats.bossPulseTimerSeconds',
   'm8EastbrookEncounter.bossPulseTimerSeconds',
   'entityState.entityBossPulseTimers[0] = 2.0;',
   'entityState.entityBossStoneskinTimers[0] = 8.0;',
 ]) invariant(state.includes(needle), 'WOS37 boss cadence projection omitted: ' + needle);
-invariant(main.includes('\\"world_state\\":\\"WOS38\\",'), 'package stateSchema must expose WOS38');
+invariant(main.includes('\\"world_state\\":\\"WOS118\\",'), 'package stateSchema must expose WOS118');
 
 process.stdout.write('checked WOS37 boss cadence source projection: ' + SOURCE_COMMIT.slice(0, 15) + '\n');
 

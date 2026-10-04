@@ -1,9 +1,10 @@
+# 核对表格列宽拖动只传标量，并显式计入按帧冲刷成本。
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from tools.ui_table_column_resize_scalar_pressure import run, write_result
+from tools.analysis.performance.ui.ui_table_column_resize_scalar_pressure import run, write_result
 
 
 class UiTableColumnResizeScalarPressureTests(unittest.TestCase):

@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime/src/plugin/package_manifest/builtin_catalog.rs"
 
-
+# 读取实现源码约束精确内建编辑器 crate 名称：crate 名称预分配全部借用部分，并目录映射使用精确辅助函数不带格式器增长。
 class ExactBuiltinEditorCrateNamePerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

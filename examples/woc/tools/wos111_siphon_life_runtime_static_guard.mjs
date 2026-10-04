@@ -40,14 +40,14 @@ requireText(
 
 const generator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
-if (!generator.includes("'siphon_life'") || !generator.includes("EXPECTED_ABILITY_COUNT = 79") ||
-    !zrGenerator.includes("document.entries.length === 79") || !zrGenerator.includes("'leechPct'")) {
+if (!generator.includes("'siphon_life'") || !generator.includes("EXPECTED_ABILITY_COUNT = 117") ||
+    !zrGenerator.includes("document.entries.length === 117") || !zrGenerator.includes("'leechPct'")) {
   throw new Error("M4 Siphon Life projection scope is missing");
 }
 const entry = JSON.parse(read("contracts", "m4_abilities.json")).entries.find(
   (item) => item.id === "siphon_life",
 );
-if (!entry || entry.index !== 51 || entry.definition.class !== "warlock" ||
+if (!entry || entry.index !== 55 || entry.definition.class !== "warlock" ||
     entry.definition.school !== "shadow" || entry.definition.learnLevel !== 10 ||
     entry.definition.cost !== 45 || entry.definition.castTime !== 0 ||
     entry.definition.cooldown !== 0 || entry.definition.range !== 30 ||
@@ -57,7 +57,7 @@ if (!entry || entry.index !== 51 || entry.definition.class !== "warlock" ||
   throw new Error("M4 Siphon Life projection drifted");
 }
 const effects = read("scripts", "woc_game", "src", "generated", "m4_ability_effects.zr");
-requireText(effects, /index == 51[\s\S]*?field == "duration"\) \{ return 30\.0; \}[\s\S]*?field == "interval"\) \{ return 3\.0; \}[\s\S]*?field == "leechPct"\) \{ return 1\.0; \}[\s\S]*?field == "total"\) \{ return 60\.0; \}/,
+requireText(effects, /index == 55[\s\S]*?field == "duration"\) \{ return 30\.0; \}[\s\S]*?field == "interval"\) \{ return 3\.0; \}[\s\S]*?field == "leechPct"\) \{ return 1\.0; \}[\s\S]*?field == "total"\) \{ return 60\.0; \}/,
   "generated Siphon Life effect metrics are missing");
 
 const world = read("scripts", "woc_game", "src", "world", "state.zr");

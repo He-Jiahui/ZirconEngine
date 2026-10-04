@@ -1,3 +1,4 @@
+# 核对导出包写入器借用输入资源、流式读取源文件以及重复源识别的源码契约。
 from pathlib import Path
 import re
 import unittest

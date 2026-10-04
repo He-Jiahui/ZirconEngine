@@ -42,7 +42,7 @@ dependencies when their complete physical owners move.
 This decision is an implementation-owner relocation, not admission of the current direct state API
 as a product service. The current production-consumer scan finds only the
 `CoreRuntime -> CoreHandle -> StateRegistry` forwarding chain; App, Editor, plugin SDK, and ZrVM
-production code do not consume it. `docs/zircon_runtime/core/state.md` therefore remains authoritative:
+production code do not consume it. `docs/crates/zircon_runtime/core/state.md` therefore remains authoritative:
 the API is a test-only migration baseline until Runtime48 replaces direct mutation, the synthetic
 repeated-init DTO, and ownerless permanent hooks with a scheduled service, typed receipts, and
 lifecycle-aware subscriptions. Frameworks01 must not invent that Runtime48 contract during the

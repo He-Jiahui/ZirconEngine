@@ -1,3 +1,4 @@
+# 核对客户端按键绑定反向索引随变更更新并由发布样本验证。
 from __future__ import annotations
 
 import re

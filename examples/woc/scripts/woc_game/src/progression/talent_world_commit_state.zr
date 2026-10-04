@@ -17,6 +17,7 @@ syncModifiers(
     );
 }
 
+/// 使用此组合入口时，分配提交与标量天赋结果共享一次变更判定；拒绝或同值提交不能重算旧结果。
 pub apply(
     state: allocation.TalentAllocationCommitState,
     modifierState: modifiers.TalentModifierState,

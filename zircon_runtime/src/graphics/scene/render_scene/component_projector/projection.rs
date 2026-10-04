@@ -1,10 +1,10 @@
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use crate::core::framework::render::{
-    RENDER_MESH_STABLE_KEY_PRIMITIVE_BITS, RenderComponentChangeArtifact,
-    RenderComponentChangeKind, RenderComponentMeshPayload, RenderComponentMeshPrimitiveBinding,
-    RenderComponentProjectionMode, RenderComponentSnapshot, RenderComponentValue, RenderLayerSet,
-    RendererCommon,
+    RenderComponentChangeArtifact, RenderComponentChangeKind, RenderComponentMeshPayload,
+    RenderComponentMeshPrimitiveBinding, RenderComponentProjectionMode, RenderComponentSnapshot,
+    RenderComponentValue, RenderLayerSet, RendererCommon, RENDER_MESH_STABLE_KEY_PRIMITIVE_BITS,
 };
 use crate::core::framework::scene::{EntityId, Mobility};
 use crate::core::math::Mat4;
@@ -25,7 +25,7 @@ pub(super) fn build_delta(
 ) -> Result<RenderSceneDelta, RenderSceneComponentProjectionError> {
     let mut upserts = Vec::with_capacity(artifact.upserts().len());
     for patch in artifact.upserts() {
-        upserts.push(project_primitive(scene, patch, resolver)?);
+        upserts.push(project_primitive(scene, patch, false, resolver)?);
     }
     let removals = if matches!(artifact.mode(), RenderComponentProjectionMode::Full(_)) {
         full_reprojection_removals(scene, &upserts)
@@ -40,9 +40,73 @@ pub(super) fn build_delta(
     Ok(RenderSceneDelta::new(upserts, removals))
 }
 
+pub(super) fn build_delta_with_geometry_replay(
+    scene: &RenderScene,
+    artifact: &RenderComponentChangeArtifact,
+    geometry_targets: &[u64],
+    resolver: &mut impl RenderSceneGeometryResolver,
+) -> Result<RenderSceneDelta, RenderSceneComponentProjectionError> {
+    let mut remaining_targets = geometry_targets.iter().copied().collect::<HashSet<_>>();
+    let mut upserts = Vec::with_capacity(
+        artifact
+            .upserts()
+            .len()
+            .saturating_add(remaining_targets.len()),
+    );
+    for patch in artifact.upserts() {
+        let key = stable_instance_key(patch.entity())?;
+        let force_geometry = remaining_targets.remove(&key);
+        upserts.push(project_primitive(scene, patch, force_geometry, resolver)?);
+    }
+    let removals = if matches!(artifact.mode(), RenderComponentProjectionMode::Full(_)) {
+        full_reprojection_removals(scene, &upserts)
+    } else {
+        artifact
+            .removals()
+            .iter()
+            .copied()
+            .map(stable_instance_key)
+            .collect::<Result<Vec<_>, _>>()?
+    };
+    let removal_keys = removals.iter().copied().collect::<HashSet<_>>();
+    remaining_targets.retain(|key| !removal_keys.contains(key));
+    let read = scene.read();
+    let mut remaining_targets = remaining_targets.into_iter().collect::<Vec<_>>();
+    remaining_targets.sort_unstable();
+    for key in remaining_targets {
+        let Some(previous) = read
+            .handle_for_stable_key(key)
+            .and_then(|handle| read.get(handle))
+        else {
+            continue;
+        };
+        upserts.push(reproject_geometry(previous, resolver)?);
+    }
+    Ok(RenderSceneDelta::new(upserts, removals))
+}
+
+pub(super) fn reproject_geometry(
+    previous: &RenderScenePrimitive,
+    resolver: &mut impl RenderSceneGeometryResolver,
+) -> Result<RenderScenePrimitive, RenderSceneComponentProjectionError> {
+    let entity = previous.descriptor().node_id;
+    let mut revisions = previous.revisions();
+    let local_bounds = resolver
+        .resolve_geometry(
+            entity,
+            &previous.descriptor().mesh_source,
+            &previous.descriptor().morph_weights,
+        )
+        .map_err(|issue| RenderSceneComponentProjectionError::GeometryResolution { entity, issue })?
+        .apply_to(&mut revisions);
+    RenderScenePrimitive::new(previous.descriptor().clone(), local_bounds, revisions)
+        .map_err(Into::into)
+}
+
 fn project_primitive(
     scene: &RenderScene,
     patch: &RenderComponentSnapshot,
+    force_geometry: bool,
     resolver: &mut impl RenderSceneGeometryResolver,
 ) -> Result<RenderScenePrimitive, RenderSceneComponentProjectionError> {
     let entity = patch.entity();
@@ -57,7 +121,7 @@ fn project_primitive(
     }
 
     match previous {
-        Some(previous) => project_existing(previous, patch, resolver),
+        Some(previous) => project_existing(previous, patch, force_geometry, resolver),
         None => project_new(patch, resolver),
     }
 }
@@ -118,6 +182,7 @@ fn project_new(
 fn project_existing(
     previous: RenderScenePrimitive,
     patch: &RenderComponentSnapshot,
+    force_geometry: bool,
     resolver: &mut impl RenderSceneGeometryResolver,
 ) -> Result<RenderScenePrimitive, RenderSceneComponentProjectionError> {
     let entity = patch.entity();
@@ -151,7 +216,8 @@ fn project_existing(
         }
         RenderComponentValue::Present(mesh) => {
             let source = mesh_source(entity, mesh)?;
-            let geometry_changed = patch.kind() == RenderComponentChangeKind::Added
+            let geometry_changed = force_geometry
+                || patch.kind() == RenderComponentChangeKind::Added
                 || !source.geometry_eq(&descriptor.mesh_source)
                 || mesh.morph_weights() != descriptor.morph_weights.as_ref();
             apply_mesh_renderer(&mut descriptor, source, mesh);
@@ -167,6 +233,15 @@ fn project_existing(
                     .apply_to(&mut revisions);
             }
         }
+    }
+
+    if force_geometry && matches!(patch.mesh_renderer(), RenderComponentValue::Unchanged) {
+        local_bounds = resolver
+            .resolve_geometry(entity, &descriptor.mesh_source, &descriptor.morph_weights)
+            .map_err(
+                |issue| RenderSceneComponentProjectionError::GeometryResolution { entity, issue },
+            )?
+            .apply_to(&mut revisions);
     }
 
     RenderScenePrimitive::new(descriptor, local_bounds, revisions).map_err(Into::into)

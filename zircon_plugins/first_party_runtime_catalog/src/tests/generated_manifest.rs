@@ -137,6 +137,7 @@ fn plugins_12_static_plugin_manifest_is_generated() {
         feature = "base-runtime-plugins",
         feature = "advanced-render-runtime-plugins",
         feature = "navigation-runtime-plugin",
+        feature = "ui-document-importer",
         feature = "zr-vm-language-runtime-plugin"
     ))]
     super::assert_runtime_descriptor_manifests_match_generated_static_manifests();

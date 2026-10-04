@@ -87,8 +87,12 @@ Describe 'MVP product binary build contract' {
 
     It 'keeps the product-input default and managed validator invocation under ZirconBuilds' {
         $builderSource = Get-Content -LiteralPath $productInputBuilder -Raw
+        Import-Module (Join-Path (Split-Path $productInputBuilder -Parent) 'MvpArtifactStoragePolicy.psm1') -Force -ErrorAction Stop
+        $defaultPath = New-MvpArtifactStoragePath -NamespaceId 'mvp-product-inputs' -InstanceId 'contract'
 
-        $builderSource | Should Match 'Join-Path ''E:\\ZirconBuilds'' \("mvp-product-inputs-"'
+        $builderSource | Should Match 'New-MvpArtifactStoragePath -NamespaceId ''mvp-product-inputs'''
+        $builderSource | Should Match 'Resolve-MvpArtifactStoragePath -Path \$Path -NamespaceId ''mvp-product-inputs'''
+        $defaultPath | Should Match '^[D-F]:\\ZirconBuilds\\mvp-product-inputs-contract$'
         $builderSource | Should Match '"-MvpProductInputArtifactOutput"'
         $builderSource | Should Not Match '\$env:LOCALAPPDATA'
     }

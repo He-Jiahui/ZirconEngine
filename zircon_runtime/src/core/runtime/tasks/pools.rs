@@ -219,3 +219,7 @@ fn resolve_thread_counts(
 fn available_parallelism() -> usize {
     std::thread::available_parallelism().map_or(1, |value| value.get())
 }
+
+#[cfg(test)]
+#[path = "tests/pools.rs"]
+mod tests;

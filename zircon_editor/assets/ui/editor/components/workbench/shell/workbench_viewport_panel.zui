@@ -33,10 +33,15 @@ events = [
 ]
 
 [nodes.viewport_toolbar]
-component = "HorizontalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchViewportToolbar"
 classes = ["workbench-viewport-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" } }
+props = { input_hoverable = true }
+# Keep viewport controls at their authored hit-target sizes. At compact
+# widths the retained host exposes the same row as an independently
+# horizontally scrollable toolbar, instead of shrinking or overlapping the
+# Lit/angle controls.
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Horizontal", gap = "$editor.density.gap.medium", scrollbar_visibility = "Never" }, input_policy = "Receive", width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" } }
 children = [{ node = "viewport_mode" }, { node = "viewport_lit" }, { node = "viewport_toolbar_fill" }, { node = "viewport_angle" }, { node = "viewport_speed" }]
 
 [nodes.viewport_mode]

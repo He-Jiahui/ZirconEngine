@@ -13,7 +13,7 @@ plan_sources:
   - user: 2026-09-09 场景序列化、持久化与崩溃恢复详解
 tests:
   - zircon_runtime/src/scene/tests/component_structure/project_serialization.rs
-  - zircon_runtime/src/asset/project/manifest/save/borrowed_serialization_tests.rs
+  - zircon_runtime/src/asset/project/manifest/save/tests/borrowed_serialization_tests.rs
 doc_type: workflow-detail
 ---
 

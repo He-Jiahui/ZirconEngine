@@ -1,3 +1,4 @@
+//! 按目标平台选择宿主脚手架；移动端与浏览器入口共享 Rust 生命周期持有者和 C ABI 事件边界。
 use crate::core::framework::project::ExportProfile;
 
 use self::{browser::browser_host_files, mobile::mobile_host_files};
@@ -6,6 +7,7 @@ use super::ExportGeneratedFile;
 mod browser;
 mod mobile;
 
+/// SourceTemplate 生成时调用；桌面/无头写 main，移动端/浏览器写被宿主加载的 library 与资源。
 pub(super) fn platform_host_files(
     profile: &ExportProfile,
     has_native_dynamic_plugins: bool,
@@ -43,6 +45,8 @@ fn runtime_library_file(profile: &ExportProfile, host_label: &str) -> ExportGene
     }
 }
 
+// 生成的 library 持有 ProductComposition 跨 FFI 调用生命周期；start/shutdown 避免重复启动和悬空宿主。
+// TODO: [CR-PLUGIN-EXPORT-AUDIT-0003] 核定移动端/浏览器事件桥是否应投递到 ProductComposition；现有生命周期、触摸、键盘和视口入口仅返回运行状态。下一步核对 runtime_entry_app 输入路由及宿主集成测试。
 fn runtime_library_template(profile: &ExportProfile, host_label: &str) -> String {
     let target_platform = profile.target_platform.as_str();
     format!(
@@ -52,6 +56,7 @@ enum ZirconProductCompositionState {{
     Vacant,
     Starting,
     Running(zircon_app::ProductComposition),
+    CleanupPending(zircon_app::ProductCompositionFailure),
     Stopping,
 }}
 
@@ -92,17 +97,44 @@ pub fn zircon_export_bootstrap() -> Result<(), Box<dyn std::error::Error>> {{
             ZirconProductCompositionState::Stopping => {{
                 return Err(std::io::Error::other("Zircon product composition is stopping").into());
             }}
+            ZirconProductCompositionState::CleanupPending(_) => {{
+                return Err(std::io::Error::other("Zircon product composition cleanup is pending").into());
+            }}
         }}
     }}
     let mut start_guard = ZirconProductStartGuard {{ active: true }};
-    let composition = zircon_app::bootstrap_export_runtime(
+    let composition = match zircon_app::bootstrap_export_runtime(
         zircon_plugins::export_runtime_bootstrap_config(),
-    )?;
+    ) {{
+        Ok(composition) => composition,
+        Err(failure) => {{
+            if failure.cleanup_pending() {{
+                let mut state = ZIRCON_PRODUCT_COMPOSITION.lock()
+                    .map_err(|_| std::io::Error::other("Zircon product composition owner is poisoned"))?;
+                if matches!(&*state, ZirconProductCompositionState::Starting) {{
+                    *state = ZirconProductCompositionState::CleanupPending(failure.clone());
+                    start_guard.active = false;
+                }}
+            }}
+            return Err(Box::new(failure));
+        }}
+    }};
     let mut composition_state = ZIRCON_PRODUCT_COMPOSITION
         .lock()
         .map_err(|_| std::io::Error::other("Zircon product composition owner is poisoned"))?;
     if !matches!(&*composition_state, ZirconProductCompositionState::Starting) {{
-        return Err(std::io::Error::other("Zircon product composition start state changed unexpectedly").into());
+        drop(composition_state);
+        let failure = composition.fail_until(
+            std::io::Error::other("Zircon product composition start state changed unexpectedly"),
+            std::time::Instant::now() + std::time::Duration::from_secs(5),
+        );
+        if failure.cleanup_pending() {{
+            if let Ok(mut state) = ZIRCON_PRODUCT_COMPOSITION.lock() {{
+                *state = ZirconProductCompositionState::CleanupPending(failure.clone());
+                start_guard.active = false;
+            }}
+        }}
+        return Err(Box::new(failure));
     }}
     *composition_state = ZirconProductCompositionState::Running(composition);
     start_guard.active = false;
@@ -140,17 +172,27 @@ pub extern "C" fn zircon_export_shutdown() -> bool {{
                 ZirconProductCompositionState::Vacant => return true,
                 ZirconProductCompositionState::Starting
                 | ZirconProductCompositionState::Stopping => return false,
-                ZirconProductCompositionState::Running(_) => {{}}
+                ZirconProductCompositionState::Running(_)
+                | ZirconProductCompositionState::CleanupPending(_) => {{}}
             }}
             match std::mem::replace(
                 &mut *composition_state,
                 ZirconProductCompositionState::Stopping,
             ) {{
-                ZirconProductCompositionState::Running(composition) => composition,
+                ZirconProductCompositionState::Running(composition) => Ok(composition),
+                ZirconProductCompositionState::CleanupPending(failure) => Err(failure),
                 _ => unreachable!("running state was checked while holding the owner lock"),
             }}
         }};
-        drop(composition);
+        // Take exact ownership under the host lock; all lifecycle callbacks run outside it.
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        let close_result = match composition {{
+            Ok(composition) => composition.close_until(deadline).map(|_| ()),
+            Err(failure) => match failure.retry_cleanup_until(deadline) {{
+                Ok(_) => Ok(()),
+                Err(_) => Err(failure),
+            }},
+        }};
         let mut composition_state = match ZIRCON_PRODUCT_COMPOSITION.lock() {{
             Ok(composition_state) => composition_state,
             Err(_) => return false,
@@ -158,8 +200,10 @@ pub extern "C" fn zircon_export_shutdown() -> bool {{
         if !matches!(&*composition_state, ZirconProductCompositionState::Stopping) {{
             return false;
         }}
-        *composition_state = ZirconProductCompositionState::Vacant;
-        true
+        match close_result {{
+            Ok(()) => {{ *composition_state = ZirconProductCompositionState::Vacant; true }}
+            Err(failure) => {{ *composition_state = ZirconProductCompositionState::CleanupPending(failure); false }}
+        }}
     }})
 }}
 
@@ -290,20 +334,8 @@ pub const ZIRCON_EXPORT_TARGET_PLATFORM: &str = "{target_platform}";
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn runtime_library_template_does_not_rescan_the_completed_source() {
-        let source = include_str!("platform_host_files.rs");
-        let replacement_pass = ["    .rep", "lace("].concat();
-        let template_body = source
-            .split("fn runtime_library_template")
-            .nth(1)
-            .and_then(|body| body.split("fn native_library_stem").next())
-            .expect("runtime library template body should remain available");
-
-        assert!(!template_body.contains(&replacement_pass));
-    }
-}
+#[path = "tests/platform_host_files.rs"]
+mod tests;
 
 fn native_library_stem(value: &str) -> String {
     value
@@ -357,14 +389,17 @@ fn html_escape(value: &str) -> String {
     xml_escape(value)
 }
 
+// BUG: [CR-PLUGIN-EXPORT-AUDIT-0004] 只转义引号和反斜杠；合法 output_name 的内嵌换行进入 iOS Swift 字符串字面量会使脚手架无法编译。证据：mobile.rs 的 ios_package_swift_template 和 ios_host_template。
 fn swift_string_escape(value: &str) -> String {
     value.replace('\\', "\\\\").replace('"', "\\\"")
 }
 
+// BUG: [CR-PLUGIN-EXPORT-AUDIT-0002] 合法 profile 名可含换行，而此处不转义 JS 行终止符；WebGPU 宿主错误消息的字符串字面量会产生语法错误。证据：browser.rs 的 browser_runtime_host_script_template。
 fn javascript_string_escape(value: &str) -> String {
     value.replace('\\', "\\\\").replace('\'', "\\'")
 }
 
+// BUG: [CR-PLUGIN-EXPORT-AUDIT-0001] 只转义反斜杠和引号；合法 profile 名可含换行，移动端/浏览器 JSON 清单会失效。证据：export_profile_validation.rs 的名称校验只检查 trim；mobile.rs 与 browser.rs 将 profile.name 插入 JSON。
 fn json_string_escape(value: &str) -> String {
     value.replace('\\', "\\\\").replace('"', "\\\"")
 }

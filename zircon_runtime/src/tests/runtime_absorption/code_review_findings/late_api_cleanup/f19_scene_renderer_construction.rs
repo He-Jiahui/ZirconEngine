@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f19_scene_renderer_construction_modules_use_construct_names() {
     let core_mod = include_str!("../../../../graphics/scene/scene_renderer/core/mod.rs");
@@ -30,7 +31,7 @@ fn review_f19_scene_renderer_construction_modules_use_construct_names() {
         "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
     );
     let shadow_doc = include_str!(
-        "../../../../../../docs/zircon_runtime/graphics/scene/scene_renderer/shadow.md"
+        "../../../../../../docs/crates/zircon_runtime/graphics/scene/scene_renderer/shadow.md"
     );
     let f19_row = review_findings
         .lines()

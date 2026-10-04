@@ -1,8 +1,9 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use zircon_runtime::core::runtime::tasks::BoundedKeyedIoTerminal;
-
-use super::super::{SettingsFileGeneration, SettingsPersistenceSubmitError, SettingsScope};
+use super::super::{
+    SettingsFileGeneration, SettingsPersistenceSubmitError, SettingsPersistenceTerminal,
+    SettingsScope,
+};
 use super::SettingsDocumentIdentity;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -12,14 +13,14 @@ pub enum SettingsPersistenceHealthStatus {
     Queued,
     Durable,
     PendingAdmission(SettingsPersistenceSubmitError),
-    Terminal(BoundedKeyedIoTerminal),
+    Terminal(SettingsPersistenceTerminal),
 }
 
 impl SettingsPersistenceHealthStatus {
     pub const fn is_retryable(self) -> bool {
         matches!(
             self,
-            Self::PendingAdmission(_) | Self::Terminal(BoundedKeyedIoTerminal::Failed(_))
+            Self::PendingAdmission(_) | Self::Terminal(SettingsPersistenceTerminal::Failed(_))
         )
     }
 }
@@ -216,10 +217,10 @@ impl SettingsPersistenceHealthAuthority {
     pub(super) fn observe_terminal(
         &self,
         observation: SettingsPersistenceObservation,
-        terminal: BoundedKeyedIoTerminal,
+        terminal: SettingsPersistenceTerminal,
     ) {
         self.publish_observation_update(observation, |tracked| {
-            tracked.status = if terminal == BoundedKeyedIoTerminal::Succeeded {
+            tracked.status = if terminal == SettingsPersistenceTerminal::Written {
                 SettingsPersistenceHealthStatus::Durable
             } else {
                 SettingsPersistenceHealthStatus::Terminal(terminal)
@@ -300,3 +301,7 @@ fn next_nonzero(value: u64) -> u64 {
         next
     }
 }
+
+#[cfg(test)]
+#[path = "tests/health_suppressed_write_tests.rs"]
+mod suppressed_write_tests;

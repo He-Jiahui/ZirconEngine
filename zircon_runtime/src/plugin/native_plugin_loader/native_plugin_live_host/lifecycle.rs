@@ -221,6 +221,21 @@ impl NativePluginLiveHost {
             .map_err(|error| error.to_string())
     }
 
+    pub fn hot_reload_runtime_plugin_with_authority(
+        &self,
+        root: impl AsRef<Path>,
+        plugin_id: impl AsRef<str>,
+        authority: &super::super::NativePluginArtifactAuthority,
+    ) -> Result<NativePluginLiveHostOutcome, String> {
+        self.hot_reload_plugin_result_with_authority(
+            root.as_ref(),
+            plugin_id.as_ref(),
+            PluginModuleKind::Runtime,
+            authority,
+        )
+        .map_err(|error| error.to_string())
+    }
+
     pub fn hot_reload_editor_plugin(
         &self,
         root: impl AsRef<Path>,
@@ -228,6 +243,21 @@ impl NativePluginLiveHost {
     ) -> Result<NativePluginLiveHostOutcome, String> {
         self.hot_reload_plugin_result(root.as_ref(), plugin_id.as_ref(), PluginModuleKind::Editor)
             .map_err(|error| error.to_string())
+    }
+
+    pub fn hot_reload_editor_plugin_with_authority(
+        &self,
+        root: impl AsRef<Path>,
+        plugin_id: impl AsRef<str>,
+        authority: &super::super::NativePluginArtifactAuthority,
+    ) -> Result<NativePluginLiveHostOutcome, String> {
+        self.hot_reload_plugin_result_with_authority(
+            root.as_ref(),
+            plugin_id.as_ref(),
+            PluginModuleKind::Editor,
+            authority,
+        )
+        .map_err(|error| error.to_string())
     }
 
     pub(super) fn unload_plugin_result(
@@ -307,7 +337,36 @@ impl NativePluginLiveHost {
         plugin_id: &str,
         module_kind: PluginModuleKind,
     ) -> NativePluginLiveHostLifecycleResult<NativePluginLiveHostOutcome> {
-        let report = load_for_module_kind(&self.loader, root, module_kind)?;
+        self.hot_reload_plugin_result_with_authority(
+            root,
+            plugin_id,
+            module_kind,
+            &self.artifact_authority,
+        )
+    }
+
+    fn hot_reload_plugin_result_with_authority(
+        &self,
+        root: &Path,
+        plugin_id: &str,
+        module_kind: PluginModuleKind,
+        authority: &super::super::NativePluginArtifactAuthority,
+    ) -> NativePluginLiveHostLifecycleResult<NativePluginLiveHostOutcome> {
+        let report = match module_kind {
+            PluginModuleKind::Runtime => self
+                .loader
+                .load_discovered_runtime_with_authority(root, authority),
+            PluginModuleKind::Editor => self
+                .loader
+                .load_discovered_editor_with_authority(root, authority),
+            PluginModuleKind::Native | PluginModuleKind::Vm => {
+                return Err(
+                    NativePluginLiveHostLifecycleError::UnsupportedLiveHostModuleKind {
+                        module_kind,
+                    },
+                );
+            }
+        };
         self.hot_reload_reported_plugin_result(report, root, plugin_id, module_kind)
     }
 
@@ -596,7 +655,7 @@ fn native_plugin_discovery_hint<'a>(plugin_ids: impl Iterator<Item = &'a str> + 
 }
 
 #[cfg(test)]
-#[path = "lifecycle/discovery_hint_tests.rs"]
+#[path = "lifecycle/tests/discovery_hint_tests.rs"]
 mod discovery_hint_tests;
 
 // A retained generation may resume callback admission only after its saved state restores.

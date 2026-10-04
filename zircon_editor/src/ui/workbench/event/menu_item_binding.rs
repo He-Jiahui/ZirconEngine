@@ -7,6 +7,8 @@ use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventK
 
 use super::{editor_operation_binding, menu_action_binding};
 
+/// 为菜单绘制和反射提供一致的叶项身份，优先使用操作注册表的路径。
+/// 调用方须过滤分支和禁用项；无动作时的空绑定仅是占位，不能据它发布可执行点击。
 pub fn menu_item_binding(item: &MenuItemModel) -> EditorUiBinding {
     if let Some(operation_path) = &item.operation_path {
         return editor_operation_binding(operation_path);
@@ -22,9 +24,13 @@ pub fn menu_item_binding(item: &MenuItemModel) -> EditorUiBinding {
     )
 }
 
+// 保留界面的旧菜单动作优先进入统一操作链，以获得相同的准入、记录和效果传播。
+// 未覆盖的动作继续走领域事件回退；返回路径只表示映射关系，不表示命令已注册或已启用。
 pub(crate) fn operation_path_for_menu_action(action: &MenuAction) -> Option<EditorOperationPath> {
     let path = match action {
         MenuAction::OpenProject => "file.project.open",
+        MenuAction::OpenScene => "file.scene.open",
+        MenuAction::CreateScene => "file.scene.create",
         MenuAction::SaveProject => "file.project.save",
         MenuAction::SaveAllDocuments => "file.documents.save_all",
         MenuAction::CloseProject => "file.project.close",
@@ -77,6 +83,7 @@ pub(crate) fn operation_path_for_menu_action(action: &MenuAction) -> Option<Edit
     Some(EditorOperationPath::parse(path).expect("menu operation path is valid"))
 }
 
+// 只映射已有内建视图对应的操作；扩展视图仍由视图注册和宿主事件链处理。
 fn builtin_view_operation_path(descriptor_id: &str) -> Option<&'static str> {
     match descriptor_id {
         "editor.project" => Some("view.project.open"),

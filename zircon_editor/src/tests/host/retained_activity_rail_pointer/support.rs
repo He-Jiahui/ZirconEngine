@@ -17,7 +17,8 @@ pub(super) fn sample_activity_rail_layout() -> HostActivityRailPointerLayout {
                 slot: ActivityDrawerSlot::LeftBottom,
                 instance_id: ViewInstanceId::new("editor.hierarchy#1"),
             },
-        ],
+        ]
+        .into(),
         right_strip_frame: UiFrame::new(1246.0, 51.0, 34.0, 400.0),
         right_tabs: vec![
             HostActivityRailPointerItem {
@@ -28,6 +29,7 @@ pub(super) fn sample_activity_rail_layout() -> HostActivityRailPointerLayout {
                 slot: ActivityDrawerSlot::RightBottom,
                 instance_id: ViewInstanceId::new("editor.console#1"),
             },
-        ],
+        ]
+        .into(),
     }
 }

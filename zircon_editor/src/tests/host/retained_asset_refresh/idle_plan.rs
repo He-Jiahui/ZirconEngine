@@ -2,7 +2,7 @@ use crate::ui::retained_host::{plan_asset_backend_refresh, AssetBackendRefreshPl
 
 #[test]
 fn asset_backend_refresh_plan_is_idle_without_backend_events() {
-    let plan = plan_asset_backend_refresh(None, None, &[], &[], &[]);
+    let plan = plan_asset_backend_refresh(None, &[], &[], &[]);
 
     assert_eq!(plan, AssetBackendRefreshPlan::default());
 }

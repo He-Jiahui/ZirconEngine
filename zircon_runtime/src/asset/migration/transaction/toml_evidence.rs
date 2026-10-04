@@ -61,6 +61,7 @@ enum StringKind {
     OpeningLiteral { quotes: u8 },
     Literal,
     MultilineLiteral { quotes: u8 },
+    ClosingMultiline { delimiter: u8, quotes: u8 },
 }
 
 /// Validates the structural subset that recovery needs before trusting a
@@ -141,6 +142,7 @@ impl TomlStructureValidator {
         match self.string.take() {
             Some(StringKind::OpeningBasic { quotes: 2 })
             | Some(StringKind::OpeningLiteral { quotes: 2 })
+            | Some(StringKind::ClosingMultiline { quotes: 3..=5, .. })
             | None => {}
             Some(_) => return Err(invalid_data("unterminated TOML string")),
         }
@@ -242,6 +244,22 @@ impl TomlStructureValidator {
             return Err(invalid_data("TOML string state was lost"));
         };
         match kind {
+            // A closing run may include one or two value quotes before its final three.
+            StringKind::ClosingMultiline { delimiter, quotes } if byte == delimiter => {
+                if quotes >= 5 {
+                    return Err(invalid_data(
+                        "too many quotes in TOML multiline closing delimiter",
+                    ));
+                }
+                self.string = Some(StringKind::ClosingMultiline {
+                    delimiter,
+                    quotes: quotes + 1,
+                });
+            }
+            StringKind::ClosingMultiline { .. } => {
+                self.string_closed = true;
+                return self.push_valid_byte(byte);
+            }
             StringKind::OpeningBasic { quotes } if byte == b'"' && quotes == 1 => {
                 self.string = Some(StringKind::OpeningBasic { quotes: 2 });
             }
@@ -311,7 +329,12 @@ impl TomlStructureValidator {
                     quotes: quotes + 1,
                 });
             }
-            StringKind::MultilineBasic { .. } if byte == b'"' => self.string_closed = true,
+            StringKind::MultilineBasic { .. } if byte == b'"' => {
+                self.string = Some(StringKind::ClosingMultiline {
+                    delimiter: byte,
+                    quotes: 3,
+                });
+            }
             StringKind::MultilineBasic { .. } => {
                 self.string = Some(StringKind::MultilineBasic {
                     escaped: false,
@@ -321,7 +344,12 @@ impl TomlStructureValidator {
             StringKind::MultilineLiteral { quotes } if byte == b'\'' && quotes < 2 => {
                 self.string = Some(StringKind::MultilineLiteral { quotes: quotes + 1 });
             }
-            StringKind::MultilineLiteral { .. } if byte == b'\'' => self.string_closed = true,
+            StringKind::MultilineLiteral { .. } if byte == b'\'' => {
+                self.string = Some(StringKind::ClosingMultiline {
+                    delimiter: byte,
+                    quotes: 3,
+                });
+            }
             StringKind::MultilineLiteral { .. } => {
                 self.string = Some(StringKind::MultilineLiteral { quotes: 0 });
             }
@@ -360,148 +388,5 @@ fn invalid_data(message: impl Into<String>) -> io::Error {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::atomic::{AtomicU64, Ordering};
-
-    use super::*;
-
-    static NEXT_TEST_ARTIFACT_ID: AtomicU64 = AtomicU64::new(1);
-
-    fn digest(source: &[u8], chunk_bytes: usize) -> io::Result<String> {
-        let artifact_id = NEXT_TEST_ARTIFACT_ID.fetch_add(1, Ordering::Relaxed);
-        let path = std::env::temp_dir().join(format!(
-            "zircon-toml-evidence-{}-{}-{}",
-            std::process::id(),
-            artifact_id,
-            chunk_bytes
-        ));
-        std::fs::write(&path, source)?;
-        let result = stream_toml_file_digest(&path, chunk_bytes);
-        let _ = std::fs::remove_file(path);
-        result
-    }
-
-    #[test]
-    fn transaction_toml_evidence_streams_chunked_valid_document() {
-        let source = b"version = 2\nname = \"hero\"\n\n[shader]\nuuid = \"abc\"\n";
-        assert_eq!(
-            digest(source, 1).unwrap(),
-            blake3::hash(source).to_hex().to_string()
-        );
-    }
-
-    #[test]
-    fn transaction_toml_evidence_reuses_one_reader_for_multiple_artifacts() {
-        let artifact_id = NEXT_TEST_ARTIFACT_ID.fetch_add(1, Ordering::Relaxed);
-        let path = std::env::temp_dir().join(format!(
-            "zircon-toml-evidence-reader-{}-{artifact_id}",
-            std::process::id(),
-        ));
-        let mut reader = TomlEvidenceReader::new(2);
-
-        std::fs::write(&path, b"name = \"first\"\n").unwrap();
-        assert_eq!(
-            reader.stream_file_digest(&path).unwrap(),
-            blake3::hash(b"name = \"first\"\n").to_hex().to_string()
-        );
-        std::fs::write(&path, b"name = \"second\"\n").unwrap();
-        assert_eq!(
-            reader.stream_file_digest(&path).unwrap(),
-            blake3::hash(b"name = \"second\"\n").to_hex().to_string()
-        );
-
-        let _ = std::fs::remove_file(path);
-    }
-
-    #[test]
-    fn transaction_toml_evidence_keeps_payload_reads_bounded() {
-        const SOURCE: &str = include_str!("toml_evidence.rs");
-
-        assert!(SOURCE.contains("buffer_bytes.max(1)"));
-        for forbidden in ["read_to_end(", "read_to_string(", "fs::read("] {
-            assert!(
-                !SOURCE.contains(forbidden),
-                "transaction evidence must not reintroduce whole-payload {forbidden}"
-            );
-        }
-    }
-
-    #[test]
-    fn transaction_toml_evidence_rejects_forged_non_toml_artifact() {
-        let error = digest(b"attacker-controlled backup bytes", 7).unwrap_err();
-        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
-    }
-
-    #[test]
-    fn transaction_toml_evidence_rejects_unclosed_containers_and_strings() {
-        assert!(digest(b"value = [1, 2", 3).is_err());
-        assert!(digest(b"value = \"unterminated", 5).is_err());
-    }
-
-    #[test]
-    fn transaction_toml_evidence_rejects_tokens_after_closed_strings() {
-        assert!(digest(b"empty = \"\" trailing\n", 1).is_err());
-        assert!(digest(b"label = \"valid\" trailing\n", 1).is_err());
-        assert!(digest(b"summary = \"\"\"\nline\n\"\"\" trailing\n", 1).is_err());
-    }
-
-    #[test]
-    fn transaction_toml_evidence_preserves_quoted_dotted_keys() {
-        let source = b"\"build\".\"target\" = \"valid\"\n";
-        assert_eq!(
-            digest(source, 1).unwrap(),
-            blake3::hash(source).to_hex().to_string()
-        );
-    }
-
-    #[test]
-    fn transaction_toml_evidence_preserves_split_utf8_strings() {
-        let source = "name = \"Zircon 渲染\"\n".as_bytes();
-        assert_eq!(
-            digest(source, 2).unwrap(),
-            blake3::hash(source).to_hex().to_string()
-        );
-    }
-
-    #[test]
-    fn transaction_toml_evidence_preserves_chunked_multiline_strings() {
-        let source =
-            b"summary = \"\"\"\nfirst line\nsecond line\n\"\"\"\nlabel = '''\nliteral line\n'''\n";
-        assert_eq!(
-            digest(source, 1).unwrap(),
-            blake3::hash(source).to_hex().to_string()
-        );
-    }
-
-    #[test]
-    fn transaction_toml_evidence_preserves_empty_and_escaped_string_delimiters() {
-        let source = b"empty_basic = \"\"\nempty_literal = ''\nquoted = \"a \\\" quote\"\nmultiline = \"\"\"\nescaped \\\"\\\"\\\" delimiter\n\"\"\"\n";
-        assert!(toml::from_str::<toml::Value>(std::str::from_utf8(source).unwrap()).is_ok());
-        assert_eq!(
-            digest(source, 1).unwrap(),
-            blake3::hash(source).to_hex().to_string()
-        );
-    }
-
-    #[test]
-    fn transaction_toml_evidence_accepts_canonical_migration_output() {
-        let value = toml::from_str::<toml::Value>(
-            r#"
-title = "Migration evidence"
-enabled = true
-weight = 1.25
-created = 2026-07-28T12:00:00Z
-tags = ["runtime", "render"]
-
-[render]
-limits = { width = 1920, height = 1080 }
-"#,
-        )
-        .unwrap();
-        let source = toml::to_string_pretty(&value).unwrap();
-        assert_eq!(
-            digest(source.as_bytes(), 3).unwrap(),
-            blake3::hash(source.as_bytes()).to_hex().to_string()
-        );
-    }
-}
+#[path = "tests/toml_evidence.rs"]
+mod tests;

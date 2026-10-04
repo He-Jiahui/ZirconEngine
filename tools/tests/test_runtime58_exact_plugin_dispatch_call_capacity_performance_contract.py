@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 插件分发按快照数量精确预留调用项，每项仍输出调用与诊断；进入和退出 Play 模式共用同一分发路径。
 
 ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_BEHAVIOR = (

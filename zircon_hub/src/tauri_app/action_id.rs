@@ -31,10 +31,11 @@ pub(crate) enum HubActionId {
     PackageProject,
     InstallDevice,
     OpenEditor,
+    CancelBackgroundTask,
 }
 
 impl HubActionId {
-    pub(crate) const ALL: [HubActionId; 31] = [
+    pub(crate) const ALL: [HubActionId; 32] = [
         Self::ShowPage,
         Self::ShowProjectSubpage,
         Self::SearchProjects,
@@ -66,6 +67,7 @@ impl HubActionId {
         Self::PackageProject,
         Self::InstallDevice,
         Self::OpenEditor,
+        Self::CancelBackgroundTask,
     ];
 
     /// Canonical wire action id table. Archived aliases belong in `from_str`.
@@ -102,6 +104,7 @@ impl HubActionId {
             Self::PackageProject => "package-project",
             Self::InstallDevice => "install-device",
             Self::OpenEditor => "open-editor",
+            Self::CancelBackgroundTask => "cancel-background-task",
         }
     }
 
@@ -124,32 +127,5 @@ impl HubActionId {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn every_action_id_round_trips_between_as_str_and_from_str() {
-        assert_eq!(HubActionId::ALL.len(), 31);
-        for action in HubActionId::ALL {
-            assert_eq!(HubActionId::from_str(action.as_str()), Some(action));
-        }
-    }
-
-    #[test]
-    fn archived_aliases_and_whitespace_resolve_to_canonical_actions() {
-        assert_eq!(HubActionId::from_str("page"), Some(HubActionId::ShowPage));
-        assert_eq!(
-            HubActionId::from_str("project-subpage"),
-            Some(HubActionId::ShowProjectSubpage)
-        );
-        assert_eq!(
-            HubActionId::from_str("open-project"),
-            Some(HubActionId::SelectProject)
-        );
-        assert_eq!(
-            HubActionId::from_str(" build-project "),
-            Some(HubActionId::BuildProject)
-        );
-        assert_eq!(HubActionId::from_str("upload-to-cloud"), None);
-    }
-}
+#[path = "tests/action_id.rs"]
+mod tests;

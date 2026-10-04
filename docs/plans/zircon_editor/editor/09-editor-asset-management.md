@@ -162,7 +162,7 @@ watch AssetChange(新文件/变更, fold_events 折叠后)
 - 切片 1.2：`EditorExtensionRegistry` 硬切为 `AssetTypeContribution` 单入口；`AssetEditorDescriptor` / 独立 `AssetCreationTemplateDescriptor` 表、旧 register/read API 与 importer/graph/timeline 裸 `asset_kind: String` 全仓迁移并删除，不留 shim。
 - 切片 1.3：浏览器四布局、preview palette/provider、打开/创建/上下文命令改为 registry projection；删除散落 kind match 与 `EditorAssetMetaDocument` / `*.editor.meta.toml`。
 - 切片 1.4：A/B source authority 与只读 typed when/dispatch guard；`res://` 工程源可写，package/builtin/library/derived/transient 不可作为工程资产写入。
-- 测试阶段：`cargo test -p zircon_editor --lib --locked`（四布局既有测试须过 + 分派矩阵 + 只读拒绝）。更新 `docs/zircon_editor/core/asset.md`。
+- 测试阶段：`cargo test -p zircon_editor --lib --locked`（四布局既有测试须过 + 分派矩阵 + 只读拒绝）。更新 `docs/crates/zircon_editor/core/asset.md`。
 
 ### M2 Runtime registry 投影与导入工作流
 

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use serde_json::json;
 use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
-use zircon_runtime::scene::DefaultLevelManager;
+use zircon_runtime::scene::{DefaultLevelManager, NodeKind};
 use zircon_runtime_interface::math::Vec3;
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 
@@ -12,7 +12,7 @@ use crate::core::editing::intent::EditorIntent;
 use crate::core::editor_event::InspectorFieldChange;
 use crate::core::editor_message::{EditorMessagePayload, EditorTopic, TransactionMessage};
 use crate::core::gateway::InProcessGateway;
-use crate::core::play::PlayInstanceId;
+use crate::core::play::{PlayInstanceId, WorldDomain};
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 use crate::ui::binding_dispatch::{apply_inspector_binding, EditorBindingDispatchError};
 use crate::ui::workbench::state::EditorStateOperationError;
@@ -50,6 +50,52 @@ fn inspector_binding_applies_batch_changes_to_editor_state() {
                 zircon_runtime_interface::math::Vec3::new(4.0, 5.0, 6.0)
             );
         });
+}
+
+#[test]
+fn inspector_binding_empty_apply_preserves_high_precision_transform_and_history() {
+    let mut state = support::test_state();
+    let cube = support::cube_id(&state);
+    let translation = Vec3::new(12.3456, -0.0012345, 987.6543);
+    let scale = Vec3::new(1.23456, 0.9876543, 4.32109);
+    state.world.expect_with_world_mut(|scene| {
+        let mut transform = scene.find_node(cube).unwrap().transform;
+        transform.translation = translation;
+        transform.scale = scale;
+        scene.update_transform(cube, transform).unwrap();
+    });
+    state.apply_intent(EditorIntent::SelectNode(cube)).unwrap();
+    let binding = EditorUiBinding::new(
+        "InspectorView",
+        "ApplyBatchButton",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::inspector_field_batch(
+            "entity://selected",
+            Vec::<InspectorFieldChange>::new(),
+        ),
+    );
+
+    assert!(!apply_inspector_binding(&mut state, &binding).unwrap());
+    assert_eq!(
+        state
+            .transactions()
+            .history_status(HistoryContextId::Global)
+            .unwrap()
+            .len,
+        0
+    );
+    state.world.expect_with_world(|scene| {
+        let transform = scene.find_node(cube).unwrap().transform;
+        for (actual, expected) in transform
+            .translation
+            .to_array()
+            .into_iter()
+            .zip(translation.to_array())
+            .chain(transform.scale.to_array().into_iter().zip(scale.to_array()))
+        {
+            assert_eq!(actual.to_bits(), expected.to_bits());
+        }
+    });
 }
 
 #[test]
@@ -177,6 +223,107 @@ fn inspector_binding_captures_and_replays_fields_in_the_active_play_world() {
 }
 
 #[test]
+fn empty_play_apply_uses_only_drafts_authored_in_the_active_play_selection() {
+    let mut state = support::test_state();
+    let cube = support::cube_id(&state);
+    let authoring_name = state
+        .world
+        .expect_with_world(|scene| scene.find_node(cube).unwrap().name.clone());
+    state.apply_intent(EditorIntent::SelectNode(cube)).unwrap();
+    state.update_name_field("Old Edit Draft".to_owned());
+    assert!(state.enter_play_mode().unwrap());
+
+    let instance = PlayInstanceId::for_test(84);
+    let play_level = DefaultLevelManager::default().create_default_level();
+    play_level.with_world_mut(|scene| {
+        scene.rename_node(cube, "Runtime Cube").unwrap();
+    });
+    state
+        .context
+        .play_gateway_handle()
+        .replace_for_play(
+            Arc::new(InProcessGateway::for_authoring_level(play_level.clone())),
+            Some(instance.raw()),
+        )
+        .unwrap();
+    assert!(state.activate_play_selection_domain(instance));
+    let binding = EditorUiBinding::new(
+        "InspectorView",
+        "ApplyBatchButton",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::inspector_field_batch(
+            "entity://selected",
+            Vec::<InspectorFieldChange>::new(),
+        ),
+    );
+
+    assert!(!apply_inspector_binding(&mut state, &binding).unwrap());
+    play_level.with_world(|scene| {
+        assert_eq!(scene.find_node(cube).unwrap().name, "Runtime Cube");
+    });
+
+    state.update_name_field("Draft Runtime Cube".to_owned());
+    assert!(apply_inspector_binding(&mut state, &binding).unwrap());
+    assert!(!apply_inspector_binding(&mut state, &binding).unwrap());
+    play_level.with_world(|scene| {
+        assert_eq!(scene.find_node(cube).unwrap().name, "Draft Runtime Cube");
+    });
+    state.world.expect_with_world(|scene| {
+        assert_eq!(scene.find_node(cube).unwrap().name, authoring_name);
+    });
+}
+
+#[test]
+fn empty_play_apply_edits_runtime_only_selected_entity() {
+    let mut state = support::test_state();
+    let authoring_world = state.world.expect_with_world(|scene| scene.clone());
+    let play_level =
+        DefaultLevelManager::default().create_level(authoring_world, Default::default());
+    let runtime_entity =
+        play_level.with_world_mut(|scene| scene.spawn_node(NodeKind::Cube).unwrap());
+    assert!(state
+        .world
+        .expect_with_world(|scene| scene.find_node(runtime_entity).is_none()));
+    assert!(state.enter_play_mode().unwrap());
+    let instance = PlayInstanceId::for_test(85);
+    state
+        .context
+        .play_gateway_handle()
+        .replace_for_play(
+            Arc::new(InProcessGateway::for_authoring_level(play_level.clone())),
+            Some(instance.raw()),
+        )
+        .unwrap();
+    assert!(state.activate_play_selection_domain(instance));
+    assert!(state
+        .viewport_controller
+        .selection_mut()
+        .select_only(WorldDomain::Play(instance), runtime_entity));
+    state.update_name_field("Runtime-only Draft".to_owned());
+    let binding = EditorUiBinding::new(
+        "InspectorView",
+        "ApplyBatchButton",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::inspector_field_batch(
+            "entity://selected",
+            Vec::<InspectorFieldChange>::new(),
+        ),
+    );
+
+    assert!(apply_inspector_binding(&mut state, &binding).unwrap());
+    assert!(!apply_inspector_binding(&mut state, &binding).unwrap());
+    play_level.with_world(|scene| {
+        assert_eq!(
+            scene.find_node(runtime_entity).unwrap().name,
+            "Runtime-only Draft"
+        );
+    });
+    assert!(state
+        .world
+        .expect_with_world(|scene| scene.find_node(runtime_entity).is_none()));
+}
+
+#[test]
 fn inspector_binding_rejects_dynamic_plugin_component_field_when_schema_is_unloaded() {
     let mut state = support::test_state();
     let cube = support::cube_id(&state);
@@ -238,6 +385,7 @@ fn inspector_binding_restores_selection_and_draft_after_late_unsupported_field()
     let translation_before = state.transform_fields.clone();
     let scale_before = state.scale_fields.clone();
     let dynamic_fields_before = state.inspector_dynamic_fields.clone();
+    let edited_fields_before = state.inspector_edited_fields;
     let orbit_before = state.viewport_controller.orbit_target();
     let status_before = state.status_line.clone();
     let console_before = state.console_output();
@@ -270,6 +418,7 @@ fn inspector_binding_restores_selection_and_draft_after_late_unsupported_field()
     assert_eq!(state.transform_fields, translation_before);
     assert_eq!(state.scale_fields, scale_before);
     assert_eq!(state.inspector_dynamic_fields, dynamic_fields_before);
+    assert_eq!(state.inspector_edited_fields, edited_fields_before);
     assert_eq!(state.viewport_controller.orbit_target(), orbit_before);
     assert_eq!(state.status_line, status_before);
     assert_eq!(state.console_output(), console_before);

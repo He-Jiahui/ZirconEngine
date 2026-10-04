@@ -1,3 +1,6 @@
+//! 离线预热入口按校验强度分层；所有入口共用串行 worker、执行预算与磁盘缓存合同。
+//! 调用方应检查完整报告，尤其区分整份 manifest 的预检失败与逐变体失败。
+
 use std::path::Path;
 
 use crate::core::framework::render::{
@@ -138,5 +141,5 @@ pub(crate) fn prewarm_shader_variants_to_disk_with_module_and_pipeline_validatio
 }
 
 #[cfg(test)]
-#[path = "prewarm/tests.rs"]
+#[path = "prewarm/tests/cases.rs"]
 mod tests;

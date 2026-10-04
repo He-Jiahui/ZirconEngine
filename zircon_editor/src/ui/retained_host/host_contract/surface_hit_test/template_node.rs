@@ -106,7 +106,12 @@ pub(crate) fn build_pane_template_surface_frame(
     pane: &PaneData,
     surface_size: UiSize,
 ) -> Option<Arc<UiSurfaceFrame>> {
-    build_template_surface_frame(pane_template_nodes(pane)?, surface_size)
+    let include_non_dispatchable = pane.kind.as_str() == "RuntimeDiagnostics";
+    build_template_surface_frame(
+        pane_template_nodes(pane)?,
+        surface_size,
+        include_non_dispatchable,
+    )
 }
 
 pub(crate) fn rebuild_pane_template_hit_artifacts(pane: &mut PaneData, surface_size: UiSize) {
@@ -115,10 +120,13 @@ pub(crate) fn rebuild_pane_template_hit_artifacts(pane: &mut PaneData, surface_s
         pane.body_template_hit_index = None;
         return;
     };
-    pane.body_surface_frame = build_template_surface_frame(&nodes, surface_size);
+    pane.body_surface_frame = build_template_surface_frame(
+        &nodes,
+        surface_size,
+        pane.kind.as_str() == "RuntimeDiagnostics",
+    );
     pane.body_template_hit_index = Some(Arc::new(HostPaneTemplateHitIndex::new(nodes)));
 }
 
 #[cfg(test)]
-#[path = "template_node_tests.rs"]
 mod tests;

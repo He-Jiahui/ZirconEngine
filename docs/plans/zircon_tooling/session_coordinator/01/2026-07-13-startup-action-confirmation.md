@@ -1,12 +1,6 @@
 ---
 related_code:
-  - tools/session_tray/src/app.rs
-  - tools/session_tray/src/menu.rs
-  - tools/session_tray/src/startup.rs
 implementation_files:
-  - tools/session_tray/src/app.rs
-  - tools/session_tray/src/menu.rs
-  - tools/session_tray/src/startup.rs
 plan_sources:
   - docs/superpowers/specs/2026-07-11-workflow-control-center-and-tray-design.md
   - docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md

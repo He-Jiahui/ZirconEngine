@@ -5,7 +5,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 PARITY_RS = REPO_ROOT / "zircon_runtime_interface" / "src" / "ui" / "surface" / "render" / "parity.rs"
 CONTRACTS_RS = REPO_ROOT / "zircon_runtime_interface" / "src" / "tests" / "render_parity_key_reuse_performance_contracts.rs"
 
-
+# 读取实现源码约束接口渲染一致性键复用：一致性行复用 already computed 批次键元数据，并发布版基准保持规模与阈值契约。
 def test_parity_rows_reuse_the_already_computed_batch_key_metadata() -> None:
     source = PARITY_RS.read_text(encoding="utf-8")
 

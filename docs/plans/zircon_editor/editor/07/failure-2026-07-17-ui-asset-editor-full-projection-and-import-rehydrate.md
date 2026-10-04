@@ -85,7 +85,7 @@ session mutation API 只返回 bool，不返回 dirty domains/changed nodes；re
 
 ### Windows 受管 profile 设计
 
-1. 先在 coordinator 管理的 Windows validation copy 运行 `tools/ui-profile-capture.ps1`，输出与 Cargo target 必须位于批准的 `D:`、`E:` 或 `F:` 根目录，绝不写入 `C:` 或仓库 `target/`。本机已发现 `wpr`、`wpaexporter`、`xperf` 和 `dev/tracy/tracy-profiler.exe`，但尚未启动 profile；工具存在不是性能证据。
+1. 先在 coordinator 管理的 Windows validation copy 运行 `tools/analysis/profiling/ui/ui-profile-capture.ps1`，输出与 Cargo target 必须位于批准的 `D:`、`E:` 或 `F:` 根目录，绝不写入 `C:` 或仓库 `target/`。本机已发现 `wpr`、`wpaexporter`、`xperf` 和 `dev/tracy/tracy-profiler.exe`，但尚未启动 profile；工具存在不是性能证据。
 2. 对同一固定 UI asset 分别采集 `startup`、`idle_hover`、`click`、`drag`、`asset_refresh`；开启 `-RequireScenarioEvidence`，必要时分别使用 `-UseTracy` 与 `-UseWpr`，保留原始 trace、`ui_hotspots.json`、frame/draw/upload counters 和机器/adapter 元数据。
 3. 先补齐可归因 instrumentation：每个 pane domain 的 build/patch/reuse、分配字节或可替代的 owned row/string count、clone count、session-lock hold time、source/import read/parse、visible-row/command count。现有 frame、redraw、draw、upload 数字不足以证明 pane CPU 根因。
 4. 以 31 次采样报告 p50/p95 与最大值，按 1/100/1,000/10,000 document nodes、bindings、theme rules 和 source lines 分层；仅同机同驱动同 profile 可比较。功耗须有同一 Windows ETW/WPR 机器的基线与空闲扣除，取得前不得声称接近 Unreal 或其它引擎的能耗经验值。

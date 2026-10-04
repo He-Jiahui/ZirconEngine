@@ -31,7 +31,7 @@ const coverage = JSON.parse(
   readFileSync(join(projectRoot, 'reference', 'current-head', 'command_payload_coverage.json'), 'utf8'),
 );
 
-assert.equal(payloads.schema_version, 51);
+assert.equal(payloads.schema_version, 60);
 const expected = [
   [64, 'trade_req', 'trade_request', 8, 'f64_le_target_id', 'tradeRequest', ['id'], 'tradeRequest', 'TRADE_REQUEST_COMMAND_ID'],
   [65, 'trade_accept', 'empty', 0, 'empty', 'tradeAccept', [], 'tradeAccept', 'TRADE_ACCEPT_COMMAND_ID'],
@@ -59,13 +59,13 @@ for (const intent of ['RequestTrade', 'AcceptTrade', 'ConfirmTrade', 'CancelTrad
   assert.match(input, new RegExp(`\\b${intent}\\b`));
 }
 
-assert.equal(coverage.totals.typed_contract_commands, 148);
-assert.equal(coverage.totals.typed_contract_client_send_commands, 147);
-assert.equal(coverage.totals.source_shape_only_commands, 9);
+assert.equal(coverage.totals.typed_contract_commands, 157);
+assert.equal(coverage.totals.typed_contract_client_send_commands, 156);
+assert.equal(coverage.totals.source_shape_only_commands, 0);
 assert.equal(coverage.totals.unmapped_dispatch_commands, 8);
 assert.equal(
   coverage.entries.find((entry) => entry.id === 66).transport_coverage,
-  'source_shape_only',
+  'typed_contract',
 );
 
 process.stdout.write('trade command payload contracts are complete\n');

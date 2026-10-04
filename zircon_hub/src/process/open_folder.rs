@@ -3,6 +3,7 @@ use std::process::{Child, Command};
 
 use crate::error::HubError;
 
+/// 浏览输出或学习资源时传给平台文件管理器的命令投影，路径作为独立参数传递。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OpenFolderCommand {
     pub program: String,
@@ -38,23 +39,10 @@ impl OpenFolderCommand {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
+#[path = "tests/open_folder.rs"]
+mod tests;
 
-    #[test]
-    fn open_folder_command_line_preserves_program_and_path() {
-        let command = OpenFolderCommand {
-            program: "xdg-open".to_string(),
-            args: vec!["/tmp/Zircon Output".to_string()],
-        };
-
-        assert_eq!(
-            command.command_line(),
-            vec!["xdg-open".to_string(), "/tmp/Zircon Output".to_string()]
-        );
-    }
-}
-
+/// 从后台动作启动文件管理器并返回子进程句柄；成功启动不代表目标已被用户看到。
 pub fn open_folder(command: &OpenFolderCommand) -> Result<Child, HubError> {
     Ok(Command::new(&command.program).args(&command.args).spawn()?)
 }

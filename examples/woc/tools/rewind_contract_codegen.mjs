@@ -1,3 +1,6 @@
+// 调用端：npm run generate:rewind-contract (tools/package.json)；职责：从固定版本的战斗模块提取回溯技能和伤害历史行为。
+// 输入边界：src/sim/content/classes.ts, src/sim/combat/damage_history.ts, src/sim/combat/rewind.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

@@ -13,6 +13,7 @@ const GBUFFER_PIPELINE_TARGET: PipelineCreationTarget =
     PipelineCreationTarget::MeshPass(MeshPassPipelineKind::GBuffer);
 
 impl MeshPipelineCache {
+    /// 以命令的材质键、几何源与质量等级派生 G-buffer 变体，供延迟几何 pass 复用命令包。
     pub(crate) fn gbuffer_variant_admission_for_command_variant(
         &mut self,
         variant_id: MeshPipelineVariantId,
@@ -255,28 +256,5 @@ fn gbuffer_mesh_shader_key(variant_key: &ShaderVariantKey, source_hash: &str) ->
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::core::framework::render::ShaderPassType;
-    use crate::graphics::scene::resources::default_pipeline_key;
-
-    use super::super::mesh_pipeline_deferred_gbuffer_template_source_for_geometry;
-    use super::{GBUFFER_MESH_SHADER_KEY_PREFIX, gbuffer_mesh_shader_key};
-
-    #[test]
-    fn gbuffer_mesh_shader_key_includes_shader_variant_identity_and_source_hash() {
-        let variant_key =
-            default_pipeline_key().shader_variant_key(ShaderPassType::GBuffer, "wgpu-runtime");
-        let source = match mesh_pipeline_deferred_gbuffer_template_source_for_geometry(
-            &default_pipeline_key(),
-            variant_key.geometry_source,
-        ) {
-            Ok(source) => source,
-            Err(error) => panic!("deferred gbuffer template source assembly failed: {error:?}"),
-        };
-        let key = gbuffer_mesh_shader_key(&variant_key, &source.source_hash);
-
-        assert!(key.starts_with(GBUFFER_MESH_SHADER_KEY_PREFIX));
-        assert!(key.contains(&variant_key.canonical_string()));
-        assert!(key.contains(&source.source_hash));
-    }
-}
+#[path = "tests/ensure_gbuffer_pipeline.rs"]
+mod tests;

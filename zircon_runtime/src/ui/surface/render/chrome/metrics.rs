@@ -4,7 +4,7 @@ use zircon_runtime_interface::ui::{
     design_tokens::EditorDesignTokens, layout::UiFrame, tree::UiTemplateNodeMetadata,
 };
 
-use super::metadata::{ChromeKind, metric_attribute, string_attribute};
+use super::metadata::{metric_attribute, string_attribute, ChromeKind};
 
 #[derive(Clone, Copy)]
 pub(super) struct ChromeMetrics {

@@ -7,8 +7,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/event_loop.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/test_support.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/template_hover.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/tests/
   - zircon_editor/src/ui/retained_host/host_contract/window/text_input.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals/callback_methods.rs
@@ -21,7 +20,7 @@ related_code:
   - zircon_runtime/src/ui/platform_input/keyboard_map.rs
   - zircon_runtime/src/ui/platform_input/winit_translation.rs
   - zircon_editor/src/tests/host/retained_window/platform_input_translation.rs
-  - docs/zircon_editor/ui/retained_host/host_contract/platform_input.md
+  - docs/crates/zircon_editor/ui/retained_host/host_contract/platform_input.md
   - zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss/dispatch.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss/target.rs
@@ -110,7 +109,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/clip.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_material_feedback.rs
@@ -235,14 +233,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons/commands.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyph_kind.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyph_segments.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyph_shapes/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyph_shapes/actions.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyph_shapes/assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyph_shapes/chrome.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyph_shapes/files.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyph_shapes/tools.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyph_shapes/visibility.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_inspector_rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_inspector_row_kind.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_inspector_row_geometry.rs
@@ -388,7 +378,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/pane_nodes.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/popup_rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/surface_frame_builder.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/tests
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/atlas.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/extraction.rs
@@ -443,11 +433,11 @@ plan_sources:
   - .codex/plans/GPU Command Stream 接管 Editor UI 渲染计划.md
   - .codex/plans/Drawer_Window_Menu Slate 化推进计划.md
 design_references:
-  - docs/ui-and-layout/ai-workbench-style/ai-workbench-web-framework.png
-  - docs/ui-and-layout/editor-workbench-designs/main-tabs-layout-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/tool-drawers-layout-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/drawer-collapsed-state-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/floating-tool-window-state-spec.png
+  - docs/ui/ai-workbench-style/ai-workbench-web-framework.png
+  - docs/ui/editor-workbench-designs/main-tabs-layout-spec.png
+  - docs/ui/editor-workbench-designs/tool-drawers-layout-spec.png
+  - docs/ui/editor-workbench-designs/drawer-collapsed-state-spec.png
+  - docs/ui/editor-workbench-designs/floating-tool-window-state-spec.png
 status: in_progress
 ---
 

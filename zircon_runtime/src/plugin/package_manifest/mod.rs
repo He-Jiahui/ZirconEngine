@@ -1,3 +1,5 @@
+//! 汇总插件包清单的字段模型、构造器和公开重导出；运行时注册、导出计划与安装服务共享这些类型。
+
 mod builtin_catalog;
 mod constructors;
 mod plugin_dependency_manifest;
@@ -11,6 +13,7 @@ mod plugin_module_manifest;
 mod plugin_option_manifest;
 mod plugin_package_kind;
 mod plugin_package_manifest;
+mod plugin_package_role;
 mod plugin_shader_permutation_manifest;
 
 pub use plugin_dependency_manifest::PluginDependencyManifest;
@@ -24,6 +27,7 @@ pub use plugin_module_manifest::{PluginEventConsumerManifest, PluginModuleManife
 pub use plugin_option_manifest::PluginOptionManifest;
 pub use plugin_package_kind::PluginPackageKind;
 pub use plugin_package_manifest::PluginPackageManifest;
+pub use plugin_package_role::PluginPackageRole;
 pub use plugin_shader_permutation_manifest::{
     PluginShaderModuleManifest, PluginShaderModuleSource, PluginShaderPermutationIdManifest,
     PluginShaderPermutationManifest, ShaderModuleSourceBinding,

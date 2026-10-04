@@ -5,7 +5,7 @@ use crate::render_graph::{
     RenderGraphResourceAccessMetadata, RenderGraphResourceAccessRange,
     RenderGraphResourceDeclaration, RenderGraphResourceKind, RenderGraphVersionedAccessKey,
 };
-use crate::rhi::{TextureDesc, TextureDimension};
+use crate::rhi::TextureDesc;
 
 use super::access_index::CompiledRenderGraphAccessIndex;
 use super::CompiledRenderPass;
@@ -223,6 +223,7 @@ fn canonical_binding_access_metadata(
     declaration: Option<&RenderGraphResourceDeclaration>,
     declarations_by_resource: &HashMap<RenderGraphResource, &RenderGraphResourceDeclaration>,
 ) -> RenderGraphResourceAccessMetadata {
+    // binding schema 的局部范围要换算成 parent 纹理的绝对范围，才能和编译索引中的 key 精确匹配。
     let Some(declaration) = declaration else {
         return metadata;
     };
@@ -259,7 +260,7 @@ fn canonical_texture_range(
     alias: Option<crate::render_graph::RenderGraphTextureViewAlias>,
     declarations_by_resource: &HashMap<RenderGraphResource, &RenderGraphResourceDeclaration>,
 ) -> Option<RenderGraphResourceAccessRange> {
-    let local_array_layers = texture_array_layer_count(local_desc);
+    let local_array_layers = local_desc.array_layer_count();
     let local_mip_level_count = resolved_range_count(
         range.base_mip_level,
         range.mip_level_count,
@@ -278,7 +279,7 @@ fn canonical_texture_range(
             else {
                 return None;
             };
-            let parent_array_layers = texture_array_layer_count(parent_desc);
+            let parent_array_layers = parent_desc.array_layer_count();
             let alias_mip_count = resolved_range_count(
                 alias.range.base_mip_level,
                 alias.range.mip_level_count,
@@ -320,13 +321,6 @@ fn canonical_texture_range(
             aspect,
         },
     ))
-}
-
-fn texture_array_layer_count(desc: &TextureDesc) -> u32 {
-    match desc.dimension {
-        TextureDimension::D2Array | TextureDimension::Cube => desc.depth,
-        TextureDimension::D1 | TextureDimension::D2 | TextureDimension::D3 => 1,
-    }
 }
 
 fn resolved_range_count(base: u32, count: Option<u32>, limit: u32) -> Option<u32> {

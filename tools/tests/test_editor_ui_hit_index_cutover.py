@@ -1,3 +1,4 @@
+# 核对工作台指针命中仅使用已提交索引，不回退旧窗口路由。
 from pathlib import Path
 import unittest
 

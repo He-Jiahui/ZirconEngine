@@ -3,9 +3,9 @@ use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{
-    AlphaMode, AssetUri, MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT,
-    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0, MaterialAsset, MeshAsset,
-    MeshAttributeValues, MeshIndices, MeshSkinAsset,
+    AlphaMode, AssetUri, MaterialAsset, MeshAsset, MeshAttributeValues, MeshIndices, MeshSkinAsset,
+    MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT, MESH_ATTRIBUTE_NORMAL,
+    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0,
 };
 use crate::core::framework::animation::{
     AnimationPoseBone, AnimationPoseOutput, AnimationPoseSource,
@@ -23,8 +23,8 @@ use crate::core::resource::{
     MaterialMarker, MeshMarker, ModelMarker, ResourceHandle, ResourceId, ResourceKind,
     ResourceRecord,
 };
-use crate::graphics::WgpuRenderFramework;
 use crate::graphics::shader::standard_material_surface_source_for_features;
+use crate::graphics::WgpuRenderFramework;
 
 use super::render_product_submit::{
     material_with_import_note, snapshot_with_projection_for_mesh_cache_tests,

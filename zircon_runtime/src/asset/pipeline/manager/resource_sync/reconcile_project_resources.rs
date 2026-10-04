@@ -20,6 +20,15 @@ pub(in crate::asset::pipeline::manager) fn project_resource_identities(
         .collect()
 }
 
+fn resource_identity_order(
+    left: &ProjectResourceIdentity,
+    right: &ProjectResourceIdentity,
+) -> std::cmp::Ordering {
+    left.locator
+        .cmp(&right.locator)
+        .then_with(|| left.id.cmp(&right.id))
+}
+
 /// Reconciles project-generation resources by stable ID before publication.
 ///
 /// A locator change for the same resource ID is an explicit runtime rename, not a remove/add
@@ -30,11 +39,7 @@ pub(in crate::asset::pipeline::manager) fn reconcile_project_resources(
     candidate: &ProjectManager,
 ) -> ResourceMutationBatch {
     let mut previous_identities = previous_identities.iter().collect::<Vec<_>>();
-    previous_identities.sort_by(|left, right| {
-        left.locator
-            .cmp(&right.locator)
-            .then_with(|| left.id.to_string().cmp(&right.id.to_string()))
-    });
+    previous_identities.sort_by(|left, right| resource_identity_order(left, right));
     for previous in previous_identities {
         match candidate.registry().get(previous.id) {
             Some(current) if current.primary_locator() != &previous.locator => {
@@ -48,3 +53,7 @@ pub(in crate::asset::pipeline::manager) fn reconcile_project_resources(
     }
     batch
 }
+
+#[cfg(test)]
+#[path = "reconcile_project_resources/tests/optimization_batch_jf_runtime645_tests.rs"]
+mod optimization_batch_jf_runtime645_tests;

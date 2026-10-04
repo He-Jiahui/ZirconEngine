@@ -81,3 +81,84 @@ Text02唯一shape backend的非验收实现已完成。实现完成后的定向�
 2026-08-01 产品证据基础设施前向修复：`runtime_text_multilingual_product_framebuffer.rs` 只有在连续两帧的 raster worker 均为 `pending=0`、`failed=0`、`missing_image=0`、`visible_placeholder=0`、`upload_requeued=0`、`upload_failed=0` 时才允许 capture；其中 pending 映射 durable `pending_worker_count`，failed 合并请求失败、完成错误和被拒绝的无效位图，missing_image 表示无 source raster，visible_placeholder 只在实际 `TransparentPlaceholder` handoff 时计数，upload 两项覆盖 GPU atlas 图集未写入的路径。六项均从 native atlas report 贯穿到 `RenderStats`。达到帧数上限或任一状态非零都会在 capture 前失败，不能生成未完成的 PNG。输出路径保持为 `docs/tests/runtime/text/runtime_text_mvp_foundation_product_framebuffer_20260801.png`，该文件尚未生成，failure 继续保持 `open`。
 
 2026-08-02 SDF/MSDF capture-path 审计：distance-field atlas 在本帧同步提交 `queue.write_texture`，不持有 native raster worker 或 renderer-upload queue 的未完成状态；SDF 生成的 `GenerationPending`、预算延后和 generation failure 会在同一 prepare 轮经 `apply_sdf_atlas_fallbacks_with_cpu_runs` 转入 native/overlay，继而由上述六项可见 native raster 条件覆盖。故不重复增加 SDF 等待计数，也不把已正常呈现的 native fallback 误作截图不稳定；真实 Windows WGPU 产品帧仍待 coordinator wakeup 后受管执行，failure 保持 `open`。
+
+### 2026-09-08 Request-Bound Fallback Test Repair
+
+Stable fixing Session `failure-roll-01a07160-text02` retains this open lifecycle.
+Managed job `3db36b30be88485bb06b0a5ff2c6d3e4` failed compilation with 90 errors,
+zero tests, including six obsolete paragraph-analysis constructor calls and one
+private runtime-default setter call in `shaping/fallback_spans.rs` tests.
+
+The file was HEAD-identical at hash
+`c881edd11be7616c598f140a4d5e197fdcc8d9e254865fc750bbff3c139664eb`.
+Transfer `5a891d5351994c1a93aa40ac11970d9d` and pre-edit snapshot `3064` preserve
+that provenance. Source `3065`, request `aa0d8862a7204891a0ecb083d455a25e`, has
+hash `5fc2ca4631be164aac8d02c8addca18c6d188be8a2c39319af5ae5d2399aadf9`.
+All six fixtures now use `ParagraphTextAnalysis::for_snapshot` with the request's
+explicit script and Unicode snapshot, matching the production service route.
+The unavailable-owner fixture uses the existing packaged Runtime font database
+and its registered primary face. It still requires that global homonymous
+typefaces cannot replace that face; no private API is widened. Production
+itemization is unchanged. Formatting and whitespace checks pass; actual tests,
+the original scale/backend/pixel acceptance and independent review remain open.
+
+Managed job `94560adfdb1a45daa7e2d5785ae6677c` subsequently compiled immutable
+input `runtime-graphics-text-test-support-3067-20260908`, digest
+`c93b37d1c23413b5f1ff16f4705abfbf56ec2511dfb45f89a1b1c85500a839da`.
+Its 67-error result contains no diagnostic in the repaired fallback file;
+seven prior diagnostics disappeared. No tests executed. The 10,955-file input
+manifest and 354 dependency packages were verified; compilation took 210.086
+seconds. This is compiler progress only, not the declared runtime acceptance.
+
+### Source 3078 Receipt And Invalid-Range Test Repair
+
+That managed result also reported three missing `FontFaceId` names in
+`shaping/failure_receipt.rs` tests and an unnecessary `Debug` requirement on
+the successful `LogicalSegment` result in the invalid-range itemization test.
+Both files matched HEAD. Pre-edit snapshot `3077` and transfer
+`576835b0cec343629987e0c8d681c3b2` preserve their provenance under Text02.
+Source `3078`, request `dcdf945e144643ee8601e27ba5ab75e1`, freezes:
+
+- `zircon_runtime/src/text/shaping/failure_receipt.rs`, hash
+  `cdaa2b3a0a73fa79fb8ef73ade5b82281d581d6c3e5b35cc865e5deffb0d9f6d`:
+  the tests explicitly import the canonical `FontFaceId`.
+- `zircon_runtime/src/text/shaping/itemize.rs`, hash
+  `1ef2d3a61efa8dc6652797999aa461b22e7424958ec26d8722b053e65680626a`:
+  the negative fixture destructures `Err` and keeps the same unexpected-success
+  panic and exact `InvalidSourceRange { start: 0, end: 2 }` assertion.
+
+No production type or algorithm changes. Formatting and whitespace checks
+pass. This increment was not present in the earlier managed input and still
+needs actual execution and independent review. The original shaping scale,
+backend-call, font-owner metrics and product-pixel acceptance remain open.
+
+### Source 3095 And Incremental Review
+
+The existing task `优化协调器验证效率` reviewed sources `3065` and `3078`
+with Critical 0, Important 0, Moderate 0. Report:
+`.codex/tmp/text-framework-3080-review-20260908-result.txt`.
+Current hashes, ObjectStore and attribution matched at both review boundaries;
+the request-bound snapshot, unavailable-owner rejection and exact invalid-range
+assertions remain intact.
+
+Source `3095`, request `9080021fe3354982972db37cbe7a7033`, additionally freezes
+`zircon_runtime/src/text/shaping/tests.rs` at
+`b494fc1c30d31210e257ed0c63c80a750df43019aa4ba64b121170a6b7b00f3b`.
+Pre-edit snapshot `3093` retains the exact archived Text04 owner bytes at
+`38a5f873f06aadbbbf68d4640880f3b6764e3417e3b75c1f5d6e5933e91432f8`;
+transfer `3f1f1ce712824ba5b151fc29dcbe4e6f` records the handoff. `FontFaceId`
+is database-local and has no collection field. The two pinned-snapshot tests
+now assert that the provider shares the snapshot database, require nonempty
+glyph output, and resolve each returned face in that database. Existing
+collection/revision/generation assertions and the archived vertical-rejection
+regression are preserved.
+
+Managed job `1f242fb1789e44ce87d7a5cacc569d5f` compiled immutable input
+`runtime-text-owner-test-support-3095-20260908`, digest
+`4e5f800cd19e5748464ac759b4e1efbfae073ecf1c05d419327a6d6739cbe9e2`,
+with `--no-default-features --features text --locked`, static linkage and
+filter `text::`. It reported three errors and zero tests, down from 22 in
+the preceding Text-only input. None names the repaired shaping files. All
+10,955 input files and 354 dependencies were verified. This is compile
+progress, not execution of these assertions. Source `3095` still needs
+independent review; the original shaping and product acceptance stay open.

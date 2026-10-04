@@ -82,7 +82,7 @@ fn play_history_uses_its_world_route_and_remains_volatile() {
         engine
             .with_context::<FixtureContext, _>(|context| context.world_domain)
             .unwrap(),
-        WorldDomain::Edit
+        Some(WorldDomain::Edit)
     );
 
     let empty_instance = PlayInstanceId::for_test(18);
@@ -96,14 +96,14 @@ fn play_history_uses_its_world_route_and_remains_volatile() {
         engine
             .with_context::<FixtureContext, _>(|context| context.world_domain)
             .unwrap(),
-        WorldDomain::Play(empty_instance)
+        Some(WorldDomain::Play(empty_instance))
     );
     assert!(!engine.discard_play_history(empty_instance).unwrap());
     assert_eq!(
         engine
             .with_context::<FixtureContext, _>(|context| context.world_domain)
             .unwrap(),
-        WorldDomain::Edit
+        Some(WorldDomain::Edit)
     );
 }
 

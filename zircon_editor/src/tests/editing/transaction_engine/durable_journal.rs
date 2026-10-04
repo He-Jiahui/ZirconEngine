@@ -46,7 +46,7 @@ fn durable_journal_assigns_monotonic_sequences_and_restores_committed_entries() 
     assert_eq!(report.entries()[0].transaction(), &first);
     assert_eq!(report.entries()[1].sequence(), 2);
     assert_eq!(report.entries()[1].transaction(), &second);
-    assert_eq!(report.tail_fault(), None);
+    assert!(report.tail_fault().is_none());
 }
 
 #[test]
@@ -119,7 +119,7 @@ fn durable_journal_compaction_replaces_an_existing_target_on_every_platform() {
     assert_eq!(report.entries().len(), 1);
     assert_eq!(report.entries()[0].sequence(), 3);
     assert_eq!(report.entries()[0].transaction(), &third);
-    assert_eq!(report.tail_fault(), None);
+    assert!(report.tail_fault().is_none());
 }
 
 #[test]
@@ -188,7 +188,7 @@ fn durable_journal_discovery_isolates_bad_directories_and_reports_recoverable_ta
         .iter()
         .find(|entry| entry.document() == &truncated)
         .unwrap();
-    assert_eq!(healthy_entry.report().tail_fault(), None);
+    assert!(healthy_entry.report().tail_fault().is_none());
     assert!(matches!(
         truncated_entry.report().tail_fault(),
         Some(JournalTailFault::TruncatedFrame)

@@ -11,8 +11,6 @@ related_code:
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
   - zircon_editor/src/ui/workbench/snapshot/asset
   - zircon_editor/src/ui/host/editor_event_execution/asset_event.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/reference_graph.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/reference_analysis.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/dependency_index
   - zircon_editor/src/ui/layouts/views/asset_reference_rows.rs
   - zircon_editor/src/ui/retained_host/app/hierarchy_filter.rs
@@ -35,7 +33,7 @@ tests:
   - zircon_editor/src/tests/host/retained_menu_pointer/asset_browser_controls_visual_screenshot.rs
   - zircon_editor/src/tests/ui/asset_browser/bootstrap_assets.rs
   - zircon_editor/src/tests/ui/hierarchy/bootstrap_assets.rs
-  - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_primitives.rs
+  - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_primitives/
   - zircon_editor/src/ui/host/asset_editor_sessions/dependency_index/tests.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/tests/reference_lists.rs
 plan_sources:

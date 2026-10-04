@@ -12,8 +12,8 @@ pub(super) fn document_tab_drag_payload<'a>(
     surface_key: &SharedString,
     index: usize,
 ) -> Option<(&'a TabData, &'a SharedString)> {
-    if surface_key.as_str() == "document" {
-        return root_document_tab_drag_payload(presentation, index);
+    if surface_key.as_str() == "document" || surface_key.as_str().starts_with("document:") {
+        return root_document_tab_drag_payload(presentation, surface_key.as_str(), index);
     }
     floating_document_tab_drag_payload(presentation, surface_key, index)
 }

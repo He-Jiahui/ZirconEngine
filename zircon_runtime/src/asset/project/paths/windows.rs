@@ -142,10 +142,6 @@ pub(super) fn strip_path_prefix_ignore_case(path: &Path, root: &Path) -> Option<
     Some(path_components.collect())
 }
 
-pub(super) fn windows_paths_equal_ignore_case(left: &Path, right: &Path) -> bool {
-    compare_paths_ignore_case(left, right) == Ordering::Equal
-}
-
 #[link(name = "kernel32")]
 extern "system" {
     fn CompareStringOrdinal(

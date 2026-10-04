@@ -4,7 +4,7 @@ fn runtime_12_action_mapping_keeps_ui_filtered_evaluation_path() {
         "../../../../../docs/plans/zircon_runtime/runtime/12-input-stack-and-action-mapping.md"
     );
     let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let input_doc = include_str!("../../../../../docs/zircon_runtime/input/input_state.md");
+    let input_doc = include_str!("../../../../../docs/crates/zircon_runtime/input/input_state.md");
     let action = include_str!("../../../core/framework/input/input_action.rs");
     let action_context = include_str!("../../../core/framework/input/input_action_context.rs");
     let binding = include_str!("../../../core/framework/input/input_binding.rs");

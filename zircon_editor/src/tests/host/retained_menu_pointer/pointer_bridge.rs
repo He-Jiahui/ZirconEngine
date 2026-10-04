@@ -32,6 +32,93 @@ fn shared_menu_pointer_bridge_skips_rebuild_for_unchanged_layout_and_state() {
 }
 
 #[test]
+fn shared_menu_pointer_bridge_keeps_surface_authority_for_hover_only_state() {
+    let mut bridge = HostMenuPointerBridge::new();
+    let layout = default_menu_layout();
+    assert!(bridge.sync(layout.clone(), HostMenuPointerState::default()));
+    let authority_generation = bridge.surface_authority_generation_for_test();
+
+    assert!(bridge.sync(
+        layout,
+        HostMenuPointerState {
+            hovered_menu_index: Some(0),
+            ..HostMenuPointerState::default()
+        },
+    ));
+
+    assert_eq!(
+        bridge.surface_authority_generation_for_test(),
+        authority_generation,
+        "hover-only state must not reconstruct menu hit-test authority"
+    );
+}
+
+#[test]
+fn shared_menu_pointer_bridge_patches_geometry_without_rebuilding_surface_authority() {
+    let mut bridge = HostMenuPointerBridge::new();
+    let mut layout = default_menu_layout();
+    assert!(bridge.sync(layout.clone(), HostMenuPointerState::default()));
+    let authority_generation = bridge.surface_authority_generation_for_test();
+    let old_button_point = UiPoint::new(20.0, 12.0);
+    let moved_button_point = UiPoint::new(20.0, 112.0);
+
+    layout.button_frames[0].y += 100.0;
+    assert!(bridge.sync(layout, HostMenuPointerState::default()));
+
+    assert_eq!(
+        bridge.surface_authority_generation_for_test(),
+        authority_generation,
+        "geometry-only resize must retain Surface, dispatcher, and route authority"
+    );
+    assert_eq!(bridge.handle_move(old_button_point).unwrap().route, None);
+    assert_eq!(
+        bridge.handle_move(moved_button_point).unwrap().route,
+        Some(HostMenuPointerRoute::MenuButton(0))
+    );
+}
+
+#[test]
+fn shared_menu_pointer_bridge_rebuilds_when_visible_button_topology_changes() {
+    let mut bridge = HostMenuPointerBridge::new();
+    let mut layout = default_menu_layout();
+    assert!(bridge.sync(layout.clone(), HostMenuPointerState::default()));
+    let authority_generation = bridge.surface_authority_generation_for_test();
+
+    layout.shell_frame.width = 60.0;
+    assert!(bridge.sync(layout, HostMenuPointerState::default()));
+
+    assert!(
+        bridge.surface_authority_generation_for_test() > authority_generation,
+        "clipping buttons into or out of the hit surface is a topology change"
+    );
+}
+
+#[test]
+fn shared_menu_pointer_bridge_rebuilds_when_equal_shape_popup_route_changes() {
+    let mut bridge = HostMenuPointerBridge::new();
+    let layout = default_menu_layout();
+    let menu_zero = HostMenuPointerState {
+        open_menu_index: Some(0),
+        ..HostMenuPointerState::default()
+    };
+    assert!(bridge.sync(layout.clone(), menu_zero));
+    let authority_generation = bridge.surface_authority_generation_for_test();
+
+    assert!(bridge.sync(
+        layout,
+        HostMenuPointerState {
+            open_menu_index: Some(1),
+            ..HostMenuPointerState::default()
+        },
+    ));
+
+    assert!(
+        bridge.surface_authority_generation_for_test() > authority_generation,
+        "equal node cardinality cannot hide a changed popup route identity"
+    );
+}
+
+#[test]
 fn shared_menu_pointer_bridge_resolves_popup_item_and_dismiss_overlay_routes() {
     let mut bridge = HostMenuPointerBridge::new();
     bridge.sync(
@@ -178,7 +265,8 @@ fn shared_menu_pointer_bridge_scrolls_overwide_menu_bar_to_extension_button() {
                 children: Vec::new(),
             }]
         })
-        .collect();
+        .collect::<Vec<_>>()
+        .into();
 
     let mut bridge = HostMenuPointerBridge::new();
     bridge.sync(layout.clone(), HostMenuPointerState::default());
@@ -254,7 +342,7 @@ fn shared_menu_pointer_bridge_clamps_popup_hit_frames_to_tiny_shell() {
     let mut layout = default_menu_layout();
     layout.shell_frame = UiFrame::new(0.0, 0.0, 120.0, 50.0);
     layout.button_frames[0] = UiFrame::new(100.0, 2.0, 52.0, 22.0);
-    layout.menus = vec![overflow_menu_items(10)];
+    layout.menus = vec![overflow_menu_items(10)].into();
 
     let open_state = HostMenuPointerState {
         open_menu_index: Some(0),
@@ -285,7 +373,7 @@ fn shared_menu_pointer_bridge_routes_multi_column_popup_items_after_right_edge_c
     layout.shell_frame = UiFrame::new(0.0, 0.0, 420.0, 260.0);
     layout.button_frames[0] = UiFrame::new(360.0, 2.0, 52.0, 22.0);
     layout.menu_overflow_mode = MenuOverflowMode::MultiColumn;
-    layout.menus = vec![overflow_menu_items(18)];
+    layout.menus = vec![overflow_menu_items(18)].into();
 
     let mut bridge = HostMenuPointerBridge::new();
     bridge.sync(

@@ -1,3 +1,4 @@
+# 核对命令面板合并行只进入工作台投影一次。
 from pathlib import Path
 import unittest
 

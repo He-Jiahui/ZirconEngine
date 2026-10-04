@@ -11,7 +11,7 @@
 - Ownership transfer apply request: `173b7dcccf4a49feb58f286384a2f1ff`.
 - Applied fingerprint: `62d56b3b49fa395ad43df192d535eb75b4f6ec921fd540846a66cb05062a0d13`.
 - Current session: `root-runtime-interface03-activate-link-failure-20260831`.
-- Shared model: `tools/plugins05_borrowed_shader_pressure.py`, source manifest `5535B931CDBBF0A765AE72E86B5314629951115ABC606394C751599448739C4B`.
+- Shared model: `tools/analysis/performance/plugins/plugins05_borrowed_shader_pressure.py`, source manifest `5535B931CDBBF0A765AE72E86B5314629951115ABC606394C751599448739C4B`.
 - Current source hashes: Runtime `contract.rs` `CCB2124380774DF2165628326631ACC6F03C94ED20EF93C22ADCCD2840256F0A`; WGSL provider `83BA4E135FF1D7CFEE6D9DA720C0CC275A867EBA75083A83BFEE88D1EBD2DEBF`; shader-family provider `BB916C5BAB2DC0647C5B12EEDA23F66CD1EDEFEAB43EDED01261F613D7A70418`; model `B3C81611D0741C86D72EA6C06B5BC0B598E9EE904D18B42FD18028B4E11E80FB`.
 - Local focused model/source contracts: 7/7 passed; scoped Rust 1.94.1 formatting and `git diff --check` passed.
 - Static/model ticket: `d6d2ce41bb0d4b378f29be699b213201` (queued, 7 Python tests).

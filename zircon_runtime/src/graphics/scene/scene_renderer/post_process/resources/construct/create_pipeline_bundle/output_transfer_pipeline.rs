@@ -1,5 +1,6 @@
 use super::super::super::shader_sources::OUTPUT_TRANSFER_SHADER;
 
+/// 最终输出转换只依赖终端采样和目标格式；资源精简模式也必须拥有此管线。
 pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) fn output_transfer_pipeline(
     device: &wgpu::Device,
     target_format: wgpu::TextureFormat,
@@ -43,19 +44,5 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources::construc
 }
 
 #[cfg(test)]
-mod tests {
-    use super::super::super::super::shader_sources::OUTPUT_TRANSFER_SHADER;
-
-    #[test]
-    fn output_transfer_shader_parses() {
-        let module = naga::front::wgsl::parse_str(OUTPUT_TRANSFER_SHADER)
-            .unwrap_or_else(|error| panic!("{}", error.emit_to_string(OUTPUT_TRANSFER_SHADER)));
-        let mut validator = naga::valid::Validator::new(
-            naga::valid::ValidationFlags::all(),
-            naga::valid::Capabilities::all(),
-        );
-        validator
-            .validate(&module)
-            .unwrap_or_else(|error| panic!("{error}"));
-    }
-}
+#[path = "tests/output_transfer_pipeline.rs"]
+mod tests;

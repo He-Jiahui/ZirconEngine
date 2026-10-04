@@ -96,16 +96,9 @@ fn render_diagnostics(diagnostics: &[ResourceDiagnostic]) -> String {
 }
 
 #[cfg(test)]
-#[path = "resource_access/direct_join_tests.rs"]
+#[path = "resource_access/tests/direct_join_tests.rs"]
 mod direct_join_tests;
 
 #[cfg(test)]
-mod tests {
-    use super::resource_kind_name;
-    use zircon_runtime_interface::resource::ResourceKind;
-
-    #[test]
-    fn resource_kind_name_includes_font() {
-        assert_eq!(resource_kind_name(ResourceKind::Font), "Font");
-    }
-}
+#[path = "tests/resource_access.rs"]
+mod tests;

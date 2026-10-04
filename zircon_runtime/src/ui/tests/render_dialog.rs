@@ -19,6 +19,14 @@ fn dialog_severity_parsing_does_not_allocate_lowercase_text() {
 }
 
 #[test]
+fn dialog_command_builder_reserves_its_fixed_upper_bound() {
+    let source = include_str!("../surface/render/dialog.rs");
+
+    assert!(source.contains("const DIALOG_COMMAND_CAPACITY: usize = 6;"));
+    assert!(source.contains("let mut commands = Vec::with_capacity(DIALOG_COMMAND_CAPACITY);"));
+}
+
+#[test]
 fn render_extract_dialog_uses_modal_panel_commands_without_owner_text_duplication() {
     let commands = commands_for_component(
         "Dialog",

@@ -36,6 +36,7 @@ fn sample_global_sdf(world_position: vec3<f32>) -> GlobalSdfTraceSample {
             + u32(local_page_coordinate.z) * GLOBAL_SDF_PAGES_PER_EDGE * GLOBAL_SDF_PAGES_PER_EDGE;
         let atlas_slot = global_sdf_page_table[page_table_index];
         let cell_size = page_world_size / f32(GLOBAL_SDF_PAGE_CELLS_PER_EDGE);
+        // 在重叠 clipmap 中选已驻留的最细页；全部缺页时由聚合阶段尝试 Voxel 后备。
         if (atlas_slot == GLOBAL_SDF_PAGE_UNAVAILABLE_SLOT || cell_size >= selected_cell_size) {
             continue;
         }

@@ -42,6 +42,7 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         position_z_q,
         lineage_trace_lighting_rgb,
     );
+    // 照明输出以字 0 记录总数，随后每项占 probe_id/RGB 两字；诊断输出每项固定 13 字。
     let entry_offset = 1u + index * 2u;
     probe_trace_lighting_updates[entry_offset] = probe_id;
     probe_trace_lighting_updates[entry_offset + 1u] = trace_result.rgb;

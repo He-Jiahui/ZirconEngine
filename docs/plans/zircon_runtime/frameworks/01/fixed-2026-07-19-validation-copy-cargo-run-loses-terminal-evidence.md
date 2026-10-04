@@ -9,11 +9,6 @@ origin_child_dir: docs/plans/zircon_runtime/frameworks/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/workspace_copy.py
-  - tools/session_coordinator/workspace_copy_terminal.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/workflows/milestones.py
-  - tools/session_coordinator/tests/test_workspace_copy.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_workspace_copy
   - validation-copy run with a materialized full workspace and a nontrivial Cargo command

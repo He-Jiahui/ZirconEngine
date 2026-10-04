@@ -1,7 +1,7 @@
 use crate::ui::{
     event_ui::{UiNodeId, UiTreeId},
     layout::{UiFrame, UiGeometry},
-    surface::render::{
+    surface::{
         UiBatchKey, UiBatchPlan, UiBrushPayload, UiBrushSet, UiDrawEffect, UiPaintEffects,
         UiPaintElement, UiPaintPayload, UiRenderCommand, UiRenderCommandKind, UiRenderResourceKey,
         UiRenderResourceKind, UiRendererParitySnapshot, UiResolvedStyle,
@@ -48,11 +48,9 @@ fn text_element() -> UiPaintElement {
 
 #[test]
 fn parity_rows_preserve_resource_and_text_metadata() {
-    let resource = UiRenderResourceKey::new(UiRenderResourceKind::Image, "primary")
-        .with_fallback(UiRenderResourceKey::new(
-            UiRenderResourceKind::Image,
-            "fallback",
-        ));
+    let resource = UiRenderResourceKey::new(UiRenderResourceKind::Image, "primary").with_fallback(
+        UiRenderResourceKey::new(UiRenderResourceKind::Image, "fallback"),
+    );
     let elements = vec![image_element(resource, Vec::new()), text_element()];
     let plan = UiBatchPlan::from_paint_elements(&elements);
     let snapshot = UiRendererParitySnapshot::from_paint_elements_batches(
@@ -74,12 +72,11 @@ fn renderer_parity_key_reuse_benchmark() {
 
     const ELEMENT_COUNT: usize = 4_096;
     const SAMPLE_COUNT: usize = 11;
-    let resource = UiRenderResourceKey::new(UiRenderResourceKind::Image, "primary")
-        .with_fallback(
-            UiRenderResourceKey::new(UiRenderResourceKind::Image, "fallback-1").with_fallback(
-                UiRenderResourceKey::new(UiRenderResourceKind::Image, "fallback-2"),
-            ),
-        );
+    let resource = UiRenderResourceKey::new(UiRenderResourceKind::Image, "primary").with_fallback(
+        UiRenderResourceKey::new(UiRenderResourceKind::Image, "fallback-1").with_fallback(
+            UiRenderResourceKey::new(UiRenderResourceKind::Image, "fallback-2"),
+        ),
+    );
     let element = image_element(
         resource,
         (0..24)
@@ -94,6 +91,7 @@ fn renderer_parity_key_reuse_benchmark() {
     let mut repeated_samples = Vec::with_capacity(SAMPLE_COUNT);
     let mut reused_samples = Vec::with_capacity(SAMPLE_COUNT);
 
+    // 交替先测哪条路径，避免固定测量顺序把缓存或频率偏差总压给同一实现。
     for sample in 0..SAMPLE_COUNT {
         let measure_repeated = || {
             let started = Instant::now();
@@ -129,10 +127,7 @@ fn renderer_parity_key_reuse_benchmark() {
     let p95 = SAMPLE_COUNT - 1;
     eprintln!(
         "RUNTIME_INTERFACE03_RENDER_PARITY_KEY_REUSE_BENCH_V1 elements={ELEMENT_COUNT} samples={SAMPLE_COUNT} repeated_p50_ns={} reused_p50_ns={} repeated_p95_ns={} reused_p95_ns={}",
-        repeated_samples[p50],
-        reused_samples[p50],
-        repeated_samples[p95],
-        reused_samples[p95],
+        repeated_samples[p50], reused_samples[p50], repeated_samples[p95], reused_samples[p95],
     );
     assert!(
         reused_samples[p95].saturating_mul(5) <= repeated_samples[p95].saturating_mul(4),

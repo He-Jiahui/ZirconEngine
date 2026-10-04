@@ -7,6 +7,7 @@ use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiRouteId},
     layout::UiFrame,
     template::UiActionRef,
+    v2::UiTemplateNodeInstancePathStep,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -27,6 +28,12 @@ pub struct RetainedUiHostNodeProjection {
     pub parent_id: Option<String>,
     pub component: String,
     pub control_id: Option<String>,
+    pub source_path: Option<String>,
+    pub source_node_id: Option<String>,
+    pub instance_path: Option<Vec<UiTemplateNodeInstancePathStep>>,
+    pub parent_source_path: Option<String>,
+    pub parent_source_node_id: Option<String>,
+    pub parent_instance_path: Option<Vec<UiTemplateNodeInstancePathStep>>,
     pub frame: UiFrame,
     pub clip_frame: Option<UiFrame>,
     pub z_index: i32,

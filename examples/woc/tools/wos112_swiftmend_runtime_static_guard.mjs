@@ -46,15 +46,15 @@ requireText(
 
 const generator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
-if (!generator.includes("'swiftmend'") || !generator.includes("EXPECTED_ABILITY_COUNT = 79") ||
-    !zrGenerator.includes("document.entries.length === 79") ||
+if (!generator.includes("'swiftmend'") || !generator.includes("EXPECTED_ABILITY_COUNT = 117") ||
+    !zrGenerator.includes("document.entries.length === 117") ||
     !zrGenerator.includes("'auraKind'") || !zrGenerator.includes("effect.heal?.[field]")) {
   throw new Error("M4 Swiftmend projection scope is missing");
 }
 const entry = JSON.parse(read("contracts", "m4_abilities.json")).entries.find(
   (item) => item.id === "swiftmend",
 );
-if (!entry || entry.index !== 52 || entry.definition.class !== "druid" ||
+if (!entry || entry.index !== 56 || entry.definition.class !== "druid" ||
     entry.definition.school !== "nature" || entry.definition.learnLevel !== 10 ||
     entry.definition.cost !== 55 || entry.definition.castTime !== 0 ||
     entry.definition.cooldown !== 8 || entry.definition.range !== 30 ||
@@ -65,11 +65,11 @@ if (!entry || entry.index !== 52 || entry.definition.class !== "druid" ||
   throw new Error("M4 Swiftmend projection drifted");
 }
 const effects = read("scripts", "woc_game", "src", "generated", "m4_ability_effects.zr");
-requireText(effects, /index == 52[\s\S]*?return "consumeAura";/,
+requireText(effects, /index == 56[\s\S]*?return "consumeAura";/,
   "generated Swiftmend effect type is missing");
-requireText(effects, /index == 52[\s\S]*?field == "max"\) \{ return 125\.0; \}[\s\S]*?field == "min"\) \{ return 105\.0; \}/,
+requireText(effects, /index == 56[\s\S]*?field == "max"\) \{ return 125\.0; \}[\s\S]*?field == "min"\) \{ return 105\.0; \}/,
   "generated Swiftmend heal metrics are missing");
-requireText(effects, /index == 52[\s\S]*?field == "auraKind"\) \{ return "hot"; \}/,
+requireText(effects, /index == 56[\s\S]*?field == "auraKind"\) \{ return "hot"; \}/,
   "generated Swiftmend aura-kind selector is missing");
 
 const numeric = read("scripts", "woc_game", "src", "combat", "effect_numeric_dispatch_state.zr");

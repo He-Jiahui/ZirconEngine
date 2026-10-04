@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import Sequence
 from unittest.mock import patch
 
-from tools import frameworks_01_resource_hard_cut_manifest as manifest_owner
-from tools import frameworks_01_resource_consumer_manifest as consumer_owner
+from tools.maintenance.resource_migration import frameworks_01_resource_hard_cut_manifest as manifest_owner
+from tools.maintenance.resource_migration import frameworks_01_resource_consumer_manifest as consumer_owner
 
 
 def _test_temp_root() -> Path:
@@ -26,7 +26,7 @@ def _test_temp_root() -> Path:
 
 TEST_TEMP_ROOT = _test_temp_root()
 
-
+# 组合资源迁移的三份封存清单，验证补充引用和目标碰撞会阻断不完整迁移。
 class Frameworks01ResourceHardCutManifestTests(unittest.TestCase):
     def setUp(self) -> None:
         TEST_TEMP_ROOT.mkdir(parents=True, exist_ok=True)

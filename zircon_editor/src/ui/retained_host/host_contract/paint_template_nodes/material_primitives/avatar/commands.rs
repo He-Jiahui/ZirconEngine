@@ -1,3 +1,4 @@
+// 分发器凭返回值判断 Avatar 是否接管节点；可见区域为空也返回 true，避免通用回退重绘。
 mod content;
 mod surface;
 
@@ -73,31 +74,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_av
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn non_finite_avatar_origins_do_not_emit_paint_commands() {
-        let node = TemplatePaneNodeData {
-            component_role: "avatar".to_owned(),
-            ..TemplatePaneNodeData::default()
-        };
-        let rect = FrameRect {
-            x: f32::INFINITY,
-            y: 8.0,
-            width: 24.0,
-            height: 24.0,
-        };
-        let mut commands = Vec::new();
-
-        assert!(push_avatar_primitive_commands(
-            &mut commands,
-            &node,
-            &rect,
-            &rect,
-            0,
-            1.0,
-        ));
-        assert!(commands.is_empty());
-    }
-}
+#[path = "tests/commands.rs"]
+mod tests;

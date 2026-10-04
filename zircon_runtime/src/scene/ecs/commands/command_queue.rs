@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::mem::size_of;
-use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
+use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 use std::time::{Duration, Instant};
 
 use crate::scene::World;
@@ -87,6 +87,7 @@ impl CommandQueue {
         self.commands.push(command);
     }
 
+    /// 连续结构命令按区间预检发布，普通闭包构成可观察屏障；报告计数含被拒绝条目，调用方仍须检查错误。
     pub fn apply(&mut self, world: &mut World) -> DeferredCommandReport {
         let started_at = Instant::now();
         let applied_count = self.commands.len();
@@ -472,16 +473,5 @@ impl PartialEq for CommandQueue {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{CommandQueue, World};
-
-    #[test]
-    fn ecs_commands_apply_records_one_world_owned_boundary() {
-        let mut queue = CommandQueue::default();
-        queue.push(|_: &mut World| {});
-
-        queue.apply(&mut World::empty());
-
-        assert_eq!(queue.metrics().world_apply_count(), 1);
-    }
-}
+#[path = "tests/command_queue.rs"]
+mod tests;

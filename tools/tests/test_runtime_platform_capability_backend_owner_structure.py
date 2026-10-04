@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 验证平台能力后端的职责切分：平台后端使用域持有声明。
 class RuntimePlatformCapabilityBackendOwnerStructureTests(unittest.TestCase):
     def setUp(self) -> None:
         self.repo_root = Path(__file__).resolve().parents[2]

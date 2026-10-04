@@ -10,8 +10,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/session_coordinator/git_finalize.py
-  - tools/session_coordinator/tests/test_git_finalize.py
 tests:
   - python -B -m unittest tools.session_coordinator.tests.test_git_finalize.GitFinalizeTests.test_powershell_validation_receives_module_path_without_caller_environment -v
   - powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/tests/codex-session-hook.Tests.ps1

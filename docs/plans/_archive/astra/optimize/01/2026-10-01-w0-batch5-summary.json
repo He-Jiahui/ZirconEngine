@@ -1,0 +1,57 @@
+{
+  "acceptance": "none; all rows source-only and not accepted",
+  "batch": "w0-batch5",
+  "coverage_note": "Four selected Runtime139/174/171/172 reports remain whole-report unreviewed. Twenty-four rows are a bounded source-audit slice and do not imply report-wide source_checked status or W0 completion.",
+  "crosswalk_edges": 21,
+  "current_source_evidence_pass": false,
+  "errors_and_gates": [
+    "Cargo/build/tests: 0; no product, native, device, stress, Miri, editor or benchmark evidence.",
+    "Current-source evidence is not a pass and cannot promote any row to accepted.",
+    "Audio AUD-P1-001 and AUD-P1-002 are narrowed_open because current target feature lists include first-party runtime plugins; the remaining activation/editor-provider closure is still open.",
+    "Terrain report supersession target 99zq is absent from the current tree; crosswalk preserves it as missing_current_path without fabricating a source anchor."
+  ],
+  "inventory_denominator": {
+    "batch_source_paths": 25,
+    "manual_unnumbered_anchors": 558,
+    "nested_unreviewed_files": 2316,
+    "reports_total": 576,
+    "structural_candidate_tokens_not_canonical_findings": 27629,
+    "unnumbered_reports": 69,
+    "unreviewed_report_paths": 515,
+    "inventory_source_checked_report_paths": 61
+  },
+  "record_type": "w0_batch5_summary",
+  "reports": [
+    "Runtime139",
+    "Runtime174",
+    "Runtime171",
+    "Runtime172"
+  ],
+  "reviewed_at_utc": "2026-10-01",
+  "rows": 24,
+  "tests_run": 0,
+  "unique_report_qualified_ids": 24,
+  "unread_boundaries": [
+    "Only selected rows from Runtime139, Runtime174, Runtime171 and Runtime172 were read in this batch; all other reports remain unread.",
+    "Unnumbered/manual anchors and headings without exact IDs were excluded.",
+    "Tooling reports and prior canonical W0 identities were excluded.",
+    "No source_checked promotion, implementation admission or acceptance was performed."
+  ],
+  "working_tree_source_status_counts": {
+    "confirmed_open": 22,
+    "narrowed_open": 2
+  },
+  "revision": "r2: root verified identities and corrected inventory unit/count bookkeeping; review rows unchanged",
+  "corrections": [
+    "The original 61 counted inventory report paths, not code source paths. Adding 25 code paths to it was invalid; the report denominator stays 61 source_checked / 515 unreviewed / 576 total.",
+    "Collision checks now normalize original_report and canonicalization.provisional_key as well as report_path/report_key. All 106 prior qualified keys were checked; the original manifest reported only 69."
+  ],
+  "captured_source_evidence_path_union": {
+    "prior_unique_paths": 201,
+    "batch_unique_paths": 25,
+    "overlap_paths": 4,
+    "new_paths": 21,
+    "union_paths": 222,
+    "meaning": "Historical bounded row evidence paths, not current validation or whole-report review; old captures may be stale."
+  }
+}

@@ -39,6 +39,8 @@ pub(crate) use geometry::apply_window_metrics_geometry_presentation;
 use pane_conversion::to_host_contract_pane;
 #[cfg(test)]
 pub(in crate::ui::retained_host::ui) use scene_conversion::to_host_contract_host_scene_data;
+#[cfg(test)]
+pub(in crate::ui::retained_host::ui) use scene_conversion::to_host_contract_host_scene_geometry_with_retained_panes;
 pub(super) use scene_conversion::{
     to_host_contract_bottom_dock, to_host_contract_host_shell, to_host_contract_host_window_layout,
     to_host_contract_side_dock,
@@ -288,48 +290,59 @@ pub(crate) fn apply_presentation_with_template_v2_data(
 pub(super) fn host_window_layout(
     componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
 ) -> host_window::HostWindowLayoutData {
+    let authoritative = componentized_workbench_layout_frames.mount_frame.is_some()
+        || componentized_workbench_layout_frames
+            .center_band_frame
+            .is_some()
+        || componentized_workbench_layout_frames
+            .document_region_frame
+            .is_some()
+        || componentized_workbench_layout_frames
+            .status_bar_frame
+            .is_some();
     let center_band_frame = componentized_workbench_layout_frames
         .center_band_frame
-        .filter(ui_frame_is_visible)
+        .filter(ui_frame_is_valid)
         .unwrap_or_default();
     let left_region_frame = componentized_workbench_layout_frames
         .left_region_frame
-        .filter(ui_frame_is_visible)
+        .filter(ui_frame_is_valid)
         .unwrap_or_default();
     let document_region_frame = componentized_workbench_layout_frames
         .document_region_frame
-        .filter(ui_frame_is_visible)
+        .filter(ui_frame_is_valid)
         .unwrap_or_default();
     let right_region_frame = componentized_workbench_layout_frames
         .right_region_frame
-        .filter(ui_frame_is_visible)
+        .filter(ui_frame_is_valid)
         .unwrap_or_default();
     let bottom_region_frame = componentized_workbench_layout_frames
         .bottom_region_frame
-        .filter(ui_frame_is_visible)
+        .filter(ui_frame_is_valid)
         .unwrap_or_default();
     let viewport_content_frame = componentized_workbench_layout_frames
         .viewport_content_frame
-        .filter(ui_frame_is_visible)
+        .filter(ui_frame_is_valid)
         .unwrap_or_default();
     let status_bar_frame = componentized_workbench_layout_frames
         .status_bar_frame
-        .filter(ui_frame_is_visible)
+        .filter(ui_frame_is_valid)
         .unwrap_or_default();
     let left_splitter_frame = componentized_workbench_layout_frames
         .left_resize_splitter_frame
-        .filter(ui_frame_is_visible)
+        .filter(ui_frame_is_valid)
         .unwrap_or_default();
     let right_splitter_frame = componentized_workbench_layout_frames
         .right_resize_splitter_frame
-        .filter(ui_frame_is_visible)
+        .filter(ui_frame_is_valid)
         .unwrap_or_default();
     let bottom_splitter_frame = componentized_workbench_layout_frames
         .bottom_resize_splitter_frame
-        .filter(ui_frame_is_visible)
+        .filter(ui_frame_is_valid)
         .unwrap_or_default();
 
     host_window::HostWindowLayoutData {
+        authoritative,
         center_band_frame: frame_rect(center_band_frame),
         status_bar_frame: frame_rect(status_bar_frame),
         left_region_frame: frame_rect(left_region_frame),
@@ -343,8 +356,13 @@ pub(super) fn host_window_layout(
     }
 }
 
-fn ui_frame_is_visible(frame: &UiFrame) -> bool {
-    frame.width > f32::EPSILON && frame.height > f32::EPSILON
+fn ui_frame_is_valid(frame: &UiFrame) -> bool {
+    frame.x.is_finite()
+        && frame.y.is_finite()
+        && frame.width.is_finite()
+        && frame.height.is_finite()
+        && frame.width >= 0.0
+        && frame.height >= 0.0
 }
 
 fn map_model_rc<T, U, F>(model: &ModelRc<T>, mut map: F) -> ModelRc<U>
@@ -642,26 +660,31 @@ fn to_host_contract_recent_projects(
 }
 
 pub(crate) fn to_host_contract_scene_viewport_chrome(
-    data: &view_data::SceneViewportChromeData,
+    data: view_data::SceneViewportChromeData,
 ) -> host_contract::SceneViewportChromeData {
     host_contract::SceneViewportChromeData {
-        mode: data.mode.clone(),
-        transform_space: data.transform_space.clone(),
-        pivot_mode: data.pivot_mode.clone(),
-        projection_mode: data.projection_mode.clone(),
-        view_orientation: data.view_orientation.clone(),
-        display_mode: data.display_mode.clone(),
-        grid_mode: data.grid_mode.clone(),
+        mode: data.mode,
+        transform_space: data.transform_space,
+        pivot_mode: data.pivot_mode,
+        projection_mode: data.projection_mode,
+        view_orientation: data.view_orientation,
+        display_mode: data.display_mode,
+        grid_mode: data.grid_mode,
         gizmos_enabled: data.gizmos_enabled,
         preview_lighting: data.preview_lighting,
         preview_skybox: data.preview_skybox,
         translate_snap: data.translate_snap,
         rotate_snap_deg: data.rotate_snap_deg,
         scale_snap: data.scale_snap,
-        translate_snap_label: data.translate_snap_label.clone(),
-        rotate_snap_label: data.rotate_snap_label.clone(),
-        scale_snap_label: data.scale_snap_label.clone(),
+        translate_snap_label: data.translate_snap_label,
+        rotate_snap_label: data.rotate_snap_label,
+        scale_snap_label: data.scale_snap_label,
         toolbar_surface_frame: None,
+        toolbar_template_nodes: Default::default(),
+        toolbar_surface_key: Default::default(),
+        toolbar_enter_play_enabled: false,
+        toolbar_exit_play_enabled: false,
+        toolbar_is_playing: false,
     }
 }
 
@@ -783,53 +806,13 @@ fn to_host_contract_ui_asset_pane(
 }
 
 #[cfg(test)]
-mod performance_tests {
-    #[test]
-    fn visible_welcome_size_borrows_floating_window_rows() {
-        let source = include_str!("apply_presentation.rs");
-        let function = source
-            .split("fn resolve_visible_welcome_pane_size")
-            .nth(1)
-            .and_then(|body| body.split("fn dock_content_height").next())
-            .expect("welcome size implementation");
+#[path = "tests/apply_presentation_performance_tests.rs"]
+mod performance_tests;
 
-        assert!(function.contains(".floating_windows"));
-        assert!(function.contains(".iter()"));
-        assert!(!function.contains("row_data"));
-    }
+#[cfg(test)]
+#[path = "apply_presentation/tests/viewport_ownership_performance_tests.rs"]
+mod viewport_ownership_performance_tests;
 
-    #[test]
-    fn apply_presentation_does_not_build_discarded_pane_globals() {
-        let source = include_str!("apply_presentation.rs");
-        let function = source
-            .split("pub(crate) fn apply_presentation")
-            .nth(1)
-            .and_then(|body| body.split("fn host_window_layout").next())
-            .expect("apply presentation implementation");
-
-        assert!(!function.contains("apply_pane_surface_globals"));
-        assert!(!function.contains("set_activity_asset_"));
-        assert!(!function.contains("set_browser_asset_"));
-        assert!(!function.contains("set_recent_projects"));
-        assert!(!function.contains("set_project_overview"));
-    }
-
-    #[test]
-    fn window_metrics_geometry_path_keeps_pane_projection_out_of_the_hot_path() {
-        let source = include_str!("apply_presentation.rs");
-        let function = source
-            .split("pub(crate) fn apply_window_metrics_geometry_presentation")
-            .nth(1)
-            .and_then(|body| body.split("pub(super) fn host_window_layout").next())
-            .expect("window metrics geometry implementation");
-
-        assert!(function.contains("build_host_scene_geometry"));
-        assert!(function.contains("to_host_contract_host_scene_geometry_with_retained_panes"));
-        assert!(function.contains("cached.host_surface_data"));
-        assert!(function.contains("cached.retained_scene_data"));
-        assert!(function.contains("floating_window_projection_bundle"));
-        assert!(!function.contains("build_host_scene_data_with_cache"));
-        assert!(!function.contains("to_host_contract_host_scene_data_with_runtime"));
-        assert!(!function.contains("PaneProjectionBuildCount"));
-    }
-}
+#[cfg(test)]
+#[path = "tests/apply_presentation_authoritative_layout_tests.rs"]
+mod authoritative_layout_tests;

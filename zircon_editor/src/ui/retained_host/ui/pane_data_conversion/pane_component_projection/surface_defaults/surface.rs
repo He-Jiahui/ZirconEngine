@@ -65,5 +65,5 @@ fn borrowed_surface_app_bar_color(attributes: &BTreeMap<String, toml::Value>) ->
 }
 
 #[cfg(test)]
-#[path = "surface/borrowed_app_bar_color_tests.rs"]
+#[path = "surface/tests/borrowed_app_bar_color_tests.rs"]
 mod borrowed_app_bar_color_tests;

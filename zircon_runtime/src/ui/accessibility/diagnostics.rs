@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{btree_map::Entry, BTreeMap};
 
 use zircon_runtime_interface::ui::{
     accessibility::{
@@ -10,28 +10,35 @@ use zircon_runtime_interface::ui::{
 };
 
 #[cfg(test)]
+#[path = "diagnostics/tests/indexed_focus_tests.rs"]
 mod indexed_focus_tests;
+
+#[cfg(test)]
+#[path = "diagnostics/tests/index_dedup_tests.rs"]
+mod index_dedup_tests;
 
 pub(super) fn validate_snapshot_bounded<E>(
     snapshot: &mut UiAccessibilityTreeSnapshot,
     mut observe_diagnostics: impl FnMut(usize) -> Result<(), E>,
 ) -> Result<(), E> {
     let mut diagnostics = Vec::new();
-    let mut seen = BTreeSet::new();
     let mut nodes = BTreeMap::new();
     for (index, node) in snapshot.nodes.iter().enumerate() {
-        if !seen.insert(node.node_id) {
-            diagnostics.push(diagnostic(
-                UiAccessibilityDiagnosticSeverity::Error,
-                UiAccessibilityDiagnosticCode::DuplicateNodeId,
-                Some(node.node_id),
-                "accessibility snapshot contains duplicate node id",
-            ));
-            observe_diagnostics(1)?;
-            continue;
+        match nodes.entry(node.node_id) {
+            Entry::Occupied(_) => {
+                diagnostics.push(diagnostic(
+                    UiAccessibilityDiagnosticSeverity::Error,
+                    UiAccessibilityDiagnosticCode::DuplicateNodeId,
+                    Some(node.node_id),
+                    "accessibility snapshot contains duplicate node id",
+                ));
+                observe_diagnostics(1)?;
+            }
+            Entry::Vacant(entry) => {
+                entry.insert(index);
+                observe_diagnostics(0)?;
+            }
         }
-        nodes.insert(node.node_id, index);
-        observe_diagnostics(0)?;
     }
 
     for node in snapshot.nodes.iter() {

@@ -1,5 +1,4 @@
-// Chronomancy Aether Surge decisions. WOS owns the aura writes, RNG proc roll,
-// events and channel state commit; this module supplies source-equivalent plans.
+// 奥术涌动的计费、伤害与飞弹决策投影；world/state 提供光环快照并负责随机、光环及引导状态提交。
 var container = %import("zr.container");
 var contract = %import("generated/aether_surge_contract");
 
@@ -12,6 +11,7 @@ pub class SurgeAura {
     }
 }
 
+/// 施法开始和命中结算共用的层数倍率快照；层数来自世界光环，费用与伤害按原层数计算，施法加速单独受上限约束。
 pub class SurgeProfile {
     pub var charges: int;
     pub var costMult: float;
@@ -25,6 +25,7 @@ pub class SurgeProfile {
     }
 }
 
+/// 引导开始时返回覆盖飞弹数和首发待消费标记；世界层只有通过施法资格检查后才应提交它们。
 pub class DartsChannelPlan {
     pub var changed: bool;
     pub var consumePending: bool;
@@ -38,6 +39,7 @@ pub class DartsChannelPlan {
     }
 }
 
+/// 首枚飞弹命中时的持久化指令；世界层负责写回待消费位、每枚加成并按标记移除层数。
 pub class DartsLandingPlan {
     pub var consumePending: bool;
     pub var bonusPerBolt: int;
@@ -59,8 +61,7 @@ pub aetherSurgeStacks(auras: container.Array<SurgeAura>): int {
     return 0;
 }
 
-// Authoritative source writers restrict charges to integers. This computes 2^n
-// exactly for every integer n without relying on the unavailable scalar host API.
+// 世界状态只写入整数层数；用逐次倍乘保持 2 的整数次幂语义，不依赖此语言缺失的标量宿主接口。
 pub twoPower(charges: int): float {
     var value = 1.0, remaining = charges;
     while (remaining > 0) {
@@ -74,6 +75,7 @@ pub twoPower(charges: int): float {
     return value;
 }
 
+/// 从当前施法者的层数、免费施法和完美时刻光环快照计算倍率；不改变传入数组或世界状态。
 pub profile(auras: container.Array<SurgeAura>): SurgeProfile {
     var charges = aetherSurgeStacks(auras);
     var limitedCharges = charges;
@@ -83,6 +85,7 @@ pub profile(auras: container.Array<SurgeAura>): SurgeProfile {
     return new SurgeProfile(charges, twoPower(charges), 1.0 + contract.damagePerCharge() * <float>charges, castMult);
 }
 
+/// 供命中效果结算后记入新层数，最多到契约上限；光环持续时间由世界层另行刷新。
 pub nextChargeValue(auras: container.Array<SurgeAura>): int {
     var next = aetherSurgeStacks(auras) + 1;
     return next > contract.maxCharges() ? contract.maxCharges() : next;
@@ -92,6 +95,7 @@ pub perfectMomentActive(auras: container.Array<SurgeAura>): bool {
     return hasAura(auras, contract.perfectMomentId());
 }
 
+/// 只对奥术飞弹生成引导覆盖计划；满层改变飞弹数，但在首枚飞弹落地前仍保留层数。
 pub channelStart(abilityId: string, auras: container.Array<SurgeAura>): DartsChannelPlan {
     if (abilityId != contract.dartsId()) return new DartsChannelPlan(false, false, 0, 0);
     var charges = aetherSurgeStacks(auras);
@@ -99,6 +103,7 @@ pub channelStart(abilityId: string, auras: container.Array<SurgeAura>): DartsCha
     return new DartsChannelPlan(true, true, 0, ticks);
 }
 
+/// 首枚落地按当前层数及实际飞弹数分摊加成；随后沿用已存加成，完美时刻阻止本次层数移除。
 pub resolveDartsBolt(consumePending: bool, storedBonusPerBolt: int, auras: container.Array<SurgeAura>, configuredTicks: int, ticks: int): DartsLandingPlan {
     if (!consumePending) return new DartsLandingPlan(false, storedBonusPerBolt, false);
     var charges = aetherSurgeStacks(auras);
@@ -108,7 +113,7 @@ pub resolveDartsBolt(consumePending: bool, storedBonusPerBolt: int, auras: conta
     return new DartsLandingPlan(false, bonus, !perfectMomentActive(auras) && hasAura(auras, contract.surgeId()));
 }
 
-// For nonnegative integers this is exactly JavaScript Math.round(numerator / denominator).
+// 非负整数输入按 JavaScript 的正中间向上取整规则计算；调用方须先保证分母为正。
 pub roundPositiveRatio(numerator: int, denominator: int): int {
     if (denominator <= 0 || numerator <= 0) return 0;
     var quotient = 0, remainder = numerator;

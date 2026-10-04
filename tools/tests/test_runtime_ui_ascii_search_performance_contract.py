@@ -12,7 +12,9 @@ class RuntimeUiAsciiSearchPerformanceContractTests(unittest.TestCase):
 
         self.assertIn("value.is_ascii() && lowercase_query.is_ascii()", source)
         self.assertIn("eq_ignore_ascii_case", source)
-        self.assertIn("value.to_lowercase()", source)
+        self.assertIn("unicode_lowercase_starts_with", source)
+        self.assertIn("unicode_lowercase_contains", source)
+        self.assertNotIn("value.to_lowercase()", source)
 
     def test_menu_and_command_palette_use_the_shared_matcher(self) -> None:
         menu = (REDUCER / "keyboard/menu.rs").read_text(encoding="utf-8")

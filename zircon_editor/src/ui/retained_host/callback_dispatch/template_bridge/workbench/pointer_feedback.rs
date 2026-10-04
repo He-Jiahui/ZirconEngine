@@ -331,7 +331,7 @@ fn route_focuses_text_input_control(surface: &UiSurface, route: &UiPointerRoute)
     let Some(focused) = route.focused else {
         return false;
     };
-    if !route.bubbled.contains(&focused) {
+    if !route.bubble_route().any(|node_id| node_id == focused) {
         return false;
     }
 

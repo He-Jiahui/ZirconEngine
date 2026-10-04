@@ -1,0 +1,171 @@
+[asset]
+kind = "view"
+id = "res://ui/shell/password_recovery.zui"
+version = 2
+display_name = "World of ClaudeCraft Password Recovery"
+
+[imports]
+widgets = []
+styles = ["res://ui/shell/shell_theme.zui"]
+resources = [
+  { kind = "image", uri = "res://m8/env/vale_backdrop.webp", fallback = { mode = "optional" } },
+]
+
+[root]
+node = "password_recovery_root"
+
+[nodes.stage_scrim]
+component = "Space"
+classes = ["woc-stage-scrim"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.forgot_title]
+component = "Label"
+control_id = "PasswordRecoveryRequestTitle"
+classes = ["woc-screen-title"]
+props = { text = "Reset your password", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 48.0, stretch = "Fixed" } }
+
+[nodes.forgot_hint]
+component = "Label"
+classes = ["woc-muted"]
+props = { text = "Enter your username and we will email a reset link to the address on file.", overflow = "wrap", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { min = 42.0, preferred = 52.0, max = 68.0, stretch = "Fixed" } }
+
+[nodes.forgot_username_label]
+component = "Label"
+classes = ["woc-section-title"]
+props = { text = "Username" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.forgot_username]
+component = "TextField"
+control_id = "PasswordRecoveryUsername"
+classes = ["woc-input"]
+props = { value_text = "", label = "", placeholder = "Enter username", helper_text = "", variant = "outlined", max_length = 24, autocomplete = "username" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [
+  { id = "WocAuth/ForgotUsernameChanged", event = "Change", route = "woc.shell.auth.forgot.set_username" },
+  { id = "WocAuth/ForgotUsernameSubmitted", event = "Submit", route = "woc.shell.auth.forgot.submit" },
+]
+
+[nodes.forgot_status]
+component = "Label"
+control_id = "PasswordRecoveryRequestStatus"
+classes = ["woc-auth-status"]
+props = { text = "", text_align = "center", dynamic_status_owner = "auth_flow" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 42.0, max = 64.0, stretch = "Fixed" } }
+
+[nodes.forgot_back]
+component = "Button"
+control_id = "PasswordRecoveryRequestBack"
+classes = ["woc-secondary-action"]
+props = { text = "Back to log in", button_variant = "outlined" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocAuth/ForgotBack", event = "Click", route = "woc.shell.auth.forgot.back" }]
+
+[nodes.forgot_submit]
+component = "Button"
+control_id = "PasswordRecoveryRequestSubmit"
+classes = ["woc-primary-action"]
+props = { text = "Send reset link", button_variant = "contained" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocAuth/ForgotSubmit", event = "Click", route = "woc.shell.auth.forgot.submit" }]
+
+[nodes.forgot_actions]
+component = "HorizontalBox"
+layout = { container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+children = [{ node = "forgot_back" }, { node = "forgot_submit" }]
+
+[nodes.forgot_panel]
+component = "ScrollBox"
+control_id = "PasswordRecoveryRequestPanel"
+classes = ["woc-panel-strong", "woc-auth-form"]
+props = { scroll_axis = "vertical", scroll_x = false, scroll_y = true, show_scrollbars = true, clip_content = true }
+layout = { container = { kind = "VerticalBox", gap = 10.0 }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, padding = { left = 22.0, right = 22.0, top = 22.0, bottom = 22.0 }, width = { min = 300.0, preferred = 420.0, max = 500.0, stretch = "Stretch" }, height = { min = 320.0, preferred = 410.0, max = 620.0, stretch = "Stretch" } }
+children = [{ node = "forgot_title" }, { node = "forgot_hint" }, { node = "forgot_username_label" }, { node = "forgot_username" }, { node = "forgot_status" }, { node = "forgot_actions" }]
+
+[nodes.reset_title]
+component = "Label"
+control_id = "PasswordRecoveryResetTitle"
+classes = ["woc-screen-title"]
+props = { text = "Choose a new password", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 48.0, stretch = "Fixed" } }
+
+[nodes.reset_password_label]
+component = "Label"
+classes = ["woc-section-title"]
+props = { text = "New password" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.reset_password]
+component = "TextField"
+control_id = "PasswordRecoveryNewPassword"
+classes = ["woc-input"]
+props = { value_text = "", label = "", placeholder = "Enter password", helper_text = "", variant = "outlined", max_length = 128, input_kind = "password", autocomplete = "new-password" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [
+  { id = "WocAuth/ResetPasswordChanged", event = "Change", route = "woc.shell.auth.reset.set_password" },
+  { id = "WocAuth/ResetPasswordSubmitted", event = "Submit", route = "woc.shell.auth.reset.submit" },
+]
+
+[nodes.reset_confirmation_label]
+component = "Label"
+classes = ["woc-section-title"]
+props = { text = "Confirm new password" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.reset_confirmation]
+component = "TextField"
+control_id = "PasswordRecoveryPasswordConfirmation"
+classes = ["woc-input"]
+props = { value_text = "", label = "", placeholder = "Enter password", helper_text = "", variant = "outlined", max_length = 128, input_kind = "password", autocomplete = "new-password" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [
+  { id = "WocAuth/ResetConfirmationChanged", event = "Change", route = "woc.shell.auth.reset.set_confirmation" },
+  { id = "WocAuth/ResetConfirmationSubmitted", event = "Submit", route = "woc.shell.auth.reset.submit" },
+]
+
+[nodes.reset_status]
+component = "Label"
+control_id = "PasswordRecoveryResetStatus"
+classes = ["woc-auth-status"]
+props = { text = "", text_align = "center", dynamic_status_owner = "auth_flow" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 42.0, max = 64.0, stretch = "Fixed" } }
+
+[nodes.reset_back]
+component = "Button"
+control_id = "PasswordRecoveryResetBack"
+classes = ["woc-secondary-action"]
+props = { text = "Back to log in", button_variant = "outlined" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocAuth/ResetBack", event = "Click", route = "woc.shell.auth.reset.back" }]
+
+[nodes.reset_submit]
+component = "Button"
+control_id = "PasswordRecoveryResetSubmit"
+classes = ["woc-primary-action"]
+props = { text = "Update password", button_variant = "contained" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocAuth/ResetSubmit", event = "Click", route = "woc.shell.auth.reset.submit" }]
+
+[nodes.reset_actions]
+component = "HorizontalBox"
+layout = { container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+children = [{ node = "reset_back" }, { node = "reset_submit" }]
+
+[nodes.reset_panel]
+component = "ScrollBox"
+control_id = "PasswordRecoveryResetPanel"
+classes = ["woc-panel-strong", "woc-auth-form"]
+props = { visibility = "collapsed", scroll_axis = "vertical", scroll_x = false, scroll_y = true, show_scrollbars = true, clip_content = true }
+layout = { container = { kind = "VerticalBox", gap = 10.0 }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, padding = { left = 22.0, right = 22.0, top = 22.0, bottom = 22.0 }, width = { min = 300.0, preferred = 420.0, max = 500.0, stretch = "Stretch" }, height = { min = 320.0, preferred = 470.0, max = 680.0, stretch = "Stretch" } }
+children = [{ node = "reset_title" }, { node = "reset_password_label" }, { node = "reset_password" }, { node = "reset_confirmation_label" }, { node = "reset_confirmation" }, { node = "reset_status" }, { node = "reset_actions" }]
+
+[nodes.password_recovery_root]
+component = "Overlay"
+control_id = "PasswordRecovery"
+classes = ["woc-shell", "woc-password-recovery"]
+props = { background_image = "res://m8/env/vale_backdrop.webp" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "stage_scrim" }, { node = "forgot_panel" }, { node = "reset_panel" }]

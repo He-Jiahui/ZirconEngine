@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use super::super::super::{
-    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchivePruneReport,
-    RuntimeSessionArchiveRetentionPolicy, RuntimeSessionSlotSelector, io,
+    io, RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchivePruneReport,
+    RuntimeSessionArchiveRetentionPolicy, RuntimeSessionSlotSelector,
 };
 
 impl RuntimeSessionArchive {
@@ -16,6 +16,8 @@ impl RuntimeSessionArchive {
         })
     }
 
+    /// 先规划普通标签裁剪，再额外保留选中的桶内槽位，因此可能超过普通保留数量。
+    /// 桶外选择不改变裁剪集合，选择失败则不保存；只有最终档案会发布到目标路径。
     pub fn prune_slots_with_tag_and_selected_protection_at_path_atomically(
         path: impl AsRef<Path>,
         tag: &str,

@@ -1,10 +1,15 @@
 var container=%import("zr.container");var contract=%import("generated/empower_next_contract");
+/// 独立后继施法修饰器快照；scope 仅在 scoped 为真时限定技能，消费函数直接删除首项匹配记录。
 pub class EmpowerAura{pub var kind:string;pub var scope:string;pub var scoped:bool;pub var value:float;pub @constructor(kind:string,scope:string,scoped:bool,value:float){this.kind=kind;this.scope=scope;this.scoped=scoped;this.value=value;}}
 matches(a:EmpowerAura,id:string):bool{return !a.scoped||a.scope==id;}
 find(auras:container.Array<EmpowerAura>,kind:string,id:string):int{var i=0;while(i<auras.length){var a=<EmpowerAura>auras[i];if(a.kind==kind&&matches(a,id))return i;i=i+1;}return -1;}
+/// 同时查询通用免费施法、战斗狂热、复仇与斩杀特例；这里只判断资格，不消费光环。
 pub freeCostAuraActive(auras:container.Array<EmpowerAura>,id:string):bool{var i=0;while(i<auras.length){var a=<EmpowerAura>auras[i];if((a.kind=="next_cast_free"||a.kind=="next_execute_free")&&matches(a,id))return true;if(a.kind=="battle_trance"&&contract.battleTranceApplies(id))return true;if(a.kind=="revenge_free"&&contract.revengeApplies(id))return true;if(a.kind=="sudden_death"&&id==contract.executeId())return true;i=i+1;}return false;}
+/// 按通用施法、处决、战斗狂热、猝死、复仇的顺序移除首个合格光环；调用者必须传入可写的同一数组。
 pub consumeFreeCostFor(auras:container.Array<EmpowerAura>,id:string):bool{var k=find(auras,"next_cast_free",id);if(k<0)k=find(auras,"next_execute_free",id);if(k<0&&contract.battleTranceApplies(id))k=find(auras,"battle_trance",id);if(k<0&&id==contract.executeId())k=find(auras,"sudden_death",id);if(k<0&&contract.revengeApplies(id))k=find(auras,"revenge_free",id);if(k<0)return false;auras.removeAt(k);return true;}
+/// 返回指定技能的首项廉价施法倍率；负一表示缺席，不能当作有效费用倍率使用。
 pub nextCastCheapMultiplier(auras:container.Array<EmpowerAura>,id:string):float{var i=find(auras,"next_cast_cheap",id);return i<0?-1.0:(<EmpowerAura>auras[i]).value;}
 pub nextCastInstantAuraActive(auras:container.Array<EmpowerAura>,id:string):bool{return find(auras,"next_cast_instant",id)>=0;}
+/// 瞬发修饰器与免费费用修饰器分开消费；只移除指定技能可用的首项。
 pub consumeNextCastInstant(auras:container.Array<EmpowerAura>,id:string):bool{var k=find(auras,"next_cast_instant",id);if(k<0)return false;auras.removeAt(k);return true;}
 pub contractTest():int{var a=new container.Array<EmpowerAura>();a.add(new EmpowerAura("battle_trance","",false,0.0));a.add(new EmpowerAura("next_execute_free","execute",true,0.0));if(!freeCostAuraActive(a,"execute")||!consumeFreeCostFor(a,"execute")||a.length!=1||!consumeFreeCostFor(a,"heroic_strike")||a.length!=0)return -1;a.add(new EmpowerAura("next_cast_cheap","frostbolt",true,0.5));if(nextCastCheapMultiplier(a,"fireball")!=-1.0||nextCastCheapMultiplier(a,"frostbolt")!=0.5)return -2;a.add(new EmpowerAura("next_cast_instant","pyroblast",true,0.0));if(nextCastInstantAuraActive(a,"fireball")||!nextCastInstantAuraActive(a,"pyroblast")||!consumeNextCastInstant(a,"pyroblast")||nextCastInstantAuraActive(a,"pyroblast"))return -3;return 1;}

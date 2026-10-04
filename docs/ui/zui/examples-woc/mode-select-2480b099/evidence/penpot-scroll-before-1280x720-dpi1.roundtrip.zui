@@ -1,0 +1,124 @@
+[asset]
+kind = "view"
+id = "res://ui/shell/mode_select.zui"
+version = 2
+display_name = "World of ClaudeCraft Mode Selection"
+
+[imports]
+widgets = []
+styles = ["res://ui/shell/shell_theme.zui"]
+resources = [
+  { kind = "image", uri = "res://m8/env/vale_backdrop.webp", fallback = { mode = "optional" } },
+]
+
+[root]
+node = "mode_select_root"
+
+[nodes.stage_scrim]
+component = "Space"
+classes = ["woc-stage-scrim"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.world_label]
+component = "Label"
+classes = ["woc-section-title"]
+props = { text = "World" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.mode_trigger]
+component = "Button"
+control_id = "ModeSelectionTrigger"
+classes = ["woc-mode-trigger"]
+props = { text = "Online", button_variant = "outlined" }
+layout = { width = { stretch = "Stretch" }, height = { min = 58.0, preferred = 58.0, max = 64.0, stretch = "Fixed" } }
+events = [{ id = "WocMode/ToggleMenu", event = "Click", route = "woc.shell.mode.toggle_menu" }]
+
+[nodes.online_summary]
+component = "Label"
+control_id = "ModeSelectionOnlineSummary"
+classes = ["woc-muted"]
+props = { text = "... Players", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.offline_summary]
+component = "Label"
+control_id = "ModeSelectionOfflineSummary"
+classes = ["woc-muted"]
+props = { text = "Instant local world", text_align = "center", visibility = "collapsed" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.online_option]
+component = "ToggleButton"
+control_id = "ModeSelectionOnline"
+classes = ["woc-mode-option"]
+props = { text = "Online", checked = true, selection_state = "exclusive" }
+layout = { width = { stretch = "Stretch" }, height = { min = 58.0, preferred = 64.0, max = 76.0, stretch = "Fixed" } }
+events = [{ id = "WocMode/Select/online", event = "Toggle", route = "woc.shell.mode.select.online" }]
+
+[nodes.offline_option]
+component = "ToggleButton"
+control_id = "ModeSelectionOffline"
+classes = ["woc-mode-option"]
+props = { text = "Offline", checked = false, selection_state = "exclusive" }
+layout = { width = { stretch = "Stretch" }, height = { min = 58.0, preferred = 64.0, max = 76.0, stretch = "Fixed" } }
+events = [{ id = "WocMode/Select/offline", event = "Toggle", route = "woc.shell.mode.select.offline" }]
+
+[nodes.mode_menu]
+component = "VerticalBox"
+control_id = "ModeSelectionMenu"
+classes = ["woc-panel-strong"]
+props = { visibility = "collapsed" }
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, padding = { left = 6.0, right = 6.0, top = 6.0, bottom = 6.0 }, width = { stretch = "Stretch" }, height = { min = 136.0, preferred = 136.0, max = 152.0, stretch = "Fixed" } }
+children = [{ node = "online_option" }, { node = "offline_option" }]
+
+[nodes.play]
+component = "Button"
+control_id = "ModeSelectionPlay"
+classes = ["woc-play-action"]
+props = { text = "Play", button_variant = "contained" }
+layout = { width = { stretch = "Stretch" }, height = { min = 66.0, preferred = 66.0, max = 72.0, stretch = "Fixed" } }
+events = [{ id = "WocMode/Play", event = "Click", route = "woc.shell.mode.play" }]
+
+[nodes.contract_label]
+component = "Label"
+classes = ["woc-section-title"]
+props = { text = "$WOC Contract Address", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.contract_address]
+component = "Button"
+control_id = "ModeSelectionContractAddress"
+classes = ["woc-contract-address"]
+props = { text = "3WjLscH2JsXLEFJZRA9z8ti8yRGxWGKbqymPd7UicRth", button_variant = "outlined" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 52.0, stretch = "Fixed" } }
+events = [{ id = "WocMode/CopyContract", event = "Click", route = "woc.shell.mode.copy_contract" }]
+
+[nodes.contract_note]
+component = "Label"
+control_id = "ModeSelectionContractNote"
+classes = ["woc-muted"]
+props = { text = "WOC is a community token and is not required to play.", text_align = "center", overflow = "wrap" }
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 48.0, max = 64.0, stretch = "Fixed" } }
+
+[nodes.performance_tip]
+component = "Label"
+control_id = "ModeSelectionPerformanceTip"
+classes = ["woc-muted"]
+props = { text = "TIP: For the smoothest experience, turn off ad blocker extensions on this site.", text_align = "center", overflow = "wrap" }
+layout = { width = { stretch = "Stretch" }, height = { min = 48.0, preferred = 56.0, max = 72.0, stretch = "Fixed" } }
+
+[nodes.panel]
+component = "ScrollBox"
+control_id = "ModeSelectionPanel"
+classes = ["woc-panel-strong"]
+props = { scroll_axis = "vertical", scroll_x = false, scroll_y = true, show_scrollbars = true, clip_content = true }
+layout = { container = { kind = "VerticalBox", gap = 12.0 }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, padding = { left = 22.0, right = 22.0, top = 22.0, bottom = 22.0 }, width = { min = 300.0, preferred = 420.0, max = 472.0, stretch = "Stretch" }, height = { min = 300.0, preferred = 590.0, max = 700.0, stretch = "Stretch" } }
+children = [{ node = "world_label" }, { node = "mode_trigger" }, { node = "online_summary" }, { node = "offline_summary" }, { node = "mode_menu" }, { node = "play" }, { node = "contract_label" }, { node = "contract_address" }, { node = "contract_note" }, { node = "performance_tip" }]
+
+[nodes.mode_select_root]
+component = "Overlay"
+control_id = "ModeSelection"
+classes = ["woc-shell", "woc-mode-selection"]
+props = { background_image = "res://m8/env/vale_backdrop.webp" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "stage_scrim" }, { node = "panel" }]

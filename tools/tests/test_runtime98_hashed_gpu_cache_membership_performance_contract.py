@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# GPU 缓存成员判断复用容量受限的哈希去重索引，最终唯一列表保留首槽与输入顺序；检查 Rust 回归对驱逐和晋升的断言。
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE = (

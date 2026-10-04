@@ -2,6 +2,7 @@ use super::super::super::data::TemplatePaneNodeData;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const COMPONENT_PROPERTY_SLOT_03: &str = "WorkbenchComponentPropertySlot03Row";
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const COMPONENT_PROPERTY_SLOT_04: &str = "WorkbenchComponentPropertySlot04Row";
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const COMPONENT_PROPERTY_ROW_ROOT: &str = "WorkbenchComponentPropertyRowRoot";
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const COMPONENT_PROPERTY_VIRTUAL_PREFIX: &str = "WorkbenchComponentPropertyVirtualRow";
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const MESH_PROPERTY_ROW:
     &str = "WorkbenchMeshRow";
@@ -22,6 +23,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_comp
         node.control_id.as_str(),
         MESH_PROPERTY_ROW
             | MATERIAL_PROPERTY_ROW
+            | COMPONENT_PROPERTY_ROW_ROOT
             | COMPONENT_PROPERTY_SLOT_03
             | COMPONENT_PROPERTY_SLOT_04
     ) || node

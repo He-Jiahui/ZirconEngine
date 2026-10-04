@@ -19,6 +19,7 @@ pub(super) fn resolve_seed_backed_execution_cluster_state_and_lineage(
     let submission_state = seed_backed_cluster_state(cluster.page_id, page_residency);
     let mut resolved_cluster = cluster;
     let mut selected_state = submission_state;
+    // 缺失或待上传页可选驻留父簇；保留原提交状态，并在强制 mip 时停用父层回退。
     let mut resolution_search_active =
         forced_mip.is_none() && submission_state != VirtualGeometryPrepareClusterState::Resident;
     let mut lineage_depth = 0_u32;
@@ -81,4 +82,5 @@ pub(super) fn seed_backed_execution_state(
 }
 
 #[cfg(test)]
+#[path = "state/tests/performance_tests.rs"]
 mod performance_tests;

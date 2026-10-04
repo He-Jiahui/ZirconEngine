@@ -49,6 +49,11 @@ impl EditorHostEventController {
         self.refresh_workbench(EditorViewInvalidationMask::PRESENTATION_DATA);
     }
 
+    pub(crate) fn clear_scene_document_binding(&self) {
+        self.shell().lock().state.clear_scene_document_binding();
+        self.refresh_workbench(EditorViewInvalidationMask::PRESENTATION_DATA);
+    }
+
     pub(crate) fn active_scene_history_context(
         &self,
     ) -> Option<crate::core::editing::engine::HistoryContextId> {

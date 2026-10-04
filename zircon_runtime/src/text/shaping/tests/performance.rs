@@ -65,18 +65,14 @@ fn direct_shaping_long_semantic_request_evidence_reports_p50_p95() {
                 "{} must retain one logical source line across the inline-work threshold",
                 workload.label()
             );
-            assert!(
-                shaped.lines[0]
-                    .glyphs
-                    .iter()
-                    .all(|glyph| !glyph.cluster_flags.virtual_glyph)
-            );
-            assert!(
-                shaped.lines[0]
-                    .glyphs
-                    .iter()
-                    .any(|glyph| glyph.font_id.is_some())
-            );
+            assert!(shaped.lines[0]
+                .glyphs
+                .iter()
+                .all(|glyph| !glyph.cluster_flags.virtual_glyph));
+            assert!(shaped.lines[0]
+                .glyphs
+                .iter()
+                .any(|glyph| glyph.font_id.is_some()));
         }
 
         println!(

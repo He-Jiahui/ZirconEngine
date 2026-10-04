@@ -158,8 +158,14 @@ class UiAssetSourceOutlineIndexContractTests(unittest.TestCase):
             re.compile(r"build_source_selection_summary\(\s*&source_outline,"),
         )
         self.assertIn("source_outline_items: source.outline_items", pane)
+        self.assertIn("let outline_entries = source_outline.entries();", presentation)
         self.assertIn(
-            ".entries()\n                .iter()\n                .map(|entry| format!(\"line {}",
+            "let mut outline_items = Vec::with_capacity(outline_entries.len());",
+            presentation,
+        )
+        self.assertIn("for entry in outline_entries", presentation)
+        self.assertIn(
+            'outline_items.push(format!("line {} • {}", entry.line, entry.block_label));',
             presentation,
         )
         self.assertIn("revision: u64", source_buffer)

@@ -1,6 +1,8 @@
 ---
 related_code:
   - zircon_app/src/lib.rs
+  - zircon_app/src/entry/product_shutdown/terminal.rs
+  - zircon_app/src/entry/product_shutdown/terminal_outcome.rs
 implementation_files:
   - zircon_app/src
 plan_sources:
@@ -66,6 +68,12 @@ doc_type: api-reference
 | `entry` | `zircon_app::ProductRunnerKind` | 公开配置、状态或句柄类型；连接模块边界并承载可观察结果。 |
 | `entry` | `zircon_app::ProductRuntimeLinkage` | 公开数据类型；用于引擎配置、输入事件或编辑器工作流。 |
 | `entry` | `zircon_app::ProductShutdownPolicy` | 公开配置、状态或句柄类型；连接模块边界并承载可观察结果。 |
+| `entry` | `zircon_app::ProductTerminalOutcome` | 保留 primary、次要故障与最终进程退出码。 |
+| `entry` | `zircon_app::ProductTerminalPrimary` | 区分宿主类别与 commandlet 原始 `u8` 结果。 |
+| `entry` | `zircon_app::ProductTerminalReceipt` | 版本化、可序列化的终态投影；构造后尚不代表持久交付。 |
+| `entry` | `zircon_app::ProductTerminalSecondary` | 枚举关闭、report、IPC、profiling 和日志的次要失败。 |
+| `entry` | `zircon_app::ProductTerminalStatus` | 表示未观测、完成或失败的终态状态。 |
+| `entry` | `zircon_app::PRODUCT_TERMINAL_RECEIPT_SCHEMA_VERSION` | 终态 receipt 的当前 schema version。 |
 | `entry` | `zircon_app::ResolvedProductHostConfig` | 公开配置、状态或句柄类型；连接模块边界并承载可观察结果。 |
 | `entry` | `zircon_app::retry_runtime_startup_cleanup` | 公开入口函数；执行启动、发现、运行或清理流程。 |
 | `entry` | `zircon_app::RuntimeSessionCreateFailure` | 错误类型；调用方应匹配具体变体并保留上下文。 |

@@ -1,9 +1,9 @@
 use super::super::AnimationEditorPanePresentation;
-use super::AnimationEditorSession;
 use super::graph::graph_node_label;
 use super::parameters::parameter_value_label;
 use super::state_machine::transition_label;
 use super::support::fallback_title;
+use super::AnimationEditorSession;
 
 impl AnimationEditorSession {
     pub fn display_name(&self) -> String {

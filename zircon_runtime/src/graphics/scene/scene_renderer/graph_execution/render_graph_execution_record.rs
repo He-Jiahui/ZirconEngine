@@ -19,13 +19,14 @@ use crate::render_graph::{
 
 mod ambient_occlusion;
 #[cfg(test)]
-#[path = "render_graph_execution_record/ambient_occlusion_tests.rs"]
+#[path = "render_graph_execution_record/tests/ambient_occlusion_tests.rs"]
 mod ambient_occlusion_tests;
 mod compute_workload;
 #[cfg(test)]
+#[path = "render_graph_execution_record/tests/cases.rs"]
 mod tests;
 #[cfg(test)]
-#[path = "render_graph_execution_record/workload_scan_tests.rs"]
+#[path = "render_graph_execution_record/tests/workload_scan_tests.rs"]
 mod workload_scan_tests;
 
 pub use self::compute_workload::{
@@ -83,6 +84,7 @@ pub struct RenderGraphExecutionRecord {
     pass_profile_records: Vec<RenderGraphPassProfileRecord>,
     execution_batch_report: RenderGraphExecutionBatchReport,
     parallel_recording_report: RenderGraphParallelRecordingReport,
+    graph_submission: Option<crate::rhi::SubmissionTicket>,
     history_copy_report: RenderHistoryCopyReport,
     history_domains_report: RenderHistoryDomainsReport,
     scene_velocity_readback_report: RenderSceneVelocityReadbackReport,
@@ -254,6 +256,10 @@ impl RenderGraphExecutionRecord {
 
     pub fn set_motion_vector_camera_status(&mut self, status: MotionVectorCameraStatus) {
         self.motion_vector_camera_status = status;
+    }
+
+    pub fn set_graph_submission(&mut self, submission: crate::rhi::SubmissionTicket) {
+        self.graph_submission = Some(submission);
     }
 
     pub fn set_resource_report(&mut self, report: RenderGraphExecutionResourceReport) {
@@ -502,6 +508,10 @@ impl RenderGraphExecutionRecord {
 
     pub fn motion_vector_camera_status(&self) -> MotionVectorCameraStatus {
         self.motion_vector_camera_status
+    }
+
+    pub const fn graph_submission(&self) -> Option<crate::rhi::SubmissionTicket> {
+        self.graph_submission
     }
 
     pub fn resource_report(&self) -> RenderGraphExecutionResourceReport {

@@ -6,6 +6,8 @@ var rng = %import("kernel/rng");
 var rules = %import("social/yumi_match_rules");
 var maze = %import("social/yumi_maze_layout");
 
+// 局内耗时与世界时钟分别控制状态推进和出血脉冲；本局随机游标
+// 与世界随机流独立，成员计分和复活数组按各自玩家 ID 对齐。
 pub class YumiMatchState {
     // 0=countdown, 1=active (including sudden death), 2=over.
     pub var phase: int;
@@ -276,6 +278,8 @@ pulseSuddenDeathBleed(state: YumiMatchState): void {
 
 // Returns a bitfield: 1=countdown opened, 2=teleport, 4=sudden death,
 // 8=one or more revives, 16=status-second changed, 32=match ended.
+// 外部每个固定步须先注入当前 worldTick；本函数只推进局内时钟，
+// 返回事件位由外层映射为传送、复活与终局事件。
 pub advanceYumiMatch(state: YumiMatchState): int {
     if (state.phase == 2) { return 0; }
     var effects = 0;
@@ -299,6 +303,9 @@ pub advanceYumiMatch(state: YumiMatchState): int {
         if (!pickYumiCells(state, layout)) { throw "woc yumi teleport layout is invalid"; }
         effects = effects | 2;
     }
+    // TODO: [CR-WOC-IPS-S-0002] 确认未来世界适配器是否在每次
+    // advanceYumiMatch 前更新 worldTick；当前仅测试显式设置边界值，
+    // 缺少生产固定步调用方；接入时验证出血脉冲只每两秒执行一次。
     if (state.suddenDeath && state.worldTick % <uint>40 == <uint>0) {
         pulseSuddenDeathBleed(state);
         if (state.phase == 2) { return effects | 32; }

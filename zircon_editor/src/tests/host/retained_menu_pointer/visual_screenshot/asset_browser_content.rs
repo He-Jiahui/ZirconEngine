@@ -228,7 +228,8 @@ fn browser_list_workspace() -> AssetWorkspaceSnapshot {
     let mut workspace = m3_asset_workspace();
     workspace.view_mode = AssetViewMode::List;
     workspace.visible_folders.clear();
-    let base_assets = workspace.visible_assets.clone();
+    let base_assets = workspace.visible_assets.iter().cloned().collect::<Vec<_>>();
+    let mut all_assets = base_assets.clone();
     for copy in 1..3 {
         for asset in &base_assets {
             let mut repeated = asset.clone();
@@ -237,9 +238,10 @@ fn browser_list_workspace() -> AssetWorkspaceSnapshot {
             repeated.display_name = format!("copy_{copy}_{}", asset.display_name);
             repeated.file_name = repeated.display_name.clone();
             repeated.selected = false;
-            workspace.visible_assets.push(repeated);
+            all_assets.push(repeated);
         }
     }
+    workspace.visible_assets = all_assets.into();
     workspace
 }
 

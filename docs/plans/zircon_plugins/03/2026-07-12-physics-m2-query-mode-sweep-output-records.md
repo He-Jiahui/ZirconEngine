@@ -25,7 +25,7 @@
 | Windows feature-on Physics 全量 | managed job `1097ab1322664963a9d752a3eea20958`；library 27/27、integration 35/35、doc tests 0，合计 62/62 |
 | 共享 Runtime/Animation 消费者及补充重建 | managed 尝试超过 124 秒、304 秒与 244 秒预算；当时同一工作树存在多个长期 rustc/cargo lane，记为基础设施超时，不认领通过，也不归因产品失败；接受证据仍以此前完成的 62/62 为准 |
 | 格式与 diff | scoped rustfmt 通过；`git diff --check` 通过 |
-| 插件结构审计 | `tools/audit_plugin_structure.py --json` 通过，manifest/capability/registration/distribution 等违规计数均为 0 |
+| 插件结构审计 | `tools/audits/audit_plugin_structure.py --json` 通过，manifest/capability/registration/distribution 等违规计数均为 0 |
 | 计划产出审计 | 新增的 03 产出记录未触发违规；全仓仍报告 23 项其他计划族的既有/并发问题，本切片未越权修改 |
 
 ## 能力边界

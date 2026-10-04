@@ -1,5 +1,5 @@
 const HOST_REQUESTS: &str =
-    include_str!("../../zircon_runtime_interface/src/runtime_api/host_requests.rs");
+    include_str!("../../zircon_runtime_interface/src/runtime_api/host/host_requests.rs");
 const GAMEPLAY_HOST: &str = include_str!("../src/script/vm/gameplay_host.rs");
 const SCENE_TRANSITION: &str = include_str!("../src/script/vm/gameplay_host/scene_transition.rs");
 

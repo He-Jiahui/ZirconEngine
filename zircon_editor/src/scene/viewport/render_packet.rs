@@ -74,7 +74,12 @@ pub(in crate::scene::viewport) fn build_scene_gizmos(
         return Vec::new();
     }
 
-    let mut gizmos = Vec::new();
+    let gizmo_capacity = scene
+        .nodes()
+        .iter()
+        .filter(|node| matches!(node.kind, NodeKind::Camera | NodeKind::DirectionalLight))
+        .count();
+    let mut gizmos = Vec::with_capacity(gizmo_capacity);
     for node in scene.nodes() {
         if !matches!(node.kind, NodeKind::Camera | NodeKind::DirectionalLight) {
             continue;
@@ -240,5 +245,5 @@ fn build_directional_light_gizmo(
 }
 
 #[cfg(test)]
-#[path = "render_packet/reused_overlay_storage_tests.rs"]
+#[path = "render_packet/tests/reused_overlay_storage_tests.rs"]
 mod reused_overlay_storage_tests;

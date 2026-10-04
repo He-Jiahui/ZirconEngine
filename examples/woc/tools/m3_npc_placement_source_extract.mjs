@@ -1,5 +1,7 @@
+// 从固定版本 WOC 源码中提取静态 NPC 的世界坐标与朝向，供 m3_npc_placement_codegen.mjs 消费。
 const data = await import('wocgit:///src/sim/data.ts');
 
+// 生成代码前将静态 NPC 位置与动态 NPC 分开。
 const entries = Object.entries(data.NPCS).map(([id, definition]) => {
   if (!definition.pos || !Number.isFinite(definition.pos.x) || !Number.isFinite(definition.pos.z)) {
     throw new Error(`NPC ${id} has no finite source position`);

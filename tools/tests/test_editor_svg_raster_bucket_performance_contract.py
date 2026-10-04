@@ -1,3 +1,4 @@
+# 核对界面矢量图标统一走打包资源与有界尺寸桶，避免手工像素网格回退。
 import re
 import unittest
 from pathlib import Path

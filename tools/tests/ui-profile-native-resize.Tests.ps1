@@ -1,6 +1,7 @@
-$script:ResizeModule = Join-Path $PSScriptRoot '..\ui-profile-native-resize.ps1'
-$script:CaptureScript = Join-Path $PSScriptRoot '..\ui-profile-capture.ps1'
-$script:CounterEvidenceModule = Join-Path $PSScriptRoot '..\ui-profile-counter-evidence.ps1'
+# 验证原生窗口缩放序列、进程资源样本与采集证据的边界。
+$script:ResizeModule = Join-Path $PSScriptRoot '..\profiling\ui\ui-profile-native-resize.ps1'
+$script:CaptureScript = Join-Path $PSScriptRoot '..\profiling\ui\ui-profile-capture.ps1'
+$script:CounterEvidenceModule = Join-Path $PSScriptRoot '..\profiling\ui\ui-profile-counter-evidence.ps1'
 
 Describe 'UI profile native resize contract' {
     It 'builds a bounded deterministic resize sequence that returns to the original extent' {

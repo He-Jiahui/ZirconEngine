@@ -93,5 +93,5 @@ fn packaging_strategy_label(strategy: &ExportPackagingStrategy) -> &'static str 
 }
 
 #[cfg(test)]
-#[path = "constructors/single_buffer_tests.rs"]
+#[path = "constructors/tests/single_buffer_tests.rs"]
 mod single_buffer_tests;

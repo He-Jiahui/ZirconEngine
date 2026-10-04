@@ -3,6 +3,7 @@ use crate::plugin::RuntimeExtensionRegistryError;
 
 use super::is_lowercase_plugin_token;
 
+// 管理器按包级 token 归属；此验证在 intern owner 前运行，避免失败登记污染名称表。
 pub(in crate::plugin::extension_registry) fn validate_manager_plugin_id(
     plugin_id: &str,
 ) -> Result<(), RuntimeExtensionRegistryError> {
@@ -14,6 +15,7 @@ pub(in crate::plugin::extension_registry) fn validate_manager_plugin_id(
     Ok(())
 }
 
+// 模块描述符的名称与说明可用自由文本，但注册前必须非空且无外侧空白。
 pub(in crate::plugin::extension_registry) fn validate_module_descriptor(
     descriptor: &ModuleDescriptor,
 ) -> Result<(), RuntimeExtensionRegistryError> {
@@ -40,5 +42,5 @@ fn module_field_is_valid(value: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "runtime_core/single_trim_tests.rs"]
+#[path = "runtime_core/tests/single_trim_tests.rs"]
 mod single_trim_tests;

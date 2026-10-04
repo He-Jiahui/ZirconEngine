@@ -1,3 +1,4 @@
+//! chrome确定页面/抽屉/浮窗身份，菜单模型确定可调用叶项；路由在此之后补齐。
 use crate::ui::{
     EditorActivityHost, EditorDrawerReflectionModel, EditorHostPageReflectionModel,
     EditorMenuItemReflectionModel, EditorWorkbenchReflectionModel,
@@ -14,6 +15,7 @@ use super::activity_collection::{
 };
 use super::name_mapping::{drawer_slot_name, menu_id};
 
+/// 把当前chrome和菜单合并成待注册的反射模型；调用方随后登记路由再发布快照。
 pub fn build_workbench_reflection_model(
     chrome: &EditorChromeSnapshot,
     view_model: &WorkbenchViewModel,
@@ -87,6 +89,7 @@ pub fn build_workbench_reflection_model(
     model
 }
 
+/// 仅叶子菜单成为反射动作，保持菜单递归顺序和原有命令绑定。
 fn menu_reflection_items(menus: &[MenuModel]) -> Vec<EditorMenuItemReflectionModel> {
     let mut reflected = Vec::with_capacity(menu_reflection_leaf_count(menus));
     for menu in menus {
@@ -144,5 +147,5 @@ fn append_menu_reflection_item(
 }
 
 #[cfg(test)]
-#[path = "model_build/capacity_tests.rs"]
+#[path = "model_build/tests/capacity_tests.rs"]
 mod capacity_tests;

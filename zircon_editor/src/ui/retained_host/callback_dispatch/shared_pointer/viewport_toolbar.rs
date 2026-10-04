@@ -3,6 +3,7 @@ use std::sync::Arc;
 use zircon_runtime_interface::ui::layout::UiPoint;
 use zircon_runtime_interface::ui::surface::UiSurfaceFrame;
 
+use crate::core::editor_event::ViewInstanceId;
 use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::{
     event_bridge::UiHostEventEffects,
@@ -26,6 +27,7 @@ pub(crate) fn dispatch_shared_viewport_toolbar_pointer_click(
     bridge: &BuiltinViewportToolbarTemplateBridge,
     pointer_bridge: &mut ViewportToolbarPointerBridge,
     surface_key: &str,
+    view_id: &ViewInstanceId,
     control_id: &str,
     control_x: f32,
     control_y: f32,
@@ -52,8 +54,8 @@ pub(crate) fn dispatch_shared_viewport_toolbar_pointer_click(
     ) {
         Ok(pointer) => pointer,
         Err(error) if error.contains("Unknown viewport toolbar control") => {
-            let effects =
-                dispatch_projection_control(runtime, bridge, control_id).ok_or(error)??;
+            let effects = dispatch_projection_control(runtime, bridge, control_id, view_id)
+                .ok_or(error)??;
             return Ok(SharedViewportToolbarPointerClickDispatch {
                 pointer: ViewportToolbarPointerDispatch { route: None },
                 effects: Some(effects),
@@ -64,7 +66,7 @@ pub(crate) fn dispatch_shared_viewport_toolbar_pointer_click(
     let effects = pointer
         .route
         .as_ref()
-        .map(|route| dispatch_viewport_toolbar_pointer_route(runtime, bridge, route))
+        .map(|route| dispatch_viewport_toolbar_pointer_route(runtime, bridge, route, view_id))
         .transpose()?;
     Ok(SharedViewportToolbarPointerClickDispatch { pointer, effects })
 }
@@ -74,6 +76,7 @@ pub(crate) fn dispatch_shared_viewport_toolbar_pointer_click_at_point(
     bridge: &BuiltinViewportToolbarTemplateBridge,
     pointer_bridge: &mut ViewportToolbarPointerBridge,
     surface_key: &str,
+    view_id: &ViewInstanceId,
     surface_frame: &Arc<UiSurfaceFrame>,
     point: UiPoint,
 ) -> Result<SharedViewportToolbarPointerClickDispatch, String> {
@@ -82,7 +85,7 @@ pub(crate) fn dispatch_shared_viewport_toolbar_pointer_click_at_point(
     let effects = pointer
         .route
         .as_ref()
-        .map(|route| dispatch_viewport_toolbar_pointer_route(runtime, bridge, route))
+        .map(|route| dispatch_viewport_toolbar_pointer_route(runtime, bridge, route, view_id))
         .transpose()?;
     Ok(SharedViewportToolbarPointerClickDispatch { pointer, effects })
 }
@@ -91,6 +94,7 @@ fn dispatch_projection_control(
     runtime: &EditorHostEventController,
     bridge: &BuiltinViewportToolbarTemplateBridge,
     control_id: &str,
+    view_id: &ViewInstanceId,
 ) -> Option<Result<UiHostEventEffects, String>> {
     for event_kind in [
         zircon_runtime_interface::ui::binding::UiEventKind::Click,
@@ -103,6 +107,7 @@ fn dispatch_projection_control(
                 control_id,
                 event_kind,
                 Vec::new(),
+                Some(view_id),
             );
         }
     }

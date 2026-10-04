@@ -16,7 +16,11 @@ PAINT_NODES = (
 
 
 def function_body(source: str, function_name: str) -> str:
-    match = re.search(rf"\bfn\s+{re.escape(function_name)}\s*\(", source)
+    match = re.search(
+        rf"\bfn\s+{re.escape(function_name)}(?![A-Za-z0-9_])\s*\(.*?\)",
+        source,
+        re.S,
+    )
     if match is None:
         raise AssertionError(f"missing function {function_name}")
     opening = source.find("{", match.end())
@@ -58,7 +62,7 @@ class EditorSingleAllocationPaintCacheKeysPerformanceContractTests(
         self.assertNotIn("to_string", body)
 
     def test_progress_key_writes_into_one_exactly_sized_string(self) -> None:
-        body = function_body(self.progress_key, "circular_progress_image_key")
+        body = function_body(self.progress_key, "circular_progress_image_key_for_target")
         compact = re.sub(r"\s+", "", body)
         self.assertEqual(body.count("String::with_capacity"), 1)
         self.assertIn("circular_progress_image_key_capacity", body)

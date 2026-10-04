@@ -31,7 +31,7 @@ fn write_export_diagnostics(output_root: &Path, diagnostics: &mut Vec<String>) {
 }
 
 fn normalize_export_diagnostics(diagnostics: &mut Vec<String>) {
-    let mut seen = HashSet::new();
+    let mut seen = HashSet::with_capacity(diagnostics.len());
     diagnostics.retain(|diagnostic| {
         let diagnostic = diagnostic.trim();
         !diagnostic.is_empty() && seen.insert(diagnostic.to_string())
@@ -138,5 +138,9 @@ fn push_command(diagnostic: &mut String, command: &[String]) {
 }
 
 #[cfg(test)]
-#[path = "diagnostics/command_buffer_tests.rs"]
+#[path = "diagnostics/tests/command_buffer_tests.rs"]
 mod command_buffer_tests;
+
+#[cfg(test)]
+#[path = "diagnostics/tests/optimization_batch_is_editor629_tests.rs"]
+mod optimization_batch_is_editor629_tests;

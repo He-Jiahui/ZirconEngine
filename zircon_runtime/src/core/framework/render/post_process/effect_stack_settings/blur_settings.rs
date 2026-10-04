@@ -1,5 +1,6 @@
 use crate::core::math::Real;
 
+/// 由相机或体积覆盖的模糊半径；效果栈仅在正半径时加入模糊节点。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RenderBlurSettings {
     pub radius: Real,
@@ -22,17 +23,5 @@ impl RenderBlurSettings {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::RenderBlurSettings;
-
-    #[test]
-    fn blur_settings_use_explicit_enable_predicate_and_clamp_upload_radius() {
-        let disabled = RenderBlurSettings { radius: -1.0 };
-        let enabled = RenderBlurSettings { radius: 2.5 };
-
-        assert!(!disabled.is_enabled());
-        assert_eq!(disabled.render_radius(), 0.0);
-        assert!(enabled.is_enabled());
-        assert_eq!(enabled.render_radius(), 2.5);
-    }
-}
+#[path = "tests/blur_settings.rs"]
+mod tests;

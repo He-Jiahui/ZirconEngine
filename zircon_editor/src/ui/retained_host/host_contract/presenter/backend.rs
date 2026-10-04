@@ -43,18 +43,5 @@ fn profile_force_softbuffer() -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn retained_host_defaults_to_gpu_backend() {
-        assert_eq!(
-            HostPresenterBackend::default_native(),
-            HostPresenterBackend::Gpu
-        );
-        assert_eq!(
-            HostPresenterBackend::fallback(),
-            HostPresenterBackend::Softbuffer
-        );
-    }
-}
+#[path = "tests/backend.rs"]
+mod tests;

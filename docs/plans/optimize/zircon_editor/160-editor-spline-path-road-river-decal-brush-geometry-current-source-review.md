@@ -29,7 +29,6 @@ related_code:
   - zircon_runtime/src/scene/world/project_io
   - zircon_editor/src/scene
   - zircon_editor/src/ui/binding_dispatch/inspector
-  - zircon_editor/src/tests/editing/reflected_command.rs
   - zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_material_workspace.zui
   - tools/editor-workbench-preview/design.js
   - examples/woc/contracts/m3_terrain_content.json

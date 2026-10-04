@@ -1,3 +1,4 @@
+# 原生动态发行 crate：只打包运行时入口和 SDK ABI 导出；宿主仍按发行清单选择并校验制品。
 [package]
 name = "zircon_plugin_animation_dist"
 version.workspace = true

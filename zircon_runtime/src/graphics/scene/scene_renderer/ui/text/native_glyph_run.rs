@@ -9,13 +9,13 @@ use crate::graphics::scene::scene_renderer::ui::render::{
 use crate::graphics::scene::scene_renderer::ui::sdf_render::resolved_horizontal_shaped_glyph_advances;
 use crate::graphics::scene::scene_renderer::ui::text_pixel_snap::text_frame_device_origin;
 use crate::text::atlas::{
-    GlyphAtlasFormat, GlyphHintingMode, GlyphRasterKey, GlyphRasterRequest, GlyphSmoothingMode,
-    SyntheticGlyphStyle, render_plan::GlyphAtlasScreenRect,
+    render_plan::GlyphAtlasScreenRect, GlyphAtlasFormat, GlyphHintingMode, GlyphRasterKey,
+    GlyphRasterRequest, GlyphSmoothingMode, SyntheticGlyphStyle,
 };
 use crate::text::font::resolve_font_handle_batch;
 use crate::text::native_bitmap_atlas::{NativeBitmapAtlasGlyph, NativeBitmapAtlasGlyphRun};
 
-use super::font_id_report::{ScreenSpaceUiTextFontIdReport, accumulate_resolved_glyph_faces};
+use super::font_id_report::{accumulate_resolved_glyph_faces, ScreenSpaceUiTextFontIdReport};
 
 #[derive(Default)]
 pub(in crate::graphics::scene::scene_renderer::ui) struct NativeBitmapAtlasGlyphRunProjection {
@@ -300,80 +300,5 @@ fn sanitized_finite(value: f32) -> f32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        UiFrame, UiTextAlign, UiTextDirection, aligned_device_text_start_x,
-        native_bitmap_atlas_relative_baseline, vertical_subpixel_bin,
-    };
-
-    #[test]
-    fn native_bitmap_glyph_run_retains_four_vertical_raster_phases() {
-        assert_eq!(vertical_subpixel_bin(12.0), 0);
-        assert_eq!(vertical_subpixel_bin(12.26), 1);
-        assert_eq!(vertical_subpixel_bin(12.51), 2);
-        assert_eq!(vertical_subpixel_bin(12.76), 3);
-    }
-
-    #[test]
-    fn native_bitmap_glyph_run_keeps_logical_start_end_alignment_after_device_origin_snap() {
-        let frame = UiFrame::new(10.0, 7.0, 100.0, 24.0);
-
-        assert_eq!(
-            aligned_device_text_start_x(
-                frame,
-                UiTextAlign::Start,
-                UiTextDirection::LeftToRight,
-                30.0,
-            ),
-            10.0
-        );
-        assert_eq!(
-            aligned_device_text_start_x(
-                frame,
-                UiTextAlign::Center,
-                UiTextDirection::LeftToRight,
-                f32::NAN,
-            ),
-            60.0
-        );
-        assert_eq!(
-            aligned_device_text_start_x(
-                frame,
-                UiTextAlign::Start,
-                UiTextDirection::RightToLeft,
-                30.0,
-            ),
-            80.0
-        );
-        assert_eq!(
-            aligned_device_text_start_x(
-                frame,
-                UiTextAlign::End,
-                UiTextDirection::LeftToRight,
-                30.0,
-            ),
-            80.0
-        );
-        assert_eq!(
-            aligned_device_text_start_x(
-                frame,
-                UiTextAlign::End,
-                UiTextDirection::RightToLeft,
-                30.0,
-            ),
-            10.0
-        );
-    }
-
-    #[test]
-    fn native_bitmap_glyph_run_prefers_layout_decoration_baseline_and_sanitizes_invalid_input() {
-        assert_eq!(
-            native_bitmap_atlas_relative_baseline(Some(35.0), 20.0, 30.0, 20.0),
-            15.0
-        );
-        assert_eq!(
-            native_bitmap_atlas_relative_baseline(Some(f32::NAN), 20.0, 30.0, 20.0),
-            21.0
-        );
-    }
-}
+#[path = "tests/native_glyph_run.rs"]
+mod tests;

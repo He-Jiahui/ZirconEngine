@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 
-use zircon_runtime_interface::ui::v2::{UI_V2_ASSET_SCHEMA_VERSION, UiV2AssetKind};
+use zircon_runtime_interface::ui::v2::{UiV2AssetKind, UI_V2_ASSET_SCHEMA_VERSION};
 
-use super::push_asset_header_metadata_offenders;
+use super::metadata::push_asset_header_metadata_offenders;
 use super::support::{
     collect_zui_document_files, editor_asset_root, load_zui_document, resource_locator_for_path,
     runtime_asset_root,

@@ -1,11 +1,17 @@
 fn runtime_process_exit_code(
     result: Result<(), Box<dyn std::error::Error>>,
-) -> zircon_app::ProductProcessExitCode {
+) -> zircon_app::ProductTerminalOutcome {
     match result {
-        Ok(()) => zircon_app::ProductProcessExitCode::Success,
+        Ok(()) => zircon_app::ProductTerminalOutcome::host(
+            zircon_app::ProductExitClass::Success,
+            "runtime_completed",
+        ),
         Err(error) => {
             eprintln!("{error}");
-            zircon_app::ProductProcessExitCode::failure()
+            zircon_app::ProductTerminalOutcome::host(
+                zircon_app::ProductExitClass::UnclassifiedFailure,
+                "runtime_runner_failed",
+            )
         }
     }
 }
@@ -25,21 +31,22 @@ fn main() -> std::process::ExitCode {
     }
     let process_log_shutdown_completed =
         shutdown_process_log(DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT);
-    runtime_process_exit_code_after_log_shutdown(exit_code, process_log_shutdown_completed).into()
+    runtime_process_exit_code_after_log_shutdown(exit_code, process_log_shutdown_completed)
+        .exit_code()
+        .into()
 }
 
 fn runtime_process_exit_code_after_log_shutdown(
-    exit_code: zircon_app::ProductProcessExitCode,
+    mut exit_code: zircon_app::ProductTerminalOutcome,
     process_log_shutdown_completed: bool,
-) -> zircon_app::ProductProcessExitCode {
-    if process_log_shutdown_completed {
-        return exit_code;
+) -> zircon_app::ProductTerminalOutcome {
+    if !process_log_shutdown_completed {
+        eprintln!(
+            "runtime startup diagnostic: component=diagnostic_log requested=process-log-shutdown cause=log flush timed out or an output failed recovery=inspect the process log output and retry zircon_runtime"
+        );
     }
-
-    eprintln!(
-        "runtime startup diagnostic: component=diagnostic_log requested=process-log-shutdown cause=log flush timed out or an output failed recovery=inspect the process log output and retry zircon_runtime"
-    );
-    zircon_app::ProductProcessExitCode::failure()
+    exit_code.observe_diagnostic_log_shutdown(process_log_shutdown_completed);
+    exit_code
 }
 
 fn runtime_process_failure_teardown_diagnostic<E>(result: &Result<(), E>) -> Option<&'static str> {
@@ -49,62 +56,5 @@ fn runtime_process_failure_teardown_diagnostic<E>(result: &Result<(), E>) -> Opt
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        runtime_process_exit_code, runtime_process_exit_code_after_log_shutdown,
-        runtime_process_failure_teardown_diagnostic,
-    };
-
-    #[test]
-    fn completed_process_log_shutdown_preserves_the_runtime_exit_code() {
-        assert_eq!(
-            runtime_process_exit_code_after_log_shutdown(
-                zircon_app::ProductProcessExitCode::Success,
-                true
-            ),
-            zircon_app::ProductProcessExitCode::Success
-        );
-    }
-
-    #[test]
-    fn process_log_shutdown_failure_overrides_a_successful_runtime_exit() {
-        assert_eq!(
-            runtime_process_exit_code_after_log_shutdown(
-                zircon_app::ProductProcessExitCode::Success,
-                false
-            )
-            .code(),
-            1
-        );
-    }
-
-    #[test]
-    fn successful_runtime_process_returns_success() {
-        let exit_code = runtime_process_exit_code(Ok(()));
-
-        assert_eq!(exit_code, zircon_app::ProductProcessExitCode::Success);
-    }
-
-    #[test]
-    fn failed_runtime_process_returns_failure() {
-        let exit_code = runtime_process_exit_code(Err(std::io::Error::other(
-            "expected runtime startup failure",
-        )
-        .into()));
-
-        assert_eq!(exit_code.code(), 1);
-    }
-
-    #[test]
-    fn failed_runtime_process_reports_completed_top_level_teardown() {
-        assert_eq!(
-            runtime_process_failure_teardown_diagnostic(&Err::<(), ()>(())),
-            Some("runtime_process_teardown_complete result=failed exit_code=1")
-        );
-        assert_eq!(
-            runtime_process_failure_teardown_diagnostic(&Ok::<(), ()>(())),
-            None,
-            "successful teardown is already reported by EntryRunner"
-        );
-    }
-}
+#[path = "tests/runtime_preview.rs"]
+mod tests;

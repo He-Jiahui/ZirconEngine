@@ -22,8 +22,8 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/09e-direct-lighting-clustered-shadow-review.md
   - docs/plans/optimize/zircon_runtime/09f1-environment-sky-ibl-reflection-probe-review.md
   - docs/plans/optimize/zircon_runtime/09f2-baked-lighting-lightmap-irradiance-volume-review.md
-  - docs/assets-and-rendering/hybrid-gi-lumen-scene-representation.md
-  - docs/zircon_plugins/hybrid_gi/usage.md
+  - docs/rendering/hybrid-gi-lumen-scene-representation.md
+  - docs/crates/zircon_plugins/hybrid_gi/usage.md
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/Lumen/LumenScene.cpp
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/Lumen/LumenSceneData.h

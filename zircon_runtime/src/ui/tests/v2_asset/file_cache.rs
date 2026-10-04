@@ -1,4 +1,24 @@
+//! 验证文件原型缓存复用导入闭包与持久化结果，依赖变化和显式重载触发再编译。
 use super::*;
+
+#[test]
+fn ui_v2_source_paths_from_workspace_files_are_repo_relative_and_slash_normalized() {
+    let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap();
+    let source_path = workspace_root
+        .join("zircon_editor")
+        .join("assets")
+        .join("ui")
+        .join("editor")
+        .join("windows")
+        .join("workbench_window.zui");
+
+    assert_eq!(
+        crate::ui::v2::source_path_identity_for_path(&source_path).as_deref(),
+        Some("zircon_editor/assets/ui/editor/windows/workbench_window.zui")
+    );
+}
 
 #[test]
 fn ui_v2_file_cache_reuses_compiled_store_and_resolves_transitive_styles() {
@@ -77,6 +97,14 @@ material_color = "#abcdef"
     assert_eq!(second.root_asset_id, "ui.editor.layout");
     assert!(second.store.get("res://ui/theme/base.zui").is_some());
     assert!(second.store.get("res://ui/theme/material.zui").is_some());
+    assert_eq!(
+        second.store.source_path_for_asset_id("ui.editor.layout"),
+        Some("res://ui/editor/layout.zui")
+    );
+    assert_eq!(
+        second.store.source_path_for_asset_id("ui.theme.material"),
+        Some("res://ui/theme/material.zui")
+    );
     assert!(Arc::ptr_eq(&first.compiled, &second.compiled));
     assert_eq!(cache.len(), 1);
 
@@ -159,6 +187,16 @@ set = { self = { foreground_color = "#123456" } }
     assert!(second.persistent_cache_hit);
     assert_eq!(second.root_asset_id, "ui.editor.persistent_layout");
     assert!(second.store.get("res://ui/theme/persistent.zui").is_some());
+    assert_eq!(
+        second
+            .store
+            .source_path_for_asset_id("ui.editor.persistent_layout"),
+        Some("res://ui/editor/layout.zui")
+    );
+    assert_eq!(
+        second.store.source_path_for_asset_id("ui.theme.persistent"),
+        Some("res://ui/theme/persistent.zui")
+    );
     let surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
         UiTreeId::new("runtime.ui.v2.persistent_cache"),
         second.root_document.as_ref(),

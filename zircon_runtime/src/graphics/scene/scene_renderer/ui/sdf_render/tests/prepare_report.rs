@@ -1,8 +1,9 @@
 use super::*;
 
 #[test]
-fn sdf_renderer_uses_persistent_capacity_managed_vertex_buffer() {
+fn sdf_renderer_uses_segment_products_and_capacity_managed_partial_vertex_writes() {
     let renderer = include_str!("../../sdf_render.rs");
+    let segment_products = include_str!("../segment_product.rs");
     let text_system = include_str!("../../text.rs");
     let cpu_frame = include_str!("../../text/sdf_cpu_frame.rs");
     let buffer = include_str!("../vertex_buffer.rs");
@@ -11,18 +12,21 @@ fn sdf_renderer_uses_persistent_capacity_managed_vertex_buffer() {
     assert!(renderer.contains("write_sdf_vertex_buffer("));
     assert!(renderer.contains("vertices: Vec<ScreenSpaceUiSdfVertex>"));
     assert!(renderer.contains("self.vertices.clear();"));
-    assert!(renderer.contains("self.draw_plan.rebuild("));
-    assert!(renderer.contains("self.compiled_frame.matches("));
+    assert!(renderer.contains("self.compiled_segments.prepare("));
+    assert!(renderer.contains("write_sdf_vertex_buffer_ranges("));
+    assert!(renderer.contains("self.material.prepare_ranges("));
+    assert!(segment_products.contains("fn patch_retained_frame("));
+    assert!(segment_products.contains("journal.changed_segment_indices()"));
     assert!(!renderer.contains("let mut vertices = build_text_decoration_vertices"));
     assert!(!renderer.contains("text_state.build_sdf_atlas"));
     assert!(!renderer.contains("generation_failures_for_plan"));
     assert!(!renderer.contains("prepare_text_runs_cpu_for_frame"));
     assert!(renderer.contains("atlas_bake: &SdfAtlasBake"));
-    assert!(text_system.contains("let mut sdf_atlas_bake = self.text_state.build_sdf_atlas("));
     assert!(
-        text_system.contains("record_generation_failures(&sdf_atlas_bake.generation_failures)")
+        text_system.contains("let mut sdf_atlas_bake = self.text_state.build_sdf_atlas_retained(")
     );
-    assert!(text_system.contains("self.sdf_cpu_frame.prepare("));
+    assert!(text_system.contains("record_generation_failures(&sdf_atlas_bake.generation_failures)"));
+    assert!(text_system.contains("self.sdf_cpu_frame.prepare_retained_frame("));
     assert!(text_system.contains("self.sdf_cpu_frame.invalidate();"));
     assert!(cpu_frame.contains("prepared_sdf_texts"));
     assert!(cpu_frame.contains("prepared_native_texts"));
@@ -144,11 +148,18 @@ fn sdf_prepare_report_summarizes_atlas_bake_and_vertices() {
         SdfVertexBufferWriteReport {
             capacity_byte_len: 4 * 1024,
             create_count: 1,
+            write_count: 1,
             write_byte_len: 720,
         },
+        SdfMaterialBufferWriteReport::default(),
         false,
         false,
         0,
+        SdfCompiledTextPrepareReport {
+            full_rebuild: true,
+            ..Default::default()
+        },
+        [0; 3],
         &draw_plan,
     );
 
@@ -197,11 +208,19 @@ fn sdf_prepare_report_summarizes_atlas_bake_and_vertices() {
             vertex_count: 12,
             vertex_buffer_capacity_byte_len: 4 * 1024,
             vertex_buffer_create_count: 1,
+            vertex_buffer_write_count: 1,
             vertex_buffer_write_byte_len: 720,
+            material_buffer_create_count: 0,
+            material_buffer_write_count: 0,
+            material_buffer_write_byte_len: 0,
             cpu_plan_build_count: 1,
             cpu_plan_reuse_count: 0,
             vertex_plan_build_count: 1,
             vertex_plan_reuse_count: 0,
+            compiled_segment_visit_count: 0,
+            compiled_vertex_visit_count: 0,
+            compiled_material_visit_count: 0,
+            compiled_full_rebuild_count: 1,
             decoration_vertex_count: 0,
             material_count: 0,
             draw_count: 0,
@@ -228,11 +247,15 @@ fn sdf_prepare_report_summarizes_atlas_allocation_failures() {
         1,
         SdfAtlasBakeReport::default(),
         SdfAtlasUploadReport::default(),
+        false,
         0,
         SdfVertexBufferWriteReport::default(),
+        SdfMaterialBufferWriteReport::default(),
         false,
         false,
         0,
+        SdfCompiledTextPrepareReport::default(),
+        [0; 3],
         &SdfTextMaterialDrawPlan::default(),
     );
 

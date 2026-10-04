@@ -25,7 +25,6 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/import_texture.rs
   - zircon_runtime/src/asset/importer/ingest/import_sound.rs
   - zircon_runtime/src/asset/importer/ingest/import_data_asset.rs
-  - zircon_runtime/src/asset/importer/ingest/import_ui_v2_asset.rs
   - zircon_runtime/src/asset/importer/ingest/model_mesh_subassets.rs
   - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
   - zircon_runtime/src/asset/importer/ingest/import_from_source.rs
@@ -89,13 +88,51 @@ source_recheck_required: true
 
 当前实现不是“只有壳”。Texture importer已有较完整的DDS/KTX1/KTX2/ASTC结构校验、metadata检查、cubemap/array manifest、离线mip和BC5路径；Runtime内建glTF已经能产生Texture、Material、Mesh、Scene、AnimationClip、AnimationSkeleton、Skin与inverse-bind subasset；新Audio importer能从内存快照解码WAV及Symphonia codec，并保留常见channel layout；registry也有COW generation、重复matcher拒绝、available优先和确定性排序。这些基础应保留。
 
-但产品链目前存在更严重的“新插件比内建实现更差”问题。`AssetImporter::default()`注册版本2、优先级10的内建glTF，能生成真实动画；first-party catalog唯一链接的导入器却是版本1、优先级120的`gltf_importer`，它会遮蔽内建实现，并把每个动画写成文本为“not implemented yet”的`DataAsset`。同一稳定package还绕过`context.source_bytes`，用`gltf::import(&source_path)`重新读主文件及外部文件，导致导入结果不再绑定调用者读取的source snapshot，也没有把外部buffer/image登记为source dependency。
+但产品链仍存在“provider authority 与 artifact 语义分叉”问题。`AssetImporter::default()`与 first-party `gltf_importer` 当前都使用 schema 2 级的共享 `add_gltf_animation_and_skin_subassets`，均能生成 typed `AnimationClip`/`AnimationSkeleton`；first-party catalog 的 priority 120 仍会遮蔽内建 priority 10，且 Skin/inverse-bind 仍发布为 generic `Data`，所以 importer clip 修复不能被当作完整 deformation 闭环。稳定 plugin 现在消费 `context.source_bytes` 的 preflight/blob 路径并校验 external buffer/image，历史“重新读取 source path”的断言不再描述当前实现；source dependency graph、唯一 provider 与 typed SkinBinding 仍未闭合。
 
 Texture importer当前tracked baseline还包含确定的源码级编译阻断：`downsample_box_color_pixel`多了未使用的`kaiser_normalizer`参数，`downsample_kaiser_color_pixel`使用未声明的同名变量，fallback调用又少传一个参数。与此同时KTX2 zstd/zlib解压上限直接取文件声明的`expected_length + 1`，没有独立的工程预算，恶意或损坏输入可驱动大内存分配。模型helper也在生成normal时用文件索引直接访问position，没有在边界前验证index。
 
 新OBJ importer丢弃`tobj`返回的全部material，因而`.mtl`、材质绑定和纹理依赖完全消失；Texture cubemap/array manifest通过`std::fs::read`直接读取相邻文件但不写import dependency；Audio codec把整段音频展开成`Vec<f32>`，忽略loop/marker/loudness/多轨且把部分decode error直接跳过；Opus新旧两条高优先级路径都只是diagnostic importer，没有实际decoder。旧`asset_importers`又同时保留声明-only、diagnostic-only和少量真实STL/PLY/DXF/Data实现，形成未完成的双轨迁移。
 
-Plugins01继续拥有native ABI、load-before-admission与dist空壳父问题；Plugins06拥有30包catalog/profile closure；Runtime04拥有通用asset identity、registry transaction、artifact/load/reload；Runtime08B/08C拥有runtime audio/animation；Editor04拥有导入UI与reimport工作流。本文只拥有具体first-party importer family的source snapshot、外部source dependency、subasset identity、格式语义、资源预算、确定性、内建/插件实现收敛和格式级产品资格。本轮登记 **5项P0、72项P1和16项P2**；只写review与重构计划，不修改production/tests。
+Plugins01继续拥有native ABI、load-before-admission与dist空壳父问题；Plugins06拥有30包catalog/profile closure；Runtime04拥有通用asset identity、registry transaction、artifact/load/reload；Runtime08B/08C拥有runtime audio/animation；Editor04拥有导入UI与reimport工作流。本文只拥有具体first-party importer family的source snapshot、外部source dependency、subasset identity、格式语义、资源预算、确定性、内建/插件实现收敛和格式级产品资格。本轮登记 **5项P0、72项P1和16项P2**；当前实施切片只在已登记 owner 内补充可验证的 importer/runtime contract，完整格式迁移与产品资格仍按下述依赖推进。
+
+### 1.1 当前实施跟踪（2026-09-18）
+
+- `IMP-P0-002` / `IMP-P1-021`：`implemented_pending_validation`。高优先级
+  `gltf_importer` 不再维护动画占位符；它委托 Runtime 已有的
+  `add_gltf_animation_and_skin_subassets`，因此动画输出为 typed
+  `AnimationClipAsset`、`AnimationSkeletonAsset`、Skin metadata 与 inverse-bind
+  data，而不是带“not implemented yet”文字的 `DataAsset`。
+- 该委托保留 Runtime 作为唯一的动画/骨架转换 owner，插件只负责解析后的
+  provider 装配；插件回归已改为锁定 typed clip、skeleton、skin 引用和 transform
+  channel。受管 Rust 回归仍待结果，故本条不得标为 accepted。
+- 该窄修复不关闭 `IMP-P0-004` 或 `IMP-P1-011..020`：外部 source 的 snapshot
+  admission、dependency receipt、path containment 和全链 product/render 验收仍是
+  独立的未完成合同。
+- `IMP-P1-060`：`implemented_pending_validation`。XML data importer 在保持既有
+  neutral-tree 字段的同时，按需保留 namespace、ordered attributes、mixed content、
+  comments/processing instructions 与 UTF-8 source spans；ordered metadata fixture 和
+  legacy-tree parity regression 已加入，真实 product schema 语义仍不视为已验收。
+- `IMP-P1-061`：`implemented_pending_validation`。Registry 现在将 typed
+  `ImportedAsset::direct_references()`（含 `.zui` imports、styles、资源和 fallback）
+  合并进每个 import entry 的 dependency 列表；UI document importer 同时只接受
+  canonical persisted asset URI，按现有 `ui_v2_asset_references` 规则把组件 label
+  归一到文件级 locator，并对路径归一化结果与 `mem://` 等 transient scheme fail-closed；
+  新增 UI document regression fixture。
+  受管 `zircon_runtime` 验证请求 `fdb1da9543da410fb53874d4e67dc877` 仍被
+  coordinator 的 `unmanaged_artifacts_detected` gate（`D:\ZirconBuilds\mvp-test-fixtures-28916`）
+  拒绝，因此本条不能标为 accepted。
+- `IMP-P1-062`：`partially_implemented`。`.zui` importer 现在把已解析的
+  source schema version 与 target version 写入统一 `AssetSchemaMigrationReport`，因此
+  current-schema import entry 可追踪到 schema receipt；`UiZuiAssetLoader` 仍对旧/未来
+  版本 fail-closed。真正的旧版本转换链、source-span diagnostics 与 save/reopen
+  roundtrip 仍由 O03/O10 后续 slice 负责，不能把当前 receipt 当作完整 migration 完成。
+  复现记录见 `docs/plans/astra/optimize/01/2026-09-18-ui-document-importer-schema-receipt.md`。
+- 2026-09-19 本地证据：插件/Frameworks05 asset 边界回归 `20/20`，hard-cutover
+  smell 审计与 Rustfmt/diff-check 通过；本轮 UI importer/capability/owner focused
+  回归为 `22/22`（含旧/未来 schema 的 fail-closed 回归）；全量工具静态回归快照为 `5926` 项、其中
+  importer/registry 之外仅有已登记的 Text03 owner 边界失败；修复审计误报后已重跑
+  hard-cutover 与 importer/asset focused batch，未出现新的 importer/registry 失败。
 
 ## 2. 物理范围与证据边界
 
@@ -104,12 +141,12 @@ Plugins01继续拥有native ABI、load-before-admission与dist空壳父问题；
 | 范围 | 文件 / 行 / bytes | 当前事实 |
 |---|---:|---|
 | legacy `asset_importers`，排除shader | 34 / 2,935 / 109,871 | Audio/Texture多为声明聚合；Model有STL/PLY/DXF；Data有TOML/JSON/YAML/XML |
-| `gltf_importer` | 10 / 3,171 / 110,844 | 稳定、partial、高优先级真实importer，但动画仍是placeholder |
+| `gltf_importer` | 10 / 3,171 / 110,844 | 稳定、partial、高优先级真实importer；clip/skeleton 已走共享 typed helper，Skin/IBM 仍为 generic Data |
 | `obj_importer` | 7 / 746 / 28,432 | 稳定、partial、mesh-only，丢弃materials |
 | `texture_importer` | 43 / 8,732 / 323,386 | 稳定、partial，container验证较深，但当前mip kernel有编译阻断 |
 | `audio_importer` | 7 / 820 / 32,381 | 稳定、partial，WAV与codec真实，Opus为diagnostic-only |
 | `opus_importer` | 7 / 518 / 21,146 | experimental，高优先级diagnostic-only，没有decoder bridge |
-| `ui_document_importer` | 7 / 597 / 23,481 | 稳定、partial，解析`.zui`但无外部reference dependency投影 |
+| `ui_document_importer` | 7 / 597 / 23,481 | 稳定、partial，解析`.zui`并投影 typed external references；完整产品资格仍未完成 |
 | Runtime/caller/product补充 | 23 / 6,799 / 175,158 | 内建importer、registry、project合并、catalog、App与profile |
 | Zircon合计 | 138 / 24,318 / 824,699 | SHA-256 manifest `ef93fc480de91549c85b7a999c108dbafb7abd67d8558d14cd3c9b3b6a47fc26` |
 
@@ -126,11 +163,11 @@ Plugins01继续拥有native ABI、load-before-admission与dist空壳父问题；
 | Unity Graphics | ScriptedImporter的main/subobject发布、TextureImporter平台BC7与normal-map预处理 | 本地镜像不是完整Unity Editor/AssetDatabase，不能用于通用导入生命周期结论 |
 | 参考合计 | 25 / 16,172 / 645,781；fingerprint `8875a71310992fca2c2e89e74ae931c3ff441f0ba98293a49c573c9fcfa82e6d` | 路径存在和代码规模均不等于Zircon已实现或性能更优 |
 
-### 2.3 动态证据边界
+### 2.3 初始动态证据边界（review 基线）
 
-本轮没有运行Cargo compile/tests。报告是review-only，且编译阻断可由同一函数内的未绑定标识符与参数arity静态确定；未把源码判断写成“cargo check已失败”。也未运行真实Editor import/reimport、跨平台texture cook、恶意container、长音频、NativeDynamic、OS sandbox或性能基准。所有“完成”均只指本报告的静态审查范围完成。
+以下段落记录本计划初始 review 快照：当时没有运行Cargo compile/tests。报告是review-only，且编译阻断可由同一函数内的未绑定标识符与参数arity静态确定；未把源码判断写成“cargo check已失败”。也未运行真实Editor import/reimport、跨平台texture cook、恶意container、长音频、NativeDynamic、OS sandbox或性能基准。后续窄实施切片的状态与静态证据只以本节前的“当前实施跟踪”为准，不能把本节基线升级为当前验收结论。
 
-## 3. 当前实际数据流
+## 3. 初始实际数据流（实施前基线）
 
 ```text
 Project source path
@@ -155,7 +192,7 @@ Project source path
 2. Registry拒绝同ID和同priority同matcher冲突，并明确full suffix优先于普通extension。
 3. `AssetImportOutcome`允许root与多个labeled entry各自携带asset dependency、diagnostic和migration report。
 4. Runtime内建glTF使用调用者的`source_bytes`解析主文档，并对required extension、meshopt、WebP、hierarchy cycle和animation sampler做了实质校验。
-5. Runtime内建glTF已经生成真实AnimationClip/Skeleton，不应被回退到插件placeholder。
+5. Runtime内建与 first-party glTF 当前都生成真实AnimationClip/Skeleton；不应再以历史 placeholder 叙述替代当前 source evidence。
 6. 两套glTF均已建立Texture、Material、Mesh、Primitive、Node、Scene、Skin和inverse-bind subasset骨架。
 7. Texture container对DDS/KTX1/KTX2/ASTC的header、range、alignment、metadata与部分supercompression有大量负向测试。
 8. Texture importer已区分image/container/PSD/cubemap/array/native diagnostic descriptor，并有normal convention、mip与BC5模块。
@@ -169,7 +206,7 @@ Project source path
 | ID | 证据 | 影响 | 必须重构 | 验收门 |
 |---|---|---|---|---|
 | IMP-P0-001 | `texture_importer/runtime/src/mipgen/kernel.rs`中Box函数多参数、Kaiser函数缺参数且fallback arity错误 | 当前tracked stable texture package存在源码级编译阻断，不能形成可链接provider | 修正参数所有权并把两种filter纳入package compile与真实import test | 真实package feature矩阵build；Box/Kaiser测试均执行；禁止用cfg移除失败路径 |
-| IMP-P0-002 | 内建glTF v2/priority10生成真实AnimationClip/Skeleton；catalog链接的stable plugin v1/priority120生成`DataAsset` placeholder | 启用第一方插件反而降低功能，animation output kind声明也与真实输出不一致 | 删除双实现或让插件委托唯一canonical glTF implementation；冻结descriptor/version/output schema | 同一fixture在builtin/source/native得到完全一致的typed subasset graph；禁止placeholder进入Ready |
+| IMP-P0-002 | 内建与stable plugin 都生成 typed AnimationClip/Skeleton，但catalog priority 120/10 仍有双 authority；Skin/inverse-bind 仍是 generic Data | profile 选择会改变 importer owner 与剩余 subasset 语义，不能证明统一 deformation artifact | 删除双实现或让插件委托唯一 canonical glTF implementation；冻结 descriptor/version/output schema 与 typed SkinBinding | 同一fixture在builtin/source/native得到完全一致的 typed subasset graph；generic Skin/IBM 不得绕过 Ready artifact gate |
 | IMP-P0-003 | glTF/OBJ mesh normal生成以文件index直接索引position，缺少导入边界的index admission | parser接受或损坏的越界index可触发panic/进程终止，而不是typed import failure | 在任何cook/normal/tangent访问前验证index、attribute count和primitive topology，panic boundary只作最后保险 | malformed corpus/property/fuzz覆盖越界、溢出、NaN、空attribute；全部返回typed error且零发布 |
 | IMP-P0-004 | plugin glTF重新读取`source_path`和任意relative URI，只检查`exists()`；没有canonical containment或dependency记录 | main snapshot与实际解析可竞态分叉，`../`可越过project root，外部内容可未经准入进入artifact | 建立只读SourceBroker，所有主/外部source按canonical project/mount policy打开、hash、预算并登记 | source在导入中变化、symlink/junction、parent traversal、absolute/scheme URI均有fail-close测试与source receipt |
 | IMP-P0-005 | KTX2 zstd/zlib解压`.take(expected_length + 1)`，`expected_length`来自输入且无独立上限 | 小输入可声明巨大输出并驱动OOM/长时阻塞，影响Editor/CI/asset worker可用性 | 统一ImportBudget限制input/output bytes、ratio、dimensions、levels、time与allocation，最好隔离worker | zip-bomb/huge-length/slow decode在预算内终止；RSS/time上限和零partial artifact有自动证据 |
@@ -208,7 +245,7 @@ Project source path
 
 | ID | 当前差距 | 需要重构 |
 |---|---|---|
-| IMP-P1-021 | plugin glTF animation仍是文本placeholder | 复用Runtime真实clip/skeleton转换，补morph-weight channel或显式拒绝并降级能力 |
+| IMP-P1-021 | 历史 plugin glTF animation 文本 placeholder 已移除；morph-weight channel 与 typed SkinBinding 仍不完整 | 当前共享 clip/skeleton helper 已覆盖骨骼通道；补 morph-weight channel 或显式拒绝并降级能力，继续建立 Skin/IBM artifact |
 | IMP-P1-022 | Runtime glTF支持meshopt/WebP/更多material extension，plugin实现落后 | extension matrix由canonical decoder拥有，unsupported required extension必须fail-close |
 | IMP-P1-023 | morph target position/normal/tangent有数据但animation weights未闭合 | 贯通MorphTargetSet、weight track、mesh binding、cook和runtime evaluation |
 | IMP-P1-024 | 同mesh多node skin只保留第一个 | skin binding归node/instance，mesh geometry与skin instance解耦 |
@@ -263,8 +300,8 @@ Project source path
 |---|---|---|
 | IMP-P1-059 | Data importer把结构化格式统一降为通用JSON值 | schema-aware DataAsset保留类型、source map、validation、unknown field与reference语义 |
 | IMP-P1-060 | XML转中立JSON会损失namespace/attribute order/mixed content语义 | 要么保留lossless XML DOM/text spans，要么明确只接受受限schema并严格验证 |
-| IMP-P1-061 | `.zui`解析出的资源引用未进入outcome dependency | loader返回typed reference set，context解析并写入每个View/Style/Component entry |
-| IMP-P1-062 | UI document只有parser版本，没有import schema migration receipt | 绑定source schema、migration chain、diagnostic span与save/reopen roundtrip |
+| IMP-P1-061 | `.zui`引用已投影为outcome dependency，但完整产品资格与受管Rust验证仍未闭合 | loader返回typed reference set，严格投影canonical persisted URI，context解析并写入每个View/Style/Component entry |
+| IMP-P1-062 | `.zui` importer 已写入 current source/target schema 的 migration receipt，但旧/未来版本仍由 loader fail-closed，且尚无真正转换链、diagnostic span 与 save/reopen roundtrip | 保留统一 `AssetSchemaMigrationReport`，再绑定可执行的 source-schema migration chain、diagnostic span 与 save/reopen roundtrip |
 | IMP-P1-063 | legacy Audio/Texture是声明-only，Model/Data又有真实实现 | 为每个legacy provider标注delegate/migrating/deprecated/removed，禁止模糊共存 |
 | IMP-P1-064 | legacy/new priority与matcher并存但无迁移计划 | 硬切唯一provider，保留版本化settings/subasset remap和项目升级工具后删除旧路径 |
 

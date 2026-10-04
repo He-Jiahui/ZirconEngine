@@ -209,11 +209,12 @@ fn hit_test_workbench_template_target_with_index<'a>(
         let Some(node) = nodes.get(row) else {
             continue;
         };
-        if accepts_node(node) && template_node_accepts_point(node, origin, x, y) {
-            return Some(WorkbenchTemplateHitTarget::Node {
-                node,
-                frame: template_node_frame(node, origin),
-            });
+        let frame = template_node_frame(node, origin);
+        if accepts_node(node)
+            && index.row_is_painted_at(row, &frame, x, y)
+            && template_node_accepts_point(node, origin, x, y)
+        {
+            return Some(WorkbenchTemplateHitTarget::Node { node, frame });
         }
     }
     None

@@ -1,0 +1,48 @@
+penpot_original_source = "[asset]\nkind = \"component\"\nid = \"res://ui/editor/components/workbench/modules/generated/workbench_generated_bottom_drawer.zui\"\nversion = 2\ndisplay_name = \"Workbench Generated Bottom Drawer\"\n\n[imports]\nwidgets = [\n  \"res://ui/editor/components/workbench/modules/generated/workbench_generated_bottom_panel.zui#WorkbenchGeneratedBottomPanel\",\n]\nstyles = []\n\n[components.WorkbenchGeneratedBottomDrawer]\nroot = \"generated_bottom_drawer\"\ndefault_classes = [\"workbench-generated-bottom-drawer\", \"workbench-panel\"]\n\n[nodes.generated_bottom_drawer]\ncomponent = \"Overlay\"\ncontrol_id = \"WorkbenchGeneratedBottomDrawer\"\nclasses = [\"workbench-generated-bottom-drawer\", \"workbench-panel\"]\nprops = { visibility = \"collapsed\" }\nlayout = { clip = true, container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"generated_bottom_panel\" }]\n\n[nodes.generated_bottom_panel]\ncomponent = \"WorkbenchGeneratedBottomPanel\"\ncontrol_id = \"WorkbenchGeneratedBottomPanelHost\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n"
+
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/generated/workbench_generated_bottom_drawer.zui"
+version = 2
+display_name = "Workbench Generated Bottom Drawer"
+
+[imports]
+widgets = [ "res://ui/editor/components/workbench/modules/generated/workbench_generated_bottom_panel.zui#WorkbenchGeneratedBottomPanel" ]
+styles = []
+
+[components.WorkbenchGeneratedBottomDrawer]
+root = "generated_bottom_drawer"
+default_classes = [ "workbench-generated-bottom-drawer", "workbench-panel" ]
+
+[nodes.generated_bottom_drawer]
+component = "Overlay"
+control_id = "WorkbenchGeneratedBottomDrawer"
+classes = [ "workbench-generated-bottom-drawer", "workbench-panel" ]
+
+[nodes.generated_bottom_drawer.props]
+visibility = "collapsed"
+
+[nodes.generated_bottom_drawer.layout]
+clip = true
+
+[nodes.generated_bottom_drawer.layout.container]
+kind = "Overlay"
+
+[nodes.generated_bottom_drawer.layout.width]
+stretch = "Stretch"
+
+[nodes.generated_bottom_drawer.layout.height]
+stretch = "Stretch"
+
+[[nodes.generated_bottom_drawer.children]]
+node = "generated_bottom_panel"
+
+[nodes.generated_bottom_panel]
+component = "WorkbenchGeneratedBottomPanel"
+control_id = "WorkbenchGeneratedBottomPanelHost"
+
+[nodes.generated_bottom_panel.layout.width]
+stretch = "Stretch"
+
+[nodes.generated_bottom_panel.layout.height]
+stretch = "Stretch"

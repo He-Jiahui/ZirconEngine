@@ -16,6 +16,10 @@ pub(crate) struct ModuleEntry {
     // does not rebuild or sort service names on every lifecycle transition.
     pub(crate) shutdown_service_names: Arc<[RegistryName]>,
     pub(crate) lifecycle: LifecycleState,
+    // A successful cleanup callback is a durable receipt.  Retirement may still
+    // fail later (for example, while dropping a user service object), and a retry
+    // must finish retirement without replaying that callback.
+    pub(crate) cleanup_completed: bool,
 }
 
 impl ModuleEntry {

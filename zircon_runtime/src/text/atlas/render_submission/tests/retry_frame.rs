@@ -1,8 +1,8 @@
 use super::*;
-use crate::text::InstancedFaceId;
 use crate::text::atlas::{
     GlyphHintingMode, GlyphRasterKey, GlyphSmoothingMode, SyntheticGlyphStyle,
 };
+use crate::text::InstancedFaceId;
 
 fn keyed_source(glyph_id: u32, x: f32) -> GlyphAtlasBitmapSource {
     GlyphAtlasBitmapSource {

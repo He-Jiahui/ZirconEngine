@@ -1,14 +1,14 @@
 use super::super::super::super::*;
 
 pub(super) struct StartupInteractionState {
-    pub(super) viewport_pointer_bridge: callback_dispatch::SharedViewportPointerBridge,
-    pub(super) viewport_toolbar_pointer_bridge: ViewportToolbarPointerBridge,
-    pub(super) shell_pointer_bridge: HostShellPointerBridge,
-    pub(super) activity_rail_pointer_bridge: HostActivityRailPointerBridge,
+    pub(super) viewport_pointer_bridge: Box<callback_dispatch::SharedViewportPointerBridge>,
+    pub(super) viewport_toolbar_pointer_bridge: Box<ViewportToolbarPointerBridge>,
+    pub(super) shell_pointer_bridge: Box<HostShellPointerBridge>,
+    pub(super) activity_rail_pointer_bridge: Box<HostActivityRailPointerBridge>,
     pub(super) host_page_pointer_bridge: HostPagePointerBridge,
     pub(super) document_tab_pointer_bridge: HostDocumentTabPointerBridge,
     pub(super) drawer_header_pointer_bridge: HostDrawerHeaderPointerBridge,
-    pub(super) menu_pointer_bridge: HostMenuPointerBridge,
+    pub(super) menu_pointer_bridge: Box<HostMenuPointerBridge>,
     pub(super) menu_pointer_state: HostMenuPointerState,
     pub(super) menu_pointer_layout: Arc<HostMenuPointerLayout>,
     pub(super) welcome_recent_pointer_bridge: WelcomeRecentPointerBridge,
@@ -20,23 +20,23 @@ pub(super) struct StartupInteractionState {
     pub(super) console_scroll_surface: ScrollSurfaceHostState,
     pub(super) inspector_scroll_surface: ScrollSurfaceHostState,
     pub(super) browser_asset_details_scroll_surface: ScrollSurfaceHostState,
-    pub(super) activity_asset_pointer: AssetSurfacePointerState,
-    pub(super) browser_asset_pointer: AssetSurfacePointerState,
+    pub(super) activity_asset_pointer: Box<AssetSurfacePointerState>,
+    pub(super) browser_asset_pointer: Box<AssetSurfacePointerState>,
 }
 
 impl StartupInteractionState {
     pub(super) fn new(viewport_size: UVec2) -> Self {
         Self {
-            viewport_pointer_bridge: callback_dispatch::SharedViewportPointerBridge::new(
+            viewport_pointer_bridge: Box::new(callback_dispatch::SharedViewportPointerBridge::new(
                 UiFrame::new(0.0, 0.0, viewport_size.x as f32, viewport_size.y as f32),
-            ),
-            viewport_toolbar_pointer_bridge: ViewportToolbarPointerBridge::new(),
-            shell_pointer_bridge: HostShellPointerBridge::new(),
-            activity_rail_pointer_bridge: HostActivityRailPointerBridge::new(),
+            )),
+            viewport_toolbar_pointer_bridge: Box::new(ViewportToolbarPointerBridge::new()),
+            shell_pointer_bridge: Box::new(HostShellPointerBridge::new()),
+            activity_rail_pointer_bridge: Box::new(HostActivityRailPointerBridge::new()),
             host_page_pointer_bridge: HostPagePointerBridge::new(),
             document_tab_pointer_bridge: HostDocumentTabPointerBridge::new(),
             drawer_header_pointer_bridge: HostDrawerHeaderPointerBridge::new(),
-            menu_pointer_bridge: HostMenuPointerBridge::new(),
+            menu_pointer_bridge: Box::new(HostMenuPointerBridge::new()),
             menu_pointer_state: HostMenuPointerState::default(),
             menu_pointer_layout: Arc::new(HostMenuPointerLayout::default()),
             welcome_recent_pointer_bridge: WelcomeRecentPointerBridge::new(),
@@ -48,8 +48,8 @@ impl StartupInteractionState {
             console_scroll_surface: ScrollSurfaceHostState::new(),
             inspector_scroll_surface: ScrollSurfaceHostState::new(),
             browser_asset_details_scroll_surface: ScrollSurfaceHostState::new(),
-            activity_asset_pointer: AssetSurfacePointerState::new(),
-            browser_asset_pointer: AssetSurfacePointerState::new(),
+            activity_asset_pointer: Box::new(AssetSurfacePointerState::new()),
+            browser_asset_pointer: Box::new(AssetSurfacePointerState::new()),
         }
     }
 }

@@ -10,6 +10,7 @@ use super::style::{
 
 const MAX_PAPER_COMMANDS: usize = 5;
 
+/// Paper 根节点先生成可选阴影，再绘表面及 elevation 叠色；outlined 抑制阴影和叠色。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_paper_primitive_commands(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
@@ -80,36 +81,9 @@ fn reserve_paper_command_capacity(commands: &mut Vec<HostPaintCommand>) {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn non_finite_paper_origins_do_not_emit_surface_or_shadow_commands() {
-        let node = TemplatePaneNodeData {
-            component_role: "paper".to_owned(),
-            elevation: 4.0,
-            ..TemplatePaneNodeData::default()
-        };
-        let rect = FrameRect {
-            x: 8.0,
-            y: f32::NEG_INFINITY,
-            width: 48.0,
-            height: 24.0,
-        };
-        let mut commands = Vec::new();
-
-        assert!(push_paper_primitive_commands(
-            &mut commands,
-            &node,
-            &rect,
-            &rect,
-            0,
-            1.0,
-        ));
-        assert!(commands.is_empty());
-    }
-}
+#[path = "tests/commands.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "commands/reserve_capacity_tests.rs"]
+#[path = "commands/tests/reserve_capacity_tests.rs"]
 mod reserve_capacity_tests;

@@ -1,3 +1,4 @@
+# 核对动态构建计划及包信息的实现归属。
 import unittest
 from pathlib import Path
 
@@ -5,19 +6,19 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BUILD_PLAN_SCHEMA = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_build_plan_schema.py"
+    / "tools/export/pipeline_report_native_dynamic_build_plan_schema.py"
 )
 BUILD_PLAN_COMMAND_SEMANTICS = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_build_plan_commands.py"
+    / "tools/export/pipeline_report_native_dynamic_build_plan_commands.py"
 )
 BUILD_PLAN_SCHEMA_HELPERS = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_build_plan_schema_helpers.py"
+    / "tools/export/pipeline_report_native_dynamic_build_plan_schema_helpers.py"
 )
 BUILD_PLAN_PACKAGE_DETAILS = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_build_plan_package_details.py"
+    / "tools/export/pipeline_report_native_dynamic_build_plan_package_details.py"
 )
 
 

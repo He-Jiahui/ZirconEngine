@@ -10,7 +10,6 @@ related_code:
   - zircon_editor/src/core/jobs/quota_settings.rs
   - zircon_editor/src/core/notifications/presentation.rs
   - zircon_editor/src/scene/viewport/controller
-  - zircon_editor/src/ui/v2_design_tokens.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
   - zircon_editor/src/ui/workbench/floating_window.rs

@@ -4,12 +4,12 @@ from collections import Counter
 from pathlib import Path
 from unittest import mock
 
-from tools.framework_contract_partition_audit import (
+from tools.audits.framework_contract_partition_audit import (
     audit_framework_partition,
     classify_rust_source,
 )
 
-
+# 用 trait、实现块、宏和测试配置夹具区分声明与行为；宏无法静态判定时保留人工复核结果。
 class FrameworkContractPartitionAuditTests(unittest.TestCase):
     def test_declaration_only_trait_methods_do_not_count_as_behavior(self) -> None:
         source = """

@@ -7,7 +7,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 API 公开接口覆盖审计
 tests:
-  - zircon_plugins/plugin_sdk/src/declaration/tests.rs
+  - zircon_plugins/plugin_sdk/src/declaration/tests/cases.rs
 doc_type: api-reference
 ---
 

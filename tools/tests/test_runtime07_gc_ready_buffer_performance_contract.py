@@ -19,7 +19,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束GC 就绪缓冲区：到期槽位使用一个连续就绪缓冲区，并就绪缓冲区保留稳定槽位顺序。
 class GcReadyBufferPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

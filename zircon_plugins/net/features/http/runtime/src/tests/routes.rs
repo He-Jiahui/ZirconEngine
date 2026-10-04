@@ -2,11 +2,11 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::net::{
-    NetEndpoint, NetHttpMethod, NetHttpRequestDescriptor, NetHttpResponseDescriptor,
+    NetEndpoint, NetError, NetHttpMethod, NetHttpRequestDescriptor, NetHttpResponseDescriptor,
     NetHttpRouteDescriptor, NetManager, NetRequestId,
 };
 
-use crate::backend::HTTP_ROUTE_REQUEST_BODY_LIMIT_BYTES;
+use crate::backend::{HTTP_RESPONSE_BODY_LIMIT_BYTES, HTTP_ROUTE_REQUEST_BODY_LIMIT_BYTES};
 use crate::http_runtime_manager;
 
 #[test]
@@ -203,4 +203,70 @@ fn http_feature_manager_matches_route_before_applying_body_limit() {
         .unwrap();
 
     assert_eq!(response.status_code, 404);
+}
+
+#[test]
+fn http_feature_manager_rejects_oversized_response_body_before_publication() {
+    let net = http_runtime_manager();
+    net.register_http_route_handler(
+        NetHttpRouteDescriptor::new("/oversized-response", [NetHttpMethod::Get]),
+        |request| {
+            NetHttpResponseDescriptor::new(
+                request.request,
+                200,
+                vec![b'x'; HTTP_RESPONSE_BODY_LIMIT_BYTES + 1],
+            )
+        },
+    )
+    .unwrap();
+    let listener = net.listen_http(&NetEndpoint::new("127.0.0.1", 0)).unwrap();
+    let endpoint = net.listener_endpoint(listener).unwrap();
+
+    let error = net
+        .send_http_request(NetHttpRequestDescriptor::new(
+            NetRequestId::new(38),
+            NetHttpMethod::Get,
+            format!(
+                "http://{}:{}/oversized-response",
+                endpoint.host, endpoint.port
+            ),
+        ))
+        .expect_err("an oversized HTTP response must fail before publication");
+
+    assert!(matches!(
+        error,
+        NetError::Io(message) if message.contains("HTTP response body exceeds")
+    ));
+}
+
+#[test]
+fn http_feature_manager_accepts_response_body_at_exact_limit() {
+    let net = http_runtime_manager();
+    net.register_http_route_handler(
+        NetHttpRouteDescriptor::new("/exact-response-limit", [NetHttpMethod::Get]),
+        |request| {
+            NetHttpResponseDescriptor::new(
+                request.request,
+                200,
+                vec![b'x'; HTTP_RESPONSE_BODY_LIMIT_BYTES],
+            )
+        },
+    )
+    .unwrap();
+    let listener = net.listen_http(&NetEndpoint::new("127.0.0.1", 0)).unwrap();
+    let endpoint = net.listener_endpoint(listener).unwrap();
+
+    let response = net
+        .send_http_request(NetHttpRequestDescriptor::new(
+            NetRequestId::new(39),
+            NetHttpMethod::Get,
+            format!(
+                "http://{}:{}/exact-response-limit",
+                endpoint.host, endpoint.port
+            ),
+        ))
+        .expect("an HTTP response at the exact byte limit must remain accepted");
+
+    assert_eq!(response.body_bytes, HTTP_RESPONSE_BODY_LIMIT_BYTES);
+    assert_eq!(response.body.len(), HTTP_RESPONSE_BODY_LIMIT_BYTES);
 }

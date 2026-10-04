@@ -1,3 +1,4 @@
+# 核对编辑器消息总线的共享载荷、有界收件箱和背压测试挂载关系；检查对象是源码文本契约。
 from pathlib import Path
 import unittest
 

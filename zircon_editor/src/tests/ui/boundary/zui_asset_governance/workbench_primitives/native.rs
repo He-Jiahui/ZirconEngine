@@ -4,7 +4,7 @@ use toml::Value;
 use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
 use super::super::support::{editor_asset_root, load_zui_document};
-use super::WORKBENCH_PRIMITIVE_CONTRACTS;
+use super::primitive_contracts::WORKBENCH_PRIMITIVE_CONTRACTS;
 
 #[test]
 fn workbench_primitive_component_assets_keep_native_component_contract() {

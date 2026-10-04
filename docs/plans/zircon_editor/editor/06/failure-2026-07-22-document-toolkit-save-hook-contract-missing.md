@@ -105,3 +105,9 @@ DocumentToolkit 的注册表、生命周期和 focused/upward 验证。Editor09 
   公开 Manager、事件执行与 retained-host 均经统一 `CloseView` 入口，且 manager 回归验证 toolkit descriptor
   随成功 close 注销。`rustfmt --check`、Editor06 静态合同 `16/16` 与 diff 检查通过；受管 Cargo terminal
   evidence 未返回，故仍禁止 fixed return。
+- 2026-09-02：状态仍为 `fixing`。当前生产保存路径已把实际 toolkit 写入抽取到
+  `write_document_toolkit`；旧 Python guard 仍在外层保存函数内搜索
+  `document_toolkits.save(document, self, reason)`，因此在任何断言前抛出 `ValueError`。guard 现分别冻结
+  外层 `capture token -> write helper -> compare-and-mark -> external-effect clear` 顺序，以及 helper 对
+  `document_toolkits.save` 的唯一委派。focused Python contract 与 scoped diff check 通过；没有修改
+  dirty/toolkit production bytes，也没有声明受管 Rust、独立复审或 fixed return 已完成。

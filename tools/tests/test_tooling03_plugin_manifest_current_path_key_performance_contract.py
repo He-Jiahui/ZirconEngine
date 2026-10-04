@@ -1,3 +1,4 @@
+# 核对插件清单相对路径键只规范化片段，不为每条记录解析文件系统。
 from __future__ import annotations
 
 import inspect
@@ -9,9 +10,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from tools.zircon_export import plugin_validate_components
-from tools.zircon_export import plugin_validate_event_catalogs
-from tools.zircon_export.plugin_validate_common import plugin_manifest_relative_key
+from tools.export import plugin_validate_components
+from tools.export import plugin_validate_event_catalogs
+from tools.export.plugin_validate_common import plugin_manifest_relative_key
 
 
 class PluginManifestCurrentPathKeyPerformanceContractTests(unittest.TestCase):

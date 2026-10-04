@@ -1,10 +1,10 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema import (
+from tools.audits.plugins.manifest_schema import (
     collect_manifest_schema_violations,
 )
 
-
+# 用插件清单夹具验证着色模型：拒绝着色模型描述符形状，并拒绝着色器变体着色模型 ID 不匹配。
 class PluginStructureAuditManifestSchemaShadingModelsTests(unittest.TestCase):
     def test_manifest_schema_rejects_shading_model_descriptor_shape(self):
         violations: list[str] = []

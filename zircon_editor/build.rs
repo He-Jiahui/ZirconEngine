@@ -110,6 +110,18 @@ fn editor_catalog_entry_from_manifest(
 ) -> Result<Option<EditorCatalogEntry>, Box<dyn std::error::Error>> {
     let source = std::fs::read_to_string(path)?;
     let manifest = source.parse::<toml::Table>()?;
+    let package_role = PluginPackageRole::parse(
+        match manifest.get("package_role") {
+            None => "production",
+            Some(value) => value
+                .as_str()
+                .ok_or_else(|| format!("{} package_role must be a string", path.display()))?,
+        },
+        path,
+    )?;
+    if !package_role.is_product_catalog_eligible() {
+        return Ok(None);
+    }
     let Some(editor_module) = manifest
         .get("modules")
         .and_then(toml::Value::as_array)
@@ -173,3 +185,31 @@ struct EditorCatalogEntry {
     category: String,
     capabilities: Vec<String>,
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum PluginPackageRole {
+    Production,
+    DeveloperTool,
+    Sample,
+    TestFixture,
+}
+
+impl PluginPackageRole {
+    fn parse(value: &str, path: &std::path::Path) -> Result<Self, Box<dyn std::error::Error>> {
+        match value {
+            "production" => Ok(Self::Production),
+            "developer_tool" => Ok(Self::DeveloperTool),
+            "sample" => Ok(Self::Sample),
+            "test_fixture" => Ok(Self::TestFixture),
+            _ => Err(format!("{} has unsupported package_role `{value}`", path.display()).into()),
+        }
+    }
+
+    const fn is_product_catalog_eligible(self) -> bool {
+        matches!(self, Self::Production | Self::DeveloperTool)
+    }
+}
+
+#[cfg(test)]
+#[path = "tests/unit/build_product_eligibility_tests.rs"]
+mod product_eligibility_tests;

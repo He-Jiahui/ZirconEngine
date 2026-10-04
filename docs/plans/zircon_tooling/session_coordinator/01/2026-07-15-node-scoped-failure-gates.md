@@ -2,14 +2,6 @@
 record_kind: implementation_slice
 status: in_progress
 related_code:
-  - tools/session_coordinator/migrations.py
-  - tools/session_coordinator/failures.py
-  - tools/session_coordinator/workflows/milestones.py
-  - tools/session_coordinator/git_finalize.py
-  - tools/session_coordinator/tests/test_database.py
-  - tools/session_coordinator/tests/test_failures.py
-  - tools/session_coordinator/tests/test_workflow_commit.py
-  - tools/session_coordinator/tests/test_milestone_failure_scope.py
 plan_sources:
   - docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
   - docs/plans/zircon_editor/editor/02-data-sync-and-messaging.md

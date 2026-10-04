@@ -10,6 +10,7 @@ import { EmptyStateBlock, HubList, HubPanel, HubTreeView, MetricCard, QuickActio
 import { HubStatusBanner } from "../components/feedback";
 import { HubButton, HubCheckbox, HubSwitch, HubTabs } from "../components/inputs";
 import { formatCountText } from "../text/counts";
+import { admittedSourceEngineId } from "../projections/sourceEngineChoices";
 import { projectTargetPayload, quickActionProjectTargetPayload } from "../tauri/projectTarget";
 import { hubTokens } from "../theme/tokens";
 import type { HubActionHandler, HubShellState } from "../types/hub";
@@ -28,7 +29,8 @@ export function EditorPage({ state, onAction }: EditorPageProps) {
   const common = state.ui.common;
   const text = state.ui.editor;
   const actionText = state.ui.actions;
-  const activeSourceEngine = state.sourceEngines.find((engine) => engine.active) ?? state.sourceEngines[0];
+  const activeSourceEngineId = admittedSourceEngineId(state.sourceEngines, state.activeSourceEngineId);
+  const activeSourceEngine = state.sourceEngines.find((engine) => engine.id === activeSourceEngineId);
   const sourceBuildHistory = useMemo(
     () => activeSourceEngine?.buildHistory ?? [],
     [activeSourceEngine],
@@ -97,32 +99,31 @@ export function EditorPage({ state, onAction }: EditorPageProps) {
         "@media (max-width: 980px)": { px: 2, py: 2 },
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, mb: 2.5 }}>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="h4">{state.pageTitle}</Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.9 }}>
-            {state.pageSubtitle}
-          </Typography>
-        </Box>
-        <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap", justifyContent: "flex-end" }}>
+      <PageHeader title={state.pageTitle} subtitle={state.pageSubtitle} actions={<>
           <HubButton startIcon={<AccountTreeOutlinedIcon />} onClick={() => void onAction(HUB_ACTION.showPage, "projects")}>
             {state.ui.projects.title}
           </HubButton>
           <HubButton
             startIcon={<FolderSpecialOutlinedIcon />}
             disabled={!activeSourceEngine || activeSourceEngine.outputPath === common.notConfigured}
-            onClick={() => void onAction(HUB_ACTION.openOutputFolder, undefined, { outputDir: activeSourceEngine?.outputPath })}
+            onClick={() => void onAction(HUB_ACTION.openOutputFolder, undefined, {
+              capability: "source-engine-output",
+              engineId: activeSourceEngine?.id,
+            })}
           >
             {state.ui.builds.openOutput}
           </HubButton>
           <HubButton tone="primary" startIcon={<OpenInNewOutlinedIcon />} onClick={() => void onAction(HUB_ACTION.openEditor, undefined, projectTarget)}>
             {actionText.openEditor}
           </HubButton>
-        </Box>
-      </Box>
+        </>} />
 
       <Box sx={{ mb: 1.4 }}>
-        <HubStatusBanner task={state.taskSummary} />
+        <HubStatusBanner
+          task={state.taskSummary}
+          cancelLabel={state.ui.common.cancelTask}
+          onCancel={() => void onAction(HUB_ACTION.cancelBackgroundTask, String(state.taskSummary.taskId))}
+        />
       </Box>
 
       <Box
@@ -265,7 +266,9 @@ export function EditorPage({ state, onAction }: EditorPageProps) {
                   }))}
                   onSelect={(item) => {
                     const record = sourceBuildHistory.find((history) => history.id === item.id);
-                    void onAction(HUB_ACTION.openOutputFolder, item.id, { outputDir: record?.outputDir });
+                    void onAction(HUB_ACTION.openOutputFolder, undefined, {
+                      receiptId: record?.id,
+                    });
                   }}
                 />
               ) : (
@@ -285,3 +288,4 @@ export function EditorPage({ state, onAction }: EditorPageProps) {
     </Box>
   );
 }
+import { PageHeader } from "../components/data/PageHeader";

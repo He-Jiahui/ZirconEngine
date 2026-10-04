@@ -1,5 +1,7 @@
 use crate::core::framework::scene::WorldHandle;
 
+/// 帧提取的源世界身份与世界代，供渲染端拒绝跨世界或超前的增量变更。
+/// `raw` 标识世界，`generation` 标识该快照；两者不得互作比较。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct RenderWorldSnapshotHandle {
     world: u64,
@@ -34,14 +36,5 @@ impl From<WorldHandle> for RenderWorldSnapshotHandle {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::RenderWorldSnapshotHandle;
-
-    #[test]
-    fn snapshot_handle_keeps_world_identity_and_source_generation_distinct() {
-        let snapshot = RenderWorldSnapshotHandle::new(7).with_generation(19);
-
-        assert_eq!(snapshot.raw(), 7);
-        assert_eq!(snapshot.generation(), 19);
-    }
-}
+#[path = "tests/world_snapshot_handle.rs"]
+mod tests;

@@ -1,4 +1,8 @@
-use crate::core::framework::render::{EnvironmentRuntimeSnapshot, RenderFrameworkError};
+use std::sync::Arc;
+
+use crate::core::framework::render::{
+    EnvironmentCaptureResidencyReport, EnvironmentRuntimeSnapshot, RenderFrameworkError,
+};
 
 use super::super::wgpu_render_framework::WgpuRenderFramework;
 
@@ -6,15 +10,55 @@ pub(in crate::graphics::runtime::render_framework) fn query_environment_runtime_
     framework: &WgpuRenderFramework,
 ) -> Result<EnvironmentRuntimeSnapshot, RenderFrameworkError> {
     framework.finish_submission()?;
-    let _operation_guard = framework.lock_operation();
-    let state = framework.lock_state();
+    let (
+        frame_generation,
+        frame_profile,
+        scene_submission,
+        reflection_probes,
+        realtime_ibl,
+        cubemap_upload,
+        capture_residency,
+        environment_ibl_hydration_cache,
+    ) = {
+        let _operation_guard = framework.lock_operation();
+        let state = framework.lock_state();
+        (
+            state.stats.last_generation,
+            Arc::clone(&state.stats.last_frame_profile),
+            state.stats.last_scene_submission_completion_report,
+            state.stats.last_reflection_probe_workload,
+            state.renderer.realtime_ibl_status_report(),
+            state.renderer.environment_cubemap_upload_report(),
+            EnvironmentCaptureResidencyReport {
+                observation_epoch: state.environment_capture_residency.observation_epoch(),
+                last_published_handle: state.environment_capture_residency.last_published_handle(),
+                last_published_output_generation: state
+                    .environment_capture_residency
+                    .last_published_output_generation(),
+                resident_count: u32::try_from(state.environment_capture_residency.len())
+                    .unwrap_or(u32::MAX),
+                resident_gpu_bytes: state.environment_capture_residency.resident_gpu_bytes(),
+                eviction_count: state.environment_capture_residency.eviction_count(),
+            },
+            Arc::clone(&state.environment_ibl_hydration_cache),
+        )
+    };
+    let hydration = environment_ibl_hydration_cache
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .report();
+    let capture = framework.environment_capture_report();
 
     Ok(EnvironmentRuntimeSnapshot::try_from_current_reports(
-        state.stats.last_generation,
-        &state.stats.last_frame_profile,
-        state.stats.last_scene_submission_completion_report,
-        state.stats.last_reflection_probe_workload,
-        state.renderer.realtime_ibl_status_report(),
+        frame_generation,
+        &frame_profile,
+        scene_submission,
+        reflection_probes,
+        realtime_ibl,
+        hydration,
+        capture,
+        capture_residency,
+        cubemap_upload,
     )?)
 }
 
@@ -27,31 +71,5 @@ impl WgpuRenderFramework {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn snapshot_finishes_submission_then_projects_under_one_lock_pair() {
-        let source = include_str!("query_environment_runtime_snapshot.rs")
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("snapshot query production source");
-        let finish = source
-            .find("framework.finish_submission()?;")
-            .expect("pending submission must finish first");
-        let operation = source
-            .find("framework.lock_operation()")
-            .expect("query must serialize renderer access");
-        let state = source
-            .find("framework.lock_state()")
-            .expect("query must take the state lock once");
-        let projection = source
-            .find("EnvironmentRuntimeSnapshot::try_from_current_reports")
-            .expect("query must use the core contract projection");
-
-        assert!(finish < operation && operation < state && state < projection);
-        assert_eq!(source.matches("framework.lock_operation()").count(), 1);
-        assert_eq!(source.matches("framework.lock_state()").count(), 1);
-        assert!(!source.contains("query_stats("));
-        assert!(!source.contains("take_realtime_ibl"));
-        assert!(!source.contains("take_completed_gpu_timing_report"));
-    }
-}
+#[path = "tests/query_environment_runtime_snapshot.rs"]
+mod tests;

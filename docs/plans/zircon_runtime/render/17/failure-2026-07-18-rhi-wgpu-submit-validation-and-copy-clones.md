@@ -9,39 +9,10 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_runtime/render/17
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/rhi_wgpu/command_validation.rs
-  - zircon_runtime/src/rhi_wgpu/command_validation/render_state.rs
-  - zircon_runtime/src/rhi_wgpu/device.rs
-  - zircon_runtime/src/rhi_wgpu/device/command_list.rs
-  - zircon_runtime/src/rhi_wgpu/mod.rs
-  - zircon_runtime/src/rhi_wgpu/render_pass_validation.rs
-  - zircon_runtime/src/rhi_wgpu/tests.rs
-  - zircon_runtime/src/rhi/tests/command_list.rs
-  - zircon_runtime/src/rhi/tests/command_list/basic_commands.rs
-  - zircon_runtime/src/rhi/tests/command_list/bind_groups.rs
-  - zircon_runtime/src/rhi/tests/command_list/raster_draws.rs
-  - zircon_runtime/src/rhi/tests/command_list/vertex_index_state.rs
-  - zircon_runtime/src/rhi/tests/debug_markers.rs
-  - zircon_runtime/src/rhi/tests/debug_status.rs
-  - zircon_runtime/src/rhi/tests/device_contract.rs
-  - zircon_runtime/src/rhi/tests/device_contract/basic_resources.rs
-  - zircon_runtime/src/rhi/tests/device_contract/bind_groups.rs
-  - zircon_runtime/src/rhi/tests/device_contract/framework_boundary.rs
-  - zircon_runtime/src/rhi/tests/device_contract/invalid_descriptors.rs
-  - zircon_runtime/src/rhi/tests/device_contract/texture_sampler_descriptors.rs
-  - zircon_runtime/src/rhi/tests/device_contract/transfer_and_fences.rs
-  - zircon_runtime/src/rhi/tests/pipeline.rs
-  - zircon_runtime/src/rhi/tests/render_pass_clear_values.rs
-  - zircon_runtime/src/rhi/tests/render_pass_command_list.rs
-  - zircon_runtime/src/rhi/tests/render_pass_resolve.rs
-  - zircon_runtime/src/rhi/tests/render_pass_state.rs
-  - zircon_runtime/src/rhi/tests/render_pass_views.rs
-  - zircon_runtime/src/rhi/tests/resource_lifecycle.rs
-  - zircon_runtime/src/rhi/tests/texture_copy.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/rhi_wgpu_device_command_list.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/rhi_wgpu_lock_poison.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/rhi_device_contract.rs
-  - docs/zircon_runtime/rhi/descriptors.md
+  - docs/crates/zircon_runtime/rhi/descriptors.md
 ---
 
 # RHI WGPU contract device与产品backend边界
@@ -86,4 +57,4 @@ public `WgpuRenderDevice`/`WgpuCommandList`测试兼容别名已删除，并由�
 state也已硬切为`DeterministicRhiContractDeviceState`，当前源码不再包含旧`WgpuRenderDeviceState`；Rust 1.94.1
 受管RHI回归、产品GPU/RenderDoc证据、upward gate、failure return/review/commit仍待完成，当前不声明fixed。
 
-全树consumer审计已把successor的return前边界扩为exact36：除原exact33外，必须原子迁移仍断言旧名称/计数的两条Runtime15结构测试consumer，以及clean的canonical模块文档`docs/zircon_runtime/rhi/descriptors.md`。`docs/assets-and-rendering/render-framework-architecture.md`、`docs/zircon_runtime/structure/module-convention.md`和父计划文件当前是foreign-dirty full blob，继续作为独立docs-only owner交接，不吸收到本failure提交。
+全树consumer审计已把successor的return前边界扩为exact36：除原exact33外，必须原子迁移仍断言旧名称/计数的两条Runtime15结构测试consumer，以及clean的canonical模块文档`docs/crates/zircon_runtime/rhi/descriptors.md`。`docs/rendering/render-framework-architecture.md`、`docs/crates/zircon_runtime/structure/module-convention.md`和父计划文件当前是foreign-dirty full blob，继续作为独立docs-only owner交接，不吸收到本failure提交。

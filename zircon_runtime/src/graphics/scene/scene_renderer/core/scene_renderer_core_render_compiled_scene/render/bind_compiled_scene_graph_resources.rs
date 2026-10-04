@@ -1,4 +1,3 @@
-use crate::graphics::CompiledRenderPipeline;
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::core::scene_renderer_core::SceneRendererNeutralGraphBuffers;
@@ -15,19 +14,20 @@ use crate::graphics::scene::scene_renderer::post_process::{
 };
 use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
-use crate::rhi::RenderDeviceProfile;
+use crate::graphics::CompiledRenderPipeline;
+use crate::rhi::{BufferDesc, RenderDeviceProfile};
 use zr_rhi_wgpu::WgpuBufferUploadBatch;
 
 use super::bind_environment_ibl_graph_resources::bind_environment_ibl_graph_resources;
 use super::bind_execution_owned_graph_resources::bind_execution_owned_graph_resources;
 use super::bind_frame_graph_resources::bind_frame_graph_resources;
 use super::bind_history_graph_resources::{
-    HistoryGraphResourceBindingFlags, bind_history_graph_resources,
+    bind_history_graph_resources, HistoryGraphResourceBindingFlags,
 };
 use super::bind_plugin_graph_resources::bind_plugin_graph_resources;
 use super::bind_ssao_compute_graph_resources::bind_ssao_compute_graph_resources;
 use super::bind_taa_reactive_mask_graph_resource::bind_taa_reactive_mask_graph_resource;
-use super::final_target_output::{FinalTargetOutputSelection, select_final_target_output};
+use super::final_target_output::{select_final_target_output, FinalTargetOutputSelection};
 
 pub(super) struct CompiledSceneGraphResourceBindingFlags {
     pub(super) taa_history_enabled: bool,
@@ -49,6 +49,7 @@ pub(super) fn bind_compiled_scene_graph_resources(
     target: &mut OffscreenTarget,
     post_process: &ScenePostProcessResources,
     scene_light_data_buffer: &wgpu::Buffer,
+    scene_light_data_desc: BufferDesc,
     history_textures: Option<&SceneFrameHistoryTextures>,
     flags: CompiledSceneGraphResourceBindingFlags,
     graph_resources: &mut RenderGraphExecutionResources,
@@ -66,7 +67,7 @@ pub(super) fn bind_compiled_scene_graph_resources(
     let final_target_output = select_final_target_output(streamer, frame)?;
     let imported_final_target = final_target_output
         .imported_resource()
-        .map(|resource| {
+        .map(|resource| -> Result<_, GraphicsError> {
             Ok(RenderGraphImportedFinalTarget {
                 texture: resource.texture(),
                 view: resource.view(),
@@ -80,6 +81,7 @@ pub(super) fn bind_compiled_scene_graph_resources(
         graph_resources,
         target,
         scene_light_data_buffer,
+        scene_light_data_desc,
         imported_final_target,
         final_target_output.output_target_resource(),
         Some(shadow_atlas_resources),

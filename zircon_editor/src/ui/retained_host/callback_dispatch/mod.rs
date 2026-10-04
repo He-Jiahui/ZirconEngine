@@ -7,7 +7,7 @@ mod layout;
 mod pane;
 mod shared_pointer;
 mod template_binding;
-mod template_bridge;
+pub(crate) mod template_bridge;
 mod viewport;
 mod welcome;
 mod workbench;

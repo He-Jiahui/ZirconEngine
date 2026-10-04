@@ -52,7 +52,7 @@ impl PlatformHostService {
         );
         state.backend = Some(backend);
         state.active_quiesce = None;
-        state.snapshot = snapshot;
+        state.snapshot = snapshot.clone();
         Ok(snapshot)
     }
 

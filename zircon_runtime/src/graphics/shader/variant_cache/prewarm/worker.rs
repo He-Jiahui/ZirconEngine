@@ -9,6 +9,7 @@ use crate::graphics::shader::template::validate_shader_variant_prewarm_wgsl;
 
 use super::super::disk::{ShaderVariantCacheDisk, ShaderVariantCacheDiskKey};
 
+// 一个 manifest 共用一份源码表与 WGSL 校验结果；先完成整体预检，再逐变体写入缓存和统计。
 pub(super) fn prewarm_shader_variants_to_disk_inner(
     manifest: &ShaderVariantPrewarmManifest,
     cache_root: impl AsRef<Path>,
@@ -22,6 +23,7 @@ pub(super) fn prewarm_shader_variants_to_disk_inner(
 ) -> ShaderVariantPrewarmReport {
     let mut report = ShaderVariantPrewarmReport::default();
     report.execution_budget.configure(budget);
+    // BUG: [CR-GRAPHICS-SHADER-VIS-0001] 所有整份 manifest 的预检分支都调用 record_failure(0)，把零变体错误伪装成首个变体失败并虚增 requested/failed；应使用 preflight_error。
     if let Err(error) = budget.validate() {
         report.execution_budget.record_rejected();
         report.record_failure(0, error.to_string());
@@ -214,38 +216,5 @@ fn validate_source_once<'a>(
 }
 
 #[cfg(test)]
-mod tests {
-    use std::cell::Cell;
-    use std::collections::HashMap;
-
-    use crate::core::framework::render::ShaderVariantPrewarmSource;
-
-    use super::validate_source_once;
-
-    #[test]
-    fn shared_source_wgsl_validation_is_cached_once_per_prewarm_batch() {
-        let source = ShaderVariantPrewarmSource::new(
-            "res://materials/shared.wgsl",
-            "fn main() {}",
-            Vec::new(),
-            "template-r1",
-            "naga-r1",
-            "wgpu-r1",
-        );
-        let mut validation_results = HashMap::new();
-        let validation_count = Cell::new(0usize);
-
-        validate_source_once(&mut validation_results, &source, |_| {
-            validation_count.set(validation_count.get() + 1);
-            Ok(())
-        })
-        .expect("first validation should pass");
-        validate_source_once(&mut validation_results, &source, |_| {
-            validation_count.set(validation_count.get() + 1);
-            Ok(())
-        })
-        .expect("cached validation should pass");
-
-        assert_eq!(validation_count.get(), 1);
-    }
-}
+#[path = "tests/worker.rs"]
+mod tests;

@@ -1,8 +1,9 @@
 use std::sync::{Arc, Mutex};
 
 use crate::core::framework::render::{
-    IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES, IblBakeArtifactContents, IblBakeArtifactDescriptor,
-    IblBakeArtifactReadbackSections, SOURCE_CUBEMAP_FACE_COUNT, source_cubemap_mip_size,
+    source_cubemap_mip_size, IblBakeArtifactContents, IblBakeArtifactDescriptor,
+    IblBakeArtifactReadbackSections, IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES,
+    SOURCE_CUBEMAP_FACE_COUNT,
 };
 use crate::graphics::types::GraphicsError;
 

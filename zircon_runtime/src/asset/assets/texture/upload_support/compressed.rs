@@ -95,7 +95,7 @@ fn unsupported_container_shape_reason(
         return Some("compressed texture mip-chain upload is not implemented".to_string());
     }
     if descriptor.dimension == RenderImageDimension::D2
-        && (descriptor.array_layer_count > 1 || descriptor.depth_or_array_layers > 1)
+        && descriptor.depth_or_array_layers > 1
         && !has_subresource_layout
     {
         return Some("compressed texture array/cubemap upload is not implemented".to_string());
@@ -104,10 +104,7 @@ fn unsupported_container_shape_reason(
         if texture.width != texture.height {
             return Some("compressed cube texture upload requires square faces".to_string());
         }
-        if descriptor.array_layer_count == 0
-            || descriptor.depth_or_array_layers != descriptor.array_layer_count
-            || descriptor.array_layer_count % 6 != 0
-        {
+        if descriptor.depth_or_array_layers == 0 || descriptor.depth_or_array_layers % 6 != 0 {
             return Some(
                 "compressed cube texture upload requires a non-zero multiple of six faces"
                     .to_string(),
@@ -142,6 +139,7 @@ fn compressed_subresource_reason(
             expected_count
         ));
     }
+    // 计划项数已等于 mip × layer 槽位数；循环还会拒绝越界和重复索引，因此通过后即覆盖全部槽位，无需再次扫描。
     let mut seen = vec![false; expected_count];
     for subresource in &plan.subresources {
         if subresource.mip_level >= mip_count || subresource.array_layer >= layer_count {
@@ -288,7 +286,7 @@ fn unsupported_feature_reason(
 }
 
 #[cfg(test)]
-#[path = "compressed/redundant_coverage_scan_tests.rs"]
+#[path = "compressed/tests/redundant_coverage_scan_tests.rs"]
 mod redundant_coverage_scan_tests;
 
 const fn mip_extent(value: u32, level: u32) -> u32 {

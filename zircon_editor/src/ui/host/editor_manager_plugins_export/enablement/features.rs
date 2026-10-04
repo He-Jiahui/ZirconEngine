@@ -100,16 +100,27 @@ impl EditorManager {
         let builtin = self.runtime_plugin_catalog();
         let native_projection = native_report.projection();
         RuntimePluginCatalog::from_registration_reports(
-            builtin
-                .registrations()
-                .iter()
-                .cloned()
-                .chain(native_projection.runtime_plugin_registration_reports()),
-            builtin
-                .feature_registrations()
-                .iter()
-                .cloned()
-                .chain(native_projection.runtime_plugin_feature_registration_reports()),
+            builtin.registrations().iter().cloned().chain(
+                native_projection
+                    .runtime_plugin_registration_reports()
+                    .into_iter()
+                    .filter(|registration| {
+                        registration
+                            .package_manifest
+                            .package_role
+                            .is_product_catalog_eligible()
+                    }),
+            ),
+            builtin.feature_registrations().iter().cloned().chain(
+                native_projection
+                    .runtime_plugin_feature_registration_reports()
+                    .into_iter()
+                    .filter(|registration| {
+                        registration
+                            .provider_package_role
+                            .is_product_catalog_eligible()
+                    }),
+            ),
         )
     }
 }

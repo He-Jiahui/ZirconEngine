@@ -12,6 +12,13 @@ fn feature_enabled_first_party_provider_snapshot_reports_compiled_runtime_plugin
     push_expected_runtime_provider(
         &mut expected,
         &mut selections,
+        RuntimePluginId::Physics,
+        "physics",
+    );
+    #[cfg(feature = "base-runtime-plugins")]
+    push_expected_runtime_provider(
+        &mut expected,
+        &mut selections,
         RuntimePluginId::Sound,
         "sound",
     );
@@ -58,6 +65,20 @@ fn feature_enabled_first_party_provider_snapshot_reports_compiled_runtime_plugin
         &mut selections,
         RuntimePluginId::GltfImporter,
         "gltf_importer",
+    );
+    #[cfg(feature = "base-runtime-plugins")]
+    push_expected_runtime_provider(
+        &mut expected,
+        &mut selections,
+        RuntimePluginId::ObjImporter,
+        "obj_importer",
+    );
+    #[cfg(feature = "base-runtime-plugins")]
+    push_expected_runtime_provider(
+        &mut expected,
+        &mut selections,
+        RuntimePluginId::ShaderWgslImporter,
+        "shader_wgsl_importer",
     );
     #[cfg(feature = "ui-document-importer")]
     push_expected_runtime_provider(
@@ -106,7 +127,9 @@ fn feature_enabled_first_party_provider_snapshot_reports_compiled_runtime_plugin
     let reports = crate::first_party_runtime_plugin_registrations_for_manifest(
         RuntimeTargetMode::ClientRuntime,
         &manifest,
-    );
+    )
+    .into_registrations_if_required_resolved()
+    .expect("all feature-enabled first-party runtime providers resolve");
     let actual = reports
         .iter()
         .map(|report| report.package_manifest.id.as_str())

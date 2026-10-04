@@ -10,6 +10,7 @@ impl RetainedEditorHost {
         chrome: &mut crate::ui::workbench::snapshot::EditorChromeSnapshot,
         componentized_workbench_layout_frames: callback_dispatch::BuiltinWorkbenchWindowLayoutFrames,
         floating_window_projection_bundle: &FloatingWindowProjectionBundle,
+        window_metrics_target: bool,
     ) {
         let viewport_content_frame = componentized_workbench_layout_frames
             .viewport_content_frame
@@ -76,29 +77,21 @@ impl RetainedEditorHost {
                 componentized_workbench_layout_frames,
                 Some(floating_window_projection_bundle),
             );
-        self.sync_activity_rail_pointer_layout(model);
-        self.sync_host_page_pointer_layout(model);
-        self.sync_document_tab_pointer_layout(model);
-        self.sync_drawer_header_pointer_layout(model);
+        self.sync_activity_rail_pointer_layout_for_target(model, window_metrics_target);
+        if !window_metrics_target {
+            self.sync_host_page_pointer_layout(model);
+            self.sync_document_tab_pointer_layout(model);
+            self.sync_drawer_header_pointer_layout(model);
+        } else {
+            zircon_runtime::profile_counter!(
+                "editor",
+                "ui.window_metrics.semantic_pointer_receipt_reuse_count",
+                3
+            );
+        }
     }
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn viewport_resize_patches_the_committed_projection_before_full_model_fallback() {
-        let source = include_str!("recompute_viewport.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("viewport recompute production source");
-        let incremental = production
-            .find("model.status_bar = StatusBarModel::from_chrome(chrome)")
-            .expect("incremental viewport projection");
-        let full = production
-            .find("build_workbench_view_model")
-            .expect("conservative model fallback");
-
-        assert!(incremental < full);
-    }
-}
+#[path = "tests/recompute_viewport.rs"]
+mod tests;

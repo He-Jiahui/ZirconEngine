@@ -1,3 +1,4 @@
+# 核对核心模块输出与诊断行为是被动显示，旧选择动作不再注册。
 import tomllib
 import unittest
 from pathlib import Path
@@ -19,11 +20,7 @@ RUNTIME_SOURCES = (
         "zircon_editor/src/ui/template_runtime/builtin/"
         "workbench_module_template_bindings.rs"
     ),
-    REPO_ROOT
-    / (
-        "zircon_editor/src/ui/template_runtime/builtin/"
-        "workbench_module_template_bindings/assets_workspace_routes.rs"
-    ),
+    REPO_ROOT / "zircon_editor/src/ui/template_runtime/builtin/workbench_module_template_bindings/tests/assets_workspace_routes.rs",
 )
 PASSIVE_OUTPUTS = (
     (

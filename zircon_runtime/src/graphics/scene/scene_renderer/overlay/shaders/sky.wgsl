@@ -1,3 +1,4 @@
+// TODO: [CR-SCENE-UI-0002] 当前天空管线加载 zr_procedural_sky.wgsl，未找到本文件消费者；确认资源扫描入口或删除策略，避免与实际天空契约漂移。
 struct SceneUniform {
     view_proj: mat4x4<f32>,
 };

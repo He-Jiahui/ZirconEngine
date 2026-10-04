@@ -3,22 +3,21 @@ related_code:
   - zircon_editor/src/core/settings/mod.rs
   - zircon_editor/src/core/settings/defaults.rs
   - zircon_editor/src/core/settings/io.rs
-  - zircon_editor/src/ui/v2_design_tokens.rs
   - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/extension_host.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs
 implementation_files:
-  - docs/editor-and-tooling/retained-host-text-preferences.md
-  - docs/zircon_editor/ui/retained_host/host_contract/paint_text.md
-  - docs/zircon_editor/ui/retained_host/host_contract/paint_theme.md
-  - docs/zircon_runtime/script/vm/host_interface.md
-  - docs/zircon_plugins/zr_vm_language/host_interface.md
+  - docs/editor/retained-host-text-preferences.md
+  - docs/crates/zircon_editor/ui/retained_host/host_contract/paint_text.md
+  - docs/crates/zircon_editor/ui/retained_host/host_contract/paint_theme.md
+  - docs/crates/zircon_runtime/script/vm/host_interface.md
+  - docs/crates/zircon_plugins/zr_vm_language/host_interface.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - python tools/check_conventions.py --only docs --json
+  - python tools/audits/check_conventions.py --only docs --json
   - git diff --check -- <exact batch paths>
 ---
 
@@ -38,7 +37,7 @@ Session: `frameworks06-g7-current-owner-doc-path-hardcut-batch10-20260718`
 ## 验证
 
 - 修改前 fresh G7：`445` violations / `96` documents。
-- 修改后 fresh `python tools/check_conventions.py --only docs --json`：所选 5 份文档 `0` violations；全库收敛到 `433` violations / `91` documents。
+- 修改后 fresh `python tools/audits/check_conventions.py --only docs --json`：所选 5 份文档 `0` violations；全库收敛到 `433` violations / `91` documents。
 - closeout current-source 重放：所选 5 份文档仍为 `0` violations；并发迁移使全局变为 `464` violations / `118` documents，因此全局 G7 继续明确为 RED，未复用历史总数冒充当前基线。
 - 2026-07-29 current-owner 重放：全库为 `678` violations，其中 Frameworks 计划自身仅本记录的 4 条已删除 `ui/preferences/**` 路径；本次硬切到 settings/design-token owner 后，Frameworks 计划命中归零，全局其余 `674` 条继续由各自编号计划承担。
 - 三种退役机器路径在本批次 5 份文档中为 `0`；所有新增 owner 路径存在。

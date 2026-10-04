@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 验证手柄的职责切分：手柄契约域应目录支撑，并手柄子节点归属方应运行时 12 清单。
 class RuntimeGamepadContractOwnerStructureTests(unittest.TestCase):
     def test_gamepad_contract_domains_are_folder_backed(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]

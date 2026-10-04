@@ -8,6 +8,8 @@ use zr_rhi::{
     PipelineStatisticsScope, TimestampScope,
 };
 
+/// 时间戳与统计共用一帧计划；克隆共享预留状态，两类查询使用同一逻辑 pass 编号空间。
+/// 同名 pass 聚合为同一逻辑身份，但每次预留仍对应独立物理查询 scope。
 #[derive(Clone)]
 pub struct GpuDiagnosticQueryFramePlan {
     inner: Arc<Mutex<GpuDiagnosticQueryFramePlanState>>,
@@ -42,6 +44,7 @@ impl GpuDiagnosticQueryFramePlan {
         state.plan.reserve_pipeline_statistics_scope(pass)
     }
 
+    /// 结束录制后取原子快照，将计划和名称表一起交给提交与结果路由，避免索引错配。
     pub fn snapshot(&self) -> GpuDiagnosticQueryFramePlanSnapshot {
         let state = self.lock();
         GpuDiagnosticQueryFramePlanSnapshot {
@@ -57,6 +60,7 @@ impl GpuDiagnosticQueryFramePlan {
     }
 }
 
+/// 一次锁内取得的计划/名称对；结果消费者应携带此对，不重新读取正在录制的名称表。
 pub struct GpuDiagnosticQueryFramePlanSnapshot {
     plan: DiagnosticQueryPlan,
     pass_names: Vec<String>,
@@ -96,27 +100,5 @@ impl GpuDiagnosticQueryFramePlanState {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::GpuDiagnosticQueryFramePlan;
-    use zr_rhi::DiagnosticReadbackBudget;
-
-    #[test]
-    fn timestamp_and_statistics_scopes_share_dense_logical_pass_ids() {
-        let frame = GpuDiagnosticQueryFramePlan::new(41, DiagnosticReadbackBudget::default());
-        let timestamp_a = frame.reserve_timestamp_scope("hzb.build").unwrap();
-        let timestamp_b = frame.reserve_timestamp_scope("hzb.build").unwrap();
-        let statistics = frame
-            .reserve_pipeline_statistics_scope("hzb.build")
-            .unwrap();
-        let ui = frame.reserve_timestamp_scope("ui").unwrap();
-        let snapshot = frame.snapshot();
-
-        assert_eq!(timestamp_a.pass(), timestamp_b.pass());
-        assert_eq!(timestamp_a.pass(), statistics.pass());
-        assert_ne!(timestamp_a.pass(), ui.pass());
-        assert_eq!(snapshot.pass_names(), ["hzb.build", "ui"]);
-        assert_eq!(snapshot.plan().pass_count(), 2);
-        assert_eq!(snapshot.plan().timestamp_query_count(), 6);
-        assert_eq!(snapshot.plan().pipeline_statistics_query_count(), 1);
-    }
-}
+#[path = "tests/gpu_diagnostic_query_frame.rs"]
+mod tests;

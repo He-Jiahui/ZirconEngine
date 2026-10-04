@@ -6,12 +6,14 @@ import { Box } from "@mui/material";
 import type { HubProjectsText, HubProjectDetail, HubSourceEngineSummary } from "../../types/hub";
 import { MetricCard } from "./MetricCard";
 
+// 项目和已解析的引擎绑定来自同一详情快照；绑定缺失时保留项目自身版本信息与说明。
 export interface ProjectMetricsGridProps {
   project: HubProjectDetail;
   boundEngine?: HubSourceEngineSummary;
   text: HubProjectsText;
 }
 
+// 概览用于解释当前项目上下文；路径存在只表示可定位，后续构建和交付仍需各自验证前提。
 export function ProjectMetricsGrid({ project, boundEngine, text }: ProjectMetricsGridProps) {
   return (
     <Box

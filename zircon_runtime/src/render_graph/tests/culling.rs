@@ -255,6 +255,8 @@ fn compiled_graph_stats_are_materialized_during_graph_construction() {
 fn compile_resource_hazards_split_execution_and_provenance_adjacency() {
     let inference_source = include_str!("../builder/resource_dependency_inference.rs");
     let tracker_source = include_str!("../builder/access_scope_tracker.rs");
+    let buffer_scope_source =
+        include_str!("../builder/access_scope_tracker/buffer_scope_history.rs");
 
     assert!(inference_source.contains("struct DependencyAdjacency"));
     assert!(inference_source.contains("membership: Vec<HashSet<RenderPassId>>"));
@@ -262,7 +264,7 @@ fn compile_resource_hazards_split_execution_and_provenance_adjacency() {
     assert!(inference_source.contains("let mut culling_dependencies"));
     assert!(tracker_source.contains("struct ResourceAccessHistory"));
     assert!(tracker_source.contains("readers_since_last_write"));
-    assert!(tracker_source.contains("struct BufferScopeHistory"));
+    assert!(buffer_scope_source.contains("struct BufferScopeHistory"));
     assert!(!inference_source.contains("struct ManualPassReachability"));
 }
 
@@ -309,6 +311,8 @@ fn compute_packet_lowering_fails_closed_without_production_expect() {
 fn compile_resource_hazard_inference_tracks_writers_and_readers() {
     let inference_source = include_str!("../builder/resource_dependency_inference.rs");
     let tracker_source = include_str!("../builder/access_scope_tracker.rs");
+    let buffer_scope_source =
+        include_str!("../builder/access_scope_tracker/buffer_scope_history.rs");
 
     assert!(
         inference_source.contains("execution_dependencies.add_dependency(writer.pass, pass.id);")
@@ -317,7 +321,9 @@ fn compile_resource_hazard_inference_tracks_writers_and_readers() {
     assert!(
         inference_source.contains("for reader in history.readers_since_last_write.iter().copied()")
     );
-    assert!(tracker_source.contains("fn split_at(&mut self, boundary: u64, identity: usize)"));
+    assert!(buffer_scope_source.contains(
+        "fn split_at(\n        &mut self,\n        boundary: u64,\n        identity: usize,\n        work: &mut AccessScopeWorkReceipt,"
+    ));
     assert!(tracker_source.contains("PreparedScopeKind::Texture"));
     assert!(!inference_source.contains("validate_write_dependencies"));
     assert!(!inference_source.contains("writer_ids.windows(2)"));

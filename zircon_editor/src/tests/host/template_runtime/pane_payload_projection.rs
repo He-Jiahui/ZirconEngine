@@ -1,3 +1,4 @@
+// 核对面板正文载荷元数据、混合槽锚点和宿主投影一致性。
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 
@@ -118,12 +119,14 @@ fn chrome_fixture() -> EditorChromeSnapshot {
             [7],
         ),
         inspector: Some(InspectorSnapshot {
+            rotation_degrees: None,
             id: 7,
             name: "Root".to_string(),
             parent: "Scene".to_string(),
             translation: ["1.0".to_string(), "2.0".to_string(), "3.0".to_string()],
             scale: ["1.0".to_string(), "1.0".to_string(), "1.0".to_string()],
             render_layer_mask: 1,
+            native_fields: Vec::new(),
             plugin_components: Vec::new(),
         }),
         status_line: "Console ready".to_string(),

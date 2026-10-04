@@ -1,3 +1,4 @@
+# 核对菜单几何读取借用模型行，调用方显式传递菜单状态。
 from pathlib import Path
 import re
 import unittest

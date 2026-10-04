@@ -1,0 +1,22 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/floating/workbench_preferences.zui"
+version = 2
+display_name = "Workbench Preferences"
+
+[imports]
+styles = [
+  "res://ui/theme/editor_workbench_strict.zui",
+]
+
+[components.WorkbenchPreferences]
+root = "preferences"
+default_classes = ["workbench-floating", "workbench-preferences"]
+
+[nodes.preferences]
+component = "HorizontalGroup"
+control_id = "WorkbenchPreferences"
+classes = ["workbench-floating", "workbench-preferences"]
+props = { open = false, popup_open = false, focused = false, selected = false, visibility = "collapsed", title = "Editor Settings", locale = "en", settings_generation = 0, contribution_generation = 0, enabled_capabilities = [], selected_category_id = "", settings_editor_open_key = "", settings_editor_open_kind = "", settings_category_scroll_offset = 0.0, settings_scroll_offset = 0.0, settings_persistence_health_generation = 0, settings_persistence_retry_scope = "", settings_persistence_status_text = "", categories = [], settings = [], settings_values = [], plugin_pages = [], close_on_backdrop_click = true, keep_mounted = true, aria_modal = true, aria_labelledby = "Editor Settings", aria_describedby = "Editor settings and plugin preference pages", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+style = { self = { background = { color = "$editor.surface.1" }, foreground = { color = "$editor.text.primary" }, border = { color = "$editor.border", width = "$editor.control.border_width", radius = "$editor.control.radius.large" } } }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = 0.0 }, width = { min = 0.0, preferred = 860.0, max = 960.0, stretch = "Stretch" }, height = { min = 0.0, preferred = 560.0, max = 680.0, stretch = "Stretch" }, z_index = 1480 }

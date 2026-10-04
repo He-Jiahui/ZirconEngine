@@ -1,16 +1,17 @@
+# 核对加载器清单辅助函数归属与载荷模块行数。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PAYLOAD = REPO_ROOT / "tools/zircon_export/pipeline_report_native_dynamic_payload.py"
+PAYLOAD = REPO_ROOT / "tools/export/pipeline_report_native_dynamic_payload.py"
 PAYLOAD_PLATFORM_BUNDLE = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_payload_platform_bundle.py"
+    / "tools/export/pipeline_report_native_dynamic_payload_platform_bundle.py"
 )
 PAYLOAD_LOADER_MANIFEST = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_payload_loader_manifest.py"
+    / "tools/export/pipeline_report_native_dynamic_payload_loader_manifest.py"
 )
 
 

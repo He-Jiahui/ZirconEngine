@@ -1,4 +1,4 @@
-use super::super::builtin_render_feature::{BuiltinRenderFeature, descriptor_only_advanced_slot};
+use super::super::builtin_render_feature::{descriptor_only_advanced_slot, BuiltinRenderFeature};
 use super::super::feature_descriptors::{
     advanced_slot, anti_alias, bloom, clustered_lighting, color_grading, debug_overlay,
     deferred_geometry, deferred_lighting, hzb, mesh, neural_compute, post_process, ray_tracing,
@@ -7,6 +7,7 @@ use super::super::feature_descriptors::{
 use super::super::render_feature_descriptor::RenderFeatureDescriptor;
 use crate::graphics::feature::RenderFeatureCapabilityRequirement;
 
+// 先消费高级槽位目录，再按枚举分派普通描述符；外部化能力只保留插件契约和能力要求。
 pub(super) fn descriptor_for(feature: BuiltinRenderFeature) -> RenderFeatureDescriptor {
     if let Some(slot) = descriptor_only_advanced_slot(feature) {
         return advanced_slot::descriptor(slot);

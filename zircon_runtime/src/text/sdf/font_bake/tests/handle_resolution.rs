@@ -1,6 +1,6 @@
 use super::*;
 use crate::text::font::{
-    FontCollectionService, register_font_handle_batch_for_collection, register_font_handles,
+    register_font_handle_batch_for_collection, register_font_handles, FontCollectionService,
 };
 
 #[test]

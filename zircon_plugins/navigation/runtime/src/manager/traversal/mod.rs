@@ -3,6 +3,7 @@ mod capacity;
 mod selection;
 mod state;
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 use std::borrow::Cow;

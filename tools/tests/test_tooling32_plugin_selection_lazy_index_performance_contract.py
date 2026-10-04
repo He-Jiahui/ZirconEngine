@@ -1,8 +1,9 @@
+# 核对插件数字选择跳过标识索引，重复选择复用投影。
 from __future__ import annotations
 
 import unittest
 
-from tools.zircon_build_plugin_selection import select_plugins
+from tools.build.zircon_build_plugin_selection import select_plugins
 
 
 class ProbePackage:

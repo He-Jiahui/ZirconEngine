@@ -1,3 +1,4 @@
+# 核对控制台日志由代际元数据映射有界槽位，绘制、命中与指针范围共享该映射。
 from pathlib import Path
 import unittest
 

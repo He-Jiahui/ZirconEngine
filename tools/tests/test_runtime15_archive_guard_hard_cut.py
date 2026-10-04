@@ -1,6 +1,6 @@
 import unittest
 from pathlib import Path
-
+# 当前 runtime 结构守卫不得再读取 Runtime15 历史归档中的输出收据；此测试逐个读取现行守卫源码，阻止旧验收材料回流。
 
 class Runtime15ArchiveGuardHardCutTests(unittest.TestCase):
     def test_runtime15_archive_guard_cohort_does_not_compile_historical_output_receipts(

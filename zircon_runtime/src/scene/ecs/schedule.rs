@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use serde::{Deserialize, Deserializer, Serialize, de::Error as _};
+use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
 
 #[cfg(test)]
 use super::ScheduledSceneStep;
@@ -258,6 +258,7 @@ impl Schedule {
         if self.no_taken_systems() {
             self.refresh_executor_plan()?;
         } else {
+            // BUG: [CR-R02-runtime_ecs_schedule_systems-0004] 系统在途时连续注册成环约束均返回成功，最后 restore 才在刷新计划的 expect 处 panic，无法走注册失败回滚。证据：此处跳过拓扑校验、注册只回滚 Err、restore 强制刷新。
             self.executor_plan_dirty = true;
         }
         Ok(())

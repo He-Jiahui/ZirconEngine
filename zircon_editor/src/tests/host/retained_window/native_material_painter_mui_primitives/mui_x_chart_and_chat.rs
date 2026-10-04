@@ -94,6 +94,10 @@ fn native_template_painter_draws_mui_x_agent_chat_and_composer() {
             component_variant: "streaming".into(),
             validation_level: "error".into(),
             focused: true,
+            collection_items: model_rc(vec![
+                "user|Review the narrow shell".to_string(),
+                "agent|Checking responsive rules".to_string(),
+            ]),
             frame: frame(4.0, 4.0, 96.0, 44.0),
             ..TemplatePaneNodeData::default()
         },
@@ -103,6 +107,7 @@ fn native_template_painter_draws_mui_x_agent_chat_and_composer() {
             role: "ChatComposer".into(),
             component_role: "mui-x-chat-composer".into(),
             focused: true,
+            value_text: "Continue the review".into(),
             frame: frame(4.0, 52.0, 96.0, 18.0),
             ..TemplatePaneNodeData::default()
         },
@@ -115,4 +120,43 @@ fn native_template_painter_draws_mui_x_agent_chat_and_composer() {
     assert_eq!(pixel(&bytes, 112, 82, 26), MUI_X_CHAT_SELECTED_BUBBLE);
     assert_eq!(pixel(&bytes, 112, 20, 43), MUI_X_CHART_PRIMARY);
     assert_eq!(pixel(&bytes, 112, 88, 61), MUI_X_CHART_PRIMARY);
+}
+
+#[test]
+fn native_template_painter_exposes_reactbits_chat_text_commands() {
+    let agent = TemplatePaneNodeData {
+        control_id: "AgentChat".into(),
+        node_id: "AgentChat.node".into(),
+        role: "AgentChat".into(),
+        component_role: "mui-x-agent-chat".into(),
+        collection_items: model_rc(vec![
+            "user|Review the narrow shell".to_string(),
+            "agent|Checking responsive rules".to_string(),
+        ]),
+        frame: frame(4.0, 4.0, 240.0, 160.0),
+        ..TemplatePaneNodeData::default()
+    };
+    let composer = TemplatePaneNodeData {
+        control_id: "ChatComposer".into(),
+        node_id: "ChatComposer.node".into(),
+        role: "ChatComposer".into(),
+        component_role: "mui-x-chat-composer".into(),
+        value_text: "Continue the review".into(),
+        frame: frame(4.0, 180.0, 240.0, 44.0),
+        ..TemplatePaneNodeData::default()
+    };
+
+    let agent_commands = template_node_command_summary_for_test(&agent);
+    let composer_commands = template_node_command_summary_for_test(&composer);
+
+    assert_eq!(agent_commands.text_count, 2);
+    assert_eq!(composer_commands.text_count, 1);
+    assert!(agent_commands
+        .text_frames
+        .iter()
+        .all(|frame| frame.width > 0.0 && frame.height > 0.0));
+    assert!(composer_commands
+        .text_frames
+        .iter()
+        .all(|frame| frame.width > 0.0 && frame.height > 0.0));
 }

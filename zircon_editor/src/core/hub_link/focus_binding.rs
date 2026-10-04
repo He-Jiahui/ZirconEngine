@@ -99,12 +99,14 @@ impl ActiveHubFocusBinding {
             &target.project_root,
             target.instance_id.clone(),
             target.session_generation,
-            move |request| match callback_acknowledgement.enqueue(request) {
+            move |request| {
+                match callback_acknowledgement.enqueue(request) {
                 Ok(true) => request_window_attention(),
                 Ok(false) => {}
                 Err(error) => eprintln!(
                     "[zircon_editor] failed to retain Hub focus request for native acknowledgement: {error}"
                 ),
+            }
             },
         )?;
         Ok(Self {
@@ -124,23 +126,5 @@ pub(crate) enum HubFocusBindingError {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::path::PathBuf;
-
-    use super::HubFocusBindingTarget;
-
-    #[test]
-    fn focus_binding_identity_requires_project_instance_and_generation_to_match() {
-        let base =
-            HubFocusBindingTarget::new(PathBuf::from("E:/Projects/Game"), "913-42".into(), 7);
-
-        assert_eq!(
-            base,
-            HubFocusBindingTarget::new(PathBuf::from("E:/Projects/Game"), "913-42".into(), 7)
-        );
-        assert_ne!(
-            base,
-            HubFocusBindingTarget::new(PathBuf::from("E:/Projects/Game"), "913-42".into(), 8)
-        );
-    }
-}
+#[path = "tests/focus_binding.rs"]
+mod tests;

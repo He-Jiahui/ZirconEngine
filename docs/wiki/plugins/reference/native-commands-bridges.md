@@ -8,7 +8,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 插件公开接口完整参考
 tests:
-  - zircon_plugins/plugin_sdk/src/native/tests.rs
+  - zircon_plugins/plugin_sdk/src/native/tests/cases.rs
   - zircon_plugins/native_dynamic_fixture
 doc_type: api-reference
 title: Native Command、Event 与 Bridge 字节协议

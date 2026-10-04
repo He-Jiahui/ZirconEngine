@@ -1,3 +1,5 @@
+//! RHI 资源创建参数；这里保持后端无关，具体设备在创建阶段执行能力与形状校验。
+
 use serde::{Deserialize, Serialize};
 use std::ops::{BitOr, BitOrAssign};
 
@@ -65,6 +67,7 @@ impl BitOrAssign for BufferUsage {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 描述一块设备缓冲区；`usage` 必须覆盖所有后续命令所需的访问方向。
 pub struct BufferDesc {
     pub label: Option<String>,
     pub size_bytes: u64,
@@ -231,7 +234,11 @@ pub struct TextureDesc {
     pub label: Option<String>,
     pub width: u32,
     pub height: u32,
+    /// Z extent for a D3 texture. All other dimensions must keep this at one.
     pub depth: u32,
+    /// Addressable layers for D2-array and cube textures. Other dimensions
+    /// must keep this at one.
+    pub array_layers: u32,
     pub mip_levels: u32,
     pub sample_count: u32,
     pub format: TextureFormat,
@@ -258,6 +265,7 @@ impl TextureDesc {
             width,
             height,
             depth: 1,
+            array_layers: 1,
             mip_levels: 1,
             sample_count: 1,
             format,
@@ -279,8 +287,64 @@ impl TextureDesc {
     }
 
     pub fn with_array_layers(mut self, layers: u32) -> Self {
-        self.depth = layers;
+        self.array_layers = layers;
         self
+    }
+
+    /// Returns the number of independently addressable texture-view array layers.
+    ///
+    /// A D3 texture's `depth` is its Z extent, not an array-layer count.
+    pub const fn array_layer_count(&self) -> u32 {
+        match self.dimension {
+            TextureDimension::D2Array | TextureDimension::Cube => self.array_layers,
+            TextureDimension::D1 | TextureDimension::D2 | TextureDimension::D3 => 1,
+        }
+    }
+
+    /// Projects the neutral shape into WGPU's combined physical extent field.
+    pub const fn depth_or_array_layers(&self) -> u32 {
+        match self.dimension {
+            TextureDimension::D3 => self.depth,
+            TextureDimension::D2Array | TextureDimension::Cube => self.array_layers,
+            TextureDimension::D1 | TextureDimension::D2 => 1,
+        }
+    }
+
+    /// Reports a dimension/extent invariant violation without allocating.
+    pub const fn shape_validation_error(&self) -> Option<&'static str> {
+        if self.width == 0 || self.height == 0 || self.depth == 0 || self.array_layers == 0 {
+            return Some("width, height, depth, and array_layers must be greater than zero");
+        }
+        match self.dimension {
+            TextureDimension::D1
+                if self.height != 1 || self.depth != 1 || self.array_layers != 1 =>
+            {
+                Some("1D textures must declare height, depth, and array_layers as 1")
+            }
+            TextureDimension::D2 if self.depth != 1 || self.array_layers != 1 => {
+                Some("2D textures must declare depth and array_layers as 1")
+            }
+            TextureDimension::D2Array if self.depth != 1 => {
+                Some("2D-array textures must declare depth as 1")
+            }
+            TextureDimension::D3 if self.array_layers != 1 => {
+                Some("3D textures must declare array_layers as 1")
+            }
+            TextureDimension::Cube if self.width != self.height => {
+                Some("cube textures must be square")
+            }
+            TextureDimension::Cube if self.depth != 1 => {
+                Some("cube textures must declare depth as 1")
+            }
+            TextureDimension::Cube if self.array_layers % 6 != 0 => {
+                Some("cube textures must declare array_layers as a multiple of six faces")
+            }
+            TextureDimension::D1
+            | TextureDimension::D2
+            | TextureDimension::D2Array
+            | TextureDimension::D3
+            | TextureDimension::Cube => None,
+        }
     }
 
     pub fn with_mip_levels(mut self, mip_levels: u32) -> Self {
@@ -330,16 +394,15 @@ impl TextureDesc {
     }
 
     pub fn checked_storage_size_bytes(&self) -> Option<u64> {
+        // 该估算覆盖每个 mip、数组层/体积深度及采样数；设备预算据此在创建前拒绝溢出或超额资源。
         let mut total = 0_u64;
         for level in 0..self.mip_levels {
             let width = mip_extent(self.width, level);
             let height = mip_extent(self.height, level);
             let depth = match self.dimension {
                 TextureDimension::D3 => mip_extent(self.depth, level),
-                TextureDimension::D1
-                | TextureDimension::D2
-                | TextureDimension::D2Array
-                | TextureDimension::Cube => self.depth,
+                TextureDimension::D2Array | TextureDimension::Cube => self.array_layers,
+                TextureDimension::D1 | TextureDimension::D2 => 1,
             };
             let level_size = u64::from(width)
                 .checked_mul(u64::from(height))?

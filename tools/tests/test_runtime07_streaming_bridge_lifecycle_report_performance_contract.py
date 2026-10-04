@@ -22,7 +22,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束流式桥接生命周期报告：受影响槽位预分配已知总量，并受阻诊断流式处理进入最终缓冲区。
 class StreamingBridgeLifecycleReportPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

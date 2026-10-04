@@ -17,7 +17,7 @@ pub struct BlendSpace1D {
 }
 
 impl BlendSpace1D {
-    pub(super) fn from_compiled(
+    pub(in crate::state_machine) fn from_compiled(
         samples: &[AnimationCompiledBlendSpace1DSample],
     ) -> Result<Self, BlendSpaceCompileError> {
         let mut points = samples

@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+# 天赋修饰符生成目录按稠密来源序号定位，减免线性查找；本组核对生成投影、源文档布局与 reducer 调用。
 import json
 import re
 import subprocess

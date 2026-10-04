@@ -1,3 +1,4 @@
+# 核对弹窗行标签、快捷键和尾部装饰共享测量列宽。
 import unittest
 from pathlib import Path
 

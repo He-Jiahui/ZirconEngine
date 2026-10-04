@@ -6,6 +6,8 @@ use super::{
     planar_oblique_near_clip_projection, planar_reflection_matrix, PlanarReflectionProbeData,
 };
 
+/// 为已有捕获纹理推导镜面相机，供相机循环在主视图前提交。
+/// 返回 None 表示平面或裁剪投影不可用；调用方不得在这种情况下将探针标记为已捕获。
 pub fn derive_planar_reflection_camera(
     main_camera: &CameraRenderDescriptor,
     probe: &PlanarReflectionProbeData,
@@ -14,6 +16,8 @@ pub fn derive_planar_reflection_camera(
     let plane_point = probe
         .plane_transform
         .transform_point3(probe.local_reference_position);
+    // TODO: [CR-R02-core_render_lighting_effects-0001] 确认 plane_transform 是否允许剪切；当前把局部 Y 作为方向变换，公开 Mat4 契约未限定此输入。
+    // 证据缺口：平面相机用例仅覆盖单位矩阵；下一步核对场景提取约束，并补剪切/非均匀缩放用例对照逆转置法线。
     let plane_normal = probe
         .plane_transform
         .transform_vector3(Vec3::Y)
@@ -92,37 +96,5 @@ fn base_projection(camera: &CameraRenderDescriptor) -> Mat4 {
 }
 
 #[cfg(test)]
-mod optimization_tests {
-    #[test]
-    fn optimization_batch_20260830ds_planar_camera_selectively_clones_retained_fields() {
-        let source = include_str!("derive_camera.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("planar camera production source");
-
-        assert!(production.contains("let mut reflected = CameraRenderDescriptor {"));
-        assert!(!production.contains("let mut reflected = main_camera.clone()"));
-    }
-
-    #[test]
-    #[ignore = "release-only deterministic clone-count evidence"]
-    fn optimization_batch_20260830ds_planar_camera_selective_clone_evidence() {
-        const DERIVATIONS: usize = 65_536;
-        const MAIN_STACK_ENTITIES: usize = 32;
-        const MARKER: &str = "RUNTIME527_PLANAR_CAMERA_SELECTIVE_CLONE_BENCH_V1";
-
-        let legacy_discarded_stack_entity_clones = DERIVATIONS * MAIN_STACK_ENTITIES;
-        let selective_discarded_stack_entity_clones = 0;
-        let reduction_basis_points = 10_000;
-
-        assert_eq!(legacy_discarded_stack_entity_clones, 2_097_152);
-        assert_eq!(selective_discarded_stack_entity_clones, 0);
-        println!(
-            "{MARKER} derivations={DERIVATIONS} main_stack_entities={MAIN_STACK_ENTITIES} \
-             legacy_discarded_stack_entity_clones={legacy_discarded_stack_entity_clones} \
-             selective_discarded_stack_entity_clones={selective_discarded_stack_entity_clones} \
-             reduction_basis_points={reduction_basis_points}"
-        );
-    }
-}
+#[path = "tests/derive_camera_optimization_tests.rs"]
+mod optimization_tests;

@@ -1,11 +1,12 @@
+# 核对暂存的 ZUI 资源由其资源入口负责校验。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-ZIRCON_BUILD = REPO_ROOT / "tools/zircon_build.py"
-ZIRCON_BUILD_ASSET_STAGING = REPO_ROOT / "tools/zircon_build_asset_staging.py"
-ZIRCON_BUILD_ZUI_ASSETS = REPO_ROOT / "tools/zircon_build_zui_assets.py"
+ZIRCON_BUILD = REPO_ROOT / "tools/build/zircon_build.py"
+ZIRCON_BUILD_ASSET_STAGING = REPO_ROOT / "tools/build/zircon_build_asset_staging.py"
+ZIRCON_BUILD_ZUI_ASSETS = REPO_ROOT / "tools/build/zircon_build_zui_assets.py"
 
 
 class ZirconBuildZuiAssetOwnerBoundaryTests(unittest.TestCase):
@@ -19,12 +20,12 @@ class ZirconBuildZuiAssetOwnerBoundaryTests(unittest.TestCase):
         zui_assets_text = ZIRCON_BUILD_ZUI_ASSETS.read_text(encoding="utf-8")
 
         self.assertIn(
-            "from .zircon_build_asset_staging import (",
+            "from .build.zircon_build_asset_staging import (",
             build_text,
             "zircon_build.py should consume staged assets through the asset staging owner",
         )
         self.assertIn(
-            "from zircon_build_asset_staging import (",
+            "from .build.zircon_build_asset_staging import (",
             build_text,
             "direct zircon_build.py execution should use the same asset staging owner",
         )
@@ -34,7 +35,7 @@ class ZirconBuildZuiAssetOwnerBoundaryTests(unittest.TestCase):
             "asset staging should consume staged .zui validation through its owner",
         )
         self.assertIn(
-            "from zircon_build_zui_assets import validate_staged_engine_asset_suffix",
+            "from .zircon_build_zui_assets import validate_staged_engine_asset_suffix",
             asset_staging_text,
             "direct asset staging execution should use the same staged .zui owner",
         )

@@ -18,7 +18,7 @@ const UNKNOWN_PROJECT_ACTIVATION_LOG_FRAME: u64 = 0;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum ProjectActivationRollbackDisposition {
     ReleaseSessionGuard,
-    RetainSessionGuardForRecovery,
+    PreservePublishedProjectForRecovery,
 }
 
 pub(super) struct ProjectActivationFailure {
@@ -86,14 +86,14 @@ impl ProjectActivationFailure {
     pub(super) fn quarantined(error: EditorError) -> Self {
         Self {
             error,
-            rollback: ProjectActivationRollbackDisposition::RetainSessionGuardForRecovery,
+            rollback: ProjectActivationRollbackDisposition::PreservePublishedProjectForRecovery,
         }
     }
 
-    pub(super) const fn retains_session_guard(&self) -> bool {
+    pub(super) const fn preserves_published_project_for_recovery(&self) -> bool {
         matches!(
             self.rollback,
-            ProjectActivationRollbackDisposition::RetainSessionGuardForRecovery
+            ProjectActivationRollbackDisposition::PreservePublishedProjectForRecovery
         )
     }
 
@@ -186,16 +186,18 @@ impl EditorManager {
                                     ),
                                 }
                             }),
-                        RecentProjectProjectionDisposition::Deferred { diagnostic } => ledger
-                            .roll_back(ProjectSessionEffect::RecentProjection)
-                            .map(|()| RecentProjectProjectionDisposition::Deferred { diagnostic })
-                            .unwrap_or_else(|error| {
-                                RecentProjectProjectionDisposition::Deferred {
+                        RecentProjectProjectionDisposition::Deferred { diagnostic } => {
+                            match ledger.roll_back(ProjectSessionEffect::RecentProjection) {
+                                Ok(()) => {
+                                    RecentProjectProjectionDisposition::Deferred { diagnostic }
+                                }
+                                Err(error) => RecentProjectProjectionDisposition::Deferred {
                                     diagnostic: format!(
                                         "{diagnostic}; additionally failed to roll back its session effect ledger: {error}"
                                     ),
-                                }
-                            }),
+                                },
+                            }
+                        }
                     },
                     Err(error) => RecentProjectProjectionDisposition::Deferred {
                         diagnostic: format!(
@@ -242,7 +244,7 @@ impl EditorManager {
         }
     }
 
-    fn rollback_failed_project_activation(
+    pub(in crate::ui::host) fn rollback_failed_project_activation(
         &self,
         activation_error: EditorError,
         ledger: &mut ProjectSessionEffectLedgerStore,
@@ -265,15 +267,15 @@ impl EditorManager {
                 if runtime_receipt.disposition().is_terminal() && receipt.is_terminal() =>
             {
                 match ledger
-                .roll_back_active_effects()
-                .and_then(|()| ledger.finish_aborted_activation())
-            {
-                Ok(()) => ProjectActivationFailure::releasable(activation_error),
-                Err(ledger_error) => {
-                    ProjectActivationFailure::quarantined(EditorError::Project(format!(
-                        "project activation failed: {activation_error}; runtime compensation completed but its session effect ledger could not record terminal rollback state: {ledger_error}; the exclusive project session guard remains held for recovery"
-                    )))
-                }
+                    .roll_back_active_effects()
+                    .and_then(|()| ledger.finish_aborted_activation())
+                {
+                    Ok(()) => ProjectActivationFailure::releasable(activation_error),
+                    Err(ledger_error) => {
+                        ProjectActivationFailure::quarantined(EditorError::Project(format!(
+                            "project activation failed: {activation_error}; runtime compensation completed but its session effect ledger could not record terminal rollback state: {ledger_error}; the published project recovery state remains quarantined and a live exclusive guard is retained when available"
+                        )))
+                    }
                 }
             }
             (Err(close_error), _) => {
@@ -287,7 +289,7 @@ impl EditorManager {
                     })
                     .unwrap_or_default();
                 ProjectActivationFailure::quarantined(EditorError::Project(format!(
-                    "project activation failed: {activation_error}; additionally failed to roll back the runtime project: {close_error}{ledger_detail}; the exclusive project session guard remains held for recovery"
+                    "project activation failed: {activation_error}; additionally failed to roll back the runtime project: {close_error}{ledger_detail}; the published project recovery state remains quarantined and a live exclusive guard is retained when available"
                 )))
             }
             (Ok(runtime_receipt), Ok(receipt)) => {
@@ -307,7 +309,7 @@ impl EditorManager {
                     })
                     .unwrap_or_default();
                 ProjectActivationFailure::quarantined(EditorError::Project(format!(
-                    "project activation failed: {activation_error}; runtime rollback disposition {:?}; project-native registrations remain after manager generation {} / catalog generation {}: {:?}{ledger_detail}; the exclusive project session guard remains held for recovery",
+                    "project activation failed: {activation_error}; runtime rollback disposition {:?}; project-native registrations remain after manager generation {} / catalog generation {}: {:?}{ledger_detail}; the published project recovery state remains quarantined and a live exclusive guard is retained when available",
                     runtime_receipt.disposition(),
                     receipt.manager_generation(),
                     receipt.catalog_generation(),
@@ -331,7 +333,7 @@ impl EditorManager {
                     })
                     .unwrap_or_default();
                 ProjectActivationFailure::quarantined(EditorError::Project(format!(
-                    "project activation failed: {activation_error}; runtime rollback disposition {:?}; additionally failed to clear project-native registrations: {registration_error}{ledger_detail}; the exclusive project session guard remains held for recovery",
+                    "project activation failed: {activation_error}; runtime rollback disposition {:?}; additionally failed to clear project-native registrations: {registration_error}{ledger_detail}; the published project recovery state remains quarantined and a live exclusive guard is retained when available",
                     runtime_receipt.disposition(),
                 )))
             }
@@ -340,146 +342,5 @@ impl EditorManager {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::super::editor_error::EditorError;
-    use super::{ProjectActivationFailure, RecentProjectProjectionDisposition};
-
-    #[test]
-    fn failed_recent_project_projection_is_deferred_without_becoming_an_activation_failure() {
-        assert_eq!(
-            RecentProjectProjectionDisposition::from_result::<(), _>(Err(
-                "shared registry is unavailable"
-            )),
-            RecentProjectProjectionDisposition::Deferred {
-                diagnostic: "shared registry is unavailable".to_string(),
-            }
-        );
-    }
-
-    #[test]
-    fn incomplete_project_activation_rollback_retains_the_exclusive_guard() {
-        let complete = ProjectActivationFailure::releasable(EditorError::Project(
-            "activation rollback completed".to_string(),
-        ));
-        let incomplete = ProjectActivationFailure::quarantined(EditorError::Project(
-            "runtime project rollback failed".to_string(),
-        ));
-
-        assert!(!complete.retains_session_guard());
-        assert!(incomplete.retains_session_guard());
-    }
-
-    #[test]
-    fn activation_effects_cross_the_durable_gate_before_ready() {
-        let effects = include_str!("editor_manager_project_activation_effects.rs");
-        let session = include_str!("editor_manager_project_session.rs");
-        let gate_start = effects
-            .find("fn run_project_activation_effect<T>(")
-            .expect("activation effect gate");
-        let gate_end = effects[gate_start..]
-            .find("fn complete_project_open(")
-            .map(|offset| gate_start + offset)
-            .expect("activation effect gate boundary");
-        let gate = &effects[gate_start..gate_end];
-        let prepare = gate
-            .find("ledger.prepare(effect)")
-            .expect("effect must be durable-prepared");
-        let activate = gate
-            .find("activate()")
-            .expect("effect must execute after preparation");
-        let commit = gate
-            .find("ledger.commit(effect)")
-            .expect("effect must be durable-committed");
-        assert!(prepare < activate && activate < commit);
-
-        for effect in [
-            "ProjectSessionEffect::Runtime",
-            "ProjectSessionEffect::Diagnostics",
-            "ProjectSessionEffect::ProjectPlugins",
-            "ProjectSessionEffect::Documents",
-            "ProjectSessionEffect::UserInterface",
-        ] {
-            assert!(
-                effects.contains(effect) || session.contains(effect),
-                "activation effect `{effect}` must pass through the durable gate"
-            );
-        }
-
-        let admission_start = session
-            .find("fn admit_project_session<T>(")
-            .expect("project admission owner");
-        let admission = &session[admission_start..];
-        let session_prepared = admission
-            .find("ledger.prepare(ProjectSessionEffect::Session)")
-            .expect("session must be ledger-prepared");
-        let ready = admission
-            .find("guard.commit_ready()")
-            .expect("ready generation commit");
-        let session_committed = admission
-            .find("ledger.commit(ProjectSessionEffect::Session)")
-            .expect("session must be ledger-committed");
-        assert!(session_prepared < ready && ready < session_committed);
-    }
-
-    #[test]
-    fn recent_project_projection_runs_after_ready_commit_and_outside_project_open_commit_gate() {
-        let effects = include_str!("editor_manager_project_activation_effects.rs");
-        let session = include_str!("editor_manager_project_session.rs");
-        let activate_start = session
-            .find("fn activate_prepared_project<T>(")
-            .expect("project activation owner");
-        let activate_end = session[activate_start..]
-            .find("fn activate_project_from_preflight<T>(")
-            .map(|offset| activate_start + offset)
-            .expect("preflight-project activation boundary");
-        let activate = &session[activate_start..activate_end];
-        let admission_call = activate
-            .find(".admit_project_session")
-            .expect("project activation must commit through admission");
-        let recent_projection = activate
-            .find("self.finalize_project_activation(completion)")
-            .expect("recent projection must run after the committed activation result");
-        let admission_start = session
-            .find("fn admit_project_session<T>(")
-            .expect("project admission owner");
-        let admission = &session[admission_start..];
-        assert!(admission_call < recent_projection);
-        assert!(
-            admission.contains("guard.commit_ready()"),
-            "admission must commit Ready before its caller may finalize projections"
-        );
-        let complete_open_start = effects
-            .find("fn complete_project_open(")
-            .expect("project-open completion owner");
-        let complete_open_end = effects[complete_open_start..]
-            .find("fn finalize_project_activation")
-            .map(|offset| complete_open_start + offset)
-            .expect("post-commit projection boundary");
-        assert!(
-            !effects[complete_open_start..complete_open_end].contains("record_recent_project("),
-            "recent history must not participate in the project-open commit gate"
-        );
-        assert!(
-            effects.contains("fn finalize_project_activation")
-                && effects.contains("ProjectSessionEffect::RecentProjection"),
-            "recent history is a separately tracked post-Ready projection"
-        );
-    }
-
-    #[test]
-    fn project_activation_consumes_only_preflight_approved_plugin_capabilities() {
-        let source = include_str!("editor_manager_project_activation_effects.rs");
-        let complete_start = source
-            .find("fn complete_project_open(")
-            .expect("project-open completion owner");
-        let complete_end = source[complete_start..]
-            .find("fn finalize_project_activation")
-            .map(|offset| complete_start + offset)
-            .expect("post-open projection boundary");
-        let complete = &source[complete_start..complete_end];
-
-        assert!(complete.contains("composition.approved_project_plugins()"));
-        assert!(complete.contains("composition.allows_native_extensions()"));
-        assert!(!complete.contains("&document.manifest),"));
-    }
-}
+#[path = "tests/editor_manager_project_activation_effects.rs"]
+mod tests;

@@ -15,6 +15,7 @@ use zircon_runtime_interface::ui::{
 use super::painter_state::UiRenderPainterStateSource;
 use crate::text::text_language_cache_identity;
 use crate::ui::editable_text_composition::composition_clauses_from_metadata;
+use crate::ui::icon_atlas::{builtin_icon_supported, UiIconSize};
 use crate::ui::surface::input::{
     editable_value_property_for_metadata, is_editable_text_component, is_number_field_metadata,
 };
@@ -23,6 +24,7 @@ use crate::ui::text::clamp_grapheme_boundary;
 mod text_style_parsing;
 
 #[cfg(test)]
+#[path = "resolve/tests/cases.rs"]
 mod tests;
 
 use text_style_parsing::{
@@ -225,7 +227,7 @@ pub(crate) fn resolve_text(metadata: Option<&UiTemplateNodeMetadata>) -> Option<
 
 pub(super) fn resolve_image(metadata: Option<&UiTemplateNodeMetadata>) -> Option<UiVisualAssetRef> {
     resolve_string_attribute(metadata, "icon")
-        .map(|icon| UiVisualAssetRef::Icon(icon.to_string()))
+        .map(|icon| UiVisualAssetRef::Icon(resolve_icon_reference(metadata, icon)))
         .or_else(|| {
             resolve_string_attribute(metadata, "image")
                 .map(|image| UiVisualAssetRef::Image(image.to_string()))
@@ -234,6 +236,17 @@ pub(super) fn resolve_image(metadata: Option<&UiTemplateNodeMetadata>) -> Option
             resolve_string_attribute(metadata, "source")
                 .map(|source| UiVisualAssetRef::Image(source.to_string()))
         })
+}
+
+fn resolve_icon_reference(metadata: Option<&UiTemplateNodeMetadata>, icon: &str) -> String {
+    if icon.contains('@') || !builtin_icon_supported(icon) {
+        return icon.to_string();
+    }
+    let Some(size) = resolve_string_attribute(metadata, "icon_size").and_then(UiIconSize::parse)
+    else {
+        return icon.to_string();
+    };
+    format!("{icon}@{}", size.as_str())
 }
 
 pub(super) fn resolve_opacity(metadata: Option<&UiTemplateNodeMetadata>) -> f32 {

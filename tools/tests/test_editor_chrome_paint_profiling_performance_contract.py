@@ -1,3 +1,4 @@
+# 核对界面外框命令记录与转换具有独立归因范围且映射到性能清单。
 from pathlib import Path
 import unittest
 
@@ -10,7 +11,7 @@ CHROME_EXTRACTION = ROOT / (
     "zircon_editor/src/ui/retained_host/host_contract/"
     "chrome_command_stream/extraction/entry.rs"
 )
-PROFILE_MANIFEST = ROOT / "tools/profile-capture-manifest.ps1"
+PROFILE_MANIFEST = ROOT / "tools/profiling/shared/profile-capture-manifest.ps1"
 
 
 class EditorChromePaintProfilingPerformanceContractTests(unittest.TestCase):

@@ -1,3 +1,5 @@
+//! 验证检查器启动模板装载、自托管壳区域和宿主节点投影。
+
 use crate::ui::layouts::views::inspector_pane_nodes;
 use crate::ui::workbench::snapshot::InspectorSnapshot;
 use zircon_runtime::ui::v2::UiV2AssetLoader;
@@ -37,12 +39,14 @@ fn inspector_bootstrap_layout_self_hosts_shell_sections() {
 fn inspector_projection_maps_bootstrap_asset_into_mount_nodes() {
     let pane = inspector_pane_nodes(
         Some(&InspectorSnapshot {
+            rotation_degrees: None,
             id: zircon_runtime::scene::NodeId::default(),
             name: "Camera".to_string(),
             parent: "Root".to_string(),
             translation: ["1.0".to_string(), "2.0".to_string(), "3.0".to_string()],
             scale: ["1.0".to_string(), "1.0".to_string(), "1.0".to_string()],
             render_layer_mask: 1,
+            native_fields: Vec::new(),
             plugin_components: Vec::new(),
         }),
         UiSize::new(360.0, 520.0),

@@ -1,3 +1,4 @@
+//! 命名策略扫描需区分生产源码、测试夹具和已分类的历史名称。以结果断言检查当前接口或源码快照对应的边界。
 use super::*;
 
 #[test]
@@ -50,29 +51,44 @@ fn runtime_15_core_framework_render_fixtures_use_current_names() {
 
     assert_contains_all(
         "core framework render fixture current names",
-        &render_queue,
+        &read_text(
+            &manifest_root.join("src/core/framework/render/core_pipeline/tests/render_queue.rs"),
+            "render queue fixture source should be readable",
+        ),
         &["authored_queue_offsets_are_clamped_to_material_window"],
     );
     assert!(!render_queue.contains("authored_legacy_offsets"));
     assert_contains_all(
         "post-process effect stack fixture current names",
-        &effect_stack,
+        &read_text(
+            &manifest_root
+                .join("src/core/framework/render/post_process/tests/effect_stack_settings.rs"),
+            "post-process effect stack fixture source should be readable",
+        ),
         &["extended_effect_stack_settings_enable_product_node_without_retired_fields"],
     );
     assert!(!effect_stack.contains("without_legacy_fields"));
     assert_contains_all(
         "primitive relevance fixture current names",
-        &relevance,
+        &read_text(
+            &manifest_root.join("src/core/framework/render/tests/relevance.rs"),
+            "render relevance fixture source should be readable",
+        ),
         &["primitive_relevance_preserves_layers_above_scene_schema_v1_mask_width"],
     );
     assert!(!relevance.contains("above_legacy_mask_width"));
     assert_contains_all(
         "typed scene-schema-v1 mask fixtures",
         &(light_readiness + "\n" + &scene_extract),
-        &[
-            "RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK)",
-            "RenderLayerSet::from_scene_schema_v1_mask(u32::MAX)",
-        ],
+        &["RenderLayerSet::from_scene_schema_v1_mask(u32::MAX)"],
+    );
+    assert_contains_all(
+        "typed scene-schema-v1 mask fixtures",
+        &read_text(
+            &manifest_root.join("src/core/framework/render/light/tests/readiness.rs"),
+            "render light readiness fixture source should be readable",
+        ),
+        &["RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK)"],
     );
     assert!(!scene_extract.contains("RenderLayerSet::from_legacy_mask(u32::MAX)"));
 

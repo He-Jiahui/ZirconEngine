@@ -14,9 +14,7 @@ use crate::ui::workbench::autolayout::{
 use self::priority::resolve_toolbar_priority;
 use super::componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge;
 use super::error::BuiltinHostWindowTemplateBridgeError;
-use super::module_overflow_menu::{
-    WORKBENCH_MODULE_OVERFLOW_MENU_CONTROL_ID, WORKBENCH_MODULE_OVERFLOW_TRIGGER_CONTROL_ID,
-};
+use super::module_overflow_menu::WORKBENCH_MODULE_OVERFLOW_TRIGGER_CONTROL_ID;
 
 const MODULE_COMMAND_GROUP_CONTROL_ID: &str = "WorkbenchModuleCommands";
 const FILE_GROUP_CONTROL_ID: &str = "WorkbenchToolbarFileGroup";
@@ -75,6 +73,10 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         let layout_tier = workbench_layout_tier_for_logical_width(shell_size.width);
         let ultra = layout_tier == WorkbenchLayoutTier::Ultra;
+        let scene_active = !self
+            .control_node_id(MODULE_WORKSPACE_HOST_CONTROL_ID)
+            .and_then(|node_id| self.template_surface.surface.tree.node(node_id))
+            .is_some_and(|node| node.visibility.occupies_layout());
         for command in MODULE_PRIMARY_COMMANDS {
             self.apply_toolbar_command_density(*command, ultra)?;
         }
@@ -82,7 +84,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         let priority = resolve_toolbar_priority(&self.template_surface, shell_size.width);
         let compact = priority.compact_module_tabs;
         for control_id in ULTRA_HIDDEN_FILE_CONTROLS {
-            self.set_visible(control_id, !ultra)?;
+            self.set_visible(control_id, !scene_active && !ultra)?;
         }
         for control_id in COMPACT_HIDDEN_MODULE_TABS {
             self.set_visible(control_id, !compact)?;
@@ -90,22 +92,28 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         for control_id in ULTRA_HIDDEN_MODULE_TABS {
             self.set_visible(control_id, !ultra)?;
         }
-        self.set_visible(WORKBENCH_MODULE_OVERFLOW_TRIGGER_CONTROL_ID, compact)?;
-        if !compact {
-            self.close_workbench_window_menu_control(WORKBENCH_MODULE_OVERFLOW_MENU_CONTROL_ID)?;
-        }
+        self.set_visible("WorkbenchToolbarMenu", !scene_active)?;
+        self.set_visible("WorkbenchToolbarSave", true)?;
+        self.set_visible(MODULE_COMMAND_GROUP_CONTROL_ID, !scene_active)?;
+        self.set_visible(WORKBENCH_MODULE_OVERFLOW_TRIGGER_CONTROL_ID, true)?;
 
         let full_toolbar = priority.full_command_set;
         for control_id in SECONDARY_MODULE_COMMANDS {
             self.set_visible(control_id, full_toolbar)?;
         }
-        self.set_visible("WorkbenchToolbarToolGroup", priority.transform_tools)?;
-        self.set_visible(TOOL_GROUP_DIVIDER_CONTROL_ID, priority.transform_tools)?;
-        // Run and already-iconized layout commands stay directly reachable at every
-        // breakpoint; lower-priority module labels and transform tools collapse first.
+        self.set_visible(
+            "WorkbenchToolbarToolGroup",
+            scene_active || priority.transform_tools,
+        )?;
+        self.set_visible(
+            TOOL_GROUP_DIVIDER_CONTROL_ID,
+            scene_active || priority.transform_tools,
+        )?;
+        // Scene toolbar keeps Save, transform tools, run controls, and the module
+        // overflow anchor reachable. Module pages restore their existing commands.
         self.set_visible(RUN_GROUP_CONTROL_ID, true)?;
-        self.set_visible(LAYOUT_GROUP_CONTROL_ID, true)?;
-        self.set_visible(LAYOUT_GROUP_DIVIDER_CONTROL_ID, true)?;
+        self.set_visible(LAYOUT_GROUP_CONTROL_ID, !scene_active)?;
+        self.set_visible(LAYOUT_GROUP_DIVIDER_CONTROL_ID, !scene_active)?;
         self.apply_horizontal_content_width(FILE_GROUP_CONTROL_ID)?;
         self.apply_horizontal_content_width(MODULE_COMMAND_GROUP_CONTROL_ID)?;
         self.apply_horizontal_content_width(RUN_GROUP_CONTROL_ID)?;
@@ -283,32 +291,5 @@ fn content_axis(authored: AxisConstraint, size: f32) -> AxisConstraint {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn content_width_preserves_authored_priority_and_stretch_contract() {
-        let authored = AxisConstraint {
-            min: 72.0,
-            max: 300.0,
-            preferred: 300.0,
-            priority: 60,
-            weight: 2.0,
-            stretch_mode: StretchMode::Stretch,
-        };
-
-        assert_eq!(
-            content_axis(authored, 180.0),
-            AxisConstraint {
-                min: 72.0,
-                max: 180.0,
-                preferred: 180.0,
-                priority: 60,
-                weight: 2.0,
-                stretch_mode: StretchMode::Stretch,
-            }
-        );
-        assert_eq!(content_axis(authored, 12.0).preferred, authored.min);
-        assert_eq!(content_axis(authored, 12.0).max, authored.min);
-    }
-}
+#[path = "tests/toolbar_layout.rs"]
+mod tests;

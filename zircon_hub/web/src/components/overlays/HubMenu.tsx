@@ -14,16 +14,18 @@ export interface HubMenuProps {
   items: HubMenuItem[];
   onClose: () => void;
   onSelect: (id: string) => void;
+  id?: string;
+  ariaLabel?: string;
 }
 
-export function HubMenu({ anchorEl, open, items, onClose, onSelect }: HubMenuProps) {
+export function HubMenu({ anchorEl, open, items, onClose, onSelect, id, ariaLabel }: HubMenuProps) {
   return (
     <Menu
       anchorEl={anchorEl}
       open={open}
       onClose={onClose}
       slotProps={{
-        list: { dense: true },
+        list: { dense: true, id, "aria-label": ariaLabel },
         paper: { sx: { minWidth: 188, mt: 1 } },
       }}
     >

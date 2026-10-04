@@ -1,0 +1,32 @@
+{
+  "acceptance": "none; all rows source-only and not accepted",
+  "batch": "w0-batch3",
+  "coverage_note": "Three selected reports remain whole-report unreviewed. Fifteen rows are a bounded source-audit slice and do not imply report-wide source_checked status or W0 completion.",
+  "crosswalk_edges": 3,
+  "highest_risk_deltas": [
+    "Runtime211 frame admission/order, total fixed-work budget, replacement disposition, discontinuity history remain open.",
+    "Runtime163 InputDriver is an empty registered unit and V1 input lacks host/device/user/time/sequence/generation identity.",
+    "Interface09 RHOST-P0-003 has check-then-FFI without in-flight lease; P0-001/P0-002 wording is narrowed by unsafe declarations but lifetime/provenance gates remain open."
+  ],
+  "inventory_denominator": {
+    "bounded_source_checked_paths": 61,
+    "manual_unnumbered_anchors": 558,
+    "nested_unreviewed_files": 2316,
+    "reports_total": 576,
+    "structural_candidate_tokens_not_canonical_findings": 27629,
+    "supplementary_numbered_notes_outside_denominator": 9,
+    "unnumbered_reports": 69,
+    "unreviewed_report_paths": 515
+  },
+  "prior_imported_wave_collisions": [],
+  "record_type": "w0_batch3_summary",
+  "reports": [
+    "Runtime211",
+    "Runtime163",
+    "Interface09"
+  ],
+  "reviewed_at_utc": "2026-09-30",
+  "rows": 15,
+  "tests_run": 0,
+  "unique_report_qualified_ids": 15
+}

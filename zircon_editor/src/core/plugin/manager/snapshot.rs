@@ -1,6 +1,6 @@
 //! Immutable manager rows and generation-paired catalog snapshots.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, HashSet};
 use std::sync::Arc;
 
 use super::super::catalog::EditorPluginCatalog;
@@ -9,7 +9,7 @@ use super::super::extension_catalog_report::EditorExtensionCatalogReport;
 use super::super::extension_materialization::build_editor_extensions;
 use super::super::phases::EditorPluginLoadingPhase;
 use super::discovery::{EditorPluginDiscovery, EditorPluginSource};
-use super::state::{EditorPluginState, normalize_entries_for_loading_phase};
+use super::state::{normalize_entries_for_loading_phase, EditorPluginState};
 
 /// One lightweight manager row. Descriptor and capability data stay in the catalog snapshot.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -49,12 +49,14 @@ pub(super) fn entries_for_catalog(
         .iter()
         .map(|entry| (entry.package_id.as_str(), entry))
         .collect::<BTreeMap<_, _>>();
-    let faulted_packages = catalog
-        .registrations()
-        .iter()
-        .filter(|registration| !registration.is_success())
-        .map(|registration| registration.package_manifest.id.as_str())
-        .collect::<BTreeSet<_>>();
+    let mut faulted_packages = HashSet::with_capacity(catalog.registrations().len());
+    faulted_packages.extend(
+        catalog
+            .registrations()
+            .iter()
+            .filter(|registration| !registration.is_success())
+            .map(|registration| registration.package_manifest.id.as_str()),
+    );
     let mut entries = catalog
         .package_manifests()
         .iter()
@@ -95,11 +97,13 @@ fn build_active_extensions(
     entries: &[EditorPluginManagerEntry],
     manager_generation: u64,
 ) -> Arc<EditorExtensionCatalogReport> {
-    let active_package_ids = entries
-        .iter()
-        .filter(|entry| entry.state == EditorPluginState::Active)
-        .map(|entry| entry.package_id.as_str())
-        .collect::<BTreeSet<_>>();
+    let mut active_package_ids = HashSet::with_capacity(entries.len());
+    active_package_ids.extend(
+        entries
+            .iter()
+            .filter(|entry| entry.state == EditorPluginState::Active)
+            .map(|entry| entry.package_id.as_str()),
+    );
     let mut report = build_editor_extensions(
         catalog.generation(),
         catalog.registrations().iter().filter(|registration| {
@@ -109,6 +113,10 @@ fn build_active_extensions(
     report.active_manager_generation = Some(manager_generation);
     Arc::new(report)
 }
+
+#[cfg(test)]
+#[path = "snapshot/tests/optimization_batch_ip_editor626_tests.rs"]
+mod optimization_batch_ip_editor626_tests;
 
 /// Immutable manager read model paired with exactly one catalog generation.
 #[derive(Clone, Debug)]

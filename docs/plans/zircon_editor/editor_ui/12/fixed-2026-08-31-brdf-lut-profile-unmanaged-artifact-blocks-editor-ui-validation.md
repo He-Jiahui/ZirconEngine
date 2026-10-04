@@ -9,10 +9,10 @@ origin_child_dir: docs/plans/zircon_editor/editor_ui/12
 fixing_child_dir: docs/plans/zircon_runtime/shader/06
 plan_link_mode: child_record_only
 related_code:
-  - tools/build-editor.ps1
+  - tools/build/build-editor.ps1
 tests:
-  - ".\\tools\\zircon-session.ps1 artifact audit"
-  - ".\\tools\\build-editor.ps1 -Ephemeral"
+  - ".\\tools\\dev\\zircon-session.ps1 artifact audit"
+  - ".\\tools\\build\\build-editor.ps1 -Ephemeral"
 resolved_at: 2026-08-31
 ---
 
@@ -30,7 +30,7 @@ resolved_at: 2026-08-31
 2026-08-31 执行受管产品构建：
 
 ```powershell
-.\tools\build-editor.ps1 -Ephemeral
+.\tools\build\build-editor.ps1 -Ephemeral
 ```
 
 协调器以 `unmanaged_artifacts_detected` 拒绝请求，`cleanupReservations` 为空，并报告：

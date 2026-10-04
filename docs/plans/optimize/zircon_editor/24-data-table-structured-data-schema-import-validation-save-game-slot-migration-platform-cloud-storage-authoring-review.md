@@ -7,7 +7,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation
   - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings
   - zircon_editor/src/core/asset/type_registry/builtin.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/reference_analysis.rs
   - zircon_runtime/src/asset/assets/data.rs
   - zircon_runtime/src/asset/importer/ingest/import_data_asset.rs
   - zircon_runtime/src/asset/artifact

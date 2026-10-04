@@ -25,7 +25,7 @@ const FUNCTION_TABLE_SOURCES: &[(&str, &[&str])] = &[
 ];
 const FUNCTION_TABLE_FIELD_COUNTS: &[(&str, &str, usize)] = &[
     ("src/runtime_api/abi/api_table.rs", "ZrHostApiV1", 4),
-    ("src/runtime_api/abi/api_table.rs", "ZrRuntimeApiV8", 25),
+    ("src/runtime_api/abi/api_table.rs", "ZrRuntimeApiV8", 28),
     ("src/plugin_api.rs", "ZrHostApiV3", 7),
     ("src/plugin_api.rs", "ZrHostApiV4", 7),
     ("src/plugin_api.rs", "ZrHostEcsApiV1", 3),
@@ -119,6 +119,7 @@ fn function_table_field_counts_match_runtime_10_inventory() {
     }
 }
 
+// 逐项比较字段名与顺序；字段重排同样改变 C ABI 形状，须先审版本兼容策略。
 #[test]
 fn runtime_api_session_operation_surface_matches_inventory() {
     let source = read_manifest_source("src/runtime_api/abi/api_table.rs");
@@ -284,8 +285,7 @@ fn runtime_table_v2_export_and_loader_fallback_stay_hard_deleted() {
 
 #[test]
 fn runtime_10_version_strategy_rejects_in_place_table_shape_changes() {
-    let convergence_doc =
-        read_repo_file("docs/engine-architecture/runtime-interface-convergence.md");
+    let convergence_doc = read_repo_file("docs/architecture/runtime-interface-convergence.md");
     let version_source = read_manifest_source("src/version.rs");
     let interface_catalog_generator = read_repo_file("zircon_runtime_interface/build.rs");
 
@@ -308,8 +308,8 @@ fn runtime_10_version_strategy_rejects_in_place_table_shape_changes() {
         version_source.contains("pub const ZIRCON_RUNTIME_ABI_VERSION_V2: u32 = 2;")
             && version_source.contains("pub const ZIRCON_RUNTIME_ABI_VERSION_V3: u32 = 3;")
             && version_source
-                .contains("pub use crate::runtime_api::ZIRCON_RUNTIME_API_VERSION_V8;")
-            && interface_catalog_generator.contains("const EXPECTED_RUNTIME_API_VERSION: u32 = 7;")
+                .contains("pub use crate::runtime_build_set::ZIRCON_RUNTIME_API_VERSION_V8;")
+            && interface_catalog_generator.contains("const EXPECTED_RUNTIME_API_VERSION: u32 = 8;")
             && interface_catalog_generator
                 .contains("pub const ZIRCON_RUNTIME_API_VERSION_V8: u32 = {}"),
         "the V8 table version must come from the frozen InterfaceSpec, while changed V3 session config remains explicit"
@@ -317,6 +317,33 @@ fn runtime_10_version_strategy_rejects_in_place_table_shape_changes() {
     assert!(
         !version_source.contains("ZIRCON_RUNTIME_API_VERSION_V2"),
         "the retired V2 table version constant must not remain as a compatibility surface"
+    );
+}
+
+#[test]
+fn function_table_discovery_includes_current_and_future_versions() {
+    let source = r#"
+pub struct ZrSyntheticApiV1 {}
+pub struct ZrSyntheticApiV7 {}
+pub struct ZrSyntheticApiV8 {}
+pub struct ZrSyntheticApiV12 {}
+pub struct ZrSyntheticApiV {}
+pub struct ZrSyntheticApiVersion {}
+pub struct ZrSyntheticApiV8Metadata {}
+"#;
+
+    assert_eq!(
+        discover_api_struct_names(source),
+        [
+            "ZrSyntheticApiV1",
+            "ZrSyntheticApiV7",
+            "ZrSyntheticApiV8",
+            "ZrSyntheticApiV12",
+        ]
+        .map(str::to_string)
+        .into_iter()
+        .collect(),
+        "new table versions must be discovered so the inventory guard can reject an unreviewed table"
     );
 }
 
@@ -375,18 +402,9 @@ fn discover_api_struct_names(source: &str) -> BTreeSet<String> {
             let line = line.trim_start();
             let rest = line.strip_prefix("pub struct ")?;
             let name = rest.split_whitespace().next()?.trim_end_matches('{');
-            if name.ends_with("ApiV1")
-                || name.ends_with("ApiV2")
-                || name.ends_with("ApiV3")
-                || name.ends_with("ApiV4")
-                || name.ends_with("ApiV5")
-                || name.ends_with("ApiV6")
-                || name.ends_with("ApiV7")
-            {
-                Some(name.to_string())
-            } else {
-                None
-            }
+            let (_, version) = name.rsplit_once("ApiV")?;
+            (!version.is_empty() && version.bytes().all(|byte| byte.is_ascii_digit()))
+                .then(|| name.to_string())
         })
         .collect()
 }

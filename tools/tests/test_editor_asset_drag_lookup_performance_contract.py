@@ -1,3 +1,4 @@
+# 核对资产拖拽及菜单命中复用已发布的标识索引。
 import re
 import unittest
 from pathlib import Path

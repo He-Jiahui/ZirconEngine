@@ -100,6 +100,7 @@ pub(super) fn welcome_pane_with_content() -> PaneData {
         kind: "Welcome".into(),
         title: "Welcome".into(),
         welcome: WelcomePaneData {
+            layout: Default::default(),
             title: "Open or Create".into(),
             subtitle: "Recent projects and a renderable empty-project template".into(),
             status_message: "No recent project".into(),

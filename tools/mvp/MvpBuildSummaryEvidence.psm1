@@ -7,7 +7,7 @@ $script:MvpBuildSummaryReadBufferBytes = 81920
 
 Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceNativeFileSystem.psm1') -Force -DisableNameChecking -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpBuildGateRegistry.psm1') -Force -DisableNameChecking -ErrorAction Stop
-Import-Module (Join-Path $PSScriptRoot '..\WindowsPathResolver.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot '..\common\WindowsPathResolver.psm1') -Force -DisableNameChecking -ErrorAction Stop
 
 function Get-MvpBuildSummaryProperty {
     param(

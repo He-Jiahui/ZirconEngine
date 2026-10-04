@@ -57,7 +57,7 @@ fn platform_host_quiesce_is_single_flight_and_requires_a_matching_terminal_recei
     let driver = platform_driver();
     let backend = Arc::new(RecordingPlatformHostBackend::new());
     let starting = driver
-        .install_platform_host(Arc::clone(&backend))
+        .install_platform_host(backend.clone())
         .expect("host installs");
     driver
         .publish_platform_host_ready(

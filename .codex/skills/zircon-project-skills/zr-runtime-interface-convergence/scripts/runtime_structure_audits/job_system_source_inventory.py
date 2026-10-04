@@ -26,6 +26,7 @@ JOB_SYSTEM_MODULES = (
     "task_state.rs",
     "task_status.rs",
     "thread_assignment.rs",
+    "thread_completion.rs",
     "timer.rs",
 )
 EXPECTED_JOB_SYSTEM_GUARD_FILE_COUNT = 2

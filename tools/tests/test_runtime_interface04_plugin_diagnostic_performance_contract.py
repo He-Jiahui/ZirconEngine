@@ -26,7 +26,7 @@ def function_body(source: str, function_name: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated body for {function_name}")
 
-
+# 读取实现源码约束接口插件诊断：缺失能力构建一个 reserved 消息先于移动插件 ID，并发布版证据跟踪插件 ID 克隆消除。
 class PluginDiagnosticPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

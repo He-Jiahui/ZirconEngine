@@ -2,10 +2,10 @@ use std::collections::HashMap;
 
 #[cfg(test)]
 use crate::asset::assets::FontSourceBudgetError;
-use crate::text::FontFaceId;
 use crate::text::font::FontDatabase;
 #[cfg(test)]
 use crate::text::font::{FontDatabaseError, FontLoadError, FontLoadIoFailure};
+use crate::text::FontFaceId;
 
 use super::DEFAULT_FONT_ASSET;
 

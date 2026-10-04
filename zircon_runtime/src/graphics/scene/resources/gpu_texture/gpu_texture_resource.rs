@@ -121,7 +121,11 @@ const fn mip_extent(value: u32, level: u32) -> u32 {
     } else {
         value >> level
     };
-    if shifted == 0 { 1 } else { shifted }
+    if shifted == 0 {
+        1
+    } else {
+        shifted
+    }
 }
 
 fn rgba8_mip_streaming_upload_bytes(
@@ -149,34 +153,5 @@ fn rgba8_mip_streaming_upload_bytes(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{GpuTextureResource, rgba8_mip_streaming_upload_bytes};
-
-    #[test]
-    fn mip_streaming_upload_bytes_excludes_mips_copied_from_prior_residency() {
-        assert_eq!(
-            rgba8_mip_streaming_upload_bytes(8, 4, 2, 4, 2..4, 0..4),
-            320,
-            "only mip zero and one are reuploaded while the resident tail is copied on-GPU"
-        );
-        assert_eq!(
-            rgba8_mip_streaming_upload_bytes(8, 4, 2, 4, 0..4, 2..4),
-            0,
-            "eviction recreates the physical tail solely through GPU copies"
-        );
-    }
-
-    #[test]
-    fn mip_streaming_resident_bytes_tracks_the_physical_tail_range() {
-        assert_eq!(
-            GpuTextureResource::rgba8_mip_chain_bytes(8, 4, 2, 2..4),
-            40,
-            "the physical tail contains only source levels two and three"
-        );
-        assert_eq!(
-            GpuTextureResource::rgba8_mip_chain_bytes(8, 4, 2, 0..4),
-            340,
-            "a fully resident chain accounts for every source mip"
-        );
-    }
-}
+#[path = "tests/gpu_texture_resource.rs"]
+mod tests;

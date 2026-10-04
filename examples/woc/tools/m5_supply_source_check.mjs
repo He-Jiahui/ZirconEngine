@@ -1,3 +1,4 @@
+// 以哈希锁定上游工作树文件中的补给观察与购买阈值，并核对本地 Zr 契约。
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -22,6 +23,7 @@ const testProject = JSON.parse(
   readFileSync(resolve(wocRoot, 'scripts', 'woc_game', 'woc_m5_supply_state_tests.zrp'), 'utf8'),
 );
 
+// 先核对未提交上游文件的完整字节，再比较补给标记与 Zr 契约。
 invariant(
   createHash('sha256').update(sourceBytes).digest('hex') === SOURCE_WORKTREE_SHA256,
   'upstream supply worktree bytes changed; commit or deliberately refresh this projection',

@@ -4,7 +4,7 @@ use super::fixtures::{
 };
 #[cfg(feature = "profiling")]
 use crate::core::runtime::diagnostics::profiling::{
-    ProfileCaptureConfig, reset_capture, snapshot, start_capture, test_capture_lock,
+    reset_capture, snapshot, start_capture, test_capture_lock, ProfileCaptureConfig,
 };
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{

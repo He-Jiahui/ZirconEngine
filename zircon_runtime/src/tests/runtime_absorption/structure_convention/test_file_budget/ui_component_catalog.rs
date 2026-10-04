@@ -77,7 +77,8 @@ fn runtime_15_ui_component_catalog_tests_are_folder_backed() {
     .sum::<usize>();
     assert_eq!(
         // BUG: [CR-UI-TEST-0205] 当前已跟踪的三个目录子模块合计 11 个测试，此处仍要求迁移时的 7 个，导致本结构测试恒失败。
-        child_test_total, 7,
+        child_test_total,
+        7,
         "UI component catalog children should preserve all 7 parent tests"
     );
 

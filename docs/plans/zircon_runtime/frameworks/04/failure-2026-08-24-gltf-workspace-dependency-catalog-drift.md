@@ -74,3 +74,32 @@ dependency entry and preserved features have static proof, and managed job
 dependency parse boundary. The unrelated Frameworks05 lock drift and the final
 focused Plugins04 compile remain pending. No Frameworks04 milestone is promoted
 by this source repair alone.
+
+### 2026-09-24 current plugin-catalog lock blocker
+
+The original glTF workspace declaration still resolves from
+`zircon_plugins/Cargo.toml` as version `1.4.1` with
+`KHR_texture_transform` and `extensions`; its optional importer consumer
+still uses `workspace = true`. A read-only Python `tomllib` comparison of the
+current `zircon_plugins/first_party_runtime_catalog/Cargo.toml` with the
+`zircon_first_party_runtime_catalog` entry in `zircon_plugins/Cargo.lock`
+shows that the previously missing UI document importer is now listed, but
+the current catalog manifest has **21 direct dependencies against 19 locked
+dependencies**. The lock entry is still missing exactly
+`zircon_plugin_net_http_runtime` and
+`zircon_plugin_net_websocket_runtime`. Both packages have their own lock
+entries, and the catalog's current `base-runtime-plugins` feature and
+`first_party_net_feature_registrations` production path actually use them.
+
+These are live, dirty, unattributed catalog/lockfile changes outside the
+Frameworks04 glTF-owner scope: manifest SHA-256
+`54358512bb750e41931285831b686e845ddde1f4756d971f2d91b33540395c8f`,
+lock SHA-256 `35033c3ed8892a880f38be02ef0c58faece418d1c9d1aa7b228756e04dbb5c1f`.
+The earlier Frameworks05 handoff for the catalog provider is
+[recorded here](../05/failure-2026-08-23-zui-importer-provider-linkage-regression.md),
+but neither this static check nor the historical glTF job establishes a new
+`--locked` compile pass. The catalog/lock owner must establish source
+attribution and reconcile the remaining two dependencies in its own scope;
+Frameworks04 then reruns the original focused Plugins04 compile on a managed,
+exact-source Windows snapshot. No lockfile edit, fixed return, closeout, or
+product test pass is claimed here.

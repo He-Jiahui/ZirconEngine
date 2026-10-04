@@ -12,6 +12,9 @@ use crate::ui::workbench::state::EditorState;
 use crate::ui::workbench::view::{ViewDescriptorId, ViewInstanceId};
 use crate::ui::workbench::ActivityLogConsoleProjection;
 
+#[path = "shell_state/play_preview_document.rs"]
+mod play_preview_document;
+
 const GAME_VIEW_DESCRIPTOR_ID: &str = "editor.game";
 
 /// UI-only workbench authority removed from the headless editor core.
@@ -32,6 +35,7 @@ pub(crate) struct WorkbenchShellStateData {
     pub(crate) console_source_filter: ConsoleSourceFilter,
     play_preview_descriptor: ViewDescriptorId,
     play_preview_restore_view: Option<ViewInstanceId>,
+    play_preview_restore_document: Option<ViewInstanceId>,
 }
 
 impl WorkbenchShellStateData {
@@ -54,17 +58,16 @@ impl WorkbenchShellStateData {
     pub(crate) fn focus_play_preview_view(&mut self) -> Result<bool, EditorError> {
         let previous = self.manager.current_focused_view();
         let descriptor = self.play_preview_descriptor.clone();
-        let existing = self
-            .manager
-            .current_view_instances()
-            .into_iter()
-            .find(|instance| instance.descriptor_id == descriptor)
-            .map(|instance| instance.instance_id);
+        let existing = self.manager.view_instance_id_for_descriptor(&descriptor);
+        let previous_document = play_preview_document::capture(&self.manager, existing.as_ref());
         let (game_view, opened) = match existing {
             Some(instance) => (instance, false),
             None => (self.manager.open_view(descriptor, None)?, true),
         };
         if previous.as_ref() == Some(&game_view) {
+            if self.play_preview_restore_document.is_none() {
+                self.play_preview_restore_document = previous_document;
+            }
             return Ok(false);
         }
         let changed = if opened {
@@ -74,15 +77,27 @@ impl WorkbenchShellStateData {
         };
         if changed {
             self.play_preview_restore_view = previous;
+            self.play_preview_restore_document = previous_document;
         }
         Ok(changed)
     }
 
     pub(crate) fn restore_pre_play_view(&mut self) -> Result<bool, EditorError> {
-        let Some(instance) = self.play_preview_restore_view.take() else {
-            return Ok(false);
-        };
-        self.manager.focus_view(&instance)
+        let mut changed = false;
+        if let Some(instance) = self.play_preview_restore_document.as_ref() {
+            changed |= self.manager.focus_view(instance)?;
+        }
+        if let Some(instance) = self.play_preview_restore_view.as_ref() {
+            let is_game = self.manager.current_view_instances().iter().any(|view| {
+                &view.instance_id == instance && view.descriptor_id == self.play_preview_descriptor
+            });
+            if !is_game && Some(instance) != self.play_preview_restore_document.as_ref() {
+                changed |= self.manager.focus_view(instance)?;
+            }
+        }
+        self.play_preview_restore_document = None;
+        self.play_preview_restore_view = None;
+        Ok(changed)
     }
 
     pub(crate) fn play_preview_view_focused(&self) -> bool {
@@ -232,6 +247,7 @@ impl WorkbenchShellState {
                 console_source_filter: ConsoleSourceFilter::default(),
                 play_preview_descriptor: ViewDescriptorId::new(GAME_VIEW_DESCRIPTOR_ID),
                 play_preview_restore_view: None,
+                play_preview_restore_document: None,
             }),
         }
     }

@@ -1,3 +1,4 @@
+# 用短生命周期子进程验证监督器的进度日志、资源边界及终态分类。
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $supervisorModule = Join-Path $repoRoot 'tools\mvp\StagedProcessSupervisor.psm1'
 $journalModule = Join-Path $repoRoot 'tools\mvp\MvpProcessLifecycleJournal.psm1'

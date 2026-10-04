@@ -6,8 +6,8 @@ import unittest
 import zlib
 from pathlib import Path
 
-from tools.zircon_pbr_visual_oracle import decode_rgba_png, validate_display_visual_oracle
-from tools.zircon_validate_shader_pbr_viewer_evidence import (
+from tools.analysis.visual.zircon_pbr_visual_oracle import decode_rgba_png, validate_display_visual_oracle
+from tools.analysis.profiling.shader_pbr.zircon_validate_shader_pbr_viewer_evidence import (
     ready_frame_evidence_summary,
     validate_ready_frame_evidence,
 )
@@ -122,7 +122,7 @@ class ZirconPbrVisualOracleTests(unittest.TestCase):
             _write_rgba_png(candidate_png, 2, 2, [(128, 96, 64, 255)] * 4)
             oracle_path = root / "display-oracle.json"
             current_metadata = {
-                "schema": "zircon_shader_pbr_viewer_ready_frame_evidence_v17",
+                "schema": "zircon_shader_pbr_viewer_ready_frame_evidence_v18",
                 "material_fixture": "dielectric-ior",
                 "required_material_base_pipeline_kind": "generic-forward-pbr-ior",
                 "required_material_base_pipeline_ready_at_capture": "true",

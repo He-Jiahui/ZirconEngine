@@ -293,17 +293,47 @@ fn create_directory_symlink(target: &std::path::Path, link: &std::path::Path) ->
 
 #[cfg(windows)]
 fn create_directory_alias(target: &std::path::Path, link: &std::path::Path) {
-    let command = format!(r#"mklink /J "{}" "{}""#, link.display(), target.display());
-    let output = std::process::Command::new("cmd")
+    use std::os::windows::process::CommandExt;
+
+    // cmd /C needs shell quoting and display paths; filesystem I/O keeps operational paths.
+    let command = format!(
+        r#""mklink /J "{}" "{}"""#,
+        ProjectPaths::display_path(link).display(),
+        ProjectPaths::display_path(target).display()
+    );
+    let output = std::process::Command::new("cmd.exe")
         .args(["/D", "/S", "/C"])
-        .arg(command)
+        .raw_arg(command)
         .output()
         .expect("start mklink for project root alias");
     assert!(
         output.status.success(),
-        "create project root alias failed: {}",
+        "create project root alias failed for link {link:?}, target {target:?}: {}",
         String::from_utf8_lossy(&output.stderr)
     );
+}
+
+#[cfg(windows)]
+#[test]
+fn project_root_junction_accepts_verbatim_paths_with_spaces() {
+    let parent = unique_temp_project_root("junction verbatim paths");
+    fs::create_dir_all(parent.join("physical root")).unwrap();
+    let parent = fs::canonicalize(parent).unwrap();
+    assert!(matches!(
+        parent.components().next(),
+        Some(std::path::Component::Prefix(prefix))
+            if matches!(prefix.kind(), std::path::Prefix::VerbatimDisk(_))
+    ));
+    let target = parent.join("physical root");
+    let link = parent.join("project alias");
+
+    create_directory_alias(&target, &link);
+    assert_eq!(fs::canonicalize(&link).unwrap(), target);
+    fs::write(link.join("payload.json"), b"{}").unwrap();
+    assert_eq!(fs::read(target.join("payload.json")).unwrap(), b"{}");
+
+    remove_directory_alias(&link);
+    fs::remove_dir_all(parent).unwrap();
 }
 
 #[cfg(windows)]

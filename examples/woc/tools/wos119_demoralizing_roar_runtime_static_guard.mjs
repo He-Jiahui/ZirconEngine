@@ -51,14 +51,14 @@ requireText(
 const generator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
 if (!/growl',[\s\S]*?'demoralizing_roar'/.test(generator) ||
-    !generator.includes("EXPECTED_ABILITY_COUNT = 79") ||
-    !zrGenerator.includes("document.entries.length === 79")) {
+    !generator.includes("EXPECTED_ABILITY_COUNT = 117") ||
+    !zrGenerator.includes("document.entries.length === 117")) {
   throw new Error("M4 Demoralizing Roar projection scope is missing");
 }
 const entry = JSON.parse(read("contracts", "m4_abilities.json")).entries.find(
   (value) => value.id === "demoralizing_roar",
 );
-if (!entry || entry.index !== 59 || entry.definition.class !== "druid" ||
+if (!entry || entry.index !== 63 || entry.definition.class !== "druid" ||
     entry.definition.learnLevel !== 10 || entry.definition.cost !== 10 ||
     entry.definition.castTime !== 0 || entry.definition.cooldown !== 0 ||
     entry.definition.range !== 0 || entry.definition.school !== "physical" ||
@@ -76,7 +76,7 @@ if (!entry || entry.index !== 59 || entry.definition.class !== "druid" ||
 
 const world = read("scripts", "woc_game", "src", "world", "state.zr");
 const main = read("scripts", "woc_game", "src", "main.zr");
-requireText(world, /writer\.u16\(<uint>78, 1, 1\)/,
+requireText(world, /writer\.u16\(schemaVersion, 1, 1\)/,
   "WOS66 encoder schema is missing");
 requireText(world, /schemaVersion != <uint>65 && schemaVersion != <uint>66/,
   "WOS66 decoder admission is missing");
@@ -102,7 +102,7 @@ requireText(world, /pub demoralizingRoarCommandStateTest\(\): int[\s\S]*?forms\.
   "Demoralizing Roar state regression coverage is missing");
 requireText(world, /if \(demoralizingRoarCommandStateTest\(\) != 1\) \{[\s\S]*?return -113;/,
   "world selfTest must execute Demoralizing Roar");
-if (!main.includes('\\"world_state\\":\\"WOS78\\"')) {
+if (!main.includes('\\"world_state\\":\\"WOS118\\"')) {
   throw new Error("WOC package metadata still advertises the prior WOS schema");
 }
 

@@ -9,6 +9,7 @@ pub(in crate::ui::retained_host::app) use transaction::{
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
+/// 保存需宿主重算的失效事务和诊断计数；纯渲染请求由宿主的 render_dirty 标志追踪。
 pub(in crate::ui::retained_host::app) struct HostInvalidationRoot {
     pending_recompute: HostInvalidationTransaction,
     total_requests: u64,
@@ -23,4 +24,5 @@ pub(in crate::ui::retained_host::app) struct HostInvalidationRoot {
 }
 
 #[cfg(test)]
+#[path = "root/tests/cases.rs"]
 mod tests;

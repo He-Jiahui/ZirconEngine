@@ -30,7 +30,7 @@ related_code:
   - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings.rs
   - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/render_asset_vfx.rs
   - zircon_editor/src/ui/template_runtime/builtin/workbench_generated_bottom_template_bindings.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_module_navigation.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_module_navigation/
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/document_module.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_inspector_property_edit.rs
   - zircon_editor/src/tests/host/retained_window/native_workbench_reference/text_and_module_input.rs

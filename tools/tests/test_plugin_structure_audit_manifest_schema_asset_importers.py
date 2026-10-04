@@ -1,10 +1,10 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema import (
+from tools.audits.plugins.manifest_schema import (
     collect_manifest_schema_violations,
 )
 
-
+# 用 UI 文档导入器夹具验证后缀选择器的现行格式，拒绝退役后缀与未知导入器字段。
 class PluginStructureAuditManifestSchemaAssetImportersTests(unittest.TestCase):
     def test_manifest_schema_rejects_asset_importer_retired_ui_suffixes(self):
         violations: list[str] = []

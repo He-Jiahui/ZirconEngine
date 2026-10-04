@@ -11,8 +11,8 @@ use crate::operation::RuntimeOperationServiceError;
 
 use super::super::bounded_json;
 use super::registry::{
-    register_runtime_allocation_in_action, with_session, with_session_result_committed,
-    RuntimeAllocationKind,
+    register_runtime_allocation_in_action, with_session_result_committed,
+    with_session_result_finalized, RuntimeAllocationKind,
 };
 use super::status::{
     error_status, invalid_argument, invalid_or_limit_payload, limit_exceeded, not_found,
@@ -24,45 +24,65 @@ pub(crate) unsafe fn submit_operation(
     request_json: ZrByteSlice,
     out_handle: *mut ZrRuntimeOperationHandle,
 ) -> ZrStatus {
-    with_session(session, |runtime| {
-        if out_handle.is_null() {
-            return invalid_argument(b"missing runtime operation handle output");
+    if out_handle.is_null() {
+        return invalid_argument(b"missing runtime operation handle output");
+    }
+    if request_json.is_empty() {
+        return invalid_argument(b"missing runtime operation request");
+    }
+    let request_bytes = match unsafe {
+        request_json.checked_slice(ZR_RUNTIME_OPERATION_REQUEST_LIMIT_V1.max_encoded_bytes)
+    } {
+        Ok(bytes) => bytes.to_vec(),
+        Err(error) if error.is_limit_exceeded() => {
+            return limit_exceeded(b"runtime operation request exceeds limit");
         }
-        if request_json.is_empty() {
-            return invalid_argument(b"missing runtime operation request");
-        }
-        let mut limit = ZR_RUNTIME_OPERATION_REQUEST_LIMIT_V1;
-        limit.max_encoded_bytes = limit
-            .max_encoded_bytes
-            .min(runtime.operations.max_retained_bytes());
-        match runtime
-            .operations
-            .submit_with_raw_admission(request_json.len(), || unsafe {
-                bounded_json::decode::<ZrRuntimeOperationSubmitRequestV1>(
-                    request_json,
-                    limit,
-                    |request| {
-                        bounded_json::json_value_item_count(&request.payload).saturating_add(2)
-                    },
-                )
-            }) {
-            Err(error) => invalid_or_limit_payload(
-                &error,
-                b"invalid runtime operation request",
-                b"runtime operation request exceeds limit",
-            ),
-            Ok(Err(RuntimeOperationServiceError::RetainedBytesCapacityReached { maximum }))
-                if request_json.len() > maximum =>
-            {
-                limit_exceeded(b"runtime operation request exceeds limit")
+        Err(_) => return invalid_argument(b"invalid runtime operation request"),
+    };
+    let request_len = request_bytes.len();
+    match with_session_result_finalized(
+        session,
+        move |runtime| {
+            let mut limit = ZR_RUNTIME_OPERATION_REQUEST_LIMIT_V1;
+            limit.max_encoded_bytes = limit
+                .max_encoded_bytes
+                .min(runtime.operations.max_retained_bytes());
+            let request_slice = ZrByteSlice {
+                data: request_bytes.as_ptr(),
+                len: request_bytes.len(),
+            };
+            match runtime
+                .operations
+                .submit_with_raw_admission(request_len, || unsafe {
+                    bounded_json::decode::<ZrRuntimeOperationSubmitRequestV1>(
+                        request_slice,
+                        limit,
+                        |request| {
+                            bounded_json::json_value_item_count(&request.payload).saturating_add(2)
+                        },
+                    )
+                }) {
+                Err(error) => Err(invalid_or_limit_payload(
+                    &error,
+                    b"invalid runtime operation request",
+                    b"runtime operation request exceeds limit",
+                )),
+                Ok(Err(RuntimeOperationServiceError::RetainedBytesCapacityReached { maximum }))
+                    if request_len > maximum =>
+                {
+                    Err(limit_exceeded(b"runtime operation request exceeds limit"))
+                }
+                Ok(Err(error)) => Err(operation_error_status(error)),
+                Ok(Ok(handle)) => Ok(handle),
             }
-            Ok(Err(error)) => operation_error_status(error),
-            Ok(Ok(handle)) => {
-                unsafe { ptr::write(out_handle, handle) };
-                ZrStatus::ok()
-            }
-        }
-    })
+        },
+        |_session, handle| {
+            unsafe { ptr::write(out_handle, handle) };
+            Ok(ZrStatus::ok())
+        },
+    ) {
+        Ok(status) | Err(status) => status,
+    }
 }
 
 pub(crate) unsafe fn poll_operation(
@@ -70,21 +90,25 @@ pub(crate) unsafe fn poll_operation(
     handle: ZrRuntimeOperationHandle,
     out_status: *mut ZrRuntimeOperationStatusV2,
 ) -> ZrStatus {
-    with_session(session, |runtime| {
-        if out_status.is_null() {
-            return invalid_argument(b"missing runtime operation status output");
-        }
-        if !handle.is_valid() {
-            return invalid_argument(b"invalid runtime operation handle");
-        }
-        match runtime.operations.poll(handle) {
-            Ok(status) => {
-                unsafe { ptr::write(out_status, status) };
-                ZrStatus::ok()
-            }
-            Err(error) => operation_error_status(error),
-        }
-    })
+    if out_status.is_null() {
+        return invalid_argument(b"missing runtime operation status output");
+    }
+    if !handle.is_valid() {
+        return invalid_argument(b"invalid runtime operation handle");
+    }
+    match with_session_result_finalized(
+        session,
+        |runtime| match runtime.operations.poll(handle) {
+            Ok(status) => Ok(status),
+            Err(error) => Err(operation_error_status(error)),
+        },
+        |_session, status| {
+            unsafe { ptr::write(out_status, status) };
+            Ok(ZrStatus::ok())
+        },
+    ) {
+        Ok(status) | Err(status) => status,
+    }
 }
 
 pub(crate) unsafe fn harvest_operation(

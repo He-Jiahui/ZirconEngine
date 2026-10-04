@@ -1,11 +1,15 @@
 use std::path::Path;
 
 use super::super::super::super::super::super::super::{
-    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionSlotImportPreviewReport,
-    path_transfer,
+    path_transfer, RuntimeSessionArchive, RuntimeSessionArchiveError,
+    RuntimeSessionSlotImportPreviewReport,
 };
 
 impl RuntimeSessionArchive {
+    /// 预检磁盘来源向已有目标的单槽导入；路径相等或双方规范路径相等时拒绝。
+    /// 新 ID 修剪后须非空且未占用。
+    /// 显式源 ID 按原值查询；继承源槽位元数据，不自动刷新更新时间。
+    /// 预览读取双方当次内容，不写盘，也不锁定后续提交的选择结果。
     pub fn preview_import_slot_from_archive_path_at_path(
         path: impl AsRef<Path>,
         source_path: impl AsRef<Path>,

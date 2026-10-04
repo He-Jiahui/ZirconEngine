@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 扁平原型物化转移节点字段，遍历阶段借用节点 ID；性能证据对照克隆拥有者和配对热样本。
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FLAT_NODES = (

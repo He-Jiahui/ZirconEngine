@@ -129,16 +129,26 @@ impl UiDragSourceMetadata {
         }
     }
 
+    /// 层级与 Inspector 用此摘要显示来源标签，按“类型+名称、名称、定位符”回退；拖拽目标仍由 UiDragPayload::reference 承载。
     pub fn summary(&self) -> Option<String> {
         match (&self.asset_kind, &self.display_name) {
             (Some(kind), Some(name)) if !kind.is_empty() && !name.is_empty() => {
-                Some(format!("{kind}: {name}"))
+                let mut summary =
+                    String::with_capacity(kind.len().saturating_add(name.len()).saturating_add(2));
+                summary.push_str(kind);
+                summary.push_str(": ");
+                summary.push_str(name);
+                Some(summary)
             }
             (_, Some(name)) if !name.is_empty() => Some(name.clone()),
             (_, _) => self.locator.clone().filter(|locator| !locator.is_empty()),
         }
     }
 }
+
+#[cfg(test)]
+#[path = "drag/tests/summary_performance_tests.rs"]
+mod summary_performance_tests;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiDropPolicy {

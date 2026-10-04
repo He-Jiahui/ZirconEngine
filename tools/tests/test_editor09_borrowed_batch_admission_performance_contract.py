@@ -1,3 +1,4 @@
+# 核对作业批量准入借用保留账本与预订路径，避免重复分配。
 from pathlib import Path
 import re
 import unittest

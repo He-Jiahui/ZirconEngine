@@ -8,6 +8,8 @@ use crate::core::editor_event::{
 use super::EditorEventService;
 
 impl EditorEventService {
+    /// 处理监听器登记、筛选和分页确认的控制入口；分页只是读取保留队列，调用方确认游标后才移除已处理投递。
+    /// 监听器句柄在控制锁外查询和投影，配置变化不会使已取得的在途句柄失效。
     pub fn handle_listener_control_request(
         &self,
         request: EditorEventListenerControlRequest,
@@ -133,6 +135,7 @@ impl EditorEventService {
     }
 }
 
+// 控制接口只投影观察所需的结果与操作关联字段；持有共享记录即可生成回复，避免序列化期间占用监听器锁。
 fn listener_delivery_json(
     listener_id: &str,
     delivery_cursor: u64,
@@ -154,20 +157,5 @@ fn listener_delivery_json(
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn delivery_page_json_projection_stays_outside_the_listener_lock_scope() {
-        let source = include_str!("listener_control.rs");
-        let page_body = source
-            .split("EditorEventListenerControlRequest::QueryDeliveriesPage")
-            .nth(1)
-            .expect("delivery page control branch should remain available");
-        let lock_scope_end = page_body
-            .find("};\n                let page")
-            .expect("listener handle must be captured before the page result");
-        let projection = page_body
-            .find("listener_delivery_json")
-            .expect("delivery JSON projection should remain explicit");
-        assert!(projection > lock_scope_end);
-    }
-}
+#[path = "tests/listener_control.rs"]
+mod tests;

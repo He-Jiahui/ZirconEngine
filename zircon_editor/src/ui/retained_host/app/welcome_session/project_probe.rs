@@ -6,4 +6,5 @@ mod state;
 pub(in crate::ui::retained_host::app) use state::WelcomeProjectProbeState;
 
 #[cfg(test)]
+#[path = "project_probe/tests/cases.rs"]
 mod tests;

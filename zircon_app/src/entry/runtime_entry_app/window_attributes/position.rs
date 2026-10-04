@@ -1,3 +1,6 @@
+//! 启动窗口物理位置与显示器选择的转换。
+//! 缺少显示器几何时交给后端自动摆放；大尺寸和负原点保持有界结果。
+
 use winit::dpi::{PhysicalPosition, PhysicalSize};
 use winit::monitor::MonitorHandle;
 use zircon_runtime::core::framework::window::{
@@ -6,6 +9,7 @@ use zircon_runtime::core::framework::window::{
 
 use super::monitor::{selected_monitor, WindowMonitorContext};
 
+/// 有可靠显示器几何才计算居中；否则让 Winit 采用自动位置。
 pub(super) fn runtime_window_position(
     position: WindowPosition,
     resolution: &WindowResolution,
@@ -68,39 +72,5 @@ fn saturating_i64_to_i32(value: i64) -> i32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn centered_physical_position_uses_monitor_origin_and_size() {
-        let position = centered_physical_position(
-            PhysicalPosition::new(-1920, 100),
-            PhysicalSize::new(1920, 1080),
-            PhysicalSize::new(800, 600),
-        );
-
-        assert_eq!(position, PhysicalPosition::new(-1360, 340));
-    }
-
-    #[test]
-    fn centered_physical_position_keeps_oversized_windows_at_monitor_origin() {
-        let position = centered_physical_position(
-            PhysicalPosition::new(12, -34),
-            PhysicalSize::new(640, 480),
-            PhysicalSize::new(800, 600),
-        );
-
-        assert_eq!(position, PhysicalPosition::new(12, -34));
-    }
-
-    #[test]
-    fn centered_physical_position_saturates_output_coordinates() {
-        let position = centered_physical_position(
-            PhysicalPosition::new(i32::MAX, i32::MIN),
-            PhysicalSize::new(u32::MAX, u32::MAX),
-            PhysicalSize::new(1, 1),
-        );
-
-        assert_eq!(position, PhysicalPosition::new(i32::MAX, -1));
-    }
-}
+#[path = "tests/position.rs"]
+mod tests;

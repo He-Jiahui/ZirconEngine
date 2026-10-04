@@ -1,5 +1,6 @@
 use super::{assert_contains_all, repo_path, runtime_src_path};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0127] 网格绘制命令列表构建与间接批处理的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_mesh_draw_command_list_is_folder_backed() {
     let parent =
@@ -8,7 +9,7 @@ fn runtime_15_mesh_draw_command_list_is_folder_backed() {
         "graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/builder.rs",
     );
     let tests = read_runtime_src(
-        "graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs",
+        "graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests/cases.rs",
     );
     let cache_tests = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests/cache.rs",
@@ -115,7 +116,7 @@ fn runtime_15_mesh_draw_command_list_is_folder_backed() {
             360,
         ),
         (
-            "graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs",
+            "graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests/cases.rs",
             tests.as_str(),
             500,
         ),

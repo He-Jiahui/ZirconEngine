@@ -52,7 +52,7 @@ impl LayoutPreset {
     pub fn authoring() -> Self {
         Self {
             name: LayoutPresetName::Authoring,
-            drawer_states: drawer_states(ActivityDrawerMode::Pinned),
+            drawer_states: drawer_states_with_bottom(ActivityDrawerMode::Collapsed),
             size_overrides: default_size_overrides(),
             center_split: CenterSplitLayout::SingleDocument,
         }
@@ -69,7 +69,7 @@ impl LayoutPreset {
                 ),
                 drawer_state(ActivityDrawerSlot::RightTop, ActivityDrawerMode::Pinned),
                 drawer_state(ActivityDrawerSlot::RightBottom, ActivityDrawerMode::Pinned),
-                drawer_state(ActivityDrawerSlot::Bottom, ActivityDrawerMode::Pinned),
+                drawer_state(ActivityDrawerSlot::Bottom, ActivityDrawerMode::Collapsed),
             ],
             size_overrides: default_size_overrides(),
             center_split: CenterSplitLayout::SingleDocument,
@@ -129,7 +129,12 @@ impl LayoutPreset {
     pub fn apply_to_layout(&self, layout: &mut WorkbenchLayout, page_id: &MainPageId) {
         apply_drawer_states(layout, page_id, &self.drawer_states);
         apply_size_overrides(layout, page_id, &self.size_overrides);
-        apply_center_split(layout, page_id, self.center_split);
+        apply_center_split(layout, page_id, self.center_split.clone());
+        if let Some(activity_window_id) = activity_window_id_for_page(layout, page_id) {
+            layout.normalize_document_node_ids_prioritizing(&activity_window_id);
+        } else {
+            layout.normalize_document_node_ids();
+        }
     }
 }
 
@@ -154,11 +159,29 @@ impl LayoutPresetSizeOverride {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CenterSplitLayout {
     SingleDocument,
     Split { axis: SplitAxis, panes: u8 },
+    Exact { root: CenterSplitNode },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CenterSplitNode {
+    Split {
+        node_id: super::layout::DocumentNodeId,
+        axis: SplitAxis,
+        ratio_bits: u32,
+        first: Box<CenterSplitNode>,
+        second: Box<CenterSplitNode>,
+    },
+    Tabs {
+        node_id: super::layout::DocumentNodeId,
+        tabs: Vec<super::view::ViewInstanceId>,
+        active_tab: Option<super::view::ViewInstanceId>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -260,7 +283,7 @@ impl LayoutPresetPersistenceStore {
 }
 
 #[cfg(test)]
-#[path = "layout_preset/optimization_tests.rs"]
+#[path = "layout_preset/tests/optimization_tests.rs"]
 mod optimization_tests;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -309,6 +332,20 @@ fn drawer_states(mode: ActivityDrawerMode) -> Vec<LayoutPresetDrawerState> {
     ActivityDrawerSlot::ALL
         .into_iter()
         .map(|slot| drawer_state(slot, mode))
+        .collect()
+}
+
+fn drawer_states_with_bottom(bottom_mode: ActivityDrawerMode) -> Vec<LayoutPresetDrawerState> {
+    ActivityDrawerSlot::ALL
+        .into_iter()
+        .map(|slot| {
+            let mode = if slot == ActivityDrawerSlot::Bottom {
+                bottom_mode
+            } else {
+                ActivityDrawerMode::Pinned
+            };
+            drawer_state(slot, mode)
+        })
         .collect()
 }
 
@@ -411,26 +448,37 @@ fn preferred_from_override(
 fn center_split_from_layout(layout: &WorkbenchLayout, page_id: &MainPageId) -> CenterSplitLayout {
     layout
         .content_workspace_for_page(page_id)
-        .map(center_split_from_document)
+        .map(|node| CenterSplitLayout::Exact {
+            root: center_split_from_document(node),
+        })
         .unwrap_or(CenterSplitLayout::SingleDocument)
 }
 
-fn center_split_from_document(node: &DocumentNode) -> CenterSplitLayout {
+fn center_split_from_document(node: &DocumentNode) -> CenterSplitNode {
+    let node_id = node.node_id();
     match node {
-        DocumentNode::Tabs(_) => CenterSplitLayout::SingleDocument,
-        DocumentNode::SplitNode { axis, .. } => CenterSplitLayout::Split {
-            axis: *axis,
-            panes: document_leaf_count(node),
+        DocumentNode::Tabs(stack) => CenterSplitNode::Tabs {
+            node_id,
+            tabs: stack.tabs.clone(),
+            active_tab: stack.active_tab.clone(),
         },
-    }
-}
-
-fn document_leaf_count(node: &DocumentNode) -> u8 {
-    match node {
-        DocumentNode::Tabs(_) => 1,
-        DocumentNode::SplitNode { first, second, .. } => document_leaf_count(first)
-            .saturating_add(document_leaf_count(second))
-            .max(2),
+        DocumentNode::SplitNode {
+            axis,
+            ratio,
+            first,
+            second,
+            ..
+        } => {
+            let first = center_split_from_document(first);
+            let second = center_split_from_document(second);
+            CenterSplitNode::Split {
+                node_id,
+                axis: *axis,
+                ratio_bits: ratio.to_bits(),
+                first: Box::new(first),
+                second: Box::new(second),
+            }
+        }
     }
 }
 
@@ -556,11 +604,51 @@ fn apply_center_split(
     match center_split {
         CenterSplitLayout::SingleDocument => {
             let collapsed = collapse_document_tabs(document_workspace);
-            *document_workspace = DocumentNode::Tabs(collapsed);
+            *document_workspace = DocumentNode::tabs(collapsed);
         }
         CenterSplitLayout::Split { axis, panes } => {
-            let collapsed = DocumentNode::Tabs(collapse_document_tabs(document_workspace));
+            let collapsed = DocumentNode::tabs(collapse_document_tabs(document_workspace));
             *document_workspace = split_document_for_panes(axis, panes.max(2), collapsed);
+        }
+        CenterSplitLayout::Exact { root } => {
+            *document_workspace = document_from_exact_split(root);
+        }
+    }
+}
+
+fn document_from_exact_split(node: CenterSplitNode) -> DocumentNode {
+    match node {
+        CenterSplitNode::Tabs {
+            node_id,
+            tabs,
+            active_tab,
+        } => {
+            let active_tab = active_tab.filter(|active| tabs.contains(active));
+            DocumentNode::Tabs(super::layout::DocumentLeafLayout {
+                node_id,
+                tab_stack: TabStackLayout { tabs, active_tab },
+            })
+        }
+        CenterSplitNode::Split {
+            node_id,
+            axis,
+            ratio_bits,
+            first,
+            second,
+            ..
+        } => {
+            let ratio = f32::from_bits(ratio_bits);
+            DocumentNode::SplitNode {
+                node_id,
+                axis,
+                ratio: if ratio.is_finite() {
+                    ratio.clamp(0.1, 0.9)
+                } else {
+                    0.5
+                },
+                first: Box::new(document_from_exact_split(*first)),
+                second: Box::new(document_from_exact_split(*second)),
+            }
         }
     }
 }
@@ -608,6 +696,7 @@ fn split_document_for_panes(axis: SplitAxis, panes: u8, first: DocumentNode) -> 
     }
 
     DocumentNode::SplitNode {
+        node_id: Default::default(),
         axis,
         ratio: 0.5,
         first: Box::new(first),
@@ -621,6 +710,7 @@ fn empty_split_tail(axis: SplitAxis, panes: u8) -> DocumentNode {
     }
 
     DocumentNode::SplitNode {
+        node_id: Default::default(),
         axis,
         ratio: 0.5,
         first: Box::new(DocumentNode::default()),

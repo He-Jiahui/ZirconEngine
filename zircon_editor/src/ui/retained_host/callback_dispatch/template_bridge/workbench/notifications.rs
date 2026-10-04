@@ -489,17 +489,25 @@ fn activity_progress_history_entry(notification: &ActivityProgressView) -> Strin
 }
 
 fn pipe_value(value: &str) -> String {
-    value
-        .chars()
-        .map(|ch| match ch {
-            '|' | '=' | '\n' | '\r' | '\t' => ' ',
-            _ => ch,
-        })
-        .collect::<String>()
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
+    let mut output = String::with_capacity(value.len());
+    let mut pending_space = false;
+    for ch in value.chars() {
+        if matches!(ch, '|' | '=' | '\n' | '\r' | '\t') || ch.is_whitespace() {
+            pending_space = !output.is_empty();
+            continue;
+        }
+        if pending_space {
+            output.push(' ');
+            pending_space = false;
+        }
+        output.push(ch);
+    }
+    output
 }
+
+#[cfg(test)]
+#[path = "notifications/tests/pipe_value_single_buffer_tests.rs"]
+mod pipe_value_single_buffer_tests;
 
 fn duration_millis(duration: std::time::Duration) -> i64 {
     duration.as_millis().min(i64::MAX as u128) as i64
@@ -533,26 +541,5 @@ fn toast_severity_color(severity: Option<ToastSeverity>) -> &'static str {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn notification_history_bounds_entry_formatting_before_allocation() {
-        let source = include_str!("notifications.rs");
-        let projection = source
-            .split("fn sync_notification_projection")
-            .nth(1)
-            .and_then(|source| source.split("fn notification_counters").next())
-            .expect("notification projection source must remain isolated");
-        let capped_iteration = projection
-            .find(".take(MAX_NOTIFICATION_HISTORY)")
-            .expect("history input must be capped before entry formatting");
-        let formatted_entries = projection
-            .find(".collect::<Vec<_>>()")
-            .expect("history entries must be materialized once after the cap");
-
-        assert!(capped_iteration < formatted_entries);
-        assert!(!projection.contains("candidate_entries"));
-        assert!(projection.contains("pending_decisions.len()"));
-        assert!(projection.contains("progress.len()"));
-        assert!(projection.contains("toasts.len()"));
-    }
-}
+#[path = "tests/notifications.rs"]
+mod tests;

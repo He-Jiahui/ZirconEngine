@@ -1,11 +1,11 @@
 use std::fmt;
 
 use crate::core::{CoreError, CoreHandle};
-use crate::scene::LevelSystem;
 use crate::scene::ecs::{
     SceneSystemMetadata, SceneSystemTickPolicy, SystemOrderingConstraint, SystemParamAccess,
     SystemSetId, SystemStage, SystemTickContext,
 };
+use crate::scene::LevelSystem;
 
 pub type BoxedRuntimeSceneSystem = Box<dyn RuntimeSceneSystem>;
 

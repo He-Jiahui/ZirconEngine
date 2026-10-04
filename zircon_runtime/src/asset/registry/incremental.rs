@@ -45,7 +45,7 @@ impl AssetRegistryIndex {
             candidate.remove_source_path(&change.uri);
         }
         let mut metas = scan_project_metas(asset_roots)?;
-        let mut duplicate_diagnostics = Vec::new();
+        let mut duplicate_diagnostics = Vec::with_capacity(metas.len());
         let reminted_paths =
             normalize_duplicate_guids(&mut metas, &mut duplicate_diagnostics, &owners)?;
         let mut changed_paths = Vec::with_capacity(watch_change_path_capacity(changes));
@@ -86,5 +86,9 @@ fn same_source_path(left: &AssetUri, right: &AssetUri) -> bool {
 }
 
 #[cfg(test)]
-#[path = "incremental/capacity_tests.rs"]
+#[path = "incremental/tests/optimization_batch_jj_runtime649_tests.rs"]
+mod optimization_batch_jj_runtime649_tests;
+
+#[cfg(test)]
+#[path = "incremental/tests/capacity_tests.rs"]
 mod capacity_tests;

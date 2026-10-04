@@ -4,6 +4,7 @@ use std::sync::Arc;
 use std::time::Instant;
 use zircon_runtime::asset::project::ResolvedProjectPath;
 
+use crate::core::play::PlayInstanceId;
 use crate::ui::retained_host::host_contract::paint_theme::{
     capture_host_paint_theme_snapshot, HostPaintThemeSnapshot,
 };
@@ -16,16 +17,18 @@ use crate::ui::retained_host::ui_perf::{
 };
 
 use super::super::data::{
-    HostDockOverflowMenuStateData, HostDockPresentationPatch, HostDragStateData, HostMenuStateData,
-    HostPageOverflowMenuStateData, HostPaneInteractionStateData, HostPresentationGeneration,
-    HostResizeStateData, HostTextInputFocusData, HostViewportImageData, HostViewportImageSet,
-    HostWindowGeometryPresentationData, HostWindowLayoutData, HostWindowPresentationData,
-    HostWindowShellData, TemplatePaneNodeData, WelcomePaneData,
+    FrameRect, HostAssetDeletionBlockerData, HostClosePromptData, HostDockOverflowMenuStateData,
+    HostDockPresentationPatch, HostDragStateData, HostMenuStateData, HostPageOverflowMenuStateData,
+    HostPaneInteractionStateData, HostPanePresentationPatch, HostPresentationGeneration,
+    HostPresentationPatch, HostResizeStateData, HostTextInputFocusData, HostViewportImageData,
+    HostViewportImageSet, HostWindowGeometryPresentationData, HostWindowLayoutData,
+    HostWindowPresentationData, HostWindowShellData, TemplatePaneNodeData, WelcomePaneData,
 };
 use super::super::diagnostics::{HostInvalidationDiagnostics, HostWindowDiagnosticQueue};
 use super::super::redraw::HostRedrawRequest;
 use super::callbacks::{PaneSurfaceCallbacks, UiHostCallbacks};
 
+mod template_press;
 mod viewport_chrome;
 
 pub(crate) trait HostContractGlobal: Sized {
@@ -45,7 +48,6 @@ pub(crate) struct HostContractState {
     pub(crate) window_maximized: bool,
     pub(crate) close_requested: Option<Rc<dyn Fn() -> CloseRequestResponse>>,
     pub(crate) host_presentation: Arc<HostWindowPresentationData>,
-    host_structure: Arc<HostWindowPresentationData>,
     presentation_structure_generation: u64,
     presentation_geometry_generation: u64,
     presentation_interaction_generation: u64,
@@ -62,11 +64,15 @@ pub(crate) struct HostContractState {
     pub(crate) external_redraw_drained_count: u64,
     pub(crate) external_redraw_coalesced_count: u64,
     pub(crate) runtime_frame_wake_deadline: Option<Instant>,
+    pub(crate) runtime_frame_wake_tick_pending: bool,
+    pub(crate) runtime_frame_failure_retry_attempts: u32,
+    pub(crate) runtime_frame_owner: Option<(PlayInstanceId, u64)>,
     pub(crate) maintenance_frame_wake_deadline: Option<Instant>,
     pub(crate) input_timer_frame_wake_deadline: Option<Instant>,
     pub(crate) lifecycle_frame_wake_deadline: Option<Instant>,
     pub(crate) completed_frame_update_scenario: Option<UiPerfScenario>,
     pub(crate) viewport_images: HostViewportImageSet,
+    pub(crate) scene_surface_key: Option<String>,
     pub(crate) menu_state: Arc<HostMenuStateData>,
     pub(crate) host_page_overflow_menu_state: Arc<HostPageOverflowMenuStateData>,
     pub(crate) host_dock_overflow_menu_state: Arc<HostDockOverflowMenuStateData>,
@@ -84,7 +90,6 @@ impl HostContractState {
 
     pub(crate) fn new(window_size: PhysicalSize) -> Self {
         let host_presentation = Arc::new(HostWindowPresentationData::default());
-        let host_structure = Arc::clone(&host_presentation);
         let diagnostics_overlay_text =
             Arc::new(host_presentation.host_shell.debug_refresh_rate.clone());
         let workbench_hit_index =
@@ -103,7 +108,6 @@ impl HostContractState {
             window_maximized: false,
             close_requested: None,
             host_presentation,
-            host_structure,
             presentation_structure_generation: 0,
             presentation_geometry_generation: 0,
             presentation_interaction_generation: 0,
@@ -120,11 +124,15 @@ impl HostContractState {
             external_redraw_drained_count: 0,
             external_redraw_coalesced_count: 0,
             runtime_frame_wake_deadline: None,
+            runtime_frame_wake_tick_pending: false,
+            runtime_frame_failure_retry_attempts: 0,
+            runtime_frame_owner: None,
             maintenance_frame_wake_deadline: None,
             input_timer_frame_wake_deadline: None,
             lifecycle_frame_wake_deadline: None,
             completed_frame_update_scenario: None,
             viewport_images: HostViewportImageSet::default(),
+            scene_surface_key: None,
             menu_state: Arc::new(HostMenuStateData::default()),
             host_page_overflow_menu_state: Arc::new(HostPageOverflowMenuStateData::default()),
             host_dock_overflow_menu_state: Arc::new(HostDockOverflowMenuStateData::default()),
@@ -140,11 +148,11 @@ impl HostContractState {
 
     pub(crate) fn set_window_scale_factor(&mut self, scale_factor: f32) {
         self.window_scale_factor = Self::normalize_window_scale_factor(scale_factor);
+        self.reconcile_template_button_press();
     }
 
     pub(crate) fn presentation_generation(&self) -> HostPresentationGeneration {
         HostPresentationGeneration::new_with_geometry(
-            Arc::clone(&self.host_structure),
             Arc::clone(&self.host_presentation),
             Arc::clone(&self.menu_state),
             Arc::clone(&self.host_page_overflow_menu_state),
@@ -180,6 +188,7 @@ impl HostContractState {
     fn advance_geometry_generation(&mut self) {
         self.presentation_geometry_generation =
             self.presentation_geometry_generation.saturating_add(1);
+        self.reconcile_template_button_press();
     }
 
     pub(crate) fn replace_host_presentation(
@@ -200,7 +209,6 @@ impl HostContractState {
         presentation.viewport_images = HostViewportImageSet::default();
         self.replace_diagnostics_overlay_text(presentation.host_shell.debug_refresh_rate.clone());
         let presentation = Arc::new(presentation);
-        self.host_structure = Arc::clone(&presentation);
         self.host_presentation = presentation;
         self.advance_structure_generation();
         self.advance_geometry_generation();
@@ -247,10 +255,240 @@ impl HostContractState {
             self.presentation_hit_test_generation =
                 self.presentation_hit_test_generation.saturating_add(1);
         }
-        self.host_structure = Arc::clone(&self.host_presentation);
         self.advance_structure_generation();
         self.advance_geometry_generation();
         result
+    }
+
+    pub(crate) fn replace_close_prompt(&mut self, prompt: HostClosePromptData) {
+        Arc::make_mut(&mut self.host_presentation).close_prompt = prompt;
+        self.advance_structure_generation();
+        self.advance_geometry_generation();
+        zircon_runtime::profile_counter!(
+            "editor",
+            "ui.overlay_presentation.close_prompt_commit_count",
+            1_u8
+        );
+    }
+
+    pub(crate) fn replace_asset_deletion_blocker(&mut self, blocker: HostAssetDeletionBlockerData) {
+        Arc::make_mut(&mut self.host_presentation).asset_deletion_blocker = blocker;
+        self.advance_structure_generation();
+        self.advance_geometry_generation();
+        zircon_runtime::profile_counter!(
+            "editor",
+            "ui.overlay_presentation.asset_deletion_blocker_commit_count",
+            1_u8
+        );
+    }
+
+    pub(crate) fn replace_native_floating_window_presentation(
+        &mut self,
+        window_id: &str,
+        surface_tree_id: &str,
+        title: &str,
+        bounds: &FrameRect,
+    ) -> bool {
+        let presentation = self.host_presentation.as_ref();
+        let shell = &presentation.host_shell;
+        let surface = &presentation.native_floating_surface_data;
+        let structure_changed = !shell.native_floating_window_mode
+            || shell.native_floating_window_id != window_id
+            || shell.native_surface_tree_id != surface_tree_id
+            || shell.native_window_title != title
+            || surface.native_floating_window_id != window_id
+            || surface.native_surface_tree_id != surface_tree_id;
+        let geometry_changed =
+            shell.native_window_bounds != *bounds || surface.native_window_bounds != *bounds;
+        if !structure_changed && !geometry_changed {
+            return false;
+        }
+
+        let presentation = Arc::make_mut(&mut self.host_presentation);
+        presentation.host_shell.native_floating_window_mode = true;
+        replace_string(
+            &mut presentation.host_shell.native_floating_window_id,
+            window_id,
+        );
+        replace_string(
+            &mut presentation.host_shell.native_surface_tree_id,
+            surface_tree_id,
+        );
+        replace_string(&mut presentation.host_shell.native_window_title, title);
+        presentation.host_shell.native_window_bounds = bounds.clone();
+        replace_string(
+            &mut presentation
+                .native_floating_surface_data
+                .native_floating_window_id,
+            window_id,
+        );
+        replace_string(
+            &mut presentation
+                .native_floating_surface_data
+                .native_surface_tree_id,
+            surface_tree_id,
+        );
+        presentation
+            .native_floating_surface_data
+            .native_window_bounds = bounds.clone();
+        if structure_changed {
+            self.advance_structure_generation();
+        }
+        self.advance_geometry_generation();
+        zircon_runtime::profile_counter!(
+            "editor",
+            "ui.native_floating_presentation.commit_count",
+            1_u8
+        );
+        true
+    }
+
+    pub(crate) fn patch_host_presentation_panes(
+        &mut self,
+        patch: HostPanePresentationPatch,
+    ) -> bool {
+        let Some(model_replacements) =
+            patch.paint_model_replacements(self.host_presentation.as_ref())
+        else {
+            zircon_runtime::profile_counter!(
+                "editor",
+                "ui.pane_presentation_transaction.validation_fallback_count",
+                1_u8
+            );
+            return false;
+        };
+        let replacement_count = patch.replacement_count();
+        let rebind_node_count = model_replacements
+            .iter()
+            .map(|(_, next)| next.row_count())
+            .sum::<usize>();
+        let next_hit_index = if model_replacements.is_empty() {
+            None
+        } else {
+            let Some(index) = self
+                .workbench_hit_index
+                .rebind_paint_models(&model_replacements)
+            else {
+                zircon_runtime::profile_counter!(
+                    "editor",
+                    "ui.pane_presentation_transaction.hit_index_fallback_count",
+                    1_u8
+                );
+                return false;
+            };
+            Some(index)
+        };
+
+        patch.apply(Arc::make_mut(&mut self.host_presentation));
+        if let Some(index) = next_hit_index {
+            self.workbench_hit_index = Arc::new(index);
+        }
+        self.presentation_hit_test_generation =
+            self.presentation_hit_test_generation.saturating_add(1);
+        self.advance_structure_generation();
+        self.advance_geometry_generation();
+        zircon_runtime::profile_counter!(
+            "editor",
+            "ui.pane_presentation_transaction.commit_count",
+            1_u8
+        );
+        zircon_runtime::profile_counter!(
+            "editor",
+            "ui.pane_presentation_transaction.pane_replacement_count",
+            replacement_count
+        );
+        zircon_runtime::profile_counter!(
+            "editor",
+            "ui.pane_presentation_transaction.paint_model_rebind_count",
+            model_replacements.len()
+        );
+        zircon_runtime::profile_counter!(
+            "editor",
+            "ui.pane_presentation_transaction.paint_model_rebind_node_count",
+            rebind_node_count
+        );
+        true
+    }
+
+    pub(crate) fn patch_host_presentation(&mut self, patch: HostPresentationPatch) -> bool {
+        if patch.is_empty() {
+            zircon_runtime::profile_counter!(
+                "editor",
+                "ui.sparse_presentation_transaction.empty_fallback_count",
+                1_u8
+            );
+            return false;
+        }
+        let Some(model_replacements) =
+            patch.paint_model_replacements(self.host_presentation.as_ref())
+        else {
+            zircon_runtime::profile_counter!(
+                "editor",
+                "ui.sparse_presentation_transaction.pane_validation_fallback_count",
+                1_u8
+            );
+            return false;
+        };
+        let pane_replacement_count = patch.pane_replacement_count();
+        let workbench_changed_row_count = patch
+            .workbench_nodes()
+            .map_or(0, |(_, changed_rows)| changed_rows.len());
+
+        let mut next_hit_index = if let Some((next_nodes, changed_rows)) = patch.workbench_nodes() {
+            let previous_nodes = &self.host_presentation.workbench_window_nodes;
+            let Some(index) = self.workbench_hit_index.rebind_workbench_nodes(
+                previous_nodes,
+                next_nodes,
+                changed_rows,
+            ) else {
+                zircon_runtime::profile_counter!(
+                    "editor",
+                    "ui.sparse_presentation_transaction.workbench_rebind_fallback_count",
+                    1_u8
+                );
+                return false;
+            };
+            Some(index)
+        } else {
+            None
+        };
+        if !model_replacements.is_empty() {
+            let source_index = next_hit_index.as_ref().unwrap_or(&self.workbench_hit_index);
+            let Some(index) = source_index.rebind_paint_models(&model_replacements) else {
+                zircon_runtime::profile_counter!(
+                    "editor",
+                    "ui.sparse_presentation_transaction.paint_rebind_fallback_count",
+                    1_u8
+                );
+                return false;
+            };
+            next_hit_index = Some(index);
+        }
+
+        patch.apply(Arc::make_mut(&mut self.host_presentation));
+        if let Some(index) = next_hit_index {
+            self.workbench_hit_index = Arc::new(index);
+            self.presentation_hit_test_generation =
+                self.presentation_hit_test_generation.saturating_add(1);
+        }
+        self.advance_structure_generation();
+        self.advance_geometry_generation();
+        zircon_runtime::profile_counter!(
+            "editor",
+            "ui.sparse_presentation_transaction.commit_count",
+            1_u8
+        );
+        zircon_runtime::profile_counter!(
+            "editor",
+            "ui.sparse_presentation_transaction.pane_replacement_count",
+            pane_replacement_count
+        );
+        zircon_runtime::profile_counter!(
+            "editor",
+            "ui.sparse_presentation_transaction.workbench_changed_row_count",
+            workbench_changed_row_count
+        );
+        true
     }
 
     pub(crate) fn patch_workbench_window_nodes(
@@ -267,7 +505,6 @@ impl HostContractState {
             return false;
         };
         Arc::make_mut(&mut self.host_presentation).workbench_window_nodes = next_nodes;
-        self.host_structure = Arc::clone(&self.host_presentation);
         self.workbench_hit_index = Arc::new(next_hit_index);
         self.advance_structure_generation();
         self.advance_geometry_generation();
@@ -318,7 +555,6 @@ impl HostContractState {
                 presentation.host_scene_data.bottom_dock = next;
             }
         }
-        self.host_structure = Arc::clone(&self.host_presentation);
         self.workbench_hit_index = Arc::new(next_hit_index);
         self.advance_structure_generation();
         self.advance_geometry_generation();
@@ -384,9 +620,31 @@ impl HostContractState {
     }
 
     pub(crate) fn replace_scene_viewport_image(&mut self, value: HostViewportImageData) -> bool {
-        let changed = self.viewport_images.replace_scene(value);
+        let surface_key = self.scene_surface_key.clone();
+        let changed = match surface_key.as_deref() {
+            Some(surface_key) => self
+                .viewport_images
+                .replace_scene_for_surface(surface_key, value),
+            None => self.viewport_images.replace_scene(value),
+        };
         self.advance_viewport_generation_when(changed);
         changed
+    }
+
+    pub(crate) fn replace_scene_viewport_image_for_surface(
+        &mut self,
+        surface_key: &str,
+        value: HostViewportImageData,
+    ) -> bool {
+        let changed = self
+            .viewport_images
+            .replace_scene_for_surface(surface_key, value);
+        self.advance_viewport_generation_when(changed);
+        changed
+    }
+
+    pub(crate) fn set_scene_surface_key(&mut self, surface_key: &str) {
+        self.scene_surface_key = (!surface_key.is_empty()).then(|| surface_key.to_string());
     }
 
     pub(crate) fn replace_game_viewport_image(&mut self, value: HostViewportImageData) -> bool {
@@ -457,4 +715,9 @@ impl HostContractState {
             Self::DEFAULT_WINDOW_SCALE_FACTOR
         }
     }
+}
+
+fn replace_string(target: &mut String, value: &str) {
+    target.clear();
+    target.push_str(value);
 }

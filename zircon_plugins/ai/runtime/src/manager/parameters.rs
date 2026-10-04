@@ -1,7 +1,7 @@
 use zircon_runtime::core::framework::ai::{AiDecisionStatus, AiPerceptionSense};
 
 #[cfg(test)]
-#[path = "parameters/allocation_tests.rs"]
+#[path = "parameters/tests/allocation_tests.rs"]
 mod allocation_tests;
 
 pub(crate) const TASK_RESULT_PARAMETER_KEY: &str = "result";
@@ -10,6 +10,9 @@ pub(crate) const ANIMATION_PARAMETER_PARAMETER_KEY: &str = "parameter";
 pub(crate) const ANIMATION_TRIGGER_PARAMETER_KEY: &str = "trigger";
 pub(crate) const ANIMATION_VALUE_PARAMETER_KEY: &str = "value";
 pub(crate) const SCRIPT_CALLBACK_PARAMETER_KEY: &str = "callback";
+pub(crate) const BLACKBOARD_VALUE_PARAMETER_KEY: &str = "value";
+pub(crate) const GAMEPLAY_EVENT_NAME_PARAMETER_KEY: &str = "event_name";
+pub(crate) const GAMEPLAY_EVENT_PAYLOAD_PARAMETER_KEY: &str = "payload";
 pub(crate) const PARALLEL_SUCCESS_POLICY_PARAMETER_KEY: &str = "success_policy";
 pub(crate) const PARALLEL_FAILURE_POLICY_PARAMETER_KEY: &str = "failure_policy";
 pub(crate) const BLACKBOARD_KEY_PARAMETER_KEY: &str = "blackboard_key";
@@ -104,6 +107,7 @@ pub(super) const PERCEPTION_SENSE_EXPECTED_VALUES: &str =
     "`sight`, `hearing`, `damage`, `touch`, or `custom`";
 pub(super) const NON_NEGATIVE_SCALAR_EXPECTED_VALUE: &str = "a non-negative scalar";
 
+// 借用去空白后的输入并接受旧别名；验证和运行时解析共用此结果语义。
 pub(crate) fn parse_task_result(value: &str) -> Option<AiDecisionStatus> {
     let value = value.trim();
     if value.eq_ignore_ascii_case("idle") {

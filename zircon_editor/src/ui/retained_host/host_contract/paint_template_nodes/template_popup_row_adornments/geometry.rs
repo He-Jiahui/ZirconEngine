@@ -1,3 +1,6 @@
+//! 尾部标记必须完整位于可绘制行内并与clip相交；窄短行宁可省略标记。
+//! 位置使用和文字列相同的宿主popup metrics，避免标题与标记占位不一致。
+
 use super::super::super::data::FrameRect;
 use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 
@@ -53,67 +56,5 @@ fn frame_is_within(container: &FrameRect, rect: &FrameRect) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::popup_row_adornment_rect;
-    use crate::ui::retained_host::host_contract::data::FrameRect;
-    use crate::ui::retained_host::host_contract::paint_template_nodes::template_popup_rows::metrics::workbench_popup_row_metrics;
-
-    #[test]
-    fn popup_row_adornment_requires_a_paintable_row_and_clip_intersection() {
-        let metrics = workbench_popup_row_metrics();
-        let minimum_width = metrics.adornment_right + metrics.adornment_size;
-        let full_row = FrameRect {
-            x: 10.0,
-            y: 20.0,
-            width: minimum_width + 1.0,
-            height: metrics.adornment_size,
-        };
-
-        let adornment = popup_row_adornment_rect(&full_row, &full_row)
-            .expect("a row with the full trailing slot should produce an adornment rect");
-        assert!(popup_row_adornment_rect(
-            &FrameRect {
-                width: minimum_width - 0.1,
-                ..full_row.clone()
-            },
-            &full_row,
-        )
-        .is_none());
-        assert!(popup_row_adornment_rect(
-            &FrameRect {
-                height: metrics.adornment_size - 0.1,
-                ..full_row.clone()
-            },
-            &full_row,
-        )
-        .is_none());
-        assert!(popup_row_adornment_rect(
-            &full_row,
-            &FrameRect {
-                x: adornment.right() - 0.75,
-                y: adornment.y,
-                width: 0.75,
-                height: adornment.height,
-            },
-        )
-        .is_some());
-        assert!(popup_row_adornment_rect(
-            &full_row,
-            &FrameRect {
-                x: adornment.right(),
-                y: adornment.y,
-                width: 1.0,
-                height: adornment.height,
-            },
-        )
-        .is_none());
-        assert!(popup_row_adornment_rect(
-            &FrameRect {
-                x: f32::NAN,
-                ..full_row.clone()
-            },
-            &full_row,
-        )
-        .is_none());
-    }
-}
+#[path = "tests/geometry.rs"]
+mod tests;

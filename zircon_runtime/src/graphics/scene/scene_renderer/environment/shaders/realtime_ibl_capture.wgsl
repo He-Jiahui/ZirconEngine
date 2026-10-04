@@ -1,3 +1,5 @@
+// 捕获冻结天空的基础辐射到工作槽 mip0，与可见天空共用程序天空模型。
+// 最终环境强度和旋转由采样端应用，捕获参数只含基础天空、太阳与本批面范围。
 struct CaptureParams {
     horizon_color: vec4<f32>,
     zenith_color: vec4<f32>,

@@ -1,3 +1,4 @@
+//! 把剪辑轨道绑定到某一骨架目标表的稠密槽；完整路径优先，短骨名只有唯一时才可解析。
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::animation::AnimationClipBoneTrackAsset;
@@ -8,10 +9,11 @@ use super::super::{AnimationClipCompileError, CompiledClipTrack, SkeletonTargetT
 use super::CompiledAnimationClip;
 
 #[cfg(test)]
-#[path = "compile/performance_tests.rs"]
+#[path = "compile/tests/performance_tests.rs"]
 mod optimization_batch_20260830cr_tests;
 
 impl CompiledAnimationClip {
+    /// 编译结果拥有所用目标表，轨道在该表内解析；调用方应随骨架或剪辑修订失效重建。
     pub fn compile(
         target_table: Arc<SkeletonTargetTable>,
         source_tracks: &[AnimationClipBoneTrackAsset],

@@ -32,13 +32,11 @@ fn text_input_keyboard_read_only_paste_blocks_clipboard_request() {
         result.diagnostics.handled_phase.as_deref(),
         Some("keyboard.clipboard_paste")
     );
-    assert!(
-        result
-            .diagnostics
-            .notes
-            .iter()
-            .any(|note| note == "clipboard paste blocked by read-only text")
-    );
+    assert!(result
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note == "clipboard paste blocked by read-only text"));
     assert_eq!(text_attr(&surface, "content"), "alpha");
     assert_eq!(int_attr(&surface, "caret_offset"), 5);
     assert_eq!(int_attr(&surface, "selection_anchor"), 5);
@@ -71,13 +69,11 @@ fn secure_text_input_copy_and_cut_preserve_text_without_clipboard_write() {
 
         assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
         assert_eq!(result.diagnostics.handled_phase.as_deref(), Some(phase));
-        assert!(
-            result
-                .diagnostics
-                .notes
-                .iter()
-                .any(|note| note == "clipboard copy and cut disabled for secure text input")
-        );
+        assert!(result
+            .diagnostics
+            .notes
+            .iter()
+            .any(|note| note == "clipboard copy and cut disabled for secure text input"));
         assert_eq!(text_attr(&surface, "content"), "alpha");
         assert_eq!(int_attr(&surface, "caret_offset"), 5);
         assert_eq!(int_attr(&surface, "selection_anchor"), 0);

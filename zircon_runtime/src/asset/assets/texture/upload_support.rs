@@ -6,6 +6,7 @@ mod ktx;
 mod layout;
 
 #[cfg(test)]
+#[path = "upload_support/tests/cases.rs"]
 mod tests;
 
 use serde::{Deserialize, Serialize};
@@ -111,6 +112,7 @@ impl TextureUploadReadiness {
 }
 
 impl TextureAsset {
+    /// 校验描述符与载荷，并依据调用方声明的格式能力生成供资源烹制和材质解析前置筛选的计划；此处不执行 GPU 上传。
     pub fn upload_readiness(&self, support: TextureUploadSupport) -> TextureUploadReadiness {
         match &self.payload {
             TexturePayload::Rgba8 => {
@@ -202,10 +204,7 @@ fn unsupported_rgba8_shape_reason(
         if texture.width != texture.height {
             return Some("rgba8 cube texture upload requires square faces".to_string());
         }
-        if descriptor.array_layer_count == 0
-            || descriptor.depth_or_array_layers != descriptor.array_layer_count
-            || descriptor.array_layer_count % 6 != 0
-        {
+        if descriptor.depth_or_array_layers == 0 || descriptor.depth_or_array_layers % 6 != 0 {
             return Some(
                 "rgba8 cube texture upload requires a non-zero multiple of six faces".to_string(),
             );
@@ -266,9 +265,8 @@ fn lightmap_rgba16f_upload_readiness(
     bytes: &[u8],
 ) -> TextureUploadReadiness {
     let descriptor = texture.render_image_descriptor();
-    let layer_count = descriptor.array_layer_count.max(1);
+    let layer_count = descriptor.depth_or_array_layers.max(1);
     if descriptor.dimension != RenderImageDimension::D2
-        || descriptor.depth_or_array_layers != layer_count
         || descriptor.mip_count.max(1) != 1
         || descriptor.format != LIGHTMAP_RGBA16F_GPU_FORMAT
     {
@@ -312,7 +310,7 @@ fn texture_descriptor_layer_count(texture: &TextureAsset) -> u32 {
     if descriptor.dimension == RenderImageDimension::D3 {
         1
     } else {
-        descriptor.array_layer_count.max(1)
+        descriptor.depth_or_array_layers.max(1)
     }
 }
 

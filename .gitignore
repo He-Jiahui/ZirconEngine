@@ -142,3 +142,13 @@ examples/vampire/*
 !examples/vampire/README.md
 
 worktrees/
+
+# Penpot/ZUI layout capture scratch: per-run copied asset trees and source
+# mirrors are regenerable inputs, not review evidence.
+docs/layout
+!docs/layout/**/*.zui
+docs/ui-and-layout/**/*.png
+
+tools/tests
+# Layout migration keeps regenerable captures and copied inputs under this owner.
+/docs/_data/layout/

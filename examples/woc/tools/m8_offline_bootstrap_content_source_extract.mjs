@@ -1,8 +1,10 @@
+// 从固定版本 WOC 源码中提取离线职业初始配置与起始物品，供 m8_offline_bootstrap_content_codegen.mjs 消费。
 const classes = await import('wocgit:///src/sim/content/classes.ts');
 const data = await import('wocgit:///src/sim/data.ts');
 
 const classIds = Object.keys(classes.CLASSES);
 const starterItemIds = new Set();
+// 投影初始装备、口粮与技能时保持源码职业顺序。
 const projectedClasses = classIds.map((id) => {
   const definition = classes.CLASSES[id];
   for (const itemId of [

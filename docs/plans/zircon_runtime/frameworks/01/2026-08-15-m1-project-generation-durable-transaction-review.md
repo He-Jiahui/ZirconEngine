@@ -19,8 +19,6 @@ related_code:
   - zircon_runtime/src/asset/project/paths.rs
   - zircon_runtime/src/asset/migration/transaction.rs
   - zircon_runtime/src/asset/migration/transaction/recovery.rs
-  - zircon_runtime/src/core/resource/io/atomic_file
-  - zircon_runtime/src/core/resource/io/transaction
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/resource_publication.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/open_project.rs

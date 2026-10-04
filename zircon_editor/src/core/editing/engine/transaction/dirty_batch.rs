@@ -2,7 +2,7 @@ use std::collections::{HashSet, VecDeque};
 use std::fmt;
 use std::sync::Arc;
 
-use crate::core::editing::engine::{EditCommandError, HistoryContextId, HistoryStore};
+use crate::core::editing::engine::{EditCommandError, HistoryContextId};
 
 use super::{EditorTransactionEngine, EngineState};
 
@@ -12,13 +12,15 @@ const HISTORY_DIRTY_JOURNAL_CAPACITY: usize = 4_096;
 pub struct HistoryDirtyCursor {
     lineage: Arc<()>,
     generation: u64,
+    pending_history: Option<HistoryContextId>,
 }
 
 impl HistoryDirtyCursor {
-    fn new(lineage: Arc<()>, generation: u64) -> Self {
+    fn new(lineage: Arc<()>, generation: u64, pending_history: Option<HistoryContextId>) -> Self {
         Self {
             lineage,
             generation,
+            pending_history,
         }
     }
 
@@ -123,6 +125,13 @@ impl HistoryDirtyJournal {
         Ok(HistoryDirtyChangeReservation { generation })
     }
 
+    fn preflight_changes(&self, count: u64) -> Result<(), EditCommandError> {
+        self.generation
+            .checked_add(count)
+            .ok_or(EditCommandError::HistoryDirtyGenerationExhausted)
+            .map(|_| ())
+    }
+
     fn record_dirty_change(
         &mut self,
         history: HistoryContextId,
@@ -184,69 +193,58 @@ impl EditorTransactionEngine {
         if cursor.is_some_and(|cursor| !cursor.belongs_to(&self.save_token_lineage)) {
             return Err(EditCommandError::HistoryDirtyCursorEngineMismatch);
         }
-        self.flush_operation_group()?;
-        self.start_operation("query dirty state batch")?;
+        self.start_observation("query dirty state batch")?;
         let mut state = self.lock_state();
         let current_generation = state.history_dirty.generation;
-        if cursor.is_some_and(|cursor| cursor.generation == current_generation) {
-            let batch = HistoryDirtyBatch {
-                cursor: HistoryDirtyCursor::new(
-                    Arc::clone(&self.save_token_lineage),
-                    current_generation,
-                ),
-                kind: HistoryDirtyBatchKind::Unchanged,
-                states: Vec::new(),
-            };
-            self.clear_operation_locked(&mut state);
-            return Ok(batch);
-        }
-        let (kind, changed) = match cursor {
-            None => (
-                HistoryDirtyBatchKind::Reset,
+        let pending_history = Self::pending_dirty_history(&state);
+        let (mut kind, mut changed) = match cursor {
+            Some(cursor) if state.history_dirty.can_replay_from(cursor.generation) => (
+                HistoryDirtyBatchKind::Delta,
                 state
-                    .history_generations
-                    .keys()
-                    .filter(|history| !history.is_volatile())
-                    .copied()
-                    .collect::<Vec<_>>(),
-            ),
-            Some(cursor) if state.history_dirty.can_replay_from(cursor.generation) => {
-                let changed = state
                     .history_dirty
-                    .changed_histories_after(cursor.generation);
-                let kind = if changed.is_empty() {
-                    HistoryDirtyBatchKind::Unchanged
-                } else {
-                    HistoryDirtyBatchKind::Delta
-                };
-                (kind, changed)
-            }
-            Some(_) => (
+                    .changed_histories_after(cursor.generation),
+            ),
+            _ => (
                 HistoryDirtyBatchKind::Reset,
                 state
                     .history_generations
                     .keys()
-                    .filter(|history| !history.is_volatile())
                     .copied()
                     .collect::<Vec<_>>(),
             ),
         };
+        // Pending changes have no committed generation yet. Compare the previous
+        // observation as well, so cancelling the first interaction emits clean.
+        if kind == HistoryDirtyBatchKind::Reset {
+            changed.extend(pending_history);
+            if let Some(cursor) = cursor {
+                changed.extend(cursor.pending_history);
+            }
+        } else if let Some(cursor) = cursor {
+            if cursor.pending_history != pending_history {
+                changed.extend(cursor.pending_history);
+                changed.extend(pending_history);
+            }
+        }
+        changed.retain(|history| !history.is_volatile());
+        changed.sort_unstable();
+        changed.dedup();
+        if kind == HistoryDirtyBatchKind::Delta && changed.is_empty() {
+            kind = HistoryDirtyBatchKind::Unchanged;
+        }
         let states = changed
             .into_iter()
-            .filter(|history| !history.is_volatile())
             .map(|history| HistoryDirtyState {
                 history,
                 history_generation: Self::history_generation(&state, history),
-                dirty: state
-                    .histories
-                    .get(&history)
-                    .is_some_and(HistoryStore::is_dirty),
+                dirty: Self::observed_history_status(&state, history).dirty,
             })
             .collect();
         let batch = HistoryDirtyBatch {
             cursor: HistoryDirtyCursor::new(
                 Arc::clone(&self.save_token_lineage),
                 current_generation,
+                pending_history,
             ),
             kind,
             states,
@@ -259,6 +257,28 @@ impl EditorTransactionEngine {
         state: &EngineState,
     ) -> Result<HistoryDirtyChangeReservation, EditCommandError> {
         state.history_dirty.reserve_dirty_change()
+    }
+
+    /// Budgets the known group commit and history clear under one held admission.
+    /// No counter is advanced; the reservation prevents competing mutation until both finish.
+    pub(super) fn preflight_history_clear(
+        state: &EngineState,
+        target: HistoryContextId,
+        pending_commit: Option<HistoryContextId>,
+    ) -> Result<(), EditCommandError> {
+        let dirty_count = u64::from(!target.is_volatile())
+            + u64::from(pending_commit.is_some_and(|history| !history.is_volatile()));
+        state.history_dirty.preflight_changes(dirty_count)?;
+        let target_count = 1 + u64::from(pending_commit == Some(target));
+        Self::history_generation(state, target)
+            .checked_add(target_count)
+            .ok_or(EditCommandError::HistoryGenerationExhausted { history: target })?;
+        if let Some(history) = pending_commit.filter(|history| *history != target) {
+            Self::history_generation(state, history)
+                .checked_add(1)
+                .ok_or(EditCommandError::HistoryGenerationExhausted { history })?;
+        }
+        Ok(())
     }
 
     pub(super) fn reserve_history_mutation(
@@ -306,126 +326,16 @@ impl EditorTransactionEngine {
     }
 
     #[cfg(test)]
+    pub(crate) fn dirty_generation_for_test(&self) -> u64 {
+        self.lock_state().history_dirty.generation
+    }
+
+    #[cfg(test)]
     pub(crate) fn set_dirty_generation_for_test(&self, generation: u64) {
         self.lock_state().history_dirty.generation = generation;
     }
 }
 
 #[cfg(test)]
-mod optimization_tests {
-    use std::collections::{BTreeSet, HashSet};
-    use std::hint::black_box;
-    use std::time::{Duration, Instant};
-
-    use crate::core::editor_message::DocumentId;
-
-    use super::*;
-
-    const CHANGE_COUNT: usize = 65_536;
-    const UNIQUE_HISTORY_COUNT: usize = 8_192;
-    const SAMPLE_COUNT: usize = 17;
-
-    fn document(value: u64) -> HistoryContextId {
-        HistoryContextId::Document(DocumentId::new(value))
-    }
-
-    fn percentile_95(samples: &mut [Duration]) -> Duration {
-        samples.sort_unstable();
-        samples[(samples.len() - 1) * 95 / 100]
-    }
-
-    fn legacy_changed_histories(changes: &[u64]) -> Vec<u64> {
-        changes
-            .iter()
-            .copied()
-            .collect::<BTreeSet<_>>()
-            .into_iter()
-            .collect()
-    }
-
-    fn optimized_changed_histories(changes: &[u64]) -> Vec<u64> {
-        let mut changed = HashSet::with_capacity(changes.len());
-        changed.extend(changes.iter().copied());
-        let mut changed = changed.into_iter().collect::<Vec<_>>();
-        changed.sort_unstable();
-        changed
-    }
-
-    #[test]
-    fn optimization_batch_20260826o_editor63_hash_dedup_preserves_sorted_dirty_delta() {
-        let mut journal = HistoryDirtyJournal::default();
-        for history in [document(3), document(1), document(3), document(2)] {
-            let reservation = journal.reserve_dirty_change().unwrap();
-            journal.record_dirty_change(history, reservation);
-        }
-
-        let changed: Vec<HistoryContextId> = journal.changed_histories_after(0);
-
-        assert_eq!(changed, vec![document(1), document(2), document(3)]);
-        assert_eq!(journal.journal_visits, 4);
-    }
-
-    #[test]
-    fn optimization_batch_20260826o_editor63_dirty_journal_uses_hash_dedup() {
-        let source = include_str!("dirty_batch.rs");
-        let production = source
-            .split("#[cfg(test)]\nmod optimization_tests")
-            .next()
-            .unwrap();
-
-        assert!(production.contains("HashSet::with_capacity"));
-        assert!(production.contains("changed.sort_unstable();"));
-        assert!(production.contains("-> Vec<HistoryContextId>"));
-        assert!(!production.contains("BTreeSet"));
-    }
-
-    #[test]
-    #[ignore = "release performance evidence"]
-    fn optimization_batch_20260826o_editor63_dirty_journal_hash_dedup_performance_evidence() {
-        let changes = (0..CHANGE_COUNT)
-            .map(|index| ((index * 4_099) % UNIQUE_HISTORY_COUNT) as u64)
-            .collect::<Vec<_>>();
-        let expected = (0..UNIQUE_HISTORY_COUNT as u64).collect::<Vec<_>>();
-        assert_eq!(legacy_changed_histories(&changes), expected);
-        assert_eq!(optimized_changed_histories(&changes), expected);
-
-        let mut legacy_samples = Vec::with_capacity(SAMPLE_COUNT);
-        let mut optimized_samples = Vec::with_capacity(SAMPLE_COUNT);
-        for sample in 0..SAMPLE_COUNT {
-            if sample % 2 == 0 {
-                let started = Instant::now();
-                black_box(legacy_changed_histories(black_box(&changes)));
-                legacy_samples.push(started.elapsed());
-
-                let started = Instant::now();
-                black_box(optimized_changed_histories(black_box(&changes)));
-                optimized_samples.push(started.elapsed());
-            } else {
-                let started = Instant::now();
-                black_box(optimized_changed_histories(black_box(&changes)));
-                optimized_samples.push(started.elapsed());
-
-                let started = Instant::now();
-                black_box(legacy_changed_histories(black_box(&changes)));
-                legacy_samples.push(started.elapsed());
-            }
-        }
-
-        let legacy_p95 = percentile_95(&mut legacy_samples);
-        let optimized_p95 = percentile_95(&mut optimized_samples);
-        println!(
-            "EDITOR63_DIRTY_JOURNAL_HASH_DEDUP_BENCH_V1 changes={CHANGE_COUNT} \
-             unique_histories={UNIQUE_HISTORY_COUNT} ordered_admissions={CHANGE_COUNT} \
-             hash_admissions={CHANGE_COUNT} sorted_values={UNIQUE_HISTORY_COUNT} \
-             legacy_p95_ns={} optimized_p95_ns={}",
-            legacy_p95.as_nanos(),
-            optimized_p95.as_nanos(),
-        );
-        assert!(
-            optimized_p95.as_nanos() * 100 <= legacy_p95.as_nanos() * 60,
-            "hash-dedup P95 {:?} exceeded 60% of ordered-dedup P95 {:?}",
-            optimized_p95,
-            legacy_p95,
-        );
-    }
-}
+#[path = "tests/dirty_batch_optimization_tests.rs"]
+mod optimization_tests;

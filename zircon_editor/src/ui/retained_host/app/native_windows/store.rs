@@ -31,6 +31,23 @@ pub(crate) struct NativePresentationPatch {
     pub(crate) damage_region_count: usize,
 }
 
+fn stale_native_window_ids<T>(
+    windows: &BTreeMap<MainPageId, T>,
+    target_ids: &BTreeSet<MainPageId>,
+) -> Vec<MainPageId> {
+    let mut stale = Vec::new();
+    for window_id in windows.keys() {
+        if target_ids.contains(window_id) {
+            continue;
+        }
+        if stale.is_empty() {
+            stale.reserve(windows.len());
+        }
+        stale.push(window_id.clone());
+    }
+    stale
+}
+
 impl NativeWindowPresenterStore {
     pub(crate) fn sync_targets<C, F>(
         &mut self,
@@ -74,12 +91,7 @@ impl NativeWindowPresenterStore {
             .iter()
             .map(|target| target.window_id.clone())
             .collect::<BTreeSet<_>>();
-        let stale = self
-            .windows
-            .keys()
-            .filter(|window_id| !target_ids.contains(*window_id))
-            .cloned()
-            .collect::<Vec<_>>();
+        let stale = stale_native_window_ids(&self.windows, &target_ids);
         for window_id in stale {
             if let Some(window) = self.windows.remove(&window_id) {
                 self.applied_generations.remove(&window_id);
@@ -233,3 +245,7 @@ impl NativeWindowPresenterStore {
         result
     }
 }
+
+#[cfg(test)]
+#[path = "tests/store_performance_tests.rs"]
+mod performance_tests;

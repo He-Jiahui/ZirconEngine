@@ -1,8 +1,11 @@
-use std::sync::Arc;
+use std::path::PathBuf;
 use std::sync::atomic::Ordering;
+use std::sync::Arc;
 
-use crate::asset::FontAssetFaceMetrics;
+use sha2::{Digest, Sha256};
+
 use crate::asset::assets::standalone_sfnt_face;
+use crate::asset::FontAssetFaceMetrics;
 use crate::text::FontFaceId;
 
 use super::{FontDatabase, FontDatabaseError, StoredFontSource};
@@ -10,6 +13,24 @@ use crate::text::font::coverage::FontCoverage;
 use crate::text::font::face_metadata::FontFaceMetadata;
 
 impl FontDatabase {
+    pub(crate) fn face_receipt_metadata(
+        &self,
+        face: FontFaceId,
+    ) -> Result<FontFaceReceiptMetadata, FontDatabaseError> {
+        let stored = self
+            .face(face)
+            .ok_or(FontDatabaseError::UnknownFace(face))?;
+        let metadata = self.face_metadata(face)?;
+        Ok(FontFaceReceiptMetadata {
+            family_name: metadata.family_name().map(str::to_owned),
+            postscript_name: metadata.postscript_name().map(str::to_owned),
+            face_index: stored.descriptor.face_index,
+            resource_path: stored.resource_path.clone(),
+            resource_sha256: stored.resource_sha256.or(metadata.resource_sha256()),
+            raster_sha256: metadata.raster_sha256(),
+        })
+    }
+
     pub(crate) fn face_bytes(&self, face: FontFaceId) -> Result<Arc<[u8]>, FontDatabaseError> {
         let stored = self
             .face(face)
@@ -57,21 +78,20 @@ impl FontDatabase {
         let Some(stored) = self.face(face) else {
             return FontFaceMetadata::from_sfnt_bytes(&[], 0);
         };
-        match &stored.source {
-            StoredFontSource::SharedBytes(bytes) => {
-                FontFaceMetadata::from_sfnt_bytes(bytes.as_ref(), stored.descriptor.face_index)
-            }
-            StoredFontSource::FontDb { .. } => self
-                .backend_face_id(face)
-                .and_then(|backend| {
-                    self.backend_database
-                        .with_face_data(backend, |bytes, face_index| {
-                            FontFaceMetadata::from_sfnt_bytes(bytes, face_index)
-                        })
-                })
-                .unwrap_or_else(|| {
-                    FontFaceMetadata::from_sfnt_bytes(&[], stored.descriptor.face_index)
-                }),
+        let face_index = stored.descriptor.face_index;
+        let has_resource_path = stored.resource_path.is_some();
+        let is_fontdb_source = matches!(&stored.source, StoredFontSource::FontDb { .. });
+        let admitted_sha256 = stored.resource_sha256;
+        let Ok(bytes) = self.face_bytes(face) else {
+            return FontFaceMetadata::from_sfnt_bytes(&[], face_index);
+        };
+        let metadata = FontFaceMetadata::from_sfnt_bytes(bytes.as_ref(), face_index);
+        if let Some(sha256) = admitted_sha256.or_else(|| {
+            (has_resource_path && is_fontdb_source).then(|| Sha256::digest(bytes.as_ref()).into())
+        }) {
+            metadata.with_resource_sha256(sha256)
+        } else {
+            metadata
         }
     }
 
@@ -167,6 +187,16 @@ impl FontDatabase {
             .ok()
             .map(FontFaceMetadata::coverage)
     }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct FontFaceReceiptMetadata {
+    pub(crate) family_name: Option<String>,
+    pub(crate) postscript_name: Option<String>,
+    pub(crate) face_index: u32,
+    pub(crate) resource_path: Option<PathBuf>,
+    pub(crate) resource_sha256: Option<[u8; 32]>,
+    pub(crate) raster_sha256: [u8; 32],
 }
 
 /// Joiners, variation selectors, and emoji tags participate in shaping

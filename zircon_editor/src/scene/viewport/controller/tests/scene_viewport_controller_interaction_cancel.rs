@@ -1,0 +1,22 @@
+use crate::scene::viewport::{SceneViewportController, ViewportInput};
+use zircon_runtime::scene::Scene;
+use zircon_runtime_interface::math::{UVec2, Vec2};
+
+#[test]
+fn cancellation_terminates_active_camera_navigation() {
+    let mut controller = SceneViewportController::new(UVec2::new(1280, 720));
+    let mut scene = Scene::new();
+
+    controller
+        .handle_input(&mut scene, ViewportInput::RightPressed(Vec2::ZERO))
+        .unwrap();
+
+    assert!(controller.cancel_interaction());
+    let feedback = controller
+        .handle_input(
+            &mut scene,
+            ViewportInput::PointerMoved(Vec2::new(120.0, 48.0)),
+        )
+        .unwrap();
+    assert!(!feedback.camera_updated);
+}

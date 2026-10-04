@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime/src/script/vm/gameplay_host/components.rs"
 
-
+# 读取实现源码约束流式组件实体 ID：实体 ID 投影序列化借用行，并查找按组件避免第二实体向量。
 class StreamedComponentEntityIdsPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

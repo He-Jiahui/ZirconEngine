@@ -8,7 +8,7 @@ implementation_files:
   - zircon_app/src/plugins/builder.rs
   - zircon_app/src/plugins/tests.rs
   - zircon_app/src/entry/engine_entry.rs
-  - docs/zircon_app/plugins.md
+  - docs/crates/zircon_app/plugins.md
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md

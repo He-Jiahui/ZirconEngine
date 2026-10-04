@@ -2,9 +2,9 @@ use std::{collections::BTreeMap, path::Path};
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::diagnostics::profiling::{
-    PROFILE_HOTSPOTS_FILE, PROFILE_SUMMARY_FILE, PROFILE_TIMELINE_NATIVE_FILE,
-    PROFILE_TIMELINE_PERFETTO_FILE, ProfileCaptureConfig, export_report, reset_capture,
-    start_capture, stop_capture, test_capture_lock,
+    export_report, reset_capture, start_capture, stop_capture, test_capture_lock,
+    ProfileCaptureConfig, PROFILE_HOTSPOTS_FILE, PROFILE_SUMMARY_FILE,
+    PROFILE_TIMELINE_NATIVE_FILE, PROFILE_TIMELINE_PERFETTO_FILE,
 };
 use crate::core::framework::render::{
     RenderBudgetKey, RenderFrameProfile, RenderFramework, RenderPipelineHandle,
@@ -15,13 +15,13 @@ use crate::core::math::UVec2;
 use crate::graphics::runtime::WgpuRenderFramework;
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::{
-    ProfileSnapshot,
     ui::{
         event_ui::{UiNodeId, UiNodePath, UiTreeId},
         layout::UiFrame,
         surface::{UiRichTextFormat, UiTextDirection, UiTextWritingMode},
         tree::{UiTemplateNodeMetadata, UiTreeNode},
     },
+    ProfileSnapshot,
 };
 
 use super::support::{
@@ -29,9 +29,9 @@ use super::support::{
     assert_counter_is_zero, assert_span_frame_count, managed_output_root,
 };
 use super::{
-    FRAME_PROFILES_FILE, GPU_FLUSH_FRAMES, MAX_SAMPLES, MEASURED_FRAMES, REPETITIONS,
-    WARMUP_FRAMES, assert_profile_file, collect_resolved_gpu_profile,
-    native_text_raster_is_settled, test_extract, visible_text_state,
+    assert_profile_file, collect_resolved_gpu_profile, native_text_raster_is_settled, test_extract,
+    visible_text_state, FRAME_PROFILES_FILE, GPU_FLUSH_FRAMES, MAX_SAMPLES, MEASURED_FRAMES,
+    REPETITIONS, WARMUP_FRAMES,
 };
 
 const TEXT_NODE_COUNT: usize = 4;
@@ -239,6 +239,12 @@ fn assert_multilingual_stats(stats: &RenderStats) {
     assert_eq!(stats.last_ui_text_visible_raster_placeholder_count, 0);
     assert_eq!(stats.last_ui_text_raster_worker_pending_count, 0);
     assert_eq!(stats.last_ui_text_raster_worker_failed_count, 0);
+    assert_eq!(stats.last_ui_text_raster_retry_queued_glyph_count, 0);
+    assert_eq!(
+        stats.last_ui_text_raster_retry_queue_overflow_glyph_count,
+        0
+    );
+    assert_eq!(stats.last_ui_text_raster_retry_rejected_source_count, 0);
     assert_eq!(stats.last_ui_text_raster_renderer_upload_requeued_count, 0);
     assert_eq!(stats.last_ui_text_raster_renderer_upload_failure_count, 0);
     assert_eq!(stats.last_ui_text_layout_fallback_count, 0);

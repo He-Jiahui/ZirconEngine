@@ -1,3 +1,4 @@
+//! 保留有限的短时提示并按截止分组回收；调用端须使用同一单调时间基准发布和读取，提示过期后才释放重复身份和容量。
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Mutex;
 use std::time::Duration;
@@ -75,6 +76,7 @@ impl ToastNotificationCenter {
         }
     }
 
+    /// 发布和快照调用须共用单调纪元；先回收已过期项，再核对存活身份与容量。
     pub fn publish_at(
         &self,
         notification: ToastNotification,
@@ -161,82 +163,5 @@ fn evict_expired(state: &mut ToastCenterState, now: Duration) {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::time::{Duration, Instant};
-
-    use super::{ToastCenterConfig, ToastNotificationCenter};
-    use crate::core::notifications::{
-        NotificationId, NotificationSource, ToastNotification, ToastSeverity,
-    };
-
-    fn toast(index: usize, lifetime: Duration) -> ToastNotification {
-        ToastNotification::new(
-            NotificationId::parse(format!("editor.toast.expiry.{index}")).unwrap(),
-            NotificationSource::builtin("editor10").unwrap(),
-            ToastSeverity::Info,
-            "editor.toast.title",
-            "editor.toast.message",
-            lifetime,
-        )
-        .unwrap()
-    }
-
-    #[test]
-    fn optimization_wave_20260824c_editor10_expiry_index_preserves_deadline_groups() {
-        let center = ToastNotificationCenter::new(ToastCenterConfig::new(3).unwrap());
-        center
-            .publish_at(toast(1, Duration::from_secs(5)), Duration::ZERO)
-            .unwrap();
-        center
-            .publish_at(toast(2, Duration::from_secs(7)), Duration::ZERO)
-            .unwrap();
-        center
-            .publish_at(toast(3, Duration::from_secs(7)), Duration::ZERO)
-            .unwrap();
-
-        let snapshots = center.snapshot_at(Duration::from_secs(5));
-        assert_eq!(snapshots.len(), 2);
-        assert_eq!(
-            snapshots
-                .iter()
-                .map(|snapshot| snapshot.notification().id().as_str())
-                .collect::<Vec<_>>(),
-            ["editor.toast.expiry.2", "editor.toast.expiry.3"]
-        );
-        assert_eq!(center.expiration_group_count(), 1);
-
-        assert!(center.snapshot_at(Duration::from_secs(7)).is_empty());
-        assert_eq!(center.expiration_group_count(), 0);
-    }
-
-    #[test]
-    #[ignore = "managed release performance evidence"]
-    fn optimization_wave_20260824c_editor10_expiry_index_evidence() {
-        const TOASTS: usize = 10_000;
-        const MAX_ELAPSED_NS: u128 = 5_000_000_000;
-
-        let center = ToastNotificationCenter::new(ToastCenterConfig::new(TOASTS).unwrap());
-        let started = Instant::now();
-        for index in 0..TOASTS {
-            center
-                .publish_at(toast(index, Duration::from_secs(3_600)), Duration::ZERO)
-                .unwrap();
-        }
-        assert_eq!(center.snapshot_at(Duration::ZERO).len(), TOASTS);
-        let elapsed_ns = started.elapsed().as_nanos();
-        let optimized_expiry_probes = center.expiry_probe_count();
-        let legacy_expiry_probes = TOASTS.saturating_mul(TOASTS.saturating_sub(1)) / 2 + TOASTS;
-        let probe_reduction_bps = legacy_expiry_probes
-            .saturating_sub(optimized_expiry_probes)
-            .saturating_mul(10_000)
-            / legacy_expiry_probes;
-
-        println!(
-            "EDITOR_TOAST_EXPIRY_BENCH_V1 toasts={TOASTS} legacy_expiry_probes={legacy_expiry_probes} optimized_expiry_probes={optimized_expiry_probes} probe_reduction_bps={probe_reduction_bps} elapsed_ns={elapsed_ns} max_elapsed_ns={MAX_ELAPSED_NS}"
-        );
-
-        assert!(optimized_expiry_probes <= TOASTS + 1);
-        assert!(probe_reduction_bps >= 9_998);
-        assert!(elapsed_ns <= MAX_ELAPSED_NS);
-    }
-}
+#[path = "tests/center.rs"]
+mod tests;

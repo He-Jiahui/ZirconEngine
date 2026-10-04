@@ -1,6 +1,5 @@
-// Stateful M4 projection of common death teardown and kill-credit selection.
-// XP, quest, loot, deed and heroic reward calculations remain downstream M5+
-// owners; this module records their exact call points after selecting credit.
+// 普通死亡清理与击杀归属的独立契约投影；正式 WorldState 当前自行处理死亡。
+// 经验、任务、掉落和成就只记录下游调用点，不在这里执行奖励结算。
 var container = %import("zr.container");
 var sickness = %import("combat/resurrection_sickness_state");
 
@@ -100,6 +99,7 @@ class DeathEntity {
     }
 }
 
+// 死亡契约的输入和副作用记录；奖励字段只计下游调用点，不实际发放经验、掉落或成就。
 class DeathState {
     pub var victim: DeathEntity;
     pub var pet: DeathEntity;
@@ -232,6 +232,7 @@ appendObserverMob(
     state.observerMobForcedTargetTimer.add(2.0);
 }
 
+// 跨死亡保留规则由复活状态叶子判断；倒序删除保持光环标识与种类配对。
 clearDeathAuras(entity: DeathEntity): void {
     var index = entity.auraIds.length - 1;
     while (index >= 0) {
@@ -288,6 +289,7 @@ clearGlobalHate(state: DeathState, victimId: uint): void {
     state.eventOrder.add("hateClear");
 }
 
+// 先选仍有效的首次归属玩家，再回退击杀玩家或其主人；无归属时不可单独读取旧标识。
 resolveCredit(state: DeathState, entity: DeathEntity): void {
     state.hasCredit = false;
     if (entity.tappedByPresent && state.tapperMetaPresent && !state.tapperMetaLeaving) {
@@ -407,6 +409,7 @@ handlePlayerDeath(state: DeathState, entity: DeathEntity): void {
     }
 }
 
+// 在一次活到死的边沿调用；此投影不做重复调用去重，世界入口须负责生命周期门槛。
 pub handleDeath(state: DeathState): void {
     if (state.victim.kind == "player") {
         handlePlayerDeath(state, state.victim);

@@ -21,6 +21,7 @@ requireVisible(session: sessionModule.LockpickSession, viewerId: uint, required:
 // The source emits the fogged cells in ascending column then ascending row
 // order. Keep that ordering addressable by scalar ordinal for the future host
 // bridge instead of leaking a ZrVM collection across the ABI.
+// 每个序号查询都从同一活动会话重新扫描；组装一帧时应保持会话不变，否则列/行/kind或count可能来自不同棋盘页。
 visibleOrdinal(
     session: sessionModule.LockpickSession,
     viewerId: uint,
@@ -186,6 +187,7 @@ pub visibleCellKind(
 
 // Matches the view-model timer identity: it changes on a new session, page,
 // try or current tumbler so the 60 Hz display can re-anchor to 20 Hz state.
+/// 表示UI重定时身份而非完整状态版本：同一session/page/tries/column的重复读可复用，权限仍由isVisibleTo逐次判定。
 pub timerKey(session: sessionModule.LockpickSession, viewerId: uint, required: bool): string {
     requireVisible(session, viewerId, required);
     return session.id + ":" + <string>(session.page + 1) + ":" + <string>session.tries +

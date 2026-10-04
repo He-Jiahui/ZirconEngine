@@ -6,6 +6,7 @@ use super::editor_state_keep_play_changes::KeepPlayChangesError;
 use crate::core::editing::authoring_world::AuthoringWorldAccessError;
 use crate::core::editing::engine::EditCommandError;
 use crate::core::editing::interactive_transform::InteractiveTransformError;
+use crate::core::editor_event::ViewInstanceId;
 use crate::core::play::WorldDomain;
 use crate::scene::viewport::SceneViewportControllerError;
 use zircon_runtime::scene::NodeId;
@@ -13,6 +14,7 @@ use zircon_runtime_interface::reflect::ReflectError;
 use zircon_runtime_interface::ui::tree::UiTreeError;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// gizmo失败所在事务阶段，供诊断区分许可、绑定、捕获与提交。
 pub enum GizmoTransactionPhase {
     MutationPreflight,
     ContextBinding,
@@ -21,6 +23,7 @@ pub enum GizmoTransactionPhase {
 }
 
 #[derive(Debug, Error)]
+/// 交互变换错误保留原因及恢复失败；调用方不能将恢复失败当作原操作已安全撤销。
 pub enum GizmoTransactionError {
     #[error("gizmo transaction requires an open project")]
     NoProjectOpen,
@@ -110,6 +113,7 @@ impl fmt::Display for InspectorTransformField {
 }
 
 #[derive(Debug, Error, PartialEq)]
+/// 字段解析或反射读取失败，供命令边界拒绝无效检查器输入。
 pub enum InspectorEditError {
     #[error("Nothing selected")]
     NoSelection,
@@ -152,6 +156,7 @@ pub enum InspectorEditError {
 }
 
 #[derive(Debug, Error)]
+/// 编辑操作的许可、生命周期及事务错误；显示文本不是程序恢复判据。
 pub enum EditorStateOperationError {
     #[error("No project open")]
     NoProjectOpen,
@@ -247,6 +252,7 @@ impl PartialEq for EditorStateOperationError {
 }
 
 #[derive(Debug, Error, PartialEq)]
+/// 画布错误保留world访问、输入路由、控制器和事务恢复的边界。
 pub enum EditorViewportStateError {
     #[error(transparent)]
     AuthoringWorld(#[from] AuthoringWorldAccessError),
@@ -256,4 +262,6 @@ pub enum EditorViewportStateError {
     ViewportController(#[from] SceneViewportControllerError),
     #[error(transparent)]
     StateMutation(#[from] GizmoTransactionError),
+    #[error("scene viewport view `{view_id:?}` is stale or retired")]
+    StaleViewportView { view_id: ViewInstanceId },
 }

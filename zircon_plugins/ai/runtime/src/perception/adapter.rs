@@ -19,6 +19,7 @@ pub const AI_HEARING_INGEST_EVENT_LIMIT: usize = 1_024;
 type Receiver = (EntityId, Vec3, Real, Real);
 
 #[derive(Clone, Debug)]
+// 入队时固定接收者 ID 快照；预算暂停后从 `next_receiver` 继续，当前实体数据仍在处理时重读。
 struct PendingHearingEvent {
     event: AiHearingStimulusEvent,
     receiver_ids: Arc<[EntityId]>,
@@ -115,6 +116,7 @@ impl HearingStimulusAdapter {
         }
     }
 
+    // 未取得配对预算时回退游标并放回队首，避免漏掉该接收者。
     pub(crate) fn process_budgeted(
         &mut self,
         receivers: &[Receiver],
@@ -245,4 +247,5 @@ fn effective_radius(receiver_radius: Real, event_radius: Option<Real>) -> Option
 }
 
 #[cfg(test)]
+#[path = "adapter/tests/allocation_tests.rs"]
 mod allocation_tests;

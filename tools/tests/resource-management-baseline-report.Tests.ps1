@@ -1,3 +1,4 @@
+# 以计划和观察夹具验证报告只聚合合格样本，并拒绝身份漂移及缺失指标。
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $reporter = Join-Path $repoRoot 'tools\mvp\Write-ResourceManagementBaselineReport.ps1'
 $evidenceModule = Join-Path $repoRoot 'tools\mvp\ResourceManagementJsonEvidence.psm1'

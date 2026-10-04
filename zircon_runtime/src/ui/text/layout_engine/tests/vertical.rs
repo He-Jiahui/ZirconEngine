@@ -6,6 +6,14 @@ use zircon_runtime_interface::ui::{
 use super::{layout_text, measure_text_size, test_style};
 
 #[test]
+fn vertical_rl_placement_origin_stays_finite_for_extreme_frame_and_inset() {
+    let origin = super::super::vertical::finite_vertical_placement_y(f32::MAX, f32::MAX);
+
+    assert_eq!(origin, f32::MAX);
+    assert!(origin.is_finite());
+}
+
+#[test]
 fn vertical_rl_wraps_columns_on_frame_height() {
     let mut style = test_style(UiTextWrap::Word, UiTextOverflow::Clip);
     style.text_writing_mode = UiTextWritingMode::VerticalRl;
@@ -25,10 +33,8 @@ fn vertical_rl_wraps_columns_on_frame_height() {
     assert!(layout.lines[0].frame.x > layout.lines[1].frame.x);
     assert_eq!(layout.lines[0].frame.y, layout.lines[1].frame.y);
     assert!(layout.lines[0].frame.height > layout.lines[0].frame.width);
-    assert!(
-        layout
-            .lines
-            .iter()
-            .all(|line| { (line.baseline - line.frame.width * 0.5).abs() <= f32::EPSILON })
-    );
+    assert!(layout
+        .lines
+        .iter()
+        .all(|line| { (line.baseline - line.frame.width * 0.5).abs() <= f32::EPSILON }));
 }

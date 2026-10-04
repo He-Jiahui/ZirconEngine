@@ -1,6 +1,7 @@
 use crate::{
-    plugin_feature_registration, NET_WEBSOCKET_FEATURE_CAPABILITY, NET_WEBSOCKET_FEATURE_ID,
-    NET_WEBSOCKET_FEATURE_MANAGER_NAME, NET_WEBSOCKET_FEATURE_MODULE_NAME,
+    module_descriptor, plugin_feature_registration, NET_WEBSOCKET_FEATURE_CAPABILITY,
+    NET_WEBSOCKET_FEATURE_ID, NET_WEBSOCKET_FEATURE_MANAGER_NAME,
+    NET_WEBSOCKET_FEATURE_MODULE_NAME,
 };
 
 #[test]
@@ -23,5 +24,37 @@ fn websocket_feature_registration_contributes_runtime_module_and_manager() {
     assert_eq!(
         module.managers[0].name.to_string(),
         NET_WEBSOCKET_FEATURE_MANAGER_NAME
+    );
+}
+
+#[test]
+fn websocket_feature_manager_is_the_canonical_net_manager_authority() {
+    let runtime = zircon_runtime::core::CoreRuntime::new();
+    runtime
+        .register_module(zircon_plugin_net_runtime::module_descriptor())
+        .unwrap();
+    runtime.register_module(module_descriptor()).unwrap();
+    runtime.activate_registered_modules().unwrap();
+
+    let canonical = runtime
+        .resolve_manager::<zircon_plugin_net_runtime::DefaultNetManager>(
+            zircon_plugin_net_runtime::DEFAULT_NET_MANAGER_NAME,
+        )
+        .unwrap();
+    assert!(
+        zircon_runtime::core::framework::net::NetManager::backend_name(canonical.as_ref())
+            .contains("+websocket"),
+        "module activation must install WebSocket before the feature manager is resolved"
+    );
+    let feature = runtime
+        .resolve_manager::<zircon_plugin_net_runtime::DefaultNetManager>(
+            NET_WEBSOCKET_FEATURE_MANAGER_NAME,
+        )
+        .unwrap();
+
+    assert!(std::sync::Arc::ptr_eq(&canonical, &feature));
+    assert!(
+        zircon_runtime::core::framework::net::NetManager::backend_name(canonical.as_ref())
+            .contains("+websocket")
     );
 }

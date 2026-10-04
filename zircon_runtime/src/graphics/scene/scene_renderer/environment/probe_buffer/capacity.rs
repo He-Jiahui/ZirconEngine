@@ -25,7 +25,10 @@ pub(super) struct ReflectionProbeResourceCapacity {
 impl ReflectionProbeResourceCapacity {
     pub(super) const FULL: Self = Self {
         probe_count: MAX_REFLECTION_PROBES,
-        cubemap_slot_count: MAX_REFLECTION_PROBES + REFLECTION_PROBE_CAPTURE_SPARE_SLOT_COUNT,
+        // The adapter baseline guarantees 64 * 6 array layers.  A refresh can
+        // be captured into the source target and copied back into its current
+        // slot, so the resident array must not require an extra physical slot.
+        cubemap_slot_count: MAX_REFLECTION_PROBES,
         cubemap_face_size: REFLECTION_PROBE_FACE_SIZE,
         cubemap_mip_count: REFLECTION_PROBE_MIP_COUNT,
         planar_texture_size: PLANAR_REFLECTION_TEXTURE_SIZE,

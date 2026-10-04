@@ -36,6 +36,7 @@ pub(super) fn visit_stage_sprites(
     let first_phase_item = phase_items.next();
     let camera_layers = frame.extract.view.selected_camera_layers();
 
+    // 保留 phase 队列中的 sprite 次序；没有 SpriteIndex 时才回退扫描快照。
     if let Some(first_phase_item) = first_phase_item {
         for index in std::iter::once(first_phase_item).chain(phase_items) {
             let Some((sprite, size)) = sprite_vertex_source(frame, index, &camera_layers) else {
@@ -67,6 +68,7 @@ fn sprite_vertex_source<'a>(
     &'a crate::core::framework::render::RenderSpriteSnapshot,
     Vec2,
 )> {
+    // 阶段队列仍须通过本视口图层、颜色和有限非零尺寸检查，才会生成顶点。
     frame.sprites().get(index).and_then(|sprite| {
         if !camera_layers.intersects(&sprite.common.layer_mask) {
             return None;
@@ -241,6 +243,7 @@ fn emit_sprite_image_slice(
     emitted: &mut usize,
     visit: &mut impl FnMut(SpriteImageSlice),
 ) {
+    // 为 tiled/sliced 展开设置总上限，限制极小 tile 或大区域带来的 CPU 顶点工作量。
     if *emitted >= MAX_SPRITE_IMAGE_SLICES {
         return;
     }
@@ -281,6 +284,7 @@ fn scaled_image_slice(
 }
 
 fn fit_offset(scaling_mode: RenderSpriteScalingMode, draw_size: Vec2, scaled_size: Vec2) -> Vec2 {
+    // 局部 quad 的 y 轴朝上，因此 FitStart 的纵向对齐落在 draw_size.y 一侧。
     match scaling_mode {
         RenderSpriteScalingMode::FitStart => {
             Vec2::new(scaled_size.x * 0.5, draw_size.y - scaled_size.y * 0.5)
@@ -337,6 +341,7 @@ fn aligned_min(
     vertical_axis: bool,
 ) -> f32 {
     let overflow = max - min - extent;
+    // 对垂直轴，start/end 分别锚定上边/下边，以适配局部 y 轴朝上的坐标约定。
     match scaling_mode {
         RenderSpriteScalingMode::FillStart | RenderSpriteScalingMode::FitStart => {
             if vertical_axis {
@@ -371,6 +376,7 @@ fn visit_sliced_image_slices(
     let right = slicer.border.right.max(0.0);
     let top = slicer.border.top.max(0.0);
     let bottom = slicer.border.bottom.max(0.0);
+    // 边框占满任一源轴时没有正尺寸中心区，退回整张图单片拉伸。
     if left + right >= base_size.x || top + bottom >= base_size.y {
         emit_sprite_image_slice(
             SpriteImageSlice {
@@ -550,4 +556,5 @@ fn sprite_image_slices(
 }
 
 #[cfg(test)]
+#[path = "build_sprite_vertices/tests/cases.rs"]
 mod tests;

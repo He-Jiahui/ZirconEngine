@@ -4,6 +4,7 @@ var effects = %import("generated/m4_ability_effects");
 var forms = %import("combat/forms_state");
 var rules = %import("combat/rules");
 
+/// 世界调用方逐步投影玩家攻击状态，固定步更新后须将计时、资源、排队能力和生命写回原世界行。
 pub class AutoActor {
     pub var id: uint;
     pub var classId: string;
@@ -151,6 +152,7 @@ pub class AutoActor {
     }
 }
 
+/// 目标关系、距离和防御值由世界调用方在攻击前快照，本类型不负责实体查询或死亡结算。
 pub class AutoTarget {
     pub var id: uint;
     pub var kind: string;
@@ -193,6 +195,7 @@ pub class AutoTarget {
     }
 }
 
+/// 一次攻击事务的事件和 RNG 游标载体；世界在处理后续掉落等抽样前应先提交更新后的游标。
 pub class AutoEvents {
     pub var randomUnits: container.Array<float>;
     pub var randomIndex: int;
@@ -255,6 +258,7 @@ closeEnough(actual: float, expected: float): bool {
     return difference <= 0.000001;
 }
 
+// 测试注入的样本优先于权威游标；只在样本耗尽且启用权威模式后推进状态、抽数与摘要。
 takeRandomUnit(events: AutoEvents): float {
     if (events.randomIndex >= 0 && events.randomIndex < events.randomUnits.length) {
         var result = <float>events.randomUnits[events.randomIndex];
@@ -272,6 +276,7 @@ takeRandomUnit(events: AutoEvents): float {
     return <float>value / 4294967296.0;
 }
 
+/// 从世界 RNG 三元组初始化攻击局部游标；调用方随后必须写回三个结果，避免后续消费重复抽样。
 pub initializeAuthoritativeRng(
     events: AutoEvents,
     state: uint,
@@ -396,6 +401,7 @@ pub stopAutoAttack(actor: AutoActor): void {
     actor.autoAttack = false;
 }
 
+// 排队主手能力在挥击前尝试计费并清空槽位；副手白字不调用此路径。
 consumeQueuedSwing(actor: AutoActor, events: AutoEvents): float {
     if (!actor.hasQueuedAbility) { return 0.0; }
     var abilityIndex = catalog.indexOf(actor.queuedAbility);
@@ -510,6 +516,7 @@ meleeSwingWithWeapon(
     return true;
 }
 
+/// 直接技能命中复用主手命中表；世界调用方先提供投影并自行处理技能的外部状态提交。
 pub meleeSwing(
     actor: AutoActor,
     target: AutoTarget,
@@ -579,6 +586,7 @@ removePendingAt(actor: AutoActor, index: int): void {
     actor.pendingSchool.removeAt(index);
 }
 
+/// 仅落地与队首目标匹配的投射物；死亡目标直接丢弃而不抽样，命中后返回局部伤害与游标。
 pub landNextProjectile(actor: AutoActor, target: AutoTarget, events: AutoEvents): bool {
     if (actor.pendingWand.length == 0) { return false; }
     if (<uint>actor.pendingTargetIds[0] != target.id) {
@@ -629,6 +637,7 @@ pub landNextProjectile(actor: AutoActor, target: AutoTarget, events: AutoEvents)
     return true;
 }
 
+/// 每次推进一个 0.05 秒攻击步；先衰减计时，再依据形态、控制、距离和朝向选择远程或近战。
 pub fixedTick(actor: AutoActor, target: AutoTarget, events: AutoEvents): void {
     actor.swingTimer = actor.swingTimer - 0.05;
     if (actor.swingTimer < 0.0) { actor.swingTimer = 0.0; }
@@ -933,6 +942,7 @@ pub contractTest(): int {
     return 1;
 }
 
+/// 对照 kernel/rng 的三次抽取与测试样本优先级，保护世界游标写回契约。
 pub authoritativeRngContractTest(): int {
     var actor = makeActor(<uint>81, "warrior", 15);
     actor.weaponMinimum = 10.0;

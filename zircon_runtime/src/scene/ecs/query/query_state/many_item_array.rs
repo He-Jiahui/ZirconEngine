@@ -1,8 +1,9 @@
 use std::mem::MaybeUninit;
 
-use crate::scene::EntityId;
 use crate::scene::ecs::QueryEntityError;
+use crate::scene::EntityId;
 
+// 先写入 MaybeUninit，失败时只销毁已经初始化的前缀，保证批量查询错误路径不泄漏。
 pub(super) fn collect_many_query_items<Item, const N: usize>(
     entities: [EntityId; N],
     mut get_item: impl FnMut(EntityId) -> Result<Item, QueryEntityError>,

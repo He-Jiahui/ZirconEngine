@@ -6,6 +6,8 @@ pub use materialization::{
     fixed_extent_slot_capacity, UiVirtualListSlotChange, UiVirtualListSlotMap,
 };
 
+/// 返回包含 overscan 的半开逻辑索引区间；不创建节点，也不移动物理槽位。
+/// 生产调用方先钳制偏移并提供有限正步长；gap 应已计入 item_extent，不能再次单独叠加。
 pub fn compute_virtual_list_window(
     offset: f32,
     viewport_extent: f32,
@@ -37,6 +39,7 @@ pub(crate) fn fixed_extent_virtual_list_step_extent(item_extent: f32, gap: f32) 
     ((item_extent as f64 + gap as f64).min(f32::MAX as f64)) as f32
 }
 
+/// 内容几何使用逻辑总数而非当前物理子节点数，避免滚动条随窗口重绑改变长度。
 pub(crate) fn fixed_extent_virtual_list_content_extent(
     logical_count: usize,
     item_extent: f32,
@@ -61,22 +64,5 @@ pub(crate) fn fixed_extent_virtual_list_item_offset(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        fixed_extent_virtual_list_content_extent, fixed_extent_virtual_list_item_offset,
-        fixed_extent_virtual_list_step_extent,
-    };
-
-    #[test]
-    fn fixed_extent_geometry_includes_non_negative_gap_without_iterating_items() {
-        assert_eq!(fixed_extent_virtual_list_step_extent(24.0, 2.0), 26.0);
-        assert_eq!(
-            fixed_extent_virtual_list_content_extent(100_000, 24.0, 2.0),
-            2_599_998.0
-        );
-        assert_eq!(
-            fixed_extent_virtual_list_item_offset(50_000, 24.0, 2.0),
-            1_300_000.0
-        );
-    }
-}
+#[path = "tests/virtualization.rs"]
+mod tests;

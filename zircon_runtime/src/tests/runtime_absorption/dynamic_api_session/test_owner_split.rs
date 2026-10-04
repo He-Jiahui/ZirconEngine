@@ -1,3 +1,4 @@
+//! 动态会话的二进制接口、宿主请求和诊断路由需与共享契约同步。以结果断言检查当前接口或源码快照对应的边界。
 use std::path::Path;
 
 #[test]
@@ -15,7 +16,8 @@ fn runtime_10_dynamic_session_test_owner_split_keeps_focused_modules() {
     let hud = include_str!("../../../dynamic_api/session/tests/vampire_hud.rs");
     let frame_diagnostics = include_str!("../../../dynamic_api/session/tests/frame_diagnostics.rs");
     let runtime_errors = include_str!("../../../dynamic_api/session/tests/runtime_errors.rs");
-    let session_doc = include_str!("../../../../../docs/zircon_runtime/dynamic_api/session.md");
+    let session_doc =
+        include_str!("../../../../../docs/crates/zircon_runtime/dynamic_api/session.md");
     let runtime_10_plan = include_str!(
         "../../../../../docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md"
     );

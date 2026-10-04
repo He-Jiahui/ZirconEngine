@@ -12,7 +12,7 @@ use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
 };
 
-use super::{UiSurface, input::editable_value_property};
+use super::{input::editable_value_property, UiSurface};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum UiTextComponentEventKind {
@@ -125,12 +125,14 @@ impl fmt::Debug for UiSurfaceSecureTextValueStore {
     }
 }
 
+// 此存储克隆不沿用事件凭证或待应用秘密，新快照从空的临时状态开始。
 impl Clone for UiSurfaceSecureTextValueStore {
     fn clone(&self) -> Self {
         Self::default()
     }
 }
 
+// 此存储的临时凭证与待应用秘密不参与 Surface 的结构相等判断，也不进入序列化状态。
 impl PartialEq for UiSurfaceSecureTextValueStore {
     fn eq(&self, _other: &Self) -> bool {
         true
@@ -477,53 +479,5 @@ fn redact_component_event(event: &mut UiComponentEvent) {
 }
 
 #[cfg(test)]
-mod tests {
-    use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiTreeId};
-
-    use super::*;
-
-    #[test]
-    fn revoke_removes_only_the_matching_current_secure_text_lease() {
-        let node = UiNodeId::new(7);
-        let current = UiSecureTextValueRef::issue(UiTreeId::new("secure.revoke"), node, "value");
-        let stale = UiSecureTextValueRef::issue(UiTreeId::new("secure.revoke"), node, "value");
-        let mut store = UiSurfaceSecureTextValueStore::default();
-        store.register(current.clone(), Some(11));
-
-        assert!(!store.revoke(&stale));
-        assert!(store.resolves(&current, Some(11)));
-        assert!(store.revoke(&current));
-        assert!(!store.resolves(&current, Some(11)));
-        assert!(!store.revoke(&current));
-    }
-
-    #[test]
-    fn pending_model_text_is_surface_owned_and_debug_redacted() {
-        let owner = UiNodeId::new(9);
-        let mut store = UiSurfaceSecureTextValueStore::default();
-        store.store_pending_model_update(owner, "pending-secret-model".to_string());
-
-        let debug = format!("{store:?}");
-        assert!(!debug.contains("pending-secret-model"));
-        assert!(debug.contains("pending_model_update_count: 1"));
-        assert_eq!(
-            store.take_pending_model_update(owner).as_deref(),
-            Some("pending-secret-model")
-        );
-        assert!(store.take_pending_model_update(owner).is_none());
-    }
-
-    #[test]
-    fn accepted_pending_model_text_moves_out_of_the_zeroizing_owner() {
-        let owner = UiNodeId::new(10);
-        let mut store = UiSurfaceSecureTextValueStore::default();
-        store.store_pending_model_update(owner, "accepted-secret-model".to_string());
-
-        let value = store
-            .take_pending_model_update(owner)
-            .expect("pending secure model value");
-
-        assert_eq!(value, "accepted-secret-model");
-        assert!(store.take_pending_model_update(owner).is_none());
-    }
-}
+#[path = "tests/secure_text_values.rs"]
+mod tests;

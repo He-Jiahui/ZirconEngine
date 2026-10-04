@@ -55,7 +55,7 @@ pub(super) fn push_timeline_keys_and_playhead(
             x,
             y,
             if key.selected() {
-                metrics.key_radius + 1
+                metrics.key_radius + 1.0
             } else {
                 metrics.key_radius
             },
@@ -68,7 +68,7 @@ pub(super) fn push_timeline_keys_and_playhead(
             commands,
             x,
             y,
-            1,
+            1.0,
             palette.key_center,
             clip,
             order + 11,

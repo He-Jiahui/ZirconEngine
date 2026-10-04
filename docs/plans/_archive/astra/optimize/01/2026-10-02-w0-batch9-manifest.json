@@ -1,0 +1,84 @@
+{
+  "all_original_acceptance_gates": "open",
+  "batch": "w0-batch9",
+  "crosswalk_metadata_rows": 14,
+  "current_context_count": 37,
+  "manifest_self_hash": "Omitted. Final artifact hashes including this manifest are sealed by the external preparation receipt.",
+  "original_qualified_manifest": {
+    "bytes": 4196,
+    "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch9-root-qualified-r2\\2026-10-02-w0-batch9-manifest.json",
+    "sha256": "c2dff04a7b76438d77398c6d81055645f50eae6a74ac5990c0001bf4722a131a"
+  },
+  "prior_counts": [
+    172,
+    168,
+    136
+  ],
+  "publication_qualification": {
+    "acceptance": "open",
+    "coordinator_boundary": "Retired. User authorizes sealed independent local evidence; historical records and original acceptance gates remain intact.",
+    "coordinator_retired_at_utc": "2026-10-02T07:19:48.379193+00:00",
+    "foreign_source_consent": "not inferred",
+    "generation": "root-publication-candidate-r2",
+    "historical_relative_capture_paths_resolve_against": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch9-root-qualified-r2",
+    "normalized_current_capture_manifest": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\root-publication-candidate-r2\\batch9\\rawcaptures\\manifest.json",
+      "sha256": "e03cdd1d10d8840e62bb8be0d8beaba9b5f15ad59fbc178e9210b2c769b05fbf"
+    },
+    "original_qualified_artifacts": {
+      "crosswalk": {
+        "bytes": 18916,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch9-root-qualified-r2\\2026-10-02-w0-batch9-crosswalk.jsonl",
+        "sha256": "bacec8333de353ab6be2d3759ad8549fb7e21ccbea3210b651c58fff1be53920"
+      },
+      "manifest": {
+        "bytes": 4196,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch9-root-qualified-r2\\2026-10-02-w0-batch9-manifest.json",
+        "sha256": "c2dff04a7b76438d77398c6d81055645f50eae6a74ac5990c0001bf4722a131a"
+      },
+      "review": {
+        "bytes": 231468,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch9-root-qualified-r2\\2026-10-02-w0-batch9-review.jsonl",
+        "sha256": "ef0dfc30bfdca1da0a50d019c17f4b5a05af4bc7f84a687d72b1e095a04e992d"
+      },
+      "summary": {
+        "bytes": 7602,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch9-root-qualified-r2\\2026-10-02-w0-batch9-summary.json",
+        "sha256": "accfbaac38484d22d92e24365ba05515d7c74051ddcbf22533949cd3a4d724bf"
+      }
+    },
+    "original_qualified_generation": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch9-root-qualified-r2",
+    "qualified_at_utc": "2026-10-02T09:27:45.157749+00:00",
+    "raw_evidence_root": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\root-publication-candidate-r2\\batch9",
+    "root_normal_claim_denial_observed_at_utc": "2026-10-02T07:35Z",
+    "tests_run": 0
+  },
+  "qualified_artifacts": {
+    "crosswalk": {
+      "bytes": 52488,
+      "path": "2026-10-02-w0-batch9-crosswalk.jsonl",
+      "sha256": "5364ee53a072160a85397ae9387b61d27084fb48b16d9fe36444f6ec662b6a79"
+    },
+    "review": {
+      "bytes": 264228,
+      "path": "2026-10-02-w0-batch9-review.jsonl",
+      "sha256": "6d12b5a3ac0b2b468683c63ba59d6e82232c387e49380dc9efcbe3aa2beba384"
+    },
+    "summary": {
+      "bytes": 10424,
+      "path": "2026-10-02-w0-batch9-summary.json",
+      "sha256": "d9bfa846f46da875e1d9f803cfc59b5b4f7834e5e753789f1c3930fcf8646aa2"
+    }
+  },
+  "raw_capture_manifest_sha256": "e03cdd1d10d8840e62bb8be0d8beaba9b5f15ad59fbc178e9210b2c769b05fbf",
+  "record_type": "root_normalized_bounded_w0_publication_manifest",
+  "rows": 12,
+  "source_context_scope": "Current source/report/caller/test definitions in the exact captured manifests and owner corrections; no whole report completion or execution inference.",
+  "source_unit_count": 21,
+  "tests_run": 0,
+  "whole_report_inventory": [
+    576,
+    61,
+    515
+  ]
+}

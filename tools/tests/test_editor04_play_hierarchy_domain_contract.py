@@ -44,10 +44,12 @@ class Editor04PlayHierarchyDomainContractTests(unittest.TestCase):
         self.assertNotIn("self.pump_edit_world_invalidations();", tick)
 
     def test_terminal_paths_retire_play_world_watches_before_backend_retirement(self) -> None:
-        controller = read("zircon_editor/src/ui/host/editor_host_event_controller.rs")
-        terminal = controller.index("self.shutdown_play_world_sync();")
-        detach = controller.index("self.detach_terminal_play_gateway()")
-        retire = controller.index(".retire_terminal_backend()")
+        runtime_consumers = read(
+            "zircon_editor/src/ui/host/editor_host_event_controller/runtime_event_consumers.rs"
+        )
+        terminal = runtime_consumers.index("self.shutdown_play_world_sync();")
+        detach = runtime_consumers.index("self.detach_terminal_play_gateway()")
+        retire = runtime_consumers.index(".retire_terminal_backend()")
 
         self.assertLess(terminal, detach)
         self.assertLess(detach, retire)

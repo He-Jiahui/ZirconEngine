@@ -1,3 +1,6 @@
+// 调用端：npm run generate:item-level-requirement-contract (tools/package.json)；职责：固化物品等级要求和装备准入规则。
+// 输入边界：src/sim/item_level_req.ts, src/sim/types.ts；--check 比较生成结果，不改写目标文件。
+
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

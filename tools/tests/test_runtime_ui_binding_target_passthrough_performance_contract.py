@@ -10,7 +10,7 @@ def function_body(source: str, name: str, next_name: str) -> str:
     start = source.index(f"    fn {name}(")
     return source[start : source.index(f"    fn {next_name}(", start)]
 
-
+# 读取绑定目标透传路径，验证空目标跳过回执与字符串构造，而过期及定向端点仍保留诊断。
 class RuntimeUiBindingTargetPassthroughPerformanceContractTests(unittest.TestCase):
     def test_empty_target_events_bypass_receipt_and_string_work(self) -> None:
         source = TARGETS.read_text(encoding="utf-8")

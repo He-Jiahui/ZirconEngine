@@ -7,6 +7,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::core::asset::AssetTypeId;
+use crate::core::commands::{EditorKeyChord, EditorKeymap};
 use crate::ui::retained_host::host_contract::{current_host_metrics, menu_popup_text_width};
 use crate::ui::retained_host::menu_popup_contract::{
     content_measured_structured_menu_popup_width, menu_popup_content_height,
@@ -31,23 +32,29 @@ pub(super) struct AssetCreationMenuState {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct MainMenuShortcutSignature {
-    open_project: Option<String>,
-    save_project: Option<String>,
-    command_palette: Option<String>,
+    open_project: Option<EditorKeyChord>,
+    save_project: Option<EditorKeyChord>,
+    new_scene: Option<EditorKeyChord>,
+    open_scene: Option<EditorKeyChord>,
+    command_palette: Option<EditorKeyChord>,
 }
 
 impl MainMenuShortcutSignature {
-    fn from_keymap(keymap: &crate::core::commands::EditorKeymap) -> Self {
+    fn matches_keymap(&self, keymap: &EditorKeymap) -> bool {
+        self.open_project.as_ref() == keymap.chord_for_command("file.project.open")
+            && self.save_project.as_ref() == keymap.chord_for_command("file.project.save")
+            && self.new_scene.as_ref() == keymap.chord_for_command("file.scene.create")
+            && self.open_scene.as_ref() == keymap.chord_for_command("file.scene.open")
+            && self.command_palette.as_ref() == keymap.chord_for_command("editor.command.palette")
+    }
+
+    fn from_keymap(keymap: &EditorKeymap) -> Self {
         Self {
-            open_project: keymap
-                .chord_for_command("file.project.open")
-                .map(ToString::to_string),
-            save_project: keymap
-                .chord_for_command("file.project.save")
-                .map(ToString::to_string),
-            command_palette: keymap
-                .chord_for_command("editor.command.palette")
-                .map(ToString::to_string),
+            open_project: keymap.chord_for_command("file.project.open").cloned(),
+            save_project: keymap.chord_for_command("file.project.save").cloned(),
+            new_scene: keymap.chord_for_command("file.scene.create").cloned(),
+            open_scene: keymap.chord_for_command("file.scene.open").cloned(),
+            command_palette: keymap.chord_for_command("editor.command.palette").cloned(),
         }
     }
 }
@@ -80,21 +87,25 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         shell_size: UiSize,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         let generation = &model.asset_creation_menu;
-        let shortcuts = MainMenuShortcutSignature::from_keymap(&model.keymap);
         let item_count = if generation.entries().is_empty() {
-            5
+            7
         } else {
-            generation.entries().len() + 6
+            generation.entries().len() + 8
         };
         if self
             .asset_creation_menu
             .generation
             .as_ref()
             .is_some_and(|current| Arc::ptr_eq(current, generation))
-            && self.asset_creation_menu.shortcuts.as_ref() == Some(&shortcuts)
+            && self
+                .asset_creation_menu
+                .shortcuts
+                .as_ref()
+                .is_some_and(|shortcuts| shortcuts.matches_keymap(&model.keymap))
         {
             return self.apply_asset_creation_menu_extent(item_count, shell_size);
         }
+        let shortcuts = MainMenuShortcutSignature::from_keymap(&model.keymap);
         let authored_width = self
             .asset_creation_menu
             .authored_width
@@ -115,17 +126,27 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             main_menu_item_value(
                 "Open Project",
                 "action=menu.item.open_project,icon=folder",
-                shortcuts.open_project.as_deref(),
+                shortcuts.open_project.as_ref(),
+            ),
+            main_menu_item_value(
+                "New Scene...",
+                "action=menu.item.new_scene,icon=plus",
+                shortcuts.new_scene.as_ref(),
+            ),
+            main_menu_item_value(
+                "Open Scene...",
+                "action=menu.item.open_scene,icon=folder",
+                shortcuts.open_scene.as_ref(),
             ),
             main_menu_item_value(
                 "Save Project",
                 "action=menu.item.save_project,icon=save",
-                shortcuts.save_project.as_deref(),
+                shortcuts.save_project.as_ref(),
             ),
             main_menu_item_value(
                 "Command Palette",
                 "action=menu.item.command_palette,icon=search",
-                shortcuts.command_palette.as_deref(),
+                shortcuts.command_palette.as_ref(),
             ),
         ]);
         let desired_width =
@@ -144,6 +165,26 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             self.asset_creation_menu.publish_count += 1;
         }
         self.apply_asset_creation_menu_extent(item_count, shell_size)
+    }
+
+    pub(super) fn apply_compiled_asset_creation_menu_extent(
+        &mut self,
+        menu_control_id: &str,
+        shell_size: UiSize,
+    ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
+        if menu_control_id != MAIN_MENU_CONTROL_ID {
+            return Ok(false);
+        }
+        let Some(generation) = self.asset_creation_menu.generation.as_ref() else {
+            return Ok(false);
+        };
+        let item_count = if generation.entries().is_empty() {
+            7
+        } else {
+            generation.entries().len() + 8
+        };
+        self.apply_asset_creation_menu_extent(item_count, shell_size)?;
+        Ok(true)
     }
 
     fn authored_main_menu_width(&self) -> f32 {
@@ -249,7 +290,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     }
 }
 
-fn main_menu_item_value(label: &str, flags: &str, shortcut: Option<&str>) -> String {
+fn main_menu_item_value(label: &str, flags: &str, shortcut: Option<&EditorKeyChord>) -> String {
     match shortcut {
         Some(shortcut) => format!("{label}|{flags}|{shortcut}"),
         None => format!("{label}|{flags}"),
@@ -280,16 +321,5 @@ fn measure_main_menu_width(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn main_menu_width_measures_label_shortcut_and_trailing_icon() {
-        let items = [
-            "---".to_string(),
-            "Command Palette|action=menu.item.command_palette,icon=search|Ctrl+Shift+P".to_string(),
-        ];
-
-        assert!(measure_main_menu_width(&items, 190.0, 1.0) > 190.0);
-    }
-}
+#[path = "tests/asset_creation_menu.rs"]
+mod tests;

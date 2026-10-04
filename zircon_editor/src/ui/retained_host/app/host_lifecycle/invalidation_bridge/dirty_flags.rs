@@ -40,6 +40,7 @@ impl RetainedEditorHost {
         self.invalidate_host_for_scope(Some(view), mask);
     }
 
+    // 保留目标 pane 与失效原因，供重算阶段尝试复用已提交布局；兼容旧 dirty 标志以维持帧提交时机。
     pub(in crate::ui::retained_host::app) fn invalidate_host_for_shell_content(
         &mut self,
         scope: HostShellContentScope,
@@ -113,24 +114,5 @@ impl RetainedEditorHost {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn window_metrics_keeps_its_own_legacy_dirty_domain() {
-        let source = include_str!("dirty_flags.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("dirty flag production source");
-        let layout_assignments = production
-            .match_indices("self.layout_dirty = true")
-            .map(|(index, _)| &production[index.saturating_sub(180)..index])
-            .collect::<Vec<_>>();
-
-        assert_eq!(layout_assignments.len(), 2);
-        assert!(layout_assignments.iter().all(|context| {
-            context.contains("HostInvalidationMask::LAYOUT")
-                && context.contains("HostInvalidationMask::TREE_STRUCTURE")
-                && !context.contains("requires_layout()")
-        }));
-    }
-}
+#[path = "tests/dirty_flags.rs"]
+mod tests;

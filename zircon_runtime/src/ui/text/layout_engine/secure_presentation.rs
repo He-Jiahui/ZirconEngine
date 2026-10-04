@@ -6,11 +6,12 @@ use zircon_runtime_interface::ui::{
     },
 };
 
+use crate::text::layout_geometry::finite_f32_or_geometry;
 use crate::ui::text::{UiSecureTextPresentation, UiSecureTextPresentationError};
 
 use super::super::presentation::register_secure_text_presentation_artifact;
 
-use super::candidate_line::{CandidateLine, append_segment};
+use super::candidate_line::{append_segment, CandidateLine};
 use super::visual_order::apply_visual_order_from_bidi_order_for_presentation_with_advances;
 
 /// Replaces a mask layout's neutral-glyph provenance with the presentation owner's source map.
@@ -91,35 +92,44 @@ fn frame_with_projected_direction(
     if generic_direction == projected_direction {
         return frame;
     }
-    let x = match align {
+    let frame_right = frame.right();
+    let frame_right_exact = f64::from(frame.x) + f64::from(frame.width);
+    let (x_candidate, x_exact) = match align {
         UiTextAlign::Start => {
             let logical_start = if matches!(generic_direction, UiTextDirection::RightToLeft) {
-                frame.right()
+                (frame_right, frame_right_exact)
             } else {
-                frame.x
+                (frame.x, f64::from(frame.x))
             };
             if matches!(projected_direction, UiTextDirection::RightToLeft) {
-                logical_start - frame.width
+                (
+                    logical_start.0 - frame.width,
+                    logical_start.1 - f64::from(frame.width),
+                )
             } else {
                 logical_start
             }
         }
         UiTextAlign::End => {
             let logical_end = if matches!(generic_direction, UiTextDirection::RightToLeft) {
-                frame.x
+                (frame.x, f64::from(frame.x))
             } else {
-                frame.right()
+                (frame_right, frame_right_exact)
             };
             if matches!(projected_direction, UiTextDirection::RightToLeft) {
                 logical_end
             } else {
-                logical_end - frame.width
+                (
+                    logical_end.0 - frame.width,
+                    logical_end.1 - f64::from(frame.width),
+                )
             }
         }
         UiTextAlign::Left | UiTextAlign::Center | UiTextAlign::Right | UiTextAlign::Justify => {
-            frame.x
+            (frame.x, f64::from(frame.x))
         }
     };
+    let x = finite_f32_or_geometry(x_candidate, x_exact);
     UiFrame::new(x, frame.y, frame.width, frame.height)
 }
 
@@ -172,93 +182,5 @@ fn merge_source_ranges(current: Option<UiTextRange>, next: UiTextRange) -> UiTex
 }
 
 #[cfg(test)]
-mod tests {
-    use super::apply_secure_text_presentation;
-    use crate::{core::framework::text::TextDirection, ui::text::UiSecureTextPresentation};
-    use zircon_runtime_interface::ui::{
-        layout::UiFrame,
-        surface::{UiResolvedStyle, UiTextOverflow, UiTextRange, UiTextWrap},
-    };
-
-    #[test]
-    fn wrapped_rtl_secure_rows_replay_each_rows_source_owned_bidi_order() {
-        let source = "\u{05d0}\u{05d1}\u{05d2}\u{05d3}\u{05d4}\u{05d5}\u{05d6}\u{05d7}";
-        let presentation = UiSecureTextPresentation::new(source, TextDirection::Auto)
-            .expect("a valid RTL source must produce a secure presentation");
-        let style = UiResolvedStyle {
-            wrap: UiTextWrap::Glyph,
-            text_overflow: UiTextOverflow::Clip,
-            font_size: 18.0,
-            line_height: 22.0,
-            ..UiResolvedStyle::default()
-        };
-        let unwrapped_style = UiResolvedStyle {
-            wrap: UiTextWrap::None,
-            ..style.clone()
-        };
-        let unwrapped = super::super::layout_text(
-            presentation.display_text(),
-            &unwrapped_style,
-            UiFrame::new(0.0, 0.0, f32::INFINITY, 64.0),
-            None,
-        );
-        let mut layout = super::super::layout_text(
-            presentation.display_text(),
-            &style,
-            UiFrame::new(0.0, 0.0, (unwrapped.measured_width * 0.6).max(1.0), 256.0),
-            None,
-        );
-        let physical_display_ranges = layout
-            .lines
-            .iter()
-            .map(|line| line.source_range)
-            .collect::<Vec<UiTextRange>>();
-
-        assert!(
-            physical_display_ranges.len() > 1,
-            "the measured mask must soft-wrap before projection"
-        );
-        apply_secure_text_presentation(&mut layout, &presentation)
-            .expect("each wrapped row must map through its own source signature");
-
-        for (line, display_range) in layout.lines.iter().zip(physical_display_ranges) {
-            let clusters = presentation
-                .clusters_for_display_range(display_range)
-                .expect("a physical row must contain complete mask graphemes");
-            let bidi = presentation
-                .bidi_for_display_range(display_range)
-                .expect("source-owned bidi replay must remain valid")
-                .expect("a non-empty physical row must have bidi metadata");
-            let expected_ranges = bidi
-                .visual_indices
-                .iter()
-                .map(|&index| clusters[index].source_range)
-                .collect::<Vec<_>>();
-
-            assert_eq!(line.direction, bidi.resolved_base_direction.into());
-            assert_eq!(
-                line.runs
-                    .iter()
-                    .map(|run| run.source_range)
-                    .collect::<Vec<_>>(),
-                expected_ranges,
-                "a wrapped row must not reuse the full hard-line visual order"
-            );
-            assert_eq!(
-                line.source_range,
-                UiTextRange {
-                    start: expected_ranges
-                        .iter()
-                        .map(|range| range.start)
-                        .min()
-                        .expect("a physical row has source ranges"),
-                    end: expected_ranges
-                        .iter()
-                        .map(|range| range.end)
-                        .max()
-                        .expect("a physical row has source ranges"),
-                }
-            );
-        }
-    }
-}
+#[path = "tests/secure_presentation.rs"]
+mod tests;

@@ -1,3 +1,4 @@
+# 核对动作指纹租约由数据库过滤，维持选中顺序与目标投影。
 from __future__ import annotations
 
 import inspect

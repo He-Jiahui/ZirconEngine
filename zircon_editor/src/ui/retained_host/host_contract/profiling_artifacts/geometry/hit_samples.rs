@@ -4,6 +4,7 @@ use super::super::{UiProfileHitSample, UiProfileNamedFrame, UiProfilePoint};
 use super::frame_math::profile_frame_center;
 
 #[cfg(test)]
+#[path = "hit_samples/tests/capacity_tests.rs"]
 mod capacity_tests;
 
 const PROFILE_HIT_SAMPLES_PER_FRAME: usize = 3;

@@ -5,6 +5,9 @@ mod component_row;
 mod dynamic_component_presence;
 pub(super) mod fixed_components;
 mod projection_rebuild;
+#[cfg(test)]
+#[path = "typed_api/tests/protected_authored_test_support.rs"]
+mod protected_authored_test_support;
 
 use std::collections::BTreeMap;
 
@@ -17,7 +20,7 @@ use crate::scene::ecs::{
     ArchetypeSignature, Component, ComponentId, ComponentRemoveResult, ComponentTicks,
     LifecycleEventKind, Resource, ResourceId, StorageError, StorageType,
 };
-use crate::scene::{EntityId, components::Mobility};
+use crate::scene::{components::Mobility, EntityId};
 
 use super::{SceneError, SceneResult, World};
 
@@ -120,11 +123,48 @@ impl World {
         ))
     }
 
+    /// 为已存在实体插入或替换普通组件并返回旧值；受保护的 authored/derived 类型必须通过各自所有者的写入口。
     pub fn insert<T>(&mut self, entity: EntityId, component: T) -> SceneResult<Option<T>>
     where
         T: Component,
     {
+        if !self.contains_entity(entity) {
+            return Err(SceneError::missing_entity("insert component on", entity));
+        }
+        Self::validate_generic_authored_mutation::<T>("insert")?;
         self.insert_with_hierarchy_mutation(entity, component, HierarchyMutationMode::Unchecked)
+    }
+
+    pub(super) fn insert_prevalidated_authored_component<T>(
+        &mut self,
+        entity: EntityId,
+        component: T,
+    ) -> SceneResult<Option<T>>
+    where
+        T: Component,
+    {
+        debug_assert!(Self::protected_authored_component_name::<T>().is_some());
+        self.insert_with_hierarchy_mutation(entity, component, HierarchyMutationMode::Unchecked)
+    }
+
+    pub(in crate::scene) fn stage_prevalidated_authored_clone<T>(
+        &mut self,
+        entity: EntityId,
+        component: T,
+    ) -> SceneResult<()>
+    where
+        T: Component,
+    {
+        if !matches!(
+            Self::protected_authored_component_name::<T>(),
+            Some("LocalTransform" | "Mobility")
+        ) {
+            return Err(SceneError::BundleTransactionInvariant {
+                reason: "preflight authored clone requires a protected authored component",
+            });
+        }
+        self.insert_prevalidated_authored_component(entity, component)
+            .map(|_| ())
     }
 
     pub(super) fn insert_checked_hierarchy(
@@ -147,6 +187,7 @@ impl World {
         if !self.contains_entity(entity) {
             return Err(SceneError::missing_entity("insert component on", entity));
         }
+        Self::validate_generic_derived_mutation::<T>("insert")?;
 
         let tick = self.mutation_change_tick();
         let component_id = self.component_id::<T>();
@@ -284,7 +325,28 @@ impl World {
         }
     }
 
+    /// 借出普通组件前即记录变更，即使调用方未改值；缺失或受保护类型返回 None，需保持无变更语义时先只读比较。
     pub fn get_mut<T>(&mut self, entity: EntityId) -> Option<&mut T>
+    where
+        T: Component,
+    {
+        if Self::protected_derived_component_name::<T>().is_some()
+            || Self::protected_authored_component_name::<T>().is_some()
+        {
+            return None;
+        }
+        self.get_mut_unrestricted(entity)
+    }
+
+    pub(super) fn get_mut_prevalidated_authored<T>(&mut self, entity: EntityId) -> Option<&mut T>
+    where
+        T: Component,
+    {
+        debug_assert!(Self::protected_authored_component_name::<T>().is_some());
+        self.get_mut_unrestricted(entity)
+    }
+
+    fn get_mut_unrestricted<T>(&mut self, entity: EntityId) -> Option<&mut T>
     where
         T: Component,
     {
@@ -324,6 +386,8 @@ impl World {
         if !self.contains_entity(entity) {
             return Err(SceneError::missing_entity("remove component from", entity));
         }
+        Self::validate_generic_derived_mutation::<T>("remove")?;
+        Self::validate_generic_authored_mutation::<T>("remove")?;
         let component_id = self.registered_component_id::<T>();
         let internal = self
             .internal_entity(entity)
@@ -667,28 +731,10 @@ impl World {
     ) where
         T: Component,
     {
-        let type_id = std::any::TypeId::of::<T>();
-        self.advance_world_generation();
-        self.invalidate_world_component_type(std::any::type_name::<T>());
-        if self.is_hierarchy_component_type(type_id) || self.is_active_component_type(type_id) {
-            self.mark_inspection_subtree_fields_dirty(entity);
-        } else {
-            self.inspection_artifact_cache.mark_fields_dirty(entity);
-        }
-        if self.is_inspection_hierarchy_component_type(type_id) {
-            if type_id == std::any::TypeId::of::<crate::scene::components::Name>() {
-                self.inspection_artifact_cache
-                    .mark_hierarchy_name_dirty(entity);
-            } else {
-                self.inspection_artifact_cache.mark_hierarchy_rows_dirty();
-            }
-        }
-        if self.is_hierarchy_component_type(type_id)
-            && hierarchy_mutation == HierarchyMutationMode::Checked
-        {
-            self.mark_checked_hierarchy_derived_state_dirty_at(entity);
-        } else {
-            self.mark_component_derived_state_dirty_at::<T>(entity);
+        // This normal entry retains its exclusive World role; query dispatch grants
+        // the same narrow metadata effects without reborrowing a live item's parents.
+        unsafe {
+            Self::mark_component_mutation_unchecked::<T>(self, entity, hierarchy_mutation);
         }
     }
 

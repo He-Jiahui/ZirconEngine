@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 检查渲染统计存储根只承担结构接线，领域状态由下层模块持有。
 class RuntimeRenderStatsStoreRootOwnerStructureTests(unittest.TestCase):
     def setUp(self) -> None:
         self.repo_root = Path(__file__).resolve().parents[2]
@@ -103,7 +103,7 @@ class RuntimeRenderStatsStoreRootOwnerStructureTests(unittest.TestCase):
         )
 
         docs_source = (
-            self.repo_root / "docs/zircon_runtime/core/diagnostics.md"
+            self.repo_root / "docs/crates/zircon_runtime/core/diagnostics.md"
         ).read_text(encoding="utf-8")
         self.assertIn(
             "zircon_runtime/src/core/runtime/diagnostics/render_stats_store/mod.rs",

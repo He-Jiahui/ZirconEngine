@@ -15,6 +15,7 @@ use self::target::{expandable_action_target, expanded_component_event};
 mod result;
 mod target;
 
+// 仅对快照公开的展开能力及实际 disclosure/popup 行为写 open alias，防止任意布尔属性伪装为展开状态。
 pub(super) fn dispatch_expanded_state(
     surface: &mut UiSurface,
     request: &UiAccessibilityActionRequest,
@@ -80,5 +81,5 @@ fn expanded_state_mutation_request(
 }
 
 #[cfg(test)]
-#[path = "expanded/owned_property_tests.rs"]
+#[path = "expanded/tests/owned_property_tests.rs"]
 mod owned_property_tests;

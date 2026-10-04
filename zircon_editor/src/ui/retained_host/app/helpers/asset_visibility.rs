@@ -41,11 +41,13 @@ pub(super) fn active_workspace_tab(
         crate::ui::workbench::snapshot::DocumentWorkspaceSnapshot::Split {
             first, second, ..
         } => active_workspace_tab(first).or_else(|| active_workspace_tab(second)),
-        crate::ui::workbench::snapshot::DocumentWorkspaceSnapshot::Tabs { tabs, active_tab } => {
-            active_tab
-                .as_ref()
-                .and_then(|active| tabs.iter().find(|tab| &tab.instance_id == active))
-                .or_else(|| tabs.first())
-        }
+        crate::ui::workbench::snapshot::DocumentWorkspaceSnapshot::Tabs {
+            tabs,
+            active_tab,
+            ..
+        } => active_tab
+            .as_ref()
+            .and_then(|active| tabs.iter().find(|tab| &tab.instance_id == active))
+            .or_else(|| tabs.first()),
     }
 }

@@ -1,3 +1,4 @@
+//! 生成的导出模板应只承担薄适配，启动和注册行为归手写拥有者。通过源码文本核对父子路由、状态镜像和文件预算。
 const SLICE: &str = "Runtime 15 M3 generated-code guard folder-backed split";
 const STATUS: &str = "runtime_15_generated_code_guard_folder_backed_static_passed_cargo_deferred";
 const FRAMEWORKS_STATUS: &str =
@@ -91,7 +92,7 @@ fn runtime_15_generated_code_guard_is_folder_backed() {
         ),
         (
             "module convention doc",
-            include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md"),
+            include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md"),
         ),
     ] {
         assert_contains_all(label, source, &[SLICE, STATUS, GUARD, CHILD_PATHS[5]]);

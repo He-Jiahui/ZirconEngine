@@ -19,3 +19,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_work
         || (control_id.starts_with("Workbench")
             && matches!(node.component_role.as_str(), "chip" | "pill"))
 }
+
+#[cfg(test)]
+#[path = "identity/tests/cached_control_id_tests.rs"]
+mod cached_control_id_tests;

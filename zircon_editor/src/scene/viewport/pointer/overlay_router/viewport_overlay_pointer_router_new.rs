@@ -1,3 +1,5 @@
+//! 新路由器从空布局和独立解析锁构建最小表面，首次场景同步后才有实体或 Handle 候选。
+
 use std::sync::{Arc, Mutex};
 
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};

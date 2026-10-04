@@ -2,12 +2,13 @@ use std::sync::Arc;
 
 use crate::core::framework::render::{
     CapturedFrame, CapturedHdrFrame, EnvironmentRuntimeSnapshot, GraphicsDebuggerStatus,
-    RenderEnvironmentCaptureHandle, RenderEnvironmentCaptureRequest,
-    RenderEnvironmentCaptureSourcePayload, RenderEnvironmentCaptureStatus, RenderFrameExtract,
-    RenderFramework, RenderFrameworkError, RenderPipelineHandle, RenderQualityProfile, RenderStats,
-    RenderSubmissionConfig, RenderViewportDescriptor, RenderViewportHandle,
-    RenderViewportPickRequest, RenderViewportPickResult, RenderViewportPickTicket,
-    RenderViewportProduct, RenderViewportSurfaceDescriptor, RenderVirtualGeometryDebugSnapshot,
+    RenderEnvironmentCaptureHandle, RenderEnvironmentCaptureReport,
+    RenderEnvironmentCaptureRequest, RenderEnvironmentCaptureSourcePayload,
+    RenderEnvironmentCaptureStatus, RenderFrameExtract, RenderFramework, RenderFrameworkError,
+    RenderPipelineHandle, RenderQualityProfile, RenderStats, RenderSubmissionConfig,
+    RenderViewportDescriptor, RenderViewportHandle, RenderViewportPickRequest,
+    RenderViewportPickResult, RenderViewportPickTicket, RenderViewportProduct,
+    RenderViewportSurfaceDescriptor, RenderVirtualGeometryDebugSnapshot,
     RenderVisibleSpatialQuerySnapshot, SceneViewportRenderPacket, UiRenderSubmission,
 };
 use zr_rhi::{UiSurfaceDescriptor, UiSurfacePresenter};
@@ -130,6 +131,12 @@ impl RenderFramework for WgpuRenderFramework {
         &self,
     ) -> Result<EnvironmentRuntimeSnapshot, RenderFrameworkError> {
         query_environment_runtime_snapshot(self)
+    }
+
+    fn query_environment_capture_report(
+        &self,
+    ) -> Result<RenderEnvironmentCaptureReport, RenderFrameworkError> {
+        Ok(WgpuRenderFramework::environment_capture_report(self))
     }
 
     fn query_visible_spatial_snapshot(

@@ -127,6 +127,7 @@ impl TemplateBridgeVirtualRowSequence {
         })
     }
 
+    // 检查器只提供稳定条目键与模板元数据；物理槽位增删仍由运行时虚拟列表协调。
     pub(crate) fn reconcile_with_keys<K, F>(
         &self,
         surface: &mut UiSurface,
@@ -187,6 +188,7 @@ impl TemplateBridgeVirtualRowSequence {
         Ok(bindings)
     }
 
+    // 滚动后的局部同步只重写本轮变动槽位，逻辑行索引由运行时材质化映射决定。
     pub(crate) fn bindings_for_changes(
         &self,
         surface: &UiSurface,
@@ -317,17 +319,5 @@ fn required_usize_field(
 }
 
 #[cfg(test)]
-mod performance_tests {
-    #[test]
-    fn virtual_row_reconcile_uses_runtime_materialization_authority() {
-        let source = include_str!("virtual_rows.rs");
-        let implementation = source.split("#[cfg(test)]").next().expect("implementation");
-
-        assert!(implementation.contains("reconcile_virtual_list_materialization_with_keys"));
-        assert!(implementation.contains("ensure_virtual_list_prototype_slots"));
-        assert!(!implementation.contains("surface.tree.nodes.iter()"));
-        assert!(!implementation.contains("surface.tree.nodes.values()"));
-        assert!(!implementation.contains("fn inventory("));
-        assert!(!implementation.contains("fn next_node_id("));
-    }
-}
+#[path = "tests/virtual_rows_performance_tests.rs"]
+mod performance_tests;

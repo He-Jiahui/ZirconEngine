@@ -1,6 +1,6 @@
 use super::super::{
-    RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION, RuntimeSessionArchive, RuntimeSessionArchiveError,
-    RuntimeSessionSlot,
+    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionSlot,
+    RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION,
 };
 
 pub(in crate::scene::dynamic_scene::session) fn empty() -> RuntimeSessionArchive {
@@ -10,6 +10,7 @@ pub(in crate::scene::dynamic_scene::session) fn empty() -> RuntimeSessionArchive
     archive
 }
 
+// 验证票据必须对应规范化后的修订；元数据与索引更新完成后，才能缓存验证成功状态。
 pub(in crate::scene::dynamic_scene::session) fn from_slots(
     slots: Vec<RuntimeSessionSlot>,
 ) -> Result<RuntimeSessionArchive, RuntimeSessionArchiveError> {

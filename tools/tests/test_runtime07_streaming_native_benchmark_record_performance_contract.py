@@ -3,9 +3,9 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE = ROOT / "zircon_runtime/src/plugin/native_plugin_loader/benchmark_harness.rs"
+SOURCE = ROOT / "zircon_runtime/src/plugin/native_plugin_loader/tests/benchmark_harness.rs"
 
-
+# 读取实现源码约束流式原生基准记录：记录字段使用流式显示包装器，并输出不收集或连接计数器字符串。
 class StreamingNativeBenchmarkRecordPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

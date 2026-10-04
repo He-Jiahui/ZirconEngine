@@ -1,3 +1,4 @@
+# 核对弹窗关闭命中借用代际候选与索引节点，保留单次呈现代际读取。
 from pathlib import Path
 import unittest
 

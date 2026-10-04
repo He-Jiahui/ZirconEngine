@@ -1,3 +1,5 @@
+//! 为 Editor 的资源面板补充宿主磁盘诊断；不替代运行时注册表或内容解码验证。
+
 use std::collections::HashSet;
 use std::path::{Component, Path, PathBuf};
 
@@ -8,6 +10,8 @@ use zircon_runtime_interface::ui::template::{
 
 const HASH_DEDUP_DIAGNOSTIC_THRESHOLD: usize = 128;
 
+/// 三种 UI URI 的宿主根目录配置；未配置的 scheme 被视为本轮不做磁盘检查。
+/// 目录由 Editor 注入，资源声明自身不决定宿主文件系统根。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct UiResourcePathResolver {
     res_root: Option<PathBuf>,
@@ -44,6 +48,8 @@ impl UiResourcePathResolver {
     }
 }
 
+/// 对已收集的主引用及回退引用补充存在性诊断，结果按作者路径稳定排序去重。
+/// 只检查路径存在；不会验证文件类型、解码成功或运行时资源种类。
 pub fn validate_resource_dependency_files(
     dependencies: &[UiResourceDependency],
     resolver: &UiResourcePathResolver,
@@ -75,6 +81,7 @@ pub fn validate_resource_dependency_files(
     diagnostics
 }
 
+// 去重身份沿用作者位置、代码和消息；严重度不参与身份，保留最先出现的诊断。
 fn dedup_resource_diagnostics(diagnostics: &mut Vec<UiResourceDiagnostic>) {
     if diagnostics.len() < HASH_DEDUP_DIAGNOSTIC_THRESHOLD {
         diagnostics.sort_by(|left, right| {
@@ -137,6 +144,7 @@ fn validate_uri(
     ))
 }
 
+// 子资源标签和查询参数不属于磁盘路径；这里拒绝词法上的根目录跳出，不解析符号链接。
 fn relative_path_from_resource_uri(uri: &str) -> Option<PathBuf> {
     let path = uri
         .split_once("://")
@@ -174,5 +182,5 @@ fn resource_diagnostic(
 }
 
 #[cfg(test)]
-#[path = "resolve/hash_dedup_tests.rs"]
+#[path = "resolve/tests/hash_dedup_tests.rs"]
 mod hash_dedup_tests;

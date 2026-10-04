@@ -5,18 +5,20 @@ use crate::ui::retained_host::host_contract::window::UiHostWindow;
 use crate::ui::retained_host::ui_perf::{
     enter_ui_perf_scenario, time_ui_perf_scenario, UiPerfScenario,
 };
+use zircon_runtime_interface::ui::dispatch::UiPointerId;
 
 use super::super::super::super::redraw_result::tab_drag_release_redraw;
 use super::super::super::super::HOST_POINTER_UP;
 
 pub(in crate::ui::retained_host::host_contract) fn finish_native_tab_drag(
     ui: &UiHostWindow,
+    pointer_id: UiPointerId,
     x: f32,
     y: f32,
 ) -> Option<NativePointerDispatchResult> {
     let host = ui.global::<UiHostContext>();
     let drag_state = host.get_drag_state();
-    if drag_state.drag_tab_id.is_empty() {
+    if drag_state.drag_tab_id.is_empty() || drag_state.capture_pointer_id != Some(pointer_id) {
         return None;
     }
     let _ui_perf_scenario = enter_ui_perf_scenario(UiPerfScenario::Drag);

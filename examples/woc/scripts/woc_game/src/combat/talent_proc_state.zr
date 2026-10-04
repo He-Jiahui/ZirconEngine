@@ -218,6 +218,7 @@ chancePasses(randomUnit: float, chance: float): bool {
     return randomUnit < chance;
 }
 
+/// 由调用方提供非负时间步长推进内置冷却；本投影不拥有调度器。
 pub tickProcState(state: TalentProcRuntimeState, delta: float): void {
     var index = 0;
     while (index < state.icdRemaining.length) {

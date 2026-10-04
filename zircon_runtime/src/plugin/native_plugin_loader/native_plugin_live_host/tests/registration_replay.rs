@@ -131,7 +131,7 @@ fn native_registration_replay_preserves_sets_order_and_before_after_constraints(
 fn native_registration_replay_builds_one_frozen_bridge_context_per_plugin() {
     let host = NativePluginLiveHost::default();
     let mut load_report = NativePluginLoadReport::default();
-    load_report.push_loaded(native_registration_replay_scale_plugin(8, 4));
+    load_report.push_loaded(benchmarks::native_registration_replay_scale_plugin(8, 4));
     host.load_reported_plugins(load_report, PluginModuleKind::Runtime)
         .expect("scale fixture should load");
 

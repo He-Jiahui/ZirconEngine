@@ -1,3 +1,4 @@
+//! 配置持久化 worker 的 generation 状态机：请求、尝试、成功/失败和延迟样本必须在同一锁内推进。
 use std::collections::VecDeque;
 use std::time::{Duration, Instant};
 
@@ -26,6 +27,7 @@ pub(super) struct ConfigPersistenceState {
 }
 
 impl ConfigPersistenceState {
+    // changed 只递增 dirty generation；重复通知沿用已记录的 last_dirty_at，避免 debounce 被无变化事件不断延后。
     pub(super) fn request_persistence(&mut self, changed: bool) -> bool {
         let was_requested = self.work_requested;
         if changed {
@@ -60,6 +62,7 @@ impl ConfigPersistenceState {
         self.dirty_generation
     }
 
+    // 失败记录错误并保留未持久化的 generation，后续请求可再次唤醒 worker；成功只推进本次 target 并重新安排期间新增的脏状态。
     pub(super) fn complete_attempt(
         &mut self,
         target_generation: u64,
@@ -144,21 +147,9 @@ fn duration_ms(nanos: u64) -> f64 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::ConfigPersistenceState;
-
-    #[test]
-    fn unchanged_value_does_not_postpone_an_already_requested_generation() {
-        let mut state = ConfigPersistenceState::default();
-        assert!(state.request_persistence(true));
-        let first_dirty_at = state.last_dirty_at;
-
-        assert!(!state.request_persistence(false));
-        assert_eq!(state.last_dirty_at, first_dirty_at);
-        assert_eq!(state.dirty_generation, 1);
-    }
-}
+#[path = "tests/state.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "state/percentile_stack_tests.rs"]
+#[path = "state/tests/percentile_stack_tests.rs"]
 mod percentile_stack_tests;

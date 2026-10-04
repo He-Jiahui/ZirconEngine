@@ -1,9 +1,9 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。保存同组守卫使用的局部数据或辅助变换。
 use super::support::assert_contains_all;
 
 pub(super) fn assert_capability_audit_surfaces_are_wired() {
-    let capability_audit =
-        include_str!("../../../../../../../tools/plugin_structure_audits/capability.py");
-    let audit_cli = include_str!("../../../../../../../tools/audit_plugin_structure.py");
+    let capability_audit = include_str!("../../../../../../../tools/audits/plugins/capability.py");
+    let audit_cli = include_str!("../../../../../../../tools/audits/audit_plugin_structure.py");
     let catalog =
         include_str!("../../../../../../../zircon_plugins/first_party_runtime_catalog/src/lib.rs");
 

@@ -6,6 +6,10 @@ use serde::{Deserialize, Serialize};
 pub struct EditorChromeTokens {
     pub top_bar_height: f32,
     pub host_bar_height: f32,
+    pub workbench_toolbar_height: f32,
+    pub workbench_toolbar_command_row_height: f32,
+    pub workbench_toolbar_popup_command_offset_y: f32,
+    pub workbench_toolbar_popup_module_offset_y: f32,
     pub status_bar_height: f32,
     pub panel_header_height: f32,
     pub document_header_height: f32,
@@ -26,6 +30,10 @@ impl EditorChromeTokens {
         Self {
             top_bar_height: 25.0,
             host_bar_height: 32.0,
+            workbench_toolbar_height: 42.0,
+            workbench_toolbar_command_row_height: 42.0,
+            workbench_toolbar_popup_command_offset_y: 29.0,
+            workbench_toolbar_popup_module_offset_y: -6.0,
             status_bar_height: 24.0,
             // The clipped header must contain 28px dense and 30px compact children.
             panel_header_height: 30.0,
@@ -37,10 +45,26 @@ impl EditorChromeTokens {
         }
     }
 
-    pub(super) fn cascade_entries(&self) -> [(&'static str, f32); 9] {
+    pub(super) fn cascade_entries(&self) -> [(&'static str, f32); 13] {
         [
             ("editor.chrome.top_bar.height", self.top_bar_height),
             ("editor.chrome.host_bar.height", self.host_bar_height),
+            (
+                "editor.chrome.workbench_toolbar.height",
+                self.workbench_toolbar_height,
+            ),
+            (
+                "editor.chrome.workbench_toolbar.command_row.height",
+                self.workbench_toolbar_command_row_height,
+            ),
+            (
+                "editor.chrome.workbench_toolbar.popup.command_offset_y",
+                self.workbench_toolbar_popup_command_offset_y,
+            ),
+            (
+                "editor.chrome.workbench_toolbar.popup.module_offset_y",
+                self.workbench_toolbar_popup_module_offset_y,
+            ),
             ("editor.chrome.status_bar.height", self.status_bar_height),
             (
                 "editor.chrome.panel_header.height",

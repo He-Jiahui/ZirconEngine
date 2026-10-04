@@ -8,8 +8,8 @@ use zircon_runtime_interface::ui::{
 
 use super::super::super::surface::UiSurface;
 use super::super::{
-    UiSurfaceInputEffectError, UiSurfaceInputEffectResult, require_valid_input_owner,
-    text_state::editable_text_input_is_secure,
+    require_valid_input_owner, text_state::editable_text_input_is_secure,
+    UiSurfaceInputEffectError, UiSurfaceInputEffectResult,
 };
 
 pub(super) fn apply_text_service_effect(
@@ -27,6 +27,7 @@ pub(super) fn apply_text_service_effect(
     }
 }
 
+// 输入法 Enable/Reset/Update/Disable 都以请求 owner 为边界：Enable 还受 secure 文本保护，后续更新或关闭必须匹配当前 owner，避免旧焦点回执改写新会话。
 fn apply_input_method_request(
     surface: &mut UiSurface,
     request: &UiInputMethodRequest,

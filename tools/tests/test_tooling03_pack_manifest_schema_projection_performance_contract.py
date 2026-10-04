@@ -1,11 +1,12 @@
+# 核对打包清单模式逐块和逐资源只校验一次。
 from __future__ import annotations
 
 import unittest
 from unittest import mock
 
-from tools.zircon_export import pipeline_report_pack_manifest_schema as subject
-from tools.zircon_export import pipeline_report_pack_manifest_schema_helpers as helpers
-from tools.zircon_export.pipeline_report_schema_primitives import (
+from tools.export import pipeline_report_pack_manifest_schema as subject
+from tools.export import pipeline_report_pack_manifest_schema_helpers as helpers
+from tools.export.pipeline_report_schema_primitives import (
     validate_integer_schema_diagnostics,
     validate_object_array_schema_diagnostics,
     validate_object_schema_diagnostics,

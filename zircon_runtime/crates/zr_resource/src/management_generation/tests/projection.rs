@@ -85,13 +85,11 @@ fn sparse_revision_update_reuses_unaffected_pages_and_indexes() {
             "unexpected ID shard identity at index {index}"
         );
     }
-    assert!(
-        published
-            .locator_shards()
-            .iter()
-            .zip(updated.locator_shards())
-            .all(|(before, after)| Arc::ptr_eq(before, after))
-    );
+    assert!(published
+        .locator_shards()
+        .iter()
+        .zip(updated.locator_shards())
+        .all(|(before, after)| Arc::ptr_eq(before, after)));
 }
 
 #[test]
@@ -181,8 +179,8 @@ fn resource_management_scan_reports_query_local_profile_metrics() {
     assert!(scan.next_row().is_none());
 
     assert_eq!(
-        scan.profile_metrics(),
-        ResourceManagementScanProfileMetrics {
+        scan.diagnostics(),
+        ResourceManagementScanDiagnostics {
             shard_candidate_checks: 1,
             filtered_rows_skipped: 1,
             rows_emitted: 2,
@@ -202,13 +200,13 @@ fn resource_management_scan_clone_preserves_cursor_and_profile_metrics() {
     let first = scan.next_row().expect("the first model row must exist");
     let mut cloned = scan.clone();
 
-    assert_eq!(cloned.profile_metrics(), scan.profile_metrics());
+    assert_eq!(cloned.diagnostics(), scan.diagnostics());
     let cloned_next = cloned.next_row();
     let scan_next = scan.next_row();
     assert_eq!(cloned_next, scan_next);
     assert_ne!(cloned_next, Some(first));
     assert_eq!(cloned.next_row(), scan.next_row());
-    assert_eq!(cloned.profile_metrics(), scan.profile_metrics());
+    assert_eq!(cloned.diagnostics(), scan.diagnostics());
 }
 
 #[cfg(feature = "profiling")]

@@ -36,6 +36,13 @@ impl LoadedNativePlugin {
         NativePluginStableLibrary::new(library)
     }
 
+    pub(super) fn admitted_library(
+        library: Library,
+        admission: super::NativePluginArtifactAdmissionReceipt,
+    ) -> Arc<NativePluginStableLibrary> {
+        NativePluginStableLibrary::admitted(library, admission)
+    }
+
     pub fn is_loaded(&self) -> bool {
         let _ = &self.library.library;
         true

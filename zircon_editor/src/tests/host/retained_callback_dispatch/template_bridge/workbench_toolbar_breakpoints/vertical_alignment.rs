@@ -1,4 +1,5 @@
-use super::*;
+use super::super::super::support::{env_lock, BuiltinWorkbenchWindowTemplateSurfaceBridge, UiSize};
+use super::support::{assert_frame_value, FULL_WORKBENCH_HEIGHT, FULL_WORKBENCH_WIDTH};
 
 #[test]
 fn toolbar_commands_and_dividers_center_within_their_rows() {

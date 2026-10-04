@@ -2,6 +2,7 @@ use crate::ui::retained_host::host_contract::data::FrameRect;
 
 use super::metrics::{avatar_bounded_extent, AVATAR_DEFAULT_EDGE};
 
+// 根序列将布局框收成默认最大边长的方框并垂直居中；遮罩与边框以此框为准。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn avatar_frame(
     rect: &FrameRect,
 ) -> FrameRect {
@@ -18,22 +19,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn avatar_
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn avatar_frame_stays_inside_tight_parent_bounds() {
-        let parent = FrameRect {
-            x: 10.4,
-            y: 20.8,
-            width: 0.4,
-            height: 0.6,
-        };
-        let frame = avatar_frame(&parent);
-
-        assert!(frame.x >= parent.x);
-        assert!(frame.y >= parent.y);
-        assert!(frame.right() <= parent.right());
-        assert!(frame.bottom() <= parent.bottom());
-    }
-}
+#[path = "tests/frame.rs"]
+mod tests;

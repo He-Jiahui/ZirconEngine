@@ -1,3 +1,4 @@
+//! 原生注册描述符在进入运行时注册表之前先转成受控 Rust 值；失败保留类型化原因。
 mod error;
 mod read;
 mod system;
@@ -12,4 +13,5 @@ pub(super) use system::{
 };
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

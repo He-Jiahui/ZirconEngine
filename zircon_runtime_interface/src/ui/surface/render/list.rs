@@ -19,10 +19,10 @@ impl UiRenderList {
         let mut elements = Vec::new();
         let mut next_paint_order = 0;
         for command in &self.commands {
-            let mut command_elements =
-                command.to_paint_elements_with_metrics(next_paint_order, metrics);
-            next_paint_order += command_elements.len() as u64;
-            elements.append(&mut command_elements);
+            let first_element_index = elements.len();
+            command.append_paint_elements(next_paint_order, metrics, &mut elements);
+            // 单条命令可能展开为多项，后续命令从实际追加数量之后继续排序。
+            next_paint_order += (elements.len() - first_element_index) as u64;
         }
         elements
     }

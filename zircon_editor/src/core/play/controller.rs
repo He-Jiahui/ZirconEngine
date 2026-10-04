@@ -22,6 +22,7 @@ mod preview_routing;
 mod runtime_ownership;
 
 #[cfg(test)]
+#[path = "controller/tests/source_guards.rs"]
 mod source_guards;
 
 pub struct PlaySessionController {
@@ -441,7 +442,10 @@ impl PlaySessionController {
         }
         let backend = self.backend();
         let mut backend_report = match backend.start(&request) {
-            Ok(report) => report,
+            Ok(report) => {
+                eprintln!("mvp_play_boundary editor_backend_start_returned");
+                report
+            }
             Err(failure) => {
                 let (message, retirement_pending) = failure.into_parts();
                 self.edit_protection.end_play();
@@ -475,6 +479,7 @@ impl PlaySessionController {
         };
         let backend_attachable = backend_report.attachable();
         if let Some(gateway) = backend_report.take_gateway() {
+            eprintln!("mvp_play_boundary editor_gateway_attach_entered");
             if let Err(error) = self.play_domain.attach(gateway) {
                 return Err(self.rollback_failed_gateway_attach(
                     request.kind,
@@ -483,6 +488,7 @@ impl PlaySessionController {
                     error,
                 ));
             }
+            eprintln!("mvp_play_boundary editor_gateway_attach_returned");
         }
         self.replace_session_ownership(Some(PlaySessionOwnership::Active {
             kind: request.kind,
@@ -490,6 +496,7 @@ impl PlaySessionController {
             activation,
         }));
         self.replace_mode(PlayMode::Playing { kind: request.kind });
+        eprintln!("mvp_play_boundary editor_play_mode_committed");
         Ok(PlayTransitionReport::changed(
             PlayModeKind::Playing,
             report,

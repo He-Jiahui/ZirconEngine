@@ -1,0 +1,39 @@
+{
+  "record_type": "root_qualified_batch16_summary",
+  "root_captured_at_utc": "2026-10-02T21:50:41.548627+00:00",
+  "original_artifacts": {
+    "manifest.json": "97169b5750a655e7b4ed36c6bce3b406668f7367399892b1d619da0bff91d925",
+    "review.jsonl": "cdd630812f91aaaae097ff2404e5a944884ef3b25624fb205993d8c30c78947c",
+    "crosswalk.jsonl": "2805198d733bb7d650567edb7a5ad896e79611a9347903dacb40a557528a5816",
+    "summary.json": "0cbbd41ad28f5119ac8d959045750c74738e00dc4f7acff3dd5412df9d842751"
+  },
+  "independent_review": {
+    "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0-batch16-independent-qualification-r1\\independent-qualification.json",
+    "sha256": "8212ba9b62e8140177bf1df24677ec2379efff40d3e6520810bd9a00211253ef"
+  },
+  "finding_atoms": 114,
+  "original_gate_rows": 48,
+  "finding_refresh_rows": 61,
+  "gate_refresh_rows": 32,
+  "cumulative_counts": {
+    "finding_observations": 391,
+    "report_qualified_finding_keys": 387,
+    "distinct_original_literal_finding_ids": 339,
+    "unlabelled_finding_ordinals": 12,
+    "canonical_declared_gate_rows": 72,
+    "new_successor_finding_refreshes": 61,
+    "new_successor_gate_refreshes": 32
+  },
+  "original_report_qualified_key_overlap": 0,
+  "bare_literal_id_overlap": [
+    "RI-CERT-P0-001"
+  ],
+  "bare_id_qualification": "RI-CERT-P0-001 already appeared in Interface15 current report; original Interface07 atom retains its original report identity, while Interface15 successor refresh is nonliteral and never counted as a second finding atom.",
+  "prior_independent_metadata_qualification": "The review canonical-boundary prose mislabeled old batch15 P2/gates as Interface07/15. Raw canonical batch15 belongs to Runtime175/222; preserve the review raw, use exact original_report fields as authority. No new numbered failure.",
+  "author_repo_clean_qualification": "Shared tree was not certified clean; only this read-only author scope has no source writes.",
+  "current_inputs": 129,
+  "span_metadata_endpoints_qualified": 17,
+  "tests_run": 0,
+  "source_ready": false,
+  "acceptance": "open"
+}

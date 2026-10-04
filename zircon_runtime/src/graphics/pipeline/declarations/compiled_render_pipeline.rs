@@ -170,7 +170,7 @@ impl CompiledRenderPipeline {
         self.execution_packet.passes_for_batch(batch)
     }
 
-    pub(in crate::graphics) const fn begin_execution(&self) -> RenderGraphExecutionCursor {
+    pub(in crate::graphics) fn begin_execution(&self) -> RenderGraphExecutionCursor {
         self.execution_packet.begin_execution()
     }
 
@@ -183,9 +183,18 @@ impl CompiledRenderPipeline {
             .admit_execution_pass(cursor, graph_pass_index)
     }
 
+    pub(in crate::graphics) fn skip_surface_present_execution_pass(
+        &self,
+        cursor: &mut RenderGraphExecutionCursor,
+        graph_pass_index: usize,
+    ) -> Result<(), String> {
+        self.execution_packet
+            .skip_surface_present_execution_pass(cursor, graph_pass_index)
+    }
+
     pub(in crate::graphics) fn finish_execution(
         &self,
-        cursor: RenderGraphExecutionCursor,
+        cursor: &RenderGraphExecutionCursor,
     ) -> Result<(), String> {
         self.execution_packet.finish_execution(cursor)
     }
@@ -233,4 +242,5 @@ impl CompiledRenderPipeline {
 }
 
 #[cfg(test)]
+#[path = "compiled_render_pipeline/tests/cases.rs"]
 mod tests;

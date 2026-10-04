@@ -24,6 +24,7 @@ pub(super) fn tooltip_dismissal_target(
         .map(|tooltip| tooltip.tooltip_id.clone())
 }
 
+// tooltip 走输入效果通道，由表面暂态 UI owner 执行 Hide；保留此前目标诊断与原事件所有权。
 pub(super) fn dispatch_tooltip_dismiss(
     surface: &mut UiSurface,
     target: UiNodeId,
@@ -53,5 +54,5 @@ fn into_tooltip_dismiss_parts(result: UiInputDispatchResult) -> (UiInputEvent, V
 }
 
 #[cfg(test)]
-#[path = "tooltip/owned_result_event_tests.rs"]
+#[path = "tooltip/tests/owned_result_event_tests.rs"]
 mod owned_result_event_tests;

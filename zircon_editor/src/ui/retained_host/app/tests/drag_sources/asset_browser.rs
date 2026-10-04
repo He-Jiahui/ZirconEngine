@@ -2,6 +2,245 @@ use super::support::*;
 use super::*;
 
 #[test]
+fn browser_double_click_dispatches_the_selected_asset_open_event() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_browser_double_click_activation");
+    let _asset_browser = harness.open_view("editor.asset_browser");
+    let mut catalog = asset_drag_source_catalog();
+    catalog.assets[0].kind = ResourceKind::AnimationGraph;
+    catalog.assets[0].locator = "res://graphs/locomotion.zag".to_string();
+    catalog.assets[0].file_name = "locomotion.zag".to_string();
+    catalog.assets[0].extension = "zag".to_string();
+
+    {
+        let mut host = harness.host.borrow_mut();
+        host.runtime.sync_asset_catalog(Arc::new(
+            EditorAssetCatalogGeneration::from_snapshot_record(catalog, 1),
+        ));
+        host.mark_layout_dirty();
+        host.refresh_ui();
+    }
+
+    let pane = pane_surface_host(&harness.root_ui);
+    pane.invoke_asset_content_pointer_clicked("browser".into(), 96.0, 96.0, 0.0, 0.0);
+    pane.invoke_asset_content_pointer_clicked("browser".into(), 96.0, 96.0, 0.0, 0.0);
+
+    assert!(
+        harness
+            .host
+            .borrow()
+            .runtime
+            .journal()
+            .records()
+            .iter()
+            .any(|record| {
+                record.event
+                    == EditorEvent::Asset(EditorAssetEvent::OpenAsset {
+                        asset_locator: "res://graphs/locomotion.zag".to_string(),
+                    })
+                    && record.result.error.is_none()
+                    && record
+                        .result
+                        .value
+                        .as_ref()
+                        .and_then(|value| value.get("changed"))
+                        .and_then(serde_json::Value::as_bool)
+                        == Some(true)
+            }),
+        "same-row Browser double click should dispatch OpenAsset without a dispatch error"
+    );
+}
+
+#[test]
+fn browser_double_click_rejects_a_search_changed_before_projection_refresh() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_browser_double_click_stale_projection");
+    let _asset_browser = harness.open_view("editor.asset_browser");
+    let mut catalog = asset_drag_source_catalog();
+    catalog.assets[0].kind = ResourceKind::AnimationGraph;
+    catalog.assets[0].locator = "res://graphs/locomotion.zag".to_string();
+    catalog.assets[0].file_name = "locomotion.zag".to_string();
+    catalog.assets[0].extension = "zag".to_string();
+
+    {
+        let mut host = harness.host.borrow_mut();
+        host.runtime.sync_asset_catalog(Arc::new(
+            EditorAssetCatalogGeneration::from_snapshot_record(catalog, 1),
+        ));
+        host.mark_layout_dirty();
+        host.refresh_ui();
+    }
+
+    let pane = pane_surface_host(&harness.root_ui);
+    pane.invoke_asset_content_pointer_clicked("browser".into(), 96.0, 96.0, 0.0, 0.0);
+    let search_record = harness
+        .host
+        .borrow_mut()
+        .runtime
+        .dispatch_event(
+            crate::core::editor_event::EditorEventSource::RetainedHost,
+            EditorEvent::Asset(EditorAssetEvent::SetSearchQuery {
+                query: "locomotion".to_string(),
+            }),
+        )
+        .expect("search query dispatch should succeed");
+    assert!(search_record.result.error.is_none());
+    assert_eq!(
+        search_record
+            .result
+            .value
+            .as_ref()
+            .and_then(|value| value.get("changed"))
+            .and_then(serde_json::Value::as_bool),
+        Some(true),
+        "search query dispatch should change the current Browser projection"
+    );
+
+    // Keep the retained surface unchanged to exercise the committed-projection window.
+    pane.invoke_asset_content_pointer_clicked("browser".into(), 96.0, 96.0, 0.0, 0.0);
+
+    let host = harness.host.borrow();
+    let stale_status = host
+        .runtime
+        .context()
+        .i18n()
+        .translate("asset.activation.target_changed");
+    assert_eq!(
+        host.runtime.editor_snapshot().status_line,
+        stale_status.as_ref(),
+        "the stale-projection guard should report the localized changed-target status"
+    );
+    assert!(
+        host.runtime.journal().records().iter().all(|record| {
+            record.event
+                != EditorEvent::Asset(EditorAssetEvent::OpenAsset {
+                    asset_locator: "res://graphs/locomotion.zag".to_string(),
+                })
+        }),
+        "stale retained projection must not open after current Browser query changes"
+    );
+}
+
+#[test]
+fn browser_right_click_opens_the_context_target_asset_not_the_selected_asset() {
+    use crate::ui::binding_dispatch::{dispatch_asset_binding, AssetHostEvent};
+
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_browser_context_open_target_identity");
+    let _asset_browser = harness.open_view("editor.asset_browser");
+    let (catalog, target_asset, selected_asset) = asset_drag_source_catalog_with_reference();
+
+    {
+        let mut host = harness.host.borrow_mut();
+        host.runtime.sync_asset_catalog(Arc::new(
+            EditorAssetCatalogGeneration::from_snapshot_record(catalog, 1),
+        ));
+        host.mark_layout_dirty();
+        host.refresh_ui();
+        let snapshot = host.runtime.editor_snapshot();
+        let target_row = snapshot
+            .asset_browser
+            .visible_assets
+            .get(0)
+            .expect("first Browser row should be visible");
+        assert_eq!(target_row.uuid, target_asset.uuid);
+    }
+
+    let selection_record = harness
+        .host
+        .borrow_mut()
+        .runtime
+        .dispatch_event(
+            crate::core::editor_event::EditorEventSource::RetainedHost,
+            EditorEvent::Asset(EditorAssetEvent::SelectItem {
+                asset_uuid: selected_asset.uuid.clone(),
+            }),
+        )
+        .expect("selecting asset B should succeed");
+    assert_eq!(
+        selection_record
+            .result
+            .value
+            .as_ref()
+            .and_then(|value| value.get("changed"))
+            .and_then(serde_json::Value::as_bool),
+        Some(true),
+        "the test must establish asset B as the current selection"
+    );
+
+    {
+        let mut host = harness.host.borrow_mut();
+        host.mark_layout_dirty();
+        host.refresh_ui();
+        assert_eq!(
+            host.runtime
+                .editor_snapshot()
+                .asset_browser
+                .selected_asset_uuid
+                .as_deref(),
+            Some(selected_asset.uuid.as_str())
+        );
+    }
+
+    pane_surface_host(&harness.root_ui).invoke_asset_content_pointer_event(
+        "browser".into(),
+        0,
+        2,
+        96.0,
+        96.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+    );
+
+    let host = harness.host.borrow();
+    assert_eq!(
+        host.runtime
+            .editor_snapshot()
+            .asset_browser
+            .selected_asset_uuid
+            .as_deref(),
+        Some(selected_asset.uuid.as_str()),
+        "right clicking asset A should leave selected asset B unchanged"
+    );
+    let expected_target_path = format!(
+        "workbench://asset/{}?open_locator=7265733a2f2f677269642e616c6265646f2e706e67",
+        target_asset.uuid
+    );
+    let retained_target_path = host
+        .workbench_window_bridge
+        .surface()
+        .tree
+        .nodes
+        .values()
+        .find_map(|node| {
+            node.template_metadata
+                .as_ref()
+                .filter(|metadata| metadata.control_id.as_deref() == Some("WorkbenchContextMenu"))
+                .and_then(|metadata| metadata.attributes.get("context_target_path"))
+                .and_then(|value| value.as_str())
+        })
+        .expect("right-click should retain the Asset Browser context target path");
+    assert_eq!(retained_target_path, expected_target_path);
+
+    let binding = host
+        .workbench_window_bridge
+        .context_menu_item_binding("WorkbenchContextMenu", "menu.item.asset.open")
+        .expect("right-click context menu should expose the Open binding");
+    assert_eq!(
+        dispatch_asset_binding(&binding).expect("Open binding should dispatch to an asset event"),
+        AssetHostEvent::OpenAsset {
+            asset_locator: target_asset.locator,
+        },
+        "Open should dispatch the right-clicked row locator, not selected asset B"
+    );
+}
+
+#[test]
 fn asset_content_pointer_down_arms_active_asset_drag_payload() {
     let _guard = lock_env();
 
@@ -93,8 +332,6 @@ fn asset_reference_pointer_down_arms_active_asset_drag_payload() {
         "browser".into(),
         96.0,
         96.0,
-        0.0,
-        0.0,
         0.0,
         0.0,
     );

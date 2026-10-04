@@ -41,7 +41,7 @@ for (const field of [
 for (const needle of [
   'appendDefaultPresentationIdentityColumns(this);',
   'appendDefaultPresentationIdentityColumns(state);',
-  'writer.u16(<uint>38, 1, 1);', 'schemaVersion != <uint>30', 'schemaVersion != <uint>31',
+  'writer.u16(schemaVersion, 1, 1);', 'schemaVersion != <uint>30', 'schemaVersion != <uint>31',
   'schemaVersion != <uint>32', 'schemaVersion != <uint>33',
   'if (schemaVersion >= <uint>30) {',
   'm8FreshPlayerStats.presentationIdentityColor',
@@ -49,7 +49,7 @@ for (const needle of [
   'state.entitySkinIndices[entityIndex] = skinVariant;',
   'entityState.entityPresentationColors[0] = <uint>1193046;',
 ]) invariant(state.includes(needle), `WOS30 presentation projection omitted: ${needle}`);
-invariant(main.includes('\\"world_state\\":\\"WOS38\\",'), 'package stateSchema must expose WOS38');
+invariant(main.includes('\\"world_state\\":\\"WOS118\\",'), 'package stateSchema must expose WOS118');
 
 process.stdout.write(`checked WOS30 presentation-identity source projection: ${SOURCE_COMMIT.slice(0, 15)}\n`);
 

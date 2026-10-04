@@ -34,10 +34,14 @@ stale row. A source contract requires the exact reserve to precede all missing-r
 | --- | ---: | ---: |
 | Missing row clones | 2,047 | 2,047 |
 | Dynamic capacity growths | multiple | 1 exact reserve |
-| Alternating release benchmark | 11 samples x 32 syncs | optimized P95 <= 90% of retired P95 |
+| Alternating release benchmark | 101 samples x 32 syncs | optimized P95 <= 90% of retired P95 |
 
 The benchmark emits `EDITOR57_EXACT_TABLE_ROW_CAPACITY_BENCH_V1` with both P95 timings, reduction
 basis points, sample/iteration/row counts, and measured retired/optimized capacity growths.
+The 2026-09-29 sample-coverage repair increased the paired sample count from 11 to 101. Under the
+existing nearest-rank estimator, 11 samples selected the maximum; 101 samples select sorted index
+95, leaving five higher observations. The estimator and 10% gate are otherwise unchanged. See
+`2026-09-29-table-row-p95-sample-coverage.md` for the current validation state.
 
 ## Validation
 

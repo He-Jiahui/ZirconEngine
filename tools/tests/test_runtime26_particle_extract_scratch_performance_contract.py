@@ -1,7 +1,7 @@
 from pathlib import Path
 import re
 import unittest
-
+# 粒子提取在帧内复用暂存和遍历栈，真实新旧路径的发布样本决定收益；源码形态与模型不能替代基准执行。
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime/src/scene/world/render_particles.rs"

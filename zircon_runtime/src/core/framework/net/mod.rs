@@ -1,4 +1,5 @@
 //! Networking framework contracts for transport, session, RPC, sync, and download surfaces.
+//! 本模块定义 Runtime 与网络插件共享的数据类型及 NetManager 服务契约；实际网络 I/O 由插件服务执行，HTTP/WebSocket 可通过可替换后端提供。
 
 mod diagnostics;
 mod download;
@@ -64,4 +65,5 @@ pub use websocket::{
 };
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

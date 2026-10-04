@@ -14,7 +14,12 @@ related_code:
   - zircon_runtime/src/scene/reflect/reflect_resource.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/foundation.rs
   - zircon_editor/src/core/editing/command.rs
-  - zircon_editor/src/tests/editing/reflected_command.rs
+  - zircon_editor/src/tests/editing/reflected_command/mod.rs
+  - zircon_editor/src/tests/editing/reflected_command/command_execution.rs
+  - zircon_editor/src/tests/editing/reflected_command/inspector_mutation.rs
+  - zircon_editor/src/tests/editing/reflected_command/multi_selection.rs
+  - zircon_editor/src/tests/editing/reflected_command/schema_editability.rs
+  - zircon_editor/src/tests/editing/reflected_command/snapshot_projection.rs
 tests:
   - .\\.codex\\skills\\zircon-dev\\scripts\\validate-matrix.ps1 -Package zircon_runtime -LibTests
   - .\\.codex\\skills\\zircon-dev\\scripts\\validate-matrix.ps1 -Package zircon_editor -LibTests
@@ -74,3 +79,22 @@ component or resource readback. Runtime08 regressions cover a component adapter 
 publishes a node rename while every read method fails, plus unknown-field rejection
 before adapter dispatch. Editor03 upward history coverage and the declared managed
 package gates remain required before a fixed return.
+
+## Rolling source-contract verification (2026-09-19, Runtime08 owner)
+
+- The current `WorldReflection::reflect_write` implementation performs schema/field
+  lookup and value validation before exactly one `write_field_by_slot` dispatch for
+  both component and resource addresses. It builds `ReflectWriteResponse.field`
+  from the accepted request value and contains no post-publication readback.
+- `post_commit_write.rs` retains the write-only adapter regression (publication
+  succeeds while readback fails) and the unknown-field/no-dispatch regression.
+  `editor_remote.rs` contains the source guard that rejects a second read adapter
+  call. Editor command execution retains the `AppliedThenGatewayFailed` outcome
+  path and the fixed/dynamic reflected-command history tests.
+- Source assertions and `rustfmt --edition 2021 --check` passed for the eight
+  scoped files. This is static evidence only; the managed Runtime08 and Editor03
+  Cargo matrices, the cross-plan history gate, and any performance evidence remain
+  deferred while the coordinator's external validation prerequisite is unresolved.
+
+Current status remains `open / source_contract_static_green / cargo_pending`; no
+fixed return or closeout is claimed from this source-only verification.

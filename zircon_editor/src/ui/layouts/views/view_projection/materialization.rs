@@ -116,6 +116,11 @@ pub(super) fn view_template_nodes_from_surface(
             });
         }
         let component_variant = resolve_component_variant(metadata);
+        let collection_items = if metadata.component == "AgentChat" {
+            string_array_attribute(metadata, "messages")
+        } else {
+            string_array_attribute(metadata, "collection_items")
+        };
         let binding_id = preferred_binding_id(metadata, None).unwrap_or_default();
         let edit_action_id = resolve_edit_action_id(metadata, component_role, &binding_id);
         let commit_action_id = resolve_commit_action_id(metadata);
@@ -162,6 +167,12 @@ pub(super) fn view_template_nodes_from_surface(
             value_percent,
             options: crate::ui::layouts::common::model_rc(
                 options.into_iter().map(SharedString::from).collect(),
+            ),
+            collection_items: crate::ui::layouts::common::model_rc(
+                collection_items
+                    .into_iter()
+                    .map(SharedString::from)
+                    .collect(),
             ),
             dispatch_kind: string_attribute(metadata, "dispatch_kind")
                 .unwrap_or_default()
@@ -314,50 +325,8 @@ fn component_owned_text_control_ids(
 }
 
 #[cfg(test)]
-mod command_ref_tests {
-    use zircon_runtime_interface::ui::{
-        event_ui::UiNodeId,
-        layout::UiFrame,
-        surface::{UiRenderCommand, UiRenderCommandKind, UiResolvedStyle},
-    };
-
-    use super::render_commands_with_refs;
-
-    #[test]
-    fn command_refs_count_within_each_runtime_owner() {
-        let commands = [command(7), command(7), command(9)];
-
-        let refs = render_commands_with_refs(&commands)
-            .map(|(_, command_ref)| {
-                command_ref.map(|command_ref| (command_ref.node_id, command_ref.node_command_index))
-            })
-            .collect::<Vec<_>>();
-
-        assert_eq!(
-            refs,
-            vec![
-                Some((UiNodeId::new(7), 0)),
-                Some((UiNodeId::new(7), 1)),
-                Some((UiNodeId::new(9), 0)),
-            ]
-        );
-    }
-
-    fn command(node_id: u64) -> UiRenderCommand {
-        UiRenderCommand {
-            node_id: UiNodeId::new(node_id),
-            kind: UiRenderCommandKind::Quad,
-            frame: UiFrame::default(),
-            clip_frame: None,
-            z_index: 0,
-            style: UiResolvedStyle::default(),
-            text_layout: None,
-            text: None,
-            image: None,
-            opacity: 1.0,
-        }
-    }
-}
+#[path = "tests/materialization_command_ref_tests.rs"]
+mod command_ref_tests;
 
 fn component_owned_frame_by_control_id(
     surface: &UiSurface,

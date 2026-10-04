@@ -1,3 +1,4 @@
+# 核对模板清单以映射文件计算哈希并保留空文件与打开失败语义。
 from __future__ import annotations
 
 import hashlib
@@ -6,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_export.export_template_manifest import template_file_manifest
+from tools.export.export_template_manifest import template_file_manifest
 
 
 def manifest_for(path: str, payload: bytes) -> dict[str, object]:

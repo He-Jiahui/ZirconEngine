@@ -1,20 +1,21 @@
 mod profile;
 
-use crate::text::SharedTextLayoutSession;
 use crate::text::layout::{
     arabic_kashida_insertion_offsets_bounded, justify_line_advances,
     measure_line_width_with_provider, measure_line_with_provider,
     measured_grapheme_widths_with_provider, tab_aligned_advances,
     validate_arabic_tatweel_candidate,
 };
+use crate::text::layout_geometry::{finite_f32_or_geometry, finite_sum};
 use crate::text::shaping::{TextLayoutOutcome, TextShapingOutcome};
+use crate::text::SharedTextLayoutSession;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextAlign, UiTextDirection};
 
-use super::candidate_line::{CandidateLine, insert_virtual_text};
+use super::candidate_line::{insert_virtual_text, CandidateLine};
 use super::direction::is_rtl_direction;
 use crate::text::text_style;
-use profile::{ARABIC_TATWEEL_RECEIPT_COUNT_MISMATCH_CODE, ArabicTatweelLineProfile};
+use profile::{ArabicTatweelLineProfile, ARABIC_TATWEEL_RECEIPT_COUNT_MISMATCH_CODE};
 
 pub(super) const MIN_TEXT_FONT_SIZE: f32 = 1.0;
 const ARABIC_TATWEEL: &str = "\u{0640}";
@@ -53,12 +54,12 @@ pub(super) fn resolve_line_widths_with_provider(
             TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
         },
     };
-    let natural_width = natural_advances.iter().sum();
+    let natural_width = finite_sum(natural_advances.iter().copied());
     if should_justify_line(line, style, frame_width, is_last_line) {
         if let Some(justified_advances) =
             justify_line_advances(&line.text, &natural_advances, natural_width, frame_width)
         {
-            let justified_width = justified_advances.iter().sum();
+            let justified_width = finite_sum(justified_advances.iter().copied());
             return TextShapingOutcome::Ready((justified_width, justified_advances, frame_width));
         }
     }
@@ -82,7 +83,7 @@ pub(super) fn materialize_arabic_tatweels_for_justified_line(
         TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
         TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
     };
-    let natural_width = natural_advances.iter().sum();
+    let natural_width = finite_sum(natural_advances.iter().copied());
     materialize_arabic_tatweels(line, natural_width, frame_width, style, provider).map(|_| ())
 }
 
@@ -283,88 +284,8 @@ pub(super) fn available_wrap_extent(extent: f32) -> f32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn available_wrap_extent_preserves_narrow_finite_constraints() {
-        assert_eq!(available_wrap_extent(0.25), 0.25);
-        assert_eq!(available_wrap_extent(-0.25), 0.0);
-        assert_eq!(available_wrap_extent(f32::NAN), 0.0);
-        assert_eq!(available_wrap_extent(f32::INFINITY), f32::INFINITY);
-    }
-
-    #[test]
-    fn arabic_tatweel_budget_snapshot_matches_the_fit_algorithm_bounds() {
-        let budget = arabic_tatweel_budget_snapshot();
-
-        assert_eq!(
-            budget.max_materialized_tatweels_per_line,
-            MAX_ARABIC_TATWEELS_PER_LINE
-        );
-        assert_eq!(
-            budget.max_fit_measurements_per_line,
-            MAX_ARABIC_TATWEEL_FIT_MEASUREMENTS
-        );
-    }
-
-    #[test]
-    fn arabic_tatweel_fit_uses_a_proportional_bounded_probe() {
-        let mut attempted_counts = Vec::new();
-        let count = bounded_arabic_tatweel_fit_count(32, 0.0, 100.0, |candidate_count| {
-            attempted_counts.push(candidate_count);
-            TextShapingOutcome::Ready(Some(candidate_count as f32 * 4.0))
-        })
-        .into_result()
-        .expect("candidate probes remain available");
-
-        assert_eq!(count, Some(25));
-        assert_eq!(attempted_counts, vec![32, 25]);
-    }
-
-    #[test]
-    fn arabic_tatweel_fit_limits_unsuccessful_shape_probes() {
-        let mut attempted_counts = Vec::new();
-        let count = bounded_arabic_tatweel_fit_count(32, 0.0, 100.0, |candidate_count| {
-            attempted_counts.push(candidate_count);
-            TextShapingOutcome::Ready(Some(1_000.0))
-        })
-        .into_result()
-        .expect("candidate probes remain available");
-
-        assert_eq!(count, None);
-        assert!(attempted_counts.len() <= MAX_ARABIC_TATWEEL_FIT_MEASUREMENTS);
-        assert_eq!(attempted_counts.last(), Some(&1));
-    }
-
-    #[test]
-    fn arabic_tatweel_fit_reserves_its_last_probe_for_one_real_tatweel() {
-        let mut attempted_counts = Vec::new();
-        let count = bounded_arabic_tatweel_fit_count(32, 0.0, 100.0, |candidate_count| {
-            attempted_counts.push(candidate_count);
-            TextShapingOutcome::Ready(Some(100.0 + candidate_count as f32 * 0.001))
-        })
-        .into_result()
-        .expect("candidate probes remain available");
-
-        assert_eq!(count, Some(1));
-        assert_eq!(attempted_counts, vec![32, 31, 30, 29, 1]);
-    }
-
-    #[test]
-    fn arabic_tatweel_fit_retries_one_candidate_after_backend_safety_rejection() {
-        let mut attempted_counts = Vec::new();
-        let count = bounded_arabic_tatweel_fit_count(32, 0.0, 100.0, |candidate_count| {
-            attempted_counts.push(candidate_count);
-            TextShapingOutcome::Ready((candidate_count == 1).then_some(4.0))
-        })
-        .into_result()
-        .expect("candidate probes remain available");
-
-        assert_eq!(count, Some(1));
-        assert_eq!(attempted_counts, vec![32, 1]);
-    }
-}
+#[path = "tests/line_box.rs"]
+mod tests;
 
 pub(super) fn aligned_x(
     frame: UiFrame,
@@ -372,14 +293,27 @@ pub(super) fn aligned_x(
     align: UiTextAlign,
     direction: UiTextDirection,
 ) -> f32 {
-    match align {
-        UiTextAlign::Left => frame.x,
-        UiTextAlign::Center => frame.x + (frame.width - line_width) * 0.5,
-        UiTextAlign::Right => frame.right() - line_width,
-        UiTextAlign::Start if is_rtl_direction(direction) => frame.right() - line_width,
-        UiTextAlign::Start => frame.x,
-        UiTextAlign::End if is_rtl_direction(direction) => frame.x,
-        UiTextAlign::End => frame.right() - line_width,
-        UiTextAlign::Justify => frame.x,
-    }
+    let (candidate, exact) = match align {
+        UiTextAlign::Left => (frame.x, f64::from(frame.x)),
+        UiTextAlign::Center => (
+            frame.x + (frame.width - line_width) * 0.5,
+            f64::from(frame.x) + (f64::from(frame.width) - f64::from(line_width)) * 0.5,
+        ),
+        UiTextAlign::Right => (
+            frame.right() - line_width,
+            f64::from(frame.x) + f64::from(frame.width) - f64::from(line_width),
+        ),
+        UiTextAlign::Start if is_rtl_direction(direction) => (
+            frame.right() - line_width,
+            f64::from(frame.x) + f64::from(frame.width) - f64::from(line_width),
+        ),
+        UiTextAlign::Start => (frame.x, f64::from(frame.x)),
+        UiTextAlign::End if is_rtl_direction(direction) => (frame.x, f64::from(frame.x)),
+        UiTextAlign::End => (
+            frame.right() - line_width,
+            f64::from(frame.x) + f64::from(frame.width) - f64::from(line_width),
+        ),
+        UiTextAlign::Justify => (frame.x, f64::from(frame.x)),
+    };
+    finite_f32_or_geometry(candidate, exact)
 }

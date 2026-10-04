@@ -55,9 +55,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process_screen_space_reflection.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/hzb_params.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_hzb_build/execute_hzb_build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_ssao/execute_ssao.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/hzb.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/ssao.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/hzb_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_fallback_texture_views/hzb_source_texture_view.rs
   - zircon_runtime/src/core/framework/render/camera.rs

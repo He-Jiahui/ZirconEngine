@@ -13,6 +13,7 @@ closeEnough(value: float, expected: float): bool {
     return delta < 0.00000001;
 }
 
+// 运动路由当前使用固定碰撞集合；safe_position 在 collision_grid 另行纳入装饰候选，两条边界须分别核对。
 pub resolveBuiltinStaticCoordinate(
     x: float,
     z: float,

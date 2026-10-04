@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对自定义着色模型的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 const STATUS: &str = "render_plan08_material_custom_shading_model_runtime_registry_material_test_static_guard_passed_cargo_guard_timeout_renderdoc_deferred";
@@ -29,7 +30,7 @@ fn runtime_15_material_custom_shading_model_runtime_registry_is_wired() {
     let registration_inputs =
         read_runtime_src("builtin/runtime_modules/assembly/registration_inputs.rs");
     let registration_input_tests =
-        read_runtime_src("builtin/runtime_modules/assembly/registration_inputs/tests.rs");
+        read_runtime_src("builtin/runtime_modules/assembly/registration_inputs/tests/cases.rs");
     let target_modules = read_runtime_src("builtin/runtime_modules/assembly/target_modules.rs");
     let core_modules = read_runtime_src("builtin/runtime_modules/core_modules.rs");
     let graphics_module = read_runtime_src("graphics/runtime_builtin_graphics/mod.rs");
@@ -61,7 +62,7 @@ fn runtime_15_material_custom_shading_model_runtime_registry_is_wired() {
         "graphics/scene/scene_renderer/deferred/lighting_pipeline/shader_source.rs",
     );
     let deferred_lighting_tests =
-        read_runtime_src("graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs");
+        read_runtime_src("graphics/scene/scene_renderer/deferred/lighting_pipeline/tests/cases.rs");
     let deferred_lighting_runtime_pipeline_tests = read_runtime_src(
         "graphics/scene/scene_renderer/deferred/lighting_pipeline/tests/runtime_pipeline.rs",
     );
@@ -82,7 +83,7 @@ fn runtime_15_material_custom_shading_model_runtime_registry_is_wired() {
     let mesh_shader_source =
         read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs");
     let mesh_shader_source_tests = read_runtime_src(
-        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests.rs",
+        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/cases.rs",
     );
     let mesh_shader_source_runtime_tests = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/runtime_shading_model_sources.rs",
@@ -107,7 +108,7 @@ fn runtime_15_material_custom_shading_model_runtime_registry_is_wired() {
         "graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_capture.rs",
     );
     let material_tests =
-        read_runtime_src("graphics/scene/render_product_streamer_tests/material_runtime.rs");
+        read_runtime_src("graphics/scene/render_product_streamer_tests/tests/material_runtime.rs");
     let dynamic_shader_prewarm = read_runtime_src("dynamic_api/shader_prewarm.rs");
     let material_pass_product_custom = read_runtime_src(
         "graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/custom_shading_model.rs",

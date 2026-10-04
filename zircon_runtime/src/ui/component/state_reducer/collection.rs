@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{btree_map::Entry, BTreeMap};
 
 use zircon_runtime_interface::ui::component::{
     UiComponentEventError, UiComponentState, UiValidationState, UiValue,
@@ -15,13 +15,21 @@ pub(super) fn set_array_element(
     index: usize,
     value: UiValue,
 ) -> Result<(), UiComponentEventError> {
-    if index >= array_value_mut(state, &property).len() {
+    let updated = {
+        let values = array_value_mut(state, &property);
+        if let Some(existing) = values.get_mut(index) {
+            *existing = value;
+            true
+        } else {
+            false
+        }
+    };
+    if !updated {
         state.validation = UiValidationState::error(format!(
             "array property `{property}` has no element at index {index}"
         ));
         return Err(UiComponentEventError::ArrayIndexOutOfBounds { property, index });
     }
-    array_value_mut(state, &property)[index] = value;
     clear_reference_source(state, &property);
     Ok(())
 }
@@ -31,13 +39,21 @@ pub(super) fn remove_array_element(
     property: String,
     index: usize,
 ) -> Result<(), UiComponentEventError> {
-    if index >= array_value_mut(state, &property).len() {
+    let removed = {
+        let values = array_value_mut(state, &property);
+        if index < values.len() {
+            values.remove(index);
+            true
+        } else {
+            false
+        }
+    };
+    if !removed {
         state.validation = UiValidationState::error(format!(
             "array property `{property}` has no element at index {index}"
         ));
         return Err(UiComponentEventError::ArrayIndexOutOfBounds { property, index });
     }
-    array_value_mut(state, &property).remove(index);
     clear_reference_source(state, &property);
     Ok(())
 }
@@ -48,7 +64,17 @@ pub(super) fn move_array_element(
     from: usize,
     to: usize,
 ) -> Result<(), UiComponentEventError> {
-    if from >= array_value_mut(state, &property).len() {
+    let moved = {
+        let values = array_value_mut(state, &property);
+        if from >= values.len() {
+            false
+        } else {
+            let value = values.remove(from);
+            values.insert(to.min(values.len()), value);
+            true
+        }
+    };
+    if !moved {
         state.validation = UiValidationState::error(format!(
             "array property `{property}` has no element at index {from}"
         ));
@@ -57,9 +83,6 @@ pub(super) fn move_array_element(
             index: from,
         });
     }
-    let values = array_value_mut(state, &property);
-    let value = values.remove(from);
-    values.insert(to.min(values.len()), value);
     clear_reference_source(state, &property);
     Ok(())
 }
@@ -70,11 +93,20 @@ pub(super) fn add_map_entry(
     key: String,
     value: UiValue,
 ) -> Result<(), UiComponentEventError> {
-    if map_value_mut(state, &property).contains_key(&key) {
+    let duplicate_key = {
+        let values = map_value_mut(state, &property);
+        match values.entry(key) {
+            Entry::Vacant(entry) => {
+                entry.insert(value);
+                None
+            }
+            Entry::Occupied(entry) => Some(entry.key().clone()),
+        }
+    };
+    if let Some(key) = duplicate_key {
         state.validation = UiValidationState::error(format!("map key `{key}` already exists"));
         return Err(UiComponentEventError::DuplicateMapKey { property, key });
     }
-    map_value_mut(state, &property).insert(key, value);
     clear_reference_source(state, &property);
     Ok(())
 }
@@ -85,11 +117,19 @@ pub(super) fn set_map_entry(
     key: String,
     value: UiValue,
 ) -> Result<(), UiComponentEventError> {
-    if !map_value_mut(state, &property).contains_key(&key) {
+    let updated = {
+        let values = map_value_mut(state, &property);
+        if let Some(existing) = values.get_mut(&key) {
+            *existing = value;
+            true
+        } else {
+            false
+        }
+    };
+    if !updated {
         state.validation = UiValidationState::error(format!("map key `{key}` does not exist"));
         return Err(UiComponentEventError::MissingMapKey { property, key });
     }
-    map_value_mut(state, &property).insert(key, value);
     clear_reference_source(state, &property);
     Ok(())
 }
@@ -145,11 +185,11 @@ pub(super) fn remove_map_entry(
     property: String,
     key: String,
 ) -> Result<(), UiComponentEventError> {
-    if !map_value_mut(state, &property).contains_key(&key) {
+    let removed = map_value_mut(state, &property).remove(&key).is_some();
+    if !removed {
         state.validation = UiValidationState::error(format!("map key `{key}` does not exist"));
         return Err(UiComponentEventError::MissingMapKey { property, key });
     }
-    map_value_mut(state, &property).remove(&key);
     clear_reference_source(state, &property);
     Ok(())
 }
@@ -158,6 +198,7 @@ fn clear_reference_source(state: &mut UiComponentState, property: &str) {
     state.reference_sources.remove(property);
 }
 
+// 这里先把缺失或异型属性规范为空数组；后续索引失败仍可能留下该规范化结果，只有成功变更才清除引用来源。
 fn array_value_mut<'a>(state: &'a mut UiComponentState, property: &str) -> &'a mut Vec<UiValue> {
     if !matches!(state.values.get(property), Some(UiValue::Array(_))) {
         state
@@ -171,8 +212,12 @@ fn array_value_mut<'a>(state: &'a mut UiComponentState, property: &str) -> &'a m
 }
 
 #[cfg(test)]
-#[path = "collection/map_single_resolution_tests.rs"]
+#[path = "collection/tests/map_single_resolution_tests.rs"]
 mod map_single_resolution_tests;
+
+#[cfg(test)]
+#[path = "collection/tests/mutation_single_resolution_tests.rs"]
+mod mutation_single_resolution_tests;
 
 fn map_value_mut<'a>(
     state: &'a mut UiComponentState,

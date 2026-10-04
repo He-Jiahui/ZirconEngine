@@ -1,5 +1,8 @@
+//! 后处理共享片元着色器的 29 个绑定布局；索引与 `post_process.wgsl` 的声明逐项对应。
+//! 场景深度绑定（11）随后端模式切换深度纹理或浮点回退视图，其余绑定保持相同布局。
 use super::super::super::depth_sampling_mode::PostProcessDepthSamplingMode;
 
+/// 创建共享后处理管线使用的布局，并将后端深度采样模式落实到绑定 11。
 pub(crate) fn post_process(
     device: &wgpu::Device,
     depth_sampling_mode: PostProcessDepthSamplingMode,
@@ -301,51 +304,5 @@ fn post_process_entries(
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::graphics::resource_limits::POST_PROCESS_REQUIRED_SAMPLED_TEXTURES_PER_SHADER_STAGE;
-
-    use super::*;
-
-    #[test]
-    fn post_process_layout_sampled_texture_count_matches_device_request_limit() {
-        let entries = post_process_entries(PostProcessDepthSamplingMode::RawDepthTexture);
-
-        assert_eq!(entries.len(), 29);
-        assert_eq!(
-            sampled_texture_binding_count(&entries),
-            POST_PROCESS_REQUIRED_SAMPLED_TEXTURES_PER_SHADER_STAGE
-        );
-    }
-
-    #[test]
-    fn post_process_layout_binds_resolved_exposure_storage_buffer() {
-        let entries = post_process_entries(PostProcessDepthSamplingMode::RawDepthTexture);
-        let exposure_entry = entries
-            .iter()
-            .find(|entry| entry.binding == 28)
-            .expect("post-process layout should bind resolved exposure");
-
-        assert!(
-            exposure_entry
-                .visibility
-                .contains(wgpu::ShaderStages::FRAGMENT)
-        );
-        assert!(matches!(
-            exposure_entry.ty,
-            wgpu::BindingType::Buffer {
-                ty: wgpu::BufferBindingType::Storage { read_only: true },
-                ..
-            }
-        ));
-    }
-
-    fn sampled_texture_binding_count(entries: &[wgpu::BindGroupLayoutEntry]) -> u32 {
-        entries
-            .iter()
-            .filter(|entry| {
-                entry.visibility.contains(wgpu::ShaderStages::FRAGMENT)
-                    && matches!(entry.ty, wgpu::BindingType::Texture { .. })
-            })
-            .count() as u32
-    }
-}
+#[path = "tests/post_process.rs"]
+mod tests;

@@ -8,7 +8,7 @@ use super::super::{
     GpuSceneJournalConsumer, GpuSceneJournalReprojectionError,
     GpuSceneJournalReprojectionPreflightError, GpuSceneJournalResidentWriteKind,
 };
-use super::{TestStagingError, stable_key, test_primitive, test_primitive_with, test_world};
+use super::{stable_key, test_primitive, test_primitive_with, test_world, TestStagingError};
 
 #[test]
 fn render_gpu_scene_journal_reprojection_is_full_and_slot_ordered_without_generation_reset() {

@@ -181,7 +181,7 @@ without a compatibility descriptor or source copy. It was released before start
 (no command, PID, or Cargo evidence) rather than used as a substitute for the
 declared source-bound focused gate.
 
-The public module document `docs/zircon_runtime/asset/artifact.md` still
+The public module document `docs/crates/zircon_runtime/asset/artifact.md` still
 describes the retired single-file magic-plus-compressed-payload store and its
 old structural-audit counts. It must be updated by the documentation owner to
 describe the v3 manifest, immutable chunks, revision identity, and current
@@ -252,3 +252,53 @@ layers.
 Remaining acceptance stays open for that managed terminal evidence, quantitative
 4 KiB/256 MiB/1 GiB cold/warm/1% matrices, and the Runtime11/IBL/Render13 shared
 I/O and semantic-section ownership layer.
+
+### 2026-09-09 current-source regression repair
+
+The current store uses schema v6 / `ZRARTM06`. The v3 descriptions and review
+results above remain historical evidence. Snapshot `3322` first executed the
+current no-default-feature artifact filter in managed Windows job
+`8636a8335e754cd3ad7ba0a46ed1fcdc`: 40 passed and 4 failed. The failures were
+obsolete assertions at four distinct boundaries:
+
+- Publication now uses the prepared artifact path and manifest payload. The
+  source guard follows `atomic_write(&prepared.artifact_path, &prepared.payload)`.
+- The no-allocation identity guard now inspects `publish_chunks` itself. The
+  separate complete-content hash string is not a per-chunk identity clone.
+- The final-chunk corruption test corrupts bytes without changing their length,
+  verifies that the already validated resident generation remains readable,
+  trims residency, then requires a cold read to reject the changed chunk hash.
+- Legacy text at a `.zasset` locator tests the typed unsupported-format error.
+  A separate real write/read fixture places a current manifest at `.json` and
+  requires the typed extension error while the original artifact remains valid.
+
+Snapshot `3324` freezes the three changed test owners:
+
+- `zircon_runtime/src/asset/tests/assets/artifact_store.rs`:
+  `5eedbe2a22a0a954dedcffef794e2467e12d3c2524138f2d95cfb8807d67421a`.
+- `zircon_runtime/src/asset/tests/assets/artifact_store/artifact_cache_assets.rs`:
+  `a94ea343f3f169f845b3145c460a22e8533cd1501d6630109ad9410fa5b3810d`.
+- `zircon_runtime/src/asset/tests/assets/artifact_store/lazy_residency.rs`:
+  `2145d02de5d5aea4583a3a631272acaa216036f3183965b61f44cfc83be25a65`.
+
+Managed Windows job `b8efea2510804ec98aede9fb7b550030` completed with exit 0:
+**45 passed, 0 failed, 0 ignored**. The executed filter was
+`asset::tests::assets::artifact_store`, using `validate-matrix.ps1` with
+`-Package zircon_runtime -NoDefaultFeatures -SkipBuild -LinkMode static
+-Linker auto -StorageMode reuse -LibTests`; Cargo retained `--locked`.
+The sealed input is
+`E:/cargo-targets/zircon-engine/cache/build-benchmarks/runtime04-artifact-3324-20260909`,
+manifest `75caa33ed2c34a160c07b2100bcba4b6dc61af64400d86ef5b57fc67fd07bf45`.
+Its `results/runtime04-artifact-3324-r1.json` binds the managed receipt and command;
+the sibling `.log` preserves actual test execution. Production `store.rs` and
+`chunk_residency.rs` match hashes
+`a403afa5da499dd4701e9b80b00c9ead14e591aa73196247792de47e545a68a4`
+and `6b84ccdafd0d8aa56304b5df93cbe74269943f0c3d2a57f360df0541ef0d9fbe`.
+
+Scoped `git diff --check` passed. Whole-file rustfmt checking still reports
+pre-existing formatting in the artifact tests, so no new formatting pass is
+claimed. The module document now describes v6 and the warm/cold corruption
+boundary. This focused gate does not replace the declared size/performance
+matrices, typed UI DTO removal, semantic IBL sections, Runtime11 budget gates,
+or the Editor/export consumer acceptance. Independent review, `failure return`,
+closeout SHA, and WeCom result remain pending; this lifecycle stays open.

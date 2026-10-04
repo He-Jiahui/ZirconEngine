@@ -20,7 +20,7 @@ plan_sources:
   - .codex/plans/全系统重构方案.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
   - docs/plans/engine-code-structure-convention.md
-  - docs/engine-architecture/workspace-root-rules-and-hard-cutover.md
+  - docs/architecture/workspace-root-rules-and-hard-cutover.md
   - docs/plans/zircon_runtime/runtime/index.md
 ---
 
@@ -63,7 +63,7 @@ Frameworks 总索引只保留计划集当前现状、架构决策与子计划路
 | P3 | 域 feature/cfg 与 profile/domain CI source matrix 已落地；真实剩余是运行期 module/plugin selection 仍手写在 `runtime_profile/defaults.rs`，尚未与 feature preset TOML 单源生成，current-main acceptance 也 pending | `zircon_runtime/runtime-feature-presets.toml`、`src/plugin/runtime_profile/defaults.rs` | 03 |
 | P4 | 四阶段 lifecycle、InitLevel、descriptor 与统一 sorter spine 已落地；Minimal 等生产组装仍有独立构造/选择路径，真实 readiness signal、SDK/native/managed consumers 与 current managed acceptance 未闭合 | `src/core/runtime/lifecycle.rs`、`src/builtin/runtime_modules`、`zircon_app/src/plugins` | 02 |
 | P5 | runtime `declare_plugin!`、generated manifest parity、typed `PluginLoadError` 与 live-host/fixture reload 已落地；dist ABI identity/capability/symbol 仍手写，Rust `cargo-zircon` 三命令不存在，gltf importer reload callbacks 仍为空 | `zircon_plugins/plugin_sdk/src/declaration.rs`、`zircon_plugins/gltf_importer/dist/src/lib.rs`、`zircon_runtime/src/plugin/native_plugin_loader` | 04 |
-| P6 | 统一 convention runner、fmt、scoped clippy、docs、layering/structure 与 profile/domain matrix 已接 CI；全库 G7 仍 RED，G5 `cargo-zircon` 与 G6 cargo-deny 未落地，Runtime 全量 clippy/真实分支 acceptance 仍 pending | `.github/workflows/ci.yml`、`tools/check_conventions.py`、`docs/plans/engine-code-structure-convention.md` | 06 |
+| P6 | 统一 convention runner、fmt、scoped clippy、docs、layering/structure 与 profile/domain matrix 已接 CI；全库 G7 仍 RED，G5 `cargo-zircon` 与 G6 cargo-deny 未落地，Runtime 全量 clippy/真实分支 acceptance 仍 pending | `.github/workflows/ci.yml`、`tools/audits/check_conventions.py`、`docs/plans/engine-code-structure-convention.md` | 06 |
 | P7 | 开发期链接慢：无 bevy_dylib/fyrox-dylib 式 `dynamic_linking` 开发模式 | 对照 `dev/bevy/crates/bevy_dylib`、`dev/Fyrox/fyrox-dylib` | 01 |
 
 同时确认的**健康面**（保持，不推倒）：core 脊柱角色清晰、生产文件继续受 1000 行门禁约束、native 插件主 ABI v3 与 behavior ABI v4 均有版本化/能力协商、profile 六态与显式 feature preset 单源已成文。M1 不用推倒这些合同，只改变其物理编译 owner。

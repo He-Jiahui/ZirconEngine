@@ -1,3 +1,4 @@
+//! 解析后相机目标携带纹理句柄、尺寸及格式，图导入和写回必须共用这份契约。
 use crate::core::framework::render::{RenderCameraTarget, RenderCameraTargetKind};
 use crate::core::math::UVec2;
 use crate::core::resource::{ResourceHandle, TextureMarker};
@@ -80,4 +81,5 @@ fn format_label_matches(actual: &str, expected: &str) -> bool {
 }
 
 #[cfg(test)]
+#[path = "viewport_render_output_target/tests/cases.rs"]
 mod tests;

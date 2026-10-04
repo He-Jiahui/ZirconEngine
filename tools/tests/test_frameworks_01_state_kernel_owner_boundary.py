@@ -3,7 +3,7 @@ import subprocess
 import unittest
 from pathlib import Path
 
-from tools.runtime_domain_dependency_audit import _rust_code_view, _rust_use_paths
+from tools.audits.runtime_domain_dependency_audit import _rust_code_view, _rust_use_paths
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -123,7 +123,7 @@ def product_rust_candidate_paths() -> list[Path]:
         if relative_path.startswith(PRODUCT_SOURCE_ROOTS)
     ]
 
-
+# 对照状态机内核与旧框架模块，验证转换观测留在单一内核归属，并拒绝产品源码引用旧 owner。
 class Frameworks01StateKernelOwnerBoundaryTests(unittest.TestCase):
     def test_state_machine_has_one_kernel_owner_and_no_old_framework_owner(self) -> None:
         self.assertFalse(

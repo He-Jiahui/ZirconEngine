@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{
-    Arc, Mutex, MutexGuard,
     atomic::{AtomicBool, Ordering},
+    Arc, Mutex, MutexGuard,
 };
 
 use crate::core::{CoreHandle, JobHandle, JobScheduler};
@@ -285,13 +285,7 @@ where
         return Ok(());
     }
 
-    if let [
-        first_system_id,
-        second_system_id,
-        third_system_id,
-        fourth_system_id,
-    ] = system_ids
-    {
+    if let [first_system_id, second_system_id, third_system_id, fourth_system_id] = system_ids {
         let first_task = registry.task_for_system(first_system_id)?;
         let second_task = registry.task_for_system(second_system_id)?;
         let third_task = registry.task_for_system(third_system_id)?;
@@ -309,13 +303,8 @@ where
         return Ok(());
     }
 
-    if let [
-        first_system_id,
-        second_system_id,
-        third_system_id,
-        fourth_system_id,
-        fifth_system_id,
-    ] = system_ids
+    if let [first_system_id, second_system_id, third_system_id, fourth_system_id, fifth_system_id] =
+        system_ids
     {
         let first_task = registry.task_for_system(first_system_id)?;
         let second_task = registry.task_for_system(second_system_id)?;
@@ -346,14 +335,8 @@ where
         return Ok(());
     }
 
-    if let [
-        first_system_id,
-        second_system_id,
-        third_system_id,
-        fourth_system_id,
-        fifth_system_id,
-        sixth_system_id,
-    ] = system_ids
+    if let [first_system_id, second_system_id, third_system_id, fourth_system_id, fifth_system_id, sixth_system_id] =
+        system_ids
     {
         let first_task = registry.task_for_system(first_system_id)?;
         let second_task = registry.task_for_system(second_system_id)?;
@@ -468,53 +451,5 @@ fn lock_batch_result<E>(
 }
 
 #[cfg(test)]
-mod tests {
-    use std::panic::{AssertUnwindSafe, catch_unwind};
-
-    use super::*;
-
-    #[test]
-    fn cloned_task_registry_shares_frozen_task_map_until_mutated() {
-        let mut registry = ScheduleParallelTaskRegistry::<()>::new();
-        registry.register("system.alpha", || Ok(()));
-
-        let snapshot = registry.clone();
-        assert!(Arc::ptr_eq(&registry.tasks, &snapshot.tasks));
-
-        registry.register("system.beta", || Ok(()));
-
-        assert!(!Arc::ptr_eq(&registry.tasks, &snapshot.tasks));
-        assert!(snapshot.contains("system.alpha"));
-        assert!(!snapshot.contains("system.beta"));
-        assert!(registry.contains("system.beta"));
-    }
-
-    #[test]
-    fn schedule_parallel_executor_batch_result_slot_recovers_poisoned_lock() {
-        let slot: Mutex<Option<ScheduleParallelBatchResult<&'static str>>> =
-            Mutex::new(Some(Ok(())));
-
-        let _ = catch_unwind(AssertUnwindSafe(|| {
-            let _guard = slot.lock().unwrap();
-            panic!("poison schedule parallel executor batch result slot");
-        }));
-
-        let recovered = lock_batch_result::<&'static str>(&slot)
-            .take()
-            .expect("batch result should remain available after poison recovery");
-        assert_eq!(recovered, Ok(()));
-
-        *lock_batch_result(&slot) = Some(Err(ScheduleParallelExecutorError::MissingTask {
-            system_id: "missing.task".to_string(),
-        }));
-        let recovered = lock_batch_result(&slot)
-            .take()
-            .expect("missing-task result should remain available");
-        assert_eq!(
-            recovered,
-            Err(ScheduleParallelExecutorError::MissingTask {
-                system_id: "missing.task".to_string()
-            })
-        );
-    }
-}
+#[path = "tests/schedule_parallel_executor.rs"]
+mod tests;

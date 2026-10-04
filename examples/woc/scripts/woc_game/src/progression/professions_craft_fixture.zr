@@ -86,6 +86,7 @@ pub primeRitualVestmentsMaterials(state: ProfessionsCraftFixtureState): void {
     crafting.setMaterial(state.transaction, contract.recipe1ReagentId1(true), 1, true, true);
 }
 
+/// 先让制作事务确定成功和抽签结果，再把普通产物叠栈或将名匠加成写入独立实例；失败不得改变物品账本。
 pub craftFixtureRecipe(
     state: ProfessionsCraftFixtureState,
     recipeIndex: int,

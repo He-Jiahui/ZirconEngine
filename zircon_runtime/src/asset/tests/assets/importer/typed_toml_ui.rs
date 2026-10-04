@@ -1,6 +1,7 @@
 use super::*;
 
 #[test]
+#[cfg(feature = "ui")]
 fn importer_registry_routes_zui_to_document_backend() {
     let root = unique_temp_project_root("zui_registry");
     fs::create_dir_all(&root).unwrap();

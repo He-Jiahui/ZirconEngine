@@ -5,7 +5,7 @@ pub(super) fn selected_root_layout(
     presentation: &HostWindowPresentationData,
 ) -> &HostWindowLayoutData {
     let scene_layout = &presentation.host_scene_data.layout;
-    if has_visible_root_frame(scene_layout) {
+    if scene_layout.authoritative || has_visible_root_frame(scene_layout) {
         scene_layout
     } else {
         &presentation.host_layout

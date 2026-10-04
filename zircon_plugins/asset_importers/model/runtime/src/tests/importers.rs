@@ -17,7 +17,7 @@ fn stl_importer_decodes_ascii_triangle() {
             assert_eq!(model.primitives.len(), 1);
             assert_eq!(model.primitives[0].vertices.len(), 3);
             assert_eq!(model.primitives[0].indices, vec![0, 1, 2]);
-            assert!(model.primitives[0].virtual_geometry.is_some());
+            assert!(model.primitives[0].virtual_geometry.is_none());
         }
         other => panic!("unexpected imported asset: {other:?}"),
     }
@@ -36,7 +36,7 @@ fn ply_importer_decodes_ascii_triangle() {
             assert_eq!(model.primitives[0].vertices.len(), 3);
             assert_eq!(model.primitives[0].indices, vec![0, 1, 2]);
             assert_eq!(model.primitives[0].vertices[1].uv[0], 1.0);
-            assert!(model.primitives[0].virtual_geometry.is_some());
+            assert!(model.primitives[0].virtual_geometry.is_none());
         }
         other => panic!("unexpected imported asset: {other:?}"),
     }
@@ -54,9 +54,47 @@ fn dxf_importer_decodes_3dface_triangle() {
             assert_eq!(model.primitives.len(), 1);
             assert_eq!(model.primitives[0].vertices.len(), 3);
             assert_eq!(model.primitives[0].indices, vec![0, 1, 2]);
-            assert!(model.primitives[0].virtual_geometry.is_some());
+            assert!(model.primitives[0].virtual_geometry.is_none());
         }
         other => panic!("unexpected imported asset: {other:?}"),
+    }
+}
+
+#[test]
+fn model_importers_cook_virtual_geometry_when_explicitly_enabled() {
+    let import_settings: toml::Table = toml::from_str(
+        r#"
+            [virtual_geometry]
+            enabled = true
+        "#,
+    )
+    .unwrap();
+
+    for (path, source) in [
+        ("enabled.stl", ascii_stl_fixture()),
+        ("enabled.ply", ascii_ply_fixture()),
+        ("enabled.dxf", ascii_dxf_3dface_fixture()),
+    ] {
+        let outcome = import_fixture_outcome_with_settings(path, source, import_settings.clone());
+        match root_imported(&outcome) {
+            ImportedAsset::Model(model) => {
+                assert_eq!(model.primitives.len(), 1);
+                assert!(
+                    model.primitives[0].virtual_geometry.is_some(),
+                    "{path} root primitive should retain explicitly requested virtual geometry"
+                );
+            }
+            other => panic!("unexpected imported asset: {other:?}"),
+        }
+        let mesh_has_virtual_geometry = outcome.entries.iter().find_map(|entry| match &entry.asset {
+            ImportedAsset::Mesh(mesh) => Some(mesh.virtual_geometry.is_some()),
+            _ => None,
+        });
+        assert_eq!(
+            mesh_has_virtual_geometry,
+            Some(true),
+            "{path} mesh subasset should retain explicitly requested virtual geometry"
+        );
     }
 }
 

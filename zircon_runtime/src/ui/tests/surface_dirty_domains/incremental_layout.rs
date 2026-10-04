@@ -12,6 +12,186 @@ fn incremental_layout_records_geometry_deltas_during_arrangement() {
 }
 
 #[test]
+fn incremental_layout_report_merge_and_patch_reserve_bounded_capacity() {
+    let source = include_str!("../../surface/surface/rebuild/incremental.rs");
+    let merge = source
+        .split("fn merge_incremental_layout_engine_report")
+        .nth(1)
+        .expect("incremental report merge helper should exist");
+    let patch = source
+        .split("fn patch_incremental_layout_engine_report")
+        .nth(1)
+        .expect("incremental report patch helper should exist");
+
+    assert!(
+        merge.contains("let mut selections = Vec::with_capacity(")
+            && merge.contains("saturating_add(incremental.selections.len())"),
+        "report merge must reserve against both source report bounds"
+    );
+    assert!(
+        patch.contains("let mut replacements = Vec::with_capacity(visited_node_ids.len());"),
+        "report patch must reserve against the visited-node bound"
+    );
+}
+
+#[test]
+fn malformed_root_sizes_reach_a_zero_work_steady_state_at_scale() {
+    for node_count in [1_000, 10_000] {
+        let mut surface = free_surface_with_children(
+            "runtime.ui.incremental_layout.malformed_root_size",
+            node_count,
+        );
+        let malformed = UiSize::new(f32::NAN, f32::INFINITY);
+        surface.compute_layout(malformed).unwrap();
+        surface.clear_dirty_flags();
+
+        let root_frame = surface.arranged_tree.get(root_id()).unwrap().frame;
+        assert_eq!(root_frame, UiFrame::new(0.0, 0.0, 0.0, 0.0));
+        for _ in 0..100 {
+            let report = surface
+                .rebuild_dirty(UiSize::new(f32::NEG_INFINITY, -1.0))
+                .unwrap();
+            assert!(!report.layout_recomputed, "node_count={node_count}");
+            assert_eq!(report.layout_measure_probe_node_count, 0);
+            assert_eq!(report.layout_arrange_probe_node_count, 0);
+        }
+    }
+}
+
+#[test]
+fn authored_root_size_entries_share_the_malformed_size_cache_key() {
+    let malformed = UiSize::new(f32::NAN, f32::INFINITY);
+    let equivalent = UiSize::new(f32::NEG_INFINITY, -10.0);
+
+    let mut authored_frames =
+        free_surface_with_children("runtime.ui.incremental_layout.authored_frames_root_size", 1);
+    authored_frames.rebuild_authored_frames(malformed);
+    let report = authored_frames.rebuild_dirty(equivalent).unwrap();
+    assert!(!report.layout_recomputed);
+    assert_eq!(report.layout_measure_probe_node_count, 0);
+    assert_eq!(report.layout_arrange_probe_node_count, 0);
+
+    let mut authored_delta =
+        free_surface_with_children("runtime.ui.incremental_layout.authored_delta_root_size", 1);
+    authored_delta
+        .compute_layout(UiSize::new(20.0, 20.0))
+        .unwrap();
+    authored_delta.clear_dirty_flags();
+    let topology_generation = authored_delta.tree.layout_order_generation();
+    assert_eq!(
+        authored_delta.publish_authored_geometry(
+            malformed,
+            &std::collections::BTreeSet::new(),
+            topology_generation,
+        ),
+        crate::ui::surface::UiAuthoredGeometryPublication::Unchanged
+    );
+    let report = authored_delta.rebuild_dirty(equivalent).unwrap();
+    assert!(!report.layout_recomputed);
+    assert_eq!(report.layout_measure_probe_node_count, 0);
+    assert_eq!(report.layout_arrange_probe_node_count, 0);
+}
+
+#[test]
+#[ignore = "managed Windows release performance evidence"]
+fn malformed_root_size_noop_release_measurement() {
+    const SAMPLE_PAIRS: usize = 17;
+    const REBUILDS_PER_SAMPLE: usize = 32;
+
+    let malformed = UiSize::new(f32::NAN, f32::INFINITY);
+    let mut optimized = free_surface_with_children(
+        "runtime.ui.incremental_layout.malformed_root_size_bench.optimized",
+        1_000,
+    );
+    optimized.compute_layout(malformed).unwrap();
+    optimized.clear_dirty_flags();
+    let mut forced_layout = free_surface_with_children(
+        "runtime.ui.incremental_layout.malformed_root_size_bench.forced_layout",
+        1_000,
+    );
+    forced_layout.compute_layout(malformed).unwrap();
+    forced_layout.clear_dirty_flags();
+
+    let mut optimized_ns = Vec::with_capacity(SAMPLE_PAIRS);
+    let mut forced_layout_ns = Vec::with_capacity(SAMPLE_PAIRS);
+    for sample_index in 0..SAMPLE_PAIRS {
+        let measure_optimized = |surface: &mut UiSurface| {
+            let started = std::time::Instant::now();
+            for _ in 0..REBUILDS_PER_SAMPLE {
+                let report = std::hint::black_box(surface.rebuild_dirty(malformed).unwrap());
+                assert!(!report.layout_recomputed);
+                assert_eq!(report.layout_measure_probe_node_count, 0);
+                assert_eq!(report.layout_arrange_probe_node_count, 0);
+            }
+            started.elapsed().as_nanos()
+        };
+        let measure_forced_layout = |surface: &mut UiSurface| {
+            let started = std::time::Instant::now();
+            for _ in 0..REBUILDS_PER_SAMPLE {
+                surface
+                    .invalidate_node(root_id(), UiInvalidationReason::Layout)
+                    .unwrap();
+                let report = std::hint::black_box(surface.rebuild_dirty(malformed).unwrap());
+                assert!(report.layout_recomputed);
+                assert!(report.layout_measure_probe_node_count > 0);
+            }
+            started.elapsed().as_nanos()
+        };
+        if sample_index % 2 == 0 {
+            forced_layout_ns.push(measure_forced_layout(&mut forced_layout));
+            optimized_ns.push(measure_optimized(&mut optimized));
+        } else {
+            optimized_ns.push(measure_optimized(&mut optimized));
+            forced_layout_ns.push(measure_forced_layout(&mut forced_layout));
+        }
+    }
+
+    let optimized_p50_ns = nearest_rank_percentile(&optimized_ns, 50);
+    let optimized_p95_ns = nearest_rank_percentile(&optimized_ns, 95);
+    let optimized_p99_ns = nearest_rank_percentile(&optimized_ns, 99);
+    let forced_p50_ns = nearest_rank_percentile(&forced_layout_ns, 50);
+    let forced_p95_ns = nearest_rank_percentile(&forced_layout_ns, 95);
+    let forced_p99_ns = nearest_rank_percentile(&forced_layout_ns, 99);
+    println!(
+        "ASTRA_UI_A1_MALFORMED_ROOT_SIZE_BENCH_V1 nodes=1000 rebuilds_per_sample={REBUILDS_PER_SAMPLE} sample_pairs={SAMPLE_PAIRS} pair_order=alternating_forced_even optimized_p50_ns={optimized_p50_ns} optimized_p95_ns={optimized_p95_ns} optimized_p99_ns={optimized_p99_ns} forced_p50_ns={forced_p50_ns} forced_p95_ns={forced_p95_ns} forced_p99_ns={forced_p99_ns} optimized_samples_ns={optimized_ns:?} forced_samples_ns={forced_layout_ns:?}"
+    );
+    assert!(
+        optimized_p95_ns.saturating_mul(4) <= forced_p95_ns,
+        "malformed-size no-op P95 must be at most 25% of forced layout: optimized={optimized_p95_ns}ns forced={forced_p95_ns}ns"
+    );
+}
+
+fn free_surface_with_children(tree_id: &'static str, node_count: usize) -> UiSurface {
+    let mut surface = UiSurface::new(UiTreeId::new(tree_id));
+    surface.tree.insert_root(
+        UiTreeNode::new(root_id(), UiNodePath::new("root")).with_container(UiContainerKind::Free),
+    );
+    for index in 0..node_count {
+        surface
+            .tree
+            .insert_child(
+                root_id(),
+                UiTreeNode::new(
+                    UiNodeId::new(10_000 + index as u64),
+                    UiNodePath::new(format!("root/item-{index}")),
+                )
+                .with_constraints(BoxConstraints {
+                    width: fixed_constraint(1.0),
+                    height: fixed_constraint(1.0),
+                }),
+            )
+            .unwrap();
+    }
+    surface
+}
+
+fn nearest_rank_percentile(samples: &[u128], percentile: usize) -> u128 {
+    let mut ordered = samples.to_vec();
+    ordered.sort_unstable();
+    ordered[(ordered.len() * percentile).div_ceil(100) - 1]
+}
+
+#[test]
 fn incremental_layout_reports_only_current_taffy_tree_build_work() {
     let taffy_fixed = |size| AxisConstraint {
         min: 0.0,
@@ -519,14 +699,12 @@ fn pointer_node_growing_from_zero_area_rebuilds_missing_hit_entry() {
         .unwrap();
     surface.rebuild_dirty(root_size()).unwrap();
 
-    assert!(
-        surface
-            .hit_test
-            .grid
-            .entries
-            .iter()
-            .all(|entry| entry.node_id != primary_id())
-    );
+    assert!(surface
+        .hit_test
+        .grid
+        .entries
+        .iter()
+        .all(|entry| entry.node_id != primary_id()));
 
     surface
         .tree
@@ -546,14 +724,12 @@ fn pointer_node_growing_from_zero_area_rebuilds_missing_hit_entry() {
         surface.arranged_tree.draw_order.len()
     );
     assert!(report.hit_grid_rebuilt);
-    assert!(
-        surface
-            .hit_test
-            .grid
-            .entries
-            .iter()
-            .any(|entry| entry.node_id == primary_id())
-    );
+    assert!(surface
+        .hit_test
+        .grid
+        .entries
+        .iter()
+        .any(|entry| entry.node_id == primary_id()));
 }
 
 #[test]
@@ -603,14 +779,12 @@ fn mixed_layout_and_input_dirty_rebuilds_arranged_and_hit_state() {
         surface.arranged_tree.draw_order.len()
     );
     assert!(report.hit_grid_rebuilt);
-    assert!(
-        surface
-            .hit_test
-            .grid
-            .entries
-            .iter()
-            .all(|entry| entry.node_id != sibling_id())
-    );
+    assert!(surface
+        .hit_test
+        .grid
+        .entries
+        .iter()
+        .all(|entry| entry.node_id != sibling_id()));
 }
 
 #[test]
@@ -743,14 +917,12 @@ fn surface_dirty_layout_replaces_visited_layout_engine_routes() {
         UiLayoutEngineFallbackReason::ZirconOwnedSemantics,
         2,
     );
-    assert!(
-        !surface
-            .layout_engine_report
-            .selections
-            .iter()
-            .any(|selection| selection.node_id == Some(primary_id())
-                && selection.request.family == UiLayoutEngineFamily::Flex)
-    );
+    assert!(!surface
+        .layout_engine_report
+        .selections
+        .iter()
+        .any(|selection| selection.node_id == Some(primary_id())
+            && selection.request.family == UiLayoutEngineFamily::Flex));
     assert_layout_engine_report_exported(&surface, &surface.layout_engine_report);
 }
 

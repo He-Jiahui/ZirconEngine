@@ -1,3 +1,4 @@
+//! 视口历史绑定上一帧图资源租约、尺寸和相机结构键；兼容性确认后才交给下一帧。
 use crate::core::framework::render::{FrameHistoryHandle, RenderPipelineHandle};
 use crate::core::math::UVec2;
 use std::sync::Arc;
@@ -22,18 +23,5 @@ pub(crate) struct ViewportFrameHistory {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn frame_history_shares_the_wide_validation_key() {
-        let history = include_str!("viewport_frame_history.rs");
-        let record = include_str!(
-            "../render_framework/submit_frame_extract/record_submission/record_history.rs"
-        );
-        let arc_contract = concat!("Arc<", "FrameHistoryValidationKey>");
-        let deep_clone = concat!("history_validation_key()", ".clone()");
-
-        assert!(history.contains(arc_contract));
-        assert!(record.contains("history_validation_key_shared()"));
-        assert!(!record.contains(deep_clone));
-    }
-}
+#[path = "tests/viewport_frame_history.rs"]
+mod tests;

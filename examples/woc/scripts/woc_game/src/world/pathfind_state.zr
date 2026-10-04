@@ -32,6 +32,7 @@ pub class PathfindPoint {
 // Charge paths: only an authored water footprint has a floor limit. Dry low
 // terrain remains legal exactly as it does when source waterLevelAt returns
 // negative infinity outside a lake.
+/// 单次寻路的地面、障碍和搜索范围策略；搜索开始后须保持各项参数和模块常量稳定，缓存不能适应中途规则改变。
 pub class PathfindOptions {
     pub var seed: uint;
     pub var bodyRadius: float;
@@ -66,6 +67,7 @@ pub class PathfindOptions {
     }
 }
 
+/// 一次查询覆盖写入的建议路径，点集不含成功或失败标签；不能把“有一个终点”当成整段可行的证明。
 pub class PathfindRoute {
     pub var points: container.Array<PathfindPoint>;
 
@@ -156,6 +158,7 @@ clearRoute(route: PathfindRoute): void {
     }
 }
 
+// 这是原规则的直接目标回退；过宽、同格和不可达路径都可来到这里，实际移动仍须由移动持有者做碰撞约束。
 fallbackRoute(toX: float, toZ: float, output: PathfindRoute): void {
     clearRoute(output);
     output.points.add(new PathfindPoint(toX, toZ));
@@ -381,6 +384,8 @@ smoothRoute(
 // Mirrors findPath for the currently generated static WOC world. A caller owns
 // all resulting movement; source-equivalent direct fallback is intentionally
 // preserved for too-wide, same-cell and unreachable searches.
+/// 当前仅由叶子测试消费的局部寻路投影；结果替换既有路径，起点与终点格被特殊接受，最终位置仍需独立解析。
+/// 超出搜索跨度或搜索不可达时保留原规则的直接目标回退，因此本函数不提供路径可达性保证。
 pub findBuiltinPath(
     fromX: float,
     fromZ: float,
@@ -559,6 +564,7 @@ resolveDestinationCandidate(
 // Mirrors resolvePlayerDestination: first resolve the clicked point against
 // collision, then scan nearest radial candidates when a walker clicked deep
 // water. Swimmers retain the water click after the same collision resolution.
+/// 对点击目标先解碰撞再查附近可行落点；搜索全失败时保留首次碰撞解析结果，调用方不能仅凭返回认为深水约束已满足。
 pub resolveBuiltinPlayerDestination(
     seed: uint,
     targetX: float,

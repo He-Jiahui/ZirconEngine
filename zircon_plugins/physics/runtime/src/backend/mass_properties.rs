@@ -1,3 +1,5 @@
+//! 用 shape 的解析体积和 authored mass properties 生成两 backend 共用的质量、密度与惯量倍率输入；惯量目前只支持受限解析情形。
+
 use std::f32::consts::PI;
 
 use zircon_runtime::core::framework::physics::PhysicsColliderShape;
@@ -8,6 +10,7 @@ use super::{PhysicsBackendError, PhysicsBackendObjectKind};
 
 const INERTIA_RATIO_EPSILON: Real = 1.0e-4;
 
+/// resolver 产生并供 backend 创建刚体使用的质量派生值。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct ResolvedBodyMass {
     pub mass: Real,
@@ -15,6 +18,9 @@ pub(crate) struct ResolvedBodyMass {
     pub inertia_multiplier: Real,
 }
 
+// BUG: [CR-PHYSICS-BACKEND-0001] 有效有限输入仍可让派生质量或密度溢出：Box half_extents=[1e10;3] 的体积约 8e30 有限，density=1e10 也通过校验，但 volume*density 为 +Inf。
+// Builtin 将该质量存入 BodyRecord，后续 step 把 body 标为 inactive。Jolt 会把派生密度交给 JoltC，本文不推断其原生结果。
+// 证据：validation.rs、zircon_runtime scene mass_properties.rs::is_valid、builtin/runtime.rs::create_body、builtin/step.rs::integrate_body_sync_state；关联 PHY4-P1-013。
 pub(crate) fn resolve_body_mass(
     shape: &PhysicsColliderShape,
     authored_mass: Real,
@@ -155,64 +161,5 @@ fn invalid_mass(detail: &str) -> PhysicsBackendError {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn unit_box() -> PhysicsColliderShape {
-        PhysicsColliderShape::Box {
-            half_extents: [0.5; 3],
-        }
-    }
-
-    #[test]
-    fn auto_mass_uses_shape_volume_and_density() {
-        let resolved = resolve_body_mass(
-            &unit_box(),
-            99.0,
-            PhysicsMassProperties::AutoFromShape { density: 2.5 },
-        )
-        .expect("unit box supports automatic mass resolution");
-
-        assert_eq!(resolved.mass, 2.5);
-        assert_eq!(resolved.density, 2.5);
-        assert_eq!(resolved.inertia_multiplier, 1.0);
-    }
-
-    #[test]
-    fn explicit_uniform_inertia_scale_maps_to_jolt_multiplier() {
-        let resolved = resolve_body_mass(
-            &unit_box(),
-            2.0,
-            PhysicsMassProperties::Explicit {
-                inertia_tensor: Some([
-                    [2.0 / 3.0, 0.0, 0.0],
-                    [0.0, 2.0 / 3.0, 0.0],
-                    [0.0, 0.0, 2.0 / 3.0],
-                ]),
-            },
-        )
-        .expect("uniform primitive inertia scale is supported");
-
-        assert!((resolved.inertia_multiplier - 2.0).abs() <= INERTIA_RATIO_EPSILON);
-    }
-
-    #[test]
-    fn zero_volume_shape_rejects_mass_resolution() {
-        let error = resolve_body_mass(
-            &PhysicsColliderShape::Box {
-                half_extents: [0.0, 0.5, 0.5],
-            },
-            1.0,
-            PhysicsMassProperties::AutoFromShape { density: 1.0 },
-        )
-        .expect_err("zero-volume colliders cannot define mass");
-
-        assert!(matches!(
-            error,
-            PhysicsBackendError::Unsupported {
-                operation: "resolve_mass_properties",
-                ..
-            }
-        ));
-    }
-}
+#[path = "tests/mass_properties.rs"]
+mod tests;

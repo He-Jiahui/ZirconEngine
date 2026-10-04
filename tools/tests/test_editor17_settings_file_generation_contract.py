@@ -1,3 +1,4 @@
+# 核对设置持久化的文件代际在预留、准入失败和重试过程中与权威修订分离。
 from pathlib import Path
 import unittest
 

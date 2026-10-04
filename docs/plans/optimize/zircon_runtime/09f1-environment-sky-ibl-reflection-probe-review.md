@@ -2123,3 +2123,133 @@ receipt `91616B0CD88F486CB94DAE68E1BCE9F5` 已把当前 `Cargo.toml`、`Cargo.lo
 `runtime_snapshot_first_slice_complete_static_green_trace_store_and_managed_product_validation_pending`；
 受管 Rust/WGPU、current-source PNG、`D:\Tools\renderdoc`、GPU timing、RSS/VRAM、WPR/WPA、matched
 Unreal baseline 和 12.38 的 atomic generation trace 均未完成，本节不构成性能收益或里程碑验收。
+
+### 12.40 P0-3 program-sky algorithm and physical-atmosphere architecture review
+
+2026-09-01 在任何天空公式或 GPU 调度优化前，重新审查了 Zircon 当前 authoring、scene extract、display、
+realtime IBL capture、bake identity 与 CPU reference helper 的完整调用链，并以 Unreal Sky Atmosphere 为
+主参考、Unity HDRP Physically Based Sky 为第二对照。当前 `ProceduralSkyParams` 只拥有 horizon/zenith/
+ground、局部 sun、intensity/rotation/source revision；scene/world 没有 versioned atmosphere profile，
+`DirectionalLight` extract 也没有 atmosphere-light identity。因而不能把一段更复杂的 WGSL 散射公式塞进
+现有 gradient helper 后宣称完成物理大气：那会形成第二份太阳 truth，无法稳定决定 LUT/cache identity，
+也无法让 display、IBL capture 与 reflection view 在同一 generation 上原子发布。
+
+Unreal 的结构边界是 scene-cached transmittance LUT（默认 `256 x 64`、`10` samples）和 multi-scattering
+LUT（默认 `32 x 32`、`15` samples），再派生 per-view sky-view/aerial-perspective 资源，并为 realtime
+reflection capture 显式创建独立 view/AP LUT；所有 pending RDG resources 最终由 scene/view uniform owner
+提交。其 fast-sky raymarch sample range 为 `4..32`。Unity HDRP 同样以 parameter hash 复用
+precomputation data，multi-scattering 由 profile identity 决定，sky-view LUT 另以 light hash 失效，
+camera atmospheric-scattering volume 与 cubemap render 分开处理。这两个参考共同否定了“逐像素完整散射”
+或“每次 cubemap face 重建全部 LUT”的方向。
+
+Zircon 的结构 hard cut 必须按以下依赖顺序完成：
+
+1. 在 scene/environment authoring 层增加 versioned `AtmosphereProfile`/recipe，覆盖 planet/atmosphere
+   radius、Rayleigh/Mie/absorption、ground albedo、quality/sample policy；canonical identity 只包含物理和
+   recipe 输入，不包含资源句柄或诊断字符串。
+2. directional-light extract 增加显式 atmosphere-light identity，由 scene 在一处解析太阳 direction/color/
+   illuminance；`ProceduralSkyParams.sun_*` 只能作为无 scene light 时的 gradient fallback，不能与物理路径
+   同时成为 truth。
+3. 建立 scene-cached transmittance + multi-scattering generation，profile/recipe identity 不变时为 O(1)
+   handle reuse；资源只在整组 compute 成功后原子替换，失败保留 last-good 并发布 typed generation state。
+4. sky-view/aerial-perspective 以 view/light/camera identity 单独失效；realtime IBL/reflection capture 复用
+   scene LUT，但拥有 capture-view 资源与 generation ticket，禁止从 editor/display 临时 texture 推断 ready。
+5. display、IBL bake、realtime reflection 和 diagnostics 只消费同一 published resource set；随后才允许
+   根据 GPU/power profile 调整 resolution、sample count、async compute 或 time slicing。
+
+在该结构审查中还发现一个不依赖物理大气的确定性 MVP 缺陷。共享
+`zr_procedural_sky_radiance` 把天空半球写成
+`clamp(normalized_direction.y * 0.5 + 0.5, 0, 1)`，但 `y < 0` ground 分支在地平线趋向纯
+horizon，而 `y = 0` 因 `>= 0` 进入 sky 分支并得到 horizon/zenith 各 `50%`。默认颜色下跳变为
+`[0.10, 0.135, 0.195]` RGB；CPU reference helper 的既有契约则明确 `vertical01=0 -> horizon`、
+`1 -> zenith`。display 和 realtime IBL capture 都 include 同一 WGSL，因此错误同时污染可见背景与 PMREM/
+SH9 source。正确 leaf hard cut 是 sky hemisphere 采用 `clamp(y, 0, 1)`：`y=0` 精确为 horizon，
+`y=1` 精确为 zenith，并保持 ground 分支连续。源码规模上它删除每次 radiance evaluation 的一个 scalar
+multiply 和一个 scalar add，但在 current-source GPU profile 前不得声称实际时间或功耗收益。
+
+实施与验收顺序固定为：先用 source contract RED 锁定 `y=0/+1` mapping、legacy remap 禁令以及 display/
+capture 单一 include owner，再修改共享 WGSL；随后运行 managed Naga/WGPU，生成 current-source program-sky
+和 realtime-IBL PNG，并用 `D:\Tools\renderdoc` 检查 shader source、cubemap horizon texels、PMREM/SH9
+输入与 frame pass。物理大气实施前必须先采集 current gradient 与首个 LUT prototype 的 pass/dispatch、GPU
+p50/p95/p99、CPU encode/submit、generation latency、VRAM/RSS、WPR/WPA package/GPU energy；至少覆盖静态
+profile、太阳变更、camera-only 变更与 reflection capture 四种失效情形，并对照 Unreal 相同 resolution/
+sample policy。接受条件不是“画面看起来更蓝”，而是无重复 scene LUT generation、camera-only 变更不重建
+profile LUT、capture 不复制完整 precompute、steady frame 无天空 compute、current-source 图像无地平线跳变，
+且 timing/power 没有显著偏离参考引擎同规模经验值。
+
+共享 WGSL 当前虽历史 attribution 属于 Shader06，但不在该 Session 的 immutable write scope，且
+`skybox/tests.rs` 存在未归属 coordinator baseline；因此本次只提交审查记录，没有越权修改或接管测试。
+状态为
+`physical_atmosphere_architecture_review_complete_gradient_horizon_defect_quantified_scope_bridge_pending`；
+P0-3、M5-M8、managed Naga/WGPU、PNG、RenderDoc、GPU timing 与功耗均不前移。
+
+### 12.41 P0-1/P0-2 scene authoring and capture-publication hard-cut review
+
+2026-09-01 对 scene schema、World bootstrap/project I/O、render extract、reflection-probe runtime/editor
+plugin、generated-source transaction、Editor operation/dirty/undo 基础设施及 cmft/cmftStudio 离线工作流完成
+current-source 复审。该复审修正了本计划早期 P0-2 的一部分陈述：capture 已经是
+`request -> poll/cancel -> take source payload` 的非阻塞 framework 边界，editor plugin 也已有
+`encode_reflection_probe_capture_source` 和 `publish_generated_project_source` adapter；后者通过 project
+generation read/write、targeted prepare、durable file commit、registry/resource mutation、watch echo 和 generation
+publication 原子提交 source/sidecar/artifact/catalog。以上基础必须复用，不能另建 raw `fs::write` 或第二 asset
+registry。
+
+产品闭环仍然不存在，断点已经缩小并更严重地落在 scene/editor truth：
+
+- `NodeKind`、`NodeRecord`、builtin reflection registration、scene asset DTO、World project I/O、property path 与
+  render dirty projection 均没有 Environment/Sky/ReflectionProbe component。`build_environment_extract` 仍只执行
+  `EnvironmentExtract::from_preview_skybox_enabled(request.settings.preview_skybox)`，因此每个普通 project 的
+  runtime environment 都是 viewport flag，不是 scene 数据。
+- reflection-probe editor feature 只发布 descriptor/capability；仓内没有 command contribution、operation factory
+  或 Workbench consumer 调用 trigger/publication。现有 trigger 是可调用 library API，不是 Editor workflow。
+- `CapturedReflectionProbePlacement` 是独立 JSON DTO，request 又重复 position/revision/output URI；它们没有从
+  scene component snapshot 派生，capture 完成后也没有 expected entity/component revision 可用于阻止 stale
+  result 覆盖用户的新编辑。
+- generated source publication 明确不拥有 editor history，这是正确边界；但当前没有后续 undoable scene
+  transaction 将 source `AssetReference` 写回 probe component，也没有 scene reference 让 catalog/cook 保留它。
+- legacy `register_captured_reflection_probe*` 会同步读取/解码 artifact 或 runtime cache，把 PMREM 作为
+  `TextureAsset` 直接插入内存 manager，再返回临时 `ReflectionProbeData`。它既不修改 scene，也不创建持久
+  dependency，不能保留为 project-authoring compatibility path。
+- capture request/examples 使用 `lib://probes/*.zcube`，而唯一 project publication owner hard-reject 非
+  `res://` URI。两段各自通过单元测试的 API 因 scheme contract 不一致而无法串成产品路径。
+
+Unreal 的可迁移标准不是复制 Actor API，而是让 SkyLight/ReflectionCapture/SkyAtmosphere component 持有可序列化
+authoring truth，capture queue/build data 按 component identity 和 revision 回写。cmftStudio/cmft 则证明 filter 与
+save 是显式两个阶段：background job 完成 radiance/irradiance filter，随后以明确 file/output/texture format
+保存。Zircon 应保留这种计算/编码分离，但必须由 project transaction 包住 save/catalog/cook，而不是把
+cmftStudio 的裸路径保存模型照搬进引擎。
+
+MVP hard cut 的 dependency 顺序固定如下：
+
+1. 增加可反射、可序列化的 `EnvironmentComponent` 与 `ReflectionProbeComponent`，并同步更新 `NodeKind`/
+   `NodeRecord`、builtin component registry、scene asset schema/migration、project roundtrip、prefab/property path
+   和 dirty journal。MVP 对 active environment 采用显式 singleton validation；不得按遍历顺序静默选一个。
+2. component 只保存 authoring 值和 source `AssetReference`：environment source mode/intensity/rotation/revision，
+   probe influence/projection/intensity/priority/capture+receiver masks/quality/source revision。derived PMREM URI、
+   `TextureAsset`、GPU slot 和 runtime-cache path 都不是 scene truth。
+3. scene compile/resource owner 把 source reference 解析为 typed handle + requested/current generation；World extract
+   只发布该轻量 identity 和 component revision。frame submission 不同步读取、解码或深拷贝 cubemap payload；
+   P0-1 与 P0-5 的这个边界必须一起硬切，禁止先加入长期存活的 payload compatibility field。
+4. editor operation 从选中 probe component 的 immutable snapshot 派生 request/placement，记录 entity、component
+   revision、scene generation 与 `res://generated/reflection-probes/...zcube` target；state machine 为
+   `capture -> encode -> project publish/import -> scene commit -> terminal`，每一阶段发布 typed progress/error。
+5. durable project receipt current 后，单个 undoable scene transaction 才更新 component source/revision。undo 只
+   撤销 scene reference，不立即删除可能被 redo/shared/cook 使用的 generated source；未引用生成资产交给独立
+   GC policy。scene revision 漂移时结果成为可重用未引用资产并报告 stale，不覆盖新 placement。
+6. project authoring path改用 registry/resource streaming 解析 derived PMREM；删除或降为测试内部的 direct
+   memory-registration入口。cook 由 scene `AssetReference` 自然建立 source -> derived IBL dependency，runtime
+   不再猜测 editor output URI。
+
+这里没有可诚实采集的 current product “before” timing：command consumer 数量为 `0`，所以任意 isolated trigger
+elapsed 都不是用户工作流基线。实施前可接受的 baseline 是结构计数（scene component/consumer/undo/cook
+dependency 均为 `0`）和现有 capture kernel profile；实施后需对至少 31 次 cold/warm command 分别采集 queue
+latency、六面 capture GPU、readback、encode、project prepare/file commit/import、scene transaction 的
+p50/p95/p99，source/derived bytes、allocation/peak RSS/VRAM、duplicate import/count、取消与 stale-result 结果，
+并用 WPR/WPA 比较 active/idle frame CPU package/GPU energy。Render/frame/UI thread 的同步 file read/decode 必须
+为 `0`，steady frame 不得因静态 probe 产生 capture/import 工作；再与同 face size/quality 的 Unreal capture
+经验值对照。未取得这些 current-source 数据前，不声明性能或功耗接近参考引擎。
+
+本次未编辑 scene/plugin source：这些路径不在 Shader06 当前 exact scope，且协调器 scope-bridge 注册返回
+`request_overloaded`，因此没有通过越权归因制造半套 component。状态为
+`scene_probe_authoring_architecture_review_complete_existing_capture_publication_reused_scope_pending`；P0-1/P0-2/
+P0-5、M5-M8、Editor/cook/product profile 与功耗验收均保持 pending。

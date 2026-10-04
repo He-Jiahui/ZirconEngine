@@ -1,3 +1,7 @@
+use crate::core::framework::text::{
+    TextGlyphRasterHinting, TextGlyphRasterMode, TextGlyphRasterRequest, TextGlyphRasterSmoothing,
+    TextGlyphSyntheticStyle,
+};
 use crate::text::InstancedFaceId;
 
 use super::GlyphAtlasFormat;
@@ -129,6 +133,35 @@ impl GlyphRasterKey {
             synthetic: request.synthetic,
         }
     }
+
+    pub(crate) fn text_raster_request(self) -> Option<TextGlyphRasterRequest> {
+        if self.synthetic.bold || self.format.is_distance_field() {
+            return None;
+        }
+        let hinting = match self.hinting {
+            GlyphHintingMode::None => TextGlyphRasterHinting::None,
+            GlyphHintingMode::Vertical => TextGlyphRasterHinting::Vertical,
+            GlyphHintingMode::Full => TextGlyphRasterHinting::Full,
+        };
+        let smoothing = match self.smoothing {
+            GlyphSmoothingMode::None => TextGlyphRasterSmoothing::None,
+            GlyphSmoothingMode::Grayscale => TextGlyphRasterSmoothing::Grayscale,
+            GlyphSmoothingMode::Subpixel => TextGlyphRasterSmoothing::Subpixel,
+        };
+        Some(
+            TextGlyphRasterRequest::new(
+                self.glyph_id,
+                self.px_size_bucket.max(1),
+                TextGlyphRasterMode::ColorPreferred,
+            )
+            .with_subpixel_phase(self.subpixel_bin, self.vertical_subpixel_bin)
+            .with_hinting(hinting)
+            .with_smoothing(smoothing)
+            .with_synthetic_style(TextGlyphSyntheticStyle {
+                oblique: self.synthetic.oblique,
+            }),
+        )
+    }
 }
 
 fn px_size_bucket(logical_px: f32, scale_factor: f32, quantum_px: f32) -> u32 {
@@ -193,4 +226,5 @@ impl GlyphAtlasFormat {
 }
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

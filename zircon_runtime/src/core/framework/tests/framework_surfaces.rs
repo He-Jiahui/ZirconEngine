@@ -1,5 +1,6 @@
 use super::*;
 use crate::core::framework::render::RenderLayerSet;
+use crate::core::framework::time::{ClockDomainId, ClockDomainRegistry, ClockDomainUnit};
 
 #[test]
 fn time_framework_tracks_real_virtual_and_fixed_clocks() {

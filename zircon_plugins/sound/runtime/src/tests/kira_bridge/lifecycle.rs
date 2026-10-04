@@ -1,3 +1,4 @@
+mod atomic_activation;
 mod backend;
 mod hardcut;
 mod ownership;

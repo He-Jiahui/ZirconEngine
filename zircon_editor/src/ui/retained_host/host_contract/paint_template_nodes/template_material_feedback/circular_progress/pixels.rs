@@ -10,9 +10,11 @@ use crate::ui::retained_host::host_contract::paint_color::{
 const CIRCULAR_THICKNESS_FACTOR: f32 = 0.16;
 const CIRCULAR_THICKNESS_MIN: f32 = 3.0;
 const CIRCULAR_THICKNESS_MAX: f32 = 6.0;
+const CIRCULAR_PROGRESS_SAMPLES_PER_AXIS: u32 = 4;
 const MAX_CACHED_CIRCULAR_TOPOLOGIES: usize = 4;
 
 #[cfg(test)]
+#[path = "pixels/tests/topology_front_hit_tests.rs"]
 mod topology_front_hit_tests;
 
 thread_local! {
@@ -22,6 +24,7 @@ thread_local! {
 
 struct CircularProgressTopology {
     size: u32,
+    target_size_bits: u32,
     ring_pixels: Vec<CircularProgressRingPixel>,
 }
 
@@ -39,8 +42,18 @@ pub(super) fn circular_progress_pixels(
     track: [u8; 4],
     fill: [u8; 4],
 ) -> Vec<u8> {
-    let mut rgba = vec![0; size as usize * size as usize * 4];
-    let topology = circular_progress_topology(size);
+    circular_progress_pixels_for_target(size, size as f32, percent, track, fill)
+}
+
+pub(super) fn circular_progress_pixels_for_target(
+    source_size: u32,
+    target_size: f32,
+    percent: f32,
+    track: [u8; 4],
+    fill: [u8; 4],
+) -> Vec<u8> {
+    let mut rgba = vec![0; source_size as usize * source_size as usize * 4];
+    let topology = circular_progress_topology_for_target(source_size, target_size);
     let percent = normalized_circular_progress_percent(percent);
     for pixel in &topology.ring_pixels {
         let fill_coverage =
@@ -108,14 +121,21 @@ pub(super) fn normalized_circular_progress_percent(percent: f32) -> f32 {
 }
 
 fn circular_progress_topology(size: u32) -> Rc<CircularProgressTopology> {
+    circular_progress_topology_for_target(size, size as f32)
+}
+
+fn circular_progress_topology_for_target(
+    source_size: u32,
+    target_size: f32,
+) -> Rc<CircularProgressTopology> {
     if let Some(topology) = CIRCULAR_PROGRESS_TOPOLOGIES.with(|cache| {
         let mut cache = cache.borrow_mut();
-        cached_circular_progress_topology(&mut cache, size)
+        cached_circular_progress_topology_for_target(&mut cache, source_size, target_size)
     }) {
         return topology;
     }
 
-    let topology = Rc::new(build_circular_progress_topology(size));
+    let topology = Rc::new(build_circular_progress_topology(source_size, target_size));
     CIRCULAR_PROGRESS_TOPOLOGIES.with(|cache| {
         let mut cache = cache.borrow_mut();
         cache.push_front(Rc::clone(&topology));
@@ -128,38 +148,50 @@ fn cached_circular_progress_topology(
     cache: &mut VecDeque<Rc<CircularProgressTopology>>,
     size: u32,
 ) -> Option<Rc<CircularProgressTopology>> {
-    if let Some(topology) = cache.front().filter(|topology| topology.size == size) {
+    cached_circular_progress_topology_for_target(cache, size, size as f32)
+}
+
+fn cached_circular_progress_topology_for_target(
+    cache: &mut VecDeque<Rc<CircularProgressTopology>>,
+    source_size: u32,
+    target_size: f32,
+) -> Option<Rc<CircularProgressTopology>> {
+    if let Some(topology) = cache.front().filter(|topology| {
+        topology.size == source_size && topology.target_size_bits == target_size.to_bits()
+    }) {
         return Some(Rc::clone(topology));
     }
-    let index = cache
-        .iter()
-        .skip(1)
-        .position(|topology| topology.size == size)?
-        + 1;
+    let index = cache.iter().skip(1).position(|topology| {
+        topology.size == source_size && topology.target_size_bits == target_size.to_bits()
+    })? + 1;
     let topology = cache.remove(index)?;
     cache.push_front(Rc::clone(&topology));
     Some(topology)
 }
 
-fn build_circular_progress_topology(size: u32) -> CircularProgressTopology {
+fn build_circular_progress_topology(
+    source_size: u32,
+    target_size: f32,
+) -> CircularProgressTopology {
     let mut ring_pixels = Vec::new();
-    let center = size as f32 * 0.5;
-    let radius = (size as f32 * 0.5 - 0.5).max(1.0);
-    let thickness = (size as f32 * CIRCULAR_THICKNESS_FACTOR)
+    let source_to_target = target_size / source_size as f32;
+    let center = target_size * 0.5;
+    let radius = (target_size * 0.5 - 0.5).max(1.0);
+    let thickness = (target_size * CIRCULAR_THICKNESS_FACTOR)
         .clamp(CIRCULAR_THICKNESS_MIN, CIRCULAR_THICKNESS_MAX);
     let inner = (radius - thickness).max(0.0);
-    for y in 0..size {
-        for x in 0..size {
-            let dx = x as f32 + 0.5 - center;
-            let dy = y as f32 + 0.5 - center;
-            let distance = (dx * dx + dy * dy).sqrt();
-            let coverage = (annulus_pixel_coverage(distance, inner, radius) * 255.0).round() as u8;
+    for y in 0..source_size {
+        for x in 0..source_size {
+            let coverage = annulus_pixel_coverage(x, y, source_to_target, center, inner, radius);
             if coverage == 0 {
                 continue;
             }
+            let dx = (x as f32 + 0.5) * source_to_target - center;
+            let dy = (y as f32 + 0.5) * source_to_target - center;
+            let distance = (dx * dx + dy * dy).sqrt();
             let angle = dy.atan2(dx);
             let turn = ((angle + PI * 0.5).rem_euclid(PI * 2.0)) / (PI * 2.0);
-            let offset = ((y as usize * size as usize) + x as usize) * 4;
+            let offset = ((y as usize * source_size as usize) + x as usize) * 4;
             ring_pixels.push(CircularProgressRingPixel {
                 offset,
                 turn,
@@ -168,70 +200,42 @@ fn build_circular_progress_topology(size: u32) -> CircularProgressTopology {
             });
         }
     }
-    CircularProgressTopology { size, ring_pixels }
+    CircularProgressTopology {
+        size: source_size,
+        target_size_bits: target_size.to_bits(),
+        ring_pixels,
+    }
 }
 
-fn annulus_pixel_coverage(distance: f32, inner_radius: f32, outer_radius: f32) -> f32 {
-    let outer_coverage = (outer_radius + 0.5 - distance).clamp(0.0, 1.0);
-    let inner_coverage = (distance - inner_radius + 0.5).clamp(0.0, 1.0);
-    outer_coverage.min(inner_coverage)
+fn annulus_pixel_coverage(
+    x: u32,
+    y: u32,
+    source_to_target: f32,
+    center: f32,
+    inner_radius: f32,
+    outer_radius: f32,
+) -> u8 {
+    let mut covered_samples = 0;
+    for sample_y in 0..CIRCULAR_PROGRESS_SAMPLES_PER_AXIS {
+        for sample_x in 0..CIRCULAR_PROGRESS_SAMPLES_PER_AXIS {
+            let px = (x as f32
+                + (sample_x as f32 + 0.5) / CIRCULAR_PROGRESS_SAMPLES_PER_AXIS as f32)
+                * source_to_target;
+            let py = (y as f32
+                + (sample_y as f32 + 0.5) / CIRCULAR_PROGRESS_SAMPLES_PER_AXIS as f32)
+                * source_to_target;
+            let dx = px - center;
+            let dy = py - center;
+            let distance = (dx * dx + dy * dy).sqrt();
+            if distance >= inner_radius && distance <= outer_radius {
+                covered_samples += 1;
+            }
+        }
+    }
+    let sample_count = CIRCULAR_PROGRESS_SAMPLES_PER_AXIS * CIRCULAR_PROGRESS_SAMPLES_PER_AXIS;
+    ((covered_samples * 255 + sample_count / 2) / sample_count) as u8
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn circular_progress_topology_is_reused_for_a_stable_size() {
-        let first = circular_progress_topology(31);
-        let second = circular_progress_topology(31);
-
-        assert!(std::rc::Rc::ptr_eq(&first, &second));
-    }
-
-    #[test]
-    fn invalid_progress_matches_empty_determinate_progress() {
-        let track = [10, 20, 30, 255];
-        let fill = [200, 100, 50, 255];
-
-        assert_eq!(
-            circular_progress_pixels(24, f32::NAN, track, fill),
-            circular_progress_pixels(24, 0.0, track, fill)
-        );
-    }
-
-    #[test]
-    fn circular_progress_silhouette_contains_fractional_edge_coverage() {
-        let pixels = circular_progress_pixels(24, 0.5, [20, 30, 40, 255], [80, 90, 100, 255]);
-        let alphas = pixels.chunks_exact(4).map(|pixel| pixel[3]);
-
-        assert!(alphas.clone().any(|alpha| alpha == 0));
-        assert!(alphas.clone().any(|alpha| alpha == 255));
-        assert!(
-            alphas.into_iter().any(|alpha| (1..=254).contains(&alpha)),
-            "the final-size circular progress raster must keep analytic edge coverage"
-        );
-    }
-
-    #[test]
-    fn circular_progress_endpoint_contains_linear_color_coverage() {
-        let pixels = circular_progress_pixels(24, 0.375, [0, 0, 0, 255], [255, 255, 255, 255]);
-
-        assert!(
-            pixels.chunks_exact(4).any(|pixel| {
-                pixel[3] == 255 && pixel[0] > 0 && pixel[0] < 255 && pixel[0] == pixel[1]
-            }),
-            "a non-axis-aligned progress endpoint must not remain a binary color staircase"
-        );
-    }
-
-    #[test]
-    fn circular_progress_endpoint_mix_resolves_in_linear_light() {
-        let mixed = mix_srgba_linear_by_coverage([0, 0, 0, 255], [255, 255, 255, 255], 0.5);
-
-        assert!((187..=189).contains(&mixed[0]));
-        assert_eq!(mixed[0], mixed[1]);
-        assert_eq!(mixed[1], mixed[2]);
-        assert_eq!(mixed[3], 255);
-    }
-}
+#[path = "tests/pixels.rs"]
+mod tests;

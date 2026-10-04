@@ -7,7 +7,7 @@ use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiStateFlags},
     layout::UiFrame,
     style::{UiPainterFamily, UiPainterResolvedState, UiRgbaColor},
-    surface::{UiRenderCommand, bounded_ui_slider_tick_count, ui_slider_tick_count_for_track},
+    surface::{bounded_ui_slider_tick_count, ui_slider_tick_count_for_track, UiRenderCommand},
     tree::UiTemplateNodeMetadata,
 };
 

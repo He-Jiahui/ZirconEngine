@@ -1,10 +1,11 @@
+//! 输入动作、手柄、宿主请求与公共契约保持由运行时输入栈拥有。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn runtime_12_input_stack_contracts_stay_documented_and_exported() {
     let runtime_12_plan = include_str!(
         "../../../../../docs/plans/zircon_runtime/runtime/12-input-stack-and-action-mapping.md"
     );
     let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let input_doc = include_str!("../../../../../docs/zircon_runtime/input/input_state.md");
+    let input_doc = include_str!("../../../../../docs/crates/zircon_runtime/input/input_state.md");
     let input_mod = include_str!("../../../input/mod.rs");
     let framework_input_mod = include_str!("../../../core/framework/input/mod.rs");
     let prelude = include_str!("../../../prelude.rs");

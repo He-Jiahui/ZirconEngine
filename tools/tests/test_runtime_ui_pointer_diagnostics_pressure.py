@@ -1,8 +1,8 @@
 import unittest
 
-from tools.runtime_ui_pointer_diagnostics_pressure import pressure_report
+from tools.analysis.performance.runtime.runtime_ui_pointer_diagnostics_pressure import pressure_report
 
-
+# 以指针诊断模型区分摘要和完整追踪，限制空路径直接步骤及对抗性深路由的捕获成本。
 class RuntimeUiPointerDiagnosticsPressureTests(unittest.TestCase):
     def test_product_summary_removes_eager_trace_and_unrelated_handlers(self):
         report = pressure_report(100_000, 12, 12, 3, 5)

@@ -14,7 +14,10 @@ related_code:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/descriptor_filtering.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
 tests:
-  - cargo +1.94.1 test -p zircon_runtime --lib rendering_plugin_default_features_restore_legacy_ --locked --jobs 1 -- --nocapture --test-threads=1
+  - cargo +1.94.1 test -p zircon_runtime --lib rendering_plugin_product_defaults_exclude_unqualified_forward_plus_ssao --locked --jobs 1 -- --nocapture --test-threads=1
+  - cargo +1.94.1 test -p zircon_runtime --lib rendering_plugin_product_defaults_keep_deferred_ssao_disabled --locked --jobs 1 -- --nocapture --test-threads=1
+  - cargo +1.94.1 test -p zircon_runtime --lib rendering_plugin_default_features_preserve_motion_vector_and_bloom_composite_contract --locked --jobs 1 -- --nocapture --test-threads=1
+  - cargo +1.94.1 test -p zircon_runtime --lib rendering_plugin_post_process_routes_output_transfer_through_terminal_anti_alias_input --locked --jobs 1 -- --nocapture --test-threads=1
   - cargo +1.94.1 test -p zircon_runtime --lib plugin --locked --jobs 1 -- --test-threads=1
 ---
 
@@ -61,4 +64,57 @@ Open state: `current-source contract repair present; managed validation pending`
 
 - The default plugin feature regression now fixes the canonical forward-plus and deferred pass vectors, including Bloom before reflection/baked-lighting composites and the full three-stage motion-vector reduction chain.
 - The no-stack plugin filtering path preserves that default post-process motion-vector chain, while stack-driven filtering still owns optional effect removal. This keeps descriptor, filtering, and behavior coverage on one canonical contract rather than replacing the expected vector with incidental output.
-- The two original focused tests and the focused resource/order assertions are present in current source. No current-source Cargo result is claimed; the handoff remains `open` until the managed plugin gate returns.
+- The current focused contract tests are
+  `rendering_plugin_product_defaults_exclude_unqualified_forward_plus_ssao`,
+  `rendering_plugin_product_defaults_keep_deferred_ssao_disabled`,
+  `rendering_plugin_default_features_preserve_motion_vector_and_bloom_composite_contract`,
+  and `rendering_plugin_post_process_routes_output_transfer_through_terminal_anti_alias_input`.
+  They retain the focused resource/order assertions in current source. No
+  current-source Cargo result is claimed; the handoff remains `open` until the
+  managed plugin gate returns.
+
+### 2026-09-25 successor current-source reconciliation r2
+
+Fixing Session `failure-roll-01a084c8-render07-postprocess-pass-order-r2`
+reconciled the four current producer/test paths. The exact source hashes are:
+
+```text
+zircon_runtime/src/graphics/tests/pipeline_compile.rs
+  821d3505f4b72ed45178404382ccded914b44877904d52124688fb5598002c3e
+zircon_runtime/src/graphics/tests/pipeline_compile/plugin_features.rs
+  93fcf47379106218e83c1dcfc15cbc359b8fa92c629742005e63d041b2356881
+zircon_runtime/src/graphics/pipeline/render_pipeline_asset/descriptor_filtering.rs
+  4c97e50b6734cebb89ad04560099a7ef4b19946c353115b8131df439f8d496a1
+zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
+  1e0546103af9df33d4773f786b4745e65e6dac6d2577b688ee5e7765f461e714
+```
+
+The exact current-source probe passed:
+`RENDER07_POSTPROCESS_CURRENT_SOURCE_PASS 4 paths; FILTERS=4`. It checked all
+four current test names, canonical Bloom/motion-vector/DoF pass identifiers,
+the no-stack default-chain preservation branch, scene-velocity resource wiring,
+and stack-driven filtering helpers. Scoped `git diff --check` passed. Rustfmt
+remains non-passing only for existing import/order and equivalent formatting
+drift in the two Rust test owners and the post-process descriptor owner; no
+formatter-only rewrite was made.
+
+This is source/static evidence only. Managed exact focused tests plus the broad
+`plugin` gate, external `E:/Git/zr_vm` admission, independent review, canonical
+`failure return`, fixed status, closeout and WeCom remain pending.
+
+### 2026-09-25 independent current-source review r2
+
+Reviewer Session `review-render07-postprocess-pass-order-r2` rechecked
+snapshot `3826` without editing or absorbing foreign changes. All four source
+hashes match the manifest. The four exact test functions resolve in
+`plugin_features.rs`; static inspection confirms canonical Bloom-before-
+reflection/baked-lighting ordering, the three-stage motion-vector chain, DoF
+identifiers, no-stack default-chain preservation, stack effect filtering, and
+scene-velocity resource routing. Scoped `git diff --check` is clean; the
+documented rustfmt drift remains limited to the two Rust test owners and the
+post-process descriptor.
+
+Independent result: **Critical=0 / Important=0 / Moderate=0**. No Cargo was
+run and no dynamic gate is inferred. Snapshot `3826` predates this receipt's
+doc-only append; managed focused tests, broad `plugin`, external
+`E:/Git/zr_vm` admission, canonical return, closeout and WeCom remain pending.

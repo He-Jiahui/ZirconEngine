@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 def source(relative: str) -> str:
     return (ROOT / relative).read_text(encoding="utf-8")
 
-
+# 读取诊断可用性查询，确认渲染和 WGPU 路径只读取已有快照状态。
 class RuntimeDiagnosticsAvailabilityPerformanceContract(unittest.TestCase):
     def test_render_framework_exposes_compatible_boolean_query(self) -> None:
         framework = source("zircon_runtime/src/core/framework/render/framework.rs")

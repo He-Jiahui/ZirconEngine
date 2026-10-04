@@ -21,7 +21,7 @@
 <!-- M6 support slices use exact child-plan manifests and do not close unrelated open failures. -->
 
 > 状态：工程化细化版 v2 · M1 代码与隔离 Windows 验证完成，待共享检出 closeout · 优先级：P1 · 前置：[01 插件架构核心](01-plugin-architecture-core.md) M1–M2
-> 关联计划：`.codex/plans/ZirconEngine 导航寻路插件补齐计划.md` · 现状文档：`docs/zircon_plugins/navigation/{runtime,editor,native}.md`
+> 关联计划：`.codex/plans/ZirconEngine 导航寻路插件补齐计划.md` · 现状文档：`docs/crates/zircon_plugins/navigation/{runtime,editor,native}.md`
 > 参考实现：Unity NavMesh 组件体验（Surface/Modifier/Agent/Obstacle/Link 五组件）、Unreal NavigationSystem（tile-based 异步重建）、Godot NavigationServer3D（map/region/agent/obstacle/link RID API）、upstream Recast/Detour/DetourCrowd
 
 ## 1. 目标

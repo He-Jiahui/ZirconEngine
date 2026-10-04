@@ -1,7 +1,7 @@
 use super::super::support::*;
 use crate::core::editor_event::MenuAction;
 use crate::ui::binding::{AssetCommand, EditorUiBindingPayload};
-use crate::ui::workbench::event::{EditorHostEvent, dispatch_editor_host_binding};
+use crate::ui::workbench::event::{dispatch_editor_host_binding, EditorHostEvent};
 
 #[test]
 fn keep_play_changes_context_item_routes_to_the_typed_menu_action() {
@@ -21,14 +21,14 @@ fn keep_play_changes_context_item_routes_to_the_typed_menu_action() {
 }
 
 #[test]
-fn asset_delete_context_item_retains_the_generation_target_uuid() {
+fn asset_delete_context_item_retains_uuid_with_open_locator_query() {
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0))
         .expect("componentized workbench template should project");
     bridge
         .open_context_menu(&WorkbenchContextMenuRequestData {
             target_control_id: "AssetContent:browser".into(),
             target_value_text: "Runtime Material".into(),
-            target_path: "workbench://asset/asset-runtime-material".into(),
+            target_path: "workbench://asset/asset-runtime-material?open_locator=7265733a2f2f6d6174657269616c732f72756e74696d652e7a6d6174".into(),
             menu_items: vec!["Delete|action=menu.item.asset.delete,danger,icon=trash".into()],
             ..WorkbenchContextMenuRequestData::default()
         })
@@ -42,6 +42,32 @@ fn asset_delete_context_item_retains_the_generation_target_uuid() {
         binding.payload(),
         &EditorUiBindingPayload::AssetCommand(AssetCommand::DeleteAsset {
             asset_uuid: "asset-runtime-material".to_string(),
+        })
+    );
+}
+
+#[test]
+fn asset_open_context_item_retains_the_generation_locator() {
+    let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0))
+        .expect("componentized workbench template should project");
+    bridge
+        .open_context_menu(&WorkbenchContextMenuRequestData {
+            target_control_id: "AssetContent:browser".into(),
+            target_value_text: "Runtime Material".into(),
+            target_path: "workbench://asset/asset-runtime-material?open_locator=7265733a2f2f6d6174657269616c732f72756e74696d652e7a6d6174".into(),
+            menu_items: vec!["Open|action=menu.item.asset.open,icon=folder".into()],
+            ..WorkbenchContextMenuRequestData::default()
+        })
+        .expect("asset context menu should open");
+
+    let binding = bridge
+        .context_menu_item_binding(WORKBENCH_CONTEXT_MENU_CONTROL_ID, "menu.item.asset.open")
+        .expect("asset open row should retain a typed binding");
+
+    assert_eq!(
+        binding.payload(),
+        &EditorUiBindingPayload::AssetCommand(AssetCommand::OpenAsset {
+            asset_locator: "res://materials/runtime.zmat".to_string(),
         })
     );
 }
@@ -181,23 +207,19 @@ fn workbench_context_menu_open_state_populates_visible_overlay() {
         "menu.item.rename"
     );
 
-    assert!(
-        bridge
-            .close_popup(WORKBENCH_CONTEXT_MENU_CONTROL_ID)
-            .expect("context menu should close via shared popup cancel")
-    );
+    assert!(bridge
+        .close_popup(WORKBENCH_CONTEXT_MENU_CONTROL_ID)
+        .expect("context menu should close via shared popup cancel"));
     assert_eq!(
         control_string_attribute(&bridge, "visibility").as_deref(),
         Some("collapsed")
     );
     assert!(!control_bool_attribute(&bridge, "popup_open").unwrap_or(false));
-    assert!(
-        !bridge
-            .surface()
-            .input
-            .popup_anchor_points
-            .contains_key(&context_menu_node_id)
-    );
+    assert!(!bridge
+        .surface()
+        .input
+        .popup_anchor_points
+        .contains_key(&context_menu_node_id));
 }
 
 fn control_string_attribute(

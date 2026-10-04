@@ -37,6 +37,34 @@ impl LayoutManager {
             LayoutCommand::CloseView { instance_id } => Ok(LayoutDiff {
                 changed: self.detach_instance(layout, &instance_id),
             }),
+            LayoutCommand::CloseViews {
+                window_id,
+                instance_ids,
+            } => {
+                let window = layout
+                    .floating_windows
+                    .iter()
+                    .find(|window| window.window_id == window_id)
+                    .ok_or_else(|| LayoutCommandError::MissingFloatingWindow {
+                        window_id: window_id.clone(),
+                    })?;
+                let mut current = Vec::with_capacity(window.workspace.instance_count());
+                window.workspace.append_instance_ids(&mut current);
+                if current != instance_ids {
+                    return Err(LayoutCommandError::MissingFloatingWindowNode {
+                        window_id,
+                        path: Vec::new(),
+                    });
+                }
+                let mut candidate = layout.clone();
+                for instance_id in &instance_ids {
+                    self.detach_instance(&mut candidate, instance_id);
+                }
+                *layout = candidate;
+                Ok(LayoutDiff {
+                    changed: !instance_ids.is_empty(),
+                })
+            }
             LayoutCommand::FocusView { instance_id } => Ok(LayoutDiff {
                 changed: self.focus_instance(layout, &instance_id),
             }),
@@ -60,7 +88,7 @@ impl LayoutManager {
                     layout.floating_windows.push(FloatingWindowLayout {
                         window_id: new_window.clone(),
                         title: format!("Window {}", new_window.0),
-                        workspace: DocumentNode::Tabs(TabStackLayout {
+                        workspace: DocumentNode::tabs(TabStackLayout {
                             tabs: vec![instance_id.clone()],
                             active_tab: Some(instance_id.clone()),
                         }),
@@ -85,7 +113,7 @@ impl LayoutManager {
                         path: path.clone(),
                     })?;
                 let previous = node.clone();
-                let inserted = DocumentNode::Tabs(TabStackLayout {
+                let inserted = DocumentNode::tabs(TabStackLayout {
                     tabs: vec![new_instance.clone()],
                     active_tab: Some(new_instance),
                 });
@@ -94,6 +122,7 @@ impl LayoutManager {
                     SplitPlacement::After => (previous, inserted),
                 };
                 *node = DocumentNode::SplitNode {
+                    node_id: Default::default(),
                     axis,
                     ratio: 0.5,
                     first: Box::new(first),

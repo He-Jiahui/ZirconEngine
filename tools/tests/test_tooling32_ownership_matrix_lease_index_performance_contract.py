@@ -1,3 +1,4 @@
+# 核对所有权矩阵在投影条目之前建立活动租约索引。
 from __future__ import annotations
 
 import inspect

@@ -77,6 +77,42 @@ fn selection_control_rendering_uses_central_tokens_and_validated_overrides() {
 }
 
 #[test]
+fn selection_control_command_builders_reserve_fixed_upper_bounds() {
+    let checkbox = include_str!("../surface/render/selection_controls/checkbox.rs");
+    for (source, capacity, reservation) in [
+        (
+            checkbox,
+            "const CHECKBOX_COMMAND_CAPACITY: usize = 5;",
+            "let mut commands = Vec::with_capacity(CHECKBOX_COMMAND_CAPACITY);",
+        ),
+        (
+            include_str!("../surface/render/selection_controls/radio.rs"),
+            "const RADIO_COMMAND_CAPACITY: usize = 3;",
+            "let mut commands = Vec::with_capacity(RADIO_COMMAND_CAPACITY);",
+        ),
+        (
+            include_str!("../surface/render/selection_controls/toggle.rs"),
+            "const TOGGLE_COMMAND_CAPACITY: usize = 3;",
+            "let mut commands = Vec::with_capacity(TOGGLE_COMMAND_CAPACITY);",
+        ),
+    ] {
+        assert!(
+            source.contains(capacity),
+            "missing command capacity: {capacity}"
+        );
+        assert!(
+            source.contains(reservation),
+            "missing command reservation: {reservation}"
+        );
+    }
+    assert!(checkbox.contains("push_checkbox_tick_commands("));
+    assert!(
+        !checkbox.contains(".collect()"),
+        "the fixed three-stroke checkbox mark should append into the caller-owned vector"
+    );
+}
+
+#[test]
 fn render_extract_expands_selection_control_indicators() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.selection_controls"));
     surface.tree.insert_root(

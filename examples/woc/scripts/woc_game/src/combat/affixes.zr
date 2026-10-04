@@ -1,5 +1,5 @@
-// Mob affix and Hit-rating rules. Proc samples are supplied by kernel/rng.zr;
-// guards here run before the sample comparison to preserve draw neutrality.
+//! 独立词缀与命中率标量契约；随机样本由调用方在通过资格门槛后提供，本模块不推进世界 RNG。
+/// 供标量测试验证触发门槛、层数、周期量与命中率换算；kind 由测试向量选择，非法类别抛错。
 pub metric(
     kind: int,
     first: float,
@@ -29,6 +29,7 @@ pub metric(
     throw "affix rule metric is invalid";
 }
 
+/// 以固定种子标记和轮数检查词缀触发次数与抽样预算；这不是对战斗世界的回放入口。
 pub scenarioContract(scenarioKind: int, seed: int, rounds: int): float {
     if (scenarioKind == 0) {
         if (seed != 1004 || rounds != 5) { return 0.0; }

@@ -8,8 +8,8 @@ related_code:
   - zircon_editor/src/tests/workbench/layout/layout_preset_persistence.rs
   - zircon_editor/src/ui/host/module.rs
 design_references:
-  - docs/ui-and-layout/ai-workbench-style/prototype/README.md
-  - docs/ui-and-layout/editor-workbench-designs/drawer-expanded-state-spec.png
+  - docs/ui/ai-workbench-style/prototype/README.md
+  - docs/ui/editor-workbench-designs/drawer-expanded-state-spec.png
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/03-jetbrains-docking-workbench.md
 status: in_progress

@@ -10,7 +10,7 @@ use crate::text::parallel::raster_pool::{
 use crate::text::raster::GlyphBitmap;
 
 #[test]
-fn native_bitmap_atlas_source_cache_requests_exact_instance_once_per_glyph() {
+fn text_runtime_raster_authority_native_worker_requests_exact_instance_once_per_glyph() {
     let (font_database, instance) = test_font_database_with_fira();
     let cache_key = GlyphRasterKey {
         face: instance,

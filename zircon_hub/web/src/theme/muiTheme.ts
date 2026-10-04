@@ -1,6 +1,7 @@
 import { createTheme } from "@mui/material/styles";
 import { hubTokens } from "./tokens";
 
+// 应用入口为全部公共控件安装的主题；视觉值从共享令牌取得，页面只补充自身布局与业务内容。
 export const hubTheme = createTheme({
   palette: {
     mode: "dark",
@@ -31,6 +32,7 @@ export const hubTheme = createTheme({
   shape: {
     borderRadius: hubTokens.radius.compact,
   },
+  // 字体层级服务桌面壳层的摘要和操作密度，标题及按钮保持输入文案原有字形和大小写。
   typography: {
     fontFamily: 'Inter, Roboto, "Segoe UI", Arial, sans-serif',
     h4: {
@@ -64,6 +66,7 @@ export const hubTheme = createTheme({
       textTransform: "none",
     },
   },
+  // 收敛通用控件的默认外观，使浮层、表单和卡片与同一暗色表面一致；局部尺寸仍由包装器和页面决定。
   components: {
     MuiButton: {
       styleOverrides: {

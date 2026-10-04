@@ -9,69 +9,49 @@ pub(crate) fn balanced_side_widths_for_budget(
     right: f32,
     side_budget: f32,
 ) -> BalancedSideWidths {
+    let budget = finite_non_negative(side_budget) as f64;
     let mut widths = BalancedSideWidths {
-        left: left.max(0.0),
-        right: right.max(0.0),
+        left: finite_demand_within_budget(left, budget),
+        right: finite_demand_within_budget(right, budget),
     };
-    let mut excess = (widths.left + widths.right - side_budget.max(0.0)).max(0.0);
-    if excess <= f32::EPSILON {
+    let left = widths.left as f64;
+    let right = widths.right as f64;
+    if left + right <= budget {
         return widths;
     }
 
-    if widths.left > widths.right {
-        let reduction = excess.min(widths.left - widths.right);
-        widths.left -= reduction;
-        excess -= reduction;
-    } else if widths.right > widths.left {
-        let reduction = excess.min(widths.right - widths.left);
-        widths.right -= reduction;
-        excess -= reduction;
-    }
+    let (left, right) = if left > right && budget >= right * 2.0 {
+        (budget - right, right)
+    } else if right > left && budget >= left * 2.0 {
+        (left, budget - left)
+    } else {
+        let left = budget * 0.5;
+        (left, budget - left)
+    };
 
-    if excess <= f32::EPSILON {
-        return widths;
-    }
-
-    let total = widths.left + widths.right;
-    if total <= f32::EPSILON {
-        return widths;
-    }
-    let retained_total = (total - excess).max(0.0);
-    widths.left = retained_total * (widths.left / total);
-    widths.right = retained_total * (widths.right / total);
+    widths.left = left.min(budget) as f32;
+    widths.right = right.min((budget - f64::from(widths.left)).max(0.0)) as f32;
     widths
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn larger_side_releases_width_before_balanced_panels_shrink_together() {
-        assert_eq!(
-            balanced_side_widths_for_budget(278.0, 186.0, 378.0),
-            BalancedSideWidths {
-                left: 192.0,
-                right: 186.0
-            }
-        );
-        assert_eq!(
-            balanced_side_widths_for_budget(340.0, 220.0, 448.0),
-            BalancedSideWidths {
-                left: 228.0,
-                right: 220.0
-            }
-        );
-    }
-
-    #[test]
-    fn authored_side_widths_survive_when_the_document_budget_already_fits() {
-        assert_eq!(
-            balanced_side_widths_for_budget(278.0, 274.0, 558.0),
-            BalancedSideWidths {
-                left: 278.0,
-                right: 274.0
-            }
-        );
+fn finite_non_negative(value: f32) -> f32 {
+    if value.is_finite() {
+        value.max(0.0)
+    } else {
+        0.0
     }
 }
+
+fn finite_demand_within_budget(value: f32, budget: f64) -> f32 {
+    if value.is_finite() {
+        value.max(0.0)
+    } else if value.is_sign_positive() {
+        budget as f32
+    } else {
+        0.0
+    }
+}
+
+#[cfg(test)]
+#[path = "tests/side_width_allocation.rs"]
+mod tests;

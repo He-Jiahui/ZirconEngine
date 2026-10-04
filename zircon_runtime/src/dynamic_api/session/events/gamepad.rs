@@ -3,20 +3,20 @@ use zircon_runtime_interface::ui::dispatch::{
 };
 use zircon_runtime_interface::ui::surface::UiNavigationEventKind;
 use zircon_runtime_interface::{
-    ZR_RUNTIME_BUTTON_STATE_PRESSED_V1, ZR_RUNTIME_BUTTON_STATE_RELEASED_V1,
-    ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1, ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_Y_V1,
-    ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_DOWN_V1, ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_LEFT_V1,
-    ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_RIGHT_V1, ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_UP_V1,
-    ZR_RUNTIME_GAMEPAD_BUTTON_EAST_V1, ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1,
-    ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1, ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1,
-    ZrRuntimeEventV1, ZrStatus,
+    ZrRuntimeEventV1, ZrStatus, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+    ZR_RUNTIME_BUTTON_STATE_RELEASED_V1, ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1,
+    ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_Y_V1, ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_DOWN_V1,
+    ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_LEFT_V1, ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_RIGHT_V1,
+    ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_UP_V1, ZR_RUNTIME_GAMEPAD_BUTTON_EAST_V1,
+    ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1, ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1,
+    ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1,
 };
 
 use crate::core::framework::input::{GamepadConnectionInfo, GamepadId, InputEvent};
 
-use super::super::RuntimeDynamicSession;
 use super::super::input_events::{gamepad_axis, gamepad_button, nonzero_u16};
 use super::super::status::invalid_argument;
+use super::super::RuntimeDynamicSession;
 use super::event_payload;
 
 impl RuntimeDynamicSession {
@@ -57,6 +57,7 @@ impl RuntimeDynamicSession {
             value: event.delta,
             pressed,
         });
+        // 按钮已提交给 Runtime 输入；导航按下事件再送 UI，处理与未处理均返回成功，UI 错误仍向上返回。
         if pressed {
             if let Some(kind) = ui_gamepad_navigation(event.button) {
                 match self.dispatch_runtime_ui_event(|metadata| {

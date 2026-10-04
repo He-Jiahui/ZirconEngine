@@ -1,20 +1,20 @@
-use super::ScreenSpaceUiNativePrepareReport;
 use super::font_assets::UiFontAssetCacheReport;
 use super::font_id_report::ScreenSpaceUiTextFontIdReport;
 use super::resolved_batches::{AutoTextRasterRouteFrameReport, ResolvedScreenSpaceUiTextBatches};
 use super::sdf_fallback::ScreenSpaceUiTextSdfFallbackReport;
+use super::ScreenSpaceUiNativePrepareReport;
 use crate::graphics::scene::scene_renderer::ui::atlas_renderer::GlyphAtlasBitmapRendererPrepareReport;
 use crate::graphics::scene::scene_renderer::ui::render::{
     ScreenSpaceUiResolvedGlyphArtifactRouteReport, ScreenSpaceUiTextBatch,
 };
 use crate::graphics::scene::scene_renderer::ui::sdf_atlas::SdfAtlasCacheReport;
 use crate::graphics::scene::scene_renderer::ui::sdf_render::ScreenSpaceUiSdfPrepareReport;
-use crate::text::TextLayoutFallbackReport;
 use crate::text::font::MissingGlyphDiagnosticsReport;
 use crate::text::native_bitmap_atlas::{
-    NativeBitmapAtlasHandoff, NativeBitmapAtlasPrepareReport,
-    native_bitmap_atlas_handoff_for_report,
+    native_bitmap_atlas_handoff_for_report, NativeBitmapAtlasHandoff,
+    NativeBitmapAtlasPrepareReport,
 };
+use crate::text::TextLayoutFallbackReport;
 
 #[cfg(feature = "profiling")]
 mod profile;
@@ -187,6 +187,15 @@ pub(crate) struct ScreenSpaceUiTextRasterUploadReport {
     pub(crate) worker_pool_cancelled_total: u64,
     /// Native raster failures or rejected completion images.
     pub(crate) worker_failed_count: usize,
+    /// Native-atlas sources retained for a later frame by the bounded retry scheduler.
+    ///
+    /// A framebuffer capture is incomplete while this is nonzero even if every source raster is
+    /// already present in the CPU cache.
+    pub(crate) retry_queued_glyph_count: usize,
+    /// Retry sources discarded because the bounded retry queue could not retain them this frame.
+    pub(crate) retry_queue_overflow_glyph_count: usize,
+    /// Retry sources rejected by a per-source byte budget and therefore unable to become visible.
+    pub(crate) retry_rejected_source_count: usize,
     pub(super) upload_command_count: usize,
     pub(super) upload_copy_count: usize,
     pub(super) upload_copy_byte_len: usize,
@@ -198,6 +207,8 @@ pub(crate) struct ScreenSpaceUiTextRasterUploadReport {
     pub(super) renderer_upload_ready_to_write_texture: bool,
 }
 
+/// 汇总当前帧文字准备的字体、布局回退、native/SDF 驻留、上传计划及待处理计数。
+/// 这是 prepare 结果快照，不表示上传已确认或 GPU 已提交。
 pub(super) fn text_prepare_report(
     input_batch_counts: [usize; 3],
     auto_route: AutoTextRasterRouteFrameReport,
@@ -443,6 +454,18 @@ pub(super) fn text_raster_upload_report(
                     .source_cache
                     .worker_completion_invalid_bitmap_count,
             ),
+        retry_queued_glyph_count: native_bitmap_atlas.retry_state.queued_blocked_glyph_count,
+        retry_queue_overflow_glyph_count: native_bitmap_atlas
+            .retry_state
+            .queue_overflow_blocked_glyph_count,
+        retry_rejected_source_count: native_bitmap_atlas
+            .retry_submission
+            .rejected_retry_source_count
+            .saturating_add(
+                native_bitmap_atlas
+                    .retry_submission
+                    .rejected_new_source_count,
+            ),
         upload_command_count: native_bitmap_atlas.submission.upload_command_count,
         upload_copy_count: native_bitmap_atlas.submission.upload_copy_count,
         upload_copy_byte_len: native_bitmap_atlas.submission.upload_copy_byte_len,
@@ -456,45 +479,5 @@ pub(super) fn text_raster_upload_report(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn resolved_text_report_merges_segment_counts_and_payload_sizes() {
-        let mut frame = ScreenSpaceUiResolvedTextReport {
-            native_text_batch_count: 2,
-            sdf_text_batch_count: 1,
-            batch_residency: ScreenSpaceUiTextBatchResidencyReport {
-                materialized_batch_count: 3,
-                text_byte_count: 12,
-                glyph_advance_byte_count: 8,
-            },
-            post_layout_stale_artifact_batch_rejection_count: 1,
-            layout_fallbacks: TextLayoutFallbackReport::default(),
-        };
-        let mut segment_fallbacks = TextLayoutFallbackReport::default();
-        segment_fallbacks.fallback_count = 2;
-        segment_fallbacks.invalid_language_count = 1;
-
-        frame.merge(ScreenSpaceUiResolvedTextReport {
-            native_text_batch_count: 1,
-            sdf_text_batch_count: 4,
-            batch_residency: ScreenSpaceUiTextBatchResidencyReport {
-                materialized_batch_count: 5,
-                text_byte_count: 20,
-                glyph_advance_byte_count: 16,
-            },
-            post_layout_stale_artifact_batch_rejection_count: 3,
-            layout_fallbacks: segment_fallbacks,
-        });
-
-        assert_eq!(frame.native_text_batch_count, 3);
-        assert_eq!(frame.sdf_text_batch_count, 5);
-        assert_eq!(frame.batch_residency.materialized_batch_count, 8);
-        assert_eq!(frame.batch_residency.text_byte_count, 32);
-        assert_eq!(frame.batch_residency.glyph_advance_byte_count, 24);
-        assert_eq!(frame.post_layout_stale_artifact_batch_rejection_count, 4);
-        assert_eq!(frame.layout_fallbacks.fallback_count, 2);
-        assert_eq!(frame.layout_fallbacks.invalid_language_count, 1);
-    }
-}
+#[path = "tests/prepare_report_unit.rs"]
+mod tests;

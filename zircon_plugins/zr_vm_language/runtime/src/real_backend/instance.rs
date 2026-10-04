@@ -1,3 +1,7 @@
+mod state_encoding;
+
+pub(super) use state_encoding::ZrVmStateEncoding;
+
 use zircon_runtime::core::framework::script::ScriptHostValue;
 use zircon_runtime::script::{
     VmError, VmGcBudget, VmGcStepOutcome, VmPluginHostContext, VmPluginInstance, VmPluginManifest,
@@ -32,6 +36,7 @@ pub(super) struct ZrVmPluginInstance {
     manifest: VmPluginManifest,
     runtime_owner: ZrVmRuntimeOwner,
     entry_module: String,
+    state_encoding: ZrVmStateEncoding,
 }
 
 impl ZrVmPluginInstance {
@@ -39,11 +44,13 @@ impl ZrVmPluginInstance {
         manifest: VmPluginManifest,
         runtime_owner: ZrVmRuntimeOwner,
         entry_module: String,
+        state_encoding: ZrVmStateEncoding,
     ) -> Self {
         Self {
             manifest,
             runtime_owner,
             entry_module,
+            state_encoding,
         }
     }
 
@@ -96,28 +103,16 @@ impl VmPluginInstance for ZrVmPluginInstance {
 
     fn save_state(&mut self) -> Result<VmStateBlob, VmError> {
         let guard = acquire_zr_vm_lock();
-        let value = match self.call_entry_lifecycle_export(&guard, "saveState", &[])? {
-            Some(value) => value,
-            None => return Ok(VmStateBlob::default()),
-        };
-        match value.kind() {
-            zrvm::ValueKind::String => {
-                let snapshot = value.as_string().map_err(map_zr_error)?;
-                VmStateBlob::from_json(&snapshot).map_err(Into::into)
-            }
-            zrvm::ValueKind::Null => Ok(VmStateBlob::default()),
-            other => Err(VmError::Operation(format!(
-                "zr_vm saveState returned unsupported value kind {other:?}"
-            ))),
-        }
+        let value = self.call_entry_lifecycle_export(&guard, "saveState", &[])?;
+        self.state_encoding
+            .decode_state(value.as_ref(), &self.entry_module)
     }
 
     fn restore_state(&mut self, state: &VmStateBlob) -> Result<(), VmError> {
         let guard = acquire_zr_vm_lock();
-        let state = state.to_json()?;
-        let argument = zrvm::Value::new_string(&state).map_err(map_zr_error)?;
-        self.call_entry_lifecycle_export(&guard, "restoreState", &[argument])
-            .map(|_| ())
+        let argument = self.state_encoding.restore_argument(state)?;
+        let result = self.call_entry_lifecycle_export(&guard, "restoreState", &[argument])?;
+        self.state_encoding.validate_restore_result(result.as_ref())
     }
 
     fn state_schema(&mut self) -> Result<Option<VmStateSchema>, VmError> {
@@ -129,9 +124,9 @@ impl VmPluginInstance for ZrVmPluginInstance {
         match value.kind() {
             zrvm::ValueKind::String => {
                 let schema = value.as_string().map_err(map_zr_error)?;
-                VmStateSchema::from_json(&schema)
-                    .map(Some)
-                    .map_err(Into::into)
+                let schema = VmStateSchema::from_json(&schema)?;
+                self.state_encoding.validate_schema(&schema)?;
+                Ok(Some(schema))
             }
             zrvm::ValueKind::Null => Ok(None),
             other => Err(VmError::Operation(format!(

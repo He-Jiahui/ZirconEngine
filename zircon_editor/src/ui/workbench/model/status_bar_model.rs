@@ -37,6 +37,7 @@ impl Default for StatusBarModel {
 impl StatusBarModel {
     pub fn from_chrome(chrome: &EditorChromeSnapshot) -> Self {
         let task_progress = chrome.status_task_progress.clone();
+        let (grid_text, snap_text) = Self::viewport_chrome_text(&chrome.scene_viewport_settings);
         Self {
             primary_text: non_empty_label(&chrome.status_line, "Ready"),
             secondary_text: chrome
@@ -51,8 +52,8 @@ impl StatusBarModel {
             } else {
                 "0 Messages".to_string()
             },
-            grid_text: status_grid_text(&chrome.scene_viewport_settings),
-            snap_text: status_snap_text(&chrome.scene_viewport_settings),
+            grid_text,
+            snap_text,
             snap_enabled: matches!(
                 chrome.scene_viewport_settings.grid_mode,
                 GridMode::VisibleAndSnap
@@ -60,6 +61,10 @@ impl StatusBarModel {
             zoom_text: "100%".to_string(),
             task_progress,
         }
+    }
+
+    pub(crate) fn viewport_chrome_text(settings: &SceneViewportChromeSettings) -> (String, String) {
+        (status_grid_text(settings), status_snap_text(settings))
     }
 }
 
@@ -98,3 +103,7 @@ fn non_empty_label(value: &str, fallback: &str) -> String {
         trimmed.to_string()
     }
 }
+
+#[cfg(test)]
+#[path = "tests/status_bar_viewport_chrome_text_tests.rs"]
+mod status_bar_viewport_chrome_text_tests;

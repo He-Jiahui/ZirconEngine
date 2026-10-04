@@ -1,10 +1,11 @@
+# 核对资源烘焙阶段与诊断信息的实现归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-COOK_ASSETS_STAGE = REPO_ROOT / "tools/zircon_export/cook_assets.py"
-COOK_ASSETS_MANIFEST = REPO_ROOT / "tools/zircon_export/cook_assets_manifest.py"
+COOK_ASSETS_STAGE = REPO_ROOT / "tools/export/cook_assets.py"
+COOK_ASSETS_MANIFEST = REPO_ROOT / "tools/export/cook_assets_manifest.py"
 
 
 class ZirconExportCookAssetsStageOwnerBoundaryTests(unittest.TestCase):

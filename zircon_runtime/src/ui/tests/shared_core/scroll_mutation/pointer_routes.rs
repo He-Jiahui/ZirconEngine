@@ -282,4 +282,114 @@ fn scroll_pointer_event_scrolls_the_nearest_scrollable_box_when_unhandled() {
         50.0
     );
     assert!(surface.tree.node(UiNodeId::new(2)).unwrap().dirty.layout);
+
+    let scratch_capacity = surface.default_scroll_candidate_scratch_capacity_for_test();
+    assert!(scratch_capacity > 0);
+    let repeated = surface
+        .dispatch_pointer_event(
+            &UiPointerDispatcher::default(),
+            UiPointerEvent::new(UiPointerEventKind::Scroll, UiPoint::new(20.0, 20.0))
+                .with_scroll_delta(10.0),
+        )
+        .unwrap();
+    assert_eq!(repeated.handled_by, Some(UiNodeId::new(2)));
+    assert_eq!(
+        surface.default_scroll_candidate_scratch_capacity_for_test(),
+        scratch_capacity
+    );
+}
+
+#[test]
+fn default_pointer_scroll_validates_every_candidate_before_mutating_and_recovers_scratch() {
+    let mut surface = UiSurface::new(UiTreeId::new("default-scroll-validation"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("scroll"))
+            .with_container(UiContainerKind::ScrollableBox(
+                UiScrollableBoxConfig::default(),
+            ))
+            .with_scroll_state(UiScrollState {
+                offset: 0.0,
+                viewport_extent: 100.0,
+                content_extent: 200.0,
+            }),
+    );
+
+    assert!(matches!(
+        surface.apply_default_pointer_scroll(&default_scroll_route(vec![
+            UiNodeId::new(1),
+            UiNodeId::new(99),
+        ])),
+        Err(UiTreeError::MissingNode(UiNodeId(99)))
+    ));
+    assert_eq!(
+        surface
+            .tree
+            .node(UiNodeId::new(1))
+            .unwrap()
+            .scroll_state
+            .unwrap()
+            .offset,
+        0.0
+    );
+
+    let scratch_capacity = surface.default_scroll_candidate_scratch_capacity_for_test();
+    assert!(scratch_capacity > 0);
+    assert_eq!(
+        surface
+            .apply_default_pointer_scroll(&default_scroll_route(vec![UiNodeId::new(1)]))
+            .unwrap(),
+        Some(UiNodeId::new(1))
+    );
+    assert_eq!(
+        surface.default_scroll_candidate_scratch_capacity_for_test(),
+        scratch_capacity
+    );
+}
+
+#[test]
+fn default_pointer_scroll_reuses_a_surface_local_candidate_scratch() {
+    let source = include_str!("../../../surface/surface/event_routing.rs");
+    let scroll_start = source
+        .find("    pub fn apply_default_pointer_scroll(")
+        .expect("default pointer scroll");
+    let scroll_end = source[scroll_start..]
+        .find("\n    pub fn route_pointer_event_with_query(")
+        .map(|offset| scroll_start + offset)
+        .expect("next event routing method");
+    let scroll = &source[scroll_start..scroll_end];
+
+    assert!(scroll.contains("std::mem::take(&mut self.scrollable_candidate_scratch)"));
+    assert!(
+        scroll.contains("collect_scrollable_candidates(candidates, &mut scrollable_candidates)")
+    );
+    assert!(scroll.contains("self.scrollable_candidate_scratch = scrollable_candidates"));
+    assert!(
+        scroll.find("collect_scrollable_candidates") < scroll.find("self.tree.scroll_by"),
+        "the complete candidate validation must run before the first scroll mutation"
+    );
+    assert!(!scroll.contains("self.tree.scrollable_candidates(candidates)?"));
+}
+
+fn default_scroll_route(stacked: Vec<UiNodeId>) -> UiPointerRoute {
+    UiPointerRoute {
+        kind: UiPointerEventKind::Scroll,
+        button: None,
+        modifiers: Default::default(),
+        activation_phase: Default::default(),
+        point: UiPoint::new(0.0, 0.0),
+        scroll_delta: 1.0,
+        target: None,
+        hit_path: Default::default(),
+        routing_path: Default::default(),
+        stacked,
+        entered: Vec::new(),
+        left: Vec::new(),
+        captured: None,
+        pressed: None,
+        click_target: None,
+        release_inside_pressed: false,
+        focused: None,
+        fallback_to_root: false,
+        root_targets: Vec::new(),
+    }
 }

@@ -103,16 +103,15 @@ impl DurableJournal {
             });
         }
 
-        let retained = report
+        let retained_start = report
             .entries()
-            .iter()
-            .filter(|entry| entry.sequence() > covered_through)
-            .collect::<Vec<_>>();
+            .partition_point(|entry| entry.sequence() <= covered_through);
+        let retained = &report.entries()[retained_start..];
         let temporary = compaction_path(&path)?;
         let result = (|| {
             let mut writer =
                 JournalWriter::create_with_base(temporary.clone(), document, covered_through)?;
-            for entry in &retained {
+            for entry in retained {
                 let prepared =
                     PreparedJournalRecord::prepare(entry.transaction()).map_err(|source| {
                         DurableJournalError::Preparation {
@@ -184,3 +183,7 @@ fn compaction_path(path: &std::path::Path) -> Result<PathBuf, DurableJournalErro
         std::process::id()
     )))
 }
+
+#[cfg(test)]
+#[path = "tests/store_optimization_batch_hw_editor605_tests.rs"]
+mod optimization_batch_hw_editor605_tests;

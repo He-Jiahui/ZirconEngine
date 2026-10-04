@@ -1,9 +1,10 @@
+# 核对文档元数据解析在结束分隔符处停止读取。
 import tempfile
 import time
 import unittest
 from pathlib import Path
 
-from tools.check_conventions import FRONT_MATTER_LIST_FIELDS, _front_matter_path_fields
+from tools.audits.check_conventions import FRONT_MATTER_LIST_FIELDS, _front_matter_path_fields
 
 
 TOOLING28_WARMUP_PAIRS = 4
@@ -93,7 +94,7 @@ class StreamedFrontMatterPerformanceContract(unittest.TestCase):
             (
                 "---\n",
                 "implementation_files:\n",
-                "  - tools/check_conventions.py\n",
+                "  - tools/audits/check_conventions.py\n",
                 "tests:\n",
                 "  - tools/tests/test_check_conventions.py::DocumentAuditTests\n",
                 "---\n",
@@ -106,7 +107,7 @@ class StreamedFrontMatterPerformanceContract(unittest.TestCase):
 
         self.assertEqual(
             {
-                "implementation_files": ["tools/check_conventions.py"],
+                "implementation_files": ["tools/audits/check_conventions.py"],
                 "related_code": [],
                 "tests": [
                     "tools/tests/test_check_conventions.py::DocumentAuditTests"
@@ -127,7 +128,7 @@ class StreamedFrontMatterPerformanceContract(unittest.TestCase):
         front_matter = (
             "---\n"
             "implementation_files:\n"
-            "  - tools/check_conventions.py\n"
+            "  - tools/audits/check_conventions.py\n"
             "tests:\n"
             "  - tools/tests/test_check_conventions.py::DocumentAuditTests\n"
             "---\n"

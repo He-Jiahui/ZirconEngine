@@ -8,4 +8,5 @@ pub(super) fn lock_recovering_poison<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
 }
 
 #[cfg(test)]
+#[path = "sync/tests/cases.rs"]
 mod tests;

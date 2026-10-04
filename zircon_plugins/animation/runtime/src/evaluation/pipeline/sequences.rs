@@ -4,14 +4,16 @@ use zircon_runtime::animation::{
     apply_compiled_sequence_to_world, compile_sequence_for_world, CompiledAnimationSequence,
 };
 use zircon_runtime::asset::AssetId;
-use zircon_runtime::core::framework::animation::AnimationSequenceAsset;
+use zircon_runtime::core::framework::animation::{
+    compiler::sequence::compile_animation_sequence, AnimationSequenceAsset,
+};
 use zircon_runtime::core::math::Real;
 use zircon_runtime::scene::LevelSystem;
 
 use super::AnimationEvaluationPipeline;
 
 #[cfg(test)]
-#[path = "sequences/performance_tests.rs"]
+#[path = "sequences/tests/performance_tests.rs"]
 mod optimization_batch_20260830cq_tests;
 
 #[derive(Debug)]
@@ -51,7 +53,12 @@ pub(super) fn apply_loaded_sequences(
                             || !cached.compiled.is_current_for(world)
                     });
                 if must_recompile {
-                    let Ok(compiled) = compile_sequence_for_world(world, &sample.sequence) else {
+                    let source_compilation = compile_animation_sequence(&sample.sequence);
+                    let Some(source) = source_compilation.into_artifact() else {
+                        sequence_cache.remove(&sample.asset_id);
+                        continue;
+                    };
+                    let Ok(compiled) = compile_sequence_for_world(world, source) else {
                         sequence_cache.remove(&sample.asset_id);
                         continue;
                     };
@@ -69,7 +76,6 @@ pub(super) fn apply_loaded_sequences(
                 };
                 let _ = apply_compiled_sequence_to_world(
                     world,
-                    &sample.sequence,
                     &cached.compiled,
                     sample.time_seconds,
                     sample.looping,

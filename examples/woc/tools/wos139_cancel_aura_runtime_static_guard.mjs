@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node wos139_cancel_aura_runtime_static_guard.mjs；缺少源码契约时脚本抛错退出。
+// 核对锁定的有益光环可取消条件及首次匹配语义，再沿命令 ID 3 检查世界分派、归约器和自测调用。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -27,6 +31,7 @@ requireText(sourceSim, /cancelAura\(auraId: string[\s\S]*?removeCancelableAura\(
 const payloads = read('scripts', 'woc_game', 'src', 'protocol', 'command_payloads.zr');
 requireText(payloads, /pub cancelAuraCommandId\(required: bool\): uint[\s\S]*?return <uint>3/,
   'cancel_aura command identity is missing');
+// 从命令身份沿分派查到世界归约器，并确认自测已接入。
 const world = read('scripts', 'woc_game', 'src', 'world', 'state.zr');
 requireText(world, /var cancelAuraCommand = payloads\.cancelAuraCommandId\(true\)/,
   'cancel_aura command reducer binding is missing');

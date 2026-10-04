@@ -1,3 +1,4 @@
+//! 把类型贡献物化的身份、字段完整性和冲突失败保留为可区分诊断，供扩展注册拒绝不完整目录；格式化只负责呈现该失败事实。
 use std::fmt;
 
 use super::AssetTypeId;
@@ -78,5 +79,5 @@ impl fmt::Display for AssetTypeRegistryError {
 impl std::error::Error for AssetTypeRegistryError {}
 
 #[cfg(test)]
-#[path = "error/single_pass_missing_fields_tests.rs"]
+#[path = "error/tests/single_pass_missing_fields_tests.rs"]
 mod single_pass_missing_fields_tests;

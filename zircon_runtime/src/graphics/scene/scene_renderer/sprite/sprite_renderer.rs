@@ -135,6 +135,7 @@ impl SpriteRenderer {
         }
 
         let sprite_draw_count = sprite_batches.len();
+        // 每个贴图批次使用独立绑定组；图级附件操作只落在这组 pass 的首尾。
         for (draw_index, batch) in sprite_batches.into_iter().enumerate() {
             let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("zircon-sprite-vertices"),
@@ -207,6 +208,7 @@ fn sprite_subpass_attachment_ops(
     draw_index: usize,
     draw_count: usize,
 ) -> RenderGraphAttachmentOps {
+    // 批次之间强制 Load/Store；只有首末 pass 分别承接图级 load/store，保留整个阶段边界语义。
     RenderGraphAttachmentOps {
         load: if draw_index == 0 {
             graph_pass_ops.load
@@ -222,34 +224,5 @@ fn sprite_subpass_attachment_ops(
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::render_graph::{
-        RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps, RenderGraphAttachmentStoreOp,
-    };
-
-    use super::sprite_subpass_attachment_ops;
-
-    #[test]
-    fn sprite_subpasses_apply_graph_attachment_ops_only_to_outer_draws() {
-        let graph_ops = RenderGraphAttachmentOps::clear_discard();
-
-        assert_eq!(
-            sprite_subpass_attachment_ops(graph_ops, 0, 3),
-            RenderGraphAttachmentOps {
-                load: RenderGraphAttachmentLoadOp::Clear,
-                store: RenderGraphAttachmentStoreOp::Store,
-            }
-        );
-        assert_eq!(
-            sprite_subpass_attachment_ops(graph_ops, 1, 3),
-            RenderGraphAttachmentOps::load_store()
-        );
-        assert_eq!(
-            sprite_subpass_attachment_ops(graph_ops, 2, 3),
-            RenderGraphAttachmentOps {
-                load: RenderGraphAttachmentLoadOp::Load,
-                store: RenderGraphAttachmentStoreOp::Discard,
-            }
-        );
-    }
-}
+#[path = "tests/sprite_renderer.rs"]
+mod tests;

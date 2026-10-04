@@ -5,7 +5,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 CURRENT_LAYOUT_WORDING_TARGETS = {
-    "zircon_editor/src/tests/ui/boundary/template_assets.rs": [
+    "zircon_editor/src/tests/ui/boundary/template_assets": [
         "hard_cut_to_v2",
         "v2-replaced editor production asset",
         "missing v2 asset",
@@ -77,7 +77,7 @@ CURRENT_LAYOUT_WORDING_TARGETS = {
 }
 
 RETIRED_SUFFIX_NEGATIVE_MARKERS = {
-    "zircon_editor/src/tests/ui/boundary/template_assets.rs": [
+    "zircon_editor/src/tests/ui/boundary/template_assets": [
         "activity_drawer_window.v2.ui.toml",
         "workbench_shell.ui.toml",
         "runtime_hud.ui.toml",
@@ -113,7 +113,13 @@ class ZuiCurrentLayoutWordingConvergenceTests(unittest.TestCase):
     def test_retired_suffix_negative_assertions_remain_explicit(self):
         failures: list[str] = []
         for relative_path, required_markers in RETIRED_SUFFIX_NEGATIVE_MARKERS.items():
-            text = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+            target = REPO_ROOT / relative_path
+            sources = sorted(target.rglob("*.rs")) if target.is_dir() else [target]
+            self.assertTrue(
+                sources and all(source.is_file() for source in sources),
+                f"expected current layout sources under {relative_path}",
+            )
+            text = "\n".join(source.read_text(encoding="utf-8") for source in sources)
             for marker in required_markers:
                 if marker not in text:
                     failures.append(f"{relative_path}: {marker}")

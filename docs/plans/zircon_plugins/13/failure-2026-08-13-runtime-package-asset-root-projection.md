@@ -14,8 +14,7 @@ related_code:
   - zircon_runtime/src/asset/project/manager/package_assets.rs
   - zircon_runtime/src/dynamic_api/session/runtime_ui.rs
 tests:
-  - cargo test -p zircon_runtime --locked woc_project_ui_surface_runtime_round_trip
-  - cargo test -p zircon_runtime --locked project_runtime_ui_loads_linked_plugin_component_asset
+  - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter woc_project_ui_surface_runtime_round_trip
 ---
 
 # Plugins 13: runtime plugin package asset roots are absent from session startup
@@ -41,6 +40,7 @@ The standalone/native plugin discovery and registration projection drops the res
 - Runtime project startup registers each selected package root before project asset scanning, so `package://` `.zui` documents enter the same `ProjectManager` registry as project assets.
 - A project `.zui` import of a linked plugin component builds one retained runtime surface and passes render plus accessibility extraction without a path fallback.
 - The original Runtime09 project UI regression remains runnable through the coordinator-managed validation path.
+- Closeout requires adding and actually executing a focused linked-plugin component regression (originally listed as `project_runtime_ui_loads_linked_plugin_component_asset`): the filter currently matches no test and must not be treated as a passed acceptance command. Validate the new test together with the existing Runtime09 regression using coordinator-assigned Windows targets and `--locked`.
 
 ## 禁止临时方案
 
@@ -51,3 +51,9 @@ The standalone/native plugin discovery and registration projection drops the res
 ## 修复结果与回传
 
 Open state: `待修复`; Runtime09 continues independent UI lifecycle, input, extraction, and declared-root work.
+
+## 2026-09-24 current-source and acceptance receipt
+
+- `RuntimePluginRegistrationReport` still exposes the logical `package_manifest` but no canonical physical package root; its plugin/native constructors and `LinkedRuntimePluginPlan::prepare` therefore cannot hand a selected linked package directory to the runtime project path. `ProjectManager::register_package_asset_roots` exists, but the current session construction has not registered selected packages before the project UI surface load. This is a source implementation gap, not a validation-only return.
+- The original `tests` field named a non-existent `project_runtime_ui_loads_linked_plugin_component_asset` filter. The real `woc_project_ui_surface_runtime_round_trip` test exists in `dynamic_api/session/tests/runtime_ui_surface.rs`; the former name is retained above as a required new regression, not a runnable or passing test. The original command intent is preserved here; no dynamic pass is claimed.
+- `registration_report/plugin.rs`, `registration_report/native.rs`, `dynamic_api/session/construction.rs`, and `dynamic_api/session/runtime_ui.rs` have pre-existing changes outside this Session's scope. The runtime source fix awaits audited ownership and an exact source snapshot; none of those changes is claimed or overwritten here. Managed Cargo is also not submitted on the dirty external `E:/Git/zr_vm` checkout. Keep this failure open until source, both executable tests, upward UI acceptance, and independent review pass.

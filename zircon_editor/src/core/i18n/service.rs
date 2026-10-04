@@ -214,6 +214,33 @@ impl EditorI18nService {
             .unwrap_or_else(|| Arc::from(key))
     }
 
+    /// Resolves one authored UI reference through this service's canonical catalog.
+    pub fn resolve_localized_text_for_locale(
+        &self,
+        locale: &EditorLocale,
+        reference: &zircon_runtime_interface::ui::template::UiLocalizedTextRef,
+    ) -> Result<Arc<str>, EditorI18nError> {
+        super::bundle::validate_translation_key(&reference.key)?;
+        let table = reference.table.as_deref().unwrap_or("editor");
+        if !matches!(table, "editor" | "default") {
+            return Err(EditorI18nError::UnknownLocalizedTextTable(table.to_owned()));
+        }
+        if let Some(text) = self.catalog.translation_for_locale(locale, &reference.key) {
+            return Ok(text);
+        }
+        if let Some(fallback) = reference.fallback.as_deref() {
+            if fallback.trim().is_empty() {
+                return Err(EditorI18nError::EmptyTranslation(reference.key.clone()));
+            }
+            return Ok(Arc::from(fallback));
+        }
+        Err(EditorI18nError::MissingLocalizedTextKey {
+            table: table.to_owned(),
+            key: reference.key.clone(),
+            locale: locale.to_string(),
+        })
+    }
+
     pub fn embedded_bundle_error(&self) -> Option<&str> {
         self.embedded_bundle_error.as_deref()
     }
@@ -403,36 +430,36 @@ impl EditorI18nService {
 
     #[cfg(test)]
     fn run_before_event_dispatch_hook(&self) {
-        if let Some(hook) = self
+        let hook = self
             .before_event_dispatch_hook
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .clone()
-        {
+            .clone();
+        if let Some(hook) = hook {
             hook();
         }
     }
 
     #[cfg(test)]
     fn run_after_failure_locale_read_hook(&self) {
-        if let Some(hook) = self
+        let hook = self
             .after_failure_locale_read_hook
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .clone()
-        {
+            .clone();
+        if let Some(hook) = hook {
             hook();
         }
     }
 
     #[cfg(test)]
     pub(crate) fn run_after_locale_capture_hook(&self) {
-        if let Some(hook) = self
+        let hook = self
             .after_locale_capture_hook
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .clone()
-        {
+            .clone();
+        if let Some(hook) = hook {
             hook();
         }
     }
@@ -444,3 +471,11 @@ fn locale_delivery_requires_resync(delivery: LocaleChangeDelivery) -> bool {
         LocaleChangeDelivery::Backpressured | LocaleChangeDelivery::Rejected
     )
 }
+
+#[cfg(test)]
+#[path = "tests/service_hook_lock_tests.rs"]
+mod hook_lock_tests;
+
+#[cfg(test)]
+#[path = "service/tests/localized_text_tests.rs"]
+mod localized_text_tests;

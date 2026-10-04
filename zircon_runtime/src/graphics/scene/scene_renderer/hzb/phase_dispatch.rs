@@ -3,6 +3,7 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshIndirectDrawExe
 use super::HZB_OCCLUSION_CULL_WORKGROUP_SIZE;
 
 #[derive(Clone, Copy)]
+/// 将每个间接绘制阶段的有效参数数目映射为 HZB cull dispatch；阶段为空时跳过 GPU 工作。
 pub(crate) struct HzbOcclusionPhaseDispatch<'a> {
     execution: &'a MeshIndirectDrawExecution,
     args_count: u32,
@@ -78,36 +79,5 @@ pub(crate) fn dispatch_group_count_for_phase_arg_counts(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn hzb_occlusion_dispatch_groups_cover_indirect_args() {
-        assert_eq!(dispatch_group_count(0), 0);
-        assert_eq!(dispatch_group_count(1), 1);
-        assert_eq!(dispatch_group_count(64), 1);
-        assert_eq!(dispatch_group_count(65), 2);
-    }
-
-    #[test]
-    fn hzb_occlusion_dispatch_groups_sum_phase_local_workloads() {
-        assert_eq!(dispatch_group_count(3), 1);
-        assert_eq!(dispatch_group_count_for_phase_arg_counts([1, 1, 1]), 3);
-        assert_eq!(dispatch_group_count_for_phase_arg_counts([64, 65, 0]), 3);
-        assert_eq!(
-            dispatch_group_count_for_phase_arg_counts([u32::MAX]),
-            u32::MAX.div_ceil(64)
-        );
-    }
-
-    #[test]
-    fn hzb_occlusion_dispatch_summary_saturates_phase_and_group_counts() {
-        let mut summary = HzbOcclusionPhaseDispatchSummary::default();
-
-        summary.record_dispatch_group_count(u32::MAX);
-        summary.record_dispatch_group_count(1);
-
-        assert_eq!(summary.dispatched_phase_count(), 2);
-        assert_eq!(summary.dispatch_group_count(), u32::MAX);
-    }
-}
+#[path = "tests/phase_dispatch.rs"]
+mod tests;

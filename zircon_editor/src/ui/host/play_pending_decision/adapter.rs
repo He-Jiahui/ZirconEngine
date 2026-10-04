@@ -427,13 +427,17 @@ impl PlayPendingEditDecisionAdapter {
 
     #[cfg(test)]
     fn run_before_publish_state_lock_hook(&self) {
-        if let Some(hook) = self
+        let hook = self
             .before_publish_state_lock_hook
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .clone()
-        {
+            .clone();
+        if let Some(hook) = hook {
             hook();
         }
     }
 }
+
+#[cfg(test)]
+#[path = "tests/adapter_publish_hook_lock_tests.rs"]
+mod publish_hook_lock_tests;

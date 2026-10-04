@@ -228,5 +228,5 @@ pub(super) fn item_meta_control_id(index: usize) -> String {
 }
 
 #[cfg(test)]
-#[path = "content_nodes/reserve_tests.rs"]
+#[path = "content_nodes/tests/reserve_tests.rs"]
 mod reserve_tests;

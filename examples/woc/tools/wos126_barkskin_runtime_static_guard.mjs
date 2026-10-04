@@ -37,14 +37,14 @@ requireText(lifecycle, /form && !isFormToggle\(ability\) && !ability\.usableInFo
 const generator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
 if (!/regrowth',[\s\S]*?'barkskin'/.test(generator) ||
-    !generator.includes("EXPECTED_ABILITY_COUNT = 79") ||
-    !zrGenerator.includes("document.entries.length === 79")) {
+    !generator.includes("EXPECTED_ABILITY_COUNT = 117") ||
+    !zrGenerator.includes("document.entries.length === 117")) {
   throw new Error("M4 Barkskin projection scope is missing");
 }
 const entry = JSON.parse(read("contracts", "m4_abilities.json")).entries.find(
   (value) => value.id === "barkskin",
 );
-if (!entry || entry.index !== 66 || entry.definition.cost !== 30 ||
+if (!entry || entry.index !== 70 || entry.definition.cost !== 30 ||
     entry.definition.cooldown !== 60 || !entry.definition.offGcd ||
     !entry.definition.usableInForm || entry.definition.effects?.[0]?.type !== "selfBuff" ||
     entry.definition.effects[0].kind !== "buff_armor" ||
@@ -63,9 +63,9 @@ if (barkskinReducerStart < 0 || barkskinReducerEnd < barkskinReducerStart ||
     world.slice(barkskinReducerStart, barkskinReducerEnd).includes("entityCastGcdRemaining")) {
   throw new Error("Barkskin must not consume or require the global cooldown");
 }
-requireText(world, /barkskinArmorBonus[\s\S]*?barkskinAbilityCode[\s\S]*?value != 150\.0/,
+requireText(world, /retainedArmorAuraProfileIsValid[\s\S]*?barkskinAbilityCode\(\)[\s\S]*?value == 150\.0/,
   "Barkskin effective-armor profile is missing");
-requireText(world, /effectiveOfflineArmor[\s\S]*?demonSkinArmorBonus[\s\S]*?barkskinArmorBonus/,
+requireText(world, /effectiveOfflineArmor[\s\S]*?retainedArmorAuraBonus/,
   "Barkskin armor bonus is not connected to physical mitigation");
 requireText(world, /applySupportedCastSlotCommand[\s\S]*?barkskinAbilityCode\(\)[\s\S]*?startOfflineBarkskinCast/,
   "Barkskin action-slot routing is missing");

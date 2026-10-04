@@ -103,6 +103,7 @@ pub fn gltf_texture_variant(
     }
 }
 
+/// 汇总材质槽位对纹理的采样语义，供子资源导入与材质引用选择一致的变体；结果按纹理索引排列。
 pub fn gltf_texture_color_space_usages(document: &gltf::Document) -> Vec<GltfTextureUsage> {
     let mut usages = vec![GltfTextureUsage::default(); document.textures().count()];
     for material in document.materials() {
@@ -170,6 +171,7 @@ fn gltf_extension_texture_index(extension: &serde_json::Value, field: &str) -> O
         .and_then(|value| usize::try_from(value).ok())
 }
 
+/// 为共享纹理的语义冲突添加子资源标签后缀；usages 按纹理索引寻址，缺项时返回无后缀标签。
 pub fn gltf_texture_label(
     texture_index: usize,
     variant: GltfTextureVariant,
@@ -205,35 +207,5 @@ fn register_gltf_texture_info_usage(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{GltfTextureColorSpace, gltf_texture_color_space_usages, gltf_texture_label};
-    use crate::core::framework::render::TextureUsageHint;
-
-    #[test]
-    fn clearcoat_normal_texture_registers_the_normal_variant_owner() {
-        let gltf = gltf::Gltf::from_slice(
-            br#"{
-                "asset": { "version": "2.0" },
-                "extensionsUsed": ["KHR_materials_clearcoat"],
-                "images": [{ "uri": "coat.png" }],
-                "textures": [{ "source": 0 }],
-                "materials": [{
-                    "extensions": {
-                        "KHR_materials_clearcoat": {
-                            "clearcoatNormalTexture": { "index": 0 }
-                        }
-                    }
-                }]
-            }"#,
-        )
-        .expect("clearcoat normal usage fixture");
-
-        let usages = gltf_texture_color_space_usages(&gltf.document);
-        let variants = usages[0].texture_variants();
-
-        assert_eq!(variants.len(), 1);
-        assert_eq!(variants[0].color_space(), GltfTextureColorSpace::Linear);
-        assert_eq!(variants[0].usage_hint(), TextureUsageHint::Normal);
-        assert_eq!(gltf_texture_label(0, variants[0], &usages), "Texture0");
-    }
-}
+#[path = "tests/gltf_texture_semantics.rs"]
+mod tests;

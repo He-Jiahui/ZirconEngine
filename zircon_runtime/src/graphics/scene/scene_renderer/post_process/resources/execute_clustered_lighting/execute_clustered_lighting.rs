@@ -13,6 +13,8 @@ use super::super::super::constants::{
 use super::super::super::scene_post_process_resources::ScenePostProcessResources;
 
 impl ScenePostProcessResources {
+    /// 把当前有效方向光聚合到二维视口网格，并返回提交前应执行的参数/数据上传。
+    /// 停用时只清除传入的缓冲绑定范围，调用者须保证该范围覆盖对应网格。
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn execute_clustered_lighting(
         &self,
@@ -113,27 +115,5 @@ impl ScenePostProcessResources {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn clustered_lighting_avoids_cpu_clear_and_inactive_light_uploads() {
-        let source = include_str!("execute_clustered_lighting.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("clustered-lighting production source");
-        let cpu_clear = ["vec![0_u8;", " cluster_buffer_bytes]"].concat();
-        let legacy_size_argument = ["cluster_buffer_", "bytes: usize"].concat();
-        let gpu_clear = ["encoder.clear_", "buffer(cluster_buffer, 0, None)"].concat();
-        let active_prefix = ["&gpu_lights[..", "directional_light_count]"].concat();
-
-        assert!(!source.contains(&cpu_clear));
-        assert!(!source.contains(&legacy_size_argument));
-        assert!(source.contains(&gpu_clear));
-        assert!(source.contains(&active_prefix));
-        assert!(!production.contains("queue.write_buffer"));
-        assert_eq!(production.matches("let payload: Arc<[u8]>").count(), 1);
-        assert!(production.contains("WgpuBufferUploadBatch"));
-        assert!(production.contains("self.light_buffer.clone()"));
-        assert!(production.contains("self.cluster_params_buffer.clone()"));
-    }
-}
+#[path = "tests/execute_clustered_lighting.rs"]
+mod tests;

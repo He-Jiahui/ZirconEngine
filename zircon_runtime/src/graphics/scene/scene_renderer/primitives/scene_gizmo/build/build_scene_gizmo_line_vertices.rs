@@ -40,6 +40,8 @@ where
         .fold(0usize, usize::saturating_add)
 }
 
+/// 聚合已抽取的 gizmo 线、线框形状及缺失图标回退；贴图图标由 scene_gizmo_pass 另行准备。
+/// has_icon_texture 必须与本帧 atlas 准备状态一致，以免贴图与线框同时出现或同时缺席。
 pub(crate) fn build_scene_gizmo_line_vertices<F>(
     frame: &ViewportRenderFrame,
     has_icon_texture: F,
@@ -70,54 +72,5 @@ where
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::core::framework::render::{
-        OverlayBillboardIcon, OverlayLineSegment, OverlayWireShape, SceneGizmoKind,
-        SceneGizmoOverlayExtract, ViewportIconId,
-    };
-    use crate::core::math::{Vec3, Vec4};
-
-    use super::scene_gizmo_line_vertex_capacity;
-
-    #[test]
-    fn scene_gizmo_line_capacity_counts_only_missing_icon_fallbacks() {
-        let gizmos = [SceneGizmoOverlayExtract::new(
-            1,
-            SceneGizmoKind::Camera,
-            false,
-            vec![OverlayLineSegment {
-                start: Vec3::ZERO,
-                end: Vec3::X,
-                color: Vec4::ONE,
-            }],
-            vec![OverlayWireShape::Arrow {
-                origin: Vec3::ZERO,
-                direction: Vec3::X,
-                length: 1.0,
-                color: Vec4::ONE,
-            }],
-            vec![
-                OverlayBillboardIcon {
-                    id: ViewportIconId::Camera,
-                    position: Vec3::ZERO,
-                    tint: Vec4::ONE,
-                    size: 1.0,
-                },
-                OverlayBillboardIcon {
-                    id: ViewportIconId::DirectionalLight,
-                    position: Vec3::ONE,
-                    tint: Vec4::ONE,
-                    size: 1.0,
-                },
-            ],
-            Vec::new(),
-        )];
-
-        assert_eq!(scene_gizmo_line_vertex_capacity(&gizmos, &|_| false), 28);
-        assert_eq!(
-            scene_gizmo_line_vertex_capacity(&gizmos, &|id| id == ViewportIconId::Camera),
-            16
-        );
-        assert_eq!(scene_gizmo_line_vertex_capacity(&gizmos, &|_| true), 8);
-    }
-}
+#[path = "tests/build_scene_gizmo_line_vertices.rs"]
+mod tests;

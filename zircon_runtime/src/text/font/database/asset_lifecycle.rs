@@ -8,10 +8,9 @@ use crate::asset::{FontAsset, FontBlobArtifact};
 use crate::text::{CompositeFontDescriptor, FontFaceDescriptor, FontFaceId, FontFamilyName};
 
 use super::{
-    FontAssetOwnerState, FontAssetUpdateReport, FontDatabase, FontDatabaseError,
-    read_decoded_font_source,
+    read_font_source, FontAssetOwnerState, FontAssetUpdateReport, FontDatabase, FontDatabaseError,
 };
-use crate::text::font::asset_registration::{FontAssetSourceKey, font_asset_faces};
+use crate::text::font::asset_registration::{font_asset_faces, FontAssetSourceKey};
 use crate::text::font::descriptors::descriptor_from_font_metadata;
 use crate::text::font::face_metadata::FontFaceMetadata;
 use crate::text::font::matching::font_family_identity;
@@ -81,9 +80,17 @@ impl FontDatabase {
         source_path: impl AsRef<Path>,
     ) -> Result<FontAssetUpdateReport, FontDatabaseError> {
         let source_path = source_path.as_ref();
-        let bytes = read_decoded_font_source(source_path)?;
-        let bytes: Arc<[u8]> = Arc::from(bytes.into_boxed_slice());
-        self.replace_font_asset_bytes(owner, asset, source_path, bytes)
+        let source = read_font_source(source_path)?;
+        let resource_path = std::fs::canonicalize(source_path).ok();
+        let bytes: Arc<[u8]> = Arc::from(source.bytes.into_boxed_slice());
+        self.replace_font_asset_bytes(
+            owner,
+            asset,
+            source_path,
+            bytes,
+            resource_path,
+            Some(source.resource_sha256),
+        )
     }
 
     pub(crate) fn replace_font_asset_blob(
@@ -96,7 +103,14 @@ impl FontDatabase {
         if !blob.is_valid_for_runtime() {
             return Err(FontDatabaseError::InvalidCookedArtifact);
         }
-        self.replace_font_asset_bytes(owner, asset, source_path.as_ref(), blob.shared_bytes())
+        self.replace_font_asset_bytes(
+            owner,
+            asset,
+            source_path.as_ref(),
+            blob.shared_bytes(),
+            blob.source_path().map(Path::to_path_buf),
+            blob.source_sha256(),
+        )
     }
 
     fn replace_font_asset_bytes(
@@ -105,10 +119,19 @@ impl FontDatabase {
         asset: &FontAsset,
         source_path: &Path,
         bytes: Arc<[u8]>,
+        resource_path: Option<std::path::PathBuf>,
+        resource_sha256: Option<[u8; 32]>,
     ) -> Result<FontAssetUpdateReport, FontDatabaseError> {
         let registrations = font_asset_faces(asset, bytes.as_ref(), source_path)
             .into_iter()
-            .map(|registration| (registration.descriptor, registration.metadata))
+            .map(|registration| {
+                let metadata = if let Some(sha256) = resource_sha256 {
+                    registration.metadata.with_resource_sha256(sha256)
+                } else {
+                    registration.metadata
+                };
+                (registration.descriptor, metadata)
+            })
             .collect();
         let fallback_families = normalized_fallback_families(&asset.fallback_families);
         self.replace_asset_registrations(
@@ -116,6 +139,7 @@ impl FontDatabase {
             source_path,
             bytes,
             registrations,
+            resource_path.as_deref(),
             fallback_families,
             asset.composite_font.clone(),
         )
@@ -129,15 +153,18 @@ impl FontDatabase {
         face_index: u32,
     ) -> Result<FontAssetUpdateReport, FontDatabaseError> {
         let source_path = source_path.as_ref();
-        let bytes = read_decoded_font_source(source_path)?;
-        let bytes: Arc<[u8]> = Arc::from(bytes.into_boxed_slice());
-        let metadata = FontFaceMetadata::from_sfnt_bytes(bytes.as_ref(), face_index);
+        let source = read_font_source(source_path)?;
+        let resource_path = std::fs::canonicalize(source_path).ok();
+        let bytes: Arc<[u8]> = Arc::from(source.bytes.into_boxed_slice());
+        let metadata = FontFaceMetadata::from_sfnt_bytes(bytes.as_ref(), face_index)
+            .with_resource_sha256(source.resource_sha256);
         let descriptor = descriptor_from_font_metadata(&metadata, family, source_path, face_index);
         self.replace_asset_registrations(
             owner,
             source_path,
             bytes,
             vec![(descriptor, metadata)],
+            resource_path.as_deref(),
             Vec::new(),
             None,
         )
@@ -168,6 +195,7 @@ impl FontDatabase {
         source_path: &Path,
         bytes: Arc<[u8]>,
         registrations: Vec<(FontFaceDescriptor, FontFaceMetadata)>,
+        resource_path: Option<&Path>,
         fallback_families: Vec<FontFamilyName>,
         composite_font: Option<CompositeFontDescriptor>,
     ) -> Result<FontAssetUpdateReport, FontDatabaseError> {
@@ -195,6 +223,7 @@ impl FontDatabase {
                 metadata,
                 Arc::clone(&bytes),
                 source_path,
+                resource_path,
             )?;
             if !source_keys.contains(&source_key) {
                 source_keys.push(source_key.clone());
@@ -290,6 +319,8 @@ impl FontDatabase {
         stored.active = false;
         let family = font_family_identity(stored.descriptor.family.as_str());
         stored.source = super::StoredFontSource::SharedBytes(Arc::from(Vec::<u8>::new()));
+        stored.resource_path = None;
+        stored.resource_sha256 = None;
         stored.source_bytes = Arc::new(std::sync::OnceLock::new());
         stored.standalone_bytes = Arc::new(std::sync::OnceLock::new());
         stored.metadata = Arc::new(std::sync::OnceLock::new());

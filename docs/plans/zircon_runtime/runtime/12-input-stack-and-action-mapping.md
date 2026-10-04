@@ -14,9 +14,7 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/input_stack/action_mapping.rs
   - zircon_runtime/src/tests/runtime_absorption/input_stack/gamepad_bridge.rs
   - zircon_runtime/src/tests/runtime_absorption/input_stack/inventory/mirror_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/late/runtime_12.rs
   - tools/tests/test_runtime_input_stack_audit.py
-  - tests/acceptance/runtime-input-stack-audit-owner-sync.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_markdown.py
@@ -83,7 +81,7 @@ Runtime 12 current child-owner sync (2026-08-30): `input_stack_boundary` reports
 
 ### M0 输入链路审计与帧语义文档化
 
-- 切片 0.1（纯文档 + 测试锚）：`docs/zircon_runtime/input/`（执行时核验镜像文档存在性）落输入链路图——platform/app 事件源 → `InputDriver` → `DefaultInputManager` → `InputSnapshot` → 玩法/UI 双消费；清帧时机标到 03 帧序图的 stage 位。验收测试锚：`input_snapshot_just_pressed_is_true_for_exactly_one_frame`、`frame_input_clears_after_level_tick_not_before`（归属 `input/tests/` 既有树）。DoD：链路图 + 两测试绿。
+- 切片 0.1（纯文档 + 测试锚）：`docs/crates/zircon_runtime/input/`（执行时核验镜像文档存在性）落输入链路图——platform/app 事件源 → `InputDriver` → `DefaultInputManager` → `InputSnapshot` → 玩法/UI 双消费；清帧时机标到 03 帧序图的 stage 位。验收测试锚：`input_snapshot_just_pressed_is_true_for_exactly_one_frame`、`frame_input_clears_after_level_tick_not_before`（归属 `input/tests/` 既有树）。DoD：链路图 + 两测试绿。
 - 切片 0.2（裁决）：输入仲裁单点判词——UI 先吃（capture）还是玩法先吃，焦点态如何切换；与 09 的 interaction_gate 契约互引。DoD：判词落文档，09 计划交叉引用更新。
 
 #### M0.2 输入仲裁判词（2026-06-13）
@@ -145,3 +143,19 @@ dispatch owner，没有建立第二个 input manager、action map 或 event queu
 range、payload limit、coalescing 或录制策略，也没有性能样本。Python structure/status guard 2/2、
 定向 rustfmt/diff check 通过；Cargo、app host、UI consumed/unhandled 和设备后端验证延后，
 Runtime12 仍为 `in_progress`。
+
+## 2026-09-01 current-source performance handoff
+
+`zircon_runtime/src/input/**` current tree 已复审为 40 个 Rust 文件、6,714 行、
+81 tests。`GamepadAxis` frame transition 的 `O(events * active_axes)` 线性查找已
+局部替换为 frame-local `(gamepad, axis) -> transition index`，保持 first previous、
+latest value 与 first-observation order；managed focused Cargo 已进入执行，但由
+foreign `zr_rhi_wgpu/render_pass_validation.rs:455` 缺失
+`texture_view_layer_count` 阻塞，input tests 为 0 执行，因此不算动态验收。
+
+Runtime12 后续不得停在这个局部索引：空 `InputDriver` readiness、逐事件 dynamic
+ABI/manager resolve、单 broad mutex、无 count/bytes/age 的 frame event retention、
+锁内完整 snapshot clone、缺失 product action schedule 以及无界 recording/replay 仍
+需要统一为 qualified ingress batch、immutable frame generation、per-player compiled
+action program 与 bounded journal。精确证据、Unreal 对照和门禁见
+[`../../../performance/01/2026-09-01-runtime-input-current-source-closure.md`](../../../performance/01/2026-09-01-runtime-input-current-source-closure.md)。

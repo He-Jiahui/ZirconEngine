@@ -1,3 +1,4 @@
+//! 动态会话的二进制接口、宿主请求和诊断路由需与共享契约同步。通过源码文本核对父子路由、状态镜像和文件预算。
 const SLICE: &str = "Runtime 15 M3 dynamic API session shared data folder-backed split";
 const STATUS: &str =
     "runtime_15_dynamic_api_session_shared_data_folder_backed_static_passed_cargo_deferred";
@@ -17,6 +18,7 @@ const CHILD_PATHS: &[&str] = &[
     "dynamic_api_session/shared/split_layout.rs",
 ];
 
+// BUG: [CR-RUNTIME-TESTS-ABS-0003] 当前被读子文件已经超过此处明示的行数上限；该测试执行行数断言时会失败；证据：行数预算与原始源码快照。
 #[test]
 fn runtime_15_dynamic_api_session_shared_data_is_folder_backed() {
     let parent = include_str!("../shared.rs");
@@ -137,7 +139,7 @@ fn runtime_15_dynamic_api_session_shared_data_is_folder_backed() {
         include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
         include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
         include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
-        include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md"),
+        include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"),
     ] {
         assert_contains_all("dynamic API shared data status mirror", source, &[
             SLICE,

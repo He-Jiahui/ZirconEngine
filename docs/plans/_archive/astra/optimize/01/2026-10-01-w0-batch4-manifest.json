@@ -1,0 +1,205 @@
+{
+  "batch": "w0-batch4",
+  "created_at_utc": "2026-10-01",
+  "crosswalk_artifact": {
+    "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch4\\2026-10-01-w0-batch4-crosswalk.jsonl",
+    "rows": 14,
+    "sha256": "1fe60a3d24cd1998f2052fafc8e9a50eaa5c3091ae60df79b16016d340c85c9c"
+  },
+  "imported_collision_check": {
+    "canonical_ids_checked": 82,
+    "checked_wave_paths": [
+      "docs/plans/astra/optimize/01/2026-09-30-source-review-wave.jsonl",
+      "docs/plans/astra/optimize/01/2026-09-30-w0-second-wave-review.jsonl",
+      "w0/batch3/2026-09-30-w0-batch3-review.jsonl"
+    ],
+    "collisions": []
+  },
+  "limitations": [
+    "No Cargo/build/test command; no product, native, device, stress, Miri, socket, editor, or benchmark evidence.",
+    "Source/report hashes are current working-tree captures; report paths remain inventory-unreviewed.",
+    "Only explicit report-level frontmatter relations are recorded; no semantic deduplication is asserted."
+  ],
+  "record_type": "w0_batch4_artifact_manifest",
+  "report_snapshots": [
+    {
+      "path": "docs/plans/optimize/zircon_runtime/167-runtime-physics-current-working-tree-world-sync-jolt-fixed-step-query-event-ragdoll-review.md",
+      "sha256_current_working_tree": "d5d9ca757533e77eaa56207d233e3178d29da3de8b529249f266740ea1cf42ed"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/169-runtime-navigation-current-working-tree-bake-artifact-query-crowd-editor-boundary-review.md",
+      "sha256_current_working_tree": "5092182e328413e30f0bbc470ebc55941829f7ba289a585f91113cfcabc1e85e"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/173-runtime-network-current-working-tree-authority-transport-session-rpc-replication-editor-boundary-review.md",
+      "sha256_current_working_tree": "7702f910fd1745a1f31191a05ff4f5d12ba0ddaeb04ae0d36e00ebc06633f5de"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/221-runtime-animation-source-compiled-pose-skinning-ik-root-motion-event-editor-product-current-working-tree-review.md",
+      "sha256_current_working_tree": "70acd16083cf1e4ea7f3cf264c8d19c26f74e18565f6ec2cbea69d48351fd489"
+    }
+  ],
+  "review_artifact": {
+    "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch4\\2026-10-01-w0-batch4-review.jsonl",
+    "rows": 24,
+    "sha256": "9ca9bc4ea5b83865c219c8fb9b3c7ac73d7d078460bf8b92c6cded896996fb2c"
+  },
+  "source_snapshots": [
+    {
+      "path": "zircon_app/Cargo.toml",
+      "sha256_current_working_tree": "a3d781761231b16dd86309c708a43623951487299eac63d5a5552a6b0d39fc39"
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_apply.rs",
+      "sha256_current_working_tree": "f9b9e2353c7c46eeac8347db3e996374b762fc8c5d0cd4f95409e3bc1b78436e"
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/evaluation/pipeline/sequences.rs",
+      "sha256_current_working_tree": "bfde820cdbc95be3088a214d7bc369b7eee992eed87b3fc46991b22f8e3d1746"
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs",
+      "sha256_current_working_tree": "b0950cf2f9f50eb79a5443365dd604f5a10c32032caee5ed4d6326637539ca26"
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/gpu_skinning/decision.rs",
+      "sha256_current_working_tree": "f5e5ae7f70e7b49de8857e6f82b22c6c55943ea30283caf924fbb733f7289e84"
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/gpu_skinning/palette.rs",
+      "sha256_current_working_tree": "9548cec35d0df892a3730e4d3d0716ee7cfd3467fb4d9ae41627b48a955e7e92"
+    },
+    {
+      "path": "zircon_plugins/animation/runtime/src/module.rs",
+      "sha256_current_working_tree": "3fc514c1ea4399a42da95bd44ca6ddb1b5798e4ae36bfd40c282df29218e0ac1"
+    },
+    {
+      "path": "zircon_plugins/first_party_editor_catalog/src/catalog.rs",
+      "sha256_current_working_tree": "1408aef04b44a4851ae143680fb68b91c3e807e8e144baf9f453fdb662dc5dd1"
+    },
+    {
+      "path": "zircon_plugins/first_party_runtime_catalog/src/lib.rs",
+      "sha256_current_working_tree": "1ebd17543a1986972aee39e72f2712c523f8342f84a4f7e1492adf8b8e35a704"
+    },
+    {
+      "path": "zircon_plugins/navigation/native/src/bake.rs",
+      "sha256_current_working_tree": "61225110bc43366ee2f6f3f916f90ab927610b35e7db8ebe20ccca1c8c704e64"
+    },
+    {
+      "path": "zircon_plugins/navigation/runtime/src/manager.rs",
+      "sha256_current_working_tree": "a0f784dba59aa5180581f5643c6bc27694ea965d3159795054d32773bf304351"
+    },
+    {
+      "path": "zircon_plugins/navigation/runtime/src/manager/bake/asset.rs",
+      "sha256_current_working_tree": "f8b4fdea5dc235f523915cfecb89a1c9047a31716877bb5d9332c208540ae5ab"
+    },
+    {
+      "path": "zircon_plugins/navigation/runtime/src/manager/bake/geometry.rs",
+      "sha256_current_working_tree": "de451433affacaedde0c06e3de5275004b404b2b11c3c50f9a909bf23ef97bf5"
+    },
+    {
+      "path": "zircon_plugins/navigation/runtime/src/manager/bake/task_pool.rs",
+      "sha256_current_working_tree": "15e7b07f6e34c51b89288bf7f77f072fbfb386d33218b0464b2fcb8384b792e0"
+    },
+    {
+      "path": "zircon_plugins/navigation/runtime/src/manager/state.rs",
+      "sha256_current_working_tree": "bfa625bc8c62313f254520a492b3ce50c0515466aa127330ee87d2c46b79876d"
+    },
+    {
+      "path": "zircon_plugins/navigation/runtime/src/plugin.rs",
+      "sha256_current_working_tree": "6ad76e61e0b3d32fbd6b808452f96ea075d552e9279fa1be08a92fbd38e7c8b9"
+    },
+    {
+      "path": "zircon_plugins/net/features/content_download/runtime/src/manager/progress.rs",
+      "sha256_current_working_tree": "9ec044374e17e44dca84aef5738c753766b107b8d1184b562c6f3a5acce3d553"
+    },
+    {
+      "path": "zircon_plugins/net/features/content_download/runtime/src/manager/resume.rs",
+      "sha256_current_working_tree": "06f596b7039121526c096cdca6e6a3c5712a1afcffb22c45c1a7102804097efa"
+    },
+    {
+      "path": "zircon_plugins/net/features/content_download/runtime/src/manager/state.rs",
+      "sha256_current_working_tree": "62c05d7d94b6ad9cc75b122587937fbd2eeea0244cc3099f98c88d466e390e53"
+    },
+    {
+      "path": "zircon_plugins/net/features/http/runtime/src/feature.rs",
+      "sha256_current_working_tree": "0ad78a5d837110af15c5f2fc25b368f9871e21f6c48d1fe30abe80deacc6ab73"
+    },
+    {
+      "path": "zircon_plugins/net/features/reliable_udp/runtime/src/feature.rs",
+      "sha256_current_working_tree": "bec5a1bea0572c894255640346d6cd674e05b063a3cb343d07bd368209dbb1a2"
+    },
+    {
+      "path": "zircon_plugins/net/features/reliable_udp/runtime/src/manager/resend.rs",
+      "sha256_current_working_tree": "78baa213b0dcbc1b7da8ad4ae7d5343f1f4bdf56b0d9871a2547d0286ca5c144"
+    },
+    {
+      "path": "zircon_plugins/net/features/rpc/runtime/src/feature.rs",
+      "sha256_current_working_tree": "0c854915badb46e3d58e207faed55fb4983e74a680beb9c22f0e8d5d0d971406"
+    },
+    {
+      "path": "zircon_plugins/net/features/websocket/runtime/src/feature.rs",
+      "sha256_current_working_tree": "974e26ffa21549a63cfb9c08a0069c9e58f36a78e010ab45d490f2282cbff5d3"
+    },
+    {
+      "path": "zircon_plugins/net/runtime/src/runtime_state.rs",
+      "sha256_current_working_tree": "3e835082844906da50c98d24dc1d59be7344bcc544c40b361cff4ac7747e465a"
+    },
+    {
+      "path": "zircon_plugins/net/runtime/src/worker/net_worker.rs",
+      "sha256_current_working_tree": "f2242f284a38c62c6e14b3a098185e479ecaebc25b2d6679f8e7f9af290d3158"
+    },
+    {
+      "path": "zircon_plugins/net/runtime/src/worker/transport_runtime.rs",
+      "sha256_current_working_tree": "979c5ea21fdc92e25fc1575d5bdf52916c90ce836a251ff611d430788d21ae72"
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/backend/jolt/runtime.rs",
+      "sha256_current_working_tree": "105ae5da9faaa7711dcfa3b11bc347345a51ad5a23a578c62b30f7c3e8696c36"
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/backend/selection.rs",
+      "sha256_current_working_tree": "1f66dcd84a27dcf4880de14b5043340e6f7750e700b6ed148bb84bd843c9ad2e"
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/manager.rs",
+      "sha256_current_working_tree": "38cc14ba761c511e3eb22c3b1698263bfb3da890a0c4290d390fb8edbad1b4f7"
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/manager/service.rs",
+      "sha256_current_working_tree": "23e440070bca62d0e39019b2549813195a42cd4d590b84ea4922f8b4a198c859"
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/manager/world_sync.rs",
+      "sha256_current_working_tree": "3fe13312870c08ceb0bc275abb61a7039fca88c1fce48315612397fd4c3863fa"
+    },
+    {
+      "path": "zircon_runtime/src/animation/clip_event.rs",
+      "sha256_current_working_tree": "9bfa8e8a287bd2493bc0966e3d9c7763eedcd7c2200ae5c24d554ba192343d08"
+    },
+    {
+      "path": "zircon_runtime/src/animation/module.rs",
+      "sha256_current_working_tree": "f3e0c80be90d58b4a7f9e21eb1a26319adb866c4348c2395dfb8bb8d16460806"
+    },
+    {
+      "path": "zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets.rs",
+      "sha256_current_working_tree": "27223e9a22966f23baaa87bec2886005b235e1abfbb59190615d23c1b355eec2"
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/animation/clip_event_sampling.rs",
+      "sha256_current_working_tree": "ef216e8c2768b6924842c22bf3af285fb1d7e417053e84f71beafbabecb91d87"
+    },
+    {
+      "path": "zircon_runtime/src/navigation/module.rs",
+      "sha256_current_working_tree": "130416b6931d5aba9219fc57bf15996a8e1f186e0b00438ab9ac8f38f9faaedb"
+    },
+    {
+      "path": "zircon_runtime/src/navigation/runtime.rs",
+      "sha256_current_working_tree": "a68e65a4d5cda3329df5362be9c921c21f4b983f61eb60757d6b1060b4372a2d"
+    }
+  ],
+  "summary_artifact": {
+    "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch4\\2026-10-01-w0-batch4-summary.json",
+    "sha256": "e68ff8229e494d57fa33b02cda2268ac77cb9c7b0d28e4bd49a422ab888e7685"
+  }
+}

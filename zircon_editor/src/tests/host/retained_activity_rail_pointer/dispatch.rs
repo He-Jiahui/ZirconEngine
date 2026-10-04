@@ -10,6 +10,7 @@ use crate::ui::retained_host::callback_dispatch::{
     dispatch_shared_activity_rail_pointer_click, BuiltinHostWindowTemplateBridge,
 };
 use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
+use crate::ui::workbench::layout::ActivityDrawerSlot as WorkbenchActivityDrawerSlot;
 use crate::ui::workbench::model::WorkbenchViewModel;
 use zircon_runtime_interface::ui::layout::{UiPoint, UiSize};
 
@@ -34,7 +35,7 @@ fn shared_activity_rail_pointer_click_dispatches_left_top_toggle_through_runtime
     let left_top_index = pointer_layout
         .left_tabs
         .iter()
-        .position(|tab| tab.slot == ActivityDrawerSlot::LeftTop)
+        .position(|tab| tab.slot == WorkbenchActivityDrawerSlot::LeftTop)
         .expect("left-top drawer tab should exist in left activity rail");
     pointer_bridge.sync(pointer_layout.clone());
 

@@ -4,8 +4,12 @@ use super::{assert_contains_all, read_repo, read_runtime_src};
 fn runtime_15_ui_surface_event_routing_is_child_owner() {
     let parent = read_runtime_src("ui/surface/surface.rs");
     let event_routing = read_runtime_src("ui/surface/surface/event_routing.rs");
+    let pointer_ownership =
+        read_runtime_src("ui/surface/surface/event_routing/pointer_ownership.rs");
     let pointer_component_events =
         read_runtime_src("ui/surface/surface/pointer_component_events.rs");
+    let state_invalidation =
+        read_runtime_src("ui/surface/surface/pointer_component_events/state_invalidation.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -43,27 +47,42 @@ fn runtime_15_ui_surface_event_routing_is_child_owner() {
         "event routing child owns input dispatch, pointer routing, and navigation dispatch",
         &event_routing,
         &[
-            "pub fn capture_pointer(",
+            "mod pointer_ownership;",
             "pub fn dispatch_input_event(",
             "fn dispatch_pointer_event_with_query_and_modifiers(",
-            "fn route_pointer_event_with_details(",
             "pub fn route_navigation_event(",
             "pub fn dispatch_navigation_event(",
-            "fn diff_nodes(",
+            "fn hover_diff_with_scratch(",
             "fn activation_phase(",
+        ],
+    );
+    assert_contains_all(
+        "pointer ownership child owns press/capture admission and terminal routing",
+        &pointer_ownership,
+        &[
+            "pub fn capture_pointer(",
+            "pub fn release_pointer_capture(",
+            "fn route_pointer_event_with_details(",
         ],
     );
     assert_contains_all(
         "pointer component events child owns route-derived component state and event reports",
         &pointer_component_events,
         &[
-            "pub(super) fn apply_pointer_component_state(",
-            "pub(super) fn apply_pointer_transient_state_dirty(",
-            "pub(crate) fn mark_component_state_render_dirty(",
+            "mod state_invalidation;",
             "pub(super) fn pointer_component_events(",
             "pub(super) fn push_focus_component_events(",
             "pub(super) fn push_pointer_component_events(",
             "UiPointerComponentEventReason",
+        ],
+    );
+    assert_contains_all(
+        "pointer state invalidation child owns component-state and dirty projection",
+        &state_invalidation,
+        &[
+            "fn apply_pointer_component_state(",
+            "fn apply_pointer_transient_state_dirty(",
+            "pub(crate) fn mark_component_state_render_dirty(",
             "UiDirtyFlags",
         ],
     );
@@ -77,6 +96,14 @@ fn runtime_15_ui_surface_event_routing_is_child_owner() {
         (
             "ui/surface/surface/pointer_component_events.rs",
             pointer_component_events.as_str(),
+        ),
+        (
+            "ui/surface/surface/event_routing/pointer_ownership.rs",
+            pointer_ownership.as_str(),
+        ),
+        (
+            "ui/surface/surface/pointer_component_events/state_invalidation.rs",
+            state_invalidation.as_str(),
         ),
     ] {
         let line_count = source.lines().count();

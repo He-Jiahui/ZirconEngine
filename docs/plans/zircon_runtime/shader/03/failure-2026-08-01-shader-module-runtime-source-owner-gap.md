@@ -11,7 +11,7 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/asset/project/manager/scan_and_import/shader_import_dependencies.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_shader_source.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer_accessors.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
   - zircon_runtime/src/graphics/shader/template/module_registry.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_shader_permutation_manifest.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/permutation_registry.rs
@@ -77,3 +77,80 @@ that active-feature duplicates collapse once. Post-fix independent review:
 `Critical 0 / Important 0 / Minor 0`. This is a forward repair on the
 integrated snapshot; the handoff remains `open` pending managed Windows locked
 product evidence.
+
+### 2026-09-19 successor static source receipt
+
+Successor Session `failure-roll-01a084c8-shader03-module-source-owner-r1`
+sealed the current project/plugin module-source owner paths after correcting
+the stale related-code path to
+`zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs`.
+The first checker ticket `6772c9d1087d4a3f8df9a094b4cf7484` failed only because
+its checker required a non-existent prose anchor; that evidence is retained.
+Corrected ticket `e01a65ca09934ca1b8a65224001175a1` (request
+`failure-roll-01a084c8-shader03-module-source-owner-20260919-r2`) used the
+actual `shader_modules.get(&import_path)` and
+`DuplicateShaderModuleContentHash` merge anchors. Coordinator job
+`34482a71be50417a998128e765b52050` / run
+`e01a65ca09934ca1b8a65224001175a1` exited 0 with
+`SHADER03_MODULE_SOURCE_OWNER_CURRENT_SOURCE_CONTRACT_PASS`; cleanup completed.
+This is static current-source evidence only. Managed source-only/plugin Cargo,
+Naga/WGPU product assembly, independent review, fixed return, and closeout
+remain pending.
+
+### 2026-09-21 independent current-source review receipt
+
+Reviewer Session `review-shader03-module-source-owner-r1` rechecked the
+current immutable Shader03 source-owner slice without editing production code
+or absorbing the neighboring foreign worktree changes. The seven production
+paths from corrected ticket `e01a65ca09934ca1b8a65224001175a1` still match its
+manifest: `shader_import_dependencies.rs`=`afa91b0b8537e438be6f5d3dd36ce9131c35fc43670e54ff20827917b371b649`,
+`resource_streamer_ensure_shader_source.rs`=`a2045ce61ff0675255e80278b3cd258a974ef865294aedf16a38c55a06cb138b`,
+`resource_streamer_accessors.rs`=`9189be537c0f5781043b6b17dc393fd88d4cd63d8f54f703275020c6b27c58d3`,
+`module_registry.rs`=`010d76a6d3cc6d60a3f35b7ee7d26da993b97d47ef9bc5fd1ef2f96af8e6bb11`,
+`plugin_shader_permutation_manifest.rs`=`a0dcc7ff844b0f1afb1939b4bf3934589e2ab3007190286a483c6f68474028bb`,
+`permutation_registry.rs`=`5c70a8253dba23ce1bac042e8010579f07a164c892befb5ea10840760d0f9130`.
+The failure document and plan were also frozen for this receipt at
+`26dbe46b7283eb3b38b10fd7ead388666ca010ad95f11895f961b28249aa59e4` and
+`3848b2a96546bed815fa053941c65696ebaf79fe7f8c7ca0cae0c60697f23e01`,
+respectively, before this append.
+
+Static review evidence:
+
+- `rustfmt +1.94.1 --edition 2021 --config skip_children=true --check` passed
+  for all six Rust production files in the corrected ticket; scoped
+  `git diff --check` passed (only the repository's existing LF/CRLF warnings).
+- Source probe passed as `SHADER03_MODULE_SOURCE_OWNER_REVIEW_PASS`. It verifies
+  the single `ShaderModuleSourceBinding` carries owner/import/source/hash/origin;
+  source-only dependency IDs and redirect imports are both prepared recursively;
+  ResourceStreamer emits plugin bindings first and project bindings afterward so
+  `redirect > project source-only > plugin` precedence is explicit; no render-time
+  filesystem read exists in the accessor; the single registry retains topology,
+  cycle, unknown-module, dependency-hash, and diagnostic-origin behavior; the
+  prewarm merge remains a hash consumer and preserves duplicate-hash diagnostics;
+  and the construction map rejects hash mismatches and cross-owner token
+  collisions.
+- Read-only supporting paths confirm the native package source loader enforces
+  64 modules, 4 MiB per module, 16 MiB total, package-relative `.zshader`/`.wgsl`
+  paths, canonical-root containment, and delayed source I/O. The current product
+  test child contains source-only and plugin ResourceStreamer→template→Naga tests,
+  a WGPU shader-module validation call, cycle diagnostics, redirect diagnostics,
+  and project-over-plugin same-token assertions. These supporting paths are not
+  attributed to the Shader03 primary Session because they are outside its sealed
+  manifest and may have foreign owners.
+
+Independent review result: Critical=`0`, Important=`0`, Moderate=`0`. This is a
+current-source/static review only. The required managed Windows `--locked`
+source-only/plugin Cargo result, Naga/WGPU product execution, and any upward
+acceptance remain pending; the prior external `E:\Git\zr_vm` dirty-worktree
+admission blocker is not a test result. Canonical `fixed-*`/return, closeout,
+and WeCom notification therefore remain pending and this failure stays `open`.
+
+## 2026-09-26 successor intake (failure-roll-01a084c8-shader03-module-source-owner-r2)
+
+- The archived r1 source-owner lifecycle and its passed static ticket remain historical evidence only. Successor r2 owns this failure document under a fresh lease against base SHA-256 `37a0bdffaa7d0b999546d85cc56e72a6d9e9b8d651eb856f85204fa805c59f04`; no production source path is leased or edited.
+- The six current production paths were rehashed before intake. Current SHA-256 values are: `shader_import_dependencies.rs` `3c037ffadb7f7a94f8ac2b578fd66ec5444831c54fde388974692a5926823b87`; `resource_streamer_ensure_shader_source.rs` `a2045ce61ff0675255e80278b3cd258a974ef865294aedf16a38c55a06cb138b`; `resource_streamer_accessors.rs` `9189be537c0f5781043b6b17dc393fd88d4cd63d8f54f703275020c6b27c58d3`; `module_registry.rs` `010d76a6d3cc6d60a3f35b7ee7d26da993b97d47ef9bc5fd1ef2f96af8e6bb11`; `plugin_shader_permutation_manifest.rs` `a0dcc7ff844b0f1afb1939b4bf3934589e2ab3007190286a483c6f68474028bb`; `permutation_registry.rs` `5c70a8253dba23ce1bac042e8010579f07a164c892befb5ea10840760d0f9130`. The first path differs from the historical ticket because a foreign optimization batch appended test modules and capacity helpers; its existing attribution and dirty bytes are preserved, not absorbed.
+- This is a source-bound static successor only. The corrected source-contract ticket and r1 review are not reused as current-source or dynamic acceptance. Managed Windows locked source-only/plugin Cargo, Naga/WGPU product assembly, upward acceptance, canonical fixed return, coordinator closeout, and WeCom notification remain pending. The failure stays open.
+
+### r2 successor independent review receipt
+
+Reviewer `/root/review_editor03_gizmo_private` re-read snapshot 3939 (SHA-256 `1b231b05b61cea9f73f6599ba25e580bad87567b8433897d1e6de6e95b4c82d0`). Archived r1 evidence is explicitly historical and non-reused; the r2 lease base `37a0bdffaa7d0b999546d85cc56e72a6d9e9b8d651eb856f85204fa805c59f04` is clear. All six current production hashes are listed; `shader_import_dependencies.rs` retains its foreign optimization/test drift without absorption and the remaining five match their historical values. Independent review result: **Critical=0 / Important=0 / Moderate=0**. The static source probe remained green, while managed locked Cargo/Naga/WGPU, upward acceptance, fixed return, closeout, and WeCom remain pending. The failure stays open.

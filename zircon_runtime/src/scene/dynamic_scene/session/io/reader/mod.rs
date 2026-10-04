@@ -9,4 +9,5 @@ pub use contract::{
 pub use service::RuntimeSessionArchiveReader;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

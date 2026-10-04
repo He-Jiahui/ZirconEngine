@@ -1,0 +1,1186 @@
+---
+related_code:
+  - zircon_runtime/src/core/framework/scene/mod.rs
+  - zircon_runtime/src/core/framework/scene/property_value.rs
+  - zircon_runtime/src/core/framework/animation/mod.rs
+  - zircon_runtime/src/core/framework/animation/graph_blend_mode.rs
+  - zircon_runtime/src/core/framework/animation/graph_clip_instance.rs
+  - zircon_runtime/src/core/framework/animation/graph_evaluation.rs
+  - zircon_runtime/src/core/framework/animation/manager.rs
+  - zircon_runtime/src/core/framework/animation/parameter_map.rs
+  - zircon_runtime/src/core/framework/animation/parameter_set.rs
+  - zircon_runtime/src/core/framework/animation/parameter_value.rs
+  - zircon_runtime/src/core/framework/animation/playback_settings.rs
+  - zircon_runtime/src/core/framework/animation/track_path.rs
+  - zircon_runtime/src/core/framework/physics/mod.rs
+  - zircon_runtime/src/core/framework/physics/manager.rs
+  - zircon_runtime/src/core/framework/scene/physics/material_metadata.rs
+  - zircon_runtime/src/core/framework/physics/settings.rs
+  - zircon_runtime/src/core/framework/physics/world_step_plan.rs
+  - zircon_runtime/src/core/framework/physics/world_sync_state.rs
+  - zircon_runtime/src/lib.rs
+  - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/builtin/runtime_modules.rs
+  - zircon_runtime/src/core/framework/animation/sequence_apply_report.rs
+  - zircon_runtime/src/animation/mod.rs
+  - zircon_runtime/src/animation/clip_event.rs
+  - zircon_runtime/src/animation/manager/mod.rs
+  - zircon_runtime/src/animation/module.rs
+  - zircon_plugins/animation/runtime/src/runtime_system.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/parameter_apply.rs
+  - zircon_runtime/src/animation/sequence.rs
+  - zircon_runtime/src/animation/sequence/compiled.rs
+  - zircon_runtime/src/animation/sequence/target.rs
+  - zircon_runtime/src/animation/sequence/channel_sample.rs
+  - zircon_plugins/animation/runtime/src/lib.rs
+  - zircon_plugins/animation/runtime/src/module.rs
+  - zircon_plugins/animation/runtime/src/manager.rs
+  - zircon_runtime/src/core/framework/animation/asset/mod.rs
+  - zircon_runtime/src/core/framework/animation/asset/binary.rs
+  - zircon_runtime/src/core/framework/animation/asset/channel.rs
+  - zircon_runtime/src/core/framework/animation/asset/clip.rs
+  - zircon_runtime/src/core/framework/animation/asset/graph.rs
+  - zircon_runtime/src/core/framework/animation/asset/reference.rs
+  - zircon_runtime/src/core/framework/animation/asset/sequence.rs
+  - zircon_runtime/src/core/framework/animation/asset/skeleton.rs
+  - zircon_runtime/src/core/framework/animation/asset/state_machine.rs
+  - zircon_runtime/src/asset/assets/model/mod.rs
+  - zircon_runtime/src/asset/assets/physics_material.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
+  - zircon_runtime/src/asset/assets/scene/animation.rs
+  - zircon_runtime/src/asset/importer/ingest/import_gltf.rs
+  - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets.rs
+  - zircon_runtime/src/asset/importer/ingest/import_obj.rs
+  - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
+  - zircon_runtime/src/asset/pipeline/types.rs
+  - zircon_runtime/src/core/framework/physics/scene_step_result.rs
+  - zircon_plugins/physics/runtime/src/backend/mod.rs
+  - zircon_plugins/physics/runtime/src/lib.rs
+  - zircon_plugins/physics/runtime/src/module.rs
+  - zircon_plugins/physics/runtime/src/manager.rs
+  - zircon_plugins/physics/runtime/src/backend/builtin/query_contact.rs
+  - zircon_plugins/physics/runtime/src/runtime_system.rs
+  - zircon_runtime/src/scene/components/scene/physics.rs
+  - zircon_runtime/src/scene/components/scene/animation.rs
+  - zircon_runtime/src/scene/ecs/schedule.rs
+  - zircon_runtime/src/core/framework/scene/system_stage.rs
+  - zircon_runtime/src/scene/level_system.rs
+  - zircon_runtime/src/scene/level_system_render_extract.rs
+  - zircon_runtime/src/scene/module/world_driver.rs
+  - zircon_runtime/src/scene/world/component_access.rs
+  - zircon_runtime/src/scene/world/property_access/mod.rs
+  - zircon_runtime/src/scene/world/property_access/path_resolution.rs
+  - zircon_runtime/src/scene/world/property_access/value_conversion.rs
+  - zircon_runtime/src/scene/world/property_access/write.rs
+  - zircon_runtime/src/scene/world/records.rs
+  - zircon_runtime/src/scene/world/project_io.rs
+  - zircon_runtime/src/asset/project/manager/collect_files.rs
+  - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/motion_vector_camera.rs
+  - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex.rs
+  - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex_from_mesh_vertex.rs
+  - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex_layout.rs
+  - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_resource_from_asset.rs
+  - zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_load_animation_skeleton_asset.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/build_mesh_draws.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/scene_bind_group_bundle/create_scene_bind_group_bundle.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/create_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/skinning/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/skinning/joint_palette_storage.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/is_skinned.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_shadow_mesh_pipeline.rs
+  - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow_alpha.wgsl
+  - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
+  - zircon_runtime/src/asset/tests/assets/animation.rs
+  - zircon_runtime/src/asset/tests/assets/importer.rs
+  - zircon_runtime/src/asset/tests/assets/model.rs
+  - zircon_runtime/src/asset/tests/assets/physics_material.rs
+  - zircon_runtime/src/asset/tests/assets/scene.rs
+  - zircon_runtime/src/tests/extensions/absorption_surface.rs
+  - zircon_runtime/src/tests/extensions/animation_physics_absorption.rs
+  - zircon_runtime/src/tests/extensions/manager_handles.rs
+  - zircon_runtime/src/tests/runtime_absorption/builtin_modules.rs
+  - zircon_runtime/src/scene/tests/asset_scene.rs
+  - zircon_runtime/src/scene/tests/property_paths.rs
+  - zircon_runtime/src/scene/tests/physics_animation_components.rs
+  - zircon_runtime/src/scene/tests/ecs_schedule.rs
+  - zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract.rs
+  - zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract/contact.rs
+  - zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract/query.rs
+  - zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract/step.rs
+  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract.rs
+  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/runtime_helpers.rs
+  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/target_resolution.rs
+  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/catalog_snapshot.rs
+  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/asset_details.rs
+  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/record.rs
+  - zircon_editor/src/ui/workbench/reflection/activity_actions/inspector_actions.rs
+  - zircon_editor/src/ui/workbench/reflection/route_registration/action_route.rs
+  - zircon_editor/src/ui/workbench/reflection/animation_route.rs
+  - zircon_editor/src/ui/animation_editor/session.rs
+  - zircon_editor/src/ui/animation_editor/session/graph.rs
+  - zircon_editor/src/ui/animation_editor/session/lifecycle.rs
+  - zircon_editor/src/ui/animation_editor/session/parameters.rs
+  - zircon_editor/src/ui/animation_editor/session/sequence.rs
+  - zircon_editor/src/ui/animation_editor/session/state_machine.rs
+  - zircon_editor/src/ui/animation_editor/session/support.rs
+  - zircon_editor/src/ui/host/animation_editor_sessions/save.rs
+  - zircon_editor/src/ui/host/editor_manager_animation_editor.rs
+  - zircon_editor/src/scene/viewport/render_packet.rs
+  - zircon_editor/src/ui/retained_host/viewport/test_render_framework.rs
+  - zircon_editor/src/ui/retained_host/viewport/tests/fake_render_framework.rs
+  - zircon_editor/assets/ui/editor/assets_activity.zui
+  - zircon_editor/assets/ui/editor/asset_browser.zui
+  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
+  - zircon_editor/src/tests/host/asset_references.rs
+  - zircon_editor/src/tests/host/retained_asset_pointer.rs
+  - zircon_editor/src/tests/workbench/reflection/action_dispatch.rs
+  - zircon_editor/src/ui/retained_host/app/assets.rs
+  - zircon_editor/src/ui/retained_host/app/helpers.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
+  - examples/vampire/assets/scenes/main.scene.toml
+  - examples/vampire/assets/terrain/jungle_clearing.terrain.toml
+  - examples/vampire/assets/terrain/jungle_clearing.terrain.toml.zmeta
+  - examples/vampire/assets/navigation/main.navmesh.toml
+implementation_files:
+  - zircon_runtime/src/core/framework/scene/mod.rs
+  - zircon_runtime/src/core/framework/scene/property_value.rs
+  - zircon_runtime/src/core/framework/animation/mod.rs
+  - zircon_runtime/src/core/framework/animation/manager.rs
+  - zircon_runtime/src/core/framework/animation/parameter_map.rs
+  - zircon_runtime/src/core/framework/animation/parameter_set.rs
+  - zircon_runtime/src/core/framework/animation/parameter_value.rs
+  - zircon_runtime/src/core/framework/animation/playback_settings.rs
+  - zircon_runtime/src/core/framework/animation/track_path.rs
+  - zircon_runtime/src/core/framework/physics/mod.rs
+  - zircon_runtime/src/core/framework/physics/manager.rs
+  - zircon_runtime/src/core/framework/scene/physics/material_metadata.rs
+  - zircon_runtime/src/core/framework/physics/settings.rs
+  - zircon_runtime/src/core/framework/physics/world_sync_state.rs
+  - zircon_runtime/src/lib.rs
+  - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/builtin/runtime_modules.rs
+  - zircon_runtime/src/core/framework/animation/sequence_apply_report.rs
+  - zircon_runtime/src/animation/mod.rs
+  - zircon_runtime/src/animation/clip_event.rs
+  - zircon_runtime/src/animation/manager/mod.rs
+  - zircon_runtime/src/animation/module.rs
+  - zircon_plugins/animation/runtime/src/runtime_system.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/parameter_apply.rs
+  - zircon_runtime/src/animation/sequence.rs
+  - zircon_runtime/src/animation/sequence/compiled.rs
+  - zircon_runtime/src/animation/sequence/target.rs
+  - zircon_runtime/src/animation/sequence/channel_sample.rs
+  - zircon_plugins/animation/runtime/src/lib.rs
+  - zircon_plugins/animation/runtime/src/module.rs
+  - zircon_plugins/animation/runtime/src/manager.rs
+  - zircon_runtime/src/core/framework/animation/asset/mod.rs
+  - zircon_runtime/src/core/framework/animation/asset/binary.rs
+  - zircon_runtime/src/core/framework/animation/asset/channel.rs
+  - zircon_runtime/src/core/framework/animation/asset/clip.rs
+  - zircon_runtime/src/core/framework/animation/asset/graph.rs
+  - zircon_runtime/src/core/framework/animation/asset/reference.rs
+  - zircon_runtime/src/core/framework/animation/asset/sequence.rs
+  - zircon_runtime/src/core/framework/animation/asset/skeleton.rs
+  - zircon_runtime/src/core/framework/animation/asset/state_machine.rs
+  - zircon_runtime/src/asset/assets/model/mod.rs
+  - zircon_runtime/src/asset/assets/physics_material.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
+  - zircon_runtime/src/asset/assets/scene/animation.rs
+  - zircon_runtime/src/asset/importer/ingest/import_gltf.rs
+  - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets.rs
+  - zircon_runtime/src/asset/importer/ingest/import_obj.rs
+  - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
+  - zircon_runtime/src/asset/pipeline/types.rs
+  - zircon_runtime/src/core/framework/physics/scene_step_result.rs
+  - zircon_plugins/physics/runtime/src/backend/mod.rs
+  - zircon_plugins/physics/runtime/src/lib.rs
+  - zircon_plugins/physics/runtime/src/module.rs
+  - zircon_plugins/physics/runtime/src/manager.rs
+  - zircon_plugins/physics/runtime/src/backend/builtin/query_contact.rs
+  - zircon_plugins/physics/runtime/src/runtime_system.rs
+  - zircon_runtime/src/scene/components/scene/physics.rs
+  - zircon_runtime/src/scene/components/scene/animation.rs
+  - zircon_runtime/src/scene/ecs/schedule.rs
+  - zircon_runtime/src/core/framework/scene/system_stage.rs
+  - zircon_runtime/src/scene/level_system.rs
+  - zircon_runtime/src/scene/level_system_render_extract.rs
+  - zircon_runtime/src/scene/module/world_driver.rs
+  - zircon_runtime/src/scene/world/component_access.rs
+  - zircon_runtime/src/scene/world/property_access/mod.rs
+  - zircon_runtime/src/scene/world/property_access/path_resolution.rs
+  - zircon_runtime/src/scene/world/property_access/value_conversion.rs
+  - zircon_runtime/src/scene/world/property_access/write.rs
+  - zircon_runtime/src/scene/world/records.rs
+  - zircon_runtime/src/scene/world/project_io.rs
+  - zircon_runtime/src/asset/project/manager/collect_files.rs
+  - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex.rs
+  - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex_from_mesh_vertex.rs
+  - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex_layout.rs
+  - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_resource_from_asset.rs
+  - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/motion_vector_camera.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_load_animation_skeleton_asset.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/build_mesh_draws.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/scene_bind_group_bundle/create_scene_bind_group_bundle.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/create_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/skinning/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/skinning/joint_palette_storage.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/is_skinned.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/queue_profile.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_shadow_mesh_pipeline.rs
+  - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow_alpha.wgsl
+  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/catalog_snapshot.rs
+  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/asset_details.rs
+  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/record.rs
+  - zircon_editor/src/ui/workbench/reflection/activity_actions/inspector_actions.rs
+  - zircon_editor/src/ui/workbench/reflection/route_registration/action_route.rs
+  - zircon_editor/src/ui/workbench/reflection/animation_route.rs
+  - zircon_editor/src/ui/animation_editor/session.rs
+  - zircon_editor/src/ui/animation_editor/session/graph.rs
+  - zircon_editor/src/ui/animation_editor/session/lifecycle.rs
+  - zircon_editor/src/ui/animation_editor/session/parameters.rs
+  - zircon_editor/src/ui/animation_editor/session/sequence.rs
+  - zircon_editor/src/ui/animation_editor/session/state_machine.rs
+  - zircon_editor/src/ui/animation_editor/session/support.rs
+  - zircon_editor/src/ui/host/animation_editor_sessions/save.rs
+  - zircon_editor/src/ui/host/editor_manager_animation_editor.rs
+  - zircon_editor/src/scene/viewport/render_packet.rs
+  - zircon_editor/src/ui/retained_host/viewport/test_render_framework.rs
+  - zircon_editor/src/ui/retained_host/viewport/tests/fake_render_framework.rs
+  - zircon_editor/assets/ui/editor/assets_activity.zui
+  - zircon_editor/assets/ui/editor/asset_browser.zui
+  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
+  - zircon_editor/src/tests/host/asset_references.rs
+  - zircon_editor/src/tests/host/retained_asset_pointer.rs
+  - zircon_editor/src/tests/workbench/reflection/action_dispatch.rs
+  - zircon_editor/src/ui/retained_host/app/assets.rs
+  - zircon_editor/src/ui/retained_host/app/helpers.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
+  - examples/vampire/assets/scenes/main.scene.toml
+  - examples/vampire/assets/terrain/jungle_clearing.terrain.toml
+  - examples/vampire/assets/terrain/jungle_clearing.terrain.toml.zmeta
+  - examples/vampire/assets/navigation/main.navmesh.toml
+plan_sources:
+  - user: 2026-04-20 继续正在runtime/editor/framework实现完整的物理和动画系统
+  - user: 2026-04-20 physics和animation吸收进runtime
+  - user: 2026-04-22 继续
+  - user: 2026-05-03 继续补独立插件缺口
+  - user: 2026-05-08 继续周边设施与插件能力完善计划
+  - .codex/plans/Physics + Full Animation Support 新计划.md
+  - .codex/plans/Physics  Full Animation Support Plan.md
+  - .codex/plans/Runtime Core Fold-In And Compile Recovery.md
+  - .codex/plans/ZirconEngine 独立插件补齐计划.md
+  - .codex/plans/ZirconEngine 周边设施与插件能力完善计划.md
+  - user: 2026-06-10 vampire roguelite animation state-machine follow-up
+  - user: 2026-06-10 vampire terrain-backed rugged forest, graphical HUD, screen-space health bars, buff particles, and shader lighting
+tests:
+  - zircon_runtime/src/asset/tests/assets/animation.rs
+  - zircon_runtime/src/asset/tests/assets/importer.rs
+  - zircon_runtime/src/asset/tests/assets/model.rs
+  - zircon_runtime/src/asset/tests/assets/physics_material.rs
+  - zircon_runtime/src/asset/tests/assets/scene.rs
+  - zircon_runtime/src/core/framework/tests.rs
+  - zircon_runtime/src/tests/extensions/absorption_surface.rs
+  - zircon_runtime/src/tests/extensions/animation_physics_absorption.rs
+  - zircon_runtime/src/tests/extensions/manager_handles.rs
+  - zircon_runtime/src/tests/runtime_absorption/builtin_modules.rs
+  - zircon_runtime/src/scene/tests/asset_scene.rs
+  - zircon_runtime/src/scene/tests/property_paths.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
+  - zircon_runtime/src/scene/tests/physics_animation_components.rs
+  - cargo test -p zircon_runtime --locked --lib plugin_extensions::extension_registry --target-dir target\codex-shared-a
+  - cargo test -p zircon_runtime --locked --lib extensions::animation_physics_absorption --target-dir target\codex-shared-a
+  - cargo test -p zircon_runtime --locked --lib extensions::manager_handles --target-dir target\codex-shared-a
+  - cargo test -p zircon_runtime --locked --lib --target-dir target\codex-shared-a
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_runtime --locked --test physics_manager_runtime_contract --target-dir target\codex-shared-a
+  - cargo test --manifest-path "zircon_plugins/Cargo.toml" -p zircon_plugin_physics_runtime --test physics_manager_runtime_contract contract::step::builtin_fixed_step_uses_live_world_records_before_node_cache_flush --locked --quiet -- --exact --nocapture
+  - cargo test --manifest-path "zircon_plugins/Cargo.toml" -p zircon_plugin_animation_runtime --test runtime_physics_animation_tick_contract level_tick_advances_physics_and_records_contacts --locked --quiet -- --exact --nocapture
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_runtime --locked --test runtime_physics_animation_tick_contract --target-dir target\codex-shared-a
+  - cargo check --manifest-path zircon_plugins/Cargo.toml --locked --target-dir target\codex-shared-a
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation --lib physics_manager_
+  - cargo test -p zircon_runtime --lib scene_assets_keep_transform_only_hierarchy_nodes --locked --message-format short -- --nocapture (2026-06-10 transform-only scene hierarchy nodes: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib vampire_example_manifest_scene_and_scripts_are_importable --locked --message-format short -- --nocapture --test-threads=1 (2026-06-10 vampire scene import and animation asset references: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib vampire_project_session_w_key_moves_player_before_input_clear --locked --message-format short -- --nocapture --test-threads=1 (2026-06-10 dynamic session animation state-machine pose application: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib vampire_project_session_ --locked --message-format short -- --nocapture --test-threads=1 (2026-06-10 vampire gameplay session suite: passed, 10 passed; existing zircon_runtime lib-test warnings only)
+  - cargo check -p zircon_runtime --lib --locked --message-format short with CARGO_TARGET_DIR=D:\cargo-targets\zircon-vampire-app (2026-06-10 graphical HUD, terrain-backed jungle, and screen-space health HUD: passed; existing zircon_runtime warnings only)
+  - cargo test -p zircon_runtime --lib vampire_project_session_ --locked --message-format short -- --nocapture --test-threads=1 with CARGO_TARGET_DIR=D:\cargo-targets\zircon-vampire-app (2026-06-10 final vampire gameplay session verification: passed, 10 passed; existing zircon_runtime warnings only)
+  - ZR_VAMPIRE_CAPTURE_PNG=E:\Git\ZirconEngine\examples\vampire\screenshots\vampire-runtime-frame.png ZR_VAMPIRE_CAPTURE_WIDTH=1280 ZR_VAMPIRE_CAPTURE_HEIGHT=720 ZR_VAMPIRE_CAPTURE_TICKS=60 cargo test -p zircon_runtime --lib vampire_project_session_capture_frame_draws_hud_panel --locked --message-format short -- --nocapture --test-threads=1 with CARGO_TARGET_DIR=D:\cargo-targets\zircon-vampire-app (2026-06-10 final frame capture: passed; exported graphical HUD and terrain scene)
+  - cargo test -p zircon_runtime importer_preserves_gltf_skinning_channels_on_model_vertices --locked -- --nocapture
+  - cargo test -p zircon_runtime model_asset_toml_roundtrip_preserves_virtual_geometry_payload --locked -- --nocapture
+  - cargo test -p zircon_runtime gpu_mesh_vertex_conversion_preserves_skinning_channels --locked -- --nocapture
+  - cargo test -p zircon_runtime skin_model_primitive_rotates_weighted_vertex_around_joint_bind_origin --locked -- --nocapture
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::joint_palette_uniform_packs_gpu_matrices_and_count
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::joint_palette_uniform_rejects_current_uniform_limit_overflow
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::prepared_skinned_model_primitive_keeps_cpu_skinning_when_palette_exceeds_uniform_limit
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::prepare_skinned_mesh_asset_primitive_keeps_morphed_shader_source_before_cpu_skinning
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs::tests::skinned_gpu_source_candidate_requires_palette
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs::tests::previous_palette_morph_weights_accept_matching_active_shared_source_weights
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs::tests::previous_palette_morph_weights_reject_active_weights_without_shared_source
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs::tests::previous_palette_morph_weights_reject_changed_active_weights
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/create_mesh_draw.rs::tests::model_uniform_appends_motion_and_skinning_flags_without_moving_existing_fields
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs::tests::prepared_queue_stats_count_cpu_morphed_gpu_skinning_source_as_dynamic_geometry
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs::tests::prepared_queue_stats_count_gpu_skinned_motion_vectors_with_previous_palette
+  - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs::tests::object_motion_history_keeps_dynamic_skinned_pose_sideband
+  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/motion_vector_camera.rs::tests::successful_submit_records_dynamic_object_history_for_next_frame
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/scene_bind_group_bundle/create_scene_bind_group_bundle.rs::tests::model_bind_group_layout_reserves_skinned_joint_palette_bindings
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_exposes_skinning_vertex_channels
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_exposes_object_motion_vector_entries
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_executes_skinned_joint_palette_behind_draw_flag
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs::tests::mesh_pipeline_shadow_template_source_uses_shadow_pass_surface_only_when_alpha_masked
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs::tests::shadow_mesh_shader_key_includes_shader_variant_identity_and_source_hash
+  - cargo test -p zircon_runtime animation_manager_samples_clip_pose_against_skeleton --locked -- --nocapture
+  - cargo test -p zircon_runtime compiled_sequence_applies_mesh_renderer_morph_weight_track --locked -- --nocapture
+  - cargo test -p zircon_runtime directory_project_scene_renders_non_background_frame_with_gizmo_overlay --locked -- --nocapture
+  - cargo test -p zircon_editor --locked --lib ui::retained_host::app::helpers::tests::derive_animation_assets_from_model_source_preserves_project_asset_ids_across_reimport_with_gltf_buffer_sidecars -- --exact --nocapture
+  - cargo test -p zircon_editor --locked --lib ui::retained_host::app::helpers::tests::derive_animation_assets_from_model_source_writes_stable_sibling_skeleton_and_clip_files -- --exact --nocapture
+  - cargo test -p zircon_editor --locked tests::host::asset_references::editor_asset_manager_tracks_scene_animation_and_physics_references -- --exact --nocapture
+  - cargo test -p zircon_editor --locked retained_asset_pointer --target-dir target/codex-asset-filter-validation -- --nocapture
+  - cargo test -p zircon_editor --locked asset_surface_templates_map_no_preview_physics_and_animation_assets_to_specific_icons --target-dir target/codex-asset-icon-validation-b -- --nocapture --test-threads=1
+  - cargo test -p zircon_editor --locked binding_dispatch --target-dir target/codex-asset-icon-validation-b -- --nocapture --test-threads=1
+  - cargo test -p zircon_editor --locked editor_event::runtime --target-dir target/codex-asset-icon-validation-b -- --nocapture --test-threads=1
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation animation_manager_rejects_clip_pose_with_non_finite_channel_values --lib
+  - cargo test -p zircon_editor --locked retained_asset_pointer --target-dir target/codex-asset-icon-validation-b -- --nocapture --test-threads=1
+  - cargo test -p zircon_editor --locked workbench_reflection_ -- --nocapture
+  - zircon_editor/src/ui/animation_editor/session/tests.rs
+  - zircon_editor/src/tests/host/animation_editor.rs
+  - cargo test -p zircon_editor --lib save_sequence_session_persists_track_changes_and_clears_dirty -- --nocapture
+  - cargo test -p zircon_editor --lib save_graph_session_persists_parameter_changes_and_clears_dirty -- --nocapture
+  - cargo test -p zircon_editor --lib save_state_machine_session_persists_entry_state_changes_and_clears_dirty -- --nocapture
+  - cargo test -p zircon_editor --lib editor_manager_saves_animation_sequence_editor_session_and_clears_dirty_metadata -- --nocapture
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-vampire-app cargo test -p zircon_plugin_animation_runtime --lib linear_interpolation --locked --message-format short -- --nocapture --test-threads=1 (2026-06-10 vampire animation interpolation: passed, 2 passed)
+  - zircon_runtime/src/scene/tests/world_basics.rs
+  - cargo test -p zircon_runtime --locked --offline --target-dir target/codex-shared-b scene_asset_toml_roundtrip_preserves_physics_and_animation_components -- --nocapture
+  - cargo test -p zircon_runtime --locked --offline --target-dir target/codex-shared-b scene_assets_roundtrip_asset_bound_physics_and_animation_components -- --nocapture
+  - cargo test -p zircon_runtime --locked --offline --target-dir target/codex-shared-b world_project_roundtrip_preserves_physics_and_animation_components -- --nocapture
+  - cargo test -p zircon_runtime --locked --offline --target-dir target/codex-shared-b compiled_sequence_applies_mesh_renderer_morph_weight_track -- --nocapture
+  - cargo test -p zircon_runtime --locked --offline --target-dir target/codex-shared-b animation_manager_persists_playback_settings_to_runtime_config -- --nocapture
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation physics_manager_syncs_world_snapshot_and_exposes_queries_and_contacts --lib
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation physics_manager_ray_cast_reports_exit_hit_when_origin_starts_inside_sphere --lib
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation physics_manager_ray_cast_reports_exit_hit_when_origin_starts_inside_box --lib
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation physics_manager_ray_cast_reports_surface_normal_when_starting_on_box_surface --lib
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation physics_manager_contacts_respect_collider_collision_masks --lib
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation physics_manager_contacts_respect_project_collision_matrix --lib
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation physics_manager_ray_cast_query_mask_filters_by_collider_layer_not_collider_mask --lib
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation world_rejects_zero_length_transform_rotation_property_writes --lib
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation world_rejects_non_finite_transform_property_writes --lib
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation animation_manager_evaluates_graphs_and_parameter_overrides --lib
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation animation_manager_evaluates_graph_blend_with_non_finite_weight_as_default --lib
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation animation_manager_rejects_non_finite_parameter_set --lib
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation animation_manager_rejects_non_finite_parameter_defaults --lib
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation animation_manager_resolves_state_machine_transitions_from_parameters --lib
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation animation_manager_falls_back_to_entry_state_when_current_state_is_stale --lib
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation animation_manager_ignores_transition_when_target_state_is_missing --lib
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation animation_manager_ignores_state_machine_transition_with_non_finite_parameter --lib
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation animation_manager_samples_clip_pose_against_skeleton --lib
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation animation_manager_samples_clip_pose_clamps_non_finite_timing_to_start --lib
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation animation_manager_rejects_clip_pose_with_non_finite_skeleton_bind_pose --lib
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation animation_manager_rejects_clip_pose_with_zero_length_quaternion_channel --lib
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation animation_manager_rejects_clip_pose_with_zero_length_skeleton_bind_rotation --lib
+  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation
+  - cargo test -p zircon_runtime --locked --offline --target-dir target/codex-shared-b physics_manager_persists_settings_to_runtime_config -- --nocapture
+  - cargo test -p zircon_runtime --locked --offline --target-dir target/codex-shared-b physics_manager_tracks_fixed_step_accumulator_per_world -- --nocapture
+  - cargo test -p zircon_runtime --locked --offline --target-dir target/codex-shared-b -- --nocapture
+  - cargo test -p zircon_runtime --locked --offline core::framework::tests --target-dir D:/cargo-targets/zircon-workspace-hard-cutover -- --nocapture
+  - cargo test -p zircon_runtime --locked runtime_and_plugin_modules_keep_manager_handles_under_core_manager_contracts --lib
+  - cargo check -p zircon_runtime --lib --locked --quiet (blocked: unrelated active scene world/ECS compile errors: `rebuild_fixed_component_presence_for_entity` visibility and missing `flush_pending_scene_systems_if_ready`)
+  - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_runtime --tests --locked --quiet (blocked: same unrelated active scene world/ECS errors)
+  - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_runtime --tests --locked --quiet (blocked: same unrelated active scene world/ECS errors)
+  - cargo test -p zircon_runtime --locked physics_animation_manifest_entries_resolve_to_builtin_runtime_domains --lib
+  - tools/tests/test_animation_runtime_helpers_arc_import.py
+  - tools/tests/test_plugin_docs_current_status_animation_runtime_helper_arc_import.py
+  - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_runtime --locked --all-targets --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-animation-runtime-check-0703-codex --message-format short --color never (2026-07-03 animation helper scope import: passed; existing zircon_runtime warnings only)
+doc_type: module-detail
+---
+
+# Runtime Physics And Animation Assets
+
+## Purpose
+
+这份文档记录 `zircon_runtime` 保留的物理/动画共享权威面，以及已经硬切到 `zircon_plugins/{physics,animation}/runtime` 的第一波执行层。当前范围已经不止资产与 scene 组件，还包括插件注册的 runtime tick 路径：
+
+- 共享属性路径与 scene property runtime access
+- sequence property application
+- animation / physics manager contract、runtime config 持久化与 fixed-step bookkeeping
+
+当前完成的是三条底层真源：
+
+- `zircon_runtime::core::framework::{scene, physics, animation}` 提供共享 DTO、路径契约与 manager-facing settings
+- `zircon_runtime::{asset, scene}` 负责 physics material、五类动画资产、scene 组件、以及 `SceneAsset <-> World` 的 typed roundtrip
+- `zircon_plugins/{animation,physics}/runtime` 提供 manager state/runtime config 行为；动画执行由唯一的 `animation.evaluate` runtime system 负责
+
+同时，这两块 framework root 也已经完成结构收口：
+
+- `zircon_runtime/src/core/framework/physics/mod.rs`
+- `zircon_runtime/src/core/framework/animation/mod.rs`
+
+现在都只保留 `mod` 声明和受控 `pub use`；原先堆在 root `mod.rs` 里的 DTO、trait、default 行为和路径 helper 都已经下沉到 folder-backed 子文件。
+
+这仍然不等于完整 physics backend、Jolt 驱动、skeleton graph runtime 或 editor sequence UI 都已落地，但 v1 已经不再只是“资产壳 + DTO 壳”。
+
+## Ownership
+
+当前物理和动画的稳定 ownership 固定为：
+
+- `zircon_runtime::core::framework::scene`
+  - `EntityPath`
+  - `ComponentPropertyPath`
+  - `ScenePropertyValue`
+  - `ScenePropertyEntry`
+- `zircon_runtime::core::framework::physics`
+  - `PhysicsCombineRule`
+  - `PhysicsMaterialMetadata`
+  - `PhysicsSettings`
+  - `PhysicsBackendStatus`
+  - `PhysicsWorldSyncState`
+  - `PhysicsWorldStepPlan`
+  - `PhysicsRayCastQuery`
+  - `PhysicsContactEvent`
+- `zircon_runtime::core::framework::animation`
+  - `AnimationTrackPath`
+  - `AnimationParameterValue`
+  - `AnimationPlaybackSettings`
+  - `AnimationGraphBlendMode`
+  - `AnimationGraphEvaluation`
+  - `AnimationGraphClipInstance`
+  - `AnimationStateMachineEvaluation`
+  - `AnimationPoseOutput`
+- `zircon_runtime::asset::assets`
+  - `PhysicsMaterialAsset`
+  - `AnimationSkeletonAsset`
+  - `AnimationClipAsset`
+  - `AnimationSequenceAsset`
+  - `AnimationGraphAsset`
+  - `AnimationStateMachineAsset`
+  - `SceneAsset` 上的 physics/animation entity component DTO
+- `zircon_runtime::scene`
+  - 运行时权威 `World`
+  - scene 组件存储、typed getter/setter、project JSON roundtrip
+- `zircon_runtime::animation`
+  - `AnimationModule` / `AnimationDriver` / `AnimationManagerHandle` descriptor wiring
+  - `DefaultAnimationManager` / sequence property writeback / Level-owned clip-event queue
+  - runtime contract、manager access 和 sequence helpers；plugin evaluator owns clip, graph, state-machine and node-transform pose evaluation
+  - animation playback settings manager surface
+- `zircon_plugins/animation/runtime`
+  - owns the `AnimationRuntimePlugin` descriptor, `animation.evaluate` system registration, and evaluation pipeline
+  - publishes pose and clip events through the runtime world without a built-in fallback evaluator
+- `zircon_plugins/physics/runtime`
+  - `PhysicsModule` / `PhysicsDriver` / `PhysicsManagerHandle` descriptor wiring
+  - plugin-local backend selector for `builtin`, disabled, unconfigured, unknown, and unavailable `jolt` states
+  - `DefaultPhysicsManager` / physics scene sync helpers / physics scene hook
+  - physics settings manager surface and per-world fixed-step accumulator bookkeeping
+  - backend status / world sync / ray-cast / contact fallback contract
+
+这里的 structure 规则也一起固定下来：
+
+- `core::framework::physics` 与 `core::framework::animation` 内部现在都和 `input/`、`render/`、`scene/` 一样采用 folder-backed subtree
+- `zircon_runtime/src/physics/` 已删除，physics manager、scene sync、fallback query/contact 行为已进入 `zircon_plugins/physics/runtime`
+- `zircon_runtime/src/animation/` 保留 manager、module、sequence 和 clip-event contract；`zircon_plugins/animation/runtime` owns the evaluator and pose writeback.
+- `PhysicsModule` 的 module registration、driver 和 scene hook 仍由 `zircon_plugins/physics/runtime/src/{module,scene_hook}.rs` 提供；动画插件注册唯一的 `animation.evaluate`，不再保留 runtime fallback hook
+- canonical manager service name 仍由 `zircon_runtime::core::manager` 统一命名，插件 descriptor 只消费这个 manager contract
+- root `mod.rs` 不再允许重新吸收 DTO、trait、default impl 或 parse helper
+- 后续新增 physics/animation contract 时，应该继续进入子文件，而不是回到 umbrella root
+
+这里已经不再走旧的独立 `zircon_framework / zircon_manager / zircon_scene` crate 路径。
+
+## Asset Kinds
+
+当前 runtime 认可的 physics/animation 资产种类是：
+
+- `PhysicsMaterial`
+- `AnimationSkeleton`
+- `AnimationClip`
+- `AnimationSequence`
+- `AnimationGraph`
+- `AnimationStateMachine`
+
+格式约束保持不变：
+
+- physics material: `*.physics_material.toml`
+- animation binary assets: `*.skeleton.zranim` / `*.clip.zranim` / `*.sequence.zranim` / `*.graph.zranim` / `*.state_machine.zranim`
+
+动画资产仍然是版本化二进制 envelope，`AnimationSequenceAsset` 继续通过 `EntityPath + ComponentPropertyPath` 派生 canonical `AnimationTrackPath`。
+
+## Framework Contract Subtrees
+
+这轮之后，framework contract 形状已经显式固定：
+
+- `core/framework/physics/`
+  - `combine_rule.rs`
+  - `material_metadata.rs`
+  - `simulation_mode.rs`
+  - `settings.rs`
+  - `backend_state.rs`
+  - `backend_status.rs`
+  - `world_step_plan.rs`
+  - `scene_step_result.rs`
+  - `body_type.rs`
+  - `collider_shape.rs`
+  - `joint_type.rs`
+  - `body_sync_state.rs`
+  - `collider_sync_state.rs`
+  - `joint_sync_state.rs`
+  - `material_sync_state.rs`
+  - `world_sync_state.rs`
+  - `ray_cast_query.rs`
+  - `ray_cast_hit.rs`
+  - `contact_event.rs`
+  - `manager.rs`
+- `core/framework/animation/`
+  - `parameter_value.rs`
+  - `parameter_map.rs`
+  - `track_path.rs`
+  - `track_path_error.rs`
+  - `playback_settings.rs`
+  - `graph_clip_instance.rs`
+  - `graph_evaluation.rs`
+  - `state_machine_evaluation.rs`
+  - `pose_source.rs`
+  - `pose_bone.rs`
+  - `pose_output.rs`
+  - `sequence_apply_report.rs`
+  - `manager.rs`
+
+这里的目标不是把文件拆散，而是让 physics/animation framework contract 真正变成可持续增长的 owner subtree：
+
+- `AnimationTrackPath` 的 parse/split 逻辑与 error 类型进入显式 owner file
+- physics world sync / query / contact contract 不再和 backend settings/enum 声明共住一个 root
+- root `mod.rs` 只负责结构声明和公开面，不再承载行为实现
+
+## Model Import Derived Animation Assets
+
+当前模型导入链没有把 runtime importer 改成 multi-output。相反，editor 在 `ImportModel` 流程里对 `gltf/glb` 做派生输出：
+
+- 同目录 sibling skeleton: `*.skeleton.zranim`
+- 同目录 sibling clip: `*.<clip>.clip.zranim`
+
+关键约束如下：
+
+- 生成路径稳定，重复导入同一模型时 locator 保持不变
+- 生成文件落在 project `assets/` 内，再走现有单输出 `import_asset(...)` 链
+- clip 内部对 skeleton 的引用直接指向派生 sibling locator，而不是额外的临时 ID
+- `ProjectManager::scan_and_import()` 会忽略 glTF 外部 buffer sidecar `.bin`
+  - 这些文件是模型源辅助物，不是独立 runtime 资产；否则项目重导入会在真正处理派生 `.zranim` 前就因为 unsupported format 失败
+- 现有 editor/runtime 联合回归测试已经钉住：重复执行 `derive_animation_assets_from_model_source(...)` 再调用 `scan_and_import()` 时，派生 skeleton/clip 的 `.zmeta` `uuid` 和 registry `AssetId::from_asset_uuid(uuid)` 都保持稳定
+
+这让 scene / graph / state-machine 对 clip 和 skeleton 的引用可以继续依赖现有 `.zmeta` 稳定 UUID 规则，而不需要改写 `ImportedAsset` 或 `ProjectManager::scan_and_import()`。
+
+## Scene Component Surface
+
+`zircon_runtime::scene::components` 现在已经有第一波 physics/animation 组件：
+
+- physics
+  - `RigidBodyComponent`
+  - `ColliderComponent`
+  - `JointComponent`
+- animation
+  - `AnimationSkeletonComponent`
+  - `AnimationPlayerComponent`
+  - `AnimationSequencePlayerComponent`
+  - `AnimationGraphPlayerComponent`
+  - `AnimationStateMachinePlayerComponent`
+
+这些组件都进入了三层权威数据面：
+
+- `World` 内部 `HashMap<EntityId, Component>`
+- `SceneNode` cache
+- `NodeRecord`
+
+因此它们现在能通过统一的 runtime world 查询、项目 JSON roundtrip、和 scene asset roundtrip 被观察到，而不是只停在 asset DTO。
+
+## Scene Asset Mapping
+
+`zircon_runtime/src/asset/assets/scene/mod.rs` 现在对 entity 暴露了这些新字段：
+
+- `rigid_body`
+- `collider`
+- `joint`
+- `animation_skeleton`
+- `animation_player`
+- `animation_sequence_player`
+- `animation_graph_player`
+- `animation_state_machine_player`
+
+设计约束如下：
+
+- 所有新字段都带 `#[serde(default)]`
+  - 旧 scene TOML 不会因为缺少这些字段而失效
+- `TransformAsset` 现在有 identity `Default`
+  - collider local transform 可以稳定省略
+- collider 允许两种材质来源
+  - `material: AssetReference`
+  - `material_override: PhysicsMaterialMetadata`
+- graph/state-machine scene schema 与 ECS component 统一由 `AnimationParameterSet` 持有
+  - 内部 `BTreeMap<String, AnimationParameterValue>` 保持确定性序列化顺序
+  - process-local revision/fingerprint 不写入 scene，加载时按内容重建
+  - runtime request 只克隆共享参数 owner，不保留第二张 per-entity 参数快照表
+
+## World Access And Mutation
+
+`zircon_runtime::scene::world::component_access` 新增了 typed API：
+
+- getters
+  - `rigid_body(...)`
+  - `collider(...)`
+  - `joint(...)`
+  - `animation_skeleton(...)`
+  - `animation_player(...)`
+  - `animation_sequence_player(...)`
+  - `animation_graph_player(...)`
+  - `animation_state_machine_player(...)`
+- setters
+  - `set_rigid_body(...)`
+  - `set_collider(...)`
+  - `set_joint(...)`
+  - `set_animation_skeleton(...)`
+  - `set_animation_player(...)`
+  - `set_animation_sequence_player(...)`
+  - `set_animation_graph_player(...)`
+  - `set_animation_state_machine_player(...)`
+
+这些 setter 只做最小 runtime 校验：
+
+- entity 必须存在
+- joint 不能连回自己
+
+其余 physics/backend 级校验还没有下沉到这里。
+
+## Shared Property Paths And Runtime Access
+
+`zircon_runtime::core::framework::scene` 现在不只提供 `EntityPath + ComponentPropertyPath` DTO，还补齐了 runtime property surface：
+
+- `ScenePropertyValue`
+- `ScenePropertyEntry`
+
+`zircon_runtime::scene::world::property_access` 则把这组 DTO 接到运行时世界：
+
+- `entity_path(entity)` 从 hierarchy/name 反推稳定 `EntityPath`
+- `get_entity_by_path(path)` 走 canonical 路径查回实体
+- `property(entity, path)` 读取统一属性值
+- `set_property(entity, path, value)` 通过路径回写组件属性
+- `property_entries(entity)` 枚举 inspector / sequence 共用的属性条目
+
+当前第一波 runtime 覆盖面已经包含：
+
+- scene 基础组件
+  - `Name`
+  - `Hierarchy.parent`
+  - `Transform.translation/rotation/scale`
+  - `Active.enabled`
+  - `RenderLayer.mask`
+  - `Mobility.kind`
+  - `Camera.*`
+  - `MeshRenderer.*`
+  - `DirectionalLight.*`
+- physics 组件
+  - `RigidBody.*`
+  - `Collider.*`
+  - `Joint.*`
+- animation 组件
+  - `AnimationSkeleton.skeleton`
+  - `AnimationPlayer.*`
+  - sequence/graph/state-machine player 的 clip、speed、time、weight、looping、playing 以及参数字典
+
+这组路径 runtime access 是 editor inspector、asset track path 和 runtime sequence apply 的共同基础，而不是 animation 自己再走一条私有反射链。
+
+`Transform.rotation` 写入现在在这层共享 property access 内校验 quaternion 是否有限且可归一化。整值写入和 `Transform.rotation.{x,y,z,w}` 分量写入都会拒绝零长度 quaternion，因此 sequence、inspector 和其它 property-path caller 不会通过分量 track 把无效 rotation 写进 world。
+
+`ScenePropertyValue::Scalar`、`Vec3`、`Vec4` 和 `Quaternion` 转成 runtime math 类型前也会统一拒绝 `NaN` / `Inf` 分量。这个 finite guard 位于 shared value conversion 层，因此 transform、light、mesh tint、physics material override、joint limits、animation player time/weight 等 property-path 数值入口不会各自复制一套 NaN 防护。
+
+## Sequence Runtime
+
+`zircon_plugins/animation/runtime::sequence` 现在提供了第一波 sequence property runtime：
+
+- `compile_sequence_for_world(world, sequence)`
+- `apply_compiled_sequence_to_world(world, sequence, compiled, time_seconds, looping)`
+- `CompiledAnimationSequenceApplyStats`
+- `AnimationChannelAsset::sample(time_seconds)`
+
+当前行为约束：
+
+- binding 先通过 `EntityPath` 找到 world entity
+- track 再通过 `ComponentPropertyPath` 走 `World::set_property(...)`
+- sequence sample time 现在先走统一的 runtime resolve
+  - `looping = false` 时，时间会被夹到 `[0, duration_seconds]`
+  - `looping = true` 时，超出 duration 的时间会按 `rem_euclid(duration_seconds)` 回绕
+- Step 通道返回前一个 key
+- Hermite 通道使用 cubic Hermite 标量/向量采样
+- quaternion 通道当前走归一化 `slerp`
+
+因此 `AnimationSequenceAsset` 已经可以直接驱动第一波 scene/physics/animation 组件属性，而不是停留在只可保存不可执行的资产格式。
+
+## Runtime Manager State
+
+plugin-owned physics / animation 模块现在也有了真正的 manager 状态，而 runtime 只保留 manager trait 和中性 DTO：
+
+- `DefaultAnimationManager`
+  - 从 `ANIMATION_PLAYBACK_CONFIG_KEY` 读取 `AnimationPlaybackSettings`
+  - `store_playback_settings(...)` 会同时更新 runtime 内存态和 foundation config
+  - `parameter_defaults(...)` / `parameter_value(...)` / `set_parameter(...)` 统一 graph/state-machine 参数面
+  - `parameter_defaults(...)` 会过滤 asset 里非有限的 scalar/vector default，避免坏 `.zranim` 默认值污染运行时参数图
+  - `set_parameter(...)` 会拒绝非有限 scalar/vector 写入，保留已有有限参数值，并且不会插入新的非有限参数键
+  - `evaluate_graph(...)` 返回合并默认参数后的 clip 输出列表，并把 additive layer、mask target ids 和 per-clip target ids 保持在 framework DTO 中
+  - `evaluate_state_machine(...)` 按当前状态和条件计算迁移与目标 graph
+  - `sample_clip_pose(...)` 按 skeleton + clip 生成局部骨骼 pose
+- `DefaultPhysicsManager`
+  - 从 `PHYSICS_SETTINGS_CONFIG_KEY` 读取 `PhysicsSettings`
+  - `store_settings(...)` 会同时更新 runtime 内存态和 foundation config
+  - `backend_status()` 统一报告 requested backend、active backend、feature gate 和降级原因
+  - plugin-local `backend.rs` now makes backend selection explicit: only `backend = "builtin"` can run the builtin fallback, while `jolt`, unknown, blank, and `unconfigured` backends stay unavailable instead of silently falling through to builtin behavior
+  - `backend = "builtin"` plus `simulation_mode = QueryOnly` syncs the sanitized world snapshot for queries while recording a zero-step plan and skipping rigid-body writeback
+  - unavailable backends clear the synchronized world/contact state for the tick, so ray queries and contact drains do not expose stale builtin data after a backend switch
+  - `advance_clock(world, delta_seconds)` 维护每个 `WorldHandle` 的 fixed-step accumulator
+  - `PhysicsTickPlan` 返回本帧 `steps / step_seconds / remaining_seconds / interpolation_alpha`
+  - `sync_world(...)` / `synchronized_world(...)` 保存当前 world 的中性 physics snapshot
+  - `ray_cast(...)` / `drain_contacts(...)` 提供 contract-level query/contact 输出
+  - sphere、capsule 与 AABB query fallback 会返回 ray 从 collider 内部发出时的出口命中点，而不是把 inside-origin query 静默当作 miss 或内部交点
+  - AABB query fallback 在 ray 从 box 表面向外发出时会保留 0-distance hit 的表面 normal，而不是返回零法线
+  - `PhysicsRayCastQuery.collision_mask` 按 collider `layer` bit 过滤 query 命中；它不复用 collider 自己的 contact `collision_mask`
+  - fallback contact 生成现在会用双方 `collision_mask` 检查对方 `layer` bit，重叠但互相不允许的 collider 不会产生 contact event
+  - fallback contact 生成还会检查 `PhysicsSettings.collision_matrix` 的双向 layer 允许关系；项目级 matrix 可以拒绝 collider mask 已允许的重叠 pair
+  - fallback contact point 会用避免相加溢出的 midpoint 计算，让很大的有限重叠坐标仍输出有限 contact DTO
+  - fallback contact normal 会用 `f64` 中间值归一化巨大有限坐标差，避免退化成默认 Y 轴法线
+  - fallback sphere/sphere、sphere/box、sphere/capsule、capsule/box、capsule/capsule overlap 会用 `f64` 中间距离比较，避免巨大但有限的半径和坐标在 `f32` 平方后同时变成 infinity 并误发 contact
+  - fallback sphere / capsule 几何会要求半径为正且有限，capsule `half_height` 有限且非负；box `half_extents` 必须有限且非负，缩放后的 fallback 尺寸与 AABB 边界也必须保持有限，避免 malformed shape 被当作有效 query/contact 形状
+  - fallback sphere / capsule ray-cast 会用 `f64` 二次方程中间值，让从巨大但有限球体或胶囊体内部发出的 ray 仍能返回有限出口 hit 和 normal
+  - fallback ray-cast 会拒绝会产生非有限输出坐标的 hit position，避免有限距离命中写出 malformed `PhysicsRayCastHit`
+  - ray query 会拒绝非有限 origin/direction/max distance，并用 `f64` 中间值归一化巨大但有限的 direction，避免有效 ray 被溢出成零方向
+  - body sync 会拒绝非有限 entity Transform、非有限 rigid body 数值输入或非正 mass，避免 malformed body DTO 进入后端边界
+  - joint sync 会拒绝非有限 anchor / axis / limits，避免 malformed joint DTO 进入后端边界
+  - collider sync 会拒绝非有限或非法 shape 参数，以及无法映射到 `u32` mask bit 的 layer，避免 malformed collider DTO 进入后端边界
+  - collider sync 会拒绝非有限 material override，避免 malformed material DTO 进入后端边界
+  - manager `sync_world(...)` 会再次过滤外部传入的非有限 body / collider / joint / material DTO，避免绕过 scene snapshot helper 污染已同步 world state
+  - manager `sync_world(...)` 还会丢弃没有对应有效 collider 的 material sync entry，保持外部 DTO 关系和 scene helper 产物一致
+  - manager `sync_world(...)` 只保留对应 collider 明确声明了 material locator 或 material override 的 material sync entry，避免外部 DTO 注入隐式材质绑定
+  - manager `sync_world(...)` 会要求 material sync entry 的 locator 与对应 collider 的 material locator 一致；override-only collider 只接受空 locator
+  - manager `sync_world(...)` 会拒绝空白 material locator，避免外部 DTO 注入无法解析的资源引用
+  - manager `sync_world(...)` 会把同一 collider 的重复 material sync entry 收敛成第一条，保持“一 collider 一 material entry”的 scene helper 形态
+  - manager `sync_world(...)` 会把外部传入的重复 body / collider / joint sync entry 按 entity 收敛成第一条有效 DTO，保持 scene component 的单实例形态
+  - world sync 会用父 transform 的 scale/rotation 合成 collider `local_transform`，让 offset collider query/contact 与 scene transform 保持一致；组合后的 collider Transform 若溢出为非有限值，会在同步 DTO 边界被跳过
+
+`advance_clock(...)` 当前已经做了浮点边界保护，避免 `fixed_hz` 离散步进在临界帧长下少算 step；非有限 `delta_seconds` 会按 0 处理，避免污染 per-world accumulator。`interpolation_alpha` 由 `remaining_seconds / step_seconds` 收束到 `0.0..=1.0`，在 query-only、disabled、unavailable backend 或无效 fixed step 时固定为 `0.0`。这样 physics module 至少已经有了后续 pre-sync / simulate / writeback 调度真正需要的 runtime bookkeeping，也把视觉插值所需的比例作为中性 DTO 暴露给 runtime/editor 消费，而不是让 physics 插件直接写 editor state。
+
+## Scene Schedule
+
+scene 默认阶段顺序已经按当前计划固定为：
+
+- `First`
+- `PreUpdate`
+- `FixedUpdate`
+- `Update`
+- `PostUpdate`
+- `Last`
+- `RenderExtract`
+
+`LateUpdate` 已经硬切为 Bevy 风格的 `PostUpdate` 命名，不保留兼容阶段。也就是说，physics fixed-step bookkeeping 先于 update / post-update 的 animation 参数写入阶段，而 render extract 始终在这两类运行时写入之后。
+
+## Scene Tick Runtime
+
+`zircon_runtime::scene::LevelSystem::tick(...)` 现在通过 `WorldDriver` 调度插件注册的 scene hook 来推进第一波 physics / animation runtime，而不是直接调用内建 concrete module：
+
+- physics
+  - 规划当前 world 的 fixed-step 计划
+  - 对带 `linear_velocity` / `angular_velocity` 的 dynamic / kinematic rigid body 执行内建 fixed-step writeback；非有限 step、body 输入或积分后 Transform / velocity 输出会被忽略，先提供 Jolt 接入前的最小 scene 写回路径
+  - fixed-step writeback 和 world sync 读取 live `World::node_records()`，不依赖仍在等待 `PostUpdate` 刷新的 `World::nodes()` cache，因此同一 tick 内新 spawn 或刚写入的 rigid body / collider 会被 `FixedUpdate` physics hook 看到
+  - 同步当前 world snapshot 到 physics manager
+  - drain contact event；sensor collider 不产生 contact；ray query/contact 对 capsule、sphere/box、box/capsule 使用 shape 判断过滤 AABB false hit，并按绝对最大 scale 处理 sphere 半径
+  - 把 `PhysicsWorldStepPlan` 和 `PhysicsContactEvent` 缓存在 level runtime state
+- animation
+  - 推进 `AnimationPlayerComponent` / `AnimationSequencePlayerComponent` 组件时钟
+  - 通过 `compile_sequence_for_world(...)` 在 asset/edit 边界解析，并以 `apply_compiled_sequence_to_world(...)` 在帧内应用 asset-backed sequence property track
+  - 对 clip / graph / state machine 生成 `AnimationPoseOutput` 并缓存到 level runtime state
+  - 动画插件把 pose bone 名称匹配到动画根节点下的同名 scene descendants，并写回这些子节点的 local transform
+
+这条主干现在通过 linked plugin report 拿到基础 runtime service：
+
+- `zircon_plugins/physics/runtime` 贡献 `PhysicsModule` scene hook；动画插件贡献唯一的 `animation.evaluate` runtime system
+- `builtin_runtime_modules()` 不再直接注册 physics / animation module；target loader 会根据 linked plugin registration report 接受对应模块
+- legacy project manifest 里仍选择 `RuntimePluginId::Physics` / `RuntimePluginId::Animation` 时，会走外置 plugin 缺失诊断，而不是静默落回 runtime built-in module
+- `resolve_physics_manager(...)` / `resolve_animation_manager(...)` 能从同一个 `CoreHandle` 解析到 plugin-backed manager handle
+- `LevelSystem::tick(...)` 会通过 `RuntimeExtensionRegistry` 安装的 scene hook 使用这些 manager 推进 physics step、contacts 与 sequence property writeback
+
+动态运行时会话会继续把 `crate::animation::AnimationModule` 加入模块集合以提供 manager contract，但不再安装 `animation.scene.post_update` fallback。要执行动画，项目必须链接 `zircon_plugins/animation/runtime`，由其 `animation.evaluate` 在 `PostUpdate` 中成为唯一生产求值器。
+
+`examples/vampire` 现在也把同一条 runtime scene authority 用在 terrain、屏幕 HUD、shader 材质和攻击 VFX 上。`Baked Jungle Terrain` 同时拥有 visible mesh 与 `TerrainAsset` 引用，terrain source 是 `res://terrain/jungle_clearing.terrain.toml`，项目导入会生成 ready `.zmeta`，导航网格的 Y 值按同一崎岖地形高度更新。战斗血条不再由 world 中同步的 cube scene nodes 实现，而是由 `gameplay.hud_text` 和脚本 HP 绑定驱动的 screen-space HUD 承担；脚本与 fallback gameplay 会把攻击瞬间写成 `render.particle_sprites`，颜色根据 attack/haste/shield buff 组合变化；`default_pbr` 则采样材质贴图并叠加 detail normal、shadow visibility、micro occlusion 与 wet reflection 项。frame capture 同时经过 render extract、particle extract、shadow stats 和 HUD overlay 路径验证这些资产与运行时效果。
+
+这条 tick 主干里，`looping` 现在已经不再只停在 scene component 字段上，而是会被真正传进采样层：
+
+- clip player 把 `AnimationPlayerComponent.looping` 传给 `sample_clip_pose(...)`
+- sequence player 把 `AnimationSequencePlayerComponent.looping` 传给 `apply_compiled_sequence_to_world(...)`
+- graph / state-machine 不再默认一律回绕；它们会复用 dominant clip instance 自带的 `looping`
+- 因此 non-looping clip / graph / state-machine 在 overshoot 后会钉住最后一帧，looping sequence 仍会按 duration 回绕
+- sequence property sampler 会把非有限 `duration_seconds` 或非有限 `time_seconds` 收束到 0 秒采样，避免 `NaN` 时间穿透 Hermite 轨道并写入 scene property
+- sequence property sampler 在把 sampled channel value 转成 `ScenePropertyValue` 前会拒绝非有限 scalar/vector/quaternion 分量，让坏 sequence 以错误返回而不是写入带 `NaN` 的 scene property
+- sequence property sampler 会拒绝零长度 quaternion channel sample，避免 finite-but-invalid rotation 写入 `Transform.rotation`
+- `AnimationChannelAsset::sample(...)` 遇到非有限采样时间或非有限 key time 时会返回无采样；sequence 侧把该 track 记为 missing，clip pose 侧保留 skeleton 默认 transform，避免 malformed key time 选中错误关键帧
+- clip pose sampler 会把非有限 `duration_seconds` 或非有限 `time_seconds` 收束到 0 秒采样，避免 `NaN` 时间穿透 Hermite 轨道并污染骨骼 pose
+- clip pose sampler 在把 sampled channel value 转成 `Vec3` / `Quat` 前会拒绝非有限分量，让坏 clip 以错误返回而不是生成带 `NaN` 的 `AnimationPoseOutput`
+- clip pose sampler 会拒绝零长度 quaternion channel sample，避免 finite-but-invalid rotation 被 normalize 成 `Quat(NaN, NaN, NaN, NaN)`
+- clip pose sampler 初始化 skeleton bind pose 时会先校验 bone translation/rotation/scale 分量，并拒绝零长度 bind rotation；坏 skeleton asset 会以错误返回而不是把 `NaN` bind transform 放入 pose cache
+- 当前 paused 语义没有一起改动
+  - paused graph/state-machine 仍不会发出 pose
+  - paused state-machine 仍不会推进或回写新的 `active_state`
+
+graph/state-machine 这次也正式接到了同一条 tick 主干：
+
+- graph player 会在 tick 中加载 `AnimationGraphAsset`
+- runtime 通过 `evaluate_graph(...)` 取 dominant clip 后采样 pose
+- `parameter_defaults(...)` 会在 graph asset default 进入运行时参数图前过滤非有限 scalar/vector 值，bool/integer/trigger 等离散参数仍按原样保留
+- `evaluate_graph(...)` 合并 parameter override 时会忽略非有限 scalar/vector override，blend weight 参数因此会回落到 asset 默认值，而不是把 `NaN` 权重写入 `AnimationGraphClipInstance`
+- `evaluate_graph(...)` 输出 clip instance 时会把非有限 `playback_speed` 收束到 `1.0`，避免坏 graph asset 把 `NaN`/`Inf` 传播到后续 pose sampling 时钟
+- `AnimationGraphNodeAsset::Additive` 会把 base 输入保留为 `AnimationGraphBlendMode::Base`，把 additive 输入标记为 `AnimationGraphBlendMode::Additive`，并用可选 scalar 参数控制 additive 权重
+- `AnimationGraphNodeAsset::Mask` 会把 stable target ids 下传给输出 clip instance，同时在 `AnimationGraphEvaluation.mask_target_ids` 中保留去重后的 mask target 列表
+- graph pose runtime 已消费这些 DTO：base clip 会按正权重归一化混合，additive clip 会在 base pose 之后叠加 translation / scale delta / rotation delta，mask target ids 会限制对应 clip 只写匹配 bone
+- mask target 目前匹配完整 bone name 或 slash path 的 leaf，例如 `Root/Hand` 会命中 pose bone `Hand`；空 target list 仍表示整套 pose
+- `AnimationClipBoneTrackAsset.target_id` 和 `AnimationSequenceBindingAsset.target_id` 是可选 stable target id；旧资产继续靠 `bone_name` / `entity_path` fallback
+- clip pose sampler 现在会先用 `target_id` 解析 bone name 或 skeleton path，例如 `Root/Hand`，解析不到时再回落到 `bone_name`
+- sequence property runtime 现在会先用 `target_id` 解析 stable numeric `EntityId` 字符串或 canonical `EntityPath` 文本，解析不到时再回落到 `entity_path`
+- `AnimationClipAsset.event_tracks` 先作为 neutral event metadata 与二进制 roundtrip 契约落地，runtime 播放事件边界和 diagnostics 后续仍由 animation plugin 扩展，不回灌到 `zircon_runtime` concrete behavior
+- `.zranim` decode 保留 version-1 旧 stream 形态兼容：旧 header+payload clip/sequence/graph bytes 可以继续读入，新增 target/event 字段会填成 `None` 或空列表；clip V1 fallback 会先补齐当前二进制 DTO 的 `target_id/event_tracks` 默认值再走统一 asset conversion；新写出的 bytes 继续使用 wrapped `AnimationBinaryDocument`
+- 公开 `set_parameter(...)` 入口同样会拒绝非有限 scalar/vector 参数写入，避免脏参数先进入 caller 持有的 `AnimationParameterMap`
+- state-machine player 会在 tick 中加载 `AnimationStateMachineAsset`
+- runtime 通过 `evaluate_state_machine(...)` 计算 `active_state` 和目标 graph，再采样 dominant clip pose
+- 当 scene component 里保存的 `active_state` 已经不在当前 state-machine asset 中时，`evaluate_state_machine(...)` 会回落到仍然存在的 `entry_state`，避免把已经删除的状态回写成无 graph 的 runtime active state
+- 当 transition 条件满足但 `to_state` 已经不在当前 state-machine asset 中时，`evaluate_state_machine(...)` 会忽略这条 transition，继续保留当前有效 state 和 graph
+- 当 transition 引用的参数不存在时，condition 会被视为不匹配，避免 `NotEqual` 这类条件把缺参误判成可迁移
+- 当非 `Triggered` transition 缺少比较值时，condition 会被视为不匹配，避免 malformed asset 用 `NotEqual(None)` 误触发迁移
+- 当 transition 的 current parameter 或 condition value 是非有限 scalar/vector 时，condition 会被视为不匹配，避免 `NaN != 0` 这类比较误触发 state transition
+- `AnimationStateMachinePlayerComponent.active_state` 会被 tick 回写到 world
+
+为了让 graph/state-machine 连续多帧播放不再每帧重采样同一个 `delta_seconds`，`LevelSystem` 现在还会维护 runtime-owned graph/state-machine playback clock。由于这两类 scene 组件当前还没有和 clip/sequence 对齐的持久 `time_seconds` 字段，时钟先放在 level runtime state，而不是写回组件本身。
+
+## Render Extract Bridge
+
+这轮又把 level-owned animation pose cache 正式接到了 shared render extract 边界：
+
+- `LevelSystem` 在 `build_render_frame_extract(...)` 时会读取 tick 缓存的 `AnimationPoseOutput`
+- 只有真正还挂着 mesh 和 `AnimationSkeletonComponent` 的 entity 会进入这条 render seam
+- render extract 现在会额外携带 `entity + skeleton + pose` 的 animation pose 列表
+- `World::build_render_frame_extract(...)` 仍保持中性，不会自己伪造 animation pose
+
+这一步的意义不是“已经做完 skinning”，而是把 animation runtime 的输出从 level 内部缓存推进到 render-side contract：
+
+- runtime tick 继续负责算 pose
+- render extract 开始负责携带 pose 到渲染侧
+- 后续 mesh skinning / shader consume 将直接建立在这条 extract seam 上，而不是重新回头读 scene component 或再造一条私有缓存线
+
+## Skinned Model Resource Surface
+
+这轮又把 skinned mesh 真正缺失的下层资源面补到了 runtime 里：
+
+- `MeshVertex` 不再只有 `position/normal/uv`
+  - 现在会稳定携带 `joint_indices: [u16; 4]`
+  - `joint_weights: [f32; 4]`
+  - `tangent: [f32; 4]`
+  - 以及 `color: [f32; 4]`
+- `ModelAsset` / `ModelPrimitiveAsset` 的 TOML roundtrip 会保留这些 mesh vertex 通道
+- glTF importer 现在会读取 primitive 上的 `JOINTS_0` / `WEIGHTS_0`、`TANGENT` 和 `COLOR_0`
+  - 这些 skinning 与 authored vertex attribute 通道不会再在导入时直接丢失
+- OBJ 和 builtin mesh 继续走零权重、单位切线和白色顶点色默认值
+  - 因此现有非 skinned 模型资产不需要额外迁移
+
+GPU 资源侧也一起对齐到了同一条数据面：
+
+- `GpuMeshVertex` 现在带同样的 `joint_indices` / `joint_weights` / `tangent` / `color`
+- mesh pipeline vertex layout 新增了：
+  - `@location(3)` -> `Uint16x4`
+  - `@location(4)` -> `Float32x4`
+  - `@location(5)` -> `Float32x4` tangent
+  - `@location(6)` -> `Float32x4` vertex color
+- `GpuMeshResource::from_asset(...)` 和相关 hash/order signature 也会把 skinning 与 render-side vertex attribute 通道一起纳入
+
+这让渲染侧同时拿到 skinned vertex 必需的 joint/weight 数据，以及材质侧 normal mapping / vertex color 会消费的 tangent/color 数据，而不是在 asset import 那一层就被抹平。
+
+## Raster Skinned Mesh Consumption
+
+render extract seam 和 skinned vertex resource surface 现在已经接成一条真正可消费的渲染路径，而不是停在“边界上有 pose，但 mesh draw 不看它”的状态：
+
+- mesh draw builder 现在会先检查 `RenderFrameExtract.animation_poses`
+- 如果当前 mesh entity 同时带有：
+  - cached `AnimationPoseOutput`
+  - 可加载的 `AnimationSkeletonAsset`
+  - 可回读的 CPU `ModelAsset` primitive
+  - 那么该 entity 会改走 CPU skinning raster fallback
+- skinning helper 会：
+  - 从 skeleton bind-local transform 重建 bind-world matrix
+  - 从 render extract pose 重建 posed-world matrix
+  - 计算 `posed_world * inverse(bind_world)` joint matrix
+  - 用 vertex `joint_indices / joint_weights` 对 position、normal 和 tangent.xyz 做线性混合，并保留 tangent handedness 与 vertex color
+  - 同一 joint palette 现在通过 mesh-level `SkinnedMeshJointPaletteUniform` ABI 打包为固定 256 矩阵 POD uniform，并在符合当前 ABI 时上传为 renderer-owned per-draw WGPU uniform buffer
+  - 超过 256 矩阵的 skeleton 会保留 CPU-skinned fallback draw，只跳过 palette uniform upload
+  - model bind group 现在预留 binding 1/2，并为每个 draw 绑定 per-draw current/previous palette buffer 或 shared empty palette buffer
+  - fallback mesh shader 声明了 mesh vertex layout 已经携带的 joint index / joint weight / tangent / color 输入通道
+  - fallback mesh 和 deferred geometry shader 会把 vertex color 乘进 albedo；fallback mesh shader 与 normal prepass 现在通过 material texture set 绑定 `base_color_texture` + `normal_texture`，在 draw-level normal-texture flag 打开时用 skinned tangent frame 采样 tangent-space normal map
+  - fallback/deferred geometry/normal prepass/shadow map WGSL 现在声明同一个 group 1 binding 1 current-palette uniform ABI，并在 draw-level `ModelUniform.motion_params.y` flag 打开时执行 palette skinning
+  - fallback mesh motion-vector shader 额外声明 group 1 binding 2 previous-palette uniform，并通过 `ModelUniform.motion_params.z` 只在 previous palette 存在时用上一帧 pose 计算 previous clip position
+- draw builder 会在有 palette uniform 和可 shader-skinning 的源几何时保留 `skinned_gpu_source` readiness candidate
+  - 非 morphed prepared/model path 使用原始 prepared mesh source
+  - direct `MeshAsset` active morph path 会先 CPU morph 成未 skin 的 source primitive，再让 fallback shader 做 GPU skinning；这个 CPU morph source 会应用 position / normal / tangent.xyz / color deltas，并保留 tangent handedness
+  - 这只是 CPU-morph/GPU-skinning hybrid，不是完整 GPU morph deformation
+  - 只有内置 fallback shader pipeline 会把 candidate 的 active geometry source 切到对应 source 并开启 shader skinning；自定义 shader material 的非空 authored layout 现在会诊断 group 1 skinning ABI，但实际执行仍继续走 CPU-skinned dynamic fallback，直到 custom shader GPU-skinning execution/velocity policy 落地
+  - mesh pipeline cache 会把内置 fallback shader id 直接解析到 renderer fallback WGSL source，确保该路径使用已声明 skinning ABI 的 shader
+  - GPU-skinned prepared draw 仍计入 prepared geometry 统计；CPU-morphed shader-skinning source 计入 dynamic geometry 统计；二者都不会进入普通 direct prepared dynamic batch / GPU instancing candidate，避免现有 batch key 漏掉 per-draw palette 状态
+  - 没有 candidate 的 skinned draw 继续走 CPU-skinned dynamic fallback
+- skinned primitive 会在 draw build 阶段生成临时 GPU mesh resource
+  - 不复用静态 virtual-geometry indirect path
+  - `virtual_geometry` payload 会在这条 override primitive 上被清空，显式退回 raster-only draw
+  - successful submit 会把动态 mesh 的 skeleton、pose 和 morph weights 记录到 `ViewportMotionVectorObjectHistory` 的 skinned pose sideband，下一帧只在当前/上一帧 skeleton 相同、上一帧 transform 存在，且 morph weights 都为空或 direct CPU-morphed GPU-skinning source 的当前/上一帧有限 morph weights 匹配时重建 previous palette
+  - queue stats 会分别记录 skinned draw、current palette buffer readiness、GPU source readiness、CPU-morphed GPU source subset、实际 GPU skinning draw selection、previous palette upload 和 GPU-skinned motion-vector readiness：`render.mesh.queue.skinned_draw_count` / `render.mesh.queue.skinned_palette_upload_count` / `render.mesh.queue.skinned_gpu_source_candidate_count` / `render.mesh.queue.skinned_gpu_cpu_morphed_source_candidate_count` / `render.mesh.queue.skinned_gpu_skinning_draw_count` / `render.mesh.queue.skinned_previous_palette_upload_count` / `render.mesh.queue.skinned_gpu_motion_vector_draw_count`
+
+这条路径的设计边界是刻意收紧的：
+
+- 只有真正拿到 pose+skeleton+CPU primitive 的 entity 才会进入 CPU skinning
+- 如果 skeleton 或 model asset 无法加载，draw builder 会保留原来的静态 mesh 路径
+- current virtual geometry prepare/indirect submission 仍然只适合静态 mesh
+  - animated/skinned entity 当前不会走 VG indirect draw ref
+  - 因此这轮完成的是“raster path 能消费 animation pose”，不是“VG path 已支持 skinned mesh”
+- WGPU current/previous palette buffer 现在已经接到现有 model bind group 的 binding 1/2
+  - 非 skinned draw 和超过当前 uniform ABI 的 draw 会绑定 `SceneRendererCore` 持有的 shared empty palette buffer
+  - WGSL 会通过 draw-level flag 执行 current-palette skinning；CPU fallback draw 不会打开该 flag，避免 double skinning
+  - `skinned_gpu_source_candidate_count` 说明 draw 同时具备 palette uniform 与可用于 GPU skinning 的源几何，`skinned_gpu_cpu_morphed_source_candidate_count` 说明该源几何来自 direct mesh 的 CPU-morphed source primitive，`skinned_gpu_skinning_draw_count` 说明该 draw 已实际选择 shader skinning
+  - `skinned_gpu_skinning_draw_count` 只覆盖内置 fallback shader pipeline；自定义 material shader 即使通过 authored-layout skinning ABI readiness diagnostics，实际执行仍留在 CPU fallback，直到 custom shader GPU-skinning execution/velocity policy 落地
+  - `skinned_previous_palette_upload_count` 说明上一帧 pose 已重建为 previous palette，`skinned_gpu_motion_vector_draw_count` 说明该 GPU-skinned draw 同时具备上一帧 transform 和 previous palette，可由 fallback mesh motion-vector shader 输出 animation-correct object velocity
+  - direct mesh active morph weights 当前覆盖带 position / normal / tangent / color delta 的 CPU-morph/GPU-skinning current draw；previous-palette motion-vector readiness 只额外放行同一 direct CPU-morphed source 可共享的匹配有限权重，changed morph weights 仍等完整 GPU morph deformation 和 previous morph source 路径落地
+
+## Roundtrip Guarantees
+
+当前已经通过测试钉住的行为：
+
+- scene TOML roundtrip
+  - physics/animation component DTO 不丢字段
+- `SceneAsset <-> World`
+  - asset reference 正确解析成 typed `ResourceHandle`
+  - 再保存时还能回写到正确的 `res://...` locator
+  - conventional mesh LOD levels 会在 `SceneMeshInstanceAsset.lods` 与 `MeshRenderer.lods` 之间往返，并在 render extract 中按 scene camera 距离选择普通 flat mesh snapshot source
+- `World` project JSON roundtrip
+  - component maps、`SceneNode` cache、以及 getter API 都能恢复同一份数据
+- shared property path
+  - `EntityPath` / `ComponentPropertyPath` 可以跨 world 查询、路径写回和序列应用保持同一 canonical target
+- runtime manager state
+  - physics / animation settings 会同步进入 runtime config store
+  - physics fixed-step accumulator 按 `WorldHandle` 分桶追踪
+  - physics backend unavailable 会显式降级成 status，而不是隐式失败
+  - physics world sync / ray cast / contact DTO 可以在无真实 backend 时继续跑 contract 验证
+  - `zircon_plugins/physics/runtime::PhysicsModule` / `zircon_plugins/animation/runtime::AnimationModule` 会通过 linked plugin report 注册，并提供 canonical manager handle
+  - legacy physics / animation manifest entries 不再伪装成 runtime built-in domain；缺少插件会暴露为 plugin loading 诊断
+  - animation graph / state-machine / clip pose evaluator 能在 runtime 内直接执行
+  - `LevelSystem::tick(...)` 会使用 runtime physics manager 生成 fixed-step plan、同步 world snapshot，并缓存 contact event
+  - `LevelSystem::tick(...)` 会应用 ready `AnimationSequenceAsset` property track，并把 sequence player time 写回 world
+  - `LevelSystem::tick(...)` 会缓存 clip / graph / state-machine pose 输出
+  - standalone dynamic runtime session 只提供 `zircon_runtime::animation::AnimationModule` manager contract；基础状态机动画必须由链接的 animation plugin `animation.evaluate` 执行
+  - node-transform clip/state-machine pose 会按 bone name 匹配动画根节点下的 scene descendants 并写回 local transform；纯 transform 父节点必须通过 `World::from_scene_asset(...)` 保留下来，否则 descendant 安全检查不会放行 pose 写回
+  - `LevelSystem::build_render_frame_extract(...)` 会把 skinned mesh entity 的 cached pose 投影到 render extract
+  - skinned glTF primitive 的 `JOINTS_0` / `WEIGHTS_0` 会保留到 `ModelAsset`、`MeshVertex` 和 `GpuMeshVertex`；glTF `TANGENT` / `COLOR_0` 也会以 authored value 贯通到 mesh subasset 和 GPU vertex ABI，缺失时继续使用 neutral default
+  - render-side mesh draw builder 会在 pose+skeleton+CPU primitive 齐备时对 skinned mesh 做 CPU skinning，并以 raster fallback 上传临时 GPU mesh
+  - 符合当前 256 矩阵 ABI 的 skinned draw 会准备 renderer-owned palette uniform buffer，并通过 mesh queue diagnostics 记录 upload readiness
+  - skinned draw 会在同时具备 palette uniform 和可 shader-skinning 的源几何时记录 `render.mesh.queue.skinned_gpu_source_candidate_count`；direct mesh active morph path 会额外记录 `render.mesh.queue.skinned_gpu_cpu_morphed_source_candidate_count`，因为它先 CPU morph 成未 skin source 再让 fallback shader 做 GPU skinning；只有内置 fallback shader pipeline 会实际切到 shader skinning 并记录 `render.mesh.queue.skinned_gpu_skinning_draw_count`，自定义 shader material 仍会被排除到 custom shader execution/velocity policy 落地之后，虽然 authored layout ABI readiness diagnostics 已经覆盖 group 1/2/3
+  - successful submit 会记录动态 skinned pose sideband；下一帧在 skeleton 匹配、上一帧 transform 存在，且 morph weights 都为空或 direct CPU-morphed GPU-skinning source 的当前/上一帧有限权重匹配时上传 previous palette，并通过 `render.mesh.queue.skinned_previous_palette_upload_count` / `render.mesh.queue.skinned_gpu_motion_vector_draw_count` 暴露 GPU-skinned motion-vector readiness
+  - model bind group binding 1 会在每个 draw 上绑定真实 current palette buffer 或 shared empty palette buffer；binding 2 会为 fallback mesh motion-vector 路径绑定 previous palette 或 shared empty palette buffer；fallback/deferred geometry/normal prepass/shadow map WGSL 已声明 current binding，并只在 draw-level flag 打开时读取和使用 current palette；fallback/deferred albedo 现在会乘入 vertex color
+  - graph / state-machine 连续 tick 会累积 runtime playback clock
+  - graph additive/mask metadata 会在 pose runtime 中实际生效，而不是只停留在 evaluation DTO
+  - clip pose track 会优先通过 `target_id` 解析 skeleton path，再回落到 legacy `bone_name`
+  - sequence binding 会优先通过 `target_id` 解析 stable entity target，再回落到 legacy `entity_path`
+  - version-1 `.zranim` header+payload stream bytes 对 clip/sequence/graph 仍可读取，新增字段使用安全默认值
+  - paused graph / state-machine player 当前不会进入 tick-owned graph/state-machine pose/update 分支
+  - non-looping clip / graph / state-machine overshoot 会 clamp 到最后一帧
+  - looping sequence overshoot 会 wrap 到 sequence duration 内的新 sample time
+  - linear clip channel 现在会对 scalar/vector 做线性插值、对 quaternion 做 slerp，所以导入的 glTF linear sampler 不再退化成端点/step 行为
+  - clip pose sampler 会拒绝带有 NaN/Infinity 分量的 translation / scale / quaternion channel value，而不是把非有限 transform 写入 `AnimationPoseOutput`
+  - sequence property applicator 会拒绝带有 NaN/Infinity 分量的 scalar / vector / quaternion channel value，而不是把非有限 scene property 写回 world
+
+这意味着 physics/animation 现在已经进入 runtime 的 scene authority 与最小执行链，而不是停留在“只有 asset kind，没有实体组件”的空壳状态。
+
+## Plugin Cutover Validation Evidence
+
+2026-05-03 hard-cutover closeout 使用 `target\codex-shared-a` 复用同一个 Cargo target，并保留 `zircon_plugins` 独立 workspace：
+
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_runtime --locked --test physics_manager_runtime_contract --target-dir target\codex-shared-a` passed: 21 physics plugin contract tests
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_runtime --locked --test runtime_physics_animation_tick_contract --target-dir target\codex-shared-a` passed: 7 animation plugin contract tests
+- `cargo check --manifest-path zircon_plugins/Cargo.toml --locked --target-dir target\codex-shared-a` passed for the independent plugin workspace
+- `cargo test -p zircon_runtime --locked --lib --target-dir target\codex-shared-a` passed: 767 runtime lib tests
+- hard-cutover search found no Rust imports of `zircon_runtime::{physics,animation}` / `crate::{physics,animation}` and no `zircon_runtime/src/{physics,animation}` folders; remaining grep hits are negative structural assertions or historical plan text
+
+## Backend Selector Follow-Up Evidence
+
+2026-05-04 backend selector slice stayed inside `zircon_plugins/physics/runtime` and did not touch active render/editor/native lanes:
+
+- `rustfmt --edition 2021 "zircon_plugins\physics\runtime\src\backend.rs" "zircon_plugins\physics\runtime\src\manager.rs" "zircon_plugins\physics\runtime\src\lib.rs" "zircon_plugins\physics\runtime\tests\physics_manager_runtime_contract\mod.rs" "zircon_plugins\physics\runtime\tests\physics_manager_runtime_contract\step.rs"` passed.
+- `cargo test --manifest-path "zircon_plugins\Cargo.toml" -p zircon_plugin_physics_runtime --locked --test physics_manager_runtime_contract unknown_backend_reports_unavailable_not_ready --target-dir "target\codex-shared-a"` timed out during first-time dependency compilation before reaching the test binary, so it is not acceptance evidence.
+- `cargo check --manifest-path "zircon_plugins\Cargo.toml" -p zircon_plugin_physics_runtime --tests --locked --target-dir "target\codex-shared-a"` failed before checking the physics plugin because shared `zircon_runtime` currently has an unrelated renderer compile error in `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs`: the caller passes `pipeline` and `&self.render_pass_executors` into `render_compiled_scene(...)`, but the callee signature now takes 8 arguments.
+- The renderer blocker is already recorded by active net/sound coordination notes and belongs to active render/VG/HGI lanes; the physics selector code therefore has formatting evidence and written regressions, but not a fresh Cargo-pass claim.
+
+## Editor Asset Reference Analysis
+
+editor asset manager 现在会把 scene 里的 physics/animation 组件资产一起纳入 direct-reference 分析，而不是只识别 mesh：
+
+- `SceneColliderAsset.material`
+- `SceneAnimationSkeletonAsset.skeleton`
+- `SceneAnimationPlayerAsset.clip`
+- `SceneAnimationSequencePlayerAsset.sequence`
+- `SceneAnimationGraphPlayerAsset.graph`
+- `SceneAnimationStateMachinePlayerAsset.state_machine`
+
+这些引用全部走 `zircon_editor::ui::host::editor_asset_manager::manager::reference_analysis` 的 `ImportedAsset::Scene` 分支，进入与 graph/state-machine 相同的一套 reference graph。结果是：
+
+- scene 资产的 `direct_reference_uuids` / `direct_references` 会同时展示 physics material、skeleton、clip、sequence、graph、state machine
+- `catalog_snapshot.direct_reference_uuids` 会优先规范化成项目 catalog 内真实 `asset_uuid`
+  - 不再直接暴露 `AssetReference::from_locator(...)` 生成的 locator-derived UUID
+- `AnimationClip` 的 `referenced_by` 不再只来自 `AnimationGraph`，scene 直接播放器也会回指它
+- `AnimationGraph` 的 `referenced_by` 不再只来自 state machine，scene graph player 也会回指它
+- `AnimationStateMachine` 现在会在 scene state-machine player 挂载时被 editor 反向引用图捕获
+
+这一步保证了 editor catalog、asset details 和后续 authoring 入口都建立在 runtime 同源的 scene 组件资产引用上，而不是另维护一套 editor-only 的补丁引用表。
+
+## Inspector Animation Track Route
+
+workbench reflection 的 inspector activity 现在也暴露动画轨道创建动作，但没有新增 inspector-only payload：
+
+- action id: `create_animation_track`
+- binding symbol: `AnimationCommand.CreateTrack`
+- route registration: `zircon_editor::ui::workbench::reflection::animation_route`
+
+这条路径的约束是刻意和现有 animation authoring pipeline 对齐的：
+
+- inspector remote-call 只传一个字符串参数 `track_path`
+- route stub 直接构造 `AnimationCommand::CreateTrack`
+- binding normalization / dispatch 继续复用现有 animation binding 分支
+- `track_path` 仍然走共享 `zircon_runtime::core::framework::animation::AnimationTrackPath::parse(...)`
+
+因此 inspector 发起的“加轨道”不会再引入第二套 inspector mapping，也不会绕过 runtime 已接受的 canonical property path 模型。现有 workbench reflection 回归已经钉住：
+
+- inspector 节点会公开 `create_animation_track`
+- 该 action 可被远程调用并带有 route id
+- 在 sequence editor 已打开时，通过 inspector 调这个 action 会真正把 canonical `AnimationTrackPath` 加入动画会话
+
+## Asset Browser Kind Filters
+
+physics / animation 资产虽然不会各自打开第三个专用 editor，但现在 generic asset surfaces 已经正式暴露这些 kind filter，而不是只能靠搜索字符串碰运气：
+
+- `AssetsActivityPane` 和 `AssetBrowserPane` 都保留统一 `SetKindFilter` generic control route
+- 两个 surface 现在都各自补齐了：
+  - `PhysicsMaterial`
+  - `AnimationSkeleton`
+  - `AnimationClip`
+  - `AnimationSequence`
+  - `AnimationGraph`
+  - `AnimationStateMachine`
+- 这些 chip 直接回传 runtime/editor 已认可的 canonical kind 字符串
+  - 没有再引入 UI-only alias 或第二套 animation/physics 过滤枚举
+- 现有 retained host 回归已经钉住：上面六类过滤入口在 activity 和 browser 两个 surface 中都必须各出现一次
+
+这让计划里“`AnimationClip`、`AnimationSkeleton`、`PhysicsMaterial` 继续走现有 asset browser/details/preview，不单独做第三个动画 view 或 physics material 专用 editor”这一条不再只是路由层成立，而是连现有通用浏览面板的作者入口也真正可用。
+
+这一轮又把无预览资产的图标回退链补齐到了同一完成线：
+
+- retained asset surface projection 的 activity/browser item thumbnail、list fallback、selection preview、details preview 现在都会显式识别 `PhysicsMaterial`
+- 同一条回退链也覆盖 `AnimationSkeleton`、`AnimationClip`、`AnimationSequence`、`AnimationGraph`、`AnimationStateMachine`
+- retained editor chrome/icon lookup 新增了 `physics-material`、`animation-sequence`、`animation-graph` 这组 icon key 到 ionicon SVG 的固定映射
+
+因此 physics / animation 资产即便没有 preview artifact，也不会再退回通用 `console` 占位图标，而是落到稳定、可识别的 kind-specific 视觉语义。
+
+为了让这条 editor 回归真正能执行到断言，本轮还补齐了共享 render 契约扩展后的默认值路径：
+
+- runtime UI test-support manager 的 `empty_scene_snapshot(...)` helper 现在会给 `RenderSceneSnapshot.virtual_geometry_debug` 明确填 `None`
+- `zircon_editor::scene::viewport::render_packet::build_render_packet(...)` 现在会给 `SceneViewportExtractRequest.virtual_geometry_debug` 明确填 `None`
+
+这不是 physics / animation 资产新能力本身，但它避免了上层 asset/browser retained-host 测试在编译阶段被共享 render DTO 漏补字段直接截断。
+
+同一轮 editor acceptance sweep 里，`RenderFramework` 新增的 `query_virtual_geometry_debug_snapshot()` 也已经补到了 retained viewport 的测试替身上：
+
+- `zircon_editor::ui::retained_host::viewport::test_render_framework::TestRenderFramework`
+- `zircon_editor::ui::retained_host::viewport::tests::fake_render_framework::FakeRenderFramework`
+
+两个测试框架都显式返回 `Ok(None)`，这样 `binding_dispatch`、`editor_event::runtime` 和相关 viewport host 测试会继续通过同一条共享 render framework trait 路径，而不是因为测试替身落后于契约扩展而在编译期断掉。
+
+## Animation Editor Save Path
+
+animation editor 这条 authoring 链现在已经不再停在“只能把 session 标成 dirty”：
+
+- `zircon_editor::ui::animation_editor::AnimationEditorSession::save()`
+  - 会把底层 `AnimationSequenceAsset` / `AnimationGraphAsset` / `AnimationStateMachineAsset` 序列化回当前 `asset_path`
+  - 只有底层写盘成功后才会清掉 dirty bit
+  - 2026-06-22 起，session 根文件只保留类型和模块 wiring；保存入口在 `session/lifecycle.rs`，底层 sequence/graph/state-machine 文档访问与序列化 helper 分别由 `session/{sequence,graph,state_machine,support}.rs` 承担
+- `zircon_editor::ui::host::animation_editor_sessions::save`
+  - 把 save 能力接到 host registry
+  - 如果源文件位于项目 `<project>/assets` 下，会推导成 `res://...` 并触发 `asset_manager.import_asset(...)`
+  - 随后同步 workbench metadata，让已打开标签页的 dirty 状态和 payload path 与磁盘一致
+- `zircon_editor::ui::host::EditorManager::save_animation_editor(...)`
+  - 对上提供稳定 manager 入口，而不是让调用方直接越过 host/session 边界写文件
+
+这条保存链的边界也保持刻意收紧：
+
+- 当前只有底层动画资产文档会序列化落盘
+- 当前帧、timeline 可见范围、选中 span、playback 开关和速度仍然是 editor-local 状态
+- 因此它解决的是 animation authoring 文档持久化，而不是完整 pane UI 状态快照
+
+这轮定向验证已经钉住四条直接证据：
+
+- sequence session 保存后，新建 track 会真实写回 `.sequence.zranim`
+- graph session 保存后，parameter 默认值变更会真实写回 `.graph.zranim`
+- state-machine session 保存后，entry state 变更会真实写回 `.state_machine.zranim`
+- host save 会清掉 workbench dirty metadata，同时保留原来的 payload path
+
+## Not Done Yet
+
+这份文档刻意不把未实现层包装成已完成：
+
+- physics backend 驱动、fixed-step simulate/writeback、query/event、Jolt 接入
+- renderer-owned `render_compiled_scene(...)` call-site mismatch currently blocks fresh Cargo validation for plugin crates that depend on `zircon_runtime`
+- Householder-based tangent fitting / key reduction editor math
+- skinned mesh 的 GPU morph deformation、storage-buffer large-skeleton path，以及 custom material shader execution / custom material shader velocity writer / particle velocity writer
+- skinned mesh 的 virtual geometry prepare / indirect draw / cluster culling 支持
+- conventional mesh LOD 的 screen-error selector、LOD group asset、cross-fade、streaming residency 和 editor authoring UI
+- inspector canonical property model 与 sequence editor 的统一 authoring surface
+
+当前仍未完成的是完整 backend 驱动接入、scene writeback 到真实刚体世界、skinned path 的 GPU/VG 正式化，以及 conventional mesh LOD 的高阶 authoring/streaming 策略。底层共享合同、fallback query/contact、graph/state-machine evaluator、clip pose sampling、level tick 内的 graph/state-machine runtime clock、level -> render extract 的 animation pose seam、scene mesh LOD asset/runtime roundtrip 与 camera-distance snapshot selection、skinned vertex 的 joint/weight runtime resource surface、mesh-level CPU-side joint palette uniform ABI、renderer-owned per-draw current/previous palette buffer readiness、skinned GPU source candidate diagnostics、direct mesh CPU-morphed shader-skinning source diagnostics、guarded WGSL palette skinning、model bind group binding 1/2 readiness、custom material shader authored-layout renderer ABI diagnostics、fallback shader vertex-channel contract、GPU-skinned fallback motion-vector readiness，以及 raster path 对 animation pose 的实际 mesh deformation 消费都已经进入 runtime 主干，不再属于未落地空壳。
+
+
+## Runtime 15 M3 Asset Project Example Vampire Test Folder Split
+
+Runtime 15 M3 的 `Runtime 15 M3 asset project example vampire test folder split` 把 vampire 示例验收测试改为 folder-backed owner：`asset/tests/project/example_vampire.rs` 只保留共享 fixture 与子模块挂载，`asset/tests/project/example_vampire/manifest_scene_imports.rs` 继续覆盖 manifest、scene/script、shader、animation 与 import record contract，`asset/tests/project/example_vampire/third_person_render_extract.rs` 继续覆盖 loaded world 到 render frame extract 的 playable third-person mesh、static grass batch、camera 和 post-process contract。结构守卫 `runtime_15_asset_project_example_vampire_tests_are_folder_backed` 同步校验这些路径和本文件的状态锚，当前状态为 `runtime_15_asset_project_example_vampire_tests_folder_split_static_passed_cargo_deferred`。
+
+2026-07-01 follow-up：该守卫的 status-output row-data owner 已同步到 `expected_status_row_data/runtime_15/m3/asset_budget_tests.rs`，并随 asset test-budget 精确组在 `structure_convention_asset_budget_followup.exe --nocapture test_file_budget::asset_` 中通过。
+
+## 2026-07-03 Animation Runtime Test Helper Scope Import
+
+`plugins_13_m5_t1_animation_runtime_helper_arc_import` 关闭了插件工作区整体 `cargo check` 在 `zircon_plugin_animation_runtime` 测试 owner 上暴露的作用域缺口。`runtime_physics_animation_tick_contract/runtime_helpers.rs` 自己声明 `runtime_asset_manager(...) -> Arc<ProjectAssetManager>`，因此子模块必须显式 `use std::sync::Arc;`，不能依赖父测试文件的导入。
+
+同一 owner 内还删除了主测试文件拆分后留下的 stale `EntityPath` import 和一个未使用的 `core` 局部变量，避免下一轮 `cargo check --all-targets` 继续产生这两个测试 warning。验证证据为 `rustfmt --edition 2021 --check` 通过，以及 `cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_animation_runtime --locked --all-targets --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-animation-runtime-check-0703-codex --message-format short --color never` 通过（仅既有 `zircon_runtime` warning）。本补记不声明完整插件 workspace build/test、真实插件构建、Hub/editor E2E、完整 export matrix 或 startup-to-first-frame 完成。

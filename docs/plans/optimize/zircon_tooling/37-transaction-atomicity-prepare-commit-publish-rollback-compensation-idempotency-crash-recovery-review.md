@@ -1,14 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/core/resource/io/atomic_file/transaction.rs
-  - zircon_runtime/src/core/resource/io/transaction/schema.rs
-  - zircon_runtime/src/core/resource/io/transaction/engine.rs
-  - zircon_runtime/src/core/resource/io/transaction/journal.rs
-  - zircon_runtime/src/core/resource/io/transaction/recovery.rs
-  - zircon_runtime/src/core/resource/io/transaction/owner_lock.rs
-  - zircon_runtime/src/core/resource/io/transaction/commit.rs
-  - zircon_runtime/src/core/resource/io/transaction/stage.rs
-  - zircon_runtime/src/core/resource/io/transaction/observation.rs
   - zircon_runtime/src/asset/migration/transaction.rs
   - zircon_runtime/src/asset/migration/transaction/journal_owner.rs
   - zircon_runtime/src/asset/migration/transaction/recovery.rs
@@ -44,7 +35,6 @@ related_code:
   - zircon_editor/src/core/editing/engine/transaction/lifecycle.rs
   - zircon_editor/src/core/editing/engine/transaction/operation_group.rs
   - zircon_editor/src/core/editing/engine/history.rs
-  - zircon_editor/src/core/editing/engine/journal.rs
   - zircon_editor/src/core/project/scene_document.rs
   - zircon_editor/src/core/document/scene_route.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/enablement/capabilities.rs
@@ -54,15 +44,8 @@ related_code:
   - zircon_plugins/sound/runtime/src/service_types/mixer_graph/configuration.rs
   - zircon_plugins/net/features/rpc/runtime/src/manager/dispatch.rs
   - zircon_plugins/net/features/rpc/runtime/src/manager/state.rs
-  - zircon_hub/src/projects/create_project.rs
   - zircon_hub/src/process/editor_focus/publish.rs
   - zircon_app/src/entry/runtime_entry_app/frame_capture.rs
-  - tools/session_coordinator/database.py
-  - tools/session_coordinator/command_requests.py
-  - tools/session_coordinator/offline_queue.py
-  - tools/session_coordinator/git_finalize.py
-  - tools/session_coordinator/workspace_copy.py
-  - tools/session_coordinator/workspace_copy_terminal.py
 tests:
   - zircon_runtime/src/core/resource/io/transaction/engine/tests.rs
   - zircon_runtime/src/core/resource/io/transaction/recovery/tests.rs

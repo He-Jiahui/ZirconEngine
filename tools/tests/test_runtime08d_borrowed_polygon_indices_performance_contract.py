@@ -44,7 +44,17 @@ class Runtime08dBorrowedPolygonIndicesPerformanceContractTests(unittest.TestCase
         )
 
         self.assertIn("letedge_keys=polygon_edge_keys(index_set);", from_asset)
-        self.assertIn("letmutvertices=index_set.iter()", from_asset)
+        self.assertIn("letmutvertices=polygon_vertices(asset,index_set);", from_asset)
+
+        vertices = compact(
+            function_region(
+                source,
+                "fn polygon_vertices(",
+                "fn build_adjacency(",
+            )
+        )
+        self.assertIn("index_set.iter()", vertices)
+        self.assertNotIn(".to_vec()", vertices)
 
     def test_existing_polygon_topology_oracles_remain_present(self) -> None:
         source = BAKED_MESH_RS.read_text(encoding="utf-8")

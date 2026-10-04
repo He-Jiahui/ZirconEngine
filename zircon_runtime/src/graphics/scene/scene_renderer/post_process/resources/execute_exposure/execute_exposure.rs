@@ -9,6 +9,8 @@ use super::super::super::params::exposure_params::ExposureParams;
 use super::super::super::scene_post_process_resources::ScenePostProcessResources;
 
 impl ScenePostProcessResources {
+    /// 帧基础准备阶段为 histogram 与 resolve 提供同一份曝光参数，使用权威真实帧间隔。
+    /// 上传批次须在这两个计算节点提交前执行；两节点之间无需重复更新该持久 uniform。
     pub(crate) fn prepare_exposure_params_upload(
         &self,
         viewport_size: UVec2,
@@ -16,6 +18,7 @@ impl ScenePostProcessResources {
         raw_real_delta_seconds: f32,
         frame_uploads: &mut WgpuBufferUploadBatch,
     ) {
+        // TODO: [CR-SCENE-POST-0007] 核对动态分辨率或局部视口下，帧基础传入的 target.size 是否与 histogram 的 scene_linear_size 一致；此处尺寸也决定统计像素总数。
         let params = ExposureParams::new(viewport_size, settings, raw_real_delta_seconds);
         frame_uploads.push(WgpuBufferUpload::from_bytes(
             self.exposure_params_buffer.clone(),
@@ -24,6 +27,8 @@ impl ScenePostProcessResources {
         ));
     }
 
+    /// 从场景线性色输入生成当前帧亮度分布；图节点仅在 Histogram 模式调用。
+    /// 调用方提供可清除且可写的统计绑定范围，并保证准备阶段的尺寸覆盖此次采样区域。
     pub(crate) fn execute_exposure_histogram(
         &self,
         device: &wgpu::Device,
@@ -67,6 +72,8 @@ impl ScenePostProcessResources {
         pass.dispatch_workgroups(dispatch_groups[0], dispatch_groups[1], dispatch_groups[2]);
     }
 
+    /// 结合当前统计和上一帧曝光生成当前曝光，供 LUT 烘焙与组合阶段读取。
+    /// Histogram 模式要求统计节点先执行；手动模式可用默认统计，历史和当前绑定须满足图读写约束。
     pub(crate) fn execute_exposure_resolve(
         &self,
         device: &wgpu::Device,
@@ -110,23 +117,5 @@ impl ScenePostProcessResources {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn exposure_params_have_one_frame_preparation_owner() {
-        let source = include_str!("execute_exposure.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("exposure production source");
-
-        assert_eq!(production.matches("ExposureParams::new(").count(), 1);
-        assert_eq!(
-            production.matches("prepare_exposure_params_upload").count(),
-            1
-        );
-        assert!(!production.contains("queue.write_buffer"));
-        assert!(production.contains("WgpuBufferUpload::from_bytes("));
-        assert!(!production.contains("EXPOSURE_ADAPTATION_DELTA_SECONDS"));
-        assert!(production.contains("raw_real_delta_seconds"));
-    }
-}
+#[path = "tests/execute_exposure.rs"]
+mod tests;

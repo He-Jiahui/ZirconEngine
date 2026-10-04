@@ -1,11 +1,11 @@
 ---
 name: zircon-engineering
-description: Use when planning, implementing, or reviewing ZirconEngine work that needs the repository-standard MVP-baseline priority gate, delivery cadence, validation scope, and specialist-skill routing.
+description: Plan and deliver ZirconEngine milestones using MVP priorities and the repository validation cadence.
 ---
 
 # Zircon Engineering
 
-Use this as the default entry for ZirconEngine work. Keep ordinary delivery simple; load specialist skills only when the task has their trigger.
+Use this entry for delivery policy and milestone planning. Complete the user's authorized scope; select a specialist only for an actual affected boundary. Reuse policies already read and unchanged.
 
 ## Capability Tiers
 
@@ -25,15 +25,26 @@ Use this as the default entry for ZirconEngine work. Keep ordinary delivery simp
 
 ## Default Delivery Loop
 
-1. **Orient.** Read the request, canonical MVP status, active plan milestone, touched code, and directly related tests. Select C1-C3; do not load the complete skill tree.
+1. **Orient.** Read the request, touched code, and directly related tests. Read the canonical MVP status when choosing new work, and the active milestone when executing a plan. Select C1-C3 without touring the skill tree.
 2. **Build.** Complete coherent slices as one milestone batch. Add tests when behavior or a contract changes. Use formatting, diff checks, and source guards while editing. Do not run Cargo by default during implementation slices.
 3. **Validate and record.** Milestone validation follows `docs/plans/milestone-validation-policy.md`. Run the smallest declared batch, correct failures from the lowest shared cause, then write one concise evidence record per accepted milestone.
 
-## Conditional Specialists
+## Source preparation
 
-- Rust/Cargo command: `zircon-dev`; choose its validation guidance only when a Cargo gate is due.
-- New subsystem, public boundary, ABI, or hard move: `zircon-project-skills` architecture and migration skills.
-- Active overlap: `cross-session-coordination`; real dependency failure: `handle-plan-failure-handoffs`.
-- Concrete plan evidence: `write-plan-output-records`; closeout or commit: `close-session-goal-milestones`.
+Agents must not create source snapshots or backup copies for this project, including in outbox or temporary directories. Edit authorized canonical files directly and hand off scoped patches and hashes. The independent Jenkins coordinator owns source baseline, candidate and bundle preparation under the [source ownership policy](../jenkins-coordination/references/incremental-patch-validation.md). If a verified handoff is unavailable, keep the required coordinator acceptance pending.
 
-Do not default to per-slice Cargo checks, per-slice plan rows, coordinator registration, WSL validation, or full architecture reading.
+## Select the needed guidance
+
+| Current need | Owner |
+| --- | --- |
+| Rust editing or Cargo | [Zircon Dev](../zircon-dev/SKILL.md) |
+| New subsystem, changed ownership, ABI, or structural migration | [Architecture](../zircon-project-skills/zr-architecture-first-engineering/SKILL.md) |
+| Application layout | [UI layout](../zircon-project-skills/zr-ui-layout-reference/SKILL.md) |
+| Unclear defect or regression | [Debugging](../superpowers/review-and-stabilization/systematic-debugging/SKILL.md) |
+| Approved plan execution | [Execution loop](../zircon-project-skills/continuous-milestone-execution/execution-loop/index.md); [layering](../zircon-project-skills/layered-milestone-development/guide.md) when ordering dependencies |
+| Active checkout overlap or pending asynchronous evidence | [Coordination](../zircon-project-skills/cross-session-coordination/guide.md) |
+| A failure owned by another plan | [Failure handoff](../zircon-project-skills/handle-plan-failure-handoffs/guide.md) |
+| Accepted milestone evidence or authorized integration | [Output records](../zircon-project-skills/write-plan-output-records/guide.md) or [closeout](../zircon-project-skills/close-session-goal-milestones/guide.md) |
+| A public contract or operator document becomes false | [Documentation](../zircon-project-skills/code-module-docs-maintenance/guide.md) |
+
+The reference index is available for lookup; it is not a prerequisite for ordinary source work. No per-slice Cargo checks, per-slice plan rows, coordinator registration, duplicate WSL runs, or automatic full architecture reading.

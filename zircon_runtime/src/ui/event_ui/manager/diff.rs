@@ -1,8 +1,10 @@
 use zircon_runtime_interface::ui::event_ui::{UiReflectionDiff, UiReflectionSnapshot};
 
 #[cfg(test)]
+#[path = "diff/tests/capacity_tests.rs"]
 mod capacity_tests;
 
+// 同一 tree 的替换快照按 node_id 比较；结果只通知哪些节点重查，不包含属性补丁或真实表面变更。
 pub(crate) fn compute_diff(
     previous: &UiReflectionSnapshot,
     current: &UiReflectionSnapshot,

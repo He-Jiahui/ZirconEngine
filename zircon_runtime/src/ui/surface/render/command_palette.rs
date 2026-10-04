@@ -15,8 +15,8 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::painter_state::UiRenderPainterStateSource;
-use super::popup_position::{PopupPlacement, resolve_anchored_popup_geometry};
-use super::popup_rows::{PopupRowPaintState, push_popup_row_label, push_popup_row_surface};
+use super::popup_position::{resolve_anchored_popup_geometry, PopupPlacement};
+use super::popup_rows::{push_popup_row_label, push_popup_row_surface, PopupRowPaintState};
 
 const COMMANDS: &str = "commands";
 const FILTERED_COMMANDS: &str = "filtered_commands";
@@ -238,54 +238,61 @@ pub(super) fn command_palette_render_commands(
         opacity,
     ));
 
-    let query = string_attribute(metadata, QUERY).unwrap_or_default();
-    let placeholder = string_attribute(metadata, PLACEHOLDER).unwrap_or("Search commands");
-    let (search_text, search_color) = if query.trim().is_empty() {
-        (placeholder.to_string(), visual.muted_text)
+    let query = string_attribute(metadata, QUERY).map(str::trim);
+    let search_text = if query.is_some_and(|query| !query.is_empty()) {
+        query.map(|query| (query.to_string(), visual.text))
     } else {
-        (query.to_string(), visual.text)
+        string_attribute(metadata, PLACEHOLDER)
+            .map(str::trim)
+            .filter(|placeholder| !placeholder.is_empty())
+            .map(|placeholder| (placeholder.to_string(), visual.muted_text))
     };
-    commands.push(text_command(
-        node_id,
-        UiFrame::new(
-            search_frame.x + visual.search_text_inset_x,
-            search_frame.y + (search_frame.height - visual.line_height).max(0.0) * 0.5,
-            (search_frame.width - visual.search_text_inset_x * 2.0).max(min_frame_extent),
-            visual.line_height.min(search_frame.height),
-        ),
-        clip_frame,
-        z_index.saturating_add(3),
-        search_text,
-        search_color,
-        visual.font_size,
-        visual.line_height,
-        UiPainterFamily::TextField,
-        UiPainterResolvedState::Focused,
-        opacity,
-    ));
-
-    let rows = command_rows(metadata);
-    if rows.is_empty() {
+    if let Some((search_text, search_color)) = search_text {
         commands.push(text_command(
             node_id,
             UiFrame::new(
-                frame.x + visual.panel_padding_x,
-                frame.y + visual.empty_text_top(),
-                (frame.width - visual.panel_padding_x * 2.0).max(min_frame_extent),
-                visual.line_height,
+                search_frame.x + visual.search_text_inset_x,
+                search_frame.y + (search_frame.height - visual.line_height).max(0.0) * 0.5,
+                (search_frame.width - visual.search_text_inset_x * 2.0).max(min_frame_extent),
+                visual.line_height.min(search_frame.height),
             ),
             clip_frame,
-            z_index.saturating_add(4),
-            string_attribute(metadata, "empty_text")
-                .unwrap_or("No commands found")
-                .to_string(),
-            visual.muted_text,
+            z_index.saturating_add(3),
+            search_text,
+            search_color,
             visual.font_size,
             visual.line_height,
-            UiPainterFamily::PopupRow,
-            UiPainterResolvedState::Normal,
+            UiPainterFamily::TextField,
+            UiPainterResolvedState::Focused,
             opacity,
         ));
+    }
+
+    let rows = command_rows(metadata);
+    if rows.is_empty() {
+        if let Some(empty_text) = string_attribute(metadata, "empty_text")
+            .map(str::trim)
+            .filter(|text| !text.is_empty())
+        {
+            commands.push(text_command(
+                node_id,
+                UiFrame::new(
+                    frame.x + visual.panel_padding_x,
+                    frame.y + visual.empty_text_top(),
+                    (frame.width - visual.panel_padding_x * 2.0).max(min_frame_extent),
+                    visual.line_height,
+                ),
+                clip_frame,
+                z_index.saturating_add(4),
+                empty_text.to_string(),
+                visual.muted_text,
+                visual.font_size,
+                visual.line_height,
+                UiPainterFamily::PopupRow,
+                UiPainterResolvedState::Normal,
+                opacity,
+            ));
+        }
         return commands;
     }
 
@@ -435,6 +442,7 @@ fn command_rows(metadata: &UiTemplateNodeMetadata) -> Vec<CommandPaletteRow> {
     let focused_index = usize_attribute(metadata, FOCUSED_INDEX);
 
     let mut rows: Vec<CommandPaletteRow> =
+        // 调用方提供过滤结果时按其顺序投影；仅未提供时才在这里应用查询与来源过滤。
         if let Some(filtered) = metadata.attributes.get(FILTERED_COMMANDS) {
             let command_index = command_entry_index(&commands);
             command_id_values(filtered)
@@ -758,3 +766,7 @@ fn css_color(color: UiRgbaColor) -> String {
     value.insert(0, '#');
     value
 }
+
+#[cfg(test)]
+#[path = "tests/command_palette.rs"]
+mod tests;

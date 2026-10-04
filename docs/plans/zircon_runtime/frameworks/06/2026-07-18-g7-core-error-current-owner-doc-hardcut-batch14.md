@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/core/runtime/error.rs
-  - tools/check_conventions.py
+  - tools/audits/check_conventions.py
 implementation_files:
   - docs/plans/zircon_runtime/frameworks/01/2026-07-17-m1-resource-error-owner-dag-prerequisite.md
   - docs/plans/zircon_runtime/frameworks/02/fixed-2026-07-16-text-raster-pool-zircon-error-consumer.md
@@ -10,7 +10,7 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - python tools/check_conventions.py --only docs --json
+  - python tools/audits/check_conventions.py --only docs --json
   - git diff --check -- docs/plans/zircon_runtime/frameworks/01/2026-07-17-m1-resource-error-owner-dag-prerequisite.md docs/plans/zircon_runtime/frameworks/02/fixed-2026-07-16-text-raster-pool-zircon-error-consumer.md
 ---
 
@@ -29,7 +29,7 @@ Session: `frameworks06-g7-core-error-current-owner-doc-hardcut-batch14-20260718`
 ## Fresh Testing Evidence
 
 - 修改前 fresh G7：所选两份文档共 `3` 个 missing-path violations。
-- 修改后 fresh `python tools/check_conventions.py --only docs --json`：所选两份文档 `0` violations；共享 current-source 全局快照为 `475` violations / `127` documents，G7 继续保持 RED。
+- 修改后 fresh `python tools/audits/check_conventions.py --only docs --json`：所选两份文档 `0` violations；共享 current-source 全局快照为 `475` violations / `127` documents，G7 继续保持 RED。
 - 两份文档内退役 `core/framework/error.rs` 机器路径为 `0`，唯一 current owner `core/runtime/error.rs` 存在。
 - exact-scope `git diff --check` 通过，staged_total 为 `0`。
 

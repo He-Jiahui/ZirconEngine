@@ -11,6 +11,7 @@ pub hasDeadGroupMember(state: targeting.GroupTargetingState): bool {
 
 // Returned ids are in party roster order, exactly as the source iterates when
 // issuing offers. A solo caster has no eligible mass-resurrection targets.
+// 只返回符合资格的接收者标识；创建提议、等待本人响应和真正复活由世界事务完成。
 pub resurrectDeadGroupMembers(state: targeting.GroupTargetingState): container.Array<int> {
     return targeting.deadOrGhostGroupPlayerIds(state);
 }

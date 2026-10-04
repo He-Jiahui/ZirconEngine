@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 资产身份变化的重复 GUID 归一化借用原批次，监视增量只为实际变化预留容量；源码形态与 Rust 回归入口共同约束无变化快路径。
 
 ROOT = Path(__file__).resolve().parents[2]
 PROJECTED_INVENTORY = ROOT / (

@@ -14,6 +14,7 @@ pub(crate) fn append_arrow_head(
     if forward.length_squared() <= f32::EPSILON {
         return;
     }
+    // 先计算并归一化与 Y 的叉积；结果退化为零时才改用 X 轴。
     let right = forward.cross(Vec3::Y).normalize_or_zero();
     let right = if right.length_squared() <= f32::EPSILON {
         forward.cross(Vec3::X).normalize_or_zero()
@@ -30,16 +31,5 @@ pub(crate) fn append_arrow_head(
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::core::math::{Vec3, Vec4};
-
-    use super::{ARROW_HEAD_VERTEX_CAPACITY, append_arrow_head};
-
-    #[test]
-    fn arrow_head_capacity_matches_non_degenerate_output() {
-        let mut vertices = Vec::new();
-        append_arrow_head(&mut vertices, Vec3::ZERO, Vec3::X, Vec4::ONE);
-
-        assert_eq!(vertices.len(), ARROW_HEAD_VERTEX_CAPACITY);
-    }
-}
+#[path = "tests/append_arrow_head.rs"]
+mod tests;

@@ -117,5 +117,5 @@ fn borrowed_component_string_any<'a>(
 }
 
 #[cfg(test)]
-#[path = "component_variant/borrowed_attributes_tests.rs"]
+#[path = "component_variant/tests/borrowed_attributes_tests.rs"]
 mod borrowed_attributes_tests;

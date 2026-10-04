@@ -23,7 +23,7 @@ fn zcube_source_cubemap_texture_preserves_source_mips_only() {
     assert_eq!(descriptor.dimension, RenderImageDimension::Cube);
     assert_eq!(descriptor.mip_count, source.source_mip_count());
     assert_eq!(
-        descriptor.array_layer_count,
+        descriptor.depth_or_array_layers,
         SOURCE_CUBEMAP_FACE_COUNT as u32
     );
 

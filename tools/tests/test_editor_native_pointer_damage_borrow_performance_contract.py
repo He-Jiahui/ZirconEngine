@@ -1,3 +1,4 @@
+# 核对原生指针损伤投影只遍历借用模型行而不克隆整行。
 from pathlib import Path
 import unittest
 

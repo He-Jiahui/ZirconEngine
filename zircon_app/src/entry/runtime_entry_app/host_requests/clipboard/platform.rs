@@ -6,7 +6,17 @@ use zircon_runtime_interface::ui::dispatch::UiClipboardTransferFailure;
 mod windows;
 
 #[cfg(windows)]
-pub(super) use windows::{read_text, write_text};
+pub(super) fn read_text(window: Option<&dyn Window>) -> Result<String, UiClipboardTransferFailure> {
+    windows::read_text(window)
+}
+
+#[cfg(windows)]
+pub(super) fn write_text(
+    window: Option<&dyn Window>,
+    text: &str,
+) -> Result<(), UiClipboardTransferFailure> {
+    windows::write_text(window, text)
+}
 
 #[cfg(not(windows))]
 pub(super) fn read_text(

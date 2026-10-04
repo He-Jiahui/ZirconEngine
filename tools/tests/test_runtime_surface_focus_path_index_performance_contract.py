@@ -6,7 +6,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 SURFACE = ROOT / "zircon_runtime/src/ui/surface/surface.rs"
 ARRANGED = ROOT / "zircon_runtime/src/ui/surface/arranged.rs"
 
-
+# 读取实现源码约束表面焦点路径索引：表面焦点路径使用排列节点索引，并索引化焦点路径保留缺失节点回退。
 class RuntimeSurfaceFocusPathIndexPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

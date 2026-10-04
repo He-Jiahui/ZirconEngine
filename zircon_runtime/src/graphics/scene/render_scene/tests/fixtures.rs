@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use crate::core::framework::render::{
-    MaterialPropertyOverrideBlock, RenderMaterialAlphaMode, RenderMeshBounds,
-    RenderWorldSnapshotHandle, RendererCommon, render_mesh_stable_instance_key,
+    render_mesh_stable_instance_key, MaterialPropertyOverrideBlock, RenderMaterialAlphaMode,
+    RenderMeshBounds, RenderWorldSnapshotHandle, RendererCommon,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Mat4, Vec4};

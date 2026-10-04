@@ -31,7 +31,7 @@ Describe 'MVP artifact storage policy' {
         @($snapshot.roots | Where-Object { $_.capability_class -ne 'windows-local-artifact' }).Count | Should Be 0
         (@($snapshot.namespaces.namespace_id) -join ',') | Should Be 'mvp-product-inputs,render-extract-profiling-inputs,resource-management-projects,resource-management-baselines,resource-management-reports,resource-management-comparisons,render-extract-scale-projects,render-extract-baselines,mvp-staging-runs,mvp-acceptance-evidence,mvp-test-fixtures'
         Get-MvpArtifactStorageDefaultRootPath -CapabilityClass 'windows-local-artifact' |
-            Should Be 'E:\ZirconBuilds'
+            Should Be 'E:\cargo-targets'
     }
 
     It 'freezes the exact policy bytes into one reusable receipt' {
@@ -50,34 +50,34 @@ Describe 'MVP artifact storage policy' {
         Import-Module $policyModule -Force -ErrorAction Stop
 
         New-MvpArtifactStoragePath -NamespaceId 'mvp-product-inputs' -InstanceId 'fixture' |
-            Should Be 'E:\ZirconBuilds\mvp-product-inputs-fixture'
+            Should Be 'E:\cargo-targets\mvp-product-inputs-fixture'
         New-MvpArtifactStoragePath -NamespaceId 'render-extract-profiling-inputs' -InstanceId 'fixture' |
-            Should Be 'E:\ZirconBuilds\mvp-product-inputs-profile-fixture'
+            Should Be 'E:\cargo-targets\mvp-product-inputs-profile-fixture'
         New-MvpArtifactStoragePath -NamespaceId 'resource-management-projects' -InstanceId 'fixture' |
-            Should Be 'E:\ZirconBuilds\mvp-resource-management-project-fixture'
+            Should Be 'E:\cargo-targets\mvp-resource-management-project-fixture'
         New-MvpArtifactStoragePath -NamespaceId 'resource-management-baselines' -InstanceId 'fixture' |
-            Should Be 'E:\ZirconBuilds\mvp-resource-management-baseline-fixture'
+            Should Be 'E:\cargo-targets\mvp-resource-management-baseline-fixture'
         New-MvpArtifactStoragePath -NamespaceId 'resource-management-reports' -InstanceId 'fixture' |
-            Should Be 'E:\ZirconBuilds\mvp-resource-management-report-fixture'
+            Should Be 'E:\cargo-targets\mvp-resource-management-report-fixture'
         New-MvpArtifactStoragePath -NamespaceId 'resource-management-comparisons' -InstanceId 'fixture' |
-            Should Be 'E:\ZirconBuilds\mvp-resource-management-comparison-fixture'
+            Should Be 'E:\cargo-targets\mvp-resource-management-comparison-fixture'
         New-MvpArtifactStoragePath -NamespaceId 'render-extract-scale-projects' -InstanceId 'fixture' |
-            Should Be 'E:\ZirconBuilds\mvp-render-extract-scale-project-fixture'
+            Should Be 'E:\cargo-targets\mvp-render-extract-scale-project-fixture'
         New-MvpArtifactStoragePath -NamespaceId 'render-extract-baselines' -InstanceId 'fixture' |
-            Should Be 'E:\ZirconBuilds\mvp-render-extract-baseline-fixture'
+            Should Be 'E:\cargo-targets\mvp-render-extract-baseline-fixture'
         New-MvpArtifactStoragePath -NamespaceId 'mvp-staging-runs' -InstanceId 'fixture' |
-            Should Be 'E:\ZirconBuilds\mvp-f0-fixture'
+            Should Be 'E:\cargo-targets\mvp-f0-fixture'
         New-MvpArtifactStoragePath -NamespaceId 'mvp-acceptance-evidence' -InstanceId 'fixture' |
-            Should Be 'E:\ZirconBuilds\mvp-f5-evidence-fixture'
+            Should Be 'E:\cargo-targets\mvp-f5-evidence-fixture'
         New-MvpArtifactStoragePath -NamespaceId 'mvp-test-fixtures' -InstanceId 'fixture' |
-            Should Be 'E:\ZirconBuilds\mvp-test-fixtures-fixture'
+            Should Be 'E:\cargo-targets\mvp-test-fixtures-fixture'
     }
 
     It 'resolves all approved roots with typed policy identity' {
         Import-Module $policyModule -Force -ErrorAction Stop
 
         foreach ($drive in @('D', 'E', 'F')) {
-            $path = "${drive}:\ZirconBuilds\mvp-product-inputs-fixture"
+            $path = "${drive}:\cargo-targets\mvp-product-inputs-fixture"
             $resolution = Resolve-MvpArtifactStoragePath -Path $path -NamespaceId 'mvp-product-inputs'
 
             $resolution.display_path | Should Be $path
@@ -87,7 +87,7 @@ Describe 'MVP artifact storage policy' {
             [string]::IsNullOrWhiteSpace($resolution.operation_path) | Should Be $false
 
             $rootResolution = Resolve-MvpArtifactStorageRootPath `
-                -Path "${drive}:\ZirconBuilds\render-extract-project" `
+                -Path "${drive}:\cargo-targets\render-extract-project" `
                 -CapabilityClass 'windows-local-artifact'
             $rootResolution.root_id | Should Be "windows-local-$($drive.ToLowerInvariant())"
             $rootResolution.capability_class | Should Be 'windows-local-artifact'
@@ -210,9 +210,10 @@ Describe 'MVP artifact storage policy' {
         Import-Module $policyModule -Force -ErrorAction Stop
         $failures = [Collections.Generic.List[object]]::new()
         foreach ($case in @(
-                @{ Path = 'C:\ZirconBuilds\mvp-product-inputs-fixture'; Namespace = 'mvp-product-inputs' },
-                @{ Path = 'E:\ZirconBuilds\mvp-product-inputs-'; Namespace = 'mvp-product-inputs' },
-                @{ Path = 'E:\ZirconBuilds\mvp-product-inputs-fixture'; Namespace = 'render-extract-profiling-inputs' }
+                @{ Path = 'C:\cargo-targets\mvp-product-inputs-fixture'; Namespace = 'mvp-product-inputs' },
+                @{ Path = 'E:\ZirconBuilds\mvp-product-inputs-fixture'; Namespace = 'mvp-product-inputs' },
+                @{ Path = 'E:\cargo-targets\mvp-product-inputs-'; Namespace = 'mvp-product-inputs' },
+                @{ Path = 'E:\cargo-targets\mvp-product-inputs-fixture'; Namespace = 'render-extract-profiling-inputs' }
             )) {
             try {
                 Resolve-MvpArtifactStoragePath -Path $case.Path -NamespaceId $case.Namespace | Out-Null
@@ -222,8 +223,8 @@ Describe 'MVP artifact storage policy' {
             }
         }
 
-        $failures.Count | Should Be 3
-        { Resolve-MvpArtifactStorageRootPath -Path 'C:\ZirconBuilds\render-extract-project' -CapabilityClass 'windows-local-artifact' } |
+        $failures.Count | Should Be 4
+        { Resolve-MvpArtifactStorageRootPath -Path 'C:\cargo-targets\render-extract-project' -CapabilityClass 'windows-local-artifact' } |
             Should Throw 'approved'
     }
 
@@ -284,7 +285,7 @@ Describe 'MVP artifact storage policy' {
                 $mvpFixturePathsSource
             )) {
             $source | Should Match 'Import-Module .*MvpArtifactStoragePolicy\.psm1'
-            $source | Should Not Match '[D-F]:\\ZirconBuilds'
+            $source | Should Not Match '[D-F]:\\cargo-targets'
             $source | Should Not Match '\^\[D-F\]:'
         }
         foreach ($source in @(

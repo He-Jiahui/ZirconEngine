@@ -26,6 +26,7 @@ impl SceneViewportController {
             || self.viewport_overlay_gizmos(scene, selected),
         );
         apply_interaction_overlays(&mut packet, &interaction_extract);
+        self.apply_runtime_highlights(&mut packet);
         packet
     }
 }

@@ -20,9 +20,9 @@ implementation_files:
   - zircon_hub/src/service/lifecycle.rs
 plan_sources:
   - user: 2026-09-09 为 ZirconEngine 构建引擎说明书级 Wiki，并完善公开接口、机制案例、最佳实践和教程
-  - docs/plans/astra/features/hub/02-local-service-authority.md
+  - docs/plans/_archive/astra/features/hub/02-local-service-authority.md
 tests:
-  - zircon_runtime_host/src/foreign_output/tests.rs
+  - zircon_runtime_host/src/foreign_output/tests/cases.rs
   - zircon_runtime_host/src/viewport_surface.rs
   - zircon_hub/tests/service_authority_contract.rs
   - zircon_hub/tests/project_workflow_contract.rs
@@ -345,7 +345,7 @@ fn validate(path: &std::path::Path) -> Result<(), HubError> {
 | `source_engine_id(&Path) -> String` | 对规范化路径计算稳定 `source-<fnv64>` ID；同一路径不同分隔符得到同一 ID |
 | `same_source_engine_path(left, right) -> bool` | 使用与 project metadata 相同的 canonical/key 规则比较路径 |
 | `source_engine_display_name(&Path) -> String` | 目录名非空时返回 `<name> Source`，否则返回 `Local Source` |
-| `validate_source_engine(path) -> SourceEngineValidation` | 依次检查目录、workspace `Cargo.toml`、`zircon_runtime` member 和 `tools/zircon_build.py` |
+| `validate_source_engine(path) -> SourceEngineValidation` | 依次检查目录、workspace `Cargo.toml`、`zircon_runtime` member 和 `tools/build/zircon_build.py` |
 | `SourceEngineValidation::{summary, recovery_hint}` | 将 `Valid`、`MissingRoot`、`MissingWorkspaceManifest`、`MissingRuntimeWorkspaceMember`、`MissingBuildTool` 转为稳定 UI 文案/恢复提示 |
 
 ##### `process`：程序、编辑器与目录边界
@@ -422,7 +422,7 @@ fn validate(path: &std::path::Path) -> Result<(), HubError> {
 
 #### 案例：构建 editor/runtime
 
-`BuildCommand::for_editor_runtime` 的实际形状固定为调用 `tools/zircon_build.py`，目标为 `editor,runtime`。`BuildCommandOptions::new` 与 `BuildCommandOptions::with_source_output` 都是公开构造器；`BuildCommand` 没有公开的任意命令构造器。
+`BuildCommand::for_editor_runtime` 的实际形状固定为调用 `tools/build/zircon_build.py`，目标为 `editor,runtime`。`BuildCommandOptions::new` 与 `BuildCommandOptions::with_source_output` 都是公开构造器；`BuildCommand` 没有公开的任意命令构造器。
 
 ```rust
 use zircon_hub::{
@@ -958,5 +958,5 @@ fn organization_flow(
 - [Hub desktop command registration](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_hub/src/tauri_app/mod.rs)
 - [account broker](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_hub/src/account/mod.rs)
 - [local service lifecycle](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_hub/src/service/lifecycle.rs)
-- [foreign-output regression tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime_host/src/foreign_output/tests.rs)
+- [foreign-output regression tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime_host/src/foreign_output/tests/cases.rs)
 - [Hub service authority contract](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_hub/tests/service_authority_contract.rs)

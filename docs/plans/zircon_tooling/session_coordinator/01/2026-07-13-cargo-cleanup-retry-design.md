@@ -24,4 +24,4 @@
 - `tools/session_coordinator/cleanup.py`
 - `tools/session_coordinator/config.py`
 - `tools/session_coordinator/tests/test_cleanup.py`
-- `docs/cli-and-tooling/local-session-coordinator.md`
+- `docs/tooling/local-session-coordinator.md`

@@ -1,3 +1,5 @@
+//! 将宽泛的实体候选日志收窄为渲染组件增量，并验证历史丢失时的全量恢复；统计断言用于约束重扫和负载复制成本。
+
 use std::sync::Arc;
 
 use super::*;
@@ -7,18 +9,17 @@ use crate::core::framework::render::{
     RenderWorldSnapshotHandle, SceneViewportExtractRequest,
 };
 use crate::scene::components::{
-    ActiveInHierarchy, MeshRenderer, Mobility, Name, RenderLayerMask, WorldMatrix,
+    ActiveInHierarchy, ActiveSelf, LocalTransform, MeshRenderer, Name, RenderLayerMask, WorldMatrix,
 };
 use crate::scene::ecs::RemovedComponentRetention;
 
+// 从空世界补齐投影所需组件，避免默认场景的相机、灯光和网格干扰增量与扫描计数。
 fn mesh_bundle(name: &str) -> impl crate::scene::ecs::Bundle {
     (
         Name(name.to_string()),
         MeshRenderer::default(),
-        WorldMatrix::default(),
-        ActiveInHierarchy::default(),
+        ActiveSelf::default(),
         RenderLayerMask::default(),
-        Mobility::default(),
     )
 }
 
@@ -27,6 +28,8 @@ fn render_component_projection_full_snapshot_is_world_owned_and_stably_replayed(
     let mut world = World::empty();
     let mesh = world.spawn(mesh_bundle("mesh")).unwrap();
     publish_render_dirty_journal(&mut world);
+    assert!(world.contains_component::<WorldMatrix>(mesh));
+    assert!(world.contains_component::<ActiveInHierarchy>(mesh));
 
     let first = world.render_component_change_artifact().unwrap();
     assert!(matches!(
@@ -131,15 +134,11 @@ fn render_component_projection_classifies_only_relevant_candidate_ticks() {
 fn render_component_projection_does_not_clone_mesh_payload_for_transform_only_change() {
     let mut world = World::empty();
     let mesh = world.spawn(mesh_bundle("mesh")).unwrap();
-    world.insert(mesh, LocalTransform::default()).unwrap();
     publish_render_dirty_journal(&mut world);
 
-    world
-        .get_mut::<LocalTransform>(mesh)
-        .unwrap()
-        .transform
-        .translation
-        .x = 4.0;
+    let mut transform = world.get::<LocalTransform>(mesh).unwrap().transform;
+    transform.translation.x = 4.0;
+    world.update_transform(mesh, transform).unwrap();
     publish_render_dirty_journal(&mut world);
 
     let artifact = world.render_component_change_artifact().unwrap();

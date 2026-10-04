@@ -1,7 +1,8 @@
+//! 性能热点的结构守卫核对拥有者、文件预算和证据文档。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn runtime_07_large_file_owner_budget_gate_stays_in_sync_with_structure_audit() {
     let large_file_doc =
-        include_str!("../../../../../../docs/engine-architecture/large-file-ownership-m1.md");
+        include_str!("../../../../../../docs/architecture/large-file-ownership-m1.md");
     let runtime_07_plan = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
     );
@@ -10,13 +11,13 @@ fn runtime_07_large_file_owner_budget_gate_stays_in_sync_with_structure_audit() 
     );
     let runtime_index =
         include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let hotspot_doc =
-        include_str!("../../../../../../docs/zircon_runtime/performance/hotspot_inventory.md");
-    let architecture_review = include_str!(
-        "../../../../../../docs/engine-architecture/runtime-architecture-review-m0.md"
+    let hotspot_doc = include_str!(
+        "../../../../../../docs/crates/zircon_runtime/performance/hotspot_inventory.md"
     );
+    let architecture_review =
+        include_str!("../../../../../../docs/architecture/runtime-architecture-review-m0.md");
     let interface_doc =
-        include_str!("../../../../../../docs/engine-architecture/runtime-interface-convergence.md");
+        include_str!("../../../../../../docs/architecture/runtime-interface-convergence.md");
 
     for required_large_file_doc_anchor in [
         "`classified-and-clear`",

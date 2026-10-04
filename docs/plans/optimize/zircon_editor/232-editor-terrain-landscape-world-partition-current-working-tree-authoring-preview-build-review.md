@@ -26,7 +26,7 @@ related_code:
 tests:
   - zircon_plugins/terrain/editor/src/tests.rs
   - zircon_plugins/terrain/runtime/src/tests.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_module_navigation.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_module_navigation/
   - zircon_editor/src/tests/workbench/reference_surface.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/138-editor-terrain-landscape-foliage-scatter-world-partition-level-streaming-authoring-current-source-review.md
@@ -157,4 +157,3 @@ Unreal LandscapeEditor/FoliageEdit/WorldPartitionEditor 不是一排按钮，而
 3. 建 PreviewWorld 和真实 runtime provider，接 patch/LOD/material/physics/nav，替换 collapsed fixed Workbench 数据。
 4. 增加 partition/cell/HLOD/streaming、foliage/scatter、budget/device/telemetry 与 failure recovery。
 5. 用真实产品场景和 required test matrix 验收，所有 gate 通过后再开放 Terrain menu、提升 maturity 或宣称完成。
-

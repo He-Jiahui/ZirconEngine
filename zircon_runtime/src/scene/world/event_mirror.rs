@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::time::Instant;
 
 use crate::scene::event_mirror::{
     RuntimeEventMirrorDescriptor, RuntimeEventMirrorDrainPage, RuntimeEventMirrorError,
@@ -29,6 +30,7 @@ impl World {
             .map(RuntimeEventMirrorRegistration::descriptor)
     }
 
+    /// 按外部事件标识与负载模式建立独立发送边界队列；不会补发订阅创建前的事件。
     pub fn subscribe_runtime_event_mirror(
         &mut self,
         event_id: &str,
@@ -62,11 +64,11 @@ impl World {
                 return Err(error);
             }
         };
-        if let Err(error) = registration.notify_reader_count(self, reader_count) {
+        if let Err(error) = registration.notify_reader_count(self, reader_count, None) {
             let disconnected = record.disconnect(self);
             debug_assert!(disconnected);
             if let Ok(rollback_count) = self.event_mirrors.decrement_reader(event_id) {
-                let _ = registration.notify_reader_count(self, rollback_count);
+                let _ = registration.notify_reader_count(self, rollback_count, None);
             }
             return Err(error);
         }
@@ -105,7 +107,7 @@ impl World {
                 return Err(error);
             }
         };
-        if let Err(error) = registration.notify_reader_count(self, reader_count) {
+        if let Err(error) = registration.notify_reader_count(self, reader_count, None) {
             let rollback_count = match self.event_mirrors.increment_reader(event_id) {
                 Ok(rollback_count) => rollback_count,
                 Err(rollback_error) => {
@@ -117,7 +119,7 @@ impl World {
             };
             let reconnected = record.connect(self);
             debug_assert!(reconnected);
-            let _ = registration.notify_reader_count(self, rollback_count);
+            let _ = registration.notify_reader_count(self, rollback_count, None);
             self.event_mirrors.restore_subscription(handle, record);
             return Err(error);
         }
@@ -165,6 +167,13 @@ impl World {
     pub(crate) fn reclaim_dropped_runtime_event_mirrors(
         &mut self,
     ) -> RuntimeEventMirrorReclaimReport {
+        self.reclaim_dropped_runtime_event_mirrors_before(None)
+    }
+
+    fn reclaim_dropped_runtime_event_mirrors_before(
+        &mut self,
+        deadline: Option<Instant>,
+    ) -> RuntimeEventMirrorReclaimReport {
         let handles = self.event_mirrors.drain_reclaim_intents();
         let mut report = RuntimeEventMirrorReclaimReport {
             attempted: handles.len(),
@@ -172,7 +181,17 @@ impl World {
         };
         let mut disconnected_by_event = BTreeMap::new();
 
-        for handle in handles {
+        let mut handles = handles.into_iter();
+        while let Some(handle) = handles.next() {
+            if deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+                self.event_mirrors.requeue_reclaim(handle);
+                report.retry_pending += 1;
+                for handle in handles {
+                    self.event_mirrors.requeue_reclaim(handle);
+                    report.retry_pending += 1;
+                }
+                break;
+            }
             let Some(mut record) = self.event_mirrors.take_subscription(handle) else {
                 continue;
             };
@@ -189,6 +208,12 @@ impl World {
         }
 
         for (event_id, records) in disconnected_by_event {
+            if deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+                let record_count = records.len();
+                self.restore_runtime_event_mirror_reclaim_records(records);
+                report.retry_pending += record_count;
+                continue;
+            }
             let registration = self
                 .event_mirrors
                 .get(&event_id)
@@ -220,10 +245,10 @@ impl World {
                 continue;
             }
 
-            if registration
-                .notify_reader_count(self, reader_count)
-                .is_err()
-            {
+            // A successful callback commits its external side effect, even when it returns
+            // after the deadline; later teardown phases still observe the same absolute budget.
+            let callback_result = registration.notify_reader_count(self, reader_count, deadline);
+            if callback_result.is_err() {
                 report.callback_failures += 1;
                 let mut rollback_count = reader_count;
                 for _ in 0..record_count {
@@ -233,7 +258,7 @@ impl World {
                         .expect("runtime event mirror reclaim rollback cannot overflow");
                 }
                 self.restore_runtime_event_mirror_reclaim_records(records);
-                let _ = registration.notify_reader_count(self, rollback_count);
+                let _ = registration.notify_reader_count(self, rollback_count, deadline);
                 report.retry_pending += record_count;
                 continue;
             }
@@ -248,10 +273,24 @@ impl World {
     }
 
     pub(crate) fn shutdown_runtime_event_mirrors(&mut self) -> RuntimeEventMirrorReclaimReport {
+        self.shutdown_runtime_event_mirrors_before(None)
+    }
+
+    pub(crate) fn shutdown_runtime_event_mirrors_until(
+        &mut self,
+        deadline: Instant,
+    ) -> RuntimeEventMirrorReclaimReport {
+        self.shutdown_runtime_event_mirrors_before(Some(deadline))
+    }
+
+    fn shutdown_runtime_event_mirrors_before(
+        &mut self,
+        deadline: Option<Instant>,
+    ) -> RuntimeEventMirrorReclaimReport {
         for handle in self.event_mirrors.live_subscription_handles() {
             self.event_mirrors.requeue_reclaim(handle);
         }
-        self.reclaim_dropped_runtime_event_mirrors()
+        self.reclaim_dropped_runtime_event_mirrors_before(deadline)
     }
 
     fn connected_runtime_event_mirror_handle(
@@ -291,7 +330,7 @@ fn registration_event_id(registration: &RuntimeEventMirrorRegistration) -> &str 
 }
 
 #[cfg(test)]
-#[path = "event_mirror/borrowed_unsubscribe_id_tests.rs"]
+#[path = "event_mirror/tests/borrowed_unsubscribe_id_tests.rs"]
 mod borrowed_unsubscribe_id_tests;
 
 impl Drop for World {

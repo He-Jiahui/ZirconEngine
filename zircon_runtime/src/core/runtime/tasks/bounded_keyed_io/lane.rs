@@ -15,6 +15,9 @@ use crate::core::runtime::tasks::{JobScheduler, TaskTimer};
 
 mod coalescing;
 mod fence_prerequisites;
+#[cfg(test)]
+#[path = "lane/tests/optimization_batch_it_runtime630_tests.rs"]
+mod optimization_batch_it_runtime630_tests;
 mod queue;
 mod shutdown;
 mod state;
@@ -101,6 +104,7 @@ impl BoundedKeyedIoLane {
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(Arc::new(hook));
     }
 
+    /// 预算与 suspended 登记在同一状态锁内完成；截止时间注册失败时撤销登记，调用者不会拿到半准入条目。
     pub fn try_admit(
         &self,
         key: impl Into<BoundedKeyedIoKey>,
@@ -165,10 +169,11 @@ impl BoundedKeyedIoLane {
             epoch,
             armed: true,
             ticket: ticket.clone(),
-            cancel_authority: BoundedKeyedIoCancelAuthority::new(id),
+            cancel_authority: BoundedKeyedIoCancelAuthority::new(&ticket),
         })
     }
 
+    /// 栅栏把当前 epoch 的前置义务固定为票据引用；预算、epoch 前进和队列发布一次性提交，泵不会看到不完整依赖集。
     pub fn submit_fence(
         &self,
         retained_bytes: usize,
@@ -254,7 +259,8 @@ impl BoundedKeyedIoLane {
         let (notifications, start_pump) = {
             let mut state = self.inner.lock();
             state.accepting = false;
-            let mut notifications = Vec::new();
+            let mut notifications =
+                Vec::with_capacity(state.suspended.len().saturating_add(state.queue.len()));
 
             let mut suspended = std::mem::take(&mut state.suspended);
             let suspended_order = std::mem::take(&mut state.suspended_order);
@@ -345,6 +351,7 @@ impl LaneInner {
         }
     }
 
+    // 激活先处理已终结或已关闭条目，再按 epoch 插入并合并代际；这使取消、合并与入队共用同一线性化锁。
     pub(crate) fn activate(lane: &Arc<Self>, ticket_id: u64) {
         let (notifications, start_pump) = {
             let mut state = lane.lock();
@@ -472,6 +479,7 @@ impl LaneInner {
         });
     }
 
+    // 用户工作仅在 next_entry 已标记 started 后运行；返回或 panic 后统一发布票据终态、释放预算并通知观察者。
     fn pump(&self) {
         loop {
             let Some(mut entry) = self.next_entry() else {

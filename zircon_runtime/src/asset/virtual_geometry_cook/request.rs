@@ -14,6 +14,7 @@ pub enum VirtualGeometryCookRequest {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 只控制烘焙分组密度；网格名和来源提示由每个导入原语在调用时附加。
 pub struct VirtualGeometryCookSettings {
     pub cluster_triangle_count: usize,
     pub page_cluster_count: usize,
@@ -63,6 +64,7 @@ impl VirtualGeometryCookRequest {
         matches!(self, Self::Enabled(_))
     }
 
+    /// 将一次导入的策略实例化为原语配置；未显式启用时调用方应跳过烘焙。
     pub fn cook_config_for(
         &self,
         mesh_name: Option<&str>,
@@ -113,55 +115,5 @@ fn optional_positive_usize(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn missing_virtual_geometry_settings_stay_disabled() {
-        assert_eq!(
-            VirtualGeometryCookRequest::from_import_settings(&toml::Table::new()).unwrap(),
-            VirtualGeometryCookRequest::Disabled
-        );
-    }
-
-    #[test]
-    fn enabled_request_preserves_explicit_cook_configuration() {
-        let settings = toml::from_str(
-            r#"
-                [virtual_geometry]
-                enabled = true
-                cluster_triangle_count = 8
-                page_cluster_count = 4
-            "#,
-        )
-        .unwrap();
-        let request = VirtualGeometryCookRequest::from_import_settings(&settings).unwrap();
-
-        assert!(request.is_enabled());
-        assert_eq!(
-            request.cook_config_for(Some("Mesh0"), "res://models/mesh.gltf"),
-            Some(VirtualGeometryCookConfig {
-                cluster_triangle_count: 8,
-                page_cluster_count: 4,
-                mesh_name: Some("Mesh0".to_string()),
-                source_hint: Some("res://models/mesh.gltf".to_string()),
-            })
-        );
-    }
-
-    #[test]
-    fn malformed_virtual_geometry_settings_are_rejected() {
-        let settings = toml::from_str(
-            r#"
-                [virtual_geometry]
-                enabled = true
-                cluster_triangle_count = 0
-            "#,
-        )
-        .unwrap();
-
-        assert!(VirtualGeometryCookRequest::from_import_settings(&settings)
-            .unwrap_err()
-            .contains("cluster_triangle_count"));
-    }
-}
+#[path = "tests/request.rs"]
+mod tests;

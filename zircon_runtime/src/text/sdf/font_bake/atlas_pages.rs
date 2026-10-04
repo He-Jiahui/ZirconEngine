@@ -1,3 +1,5 @@
+//! 在连续帧的字形图集构建之间保留页面和槽位，只把变化区域交给上传链。atlas_build.rs 先按槽位顺序得到烘焙字形，再调用 update；返回页面的稳定顺序同时决定 source_offset。
+
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 
@@ -25,6 +27,7 @@ pub(super) struct SdfPersistentAtlasUpdateReport {
 }
 
 #[derive(Default)]
+/// 页面像素和上一轮摆放关系必须一起保留；新一轮按 key 对照槽位，才能区分复用、迁移和清空。
 pub(super) struct SdfPersistentAtlasCache {
     pages: HashMap<GlyphAtlasPageKey, PersistentAtlasPage>,
     placements: HashMap<SdfAtlasGlyphKey, PersistentAtlasPlacement>,
@@ -45,6 +48,8 @@ struct PersistentAtlasPlacement {
 }
 
 impl SdfPersistentAtlasCache {
+    /// 调用前提：slots 与 glyphs 长度及顺序一一对应；atlas_build.rs 在同一循环填入两个列表。
+    /// 返回的页面按 page_key 排序，dirty_pages 是 GPU 局部上传边界；调用方不得把 source_offset 当成原 HashMap 遍历顺序。
     pub(super) fn update(
         &mut self,
         atlas_size: UVec2,
@@ -182,6 +187,7 @@ impl SdfPersistentAtlasCache {
     }
 }
 
+/// 尽管驻留表用哈希查找，导出页面时必须固定顺序，否则跨帧上传偏移和图集页面索引会漂移。
 fn ordered_persistent_pages(
     pages: &HashMap<GlyphAtlasPageKey, PersistentAtlasPage>,
 ) -> Vec<(&GlyphAtlasPageKey, &PersistentAtlasPage)> {
@@ -340,5 +346,5 @@ fn union_rect(left: SdfAtlasRect, right: SdfAtlasRect) -> SdfAtlasRect {
 }
 
 #[cfg(test)]
-#[path = "atlas_pages/hash_page_tests.rs"]
+#[path = "atlas_pages/tests/hash_page_tests.rs"]
 mod hash_page_tests;

@@ -1,3 +1,4 @@
+# 核对图形提交统计按帧批量发布，并在非采集时跳过分配。
 from pathlib import Path
 import unittest
 

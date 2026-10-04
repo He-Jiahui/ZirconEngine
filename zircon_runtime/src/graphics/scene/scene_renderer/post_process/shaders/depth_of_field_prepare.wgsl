@@ -1,3 +1,7 @@
+// 景深预备 pass 同时写 CoC 分层与 bokeh seed；后续景深/blur 共享这两个局部目标。
+// 调用方按相机投影与镜头设置上传参数，停用时清黑，让消费端自然退回无预备数据路径。
+// xy 是本次有效尺寸，zw 是场景源原点；depth 描述标准设备深度的相机近远平面。
+// CPU 的 GL/ANGLE 降级会按固定源码片段替换深度绑定与加载语句，保持这些片段完整。
 struct DepthOfFieldPrepareParams {
     viewport: vec4<u32>,
     depth: vec4<f32>,
@@ -13,6 +17,8 @@ struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
 };
 
+// CoC 的 r/g 分别承载远景/近景归一化半径，b 保留有符号半径，a 标记有效输出；
+// bokeh 的 RGB 是预滤颜色，a 是失焦覆盖度，供后续取样决定是否借用该颜色。
 struct FragmentOutput {
     @location(0) coc: vec4<f32>,
     @location(1) bokeh: vec4<f32>,
@@ -58,6 +64,7 @@ fn linearize_scene_depth(raw_depth: f32) -> f32 {
     return mix(near_plane, far_plane, raw_depth);
 }
 
+// 正负号保留焦平面两侧的信息，避免近景扩散与远景模糊被当作同一层处理。
 fn signed_circle_of_confusion_radius(view_depth: f32) -> f32 {
     let max_radius = max(params.coc_output.x, 0.0);
     let aperture = max(params.lens.z, 0.0);
@@ -106,6 +113,7 @@ fn bokeh_prefilter_sample(sample_coord: vec2<u32>, kernel_weight: f32) -> vec4<f
     return vec4<f32>(load_scene_color(sample_coord) * sample_weight, sample_weight);
 }
 
+// 只让具有失焦覆盖的邻域参与 seed，降低清晰背景被散景取样拖入前景的机会。
 fn prefiltered_bokeh_seed(coord: vec2<u32>) -> vec4<f32> {
     let viewport_size = max(params.viewport.xy, vec2<u32>(1u, 1u));
     let coord_i32 = vec2<i32>(coord);

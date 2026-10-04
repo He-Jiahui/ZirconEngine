@@ -1,6 +1,7 @@
 use crate::core::framework::project::{ProjectPluginFeatureSelection, ProjectPluginManifest};
 
 #[cfg(test)]
+#[path = "active/tests/capacity_tests.rs"]
 mod capacity_tests;
 
 #[derive(Clone, Debug)]

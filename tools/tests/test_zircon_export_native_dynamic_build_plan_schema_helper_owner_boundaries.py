@@ -9,11 +9,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BUILD_PLAN_SCHEMA = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_build_plan_schema.py"
+    / "tools/export/pipeline_report_native_dynamic_build_plan_schema.py"
 )
 BUILD_PLAN_SCHEMA_HELPERS = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_build_plan_schema_helpers.py"
+    / "tools/export/pipeline_report_native_dynamic_build_plan_schema_helpers.py"
 )
 
 MOVED_CONSTANTS = (

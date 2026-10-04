@@ -2,10 +2,12 @@ use zircon_runtime_interface::ui::surface::{UiTextDistanceFieldEffects, UiTextRe
 
 use crate::text::atlas::GlyphAtlasFormat;
 use crate::text::raster::{
-    GlyphRasterEffects, GlyphRasterPolicyRequest, distance_field_mode_for_request,
+    distance_field_mode_for_request, GlyphRasterEffects, GlyphRasterPolicyRequest,
 };
 use crate::text::sdf::SdfMode;
 
+/// 把 UI 模式与效果转换为栅格策略的格式和 true-distance 需求。
+/// 策略选择 Bitmap 时仍为批次保存 Sdf 默认模式；此字段不表示图集像素已经生成。
 pub(super) fn resolved_text_distance_field_mode(
     render_mode: UiTextRenderMode,
     font_size: f32,

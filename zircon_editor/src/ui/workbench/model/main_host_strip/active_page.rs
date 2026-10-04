@@ -24,6 +24,7 @@ pub(crate) fn active_page_snapshot(chrome: &EditorChromeSnapshot) -> MainPageSna
                     activity_window: ActivityWindowId::workbench(),
                     activity_window_template: None,
                     workspace: DocumentWorkspaceSnapshot::Tabs {
+                        node_id: Default::default(),
                         tabs: Vec::new(),
                         active_tab: None,
                     },

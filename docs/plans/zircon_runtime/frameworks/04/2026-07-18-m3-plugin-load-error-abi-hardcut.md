@@ -19,7 +19,7 @@ implementation_files:
   - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader/real_fixture.rs
   - zircon_plugins/native_dynamic_fixture/native/Cargo.toml
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
-  - docs/engine-architecture/native-plugin-boundary.md
+  - docs/architecture/native-plugin-boundary.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/04-plugin-dx-and-sdk-toolchain.md
   - docs/plans/engine-code-structure-convention.md

@@ -12,7 +12,6 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/global_budget.rs
   - examples/woc/native/crates/woc_protocol/src/command_payload.rs
   - examples/woc/native/apps/woc_client/src/input/intent.rs
-  - zircon_runtime/src/core/framework/render/view_family.rs
   - zircon_runtime/src/asset/artifact/ibl_source_cubemap_staging.rs
   - zircon_app/src/entry/entry_runner/runtime.rs
   - zircon_app/src/bin/zircon_shader_pbr_viewer/app.rs
@@ -27,7 +26,7 @@ related_code:
   - examples/woc/native/crates/woc_contract_codegen/src/lib.rs
   - zircon_runtime/src/graphics/visibility/static_index/mod.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs
-  - tools/cargo-zircon/src/plugin/scaffold/mod.rs
+  - tools/cargo/src/plugin/scaffold/mod.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/binding.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/binding.rs
@@ -72,7 +71,7 @@ Zircon已经有“按owner拆文件”的明确规范，也有Runtime、Editor�
 
 当前实现仍不是全仓、可阻断、理解源码语义的工程级Source Architecture Gate。本轮对`zircon_*`、`examples/`与`tools/`下17,263个tracked Rust路径做词法分层，排除明确测试目录/文件、fixture/bench与显式generated路径或`// @generated`首行后，得到11,958个manual production-like候选、1,315,926个物理行。该口径中有1,217个文件不少于300行、548个不少于500行、87个不少于800行、32个不少于900行、13个不少于1000行、5个不少于1100行。它是需要AST/Cargo校正的候选集，不是11,958项缺陷；但13个1000行热点都逐文件复核过，确有手写行为或内联测试边界，不能归因于纯generated/vendor输出。
 
-现有Runtime审计本轮运行发现其中11个并正确返回`migration-debt-present`，但进程exit 0；其SourceSet只解析根`Cargo.toml`中名字以`zircon_`开头的member，漏掉`examples/woc`的1986行`command_payload.rs`、1418行`input/intent.rs`、独立`zircon_plugins`工作区和`tools/cargo-zircon`。Editor审计也返回`migration-debt-present`与30项债务，但同样exit 0；它只扫描`zircon_editor/src`，当前28项是测试文件预算、1项是UI根文件、1项是重复测试树，未检查根入口行为、声明/行为混装或目录扇出。局部报告红但命令绿，不能构成required admission gate。
+现有Runtime审计本轮运行发现其中11个并正确返回`migration-debt-present`，但进程exit 0；其SourceSet只解析根`Cargo.toml`中名字以`zircon_`开头的member，漏掉`examples/woc`的1986行`command_payload.rs`、1418行`input/intent.rs`、独立`zircon_plugins`工作区和`tools/cargo`。Editor审计也返回`migration-debt-present`与30项债务，但同样exit 0；它只扫描`zircon_editor/src`，当前28项是测试文件预算、1项是UI根文件、1项是重复测试树，未检查根入口行为、声明/行为混装或目录扇出。局部报告红但命令绿，不能构成required admission gate。
 
 源码结构风险也不等于“文件越短越快”。13个热点中9个含内联`mod tests`，物理行预算同时揭示测试owner未拆，但不能把测试行误报成热路径实现；`zircon_runtime/src/core/framework/render/mod.rs`虽有447行，却主要是44个模块声明与44个use，是反例，不能按行数机械切碎。相反，305行的Editor `editing/binding.rs`只有一个`EditorUiHost` impl却承载16个binding mutation命令，532行的profiling `mod.rs`同时挂9个子模块并保留capture/env/global recorder/counter行为，已经违反root/binding结构职责，即使没有碰到1000行。
 

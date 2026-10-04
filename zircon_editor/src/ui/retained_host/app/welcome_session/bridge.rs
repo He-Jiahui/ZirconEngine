@@ -18,6 +18,7 @@ impl RetainedEditorHost {
         }
     }
 
+    // 原始控件 ID 先映射到内建模板的类型化绑定；未识别或模板加载失败只报告状态，不进入项目操作。
     pub(in crate::ui::retained_host::app) fn dispatch_welcome_surface_control(
         &mut self,
         control_id: &str,
@@ -67,18 +68,5 @@ fn welcome_surface_binding_control_id(action_or_control_id: &str) -> Option<&'st
 }
 
 #[cfg(test)]
-mod tests {
-    use super::welcome_surface_binding_control_id;
-
-    #[test]
-    fn welcome_surface_bridge_maps_each_recent_project_action_to_its_typed_control() {
-        for (action, control_id) in [
-            ("welcome.project.open_recent", "OpenRecentProject"),
-            ("welcome.project.safe_recent", "SafeRecentProject"),
-            ("welcome.project.recover_recent", "RecoverRecentProject"),
-            ("welcome.project.remove_recent", "RemoveRecentProject"),
-        ] {
-            assert_eq!(welcome_surface_binding_control_id(action), Some(control_id));
-        }
-    }
-}
+#[path = "tests/bridge.rs"]
+mod tests;

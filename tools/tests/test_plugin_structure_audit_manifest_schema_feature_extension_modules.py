@@ -7,7 +7,7 @@ from tools.tests.plugin_structure_audit_feature_extension_support import (
     plugin_manifest,
 )
 
-
+# 用插件清单夹具验证特性扩展模块：拒绝特性扩展空模块，并拒绝特性扩展模块缺失字段。
 class PluginStructureAuditManifestSchemaFeatureExtensionModuleTests(unittest.TestCase):
     def test_manifest_schema_rejects_feature_extension_empty_modules(self):
         violations: list[str] = []

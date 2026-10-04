@@ -172,5 +172,5 @@ fn command_family(symbol: &str) -> Option<CommandFamily> {
 }
 
 #[cfg(test)]
-#[path = "payload_codec/symbol_routing_tests.rs"]
+#[path = "payload_codec/tests/symbol_routing_tests.rs"]
 mod symbol_routing_tests;

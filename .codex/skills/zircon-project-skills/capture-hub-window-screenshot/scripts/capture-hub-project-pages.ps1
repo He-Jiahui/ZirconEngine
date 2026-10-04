@@ -128,6 +128,27 @@ function ConvertTo-ProjectMetadataKey {
     return $key.ToLowerInvariant()
 }
 
+function ConvertTo-RecentProjectToml {
+    param(
+        [string]$Name,
+        [string]$ProjectPath,
+        [string]$ProjectGuid,
+        [long]$LastOpenedUnixMs
+    )
+
+    return @"
+
+[[recent_projects]]
+path = $(ConvertTo-TomlString $ProjectPath)
+last_opened_unix_ms = $LastOpenedUnixMs
+[recent_projects.summary]
+name = $(ConvertTo-TomlString $Name)
+default_scene = "res://scenes/main.scene.toml"
+format_version = 3
+project_guid = $(ConvertTo-TomlString $ProjectGuid)
+"@
+}
+
 function New-ProjectCover {
     param(
         [string]$ProjectPath,
@@ -159,6 +180,7 @@ function Initialize-IsolatedProjectsConfig {
 
     $localAppData = Join-Path $ConfigRoot "localappdata"
     $appData = Join-Path $ConfigRoot "appdata"
+    $userProfile = Join-Path $ConfigRoot "userprofile"
     $hubConfigDir = Join-Path $localAppData "ZirconHub"
     $projectRoot = Join-Path $ConfigRoot "C\ZirconProjects"
     $buildOutput = Join-Path $ConfigRoot "build-output"
@@ -168,7 +190,7 @@ function Initialize-IsolatedProjectsConfig {
     $activeEngineSourceDir = Join-Path $engineRoot $engineId
     $activeEngineOutputDir = Join-Path $buildOutput $engineId
 
-    New-Item -ItemType Directory -Force -Path $localAppData, $appData, $hubConfigDir, $projectRoot, $buildOutput, $deviceRoot, $engineRoot | Out-Null
+    New-Item -ItemType Directory -Force -Path $localAppData, $appData, $userProfile, $hubConfigDir, $projectRoot, $buildOutput, $deviceRoot, $engineRoot | Out-Null
 
     $nowMs = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
     $projects = @(
@@ -180,25 +202,24 @@ function Initialize-IsolatedProjectsConfig {
     )
 
     foreach ($project in $projects) {
-        New-Item -ItemType Directory -Force -Path $project.Path | Out-Null
+        New-Item -ItemType Directory -Force -Path $project.Path, (Join-Path $project.Path "assets"), (Join-Path $project.Path "scenes") | Out-Null
         New-ProjectCover -ProjectPath $project.Path -BackColor $project.Back -AccentColor $project.Accent
+        $projectGuid = [guid]::NewGuid().ToString()
         $manifest = @"
-[project]
 name = $(ConvertTo-TomlString $project.Name)
-template = "renderable-empty"
+format_version = 3
+project_guid = $(ConvertTo-TomlString $projectGuid)
+default_scene = "res://scenes/main.scene.toml"
+asset_roots = ["assets"]
+library_version = 1
 "@
         Set-Content -LiteralPath (Join-Path $project.Path "zircon-project.toml") -Value $manifest -Encoding UTF8
+        $project | Add-Member -NotePropertyName ProjectGuid -NotePropertyValue $projectGuid
     }
 
     $recentText = ($projects | ForEach-Object {
         $projectPath = [System.IO.Path]::GetFullPath($_.Path)
-        @"
-
-[[recent_projects]]
-display_name = $(ConvertTo-TomlString $_.Name)
-path = $(ConvertTo-TomlString $projectPath)
-last_opened_unix_ms = $($_.Stamp)
-"@
+        ConvertTo-RecentProjectToml -Name $_.Name -ProjectPath $projectPath -ProjectGuid $_.ProjectGuid -LastOpenedUnixMs $_.Stamp
     }) -join "`n"
 
     $metadataText = ($projects | ForEach-Object -Begin { $index = 0 } -Process {
@@ -272,6 +293,7 @@ maximized = false
     return [pscustomobject]@{
         LocalAppData = $localAppData
         AppData = $appData
+        UserProfile = $userProfile
         EditorConfigPath = $editorConfigPath
         HubConfigPath = $hubConfigPath
     }
@@ -760,6 +782,7 @@ $script:MinimumCaptureHeight = [int][Math]::Floor($WindowHeight * 0.90)
 
 $oldLocalAppData = $env:LOCALAPPDATA
 $oldAppData = $env:APPDATA
+$oldUserProfile = $env:USERPROFILE
 $oldZirconConfigPath = $env:ZIRCON_CONFIG_PATH
 $frontendProcess = $null
 $oldWebViewArguments = $null
@@ -782,6 +805,7 @@ try {
         $config = Initialize-IsolatedProjectsConfig -RepoRoot $RepoRoot -ConfigRoot $ConfigRoot -WindowWidth $WindowWidth -WindowHeight $WindowHeight -PinnedProjectCount $PinnedProjectCount
         $env:LOCALAPPDATA = $config.LocalAppData
         $env:APPDATA = $config.AppData
+        $env:USERPROFILE = $config.UserProfile
         $env:ZIRCON_CONFIG_PATH = $config.EditorConfigPath
         Set-HubCaptureRuntimeState -HubConfigPath $config.HubConfigPath -ProjectSubpage "dashboard" -ProjectViewMode "grid"
     }
@@ -858,17 +882,32 @@ try {
         CaptureBrowserMenus = [bool]$CaptureBrowserMenus
     } | ConvertTo-Json | Set-Content -LiteralPath $clicksPath -Encoding UTF8
 
-    $session = Start-HubCaptureSession -BinaryPath $BinaryPath -RepoRoot $RepoRoot -StdoutPath $stdoutPath -StderrPath $stderrPath -WaitSeconds $WaitSeconds -Left $Left -Top $Top -WindowWidth $WindowWidth -WindowHeight $WindowHeight -Stage "dashboard"
-    $process = $session.Process
-    $window = $session.Window
-    [void][ZirconHubProjectPageCapture]::SetCursorPos($window.Left + 8, $window.Top + 8)
-    Start-Sleep -Milliseconds 120
-    Save-HubCapture -Window $window -Path $dashboard
+    # A new isolated WebView2 profile may expose its native window before its
+    # debugger page. Restart only that first capture, retaining the seeded profile.
+    for ($attempt = 0; $attempt -lt 3; $attempt += 1) {
+        $session = Start-HubCaptureSession -BinaryPath $BinaryPath -RepoRoot $RepoRoot -StdoutPath $stdoutPath -StderrPath $stderrPath -WaitSeconds $WaitSeconds -Left $Left -Top $Top -WindowWidth $WindowWidth -WindowHeight $WindowHeight -Stage "dashboard"
+        $process = $session.Process
+        $window = $session.Window
+        [void][ZirconHubProjectPageCapture]::SetCursorPos($window.Left + 8, $window.Top + 8)
+        Start-Sleep -Milliseconds 120
+        try {
+            Invoke-HubCaptureWebViewAction -Port $script:WebViewDebugPort -Action "wait-text" -Text "View All Projects" -WaitSeconds $script:WebViewWaitSeconds
+            Save-HubCapture -Window $window -Path $dashboard
+            break
+        } catch {
+            if ($attempt -eq 2) {
+                throw
+            }
+            Stop-HubCaptureSession -Process $process
+            $process = $null
+            Start-Sleep -Seconds 8
+        }
+    }
 
     $focusX = [int][Math]::Max(240, [Math]::Round($WindowWidth * 0.25))
     $focusY = [int][Math]::Max(145, [Math]::Min(170, [Math]::Round($WindowHeight * 0.18)))
-    Invoke-HubClick -Window $window -X $focusX -Y $focusY -DelayMilliseconds 250
-    Invoke-HubClick -Window $window -X $NewProjectClickX -Y $NewProjectClickY -DelayMilliseconds 1200
+    Invoke-HubCaptureWebViewAction -Port $script:WebViewDebugPort -Action "click-text" -Text "New Project" -WaitSeconds $script:WebViewWaitSeconds -DelayMilliseconds 1200
+    Invoke-HubCaptureWebViewAction -Port $script:WebViewDebugPort -Action "wait-text" -Text "Create Project" -WaitSeconds $script:WebViewWaitSeconds
     Assert-HubProcessAlive -Process $process -Stage "new-project"
     $window = Get-HubWindowInfo -Handle $window.Handle
     Save-HubCapture -Window $window -Path $newProject
@@ -878,31 +917,27 @@ try {
     Stop-HubCaptureSession -Process $process
     $process = $null
     if ($ConfigMode -eq "Isolated" -and $config) {
-        Set-HubCaptureRuntimeState -HubConfigPath $config.HubConfigPath -ProjectSubpage "dashboard" -ProjectViewMode "grid"
+        Set-HubCaptureRuntimeState -HubConfigPath $config.HubConfigPath -ProjectSubpage "project-browser" -ProjectViewMode "list"
     }
 
     $session = Start-HubCaptureSession -BinaryPath $BinaryPath -RepoRoot $RepoRoot -StdoutPath $stdoutPath -StderrPath $stderrPath -WaitSeconds $WaitSeconds -Left $Left -Top $Top -WindowWidth $WindowWidth -WindowHeight $WindowHeight -Stage "project-browser-launch"
     $process = $session.Process
     $window = $session.Window
-    Invoke-HubClick -Window $window -X $focusX -Y $focusY -DelayMilliseconds 250
-    Invoke-HubClick -Window $window -X $BrowserClickX -Y $BrowserClickY -DelayMilliseconds 1200
+    if ($ConfigMode -eq "Current") {
+        Invoke-HubCaptureWebViewAction -Port $script:WebViewDebugPort -Action "click-text" -Text "View All Projects" -WaitSeconds $script:WebViewWaitSeconds -DelayMilliseconds 1200
+    }
+    Invoke-HubCaptureWebViewAction -Port $script:WebViewDebugPort -Action "wait-text" -Text "Project Browser" -WaitSeconds $script:WebViewWaitSeconds
     Assert-HubProcessAlive -Process $process -Stage "project-browser"
     $window = Get-HubWindowInfo -Handle $window.Handle
     Save-HubCapture -Window $window -Path $browser
     Assert-CaptureChanged -BeforePath $dashboard -AfterPath $browser -Stage "project-browser"
 
-    Invoke-HubCaptureWebViewAction -Port $script:WebViewDebugPort -Action "click-text" -Text "Elysium Chronicles" -WaitSeconds $script:WebViewWaitSeconds -DelayMilliseconds 1200
+    Invoke-HubCaptureWebViewAction -Port $script:WebViewDebugPort -Action "click-text" -Text "Open project details: Elysium Chronicles" -WaitSeconds $script:WebViewWaitSeconds -DelayMilliseconds 1200
+    Invoke-HubCaptureWebViewAction -Port $script:WebViewDebugPort -Action "wait-text" -Text "Project Overview" -WaitSeconds $script:WebViewWaitSeconds
     Assert-HubProcessAlive -Process $process -Stage "project-detail"
     $window = Get-HubWindowInfo -Handle $window.Handle
     Save-HubCapture -Window $window -Path $detail
     $detailMinimumDifference = 0.10
-    $detailChange = Test-CaptureChanged -BeforePath $browser -AfterPath $detail -MinimumDifference $detailMinimumDifference
-    if (-not $detailChange.Changed) {
-        Invoke-HubCaptureWebViewAction -Port $script:WebViewDebugPort -Action "click-text" -Text "Elysium Chronicles" -WaitSeconds $script:WebViewWaitSeconds -DelayMilliseconds 1200
-        Assert-HubProcessAlive -Process $process -Stage "project-detail-retry"
-        $window = Get-HubWindowInfo -Handle $window.Handle
-        Save-HubCapture -Window $window -Path $detail
-    }
     Assert-CaptureChanged -BeforePath $browser -AfterPath $detail -Stage "project-detail" -MinimumDifference $detailMinimumDifference
 
     if ($CapturePendingDelete) {
@@ -929,8 +964,8 @@ try {
         # so stale captures fail without rejecting a visible opened menu.
         $menuMinimumDifference = 0.0008
         $menuTargets = @(
-            [pscustomobject]@{ Stage = "project-browser-filter-menu"; ClickX = $BrowserFilterMenuClickX; ClickY = $BrowserFilterMenuClickY; Path = $browserFilterMenu },
-            [pscustomobject]@{ Stage = "project-browser-sort-menu"; ClickX = $BrowserSortMenuClickX; ClickY = $BrowserSortMenuClickY; Path = $browserSortMenu }
+            [pscustomobject]@{ Stage = "project-browser-filter-menu"; Label = "All Projects"; Path = $browserFilterMenu },
+            [pscustomobject]@{ Stage = "project-browser-sort-menu"; Label = "Last Modified"; Path = $browserSortMenu }
         )
 
         foreach ($target in $menuTargets) {
@@ -940,10 +975,10 @@ try {
             $session = Start-HubCaptureSession -BinaryPath $BinaryPath -RepoRoot $RepoRoot -StdoutPath $stdoutPath -StderrPath $stderrPath -WaitSeconds $WaitSeconds -Left $Left -Top $Top -WindowWidth $WindowWidth -WindowHeight $WindowHeight -Stage $target.Stage
             $process = $session.Process
             $window = $session.Window
-            Invoke-HubClick -Window $window -X $focusX -Y $focusY -DelayMilliseconds 250
+            Invoke-HubCaptureWebViewAction -Port $script:WebViewDebugPort -Action "wait-text" -Text "Project Browser" -WaitSeconds $script:WebViewWaitSeconds
             Assert-HubProcessAlive -Process $process -Stage "$($target.Stage)-browser"
             $window = Get-HubWindowInfo -Handle $window.Handle
-            Invoke-HubClick -Window $window -X $target.ClickX -Y $target.ClickY -DelayMilliseconds 700
+            Invoke-HubCaptureWebViewAction -Port $script:WebViewDebugPort -Action "click-text" -Text $target.Label -WaitSeconds $script:WebViewWaitSeconds -DelayMilliseconds 700
             Assert-HubProcessAlive -Process $process -Stage $target.Stage
             $window = Get-HubWindowInfo -Handle $window.Handle
             Save-HubCapture -Window $window -Path $target.Path
@@ -974,6 +1009,7 @@ try {
 } finally {
     $env:LOCALAPPDATA = $oldLocalAppData
     $env:APPDATA = $oldAppData
+    $env:USERPROFILE = $oldUserProfile
     $env:ZIRCON_CONFIG_PATH = $oldZirconConfigPath
     Restore-HubCaptureWebViewDebugEnvironment -PreviousValue $oldWebViewArguments
     Stop-HubCaptureFrontendDevServer -Process $frontendProcess

@@ -1,6 +1,7 @@
-use std::fs;
-use std::io;
+use std::fs::{self, File, OpenOptions};
+use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
@@ -8,11 +9,15 @@ use serde::{Deserialize, Serialize};
 use crate::asset::project::ProjectPaths;
 use crate::core::framework::render::{ShaderVariantKey, ShaderVariantPrewarmSourceId};
 
-const SHADER_VARIANT_CACHE_SCHEMA_VERSION: u32 = 2;
+const SHADER_VARIANT_CACHE_SCHEMA_VERSION: u32 = 3;
 const SHADER_VARIANT_CACHE_DIR: &str = "shader_variants";
-const SHADER_VARIANT_CACHE_WGSL_SUFFIX: &str = "wgsl.zst";
-const SHADER_VARIANT_CACHE_META_SUFFIX: &str = "meta";
+const SHADER_VARIANT_CACHE_PAYLOAD_SUFFIX: &str = "wgsl.zst";
+const SHADER_VARIANT_CACHE_MANIFEST_SUFFIX: &str = "manifest";
 const SHADER_VARIANT_CACHE_ZSTD_LEVEL: i32 = 3;
+const SHADER_VARIANT_CACHE_MAX_MANIFEST_BYTES: u64 = 64 * 1024;
+const SHADER_VARIANT_CACHE_MAX_COMPRESSED_BYTES: u64 = 8 * 1024 * 1024;
+const SHADER_VARIANT_CACHE_MAX_DECODED_BYTES: u64 = 32 * 1024 * 1024;
+static SHADER_VARIANT_CACHE_STAGING_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ShaderVariantCacheDiskKey {
@@ -82,6 +87,9 @@ pub(crate) enum ShaderVariantCacheDiskError {
     SchemaMismatch { expected: u32, actual: u32 },
     KeyMismatch,
     SourceHashMismatch,
+    PayloadHashMismatch,
+    CorruptTarget(String),
+    BudgetExceeded { what: &'static str, limit: u64 },
 }
 
 impl From<io::Error> for ShaderVariantCacheDiskError {
@@ -168,24 +176,25 @@ impl ShaderVariantCacheDisk {
         if !source_hash_matches {
             return Err(ShaderVariantCacheDiskError::SourceHashMismatch);
         }
+        if wgsl_source.len() as u64 > SHADER_VARIANT_CACHE_MAX_DECODED_BYTES {
+            return Err(ShaderVariantCacheDiskError::BudgetExceeded {
+                what: "decoded shader payload",
+                limit: SHADER_VARIANT_CACHE_MAX_DECODED_BYTES,
+            });
+        }
         let path = self.entry_path(key);
         fs::create_dir_all(&path.directory)?;
-        let meta = ShaderVariantCacheDiskMeta {
-            schema_version: self.schema_version,
-            hash: key.hash.clone(),
-            canonical_string: key.canonical_string.clone(),
-            source_id: key.source_id.clone(),
-            source_hash: key.source_hash.clone(),
-            template_revision: key.template_revision.clone(),
-            naga_version: key.naga_version.clone(),
-            wgpu_version: key.wgpu_version.clone(),
-            created_unix_seconds: unix_seconds_now(),
-        };
         let compressed = {
             crate::profile_scope!("render", "shader_pipeline", "disk_cache_compress");
             zstd::stream::encode_all(wgsl_source.as_bytes(), SHADER_VARIANT_CACHE_ZSTD_LEVEL)
                 .map_err(|error| ShaderVariantCacheDiskError::Compression(error.to_string()))?
         };
+        if compressed.len() as u64 > SHADER_VARIANT_CACHE_MAX_COMPRESSED_BYTES {
+            return Err(ShaderVariantCacheDiskError::BudgetExceeded {
+                what: "compressed shader payload",
+                limit: SHADER_VARIANT_CACHE_MAX_COMPRESSED_BYTES,
+            });
+        }
         crate::profile_counter!(
             "render",
             "shader_disk_cache_write_source_bytes",
@@ -196,22 +205,40 @@ impl ShaderVariantCacheDisk {
             "shader_disk_cache_write_compressed_bytes",
             compressed.len()
         );
-        let meta_bytes = {
+        let meta = ShaderVariantCacheDiskMeta {
+            schema_version: self.schema_version,
+            hash: key.hash.clone(),
+            canonical_string: key.canonical_string.clone(),
+            source_id: key.source_id.clone(),
+            source_hash: key.source_hash.clone(),
+            template_revision: key.template_revision.clone(),
+            naga_version: key.naga_version.clone(),
+            wgpu_version: key.wgpu_version.clone(),
+            compressed_bytes: compressed.len() as u64,
+            decoded_bytes: wgsl_source.len() as u64,
+            payload_hash: blake3::hash(&compressed).to_hex().to_string(),
+            created_unix_seconds: unix_seconds_now(),
+        };
+        let manifest_bytes = {
             crate::profile_scope!("render", "shader_pipeline", "disk_cache_metadata_encode");
             serde_json::to_vec_pretty(&meta)
                 .map_err(|error| ShaderVariantCacheDiskError::Json(error.to_string()))?
         };
-        {
-            crate::profile_scope!("render", "shader_pipeline", "disk_cache_payload_commit");
-            atomic_write(&path.wgsl, &compressed)?;
+        if manifest_bytes.len() as u64 > SHADER_VARIANT_CACHE_MAX_MANIFEST_BYTES {
+            return Err(ShaderVariantCacheDiskError::BudgetExceeded {
+                what: "shader cache manifest",
+                limit: SHADER_VARIANT_CACHE_MAX_MANIFEST_BYTES,
+            });
         }
-        {
-            crate::profile_scope!("render", "shader_pipeline", "disk_cache_metadata_commit");
-            atomic_write(&path.meta, &meta_bytes)?;
-        }
-        Ok(ShaderVariantCacheDiskEntry {
-            wgsl_source: wgsl_source.to_string(),
-            meta,
+        // The payload is immutable. The manifest is the sole publication point.
+        crate::profile_scope!("render", "shader_pipeline", "disk_cache_payload_commit");
+        atomic_create_or_verify(&path.payload, &compressed)?;
+        crate::profile_scope!("render", "shader_pipeline", "disk_cache_metadata_commit");
+        atomic_manifest_commit(&path.manifest, &manifest_bytes)?;
+        self.read_entry_at(&self.root, key)?.ok_or_else(|| {
+            ShaderVariantCacheDiskError::CorruptTarget(
+                "manifest commit did not publish a readable cache entry".to_string(),
+            )
         })
     }
 
@@ -221,17 +248,31 @@ impl ShaderVariantCacheDisk {
         key: &ShaderVariantCacheDiskKey,
     ) -> Result<Option<ShaderVariantCacheDiskEntry>, ShaderVariantCacheDiskError> {
         let path = self.entry_path_at(root, key);
-        if !path.wgsl.exists() || !path.meta.exists() {
+        // v2's split payload/meta layout is intentionally a truthful miss.
+        if !path.manifest.exists() {
             return Ok(None);
         }
-        let meta_bytes = {
+        if !path.payload.exists() {
+            return Err(ShaderVariantCacheDiskError::CorruptTarget(
+                "manifest exists without immutable payload".to_string(),
+            ));
+        }
+        let manifest_bytes = {
             crate::profile_scope!("render", "shader_pipeline", "disk_cache_metadata_read");
-            fs::read(&path.meta)?
+            read_bounded(
+                &path.manifest,
+                SHADER_VARIANT_CACHE_MAX_MANIFEST_BYTES,
+                "manifest",
+            )?
         };
-        crate::profile_counter!("render", "shader_disk_cache_meta_bytes", meta_bytes.len());
+        crate::profile_counter!(
+            "render",
+            "shader_disk_cache_meta_bytes",
+            manifest_bytes.len()
+        );
         let meta = {
             crate::profile_scope!("render", "shader_pipeline", "disk_cache_metadata_decode");
-            serde_json::from_slice::<ShaderVariantCacheDiskMeta>(&meta_bytes)
+            serde_json::from_slice::<ShaderVariantCacheDiskMeta>(&manifest_bytes)
                 .map_err(|error| ShaderVariantCacheDiskError::Json(error.to_string()))?
         };
         if meta.schema_version != self.schema_version {
@@ -250,21 +291,55 @@ impl ShaderVariantCacheDisk {
         {
             return Err(ShaderVariantCacheDiskError::KeyMismatch);
         }
+        if meta.compressed_bytes > SHADER_VARIANT_CACHE_MAX_COMPRESSED_BYTES
+            || meta.decoded_bytes > SHADER_VARIANT_CACHE_MAX_DECODED_BYTES
+        {
+            return Err(ShaderVariantCacheDiskError::BudgetExceeded {
+                what: "shader cache payload",
+                limit: SHADER_VARIANT_CACHE_MAX_COMPRESSED_BYTES,
+            });
+        }
         let compressed = {
             crate::profile_scope!("render", "shader_pipeline", "disk_cache_payload_read");
-            fs::read(&path.wgsl)?
+            read_bounded(
+                &path.payload,
+                SHADER_VARIANT_CACHE_MAX_COMPRESSED_BYTES,
+                "compressed payload",
+            )?
         };
         crate::profile_counter!(
             "render",
             "shader_disk_cache_compressed_bytes",
             compressed.len()
         );
+        if compressed.len() as u64 != meta.compressed_bytes
+            || blake3::hash(&compressed).to_hex().to_string() != meta.payload_hash
+        {
+            return Err(ShaderVariantCacheDiskError::PayloadHashMismatch);
+        }
         let source = {
             crate::profile_scope!("render", "shader_pipeline", "disk_cache_decompress");
-            zstd::stream::decode_all(&compressed[..])
-                .map_err(|error| ShaderVariantCacheDiskError::Compression(error.to_string()))?
+            let mut decoder = zstd::stream::read::Decoder::new(&compressed[..])
+                .map_err(|error| ShaderVariantCacheDiskError::Compression(error.to_string()))?;
+            let mut source = Vec::new();
+            decoder
+                .by_ref()
+                .take(SHADER_VARIANT_CACHE_MAX_DECODED_BYTES + 1)
+                .read_to_end(&mut source)?;
+            if source.len() as u64 > SHADER_VARIANT_CACHE_MAX_DECODED_BYTES {
+                return Err(ShaderVariantCacheDiskError::BudgetExceeded {
+                    what: "decoded shader payload",
+                    limit: SHADER_VARIANT_CACHE_MAX_DECODED_BYTES,
+                });
+            }
+            source
         };
         crate::profile_counter!("render", "shader_disk_cache_decoded_bytes", source.len());
+        if source.len() as u64 != meta.decoded_bytes {
+            return Err(ShaderVariantCacheDiskError::CorruptTarget(
+                "decoded length does not match manifest".to_string(),
+            ));
+        }
         let wgsl_source = String::from_utf8(source)
             .map_err(|error| ShaderVariantCacheDiskError::Utf8(error.to_string()))?;
         let source_hash_matches = {
@@ -289,8 +364,14 @@ impl ShaderVariantCacheDisk {
         let shard = key.hash.get(0..2).unwrap_or("00");
         let directory = root.join(format!("v{}", self.schema_version)).join(shard);
         ShaderVariantCacheDiskPath {
-            wgsl: directory.join(format!("{}.{}", key.hash, SHADER_VARIANT_CACHE_WGSL_SUFFIX)),
-            meta: directory.join(format!("{}.{}", key.hash, SHADER_VARIANT_CACHE_META_SUFFIX)),
+            payload: directory.join(format!(
+                "{}.{}",
+                key.hash, SHADER_VARIANT_CACHE_PAYLOAD_SUFFIX
+            )),
+            manifest: directory.join(format!(
+                "{}.{}",
+                key.hash, SHADER_VARIANT_CACHE_MANIFEST_SUFFIX
+            )),
             directory,
         }
     }
@@ -301,8 +382,8 @@ impl ShaderVariantCacheDisk {
 
     fn remove_entry_files_at(&self, root: &Path, key: &ShaderVariantCacheDiskKey) {
         let path = self.entry_path_at(root, key);
-        let _ = fs::remove_file(path.wgsl);
-        let _ = fs::remove_file(path.meta);
+        let _ = fs::remove_file(path.payload);
+        let _ = fs::remove_file(path.manifest);
     }
 }
 
@@ -339,13 +420,16 @@ pub(crate) struct ShaderVariantCacheDiskMeta {
     pub(crate) template_revision: String,
     pub(crate) naga_version: String,
     pub(crate) wgpu_version: String,
+    pub(crate) compressed_bytes: u64,
+    pub(crate) decoded_bytes: u64,
+    pub(crate) payload_hash: String,
     pub(crate) created_unix_seconds: u64,
 }
 
 struct ShaderVariantCacheDiskPath {
     directory: PathBuf,
-    wgsl: PathBuf,
-    meta: PathBuf,
+    payload: PathBuf,
+    manifest: PathBuf,
 }
 
 fn shader_variant_cache_hash(
@@ -367,24 +451,158 @@ fn shader_source_hash(wgsl_source: &str) -> String {
     blake3::hash(wgsl_source.as_bytes()).to_hex().to_string()
 }
 
-fn atomic_write(path: &Path, bytes: &[u8]) -> Result<(), ShaderVariantCacheDiskError> {
-    let temp_path = path.with_extension(format!(
-        "{}.tmp",
-        path.extension()
-            .and_then(|extension| extension.to_str())
-            .unwrap_or("tmp")
-    ));
-    fs::write(&temp_path, bytes)?;
-    match fs::rename(&temp_path, path) {
-        Ok(()) => Ok(()),
-        Err(error) if path.exists() => {
-            let _ = fs::remove_file(temp_path);
-            let _ = error;
+fn read_bounded(
+    path: &Path,
+    limit: u64,
+    what: &'static str,
+) -> Result<Vec<u8>, ShaderVariantCacheDiskError> {
+    let file = File::open(path)?;
+    let mut bytes = Vec::new();
+    file.take(limit + 1).read_to_end(&mut bytes)?;
+    if bytes.len() as u64 > limit {
+        return Err(ShaderVariantCacheDiskError::BudgetExceeded { what, limit });
+    }
+    Ok(bytes)
+}
+
+fn unique_staging_path(path: &Path) -> PathBuf {
+    let nonce = SHADER_VARIANT_CACHE_STAGING_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("entry");
+    path.with_file_name(format!(".{file_name}.tmp-{}-{nonce}", std::process::id()))
+}
+
+fn atomic_create_or_verify(path: &Path, bytes: &[u8]) -> Result<(), ShaderVariantCacheDiskError> {
+    atomic_create_or_verify_with_hook(path, bytes, None)
+}
+
+fn atomic_create_or_verify_with_hook(
+    path: &Path,
+    bytes: &[u8],
+    after_initial_check: Option<&dyn Fn()>,
+) -> Result<(), ShaderVariantCacheDiskError> {
+    if path.exists() {
+        let existing = read_bounded(
+            path,
+            SHADER_VARIANT_CACHE_MAX_COMPRESSED_BYTES,
+            "immutable payload",
+        )?;
+        return if existing == bytes {
             Ok(())
+        } else {
+            Err(ShaderVariantCacheDiskError::CorruptTarget(
+                "immutable payload conflict differs from requested bytes".to_string(),
+            ))
+        };
+    }
+    if let Some(after_initial_check) = after_initial_check {
+        after_initial_check();
+    }
+    let temp_path = unique_staging_path(path);
+    let result = (|| {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temp_path)?;
+        file.write_all(bytes)?;
+        file.sync_all()?;
+        match install_staged_file(&temp_path, path) {
+            Ok(()) => {
+                sync_parent(path);
+                Ok(())
+            }
+            Err(_error) if path.exists() => {
+                let existing = read_bounded(
+                    path,
+                    SHADER_VARIANT_CACHE_MAX_COMPRESSED_BYTES,
+                    "immutable payload",
+                )?;
+                if existing == bytes {
+                    Ok(())
+                } else {
+                    Err(ShaderVariantCacheDiskError::CorruptTarget(
+                        "immutable payload rename conflict differs from requested bytes"
+                            .to_string(),
+                    ))
+                }
+            }
+            Err(error) => Err(ShaderVariantCacheDiskError::Io(error.to_string())),
         }
-        Err(error) => {
-            let _ = fs::remove_file(temp_path);
-            Err(ShaderVariantCacheDiskError::Io(error.to_string()))
+    })();
+    let _ = fs::remove_file(&temp_path);
+    result
+}
+
+fn atomic_manifest_commit(path: &Path, bytes: &[u8]) -> Result<(), ShaderVariantCacheDiskError> {
+    atomic_manifest_commit_with_hook(path, bytes, None)
+}
+
+fn atomic_manifest_commit_with_hook(
+    path: &Path,
+    bytes: &[u8],
+    after_initial_check: Option<&dyn Fn()>,
+) -> Result<(), ShaderVariantCacheDiskError> {
+    if path.exists() {
+        let existing = read_bounded(path, SHADER_VARIANT_CACHE_MAX_MANIFEST_BYTES, "manifest")?;
+        return if existing == bytes {
+            Ok(())
+        } else {
+            Err(ShaderVariantCacheDiskError::CorruptTarget(
+                "manifest rename conflict differs from requested identity".to_string(),
+            ))
+        };
+    }
+    if let Some(after_initial_check) = after_initial_check {
+        after_initial_check();
+    }
+    let temp_path = unique_staging_path(path);
+    let result = (|| {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temp_path)?;
+        file.write_all(bytes)?;
+        file.sync_all()?;
+        match install_staged_file(&temp_path, path) {
+            Ok(()) => {
+                sync_parent(path);
+                Ok(())
+            }
+            Err(_error) if path.exists() => {
+                let existing =
+                    read_bounded(path, SHADER_VARIANT_CACHE_MAX_MANIFEST_BYTES, "manifest")?;
+                if existing == bytes {
+                    Ok(())
+                } else {
+                    Err(ShaderVariantCacheDiskError::CorruptTarget(
+                        "manifest rename conflict differs from requested identity".to_string(),
+                    ))
+                }
+            }
+            Err(error) => Err(ShaderVariantCacheDiskError::Io(error.to_string())),
+        }
+    })();
+    let _ = fs::remove_file(&temp_path);
+    result
+}
+
+fn install_staged_file(temp_path: &Path, path: &Path) -> io::Result<()> {
+    // `rename` replaces an existing destination on Windows. A hard link is
+    // the standard-library create-only primitive there (CreateHardLinkW), so
+    // an existing target returns an error instead of being clobbered. Removing
+    // the staging name after a successful link leaves the fully synced inode
+    // at the immutable content-addressed destination. If the filesystem does
+    // not support hard links, the typed I/O error is retained; no overwrite
+    // fallback is safe for an immutable payload or the sole manifest commit.
+    fs::hard_link(temp_path, path)
+}
+
+fn sync_parent(path: &Path) {
+    if let Some(parent) = path.parent() {
+        if let Ok(file) = File::open(parent) {
+            let _ = file.sync_all();
         }
     }
 }
@@ -396,244 +614,5 @@ fn unix_seconds_now() -> u64 {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::fs;
-    use std::path::{Path, PathBuf};
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    use crate::asset::project::ProjectPaths;
-    use crate::core::framework::render::{
-        GeometrySourceId, SHADING_MODEL_ID_STANDARD_PBR, ShaderFeatureBits, ShaderPassType,
-        ShaderQualityTier, ShaderVariantKey,
-    };
-    use crate::core::resource::ResourceId;
-
-    use super::{
-        ShaderVariantCacheDisk, ShaderVariantCacheDiskKey, ShaderVariantCacheDiskLookup,
-        shader_cache_root_for_project,
-    };
-    use crate::core::framework::render::ShaderVariantPrewarmSource;
-
-    #[cfg(any(unix, windows))]
-    #[test]
-    fn shader_cache_roots_keep_the_physical_project_identity_for_relative_layouts() {
-        let parent = unique_shader_cache_project_root("physical-identity");
-        let physical_project = parent.join("physical-project");
-        fs::create_dir_all(&physical_project).unwrap();
-        let project_alias = parent.join("project-alias");
-        create_directory_link(&physical_project, &project_alias);
-
-        let default_root = shader_cache_root_for_project(&project_alias, None);
-        let configured_root =
-            shader_cache_root_for_project(&project_alias, Some(Path::new("derived/shaders")));
-        let expected_project = ProjectPaths::resolve_existing_path(&physical_project).unwrap();
-
-        fs::remove_dir_all(&parent).unwrap();
-        assert_eq!(
-            default_root,
-            expected_project.join(".zircon/cache/shader_variants")
-        );
-        assert_eq!(configured_root, expected_project.join("derived/shaders"));
-    }
-
-    fn unique_shader_cache_project_root(case_name: &str) -> PathBuf {
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!(
-            "zircon-shader-cache-{case_name}-{}-{timestamp}",
-            std::process::id()
-        ));
-        if path.exists() {
-            fs::remove_dir_all(&path).unwrap();
-        }
-        path
-    }
-
-    #[cfg(unix)]
-    fn create_directory_link(target: &Path, link: &Path) {
-        std::os::unix::fs::symlink(target, link).expect("create shader-cache project alias");
-    }
-
-    #[cfg(windows)]
-    fn create_directory_link(target: &Path, link: &Path) {
-        let command = format!(r#"mklink /J "{}" "{}""#, link.display(), target.display());
-        let output = std::process::Command::new("cmd")
-            .args(["/D", "/S", "/C"])
-            .arg(command)
-            .output()
-            .expect("start mklink for shader-cache project alias");
-        assert!(
-            output.status.success(),
-            "create shader-cache project junction failed: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-
-    #[test]
-    fn render_shader_variant_cache_hits_disk_after_restart() {
-        let root = std::env::temp_dir().join(format!(
-            "zircon_shader_variant_cache_test_{}",
-            std::process::id()
-        ));
-        let _ = fs::remove_dir_all(&root);
-        let source = cache_source("fn main() {}", "template-r1", "naga-test", "wgpu-test");
-        let key = disk_key(&variant_key(), &source);
-        let cache = ShaderVariantCacheDisk::new(&root);
-
-        assert!(matches!(
-            cache.write(&key, "fn changed() {}"),
-            Err(super::ShaderVariantCacheDiskError::SourceHashMismatch)
-        ));
-        cache
-            .write(&key, "fn main() {}")
-            .expect("write variant cache");
-
-        let restarted = ShaderVariantCacheDisk::new(&root);
-        let lookup = restarted.lookup(&key);
-
-        match lookup {
-            ShaderVariantCacheDiskLookup::Hit(entry) => {
-                assert_eq!(entry.wgsl_source, "fn main() {}");
-                assert_eq!(entry.meta.canonical_string, key.canonical_string);
-                assert_eq!(entry.meta.source_id, source.id);
-            }
-            other => panic!("expected disk hit, got {other:?}"),
-        }
-        let changed_source =
-            cache_source("fn changed() {}", "template-r1", "naga-test", "wgpu-test");
-        let changed_key = disk_key(&variant_key(), &changed_source);
-        let changed_wgpu = cache_source("fn main() {}", "template-r1", "naga-test", "wgpu-next");
-        let changed_wgpu_key = disk_key(&variant_key(), &changed_wgpu);
-        assert_ne!(key.hash, changed_key.hash);
-        assert_ne!(key.hash, changed_wgpu_key.hash);
-        assert!(matches!(
-            restarted.lookup(&changed_key),
-            ShaderVariantCacheDiskLookup::Miss
-        ));
-        let _ = fs::remove_dir_all(root);
-    }
-
-    #[test]
-    fn render_shader_variant_cache_treats_corrupt_entry_as_miss_after_cleanup() {
-        let root = std::env::temp_dir().join(format!(
-            "zircon_shader_variant_cache_corrupt_test_{}",
-            std::process::id()
-        ));
-        let _ = fs::remove_dir_all(&root);
-        let source = cache_source("fn main() {}", "template-r1", "naga-test", "wgpu-test");
-        let key = disk_key(&variant_key(), &source);
-        let cache = ShaderVariantCacheDisk::new(&root);
-        cache
-            .write(&key, "fn main() {}")
-            .expect("write variant cache");
-        let shard = key.hash.get(0..2).unwrap_or("00");
-        fs::write(
-            root.join("v2")
-                .join(shard)
-                .join(format!("{}.meta", key.hash)),
-            b"{ invalid json",
-        )
-        .expect("corrupt meta");
-
-        assert!(matches!(
-            cache.lookup(&key),
-            ShaderVariantCacheDiskLookup::Error(_)
-        ));
-        assert!(matches!(
-            cache.lookup(&key),
-            ShaderVariantCacheDiskLookup::Miss
-        ));
-
-        let _ = fs::remove_dir_all(root);
-    }
-
-    #[test]
-    fn shader_variant_disk_cache_profiles_lookup_and_write_independently() {
-        let source = include_str!("disk.rs")
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("shader disk cache test boundary");
-
-        assert!(source.contains("\"shader_pipeline\", \"disk_cache_lookup\""));
-        assert!(source.contains("\"shader_pipeline\", \"disk_cache_write\""));
-    }
-
-    #[test]
-    fn shader_variant_disk_cache_profiles_each_runtime_io_and_integrity_stage() {
-        let source = include_str!("disk.rs")
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("shader disk cache test boundary");
-        let expected_scopes = [
-            "disk_cache_key",
-            "disk_cache_write_source_hash",
-            "disk_cache_compress",
-            "disk_cache_metadata_encode",
-            "disk_cache_payload_commit",
-            "disk_cache_metadata_commit",
-            "disk_cache_metadata_read",
-            "disk_cache_metadata_decode",
-            "disk_cache_payload_read",
-            "disk_cache_decompress",
-            "disk_cache_payload_rehash",
-        ];
-
-        for scope in expected_scopes {
-            assert!(
-                source.contains(&format!("\"shader_pipeline\", \"{scope}\"")),
-                "missing shader disk-cache profile scope {scope}"
-            );
-        }
-        assert!(
-            source.find("disk_cache_payload_read") < source.find("disk_cache_payload_rehash"),
-            "payload integrity timing must follow the measured payload read"
-        );
-    }
-
-    fn variant_key() -> ShaderVariantKey {
-        ShaderVariantKey {
-            material_shader: ResourceId::from_stable_label("res://materials/cache-test.wgsl"),
-            material_revision: 3,
-            material_layout_hash: 0,
-            material_option_bits: 0,
-            geometry_source: GeometrySourceId::new(0),
-            shading_model: SHADING_MODEL_ID_STANDARD_PBR,
-            pass_type: ShaderPassType::Forward,
-            features: ShaderFeatureBits::new(ShaderFeatureBits::ALPHA_TEST),
-            quality: ShaderQualityTier::Medium,
-            platform_token: "wgpu-test".to_string(),
-        }
-    }
-
-    fn cache_source(
-        wgsl_source: &str,
-        template_revision: &str,
-        naga_version: &str,
-        wgpu_version: &str,
-    ) -> ShaderVariantPrewarmSource {
-        ShaderVariantPrewarmSource::new(
-            "res://materials/cache-test.wgsl",
-            wgsl_source,
-            vec!["include-a".to_string()],
-            template_revision,
-            naga_version,
-            wgpu_version,
-        )
-    }
-
-    fn disk_key(
-        variant_key: &ShaderVariantKey,
-        source: &ShaderVariantPrewarmSource,
-    ) -> ShaderVariantCacheDiskKey {
-        ShaderVariantCacheDiskKey::from_variant_key(
-            variant_key,
-            &source.source_hash,
-            &source.include_content_hashes,
-            &source.template_revision,
-            &source.naga_version,
-            &source.wgpu_version,
-        )
-    }
-}
+#[path = "tests/disk.rs"]
+mod tests;

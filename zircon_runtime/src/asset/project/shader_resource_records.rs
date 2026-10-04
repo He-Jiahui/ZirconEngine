@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -105,8 +105,11 @@ fn deduplicate_shader_resource_records(
 ) -> ShaderResourceRecordExportResult<Vec<ResourceRecord>> {
     // Resource ids and locators are both stable identity inputs for staged prewarm.
     // Matching pairs collapse; mismatched pairs fail before either caller consumes them.
-    let mut records_by_id: BTreeMap<ResourceId, ResourceRecord> = BTreeMap::new();
-    let mut ids_by_locator: BTreeMap<ResourceLocator, ResourceId> = BTreeMap::new();
+    let record_capacity = records.len();
+    let mut records_by_id: HashMap<ResourceId, ResourceRecord> =
+        HashMap::with_capacity(record_capacity);
+    let mut ids_by_locator: HashMap<ResourceLocator, ResourceId> =
+        HashMap::with_capacity(record_capacity);
     for record in records {
         if let Some(existing) = records_by_id.get(&record.id) {
             if existing.primary_locator != record.primary_locator {
@@ -253,5 +256,9 @@ fn non_zero_revision_from_hash(hash: blake3::Hash) -> u64 {
 }
 
 #[cfg(test)]
-#[path = "shader_resource_records/optimization_tests.rs"]
+#[path = "shader_resource_records/tests/optimization_tests.rs"]
 mod optimization_tests;
+
+#[cfg(test)]
+#[path = "shader_resource_records/tests/optimization_batch_jc_runtime642_tests.rs"]
+mod optimization_batch_jc_runtime642_tests;

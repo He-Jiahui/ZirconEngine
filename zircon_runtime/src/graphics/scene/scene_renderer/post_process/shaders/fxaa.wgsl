@@ -1,9 +1,12 @@
+// 终端空间抗锯齿读取已经显示映射的颜色，只过滤 RGB 并保留原 alpha。
+// 当前 Rust executor 使用局部输出与零原点参数；向物理目标输出时必须同步原点参数和 viewport。
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
 };
 
 @group(0) @binding(0) var terminal_input_tex: texture_2d<f32>;
 
+// 这是目标片元坐标到局部输入的映射契约；原点不能被误当作输入纹理中的偏移。
 struct TerminalRegionParams {
     viewport_origin: vec4<u32>,
 };
@@ -33,6 +36,7 @@ fn load_rgb(coord: vec2<i32>, extent: vec2<u32>) -> vec3<f32> {
     return textureLoad(terminal_input_tex, clamped, 0).rgb;
 }
 
+// 只在局部亮度有明显变化处借用邻色，避免平坦区域无条件变软；不承担时间历史重建。
 fn apply_fxaa(coord: vec2<u32>, color: vec3<f32>) -> vec3<f32> {
     let extent = textureDimensions(terminal_input_tex);
     let coord_i32 = vec2<i32>(coord);

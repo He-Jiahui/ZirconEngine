@@ -131,9 +131,10 @@ pub use world_object_payload::{WorldObjectAction, WorldObjectIdPayload};
 
 pub const REFERENCE_COMMIT: &str = "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a";
 pub const SIMULATION_HZ: u32 = 20;
+pub const SIMULATION_STEP_NS: u64 = 1_000_000_000_u64 / (SIMULATION_HZ as u64);
 pub const PRESENTATION_HZ: u32 = 60;
-pub const WORLD_STATE_FORMAT: &str = "WOS83";
-pub const WORLD_STATE_SCHEMA_VERSION: u16 = 83;
+pub const WORLD_STATE_FORMAT: &str = "WOS118";
+pub const WORLD_STATE_SCHEMA_VERSION: u16 = 118;
 pub const OFFLINE_SESSION_BOOTSTRAP_VERSION: u16 = 2;
 pub const STANDARD_OFFLINE_WORLD_SEED: u32 = 20_061;
 

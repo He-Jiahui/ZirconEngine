@@ -1,3 +1,6 @@
+// 调用端：npm run generate:fire-mage-contract (tools/package.json)；职责：固化炽热连击、点燃和灸疗的顺序与数值规则。
+// 输入边界：src/sim/combat/fire_mage.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

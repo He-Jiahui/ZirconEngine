@@ -1,4 +1,7 @@
-use super::super::super::data::HostWindowSceneData;
+mod authored;
+
+use super::super::super::componentized_workbench_regions::owns_ordinary_panes;
+use super::super::super::data::HostWindowPresentationData;
 use super::super::UiProfileNamedFrame;
 use super::frame_math::translated;
 use super::pane_frames::{
@@ -16,8 +19,9 @@ pub(in crate::ui::retained_host::host_contract) struct PaneProfileControls {
 }
 
 pub(in crate::ui::retained_host::host_contract) fn collect_pane_profile_controls(
-    scene: &HostWindowSceneData,
+    presentation: &HostWindowPresentationData,
 ) -> PaneProfileControls {
+    let scene = &presentation.host_scene_data;
     let mut viewport_toolbar_controls = Vec::new();
     let mut template_controls = Vec::new();
     let mut welcome_recent_frames = Vec::new();
@@ -35,24 +39,28 @@ pub(in crate::ui::retained_host::host_contract) fn collect_pane_profile_controls
         &mut welcome_recent_frames,
         &mut asset_browser_content_frames,
     );
-    collect_pane_profile_frames(
-        "left",
-        &scene.left_dock.pane,
-        &side_dock_content_frame(&scene.left_dock),
-        &mut viewport_toolbar_controls,
-        &mut template_controls,
-        &mut welcome_recent_frames,
-        &mut asset_browser_content_frames,
-    );
-    collect_pane_profile_frames(
-        "right",
-        &scene.right_dock.pane,
-        &side_dock_content_frame(&scene.right_dock),
-        &mut viewport_toolbar_controls,
-        &mut template_controls,
-        &mut welcome_recent_frames,
-        &mut asset_browser_content_frames,
-    );
+    if owns_ordinary_panes(presentation) {
+        authored::collect_authored_pane_controls(presentation, &mut template_controls);
+    } else {
+        collect_pane_profile_frames(
+            "left",
+            &scene.left_dock.pane,
+            &side_dock_content_frame(&scene.left_dock),
+            &mut viewport_toolbar_controls,
+            &mut template_controls,
+            &mut welcome_recent_frames,
+            &mut asset_browser_content_frames,
+        );
+        collect_pane_profile_frames(
+            "right",
+            &scene.right_dock.pane,
+            &side_dock_content_frame(&scene.right_dock),
+            &mut viewport_toolbar_controls,
+            &mut template_controls,
+            &mut welcome_recent_frames,
+            &mut asset_browser_content_frames,
+        );
+    }
     collect_pane_profile_frames(
         "bottom",
         &scene.bottom_dock.pane,

@@ -14,11 +14,11 @@ NAVIGATION_PROFILE = REPO_ROOT / "zircon_runtime/src/ui/surface/navigation_index
 FRAME_PUBLICATION = (
     REPO_ROOT / "zircon_runtime/src/ui/surface/surface/frame_publication.rs"
 )
-CAPTURE = REPO_ROOT / "tools/ui-profile-capture.ps1"
-CAPTURE_MANIFEST = REPO_ROOT / "tools/profile-capture-manifest.ps1"
-METRICS = REPO_ROOT / "tools/ui-profile-surface-pipeline-metrics.ps1"
+CAPTURE = REPO_ROOT / "tools/analysis/profiling/ui/ui-profile-capture.ps1"
+CAPTURE_MANIFEST = REPO_ROOT / "tools/analysis/profiling/shared/profile-capture-manifest.ps1"
+METRICS = REPO_ROOT / "tools/analysis/profiling/ui/ui-profile-surface-pipeline-metrics.ps1"
 
-
+# 检查表面重建的阶段时间与工作量来自同一权威，并在命中、发布各自归属处计量。
 class RuntimeUiSurfacePipelineProfileContract(unittest.TestCase):
     def test_surface_rebuild_exports_stage_time_and_work_from_one_authority(self) -> None:
         source = REBUILD.read_text(encoding="utf-8")
@@ -71,7 +71,7 @@ class RuntimeUiSurfacePipelineProfileContract(unittest.TestCase):
 
         self.assertIn("ui-profile-surface-pipeline-metrics.ps1", capture)
         self.assertIn("Export-ZirconUiSurfacePipelineMetrics", capture)
-        self.assertIn("tools/ui-profile-surface-pipeline-metrics.ps1", manifest)
+        self.assertIn("tools/analysis/profiling/ui/ui-profile-surface-pipeline-metrics.ps1", manifest)
         self.assertIn("ui_surface_pipeline_metrics.json", metrics)
         self.assertIn("surface_rebuild", metrics)
         self.assertIn("frame_publication", metrics)

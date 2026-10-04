@@ -1,3 +1,4 @@
+# 核对资源导入诊断与作业提交同属一个事务阶段。
 import pathlib
 import unittest
 

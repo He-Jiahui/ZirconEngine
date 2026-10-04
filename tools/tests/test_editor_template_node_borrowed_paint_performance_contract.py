@@ -1,3 +1,4 @@
+# 核对未变换模板节点绘制借用数据，并在非悬停路径提前退出持有转换。
 from pathlib import Path
 import unittest
 

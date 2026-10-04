@@ -715,5 +715,5 @@ fn issue_kind_name(kind: AssetMigrationIssueKind) -> &'static str {
 }
 
 #[cfg(test)]
-#[path = "runner/capability_error_tests.rs"]
+#[path = "runner/tests/capability_error_tests.rs"]
 mod capability_error_tests;

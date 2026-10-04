@@ -14,10 +14,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/activity_rail_pointer/rebuild_surface.rs
   - zircon_editor/src/ui/retained_host/drawer_header_pointer/build_host_drawer_header_pointer_layout.rs
   - zircon_editor/src/ui/retained_host/drawer_header_pointer/build_surface.rs
-  - zircon_editor/src/ui/retained_host/drawer_header_pointer/update_measured_frame.rs
   - zircon_editor/src/ui/retained_host/host_page_pointer/build_host_page_pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/tab_strip_geometry.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/rebuild_surface.rs
   - zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs
   - zircon_editor/src/ui/retained_host/shell_pointer/drag_surface.rs
   - zircon_editor/src/ui/retained_host/shell_pointer/resize_surface.rs
@@ -55,8 +52,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/data/host_root.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/panes/pane.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/presentation/snapshot.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/template_hover/nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/template_hover/panes.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/diagnostics/planned_present
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes
@@ -66,7 +61,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts
   - zircon_editor/src/ui/retained_host/host_contract/profiling_hit_routes
   - zircon_editor/src/ui/retained_host/primitives.rs
-  - tools/ui-profile-capture.ps1
+  - tools/analysis/profiling/ui/ui-profile-capture.ps1
 reference_sources:
   - dev/bevy/crates/bevy_render/src/view/window/screenshot.rs
   - dev/slint/internal/backends/winit/accesskit.rs

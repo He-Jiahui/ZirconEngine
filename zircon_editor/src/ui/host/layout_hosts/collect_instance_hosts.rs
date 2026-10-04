@@ -6,7 +6,7 @@ use crate::ui::workbench::view::{ViewHost, ViewInstanceId};
 use super::collect_document_hosts::collect_document_hosts;
 
 #[cfg(test)]
-#[path = "collect_instance_hosts/hash_placement_tests.rs"]
+#[path = "collect_instance_hosts/tests/hash_placement_tests.rs"]
 mod hash_placement_tests;
 
 pub(in crate::ui::host) fn collect_instance_hosts(

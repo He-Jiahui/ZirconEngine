@@ -1,3 +1,6 @@
+// 调用端：npm run generate:salvage-contract (tools/package.json)；职责：固化拆解材料及专业返还表。
+// 输入边界：src/sim/professions/salvage.ts；--check 比较生成结果，不改写目标文件。
+
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

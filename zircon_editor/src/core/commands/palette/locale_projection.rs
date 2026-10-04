@@ -20,7 +20,7 @@ impl EditorCommandPaletteLocaleProjection {
     ) -> Self {
         let mut entries = Vec::with_capacity(seeds.len());
         let mut search_documents = Vec::with_capacity(seeds.len());
-        let mut search_postings: [Vec<usize>; 256] = std::array::from_fn(|_| Vec::new());
+        let mut posting_counts = [0usize; 256];
         for seed in seeds {
             let entry = seed.project(i18n, locale);
             let document = search_document(&entry);
@@ -30,11 +30,23 @@ impl EditorCommandPaletteLocaleProjection {
             }
             for (byte, present) in indexed_bytes.into_iter().enumerate() {
                 if present {
-                    search_postings[byte].push(entries.len());
+                    posting_counts[byte] += 1;
                 }
             }
             entries.push(entry);
             search_documents.push(document);
+        }
+        let mut search_postings = posting_counts.map(Vec::with_capacity);
+        for (index, document) in search_documents.iter().enumerate() {
+            let mut indexed_bytes = [false; 256];
+            for byte in document.bytes() {
+                indexed_bytes[usize::from(byte)] = true;
+            }
+            for (byte, present) in indexed_bytes.into_iter().enumerate() {
+                if present {
+                    search_postings[byte].push(index);
+                }
+            }
         }
         Self {
             locale: locale.clone(),
@@ -48,3 +60,7 @@ impl EditorCommandPaletteLocaleProjection {
         &self.locale == locale
     }
 }
+
+#[cfg(test)]
+#[path = "tests/locale_projection.rs"]
+mod tests;

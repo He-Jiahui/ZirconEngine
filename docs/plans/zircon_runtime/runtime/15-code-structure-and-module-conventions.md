@@ -1,7 +1,6 @@
 ---
 related_code:
   - docs/plans/zircon_runtime/runtime/15/2026-07-10-priority-plan-doc-current-owner-inventory.md
-  - tests/acceptance/runtime-priority-plan-output-archive-ownership.md
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/prelude.rs
   - zircon_runtime/src/asset/mod.rs
@@ -9,7 +8,7 @@ related_code:
   - zircon_runtime/src/asset/assets/texture/upload_support/dds.rs
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness.rs
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/container_fixtures.rs
-  - docs/zircon_runtime/asset/render-assets.md
+  - docs/crates/zircon_runtime/asset/render-assets.md
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/prelude.rs
   - zircon_runtime/src/scene/world/property_access/entries.rs
@@ -46,12 +45,12 @@ related_code:
   - zircon_runtime/src/ui/template/asset/surface_index.rs
   - zircon_runtime/src/ui/template/asset/surface_index/node_resource_registration.rs
   - tools/tests/test_runtime_ui_asset_surface_node_resource_owner_structure.py
-  - docs/zircon_runtime/ui/platform_input.md
+  - docs/crates/zircon_runtime/ui/platform_input.md
   - zircon_runtime/src/ui/template/asset/schema/migrator.rs
   - zircon_runtime/src/ui/tests/asset_schema_migration.rs
   - zircon_runtime_interface/src/ui/template/asset/schema/report.rs
-  - docs/zircon_runtime/ui/template/pipeline.md
-  - docs/zircon_runtime_interface/ui/mod.md
+  - docs/crates/zircon_runtime/ui/template/pipeline.md
+  - docs/crates/zircon_runtime_interface/ui/mod.md
   - zircon_runtime/src/ui/text/mod.rs
   - zircon_runtime/src/ui/text/edit_state.rs
   - zircon_runtime/src/ui/public_runtime_frame.rs
@@ -105,7 +104,6 @@ related_code:
   - zircon_runtime/src/animation/manager/mod.rs
   - zircon_runtime/src/animation/manager/pose.rs
   - zircon_runtime/src/animation/manager/sampling.rs
-  - zircon_runtime/src/animation/sequence/apply.rs
   - zircon_runtime/src/animation/sequence/conversion.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/animation_assets.rs
@@ -113,7 +111,7 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx/d11_test_runtime_fixture.rs
   - zircon_runtime/src/core/framework/animation/error.rs
   - zircon_runtime/src/core/framework/animation/manager.rs
-  - docs/zircon_runtime/animation/runtime.md
+  - docs/crates/zircon_runtime/animation/runtime.md
   - zircon_runtime/src/core/framework/input/mouse_wheel.rs
   - zircon_runtime/src/core/framework/input/mod.rs
   - zircon_runtime/src/input/mod.rs
@@ -121,7 +119,7 @@ related_code:
   - zircon_runtime/src/input/runtime/default_input_action_manager.rs
   - zircon_runtime/src/dynamic_api/session/events.rs
   - zircon_runtime/src/dynamic_api/tests/input_events.rs
-  - docs/zircon_runtime/input/input_state.md
+  - docs/crates/zircon_runtime/input/input_state.md
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/input.rs
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/input/mouse_wheel_line_delta.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_input_mouse_wheel.rs
@@ -136,10 +134,10 @@ related_code:
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/session/tests/mod.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_runtime_support.rs
-  - docs/zircon_runtime/dynamic_api/session.md
+  - docs/crates/zircon_runtime/dynamic_api/session.md
   - zircon_runtime/src/core/framework/camera_controller/mod.rs
   - zircon_runtime/src/core/framework/camera_controller/controller_output.rs
-  - docs/zircon_runtime/core/framework/camera_controller.md
+  - docs/crates/zircon_runtime/core/framework/camera_controller.md
   - zircon_runtime/src/scene/tests/ecs_systems.rs
   - zircon_runtime/src/scene/tests/ecs_systems/many_single_queries.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_systems.rs
@@ -153,15 +151,10 @@ related_code:
   - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
   - zircon_runtime/src/core/runtime/state/module_entry.rs
   - zircon_runtime/src/core/runtime/config_store.rs
-  - zircon_runtime/src/core/resource/manager/resource_manager.rs
-  - zircon_runtime/src/core/resource/manager/registry_ops.rs
-  - zircon_runtime/src/core/resource/manager/payload_ops.rs
-  - zircon_runtime/src/core/resource/manager/lease_ops.rs
-  - zircon_runtime/src/core/resource/manager/events.rs
-  - docs/zircon_runtime/core/resource.md
+  - docs/crates/zircon_runtime/core/resource.md
   - zircon_runtime/src/navigation/runtime.rs
   - zircon_runtime/src/navigation/runtime/tests.rs
-  - docs/zircon_runtime/navigation/runtime.md
+  - docs/crates/zircon_runtime/navigation/runtime.md
   - zircon_runtime/src/core/runtime/handle/registration/register_module.rs
   - zircon_runtime/src/core/runtime/handle/registration/service_lists/mod.rs
   - zircon_runtime/src/core/runtime/handle/registration/service_lists/types.rs
@@ -245,19 +238,18 @@ related_code:
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_construction.rs
   - zircon_runtime/src/graphics/backend/render_backend/mod.rs
   - zircon_runtime/src/graphics/backend/render_backend/offscreen_target_construct/construct.rs
-  - docs/zircon_runtime/core/diagnostics.md
-  - docs/zircon_runtime/core/runtime/lifecycle.md
-  - docs/zircon_runtime/core/state.md
-  - docs/zircon_runtime/core/tasks.md
-  - docs/zircon_runtime/scene/ecs.md
+  - docs/crates/zircon_runtime/core/diagnostics.md
+  - docs/crates/zircon_runtime/core/runtime/lifecycle.md
+  - docs/crates/zircon_runtime/core/state.md
+  - docs/crates/zircon_runtime/core/tasks.md
+  - docs/crates/zircon_runtime/scene/ecs.md
   - zircon_runtime/src/script/vm/host/builtin_host_modules.rs
-  - docs/zircon_runtime/script/vm/host/function_ledger.md
+  - docs/crates/zircon_runtime/script/vm/host/function_ledger.md
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/provider_boilerplate.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/facade_surface.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/mod.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/runtime_ui.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/production_scan.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/status_anchor_cleanup.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/core_runtime.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/runtime_services.rs
@@ -267,7 +259,6 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/split_layout/folder_backing.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/split_layout/mounts.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/split_layout/budgets.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/split_layout/status_mirrors.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/support.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/diagnostics_surface.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs
@@ -316,7 +307,6 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_child_owners.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_child_owners.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure_assertions.rs
@@ -325,22 +315,21 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/reads.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/inventory/current/budgets.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/delegation.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/status_mirrors.rs
   - zircon_runtime/src/asset/assets/font.rs
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_schema.rs
-  - docs/zircon_runtime/asset/assets/font.md
-  - docs/zircon_runtime/asset/assets/ui.md
-  - tools/plugin_structure_audits/capability.py
+  - docs/crates/zircon_runtime/asset/assets/font.md
+  - docs/crates/zircon_runtime/asset/assets/ui.md
+  - tools/audits/plugins/capability.py
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
   - zircon_plugins/plugin_sdk/src/manifest/feature_bundle_builder.rs
   - zircon_plugins/plugin_sdk/src/manifest/importer_runtime.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
-  - docs/engine-architecture/large-file-ownership-m1.md
-  - docs/engine-architecture/runtime-interface-convergence.md
+  - docs/architecture/large-file-ownership-m1.md
+  - docs/architecture/runtime-interface-convergence.md
 implementation_files:
-  - docs/zircon_runtime/structure/module-convention.md
+  - docs/crates/zircon_runtime/structure/module-convention.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_convention_gate.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_convention_gate_markdown.py
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate.rs
@@ -348,7 +337,6 @@ implementation_files:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/module_doc_frontmatter.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/output_contract.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/debt_boundary.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/audit_status.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/split_layout.rs
   - zircon_runtime/src/graphics/mod.rs
   - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler.rs
@@ -367,26 +355,20 @@ implementation_files:
   - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
   - zircon_runtime/src/core/runtime/state/module_entry.rs
   - zircon_runtime/src/core/runtime/config_store.rs
-  - zircon_runtime/src/core/resource/manager/resource_manager.rs
-  - zircon_runtime/src/core/resource/manager/registry_ops.rs
-  - zircon_runtime/src/core/resource/manager/payload_ops.rs
-  - zircon_runtime/src/core/resource/manager/lease_ops.rs
-  - zircon_runtime/src/core/resource/manager/events.rs
-  - docs/zircon_runtime/core/resource.md
+  - docs/crates/zircon_runtime/core/resource.md
   - zircon_runtime/src/animation/manager/mod.rs
   - zircon_runtime/src/animation/manager/pose.rs
   - zircon_runtime/src/animation/manager/sampling.rs
-  - zircon_runtime/src/animation/sequence/apply.rs
   - zircon_runtime/src/animation/sequence/conversion.rs
   - zircon_runtime/src/core/framework/animation/error.rs
   - zircon_runtime/src/core/framework/animation/manager.rs
-  - docs/zircon_runtime/animation/runtime.md
+  - docs/crates/zircon_runtime/animation/runtime.md
   - zircon_runtime/src/input/runtime/default_input_manager.rs
   - zircon_runtime/src/input/runtime/default_input_action_manager.rs
-  - docs/zircon_runtime/input/input_state.md
+  - docs/crates/zircon_runtime/input/input_state.md
   - zircon_runtime/src/navigation/runtime.rs
   - zircon_runtime/src/navigation/runtime/tests.rs
-  - docs/zircon_runtime/navigation/runtime.md
+  - docs/crates/zircon_runtime/navigation/runtime.md
   - zircon_runtime/src/core/runtime/handle/registration/register_module.rs
   - zircon_runtime/src/core/runtime/handle/registration/service_lists/mod.rs
   - zircon_runtime/src/core/runtime/handle/registration/service_lists/types.rs
@@ -415,17 +397,16 @@ implementation_files:
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary/lexical_scan.rs
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary/support.rs
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary/split_layout.rs
-  - docs/zircon_runtime/core/runtime/lifecycle.md
-  - docs/zircon_runtime/scene/ecs.md
+  - docs/crates/zircon_runtime/core/runtime/lifecycle.md
+  - docs/crates/zircon_runtime/scene/ecs.md
   - zircon_runtime/src/script/vm/host/builtin_host_modules.rs
-  - docs/zircon_runtime/script/vm/host/function_ledger.md
+  - docs/crates/zircon_runtime/script/vm/host/function_ledger.md
   - zircon_runtime/src/tests/runtime_absorption/structure_convention.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/provider_boilerplate.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/facade_surface.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/mod.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/runtime_ui.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/production_scan.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/status_anchor_cleanup.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/core_runtime.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/runtime_services.rs
@@ -435,7 +416,6 @@ implementation_files:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/split_layout/folder_backing.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/split_layout/mounts.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/split_layout/budgets.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/split_layout/status_mirrors.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/support.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/diagnostics_surface.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs
@@ -626,7 +606,7 @@ last_refined: 2026-08-03
 
 最新验证：artifact cache JSON number scoped rustfmt --check 通过；direct static scans 确认 `asset/artifact/cache_payload/json_value.rs` 的 `.unwrap()` / `.expect(` 命中数为 0，foundation row-data 为 21/23/18/11、合计 73，五份优先文档旧 72-row 锚点命中数为 0，F7 状态锚覆盖 8 处。Standalone rustc guards 与 Cargo package gate 因外部 cargo/rustc 编译车道 active deferred，本轮不声明 workspace Cargo 通过。
 
-最新完成：`Runtime 15 M4 shader prewarm owner guard sync` / `runtime_15_shader_prewarm_owner_guard_sync_static_passed_cargo_deferred` 已把 shader-prewarm build-tool、plugin descriptor、runtime staged-cache 与 product staged-cache 结构守卫同步到当前 owner 边界：`tools/zircon_build.py` 只保留 orchestrator import/call/pass-through，`tools/zircon_build_plugin_assets.py` 承接 `distribution.assets` asset-root normalization，`tools/zircon_build_plugin_shader_descriptors.py` 承接 `geometry_sources` / `shading_models` descriptor parsing，`tools/zircon_build_plugin_packages.py` 保留 plugin package DTO 字段，运行时 staged-cache 断言读取 `mesh_pipeline_cache/ensure_pipeline/tests.rs`，产品 staged-cache 断言锁定 `include_content_hashes.contains(request_source_hash)` 语义而不是旧的一行赋值锚点。
+最新完成：`Runtime 15 M4 shader prewarm owner guard sync` / `runtime_15_shader_prewarm_owner_guard_sync_static_passed_cargo_deferred` 已把 shader-prewarm build-tool、plugin descriptor、runtime staged-cache 与 product staged-cache 结构守卫同步到当前 owner 边界：`tools/build/zircon_build.py` 只保留 orchestrator import/call/pass-through，`tools/build/zircon_build_plugin_assets.py` 承接 `distribution.assets` asset-root normalization，`tools/build/zircon_build_plugin_shader_descriptors.py` 承接 `geometry_sources` / `shading_models` descriptor parsing，`tools/build/zircon_build_plugin_packages.py` 保留 plugin package DTO 字段，运行时 staged-cache 断言读取 `mesh_pipeline_cache/ensure_pipeline/tests.rs`，产品 staged-cache 断言锁定 `include_content_hashes.contains(request_source_hash)` 语义而不是旧的一行赋值锚点。
 
 最新完成：`Runtime 15 M4 deferred GBuffer template output guard sync` / `runtime_15_deferred_gbuffer_template_output_guard_sync_static_passed_cargo_deferred` 已把 Deferred GBuffer template 守卫拆为共享 surface type owner 与 entry template owner：`zr_surface_types.wgsl` 锁定 `ZrDeferredGBufferOutput` 及 albedo/normal/material location layout，`zr_template_deferred_gbuffer.wgsl` 只锁定 alpha clip 与 `encode_gbuffer(surface, zr_build_shading_context(input))` 委托。该同步不改变 WGSL 输出结构、GBuffer pipeline、mesh cache key 或 WGPU 行为。
 
@@ -816,7 +796,7 @@ Runtime 15 精确锚点补记 2026-07-01：`Runtime 15 M3 mesh pipeline shader s
 
 最新完成：`Runtime 15 M3 foundation row-data priority-doc frontmatter sync` / `runtime_15_foundation_row_data_priority_doc_frontmatter_sync_static_passed_cargo_deferred` 已新增 `runtime_15_foundation_row_data_priority_doc_frontmatter_records_stale_count_guard`，要求 `docs/plans/engine-code-structure-convention.md` 与 `docs/plans/engine-code-review-findings-2026-06.md` 的 frontmatter 同时列出 `row_count.rs`、`status_support/row_data_and_budget.rs`、M3 structure-support status/date maps，以及 row-count/stale-count 两个测试锚点。该切片只整理优先计划文档 frontmatter 和状态镜像，不改 runtime/plugin/render/editor 生产代码；Cargo gate deferred。
 
-最新完成：`Runtime 15 M3 module convention module-doc frontmatter uniqueness guard` / `runtime_15_module_convention_module_doc_frontmatter_uniqueness_static_passed_cargo_deferred` 已新增 `structure_convention/module_convention_gate.rs::runtime_15_module_convention_module_doc_frontmatter_has_unique_entries`，解析 `docs/zircon_runtime/structure/module-convention.md` 的 `related_code`、`implementation_files`、`plan_sources` 与 `tests` frontmatter section 并要求 frontmatter duplicate count 0。该切片清理 module-convention 模块文档头部 29 个 `related_code` 重复项与 7 个 `implementation_files` 重复项，同步 `module_convention_status.rs`、M3 structure-support status/date maps、runtime index、review findings、structure convention、module-convention 与 session note；不改 runtime/plugin/render/editor 生产代码；Cargo gate deferred。
+最新完成：`Runtime 15 M3 module convention module-doc frontmatter uniqueness guard` / `runtime_15_module_convention_module_doc_frontmatter_uniqueness_static_passed_cargo_deferred` 已新增 `structure_convention/module_convention_gate.rs::runtime_15_module_convention_module_doc_frontmatter_has_unique_entries`，解析 `docs/crates/zircon_runtime/structure/module-convention.md` 的 `related_code`、`implementation_files`、`plan_sources` 与 `tests` frontmatter section 并要求 frontmatter duplicate count 0。该切片清理 module-convention 模块文档头部 29 个 `related_code` 重复项与 7 个 `implementation_files` 重复项，同步 `module_convention_status.rs`、M3 structure-support status/date maps、runtime index、review findings、structure convention、module-convention 与 session note；不改 runtime/plugin/render/editor 生产代码；Cargo gate deferred。
 
 最新完成：`Runtime 15 M3 module convention gate guard folder-backed split` / `runtime_15_module_convention_gate_guard_folder_backed_static_passed_cargo_deferred` 已把 `structure_convention/module_convention_gate.rs` 从 616 行混合守卫 owner 收束为 6 行 route owner；实际检查拆入 `structure_convention/module_convention_gate/helpers.rs`、`structure_convention/module_convention_gate/module_doc_frontmatter.rs`、`structure_convention/module_convention_gate/output_contract.rs`、`structure_convention/module_convention_gate/debt_boundary.rs`、`structure_convention/module_convention_gate/audit_status.rs` 与 `structure_convention/module_convention_gate/split_layout.rs`。新增 `runtime_15_module_convention_gate_guard_is_folder_backed` 锁定父/子挂载、旧测试体不回流、status row data、status/date maps、Frameworks02、Runtime 15/index/review/structure/module/session anchors。该切片只整理 structure-convention module-convention 测试守卫 owner，不改 runtime/plugin/render/editor/text/ZUI 生产代码；Cargo gate deferred。
 
@@ -973,7 +953,7 @@ Runtime 15 精确锚点补记 2026-07-01：`Runtime 15 M3 mesh pipeline shader s
   - `oversized_test_files`、`duplicate_test_trees`
   - `module_convention_gate.m1_gate_status`、`classification_counts`、`migration_debt_count`、`exempt`
 - **guard 测试**：`zircon_runtime/src/tests/runtime_absorption/structure_convention.rs`（沿用 runtime_absorption 范式），含 `runtime_15_module_convention_mirror_docs_match_structure_audit_counts`。
-- **镜像文档**：`docs/zircon_runtime/structure/module-convention.md`，计数与审计一致。
+- **镜像文档**：`docs/crates/zircon_runtime/structure/module-convention.md`，计数与审计一致。
 
 ## 6. 硬切 checklist（每个含删除义务的切片必过）
 
@@ -1404,7 +1384,7 @@ Runtime04/15 acceptance、性能收益、milestone commit 或企微同步。
 Runtime08/15 将 559 行
 `zircon_runtime/src/scene/ecs/component/registry.rs` 收束为 154 行 identity/layout root、259 行
 `zircon_runtime/src/scene/ecs/component/registry/transferred.rs` 事务 owner 和 174 行
-`zircon_runtime/src/scene/ecs/component/registry/tests.rs` 测试 owner。结构回归由
+`zircon_runtime/src/scene/ecs/component/registry/tests/cases.rs` 测试 owner。结构回归由
 `tools/tests/test_runtime_ecs_component_registry_transfer_owner_structure.py` 固定 owner 预算、
 preflight/publish 不变量、六个行为测试与四份状态镜像；Runtime08 生产清单同步为 76 文件。
 
@@ -1458,7 +1438,7 @@ Render09/Runtime15 将 757 行
 declaration/resolution root、217 行
 `zircon_runtime/src/graphics/types/viewport_render_output_target/writeback.rs`、217 行
 `zircon_runtime/src/graphics/types/viewport_render_output_target/graph_import.rs` 与 268 行
-`zircon_runtime/src/graphics/types/viewport_render_output_target/tests.rs`。结构回归由
+`zircon_runtime/src/graphics/types/viewport_render_output_target/tests/cases.rs`。结构回归由
 `tools/tests/test_runtime_viewport_output_planner_owner_structure.py` 固定 owner 预算、规划顺序、
 两个 format path 和 12 个测试。
 
@@ -1507,3 +1487,5 @@ factory。该边界没有把任意 scene callback 统一吞掉，也没有引入
 源码回归由 `resource_factory_panic_is_reported_without_partial_world_mutation` 覆盖；资源
 concurrency/owner validation 相关测试共 7 项。当前只完成源码与静态检查，managed Cargo、
 完整 Runtime06/15 gate、性能/功耗验证仍 pending，故不关闭里程碑、不提交 commit 或企微同步。
+
+2026-10-04 测试目录迁移：当前 plugin-input 测试 owner 为 `zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes/tests/plugin_inputs.rs`（`postprocess_routes/tests/plugin_inputs.rs`）。此前记录保留其当时的路径；当前验证边界见 [Rust 测试目录迁移记录](../../rust-test-directory-separation-2026-10-04.md)。

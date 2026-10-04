@@ -211,7 +211,7 @@ readiness 信号。focused 集成测试持有同一 publication 写锁并验证 
 - 编译门：`cargo check -p zircon_runtime --lib --locked`
 - 测试门：focused 过滤词批 `cargo test -p zircon_runtime --lib --locked lifecycle`、`cargo test -p zircon_runtime --lib --locked init_level`、`cargo test -p zircon_runtime --lib --locked module_descriptor`、`cargo test -p zircon_runtime --lib --locked core_error`（新增内核单测：层级推进顺序、依赖环报错、ready 超时、finish 全序）；波次收口保留全量 `cargo test -p zircon_runtime --lib --locked`（policy §4）。
 - 验收证据：新增单测与既有 focused 相关回归通过；全量 runtime lib 零回归由波次收口证据确认。
-- 文档更新：`docs/zircon_runtime/core/runtime/`（源路径镜像）新增 lifecycle/init-level 文档。
+- 文档更新：`docs/crates/zircon_runtime/core/runtime/`（源路径镜像）新增 lifecycle/init-level 文档。
 
 ### M2 内建模块与 profile 组装切换
 
@@ -253,8 +253,8 @@ shim，fresh 二次审查为 C0/I0/M0。共享 native loader/fixture 中重新�
 - 编译门：`cargo check -p zircon_runtime --lib --locked`。
 - focused 过滤词批：`cargo test -p zircon_runtime --lib --locked plugin`、`cargo test -p zircon_runtime --lib --locked descriptor`、`cargo test -p zircon_runtime --lib --locked registration`；波次收口保留全量 `cargo test -p zircon_runtime --lib --locked`（policy §4）。
 - 插件工作区门：`cargo build --manifest-path zircon_plugins/Cargo.toml --workspace --locked` + focused `cargo test --manifest-path zircon_plugins/Cargo.toml --workspace --locked plugin`、`cargo test --manifest-path zircon_plugins/Cargo.toml --workspace --locked lifecycle`；波次收口保留插件工作区全量 `cargo test --manifest-path zircon_plugins/Cargo.toml --workspace --locked`（policy §4）。
-- 验收证据：first_party 插件全量注册顺序快照；native_dynamic_fixture 加载冒烟（`python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture ...` 产物加载）。
-- 文档更新：`docs/zircon_app/plugins.md`、`docs/runtime-plugins/profile-selection.md` 同步 InitLevel 语义。
+- 验收证据：first_party 插件全量注册顺序快照；native_dynamic_fixture 加载冒烟（`python tools/build/zircon_build.py --targets plugins --plugins native_dynamic_fixture ...` 产物加载）。
+- 文档更新：`docs/crates/zircon_app/plugins.md`、`docs/runtime-plugins/profile-selection.md` 同步 InitLevel 语义。
 
 ## 5. 风险与回退
 

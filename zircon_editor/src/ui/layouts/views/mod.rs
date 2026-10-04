@@ -13,7 +13,7 @@ mod viewport_chrome;
 mod welcome;
 mod welcome_presentation;
 
-pub(crate) use animation_editor::animation_editor_pane_nodes;
+pub(crate) use animation_editor::{animation_graph_pane_nodes, animation_sequence_pane_nodes};
 pub(crate) use asset_browser::{asset_browser_pane_data, asset_browser_pane_nodes};
 pub(crate) use asset_kind_filter::{
     asset_kind_filter_identity, asset_kind_filter_is_supported, asset_kind_filter_options,

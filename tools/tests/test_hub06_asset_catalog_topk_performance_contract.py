@@ -1,3 +1,4 @@
+# 核对中心资产目录的有界排序选择与一致全序比较。
 from __future__ import annotations
 
 import re

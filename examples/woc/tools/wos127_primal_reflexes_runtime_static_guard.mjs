@@ -44,14 +44,14 @@ requireText(entity, /e\.dodgeChance = Math\.max\(0, 0\.05 \+ s\.agi \* 0\.0005 \
 const generator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
 if (!/barkskin',[\s\S]*?'primal_reflexes'/.test(generator) ||
-    !generator.includes("EXPECTED_ABILITY_COUNT = 79") ||
-    !zrGenerator.includes("document.entries.length === 79")) {
+    !generator.includes("EXPECTED_ABILITY_COUNT = 117") ||
+    !zrGenerator.includes("document.entries.length === 117")) {
   throw new Error("M4 Primal Reflexes projection scope is missing");
 }
 const entry = JSON.parse(read("contracts", "m4_abilities.json")).entries.find(
   (value) => value.id === "primal_reflexes",
 );
-if (!entry || entry.index !== 67 || entry.definition.cost !== 0 ||
+if (!entry || entry.index !== 71 || entry.definition.cost !== 0 ||
     entry.definition.cooldown !== 60 || !entry.definition.offGcd ||
     !entry.definition.usableInForm || entry.definition.effects?.[0]?.type !== "selfBuff" ||
     entry.definition.effects[0].kind !== "buff_dodge" ||
@@ -77,9 +77,9 @@ if (reducerStart < 0 || reducerEnd < reducerStart ||
     world.slice(reducerStart, reducerEnd).includes("entityCastGcdRemaining")) {
   throw new Error("Primal Reflexes must not consume or require the global cooldown");
 }
-requireText(world, /primalReflexesDodgeBonus[\s\S]*?primalReflexesAbilityCode[\s\S]*?value != 0\.5/,
+requireText(world, /retainedDodgeAuraProfileIsValid[\s\S]*?primalReflexesAbilityCode\(\)[\s\S]*?value == 0\.5/,
   "Primal Reflexes dodge profile is missing");
-requireText(world, /effectiveOfflineDodgeChance[\s\S]*?entityDodgeChance[\s\S]*?primalReflexesDodgeBonus[\s\S]*?return dodge > 0\.0 \? dodge : 0\.0/,
+requireText(world, /effectiveOfflineDodgeChance[\s\S]*?entityDodgeChance[\s\S]*?retainedDodgeAuraBonus[\s\S]*?return dodge > 0\.0 \? dodge : 0\.0/,
   "Primal Reflexes must aggregate on top of the stored base dodge chance");
 requireText(world, /resolveOfflineEastbrookMobSwingRequests[\s\S]*?effectiveOfflineDodgeChance\(state, playerIndex\)/,
   "offline mob hit table does not use the effective dodge chance");

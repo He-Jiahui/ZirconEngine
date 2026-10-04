@@ -1,0 +1,1765 @@
+penpot_host_theme_source = "zircon_editor/assets/ui/editor/theme/editor_tokens.zui"
+stylesheets = []
+penpot_dependency_sources = [ "zircon_editor/assets/ui/editor/theme/editor_tokens.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui", "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui", "zircon_editor/assets/icons/zircon_editor_shell/controls/search.svg", "zircon_editor/assets/icons/ionicons/close-outline.svg", "zircon_editor/assets/icons/zircon_editor_shell/controls/field-stepper.svg" ]
+penpot_original_source = "[asset]\nkind = \"component\"\nid = \"res://ui/editor/components/workbench/modules/extensions/gameplay/workbench_extension_spawn_rules_workspace.zui\"\nversion = 2\ndisplay_name = \"Workbench Extension Spawn Rules Workspace\"\n\n[imports]\nwidgets = [\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton\",\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown\",\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField\",\n  \"res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow\",\n  \"res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle\",\n  \"res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow\",\n  \"res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow\",\n]\nstyles = []\n\n[components.WorkbenchExtensionSpawnRulesWorkspace]\nroot = \"spawn_rules_workspace\"\ndefault_classes = [\"workbench-module-body\", \"workbench-extension-module-body\"]\n\n[nodes.spawn_rules_workspace]\ncomponent = \"Overlay\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesWorkspace\"\nclasses = [\"workbench-module-body\", \"workbench-extension-module-body\"]\nprops = { visibility = \"collapsed\" }\nlayout = { clip = true, container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [\n  { node = \"spawn_rules_workspace_main\" },\n  { node = \"spawn_rules_right\", slot = { layout = { alignment = { horizontal = \"End\", vertical = \"Fill\" }, z_order = 20 } } },\n]\n\n[nodes.spawn_rules_workspace_main]\ncomponent = \"HorizontalGroup\"\nclasses = [\"workbench-module-layout-main\"]\nlayout = { clip = true, container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.medium\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"spawn_rules_rail_gap\" }, { node = \"spawn_rules_left\" }, { node = \"spawn_rules_center\" }, { node = \"spawn_rules_right_reserve\" }]\n\n[nodes.spawn_rules_right_reserve]\ncomponent = \"Container\"\nclasses = [\"workbench-module-details-reserve\"]\nprops = { responsive_min_tier = \"wide\" }\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n[nodes.spawn_rules_rail_gap]\ncomponent = \"Container\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesRailGap\"\nprops = { responsive_min_tier = \"narrow\" }\nlayout = { width = { min = \"$editor.chrome.activity_rail.width\", preferred = \"$editor.chrome.activity_rail.width\", max = \"$editor.chrome.activity_rail.width\", stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.spawn_rules_left]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesLeftPanel\"\nclasses = [\"workbench-panel\", \"workbench-module-side\"]\nprops = { responsive_min_tier = \"narrow\" }\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"spawn_rules_title\" }, { node = \"spawn_rules_left_content\" }]\n\n[nodes.spawn_rules_left_content]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesLeftContent\"\nprops = { input_hoverable = true }\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = \"$editor.density.gap.small\", scrollbar_visibility = \"Auto\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"spawn_rules_enemy_row\" }, { node = \"spawn_rules_zone_a_row\" }, { node = \"spawn_rules_condition_night_row\" }]\n\n[nodes.spawn_rules_title]\ncomponent = \"WorkbenchSectionTitle\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesTitle\"\nprops = { text = \"Spawn Rules\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = \"Fixed\" } }\n\n[nodes.spawn_rules_enemy_row]\ncomponent = \"WorkbenchListRow\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesEnemyRow\"\nclasses = [\"workbench-list-row\", \"workbench-row-selected\"]\nprops = { text = \"SpawnRules_Enemy\", icon = \"target\", selected = true }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/SpawnRulesEnemyRow\", event = \"Click\", route = \"workbench.extension.spawn_rules.rules.enemy\" }]\n\n[nodes.spawn_rules_zone_a_row]\ncomponent = \"WorkbenchListRow\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesZoneARow\"\nclasses = [\"workbench-list-row\"]\nprops = { text = \"Zone_A\", icon = \"globe\", selected = false }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/SpawnRulesZoneARow\", event = \"Click\", route = \"workbench.extension.spawn_rules.zone.a\" }]\n\n[nodes.spawn_rules_condition_night_row]\ncomponent = \"WorkbenchListRow\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesConditionNightRow\"\nclasses = [\"workbench-list-row\"]\nprops = { text = \"Condition_Night\", icon = \"file\", selected = false }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/SpawnRulesConditionNightRow\", event = \"Click\", route = \"workbench.extension.spawn_rules.condition.night\" }]\n\n[nodes.spawn_rules_center]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesCenterPanel\"\nclasses = [\"workbench-panel\", \"workbench-module-center\"]\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"spawn_rules_center_header\" }, { node = \"spawn_rules_stack_table\" }, { node = \"spawn_rules_output\" }]\n\n[nodes.spawn_rules_center_header]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesCenterHeader\"\nclasses = [\"workbench-panel-toolbar\"]\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Horizontal\", gap = \"$editor.density.gap.medium\", scrollbar_visibility = \"Never\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"spawn_rules_center_title\" }, { node = \"spawn_rules_header_fill\" }, { node = \"spawn_rules_simulate_button\" }, { node = \"spawn_rules_validate_button\" }]\n\n[nodes.spawn_rules_center_title]\ncomponent = \"WorkbenchSectionTitle\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesCenterTitle\"\nprops = { text = \"Spawn Rule Stack\" }\nlayout = { width = { min = 250.0, preferred = 250.0, max = 340.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.spawn_rules_header_fill]\ncomponent = \"Container\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesHeaderFill\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.spawn_rules_simulate_button]\ncomponent = \"WorkbenchButton\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesSimulateButton\"\nclasses = [\"workbench-control-button\", \"workbench-module-command\"]\nprops = { responsive_min_tier = \"narrow\", text = \"Simulate\", button_variant = \"outlined\", button_color = \"secondary\" }\nlayout = { width = { min = 96, preferred = 96, max = 106, stretch = \"Fixed\" }, height = { min = 28, preferred = 28, max = 28, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/SpawnRulesSimulate\", event = \"Click\", route = \"workbench.extension.spawn_rules.simulate\" }]\n\n[nodes.spawn_rules_validate_button]\ncomponent = \"WorkbenchButton\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesValidateButton\"\nclasses = [\"workbench-control-button\", \"workbench-module-command\"]\nprops = { text = \"Validate\", button_variant = \"filled\", button_color = \"accent\" }\nlayout = { width = { min = 96, preferred = 96, max = 106, stretch = \"Fixed\" }, height = { min = 28, preferred = 28, max = 28, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/SpawnRulesValidate\", event = \"Click\", route = \"workbench.extension.spawn_rules.validate\" }]\n\n[nodes.spawn_rules_stack_table]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesStackTable\"\nclasses = [\"workbench-panel\", \"workbench-module-canvas\"]\nprops = { input_hoverable = true }\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = 0.0, scrollbar_visibility = \"Auto\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"spawn_rules_zone_a_table_row\" }, { node = \"spawn_rules_condition_night_table_row\" }, { node = \"spawn_rules_tag_combat_table_row\" }, { node = \"spawn_rules_conflict_table_row\" }]\n\n[nodes.spawn_rules_zone_a_table_row]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesZoneATableRow\"\nclasses = [\"workbench-table-row\"]\nprops = { text = \"Zone_A\", value_text = \"Volume   12 probes\", options = [\"Zone_A\",\"Volume\",\"12 probes\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/SpawnRulesZoneATableRow\", event = \"Click\", route = \"workbench.extension.spawn_rules.stack.zone_a\" }]\n\n[nodes.spawn_rules_condition_night_table_row]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesConditionNightTableRow\"\nclasses = [\"workbench-table-row\", \"workbench-row-selected\"]\nprops = { text = \"Condition_Night\", value_text = \"Condition   Selected\", selected = true, options = [\"Condition_Night\",\"Condition\",\"Selected\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/SpawnRulesConditionNightTableRow\", event = \"Click\", route = \"workbench.extension.spawn_rules.stack.condition_night\" }]\n\n[nodes.spawn_rules_tag_combat_table_row]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesTagCombatTableRow\"\nclasses = [\"workbench-table-row\"]\nprops = { text = \"Tag_Combat\", value_text = \"Filter   strict tags\", options = [\"Tag_Combat\",\"Filter\",\"strict tags\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/SpawnRulesTagCombatTableRow\", event = \"Click\", route = \"workbench.extension.spawn_rules.stack.tag_combat\" }]\n\n[nodes.spawn_rules_conflict_table_row]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesConflictTableRow\"\nclasses = [\"workbench-table-row\"]\nprops = { text = \"Conflict\", value_text = \"Validation   1 warning\", options = [\"Conflict\",\"Validation\",\"1 warning\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/SpawnRulesConflictTableRow\", event = \"Click\", route = \"workbench.extension.spawn_rules.stack.conflict\" }]\n\n[nodes.spawn_rules_output]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesOutputRow\"\nclasses = [\"workbench-table-row\"]\nprops = { text = \"Spawn Log\", value_text = \"18 rules   12 zones   1 conflict\", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false, options = [\"Spawn Log\",\"18 rules\",\"12 zones\",\"1 conflict\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\n\n[nodes.spawn_rules_right]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesRightPanel\"\nclasses = [\"workbench-panel\", \"workbench-module-side\"]\nprops = { responsive_min_tier = \"wide\", responsive_compact_drawer = \"module_details\" }\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"spawn_rules_details_title\" }, { node = \"spawn_rules_right_content\" }]\n\n[nodes.spawn_rules_right_content]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesRightContent\"\nprops = { input_hoverable = true }\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = \"$editor.density.gap.small\", scrollbar_visibility = \"Auto\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"spawn_rules_rule_set_dropdown_property_row\" }, { node = \"spawn_rules_authority_dropdown_property_row\" }, { node = \"spawn_rules_seed_field_property_row\" }]\n\n[nodes.spawn_rules_details_title]\ncomponent = \"WorkbenchSectionTitle\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesDetailsTitle\"\nprops = { text = \"Spawn Details\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = \"Fixed\" } }\n\n[nodes.spawn_rules_rule_set_dropdown_property_row]\ncomponent = \"WorkbenchPropertyEditorRow\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesRuleSetDropdownPropertyRow\"\nprops = { text = \"Rule Set\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"spawn_rules_rule_set_dropdown\", slot = { name = \"value\" } }]\n\n[nodes.spawn_rules_rule_set_dropdown]\ncomponent = \"WorkbenchDropdown\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesRuleSetDropdown\"\nclasses = [\"workbench-dropdown\", \"workbench-component-dropdown\"]\nprops = { value_text = \"Enemy Spawn\", value = \"Enemy Spawn\", options = [\"Enemy Spawn\", \"Ambient Spawn\", \"Boss Spawn\", \"Debug Spawn\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\nevents = [\n  { id = \"WorkbenchExtension/SpawnRulesRuleSetEdit\", event = \"Change\", route = \"workbench.extension.spawn_rules.rule_set.edit\" },\n  { id = \"WorkbenchExtension/SpawnRulesRuleSetCommit\", event = \"Submit\", route = \"workbench.extension.spawn_rules.rule_set.commit\" },\n]\n\n[nodes.spawn_rules_authority_dropdown_property_row]\ncomponent = \"WorkbenchPropertyEditorRow\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesAuthorityDropdownPropertyRow\"\nprops = { text = \"Authority\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"spawn_rules_authority_dropdown\", slot = { name = \"value\" } }]\n\n[nodes.spawn_rules_authority_dropdown]\ncomponent = \"WorkbenchDropdown\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesAuthorityDropdown\"\nclasses = [\"workbench-dropdown\", \"workbench-component-dropdown\"]\nprops = { value_text = \"Server\", value = \"Server\", options = [\"Server\", \"Client Preview\", \"Offline\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\nevents = [\n  { id = \"WorkbenchExtension/SpawnRulesAuthorityEdit\", event = \"Change\", route = \"workbench.extension.spawn_rules.authority.edit\" },\n  { id = \"WorkbenchExtension/SpawnRulesAuthorityCommit\", event = \"Submit\", route = \"workbench.extension.spawn_rules.authority.commit\" },\n]\n\n[nodes.spawn_rules_seed_field_property_row]\ncomponent = \"WorkbenchPropertyEditorRow\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesSeedFieldPropertyRow\"\nprops = { text = \"Seed\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"spawn_rules_seed_field\", slot = { name = \"value\" } }]\n\n[nodes.spawn_rules_seed_field]\ncomponent = \"WorkbenchField\"\ncontrol_id = \"WorkbenchExtensionSpawnRulesSeedField\"\nclasses = [\"workbench-field\", \"workbench-component-field\"]\nprops = { value = \"Seed: 2026\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\nevents = [\n  { id = \"WorkbenchExtension/SpawnRulesSeedEdit\", event = \"Change\", route = \"workbench.extension.spawn_rules.seed.edit\" },\n  { id = \"WorkbenchExtension/SpawnRulesSeedCommit\", event = \"Submit\", route = \"workbench.extension.spawn_rules.seed.commit\" },\n]\n"
+
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/extensions/gameplay/workbench_extension_spawn_rules_workspace.zui"
+version = 2
+display_name = "Workbench Extension Spawn Rules Workspace"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchExtensionSpawnRulesWorkspace]
+root = "spawn_rules_workspace"
+default_classes = [ "workbench-module-body", "workbench-extension-module-body" ]
+
+[nodes.spawn_rules_workspace]
+component = "Overlay"
+control_id = "WorkbenchExtensionSpawnRulesWorkspace"
+classes = [ "workbench-module-body", "workbench-extension-module-body" ]
+
+[nodes.spawn_rules_workspace.props]
+visibility = "visible"
+
+[nodes.spawn_rules_workspace.layout]
+clip = true
+
+[nodes.spawn_rules_workspace.layout.container]
+kind = "Overlay"
+
+[nodes.spawn_rules_workspace.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_workspace.layout.height]
+stretch = "Stretch"
+
+[[nodes.spawn_rules_workspace.children]]
+node = "spawn_rules_workspace_main"
+
+[[nodes.spawn_rules_workspace.children]]
+node = "spawn_rules_right"
+
+[nodes.spawn_rules_workspace.children.slot.layout]
+z_order = 20
+
+[nodes.spawn_rules_workspace.children.slot.layout.alignment]
+horizontal = "End"
+vertical = "Fill"
+
+[nodes.spawn_rules_workspace_main]
+component = "HorizontalGroup"
+classes = [ "workbench-module-layout-main" ]
+
+[nodes.spawn_rules_workspace_main.layout]
+clip = true
+
+[nodes.spawn_rules_workspace_main.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.spawn_rules_workspace_main.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_workspace_main.layout.height]
+stretch = "Stretch"
+
+[[nodes.spawn_rules_workspace_main.children]]
+node = "spawn_rules_rail_gap"
+
+[[nodes.spawn_rules_workspace_main.children]]
+node = "spawn_rules_left"
+
+[[nodes.spawn_rules_workspace_main.children]]
+node = "spawn_rules_center"
+
+[[nodes.spawn_rules_workspace_main.children]]
+node = "spawn_rules_right_reserve"
+
+[nodes.spawn_rules_right_reserve]
+component = "Container"
+classes = [ "workbench-module-details-reserve" ]
+
+[nodes.spawn_rules_right_reserve.props]
+responsive_min_tier = "wide"
+
+[nodes.spawn_rules_right_reserve.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.spawn_rules_right_reserve.layout.width]
+min = 320
+preferred = 320
+max = 340
+stretch = "Fixed"
+
+[nodes.spawn_rules_right_reserve.layout.height]
+stretch = "Stretch"
+
+[nodes.spawn_rules_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionSpawnRulesRailGap"
+
+[nodes.spawn_rules_rail_gap.props]
+responsive_min_tier = "narrow"
+
+[nodes.spawn_rules_rail_gap.layout.width]
+min = "$editor.chrome.activity_rail.width"
+preferred = "$editor.chrome.activity_rail.width"
+max = "$editor.chrome.activity_rail.width"
+stretch = "Fixed"
+
+[nodes.spawn_rules_rail_gap.layout.height]
+stretch = "Stretch"
+
+[nodes.spawn_rules_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionSpawnRulesLeftPanel"
+classes = [ "workbench-panel", "workbench-module-side" ]
+
+[nodes.spawn_rules_left.props]
+responsive_min_tier = "narrow"
+
+[nodes.spawn_rules_left.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.spawn_rules_left.layout.width]
+min = 270
+preferred = 270
+max = 290
+stretch = "Fixed"
+
+[nodes.spawn_rules_left.layout.height]
+stretch = "Stretch"
+
+[[nodes.spawn_rules_left.children]]
+node = "spawn_rules_title"
+
+[[nodes.spawn_rules_left.children]]
+node = "spawn_rules_left_content"
+
+[nodes.spawn_rules_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionSpawnRulesLeftContent"
+
+[nodes.spawn_rules_left_content.props]
+input_hoverable = true
+
+[nodes.spawn_rules_left_content.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.spawn_rules_left_content.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = "$editor.density.gap.small"
+scrollbar_visibility = "Auto"
+
+[nodes.spawn_rules_left_content.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_left_content.layout.height]
+stretch = "Stretch"
+
+[[nodes.spawn_rules_left_content.children]]
+node = "spawn_rules_enemy_row"
+
+[[nodes.spawn_rules_left_content.children]]
+node = "spawn_rules_zone_a_row"
+
+[[nodes.spawn_rules_left_content.children]]
+node = "spawn_rules_condition_night_row"
+
+[nodes.spawn_rules_title]
+component = "Label"
+control_id = "WorkbenchExtensionSpawnRulesTitle"
+classes = [ "workbench-section-title", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle"
+
+[nodes.spawn_rules_title.props]
+text = "Spawn Rules"
+text_overflow = "ellipsis"
+component_variant = "section-title"
+font_size = "$editor.typography.heading.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "primary"
+
+[nodes.spawn_rules_title.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_title.layout.height]
+min = 28
+preferred = 28
+max = 30
+stretch = "Fixed"
+
+[nodes.spawn_rules_title.state]
+[nodes.spawn_rules_title.style.self]
+[nodes.spawn_rules_title.style.slot]
+[nodes.spawn_rules_title.slots]
+[nodes.spawn_rules_enemy_row]
+component = "ListRow"
+control_id = "WorkbenchExtensionSpawnRulesEnemyRow"
+classes = [ "workbench-list-row", "workbench-primitive", "workbench-row-selected" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow"
+
+[nodes.spawn_rules_enemy_row.props]
+text = "SpawnRules_Enemy"
+text_overflow = "ellipsis"
+value = "item"
+selected = true
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+icon = "target"
+
+[nodes.spawn_rules_enemy_row.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_enemy_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.spawn_rules_enemy_row.events]]
+id = "WorkbenchExtension/SpawnRulesEnemyRow"
+event = "Click"
+route = "workbench.extension.spawn_rules.rules.enemy"
+
+[nodes.spawn_rules_enemy_row.state]
+[nodes.spawn_rules_enemy_row.style.self]
+[nodes.spawn_rules_enemy_row.style.slot]
+[nodes.spawn_rules_enemy_row.slots]
+[nodes.spawn_rules_zone_a_row]
+component = "ListRow"
+control_id = "WorkbenchExtensionSpawnRulesZoneARow"
+classes = [ "workbench-list-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow"
+
+[nodes.spawn_rules_zone_a_row.props]
+text = "Zone_A"
+text_overflow = "ellipsis"
+value = "item"
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+icon = "globe"
+
+[nodes.spawn_rules_zone_a_row.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_zone_a_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.spawn_rules_zone_a_row.events]]
+id = "WorkbenchExtension/SpawnRulesZoneARow"
+event = "Click"
+route = "workbench.extension.spawn_rules.zone.a"
+
+[nodes.spawn_rules_zone_a_row.state]
+[nodes.spawn_rules_zone_a_row.style.self]
+[nodes.spawn_rules_zone_a_row.style.slot]
+[nodes.spawn_rules_zone_a_row.slots]
+[nodes.spawn_rules_condition_night_row]
+component = "ListRow"
+control_id = "WorkbenchExtensionSpawnRulesConditionNightRow"
+classes = [ "workbench-list-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow"
+
+[nodes.spawn_rules_condition_night_row.props]
+text = "Condition_Night"
+text_overflow = "ellipsis"
+value = "item"
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+icon = "file"
+
+[nodes.spawn_rules_condition_night_row.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_condition_night_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.spawn_rules_condition_night_row.events]]
+id = "WorkbenchExtension/SpawnRulesConditionNightRow"
+event = "Click"
+route = "workbench.extension.spawn_rules.condition.night"
+
+[nodes.spawn_rules_condition_night_row.state]
+[nodes.spawn_rules_condition_night_row.style.self]
+[nodes.spawn_rules_condition_night_row.style.slot]
+[nodes.spawn_rules_condition_night_row.slots]
+[nodes.spawn_rules_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionSpawnRulesCenterPanel"
+classes = [ "workbench-panel", "workbench-module-center" ]
+
+[nodes.spawn_rules_center.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.spawn_rules_center.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_center.layout.height]
+stretch = "Stretch"
+
+[[nodes.spawn_rules_center.children]]
+node = "spawn_rules_center_header"
+
+[[nodes.spawn_rules_center.children]]
+node = "spawn_rules_stack_table"
+
+[[nodes.spawn_rules_center.children]]
+node = "spawn_rules_output"
+
+[nodes.spawn_rules_center_header]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionSpawnRulesCenterHeader"
+classes = [ "workbench-panel-toolbar" ]
+
+[nodes.spawn_rules_center_header.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.spawn_rules_center_header.layout.container]
+kind = "ScrollableBox"
+axis = "Horizontal"
+gap = "$editor.density.gap.medium"
+scrollbar_visibility = "Never"
+
+[nodes.spawn_rules_center_header.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_center_header.layout.height]
+min = 34
+preferred = 34
+max = 36
+stretch = "Fixed"
+
+[[nodes.spawn_rules_center_header.children]]
+node = "spawn_rules_center_title"
+
+[[nodes.spawn_rules_center_header.children]]
+node = "spawn_rules_header_fill"
+
+[[nodes.spawn_rules_center_header.children]]
+node = "spawn_rules_simulate_button"
+
+[[nodes.spawn_rules_center_header.children]]
+node = "spawn_rules_validate_button"
+
+[nodes.spawn_rules_center_title]
+component = "Label"
+control_id = "WorkbenchExtensionSpawnRulesCenterTitle"
+classes = [ "workbench-section-title", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle"
+
+[nodes.spawn_rules_center_title.props]
+text = "Spawn Rule Stack"
+text_overflow = "ellipsis"
+component_variant = "section-title"
+font_size = "$editor.typography.heading.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "primary"
+
+[nodes.spawn_rules_center_title.layout.width]
+stretch = "Fixed"
+min = 250
+preferred = 250
+max = 340
+
+[nodes.spawn_rules_center_title.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.compact"
+stretch = "Stretch"
+
+[nodes.spawn_rules_center_title.state]
+[nodes.spawn_rules_center_title.style.self]
+[nodes.spawn_rules_center_title.style.slot]
+[nodes.spawn_rules_center_title.slots]
+[nodes.spawn_rules_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionSpawnRulesHeaderFill"
+
+[nodes.spawn_rules_header_fill.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_header_fill.layout.height]
+stretch = "Stretch"
+
+[nodes.spawn_rules_simulate_button]
+component = "Button"
+control_id = "WorkbenchExtensionSpawnRulesSimulateButton"
+classes = [ "workbench-control-button", "workbench-primitive", "workbench-module-command" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton"
+
+[nodes.spawn_rules_simulate_button.props]
+text = "Simulate"
+text_overflow = "ellipsis"
+text_align = "center"
+button_variant = "outlined"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+validation_level = "normal"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font = "res://fonts/editor-ui.font.toml"
+font_family = "Fira Sans"
+font_weight = "$editor.typography.strong.weight"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.large"
+layout_padding_right = "$editor.density.gap.large"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.medium"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+responsive_min_tier = "narrow"
+
+[nodes.spawn_rules_simulate_button.layout.width]
+stretch = "Fixed"
+min = 96
+preferred = 96
+max = 106
+
+[nodes.spawn_rules_simulate_button.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[[nodes.spawn_rules_simulate_button.events]]
+id = "WorkbenchExtension/SpawnRulesSimulate"
+event = "Click"
+route = "workbench.extension.spawn_rules.simulate"
+
+[nodes.spawn_rules_simulate_button.state]
+[nodes.spawn_rules_simulate_button.style.self]
+[nodes.spawn_rules_simulate_button.style.slot]
+[nodes.spawn_rules_simulate_button.slots]
+[nodes.spawn_rules_validate_button]
+component = "Button"
+control_id = "WorkbenchExtensionSpawnRulesValidateButton"
+classes = [ "workbench-control-button", "workbench-primitive", "workbench-module-command" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton"
+
+[nodes.spawn_rules_validate_button.props]
+text = "Validate"
+text_overflow = "ellipsis"
+text_align = "center"
+button_variant = "filled"
+button_color = "accent"
+button_size = "small"
+button_interaction_state = "normal"
+validation_level = "normal"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font = "res://fonts/editor-ui.font.toml"
+font_family = "Fira Sans"
+font_weight = "$editor.typography.strong.weight"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.large"
+layout_padding_right = "$editor.density.gap.large"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.medium"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.spawn_rules_validate_button.layout.width]
+stretch = "Fixed"
+min = 96
+preferred = 96
+max = 106
+
+[nodes.spawn_rules_validate_button.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[[nodes.spawn_rules_validate_button.events]]
+id = "WorkbenchExtension/SpawnRulesValidate"
+event = "Click"
+route = "workbench.extension.spawn_rules.validate"
+
+[nodes.spawn_rules_validate_button.state]
+[nodes.spawn_rules_validate_button.style.self]
+[nodes.spawn_rules_validate_button.style.slot]
+[nodes.spawn_rules_validate_button.slots]
+[nodes.spawn_rules_stack_table]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionSpawnRulesStackTable"
+classes = [ "workbench-panel", "workbench-module-canvas" ]
+
+[nodes.spawn_rules_stack_table.props]
+input_hoverable = true
+
+[nodes.spawn_rules_stack_table.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.spawn_rules_stack_table.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = 0
+scrollbar_visibility = "Auto"
+
+[nodes.spawn_rules_stack_table.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_stack_table.layout.height]
+stretch = "Stretch"
+
+[[nodes.spawn_rules_stack_table.children]]
+node = "spawn_rules_zone_a_table_row"
+
+[[nodes.spawn_rules_stack_table.children]]
+node = "spawn_rules_condition_night_table_row"
+
+[[nodes.spawn_rules_stack_table.children]]
+node = "spawn_rules_tag_combat_table_row"
+
+[[nodes.spawn_rules_stack_table.children]]
+node = "spawn_rules_conflict_table_row"
+
+[nodes.spawn_rules_zone_a_table_row]
+component = "Table"
+control_id = "WorkbenchExtensionSpawnRulesZoneATableRow"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.spawn_rules_zone_a_table_row.props]
+text = "Zone_A"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Zone_A", "Volume", "12 probes" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+value_text = "Volume   12 probes"
+
+[nodes.spawn_rules_zone_a_table_row.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_zone_a_table_row.layout.height]
+min = 30
+preferred = 30
+max = 32
+stretch = "Fixed"
+
+[[nodes.spawn_rules_zone_a_table_row.events]]
+id = "WorkbenchExtension/SpawnRulesZoneATableRow"
+event = "Click"
+route = "workbench.extension.spawn_rules.stack.zone_a"
+
+[nodes.spawn_rules_zone_a_table_row.state]
+[nodes.spawn_rules_zone_a_table_row.style.self]
+[nodes.spawn_rules_zone_a_table_row.style.slot]
+[nodes.spawn_rules_zone_a_table_row.slots]
+[nodes.spawn_rules_condition_night_table_row]
+component = "Table"
+control_id = "WorkbenchExtensionSpawnRulesConditionNightTableRow"
+classes = [ "workbench-table-row", "workbench-primitive", "workbench-row-selected" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.spawn_rules_condition_night_table_row.props]
+text = "Condition_Night"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Condition_Night", "Condition", "Selected" ]
+selected = true
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+value_text = "Condition   Selected"
+
+[nodes.spawn_rules_condition_night_table_row.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_condition_night_table_row.layout.height]
+min = 30
+preferred = 30
+max = 32
+stretch = "Fixed"
+
+[[nodes.spawn_rules_condition_night_table_row.events]]
+id = "WorkbenchExtension/SpawnRulesConditionNightTableRow"
+event = "Click"
+route = "workbench.extension.spawn_rules.stack.condition_night"
+
+[nodes.spawn_rules_condition_night_table_row.state]
+[nodes.spawn_rules_condition_night_table_row.style.self]
+[nodes.spawn_rules_condition_night_table_row.style.slot]
+[nodes.spawn_rules_condition_night_table_row.slots]
+[nodes.spawn_rules_tag_combat_table_row]
+component = "Table"
+control_id = "WorkbenchExtensionSpawnRulesTagCombatTableRow"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.spawn_rules_tag_combat_table_row.props]
+text = "Tag_Combat"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Tag_Combat", "Filter", "strict tags" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+value_text = "Filter   strict tags"
+
+[nodes.spawn_rules_tag_combat_table_row.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_tag_combat_table_row.layout.height]
+min = 30
+preferred = 30
+max = 32
+stretch = "Fixed"
+
+[[nodes.spawn_rules_tag_combat_table_row.events]]
+id = "WorkbenchExtension/SpawnRulesTagCombatTableRow"
+event = "Click"
+route = "workbench.extension.spawn_rules.stack.tag_combat"
+
+[nodes.spawn_rules_tag_combat_table_row.state]
+[nodes.spawn_rules_tag_combat_table_row.style.self]
+[nodes.spawn_rules_tag_combat_table_row.style.slot]
+[nodes.spawn_rules_tag_combat_table_row.slots]
+[nodes.spawn_rules_conflict_table_row]
+component = "Table"
+control_id = "WorkbenchExtensionSpawnRulesConflictTableRow"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.spawn_rules_conflict_table_row.props]
+text = "Conflict"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Conflict", "Validation", "1 warning" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+value_text = "Validation   1 warning"
+
+[nodes.spawn_rules_conflict_table_row.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_conflict_table_row.layout.height]
+min = 30
+preferred = 30
+max = 32
+stretch = "Fixed"
+
+[[nodes.spawn_rules_conflict_table_row.events]]
+id = "WorkbenchExtension/SpawnRulesConflictTableRow"
+event = "Click"
+route = "workbench.extension.spawn_rules.stack.conflict"
+
+[nodes.spawn_rules_conflict_table_row.state]
+[nodes.spawn_rules_conflict_table_row.style.self]
+[nodes.spawn_rules_conflict_table_row.style.slot]
+[nodes.spawn_rules_conflict_table_row.slots]
+[nodes.spawn_rules_output]
+component = "Table"
+control_id = "WorkbenchExtensionSpawnRulesOutputRow"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.spawn_rules_output.props]
+text = "Spawn Log"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Spawn Log", "18 rules", "12 zones", "1 conflict" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = false
+input_clickable = false
+input_hoverable = false
+input_focusable = false
+value_text = "18 rules   12 zones   1 conflict"
+
+[nodes.spawn_rules_output.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_output.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[nodes.spawn_rules_output.state]
+[nodes.spawn_rules_output.style.self]
+[nodes.spawn_rules_output.style.slot]
+[nodes.spawn_rules_output.slots]
+[nodes.spawn_rules_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionSpawnRulesRightPanel"
+classes = [ "workbench-panel", "workbench-module-side" ]
+
+[nodes.spawn_rules_right.props]
+responsive_min_tier = "wide"
+responsive_compact_drawer = "module_details"
+
+[nodes.spawn_rules_right.layout]
+z_order = 20
+
+[nodes.spawn_rules_right.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.spawn_rules_right.layout.width]
+min = 320
+preferred = 320
+max = 340
+stretch = "Fixed"
+
+[nodes.spawn_rules_right.layout.height]
+stretch = "Stretch"
+
+[nodes.spawn_rules_right.layout.alignment]
+horizontal = "End"
+vertical = "Fill"
+
+[nodes.spawn_rules_right.layout.anchor]
+x = 1
+
+[nodes.spawn_rules_right.layout.pivot]
+x = 1
+
+[[nodes.spawn_rules_right.children]]
+node = "spawn_rules_details_title"
+
+[[nodes.spawn_rules_right.children]]
+node = "spawn_rules_right_content"
+
+[nodes.spawn_rules_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionSpawnRulesRightContent"
+
+[nodes.spawn_rules_right_content.props]
+input_hoverable = true
+
+[nodes.spawn_rules_right_content.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.spawn_rules_right_content.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = "$editor.density.gap.small"
+scrollbar_visibility = "Auto"
+
+[nodes.spawn_rules_right_content.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_right_content.layout.height]
+stretch = "Stretch"
+
+[[nodes.spawn_rules_right_content.children]]
+node = "spawn_rules_rule_set_dropdown_property_row"
+
+[[nodes.spawn_rules_right_content.children]]
+node = "spawn_rules_authority_dropdown_property_row"
+
+[[nodes.spawn_rules_right_content.children]]
+node = "spawn_rules_seed_field_property_row"
+
+[nodes.spawn_rules_details_title]
+component = "Label"
+control_id = "WorkbenchExtensionSpawnRulesDetailsTitle"
+classes = [ "workbench-section-title", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle"
+
+[nodes.spawn_rules_details_title.props]
+text = "Spawn Details"
+text_overflow = "ellipsis"
+component_variant = "section-title"
+font_size = "$editor.typography.heading.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "primary"
+
+[nodes.spawn_rules_details_title.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_details_title.layout.height]
+min = 28
+preferred = 28
+max = 30
+stretch = "Fixed"
+
+[nodes.spawn_rules_details_title.state]
+[nodes.spawn_rules_details_title.style.self]
+[nodes.spawn_rules_details_title.style.slot]
+[nodes.spawn_rules_details_title.slots]
+[nodes.spawn_rules_rule_set_dropdown_property_row]
+component = "PropertyRow"
+control_id = "WorkbenchExtensionSpawnRulesRuleSetDropdownPropertyRow"
+classes = [ "workbench-property-editor-row", "workbench-composite" ]
+events = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow"
+
+[nodes.spawn_rules_rule_set_dropdown_property_row.props]
+text = "Rule Set"
+
+[nodes.spawn_rules_rule_set_dropdown_property_row.layout]
+clip = true
+
+[nodes.spawn_rules_rule_set_dropdown_property_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.spawn_rules_rule_set_dropdown_property_row.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_rule_set_dropdown_property_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.spawn_rules_rule_set_dropdown_property_row.children]]
+node = "spawn_rules_rule_set_dropdown_property_row__name_column"
+
+[[nodes.spawn_rules_rule_set_dropdown_property_row.children]]
+node = "spawn_rules_rule_set_dropdown"
+
+[nodes.spawn_rules_rule_set_dropdown_property_row.children.slot]
+name = "value"
+
+[nodes.spawn_rules_rule_set_dropdown_property_row.children.slot.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_rule_set_dropdown_property_row.children.slot.layout.height]
+stretch = "Stretch"
+
+[nodes.spawn_rules_rule_set_dropdown_property_row.state]
+[nodes.spawn_rules_rule_set_dropdown_property_row.style.self]
+[nodes.spawn_rules_rule_set_dropdown_property_row.style.slot]
+[nodes.spawn_rules_rule_set_dropdown_property_row.slots]
+[nodes.spawn_rules_rule_set_dropdown]
+component = "Dropdown"
+control_id = "WorkbenchExtensionSpawnRulesRuleSetDropdown"
+pixel_snapping = "disabled"
+classes = [ "workbench-field", "workbench-dropdown", "workbench-primitive", "workbench-component-dropdown" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown"
+
+[nodes.spawn_rules_rule_set_dropdown.props]
+value = "Enemy Spawn"
+value_text = "Enemy Spawn"
+options = [ "Enemy Spawn", "Ambient Spawn", "Boss Spawn", "Debug Spawn" ]
+multiple = false
+popup_open = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+selection_state = "single"
+validation_level = "normal"
+background_color = "$editor.surface.recessed"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+open_background_color = "$editor.accent.soft"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+label_color = "$editor.text.secondary"
+icon_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+horizontal_inset = "$editor.density.gap.medium"
+caret_size = "$editor.typography.overlay.size"
+caret_right_inset = "$editor.density.gap.large"
+caret_gap = "$editor.density.gap.small"
+label_top = "$editor.control.border_width"
+label_font_size = "$editor.typography.caption.size"
+label_line_height_ratio = "$editor.typography.line_height"
+value_bottom_inset = "$editor.control.border_width"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.control.border_width"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.spawn_rules_rule_set_dropdown.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_rule_set_dropdown.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Stretch"
+
+[[nodes.spawn_rules_rule_set_dropdown.events]]
+id = "WorkbenchExtension/SpawnRulesRuleSetEdit"
+event = "Change"
+route = "workbench.extension.spawn_rules.rule_set.edit"
+
+[[nodes.spawn_rules_rule_set_dropdown.events]]
+id = "WorkbenchExtension/SpawnRulesRuleSetCommit"
+event = "Submit"
+route = "workbench.extension.spawn_rules.rule_set.commit"
+
+[nodes.spawn_rules_rule_set_dropdown.state]
+[nodes.spawn_rules_rule_set_dropdown.style.self]
+[nodes.spawn_rules_rule_set_dropdown.style.slot]
+[nodes.spawn_rules_rule_set_dropdown.slots]
+[nodes.spawn_rules_authority_dropdown_property_row]
+component = "PropertyRow"
+control_id = "WorkbenchExtensionSpawnRulesAuthorityDropdownPropertyRow"
+classes = [ "workbench-property-editor-row", "workbench-composite" ]
+events = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow"
+
+[nodes.spawn_rules_authority_dropdown_property_row.props]
+text = "Authority"
+
+[nodes.spawn_rules_authority_dropdown_property_row.layout]
+clip = true
+
+[nodes.spawn_rules_authority_dropdown_property_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.spawn_rules_authority_dropdown_property_row.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_authority_dropdown_property_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.spawn_rules_authority_dropdown_property_row.children]]
+node = "spawn_rules_authority_dropdown_property_row__name_column"
+
+[[nodes.spawn_rules_authority_dropdown_property_row.children]]
+node = "spawn_rules_authority_dropdown"
+
+[nodes.spawn_rules_authority_dropdown_property_row.children.slot]
+name = "value"
+
+[nodes.spawn_rules_authority_dropdown_property_row.children.slot.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_authority_dropdown_property_row.children.slot.layout.height]
+stretch = "Stretch"
+
+[nodes.spawn_rules_authority_dropdown_property_row.state]
+[nodes.spawn_rules_authority_dropdown_property_row.style.self]
+[nodes.spawn_rules_authority_dropdown_property_row.style.slot]
+[nodes.spawn_rules_authority_dropdown_property_row.slots]
+[nodes.spawn_rules_authority_dropdown]
+component = "Dropdown"
+control_id = "WorkbenchExtensionSpawnRulesAuthorityDropdown"
+pixel_snapping = "disabled"
+classes = [ "workbench-field", "workbench-dropdown", "workbench-primitive", "workbench-component-dropdown" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown"
+
+[nodes.spawn_rules_authority_dropdown.props]
+value = "Server"
+value_text = "Server"
+options = [ "Server", "Client Preview", "Offline" ]
+multiple = false
+popup_open = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+selection_state = "single"
+validation_level = "normal"
+background_color = "$editor.surface.recessed"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+open_background_color = "$editor.accent.soft"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+label_color = "$editor.text.secondary"
+icon_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+horizontal_inset = "$editor.density.gap.medium"
+caret_size = "$editor.typography.overlay.size"
+caret_right_inset = "$editor.density.gap.large"
+caret_gap = "$editor.density.gap.small"
+label_top = "$editor.control.border_width"
+label_font_size = "$editor.typography.caption.size"
+label_line_height_ratio = "$editor.typography.line_height"
+value_bottom_inset = "$editor.control.border_width"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.control.border_width"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.spawn_rules_authority_dropdown.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_authority_dropdown.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Stretch"
+
+[[nodes.spawn_rules_authority_dropdown.events]]
+id = "WorkbenchExtension/SpawnRulesAuthorityEdit"
+event = "Change"
+route = "workbench.extension.spawn_rules.authority.edit"
+
+[[nodes.spawn_rules_authority_dropdown.events]]
+id = "WorkbenchExtension/SpawnRulesAuthorityCommit"
+event = "Submit"
+route = "workbench.extension.spawn_rules.authority.commit"
+
+[nodes.spawn_rules_authority_dropdown.state]
+[nodes.spawn_rules_authority_dropdown.style.self]
+[nodes.spawn_rules_authority_dropdown.style.slot]
+[nodes.spawn_rules_authority_dropdown.slots]
+[nodes.spawn_rules_seed_field_property_row]
+component = "PropertyRow"
+control_id = "WorkbenchExtensionSpawnRulesSeedFieldPropertyRow"
+classes = [ "workbench-property-editor-row", "workbench-composite" ]
+events = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow"
+
+[nodes.spawn_rules_seed_field_property_row.props]
+text = "Seed"
+
+[nodes.spawn_rules_seed_field_property_row.layout]
+clip = true
+
+[nodes.spawn_rules_seed_field_property_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.spawn_rules_seed_field_property_row.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_seed_field_property_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.spawn_rules_seed_field_property_row.children]]
+node = "spawn_rules_seed_field_property_row__name_column"
+
+[[nodes.spawn_rules_seed_field_property_row.children]]
+node = "spawn_rules_seed_field"
+
+[nodes.spawn_rules_seed_field_property_row.children.slot]
+name = "value"
+
+[nodes.spawn_rules_seed_field_property_row.children.slot.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_seed_field_property_row.children.slot.layout.height]
+stretch = "Stretch"
+
+[nodes.spawn_rules_seed_field_property_row.state]
+[nodes.spawn_rules_seed_field_property_row.style.self]
+[nodes.spawn_rules_seed_field_property_row.style.slot]
+[nodes.spawn_rules_seed_field_property_row.slots]
+[nodes.spawn_rules_seed_field]
+component = "InputField"
+control_id = "WorkbenchExtensionSpawnRulesSeedField"
+classes = [ "workbench-field", "workbench-primitive", "workbench-component-field" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField"
+
+[nodes.spawn_rules_seed_field.props]
+value = "Seed: 2026"
+placeholder = ""
+validation_level = "normal"
+focused = false
+hovered = false
+disabled = false
+editable_text = true
+background_color = "$editor.surface.recessed"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+focused_background_color = "$editor.surface.recessed"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.separator.soft"
+hover_border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+placeholder_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.spawn_rules_seed_field.layout.width]
+stretch = "Stretch"
+
+[nodes.spawn_rules_seed_field.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Stretch"
+
+[[nodes.spawn_rules_seed_field.events]]
+id = "WorkbenchExtension/SpawnRulesSeedEdit"
+event = "Change"
+route = "workbench.extension.spawn_rules.seed.edit"
+
+[[nodes.spawn_rules_seed_field.events]]
+id = "WorkbenchExtension/SpawnRulesSeedCommit"
+event = "Submit"
+route = "workbench.extension.spawn_rules.seed.commit"
+
+[nodes.spawn_rules_seed_field.state]
+[nodes.spawn_rules_seed_field.style.self]
+[nodes.spawn_rules_seed_field.style.slot]
+[nodes.spawn_rules_seed_field.slots]
+[nodes.spawn_rules_rule_set_dropdown_property_row__name_column]
+component = "Container"
+
+[nodes.spawn_rules_rule_set_dropdown_property_row__name_column.layout.width]
+min = 60
+preferred = 105
+max = 105
+stretch = "Fixed"
+
+[nodes.spawn_rules_rule_set_dropdown_property_row__name_column.layout.height]
+stretch = "Stretch"
+
+[nodes.spawn_rules_authority_dropdown_property_row__name_column]
+component = "Container"
+
+[nodes.spawn_rules_authority_dropdown_property_row__name_column.layout.width]
+min = 60
+preferred = 105
+max = 105
+stretch = "Fixed"
+
+[nodes.spawn_rules_authority_dropdown_property_row__name_column.layout.height]
+stretch = "Stretch"
+
+[nodes.spawn_rules_seed_field_property_row__name_column]
+component = "Container"
+
+[nodes.spawn_rules_seed_field_property_row__name_column.layout.width]
+min = 60
+preferred = 105
+max = 105
+stretch = "Fixed"
+
+[nodes.spawn_rules_seed_field_property_row__name_column.layout.height]
+stretch = "Stretch"
+
+[penpot_host_colors]
+primary = "#60aeff"
+accent = "#60aeff"
+"material.primary" = "#60aeff"
+material_color_primary = "#60aeff"
+on_primary = "#151515"
+"material.on_primary" = "#151515"
+material_color_on_primary = "#151515"
+surface = "#2f2f2f"
+"material.surface" = "#2f2f2f"
+surface_inset = "#0f0f0f"
+"material.surface_inset" = "#0f0f0f"
+surface_hover = "#454545"
+"material.surface_hover" = "#454545"
+surface_pressed = "#383838"
+"material.surface_pressed" = "#383838"
+surface_selected = "#243f5a"
+"material.surface_selected" = "#243f5a"
+disabled = "#2b2b2b"
+"material.disabled" = "#2b2b2b"
+border = "#484848"
+outline = "#484848"
+"material.outline" = "#484848"
+focus = "#66b2ff"
+focus_ring = "#66b2ff"
+"material.focus_ring" = "#66b2ff"
+text = "#e8e8e8"
+on_surface = "#e8e8e8"
+"material.text" = "#e8e8e8"
+"material.on_surface" = "#e8e8e8"
+text_muted = "#b3b3b3"
+muted = "#b3b3b3"
+"material.text_muted" = "#b3b3b3"
+text_disabled = "#737373"
+"material.text_disabled" = "#737373"
+warning = "#dcac50"
+"material.warning" = "#dcac50"
+error = "#eb605c"
+danger = "#eb605c"
+"material.error" = "#eb605c"
+success = "#55be78"
+"material.success" = "#55be78"
+info = "#5faae6"
+"material.info" = "#5faae6"
+
+[penpot_host_palette]
+surface = [ "#151515", "#242424", "#2f2f2f", "#383838" ]
+surface_recessed = "#0f0f0f"
+surface_hover = "#454545"
+surface_selected = "#243f5a"
+surface_disabled = "#2b2b2b"
+accent = "#60aeff"
+accent_soft = "#253f59"
+border = "#484848"
+border_disabled = "#363636"
+separator_strong = "#565656"
+separator_soft = "#333333"
+text_primary = "#e8e8e8"
+text_secondary = "#b3b3b3"
+text_disabled = "#737373"
+success = "#55be78"
+success_container = "#1d472f"
+info = "#5faae6"
+info_container = "#18395b"
+warning = "#dcac50"
+warning_container = "#463112"
+error = "#eb605c"
+error_container = "#4c2427"
+popup = "#242424"
+track = "#3b3b3b"
+focus_ring = "#66b2ff"
+shadow = "#00000073"
+
+[tokens]
+"theme.palette.surface.0" = "#151515"
+"theme.palette.surface.1" = "#242424"
+"theme.palette.surface.2" = "#2f2f2f"
+"theme.palette.surface.3" = "#383838"
+"theme.palette.text.primary" = "#e8e8e8"
+"theme.palette.text.secondary" = "#b3b3b3"
+"theme.palette.text.disabled" = "#737373"
+"theme.palette.accent" = "#60aeff"
+"theme.palette.success" = "#55be78"
+"theme.palette.info" = "#5faae6"
+"theme.palette.warning" = "#dcac50"
+"theme.palette.error" = "#eb605c"
+"theme.palette.separator" = "#484848"
+"editor.surface.0" = "#151515"
+"editor.surface.1" = "#242424"
+"editor.surface.2" = "#2f2f2f"
+"editor.surface.3" = "#383838"
+"editor.surface.recessed" = "#0f0f0f"
+"editor.surface.hover" = "#454545"
+"editor.surface.selected" = "#243f5a"
+"editor.surface.disabled" = "#2b2b2b"
+"editor.accent" = "#60aeff"
+"editor.accent.soft" = "#253f59"
+"editor.border" = "#484848"
+"editor.border.disabled" = "#363636"
+"editor.separator.strong" = "#565656"
+"editor.separator.soft" = "#333333"
+"editor.text.primary" = "#e8e8e8"
+"editor.text.secondary" = "#b3b3b3"
+"editor.text.disabled" = "#737373"
+"editor.semantic.success" = "#55be78"
+"editor.semantic.success.container" = "#1d472f"
+"editor.semantic.info" = "#5faae6"
+"editor.semantic.info.container" = "#18395b"
+"editor.semantic.warning" = "#dcac50"
+"editor.semantic.warning.container" = "#463112"
+"editor.semantic.error" = "#eb605c"
+"editor.semantic.error.container" = "#4c2427"
+"editor.popup" = "#242424"
+"editor.track" = "#3b3b3b"
+"editor.focus.ring" = "#66b2ff"
+"editor.shadow" = "#00000073"
+"editor.typography.ui.family" = "Fira Sans"
+"editor.typography.ui.strong.family" = "Fira Sans"
+"editor.typography.code.family" = "Fira Mono"
+"editor.typography.utility_tab.text_role" = "ui"
+"editor.typography.font_smoothing" = "grayscale"
+"editor.typography.body.size" = 14
+"editor.typography.caption.size" = 12
+"editor.typography.overlay.size" = 12
+"editor.typography.heading.size" = 16
+"editor.typography.title.size" = 20
+"editor.typography.body.weight" = 400
+"editor.typography.medium.weight" = 500
+"editor.typography.strong.weight" = 600
+"editor.typography.emphasis.weight" = 700
+"editor.typography.code.weight" = 400
+"editor.typography.line_height" = 1.4
+"editor.control.height.large" = 48
+"editor.control.height.default" = 32
+"editor.control.height.compact" = 32
+"editor.control.height.dense" = 28
+"editor.control.radius.small" = 4
+"editor.control.radius.control" = 4
+"editor.control.radius.large" = 8
+"editor.control.radius.panel" = 0
+"editor.control.radius.pill" = 999
+"editor.control.border_width" = 1
+"editor.chrome.top_bar.height" = 25
+"editor.chrome.host_bar.height" = 32
+"editor.chrome.workbench_toolbar.height" = 66
+"editor.chrome.workbench_toolbar.command_row.height" = 34
+"editor.chrome.workbench_toolbar.popup.command_offset_y" = 29
+"editor.chrome.workbench_toolbar.popup.module_offset_y" = -6
+"editor.chrome.status_bar.height" = 24
+"editor.chrome.panel_header.height" = 30
+"editor.chrome.document_header.height" = 31
+"editor.chrome.viewport_toolbar.height" = 28
+"editor.chrome.activity_rail.width" = 34
+"editor.chrome.separator.thickness" = 1
+"editor.chrome.splitter.hit_size" = 8
+"editor.density.gap.xsmall" = 2
+"editor.density.gap.tight" = 4
+"editor.density.gap.small" = 4
+"editor.density.gap.regular" = 8
+"editor.density.gap.medium" = 8
+"editor.density.gap.large" = 12
+"editor.density.gap.group" = 24
+"editor.density.drawer_padding" = 12
+"editor.density.panel_padding" = 16
+"editor.density.toolbar_action_width" = 76
+"editor.density.toolbar_wide_action_width" = 96
+"editor.density.ui_asset_action.min_width" = 40
+"editor.density.ui_asset_action.preferred_width" = 52
+"editor.density.ui_asset_action.max_width" = 64
+"editor.density.ui_asset.side.min_width" = 128
+"editor.density.ui_asset.side.preferred_width" = 220
+"editor.density.ui_asset.center.min_width" = 256
+"editor.density.ui_asset.center.preferred_width" = 420
+"editor.density.ui_asset.header_kind.min_width" = 64
+"editor.density.ui_asset.header_kind.preferred_width" = 70
+"editor.density.ui_asset.header_kind.max_width" = 84
+"editor.density.ui_asset.tool.min_width" = 56
+"editor.density.ui_asset.tool.preferred_width" = 64
+"editor.density.ui_asset.tool.max_width" = 80
+"editor.density.command_palette.min_width" = 520
+"editor.density.command_palette.preferred_width" = 560
+"editor.density.command_palette.max_width" = 640
+"editor.density.command_palette.min_height" = 180
+"editor.density.command_palette.preferred_height" = 220
+"editor.density.command_palette.max_height" = 280
+"editor.density.dialog.min_width" = 420
+"editor.density.dialog.preferred_width" = 480
+"editor.density.dialog.max_width" = 560
+"editor.density.dialog.min_height" = 180
+"editor.density.dialog.preferred_height" = 220
+"editor.density.dialog.max_height" = 320
+"editor.density.confirm_dialog.preferred_width" = 460
+"editor.density.confirm_dialog.max_width" = 540
+"editor.density.confirm_dialog.min_height" = 174
+"editor.density.confirm_dialog.preferred_height" = 210
+"editor.density.confirm_dialog.max_height" = 300
+"editor.density.notification_panel.min_width" = 280
+"editor.density.notification_panel.preferred_width" = 320
+"editor.density.notification_panel.max_width" = 380
+"editor.density.notification_panel.min_height" = 160
+"editor.density.notification_panel.preferred_height" = 220
+"editor.density.notification_panel.max_height" = 320
+"editor.density.caption.min_height" = 20
+"editor.density.caption.preferred_height" = 22
+"editor.density.caption.max_height" = 24
+"editor.density.label.min_height" = 22
+"editor.density.label.preferred_height" = 24
+"editor.density.label.max_height" = 32
+"editor.density.chip.min_width" = 40
+"editor.density.chip.preferred_width" = 80
+"editor.density.chip.max_width" = 160
+"editor.density.axis_value_field.min_width" = 54
+"editor.density.axis_value_field.preferred_width" = 62
+"editor.density.axis_value_field.max_width" = 72
+"editor.density.row_height" = 28
+"editor.density.left_drawer_width" = 332
+"editor.density.right_drawer_width" = 404
+"editor.density.bottom_output_height" = 228
+"editor.density.breakpoint_ultra_width" = 480
+"editor.density.breakpoint_narrow_width" = 640
+"editor.density.breakpoint_wide_width" = 1260
+"editor.density.compact_side_width" = 1100
+"editor.density.ultra_compact_side_width" = 760
+"editor.density.compact_left_drawer_max_width" = 340
+"editor.density.compact_right_drawer_max_width" = 220
+"editor.density.compact_side_min_width" = 196
+"editor.density.minimum_document_width_fraction" = 0.5
+"editor.density.ultra_compact_left_drawer_max_width" = 220
+"editor.density.ultra_compact_right_drawer_max_width" = 160
+"editor.density.compact_bottom_available_height" = 900
+"editor.density.compact_bottom_max_height" = 148
+"editor.density.compact_bottom_max_available_fraction" = 0.23
+"editor.density.compact_bottom_min_height" = 120
+"editor.density.ultra_compact_bottom_available_height" = 420
+"editor.density.ultra_compact_bottom_max_height" = 96
+"editor.density.ultra_compact_bottom_max_available_fraction" = 0.2
+"editor.density.ultra_compact_bottom_min_height" = 80
+"editor.density.minimum_window_width" = 640
+"editor.density.minimum_window_height" = 420
+"editor.density.ultra_minimum_window_width" = 420
+"editor.density.ultra_minimum_window_height" = 360
+"editor.state.default" = "surface_1"
+"editor.state.hovered" = "surface_2"
+"editor.state.pressed" = "surface_3"
+"editor.state.selected" = "surface_selected"
+"editor.state.focused" = "surface_1"
+"editor.state.disabled" = "text_disabled"
+"editor.state.loading" = "accent"
+
+[penpot_original_imports]
+widgets = [ "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton", "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown", "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField", "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow", "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle", "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow", "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow" ]
+styles = []
+
+[penpot_field_icons]
+search = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Search\">\n  <circle cx=\"10.5\" cy=\"10.5\" r=\"5.4\" fill=\"none\" stroke=\"#cbd2dc\" stroke-width=\"1.8\"/>\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-width=\"1.9\" d=\"m14.5 14.5 4.5 4.5\"/>\n</svg>\n"
+clear = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"512\" height=\"512\" viewBox=\"0 0 512 512\"><line x1=\"368\" y1=\"368\" x2=\"144\" y2=\"144\" style=\"fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px\"/><line x1=\"368\" y1=\"144\" x2=\"144\" y2=\"368\" style=\"fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px\"/></svg>"
+stepper = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Field stepper\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\" d=\"m7 9 5-5 5 5M7 15l5 5 5-5\"/>\n</svg>\n"
+
+[penpot_dynamic_review_state]
+schema = "dev.zircon.zui.dynamic-review-state"
+version = 1
+sourcePath = "zircon_editor/assets/ui/editor/components/workbench/modules/extensions/gameplay/workbench_extension_spawn_rules_workspace.zui"
+selectedNodeIds = [ "spawn_rules_workspace" ]
+selectionPolicy = "authored-visible-root"

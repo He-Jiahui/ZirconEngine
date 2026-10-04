@@ -194,9 +194,7 @@ fn interactive_workbench_states_share_the_control_border_token() {
         ".workbench-segmented-control:selected",
         ".workbench-control-button:selected",
         ".workbench-axis-value-field",
-        ".workbench-topbar",
         ".workbench-strip",
-        ".workbench-rail",
         ".workbench-panel",
         ".workbench-module-canvas",
         ".workbench-left-panel",
@@ -204,7 +202,6 @@ fn interactive_workbench_states_share_the_control_border_token() {
         ".workbench-section-title",
         ".workbench-property-section",
         ".workbench-component-drawer",
-        ".workbench-status",
         ".workbench-status-right-control",
         ".workbench-status-right-icon",
         ".workbench-overlay-region",
@@ -217,6 +214,51 @@ fn interactive_workbench_states_share_the_control_border_token() {
         assert!(
             !rule.contains("border_width = 1.0"),
             "{selector} must not retain a local border width"
+        );
+    }
+}
+
+#[test]
+fn workbench_topbar_uses_one_bottom_separator_instead_of_a_four_sided_frame() {
+    let rule = strict_theme_rule(".workbench-topbar");
+    assert!(
+        rule.contains("border_width = 0.0") && rule.contains("radius = 0.0"),
+        "the top toolbar must remain an unframed square shell band"
+    );
+
+    let toolbar = workbench_asset!("shell/workbench_top_toolbar.zui");
+    assert!(
+        toolbar.contains("border_width = 0.0")
+            && toolbar.contains("separator_edge = \"bottom\"")
+            && toolbar.contains("separator_thickness = \"$editor.control.border_width\""),
+        "the top toolbar must draw exactly one token-sized bottom separator"
+    );
+}
+
+#[test]
+fn shell_edge_bands_use_one_directional_separator_instead_of_a_full_frame() {
+    for (selector, asset, edge) in [
+        (
+            ".workbench-rail",
+            workbench_asset!("shell/workbench_activity_rail.zui"),
+            "right",
+        ),
+        (
+            ".workbench-status",
+            workbench_asset!("shell/workbench_status_bar.zui"),
+            "top",
+        ),
+    ] {
+        let rule = strict_theme_rule(selector);
+        assert!(
+            rule.contains("border_width = 0.0") && rule.contains("radius = 0.0"),
+            "{selector} must remain an unframed square shell band"
+        );
+        assert!(
+            asset.contains("border_width = 0.0")
+                && asset.contains(&format!("separator_edge = \"{edge}\""))
+                && asset.contains("separator_thickness = \"$editor.control.border_width\""),
+            "{selector} must draw exactly one token-sized {edge} separator"
         );
     }
 }
@@ -250,8 +292,8 @@ fn workbench_family_recipes_share_semantic_surface_and_shape_roles() {
         (
             ".workbench-panel-header",
             "$workbench_panel_raised",
-            "$editor.control.radius.small",
-            "$editor.control.border_width",
+            "0.0",
+            "0.0",
         ),
         (
             ".workbench-list-row",
@@ -303,8 +345,14 @@ fn workbench_family_recipes_share_semantic_surface_and_shape_roles() {
         "panel header height must not drift through generic control metrics"
     );
     assert!(
-        panel_header.contains("corner_radius = \"$editor.control.radius.small\""),
-        "panel header component must keep the same small-radius token as its stylesheet recipe"
+        panel_header.contains("corner_radius = 0.0"),
+        "panel header must remain a continuous square pane band rather than a nested card"
+    );
+    assert!(
+        panel_header.contains("border_width = 0.0")
+            && panel_header.contains("separator_edge = \"bottom\"")
+            && panel_header.contains("separator_thickness = \"$editor.control.border_width\""),
+        "panel header must use one bottom separator instead of a four-sided inner frame"
     );
 
     let section_title = workbench_asset!("primitives/chrome/workbench_section_title.zui");

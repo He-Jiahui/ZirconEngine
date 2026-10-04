@@ -15,5 +15,5 @@ pub(crate) use template::{
 };
 
 #[cfg(test)]
-#[path = "template_popup_layout_tests.rs"]
+#[path = "tests/template_popup_layout_tests.rs"]
 mod tests;

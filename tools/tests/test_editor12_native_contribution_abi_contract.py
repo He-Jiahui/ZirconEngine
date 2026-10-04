@@ -1,3 +1,4 @@
+# 核对原生扩展贡献仅由版本化批量载荷进入编辑器入口。
 from pathlib import Path
 import unittest
 

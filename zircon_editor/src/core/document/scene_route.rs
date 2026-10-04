@@ -205,7 +205,7 @@ impl<'a> SceneDocumentRoute<'a> {
                 }
             };
         }
-        self.commit_document(creation.finish(), reservation)
+        Ok(self.commit_document(creation.finish(), reservation))
     }
 
     fn install_and_commit<Installer>(

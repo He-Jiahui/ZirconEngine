@@ -50,6 +50,12 @@ struct ProjectLayerState {
     transition_in_progress: bool,
 }
 
+pub(crate) enum PreparedSettingsLayer {
+    Ready(PreparedSettingsWrite),
+    SkippedStale,
+    BlockedInvalid,
+}
+
 /// The sole mutable owner for registered settings and their published generation snapshots.
 pub struct SettingsAuthority {
     state: Mutex<SettingsAuthorityState>,
@@ -117,6 +123,14 @@ impl SettingsAuthority {
     pub fn resolved_settings(
         &self,
         keys: &[SettingsKey],
+    ) -> Result<ResolvedSettingsBatch, SettingsError> {
+        let state = self.lock_state();
+        ResolvedSettingsBatch::from_registry(&state.registry, keys.iter())
+    }
+
+    pub(crate) fn resolved_settings_from_iter<'a>(
+        &self,
+        keys: impl IntoIterator<Item = &'a SettingsKey>,
     ) -> Result<ResolvedSettingsBatch, SettingsError> {
         let state = self.lock_state();
         ResolvedSettingsBatch::from_registry(&state.registry, keys)
@@ -235,15 +249,15 @@ impl SettingsAuthority {
     /// The worker receives a complete encoded document but never a cloned registry map. Project
     /// source identity is held through serialization, so a queued write for one project cannot
     /// capture another project's authority layer after a switch.
-    pub(crate) fn prepare_persistent_layer_for_write(
+    pub(crate) fn prepare_persistent_layer_for_write_disposition(
         &self,
         scope: SettingsScope,
         store: &SettingsStore,
-    ) -> Result<Option<PreparedSettingsWrite>, SettingsStoreError> {
+    ) -> Result<PreparedSettingsLayer, SettingsStoreError> {
         let project_layer = (scope == SettingsScope::Project).then(|| self.lock_project_layer());
         if let Some(project_layer) = project_layer.as_ref() {
             if project_layer.transition_in_progress {
-                return Ok(None);
+                return Ok(PreparedSettingsLayer::SkippedStale);
             }
             let Some(expected_path) = store.paths().project() else {
                 return Err(SettingsStoreError::ProjectRootRequired);
@@ -253,17 +267,30 @@ impl SettingsAuthority {
                 .as_ref()
                 .filter(|active| active.path.as_path() == expected_path)
             else {
-                return Ok(None);
+                return Ok(PreparedSettingsLayer::SkippedStale);
             };
             if matches!(&active.result, SettingsProjectLayerLoad::Invalid { .. }) {
-                return Ok(None);
+                return Ok(PreparedSettingsLayer::BlockedInvalid);
             }
         }
 
         let state = self.lock_state();
         store
             .prepare_registry_layer(scope, &state.registry)
-            .map(Some)
+            .map(PreparedSettingsLayer::Ready)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn prepare_persistent_layer_for_write(
+        &self,
+        scope: SettingsScope,
+        store: &SettingsStore,
+    ) -> Result<Option<PreparedSettingsWrite>, SettingsStoreError> {
+        self.prepare_persistent_layer_for_write_disposition(scope, store)
+            .map(|prepared| match prepared {
+                PreparedSettingsLayer::Ready(write) => Some(write),
+                PreparedSettingsLayer::SkippedStale | PreparedSettingsLayer::BlockedInvalid => None,
+            })
     }
 
     /// Loads the active project layer exactly once for its settings-file path.
@@ -401,5 +428,12 @@ impl SettingsAuthority {
         self.project_layer_operation
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+}
+
+#[cfg(test)]
+impl SettingsAuthority {
+    pub(crate) fn from_registry_for_performance_benchmark(registry: SettingsRegistry) -> Self {
+        Self::from_registry(registry)
     }
 }

@@ -24,9 +24,9 @@ mod observation;
 
 pub use error::ToolSchedulerServiceError;
 pub use observation::{
-    DEFAULT_MAX_ACTIVE_TOOL_OWNER_GENERATIONS, DEFAULT_MAX_TOOL_TRANSITION_JOURNAL_BATCHES,
     ToolSchedulerLimits, ToolSchedulerLimitsError, ToolSchedulerSnapshot, ToolTransitionCursor,
-    ToolTransitionRead, ToolTransitionReadError,
+    ToolTransitionRead, ToolTransitionReadError, DEFAULT_MAX_ACTIVE_TOOL_OWNER_GENERATIONS,
+    DEFAULT_MAX_TOOL_TRANSITION_JOURNAL_BATCHES,
 };
 
 /// Thread-safe owner of the one editor-wide exclusive-resource scheduler.
@@ -79,7 +79,7 @@ impl ToolSchedulerDeliveryHealth {
         self.dispatch_errors
     }
 
-    pub const fn requires_resync(self) -> bool {
+    pub fn requires_resync(self) -> bool {
         self.committed_revision != self.dispatched_revision
             || self.unobserved_batches > 0
             || self.dropped_deliveries > 0
@@ -663,4 +663,5 @@ impl ToolSchedulerService {
 }
 
 #[cfg(test)]
+#[path = "tool_scheduler/tests/cases.rs"]
 mod tests;

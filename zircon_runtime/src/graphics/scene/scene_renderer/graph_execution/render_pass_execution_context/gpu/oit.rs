@@ -10,7 +10,7 @@ use crate::graphics::scene::scene_renderer::attachment_ops::depth_attachment_ope
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawCommandReplayer, MeshPassPipelineKind,
 };
-use crate::graphics::scene::scene_renderer::sprite::{SpriteVertex, build_sprite_vertices};
+use crate::graphics::scene::scene_renderer::sprite::{build_sprite_vertices, SpriteVertex};
 use crate::render_graph::{RenderGraphAttachmentOps, RenderGraphResourceAccessKind};
 
 use super::RenderPassGpuExecutionContext;
@@ -283,23 +283,5 @@ fn create_sprite_vertex_buffer(device: &wgpu::Device, vertices: &[SpriteVertex])
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn unsupported_mesh_pipeline_invalidates_replay_state_before_skipping_draw() {
-        let source = include_str!("oit.rs");
-        let unsupported = source
-            .find("unsupported_shader = Some(command.pipeline_key().shader_id.clone());")
-            .expect("OIT replay must record the unsupported shader");
-        let invalidate = source[unsupported..]
-            .find("replayer.invalidate_state_after_external_pipeline();")
-            .map(|offset| unsupported + offset)
-            .expect("OIT replay must invalidate a pipeline selection that failed to materialize");
-        let skip = source[invalidate..]
-            .find("return false;")
-            .map(|offset| invalidate + offset)
-            .expect("unsupported OIT commands must remain fail-closed");
-
-        assert!(unsupported < invalidate);
-        assert!(invalidate < skip);
-    }
-}
+#[path = "tests/oit.rs"]
+mod tests;

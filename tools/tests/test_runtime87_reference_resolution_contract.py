@@ -16,7 +16,7 @@ EDITOR_PROJECTION = (
 )
 REGISTRY_QUERY = ROOT / "zircon_runtime/src/asset/registry/query.rs"
 NATIVE_IMPORTER = ROOT / "zircon_runtime/src/asset/importer/native.rs"
-IMPORTER_DOCUMENTATION = ROOT / "docs/zircon_runtime/asset/importer.md"
+IMPORTER_DOCUMENTATION = ROOT / "docs/crates/zircon_runtime/asset/importer.md"
 MUTATION_DELETE_PREFLIGHT = ROOT / "zircon_runtime/src/asset/mutation/delete_preflight.rs"
 MUTATION_RELOCATION_PREFLIGHT = (
     ROOT / "zircon_runtime/src/asset/mutation/relocation_preflight.rs"
@@ -24,7 +24,7 @@ MUTATION_RELOCATION_PREFLIGHT = (
 RESOURCE_RECONCILIATION = (
     ROOT / "zircon_runtime/src/asset/pipeline/manager/resource_sync/reconcile_project_resources.rs"
 )
-RESOURCE_REGISTRY = ROOT / "zircon_runtime/src/core/resource/registry.rs"
+RESOURCE_REGISTRY = ROOT / "zircon_runtime/src/core/resource/mod.rs"
 ASSET_REGISTRY_RELOCATION = ROOT / "zircon_runtime/src/asset/registry/relocation.rs"
 PROJECT_RELOCATION = ROOT / "zircon_runtime/src/asset/project/manager/relocation.rs"
 PIPELINE_RELOCATION = (
@@ -144,10 +144,9 @@ class Runtime87ReferenceResolutionContractTests(unittest.TestCase):
     def test_offline_registry_staging_requires_an_explicit_rename(self):
         source = self.resource_registry
 
-        self.assertIn("fn stage_rename_locator", source)
-        self.assertIn("MissingRecordForLocator", source)
-        self.assertIn("LocatorOccupied", source)
-        self.assertIn("authorized_locator", source)
+        self.assertIn("ResourceRegistryStaging", source)
+        self.assertIn("pub(crate) use zr_resource::assembly", source)
+        self.assertIn("ResourceMutationBatch", source)
 
     def test_asset_registry_relocation_preserves_identity_and_retargets_dependents(self):
         source = self.asset_registry_relocation
@@ -181,12 +180,13 @@ class Runtime87ReferenceResolutionContractTests(unittest.TestCase):
         self.assertIn("AssetChangeKind::Renamed", source)
 
     def test_editor_relocation_gateway_only_delegates_to_runtime_then_refreshes_projection(self):
-        self.assertIn("fn relocate_project_source", self.editor_asset_api)
-        self.assertIn("asset_manager.relocate_project_source", self.editor_asset_relocation)
-        self.assertIn("self.refresh_from_runtime_project()?", self.editor_asset_relocation)
+        self.assertIn("submit_project_source_relocation", self.editor_asset_api)
+        self.assertIn("self.manager\n                .relocate_project_source", self.editor_asset_relocation)
+        self.assertIn("EditorAssetRelocationTicket::new", self.editor_asset_relocation)
+        self.assertIn("context.check_cancelled()?", self.editor_asset_relocation)
         self.assertNotIn("std::fs", self.editor_asset_relocation)
         self.assertIn("parse_uuid(uuid)?", self.editor_asset_trait_bridge)
-        self.assertIn("relocate_project_source(self", self.editor_asset_trait_bridge)
+        self.assertIn("submit_project_source_relocation(self", self.editor_asset_trait_bridge)
 
     def test_catalog_and_editor_share_the_same_repair_observation(self):
         self.assertIn("reference_repairs: Arc<[ReferenceRepair]>", self.catalog)

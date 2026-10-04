@@ -8,11 +8,11 @@ use crate::graphics::scene::scene_renderer::advanced_lighting::transmission::tra
 use crate::graphics::scene::scene_renderer::environment::lightmap_bind_group_layout_entries;
 use crate::graphics::scene::scene_renderer::environment::reflection_probe_bind_group_layout_entries;
 use crate::graphics::scene::scene_renderer::lighting::light_grid_builder::{
-    LIGHT_GRID_EMPTY_ZBIN_HEADER, LightGridParams,
+    LightGridParams, LIGHT_GRID_EMPTY_ZBIN_HEADER,
 };
 use crate::graphics::scene::scene_renderer::shadow::atlas::{
-    SHADOW_ATLAS_BINDING, SHADOW_ATLAS_SAMPLER_BINDING, SHADOW_ATLAS_SLOT_BUFFER_BINDING,
-    SHADOW_GLOBALS_BINDING, ShadowAtlasResources, shadow_atlas_bind_group_layout_entries,
+    shadow_atlas_bind_group_layout_entries, ShadowAtlasResources, SHADOW_ATLAS_BINDING,
+    SHADOW_ATLAS_SAMPLER_BINDING, SHADOW_ATLAS_SLOT_BUFFER_BINDING, SHADOW_GLOBALS_BINDING,
 };
 use crate::graphics::scene::scene_renderer::shadow::slot::{GpuShadowGlobals, GpuShadowSlot};
 use crate::graphics::types::{ViewportRenderFrame, ViewportRenderRegion};
@@ -260,8 +260,8 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_forward_shadow_re
     })
 }
 
-pub(in crate::graphics::scene::scene_renderer::mesh) fn forward_shadow_receiver_layout_entries()
--> Vec<wgpu::BindGroupLayoutEntry> {
+pub(in crate::graphics::scene::scene_renderer::mesh) fn forward_shadow_receiver_layout_entries(
+) -> Vec<wgpu::BindGroupLayoutEntry> {
     let mut entries = Vec::new();
     entries.extend(shadow_atlas_bind_group_layout_entries(
         FORWARD_SHADOW_RECEIVER_BINDING_SHADER_STAGES,
@@ -398,21 +398,5 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_fallback_shadow_a
 }
 
 #[cfg(test)]
-mod profile_contract_tests {
-    #[test]
-    fn forward_receiver_creation_profiles_standard_and_full_shapes_per_frame() {
-        let source = include_str!("forward_shadow_receiver.rs")
-            .split("#[cfg(test)]")
-            .next()
-            .expect("forward receiver production source");
-
-        assert!(source.contains("fn begin_forward_receiver_binding_profile_frame(&mut self)"));
-        assert!(source.contains("standard_forward_receiver_bind_group_create_count = 0;"));
-        assert!(source.contains("full_forward_receiver_bind_group_create_count = 0;"));
-        assert!(source.contains("\"standard_bind_group_create\""));
-        assert!(source.contains("\"full_binding_prepare\""));
-        assert!(source.contains("forward_receiver_standard_bind_group_create_count"));
-        assert!(source.contains("forward_receiver_full_bind_group_create_count"));
-        assert_eq!(source.matches(".saturating_add(1);").count(), 2);
-    }
-}
+#[path = "tests/forward_shadow_receiver_profile_contract_tests.rs"]
+mod profile_contract_tests;

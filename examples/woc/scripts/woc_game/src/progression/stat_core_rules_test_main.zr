@@ -1,3 +1,4 @@
+// TODO: [CR-WOC-IPS-P-0005] 当前没有 .zrp 指向本测试入口，也没有脚本调用端；须补齐运行项目或 runner 映射后，才能把这些属性公式断言计为已执行验证。
 var rules = %import("progression/stat_core_rules");
 
 if (rules.primaryAtLevel(23, 2, 1) != 23 || rules.primaryAtLevel(23, 2, 20) != 61 ||

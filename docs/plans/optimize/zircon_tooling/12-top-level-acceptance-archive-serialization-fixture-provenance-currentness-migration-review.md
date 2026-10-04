@@ -1,7 +1,5 @@
 ---
 related_code:
-  - tests/acceptance
-  - tests/fixtures/serialization
   - tools/tests/test_runtime_ui_table_module_structure.py
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_schema.rs
   - zircon_runtime_interface/src/project/tests/manifest_summary.rs

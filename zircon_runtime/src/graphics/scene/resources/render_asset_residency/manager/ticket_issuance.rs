@@ -14,7 +14,7 @@ impl RenderAssetResidencyManager {
             .count();
         let mut next_ticket_id = self.reserve_ticket_ids(request_count)?;
         for change in prepared {
-            if let Some(seed) = change.request_seed {
+            if let Some(seed) = change.request_seed.take() {
                 let Some(id) = RenderAssetResidencyTicketId::new(next_ticket_id) else {
                     return Err(RenderAssetResidencyAdmissionError::TicketIdExhausted);
                 };
@@ -36,7 +36,7 @@ impl RenderAssetResidencyManager {
             .count();
         let mut next_ticket_id = self.reserve_ticket_ids(request_count)?;
         for reconciliation in prepared {
-            if let Some(seed) = reconciliation.request_seed {
+            if let Some(seed) = reconciliation.request_seed.take() {
                 let Some(id) = RenderAssetResidencyTicketId::new(next_ticket_id) else {
                     return Err(RenderAssetResidencyAdmissionError::TicketIdExhausted);
                 };
@@ -48,6 +48,7 @@ impl RenderAssetResidencyManager {
         Ok(())
     }
 
+    // 整批预留连续 ID 后才推进分配位置，转换或溢出错误须在发出任何 ticket 前返回，供引用更新和设备恢复保持原子性。
     pub(super) fn reserve_ticket_ids(
         &self,
         request_count: usize,

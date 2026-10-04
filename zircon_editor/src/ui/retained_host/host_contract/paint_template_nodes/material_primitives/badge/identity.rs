@@ -1,6 +1,7 @@
 use super::super::super::super::data::TemplatePaneNodeData;
 use super::super::component_variant_contains;
 
+// 根角色和子槽 variant 决定绘制归属；不可见令牌只抑制计数层，根标签仍可绘制。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_badge_root_node(
     node: &TemplatePaneNodeData,
 ) -> bool {
@@ -41,5 +42,5 @@ fn badge_slot_variant(component_variant: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "identity/single_scan_slot_tests.rs"]
+#[path = "identity/tests/single_scan_slot_tests.rs"]
 mod single_scan_slot_tests;

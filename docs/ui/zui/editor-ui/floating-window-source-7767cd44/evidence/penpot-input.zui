@@ -1,0 +1,122 @@
+penpot_original_source = "[asset]\nkind = \"view\"\nid = \"res://ui/editor/host/floating_window_source.zui\"\nversion = 2\ndisplay_name = \"floating window source\"\n\n[root]\nnode = \"root\"\n\n[nodes.root]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"FloatingWindowSourceRoot\"\npixel_snapping = \"disabled\"\nclasses = [\"floating-window-source\"]\nlayout = { clip = true, container = { kind = \"VerticalBox\", gap = 0.0 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"top_bar\" }, { node = \"center_band\" }, { node = \"status_bar\" }]\n\n[nodes.top_bar]\ncomponent = \"Container\"\ncontrol_id = \"FloatingWindowTopBarRoot\"\nlayout = { clip = true, width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = \"Fixed\" } }\n\n[nodes.center_band]\ncomponent = \"HorizontalGroup\"\ncontrol_id = \"FloatingWindowCenterBandRoot\"\nlayout = { clip = true, container = { kind = \"HorizontalBox\", gap = 0.0 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"rail\" }, { node = \"document\" }]\n\n[nodes.rail]\ncomponent = \"Container\"\ncontrol_id = \"FloatingWindowRailRoot\"\nlayout = { clip = true, width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.document]\ncomponent = \"Container\"\ncontrol_id = \"FloatingWindowDocumentRoot\"\nlayout = { clip = true, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.status_bar]\ncomponent = \"Container\"\ncontrol_id = \"FloatingWindowStatusBarRoot\"\nlayout = { clip = true, width = { stretch = \"Stretch\" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = \"Fixed\" } }\n"
+
+[asset]
+kind = "view"
+id = "res://ui/editor/host/floating_window_source.zui"
+version = 2
+display_name = "floating window source"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalGroup"
+control_id = "FloatingWindowSourceRoot"
+pixel_snapping = "disabled"
+classes = [ "floating-window-source" ]
+
+[nodes.root.layout]
+clip = true
+
+[nodes.root.layout.container]
+kind = "VerticalBox"
+gap = 0
+
+[nodes.root.layout.width]
+stretch = "Stretch"
+
+[nodes.root.layout.height]
+stretch = "Stretch"
+
+[[nodes.root.children]]
+node = "top_bar"
+
+[[nodes.root.children]]
+node = "center_band"
+
+[[nodes.root.children]]
+node = "status_bar"
+
+[nodes.top_bar]
+component = "Container"
+control_id = "FloatingWindowTopBarRoot"
+
+[nodes.top_bar.layout]
+clip = true
+
+[nodes.top_bar.layout.width]
+stretch = "Stretch"
+
+[nodes.top_bar.layout.height]
+min = 30
+preferred = 30
+max = 30
+stretch = "Fixed"
+
+[nodes.center_band]
+component = "HorizontalGroup"
+control_id = "FloatingWindowCenterBandRoot"
+
+[nodes.center_band.layout]
+clip = true
+
+[nodes.center_band.layout.container]
+kind = "HorizontalBox"
+gap = 0
+
+[nodes.center_band.layout.width]
+stretch = "Stretch"
+
+[nodes.center_band.layout.height]
+stretch = "Stretch"
+
+[[nodes.center_band.children]]
+node = "rail"
+
+[[nodes.center_band.children]]
+node = "document"
+
+[nodes.rail]
+component = "Container"
+control_id = "FloatingWindowRailRoot"
+
+[nodes.rail.layout]
+clip = true
+
+[nodes.rail.layout.width]
+min = 34
+preferred = 34
+max = 34
+stretch = "Fixed"
+
+[nodes.rail.layout.height]
+stretch = "Stretch"
+
+[nodes.document]
+component = "Container"
+control_id = "FloatingWindowDocumentRoot"
+
+[nodes.document.layout]
+clip = true
+
+[nodes.document.layout.width]
+stretch = "Stretch"
+
+[nodes.document.layout.height]
+stretch = "Stretch"
+
+[nodes.status_bar]
+component = "Container"
+control_id = "FloatingWindowStatusBarRoot"
+
+[nodes.status_bar.layout]
+clip = true
+
+[nodes.status_bar.layout.width]
+stretch = "Stretch"
+
+[nodes.status_bar.layout.height]
+min = 22
+preferred = 22
+max = 22
+stretch = "Fixed"

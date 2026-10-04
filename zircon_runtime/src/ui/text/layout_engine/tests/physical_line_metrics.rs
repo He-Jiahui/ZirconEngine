@@ -1,5 +1,5 @@
 use crate::core::framework::text::TextDirection;
-use crate::text::{SharedTextLayoutSession, TextRange, text_style};
+use crate::text::{text_style, SharedTextLayoutSession, TextRange};
 use zircon_runtime_interface::ui::{
     layout::UiFrame,
     surface::{UiTextOverflow, UiTextWrap},
@@ -29,12 +29,10 @@ fn plain_physical_lines_publish_their_actual_shaped_baselines() {
 
     assert_eq!(layout.lines.len(), 2);
     assert_eq!(shaped.lines.len(), 2);
-    assert!(
-        shaped
-            .lines
-            .iter()
-            .all(|line| line.baseline.is_finite() && line.baseline >= 0.0)
-    );
+    assert!(shaped
+        .lines
+        .iter()
+        .all(|line| line.baseline.is_finite() && line.baseline >= 0.0));
     assert!(
         (layout.lines[0].baseline - shaped.lines[0].baseline).abs() < 0.01,
         "first physical line must preserve its shaped baseline"

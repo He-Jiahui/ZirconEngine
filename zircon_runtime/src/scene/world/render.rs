@@ -27,6 +27,10 @@ mod lights;
 const SCENE_CLEAR_COLOR: Vec4 = Vec4::new(0.09, 0.11, 0.14, 1.0);
 
 impl World {
+    pub(crate) fn render_world_snapshot_handle(&self) -> RenderWorldSnapshotHandle {
+        RenderWorldSnapshotHandle::new(self.render_dirty_entity_journal().world().raw())
+    }
+
     pub fn to_render_snapshot(&self) -> RenderSceneSnapshot {
         self.to_render_extract()
     }
@@ -497,14 +501,14 @@ impl World {
         scene_camera_entity: Option<crate::scene::EntityId>,
     ) -> RenderViewExtract {
         let view = match scene_camera_entity {
-            Some(entity) => RenderViewExtract::from_camera(camera.camera.clone()).with_cameras(
-                self.scene_camera_descriptors_with_override(Some((entity, &camera)))
-                    .into_iter()
-                    .filter(|descriptor| {
-                        descriptor.entity == Some(entity) || descriptor.is_active()
-                    })
-                    .collect(),
-            ),
+            Some(entity) => {
+                let mut cameras =
+                    self.scene_camera_descriptors_with_override(Some((entity, &camera)));
+                cameras.retain(|descriptor| {
+                    descriptor.entity == Some(entity) || descriptor.is_active()
+                });
+                RenderViewExtract::from_camera(camera.camera.clone()).with_cameras(cameras)
+            }
             None => {
                 RenderViewExtract::from_camera(camera.camera.clone()).with_cameras(vec![camera])
             }
@@ -815,3 +819,7 @@ fn build_preview_environment(request: &SceneViewportExtractRequest) -> PreviewEn
 fn build_environment_extract(request: &SceneViewportExtractRequest) -> EnvironmentExtract {
     EnvironmentExtract::from_preview_skybox_enabled(request.settings.preview_skybox)
 }
+
+#[cfg(test)]
+#[path = "render/tests/view_camera_filter_tests.rs"]
+mod view_camera_filter_tests;

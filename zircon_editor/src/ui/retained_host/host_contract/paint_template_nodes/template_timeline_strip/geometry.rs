@@ -1,8 +1,10 @@
+// 将同一输入帧分配为 ruler、plot、track 和 footer；静态刻度与动态 playhead/key 共用这套时间到 x 映射。
 use super::super::super::data::FrameRect;
 use super::metrics::TimelineStripMetrics;
 use crate::ui::retained_host::host_contract::paint_geometry::bounded_extent;
 
 #[derive(Clone, Debug, PartialEq)]
+/// 时间轴各层共享的帧快照；入口只在 plot 有面积时继续，以免静态缓存为不可画区域工作。
 pub(super) struct TimelineStripGeometry {
     pub outer: FrameRect,
     pub ruler: FrameRect,
@@ -113,29 +115,5 @@ fn normalized_time(time: f32, duration: f32) -> f32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn collapsed_timeline_strip_has_no_drawable_regions() {
-        let geometry = TimelineStripGeometry::from_frame(
-            &FrameRect {
-                x: 0.0,
-                y: 0.0,
-                width: 0.0,
-                height: 120.0,
-            },
-            super::super::metrics::timeline_metrics(),
-        );
-
-        for region in [
-            geometry.ruler,
-            geometry.plot,
-            geometry.track,
-            geometry.footer,
-        ] {
-            assert_eq!(region.width, 0.0);
-            assert_eq!(region.height, 0.0);
-        }
-    }
-}
+#[path = "tests/geometry.rs"]
+mod tests;

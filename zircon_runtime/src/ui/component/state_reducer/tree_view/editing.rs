@@ -1,3 +1,5 @@
+//! 树编辑会话保存稳定节点 ID 和暂存文本；键盘进入/取消以及 Commit 共用会话状态，成功提交留下可供宿主消费的改名结果。
+
 use std::collections::BTreeMap;
 
 use zircon_runtime_interface::ui::component::{
@@ -12,6 +14,7 @@ const RENAMED_NODE_ID_PROPERTIES: [&str; 2] = ["renamedNodeId", "renamed_node_id
 const RENAMED_TEXT_PROPERTIES: [&str; 2] = ["renamedText", "renamed_text"];
 const RENAME_COMMITTED_PROPERTIES: [&str; 2] = ["renameCommitted", "rename_committed"];
 
+// bool 表示该族是否消费了动作；属于树但当前不可编辑或无焦点目标仍消费，避免动作落入其他控件语义。
 pub(in crate::ui::component::state_reducer) fn apply_begin_edit(
     state: &mut UiComponentState,
     descriptor: &UiComponentDescriptor,
@@ -80,6 +83,9 @@ pub(in crate::ui::component::state_reducer) fn apply_cancel_editing(
     Ok(true)
 }
 
+// 提交写入改名结果并结束临时会话；节点源集合的正式修改和持久化由结果的消费方承担。
+// TODO: [CR-UI-COMP-0007] 当前工作区搜索仅定位到结果字段的声明、写入及断言，尚未定位正式改名结果消费方；
+// 需确认编辑器/数据源如何消费 node_id+text 并反馈源集合，补覆盖真实数据更新的契约测试。
 pub(in crate::ui::component::state_reducer) fn apply_commit(
     state: &mut UiComponentState,
     descriptor: &UiComponentDescriptor,
@@ -298,6 +304,7 @@ fn rename_committed_property(
     preferred_property(state, descriptor, &RENAME_COMMITTED_PROPERTIES)
 }
 
+// 会话沿用状态中已存在的拼写，再选描述符声明；这样 camelCase 与下划线目录均可保留原有投影身份。
 fn preferred_property(
     state: &UiComponentState,
     descriptor: &UiComponentDescriptor,
@@ -321,5 +328,5 @@ fn is_editing_text_property(property: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "editing/borrowed_node_lookup_tests.rs"]
+#[path = "editing/tests/borrowed_node_lookup_tests.rs"]
 mod borrowed_node_lookup_tests;

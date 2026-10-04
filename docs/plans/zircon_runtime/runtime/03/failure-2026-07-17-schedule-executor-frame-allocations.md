@@ -60,3 +60,34 @@ stage plan 缓存了拓扑与 batch，但没有缓存可复用的 batch executio
 - 本轮只补测量面，没有实施执行状态复用，也没有运行 Cargo、allocator benchmark 或产品负载矩阵。
 
 Open state: `生产调度临时控制缓冲遥测源码已完成，待受管 Cargo 与 1/10/100 空任务、100/1000 system 产品测量；只有数据证明控制面成本显著后才优化`。
+
+## Rolling source-contract verification (2026-09-19, Runtime03 owner)
+
+- `ScheduleParallelTaskRegistry` currently keeps an `Arc<HashMap<...>>` COW
+  snapshot: cloning an unchanged registry shares the frozen map and registration
+  publishes a new map only on mutation. The executor preserves batch dependency,
+  error ordering, abort, and deferred-command paths.
+- `NativeSystemScheduleDiagnostics` now records worker-batch count plus temporary
+  control-buffer count/byte-capacity proxies through the existing diagnostics
+  store; its focused unit contract asserts the values and publication paths.
+- Scoped source inspection and `rustfmt --edition 2021 --check` passed for the
+  four owned files. The unchanged conflict-graph source remains referenced only as
+  a read-only baseline (it was not eligible for transfer). This is static evidence;
+  managed Runtime03 Cargo, allocator/latency matrices, and 100/1000-system product
+  measurements remain deferred, so no performance conclusion or fixed return is
+  claimed.
+
+Current status remains `open / source_contract_static_green / measurement_pending`.
+
+## 2026-09-20 rolling review correction
+
+- The independent review found that the ignored `optimization_batch_hw_runtime606_static_frame_metrics_p95` benchmark's `record_legacy` helper accidentally called `DiagnosticStore::record_static`, so its legacy and optimized arms measured the same implementation and the `<= 0.50` ratio could not establish an optimization.
+- Within the declared Runtime03 diagnostic-test ownership, `record_legacy` now calls the generic `DiagnosticStore::record` path with owned-compatible metadata inputs. Production `record_diagnostics` remains on `record_static`; the snapshot-equivalence test still compares the two paths.
+- Rustfmt and scoped `git diff --check` pass after the correction. A fresh managed Cargo test and the required allocator/latency and 100/1000-system measurements are still pending; no performance threshold is claimed.
+
+### 2026-09-20 corrected static ticket and independent review
+
+- The first post-correction ticket `1db9351fd19a43a49acc2449dc7cae07` (job `9fc9cdf5f16f4a21b5ad7e8b48c3e57f`) failed before the assertions because its PowerShell checker used character-set splitting and falsely reported `production static record missing`. This coordinator checker failure is excluded from reuse and is not a source or Cargo result.
+- Corrected ticket `5d35dbf7e3c447b4acaae1fcfb418f10` (job `fbccf4f93a07426aa1ef153e3d56e068`) sealed the same current manifest and passed with `RUNTIME03_SCHEDULE_ALLOC_SOURCE_CONTRACT_CURRENT_PASS`; cleanup completed. The guard now locates the test marker and explicitly verifies production `record_static` versus benchmark-only generic `record`.
+- Reviewer Session `review-runtime03-schedule-alloc-r1b` independently rechecked the COW task registry, dependency/error ordering, static diagnostic producer, and corrected benchmark comparison. Findings are `Critical=0 / Important=0 / Moderate=0`.
+- These are static/source-contract receipts only. Managed Runtime03 Cargo, 1/10/100 allocation/latency matrices, 100/1000-system measurements, allocator/product performance gates, canonical return, and closeout remain pending; no performance threshold is claimed.

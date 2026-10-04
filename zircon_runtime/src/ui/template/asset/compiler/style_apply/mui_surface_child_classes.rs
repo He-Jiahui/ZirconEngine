@@ -1,3 +1,5 @@
+//! 子表面组件将开合、方向、位置等父状态传播到其可替换 slot；样式匹配依赖这些节点级类名。
+
 use std::collections::BTreeMap;
 
 use toml::Value;
@@ -7,6 +9,7 @@ use super::{
     append_class, bool_attribute, bool_attribute_any, bool_from_attributes_any, pascal_case,
 };
 
+/// 从样式入口接收子表面组件；返回已接管状态，以停止后续组件族对该节点的分发。
 pub(super) fn append_component_classes(
     node: &mut UiTemplateNode,
     component: &str,
@@ -28,6 +31,7 @@ pub(super) fn append_component_classes(
     true
 }
 
+/// 从 slot 契约接收父属性与 slot 名，供抽屉、步进器和速度拨盘的子区域继承状态。
 pub(super) fn append_slot_classes(
     child: &mut UiTemplateNode,
     owner_component: &str,
@@ -245,6 +249,7 @@ fn append_swipeable_drawer_slot_classes(
     }
 }
 
+// SwipeableDrawer 同时暴露自身根节点和 root slot，二者必须使用同一锚点与停靠变体约定。
 fn append_drawer_root_classes(classes: &mut Vec<String>, anchor: &str, variant: &str) {
     append_class(classes, "MuiDrawer-root".to_string());
     append_class(classes, format!("MuiDrawer-anchor{}", pascal_case(anchor)));
@@ -281,5 +286,5 @@ fn borrowed_surface_child_attribute<'a>(
 }
 
 #[cfg(test)]
-#[path = "mui_surface_child_classes/borrowed_attributes_tests.rs"]
+#[path = "mui_surface_child_classes/tests/borrowed_attributes_tests.rs"]
 mod borrowed_attributes_tests;

@@ -38,14 +38,14 @@ requireText(
 const generator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
 if (!/entangling_roots',[\s\S]*?'maul'/.test(generator) ||
-    !generator.includes("EXPECTED_ABILITY_COUNT = 79") ||
-    !zrGenerator.includes("document.entries.length === 79")) {
+    !generator.includes("EXPECTED_ABILITY_COUNT = 117") ||
+    !zrGenerator.includes("document.entries.length === 117")) {
   throw new Error("M4 Maul projection scope is missing");
 }
 const entry = JSON.parse(read("contracts", "m4_abilities.json")).entries.find(
   (value) => value.id === "maul",
 );
-if (!entry || entry.index !== 57 || entry.definition.class !== "druid" ||
+if (!entry || entry.index !== 61 || entry.definition.class !== "druid" ||
     entry.definition.learnLevel !== 10 || entry.definition.cost !== 15 ||
     entry.definition.castTime !== 0 || entry.definition.cooldown !== 0 ||
     entry.definition.range !== 0 || entry.definition.school !== "physical" ||

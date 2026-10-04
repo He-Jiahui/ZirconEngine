@@ -6,7 +6,7 @@ from tools.tests.plugin_structure_audit_optional_feature_support import (
     plugin_manifest,
 )
 
-
+# 用插件清单夹具验证可选特性：拒绝空可选特性数组，并拒绝未知可选特性字段。
 class PluginStructureAuditManifestSchemaOptionalFeaturesTests(unittest.TestCase):
     def test_manifest_schema_rejects_empty_optional_features_array(self):
         violations: list[str] = []

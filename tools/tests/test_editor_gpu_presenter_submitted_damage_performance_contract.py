@@ -1,3 +1,4 @@
+# 核对图形提交诊断采用已构造命令流的实际损伤区域。
 from pathlib import Path
 import unittest
 

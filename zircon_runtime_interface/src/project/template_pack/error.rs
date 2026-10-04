@@ -16,6 +16,10 @@ pub enum ProjectTemplatePackError {
         #[source]
         source: RelPathError,
     },
+    #[error("project template contains duplicate entry path {path}")]
+    DuplicateEntryPath { path: String },
+    #[error("project template entry path {path} conflicts with file ancestor {ancestor}")]
+    EntryPathConflictsWithFile { path: String, ancestor: String },
     #[error("project template does not contain zircon-project.toml")]
     MissingManifest,
     #[error("project template manifest is not UTF-8: {source}")]
@@ -33,6 +37,8 @@ pub enum ProjectTemplatePackError {
         #[source]
         source: toml::ser::Error,
     },
+    #[error("project template manifest does not satisfy its descriptor: {reason}")]
+    ManifestRequirements { reason: String },
     #[error("rendered project template manifest is invalid: {source}")]
     ManifestSummary {
         #[from]

@@ -1,3 +1,4 @@
+//! 所有生成路径入导出根目录前必须是可移植相对路径；落盘和 ZIP 使用同一归一化规则。
 use std::io::{Error, ErrorKind};
 use std::path::{Component, Path, PathBuf};
 
@@ -9,6 +10,7 @@ pub(super) fn resolve_materialized_relative_path(
     Ok(root.join(portable_path))
 }
 
+/// 生成文件与 ZIP 条目的共同边界；调用者不得把外部绝对路径当作导出内路径。
 pub(super) fn validated_materialized_relative_path(
     relative_path: &str,
 ) -> Result<String, std::io::Error> {
@@ -84,36 +86,5 @@ fn invalid_materialized_path(relative_path: &str, reason: &str) -> std::io::Erro
 }
 
 #[cfg(test)]
-mod tests {
-    use super::validated_materialized_relative_path;
-
-    #[test]
-    fn streaming_normalization_preserves_portable_paths() {
-        assert_eq!(
-            validated_materialized_relative_path("plugins/rendering/plugin.toml")
-                .expect("portable path should remain valid"),
-            "plugins/rendering/plugin.toml"
-        );
-        assert_eq!(
-            validated_materialized_relative_path("plugins//rendering///plugin.toml")
-                .expect("repeated separators should normalize"),
-            "plugins/rendering/plugin.toml"
-        );
-    }
-
-    #[test]
-    fn streaming_normalization_preserves_path_rejections() {
-        for path in [
-            "",
-            "./plugin.toml",
-            "../plugin.toml",
-            "plugins\\plugin.toml",
-            "plugins/",
-        ] {
-            assert!(
-                validated_materialized_relative_path(path).is_err(),
-                "path {path:?} should remain invalid"
-            );
-        }
-    }
-}
+#[path = "tests/paths.rs"]
+mod tests;

@@ -52,6 +52,8 @@ pub holderTierThreshold(index: int): int {
 // The source accepts number | null and rejects non-finite values. Zr receives
 // an integral whole-token balance, so the explicit availability bit covers the
 // null case and integer values need no finite-number branch.
+// 仅消费宿主已核验的钱包余额来计算展示档位；无钱包与余额为零
+// 需要分别传入，不能由本模块推断资产所有权或发放权益。
 pub holderTierIndexForBalance(hasBalance: bool, balance: int): int {
     if (!hasBalance || balance < holderTierThreshold(1)) { return 0; }
     var result = 0;

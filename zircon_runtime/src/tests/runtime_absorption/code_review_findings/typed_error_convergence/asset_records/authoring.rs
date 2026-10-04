@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f5_asset_authoring_uses_typed_error() {
     let authoring = include_str!("../../../../../asset/assets/authoring.rs");
@@ -19,7 +20,7 @@ fn review_f5_asset_authoring_uses_typed_error() {
         "../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
     );
     let authoring_doc =
-        include_str!("../../../../../../../docs/zircon_runtime/asset/assets/authoring.md");
+        include_str!("../../../../../../../docs/crates/zircon_runtime/asset/assets/authoring.md");
 
     for required in [
         "pub type AssetAuthoringResult<T> = std::result::Result<T, AssetAuthoringError>;",

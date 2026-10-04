@@ -2,6 +2,30 @@ use super::*;
 use crate::core::framework::render::{UiRenderNodeIdProjection, UiRenderSubmissionSegment};
 
 #[test]
+fn screen_space_ui_plan_cache_handles_empty_to_visible_submission_without_delta_base() {
+    let empty = UiRenderExtract {
+        tree_id: UiTreeId::new("runtime.ui.plan-cache.empty"),
+        list: UiRenderList {
+            commands: Vec::new(),
+        },
+        raster_scale: 1.0,
+    };
+    let empty_submission = UiRenderSubmission::single(Arc::new(empty));
+    let visible_submission = UiRenderSubmission::single(Arc::new(plan_cache_extract()));
+    let mut cache = ScreenSpaceUiPlanCache::default();
+
+    assert!(cache
+        .prepare(&empty_submission, UVec2::new(320, 180), None, 7)
+        .is_none());
+    let visible = cache
+        .prepare(&visible_submission, UVec2::new(320, 180), None, 7)
+        .expect("visible submission should build a full plan");
+
+    assert!(visible.change_journal().is_full_rebuild());
+    assert_eq!(visible.change_journal().base_generation(), None);
+}
+
+#[test]
 fn screen_space_ui_plan_cache_reuses_stable_submission_identity() {
     let submission = UiRenderSubmission::single(Arc::new(plan_cache_extract()));
     let mut cache = ScreenSpaceUiPlanCache::default();
@@ -14,6 +38,85 @@ fn screen_space_ui_plan_cache_reuses_stable_submission_identity() {
         .expect("stable submission should retain its plan");
 
     assert!(Arc::ptr_eq(&first, &stable));
+}
+
+#[test]
+fn screen_space_ui_plan_cache_publishes_full_journal_for_initial_frame() {
+    let submission = UiRenderSubmission::single(Arc::new(plan_cache_extract()));
+    let mut cache = ScreenSpaceUiPlanCache::default();
+
+    let prepared = cache
+        .prepare(&submission, UVec2::new(320, 180), None, 7)
+        .expect("visible command should produce a plan");
+    let journal = prepared.change_journal();
+
+    assert!(journal.is_full_rebuild());
+    assert_eq!(journal.base_generation(), None);
+    assert!(journal.changed_segment_indices().is_empty());
+}
+
+#[test]
+fn screen_space_ui_plan_cache_publishes_exact_local_replacement_journal() {
+    let flat = plan_cache_many_command_extract(130);
+    let first_frame = Arc::new(UiRenderFrameExtract::from_extract(&flat));
+    let mut changed = flat.clone();
+    changed.list.commands[65].frame.x += 4.0;
+    let (changed_frame, _) = first_frame
+        .patch_ranges_from_extract(&changed, &[65..66])
+        .expect("fixed-cardinality patch should retain command leaves");
+    let first_submission = UiRenderSubmission::single_frame(first_frame);
+    let changed_submission = UiRenderSubmission::single_frame(Arc::new(changed_frame));
+    let mut cache = ScreenSpaceUiPlanCache::default();
+
+    let first = cache
+        .prepare(&first_submission, UVec2::new(320, 180), None, 7)
+        .expect("initial plan");
+    let changed = cache
+        .prepare(&changed_submission, UVec2::new(320, 180), None, 7)
+        .expect("changed plan");
+    let journal = changed.change_journal();
+
+    assert!(!journal.is_full_rebuild());
+    assert_eq!(journal.base_generation(), Some(first.generation()));
+    assert_eq!(journal.changed_segment_indices(), &[1]);
+    assert_eq!(journal.appended_segment_count(), 0);
+    assert_eq!(journal.truncated_segment_count(), 0);
+}
+
+#[test]
+fn screen_space_ui_plan_cache_distinguishes_appended_and_truncated_segments() {
+    let first_segment = plan_cache_frame_extract("first", 1, 0.0, None);
+    let second_segment = plan_cache_frame_extract("second", 2, 0.0, None);
+    let first_submission =
+        UiRenderSubmission::from_frame_segments(vec![Arc::clone(&first_segment)]);
+    let appended_submission =
+        UiRenderSubmission::from_frame_segments(vec![first_segment, Arc::clone(&second_segment)]);
+    let truncated_submission = UiRenderSubmission::from_frame_segments(vec![second_segment]);
+    let mut cache = ScreenSpaceUiPlanCache::default();
+
+    let first = cache
+        .prepare(&first_submission, UVec2::new(320, 180), None, 7)
+        .expect("initial plan");
+    let appended = cache
+        .prepare(&appended_submission, UVec2::new(320, 180), None, 7)
+        .expect("appended plan");
+    let appended_journal = appended.change_journal();
+    assert_eq!(appended_journal.base_generation(), Some(first.generation()));
+    assert_eq!(appended_journal.changed_segment_indices(), &[1]);
+    assert_eq!(appended_journal.appended_segment_count(), 1);
+    assert_eq!(appended_journal.truncated_segment_count(), 0);
+
+    let truncated = cache
+        .prepare(&truncated_submission, UVec2::new(320, 180), None, 7)
+        .expect("truncated plan");
+    let truncated_journal = truncated.change_journal();
+    assert_eq!(
+        truncated_journal.base_generation(),
+        Some(appended.generation())
+    );
+    assert!(truncated_journal.changed_segment_indices().is_empty());
+    assert_eq!(truncated_journal.appended_segment_count(), 0);
+    assert_eq!(truncated_journal.truncated_segment_count(), 1);
 }
 
 #[test]
@@ -258,9 +361,21 @@ fn screen_space_ui_plan_cache_rebuilds_suffix_text_with_changed_prefix_backgroun
     let next = cache
         .prepare(&next_submission, UVec2::new(320, 180), None, 7)
         .expect("updated text plan");
+    let first_text = first
+        .render_segments()
+        .iter()
+        .flat_map(|segment| segment.native_text_batches())
+        .next()
+        .expect("first submission should retain a native text batch");
+    let next_text = next
+        .render_segments()
+        .iter()
+        .flat_map(|segment| segment.native_text_batches())
+        .next()
+        .expect("updated submission should retain a native text batch");
 
     assert_eq!(
-        first.native_texts[0].background_color,
+        first_text.background_color,
         Some([
             0x11 as f32 / 255.0,
             0x22 as f32 / 255.0,
@@ -269,7 +384,7 @@ fn screen_space_ui_plan_cache_rebuilds_suffix_text_with_changed_prefix_backgroun
         ])
     );
     assert_eq!(
-        next.native_texts[0].background_color,
+        next_text.background_color,
         Some([
             0x44 as f32 / 255.0,
             0x55 as f32 / 255.0,

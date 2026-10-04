@@ -1,3 +1,4 @@
+# 核对清理候选仅追踪当前批次删除并保留顺序。
 from __future__ import annotations
 
 import unittest

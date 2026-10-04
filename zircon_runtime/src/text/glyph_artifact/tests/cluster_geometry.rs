@@ -260,6 +260,73 @@ fn artifact_cluster_geometry_merges_multiglyph_backend_clusters() {
 }
 
 #[test]
+fn artifact_cluster_geometry_keeps_extreme_prefix_and_caret_geometry_finite() {
+    let _shared_font_database = crate::text::font::shared_font_database_test_serial_guard();
+    let line = UiResolvedTextLine {
+        text: "abc".to_string(),
+        placement_frame: UiFrame::default(),
+        frame: UiFrame::new(0.0, 0.0, f32::MAX, 12.0),
+        source_range: UiTextRange { start: 0, end: 3 },
+        visual_range: UiTextRange { start: 0, end: 3 },
+        measured_width: f32::MAX,
+        glyph_advances: vec![f32::MAX, f32::MAX],
+        baseline: 9.0,
+        direction: UiTextDirection::LeftToRight,
+        runs: vec![visual_run("abc", 0, 3, 0, 3)],
+        ellipsized: false,
+    };
+    let mut leading = glyph(80, 0..1);
+    leading.advance = f32::MAX;
+    leading.flags.right_to_left = false;
+    leading.flags.cluster_start = true;
+    let mut trailing = glyph(81, 1..3);
+    trailing.advance = f32::MAX;
+    trailing.flags.right_to_left = false;
+    trailing.flags.cluster_start = true;
+    let artifact = ResolvedTextGlyphArtifact {
+        source_text: Arc::from("abc"),
+        source_text_origin: 0,
+        font_generation: shared_font_database_generation(),
+        font_lease: ResolvedTextGlyphArtifactFontLease::process_default(),
+        style: UiResolvedStyle::default(),
+        writing_mode: UiTextWritingMode::HorizontalTb,
+        lines: vec![Some(ResolvedTextGlyphArtifactLine {
+            glyphs: vec![leading, trailing],
+            layout_line: line.clone(),
+        })],
+        logical_virtual_line_sequences: None,
+    };
+
+    let caret_advance = resolved_text_glyph_artifact_caret_advance(
+        &artifact,
+        0,
+        &line,
+        &UiTextCaret {
+            offset: 2,
+            affinity: UiTextCaretAffinity::Downstream,
+        },
+    )
+    .expect("the second backend cluster must own its interior caret");
+    let spans = resolved_text_glyph_artifact_range_advance_spans(
+        &artifact,
+        0,
+        &line,
+        UiTextRange { start: 1, end: 2 },
+    )
+    .expect("the second backend cluster must retain a selection span");
+
+    assert_eq!(caret_advance, f32::MAX);
+    assert!(caret_advance.is_finite());
+    assert_eq!(spans, vec![(f32::MAX, f32::MAX)]);
+    assert!(spans
+        .iter()
+        .all(|(start, end)| start.is_finite() && end.is_finite()));
+    assert!(
+        resolved_text_glyph_artifact_caret_at_advance(&artifact, 0, &line, f32::MAX,).is_some()
+    );
+}
+
+#[test]
 fn artifact_cluster_geometry_rejects_a_stale_font_generation() {
     let _shared_font_database = crate::text::font::shared_font_database_test_serial_guard();
     let line = UiResolvedTextLine {

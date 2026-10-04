@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f5_ui_input_surrounding_text_error_implements_std_error() {
     let interface_effect = include_str!(
@@ -16,12 +17,13 @@ fn review_f5_ui_input_surrounding_text_error_implements_std_error() {
         include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let convention =
         include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
-    let module_doc =
-        include_str!("../../../../../../../docs/zircon_runtime/structure/module-convention.md");
+    let module_doc = include_str!(
+        "../../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
+    );
     let platform_input =
-        include_str!("../../../../../../../docs/zircon_runtime/ui/platform_input.md");
+        include_str!("../../../../../../../docs/crates/zircon_runtime/ui/platform_input.md");
     let interface_doc =
-        include_str!("../../../../../../../docs/zircon_runtime_interface/ui/mod.md");
+        include_str!("../../../../../../../docs/crates/zircon_runtime_interface/ui/mod.md");
 
     assert!(
         interface_effect

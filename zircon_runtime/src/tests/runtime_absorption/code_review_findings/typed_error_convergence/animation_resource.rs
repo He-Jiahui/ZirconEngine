@@ -20,9 +20,10 @@ fn review_f5_animation_manager_uses_animation_error() {
     let convention = include_str!(
         "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
     );
-    let animation_doc = include_str!("../../../../../../docs/zircon_runtime/animation/runtime.md");
+    let animation_doc =
+        include_str!("../../../../../../docs/crates/zircon_runtime/animation/runtime.md");
     let framework_doc =
-        include_str!("../../../../../../docs/zircon_runtime/core/framework/animation.md");
+        include_str!("../../../../../../docs/crates/zircon_runtime/core/framework/animation.md");
 
     for required in [
         "pub type AnimationResult<T> = std::result::Result<T, AnimationError>;",
@@ -104,13 +105,15 @@ fn review_f5_animation_manager_uses_animation_error() {
 
 #[test]
 fn review_f6_core_resource_registry_rename_uses_resource_error() {
-    let registry = include_str!("../../../../core/resource/registry.rs");
-    let registry_ops = include_str!("../../../../core/resource/manager/registry_ops.rs");
-    let resource_error = include_str!("../../../../core/resource/error.rs");
-    let resource_mod = include_str!("../../../../core/resource/mod.rs");
+    let registry = include_str!("../../../../../crates/zr_resource/src/registry.rs");
+    let registry_ops =
+        include_str!("../../../../../crates/zr_resource/src/manager/registry_ops.rs");
+    let resource_commit = include_str!("../../../../../crates/zr_resource/src/manager/commit.rs");
+    let resource_error = include_str!("../../../../../crates/zr_resource/src/error.rs");
+    let resource_mod = include_str!("../../../../../crates/zr_resource/src/lib.rs");
     let runtime_error = include_str!("../../../../core/runtime/error.rs");
     let core_mod = include_str!("../../../../core/mod.rs");
-    let resource_tests = include_str!("../../../../core/resource/tests.rs");
+    let resource_tests = include_str!("../../../../../crates/zr_resource/src/tests/cases.rs");
     let review_findings = include_str!(
         "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
     );
@@ -123,7 +126,8 @@ fn review_f6_core_resource_registry_rename_uses_resource_error() {
     let convention = include_str!(
         "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
     );
-    let resource_doc = include_str!("../../../../../../docs/zircon_runtime/core/resource.md");
+    let resource_doc =
+        include_str!("../../../../../../docs/crates/zircon_runtime/core/resource.md");
 
     for required in [
         "pub type ResourceResult<T> = std::result::Result<T, ResourceRegistryError>;",
@@ -158,7 +162,8 @@ fn review_f6_core_resource_registry_rename_uses_resource_error() {
         !runtime_error.contains("ResourceRegistryError")
             && !resource_error.contains("CoreError")
             && !registry.contains("CoreError")
-            && !registry_ops.contains("CoreError"),
+            && !registry_ops.contains("CoreError")
+            && !resource_commit.contains("CoreError"),
         "resource/framework errors must not be reconnected by a conversion shim"
     );
     for forbidden in [
@@ -166,7 +171,9 @@ fn review_f6_core_resource_registry_rename_uses_resource_error() {
         "Err(format!(\"missing resource record",
     ] {
         assert!(
-            !registry.contains(forbidden) && !registry_ops.contains(forbidden),
+            !registry.contains(forbidden)
+                && !registry_ops.contains(forbidden)
+                && !resource_commit.contains(forbidden),
             "F6 should not keep resource registry String error surface `{forbidden}`"
         );
     }
@@ -181,6 +188,25 @@ fn review_f6_core_resource_registry_rename_uses_resource_error() {
                 || registry_ops.contains(required)
                 || resource_tests.contains(required),
             "F6 resource registry rename should contain `{required}`"
+        );
+    }
+    assert!(registry.contains("pub fn stage_rename_locator("));
+    assert!(registry_ops
+        .contains("self.commit(ResourceMutationBatch::new().rename(from.clone(), to.clone()))?"));
+    let online_rename = resource_commit
+        .split_once("ResourceMutationOperation::Rename { from, to } => {")
+        .expect("online resource rename has a commit operation")
+        .1
+        .split_once("\n            }")
+        .expect("online resource rename branch ends")
+        .0;
+    for required in [
+        "ResourceRegistryError::MissingRecordForLocator",
+        "ResourceRegistryError::MissingRecordForId",
+    ] {
+        assert!(
+            online_rename.contains(required),
+            "online resource rename must preserve typed error `{required}`"
         );
     }
     for doc_anchor in [

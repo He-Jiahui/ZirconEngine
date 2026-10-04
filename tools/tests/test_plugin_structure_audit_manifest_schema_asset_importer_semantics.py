@@ -1,10 +1,10 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema import (
+from tools.audits.plugins.manifest_schema import (
     collect_manifest_schema_violations,
 )
 
-
+# 用最小 WGSL 插件清单构造错误导入器，核对模式收集器对标识符、资源类型、数值范围和能力去重的诊断。
 class PluginStructureAuditManifestSchemaAssetImporterSemanticsTests(unittest.TestCase):
     def test_manifest_schema_rejects_asset_importer_id_and_resource_kind_drift(self):
         violations: list[str] = []

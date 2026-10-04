@@ -1,3 +1,4 @@
+//! 平面反射探针只提供相机推导和按探针 ID 的捕获状态；实际渲染目标与提交顺序由相机循环管理。
 mod derive_camera;
 mod oblique_projection;
 mod probe_data;
@@ -17,4 +18,5 @@ pub use update_state::PlanarReflectionUpdateState;
 pub(super) const PLANAR_PLANE_EPSILON: f32 = 1.0e-6;
 
 #[cfg(test)]
+#[path = "planar/tests/cases.rs"]
 mod tests;

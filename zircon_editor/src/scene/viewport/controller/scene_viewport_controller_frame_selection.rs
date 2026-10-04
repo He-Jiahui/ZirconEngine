@@ -27,22 +27,32 @@ impl SceneViewportController {
         };
 
         let mut camera = self.current_camera(scene);
+        camera.apply_viewport_size(self.state.viewport.size);
         let offset = camera.transform.translation - frame.target;
         let direction = if offset.length_squared() > f32::EPSILON {
             offset.normalize_or_zero()
         } else {
             Vec3::new(0.6, 0.45, 1.0).normalize_or_zero()
         };
-        let distance = offset.length().max(FRAME_DISTANCE).max(
+        let mut distance = offset.length().max(FRAME_DISTANCE).max(
             frame.radius * FRAME_PERSPECTIVE_PADDING
                 / (camera.fov_y_radians * 0.5).sin().abs().max(f32::EPSILON),
         );
+        if camera.projection_mode == ProjectionMode::Perspective {
+            // fov_y describes the vertical angle; a portrait viewport has a
+            // narrower horizontal angle, so the sphere must fit both planes.
+            let half_fov_x = ((camera.fov_y_radians * 0.5).tan() * camera.aspect_ratio).atan();
+            distance = distance.max(
+                frame.radius * FRAME_PERSPECTIVE_PADDING / half_fov_x.sin().abs().max(f32::EPSILON),
+            );
+        }
         camera.transform =
             Transform::looking_at(frame.target + direction * distance, frame.target, Vec3::Y);
         if camera.projection_mode == ProjectionMode::Orthographic {
-            camera.ortho_size = FRAME_ORTHO_SIZE.max(frame.radius * FRAME_ORTHO_PADDING);
+            // ortho_size is the vertical half-extent; fit the narrower axis.
+            camera.ortho_size = FRAME_ORTHO_SIZE
+                .max(frame.radius * FRAME_ORTHO_PADDING / camera.aspect_ratio.min(1.0));
         }
-        camera.apply_viewport_size(self.state.viewport.size);
 
         self.state.camera = Some(camera);
         self.state.orbit_target = frame.target;
@@ -83,53 +93,9 @@ fn selection_frame(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::scene::viewport::SceneViewportController;
-    use zircon_runtime::scene::components::NodeKind;
-    use zircon_runtime_interface::math::UVec2;
+#[path = "scene_viewport_controller_frame_selection/tests/aspect_fit_tests.rs"]
+mod aspect_fit_tests;
 
-    #[test]
-    fn frame_selection_centers_the_active_multiselection_instead_of_the_primary_item() {
-        let mut scene = Scene::new();
-        let left = scene
-            .spawn_node(NodeKind::Empty)
-            .expect("test scene spawn should succeed");
-        let right = scene
-            .spawn_node(NodeKind::Empty)
-            .expect("test scene spawn should succeed");
-        scene
-            .update_transform(
-                left,
-                Transform {
-                    translation: Vec3::new(-8.0, 0.0, 0.0),
-                    ..Transform::default()
-                },
-            )
-            .unwrap();
-        scene
-            .update_transform(
-                right,
-                Transform {
-                    translation: Vec3::new(8.0, 0.0, 0.0),
-                    ..Transform::default()
-                },
-            )
-            .unwrap();
-
-        let mut controller = SceneViewportController::new(UVec2::new(1280, 720));
-        controller
-            .selection_mut()
-            .replace_active([left, right], Some(left));
-
-        assert!(controller.frame_selection(&scene));
-        assert_eq!(controller.orbit_target(), Vec3::ZERO);
-        let camera = controller.current_camera(&scene);
-        let minimum_distance = 8.0 * FRAME_PERSPECTIVE_PADDING
-            / (camera.fov_y_radians * 0.5).sin().abs().max(f32::EPSILON);
-        assert!(
-            camera.transform.translation.distance(Vec3::ZERO) >= minimum_distance,
-            "frame selection must expand the camera enough to contain the multi-selection bounds"
-        );
-    }
-}
+#[cfg(test)]
+#[path = "tests/scene_viewport_controller_frame_selection.rs"]
+mod tests;

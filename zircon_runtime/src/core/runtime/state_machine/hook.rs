@@ -4,26 +4,18 @@ use super::{StateSpec, StateTransitionEvent};
 
 pub(crate) type StateHook<T> = Arc<dyn Fn(&StateTransitionEvent<T>) + Send + Sync + 'static>;
 
+/// 状态写入时复制有序钩子快照；调用方释放 StateRegistry 锁后再逐个执行。
 /// Deferred hook invocation bundle for one state transition.
 pub(crate) struct StateTransitionDispatch<T: StateSpec> {
     event: StateTransitionEvent<T>,
-    exit_hooks: Vec<StateHook<T>>,
-    transition_hooks: Vec<StateHook<T>>,
-    enter_hooks: Vec<StateHook<T>>,
+    ordered_hooks: Vec<StateHook<T>>,
 }
 
 impl<T: StateSpec> StateTransitionDispatch<T> {
-    pub(crate) fn new(
-        event: StateTransitionEvent<T>,
-        exit_hooks: Vec<StateHook<T>>,
-        transition_hooks: Vec<StateHook<T>>,
-        enter_hooks: Vec<StateHook<T>>,
-    ) -> Self {
+    pub(crate) fn new(event: StateTransitionEvent<T>, ordered_hooks: Vec<StateHook<T>>) -> Self {
         Self {
             event,
-            exit_hooks,
-            transition_hooks,
-            enter_hooks,
+            ordered_hooks,
         }
     }
 
@@ -32,13 +24,7 @@ impl<T: StateSpec> StateTransitionDispatch<T> {
     }
 
     pub(crate) fn run(self) {
-        for hook in self.exit_hooks {
-            hook(&self.event);
-        }
-        for hook in self.transition_hooks {
-            hook(&self.event);
-        }
-        for hook in self.enter_hooks {
+        for hook in self.ordered_hooks {
             hook(&self.event);
         }
     }

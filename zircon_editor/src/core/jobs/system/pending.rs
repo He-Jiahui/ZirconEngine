@@ -204,7 +204,7 @@ impl PendingJobQueue {
         let Some(dependents) = self.dependents_by_dependency.remove(&dependency) else {
             return;
         };
-        let mut ready = Vec::new();
+        let mut ready = Vec::with_capacity(dependents.len());
         for dependent in dependents {
             let Some(remaining) = self.waiting_counts.get_mut(&dependent) else {
                 continue;
@@ -263,6 +263,16 @@ impl PendingJobQueue {
             .ensure_reservation_batch_admissible(requests, limits, now)
     }
 
+    pub(super) fn ensure_reservation_batch_admissible_iter<'a>(
+        &self,
+        requests: impl Clone + ExactSizeIterator<Item = &'a EditorJobAdmissionRequest>,
+        limits: EditorJobAdmissionLimits,
+        now: Instant,
+    ) -> Result<(), JobSubmitError> {
+        self.admission
+            .ensure_reservation_batch_admissible_iter(requests, limits, now)
+    }
+
     pub(super) fn commit_reservation(
         &mut self,
         reservation_id: u64,
@@ -295,6 +305,16 @@ impl PendingJobQueue {
         now: Instant,
     ) -> Result<(), JobSubmitError> {
         self.admission.ensure_batch_admissible(specs, limits, now)
+    }
+
+    pub(super) fn ensure_batch_admissible_iter<'a>(
+        &self,
+        specs: impl Clone + ExactSizeIterator<Item = &'a EditorJobSpec>,
+        limits: EditorJobAdmissionLimits,
+        now: Instant,
+    ) -> Result<(), JobSubmitError> {
+        self.admission
+            .ensure_batch_admissible_iter(specs, limits, now)
     }
 
     pub(super) fn pending_admission_window(

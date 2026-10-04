@@ -17,6 +17,8 @@ pub lootHasGoneFfa(lootFfaTimer: float): bool {
 
 // tappedPresent represents source tappedById !== null. An empty members array
 // has the same membership result as the source null party value.
+/// 世界尸体权限层在校验死亡、可拾取和手动交互条件后调用此纯判定；
+/// ffaUnlocked 由调用者依据倒计时和交互方式计算，个人掉落与 Roll 返还物不在此判断范围。
 pub hasSharedLootRights(
     pid: uint,
     tappedPresent: bool,

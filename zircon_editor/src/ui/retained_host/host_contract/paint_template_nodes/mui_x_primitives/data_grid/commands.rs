@@ -1,5 +1,6 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
+use super::content::push_data_grid_content;
 use super::metrics::{data_grid_header_height, data_grid_row_height};
 use super::rows::push_data_grid_rows;
 use super::surface::{push_data_grid_header, push_data_grid_surface};
@@ -36,4 +37,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_da
         data_grid_row_height(rect),
         opacity,
     );
+    push_data_grid_content(commands, node, rect, clip, order, opacity);
 }

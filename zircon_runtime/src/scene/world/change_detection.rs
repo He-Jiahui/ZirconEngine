@@ -13,6 +13,7 @@ impl World {
         self.last_change_tick
     }
 
+    /// 结束一次观察窗口并推进移除事件保留期；调度器应在本帧消费者读完事件后调用。
     pub fn clear_trackers(&mut self) {
         self.advance_removed_component_events();
         self.last_change_tick = self.change_tick;
@@ -31,11 +32,25 @@ impl World {
     }
 
     pub(crate) fn mutation_change_tick(&mut self) -> ChangeTick {
-        if let Some(tick) = self.active_change_tick {
-            return tick;
-        }
+        // The ordinary entry owns every World field exclusively.
+        unsafe { Self::query_mutation_change_tick(self) }
+    }
 
-        self.advance_change_tick()
+    /// Advances only the clock leaf while disjoint query rows remain borrowed.
+    ///
+    /// # Safety
+    /// The caller must hold the World query loan, serialize clock mutation, and keep
+    /// live items disjoint from both clock fields. No shared clock/World reference may
+    /// overlap this write; returned query items must not retain either metadata field.
+    pub(super) unsafe fn query_mutation_change_tick(world: *mut Self) -> ChangeTick {
+        unsafe {
+            if let Some(tick) = std::ptr::addr_of!((*world).active_change_tick).read() {
+                return tick;
+            }
+            let clock = &mut *std::ptr::addr_of_mut!((*world).change_tick);
+            *clock = clock.next();
+            *clock
+        }
     }
 
     pub fn component_change_ticks<T>(&self, entity: EntityId) -> Option<ComponentTicks>
@@ -100,6 +115,43 @@ impl World {
     }
 
     pub(crate) fn component_mut_with_ticks<T>(
+        &mut self,
+        entity: EntityId,
+    ) -> Option<(
+        &mut T,
+        &mut ComponentTicks,
+        ChangeTick,
+        ComponentMutationRecorder<'_>,
+    )>
+    where
+        T: Component,
+    {
+        if Self::protected_derived_component_name::<T>().is_some()
+            || Self::protected_authored_component_name::<T>().is_some()
+        {
+            return None;
+        }
+        self.component_mut_with_ticks_unrestricted(entity)
+    }
+
+    #[cfg(test)]
+    pub(super) fn component_mut_with_ticks_prevalidated_authored<T>(
+        &mut self,
+        entity: EntityId,
+    ) -> Option<(
+        &mut T,
+        &mut ComponentTicks,
+        ChangeTick,
+        ComponentMutationRecorder<'_>,
+    )>
+    where
+        T: Component,
+    {
+        debug_assert!(Self::protected_authored_component_name::<T>().is_some());
+        self.component_mut_with_ticks_unrestricted(entity)
+    }
+
+    fn component_mut_with_ticks_unrestricted<T>(
         &mut self,
         entity: EntityId,
     ) -> Option<(

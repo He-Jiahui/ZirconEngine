@@ -18,6 +18,7 @@ impl HostMenuPointerBridge {
             popup_menu_index: None,
             popup_items: Vec::new(),
             popup_route_indices: Default::default(),
+            popup_item_path_scratch: Vec::new(),
             #[cfg(test)]
             surface_authority_generation: 0,
         };

@@ -1,13 +1,14 @@
+# 核对原生插件目录复制的实现归属与模块规模。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PLATFORM_BUNDLE_MATERIALIZE = (
-    REPO_ROOT / "tools/zircon_export/platform_bundle_materialize.py"
+    REPO_ROOT / "tools/export/platform_bundle_materialize.py"
 )
 PLATFORM_BUNDLE_NATIVE_PLUGINS_MATERIALIZE = (
-    REPO_ROOT / "tools/zircon_export/platform_bundle_native_plugins_materialize.py"
+    REPO_ROOT / "tools/export/platform_bundle_native_plugins_materialize.py"
 )
 
 

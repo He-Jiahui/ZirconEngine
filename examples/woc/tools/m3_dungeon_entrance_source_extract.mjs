@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码中提取副本入口标识、门坐标与实例槽位数，供 m3_dungeon_entrance_codegen.mjs 消费。
 const data = await import('wocgit:///src/sim/data.ts');
 
 if (!Array.isArray(data.DUNGEON_LIST) || !Number.isInteger(data.INSTANCE_SLOT_COUNT)) {

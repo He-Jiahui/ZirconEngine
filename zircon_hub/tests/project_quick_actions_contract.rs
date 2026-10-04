@@ -1,4 +1,5 @@
 //! Static contracts for React/MUI scope-derived Hub quick actions.
+//! 核对快捷操作从项目作用域生成可用状态、经页面提交目标、后台执行并保存历史的跨层契约。
 
 use std::{fs, path::PathBuf};
 
@@ -17,6 +18,7 @@ fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
+/// 读取相对 Hub 包根的受审源码作为结构证据；调用方依赖仓库检出完整，读取失败应暴露契约来源缺失。
 fn read_crate_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(crate_dir().join(path))
@@ -24,6 +26,7 @@ fn read_crate_file(path: &str) -> String {
     )
 }
 
+/// 读取仓库级交接文档或工具证据；约定 Hub 包位于仓库根下一层，不能依赖测试启动时的工作目录。
 fn read_repo_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(repo_dir().join(path))
@@ -49,11 +52,12 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+/// 固定不同项目作用域与引擎绑定状态如何决定快捷操作文案和可用性；后端行为测试负责验证分支结果。
 #[test]
 fn quick_action_dtos_are_scope_derived_in_tauri_view_model() {
     let view_model = read_crate_file("src/tauri_app/view_model.rs");
     let quick_actions = read_crate_file("src/tauri_app/view_model/quick_actions.rs");
-    let view_model_tests = read_crate_file("src/tauri_app/view_model/tests.rs");
+    let view_model_tests = read_crate_file("src/tauri_app/view_model/tests/cases.rs");
 
     assert_contains_all(
         "view_model.rs",
@@ -92,7 +96,7 @@ fn quick_action_dtos_are_scope_derived_in_tauri_view_model() {
         ],
     );
     assert_contains_all(
-        "view_model/tests.rs",
+        "view_model/tests/cases.rs",
         &view_model_tests,
         &[
             "fn quick_actions_use_selected_project_scope_and_engine_binding()",
@@ -102,6 +106,8 @@ fn quick_action_dtos_are_scope_derived_in_tauri_view_model() {
     );
 }
 
+// BUG: [CR-HUBTESTA-0003] 后台快捷操作接线及持久化入口已改，旧片段检查失败；证据：当前 runtime_state 与 quick_actions 源码。
+/// 核对目标选择、后台任务准备和完成、失败恢复与历史保存的接线，防止展示用状态承担实际执行职责。
 #[test]
 fn runtime_quick_actions_keep_fallback_and_persisted_history_separate_from_dto_copy() {
     let runtime_state = read_crate_file("src/tauri_app/runtime_state.rs");
@@ -141,6 +147,12 @@ fn runtime_quick_actions_keep_fallback_and_persisted_history_separate_from_dto_c
             "pub(super) fn record_action_and_persist(",
             "self.config.action_history.insert(0, record);",
             "self.persist(None)",
+        ],
+    );
+    assert_contains_all(
+        "runtime_state/quick_actions.rs",
+        &read_crate_file("src/tauri_app/runtime_state/tests/quick_actions.rs"),
+        &[
             "package_action_creates_project_package_and_records_success_history",
             "install_action_packages_project_then_copies_package_to_device_root",
             "open_editor_action_records_recoverable_failure_without_falling_back_to_demo_state",
@@ -179,6 +191,12 @@ fn runtime_quick_actions_keep_fallback_and_persisted_history_separate_from_dto_c
             "EngineMessageId::SelectValidProjectWithEngine",
             "validate_active_source_engine_for_build",
             "record_active_build(",
+        ],
+    );
+    assert_contains_all(
+        "runtime_state/build_actions.rs",
+        &read_crate_file("src/tauri_app/runtime_state/tests/build_actions.rs"),
+        &[
             "background_build_prepares_command_without_running_or_recording_history",
             "background_build_completion_records_success_after_external_result",
         ],
@@ -205,6 +223,12 @@ fn runtime_quick_actions_keep_fallback_and_persisted_history_separate_from_dto_c
             "ProjectMessageId::NoRecentProjectToPackage",
             "ProjectMessageId::SelectedProjectStaleForPackage",
             "ProjectMessageId::SelectProjectBeforeInstalling",
+        ],
+    );
+    assert_contains_all(
+        "runtime_state/project_delivery_actions.rs",
+        &read_crate_file("src/tauri_app/runtime_state/tests/project_delivery_actions.rs"),
+        &[
             "background_package_prepares_request_without_copying_or_recording_history",
             "background_package_completion_records_success_after_copy_result",
             "background_install_runs_package_then_device_copy_before_recording_history",
@@ -252,6 +276,7 @@ fn runtime_quick_actions_keep_fallback_and_persisted_history_separate_from_dto_c
     );
 }
 
+/// 核对页面提交明确项目目标以及共享行组件拦截禁用点击的职责，快捷入口与主工作流分别维护目标规则。
 #[test]
 fn react_quick_actions_consume_enabled_dtos_and_guard_disabled_clicks() {
     let types = read_crate_file("web/src/types/hub.ts");
@@ -383,6 +408,7 @@ fn react_quick_actions_consume_enabled_dtos_and_guard_disabled_clicks() {
     );
 }
 
+/// 要求文档同时说明快捷目标与主工作流目标，避免维护者把两种入口的回退语义混用。
 #[test]
 fn quick_action_documentation_records_tauri_react_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -436,6 +462,7 @@ fn quick_action_documentation_records_tauri_react_cutover() {
     );
 }
 
+/// 自读测试源码核对受审目标仍指向当前前端；禁用词分段构造，新增注释也不能携带其完整旧引用。
 #[test]
 fn quick_action_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/project_quick_actions_contract.rs");

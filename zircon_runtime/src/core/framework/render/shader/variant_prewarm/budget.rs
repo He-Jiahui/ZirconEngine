@@ -52,6 +52,7 @@ impl ShaderVariantPrewarmExecutionBudget {
     }
 }
 
+/// 记录预算门限、驻留与峰值；rejected_count 可来自预检或逐请求拒绝，需结合失败阶段解读。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ShaderVariantPrewarmExecutionBudgetSummary {
     pub max_in_flight_variants: usize,
@@ -85,31 +86,5 @@ impl ShaderVariantPrewarmExecutionBudgetSummary {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{ShaderVariantPrewarmExecutionBudget, ShaderVariantPrewarmExecutionBudgetError};
-
-    #[test]
-    fn shader_prewarm_budget_rejects_unbounded_or_parallel_wgpu_work() {
-        let parallel_error = ShaderVariantPrewarmExecutionBudget {
-            max_in_flight_variants: 2,
-            ..Default::default()
-        }
-        .validate()
-        .expect_err("parallel WGPU work must be rejected");
-        assert!(matches!(
-            parallel_error,
-            ShaderVariantPrewarmExecutionBudgetError::ParallelWorkerCount { actual: 2 }
-        ));
-
-        let zero_byte_error = ShaderVariantPrewarmExecutionBudget {
-            max_in_flight_source_bytes: 0,
-            ..Default::default()
-        }
-        .validate()
-        .expect_err("an empty in-flight source-byte budget must be rejected");
-        assert!(matches!(
-            zero_byte_error,
-            ShaderVariantPrewarmExecutionBudgetError::ZeroInFlightSourceBytes
-        ));
-    }
-}
+#[path = "tests/budget.rs"]
+mod tests;

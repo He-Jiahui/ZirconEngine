@@ -4,6 +4,23 @@ use zircon_runtime_interface::ui::component::{
     UiValidationState, UiValue,
 };
 
+const VALIDATION_CANDIDATES_DEFAULT: [&str; 4] = ["query", "value_text", "text", "value"];
+const VALIDATION_CANDIDATES_VALUE_TEXT: [&str; 4] = ["value_text", "query", "text", "value"];
+const VALIDATION_CANDIDATES_TEXT: [&str; 4] = ["text", "query", "value_text", "value"];
+const VALIDATION_CANDIDATES_VALUE: [&str; 4] = ["value", "query", "value_text", "text"];
+const VALIDATION_EMPTY_TEXT: &str = "";
+const MIRROR_NONE: [&str; 0] = [];
+const MIRROR_VALUE: [&str; 1] = ["value"];
+const MIRROR_VALUE_TEXT: [&str; 1] = ["value_text"];
+
+#[cfg(test)]
+#[path = "text_input/tests/property_borrow_tests.rs"]
+mod property_borrow_tests;
+
+#[cfg(test)]
+#[path = "text_input/tests/timing_normalization_tests.rs"]
+mod timing_normalization_tests;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum TextInputValidationTrigger {
     Change,
@@ -18,6 +35,7 @@ enum TextInputValidationTiming {
     Blur,
 }
 
+// 文本事件自行维护验证状态；总入口据此避免在成功返回后把延迟、失焦或提交验证反馈覆盖为正常。
 pub(super) fn event_manages_validation(
     descriptor: &UiComponentDescriptor,
     event: &UiComponentEvent,
@@ -115,7 +133,7 @@ fn apply_validation_trigger(
 
 fn validate_current_text(state: &mut UiComponentState, descriptor: &UiComponentDescriptor) {
     let text = validation_text(state, descriptor);
-    let validation = validate_text(state, descriptor, &text);
+    let validation = validate_text(state, descriptor, text);
     set_validation_state(state, validation);
 }
 
@@ -156,13 +174,33 @@ fn validate_text(
 fn set_validation_state(state: &mut UiComponentState, validation: UiValidationState) {
     let level = validation.level_name().to_string();
     let message = validation.message.clone().unwrap_or_default();
+    // Only overwrite an existing custom validation message when the new state is
+    // non-normal, or when there is no existing message to preserve.  This prevents
+    // a normal-state transition in blur mode from silently clearing a message that
+    // was set by an earlier error (see text_input_blur_timing_validates_on_focus_loss).
+    let is_normal =
+        validation.level == zircon_runtime_interface::ui::component::UiValidationLevel::Normal;
+    let existing_message = state
+        .values
+        .get("validation_message")
+        .and_then(|v| {
+            if let zircon_runtime_interface::ui::component::UiValue::String(s) = v {
+                Some(s.as_str())
+            } else {
+                None
+            }
+        })
+        .unwrap_or("");
+    let should_update_message = !is_normal || existing_message.is_empty();
     state.validation = validation;
     super::set_value(state, "validation_level".to_string(), UiValue::Enum(level));
-    super::set_value(
-        state,
-        "validation_message".to_string(),
-        UiValue::String(message),
-    );
+    if should_update_message {
+        super::set_value(
+            state,
+            "validation_message".to_string(),
+            UiValue::String(message),
+        );
+    }
 }
 
 fn set_bool_state(state: &mut UiComponentState, property: &str, value: bool) {
@@ -173,47 +211,78 @@ fn validation_timing(
     state: &UiComponentState,
     descriptor: &UiComponentDescriptor,
 ) -> TextInputValidationTiming {
-    match string_setting(state, descriptor, "validation_timing")
-        .unwrap_or_else(|| "commit".to_string())
-        .chars()
-        .filter(|ch| *ch != '_' && *ch != '-' && !ch.is_whitespace())
-        .flat_map(char::to_lowercase)
-        .collect::<String>()
-        .as_str()
-    {
-        "change" | "input" | "live" | "valuechanged" => TextInputValidationTiming::Change,
-        "blur" | "focusout" | "focuslost" => TextInputValidationTiming::Blur,
+    let timing = string_setting_ref(state, descriptor, "validation_timing").unwrap_or("commit");
+    match first_normalized_timing_char(timing) {
+        Some('c') if normalized_timing_matches(timing, "change") => {
+            TextInputValidationTiming::Change
+        }
+        Some('i') if normalized_timing_matches(timing, "input") => {
+            TextInputValidationTiming::Change
+        }
+        Some('l') if normalized_timing_matches(timing, "live") => TextInputValidationTiming::Change,
+        Some('v') if normalized_timing_matches(timing, "valuechanged") => {
+            TextInputValidationTiming::Change
+        }
+        Some('b') if normalized_timing_matches(timing, "blur") => TextInputValidationTiming::Blur,
+        Some('f')
+            if normalized_timing_matches(timing, "focusout")
+                || normalized_timing_matches(timing, "focuslost") =>
+        {
+            TextInputValidationTiming::Blur
+        }
         _ => TextInputValidationTiming::Commit,
     }
 }
 
-fn validation_text(state: &UiComponentState, descriptor: &UiComponentDescriptor) -> String {
+fn first_normalized_timing_char(value: &str) -> Option<char> {
+    value
+        .chars()
+        .filter(|ch| *ch != '_' && *ch != '-' && !ch.is_whitespace())
+        .flat_map(char::to_lowercase)
+        .next()
+}
+
+fn normalized_timing_matches(value: &str, expected: &str) -> bool {
+    let mut expected = expected.chars();
+    for ch in value
+        .chars()
+        .filter(|ch| *ch != '_' && *ch != '-' && !ch.is_whitespace())
+    {
+        for normalized in ch.to_lowercase() {
+            if expected.next() != Some(normalized) {
+                return false;
+            }
+        }
+    }
+    expected.next().is_none()
+}
+
+fn validation_text<'a>(
+    state: &'a UiComponentState,
+    descriptor: &'a UiComponentDescriptor,
+) -> &'a str {
     let candidates = validation_property_candidates(descriptor);
     candidates
         .iter()
-        .find_map(|property| state.values.get(*property).and_then(textual_value))
+        .find_map(|property| state.values.get(*property).and_then(textual_value_ref))
         .or_else(|| {
             candidates.iter().find_map(|property| {
                 descriptor
                     .prop(property)
                     .and_then(|schema| schema.default_value.as_ref())
-                    .and_then(textual_value)
+                    .and_then(textual_value_ref)
             })
         })
-        .unwrap_or_default()
+        .unwrap_or(VALIDATION_EMPTY_TEXT)
 }
 
-fn validation_property_candidates(descriptor: &UiComponentDescriptor) -> Vec<&'static str> {
-    let mut candidates = Vec::new();
-    if let Some(primary) = text_input_primary_property(descriptor) {
-        candidates.push(primary);
+fn validation_property_candidates(descriptor: &UiComponentDescriptor) -> &'static [&'static str] {
+    match text_input_primary_property(descriptor) {
+        Some("value_text") => &VALIDATION_CANDIDATES_VALUE_TEXT,
+        Some("text") => &VALIDATION_CANDIDATES_TEXT,
+        Some("value") => &VALIDATION_CANDIDATES_VALUE,
+        _ => &VALIDATION_CANDIDATES_DEFAULT,
     }
-    for property in ["query", "value_text", "text", "value"] {
-        if !candidates.contains(&property) {
-            candidates.push(property);
-        }
-    }
-    candidates
 }
 
 fn mirror_text_input_value(
@@ -224,7 +293,10 @@ fn mirror_text_input_value(
     let Some(text) = state.values.get(property).and_then(textual_value) else {
         return;
     };
-    for mirror_property in text_input_mirror_properties(descriptor, property) {
+    for mirror_property in text_input_mirror_properties(descriptor, property)
+        .iter()
+        .copied()
+    {
         super::set_value(
             state,
             mirror_property.to_string(),
@@ -250,15 +322,15 @@ fn text_input_primary_property(descriptor: &UiComponentDescriptor) -> Option<&'s
 fn text_input_mirror_properties(
     descriptor: &UiComponentDescriptor,
     primary_property: &str,
-) -> Vec<&'static str> {
+) -> &'static [&'static str] {
     if primary_property == "query" {
-        Vec::new()
+        &MIRROR_NONE
     } else if primary_property == "value_text" && descriptor.prop("value").is_some() {
-        vec!["value"]
+        &MIRROR_VALUE
     } else if primary_property == "value" && descriptor.prop("value_text").is_some() {
-        vec!["value_text"]
+        &MIRROR_VALUE_TEXT
     } else {
-        Vec::new()
+        &MIRROR_NONE
     }
 }
 
@@ -314,25 +386,37 @@ fn string_setting(
     descriptor: &UiComponentDescriptor,
     property: &str,
 ) -> Option<String> {
+    string_setting_ref(state, descriptor, property).map(str::to_owned)
+}
+
+fn string_setting_ref<'a>(
+    state: &'a UiComponentState,
+    descriptor: &'a UiComponentDescriptor,
+    property: &str,
+) -> Option<&'a str> {
     state
         .values
         .get(property)
-        .and_then(non_empty_textual_value)
+        .and_then(non_empty_textual_value_ref)
         .or_else(|| {
             descriptor
                 .prop(property)
                 .and_then(|schema| schema.default_value.as_ref())
-                .and_then(non_empty_textual_value)
+                .and_then(non_empty_textual_value_ref)
         })
 }
 
 fn textual_value(value: &UiValue) -> Option<String> {
+    textual_value_ref(value).map(str::to_owned)
+}
+
+fn textual_value_ref(value: &UiValue) -> Option<&str> {
     match value {
-        UiValue::String(value) | UiValue::Enum(value) => Some(value.clone()),
+        UiValue::String(value) | UiValue::Enum(value) => Some(value.as_str()),
         _ => None,
     }
 }
 
-fn non_empty_textual_value(value: &UiValue) -> Option<String> {
-    textual_value(value).filter(|value| !value.is_empty())
+fn non_empty_textual_value_ref(value: &UiValue) -> Option<&str> {
+    textual_value_ref(value).filter(|value| !value.is_empty())
 }

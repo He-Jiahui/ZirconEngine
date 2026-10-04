@@ -1,0 +1,544 @@
+{
+  "batch": "w0-batch26",
+  "counts": {
+    "source_observations": 1767,
+    "report_qualified_keys": 1763,
+    "distinct_original_literal_ids": 1533,
+    "unlabelled_original_finding_ordinals": 84,
+    "original_gate_rows": 883,
+    "this_batch_original_findings": 137,
+    "this_batch_original_gates": 80,
+    "this_batch_priority_split": {
+      "P0": 5,
+      "P1": 108,
+      "P2": 24
+    },
+    "whole_inventory": false,
+    "preserved_nonnew_successor_group_relations": 6,
+    "original_Runtime94_P1_rows_retained_open": 48,
+    "cardinality_mismatched_successor_groups": 3
+  },
+  "status": "original identity intake only; current production source and all acceptance gates pending",
+  "prior_canonical_artifact_hashes": [
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-source-refresh-drift.jsonl",
+      "sha256": "faafe9af67408d41c14053224d8c445a8b80ef3a6bd81aecea770c3bd8db5d59"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-source-review-crosswalk.jsonl",
+      "sha256": "a767494fbc95ed76994efcb0b8b2660e6c0b9ddbb1fa111c35f1c1735d4db38f"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-source-review-summary.json",
+      "sha256": "8144dd4d25a89adcfc8d1a790f00ff11636be52dc7130332ff2803d5e90cc2ff"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-source-review-wave.jsonl",
+      "sha256": "8d6d68c499d52c354a992a76bc05ffb3ed41ff4ccb9abc21b1f487d3954aefc5"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-batch3-crosswalk.jsonl",
+      "sha256": "952396c0c146b947094dc9ec1fdf707789e928d0da69c32ae316845571372cb1"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-batch3-manifest.json",
+      "sha256": "73f304162d51d9f323a11d563750deb8e3c8e41c6ba28aa157959ee512f1715a"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-batch3-review.jsonl",
+      "sha256": "4b4137f6ef0feeb0fc4ef6f55664a80f3c8a14473c0f94ab4361d85728a68fbe"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-batch3-summary.json",
+      "sha256": "e56a25f936d274995912e3ca6722fc3def274fc01a78ca1f85caf1f7f916d1ae"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-second-wave-crosswalk.jsonl",
+      "sha256": "d1112228744c798263611bec04f1865d4addf5f3b9bf98bba532792bdb43f2f8"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-second-wave-manifest.json",
+      "sha256": "449ac7901e99fccc5839d7bd8aeee5fd85e147cb85c85270191852b6d7b11bf3"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-second-wave-review.jsonl",
+      "sha256": "dccceb090592eea01f48f885ef84e53d202e6470c647b4481c44a4c23ec673d1"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-second-wave-summary.json",
+      "sha256": "f6fda8ee41837ccbedb05174212e7ed693ac64d544e3f6ee7eb19f279f662d3c"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch4-crosswalk.jsonl",
+      "sha256": "1fe60a3d24cd1998f2052fafc8e9a50eaa5c3091ae60df79b16016d340c85c9c"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch4-manifest.json",
+      "sha256": "2036a604804c94a68902aa17a081847ab994196af57a246757139c01a8b11d6a"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch4-review.jsonl",
+      "sha256": "9ca9bc4ea5b83865c219c8fb9b3c7ac73d7d078460bf8b92c6cded896996fb2c"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch4-summary.json",
+      "sha256": "e68ff8229e494d57fa33b02cda2268ac77cb9c7b0d28e4bd49a422ab888e7685"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch5-crosswalk.jsonl",
+      "sha256": "69a0205f8baa42ad5cd16dc6fee176c8fa2308b441b484647ef3bafe30d9cae0"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch5-manifest.json",
+      "sha256": "1a38ea4fe7233e36646fa3ee98536eb6e7ebebcaff3ee2676bb8e754bc991a5d"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch5-review.jsonl",
+      "sha256": "4bd6dcae8255f6d770f06cb471a1ead80b64be2c2038ed5705f256dff6a1b7cc"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch5-summary.json",
+      "sha256": "4e24aac70b4d1d6dfea15969f7b17e89be04ef430273c8ccf0baffcbdbac8b72"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch10-crosswalk.jsonl",
+      "sha256": "e8f58ae13e1c8cab083ca2153762f0b106abd7cfe733621db570493cfb5adc54"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch10-manifest.json",
+      "sha256": "890117b7492f6624557c8a473746fbb6f07070dfaae87f06bae12f0de824ae70"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch10-review.jsonl",
+      "sha256": "a7c4b5b31b99cfecabc92add058844b3694e59a607d8ef038a3727c50c7258b9"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch10-summary.json",
+      "sha256": "10b68151b3ca9d4391366058f30158bcebf532b2b95465e8287317a39d898afc"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch11-crosswalk.jsonl",
+      "sha256": "78895597f305eea775ebc3a77f52f9f78817e3b8a48045e29cdedb530fa6ae97"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch11-manifest.json",
+      "sha256": "2c3f0fa11abf1485e641946bb901b797843386ddf0a5f1d2de759b975ce33f44"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch11-review.jsonl",
+      "sha256": "90409b12f8e3259b7454cb44eadc1a94ce76b4a4591af79d695289063abc13a0"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch11-summary.json",
+      "sha256": "9b0a9131335c60a6cc4363fed853cf1e41f6bc3f6e51652a56a038766752675d"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch12-crosswalk.jsonl",
+      "sha256": "4ec0818d122a44ee27ad68d51d8c35f8acc5ae62bb891fbb0ccecc9dc594bd43"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch12-manifest.json",
+      "sha256": "5013e07c1b53f3d3487f0e1cfd5f0968c3a702d086c5466f16d4ad2963b99994"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch12-review.jsonl",
+      "sha256": "39363242f17fc9581abaf4866e32339f15301fbcd70fb4aa2fe6b12381756d95"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch12-summary.json",
+      "sha256": "a1110bd666fb9b27dc70d38aaf1d852b23496feebc3601fb5cd72e7df67c3beb"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch13-crosswalk.jsonl",
+      "sha256": "e776c224b625fc4861a355bf30d9d53acd61bfbe0c91442fcd4f1ac833623c61"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch13-manifest.json",
+      "sha256": "2df3384b309f791ddc2ea92bf2ae54a84466352275b01c9a893aa4c263893233"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch13-review.jsonl",
+      "sha256": "2f0068518174e3799c33a68beccd36f082cf938288d91b99f72659fcd6b1d210"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch13-summary.json",
+      "sha256": "491a72e4800ef03aab0ecf7f7a5260a9921a2cac86c024b2e9912f34fadc884b"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch14-crosswalk.jsonl",
+      "sha256": "c7b28c7cba62c3df92f77ecd444f79234f57f92b6d3388ad5dbd3902472468b1"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch14-manifest.json",
+      "sha256": "4f3b37dd7f85c0dd6338392b5c9546fd048c11d0c37a0535995a8f32138db647"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch14-review.jsonl",
+      "sha256": "19272991aac36217ce8206c56b162e57d232adc16a0fa4db01be3464fa04ad73"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch14-summary.json",
+      "sha256": "0904696e1dcb7a7cb6e8d646257823f81ac63fdb93288e63518b59c87f45733c"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch15-crosswalk.jsonl",
+      "sha256": "035ea9ae70a6f9349925cb5ec12696e097655f939140c0353e7afd8767b2d00f"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch15-gates.jsonl",
+      "sha256": "5da7e11af42facd28b9503fec499aaa6616004d1fff75a080634e6f0c120cfc0"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch15-manifest.json",
+      "sha256": "6dd4fccdcd670ee5475c4716f1f7c48bff795c937d8323360d4e3793b4f7bf41"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch15-review.jsonl",
+      "sha256": "39e759db96d1f9d5fc15a1e3698b7566e2f4a025e40705fa6c95020a77d94a1a"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch15-summary.json",
+      "sha256": "8960857365afe066fdd8890c9f36877b718f19352b0b1297a74b62f0045d5420"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch16-crosswalk.jsonl",
+      "sha256": "2805198d733bb7d650567edb7a5ad896e79611a9347903dacb40a557528a5816"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch16-gates.jsonl",
+      "sha256": "9525e90dfbebaba33fc4251feee4f3a7f391639cc805b884d6100fc8149a274f"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch16-manifest.json",
+      "sha256": "1498e0430a30f7a24e47be92c3a2218ed0bcac0efc374100ec9bcb7745bafc93"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch16-refresh.jsonl",
+      "sha256": "7a1d96ccd42017d22bd6cedfa8665f15ca2a94ad8025db82bdb1e58097e4c20d"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch16-review.jsonl",
+      "sha256": "850db3b75f8c8b1a526aa8cfdd8bf0e77f9f7ced425a15bbaff213cada43e9ec"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch16-summary.json",
+      "sha256": "409a4dde86cae239c1f3e3ff822a5817f0d0281368d0d35ffe449efd5bd67b4f"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch6-crosswalk.jsonl",
+      "sha256": "dc272a91c3c254a9dc790300da829f3716d667a7a6dae794f184e476466dc71f"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch6-manifest.json",
+      "sha256": "9df9c887ad0c074cc6d6dfda463323ec7652d4b919cade2ce2284f058c465af4"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch6-review.jsonl",
+      "sha256": "e0a4798dea7a20c842e177f4ae2007858fbd487278fd87220f2b1e3c61ec0eb3"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch6-summary.json",
+      "sha256": "a3e8e090fd7f21af576b775b8ca6cb67881febbb442ea71268922660ac07e941"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch7-crosswalk.jsonl",
+      "sha256": "5bf38c9bfb4007f021e617bb51568d9b8ab6f97096ac2d6fe0c6e65e48a5d488"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch7-manifest.json",
+      "sha256": "11b99670a3104694384fa38af9b43df7ada328cca2489eff8730f3e25a7ec622"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch7-review.jsonl",
+      "sha256": "ec3c9b5feb2eebdd4192b4aec98730466a7ed3d4f7efab56cb0c8d9f098449e2"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch7-summary.json",
+      "sha256": "21ea1e7bb1eb9179730bf8b8b97080858635aa0dee77c49b4b42fd82102cdfd5"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch8-crosswalk.jsonl",
+      "sha256": "a3b5ac7671ca1376a543e1d89e931aa9e92258c6ed69b25ef0bcdbb332af4d28"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch8-manifest.json",
+      "sha256": "4922a9287dc9049606187a192b8e5ce0c06161ffc9dc6787dd4f86b3fcb88d1e"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch8-review.jsonl",
+      "sha256": "6ee6790c7739ff8065143c7e4abb7f209168b022847f7c59729074bf941b74cc"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch8-summary.json",
+      "sha256": "db395e0304a8eba6ce75120a64427b243971db442cd9b85c9893272f8a987f02"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch9-crosswalk.jsonl",
+      "sha256": "5364ee53a072160a85397ae9387b61d27084fb48b16d9fe36444f6ec662b6a79"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch9-manifest.json",
+      "sha256": "cea67c9d004177d1f9fbaedc9e8ce5c0f2a8dcf16447585602e86f26403ea158"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch9-review.jsonl",
+      "sha256": "6d12b5a3ac0b2b468683c63ba59d6e82232c387e49380dc9efcbe3aa2beba384"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch9-summary.json",
+      "sha256": "d9bfa846f46da875e1d9f803cfc59b5b4f7834e5e753789f1c3930fcf8646aa2"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch17-crosswalk.jsonl",
+      "sha256": "dbec6caf92ce395e683e3c5ebc1b510643a68847afff47b7cd02f7683002bacf"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch17-gates.jsonl",
+      "sha256": "5720f75255d1cc39ed92e8c2d7fd19ec89200dc62598735f7ce024b1a4c2fdb2"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch17-manifest.json",
+      "sha256": "f955acca356922990eb749e1116132cce8a4ed42fcaf53736437f52213d6396d"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch17-refresh.jsonl",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch17-review.jsonl",
+      "sha256": "9311398ec835bb3534f75fda8a25d080226b9b2a55d237348f427999702d0f62"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch17-summary.json",
+      "sha256": "123f8d6b11aa0ab77f0d97058df09b815daff4c846345834200f5413701302f4"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch18-crosswalk.jsonl",
+      "sha256": "513bd9b2d3b361e5bf8ceb4be1285d9f457d4903493db27bc28b1a697d75fa72"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch18-gates.jsonl",
+      "sha256": "f2b26c0ec9d9fc667e868dd53315fa80cb965bcbf388c8bca4547ab024e10d7d"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch18-manifest.json",
+      "sha256": "964b26b04e4300dc6f0d9907ea0547e3c73b1cbc8a05a44eb041c040a3c6211d"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch18-qualification-gates.jsonl",
+      "sha256": "a29bd3e585c95852e0eba16f440ff84ec297d8ae07d10f471a66b72cded661c3"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch18-refresh.jsonl",
+      "sha256": "6db8e17f9aa186f27dd8217e19b5f76d24763ff9ef9d2253a534445bfd2aad10"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch18-review.jsonl",
+      "sha256": "ba66069370bc3861da54b463efdcc3f77606e21867078a1cf557bc90808982d0"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch18-summary.json",
+      "sha256": "68f86f094c3cc6a037c210700c1ec0492e037f5ab7bad48f189c8a7901698c5a"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch19-crosswalk.jsonl",
+      "sha256": "bd4b5eae9b1295dc76533637a04a02f5e0586cc6306203bc66915f5929a4fd5f"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch19-gates.jsonl",
+      "sha256": "a8f85517d8fb95f52ca03aa7b1fa96313355d2011d327d2837fb944cb768256c"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch19-manifest.json",
+      "sha256": "cf4c4a425f2b50bce1c87bf6353c5c771c68becee9af57c6915fc67f284d991e"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch19-provenance.jsonl",
+      "sha256": "6187ecdfeec5b4e9d8f0b922803b02a3269d301d1c27fdb0e2c70e68c6cc873d"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch19-refresh.jsonl",
+      "sha256": "1d070424c82be9207bd38f7048d4fb7dfba773ec34c9116c036fa107a02deb03"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch19-review.jsonl",
+      "sha256": "27ba31842af255fa0e1689037be71f5ea1e0b14197f3d46eeda5fb31e6ee9839"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch19-summary.json",
+      "sha256": "85bd8484c38c6495a76fedeb6d056a748539d5bf8414faed6c91b910661dcc68"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch20-crosswalk.jsonl",
+      "sha256": "3dfbe63bcbe486efa5c48488af32b065495c62ee1b22c853ae8218fbfc9586af"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch20-gates.jsonl",
+      "sha256": "943812c8bcf11ac8753dd429e64aab1d287be5ab7f666c646329920daf5c3641"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch20-manifest.json",
+      "sha256": "73f316d28ea50ad5652fafe6c14f2bd81ed465501f06b9423bf43304fe129ba9"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch20-refresh.jsonl",
+      "sha256": "90d73b3ed8b423dfac20dbcd767129c934efb57ac8eb33c43cace763b836631b"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch20-review.jsonl",
+      "sha256": "02f9a44d927c697e2524995b978bcb692f28df0e85cfd1ca044b79c8b28e82b2"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch20-summary.json",
+      "sha256": "e486d698e87435633afa6e4c856c8fe18bb81ee9e0257b00f029e379b241f413"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch21-crosswalk.jsonl",
+      "sha256": "4829fd2ff0a5e4378cf7cdaf3bab39e9d3e14395e9393a9990a457e39f4d0f85"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch21-gates.jsonl",
+      "sha256": "296fe36b6146f28a5302e59f99877da4afd0be5fe5028443996a26af36600769"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch21-manifest.json",
+      "sha256": "0fda3fe2a54b7ce3dd2d62e73269090a58941720f550eb305a78094299c5154a"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch21-refresh.jsonl",
+      "sha256": "66e75753b308d2ea2ca75e62bb4dd868a184afc629078b602c3e538f7784d127"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch21-review.jsonl",
+      "sha256": "8e13709f5765b992767c4c7fa308a2f225b55784befb1aec7c520c1ef73e02fd"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch21-summary.json",
+      "sha256": "5f4d99459abdaf7d0d620aa5e1fdc6f0260d808a185cc3b7b6d942586d1d13f7"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch22-crosswalk.jsonl",
+      "sha256": "12743431a3462d559fd58212feb6d1dd6679a362016027df75ab04a349dc8fc5"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch22-gates.jsonl",
+      "sha256": "8b326081a207d020d942b81f0d31029a19396afffd810dd49dd6132180638728"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch22-manifest.json",
+      "sha256": "3f86bf63128a9eb8bcb81ad092ff082aa34aad25f633b496106a292c1f79952f"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch22-milestones.jsonl",
+      "sha256": "84a14fefbeb661b0e5258399dc830850819f94fcf57621f0779c01cdf69192b1"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch22-refresh.jsonl",
+      "sha256": "9e76996bd43f644743ddefc8c6d90a5a617d14a2003116259c7d6d919e319f21"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch22-review.jsonl",
+      "sha256": "472c19699dc93665a84d4775cc212e1a4ce63eedbb643436682bcbebd5b580ae"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch22-summary.json",
+      "sha256": "4e6fa5191d106c21db27d34d354791c997fb2640da82513ba842edaa76aa144a"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch23-crosswalk.jsonl",
+      "sha256": "c505a1e5b939a7d905107b329cfe5c9e3437a4bb3e90b961618e2175b5dc12de"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch23-gates.jsonl",
+      "sha256": "3d4315d9bc9e30b1556180d308ebfa83f6176c8d2a54a1bb420fbfc880e6012b"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch23-manifest.json",
+      "sha256": "6a43db3e7a0500e16df4e43065fb342eb862f8d4f490665e5ce69d06da64ebd3"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch23-refresh.jsonl",
+      "sha256": "0f55f6a06f61ddd4e81d70f1965525ad37e7ff4fbcb583eca8830bde871c3769"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch23-review.jsonl",
+      "sha256": "85248aeac0dd0df1ee1d1cb46aff5bfecc76a3b9094494932f9b2f69adb84e6b"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch23-summary.json",
+      "sha256": "f635ee344665cdb1277b476d896695d152bd02b5939afb5ab843c6e81273ef02"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch24-acceptance-requirements.jsonl",
+      "sha256": "f7857d8ee25053aa044285a5478f14701a58cd6dd3fab75a86e8bec2d592b9ec"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch24-crosswalk.jsonl",
+      "sha256": "ebfb872b90571095614d7977c48594133094538468e533d89736451961744dcf"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch24-gates.jsonl",
+      "sha256": "aa5741016b5c02ebfbf74258b604ff3745547ab63a1a215341ef13441e75aa3e"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch24-inherited-owner-decisions.jsonl",
+      "sha256": "ef4cb7806badc0fe4aa00ee149b795551ded45e69980fb0a52137ecfd8548cf3"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch24-manifest.json",
+      "sha256": "fec8ea2190761eeee243c5befe37f25df61f1f45bb8c72cc65b3a57eff27143a"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch24-refresh.jsonl",
+      "sha256": "1d08d0a79177454e53b28ee75870e7219831e89ee4c80ee4286d7d5329b03af0"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch24-review.jsonl",
+      "sha256": "426d802f04f6aedbfcf5e32a901c99aa28ff5dc44fbbae0ec734eeb9257cd78d"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch24-summary.json",
+      "sha256": "3b5ae5b457a61fbfcbffaab5ebace175593a1fd5f62563d890f08e0bab82b8a7"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch25-crosswalk.jsonl",
+      "sha256": "6c42f23119e76373b1f7512cdc5b1493564b41110bfe47c33545e9d49161dee8"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch25-gates.jsonl",
+      "sha256": "ed936d87c0f5868ed8cb3618d4ac8c85365183fa24bc47edd7eafde63f6db03b"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch25-manifest.json",
+      "sha256": "2b3b68bba68c2eb1074b470e562bd0ff00a1ee5e4f264ef19bf521b8f0094649"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch25-refresh.jsonl",
+      "sha256": "c75f100adf8facb6d0215b440e03d6dd312b74c22746264b1f46257ca8d3af83"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch25-review.jsonl",
+      "sha256": "b27c378505a45a1be95db882dab1ac84528c9f3a5a158c9177bafddf71cb5d8b"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch25-summary.json",
+      "sha256": "ce2f1cff237ddfb73f0a8d0de81a09ae54576dbb3d33ecda982c6932d5dfde93"
+    }
+  ],
+  "generic_unqualified_gate_ID_collisions": 32,
+  "qualified_key_collisions": 0,
+  "original_source_lines_verified": 217,
+  "whole_inventory": false,
+  "source_writes": 0,
+  "tests_run": 0,
+  "all_original_dynamic_native_gpu_editor_performance_jenkins_gates": "open",
+  "root_independent_review": {
+    "status": "completed exact independent structural review of r2 identity, group relations, counts and all7candidate inputs",
+    "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0-b26-root-canonical-independent-review-r2\\review.json",
+    "sha256": "238960879c9f356738ac3245de55a6a9d3a86b8d3748004ce98c1b0c3de37abb",
+    "r2_private_preparation_sha256": "cb648aa80480a14b054b2fcbb54b6b3a5583e48fb7b277ef1eb77c7a63f5a3b6",
+    "publication_metadata_qualification": "Root r3 adds only this exact review receipt and qualification to manifest/summary; all finding/gate/crosswalk/doc bytes are identical to reviewed r2. This does not accept production behavior or any runtime/test/native/product gate."
+  },
+  "author_individual_ordinal_links": "preserved only in immutable raw author capture; excluded from canonical crosswalk",
+  "source_publication_state": "prepared; actual immutable publication receipt is separate"
+}

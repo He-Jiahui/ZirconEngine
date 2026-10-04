@@ -4,7 +4,10 @@ use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
     style::{UiPainterFamily, UiPainterResolvedState},
-    surface::{UiRenderCommand, UiRenderCommandKind, UiVisualAssetRef},
+    surface::{
+        UiRenderCommand, UiRenderCommandKind, UiRichTextFormat, UiTextAlign, UiTextDirection,
+        UiTextOverflow, UiTextRenderMode, UiTextWrap, UiVisualAssetRef,
+    },
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
 
@@ -557,6 +560,189 @@ line_height_ratio = 0.0
         EditorTypographyTokens::WORKBENCH_BODY_SIZE
             * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO
     );
+}
+
+#[test]
+fn render_extract_button_structured_paint_keeps_state_overrides() {
+    for (state, background, border, foreground) in [
+        ("", "#243c58", "#6c8dad", "#e1ebf5"),
+        ("hovered = true", "#345678", "#6c8dad", "#e1ebf5"),
+        ("pressed = true", "#456789", "#789abc", "#e1ebf5"),
+        ("loading = true", "#56789a", "#6789ab", "#89abcd"),
+    ] {
+        let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.buttons.paint"));
+        surface.tree.insert_root(
+            UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+                .with_frame(UiFrame::new(0.0, 0.0, 240.0, 120.0))
+                .with_state_flags(visible_state()),
+        );
+        insert_control_with_style_overrides(
+            &mut surface,
+            UiNodeId::new(2),
+            "Button",
+            UiFrame::new(12.0, 16.0, 132.0, 40.0),
+            &format!(
+                r##"
+text = "Resume"
+{state}
+background = {{ color = "#112233" }}
+foreground = {{ color = "#223344" }}
+border = {{ color = "#334455", width = 1.0, radius = 4.0 }}
+hover_background_color = "#345678"
+pressed_background_color = "#456789"
+disabled_background_color = "#56789a"
+disabled_border_color = "#6789ab"
+focus_border_color = "#789abc"
+disabled_foreground_color = "#89abcd"
+"##
+            ),
+            r##"
+background = { color = "#243c58" }
+foreground = { color = "#e1ebf5" }
+border = { color = "#6c8dad", width = 0.0, radius = 10.0 }
+background_color = "#111111"
+foreground_color = "#222222"
+border_color = "#333333"
+border_width = 3.0
+radius = 5.0
+corner_radius = 6.0
+"##,
+            visible_state(),
+        );
+
+        surface.rebuild();
+
+        let commands = &surface.render_extract.list.commands;
+        let painted_surface = control_surface(commands, UiNodeId::new(2), UiPainterFamily::Button);
+        assert_eq!(
+            painted_surface.style.background_color.as_deref(),
+            Some(background)
+        );
+        assert_eq!(painted_surface.style.border_color.as_deref(), Some(border));
+        assert_eq!(painted_surface.style.border_width, 0.0);
+        assert_eq!(painted_surface.style.corner_radius, 10.0);
+        let label = commands
+            .iter()
+            .find(|command| command.node_id == UiNodeId::new(2) && command.text.is_some())
+            .expect("structured button label should be rendered");
+        assert_eq!(label.style.foreground_color.as_deref(), Some(foreground));
+        assert_eq!(label.style.background_color, None);
+        assert_eq!(label.style.border_width, 0.0);
+        assert_eq!(label.style.corner_radius, 0.0);
+    }
+}
+
+#[test]
+fn render_extract_button_label_preserves_authored_typography_across_states() {
+    for typography in [
+        r##"
+font = "res://fonts/workbench.ttf"
+font_family = "Workbench Sans"
+text_language = "zh-Hans-CN"
+font_weight = 600
+font_size = 18.0
+line_height_ratio = 1.5
+text_align = "center"
+wrap = "word_smart"
+text_direction = "rtl"
+text_overflow = "ellipsis_middle"
+text_tab_size = 6.0
+rich_text_format = "markdown_inline_v1"
+text_render_mode = "native"
+"##,
+        r##"
+font_size = 10.0
+line_height_ratio = 1.1
+[font]
+asset = "res://fonts/workbench.ttf"
+family = "Workbench Sans"
+language = "zh-Hans-CN"
+weight = 600
+size = 18.0
+line_height_ratio = 1.5
+align = "center"
+wrap = "word_smart"
+direction = "rtl"
+overflow = "ellipsis_middle"
+tab_size = 6.0
+rich_text_format = "markdown_inline_v1"
+render_mode = "native"
+"##,
+    ] {
+        for (loading, foreground, painter_state) in [
+            (false, "#123456", UiPainterResolvedState::Normal),
+            (true, "#789abc", UiPainterResolvedState::Loading),
+        ] {
+            let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.buttons.font"));
+            surface.tree.insert_root(
+                UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+                    .with_frame(UiFrame::new(0.0, 0.0, 240.0, 120.0))
+                    .with_state_flags(visible_state()),
+            );
+            insert_control_with_style_overrides(
+                &mut surface,
+                UiNodeId::new(2),
+                "Button",
+                UiFrame::new(12.0, 16.0, 132.0, 40.0),
+                &format!(
+                    r##"
+text = "Compile"
+icon = "play"
+loading = {loading}
+font = "res://fonts/old.ttf"
+font_weight = 400
+background_color = "#010203"
+border_color = "#040506"
+border_width = 2.0
+corner_radius = 4.0
+foreground_color = "#123456"
+disabled_foreground_color = "#789abc"
+layout_padding_left = 12.0
+layout_padding_right = 12.0
+layout_spacing = 7.0
+layout_icon_size = 16.0
+"##
+                ),
+                typography,
+                visible_state(),
+            );
+
+            surface.rebuild();
+
+            let label = surface
+                .render_extract
+                .list
+                .commands
+                .iter()
+                .find(|command| {
+                    command.node_id == UiNodeId::new(2) && command.kind == UiRenderCommandKind::Text
+                })
+                .expect("button should emit its authored label");
+            assert_eq!(label.text.as_deref(), Some("Compile"));
+            assert_eq!(label.frame, UiFrame::new(47.0, 22.5, 85.0, 27.0));
+            let style = &label.style;
+            assert_eq!(style.font.as_deref(), Some("res://fonts/workbench.ttf"));
+            assert_eq!(style.font_family.as_deref(), Some("Workbench Sans"));
+            assert_eq!(style.language.as_deref(), Some("zh-Hans-CN"));
+            assert_eq!(style.font_weight, 600);
+            assert_eq!(style.font_size, 18.0);
+            assert_eq!(style.line_height, 27.0);
+            assert_eq!(style.text_align, UiTextAlign::Center);
+            assert_eq!(style.wrap, UiTextWrap::WordSmart);
+            assert_eq!(style.text_direction, UiTextDirection::RightToLeft);
+            assert_eq!(style.text_overflow, UiTextOverflow::EllipsisMiddle);
+            assert_eq!(style.tab_size, 6.0);
+            assert_eq!(style.rich_text_format, UiRichTextFormat::MarkdownInlineV1);
+            assert_eq!(style.text_render_mode, UiTextRenderMode::Native);
+            assert_eq!(style.foreground_color.as_deref(), Some(foreground));
+            assert_eq!(style.painter_family, UiPainterFamily::Button);
+            assert_eq!(style.painter_state, painter_state);
+            assert_eq!(style.background_color, None);
+            assert_eq!(style.border_color, None);
+            assert_eq!(style.border_width, 0.0);
+            assert_eq!(style.corner_radius, 0.0);
+        }
+    }
 }
 
 fn insert_control(

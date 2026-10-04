@@ -1,3 +1,4 @@
+//! gameplay 宿主模块是脚本触达场景、输入和战斗的受控入口；描述符的能力要求由导出注册表执行，回调借当前同步调用的场景上下文。
 use crate::core::framework::script::{
     ScriptHostFunctionDescriptor, ScriptHostModuleDescriptor, ScriptHostParameterDescriptor,
     ScriptHostValue, ScriptHostValueKind,
@@ -394,4 +395,5 @@ fn float_parameter(name: impl Into<String>) -> ScriptHostParameterDescriptor {
 }
 
 #[cfg(test)]
+#[path = "gameplay_host/tests/cases.rs"]
 mod tests;

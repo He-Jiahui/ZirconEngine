@@ -1,11 +1,12 @@
+# 核对流水线报告的宿主编译诊断归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PIPELINE_REPORT = REPO_ROOT / "tools/zircon_export/pipeline_report.py"
+PIPELINE_REPORT = REPO_ROOT / "tools/export/pipeline_report.py"
 PIPELINE_REPORT_COMPILE_HOST = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_compile_host.py"
+    REPO_ROOT / "tools/export/pipeline_report_compile_host.py"
 )
 
 CURRENT_COMPILE_HOST_FUNCTIONS = (

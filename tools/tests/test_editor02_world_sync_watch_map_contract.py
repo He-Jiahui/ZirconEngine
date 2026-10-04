@@ -1,3 +1,4 @@
+# 核对编辑器观察映射的双向索引、网关代际和令牌冲突清理路径及测试入口。
 from pathlib import Path
 import unittest
 
@@ -41,7 +42,7 @@ class EditorWorldSyncWatchMapContractTests(unittest.TestCase):
             self.assertIn(contract, source)
 
     def test_regressions_cover_replace_cleanup_coalesce_and_unknown_tokens(self) -> None:
-        source = self.read("zircon_editor/src/core/sync/watch_map/tests.rs")
+        source = self.read("zircon_editor/src/core/sync/watch_map/tests/cases.rs")
         for test_name in (
             "binding_a_token_replaces_both_sides_of_the_old_relation",
             "unbinding_a_view_returns_sorted_runtime_tokens_and_clears_reverse_state",
@@ -64,7 +65,7 @@ class EditorWorldSyncWatchMapContractTests(unittest.TestCase):
 
     def test_live_runtime_token_collision_preserves_existing_editor_binding(self) -> None:
         pump = self.read("zircon_editor/src/core/sync/pump.rs")
-        regressions = self.read("zircon_editor/src/core/sync/pump/tests.rs")
+        regressions = self.read("zircon_editor/src/core/sync/pump/tests/cases.rs")
         watch_view = pump.split("pub(crate) fn watch_view_with_identity", 1)[1].split(
             "pub fn unwatch_view", 1
         )[0]

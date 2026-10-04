@@ -1,7 +1,8 @@
+# 核对分段选项投影与绘制借用行迭代，重复借用遍历的成本由模型显式说明。
 from pathlib import Path
 import unittest
 
-from tools.editor_segmented_options_paint_pressure import run
+from tools.analysis.performance.editor.editor_segmented_options_paint_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]

@@ -130,6 +130,78 @@ fn runtime_15_mixed_visibility_has_facade_note() {
 }
 
 #[test]
+fn runtime_15_facades_do_not_hide_unused_imports_or_stale_forwarding_exports() {
+    let asset_mod = read_runtime_src("asset/mod.rs");
+    let graphics_backend_mod = read_runtime_src("graphics/backend/mod.rs");
+    let scene_mod = read_runtime_src("scene/mod.rs");
+
+    for (label, source) in [
+        ("asset facade", asset_mod.as_str()),
+        ("graphics backend facade", graphics_backend_mod.as_str()),
+        ("scene facade", scene_mod.as_str()),
+    ] {
+        let compact: String = source
+            .chars()
+            .filter(|character| !character.is_whitespace())
+            .collect();
+        assert!(
+            !compact.contains("#[allow(unused_imports)]"),
+            "{label} should expose only live curated imports instead of suppressing unused-import diagnostics"
+        );
+    }
+
+    for stale_export in [
+        "AssetRequest",
+        "CpuAssetPayload",
+        "CpuMeshPayload",
+        "CpuTexturePayload",
+        "MeshSource",
+        "TextureSource",
+        "AssetMetaEntry",
+        "AssetMetaResult",
+        "PackageAssetRegistry",
+        "PreviewState",
+    ] {
+        assert!(
+            !asset_mod
+                .lines()
+                .skip_while(|line| !line.contains("pub use pipeline::types::MeshVertex;"))
+                .take_while(|line| !line.contains("pub use project::{ProjectImportReceipt"))
+                .any(|line| line.contains(stale_export)),
+            "asset root should not retain stale crate-private forwarding export `{stale_export}`"
+        );
+    }
+
+    assert_contains_all(
+        "live asset project facade",
+        &asset_mod,
+        &[
+            "pub(crate) use project::{",
+            "AssetMetaDocument, AssetMetaError, AssetSourceUnit, ProjectManager, ProjectPaths,",
+        ],
+    );
+    assert_contains_all(
+        "live graphics IBL readback bridge",
+        &graphics_backend_mod,
+        &[
+            "IblBakeArtifactWgpuPendingReadback",
+            "IblBakeArtifactWgpuReadbackResources",
+            "request_ibl_bake_artifact_wgpu_readback",
+        ],
+    );
+    assert_contains_all(
+        "public scene component facade",
+        &scene_mod,
+        &[
+            "default_render_layer_mask",
+            "Mobility",
+            "NodeKind",
+            "NodeRecord",
+        ],
+    );
+}
+
+#[test]
 fn runtime_15_facade_surface_guard_is_folder_backed() {
     let parent = read_runtime_src("tests/runtime_absorption/structure_convention.rs");
     let child = read_runtime_src("tests/runtime_absorption/structure_convention/facade_surface.rs");

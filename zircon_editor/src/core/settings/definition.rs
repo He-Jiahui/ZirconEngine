@@ -1,4 +1,5 @@
 use std::collections::BTreeSet;
+use std::fmt;
 
 use serde::{Deserialize, Deserializer, Serialize};
 use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
@@ -33,6 +34,12 @@ impl SettingsKey {
 
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+}
+
+impl fmt::Display for SettingsKey {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
     }
 }
 

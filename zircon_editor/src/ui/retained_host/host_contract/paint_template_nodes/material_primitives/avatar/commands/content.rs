@@ -37,7 +37,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_av
         match icon {
             Some(icon) => push_avatar_image(commands, icon, icon_rect, clip, order, opacity),
             None => {
-                push_avatar_fallback_glyph(commands, avatar_rect, clip, order, foreground, opacity)
+                push_avatar_fallback_glyph(commands, &icon_rect, clip, order, foreground, opacity)
             }
         }
     }

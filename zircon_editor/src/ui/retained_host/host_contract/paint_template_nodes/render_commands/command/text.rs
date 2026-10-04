@@ -55,6 +55,7 @@ impl HostPaintCommand {
         )
     }
 
+    // 上游选择的单行省略或自动换行策略随命令传给宿主绘制器，避免绘制阶段重新推断。
     fn text_with_layout_policy(
         frame: FrameRect,
         clip_frame: Option<FrameRect>,
@@ -68,10 +69,13 @@ impl HostPaintCommand {
         opacity: f32,
     ) -> Self {
         Self {
+            owner: None,
+            box_shadow: None,
             kind: HostPaintCommandKind::Text,
             frame,
             clip_frame,
             z_index,
+            source_surface_frame: None,
             source_render_command_ref: None,
             background_color: None,
             foreground_color: Some(foreground_color),

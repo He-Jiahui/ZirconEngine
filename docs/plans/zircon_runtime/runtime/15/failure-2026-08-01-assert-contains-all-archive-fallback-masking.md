@@ -81,3 +81,32 @@ VM guard 的受管精确验证 wrapper job `c12a661fdc1245f6b314750802b51c50` �
 - `PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_runtime_receipt_hard_cut -v` executed `4` tests with `4 passed; 0 failed`. This includes the exact source-contract regression for the wrapper and the retired implicit-owner helpers.
 - A Rust 1.94.1 standalone harness on `D:\\ZirconBuilds` exercised the real helper with a label containing the required anchor but a supplied source without it. The helper panicked as required and the harness completed `1 passed; 0 failed`; an unrelated label with a supplied anchor passed.
 - `git diff --check` for the test and this record has no whitespace defect. The dynamic Runtime focused gate, independent immutable review, and canonical failure return are still outstanding, so this handoff remains `open`.
+
+## 2026-09-09 current helper and consumer evidence
+
+Session `failure-roll-01a07160-runtime15` acquired this archived-owner record
+through fingerprint
+`b61a8f74f9f01e17265649a8a3d3060569e78cf30e750f2ff8f788349e12f889`;
+snapshot 3265 preserves its preimage. No helper or guard source changed for
+this continuation. Current `support.rs` remains
+`c85e02167bcf1e39069248efaf56fc88c4d942cabb5830bd8469bcaa8a2d85f2`,
+and `tools/tests/test_runtime_receipt_hard_cut.py` is
+`1751d9ec9840e7a2798ec9257050d9e46df29e740ec725f9aa656b6609ba7340`.
+
+Fresh `python -B -m unittest -v tools.tests.test_runtime_receipt_hard_cut`
+executed 4 tests: 4 passed, 0 failed, in 0.581 seconds. This checks the two
+complete helper bodies, removal of implicit owner helpers and retired status
+trees, and preservation of product guard mounts. It is current source-contract
+evidence, not a newly executed Rust wrong-source assertion.
+
+Two managed Runtime consumers of this exact helper now also pass on input
+`runtime15-registration-input-3257-20260908`, manifest
+`86719cb85fc2f0b13f168beea45a0271dade59f04cfbb1aea23ac279d2c913c2`:
+provider registration job `9703666222fa47e98322ebb455cfa814` and
+core-registration job `6a5dfc60b7d945d5972db7337f65a456`, each 1 passed,
+0 failed, 0 ignored. Their complete source/record routing and receipts are in
+the [registration failure](failure-2026-07-17-registration-filter-plan-anchor-loss.md).
+They prove only these two explicit-owner cohorts; the historical standalone
+negative harness, all remaining consumer cohorts, current independent review,
+formal validation binding and canonical closeout remain separate requirements.
+This lifecycle remains open, and external zr_vm remains skipped.

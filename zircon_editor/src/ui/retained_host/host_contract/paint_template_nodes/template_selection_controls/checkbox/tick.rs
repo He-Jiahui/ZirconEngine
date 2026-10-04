@@ -1,3 +1,6 @@
+//! 选中复选框的勾号走统一 SVG 资产入口；宽高不足时保持已选表面但省略图标。
+
+// BUG: [CR-EDITOR-PAINT-FORMS-0004] 使用固定 PALETTE.accent；主题切换后标记和文字采用当前 palette，勾号颜色仍保持默认主题。
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_theme::PALETTE;
 use super::super::super::render_commands::HostPaintCommand;
@@ -5,6 +8,7 @@ use super::super::super::template_icon_assets::push_icon_asset_pixels;
 
 const CHECKBOX_TICK_ICON: &str = "checkmark";
 
+/// 选中复选框标记足够大时加载 checkmark 资产；图标加载失败会留下已选表面。
 pub(super) fn push_checkbox_tick(
     commands: &mut Vec<HostPaintCommand>,
     mark: &FrameRect,
@@ -28,36 +32,5 @@ pub(super) fn push_checkbox_tick(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn checked_checkbox_tick_uses_16px_shell_checkmark_asset() {
-        let mark = FrameRect {
-            x: 10.0,
-            y: 6.0,
-            width: 16.0,
-            height: 16.0,
-        };
-        let mut commands = Vec::new();
-
-        push_checkbox_tick(&mut commands, &mark, &mark, 3, 1.0);
-
-        let icon_commands = commands
-            .iter()
-            .filter(|command| command.image_pixels.is_some())
-            .collect::<Vec<_>>();
-        assert_eq!(icon_commands.len(), 1);
-        let icon = icon_commands[0]
-            .image_pixels
-            .as_ref()
-            .expect("checkbox tick should paint real SVG pixels");
-        assert_eq!((icon.width, icon.height), (16, 16));
-        assert_eq!(icon_commands[0].frame.width, 16.0);
-        assert_eq!(icon_commands[0].frame.height, 16.0);
-        assert!(
-            !icon.resource_key.starts_with("missing-icon:"),
-            "checkbox tick should resolve through the shell checkmark asset"
-        );
-    }
-}
+#[path = "tests/tick.rs"]
+mod tests;

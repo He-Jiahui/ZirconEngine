@@ -10,9 +10,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/session_coordinator/failures.py
-  - tools/session_coordinator/failure_snapshot_drift.py
-  - tools/session_coordinator/tests/test_failures.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_failures -v
   - python -m unittest tools.session_coordinator.tests.test_server.ServerTests.test_registration_snapshot_parse_does_not_hold_the_database_writer tools.session_coordinator.tests.test_server.ServerTests.test_database_busy_diagnostic_does_not_terminate_maintenance_loop -v

@@ -70,11 +70,21 @@ fn summary_from_ticket_result(
             ),
         ),
         Err(JobError::Cancelled) => cancelled_active_summary(active),
-        Err(error) => DesktopExportExecutionSummary::failed(
-            active.profile_name,
-            active.output_root,
-            format!("desktop export job failed: {error}"),
-        ),
+        Err(error) => {
+            if let Some(crate::ui::host::EditorExportBuildError::ReportFailed { report }) =
+                error.downcast_ref::<crate::ui::host::EditorExportBuildError>()
+            {
+                return DesktopExportExecutionSummary::from_report(
+                    active.output_root,
+                    (**report).clone(),
+                );
+            }
+            DesktopExportExecutionSummary::failed(
+                active.profile_name,
+                active.output_root,
+                format!("desktop export job failed: {error}"),
+            )
+        }
     }
 }
 
@@ -87,36 +97,9 @@ fn cancelled_active_summary(active: DesktopExportActiveJob) -> DesktopExportExec
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::mpsc;
-
-    use super::drain_progress_for_active;
-    use crate::ui::retained_host::app::build_export_actions::{
-        job_queue::worker::DesktopExportJobProgress, DesktopExportProgressSnapshot,
-    };
-
-    #[test]
-    fn terminal_poll_can_drain_progress_sent_after_the_initial_drain() {
-        let (sender, receiver) = mpsc::channel();
-        let mut progress = None;
-        assert!(!drain_progress_for_active(&receiver, 7, &mut progress));
-
-        sender
-            .send(DesktopExportJobProgress {
-                id: 7,
-                progress: DesktopExportProgressSnapshot {
-                    stage: "complete".to_string(),
-                    percent: 100,
-                    message: "Desktop export build finished".to_string(),
-                },
-            })
-            .expect("test progress channel should remain connected");
-
-        assert!(drain_progress_for_active(&receiver, 7, &mut progress));
-        assert_eq!(progress.map(|snapshot| snapshot.percent), Some(100));
-    }
-}
+#[path = "tests/updates.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "updates/completed_take_tests.rs"]
+#[path = "updates/tests/completed_take_tests.rs"]
 mod completed_take_tests;

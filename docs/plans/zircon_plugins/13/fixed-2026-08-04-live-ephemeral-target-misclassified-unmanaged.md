@@ -8,12 +8,9 @@ fixing_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-c
 origin_child_dir: docs/plans/zircon_plugins/13
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 related_code:
-  - tools/session_coordinator/artifact_governance.py
-  - tools/session_coordinator/cargo_jobs.py
-  - tools/session_coordinator/server.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_artifact_governance -v
-  - powershell -File tools/zircon-session.ps1 -Json cargo acquire test --session-id plugins13-vg-runtime-support-workload-fix-20260715 --pid $PID
+  - powershell -File tools/dev/zircon-session.ps1 -Json cargo acquire test --session-id plugins13-vg-runtime-support-workload-fix-20260715 --pid $PID
 resolved_at: 2026-08-04
 ---
 

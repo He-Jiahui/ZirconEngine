@@ -8,8 +8,8 @@ related_code:
   - zircon_editor/src/core/export/pipeline.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/progress.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller.rs
-  - tools/zircon_build.py
-  - tools/zircon_export
+  - tools/build/zircon_build.py
+  - tools/export
   - zircon_runtime/src/asset/pack
   - zircon_runtime/src/asset/virtual_geometry_cook
   - zircon_runtime/src/plugin/export_build_plan/mod.rs
@@ -24,7 +24,7 @@ plan_sources:
   - docs/plans/zircon_editor/editor/10-project-and-asset-reference-management.md
   - docs/plans/zircon_editor/editor/11-serialization-and-versioning.md
   - docs/plans/zircon_plugins/09-export-publishing.md
-  - docs/cli-and-tooling/zircon-export-tool.md
+  - docs/tooling/zircon-export-tool.md
 status: in_progress
 ---
 
@@ -67,8 +67,8 @@ Validate, SourceTemplate, NativeDynamic, CompileHost, CookAssets, Pack, Platform
 
 **工具链三层已有**：
 
-- `tools/zircon_build.py`：`TARGETS=("hub","editor","runtime","plugins")`、`PLUGIN_CARRIERS=("all","native_dynamic","rlib_static")`、`build_native_dynamic_plugin(config, package)`（:108-110 + def 清单实测）——引擎/编辑器自身的 staged 构建。
-- `tools/zircon_export/`：30+ Python 模块（pack staging / plugin build / validation，`docs/cli-and-tooling/zircon-export-tool.md` 实测指认）——工程导出的既有工具面。
+- `tools/build/zircon_build.py`：`TARGETS=("hub","editor","runtime","plugins")`、`PLUGIN_CARRIERS=("all","native_dynamic","rlib_static")`、`build_native_dynamic_plugin(config, package)`（:108-110 + def 清单实测）——引擎/编辑器自身的 staged 构建。
+- `tools/export/`：30+ Python 模块（pack staging / plugin build / validation，`docs/tooling/zircon-export-tool.md` 实测指认）——工程导出的既有工具面。
 - runtime 侧：`asset/pack`（打包模块）、`asset/virtual_geometry_cook`（专项 cook 已有先例）、`plugin/export_build_plan/` + `core/framework/project/export_profile.rs`（插件导出计划/档案类型）。
 
 **权威缺口清单**（`docs/plans/zircon_plugins/09-export-publishing.md` 现状节实测）：三路径（编辑器向导/CLI/CI）闭环不完整、**无 zrpack 容器**、无平台模板包、**无统一导出 CLI**。
@@ -133,7 +133,7 @@ zircon_runtime/src/asset/pack/          # 既有模块扩：zrpack 写入器（�
 | `progress.rs` 八阶段枚举 | 提升为 interface `ExportStage`（向导侧删除私有枚举，引用契约） |
 | `ExportWizardJobController` | 14 M2 已迁 job 门面；本计划向导改为 pipeline 呈现层 |
 | `plugin/export_build_plan/` / `core/framework/project/export_profile.rs` | `NativeDynamic` 阶段执行体消费的现行计划与 profile owner；旧扁平文件不再保留 |
-| `tools/zircon_export` 校验模块 | `Validate` 阶段执行体子进程封装（清单执行时定稿） |
+| `tools/export` 校验模块 | `Validate` 阶段执行体子进程封装（清单执行时定稿） |
 
 ### 深度测试
 
@@ -145,7 +145,7 @@ zircon_runtime/src/asset/pack/          # 既有模块扩：zrpack 写入器（�
 
 - 切片 1.1：interface `export/` DTO + `pipeline.rs`（拓扑/指纹/续跑，夹具阶段验证）；八阶段枚举契约化迁移。
 - 切片 1.2：`preset.rs`（zpreset + 11 壳）+ 向导改 preset 驱动；`CompileHost/PlatformBundle` 执行体包装 zircon_build.py（staged 布局校验：assets 合并树 + runtime 库伴随 editor + hub 默认启动器——CLAUDE.md 既定布局断言）。
-- 测试阶段：`cargo test -p zircon_runtime_interface --locked` + `cargo test -p zircon_editor --lib --locked`（pipeline 拓扑/跳过/续跑矩阵）+ `ZR_EXPORT_CONTRACT_PLATFORM=windows cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked` 不回归。更新 `docs/cli-and-tooling/zircon-export-tool.md`。
+- 测试阶段：`cargo test -p zircon_runtime_interface --locked` + `cargo test -p zircon_editor --lib --locked`（pipeline 拓扑/跳过/续跑矩阵）+ `ZR_EXPORT_CONTRACT_PLATFORM=windows cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked` 不回归。更新 `docs/tooling/zircon-export-tool.md`。
 
 ### M2 CookAssets 与 zrpack
 

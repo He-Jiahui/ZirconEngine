@@ -1,3 +1,6 @@
+// 调用端：npm run generate:loot-ffa-contract (tools/package.json)；职责：固化自由拾取的归属和领取时间窗口。
+// 输入边界：src/sim/loot/loot_ffa.ts；--check 比较生成结果，不改写目标文件。
+
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

@@ -12,7 +12,7 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/scene/dynamic_scene/session/io/atomic.rs
 tests:
-  - .\tools\zircon-session.ps1 ownership matrix --prefix zircon_runtime/src/scene/dynamic_scene/session/io/atomic.rs -Json
+  - .\tools\dev\zircon-session.ps1 ownership matrix --prefix zircon_runtime/src/scene/dynamic_scene/session/io/atomic.rs -Json
 ---
 
 # Runtime11: return executable attribution for the Resource session-I/O consumer

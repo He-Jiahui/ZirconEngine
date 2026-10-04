@@ -4,17 +4,15 @@ related_code:
   - dev/bevy/crates/bevy_text/src/editing.rs
   - dev/material-ui/packages/mui-system/src/createTheme/createTheme.js
   - dev/material-ui/packages/mui-system/src/createTheme/shape.ts
-  - tools/check_conventions.py
+  - tools/audits/check_conventions.py
 implementation_files:
-  - docs/ui-and-layout/bevy-ui-text-widgets-focus-a11y-m0-gap-audit.md
-  - docs/ui-and-layout/material-ui-token-component-audit.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - python tools/check_conventions.py --only docs --json
-  - git diff --check -- docs/ui-and-layout/bevy-ui-text-widgets-focus-a11y-m0-gap-audit.md docs/ui-and-layout/material-ui-token-component-audit.md
+  - python tools/audits/check_conventions.py --only docs --json
+  - git diff --check -- docs/ui/bevy-ui-text-widgets-focus-a11y-m0-gap-audit.md docs/ui/material-ui-token-component-audit.md
 ---
 
 # Frameworks06 G7 Reference Owner 文档硬切 Batch 20
@@ -32,7 +30,7 @@ Session: `frameworks06-g7-reference-owner-doc-hardcut-batch20-20260718`
 ## Fresh Testing Evidence
 
 - 修改前 fresh G7：两份所选文档合计 `2` 个 missing-path violations。
-- 修改后 fresh `python tools/check_conventions.py --only docs --json`：两份所选文档合计 `0` violations；共享 current-source 全局快照为 `468` violations / `121` documents，G7 继续保持 RED。
+- 修改后 fresh `python tools/audits/check_conventions.py --only docs --json`：两份所选文档合计 `0` violations；共享 current-source 全局快照为 `468` violations / `121` documents，G7 继续保持 RED。
 - Bevy/MUI current reference owner 机器路径全部存在；两条退役 reference front-matter 路径均为 `0`。
 - exact-scope `git diff --check` 通过，staged_total 为 `0`。
 

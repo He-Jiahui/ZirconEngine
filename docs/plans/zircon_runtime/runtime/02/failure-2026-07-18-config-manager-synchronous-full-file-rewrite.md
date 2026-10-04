@@ -16,9 +16,15 @@ related_code:
   - zircon_runtime/src/foundation/runtime/config_manager/state.rs
   - zircon_runtime/src/foundation/runtime/config_manager/worker.rs
   - zircon_runtime/src/foundation/runtime/config_manager/writer.rs
-  - zircon_runtime/src/foundation/persistence/atomic_file.rs
+  - zircon_runtime/src/core/resource/io/mod.rs
+  - zircon_runtime/crates/zr_resource/src/io/atomic_file
   - zircon_runtime/src/foundation/runtime/config_manager_tests.rs
   - zircon_runtime/src/core/runtime/config_store.rs
+tests:
+  - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zr_resource -SkipBuild -LibTests -TestFilter atomic_file -TestThreads 1 -VerboseOutput
+  - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter config_manager -TestThreads 1 -VerboseOutput
+  - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestThreads 1 -VerboseOutput
+  - 1/1k set_value burst, shutdown/crash recovery and write-count/bytes/queue-depth/p95 product measurements
 ---
 
 # Config manager synchronous full-file rewrite
@@ -63,7 +69,7 @@ Runtime02已完成代码层架构修复：
 - 最后owner关闭时强制flush并最多等待2秒；启动阶段对存在但损坏/不可读的配置返回带路径的明确错误。
 - 每个配置路径由不依赖目录存在性的词法绝对key与epoch commit gate串行化实际replace/注册；shutdown timeout取消旧fence并记录tracing错误，detached worker不能在新manager提交后覆盖旧快照。已进入replace时，新激活快速返回明确错误而不是无界等待。
 - Windows replacement部分失败若只剩backup会立即恢复canonical目标；崩溃后启动仅在目标缺失且backup唯一时恢复，多个候选直接返回明确错误。
-- 资产sidecar/registry原子写实现已硬切到`foundation/persistence/atomic_file.rs`，配置writer直接复用同一生产owner；旧`asset/project/meta_io.rs`模块被删除且没有转发兼容层。
+- 资产sidecar/registry原子写实现已硬切到 `zr_resource/src/io/atomic_file/`；配置writer经 `core::resource::io::stage_atomic_write` 的受控投影复用该生产owner。旧 `foundation/persistence/atomic_file.rs` 与 `asset/project/meta_io.rs` 已删除，均不保留兼容模块。
 - 源级TDD覆盖同值零工作、首次失败后同值重试、4线程并发无丢失、1000次burst合并为一次写入、replace失败保留/恢复旧完整JSON、最后owner shutdown flush、flush timeout、shutdown timeout旧writer fencing、Windows backup启动恢复和损坏启动文件。
 
 Independent review round 1: `Critical 0 / Important 2 / Minor 0`。两项Important分别为Windows部分replacement失败恢复和shutdown timeout detached worker迟到提交；r4已按最低共享层加入canonical backup recovery与per-path epoch commit fence。
@@ -79,3 +85,10 @@ Open state: `主架构、两轮review修复、round 3独立复核、精确rustfm
 - `foundation/**` current 16/16重新逐文件静态核对；主架构保持单worker、dirty generation、防抖、atomic replace与有界shutdown。
 - 新增回归并修复pending dirty generation上的同值调用刷新`last_dirty_at`和重复notify：真实change仍延长debounce，失败后同值调用仍重新请求。
 - 源码RED→GREEN守卫、`rustfmt`、scoped `git diff --check`通过；current-source Cargo仍pending，PERF-MVP-223不提前转完成。
+
+### 2026-09-24 原子写 owner 路径与验收入口复核
+
+- `writer.rs` 当前实际导入 `crate::core::resource::io::stage_atomic_write`，由 `zr_resource::assembly::io` 归属底层 staged atomic transaction；本文原 `foundation/persistence/atomic_file.rs` 路径已不存在，现修正 `related_code` 和正文，不恢复旧实现或转发层。
+- 上方受管门按底层 `zr_resource` 原子文件回归、Runtime 配置 manager 聚焦组和 Runtime 全 lib 向上排列；另保留原 1/1k burst、shutdown/crash、写次数/字节/队列深度/p95 实测门槛。旧共享 current reservation `77cf6cb7e95b4972aadc39d6a1356d1f` 的空 source manifest 仅可供诊断，不作为当前源码通过证据。
+- 只读 pinned 外部输入扫描对 `zr_resource` 的下层 Cargo 命令同样发现 `E:/Git/zr_vm`；该 Git 工作树现有其他 owner 未提交改动，相关 Runtime source/test 也存在他人变更。输入未稳定前不提交新的不可变 Cargo 请求，本 failure 保持 open。
+- 对精确快照 `3758` 的独立只读审查 Critical 0 / Important 0 / Moderate 0：核对了 `zr_resource` 原子写入 owner、Runtime curated 投影到 config writer/commit fence 的调用链、聚焦过滤器与单线程 `--locked` 参数；1/1k、crash-recovery、旧空 manifest 诊断票据均未删除。此结论仅针对 owned 文档修正，尚无当前源码 Cargo 或性能实测通过证据，不进行 `failure return`。

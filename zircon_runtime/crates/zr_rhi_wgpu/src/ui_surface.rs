@@ -68,6 +68,13 @@ impl WgpuUiSurfaceCompletionOwner {
     const fn is_local(self) -> bool {
         matches!(self, Self::Local)
     }
+
+    const fn device_source_label(self) -> &'static str {
+        match self {
+            Self::External => "shared",
+            Self::Local => "independent",
+        }
+    }
 }
 
 /// Owned WGPU state that binds a native UI surface to one render-device owner.
@@ -341,6 +348,9 @@ impl WgpuUiSurfacePresenter {
 
 impl UiSurfacePresenter for WgpuUiSurfacePresenter {
     fn resize(&mut self, width: u32, height: u32) -> Result<(), RhiError> {
+        if let WgpuUiSurfaceBackend::Native(renderer) = &mut self.backend {
+            renderer.text.layout_snapshot = None;
+        }
         let size = (width.max(1), height.max(1));
         if size == self.descriptor.clamped_size() {
             return Ok(());
@@ -372,11 +382,22 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
         &mut self,
         draw_list: &UiSurfaceDrawList,
     ) -> Result<UiSurfacePresentStats, RhiError> {
+        if let WgpuUiSurfaceBackend::Native(renderer) = &mut self.backend {
+            if let Some(snapshot) = renderer.text.layout_snapshot.as_mut() {
+                snapshot.presented_frame_count = 0;
+            }
+        }
         if draw_list.surface_size != self.descriptor.clamped_size() {
             self.resize(draw_list.surface_size.0, draw_list.surface_size.1)?;
         }
         let presentation = match &mut self.backend {
-            WgpuUiSurfaceBackend::Native(renderer) => renderer.present(draw_list)?,
+            WgpuUiSurfaceBackend::Native(renderer) => match renderer.present(draw_list) {
+                Ok(presentation) => presentation,
+                Err(error) => {
+                    renderer.text.layout_snapshot = None;
+                    return Err(error);
+                }
+            },
             WgpuUiSurfaceBackend::Headless(compiled_batch_plan) => {
                 let resolved_draw_plan = compiled_batch_plan.resolve(draw_list, false);
                 let mut batch_stats = resolved_draw_plan.plan.stats;
@@ -477,6 +498,14 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
             advance_presented_frame_count(self.presented_frame_count, presentation.outcome);
         stats.presented_frame_count = self.presented_frame_count;
         if presentation.outcome.is_submitted() {
+            if let WgpuUiSurfaceBackend::Native(renderer) = &mut self.backend {
+                if let Some(snapshot) = renderer.text.layout_snapshot.as_mut() {
+                    snapshot.presented_frame_count = self.presented_frame_count;
+                    snapshot.damage = draw_list.damage;
+                    snapshot.prepared_this_present = stats.text_renderer_build_count > 0;
+                    snapshot.retained_cache_copy_bytes = stats.retained_cache_copy_bytes;
+                }
+            }
             self.last_stats = stats;
         }
         Ok(stats)
@@ -492,6 +521,27 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
         self.present(&draw_list)
     }
 
+    fn set_text_layout_observation(&mut self, enabled: bool) {
+        if let WgpuUiSurfaceBackend::Native(renderer) = &mut self.backend {
+            renderer.text.set_layout_observation(enabled);
+            if !enabled {
+                renderer.text.layout_snapshot = None;
+            }
+        }
+    }
+    fn last_submitted_text_layout(&self) -> Option<zr_rhi::UiSurfaceTextLayoutSnapshot> {
+        if !self.last_stats.outcome.is_submitted() {
+            return None;
+        }
+        let WgpuUiSurfaceBackend::Native(renderer) = &self.backend else {
+            return None;
+        };
+        let mut snapshot = renderer.text.layout_snapshot.clone()?;
+        if !snapshot.is_from_present(self.presented_frame_count) {
+            return None;
+        }
+        Some(snapshot)
+    }
     fn last_present_stats(&self) -> UiSurfacePresentStats {
         self.last_stats
     }
@@ -659,6 +709,17 @@ impl WgpuUiSurfaceRenderer {
             .as_ref()
             .map(|_| GpuReadbackQueue::new(&context.device));
 
+        let adapter_info = context.adapter.get_info();
+        eprintln!(
+            "[zircon_rhi_wgpu] ui_surface_adapter surface={:?} device_source={} name={:?} backend={} vendor_id=0x{:04X} device_id=0x{:04X}",
+            descriptor.label.unwrap_or("<unnamed>"),
+            context.completion_owner.device_source_label(),
+            adapter_info.name,
+            adapter_info.backend.to_str(),
+            adapter_info.vendor,
+            adapter_info.device,
+        );
+
         Ok(Self {
             surface,
             config,
@@ -719,4 +780,5 @@ fn retained_cache_copy_supported(surface_usage: wgpu::TextureUsages) -> bool {
 }
 
 #[cfg(test)]
+#[path = "ui_surface/tests/cases.rs"]
 mod tests;

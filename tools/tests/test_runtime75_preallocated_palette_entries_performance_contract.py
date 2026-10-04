@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 组件调色板按注册表上界预留最终条目，避免 collect 的中间增长；检查 Rust 回归对容量和排序的断言。
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime/src/ui/component/catalog/palette_view.rs"

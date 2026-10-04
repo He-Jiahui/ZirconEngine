@@ -1,5 +1,9 @@
 //! Editor host UI built on Retained, with viewport frames coming from core graphics.
 
+#[cfg(feature = "dev-dynamic-linking")]
+#[allow(unused_imports, clippy::single_component_path_imports)]
+use zr_runtime_dev_dylib as _;
+
 pub mod core;
 pub mod scene;
 pub mod ui;
@@ -33,9 +37,13 @@ pub use ui::host::module::{
     EDITOR_COMMAND_REGISTRY_NAME, EDITOR_HOST_DRIVER_NAME, EDITOR_KEYMAP_NAME, EDITOR_MANAGER_NAME,
     EDITOR_MODULE_NAME,
 };
+pub use ui::host::{UiAssetWorkspaceWatchDiagnostics, UiAssetWorkspaceWatchPollReport};
 pub use ui::retained_host::{
+    export_zui_visual_evidence, export_zui_visual_evidence_with_context,
+    export_zui_workbench_product_snapshots, export_zui_workbench_product_snapshots_with_context,
     run_editor, run_editor_with_config, run_editor_with_startup_request,
     run_retained_host_automation, EditorHostRunConfig, RetainedHostAutomationResult,
+    ZuiVisualEvidenceSummary,
 };
 
 #[cfg(test)]

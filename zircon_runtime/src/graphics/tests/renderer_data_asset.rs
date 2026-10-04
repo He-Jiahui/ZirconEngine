@@ -1,3 +1,4 @@
+//! RendererData 文档到运行时资产的转换契约；名称、阶段、特性与 shader/material 引用在 TOML 往返及图编译前须保持一致。
 use std::collections::HashMap;
 use std::str::FromStr;
 

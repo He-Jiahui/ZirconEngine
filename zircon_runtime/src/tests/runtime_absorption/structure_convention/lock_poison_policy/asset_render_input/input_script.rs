@@ -1,5 +1,6 @@
 use super::*;
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0014] 输入状态访问的旧恢复测试名称未匹配；需定位迁移后的状态锁恢复测试及实际输入读取链，确认覆盖仍存在后调整守卫。
 #[test]
 fn runtime_15_input_runtime_manager_lock_poison_recovery_guard_covers_input_state() {
     let input_manager = read_runtime_src("input/runtime/default_input_manager.rs");
@@ -48,6 +49,7 @@ fn runtime_15_input_runtime_manager_lock_poison_recovery_guard_covers_input_stat
     }
 }
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0015] 脚本宿主导出模块注册表未匹配旧互斥访问器与调用写法；需核对现行注册表读写和中毒恢复覆盖，再区分迁移改名与契约缺失。
 #[test]
 fn runtime_15_script_vm_registry_lock_poison_recovery_guard_covers_vm_registries() {
     let backend_registry = read_runtime_src("script/vm/backend/backend_registry.rs");
@@ -55,7 +57,7 @@ fn runtime_15_script_vm_registry_lock_poison_recovery_guard_covers_vm_registries
     let host_export_registry = read_runtime_src("script/vm/host/host_export_registry.rs");
     let hot_reload_coordinator = read_runtime_src("script/vm/runtime/hot_reload_coordinator.rs");
     let hot_reload_coordinator_tests =
-        read_runtime_src("script/vm/runtime/hot_reload_coordinator/tests.rs");
+        read_runtime_src("script/vm/runtime/hot_reload_coordinator/tests/cases.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");

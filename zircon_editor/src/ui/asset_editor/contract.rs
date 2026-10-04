@@ -89,7 +89,7 @@ impl UiDesignerToolMode {
 }
 
 #[cfg(test)]
-#[path = "contract/tool_mode_parse_tests.rs"]
+#[path = "contract/tests/tool_mode_parse_tests.rs"]
 mod tool_mode_parse_tests;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

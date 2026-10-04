@@ -12,7 +12,7 @@ plan_sources:
   - user: 2026-09-09 完善平台能力与插件桥接边界说明
 tests:
   - zircon_runtime/src/plugin/bridge/table.rs
-  - zircon_runtime/src/plugin/bridge/table/optimization_tests.rs
+  - zircon_runtime/src/plugin/bridge/table/tests/optimization_tests.rs
   - zircon_runtime/src/platform/tests
 doc_type: module-detail
 ---

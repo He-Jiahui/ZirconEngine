@@ -1,3 +1,5 @@
+//! 导航类组件的根节点与 slot 节点分别取自身和父组件状态；这些类名先于样式表匹配生成。
+
 use std::collections::BTreeMap;
 
 use toml::Value;
@@ -227,6 +229,7 @@ pub(super) fn append_step_label_slot_classes(
     }
 }
 
+/// 从 slot 契约接收 Tabs 父属性，使 scroller、list 和滚动按钮共享同一方向与变体判定。
 pub(super) fn append_tabs_slot_classes(
     child: &mut UiTemplateNode,
     owner_attributes: &BTreeMap<String, Value>,
@@ -278,6 +281,7 @@ pub(super) fn append_tabs_slot_classes(
     }
 }
 
+/// 将父 TransferList 的源、目标与禁用集合状态传给各操作区域，供 slot 级选择器使用。
 pub(super) fn append_transfer_list_slot_classes(
     child: &mut UiTemplateNode,
     owner_attributes: &BTreeMap<String, Value>,
@@ -372,6 +376,7 @@ fn borrowed_navigation_attribute_from_attributes<'a>(
         .unwrap_or(default)
 }
 
+// StepLabel 等 slot 不拥有完整交互状态，需借用父节点属性以保持根与子区域一致。
 fn append_owner_state_classes(
     child: &mut UiTemplateNode,
     owner_attributes: &BTreeMap<String, Value>,
@@ -442,5 +447,5 @@ fn tab_has_label(node: &UiTemplateNode) -> bool {
 }
 
 #[cfg(test)]
-#[path = "mui_navigation_classes/borrowed_default_tests.rs"]
+#[path = "mui_navigation_classes/tests/borrowed_default_tests.rs"]
 mod borrowed_default_tests;

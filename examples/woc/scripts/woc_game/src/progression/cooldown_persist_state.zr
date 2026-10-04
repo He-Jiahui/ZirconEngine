@@ -65,6 +65,7 @@ pub class ChargeCap {
     }
 }
 
+/// 快照中的存在标志保留缺省字段与显式空字段的区别；现代充能字段即使为空，也会阻止旧版充能迁移。
 pub class CooldownSnapshot {
     pub var present: bool;
     pub var hasAbilities: bool;
@@ -241,6 +242,7 @@ restoreChargeState(source: AbilityChargeState): AbilityChargeState {
     return restored;
 }
 
+/// 存档保存剩余时长，药水绝对截止时间在此换算；读取时以新的时钟重建，离线时间不会自动扣减。
 pub serializeCooldowns(store: CooldownStore, potionCooldownUntil: float, now: float): CooldownSnapshot {
     var saved = new CooldownSnapshot();
     var index = 0;
@@ -368,6 +370,8 @@ applyCooldownsInternal(
     return saved.hasPotion && positive(saved.potion) ? now + saved.potion : -1.0;
 }
 
+// TODO: [CR-WOC-IPS-P-0001] 确认恢复是否允许复用非空存储；当前测试均创建新存储，未验证快照省略项保留旧冷却的行为；补充重复恢复契约。
+/// 当前恢复测试传入新建存储；此调用只合入快照中的有效记录，未出现在快照中的旧记录不会被清除。
 pub applyCooldowns(
     saved: CooldownSnapshot,
     store: CooldownStore,
@@ -387,6 +391,7 @@ pub applyCooldowns(
     );
 }
 
+/// 读取旧版存档时再提供当前充能上限；现代字段优先，旧记录还须通过已有冷却与能力白名单的联合校验。
 pub applyCooldownsWithLegacy(
     saved: CooldownSnapshot,
     store: CooldownStore,

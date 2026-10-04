@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 验证ECS 组件注册表转移的职责切分：转移事务应为子节点持有不带算法漂移，并运行时 08 清单与状态镜像覆盖新归属。
 class RuntimeEcsComponentRegistryTransferOwnerStructureTests(unittest.TestCase):
     STATUS = (
         "runtime_08_15_component_registry_transfer_owner_split_"
@@ -19,7 +19,7 @@ class RuntimeEcsComponentRegistryTransferOwnerStructureTests(unittest.TestCase):
         self.assertIn("mod transferred;", registry)
         self.assertIn("PreflightedTransferredDescriptorImports", registry)
         self.assertIn("TransferredComponentDescriptor", registry)
-        self.assertIn('#[path = "registry/tests.rs"]', registry)
+        self.assertIn("#[path = \"registry/tests/cases.rs\"]", registry)
         for moved_anchor in (
             "struct PendingTransferredDescriptor",
             "fn preflight_transferred_descriptor_import",
@@ -31,7 +31,7 @@ class RuntimeEcsComponentRegistryTransferOwnerStructureTests(unittest.TestCase):
 
         owner_dir = registry_path.with_suffix("")
         transferred = (owner_dir / "transferred.rs").read_text(encoding="utf-8")
-        tests = (owner_dir / "tests.rs").read_text(encoding="utf-8")
+        tests = (owner_dir / "tests/cases.rs").read_text(encoding="utf-8")
         self.assertLessEqual(len(transferred.splitlines()), 310)
         self.assertLessEqual(len(tests.splitlines()), 220)
 
@@ -102,7 +102,7 @@ class RuntimeEcsComponentRegistryTransferOwnerStructureTests(unittest.TestCase):
         for current_path in (
             "zircon_runtime/src/scene/ecs/component/registry.rs",
             "zircon_runtime/src/scene/ecs/component/registry/transferred.rs",
-            "zircon_runtime/src/scene/ecs/component/registry/tests.rs",
+            "zircon_runtime/src/scene/ecs/component/registry/tests/cases.rs",
             "tools/tests/test_runtime_ecs_component_registry_transfer_owner_structure.py",
         ):
             self.assertIn(current_path, structure_plan)

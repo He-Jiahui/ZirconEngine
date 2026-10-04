@@ -19,6 +19,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn cached_
         .clone()
 }
 
+/// 出现 <text、<tspan 或 font-family 标记的 SVG 才借用共享字体库；常见纯路径图可跳过字体初始化。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn svg_may_need_fonts(
     svg: &[u8],
 ) -> bool {
@@ -41,5 +42,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn svg_may
 }
 
 #[cfg(test)]
-#[path = "font/single_scan_tests.rs"]
+#[path = "font/tests/single_scan_tests.rs"]
 mod single_scan_tests;

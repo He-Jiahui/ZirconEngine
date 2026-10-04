@@ -1,3 +1,4 @@
+# 核对资产事件只在状态确实变化时触发失效和副作用。
 from pathlib import Path
 import unittest
 

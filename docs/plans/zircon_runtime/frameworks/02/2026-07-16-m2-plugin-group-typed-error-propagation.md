@@ -15,12 +15,12 @@ Files: ["docs/plans/zircon_runtime/frameworks/02/2026-07-16-m2-plugin-group-type
 
 - `zircon_app/src/plugins/builder.rs`
 - `zircon_app/tests/plugin_group_error_contract.rs`
-- `docs/zircon_app/plugins.md`
+- `docs/crates/zircon_app/plugins.md`
 
 ## Fresh Testing Evidence
 
 - 已完成受管 exact contract 1/1、scoped static gates 与独立 review 0/0/0。
-- 四文件 focused owner `zircon_app/src/plugins/builder.rs`、`zircon_app/tests/plugin_group_error_contract.rs`、`docs/zircon_app/plugins.md` 与本记录已由 `ad2c6f989cfff927ff5679467ca0cc71e2e20c0e` 提交；不再把当前源码写成待提交工作树。
+- 四文件 focused owner `zircon_app/src/plugins/builder.rs`、`zircon_app/tests/plugin_group_error_contract.rs`、`docs/crates/zircon_app/plugins.md` 与本记录已由 `ad2c6f989cfff927ff5679467ca0cc71e2e20c0e` 提交；不再把当前源码写成待提交工作树。
 - `caba8b043bf90b1db86b5b02dc16e1564f64e672` 已为父计划补入 canonical `zircon-workflow` 的 M1 → M2 → M3 依赖拓扑；旧 `workflow_topology_missing` 是已解决的历史控制面结果。
 - `zircon_app` plugin-group/full-package 宽门留在执行波次收口，不由本修正切片冒充。
 - M1 已由原生 workflow commit `83eb1074098471c7e08ff996bd81916c5578cb5e` 接受；M2 当前只待在同一 workflow run 中执行 prepare/validate/review/commit，不降级到 generic finalize，也不手工 stage/commit。

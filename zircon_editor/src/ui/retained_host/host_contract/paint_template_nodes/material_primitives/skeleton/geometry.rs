@@ -6,6 +6,7 @@ const SKELETON_TEXT_SCALE_Y: f32 = 0.60;
 const SKELETON_WAVE_X_RATIO: f32 = 0.28;
 const SKELETON_WAVE_WIDTH_RATIO: f32 = 0.22;
 
+/// 根节点按 circular/text 词元投影为占位形状；后续圆角与波纹都使用这同一边界。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn skeleton_frame_for_variant(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
@@ -114,66 +115,9 @@ fn skeleton_radius_variant(component_variant: &str) -> u8 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ui::retained_host::host_contract::paint_theme::METRICS;
-
-    #[test]
-    fn skeleton_default_radius_tracks_host_control_density() {
-        let node = TemplatePaneNodeData::default();
-        let rect = FrameRect {
-            x: 4.0,
-            y: 8.0,
-            width: 40.0,
-            height: 16.0,
-        };
-        let mut compact = METRICS;
-        compact.radius_control = 3.0;
-
-        assert_eq!(skeleton_corner_radius_from_host(&node, &rect, compact), 3.0);
-    }
-
-    #[test]
-    fn skeleton_frames_stay_inside_tight_parent_bounds() {
-        let rect = FrameRect {
-            x: 10.0,
-            y: 20.0,
-            width: 0.4,
-            height: 0.6,
-        };
-        let mut circular = TemplatePaneNodeData::default();
-        circular.component_variant = "circular".to_owned();
-        let mut text = TemplatePaneNodeData::default();
-        text.component_variant = "text".to_owned();
-
-        for frame in [
-            skeleton_frame_for_variant(&circular, &rect),
-            skeleton_frame_for_variant(&text, &rect),
-            skeleton_wave_frame(&rect),
-        ] {
-            assert!(frame.x >= rect.x);
-            assert!(frame.y >= rect.y);
-            assert!(frame.right() <= rect.right());
-            assert!(frame.bottom() <= rect.bottom());
-        }
-    }
-
-    #[test]
-    fn skeleton_radius_does_not_exceed_narrow_frame_bounds() {
-        let rect = FrameRect {
-            x: 0.0,
-            y: 0.0,
-            width: 2.0,
-            height: 20.0,
-        };
-
-        assert_eq!(
-            skeleton_corner_radius_from_host(&TemplatePaneNodeData::default(), &rect, METRICS),
-            1.0
-        );
-    }
-}
+#[path = "tests/geometry.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "geometry/single_scan_variant_tests.rs"]
+#[path = "geometry/tests/single_scan_variant_tests.rs"]
 mod single_scan_variant_tests;

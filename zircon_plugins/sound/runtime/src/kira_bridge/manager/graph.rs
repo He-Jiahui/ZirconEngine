@@ -1,3 +1,4 @@
+//! 中立混音图先编译为 Kira 轨道计划；结构编辑在活动播放时会拒绝，以免旧句柄跨树重建失效。
 use std::collections::HashMap;
 use std::fmt::Debug;
 
@@ -19,6 +20,7 @@ mod transaction;
 
 impl<B: Backend> KiraEngine<B> {
     pub(crate) fn sync_graph(&mut self, graph: &SoundMixerGraph) -> Result<(), SoundError> {
+        self.ensure_provider_not_retiring()?;
         let plan = match &self.graph {
             Some(previous) => compile_graph_update(previous, graph)?,
             None => {
@@ -32,11 +34,13 @@ impl<B: Backend> KiraEngine<B> {
         self.apply_graph_update(graph, plan)
     }
 
+    // 结构修改前检查全部 Kira 播放句柄，防止正在使用的轨道在增量重建中失去宿主。
     pub(crate) fn apply_graph_update(
         &mut self,
         graph: &SoundMixerGraph,
         plan: GraphSyncPlan,
     ) -> Result<(), SoundError> {
+        self.ensure_provider_not_retiring()?;
         self.preflight_graph(plan.compiled())?;
         let rebuilds_entire_graph = plan
             .diff()
@@ -87,6 +91,7 @@ impl<B: Backend> KiraEngine<B> {
     }
 
     pub(crate) fn set_global_volume(&mut self, linear_gain: f32) -> Result<(), SoundError> {
+        self.ensure_provider_not_retiring()?;
         self.global_volume_gain = linear_gain;
         if !self.is_active() {
             return Ok(());
@@ -115,6 +120,36 @@ impl<B: Backend> KiraEngine<B> {
             .main_track()
             .set_volume(volume, Tween::default());
         Ok(())
+    }
+
+    /// Apply the post-commit gain without introducing a fallible transition step. A committed
+    /// generation owns an active manager; the option check only keeps this helper defensive for
+    /// callers that use it while stopping.
+    pub(crate) fn apply_global_volume_after_commit(&mut self, linear_gain: f32) {
+        self.global_volume_gain = linear_gain;
+        let graph_gain = self
+            .graph
+            .as_ref()
+            .and_then(|graph| {
+                graph
+                    .tracks
+                    .iter()
+                    .find(|track| track.id == SoundTrackId::master())
+            })
+            .map(|track| {
+                if track.controls.mute {
+                    0.0
+                } else {
+                    track.controls.gain
+                }
+            })
+            .unwrap_or(1.0);
+        let volume = super::super::graph_compile::linear_gain_to_decibels(
+            graph_gain * self.global_volume_gain,
+        );
+        if let Some(manager) = self.manager.as_mut() {
+            manager.main_track().set_volume(volume, Tween::default());
+        }
     }
 
     fn preflight_graph(&self, graph: &CompiledSoundGraph) -> Result<(), SoundError> {

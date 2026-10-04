@@ -34,6 +34,7 @@ bool starts_in_tile(const ZrNavDetourOffMeshLink& link, const dtNavMeshCreatePar
 
 namespace zr_nav_off_mesh {
 
+// 连接数组在 dtCreateNavMeshData 调用期间保持存活，瓦片构建只绑定起点所属瓦片的连接。
 bool ConnectionSet::assign(
     const ZrNavDetourOffMeshLink* links,
     const std::uint32_t link_count,

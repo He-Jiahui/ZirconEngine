@@ -23,6 +23,13 @@ impl UiAssetSurfaceIndex {
         for (node_id, node) in &tree.nodes {
             let mut collector = NodeResourceCollector::default();
             if let Some(metadata) = &node.template_metadata {
+                collector = NodeResourceCollector::with_capacity(
+                    metadata
+                        .attributes
+                        .len()
+                        .saturating_add(metadata.slot_attributes.len())
+                        .saturating_add(metadata.style_overrides.len()),
+                );
                 collector.collect_map(&metadata.attributes, "attributes");
                 collector.collect_map(&metadata.slot_attributes, "slot_attributes");
                 collector.collect_map(&metadata.style_overrides, "style_overrides");
@@ -30,6 +37,9 @@ impl UiAssetSurfaceIndex {
 
             let resources = collector.finish();
             if resources.is_empty() {
+                if report.nodes_without_resources.is_empty() {
+                    report.nodes_without_resources.reserve(tree.nodes.len());
+                }
                 report.nodes_without_resources.push(*node_id);
                 continue;
             }
@@ -54,6 +64,13 @@ struct NodeResourceCollector {
 }
 
 impl NodeResourceCollector {
+    fn with_capacity(capacity: usize) -> Self {
+        Self {
+            uris: Vec::with_capacity(capacity),
+            seen: BTreeSet::new(),
+        }
+    }
+
     fn collect_map(&mut self, values: &BTreeMap<String, Value>, root: &str) {
         for (key, value) in values {
             self.collect_value(value, &format!("{root}.{key}"));
@@ -173,3 +190,7 @@ fn resource_kind_from_name(value: &str) -> Option<UiResourceKind> {
 fn has_supported_resource_scheme(uri: &str) -> bool {
     uri.starts_with("res://") || uri.starts_with("asset://") || uri.starts_with("project://")
 }
+
+#[cfg(test)]
+#[path = "tests/capacity_tests.rs"]
+mod capacity_tests;

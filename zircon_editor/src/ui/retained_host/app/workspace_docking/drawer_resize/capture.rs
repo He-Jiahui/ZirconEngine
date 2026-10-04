@@ -4,9 +4,13 @@ use crate::ui::workbench::autolayout::ShellFrame;
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app::workspace_docking) fn begin_drawer_resize_capture(
         &mut self,
+        source_window_id: Option<&MainPageId>,
         x: f32,
         y: f32,
     ) {
+        if self.active_drawer_resize.is_some() {
+            return;
+        }
         let Some(region) = self
             .shell_pointer_bridge
             .begin_resize(UiPoint::new(x, y))
@@ -39,12 +43,13 @@ impl RetainedEditorHost {
         }
 
         self.active_drawer_resize = Some(ActiveDrawerResize {
+            source_window: source_window_id.cloned(),
             region,
             start_x: x,
             start_y: y,
             base_preferred,
         });
-        self.update_drawer_resize_capture(x, y);
+        self.update_drawer_resize_capture(source_window_id, x, y);
     }
 }
 

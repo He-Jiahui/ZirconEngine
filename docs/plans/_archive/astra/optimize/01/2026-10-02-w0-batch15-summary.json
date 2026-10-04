@@ -1,0 +1,99 @@
+{
+  "record_type": "root_qualified_batch15_summary",
+  "root_observed_at_utc": "2026-10-02T19:44:33.084160+00:00",
+  "original_artifacts": {
+    "review": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\review.jsonl",
+      "sha256": "45b7eb5d119fdd1cd21f2313c1aaec1674b97ab5867184f823a19d910b658dd0"
+    },
+    "crosswalk": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\crosswalk.jsonl",
+      "sha256": "0495bc7ee105f07778cf1690916fdb32b24a1be970c4ef7a8d28f6220fb4df0d"
+    },
+    "summary": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\summary.json",
+      "sha256": "24b53f1c22d79f03014a7ce683845162cb3eb8760157ccb1ffc0d1095ac7395c"
+    },
+    "manifest": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\manifest.json",
+      "sha256": "044d2698a183f15e731086c0d1b0f5551ace0a9132b75fff2544f36ac572011c"
+    }
+  },
+  "independent_review": {
+    "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0-batch15-independent-qualification-r1\\independent-qualification.json",
+    "sha256": "ff3bd0772fa66203cfed538270084a49a7a5ce3866ed2646e48a54a2634a059b"
+  },
+  "finding_atoms": 40,
+  "literal_finding_atoms": 28,
+  "unlabelled_finding_ordinals": 12,
+  "declared_gate_rows": 24,
+  "finding_status_counts": {
+    "confirmed_open": 23,
+    "substrate_present_domain_gap": 5,
+    "blocked_by_upstream_gap": 12
+  },
+  "gate_status_counts": {
+    "confirmed_fail": 22,
+    "partial_substrate_only": 2
+  },
+  "captured_current_inputs": 58,
+  "current_input_mismatches": 0,
+  "whole_report_inventory_labels": {
+    "total_numbered_reports": 576,
+    "historically_source_observed_reports": 61,
+    "historically_unreviewed_reports": 515,
+    "source_observed_is_bounded_finding_evidence": true,
+    "whole_report_acceptance": false
+  },
+  "source_integrated": false,
+  "tests_run": 0,
+  "acceptance": "open",
+  "original_lower_upward_windows_product_performance_and_jenkins_gates": "open",
+  "anchor_metadata_qualification": {
+    "anchor_metadata_errors": [
+      {
+        "finding_id": "RT-GAS-18",
+        "field": "source_evidence",
+        "path": "zircon_runtime/src/core/framework/time/clock.rs",
+        "raw_span": "146-205",
+        "current_line_count": 203
+      },
+      {
+        "finding_id": "RT-GAS-18",
+        "field": "production_callers",
+        "path": "zircon_runtime/src/core/framework/time/clock.rs",
+        "raw_span": "146-205",
+        "current_line_count": 203
+      },
+      {
+        "finding_id": "RT-GAS-18",
+        "field": "actual_type_and_module_mounts",
+        "path": "zircon_runtime/src/core/framework/time/clock.rs",
+        "raw_span": "146-205",
+        "current_line_count": 203
+      },
+      {
+        "finding_id": "G11",
+        "field": "source_evidence",
+        "path": "zircon_runtime/src/core/framework/time/clock.rs",
+        "raw_span": "146-205",
+        "current_line_count": 203
+      },
+      {
+        "finding_id": "G11",
+        "field": "production_callers",
+        "path": "zircon_runtime/src/core/framework/time/clock.rs",
+        "raw_span": "146-205",
+        "current_line_count": 203
+      }
+    ],
+    "anchor_metadata_error_count": 5,
+    "affected_rows": [
+      "RT-GAS-18",
+      "G11"
+    ],
+    "interpretation": "clock.rs authored/raw span 146-205 exceeds the verified 203-line file by two lines; this is an anchor metadata error with zero source byte/hash drift. Original authored span is retained verbatim; no normalization or source bug/pass is inferred."
+  },
+  "b14_root_presence_qualification": "Author sealed wrong-path absence metadata is preserved; actual Root/w0/batch14 current4 artifacts independently verified and canonicalized, no duplicate RT-AN rows.",
+  "currentness_edges": "Runtime198 and222 metadata only; inherited P0 group has no printed identifiers, none invented. Gates and12 unlabelled P2 ordinal keys are not original literal finding IDs."
+}

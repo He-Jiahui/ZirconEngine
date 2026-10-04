@@ -1,3 +1,6 @@
+// 调用端：npm run generate:current-commands (tools/package.json)；职责：把已物化的当前版本命令目录转换为一致的 Zr、Rust ID 与指纹。
+// 输入是 reference_inventory.mjs 物化的 command_catalog.json；这里只核对其 source_commit 字段、条目数和顺序。
+
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -21,6 +24,7 @@ const EXPECTED_COMMAND_COUNT = 165;
 
 main();
 
+// 先核对目录身份和连续命令序号，再为两种语言分配相同的 ID。
 function main() {
   const document = JSON.parse(readFileSync(sourcePath, 'utf8'));
   invariant(document.schema_version === 1, 'command catalog schema must be 1');
@@ -66,6 +70,7 @@ function main() {
   );
 }
 
+// Zr 查询与派发入口须与原生 Rust 表共享同一目录指纹。
 function renderZr(entries, fingerprint, fingerprintHex) {
   const first = entries[0];
   const last = entries.at(-1);
@@ -125,6 +130,7 @@ function renderZr(entries, fingerprint, fingerprintHex) {
     `    return dispatchCount == 9 ? 1 : -4;\n}\n`;
 }
 
+// Rust 命令判别值与名称须保持和 Zr 投影一致。
 function renderRust(entries, sha256) {
   const rows = entries.map((entry) => {
     const kind = entry.kind === 'dispatch_only' ? 'CommandKind::DispatchOnly' : 'CommandKind::ClientSend';

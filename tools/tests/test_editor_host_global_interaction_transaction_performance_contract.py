@@ -1,3 +1,4 @@
+# 核对宿主全局交互状态先预检再单次提交，稳定视口更新避免宽范围复制。
 from pathlib import Path
 import unittest
 

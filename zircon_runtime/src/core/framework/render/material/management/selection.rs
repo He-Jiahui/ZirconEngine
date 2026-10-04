@@ -10,8 +10,12 @@ use super::{
 use crate::core::resource::ResourceId;
 
 #[cfg(test)]
-#[path = "selection/id_capacity_tests.rs"]
+#[path = "selection/tests/id_capacity_tests.rs"]
 mod id_capacity_tests;
+
+#[cfg(test)]
+#[path = "selection/tests/optimization_batch_iy_runtime636_tests.rs"]
+mod optimization_batch_iy_runtime636_tests;
 
 /// Full management records selected by material id, preserving request order.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -32,13 +36,15 @@ pub struct RenderMaterialManagementSelection {
 }
 
 impl RenderMaterialManagementSelection {
+    // 选择先按请求顺序去重，再保留记录表中每个材质 ID 的首个记录；缺失 ID 单独返回，并据选中记录重建摘要、状态索引和问题索引。
     pub fn from_records(
         records: &[RenderMaterialManagementRecord],
         material_ids: impl IntoIterator<Item = ResourceId>,
     ) -> Self {
         let requested_material_ids = unique_material_ids(material_ids);
-        let mut selected_records = Vec::new();
-        let mut missing_material_ids = Vec::new();
+        let result_capacity = requested_material_ids.len();
+        let mut selected_records = Vec::with_capacity(result_capacity);
+        let mut missing_material_ids = Vec::with_capacity(result_capacity);
         let mut records_by_id = HashMap::with_capacity(records.len());
         for record in records {
             records_by_id.entry(record.material_id).or_insert(record);
@@ -103,26 +109,5 @@ fn unique_material_ids(material_ids: impl IntoIterator<Item = ResourceId>) -> Ve
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::framework::render::material::management::RenderMaterialManagementSnapshot;
-
-    #[test]
-    fn selection_owns_records_after_source_changes() {
-        let material_id = ResourceId::from_stable_label("material:owned-selection");
-        let mut records = vec![RenderMaterialManagementRecord {
-            material_id,
-            material_name: Some("Original".to_string()),
-            snapshot: RenderMaterialManagementSnapshot::default(),
-        }];
-
-        let selection = RenderMaterialManagementSelection::from_records(&records, [material_id]);
-        records[0].material_name = Some("Changed after selection".to_string());
-
-        assert_eq!(selection.records.len(), 1);
-        assert_eq!(
-            selection.records[0].material_name.as_deref(),
-            Some("Original")
-        );
-    }
-}
+#[path = "tests/selection.rs"]
+mod tests;

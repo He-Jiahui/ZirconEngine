@@ -36,7 +36,6 @@ related_code:
   - zircon_editor/src/ui/asset_editor/session/resolver_state.rs
   - zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs
   - zircon_editor/src/ui/retained_host/app/settings_window_actions.rs
-  - zircon_app/src/entry/entry_config.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_runtime/04-core-resource-asset-serialization-review.md

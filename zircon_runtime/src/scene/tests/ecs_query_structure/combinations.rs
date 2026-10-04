@@ -1,3 +1,4 @@
+//! 组合查询复用已编译原型计划，候选稳定位置仅在单次调用中保留，避免扩张持久缓存。
 use super::*;
 
 #[test]
@@ -8,12 +9,12 @@ fn cached_combinations_keep_call_local_candidates_and_reuse_archetype_plans() {
     let read_state = read_source(&query_root.join("query_state/read_only_cached.rs"));
     let mutable_state = read_source(&query_root.join("query_state/mutable.rs"));
 
-    assert!(read.contains("pub(crate) fn new_from_cached_plans("));
+    assert!(read.contains("pub(crate) unsafe fn new_from_cached_plans("));
     assert!(read.contains("plans: &'state [CachedArchetypePlan]"));
     assert!(read.contains("stable_locations: Vec<StableEntityLocation>"));
     assert!(read.contains("plan.write_component_locations("));
     assert!(read.contains("D::fetch_with_component_locations("));
-    assert!(mutable.contains("pub(crate) fn new_from_cached_plans("));
+    assert!(mutable.contains("pub(crate) unsafe fn new_from_cached_plans("));
     assert!(mutable.contains("plans: &'state [CachedArchetypePlan]"));
     assert!(mutable.contains("D::fetch_mut_with_component_locations("));
     assert!(read_state.contains("QueryCombinationIter::new_from_cached_plans("));

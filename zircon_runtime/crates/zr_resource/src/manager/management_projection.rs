@@ -3,10 +3,11 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use crate::{
-    ResourceId, ResourceManagementGeneration, ResourceManagementGenerationDiagnostics,
-    ResourceManagementIdShard, ResourceManagementLocatorShard, ResourceManagementRow,
-    ResourceManagementSummary, ResourceRecord, resource_management_id_maps_from_ordered_pages,
-    resource_management_pages_from_sorted_rows, resource_management_row_order,
+    resource_management_id_maps_from_ordered_pages, resource_management_pages_from_sorted_rows,
+    resource_management_row_order, ResourceId, ResourceManagementGeneration,
+    ResourceManagementGenerationDiagnostics, ResourceManagementIdShard,
+    ResourceManagementLocatorShard, ResourceManagementRow, ResourceManagementSummary,
+    ResourceRecord,
 };
 
 #[derive(Debug)]
@@ -681,4 +682,5 @@ fn resource_management_row_matches_record(
 }
 
 #[cfg(test)]
+#[path = "management_projection/tests/cases.rs"]
 mod tests;

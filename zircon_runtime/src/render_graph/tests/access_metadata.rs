@@ -1,9 +1,59 @@
 use crate::render_graph::{
     PassFlags, QueueLane, RenderGraphBufferRange, RenderGraphBuilder, RenderGraphError,
-    RenderGraphResource, RenderGraphResourceAccessIntent, RenderGraphResourceAccessKind,
-    RenderGraphResourceAccessRange, RenderGraphShaderStages, RenderGraphTextureSubresourceRange,
+    RenderGraphExternalResourceBinding, RenderGraphResource, RenderGraphResourceAccessIntent,
+    RenderGraphResourceAccessKind, RenderGraphResourceAccessRange, RenderGraphShaderStages,
+    RenderGraphTextureSubresourceRange,
 };
 use crate::rhi::{BufferDesc, BufferUsage, TextureDesc, TextureFormat, TextureUsage};
+
+#[test]
+fn legacy_access_on_typed_external_texture_resolves_to_full_scope() {
+    let mut builder = RenderGraphBuilder::new("legacy-typed-external-scope");
+    let external = builder.import_external_texture_with_binding(
+        "viewport-output",
+        TextureDesc::new(
+            "viewport-output",
+            64,
+            32,
+            TextureFormat::Rgba8UnormSrgb,
+            TextureUsage::SAMPLED | TextureUsage::RENDER_ATTACHMENT,
+        )
+        .with_mip_levels(2),
+        RenderGraphExternalResourceBinding::report_only_texture(),
+    );
+    let pass = builder.add_pass("consumer", QueueLane::Graphics);
+    builder.read_external(pass, external).unwrap();
+    builder
+        .set_pass_flags(
+            pass,
+            PassFlags {
+                has_side_effects: true,
+                ..PassFlags::default()
+            },
+        )
+        .unwrap();
+
+    let graph = builder
+        .compile()
+        .expect("legacy typed external access should compile");
+    let resource = RenderGraphResource::External(external);
+    let access = graph
+        .access_id_for(pass, resource, RenderGraphResourceAccessKind::Read)
+        .expect("compiled external access");
+    assert_eq!(
+        graph
+            .access_metadata(access)
+            .expect("external metadata")
+            .range,
+        RenderGraphResourceAccessRange::Texture(RenderGraphTextureSubresourceRange {
+            base_mip_level: 0,
+            mip_level_count: Some(2),
+            base_array_layer: 0,
+            array_layer_count: Some(1),
+            aspect: crate::render_graph::RenderGraphTextureAspect::All,
+        })
+    );
+}
 
 #[test]
 fn compiled_access_metadata_retains_a_texture_mip_range_and_shader_intent() {

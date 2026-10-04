@@ -7,25 +7,68 @@ use zircon_runtime_interface::reflect::{ReflectObjectAddress, ReflectReadRequest
 
 impl EditorState {
     pub fn update_translation_field(&mut self, axis: usize, value: String) -> bool {
+        self.begin_inspector_draft_edit();
         self.transform_fields[axis] = value;
+        self.inspector_edited_fields.translation[axis] = true;
         false
     }
 
     pub fn update_scale_field(&mut self, axis: usize, value: String) -> bool {
+        self.begin_inspector_draft_edit();
         self.scale_fields[axis] = value;
+        self.inspector_edited_fields.scale[axis] = true;
         false
     }
 
     pub fn update_name_field(&mut self, value: String) {
+        self.begin_inspector_draft_edit();
         self.name_field = value;
+        self.inspector_edited_fields.name = true;
     }
 
     pub fn update_parent_field(&mut self, value: String) {
+        self.begin_inspector_draft_edit();
         self.parent_field = value;
+        self.inspector_edited_fields.parent = true;
     }
 
     pub fn update_dynamic_component_field(&mut self, field_id: impl Into<String>, value: String) {
+        self.begin_inspector_draft_edit();
         self.inspector_dynamic_fields.insert(field_id.into(), value);
+    }
+
+    pub(crate) fn pending_play_inspector_changes(&self) -> Vec<(String, String)> {
+        if !self.inspector_draft_context_is_current() {
+            return Vec::new();
+        }
+        let edited = self.inspector_edited_fields;
+        let mut changes = Vec::new();
+        if edited.name {
+            changes.push(("name".to_owned(), self.name_field.clone()));
+        }
+        if edited.parent {
+            changes.push(("parent".to_owned(), self.parent_field.clone()));
+        }
+        for (axis, suffix) in ["x", "y", "z"].into_iter().enumerate() {
+            if edited.translation[axis] {
+                changes.push((
+                    format!("transform.translation.{suffix}"),
+                    self.transform_fields[axis].clone(),
+                ));
+            }
+            if edited.scale[axis] {
+                changes.push((
+                    format!("transform.scale.{suffix}"),
+                    self.scale_fields[axis].clone(),
+                ));
+            }
+        }
+        changes.extend(
+            self.inspector_dynamic_fields
+                .iter()
+                .map(|(field, value)| (field.clone(), value.clone())),
+        );
+        changes
     }
 
     pub(crate) fn can_edit_dynamic_component_field(
@@ -35,6 +78,11 @@ impl EditorState {
         let Some((component_type_path, field_name)) = field_id.rsplit_once('.') else {
             return Ok(false);
         };
+        if crate::ui::workbench::snapshot::InspectorNativeFieldSnapshot::is_component_type(
+            component_type_path,
+        ) {
+            return Ok(false);
+        }
         let Some(selected) = self.viewport_controller.selection().active_primary() else {
             return Ok(false);
         };

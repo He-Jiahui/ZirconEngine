@@ -6,8 +6,9 @@ use zircon_runtime_interface::ui::{
     tree::UiTemplateNodeMetadata,
 };
 
+use super::super::resolve::resolve_style;
 use super::{
-    metadata::{ButtonKind, first_rgba_attribute, line_height, metric_attribute},
+    metadata::{first_rgba_attribute, line_height, metric_attribute, parse_css_color, ButtonKind},
     state::ButtonRenderState,
 };
 
@@ -56,7 +57,28 @@ pub(super) struct ButtonVisual {
 impl ButtonVisual {
     pub(super) fn resolve(metadata: &UiTemplateNodeMetadata) -> Self {
         let mut visual = *default_button_visual();
-        if let Some(color) = first_rgba_attribute(metadata, &["background_color"]) {
+        let authored_style = resolve_style(Some(metadata));
+        let table_metric = |table: &str, key: &str| {
+            metadata
+                .style_overrides
+                .get(table)
+                .or_else(|| metadata.attributes.get(table))
+                .and_then(toml::Value::as_table)
+                .and_then(|table| table.get(key))
+                .and_then(|value| {
+                    value
+                        .as_float()
+                        .or_else(|| value.as_integer().map(|value| value as f64))
+                })
+                .map(|value| value as f32)
+                .filter(|value| value.is_finite())
+        };
+        let font_metric = |key: &str| table_metric("font", key).filter(|value| *value > 0.0);
+        if let Some(color) = authored_style
+            .background_color
+            .as_deref()
+            .and_then(parse_css_color)
+        {
             visual.primary_surface = color;
             visual.secondary_surface = color;
             visual.tertiary_surface = color;
@@ -77,7 +99,11 @@ impl ButtonVisual {
         visual.disabled_surface = first_rgba_attribute(metadata, &["disabled_background_color"])
             .unwrap_or(visual.disabled_surface);
 
-        if let Some(color) = first_rgba_attribute(metadata, &["border_color"]) {
+        if let Some(color) = authored_style
+            .border_color
+            .as_deref()
+            .and_then(parse_css_color)
+        {
             visual.primary_border = color;
             visual.secondary_border = color;
             visual.danger_border = color;
@@ -88,7 +114,12 @@ impl ButtonVisual {
         visual.disabled_border = first_rgba_attribute(metadata, &["disabled_border_color"])
             .unwrap_or(visual.disabled_border);
 
-        if let Some(color) = first_rgba_attribute(metadata, &["foreground_color", "text_color"]) {
+        if let Some(color) = authored_style
+            .foreground_color
+            .as_deref()
+            .and_then(parse_css_color)
+            .or_else(|| first_rgba_attribute(metadata, &["text_color"]))
+        {
             visual.primary_text = color;
             visual.secondary_text = color;
             visual.tertiary_text = color;
@@ -118,31 +149,39 @@ impl ButtonVisual {
         visual.spacing = metric_attribute(metadata, "layout_spacing")
             .filter(|value| *value >= 0.0)
             .unwrap_or(visual.spacing);
-        visual.border_width = metric_attribute(metadata, "border_width")
+        visual.border_width = table_metric("border", "width")
+            .or_else(|| metric_attribute(metadata, "border_width"))
             .filter(|value| *value >= 0.0)
             .unwrap_or(visual.border_width);
-        if let Some(radius) = metric_attribute(metadata, "corner_radius")
+        if let Some(radius) = table_metric("border", "radius")
             .or_else(|| metric_attribute(metadata, "radius"))
+            .or_else(|| metric_attribute(metadata, "corner_radius"))
             .filter(|value| *value >= 0.0)
         {
             visual.button_radius = radius;
             visual.icon_button_radius = radius;
         }
-        visual.font_size = metric_attribute(metadata, "font_size")
-            .filter(|value| *value > 0.0)
+        visual.font_size = font_metric("size")
+            .or_else(|| metric_attribute(metadata, "font_size").filter(|value| *value > 0.0))
             .unwrap_or(visual.font_size);
-        visual.line_height = line_height(
-            metadata,
-            "line_height",
-            "line_height_ratio",
-            visual.font_size,
-            visual.line_height,
-        );
+        visual.line_height = font_metric("line_height")
+            .or_else(|| metric_attribute(metadata, "line_height").filter(|value| *value > 0.0))
+            .or_else(|| font_metric("line_height_ratio").map(|ratio| visual.font_size * ratio))
+            .unwrap_or_else(|| {
+                line_height(
+                    metadata,
+                    "line_height",
+                    "line_height_ratio",
+                    visual.font_size,
+                    visual.line_height,
+                )
+            });
         visual.min_frame_extent = visual.border_width.max(f32::EPSILON);
         visual
     }
 }
 
+// 缓存的是固定暗色主题默认值；节点覆盖在副本上解析，不会改写其他按钮的样式。
 fn default_button_visual() -> &'static ButtonVisual {
     static VISUAL: OnceLock<ButtonVisual> = OnceLock::new();
     VISUAL.get_or_init(|| {

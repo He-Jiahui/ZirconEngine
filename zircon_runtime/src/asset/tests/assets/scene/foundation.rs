@@ -41,6 +41,7 @@ fn scene_asset_toml_roundtrip_preserves_entities_and_bindings() {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                components: Vec::new(),
                 script_bindings: Vec::new(),
             },
             SceneEntityAsset {
@@ -91,6 +92,7 @@ fn scene_asset_toml_roundtrip_preserves_entities_and_bindings() {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                components: Vec::new(),
                 script_bindings: Vec::new(),
             },
             SceneEntityAsset {
@@ -112,6 +114,7 @@ fn scene_asset_toml_roundtrip_preserves_entities_and_bindings() {
                     direction: [-0.4, -1.0, -0.25],
                     color: [1.0, 1.0, 1.0],
                     intensity: 3.0,
+                    casts_shadow: false,
                     volumetric: false,
                 }),
                 point_light: None,
@@ -129,6 +132,7 @@ fn scene_asset_toml_roundtrip_preserves_entities_and_bindings() {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                components: Vec::new(),
                 script_bindings: Vec::new(),
             },
         ],

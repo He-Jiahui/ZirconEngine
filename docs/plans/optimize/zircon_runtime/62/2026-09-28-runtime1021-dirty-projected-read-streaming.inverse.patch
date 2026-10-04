@@ -1,0 +1,589 @@
+# Reverse Runtime1021 candidate source/document edits to the exact frozen Batch U preimages.
+
+diff --git a/zircon_runtime/src/scene/world/derived_state.rs b/zircon_runtime/src/scene/world/derived_state.rs
+--- a/zircon_runtime/src/scene/world/derived_state.rs
++++ b/zircon_runtime/src/scene/world/derived_state.rs
+@@ -500,28 +500,25 @@
+     }
+ 
+     pub(super) fn project_world_matrix_for_read(&self, entity: EntityId) -> Option<Mat4> {
+-        let mut world = Mat4::IDENTITY;
++        let mut lineage = Vec::new();
++        let mut seen = HashSet::new();
+         let mut current = entity;
+-        let mut slow = Some(entity);
+-        let mut fast = Some(entity);
+         loop {
+-            if !self.contains_entity(current) {
++            if !self.contains_entity(current) || !seen.insert(current) {
+                 return None;
+             }
+-            world = transform_to_mat4(self.local_transform_value(current)) * world;
++            lineage.push(current);
+             let Some(parent) = self.parent_for_read(current) else {
+-                return Some(world);
++                break;
+             };
+             current = parent;
+-
+-            slow = slow.and_then(|ancestor| self.parent_for_read(ancestor));
+-            fast = fast
+-                .and_then(|ancestor| self.parent_for_read(ancestor))
+-                .and_then(|ancestor| self.parent_for_read(ancestor));
+-            if slow.is_some() && slow == fast {
+-                return None;
+-            }
+-        }
++        }
++
++        let mut world = Mat4::IDENTITY;
++        for current in lineage.iter().rev().copied() {
++            world = world * transform_to_mat4(self.local_transform_value(current));
++        }
++        Some(world)
+     }
+ 
+     fn parent_for_read(&self, entity: EntityId) -> Option<EntityId> {
+@@ -539,25 +536,16 @@
+     }
+ 
+     fn active_self_chain_value(&self, entity: EntityId) -> bool {
++        let mut seen = HashSet::new();
+         let mut current = entity;
+-        let mut slow = Some(entity);
+-        let mut fast = Some(entity);
+         loop {
+-            if !self.active_self_value(current) {
++            if !seen.insert(current) || !self.active_self_value(current) {
+                 return false;
+             }
+             let Some(parent) = self.parent_for_read(current) else {
+                 return true;
+             };
+             current = parent;
+-
+-            slow = slow.and_then(|ancestor| self.parent_for_read(ancestor));
+-            fast = fast
+-                .and_then(|ancestor| self.parent_for_read(ancestor))
+-                .and_then(|ancestor| self.parent_for_read(ancestor));
+-            if slow.is_some() && slow == fast {
+-                return false;
+-            }
+         }
+     }
+ 
+
+diff --git a/zircon_runtime/src/scene/tests/derived_state/projected_reads.rs b/zircon_runtime/src/scene/tests/derived_state/projected_reads.rs
+--- a/zircon_runtime/src/scene/tests/derived_state/projected_reads.rs
++++ b/zircon_runtime/src/scene/tests/derived_state/projected_reads.rs
+@@ -43,134 +43,67 @@
+     );
+ }
+ 
+-#[test]
+-fn dirty_projected_reads_match_flushed_reparent_values() {
+-    let mut world = pending_reparented_world();
+-    let child = world
+-        .nodes()
+-        .last()
+-        .expect("reparented fixture must contain its child")
+-        .id;
+-    assert!(world.has_pending_scene_systems());
+-
+-    let projected_matrix = world
+-        .world_matrix(child)
+-        .expect("dirty child must have a projected world matrix");
+-    let projected_transform = world
+-        .world_transform(child)
+-        .expect("dirty child must have a projected world transform");
+-    let projected_active = world
+-        .active_in_hierarchy(child)
+-        .expect("dirty child must have a projected active value");
+-
+-    assert_eq!(projected_transform.translation, Vec3::new(12.0, 0.0, 0.0));
+-    assert!(!projected_active);
+-    assert!(world.has_pending_scene_systems());
+-
+-    world.flush_pending_scene_systems();
+-    assert_eq!(world.world_matrix(child), Some(projected_matrix));
+-    assert_eq!(world.world_transform(child), Some(projected_transform));
+-    assert_eq!(world.active_in_hierarchy(child), Some(projected_active));
+-}
+-
+-#[test]
+-fn dirty_projected_reads_stream_a_deep_chain_before_and_after_flush() {
+-    const CHAIN_DEPTH: usize = 128;
+-
+-    let mut world = World::empty();
+-    let mut records = Vec::with_capacity(CHAIN_DEPTH);
+-    for index in 0..CHAIN_DEPTH {
+-        let id = 100_000 + index as u64;
+-        let mut record = detached_node_record(id, NodeKind::Empty);
+-        record.parent = index.checked_sub(1).map(|parent| 100_000 + parent as u64);
+-        record.transform = Transform::from_translation(Vec3::new(1.0, 0.0, 0.0));
+-        record.active = index != 0;
+-        records.push(record);
+-    }
+-    let leaf = records.last().expect("deep fixture must have a leaf").id;
+-    world
+-        .insert_node_records(&records)
+-        .expect("deep fixture records should publish");
+-    assert!(world.has_pending_scene_systems());
+-
+-    let projected_transform = world
+-        .world_transform(leaf)
+-        .expect("deep dirty leaf must have a projected transform");
+-    let projected_active = world
+-        .active_in_hierarchy(leaf)
+-        .expect("deep dirty leaf must have a projected active value");
+-    assert_eq!(
+-        projected_transform.translation,
+-        Vec3::new(CHAIN_DEPTH as f32, 0.0, 0.0)
+-    );
+-    assert!(!projected_active);
+-    assert!(world.has_pending_scene_systems());
+-
+-    world.flush_pending_scene_systems();
+-    assert_eq!(world.world_transform(leaf), Some(projected_transform));
+-    assert_eq!(world.active_in_hierarchy(leaf), Some(projected_active));
+-}
+-
+-#[test]
+-fn dirty_projected_reads_stop_at_self_and_missing_parent_edges() {
+-    for self_parent in [true, false] {
+-        let mut world = World::empty();
+-        let target = world
+-            .spawn_node(NodeKind::Empty)
+-            .expect("test scene spawn should succeed");
+-        let other = world
+-            .spawn_node(NodeKind::Empty)
+-            .expect("test scene spawn should succeed");
+-        world.flush_pending_scene_systems();
+-
+-        world
+-            .update_transform(
+-                target,
+-                Transform::from_translation(Vec3::new(4.0, 0.0, 0.0)),
+-            )
+-            .expect("target transform should update");
+-        world
+-            .set_active_self(other, false)
+-            .expect("other node should become inactive");
+-        let parent = if self_parent { target } else { u64::MAX };
+-        assert!(world.corrupt_hierarchy_parent_for_tests(target, Some(parent)));
+-
+-        assert_eq!(
+-            world
+-                .world_transform(target)
+-                .map(|transform| transform.translation),
+-            Some(Vec3::new(4.0, 0.0, 0.0))
+-        );
+-        assert_eq!(world.active_in_hierarchy(target), Some(true));
+-    }
+-}
+-
+-#[test]
+-fn dirty_projected_reads_fail_closed_on_multi_node_parent_cycles() {
+-    let mut world = World::empty();
+-    let first = world
+-        .spawn_node(NodeKind::Empty)
+-        .expect("test scene spawn should succeed");
+-    let second = world
+-        .spawn_node(NodeKind::Empty)
+-        .expect("test scene spawn should succeed");
+-    let unrelated = world
+-        .spawn_node(NodeKind::Empty)
+-        .expect("test scene spawn should succeed");
+-    world.flush_pending_scene_systems();
+-
+-    world
+-        .update_transform(first, Transform::from_translation(Vec3::new(1.0, 0.0, 0.0)))
+-        .expect("cycle member transform should update");
+-    world
+-        .set_active_self(unrelated, false)
+-        .expect("unrelated node should become inactive");
+-    assert!(world.corrupt_hierarchy_parent_for_tests(first, Some(second)));
+-    assert!(world.corrupt_hierarchy_parent_for_tests(second, Some(first)));
+-
+-    assert_eq!(world.world_matrix(first), None);
+-    assert_eq!(world.active_in_hierarchy(first), Some(false));
+-}
++#[test]
++fn derived_state_projected_reads_use_direct_parent_branches() {
++    let source = read_source(
++        &manifest_dir()
++            .join("src")
++            .join("scene")
++            .join("world")
++            .join("derived_state.rs"),
++    );
++    let world_matrix = source
++        .split("pub(super) fn project_world_matrix_for_read")
++        .nth(1)
++        .and_then(|text| text.split("fn parent_for_read").next())
++        .expect("read projected world matrix body");
++    let parent_for_read = source
++        .split("fn parent_for_read")
++        .nth(1)
++        .and_then(|text| text.split("fn active_self_chain_value").next())
++        .expect("read parent_for_read body");
++    let active_chain = source
++        .split("fn active_self_chain_value")
++        .nth(1)
++        .and_then(|text| text.split("fn rebuild_hierarchy_validity").next())
++        .expect("read active self chain body");
++
++    assert!(
++        world_matrix.contains("let mut lineage = Vec::new();")
++            && world_matrix.contains("let mut seen = HashSet::new();")
++            && world_matrix.contains("loop {")
++            && world_matrix.contains("let Some(parent) = self.parent_for_read(current) else")
++            && world_matrix.contains("for current in lineage.iter().rev().copied()")
++            && world_matrix.contains(
++                "world = world * transform_to_mat4(self.local_transform_value(current));"
++            )
++            && world_matrix.contains("Some(world)")
++            && !world_matrix.contains("project_world_matrix_for_read_inner")
++            && !world_matrix.contains(".map(|parent|")
++            && !world_matrix.contains(".unwrap_or(Some(local_matrix))"),
++        "projected world-matrix reads must compose the parent lineage iteratively without a recursive ancestor walk"
++    );
++    assert!(
++        parent_for_read.contains("let Some(hierarchy) = self.get::<Hierarchy>(entity) else")
++            && parent_for_read.contains("let Some(parent) = hierarchy.parent else")
++            && parent_for_read.contains("if parent == entity || !self.contains_entity(parent)")
++            && parent_for_read.contains("Some(parent)")
++            && !parent_for_read.contains(".and_then(|hierarchy| hierarchy.parent)")
++            && !parent_for_read.contains(".filter("),
++        "parent_for_read must resolve valid parents through direct Option branches"
++    );
++    assert!(
++        active_chain.contains("let mut seen = HashSet::new();")
++            && active_chain.contains("loop {")
++            && active_chain
++                .contains("if !seen.insert(current) || !self.active_self_value(current)")
++            && active_chain.contains("let Some(parent) = self.parent_for_read(current) else")
++            && active_chain.contains("return false;")
++            && !active_chain.contains(".map(|parent|")
++            && !active_chain.contains(".unwrap_or(true)"),
++        "active-chain reads must iterate optional parent state without recursive ancestry calls"
++    );
++}
+ 
+ #[test]
+ fn derived_state_projected_value_reads_use_direct_branches() {
+@@ -264,7 +197,12 @@
+                 .next()
+         })
+         .expect("read project_node_for_read body");
+-    let propagate_world = source
++    let world_matrix = source
++        .split("pub(super) fn project_world_matrix_for_read")
++        .nth(1)
++        .and_then(|text| text.split("fn parent_for_read").next())
++        .expect("read project_world_matrix_for_read body");
++    let propagate_world = source
+         .split("fn propagate_world_matrix")
+         .nth(1)
+         .and_then(|text| text.split("fn hierarchy_traversal_index").next())
+@@ -314,7 +252,10 @@
+         "projected node reads must branch directly for name/kind and reuse local transform helper"
+     );
+     assert!(
+-        propagate_world.contains("let local = self.local_transform_value(entity);")
++        world_matrix.contains("let mut lineage = Vec::new();")
++            && world_matrix.contains("for current in lineage.iter().rev().copied()")
++            && world_matrix.contains("self.local_transform_value(current)")
++            && propagate_world.contains("let local = self.local_transform_value(entity);")
+             && refresh.contains("let Some(name) = self.get::<Name>(entity) else")
+             && refresh.contains("name: name.0.clone()")
+             && refresh.contains("transform: self.local_transform_value(entity)"),
+
+diff --git a/zircon_runtime/tests/runtime_scene_projected_read_performance.rs b/zircon_runtime/tests/runtime_scene_projected_read_performance.rs
+deleted file mode 100644
+--- a/zircon_runtime/tests/runtime_scene_projected_read_performance.rs
++++ /dev/null
+@@ -1,191 +0,0 @@
+-#![cfg(target_os = "windows")]
+-
+-use std::alloc::{GlobalAlloc, Layout, System};
+-use std::hint::black_box;
+-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+-use std::time::Instant;
+-
+-use zircon_runtime::core::math::{Transform, Vec3};
+-use zircon_runtime::scene::components::ActiveInHierarchy;
+-use zircon_runtime::scene::{NodeKind, NodeRecord, World};
+-
+-const CHAIN_DEPTHS: [usize; 3] = [1, 32, 1_024];
+-const SAMPLE_COUNT: usize = 31;
+-const QUERIES_PER_SAMPLE: usize = 256;
+-
+-struct CountingAllocator;
+-
+-#[global_allocator]
+-static COUNTING_ALLOCATOR: CountingAllocator = CountingAllocator;
+-static PROFILE_ACTIVE: AtomicBool = AtomicBool::new(false);
+-static ALLOCATION_COUNT: AtomicU64 = AtomicU64::new(0);
+-static ALLOCATED_BYTES: AtomicU64 = AtomicU64::new(0);
+-
+-unsafe impl GlobalAlloc for CountingAllocator {
+-    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+-        let pointer = unsafe { System.alloc(layout) };
+-        record_allocation(pointer, layout.size());
+-        pointer
+-    }
+-
+-    unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+-        let pointer = unsafe { System.alloc_zeroed(layout) };
+-        record_allocation(pointer, layout.size());
+-        pointer
+-    }
+-
+-    unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
+-        unsafe { System.dealloc(pointer, layout) };
+-    }
+-
+-    unsafe fn realloc(&self, pointer: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
+-        let replacement = unsafe { System.realloc(pointer, layout, new_size) };
+-        record_allocation(replacement, new_size);
+-        replacement
+-    }
+-}
+-
+-#[derive(Clone, Copy)]
+-struct ProfileSample {
+-    elapsed_ns: u64,
+-    allocation_count: u64,
+-    allocated_bytes: u64,
+-}
+-
+-#[test]
+-#[ignore = "managed Windows Release raw latency and allocation evidence"]
+-fn runtime1021_dirty_projected_reads_profile() {
+-    assert!(
+-        !cfg!(debug_assertions),
+-        "run this ignored profile with a Release build"
+-    );
+-
+-    for depth in CHAIN_DEPTHS {
+-        let (world, leaf) = dirty_chain_world(depth);
+-        let world_matrix_samples = collect_samples(|| {
+-            black_box(world.world_matrix(leaf));
+-        });
+-        report_samples("world_matrix", depth, &world_matrix_samples);
+-
+-        let active_samples = collect_samples(|| {
+-            black_box(world.active_in_hierarchy(leaf));
+-        });
+-        report_samples("active_in_hierarchy", depth, &active_samples);
+-    }
+-}
+-
+-fn dirty_chain_world(depth: usize) -> (World, u64) {
+-    let mut template_world = World::empty();
+-    let template_entity = template_world
+-        .spawn_node(NodeKind::Empty)
+-        .expect("profile fixture template should spawn");
+-    let template = template_world
+-        .node_record(template_entity)
+-        .expect("profile fixture template should have a node record");
+-
+-    let first_id = 10_000_u64;
+-    let mut records = Vec::with_capacity(depth);
+-    for index in 0..depth {
+-        let id = first_id + index as u64;
+-        let mut record: NodeRecord = template.clone();
+-        record.id = id;
+-        record.name = format!("Projected read profile {index}");
+-        record.parent = index.checked_sub(1).map(|parent| first_id + parent as u64);
+-        record.transform = Transform::from_translation(Vec3::new(1.0, 0.0, 0.0));
+-        record.active = true;
+-        records.push(record);
+-    }
+-    let leaf = records
+-        .last()
+-        .expect("profile hierarchy depth must be nonzero")
+-        .id;
+-
+-    let mut world = World::empty();
+-    world
+-        .insert_node_records(&records)
+-        .expect("profile hierarchy records should publish");
+-    assert!(world.get::<ActiveInHierarchy>(leaf).is_none());
+-    assert_eq!(world.active_in_hierarchy(leaf), Some(true));
+-    assert!(world.get::<ActiveInHierarchy>(leaf).is_none());
+-    (world, leaf)
+-}
+-
+-fn collect_samples(mut operation: impl FnMut()) -> Vec<ProfileSample> {
+-    (0..SAMPLE_COUNT)
+-        .map(|_| {
+-            begin_profile();
+-            let started_at = Instant::now();
+-            for _ in 0..QUERIES_PER_SAMPLE {
+-                operation();
+-            }
+-            let elapsed_ns = started_at.elapsed().as_nanos() as u64;
+-            let (allocation_count, allocated_bytes) = finish_profile();
+-
+-            ProfileSample {
+-                elapsed_ns,
+-                allocation_count,
+-                allocated_bytes,
+-            }
+-        })
+-        .collect()
+-}
+-
+-fn report_samples(query: &str, depth: usize, samples: &[ProfileSample]) {
+-    let elapsed_ns = samples
+-        .iter()
+-        .map(|sample| sample.elapsed_ns)
+-        .collect::<Vec<_>>();
+-    let latency_ns_per_query = elapsed_ns
+-        .iter()
+-        .map(|elapsed| elapsed / QUERIES_PER_SAMPLE as u64)
+-        .collect::<Vec<_>>();
+-    let allocation_counts = samples
+-        .iter()
+-        .map(|sample| sample.allocation_count)
+-        .collect::<Vec<_>>();
+-    let allocated_bytes = samples
+-        .iter()
+-        .map(|sample| sample.allocated_bytes)
+-        .collect::<Vec<_>>();
+-
+-    println!(
+-        "RUNTIME1021_DIRTY_PROJECTED_READ_PROFILE_V1 query={query} depth={depth} samples={SAMPLE_COUNT} queries_per_sample={QUERIES_PER_SAMPLE} latency_ns_per_query_p50={} latency_ns_per_query_p95={} latency_ns_per_query_p99={} elapsed_ns_raw={elapsed_ns:?} latency_ns_per_query_raw={latency_ns_per_query:?} allocation_count_raw={allocation_counts:?} allocated_bytes_raw={allocated_bytes:?}",
+-        nearest_rank_percentile(&latency_ns_per_query, 50),
+-        nearest_rank_percentile(&latency_ns_per_query, 95),
+-        nearest_rank_percentile(&latency_ns_per_query, 99),
+-    );
+-    assert!(
+-        samples
+-            .iter()
+-            .all(|sample| sample.allocation_count == 0 && sample.allocated_bytes == 0),
+-        "dirty {query} reads at depth {depth} must allocate no heap memory"
+-    );
+-}
+-
+-fn nearest_rank_percentile(samples: &[u64], percentile: usize) -> u64 {
+-    let mut ordered = samples.to_vec();
+-    ordered.sort_unstable();
+-    let rank = percentile.saturating_mul(ordered.len()).div_ceil(100);
+-    ordered[rank.saturating_sub(1)]
+-}
+-
+-fn begin_profile() {
+-    ALLOCATION_COUNT.store(0, Ordering::Relaxed);
+-    ALLOCATED_BYTES.store(0, Ordering::Relaxed);
+-    assert!(!PROFILE_ACTIVE.swap(true, Ordering::SeqCst));
+-}
+-
+-fn finish_profile() -> (u64, u64) {
+-    assert!(PROFILE_ACTIVE.swap(false, Ordering::SeqCst));
+-    (
+-        ALLOCATION_COUNT.load(Ordering::Relaxed),
+-        ALLOCATED_BYTES.load(Ordering::Relaxed),
+-    )
+-}
+-
+-fn record_allocation(pointer: *mut u8, size: usize) {
+-    if !pointer.is_null() && PROFILE_ACTIVE.load(Ordering::Relaxed) {
+-        ALLOCATION_COUNT.fetch_add(1, Ordering::Relaxed);
+-        ALLOCATED_BYTES.fetch_add(size as u64, Ordering::Relaxed);
+-    }
+-}
+
+diff --git a/docs/plans/optimize/zircon_runtime/62/2026-09-28-runtime1021-dirty-projected-read-streaming.md b/docs/plans/optimize/zircon_runtime/62/2026-09-28-runtime1021-dirty-projected-read-streaming.md
+deleted file mode 100644
+--- a/docs/plans/optimize/zircon_runtime/62/2026-09-28-runtime1021-dirty-projected-read-streaming.md
++++ /dev/null
+@@ -1,37 +0,0 @@
+----
+-doc_type: milestone-detail
+-related_code:
+-  - zircon_runtime/src/scene/world/derived_state.rs
+-  - zircon_runtime/src/scene/tests/derived_state/projected_reads.rs
+-  - zircon_runtime/tests/runtime_scene_projected_read_performance.rs
+-plan_sources:
+-  - docs/plans/optimize/zircon_runtime/62-runtime-scene-hierarchy-transform-propagation-reparent-activation-mobility-visibility-bounds-render-product-integration-review.md
+-  - docs/plans/optimize/zircon_runtime/62/2026-09-27-protected-derived-component-authority.md
+-tests:
+-  - zircon_runtime/src/scene/tests/derived_state/projected_reads.rs
+-  - zircon_runtime/tests/runtime_scene_projected_read_performance.rs
+----
+-
+-# Runtime1021: constant-space dirty projected reads
+-
+-Status: `candidate_static_review_complete_managed_validation_pending`.
+-
+-## Scope
+-
+-Dirty world-matrix projection now folds transforms while walking from the queried node toward its parent. Each local matrix is prepended to the accumulator, preserving root-to-child composition order without retaining a lineage vector. Dirty active projection uses the same parent walk shape. Both paths use Floyd slow/fast pointers to detect a multi-node cycle with constant auxiliary storage and fail closed (`None` for a world matrix and `false` for active-in-hierarchy).
+-
+-`parent_for_read` remains the edge authority. A self-parent, missing parent, or absent parent component ends the readable chain, preserving the existing behavior: world projection returns the current node's local transform and active projection returns that node's `ActiveSelf` value. A missing queried entity still returns no world matrix.
+-
+-The slice removes heap scratch from these dirty projections. It does not introduce a derived-value cache, change derived-component ownership, or modify authoring and mutation APIs. Each query still scans its ancestor chain. Floyd detection adds parent probes, so time remains O(depth) with a larger constant factor; auxiliary space is O(1). This does not satisfy Runtime62 RSH-G19's O(1) query requirement.
+-
+-## Behavior and performance gates
+-
+-`projected_reads.rs` now covers dirty reparent projection against post-flush values, a 128-node transform and active chain, self-parent and missing-parent termination, and fail-closed two-node cycles. These checks exercise observable results rather than source spelling.
+-
+-The Windows-only ignored integration profile uses a real test-binary `GlobalAlloc` wrapper around `System`. In Release it samples dirty `world_matrix` and `active_in_hierarchy` queries at depths 1, 32, and 1,024, with 31 batches of 256 calls per query and depth. It emits raw batch elapsed times, per-query latency samples, p50/p95/p99, allocation counts, and allocated bytes; it asserts zero allocations and zero allocated bytes for every measured batch. Setup, sample collection, and reporting occur outside the allocation window.
+-
+-No Release profile result or managed Rust test result is claimed here. The profile has not been run. Its depth set does not cover the Runtime62 100K/1M scale gate, and this slice defines no latency ceiling or before/after baseline. RSH-G19 and G24 remain open; zero-allocation evidence alone cannot close either gate.
+-
+-## Validation and source attribution
+-
+-`rustfmt --check` and scoped tracked-file `git diff --check` passed. Direct final-newline and trailing-whitespace checks passed for every source, documentation, manifest, and inverse artifact; the inverse also passes `git apply --check`. Cargo was not run. The Batch U asynchronous validation request remains admission-unknown and has no build or test result; it is not acceptance evidence for Runtime1021. The exact Batch U preimage SHA-256 values and this candidate's postimage hashes are sealed in `.codex/state/session-coordinator/async-validation-batches/2026-09-28-runtime1021-dirty-projected-read-source-manifest.json`; the reversible source/document inverse is `docs/plans/optimize/zircon_runtime/62/2026-09-28-runtime1021-dirty-projected-read-streaming.inverse.patch`. Preexisting changes in `derived_state.rs` were preserved. Coordinator lease and attribution receipts remain pending because coordinator status and tooling were outside this slice.
+diff --git a/docs/plans/astra/features/runtime/1021-runtime62-dirty-projected-read-streaming-completion-list.md b/docs/plans/astra/features/runtime/1021-runtime62-dirty-projected-read-streaming-completion-list.md
+deleted file mode 100644
+--- a/docs/plans/astra/features/runtime/1021-runtime62-dirty-projected-read-streaming-completion-list.md
++++ /dev/null
+@@ -1,32 +0,0 @@
+----
+-doc_type: milestone-detail
+-related_code:
+-  - zircon_runtime/src/scene/world/derived_state.rs
+-  - zircon_runtime/src/scene/tests/derived_state/projected_reads.rs
+-  - zircon_runtime/tests/runtime_scene_projected_read_performance.rs
+-plan_sources:
+-  - docs/plans/optimize/zircon_runtime/62/2026-09-28-runtime1021-dirty-projected-read-streaming.md
+-tests:
+-  - zircon_runtime/src/scene/tests/derived_state/projected_reads.rs
+-  - zircon_runtime/tests/runtime_scene_projected_read_performance.rs
+----
+-
+-# Runtime1021: Runtime62 dirty projected-read streaming
+-
+-Status: `candidate_static_review_complete_managed_validation_pending`.
+-
+-- [x] Replace projected-read implementation-shape assertions with dirty, flushed, deep-chain, self-parent, missing-parent, and corrupt-cycle behavior checks.
+-- [x] Stream dirty world-matrix composition from child to parent with local-matrix pre-multiplication and no lineage `Vec`.
+-- [x] Replace the dirty active-chain `HashSet` with constant-space slow/fast parent traversal; keep self-parent and missing-parent as terminating edges and fail closed on multi-node cycles.
+-- [x] Add an ignored Windows-only Release integration profile with a real global allocator counter, raw latency samples, p50/p95/p99, and per-batch allocation evidence at depths 1, 32, and 1,024.
+-- [x] Record limits explicitly: dirty queries remain O(depth), Floyd adds parent probes, no latency threshold or measured result is available, and RSH-G19 / G24 remain open.
+-- [x] Preserve the frozen Batch U preimages: `derived_state.rs` SHA-256 `8224b647d0c087fab10c3aaf9f64e8d92b870a8ccaab82cf02cdccda8db91089`; `projected_reads.rs` SHA-256 `7595effcc55799c7bd0dd589c329c87f11f3ca934e96475e383f964a36785ddb`; `work_counters.rs` SHA-256 `4a8fb637262a979f865b2bdec44befe9ce23f55c3d50bae816461b0a4beb8678`.
+-- [x] Seal candidate hashes in `.codex/state/session-coordinator/async-validation-batches/2026-09-28-runtime1021-dirty-projected-read-source-manifest.json` and the reversible source/document patch in `docs/plans/optimize/zircon_runtime/62/2026-09-28-runtime1021-dirty-projected-read-streaming.inverse.patch`; leave Batch U attribution and coordinator lease receipts pending.
+-- [x] Complete scoped Rustfmt, tracked-file diff checks, direct newline/trailing-whitespace checks for all touched artifacts, and inverse-patch applicability check.
+-- [ ] Obtain managed compilation and run `scene::tests::derived_state::projected_reads` acceptance for the changed unit-test owner.
+-- [ ] Run the ignored profile with the managed Windows Release validator and retain raw latency/allocation output; pending evidence is not a pass.
+-- [ ] Compare latency against an equivalent baseline before making a performance-improvement claim.
+-- [ ] Close RSH-G19 only after generation-aware or equivalent O(1) ordinary reads are implemented and accepted; this slice only targets heap scratch removal.
+-- [ ] Complete RSH-G24's 1K/100K/1M raw work, allocation, and latency samples with explicit ceilings.
+-
+-No Cargo command, coordinator status query, coordinator tooling action, commit, push, or external notification was performed for this slice.
+diff --git a/.codex/state/session-coordinator/async-validation-batches/2026-09-28-runtime1021-dirty-projected-read-source-manifest.json b/.codex/state/session-coordinator/async-validation-batches/2026-09-28-runtime1021-dirty-projected-read-source-manifest.json
+deleted file mode 100644
+--- a/.codex/state/session-coordinator/async-validation-batches/2026-09-28-runtime1021-dirty-projected-read-source-manifest.json
++++ /dev/null
+@@ -1,7 +0,0 @@
+-{
+-  "docs/plans/astra/features/runtime/1021-runtime62-dirty-projected-read-streaming-completion-list.md": "eaf63dea6a5c190a6b7607edcdc583cf58732b130140bb1716403ffdaaddeb07",
+-  "docs/plans/optimize/zircon_runtime/62/2026-09-28-runtime1021-dirty-projected-read-streaming.md": "0a885245cb224dce170ecf77abf4c47597b22008cd0075a16a800f745867181f",
+-  "zircon_runtime/src/scene/tests/derived_state/projected_reads.rs": "d6f753072a77986bf870ecc70a394c61dda93865fc752ae25fef67689c2f4ab8",
+-  "zircon_runtime/src/scene/world/derived_state.rs": "c66ef3bc0f40ab1e035723482522d069ea441dcd07aca5587b075af707175b64",
+-  "zircon_runtime/tests/runtime_scene_projected_read_performance.rs": "5ff8549cad60fdff58a31ebdd83b8bbf78c66a95da5ee1c2ba99c59723e5b2c2"
+-}

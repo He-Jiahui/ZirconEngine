@@ -9,6 +9,7 @@ use super::{
     route_steps::annotate_result_route_steps,
 };
 
+/// 延迟提示通知只在 ID/owner 仍匹配当前保留提示时应用，避免其他控件的旧计时器改变当前提示。
 pub(super) fn dispatch_tooltip_timer_input(
     surface: &mut UiSurface,
     tooltip: UiTooltipTimerInputEvent,
@@ -67,5 +68,5 @@ fn tooltip_timer_matches_retained_state(
 }
 
 #[cfg(test)]
-#[path = "tooltip_timer/stale_owned_event_tests.rs"]
+#[path = "tooltip_timer/tests/stale_owned_event_tests.rs"]
 mod stale_owned_event_tests;

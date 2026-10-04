@@ -160,6 +160,7 @@ fn render_frame_extract_collects_dynamic_particle_gpu_frames_by_camera_layers() 
     let gpu_frame = extract
         .particles
         .gpu_frame
+        .as_ref()
         .expect("visible particle gpu frame should be projected");
     assert_eq!(gpu_frame.alive_count, 5);
     assert_eq!(gpu_frame.spawned_total, 8);
@@ -273,13 +274,11 @@ fn render_frame_extract_collects_world_hud_health_bars_as_scene_particles() {
         1,
         "world HUD bar should emit one filled billboard from its health ratio"
     );
-    assert!(
-        extract
-            .particles
-            .sprites
-            .iter()
-            .all(|sprite| sprite.entity == visible && sprite.position.y == 3.5)
-    );
+    assert!(extract
+        .particles
+        .sprites
+        .iter()
+        .all(|sprite| sprite.entity == visible && sprite.position.y == 3.5));
     assert!(extract.visibility.dynamic_entities.contains(&visible));
     assert!(!extract.visibility.dynamic_entities.contains(&hidden));
 }

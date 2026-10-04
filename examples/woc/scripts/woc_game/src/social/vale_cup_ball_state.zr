@@ -187,6 +187,8 @@ pub settleBallInPocket(ball: ValeCupBall, side: int, groundY: float): void {
     }
 }
 
+// 仅在宿主已判定球员与球接触后更新球速；运动量来自该固定步，
+// 不负责球员权限、进球结算或世界碰撞体。
 pub applyDribbleNudge(ball: ValeCupBall, moverDx: float, moverDz: float): bool {
     var step = math.sqrt(moverDx * moverDx + moverDz * moverDz);
     var moverSpeed = step / contract.dt(true);
@@ -218,6 +220,8 @@ pub applyBodyTrap(
     return true;
 }
 
+// 比赛所有者先决定传球/射门及可用技能，再把方向和力度交给此
+// 运动叶子；无效方向保持原球状态，外层不可据此宣布成功施法。
 pub launchBall(
     ball: ValeCupBall, directionX: float, directionZ: float, power: float, loft: float
 ): void {

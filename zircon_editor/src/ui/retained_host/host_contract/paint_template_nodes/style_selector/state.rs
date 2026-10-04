@@ -1,6 +1,10 @@
+//! 把宿主节点的实时标志与按钮声明状态合并为画家共用状态，供各控件选择器统一判定视觉优先级。
+//! 焦点可见性在已投影的运行时输入中以模态标志为准；静态预览继续保留声明的焦点外观。
+
 use super::super::super::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::{ButtonInteractionState, UiPainterState};
 
+/// 供各控件在绘制前统一合成状态；同时接纳实时节点标志与声明的按钮交互态。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn resolved_state_for_node(
     node: &TemplatePaneNodeData,
 ) -> UiPainterState {
@@ -27,6 +31,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn resolve
     }
 }
 
+/// 使用已知的运行时焦点模态；未知模态的静态预览回退到声明焦点。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn focus_visible_for_node(
     node: &TemplatePaneNodeData,
 ) -> bool {
@@ -43,38 +48,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn focus_v
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn runtime_pointer_focus_remains_semantic_without_drawing_keyboard_focus() {
-        let node = TemplatePaneNodeData {
-            focused: true,
-            focus_visible: false,
-            focus_visible_known: true,
-            ..TemplatePaneNodeData::default()
-        };
-
-        let state = resolved_state_for_node(&node);
-
-        assert!(state.focused);
-        assert!(!state.focus_visible);
-    }
-
-    #[test]
-    fn runtime_keyboard_focus_and_static_preview_keep_visible_focus() {
-        let keyboard = TemplatePaneNodeData {
-            focused: true,
-            focus_visible: true,
-            focus_visible_known: true,
-            ..TemplatePaneNodeData::default()
-        };
-        let static_preview = TemplatePaneNodeData {
-            focus_visible: true,
-            ..TemplatePaneNodeData::default()
-        };
-
-        assert!(resolved_state_for_node(&keyboard).focus_visible);
-        assert!(resolved_state_for_node(&static_preview).focus_visible);
-    }
-}
+#[path = "tests/state.rs"]
+mod tests;

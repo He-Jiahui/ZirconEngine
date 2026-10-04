@@ -1,0 +1,243 @@
+[asset]
+kind = "view"
+id = "res://ui/windows/inventory_window.zui"
+version = 2
+display_name = "World of ClaudeCraft Inventory Window"
+
+[imports]
+widgets = []
+styles = ["res://ui/shell/shell_theme.zui", "res://ui/hud/hud_theme.zui"]
+resources = []
+
+[root]
+node = "inventory_root"
+
+[nodes.inventory_title]
+component = "Label"
+control_id = "InventoryTitle"
+classes = ["woc-screen-title"]
+props = { text = "Bags", overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.inventory_capacity]
+component = "Label"
+control_id = "InventoryCapacity"
+classes = ["woc-muted"]
+props = { text = "0 / 16", text_align = "right" }
+layout = { width = { min = 72.0, preferred = 92.0, max = 112.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.inventory_close]
+component = "Button"
+control_id = "InventoryClose"
+classes = ["woc-secondary-action"]
+props = { text = "Close" }
+layout = { width = { min = 64.0, preferred = 72.0, max = 88.0, stretch = "Fixed" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocInventory/Close", event = "Click", route = "woc.window.inventory.close" }]
+
+[nodes.inventory_header]
+component = "HorizontalBox"
+control_id = "InventoryHeader"
+layout = { container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+children = [{ node = "inventory_title" }, { node = "inventory_capacity" }, { node = "inventory_close" }]
+
+[nodes.inventory_backpack]
+component = "Button"
+control_id = "InventoryBackpack"
+classes = ["woc-action-slot"]
+props = { text = "Backpack", disabled = true }
+layout = { width = { min = 82.0, preferred = 96.0, max = 112.0, stretch = "Fixed" }, height = { min = 48.0, preferred = 48.0, max = 52.0, stretch = "Fixed" } }
+
+[nodes.inventory_bag_socket_0]
+component = "Button"
+control_id = "InventoryBagSocket0"
+classes = ["woc-action-slot"]
+props = { text = "Bag 1" }
+layout = { width = { min = 64.0, preferred = 72.0, max = 88.0, stretch = "Fixed" }, height = { min = 48.0, preferred = 48.0, max = 52.0, stretch = "Fixed" } }
+events = [{ id = "WocInventory/BagSocket/0", event = "Click", route = "woc.window.inventory.bag_socket.0" }]
+
+[nodes.inventory_bag_socket_1]
+component = "Button"
+control_id = "InventoryBagSocket1"
+classes = ["woc-action-slot"]
+props = { text = "Bag 2" }
+layout = { width = { min = 64.0, preferred = 72.0, max = 88.0, stretch = "Fixed" }, height = { min = 48.0, preferred = 48.0, max = 52.0, stretch = "Fixed" } }
+events = [{ id = "WocInventory/BagSocket/1", event = "Click", route = "woc.window.inventory.bag_socket.1" }]
+
+[nodes.inventory_bag_socket_2]
+component = "Button"
+control_id = "InventoryBagSocket2"
+classes = ["woc-action-slot"]
+props = { text = "Bag 3" }
+layout = { width = { min = 64.0, preferred = 72.0, max = 88.0, stretch = "Fixed" }, height = { min = 48.0, preferred = 48.0, max = 52.0, stretch = "Fixed" } }
+events = [{ id = "WocInventory/BagSocket/2", event = "Click", route = "woc.window.inventory.bag_socket.2" }]
+
+[nodes.inventory_bag_socket_3]
+component = "Button"
+control_id = "InventoryBagSocket3"
+classes = ["woc-action-slot"]
+props = { text = "Bag 4" }
+layout = { width = { min = 64.0, preferred = 72.0, max = 88.0, stretch = "Fixed" }, height = { min = 48.0, preferred = 48.0, max = 52.0, stretch = "Fixed" } }
+events = [{ id = "WocInventory/BagSocket/3", event = "Click", route = "woc.window.inventory.bag_socket.3" }]
+
+[nodes.inventory_bag_bar]
+component = "HorizontalBox"
+control_id = "InventoryBagBar"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 48.0, preferred = 48.0, max = 52.0, stretch = "Fixed" } }
+children = [{ node = "inventory_backpack" }, { node = "inventory_bag_socket_0" }, { node = "inventory_bag_socket_1" }, { node = "inventory_bag_socket_2" }, { node = "inventory_bag_socket_3" }]
+
+[nodes.inventory_filter_all]
+component = "ToggleButton"
+control_id = "InventoryFilterAll"
+classes = ["woc-class-button"]
+props = { text = "All", checked = true, selection_state = "exclusive" }
+layout = { width = { min = 52.0, preferred = 64.0, max = 88.0, stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocInventory/Filter/All", event = "Toggle", route = "woc.window.inventory.filter.all" }]
+
+[nodes.inventory_filter_weapon]
+component = "ToggleButton"
+control_id = "InventoryFilterWeapon"
+classes = ["woc-class-button"]
+props = { text = "Weapons", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 72.0, preferred = 82.0, max = 108.0, stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocInventory/Filter/Weapon", event = "Toggle", route = "woc.window.inventory.filter.weapon" }]
+
+[nodes.inventory_filter_armor]
+component = "ToggleButton"
+control_id = "InventoryFilterArmor"
+classes = ["woc-class-button"]
+props = { text = "Armor", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 60.0, preferred = 72.0, max = 96.0, stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocInventory/Filter/Armor", event = "Toggle", route = "woc.window.inventory.filter.armor" }]
+
+[nodes.inventory_filter_consumable]
+component = "ToggleButton"
+control_id = "InventoryFilterConsumable"
+classes = ["woc-class-button"]
+props = { text = "Consumables", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 88.0, preferred = 104.0, max = 132.0, stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocInventory/Filter/Consumable", event = "Toggle", route = "woc.window.inventory.filter.consumable" }]
+
+[nodes.inventory_filter_material]
+component = "ToggleButton"
+control_id = "InventoryFilterMaterial"
+classes = ["woc-class-button"]
+props = { text = "Materials", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 72.0, preferred = 88.0, max = 112.0, stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocInventory/Filter/Material", event = "Toggle", route = "woc.window.inventory.filter.material" }]
+
+[nodes.inventory_filter_quest]
+component = "ToggleButton"
+control_id = "InventoryFilterQuest"
+classes = ["woc-class-button"]
+props = { text = "Quest", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 58.0, preferred = 68.0, max = 92.0, stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocInventory/Filter/Quest", event = "Toggle", route = "woc.window.inventory.filter.quest" }]
+
+[nodes.inventory_categories]
+component = "HorizontalBox"
+control_id = "InventoryCategories"
+layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+children = [{ node = "inventory_filter_all" }, { node = "inventory_filter_weapon" }, { node = "inventory_filter_armor" }, { node = "inventory_filter_consumable" }, { node = "inventory_filter_material" }, { node = "inventory_filter_quest" }]
+
+[nodes.inventory_search]
+component = "TextField"
+control_id = "InventorySearch"
+classes = ["woc-input"]
+props = { value_text = "", label = "", placeholder = "Search bags", helper_text = "", variant = "outlined" }
+layout = { width = { min = 180.0, preferred = 240.0, max = 320.0, stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+events = [
+  { id = "WocInventory/SearchChanged", event = "Change", route = "woc.window.inventory.search" },
+  { id = "WocInventory/SearchSubmitted", event = "Submit", route = "woc.window.inventory.search" },
+]
+
+[nodes.inventory_sort_recent]
+component = "ToggleButton"
+control_id = "InventorySortRecent"
+classes = ["woc-class-button"]
+props = { text = "Recent", checked = true, selection_state = "exclusive" }
+layout = { width = { min = 66.0, preferred = 76.0, max = 96.0, stretch = "Fixed" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocInventory/Sort/Recent", event = "Toggle", route = "woc.window.inventory.sort.recent" }]
+
+[nodes.inventory_sort_quality]
+component = "ToggleButton"
+control_id = "InventorySortQuality"
+classes = ["woc-class-button"]
+props = { text = "Quality", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 68.0, preferred = 80.0, max = 100.0, stretch = "Fixed" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocInventory/Sort/Quality", event = "Toggle", route = "woc.window.inventory.sort.quality" }]
+
+[nodes.inventory_sort_name]
+component = "ToggleButton"
+control_id = "InventorySortName"
+classes = ["woc-class-button"]
+props = { text = "Name", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 60.0, preferred = 70.0, max = 88.0, stretch = "Fixed" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocInventory/Sort/Name", event = "Toggle", route = "woc.window.inventory.sort.name" }]
+
+[nodes.inventory_sorts]
+component = "HorizontalBox"
+control_id = "InventorySorts"
+layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { min = 202.0, preferred = 234.0, max = 284.0, stretch = "Fixed" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+children = [{ node = "inventory_sort_recent" }, { node = "inventory_sort_quality" }, { node = "inventory_sort_name" }]
+
+[nodes.inventory_filter_row]
+component = "HorizontalBox"
+control_id = "InventoryFilterRow"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+children = [{ node = "inventory_search" }, { node = "inventory_sorts" }]
+
+[nodes.inventory_grid_host]
+component = "GridGroup"
+control_id = "InventoryGridHost"
+layout = { container = { kind = "GridBox", columns = 6, rows = 4, column_gap = 6.0, row_gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 216.0, preferred = 312.0, max = 560.0, stretch = "Stretch" } }
+children = []
+
+[nodes.inventory_empty]
+component = "Label"
+control_id = "InventoryEmptyState"
+classes = ["woc-muted"]
+props = { text = "Your bags are empty.", visibility = "collapsed", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 64.0, max = 80.0, stretch = "Fixed" } }
+
+[nodes.inventory_no_match]
+component = "Label"
+control_id = "InventoryNoMatchState"
+classes = ["woc-muted"]
+props = { text = "No items match this filter.", visibility = "collapsed", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 64.0, max = 80.0, stretch = "Fixed" } }
+
+[nodes.inventory_grid]
+component = "ScrollBox"
+control_id = "InventoryGrid"
+classes = ["woc-panel-strong"]
+props = { scroll_axis = "vertical", scroll_x = false, scroll_y = true, show_scrollbars = true, clip_content = true }
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, padding = { left = 10.0, right = 10.0, top = 10.0, bottom = 10.0 }, width = { stretch = "Stretch" }, height = { min = 220.0, preferred = 340.0, max = 560.0, stretch = "Stretch" } }
+children = [{ node = "inventory_grid_host" }, { node = "inventory_empty" }, { node = "inventory_no_match" }]
+
+[nodes.inventory_money]
+component = "Label"
+control_id = "InventoryMoney"
+classes = ["woc-section-title"]
+props = { text = "0c", text_align = "right" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.inventory_hint]
+component = "Label"
+control_id = "InventoryHint"
+classes = ["woc-muted"]
+props = { text = "", overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.inventory_footer]
+component = "HorizontalBox"
+control_id = "InventoryFooter"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "inventory_hint" }, { node = "inventory_money" }]
+
+[nodes.inventory_root]
+component = "Container"
+control_id = "InventoryWindow"
+classes = ["woc-panel"]
+props = { visibility = "collapsed" }
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -16.0, y = 16.0 }, padding = { left = 14.0, right = 14.0, top = 12.0, bottom = 12.0 }, width = { min = 340.0, preferred = 560.0, max = 640.0, stretch = "Fixed" }, height = { min = 520.0, preferred = 690.0, max = 840.0, stretch = "Fixed" } }
+children = [{ node = "inventory_header" }, { node = "inventory_bag_bar" }, { node = "inventory_categories" }, { node = "inventory_filter_row" }, { node = "inventory_grid" }, { node = "inventory_footer" }]

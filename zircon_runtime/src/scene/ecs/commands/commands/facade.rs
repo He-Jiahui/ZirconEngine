@@ -6,8 +6,11 @@ use crate::scene::ecs::{
 };
 use crate::scene::{EntityId, SceneError, World};
 
+use super::checked_reparent::CheckedReparentCommand;
 use super::entity_commands::EntityCommands;
 
+/// 系统运行期间写入 CommandQueue 的临时入口；生成实体先返回 token，实际 ID 在 apply barrier 发布。
+/// 同一生产者的命令保留入队顺序，跨生产者顺序由已编译日程键决定。
 pub struct Commands<'world> {
     queue: &'world mut CommandQueue,
     key: DeferredSystemKey,
@@ -70,6 +73,13 @@ impl<'world> Commands<'world> {
         self.queue.push_structural(DespawnCommand {
             target: DeferredEntityRef::existing(entity),
         });
+    }
+
+    /// Queues a checked parent edit for existing entities at the next apply barrier.
+    /// Earlier structural commands finish before this edit; their effects are not rolled back
+    /// if the edit fails. Inspect `DeferredCommandReport` for the typed error.
+    pub fn set_parent_checked(&mut self, child: EntityId, parent: Option<EntityId>) {
+        self.queue.push(CheckedReparentCommand::new(child, parent));
     }
 
     pub fn insert<T>(&mut self, entity: EntityId, component: T)

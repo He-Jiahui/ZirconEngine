@@ -1153,7 +1153,7 @@ layout = { width = { min = 84.0, preferred = 84.0, max = 84.0, stretch = "Fixed"
 
 [nodes.prototype_mui_x_agent_chat]
 component = "MaterialMuiXAgentChatPrototype"
-layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 360.0, preferred = 360.0, max = 360.0, stretch = "Fixed" } }
 
 [nodes.prototype_mui_x_bar_chart]
 component = "MaterialMuiXBarChartPrototype"
@@ -1455,6 +1455,7 @@ children = [
 
 [nodes.material_lab_root]
 component = "VerticalBox"
+pixel_snapping = "disabled"
 classes = ["material-lab-shell"]
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = "$editor.density.gap.large" } }
 children = [

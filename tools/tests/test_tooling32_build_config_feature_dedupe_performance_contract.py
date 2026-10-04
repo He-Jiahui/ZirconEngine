@@ -1,9 +1,10 @@
+# 核对构建目标特性去重索引与输出顺序同步。
 from __future__ import annotations
 
 import unittest
 from pathlib import Path
 
-from tools.zircon_build_config import BuildConfig
+from tools.build.zircon_build_config import BuildConfig
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "zircon_build_config.py"

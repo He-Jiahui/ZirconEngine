@@ -18,7 +18,7 @@ from runtime_structure_audits.runtime_api_boundary import (  # noqa: E402
     runtime_api_boundary_audit,
 )
 
-
+# 调用运行时 API 边界审计器比对 v7 域清单，并用隔离副本验证退役门面会被拒绝。
 class RuntimeApiBoundaryTests(unittest.TestCase):
     def test_runtime_api_owner_inventory_matches_the_v7_domain_tree(self) -> None:
         expected_domains = (

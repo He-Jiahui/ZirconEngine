@@ -1,0 +1,6 @@
+# Preserve the existing exclusion of other untracked test files and fixtures.
+*
+!.gitignore
+# This regression test moved here from the tools root.
+!/cleanup-stale-targets.Tests.ps1
+!/test_separate_rust_tests.py

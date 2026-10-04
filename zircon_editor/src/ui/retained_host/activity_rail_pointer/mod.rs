@@ -18,8 +18,10 @@ mod rebuild_surface;
 mod register_handled_pointer_node;
 mod root_frame;
 mod strip_button_node_id;
+mod surface_delta;
 mod sync;
 
+pub(crate) use build_host_activity_rail_pointer_layout::build_host_activity_rail_pointer_geometry_layout;
 #[cfg(test)]
 pub(crate) use build_host_activity_rail_pointer_layout::build_host_activity_rail_pointer_layout;
 pub(crate) use build_host_activity_rail_pointer_layout::build_host_activity_rail_pointer_layout_with_workbench_layout_frames;

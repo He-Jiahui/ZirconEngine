@@ -68,7 +68,7 @@ LINE_BUDGETS = {
     FEATURE_EXTENSION_DISTRIBUTION_TEST: 180,
 }
 
-
+# 读取特性扩展测试归属文件，确认模式夹具留在专属模块且每个 owner 遵守行数预算。
 class PluginStructureAuditManifestSchemaFeatureExtensionOwnerBoundaryTests(
     unittest.TestCase
 ):

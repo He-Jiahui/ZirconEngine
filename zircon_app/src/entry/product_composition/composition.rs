@@ -1,7 +1,12 @@
 use std::sync::Arc;
 
+use std::error::Error;
+use std::time::Instant;
 use zircon_runtime::builtin::RuntimeModuleCompositionIdentity;
-use zircon_runtime::core::CoreHandle;
+use zircon_runtime::core::{CoreHandle, CoreRuntime, TaskGraphShutdownReport};
+
+use super::ownership::ProductOwnership;
+use crate::entry::product_shutdown::retained_owner::{ProductCompositionFailure, RetainedPacket};
 use zircon_runtime::plugin::native::{
     host::NativePluginHostHandle, NativePluginBehaviorCallReport,
     NativePluginRuntimeBehaviorDescriptor, NativePluginRuntimeCommandDispatchReport,
@@ -19,19 +24,107 @@ pub struct ProductComposition {
     resolved_config: ResolvedProductHostConfig,
     module_selection_report: EntryModuleSelectionReport,
     diagnostics: Vec<String>,
-    // Core must release its runtime graph before native dynamic-library handles are dropped.
-    core: CoreHandle,
-    plugin_bridge_lifecycle_state: Option<RuntimePluginBridgeLifecycleState>,
-    compiled_project_plugin_plan: Option<Arc<CompiledProjectPluginPlan>>,
-    native_plugin_host: Option<NativePluginHostHandle>,
+    // Moving this exact packet preserves Core and every generation pin together.
+    ownership: Option<ProductOwnership>,
 }
 
 impl ProductComposition {
+    fn ownership(&self) -> &ProductOwnership {
+        self.ownership
+            .as_ref()
+            .expect("a live composition retains its original packet")
+    }
+
+    pub(super) fn runtime(&self) -> &CoreRuntime {
+        &self.ownership().runtime
+    }
+
+    pub(in crate::entry) fn into_packet(mut self) -> RetainedPacket {
+        RetainedPacket::product(
+            self.ownership
+                .take()
+                .expect("composition ownership transfers once"),
+        )
+    }
+
+    /// Closes project watchers, original modules and the Core-owned graph under one cooperative
+    /// deadline. Failure retains the exact original packet for explicit retry. External handles
+    /// and arbitrary native workers are not certified by the returned graph report.
+    pub fn close_until(
+        self,
+        deadline: Instant,
+    ) -> Result<TaskGraphShutdownReport, ProductCompositionFailure> {
+        let mut packet = self.into_packet();
+        match packet.close_until(deadline) {
+            Ok(report) => Ok(report.expect("a product packet has an actual Core graph report")),
+            Err(error) => Err(ProductCompositionFailure::retained(Arc::new(error), packet)),
+        }
+    }
+
+    /// Preserves an ordinary startup/host primary while closing the same acquired generation.
+    /// Cleanup success leaves the original Result failed; incomplete cleanup remains retained.
+    pub fn fail_until(
+        self,
+        primary: impl Error + Send + Sync + 'static,
+        deadline: Instant,
+    ) -> ProductCompositionFailure {
+        ProductCompositionFailure::owned(Arc::new(primary), self.into_packet(), deadline)
+    }
+
+    pub(in crate::entry) fn fail_with_runtime_until(
+        mut self,
+        failure: crate::entry::runtime_library::RuntimeSessionCreateFailure,
+        deadline: Instant,
+    ) -> ProductCompositionFailure {
+        let product = self.ownership.take().expect("composition transfers once");
+        if let Some(owner) = failure.retained_owner() {
+            match owner.attach_product(product) {
+                Ok(()) => {
+                    let result = ProductCompositionFailure::from_owner(owner);
+                    let _ = result.retry_cleanup_until(deadline);
+                    return result;
+                }
+                Err(product) => {
+                    return ProductCompositionFailure::owned(
+                        Arc::new(failure),
+                        RetainedPacket::product(product),
+                        deadline,
+                    );
+                }
+            }
+        }
+        ProductCompositionFailure::owned(
+            Arc::new(failure),
+            RetainedPacket::product(product),
+            deadline,
+        )
+    }
+
+    pub(crate) fn retain_plugin_selection_outcomes(
+        &mut self,
+        outcomes: impl IntoIterator<
+            Item = zircon_runtime::core::framework::project::PluginSelectionResolution,
+        >,
+    ) {
+        for outcome in outcomes {
+            let already_retained = self
+                .module_selection_report
+                .plugin_selection_outcomes
+                .iter()
+                .any(|retained| retained == &outcome);
+            if !already_retained {
+                self.module_selection_report
+                    .plugin_selection_outcomes
+                    .push(outcome);
+            }
+        }
+    }
+
     pub(super) fn new(
         resolved_config: ResolvedProductHostConfig,
         module_selection_report: EntryModuleSelectionReport,
         diagnostics: Vec<String>,
-        core: CoreHandle,
+        runtime: CoreRuntime,
         plugin_bridge_lifecycle_state: Option<RuntimePluginBridgeLifecycleState>,
         compiled_project_plugin_plan: Option<Arc<CompiledProjectPluginPlan>>,
         native_plugin_host: Option<NativePluginHostHandle>,
@@ -40,10 +133,12 @@ impl ProductComposition {
             resolved_config,
             module_selection_report,
             diagnostics,
-            core,
-            plugin_bridge_lifecycle_state,
-            compiled_project_plugin_plan,
-            native_plugin_host,
+            ownership: Some(ProductOwnership::new(
+                runtime,
+                plugin_bridge_lifecycle_state,
+                compiled_project_plugin_plan,
+                native_plugin_host,
+            )),
         }
     }
 
@@ -53,8 +148,8 @@ impl ProductComposition {
     }
 
     /// Borrows the bootstrapped Core inside the App-owned host boundary.
-    pub(crate) const fn core(&self) -> &CoreHandle {
-        &self.core
+    pub(crate) fn core(&self) -> &CoreHandle {
+        &self.ownership().core
     }
 
     /// Returns the module selection receipt captured before Core bootstrap.
@@ -71,19 +166,19 @@ impl ProductComposition {
 
     /// Returns the compiled project plugin plan retained by this generation.
     pub fn compiled_project_plugin_plan(&self) -> Option<&CompiledProjectPluginPlan> {
-        self.compiled_project_plugin_plan.as_deref()
+        self.ownership().compiled_project_plugin_plan.as_deref()
     }
 
     /// Returns the retained runtime plugin bridge lifecycle state, when present.
-    pub const fn runtime_plugin_bridge_lifecycle_state(
+    pub fn runtime_plugin_bridge_lifecycle_state(
         &self,
     ) -> Option<&RuntimePluginBridgeLifecycleState> {
-        self.plugin_bridge_lifecycle_state.as_ref()
+        self.ownership().plugin_bridge_lifecycle_state.as_ref()
     }
 
     /// Returns the live native plugin host owner, when native discovery was requested.
-    pub const fn native_plugin_host(&self) -> Option<&NativePluginHostHandle> {
-        self.native_plugin_host.as_ref()
+    pub fn native_plugin_host(&self) -> Option<&NativePluginHostHandle> {
+        self.ownership().native_plugin_host.as_ref()
     }
 
     /// Returns non-fatal diagnostics collected while preparing this generation.
@@ -178,8 +273,29 @@ impl ProductComposition {
     }
 
     fn require_native_plugin_host(&self) -> Result<&NativePluginHostHandle, String> {
-        self.native_plugin_host.as_ref().ok_or_else(|| {
+        self.ownership().native_plugin_host.as_ref().ok_or_else(|| {
             "product composition does not own a native plugin host for this generation".to_owned()
         })
+    }
+}
+
+#[derive(Debug)]
+struct UnclosedProductComposition;
+impl std::fmt::Display for UnclosedProductComposition {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("product composition dropped without an explicit close receipt")
+    }
+}
+impl Error for UnclosedProductComposition {}
+
+impl Drop for ProductComposition {
+    fn drop(&mut self) {
+        if let Some(product) = self.ownership.take() {
+            // Retention only: Drop cannot call user cleanup, destroy a DLL or report Joined.
+            let _ = ProductCompositionFailure::retained(
+                Arc::new(UnclosedProductComposition),
+                RetainedPacket::product(product),
+            );
+        }
     }
 }

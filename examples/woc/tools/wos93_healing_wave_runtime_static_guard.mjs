@@ -51,8 +51,8 @@ requireText(
 const sourceGenerator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
 if (!/WOC_RETAINED_ABILITY_IDS\s*=\s*\[[\s\S]*?'lightning_bolt',[\s\S]*?'healing_wave'/.test(sourceGenerator) ||
-!sourceGenerator.includes("EXPECTED_ABILITY_COUNT = 79") ||
-!zrGenerator.includes("document.entries.length === 79")) {
+!sourceGenerator.includes("EXPECTED_ABILITY_COUNT = 117") ||
+!zrGenerator.includes("document.entries.length === 117")) {
   throw new Error("M4 Healing Wave projection scope is missing");
 }
 const m4 = JSON.parse(read("contracts", "m4_abilities.json"));

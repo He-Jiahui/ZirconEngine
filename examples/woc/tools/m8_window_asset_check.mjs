@@ -1,3 +1,4 @@
+// 核查手工编写的 ZUI 资源图中的背包、任务日志与设置窗口图。
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
@@ -48,6 +49,7 @@ function expect(condition, message) {
   if (!condition) fail(message);
 }
 
+// 图结构与路由检查前，先用 Python tomllib 解析手工编写的 ZUI TOML。
 function parseAssets() {
   const result = spawnSync("python", ["-c", pythonLoader, ...assetPaths], {
     cwd: repoRoot,
@@ -71,6 +73,7 @@ function expectRoutes(nodes, nodeId, expected) {
   );
 }
 
+// 遍历可达节点，拒绝悬空子节点、非法组件和意外事件路由。
 function validateGraph(name, document) {
   expect(document && typeof document === "object", `tomllib result misses ${name}`);
   expect(document.asset?.kind === "view", `${name} must be a view asset`);

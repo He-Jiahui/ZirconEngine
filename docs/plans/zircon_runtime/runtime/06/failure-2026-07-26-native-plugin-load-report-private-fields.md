@@ -11,7 +11,11 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/plugin/native_plugin_loader/discover/authority.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/discover/tests.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report/tests.rs
 tests:
+  - cargo +1.94.1 test -p zircon_runtime --lib native_plugin_load_report --locked --jobs 1 -- --test-threads=1
+  - cargo +1.94.1 test -p zircon_runtime --lib native_plugin_loader::discover --locked --jobs 1 -- --test-threads=1
   - cargo +1.94.1 test -p zircon_runtime --test runtime_text_multilingual_product_framebuffer --locked --jobs 1 -- --ignored --exact export_runtime_multilingual_text_product_framebuffer_png --test-threads=1
 ---
 
@@ -81,7 +85,20 @@ cargo +1.94.1 test -p zircon_runtime --test runtime_text_multilingual_product_fr
 
 ## 修复结果与回传
 
-Open state: `本会话受控前向修复已完成，等待 authority 原子补丁集成与受管编译/Text01 framebuffer 验收`; no dynamic pass is claimed.
+Open state: `source_repair_confirmed / managed_native_report_and_Text01_framebuffer_validation_pending`。上方旧租约和 delayed patch 描述仅是当时的待办；2026-08-24 owner hard cut 已落入现行源码，不再等待同一补丁集成。受管编译、focused native-plugin 测试和原始 Text01 产品 framebuffer 均无匹配现行源码的完整通过记录；no dynamic pass is claimed.
+
+### 2026-09-24 当前源码与原票据核对
+
+- `discover/authority.rs` 的快照投影调用 `NativePluginLoadReport::from_discovery`，I/O lane 与失败报告走 `diagnostic_only`，追加诊断走 `push_diagnostic`；现行 authority 不再直接构造 report 字面量或写入私有字段。四个字段保留在 report owner 私有作用域，回归源码校验字段封装、受控构造与投影失效。
+- 两份生产 owner 的 SHA-256 分别为 `d89ceb7e81bc42b34e31284530fa70ba839e8200888295f7806d93c856d88d67`（authority）与 `0c698a7bebb88303674605b48d46ce40b2a647f460b6a7626c4867b546569198`（report）；`discover/tests.rs` 为 `0bfbc7d0334dfad32fdc5220b351733ad1a43b70cdc8131fc75b546c1388a502`。最初 snapshot 3742 的 `native_plugin_load_report/tests.rs` 为 `1c552d2d351ae35e145a11e0dc3f51c692b1a611d5d708c4e41c0f8e42e38a4c`；复审后此文件的精确修复另记于下。生产源码与 discovery 测试均未编辑。
+- 原受管 focused 票据 `7f8e1c2c33244d9f862abe0f784bb29a` 于 2026-08-24 在 validation copy `closure_planning` 阶段因 `validation_copy_compile_time_resource_missing` 失败，缺少 `core/framework/state/machine.rs` 对 `tests/state/hook_index.rs` 的 compile-time resource；它没有跑到 Rust 编译或目标测试，且旧票据 authority 哈希与现行源码不同，不能复用为通过证据。
+- 现行 Text01 framebuffer 测试路径属于上行 owner，工作区有其他会话修改；不吸收入 Runtime06 scope。需待可用受管验证通道按上述 focused → 原始 GPU 命令重跑，保留测试实际执行/PNG 像素验收凭据，并完成独立 C/I/M 复审后才可回传/closeout。
+
+### 2026-09-24 独立审查 Moderate 修补
+
+- Snapshot `3742` 的初次只读独立审查为 `Critical=0 / Important=0 / Moderate=1`：report 测试的字段私有性守卫只拦 `pub(...)`，把 `discovered` 改为裸 `pub discovered:` 仍误判通过。该 finding 已按现行测试 owner 的精确范围修补，未更改生产 report 字段或 Text01 上行文件。
+- 修订后的测试限定 `NativePluginLoadReport` 声明，检查四个字段各有唯一且无可见性前缀的声明；对每个字段在内存里分别注入裸 `pub`、`pub(crate)` 和受限 `pub(in ...)`，断言 12 种公开变体均不能通过守卫。原守卫的裸 `pub` 假绿已在编辑前复现；Windows `rustfmt +1.94.1 --check --edition 2021`、scoped `git diff --check` 和同语义 Python 静态变体检查均通过。修订后 test owner SHA-256 为 `1439e85cdb816f85810eb988ac9fffbb0258f1533f2780a89bc0c7b847ee6384`。
+- Snapshot `3743` 修补后独立只读复审为 `Critical=0 / Important=0 / Moderate=0`；复审再次验证四字段 12/12 种公开变体均被拒绝，源码/文档哈希一致且四份源码格式检查通过。静态守卫、格式和审查通过不等于 Rust 测试运行；受管 Cargo 与 Text01 GPU PNG/像素断言仍待完成，failure 继续 `open`。
 
 Fixed state must replace the open text with:
 

@@ -1,8 +1,8 @@
 use std::{mem::size_of, ops::Range, sync::Arc};
 
 use crate::core::framework::render::{
-    RenderFrameExtract, SubsurfaceProfileData, ViewProjectionMatrixPair, ZR_SSS_MAX_PROFILES,
-    resolve_subsurface_profile_table,
+    resolve_subsurface_profile_table, RenderFrameExtract, SubsurfaceProfileData,
+    ViewProjectionMatrixPair, ZR_SSS_MAX_PROFILES,
 };
 use crate::core::math::UVec2;
 use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
@@ -49,6 +49,7 @@ pub(crate) const SSS_PARAMS_BUFFER_SIZE_BYTES: u64 = size_of::<GpuSubsurfacePara
 pub(crate) const SSS_PROFILE_TABLE_BUFFER_SIZE_BYTES: u64 =
     size_of::<[GpuSubsurfaceProfile; ZR_SSS_MAX_PROFILES]>() as u64;
 
+/// 将当前帧的抖动逆视投影、profile 数组和 dispatch 尺寸冻结为一次上传；两个 GPU buffer 通过同一 Arc payload 的切片共享字节，供 setup/scatter 阶段复用。
 pub(super) struct PreparedSubsurfaceFrame {
     dispatch: [u32; 3],
     payload: Arc<[u8]>,

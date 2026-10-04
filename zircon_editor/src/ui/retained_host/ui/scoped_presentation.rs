@@ -1,19 +1,25 @@
-use std::cell::Cell;
-use std::collections::{BTreeMap, BTreeSet};
+#[cfg(test)]
+use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 
 use crate::ui::asset_editor::UiAssetEditorPanePresentation;
+#[cfg(test)]
 use crate::ui::layouts::common::model_rc;
+#[cfg(test)]
+use crate::ui::retained_host::host_contract::FloatingWindowData;
 use crate::ui::retained_host::host_contract::{
-    build_pane_template_surface_frame, FloatingWindowData, FrameRect, HostWindowPresentationData,
-    PaneData, UiAssetEditorPaneData, UiHostWindow,
+    rebuild_pane_template_hit_artifacts, FrameRect, HostPanePresentationLocation,
+    HostPanePresentationPatch, HostWindowPresentationData, PaneData, UiAssetEditorPaneData,
+    UiHostWindow,
 };
+#[cfg(test)]
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::workbench::layout::MainPageId;
 
 use super::floating_pane_geometry::floating_pane_content_frame;
 use super::pane_data_conversion::to_host_contract_ui_asset_pane;
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub(crate) struct UiAssetPresentationPatch {
     pub(crate) matched_presentation: bool,
     pub(crate) damage: Vec<FrameRect>,
@@ -34,40 +40,195 @@ pub(crate) fn patch_ui_asset_presentation(
     instance_id: &str,
     ui_asset: &UiAssetEditorPaneData,
 ) -> UiAssetPresentationPatch {
-    let predicate_rows_visited = Cell::new(0usize);
-    ui.update_host_presentation_if(
-        |presentation| {
-            let probe = presentation_contains_ui_asset_pane(presentation, instance_id);
-            predicate_rows_visited.set(probe.floating_window_rows_visited);
-            probe.matches
-        },
-        |presentation| {
-            let native_presenters = native_presenter_ids(presentation, instance_id);
-            let pane_patch =
-                patch_ui_asset_pane_in_presentation(presentation, instance_id, ui_asset);
-            UiAssetPresentationPatch {
-                matched_presentation: true,
-                expected_native_presenter_ids: native_presenters.presenter_ids,
-                damage: pane_patch.damage,
-                floating_window_rows_visited: predicate_rows_visited.get()
-                    + native_presenters.floating_window_rows_visited
-                    + pane_patch.floating_window_rows_visited,
-                floating_window_rows_cloned: pane_patch.floating_window_rows_cloned,
-            }
-        },
-    )
-    .unwrap_or_else(|| UiAssetPresentationPatch {
-        floating_window_rows_visited: predicate_rows_visited.get(),
-        ..UiAssetPresentationPatch::default()
+    let mut fallback = UiAssetPresentationPatch::default();
+    let committed = ui.patch_host_presentation_panes(|presentation| {
+        let (transaction, result) =
+            prepare_ui_asset_presentation_transaction(presentation, instance_id, ui_asset);
+        fallback = result.clone();
+        (!transaction.is_empty()).then_some((transaction, result))
+    });
+    committed.unwrap_or_else(|| {
+        fallback.matched_presentation = false;
+        fallback
     })
 }
 
+fn prepare_ui_asset_presentation_transaction(
+    presentation: &HostWindowPresentationData,
+    instance_id: &str,
+    ui_asset: &UiAssetEditorPaneData,
+) -> (HostPanePresentationPatch, UiAssetPresentationPatch) {
+    let scene = &presentation.host_scene_data;
+    let mut transaction = HostPanePresentationPatch::new();
+    let mut result = UiAssetPresentationPatch::default();
+    for leaf in &scene.document_leaves {
+        push_ui_asset_pane_transaction(
+            &mut transaction,
+            HostPanePresentationLocation::DocumentLeaf {
+                surface_key: leaf.surface_key.clone(),
+            },
+            &leaf.pane,
+            &leaf.content_frame,
+            instance_id,
+            ui_asset,
+            &mut result.damage,
+        );
+    }
+
+    push_ui_asset_pane_transaction(
+        &mut transaction,
+        HostPanePresentationLocation::LeftDock,
+        &scene.left_dock.pane,
+        &scene.left_dock.content_frame,
+        instance_id,
+        ui_asset,
+        &mut result.damage,
+    );
+    push_ui_asset_pane_transaction(
+        &mut transaction,
+        HostPanePresentationLocation::DocumentDock,
+        &scene.document_dock.pane,
+        &scene.document_dock.content_frame,
+        instance_id,
+        ui_asset,
+        &mut result.damage,
+    );
+    push_ui_asset_pane_transaction(
+        &mut transaction,
+        HostPanePresentationLocation::RightDock,
+        &scene.right_dock.pane,
+        &scene.right_dock.content_frame,
+        instance_id,
+        ui_asset,
+        &mut result.damage,
+    );
+    push_ui_asset_pane_transaction(
+        &mut transaction,
+        HostPanePresentationLocation::BottomDock,
+        &scene.bottom_dock.pane,
+        &scene.bottom_dock.content_frame,
+        instance_id,
+        ui_asset,
+        &mut result.damage,
+    );
+
+    append_floating_ui_asset_transactions(
+        &mut transaction,
+        &mut result,
+        presentation,
+        instance_id,
+        ui_asset,
+    );
+    result.matched_presentation = !transaction.is_empty();
+    (transaction, result)
+}
+
+fn append_floating_ui_asset_transactions(
+    transaction: &mut HostPanePresentationPatch,
+    result: &mut UiAssetPresentationPatch,
+    presentation: &HostWindowPresentationData,
+    instance_id: &str,
+    ui_asset: &UiAssetEditorPaneData,
+) {
+    let floating = &presentation.host_scene_data.floating_layer;
+    result.floating_window_rows_visited += floating.floating_windows.row_count();
+    for (row, window) in floating.floating_windows.iter().enumerate() {
+        let content_frame = floating_pane_content_frame(
+            &window.frame,
+            &window.header_frame,
+            floating.header_height_px,
+        );
+        if push_ui_asset_pane_transaction(
+            transaction,
+            HostPanePresentationLocation::Floating {
+                row,
+                window_id: window.window_id.clone(),
+            },
+            &window.active_pane,
+            &content_frame,
+            instance_id,
+            ui_asset,
+            &mut result.damage,
+        ) {
+            result.floating_window_rows_cloned += 1;
+        }
+    }
+
+    let native = &presentation.native_floating_surface_data;
+    result.floating_window_rows_visited += native.floating_windows.row_count();
+    for (row, window) in native.floating_windows.iter().enumerate() {
+        let content_frame = floating_pane_content_frame(
+            &window.frame,
+            &window.header_frame,
+            native.header_height_px,
+        );
+        if push_ui_asset_pane_transaction(
+            transaction,
+            HostPanePresentationLocation::NativeFloating {
+                row,
+                window_id: window.window_id.clone(),
+            },
+            &window.active_pane,
+            &content_frame,
+            instance_id,
+            ui_asset,
+            &mut result.damage,
+        ) {
+            result.floating_window_rows_cloned += 1;
+            result
+                .expected_native_presenter_ids
+                .insert(MainPageId::new(window.window_id.as_str()));
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn push_ui_asset_pane_transaction(
+    transaction: &mut HostPanePresentationPatch,
+    location: HostPanePresentationLocation,
+    pane: &PaneData,
+    content_frame: &FrameRect,
+    instance_id: &str,
+    ui_asset: &UiAssetEditorPaneData,
+    damage: &mut Vec<FrameRect>,
+) -> bool {
+    let Some(next) = next_ui_asset_pane(pane, content_frame, instance_id, ui_asset) else {
+        return false;
+    };
+    transaction.push(location, pane, next);
+    damage.push(content_frame.clone());
+    true
+}
+
+fn next_ui_asset_pane(
+    pane: &PaneData,
+    content_frame: &FrameRect,
+    instance_id: &str,
+    ui_asset: &UiAssetEditorPaneData,
+) -> Option<PaneData> {
+    if !pane_is_ui_asset_instance(pane, instance_id) {
+        return None;
+    }
+    let mut next = pane.clone();
+    next.ui_asset = ui_asset.clone();
+    rebuild_pane_template_hit_artifacts(
+        &mut next,
+        zircon_runtime_interface::ui::layout::UiSize::new(
+            content_frame.width.max(1.0),
+            content_frame.height.max(1.0),
+        ),
+    );
+    Some(next)
+}
+
+#[cfg(test)]
 #[derive(Default)]
 struct NativePresenterLookup {
     presenter_ids: BTreeSet<MainPageId>,
     floating_window_rows_visited: usize,
 }
 
+#[cfg(test)]
 fn native_presenter_ids(
     presentation: &HostWindowPresentationData,
     instance_id: &str,
@@ -88,12 +249,14 @@ fn native_presenter_ids(
     lookup
 }
 
+#[cfg(test)]
 #[derive(Default)]
 struct PresentationProbe {
     matches: bool,
     floating_window_rows_visited: usize,
 }
 
+#[cfg(test)]
 fn presentation_contains_ui_asset_pane(
     presentation: &HostWindowPresentationData,
     instance_id: &str,
@@ -136,6 +299,7 @@ fn presentation_contains_ui_asset_pane(
     probe
 }
 
+#[cfg(test)]
 #[derive(Default)]
 struct PanePresentationPatch {
     damage: Vec<FrameRect>,
@@ -143,6 +307,7 @@ struct PanePresentationPatch {
     floating_window_rows_cloned: usize,
 }
 
+#[cfg(test)]
 fn patch_ui_asset_pane_in_presentation(
     presentation: &mut HostWindowPresentationData,
     instance_id: &str,
@@ -202,6 +367,7 @@ fn patch_ui_asset_pane_in_presentation(
     patch
 }
 
+#[cfg(test)]
 fn patch_dock_pane(
     pane: &mut PaneData,
     content_frame: &FrameRect,
@@ -214,6 +380,7 @@ fn patch_dock_pane(
     }
 }
 
+#[cfg(test)]
 fn patch_floating_windows(
     windows: &mut ModelRc<FloatingWindowData>,
     header_height_px: f32,
@@ -246,6 +413,7 @@ fn patch_floating_windows(
     }
 }
 
+#[cfg(test)]
 fn patch_ui_asset_pane(
     pane: &mut PaneData,
     content_frame: &FrameRect,
@@ -256,7 +424,7 @@ fn patch_ui_asset_pane(
         return false;
     }
     pane.ui_asset = ui_asset.clone();
-    pane.body_surface_frame = build_pane_template_surface_frame(
+    rebuild_pane_template_hit_artifacts(
         pane,
         zircon_runtime_interface::ui::layout::UiSize::new(
             content_frame.width.max(1.0),
@@ -271,265 +439,5 @@ fn pane_is_ui_asset_instance(pane: &PaneData, instance_id: &str) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::collections::BTreeSet;
-
-    use crate::ui::asset_editor::UiAssetEditorPanePresentation;
-    use crate::ui::layouts::common::model_rc;
-    use crate::ui::retained_host::host_contract::{
-        FloatingWindowData, FrameRect, HostWindowPresentationData, PaneData,
-    };
-    use crate::ui::workbench::layout::MainPageId;
-
-    use super::{
-        build_ui_asset_presentation_patch, native_presenter_ids,
-        patch_ui_asset_pane_in_presentation, presentation_contains_ui_asset_pane,
-        to_host_contract_ui_asset_pane,
-    };
-
-    #[test]
-    fn scoped_patch_builds_the_host_pane_once_before_patching_presentations() {
-        let presentation = UiAssetEditorPanePresentation {
-            asset_id: "res://ui/once.zui".into(),
-            ..UiAssetEditorPanePresentation::default()
-        };
-
-        let pane = build_ui_asset_presentation_patch(presentation, "ui-asset-editor#once");
-
-        assert_eq!(pane.header.asset_id, "res://ui/once.zui");
-    }
-
-    #[test]
-    fn ui_asset_patch_changes_only_the_matching_presented_pane() {
-        let mut presentation = HostWindowPresentationData::default();
-        presentation.host_scene_data.document_dock.pane = PaneData {
-            id: "ui-asset-editor#first".into(),
-            kind: "UiAssetEditor".into(),
-            ..PaneData::default()
-        };
-        presentation.host_scene_data.document_dock.content_frame = FrameRect {
-            x: 100.0,
-            y: 80.0,
-            width: 640.0,
-            height: 480.0,
-        };
-        presentation.host_scene_data.left_dock.pane = PaneData {
-            id: "ui-asset-editor#second".into(),
-            kind: "UiAssetEditor".into(),
-            ..PaneData::default()
-        };
-        presentation.host_scene_data.left_dock.content_frame = FrameRect {
-            x: 0.0,
-            y: 80.0,
-            width: 240.0,
-            height: 480.0,
-        };
-        let ui_asset = to_host_contract_ui_asset_pane(
-            UiAssetEditorPanePresentation {
-                asset_id: "res://ui/first.zui".into(),
-                ..UiAssetEditorPanePresentation::default()
-            },
-            "ui-asset-editor#first",
-        );
-
-        let patch = patch_ui_asset_pane_in_presentation(
-            &mut presentation,
-            "ui-asset-editor#first",
-            &ui_asset,
-        );
-
-        assert_eq!(patch.damage.len(), 1);
-        assert_eq!(
-            presentation
-                .host_scene_data
-                .document_dock
-                .pane
-                .ui_asset
-                .header
-                .asset_id,
-            "res://ui/first.zui"
-        );
-        assert!(presentation
-            .host_scene_data
-            .left_dock
-            .pane
-            .ui_asset
-            .header
-            .asset_id
-            .is_empty());
-    }
-
-    #[test]
-    fn floating_scoped_patch_uses_the_same_per_window_content_geometry_as_full_conversion() {
-        let mut presentation = HostWindowPresentationData::default();
-        presentation.host_scene_data.floating_layer.header_height_px = 28.0;
-        presentation.host_scene_data.floating_layer.floating_windows =
-            model_rc(vec![FloatingWindowData {
-                frame: FrameRect {
-                    x: 40.0,
-                    y: 60.0,
-                    width: 640.0,
-                    height: 480.0,
-                },
-                header_frame: FrameRect {
-                    x: 40.0,
-                    y: 60.0,
-                    width: 640.0,
-                    height: 46.0,
-                },
-                active_pane: PaneData {
-                    id: "ui-asset-editor#floating".into(),
-                    kind: "UiAssetEditor".into(),
-                    ..PaneData::default()
-                },
-                ..FloatingWindowData::default()
-            }]);
-        let ui_asset = to_host_contract_ui_asset_pane(
-            UiAssetEditorPanePresentation::default(),
-            "ui-asset-editor#floating",
-        );
-
-        let patch = patch_ui_asset_pane_in_presentation(
-            &mut presentation,
-            "ui-asset-editor#floating",
-            &ui_asset,
-        );
-
-        assert_eq!(
-            patch.damage,
-            vec![FrameRect {
-                x: 40.0,
-                y: 106.0,
-                width: 640.0,
-                height: 433.0,
-            }]
-        );
-        assert_eq!(patch.floating_window_rows_visited, 1);
-        assert_eq!(patch.floating_window_rows_cloned, 1);
-    }
-
-    #[test]
-    fn floating_patch_does_not_clone_rows_when_the_instance_is_absent() {
-        let mut presentation = HostWindowPresentationData::default();
-        presentation.host_scene_data.floating_layer.floating_windows = model_rc(vec![
-            FloatingWindowData::default(),
-            FloatingWindowData::default(),
-        ]);
-        let previous = presentation
-            .host_scene_data
-            .floating_layer
-            .floating_windows
-            .clone();
-        let ui_asset = to_host_contract_ui_asset_pane(
-            UiAssetEditorPanePresentation::default(),
-            "ui-asset-editor#absent",
-        );
-
-        let patch = patch_ui_asset_pane_in_presentation(
-            &mut presentation,
-            "ui-asset-editor#absent",
-            &ui_asset,
-        );
-
-        assert!(patch.damage.is_empty());
-        assert_eq!(patch.floating_window_rows_visited, 2);
-        assert_eq!(patch.floating_window_rows_cloned, 0);
-        assert!(previous
-            .shares_values_with(&presentation.host_scene_data.floating_layer.floating_windows));
-    }
-
-    #[test]
-    fn floating_patch_clones_only_the_matching_row_and_reuses_other_storage() {
-        let mut presentation = HostWindowPresentationData::default();
-        presentation.host_scene_data.floating_layer.floating_windows = model_rc(vec![
-            FloatingWindowData {
-                active_pane: PaneData {
-                    id: "ui-asset-editor#target".into(),
-                    kind: "UiAssetEditor".into(),
-                    ..PaneData::default()
-                },
-                ..FloatingWindowData::default()
-            },
-            FloatingWindowData {
-                active_pane: PaneData {
-                    id: "ui-asset-editor#other".into(),
-                    kind: "UiAssetEditor".into(),
-                    ..PaneData::default()
-                },
-                ..FloatingWindowData::default()
-            },
-        ]);
-        let previous = presentation
-            .host_scene_data
-            .floating_layer
-            .floating_windows
-            .clone();
-        let ui_asset = to_host_contract_ui_asset_pane(
-            UiAssetEditorPanePresentation::default(),
-            "ui-asset-editor#target",
-        );
-
-        let patch = patch_ui_asset_pane_in_presentation(
-            &mut presentation,
-            "ui-asset-editor#target",
-            &ui_asset,
-        );
-        let current = &presentation.host_scene_data.floating_layer.floating_windows;
-
-        assert_eq!(patch.floating_window_rows_visited, 2);
-        assert_eq!(patch.floating_window_rows_cloned, 1);
-        assert!(!previous.shares_row_with(current, 0));
-        assert!(previous.shares_row_with(current, 1));
-    }
-
-    #[test]
-    fn native_presenter_expectation_keeps_the_matching_window_identity() {
-        let mut presentation = HostWindowPresentationData::default();
-        presentation.native_floating_surface_data.floating_windows = model_rc(vec![
-            FloatingWindowData {
-                window_id: "window:target".into(),
-                active_pane: PaneData {
-                    id: "ui-asset-editor#target".into(),
-                    kind: "UiAssetEditor".into(),
-                    ..PaneData::default()
-                },
-                ..FloatingWindowData::default()
-            },
-            FloatingWindowData {
-                window_id: "window:other".into(),
-                active_pane: PaneData {
-                    id: "ui-asset-editor#other".into(),
-                    kind: "UiAssetEditor".into(),
-                    ..PaneData::default()
-                },
-                ..FloatingWindowData::default()
-            },
-        ]);
-
-        let lookup = native_presenter_ids(&presentation, "ui-asset-editor#target");
-
-        assert_eq!(
-            lookup.presenter_ids,
-            BTreeSet::from([MainPageId::new("window:target")])
-        );
-        assert_eq!(lookup.floating_window_rows_visited, 2);
-    }
-
-    #[test]
-    fn missing_presentation_probe_counts_all_rows_scanned_before_the_fallback() {
-        let mut presentation = HostWindowPresentationData::default();
-        presentation.host_scene_data.floating_layer.floating_windows = model_rc(vec![
-            FloatingWindowData::default(),
-            FloatingWindowData::default(),
-        ]);
-        presentation.native_floating_surface_data.floating_windows = model_rc(vec![
-            FloatingWindowData::default(),
-            FloatingWindowData::default(),
-        ]);
-
-        let probe = presentation_contains_ui_asset_pane(&presentation, "ui-asset-editor#missing");
-
-        assert!(!probe.matches);
-        assert_eq!(probe.floating_window_rows_visited, 4);
-    }
-}
+#[path = "tests/scoped_presentation.rs"]
+mod tests;

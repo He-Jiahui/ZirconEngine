@@ -102,7 +102,7 @@ impl BuildCommand {
 }
 ```
 
-`for_editor_runtime` 生成 `tools/zircon_build.py --targets editor,runtime --out ...` 的参数形状，并注入 profile、Cargo 路径和可选 jobs。不要把 `command_line()` 当作 shell 字符串执行；它返回参数数组，必须交给 `std::process::Command` 的 `.args()`。
+`for_editor_runtime` 生成 `tools/build/zircon_build.py --targets editor,runtime --out ...` 的参数形状，并注入 profile、Cargo 路径和可选 jobs。不要把 `command_line()` 当作 shell 字符串执行；它返回参数数组，必须交给 `std::process::Command` 的 `.args()`。
 
 ## 执行报告
 

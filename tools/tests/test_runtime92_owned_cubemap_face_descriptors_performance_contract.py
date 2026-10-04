@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 立方体贴图组装消费六面描述符，用 Option take 转移渲染描述；首面校验不在后续面重复。
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE = REPO_ROOT / "zircon_runtime/src/asset/assets/texture/cube_asset.rs"

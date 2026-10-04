@@ -1,3 +1,6 @@
+//! 运行期窗口状态按创建意图、最新请求、OS 观测和 Host 生效结果分别发布。
+//! 各自代数独立推进，调用方须根据回执来源判断状态，不能把请求当成已经生效。
+
 mod constraints;
 mod create_spec;
 mod effective;
@@ -49,4 +52,5 @@ pub use snapshot::{
 };
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

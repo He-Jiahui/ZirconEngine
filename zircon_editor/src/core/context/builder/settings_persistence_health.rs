@@ -1,14 +1,13 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use zircon_runtime::core::runtime::tasks::BoundedKeyedIoTerminal;
-
 use crate::core::notifications::{
     EditorNotificationService, NotificationId, NotificationSource, ToastNotification, ToastSeverity,
 };
 use crate::core::settings::{
     SettingsPersistenceDocumentHealth, SettingsPersistenceHealthSnapshot,
-    SettingsPersistenceHealthStatus, SettingsPersistenceHealthSubscriber, SettingsScope,
+    SettingsPersistenceHealthStatus, SettingsPersistenceHealthSubscriber,
+    SettingsPersistenceTerminal, SettingsScope,
 };
 
 const SETTINGS_PERSISTENCE_FAILURE_TOAST_LIFETIME: Duration = Duration::from_secs(12);
@@ -57,9 +56,11 @@ fn failure_message_key(document: SettingsPersistenceDocumentHealth) -> Option<&'
         SettingsPersistenceHealthStatus::PendingAdmission(_) => {
             Some("editor.notification.settings_persistence_pending.message")
         }
-        SettingsPersistenceHealthStatus::Terminal(BoundedKeyedIoTerminal::Failed(_)) => {
-            Some("editor.notification.settings_persistence_failed.message")
-        }
+        SettingsPersistenceHealthStatus::Terminal(
+            SettingsPersistenceTerminal::Failed(_)
+            | SettingsPersistenceTerminal::BlockedInvalid
+            | SettingsPersistenceTerminal::MissingWriteDisposition,
+        ) => Some("editor.notification.settings_persistence_failed.message"),
         _ => None,
     }
 }

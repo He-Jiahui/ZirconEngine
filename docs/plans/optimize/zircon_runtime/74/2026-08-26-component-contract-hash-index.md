@@ -33,10 +33,11 @@ priority, and document publication order remain unchanged.
 | Borrowed ID allocations | 0 | 0 |
 | Contract diagnostic traversal | document/source order | unchanged |
 
-The ignored release gate runs 17 alternating sample pairs and emits
-`RUNTIME74_COMPONENT_CONTRACT_HASH_INDEX_BENCH_V1`. Acceptance requires both index-build P95 and
-lookup P95 to be at most 60% of their ordered-index baselines. Exact Windows timings remain pending
-the coordinator run.
+The ignored Release probe now runs 101 alternating sample pairs and emits
+`RUNTIME74_COMPONENT_CONTRACT_HASH_INDEX_BENCH_V1` with raw nearest-rank P50/P95/P99 values and
+balanced 51/50 first-order counts. This hardens the evidence shape, but it still cannot establish
+product acceptance until the complete caller workload executes under managed Windows validation and
+both index-build and lookup P95 values are at most 60% of their ordered-index baselines.
 
 ## Acceptance
 
@@ -44,8 +45,8 @@ the coordinator run.
   control, node-to-control, control-target, and missing-node behavior.
 - `optimization_batch_20260826ak_component_contract_uses_borrowed_hash_indexes` requires all four
   borrowed hash-index boundaries and rejects ordered node membership.
-- `optimization_batch_20260826ak_component_contract_hash_index_p95` reports four P95 values and
-  enforces both 60% thresholds.
+- `optimization_batch_20260826ak_component_contract_hash_index_p95` reports paired P50/P95/P99
+  values and enforces both 60% thresholds.
 
 ## Remaining Parent-plan Work
 

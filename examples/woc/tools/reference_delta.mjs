@@ -1,3 +1,6 @@
+// 调用端：npm run generate:current-delta (tools/package.json)；职责：按稳定的命令、接口分面、对齐场景和资源身份比较新旧参考目录。
+// 两份清单必须分别声明预期提交，才会输出按稳定键比较的差异。
+
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -14,6 +17,7 @@ const outputPath = join(currentRoot, 'delta_from_7c10.json');
 
 main();
 
+// 仅在两份源清单都标明预期的新旧提交后比较目录。
 function main() {
   const historicalManifest = documentAt(historicalRoot, 'source_manifest.json');
   const currentManifest = documentAt(currentRoot, 'source_manifest.json');
@@ -83,6 +87,7 @@ function totalsDelta(historical, current) {
   }));
 }
 
+// 用稳定身份识别新增和删除，再用完整序列化条目识别内容变化。
 function catalogDelta(historical, current, key) {
   const before = indexBy(historical, key, 'historical catalog');
   const after = indexBy(current, key, 'current-head catalog');
@@ -104,6 +109,7 @@ function catalogDelta(historical, current, key) {
   return { historical_count: historical.length, current_head_count: current.length, added, removed, changed };
 }
 
+// 资源差异只报告路径和内容变化，不复制未变化的 GLB 条目。
 function assetDelta(historical, current) {
   const delta = catalogDelta(historical, current, (entry) => entry.path);
   return {

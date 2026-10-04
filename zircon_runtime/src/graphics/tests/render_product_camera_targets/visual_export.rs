@@ -6,13 +6,13 @@ use crate::core::framework::render::{
 use crate::core::math::{UVec2, Vec4};
 
 use super::assertions::{
-    RenderViewportRegion, dominant_blue_pixels_in_region, dominant_blue_pixels_in_rgba_region,
+    dominant_blue_pixels_in_region, dominant_blue_pixels_in_rgba_region,
     dominant_green_pixels_in_region, dominant_green_pixels_in_rgba_region,
-    dominant_red_pixels_in_region, dominant_red_pixels_in_rgba_region,
+    dominant_red_pixels_in_region, dominant_red_pixels_in_rgba_region, RenderViewportRegion,
 };
 use super::camera::{
-    CameraDescriptorTestExt, camera_target_product_profile, primary_surface_camera_descriptor,
-    texture_camera_descriptor,
+    camera_target_product_profile, primary_surface_camera_descriptor, texture_camera_descriptor,
+    CameraDescriptorTestExt,
 };
 use super::fixture::RenderFixture;
 use super::mesh::{overlay_mesh, sampled_fullscreen_mesh};

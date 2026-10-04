@@ -1,4 +1,5 @@
-$script:MachineManifestScript = Join-Path $PSScriptRoot "..\performance-machine-manifest.ps1"
+# 性能机器清单要求设备与负载类别显式声明可用性；本组用内存观测夹具验证缺类、空数据与序列化形态，未采集真实机器指标。
+$script:MachineManifestScript = Join-Path $PSScriptRoot "..\profiling\shared\performance-machine-manifest.ps1"
 
 if (Test-Path -LiteralPath $script:MachineManifestScript) {
     . $script:MachineManifestScript

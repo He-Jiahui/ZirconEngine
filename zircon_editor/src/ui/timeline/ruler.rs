@@ -3,6 +3,17 @@ use super::TimelineRange;
 const DEFAULT_MIN_LABEL_SPACING: f32 = 80.0;
 const MAX_RULER_TICKS: usize = 4_096;
 
+pub(super) fn ruler_tick_capacity(desired_intervals: f32) -> usize {
+    let interval_bound = if desired_intervals.is_finite() {
+        desired_intervals.ceil().clamp(1.0, MAX_RULER_TICKS as f32) as usize
+    } else if desired_intervals.is_sign_positive() {
+        MAX_RULER_TICKS
+    } else {
+        1
+    };
+    interval_bound.saturating_add(2)
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct TimelineRulerTick {
     pub time: f32,
@@ -33,7 +44,7 @@ pub fn build_timeline_ruler_ticks(
     let desired_intervals = (width / spacing).floor().max(1.0);
     let step = nice_step(range.duration() / desired_intervals);
     let mut time = (range.start / step).ceil() * step;
-    let mut ticks = Vec::new();
+    let mut ticks = Vec::with_capacity(ruler_tick_capacity(desired_intervals));
     while time <= range.end + step * 0.0001 && ticks.len() < MAX_RULER_TICKS {
         let clamped = range.clamp(time);
         if ticks

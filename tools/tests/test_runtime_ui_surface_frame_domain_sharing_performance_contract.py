@@ -2,14 +2,17 @@ import hashlib
 from pathlib import Path
 import unittest
 
-from tools.ui_surface_frame_domain_sharing_pressure import run
+from tools.analysis.performance.ui.ui_surface_frame_domain_sharing_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_SURFACE = ROOT / "zircon_runtime/src/ui/surface"
 INTERFACE_SURFACE = ROOT / "zircon_runtime_interface/src/ui/surface"
+RUNTIME_UI_INPUT_ROUTING = (
+    ROOT / "zircon_runtime/src/dynamic_api/session/runtime_ui/input_routing.rs"
+)
 EDITOR_TOOLBAR = ROOT / "zircon_editor/src/ui/retained_host/viewport_toolbar_pointer"
-PROFILE_COUNTER_EVIDENCE = ROOT / "tools/ui-profile-counter-evidence.ps1"
+PROFILE_COUNTER_EVIDENCE = ROOT / "tools/analysis/profiling/ui/ui-profile-counter-evidence.ps1"
 
 
 def read_surface_rebuild_source() -> str:
@@ -158,6 +161,7 @@ class RuntimeUiSurfaceFrameDomainSharingPerformanceContractTests(unittest.TestCa
         runtime_ui = (
             ROOT / "zircon_runtime/src/dynamic_api/session/runtime_ui.rs"
         ).read_text(encoding="utf-8")
+        input_routing = RUNTIME_UI_INPUT_ROUTING.read_text(encoding="utf-8")
 
         self.assertIn(
             "pub(crate) fn publish_surface_frame_after_rebuild(&mut self)",
@@ -184,9 +188,9 @@ class RuntimeUiSurfaceFrameDomainSharingPerformanceContractTests(unittest.TestCa
         self.assertIn("surface.render_frame_extract()", render_submission)
         self.assertNotIn("&surface.render_extract", render_submission)
         pointer_dispatch = function_source(
-            runtime_ui,
+            input_routing,
             "    fn dispatch_pointer_to_surface(",
-            "\n    pub(super) fn next_input_metadata(",
+            "\n    pub(super) fn refresh_input_owners_from_publication(",
         )
         self.assertNotIn("publish_surface_frame_after_rebuild", pointer_dispatch)
 
@@ -287,8 +291,8 @@ class RuntimeUiSurfaceFrameDomainSharingPerformanceContractTests(unittest.TestCa
         )
         binding = result["source_binding"]
         expected_paths = {
-            "tools/ui_surface_frame_domain_sharing_pressure.py",
-            "tools/ui-profile-counter-evidence.ps1",
+            "tools/analysis/performance/ui/ui_surface_frame_domain_sharing_pressure.py",
+            "tools/analysis/profiling/ui/ui-profile-counter-evidence.ps1",
             "zircon_runtime/src/ui/surface/arranged.rs",
             "zircon_runtime/src/ui/surface/surface/frame_publication.rs",
             "zircon_runtime_interface/src/ui/surface/focus_state.rs",

@@ -79,5 +79,5 @@ fn command_entry_from_table(
 }
 
 #[cfg(test)]
-#[path = "parse/direct_append_tests.rs"]
+#[path = "parse/tests/direct_append_tests.rs"]
 mod direct_append_tests;

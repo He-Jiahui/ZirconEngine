@@ -9,8 +9,6 @@ fixing_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-c
 origin_child_dir: docs/plans/zircon_runtime/text/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 related_code:
-  - tools/session_coordinator/git_finalize.py
-  - tools/session_coordinator/tests/test_git_finalize.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_git_finalize -v
   - python -m tools.session_coordinator --json milestone commit --session-id runtime-text01-fr-m2-closeout-20260714 --run-id b5fedc3825764dc79b3c785291a40910 --milestone M3 --summary "Complete Text01 FR-M3 composite font default package acceptance"
@@ -35,7 +33,7 @@ tests:
 被误判的 8 个路径为：
 
 - `docs/plans/zircon_runtime/text/01/2026-07-14-fr-m2-variable-font-product-acceptance.md`
-- `docs/zircon_runtime/graphics/text/font-variation-instances.md`
+- `docs/crates/zircon_runtime/graphics/text/font-variation-instances.md`
 - `zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_advances.rs`
 - `zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report.rs`
 - `zircon_runtime/src/graphics/scene/scene_renderer/ui/text/resolved_batches.rs`

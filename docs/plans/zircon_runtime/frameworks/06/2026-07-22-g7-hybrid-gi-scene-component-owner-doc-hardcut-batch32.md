@@ -1,17 +1,17 @@
 ---
 related_code:
-  - docs/assets-and-rendering/hybrid-gi-lumen-scene-representation.md
+  - docs/rendering/hybrid-gi-lumen-scene-representation.md
   - zircon_runtime/src/scene/components/scene/mod.rs
 implementation_files:
-  - docs/assets-and-rendering/hybrid-gi-lumen-scene-representation.md
+  - docs/rendering/hybrid-gi-lumen-scene-representation.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
   - docs/plans/zircon_runtime/frameworks/06/2026-07-19-scene-component-owner-hardcut.md
 tests:
-  - python -B tools/check_conventions.py --repo-root E:\Git\ZirconEngine --only docs
-  - git diff --check -- docs/assets-and-rendering/hybrid-gi-lumen-scene-representation.md docs/plans/zircon_runtime/frameworks/06/2026-07-22-g7-hybrid-gi-scene-component-owner-doc-hardcut-batch32.md
+  - python -B tools/audits/check_conventions.py --repo-root E:\Git\ZirconEngine --only docs
+  - git diff --check -- docs/rendering/hybrid-gi-lumen-scene-representation.md docs/plans/zircon_runtime/frameworks/06/2026-07-22-g7-hybrid-gi-scene-component-owner-doc-hardcut-batch32.md
 ---
 
 # Frameworks06 G7 Hybrid GI Scene Component Owner 文档硬切 Batch 32
@@ -19,7 +19,7 @@ tests:
 Plan: docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
 Milestone: M1
 Status: accepted
-Files: ["docs/assets-and-rendering/hybrid-gi-lumen-scene-representation.md"]
+Files: ["docs/rendering/hybrid-gi-lumen-scene-representation.md"]
 Date: 2026-07-22
 Session: `frameworks06-g7-hybrid-gi-scene-owner-batch32-20260722`
 

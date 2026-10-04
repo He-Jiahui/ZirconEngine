@@ -8,6 +8,7 @@ appendMoneyPart(current: string, hasPart: bool, amount: int, suffix: string): st
     return hasPart ? current + " " + fragment : fragment;
 }
 
+/// 保持模拟文本契约中的单位片段和整数铜币语义；展示层若要本地化，须另行处理返回文本。
 pub formatMoney(copper: int): string {
     // Preserve JavaScript Math.floor and remainder order, including the source's
     // odd negative-input output. Gameplay currency producers are integral.

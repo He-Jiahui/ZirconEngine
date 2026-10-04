@@ -25,12 +25,12 @@ related_code:
   - zircon_hub/src/tauri_app/view_model/ui_text.rs
   - tools/mvp/MvpStagingRelease.psm1
   - tools/mvp/Stage-MvpProducts.ps1
-  - tools/install-codex-session-hook.ps1
-  - tools/install-session-coordinator-task.ps1
-  - tools/install-session-tray-startup.ps1
-  - tools/zircon_export/native_signing.py
-  - tools/zircon_export/plugin_build_signature.py
-  - tools/zircon_export/plugin_build_package.py
+  - tools/setup/install-codex-session-hook.ps1
+  - tools/setup/install-session-coordinator-task.ps1
+  - tools/setup/install-session-tray-startup.ps1
+  - tools/export/native_signing.py
+  - tools/export/plugin_build_signature.py
+  - tools/export/plugin_build_package.py
   - zircon_runtime/src/core/framework/net/download.rs
   - zircon_runtime/src/core/framework/net/transport.rs
   - zircon_plugins/net/features/content_download/runtime/src/manager/attempts.rs
@@ -44,9 +44,9 @@ related_code:
   - zircon_runtime/src/asset/migration/transaction/recovery.rs
 tests:
   - tools/tests/mvp-staging-release.Tests.ps1
-  - tools/zircon_export/tests/test_native_dynamic_build_signing.py
-  - tools/zircon_export/tests/test_native_dynamic_signing_file_reads.py
-  - tools/zircon_export/tests/test_native_dynamic_signing_notarization.py
+  - tools/export/tests/test_native_dynamic_build_signing.py
+  - tools/export/tests/test_native_dynamic_signing_file_reads.py
+  - tools/export/tests/test_native_dynamic_signing_notarization.py
   - zircon_hub/tests/project_source_engine_contract.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
@@ -85,7 +85,7 @@ source_recheck_required: true
 
 ZirconEngine 目前没有产品级发行系统。仓库没有Git tag，三个GitHub Actions workflow只响应branch push/pull request或手工MVP验证；唯一`upload-artifact`上传的是保留7天的Windows MVP evidence，而非可安装、可验证、可推广的引擎分发体。根workspace、plugin workspace、Hub Rust crate、Hub前端和Session Tray虽然都写着`0.1.0`，但没有单一version authority、发行候选、channel、不可变release manifest、artifact repository、promotion ledger或支持周期。
 
-Hub的`SourceEngineInstall`只保存source/output path和最近8次本地构建历史，ID是规范化路径的64位FNV。`validate_source_engine()`只确认目录、`Cargo.toml`中的`zircon_runtime` member与`tools/zircon_build.py`存在；build进程退出0后便把可变output目录显示为staged payload。Tauri虽然配置了NSIS bundle，却没有updater plugin、endpoint、公钥或updater artifact。UI文案甚至明确说明remote update service在local v1未启用。因此“Hub可构建源码”不能算“Hub能安装、更新或回滚可信引擎版本”。
+Hub的`SourceEngineInstall`只保存source/output path和最近8次本地构建历史，ID是规范化路径的64位FNV。`validate_source_engine()`只确认目录、`Cargo.toml`中的`zircon_runtime` member与`tools/build/zircon_build.py`存在；build进程退出0后便把可变output目录显示为staged payload。Tauri虽然配置了NSIS bundle，却没有updater plugin、endpoint、公钥或updater artifact。UI文案甚至明确说明remote update service在local v1未启用。因此“Hub可构建源码”不能算“Hub能安装、更新或回滚可信引擎版本”。
 
 当前也没有产品信任链。NativeDynamic export可以按配置执行外部sign/notarize命令，并记录执行前后SHA-256；这是可保留的执行审计。随后生成的`<plugin>.sig`却只是包含文件hash和signing audit字段的TOML旁车，且全仓没有runtime/editor/Hub消费者验证它。产品host、Hub NSIS、engine distribution、release manifest、SBOM/provenance均没有独立可验证签名、证书/时间戳身份、key rotation或revocation。文件内容hash只能证明字节一致，不能证明发布者授权。
 

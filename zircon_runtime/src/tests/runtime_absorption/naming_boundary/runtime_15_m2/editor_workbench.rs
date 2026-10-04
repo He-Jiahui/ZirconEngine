@@ -1,3 +1,4 @@
+//! 命名策略扫描需区分生产源码、测试夹具和已分类的历史名称。以结果断言检查当前接口或源码快照对应的边界。
 use std::path::Path;
 
 use super::super::support::{assert_contains_all, read_repo_text};
@@ -102,7 +103,7 @@ fn runtime_15_editor_workbench_archived_fixtures_use_current_names() {
     );
     let paint_test_frame = read_repo_text(
         manifest_root,
-        "zircon_editor/src/ui/retained_host/host_contract/paint_workbench/test_frame.rs",
+        "zircon_editor/src/ui/retained_host/host_contract/paint_workbench/tests/test_frame.rs",
     );
     let table_cells = read_repo_text(
         manifest_root,
@@ -110,7 +111,7 @@ fn runtime_15_editor_workbench_archived_fixtures_use_current_names() {
     );
     let table_cell_tests = read_repo_text(
         manifest_root,
-        "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows_tests/cells.rs",
+        "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows_tests/tests/cells.rs",
     );
     let extension_feedback = read_repo_text(
         manifest_root,

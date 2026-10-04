@@ -2,14 +2,13 @@
 related_code:
   - zircon_plugins/first_party_editor_catalog/src/catalog.rs
   - zircon_runtime/src/plugin
-  - zircon_plugins/*/plugin.toml
 implementation_files:
   - zircon_plugins/first_party_editor_catalog/src
   - zircon_runtime/src/plugin
 plan_sources:
   - user: 2026-09-09 插件公开接口完整参考
 tests:
-  - zircon_plugins/first_party_editor_catalog/src/tests.rs
+  - zircon_plugins/first_party_editor_catalog/src/tests/cases.rs
   - zircon_app/tests/plugin_group_error_contract.rs
 doc_type: mechanism-guide
 title: 插件 Catalog 清单审计指南
@@ -97,5 +96,5 @@ Unreal Plugin Browser、Godot extension registry、Bevy feature graph 和 Fyrox 
 ## 参考
 
 - [first_party catalog](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_plugins/first_party_editor_catalog/src/catalog.rs)
-- [catalog tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_plugins/first_party_editor_catalog/src/tests.rs)
+- [catalog tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_plugins/first_party_editor_catalog/src/tests/cases.rs)
 - [runtime plugin model](https://github.com/He-Jiahui/ZirconEngine/tree/main/zircon_runtime/src/plugin)

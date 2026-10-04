@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/feedback/workbench_tooltip.zui"
+version = 2
+display_name = "Workbench Tooltip"
+
+[imports]
+widgets = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
+
+[components.WorkbenchTooltip]
+root = "root"
+default_classes = ["workbench-tooltip", "workbench-primitive"]
+
+[nodes.root]
+component = "Tooltip"
+control_id = "WorkbenchTooltipRoot"
+classes = ["workbench-tooltip"]
+props = { text = "Tooltip", label_text = "This is a tooltip", icon = "info", show_icon = false, surface_variant = "workbench-tooltip", background_color = "$editor.popup", border_color = "$editor.separator.soft", focus_border_color = "$editor.focus.ring", foreground_color = "$editor.text.primary", text_color = "$editor.text.primary", label_color = "$editor.text.secondary", icon_color = "$editor.accent", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.panel", layout_icon_size = 18.0, layout_content_offset_y = 56.0, arrow_size = "$editor.density.gap.medium", arrow_color = "$editor.popup" }
+layout = { width = { min = 110.0, preferred = 110.0, max = 120.0, stretch = "Fixed" }, height = { min = 78.0, preferred = 78.0, max = 78.0, stretch = "Fixed" } }

@@ -560,6 +560,7 @@ fn voxel_radiance_for_world_position(world_position: vec3<f32>) -> RadianceLooku
         return invalid_radiance_lookup();
     }
 
+    // BUG: [CR-HYBRID-GI-0002] 最细覆盖层缺少有效单元时，只查该层而未尝试重叠的粗层。
     let cell_count = min(
         hybrid_gi_scene_words[SCENE_TRACE_INPUT_WORD_OFFSET + 3u],
         VOXEL_CELL_CAPACITY,
@@ -601,6 +602,7 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
     let tile_coord = global_id.xy;
     let tile_index = tile_coord.y * SCENE_HZB_TILE_GRID_EXTENT + tile_coord.x;
+    // 消费 scene-depth handoff 的四字 tile 包；后续 trace 包每 tile 固定八字。
     let scene_tile_offset =
         SCENE_HZB_TILE_WORD_OFFSET + tile_index * SCENE_HZB_TILE_WORD_COUNT;
     let depth_q24 = hybrid_gi_scene_words[scene_tile_offset];

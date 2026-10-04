@@ -1,26 +1,22 @@
 use crate::core::CoreHandle;
-use crate::scene::World;
+use crate::scene::LevelSystem;
 
 /// Runtime-authoritative inputs available while one operation executes.
 pub struct RuntimeOperationContext<'a> {
     core: &'a CoreHandle,
-    world: &'a mut World,
+    level: &'a LevelSystem,
 }
 
 impl<'a> RuntimeOperationContext<'a> {
-    pub fn new(core: &'a CoreHandle, world: &'a mut World) -> Self {
-        Self { core, world }
+    pub fn new(core: &'a CoreHandle, level: &'a LevelSystem) -> Self {
+        Self { core, level }
     }
 
     pub fn core(&self) -> &CoreHandle {
         self.core
     }
 
-    pub fn world(&self) -> &World {
-        self.world
-    }
-
-    pub fn world_mut(&mut self) -> &mut World {
-        self.world
+    pub fn level(&self) -> &LevelSystem {
+        self.level
     }
 }

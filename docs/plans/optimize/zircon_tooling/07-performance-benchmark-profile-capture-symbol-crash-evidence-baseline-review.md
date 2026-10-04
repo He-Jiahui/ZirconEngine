@@ -2,19 +2,19 @@
 related_code:
   - Cargo.toml
   - .github/workflows/profile-feature-contract.yml
-  - tools/check-runtime-profile-features.ps1
-  - tools/runtime-profile-feature-presets.py
-  - tools/ui-profile-capture.ps1
-  - tools/profile-capture-manifest.ps1
-  - tools/profile-capture-paths.ps1
-  - tools/ui-profile-latency-evidence.ps1
-  - tools/ui-profile-native-resize.ps1
-  - tools/ui-profile-process-evidence.ps1
-  - tools/ui-profile-scale-fixture.ps1
-  - tools/zircon_profile_shader_pbr_viewer.ps1
-  - tools/zircon_summarize_shader_pbr_profile.py
-  - tools/write_zircon_shader_pbr_build_provenance.ps1
-  - tools/shader-pbr-profile-contract.ps1
+  - tools/analysis/validation/check-runtime-profile-features.ps1
+  - tools/analysis/validation/runtime-profile-feature-presets.py
+  - tools/analysis/profiling/ui/ui-profile-capture.ps1
+  - tools/analysis/profiling/shared/profile-capture-manifest.ps1
+  - tools/analysis/profiling/shared/profile-capture-paths.ps1
+  - tools/analysis/profiling/ui/ui-profile-latency-evidence.ps1
+  - tools/analysis/profiling/ui/ui-profile-native-resize.ps1
+  - tools/analysis/profiling/ui/ui-profile-process-evidence.ps1
+  - tools/analysis/profiling/ui/ui-profile-scale-fixture.ps1
+  - tools/analysis/profiling/shader_pbr/zircon_profile_shader_pbr_viewer.ps1
+  - tools/analysis/profiling/shader_pbr/zircon_summarize_shader_pbr_profile.py
+  - tools/analysis/profiling/shader_pbr/write_zircon_shader_pbr_build_provenance.ps1
+  - tools/analysis/profiling/shader_pbr/shader-pbr-profile-contract.ps1
   - tools/mvp/Capture-RenderExtractBaseline.ps1
   - tools/mvp/Build-RenderExtractProfilingInputs.ps1
   - tools/mvp/Write-RenderExtractBaselineReport.ps1

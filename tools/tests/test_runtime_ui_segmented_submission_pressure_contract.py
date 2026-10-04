@@ -1,8 +1,8 @@
 import unittest
 
-from tools.runtime_ui_segmented_submission_pressure import run
+from tools.analysis.performance.runtime.runtime_ui_segmented_submission_pressure import run
 
-
+# 用分段提交模型分别计数克隆发布和渲染器工作，验证多个变化表面的扩展规律及非法输入拒绝。
 class RuntimeUiSegmentedSubmissionPressureContract(unittest.TestCase):
     def test_model_separates_clone_publication_and_renderer_work(self) -> None:
         result = run()

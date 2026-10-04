@@ -1,4 +1,5 @@
 //! Editor-side plugin authoring helpers.
+//! 声明可镜像运行时包清单，再叠加编辑器能力、资源根目录与运行时事件消费者。
 
 pub use zircon_editor;
 pub use zircon_runtime;
@@ -10,11 +11,12 @@ use zircon_editor::{
     EditorPlugin, EditorPluginDescriptor, EditorPluginRegistrationReport,
 };
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
-use zircon_runtime::plugin::{PluginMaturity, PluginPackageManifest};
+use zircon_runtime::plugin::{PluginMaturity, PluginPackageManifest, PluginPackageRole};
 
 use crate::{PluginManifestBuilder, RuntimePluginDeclaration};
 
 #[derive(Clone, Debug)]
+/// 汇总编辑器插件 descriptor、包清单投影、事件消费者注册结果与诊断。
 pub struct EditorPluginDeclaration {
     descriptor: EditorPluginDescriptor,
     base_manifest: PluginPackageManifest,
@@ -24,6 +26,7 @@ pub struct EditorPluginDeclaration {
 }
 
 impl EditorPluginDeclaration {
+    /// 创建面向 EditorHost 的声明，并以该目标初始化包清单。
     pub fn new(
         package_id: impl Into<String>,
         display_name: impl Into<String>,
@@ -51,6 +54,11 @@ impl EditorPluginDeclaration {
         let category = category.into();
         self.descriptor = self.descriptor.with_category(category.clone());
         self.base_manifest = self.base_manifest.with_category(category);
+        self
+    }
+
+    pub fn with_package_role(mut self, package_role: PluginPackageRole) -> Self {
+        self.base_manifest = self.base_manifest.with_package_role(package_role);
         self
     }
 
@@ -82,6 +90,7 @@ impl EditorPluginDeclaration {
         self
     }
 
+    /// 注册成功时同步更新 descriptor；重复或冲突注册会保留为诊断。
     pub fn with_runtime_event_consumer_registration(
         mut self,
         registration: EditorRuntimeEventConsumerRegistration,
@@ -101,6 +110,9 @@ impl EditorPluginDeclaration {
         self
     }
 
+    /// 用运行时包清单替换当前底稿，再并入编辑器能力及此前配置的资源根目录。
+    ///
+    /// 能力与根目录按值去重，包 ID 同步为运行时清单中的 ID。
     pub fn mirrors_runtime_manifest(mut self, runtime_manifest: PluginPackageManifest) -> Self {
         let editor_capabilities = self.descriptor.capabilities.clone();
         let asset_roots = std::mem::take(&mut self.base_manifest.asset_roots);
@@ -135,6 +147,7 @@ impl EditorPluginDeclaration {
         self.base_manifest.clone()
     }
 
+    /// 将编辑器 descriptor 附加到底稿，形成供编辑器插件注册报告使用的包清单。
     pub fn package_manifest(&self) -> PluginPackageManifest {
         self.descriptor.attach_to_package(self.base_manifest())
     }
@@ -151,6 +164,7 @@ impl EditorPluginDeclaration {
         self.runtime_event_consumers.clone()
     }
 
+    /// 由插件 trait 实现生成注册报告，并把声明阶段收集的诊断追加到报告。
     pub fn registration_report(&self, plugin: &dyn EditorPlugin) -> EditorPluginRegistrationReport {
         let mut report = EditorPluginRegistrationReport::from_plugin(plugin, self.base_manifest());
         report.diagnostics.extend(self.diagnostics.iter().cloned());
@@ -175,6 +189,9 @@ fn merge_unique(values: &mut Vec<String>, incoming: Vec<String>) {
 }
 
 #[macro_export]
+/// 按静态声明生成编辑器插件类型、descriptor/清单访问器与 EditorPlugin 实现。
+///
+/// 可选 runtime 清单、能力、事件消费者和资源根会在默认构造时累积到同一声明中。
 macro_rules! authoring_plugin {
     (
         $(#[$meta:meta])*
@@ -227,6 +244,7 @@ macro_rules! authoring_plugin {
         }
 
         impl ::std::default::Default for $plugin_ty {
+            // 先创建编辑器声明，再镜像运行时清单，最后依次并入能力、消费者和资源根。
             fn default() -> Self {
                 let declaration = $crate::editor::EditorPluginDeclaration::new(
                     $package_id,
@@ -288,162 +306,5 @@ macro_rules! authoring_plugin {
 pub use crate::authoring_plugin;
 
 #[cfg(test)]
-mod tests {
-    use zircon_editor::core::editor_extension::{
-        EditorExtensionRegistry, EditorExtensionRegistryError,
-    };
-    use zircon_runtime::builtin::RuntimePluginId;
-    use zircon_runtime::plugin::PluginModuleKind;
-
-    use super::*;
-
-    const TEST_CAPABILITY: &str = "editor.extension.sdk_test";
-    const TEST_CAPABILITIES: &[&str] = &[TEST_CAPABILITY];
-
-    fn register_test_extensions(
-        registry: &mut EditorExtensionRegistry,
-    ) -> Result<(), EditorExtensionRegistryError> {
-        registry.register_view(zircon_editor::core::editor_extension::ViewDescriptor::new(
-            "sdk_test.window",
-            "SDK Test",
-            "SDK",
-        ))
-    }
-
-    crate::editor::authoring_plugin! {
-        pub struct MacroEditorPlugin {
-            package_id: "sdk_test",
-            display_name: "SDK Test",
-            crate_name: "zircon_plugin_sdk_test_editor",
-            category: "sdk",
-            description: "SDK test editor plugin.",
-            maturity: PluginMaturity::Experimental,
-            capabilities: TEST_CAPABILITIES,
-            asset_root: "assets",
-            content_root: "examples",
-            register_extensions: register_test_extensions,
-        }
-    }
-
-    fn mirrored_runtime_declaration() -> RuntimePluginDeclaration {
-        RuntimePluginDeclaration::new(
-            "sdk_mirror",
-            "SDK Mirror",
-            RuntimePluginId::Animation,
-            "zircon_plugin_sdk_mirror_runtime",
-        )
-        .with_target_modes([
-            RuntimeTargetMode::ClientRuntime,
-            RuntimeTargetMode::EditorHost,
-        ])
-        .with_capability("runtime.plugin.sdk_mirror")
-    }
-
-    crate::editor::authoring_plugin! {
-        pub struct MirroredMacroEditorPlugin {
-            package_id: "sdk_mirror",
-            display_name: "SDK Mirror Editor",
-            crate_name: "zircon_plugin_sdk_mirror_editor",
-            category: "sdk",
-            description: "SDK mirrored editor plugin.",
-            maturity: PluginMaturity::Experimental,
-            mirrors_runtime: mirrored_runtime_declaration(),
-            capabilities: TEST_CAPABILITIES,
-            asset_root: "editor_assets",
-            content_root: "editor_examples",
-            register_extensions: register_test_extensions,
-        }
-    }
-
-    #[test]
-    fn authoring_plugin_macro_generates_descriptor_manifest_and_registration() {
-        let plugin = MacroEditorPlugin::new();
-        let manifest = plugin.package_manifest();
-        let report = plugin.registration_report();
-
-        assert_eq!(plugin.descriptor().package_id, "sdk_test");
-        assert_eq!(manifest.category, "sdk");
-        assert_eq!(manifest.capabilities, ["editor.extension.sdk_test"]);
-        assert_eq!(manifest.asset_roots, ["assets"]);
-        assert_eq!(manifest.content_roots, ["examples"]);
-        assert!(manifest.modules.iter().any(|module| {
-            module.kind == PluginModuleKind::Editor
-                && module.crate_name == "zircon_plugin_sdk_test_editor"
-        }));
-        assert!(report.is_success(), "{:?}", report.diagnostics);
-        assert!(report
-            .extensions
-            .views()
-            .iter()
-            .any(|view| view.id() == "sdk_test.window"));
-    }
-
-    #[test]
-    fn editor_declaration_mirrors_runtime_manifest_and_keeps_editor_capabilities() {
-        let plugin = MirroredMacroEditorPlugin::new();
-        let declaration = plugin.declaration();
-        let manifest = plugin.package_manifest();
-
-        assert_eq!(
-            declaration.mirrored_runtime_package_id(),
-            Some("sdk_mirror")
-        );
-        assert_eq!(manifest.id, "sdk_mirror");
-        assert!(manifest
-            .capabilities
-            .contains(&"runtime.plugin.sdk_mirror".to_string()));
-        assert!(manifest
-            .capabilities
-            .contains(&"editor.extension.sdk_test".to_string()));
-        assert!(manifest.asset_roots.contains(&"editor_assets".to_string()));
-        assert!(manifest
-            .content_roots
-            .contains(&"editor_examples".to_string()));
-
-        let runtime_module = manifest
-            .modules
-            .iter()
-            .find(|module| module.kind == PluginModuleKind::Runtime)
-            .expect("mirrored package keeps runtime module");
-        assert_eq!(
-            runtime_module.capabilities,
-            ["runtime.plugin.sdk_mirror".to_string()]
-        );
-        let editor_module = manifest
-            .modules
-            .iter()
-            .find(|module| module.kind == PluginModuleKind::Editor)
-            .expect("mirrored package adds editor module");
-        assert_eq!(
-            editor_module.capabilities,
-            ["editor.extension.sdk_test".to_string()]
-        );
-    }
-
-    #[test]
-    fn mirrored_manifest_moves_editor_root_buffers() {
-        let declaration = EditorPluginDeclaration::new(
-            "editor.mirror",
-            "Editor Mirror",
-            "zircon_plugin_editor_mirror",
-        )
-        .with_asset_root("editor_assets")
-        .with_content_root("editor_content");
-        let asset_root_buffer = declaration.base_manifest.asset_roots.as_ptr();
-        let content_root_buffer = declaration.base_manifest.content_roots.as_ptr();
-
-        let mirrored = declaration
-            .mirrors_runtime_manifest(PluginPackageManifest::new("runtime.mirror", "Runtime"));
-
-        assert_eq!(
-            mirrored.base_manifest.asset_roots.as_ptr(),
-            asset_root_buffer
-        );
-        assert_eq!(
-            mirrored.base_manifest.content_roots.as_ptr(),
-            content_root_buffer
-        );
-        assert_eq!(mirrored.base_manifest.asset_roots, ["editor_assets"]);
-        assert_eq!(mirrored.base_manifest.content_roots, ["editor_content"]);
-    }
-}
+#[path = "tests/editor.rs"]
+mod tests;

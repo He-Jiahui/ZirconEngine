@@ -15,7 +15,6 @@ related_code:
   - zircon_runtime/src/asset/project/meta.rs
   - zircon_runtime/src/asset/registry/asset_registry_index.rs
   - zircon_runtime_interface/src/resource/resource_record.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/source_generation.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
 tests:
   - cargo test -p zircon_runtime project_catalog_input_generation --locked

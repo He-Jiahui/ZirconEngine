@@ -74,13 +74,13 @@ pub(in crate::ui::retained_host::ui) fn projected_settings_window_data(
         .filter_map(project_resolved_value)
         .collect::<BTreeMap<_, _>>();
     let mut entries = table_array(attributes, SETTINGS)
+        .filter(|values| builtin_setting_matches_category(values, selected_category))
         .filter_map(|values| project_builtin_setting(values, &setting_values))
-        .filter(|entry| entry_matches_category(entry, selected_category))
         .collect::<Vec<_>>();
     entries.extend(
         table_array(attributes, PLUGIN_PAGES)
-            .filter_map(project_plugin_page)
-            .filter(|entry| entry_matches_category(entry, selected_category)),
+            .filter(|values| plugin_page_matches_category(values, selected_category))
+            .filter_map(project_plugin_page),
     );
 
     let requested_editor_key = attributes
@@ -233,14 +233,62 @@ fn project_resolved_value(
     ))
 }
 
-fn entry_matches_category(
-    entry: &host_contract::TemplateSettingEntryData,
+fn builtin_setting_matches_category(
+    values: &toml::map::Map<String, Value>,
+    category: Option<&host_contract::TemplateSettingsCategoryData>,
+) -> bool {
+    category_path_matches(
+        BUILTIN_DOMAIN,
+        borrowed_string_value(values, "category_key_path"),
+        category,
+    )
+}
+
+fn plugin_page_matches_category(
+    values: &toml::map::Map<String, Value>,
     category: Option<&host_contract::TemplateSettingsCategoryData>,
 ) -> bool {
     let Some(category) = category else {
         return true;
     };
-    entry.domain == category.domain && entry.category_key_path == category.key_path
+    let Some(bundle_id) = category.domain.strip_prefix("plugin:") else {
+        return false;
+    };
+    bundle_id == borrowed_string_value(values, "localization_bundle_id")
+        && category_path_matches(
+            category.domain.as_ref(),
+            borrowed_string_value(values, "category_key_path"),
+            Some(category),
+        )
+}
+
+fn category_path_matches(
+    domain: &str,
+    entry_path: &str,
+    category: Option<&host_contract::TemplateSettingsCategoryData>,
+) -> bool {
+    let Some(category) = category else {
+        return true;
+    };
+    if domain != category.domain.as_str() {
+        return false;
+    }
+    if entry_path == category.key_path {
+        return true;
+    }
+    domain == BUILTIN_DOMAIN
+        && entry_path
+            .strip_prefix(category.key_path.as_str())
+            .is_some_and(|suffix| suffix.starts_with('/'))
+}
+
+fn borrowed_string_value<'a>(values: &'a toml::map::Map<String, Value>, key: &str) -> &'a str {
+    values
+        .get(key)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or_default()
 }
 
 fn category_id(domain: &str, key_path: &str) -> String {
@@ -248,108 +296,5 @@ fn category_id(domain: &str, key_path: &str) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn non_settings_components_do_not_project_settings_payloads() {
-        let projected = projected_settings_window_data("button", &BTreeMap::new());
-
-        assert!(projected.categories.is_empty());
-        assert!(projected.entries.is_empty());
-    }
-
-    #[test]
-    fn editor_kind_key_and_open_row_share_the_selected_category_projection() {
-        let attributes = toml::from_str::<BTreeMap<String, Value>>(
-            r#"
-selected_category_id = "builtin|settings.category.editor"
-settings_editor_open_key = "editor.language.locale"
-settings_editor_open_kind = "enum"
-settings_persistence_health_generation = 9
-settings_persistence_retry_scope = "project"
-settings_persistence_status_text = "Project settings: Save failed"
-categories = [
-    { domain = "builtin", key_path = "settings.category.editor", label = "Editor" },
-]
-settings = [
-    { key = "editor.language.locale", label = "Language", category_key_path = "settings.category.editor", schema = "enum", options = ["en", "zh-CN"] },
-]
-settings_values = [
-    { key = "editor.language.locale", value_text = "zh-CN", value_source = "user" },
-]
-"#,
-        )
-        .expect("settings projection fixture should parse");
-
-        let projected = projected_settings_window_data("settings-window", &attributes);
-
-        assert_eq!(projected.editor_open_key, "editor.language.locale");
-        assert_eq!(projected.editor_open_kind, "enum");
-        assert_eq!(projected.editor_open_row, 0);
-        assert_eq!(projected.persistence_health_generation, 9);
-        assert_eq!(projected.persistence_retry_scope, "project");
-        assert_eq!(
-            projected.persistence_status_text,
-            "Project settings: Save failed"
-        );
-        assert_eq!(projected.entries.len(), 1);
-        assert_eq!(projected.entries[0].value_text.as_str(), "zh-CN");
-        assert_eq!(
-            projected.entries[0]
-                .options
-                .iter()
-                .map(|option| option.as_str())
-                .collect::<Vec<_>>(),
-            ["en", "zh-CN"]
-        );
-    }
-
-    #[test]
-    fn color_channels_remain_structured_through_projection() {
-        let attributes = toml::from_str::<BTreeMap<String, Value>>(
-            r##"
-selected_category_id = "builtin|settings.category.editor"
-settings_editor_open_key = "editor.appearance.tint"
-settings_editor_open_kind = "color"
-categories = [
-    { domain = "builtin", key_path = "settings.category.editor", label = "Editor" },
-]
-settings = [
-    { key = "editor.appearance.tint", label = "Tint", category_key_path = "settings.category.editor", schema = "color" },
-]
-settings_values = [
-    { key = "editor.appearance.tint", value_text = "#0C22384E", color_channels = [12, 34, 56, 78], value_source = "user" },
-]
-"##,
-        )
-        .expect("color settings projection fixture should parse");
-
-        let projected = projected_settings_window_data("settings-window", &attributes);
-
-        assert_eq!(projected.editor_open_kind, "color");
-        assert_eq!(projected.editor_open_row, 0);
-        assert_eq!(projected.entries[0].value_text.as_str(), "#0C22384E");
-        assert_eq!(projected.entries[0].color_rgba, [12, 34, 56, 78]);
-    }
-
-    #[test]
-    fn editor_state_closes_when_kind_does_not_match_the_projected_schema() {
-        let attributes = toml::from_str::<BTreeMap<String, Value>>(
-            r#"
-settings_editor_open_key = "editor.language.locale"
-settings_editor_open_kind = "color"
-settings = [
-    { key = "editor.language.locale", label = "Language", schema = "enum", options = ["en"] },
-]
-"#,
-        )
-        .expect("mismatched settings editor fixture should parse");
-
-        let projected = projected_settings_window_data("settings-window", &attributes);
-
-        assert!(projected.editor_open_key.is_empty());
-        assert!(projected.editor_open_kind.is_empty());
-        assert_eq!(projected.editor_open_row, -1);
-    }
-}
+#[path = "tests/cases.rs"]
+mod tests;

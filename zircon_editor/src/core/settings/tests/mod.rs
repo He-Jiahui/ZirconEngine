@@ -20,8 +20,9 @@ use super::defaults::{
 };
 use super::io::SettingsDocument;
 use super::{
-    settings_registry_with_defaults, EditorCommandPaletteMru, SettingDefinition, SettingSchema,
-    SettingValue, SettingsAuthority, SettingsChangeCursor, SettingsChangeLogPolicy,
+    settings_registry_with_defaults, EditorCommandPaletteMru, SettingColorChannel,
+    SettingDefinition, SettingNumericStepDirection, SettingSchema, SettingValue,
+    SettingValueSource, SettingsAuthority, SettingsChangeCursor, SettingsChangeLogPolicy,
     SettingsChangeSubscriber, SettingsDecodeError, SettingsError, SettingsKey, SettingsLoad,
     SettingsMutationCoordinator, SettingsMutationDisposition, SettingsMutationError, SettingsPaths,
     SettingsPersistenceHealthSnapshot, SettingsPersistenceHealthStatus,

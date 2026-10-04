@@ -1,7 +1,9 @@
 use crate::ui::retained_host::primitives::SharedString;
+use zircon_runtime_interface::ui::dispatch::UiPointerId;
 
 #[derive(Clone, Default, PartialEq)]
 pub(crate) struct HostDragStateData {
+    pub capture_pointer_id: Option<UiPointerId>,
     pub active_drag_target_group: SharedString,
     pub drag_active: bool,
     pub drag_tab_id: SharedString,

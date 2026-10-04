@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对着色器预热的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 const STATUS: &str =
@@ -24,10 +25,10 @@ const EXPLICIT_REGISTRY_STATUS: &str = "render_plan08_build_tool_explicit_regist
 
 #[test]
 fn runtime_15_shader_prewarm_acceptance_contract_is_wired() {
-    let acceptance_helper = read_repo("tools/zircon_build_shader_prewarm_acceptance.py");
+    let acceptance_helper = read_repo("tools/build/zircon_build_shader_prewarm_acceptance.py");
     let written_variants_helper =
-        read_repo("tools/zircon_build_shader_prewarm_written_variants.py");
-    let build_tool = read_repo("tools/zircon_build.py");
+        read_repo("tools/build/zircon_build_shader_prewarm_written_variants.py");
+    let build_tool = read_repo("tools/build/zircon_build.py");
     let acceptance_tests =
         read_repo("tools/tests/test_zircon_build_shader_prewarm_acceptance_contract.py");
     let acceptance_handoff_tests =
@@ -170,11 +171,11 @@ fn runtime_15_shader_prewarm_acceptance_contract_is_wired() {
 
     for (path, source) in [
         (
-            "tools/zircon_build_shader_prewarm_acceptance.py",
+            "tools/build/zircon_build_shader_prewarm_acceptance.py",
             acceptance_helper.as_str(),
         ),
         (
-            "tools/zircon_build_shader_prewarm_written_variants.py",
+            "tools/build/zircon_build_shader_prewarm_written_variants.py",
             written_variants_helper.as_str(),
         ),
         (
@@ -251,7 +252,7 @@ fn runtime_15_shader_prewarm_acceptance_contract_is_wired() {
                 "test_acceptance_contract_rejects_invalid_written_variant_cache_hash_shape",
                 "test_validate_cache_artifact_contract_rejects_untrimmed_written_variant_source_label",
                 "test_validate_cache_artifact_contract_rejects_duplicate_written_variant_identity",
-                "tools/zircon_build_shader_prewarm_written_variants.py",
+                "tools/build/zircon_build_shader_prewarm_written_variants.py",
                 "duplicate written cache variant identity",
                 "runtime fallback root",
                 "usable shader ResourceRecord revisions",

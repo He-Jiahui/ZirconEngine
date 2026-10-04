@@ -1,20 +1,22 @@
 use crate::text::font::{FontDatabase, SelectedFaceLineEnvelope, SelectedFaceLineExtents};
+use crate::text::layout_geometry::finite_sum;
 use crate::text::{
     BackendShapeRequest, HorizontalGlyphMetricSpan, ShapedGlyph, ShapedGlyphRun, ShapedHardLine,
     TextRange,
 };
 
-use super::backend::{HorizontalBackendRun, shape_horizontal_run};
+use super::backend::{shape_horizontal_run, HorizontalBackendRun};
 use super::composition::{HorizontalDirectHole, HorizontalDirectShapeAttempt};
+use super::position_glyphs;
 use crate::text::shaping::bidi::BidiParagraph;
 use crate::text::shaping::cosmic::{cluster_flags, resolved_line_height};
 use crate::text::shaping::direct_error::{
-    BackendGlyphInvariantKind, DirectShapeError, validate_backend_glyphs,
+    validate_backend_glyphs, BackendGlyphInvariantKind, DirectShapeError,
 };
-use crate::text::shaping::fallback_spans::{FallbackTextSpan, fallback_primary_face};
+use crate::text::shaping::fallback_spans::{fallback_primary_face, FallbackTextSpan};
 use crate::text::shaping::itemize::{
-    LogicalSegment, logical_segments_for_line, restore_backend_cluster_logical_order,
-    virtual_hard_break_glyph,
+    logical_segments_for_line, restore_backend_cluster_logical_order, virtual_hard_break_glyph,
+    LogicalSegment,
 };
 use crate::text::shaping::line_break::LineBreakOpportunityMap;
 use crate::text::shaping::script_segment::ParagraphTextAnalysis;
@@ -103,11 +105,7 @@ pub(in crate::text::shaping) fn shape_horizontal_request(
             glyphs.push(separator);
         }
 
-        let mut cursor = 0.0_f32;
-        for glyph in &mut glyphs {
-            glyph.x = cursor;
-            cursor += glyph.advance.max(0.0);
-        }
+        let cursor = position_glyphs(&mut glyphs);
         let selected_face_envelope = selected_face_extents
             .resolve_content_envelope(line_height)
             .unwrap_or(SelectedFaceLineEnvelope {
@@ -147,7 +145,7 @@ pub(in crate::text::shaping) fn shape_horizontal_request(
         vertical_mode: request.vertical_mode,
         include_kerning: request.include_kerning,
         measured_width,
-        measured_height: lines.iter().map(|line| line.line_height).sum::<f32>(),
+        measured_height: finite_sum(lines.iter().map(|line| line.line_height)),
         horizontal_composition_receipt: None,
         horizontal_line_raw_metrics,
         horizontal_glyph_metric_spans,
@@ -280,57 +278,5 @@ fn valid_backend_run(
 }
 
 #[cfg(test)]
-mod tests {
-    use std::path::Path;
-
-    use crate::text::font::{FontDatabase, SelectedFaceLineExtents};
-    use crate::text::shaping::direct_error::BackendGlyphInvariantKind;
-
-    use crate::text::shaping::horizontal::backend::{HorizontalBackendGlyph, HorizontalBackendRun};
-
-    use super::valid_backend_run;
-
-    #[test]
-    fn direct_backend_validation_reports_a_non_boundary_cluster_offset() {
-        let run = HorizontalBackendRun {
-            glyphs: vec![HorizontalBackendGlyph {
-                glyph_id: 1,
-                source_offset: 1,
-                unsafe_to_break: false,
-                advance: 1.0,
-                x_offset: 0.0,
-                y_offset: 0.0,
-            }],
-        };
-
-        assert_eq!(
-            valid_backend_run(&run, "é"),
-            Err(BackendGlyphInvariantKind::InvalidClusterOffset)
-        );
-    }
-
-    #[test]
-    fn direct_line_uses_scaled_selected_face_content_envelope() {
-        let mut database = FontDatabase::default();
-        let source =
-            Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/FiraSans-Regular.ttf");
-        let face = database
-            .register_font_file(source, Some("Direct Metrics Face"), 0)
-            .expect("register tracked font");
-        let source_metrics = database
-            .face_metrics(face)
-            .expect("face metrics query")
-            .expect("tracked face metrics");
-        let mut extents = SelectedFaceLineExtents::default();
-        let _ = extents.include_face(&database, face, 20.0);
-        let envelope = extents
-            .resolve_content_envelope(24.0)
-            .expect("face metrics");
-        let expected_ascent = f32::from(source_metrics.ascender.max(0)) * 20.0
-            / f32::from(source_metrics.units_per_em);
-
-        assert!(envelope.baseline_from_top >= expected_ascent);
-        assert!(envelope.line_height >= 24.0);
-        assert!((envelope.baseline_from_top - 16.0).abs() > 0.01);
-    }
-}
+#[path = "tests/direct.rs"]
+mod tests;

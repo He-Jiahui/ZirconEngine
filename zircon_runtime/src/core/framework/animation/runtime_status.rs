@@ -167,6 +167,8 @@ impl AnimationRigRuntimeStatus {
     }
 }
 
+/// 某个 World 的动画观测快照契约，汇集播放器、骨架与最近一次 tick 报告；
+/// 构造器仅给出空状态，实际采集方需填入与同一 World 对应的数据。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AnimationRuntimeStatus {
     pub world: WorldHandle,
@@ -229,6 +231,7 @@ impl AnimationRuntimeStatus {
         self
     }
 
+    /// 为展示或序列化归一化播放器时间、速度和权重；其余快照字段原样保留。
     pub fn sanitized_snapshot(&self) -> Self {
         Self {
             world: self.world,
@@ -289,5 +292,5 @@ fn normalize_real(value: Real) -> Real {
 }
 
 #[cfg(test)]
-#[path = "runtime_status/single_pass_snapshot_tests.rs"]
+#[path = "runtime_status/tests/single_pass_snapshot_tests.rs"]
 mod single_pass_snapshot_tests;

@@ -1,5 +1,5 @@
 from pathlib import Path
-
+# 移动帧按序列区分已应用、重复和过期；准入只探测一次 entry，旧帧不能修改保留输入，新帧缺朝向时延用旧值。
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE = REPO_ROOT / (

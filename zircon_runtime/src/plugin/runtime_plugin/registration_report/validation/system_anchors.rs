@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use super::super::super::package_validation::RuntimePluginPackageValidationProjection;
 use crate::plugin::{PluginPackageManifest, RuntimeExtensionRegistry};
 
+// 运行时模块的系统锚点必须在扩展表中有对应系统，防止清单与实际注册脱节。
 pub(in crate::plugin::runtime_plugin::registration_report) fn validate_runtime_plugin_registration_system_anchors(
     _package_manifest: &PluginPackageManifest,
     projection: &RuntimePluginPackageValidationProjection<'_>,
@@ -38,16 +39,5 @@ pub(in crate::plugin::runtime_plugin::registration_report) fn validate_runtime_p
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn preallocated_system_anchor_index_preserves_borrowed_registration_contract() {
-        let source = include_str!("system_anchors.rs");
-        let capacity_constructor = ["HashSet::with_", "capacity"].concat();
-        let capacity_hint = [".size_", "hint()"].concat();
-        let unbounded_collect = ["collect::<HashSet", "<_>>()"].concat();
-
-        assert_eq!(source.matches(&capacity_constructor).count(), 1);
-        assert_eq!(source.matches(&capacity_hint).count(), 2);
-        assert!(!source.contains(&unbounded_collect));
-    }
-}
+#[path = "tests/system_anchors.rs"]
+mod tests;

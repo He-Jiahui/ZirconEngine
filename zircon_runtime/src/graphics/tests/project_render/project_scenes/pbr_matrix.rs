@@ -9,8 +9,8 @@ const PBR_MATRIX_STEP_X: f32 = 0.74;
 const PBR_MATRIX_STEP_Y: f32 = 0.68;
 const PBR_MATRIX_SPHERE_SCALE: f32 = 0.27;
 
-pub(super) fn plan11_ibl_product_capture_quality_profile()
--> crate::core::framework::render::RenderQualityProfile {
+pub(super) fn plan11_ibl_product_capture_quality_profile(
+) -> crate::core::framework::render::RenderQualityProfile {
     crate::core::framework::render::RenderQualityProfile::new("plan11-ibl-wgpu-capture")
         .with_screen_space_ambient_occlusion(false)
         .with_temporal_history(false)
@@ -215,6 +215,7 @@ fn write_pbr_matrix_scene(path: PathBuf) {
         terrain: None,
         tilemap: None,
         prefab_instance: None,
+        components: Vec::new(),
         script_bindings: Vec::new(),
     });
     entities.push(SceneEntityAsset {
@@ -236,6 +237,7 @@ fn write_pbr_matrix_scene(path: PathBuf) {
             direction: [-0.35, -0.55, -0.76],
             color: [1.0, 0.96, 0.88],
             intensity: 1.25,
+            casts_shadow: false,
             volumetric: false,
         }),
         point_light: None,
@@ -253,6 +255,7 @@ fn write_pbr_matrix_scene(path: PathBuf) {
         terrain: None,
         tilemap: None,
         prefab_instance: None,
+        components: Vec::new(),
         script_bindings: Vec::new(),
     });
 
@@ -311,6 +314,7 @@ fn write_pbr_matrix_scene(path: PathBuf) {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                components: Vec::new(),
                 script_bindings: Vec::new(),
             });
             entity_id += 1;

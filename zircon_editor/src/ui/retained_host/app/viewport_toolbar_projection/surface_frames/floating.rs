@@ -1,36 +1,43 @@
-use crate::ui::layouts::common::model_rc;
+use crate::ui::retained_host::host_contract::{
+    HostPanePresentationLocation, HostPanePresentationPatch,
+};
 use crate::ui::retained_host::{callback_dispatch, HostWindowPresentationData};
 
 use super::pane_frame::{
-    attach_viewport_toolbar_surface_frame_to_pane, viewport_toolbar_size_for_width,
+    next_viewport_toolbar_surface_frame_pane, viewport_toolbar_size_for_width,
 };
 
-pub(super) fn attach_floating_viewport_toolbar_surface_frames(
-    presentation: &mut HostWindowPresentationData,
+pub(super) fn append_floating_viewport_toolbar_surface_frame_patches(
+    patch: &mut HostPanePresentationPatch,
+    presentation: &HostWindowPresentationData,
     viewport_toolbar_bridge: &mut callback_dispatch::BuiltinViewportToolbarTemplateBridge,
 ) {
-    let mut floating_windows = Vec::new();
-    for row in 0..presentation
+    for (row, window) in presentation
         .host_scene_data
         .floating_layer
         .floating_windows
-        .row_count()
+        .iter()
+        .enumerate()
     {
-        let Some(mut window) = presentation
-            .host_scene_data
-            .floating_layer
-            .floating_windows
-            .row_data(row)
-        else {
-            continue;
-        };
-        attach_viewport_toolbar_surface_frame_to_pane(
+        let toolbar_size = viewport_toolbar_size_for_width(
+            window.frame.width - 2.0,
+            viewport_toolbar_bridge.scale_factor(),
+        );
+        let Some(next) = next_viewport_toolbar_surface_frame_pane(
             viewport_toolbar_bridge,
             window.window_id.as_str(),
-            viewport_toolbar_size_for_width(window.frame.width - 2.0),
-            &mut window.active_pane,
+            toolbar_size,
+            &window.active_pane,
+        ) else {
+            continue;
+        };
+        patch.push(
+            HostPanePresentationLocation::Floating {
+                row,
+                window_id: window.window_id.clone(),
+            },
+            &window.active_pane,
+            next,
         );
-        floating_windows.push(window);
     }
-    presentation.host_scene_data.floating_layer.floating_windows = model_rc(floating_windows);
 }

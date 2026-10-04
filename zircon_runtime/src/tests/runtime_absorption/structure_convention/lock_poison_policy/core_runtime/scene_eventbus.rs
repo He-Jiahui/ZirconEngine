@@ -48,7 +48,7 @@ fn runtime_15_f2_lock_poison_recovery_guard_covers_scene_and_eventbus() {
         "DefaultLevelManager poison recovery helper",
         &default_level_manager,
         &[
-            "pub(super) fn lock_levels(&self) -> MutexGuard<'_, HashMap<WorldHandle, LevelSystem>>",
+            "pub(super) fn lock_levels(&self) -> MutexGuard<'_, BTreeMap<WorldHandle, LevelSystem>>",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
         ],
     );
@@ -56,8 +56,7 @@ fn runtime_15_f2_lock_poison_recovery_guard_covers_scene_and_eventbus() {
         "level manager lifecycle delegates to shared helper",
         &level_manager_lifecycle,
         &[
-            "let mut levels = self.lock_levels();",
-            "levels.insert(handle, level.clone());",
+            "self.lock_levels().insert(level.handle(), level.clone())",
             "self.lock_levels().get(&handle).cloned()",
         ],
     );
@@ -66,7 +65,7 @@ fn runtime_15_f2_lock_poison_recovery_guard_covers_scene_and_eventbus() {
         "EventBusState and EventTopic poison recovery helpers",
         &event_topic,
         &[
-            "fn lock_topics(&self) -> MutexGuard<'_, EventTopicMap>",
+            "fn read_topics(&self) -> RwLockReadGuard<'_, EventTopicMap>",
             "pub(super) fn lock_subscribers(&self) -> MutexGuard<'_, EventSubscriberSnapshot>",
             "pub(super) fn lock_delivery(&self) -> MutexGuard<'_, ()>",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
@@ -77,21 +76,18 @@ fn runtime_15_f2_lock_poison_recovery_guard_covers_scene_and_eventbus() {
         &event_subscriber,
         &[
             "fn lock_queue_state(&self) -> MutexGuard<'_, EventQueueState>",
-            ".unwrap_or_else(|poisoned| poisoned.into_inner())",
+            "self.admission.fail_closed()",
         ],
     );
     assert_contains_all(
         "EventBus publish/subscribe/prune helpers",
         &event_publish,
-        &[
-            "topic.lock_delivery()",
-            "topic.remove_subscribers_while_delivery_locked",
-        ],
+        &["topic.lock_delivery()", "self.admission.lock()"],
     );
     assert_contains_all(
         "EventBus subscribe helper",
         &event_subscribe,
-        &["self.state.subscribe(topic.into(), policy)"],
+        &[".subscribe(topic.into(), policy)"],
     );
     assert_contains_all(
         "EventBus prune helper",

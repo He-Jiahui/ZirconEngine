@@ -1,3 +1,4 @@
+//! 布局明细只展示当前资产节点可编辑的布局属性；缺失字段不应伪造提交动作。
 use crate::ui::asset_editor;
 
 use super::row_model::{push_detail_row, semantic_label, UiAssetDetailFieldRow};
@@ -122,5 +123,5 @@ fn layout_detail_row_capacity(data: &asset_editor::UiAssetEditorPanePresentation
 }
 
 #[cfg(test)]
-#[path = "layout/capacity_tests.rs"]
+#[path = "layout/tests/capacity_tests.rs"]
 mod capacity_tests;

@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools import zircon_build_cargo_environment as cargo_environment
+from tools.build import zircon_build_cargo_environment as cargo_environment
 
 
 class Tooling08CargoApprovedRootPerformanceContractTests(unittest.TestCase):
@@ -28,10 +28,10 @@ class Tooling08CargoApprovedRootPerformanceContractTests(unittest.TestCase):
             cached_roots.cache_clear()
         with mock.patch.object(Path, "resolve", counted_resolve):
             cargo_environment.assert_managed_windows_build_root(
-                Path(r"E:\ZirconBuilds\performance-a")
+                Path(r"E:\cargo-targets\performance-a")
             )
             cargo_environment.assert_managed_windows_build_root(
-                Path(r"E:\ZirconBuilds\performance-b")
+                Path(r"E:\cargo-targets\performance-b")
             )
 
         approved_resolves = sum(
@@ -40,8 +40,8 @@ class Tooling08CargoApprovedRootPerformanceContractTests(unittest.TestCase):
         )
         approved_root_count = len(cargo_environment.APPROVED_WINDOWS_BUILD_ROOTS)
         self.assertEqual(approved_root_count, approved_resolves)
-        self.assertEqual(1, resolve_counts[r"E:\ZirconBuilds\performance-a"])
-        self.assertEqual(1, resolve_counts[r"E:\ZirconBuilds\performance-b"])
+        self.assertEqual(1, resolve_counts[r"E:\cargo-targets\performance-a"])
+        self.assertEqual(1, resolve_counts[r"E:\cargo-targets\performance-b"])
 
     def test_approved_root_cache_is_narrow_and_clearable(self) -> None:
         cached_roots = cargo_environment._resolved_approved_windows_build_roots

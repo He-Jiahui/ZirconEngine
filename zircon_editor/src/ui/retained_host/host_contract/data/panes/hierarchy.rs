@@ -2,7 +2,7 @@ use crate::ui::retained_host::primitives::{ModelRc, SharedString};
 
 use super::super::TemplatePaneNodeData;
 
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default)]
 pub(crate) struct SceneNodeData {
     pub id: SharedString,
     pub name: SharedString,

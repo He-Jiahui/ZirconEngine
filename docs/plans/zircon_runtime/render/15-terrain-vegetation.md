@@ -437,7 +437,7 @@ editor crate(同 manifest `-p zircon_plugin_terrain_editor`):`terrain_brush_ops_
 
 `render_product_*` 场景(由插件 runtime crate 集成测试承载,dev-dependencies 引 runtime 测试 harness;根 workspace 关闭插件时不得出现 terrain 符号):`render_product_terrain_splat_four_layers`、`render_product_terrain_lod_seam`、`render_product_terrain_hole_discard`、`render_product_foliage_instancing`、`render_product_foliage_wind`。
 
-验收证据归档:LOD 连续切级抓帧序列与接缝特写(`ZR_RENDERDOC_CAPTURE_NEXT=1`)、百万草实例 stats(draw 数、`last_foliage_instances`)、编辑脏区 stats,按 milestone 记入 `docs/zircon_runtime/**` 模块文档。
+验收证据归档:LOD 连续切级抓帧序列与接缝特写(`ZR_RENDERDOC_CAPTURE_NEXT=1`)、百万草实例 stats(draw 数、`last_foliage_instances`)、编辑脏区 stats,按 milestone 记入 `docs/crates/zircon_runtime/**` 模块文档。
 
 ## 状态与产出记录
 

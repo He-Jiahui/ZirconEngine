@@ -85,7 +85,10 @@ impl SessionGateway {
         Ok(Self {
             _runtime_owner: runtime_owner,
             api,
-            output_releaser: RuntimeOwnedOutputReleaser::new(session, release_allocation),
+            // The gateway retains runtime_owner and uses this releaser only with this session.
+            output_releaser: unsafe {
+                RuntimeOwnedOutputReleaser::new(session, release_allocation)
+            },
             session,
             identity,
             capabilities: Arc::new(capabilities),
@@ -160,7 +163,11 @@ impl SessionGateway {
             .map_err(Into::into)
     }
 
-    pub(super) fn decode_output<T, E>(
+    /// # Safety
+    ///
+    /// `status` and `output` must have been returned by this gateway's retained runtime provider
+    /// for `self.session`, with unique release authority transferred to this method.
+    pub(super) unsafe fn decode_output<T, E>(
         &self,
         status: ZrStatus,
         output: ZrOwnedResultV2,
@@ -174,25 +181,29 @@ impl SessionGateway {
         T: DeserializeOwned,
         E: std::fmt::Display,
     {
-        let output = self.foreign_output.ensure_call_succeeded(
-            status,
-            output,
-            self.output_releaser,
-            kind,
-            operation,
-            release_operation,
-        )?;
-        self.foreign_output
-            .decode_json(
+        let output = unsafe {
+            self.foreign_output.ensure_call_succeeded(
+                status,
                 output,
                 self.output_releaser,
                 kind,
-                budget,
                 operation,
                 release_operation,
-                validate,
-            )
-            .map_err(Into::into)
+            )?
+        };
+        unsafe {
+            self.foreign_output
+                .decode_json(
+                    output,
+                    self.output_releaser,
+                    kind,
+                    budget,
+                    operation,
+                    release_operation,
+                    validate,
+                )
+                .map_err(Into::into)
+        }
     }
 }
 

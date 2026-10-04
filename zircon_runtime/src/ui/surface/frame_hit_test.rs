@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::ui::tree::{
-    bounded_cells_for_frame, bounded_hit_grid_dimensions, frame_is_finite_positive,
-    hit_grid_capacity_bounds, UiHitTestIndex, UiHitTestResult,
+    bounded_cells_for_frame, bounded_hit_grid_dimensions, find_bubble_route_value,
+    frame_is_finite_positive, hit_grid_capacity_bounds, UiHitTestIndex, UiHitTestResult,
 };
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
@@ -141,13 +141,20 @@ impl UiProjectedHitTestIndex {
         if (self.entry_cells.is_empty() || self.entry_indices.is_empty())
             && !self.grid.entries.is_empty()
         {
-            self.reindex_entries();
+            // Reverse maps are serde-skipped and may be cold after deserialization.  Run the
+            // repair against a clone so a later preflight rejection cannot mutate the live index.
+            let mut warmed = self.clone();
+            warmed.reindex_entries();
+            let result = warmed.patch(base_index, projections, changed_node_ids);
+            if result.is_ok() {
+                *self = warmed;
+            }
+            return result;
         }
 
         // Keep incremental work bounded to changed entries plus the projected popup subtree.
         // A base-wide invariant change is repaired through the rebuild fallback below.
         let projection_by_root = projection_by_root(projections);
-        self.grid.route_nodes = base_index.grid.route_nodes.clone();
         let mut affected_node_ids = changed_node_ids.clone();
         affected_node_ids.extend(self.projected_node_ids.iter().copied());
         let mut updates = Vec::with_capacity(affected_node_ids.len());
@@ -198,9 +205,11 @@ impl UiProjectedHitTestIndex {
                         self.grid.rows,
                         self.grid.cell_size,
                         next_entry.clip_frame,
-                    );
-                    if next_cells
+                    )
+                    .collect::<Vec<_>>();
+                    if previous_cells
                         .iter()
+                        .chain(&next_cells)
                         .any(|cell_index| self.grid.cells.get(*cell_index).is_none())
                     {
                         return Err(());
@@ -217,43 +226,44 @@ impl UiProjectedHitTestIndex {
                 self.grid.entries.get(*entry_index) != Some(next) || previous_cells != next_cells
             });
         let mut entry_cow_stats = UiPersistentSequenceCowStats::default();
-        let mut cell_cow_stats = UiPersistentSequenceCowStats::default();
-        let mut cell_membership_clone_count = 0_usize;
+        let mut membership_patches = Vec::with_capacity(updates.len());
+        let mut staged_entries = BTreeMap::new();
+        for (entry_index, next_entry, previous_cells, next_cells) in &updates {
+            if self.grid.entries.get(*entry_index) == Some(next_entry)
+                && previous_cells == next_cells
+            {
+                continue;
+            }
+            membership_patches.push((*entry_index, previous_cells.clone(), next_cells.clone()));
+            staged_entries.insert(*entry_index, next_entry.clone());
+        }
+        let entries = &self.grid.entries;
+        let membership_stats = UiHitTestIndex::patch_cell_memberships(
+            &mut self.grid.cells,
+            membership_patches,
+            |entry_index| {
+                staged_entries
+                    .get(&entry_index)
+                    .map(projected_entry_sort_key)
+                    .or_else(|| entries.get(entry_index).map(projected_entry_sort_key))
+                    .unwrap_or_default()
+            },
+        )?;
+        self.grid.route_nodes = base_index.grid.route_nodes.clone();
         for (entry_index, next_entry, previous_cells, next_cells) in updates {
             if self.grid.entries.get(entry_index) == Some(&next_entry)
                 && previous_cells == next_cells
             {
                 continue;
             }
-            for cell_index in previous_cells {
-                if let Some((cell, stats)) = self.grid.cells.get_mut_with_stats(cell_index) {
-                    cell_cow_stats.accumulate(stats);
-                    cell_membership_clone_count = cell_membership_clone_count
-                        .saturating_add(cell.entries.retain(|candidate| *candidate != entry_index));
-                }
-            }
             let node_id = next_entry.node_id;
             if let Some((entry, stats)) = self.grid.entries.get_mut_with_stats(entry_index) {
                 entry_cow_stats.accumulate(stats);
                 *entry = next_entry;
             }
-            self.entry_cells.insert(node_id, next_cells.clone());
-            for cell_index in next_cells {
-                if let Some((cell, stats)) = self.grid.cells.get_mut_with_stats(cell_index) {
-                    cell_cow_stats.accumulate(stats);
-                    let insertion_index = cell
-                        .entries
-                        .partition_point(|candidate| *candidate <= entry_index);
-                    cell_membership_clone_count = cell_membership_clone_count
-                        .saturating_add(cell.entries.insert(insertion_index, entry_index));
-                }
-            }
+            self.entry_cells.insert(node_id, next_cells);
         }
-        record_projected_hit_persistent_cow(
-            entry_cow_stats,
-            cell_cow_stats,
-            cell_membership_clone_count,
-        );
+        record_projected_hit_persistent_cow(entry_cow_stats, membership_stats);
         Ok(changed)
     }
 
@@ -322,9 +332,27 @@ impl UiProjectedHitTestIndex {
 
 fn record_projected_hit_persistent_cow(
     entry_stats: UiPersistentSequenceCowStats,
-    cell_stats: UiPersistentSequenceCowStats,
-    cell_membership_clone_count: usize,
+    membership_stats: (
+        UiPersistentSequenceCowStats,
+        usize,
+        usize,
+        usize,
+        usize,
+        usize,
+        usize,
+        usize,
+    ),
 ) {
+    let (
+        cell_stats,
+        staged_cell_count,
+        published_cell_count,
+        source_membership_count,
+        staged_removal_count,
+        staged_addition_count,
+        materialized_membership_count,
+        replacement_buffer_count,
+    ) = membership_stats;
     crate::profile_counter!(
         "runtime",
         "ui.surface_projected_hit.persistent_entry_item_clone_count",
@@ -347,8 +375,8 @@ fn record_projected_hit_persistent_cow(
     );
     crate::profile_counter!(
         "runtime",
-        "ui.surface_projected_hit.persistent_cell_membership_clone_count",
-        cell_membership_clone_count
+        "ui.surface_projected_hit.persistent_cell_membership_arc_cow_clone_count",
+        0
     );
     crate::profile_counter!(
         "runtime",
@@ -356,6 +384,41 @@ fn record_projected_hit_persistent_cow(
         entry_stats
             .cloned_directory_node_count
             .saturating_add(cell_stats.cloned_directory_node_count)
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui.surface_projected_hit.cell_patch_staged_count",
+        staged_cell_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui.surface_projected_hit.cell_patch_published_count",
+        published_cell_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui.surface_projected_hit.cell_patch_source_membership_count",
+        source_membership_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui.surface_projected_hit.cell_patch_removal_count",
+        staged_removal_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui.surface_projected_hit.cell_patch_addition_count",
+        staged_addition_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui.surface_projected_hit.cell_patch_materialized_membership_count",
+        materialized_membership_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui.surface_projected_hit.cell_patch_replacement_buffer_count",
+        replacement_buffer_count
     );
 }
 
@@ -394,29 +457,31 @@ impl UiSurface {
     }
 
     fn popup_hit_test_projections(&self) -> Vec<UiHitTestProjection> {
-        self.input
-            .popup_stack
-            .iter()
-            .enumerate()
-            .filter_map(|(stack_order, popup)| {
-                let popup_root = popup.popup_node?;
-                let arranged = self.arranged_node(popup_root)?;
-                let (target_frame, target_clip) = if self.popup_uses_runtime_anchor(popup_root) {
-                    self.rendered_popup_background(popup_root, arranged)
-                        .map(|(_, command)| (Some(command.frame), command.clip_frame))
-                        .unwrap_or((None, None))
-                } else {
-                    (Some(arranged.frame), Some(arranged.clip_frame))
-                };
-                Some(UiHitTestProjection {
-                    popup_root,
-                    source_frame: arranged.frame,
-                    target_frame,
-                    target_clip,
-                    stack_order,
-                })
-            })
-            .collect()
+        let popup_stack = &self.input.popup_stack;
+        let mut projections = Vec::with_capacity(popup_stack.len());
+        for (stack_order, popup) in popup_stack.iter().enumerate() {
+            let Some(popup_root) = popup.popup_node else {
+                continue;
+            };
+            let Some(arranged) = self.arranged_node(popup_root) else {
+                continue;
+            };
+            let (target_frame, target_clip) = if self.popup_uses_runtime_anchor(popup_root) {
+                self.rendered_popup_background(popup_root, arranged)
+                    .map(|(_, command)| (Some(command.frame), command.clip_frame))
+                    .unwrap_or((None, None))
+            } else {
+                (Some(arranged.frame), Some(arranged.clip_frame))
+            };
+            projections.push(UiHitTestProjection {
+                popup_root,
+                source_frame: arranged.frame,
+                target_frame,
+                target_clip,
+                stack_order,
+            });
+        }
+        projections
     }
 }
 
@@ -711,7 +776,7 @@ fn projected_entry_sort_key(entry: &UiHitTestEntry) -> (i32, u64, UiNodeId) {
 }
 
 #[cfg(test)]
-#[path = "frame_hit_test/tests.rs"]
+#[path = "frame_hit_test/tests/cases.rs"]
 mod projected_grid_tests;
 
 pub fn debug_hit_test_surface_frame(

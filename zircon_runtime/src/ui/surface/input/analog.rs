@@ -16,9 +16,11 @@ use super::{
 use crate::ui::dispatch::UiNavigationDispatcher;
 
 #[cfg(test)]
-#[path = "analog/owned_event_route_policy_tests.rs"]
+#[path = "analog/tests/owned_event_route_policy_tests.rs"]
 mod owned_event_route_policy_tests;
 
+/// 保留模拟量的最新状态，并只在方向阈值/重复门允许时转成导航事件。
+/// 导航仍走标准导航 dispatcher；结果中的原事件恢复为 Analog 以保留设备与用户来源。
 pub(super) fn dispatch_analog_input(
     surface: &mut UiSurface,
     navigation_dispatcher: &UiNavigationDispatcher,

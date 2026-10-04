@@ -21,7 +21,7 @@ def function_body(source: str, name: str) -> str:
     next_functions = [boundary for boundary in boundaries if boundary >= 0]
     return source[start:] if not next_functions else source[start : min(next_functions)]
 
-
+# 读取实现源码约束文本指针命令索引：文本命中使用目标节点命令范围。
 class RuntimeTextPointerCommandIndexPerformanceContractTests(unittest.TestCase):
     def test_text_hit_uses_target_node_command_range(self) -> None:
         source = TEXT_POINTER.read_text(encoding="utf-8")

@@ -1,6 +1,7 @@
 // Pure horizontal projection of delveMemberSpawnPos for valid solo/duo Delve entries.
 var content = %import("instances/delve_member_spawn_content");
 
+/// 入场方先确定有效的单人或双人槽位；结果只包含水平偏移，地面高度和碰撞安全位置仍由世界查询补全。
 pub horizontalCoordinate(
     entryCoordinate: float,
     slotIndex: int,

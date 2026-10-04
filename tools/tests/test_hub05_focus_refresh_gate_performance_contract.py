@@ -1,3 +1,4 @@
+# 核对中心焦点刷新门控拒绝重复进入并在许可释放后恢复请求。
 import re
 import unittest
 from pathlib import Path

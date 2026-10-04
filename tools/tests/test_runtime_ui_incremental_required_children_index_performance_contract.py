@@ -1,13 +1,13 @@
 from pathlib import Path
 import unittest
 
-from tools.ui_required_children_index_pressure import run
+from tools.analysis.performance.ui.ui_required_children_index_pressure import run
 
 ROOT = Path(__file__).resolve().parents[2]
 ENGINE = ROOT / "zircon_runtime/src/ui/layout/pass/engine.rs"
 INCREMENTAL = ROOT / "zircon_runtime/src/ui/layout/pass/incremental.rs"
 
-
+# 约束增量布局在排列前建立一次父节点范围的必需子节点索引，避免重复扫描父节点。
 class RuntimeUiIncrementalRequiredChildrenIndexPerformanceContract(unittest.TestCase):
     def test_incremental_engine_owns_a_parent_scoped_required_child_index(self) -> None:
         source = ENGINE.read_text(encoding="utf-8")

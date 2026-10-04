@@ -15,6 +15,7 @@ mod request;
 mod simulate_camera;
 mod snapshot;
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 mod transition_report;
 
@@ -48,6 +49,7 @@ pub use pending_edits::{
     PendingEditQueueLimits, PendingEditQueueSummary,
 };
 pub use plugin_activation::{
+    NativePluginAdmissionResolver, NativePluginArtifactAuthorityResolver,
     NativePluginBridgeActivation, NoopPluginBridgeActivation, PluginBridgeActivation,
     PluginBridgeActivationReport, SharedPluginBridgeActivation,
 };

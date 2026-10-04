@@ -1,3 +1,4 @@
+# 核对模板运行宿主将动态控件状态交由子模块管理，并维持生产文件规模约束。
 from pathlib import Path
 import unittest
 

@@ -42,7 +42,7 @@ use options::DEFAULT_ASSET_WORKER_QUEUE_DEPTH;
 use payload::process_request;
 
 #[cfg(test)]
-#[path = "worker_pool/tests.rs"]
+#[path = "worker_pool/tests/cases.rs"]
 mod tests;
 
 /// Shared owner for one immutable CPU payload. Tickets are observers, never copies.

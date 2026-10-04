@@ -7,6 +7,8 @@ use super::super::super::clear_render_target::clear_render_target;
 use super::super::super::scene_post_process_resources::ScenePostProcessResources;
 
 impl ScenePostProcessResources {
+    /// 录制当前视口的 Bloom 提取，停用时仍写入黑色输出供后续合成安全读取。
+    /// 返回的参数上传事务必须与此命令编码器一起提交，输入原点须对应场景颜色视图。
     pub(crate) fn execute_bloom(
         &self,
         device: &wgpu::Device,
@@ -91,17 +93,5 @@ impl ScenePostProcessResources {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn bloom_params_are_returned_as_pre_submit_uploads() {
-        let source = include_str!("execute_bloom.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("bloom production source");
-
-        assert!(!production.contains("queue.write_buffer"));
-        assert!(production.contains("WgpuBufferUpload::from_bytes("));
-        assert!(production.contains("WgpuBufferUploadBatch"));
-    }
-}
+#[path = "tests/execute_bloom.rs"]
+mod tests;

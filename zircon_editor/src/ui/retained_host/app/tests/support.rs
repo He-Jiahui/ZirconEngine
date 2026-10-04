@@ -78,15 +78,17 @@ impl ChildWindowHostHarness {
         let config_path = unique_temp_path(prefix);
         std::env::set_var("ZIRCON_CONFIG_PATH", &config_path);
         let core = CoreRuntime::new();
-        core.register_module(foundation_module_descriptor())
-            .unwrap();
-        core.register_module(zircon_runtime::asset::module_descriptor())
+        for engine_module in zircon_runtime::builtin::runtime_core_modules() {
+            core.register_module(engine_module.descriptor()).unwrap();
+        }
+        core.register_module(zircon_runtime::ui::module_descriptor())
             .unwrap();
         core.register_module(module::module_descriptor()).unwrap();
         core.activate_module(FOUNDATION_MODULE_NAME).unwrap();
         core.activate_module(zircon_runtime::asset::ASSET_MODULE_NAME)
             .unwrap();
         core.activate_module(module::EDITOR_MODULE_NAME).unwrap();
+        crate::tests::support::configure_editor_test_runtime_build_set(&core);
         std::env::remove_var("ZIRCON_CONFIG_PATH");
 
         let root_ui = UiHostWindow::new().expect("root workbench shell should instantiate");
@@ -113,7 +115,7 @@ impl ChildWindowHostHarness {
                 })
                 .expect("retained editor host should build with test viewport controller"),
         ));
-        wire_callbacks(&root_ui, &host);
+        wire_callbacks(&root_ui, &host, None);
         host.borrow_mut().self_handle = Some(Rc::downgrade(&host));
         host.borrow_mut().refresh_ui();
 
@@ -236,6 +238,7 @@ impl ChildWindowHostHarness {
             summary: zircon_runtime_interface::project::ProjectManifestSummary {
                 name: display_name.to_string(),
                 engine_version_req: None,
+                template_receipt: None,
                 default_scene: "res://scenes/main.scene.toml".to_string(),
                 format_version: 2,
                 project_guid: None,

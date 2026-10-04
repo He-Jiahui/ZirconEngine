@@ -84,6 +84,7 @@ fn runtime_owned_result_source_forbids_allocator_metadata_and_copy_semantics() {
 
 #[test]
 fn runtime_api_v6_cannot_survive_the_owned_result_hard_cut() {
+    // 同时检查接口表、生成入口和版本常量，避免旧 V6 只从其中一层残留。
     let api_source = include_str!("../runtime_api/abi/api_table.rs");
     let interface_catalog_generator_source = include_str!("../../build.rs");
     let version_source = include_str!("../version.rs");

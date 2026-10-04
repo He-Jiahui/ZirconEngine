@@ -1,3 +1,10 @@
+mod overdraw;
+mod resource_binding_index;
+
+#[cfg(test)]
+#[path = "visualizer/tests/overlay_performance_tests.rs"]
+mod overlay_performance_tests;
+
 use serde::{Deserialize, Serialize};
 
 use crate::ui::event_ui::UiNodeId;
@@ -9,6 +16,8 @@ use super::{
     UiRenderCacheInvalidationReason, UiRenderCachePaintEntry, UiRenderCachePlan,
     UiRenderCacheStatus, UiRenderResourceKey, UiTextRenderMode,
 };
+use overdraw::overdraw_regions;
+use resource_binding_index::ResourceBindingIndex;
 
 /// Replay-friendly render inspection payload for Widget Reflector style panels.
 /// It is derived from paint elements and batches, not from renderer-private state.
@@ -35,20 +44,15 @@ impl UiRenderVisualizerSnapshot {
             paint_cache_statuses_by_index(&cache.paint_entries, elements.len());
         let batch_cache_statuses =
             batch_cache_statuses_by_index(&cache.batch_entries, plan.batches.len());
-        let mut resource_bindings = Vec::new();
+        let mut resource_bindings = ResourceBindingIndex::default();
         let paint_elements = elements
             .iter()
             .enumerate()
             .map(|(paint_index, element)| {
                 let batch_index = batch_indices.get(paint_index).copied().flatten();
-                for resource in paint_resource_keys(element) {
-                    add_resource_binding(
-                        &mut resource_bindings,
-                        resource,
-                        Some(paint_index),
-                        batch_index,
-                    );
-                }
+                for_each_paint_resource(element, |resource| {
+                    resource_bindings.add(resource, Some(paint_index), batch_index);
+                });
 
                 let key = UiBatchKey::from_paint_element(element);
                 UiRenderVisualizerPaintElement {
@@ -78,8 +82,8 @@ impl UiRenderVisualizerSnapshot {
             .iter()
             .enumerate()
             .map(|(batch_index, batch)| {
-                if let Some(resource) = batch.key.resource.clone() {
-                    add_resource_binding(&mut resource_bindings, resource, None, Some(batch_index));
+                if let Some(resource) = batch.key.resource.as_ref() {
+                    resource_bindings.add(resource, None, Some(batch_index));
                 }
                 UiRenderVisualizerBatchGroup {
                     batch_index,
@@ -104,6 +108,7 @@ impl UiRenderVisualizerSnapshot {
             })
             .collect::<Vec<_>>();
 
+        let resource_bindings = resource_bindings.into_bindings();
         let overdraw_regions = overdraw_regions(elements);
         let text = UiRenderVisualizerTextStats::from_paint_elements(elements);
         let overlays = visualizer_overlays(elements, plan, &batch_indices, &overdraw_regions);
@@ -325,7 +330,7 @@ fn visualizer_overlays(
     batch_indices: &[Option<usize>],
     overdraw_regions: &[UiRenderVisualizerOverdrawRegion],
 ) -> Vec<UiRenderVisualizerOverlay> {
-    let mut overlays = Vec::new();
+    let mut overlays = Vec::with_capacity(elements.len());
     for (paint_index, element) in elements.iter().enumerate() {
         let batch_index = batch_indices.get(paint_index).copied().flatten();
         overlays.push(UiRenderVisualizerOverlay {
@@ -383,7 +388,8 @@ fn visualizer_overlays(
     }
 
     for (batch_index, batch) in plan.batches.iter().enumerate() {
-        if let Some(frame) = batch_bounds(elements, &batch.source_indices) {
+        let batch_frame = batch_bounds(elements, &batch.source_indices);
+        if let Some(frame) = batch_frame {
             overlays.push(UiRenderVisualizerOverlay {
                 kind: UiRenderVisualizerOverlayKind::BatchBounds,
                 frame,
@@ -395,23 +401,17 @@ fn visualizer_overlays(
                 intensity: 1.0,
             });
         }
-        if batch.key.resource.is_some() {
-            if let Some(frame) = batch_bounds(elements, &batch.source_indices) {
-                overlays.push(UiRenderVisualizerOverlay {
-                    kind: UiRenderVisualizerOverlayKind::ResourceAtlas,
-                    frame,
-                    node_id: None,
-                    paint_index: None,
-                    batch_index: Some(batch_index),
-                    label: batch
-                        .key
-                        .resource
-                        .as_ref()
-                        .map(|resource| resource.id.clone()),
-                    color: Some("#26a69a".to_string()),
-                    intensity: 1.0,
-                });
-            }
+        if let (Some(resource), Some(frame)) = (batch.key.resource.as_ref(), batch_frame) {
+            overlays.push(UiRenderVisualizerOverlay {
+                kind: UiRenderVisualizerOverlayKind::ResourceAtlas,
+                frame,
+                node_id: None,
+                paint_index: None,
+                batch_index: Some(batch_index),
+                label: Some(resource.id.clone()),
+                color: Some("#26a69a".to_string()),
+                intensity: 1.0,
+            });
         }
     }
 
@@ -450,61 +450,6 @@ fn text_baseline_overlay_frame(
             1.0,
         )
     }
-}
-
-fn overdraw_regions(elements: &[UiPaintElement]) -> Vec<UiRenderVisualizerOverdrawRegion> {
-    let visible_elements = elements
-        .iter()
-        .filter_map(|element| {
-            if element.effects.opacity <= 0.0 || element.payload == UiPaintPayload::Empty {
-                return None;
-            }
-            let frame = visible_paint_frame(element)?;
-            Some((element.node_id, frame))
-        })
-        .collect::<Vec<_>>();
-    let mut regions: Vec<UiRenderVisualizerOverdrawRegion> = Vec::new();
-    for left_index in 0..visible_elements.len() {
-        for right_index in left_index + 1..visible_elements.len() {
-            let (left_node_id, left_frame) = visible_elements[left_index];
-            let (_, right_frame) = visible_elements[right_index];
-            if let Some(frame) = left_frame.intersection(right_frame) {
-                let mut node_ids = vec![left_node_id];
-                for (node_id, candidate_frame) in &visible_elements {
-                    if candidate_frame.intersection(frame).is_some() {
-                        node_ids.push(*node_id);
-                    }
-                }
-                node_ids.sort();
-                node_ids.dedup();
-                let paint_count = node_ids.len();
-                if regions.iter().any(|region| region.frame == frame) {
-                    continue;
-                }
-                regions.push(UiRenderVisualizerOverdrawRegion {
-                    frame,
-                    paint_count,
-                    node_ids,
-                    heat: paint_count as f32,
-                });
-            }
-        }
-    }
-    regions
-}
-
-fn visible_paint_frame(element: &UiPaintElement) -> Option<UiFrame> {
-    let frame = element.geometry.render_bounds;
-    if frame.width <= 0.0 || frame.height <= 0.0 {
-        return None;
-    }
-    if let Some(clip) = element.clip.as_ref() {
-        return frame.intersection(clip.frame);
-    }
-    if let Some(clip) = element.geometry.clip_frame {
-        return frame.intersection(clip);
-    }
-    Some(frame)
 }
 
 fn batch_bounds(elements: &[UiPaintElement], source_indices: &[usize]) -> Option<UiFrame> {
@@ -555,40 +500,45 @@ fn batch_cache_statuses_by_index(
     statuses
 }
 
-fn paint_resource_keys(element: &UiPaintElement) -> Vec<UiRenderResourceKey> {
-    let mut resources = Vec::new();
+fn for_each_paint_resource(element: &UiPaintElement, mut visit: impl FnMut(&UiRenderResourceKey)) {
     match &element.payload {
         UiPaintPayload::Brush { brushes } => {
             for brush in brushes.fill.iter().chain(brushes.border.iter()) {
-                brush_resource_keys(brush, &mut resources);
+                for_each_brush_resource(brush, &mut visit);
             }
         }
         UiPaintPayload::Text { text } => {
             if let Some(shaped) = text.shaped.canonical() {
-                push_unique_resource(&mut resources, shaped.font_key.clone());
-                push_unique_resource(&mut resources, shaped.atlas_resource.clone());
+                if let Some(resource) = shaped.font_key.as_ref() {
+                    visit(resource);
+                }
+                if let Some(resource) = shaped.atlas_resource.as_ref() {
+                    visit(resource);
+                }
                 for line in &shaped.lines {
                     for glyph in &line.glyphs {
-                        push_unique_resource(&mut resources, glyph.atlas_resource.clone());
+                        if let Some(resource) = glyph.atlas_resource.as_ref() {
+                            visit(resource);
+                        }
                     }
                 }
             }
         }
         UiPaintPayload::Empty => {}
     }
-    resources
 }
 
-fn brush_resource_keys(brush: &UiBrushPayload, resources: &mut Vec<UiRenderResourceKey>) {
+fn for_each_brush_resource(brush: &UiBrushPayload, visit: &mut impl FnMut(&UiRenderResourceKey)) {
     match brush {
         UiBrushPayload::Image(payload) | UiBrushPayload::Box(payload) => {
-            push_unique_resource(resources, Some(payload.resource.clone()));
+            visit(&payload.resource);
         }
         UiBrushPayload::Vector(payload) => {
-            push_unique_resource(resources, Some(payload.resource.clone()));
+            visit(&payload.resource);
         }
         UiBrushPayload::Material(payload) => {
-            push_unique_resource(resources, Some(payload.resource_key()));
+            let resource = payload.resource_key();
+            visit(&resource);
         }
         UiBrushPayload::Solid(_)
         | UiBrushPayload::Rounded(_)
@@ -597,273 +547,6 @@ fn brush_resource_keys(brush: &UiBrushPayload, resources: &mut Vec<UiRenderResou
     }
 }
 
-fn push_unique_resource(
-    resources: &mut Vec<UiRenderResourceKey>,
-    resource: Option<UiRenderResourceKey>,
-) {
-    if let Some(resource) = resource {
-        if !resources.contains(&resource) {
-            resources.push(resource);
-        }
-    }
-}
-
-fn add_resource_binding(
-    bindings: &mut Vec<UiRenderVisualizerResourceBinding>,
-    resource: UiRenderResourceKey,
-    paint_index: Option<usize>,
-    batch_index: Option<usize>,
-) {
-    if let Some(binding) = bindings
-        .iter_mut()
-        .find(|binding| binding.resource == resource)
-    {
-        if let Some(paint_index) = paint_index {
-            push_unique_usize(&mut binding.paint_indices, paint_index);
-        }
-        if let Some(batch_index) = batch_index {
-            push_unique_usize(&mut binding.batch_indices, batch_index);
-        }
-        return;
-    }
-
-    bindings.push(UiRenderVisualizerResourceBinding {
-        resource,
-        paint_indices: paint_index.into_iter().collect(),
-        batch_indices: batch_index.into_iter().collect(),
-    });
-}
-
-fn push_unique_usize(values: &mut Vec<usize>, value: usize) {
-    if !values.contains(&value) {
-        values.push(value);
-    }
-}
-
 #[cfg(test)]
-mod tests {
-    use super::super::{UiBatch, UiBatchRange, UiOpacityClass};
-    use super::*;
-    use crate::ui::surface::{UiShapedTextLine, UiTextDirection, UiTextRange, UiTextWritingMode};
-
-    fn shaped_line() -> UiShapedTextLine {
-        UiShapedTextLine {
-            text: "A".to_string(),
-            frame: UiFrame::new(10.0, 20.0, 18.0, 40.0),
-            source_range: UiTextRange { start: 0, end: 1 },
-            visual_range: UiTextRange { start: 0, end: 1 },
-            measured_width: 32.0,
-            baseline: 9.0,
-            direction: UiTextDirection::LeftToRight,
-            ellipsized: false,
-            glyphs: Vec::new(),
-            clusters: Vec::new(),
-        }
-    }
-
-    #[test]
-    fn text_baseline_overlay_uses_writing_mode_cross_axis() {
-        let line = shaped_line();
-
-        assert_eq!(
-            text_baseline_overlay_frame(&line, UiTextWritingMode::HorizontalTb),
-            UiFrame::new(10.0, 29.0, 32.0, 1.0)
-        );
-        assert_eq!(
-            text_baseline_overlay_frame(&line, UiTextWritingMode::VerticalRl),
-            UiFrame::new(19.0, 20.0, 1.0, 32.0)
-        );
-    }
-
-    #[test]
-    fn indexed_cache_statuses_preserve_first_match_and_ignore_unknown() {
-        let paint_entries = vec![
-            UiRenderCachePaintEntry {
-                node_id: UiNodeId::new(1),
-                paint_index: 1,
-                cache_generation: None,
-                status: UiRenderCacheStatus::Rebuilt,
-                reason: UiRenderCacheInvalidationReason::NodeDirty,
-            },
-            UiRenderCachePaintEntry {
-                node_id: UiNodeId::new(2),
-                paint_index: 1,
-                cache_generation: Some(2),
-                status: UiRenderCacheStatus::Reused,
-                reason: UiRenderCacheInvalidationReason::Unchanged,
-            },
-            UiRenderCachePaintEntry {
-                node_id: UiNodeId::new(3),
-                paint_index: 99,
-                cache_generation: None,
-                status: UiRenderCacheStatus::Rebuilt,
-                reason: UiRenderCacheInvalidationReason::ForcedRebuild,
-            },
-        ];
-        assert_eq!(
-            paint_cache_statuses_by_index(&paint_entries, 3),
-            vec![None, Some(UiRenderCacheStatus::Rebuilt), None]
-        );
-
-        let batch_entries = vec![
-            UiRenderCacheBatchEntry {
-                batch_index: 0,
-                batch_key: UiBatchKey {
-                    clip: None,
-                    primitive: UiBatchPrimitive::Empty,
-                    shader: UiBatchShader::None,
-                    resource: None,
-                    text_backend: None,
-                    draw_effects: Vec::new(),
-                    opacity_class: super::super::UiOpacityClass::Opaque,
-                },
-                node_ids: Vec::new(),
-                status: UiRenderCacheStatus::Reused,
-                reason: UiRenderCacheInvalidationReason::Unchanged,
-            },
-            UiRenderCacheBatchEntry {
-                batch_index: 0,
-                batch_key: UiBatchKey {
-                    clip: None,
-                    primitive: UiBatchPrimitive::Empty,
-                    shader: UiBatchShader::None,
-                    resource: None,
-                    text_backend: None,
-                    draw_effects: Vec::new(),
-                    opacity_class: super::super::UiOpacityClass::Opaque,
-                },
-                node_ids: Vec::new(),
-                status: UiRenderCacheStatus::Rebuilt,
-                reason: UiRenderCacheInvalidationReason::ForcedRebuild,
-            },
-        ];
-        assert_eq!(
-            batch_cache_statuses_by_index(&batch_entries, 1),
-            vec![Some((
-                UiRenderCacheStatus::Reused,
-                UiRenderCacheInvalidationReason::Unchanged,
-            ))]
-        );
-    }
-
-    #[test]
-    #[ignore = "release-only render visualizer batch index benchmark"]
-    fn render_visualizer_batch_index_release_benchmark() {
-        use std::{hint::black_box, time::Instant};
-
-        const ELEMENT_COUNT: usize = 4_096;
-        const BATCH_SIZE: usize = 8;
-        const SAMPLE_COUNT: usize = 11;
-        let batches = (0..ELEMENT_COUNT)
-            .step_by(BATCH_SIZE)
-            .map(|start| (start..(start + BATCH_SIZE).min(ELEMENT_COUNT)).collect::<Vec<_>>())
-            .collect::<Vec<_>>();
-        let batch_plan = batches
-            .iter()
-            .map(|source_indices| UiBatch {
-                layer: 0,
-                key: UiBatchKey {
-                    clip: None,
-                    primitive: UiBatchPrimitive::Empty,
-                    shader: UiBatchShader::None,
-                    resource: None,
-                    text_backend: None,
-                    draw_effects: Vec::new(),
-                    opacity_class: UiOpacityClass::Opaque,
-                },
-                range: UiBatchRange::default(),
-                source_indices: source_indices.clone(),
-                node_ids: Vec::new(),
-                split_reason: UiBatchSplitReason::FirstBatch,
-            })
-            .collect::<Vec<_>>();
-        let paint_entries = (0..ELEMENT_COUNT)
-            .map(|paint_index| UiRenderCachePaintEntry {
-                node_id: UiNodeId::new(paint_index as u64),
-                paint_index,
-                cache_generation: None,
-                status: UiRenderCacheStatus::Rebuilt,
-                reason: UiRenderCacheInvalidationReason::NodeDirty,
-            })
-            .collect::<Vec<_>>();
-        let batch_entries = (0..batches.len())
-            .map(|batch_index| UiRenderCacheBatchEntry {
-                batch_index,
-                batch_key: UiBatchKey {
-                    clip: None,
-                    primitive: UiBatchPrimitive::Empty,
-                    shader: UiBatchShader::None,
-                    resource: None,
-                    text_backend: None,
-                    draw_effects: Vec::new(),
-                    opacity_class: super::super::UiOpacityClass::Opaque,
-                },
-                node_ids: Vec::new(),
-                status: UiRenderCacheStatus::Reused,
-                reason: UiRenderCacheInvalidationReason::Unchanged,
-            })
-            .collect::<Vec<_>>();
-
-        let mut linear_samples = Vec::with_capacity(SAMPLE_COUNT);
-        let mut indexed_samples = Vec::with_capacity(SAMPLE_COUNT);
-        for sample in 0..SAMPLE_COUNT {
-            let measure_linear = || {
-                let started = Instant::now();
-                for paint_index in 0..ELEMENT_COUNT {
-                    black_box(
-                        batches
-                            .iter()
-                            .position(|batch| batch.contains(&paint_index)),
-                    );
-                    black_box(
-                        paint_entries
-                            .iter()
-                            .find(|entry| entry.paint_index == paint_index)
-                            .map(|entry| entry.status),
-                    );
-                }
-                for batch_index in 0..batches.len() {
-                    black_box(
-                        batch_entries
-                            .iter()
-                            .find(|entry| entry.batch_index == batch_index)
-                            .map(|entry| (entry.status, entry.reason)),
-                    );
-                }
-                started.elapsed().as_nanos()
-            };
-            let measure_indexed = || {
-                let started = Instant::now();
-                black_box(batch_indices_by_source_index(&batch_plan, ELEMENT_COUNT));
-                black_box(paint_cache_statuses_by_index(&paint_entries, ELEMENT_COUNT));
-                black_box(batch_cache_statuses_by_index(&batch_entries, batches.len()));
-                started.elapsed().as_nanos()
-            };
-            if sample % 2 == 0 {
-                linear_samples.push(measure_linear());
-                indexed_samples.push(measure_indexed());
-            } else {
-                indexed_samples.push(measure_indexed());
-                linear_samples.push(measure_linear());
-            }
-        }
-        linear_samples.sort_unstable();
-        indexed_samples.sort_unstable();
-        let p50 = SAMPLE_COUNT / 2;
-        let p95 = SAMPLE_COUNT - 1;
-        eprintln!(
-            "RUNTIME_INTERFACE03_RENDER_VISUALIZER_BATCH_INDEX_BENCH_V1 elements={ELEMENT_COUNT} batches={} samples={SAMPLE_COUNT} linear_p50_ns={} indexed_p50_ns={} linear_p95_ns={} indexed_p95_ns={}",
-            batches.len(),
-            linear_samples[p50],
-            indexed_samples[p50],
-            linear_samples[p95],
-            indexed_samples[p95],
-        );
-        assert!(
-            indexed_samples[p95].saturating_mul(5) <= linear_samples[p95].saturating_mul(4),
-            "indexed visualizer lookup must improve P95 by at least 20%: linear={}ns indexed={}ns",
-            linear_samples[p95],
-            indexed_samples[p95],
-        );
-    }
-}
+#[path = "tests/visualizer.rs"]
+mod tests;

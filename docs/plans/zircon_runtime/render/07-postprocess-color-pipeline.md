@@ -1,7 +1,6 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
-  - zircon_runtime/src/core/framework/render/view_family.rs
   - zircon_runtime/src/core/framework/render/post_process/stack.rs
   - zircon_runtime/src/core/framework/render/post_process/graph_resource_names.rs
   - zircon_runtime/src/core/framework/render/post_process/stack/tests.rs

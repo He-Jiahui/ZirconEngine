@@ -40,12 +40,12 @@ workbench_success = "$editor.semantic.success"
 workbench_warning = "$editor.semantic.warning"
 workbench_error = "$editor.semantic.error"
 workbench_info = "$editor.semantic.info"
-workbench_field = "$editor.surface.recessed"
-workbench_field_hot = "$editor.surface.2"
+workbench_field = "$editor.surface.input"
+workbench_field_hot = "$editor.surface.input"
 workbench_progress_fill = "$editor.separator.strong"
-workbench_field_component = "$editor.surface.recessed"
+workbench_field_component = "$editor.surface.input"
 workbench_field_component_border = "$editor.border"
-workbench_field_component_focused = "$editor.surface.1"
+workbench_field_component_focused = "$editor.surface.input"
 workbench_field_component_focused_text = "$editor.text.primary"
 workbench_field_component_focus_border = "$editor.focus.ring"
 workbench_field_component_disabled = "$editor.surface.disabled"
@@ -96,7 +96,7 @@ selector = ".workbench-topbar"
 background_color = "$workbench_surface"
 foreground_color = "$workbench_text"
 border_color = "$workbench_border"
-border_width = "$editor.control.border_width"
+border_width = 0.0
 radius = 0.0
 
 [[stylesheets.rules]]
@@ -124,8 +124,8 @@ selector = ".workbench-panel-header"
 background_color = "$workbench_panel_raised"
 foreground_color = "$workbench_text"
 border_color = "$workbench_border_soft"
-border_width = "$editor.control.border_width"
-radius = "$editor.control.radius.small"
+border_width = 0.0
+radius = 0.0
 
 [[stylesheets.rules]]
 selector = ".workbench-icon-button"
@@ -169,7 +169,7 @@ selector = ".workbench-rail"
 background_color = "$workbench_inset"
 foreground_color = "$workbench_text"
 border_color = "$workbench_border"
-border_width = "$editor.control.border_width"
+border_width = 0.0
 radius = 0.0
 
 [[stylesheets.rules]]
@@ -211,10 +211,9 @@ radius = "$editor.control.radius.control"
 [[stylesheets.rules]]
 selector = ".workbench-tab:hovered"
 [stylesheets.rules.set.self]
-background_color = "$workbench_hover"
-foreground_color = "$workbench_text"
-border_color = "$workbench_border"
-border_width = "$editor.control.border_width"
+background_color = "$editor.surface.tab_hover"
+foreground_color = "$editor.text.tab_active"
+border_width = 0.0
 
 [[stylesheets.rules]]
 selector = ".workbench-field:hovered"
@@ -488,24 +487,22 @@ border_width = "$editor.control.border_width"
 [[stylesheets.rules]]
 selector = ".workbench-tab"
 [stylesheets.rules.set.self]
-background_color = "$workbench_surface"
+background_color = "transparent"
 foreground_color = "$workbench_text_muted"
 
 [[stylesheets.rules]]
 selector = ".workbench-tab:checked"
 [stylesheets.rules.set.self]
-background_color = "$workbench_selected"
-foreground_color = "$workbench_text"
-border_color = "$workbench_border"
-border_width = "$editor.control.border_width"
+background_color = "$editor.surface.1"
+foreground_color = "$editor.text.tab_active"
+border_width = 0.0
 
 [[stylesheets.rules]]
 selector = ".workbench-tab:selected"
 [stylesheets.rules.set.self]
-background_color = "$workbench_selected"
-foreground_color = "$workbench_text"
-border_color = "$workbench_border"
-border_width = "$editor.control.border_width"
+background_color = "$editor.surface.1"
+foreground_color = "$editor.text.tab_active"
+border_width = 0.0
 
 [[stylesheets.rules]]
 selector = ".workbench-field"
@@ -558,7 +555,7 @@ selector = ".workbench-tree-item:selected"
 [stylesheets.rules.set.self]
 background_color = "$workbench_selected"
 foreground_color = "$workbench_accent"
-border_color = "$workbench_border"
+border_color = "$workbench_accent"
 border_width = "$editor.control.border_width"
 
 [[stylesheets.rules]]
@@ -566,7 +563,7 @@ selector = ".workbench-list-row:selected"
 [stylesheets.rules.set.self]
 background_color = "$workbench_selected"
 foreground_color = "$workbench_accent"
-border_color = "$workbench_border"
+border_color = "$workbench_accent"
 border_width = "$editor.control.border_width"
 
 [[stylesheets.rules]]
@@ -1096,7 +1093,7 @@ selector = ".workbench-status"
 background_color = "$workbench_surface"
 foreground_color = "$workbench_text"
 border_color = "$workbench_border"
-border_width = "$editor.control.border_width"
+border_width = 0.0
 radius = 0.0
 
 [[stylesheets.rules]]

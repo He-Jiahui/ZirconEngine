@@ -6,8 +6,8 @@ use crate::plugin::RuntimePluginRegistrationReport;
 
 use super::profile::RuntimeDynamicSessionProfile;
 use super::project::RuntimeProjectConfig;
-use super::registry::{try_insert_session, SessionRegistryInsertError};
-use super::{RuntimeDynamicSession, RuntimeDynamicSessionError};
+use super::registry::{try_create_linked_session, SessionRegistryInsertError};
+use super::RuntimeDynamicSessionError;
 
 pub fn create_linked_runtime_session(
     profile: &[u8],
@@ -26,13 +26,12 @@ pub fn create_linked_runtime_session(
             step: "resolve linked runtime project root",
             source,
         })?;
-    RuntimeDynamicSession::new_with_linked_plugins(profile, project_config, registrations).and_then(
-        |session| {
-            try_insert_session(session).map_err(
-                |SessionRegistryInsertError::HandleSpaceExhausted| {
-                    RuntimeDynamicSessionError::SessionHandleSpaceExhausted
-                },
-            )
-        },
-    )
+    try_create_linked_session(profile, project_config, registrations).map_err(|error| match error {
+        SessionRegistryInsertError::HandleSpaceExhausted => {
+            RuntimeDynamicSessionError::SessionHandleSpaceExhausted
+        }
+        SessionRegistryInsertError::OwnerUnavailable(message) => {
+            RuntimeDynamicSessionError::ModuleDiscovery { message }
+        }
+    })
 }

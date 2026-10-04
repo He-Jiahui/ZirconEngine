@@ -188,6 +188,10 @@ pub enum EditCommandError {
     HistoryGenerationExhausted { history: HistoryContextId },
     #[error("history dirty-state generation space is exhausted")]
     HistoryDirtyGenerationExhausted,
+    #[error("applied command revision space is exhausted")]
+    AppliedCommandRevisionExhausted,
+    #[error("history decision changed for {history:?}")]
+    HistoryDecisionChanged { history: HistoryContextId },
     #[error("selection generation space is exhausted")]
     SelectionGenerationExhausted,
     #[error("history detail page size {requested} exceeds the maximum {maximum}")]

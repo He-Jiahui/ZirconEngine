@@ -78,29 +78,35 @@ impl EditorState {
                     expected: selected,
                     actual: entity,
                 }
-                .into())
+                .into());
             }
             WorldQueryResult::EntityMissing { entity, .. } if entity == selected => {
-                return Err(KeepPlayChangesError::PlayEntityMissing { entity }.into())
+                return Err(KeepPlayChangesError::PlayEntityMissing { entity }.into());
             }
             WorldQueryResult::EntityMissing { entity, .. } => {
                 return Err(KeepPlayChangesError::ResponseEntityMismatch {
                     expected: selected,
                     actual: entity,
                 }
-                .into())
+                .into());
             }
             WorldQueryResult::NotModified { .. } => {
                 return Err(KeepPlayChangesError::UnexpectedQueryResult {
                     kind: "not_modified_without_a_generation_hint",
                 }
-                .into())
+                .into());
             }
             WorldQueryResult::ComponentRows { .. } | WorldQueryResult::HierarchyRows { .. } => {
                 return Err(KeepPlayChangesError::UnexpectedQueryResult {
                     kind: "non_inspector_projection",
                 }
-                .into())
+                .into());
+            }
+            WorldQueryResult::TransformSnapshot { .. } => {
+                return Err(KeepPlayChangesError::UnexpectedQueryResult {
+                    kind: "non_inspector_projection",
+                }
+                .into());
             }
         };
         let fields = fields

@@ -75,6 +75,8 @@ impl AdvancedLightingExtract {
         self.transmission_scene_copy_step_count() > 0
     }
 
+    /// 编译图按此数量划分透射绘制；零次场景色拷贝仍需一次环境回退绘制。
+    /// 应与 scene-copy 步数分别使用，避免把关闭屏幕采样误判为关闭透射。
     pub const fn transmission_draw_step_count(&self) -> usize {
         if !self.material_features.uses_transmission() {
             0
@@ -90,4 +92,5 @@ impl AdvancedLightingExtract {
 }
 
 #[cfg(test)]
+#[path = "extract/tests/cases.rs"]
 mod tests;

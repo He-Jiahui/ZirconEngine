@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 def source(relative: str) -> str:
     return (ROOT / relative).read_text(encoding="utf-8")
 
-
+# 读取执行中操作留存路径，确认阻塞工作项与墓碑淘汰不会丢失后续准入和完成租约。
 class RuntimeOperationInflightRetentionPerformanceContract(unittest.TestCase):
     def test_blocking_worker_behavior_gate_covers_pressure_and_later_admission(self) -> None:
         behavior = source(

@@ -1,12 +1,15 @@
+//! 把已解析的字形簇映射到光标、命中位置和选区几何；不能匹配工件时由调用方回退到 DTO 几何。
+
 use zircon_runtime_interface::ui::surface::{
     UiResolvedTextLine, UiTextCaret, UiTextCaretAffinity, UiTextRange,
 };
 
-use super::ResolvedTextGlyphArtifact;
 use super::snapshot::matching_artifact_line;
+use super::ResolvedTextGlyphArtifact;
 use crate::core::framework::text::TextGlyph;
 use crate::text::layout::{LogicalVirtualLineSequence, LogicalVisualClusterReceipt};
-use crate::text::{TextRange, text_glyph_clusters};
+use crate::text::layout_geometry::FiniteGeometryAccumulator;
+use crate::text::{text_glyph_clusters, TextRange};
 
 #[derive(Clone, Copy)]
 struct VisualSourceGeometryReceipt {
@@ -28,6 +31,7 @@ pub(crate) fn resolved_text_glyph_artifact_caret_advance(
 ) -> Option<f32> {
     let glyphs = matching_artifact_line(artifact, line_index, layout_line)?;
     let sequence = matching_virtual_line_sequence(artifact, line_index, layout_line);
+    // 虚拟替换或外部簇拥有独立的视觉收据；先消费它，避免把省略号宽度误算到真实源簇。
     if let Some(receipt) = unique_special_geometry_for_offset(sequence, caret.offset)? {
         let (leading, trailing) =
             visual_cluster_advance_span(&layout_line.glyph_advances, receipt.visual_index)?;
@@ -54,11 +58,15 @@ pub(crate) fn resolved_text_glyph_artifact_caret_advance(
         )?;
         (right_to_left == cluster.1).then_some((leading, trailing))?
     } else {
-        let leading = text_glyph_clusters(glyphs)
+        let mut leading = FiniteGeometryAccumulator::default();
+        for candidate in text_glyph_clusters(glyphs)
             .take_while(|candidate| candidate.glyph_start < cluster.0.glyph_start)
-            .map(|candidate| candidate.advance)
-            .sum::<f32>();
-        (leading, leading + cluster.0.advance)
+        {
+            leading.add(candidate.advance);
+        }
+        let mut trailing = leading;
+        trailing.add(cluster.0.advance);
+        (leading.value(), trailing.value())
     };
     let logical_start = matches!(caret.affinity, UiTextCaretAffinity::Upstream);
     Some(if cluster.1 == logical_start {
@@ -109,14 +117,16 @@ pub(crate) fn resolved_text_glyph_artifact_caret_at_advance(
             visual_advance <= leading + (trailing - leading) * 0.5,
         ));
     }
-    let mut advance = 0.0;
+    let mut advance = FiniteGeometryAccumulator::default();
     let mut clusters = text_glyph_clusters(glyphs).peekable();
     while let Some(cluster) = clusters.next() {
         let right_to_left = cluster.right_to_left?;
-        if visual_advance <= advance + cluster.advance * 0.5 {
+        let mut midpoint = advance;
+        midpoint.add(cluster.advance * 0.5);
+        if visual_advance <= midpoint.value() {
             return Some(cluster_caret(cluster.source_range, right_to_left, true));
         }
-        advance += cluster.advance;
+        advance.add(cluster.advance);
         if clusters.peek().is_none() {
             return Some(cluster_caret(cluster.source_range, right_to_left, false));
         }
@@ -137,18 +147,18 @@ pub(crate) fn resolved_text_glyph_artifact_range_advance_spans(
     }
     let mut spans = Vec::new();
     let mut span_start = None;
-    let mut advance = 0.0;
+    let mut advance = FiniteGeometryAccumulator::default();
     for cluster in text_glyph_clusters(glyphs) {
         cluster.right_to_left?;
         if source_ranges_overlap(cluster.source_range, range) {
-            span_start.get_or_insert(advance);
+            span_start.get_or_insert(advance.value());
         } else if let Some(start) = span_start.take() {
-            spans.push((start, advance));
+            spans.push((start, advance.value()));
         }
-        advance += cluster.advance;
+        advance.add(cluster.advance);
     }
     if let Some(start) = span_start {
-        spans.push((start, advance));
+        spans.push((start, advance.value()));
     }
     merge_advance_spans(spans)
 }
@@ -164,6 +174,7 @@ fn matching_virtual_line_sequence<'a>(
         .as_deref()?
         .get(line_index)?
         .as_ref()?;
+    // 只有布局与收据数同时相等，投影出的 advance 才能和当前行逐项对齐。
     (sequence.artifact_projection_allowed()
         && sequence.visual_cluster_count() == layout_line.glyph_advances.len())
     .then_some(sequence)
@@ -199,31 +210,33 @@ fn visual_receipt_for_advance(
     advances: &[f32],
     visual_advance: f32,
 ) -> Option<(LogicalVisualClusterReceipt, f32, f32)> {
-    let mut advance = 0.0;
+    let mut advance = FiniteGeometryAccumulator::default();
     let mut last = None;
     for (receipt, cluster_advance) in sequence
         .visual_cluster_receipts()
         .zip(advances.iter().copied())
     {
-        let trailing = advance + finite_non_negative(cluster_advance);
-        last = Some((receipt, advance, trailing));
-        if advance <= visual_advance && visual_advance < trailing {
+        let leading = advance.value();
+        let trailing = advance.add(finite_non_negative(cluster_advance));
+        last = Some((receipt, leading, trailing));
+        if leading <= visual_advance && visual_advance < trailing {
             return last;
         }
-        advance = trailing;
     }
-    (visual_advance >= advance).then_some(last).flatten()
+    (visual_advance >= advance.value())
+        .then_some(last)
+        .flatten()
 }
 
 fn visual_cluster_advance_span(advances: &[f32], visual_index: usize) -> Option<(f32, f32)> {
     let marker_advance = finite_non_negative(*advances.get(visual_index)?);
-    let leading = advances
-        .iter()
-        .take(visual_index)
-        .copied()
-        .map(finite_non_negative)
-        .sum::<f32>();
-    Some((leading, leading + marker_advance))
+    let mut leading = FiniteGeometryAccumulator::default();
+    for advance in advances.iter().take(visual_index).copied() {
+        leading.add(finite_non_negative(advance));
+    }
+    let mut trailing = leading;
+    trailing.add(marker_advance);
+    Some((leading.value(), trailing.value()))
 }
 
 fn special_geometry_source_range(receipt: LogicalVisualClusterReceipt) -> Option<TextRange> {
@@ -237,7 +250,7 @@ fn sequence_glyph_cluster_advance_span(
     advances: &[f32],
     glyph_source_range: TextRange,
 ) -> Option<(f32, f32, bool)> {
-    let mut advance = 0.0;
+    let mut advance = FiniteGeometryAccumulator::default();
     let mut span = None;
     let mut ended = false;
     let mut right_to_left = None;
@@ -245,7 +258,8 @@ fn sequence_glyph_cluster_advance_span(
         .visual_cluster_receipts()
         .zip(advances.iter().copied())
     {
-        let trailing = advance + finite_non_negative(cluster_advance);
+        let leading = advance.value();
+        let trailing = advance.add(finite_non_negative(cluster_advance));
         let belongs = !receipt.external
             && sequence_cluster_belongs_to_glyph(receipt.source_range, glyph_source_range);
         if belongs {
@@ -253,12 +267,11 @@ fn sequence_glyph_cluster_advance_span(
                 return None;
             }
             right_to_left.get_or_insert(receipt.right_to_left);
-            let leading = span.map_or(advance, |(leading, _)| leading);
-            span = Some((leading, trailing));
+            let span_leading = span.map_or(leading, |(span_leading, _)| span_leading);
+            span = Some((span_leading, trailing));
         } else if span.is_some() {
             ended = true;
         }
-        advance = trailing;
     }
     span.zip(right_to_left)
         .map(|((leading, trailing), right_to_left)| (leading, trailing, right_to_left))
@@ -287,12 +300,13 @@ fn sequence_range_advance_spans(
     let mut glyph_clusters = text_glyph_clusters(glyphs);
     let mut current_glyph = glyph_clusters.next();
     let mut spans = Vec::new();
-    let mut advance = 0.0;
+    let mut advance = FiniteGeometryAccumulator::default();
     for (receipt, cluster_advance) in sequence
         .visual_cluster_receipts()
         .zip(advances.iter().copied())
     {
-        let trailing = advance + finite_non_negative(cluster_advance);
+        let leading = advance.value();
+        let trailing = advance.add(finite_non_negative(cluster_advance));
         let source_range = if let Some(source_range) = special_geometry_source_range(receipt) {
             source_range
         } else {
@@ -306,9 +320,8 @@ fn sequence_range_advance_spans(
             glyph.source_range
         };
         if source_ranges_overlap(source_range, range) {
-            spans.push((advance, trailing));
+            spans.push((leading, trailing));
         }
-        advance = trailing;
     }
     merge_advance_spans(spans)
 }

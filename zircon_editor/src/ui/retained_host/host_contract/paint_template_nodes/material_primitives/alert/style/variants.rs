@@ -1,6 +1,7 @@
 use super::super::super::{component_variant_contains, first_non_empty};
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 
+// 调色板和图标共用 severity 选择；显式 variant 优先于校验状态和文字语气。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_color_token(
     node: &TemplatePaneNodeData,
 ) -> &str {
@@ -38,17 +39,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_i
 }
 
 #[cfg(test)]
-mod tests {
-    use super::alert_color_token;
-    use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-
-    #[test]
-    fn mixed_case_material_alert_variant_preserves_color_precedence() {
-        let node = TemplatePaneNodeData {
-            component_variant: "colorWaRnInG colorSuccess".into(),
-            ..TemplatePaneNodeData::default()
-        };
-
-        assert_eq!(alert_color_token(&node), "success");
-    }
-}
+#[path = "tests/variants.rs"]
+mod tests;

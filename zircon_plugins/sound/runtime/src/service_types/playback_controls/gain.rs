@@ -13,6 +13,7 @@ impl DefaultSoundManager {
     ) -> Result<(), SoundError> {
         ensure_finite_value("playback gain", gain)?;
         let mut state = lock_recover(&self.state);
+        state.kira.ensure_control_available()?;
         state.poll_kira_completions();
         let muted = state
             .playbacks

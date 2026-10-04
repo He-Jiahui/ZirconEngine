@@ -4,7 +4,6 @@ related_code:
   - zircon_runtime/src/core/framework/time/clock.rs
   - zircon_runtime/src/core/framework/time/fixed.rs
   - zircon_runtime/src/core/framework/time/fixed_step_plan.rs
-  - zircon_runtime/src/core/framework/time/real.rs
   - zircon_runtime/src/core/framework/time/virtual_clock.rs
   - zircon_runtime/src/core/runtime/frame_clock.rs
   - zircon_runtime/src/core/runtime/time.rs

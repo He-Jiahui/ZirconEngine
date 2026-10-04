@@ -9,19 +9,19 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 OPERATION_AUDIT_SCHEMA_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_pipeline_report_native_dynamic_operation_audit_schema.py"
+    / "tools/export/tests/test_pipeline_report_native_dynamic_operation_audit_schema.py"
 )
 OPERATION_AUDIT_IDENTITY_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_pipeline_report_native_dynamic_operation_audit_identity_schema.py"
+    / "tools/export/tests/test_pipeline_report_native_dynamic_operation_audit_identity_schema.py"
 )
 OPERATION_AUDIT_PLATFORM_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_pipeline_report_native_dynamic_operation_audit_platform_schema.py"
+    / "tools/export/tests/test_pipeline_report_native_dynamic_operation_audit_platform_schema.py"
 )
 OPERATION_AUDIT_TEST_SUPPORT = (
     REPO_ROOT
-    / "tools/zircon_export/tests/native_dynamic_operation_audit_test_support.py"
+    / "tools/export/tests/native_dynamic_operation_audit_test_support.py"
 )
 
 IDENTITY_TEST_METHODS = (
@@ -129,7 +129,7 @@ class NativeDynamicOperationAuditSchemaTestOwnerBoundaryTests(unittest.TestCase)
                 text = path.read_text(encoding="utf-8") if path.exists() else ""
                 self.assertNotIn("def _write_native_dynamic_reports(", text)
                 self.assertIn(
-                    "from tools.zircon_export.tests.native_dynamic_operation_audit_test_support import",
+                    "from tools.export.tests.native_dynamic_operation_audit_test_support import",
                     text,
                 )
 

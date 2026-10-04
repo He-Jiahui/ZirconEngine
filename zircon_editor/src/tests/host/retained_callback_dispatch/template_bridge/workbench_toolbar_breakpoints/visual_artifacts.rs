@@ -1,6 +1,16 @@
+use super::super::super::support::{
+    env_lock, BuiltinWorkbenchWindowTemplateSurfaceBridge, UiEventKind, UiFrame, UiSize,
+};
+use super::support::{
+    assert_frame_value, workbench_window_node, COMPACT_WORKBENCH_HEIGHT, COMPACT_WORKBENCH_WIDTH,
+    FULL_WORKBENCH_HEIGHT, FULL_WORKBENCH_WIDTH, NARROW_WORKBENCH_HEIGHT, NARROW_WORKBENCH_WIDTH,
+};
+use crate::ui::retained_host::paint_runtime_render_commands_for_test;
 use std::path::PathBuf;
 
-use super::*;
+const MODULE_OVERFLOW_SCREENSHOT: &str = "editor-window-m3-workbench-module-overflow-900x620.png";
+const MVP_RUN_CONTROLS_SCREENSHOT: &str = "editor-window-m3-workbench-mvp-run-controls-640x520.png";
+const RUN_MODE_SCREENSHOT: &str = "editor-window-m3-workbench-run-mode-1672x941.png";
 
 #[test]
 #[ignore = "writes a visual artifact under docs/tests/editor"]
@@ -161,4 +171,59 @@ fn pixel(bytes: &[u8], width: u32, x: u32, y: u32) -> [u8; 4] {
         bytes[offset + 2],
         bytes[offset + 3],
     ]
+}
+
+#[test]
+#[ignore = "writes a visual artifact under docs/tests/editor"]
+fn capture_full_workbench_run_mode_visual_artifact() {
+    let _guard = match env_lock().lock() {
+        Ok(guard) => guard,
+        Err(error) => panic!("test environment lock is poisoned: {error}"),
+    };
+
+    let bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(
+        FULL_WORKBENCH_WIDTH as f32,
+        FULL_WORKBENCH_HEIGHT as f32,
+    ))
+    .expect("workbench bridge should build");
+    let run_mode_frame = bridge
+        .control_frame("WorkbenchRunMode")
+        .expect("full toolbar should expose the run mode trigger");
+    let run_mode = workbench_window_node(&bridge, "WorkbenchRunMode");
+    assert_eq!(
+        run_mode.icon_name.as_str(),
+        "zircon_editor_shell/toolbar/dropdown.svg",
+        "run mode should use a toolbar dropdown glyph for the visual artifact"
+    );
+
+    let bytes = paint_runtime_render_commands_for_test(
+        FULL_WORKBENCH_WIDTH,
+        FULL_WORKBENCH_HEIGHT,
+        &bridge.surface().render_extract.list.commands,
+    );
+    assert!(
+        first_non_black_pixel_in_frame(
+            &bytes,
+            FULL_WORKBENCH_WIDTH,
+            FULL_WORKBENCH_HEIGHT,
+            run_mode_frame
+        )
+        .is_some(),
+        "visible run mode trigger should paint pixels in the full-width artifact"
+    );
+
+    let path = screenshot_path(RUN_MODE_SCREENSHOT);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).expect("run mode screenshot directory should exist");
+    }
+    image::save_buffer_with_format(
+        &path,
+        &bytes,
+        FULL_WORKBENCH_WIDTH,
+        FULL_WORKBENCH_HEIGHT,
+        image::ColorType::Rgba8,
+        image::ImageFormat::Png,
+    )
+    .expect("run mode screenshot should be written");
+    println!("wrote {}", path.display());
 }

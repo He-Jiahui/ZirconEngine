@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对着色器预热的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 const STATUS: &str =
@@ -9,11 +10,11 @@ fn runtime_15_shader_prewarm_wgpu_validation_report_summary_is_wired() {
     let shader_mod = read_runtime_src("core/framework/render/shader/mod.rs");
     let render_mod = read_runtime_src("core/framework/render/mod.rs");
     let prewarm_worker = read_runtime_src("graphics/shader/variant_cache/prewarm/worker.rs");
-    let prewarm_tests = read_runtime_src("graphics/shader/variant_cache/prewarm/tests.rs");
+    let prewarm_tests = read_runtime_src("graphics/shader/variant_cache/prewarm/tests/cases.rs");
     let dynamic_api = read_runtime_src("dynamic_api/shader_prewarm.rs");
     let wgpu_validation = read_runtime_src("dynamic_api/shader_prewarm/wgpu_validation.rs");
-    let build_prewarm = read_repo("tools/zircon_build_shader_prewarm.py");
-    let report_contract = read_repo("tools/zircon_build_shader_prewarm_report_contract.py");
+    let build_prewarm = read_repo("tools/build/zircon_build_shader_prewarm.py");
+    let report_contract = read_repo("tools/build/zircon_build_shader_prewarm_report_contract.py");
     let build_prewarm_tests = read_repo("tools/tests/test_zircon_build_shader_prewarm.py");
     let plan_08 = read_repo(
         "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
@@ -114,7 +115,7 @@ fn runtime_15_shader_prewarm_wgpu_validation_report_summary_is_wired() {
             prewarm_worker.as_str(),
         ),
         (
-            "zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests.rs",
+            "zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests/cases.rs",
             prewarm_tests.as_str(),
         ),
         (
@@ -122,11 +123,11 @@ fn runtime_15_shader_prewarm_wgpu_validation_report_summary_is_wired() {
             wgpu_validation.as_str(),
         ),
         (
-            "tools/zircon_build_shader_prewarm.py",
+            "tools/build/zircon_build_shader_prewarm.py",
             build_prewarm.as_str(),
         ),
         (
-            "tools/zircon_build_shader_prewarm_report_contract.py",
+            "tools/build/zircon_build_shader_prewarm_report_contract.py",
             report_contract.as_str(),
         ),
         (

@@ -12,7 +12,7 @@ implementation_files:
   - zircon_runtime/src/core/runtime/lifecycle.rs
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
-  - docs/engine-architecture/core-runtime-service-registry.md
+  - docs/architecture/core-runtime-service-registry.md
 tests:
   - zircon_runtime/src/core/runtime/tests/activation
   - zircon_runtime/src/core/runtime/tests/registration

@@ -1,10 +1,11 @@
+//! 输入动作、手柄、宿主请求与公共契约保持由运行时输入栈拥有。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn runtime_12_gamepad_bridge_keeps_runtime_abi_path() {
     let runtime_12_plan = include_str!(
         "../../../../../docs/plans/zircon_runtime/runtime/12-input-stack-and-action-mapping.md"
     );
     let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let input_doc = include_str!("../../../../../docs/zircon_runtime/input/input_state.md");
+    let input_doc = include_str!("../../../../../docs/crates/zircon_runtime/input/input_state.md");
     let gamepad_contract = include_str!("../../../core/framework/input/gamepad.rs");
     let input_event = include_str!("../../../core/framework/input/input_event.rs");
     let gamepad_tests = include_str!("../../../input/tests/gamepad_bridge.rs");

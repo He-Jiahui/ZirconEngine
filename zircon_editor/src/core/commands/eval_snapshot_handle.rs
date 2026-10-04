@@ -1,3 +1,5 @@
+//! 把交互命令上下文作为一个版本化快照共享给发现与可用性投影；代次只随语义改变递增，供缓存判断是否需要重算。
+
 use std::sync::{Arc, RwLock};
 
 use super::CommandEvalCtx;
@@ -38,6 +40,7 @@ impl CommandEvalSnapshotHandle {
         (generation, context.as_ref().clone())
     }
 
+    /// 在同一次读锁内返回代次和上下文；缓存键必须使用这一配对，不能分两次读取后拼接。
     pub fn shared_snapshot_with_generation(&self) -> (u64, Arc<CommandEvalCtx>) {
         let snapshot = self
             .snapshot
@@ -54,6 +57,7 @@ impl CommandEvalSnapshotHandle {
     }
 
     /// Replaces the shared context only when its command semantics changed.
+    /// 由上下文所有者发布完整快照；返回值表示可用性语义是否改变，可据此避免无效投影刷新。
     pub fn replace(&self, context: CommandEvalCtx) -> bool {
         let mut snapshot = self
             .snapshot
@@ -69,56 +73,5 @@ impl CommandEvalSnapshotHandle {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-
-    use super::CommandEvalSnapshotHandle;
-    use crate::core::commands::{CommandEvalCtx, WhenClause};
-
-    #[test]
-    fn equivalent_context_reuses_the_command_eval_generation() {
-        let handle = CommandEvalSnapshotHandle::default();
-
-        assert_eq!(
-            handle.snapshot_with_generation(),
-            (0, CommandEvalCtx::default())
-        );
-        assert!(!handle.replace(CommandEvalCtx::default()));
-        assert_eq!(handle.generation(), 0);
-    }
-
-    #[test]
-    fn semantic_context_changes_advance_the_generation_once() {
-        let handle = CommandEvalSnapshotHandle::default();
-        let selected = CommandEvalCtx::interactive().with_selection_count(1);
-
-        assert!(handle.replace(selected.clone()));
-        assert_eq!(handle.snapshot_with_generation(), (1, selected.clone()));
-        assert!(!handle.replace(selected));
-        assert_eq!(handle.generation(), 1);
-    }
-
-    #[test]
-    fn cloned_handles_share_one_versioned_snapshot() {
-        let handle = CommandEvalSnapshotHandle::default();
-        let clone = handle.clone();
-        let project_open = CommandEvalCtx::interactive().with_project_open(true);
-
-        assert!(clone.replace(project_open.clone()));
-        assert_eq!(handle.snapshot_with_generation(), (1, project_open));
-    }
-
-    #[test]
-    fn shared_snapshot_reuses_one_context_arc_until_semantics_change() {
-        let handle = CommandEvalSnapshotHandle::default();
-
-        let first = handle.shared_snapshot();
-        let second = handle.shared_snapshot();
-        assert!(Arc::ptr_eq(&first, &second));
-
-        assert!(handle.replace(CommandEvalCtx::interactive().with_project_open(true)));
-        let changed = handle.shared_snapshot();
-        assert!(!Arc::ptr_eq(&first, &changed));
-        assert!(WhenClause::ProjectOpen.eval(changed.as_ref()));
-    }
-}
+#[path = "tests/eval_snapshot_handle.rs"]
+mod tests;

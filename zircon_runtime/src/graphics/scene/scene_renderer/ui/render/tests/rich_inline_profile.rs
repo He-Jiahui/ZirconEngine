@@ -1,6 +1,6 @@
 use std::ffi::c_void;
 use std::hint::black_box;
-use std::mem::{MaybeUninit, size_of};
+use std::mem::{size_of, MaybeUninit};
 use std::time::Instant;
 
 use super::*;

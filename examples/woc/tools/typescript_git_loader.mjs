@@ -1,3 +1,6 @@
+// 调用端：known_ability_catalog_codegen.mjs and the other pinned TypeScript extractors；职责：为源提取器从同一个固定版本的 WOC Git 树解析并转译 TypeScript 模块。
+// WOC_GIT_ROOT 与 WOC_GIT_COMMIT 选定源树；相对导入保持在该树内。
+
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import ts from 'typescript';
@@ -8,6 +11,7 @@ if (!repository || !commit) {
   throw new Error('WOC_GIT_ROOT and WOC_GIT_COMMIT are required');
 }
 
+// 只在 wocgit:/// 内解析相对导入；原生模块和包仍交给 Node 加载器。
 export async function resolve(specifier, context, nextResolve) {
   if (specifier.startsWith('wocgit:')) return { url: specifier, shortCircuit: true };
   if (!context.parentURL?.startsWith('wocgit:') ||
@@ -26,6 +30,7 @@ export async function resolve(specifier, context, nextResolve) {
   throw new Error(`cannot resolve ${specifier} from ${context.parentURL}`);
 }
 
+// 将选定的 Git blob 转译为 ES2022，不从可能有外来改动的工作树解析导入。
 export async function load(url, context, nextLoad) {
   if (!url.startsWith('wocgit:')) return nextLoad(url, context);
   const sourcePath = gitPath(url);

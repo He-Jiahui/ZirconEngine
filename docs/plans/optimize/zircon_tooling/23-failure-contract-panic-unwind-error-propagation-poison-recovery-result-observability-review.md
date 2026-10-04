@@ -14,7 +14,6 @@ related_code:
   - zircon_editor/src/core/play/process_backend/output.rs
   - zircon_editor/src/core/plugin/manager.rs
   - zircon_editor/src/core/process.rs
-  - zircon_editor/src/core/recovery/autosave.rs
   - zircon_editor/src/core/recovery/session_guard/ownership_lease.rs
   - zircon_editor/src/core/runtime_event_consumer/host.rs
   - zircon_editor/src/core/settings/snapshot.rs
@@ -36,7 +35,6 @@ related_code:
   - zircon_runtime/src/asset/assets/texture/upload_support/ktx.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
   - zircon_runtime/src/asset/runtime_asset_path.rs
-  - zircon_runtime/src/core/resource/io/atomic_file/transaction.rs
   - zircon_runtime/src/core/runtime/config_store.rs
   - zircon_runtime/src/core/runtime/handle/activation.rs
   - zircon_runtime/src/core/runtime/handle/registration/descriptor_entries.rs

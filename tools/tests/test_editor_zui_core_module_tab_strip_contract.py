@@ -1,3 +1,4 @@
+# 核对核心模块侧栏使用固定标题和可滚动真实内容。
 import tomllib
 import unittest
 from pathlib import Path

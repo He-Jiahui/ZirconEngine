@@ -3,11 +3,6 @@ record_kind: implementation_plan
 status: planned
 owner_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
 related_code:
-  - tools/session_coordinator/migrations.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/control_plane/snapshot.py
-  - tools/session_coordinator/codex_sync/history.py
-  - tools/session_coordinator/tests/test_ai_effort_api.py
 plan_sources:
   - user: 2026-07-15 AI 会话工期、挣值、日历工期与预算记录口径
   - docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md

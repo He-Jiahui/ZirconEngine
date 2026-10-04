@@ -6,6 +6,7 @@ const GRID_HALF_EXTENT: i32 = 10;
 const GRID_VERTICES_PER_INDEX: usize = 4;
 const GRID_INDEX_COUNT: usize = (GRID_HALF_EXTENT * 2 + 1) as usize;
 
+/// 生成固定范围的编辑器参考网格；overlay 初始化时创建一次缓冲，随相机由线条管线投影。
 pub(crate) fn build_grid_vertices() -> Vec<LineVertex> {
     let mut vertices = Vec::with_capacity(GRID_INDEX_COUNT * GRID_VERTICES_PER_INDEX);
     let extent = GRID_HALF_EXTENT as f32;
@@ -27,5 +28,5 @@ pub(crate) fn build_grid_vertices() -> Vec<LineVertex> {
 }
 
 #[cfg(test)]
-#[path = "build_grid_vertices/capacity_tests.rs"]
+#[path = "build_grid_vertices/tests/capacity_tests.rs"]
 mod capacity_tests;

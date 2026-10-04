@@ -178,23 +178,27 @@ impl PlayHierarchyProjection {
         }
 
         let previous = previous.expect("non-reflow projection must have a same-identity base");
-        let changed_rows = previous
-            .rows
-            .iter()
-            .zip(rows.iter())
-            .filter_map(|(previous, current)| (previous != current).then(|| current.clone()))
-            .collect::<Vec<_>>();
+        let mut changed_rows = Vec::with_capacity(rows.len());
+        for (previous_row, current_row) in previous.rows.iter().zip(rows.iter()) {
+            if previous_row != current_row {
+                changed_rows.push(current_row.clone());
+            }
+        }
         let selection = selection_delta(previous, selection_revision, &selected_entities);
         let selection_changed = selection_revision != previous.selection_revision;
         if generation == previous.generation && changed_rows.is_empty() && !selection_changed {
             return Ok(None);
+        }
+        let mut changed_anchors = Vec::with_capacity(changed_rows.len());
+        for row in &changed_rows {
+            changed_anchors.push(hierarchy_anchor(row));
         }
         let message = SceneInspectionMessage::delta(
             previous.generation,
             generation,
             focused_entity,
             Vec::new(),
-            changed_rows.iter().map(hierarchy_anchor).collect(),
+            changed_anchors,
             Vec::new(),
             false,
             SceneInspectionFieldsDelta::unchanged(focused_entity),
@@ -333,182 +337,9 @@ fn selection_delta(
 }
 
 #[cfg(test)]
-mod tests {
-    use zircon_runtime_interface::world_sync::{WorldHierarchyRow, WorldQueryResult};
-    use zircon_runtime_interface::{GatewaySessionIdentity, ZrRuntimeSessionHandle};
+#[path = "tests/play_hierarchy_projection_optimization_batch_tests.rs"]
+mod optimization_batch_tests;
 
-    use super::PlayHierarchyProjection;
-
-    fn identity(gateway_generation: u64) -> GatewaySessionIdentity {
-        GatewaySessionIdentity::new(3, ZrRuntimeSessionHandle::new(5), 7, Some(11))
-            .with_gateway_generation(gateway_generation)
-    }
-
-    fn row(entity: u64, parent: Option<u64>, depth: u32, display_name: &str) -> WorldHierarchyRow {
-        WorldHierarchyRow {
-            entity,
-            parent,
-            depth,
-            display_name: display_name.to_string(),
-            kind: "Entity".to_string(),
-            subtree_hash: entity.wrapping_mul(17),
-            active_in_hierarchy: true,
-            has_children: false,
-        }
-    }
-
-    #[test]
-    fn first_identity_snapshot_requires_a_complete_reflow() {
-        let mut projection = PlayHierarchyProjection::default();
-
-        let fragment = projection
-            .apply(
-                identity(1),
-                WorldQueryResult::HierarchyRows {
-                    generation: 4,
-                    rows: vec![row(1, None, 0, "Root")],
-                },
-                Some(1),
-                8,
-                [1],
-                false,
-            )
-            .expect("first hierarchy response should be valid")
-            .expect("first hierarchy response should publish a fragment");
-
-        assert!(fragment.reflow_entries().is_some());
-        assert_eq!(fragment.message().generation(), 4);
-        assert!(fragment.message().requires_resync());
-    }
-
-    #[test]
-    fn world_replacement_clear_removes_the_generation_hint_and_rows() {
-        let current_identity = identity(1);
-        let mut projection = PlayHierarchyProjection::default();
-        projection
-            .apply(
-                current_identity.clone(),
-                WorldQueryResult::HierarchyRows {
-                    generation: 4,
-                    rows: vec![row(1, None, 0, "Root")],
-                },
-                Some(1),
-                8,
-                [1],
-                false,
-            )
-            .unwrap();
-
-        assert!(projection.clear());
-        assert_eq!(projection.generation_hint(&current_identity), None);
-        assert_eq!(projection.row(1), None);
-        assert!(!projection.clear());
-    }
-
-    #[test]
-    fn same_topology_value_change_uses_a_sparse_patch() {
-        let mut projection = PlayHierarchyProjection::default();
-        projection
-            .apply(
-                identity(1),
-                WorldQueryResult::HierarchyRows {
-                    generation: 4,
-                    rows: vec![row(1, None, 0, "Before")],
-                },
-                Some(1),
-                8,
-                [1],
-                false,
-            )
-            .expect("base hierarchy should be valid");
-
-        let fragment = projection
-            .apply(
-                identity(1),
-                WorldQueryResult::HierarchyRows {
-                    generation: 5,
-                    rows: vec![row(1, None, 0, "After")],
-                },
-                Some(1),
-                8,
-                [1],
-                false,
-            )
-            .expect("changed hierarchy should be valid")
-            .expect("changed hierarchy should publish a fragment");
-
-        assert_eq!(fragment.changed_rows().map(|rows| rows.len()), Some(1));
-        assert!(fragment.reflow_entries().is_none());
-        assert_eq!(fragment.message().previous_generation(), Some(4));
-    }
-
-    #[test]
-    fn spawn_or_reparent_forces_a_complete_reflow() {
-        let mut projection = PlayHierarchyProjection::default();
-        projection
-            .apply(
-                identity(1),
-                WorldQueryResult::HierarchyRows {
-                    generation: 4,
-                    rows: vec![row(1, None, 0, "Root")],
-                },
-                None,
-                1,
-                [],
-                false,
-            )
-            .expect("base hierarchy should be valid");
-
-        let fragment = projection
-            .apply(
-                identity(1),
-                WorldQueryResult::HierarchyRows {
-                    generation: 5,
-                    rows: vec![row(1, None, 0, "Root"), row(2, Some(1), 1, "Child")],
-                },
-                None,
-                1,
-                [],
-                false,
-            )
-            .expect("structural hierarchy should be valid")
-            .expect("structural hierarchy should publish a fragment");
-
-        assert_eq!(fragment.reflow_entries().map(|rows| rows.len()), Some(2));
-        assert!(fragment.message().requires_resync());
-    }
-
-    #[test]
-    fn not_modified_can_still_advance_the_play_selection_overlay() {
-        let mut projection = PlayHierarchyProjection::default();
-        projection
-            .apply(
-                identity(1),
-                WorldQueryResult::HierarchyRows {
-                    generation: 4,
-                    rows: vec![row(1, None, 0, "Root")],
-                },
-                None,
-                2,
-                [],
-                false,
-            )
-            .expect("base hierarchy should be valid");
-
-        let fragment = projection
-            .apply(
-                identity(1),
-                WorldQueryResult::NotModified { generation: 4 },
-                Some(1),
-                3,
-                [1],
-                false,
-            )
-            .expect("selection-only update should be valid")
-            .expect("selection-only update should publish a fragment");
-
-        assert!(fragment.changed_rows().is_some_and(|rows| rows.is_empty()));
-        assert_eq!(fragment.message().selection().previous_revision(), Some(2));
-        assert_eq!(fragment.message().selection().added_entities(), &[1]);
-    }
-}
+#[cfg(test)]
+#[path = "tests/play_hierarchy_projection.rs"]
+mod tests;

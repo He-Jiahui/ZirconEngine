@@ -1,12 +1,13 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0045] 帧提交上下文的特性开关与抖动测试的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_render_frame_submission_context_tests_are_child_owner() {
     let parent = read_runtime_src(
         "graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs",
     );
     let tests = read_runtime_src(
-        "graphics/runtime/render_framework/submit_frame_extract/frame_submission_context/tests.rs",
+        "graphics/runtime/render_framework/submit_frame_extract/frame_submission_context/tests/cases.rs",
     );
 
     let plan_09 = read_repo(
@@ -74,7 +75,7 @@ fn runtime_15_render_frame_submission_context_tests_are_child_owner() {
             parent.as_str(),
         ),
         (
-            "graphics/runtime/render_framework/submit_frame_extract/frame_submission_context/tests.rs",
+            "graphics/runtime/render_framework/submit_frame_extract/frame_submission_context/tests/cases.rs",
             tests.as_str(),
         ),
     ] {

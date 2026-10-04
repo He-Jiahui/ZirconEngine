@@ -79,8 +79,10 @@ class Editor04PlayHistoryContextContractTests(unittest.TestCase):
         self.assertNotIn("pub fn detach_play_gateway", host)
 
     def test_terminal_detach_runs_extension_cleanup_outside_the_transition_gate(self) -> None:
-        controller = read("zircon_editor/src/core/play/controller.rs")
-        body = controller.split("fn detach_terminal_play_gateway", 1)[1].split(
+        runtime_ownership = read(
+            "zircon_editor/src/core/play/controller/runtime_ownership.rs"
+        )
+        body = runtime_ownership.split("fn detach_terminal_play_gateway", 1)[1].split(
             "pub fn attached_world_domain", 1
         )[0]
 
@@ -89,8 +91,10 @@ class Editor04PlayHistoryContextContractTests(unittest.TestCase):
         self.assertLess(body.index("drop(transition)"), body.index("prepare(instance)"))
 
     def test_backend_retirement_waits_for_terminal_gateway_detachment(self) -> None:
-        controller = read("zircon_editor/src/core/play/controller.rs")
-        body = controller.split("pub fn retire_terminal_backend", 1)[1].split(
+        runtime_ownership = read(
+            "zircon_editor/src/core/play/controller/runtime_ownership.rs"
+        )
+        body = runtime_ownership.split("pub fn retire_terminal_backend", 1)[1].split(
             "fn plugin_activation", 1
         )[0]
 

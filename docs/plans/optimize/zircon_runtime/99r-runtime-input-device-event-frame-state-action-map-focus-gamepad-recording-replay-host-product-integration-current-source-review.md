@@ -378,3 +378,20 @@ Runtime117拥有输入纵向组合、状态一致性、Action产品接线、stab
 | 动态、设备、回放、soak、性能验证 | pending | 本轮未运行，不能作竞争性结论 |
 
 Runtime117 review完成不等于输入系统完成。任何Input ABI、Runtime UI propagation、module profile、script host、device identity、recording schema或product consumer变化都必须重读current source并刷新状态；Runtime12 open failure未关闭前，不得把局部poll budget或ignored microbenchmark当作输入栈验收。
+
+## 13. 2026-09-01 current-source delta
+
+Focused runtime input 已扩展到 40 个 Rust 文件、6,714 行、81 tests；旧 32 文件
+快照与“UI 普遍先于 physical submit”的结论不再代表 current source。当前 keyboard、
+pointer、touch、wheel 与 gamepad 路由均先提交 physical state；text/IME 仍为 UI-first
+策略。`GamepadAxis` transition 的逐事件线性搜索已局部替换为 frame-local index，
+保持 first-observation order、first previous 和 latest value。
+
+这不改变 Runtime117 的架构结论：readiness、qualified device/window/player/time/sequence、
+immutable publication、ownership decision、product action schedule、bounded journal/replay 与
+shutdown generation 仍未完成。Runtime12 structure/input-order Python contracts 6/6 通过；
+managed focused Cargo 已进入执行，但由 foreign
+`zr_rhi_wgpu/render_pass_validation.rs:455` 缺失 `texture_view_layer_count` 阻塞，
+input tests 为 0 执行，故 Gate 仍 Fail。
+完整 current-source closure 见
+[`../../../performance/01/2026-09-01-runtime-input-current-source-closure.md`](../../../performance/01/2026-09-01-runtime-input-current-source-closure.md)。

@@ -71,6 +71,10 @@ fn scan_budget_caps_pairs_per_frame() {
     let mut budget = AiTickBudget::new(2);
     let mut perceived = PerceivedStimuli::default();
     let mut event_adapter = HearingStimulusAdapter::default();
+    let (_registry, import, _provider_owner) = physics_import(Some(PhysicsHits {
+        hits: Vec::new(),
+        calls: Arc::new(AtomicUsize::new(0)),
+    }));
 
     let first = tick_perception(
         &world,
@@ -80,12 +84,26 @@ fn scan_budget_caps_pairs_per_frame() {
         &mut perceived,
         &mut event_adapter,
         &[],
-        None,
+        Some(&import),
     );
 
     assert_eq!(first.scanned_pairs, 2);
     assert_eq!(budget.consumed_pairs(), 2);
     assert_eq!(perceived.snapshot(receiver).unwrap().stimuli.len(), 2);
+
+    // A new tick gets a fresh pair budget while preserving the configured cap.
+    let second = tick_perception(
+        &world,
+        TEST_WORLD,
+        0.0,
+        &mut budget,
+        &mut perceived,
+        &mut event_adapter,
+        &[],
+        Some(&import),
+    );
+    assert_eq!(second.scanned_pairs, 2);
+    assert_eq!(budget.consumed_pairs(), 2);
 }
 
 #[test]
@@ -102,6 +120,10 @@ fn scan_cursor_rotates_across_pair_budget() {
     let mut budget = AiTickBudget::new(2);
     let mut perceived = PerceivedStimuli::default();
     let mut event_adapter = HearingStimulusAdapter::default();
+    let (_registry, import, _provider_owner) = physics_import(Some(PhysicsHits {
+        hits: Vec::new(),
+        calls: Arc::new(AtomicUsize::new(0)),
+    }));
 
     for _ in 0..2 {
         let report = tick_perception(
@@ -112,9 +134,10 @@ fn scan_cursor_rotates_across_pair_budget() {
             &mut perceived,
             &mut event_adapter,
             &[],
-            None,
+            Some(&import),
         );
         assert_eq!(report.scanned_pairs, 2);
+        assert_eq!(budget.consumed_pairs(), 2);
     }
 
     assert_eq!(perceived.snapshot(receiver).unwrap().stimuli.len(), 4);
@@ -132,6 +155,10 @@ fn stimulus_forgotten_after_timeout() {
     let mut budget = AiTickBudget::new(1);
     let mut perceived = PerceivedStimuli::default();
     let mut event_adapter = HearingStimulusAdapter::default();
+    let (_registry, import, _provider_owner) = physics_import(Some(PhysicsHits {
+        hits: Vec::new(),
+        calls: Arc::new(AtomicUsize::new(0)),
+    }));
     tick_perception(
         &world,
         TEST_WORLD,
@@ -140,7 +167,7 @@ fn stimulus_forgotten_after_timeout() {
         &mut perceived,
         &mut event_adapter,
         &[],
-        None,
+        Some(&import),
     );
     assert_eq!(perceived.snapshot(receiver).unwrap().stimuli.len(), 1);
 
@@ -153,7 +180,7 @@ fn stimulus_forgotten_after_timeout() {
         &mut perceived,
         &mut event_adapter,
         &[],
-        None,
+        Some(&import),
     );
 
     assert_eq!(report.forgotten_stimuli, 1);
@@ -217,7 +244,7 @@ fn sight_uses_nearest_bridge_hit_even_when_results_are_unsorted() {
 }
 
 #[test]
-fn no_physics_falls_back_to_cone_test() {
+fn no_physics_keeps_sight_unknown_instead_of_falling_back_to_visible() {
     let mut world = World::empty();
     let receiver = spawn_receiver(&mut world, Vec3::ZERO, receiver_config(1.0));
     let source = spawn_source(
@@ -243,7 +270,7 @@ fn no_physics_falls_back_to_cone_test() {
 
     assert_eq!(report.fallback_sight_pairs, 1);
     let snapshot = perceived.snapshot(receiver).unwrap();
-    assert!(snapshot.stimuli.iter().any(|stimulus| {
+    assert!(!snapshot.stimuli.iter().any(|stimulus| {
         stimulus.source == source && stimulus.sense == AiPerceptionSense::Sight
     }));
 }
@@ -433,6 +460,10 @@ fn event_and_static_pairs_share_budget_without_starvation() {
     let mut budget = AiTickBudget::new(1);
     let mut perceived = PerceivedStimuli::default();
     let mut event_adapter = HearingStimulusAdapter::default();
+    let (_registry, import, _provider_owner) = physics_import(Some(PhysicsHits {
+        hits: Vec::new(),
+        calls: Arc::new(AtomicUsize::new(0)),
+    }));
 
     let first = tick_perception(
         &world,
@@ -442,7 +473,7 @@ fn event_and_static_pairs_share_budget_without_starvation() {
         &mut perceived,
         &mut event_adapter,
         &[event],
-        None,
+        Some(&import),
     );
     assert_eq!(first.scanned_pairs, 1);
     assert_eq!(first.event_pairs, 0);
@@ -462,7 +493,7 @@ fn event_and_static_pairs_share_budget_without_starvation() {
         &mut perceived,
         &mut event_adapter,
         &[],
-        None,
+        Some(&import),
     );
     assert_eq!(second.scanned_pairs, 1);
     assert_eq!(second.event_pairs, 1);
@@ -518,6 +549,10 @@ fn authored_dynamic_components_feed_perception_scan() {
     let mut budget = AiTickBudget::new(1);
     let mut perceived = PerceivedStimuli::default();
     let mut event_adapter = HearingStimulusAdapter::default();
+    let (_registry, import, _provider_owner) = physics_import(Some(PhysicsHits {
+        hits: Vec::new(),
+        calls: Arc::new(AtomicUsize::new(0)),
+    }));
 
     let report = tick_perception(
         &world,
@@ -527,7 +562,7 @@ fn authored_dynamic_components_feed_perception_scan() {
         &mut perceived,
         &mut event_adapter,
         &[],
-        None,
+        Some(&import),
     );
 
     assert_eq!(report.scanned_pairs, 1);
@@ -595,7 +630,7 @@ fn physics_import_tracks_disable_reload_and_revoke() {
     );
     let blocked_calls = Arc::new(AtomicUsize::new(0));
     let (mut registry, import, provider_owner) = physics_import(Some(PhysicsHits {
-        hits: vec![ray_hit(999, 1.0), ray_hit(source, 3.0)],
+        hits: vec![ray_hit(source, 3.0)],
         calls: blocked_calls.clone(),
     }));
     let provider_owner = provider_owner.unwrap();
@@ -616,6 +651,14 @@ fn physics_import_tracks_disable_reload_and_revoke() {
     );
     assert_eq!(blocked.physics_queries, 1);
     assert_eq!(blocked_calls.load(Ordering::Relaxed), 1);
+    assert!(perceived
+        .snapshot(_receiver)
+        .unwrap()
+        .stimuli
+        .iter()
+        .any(|stimulus| {
+            stimulus.source == source && stimulus.sense == AiPerceptionSense::Sight
+        }));
 
     table.set_owner_enabled(provider_owner, false);
     let disabled = tick_perception(
@@ -630,6 +673,14 @@ fn physics_import_tracks_disable_reload_and_revoke() {
     );
     assert_eq!(disabled.fallback_sight_pairs, 1);
     assert_eq!(blocked_calls.load(Ordering::Relaxed), 1);
+    assert!(!perceived
+        .snapshot(_receiver)
+        .unwrap()
+        .stimuli
+        .iter()
+        .any(|stimulus| {
+            stimulus.source == source && stimulus.sense == AiPerceptionSense::Sight
+        }));
 
     let reloaded_calls = Arc::new(AtomicUsize::new(0));
     let slot = table.resolve_slot(PHYSICS_QUERY_INTERFACE_ID).unwrap();
@@ -745,8 +796,9 @@ fn perception_scene_system_updates_the_shared_ai_manager() {
     let snapshot = manager
         .perception_snapshot(world_handle, receiver)
         .expect("perception system stores the receiver snapshot");
-    assert_eq!(snapshot.stimuli.len(), 1);
-    assert_eq!(snapshot.stimuli[0].sense, AiPerceptionSense::Sight);
+    // Physics is an optional provider for the AI plugin. Without a resolved LOS
+    // provider, sight remains unknown rather than being treated as visible.
+    assert!(snapshot.stimuli.is_empty());
 }
 
 #[test]

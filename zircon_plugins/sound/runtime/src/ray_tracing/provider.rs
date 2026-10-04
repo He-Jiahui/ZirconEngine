@@ -4,7 +4,7 @@ use zircon_runtime::core::framework::sound::{
 
 use crate::engine::SoundEngineState;
 
-use super::status::refresh_ray_tracing_status;
+use super::status::refresh_ray_tracing_status_for_state;
 use super::validation::validate_ray_traced_impulse_response;
 
 pub(crate) fn submit_ray_traced_impulse_response(
@@ -18,7 +18,7 @@ pub(crate) fn submit_ray_traced_impulse_response(
     state
         .ray_traced_impulse_responses
         .insert(descriptor.impulse_response, descriptor);
-    refresh_ray_tracing_status(&mut state.ray_tracing, &state.ray_traced_impulse_responses);
+    refresh_ray_tracing_status_for_state(state);
     Ok(())
 }
 
@@ -31,6 +31,6 @@ pub(crate) fn clear_ray_traced_impulse_response(
         .remove(&impulse_response)
         .ok_or(SoundError::UnknownImpulseResponse { impulse_response })?;
     state.impulse_responses.remove(&impulse_response);
-    refresh_ray_tracing_status(&mut state.ray_tracing, &state.ray_traced_impulse_responses);
+    refresh_ray_tracing_status_for_state(state);
     Ok(())
 }

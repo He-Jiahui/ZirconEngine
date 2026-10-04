@@ -24,6 +24,8 @@ mod metadata_dirty;
 pub(crate) use self::metadata_batch::mutate_tree_metadata_properties;
 use self::metadata_dirty::{metadata_attribute_dirty, render_dirty};
 
+/// 送入 surface 属性事务的写入意图；source 标识来源，不授予绕过控件校验的权限。
+/// 宿主或反射工具应消费返回报告中的拒绝原因、失效域和绑定更新，而非直接改树字段。
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiPropertyMutationRequest {
     pub node_id: UiNodeId,
@@ -87,6 +89,8 @@ pub enum UiPropertyMutationStatus {
     Rejected,
 }
 
+/// 属性写入的可观察结果，汇合绑定回执、失效域与可能的焦点变化。
+/// Rejected 是合法的业务结果；节点不存在才通过外层 UiTreeError 退出。
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiPropertyMutationReport {
     pub node_id: UiNodeId,
@@ -200,6 +204,8 @@ impl UiPropertyMutationReport {
     }
 }
 
+/// 对保留树执行属性类型校验与最小脏域标记，是 surface 事务的底层步骤。
+/// 它不负责组件状态、运行时样式、焦点或异步请求同步；完整交互写入应使用 surface 入口。
 pub fn mutate_tree_property(
     tree: &mut UiTree,
     request: UiPropertyMutationRequest,
@@ -332,9 +338,18 @@ pub fn mutate_tree_property(
             }
         }
     };
+    if matches!(
+        report.status,
+        UiPropertyMutationStatus::Accepted | UiPropertyMutationStatus::Unchanged
+    ) {
+        if let Some(metadata) = node.template_metadata.as_mut() {
+            metadata.localized_text_references.remove(&request.property);
+        }
+    }
     Ok(report)
 }
 
+// 弹层兼容属性若同时存在，必须维持一个开关事实，避免布局与弹层栈分别读取相反值。
 fn popup_open_alias(
     metadata: &UiTemplateNodeMetadata,
     property: &str,
@@ -576,6 +591,7 @@ fn visibility_dirty(visibility: UiVisibility) -> UiDirtyFlags {
     }
 }
 
+// 离开 Collapsed 也会重新占据布局空间，不能仅根据新可见性判断布局失效。
 fn visibility_transition_dirty(
     current: UiVisibility,
     next: UiVisibility,

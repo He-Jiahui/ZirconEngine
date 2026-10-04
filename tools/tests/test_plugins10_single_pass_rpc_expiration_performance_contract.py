@@ -30,7 +30,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function body for {signature}")
 
-
+# 读取 RPC 过期清扫实现，要求单次 retain 遍历且不先实体化请求 ID 列表。
 class Plugins10SinglePassRpcExpirationPerformanceContract(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

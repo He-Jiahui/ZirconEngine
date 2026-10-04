@@ -19,6 +19,7 @@ pub(in crate::ui::retained_host::ui) fn to_host_contract_host_window_layout(
     layout: &host_window::HostWindowLayoutData,
 ) -> host_contract::HostWindowLayoutData {
     host_contract::HostWindowLayoutData {
+        authoritative: layout.authoritative,
         center_band_frame: to_host_contract_frame_rect(&layout.center_band_frame),
         status_bar_frame: to_host_contract_frame_rect(&layout.status_bar_frame),
         left_region_frame: to_host_contract_frame_rect(&layout.left_region_frame),
@@ -465,6 +466,20 @@ pub(super) fn to_host_contract_host_scene_data_with_runtime(
     };
 
     host_contract::HostWindowSceneData {
+        document_leaves: scene
+            .document_leaves
+            .iter()
+            .map(|leaf| {
+                to_host_contract_document_dock(
+                    leaf,
+                    component_showcase_runtime,
+                    welcome,
+                    hierarchy_filter_query,
+                    console_projection_cache,
+                    module_plugins_projection_cache,
+                )
+            })
+            .collect(),
         layout,
         metrics,
         orchestration,
@@ -486,6 +501,20 @@ pub(in crate::ui::retained_host::ui) fn to_host_contract_host_scene_geometry_wit
     current: &host_contract::HostWindowSceneData,
 ) -> host_contract::HostWindowSceneData {
     host_contract::HostWindowSceneData {
+        document_leaves: scene
+            .document_leaves
+            .iter()
+            .filter_map(|leaf| {
+                let retained = current
+                    .document_leaves
+                    .iter()
+                    .find(|dock| dock.surface_key == leaf.surface_key)?;
+                Some(to_host_contract_document_dock_geometry(
+                    leaf,
+                    retained.pane.clone(),
+                ))
+            })
+            .collect(),
         layout: to_host_contract_host_window_layout(&scene.layout),
         metrics: to_host_contract_metrics(&scene.metrics),
         orchestration: to_host_contract_orchestration(&scene.orchestration),

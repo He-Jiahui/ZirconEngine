@@ -10,6 +10,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
+        let _edit = self.begin_document_edit(instance_id)?;
         let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
@@ -28,6 +29,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
+        let _edit = self.begin_document_edit(instance_id)?;
         let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
@@ -46,6 +48,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
+        let _edit = self.begin_document_edit(instance_id)?;
         let project = self.current_project_snapshot()?.ok_or_else(|| {
             EditorError::UiAsset(
                 "cannot promote component to an external widget without an open project"
@@ -120,6 +123,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
+        let _edit = self.begin_document_edit(instance_id)?;
         let project = self.current_project_snapshot()?.ok_or_else(|| {
             EditorError::UiAsset(
                 "cannot promote local theme to an external style asset without an open project"
@@ -194,6 +198,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
+        let _edit = self.begin_document_edit(instance_id)?;
         let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
@@ -212,6 +217,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
+        let _edit = self.begin_document_edit(instance_id)?;
         let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
@@ -230,6 +236,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
+        let _edit = self.begin_document_edit(instance_id)?;
         let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
@@ -248,6 +255,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
+        let _edit = self.begin_document_edit(instance_id)?;
         let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
@@ -266,6 +274,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
+        let _edit = self.begin_document_edit(instance_id)?;
         let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
@@ -285,6 +294,7 @@ impl EditorUiHost {
         widget_type: impl AsRef<str>,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
+        let _edit = self.begin_document_edit(instance_id)?;
         let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
@@ -303,6 +313,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
+        let _edit = self.begin_document_edit(instance_id)?;
         let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))

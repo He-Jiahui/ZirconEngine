@@ -1,3 +1,4 @@
+//! 脚本宿主函数的能力、注册表和文档账本需相互对应。通过源码文本核对父子路由、状态镜像和文件预算。
 const SLICE: &str = "Runtime 15 M3 script host ledger guard folder-backed split";
 const STATUS: &str =
     "runtime_15_script_host_ledger_guard_folder_backed_static_passed_cargo_deferred";
@@ -89,7 +90,7 @@ fn runtime_15_script_host_ledger_guard_is_folder_backed() {
     );
     for (label, source) in [(
         "module convention doc",
-        include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md"),
+        include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md"),
     )] {
         assert_contains_all(label, source, &[SLICE, STATUS, GUARD, CHILD_PATHS[5]]);
     }

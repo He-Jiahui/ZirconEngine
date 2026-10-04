@@ -4,6 +4,7 @@ mod extension_ids;
 mod plugin;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 pub use capability::{EDITOR_CAPABILITIES, PARTICLES_AUTHORING_CAPABILITY, PLUGIN_ID};

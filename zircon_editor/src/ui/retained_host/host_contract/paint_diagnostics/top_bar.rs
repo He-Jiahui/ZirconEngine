@@ -6,18 +6,21 @@ pub(in crate::ui::retained_host::host_contract) fn presentation_top_bar_frame(
     height: u32,
     presentation: &HostWindowPresentationData,
 ) -> FrameRect {
-    let layout = if has_visible_root_frame(&presentation.host_scene_data.layout) {
+    let layout = if presentation.host_scene_data.layout.authoritative
+        || has_visible_root_frame(&presentation.host_scene_data.layout)
+    {
         &presentation.host_scene_data.layout
     } else {
         &presentation.host_layout
     };
-    let top_bar_height =
-        if layout.center_band_frame.y.is_finite() && layout.center_band_frame.y > 1.0 {
-            layout.center_band_frame.y
-        } else {
-            fallback_top_bar_height(height)
-        };
-    top_bar_frame_with_height(width, top_bar_height)
+    let top_bar_height = if layout.center_band_frame.y.is_finite()
+        && (layout.authoritative || layout.center_band_frame.y > 1.0)
+    {
+        layout.center_band_frame.y
+    } else {
+        fallback_top_bar_height(height)
+    };
+    top_bar_frame_with_height(width, top_bar_height.clamp(0.0, height as f32))
 }
 
 fn top_bar_frame_with_height(width: u32, height: f32) -> FrameRect {

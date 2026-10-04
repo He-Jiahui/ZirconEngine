@@ -5,9 +5,9 @@ use crate::core::asset::{DirtyExternalEffectId, DirtyExternalEffectRevision, Dir
 use crate::core::editing::context::CoreEditContext;
 use crate::core::editing::engine::EditorTransactionEngine;
 use crate::core::extension::{
-    DocumentAutosavePayload, DocumentCloseLease, DocumentSaveReport, DocumentToolkit,
-    DocumentToolkitDescriptor, DocumentToolkitRegistry, DocumentToolkitSnapshot, SaveCtx,
-    SaveReason, ToolkitInstanceId, ToolkitLayout, ToolkitSaveFailure,
+    DocumentAutosavePayload, DocumentCloseLease, DocumentEditLease, DocumentSaveReport,
+    DocumentToolkit, DocumentToolkitDescriptor, DocumentToolkitRegistry, DocumentToolkitSnapshot,
+    SaveCtx, SaveReason, ToolkitInstanceId, ToolkitLayout, ToolkitSaveFailure,
 };
 use crate::core::jobs::EditorJobSystem;
 use crate::core::logging::EditorLogService;
@@ -350,14 +350,137 @@ impl EditorUiHost {
         &self,
         instance_id: &ViewInstanceId,
     ) -> Result<Option<DocumentCloseLease<'_, EditorUiHost>>, EditorError> {
+        self.begin_document_close_with_discard(instance_id, None)
+    }
+
+    pub(super) fn begin_document_edit(
+        &self,
+        instance_id: &ViewInstanceId,
+    ) -> Result<DocumentEditLease<'_, EditorUiHost>, EditorError> {
+        let toolkit_instance = ToolkitInstanceId::parse(instance_id.0.clone())?;
+        Ok(self.document_toolkits.begin_edit(&toolkit_instance)?)
+    }
+
+    pub(super) fn begin_document_edit_if_registered(
+        &self,
+        instance_id: &ViewInstanceId,
+    ) -> Result<Option<DocumentEditLease<'_, EditorUiHost>>, EditorError> {
+        let toolkit_instance = ToolkitInstanceId::parse(instance_id.0.clone())?;
+        if self
+            .document_toolkits
+            .document_for_instance(&toolkit_instance)
+            .is_none()
+        {
+            return Ok(None);
+        }
+        Ok(Some(self.document_toolkits.begin_edit(&toolkit_instance)?))
+    }
+
+    pub(super) fn begin_document_close_with_discard(
+        &self,
+        instance_id: &ViewInstanceId,
+        discard: Option<(
+            crate::core::editor_message::DocumentId,
+            crate::core::editor_event::DocumentCloseRevision,
+        )>,
+    ) -> Result<Option<DocumentCloseLease<'_, EditorUiHost>>, EditorError> {
         let Ok(toolkit_instance) = ToolkitInstanceId::parse(instance_id.0.clone()) else {
             return Ok(None);
         };
-        Ok(self.document_toolkits.begin_close(&toolkit_instance)?)
+        let close = self.document_toolkits.begin_close(&toolkit_instance)?;
+        if let Some(close) = close.as_ref() {
+            let document = close.document_id();
+            let (dirty, revision) = self.document_close_state(instance_id, document)?;
+            if let Some((requested_document, requested_revision)) = discard {
+                if requested_document != document || (dirty && requested_revision != revision) {
+                    return Err(EditorError::DocumentCloseDecisionStale {
+                        document,
+                        dirty_generation: revision.external_generation,
+                        requested_document,
+                        requested_generation: requested_revision.external_generation,
+                        current_revision: revision,
+                        requested_revision,
+                    });
+                }
+            } else if dirty {
+                return Err(EditorError::DocumentCloseNeedsDecision {
+                    document,
+                    dirty_generation: revision.external_generation,
+                });
+            }
+        }
+        Ok(close)
+    }
+
+    pub(super) fn document_close_state(
+        &self,
+        instance_id: &ViewInstanceId,
+        document: crate::core::editor_message::DocumentId,
+    ) -> Result<(bool, crate::core::editor_event::DocumentCloseRevision), EditorError> {
+        let snapshot = self.dirty_documents.snapshot(document)?;
+        let history = self
+            .transactions
+            .history_status(crate::core::editing::engine::HistoryContextId::Document(
+                document,
+            ))
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        let source = self.lock_ui_asset_sessions().get(instance_id).map(|entry| {
+            (
+                entry.session.source_revision(),
+                entry.session.source_buffer().is_dirty(),
+            )
+        });
+        Ok((
+            snapshot.is_dirty() || history.dirty || source.is_some_and(|(_, dirty)| dirty),
+            crate::core::editor_event::DocumentCloseRevision {
+                external_generation: snapshot.generation(),
+                edit_generation: self.document_toolkits.edit_generation(document)?,
+                history_generation: history.generation,
+                source_revision: source.map(|(revision, _)| revision),
+            },
+        ))
+    }
+
+    pub(super) fn clear_document_toolkits_if_clean(&self) -> Result<(), EditorError> {
+        let clear = self.document_toolkits.begin_clear()?;
+        for descriptor in self.document_toolkits.snapshot().descriptors() {
+            let document = descriptor.document_id();
+            let instance_id = ViewInstanceId::new(descriptor.instance_id().as_str());
+            let (dirty, revision) = self.document_close_state(&instance_id, document)?;
+            if dirty {
+                return Err(EditorError::DocumentCloseNeedsDecision {
+                    document,
+                    dirty_generation: revision.external_generation,
+                });
+            }
+        }
+        self.transactions
+            .with_context_mut::<CoreEditContext, _>(|context| {
+                let descriptors = clear.commit()?;
+                for descriptor in descriptors {
+                    self.dirty_documents
+                        .unregister_document(descriptor.document_id())?;
+                    context
+                        .animation_documents_mut()
+                        .detach(descriptor.document_id());
+                }
+                Ok(())
+            })
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?
+            .ok_or_else(|| {
+                EditorError::UiAsset("animation transaction context type mismatch".to_string())
+            })?
     }
 
     pub(super) fn clear_document_toolkits(&self) -> Result<(), EditorError> {
         let descriptors = self.document_toolkits.clear()?;
+        self.finish_document_toolkit_clear(descriptors)
+    }
+
+    fn finish_document_toolkit_clear(
+        &self,
+        descriptors: Vec<DocumentToolkitDescriptor>,
+    ) -> Result<(), EditorError> {
         let documents = descriptors
             .iter()
             .map(DocumentToolkitDescriptor::document_id)
@@ -374,10 +497,18 @@ impl EditorUiHost {
         &self,
         close: DocumentCloseLease<'_, EditorUiHost>,
     ) -> Result<DocumentToolkitDescriptor, EditorError> {
+        let descriptor = self.commit_document_close_without_animation(close)?;
+        self.detach_animation_authoring_documents(&[descriptor.document_id()])?;
+        Ok(descriptor)
+    }
+
+    pub(super) fn commit_document_close_without_animation(
+        &self,
+        close: DocumentCloseLease<'_, EditorUiHost>,
+    ) -> Result<DocumentToolkitDescriptor, EditorError> {
         let descriptor = close.commit()?;
         self.dirty_documents
             .unregister_document(descriptor.document_id())?;
-        self.detach_animation_authoring_documents(&[descriptor.document_id()])?;
         Ok(descriptor)
     }
 
@@ -406,6 +537,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
         effect: DirtyExternalEffectId,
     ) -> Result<DirtyExternalEffectRevision, EditorError> {
+        let _edit = self.begin_document_edit(instance_id)?;
         let toolkit_instance = ToolkitInstanceId::parse(instance_id.0.clone())?;
         let document = self
             .document_toolkits
@@ -425,6 +557,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
         effect: DirtyExternalEffectId,
     ) -> Result<DirtyExternalEffectRevision, EditorError> {
+        let _edit = self.begin_document_edit(instance_id)?;
         let toolkit_instance = ToolkitInstanceId::parse(instance_id.0.clone())?;
         let document = self
             .document_toolkits

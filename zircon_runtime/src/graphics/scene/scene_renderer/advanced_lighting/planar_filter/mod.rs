@@ -23,6 +23,8 @@ pub(crate) fn registrations() -> Vec<RenderPassExecutorRegistration> {
     )]
 }
 
+/// 给外部渲染特性描述符提供与内建平面反射过滤器一致的图工作量。
+/// 调用方须把 `planar.filter` 绑定到可写的平面纹理目标。
 pub fn planar_reflection_filter_compute_workload() -> RenderGraphComputeWorkload {
     RenderGraphComputeWorkload::per_pixel(
         PLANAR_FILTER_PIPELINE_LABEL,
@@ -42,6 +44,8 @@ pub(crate) struct PlanarFilterReport {
     pub uploaded_bytes: u64,
 }
 
+/// 把单次捕获的颜色依次过滤成多级 mip，供粗糙材质按 LOD 读取。
+/// 第一级读取场景颜色，后续级读取上一层已写入的输出纹理。
 pub(crate) struct PlanarReflectionFilterPipeline {
     bind_group_layout: wgpu::BindGroupLayout,
     pipeline: wgpu::ComputePipeline,
@@ -235,4 +239,5 @@ fn sampled_texture_layout_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
 }
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

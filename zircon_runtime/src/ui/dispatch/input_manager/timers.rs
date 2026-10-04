@@ -1,4 +1,7 @@
-use std::{collections::BTreeMap, time::Duration};
+use std::{
+    collections::{btree_map::Entry, BTreeMap},
+    time::Duration,
+};
 
 use zircon_runtime_interface::ui::{
     dispatch::{UiInputTimestamp, UiPointerId, UiPointerSource},
@@ -308,10 +311,7 @@ impl UiInputTimerState {
         started_at: UiInputTimestamp,
         timeout_ms: u64,
     ) {
-        let timeout_micros = timeout_ms.saturating_mul(MICROS_PER_MILLI);
-        let deadline = UiInputTimestamp::from_micros(
-            started_at.monotonic_micros.saturating_add(timeout_micros),
-        );
+        let deadline = toast_deadline(started_at, timeout_ms);
         self.toast_expirations.insert(
             target,
             UiToastTimerExpiration {
@@ -321,14 +321,43 @@ impl UiInputTimerState {
         );
     }
 
+    pub(crate) fn arm_toast_expiration_ref(
+        &mut self,
+        target: UiNodeId,
+        toast_id: &str,
+        started_at: UiInputTimestamp,
+        timeout_ms: u64,
+    ) {
+        let deadline = toast_deadline(started_at, timeout_ms);
+        match self.toast_expirations.entry(target) {
+            Entry::Occupied(mut entry) => {
+                let expiration = entry.get_mut();
+                expiration.deadline = deadline;
+                if expiration.toast_id.as_str() != toast_id {
+                    expiration.toast_id = toast_id.to_owned();
+                }
+            }
+            Entry::Vacant(entry) => {
+                entry.insert(UiToastTimerExpiration {
+                    deadline,
+                    toast_id: toast_id.to_owned(),
+                });
+            }
+        }
+    }
+
     pub fn clear_toast_expiration(&mut self, target: UiNodeId) {
         self.toast_expirations.remove(&target);
     }
 
     pub fn drain_expired_typeahead(&mut self, now: UiInputTimestamp) -> Vec<UiNodeId> {
         let mut expired = Vec::new();
+        let capacity = self.typeahead_expirations.len();
         self.typeahead_expirations.retain(|target, deadline| {
             if *deadline <= now {
+                if expired.is_empty() {
+                    expired.reserve(capacity);
+                }
                 expired.push(*target);
                 false
             } else {
@@ -343,8 +372,12 @@ impl UiInputTimerState {
         now: UiInputTimestamp,
     ) -> Vec<(UiNodeId, String)> {
         let mut expired = Vec::new();
+        let capacity = self.submenu_hover_expirations.len();
         self.submenu_hover_expirations.retain(|target, expiration| {
             if expiration.deadline <= now {
+                if expired.is_empty() {
+                    expired.reserve(capacity);
+                }
                 expired.push((*target, std::mem::take(&mut expiration.option_id)));
                 false
             } else {
@@ -356,8 +389,12 @@ impl UiInputTimerState {
 
     pub fn drain_expired_tooltips(&mut self, now: UiInputTimestamp) -> Vec<(UiNodeId, String)> {
         let mut expired = Vec::new();
+        let capacity = self.tooltip_expirations.len();
         self.tooltip_expirations.retain(|target, expiration| {
             if expiration.deadline <= now {
+                if expired.is_empty() {
+                    expired.reserve(capacity);
+                }
                 expired.push((*target, std::mem::take(&mut expiration.tooltip_id)));
                 false
             } else {
@@ -369,8 +406,12 @@ impl UiInputTimerState {
 
     pub fn drain_expired_toasts(&mut self, now: UiInputTimestamp) -> Vec<(UiNodeId, String)> {
         let mut expired = Vec::new();
+        let capacity = self.toast_expirations.len();
         self.toast_expirations.retain(|target, expiration| {
             if expiration.deadline <= now {
+                if expired.is_empty() {
+                    expired.reserve(capacity);
+                }
                 expired.push((*target, std::mem::take(&mut expiration.toast_id)));
                 false
             } else {
@@ -379,6 +420,11 @@ impl UiInputTimerState {
         });
         expired
     }
+}
+
+fn toast_deadline(started_at: UiInputTimestamp, timeout_ms: u64) -> UiInputTimestamp {
+    let timeout_micros = timeout_ms.saturating_mul(MICROS_PER_MILLI);
+    UiInputTimestamp::from_micros(started_at.monotonic_micros.saturating_add(timeout_micros))
 }
 
 impl UiTooltipIntroTimer {
@@ -407,5 +453,5 @@ impl UiTooltipIntroTimer {
 }
 
 #[cfg(test)]
-#[path = "timers/retain_drain_tests.rs"]
+#[path = "timers/tests/retain_drain_tests.rs"]
 mod retain_drain_tests;

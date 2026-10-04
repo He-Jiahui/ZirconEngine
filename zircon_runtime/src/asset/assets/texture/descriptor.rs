@@ -18,7 +18,7 @@ use self::settings::{
     bool_setting, f32_setting, parse_array_layout, parse_asset_usage_list, parse_color_space,
     parse_compression, parse_dimension, parse_mip_filter, parse_mip_policy,
     parse_normal_convention, parse_sampler, parse_usage_hint, parse_usage_list, string_setting,
-    u32_setting, u8_setting, ExtentSettingKeys,
+    u32_setting, u8_setting,
 };
 
 pub const RGBA8_UNORM_SRGB_FORMAT: &str = "rgba8unorm_srgb";
@@ -45,24 +45,20 @@ pub enum TextureDescriptorError {
     ArrayLayoutExclusiveMode,
     #[error("texture import setting `array_layout` must set row_count or row_height")]
     ArrayLayoutMissingMode,
-    #[error("texture import setting `{key}` must be 1 for 3d textures")]
-    ArrayLayerCountFor3d { key: &'static str },
+    #[error("texture import setting `{key}` is not valid for {dimension} textures")]
+    ExtentSettingForDimension {
+        key: &'static str,
+        dimension: &'static str,
+    },
+    #[error("texture import setting `{key}` was removed; use `{replacement}`")]
+    RetiredExtentSetting {
+        key: &'static str,
+        replacement: &'static str,
+    },
+    #[error("texture import setting `{key}` must be greater than zero")]
+    TextureExtentZero { key: &'static str },
     #[error("cube texture layer count must be a non-zero multiple of six faces, found {layers}")]
     CubeLayerCount { layers: u32 },
-    #[error(
-        "texture import settings `{array_key}` and `{depth_key}` must match for 1d/2d array textures"
-    )]
-    MismatchedExtentSettings {
-        array_key: &'static str,
-        depth_key: &'static str,
-    },
-    #[error(
-        "texture extent metadata must match for 1d/2d array textures: array_layer_count = {array_layer_count}, depth_or_array_layers = {depth_or_array_layers}"
-    )]
-    MismatchedExtentMetadata {
-        array_layer_count: u32,
-        depth_or_array_layers: u32,
-    },
     #[error("texture import setting `array_layout` requires a decoded rgba8 image")]
     ArrayLayoutRequiresRgba8,
     #[error("texture import setting `array_layout` requires a 2d image")]
@@ -148,6 +144,7 @@ impl TextureArrayLayout {
 
 /// Render-facing texture metadata kept beside CPU/container payload bytes.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TextureAssetDescriptor {
     pub format: String,
     pub color_space: RenderImageColorSpace,
@@ -163,7 +160,6 @@ pub struct TextureAssetDescriptor {
     #[serde(default)]
     pub asset_usage: Vec<RenderImageAssetUsage>,
     pub mip_count: u32,
-    pub array_layer_count: u32,
     pub fallback: RenderImageFallbackKind,
 }
 
@@ -179,7 +175,6 @@ impl TextureAssetDescriptor {
             usage: default_render_image_usage(),
             asset_usage: default_render_image_asset_usage(),
             mip_count: 1,
-            array_layer_count: 1,
             fallback: RenderImageFallbackKind::MissingImage,
         }
     }
@@ -206,7 +201,6 @@ impl TextureAssetDescriptor {
         Self {
             format: format.into(),
             mip_count: mip_count.max(1),
-            array_layer_count: array_layer_count.max(1),
             depth_or_array_layers: array_layer_count.max(1),
             ..Self::rgba8_srgb()
         }
@@ -235,7 +229,6 @@ impl TextureAssetDescriptor {
             self.asset_usage = default_render_image_asset_usage();
         }
         self.mip_count = self.mip_count.max(1);
-        self.array_layer_count = self.array_layer_count.max(1);
         self.depth_or_array_layers = self.depth_or_array_layers.max(1);
         self.normalize_extent_fields();
         self.normalize_rgba8_color_space_format();
@@ -247,7 +240,7 @@ impl TextureAssetDescriptor {
         mut self,
         settings: &toml::Table,
     ) -> TextureDescriptorResult<Self> {
-        let mut extent_keys = ExtentSettingKeys::default();
+        reject_retired_extent_settings(settings)?;
         let has_explicit_color_space =
             settings.contains_key("color_space") || settings.contains_key("is_srgb");
         let has_explicit_mip_policy = settings.contains_key("mip_policy");
@@ -338,20 +331,14 @@ impl TextureAssetDescriptor {
         if let Some(value) = settings.get("mip_count") {
             self.mip_count = u32_setting("mip_count", value)?;
         }
-        if let Some(value) = settings.get("array_layer_count") {
-            self.array_layer_count = u32_setting("array_layer_count", value)?;
-            extent_keys.array_layer_count = Some("array_layer_count");
-        } else if let Some(value) = settings.get("array_layers") {
-            self.array_layer_count = u32_setting("array_layers", value)?;
-            extent_keys.array_layer_count = Some("array_layers");
-        }
-        if let Some(value) = settings.get("depth_or_array_layers") {
-            self.depth_or_array_layers = u32_setting("depth_or_array_layers", value)?;
-            extent_keys.depth_or_array_layers = Some("depth_or_array_layers");
-        } else if let Some(value) = settings.get("depth") {
-            self.depth_or_array_layers = u32_setting("depth", value)?;
-            extent_keys.depth_or_array_layers = Some("depth");
-        }
+        let array_layers = settings
+            .get("array_layers")
+            .map(|value| non_zero_extent_setting("array_layers", value))
+            .transpose()?;
+        let depth = settings
+            .get("depth")
+            .map(|value| non_zero_extent_setting("depth", value))
+            .transpose()?;
         if let Some(value) = settings.get("sampler") {
             self.sampler = parse_sampler(value, self.sampler)?;
         }
@@ -365,9 +352,8 @@ impl TextureAssetDescriptor {
             self.asset_usage = default_render_image_asset_usage();
         }
         self.mip_count = self.mip_count.max(1);
-        self.array_layer_count = self.array_layer_count.max(1);
         self.depth_or_array_layers = self.depth_or_array_layers.max(1);
-        self.normalize_import_extent_fields(extent_keys)?;
+        self.apply_import_extent_settings(depth, array_layers)?;
         self.normalize_rgba8_color_space_format();
         self.metadata.color_space = self.color_space;
         Ok(self)
@@ -420,103 +406,99 @@ impl TextureAssetDescriptor {
             usage: descriptor.usage,
             asset_usage: descriptor.asset_usage,
             mip_count: descriptor.mip_count,
-            array_layer_count: descriptor.array_layer_count,
             fallback: descriptor.fallback,
+        }
+    }
+
+    /// Returns independently addressable array layers without storing a second shape authority.
+    pub const fn array_layer_count(&self) -> u32 {
+        match self.dimension {
+            RenderImageDimension::D2 | RenderImageDimension::Cube => self.depth_or_array_layers,
+            RenderImageDimension::D1 | RenderImageDimension::D3 => 1,
+        }
+    }
+
+    /// Returns the volume depth. Array and cube layers are never interpreted as Z slices.
+    pub const fn depth(&self) -> u32 {
+        match self.dimension {
+            RenderImageDimension::D3 => self.depth_or_array_layers,
+            RenderImageDimension::D1 | RenderImageDimension::D2 | RenderImageDimension::Cube => 1,
         }
     }
 
     fn normalize_extent_fields(&mut self) {
         match self.dimension {
+            RenderImageDimension::D1 => {
+                self.depth_or_array_layers = 1;
+            }
             RenderImageDimension::D3 => {
-                self.array_layer_count = 1;
+                self.depth_or_array_layers = self.depth_or_array_layers.max(1);
             }
             RenderImageDimension::Cube => {
-                let layers = self
-                    .depth_or_array_layers
-                    .max(self.array_layer_count)
-                    .max(6);
-                self.depth_or_array_layers = layers;
-                self.array_layer_count = layers;
+                self.depth_or_array_layers = self.depth_or_array_layers.max(6);
             }
-            RenderImageDimension::D1 | RenderImageDimension::D2 => {
-                let layers = self
-                    .depth_or_array_layers
-                    .max(self.array_layer_count)
-                    .max(1);
-                self.depth_or_array_layers = layers;
-                self.array_layer_count = layers;
+            RenderImageDimension::D2 => {
+                self.depth_or_array_layers = self.depth_or_array_layers.max(1);
             }
         }
     }
 
-    fn normalize_import_extent_fields(
+    fn apply_import_extent_settings(
         &mut self,
-        keys: ExtentSettingKeys,
+        depth: Option<u32>,
+        array_layers: Option<u32>,
     ) -> TextureDescriptorResult<()> {
-        if self.dimension == RenderImageDimension::D3 {
-            if let Some(key) = keys.array_layer_count {
-                if self.array_layer_count != 1 {
-                    return Err(TextureDescriptorError::ArrayLayerCountFor3d { key });
-                }
-            }
-            self.array_layer_count = 1;
-            return Ok(());
-        }
-
-        if self.dimension == RenderImageDimension::Cube {
-            match (keys.array_layer_count, keys.depth_or_array_layers) {
-                (Some(array_key), Some(depth_key)) => {
-                    if self.array_layer_count != self.depth_or_array_layers {
-                        return Err(TextureDescriptorError::MismatchedExtentSettings {
-                            array_key,
-                            depth_key,
-                        });
-                    }
-                }
-                (Some(_), None) => {
-                    self.depth_or_array_layers = self.array_layer_count;
-                }
-                (None, Some(_)) => {
-                    self.array_layer_count = self.depth_or_array_layers;
-                }
-                (None, None) => {
-                    self.normalize_extent_fields();
-                }
-            }
-            if !valid_cube_layer_count(self.array_layer_count)
-                || self.array_layer_count != self.depth_or_array_layers
-            {
-                return Err(TextureDescriptorError::CubeLayerCount {
-                    layers: self.array_layer_count.max(self.depth_or_array_layers),
-                });
-            }
-            return Ok(());
-        }
-
-        match (keys.array_layer_count, keys.depth_or_array_layers) {
-            (Some(array_key), Some(depth_key)) => {
-                if self.array_layer_count != self.depth_or_array_layers {
-                    return Err(TextureDescriptorError::MismatchedExtentSettings {
-                        array_key,
-                        depth_key,
+        match self.dimension {
+            RenderImageDimension::D1 => {
+                if depth.is_some() {
+                    return Err(TextureDescriptorError::ExtentSettingForDimension {
+                        key: "depth",
+                        dimension: "1d",
                     });
                 }
+                if array_layers.is_some() {
+                    return Err(TextureDescriptorError::ExtentSettingForDimension {
+                        key: "array_layers",
+                        dimension: "1d",
+                    });
+                }
+                self.depth_or_array_layers = 1;
             }
-            (Some(_), None) => {
-                self.depth_or_array_layers = self.array_layer_count;
+            RenderImageDimension::D2 => {
+                if depth.is_some() {
+                    return Err(TextureDescriptorError::ExtentSettingForDimension {
+                        key: "depth",
+                        dimension: "2d",
+                    });
+                }
+                if let Some(array_layers) = array_layers {
+                    self.depth_or_array_layers = array_layers;
+                }
             }
-            (None, Some(_)) => {
-                self.array_layer_count = self.depth_or_array_layers;
+            RenderImageDimension::D3 => {
+                if array_layers.is_some() {
+                    return Err(TextureDescriptorError::ExtentSettingForDimension {
+                        key: "array_layers",
+                        dimension: "3d",
+                    });
+                }
+                if let Some(depth) = depth {
+                    self.depth_or_array_layers = depth;
+                }
             }
-            (None, None) => {
-                self.normalize_extent_fields();
+            RenderImageDimension::Cube => {
+                if depth.is_some() {
+                    return Err(TextureDescriptorError::ExtentSettingForDimension {
+                        key: "depth",
+                        dimension: "cube",
+                    });
+                }
+                let layers = array_layers.unwrap_or(self.depth_or_array_layers.max(6));
+                if !valid_cube_layer_count(layers) {
+                    return Err(TextureDescriptorError::CubeLayerCount { layers });
+                }
+                self.depth_or_array_layers = layers;
             }
-        }
-        if self.array_layer_count != self.depth_or_array_layers {
-            return Err(TextureDescriptorError::MismatchedExtentMetadata {
-                array_layer_count: self.array_layer_count,
-                depth_or_array_layers: self.depth_or_array_layers,
-            });
         }
         Ok(())
     }
@@ -539,6 +521,26 @@ impl TextureAssetDescriptor {
 
 fn valid_cube_layer_count(layers: u32) -> bool {
     layers != 0 && layers % 6 == 0
+}
+
+fn reject_retired_extent_settings(settings: &toml::Table) -> TextureDescriptorResult<()> {
+    for (key, replacement) in [
+        ("array_layer_count", "array_layers"),
+        ("depth_or_array_layers", "depth or array_layers"),
+    ] {
+        if settings.contains_key(key) {
+            return Err(TextureDescriptorError::RetiredExtentSetting { key, replacement });
+        }
+    }
+    Ok(())
+}
+
+fn non_zero_extent_setting(key: &'static str, value: &toml::Value) -> TextureDescriptorResult<u32> {
+    let value = u32_setting(key, value)?;
+    if value == 0 {
+        return Err(TextureDescriptorError::TextureExtentZero { key });
+    }
+    Ok(value)
 }
 
 impl Default for TextureAssetDescriptor {
@@ -569,97 +571,9 @@ fn default_depth_or_array_layers() -> u32 {
 }
 
 #[cfg(test)]
-mod plugins07_decoded_format_hotpath_tests {
-    use std::hint::black_box;
-    use std::time::Instant;
-
-    use super::*;
-
-    const SAMPLE_PAIRS: usize = 21;
-    const LOOKUPS_PER_SAMPLE: usize = 120_000;
-    const TOKENS: [&str; 3] = [" RGBA8UNORM ", "rgba8UNORM_SRGB", "rgba8unorm-srgb"];
-
-    #[test]
-    fn borrowed_texture_format_contract_decoded_rgba8() {
-        assert!(is_decoded_rgba8_format(TOKENS[0]));
-        assert!(is_decoded_rgba8_format(TOKENS[1]));
-        assert!(!is_decoded_rgba8_format(TOKENS[2]));
-    }
-
-    #[test]
-    #[ignore = "release performance gate"]
-    fn borrowed_texture_format_performance_release_decoded_rgba8() {
-        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
-        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
-        for pair_index in 0..SAMPLE_PAIRS {
-            let (legacy_ns, optimized_ns) = if pair_index % 2 == 0 {
-                (measure_legacy(), measure_borrowed())
-            } else {
-                let optimized_ns = measure_borrowed();
-                (measure_legacy(), optimized_ns)
-            };
-            legacy_samples.push(legacy_ns);
-            optimized_samples.push(optimized_ns);
-        }
-
-        let legacy_p95 = nearest_rank_p95(&legacy_samples);
-        let optimized_p95 = nearest_rank_p95(&optimized_samples);
-        let improvement_percent =
-            legacy_p95.saturating_sub(optimized_p95).saturating_mul(100) / legacy_p95.max(1);
-        println!(
-            "PERF_RESULT plugins07_decoded_rgba8_format_check sample_pairs={SAMPLE_PAIRS} legacy_ns={} optimized_ns={} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} improvement_percent={improvement_percent} threshold_percent=25 legacy_allocations_per_sample={} optimized_allocations_per_sample=0 order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10",
-            csv(&legacy_samples),
-            csv(&optimized_samples),
-            LOOKUPS_PER_SAMPLE * TOKENS.len(),
-        );
-        assert!(
-            improvement_percent >= 25,
-            "borrowed decoded RGBA8 matching must improve P95 by at least 25%"
-        );
-    }
-
-    fn measure_legacy() -> u128 {
-        let started = Instant::now();
-        let mut matched = 0_u64;
-        for _ in 0..LOOKUPS_PER_SAMPLE {
-            for token in TOKENS {
-                matched += u64::from(matches!(
-                    black_box(token).trim().to_ascii_lowercase().as_str(),
-                    RGBA8_UNORM_FORMAT | RGBA8_UNORM_SRGB_FORMAT
-                ));
-            }
-        }
-        black_box(matched);
-        started.elapsed().as_nanos()
-    }
-
-    fn measure_borrowed() -> u128 {
-        let started = Instant::now();
-        let mut matched = 0_u64;
-        for _ in 0..LOOKUPS_PER_SAMPLE {
-            for token in TOKENS {
-                matched += u64::from(is_decoded_rgba8_format(black_box(token)));
-            }
-        }
-        black_box(matched);
-        started.elapsed().as_nanos()
-    }
-
-    fn nearest_rank_p95(samples: &[u128]) -> u128 {
-        let mut sorted = samples.to_vec();
-        sorted.sort_unstable();
-        let rank = (sorted.len() * 95).div_ceil(100);
-        sorted[rank.saturating_sub(1)]
-    }
-
-    fn csv(samples: &[u128]) -> String {
-        samples
-            .iter()
-            .map(u128::to_string)
-            .collect::<Vec<_>>()
-            .join(",")
-    }
-}
+#[path = "tests/descriptor_plugins07_decoded_format_hotpath_tests.rs"]
+mod plugins07_decoded_format_hotpath_tests;
 
 #[cfg(test)]
+#[path = "descriptor/tests/cases.rs"]
 mod tests;

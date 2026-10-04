@@ -1,9 +1,17 @@
 use std::num::NonZeroU8;
 
+use serde::Serialize;
+
 /// Stable semantic exit classification before a platform-specific numeric code is selected.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ProductExitClass {
     Success,
+    /// The runner cannot yet prove which product stage failed.
+    UnclassifiedFailure,
+    UsageFailure,
+    CapabilityFailure,
+    ConfigFailure,
     StartupFailure,
     RuntimeFailure,
     ShutdownFailure,
@@ -31,13 +39,7 @@ impl ProductProcessExitCode {
     }
 
     pub const fn from_class(class: ProductExitClass) -> Self {
-        match class {
-            ProductExitClass::Success => Self::Success,
-            ProductExitClass::StartupFailure
-            | ProductExitClass::RuntimeFailure
-            | ProductExitClass::ShutdownFailure
-            | ProductExitClass::ForcedTermination => Self::failure(),
-        }
+        Self::from_code(class.code())
     }
 
     pub const fn code(self) -> u8 {
@@ -49,6 +51,23 @@ impl ProductProcessExitCode {
 
     pub const fn is_failure(self) -> bool {
         matches!(self, Self::Failure(_))
+    }
+}
+
+impl ProductExitClass {
+    /// Version 1 portable host registry. Commandlet codes are an independent raw-u8 domain.
+    pub const fn code(self) -> u8 {
+        match self {
+            Self::Success => 0,
+            Self::UnclassifiedFailure => 1,
+            Self::UsageFailure => 2,
+            Self::CapabilityFailure => 3,
+            Self::ConfigFailure => 4,
+            Self::StartupFailure => 5,
+            Self::RuntimeFailure => 6,
+            Self::ShutdownFailure => 7,
+            Self::ForcedTermination => 8,
+        }
     }
 }
 

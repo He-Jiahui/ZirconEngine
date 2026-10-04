@@ -20,5 +20,5 @@ pub(in crate::ui::retained_host::app::build_export_actions::output_folder) fn pa
 }
 
 #[cfg(test)]
-#[path = "selection/borrowed_utf8_tests.rs"]
+#[path = "selection/tests/borrowed_utf8_tests.rs"]
 mod borrowed_utf8_tests;

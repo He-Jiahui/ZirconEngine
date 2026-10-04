@@ -126,6 +126,8 @@ pub topThreatValue(table: ThreatTableState): float {
 
 roundPositive(value: float): int { return <int>(value + 0.5); }
 
+/// 按威胁值选出最高项而不修改原表；同值保持插入顺序。
+/// 负 limit 与表长相加后限幅到有效范围；输出容器会被清空并重写。
 pub topThreatEntries(table: ThreatTableState, limit: int, output: ThreatEntries): void {
     output.sourceIds.clear();
     output.roundedValues.clear();

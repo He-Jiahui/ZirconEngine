@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Range};
 
 use crate::ui::{layout::UiFrame, surface::UiTextPreeditClauseKind};
 
@@ -13,7 +13,16 @@ mod source_map;
 pub use source_map::{UiTextLineSourceMap, UiTextVisualBoundaryBias, UiTextVisualSpan};
 
 #[cfg(test)]
+#[path = "tests/source_map_tests.rs"]
 mod source_map_tests;
+
+#[cfg(test)]
+#[path = "tests/caret_performance_tests.rs"]
+mod caret_performance_tests;
+
+#[cfg(test)]
+#[path = "tests/decoration_performance_tests.rs"]
+mod decoration_performance_tests;
 
 const TEXT_SELECTION_COLOR: &str = "#4d89ff66";
 const TEXT_CARET_COLOR: &str = "#e8eef7";
@@ -79,9 +88,22 @@ pub(super) fn editable_text_decorations(
         }
     }
 
-    append_range_decorations(&mut decorations, layout, &range_decorations);
+    let mut source_maps =
+        (!range_decorations.is_empty()).then(|| TextDecorationLineSourceMaps::new(&layout.lines));
+    if let Some(source_maps) = source_maps.as_mut() {
+        append_range_decorations_with_source_maps(
+            &mut decorations,
+            layout,
+            &range_decorations,
+            source_maps,
+        );
+    }
 
-    if let Some(frame) = caret_frame(layout, &editable.caret) {
+    let caret_frame = match source_maps.as_mut() {
+        Some(source_maps) => caret_frame_with_source_maps(layout, &editable.caret, source_maps),
+        None => caret_frame(layout, &editable.caret),
+    };
+    if let Some(frame) = caret_frame {
         decorations.push(UiTextPaintDecoration {
             kind: UiTextPaintDecorationKind::Caret,
             range: UiTextRange {
@@ -167,27 +189,10 @@ impl TextRangeDecoration {
     }
 }
 
-fn append_range_decorations(
-    decorations: &mut Vec<UiTextPaintDecoration>,
-    layout: &UiResolvedTextLayout,
-    range_decorations: &[TextRangeDecoration],
-) {
-    if range_decorations.is_empty() {
-        return;
-    }
-
-    let mut source_maps = TextDecorationLineSourceMaps::new(&layout.lines);
-    append_range_decorations_with_source_maps(
-        decorations,
-        layout,
-        range_decorations,
-        &mut source_maps,
-    );
-}
-
 struct TextDecorationLineSourceMaps<'a> {
     lines: &'a [UiResolvedTextLine],
     maps: HashMap<usize, UiTextLineSourceMap<'a>>,
+    source_ranges_are_ordered: bool,
     #[cfg(test)]
     initialized_count: usize,
 }
@@ -197,21 +202,24 @@ impl<'a> TextDecorationLineSourceMaps<'a> {
         Self {
             lines,
             maps: HashMap::new(),
+            // `UiResolvedTextLayout` is an interface DTO, so callers may
+            // provide lines whose source ranges are not monotonic. Keep the
+            // binary range path for the normal shaped-layout contract and
+            // remember when a safe linear fallback is required.
+            source_ranges_are_ordered: lines.windows(2).all(|pair| {
+                pair[0].source_range.start <= pair[1].source_range.start
+                    && pair[0].source_range.end <= pair[1].source_range.end
+            }),
             #[cfg(test)]
             initialized_count: 0,
         }
     }
 
-    fn for_source_range(
+    fn for_line(
         &mut self,
         line_index: usize,
-        range: UiTextRange,
     ) -> Option<(&'a UiResolvedTextLine, &UiTextLineSourceMap<'a>)> {
         let line = self.lines.get(line_index)?;
-        if range.start >= line.source_range.end || line.source_range.start >= range.end {
-            return None;
-        }
-
         let source_map = match self.maps.entry(line_index) {
             std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
             std::collections::hash_map::Entry::Vacant(entry) => {
@@ -240,25 +248,72 @@ fn append_range_decorations_with_source_maps(
     // Reuse each touched line's cluster projection and exact-advance cache
     // across the selection and every IME clause while retaining declaration order.
     for decoration in range_decorations {
-        for line_index in 0..source_maps.lines.len() {
-            let Some((line, source_map)) =
-                source_maps.for_source_range(line_index, decoration.range)
-            else {
-                continue;
-            };
-            for span in source_map.visual_spans_for_source_range(decoration.range) {
-                let start = source_map.advance_to_visual_offset(span.visual_range.start);
-                let end = source_map.advance_to_visual_offset(span.visual_range.end);
-                decorations.push(decoration.paint(decoration_frame(
+        if source_maps.source_ranges_are_ordered {
+            for line_index in intersecting_line_range(source_maps.lines, decoration.range) {
+                append_range_decoration_for_line(
+                    decorations,
                     layout,
-                    line,
-                    start,
-                    end,
-                    decoration.metric(),
-                )));
+                    *decoration,
+                    source_maps,
+                    line_index,
+                );
+            }
+        } else {
+            // Keep declaration and source order for malformed/foreign DTOs;
+            // unlike a guessed binary search, this cannot silently skip a
+            // line whose range was published out of order.
+            let line_count = source_maps.lines.len();
+            for line_index in 0..line_count {
+                let intersects = {
+                    let line = &source_maps.lines[line_index];
+                    decoration.range.start < line.source_range.end
+                        && line.source_range.start < decoration.range.end
+                };
+                if intersects {
+                    append_range_decoration_for_line(
+                        decorations,
+                        layout,
+                        *decoration,
+                        source_maps,
+                        line_index,
+                    );
+                }
             }
         }
     }
+}
+
+fn append_range_decoration_for_line(
+    decorations: &mut Vec<UiTextPaintDecoration>,
+    layout: &UiResolvedTextLayout,
+    decoration: TextRangeDecoration,
+    source_maps: &mut TextDecorationLineSourceMaps<'_>,
+    line_index: usize,
+) {
+    // Both callers have already established intersection: the ordered path
+    // derives `line_index` from `intersecting_line_range`, while the fallback
+    // checks the DTO line explicitly. Avoid repeating that range predicate
+    // before touching the lazy source-map cache.
+    let Some((line, source_map)) = source_maps.for_line(line_index) else {
+        return;
+    };
+    for span in source_map.visual_spans_for_source_range(decoration.range) {
+        let start = source_map.advance_to_visual_offset(span.visual_range.start);
+        let end = source_map.advance_to_visual_offset(span.visual_range.end);
+        decorations.push(decoration.paint(decoration_frame(
+            layout,
+            line,
+            start,
+            end,
+            decoration.metric(),
+        )));
+    }
+}
+
+fn intersecting_line_range(lines: &[UiResolvedTextLine], range: UiTextRange) -> Range<usize> {
+    let start = lines.partition_point(|line| line.source_range.end <= range.start);
+    let end = lines.partition_point(|line| line.source_range.start < range.end);
+    start.min(end)..end
 }
 
 fn composition_underline_color(kind: UiTextPreeditClauseKind) -> &'static str {
@@ -315,6 +370,25 @@ fn decoration_frame(
 fn caret_frame(layout: &UiResolvedTextLayout, caret: &UiTextCaret) -> Option<UiFrame> {
     let line = caret_line(layout, caret)?;
     let map = UiTextLineSourceMap::new(line);
+    caret_frame_from_source_map(layout, caret, line, &map)
+}
+
+fn caret_frame_with_source_maps(
+    layout: &UiResolvedTextLayout,
+    caret: &UiTextCaret,
+    source_maps: &mut TextDecorationLineSourceMaps<'_>,
+) -> Option<UiFrame> {
+    let line_index = caret_line_index(layout, caret)?;
+    let (line, map) = source_maps.for_line(line_index)?;
+    caret_frame_from_source_map(layout, caret, line, map)
+}
+
+fn caret_frame_from_source_map(
+    layout: &UiResolvedTextLayout,
+    caret: &UiTextCaret,
+    line: &UiResolvedTextLine,
+    map: &UiTextLineSourceMap<'_>,
+) -> Option<UiFrame> {
     let main_offset = map.advance_to_visual_offset(map.visual_offset_for_caret(caret));
     if matches!(layout.writing_mode, UiTextWritingMode::VerticalRl) {
         return Some(UiFrame::new(
@@ -336,92 +410,85 @@ fn caret_line<'a>(
     layout: &'a UiResolvedTextLayout,
     caret: &UiTextCaret,
 ) -> Option<&'a UiResolvedTextLine> {
-    let matching = |line: &&UiResolvedTextLine| {
-        caret.offset >= line.source_range.start && caret.offset <= line.source_range.end
+    let candidate = match caret.affinity {
+        UiTextCaretAffinity::Upstream => {
+            let index = layout
+                .lines
+                .partition_point(|line| line.source_range.end < caret.offset);
+            layout.lines.get(index)
+        }
+        UiTextCaretAffinity::Downstream => {
+            let end = layout
+                .lines
+                .partition_point(|line| line.source_range.start <= caret.offset);
+            end.checked_sub(1).and_then(|index| layout.lines.get(index))
+        }
     };
+    candidate
+        .filter(|line| line_contains_caret(line, caret.offset))
+        .or_else(|| linear_caret_line(layout, caret))
+}
+
+fn caret_line_index(layout: &UiResolvedTextLayout, caret: &UiTextCaret) -> Option<usize> {
+    let candidate = match caret.affinity {
+        UiTextCaretAffinity::Upstream => {
+            let index = layout
+                .lines
+                .partition_point(|line| line.source_range.end < caret.offset);
+            Some(index).filter(|index| {
+                layout
+                    .lines
+                    .get(*index)
+                    .is_some_and(|line| line_contains_caret(line, caret.offset))
+            })
+        }
+        UiTextCaretAffinity::Downstream => {
+            let end = layout
+                .lines
+                .partition_point(|line| line.source_range.start <= caret.offset);
+            end.checked_sub(1).filter(|index| {
+                layout
+                    .lines
+                    .get(*index)
+                    .is_some_and(|line| line_contains_caret(line, caret.offset))
+            })
+        }
+    };
+    candidate.or_else(|| linear_caret_line_index(layout, caret))
+}
+
+fn linear_caret_line<'a>(
+    layout: &'a UiResolvedTextLayout,
+    caret: &UiTextCaret,
+) -> Option<&'a UiResolvedTextLine> {
+    linear_caret_line_index(layout, caret).and_then(|index| layout.lines.get(index))
+}
+
+fn linear_caret_line_index(layout: &UiResolvedTextLayout, caret: &UiTextCaret) -> Option<usize> {
     match caret.affinity {
-        UiTextCaretAffinity::Upstream => layout.lines.iter().find(matching),
-        UiTextCaretAffinity::Downstream => layout.lines.iter().rev().find(matching),
+        UiTextCaretAffinity::Upstream => layout
+            .lines
+            .iter()
+            .position(|line| line_contains_caret(line, caret.offset)),
+        UiTextCaretAffinity::Downstream => layout
+            .lines
+            .iter()
+            .rposition(|line| line_contains_caret(line, caret.offset)),
     }
     .or_else(|| {
         layout
             .lines
             .first()
             .filter(|line| caret.offset < line.source_range.start)
+            .map(|_| 0)
     })
-    .or_else(|| layout.lines.last())
+    .or_else(|| layout.lines.len().checked_sub(1))
+}
+
+fn line_contains_caret(line: &UiResolvedTextLine, offset: usize) -> bool {
+    offset >= line.source_range.start && offset <= line.source_range.end
 }
 
 #[cfg(test)]
-mod performance_tests {
-    use super::*;
-    use crate::ui::surface::{UiResolvedTextRun, UiTextDirection, UiTextRunKind};
-
-    #[test]
-    fn localized_selection_and_preedit_share_one_intersecting_line_source_map() {
-        let lines = (0..128)
-            .map(|line_index| UiResolvedTextLine {
-                text: "x".to_string(),
-                placement_frame: UiFrame::default(),
-                frame: UiFrame::new(0.0, line_index as f32 * 12.0, 8.0, 12.0),
-                source_range: UiTextRange {
-                    start: line_index,
-                    end: line_index + 1,
-                },
-                visual_range: UiTextRange { start: 0, end: 1 },
-                measured_width: 8.0,
-                glyph_advances: vec![8.0],
-                baseline: 9.0,
-                direction: UiTextDirection::LeftToRight,
-                runs: vec![UiResolvedTextRun {
-                    kind: UiTextRunKind::Plain,
-                    text: "x".to_string(),
-                    source_range: UiTextRange {
-                        start: line_index,
-                        end: line_index + 1,
-                    },
-                    visual_range: UiTextRange { start: 0, end: 1 },
-                    direction: UiTextDirection::LeftToRight,
-                }],
-                ellipsized: false,
-            })
-            .collect::<Vec<_>>();
-        let layout = UiResolvedTextLayout {
-            lines,
-            ..Default::default()
-        };
-        let range = UiTextRange { start: 64, end: 65 };
-        let mut decorations = Vec::new();
-        let mut source_maps = TextDecorationLineSourceMaps::new(&layout.lines);
-
-        append_range_decorations_with_source_maps(
-            &mut decorations,
-            &layout,
-            &[
-                TextRangeDecoration::composition_highlight(range),
-                TextRangeDecoration::selection(range),
-                TextRangeDecoration::composition_underline(range, TEXT_COMPOSITION_UNDERLINE_COLOR),
-            ],
-            &mut source_maps,
-        );
-
-        assert_eq!(source_maps.initialized_count(), 1);
-        assert_eq!(
-            decorations
-                .iter()
-                .map(|decoration| decoration.kind)
-                .collect::<Vec<_>>(),
-            vec![
-                UiTextPaintDecorationKind::CompositionHighlight,
-                UiTextPaintDecorationKind::Selection,
-                UiTextPaintDecorationKind::CompositionUnderline,
-            ]
-        );
-        assert!(decorations
-            .iter()
-            .all(|decoration| decoration.range == range));
-        assert_eq!(decorations[0].frame, UiFrame::new(0.0, 768.0, 8.0, 12.0));
-        assert_eq!(decorations[1].frame, UiFrame::new(0.0, 768.0, 8.0, 12.0));
-        assert_eq!(decorations[2].frame, UiFrame::new(0.0, 778.0, 8.0, 2.0));
-    }
-}
+#[path = "tests/mod_performance_tests.rs"]
+mod performance_tests;

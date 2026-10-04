@@ -11,7 +11,6 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/access.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/blend_space_workspace.rs
 tests:
   - .\\.codex\\skills\\zircon-dev\\scripts\\validate-matrix.ps1 -Package zircon_editor -SkipBuild -VerboseOutput
   - focused Blend Space preview contract and ignored screenshot capture after Runtime Text repair

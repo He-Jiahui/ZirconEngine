@@ -1,3 +1,6 @@
+// 调用端：npm run generate:talent-proc-catalog (tools/package.json)；职责：用选择目录 ID 归一化已求值的天赋触发条件和响应。
+// 输入边界：src/sim/content/talents.ts, src/sim/content/talent_rows.ts, src/sim/content/talents_warrior.ts, src/sim/content/talents_classic.ts；--check 比较生成结果，不改写目标文件。
+
 import { spawnSync, execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -70,6 +73,7 @@ function main() {
   process.stdout.write(`${checkOnly ? 'checked' : 'generated'} ${entries.length} current talent procs (${document.catalog_sha256.slice(0, 15)})\n`);
 }
 
+// 通过选择编码解析触发项来源，在分配目录顺序前拒绝重复标识。
 function normalizeEntry(raw, index, optionCodes, specCodes, seenProcIds) {
   invariant(raw && typeof raw === 'object', `proc entry ${index} is not an object`);
   invariant(raw.origin === 'option' || raw.origin === 'spec', `invalid proc origin ${raw.origin}`);
@@ -101,6 +105,7 @@ function normalizeEntry(raw, index, optionCodes, specCodes, seenProcIds) {
   };
 }
 
+// 求值后的源记录只允许已知触发字段及其数字范围。
 function normalizeTrigger(procId, trigger) {
   const kind = trigger.on;
   const result = {
@@ -127,6 +132,7 @@ function normalizeTrigger(procId, trigger) {
   return result;
 }
 
+// 将响应变体转换为生成的 Zr 目录所使用的稳定编码。
 function normalizeResponse(procId, response, index) {
   invariant(response && RESPONSE_CODES.has(response.kind), `unknown response ${procId}:${index}`);
   const kind = response.kind;

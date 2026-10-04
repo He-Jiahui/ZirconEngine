@@ -109,7 +109,7 @@ function actionExpression(actionName, targetText) {
   return `new Promise((resolve) => {
     const targetText = ${JSON.stringify(targetText)};
     const normalize = (value) => (value || "").replace(/\\s+/g, " ").trim();
-    const candidates = [...document.querySelectorAll("button,[role='button'],[role='tab']")];
+    const candidates = [...document.querySelectorAll("button,[role='button'],[role='tab'],[role='combobox']")];
     const visibleCandidates = candidates.filter((candidate) => {
       const rect = candidate.getBoundingClientRect();
       const style = getComputedStyle(candidate);
@@ -126,15 +126,22 @@ function actionExpression(actionName, targetText) {
 
     target.scrollIntoView({ block: "center", inline: "center" });
     requestAnimationFrame(() => {
+      const isCombobox = target.getAttribute("role") === "combobox";
       if (${JSON.stringify(actionName)} === "click-text") {
-        target.click();
+        if (isCombobox) {
+          // MUI Select opens on mouse down; HTMLElement.click() skips that handler.
+          target.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0, buttons: 1 }));
+        } else {
+          target.click();
+        }
       }
       setTimeout(() => {
         const rect = target.getBoundingClientRect();
         resolve({
-          found: true,
+          found: !isCombobox || ${JSON.stringify(actionName)} !== "click-text" || target.getAttribute("aria-expanded") === "true",
           action: ${JSON.stringify(actionName)},
           text: normalize(target.innerText || target.getAttribute("aria-label")),
+          expanded: isCombobox ? target.getAttribute("aria-expanded") : undefined,
           left: rect.left,
           top: rect.top,
           right: rect.right,

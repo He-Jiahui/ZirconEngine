@@ -1,6 +1,8 @@
+//! 直接并行库调用只由核心任务原语拥有，生产扫描负责报告越界引用。以结果断言检查当前接口或源码快照对应的边界。
 use super::support::{collect_rayon_references, rust_source_files};
 
-const JOB_SYSTEM_DOC: &str = include_str!("../../../../../docs/zircon_runtime/core/job_system.md");
+const JOB_SYSTEM_DOC: &str =
+    include_str!("../../../../../docs/crates/zircon_runtime/core/job_system.md");
 const RUNTIME_11_PLAN: &str = concat!(
     include_str!("../../../../../docs/plans/zircon_runtime/runtime/11-job-system-task-model.md"),
     include_str!("../../../../../docs/plans/zircon_runtime/runtime/11/2026-07-09-job-system-task-model-output-records.md")

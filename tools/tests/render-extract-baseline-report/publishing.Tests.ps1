@@ -316,4 +316,82 @@ Describe 'Render-extract baseline publication' {
             }
         }
     }
+
+    It 'publishes only receipt-bound product Heap allocation stacks as measured evidence' {
+        $directory = Join-Path $TestDrive ("baseline-report-heap-wpr-" + [guid]::NewGuid().ToString('N'))
+        try {
+            $summaryPath = New-RenderExtractBaselineFixture `
+                -Directory $directory `
+                -FrameDurationsUs @(1000, 2000, 3000) `
+                -ProcessDurationsMs @(10, 20, 30)
+            $summary = Get-Content -LiteralPath $summaryPath -Raw | ConvertFrom-Json
+            $tracesDirectory = Join-Path (Join-Path $directory 'traces') $summary.runs[0].invocation_id
+            [IO.Directory]::CreateDirectory($tracesDirectory) | Out-Null
+            foreach ($run in $summary.runs) {
+                $sessionId = "$($run.logical_id)-$($run.attempt)"
+                $tracePath = Join-Path $tracesDirectory "$sessionId.heap.etl"
+                $analysisPath = Join-Path $tracesDirectory "$sessionId.heap-product-allocation-stacks.txt"
+                $receiptPath = Join-Path $tracesDirectory "$sessionId.heap-wpr-capture.json"
+                [IO.File]::WriteAllBytes($tracePath, [byte[]](1, 2, 3, $run.attempt))
+                "zircon_runtime.exe!mesh_command::prepare $($run.attempt)" |
+                    Set-Content -LiteralPath $analysisPath -Encoding UTF8
+                $traceHash = (Get-FileHash -LiteralPath $tracePath -Algorithm SHA256).Hash
+                $analysisHash = (Get-FileHash -LiteralPath $analysisPath -Algorithm SHA256).Hash
+                $traceStarted = ([DateTimeOffset]$run.started_at_utc).ToUniversalTime()
+                $processStarted = $traceStarted.AddMilliseconds(10)
+                $processEnded = $traceStarted.AddMilliseconds(20)
+                $receipt = [ordered]@{
+                    schema_version = 1
+                    evidence_kind = 'windows_product_heap_allocation_stacks'
+                    profile = 'Heap'
+                    started_at_utc = $traceStarted.ToString('o')
+                    trace = [ordered]@{ path = $tracePath; bytes = [IO.FileInfo]::new($tracePath).Length; sha256 = $traceHash }
+                    analysis = [ordered]@{ path = $analysisPath; bytes = [IO.FileInfo]::new($analysisPath).Length; sha256 = $analysisHash }
+                    attribution = [ordered]@{
+                        scope = 'product_process'
+                        process_id = [Int64]$run.process_id
+                        process_started_at_utc = $processStarted.ToString('o')
+                        process_ended_at_utc = $processEnded.ToString('o')
+                        process_lifetime_range_applied = $true
+                        trace_range = [ordered]@{
+                            format = 'utc_wall_clock'
+                            start_at_utc = $processStarted.ToString('o')
+                            end_at_utc = $processEnded.ToString('o')
+                            xperf_start = $processStarted.ToString("yyyy/MM/dd:HH:mm:ss.fffffff'+UTC'", [Globalization.CultureInfo]::InvariantCulture)
+                            xperf_end = $processEnded.ToString("yyyy/MM/dd:HH:mm:ss.fffffff'+UTC'", [Globalization.CultureInfo]::InvariantCulture)
+                        }
+                    }
+                }
+                [IO.File]::WriteAllText(
+                    $receiptPath,
+                    ($receipt | ConvertTo-Json -Depth 6),
+                    [Text.UTF8Encoding]::new($false)
+                )
+                $run | Add-Member -NotePropertyName system_trace_profile -NotePropertyValue 'heap'
+                $run.system_trace_etl = $tracePath
+                $run | Add-Member -NotePropertyName system_trace_analysis -NotePropertyValue $analysisPath
+                $run | Add-Member -NotePropertyName system_trace_receipt -NotePropertyValue $receiptPath
+            }
+            [IO.File]::WriteAllText($summaryPath, ($summary | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
+            Mock Assert-RenderExtractBaselineEvidenceDirectory {
+                param($Path)
+                Resolve-ZirconWindowsPath -Path $Path
+            }
+
+            $report = Write-RenderExtractBaselineReport -BaselineSummaryPath $summaryPath
+
+            $report.raw_evidence.system_trace_artifacts.Count | Should Be 36
+            @($report.raw_evidence.system_trace_artifacts |
+                    Where-Object { $_.kind -eq 'system_trace_heap_analysis' }).Count | Should Be 12
+            $report.measurement_coverage.heap_allocations.status | Should Be 'measured'
+            $report.measurement_coverage.cpu_sampling.status | Should Be 'not_measured'
+            $report.measurement_coverage.cpu_timeline.status | Should Be 'instrumented_not_baseline'
+            $report.raw_evidence.system_trace_artifacts[1].process_id | Should Be 1001
+        }
+        finally {
+            if ([IO.Directory]::Exists($directory)) {
+                Remove-Item -LiteralPath $directory -Recurse -Force
+            }
+        }
+    }
 }

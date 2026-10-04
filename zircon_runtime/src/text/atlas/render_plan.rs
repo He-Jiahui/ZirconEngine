@@ -1,3 +1,6 @@
+//! 把图集槽中的内容映射为可见字形实例，同时裁剪屏幕矩形和 UV。
+//! 此阶段不改变驻留或上传状态；屏幕外的字形仍可能需要上传，以供后续帧复用。
+
 use crate::core::math::UVec2;
 
 use super::render_contract::GlyphAtlasRenderContract;
@@ -105,6 +108,8 @@ pub(crate) struct GlyphAtlasDrawInstance {
     pub(crate) background_color: [f32; 4],
 }
 
+/// 传入内容尺寸而非包含间隔的整槽尺寸，避免采样邻槽或未使用区域。
+/// 裁剪必须同步缩小 UV，子像素契约还要求调用者提供真实的不透明背景颜色。
 pub(crate) fn glyph_atlas_draw_instance(
     glyph: GlyphAtlasDrawGlyph,
     clip_rect: GlyphAtlasScreenRect,
@@ -207,4 +212,5 @@ fn normalized_gpu_color_channel(value: f32) -> f32 {
 }
 
 #[cfg(test)]
+#[path = "render_plan/tests/cases.rs"]
 mod tests;

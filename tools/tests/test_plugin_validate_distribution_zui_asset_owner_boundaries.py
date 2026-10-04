@@ -10,7 +10,7 @@ PLUGIN_VALIDATE_DISTRIBUTION_ZUI_ASSETS = (
     REPO_ROOT / "tools/zircon_export/plugin_validate_distribution_zui_assets.py"
 )
 
-
+# 验证校验分发 ZUI 资源归属边界的职责切分：分发 ZUI 资源位于 ZUI 资源归属。
 class PluginValidateDistributionZuiAssetOwnerBoundaryTests(unittest.TestCase):
     def test_distribution_zui_assets_live_in_zui_assets_owner(self):
         self.assertTrue(

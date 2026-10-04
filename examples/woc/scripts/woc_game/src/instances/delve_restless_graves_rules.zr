@@ -2,6 +2,7 @@
 var container = %import("zr.container");
 var content = %import("instances/delve_restless_graves_content");
 
+/// 三个数组按同一索引保存到期时间和位置；调用方只通过入队与tick维护，外部单独增删会破坏配对。
 class RestlessGravesState {
     pub var dueAt: container.Array<float>;
     pub var xs: container.Array<float>;
@@ -19,11 +20,13 @@ pub shouldQueue(affixActive: bool, templateExists: bool, boss: bool, elite: bool
     return affixActive && templateExists && !boss && !elite && !affixSpawned;
 }
 
+/// 死亡钩子先计算资格，尤其排除词缀生成的敌人以防递归出生；这里只排队，实际生成留待到期消费。
 pub enqueue(state: RestlessGravesState, now: float, x: float, z: float, eligible: bool): bool {
     if (!eligible) { return false; }
     state.dueAt.add(now + content.delaySeconds(true)); state.xs.add(x); state.zs.add(z); return true;
 }
 
+/// 按入队次序消费全部到期项并返回数量；这里只保留最后一项位置，若需逐项实体生成，应从消费链获得每个事件。
 pub tick(state: RestlessGravesState, now: float): int {
     var index = 0; var ready = 0;
     while (index < state.dueAt.length) {

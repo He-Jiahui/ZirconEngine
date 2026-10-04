@@ -10,14 +10,37 @@ fixing_child_dir: docs/plans/zircon_runtime/runtime/08
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/plugin/extension_registry/register/system_registration.rs
+  - zircon_runtime/src/plugin/extension_registry/register/system_registration/tests.rs
   - zircon_runtime/src/plugin/extension_registry/register/runtime_scene_system_registration.rs
+  - zircon_runtime/src/scene/ecs/system/native/function_scene_system.rs
+  - zircon_runtime/src/scene/ecs/system/native/runtime_scene_system.rs
+  - zircon_runtime/src/scene/ecs/system/native/into_scene_system.rs
+  - zircon_runtime/src/scene/ecs/system/native/scene_system.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/registration_replay.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin/callback.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/callback_lease.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/registration_replay.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/registration_replay/benchmarks.rs
   - zircon_runtime/src/scene/ecs/system/mod.rs
   - zircon_runtime/src/scene/ecs/schedule_parallel_executor.rs
+  - zircon_runtime/src/scene/ecs/schedule_runner/tests/worker_dispatch.rs
+  - zircon_runtime/src/tests/plugin_extensions/extension_registry_systems.rs
 tests:
-  - stateful plugin system per-instance factory test
-  - stateless plugin system no-mutex callback test
-  - multi-world same-registration parallelism and state-isolation test
+  - cargo test -p zircon_runtime --lib --locked plugin::extension_registry::register::system_registration::tests::typed_scene_system_callback_state_is_private_per_world -- --exact --test-threads=1
+  - cargo test -p zircon_runtime --lib --locked plugin::extension_registry::register::system_registration::tests::external_scene_system_callback_state_is_private_per_world -- --exact --test-threads=1
+  - cargo test -p zircon_runtime --lib --locked plugin::extension_registry::register::system_registration::tests::external_scene_system_callbacks_overlap_across_worlds -- --exact --test-threads=1
+  - cargo test -p zircon_runtime --lib --locked plugin::extension_registry::register::runtime_scene_system_registration::tests::runtime_scene_system_callback_state_is_private_per_instance -- --exact --test-threads=1
+  - cargo test -p zircon_runtime --lib --locked plugin::native_plugin_loader::native_plugin_live_host::tests::callback_lease::native_callback_stable_owner_source_has_no_per_call_state_mutex -- --exact --test-threads=1
+  - cargo test -p zircon_runtime --lib --locked plugin::native_plugin_loader::native_plugin_live_host::tests::callback_lease::native_callback_owner_uses_atomic_transition_and_reports_zero_state_mutex_acquires -- --exact --test-threads=1
+  - cargo test -p zircon_runtime --lib --locked plugin::native_plugin_loader::native_plugin_live_host::tests::callback_lease::native_callback_snapshot_defers_lease_until_foreign_call -- --exact --test-threads=1
+  - cargo test -p zircon_runtime --lib --locked plugin::native_plugin_loader::native_plugin_live_host::tests::callback_lease::native_callback_snapshot_keeps_generation_alive_after_loaded_plugin_releases -- --exact --test-threads=1
+  - cargo test -p zircon_runtime --lib --locked plugin::native_plugin_loader::native_plugin_live_host::tests::callback_lease::native_callback_atomic_transition_survives_64_thread_lease_races -- --exact --test-threads=1
+  - cargo test -p zircon_runtime --lib --locked plugin::native_plugin_loader::native_plugin_live_host::tests::registration_replay::native_registration_replay_keeps_old_binding_generation_alive_after_reinstall -- --exact --test-threads=1
+  - cargo test -p zircon_runtime --lib --locked plugin::native_plugin_loader::native_plugin_live_host::tests::registration_replay::native_registration_replay_and_reload_publish_both_consistent_generation_orders -- --exact --test-threads=1
+  - cargo test -p zircon_runtime --lib --locked tests::plugin_extensions::extension_registry_systems::plugin_runtime_scene_system_registrations_apply_to_world -- --exact --test-threads=1
+  - cargo test -p zircon_runtime --lib --locked -- --test-threads=1
+  - cargo test -p zircon_runtime --lib --locked plugin::native_plugin_loader::native_plugin_live_host::tests::callback_lease::native_callback_atomic_lease_64_thread_benchmark -- --exact --ignored --test-threads=1 --nocapture
 ---
 
 # Runtime08：plugin system instances 共享 callback mutex
@@ -79,3 +102,68 @@ Open state: `前向复核中`; no pass is claimed.
 
 - native generation lifetime 也已具备生产 owner 与源码矩阵：callback snapshot 持有 generation，foreign call 前取得无 per-call state mutex 的原子 lease；lifecycle transition 在 active callbacks 归零前拒绝 unload/reload。测试覆盖 snapshot 延迟 lease、generation keepalive、failed reload reopen、64-thread lease race 和 zero state-mutex acquire diagnostics。
 - 因此共享 callback mutex handoff 的 production 实现已闭包，未发现 `Arc<Mutex<FnMut>>` 或跨 World 共享 mutable callback state 的回流。剩余仅是 declared per-instance/multi-World/native-generation managed test 与 benchmark terminal evidence；本文件继续 `open`，不以静态 source tests 代替运行结果。
+
+### 2026-09-25 current-source owner and acceptance reconciliation
+
+- The current lowest-owner chain is now indexed at the concrete factory and instance owners:
+  `extension_registry/register/{system_registration.rs,runtime_scene_system_registration.rs}`
+  retain an `Arc<dyn Fn() -> S + Send + Sync>` build factory, while
+  `scene/ecs/system/native/{function_scene_system.rs,runtime_scene_system.rs,
+  into_scene_system.rs,scene_system.rs}` own the per-instance callback and `SystemState` run
+  path. The typed/external factory tests are in
+  `register/system_registration/tests.rs`; the runtime-scene factory test is colocated in
+  `runtime_scene_system_registration.rs`.
+- Native generation ownership is indexed through
+  `loaded_native_plugin/callback.rs` (atomic callback lease and zero state-mutex diagnostics),
+  `native_plugin_live_host/registration_replay.rs` (generation cache/invalidation), and
+  `native_plugin_live_host/lifecycle.rs` (transition/reload publication). The direct runtime
+  evidence is in `native_plugin_live_host/tests/callback_lease.rs` and
+  `native_plugin_live_host/tests/registration_replay.rs`; replay scaling is isolated in its
+  benchmark module. `schedule_runner/tests/worker_dispatch.rs` and
+  `tests/plugin_extensions/extension_registry_systems.rs` cover the upward worker and plugin
+  stage integration. All newly indexed paths exist at the current checkout.
+- Exact focused commands are now declared for per-World state, cross-World overlap, runtime
+  scene instances, zero state-mutex callback diagnostics, generation keepalive/replay, and the
+  64-thread lease race. The broad lib test and the ignored 64-thread benchmark remain explicit
+  upward/performance gates; no static source receipt is promoted to a dynamic pass.
+- Current hashes were checked before this receipt: `system_registration.rs`
+  `0584946eb51fb4bc92b37529039253993fc93600f38e85ca918187be8a5a8eb5`,
+  `system_registration/tests.rs`
+  `670795870a1a5ba7d93fb5467877af78b87032a5fa8df31abb097dc6be603f18`,
+  `runtime_scene_system_registration.rs`
+  `1f24378aa741a60b904c92c0845ea471f2363df0d18dec31577fb3fd74de67c3`,
+  `loaded_native_plugin/callback.rs` (current foreign dirty source; hash intentionally not
+  claimed by this session), `native_plugin_live_host/tests/callback_lease.rs`
+  `37d450b7003bc182ff83995ef4c511998f4d0cd36abd009381c8f4308e7253fa`, and
+  `native_plugin_live_host/tests/registration_replay.rs`
+  `7bbf42e1bdbc0eeddd4fc39d0ec7903464324f4042cd446a7478cf73e0e10165`.
+- Focused managed Cargo, the full Runtime08/Plugins01/Runtime11 upward gates, the one- and
+  two-World performance measurements, canonical fixed return, and closeout remain pending.
+  The failure therefore remains `open`.
+
+### 2026-09-25 independent current-source review receipt
+
+- An independent read-only review rechecked the current owner chain and this handoff after the
+  2026-09-25 reconciliation. All 17 `related_code` paths exist. The review confirmed the
+  factory-to-per-instance callback/SystemState chain, native generation lease/replay/lifecycle
+  ownership, and the upward worker/plugin integration paths match the source currently checked
+  out.
+- Each of the 13 focused test filters named in the frontmatter resolves to a real test, including
+  the per-World/per-instance, zero state-mutex, generation keepalive/replay, and 64-thread lease
+  race cases. The 64-thread benchmark is an explicit `#[ignore]` test with a matching filter;
+  the broad library run and benchmark remain pending managed gates rather than static passes.
+- The five claimed source SHA256 values match the current files. The dirty
+  `loaded_native_plugin/callback.rs` remains explicitly foreign/unattributed and has no claimed
+  hash. No source or test files were edited and no Cargo command was run for this review.
+- Independent review result: **Critical 0 / Important 0 / Moderate 0**. This receipt only clears
+  the documentation/source-index review; focused Cargo, upward integration, performance,
+  canonical return, and closeout evidence remain pending, so the failure stays `open`.
+
+### 2026-09-29 exact-filter acceptance correction
+
+The 2026-09-25 review confirmed that the 13 named test functions exist, but their
+bare function names paired with `--exact` did not name the nested Rust test paths.
+The frontmatter now uses the fully qualified module paths verified against the
+current test declarations. The ignored 64-thread benchmark retains `--ignored`.
+No test was executed by this metadata correction; each managed ticket must still
+report a nonzero selected test count before its result can be used for acceptance.

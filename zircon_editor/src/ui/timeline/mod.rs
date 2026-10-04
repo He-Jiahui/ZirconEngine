@@ -18,4 +18,5 @@ pub use section_lane::{
 pub use track_list::{lane_kind_for_value, project_track_list, TimelineTrackRow};
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

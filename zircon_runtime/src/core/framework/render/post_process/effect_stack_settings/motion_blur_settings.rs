@@ -3,6 +3,8 @@ use crate::core::math::Real;
 const DEFAULT_MOTION_BLUR_SAMPLES: u32 = 1;
 const MAX_MOTION_BLUR_SAMPLES: u32 = 32;
 
+/// 时间重建后的运动模糊请求，执行时依赖场景速度及运动向量预通道。
+/// 诊断报告会单独列出资源缺口，因此启用请求本身不代表当前帧可完整执行。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RenderMotionBlurSettings {
     pub shutter_angle: Real,
@@ -37,37 +39,5 @@ impl RenderMotionBlurSettings {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{RenderMotionBlurSettings, MAX_MOTION_BLUR_SAMPLES};
-
-    #[test]
-    fn motion_blur_settings_require_shutter_and_samples_and_clamp_upload_values() {
-        assert!(!RenderMotionBlurSettings::default().is_enabled());
-        assert_eq!(
-            RenderMotionBlurSettings::default().render_shutter_angle(),
-            0.0
-        );
-        assert!(!RenderMotionBlurSettings {
-            shutter_angle: 0.5,
-            samples: 0,
-        }
-        .is_enabled());
-        assert_eq!(
-            RenderMotionBlurSettings {
-                shutter_angle: 0.5,
-                samples: 0,
-            }
-            .render_shutter_angle(),
-            0.0
-        );
-
-        let settings = RenderMotionBlurSettings {
-            shutter_angle: 0.5,
-            samples: MAX_MOTION_BLUR_SAMPLES + 8,
-        };
-
-        assert!(settings.is_enabled());
-        assert_eq!(settings.render_shutter_angle(), 0.5);
-        assert_eq!(settings.render_samples(), MAX_MOTION_BLUR_SAMPLES);
-    }
-}
+#[path = "tests/motion_blur_settings.rs"]
+mod tests;

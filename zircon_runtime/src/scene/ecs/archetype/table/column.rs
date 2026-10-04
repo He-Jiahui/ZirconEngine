@@ -1,15 +1,18 @@
-use std::alloc::{Layout, alloc, dealloc, handle_alloc_error, realloc};
+use std::alloc::{alloc, dealloc, handle_alloc_error, realloc, Layout};
+use std::cell::UnsafeCell;
 use std::ptr::NonNull;
 
 use crate::scene::ecs::component::TableColumnLayout;
-use crate::scene::ecs::{ChangeTick, ComponentTicks, storage::StoredComponent};
+use crate::scene::ecs::{storage::StoredComponent, ChangeTick, ComponentTicks};
 
 /// Owns the contiguous body and tick rows for exactly one registered table component.
+/// ticks 的长度界定已初始化行；交换删除移走末行后必须缩短该长度，避免重复析构组件值。
 pub(super) struct ArchetypeColumn {
     layout: TableColumnLayout,
     data: NonNull<u8>,
     capacity: usize,
-    ticks: Vec<ComponentTicks>,
+    // Shared projections must not freeze or mutably borrow neighboring ticks.
+    ticks: Vec<UnsafeCell<ComponentTicks>>,
 }
 
 impl ArchetypeColumn {
@@ -36,7 +39,7 @@ impl ArchetypeColumn {
             .saturating_add(
                 self.ticks
                     .capacity()
-                    .saturating_mul(std::mem::size_of::<ComponentTicks>()),
+                    .saturating_mul(std::mem::size_of::<UnsafeCell<ComponentTicks>>()),
             )
     }
 
@@ -48,7 +51,7 @@ impl ArchetypeColumn {
         // SAFETY: `reserve` created an aligned uninitialized slot for this
         // registered component, and the caller prevalidated its concrete type.
         unsafe { self.layout.write_box(value, destination) };
-        self.ticks.push(ticks);
+        self.ticks.push(UnsafeCell::new(ticks));
     }
 
     pub(super) fn get<T>(&self, row: usize) -> Option<&T>
@@ -75,7 +78,7 @@ impl ArchetypeColumn {
         T: Send + Sync + 'static,
     {
         let value = self.typed_slot_ptr::<T>(row)?;
-        self.ticks.get_mut(row)?.set_changed(tick);
+        self.ticks.get_mut(row)?.get_mut().set_changed(tick);
         // SAFETY: `typed_slot_ptr` validates the registered TypeId and row;
         // the tick update is disjoint from the component body allocation.
         Some(unsafe { &mut *value })
@@ -89,14 +92,70 @@ impl ArchetypeColumn {
         T: Send + Sync + 'static,
     {
         let value = self.typed_slot_ptr::<T>(row)?;
-        let ticks = self.ticks.get_mut(row)?;
+        let ticks = self.ticks.get_mut(row)?.get_mut();
         // SAFETY: `typed_slot_ptr` validates the registered TypeId and row.
         // The component allocation and tick vector are disjoint allocations.
         Some((unsafe { &mut *value }, ticks))
     }
 
+    /// Eagerly mark one row changed and return its mutable component.
+    ///
+    /// # Safety
+    /// The caller must exclusively own this row's value and ticks for the
+    /// returned lifetime, excluding conflicting reads/writes on all threads.
+    /// Length, allocations and row location stay stable; other loans select
+    /// different rows, including any shared value/tick reads.
+    pub(super) unsafe fn get_mut_at_tick_unchecked<T>(
+        &self,
+        row: usize,
+        tick: ChangeTick,
+    ) -> Option<&mut T>
+    where
+        T: Send + Sync + 'static,
+    {
+        // SAFETY: the required unique value/tick row loan is the same.
+        let (value, ticks) = unsafe { self.get_mut_with_ticks_unchecked::<T>(row)? };
+        ticks.set_changed(tick);
+        Some(value)
+    }
+
+    /// Project a component and its separate tick cell for one checked row.
+    ///
+    /// # Safety
+    /// The caller must exclusively own this row's value and ticks for both
+    /// returned lifetimes, excluding conflicting reads/writes on all threads.
+    /// Length, allocations and row location stay stable. Other live value/tick
+    /// loans must select different rows, including safe shared row references.
+    pub(super) unsafe fn get_mut_with_ticks_unchecked<T>(
+        &self,
+        row: usize,
+    ) -> Option<(&mut T, &mut ComponentTicks)>
+    where
+        T: Send + Sync + 'static,
+    {
+        let value = self.typed_slot_ptr::<T>(row)?;
+        let ticks = self.ticks.get(row)?.get();
+        // SAFETY: only the checked value slot and its tick cell are projected.
+        // They occupy disjoint allocations and both row loans are unique.
+        Some(unsafe { (&mut *value, &mut *ticks) })
+    }
+
+    /// Validate the registered type and copy ticks without a component reference.
+    pub(super) fn ticks_for_type<T>(&self, row: usize) -> Option<ComponentTicks>
+    where
+        T: Send + Sync + 'static,
+    {
+        if !self.layout.matches::<T>() {
+            return None;
+        }
+        self.ticks(row)
+    }
+
     pub(super) fn ticks(&self, row: usize) -> Option<ComponentTicks> {
-        self.ticks.get(row).copied()
+        let ticks = self.ticks.get(row)?;
+        // SAFETY: safe shared storage access excludes conflicting tick loans;
+        // unsafe writers must uphold that exclusion for the selected row.
+        Some(unsafe { *ticks.get() })
     }
 
     pub(super) fn replace(
@@ -115,7 +174,7 @@ impl ArchetypeColumn {
         let previous = unsafe { self.layout.take_box(slot) };
         // SAFETY: validation above proves `value` matches this slot layout.
         unsafe { self.layout.write_box(value, slot) };
-        self.ticks[row].set_changed(tick);
+        self.ticks[row].get_mut().set_changed(tick);
         Some(previous)
     }
 
@@ -136,7 +195,7 @@ impl ArchetypeColumn {
                 std::ptr::copy_nonoverlapping(last, slot, self.layout.layout().size());
             }
         }
-        let ticks = self.ticks.swap_remove(row);
+        let ticks = self.ticks.swap_remove(row).into_inner();
         Some((value, ticks))
     }
 
@@ -216,9 +275,10 @@ impl Drop for ArchetypeColumn {
     }
 }
 
-// SAFETY: construction is limited to `T: Send + Sync` component layouts and
-// all raw body access is gated by exclusive table ownership.
+// SAFETY: layouts contain Send + Sync values and this column owns their
+// allocation; tick cells are Send. Structural access still needs &mut self.
 unsafe impl Send for ArchetypeColumn {}
-// SAFETY: immutable access returns typed shared references only after checking
-// the registered layout; no interior mutability is exposed by the column.
+// SAFETY: safe shared access only reads Sync components/ticks. Shared mutation
+// is exposed solely by unsafe row methods requiring unique value/tick loans,
+// stable storage and exclusion of conflicting accesses on every thread.
 unsafe impl Sync for ArchetypeColumn {}

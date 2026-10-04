@@ -2,7 +2,11 @@ use std::io;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use std::thread::{self, JoinHandle};
-use std::time::Duration;
+use std::time::{Duration, Instant};
+
+use super::super::thread_is_join_ready;
+
+const WORKER_EXIT_POLL_INTERVAL: Duration = Duration::from_millis(1);
 
 #[derive(Clone)]
 pub(super) struct OwnedWorkerThreads {
@@ -58,6 +62,7 @@ impl OwnedWorkerThreads {
             .store(expected_worker_count, Ordering::Release);
     }
 
+    // worker 主体退出时先登记 exit receipt；Windows TLS 析构尚未结束时 native join readiness 仍可能为假，因此 census 以平台就绪探针确认 join。
     pub(super) fn spawn(
         &self,
         name: Option<String>,
@@ -84,35 +89,36 @@ impl OwnedWorkerThreads {
     }
 
     pub(super) fn wait_and_join(&self, timeout: Duration) -> OwnedWorkerThreadsCensus {
-        let expected_worker_count = self.expected_worker_count();
+        let deadline = Instant::now()
+            .checked_add(timeout)
+            .unwrap_or_else(Instant::now);
         let mut state = self.shared.lock_state();
-        if state.exited_worker_count < expected_worker_count {
-            let (state_after_wait, _) = self
+        loop {
+            while let Some(index) = state.handles.iter().position(thread_is_join_ready) {
+                let handle = state.handles.swap_remove(index);
+                drop(state);
+                let _ = handle.join();
+                state = self.shared.lock_state();
+                state.joined_worker_count = state.joined_worker_count.saturating_add(1);
+                self.shared.changed.notify_all();
+            }
+            let census = self.census_from(&state);
+            if census.all_joined() || Instant::now() >= deadline {
+                return census;
+            }
+            // The body exit receipt precedes TLS destruction, which has no Rust notification.
+            state = self
                 .shared
                 .changed
-                .wait_timeout_while(state, timeout, |state| {
-                    state.exited_worker_count < expected_worker_count
-                })
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            state = state_after_wait;
+                .wait_timeout(
+                    state,
+                    deadline
+                        .saturating_duration_since(Instant::now())
+                        .min(WORKER_EXIT_POLL_INTERVAL),
+                )
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .0;
         }
-        if state.exited_worker_count < expected_worker_count {
-            return self.census_from(&state);
-        }
-
-        let handles = std::mem::take(&mut state.handles);
-        drop(state);
-        let mut joined_worker_count = 0;
-        for handle in handles {
-            let _ = handle.join();
-            joined_worker_count += 1;
-        }
-
-        let mut state = self.shared.lock_state();
-        state.joined_worker_count = state
-            .joined_worker_count
-            .saturating_add(joined_worker_count);
-        self.census_from(&state)
     }
 
     pub(super) fn join_spawned_workers(&self) -> OwnedWorkerThreadsCensus {

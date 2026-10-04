@@ -25,7 +25,7 @@ requireText(autoAttack, /weapon imbues[\s\S]*?a\.kind === 'imbue'[\s\S]*?\+\s*im
 
 const generator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
-if (!/flametongue_weapon',[\s\S]*?'frostbrand_weapon'/.test(generator) || !generator.includes("EXPECTED_ABILITY_COUNT = 79") || !zrGenerator.includes("document.entries.length === 79")) throw new Error("M4 Frostbrand Weapon scope is missing");
+if (!/flametongue_weapon',[\s\S]*?'frostbrand_weapon'/.test(generator) || !generator.includes("EXPECTED_ABILITY_COUNT = 117") || !zrGenerator.includes("document.entries.length === 117")) throw new Error("M4 Frostbrand Weapon scope is missing");
 const m4 = JSON.parse(read("contracts", "m4_abilities.json"));
 const entry = m4.entries.find((value) => value.id === "frostbrand_weapon");
 if (!entry || entry.index !== 38 || entry.definition.school !== "frost" || entry.definition.requiresTarget || entry.definition.effects?.[0]?.type !== "imbue") throw new Error("M4 Frostbrand Weapon projection drifted");

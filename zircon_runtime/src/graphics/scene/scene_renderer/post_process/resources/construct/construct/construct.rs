@@ -1,3 +1,4 @@
+//! 在渲染器初始化阶段一次性创建完整或仅输出传输的后处理资源集合；帧录制只复用这些句柄。
 use super::super::super::super::scene_post_process_resources::{
     FullScenePostProcessResources, SceneOutputTransferResources, ScenePostProcessResources,
 };
@@ -8,7 +9,7 @@ use super::super::create_buffer_bundle::create_buffer_bundle;
 use super::super::create_fallback_texture_views::create_fallback_texture_views;
 use super::super::create_pipeline_bundle::{create_pipeline_bundle, output_transfer_pipeline};
 use crate::graphics::backend::SystemTextureGenerationLease;
-use crate::graphics::shader::{FullscreenPassParameterBindings, motion_vector_tile_max_pass_plan};
+use crate::graphics::shader::{motion_vector_tile_max_pass_plan, FullscreenPassParameterBindings};
 use crate::graphics::types::GraphicsError;
 
 impl ScenePostProcessResources {
@@ -266,32 +267,5 @@ fn upscale_sampler(device: &wgpu::Device) -> wgpu::Sampler {
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::graphics::backend::RenderBackend;
-    use crate::graphics::types::GraphicsError;
-
-    use super::validate_post_process_construction;
-
-    #[test]
-    fn post_process_construction_validation_scope_reports_its_operation() {
-        let Ok(backend) = RenderBackend::new_offscreen() else {
-            return;
-        };
-
-        let result =
-            validate_post_process_construction(&backend.device, "test-invalid-shader", || {
-                backend
-                    .device
-                    .create_shader_module(wgpu::ShaderModuleDescriptor {
-                        label: Some("zircon-post-process-invalid-test-shader"),
-                        source: wgpu::ShaderSource::Wgsl("not valid WGSL".into()),
-                    })
-            });
-
-        assert!(matches!(
-            result,
-            Err(GraphicsError::WgpuValidation(message))
-                if message.contains("post-process test-invalid-shader construction")
-        ));
-    }
-}
+#[path = "tests/construct.rs"]
+mod tests;

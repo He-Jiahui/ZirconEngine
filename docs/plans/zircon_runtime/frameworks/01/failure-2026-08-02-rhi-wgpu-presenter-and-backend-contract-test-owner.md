@@ -17,7 +17,7 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/rhi_command_list.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/rhi_device_contract.rs
 tests:
-  - python tools/runtime_domain_dependency_audit.py --pretty
+  - python tools/audits/runtime_domain_dependency_audit.py --pretty
   - cargo tree -p zr_rhi --edges normal,build,dev
   - cargo test -p zr_rhi --locked
   - cargo test -p zr_rhi_wgpu --locked
@@ -143,7 +143,7 @@ Resolving state: `frameworks01_m2_physical_rhi_backend_split_implemented_validat
 - Updated Runtime15 path guards, server feature-boundary checks and dependency-domain inventory to
   the physical paths. Non-Cargo evidence is GREEN: Rust 1.94.1 exact-scope `rustfmt` passed,
   `python -m unittest tools.tests.test_frameworks_03_server_feature_boundary` passed 13/13, and
-  final independent re-review reran `python tools/runtime_domain_dependency_audit.py --repo-root .`
+  final independent re-review reran `python tools/audits/runtime_domain_dependency_audit.py --repo-root .`
   with 2,586 production references / 70 domain edges and no Runtime `rhi_wgpu` domain.
 - The first four independent review passes reported `C0/I3/M1`, `C0/I1/M1`, `C0/I1/M0` and
   `C0/I1/M0`: they

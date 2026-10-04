@@ -10,5 +10,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use surfac
     alert_background_color, alert_border_color, alert_border_width,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use text::{
-    alert_action_color, alert_icon_color, alert_icon_cutout_color, alert_text_color,
+    alert_action_color, alert_icon_color, alert_text_color,
 };
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use variants::alert_color_token;

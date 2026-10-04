@@ -11,10 +11,12 @@ use zircon_runtime::scene::world::World;
 #[test]
 fn visibility_context_uses_instance_ranges_and_forced_mip_for_virtual_geometry_selection() {
     let mut world = World::new();
-    let mesh = world.spawn_mesh_node(
-        model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.zmaterial"),
-    );
+    let mesh = world
+        .spawn_mesh_node(
+            model_handle("res://models/virtual_geometry.obj"),
+            material_handle("res://materials/virtual_geometry.zmaterial"),
+        )
+        .expect("virtual geometry mesh should spawn");
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
@@ -83,10 +85,12 @@ fn visibility_context_uses_instance_ranges_and_forced_mip_for_virtual_geometry_s
 #[test]
 fn visibility_context_freeze_cull_preserves_previous_virtual_geometry_selection_and_requests() {
     let mut world = World::new();
-    let mesh = world.spawn_mesh_node(
-        model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.zmaterial"),
-    );
+    let mesh = world
+        .spawn_mesh_node(
+            model_handle("res://models/virtual_geometry.obj"),
+            material_handle("res://materials/virtual_geometry.zmaterial"),
+        )
+        .expect("virtual geometry mesh should spawn");
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");

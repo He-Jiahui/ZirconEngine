@@ -4,9 +4,6 @@ status: implemented_pending_service_reload
 created_at: 2026-07-15
 plan_source: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
 related_code:
-  - tools/session_coordinator/codex_sync/evidence.py
-  - tools/session_coordinator/codex_sync/worker.py
-  - tools/session_coordinator/failures.py
   - .codex/skills/zircon-project-skills/handle-plan-failure-handoffs/scripts/validate_plan_failure_handoffs.py
 tests:
   - tools/session_coordinator/tests/test_codex_evidence_projection.py

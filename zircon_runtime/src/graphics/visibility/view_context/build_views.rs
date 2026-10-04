@@ -1,20 +1,20 @@
 use std::collections::BTreeSet;
 use std::f32::consts::{FRAC_PI_2, PI};
 
-use crate::core::TaskPool;
 use crate::core::framework::render::{
     CameraRenderDescriptor, LightShadowSettings, LightingExtract, ProjectionMode,
     RenderCameraTarget, RenderDirectionalLightSnapshot, RenderPointLightSnapshot,
     RenderSpotLightSnapshot, ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::EntityId;
-use crate::core::math::{Real, Transform, Vec3, is_finite_vec3};
+use crate::core::math::{is_finite_vec3, Real, Transform, Vec3};
+use crate::core::TaskPool;
 use crate::graphics::scene::{
-    CascadeRange, CascadeSplitConfig, cascade_shadow_bounds_from_camera_slice,
-    compute_cascade_ranges,
+    cascade_shadow_bounds_from_camera_slice, compute_cascade_ranges, CascadeRange,
+    CascadeSplitConfig,
 };
 
-use super::super::culling::parallel_frustum::{MeshFrustumCandidate, mesh_frustum_visibility};
+use super::super::culling::parallel_frustum::{mesh_frustum_visibility, MeshFrustumCandidate};
 use super::super::declarations::{VisibilityBvhInstance, VisibilityRelevanceEntry};
 use super::{FrameVisibility, ViewCullingStats, ViewVisibilityContext, VisibilityViewKey};
 
@@ -60,7 +60,7 @@ impl FrameVisibility {
             camera_descriptors,
             task_pool,
         ));
-        for light in &lighting.directional_lights {
+        if let Some(light) = first_shadow_casting_directional(lighting) {
             let ranges = directional_shadow_ranges(light.shadow);
             extra_views.extend(ranges.into_iter().enumerate().map(|(cascade, range)| {
                 shadow_cascade_view(
@@ -301,7 +301,9 @@ fn extra_view_capacity(
         .filter(|camera| !matches!(camera.target, RenderCameraTarget::PrimarySurface))
         .filter(|camera| camera.entity.is_some())
         .count();
-    let directional = lighting.directional_lights.len();
+    let directional = first_shadow_casting_directional(lighting)
+        .map(|_| CascadeSplitConfig::default().effective_cascade_count())
+        .unwrap_or_default();
     let point = lighting
         .point_lights
         .iter()
@@ -433,15 +435,20 @@ fn shadow_enabled(shadow: Option<LightShadowSettings>) -> bool {
     shadow.is_some_and(|settings| settings.casts_shadow)
 }
 
+fn first_shadow_casting_directional(
+    lighting: &LightingExtract,
+) -> Option<&RenderDirectionalLightSnapshot> {
+    lighting
+        .directional_lights
+        .iter()
+        .find(|light| shadow_enabled(light.shadow))
+}
+
 fn directional_shadow_ranges(shadow: Option<LightShadowSettings>) -> Vec<CascadeRange> {
-    let mut ranges =
-        compute_cascade_ranges(&CascadeSplitConfig::default(), SHADOW_CAMERA_NEAR_PLANE);
-    if shadow_enabled(shadow) {
-        ranges
-    } else {
-        ranges.truncate(1);
-        ranges
+    if !shadow_enabled(shadow) {
+        return Vec::new();
     }
+    compute_cascade_ranges(&CascadeSplitConfig::default(), SHADOW_CAMERA_NEAR_PLANE)
 }
 
 fn default_shadow_light_direction() -> Vec3 {
@@ -449,16 +456,9 @@ fn default_shadow_light_direction() -> Vec3 {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn extra_views_share_one_frustum_candidate_projection() {
-        let source = include_str!("build_views.rs");
-        let builder = concat!("build_frustum_candidates(", "&frame_visibility)");
-
-        assert_eq!(source.matches(builder).count(), 1);
-    }
-}
+#[path = "tests/build_views.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "build_views/capacity_tests.rs"]
+#[path = "build_views/tests/capacity_tests.rs"]
 mod capacity_tests;

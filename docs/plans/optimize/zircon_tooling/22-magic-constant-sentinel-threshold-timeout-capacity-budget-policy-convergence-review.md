@@ -14,7 +14,6 @@ related_code:
   - zircon_editor/src/core/jobs/quota_settings.rs
   - zircon_editor/src/core/play/pending_edits/queue.rs
   - zircon_editor/src/core/play/process_backend/output.rs
-  - zircon_editor/src/core/recovery/autosave.rs
   - zircon_editor/src/core/settings/defaults.rs
   - zircon_editor/src/core/settings/definition.rs
   - zircon_editor/src/core/settings/registry.rs

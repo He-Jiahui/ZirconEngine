@@ -36,6 +36,7 @@ const CAST_SHADOWS_SELECT_BACKGROUND: &str = "#282e32";
 const CAST_SHADOWS_SELECT_BORDER: &str = "#343d43";
 const CAST_SHADOWS_SELECT_VALUE: &str = "#b5c0c5";
 impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
+    // 编辑器快照是场景、检查器和状态栏的权威输入；模板桥只制作下一次绘制的投影。
     pub(crate) fn sync_from_chrome(
         &mut self,
         chrome: &EditorChromeSnapshot,
@@ -46,6 +47,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         Ok(())
     }
 
+    // 宿主可先同步数据再统一重排布局，避免一次消息触发两次表面刷新。
     pub(crate) fn prepare_chrome_state_for_layout(
         &mut self,
         chrome: &EditorChromeSnapshot,
@@ -84,7 +86,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 "text",
                 UiValue::String("No Selection".to_string()),
             )?;
-            self.set_inspector_filter_source(false, None)?;
+            self.set_inspector_filter_source(false, String::new(), Vec::new())?;
             return Ok(());
         };
 
@@ -110,18 +112,41 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             UiValue::String(format_transform_scale(inspector)),
         )?;
         self.sync_transform_scale_axis_values(inspector)?;
-
-        let Some(component) = inspector.plugin_components.first() else {
-            self.set_inspector_filter_source(true, None)?;
-            return Ok(());
-        };
-
+        for (axis, control_id) in [
+            "WorkbenchTransformRotationX",
+            "WorkbenchTransformRotationY",
+            "WorkbenchTransformRotationZ",
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let value = inspector
+                .rotation_degrees
+                .as_ref()
+                .map(|degrees| format!("{} deg", degrees[axis]))
+                .unwrap_or_else(|| "—".to_string());
+            self.mutate_control_property(control_id, "value", UiValue::String(value))?;
+        }
+        let rotation = inspector
+            .rotation_degrees
+            .as_ref()
+            .map(|degrees| {
+                format!(
+                    "X {} deg   Y {} deg   Z {} deg",
+                    degrees[0], degrees[1], degrees[2]
+                )
+            })
+            .unwrap_or_else(|| "—".to_string());
         self.mutate_control_property(
-            MESH_LABEL,
-            "text",
-            UiValue::String(non_empty_label(&component.display_name, "Component")),
+            "WorkbenchTransformRotation",
+            "value",
+            UiValue::String(rotation),
         )?;
-        self.set_inspector_filter_source(true, Some(component))?;
+
+        let (label, properties) =
+            super::inspector_component_source::inspector_component_source(inspector);
+        self.mutate_control_property(MESH_LABEL, "text", UiValue::String(label.clone()))?;
+        self.set_inspector_filter_source(true, label, properties)?;
         Ok(())
     }
 
@@ -137,6 +162,11 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             self.sync_component_property_row_metadata(control_id, None, false)?;
             self.mutate_control_property(
                 control_id,
+                "inspector_property_item_key",
+                UiValue::String(String::new()),
+            )?;
+            self.mutate_control_property(
+                control_id,
                 "text",
                 UiValue::String(component_property_fallback_label(index)),
             )?;
@@ -150,6 +180,16 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         };
 
         self.set_visible(control_id, true)?;
+        let item_key = self
+            .component_property_keys
+            .get(index)
+            .map(|key| key.get().to_string())
+            .unwrap_or_default();
+        self.mutate_control_property(
+            control_id,
+            "inspector_property_item_key",
+            UiValue::String(item_key),
+        )?;
         self.mutate_control_property(
             control_id,
             "text",
@@ -202,6 +242,13 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             UiValue::String(value_kind.to_string()),
         )?;
         self.mutate_control_property(control_id, PROPERTY_EDITABLE, UiValue::Bool(editable))?;
+        self.mutate_control_property(control_id, "read_only", UiValue::Bool(!editable))?;
+        self.mutate_control_property(control_id, "editable_text", UiValue::Bool(editable))?;
+        self.mutate_control_property(control_id, "input_focusable", UiValue::Bool(editable))?;
+        self.mutate_control_property(control_id, "input_clickable", UiValue::Bool(editable))?;
+        // Runtime input routing reads typed state flags, not template metadata.
+        self.mutate_control_property(control_id, "focusable", UiValue::Bool(editable))?;
+        self.mutate_control_property(control_id, "clickable", UiValue::Bool(editable))?;
         self.mutate_control_property(control_id, "value", UiValue::String(value.to_string()))?;
         self.sync_component_property_row_visual_style(control_id, field_id)?;
         Ok(())

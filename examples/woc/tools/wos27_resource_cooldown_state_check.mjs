@@ -37,13 +37,13 @@ for (const field of [
   'entityOverpowerUntil: container.Array<float>;',
   'entityPotionCooldownUntil: container.Array<float>;',
   'entityPotionCooldownRemaining: container.Array<float>;',
-  'entitySavedMana: container.Array<int>;',
+  'entitySavedMana: container.Array<float>;',
 ]) {
   invariant(state.includes(`pub var ${field}`), `WOS27 resource-cooldown column is missing: ${field}`);
 }
 for (const needle of [
   'appendDefaultResourceCooldownColumns(this);', 'appendDefaultResourceCooldownColumns(state);',
-  'writer.u16(<uint>38, 1, 1);', 'schemaVersion != <uint>27',
+  'writer.u16(schemaVersion, 1, 1);', 'schemaVersion != <uint>27',
   'if (schemaVersion >= <uint>27) {', 'm8FreshPlayerStats.resourceCooldownDecimal',
   'm8EastbrookEncounter.resourceCooldownInteger', 'entityState.entityComboPoints[0] = 5;',
   'entityState.entityPotionCooldownUntil[0] = 90.0;',
@@ -52,8 +52,8 @@ for (const needle of [
 }
 invariant((state.match(/entityComboPoints/g) ?? []).length >= 9,
   'WOS27 combo points lack persistence coverage');
-invariant(main.includes('\\"world_state\\":\\"WOS38\\",'),
-  'package stateSchema must expose the WOS38 snapshot version');
+invariant(main.includes('\\"world_state\\":\\"WOS118\\",'),
+  'package stateSchema must expose the WOS118 snapshot version');
 
 process.stdout.write(`checked WOS27 resource-cooldown source projection: ${SOURCE_COMMIT.slice(0, 15)}\n`);
 

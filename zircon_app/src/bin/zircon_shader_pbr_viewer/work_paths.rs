@@ -1,3 +1,6 @@
+//! 查看器项目、IBL 与诊断证据的运行时路径组织。
+//! 命名与建目录分离；测试数据目录由各测试清理，不用于编译产物。
+
 use std::path::{Path, PathBuf};
 
 #[cfg(test)]
@@ -9,6 +12,7 @@ const VIEWER_IBL_CACHE_DIRECTORY: &str = "zircon_shader_pbr_viewer_ibl_cache";
 #[cfg(test)]
 static VIEWER_TEST_ARTIFACT_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
+/// 启动与场景构造共享的运行时工件命名；路径构造本身不建立目录或执行准入。
 pub(crate) struct ViewerWorkPaths {
     project_root: PathBuf,
     ibl_cache_root: PathBuf,
@@ -17,6 +21,7 @@ pub(crate) struct ViewerWorkPaths {
 }
 
 impl ViewerWorkPaths {
+    /// 在已准入的工作目录下派生工件路径；独立 IBL 缓存可由多个启动目录复用。
     pub(crate) fn new(work_dir: &Path, ibl_cache_override: Option<&Path>) -> Self {
         Self {
             project_root: work_dir.join(format!(
@@ -48,6 +53,7 @@ impl ViewerWorkPaths {
 }
 
 #[cfg(test)]
+/// 为测试建立独立的数据工件目录；测试完成后必须清理，与编译缓存分配无关。
 pub(crate) fn viewer_test_artifact_root(test_name: &str) -> PathBuf {
     let workspace_root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
@@ -68,61 +74,5 @@ pub(crate) fn viewer_test_artifact_root(test_name: &str) -> PathBuf {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::path::{Path, PathBuf};
-
-    use super::{viewer_test_artifact_root, ViewerWorkPaths};
-
-    #[test]
-    fn viewer_work_paths_keep_project_and_default_ibl_cache_under_the_work_root() {
-        let paths = ViewerWorkPaths::new(Path::new("E:/viewer-work"), None);
-
-        assert_eq!(
-            paths.project_root(),
-            Path::new("E:/viewer-work/zircon_shader_pbr_viewer_project_v4")
-        );
-        assert_eq!(
-            paths.ibl_cache_root(),
-            Path::new("E:/viewer-work/zircon_shader_pbr_viewer_ibl_cache")
-        );
-        assert_eq!(
-            paths.renderdoc_capture_template(),
-            Path::new("E:/viewer-work/renderdoc/zircon_shader_pbr_viewer")
-        );
-        assert_eq!(
-            paths.terminal_outcome_path(),
-            Path::new("E:/viewer-work/zircon_shader_pbr_viewer_terminal_outcome.json")
-        );
-    }
-
-    #[test]
-    fn explicit_ibl_cache_directory_overrides_the_work_root_default() {
-        let paths = ViewerWorkPaths::new(
-            Path::new("E:/viewer-work"),
-            Some(Path::new("E:/dedicated-ibl-cache")),
-        );
-
-        assert_eq!(
-            paths.ibl_cache_root(),
-            PathBuf::from("E:/dedicated-ibl-cache")
-        );
-    }
-
-    #[test]
-    fn viewer_test_artifacts_do_not_use_the_system_temp_directory_or_c_drive() {
-        let root = viewer_test_artifact_root("work-paths");
-
-        assert!(
-            !root
-                .to_string_lossy()
-                .to_ascii_lowercase()
-                .starts_with("c:"),
-            "viewer test artifacts must remain outside C:"
-        );
-        assert!(
-            !root.starts_with(std::env::temp_dir()),
-            "viewer test artifacts must not use the system temporary directory"
-        );
-        std::fs::remove_dir_all(root).expect("viewer test artifact root should be removed");
-    }
-}
+#[path = "tests/work_paths.rs"]
+mod tests;

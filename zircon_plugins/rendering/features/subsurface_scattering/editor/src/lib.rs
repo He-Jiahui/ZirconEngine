@@ -1,3 +1,4 @@
+//! 次表面散射的编辑器公共入口；宿主可查询能力与清单，具体编辑器扩展仍由注册契约决定。
 mod capability;
 mod plugin;
 
@@ -8,12 +9,5 @@ pub use plugin::{
 };
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn editor_feature_exports_manifest_capability() {
-        assert_eq!(feature_manifest().id, FEATURE_ID);
-        assert_eq!(editor_capabilities(), vec![CAPABILITY.to_string()]);
-    }
-}
+#[path = "tests/lib.rs"]
+mod tests;

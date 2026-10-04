@@ -9,9 +9,6 @@ origin_child_dir: docs/plans/zircon_runtime/render/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/cargo_jobs.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/cli.py
 tests:
   - tools/session_coordinator/tests/test_cargo_reservations.py::CargoReservationTests::test_unreserved_cpu_lease_cannot_start_ahead_of_consumed_priority_reservation
   - tools/session_coordinator/tests/test_cargo_reservations.py::CargoReservationTests::test_cpu_reservation_preserves_explicit_approved_target_when_consumed

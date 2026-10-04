@@ -237,6 +237,72 @@ fn input_manager_frame_snapshot_tracks_transitions_and_motion() {
 }
 
 #[test]
+fn input_manager_indexes_interleaved_gamepad_axis_transitions_per_frame() {
+    let input = DefaultInputManager::default();
+    let first_gamepad = GamepadId(1);
+    let second_gamepad = GamepadId(2);
+
+    input.begin_frame();
+    input.submit_event(InputEvent::GamepadAxis {
+        gamepad: first_gamepad,
+        axis: GamepadAxis::LeftStickX,
+        value: 0.25,
+    });
+    input.submit_event(InputEvent::GamepadAxis {
+        gamepad: second_gamepad,
+        axis: GamepadAxis::RightStickY,
+        value: -0.5,
+    });
+    input.submit_event(InputEvent::GamepadAxis {
+        gamepad: first_gamepad,
+        axis: GamepadAxis::LeftStickX,
+        value: 0.75,
+    });
+
+    let frame = input.frame_snapshot();
+    assert_eq!(frame.gamepad_axis_transitions.len(), 2);
+    assert_eq!(frame.gamepad_axis_transitions[0].gamepad, first_gamepad);
+    assert_eq!(
+        frame.gamepad_axis_transitions[0].axis,
+        GamepadAxis::LeftStickX
+    );
+    assert_eq!(frame.gamepad_axis_transitions[0].previous_value, 0.0);
+    assert_eq!(
+        frame.gamepad_axis_transitions[0].value,
+        GamepadAxisSettings::default().scaled_value(0.75)
+    );
+    assert_eq!(frame.gamepad_axis_transitions[1].gamepad, second_gamepad);
+    assert_eq!(
+        frame.gamepad_axis_transitions[1].axis,
+        GamepadAxis::RightStickY
+    );
+    assert_eq!(frame.gamepad_axis_transitions[1].previous_value, 0.0);
+    assert_eq!(
+        frame.gamepad_axis_transitions[1].value,
+        GamepadAxisSettings::default().scaled_value(-0.5)
+    );
+
+    input.begin_frame();
+    assert!(input.frame_snapshot().gamepad_axis_transitions.is_empty());
+
+    input.submit_event(InputEvent::GamepadAxis {
+        gamepad: first_gamepad,
+        axis: GamepadAxis::LeftStickX,
+        value: -0.25,
+    });
+    let next_frame = input.frame_snapshot();
+    assert_eq!(next_frame.gamepad_axis_transitions.len(), 1);
+    assert_eq!(
+        next_frame.gamepad_axis_transitions[0].previous_value,
+        GamepadAxisSettings::default().scaled_value(0.75)
+    );
+    assert_eq!(
+        next_frame.gamepad_axis_transitions[0].value,
+        GamepadAxisSettings::default().scaled_value(-0.25)
+    );
+}
+
+#[test]
 fn focus_loss_releases_active_input_without_disconnect() {
     let input = DefaultInputManager::default();
     let gamepad = GamepadId(7);

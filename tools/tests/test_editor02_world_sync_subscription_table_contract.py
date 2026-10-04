@@ -1,3 +1,4 @@
+# 核对运行时订阅表的索引、失效路由与事实队列限额，以及对应的行为测试入口。
 from pathlib import Path
 import unittest
 
@@ -66,7 +67,7 @@ class EditorWorldSyncSubscriptionTableContractTests(unittest.TestCase):
 
     def test_regressions_cover_direct_routing_single_walk_and_bounded_queue(self) -> None:
         source = self.read(
-            "zircon_runtime/src/scene/inspection/subscription/tests.rs"
+            "zircon_runtime/src/scene/inspection/subscription/tests/cases.rs"
         )
         for test_name in (
             "watch_allocates_distinct_tokens_and_unwatch_revokes_pending_dirty",

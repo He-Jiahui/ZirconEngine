@@ -29,7 +29,7 @@ def function_body(source: str, name: str) -> str:
     next_functions = [boundary for boundary in boundaries if boundary >= 0]
     return source[start:] if not next_functions else source[start : min(next_functions)]
 
-
+# 读取滚动条引用索引，确认哈希桶查找后仍执行精确校验，并由已有节点同步路径维护索引。
 class RuntimeUiScrollbarTargetIndexPerformanceContractTests(unittest.TestCase):
     def test_scrollbar_reference_lookup_delegates_to_surface_index(self) -> None:
         source = SCROLLBAR.read_text(encoding="utf-8")

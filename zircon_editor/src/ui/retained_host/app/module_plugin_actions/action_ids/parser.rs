@@ -76,6 +76,20 @@ pub(in crate::ui::retained_host::app::module_plugin_actions) fn parse_module_plu
 }
 
 fn parse_module_plugin_feature_action(action: &str) -> Option<(&str, &str)> {
+    if let Some(encoded) = action.strip_prefix('#') {
+        let (length, payload) = encoded.split_once(':')?;
+        if length.is_empty() || !length.bytes().all(|byte| byte.is_ascii_digit()) {
+            return None;
+        }
+        let plugin_len = length.parse::<usize>().ok()?;
+        let plugin_id = payload.get(..plugin_len)?;
+        let feature_id = payload.get(plugin_len..)?.strip_prefix('.')?;
+        if !plugin_id.contains('.') || feature_id.is_empty() {
+            return None;
+        }
+        return Some((plugin_id, feature_id));
+    }
+
     let (plugin_id, feature_id) = action.split_once('.')?;
     if plugin_id.is_empty() || feature_id.is_empty() {
         return None;
@@ -84,5 +98,5 @@ fn parse_module_plugin_feature_action(action: &str) -> Option<(&str, &str)> {
 }
 
 #[cfg(test)]
-#[path = "parser/common_prefix_tests.rs"]
+#[path = "parser/tests/common_prefix_tests.rs"]
 mod common_prefix_tests;

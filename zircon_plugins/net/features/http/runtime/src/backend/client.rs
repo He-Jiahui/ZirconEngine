@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use http_body_util::{BodyExt, Full};
+use http_body_util::{BodyExt, Full, LengthLimitError, Limited};
 use hyper::body::Bytes;
 use hyper::HeaderMap;
 use zircon_plugin_net_runtime::certificate_pin_matches;
@@ -11,6 +11,7 @@ use zircon_runtime::core::framework::net::{
 use super::http1_client_policy;
 use super::method::{method_to_hyper, method_to_reqwest};
 use super::security::validate_http_security_policy;
+use super::HTTP_RESPONSE_BODY_LIMIT_BYTES;
 
 pub(super) async fn send_http_request(
     request: NetHttpRequestDescriptor,
@@ -73,11 +74,16 @@ async fn send_http_request_once_hyper(
     .map_err(|error| NetError::Io(error.to_string()))?;
     let status_code = response.status().as_u16();
     let headers = headers_to_descriptor(response.headers());
-    let body = response
-        .into_body()
+    let body = Limited::new(response.into_body(), HTTP_RESPONSE_BODY_LIMIT_BYTES)
         .collect()
         .await
-        .map_err(|error| NetError::Io(error.to_string()))?
+        .map_err(|error| {
+            if error.downcast_ref::<LengthLimitError>().is_some() {
+                response_body_limit_error()
+            } else {
+                NetError::Io(error.to_string())
+            }
+        })?
         .to_bytes()
         .to_vec();
     let mut response = NetHttpResponseDescriptor::new(request.request, status_code, body);
@@ -110,21 +116,49 @@ async fn send_http_request_once_reqwest(
     if !request.body.is_empty() {
         request_builder = request_builder.body(request.body.clone());
     }
-    let response = request_builder
+    let mut response = request_builder
         .send()
         .await
         .map_err(|error| NetError::Io(error.to_string()))?;
     validate_pinned_peer_certificate(request, &response)?;
     let status_code = response.status().as_u16();
     let headers = headers_to_descriptor(response.headers());
-    let body = response
-        .bytes()
+    let declared_length = response.content_length();
+    if declared_length.is_some_and(|length| length > HTTP_RESPONSE_BODY_LIMIT_BYTES as u64) {
+        return Err(response_body_limit_error());
+    }
+    let initial_capacity = declared_length
+        .and_then(|length| usize::try_from(length).ok())
+        .unwrap_or_default()
+        .min(HTTP_RESPONSE_BODY_LIMIT_BYTES);
+    let mut body = Vec::with_capacity(initial_capacity);
+    while let Some(chunk) = response
+        .chunk()
         .await
         .map_err(|error| NetError::Io(error.to_string()))?
-        .to_vec();
+    {
+        append_response_chunk(&mut body, &chunk)?;
+    }
     let mut response = NetHttpResponseDescriptor::new(request.request, status_code, body);
     response.headers = headers;
     Ok(response)
+}
+
+fn append_response_chunk(body: &mut Vec<u8>, chunk: &[u8]) -> Result<(), NetError> {
+    let next_length = body
+        .len()
+        .checked_add(chunk.len())
+        .filter(|length| *length <= HTTP_RESPONSE_BODY_LIMIT_BYTES)
+        .ok_or_else(response_body_limit_error)?;
+    body.reserve(next_length - body.len());
+    body.extend_from_slice(chunk);
+    Ok(())
+}
+
+fn response_body_limit_error() -> NetError {
+    NetError::Io(format!(
+        "HTTP response body exceeds the {HTTP_RESPONSE_BODY_LIMIT_BYTES}-byte limit"
+    ))
 }
 
 fn validate_pinned_peer_certificate(

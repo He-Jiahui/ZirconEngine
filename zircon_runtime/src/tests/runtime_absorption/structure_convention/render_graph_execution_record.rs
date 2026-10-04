@@ -1,5 +1,6 @@
 use super::{assert_contains_all, repo_path, runtime_src_path};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0126] 渲染图执行记录的工作量和资源投影 超出当前结构预算；需核对职责边界和预算来源，区分新增责任与历史门槛过时。
 #[test]
 fn runtime_15_render_graph_execution_record_is_folder_backed() {
     let parent = read_runtime_src(
@@ -9,10 +10,10 @@ fn runtime_15_render_graph_execution_record_is_folder_backed() {
         "graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/compute_workload.rs",
     );
     let compute_workload_tests = read_runtime_src(
-        "graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/compute_workload/tests.rs",
+        "graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/compute_workload/tests/cases.rs",
     );
     let tests = read_runtime_src(
-        "graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/tests.rs",
+        "graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/tests/cases.rs",
     );
     let render_index =
         read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
@@ -102,12 +103,12 @@ fn runtime_15_render_graph_execution_record_is_folder_backed() {
             680,
         ),
         (
-            "graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/tests.rs",
+            "graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/tests/cases.rs",
             tests.as_str(),
             430,
         ),
         (
-            "graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/compute_workload/tests.rs",
+            "graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/compute_workload/tests/cases.rs",
             compute_workload_tests.as_str(),
             500,
         ),

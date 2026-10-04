@@ -148,6 +148,8 @@ pub hasDiscordSwagIndex(index: int): bool {
 
 // The caller resolves claimedIds.includes(swag.id) to alreadyClaimed before
 // entering Zr. Valid catalog indexes preserve canClaimSwag()'s precedence.
+// 购买前的只读资格判断；真正扣点、幂等发放与持久化必须由账号宿主
+// 事务完成，调用方不能把返回 ok 当成已经授予奖励。
 pub discordSwagClaimReason(
     swagIndex: int,
     spendablePoints: int,

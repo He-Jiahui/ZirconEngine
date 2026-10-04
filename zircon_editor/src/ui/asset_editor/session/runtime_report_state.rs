@@ -236,7 +236,12 @@ fn unsafe_action_guidance_items(
     editor_policy: &UiActionHostPolicy,
     editor_report: &UiActionPolicyReport,
 ) -> Vec<String> {
-    let mut items = Vec::new();
+    let guidance_capacity = runtime_report
+        .diagnostics
+        .len()
+        .saturating_add(editor_report.diagnostics.len())
+        .saturating_add(1);
+    let mut items = Vec::with_capacity(guidance_capacity);
     let editor_diagnostic_keys = editor_report
         .diagnostics
         .iter()
@@ -274,8 +279,12 @@ fn unsafe_action_guidance_items(
 }
 
 #[cfg(test)]
-#[path = "runtime_report_state/policy_index_tests.rs"]
+#[path = "runtime_report_state/tests/policy_index_tests.rs"]
 mod policy_index_tests;
+
+#[cfg(test)]
+#[path = "runtime_report_state/tests/optimization_batch_ji_editor648_tests.rs"]
+mod optimization_batch_ji_editor648_tests;
 
 fn action_binding_label(diagnostic: &UiActionPolicyDiagnostic) -> String {
     let route = diagnostic.route.as_deref().unwrap_or("<none>");

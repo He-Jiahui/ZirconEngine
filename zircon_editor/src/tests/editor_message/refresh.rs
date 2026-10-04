@@ -1,5 +1,8 @@
+//! 从资源同步与层级视图消费者核对刷新事件的粒度：数据变化不触发整台刷新，结构变化走增量片段。
 use crate::core::editor_event::ViewInstanceId;
-use crate::core::editor_message::EditorViewInvalidationMask;
+use crate::core::editor_message::{
+    EditorMessage, EditorMessageSchemaId, EditorTopic, EditorViewInvalidationMask,
+};
 use crate::core::play::WorldDomain;
 use crate::ui::host::editor_asset_manager::EditorAssetCatalogGeneration;
 use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowTemplateSurfaceBridge;
@@ -41,12 +44,26 @@ fn data_only_resource_sync_does_not_publish_workbench_invalidation() {
 }
 
 #[test]
-fn refresh_view_marks_view_dirty_and_materializes_current_snapshot_backend() {
+fn refresh_view_without_invalidation_subscriber_marks_view_dirty_and_materializes_snapshot() {
     let _lock = env_lock().lock().unwrap();
     let harness = EventRuntimeHarness::new("editor_message_refresh_view");
     let view = ViewInstanceId::new("scene.workspace");
     let mask =
         EditorViewInvalidationMask::PRESENTATION_DATA.union(EditorViewInvalidationMask::HIT_TEST);
+
+    // The production host registers Scene Inspection only; no listener is required for view
+    // invalidation to reach the authoritative refresh pipeline.
+    assert!(harness.runtime.context().bus().dirty_set().is_empty());
+    let no_route = harness.runtime.context().bus().publish(
+        EditorTopic::parse("view.invalidated").expect("test invalidation topic should be valid"),
+        EditorMessage::custom(
+            EditorMessageSchemaId::editor("debug-text").expect("test schema should be valid"),
+            serde_json::Value::String(view.0.clone()),
+        )
+        .with_dirty(view.clone(), mask),
+    );
+    assert!(no_route.delivered().is_empty());
+    assert!(harness.runtime.context().bus().dirty_set().is_empty());
 
     let report = harness.runtime.refresh_view(view.clone(), mask);
 

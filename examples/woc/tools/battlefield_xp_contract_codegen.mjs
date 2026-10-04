@@ -1,3 +1,6 @@
+// 调用端：npm run generate:battlefield-xp-contract (tools/package.json)；职责：提取战场经验和采集品质在专业系统中的数值约定。
+// 输入边界：src/sim/professions/battlefield_xp.ts, src/sim/professions/gathering.ts；--check 比较生成结果，不改写目标文件。
+
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

@@ -32,6 +32,7 @@ pub(crate) fn collect_execution_cluster_selection_collection_from_root_seeds(
         return ExecutedClusterSelectionCollection::default();
     }
 
+    // 工作项携带同一帧预算；最终排序后以首项预算统一截断选择结果。
     let cluster_budget = cluster_work_items[0].cluster_budget as usize;
     if cluster_budget == 0 {
         return ExecutedClusterSelectionCollection::default();
@@ -83,4 +84,5 @@ fn finalize_seed_backed_execution_records(
 }
 
 #[cfg(test)]
+#[path = "collect/tests/allocation_tests.rs"]
 mod allocation_tests;

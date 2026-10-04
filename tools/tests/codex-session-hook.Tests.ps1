@@ -1,9 +1,10 @@
+# 以临时仓库和本地配置驱动 Hook 安装器的查询、试运行、安装、更新、移除及真实 Stop 入口；检查配置保真、描述符兼容性和敏感内容不落盘。
 [CmdletBinding()]
 param()
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-$installer = Join-Path $repoRoot 'tools\install-codex-session-hook.ps1'
+$installer = Join-Path $repoRoot 'tools\setup\install-codex-session-hook.ps1'
 $fixture = Join-Path ([IO.Path]::GetTempPath()) ('zircon-codex-hook-' + [guid]::NewGuid().ToString('N'))
 $oldLocalAppData = $env:LOCALAPPDATA
 

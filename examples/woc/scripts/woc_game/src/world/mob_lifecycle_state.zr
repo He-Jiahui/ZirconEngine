@@ -25,6 +25,7 @@ pub shouldStartDeath(dead: bool, hp: int): bool {
 
 // Source updateMob defers an in-place wild respawn while a lootable corpse is
 // still inside its corpse-decay window.
+/// 为世界的野外原地重生路径提供许可；重生计时归零仍须等待有战利品尸体完成衰减，实际清理和复位由世界持有者执行。
 pub shouldRespawnWildMob(
     dead: bool,
     respawnMicros: uint,
@@ -36,6 +37,7 @@ pub shouldRespawnWildMob(
 }
 
 // Mirrors rng.range(2, 8) used by respawnMob after the source reset body.
+/// 重生完成后使用调用者权威随机流的一次抽取设定初始等待；本模块不创建或推进随机流。
 pub respawnWanderTimer(randomUnit: float): float {
     return 2.0 + randomUnit * 6.0;
 }

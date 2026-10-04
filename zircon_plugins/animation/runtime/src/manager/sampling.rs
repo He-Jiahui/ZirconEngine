@@ -83,7 +83,7 @@ pub(super) fn sample_quaternion(value: &AnimationChannelValueAsset) -> Animation
         {
             Ok(Quat::from_array(*value).normalize())
         }
-        AnimationChannelValueAsset::Quaternion(_) if value.iter().all(|c| c.is_finite()) => {
+        AnimationChannelValueAsset::Quaternion(value) if value.iter().all(|c| c.is_finite()) => {
             Err(AnimationError::ZeroLengthQuaternionSample)
         }
         AnimationChannelValueAsset::Quaternion(_) => Err(AnimationError::NonFiniteSample {

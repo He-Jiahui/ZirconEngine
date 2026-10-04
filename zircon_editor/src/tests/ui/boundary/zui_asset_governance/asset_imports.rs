@@ -2,6 +2,7 @@ use std::collections::BTreeSet;
 
 use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
+use super::metadata::{duplicate_entries, import_entry_metadata_offenders};
 use super::support::{
     collect_ui_root_document_files, collect_zui_document_files, collect_zui_files,
     collect_zui_view_style_files, editor_asset_root, is_ui_root_kind,
@@ -9,7 +10,6 @@ use super::support::{
     resolve_res_locator, resource_locator_for_path, runtime_asset_root, split_import_fragment,
     split_widget_component_import, zui_component_import_path,
 };
-use super::{duplicate_entries, import_entry_metadata_offenders};
 use crate::ui::workbench::FloatingWindow;
 
 #[test]

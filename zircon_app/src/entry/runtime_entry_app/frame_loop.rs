@@ -1,7 +1,11 @@
+//! Winit about_to_wait 的宿主帧泵；连接 cadence、动态 Runtime tick、宿主请求和重绘。
+//! 每轮只发布最终事件循环控制流，是否真正 tick 由 cadence 判定。
+
 use super::RuntimeEntryApp;
 use winit::event_loop::ActiveEventLoop;
 
 impl RuntimeEntryApp {
+    /// 生命周期准入后调用；先由 cadence 决定 tick，随后处理宿主请求并安排重绘。
     pub(super) fn pump_frame_loop(&mut self, event_loop: &dyn ActiveEventLoop) {
         let now = std::time::Instant::now();
         let should_pump = self.frame_cadence.take_frame_request(now);
@@ -49,42 +53,5 @@ impl RuntimeEntryApp {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn frame_pump_publishes_only_the_final_control_flow() {
-        let source = include_str!("frame_loop.rs");
-        let pump_start = source
-            .find("pub(super) fn pump_frame_loop")
-            .expect("frame pump owner");
-        let request_start = source[pump_start..]
-            .find("pub(super) fn request_runtime_frame")
-            .map(|offset| pump_start + offset)
-            .expect("frame request owner after pump");
-        let pump_body = &source[pump_start..request_start];
-
-        assert_eq!(
-            pump_body
-                .matches("self.apply_event_loop_policy(event_loop);")
-                .count(),
-            1,
-            "each frame pump must publish only its final control flow",
-        );
-    }
-
-    #[test]
-    fn frame_pump_keeps_the_p1_cadence_measurement_points() {
-        let source = include_str!("frame_loop.rs");
-
-        for name in [
-            "runtime_entry.frame_pump",
-            "runtime_entry.frame_pump_suppressed",
-            "runtime_entry.runtime_tick",
-            "runtime_entry.redraw_request",
-        ] {
-            assert!(
-                source.contains(name),
-                "P1 cadence reporting must retain the `{name}` counter"
-            );
-        }
-    }
-}
+#[path = "tests/frame_loop.rs"]
+mod tests;

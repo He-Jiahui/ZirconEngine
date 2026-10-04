@@ -1,3 +1,4 @@
+//! 英勇飞跃的局部飞行轨迹投影；当前仅专用测试入口调用，世界侧负责扫掠落点、地形、碰撞、伤害与事件。
 // Pure Heroic Leap flight state. The WOS/world owner supplies the swept landing
 // and handles landing damage, visibility, events, terrain and collision.
 var math = %import("zr.zircon.math");
@@ -17,6 +18,7 @@ pub class HeroicLeapState {
     }
 }
 
+/// 使用起点、落点和生成契约计算抛物线位置；调用方负责验证实际地面与阻挡。
 pub pointOnFlight(state: HeroicLeapState, elapsed: float): Point3 {
     var progress = elapsed / contract.duration(true);
     if (progress > 1.0) progress = 1.0;
@@ -33,6 +35,7 @@ pub wasExternallyRelocated(state: HeroicLeapState): bool {
 }
 
 // Returns true only while the source would report an active/finished leap.
+/// 死亡或外部位移会取消飞行；到达时把局部位置落到目标并返回本步仍处理过飞跃。
 pub advanceHeroicLeap(state: HeroicLeapState, dead: bool): bool {
     if (!state.active) return false;
     if (dead || wasExternallyRelocated(state)) { state.active = false; return false; }

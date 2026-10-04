@@ -1,8 +1,9 @@
+//! 声源描述是可保存的意图，Kira 播放句柄只在输出活动时绑定，停机后仍保留描述供重建。
 use zircon_runtime::core::framework::sound::{
     SoundPlaybackId, SoundSourceDescriptor, SoundSourceFinishReason,
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct SourceVoice {
     pub(crate) descriptor: SoundSourceDescriptor,
     pub(crate) cursor_frame: usize,

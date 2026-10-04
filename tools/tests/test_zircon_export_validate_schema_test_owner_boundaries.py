@@ -1,14 +1,15 @@
+# 核对导出校验模式测试的责任划分。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 VALIDATE_SCHEMA_ROOT = (
-    REPO_ROOT / "tools/zircon_export/tests/test_pipeline_report_validate_schema.py"
+    REPO_ROOT / "tools/export/tests/test_pipeline_report_validate_schema.py"
 )
 COMPILE_HOST_PLAN_SCHEMA_OWNER = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_pipeline_report_validate_compile_host_plan_schema.py"
+    / "tools/export/tests/test_pipeline_report_validate_compile_host_plan_schema.py"
 )
 
 COMPILE_HOST_PLAN_METHODS = (

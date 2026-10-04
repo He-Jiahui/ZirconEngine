@@ -2,12 +2,12 @@
 related_code:
   - .gitignore
   - .github/workflows/ci.yml
-  - tools/check_conventions.py
-  - tools/zircon_build.py
-  - tools/zircon_build_asset_staging.py
-  - tools/zircon_build_zui_assets.py
-  - tools/zircon_export/plugin_validate_distribution_zui_assets.py
-  - tools/zircon_export/plugin_build_asset_pack.py
+  - tools/audits/check_conventions.py
+  - tools/build/zircon_build.py
+  - tools/build/zircon_build_asset_staging.py
+  - tools/build/zircon_build_zui_assets.py
+  - tools/export/plugin_validate_distribution_zui_assets.py
+  - tools/export/plugin_build_asset_pack.py
   - zircon_runtime_interface/src/ui/v2/asset.rs
   - zircon_runtime_interface/src/ui/v2/compiled.rs
   - zircon_runtime_interface/src/ui/template/asset/document.rs
@@ -52,10 +52,6 @@ related_code:
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/package.rs
   - zircon_editor/assets/ui/theme/editor_material.zui
   - examples/vampire/assets/models/kenney_graveyard/character-vampire.glb.zmeta
-  - tools/session_tray/gen/schemas/acl-manifests.json
-  - tools/session_tray/gen/schemas/capabilities.json
-  - tools/session_tray/gen/schemas/desktop-schema.json
-  - tools/session_tray/gen/schemas/windows-schema.json
   - zircon_hub/gen/schemas/acl-manifests.json
   - zircon_hub/gen/schemas/capabilities.json
   - zircon_hub/gen/schemas/desktop-schema.json

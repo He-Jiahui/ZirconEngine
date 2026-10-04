@@ -1,14 +1,15 @@
+# 核对模板报告语义诊断归属与模式模块规模。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE_SCHEMA = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_platform_bundle_template_schema.py"
+    REPO_ROOT / "tools/export/pipeline_report_platform_bundle_template_schema.py"
 )
 TEMPLATE_SEMANTICS = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_platform_bundle_template_report_semantics.py"
+    / "tools/export/pipeline_report_platform_bundle_template_report_semantics.py"
 )
 
 

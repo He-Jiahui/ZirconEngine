@@ -1,0 +1,56 @@
+penpot_original_source = "[asset]\r\nkind = \"view\"\r\nid = \"navigation.agents_areas\"\r\nversion = 2\r\ndisplay_name = \"Navigation Agents And Areas\"\r\n\r\n[imports]\r\nstyles = [\"res://ui/theme/editor_base.zui\"]\r\n\r\n[root]\r\nnode = \"navigation_agents_areas_root\"\r\n\r\n[nodes.navigation_agent_settings]\r\ncomponent = \"Space\"\r\ncontrol_id = \"NavigationAgentSettings\"\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 96.0, preferred = 120.0, stretch = \"Fixed\" } }\r\n\r\n[nodes.navigation_area_settings]\r\ncomponent = \"Space\"\r\ncontrol_id = \"NavigationAreaSettings\"\r\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\n\r\n[nodes.navigation_agents_areas_root]\r\ncomponent = \"VerticalGroup\"\r\ncontrol_id = \"NavigationAgentsAreasRoot\"\r\nclasses = [\"editor-shell\"]\r\nlayout = { container = { kind = \"VerticalBox\", gap = 8 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\nchildren = [{ node = \"navigation_agent_settings\" }, { node = \"navigation_area_settings\" }]\r\n"
+
+[asset]
+kind = "view"
+id = "navigation.agents_areas"
+version = 2
+display_name = "Navigation Agents And Areas"
+
+[imports]
+styles = [ "res://ui/theme/editor_base.zui" ]
+
+[root]
+node = "navigation_agents_areas_root"
+
+[nodes.navigation_agent_settings]
+component = "Space"
+control_id = "NavigationAgentSettings"
+
+[nodes.navigation_agent_settings.layout.width]
+stretch = "Stretch"
+
+[nodes.navigation_agent_settings.layout.height]
+min = 96
+preferred = 120
+stretch = "Fixed"
+
+[nodes.navigation_area_settings]
+component = "Space"
+control_id = "NavigationAreaSettings"
+
+[nodes.navigation_area_settings.layout.width]
+stretch = "Stretch"
+
+[nodes.navigation_area_settings.layout.height]
+stretch = "Stretch"
+
+[nodes.navigation_agents_areas_root]
+component = "VerticalGroup"
+control_id = "NavigationAgentsAreasRoot"
+classes = [ "editor-shell" ]
+
+[nodes.navigation_agents_areas_root.layout.container]
+kind = "VerticalBox"
+gap = 8
+
+[nodes.navigation_agents_areas_root.layout.width]
+stretch = "Stretch"
+
+[nodes.navigation_agents_areas_root.layout.height]
+stretch = "Stretch"
+
+[[nodes.navigation_agents_areas_root.children]]
+node = "navigation_agent_settings"
+
+[[nodes.navigation_agents_areas_root.children]]
+node = "navigation_area_settings"

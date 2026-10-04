@@ -30,8 +30,6 @@ related_code:
   - zircon_plugins/asset_importers/data
   - zircon_runtime/src/scene/dynamic_scene/session
   - zircon_runtime/src/platform/preferences
-  - zircon_runtime/src/core/resource/io/atomic_file
-  - zircon_runtime/src/core/resource/io/transaction
   - zircon_runtime_interface/src/serialization
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Editor/UnrealEd/Private/Factories/DataTableFactory.cpp

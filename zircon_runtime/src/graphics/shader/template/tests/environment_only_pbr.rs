@@ -2,9 +2,9 @@ use crate::core::framework::render::{ShaderFeatureBits, ShaderPassType};
 
 use super::environment::{wgsl_function_source, wgsl_without_comments};
 use super::{
-    MaterialShaderTemplateRequest, assemble_material_shader_template, material_template_request,
+    assemble_material_shader_template, material_template_request,
     standard_material_surface_source_for_features, static_mesh_descriptor,
-    validate_material_shader_template_wgsl,
+    validate_material_shader_template_wgsl, MaterialShaderTemplateRequest,
 };
 
 #[test]
@@ -112,9 +112,7 @@ fn environment_only_pbr_reuses_caller_normalized_surface_inputs() {
     );
 
     assert!(forward_shading.contains("let diffuse_energy = vec3<f32>("));
-    assert!(
-        forward_shading.contains("zr_surface_metallic_diffuse_energy_scale(surface.metallic),")
-    );
+    assert!(forward_shading.contains("zr_surface_metallic_diffuse_energy_scale(surface.metallic),"));
     assert!(deferred_shading.contains("let diffuse_energy = vec3<f32>("));
     assert!(
         deferred_shading.contains("zr_surface_metallic_diffuse_energy_scale(metallic)"),

@@ -1,0 +1,17 @@
+{
+  "batch": "w0-batch21",
+  "recorded_at_utc": "2026-10-03T04:32:50.739549+00:00",
+  "finding_observations": 61,
+  "original_gate_rows": 48,
+  "qualification_gate_rows": 0,
+  "refresh_rows": 1,
+  "prior_author_qualification": "qualified_static_open",
+  "root_original_identity_corrections": "no new alias/finding minted; original atoms and declared gate rows retained",
+  "b17_four_p0_original_closing_contracts": null,
+  "raw_source_captures": 17,
+  "current_source_hash_drifts": [],
+  "source_review_scope": "bounded atom/source observations; original statuses/forward generation kept separately",
+  "tests_run": 0,
+  "source_ready": false,
+  "acceptance": "open"
+}

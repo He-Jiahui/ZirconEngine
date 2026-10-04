@@ -11,9 +11,9 @@ use super::inventory::{
     MIRROR_DOC_ANCHORS, PARALLEL_FOR_ANCHORS, REPORT_ANCHORS, RETAINED_BYTE_BUDGET_ANCHORS,
     SCHEDULE_EXECUTOR_ANCHORS, TASKS_MOD_DECLARATIONS, TASKS_MOD_PUBLIC_ANCHORS,
     TASK_CANCELLATION_POLICY_ANCHORS, TASK_DESCRIPTOR_ANCHORS, TASK_DIAGNOSTIC_JOURNAL_ANCHORS,
-    TASK_DIAGNOSTIC_OBSERVATION_ANCHORS, TASK_GRAPH_CANCELLATION_ANCHORS,
-    TASK_GRAPH_HANDLE_ANCHORS, TASK_GRAPH_LEASE_ANCHORS, TASK_GRAPH_SCHEDULER_ADMISSION_ANCHORS,
-    TASK_GRAPH_SCOPE_ANCHORS, TASK_ID_ANCHORS, TASK_POOL_DESCRIPTOR_ANCHORS,
+    TASK_DIAGNOSTIC_OBSERVATION_ANCHORS, TASK_GRAPH_ADMISSION_ANCHORS,
+    TASK_GRAPH_CANCELLATION_ANCHORS, TASK_GRAPH_HANDLE_ANCHORS, TASK_GRAPH_LEASE_ANCHORS,
+    TASK_GRAPH_SCOPE_ANCHORS, TASK_ID_ANCHORS, TASK_NODE_ANCHORS, TASK_POOL_DESCRIPTOR_ANCHORS,
     TASK_POOL_KIND_ANCHORS, TASK_POOL_SUBMISSION_ANCHORS, TASK_STATE_ANCHORS, TASK_STATUS_ANCHORS,
     TIMER_ANCHORS,
 };
@@ -113,7 +113,8 @@ fn runtime_11_job_system_mirror_docs_match_structure_audit_counts() {
         job_scheduler_pending,
         JOB_SCHEDULER_PENDING_ANCHORS,
     );
-    let job_scheduler_tests = include_str!("../../../core/runtime/tasks/job_scheduler/tests.rs");
+    let job_scheduler_tests =
+        include_str!("../../../core/runtime/tasks/job_scheduler/tests/cases.rs");
     assert_contains_all(
         "JobScheduler tests",
         job_scheduler_tests,
@@ -122,6 +123,8 @@ fn runtime_11_job_system_mirror_docs_match_structure_audit_counts() {
 
     let job_handle = include_str!("../../../core/runtime/tasks/job_handle.rs");
     assert_contains_all("JobHandle", job_handle, JOB_HANDLE_ANCHORS);
+    let task_node = include_str!("../../../core/runtime/tasks/job_handle/task_node.rs");
+    assert_contains_all("TaskNode", task_node, TASK_NODE_ANCHORS);
 
     let parallel_for = include_str!("../../../core/runtime/tasks/parallel_for.rs");
     assert_contains_all("parallel_for primitive", parallel_for, PARALLEL_FOR_ANCHORS);
@@ -164,12 +167,12 @@ fn runtime_11_job_system_mirror_docs_match_structure_audit_counts() {
         task_graph_cancellation,
         TASK_GRAPH_CANCELLATION_ANCHORS,
     );
-    let task_graph_scheduler_admission =
-        include_str!("../../../core/runtime/tasks/task_graph/scope/scheduler_admission.rs");
+    let task_graph_admission =
+        include_str!("../../../core/runtime/tasks/task_graph/scope/task_admission.rs");
     assert_contains_all(
-        "TaskGraph scheduler admission",
-        task_graph_scheduler_admission,
-        TASK_GRAPH_SCHEDULER_ADMISSION_ANCHORS,
+        "TaskGraph admission",
+        task_graph_admission,
+        TASK_GRAPH_ADMISSION_ANCHORS,
     );
     let task_graph_scope = include_str!("../../../core/runtime/tasks/task_graph/scope.rs");
     assert_contains_all("TaskGraphScope", task_graph_scope, TASK_GRAPH_SCOPE_ANCHORS);
@@ -228,33 +231,53 @@ fn runtime_11_job_system_mirror_docs_match_structure_audit_counts() {
     }
 
     let tasks_tests = include_str!("../../tasks.rs");
-    let job_handle_tests = include_str!("../../../core/runtime/tasks/job_handle/tests.rs");
-    let diagnostics_tests = include_str!("../../../core/runtime/tasks/diagnostics/tests.rs");
+    let task_diagnostics_tests = include_str!("../../tasks/diagnostics.rs");
+    let task_pool_inventory_tests = include_str!("../../tasks/pools.rs");
+    let task_terminal_observer_tests = include_str!("../../tasks/terminal_observers.rs");
+    let task_thread_budget_tests = include_str!("../../tasks/thread_budget.rs");
+    let job_handle_tests = include_str!("../../../core/runtime/tasks/job_handle/tests/cases.rs");
+    let diagnostics_tests = include_str!("../../../core/runtime/tasks/diagnostics/tests/cases.rs");
     let diagnostic_observation_tests =
-        include_str!("../../../core/runtime/tasks/diagnostic_observation/tests.rs");
+        include_str!("../../../core/runtime/tasks/diagnostic_observation/tests/cases.rs");
     let task_graph_scope_tests =
-        include_str!("../../../core/runtime/tasks/task_graph/scope/tests.rs");
-    let task_pool_tests = include_str!("../../../core/runtime/tasks/pool/tests.rs");
+        include_str!("../../../core/runtime/tasks/task_graph/scope/tests/cases.rs");
+    let task_graph_scope_dependency_scale_tests =
+        include_str!("../../../core/runtime/tasks/task_graph/scope/tests/dependency_scale.rs");
+    let task_graph_scope_ownership_tests =
+        include_str!("../../../core/runtime/tasks/task_graph/scope/tests/ownership.rs");
+    let task_graph_engine_tests =
+        include_str!("../../../core/runtime/tasks/task_graph/engine_task_graph/tests/cases.rs");
+    let task_pool_tests = include_str!("../../../core/runtime/tasks/pool/tests/cases.rs");
     let bounded_stream_io_tests =
-        include_str!("../../../core/runtime/tasks/bounded_stream_io/tests.rs");
+        include_str!("../../../core/runtime/tasks/bounded_stream_io/tests/cases.rs");
     let retained_byte_budget_tests =
-        include_str!("../../../core/runtime/tasks/retained_byte_budget/tests.rs");
+        include_str!("../../../core/runtime/tasks/retained_byte_budget/tests/cases.rs");
     let dynamic_scene_spawn_tests =
         include_str!("../../../scene/dynamic_scene/spawn_task/loader.rs");
+    let level_manager_project_io_tests =
+        include_str!("../../../scene/module/level_manager_project_io.rs");
     assert_sources_contain_all(
         "Runtime 11 task behavior tests",
         &[
             bounded_stream_io_tests,
             retained_byte_budget_tests,
             tasks_tests,
+            task_diagnostics_tests,
+            task_pool_inventory_tests,
+            task_terminal_observer_tests,
+            task_thread_budget_tests,
             job_handle_tests,
             job_scheduler_tests,
             task_pool_tests,
             diagnostics_tests,
             diagnostic_observation_tests,
             task_graph,
+            task_graph_engine_tests,
             task_graph_scope_tests,
+            task_graph_scope_dependency_scale_tests,
+            task_graph_scope_ownership_tests,
             dynamic_scene_spawn_tests,
+            level_manager_project_io_tests,
         ],
         BEHAVIOR_TEST_ANCHORS,
     );
@@ -286,7 +309,7 @@ fn runtime_11_job_system_mirror_docs_match_structure_audit_counts() {
     let mirror_docs = [
         (
             "JobSystem module doc",
-            include_str!("../../../../../docs/zircon_runtime/core/job_system.md"),
+            include_str!("../../../../../docs/crates/zircon_runtime/core/job_system.md"),
         ),
         (
             "Runtime 11 plan",
@@ -300,15 +323,11 @@ fn runtime_11_job_system_mirror_docs_match_structure_audit_counts() {
         ),
         (
             "M0 review",
-            include_str!(
-                "../../../../../docs/engine-architecture/runtime-architecture-review-m0.md"
-            ),
+            include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md"),
         ),
         (
             "interface convergence",
-            include_str!(
-                "../../../../../docs/engine-architecture/runtime-interface-convergence.md"
-            ),
+            include_str!("../../../../../docs/architecture/runtime-interface-convergence.md"),
         ),
     ];
 

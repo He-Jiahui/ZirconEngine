@@ -1,10 +1,11 @@
+# 核对插件着色器描述符的校验与分发模式归属。
 import importlib.util
 import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from tools.zircon_build_plugin_shader_descriptors import (
+from tools.build.zircon_build_plugin_shader_descriptors import (
     collect_geometry_source_descriptors,
     collect_shader_module_specs,
     collect_shader_permutation_id_specs,
@@ -12,19 +13,19 @@ from tools.zircon_build_plugin_shader_descriptors import (
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-ZIRCON_BUILD = REPO_ROOT / "tools/zircon_build.py"
+ZIRCON_BUILD = REPO_ROOT / "tools/build/zircon_build.py"
 ZIRCON_BUILD_PLUGIN_SHADER_DESCRIPTORS = (
-    REPO_ROOT / "tools/zircon_build_plugin_shader_descriptors.py"
+    REPO_ROOT / "tools/build/zircon_build_plugin_shader_descriptors.py"
 )
 ZIRCON_BUILD_PLUGIN_SHADER_DESCRIPTOR_SUPPORT = (
-    REPO_ROOT / "tools/zircon_build_plugin_shader_descriptor_support.py"
+    REPO_ROOT / "tools/build/zircon_build_plugin_shader_descriptor_support.py"
 )
 
 
 class ZirconBuildPluginShaderDescriptorOwnerBoundaryTests(unittest.TestCase):
     def test_descriptor_owner_imports_in_top_level_script_mode(self):
         spec = importlib.util.spec_from_file_location(
-            "zircon_build_plugin_shader_descriptors_standalone",
+            "build.zircon_build_plugin_shader_descriptors_standalone",
             ZIRCON_BUILD_PLUGIN_SHADER_DESCRIPTORS,
         )
         self.assertIsNotNone(spec)
@@ -52,11 +53,11 @@ class ZirconBuildPluginShaderDescriptorOwnerBoundaryTests(unittest.TestCase):
         )
 
         self.assertIn(
-            "from .zircon_build_plugin_shader_descriptors import (",
+            "from .build.zircon_build_plugin_shader_descriptors import (",
             build_text,
         )
         self.assertIn(
-            "from zircon_build_plugin_shader_descriptors import (",
+            "from .build.zircon_build_plugin_shader_descriptors import (",
             build_text,
         )
         for function_name in (

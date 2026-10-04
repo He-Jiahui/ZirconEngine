@@ -1,5 +1,6 @@
-$script:CaptureScript = Join-Path $PSScriptRoot "..\ui-profile-capture.ps1"
-$script:NativeInteraction = Join-Path $PSScriptRoot "..\ui-profile-native-resize.ps1"
+# 验证悬停目标身份和坐标约束，并区分同目标与跨目标的采集证据。
+$script:CaptureScript = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-capture.ps1"
+$script:NativeInteraction = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-native-resize.ps1"
 
 Describe "UI profile hover target mode contract" {
     BeforeAll {

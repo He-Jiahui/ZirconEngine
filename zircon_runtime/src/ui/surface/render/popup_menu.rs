@@ -4,13 +4,13 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::popup_position::{
-    PopupPlacement, anchored_popup_frame, has_popup_position_metadata, popup_anchor_frame,
-    popup_layout_bounds,
+    anchored_popup_frame, has_popup_position_metadata, popup_anchor_frame, popup_layout_bounds,
+    PopupPlacement,
 };
 use super::popup_rows::{
-    PopupAttributeIdSet, PopupRowPaintState, menu_row_height, popup_base_z, popup_row_frame,
-    popup_rows_height, push_popup_background, push_popup_row_label, push_popup_row_surface,
-    push_popup_separator,
+    menu_row_height, popup_base_z, popup_row_frame, popup_rows_height, push_popup_background,
+    push_popup_row_label, push_popup_row_surface, push_popup_separator, PopupAttributeIdSet,
+    PopupRowPaintState,
 };
 
 pub(super) fn popup_menu_render_commands(
@@ -383,24 +383,5 @@ fn table_bool(value: Option<&Value>) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::RuntimePopupMenuItem;
-
-    #[test]
-    fn raw_item_keeps_explicit_action_id_separate_from_display_label() {
-        let item = RuntimePopupMenuItem::from_raw(
-            "Open Workspace|action=menu.item.open_project,icon=folder",
-        );
-
-        assert_eq!(item.id, "menu.item.open_project");
-        assert_eq!(item.label, "Open Workspace");
-    }
-
-    #[test]
-    fn raw_item_uses_label_as_legacy_id_fallback() {
-        let item = RuntimePopupMenuItem::from_raw("Open Project|icon=folder");
-
-        assert_eq!(item.id, "Open Project");
-        assert_eq!(item.label, "Open Project");
-    }
-}
+#[path = "tests/popup_menu.rs"]
+mod tests;

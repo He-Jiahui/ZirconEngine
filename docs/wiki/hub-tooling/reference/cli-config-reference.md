@@ -1,17 +1,17 @@
 ---
 related_code:
-  - tools/cargo-zircon/Cargo.toml
-  - tools/cargo-zircon/src/main.rs
+  - tools/cargo/Cargo.toml
+  - tools/cargo/src/main.rs
   - zircon_hub/hub.toml
   - zircon_hub/src/settings
 implementation_files:
-  - tools/cargo-zircon/src
+  - tools/cargo/src
   - zircon_hub/src/settings
 plan_sources:
   - docs/plans/zircon_hub/04-settings-draft-and-source-engine.md
 tests:
   - zircon_hub/src/settings
-  - tools/cargo-zircon/src/main.rs
+  - tools/cargo/src/main.rs
 doc_type: configuration-reference
 ---
 

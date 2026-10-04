@@ -1,6 +1,6 @@
-// Stateful M4 projection of effect cases that require world, spatial-grid or
-// pet ownership. Ground pulses are delegated to ground_aoe_state; this module
-// preserves the synchronous pulse-before-enqueue call order and shared inputs.
+// 独立 M4 测试中的世界效果投影：宿主提供同序目标快照，
+// 本模块只记录地面脉冲事件与派发顺序，不调用地面脉冲模块；
+// 若接入产品世界，仍须由世界拥有宠物、实体与地面队列写回。
 var container = %import("zr.container");
 var abilities = %import("generated/m4_ability_catalog");
 var effects = %import("generated/m4_ability_effects");
@@ -85,9 +85,10 @@ class WorldTargetSpec {
     }
 }
 
+/// 独立世界效果样例的平行目标列与事件顺序投影，调用者必须提供同序快照及随机值；本结构不拥有产品世界的实体、宠物或区域状态。
 class WorldDispatchState {
     pub var source: WorldSource;
-    // Target arrays retain the spatial-grid traversal order supplied by host.
+    // 目标列顺序由调用者提供；当前仅叶子测试构造，不能推定来自世界空间索引。
     pub var targetIds: container.Array<uint>;
     pub var targetX: container.Array<float>;
     pub var targetZ: container.Array<float>;
@@ -388,6 +389,7 @@ empoweredSpellPowerBonus(
 // supplied spatial order. Each surviving eligible target consumes crit then
 // damage RNG; a lethal hit still contributes to Dragon's Breath's deferred Hot
 // Streak note, but never receives its post-damage control aura or combat entry.
+/// 对样例目标列按传入顺序解析强化锥形，先记录技能特效，再逐目标取暴击与伤害随机，致死目标跳过后续控制；产品世界目前直接使用 empowered_cone_state，不导入此封装。
 pub dispatchEmpoweredCone(
     state: WorldDispatchState,
     ability: uint,
@@ -588,6 +590,7 @@ pub dispatchWorldEffect(
     return true;
 }
 
+/// 聚合旧 M4 的范围伤害、地面效果、嘲讽与召唤样例；未消费的类型由别的效果规则处理，handled 数量不是世界能力执行成功标志。
 pub dispatchWorldAbility(
     state: WorldDispatchState,
     abilityIndex: int,

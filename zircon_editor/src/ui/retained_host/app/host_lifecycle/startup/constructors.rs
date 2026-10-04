@@ -4,6 +4,7 @@ use zircon_runtime_interface::hub_protocol::HubSessionToken;
 use zircon_runtime_interface::runtime_build_set::ZrRuntimeBuildSetId;
 
 impl RetainedEditorHost {
+    // 启动入口先取得 Runtime 租约和视口框架，再由共享装配路径绑定 Editor 会话与 UI 回调。
     pub(in crate::ui::retained_host::app) fn new(
         core: CoreHandle,
         runtime_gateway: SharedEditorRuntimeGateway,
@@ -11,7 +12,7 @@ impl RetainedEditorHost {
         startup_request: Option<EditorGuiStartupRequest>,
         project_runtime_build_set: Option<ZrRuntimeBuildSetId>,
         hub_launch_session: Option<HubSessionToken>,
-    ) -> Result<Self, Box<dyn Error>> {
+    ) -> Result<Self, Box<dyn Error + Send + Sync>> {
         zircon_runtime::profile_scope!("editor", "retained_host", "new");
         let runtime_lease = RetainedHostRuntimeLease::new(core);
         let viewport = {
@@ -33,7 +34,7 @@ impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn new_for_test(
         core: CoreHandle,
         ui: UiHostWindow,
-    ) -> Result<Self, Box<dyn Error>> {
+    ) -> Result<Self, Box<dyn Error + Send + Sync>> {
         let runtime_lease = RetainedHostRuntimeLease::new(core);
         Self::new_with_viewport(
             runtime_lease,

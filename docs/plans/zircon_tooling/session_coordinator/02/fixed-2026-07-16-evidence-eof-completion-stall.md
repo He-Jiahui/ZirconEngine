@@ -10,9 +10,6 @@ origin_child_dir: docs/plans/zircon_tooling/session_coordinator/02
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/codex_sync/history.py
-  - tools/session_coordinator/codex_sync/evidence.py
-  - tools/session_coordinator/tests/test_codex_evidence_projection.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_codex_evidence_projection
 ---

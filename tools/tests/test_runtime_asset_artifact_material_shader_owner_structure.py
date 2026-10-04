@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 检查材质与着色器缓存载荷迁入专属子目录，并核对旧路径的镜像守卫。
 class RuntimeAssetArtifactMaterialShaderOwnerStructureTests(unittest.TestCase):
     STATUS = (
         "runtime_04_15_asset_artifact_material_shader_owner_split_"

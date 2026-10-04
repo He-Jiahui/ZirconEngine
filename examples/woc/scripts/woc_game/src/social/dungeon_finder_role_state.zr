@@ -194,6 +194,8 @@ seatMember(
     return trySeatRole(work, memberIndex, contract.roleDps(true), visited, except);
 }
 
+// 调用方须先把职业/专精选资格折成角色布尔值和目标人数；
+// 匹配器只做确定性可增广分配，不创建副本、队伍或排队提案。
 pub matchFinderRoles(
     members: container.Array<FinderRoleMember>,
     tank: int,

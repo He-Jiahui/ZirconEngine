@@ -31,6 +31,7 @@ impl Hash for HostInvalidationScope {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
+/// 同帧按全局、视图和 shell 内容范围合并原因；局部快路径要求事务只含相容目标。
 pub(in crate::ui::retained_host::app) struct HostInvalidationTransaction {
     reasons_by_scope: HashMap<HostInvalidationScope, HostInvalidationMask>,
 }
@@ -122,5 +123,5 @@ impl HostInvalidationTransaction {
 }
 
 #[cfg(test)]
-#[path = "transaction/hash_index_tests.rs"]
+#[path = "transaction/tests/hash_index_tests.rs"]
 mod hash_index_tests;

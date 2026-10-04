@@ -15,4 +15,5 @@ pub(in crate::ui::retained_host::ui) use self::options::{
 };
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

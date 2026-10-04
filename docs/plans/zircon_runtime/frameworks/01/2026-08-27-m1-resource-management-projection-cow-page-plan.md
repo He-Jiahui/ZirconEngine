@@ -353,7 +353,7 @@ rounds and are not promoted to product frame-time, power, or cross-engine energy
 ## Managed and coordination state
 
 The priority documentation gates were rerun on the shared current tree. Two `python
-tools/check_conventions.py --only docs --json` snapshots drifted from 1,352 violations across 372
+tools/audits/check_conventions.py --only docs --json` snapshots drifted from 1,352 violations across 372
 documents to 1,353 across 373 while foreign owners were active, but structured filtering reported
 `0` violations for this child plan and `0` for the Frameworks01 parent plan in both runs. A targeted scan of
 `docs/plans/engine-code-review-findings-2026-06.md` found no `ResourceManagement`,

@@ -12,11 +12,18 @@ use crate::core::CoreError;
 use super::CoreHandle;
 
 impl CoreHandle {
-    pub fn publish_event(&self, topic: impl Into<String>, payload: Value) {
-        self.inner.event_bus.publish(EngineEvent {
+    pub fn try_publish_event(
+        &self,
+        topic: impl Into<String>,
+        payload: Value,
+    ) -> Result<
+        crate::core::framework::events::EngineEventPublishReceipt,
+        crate::core::framework::events::EngineEventPublishRejected,
+    > {
+        self.inner.event_bus.try_publish(EngineEvent {
             topic: topic.into(),
             payload,
-        });
+        })
     }
 
     /// 按主题和投递策略建立订阅；调用者须保留返回的订阅对象以接收后续事件。
@@ -24,8 +31,18 @@ impl CoreHandle {
         &self,
         topic: impl Into<String>,
         policy: EngineEventDeliveryPolicy,
-    ) -> Box<dyn EngineEventSubscription> {
+    ) -> Result<
+        Box<dyn EngineEventSubscription>,
+        crate::core::framework::events::EngineEventSubscribeError,
+    > {
         self.inner.event_bus.subscribe(topic, policy)
+    }
+
+    pub fn close_event_admission(&self) -> crate::core::framework::events::EventBusCloseReceipt {
+        self.inner.event_bus.close_admission()
+    }
+    pub fn event_bus_retention(&self) -> crate::core::framework::events::EventBusRetentionSnapshot {
+        self.inner.event_bus.retention_snapshot()
     }
 
     pub fn event_bus_diagnostics(&self) -> EventBusDiagnosticsSnapshot {

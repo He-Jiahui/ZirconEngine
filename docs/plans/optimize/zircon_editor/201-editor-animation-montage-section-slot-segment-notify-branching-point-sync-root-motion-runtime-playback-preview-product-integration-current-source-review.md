@@ -136,7 +136,7 @@ AnimationMontageSourceDocument
 
 ### 2.2 Currentness、负证据与已知验证阻塞
 
-- HEAD 锚点为 `6350cb00b5a060f628c904f84703b3843ac404fa`；结论以 2026-08-28 当前磁盘内容为准。审查期间从 `e2d29a4a...` 前进的三次提交只修改 `tools/zircon_export`、对应测试与 `docs/plans/zircon_plugins/13`，未触及本报告冻结语料。
+- HEAD 锚点为 `6350cb00b5a060f628c904f84703b3843ac404fa`；结论以 2026-08-28 当前磁盘内容为准。审查期间从 `e2d29a4a...` 前进的三次提交只修改 `tools/export`、对应测试与 `docs/plans/zircon_plugins/13`，未触及本报告冻结语料。
 - 当前工作树有大量共享在途与未跟踪文件；本轮不回退、不覆盖、不归属这些变化。Montage ZUI、feedback、navigation/spec 与 preview action inventory 本身也处于共享修改状态，报告按磁盘当前内容取证。
 - tracked production 的 Montage runtime/compiler 精确语义为 0；2,115 个未跟踪 Rust/ZUI 文件的同一检索也为 0。Editor 中 plain `Montage` 命中全部属于固定 ZUI、binding、route、feedback 与静态 action inventory。
 - `docs/plans/optimize/zircon_editor/14/failure-2026-08-24-animation-editor-zui-deletion-closure.md` 记录旧 animation editor ZUI hard-cut 的广域 Cargo 阻塞；它不改变本轮静态 Montage 结论。

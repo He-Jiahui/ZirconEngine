@@ -1,5 +1,7 @@
 use std::collections::BTreeSet;
 
+use crate::core::editing::engine::HistoryDecisionToken;
+use crate::core::editor_event::DocumentCloseRevision;
 use crate::core::editor_message::DocumentId;
 use crate::ui::host::DirtyDocumentToolkitView;
 use crate::ui::workbench::layout::MainPageId;
@@ -16,6 +18,7 @@ pub(in crate::ui::retained_host::app) enum ClosePromptTarget {
 pub(in crate::ui::retained_host::app) struct DirtyCloseView {
     pub document_id: DocumentId,
     pub dirty_generation: u64,
+    pub close_revision: DocumentCloseRevision,
     pub instance_id: ViewInstanceId,
     pub title: String,
 }
@@ -25,11 +28,46 @@ pub(in crate::ui::retained_host::app) struct PendingClosePrompt {
     pub target: ClosePromptTarget,
     pub close_instances: Vec<ViewInstanceId>,
     pub dirty_views: Vec<DirtyCloseView>,
-    dirty_project_scene_generation: Option<u64>,
+    dirty_project_scene_token: Option<HistoryDecisionToken>,
     save_in_flight: bool,
 }
 
+pub(in crate::ui::retained_host::app) struct FloatingClosePermit {
+    window_id: MainPageId,
+    instance_ids: Vec<ViewInstanceId>,
+    discard: Vec<(ViewInstanceId, DocumentId, DocumentCloseRevision)>,
+}
+
+impl FloatingClosePermit {
+    pub(in crate::ui::retained_host::app) fn into_parts(
+        self,
+    ) -> (
+        MainPageId,
+        Vec<ViewInstanceId>,
+        Vec<(ViewInstanceId, DocumentId, DocumentCloseRevision)>,
+    ) {
+        (self.window_id, self.instance_ids, self.discard)
+    }
+}
+
 impl PendingClosePrompt {
+    pub(in crate::ui::retained_host::app) fn into_floating_close_permit(
+        self,
+    ) -> Option<FloatingClosePermit> {
+        let ClosePromptTarget::FloatingWindow(window_id) = self.target else {
+            return None;
+        };
+        Some(FloatingClosePermit {
+            window_id,
+            instance_ids: self.close_instances,
+            discard: self
+                .dirty_views
+                .into_iter()
+                .map(|view| (view.instance_id, view.document_id, view.close_revision))
+                .collect(),
+        })
+    }
+
     pub(in crate::ui::retained_host::app) fn new(
         target: ClosePromptTarget,
         close_instances: Vec<ViewInstanceId>,
@@ -39,7 +77,7 @@ impl PendingClosePrompt {
             target,
             close_instances,
             dirty_views,
-            dirty_project_scene_generation: None,
+            dirty_project_scene_token: None,
             save_in_flight: false,
         }
     }
@@ -55,23 +93,28 @@ impl PendingClosePrompt {
     pub(in crate::ui::retained_host::app) fn finish_save(
         &mut self,
         dirty_views: Vec<DirtyCloseView>,
-        dirty_project_scene_generation: Option<u64>,
+        dirty_project_scene_token: Option<HistoryDecisionToken>,
     ) {
         self.save_in_flight = false;
         self.dirty_views = dirty_views;
-        self.dirty_project_scene_generation = dirty_project_scene_generation;
+        self.dirty_project_scene_token = dirty_project_scene_token;
+    }
+
+    /// A failed observation preserves the last decision and permits a later retry.
+    pub(in crate::ui::retained_host::app) fn finish_save_failed(&mut self) {
+        self.save_in_flight = false;
     }
 
     pub(in crate::ui::retained_host::app) fn with_dirty_project_scene(
         mut self,
-        generation: u64,
+        token: HistoryDecisionToken,
     ) -> Self {
-        self.dirty_project_scene_generation = Some(generation);
+        self.dirty_project_scene_token = Some(token);
         self
     }
 
     pub(in crate::ui::retained_host::app) const fn has_dirty_project_scene(&self) -> bool {
-        self.dirty_project_scene_generation.is_some()
+        self.dirty_project_scene_token.is_some()
     }
 
     pub(in crate::ui::retained_host::app) fn dirty_participant_count(&self) -> usize {
@@ -80,21 +123,22 @@ impl PendingClosePrompt {
 
     /// A discard action may only consume the documents captured by this plan.
     /// Documents saved after planning are harmless; newly dirty documents and
-    /// generation changes require a fresh decision instead.
+    /// scene decision changes require a fresh decision instead.
     pub(in crate::ui::retained_host::app) fn permits_discard(
         &self,
         current_dirty_views: &[DirtyCloseView],
-        current_project_scene_generation: Option<u64>,
+        current_project_scene_token: Option<&HistoryDecisionToken>,
     ) -> bool {
         let documents_match = current_dirty_views.iter().all(|current| {
             self.dirty_views.iter().any(|planned| {
                 planned.document_id == current.document_id
                     && planned.dirty_generation == current.dirty_generation
+                    && planned.close_revision == current.close_revision
                     && planned.instance_id == current.instance_id
             })
         });
-        let scene_matches = current_project_scene_generation
-            .is_none_or(|generation| self.dirty_project_scene_generation == Some(generation));
+        let scene_matches = current_project_scene_token
+            .is_none_or(|token| self.dirty_project_scene_token.as_ref() == Some(token));
         documents_match && scene_matches
     }
 }
@@ -124,48 +168,12 @@ fn dirty_close_view_from_document(document: &DirtyDocumentToolkitView) -> DirtyC
     DirtyCloseView {
         document_id: document.document_id,
         dirty_generation: document.dirty_generation,
+        close_revision: document.close_revision,
         instance_id: document.instance_id.clone(),
         title: document.title.clone(),
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::core::editor_message::DocumentId;
-    use crate::ui::workbench::view::ViewInstanceId;
-
-    use super::{ClosePromptTarget, DirtyCloseView, PendingClosePrompt};
-
-    fn dirty_view(document: u64, generation: u64, instance: &str) -> DirtyCloseView {
-        DirtyCloseView {
-            document_id: DocumentId::new(document),
-            dirty_generation: generation,
-            instance_id: ViewInstanceId::new(instance),
-            title: instance.to_string(),
-        }
-    }
-
-    #[test]
-    fn discard_requires_every_current_dirty_document_to_match_the_captured_plan() {
-        let planned = dirty_view(7, 3, "editor.asset#7");
-        let prompt = PendingClosePrompt::new(
-            ClosePromptTarget::Project,
-            Vec::new(),
-            vec![planned.clone()],
-        );
-
-        assert!(prompt.permits_discard(&[planned], None));
-        assert!(!prompt.permits_discard(&[dirty_view(7, 4, "editor.asset#7")], None));
-        assert!(!prompt.permits_discard(&[dirty_view(8, 1, "editor.asset#8")], None));
-    }
-
-    #[test]
-    fn discard_requires_a_dirty_scene_generation_to_match_the_captured_plan() {
-        let prompt = PendingClosePrompt::new(ClosePromptTarget::Project, Vec::new(), Vec::new())
-            .with_dirty_project_scene(11);
-
-        assert!(prompt.permits_discard(&[], Some(11)));
-        assert!(prompt.permits_discard(&[], None));
-        assert!(!prompt.permits_discard(&[], Some(12)));
-    }
-}
+#[path = "tests/model.rs"]
+mod tests;

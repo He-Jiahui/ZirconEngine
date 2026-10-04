@@ -62,14 +62,17 @@ fn app_prelude_exports_entry_and_plugin_group_types() {
     assert!(provider_runner_diagnostics.contains("platform.raw_mouse_motion="));
     assert!(provider_runner_diagnostics.contains("platform.gamepad_events="));
     assert!(provider_runner_diagnostics.contains("platform.gamepad_rumble="));
-    assert!(selection_report
-        .module_keys()
-        .contains(&zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME));
+    assert_eq!(
+        selection_report
+            .module_keys()
+            .contains(&zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME),
+        cfg!(feature = "graphics")
+    );
     assert_eq!(
         runtime_profile_config.runtime_profile(),
         Some(RuntimeProfileId::Client3d)
     );
-    assert_eq!(entry.plugin_group().name(), default_group.name());
+    assert_eq!(selection_report.plugin_group, default_group.name());
     assert!(dev_group
         .module_keys()
         .contains(&zircon_runtime::core::runtime::modules::LOG_DIAGNOSTICS_MODULE_NAME));
@@ -80,7 +83,7 @@ fn app_prelude_exports_entry_and_plugin_group_types() {
         .module_keys()
         .contains(&zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME));
     assert_eq!(custom_group.name(), "CustomPlugins");
-    assert_eq!(process_exit_code.code(), 1);
+    assert_eq!(process_exit_code.code(), 6);
 }
 
 #[test]

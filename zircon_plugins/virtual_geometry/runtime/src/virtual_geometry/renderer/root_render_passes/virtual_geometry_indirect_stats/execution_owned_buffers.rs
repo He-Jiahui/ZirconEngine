@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use zircon_runtime::core::framework::render::RenderVirtualGeometryExecutionDraw;
 
+// 按执行顺序压紧目标记录；仅连续的源 draw-ref 区间合并成一次 GPU 复制。
 fn visit_coalesced_execution_copy_ranges(
     draw_ref_indices: impl IntoIterator<Item = u32>,
     mut visit: impl FnMut(u64, u64, u64),
@@ -109,4 +110,5 @@ pub(super) fn build_execution_authority_buffer(
 }
 
 #[cfg(test)]
+#[path = "execution_owned_buffers/tests/performance_tests.rs"]
 mod performance_tests;

@@ -17,6 +17,7 @@ mod server;
 pub struct HyperReqwestHttpBackend;
 
 pub(crate) const HTTP_ROUTE_REQUEST_BODY_LIMIT_BYTES: usize = 1024 * 1024;
+pub(crate) const HTTP_RESPONSE_BODY_LIMIT_BYTES: usize = 16 * 1024 * 1024;
 
 pub fn http_runtime_backend() -> Arc<dyn HttpRuntimeBackend> {
     Arc::new(HyperReqwestHttpBackend)

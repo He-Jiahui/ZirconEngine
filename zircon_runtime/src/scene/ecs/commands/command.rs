@@ -119,6 +119,7 @@ pub enum DeferredCommandOperation {
     InsertBundle,
     Remove,
     Despawn,
+    ReparentChecked,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -170,6 +171,8 @@ impl DeferredCommandError {
     }
 }
 
+/// 一个 apply barrier 的结果；仅已发布的延迟生成实体能通过 resolve 获得稳定 ID。
+/// 命令错误与身份预留失败分开呈现，调用方应检查 is_success 后再依赖后续状态。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct DeferredCommandReport {
     applied_count: usize,
@@ -218,6 +221,7 @@ impl DeferredCommandReport {
     }
 }
 
+/// 在独占 World 的延迟提交点执行的命令；闭包命令也走此入口，但结构性命令先由事务批量预检。
 pub trait Command: Send + 'static {
     fn apply(self, world: &mut World);
 }

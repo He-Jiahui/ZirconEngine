@@ -187,6 +187,7 @@ impl RenderFrameSubmissionReceipt {
         Ok(())
     }
 
+    /// 在场景票据之后附加展示票据；同一命令包内融合展示时允许复用场景票据。
     pub fn with_present_submission(
         mut self,
         present: SubmissionTicket,
@@ -279,6 +280,7 @@ impl RenderFrameSubmissionReceipt {
         self.viewport_product
     }
 
+    /// 视口产品注册前核对代次和提交票据，防止把旧帧图像挂到新帧描述符。
     pub fn validate_viewport_product_publication(
         &self,
         viewport_product_generation: u64,
@@ -329,5 +331,5 @@ impl RenderFrameSubmissionReceipt {
 }
 
 #[cfg(test)]
-#[path = "frame_submission_receipt/tests.rs"]
+#[path = "frame_submission_receipt/tests/cases.rs"]
 mod tests;

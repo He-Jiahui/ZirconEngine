@@ -64,11 +64,9 @@ fn assert_text_input_variants(registry: &UiComponentDescriptorRegistry) {
         assert_has_event(descriptor, UiComponentEventKind::Focus);
         assert_has_event(descriptor, UiComponentEventKind::ValueChanged);
         assert_has_event(descriptor, UiComponentEventKind::Commit);
-        assert!(
-            descriptor
-                .required_host_capabilities
-                .contains(&UiHostCapability::TextInput)
-        );
+        assert!(descriptor
+            .required_host_capabilities
+            .contains(&UiHostCapability::TextInput));
     }
 
     let filled = registry

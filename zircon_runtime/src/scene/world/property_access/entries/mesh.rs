@@ -1,14 +1,15 @@
 use std::fmt::Write as _;
 
 use crate::core::framework::scene::ScenePropertyValue;
-use crate::scene::EntityId;
 use crate::scene::components::MeshRenderer;
+use crate::scene::EntityId;
 
 use super::super::super::World;
 
 const MESH_RENDERER_MORPH_WEIGHT_PATH_PREFIX: &str = "MeshRenderer.morph_weights.";
 
 impl World {
+    // MeshRenderer 的动态 morph_weights 逐项生成路径，容量提示必须与该投影保持一致。
     pub(super) fn visit_mesh_property_entries<F>(&self, entity: EntityId, visitor: &mut F) -> bool
     where
         F: FnMut(&str, &mut dyn FnMut() -> ScenePropertyValue, bool) -> bool,

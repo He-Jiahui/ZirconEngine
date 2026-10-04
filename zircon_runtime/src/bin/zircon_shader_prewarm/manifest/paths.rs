@@ -105,5 +105,5 @@ pub(super) fn content_hash(source: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "paths/streamed_label_tests.rs"]
+#[path = "paths/tests/streamed_label_tests.rs"]
 mod streamed_label_tests;

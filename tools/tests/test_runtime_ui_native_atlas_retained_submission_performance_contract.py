@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from tools.runtime_ui_native_atlas_retained_submission_pressure import (
+from tools.analysis.performance.runtime.runtime_ui_native_atlas_retained_submission_pressure import (
     _reject_c_drive,
     run,
 )
@@ -128,7 +128,7 @@ class RuntimeUiNativeAtlasRetainedSubmissionPerformanceContract(unittest.TestCas
 
         self.assertIn("mod native_dependency_index;", segment_source)
         self.assertIn("NativeBitmapAtlasSegmentDependencyIndex", segment_source)
-        self.assertIn("NativeBitmapAtlasFrameDependencyIndex", segment_source)
+        self.assertIn("NativeBitmapAtlasFrameDependencyIndex", index_source)
         self.assertIn("native_glyph_dependencies:", segment_source)
         self.assertIn("from_glyph_runs", segment_source)
         self.assertNotIn(

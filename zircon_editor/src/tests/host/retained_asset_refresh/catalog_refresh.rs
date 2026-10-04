@@ -4,7 +4,6 @@ use crate::ui::retained_host::{plan_asset_backend_refresh, AssetBackendRefreshPl
 #[test]
 fn preview_change_only_syncs_catalog_without_touching_runtime_resources() {
     let plan = plan_asset_backend_refresh(
-        Some("11111111-1111-1111-1111-111111111111"),
         None,
         &[],
         &[EditorAssetChange {
@@ -30,7 +29,6 @@ fn preview_change_only_syncs_catalog_without_touching_runtime_resources() {
 #[test]
 fn preview_and_catalog_change_keeps_structural_refresh_domains() {
     let plan = plan_asset_backend_refresh(
-        Some("11111111-1111-1111-1111-111111111111"),
         None,
         &[],
         &[
@@ -66,7 +64,6 @@ fn preview_and_catalog_change_keeps_structural_refresh_domains() {
 #[test]
 fn catalog_change_refreshes_details_and_visible_previews_without_resource_sync() {
     let plan = plan_asset_backend_refresh(
-        Some("11111111-1111-1111-1111-111111111111"),
         None,
         &[],
         &[EditorAssetChange {

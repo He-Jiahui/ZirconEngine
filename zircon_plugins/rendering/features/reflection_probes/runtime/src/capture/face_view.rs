@@ -1,3 +1,4 @@
+//! 六面相机朝向和存储翻转的坐标约定；与宿主 cubemap 采样方向和 CMFT 布局保持一致。
 use serde::{Deserialize, Serialize};
 use zircon_runtime::core::framework::render::{
     CubemapFace, ProjectionMode, ViewportCameraSnapshot,
@@ -6,6 +7,7 @@ use zircon_runtime::core::math::{Transform, Vec3};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+/// 序列化的六面身份；映射到宿主 CubemapFace 时不得改变坐标约定。
 pub enum ReflectionProbeCaptureFace {
     PositiveX,
     NegativeX,
@@ -29,12 +31,14 @@ impl ReflectionProbeCaptureFace {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// GPU 相机朝向到存储布局所需的单轴翻转；不是任意贴图方向变换。
 pub enum ReflectionProbeCaptureStorageTransform {
     FlipHorizontal,
     FlipVertical,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 某个面的相机向量与存储变换成对出现；分离使用会破坏探针采样方向。
 pub struct ReflectionProbeCaptureFaceView {
     pub face: ReflectionProbeCaptureFace,
     pub forward: [f32; 3],
@@ -43,6 +47,7 @@ pub struct ReflectionProbeCaptureFaceView {
 }
 
 impl ReflectionProbeCaptureFaceView {
+    /// 为选定面建立 90 度正方形 HDR 相机；调用方必须提供有效裁剪平面与同一捕获位置。
     pub fn camera(
         self,
         position: [f32; 3],
@@ -64,6 +69,7 @@ impl ReflectionProbeCaptureFaceView {
         }
     }
 
+    /// 对完整方形 texel 面就地应用该面约定的翻转；face_size 与切片长度不符会断言失败。
     pub fn transform_to_cmft_layout(self, face_size: u32, rendered_texels: &mut [[f32; 4]]) {
         let face_size = face_size as usize;
         assert_eq!(rendered_texels.len(), face_size * face_size);
@@ -85,6 +91,7 @@ impl ReflectionProbeCaptureFaceView {
     }
 }
 
+/// 六面共用的轴与翻转表，供捕获生成和坐标一致性测试使用。
 pub const REFLECTION_PROBE_CAPTURE_FACE_VIEWS: [ReflectionProbeCaptureFaceView; 6] = [
     ReflectionProbeCaptureFaceView {
         face: ReflectionProbeCaptureFace::PositiveX,
@@ -125,65 +132,5 @@ pub const REFLECTION_PROBE_CAPTURE_FACE_VIEWS: [ReflectionProbeCaptureFaceView; 
 ];
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use zircon_runtime::core::framework::render::cubemap_direction_from_scaled_uv;
-
-    #[test]
-    fn six_capture_views_transform_to_cmft_face_axes() {
-        for view in REFLECTION_PROBE_CAPTURE_FACE_VIEWS {
-            let camera = view.camera([0.0; 3], 0.1, 100.0);
-            let raw_right = camera.transform.right().to_array();
-            let raw_down = (-camera.transform.up()).to_array();
-            let (stored_right, stored_down) = match view.storage_transform {
-                ReflectionProbeCaptureStorageTransform::FlipHorizontal => {
-                    (negate(raw_right), raw_down)
-                }
-                ReflectionProbeCaptureStorageTransform::FlipVertical => {
-                    (raw_right, negate(raw_down))
-                }
-            };
-            let face = view.face.cubemap_face();
-            let center = cubemap_direction_from_scaled_uv(face, [0.0, 0.0]);
-            let right = cubemap_direction_from_scaled_uv(face, [0.01, 0.0]);
-            let down = cubemap_direction_from_scaled_uv(face, [0.0, 0.01]);
-
-            assert_axis_close(stored_right, subtract(right, center));
-            assert_axis_close(stored_down, subtract(down, center));
-        }
-    }
-
-    #[test]
-    fn storage_transform_flips_expected_axis_without_transposing() {
-        let mut horizontal = vec![[0.0; 4], [1.0; 4], [2.0; 4], [3.0; 4]];
-        REFLECTION_PROBE_CAPTURE_FACE_VIEWS[0].transform_to_cmft_layout(2, &mut horizontal);
-        assert_eq!(horizontal[0][0], 1.0);
-        assert_eq!(horizontal[1][0], 0.0);
-        assert_eq!(horizontal[2][0], 3.0);
-        assert_eq!(horizontal[3][0], 2.0);
-
-        let mut vertical = vec![[0.0; 4], [1.0; 4], [2.0; 4], [3.0; 4]];
-        REFLECTION_PROBE_CAPTURE_FACE_VIEWS[2].transform_to_cmft_layout(2, &mut vertical);
-        assert_eq!(vertical[0][0], 2.0);
-        assert_eq!(vertical[1][0], 3.0);
-        assert_eq!(vertical[2][0], 0.0);
-        assert_eq!(vertical[3][0], 1.0);
-    }
-
-    fn negate(value: [f32; 3]) -> [f32; 3] {
-        [-value[0], -value[1], -value[2]]
-    }
-
-    fn subtract(left: [f32; 3], right: [f32; 3]) -> [f32; 3] {
-        [left[0] - right[0], left[1] - right[1], left[2] - right[2]]
-    }
-
-    fn assert_axis_close(actual: [f32; 3], expected: [f32; 3]) {
-        let actual = Vec3::from_array(actual).normalize();
-        let expected = Vec3::from_array(expected).normalize();
-        assert!(
-            actual.dot(expected) > 0.9999,
-            "actual={actual:?} expected={expected:?}"
-        );
-    }
-}
+#[path = "tests/face_view.rs"]
+mod tests;

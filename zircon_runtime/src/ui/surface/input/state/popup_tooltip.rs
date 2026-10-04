@@ -41,6 +41,8 @@ impl UiSurfaceInputState {
         self.popup_anchor_points.get(&popup_node).copied()
     }
 
+    /// 维护命令式弹层的嵌套输入栈；同 ID 重新开启会先移除原项及其上方的嵌套分支。
+    /// 这里只更新输入状态，声明式属性与焦点迁移由 surface 弹层事务负责。
     pub fn open_popup(
         &mut self,
         popup_id: String,
@@ -130,6 +132,7 @@ impl UiSurfaceInputState {
         true
     }
 
+    /// 关闭父层同时截断其后的嵌套弹层，防止子层继续拦截已经消失的父菜单输入。
     pub fn close_popup(&mut self, popup_id: &str) -> bool {
         let Some(index) = self
             .popup_stack
@@ -166,6 +169,7 @@ impl UiSurfaceInputState {
             .and_then(|popup| popup.owner)
     }
 
+    /// 核对保留栈中的 ID 与可选 owner；None 表示不限 owner，而非证明会话身份。
     pub fn popup_matches(&self, popup_id: &str, owner: Option<UiNodeId>) -> bool {
         self.popup_stack.iter().rev().any(|popup| {
             let owner_matches = match owner {
@@ -255,47 +259,5 @@ impl UiSurfaceInputState {
 }
 
 #[cfg(test)]
-mod tests {
-    use zircon_runtime_interface::ui::{event_ui::UiNodeId, layout::UiPoint};
-
-    use super::UiSurfaceInputState;
-
-    #[test]
-    fn closing_parent_popup_also_closes_nested_popup_tail() {
-        let mut input = UiSurfaceInputState::default();
-        input.open_popup(
-            "menu.file".to_string(),
-            Some(UiNodeId::new(1)),
-            Some(UiPoint::new(8.0, 12.0)),
-        );
-        input.open_popup(
-            "menu.file.recent".to_string(),
-            Some(UiNodeId::new(2)),
-            Some(UiPoint::new(24.0, 12.0)),
-        );
-        input.open_popup(
-            "menu.file.recent.project".to_string(),
-            Some(UiNodeId::new(3)),
-            Some(UiPoint::new(40.0, 12.0)),
-        );
-
-        assert!(input.close_popup("menu.file.recent"));
-        assert_eq!(
-            input
-                .popup_stack
-                .iter()
-                .map(|popup| popup.popup_id.as_str())
-                .collect::<Vec<_>>(),
-            vec!["menu.file"]
-        );
-    }
-
-    #[test]
-    fn closing_unknown_popup_preserves_stack() {
-        let mut input = UiSurfaceInputState::default();
-        input.open_popup("menu.file".to_string(), Some(UiNodeId::new(1)), None);
-
-        assert!(!input.close_popup("menu.edit"));
-        assert_eq!(input.popup_stack.len(), 1);
-    }
-}
+#[path = "tests/popup_tooltip.rs"]
+mod tests;

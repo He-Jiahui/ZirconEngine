@@ -12,6 +12,18 @@ pub(super) fn grapheme_indices(text: &str) -> impl Iterator<Item = (usize, &str)
 
 pub(crate) fn previous_grapheme_boundary(text: &str, offset: usize) -> Option<usize> {
     let offset = clamp_utf8_boundary(text, offset);
+    if offset > 0 {
+        let bytes = text.as_bytes();
+        if bytes[offset - 1].is_ascii() && (offset == 1 || bytes[offset - 2].is_ascii()) {
+            return Some(
+                if offset >= 2 && bytes[offset - 2] == b'\r' && bytes[offset - 1] == b'\n' {
+                    offset - 2
+                } else {
+                    offset - 1
+                },
+            );
+        }
+    }
     grapheme_indices(text)
         .map(|(index, _)| index)
         .take_while(|index| *index < offset)
@@ -20,6 +32,19 @@ pub(crate) fn previous_grapheme_boundary(text: &str, offset: usize) -> Option<us
 
 pub(crate) fn next_grapheme_boundary(text: &str, offset: usize) -> Option<usize> {
     let offset = clamp_utf8_boundary(text, offset);
+    let bytes = text.as_bytes();
+    if offset < bytes.len()
+        && bytes[offset].is_ascii()
+        && (offset + 1 == bytes.len() || bytes[offset + 1].is_ascii())
+    {
+        return Some(
+            if bytes[offset] == b'\r' && bytes.get(offset + 1) == Some(&b'\n') {
+                offset + 2
+            } else {
+                offset + 1
+            },
+        );
+    }
     grapheme_indices(text)
         .map(|(index, grapheme)| index + grapheme.len())
         .find(|end| *end > offset)
@@ -34,6 +59,14 @@ pub(crate) fn clamp_grapheme_boundary(text: &str, offset: usize) -> usize {
     let offset = clamp_utf8_boundary(text, offset);
     if offset == 0 || offset == text.len() {
         return offset;
+    }
+    let bytes = text.as_bytes();
+    if bytes[offset - 1].is_ascii() && bytes[offset].is_ascii() {
+        return if bytes[offset - 1] == b'\r' && bytes[offset] == b'\n' {
+            offset - 1
+        } else {
+            offset
+        };
     }
     grapheme_indices(text)
         .map(|(index, _)| index)
@@ -99,6 +132,14 @@ pub(super) fn leading_grapheme_continuation_len(previous_text: &str, next_text: 
         return 0;
     }
 
+    // Adjacent ASCII scalars only share a grapheme when they form CRLF. Avoid
+    // copying and segmenting the accumulated line for ordinary text runs.
+    let previous_last = previous_text.as_bytes()[previous_text.len() - 1];
+    let next_first = next_text.as_bytes()[0];
+    if previous_last.is_ascii() && next_first.is_ascii() {
+        return usize::from(previous_last == b'\r' && next_first == b'\n');
+    }
+
     let split = previous_text.len();
     let mut combined = String::with_capacity(previous_text.len() + next_text.len());
     combined.push_str(previous_text);
@@ -147,4 +188,5 @@ fn line_boundary_for_grapheme_column(
 }
 
 #[cfg(test)]
+#[path = "grapheme/tests/cases.rs"]
 mod tests;

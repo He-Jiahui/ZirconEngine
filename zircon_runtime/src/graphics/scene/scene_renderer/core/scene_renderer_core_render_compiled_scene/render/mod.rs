@@ -12,6 +12,7 @@ mod commit_compiled_scene_frame_success;
 mod compiled_scene_frame_foundation;
 mod execute_compiled_scene_graph_stages;
 #[cfg(test)]
+#[path = "tests/execute_compiled_scene_graph_stages_tests.rs"]
 mod execute_compiled_scene_graph_stages_tests;
 pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene) mod execute_graph_stage;
 mod final_target_output;

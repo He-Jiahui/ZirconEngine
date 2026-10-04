@@ -1,7 +1,8 @@
 use woc_client::{
     ClientAuthority, ClientCommandQueueError, ClientFrameDriver, ClientFrameDriverError,
     ClientFrameDriverInitError, ClientMovementInputError, ClientTickInput,
-    TransactionalClientAuthority, MAX_PENDING_COMMANDS,
+    StateOnlyClientAuthority, TransactionalClientAuthority, MAX_FRAME_DELTA_NS,
+    MAX_PENDING_COMMANDS,
 };
 use woc_protocol::{
     event_stream_digest, fnv1a_bytes, Command, EntityRef, FixedTickInput, MovementFrame,
@@ -29,20 +30,50 @@ struct FakeAuthority {
     attempts: Vec<(u64, Vec<u32>)>,
     movement_attempts: Vec<MovementFrame>,
     fail_next: bool,
+    next_snapshot_tick: Option<u64>,
 }
 
 #[derive(Default)]
 struct ProjectingVm {
     invalid_projection: bool,
+    retained_tick: u64,
 }
 
 impl WocProjectVm for ProjectingVm {
+    type Checkpoint = Vec<u8>;
+
+    fn checkpoint(&mut self) -> Result<Vec<u8>, VmTickError> {
+        let mut checkpoint = vec![self.invalid_projection as u8];
+        checkpoint.extend_from_slice(&self.retained_tick.to_le_bytes());
+        Ok(checkpoint)
+    }
+
+    fn rollback(&mut self, checkpoint: &Self::Checkpoint) -> Result<(), VmTickError> {
+        self.invalid_projection = checkpoint.first().copied().unwrap_or(0) != 0;
+        let retained_tick = checkpoint
+            .get(1..9)
+            .and_then(|bytes| bytes.try_into().ok())
+            .map(u64::from_le_bytes)
+            .ok_or_else(|| VmTickError::Transport("invalid checkpoint".to_string()))?;
+        self.retained_tick = retained_tick;
+        Ok(())
+    }
+
+    fn install_full_snapshot(
+        &mut self,
+        _snapshot: &woc_runtime::CommittedSnapshot,
+    ) -> Result<(), VmTickError> {
+        self.retained_tick = _snapshot.tick;
+        Ok(())
+    }
+
     fn fixed_tick(
         &mut self,
         input_payload: &[u8],
         _budgets: TickBudgets,
     ) -> Result<VmTickResult, VmTickError> {
         let input = FixedTickInput::decode_payload(input_payload).expect("fixed input");
+        self.retained_tick = input.tick;
         let state = input.tick.to_le_bytes().to_vec();
         let output = WorldSnapshot {
             tick: input.tick,
@@ -139,6 +170,16 @@ fn client_projection(tick: u64) -> ClientPresentationProjection {
 
 impl ClientAuthority<u64> for FakeAuthority {
     type Error = FakeAuthorityError;
+    type Checkpoint = u64;
+
+    fn checkpoint(&mut self) -> Result<Self::Checkpoint, Self::Error> {
+        Ok(self.tick)
+    }
+
+    fn rollback(&mut self, checkpoint: Self::Checkpoint) -> Result<(), Self::Error> {
+        self.tick = checkpoint;
+        Ok(())
+    }
 
     fn fixed_step(
         &mut self,
@@ -155,9 +196,10 @@ impl ClientAuthority<u64> for FakeAuthority {
             return Err(FakeAuthorityError::Planned);
         }
         self.tick += 1;
+        let snapshot_tick = self.next_snapshot_tick.take().unwrap_or(self.tick);
         Ok(PresentationSnapshot::new(
             1,
-            self.tick,
+            snapshot_tick,
             self.tick as u32,
             (self.tick as u32).rotate_left(7),
             (self.tick as u32).rotate_left(13),
@@ -252,6 +294,35 @@ fn queued_commands_are_delivered_once_to_the_next_successful_commit() {
 }
 
 #[test]
+fn invalid_commands_are_rejected_before_queue_or_authority_mutation() {
+    let mut driver = driver(4);
+    driver.queue_command(command(7)).expect("valid command");
+
+    for invalid in [
+        Command {
+            payload: vec![1],
+            ..command(8)
+        },
+        Command {
+            command_id: u16::MAX,
+            ..command(9)
+        },
+    ] {
+        let expected = invalid.validate().expect_err("invalid command");
+        assert_eq!(
+            driver.queue_command(invalid),
+            Err(ClientCommandQueueError::Command(expected))
+        );
+        assert_eq!(driver.pending_command_count(), 1);
+        assert!(driver.authority().attempts.is_empty());
+    }
+
+    assert_eq!(driver.advance_frame(50_000_000).unwrap().committed_ticks, 1);
+    assert_eq!(driver.authority().attempts, vec![(50_000_000, vec![7])]);
+    assert_eq!(driver.pending_command_count(), 0);
+}
+
+#[test]
 fn authority_failure_retains_time_and_commands_for_a_retry() {
     let mut driver = driver(4);
     driver.authority_mut().fail_next = true;
@@ -274,6 +345,53 @@ fn authority_failure_retains_time_and_commands_for_a_retry() {
         vec![(50_000_000, vec![11]), (50_000_000, vec![11])]
     );
     assert_eq!(driver.pending_command_count(), 0);
+}
+
+#[test]
+fn oversized_frame_delta_is_rejected_without_consuming_scheduler_or_input_state() {
+    let mut driver = driver(4);
+    driver.queue_command(command(77)).expect("queue command");
+
+    assert_eq!(
+        driver.advance_frame(MAX_FRAME_DELTA_NS + 1),
+        Err(ClientFrameDriverError::ElapsedTooLarge {
+            elapsed_ns: MAX_FRAME_DELTA_NS + 1,
+            maximum_ns: MAX_FRAME_DELTA_NS,
+        })
+    );
+    assert_eq!(driver.presentation_time_ns(), 0);
+    assert_eq!(driver.accumulator_ns(), 0);
+    assert_eq!(driver.pending_command_count(), 1);
+}
+
+#[test]
+fn timeline_rejection_restores_authority_and_preserves_all_fixed_step_inputs() {
+    let mut driver = driver(4);
+    driver.advance_frame(50_000_000).expect("baseline tick");
+    driver.queue_command(command(12)).expect("queue command");
+    driver
+        .set_movement_input(movement_flags(), Some(0.25))
+        .expect("held movement");
+    driver.authority_mut().next_snapshot_tick = Some(0);
+
+    assert!(matches!(
+        driver.advance_frame(50_000_000),
+        Err(ClientFrameDriverError::Timeline(
+            woc_runtime::PresentationTimelineError::TickRegressed { .. }
+        ))
+    ));
+    assert_eq!(driver.authority().tick, 1);
+    assert_eq!(driver.pending_command_count(), 1);
+    assert_eq!(driver.accumulator_ns(), 50_000_000);
+
+    let retry = driver.advance_frame(0).expect("same boundary must retry");
+    assert_eq!(retry.committed_ticks, 1);
+    assert_eq!(driver.authority().tick, 2);
+    assert_eq!(driver.pending_command_count(), 0);
+    let attempts = &driver.authority().movement_attempts;
+    assert_eq!(attempts[1].sequence, attempts[2].sequence);
+    assert_eq!(attempts[1].flags, attempts[2].flags);
+    assert_eq!(attempts[1].facing, attempts[2].facing);
 }
 
 #[test]
@@ -495,6 +613,35 @@ fn transactional_authority_commits_state_and_bulk_projection_atomically() {
 }
 
 #[test]
+fn state_only_authority_accepts_unavailable_presentation_without_fabricating_visual_state() {
+    let authority = StateOnlyClientAuthority::new(
+        ProjectingVm {
+            invalid_projection: true,
+            retained_tick: 0,
+        },
+        TickBudgets::default(),
+    );
+    let mut driver = ClientFrameDriver::new(
+        authority,
+        PresentationCadence::woc_default(),
+        4,
+        EntityRef {
+            id: 1,
+            generation: 1,
+        },
+        1,
+    )
+    .expect("client driver");
+
+    let advance = driver.advance_frame(50_000_000).expect("state-only tick");
+    assert_eq!(advance.committed_ticks, 1);
+    let sample = driver.sample().expect("state-only sample");
+    assert_eq!(sample.to.state.as_slice(), 1_u64.to_le_bytes());
+    assert_eq!(sample.to.state_digest, fnv1a_bytes(&sample.to.state));
+    assert_eq!(sample.to.event_digest, event_stream_digest(&[]));
+}
+
+#[test]
 fn presented_frame_interpolates_actor_transforms_but_uses_current_hud() {
     let authority =
         TransactionalClientAuthority::new(ProjectingVm::default(), TickBudgets::default());
@@ -529,6 +676,7 @@ fn invalid_bulk_projection_recovers_without_committing_or_consuming_commands() {
     let authority = TransactionalClientAuthority::new(
         ProjectingVm {
             invalid_projection: true,
+            retained_tick: 0,
         },
         TickBudgets::default(),
     );
@@ -555,6 +703,7 @@ fn invalid_bulk_projection_recovers_without_committing_or_consuming_commands() {
     ));
     assert_eq!(driver.pending_command_count(), 1);
     assert_eq!(driver.authority().runtime().committed().tick, 0);
+    assert_eq!(driver.authority().runtime().vm().retained_tick, 0);
     assert!(matches!(
         driver.authority().runtime().status(),
         RuntimeStatus::Recovering(_)

@@ -119,6 +119,7 @@ impl AssetWorkerCompletionTicket {
         result
     }
 
+    /// 等待同一请求的共享结果；调用方超时不取消任务，请求自身截止则返回 Expired。
     pub fn wait_timeout(
         &self,
         timeout: Duration,
@@ -768,5 +769,5 @@ fn expire_scheduled_entry(
 }
 
 #[cfg(test)]
-#[path = "completion/optimization_tests.rs"]
+#[path = "completion/tests/optimization_tests.rs"]
 mod optimization_tests;

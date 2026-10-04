@@ -1,3 +1,5 @@
+//! 展示类组件把素材状态转成模板选择器可见的类名和变体标记；父组件的 slot 状态需在子节点递归匹配前注入。
+
 use std::collections::BTreeMap;
 
 use toml::Value;
@@ -9,6 +11,7 @@ use super::{
     string_attribute_any_prefer_non_default, string_from_attributes_any, string_from_map,
 };
 
+/// 接收样式应用入口的组件分发；返回已处理状态，阻止后续组件族再次处理同一节点。
 pub(super) fn append_component_classes(
     node: &mut UiTemplateNode,
     component: &str,
@@ -36,6 +39,7 @@ pub(super) fn append_component_classes(
     true
 }
 
+/// 根据父组件与 slot 名为 Alert、Badge、Chip、Divider 子节点补足选择器状态；父属性在调用期间保持借用。
 pub(super) fn append_slot_classes(
     child: &mut UiTemplateNode,
     owner_component: &str,
@@ -94,6 +98,7 @@ fn append_alert_classes(node: &mut UiTemplateNode, prefix: &str) {
     append_alert_component_variant(node, &severity, &color);
 }
 
+// Alert 的可见内容和关闭入口也参与变体选择，运行时 feedback 渲染会读取汇总后的标记。
 fn append_alert_component_variant(node: &mut UiTemplateNode, severity: &str, color: &str) {
     let mut tokens = node
         .attributes
@@ -508,6 +513,7 @@ fn append_skeleton_component_variant(
     }
 }
 
+/// 在父 Skeleton 处理子节点时注入占位内容标记；现有模板测试要求保留该元数据。
 pub(super) fn append_skeleton_child_metadata(child: &mut UiTemplateNode) {
     let mut tokens = child
         .attributes
@@ -634,6 +640,7 @@ fn append_badge_slot_classes(
     );
 }
 
+// Badge 的隐藏判定依赖父组件内容与 showZero，而非 slot 子节点的空文本。
 fn badge_slot_invisible(owner_attributes: &BTreeMap<String, Value>, variant: &str) -> bool {
     if bool_from_attributes_any(owner_attributes, &["invisible"]) {
         return true;
@@ -785,5 +792,5 @@ fn badge_anchor_origin(owner_attributes: &BTreeMap<String, Value>) -> (String, S
 }
 
 #[cfg(test)]
-#[path = "mui_display_surface_classes/borrowed_media_tests.rs"]
+#[path = "mui_display_surface_classes/tests/borrowed_media_tests.rs"]
 mod borrowed_media_tests;

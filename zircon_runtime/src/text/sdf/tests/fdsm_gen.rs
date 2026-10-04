@@ -31,12 +31,10 @@ fn text_msdf_dynamic_generation_is_deterministic() {
     assert_eq!(first, second);
     assert_eq!(first.mode, SdfMode::Msdf);
     assert_eq!(first.channels, 4);
-    assert!(
-        first
-            .pixels
-            .chunks_exact(4)
-            .any(|pixel| { pixel[0] != pixel[1] || pixel[1] != pixel[2] })
-    );
+    assert!(first
+        .pixels
+        .chunks_exact(4)
+        .any(|pixel| { pixel[0] != pixel[1] || pixel[1] != pixel[2] }));
 }
 
 #[test]

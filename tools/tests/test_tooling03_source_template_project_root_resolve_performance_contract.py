@@ -1,10 +1,11 @@
+# 核对源模板生成文件在一次遍历中共享项目根解析。
 from __future__ import annotations
 
 import tempfile
 import unittest
 from pathlib import Path
 
-from tools.zircon_export.source_template_generated_project import (
+from tools.export.source_template_generated_project import (
     generated_file_path_safety_diagnostics,
     materialize_generated_files,
     source_template_generated_file_report,

@@ -6,7 +6,7 @@ use winit::event_loop::EventLoop;
 use zircon_runtime::asset::project::ResolvedProjectPath;
 
 use super::super::presenter::RuntimeUiSurfacePresenterFactory;
-use super::constants::{DEFAULT_HOST_WINDOW_HEIGHT, DEFAULT_HOST_WINDOW_WIDTH};
+use super::constants::{DEFAULT_HOST_WINDOW_HEIGHT, DEFAULT_HOST_WINDOW_WIDTH, HOST_UI_FONT_ASSET};
 use super::handle::HostWindowHandle;
 use super::metadata::platform_error;
 use super::UiHostWindow;
@@ -17,10 +17,12 @@ use crate::ui::retained_host::primitives::{CloseRequestResponse, PhysicalSize, P
 
 impl UiHostWindow {
     pub(crate) fn new() -> Result<Self, PlatformError> {
+        let font_assets = Self::load_font_assets().map_err(platform_error)?;
         let event_wake = super::event_wake::HostEventLoopWake::default();
         let visual_asset_wake = super::event_wake::HostEventLoopWake::default();
         let attention = super::attention::HostWindowAttention::new(event_wake.callback());
         Ok(Self {
+            _font_assets: Rc::new(font_assets),
             state: Rc::new(RefCell::new(HostContractState::new(PhysicalSize::new(
                 DEFAULT_HOST_WINDOW_WIDTH,
                 DEFAULT_HOST_WINDOW_HEIGHT,
@@ -40,6 +42,13 @@ impl UiHostWindow {
             visual_asset_load_binding_owner: Rc::new(super::VisualAssetLoadBindingOwner::default()),
             direct_viewport_products_active: Rc::new(std::cell::Cell::new(false)),
         })
+    }
+
+    pub(crate) fn load_font_assets() -> Result<
+        zircon_runtime::ui::surface::UiHostFontAssets,
+        zircon_runtime::ui::surface::UiHostFontAssetError,
+    > {
+        zircon_runtime::ui::surface::UiHostFontAssets::load_runtime(&[HOST_UI_FONT_ASSET])
     }
 
     pub(crate) fn clone_strong(&self) -> Self {
@@ -119,8 +128,17 @@ impl UiHostWindow {
     }
 
     pub(crate) fn hide(&self) -> Result<(), PlatformError> {
+        // Programmatic presenter retirement may run while the app host is already mutably
+        // borrowed, so retire only this window's native capture state without invoking callbacks.
+        self.global::<super::super::globals::UiHostContext>()
+            .cancel_native_primary_capture();
         self.state.borrow_mut().window_visible = false;
         Ok(())
+    }
+
+    pub(crate) fn clear_native_resize_capture(&self) {
+        self.global::<super::super::globals::UiHostContext>()
+            .clear_resize_state();
     }
 
     pub(crate) fn run(&self) -> Result<(), PlatformError> {

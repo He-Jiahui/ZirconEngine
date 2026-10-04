@@ -1,0 +1,49 @@
+{
+  "batch": "w0-batch29",
+  "counts": {
+    "source_observations": 3501,
+    "report_qualified_keys": 3486,
+    "distinct_original_literal_ids": 2634,
+    "null_finding_ordinal_rows": 276,
+    "original_gate_rows": 1095,
+    "this_batch_original_findings": 1448,
+    "this_batch_literal_findings": 1256,
+    "this_batch_null_ordinals": 192,
+    "this_batch_priority_split": {
+      "P0": 42,
+      "P1": 1136,
+      "P2": 270
+    },
+    "this_batch_reports": 22,
+    "this_batch_mixed_context_rows": 3526,
+    "this_batch_context_taxonomy": {
+      "product-gate": 1373,
+      "declared-gate-context": 446,
+      "test-or-evidence": 177,
+      "failure-oracle": 178,
+      "milestone-or-plan-gate": 100,
+      "acceptance-checklist": 430,
+      "severity-section-context": 822
+    },
+    "this_batch_classified_acceptance_context_rows": 430,
+    "this_batch_original_declared_gate_rows_added": 0,
+    "this_batch_nonnew_relations": 38,
+    "whole_inventory": false
+  },
+  "status": "Original report finding identities only; mixed context not a gate total",
+  "qualified_key_collisions": 0,
+  "original_report_denominator": 576,
+  "supplemental_paths": 9,
+  "supplemental_primary_findings_added": 0,
+  "qualifications": {
+    "finding_identity": "Exact full report path plus literal ID;192 original unnumbered severity items use report/severity ordinal. No ID invented for null items.",
+    "context_identity": "3526 mixed evidence rows remain context;430 acceptance-checklist-classified rows include headings/items, so no aggregate gate denominator increase. Raw indentation restored from exact source lines;910 author rows strip()normalized.",
+    "relations": "22 report inventory joins+16P0 handoff relations are NONNEW, no extra findings.",
+    "author_history": "Original drive-root E: author output differs from old C visualization packet; Root immutable six-file copy and peer finalba62... are authoritative observed raw lineage, unavailable early hashes not reconstructed.",
+    "source_currentness": "Only exact reports/doc identity ingested; actual plugins/native/provider/source parity and all product/performance/Jenkins gates remain open."
+  },
+  "whole_inventory": false,
+  "source_writes": 0,
+  "tests_run": 0,
+  "acceptance": "open"
+}

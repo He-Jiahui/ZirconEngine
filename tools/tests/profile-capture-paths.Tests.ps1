@@ -1,5 +1,6 @@
+# 采集路径解析只接受批准根下的单级子名；隔离夹具验证祖先 junction 和路径分隔拒绝，防止 profile 产物逃出预定根。
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-. (Join-Path $repoRoot 'tools\profile-capture-paths.ps1')
+. (Join-Path $repoRoot 'tools\analysis\profiling\shared\profile-capture-paths.ps1')
 
 Describe 'Zircon profile capture paths' {
     It 'resolves plain child components beneath the approved root' {

@@ -162,6 +162,7 @@ commitAllocation(
     state.recomputeEvents = state.recomputeEvents + 1;
 }
 
+/// 战士场景先验证完整专精与六行，再受战斗锁约束；同值接受不重复重算。此状态是 M5 夹具，不替代世界层跨职业提交流程。
 pub applyTalents(
     state: TalentState,
     specId: string,
@@ -278,6 +279,8 @@ writeLoadoutAllocation(
     state.loadoutRow20.add(row20);
 }
 
+// TODO: [CR-WOC-IPS-P-0003] 确认预设数量已满时是否允许先改变活动分配；此入口先 applyTalents，随后才检查上限，当前场景未覆盖失败后的状态；对照目标 saveTalentLoadout 的行为并加用例。
+/// 保存预设前可提交所给分配，随后写入名称与动作栏；调用方不可仅凭返回 -1 断定活动分配完全未变。
 pub saveLoadout(
     state: TalentState,
     requestedName: string,

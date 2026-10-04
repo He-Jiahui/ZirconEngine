@@ -1,6 +1,7 @@
+# 核对模板命令片段缓存仅为变化部分物化命令，并拒绝无效模型输入。
 import unittest
 
-from tools.editor_template_command_fragment_cache_pressure import pressure_report
+from tools.analysis.performance.editor.editor_template_command_fragment_cache_pressure import pressure_report
 
 
 class EditorTemplateCommandFragmentCachePressureTests(unittest.TestCase):

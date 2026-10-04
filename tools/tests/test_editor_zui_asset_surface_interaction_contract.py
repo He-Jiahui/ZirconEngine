@@ -319,7 +319,7 @@ class EditorZuiAssetSurfaceInteractionContractTests(unittest.TestCase):
 
         locator_name = "utility_selection_locator_text"
         self.assertEqual(
-            "narrow",
+            "regular",
             nodes[locator_name]["props"]["responsive_min_tier"],
         )
         gap = tokens["density"]["gap_small"]

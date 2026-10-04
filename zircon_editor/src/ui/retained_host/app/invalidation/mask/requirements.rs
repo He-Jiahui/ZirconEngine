@@ -26,6 +26,7 @@ impl HostInvalidationMask {
         self.intersects(Self::HIT_TEST)
     }
 
+    // 仅布局、展示、命中或工作台投影要求宿主重算；渲染和纯重绘分别由帧后段处理。
     pub(crate) const fn requires_host_recompute(self) -> bool {
         self.requires_layout()
             || self.requires_presentation()
@@ -35,16 +36,5 @@ impl HostInvalidationMask {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::HostInvalidationMask;
-
-    #[test]
-    fn workbench_projection_requires_a_host_commit_without_promoting_global_presentation() {
-        let mask = HostInvalidationMask::WORKBENCH_PROJECTION;
-
-        assert!(mask.requires_host_recompute());
-        assert!(!mask.requires_layout());
-        assert!(!mask.requires_presentation());
-        assert!(!mask.requires_hit_test());
-    }
-}
+#[path = "tests/requirements.rs"]
+mod tests;

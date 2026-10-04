@@ -195,6 +195,7 @@ pub(crate) struct HubSettingsActionPayload {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct HubSettingsPayload {
     pub python_path: Option<String>,
@@ -227,12 +228,16 @@ impl HubSettingsPayload {
             settings.default_source_dir = path_from_required(value, "Default source directory")?;
         }
         if let Some(value) = self.default_build_output_dir {
-            settings.default_build_output_dir =
-                path_from_required(value, "Default build output directory")?;
+            let path = path_from_required(value, "Default build output directory")?;
+            if settings.default_build_output_dir != path {
+                settings.set_default_build_output_from_webview(path);
+            }
         }
         if let Some(value) = self.default_device_install_dir {
-            settings.default_device_install_dir =
-                path_from_required(value, "Default device install directory")?;
+            let path = path_from_required(value, "Default device install directory")?;
+            if settings.default_device_install_dir != path {
+                settings.set_default_device_install_from_webview(path);
+            }
         }
         if let Some(value) = self.build_profile {
             settings.build_profile = BuildProfile::from_ui_value(&value)
@@ -265,10 +270,16 @@ impl HubSettingsPayload {
             settings.default_source_dir = PathBuf::from(value.trim());
         }
         if let Some(value) = self.default_build_output_dir {
-            settings.default_build_output_dir = PathBuf::from(value.trim());
+            let path = PathBuf::from(value.trim());
+            if settings.default_build_output_dir != path {
+                settings.set_default_build_output_from_webview(path);
+            }
         }
         if let Some(value) = self.default_device_install_dir {
-            settings.default_device_install_dir = PathBuf::from(value.trim());
+            let path = PathBuf::from(value.trim());
+            if settings.default_device_install_dir != path {
+                settings.set_default_device_install_from_webview(path);
+            }
         }
         if let Some(value) = self.build_profile {
             settings.build_profile = BuildProfile::from_ui_value(&value)
@@ -282,6 +293,34 @@ impl HubSettingsPayload {
                 .ok_or_else(|| settings_error(SettingsMessageId::UnknownLanguage, [value]))?;
         }
         Ok(())
+    }
+
+    /// A settings save sent by the React shell contains the draft paths again.
+    /// Preserve a native-picker grant only when the submitted path is exactly
+    /// the already-authorized draft value; a direct WebView path update stays
+    /// unverified.
+    pub(crate) fn preserve_native_output_provenance(
+        &self,
+        settings: &mut HubSettings,
+        draft: &HubSettings,
+    ) {
+        if let Some(value) = self.default_build_output_dir.as_deref() {
+            let path = PathBuf::from(value.trim());
+            if path == draft.default_build_output_dir
+                && draft.default_build_output_grants_open_capability()
+            {
+                settings.default_build_output_provenance = draft.default_build_output_provenance;
+            }
+        }
+        if let Some(value) = self.default_device_install_dir.as_deref() {
+            let path = PathBuf::from(value.trim());
+            if path == draft.default_device_install_dir
+                && draft.default_device_install_grants_open_capability()
+            {
+                settings.default_device_install_provenance =
+                    draft.default_device_install_provenance;
+            }
+        }
     }
 }
 
@@ -768,140 +807,5 @@ fn build_workflow_detail(build_profile_label: &str, language: HubLanguage) -> St
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn settings_payload_accepts_wrapped_payload_and_updates_config() {
-        let value = serde_json::json!({
-            "settings": {
-                "pythonPath": "py",
-                "cargoPath": "cargo",
-                "rustupPath": "rustup",
-                "defaultProjectDir": "E:/Projects",
-                "defaultSourceDir": "E:/Source",
-                "defaultBuildOutputDir": "E:/Builds",
-                "defaultDeviceInstallDir": "E:/Device",
-                "buildProfile": "release",
-                "jobs": 0,
-                "language": "zh"
-            }
-        });
-        let payload: HubSettingsActionPayload =
-            serde_json::from_value(value).expect("settings payload should parse");
-        let mut settings = HubSettings::default();
-
-        payload.settings.apply_to(&mut settings).unwrap();
-
-        assert_eq!(settings.python_path, "py");
-        assert_eq!(settings.build_profile, BuildProfile::Release);
-        assert_eq!(settings.jobs, 1);
-        assert_eq!(settings.language, HubLanguage::Chinese);
-        assert_eq!(settings.default_project_dir, PathBuf::from("E:/Projects"));
-    }
-
-    #[test]
-    fn settings_summary_defaults_to_chinese_text() {
-        let settings = HubSettings::default();
-
-        let summary = settings_summary(&settings);
-
-        assert_eq!(summary.language, "Chinese");
-        assert_eq!(summary.text.heading, "工具链、构建默认值与路径");
-        assert_eq!(summary.text.language_options[0].label, "中文");
-        assert_eq!(summary.text.job_count_plural_template, "{jobs} 任务");
-    }
-
-    #[test]
-    fn settings_language_options_keep_native_names_across_ui_languages() {
-        let mut settings = HubSettings {
-            language: HubLanguage::English,
-            ..HubSettings::default()
-        };
-
-        let english_summary = settings_summary(&settings);
-
-        assert_eq!(english_summary.text.language_options[0].value, "Chinese");
-        assert_eq!(english_summary.text.language_options[0].label, "中文");
-        assert_eq!(english_summary.text.language_options[1].value, "English");
-        assert_eq!(english_summary.text.language_options[1].label, "English");
-
-        settings.language = HubLanguage::Chinese;
-        let chinese_summary = settings_summary(&settings);
-
-        assert_eq!(chinese_summary.text.language_options[0].value, "Chinese");
-        assert_eq!(chinese_summary.text.language_options[0].label, "中文");
-        assert_eq!(chinese_summary.text.language_options[1].value, "English");
-        assert_eq!(chinese_summary.text.language_options[1].label, "English");
-    }
-
-    #[test]
-    fn settings_summary_projects_saved_option_labels_for_react_consumers() {
-        let mut settings = HubSettings {
-            jobs: 3,
-            ..HubSettings::default()
-        };
-        settings.language = HubLanguage::Chinese;
-        settings.build_profile = BuildProfile::Release;
-
-        let summary = settings_summary(&settings);
-
-        assert_eq!(summary.build_profile, "release");
-        assert_eq!(summary.language, "Chinese");
-        assert_eq!(summary.build_profile_label, "Release");
-        assert_eq!(summary.language_label, "中文");
-        assert_eq!(summary.jobs_label, "3 任务");
-        assert_eq!(summary.build_profile_detail, "Release / 3 任务");
-        assert_eq!(
-            summary.build_workflow_detail,
-            "使用当前构建默认值编译编辑器/运行时目标：Release"
-        );
-    }
-
-    #[test]
-    fn settings_health_includes_rustup_path_status() {
-        let mut settings = HubSettings::default();
-        let missing_rustup = std::env::temp_dir().join(format!(
-            "zircon-hub-missing-rustup-{}-{}",
-            std::process::id(),
-            crate::projects::now_unix_ms()
-        ));
-        settings.rustup_path = missing_rustup.to_string_lossy().into_owned();
-
-        let summary = settings_summary(&settings);
-        let rustup_row = summary
-            .health
-            .rows
-            .iter()
-            .find(|row| row.id == "rustup-path")
-            .expect("Rustup should participate in Settings health");
-
-        assert_eq!(rustup_row.title, "Rustup");
-        assert_eq!(rustup_row.state, "error");
-        assert_eq!(rustup_row.meta, "缺失");
-        assert_eq!(summary.health.label, "需要处理");
-    }
-
-    #[test]
-    fn settings_health_checks_path_command_availability() {
-        let mut settings = HubSettings::default();
-        settings.python_path = format!(
-            "zircon-hub-missing-python-command-{}-{}",
-            std::process::id(),
-            crate::projects::now_unix_ms()
-        );
-
-        let summary = settings_summary(&settings);
-        let python_row = summary
-            .health
-            .rows
-            .iter()
-            .find(|row| row.id == "python-path")
-            .expect("Python should participate in Settings health");
-
-        assert_eq!(python_row.title, "Python");
-        assert_eq!(python_row.state, "error");
-        assert_eq!(python_row.meta, "缺失");
-        assert_eq!(summary.health.label, "需要处理");
-    }
-}
+#[path = "tests/settings_dto.rs"]
+mod tests;

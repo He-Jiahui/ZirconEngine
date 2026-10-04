@@ -1,3 +1,4 @@
+//! 把关闭、自动保存等已确认的脏文档意图交给统一任务准入；每次只拥有一批票据，主循环以有界轮询收齐结果后才能提交下一批。文档序列化留给被准入的执行端。
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 
@@ -217,6 +218,7 @@ impl SaveDirtyViewsJobAdapter {
         self.pump_completed_with_budget(DEFAULT_SAVE_DIRTY_VIEWS_COMPLETION_BUDGET)
     }
 
+    /// 主循环每次只检查预算内票据；未完成项回到队尾，只有全部终态都就绪才交还整批结果。
     pub fn pump_completed_with_budget(
         &mut self,
         max_tickets: usize,
@@ -301,7 +303,7 @@ fn first_completion_indices(
 }
 
 #[cfg(test)]
-#[path = "save_job_adapter/indexed_completion_tests.rs"]
+#[path = "save_job_adapter/tests/indexed_completion_tests.rs"]
 mod indexed_completion_tests;
 
 fn intent_estimated_bytes(intent: &SaveDirtyViewIntent) -> usize {
@@ -331,4 +333,5 @@ impl EditorJob for SaveDirtyViewJob {
 }
 
 #[cfg(test)]
+#[path = "save_job_adapter/tests/cases.rs"]
 mod tests;

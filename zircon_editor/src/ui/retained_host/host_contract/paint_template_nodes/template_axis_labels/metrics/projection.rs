@@ -1,3 +1,6 @@
+//! 将宿主字体、边框与间距映射为变换轴标签和链接图标密度；默认数值保留既有视觉基线。
+//! 主题变更后的绘制应重新取得快照，不应把测得值当成静态常量缓存。
+
 use super::super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 use super::model::AxisLabelMetrics;
 
@@ -31,25 +34,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_la
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn axis_label_metrics_project_from_host_control_metrics() {
-        let mut host = current_host_metrics();
-        host.font_body = 12.0;
-        host.border_width = 1.5;
-        host.line_height_ratio = 1.25;
-        host.gap_m = 10.0;
-
-        let metrics = axis_label_metrics_from_host(host);
-
-        assert_eq!(metrics.font_size, 13.5);
-        assert_eq!(metrics.line_height, 16.875);
-        assert_eq!(metrics.link_lobe_width, 7.0);
-        assert_eq!(metrics.link_lobe_height, 8.5);
-        assert_eq!(metrics.link_lobe_radius, 3.5);
-        assert_eq!(metrics.link_overlap, 3.0);
-        assert_eq!(metrics.link_connector_width, 1.5);
-    }
-}
+#[path = "tests/projection.rs"]
+mod tests;

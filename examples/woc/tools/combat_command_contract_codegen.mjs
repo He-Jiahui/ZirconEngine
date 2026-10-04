@@ -1,3 +1,6 @@
+// 调用端：npm run generate:combat-command-contract (tools/package.json)；职责：将战斗网络命令绑定到载荷模式及施法或复活源规则。
+// 输入边界：src/net/online.ts, server/game.ts, src/sim/combat/casting_lifecycle.ts, src/sim/combat/resurrection_offer.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

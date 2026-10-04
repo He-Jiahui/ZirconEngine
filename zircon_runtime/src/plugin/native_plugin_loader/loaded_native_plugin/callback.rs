@@ -52,6 +52,7 @@ impl NativePluginCallbackDiagnosticShard {
 
 pub(in crate::plugin::native_plugin_loader) struct NativePluginStableLibrary {
     pub(super) library: Library,
+    admission: Option<super::super::NativePluginArtifactAdmissionReceipt>,
     callback_activity: AtomicUsize,
     diagnostics_enabled: AtomicBool,
     diagnostic_shards:
@@ -62,12 +63,24 @@ impl NativePluginStableLibrary {
     pub(super) fn new(library: Library) -> Arc<Self> {
         Arc::new(Self {
             library,
+            admission: None,
             callback_activity: AtomicUsize::new(0),
             diagnostics_enabled: AtomicBool::new(true),
             diagnostic_shards: std::array::from_fn(|_| {
                 NativePluginCallbackDiagnosticShard::default()
             }),
         })
+    }
+
+    pub(super) fn admitted(
+        library: Library,
+        admission: super::super::NativePluginArtifactAdmissionReceipt,
+    ) -> Arc<Self> {
+        let mut stable = Self::new(library);
+        Arc::get_mut(&mut stable)
+            .expect("new native library has one owner")
+            .admission = Some(admission);
+        stable
     }
 
     pub(super) fn acquire_callback(

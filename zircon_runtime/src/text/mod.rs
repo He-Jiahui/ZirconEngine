@@ -6,7 +6,7 @@ mod hard_line;
 mod identity;
 mod joining_type;
 mod language;
-mod layout_geometry;
+pub(crate) mod layout_geometry;
 mod layout_session;
 mod model;
 mod module;
@@ -21,6 +21,7 @@ mod word_boundary;
 pub(crate) mod atlas;
 pub(crate) mod cache;
 mod cluster_geometry;
+mod context;
 pub(crate) mod font;
 #[cfg(feature = "font-sdf-build-tool")]
 pub mod font_sdf_build_tool;
@@ -42,8 +43,8 @@ pub use model::font::{
     FontStretch, FontStyle, FontWeight, InstancedFaceId, SubFontRange, VariationCoords,
 };
 pub use model::{
-    InlineBaseline, InlineObjectRef, Iso15924Tag, LaidOutLine, LaidOutText, LayoutItem,
-    LineBreakTailoringProfile, LinkRef, MAX_RICH_TABLE_ROW_SPAN, OpenTypeFeature,
+    normalized_open_type_features, InlineBaseline, InlineObjectRef, Iso15924Tag, LaidOutLine,
+    LaidOutText, LayoutItem, LineBreakTailoringProfile, LinkRef, OpenTypeFeature,
     ParagraphOverride, RichIconAssetId, RichInlineWidgetSlotId, RichListItem, RichListItemKind,
     RichOrderedListMarker, RichParseResult, RichTable, RichTableCell, RichTableCellBoxStyle,
     RichTableCellPadding, RichTableColumn, RichTextAuthoringDiagnostic,
@@ -52,17 +53,19 @@ pub use model::{
     ShapedGlyphClusterFlags, ShapedGlyphLineBreakOpportunity, ShapedGlyphLineBreakReceipt,
     ShapedGlyphRotation, ShapedGlyphRun, ShapedGlyphScript, ShapedHardLine, StyleOverride,
     StyledRun, TextAlign, TextHorizontalCompositionReceipt, TextOrientation, TextRange, TextWrap,
-    VerticalGlyphDecision, VerticalMode, normalized_open_type_features,
+    VerticalGlyphDecision, VerticalMode, MAX_RICH_TABLE_ROW_SPAN,
 };
-pub(crate) use module::font_collection_service_for_core;
-pub use module::{TEXT_MODULE_NAME, TextModule};
+pub use module::text_runtime_context_for_core;
+pub use module::{TextModule, TEXT_MODULE_NAME};
 
 pub use cache::CompiledRichTextCacheReport;
 pub(crate) use cache::TextDocumentKey;
 pub(crate) use cluster_geometry::text_glyph_clusters;
+pub use context::{
+    TextRuntimeContext, TextRuntimeContextAccessError, TextRuntimeContextHealthSnapshot,
+    TextRuntimeContextId, TextRuntimeContextLifecycleState, TextSessionId, TextSystemFontPolicy,
+};
 pub(crate) use glyph_artifact::{
-    BuiltResolvedRichTextGlyphArtifact, ResolvedTextGlyphArtifact,
-    ResolvedTextGlyphArtifactFontLease, ResolvedTextGlyphArtifactLine,
     build_resolved_rich_text_glyph_artifact, build_resolved_text_glyph_artifact,
     build_resolved_text_glyph_artifact_with_line_fragments,
     build_resolved_text_glyph_artifact_with_shared_source,
@@ -72,14 +75,16 @@ pub(crate) use glyph_artifact::{
     resolved_text_glyph_artifact_line_matches_layout,
     resolved_text_glyph_artifact_matches_layout_snapshot,
     resolved_text_glyph_artifact_range_advance_spans, resolved_text_line_requires_visual_fallback,
+    BuiltResolvedRichTextGlyphArtifact, ResolvedTextGlyphArtifact,
+    ResolvedTextGlyphArtifactFontLease, ResolvedTextGlyphArtifactLine,
 };
 pub(crate) use hard_line::{
-    HardLine, hard_line_count, hard_line_count_and_window, hard_line_end, hard_line_start,
-    hard_line_window, hard_lines, has_multiple_hard_lines, is_hard_line_separator,
-    next_hard_line_start, visit_hard_lines,
+    hard_line_count, hard_line_count_and_window, hard_line_end, hard_line_start, hard_line_window,
+    hard_lines, has_multiple_hard_lines, is_hard_line_separator, next_hard_line_start,
+    visit_hard_lines, HardLine,
 };
 pub(crate) use identity::{EphemeralCacheHash, EphemeralCacheHasher, StableContentDigest};
-pub(crate) use joining_type::{TextJoiningTypeMap, compiled_joining_type_map};
+pub(crate) use joining_type::{compiled_joining_type_map, TextJoiningTypeMap};
 pub(crate) use language::{
     default_text_locale, normalize_text_language_tag, system_text_locale,
     text_language_cache_identity,
@@ -88,9 +93,9 @@ pub(crate) use layout_geometry::{
     TextLayoutAxisConstraint, TextLayoutGeometryBudget, TextLayoutGeometryOwner,
     TextLayoutGeometryViolation,
 };
-pub use layout_session::TextLayoutFallbackReport;
 #[cfg(test)]
 pub(crate) use layout_session::current_thread_text_layout_session_construction_count;
+pub use layout_session::TextLayoutFallbackReport;
 pub(crate) use layout_session::{
     SharedTextLayoutSession, TextLayoutGeometryRejectionReceipt, TextLayoutGeometryReport,
     TextLayoutSessionDiagnostics, TextTableLayoutWorkReport,
@@ -100,27 +105,27 @@ pub(crate) use model::{
     TextStyle,
 };
 pub(crate) use render_state::TextRenderState;
+pub(crate) use rich::{register_compiled_rich_text_artifact, resolve_compiled_rich_text_artifact};
 pub use rich::{
     CompiledRichText, EmojiShortcodeRegistrationError, RichParseBudget, RichTextContentTrust,
     RichTextDecoration, RichTextDecorator, RichTextDecoratorRegistrationError, RichTextDependency,
     RichTextParseError, RichTextParser,
 };
-pub(crate) use rich::{register_compiled_rich_text_artifact, resolve_compiled_rich_text_artifact};
 pub(crate) use runtime_artifact::{
-    ResolvedRichTextGlyphRun, ResolvedRichTextGlyphRunArtifact,
     register_resolved_rich_text_artifact_with_layout_runs, resolve_rich_text_glyph_run_artifact,
     resolve_rich_text_glyph_run_artifact_at, resolve_rich_text_virtual_line_sequences_for_layout,
-    resolved_rich_text_artifact_matches_layout_snapshot,
+    resolved_rich_text_artifact_matches_layout_snapshot, ResolvedRichTextGlyphRun,
+    ResolvedRichTextGlyphRunArtifact,
 };
 pub(crate) use semantic_projection::{
-    RichSemanticProjection, from_compiled_rich_semantic_projection,
-    resolve_rich_semantic_projection,
+    from_compiled_rich_semantic_projection, resolve_rich_semantic_projection,
+    RichSemanticProjection,
 };
-pub use service::{SharedTextLayoutService, shared_text_layout_service};
 pub(crate) use service::{
-    TextLayoutGenerationRetryReport, fallback_spans_for_request,
-    shape_text_request_in_font_collection, shared_text_layout_generation_retry_report,
+    fallback_spans_for_request, shape_text_request_in_font_collection,
+    shared_text_layout_generation_retry_report, TextLayoutGenerationRetryReport,
 };
+pub use service::{shared_text_layout_service, SharedTextLayoutService};
 pub use shaping::{
     TextShapingBudgetKind, TextShapingFailureCode, TextShapingFailureDependency,
     TextShapingFailureDisposition, TextShapingFailurePhase, TextShapingFailureReceipt,
@@ -129,7 +134,7 @@ pub use shaping::{
 pub(crate) use shaping::{TextShapingWorkBudget, TextShapingWorkReport};
 pub(crate) use ui_style::text_style;
 pub use unicode_data::{
-    TextDataVersion, UnicodeDataSnapshot, UnicodeDataSnapshotId, UnicodeProviderSnapshot,
-    compiled_unicode_data_snapshot, compiled_unicode_data_snapshot_id,
+    compiled_unicode_data_snapshot, compiled_unicode_data_snapshot_id, TextDataVersion,
+    UnicodeDataSnapshot, UnicodeDataSnapshotId, UnicodeProviderSnapshot,
 };
 pub(crate) use word_boundary::WordBoundaryMap;

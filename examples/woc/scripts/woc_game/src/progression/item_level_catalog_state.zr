@@ -3,6 +3,7 @@
 // target implementation rather than a second handwritten Zr index algorithm.
 var catalog = %import("generated/item_level_catalog");
 
+/// 查询夹具用零值表示目录中没有来源等级；物品等级与来源等级是两项独立数据，不能互相代替。
 pub hasItemSourceLevel(itemId: string): bool {
     return catalog.itemSourceLevel(itemId) > 0;
 }

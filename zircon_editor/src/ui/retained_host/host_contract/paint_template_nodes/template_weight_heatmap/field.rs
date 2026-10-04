@@ -1,3 +1,4 @@
+// 静态强度场由 generation 按可见 plot 像素预算缓存，色阶图例和网格色块共用色表；短帧先通过 geometry 门槛。
 use crate::ui::weight_heatmap::WeightHeatmapGeneration;
 
 use super::super::super::data::FrameRect;
@@ -7,6 +8,7 @@ use super::palette::{heat_color, OUTER_BORDER, OUTER_SURFACE};
 
 const MAX_HEATMAP_LEGEND_STEPS: usize = 64;
 
+/// 只消费可画 geometry；传入的生成数据应已完成列行上限、source 坐标与权重归一化。
 pub(super) fn push_heatmap_field(
     commands: &mut Vec<HostPaintCommand>,
     generation: &WeightHeatmapGeneration,
@@ -90,13 +92,5 @@ fn pixel_axis_budget(extent: f32) -> usize {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn legend_steps_are_bounded_by_pixels_and_constant_budget() {
-        assert_eq!(bounded_legend_steps(10, 100.0), 12);
-        assert_eq!(bounded_legend_steps(usize::MAX, 10_000.0), 64);
-        assert_eq!(bounded_legend_steps(usize::MAX, 3.0), 3);
-    }
-}
+#[path = "tests/field.rs"]
+mod tests;

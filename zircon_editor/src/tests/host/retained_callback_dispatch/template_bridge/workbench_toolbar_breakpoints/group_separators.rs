@@ -1,4 +1,7 @@
-use super::*;
+use super::super::super::support::{env_lock, BuiltinWorkbenchWindowTemplateSurfaceBridge, UiSize};
+use super::super::support::control_visibility;
+use super::support::assert_frame_value;
+use zircon_runtime_interface::ui::tree::UiVisibility;
 
 const FILE_GROUP_SEPARATOR: &str = "WorkbenchToolbarFileGroupDivider";
 const TOOL_GROUP_SEPARATOR: &str = "WorkbenchToolbarToolGroupDivider";

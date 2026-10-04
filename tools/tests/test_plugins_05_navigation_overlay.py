@@ -4,7 +4,7 @@ import unittest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-
+# 读取导航覆盖层接线，确认运行时帧只有一个归属并连接真实提供者。
 class Plugins05NavigationOverlayTests(unittest.TestCase):
     def test_navigation_overlay_has_one_runtime_frame_and_real_provider(self) -> None:
         runtime_frame = (

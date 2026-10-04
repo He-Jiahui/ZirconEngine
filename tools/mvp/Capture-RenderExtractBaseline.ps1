@@ -4,11 +4,11 @@ param(
     [string]$ProjectRoot,
     [string]$OutputDirectory,
     [ValidateRange(3, 20)]
-    [int]$RepeatCount = 3,
+    [int]$RepeatCount = 5,
     [ValidateRange(0, 1000000)]
-    [int]$WarmupPresentedFrameCount = 60,
+    [int]$WarmupPresentedFrameCount = 120,
     [ValidateRange(1, 1000000)]
-    [int]$MeasuredPresentedFrameCount = 300,
+    [int]$MeasuredPresentedFrameCount = 600,
     [ValidateRange(1, 600)]
     [int]$TimeoutSeconds = 90,
     [ValidateRange(1, 1048576)]
@@ -17,7 +17,8 @@ param(
     [int]$MaxProfileSpans = 65536,
     [ValidateRange(1, 1048576)]
     [int]$MaxProfileCounters = 65536,
-    [switch]$UseWpr
+    [switch]$UseWpr,
+    [switch]$UseWprHeap
 )
 
 Set-StrictMode -Version Latest
@@ -26,13 +27,13 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Import-Module (Join-Path $PSScriptRoot 'MvpProductInputManifest.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpArtifactStoragePolicy.psm1') -Force -ErrorAction Stop
-Import-Module (Join-Path $repoRoot 'tools\WindowsPathResolver.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $repoRoot 'tools\maintenance\WindowsPathResolver.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'RenderExtractFrozenInput.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'RenderExtractPerformanceScenario.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'RenderExtractProcessJob.psm1') -Force -ErrorAction Stop
-Import-Module (Join-Path $PSScriptRoot 'RenderExtractSourceIdentity.psm1') -Force -ErrorAction Stop
-. (Join-Path $repoRoot 'tools\profile-capture-paths.ps1')
-. (Join-Path $repoRoot 'tools\performance-machine-manifest.ps1')
+Import-Module (Join-Path $PSScriptRoot 'RenderExtractWprCapture.psm1') -Force -ErrorAction Stop
+. (Join-Path $repoRoot 'tools\analysis\profiling\shared\profile-capture-paths.ps1')
+. (Join-Path $repoRoot 'tools\analysis\profiling\shared\performance-machine-manifest.ps1')
 
 if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
     $OutputDirectory = New-MvpArtifactStoragePath -NamespaceId 'render-extract-baselines'
@@ -193,168 +194,6 @@ function Write-RenderExtractBaselineTextFileNew {
     }
 }
 
-function Get-RenderExtractProfilingArtifact {
-    param(
-        [Parameter(Mandatory)]$Artifacts,
-        [Parameter(Mandatory)][string]$LogicalId,
-        [Parameter(Mandatory)][string]$ExpectedProduct,
-        [Parameter(Mandatory)][string]$ExpectedPackage,
-        [AllowNull()][string]$ExpectedBin,
-        [Parameter(Mandatory)][string]$ExpectedFeatures
-    )
-
-    $matches = @($Artifacts | Where-Object {
-            [string](Get-RenderExtractManifestProperty -Value $_ -Name 'logical_id' -Label 'Profiling input artifact') -eq $LogicalId
-        })
-    if ($matches.Count -ne 1) {
-        throw "Profiling input must contain exactly one '$LogicalId' artifact; found $($matches.Count)."
-    }
-    $artifact = $matches[0]
-    $product = [string](Get-RenderExtractManifestProperty -Value $artifact -Name 'product' -Label $LogicalId)
-    $package = [string](Get-RenderExtractManifestProperty -Value $artifact -Name 'package' -Label $LogicalId)
-    $features = [string](Get-RenderExtractManifestProperty -Value $artifact -Name 'features' -Label $LogicalId)
-    if ($product -ne $ExpectedProduct -or $package -ne $ExpectedPackage -or $features -ne $ExpectedFeatures) {
-        throw "Profiling input artifact '$LogicalId' does not match the declared $ExpectedProduct profiling contract."
-    }
-    $binProperty = $artifact.PSObject.Properties['bin']
-    $actualBin = if ($null -eq $binProperty -or $null -eq $binProperty.Value) { $null } else { [string]$binProperty.Value }
-    $binMatches = if ([string]::IsNullOrEmpty($ExpectedBin)) {
-        [string]::IsNullOrEmpty($actualBin)
-    }
-    else {
-        $actualBin -eq $ExpectedBin
-    }
-    if (-not $binMatches) {
-        throw "Profiling input artifact '$LogicalId' has unexpected bin '$actualBin'."
-    }
-
-    $path = [string](Get-RenderExtractManifestProperty -Value $artifact -Name 'path' -Label $LogicalId)
-    $resolution = Resolve-ZirconWindowsPath -Path $path
-    if (-not [IO.File]::Exists($resolution.OperationalPath)) {
-        throw "Profiling input artifact '$LogicalId' does not exist: $($resolution.DisplayPath)"
-    }
-    $expectedBytes = [Int64](Get-RenderExtractManifestProperty -Value $artifact -Name 'bytes' -Label $LogicalId)
-    $actualBytes = [IO.FileInfo]::new($resolution.OperationalPath).Length
-    if ($actualBytes -ne $expectedBytes) {
-        throw "Profiling input artifact '$LogicalId' byte length changed from $expectedBytes to $actualBytes."
-    }
-    $expectedHash = [string](Get-RenderExtractManifestProperty -Value $artifact -Name 'sha256' -Label $LogicalId)
-    $actualHash = Get-MvpProductInputFileSha256 -Path $resolution.OperationalPath
-    if (-not $actualHash.Equals($expectedHash, [StringComparison]::Ordinal)) {
-        throw "Profiling input artifact '$LogicalId' SHA-256 no longer matches its manifest."
-    }
-    return [pscustomobject]@{
-        OperationalPath = $resolution.OperationalPath
-        DisplayPath = $resolution.DisplayPath
-        Sha256 = $actualHash
-    }
-}
-
-function Resolve-RenderExtractProfilingInput {
-    param([Parameter(Mandatory)][string]$ManifestPath)
-
-    $sourceIdentity = Resolve-RenderExtractProfilingSourceIdentity -ManifestPath $ManifestPath
-    $manifest = $sourceIdentity.manifest
-    $manifestDirectory = $sourceIdentity.manifest_directory
-    $artifacts = @(Get-RenderExtractManifestProperty -Value $manifest -Name 'artifacts' -Label 'Profiling input manifest')
-    if ($artifacts.Count -ne 4) {
-        throw "Profiling input manifest must contain exactly four runtime/editor artifacts; found $($artifacts.Count)."
-    }
-    $runtimeFeatures = 'target-client,platform-winit,input-gamepad,gamepad-gilrs,profiling'
-    $editorFeatures = 'target-editor-host,profiling'
-    $runtimeExecutable = Get-RenderExtractProfilingArtifact `
-        -Artifacts $artifacts `
-        -LogicalId 'runtime-profile-executable' `
-        -ExpectedProduct 'runtime' `
-        -ExpectedPackage 'zircon_app' `
-        -ExpectedBin 'zircon_runtime' `
-        -ExpectedFeatures $runtimeFeatures
-    $runtimeLibrary = Get-RenderExtractProfilingArtifact `
-        -Artifacts $artifacts `
-        -LogicalId 'runtime-profile-library' `
-        -ExpectedProduct 'runtime' `
-        -ExpectedPackage 'zircon_runtime' `
-        -ExpectedBin $null `
-        -ExpectedFeatures $runtimeFeatures
-    $editorExecutable = Get-RenderExtractProfilingArtifact `
-        -Artifacts $artifacts `
-        -LogicalId 'editor-profile-executable' `
-        -ExpectedProduct 'editor' `
-        -ExpectedPackage 'zircon_app' `
-        -ExpectedBin 'zircon_editor' `
-        -ExpectedFeatures $editorFeatures
-    $editorLibrary = Get-RenderExtractProfilingArtifact `
-        -Artifacts $artifacts `
-        -LogicalId 'editor-profile-library' `
-        -ExpectedProduct 'editor' `
-        -ExpectedPackage 'zircon_runtime' `
-        -ExpectedBin $null `
-        -ExpectedFeatures $editorFeatures
-    foreach ($product in @(
-            [pscustomobject]@{ Name = 'runtime'; Executable = $runtimeExecutable; Library = $runtimeLibrary },
-            [pscustomobject]@{ Name = 'editor'; Executable = $editorExecutable; Library = $editorLibrary }
-        )) {
-        $executableDirectory = [IO.Path]::GetDirectoryName($product.Executable.OperationalPath)
-        $libraryDirectory = [IO.Path]::GetDirectoryName($product.Library.OperationalPath)
-        if (-not $executableDirectory.Equals($libraryDirectory, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "Profiling input $($product.Name) executable and runtime library must be in the same directory for relative runtime loading."
-        }
-        $expectedDirectory = Join-ZirconWindowsPath -Path $manifestDirectory -ChildPath $product.Name
-        if (-not $executableDirectory.Equals($expectedDirectory, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "Profiling input $($product.Name) pair must live in its managed product directory under the manifest."
-        }
-    }
-    return [pscustomobject]@{
-        manifest_path = $sourceIdentity.manifest_path
-        manifest_sha256 = $sourceIdentity.manifest_sha256
-        source_fingerprint = $sourceIdentity.source_fingerprint
-        build_set_id = $sourceIdentity.build_set_id
-        build_set_manifest_sha256 = $sourceIdentity.build_set_manifest_sha256
-        runtime = [pscustomobject]@{
-            executable_path = $runtimeExecutable.OperationalPath
-            executable_sha256 = $runtimeExecutable.Sha256
-            library_path = $runtimeLibrary.OperationalPath
-            library_sha256 = $runtimeLibrary.Sha256
-        }
-        editor = [pscustomobject]@{
-            executable_path = $editorExecutable.OperationalPath
-            executable_sha256 = $editorExecutable.Sha256
-            library_path = $editorLibrary.OperationalPath
-            library_sha256 = $editorLibrary.Sha256
-        }
-    }
-}
-
-function Assert-RenderExtractProfilingInputIdentity {
-    param(
-        [Parameter(Mandatory)]$Expected,
-        [Parameter(Mandatory)]$Actual
-    )
-
-    foreach ($name in @('manifest_path')) {
-        if (-not ([string]$Expected.$name).Equals([string]$Actual.$name, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "Profiling input identity changed during baseline capture ('$name')."
-        }
-    }
-    foreach ($name in @('manifest_sha256', 'build_set_id', 'build_set_manifest_sha256')) {
-        if (-not ([string]$Expected.$name).Equals([string]$Actual.$name, [StringComparison]::Ordinal)) {
-            throw "Profiling input identity changed during baseline capture ('$name')."
-        }
-    }
-    foreach ($product in @('runtime', 'editor')) {
-        foreach ($name in @('executable_path', 'library_path')) {
-            if (-not ([string]$Expected.$product.$name).Equals([string]$Actual.$product.$name, [StringComparison]::OrdinalIgnoreCase)) {
-                throw "Profiling input identity changed during baseline capture ('$product.$name')."
-            }
-        }
-        foreach ($name in @('executable_sha256', 'library_sha256')) {
-            if (-not ([string]$Expected.$product.$name).Equals([string]$Actual.$product.$name, [StringComparison]::Ordinal)) {
-                throw "Profiling input identity changed during baseline capture ('$product.$name')."
-            }
-        }
-    }
-}
-
 function Get-RenderExtractBaselineProductArguments {
     param(
         [Parameter(Mandatory)][ValidateSet('runtime', 'editor')][string]$Product,
@@ -374,35 +213,6 @@ function ConvertTo-RenderExtractProcessArgument {
         return $Value
     }
     return '"' + $Value.Replace('"', '\"') + '"'
-}
-
-function Start-RenderExtractWprCapture {
-    param([Parameter(Mandatory)][string]$TemporaryDirectory)
-
-    if (-not [IO.Directory]::Exists($TemporaryDirectory)) {
-        throw "WPR recording temporary directory does not exist: $TemporaryDirectory"
-    }
-    $wpr = Get-Command wpr.exe -ErrorAction SilentlyContinue
-    if ($null -eq $wpr) {
-        throw '-UseWpr requires wpr.exe on the Windows PATH.'
-    }
-    & $wpr.Source '-start' 'CPU' '-filemode' '-recordtempto' $TemporaryDirectory | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "WPR could not start the CPU capture; exit code $LASTEXITCODE."
-    }
-    return $wpr.Source
-}
-
-function Stop-RenderExtractWprCapture {
-    param(
-        [Parameter(Mandatory)][string]$WprPath,
-        [Parameter(Mandatory)][string]$TracePath
-    )
-
-    & $WprPath '-stop' $TracePath | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "WPR could not stop the CPU capture at '$TracePath'; exit code $LASTEXITCODE."
-    }
 }
 
 function Stop-RenderExtractBaselineProcessTree {
@@ -441,10 +251,15 @@ function Invoke-RenderExtractBaselineProcess {
         [Parameter(Mandatory)][int]$MaxProfileFrames,
         [Parameter(Mandatory)][int]$MaxProfileSpans,
         [Parameter(Mandatory)][int]$MaxProfileCounters,
-        [switch]$UseWpr
+        [AllowNull()]
+        [string]$WprProfile
     )
 
     $sessionId = "$($Run.logical_id)-$Attempt"
+    if (-not [string]::IsNullOrEmpty($WprProfile) -and $WprProfile -notin @('CPU', 'Heap')) {
+        throw "Unsupported render-extract WPR profile '$WprProfile'."
+    }
+    $useWprCapture = -not [string]::IsNullOrEmpty($WprProfile)
     $productInput = $ProfilingInput.($Run.product)
     if ($null -eq $productInput) {
         throw "Render-extract run '$sessionId' names unsupported product '$($Run.product)'."
@@ -464,21 +279,39 @@ function Invoke-RenderExtractBaselineProcess {
     [IO.Directory]::CreateDirectory($profilesRoot) | Out-Null
     [IO.Directory]::CreateDirectory($logsRoot) | Out-Null
     [IO.Directory]::CreateDirectory($capturesRoot) | Out-Null
-    if ($UseWpr) {
+    if ($useWprCapture) {
         [IO.Directory]::CreateDirectory($tracesRoot) | Out-Null
     }
     $stdoutPath = Join-ZirconWindowsPath -Path $logsRoot -ChildPath "$sessionId.stdout.log"
     $stderrPath = Join-ZirconWindowsPath -Path $logsRoot -ChildPath "$sessionId.stderr.log"
     $capturePath = Join-ZirconWindowsPath -Path $capturesRoot -ChildPath "$sessionId.png"
-    $systemTracePath = if ($UseWpr) {
-        Join-ZirconWindowsPath -Path $tracesRoot -ChildPath "$sessionId.etl"
+    $systemTracePath = if ($useWprCapture) {
+        $traceName = if ($WprProfile -eq 'Heap') { "$sessionId.heap.etl" } else { "$sessionId.etl" }
+        Join-ZirconWindowsPath -Path $tracesRoot -ChildPath $traceName
     }
     else {
         $null
     }
     # WPR file mode must keep recorder buffers inside this E-drive evidence session.
-    $wprTemporaryDirectory = if ($UseWpr) {
+    $wprTemporaryDirectory = if ($useWprCapture) {
         Join-ZirconWindowsPath -Path $tracesRoot -ChildPath "$sessionId.wpr-temp"
+    }
+    else {
+        $null
+    }
+    $systemTraceAnalysisPath = if ($WprProfile -eq 'Heap') {
+        Join-ZirconWindowsPath -Path $tracesRoot -ChildPath "$sessionId.heap-product-allocation-stacks.txt"
+    }
+    elseif ($WprProfile -eq 'CPU') {
+        Join-ZirconWindowsPath -Path $tracesRoot -ChildPath "$sessionId.cpu-product-sampled-stacks.txt"
+    }
+    else {
+        $null
+    }
+    $systemTraceReceiptPath = if ($useWprCapture) {
+        Join-ZirconWindowsPath `
+            -Path $tracesRoot `
+            -ChildPath "$sessionId.$($WprProfile.ToLowerInvariant())-wpr-capture.json"
     }
     else {
         $null
@@ -546,7 +379,8 @@ function Invoke-RenderExtractBaselineProcess {
     $endedAtUtc = $null
     $processStopwatch = [Diagnostics.Stopwatch]::new()
     $processElapsedMs = $null
-    $wprPath = $null
+    $wprCapture = $null
+    $wprReceipt = $null
     $primaryFailure = $null
     $processCleanupFailure = $null
     $wprStopFailure = $null
@@ -556,20 +390,27 @@ function Invoke-RenderExtractBaselineProcess {
     $peakWorkingSetBytes = $null
     $totalProcessorTimeMs = $null
     $processId = $null
+    $productStartedAtUtc = $null
+    $productEndedAtUtc = $null
     try {
         $actualProductHashes = Assert-RenderExtractFrozenProductInput `
             -ProductInput $productInput `
             -Product $Run.product
         $processJob = New-RenderExtractBaselineProcessJob
-        if ($UseWpr) {
+        if ($useWprCapture) {
             [IO.Directory]::CreateDirectory($wprTemporaryDirectory) | Out-Null
-            $wprPath = Start-RenderExtractWprCapture -TemporaryDirectory $wprTemporaryDirectory
+            $wprCapture = Start-RenderExtractWprCapture `
+                -TemporaryDirectory $wprTemporaryDirectory `
+                -Profile $WprProfile
         }
         $startedAtUtc = [DateTimeOffset]::UtcNow.ToString('o')
         $processStopwatch.Start()
         $assignedProcess = Start-RenderExtractBaselineAssignedProcess -Job $processJob -StartInfo $startInfo
         $process = $assignedProcess.Process
         $processId = [Int64]$process.Id
+        if ($useWprCapture) {
+            $productStartedAtUtc = ([DateTimeOffset]$process.StartTime.ToUniversalTime()).ToString('o')
+        }
         $processStarted = $true
         $stdoutTask = $assignedProcess.StandardOutput.ReadToEndAsync()
         $stderrTask = $assignedProcess.StandardError.ReadToEndAsync()
@@ -580,6 +421,9 @@ function Invoke-RenderExtractBaselineProcess {
         $processElapsedMs = $processStopwatch.Elapsed.TotalMilliseconds
         $endedAtUtc = [DateTimeOffset]::UtcNow.ToString('o')
         $process.WaitForExit()
+        if ($useWprCapture) {
+            $productEndedAtUtc = ([DateTimeOffset]$process.ExitTime.ToUniversalTime()).ToString('o')
+        }
         if (-not [Threading.Tasks.Task]::WaitAll(@($stdoutTask, $stderrTask), 5000)) {
             throw "Render-extract run '$sessionId' did not drain process output."
         }
@@ -652,12 +496,39 @@ function Invoke-RenderExtractBaselineProcess {
                 }
             }
         }
+        if ($useWprCapture -and $processStarted -and $null -ne $process -and $process.HasExited) {
+            if ($null -eq $productStartedAtUtc) {
+                try {
+                    $productStartedAtUtc = ([DateTimeOffset]$process.StartTime.ToUniversalTime()).ToString('o')
+                }
+                catch {}
+            }
+            if ($null -eq $productEndedAtUtc) {
+                try {
+                    $productEndedAtUtc = ([DateTimeOffset]$process.ExitTime.ToUniversalTime()).ToString('o')
+                }
+                catch {}
+            }
+        }
         if ($null -ne $assignedProcess) {
             $assignedProcess.Dispose()
         }
-        if ($null -ne $wprPath) {
+        if ($null -ne $wprCapture) {
             try {
-                Stop-RenderExtractWprCapture -WprPath $wprPath -TracePath $systemTracePath
+                $wprStopParameters = @{
+                    Capture = $wprCapture
+                    TracePath = $systemTracePath
+                    AnalysisPath = $systemTraceAnalysisPath
+                    ReceiptPath = $systemTraceReceiptPath
+                }
+                if ($null -ne $processId -and
+                    $null -ne $productStartedAtUtc -and
+                    $null -ne $productEndedAtUtc) {
+                    $wprStopParameters.ProcessId = $processId
+                    $wprStopParameters.ProcessStartedAtUtc = $productStartedAtUtc
+                    $wprStopParameters.ProcessEndedAtUtc = $productEndedAtUtc
+                }
+                $wprReceipt = Stop-RenderExtractWprCapture @wprStopParameters
             }
             catch {
                 $wprStopFailure = $_
@@ -697,8 +568,9 @@ function Invoke-RenderExtractBaselineProcess {
     if (-not [IO.File]::Exists($capturePath) -or [IO.FileInfo]::new($capturePath).Length -le 0) {
         throw "Render-extract run '$sessionId' did not produce a nonempty $($Run.product) PNG."
     }
-    if ($UseWpr -and (-not [IO.File]::Exists($systemTracePath) -or [IO.FileInfo]::new($systemTracePath).Length -le 0)) {
-        throw "Render-extract run '$sessionId' did not produce a nonempty WPR ETL."
+    if ($useWprCapture -and
+        ($null -eq $wprReceipt -or $null -eq $wprReceipt.analysis)) {
+        throw "Render-extract run '$sessionId' did not produce product-attributed $WprProfile WPR analysis."
     }
     return [ordered]@{
         logical_id = $Run.logical_id
@@ -728,7 +600,10 @@ function Invoke-RenderExtractBaselineProcess {
         stderr = (Resolve-ZirconWindowsPath -Path $stderrPath).DisplayPath
         profile_directory = (Resolve-ZirconWindowsPath -Path $profileDirectory).DisplayPath
         frame_capture_png = (Resolve-ZirconWindowsPath -Path $capturePath).DisplayPath
-        system_trace_etl = if ($UseWpr) { (Resolve-ZirconWindowsPath -Path $systemTracePath).DisplayPath } else { $null }
+        system_trace_profile = if ($null -ne $wprReceipt) { $WprProfile.ToLowerInvariant() } else { $null }
+        system_trace_etl = if ($null -ne $wprReceipt) { (Resolve-ZirconWindowsPath -Path $systemTracePath).DisplayPath } else { $null }
+        system_trace_analysis = if ($null -ne $wprReceipt) { (Resolve-ZirconWindowsPath -Path $systemTraceAnalysisPath).DisplayPath } else { $null }
+        system_trace_receipt = if ($null -ne $wprReceipt) { (Resolve-ZirconWindowsPath -Path $systemTraceReceiptPath).DisplayPath } else { $null }
         profiling_input = [ordered]@{
             manifest_sha256 = $ProfilingInput.manifest_sha256
             build_set_id = $ProfilingInput.build_set_id
@@ -749,6 +624,7 @@ function Invoke-RenderExtractBaselineCapture {
         [Parameter(Mandatory)][string]$EvidenceOutputDirectory
     )
 
+    $wprProfile = Resolve-RenderExtractWprProfile -UseWpr:$UseWpr -UseWprHeap:$UseWprHeap
     $resolvedOutputDirectory = Assert-RenderExtractBaselineOutputDirectory -Path $EvidenceOutputDirectory
     $projectRoot = Assert-RenderExtractBaselineProjectDirectory -Path $ProjectPath
 
@@ -803,7 +679,7 @@ function Invoke-RenderExtractBaselineCapture {
                         -MaxProfileFrames $MaxProfileFrames `
                         -MaxProfileSpans $MaxProfileSpans `
                         -MaxProfileCounters $MaxProfileCounters `
-                        -UseWpr:$UseWpr)) | Out-Null
+                        -WprProfile $wprProfile)) | Out-Null
             }
         }
 

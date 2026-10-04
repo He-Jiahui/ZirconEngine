@@ -39,6 +39,7 @@ pub(super) fn chrome_command_kind_from_recorded(
         },
         HostRecordedPaintKind::Image {
             resource_key,
+            resource_generation,
             width,
             height,
             rgba,
@@ -46,6 +47,7 @@ pub(super) fn chrome_command_kind_from_recorded(
         } => ChromeCommandKind::Image {
             payload: chrome_image_payload_from_recorded_image(
                 resource_key,
+                resource_generation,
                 width,
                 height,
                 rgba,

@@ -1,3 +1,4 @@
+// 场景绑定 0 只读取共享 SceneUniform 的矩阵前缀；输出直 alpha 颜色，由透明粒子管线混合。
 struct SceneUniform {
     view_proj: mat4x4<f32>,
 };

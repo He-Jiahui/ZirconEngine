@@ -5,6 +5,7 @@ use crate::ui::retained_host::host_contract::paint_template_nodes::render_comman
 
 use super::command::push_runtime_command;
 
+/// Runtime 帧命令按原顺序转换；调用方随后按层级绘制，不能在转换阶段丢弃来源顺序。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn runtime_render_commands_to_host(
     commands: &[UiRenderCommand],
     clip_frame: Option<&FrameRect>,
@@ -17,5 +18,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn runtime
 }
 
 #[cfg(test)]
-#[path = "entry/capacity_tests.rs"]
+#[path = "entry/tests/capacity_tests.rs"]
 mod capacity_tests;

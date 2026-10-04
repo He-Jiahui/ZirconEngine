@@ -21,7 +21,7 @@ def build_body() -> str:
         "pub(super) fn collider_shape_to_physics", 1
     )[0]
 
-
+# 读取世界同步投影，确认节点快照只捕获一次，四类输出按组件数量预定容量。
 class Plugins12PresizedWorldSyncContract(unittest.TestCase):
     def test_projection_captures_the_owned_node_snapshot_once(self) -> None:
         body = compact(build_body())

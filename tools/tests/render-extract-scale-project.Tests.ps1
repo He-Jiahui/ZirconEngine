@@ -1,6 +1,6 @@
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $generator = Join-Path $repoRoot 'tools\mvp\New-RenderExtractScaleProject.ps1'
-$resolverModule = Join-Path $repoRoot 'tools\WindowsPathResolver.psm1'
+$resolverModule = Join-Path $repoRoot 'tools\maintenance\WindowsPathResolver.psm1'
 $manifestModule = Join-Path $repoRoot 'tools\mvp\MvpProductInputManifest.psm1'
 $artifactStorageModule = Join-Path $repoRoot 'tools\mvp\MvpArtifactStoragePolicy.psm1'
 $originalTestMode = $env:RENDER_EXTRACT_SCALE_PROJECT_TEST_MODE
@@ -100,6 +100,7 @@ Describe 'Render-extract scale project generator' {
             $manifest.material_virtual_path | Should Be 'assets/materials/default.zmaterial'
             ([regex]::Matches($scene, '(?m)^\[\[entities\]\]\r?$').Count) | Should Be 6
             ([regex]::Matches($scene, '(?m)^\[entities\.mesh\.model\]\r?$').Count) | Should Be 4
+            $scene | Should Not Match '(?m)^parent\s*='
             $scene | Should Match 'name = "Cube_000001"'
             $scene | Should Match 'name = "Cube_000004"'
             $scene | Should Not Match '[A-Z]:\\'

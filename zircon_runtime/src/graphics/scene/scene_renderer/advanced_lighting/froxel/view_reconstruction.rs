@@ -6,6 +6,8 @@ use crate::core::framework::render::{
 use crate::core::math::{Mat4, UVec2, Vec3};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 三个体积雾通道共用的相机重建基准；未抖动投影保持静态网格坐标稳定，
+/// 时间采样偏移交给散射通道单独处理。
 pub(crate) struct FroxelViewReconstruction {
     world_from_clip: Mat4,
     camera_position: Vec3,
@@ -100,20 +102,5 @@ fn vec3_is_finite(value: Vec3) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn render_froxel_view_reconstruction_uses_unjittered_camera_projection() {
-        let camera = ViewportCameraSnapshot::default();
-        let viewport = UVec2::new(1600, 900);
-
-        let view = FroxelViewReconstruction::from_camera(&camera, viewport);
-        let expected = ViewProjectionMatrixPair::from_camera(&camera, viewport)
-            .clip_from_world_unjittered
-            .inverse();
-
-        assert_eq!(view.world_from_clip, expected);
-        assert!(!view.orthographic);
-    }
-}
+#[path = "tests/view_reconstruction.rs"]
+mod tests;

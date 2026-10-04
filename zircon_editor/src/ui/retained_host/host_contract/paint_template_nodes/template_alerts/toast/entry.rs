@@ -1,3 +1,6 @@
+//! toast 提交的组成边界；显式图标声明和尾部空间共同决定文字可用范围。
+//! 当前尾部反馈按几何宽度选择，动作执行与通知关闭仍由交互链负责。
+
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::style_selector::select_workbench_toast_style;
 use super::super::layout::{
@@ -93,14 +96,5 @@ fn toast_surface_radius(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn toast_prefers_the_projected_panel_radius() {
-        let mut node = TemplatePaneNodeData::default();
-        node.corner_radius = 14.0;
-
-        assert_eq!(toast_surface_radius(&node, toast_metrics()), 14.0);
-    }
-}
+#[path = "tests/entry.rs"]
+mod tests;

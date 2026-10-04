@@ -11,7 +11,6 @@ related_code:
   - zircon_runtime/src/core/framework/project/runtime_profile_id.rs
   - zircon_runtime/src/plugin/runtime_profile.rs
   - zircon_runtime/src/plugin/runtime_profile/feature_presets.rs
-  - zircon_runtime/src/plugin/runtime_profile/defaults.rs
   - zircon_runtime/src/plugin/runtime_profile/descriptor.rs
 tests:
   - cargo test -p zircon_editor --lib --no-run --locked --jobs 1

@@ -4,6 +4,8 @@ use crate::scene::ecs::{ComponentId, StorageType};
 
 const HASH_DEDUP_COMPONENT_THRESHOLD: usize = 128;
 
+/// 原型的组件集合键，按 Table 和 SparseSet 存储分区保存，供 ArchetypeIndex 复用目标表。
+/// 调用方应从 ComponentRegistry 的存储声明构造两个分区，避免同一组件 ID 同时进入两边。
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ArchetypeSignature {
     table_components: Vec<ComponentId>,
@@ -11,6 +13,7 @@ pub struct ArchetypeSignature {
 }
 
 impl ArchetypeSignature {
+    // TODO: [CR-SCENE-ECS-0006] 确认公开构造器是否应拒绝跨存储分区重复的 ComponentId；当前仅分别去重，原型索引可接受相互矛盾的签名。
     pub fn new(
         table_components: impl Into<Vec<ComponentId>>,
         sparse_set_components: impl Into<Vec<ComponentId>>,
@@ -147,56 +150,9 @@ fn remove_component(components: &mut Vec<ComponentId>, component_id: ComponentId
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn component_membership_updates_only_the_known_storage_partition() {
-        let signature =
-            ArchetypeSignature::new(vec![ComponentId::new(4)], vec![ComponentId::new(2)]);
-
-        let updated = signature
-            .with_component_added(ComponentId::new(3), StorageType::Table)
-            .with_component_removed(ComponentId::new(2), StorageType::SparseSet);
-
-        assert_eq!(
-            updated.table_components(),
-            &[ComponentId::new(3), ComponentId::new(4)]
-        );
-        assert!(updated.sparse_set_components().is_empty());
-        assert_eq!(signature.table_components(), &[ComponentId::new(4)]);
-        assert_eq!(signature.sparse_set_components(), &[ComponentId::new(2)]);
-    }
-
-    #[test]
-    fn component_membership_updates_are_idempotent() {
-        let signature = ArchetypeSignature::empty()
-            .with_component_added(ComponentId::new(7), StorageType::SparseSet)
-            .with_component_added(ComponentId::new(7), StorageType::SparseSet)
-            .with_component_removed(ComponentId::new(8), StorageType::SparseSet);
-
-        assert_eq!(signature.sparse_set_components(), &[ComponentId::new(7)]);
-    }
-
-    #[test]
-    fn ordered_component_ids_merge_table_and_sparse_partitions() {
-        let signature = ArchetypeSignature::new(
-            vec![ComponentId::new(2), ComponentId::new(6)],
-            vec![ComponentId::new(1), ComponentId::new(4)],
-        );
-
-        assert_eq!(
-            signature.ordered_component_ids(),
-            vec![
-                ComponentId::new(1),
-                ComponentId::new(2),
-                ComponentId::new(4),
-                ComponentId::new(6),
-            ]
-        );
-    }
-}
+#[path = "tests/signature.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "signature/hash_dedup_tests.rs"]
+#[path = "signature/tests/hash_dedup_tests.rs"]
 mod hash_dedup_tests;

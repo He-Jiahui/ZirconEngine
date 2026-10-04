@@ -102,8 +102,8 @@ fn forward_environment_keeps_local_provider_intensity_independent_from_global_in
 }
 
 #[test]
-fn forward_environment_skips_global_sampling_when_intensity_is_not_positive_and_local_reflections_are_absent()
- {
+fn forward_environment_skips_global_sampling_when_intensity_is_not_positive_and_local_reflections_are_absent(
+) {
     let assembly = assemble_material_shader_template(material_template_request(
         static_mesh_descriptor(),
         ShaderPassType::Forward,

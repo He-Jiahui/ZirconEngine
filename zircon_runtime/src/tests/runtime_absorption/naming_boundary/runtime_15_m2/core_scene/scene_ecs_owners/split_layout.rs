@@ -1,3 +1,4 @@
+//! 命名策略扫描需区分生产源码、测试夹具和已分类的历史名称。通过源码文本核对父子路由、状态镜像和文件预算。
 use super::{
     assert_contains_all, CHILD_OWNER_GUARD, CHILD_OWNER_SLICE, CHILD_OWNER_STATUS, CHILD_PATHS,
     PARENT_PATH, SPLIT_LAYOUT_FRAMEWORKS_STATUS, SPLIT_LAYOUT_GUARD, SPLIT_LAYOUT_SLICE,
@@ -68,8 +69,9 @@ fn runtime_15_core_scene_naming_ecs_owner_split_layout_is_folder_backed() {
     let frameworks_output = include_str!(
         "../../../../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
     );
-    let module_convention =
-        include_str!("../../../../../../../../docs/zircon_runtime/structure/module-convention.md");
+    let module_convention = include_str!(
+        "../../../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
+    );
 
     for (label, source) in [
         (

@@ -175,6 +175,8 @@ impl ShaderSourceValidationMetrics {
     }
 }
 
+/// 渲染器汇总 shader 请求、缓存命中、管线创建和降级证据的诊断快照。
+/// 事件计数可累加；管线对象数量和耗时快照应保留一致且较新的观测值。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ShaderVariantMissReport {
     pub request_count: usize,
@@ -233,6 +235,7 @@ impl ShaderVariantMissReport {
             .record(key, ShaderVariantRuntimeOutcome::Request);
     }
 
+    /// 命中本身已经计入一次请求；调用方只在未命中分支使用 record_request。
     pub fn record_memory_hit(&mut self, key: &ShaderVariantKey) {
         self.request_count += 1;
         self.memory_hit_count += 1;
@@ -456,6 +459,7 @@ impl ShaderVariantMissReport {
         &self.pipeline_fallbacks
     }
 
+    /// 合并子通道报告时累加事件，保留较大的完整快照并对有限诊断去重。
     pub fn accumulate(&mut self, other: Self) {
         self.request_count += other.request_count;
         self.memory_hit_count += other.memory_hit_count;
@@ -718,5 +722,5 @@ fn accumulate_dimensions(
 }
 
 #[cfg(test)]
-#[path = "variant_miss_report/tests.rs"]
+#[path = "variant_miss_report/tests/cases.rs"]
 mod tests;

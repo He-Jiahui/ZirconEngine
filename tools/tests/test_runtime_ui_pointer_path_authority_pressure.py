@@ -4,13 +4,13 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "tools/runtime_ui_pointer_path_authority_pressure.py"
+SCRIPT = ROOT / "tools/analysis/performance/runtime/runtime_ui_pointer_path_authority_pressure.py"
 SPEC = importlib.util.spec_from_file_location("pointer_path_authority_pressure", SCRIPT)
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(MODULE)
 
-
+# 验证普通指针只保留一条拥有的路由序列，捕获时仍分开保存物理命中与分发权威。
 class RuntimeUiPointerPathAuthorityPressureTests(unittest.TestCase):
     def test_ordinary_pointer_reduces_three_owned_sequences_to_one(self) -> None:
         report = MODULE.run(10, route_depths=(64,))

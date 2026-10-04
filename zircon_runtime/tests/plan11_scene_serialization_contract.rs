@@ -42,7 +42,7 @@ fn v0_dynamic_fixture_resaves_byte_identically() {
 #[test]
 fn project_world_v0_migrates_without_a_legacy_dto() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world.spawn_node(NodeKind::Mesh).unwrap();
     world.rename_node(entity, "Legacy Mesh").unwrap();
     let legacy = serde_json::to_string(&json!({
         "format_version": 2,

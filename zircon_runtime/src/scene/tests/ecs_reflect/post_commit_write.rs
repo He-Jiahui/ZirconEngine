@@ -71,7 +71,9 @@ fn reflection_write_rejects_unknown_component_fields_before_adapter_dispatch() {
 
 fn world_with_write_only_component() -> (World, EntityId) {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("mesh entity should spawn");
     world
         .type_registry_mut_for_tests()
         .register(RuntimeTypeRegistration {

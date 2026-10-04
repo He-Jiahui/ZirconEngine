@@ -7,6 +7,7 @@ PAINT_INDEX = ROOT / (
     "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/"
     "template_node/index.rs"
 )
+PAINT_INDEX_TESTS = ROOT / "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/index/tests/cases.rs"
 PRESENTATION_GENERATION = ROOT / (
     "zircon_editor/src/ui/retained_host/host_contract/data/"
     "presentation_generation.rs"
@@ -86,7 +87,7 @@ class EditorDamagePaintIndexPerformanceContractTests(unittest.TestCase):
         self.assertNotIn("index.paint_rows_for_subtree", componentized)
 
     def test_rust_regression_proves_reuse_without_query_sort(self) -> None:
-        source = self.source()
+        source = PAINT_INDEX_TESTS.read_text(encoding="utf-8")
         regression = source.split(
             "fn paint_index_streams_build_time_order_and_reuses_multi_cell_scratch",
             1,

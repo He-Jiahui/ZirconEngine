@@ -29,13 +29,13 @@ invariant(state.includes('pub var entityHarvestClaimedByIds: container.Array<uin
 for (const needle of [
   'appendDefaultHarvestClaimColumns(this);',
   'appendDefaultHarvestClaimColumns(state);',
-  'writer.u16(<uint>38, 1, 1);', 'schemaVersion != <uint>34',
+  'writer.u16(schemaVersion, 1, 1);', 'schemaVersion != <uint>34',
   'if (schemaVersion >= <uint>34) {',
   'm8FreshPlayerStats.harvestClaimId',
   'm8EastbrookEncounter.harvestClaimId',
   'entityState.entityHarvestClaimedByIds[0] = <uint>900;',
 ]) invariant(state.includes(needle), `WOS34 harvest-claim projection omitted: ${needle}`);
-invariant(main.includes('\\"world_state\\":\\"WOS38\\",'), 'package stateSchema must expose WOS38');
+invariant(main.includes('\\"world_state\\":\\"WOS118\\",'), 'package stateSchema must expose WOS118');
 
 process.stdout.write(`checked WOS34 harvest-claim source projection: ${SOURCE_COMMIT.slice(0, 15)}\n`);
 

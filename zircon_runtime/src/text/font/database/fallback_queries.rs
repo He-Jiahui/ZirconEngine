@@ -5,8 +5,8 @@ use crate::text::language::TextLanguageFallbackKey;
 use crate::text::model::TextFontResolutionReport;
 use crate::text::{CompositeFontDescriptor, FontFaceId, FontQuery, FontScript};
 
-use super::super::composite_resolve::CompositeFontIndex;
 use super::super::composite_resolve::script_for_char;
+use super::super::composite_resolve::CompositeFontIndex;
 use super::super::fallback::{FallbackResolution, FallbackResolver, MissingGlyphDiagnosticsReport};
 #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
 use super::super::fallback_cache::FallbackCacheRequestProfile;

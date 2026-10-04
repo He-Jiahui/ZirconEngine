@@ -1,3 +1,4 @@
+//! 协调器串行管理槽位装载、热重载和卸载：反射候选、实例激活与扩展注册必须作为一次代际切换提交或回滚。
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
 use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
@@ -243,6 +244,7 @@ impl HotReloadCoordinator {
         Ok(slot)
     }
 
+    /// 旧策略决定是否传递状态；目标装载、迁移或激活失败时恢复旧实例和注册，再向管理器报告结果。
     pub fn hot_reload(
         &self,
         slot: PluginSlotId,
@@ -686,6 +688,7 @@ impl HotReloadCoordinator {
         Ok(slot)
     }
 
+    /// 派发期间暂取实例以释放槽表锁；回调可查询槽状态，正常返回和展开都会先恢复实例。
     pub fn call_slot_export(
         &self,
         slot: PluginSlotId,
@@ -735,4 +738,5 @@ impl HotReloadCoordinator {
 }
 
 #[cfg(test)]
+#[path = "hot_reload_coordinator/tests/cases.rs"]
 mod tests;

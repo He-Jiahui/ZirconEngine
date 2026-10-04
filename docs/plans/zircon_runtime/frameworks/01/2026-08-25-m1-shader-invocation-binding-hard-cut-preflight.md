@@ -4,8 +4,6 @@ milestone: M1 Phase 1 - core/framework declaration/behavior partition
 status: preflight_complete
 date: 2026-08-25
 related_code:
-  - zircon_runtime/src/core/framework/render/shader/compute_dispatch.rs
-  - zircon_runtime/src/core/framework/render/shader/fullscreen_pass.rs
   - zircon_runtime/src/core/framework/render/shader/material_property_layout.rs
   - zircon_runtime/src/asset/assets/shader/zshader.rs
   - zircon_runtime/src/asset/assets/shader/shader_asset.rs

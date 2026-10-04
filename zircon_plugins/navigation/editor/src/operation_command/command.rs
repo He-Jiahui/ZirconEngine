@@ -35,6 +35,7 @@ impl NavigationOperationCommand {
         }
     }
 
+    // 提交前的错误保持工作区不变；提交后的轮询、ABI 或结果错误按可能已应用处理，交由事务引擎决定恢复。
     fn execute(
         context: &dyn EditContext,
         request: ZrRuntimeOperationSubmitRequestV1,
@@ -48,6 +49,7 @@ impl NavigationOperationCommand {
             .map_err(unchanged_gateway_error)?;
         let mut terminal = false;
         for _ in 0..MAX_OPERATION_POLLS {
+            gateway.tick_frame().map_err(applied_gateway_error)?;
             let progress = gateway
                 .poll_operation(handle)
                 .map_err(applied_gateway_error)?;

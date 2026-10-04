@@ -41,38 +41,31 @@ fn compare_imported_against_local(
     local: &UiAssetDocument,
 ) -> Vec<String> {
     let mut items = Vec::new();
-    for token_name in imported.tokens.keys() {
-        match (
-            imported.tokens.get(token_name),
-            local.tokens.get(token_name),
-        ) {
-            (Some(imported_value), Some(local_value)) if imported_value == local_value => items
-                .push(format!(
-                    "shared • token • {token_name} = {}",
-                    format_value(imported_value)
-                )),
-            (Some(imported_value), Some(local_value)) => items.push(format!(
+    for (token_name, imported_value) in &imported.tokens {
+        match local.tokens.get(token_name) {
+            Some(local_value) if imported_value == local_value => items.push(format!(
+                "shared • token • {token_name} = {}",
+                format_value(imported_value)
+            )),
+            Some(local_value) => items.push(format!(
                 "shadowed by local • token • {token_name} • imported = {} • local = {}",
                 format_value(imported_value),
                 format_value(local_value)
             )),
-            (Some(imported_value), None) => items.push(format!(
+            None => items.push(format!(
                 "imported-only • token • {token_name} = {}",
                 format_value(imported_value)
             )),
-            _ => {}
         }
     }
-    for token_name in local.tokens.keys() {
+    for (token_name, local_value) in &local.tokens {
         if imported.tokens.contains_key(token_name) {
             continue;
         }
-        if let Some(local_value) = local.tokens.get(token_name) {
-            items.push(format!(
-                "local-only • token • {token_name} = {}",
-                format_value(local_value)
-            ));
-        }
+        items.push(format!(
+            "local-only • token • {token_name} = {}",
+            format_value(local_value)
+        ));
     }
 
     let imported_rules = selector_rule_blocks(imported);
@@ -256,5 +249,9 @@ fn format_value(value: &Value) -> String {
 }
 
 #[cfg(test)]
-#[path = "theme_compare/borrowed_rule_index_tests.rs"]
+#[path = "theme_compare/tests/borrowed_rule_index_tests.rs"]
 mod borrowed_rule_index_tests;
+
+#[cfg(test)]
+#[path = "theme_compare/tests/optimization_batch_jd_editor643_tests.rs"]
+mod optimization_batch_jd_editor643_tests;

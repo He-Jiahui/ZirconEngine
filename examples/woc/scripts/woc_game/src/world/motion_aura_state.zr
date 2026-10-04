@@ -10,6 +10,7 @@ pub tickSeconds(required: bool): float {
     return 0.05;
 }
 
+/// 检查同一实体光环切片的并行列与有效剩余时间；切片边界来自世界偏移列，调用者须先验证偏移列自身。
 pub rowsAreValid(
     abilityCodes: container.Array<uint>,
     sourceIds: container.Array<uint>,
@@ -138,6 +139,7 @@ pub movementMultiplier(
 
 // Stealth is a source aura rather than a motion-aura kind. Its movement value
 // still shares the source's minimum-slow, maximum-speed aggregation order.
+/// 在同一实体切片中合并最强减速和最强加速，并与潜行及形态输入合成；调用者负责提供当前实体的完整切片。
 pub movementMultiplierWithStealth(
     slowMultiplier: float,
     stealthMultiplier: float,
@@ -175,6 +177,7 @@ pub movementMultiplierWithStealth(
     return slow * speed;
 }
 
+/// 天赋或基础能力允许移动时直接放行，不借此验证光环行；需要行合法性保证的调用方应先通过世界载入校验。
 pub canCastWhileMoving(
     baseOrTalentMobile: bool,
     abilityCodes: container.Array<uint>,
@@ -189,6 +192,7 @@ pub canCastWhileMoving(
     return hasIceFloes(abilityCodes, sourceIds, kindCodes, remaining, start, end, required);
 }
 
+/// 供世界决定本帧后保留还是删除光环行；恰好耗尽一帧的行应删除，不应继续传入要求剩余时间为正的查询。
 pub remainsActiveAfterTick(seconds: float, required: bool): bool {
     if (!required || !(seconds > 0.0)) {
         throw "woc motion aura remaining time is invalid";

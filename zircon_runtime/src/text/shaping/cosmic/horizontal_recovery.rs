@@ -3,9 +3,10 @@ use crate::text::font::FontDatabase;
 use crate::text::{ShapedGlyphRun, TextHorizontalCompositionReceipt, TextOrientation};
 
 use super::super::failure_receipt::classify_direct_shape_failure;
-use super::super::horizontal::{HorizontalPartialShape, compose_horizontal_partial};
+use super::super::horizontal::{compose_horizontal_partial, HorizontalPartialShape};
 use super::super::{TextShapingFailure, TextShapingFailureCode, TextShapingFailureReceipt};
 
+/// 暂存所有 hole 均允许备用后端的直接整形片段；成功组合后才把保留的 direct glyph 并入完整结果。
 pub(super) struct PendingHorizontalComposition {
     partial: HorizontalPartialShape,
     first_failure: TextShapingFailureReceipt,
@@ -14,6 +15,7 @@ pub(super) struct PendingHorizontalComposition {
 }
 
 impl PendingHorizontalComposition {
+    /// 分类阶段拒绝不可回退的失败并丢弃 profiling TLS；可回退失败才 detach 指标，交由后续组合结果决定发布。
     pub(super) fn classify(
         partial: HorizontalPartialShape,
         orientation: TextOrientation,
@@ -55,6 +57,7 @@ impl PendingHorizontalComposition {
     ) -> ShapedGlyphRun {
         let _hole_count = self.partial.hole_count();
         let _direct_glyph_count = self.partial.direct_glyph_count();
+        // 组合失败时保留完整 alternate run，并附上空的 alternate_ranges，明确表示 alternate 拥有整个结果。
         match compose_horizontal_partial(
             self.partial,
             alternate,
@@ -85,6 +88,7 @@ impl PendingHorizontalComposition {
                     0,
                     true,
                 );
+                // TODO: [CR-TEXT-SHAPING-COORDINATE-0001] 成功组合把失败范围转为 owner 坐标，此拒绝分支仍保留请求内范围；缺非零起点拒绝夹具，需确认回执契约并验证坐标。
                 alternate.horizontal_composition_receipt =
                     Some(Box::new(TextHorizontalCompositionReceipt {
                         alternate_ranges: Vec::new(),

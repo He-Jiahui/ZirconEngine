@@ -1,3 +1,4 @@
+# 核对项目关闭时本地资源退役和目录代际围栏，避免旧身份重新生效。
 import pathlib
 import unittest
 

@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "owner": "runtime_wave12_ui_tests_input_routes",
+  "prepared_at_utc": "2026-10-03T14:19:48.540594+00:00",
+  "files": [
+    {
+      "path": "docs/_data/source-comment-audit/round-02/coverage/runtime_wave12_ui_tests_input_routes.jsonl",
+      "before_exists": false,
+      "before_sha256": null,
+      "after_sha256": "35a4710148d6a06f3e1f6943c91e937bf246a1f153f2d71e9e07407814a3da4f"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/issues/runtime_wave12_ui_tests_input_routes.jsonl",
+      "before_exists": false,
+      "before_sha256": null,
+      "after_sha256": "ec658d7ffbdc7caae4f0c32edeaf45480da38ac8c1837460c7d204e54e2503f4"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/inventory.jsonl",
+      "before_exists": true,
+      "before_sha256": "c9443d3a69947e835a6fcb52e729373423f37d05376ccd1f703a94d1fef47961",
+      "after_sha256": "de54d1367cfd92fbc1fcb61597963967e58869ccb4fce94e6854df541a52d128"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/batches.jsonl",
+      "before_exists": true,
+      "before_sha256": "b3f36e04eadeae3245404294ceffcb4feed4146e44ab59765db8783ddfe8534c",
+      "after_sha256": "f4583b017d699b3ac7fd96536b146ac5c7d68739c975b07fa0b51960be4beb03"
+    }
+  ],
+  "source_hashes": {
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes.rs": "120b7c0bd9c437ee2eb94279a5a894ad1789a93bdc200e1dd986e951b0599160",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/analog_navigation_routes.rs": "0ef5809b25dcede146a1433c74c726d4719e783f632aef36567bd96bc2268364",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/drag_drop_routes.rs": "b3498151fd308c3b094774c08c7b33100d19af35684adab50c274c0c566ae95c",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/focus_text_accessibility_routes.rs": "18cdb108b634042ca62e43b042552c2386869014fd934ea9abda5dae57ee16b1",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/gamepad_navigation_routes.rs": "f2fc58d912a1f8dce976f96c1954d3daad1d4481926755089b4fa160ad7f25df",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_activation_routes.rs": "22a22d0e3287291b6c610571e89a0545544f8c0699927d2f9ff84fbd59408aae",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes.rs": "eb6cabe937b7de46519eb540f2eb91bd4abfde27c5e712dfb00dc18abe7aa394",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes/directional.rs": "b28e91f19b77005d99d6205147db7fa1d0833105c6eeb346a8e96eca372e4800",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes/focus_path.rs": "e0ba74975a74d3d25e56df7227c1b7f93cf052d22dd80eeb9041678d40e7c9e9",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes/semantic_actions.rs": "3f7b6cb39f44afdac7535a622819a0268c23845bd626b3b8ebf107eea576d4e8",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes/timers_disabled.rs": "c4fbf100609535d35f5adb43e78e27f1c777e19e0d1b652726b1b0946d552290",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_popup_routes.rs": "cf537b8e216eba85b087192a7b884df7eed8a6a4a967aeda86122ddb2e100522",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/pointer_bubble_routes.rs": "69036fce42ade6d3f5cbb19bc9fe5db38563b4f42cd87da338b71c37585cbd36",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/pointer_capture_routes.rs": "ac46db2344535bcc21b38a24c4ea627bbb656513f941441357f57bba49efd795",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/pointer_capture_routes/ownership_lifecycle.rs": "e5c78d2feb46f31fa4be2ca23621ae6d41349a15e3fe955b57ece22433876ce8",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/pointer_hover_routes.rs": "874911b3c9d99e0e57c7a7b2b08a09ff1c33da1e6237154e0bd6e80a60787ee2",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/pointer_popup_routes.rs": "94f078fa46c29606485c38bef51b008c6866cef64fbf7bd595a5d285aeafdd97",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/popup_routes.rs": "3813f1965f1baeba5c50c25b8fc7ba5a9adc71c60873f37044a812a38437b1fd",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/route_trace_routes.rs": "d5ab2e3c8a828f3c7f328afa10b990c298fd9ceddb98e99ac20fa6076ed8a99b",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/table_pointer_routes.rs": "3dbd25a855451ca645886370e704d2bc57c21d428ddba26c1a25c964e66f0c02",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/table_pointer_routes/resize.rs": "b86b1558935b837c9c2ddf6cb9b4bfa95c05687ebe130aff0f47a80d56f71f73",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/table_pointer_routes/selection.rs": "ff92c2ceae21b82b4150ef54c76363fc4813ada3df0ebf0d5539c5965a15f434",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/table_pointer_routes/sorting.rs": "62e30e1557678df64b1a537b46e7c72cee18104f615c672bc6c819f9f4f0c487",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/table_pointer_routes/virtualization.rs": "31a9d91c822665c01ea34c065e3d9753fdaa29e93d80def39df5bad3dd67643f",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/tooltip_timer_routes.rs": "e27e4ae4e7ddc557650bca680cae546a72d1e2acf04aa5d256e59eac132d4279",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/touch_pointer_routes.rs": "1c194f5fd621363297bd2a5ac9f3a36d8d7ee3ff10202dad7987144e550eb272",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes.rs": "ab349047f0dc63b8b3da08bb8cb223ff6fb1712b45ff3c1b9c722817724b3c1c",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes/drag_reorder.rs": "b794f55a4a70dcbf2cbd90603be31217b8806b746909acb2d3565fd1d44f4372",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes/selection.rs": "bfce01f8865c13714dcedc3f82658827afd7ca984209a9a8832641610f658848",
+    "zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes/virtualization.rs": "6f72bdeefa498797214ecdc602b7ffdffdc7bee7353ae085be3544913ab93537"
+  },
+  "installation": {
+    "path": "E:\\Git\\ZirconEngine\\docs\\cli-and-tooling\\source-comment-audit\\round-02\\ownership\\local-install-runtime_wave12_ui_tests_input_routes-20261003-r1.json",
+    "sha256": "3a90d498ddab3e245a35c1f9947681fdd3aec13de75fceef6bfb373511cb2000"
+  },
+  "root_semantic_proof": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_ui_tests_input_routes-root-semantic-proof-20261003-r1.json",
+    "sha256": "e3fd4709722904271bbea81560f68af71c9012ea9a3039796619c6364cea3e62"
+  },
+  "coverage_records": 30,
+  "reviewed_current_records": 30,
+  "new_issues": 1,
+  "new_bug_issues": 1,
+  "new_todo_issues": 0,
+  "retained_historical_issues": 0,
+  "issue_anchors": 1,
+  "source_writes": 0,
+  "canonical_writes": 0,
+  "status": "matching_hash_coverage_published",
+  "completed_at_utc": "2026-10-03T14:20:02.758301+00:00",
+  "intent": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-publish-runtime_wave12_ui_tests_input_routes-20261003-r1\\intent.json",
+    "sha256": "ae059705bcff0a9a2360b18b3602e4c5200ea0377e413fa9e685d927641535b2"
+  },
+  "inventory_reviewed_current_records": 4440,
+  "canonical_batch_records": 116,
+  "canonical_ledger_writes": 4,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "business_adoption": false,
+  "dynamic_acceptance": false,
+  "submission": "pending_index_ownership_resolution"
+}

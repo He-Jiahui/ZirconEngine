@@ -2,8 +2,12 @@ use crate::core::framework::project::{ExportPackagingStrategy, ExportProfile};
 use crate::plugin::RuntimeProfileDescriptor;
 
 #[cfg(test)]
-#[path = "export_profile_validation/strategy_capacity_tests.rs"]
+#[path = "export_profile_validation/tests/strategy_capacity_tests.rs"]
 mod strategy_capacity_tests;
+
+#[cfg(test)]
+#[path = "export_profile_validation/tests/optimization_batch_iv_runtime633_tests.rs"]
+mod optimization_batch_iv_runtime633_tests;
 
 pub(super) fn export_profile_duplicate_name_fatal_diagnostics(
     profiles: &[ExportProfile],
@@ -76,15 +80,16 @@ pub(super) fn export_profile_strategy_diagnostics(profile: &ExportProfile) -> Ve
     let mut diagnostics = Vec::with_capacity(export_strategy_diagnostic_capacity(
         profile.strategies.len(),
     ));
-    let mut seen = Vec::new();
+    let mut seen_mask = 0_u8;
     for strategy in profile.strategies.iter().copied() {
-        if seen.contains(&strategy) {
+        let strategy_bit = export_packaging_strategy_bit(strategy);
+        if seen_mask & strategy_bit != 0 {
             diagnostics.push(format!(
                 "export profile {} strategies must not repeat packaging strategy {strategy:?}",
                 profile.name
             ));
         } else {
-            seen.push(strategy);
+            seen_mask |= strategy_bit;
         }
     }
     diagnostics
@@ -128,13 +133,22 @@ fn normalized_export_profile_output_name(profile: &ExportProfile) -> String {
 }
 
 fn deduplicate_export_strategies(strategies: &mut Vec<ExportPackagingStrategy>) {
-    let mut seen = Vec::new();
+    let mut seen_mask = 0_u8;
     strategies.retain(|strategy| {
-        if seen.contains(strategy) {
+        let strategy_bit = export_packaging_strategy_bit(*strategy);
+        if seen_mask & strategy_bit != 0 {
             false
         } else {
-            seen.push(*strategy);
+            seen_mask |= strategy_bit;
             true
         }
     });
+}
+
+const fn export_packaging_strategy_bit(strategy: ExportPackagingStrategy) -> u8 {
+    match strategy {
+        ExportPackagingStrategy::SourceTemplate => 1 << 0,
+        ExportPackagingStrategy::LibraryEmbed => 1 << 1,
+        ExportPackagingStrategy::NativeDynamic => 1 << 2,
+    }
 }

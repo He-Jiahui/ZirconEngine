@@ -147,6 +147,7 @@ pub craftCeiling(
     return ceiling < 0 || rawTier < ceiling ? rawTier : ceiling;
 }
 
+/// 每次制作前按当前配方职业同步双专精及品质上限；同一技能状态换配方后必须重新调用，不能复用上一配方的上限。
 pub applyToCraftingTransaction(
     archetype: ArchetypeState, skills: crafting.CraftingTransactionState, recipeCraftId: string
 ): void {
@@ -157,6 +158,7 @@ pub applyToCraftingTransaction(
     );
 }
 
+/// 解码后的状态先在目录中修复身份、已调谐组合和爱好职业；默认爱好还依赖当前技能值，因此修复时须提供同一角色的技能状态。
 pub normalizeState(state: ArchetypeState, skills: crafting.CraftingTransactionState): void {
     state.switchCount = state.switchCount != state.switchCount || state.switchCount < 0.0 ? 0.0 : state.switchCount;
     state.amendsProgress = state.amendsProgress != state.amendsProgress || state.amendsProgress < 0.0 ? 0.0 : state.amendsProgress;

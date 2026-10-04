@@ -3,6 +3,7 @@ use super::{assert_contains_all, read_repo, read_runtime_src};
 const DIRECT_CPU_MORPHED_DRAW_SOURCE_STATUS: &str =
     "render_plan08_direct_cpu_morphed_draw_source_metadata_check_passed_wgpu_deferred";
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0043] 网格待绘制项的材质输入与变形元数据 的测试归属断言与现行模块图不符；需定位迁移后的行为测试，再调整此守卫或补缺失覆盖。
 #[test]
 fn runtime_15_extend_pending_draws_tests_are_child_owner() {
     let root = read_runtime_src(
@@ -24,7 +25,7 @@ fn runtime_15_extend_pending_draws_tests_are_child_owner() {
         "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_plan.rs",
     );
     let tests = read_runtime_src(
-        "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance/tests.rs",
+        "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance/tests/cases.rs",
     );
 
     let plan_02 = read_repo(
@@ -149,7 +150,7 @@ fn runtime_15_extend_pending_draws_tests_are_child_owner() {
             material_inputs.as_str(),
         ),
         (
-            "extend_pending_draws_for_mesh_instance/tests.rs",
+            "extend_pending_draws_for_mesh_instance/tests/cases.rs",
             tests.as_str(),
         ),
     ] {
@@ -175,7 +176,7 @@ fn runtime_15_extend_pending_draws_tests_are_child_owner() {
                 "render_plan02_extend_pending_draws_tests_owner_split_static_passed_cargo_deferred_active_compile_lane",
                 "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs",
                 "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance/material_inputs.rs",
-                "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance/tests.rs",
+                "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance/tests/cases.rs",
                 "runtime_15_extend_pending_draws_tests_are_child_owner",
             ],
         );

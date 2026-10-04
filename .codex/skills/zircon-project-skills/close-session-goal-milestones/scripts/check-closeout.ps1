@@ -19,6 +19,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+throw 'The coordinator closeout checker is retired. Follow close-session-goal-milestones for scoped validation and explicitly authorized integration.'
 
 $errors = [Collections.Generic.List[object]]::new()
 

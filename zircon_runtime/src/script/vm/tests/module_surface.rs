@@ -83,13 +83,13 @@ fn runtime13_scalar_math_host_uses_libm_vectors_and_rejects_non_finite_values() 
     let exports = HostExportRegistry::default();
     super::super::register_builtin_host_modules(&exports, &HostRegistry::default()).unwrap();
     let math = exports.module("zr.zircon.math").expect("math host module");
-    assert_eq!(math.descriptor.version, "0.2.0");
+    assert_eq!(math.descriptor.version, "0.3.0");
     assert!(math
         .descriptor
         .capabilities
         .contains(&"math.scalar".to_string()));
     for name in [
-        "abs", "atan2", "ceil", "cos", "exp", "floor", "sin", "sqrt", "pow",
+        "abs", "atan2", "ceil", "cos", "exp", "floor", "round", "sin", "sqrt", "pow",
     ] {
         assert!(
             math.descriptor
@@ -207,6 +207,87 @@ fn runtime13_scalar_math_host_uses_libm_vectors_and_rejects_non_finite_values() 
             Err(VmError::Operation(message)) if message.contains("produced a non-finite result")
         ));
     }
+}
+
+#[test]
+fn runtime13_scalar_math_round_matches_javascript_ties_and_signed_zero() {
+    let exports = HostExportRegistry::default();
+    super::super::register_builtin_host_modules(&exports, &HostRegistry::default()).unwrap();
+    let capabilities = CapabilitySet::default().with("math.scalar");
+    let cases: &[(f64, f64)] = &[
+        (1.25, 1.0),
+        (1.75, 2.0),
+        (-1.25, -1.0),
+        (-1.75, -2.0),
+        (0.5, 1.0),
+        (1.5, 2.0),
+        (2.5, 3.0),
+        (-0.5, -0.0),
+        (-1.5, -1.0),
+        (-2.5, -2.0),
+        (0.0, 0.0),
+        (-0.0, -0.0),
+        (0.25, 0.0),
+        (-0.25, -0.0),
+        (f64::from_bits(1), 0.0),
+        (-f64::from_bits(1), -0.0),
+        (f64::from_bits(0.5_f64.to_bits() - 1), 0.0),
+        (f64::from_bits((-0.5_f64).to_bits() + 1), -1.0),
+        (4_503_599_627_370_497.0, 4_503_599_627_370_497.0),
+        (-4_503_599_627_370_497.0, -4_503_599_627_370_497.0),
+        (f64::MAX, f64::MAX),
+        (-f64::MAX, -f64::MAX),
+    ];
+    for &(input, expected) in cases {
+        let value = exports
+            .call_with_capabilities(
+                "zr.zircon.math",
+                "round",
+                vec![ScriptHostValue::Float(input)],
+                &capabilities,
+            )
+            .expect("finite round operation");
+        let ScriptHostValue::Float(actual) = value else {
+            panic!("round returned {value:?}, expected float");
+        };
+        assert_eq!(actual.to_bits(), expected.to_bits(), "round({input:?})");
+    }
+}
+
+#[test]
+fn runtime13_scalar_math_round_enforces_float_and_capability_admission() {
+    let exports = HostExportRegistry::default();
+    super::super::register_builtin_host_modules(&exports, &HostRegistry::default()).unwrap();
+    let capabilities = CapabilitySet::default().with("math.scalar");
+    for input in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+        assert!(matches!(
+            exports.call_with_capabilities(
+                "zr.zircon.math",
+                "round",
+                vec![ScriptHostValue::Float(input)],
+                &capabilities,
+            ),
+            Err(VmError::Operation(message)) if message.contains("round argument 0 must be finite")
+        ));
+    }
+    assert!(matches!(
+        exports.call_with_capabilities(
+            "zr.zircon.math",
+            "round",
+            vec![ScriptHostValue::Int(1)],
+            &capabilities,
+        ),
+        Err(VmError::Operation(message)) if message.contains("round argument 0 expected finite float")
+    ));
+    assert!(matches!(
+        exports.call_with_capabilities(
+            "zr.zircon.math",
+            "round",
+            vec![ScriptHostValue::Float(1.5)],
+            &CapabilitySet::default(),
+        ),
+        Err(VmError::Operation(message)) if message.contains("missing capability math.scalar")
+    ));
 }
 
 #[test]

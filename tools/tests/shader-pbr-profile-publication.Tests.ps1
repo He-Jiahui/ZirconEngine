@@ -1,5 +1,6 @@
-$script:ProfileCaptureManifest = Join-Path $PSScriptRoot "..\profile-capture-manifest.ps1"
-$script:PublicationScript = Join-Path $PSScriptRoot "..\shader-pbr-profile-publication.ps1"
+# 用临时阶段目录验证着色器画像的租约恢复、完整性收据和原子发布。
+$script:ProfileCaptureManifest = Join-Path $PSScriptRoot "..\profiling\shared\profile-capture-manifest.ps1"
+$script:PublicationScript = Join-Path $PSScriptRoot "..\profiling\shader_pbr\shader-pbr-profile-publication.ps1"
 
 if (Test-Path -LiteralPath $script:ProfileCaptureManifest) {
     . $script:ProfileCaptureManifest

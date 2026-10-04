@@ -1,9 +1,9 @@
 use crate::asset::assets::{
-    MESH_ATTRIBUTE_JOINT_INDEX, MeshAsset, MeshAttributeValues, ModelAsset, ModelPrimitiveAsset,
+    MeshAsset, MeshAttributeValues, ModelAsset, ModelPrimitiveAsset, MESH_ATTRIBUTE_JOINT_INDEX,
 };
 use crate::asset::{
-    AssetImportError, MeshSdfCookBudget, MeshSdfCookRequest, MeshVertex,
-    VirtualGeometryCookRequest, cook_mesh_sdf_or_fallback, cook_virtual_geometry_from_mesh,
+    cook_mesh_sdf_or_fallback, cook_virtual_geometry_from_mesh, AssetImportError,
+    MeshSdfCookBudget, MeshSdfCookRequest, MeshVertex, VirtualGeometryCookRequest,
 };
 use crate::core::math::{Vec2, Vec3};
 

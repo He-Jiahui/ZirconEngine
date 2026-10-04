@@ -1,0 +1,791 @@
+---
+
+related_code:
+
+  - zircon_runtime/src/asset/mod.rs
+
+  - zircon_runtime_interface/src/resource/locator.rs
+
+  - zircon_runtime_interface/src/resource/asset_reference.rs
+
+  - zircon_runtime_interface/src/resource/resource_id.rs
+
+  - zircon_runtime/src/asset/project/meta.rs
+  - zircon_runtime/src/asset/project/package_asset_registry.rs
+  - zircon_runtime/src/asset/project/manager/package_assets.rs
+  - zircon_runtime/src/asset/project/manager/scan_and_import.rs
+  - zircon_runtime/src/asset/project/manager/scan_and_import/shader_import_dependencies.rs
+  - zircon_runtime/src/asset/project/manager/source_path_for_uri.rs
+  - zircon_runtime/src/asset/project/manager/source_uri_for_path.rs
+
+  - zircon_runtime/src/asset/assets/shader/shader_asset.rs
+  - zircon_runtime/src/asset/assets/shader/mod.rs
+  - zircon_runtime/src/asset/assets/shader/readiness.rs
+  - zircon_runtime/src/asset/assets/shader/zshader.rs
+  - zircon_runtime/src/asset/assets/mod.rs
+  - zircon_runtime/src/core/framework/render/shader/asset_kind.rs
+  - zircon_runtime/src/core/framework/render/shader/render_state.rs
+  - zircon_runtime/src/core/framework/render/shader/queue.rs
+  - zircon_runtime/src/core/framework/render/shader/resource.rs
+  - zircon_runtime/src/core/framework/render/shader/definition_value.rs
+  - zircon_runtime/src/asset/assets/material/material_asset.rs
+  - zircon_runtime/src/asset/assets/material/material_asset/management.rs
+  - zircon_runtime/src/asset/assets/material/material_asset/readiness.rs
+  - zircon_runtime/src/asset/assets/material/material_asset/subsurface.rs
+  - zircon_runtime/src/asset/assets/material/material_asset/value_sync.rs
+  - zircon_runtime/src/asset/assets/material/property_values.rs
+  - zircon_runtime/src/asset/assets/material/texture_slot.rs
+
+  - zircon_runtime/src/asset/assets/material/validation.rs
+
+  - zircon_runtime/src/asset/assets/material/zmaterial.rs
+
+  - zircon_runtime/src/asset/assets/material/dependency_set.rs
+  - zircon_runtime/src/core/framework/render/material/diagnostic_source.rs
+  - zircon_runtime/src/core/framework/render/material/management.rs
+  - zircon_runtime/src/core/framework/render/material/management/issue_index.rs
+  - zircon_runtime/src/core/framework/render/material/management/issue_view.rs
+  - zircon_runtime/src/core/framework/render/material/management/overview.rs
+  - zircon_runtime/src/core/framework/render/material/management/page.rs
+  - zircon_runtime/src/core/framework/render/material/management/page_navigation.rs
+  - zircon_runtime/src/core/framework/render/material/management/record_set.rs
+  - zircon_runtime/src/core/framework/render/material/management/record_summary.rs
+  - zircon_runtime/src/core/framework/render/material/management/query.rs
+  - zircon_runtime/src/core/framework/render/material/management/query_controls.rs
+  - zircon_runtime/src/core/framework/render/material/management/query_facets.rs
+  - zircon_runtime/src/core/framework/render/material/management/query_filters.rs
+  - zircon_runtime/src/core/framework/render/material/management/query_result_actions.rs
+  - zircon_runtime/src/core/framework/render/material/management/query_result_state.rs
+  - zircon_runtime/src/core/framework/render/material/management/query_selection.rs
+  - zircon_runtime/src/core/framework/render/material/management/query_state.rs
+  - zircon_runtime/src/core/framework/render/material/management/selection.rs
+  - zircon_runtime/src/core/framework/render/material/management/sort_order.rs
+  - zircon_runtime/src/core/framework/render/material/management/status_index.rs
+  - zircon_runtime/src/core/framework/render/material/management/status_view.rs
+  - zircon_runtime/src/core/framework/render/material/property_uniform.rs
+  - zircon_runtime/src/core/framework/render/material/property_value.rs
+  - zircon_runtime/src/core/framework/render/material/readiness_report.rs
+  - zircon_runtime/src/core/framework/render/material/texture_slot_summary.rs
+  - zircon_runtime/src/core/framework/render/material/validation_error.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/render_queue.rs
+  - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
+
+  - zircon_runtime/src/asset/importer/ingest/import_material.rs
+
+  - zircon_runtime/src/asset/importer/ingest/import_shader_package.rs
+
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_validate_material_shader_layout.rs
+  - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs
+
+  - zircon_runtime/src/graphics/scene/resources/prepared/prepared_material.rs
+
+  - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_material_texture_bind_group_layout.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs
+  - zircon_runtime/src/graphics/scene/render_product_zshader_import_tests.rs
+  - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs
+  - zircon_runtime/src/graphics/scene/render_product_material_property_tests/uniform_debug_counts.rs
+  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs
+  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/readiness_diagnostics.rs
+  - zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs
+
+  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
+
+  - zircon_editor/src/ui/host/editor_asset_manager/records.rs
+
+  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/asset_details.rs
+
+  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/folders.rs
+  - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
+
+  - zircon_editor/src/ui/workbench/project/constants.rs
+
+  - zircon_editor/src/ui/workbench/project/runtime_asset_resolution.rs
+  - templates/projects/renderable-empty/assets/shaders/pbr_shader/pbr.zshader
+  - templates/projects/renderable-empty/assets/shaders/pbr_shader/pbr.wgsl
+
+  - zircon_editor/src/tests/workbench/project/renderable_template.rs
+
+  - zircon_editor/src/tests/workbench/project/document_roundtrip.rs
+
+  - zircon_editor/src/ui/layouts/views/asset_browser.rs
+
+  - zircon_runtime/src/asset/tests/project/zmeta.rs
+  - zircon_runtime/src/asset/tests/project/asset_flow_sample.rs
+  - zircon_runtime/src/asset/tests/assets/shader_readiness.rs
+  - zircon_runtime/src/asset/tests/assets/material.rs
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_schema.rs
+  - zircon_runtime/src/asset/tests/pipeline/manager.rs
+  - zircon_runtime/src/asset/tests/assets/importer.rs
+  - zircon_runtime/tests/shader_import_dependency_contract.rs
+  - zircon_runtime/tests/material_shader_redirect_dependency_contract.rs
+  - docs/rendering/fixtures/zmeta-shader-material
+implementation_files:
+
+  - zircon_runtime/src/asset/mod.rs
+
+  - zircon_runtime_interface/src/resource/locator.rs
+
+  - zircon_runtime_interface/src/resource/asset_reference.rs
+
+  - zircon_runtime/src/asset/project/meta.rs
+  - zircon_runtime/src/asset/project/package_asset_registry.rs
+  - zircon_runtime/src/asset/project/manager/scan_and_import.rs
+  - zircon_runtime/src/asset/project/manager/scan_and_import/shader_import_dependencies.rs
+  - zircon_runtime/src/asset/project/manager/source_path_for_uri.rs
+  - zircon_runtime/src/asset/assets/shader/shader_asset.rs
+  - zircon_runtime/src/asset/assets/shader/mod.rs
+  - zircon_runtime/src/asset/assets/shader/readiness.rs
+  - zircon_runtime/src/asset/assets/shader/zshader.rs
+  - zircon_runtime/src/asset/assets/mod.rs
+  - zircon_runtime/src/core/framework/render/shader/definition_value.rs
+
+  - zircon_runtime/src/asset/importer/ingest/import_shader_package.rs
+
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_validate_material_shader_layout.rs
+  - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs
+
+  - zircon_runtime/src/graphics/scene/resources/prepared/prepared_material.rs
+
+  - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_material_texture_bind_group_layout.rs
+
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs
+  - zircon_runtime/src/graphics/scene/render_product_zshader_import_tests.rs
+  - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs
+  - zircon_runtime/src/graphics/scene/render_product_material_property_tests/uniform_debug_counts.rs
+  - zircon_runtime/src/asset/assets/material/material_asset.rs
+  - zircon_runtime/src/asset/assets/material/material_asset/management.rs
+  - zircon_runtime/src/asset/assets/material/material_asset/readiness.rs
+  - zircon_runtime/src/asset/assets/material/material_asset/subsurface.rs
+  - zircon_runtime/src/asset/assets/material/material_asset/value_sync.rs
+  - zircon_runtime/src/asset/assets/material/property_values.rs
+  - zircon_runtime/src/asset/assets/material/texture_slot.rs
+
+  - zircon_runtime/src/asset/assets/material/validation.rs
+
+  - zircon_runtime/src/asset/assets/material/zmaterial.rs
+
+  - zircon_runtime/src/asset/assets/material/dependency_set.rs
+  - zircon_runtime/src/core/framework/render/material/diagnostic_source.rs
+  - zircon_runtime/src/core/framework/render/material/management.rs
+  - zircon_runtime/src/core/framework/render/material/management/issue_index.rs
+  - zircon_runtime/src/core/framework/render/material/management/issue_view.rs
+  - zircon_runtime/src/core/framework/render/material/management/overview.rs
+  - zircon_runtime/src/core/framework/render/material/management/page.rs
+  - zircon_runtime/src/core/framework/render/material/management/page_navigation.rs
+  - zircon_runtime/src/core/framework/render/material/management/record_set.rs
+  - zircon_runtime/src/core/framework/render/material/management/record_summary.rs
+  - zircon_runtime/src/core/framework/render/material/management/query.rs
+  - zircon_runtime/src/core/framework/render/material/management/query_controls.rs
+  - zircon_runtime/src/core/framework/render/material/management/query_facets.rs
+  - zircon_runtime/src/core/framework/render/material/management/query_filters.rs
+  - zircon_runtime/src/core/framework/render/material/management/query_result_actions.rs
+  - zircon_runtime/src/core/framework/render/material/management/query_result_state.rs
+  - zircon_runtime/src/core/framework/render/material/management/query_selection.rs
+  - zircon_runtime/src/core/framework/render/material/management/query_state.rs
+  - zircon_runtime/src/core/framework/render/material/management/selection.rs
+  - zircon_runtime/src/core/framework/render/material/management/sort_order.rs
+  - zircon_runtime/src/core/framework/render/material/management/status_index.rs
+  - zircon_runtime/src/core/framework/render/material/management/status_view.rs
+  - zircon_runtime/src/core/framework/render/material/property_uniform.rs
+  - zircon_runtime/src/core/framework/render/material/property_value.rs
+  - zircon_runtime/src/core/framework/render/material/readiness_report.rs
+  - zircon_runtime/src/core/framework/render/material/texture_slot_summary.rs
+  - zircon_runtime/src/core/framework/render/material/validation_error.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/render_queue.rs
+  - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
+
+  - zircon_runtime/src/asset/importer/ingest/import_material.rs
+
+  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
+
+  - zircon_editor/src/ui/host/editor_asset_manager/records.rs
+
+  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/asset_details.rs
+
+  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/folders.rs
+  - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
+
+  - zircon_editor/src/ui/workbench/project/constants.rs
+
+  - zircon_editor/src/ui/workbench/project/runtime_asset_resolution.rs
+  - templates/projects/renderable-empty/assets/shaders/pbr_shader/pbr.zshader
+  - templates/projects/renderable-empty/assets/shaders/pbr_shader/pbr.wgsl
+
+  - zircon_editor/src/ui/layouts/views/asset_browser.rs
+
+  - zircon_runtime/src/asset/tests/project/zmeta.rs
+  - zircon_runtime/src/asset/tests/project/asset_flow_sample.rs
+  - zircon_editor/src/tests/workbench/project/renderable_template.rs
+  - zircon_editor/src/tests/workbench/project/document_roundtrip.rs
+
+  - docs/rendering/fixtures/zmeta-shader-material
+
+plan_sources:
+  - docs/plans/zircon_editor/editor/10-project-and-asset-reference-management.md
+  - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
+  - .codex/plans/资产 .zmeta 与 Shader Material 资产化计划.md
+  - .codex/plans/ZirconEngine 资产、Texture、模型、ZShaderZMaterialZMesh 缺口补齐计划.md
+  - docs/superpowers/specs/2026-05-17-zmaterial-material-editor-design.md
+
+  - docs/superpowers/plans/2026-05-17-zmaterial-material-editor.md
+
+  - user: 2026-05-19 finish runtime UI graph and direct-surface damage, then close the `.zmaterial` workspace blocker
+
+  - docs/superpowers/specs/2026-05-24-shader-readiness-report-design.md
+
+  - docs/superpowers/plans/2026-05-24-shader-readiness-report.md
+
+  - docs/superpowers/specs/2026-05-25-typed-shader-definitions-design.md
+  - docs/superpowers/plans/2026-05-25-typed-shader-definitions.md
+  - user: 2026-05-27 continue shader/material management
+  - docs/plans/zircon_runtime/shader/01-shader-asset-kinds-and-zshader-v2.md
+tests:
+  - zircon_runtime/src/asset/tests/project/zmeta/schema_v7.rs
+  - rustfmt --edition 2021 zircon_runtime/src/asset/mod.rs zircon_runtime/src/asset/assets/mod.rs zircon_runtime/src/asset/assets/shader/mod.rs zircon_runtime/src/asset/assets/shader/zshader.rs zircon_runtime/src/asset/tests/assets/shader_readiness.rs zircon_runtime/src/core/framework/render/mod.rs zircon_runtime/src/core/framework/render/shader/mod.rs zircon_runtime/src/core/framework/render/shader/asset_kind.rs zircon_runtime/src/core/framework/render/shader/queue.rs zircon_runtime/src/core/framework/render/shader/render_state.rs zircon_runtime/src/core/framework/render/shader/resource.rs (2026-07-02 SH01-M1 zshader v2 contract parse: passed)
+  - cargo test -p zircon_runtime --lib zshader_v2 --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh01-m1 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 SH01-M1 zshader v2 contract parse: passed, 3 passed, 5948 filtered; existing repository warnings only)
+  - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records/zshader.rs (2026-07-02 SH01-M2 zshader v2 importer cutover review guard: passed)
+  - cargo check -p zircon_runtime --lib --locked --jobs 1 --message-format short --color never (2026-07-02 SH01-M2 zshader v2 importer cutover: passed with existing repository warnings)
+  - cargo check -p zircon_runtime --tests --locked --jobs 1 --message-format short --color never (2026-07-02 SH01-M2 zshader v2 importer cutover test compile: passed with existing repository warnings)
+  - cargo test -p zircon_runtime --lib zshader_v2 --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh01-m2 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 SH01-M2 zshader v2 importer cutover: passed, 5 passed, 5952 filtered; existing repository warnings only)
+  - git ls-files '*.zshader' plus static scan for version = 1, pipeline_layout, shader_defs, and shader_def_values (2026-07-02 SH01-M2 repository zshader migration: passed, no tracked matches)
+  - zircon_runtime_interface/src/tests/resource_contracts.rs
+  - zircon_runtime/src/asset/tests/project/package_assets.rs
+
+  - zircon_runtime/src/asset/tests/project/zmeta.rs
+  - zircon_runtime/src/asset/tests/project/asset_flow_sample.rs::project_manager_imports_minimal_gltf_material_shader_mesh_sample
+  - zircon_runtime/src/asset/tests/assets/shader_readiness.rs
+  - zircon_runtime/tests/shader_import_dependency_contract.rs
+  - cargo test -p zircon_runtime --test shader_import_dependency_contract --no-default-features --features target-server --locked --jobs 1 --target-dir E:\cargo-targets\zircon-shader-live-import-deps-check --message-format short --color never -- --nocapture --test-threads=1 (2026-07-04 source-only shader import dependency propagation: passed 1/1)
+  - zircon_runtime/tests/material_shader_redirect_dependency_contract.rs
+  - cargo test -p zircon_runtime --test material_shader_redirect_dependency_contract --no-default-features --features target-server --locked --jobs 1 --target-dir E:\cargo-targets\zircon-shader-redirect-diagnostics-check --message-format short --color never -- --nocapture --test-threads=1 (2026-07-04 redirect shader import dependency readiness diagnostics: passed 2/2, including ProjectManager scan/import artifact coverage)
+  - cargo test -p zircon_runtime --lib shader_readiness --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 shader asset management summary/record/record-set: passed, 9 passed; existing zircon_runtime lib-test warnings only)
+  - zircon_runtime/src/asset/tests/assets/material.rs::material_asset_management_record_set_sorts_and_summarizes_records
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/material_asset.rs::runtime_15_material_asset_management_records_are_child_owner
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_schema.rs::runtime_15_material_asset_schema_v1_defaults_use_versioned_names (2026-06-27 Runtime 15 M2 material asset schema-v1 defaults naming hard cutover: static guard added; Cargo deferred because external cargo/rustc lanes were active)
+  - zircon_runtime/src/asset/tests/assets/material.rs::material_owned_lighting_model_drives_standard_descriptor_without_shader_override
+  - zircon_runtime/src/asset/tests/assets/material.rs::material_asset_reports_invalid_lighting_model_as_material_validation_error
+  - cargo test -p zircon_runtime --lib material_asset_management_record_set --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 material asset-management record set: passed after retrying the first Cargo wrapper timeout; 1 passed, existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib project_manager_imports_minimal_gltf_material_shader_mesh_sample --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 M6 minimal asset-flow sample with typed facade load-state, primitive binding, and aggregate management assertions: passed, 1 passed, 2211 filtered; existing zircon_runtime lib-test warnings only)
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-asset-package-m2 cargo test -p zircon_runtime_interface --locked resource --jobs 1 --message-format short --color never (2026-05-20 package roots M2: passed, 12 passed)
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-asset-package-m2 cargo test -p zircon_runtime --lib --locked asset::tests::project::package_assets --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 package roots M2: passed, 3 passed)
+
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-asset-package-m2 cargo test -p zircon_runtime --lib --locked asset::tests::project::zmeta --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 package roots M2: passed, 8 passed)
+
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-asset-package-m2 cargo test -p zircon_runtime --lib --locked plugin_package_manifest --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 package roots M2: passed, 6 passed)
+
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-asset-package-m2 cargo test -p zircon_runtime --locked package --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 package roots M2: passed after warm cache, 43 package-filtered runtime lib tests plus package-filtered integration binaries)
+
+  - CARGO_TARGET_DIR=F:\cargo-targets\zircon-asset-package-m2 cargo test --manifest-path zircon_plugins/Cargo.toml --locked --jobs 1 --message-format short --color never package -- --test-threads=1 (2026-05-20 package roots M2: passed after moving off full D: target dir)
+
+  - zircon_runtime/src/asset/tests/assets/material.rs
+  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/readiness_diagnostics.rs::render_product_streamer_reports_shader_material_contract_diagnostics
+  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs::render_product_streamer_prepares_shader_property_runtime_values
+  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/readiness_diagnostics.rs::render_product_streamer_reports_shader_material_layout_abi_diagnostics
+  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs::render_product_streamer_bridges_shader_standard_texture_alias_into_pbr_slot
+  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs::render_product_streamer_shader_standard_alias_shadows_unresolved_stale_texture
+  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/readiness_diagnostics.rs::render_product_streamer_reports_unresolved_shader_texture_slot_by_slot_key
+  - zircon_runtime/src/core/framework/render/material/texture_slot_summary.rs::tests::material_texture_slot_summary_counts_resolved_and_fallback_slots
+  - zircon_runtime/src/core/framework/render/material/texture_slot_summary.rs::tests::material_texture_slot_summary_counts_authored_standard_slot_states
+  - zircon_runtime/src/core/framework/render/material/texture_slot_summary.rs::tests::material_texture_slot_state_lists_slot_keys_and_resolution_state
+  - zircon_runtime/src/graphics/scene/render_product_zshader_import_tests.rs::render_product_streamer_reports_imported_zshader_material_layout_abi_diagnostics
+  - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs::render_product_material_properties_prepare_uniform_payload
+  - zircon_runtime/src/graphics/scene/render_product_material_property_tests/uniform_debug_counts.rs::render_product_streamer_exposes_material_uniform_debug_counts
+  - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs::render_product_streamer_reports_material_uniform_diagnostics_in_readiness_report
+  - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs::render_product_streamer_reports_material_uniform_diagnostics_for_shader_string_defaults
+  - zircon_runtime/src/graphics/tests/render_product_submit.rs::render_product_submit_material_stats_count_material_uniform_diagnostics
+  - zircon_runtime/src/core/framework/render/material/readiness_report.rs::tests::material_readiness_report_deduplicates_material_uniform_diagnostics
+  - zircon_runtime/src/core/framework/render/material/readiness_report.rs::tests::material_readiness_status_classifies_issue_severity
+  - zircon_runtime/src/core/framework/render/material/readiness_report.rs::tests::material_readiness_report_summary_counts_status_and_prepared_summaries
+  - zircon_runtime/src/core/framework/render/material/management/tests.rs::material_management_sort_orders_records_and_filtered_views
+  - zircon_runtime/src/core/framework/render/material/management/tests.rs::material_management_issue_summary_counts_filtered_and_selected_rows
+  - zircon_runtime/src/core/framework/render/material/management/tests.rs::material_management_issue_index_tracks_filtered_and_selected_issue_types
+  - zircon_runtime/src/core/framework/render/material/management/tests.rs::material_management_issue_view_returns_rows_for_issue_kind
+  - zircon_runtime/src/core/framework/render/material/management/tests.rs::material_management_query_filters_issue_kind_before_sorting_and_paging
+  - zircon_runtime/src/core/framework/render/material/management/tests.rs::material_management_query_selection_returns_page_details_in_display_order
+  - zircon_runtime/src/core/framework/render/material/management/tests/page_navigation.rs::material_management_query_page_info_derives_navigation_requests
+  - zircon_runtime/src/core/framework/render/material/management/tests/page_navigation.rs::material_management_page_info_reports_window_and_page_numbers
+  - zircon_runtime/src/core/framework/render/material/management/tests/query_controls.rs::material_management_query_controls_aggregate_filter_actions_and_page_chrome
+  - zircon_runtime/src/core/framework/render/material/management/tests/query_controls.rs::material_management_query_selection_exposes_query_controls
+  - zircon_runtime/src/core/framework/render/material/management/tests/query_facets.rs::material_management_query_facets_build_status_and_issue_select_queries
+  - zircon_runtime/src/core/framework/render/material/management/tests/query_facets.rs::material_management_query_facets_selection_exposes_result_facets
+  - zircon_runtime/src/core/framework/render/material/management/tests/query_filters.rs::material_management_query_filters_list_active_filters_with_remove_queries
+  - zircon_runtime/src/core/framework/render/material/management/tests/query_filters.rs::material_management_query_state_exposes_active_filter_rows
+  - zircon_runtime/src/core/framework/render/material/management/tests/query_result_actions.rs::material_management_query_result_actions_offer_filter_and_page_resets
+  - zircon_runtime/src/core/framework/render/material/management/tests/query_result_actions.rs::material_management_query_result_actions_offer_adjacent_pages
+  - zircon_runtime/src/core/framework/render/material/management/tests/query_result_actions.rs::material_management_query_result_actions_query_selection_exposes_actions
+  - zircon_runtime/src/core/framework/render/material/management/tests/query_result_state.rs::material_management_query_result_state_classifies_empty_filtered_and_populated_pages
+  - zircon_runtime/src/core/framework/render/material/management/tests/query_result_state.rs::material_management_query_result_state_classifies_page_edge_cases
+  - zircon_runtime/src/core/framework/render/material/management/tests/query_result_state.rs::material_management_query_selection_exposes_result_state
+  - zircon_runtime/src/core/framework/render/material/management/tests/query_state.rs::material_management_query_state_reports_filters_sort_and_page
+  - zircon_runtime/src/core/framework/render/material/management/tests/query_state.rs::material_management_query_state_treats_empty_text_and_unpaged_query_as_inactive
+  - zircon_runtime/src/core/framework/render/material/management/tests.rs::material_management_query_filters_sorts_and_pages
+  - zircon_runtime/src/core/framework/render/material/management/tests.rs::material_management_selection_preserves_request_order_and_missing_ids
+  - zircon_runtime/src/core/framework/render/material/property_uniform.rs::tests::material_property_uniform_payload_aligns_and_encodes_numeric_values
+  - zircon_runtime/src/core/framework/render/material/property_uniform.rs::tests::material_property_uniform_payload_records_unsupported_strings
+  - zircon_runtime/src/core/framework/render/material/property_uniform.rs::tests::material_property_uniform_payload_reports_unsupported_diagnostics
+  - rustfmt --edition 2021 --check on standard texture summary Rust files (2026-05-28 standard texture slot summary: passed)
+  - cargo test -p zircon_runtime --lib material_texture_slot_summary_counts_authored_standard_slot_states --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-test-split-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 standard texture slot summary: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib material_readiness_report_summary_counts_status_and_prepared_summaries --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-test-split-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 standard texture slot summary: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_pbr_streamer_projects_standard_material_into_runtime_key --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-test-split-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 standard texture slot summary: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_pbr_streamer_keeps_authored_texture_key_bits_when_upload_falls_back --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-test-split-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 standard texture slot summary: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib material_texture_slot_summary_counts_resolved_and_fallback_slots --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-test-split-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 shared texture summary regression: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib material_texture_slot_state_lists_slot_keys_and_resolution_state --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-test-split-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 texture slot detail readiness: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_streamer_prepares_shader_texture_slot_runtime_mapping --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-test-split-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 texture slot detail readiness: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_streamer_reports_shader_texture_slot_upload_fallback_by_slot_key --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-test-split-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 texture slot detail readiness: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_streamer_reports_unresolved_shader_texture_slot_by_slot_key --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-test-split-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 texture slot detail readiness: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - rustfmt --edition 2021 --check on uniform detail readiness Rust files (2026-05-28 uniform payload detail readiness: passed)
+  - cargo test -p zircon_runtime --lib material_readiness_report --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-test-split-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 uniform payload detail readiness: passed, 3 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_material_property_tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-test-split-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 uniform payload detail readiness: passed, 4 passed; existing zircon_runtime lib-test warnings only)
+  - rustfmt --edition 2021 --check on property value detail readiness Rust files (2026-05-28 property value detail readiness: passed)
+  - cargo test -p zircon_runtime --lib material_property_value --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-test-split-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 property value detail readiness: passed, 2 passed after adding the top-level render facade export for `RenderMaterialPropertyValueState`; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib material_readiness_report --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-test-split-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 property value detail readiness: passed, 3 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_material_property_tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-test-split-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 property value detail readiness: passed, 4 passed; existing zircon_runtime lib-test warnings only)
+  - rustfmt --edition 2021 --check on prepared-state aggregate Rust files (2026-05-28 prepared-state aggregate: passed)
+  - cargo test -p zircon_runtime --lib material_readiness_report --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-prepared-state-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 prepared-state aggregate: passed, 3 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_material_property_tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-prepared-state-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 prepared-state aggregate: passed, 4 passed; existing zircon_runtime lib-test warnings only)
+  - rustfmt --edition 2021 --check on issue-state aggregate Rust files (2026-05-28 issue-state aggregate: passed)
+  - cargo test -p zircon_runtime --lib material_readiness_report --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-issue-state-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 issue-state aggregate: passed on rerun after first compile-stage wrapper timeout, 3 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_material_property_tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-issue-state-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 issue-state aggregate: passed, 4 passed; existing zircon_runtime lib-test warnings only)
+  - rustfmt --edition 2021 --check on management-snapshot Rust files (2026-05-28 management snapshot: passed)
+  - D:/cargo-targets/zircon-material-issue-state-0528/debug/deps/zircon_runtime-b34ee8d8fc52f1fd.exe material_readiness_report --test-threads=1 --nocapture (2026-05-28 management snapshot: passed, 3 passed after Cargo wrappers timed out during concurrent Hub/editor compile but produced the test binary)
+  - D:/cargo-targets/zircon-material-issue-state-0528/debug/deps/zircon_runtime-b34ee8d8fc52f1fd.exe render_product_material_property_tests --test-threads=1 --nocapture (2026-05-28 management snapshot: passed, 4 passed)
+  - rustfmt --edition 2021 --check on readiness-status Rust files (2026-05-28 readiness status: passed)
+  - cargo test -p zircon_runtime --lib material_readiness_report --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-status-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 readiness status: passed on serial rerun after this lane's first two parallel Cargo wrappers timed out under same-target contention, 3 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib material_readiness_status --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-status-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 readiness status: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_material_property_tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-status-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 readiness status: passed, 4 passed; existing zircon_runtime lib-test warnings only)
+  - rustfmt --edition 2021 --check on material-management-record Rust files (2026-05-28 material management record: passed after formatting)
+  - cargo test -p zircon_runtime --lib material_readiness_report --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 material management record: passed after cold-target compile exceeded initial wrapper timeouts and the generated test binary also passed directly, 3 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_material_property_tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 material management record: passed after cold-target compile exceeded initial wrapper timeout and the generated test binary also passed directly, 4 passed; existing zircon_runtime lib-test warnings only)
+  - rustfmt --edition 2021 --check on material-management-record-summary Rust files (2026-05-28 material management record summary: passed after formatting)
+  - cargo test -p zircon_runtime --lib material_readiness_report --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 material management record summary: passed after initial wrapper timeout during compile and direct binary confirmation, 3 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_material_property_tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-28 material management record summary: passed, 4 passed; existing zircon_runtime lib-test warnings only)
+  - rustfmt --edition 2021 --check on material-management-record-set Rust files (2026-05-29 material management record set: passed after formatting)
+  - cargo test -p zircon_runtime --lib material_readiness_report --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management record set: passed, 3 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_material_property_tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management record set: passed, 4 passed; existing zircon_runtime lib-test warnings only)
+  - rustfmt --edition 2021 --check on material-management-summary-status Rust files (2026-05-29 material management summary status: passed after formatting)
+  - cargo test -p zircon_runtime --lib material_readiness_report --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management summary status: passed, 3 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_material_property_tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management summary status: passed, 4 passed; existing zircon_runtime lib-test warnings only)
+  - rustfmt --edition 2021 --check on material-management-overview Rust files (2026-05-29 material management overview: passed after formatting)
+  - D:/cargo-targets/zircon-material-record-0528/debug/deps/zircon_runtime-b34ee8d8fc52f1fd.exe material_readiness_report --test-threads=1 --nocapture (2026-05-29 material management overview: passed, 3 passed after Cargo wrapper hit target fingerprint instability/timeout under concurrent Hub/editor builds)
+  - D:/cargo-targets/zircon-material-record-0528/debug/deps/zircon_runtime-b34ee8d8fc52f1fd.exe render_product_material_property_tests --test-threads=1 --nocapture (2026-05-29 material management overview: passed, 4 passed after Cargo wrapper hit target fingerprint instability/timeout under concurrent Hub/editor builds)
+  - rustfmt --edition 2021 --check on material-management-status-index Rust files (2026-05-29 material management status index: passed after formatting)
+  - D:/cargo-targets/zircon-material-record-0528/debug/deps/zircon_runtime-b34ee8d8fc52f1fd.exe material_readiness_report --test-threads=1 --nocapture (2026-05-29 material management status index: passed, 3 passed after Cargo wrapper timeout/concurrent compile contention; refreshed test binary was generated and run directly)
+  - D:/cargo-targets/zircon-material-record-0528/debug/deps/zircon_runtime-b34ee8d8fc52f1fd.exe render_product_material_property_tests --test-threads=1 --nocapture (2026-05-29 material management status index: passed, 4 passed after Cargo wrapper timeout/concurrent compile contention; refreshed test binary was generated and run directly)
+  - git diff --check on material-management-status-index touched files (2026-05-29 material management status index: no whitespace errors; Git reported LF-to-CRLF working-tree warnings only)
+  - rustfmt --edition 2021 --check on material-management-module-split Rust files (2026-05-29 material management module split: passed after formatting)
+  - cargo test -p zircon_runtime --lib material_readiness_report --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management module split: passed, 3 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_material_property_tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management module split: passed, 4 passed; existing zircon_runtime lib-test warnings only)
+  - git diff --check on material-management-module-split touched files (2026-05-29 material management module split: no whitespace errors; Git reported LF-to-CRLF working-tree warnings only)
+  - rustfmt --edition 2021 --check on material-management-status-view Rust files (2026-05-29 material management status view: passed)
+  - cargo test -p zircon_runtime --lib material_readiness_report --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management status view: passed, 3 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_material_property_tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management status view: passed, 4 passed; existing zircon_runtime lib-test warnings only)
+  - git diff --check on material-management-status-view tracked touched files plus trailing-whitespace scan for new management.rs (2026-05-29 material management status view: no whitespace errors; Git reported LF-to-CRLF working-tree warnings only)
+  - rustfmt --edition 2021 --check on material-management-sort Rust files (2026-05-29 material management sort: passed)
+  - cargo test -p zircon_runtime --lib material_management_sort --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management sort: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib material_readiness_report --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management sort: passed, 3 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_material_property_tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management sort: passed, 4 passed; existing zircon_runtime lib-test warnings only)
+  - git diff --check on material-management-sort tracked touched files plus trailing-whitespace scan for new management.rs (2026-05-29 material management sort: no whitespace errors; Git reported LF-to-CRLF working-tree warnings only)
+  - rustfmt --edition 2021 --check on material-management-query Rust files (2026-05-29 material management query: passed)
+  - cargo test -p zircon_runtime --lib material_management_query --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management query: passed on rerun after initial Cargo wrapper timeout, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib material_readiness_report --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management query: passed, 3 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_material_property_tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management query: passed after correcting the new query assertion to filter unnamed material rows by `ResourceId`, 4 passed; existing zircon_runtime lib-test warnings only)
+  - rustfmt --edition 2021 --check on material-management-selection Rust files (2026-05-29 material management selection: passed after formatting)
+  - cargo test -p zircon_runtime --lib material_management_selection_preserves_request_order_and_missing_ids --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management selection: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_material_property_tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management selection: passed, 4 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib material_management --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management selection: passed, 3 passed; existing zircon_runtime lib-test warnings only)
+  - git diff --check plus touched-file trailing-whitespace scan on material-management-selection files (2026-05-29 material management selection: no whitespace errors; Git reported LF-to-CRLF working-tree warnings only)
+  - rustfmt --edition 2021 --check on material-management-issue-summary Rust files (2026-05-29 material management issue summary: passed after formatting)
+  - cargo test -p zircon_runtime --lib material_management_issue_summary --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management issue summary: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib material_management --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management issue summary: passed, 4 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_material_property_tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management issue summary: passed, 4 passed; existing zircon_runtime lib-test warnings only)
+  - git diff --check plus touched-file trailing-whitespace/conflict-marker scan on material-management-issue-summary files (2026-05-29 material management issue summary: no whitespace or conflict-marker errors; Git reported LF-to-CRLF working-tree warnings only)
+  - rustfmt --edition 2021 --check on material-management-issue-index Rust files (2026-05-29 material management issue index: passed)
+  - cargo test -p zircon_runtime --lib material_management_issue_index --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management issue index: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib material_management --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management issue index: passed, 5 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_material_property_tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management issue index: passed, 4 passed; existing zircon_runtime lib-test warnings only)
+  - rustfmt --edition 2021 --check on material-management-issue-view Rust files (2026-05-29 material management issue view: passed)
+  - cargo test -p zircon_runtime --lib material_management_issue_view --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management issue view: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib material_management --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management issue view: passed, 6 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_material_property_tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management issue view: passed, 4 passed; existing zircon_runtime lib-test warnings only)
+  - git diff --check plus touched-file trailing-whitespace/conflict-marker scan on material-management-issue-view files (2026-05-29 material management issue view: no whitespace or conflict-marker errors; Git reported LF-to-CRLF working-tree warnings only)
+  - rustfmt --edition 2021 --check on material-management-query-issue-filter Rust files plus the shared Texture KTX type-fix file (2026-05-29 material management query issue filter: passed)
+  - cargo test -p zircon_runtime --lib material_management_query_filters_issue_kind_before_sorting_and_paging --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management query issue filter: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib material_management --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management query issue filter: passed, 7 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_material_property_tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management query issue filter: passed after the active Texture KTX header slice's `key_value_data_len` `u32`/`usize` compile blocker was fixed with a one-line conversion, 4 passed; existing zircon_runtime lib-test warnings only)
+  - rustfmt --edition 2021 --check on material-management-query-selection Rust files (2026-05-29 material management query selection: passed after formatting)
+  - D:/cargo-targets/zircon-material-record-0528/debug/deps/zircon_runtime-b34ee8d8fc52f1fd.exe material_management_query_selection_returns_page_details_in_display_order --test-threads=1 --nocapture (2026-05-29 material management query selection: passed, 1 passed after the first Cargo wrapper timed out under concurrent compile load)
+  - cargo test -p zircon_runtime --lib material_management --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management query selection: passed, 8 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib render_product_material_property_tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management query selection: passed, 4 passed; existing zircon_runtime lib-test warnings only)
+  - rustfmt --edition 2021 --check on material-management-page-navigation Rust files, including `management/page_navigation.rs` (2026-05-29 material management page navigation: passed after formatting and module extraction)
+  - cargo test -p zircon_runtime --lib material_management_query_page_info_derives_navigation_requests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management page navigation: first wrapper timed out while its child Cargo/Rust compile continued under shared load; rerun passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib material_management --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management page navigation: passed, 9 passed; existing zircon_runtime lib-test warnings only)
+  - rustfmt --edition 2021 --check on material-management-page-window Rust files and render facade exports (2026-05-29 material management page window: passed after formatting)
+  - cargo test -p zircon_runtime --lib material_management_page_info --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management page window: passed after exporting `RenderMaterialManagementPageWindow` and aligning empty-page semantics, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib material_management_query_page_info_derives_navigation_requests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management page window: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib material_management --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-record-0528 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management page window: passed, 10 passed; existing zircon_runtime lib-test warnings only)
+  - rustfmt --edition 2021 --check on material-management-query-state Rust files and render facade exports (2026-05-29 material management query state: passed)
+  - D:/cargo-targets/zircon-material-query-state-0529/debug/deps/zircon_runtime-b34ee8d8fc52f1fd.exe material_management_query_state --test-threads=1 --nocapture (2026-05-29 material management query state: passed, 2 passed after Cargo wrapper reached the same passing tests but hit the outer 10-minute timeout while concurrently compiling/running the generated binary)
+  - D:/cargo-targets/zircon-material-query-state-0529/debug/deps/zircon_runtime-b34ee8d8fc52f1fd.exe material_management --test-threads=1 --nocapture (2026-05-29 material management query state: passed, 12 passed)
+  - rustfmt --edition 2021 --check on material-management-query-result-state Rust files and render facade exports (2026-05-29 material management query result state: passed)
+  - cargo test -p zircon_runtime --lib material_management_query_result_state --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-query-result-state-0529 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management query result state: passed, 2 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib material_management --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-query-result-state-0529 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management query result state: passed, 15 passed; existing zircon_runtime lib-test warnings only)
+  - rustfmt --edition 2021 --check on material-management-query-result-actions Rust files and render facade exports (2026-05-29 material management query result actions: passed)
+  - cargo test -p zircon_runtime --lib material_management_query_result_actions --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-query-result-actions-0529 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management query result actions: passed, 3 passed; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib material_management --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-query-result-actions-0529 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 material management query result actions: passed, 18 passed; existing zircon_runtime lib-test warnings only)
+  - rustfmt --edition 2021 --check on material-management-status-module Rust files and render facade exports (2026-05-29 material management status module: passed)
+  - D:/cargo-targets/zircon-material-status-modules-0529/debug/deps/zircon_runtime-b34ee8d8fc52f1fd.exe material_management --test-threads=1 --nocapture (2026-05-29 material management status module: passed, 18 passed after Cargo wrapper timed out under concurrent compile load but produced the test binary)
+  - rustfmt --edition 2021 --check on material-management-query-filter Rust files and render facade exports (2026-05-30 material management query filter: passed)
+  - cargo test -p zircon_runtime --lib material_management_query_filters --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-query-filters-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-30 material management query filter: Cargo wrapper timed out under concurrent compile load before printing diagnostics, but produced the test binary)
+  - D:/cargo-targets/zircon-material-query-filters-0530/debug/deps/zircon_runtime-b34ee8d8fc52f1fd.exe material_management_query_filters --test-threads=1 --nocapture (2026-05-30 material management query filter: passed, 3 passed including the new active-filter remove-query row test and matching query-filter regressions)
+  - D:/cargo-targets/zircon-material-query-filters-0530/debug/deps/zircon_runtime-b34ee8d8fc52f1fd.exe material_management_query_state --test-threads=1 --nocapture (2026-05-30 material management query filter: passed, 3 passed including `QueryState::active_filters()`)
+  - D:/cargo-targets/zircon-material-query-filters-0530/debug/deps/zircon_runtime-b34ee8d8fc52f1fd.exe material_management --test-threads=1 --nocapture (2026-05-30 material management query filter: passed, 20 passed)
+  - rustfmt --edition 2021 --check on material-management-query-controls Rust files and render facade exports (2026-05-30 material management query controls: passed)
+  - cargo test -p zircon_runtime --lib query_controls --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-query-filters-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-30 material management query controls: passed, 2 passed; existing zircon_runtime lib-test warnings only)
+  - D:/cargo-targets/zircon-material-query-filters-0530/debug/deps/zircon_runtime-b34ee8d8fc52f1fd.exe query_controls --test-threads=1 --nocapture (2026-05-30 material management query controls: passed, 2 passed)
+  - D:/cargo-targets/zircon-material-query-filters-0530/debug/deps/zircon_runtime-b34ee8d8fc52f1fd.exe material_management --test-threads=1 --nocapture (2026-05-30 material management query controls: passed, 22 passed)
+  - git diff --check on material-management-query-controls touched files (2026-05-30 material management query controls: no whitespace errors; Git reported LF-to-CRLF working-tree warnings only)
+  - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/render/material/management.rs zircon_runtime/src/core/framework/render/material/management/sort_order.rs zircon_runtime/src/core/framework/render/material/management/tests.rs (2026-05-30 material management sort-order module: passed)
+  - D:/cargo-targets/zircon-material-query-filters-0530/debug/deps/zircon_runtime-b34ee8d8fc52f1fd.exe material_management --test-threads=1 --nocapture (2026-05-30 material management sort-order module: passed, 24 passed after the first Cargo wrapper timed out while compile continued)
+  - cargo test -p zircon_runtime --lib material_management --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-query-filters-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-30 material management sort-order module: warm rerun passed, 24 passed; existing zircon_runtime lib-test warnings only)
+  - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/render/material/management.rs zircon_runtime/src/core/framework/render/material/management/page.rs zircon_runtime/src/core/framework/render/material/management/page_navigation.rs zircon_runtime/src/core/framework/render/material/management/tests.rs (2026-05-30 material management page module: passed)
+  - D:/cargo-targets/zircon-material-query-filters-0530/debug/deps/zircon_runtime-b34ee8d8fc52f1fd.exe material_management --test-threads=1 --nocapture (2026-05-30 material management page module: passed, 24 passed after the first Cargo wrapper timed out while compile continued)
+  - cargo test -p zircon_runtime --lib material_management --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-query-filters-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-30 material management page module: warm rerun passed, 24 passed; existing zircon_runtime lib-test warnings only)
+  - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/render/material/management.rs zircon_runtime/src/core/framework/render/material/management/record_summary.rs zircon_runtime/src/core/framework/render/material/management/issue_view.rs zircon_runtime/src/core/framework/render/material/management/tests.rs (2026-05-30 material management record-summary module: passed)
+  - D:/cargo-targets/zircon-material-query-filters-0530/debug/deps/zircon_runtime-b34ee8d8fc52f1fd.exe material_management --test-threads=1 --nocapture (2026-05-30 material management record-summary module: passed, 24 passed after cold Cargo wrapper timeouts while compile continued)
+  - cargo test -p zircon_runtime --lib material_management --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-query-filters-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-30 material management record-summary module: warm rerun passed, 24 passed; existing zircon_runtime lib-test warnings only)
+  - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/render/material/management.rs zircon_runtime/src/core/framework/render/material/management/query.rs zircon_runtime/src/core/framework/render/material/management/tests.rs (2026-05-30 material management query module: passed)
+  - git diff --check on material-management-query-module touched files (2026-05-30 material management query module: no whitespace errors; Git reported LF-to-CRLF working-tree warnings only)
+  - cargo test -p zircon_runtime --lib material_management --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-query-filters-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-30 material management query module: blocked before material-management tests by active Mesh smooth-normal generation compile errors in `zircon_runtime/src/asset/assets/mesh/normals.rs` and `zircon_runtime/src/asset/tests/assets/mesh.rs`; no material-management diagnostics were emitted before abort)
+  - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/render/material/management.rs zircon_runtime/src/core/framework/render/material/management/selection.rs zircon_runtime/src/core/framework/render/material/management/tests.rs (2026-05-30 material management selection module: passed)
+  - git diff --check on material-management-selection-module touched files (2026-05-30 material management selection module: no whitespace errors; Git reported LF-to-CRLF working-tree warnings only)
+  - D:/cargo-targets/zircon-material-query-filters-0530/debug/deps/zircon_runtime-b34ee8d8fc52f1fd.exe material_management --test-threads=1 --nocapture (2026-05-30 material management selection module: passed twice from the generated lib-test binary after Cargo wrapper timeouts while compile continued in the background; latest run: 24 passed, 2150 filtered)
+  - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/render/material/management.rs zircon_runtime/src/core/framework/render/material/management/record_set.rs zircon_runtime/src/core/framework/render/material/management/overview.rs zircon_runtime/src/core/framework/render/material/management/tests.rs (2026-05-30 material management record-list modules: passed)
+  - cargo test -p zircon_runtime --lib material_management --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-query-filters-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-30 material management record-list modules: passed, 24 passed, 2154 filtered; existing zircon_runtime lib-test warnings only)
+  - cargo test -p zircon_runtime --lib material_property_uniform_payload_reports_unsupported_diagnostics --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-diagnostic-stats-0527 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-27 material uniform diagnostics: passed, 1 passed)
+  - cargo test -p zircon_runtime --lib render_product_submit_material_stats_count_non_blocking_diagnostics --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-diagnostic-stats-0527 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-27 material diagnostic stats validation retry: passed, 1 passed)
+  - cargo test -p zircon_runtime --lib render_product_submit_material_stats_count_material_uniform_diagnostics --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-diagnostic-stats-0527 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-27 MaterialUniform submit stats: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - D:/cargo-targets/zircon-material-diagnostic-stats-0527/debug/deps/zircon_runtime-b34ee8d8fc52f1fd.exe render_product_streamer_reports_material_uniform_diagnostics_in_readiness_report --test-threads=1 --nocapture (2026-05-27 MaterialUniform readiness detail: passed, 1 passed after the Cargo wrapper timed out during concurrent build activity)
+  - cargo test -p zircon_runtime --lib render_product_streamer_reports_material_uniform_diagnostics_for_shader_string_defaults --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-diagnostic-stats-0527 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-27 MaterialUniform shader default detail: passed, 1 passed; existing zircon_runtime lib-test warnings only)
+  - F:/cargo-targets/zircon-platform-m5-workspace/debug/deps/zircon_runtime-030785730509538c.exe material_readiness_report_deduplicates_material_uniform_diagnostics --test-threads=1 --nocapture (2026-05-27 MaterialUniform diagnostic dedup: passed, 1 passed; standard Cargo wrappers timed out under concurrent workspace/editor build load before producing a local material target binary)
+  - zircon_runtime/src/asset/tests/assets/material.rs::material_asset_readiness_reports_material_local_diagnostics_without_blocking
+  - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/render/material/diagnostic_source.rs zircon_runtime/src/core/framework/render/material/readiness_report.rs zircon_runtime/src/core/framework/render/material/mod.rs zircon_runtime/src/core/framework/render/mod.rs zircon_runtime/src/asset/assets/material/material_asset.rs zircon_runtime/src/asset/tests/assets/material.rs zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_shader_source.rs zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs (2026-05-27 material-local readiness diagnostics: passed)
+  - cargo check -p zircon_runtime --lib --tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-local-diagnostics-0527 --message-format short --color never (2026-05-27 material-local readiness diagnostics: blocked before material tests by unrelated UI a11y private re-export errors in zircon_runtime/src/ui/accessibility/action/text.rs)
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-local-diagnostics-0527-core-min --message-format short --color never (2026-05-27 material-local readiness diagnostics: same unrelated UI a11y private re-export blocker)
+  - cargo test -p zircon_runtime --lib material_asset_readiness_reports_material_local_diagnostics_without_blocking --locked --jobs 1 --target-dir D:/cargo-targets/zircon-material-local-diagnostics-0527 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-27 material-local readiness diagnostics: attempted; wrapper timed out before producing a test binary or Rust diagnostics)
+  - git diff --check -- touched material-local readiness diagnostics files (2026-05-27 material-local readiness diagnostics: passed with LF-to-CRLF warnings only)
+  - rustfmt --edition 2021 --check zircon_runtime/src/asset/assets/shader/readiness.rs zircon_runtime/src/asset/assets/shader/mod.rs zircon_runtime/src/asset/assets/mod.rs zircon_runtime/src/asset/mod.rs zircon_runtime/src/asset/tests/assets/shader_readiness.rs (2026-05-27 shader pipeline layout readiness summary: passed)
+  - cargo check -p zircon_runtime --lib --tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-shader-material-bind-group --message-format short --color never (2026-05-27 shader pipeline layout readiness summary: passed with existing warnings)
+  - D:/cargo-targets/zircon-shader-readiness-layout-0527/debug/deps/zircon_runtime-b34ee8d8fc52f1fd.exe shader_readiness --test-threads=1 --nocapture (2026-05-27 shader pipeline layout readiness summary: passed, 6 passed; standard cargo test wrapper timed out after producing the test binary during concurrent Cargo activity)
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/mod.rs zircon_runtime/src/graphics/scene/render_product_zshader_import_tests.rs (2026-05-27 imported zshader renderer ABI diagnostics: passed)
+  - CARGO_TARGET_DIR=F:\cargo-targets\zircon-zmeta-shader-material-m3 cargo test -p zircon_runtime --lib --locked material_asset_reports_shader_contract_diagnostics_without_blocking_import --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 M3 required shader property diagnostics: passed, 1 passed)
+  - CARGO_TARGET_DIR=F:\cargo-targets\zircon-zmeta-shader-material-m3 cargo test -p zircon_runtime --lib --locked shader --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 M3 broader shader validation: passed, 15 passed)
+
+  - CARGO_TARGET_DIR=F:\cargo-targets\zircon-zmeta-shader-material-m3 cargo test -p zircon_runtime --lib --locked material --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 M3 broader material validation: passed, 71 passed)
+
+  - CARGO_TARGET_DIR=F:\cargo-targets\zircon-zmeta-shader-material-m3 cargo test -p zircon_runtime --lib --locked asset::tests::project --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 M3 broader project validation: passed, 26 passed)
+
+  - cargo check -p zircon_runtime --lib --tests --locked --jobs 1 --target-dir E:\Git\ZirconEngine\zircon_plugins\target --message-format short --color never (2026-05-20 WGSL capture facade re-export: initially failed with E0425 for `crate::asset::validate_wgsl_captures`; passed after top-level re-export, existing warnings only)
+
+  - cargo test -p zircon_runtime --lib --locked documented_zmeta_shader_material_fixture_parses --jobs 1 --target-dir F:\cargo-targets\zircon-zmeta-shader-material-m3 --message-format short --color never -- --test-threads=1 (2026-05-20 M4 fixture capture closeout: passed, 1 passed)
+
+  - cargo test -p zircon_runtime --lib --locked asset::tests::project::zmeta --jobs 1 --target-dir F:\cargo-targets\zircon-zmeta-shader-material-m3 --message-format short --color never -- --test-threads=1 (2026-05-20 M4 fixture capture closeout: passed, 8 passed)
+
+  - cargo test -p zircon_runtime --lib --locked --jobs 1 --message-format short --color never render_product_assets_shader_selects_runtime_wgsl_and_entry_contracts -- --test-threads=1 (2026-05-24 shader defs slice: passed, 1 passed)
+
+  - cargo test -p zircon_runtime --lib --locked --jobs 1 --message-format short --color never project_manager_imports_compound_zshader_package_with_subassets -- --test-threads=1 (2026-05-24 shader defs slice: passed, 1 passed)
+
+  - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_asset_importer_shader_runtime --lib --locked --jobs 1 --message-format short --color never (2026-05-24 shader defs slice: passed)
+
+  - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_shader_wgsl_importer_runtime --lib --locked --jobs 1 --message-format short --color never (2026-05-24 shader defs slice: passed)
+
+  - cargo test -p zircon_editor --lib --locked --jobs 1 --message-format short --color never material_editor_projection_groups_shader_properties_and_material_overrides -- --test-threads=1 (2026-05-24 shader defs slice: passed, 1 passed)
+
+  - cargo test -p zircon_runtime --lib --locked --jobs 1 --message-format short --color never project_manager_imports_compound_zshader_package_with_subassets -- --test-threads=1 (2026-05-24 zshader import preservation: passed, 1 passed)
+
+  - cargo test -p zircon_runtime --lib --locked --jobs 1 --message-format short --color never shader -- --test-threads=1 (2026-05-24 zshader import preservation: passed, 19 passed)
+
+  - cargo test -p zircon_runtime --lib shader_readiness --locked --jobs 1 --target-dir D:/cargo-targets/zircon-shader-readiness -- --test-threads=1 (2026-05-25 shader readiness report: passed, 5 passed)
+  - cargo test -p zircon_runtime --lib project_manager_imports_compound_zshader_package_with_subassets --locked --jobs 1 --target-dir D:/cargo-targets/zircon-shader-readiness -- --test-threads=1 (2026-05-25 shader readiness report: passed, 1 passed)
+  - cargo test -p zircon_runtime --lib project_manager_imports_zshader_with_wgsl_capture_diagnostics --locked --jobs 1 --target-dir D:/cargo-targets/zircon-shader-readiness -- --test-threads=1 (2026-05-25 shader readiness report: passed, 1 passed)
+  - cargo test -p zircon_runtime --lib shader --locked --jobs 1 --target-dir D:/cargo-targets/zircon-shader-readiness -- --test-threads=1 (2026-05-25 shader readiness report: passed, 24 passed)
+  - rustfmt --edition 2021 --check zircon_runtime/src/asset/assets/shader/zshader.rs zircon_runtime/src/asset/importer/ingest/import_shader_package.rs zircon_runtime/src/asset/tests/project/zmeta.rs (2026-05-27 zshader pipeline layout persistence: passed)
+  - cargo check -p zircon_runtime --lib --tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-shader-material-bind-group --message-format short --color never (2026-05-27 imported zshader renderer ABI diagnostics: passed with existing warnings)
+  - cargo test -p zircon_runtime --lib project_manager_imports_compound_zshader_package_with_subassets --locked --jobs 1 --target-dir D:/cargo-targets/zircon-shader-material-bind-group -- --test-threads=1 --nocapture (2026-05-27 zshader pipeline layout persistence: passed, 1 passed)
+  - cargo test -p zircon_runtime --lib documented_zmeta_shader_material_fixture_parses --locked --jobs 1 --target-dir D:/cargo-targets/zircon-shader-material-bind-group -- --test-threads=1 --nocapture (2026-05-27 zshader pipeline layout persistence: passed, 1 passed)
+  - cargo test -p zircon_runtime --lib render_product_streamer_reports_shader_material_layout_abi_diagnostics --locked --jobs 1 --target-dir D:/cargo-targets/zircon-shader-material-bind-group -- --test-threads=1 --nocapture (2026-05-27 renderer material ABI diagnostics: passed, 1 passed)
+  - cargo test -p zircon_runtime --lib render_product_streamer_reports_imported_zshader_material_layout_abi_diagnostics --locked --jobs 1 --target-dir D:/cargo-targets/zircon-shader-material-bind-group -- --test-threads=1 --nocapture (2026-05-27 imported zshader renderer ABI diagnostics: passed, 1 passed)
+  - rustfmt --edition 2021 --check on touched typed shader-definition Rust files (2026-05-26 typed shader definitions: passed)
+  - cargo test -p zircon_runtime --lib shader --locked --jobs 1 --target-dir D:/cargo-targets/zircon-typed-shader-defs -- --test-threads=1 (2026-05-26 typed shader definitions: passed, 30 passed after retrying a transient target-dir dep-info write failure)
+
+  - cargo test -p zircon_runtime --lib project_manager_imports_compound_zshader_package_with_subassets --locked --jobs 1 --target-dir D:/cargo-targets/zircon-typed-shader-defs -- --test-threads=1 (2026-05-26 typed shader definitions: passed, 1 passed)
+
+  - cargo check -p zircon_runtime --lib --tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-typed-shader-defs (2026-05-26 typed shader definitions: passed with existing warnings)
+
+  - cargo test -p zircon_runtime --lib render_product_assets_shader_defs_accept_legacy_flags_and_typed_values --locked --jobs 1 --target-dir D:/cargo-targets/zircon-typed-shader-defs -- --test-threads=1 (2026-05-25 typed shader definitions: passed, 1 passed)
+
+  - cargo test -p zircon_runtime --lib zshader_typed_shader_definition_rows_validate_kind_and_value --locked --jobs 1 --target-dir D:/cargo-targets/zircon-typed-shader-defs -- --test-threads=1 (2026-05-25 typed shader definitions: passed, 1 passed)
+
+  - cargo test -p zircon_runtime --lib project_manager_imports_compound_zshader_package_with_subassets --locked --jobs 1 --target-dir D:/cargo-targets/zircon-typed-shader-defs -- --test-threads=1 (2026-05-25 typed shader definitions: passed, 1 passed)
+
+  - cargo test -p zircon_runtime --lib shader_readiness --locked --jobs 1 --target-dir D:/cargo-targets/zircon-typed-shader-defs -- --test-threads=1 (2026-05-25 typed shader definitions: passed, 5 passed)
+
+  - cargo check -p zircon_runtime --lib --tests --locked --jobs 1 --target-dir D:/cargo-targets/zircon-typed-shader-defs --message-format short --color never (2026-05-25 typed shader definitions: passed with existing warnings)
+
+  - zircon_runtime/src/asset/tests/pipeline/manager.rs
+
+  - zircon_runtime/src/asset/tests/assets/importer.rs
+
+  - cargo check -p zircon_runtime_interface --locked
+
+  - cargo check -p zircon_runtime --locked --lib --message-format=short
+
+  - cargo test -p zircon_runtime_interface --locked resource --jobs 1 -- --nocapture
+
+  - cargo test -p zircon_runtime --lib --locked asset::tests::project::zmeta --jobs 1 -- --nocapture
+
+  - cargo test -p zircon_runtime --locked --target-dir F:\cargo-targets\zircon-zmeta-validation --lib asset::tests::project::zmeta --jobs 1 -- --nocapture
+
+  - cargo test -p zircon_runtime --lib --locked asset::tests::watcher --jobs 1 -- --nocapture
+
+  - cargo test -p zircon_runtime --lib --locked asset::tests::assets::material --jobs 1 -- --nocapture
+
+  - CARGO_TARGET_DIR=/mnt/f/cargo-targets/zircon-zmaterial-m2-wsl cargo test -p zircon_runtime --lib --locked shader --jobs 1
+
+  - CARGO_TARGET_DIR=/mnt/f/cargo-targets/zircon-zmaterial-m2-wsl cargo test -p zircon_runtime --lib --locked material_asset_reports_shader_contract_diagnostics_without_blocking_import --jobs 1
+
+  - CARGO_TARGET_DIR=/mnt/f/cargo-targets/zircon-zmaterial-m2-wsl cargo test -p zircon_runtime --lib --locked project_manager_imports_zshader_with_wgsl_capture_diagnostics --jobs 1
+
+  - CARGO_TARGET_DIR=/mnt/f/cargo-targets/zircon-zmaterial-final-wsl cargo test -p zircon_runtime --lib material --locked --offline --jobs 1 --message-format short --color never
+
+  - CARGO_TARGET_DIR=/mnt/f/cargo-targets/zircon-zmaterial-final-wsl cargo test -p zircon_runtime --lib shader --locked --offline --jobs 1 --message-format short --color never
+
+  - CARGO_TARGET_DIR=/mnt/f/cargo-targets/zircon-zmaterial-final-wsl cargo test -p zircon_runtime --lib asset::tests::project::zmeta --locked --offline --jobs 1 --message-format short --color never
+
+  - cargo test -p zircon_runtime --lib --locked render_product_assets_shader_selects_runtime_wgsl_and_entry_contracts --jobs 1 -- --nocapture
+
+  - cargo test -p zircon_runtime --lib --locked package_manifest --jobs 1 -- --nocapture
+
+  - cargo check -p zircon_editor --locked --lib --message-format=short
+
+  - cargo check -p zircon_editor --locked --tests --message-format=short
+
+  - cargo test -p zircon_editor --lib --locked sync_from_project_exposes_zmeta_package_and_compound_shader_details --jobs 1 -- --nocapture
+
+  - CARGO_TARGET_DIR=/mnt/f/cargo-targets/zircon-zmaterial-final-wsl cargo test -p zircon_editor --lib create_renderable_template_scaffolds_directory_project_defaults --locked --offline --jobs 1 --message-format short --color never
+
+  - CARGO_TARGET_DIR=/mnt/f/cargo-targets/zircon-presenter-check-wsl cargo test -p zircon_editor --lib create_renderable_template_scaffolds_directory_project_defaults --locked --offline --jobs 1 --message-format short --color never
+
+  - CARGO_TARGET_DIR=/mnt/f/cargo-targets/zircon-zmaterial-final-wsl cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_virtual_geometry_runtime --lib --locked --jobs 1 --message-format short --color never
+
+  - CARGO_TARGET_DIR=/mnt/f/cargo-targets/zircon-zmaterial-final-wsl cargo test -p zircon_runtime --test virtual_geometry_visibility_debug_contract --locked --offline --jobs 1 --message-format short --color never
+
+  - .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -TargetDir F:\cargo-targets\zircon-zmeta-validation
+
+  - cargo test --manifest-path zircon_plugins\Cargo.toml --locked --target-dir F:\cargo-targets\zircon-zmeta-validation
+
+  - cargo test -p zircon_runtime --locked --target-dir F:\cargo-targets\zircon-zmeta-validation --lib runtime_backed_workspace_plugin_manifests_are_present_in_builtin_catalog -- --nocapture
+
+  - cargo test -p zircon_runtime --locked --target-dir F:\cargo-targets\zircon-zmeta-validation --lib documented_zmeta_shader_material_fixture_parses -- --nocapture
+
+  - cargo test -p zircon_editor --lib --locked --target-dir F:\cargo-targets\zircon-zmeta-validation -- --nocapture
+
+  - cargo build -p zircon_hub --locked --target-dir F:\cargo-targets\zircon-zmeta-validation
+
+  - .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -TargetDir F:\cargo-targets\zircon-zmeta-validation
+
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-codex-render-damage cargo test -p zircon_runtime --lib material_asset_serialization_rewrites_stale_canonical_overrides --locked --jobs 1 --message-format short --color never -- --test-threads=1 --nocapture
+
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-codex-render-damage cargo test -p zircon_runtime --lib material_asset --locked --jobs 1 --message-format short --color never -- --test-threads=1
+
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-codex-render-damage cargo test -p zircon_runtime --lib asset::tests::pipeline::manager --locked --jobs 1 --message-format short --color never -- --test-threads=1
+
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-codex-render-damage cargo test -p zircon_runtime --lib --locked --jobs 1 --message-format short --color never -- --test-threads=1
+
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-codex-render-damage cargo test --workspace --locked --jobs 1 --message-format short --color never -- --test-threads=1
+
+doc_type: module-detail
+---
+
+
+
+# ZMeta Shader Material Assets
+
+2026-06-24 Render material product debug-counts test owner split moved the long material uniform debug/counts product coverage to `zircon_runtime/src/graphics/scene/render_product_material_property_tests/uniform_debug_counts.rs`; the parent `render_product_material_property_tests.rs` remains the compact product fixture/root owner. Status anchor: `render_plan08_material_product_debug_counts_test_owner_split_static_passed_cargo_deferred_active_compile_lane`; structure guard: `runtime_15_render_material_product_debug_counts_tests_are_child_owner`.
+
+## Purpose
+
+
+The asset identity path is now owned by `zircon_runtime::asset` and `zircon_runtime::core::resource`: `.zmeta` stores UUID identity, human-readable URL, source unit, included files, subasset entries, importer state, artifact locators, and dependency locators. There is no second asset database.
+
+Current sidecars are format version 7 and spell the source fingerprint `source_digest`. `AssetMetaDocument::from_toml_str` first classifies missing, non-integer, negative, out-of-u32-range, old, current, and future versions; only current v7 then checks the retired `source_hash` key and strict top-level/nested serde shape. `AssetMetaDocument::save` delegates to the shared foundation atomic-file owner, which writes and syncs a unique same-directory staging file before commit. Existing targets remain continuously visible: Windows commits replacement plus backup with one `ReplaceFileW` call, while Unix preserves a hard-link/copy backup and uses same-directory rename-overwrite. Injected or OS commit failure leaves the original target readable. Unix backup-sync failure cleans staging and backup; Windows ReplaceFileW failure preserves any backup created by the OS and returns its path together with the original OS error code/source. No asset-owned forwarding module, serde alias, or automatic legacy migration remains. Repository `.zmeta` files and Rust-authored sidecar strings use only the v7 shape. M2.1 tests cover typed schema classification, nested unknown fields, atomic replacement, injected commit rollback, and cleanup; Cargo execution remains for the milestone testing stage.
+
+
+## Locator Rules
+
+
+
+- `res://path/to/asset` maps to `{project_root}/assets/path/to/asset`.
+
+- `package://com.zircon.navigation/path/to/asset` maps through `PackageAssetRegistry` to a registered package `assets/` root.
+
+- `PluginPackageManifest::package_id()` composes `package_prefix.package_company.package_name` when all three fields are present, otherwise it falls back to the manifest id. `asset_roots_or_default()` returns explicit `asset_roots` or `assets` when the manifest omits roots.
+
+- `ProjectManager::register_package_asset_root(...)` registers an explicit package root. `register_package_manifest_asset_roots(...)` reads a manifest root and currently requires exactly one relative, contained root so every `package://{package_id}/...` path has one unambiguous filesystem base.
+
+- Public references serialize as `{ uuid, url }`. Runtime lookup tries UUID first; stale URLs are retained as diagnostics/repair hints through the manager lookup surface.
+
+- `url#label` remains the subasset address form, but every root and subasset entry persists its own UUID and derives `AssetId` from that UUID.
+
+
+
+## Source Units
+
+
+
+Single assets use sidecars such as `assets/textures/hero.png.zmeta`.
+
+
+
+Compound assets use a `.zmeta` root and same-name directory, for example:
+
+
+
+```text
+
+assets/shaders/unlit_shader.zmeta
+
+assets/shaders/unlit_shader/unlit.zshader
+
+assets/shaders/unlit_shader/unlit.wgsl
+
+```
+
+
+
+The scanner treats the `.zmeta` root as one `AssetSourceUnit::Compound`, records the directory files in `included_files`, and prevents those included files from being imported again as standalone assets. The same scanner handles registered package roots: project sources keep `res://` URLs, while package sources and compound included files use `package://{package_id}/...` URLs and the same `.zmeta` schema, importer registry, artifact writer, dependency resolver, and UUID index.
+
+
+
+## Shader And Material
+
+
+
+`.zshader` is TOML v2. It must declare `kind` and is parsed through `ZShaderDocumentV2` before import: `surface`, `include`, `compute`, and `fullscreen` documents have separate field contracts. Surface documents own material-facing schema (`shading_model`, properties, options, texture slots, render-state whitelist, queue, and disabled passes) and cannot author entry points, semantic resources, or pipeline layouts. Include documents require `import_path` and carry reusable WGSL module source. Compute documents require compute entry points and may declare semantic resources/dispatch parameters. Fullscreen documents may declare fragment entry points and semantic resources, but not material texture slots. The compound shader importer reads the `.zmeta` root, loads the same-name directory, emits a root `ShaderAsset`, and emits `.zshader`/`.wgsl` files as labeled data subassets.
+
+SH01-M2 hard-cut the importer to `.zshader` v2. User-authored v1 documents with no `kind`, hand-written `[pipeline_layout]`, `shader_defs`, or `shader_def_values` now produce migration diagnostics instead of a parallel import path. User-side material variants move to `[[options]]`; `RenderShaderDefinitionValue` remains an engine/tool injection contract for prewarm and renderer-generated variant keys, not a user `.zshader` row. The old public `ZShaderDocument` / `ZShaderDefinition*` parser path has been removed from `asset/assets/shader/zshader.rs`, while `ShaderAsset::variant_keys()` still copies engine-provided definition values into every `RenderShaderVariantKey`.
+
+`ShaderAsset` carries `kind`, `import_path`, `source_files`, `imports`, `options`, engine-provided `shader_defs`, `shading_model`, `property_schema`, `texture_slots`, `render_state`, `queue`, `disabled_passes`, semantic `resources`, `pipeline_layout`, `editor`, and `validation_diagnostics`. `import_path` is authored as an optional surface string such as `zircon::unlit` or `zircon::pbr`, and as a required include identity; it is preserved on compound shader roots so shader composition/cache layers have a stable import namespace separate from the asset URL. Raw single-file shader importers and built-in shader fixtures leave it empty. Every import row is preserved by source name, and rows with a `{ uuid, url }` redirect are additionally projected into `ShaderAsset.dependencies` and the import outcome dependency graph. Texture slot schema is shader-owned for surface shaders: each `ShaderTextureSlotAsset` records the slot `name`, `kind`, whether the material must bind it with `required`, optional fallback class, sampler hint, grouping label, and editor metadata. During compound shader import, `validate_wgsl_captures(...)` scans the combined WGSL source for declared property and texture-slot names; missing captures are recorded as `wgsl_capture` diagnostics on the shader asset but do not stop import. The helper is re-exported through the top-level `zircon_runtime::asset` facade so fixture tests and public callers do not need to depend on the internal `assets::material` module path.
+
+Runtime 15 M2 render shader definition bare-flag naming hard cutover (`runtime_15_render_shader_definition_bare_flag_naming_hard_cutover_static_passed_cargo_deferred`) still applies to `core/framework/render/shader/definition_value.rs`: the private untagged serde branch is named `BareFlag`, and `runtime_15_render_shader_definition_uses_bare_flag_names` locks that internal branch name. SH01-M2 changes the user authoring boundary: `.zshader` v2 no longer accepts `shader_defs` or `shader_def_values`, while engine/tool variant injection can still use `RenderShaderDefinitionValue`.
+
+Runtime 15 F5 zshader definition typed errors is superseded at the user `.zshader` boundary by `runtime_shader_sh01_m2_zshader_v2_importer_cutover_runtime_checked`. The previous typed row parser was retired with the public v1 `ZShaderDocument` path; `review_f5_zshader_v2_replaces_user_shader_definitions` now locks that `asset/assets/shader/zshader.rs` exposes `ZShaderDocumentV2`, `ZShaderOptionDocument`, and `ShaderOptionAsset` instead of the old user-authored shader definition row API.
+
+Pipeline layout authoring is no longer part of `.zshader` v2. Surface material layouts are derived from the fixed renderer ABI plus generated material/property data; compute and fullscreen binding numbers are generated from semantic `resources`. `ShaderAsset.pipeline_layout` remains as the renderer/reflection storage slot and as a test hook for engine-generated or deliberately constructed ABI diagnostics, but imported user `.zshader` files do not persist authored bind groups. `render_product_streamer_reports_imported_zshader_material_layout_abi_diagnostics` now constructs an incompatible `ShaderAsset` directly to keep renderer ABI diagnostics covered without reintroducing a user schema escape hatch.
+
+Standalone shader readiness is visible directly on `ShaderAsset` through `readiness_report()`. Compound `.zshader` packages therefore expose WGSL capture diagnostics and authored pipeline-layout context without requiring a material instance: the import can succeed, the shader asset can keep its authoring rows, and readiness consumers can still see that `wgsl_capture` diagnostics make the shader not ready for downstream material/render preparation. Source-only imports are reported as non-dependency authoring rows, while redirected imports appear as dependency-contributing readiness rows. `ShaderAssetReadinessSummary` is the compact management row derived from the full report: it carries readiness, runtime WGSL availability, import/dependency counts, entry-point and shader-definition diagnostic counts, validation diagnostic count, and pipeline-layout bind group/binding/push-constant counts. `ShaderAssetManagementRecord` wraps the stable shader `ResourceId`, the compact summary, and the full report for detail views. `ShaderAssetManagementRecordSet` sorts those records by shader id and carries `ShaderAssetManagementRecordSetSummary`, which aggregates shader-count, ready/unready, runtime-WGSL, unavailable-source, dependency, diagnostic, and authored pipeline-layout totals for list headers. `ResourceStreamer::shader_asset_readiness_report(...)`, `shader_asset_readiness_summary(...)`, `shader_asset_management_record(...)`, `shader_asset_management_records(...)`, and `shader_asset_management_record_set(...)` expose the same loaded-shader read model to renderer/editor management panels without requiring a material instance first.
+
+
+`.zmaterial` is the only built-in material source suffix. It references one shader with `{ uuid, url }`, stores scalar/vector instance state in `[overrides]`, and stores texture bindings under `[textures.<slot>]`. The built-in importer id is `zircon.builtin.zmaterial`; `.material.toml` is intentionally not registered and now reports as an unknown typed TOML suffix. `ZMaterialDocument` denies unknown top-level fields, so the old top-level PBR `.material.toml` shape is rejected instead of being silently translated. `MaterialAsset` keeps schema-v1 PBR runtime fields as transitional in-memory data, but source parse/serialization flows through `ZMaterialDocument` and shader-driven overrides/texture slots. `overrides.lighting_model` is reserved as a material-owned control value rather than a shader property override: valid tokens such as `pbr`, `blinn_phong`, `unlit`, or non-empty `custom:<name>` drive `StandardMaterialDescriptor.lighting_model`, and invalid values become material validation errors before renderer preparation.
+
+Material assets now have a registered-asset management row before renderer preparation. `MaterialAsset::overview()` summarizes authoring-facing fields: material name, shader reference, override count, authored texture slot count, concrete texture reference count, fallback-only slot count, material validation errors, material-local diagnostics, and direct dependency reference count. `MaterialAssetManagementRecord` wraps that overview with a stable material `ResourceId`, while `MaterialAssetManagementRecordSet` sorts rows by id and derives list totals for ready material assets, issue-bearing material assets, issue rows, texture slots, fallback slots, and direct references. `ResourceStreamer::material_asset_management_record_set(...)` scans `ResourceKind::Material` ids through the project asset manager, so editor/runtime asset-management panels can show `.zmaterial` assets even when no prepared `RenderMaterialManagementRecord` exists yet.
+
+Shader-driven standard texture aliases bridge back into the fixed renderer PBR surface while the schema-v1 PBR runtime fields still exist. If the loaded shader declares aliases such as `base_color`, `base_color_texture`, `albedo`, or `diffuse`, `MaterialAsset::standard_material_descriptor_for_shader(...)` can use the matching `[textures.<slot>]` row as the base-color texture and then rebuild descriptor dependencies from the promoted standard texture fields. `ResourceStreamer::ensure_material(...)` treats those aliases as standard slots instead of duplicating them as non-standard shader texture state. `render_product_streamer_bridges_shader_standard_texture_alias_into_pbr_slot` covers this by proving shader-owned `albedo` overrides a pre-existing fixed base-color texture in the prepared runtime material. `render_product_streamer_shader_standard_alias_shadows_unresolved_stale_texture` covers the stale-field case where an unresolved schema-v1 `base_color_texture` is ignored once a concrete shader alias is promoted.
+
+The 2026-06-27 Runtime 15 M2 render material stale texture fixture naming hard cutover records `runtime_15_render_material_stale_texture_fixture_naming_hard_cutover_static_passed_cargo_deferred`. `graphics/scene/render_product_streamer_tests/material_runtime.rs` now uses `unresolved_stale_texture` and `res://textures/missing-stale-base.png` for the shader-alias shadowing fixture, so the test name matches the schema-v1 stale-field behavior. Guard `runtime_15_render_material_stale_texture_fixtures_use_current_names` locks the source fixture, Runtime 15/status mirrors, render-assets docs, module-convention docs, and this zmeta shader/material documentation without changing shader-driven standard texture alias promotion.
+
+Shader-driven material properties now have a runtime projection path. `MaterialAsset::shader_property_values_for_shader(...)` reads the loaded `ShaderAsset.property_schema`, takes a `[overrides]` value first and then the shader default, and converts supported TOML bool, float, int, uint, string, vec2, vec3, and vec4/color values into `RenderMaterialPropertyValue`. Material-owned keys such as `lighting_model` are filtered before this shader schema walk, so they cannot trigger unknown-property shader diagnostics or become uniform payload rows. The resource streamer stores the resulting map on `MaterialRuntime.shader_property_values` so renderer uniform or bind-group work can consume already-typed material values without reparsing `.zmaterial` TOML. `RenderMaterialPropertyValueSummary` summarizes the projected map before uniform encoding by total, per-kind, uniform-eligible, and non-uniform counts. `RenderMaterialPropertyValueState` carries the named typed value rows and preserves whether each row is uniform-eligible, giving editor/runtime panels a direct readiness/report projection without reading `MaterialRuntime`. This still does not perform automatic shader reflection.
+
+
+The resource streamer also prepares `MaterialRuntime.shader_property_uniform_payload` from those typed values. Numeric scalar/vector properties are encoded into deterministic CPU-side bytes with field offsets and alignments; string properties are reported in the payload's unsupported list and projected into non-blocking readiness diagnostics with `MaterialUniform` source. Prepared materials now own a `GpuMaterialUniformResource` that uploads those bytes into a WGPU uniform buffer and exposes a material bind group consumed by mesh/deferred draw paths as group 3. `ResourceStreamer::material_readiness_report(...)` keeps the same unsupported string row visible with the `uniform.<name>` path for both material overrides and shader schema defaults, and the stored report now carries `RenderMaterialPropertyUniformSummary` in `uniform_summary` once material preparation has run. The same report also carries `uniform_fields` and `uniform_unsupported`, so editor/runtime panels can show encoded field names, kinds, offsets, sizes, alignments, and unsupported reasons without reading `MaterialRuntime.shader_property_uniform_payload` directly. `ResourceStreamer::material_uniform_summary(...)`, `material_uniform_fields(...)`, and `material_uniform_unsupported(...)` expose the compact and detail uniform records after preparation. `RenderMaterialPropertyValueSummary::from_values(...)` remains the pre-encoding companion for editor/runtime panels that need to show whether the shader property projection itself produced the expected bool/float/vector/string mix, `ResourceStreamer::material_property_value_summary(...)` now returns that companion summary after material preparation, and `RenderMaterialReadinessReport.property_value_summary` carries the same value in the readiness DTO. `RenderMaterialReadinessReport.property_value_states` and `ResourceStreamer::material_property_value_states(...)` carry the named typed value rows beside the summary, including string rows that are retained as metadata but not uniform-eligible. Texture readiness now has compact summaries and slot-key detail rows. Authored fixed PBR references are counted through `RenderMaterialReadinessReport.standard_texture_slot_summary` and `ResourceStreamer::material_standard_texture_slot_summary(...)`, and their concrete/fallback slot rows are exposed through `standard_texture_slot_states` plus `ResourceStreamer::material_standard_texture_slot_states(...)`. Shader-specific non-standard slots are retained by slot key in runtime readiness: unsupported upload payloads and unresolved locators both report the authored slot name in validation/fallback records and keep `slot -> None` in `MaterialRuntime.non_standard_texture_slots`. `RenderMaterialTextureSlotSummary` counts both classes by total/resolved/fallback state; `RenderMaterialTextureSlotState` carries the authored slot key and optional resolved texture id. `ResourceStreamer::material_texture_slot_summary(...)` exposes the non-standard compact value directly, `ResourceStreamer::material_texture_slot_states(...)` exposes non-standard detail rows, and `RenderMaterialReadinessReport.texture_slot_summary` / `non_standard_texture_slot_states` carry that same data beside the property, uniform, and standard texture readiness fields. `RenderMaterialReadinessStatus` is the derived status enum for panels: validation rows win as `Invalid`, fallback rows win as `Fallback`, diagnostics-only rows are `Diagnostic`, and clean reports are `Ready`. `RenderMaterialReadinessSummary` is the derived compact view for editor/runtime panels that need that status, validation/fallback/diagnostic counts, and the four prepared material summaries without reading full validation rows; detail rows stay on the full report. `ResourceStreamer::material_readiness_status(...)` exposes the same status directly for badge-only callers. `RenderMaterialIssueState` is the issue-only aggregate: `RenderMaterialReadinessReport::issue_state()` and `ResourceStreamer::material_issue_state(...)` return validation errors, fallback usages, and diagnostics together with helpers that mirror the report's readiness and status semantics. `RenderMaterialPreparedState` is the corresponding detail aggregate: `RenderMaterialReadinessReport::prepared_state()` and `ResourceStreamer::material_prepared_state(...)` return property, uniform, and texture slot summaries/details together without making a second runtime source of truth. The list-oriented management DTOs are owned by the render material `management` module and remain derived from the report through `RenderMaterialReadinessReport::management_snapshot()` and `management_record(...)`. `RenderMaterialManagementSnapshot` is the combined aggregate; `ResourceStreamer::material_management_snapshot(...)` exposes summary, issue-state, and prepared-state together for one panel read, while the full report remains available for raw dependency and fallback-policy context. `RenderMaterialManagementRecord` is the identified row form: `ResourceStreamer::material_management_record(...)` exposes one row, and `ResourceStreamer::material_management_records(...)` exposes all prepared rows sorted by `ResourceId` for deterministic panel tables. `RenderMaterialManagementRecordSummary` derives total/ready/diagnostic/fallback/invalid/degraded counts, collection-level validation/fallback/diagnostic issue-row totals, and the worst list-level readiness status from a record list; `management/record_summary.rs` owns that declaration and the shared issue-kind predicate used by query and issue-view filtering, while `RenderMaterialManagementStatusIndex` buckets those same ids by status for list filters. `RenderMaterialManagementIssueIndex` buckets ordered ids by validation-error rows, fallback-usage rows, and diagnostic rows; it is distinct from status buckets because one material can have several issue-row classes even though it has one readiness status. `RenderMaterialManagementStatusView` is the status-specific compact row view: it carries one selected status, matching material ids, and overview rows derived from the same records or overview payload. `RenderMaterialManagementIssueView` is the issue-specific compact row view: it carries one selected issue kind, matching material ids, and overview rows derived from the same records or overview payload. `RenderMaterialManagementRecordSet` carries the ordered records, summary, status index, and issue index in one payload. `RenderMaterialManagementOverview` is the lighter table payload derived from those same records; `ResourceStreamer::material_management_overview(...)` exposes id/name/summary rows plus the list summary and status/issue indexes for panels that do not need prepared-state detail. `RenderMaterialManagementSelection` is the selected-detail payload owned by `management/selection.rs`; `ResourceStreamer::material_management_selection(...)` returns full records for requested ids, selected-record summary/status/issue buckets, selected issue-row totals, duplicate-collapsed request count, and missing ids for stale selections. `RenderMaterialManagementQuerySelection` is the page/detail bridge; `ResourceStreamer::material_management_query_selection(...)` returns the original query, compact page result, and full-record selection for the current page ids in display order. `ResourceStreamer::material_management_status_index(...)` exposes only the derived status buckets, `ResourceStreamer::material_management_issue_index(...)` exposes only the derived issue buckets, `ResourceStreamer::material_management_status_view(...)` exposes the compact rows for one selected status bucket, `ResourceStreamer::material_management_issue_view(...)` exposes the compact rows for one selected issue bucket, `ResourceStreamer::material_management_record_set(...)` still exposes full rows and badges together, and `material_management_record_summary(...)` still returns just the summary. The individual debug accessors remain available for backing buffer length and legacy counter reads. Submit-time material stats cover the unsupported row through `RenderStats.last_material_diagnostic_count` without changing ready, fallback, or validation-error counts. Duplicate `MaterialUniform` diagnostics are merged by the shared readiness report de-duplication helper, so repeated unsupported rows do not produce duplicate editor/report/stat rows. This advances renderer consumption without changing the `.zmaterial` source schema; large custom layouts, non-standard texture bind arrays, and non-uniform property kinds remain later binding/reflection work.
+
+The record-list module boundary is now split by payload role. `management/record_set.rs` owns `RenderMaterialManagementRecordSet`, the ordered full-record list payload, and its overview/status/issue/query/selection entry helpers. `management/overview.rs` owns `RenderMaterialManagementOverviewRecord`, `RenderMaterialManagementOverview`, compact-row status helpers, and compact overview derivation/sorting/querying for table headers and first-pass list rows that do not need prepared-state detail.
+
+Material management lists can now be sorted, queried, and selected at the same neutral runtime boundary. `RenderMaterialManagementSortOrder` supports material id, material name, and readiness status in ascending or descending direction; its key/direction/order contract and comparison helpers live in `management/sort_order.rs` while the root module continues to re-export the public types. Name sorting keeps unnamed rows behind named rows, and status sorting follows the panel display order `Ready`, `Diagnostic`, `Fallback`, `Invalid`. `RenderMaterialManagementQuery` adds optional status and issue-kind filtering, case-insensitive text matching over material name or `ResourceId`, sort reuse, and page metadata; its query/result declarations and row-filter execution helpers live in `management/query.rs` while the root module keeps the public re-export. `RenderMaterialManagementPageRequest` and `RenderMaterialManagementPageInfo` live in `management/page.rs`, while adjacent-page requests and display-window helpers live in `management/page_navigation.rs`. `RenderMaterialManagementQueryState` derives the normalized control state from that same query: trimmed text, status/issue/text active flags, any-filter and paged flags, plus helpers to clear filters without dropping sort/page and reset only the page offset when filter controls change. `RenderMaterialManagementQueryFilter` exposes those active status, issue-kind, and text filters as displayable rows with one remove-query per row; removing one filter preserves the other filters, sort order, and page size while resetting the offset to the first page. `RenderMaterialManagementQueryResultState` derives table-result state from the query and returned page, separating no material rows, filtered-empty rows, intentionally empty pages, out-of-range offsets, and populated pages for editor/runtime empty-state and reset controls. `RenderMaterialManagementQueryResultActions` builds on that result state to derive optional clear-filter, first-page, previous-page, and next-page queries, so panel controls do not need to recreate query mutation rules. `RenderMaterialManagementQueryControls` packages query state, active-filter rows, result state, actions, page metadata, page window, display row range, and page number totals into one derived DTO for table chrome. `ResourceStreamer::material_management_record_set_sorted(...)`, `material_management_overview_sorted(...)`, `material_management_status_view_sorted(...)`, and `material_management_issue_view_sorted(...)` return sorted derived payloads with status indexes, issue indexes, and filtered id lists rebuilt from the sorted rows. `ResourceStreamer::material_management_query(...)` returns compact page rows while keeping summary/status buckets, issue buckets, and issue-row totals scoped to the filtered set before pagination, including validation/fallback/diagnostic issue-bucket filters that run before sorting and paging. This lets editor/runtime panels render table pages without sorting, rescanning, or inferring collection badges from page-local rows. `RenderMaterialManagementPageInfo` can derive previous/next page requests from a returned page, and `RenderMaterialManagementQuery` can turn those requests back into full queries that preserve the active filters and sort order. The same page metadata now exposes a `RenderMaterialManagementPageWindow`, 1-based display start/end indexes, current page number, and total page count for table chrome; all-page and zero-limit pages intentionally have no adjacent request or page-number data, while query state still marks explicit offset-only or zero-limit controls as paged. `ResourceStreamer::material_management_selection(...)` lets the same panel request full management rows for selected ids after a query page, status view, or issue view, preserving request order, folding duplicates, reporting missing ids explicitly, and exposing selected validation/fallback/diagnostic issue buckets and issue-row totals without expanding every selected record. `ResourceStreamer::material_management_query_selection(...)` covers the common table page plus detail-row path in one derived read, so the selected full records stay aligned with the displayed page order and can expose the same query-result state, actions, and controls through the combined payload.
+
+`RenderMaterialManagementQueryFacets` extends that table chrome with readiness-status and issue-kind facet rows derived from the same filtered pre-pagination status and issue indexes. Each facet carries a count, an active marker, and the query payload needed to select it while preserving the other filters, sort order, and page size and resetting to the first page. `RenderMaterialManagementQueryResult::facets(...)`, `RenderMaterialManagementQuerySelection::result_facets()`, and the `facets` field on `RenderMaterialManagementQueryControls` give editor/runtime panels filter-menu data without scanning the current page rows or duplicating query mutation rules.
+
+
+If a shader asset already carries an authored `pipeline_layout`, including one persisted from `.zshader`, renderer material preparation validates the material portion against the current fixed group2 ABI. The accepted material layout is group 2 binding 0 as a uniform buffer with vertex or fragment visibility, followed by group 2 bindings 1..10 for the standard texture/sampler pairs; wrong resource types, missing group/binding rows, duplicate descriptors, compute-only visibility, and extra material bindings become material readiness diagnostics under `pipeline_layout.group2...`. Shaders without serialized bind groups are still accepted because the renderer owns the fallback mesh/material layouts until automatic reflection and custom texture binding land.
+
+
+When a hydrated `MaterialAsset` is serialized back to `.zmaterial`, the canonical runtime fields are authoritative over stale matching entries inside `property_values` and `texture_slots`. `base_color`, `metallic`, `roughness`, `emissive`, non-opaque `alpha_mode`, and `double_sided` rewrite or remove their corresponding `[overrides]` entries according to the current field value; canonical texture references rewrite their `[textures.<slot>]` reference while preserving fallback metadata. Unknown shader-specific overrides and fallback-only texture slots are preserved. This keeps editor/runtime mutations such as changing `MaterialAsset.base_color` from re-emitting the old `overrides.base_color` bytes and blocking asset watcher reimport/revision updates.
+
+Runtime 15 M2 material asset schema-v1 defaults naming hard cutover status is `runtime_15_material_asset_schema_v1_defaults_naming_hard_cutover_static_passed_cargo_deferred`. `asset/assets/material/material_asset.rs` now names the v1 serialization synchronization helpers as `property_overrides_with_schema_v1_defaults(...)`, `texture_slots_with_schema_v1_defaults(...)`, and `schema_v1_pbr_texture_slots(...)`. The rename is intentionally behavior-neutral: `.zmaterial` output, shader-aware descriptor promotion, readiness reports, and `MaterialAsset` public entry points are unchanged. `naming_boundary/runtime_15_m2/asset_schema.rs::runtime_15_material_asset_schema_v1_defaults_use_versioned_names` guards the new helper names, retired helper names, and Runtime 15/status/module documentation anchors while full `module_convention_gate` and asset/render material Cargo sweeps remain pending.
+
+
+New editor renderable projects scaffold the same contract: `default.zmaterial` points at the compound shader root `res://shaders/pbr_shader`, `pbr_shader.zmeta` marks that root as `AssetSourceUnit::Compound`, and the included `pbr.zshader`/`pbr.wgsl` files live under `assets/shaders/pbr_shader/`. The raw WGSL remains an included shader source, not the material's referenced shader identity.
+
+
+
+Material direct dependencies include the shader reference and every texture slot that carries a concrete `AssetReference`. Texture slots may also contain only a fallback class, such as `white`, `black`, `normal`, or `missing`; fallback-only slots do not become `.zmeta` dependencies.
+
+Source-only shader imports now participate in the project resource dependency graph after import. `ProjectManager::scan_and_import` reads the imported shader artifact records, builds a unique include-shader `import_path` index, and appends matching source-only `[[imports]]` entries to the referencing shader record's `dependency_ids`. Redirect imports remain explicit dependencies, built-in/generated module tokens are ignored, and duplicate project include import paths are left unresolved for the existing scanner diagnostics instead of creating ambiguous hot-reload dependencies.
+
+
+Material/schema mismatches are represented as typed readiness diagnostics rather than importer failures. `MaterialAsset::shader_contract_diagnostics(...)` compares `[overrides]` with `ShaderAsset.property_schema` and `[textures.<slot>]` with `ShaderAsset.texture_slots`; it records unknown overrides, override type mismatches, missing required shader properties, unknown texture slots, and missing required texture-slot references with stable document paths. A fallback-only slot such as `[textures.base_color] fallback = "white"` remains valid authoring metadata, but it does not satisfy a shader slot marked `required = true` because no concrete texture asset reference can enter the dependency graph or renderer upload path. `ResourceStreamer::ensure_material(...)` now has a focused regression, `render_product_streamer_reports_shader_material_contract_diagnostics`, that verifies those rows survive shader loading and are stored on the runtime material readiness report together. `MaterialAsset::readiness_report_with_shader_contract(...)` merges those diagnostics with dependency-resolution readiness based on the shader-promoted descriptor dependency set and consumes `ShaderAsset::readiness_report()` so missing runtime WGSL, invalid entry-point stage tokens, duplicate or empty shader definitions, and shader-side WGSL capture diagnostics all reach material/runtime readiness reports. It also checks `ShaderAsset.dependencies`, so a redirected shader include that cannot be resolved becomes a material `UnresolvedShaderReference` plus shader fallback usage instead of surfacing only as a later shader-template/pipeline failure. `MaterialAsset.validation_diagnostics` now flows into the report's non-blocking `diagnostics` list with `MaterialAsset` source and paths like `material.validation_diagnostics[0]`; uniform payload unsupported rows flow into the same list with `MaterialUniform` source and paths like `uniform.debug_label`. Diagnostics-only rows classify as `Diagnostic` but still leave `is_ready()` true; fallback and validation rows classify as degraded or invalid according to the shared status priority. The readiness report de-duplicates those rows by full diagnostic identity before storage. Importer notes from glTF, generated default materials, and non-uniform property retention stay visible without making the material fail readiness.
+
+Runtime 15 M4 material asset value/readiness helper owner split status is `runtime_15_material_asset_value_readiness_owner_split_static_passed_cargo_timeout_no_result`. The M4 structure slice keeps `asset/assets/material/material_asset.rs` as the 750-line owner for `MaterialAsset` DTOs, `.zmaterial` document conversion entry points, descriptor/readiness public API, management overview, and shader-aware dependency/texture-slot entry points; it moves TOML override reads, texture-slot hydration, legacy default synchronization, and TOML array emission into `asset/assets/material/material_asset/value_sync.rs` (136 lines), and moves shader readiness diagnostic projection plus material validation diagnostic rows into `asset/assets/material/material_asset/readiness.rs` (70 lines). `runtime_15_material_asset_value_readiness_helpers_are_child_owners` guards the parent/child layout, moved helper ownership, three-way 800-line budget, and Runtime 15/status/material asset/module documentation anchors. This split does not change `.zmaterial` serialization, `MaterialAsset` public APIs, render material descriptor fields, or readiness report semantics; full `large_file_ownership_gate`, `module_convention_gate`, and asset/render material Cargo sweep remain pending because the focused locked Cargo command timed out after 120 seconds with no test result.
+
+2026-07-12 的优先结构门复验捕获到 Subsurface profile 投影把 `material_asset.rs` 推到 809 行。当前实现已将 `subsurface_profile_index(...)`、`is_subsurface_material(...)` 与 `authored_subsurface_profile(...)` 硬拆到 `material_asset/subsurface.rs`，父 owner 回到 777 行，新 child 为 38 行；公共方法路径和 `SubsurfaceProfileData` 语义不变，也没有旧模块 facade。`runtime_15_material_asset_value_readiness_helpers_are_child_owners` 现同时锁定 subsurface child mount、方法不得回流父文件、五个 material asset owner 均低于 800 行。源码型旧二进制守卫 3/3 已恢复；重编译后的完整结构门证据另由 Runtime 15 / Frameworks 06 状态记录承接。
+
+Runtime 15 M4 material asset management record owner split status is `runtime_15_material_asset_management_record_owner_split_static_passed_cargo_deferred`. The follow-up M4 structure slice keeps `asset/assets/material/material_asset.rs` as the 651-line owner for `MaterialAsset` DTOs, `.zmaterial` document conversion entry points, descriptor/readiness public API, `overview(...)`/`management_record(...)` entry points, and shader-aware dependency/texture-slot entry points; it moves `MaterialAssetOverview`, `MaterialAssetManagementRecord`, `MaterialAssetManagementRecordSetSummary`, and `MaterialAssetManagementRecordSet` plus record-set sorting/summary impls into `asset/assets/material/material_asset/management.rs` (108 lines). The parent keeps the original public type paths through `mod management;` and `pub use self::management::{...}`. `runtime_15_material_asset_management_records_are_child_owner` guards the parent/child layout, management DTO/impl ownership, two-way 800-line budget, and Runtime 15/status/material asset/module documentation anchors. This split does not change `.zmaterial` serialization, `MaterialAsset::overview(...)` or `management_record(...)` public behavior, management row ordering, summary counts, render material descriptor fields, or readiness report semantics; full `large_file_ownership_gate`, `module_convention_gate`, and asset/render material Cargo sweep remain pending because Cargo was deferred while external cargo/rustc lanes were active.
+
+Material-owned `render_queue` remains a source-level override under `[overrides]`, but standard descriptor projection now also resolves it into an optional `RenderQueueValue` snapshot. Values in Unity's queue range (`1000..=5000`) become explicit queue overrides, while legacy small values continue to act as offsets from the alpha-mode default through the Plan 09 clamp window. A blend material with an explicit queue in the opaque/alpha-test range now records `RenderQueueAlphaModeConflict` at `overrides.render_queue`, so queue/alpha mistakes are visible during asset readiness instead of surfacing later as a phase-ordering surprise. Opaque queue overrides such as `2900` remain valid and intentionally move the material into the later queue segment.
+
+
+The persistent fixture under `docs/rendering/fixtures/zmeta-shader-material/` mirrors a project `assets/` tree and includes a compound `unlit_shader.zmeta`, `unlit.zshader`, `unlit.wgsl`, and `hero_unlit.zmaterial` with `{ uuid, url }` shader and texture references. The fixture `.zshader` is `version = 2`, `kind = "surface"`, declares `shading_model = "unlit"`, and uses `[[options]]` for user-facing shader switches instead of legacy `shader_defs`; the fixture WGSL references every property and texture-slot name declared by the `.zshader`, and `documented_zmeta_shader_material_fixture_parses` checks the same WGSL capture rule as the importer so the example stays diagnostic-clean as the schema evolves.
+
+`zircon_runtime/src/asset/tests/project/asset_flow_sample.rs` is the minimal M6 project sample for this path. It writes a glTF scene, a sample `.zmaterial`, a compound `lit_sample` shader package, the `default_pbr.zshader.zmeta` compound shader root required by imported glTF materials, and a compressed DDS texture source in one temporary project. The test then proves both the imported glTF material and authored `.zmaterial` resolve through the registry without unresolved shader diagnostics, checks the shader/material contract with the loaded `ShaderAsset`, verifies the authored material plus shader package load as typed facade handles with direct and recursive dependency state loaded, and checks that the imported scene's primitive `MeshAsset`/`MaterialAsset` binding reaches scene/entity and aggregate management counters.
+
+
+## Editor Surfacing
+
+
+
+The editor asset manager keeps using the runtime project registry as the authority. Asset details now include package id, source unit, included files, and labeled subassets from the loaded `.zmeta` document. The Asset Browser metadata tab displays the adapter/package/unit summary and lists included files plus subassets beside runtime diagnostics. Package assets are projected into their own `package://{package_id}` folder roots instead of being folded under `res://`.
+
+
+
+## Validation
+
+Runtime/interface scoped checks and the focused zmeta, watcher, package manifest, shader-selection, and material tests pass. Editor library and editor test-target checks pass, and the direct editor sync test passes after the editor test harness finishes linking.
+
+The 2026-07-04 source-only shader import dependency slice passed formatting, scoped diff-check, `cargo check -p zircon_runtime --lib --no-default-features --features target-server`, and the integration test `cargo test -p zircon_runtime --test shader_import_dependency_contract --no-default-features --features target-server` 1/1 under `E:\cargo-targets\zircon-shader-live-import-deps-check`. A broader lib-test attempt is not counted because unrelated render-product and Runtime 15 test-only compile drift blocked that harness before the shader-import contract could run.
+
+The 2026-07-04 redirect shader import readiness slice passed formatting, scoped diff-check, `cargo check -p zircon_runtime --lib --no-default-features --features target-server`, and the integration test `cargo test -p zircon_runtime --test material_shader_redirect_dependency_contract --no-default-features --features target-server` 2/2 under `E:\cargo-targets\zircon-shader-redirect-diagnostics-check`. The integration coverage now includes both the synthetic dependency report and a `ProjectManager::scan_and_import` project that loads real imported shader/material artifacts before resolving the redirect dependency diagnostic. The lib-test wrapper for the same assertion timed out while compiling the full runtime test harness and is not counted.
+
+The 2026-05-27 shader pipeline-layout readiness summary passed Rust formatting checks and scoped `zircon_runtime` lib/test type checking. The focused `shader_readiness` filter passed by running the generated lib-test binary directly with 6 tests; two standard Cargo wrapper attempts were affected by concurrent target-directory mutation or long Cargo-layer timeouts after the binary was produced.
+
+The 2026-05-27 material-local readiness diagnostics slice keeps imported material notes in `RenderMaterialReadinessReport.diagnostics` instead of `validation_errors`, so those rows remain visible to renderer/editor consumers without forcing fallback or making `is_ready()` false. Formatting and diff checks passed for the touched material/readiness files. Scoped Cargo validation is currently blocked before material test execution by unrelated UI accessibility private re-export errors in `zircon_runtime/src/ui/accessibility/action/text.rs`, and the focused material test wrapper timed out before producing a test binary or Rust diagnostics.
+
+The 2026-05-27 material uniform diagnostics slice projects unsupported uniform payload rows into non-blocking `MaterialUniform` readiness diagnostics. The focused DTO payload regression passed, the earlier renderer stats diagnostic-count test passed after the unrelated UI accessibility private re-export blocker was resolved by its owning session, the submit-level string-property regression passed with `last_material_diagnostic_count` reporting the non-blocking uniform note while ready/fallback/validation-error counts stayed unchanged, the resource-streamer readiness-detail regression passed by directly running the generated runtime lib-test binary after the Cargo wrapper timed out under concurrent build load, and the shader-default string regression passed through the normal Cargo wrapper with existing lib-test warnings only. The follow-up DTO de-dup regression passed by directly running the workspace-generated `zircon_runtime` test binary after fresh Cargo wrappers timed out during concurrent workspace/editor build load.
+
+The runtime package validator passes with `-TargetDir F:\cargo-targets\zircon-zmeta-validation`, and the plugin workspace test command passes against the same external target directory. The `zr_vm_language` catalog consistency gap is closed by registering that package id, crate, target modes, and both capabilities in `RuntimePluginDescriptor::builtin_catalog()`, so runtime-backed package manifest projection can see it through the same path as the other built-in plugin packages.
+
+
+The final acceptance matrix passes with `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -TargetDir F:\cargo-targets\zircon-zmeta-validation`: the validator performed the target-dir cleanup gate, then completed workspace `cargo build --workspace --locked` and `cargo test --workspace --locked`. The only observed follow-up diagnostics are non-blocking Cargo warnings about the `zircon_runtime.pdb` output-name collision and an unused `RuntimeSession::create` helper outside the `.zmeta` asset path.
+
+
+
+The 2026-05-19 `.zmaterial` hard-cutover closeout passed the focused WSL runtime checks on `/mnt/f/cargo-targets/zircon-zmaterial-final-wsl`: runtime `material` tests (`68` passed), runtime `shader` tests (`13` passed), runtime `asset::tests::project::zmeta` tests (`8` passed), the Virtual Geometry runtime plugin library check, and `virtual_geometry_visibility_debug_contract` (`3` passed). The editor renderable scaffold command initially exposed unrelated retained-host GPU presenter test-scope drift; after that presenter state was corrected by the active UI changes, the same scaffold test passed on `/mnt/f/cargo-targets/zircon-presenter-check-wsl` with `1` passed and `1400` filtered out.
+
+
+
+The later 2026-05-19 runtime UI graph closeout exposed and fixed a Windows workspace blocker in this material serialization layer: asset watcher/reimport tests mutated `MaterialAsset.base_color`, but `to_toml_string()` preserved stale `overrides.base_color`, so source bytes and resource revisions did not change. The fix is covered by `material_asset_serialization_rewrites_stale_canonical_overrides`, the focused `material_asset` filter (`8` passed), the asset manager pipeline filter (`9` passed), full `zircon_runtime --lib` (`1634` passed), and full workspace `cargo test --workspace --locked --jobs 1 --message-format short --color never -- --test-threads=1`, all using `CARGO_TARGET_DIR=D:\cargo-targets\zircon-codex-render-damage`.
+
+
+
+The 2026-05-20 M3 required-property closeout records missing required shader schema properties as typed material diagnostics instead of importer failures. The focused regression passed on `F:\cargo-targets\zircon-zmeta-shader-material-m3` with `1` test, followed by broader scoped runtime filters: `shader` (`15` passed), `material` (`71` passed), and `asset::tests::project` (`26` passed), all with `--locked` and `--test-threads=1`.
+
+
+
+The 2026-05-20 M4 fixture capture closeout updated the documented `unlit.wgsl` fixture so it references the declared `base_color` property and texture slot, then extended `documented_zmeta_shader_material_fixture_parses` to call the same WGSL capture validator as the importer. The focused fixture test passed with `1` test, and the broader `asset::tests::project::zmeta` filter passed with `8` tests on `F:\cargo-targets\zircon-zmeta-shader-material-m3`.

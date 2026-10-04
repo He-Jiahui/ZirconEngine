@@ -6,7 +6,7 @@ $env:VALIDATE_MATRIX_TEST_MODE = "1"
 $env:VALIDATE_MATRIX_TEST_MODE = $script:OriginalValidateMatrixTestMode
 
 Describe "Validate matrix managed directory restoration" {
-    It "restores directories removed by cargo clean before the next Cargo stage" {
+    It "keeps the pool Cargo home after retiring only this job scratch" {
         $approvedRoot = "E:\cargo-targets\zircon-engine"
         $targetDirectory = Join-Path $approvedRoot (
             "validate-matrix-clean-restore-{0}" -f [guid]::NewGuid().ToString("N")
@@ -14,28 +14,24 @@ Describe "Validate matrix managed directory restoration" {
         $lease = $null
 
         try {
-            $lease = Push-ManagedCargoEnvironment -TargetDirectory $targetDirectory
+            $lease = Push-ManagedCargoEnvironment -TargetDirectory $targetDirectory -JobId ('app08-' + [guid]::NewGuid().ToString('N')) -StorageMode diagnostic
             $managedDirectories = @(
                 $lease.TemporaryOperationalPath,
-                $lease.CargoHomeOperationalPath,
-                $lease.SccacheOperationalPath
+                $lease.CargoHomeOperationalPath
             )
-
-            foreach ($directory in $managedDirectories) {
-                Remove-Item -LiteralPath $directory -Recurse -Force
-                Test-Path -LiteralPath $directory | Should Be $false
-            }
-
-            Restore-ManagedCargoEnvironmentDirectories -Lease $lease
 
             foreach ($directory in $managedDirectories) {
                 Test-Path -LiteralPath $directory -PathType Container | Should Be $true
             }
 
+            $cargoHome = $lease.CargoHomeOperationalPath
+            $scratch = $lease.ScratchOperationalPath
+            Pop-ManagedCargoEnvironment -Lease $lease
+            $lease = $null
+            Test-Path -LiteralPath $cargoHome -PathType Container | Should Be $true
+            Test-Path -LiteralPath $scratch | Should Be $false
             $source = Get-Content -Raw -Encoding UTF8 $script:ValidateMatrixScript
-            $cleanupStage = $source.Split('Invoke-Step "Cargo clean"', 2)[1]
-            $cleanupStage = $cleanupStage.Split('if (-not $SkipBuild)', 2)[0]
-            $cleanupStage | Should Match 'Restore-ManagedCargoEnvironmentDirectories\s+`?\s*-Lease\s+\$cargoEnvironmentLease'
+            $source | Should Not Match 'Invoke-Step "Cargo clean"'
         }
         finally {
             if ($null -ne $lease) {

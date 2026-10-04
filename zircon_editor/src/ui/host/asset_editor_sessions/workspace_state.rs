@@ -77,6 +77,7 @@ impl UiAssetExternalConflict {
 pub(crate) struct UiAssetWorkspaceEntry {
     pub(crate) source_path: PathBuf,
     pub(crate) session: UiAssetEditorSession,
+    pub(crate) reported_dirty_source_revision: Option<u64>,
     pub(crate) disk_source: String,
     pub(crate) disk_source_digest: UiAssetSourceDigest,
     pub(crate) conflict: Option<UiAssetExternalConflict>,
@@ -90,6 +91,7 @@ impl UiAssetWorkspaceEntry {
         Self {
             source_path,
             session,
+            reported_dirty_source_revision: None,
             disk_source: source,
             disk_source_digest,
             conflict: None,

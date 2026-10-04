@@ -26,7 +26,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束复用 ZRVM 导出参数缓冲区：运行时归属保留仅可复用值容量，并导出调用不收集新建参数向量。
 class ReusedZrVmExportArgumentBufferPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

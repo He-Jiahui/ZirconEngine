@@ -1,7 +1,7 @@
 use std::time::Duration;
 
-use crate::core::CoreHandle;
 use crate::core::diagnostics::DiagnosticStore;
+use crate::core::CoreHandle;
 
 pub const NATIVE_SYSTEM_CONFLICT_COUNT_DIAGNOSTIC: &str = "scene.ecs.native_system.conflict_count";
 pub const NATIVE_SYSTEM_READY_DELAY_MS_DIAGNOSTIC: &str = "scene.ecs.native_system.ready_delay_ms";
@@ -159,12 +159,12 @@ impl NativeSystemScheduleDiagnostics {
 
     pub fn record_diagnostics(&self, store: &mut DiagnosticStore, frame_index: u64) {
         for (path, value, unit) in self.diagnostic_values() {
-            store.record(
+            store.record_static(
                 path,
                 frame_index,
                 value,
                 Some(unit),
-                ["ecs", "native_system", "schedule"],
+                &["ecs", "native_system", "schedule"],
             );
         }
     }
@@ -272,60 +272,5 @@ fn percentile_bucket_upper_bound_ns(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn native_system_schedule_diagnostics_record_conflicts_latency_and_utilization() {
-        let mut diagnostics = NativeSystemScheduleDiagnostics::default();
-        diagnostics.record_conflicts(3);
-        diagnostics.record_main_callback(Duration::from_micros(10), true);
-        diagnostics.record_worker_batch(
-            &[
-                NativeSystemCallbackTiming {
-                    ready_delay: Duration::from_micros(4),
-                    callback: Duration::from_micros(20),
-                },
-                NativeSystemCallbackTiming {
-                    ready_delay: Duration::from_micros(8),
-                    callback: Duration::from_micros(30),
-                },
-            ],
-            Duration::from_micros(40),
-            2,
-            3,
-            384,
-        );
-
-        assert_eq!(diagnostics.conflict_count(), 3);
-        assert_eq!(diagnostics.worker_batch_count(), 1);
-        assert_eq!(diagnostics.callback_count(), 3);
-        assert_eq!(diagnostics.conservative_world_writer_count(), 1);
-        assert_eq!(diagnostics.temporary_control_buffer_count(), 3);
-        assert_eq!(diagnostics.temporary_control_buffer_bytes(), 384);
-        assert!((diagnostics.ready_delay_ms() - 0.006).abs() < f64::EPSILON);
-        assert_eq!(diagnostics.worker_utilization(), 0.625);
-        assert!(diagnostics.callback_p95_ms() >= 0.03);
-
-        let mut store = DiagnosticStore::default();
-        diagnostics.record_diagnostics(&mut store, 7);
-        let snapshot = store.snapshot();
-        assert_eq!(snapshot.series.len(), 9);
-        assert!(snapshot.series.iter().any(|series| {
-            series.path.as_str() == NATIVE_SYSTEM_CONFLICT_COUNT_DIAGNOSTIC
-                && series.current == Some(3.0)
-        }));
-        assert!(snapshot.series.iter().any(|series| {
-            series.path.as_str() == NATIVE_SYSTEM_CALLBACK_P95_MS_DIAGNOSTIC
-                && series.current.is_some_and(|value| value >= 0.03)
-        }));
-        assert!(snapshot.series.iter().any(|series| {
-            series.path.as_str() == NATIVE_SYSTEM_TEMPORARY_CONTROL_BUFFER_COUNT_DIAGNOSTIC
-                && series.current == Some(3.0)
-        }));
-        assert!(snapshot.series.iter().any(|series| {
-            series.path.as_str() == NATIVE_SYSTEM_TEMPORARY_CONTROL_BUFFER_BYTES_DIAGNOSTIC
-                && series.current == Some(384.0)
-        }));
-    }
-}
+#[path = "tests/native_system_schedule_diagnostics.rs"]
+mod tests;

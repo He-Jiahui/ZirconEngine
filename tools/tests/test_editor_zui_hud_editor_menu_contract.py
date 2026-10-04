@@ -1,3 +1,4 @@
+# 核对抬头显示编辑入口、锚定工具菜单和扩展动作映射。
 import tomllib
 import unittest
 from pathlib import Path

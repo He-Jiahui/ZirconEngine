@@ -2,12 +2,13 @@ use core::ops::Range;
 use std::sync::Arc;
 
 mod compressed_mip_upload;
+mod shape_projection;
 mod texture_format;
 mod upload_work;
 
 use crate::asset::assets::{
-    LIGHTMAP_RGBA16F_GPU_FORMAT, TextureAsset, TextureUploadCompressionFamily, TextureUploadPlan,
-    TextureUploadReadiness,
+    TextureAsset, TextureUploadCompressionFamily, TextureUploadPlan, TextureUploadReadiness,
+    LIGHTMAP_RGBA16F_GPU_FORMAT,
 };
 use crate::core::framework::render::{
     RenderImageColorSpace, RenderImageDescriptor, RenderImageDimension, TextureMipPolicy,
@@ -30,6 +31,10 @@ use super::sampler_cache::{
 use super::sampler_cache::{sanitized_anisotropy_clamp, sanitized_anisotropy_clamp_with_cap};
 use super::{GpuTextureResource, TextureSamplerCache};
 use compressed_mip_upload::enqueue_compressed_texture_uploads;
+use shape_projection::{
+    lightmap_page_zero_bind_group_view_descriptor, lightmap_texture_view_descriptor,
+    texture_view_descriptor, validated_texture_shape, wgpu_dimension,
+};
 pub(in crate::graphics::scene::resources) use upload_work::GpuTextureUploadWork;
 
 impl GpuTextureResource {
@@ -146,7 +151,8 @@ impl GpuTextureResource {
         let texture_uri = payload.uri.clone();
         let width = payload.width;
         let height = payload.height;
-        let layer_count = descriptor.array_layer_count.max(1);
+        let shape = validated_texture_shape(&descriptor, &texture_uri)?;
+        let layer_count = shape.array_layer_count();
         let crate::asset::TexturePayload::Container { bytes, .. } = payload.payload else {
             return Err(GraphicsError::Asset(format!(
                 "lightmap texture {} requires a raw rgba16f container payload",
@@ -258,8 +264,9 @@ impl GpuTextureResource {
         let texture_uri = payload.uri.clone();
         let width = payload.width;
         let height = payload.height;
+        let shape = validated_texture_shape(&descriptor, &texture_uri)?;
         let mip_level_count = descriptor.mip_count.max(1);
-        let layer_count = descriptor.depth_or_array_layers.max(1);
+        let layer_count = shape.extent.depth_or_array_layers;
         let runtime_mip_generation = descriptor.metadata.mip_policy
             == TextureMipPolicy::GenerateRuntime
             && mip_level_count > 1;
@@ -301,7 +308,7 @@ impl GpuTextureResource {
             },
             mip_level_count,
             sample_count: 1,
-            dimension: wgpu_dimension(descriptor.dimension),
+            dimension: wgpu_dimension(shape.view_kind),
             format,
             usage,
             view_formats,
@@ -355,7 +362,7 @@ impl GpuTextureResource {
             );
             post_upload_commands.push(encoder.finish());
         }
-        let view = texture.create_view(&texture_view_descriptor(&descriptor));
+        let view = texture.create_view(&texture_view_descriptor(&descriptor, shape));
         let sampler = sampler_cache.sampler_for_image(device, &descriptor);
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-texture-bind-group"),
@@ -410,6 +417,7 @@ impl GpuTextureResource {
         let texture_uri = payload.uri.clone();
         let width = payload.width;
         let height = payload.height;
+        let shape = validated_texture_shape(&descriptor, &texture_uri)?;
         if !supports_physical_mip_streaming(&descriptor, &plan) {
             return Err(GraphicsError::Asset(format!(
                 "texture {} is not eligible for physical mip streaming",
@@ -437,7 +445,7 @@ impl GpuTextureResource {
                     payload.uri
                 ))
             })?;
-        let layer_count = descriptor.depth_or_array_layers.max(1);
+        let layer_count = shape.extent.depth_or_array_layers;
         let format = rgba8_wgpu_format(&plan.format);
         let mut usage = wgpu_texture_usages(&descriptor, format, true);
         usage |= wgpu::TextureUsages::COPY_SRC;
@@ -450,7 +458,7 @@ impl GpuTextureResource {
             },
             mip_level_count: requested_range.end - requested_range.start,
             sample_count: 1,
-            dimension: wgpu_dimension(descriptor.dimension),
+            dimension: wgpu_dimension(shape.view_kind),
             format,
             usage,
             view_formats: &[],
@@ -527,7 +535,7 @@ impl GpuTextureResource {
                 &texture_uri,
             )?;
         }
-        let view = texture.create_view(&texture_view_descriptor(&descriptor));
+        let view = texture.create_view(&texture_view_descriptor(&descriptor, shape));
         let sampler = sampler_cache.sampler_for_image(device, &descriptor);
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-streamed-texture-bind-group"),
@@ -578,6 +586,7 @@ impl GpuTextureResource {
         let texture_uri = payload.uri.clone();
         let width = payload.width;
         let height = payload.height;
+        let shape = validated_texture_shape(&descriptor, &texture_uri)?;
         let format = compressed_wgpu_format(&plan, descriptor.color_space).ok_or_else(|| {
             GraphicsError::Asset(format!(
                 "texture {} has unsupported upload format {}",
@@ -593,7 +602,7 @@ impl GpuTextureResource {
                 )));
             }
         };
-        let depth_or_array_layers = descriptor.depth_or_array_layers.max(1);
+        let depth_or_array_layers = shape.extent.depth_or_array_layers;
 
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("zircon-compressed-texture"),
@@ -604,7 +613,7 @@ impl GpuTextureResource {
             },
             mip_level_count: descriptor.mip_count.max(1),
             sample_count: 1,
-            dimension: wgpu_dimension(descriptor.dimension),
+            dimension: wgpu_dimension(shape.view_kind),
             format,
             usage: wgpu_texture_usages(&descriptor, format, true),
             view_formats: &[],
@@ -627,7 +636,7 @@ impl GpuTextureResource {
             data,
             &plan,
         )?;
-        let view = texture.create_view(&texture_view_descriptor(&descriptor));
+        let view = texture.create_view(&texture_view_descriptor(&descriptor, shape));
         let sampler = sampler_cache.sampler_for_image(device, &descriptor);
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-compressed-texture-bind-group"),
@@ -733,15 +742,6 @@ fn enqueue_texture_upload<T: std::fmt::Display + ?Sized>(
     Ok(())
 }
 
-fn wgpu_dimension(dimension: RenderImageDimension) -> wgpu::TextureDimension {
-    match dimension {
-        RenderImageDimension::D1 => wgpu::TextureDimension::D1,
-        RenderImageDimension::D2 => wgpu::TextureDimension::D2,
-        RenderImageDimension::D3 => wgpu::TextureDimension::D3,
-        RenderImageDimension::Cube => wgpu::TextureDimension::D2,
-    }
-}
-
 fn div_ceil(value: u32, divisor: u32) -> u32 {
     value.saturating_add(divisor.saturating_sub(1)) / divisor.max(1)
 }
@@ -835,72 +835,6 @@ fn supports_physical_mip_streaming(
         )
 }
 
-fn texture_view_descriptor(
-    descriptor: &RenderImageDescriptor,
-) -> wgpu::TextureViewDescriptor<'static> {
-    let format = (descriptor.metadata.mip_policy == TextureMipPolicy::GenerateRuntime
-        && descriptor.metadata.color_space == RenderImageColorSpace::Srgb)
-        .then_some(wgpu::TextureFormat::Rgba8UnormSrgb);
-    match descriptor.dimension {
-        RenderImageDimension::D1 => wgpu::TextureViewDescriptor {
-            format,
-            dimension: Some(wgpu::TextureViewDimension::D1),
-            ..Default::default()
-        },
-        RenderImageDimension::D2 => {
-            let layer_count = descriptor.array_layer_count.max(1);
-            wgpu::TextureViewDescriptor {
-                format,
-                dimension: Some(if layer_count > 1 {
-                    wgpu::TextureViewDimension::D2Array
-                } else {
-                    wgpu::TextureViewDimension::D2
-                }),
-                base_array_layer: 0,
-                array_layer_count: Some(layer_count),
-                ..Default::default()
-            }
-        }
-        RenderImageDimension::D3 => wgpu::TextureViewDescriptor {
-            format,
-            dimension: Some(wgpu::TextureViewDimension::D3),
-            ..Default::default()
-        },
-        RenderImageDimension::Cube => {
-            let layer_count = descriptor.array_layer_count.max(6);
-            wgpu::TextureViewDescriptor {
-                format,
-                dimension: Some(if layer_count > 6 {
-                    wgpu::TextureViewDimension::CubeArray
-                } else {
-                    wgpu::TextureViewDimension::Cube
-                }),
-                base_array_layer: 0,
-                array_layer_count: Some(layer_count),
-                ..Default::default()
-            }
-        }
-    }
-}
-
-fn lightmap_texture_view_descriptor(layer_count: u32) -> wgpu::TextureViewDescriptor<'static> {
-    wgpu::TextureViewDescriptor {
-        dimension: Some(wgpu::TextureViewDimension::D2Array),
-        base_array_layer: 0,
-        array_layer_count: Some(layer_count.max(1)),
-        ..Default::default()
-    }
-}
-
-fn lightmap_page_zero_bind_group_view_descriptor() -> wgpu::TextureViewDescriptor<'static> {
-    wgpu::TextureViewDescriptor {
-        dimension: Some(wgpu::TextureViewDimension::D2),
-        base_array_layer: 0,
-        array_layer_count: Some(1),
-        ..Default::default()
-    }
-}
-
 fn rgba8_level_size_bytes(width: u32, height: u32) -> u64 {
     u64::from(width)
         .saturating_mul(u64::from(height))
@@ -913,8 +847,13 @@ const fn mip_extent(value: u32, level: u32) -> u32 {
     } else {
         value >> level
     };
-    if shifted == 0 { 1 } else { shifted }
+    if shifted == 0 {
+        1
+    } else {
+        shifted
+    }
 }
 
 #[cfg(test)]
+#[path = "gpu_texture_resource_from_asset/tests/cases.rs"]
 mod tests;

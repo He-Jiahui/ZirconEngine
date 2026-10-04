@@ -6,6 +6,7 @@ use zircon_runtime_interface::ui::template::{
     UiNodeDefinition, UiRootClassPolicy, UiSelector, UiSelectorToken, UiStyleSheet,
 };
 
+/// 编译器展开引用前检查组件公开边界；只将第一个结构化诊断转为资产错误。
 pub(crate) fn validate_document_component_contracts(
     document: &UiAssetDocument,
     widget_imports: &BTreeMap<String, UiAssetDocument>,
@@ -19,6 +20,8 @@ pub(crate) fn validate_document_component_contracts(
     Ok(())
 }
 
+/// 编辑器和编译器共用首个契约诊断，涵盖本地导出、实例约束及导入样式的隐私引用。
+/// 导入图须由调用方提供，否则缺失引用按资产错误返回。
 pub fn component_contract_diagnostic(
     document: &UiAssetDocument,
     widget_imports: &BTreeMap<String, UiAssetDocument>,
@@ -266,6 +269,7 @@ fn validate_instance_contract(
     None
 }
 
+// 同一导入引用可能出现多次：静态契约及私有目标索引只建一次，实例 API 版本仍逐处检查。
 fn validate_reference_privacy(
     document: &UiAssetDocument,
     widget_imports: &BTreeMap<String, UiAssetDocument>,
@@ -504,6 +508,7 @@ fn collect_selector_targets_from_stylesheets(
     Ok(())
 }
 
+// TODO: [CR-UI-TEMPLATE-CONTRACT-0003] 确认多段选择器中祖先 Type 与终端 Type 是否应共同界定 part/id 的所属组件；当前收集所有 Type，缺少跨组件组合选择器的隐私边界用例；后续对照实际匹配路径补测试。
 fn selector_component_scopes(
     selector: &UiSelector,
     referenced_component_names: &BTreeSet<&str>,
@@ -581,6 +586,7 @@ impl ScopedSelectorTarget {
     }
 }
 
+// 索引借用正在验证的组件树；公开部件与聚焦/绑定目标都以同一批节点和控件 ID 判定。
 struct ComponentTreeIndex<'a> {
     node_ids: HashSet<&'a str>,
     control_ids: HashSet<&'a str>,
@@ -620,6 +626,7 @@ impl<'a> ComponentTreeIndex<'a> {
     }
 }
 
+// 引用者只能命中组件根和显式导出的部件；其余树内 ID 对导入样式保持私有。
 struct ComponentPrivacyIndex<'a> {
     private_targets: HashSet<&'a str>,
 }
@@ -650,6 +657,7 @@ impl<'a> ComponentPrivacyIndex<'a> {
 }
 
 #[cfg(test)]
+#[path = "validation/tests/hash_index_tests.rs"]
 mod hash_index_tests;
 
 struct TargetRef {

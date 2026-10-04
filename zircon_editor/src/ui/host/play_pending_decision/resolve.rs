@@ -1,3 +1,4 @@
+use std::fmt::Write as _;
 use std::time::Duration;
 
 use crate::core::editor_operation::EditorOperationSource;
@@ -183,20 +184,28 @@ impl EditorHostEventController {
 }
 
 fn pending_play_failure_toast_message(failures: &[PlayPendingEditApplyFailure]) -> String {
-    let diagnostics = failures
-        .iter()
-        .take(MAX_PLAY_PENDING_FAILURE_DETAILS)
-        .map(|failure| {
-            let error = ToastNotification::bounded_message(
-                &failure.error().to_string(),
-                "pending edit operation failed",
-            );
-            ToastNotification::bounded_message(
-                &format!("pending edit intent {:?} failed: {error}", failure.intent()),
-                "Queued edits could not be applied.",
-            )
-        })
-        .collect::<Vec<_>>()
-        .join("; ");
+    let mut diagnostics = String::new();
+    for failure in failures.iter().take(MAX_PLAY_PENDING_FAILURE_DETAILS) {
+        if !diagnostics.is_empty() {
+            diagnostics.push_str("; ");
+        }
+        let error = failure.error().to_string();
+        let error = error.trim();
+        let error = if error.is_empty() {
+            "pending edit operation failed"
+        } else {
+            error
+        };
+        write!(
+            &mut diagnostics,
+            "pending edit intent {:?} failed: {error}",
+            failure.intent()
+        )
+        .expect("writing to a String cannot fail");
+    }
     ToastNotification::bounded_message(&diagnostics, "Queued edits could not be applied.")
 }
+
+#[cfg(test)]
+#[path = "resolve/tests/failure_single_buffer_tests.rs"]
+mod failure_single_buffer_tests;

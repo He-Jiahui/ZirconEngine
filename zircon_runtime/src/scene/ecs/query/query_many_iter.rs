@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, ptr::NonNull};
 
-use super::query_state::{CachedArchetypePlan, find_cached_archetype_plan};
+use super::query_state::{find_cached_archetype_plan, CachedArchetypePlan};
 use crate::scene::ecs::{
     ChangeDetectionScanStats, ChangeTickWindow, ComponentStorageLocation, QueryData, QueryFilter,
     QueryState,
@@ -23,6 +23,7 @@ impl QueryEntityItem for &EntityId {
     }
 }
 
+/// 非缓存的多实体只读迭代器；输入顺序决定结果顺序。
 pub struct QueryManyIter<'world, D, F = (), I = std::vec::IntoIter<EntityId>>
 where
     D: QueryData,
@@ -30,12 +31,14 @@ where
     I: Iterator,
     I::Item: QueryEntityItem,
 {
-    world: &'world World,
+    // The API constructor binds this raw origin to the genuine loan/run lifetime.
+    world: *const World,
     entities: I,
     ticks: ChangeTickWindow,
-    _marker: PhantomData<fn() -> (D, F)>,
+    _marker: PhantomData<(&'world World, fn() -> (D, F))>,
 }
 
+/// 使用 `QueryState` 已编译计划的多实体只读迭代器。
 pub struct QueryManyCachedIter<'world, 'state, D, F = (), I = std::vec::IntoIter<EntityId>>
 where
     D: QueryData,
@@ -43,14 +46,14 @@ where
     I: Iterator,
     I::Item: QueryEntityItem,
 {
-    world: &'world World,
+    world: *const World,
     plans: &'state [CachedArchetypePlan],
     component_locations: Vec<ComponentStorageLocation>,
     change_detection_stats: ChangeDetectionScanStats,
     state: Option<NonNull<QueryState<D, F>>>,
     entities: I,
     ticks: ChangeTickWindow,
-    _marker: PhantomData<fn() -> (D, F)>,
+    _marker: PhantomData<(&'world World, fn() -> (D, F))>,
 }
 
 impl<'world, D, F, I> QueryManyIter<'world, D, F, I>
@@ -60,8 +63,8 @@ where
     I: Iterator,
     I::Item: QueryEntityItem,
 {
-    pub(crate) fn new<EntityList>(
-        world: &'world World,
+    pub(crate) unsafe fn new<EntityList>(
+        world: *const World,
         entities: EntityList,
         ticks: ChangeTickWindow,
     ) -> Self
@@ -69,11 +72,13 @@ where
         EntityList: IntoIterator<IntoIter = I>,
         EntityList::Item: QueryEntityItem,
     {
-        Self {
-            world,
-            entities: entities.into_iter(),
-            ticks,
-            _marker: PhantomData,
+        unsafe {
+            Self {
+                world,
+                entities: entities.into_iter(),
+                ticks,
+                _marker: PhantomData,
+            }
         }
     }
 }
@@ -85,8 +90,8 @@ where
     I: Iterator,
     I::Item: QueryEntityItem,
 {
-    pub(crate) fn new<EntityList>(
-        world: &'world World,
+    pub(crate) unsafe fn new<EntityList>(
+        world: *const World,
         plans: &'state [CachedArchetypePlan],
         entities: EntityList,
         ticks: ChangeTickWindow,
@@ -96,15 +101,17 @@ where
         EntityList: IntoIterator<IntoIter = I>,
         EntityList::Item: QueryEntityItem,
     {
-        Self {
-            world,
-            plans,
-            component_locations: Vec::new(),
-            change_detection_stats: ChangeDetectionScanStats::default(),
-            state: Some(NonNull::from(state)),
-            entities: entities.into_iter(),
-            ticks,
-            _marker: PhantomData,
+        unsafe {
+            Self {
+                world,
+                plans,
+                component_locations: Vec::new(),
+                change_detection_stats: ChangeDetectionScanStats::default(),
+                state: Some(NonNull::from(state)),
+                entities: entities.into_iter(),
+                ticks,
+                _marker: PhantomData,
+            }
         }
     }
 }
@@ -119,15 +126,19 @@ where
     type Item = D::Item<'world>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        for entity_item in self.entities.by_ref() {
-            let entity = entity_item.entity_id();
-            if world_entity_matches::<D, F>(self.world, entity, self.ticks) {
-                if let Some(item) = D::fetch_with_ticks(self.world, entity, self.ticks) {
-                    return Some(item);
+        // SAFETY: the cursor's original grant keeps storage/structure and
+        // declared compatible leaves valid; no World parent is retained.
+        unsafe {
+            for entity_item in self.entities.by_ref() {
+                let entity = entity_item.entity_id();
+                if world_entity_matches::<D, F>(&*self.world, entity, self.ticks) {
+                    if let Some(item) = D::fetch_with_ticks(self.world, entity, self.ticks) {
+                        return Some(item);
+                    }
                 }
             }
+            None
         }
-        None
     }
 }
 
@@ -141,42 +152,46 @@ where
     type Item = D::Item<'world>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        for entity_item in self.entities.by_ref() {
-            let entity = entity_item.entity_id();
-            let Some(stable_location) = self.world.internal_entity_location(entity) else {
-                continue;
-            };
-            let Some(plan) =
-                find_cached_archetype_plan(self.plans, stable_location.location.archetype_id)
-            else {
-                continue;
-            };
-            if !plan.write_component_locations(
-                self.world,
-                stable_location,
-                &mut self.component_locations,
-            ) {
-                continue;
-            }
-            if F::matches_component_locations_with_stats(
-                self.world,
-                entity,
-                &self.component_locations,
-                self.ticks,
-                &mut self.change_detection_stats,
-            ) {
-                if let Some(item) = D::fetch_with_component_locations(
-                    self.world,
-                    entity,
+        // SAFETY: the cursor's original grant keeps storage/structure and
+        // declared compatible leaves valid; no World parent is retained.
+        unsafe {
+            for entity_item in self.entities.by_ref() {
+                let entity = entity_item.entity_id();
+                let Some(stable_location) = (&*self.world).internal_entity_location(entity) else {
+                    continue;
+                };
+                let Some(plan) =
+                    find_cached_archetype_plan(self.plans, stable_location.location.archetype_id)
+                else {
+                    continue;
+                };
+                if !plan.write_component_locations(
+                    &*self.world,
                     stable_location,
+                    &mut self.component_locations,
+                ) {
+                    continue;
+                }
+                if F::matches_component_locations_with_stats(
+                    &*self.world,
+                    entity,
                     &self.component_locations,
                     self.ticks,
+                    &mut self.change_detection_stats,
                 ) {
-                    return Some(item);
+                    if let Some(item) = D::fetch_with_component_locations(
+                        self.world,
+                        entity,
+                        stable_location,
+                        &self.component_locations,
+                        self.ticks,
+                    ) {
+                        return Some(item);
+                    }
                 }
             }
+            None
         }
-        None
     }
 }
 

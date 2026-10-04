@@ -62,8 +62,42 @@ impl ShellPresentation {
             chrome_projection_cache,
         );
 
+        let document_leaves = super::document_leaves::project_document_leaves(model, |tab| {
+            super::pane_projection::pane_from_tab_with_template_v2_data(
+                &tab.instance_id.0,
+                "",
+                &tab.title,
+                &tab.icon_key,
+                tab.content_kind,
+                tab.empty_state.as_ref(),
+                find_tab_snapshot(chrome, &tab.instance_id.0),
+                chrome,
+                ui_asset_panes.get(&tab.instance_id.0),
+                animation_panes.get(&tab.instance_id.0),
+                runtime_diagnostics,
+                module_plugins,
+                build_export,
+                template_v2_data,
+            )
+        });
+        let document_pane = document_leaves
+            .first()
+            .map(|leaf| leaf.pane.clone())
+            .unwrap_or_else(|| {
+                document_pane_with_template_v2_data(
+                    model,
+                    chrome,
+                    ui_asset_panes,
+                    animation_panes,
+                    runtime_diagnostics,
+                    module_plugins,
+                    build_export,
+                    template_v2_data,
+                )
+            });
         Self {
             host_surface_data: HostWindowSurfaceData {
+                document_leaves,
                 host_tabs,
                 left_tabs,
                 right_tabs,
@@ -117,16 +151,7 @@ impl ShellPresentation {
                     build_export,
                     template_v2_data,
                 ),
-                document_pane: document_pane_with_template_v2_data(
-                    model,
-                    chrome,
-                    ui_asset_panes,
-                    animation_panes,
-                    runtime_diagnostics,
-                    module_plugins,
-                    build_export,
-                    template_v2_data,
-                ),
+                document_pane,
             },
             retained_scene_data: None,
             welcome,

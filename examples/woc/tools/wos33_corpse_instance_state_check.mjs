@@ -30,13 +30,13 @@ invariant(state.includes('pub var entityCorpseInstanceIds: container.Array<uint>
 for (const needle of [
   'appendDefaultCorpseInstanceColumns(this);',
   'appendDefaultCorpseInstanceColumns(state);',
-  'writer.u16(<uint>38, 1, 1);', 'schemaVersion != <uint>33',
+  'writer.u16(schemaVersion, 1, 1);', 'schemaVersion != <uint>33',
   'if (schemaVersion >= <uint>33) {',
   'm8FreshPlayerStats.corpseInstanceId',
   'm8EastbrookEncounter.corpseInstanceId',
   'entityState.entityCorpseInstanceIds[0] = <uint>77;',
 ]) invariant(state.includes(needle), `WOS33 corpse-instance projection omitted: ${needle}`);
-invariant(main.includes('\\"world_state\\":\\"WOS38\\",'), 'package stateSchema must expose WOS38');
+invariant(main.includes('\\"world_state\\":\\"WOS118\\",'), 'package stateSchema must expose WOS118');
 
 process.stdout.write(`checked WOS33 corpse-instance source projection: ${SOURCE_COMMIT.slice(0, 15)}\n`);
 

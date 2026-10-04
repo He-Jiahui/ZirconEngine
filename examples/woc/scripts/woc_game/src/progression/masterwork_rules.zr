@@ -3,6 +3,7 @@
 // this leaf owns only deterministic chance and one-step quality promotion.
 var contract = %import("generated/masterwork_contract");
 
+/// 制作事务把已验证的签名材料、专精和层级差作为输入；此函数只计算概率，不读取或推进共享随机流。
 pub masterworkProcChance(
     tiersAboveRecipe: int,
     signedReagent: bool,

@@ -4,6 +4,8 @@
 var container = %import("zr.container");
 var selection = %import("world/target_selection");
 
+// 玩家索引是世界恢复时建立的一基映射，标记目标仍是实体 ID；
+// 不可用实体 ID 直接下标玩家数组，或跨派对共享标记符号归属。
 class MarkerState {
     pub var playerParty: container.Array<int>;
     pub var entityIds: container.Array<int>;
@@ -128,6 +130,8 @@ pub markCountForParty(state: MarkerState, partyId: int): int {
     return count;
 }
 
+// world/state 先从实体与队伍数组恢复标记视图；同队同符号
+// 保持唯一，相同目标再次选择该符号视为撤销，随后由世界事务提交。
 pub setMarker(state: MarkerState, actor: int, entityId: int, symbol: int): bool {
     state.lastError = 0;
     var partyId = partyFor(state, actor);

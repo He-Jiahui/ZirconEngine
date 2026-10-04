@@ -14,4 +14,5 @@ pub use package_builder::PluginManifestBuilder;
 pub use plugin_module_builder::PluginModuleBuilder;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

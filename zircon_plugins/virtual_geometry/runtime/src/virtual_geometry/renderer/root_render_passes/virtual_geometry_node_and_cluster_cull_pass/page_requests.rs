@@ -1,9 +1,10 @@
 use std::collections::BTreeSet;
 
 #[cfg(test)]
-#[path = "page_requests/allocation_tests.rs"]
+#[path = "page_requests/tests/allocation_tests.rs"]
 mod allocation_tests;
 
+// 按首次发现顺序输出页请求，跨波次去重，并在本帧剩余额度耗尽时停止。
 pub(super) fn append_node_and_cluster_cull_page_requests(
     page_request_ids: &mut Vec<u32>,
     seen_page_request_ids: &mut BTreeSet<u32>,

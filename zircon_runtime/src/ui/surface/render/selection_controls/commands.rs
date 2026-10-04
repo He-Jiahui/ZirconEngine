@@ -9,7 +9,7 @@ use zircon_runtime_interface::ui::{
 use super::{
     metadata::control_label,
     state::SelectionRenderState,
-    style::{SelectionVisual, label_color},
+    style::{label_color, SelectionVisual},
 };
 
 #[allow(clippy::too_many_arguments)]

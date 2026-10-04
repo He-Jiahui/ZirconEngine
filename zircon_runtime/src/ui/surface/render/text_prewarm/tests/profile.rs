@@ -1,6 +1,6 @@
 use crate::core::runtime::diagnostics::profiling::{
-    ProfileCaptureConfig, ProfileSnapshot, reset_capture, snapshot, start_capture,
-    test_capture_lock,
+    reset_capture, snapshot, start_capture, test_capture_lock, ProfileCaptureConfig,
+    ProfileSnapshot,
 };
 use crate::text::TextDocumentKey;
 use crate::ui::surface::UiSurface;
@@ -12,7 +12,7 @@ use zircon_runtime_interface::ui::{
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
 
-use super::{PendingOwnerTextLayouts, resolve_missing_render_command_text_layouts};
+use super::{resolve_missing_render_command_text_layouts, PendingOwnerTextLayouts};
 
 #[test]
 fn render_command_profile_records_fixed_extract_prewarm_and_layout_stages() {

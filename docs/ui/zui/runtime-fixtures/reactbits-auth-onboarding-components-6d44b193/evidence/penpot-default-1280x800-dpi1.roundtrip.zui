@@ -1,0 +1,557 @@
+[asset]
+kind = "view"
+id = "res://ui/tests/reactbits_auth_onboarding_components.zui"
+version = 2
+display_name = "ReactBits Authentication And Onboarding Components"
+
+[tokens]
+"surface.canvas" = "#0f1117"
+"surface.panel" = "#171b24"
+"surface.elevated" = "#1d2330"
+"surface.inset" = "#11151d"
+"border.default" = "#2a3342"
+"border.strong" = "#3a4658"
+"text.primary" = "#f4f7fb"
+"text.secondary" = "#a9b4c5"
+"text.muted" = "#718096"
+"accent.primary" = "#8b7cff"
+"accent.info" = "#5da9ff"
+"status.success" = "#55d6a0"
+"status.warning" = "#f4bd62"
+"status.error" = "#ff7d8a"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalBox"
+control_id = "ReactBitsAuthOnboardingRoot"
+classes = ["rb-auth-onboarding-fixture"]
+props = {
+  background_color = "$surface.canvas",
+  foreground_color = "$text.primary",
+  fixture_data_only = true,
+  reference_primary = "https://pro.reactbits.dev/docs/app-ui/authentication/authentication-1",
+  reference_supporting = [
+    "https://pro.reactbits.dev/docs/app-ui/authentication/authentication-6",
+    "https://pro.reactbits.dev/docs/app-ui/onboarding/onboarding-7",
+    "https://pro.reactbits.dev/docs/app-ui/onboarding/onboarding-4",
+  ],
+  responsive_wide = "a centered sign-in card and a workspace onboarding form share a balanced two-column flow",
+  responsive_compact = "the cards yield width and stack while labels remain start-aligned and progress stays end-aligned",
+  responsive_mobile = "one scroll owner exposes the auth fields before the onboarding steps and preserves primary actions",
+  layout_modes = ["centered-auth", "provider-row", "verification-code", "horizontal-stepper", "workspace-slug", "windowed-workspace-list"],
+  accessibility_label = "Authentication and workspace onboarding reference surface",
+}
+layout = {
+  clip = true,
+  input_policy = "Receive",
+  width = { min = 360, preferred = 1120, max = 1440, stretch = "Stretch" },
+  height = { min = 520, preferred = 820, max = 1040, stretch = "Stretch" },
+  container = { kind = "VerticalBox", gap = 10 },
+  padding = { left = 14, right = 14, top = 14, bottom = 14 },
+}
+children = [{ node = "header" }, { node = "body" }]
+
+[nodes.header]
+component = "HorizontalBox"
+control_id = "ReactBitsAuthHeader"
+props = { background_color = "$surface.panel", border_color = "$border.default", border_width = 1, corner_radius = 8 }
+layout = { width = { stretch = "Stretch" }, height = { min = 52, preferred = 52, max = 52, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8 }, padding = { left = 12, right = 12, top = 8, bottom = 8 } }
+children = [{ node = "brand" }, { node = "header_context" }, { node = "locale" }]
+
+[nodes.brand]
+component = "Button"
+control_id = "ReactBitsAuthBrand"
+props = { text = "Zircon access", text_key = "fixture.auth.header.brand", icon = "package", icon_size = "m", button_variant = "text", foreground_color = "$text.primary", corner_radius = 6, text_align = "left", input_interactive = true, input_focusable = true, accessibility_label = "Zircon access home" }
+layout = { width = { min = 144, preferred = 176, max = 220, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.header_context]
+component = "Label"
+control_id = "ReactBitsAuthHeaderContext"
+props = { text = "Sign in or create a workspace", text_key = "fixture.auth.header.context", foreground_color = "$text.secondary", font_size = 10, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.locale]
+component = "Button"
+control_id = "ReactBitsAuthLocale"
+props = { text = "English (US)", text_key = "fixture.auth.header.locale", button_variant = "outlined", foreground_color = "$text.secondary", border_color = "$border.strong", border_width = 1, corner_radius = 6, text_align = "right", input_interactive = true, input_focusable = true, accessibility_label = "Choose language" }
+layout = { width = { min = 104, preferred = 126, max = 148, stretch = "Fixed" }, height = { stretch = "Stretch" }, padding = { left = 8, right = 8, top = 5, bottom = 5 } }
+
+[nodes.body]
+component = "ScrollableBox"
+control_id = "ReactBitsAuthBody"
+props = { background_color = "$surface.inset", border_color = "$border.default", border_width = 1, corner_radius = 8, scroll_owner = "auth-onboarding-body", accessibility_label = "Authentication and onboarding content" }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { min = 0, stretch = "Stretch" }, container = { kind = "ScrollableBox", axis = "Vertical", gap = 10, scrollbar_visibility = "Auto" }, padding = { left = 12, right = 12, top = 12, bottom = 12 } }
+children = [{ node = "main" }]
+
+[nodes.main]
+component = "Stack"
+control_id = "ReactBitsAuthOnboardingMain"
+props = { direction = { xs = "column", md = "row" }, spacing = { xs = 2, md = 2 } }
+layout = { width = { stretch = "Stretch" }, height = { min = 560 } }
+children = [
+  { node = "auth_card", slot = { layout = { width = { min = 0, preferred = 420, weight = 1, stretch = "Stretch" } } } },
+  { node = "onboarding_card", slot = { layout = { width = { min = 0, preferred = 620, weight = 1, stretch = "Stretch" } } } },
+]
+
+[nodes.auth_card]
+component = "VerticalBox"
+control_id = "ReactBitsAuthCard"
+classes = ["rb-auth-card"]
+props = { background_color = "$surface.panel", border_color = "$border.default", border_width = 1, corner_radius = 10, accessibility_label = "Sign in form" }
+layout = { width = { stretch = "Stretch" }, height = { min = 560 }, container = { kind = "VerticalBox", gap = 10 }, padding = { left = 18, right = 18, top = 18, bottom = 18 } }
+children = [
+  { node = "auth_mark" },
+  { node = "auth_heading" },
+  { node = "provider_row" },
+  { node = "auth_divider" },
+  { node = "email_field" },
+  { node = "password_field" },
+  { node = "auth_options" },
+  { node = "auth_actions" },
+  { node = "terms" },
+  { node = "verification" },
+]
+
+[nodes.auth_mark]
+component = "Label"
+control_id = "ReactBitsAuthMark"
+props = { text = "Z", text_key = "fixture.auth.mark", foreground_color = "$accent.primary", font_size = 24, font_weight = 700, text_align = "center", accessibility_label = "Zircon" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30, preferred = 34, max = 38, stretch = "Fixed" } }
+
+[nodes.auth_heading]
+component = "VerticalBox"
+control_id = "ReactBitsAuthHeading"
+layout = { width = { stretch = "Stretch" }, height = { min = 60, preferred = 68, max = 80, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 4 } }
+children = [{ node = "auth_title" }, { node = "auth_subtitle" }]
+
+[nodes.auth_title]
+component = "Label"
+control_id = "ReactBitsAuthTitle"
+props = { text = "Welcome back", text_key = "fixture.auth.signin.title", foreground_color = "$text.primary", font_size = 17, font_weight = 650, text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22, preferred = 24, max = 28, stretch = "Fixed" } }
+
+[nodes.auth_subtitle]
+component = "Label"
+control_id = "ReactBitsAuthSubtitle"
+props = { text = "Use your account to continue to the workspace.", text_key = "fixture.auth.signin.subtitle", foreground_color = "$text.secondary", font_size = 10, wrap = "word", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30, preferred = 34, max = 42, stretch = "Fixed" } }
+
+[nodes.provider_row]
+component = "HorizontalBox"
+control_id = "ReactBitsAuthProviderRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 38, preferred = 40, max = 44, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 6 } }
+children = [{ node = "provider_google" }, { node = "provider_github" }, { node = "provider_sso" }]
+
+[nodes.provider_google]
+component = "Button"
+control_id = "ReactBitsAuthProviderGoogle"
+props = { text = "Google", text_key = "fixture.auth.provider.google", icon = "check-circle", icon_size = "m", button_variant = "outlined", foreground_color = "$text.primary", border_color = "$border.strong", border_width = 1, corner_radius = 6, text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "Continue with Google" }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.provider_github]
+component = "Button"
+control_id = "ReactBitsAuthProviderGithub"
+props = { text = "GitHub", text_key = "fixture.auth.provider.github", icon = "package", icon_size = "m", button_variant = "outlined", foreground_color = "$text.primary", border_color = "$border.strong", border_width = 1, corner_radius = 6, text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "Continue with GitHub" }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.provider_sso]
+component = "Button"
+control_id = "ReactBitsAuthProviderSso"
+props = { text = "SSO", text_key = "fixture.auth.provider.sso", icon = "info", icon_size = "m", button_variant = "outlined", foreground_color = "$text.primary", border_color = "$border.strong", border_width = 1, corner_radius = 6, text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "Continue with single sign-on" }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.auth_divider]
+component = "Label"
+control_id = "ReactBitsAuthDivider"
+props = { text = "or continue with email", text_key = "fixture.auth.divider", foreground_color = "$text.muted", font_size = 9, text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { min = 18, preferred = 20, max = 22, stretch = "Fixed" } }
+
+[nodes.email_field]
+component = "VerticalBox"
+control_id = "ReactBitsAuthEmailField"
+layout = { width = { stretch = "Stretch" }, height = { min = 66, preferred = 70, max = 78, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 4 } }
+children = [{ node = "email_label" }, { node = "email_input" }]
+
+[nodes.email_label]
+component = "Label"
+control_id = "ReactBitsAuthEmailLabel"
+props = { text = "Work email", text_key = "fixture.auth.email.label", foreground_color = "$text.primary", font_size = 10, font_weight = 600, text_align = "left" }
+layout = { width = { stretch = "Stretch" }, height = { min = 16, preferred = 16, max = 18, stretch = "Fixed" } }
+
+[nodes.email_input]
+component = "TextField"
+control_id = "ReactBitsAuthEmailInput"
+props = { component_role = "auth-field", value_text = "builder@example.com", value_key = "fixture.auth.email.value", placeholder = "you@example.com", placeholder_key = "fixture.auth.email.placeholder", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, accessibility_label = "Work email" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, padding = { left = 9, right = 9, top = 6, bottom = 6 } }
+
+[nodes.password_field]
+component = "VerticalBox"
+control_id = "ReactBitsAuthPasswordField"
+layout = { width = { stretch = "Stretch" }, height = { min = 66, preferred = 70, max = 78, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 4 } }
+children = [{ node = "password_label" }, { node = "password_input" }]
+
+[nodes.password_label]
+component = "Label"
+control_id = "ReactBitsAuthPasswordLabel"
+props = { text = "Password", text_key = "fixture.auth.password.label", foreground_color = "$text.primary", font_size = 10, font_weight = 600, text_align = "left" }
+layout = { width = { stretch = "Stretch" }, height = { min = 16, preferred = 16, max = 18, stretch = "Fixed" } }
+
+[nodes.password_input]
+component = "TextField"
+control_id = "ReactBitsAuthPasswordInput"
+props = { component_role = "auth-field", value_text = "••••••••••", value_key = "fixture.auth.password.value", placeholder = "Enter your password", placeholder_key = "fixture.auth.password.placeholder", secret = true, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, accessibility_label = "Password" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, padding = { left = 9, right = 9, top = 6, bottom = 6 } }
+
+[nodes.auth_options]
+component = "HorizontalBox"
+control_id = "ReactBitsAuthOptions"
+layout = { width = { stretch = "Stretch" }, height = { min = 28, preferred = 30, max = 34, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8 } }
+children = [{ node = "remember" }, { node = "forgot" }]
+
+[nodes.remember]
+component = "Button"
+control_id = "ReactBitsAuthRemember"
+props = { text = "Keep me signed in", text_key = "fixture.auth.remember", button_variant = "text", selected = true, foreground_color = "$text.secondary", text_align = "left", input_interactive = true, input_focusable = true, accessibility_label = "Keep me signed in" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.forgot]
+component = "Button"
+control_id = "ReactBitsAuthForgot"
+props = { text = "Forgot password?", text_key = "fixture.auth.forgot", button_variant = "text", foreground_color = "$accent.info", text_align = "right", input_interactive = true, input_focusable = true, accessibility_label = "Recover password" }
+layout = { width = { min = 116, preferred = 132, max = 156, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.auth_actions]
+component = "VerticalBox"
+control_id = "ReactBitsAuthActions"
+layout = { width = { stretch = "Stretch" }, height = { min = 76, preferred = 82, max = 90, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 6 } }
+children = [{ node = "signin" }, { node = "create_account" }]
+
+[nodes.signin]
+component = "Button"
+control_id = "ReactBitsAuthSignIn"
+props = { text = "Sign in", text_key = "fixture.auth.action.signin", button_variant = "contained", background_color = "$accent.primary", foreground_color = "$text.primary", corner_radius = 6, text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "Sign in" }
+layout = { width = { stretch = "Stretch" }, height = { min = 34, preferred = 36, max = 40, stretch = "Fixed" } }
+
+[nodes.create_account]
+component = "Button"
+control_id = "ReactBitsAuthCreateAccount"
+props = { text = "Create an account", text_key = "fixture.auth.action.create", button_variant = "text", foreground_color = "$text.secondary", corner_radius = 6, text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "Create an account" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32, preferred = 34, max = 38, stretch = "Fixed" } }
+
+[nodes.terms]
+component = "Label"
+control_id = "ReactBitsAuthTerms"
+props = { text = "By continuing, you agree to the **workspace terms** and privacy policy.", text_key = "fixture.auth.terms", rich_text_format = "markdown_inline_v1", foreground_color = "$text.muted", font_size = 9, wrap = "word", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28, preferred = 32, max = 40, stretch = "Fixed" } }
+
+[nodes.verification]
+component = "VerticalBox"
+control_id = "ReactBitsAuthVerification"
+props = { background_color = "$surface.elevated", border_color = "$border.default", border_width = 1, corner_radius = 8, display = { xs = "none", md = "flex" }, accessibility_label = "Verification code follow-up" }
+layout = { width = { stretch = "Stretch" }, height = { min = 112, preferred = 124, max = 140, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 6 }, padding = { left = 10, right = 10, top = 8, bottom = 8 } }
+children = [{ node = "verification_heading" }, { node = "otp_row" }, { node = "verification_note" }]
+
+[nodes.verification_heading]
+component = "Label"
+control_id = "ReactBitsAuthVerificationHeading"
+props = { text = "Verify your sign-in", text_key = "fixture.auth.verification.title", foreground_color = "$text.primary", font_size = 11, font_weight = 650, text_align = "left" }
+layout = { width = { stretch = "Stretch" }, height = { min = 16, preferred = 18, max = 20, stretch = "Fixed" } }
+
+[nodes.otp_row]
+component = "HorizontalBox"
+control_id = "ReactBitsAuthOtpRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 30, preferred = 34, max = 38, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 5 } }
+children = [{ node = "otp_1" }, { node = "otp_2" }, { node = "otp_3" }, { node = "otp_4" }, { node = "otp_5" }, { node = "otp_6" }]
+
+[nodes.otp_1]
+component = "TextField"
+control_id = "ReactBitsAuthOtp1"
+props = { value_text = "4", value_key = "fixture.auth.otp.1", input_interactive = true, input_focusable = true, text_align = "center", accessibility_label = "Verification digit 1 of 6" }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" }, padding = { left = 4, right = 4, top = 4, bottom = 4 } }
+
+[nodes.otp_2]
+component = "TextField"
+control_id = "ReactBitsAuthOtp2"
+props = { value_text = "8", value_key = "fixture.auth.otp.2", input_interactive = true, input_focusable = true, text_align = "center", accessibility_label = "Verification digit 2 of 6" }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" }, padding = { left = 4, right = 4, top = 4, bottom = 4 } }
+
+[nodes.otp_3]
+component = "TextField"
+control_id = "ReactBitsAuthOtp3"
+props = { value_text = "2", value_key = "fixture.auth.otp.3", input_interactive = true, input_focusable = true, text_align = "center", accessibility_label = "Verification digit 3 of 6" }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" }, padding = { left = 4, right = 4, top = 4, bottom = 4 } }
+
+[nodes.otp_4]
+component = "TextField"
+control_id = "ReactBitsAuthOtp4"
+props = { value_text = "0", value_key = "fixture.auth.otp.4", input_interactive = true, input_focusable = true, text_align = "center", accessibility_label = "Verification digit 4 of 6" }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" }, padding = { left = 4, right = 4, top = 4, bottom = 4 } }
+
+[nodes.otp_5]
+component = "TextField"
+control_id = "ReactBitsAuthOtp5"
+props = { value_text = "1", value_key = "fixture.auth.otp.5", input_interactive = true, input_focusable = true, text_align = "center", accessibility_label = "Verification digit 5 of 6" }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" }, padding = { left = 4, right = 4, top = 4, bottom = 4 } }
+
+[nodes.otp_6]
+component = "TextField"
+control_id = "ReactBitsAuthOtp6"
+props = { value_text = "6", value_key = "fixture.auth.otp.6", input_interactive = true, input_focusable = true, text_align = "center", accessibility_label = "Verification digit 6 of 6" }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" }, padding = { left = 4, right = 4, top = 4, bottom = 4 } }
+
+[nodes.verification_note]
+component = "Label"
+control_id = "ReactBitsAuthVerificationNote"
+props = { text = "Code sent to **builder@example.com** · resend in 00:24", text_key = "fixture.auth.verification.note", rich_text_format = "markdown_inline_v1", foreground_color = "$text.secondary", font_size = 9, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 16, preferred = 18, max = 22, stretch = "Fixed" } }
+
+[nodes.onboarding_card]
+component = "VerticalBox"
+control_id = "ReactBitsOnboardingCard"
+classes = ["rb-onboarding-card"]
+props = { background_color = "$surface.panel", border_color = "$border.default", border_width = 1, corner_radius = 10, accessibility_label = "Workspace onboarding form" }
+layout = { width = { stretch = "Stretch" }, height = { min = 560 }, container = { kind = "VerticalBox", gap = 9 }, padding = { left = 16, right = 16, top = 16, bottom = 16 } }
+children = [{ node = "onboarding_heading" }, { node = "stepper" }, { node = "workspace_name_row" }, { node = "slug_row" }, { node = "use_case_heading" }, { node = "use_case_row" }, { node = "team_size_row" }, { node = "workspace_picker" }, { node = "onboarding_actions" }]
+
+[nodes.onboarding_heading]
+component = "HorizontalBox"
+control_id = "ReactBitsOnboardingHeading"
+layout = { width = { stretch = "Stretch" }, height = { min = 54, preferred = 58, max = 64, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8 } }
+children = [{ node = "onboarding_heading_stack" }, { node = "onboarding_progress" }]
+
+[nodes.onboarding_heading_stack]
+component = "VerticalBox"
+control_id = "ReactBitsOnboardingHeadingStack"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 2 } }
+children = [{ node = "onboarding_title" }, { node = "onboarding_subtitle" }]
+
+[nodes.onboarding_title]
+component = "Label"
+control_id = "ReactBitsOnboardingTitle"
+props = { text = "Create your workspace", text_key = "fixture.onboarding.title", foreground_color = "$text.primary", font_size = 15, font_weight = 650, text_align = "left" }
+layout = { width = { stretch = "Stretch" }, height = { min = 20, preferred = 22, max = 26, stretch = "Fixed" } }
+
+[nodes.onboarding_subtitle]
+component = "Label"
+control_id = "ReactBitsOnboardingSubtitle"
+props = { text = "A few details help your team find the right starting point.", text_key = "fixture.onboarding.subtitle", foreground_color = "$text.secondary", font_size = 10, wrap = "word" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28, preferred = 30, max = 34, stretch = "Fixed" } }
+
+[nodes.onboarding_progress]
+component = "Label"
+control_id = "ReactBitsOnboardingProgress"
+props = { text = "Step 2 of 4", text_key = "fixture.onboarding.progress", foreground_color = "$accent.info", font_size = 10, text_align = "right" }
+layout = { width = { min = 72, preferred = 88, max = 104, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.stepper]
+component = "HorizontalBox"
+control_id = "ReactBitsOnboardingStepper"
+layout = { width = { stretch = "Stretch" }, height = { min = 32, preferred = 36, max = 40, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 5 } }
+children = [{ node = "step_profile" }, { node = "step_workspace" }, { node = "step_team" }, { node = "step_finish" }]
+
+[nodes.step_profile]
+component = "Button"
+control_id = "ReactBitsOnboardingStepProfile"
+props = { text = "1  Profile", text_key = "fixture.onboarding.step.profile", button_variant = "text", selected = true, foreground_color = "$status.success", text_align = "left", input_interactive = true, input_focusable = true, accessibility_label = "Profile step complete" }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.step_workspace]
+component = "Button"
+control_id = "ReactBitsOnboardingStepWorkspace"
+props = { text = "2  Workspace", text_key = "fixture.onboarding.step.workspace", button_variant = "text", background_color = "$surface.elevated", foreground_color = "$text.primary", corner_radius = 6, text_align = "left", input_interactive = true, input_focusable = true, accessibility_label = "Workspace step current" }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.step_team]
+component = "Button"
+control_id = "ReactBitsOnboardingStepTeam"
+props = { text = "3  Team", text_key = "fixture.onboarding.step.team", button_variant = "text", foreground_color = "$text.muted", text_align = "left", input_interactive = true, input_focusable = true, accessibility_label = "Team step pending" }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.step_finish]
+component = "Button"
+control_id = "ReactBitsOnboardingStepFinish"
+props = { text = "4  Finish", text_key = "fixture.onboarding.step.finish", button_variant = "text", foreground_color = "$text.muted", text_align = "left", input_interactive = true, input_focusable = true, accessibility_label = "Finish step pending" }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.workspace_name_row]
+component = "HorizontalBox"
+control_id = "ReactBitsOnboardingWorkspaceNameRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 60, preferred = 66, max = 74, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 10 } }
+children = [{ node = "workspace_name_label" }, { node = "workspace_name_input" }]
+
+[nodes.workspace_name_label]
+component = "VerticalBox"
+control_id = "ReactBitsOnboardingWorkspaceNameLabel"
+layout = { width = { min = 0, preferred = 124, max = 168, stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 2 } }
+children = [{ node = "workspace_name_label_text" }, { node = "workspace_name_help" }]
+
+[nodes.workspace_name_label_text]
+component = "Label"
+control_id = "ReactBitsOnboardingWorkspaceNameLabelText"
+props = { text = "Workspace name", text_key = "fixture.onboarding.workspace.label", foreground_color = "$text.primary", font_size = 10, font_weight = 600, text_align = "left" }
+layout = { width = { stretch = "Stretch" }, height = { min = 16, preferred = 16, max = 18, stretch = "Fixed" } }
+
+[nodes.workspace_name_help]
+component = "Label"
+control_id = "ReactBitsOnboardingWorkspaceNameHelp"
+props = { text = "Visible to invited teammates", text_key = "fixture.onboarding.workspace.help", foreground_color = "$text.muted", font_size = 9, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 14, preferred = 14, max = 18, stretch = "Fixed" } }
+
+[nodes.workspace_name_input]
+component = "TextField"
+control_id = "ReactBitsOnboardingWorkspaceNameInput"
+props = { component_role = "onboarding-field", value_text = "Zircon Design Lab", value_key = "fixture.onboarding.workspace.value", placeholder = "Name your workspace", placeholder_key = "fixture.onboarding.workspace.placeholder", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, accessibility_label = "Workspace name" }
+layout = { width = { min = 0, stretch = "Stretch" }, height = { stretch = "Stretch" }, padding = { left = 9, right = 9, top = 6, bottom = 6 } }
+
+[nodes.slug_row]
+component = "HorizontalBox"
+control_id = "ReactBitsOnboardingSlugRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 34, preferred = 38, max = 44, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 10 } }
+children = [{ node = "slug_label" }, { node = "slug_value" }]
+
+[nodes.slug_label]
+component = "Label"
+control_id = "ReactBitsOnboardingSlugLabel"
+props = { text = "Workspace URL", text_key = "fixture.onboarding.slug.label", foreground_color = "$text.primary", font_size = 10, font_weight = 600, text_align = "left" }
+layout = { width = { min = 0, preferred = 124, max = 168, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.slug_value]
+component = "Label"
+control_id = "ReactBitsOnboardingSlugValue"
+props = { text = "zircon-design-lab", text_key = "fixture.onboarding.slug.value", foreground_color = "$accent.info", font_size = 10, text_align = "right", text_overflow = "elide" }
+layout = { width = { min = 0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.use_case_heading]
+component = "Label"
+control_id = "ReactBitsOnboardingUseCaseHeading"
+props = { text = "What will your team build?", text_key = "fixture.onboarding.use_case.heading", foreground_color = "$text.primary", font_size = 11, font_weight = 650, text_align = "left" }
+layout = { width = { stretch = "Stretch" }, height = { min = 18, preferred = 20, max = 24, stretch = "Fixed" } }
+
+[nodes.use_case_row]
+component = "HorizontalBox"
+control_id = "ReactBitsOnboardingUseCaseRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 56, preferred = 62, max = 70, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 6 } }
+children = [{ node = "use_case_editor" }, { node = "use_case_runtime" }, { node = "use_case_tools" }]
+
+[nodes.use_case_editor]
+component = "Button"
+control_id = "ReactBitsOnboardingUseCaseEditor"
+props = { text = "Editor", text_key = "fixture.onboarding.use_case.editor", icon = "package", icon_size = "m", button_variant = "outlined", selected = true, background_color = "$surface.elevated", foreground_color = "$text.primary", border_color = "$accent.primary", border_width = 1, corner_radius = 7, text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "Choose editor use case" }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.use_case_runtime]
+component = "Button"
+control_id = "ReactBitsOnboardingUseCaseRuntime"
+props = { text = "Runtime", text_key = "fixture.onboarding.use_case.runtime", icon = "check-circle", icon_size = "m", button_variant = "outlined", foreground_color = "$text.secondary", border_color = "$border.strong", border_width = 1, corner_radius = 7, text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "Choose runtime use case" }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.use_case_tools]
+component = "Button"
+control_id = "ReactBitsOnboardingUseCaseTools"
+props = { text = "Tools", text_key = "fixture.onboarding.use_case.tools", icon = "info", icon_size = "m", button_variant = "outlined", foreground_color = "$text.secondary", border_color = "$border.strong", border_width = 1, corner_radius = 7, text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "Choose tools use case" }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.team_size_row]
+component = "HorizontalBox"
+control_id = "ReactBitsOnboardingTeamSize"
+props = { accessibility_label = "Team size" }
+layout = { width = { stretch = "Stretch" }, height = { min = 34, preferred = 38, max = 44, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 5 } }
+children = [{ node = "team_size_label" }, { node = "team_1" }, { node = "team_2" }, { node = "team_3" }, { node = "team_4" }]
+
+[nodes.team_size_label]
+component = "Label"
+control_id = "ReactBitsOnboardingTeamSizeLabel"
+props = { text = "Team size", text_key = "fixture.onboarding.team_size.label", foreground_color = "$text.secondary", font_size = 10, text_align = "left" }
+layout = { width = { min = 68, preferred = 82, max = 96, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.team_1]
+component = "Button"
+control_id = "ReactBitsOnboardingTeam1"
+props = { text = "1–5", text_key = "fixture.onboarding.team_size.1_5", button_variant = "text", foreground_color = "$text.secondary", border_color = "$border.strong", border_width = 1, corner_radius = 5, text_align = "center", input_interactive = true, input_focusable = true }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.team_2]
+component = "Button"
+control_id = "ReactBitsOnboardingTeam2"
+props = { text = "6–20", text_key = "fixture.onboarding.team_size.6_20", button_variant = "text", selected = true, background_color = "$surface.elevated", foreground_color = "$text.primary", border_color = "$accent.primary", border_width = 1, corner_radius = 5, text_align = "center", input_interactive = true, input_focusable = true }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.team_3]
+component = "Button"
+control_id = "ReactBitsOnboardingTeam3"
+props = { text = "21–50", text_key = "fixture.onboarding.team_size.21_50", button_variant = "text", foreground_color = "$text.secondary", border_color = "$border.strong", border_width = 1, corner_radius = 5, text_align = "center", input_interactive = true, input_focusable = true }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.team_4]
+component = "Button"
+control_id = "ReactBitsOnboardingTeam4"
+props = { text = "51+", text_key = "fixture.onboarding.team_size.51_plus", button_variant = "text", foreground_color = "$text.secondary", border_color = "$border.strong", border_width = 1, corner_radius = 5, text_align = "center", input_interactive = true, input_focusable = true }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.workspace_picker]
+component = "ScrollableBox"
+control_id = "ReactBitsOnboardingWorkspacePicker"
+props = { collection_virtualization = "windowed", viewport_start = 0, visible_limit = 3, collection_items = ["selected|Zircon Design Lab|owner", "normal|Runtime Tools|member", "normal|Penpot Bridge|member", "normal|Archive Workspace|viewer"], collection_test_cases = ["empty", "one", "normal", "overflow", "narrow", "long-locale"], long_locale_fixture_label = "A deliberately long localized workspace label for overflow coverage", empty_text = "No workspaces available", empty_text_key = "fixture.onboarding.workspace_list.empty", scroll_owner = "workspace-picker", background_color = "$surface.inset", border_color = "$border.default", border_width = 1, corner_radius = 7, accessibility_label = "Choose an existing workspace" }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { min = 76, preferred = 88, max = 104, stretch = "Fixed" }, container = { kind = "ScrollableBox", axis = "Vertical", gap = 4, scrollbar_visibility = "Auto" }, padding = { left = 7, right = 7, top = 6, bottom = 6 } }
+children = [{ node = "workspace_picker_heading" }, { node = "workspace_current" }, { node = "workspace_other" }, { node = "workspace_archived" }]
+
+[nodes.workspace_picker_heading]
+component = "Label"
+control_id = "ReactBitsOnboardingWorkspacePickerHeading"
+props = { text = "Existing workspaces", text_key = "fixture.onboarding.workspace_list.heading", foreground_color = "$text.muted", font_size = 9, font_weight = 700, text_align = "left" }
+layout = { width = { stretch = "Stretch" }, height = { min = 16, preferred = 18, max = 20, stretch = "Fixed" } }
+
+[nodes.workspace_current]
+component = "Button"
+control_id = "ReactBitsOnboardingWorkspaceCurrent"
+props = { text = "Zircon Design Lab · owner", text_key = "fixture.onboarding.workspace_list.current", button_variant = "text", selected = true, background_color = "$surface.elevated", foreground_color = "$text.primary", corner_radius = 5, text_align = "left", input_interactive = true, input_focusable = true, accessibility_label = "Current workspace" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24, preferred = 26, max = 30, stretch = "Fixed" } }
+
+[nodes.workspace_other]
+component = "Button"
+control_id = "ReactBitsOnboardingWorkspaceOther"
+props = { text = "Runtime Tools · member", text_key = "fixture.onboarding.workspace_list.other", button_variant = "text", foreground_color = "$text.secondary", corner_radius = 5, text_align = "left", input_interactive = true, input_focusable = true, accessibility_label = "Runtime Tools workspace" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24, preferred = 26, max = 30, stretch = "Fixed" } }
+
+[nodes.workspace_archived]
+component = "Button"
+control_id = "ReactBitsOnboardingWorkspaceArchived"
+props = { text = "Archive Workspace · viewer", text_key = "fixture.onboarding.workspace_list.archived", button_variant = "text", foreground_color = "$text.muted", corner_radius = 5, text_align = "left", input_interactive = true, input_focusable = true, accessibility_label = "Archive Workspace" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24, preferred = 26, max = 30, stretch = "Fixed" } }
+
+[nodes.onboarding_actions]
+component = "HorizontalBox"
+control_id = "ReactBitsOnboardingActions"
+layout = { width = { stretch = "Stretch" }, height = { min = 38, preferred = 42, max = 46, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 6 } }
+children = [{ node = "onboarding_back" }, { node = "onboarding_action_gap" }, { node = "onboarding_continue" }]
+
+[nodes.onboarding_back]
+component = "Button"
+control_id = "ReactBitsOnboardingBack"
+props = { text = "Back", text_key = "fixture.onboarding.action.back", icon = "chevron-left", icon_placement = "start", icon_size = "s", button_variant = "text", foreground_color = "$text.secondary", corner_radius = 6, text_align = "left", input_interactive = true, input_focusable = true, accessibility_label = "Back to profile step" }
+layout = { width = { min = 0, preferred = 92, max = 112, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.onboarding_action_gap]
+component = "Space"
+layout = { width = { min = 0, preferred = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.onboarding_continue]
+component = "Button"
+control_id = "ReactBitsOnboardingContinue"
+props = { text = "Continue", text_key = "fixture.onboarding.action.continue", icon = "chevron-right", icon_placement = "end", icon_size = "s", button_variant = "contained", background_color = "$accent.primary", foreground_color = "$text.primary", corner_radius = 6, text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "Continue to team step" }
+layout = { width = { min = 0, preferred = 148, max = 180, weight = 2, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.root.zircon_extension]
+owner = "reactbits-reference-slice"
+reference_profile = "reactbits-auth-onboarding-components-v1"
+source_of_truth = "zui"
+penpot_visual_check = "required"
+
+[[stylesheets]]
+id = "reactbits-ui-typography"
+
+[[stylesheets.rules]]
+selector = "*"
+set = { self = { font = { asset = "res://fonts/editor-ui.font.toml", family = "Fira Sans" } } }

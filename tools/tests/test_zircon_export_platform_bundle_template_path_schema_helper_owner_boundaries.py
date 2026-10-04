@@ -1,3 +1,4 @@
+# 核对模板路径与哈希模式辅助函数的模块归属。
 import unittest
 from pathlib import Path
 
@@ -5,18 +6,18 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_HELPERS = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_platform_bundle_template_schema_helpers.py"
+    / "tools/export/pipeline_report_platform_bundle_template_schema_helpers.py"
 )
 PATH_SCHEMA_HELPERS = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_platform_bundle_template_path_schema_helpers.py"
+    / "tools/export/pipeline_report_platform_bundle_template_path_schema_helpers.py"
 )
 TEMPLATE_SCHEMA = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_platform_bundle_template_schema.py"
+    REPO_ROOT / "tools/export/pipeline_report_platform_bundle_template_schema.py"
 )
 TEMPLATE_BUNDLE_FILES_SCHEMA = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_platform_bundle_template_bundle_files_schema.py"
+    / "tools/export/pipeline_report_platform_bundle_template_bundle_files_schema.py"
 )
 
 

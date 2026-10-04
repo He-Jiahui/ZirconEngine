@@ -1,19 +1,19 @@
 ---
 related_code:
-  - tools/cargo-zircon/Cargo.toml
-  - tools/cargo-zircon/src/lib.rs
-  - tools/cargo-zircon/src/main.rs
-  - tools/cargo-zircon/src/plugin/check.rs
-  - tools/cargo-zircon/src/plugin/diagnostic.rs
-  - tools/cargo-zircon/src/plugin/manifest_sync.rs
-  - tools/cargo-zircon/src/plugin/manifest_sync/declaration.rs
-  - tools/cargo-zircon/src/plugin/scaffold/mod.rs
-  - tools/cargo-zircon/src/plugin/scaffold/templates.rs
-  - tools/cargo-zircon/src/plugin/validate.rs
-  - tools/cargo-zircon/src/plugin/validate/native_artifact.rs
-  - tools/zircon_export/plugin_command.py
-  - tools/zircon_export/plugin_validate.py
-  - tools/zircon_export/plugin_validate_target_discovery.py
+  - tools/cargo/Cargo.toml
+  - tools/cargo/src/lib.rs
+  - tools/cargo/src/main.rs
+  - tools/cargo/src/plugin/check.rs
+  - tools/cargo/src/plugin/diagnostic.rs
+  - tools/cargo/src/plugin/manifest_sync.rs
+  - tools/cargo/src/plugin/manifest_sync/declaration.rs
+  - tools/cargo/src/plugin/scaffold/mod.rs
+  - tools/cargo/src/plugin/scaffold/templates.rs
+  - tools/cargo/src/plugin/validate.rs
+  - tools/cargo/src/plugin/validate/native_artifact.rs
+  - tools/export/plugin_command.py
+  - tools/export/plugin_validate.py
+  - tools/export/plugin_validate_target_discovery.py
   - zircon_plugins/Cargo.toml
   - zircon_plugins/first_party_runtime_catalog/Cargo.toml
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
@@ -24,16 +24,16 @@ related_code:
   - zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs
   - zircon_app/Cargo.toml
 tests:
-  - tools/cargo-zircon/tests/manifest_sync.rs
-  - tools/cargo-zircon/tests/plugin_commands.rs
-  - tools/zircon_export/tests/test_plugin_validate_all_targets.py
+  - tools/cargo/tests/manifest_sync.rs
+  - tools/cargo/tests/plugin_commands.rs
+  - tools/export/tests/test_plugin_validate_all_targets.py
   - .github/workflows/ci.yml
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_plugins/01-plugin-sdk-package-catalog-distribution-native-abi-review.md
   - docs/plans/optimize/zircon_tooling/01-workspace-toolchain-ci-validation-and-developer-entrypoints-review.md
   - docs/plans/zircon_runtime/frameworks/04-plugin-dx-and-sdk-toolchain.md
-  - docs/cli-and-tooling/cargo-zircon-plugin-workflow.md
+  - docs/tooling/cargo-zircon-plugin-workflow.md
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/Projects/Public/PluginDescriptor.h
   - dev/UnrealEngine/Engine/Source/Runtime/Projects/Private/PluginDescriptor.cpp
@@ -89,7 +89,7 @@ cargo run --locked -p cargo-zircon -- plugin check --root .
 
 ```text
 error[E0308]: mismatched types
-tools\cargo-zircon\src\plugin\check.rs:70:50
+tools\cargo\src\plugin\check.rs:70:50
 expected `&Path`, found `Option<&Path>`
 ```
 
@@ -98,7 +98,7 @@ expected `&Path`, found `Option<&Path>`
 以下发布validator命令通过：
 
 ```powershell
-python -m tools.zircon_export plugin validate --all --repo-root . --json
+python -m tools.export plugin validate --all --repo-root . --json
 ```
 
 耗时约33.4秒，输出`target_count=41`、`failed_count=0`、`fatal=false`、`diagnostics=[]`。41项包括39个root plugin package和sound的2个feature extension。这只证明Python静态发布合同通过，不证明Rust声明同步、脚手架、Cargo build、DLL probe、加载或运行时行为。
@@ -110,7 +110,7 @@ python -m tools.zircon_export plugin validate --all --repo-root . --json
 3. `sync-manifest`递归寻找`capability.rs`或`lib.rs`中的全限定`zircon_plugin_sdk::declare_plugin!`，用定制`syn::Parse`把部分字段写回TOML。
 4. `plugin check`递归寻找39个`plugin.toml`，静态验证字段，再用Cargo TOML与catalog Rust源码字符串做wiring检查。
 5. 指定artifact时，check/validate在当前进程加载动态库并读取ABI v3 descriptor。
-6. 发布侧另有`python -m tools.zircon_export plugin validate/build`，其target发现、schema和package materialization与Rust工具没有共享model。
+6. 发布侧另有`python -m tools.export plugin validate/build`，其target发现、schema和package materialization与Rust工具没有共享model。
 
 ## 3. 当前P0
 
@@ -178,7 +178,7 @@ registration通过查找`zircon_plugin_...::plugin_registration()`文本与相�
 
 ### TOOL-PLUGIN-P1-011 · Plugin build位于另一套Python命令面
 
-Rust入口有new/check/validate/sync，真正`plugin build`却由`python -m tools.zircon_export`拥有。用户不能从同一tool discovery、config、diagnostic、Build Set和receipt完成new→check→build→package。应收敛到单一frontend和shared service model；不要求把所有实现重写成一种语言。
+Rust入口有new/check/validate/sync，真正`plugin build`却由`python -m tools.export`拥有。用户不能从同一tool discovery、config、diagnostic、Build Set和receipt完成new→check→build→package。应收敛到单一frontend和shared service model；不要求把所有实现重写成一种语言。
 
 ## 5. Scaffold 工程化差距
 
@@ -407,4 +407,4 @@ Wrench/Yamato把package catalog、schema、Editor/Playmode版本矩阵、pack和
 
 ## 12. 后续边界
 
-本报告只深审Rust开发入口及其与当前catalog/Python validator的交界。下一份报告继续读取`tools/zircon_export`完整pipeline、plugin build/package/signature、platform bundle、Editor export调用点和CI artifact真实性；不会因为Python `validate --all`通过就把build/package/install/promotion视为完成。
+本报告只深审Rust开发入口及其与当前catalog/Python validator的交界。下一份报告继续读取`tools/export`完整pipeline、plugin build/package/signature、platform bundle、Editor export调用点和CI artifact真实性；不会因为Python `validate --all`通过就把build/package/install/promotion视为完成。

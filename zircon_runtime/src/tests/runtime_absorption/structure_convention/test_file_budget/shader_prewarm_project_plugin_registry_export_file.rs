@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对着色器预热的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 const STATUS: &str =
@@ -19,14 +20,20 @@ fn runtime_15_shader_prewarm_project_plugin_registry_export_file_is_wired() {
         "run path writes project/plugin registry export file and returns overlay records",
         &run,
         &[
-            "shader_prewarm_project_and_plugin_asset_roots_export_wrapped_resource_registry_file",
             "export_shader_resource_registry_for_asset_roots",
             "serde_json::json!({ \"resources\": records })",
+            "ShaderPrewarmResourceRegistryOverlay::from_records",
+        ],
+    );
+    assert_contains_all(
+        "run path writes project/plugin registry export file and returns overlay records",
+        &read_repo("zircon_runtime/src/bin/zircon_shader_prewarm/tests/run.rs"),
+        &[
+            "shader_prewarm_project_and_plugin_asset_roots_export_wrapped_resource_registry_file",
             "ZirconEngine",
             "shader_resource_records.json",
             "package://virtual_geometry/shaders/plugin",
             "res://project/shaders/project",
-            "ShaderPrewarmResourceRegistryOverlay::from_records",
             "revision_for(record.id, &label)",
         ],
     );

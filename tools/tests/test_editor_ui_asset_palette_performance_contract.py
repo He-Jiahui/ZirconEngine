@@ -1,3 +1,4 @@
+# 核对组件目录按文档或导入代际发布，并以映射查找引用与槽位。
 from pathlib import Path
 import unittest
 

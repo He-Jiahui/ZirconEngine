@@ -16,7 +16,6 @@ related_code:
   - zircon_app/build.rs
   - zircon_editor/build.rs
   - zircon_hub/build.rs
-  - tools/session_tray/build.rs
   - zircon_plugins/navigation/native/build.rs
   - zircon_plugins/physics/runtime/build.rs
   - zircon_runtime/build.rs
@@ -30,7 +29,7 @@ plan_sources:
   - docs/plans/optimize/zircon_tooling/01-workspace-toolchain-ci-validation-and-developer-entrypoints-review.md
   - docs/plans/optimize/zircon_tooling/03-export-preset-build-cook-pack-platform-bundle-release-review.md
   - docs/plans/optimize/zircon_tooling/04-reflection-derive-script-host-macros-schema-codegen-review.md
-  - docs/engine-architecture/generated-code-boundary.md
+  - docs/architecture/generated-code-boundary.md
 reference_engines:
   - dev/bevy/crates/bevy_asset/src/meta.rs
   - dev/bevy/crates/bevy_asset/src/processor
@@ -91,6 +90,18 @@ Node 为 22.13.1，npm 为 11.1.0。命令耗时 80.945 秒、exit 1。前 6 项
 `.github` 下未找到 `examples/woc`、`woc_contract_codegen` 或 WOC npm package 的引用。没有运行全部 304 个 package scripts，也没有把本机103个ignored脚本当作验证输入。本轮未运行native Cargo workspace；其源码测试只作为静态证据，不声明当前动态通过。
 
 文档验证中，4个本轮文件的`git diff --check`通过，仅报告仓库既有LF/CRLF提示。plan-output audit仍有2个旧child-record违规，docs convention path gate仍有670个旧违规；两者对本报告的命中均为0。本轮没有把历史基线写成新报告失败，也没有据此宣称全仓文档门通过。
+
+#### 2026-09-11 当前接续验证
+
+当前 `command_payloads.json` 已是 schema 60，覆盖统计为 157 个 typed
+contract、156 个 client-send contract、0 个 source-shape-only contract 和 8 个
+unmapped dispatch。此前仍锁定 51/148/147/9 的 20 个命令合同断言已同步到这组
+权威统计；单独运行 29 个合同脚本为 `29/29`，随后运行
+`npm --prefix examples/woc/tools run check` 完整通过（reference/source/generated、
+M4、M5 与默认合同链均通过）。另外，版本控制覆盖的 WOS148、WOS149、WOS150
+runtime static guard 已从 schema 51 同步到 schema 60，逐项运行均通过；其余旧
+schema 守卫仍是本机 ignored 生成物，未把它们计作共享门禁。以上只更新 tooling
+静态/脚本证据，不替代 native Cargo、clean-clone 可重现性或全量事务发布验收。
 
 ### 2.3 关键静态量化
 

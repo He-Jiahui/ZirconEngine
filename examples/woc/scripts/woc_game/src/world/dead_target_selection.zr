@@ -1,5 +1,6 @@
 // Pure targetability predicate for dead entities. WOS uses numeric kinds:
 // player=1, mob=2, and ownerId=0 means no owner (the source null value).
+/// 供显式选中死亡实体使用的可选择谓词；可选中只允许保留目标，不授予战利品所有权或交互权限。
 pub deadTargetSelectable(lootable: bool, kind: uint, ownerId: uint, viewerId: uint): bool {
     if (lootable) return true;
     if (kind == <uint>1) return true;

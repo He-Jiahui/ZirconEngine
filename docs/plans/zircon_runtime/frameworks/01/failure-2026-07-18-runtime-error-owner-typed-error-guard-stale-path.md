@@ -12,7 +12,7 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/animation_resource.rs
   - zircon_runtime/src/core/runtime/error.rs
 tests:
-  - cargo test -p zircon_runtime --lib project_asset_manager --locked --jobs 1 -- --nocapture --test-threads=1
+  - cargo test -p zircon_runtime --lib project_asset_manager --locked -- --nocapture --test-threads=1
   - python -m unittest tools.tests.test_frameworks_01_runtime_error_owner_boundary tools.tests.test_frameworks_02_core_error_single_source
 ---
 
@@ -182,3 +182,80 @@ Resolving state：guard 硬切、下层静态验证与 exact25 独立复审已�
   `246fdaf5d6c443f9b71149d744b5675e`, so r9 did not consume another shared Cargo window to reproduce
   the same pre-test failure. Exact Rust GREEN, current immutable review, canonical Failure return,
   and coordinator milestone commit remain pending; this Failure stays `open`.
+
+## 2026-09-08 current boundary and harness confirmation
+
+The existing fixing Session `failure-roll-01a07160-frameworks01` continues this
+lifecycle without replacing any historical ticket owner. Only this archived-owner
+record was transferred; preimage snapshot 3248 preserves its complete history.
+No source was edited or adopted for this continuation.
+
+The current typed-error guard still includes `core/runtime/error.rs`; the retired
+`core/framework/error.rs` is absent. Fresh command
+`python -B -m unittest -v tools.tests.test_frameworks_01_runtime_error_owner_boundary tools.tests.test_frameworks_02_core_error_single_source`
+passed 2/2 in 49.720 seconds. The guard files retain SHA-256
+`9bc95b58bd45956f63fc0f86c82c78c06e34d16005032bb077863f6293ec5428`
+and `12d0a23da120fc239be7bba503a8a923c385903a360bcba0675bd366e36ba4a9`.
+This is source-boundary evidence, not dynamic project-manager acceptance.
+
+Current `animation_resource.rs` hash
+`2f31530db82e8ceedf94d54796b25733bec8226c2d0170dacd93620ef1a86d60`
+and runtime error hash
+`e2712b21c10956e24fc44c08919797f840956f1726a8b51c66f3feb2ba850630`
+match immutable input `frameworks01-readiness-payload-3237-20260908`, manifest
+`5dc7c3d6891874a69436ba9e7641c9e0863eb7ed548c05db7306233c5da9543d`.
+Managed Runtime library test compilation succeeded on this input, including job
+`1bffddc052c9449481e295092a46fab9` with an actually executed path-normalization
+test. The old missing-include compile blocker is therefore absent on these bytes.
+That filter did not execute F6 or `project_asset_manager`; their complete current
+upward acceptance, independent review, formal binding and closeout remain open.
+The guard's current changes belong to active `astra-full-domain-20260905` and
+were not reassigned. External zr_vm remains skipped.
+
+The follow-up managed Windows static/no-default/locked job
+`69732bc6151b4ce2b41ce0a01975d2c0` executed the exact F6 filter
+`tests::runtime_absorption::code_review_findings::typed_error_convergence::animation_resource::review_f6_core_resource_registry_rename_uses_resource_error`:
+1 passed, 0 failed, 0 ignored, 6849 filtered out. Input
+`runtime04-junction-3247-20260908`, manifest
+`3479d55f772dcf1ccba728db54aaa4450c2d470588ac37b6b8d887c11f3f2497`,
+retains the two source hashes above. Its
+`results/frameworks01-f6-error-owner-3247.{json,log}` preserve the actual
+test name and terminal receipt. These assertions now have dynamic evidence;
+the separate original `project_asset_manager` gate, formal source binding,
+independent review and canonical closeout remain pending.
+
+## 2026-09-27 existing-source continuation
+
+The stable fixing-plan primary Session
+`failure-roll-01a0df1a-frameworks01-readiness-payload-r3` now continues this
+lifecycle alongside the separate readiness lifecycle. Audited ownership transfer
+`837abf3fd4504634891c5671c1bf47a6`, fingerprint
+`bab8f08beb20aaa53e222bcf9ffcaa32b206d99e7e3baa96377c13b666330bca`,
+transferred only this failure record and the existing typed-error guard from
+archived owners. Historical ticket and snapshot ownership stays unchanged.
+
+The guard retains SHA-256
+`2f31530db82e8ceedf94d54796b25733bec8226c2d0170dacd93620ef1a86d60`.
+No Rust source was edited. Its strict check
+`rustup run 1.94.1 rustfmt --edition 2021 --config skip_children=true --check zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/animation_resource.rs`
+exited 0. All 27 literal source/document includes exist in the current working
+tree. In contrast, Gitbase `01a9f062e203e0115c388f9dcabaf00fcc7c9d2c`
+still has guard includes for four removed `core/resource` files. The existing
+canonical `crates/zr_resource` paths must therefore be carried as an exact
+overlay; a baseline-only Runtime test does not exercise this guard revision.
+
+Current acceptance commands keep `--locked`; Cargo compute settings come from
+the coordinator. The original reproduction commands with `--jobs 1` above are
+retained as historical evidence. A fresh managed batch must actually execute the
+lower registry rename test, exact F6 test, and the original default-feature
+`project_asset_manager` gate. The previous F6 1/1 result remains valid for its
+historical input and does not prove the current complete Runtime input or the
+original manager gate.
+
+Fresh managed submission is held behind the linked
+[external worktree archive diagnostics handoff](../../../zircon_tooling/session_coordinator/01/failure-2026-09-27-external-worktree-archive-error-diagnostics.md).
+The Editor09 request failed before acceptance while capturing external inputs;
+this continuation has no new accepted Cargo ticket. Freeze the guard's literal
+input closure without absorbing foreign changes from other fixing plans.
+Current dynamic acceptance, the named independent closeout review, canonical
+return, managed commit and notification remain pending. Status stays `open`.

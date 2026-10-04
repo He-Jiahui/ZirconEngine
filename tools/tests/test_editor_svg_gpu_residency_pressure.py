@@ -2,7 +2,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from tools.editor_svg_gpu_residency_pressure import (
+from tools.analysis.performance.editor.editor_svg_gpu_residency_pressure import (
     CRITICAL_SOURCE_CONTRACTS,
     SourceContractError,
     pressure_report,
@@ -104,20 +104,19 @@ class EditorSvgGpuResidencyPressureTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             pressure_report(ui_surface_count=0)
 
-    def test_external_provider_disables_stable_generation_fast_path(self) -> None:
+    def test_external_provider_revision_enables_stable_generation_fast_path(self) -> None:
         result = pressure_report(stable_present_count=10_000, atlas_page_count=16)
 
         pressure = result["external_provider_fast_path_pressure"]
 
         self.assertTrue(pressure["provider_installed_for_every_ui_surface"])
-        self.assertFalse(pressure["generation_fast_path_enabled"])
+        self.assertTrue(pressure["generation_fast_path_enabled"])
         self.assertEqual(pressure["stable_image_source_count"], 16)
-        self.assertEqual(pressure["current_provider_resolve_calls"], 160_000)
-        self.assertEqual(pressure["current_registry_lock_acquisitions"], 160_000)
-        self.assertEqual(pressure["target_provider_revision_checks"], 10_000)
-        self.assertEqual(pressure["target_provider_resolve_calls"], 0)
+        self.assertEqual(pressure["current_provider_revision_checks"], 10_000)
+        self.assertEqual(pressure["current_provider_resolve_calls"], 0)
+        self.assertEqual(pressure["current_registry_lock_acquisitions"], 0)
         self.assertEqual(pressure["avoided_provider_resolve_calls"], 160_000)
-        self.assertEqual(pressure["current_stable_complexity"], "O(P * R)")
+        self.assertEqual(pressure["current_stable_complexity"], "O(P)")
         self.assertEqual(pressure["target_stable_complexity"], "O(P)")
         self.assertEqual(pressure["stable_svg_file_reads"], 0)
         self.assertEqual(pressure["stable_svg_tree_parses"], 0)

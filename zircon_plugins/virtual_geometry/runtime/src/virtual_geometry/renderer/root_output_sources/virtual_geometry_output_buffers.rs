@@ -13,7 +13,7 @@ use zircon_runtime::core::framework::render::{
 };
 
 #[cfg(test)]
-#[path = "virtual_geometry_output_buffers/fixed_packing_tests.rs"]
+#[path = "virtual_geometry_output_buffers/tests/fixed_packing_tests.rs"]
 mod fixed_packing_tests;
 
 #[inline]

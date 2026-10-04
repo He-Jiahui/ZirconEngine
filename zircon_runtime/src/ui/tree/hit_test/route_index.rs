@@ -21,18 +21,27 @@ pub(super) fn build_route_nodes(
     arranged_tree: &UiArrangedTree,
     node_indices: &BTreeMap<UiNodeId, usize>,
 ) -> Arc<Vec<UiHitRouteNode>> {
-    let mut route_nodes = arranged_tree
-        .nodes
-        .iter()
-        .map(|node| UiHitRouteNode::invalid(node.node_id))
-        .collect::<Vec<_>>();
+    let mut route_nodes = Vec::with_capacity(arranged_tree.nodes.len());
+    route_nodes.extend(
+        arranged_tree
+            .nodes
+            .iter()
+            .map(|node| UiHitRouteNode::invalid(node.node_id)),
+    );
     let mut states = vec![RouteBuildState::Unresolved; route_nodes.len()];
 
+    // Keep one traversal scratch buffer for the whole publication.  A tree with
+    // many roots (or disconnected components) used to allocate a fresh `Vec`
+    // for every start node even though each chain is consumed before the next
+    // one begins.  Reusing the buffer preserves the iterative/depth-bounded
+    // walk while making steady-state route publication allocation-free after
+    // the deepest chain has established its capacity.
+    let mut chain: Vec<(usize, Option<usize>)> = Vec::new();
     for start_index in 0..route_nodes.len() {
         if states[start_index] != RouteBuildState::Unresolved {
             continue;
         }
-        let mut chain = Vec::new();
+        chain.clear();
         let mut current_index = Some(start_index);
         let mut failed = false;
         while let Some(index) = current_index {
@@ -53,8 +62,7 @@ pub(super) fn build_route_nodes(
                 break;
             }
             states[index] = RouteBuildState::Visiting;
-            chain.push(index);
-            current_index = match node.parent {
+            let parent_index = match node.parent {
                 Some(parent_id) => match node_indices.get(&parent_id).copied() {
                     Some(parent_index)
                         if arranged_tree
@@ -71,18 +79,20 @@ pub(super) fn build_route_nodes(
                 },
                 None => None,
             };
+            current_index = parent_index;
+            chain.push((index, parent_index));
         }
 
         if failed {
-            invalidate_chain(&mut route_nodes, &mut states, chain);
+            invalidate_chain(&mut route_nodes, &mut states, &chain);
             continue;
         }
-        while let Some(index) = chain.pop() {
+        while let Some((index, parent_index)) = chain.pop() {
             let Some(node) = arranged_tree.nodes.get(index) else {
                 states[index] = RouteBuildState::Invalid;
                 continue;
             };
-            let next = compose_route_node(node, node_indices, &route_nodes, None);
+            let next = compose_route_node(node, node_indices, &route_nodes, None, parent_index);
             states[index] = if next.route_valid {
                 RouteBuildState::Resolved
             } else {
@@ -136,7 +146,7 @@ pub(super) fn patch_route_nodes(
     let mut updates = BTreeMap::new();
     while let Some(index) = ready.pop_front() {
         let node = arranged_tree.nodes.get(index).ok_or(())?;
-        let next = compose_route_node(node, node_indices, route_nodes, Some(&updates));
+        let next = compose_route_node(node, node_indices, route_nodes, Some(&updates), None);
         changed |= route_nodes.get(index) != Some(&next);
         updates.insert(index, next);
         processed = processed.saturating_add(1);
@@ -186,7 +196,10 @@ pub(super) fn bubble_route_for_entry(
 ) -> Option<Vec<UiNodeId>> {
     let mut route = Vec::new();
     let mut route_index = entry.route_node_index;
-    for depth in 0..=grid.route_nodes.len() {
+    // Bound the walk by the number of nodes; a tree can be at most that deep.
+    // Use `<` (not `<=`) so a tree whose depth equals node count still returns
+    // rather than falling through to None.
+    for depth in 0..grid.route_nodes.len() {
         let node = grid.route_nodes.get(route_index as usize)?;
         if !node.route_valid || (depth == 0 && node.node_id != entry.node_id) {
             return None;
@@ -206,7 +219,7 @@ pub(crate) fn find_bubble_route_value<T: Copy>(
     values: &BTreeMap<UiNodeId, T>,
 ) -> Option<T> {
     let mut route_index = entry.route_node_index;
-    for depth in 0..=grid.route_nodes.len() {
+    for depth in 0..grid.route_nodes.len() {
         let node = grid.route_nodes.get(route_index as usize)?;
         if !node.route_valid || (depth == 0 && node.node_id != entry.node_id) {
             return None;
@@ -225,9 +238,9 @@ pub(crate) fn find_bubble_route_value<T: Copy>(
 fn invalidate_chain(
     route_nodes: &mut [UiHitRouteNode],
     states: &mut [RouteBuildState],
-    chain: Vec<usize>,
+    chain: &[(usize, Option<usize>)],
 ) {
-    for index in chain {
+    for &(index, _) in chain {
         if let Some(route) = route_nodes.get_mut(index) {
             *route = UiHitRouteNode::invalid(route.node_id);
         }
@@ -242,10 +255,13 @@ fn compose_route_node(
     node_indices: &BTreeMap<UiNodeId, usize>,
     route_nodes: &[UiHitRouteNode],
     updates: Option<&BTreeMap<usize, UiHitRouteNode>>,
+    parent_index_hint: Option<usize>,
 ) -> UiHitRouteNode {
     let (parent_index, inherited_input_policy, inherited_pointer_visibility) = match node.parent {
         Some(parent_id) => {
-            let Some(parent_index) = node_indices.get(&parent_id).copied() else {
+            let Some(parent_index) =
+                parent_index_hint.or_else(|| node_indices.get(&parent_id).copied())
+            else {
                 return UiHitRouteNode::invalid(node.node_id);
             };
             let Some(parent) = updates
@@ -291,181 +307,5 @@ fn compose_route_node(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use zircon_runtime_interface::ui::{
-        event_ui::{UiNodePath, UiTreeId},
-        layout::UiFrame,
-        tree::{UiPointerEvents, UiVisibility},
-    };
-
-    #[test]
-    fn deep_chain_builds_without_recursion() {
-        const NODE_COUNT: usize = 4_096;
-        let mut nodes = Vec::with_capacity(NODE_COUNT);
-        for index in 0..NODE_COUNT {
-            let node_id = UiNodeId::new((index + 1) as u64);
-            let parent = (index > 0).then(|| UiNodeId::new(index as u64));
-            let mut node = pointer_node(node_id, parent);
-            if index + 1 < NODE_COUNT {
-                node.children.push(UiNodeId::new((index + 2) as u64));
-            }
-            nodes.push(node);
-        }
-        let arranged_tree = UiArrangedTree {
-            tree_id: UiTreeId::new("ui.hit.route.deep"),
-            roots: vec![UiNodeId::new(1)].into(),
-            draw_order: nodes
-                .iter()
-                .map(|node| node.node_id)
-                .collect::<Vec<_>>()
-                .into(),
-            nodes: nodes.into(),
-            canvas_layers: Vec::new().into(),
-        };
-        let node_indices = arranged_tree
-            .nodes
-            .iter()
-            .enumerate()
-            .map(|(index, node)| (node.node_id, index))
-            .collect();
-        let route_nodes = build_route_nodes(&arranged_tree, &node_indices);
-        let leaf_id = UiNodeId::new(NODE_COUNT as u64);
-        let entry = UiHitTestEntry {
-            node_id: leaf_id,
-            frame: UiFrame::new(0.0, 0.0, 1.0, 1.0),
-            clip_frame: UiFrame::new(0.0, 0.0, 1.0, 1.0),
-            z_index: 0,
-            paint_order: 0,
-            control_id: None,
-            route_node_index: (NODE_COUNT - 1) as u32,
-        };
-        let grid = UiHitTestGrid {
-            route_nodes,
-            entries: vec![entry.clone()].into(),
-            ..UiHitTestGrid::default()
-        };
-
-        let route = bubble_route_for_entry(&grid, &entry).expect("deep route must resolve");
-        assert_eq!(route.len(), NODE_COUNT);
-        assert_eq!(route.first(), Some(&leaf_id));
-        assert_eq!(route.last(), Some(&UiNodeId::new(1)));
-    }
-
-    #[test]
-    fn missing_parent_and_cycle_fail_closed() {
-        let missing_id = UiNodeId::new(1);
-        let missing_tree = UiArrangedTree {
-            tree_id: UiTreeId::new("ui.hit.route.missing"),
-            roots: Vec::new().into(),
-            nodes: vec![pointer_node(missing_id, Some(UiNodeId::new(99)))].into(),
-            draw_order: vec![missing_id].into(),
-            canvas_layers: Vec::new().into(),
-        };
-        let missing_routes = build_route_nodes(&missing_tree, &BTreeMap::from([(missing_id, 0)]));
-        assert!(!missing_routes[0].route_valid);
-
-        let first_id = UiNodeId::new(10);
-        let second_id = UiNodeId::new(11);
-        let mut first = pointer_node(first_id, Some(second_id));
-        first.children.push(second_id);
-        let mut second = pointer_node(second_id, Some(first_id));
-        second.children.push(first_id);
-        let cycle_tree = UiArrangedTree {
-            tree_id: UiTreeId::new("ui.hit.route.cycle"),
-            roots: Vec::new().into(),
-            nodes: vec![first, second].into(),
-            draw_order: vec![first_id, second_id].into(),
-            canvas_layers: Vec::new().into(),
-        };
-        let cycle_routes = build_route_nodes(
-            &cycle_tree,
-            &BTreeMap::from([(first_id, 0), (second_id, 1)]),
-        );
-        assert!(cycle_routes.iter().all(|route| !route.route_valid));
-    }
-
-    #[test]
-    fn input_patch_updates_descendant_route_semantics() {
-        let parent_id = UiNodeId::new(20);
-        let child_id = UiNodeId::new(21);
-        let mut parent = pointer_node(parent_id, None);
-        parent.children.push(child_id);
-        parent.input_policy = UiInputPolicy::Receive;
-        let child = pointer_node(child_id, Some(parent_id));
-        let mut arranged_tree = UiArrangedTree {
-            tree_id: UiTreeId::new("ui.hit.route.input-patch"),
-            roots: vec![parent_id].into(),
-            nodes: vec![parent, child].into(),
-            draw_order: vec![parent_id, child_id].into(),
-            canvas_layers: Vec::new().into(),
-        };
-        let node_indices = BTreeMap::from([(parent_id, 0), (child_id, 1)]);
-        let mut route_nodes = build_route_nodes(&arranged_tree, &node_indices);
-        assert_eq!(
-            route_nodes[1].effective_input_policy,
-            UiInputPolicy::Receive
-        );
-
-        arranged_tree.nodes[0].input_policy = UiInputPolicy::Ignore;
-        assert_eq!(
-            patch_route_nodes(
-                &mut route_nodes,
-                &arranged_tree,
-                &BTreeSet::from([parent_id, child_id]),
-                &node_indices,
-            ),
-            Ok(true)
-        );
-        assert_eq!(route_nodes[1].effective_input_policy, UiInputPolicy::Ignore);
-    }
-
-    #[test]
-    fn input_patch_without_route_semantic_change_keeps_shared_allocation() {
-        let node_id = UiNodeId::new(30);
-        let arranged_tree = UiArrangedTree {
-            tree_id: UiTreeId::new("ui.hit.route.noop-input-patch"),
-            roots: vec![node_id].into(),
-            nodes: vec![pointer_node(node_id, None)].into(),
-            draw_order: vec![node_id].into(),
-            canvas_layers: Vec::new().into(),
-        };
-        let node_indices = BTreeMap::from([(node_id, 0)]);
-        let mut route_nodes = build_route_nodes(&arranged_tree, &node_indices);
-        let shared = route_nodes.clone();
-
-        assert_eq!(
-            patch_route_nodes(
-                &mut route_nodes,
-                &arranged_tree,
-                &BTreeSet::from([node_id]),
-                &node_indices,
-            ),
-            Ok(false)
-        );
-        assert!(Arc::ptr_eq(&route_nodes, &shared));
-    }
-
-    fn pointer_node(node_id: UiNodeId, parent: Option<UiNodeId>) -> UiArrangedNode {
-        UiArrangedNode {
-            node_id,
-            node_path: UiNodePath::new(format!("root/{}", node_id.0)),
-            parent,
-            children: Vec::new(),
-            frame: UiFrame::new(0.0, 0.0, 1.0, 1.0),
-            clip_frame: UiFrame::new(0.0, 0.0, 1.0, 1.0),
-            z_index: 0,
-            paint_order: node_id.0,
-            visibility: UiVisibility::Visible,
-            input_policy: UiInputPolicy::Inherit,
-            pointer_events: UiPointerEvents::Auto,
-            enabled: true,
-            clickable: true,
-            hoverable: true,
-            focusable: false,
-            clip_to_bounds: false,
-            control_id: None,
-            slot: None,
-        }
-    }
-}
+#[path = "tests/route_index.rs"]
+mod tests;

@@ -1,6 +1,7 @@
 use super::super::super::super::super::*;
 use super::super::super::resources::StartupManagers;
 use super::super::super::template_bridges::StartupTemplateBridges;
+use crate::core::play::NativePluginArtifactAuthorityResolver;
 
 pub(in crate::ui::retained_host::app::host_lifecycle::startup) struct StartupHostConstruction {
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) ui: UiHostWindow,
@@ -15,6 +16,8 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) struct StartupHos
         RetainedHostRuntimeLease,
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) native_plugin_host:
         zircon_runtime::plugin::native::host::NativePluginHostHandle,
+    pub(in crate::ui::retained_host::app::host_lifecycle::startup) native_plugin_authority_resolver:
+        NativePluginArtifactAuthorityResolver,
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) viewport:
         RetainedViewportController,
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) startup_session:

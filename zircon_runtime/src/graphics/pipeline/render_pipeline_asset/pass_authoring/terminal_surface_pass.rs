@@ -2,9 +2,9 @@ use crate::core::framework::render::{
     PostProcessGraphResourceNames, RenderCameraTarget, RenderFrameExtract,
 };
 use crate::graphics::pipeline::declarations::{
-    OUTPUT_TARGET_DIRECT_IMPORT_EXECUTOR_ID, OUTPUT_TARGET_DIRECT_IMPORT_PASS_NAME,
-    OUTPUT_TARGET_TEXTURE_RESOURCE_NAME, OUTPUT_TARGET_WRITEBACK_EXECUTOR_ID,
-    OUTPUT_TARGET_WRITEBACK_PASS_NAME, RenderGraphExecutionPassMetadata, RenderPassStage,
+    RenderGraphExecutionPassMetadata, RenderPassStage, OUTPUT_TARGET_DIRECT_IMPORT_EXECUTOR_ID,
+    OUTPUT_TARGET_DIRECT_IMPORT_PASS_NAME, OUTPUT_TARGET_TEXTURE_RESOURCE_NAME,
+    OUTPUT_TARGET_WRITEBACK_EXECUTOR_ID, OUTPUT_TARGET_WRITEBACK_PASS_NAME,
     SURFACE_PRESENT_EXECUTOR_ID, SURFACE_PRESENT_PASS_NAME,
 };
 use crate::graphics::pipeline::{
@@ -20,6 +20,8 @@ use crate::rhi::{TextureDesc, TextureUsage};
 
 use super::AuthoredGraphResources;
 
+// 按已选相机目标追加不可裁剪的 Present pass；Headless 或无最终颜色资源时保持原 metadata。
+// 相机目标与编译 fingerprint 必须一致；纹理目标按 sRGB 直接导入或线性转换写回分派。
 pub(super) fn author_terminal_surface_pass(
     graph: &mut RenderGraphBuilder,
     mut execution_pass_metadata: Vec<RenderGraphExecutionPassMetadata>,
@@ -207,25 +209,5 @@ fn author_output_target_writeback_pass(
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn terminal_outputs_are_non_cullable_graph_side_effects() {
-        let source = include_str!("terminal_surface_pass.rs")
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("surface-present test boundary");
-
-        assert!(source.contains("RenderCameraTarget::PrimarySurface"));
-        assert!(source.contains("RenderPassStage::Present"));
-        assert!(source.contains("allow_culling: false"));
-        assert!(source.contains("has_side_effects: true"));
-        assert!(source.contains("graph.read_external("));
-        assert!(source.contains("author_output_target_direct_import_pass("));
-        assert!(source.contains("OUTPUT_TARGET_DIRECT_IMPORT_EXECUTOR_ID"));
-        assert!(source.contains("import_present_external_texture_with_binding"));
-        assert!(source.contains("RenderGraphResourceAccessIntent::sampled_texture"));
-        assert!(source.contains("RenderGraphResourceAccessIntent::ColorAttachment"));
-        assert!(!source.contains("RenderGraphResourceAccessIntent::CopySource"));
-        assert!(!source.contains("RenderGraphResourceAccessIntent::CopyDestination"));
-    }
-}
+#[path = "tests/terminal_surface_pass.rs"]
+mod tests;

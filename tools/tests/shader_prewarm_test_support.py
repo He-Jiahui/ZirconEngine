@@ -1,3 +1,4 @@
+# 提供着色器预热测试共用的配置与插件包替身。
 from pathlib import Path
 
 

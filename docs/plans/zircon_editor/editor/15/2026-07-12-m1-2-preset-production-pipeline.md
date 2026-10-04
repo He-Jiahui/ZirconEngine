@@ -30,9 +30,9 @@ Editor 15 测试硬切修复记录：
 - `zircon_editor/src/core/export/stages/`
 - `zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/`
 - `zircon_editor/src/ui/retained_host/app/build_export_wizard_session/options.rs`
-- `tools/zircon_export/preset_contract.py`
+- `tools/export/preset_contract.py`
 - `templates/projects/renderable-empty/export/desktop_windows.zpreset`
-- `docs/zircon_editor/core/export/pipeline.md`
+- `docs/crates/zircon_editor/core/export/pipeline.md`
 
 ## 验证证据
 
@@ -40,7 +40,7 @@ Editor 15 测试硬切修复记录：
 | --- | --- |
 | `cargo check -p zircon_runtime_interface --lib --offline` | 通过 |
 | `cargo test -p zircon_runtime_interface --locked --offline` | 240/240 通过，doc-tests 通过 |
-| `python -m unittest tools.zircon_export.tests.test_preset_contract tools.zircon_export.tests.test_pipeline_report_staged_compile_host` | 8/8 通过；含默认 Debug profile 被 release preset 覆盖的完整最终汇总回归 |
+| `python -m unittest tools.export.tests.test_preset_contract tools.export.tests.test_pipeline_report_staged_compile_host` | 8/8 通过；含默认 Debug profile 被 release preset 覆盖的完整最终汇总回归 |
 | `cargo check -p zircon_editor --lib --offline` | 通过；仅存在当前树既有 warning |
 | `cargo test -p zircon_editor core::export::tests --lib --offline -- --nocapture` | 13/13 通过；Text 07 visibility failure 已迁移为 fixed |
 | 受影响的 CompileHost/final-report/Validate/PlatformBundle Python test groups | 262/262 通过；旧 Cargo report fixtures 已硬切并迁移为 fixed |

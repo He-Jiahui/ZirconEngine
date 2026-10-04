@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 验证渲染统计虚拟几何的职责切分：虚拟几何诊断使用专属子节点归属方。
 class RuntimeRenderStatsVirtualGeometryOwnerStructureTests(unittest.TestCase):
     def setUp(self) -> None:
         self.repo_root = Path(__file__).resolve().parents[2]

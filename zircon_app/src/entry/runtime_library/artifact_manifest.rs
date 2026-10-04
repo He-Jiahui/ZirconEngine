@@ -1,3 +1,6 @@
+//! Runtime 加载前的 BuildSet 证据入口；只读取旁车清单与产物，不执行动态库代码。
+//! 编辑器和无头入口可先预检，真正加载前仍须重新验证当前文件。
+
 use std::env;
 use std::fs::{self, File};
 use std::io::Read;
@@ -15,6 +18,7 @@ const MAX_RUNTIME_ARTIFACT_MANIFEST_BYTES: u64 = 64 * 1024;
 const RUNTIME_ARTIFACT_HASH_BUFFER_BYTES: usize = 1024 * 1024;
 
 /// Reads and verifies the staged Runtime DLL identity before dynamic loading can execute code.
+/// 编辑器与无头入口在项目准备前调用；直接运行入口在加载前调用。返回的清单仅证明当次文件身份。
 pub(super) fn validate_runtime_library_artifact(
     library_path: &Path,
 ) -> Result<ZrRuntimeArtifactManifestV1, RuntimeLibraryError> {
@@ -71,6 +75,7 @@ pub(super) fn runtime_artifact_manifest_path(
     Ok(library_path.with_file_name(format!("{file_name}.manifest.json")))
 }
 
+// 清单属于外部构建产物，大小上限同时约束预分配和真正读取的字节数。
 fn read_runtime_artifact_manifest(
     manifest_path: &Path,
 ) -> Result<ZrRuntimeArtifactManifestV1, RuntimeLibraryError> {
@@ -173,16 +178,5 @@ fn file_sha256(path: &Path) -> Result<ZrRuntimeDigestV1, RuntimeLibraryError> {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::path::Path;
-
-    use super::runtime_artifact_manifest_path;
-
-    #[test]
-    fn runtime_artifact_manifest_is_a_library_sidecar() {
-        assert_eq!(
-            runtime_artifact_manifest_path(Path::new("E:/build/zircon_runtime.dll")).unwrap(),
-            Path::new("E:/build/zircon_runtime.dll.manifest.json"),
-        );
-    }
-}
+#[path = "tests/artifact_manifest.rs"]
+mod tests;

@@ -1,3 +1,4 @@
+# 持久化比较把保存前、保存后与重开状态作为同一证据组发布；隔离目录夹具验证缺项拒绝，源码断言约束编码和字段读取的分配边界。
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 

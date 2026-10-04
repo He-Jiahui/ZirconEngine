@@ -20,5 +20,5 @@ fn update_draft_text(target: &mut String, value: &str) {
 }
 
 #[cfg(test)]
-#[path = "draft/reused_text_tests.rs"]
+#[path = "draft/tests/reused_text_tests.rs"]
 mod reused_text_tests;

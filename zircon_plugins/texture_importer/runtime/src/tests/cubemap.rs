@@ -127,7 +127,7 @@ fn texture_array_manifest_imports_files_and_stacked_slice() {
 
     let files = import_manifest(&root, "files.zarray", files_manifest);
 
-    assert_eq!(files.render_image_descriptor().array_layer_count, 2);
+    assert_eq!(files.render_image_descriptor().depth_or_array_layers, 2);
     assert_eq!(files.rgba[0], 1);
     assert_eq!(files.rgba[16], 2);
 
@@ -137,7 +137,7 @@ fn texture_array_manifest_imports_files_and_stacked_slice() {
 
     let sliced = import_manifest(&root, "slice.zarray", slice_manifest);
 
-    assert_eq!(sliced.render_image_descriptor().array_layer_count, 2);
+    assert_eq!(sliced.render_image_descriptor().depth_or_array_layers, 2);
     assert_eq!(sliced.rgba[0], 3);
     assert_eq!(sliced.rgba[16], 4);
 }
@@ -418,7 +418,7 @@ fn assert_cube_descriptor(texture: &zircon_runtime::asset::TextureAsset, face_si
     assert_eq!(texture.width, face_size);
     assert_eq!(texture.height, face_size);
     assert_eq!(descriptor.dimension, RenderImageDimension::Cube);
-    assert_eq!(descriptor.array_layer_count, 6);
+    assert_eq!(descriptor.depth_or_array_layers, 6);
 }
 
 fn solid_image(width: u32, height: u32, color: [u8; 4]) -> RgbaImage {

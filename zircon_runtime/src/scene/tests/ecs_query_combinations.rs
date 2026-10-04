@@ -209,11 +209,10 @@ fn read_only_combination_candidates_use_single_scan() {
         .expect("read read-only combination constructor");
 
     assert!(constructor.contains("let mut matched_entities = Vec::new();"));
+    // BUG: [CR-R02-runtime_ecs_query_change_windows-0003] 此普通测试执行到本断言必失败；构造器已遍历 World 的稳定实体迭代器，旧切片遍历文本不存在。证据：query_combinations_iter.rs 的 new 完整片段。
     assert!(constructor.contains("for entity in entities.iter().copied()"));
-    assert!(
-        constructor
-            .contains("read_only_combination_candidate_matches::<D, F>(world, entity, ticks)")
-    );
+    assert!(constructor
+        .contains("read_only_combination_candidate_matches::<D, F>(world, entity, ticks)"));
     assert!(constructor.contains("matched_entities.push(entity);"));
     assert!(constructor.contains("if matched_entities.len() < K"));
     assert!(!source.contains("fn read_only_combination_candidate_count"));

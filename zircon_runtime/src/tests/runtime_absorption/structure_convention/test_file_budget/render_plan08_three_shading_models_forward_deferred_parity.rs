@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对多着色模型路径的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 const STATUS: &str = "render_plan08_three_shading_models_forward_deferred_parity_wgpu_passed_light_grid_fallback_renderdoc_deferred";
@@ -72,6 +73,14 @@ fn runtime_15_render_plan08_three_shading_models_forward_deferred_parity_is_wire
             "LightGridParams::disabled()",
             "LIGHT_GRID_EMPTY_ZBIN_HEADER",
             ":light-grid-execution-fallback",
+        ],
+    );
+    assert_contains_all(
+        "Plan 08 light-grid disabled clustered fallback is bound",
+        &read_runtime_src(
+        "graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/tests/bind_execution_owned_graph_resources.rs",
+    ),
+        &[
             "light_grid_external_fallback_buffers_satisfy_materialization_report",
         ],
     );

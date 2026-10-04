@@ -1,3 +1,4 @@
+# 核对原生签名的文件哈希流式读取并处理空产物。
 from __future__ import annotations
 
 import hashlib
@@ -6,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_export import native_signing
+from tools.export import native_signing
 
 
 class Tooling03NativeSigningStreamingHashPerformanceContractTests(unittest.TestCase):

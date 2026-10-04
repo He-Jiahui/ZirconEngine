@@ -225,6 +225,13 @@ pub(super) struct SdfTextMaterialResources {
     upload_initialized: bool,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(super) struct SdfMaterialBufferWriteReport {
+    pub(super) create_count: usize,
+    pub(super) write_count: usize,
+    pub(super) write_byte_len: usize,
+}
+
 impl SdfTextMaterialResources {
     pub(super) fn new(device: &wgpu::Device) -> Self {
         let uniform_size = std::mem::size_of::<SdfTextMaterialUniform>() as u64;
@@ -241,6 +248,7 @@ impl SdfTextMaterialResources {
                 count: None,
             }],
         });
+        // 动态 offset 的条目间距取设备对齐要求，不能直接把 Rust uniform 大小作为步长。
         let uniform_stride = aligned_uniform_stride(
             uniform_size as u32,
             device.limits().min_uniform_buffer_offset_alignment,
@@ -266,7 +274,7 @@ impl SdfTextMaterialResources {
         materials: &[SdfTextMaterial],
         uploads: &mut WgpuBufferUploadBatch,
         force_full_upload: bool,
-    ) {
+    ) -> SdfMaterialBufferWriteReport {
         let material_count = materials.len().max(1);
         let byte_len = usize::try_from(self.uniform_stride)
             .unwrap_or(usize::MAX)
@@ -288,7 +296,7 @@ impl SdfTextMaterialResources {
             && !buffer_recreated
             && self.uploaded_materials == materials
         {
-            return;
+            return SdfMaterialBufferWriteReport::default();
         }
 
         self.upload_bytes.clear();
@@ -307,6 +315,47 @@ impl SdfTextMaterialResources {
         self.uploaded_materials.clear();
         self.uploaded_materials.extend_from_slice(materials);
         self.upload_initialized = true;
+        SdfMaterialBufferWriteReport {
+            create_count: usize::from(buffer_recreated),
+            write_count: 1,
+            write_byte_len: self.upload_bytes.len(),
+        }
+    }
+
+    pub(super) fn prepare_ranges(
+        &mut self,
+        device: &wgpu::Device,
+        materials: &[SdfTextMaterial],
+        changed_ranges: &[Range<usize>],
+        uploads: &mut WgpuBufferUploadBatch,
+    ) -> SdfMaterialBufferWriteReport {
+        if !self.upload_initialized
+            || self.uploaded_materials.len() != materials.len()
+            || materials.len().max(1) > self.capacity
+        {
+            return self.prepare(device, materials, uploads, true);
+        }
+
+        let mut report = SdfMaterialBufferWriteReport::default();
+        for range in coalesced_material_ranges(changed_ranges, materials.len()) {
+            if self.uploaded_materials[range.clone()] == materials[range.clone()] {
+                continue;
+            }
+            let bytes = material_range_upload_bytes(
+                &materials[range.clone()],
+                self.uniform_stride as usize,
+            );
+            let byte_len = bytes.len();
+            uploads.push(WgpuBufferUpload::from_owned_bytes(
+                self.buffer.clone(),
+                range.start.saturating_mul(self.uniform_stride as usize) as u64,
+                bytes,
+            ));
+            self.uploaded_materials[range.clone()].clone_from_slice(&materials[range]);
+            report.write_count = report.write_count.saturating_add(1);
+            report.write_byte_len = report.write_byte_len.saturating_add(byte_len);
+        }
+        report
     }
 
     pub(super) fn dynamic_offset(&self, material_index: u32) -> u32 {
@@ -317,6 +366,40 @@ impl SdfTextMaterialResources {
     pub(super) fn uniform_stride(&self) -> u32 {
         self.uniform_stride
     }
+}
+
+fn coalesced_material_ranges(ranges: &[Range<usize>], material_count: usize) -> Vec<Range<usize>> {
+    let mut ranges = ranges
+        .iter()
+        .filter_map(|range| {
+            let start = range.start.min(material_count);
+            let end = range.end.min(material_count);
+            (start < end).then_some(start..end)
+        })
+        .collect::<Vec<_>>();
+    ranges.sort_unstable_by_key(|range| range.start);
+    let mut merged: Vec<Range<usize>> = Vec::with_capacity(ranges.len());
+    for range in ranges {
+        if let Some(previous) = merged.last_mut() {
+            if range.start <= previous.end {
+                previous.end = previous.end.max(range.end);
+                continue;
+            }
+        }
+        merged.push(range);
+    }
+    merged
+}
+
+fn material_range_upload_bytes(materials: &[SdfTextMaterial], uniform_stride: usize) -> Vec<u8> {
+    let mut bytes = vec![0_u8; uniform_stride.saturating_mul(materials.len())];
+    for (index, material) in materials.iter().enumerate() {
+        let offset = index.saturating_mul(uniform_stride);
+        let uniform = material.uniform();
+        let source = bytemuck::bytes_of(&uniform);
+        bytes[offset..offset + source.len()].copy_from_slice(source);
+    }
+    bytes
 }
 
 pub(super) fn aligned_uniform_stride(uniform_size: u32, alignment: u32) -> u32 {
@@ -417,3 +500,7 @@ fn create_material_bind_group(
         }],
     })
 }
+
+#[cfg(test)]
+#[path = "tests/material_retained_upload_tests.rs"]
+mod retained_upload_tests;

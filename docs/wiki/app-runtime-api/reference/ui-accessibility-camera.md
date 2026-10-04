@@ -14,7 +14,7 @@ plan_sources:
   - user: 2026-09-09 为 ZirconEngine 构建引擎说明书级 Wiki
 tests:
   - zircon_runtime_interface/src/ui
-  - zircon_runtime_interface/src/runtime_api/session/editor_transform_tests.rs
+  - zircon_runtime_interface/src/runtime_api/session/tests/editor_transform_tests.rs
 doc_type: api-reference
 ---
 

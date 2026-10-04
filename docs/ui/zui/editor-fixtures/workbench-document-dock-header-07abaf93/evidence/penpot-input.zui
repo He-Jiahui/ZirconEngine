@@ -1,0 +1,176 @@
+stylesheets = []
+penpot_dependency_sources = []
+penpot_original_source = "stylesheets = []\n\n[asset]\nkind = \"layout\"\nid = \"editor.host.workbench_document_dock_header\"\nversion = 1\ndisplay_name = \"workbench document dock header\"\n\n[imports]\nwidgets = []\nstyles = []\n\n[root]\nnode_id = \"document_dock_header_root\"\nkind = \"native\"\ntype = \"Overlay\"\ncontrol_id = \"DocumentDockHeaderRoot\"\n\n[root.layout]\nclip = true\n\n[root.layout.container]\nkind = \"Overlay\"\n\n[root.layout.width]\nstretch = \"Stretch\"\n\n[root.layout.height]\nstretch = \"Stretch\"\n\n[[root.children]]\n[root.children.node]\nnode_id = \"document_dock_header_bar\"\nkind = \"native\"\ntype = \"Container\"\ncontrol_id = \"DocumentDockHeaderBar\"\n\n[root.children.node.props]\nsurface_variant = \"panel\"\nradius = 0.0\nborder_width = 0.0\n\n[root.children.node.layout.position]\nx = 0.0\ny = 0.0\n\n[root.children.node.layout.width]\nstretch = \"Stretch\"\n\n[root.children.node.layout.height]\nmin = 31.0\npreferred = 31.0\nmax = 31.0\nstretch = \"Fixed\"\n\n[[root.children]]\n[root.children.node]\nnode_id = \"document_subtitle\"\nkind = \"native\"\ntype = \"Label\"\ncontrol_id = \"DocumentSubtitle\"\n\n[root.children.node.props]\ntext = \"\"\ntext_tone = \"muted\"\nfont_size = 10.0\ntext_align = \"right\"\noverflow = \"elide\"\n\n[root.children.node.layout.anchor]\nx = 1.0\ny = 0.0\n\n[root.children.node.layout.pivot]\nx = 1.0\ny = 0.0\n\n[root.children.node.layout.position]\nx = -12.0\ny = 9.0\n\n[root.children.node.layout.width]\nmin = 132.0\npreferred = 132.0\nmax = 132.0\nstretch = \"Fixed\"\n\n[root.children.node.layout.height]\nmin = 14.0\npreferred = 14.0\nmax = 14.0\nstretch = \"Fixed\"\n\n[[root.children]]\n[root.children.node]\nnode_id = \"document_dock_tab_0\"\nkind = \"native\"\ntype = \"Label\"\ncontrol_id = \"DocumentDockTab0\"\n\n[root.children.node.props]\ntext = \"Scene\"\ntext_tone = \"default\"\nfont_size = 11.0\ntext_align = \"center\"\noverflow = \"elide\"\n\n[root.children.node.layout.position]\nx = 8.0\ny = 1.0\n\n[root.children.node.layout.width]\nmin = 92.0\npreferred = 92.0\nmax = 92.0\nstretch = \"Fixed\"\n\n[root.children.node.layout.height]\nmin = 30.0\npreferred = 30.0\nmax = 30.0\nstretch = \"Fixed\"\n\n[[root.children]]\n[root.children.node]\nnode_id = \"document_dock_tab_1\"\nkind = \"native\"\ntype = \"Label\"\ncontrol_id = \"DocumentDockTab1\"\n\n[root.children.node.props]\ntext = \"Game\"\ntext_tone = \"subtle\"\nfont_size = 11.0\ntext_align = \"center\"\noverflow = \"elide\"\n\n[root.children.node.layout.position]\nx = 102.0\ny = 1.0\n\n[root.children.node.layout.width]\nmin = 92.0\npreferred = 92.0\nmax = 92.0\nstretch = \"Fixed\"\n\n[root.children.node.layout.height]\nmin = 30.0\npreferred = 30.0\nmax = 30.0\nstretch = \"Fixed\"\n"
+
+[imports]
+widgets = []
+styles = []
+
+[asset]
+kind = "view"
+id = "editor.host.workbench_document_dock_header"
+version = 2
+display_name = "workbench document dock header"
+
+[root]
+node = "document_dock_header_root"
+
+[nodes.document_dock_header_root]
+component = "Overlay"
+control_id = "DocumentDockHeaderRoot"
+legacy_kind = "native"
+legacy_type = "Overlay"
+
+[nodes.document_dock_header_root.layout]
+clip = true
+
+[nodes.document_dock_header_root.layout.container]
+kind = "Overlay"
+
+[nodes.document_dock_header_root.layout.width]
+stretch = "Stretch"
+
+[nodes.document_dock_header_root.layout.height]
+stretch = "Stretch"
+
+[[nodes.document_dock_header_root.children]]
+node = "document_dock_header_bar"
+
+[[nodes.document_dock_header_root.children]]
+node = "document_subtitle"
+
+[[nodes.document_dock_header_root.children]]
+node = "document_dock_tab_0"
+
+[[nodes.document_dock_header_root.children]]
+node = "document_dock_tab_1"
+
+[nodes.document_dock_header_bar]
+component = "Container"
+control_id = "DocumentDockHeaderBar"
+legacy_kind = "native"
+legacy_type = "Container"
+
+[nodes.document_dock_header_bar.props]
+surface_variant = "panel"
+radius = 0
+border_width = 0
+
+[nodes.document_dock_header_bar.layout.position]
+x = 0
+y = 0
+
+[nodes.document_dock_header_bar.layout.width]
+stretch = "Stretch"
+
+[nodes.document_dock_header_bar.layout.height]
+min = 31
+preferred = 31
+max = 31
+stretch = "Fixed"
+
+[nodes.document_subtitle]
+component = "Label"
+control_id = "DocumentSubtitle"
+legacy_kind = "native"
+legacy_type = "Label"
+
+[nodes.document_subtitle.props]
+text = ""
+text_tone = "muted"
+font_size = 10
+text_align = "right"
+overflow = "elide"
+
+[nodes.document_subtitle.layout.anchor]
+x = 1
+y = 0
+
+[nodes.document_subtitle.layout.pivot]
+x = 1
+y = 0
+
+[nodes.document_subtitle.layout.position]
+x = -12
+y = 9
+
+[nodes.document_subtitle.layout.width]
+min = 132
+preferred = 132
+max = 132
+stretch = "Fixed"
+
+[nodes.document_subtitle.layout.height]
+min = 14
+preferred = 14
+max = 14
+stretch = "Fixed"
+
+[nodes.document_dock_tab_0]
+component = "Label"
+control_id = "DocumentDockTab0"
+legacy_kind = "native"
+legacy_type = "Label"
+
+[nodes.document_dock_tab_0.props]
+text = "Scene"
+text_tone = "default"
+font_size = 11
+text_align = "center"
+overflow = "elide"
+
+[nodes.document_dock_tab_0.layout.position]
+x = 8
+y = 1
+
+[nodes.document_dock_tab_0.layout.width]
+min = 92
+preferred = 92
+max = 92
+stretch = "Fixed"
+
+[nodes.document_dock_tab_0.layout.height]
+min = 30
+preferred = 30
+max = 30
+stretch = "Fixed"
+
+[nodes.document_dock_tab_1]
+component = "Label"
+control_id = "DocumentDockTab1"
+legacy_kind = "native"
+legacy_type = "Label"
+
+[nodes.document_dock_tab_1.props]
+text = "Game"
+text_tone = "subtle"
+font_size = 11
+text_align = "center"
+overflow = "elide"
+
+[nodes.document_dock_tab_1.layout.position]
+x = 102
+y = 1
+
+[nodes.document_dock_tab_1.layout.width]
+min = 92
+preferred = 92
+max = 92
+stretch = "Fixed"
+
+[nodes.document_dock_tab_1.layout.height]
+min = 30
+preferred = 30
+max = 30
+stretch = "Fixed"
+
+[legacy_migration]
+source_path = "zircon_editor/src/tests/fixtures/ui_zui/editor/host/workbench_document_dock_header.zui"
+source_kind = "layout"
+source_version = 1
+source_component_ids = []
+
+[tokens]
+[penpot_original_imports]
+widgets = []
+styles = []

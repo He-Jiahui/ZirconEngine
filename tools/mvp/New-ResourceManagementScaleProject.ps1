@@ -12,7 +12,7 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Import-Module (Join-Path $PSScriptRoot 'MvpProductSourceIdentity.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpArtifactStoragePolicy.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'ResourceManagementScaleInventory.psm1') -Force -ErrorAction Stop
-Import-Module (Join-Path $repoRoot 'tools\WindowsPathResolver.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $repoRoot 'tools\maintenance\WindowsPathResolver.psm1') -Force -ErrorAction Stop
 if ([string]::IsNullOrWhiteSpace($ProjectRoot)) {
     $ProjectRoot = New-MvpArtifactStoragePath -NamespaceId 'resource-management-projects'
 }

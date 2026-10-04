@@ -1,3 +1,6 @@
+//! 序列化友好的拥有型可用性报告，是启动结果、导出计划和诊断的交接格式。
+//! 分类行与必需缺失行可重复指向同一插件，后者表示装配失败门槛。
+
 use serde::{Deserialize, Serialize};
 
 use crate::builtin::RuntimePluginId;
@@ -24,6 +27,7 @@ fn availability_diagnostic_line_count(report: &RuntimePluginAvailabilityReport) 
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// 各类别保持选择顺序；调用方可直接查询，也可生成稳定顺序的诊断行。
 pub struct RuntimePluginAvailabilityReport {
     pub available: Vec<RuntimePluginAvailabilityEntry>,
     pub linked: Vec<RuntimePluginAvailabilityEntry>,
@@ -37,6 +41,7 @@ pub struct RuntimePluginAvailabilityReport {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+/// 可用性主类别加必需缺失视图；后者不是独立的加载状态。
 pub enum RuntimePluginAvailabilityCategory {
     Available,
     Linked,
@@ -49,6 +54,7 @@ pub enum RuntimePluginAvailabilityCategory {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 对外拥有的单项快照，包含包身份、运行时身份、必需性和分类原因。
 pub struct RuntimePluginAvailabilityEntry {
     pub id: String,
     pub runtime_id: RuntimePluginId,
@@ -108,6 +114,7 @@ impl RuntimePluginAvailabilityReport {
         lines
     }
 
+    /// 追加到调用方已有诊断流，保持类别顺序与现有机器可读键格式。
     pub fn push_diagnostic_lines(&self, lines: &mut Vec<String>) {
         lines.reserve(availability_diagnostic_line_count(self));
         push_availability_diagnostic_lines(lines, "available", &self.available);
@@ -158,5 +165,5 @@ fn push_availability_diagnostic_lines(
 }
 
 #[cfg(test)]
-#[path = "availability_report/capacity_tests.rs"]
+#[path = "availability_report/tests/capacity_tests.rs"]
 mod capacity_tests;

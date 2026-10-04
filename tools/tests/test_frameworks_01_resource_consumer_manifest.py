@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tools import frameworks_01_resource_consumer_manifest as manifest_owner
+from tools.maintenance.resource_migration import frameworks_01_resource_consumer_manifest as manifest_owner
 
 
 def _test_temp_root() -> Path:
@@ -26,7 +26,7 @@ def _test_temp_root() -> Path:
 
 TEST_TEMP_ROOT = _test_temp_root()
 
-
+# 在临时 Git 仓库生成资源消费者，验证候选集同时覆盖已跟踪、脏文件和未跟踪引用，并拒绝封存后漂移。
 class Frameworks01ResourceConsumerManifestTests(unittest.TestCase):
     def setUp(self) -> None:
         TEST_TEMP_ROOT.mkdir(parents=True, exist_ok=True)

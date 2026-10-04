@@ -3,12 +3,13 @@ use crate::ui::asset_editor;
 use super::row_model::{push_detail_row, UiAssetDetailFieldRow};
 
 const PROP_STATE_ROW_LIMIT: usize = 6;
+const WIDGET_DETAIL_ROW_MAX_COUNT: usize = 9;
 
 pub(super) fn widget_detail_rows(
     data: &asset_editor::UiAssetEditorPanePresentation,
     prop_state_rows: &[asset_editor::UiAssetEditorWidgetPropStateItem],
 ) -> Vec<UiAssetDetailFieldRow> {
-    let mut rows = Vec::new();
+    let mut rows = Vec::with_capacity(widget_detail_row_capacity(data, prop_state_rows));
     push_detail_row(
         &mut rows,
         "Control ID",
@@ -58,16 +59,40 @@ pub(super) fn widget_detail_rows(
     rows
 }
 
+fn widget_detail_row_capacity(
+    data: &asset_editor::UiAssetEditorPanePresentation,
+    prop_state_rows: &[asset_editor::UiAssetEditorWidgetPropStateItem],
+) -> usize {
+    let fixed_row_count = [
+        data.inspector_can_edit_control_id || !data.inspector_control_id.is_empty(),
+        data.inspector_can_edit_text_prop || !data.inspector_text_prop.is_empty(),
+        data.inspector_can_edit_component_root_class_policy
+            || !data.inspector_component_root_class_policy.is_empty(),
+    ]
+    .into_iter()
+    .filter(|visible| *visible)
+    .count();
+    let prop_state_row_count = prop_state_rows
+        .iter()
+        .take(PROP_STATE_ROW_LIMIT)
+        .filter(|row| prop_state_row_is_actionable(row))
+        .count();
+    let capacity = fixed_row_count + prop_state_row_count;
+    debug_assert!(capacity <= WIDGET_DETAIL_ROW_MAX_COUNT);
+    capacity
+}
+
+fn prop_state_row_is_actionable(row: &asset_editor::UiAssetEditorWidgetPropStateItem) -> bool {
+    !row.path.is_empty() && matches!(row.kind.as_str(), "prop" | "state")
+}
+
 fn prop_state_row_action_id(
     row: &asset_editor::UiAssetEditorWidgetPropStateItem,
 ) -> Option<String> {
-    if row.path.is_empty() {
+    if !prop_state_row_is_actionable(row) {
         return None;
     }
-    match row.kind.as_str() {
-        "prop" | "state" => Some(format!("widget.{}.{}.set", row.kind, row.path)),
-        _ => None,
-    }
+    Some(format!("widget.{}.{}.set", row.kind, row.path))
 }
 
 fn sanitized_prop_state_control_suffix(
@@ -104,5 +129,9 @@ fn append_sanitized_control_suffix(output: &mut String, value: &str) {
 }
 
 #[cfg(test)]
-#[path = "widget/suffix_single_allocation_tests.rs"]
+#[path = "widget/tests/suffix_single_allocation_tests.rs"]
 mod suffix_single_allocation_tests;
+
+#[cfg(test)]
+#[path = "widget/tests/capacity_tests.rs"]
+mod capacity_tests;

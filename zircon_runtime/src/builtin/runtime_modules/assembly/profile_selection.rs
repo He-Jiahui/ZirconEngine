@@ -108,5 +108,5 @@ pub(in crate::builtin::runtime_modules) fn select_runtime_profile_builtin_module
 }
 
 #[cfg(test)]
-#[path = "profile_selection/capacity_tests.rs"]
+#[path = "profile_selection/tests/capacity_tests.rs"]
 mod capacity_tests;

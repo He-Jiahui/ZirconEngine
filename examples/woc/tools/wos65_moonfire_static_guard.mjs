@@ -55,7 +55,7 @@ requireText(world, /landOfflineMoonfireProjectile[\s\S]*?spellResist\.resolve[\s
 requireText(world, /offlineDotStateIsValid[\s\S]*?moonfireAbilityCode\(\)/, "WOS57 periodic rows must validate Moonfire profiles");
 requireText(world, /stepOfflineEastbrookDots[\s\S]*?moonfireAbilityCode\(\)[\s\S]*?m4AbilityCatalog\.metric/, "Periodic DoT threat must follow its retained ability identity");
 requireText(world, /stepOfflineEastbrookProjectiles[\s\S]*?moonfireAbilityCode\(\)[\s\S]*?landOfflineMoonfireProjectile[\s\S]*?landOfflineRangedProjectile/, "Moonfire projectile dispatch is missing");
-requireText(world, /writer\.u16\(<uint>67, 1, 1\)[\s\S]*?offlineDotAbilityCodes/, "Moonfire must preserve the WOS57 periodic tail before later schema details");
+requireText(world, /writer\.u16\(schemaVersion, 1, 1\)[\s\S]*?offlineDotAbilityCodes/, "Moonfire must preserve the WOS57 periodic tail before later schema details");
 requireText(world, /applySupportedCastSlotCommand[\s\S]*?moonfireAbilityCode\(\)[\s\S]*?startOfflineMoonfireCast[\s\S]*?applySupportedCastCommand[\s\S]*?moonfirePayloadAbilityIsExact/, "Moonfire slot and typed routes are missing");
 requireText(world, /pub moonfireCommandStateTest\(\): int[\s\S]*?offlineDotTargetIds[\s\S]*?stepOfflineEastbrookDots/, "Moonfire state regression coverage is missing");
 requireText(world, /if \(moonfireCommandStateTest\(\) != 1\) \{\s*return -61;\s*\}/, "Moonfire self-test route is missing");

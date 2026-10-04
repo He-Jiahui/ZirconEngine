@@ -53,3 +53,27 @@ but its trait bounds were not satisfied
 ## 修复结果与回传
 
 Open state: `待修复`; no pass is claimed.
+
+## 2026-09-01 current-source forward evidence
+
+Current source now passes Rust 1.94.1 rustfmt and scoped diff-check. The typed projection guard
+retains both direct `deserialize(value)` calls and rejects the retired `value.as_ref()` form.
+Validation-copy job `55df13f4d15042cea558d76e462491bd` was accepted for the focused
+`navigation_world_projection_avoids_full_world_and_json_value_scans` test, but Cargo did not start.
+Artifact governance removed the copy during materialization because
+`E:\cargo-targets\zircon-engine\cache\cargo-metadata-home` was classified as unmanaged.
+
+This terminal copy is neither Navigation RED nor GREEN. Do not retry it or absorb the Tooling cache
+lifecycle into Plugins05; repeat the focused managed gate only after the Coordinator owner commits
+and loads the metadata-home lifecycle repair.
+
+### 2026-09-19 current-source static contract
+
+The current-source Plugins05 static successor ticket `4bf7a7689d6245d7b07229bb27788528`
+was admitted without blockers and completed through managed job
+`2901c515f96f48c4828bd1f35de0b283` / run `4bf7a7689d6245d7b07229bb27788528`.
+The Windows-native Python command exited `0` and verified both direct
+`NavMesh*Descriptor::deserialize(value)` calls, rejected both retired
+`value.as_ref()` forms, and confirmed the typed projection guard remains present.
+This is source-contract evidence only: the focused Navigation Cargo regression,
+upward Editor/F3 acceptance, review, failure return, and closeout remain pending.

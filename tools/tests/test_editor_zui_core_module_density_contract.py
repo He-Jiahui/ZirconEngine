@@ -1,3 +1,4 @@
+# 核对核心模块在紧凑宽度下保留中心内容与共享间距。
 import tomllib
 import unittest
 from pathlib import Path

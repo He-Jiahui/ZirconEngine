@@ -22,7 +22,7 @@ $productProfileRegistryModule = Join-Path $repoRoot 'tools\mvp\MvpProductProfile
 $buildSetModule = Join-Path $repoRoot 'tools\mvp\MvpBuildSet.psm1'
 $fixturePathsModule = Join-Path $repoRoot 'tools\mvp\MvpTestFixturePaths.psm1'
 $stagingTreeManifestModule = Join-Path $repoRoot 'tools\mvp\MvpAcceptanceStagingTreeManifest.psm1'
-$windowsPathResolverModule = Join-Path $repoRoot 'tools\WindowsPathResolver.psm1'
+$windowsPathResolverModule = Join-Path $repoRoot 'tools\maintenance\WindowsPathResolver.psm1'
 Import-Module $productInputManifestModule -Force -ErrorAction Stop
 Import-Module $productProfileRegistryModule -Force -ErrorAction Stop
 Import-Module $buildSetModule -Force -ErrorAction Stop
@@ -781,6 +781,8 @@ Assert-True ($stagerSource -match 'Get-MvpEditorWindowCaptureEvidence') 'MVP sta
 Assert-True ($stagerSource -match 'System\.IO\.FileStream\(\s*\r?\n\s*path,\s*\r?\n\s*System\.IO\.FileMode\.Open') 'MVP staging PNG evidence must open resolver paths through a fully qualified System.IO file stream.'
 Assert-True ($stagerSource -match '\$pngEvidenceReferences\s*=\s*@\(') 'MVP staging must compile its PNG evidence helper with an explicit assembly reference collection.'
 Assert-True ($stagerSource -match '\[Security\.Cryptography\.SHA256\]\.Assembly\.Location') 'MVP staging must include the SHA-256 assembly when compiling its PNG evidence helper.'
+Assert-True ($stagerSource -match 'System\.Private\.Windows\.GdiPlus' -and $stagerSource -match 'System\.Private\.Windows\.Core') 'MVP staging must include split Windows drawing assemblies when the runtime requires them.'
+Assert-True ($stagerSource -match '\[Reflection\.Assembly\]::Load\(\$assemblyName\)') 'MVP staging must resolve optional drawing support assemblies through the runtime loader.'
 Assert-True ($stagerSource -match '-ReferencedAssemblies \$pngEvidenceReferences -ErrorAction Stop') 'MVP staging must pass the complete PNG evidence assembly reference collection to Add-Type.'
 Assert-True ($stagerSource -match 'non_background_pixels') 'MVP staging must record captured runtime PNG pixel evidence.'
 Assert-True ($stagerSource -match 'runtime_product_frame_capture_written') 'MVP staging must require the runtime capture completion diagnostic.'
@@ -918,7 +920,7 @@ $insufficientCapacityRejected = $false
 try {
     & $preflightModuleHandle {
         Assert-MvpStagingCapacityValues `
-            -StagingRootPath 'E:\ZirconBuilds' `
+            -StagingRootPath 'E:\cargo-targets' `
             -RequiredFreeSpaceBytes 1024 `
             -AvailableFreeSpaceBytes 1023
     } | Out-Null

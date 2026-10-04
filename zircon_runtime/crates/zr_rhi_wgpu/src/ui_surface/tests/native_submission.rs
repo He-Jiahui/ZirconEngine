@@ -51,6 +51,63 @@ fn wgpu_ui_surface_shared_context_path_does_not_request_a_second_device() {
 }
 
 #[test]
+fn wgpu_ui_surface_reports_the_configured_adapter_and_device_source_once() {
+    assert_eq!(
+        WgpuUiSurfaceCompletionOwner::Local.device_source_label(),
+        "independent"
+    );
+    assert_eq!(
+        WgpuUiSurfaceCompletionOwner::External.device_source_label(),
+        "shared"
+    );
+
+    let source = include_str!("../../ui_surface.rs");
+    let renderer = source
+        .split_once("impl WgpuUiSurfaceRenderer {")
+        .map(|(_, tail)| tail)
+        .expect("native renderer implementation");
+    let owned_constructor = renderer
+        .split_once("fn new_owned(")
+        .and_then(|(_, tail)| tail.split_once("fn new_with_context("))
+        .map(|(body, _)| body)
+        .expect("owned native surface constructor");
+    assert!(owned_constructor.contains("with_local_completion_owner()"));
+
+    let shared_constructor = renderer
+        .split_once("fn new_with_context(")
+        .and_then(|(_, tail)| tail.split_once("fn from_surface("))
+        .map(|(body, _)| body)
+        .expect("shared native surface constructor");
+    assert!(!shared_constructor.contains("with_local_completion_owner()"));
+
+    let from_surface = renderer
+        .split_once("fn from_surface(")
+        .and_then(|(_, tail)| tail.split_once("fn resize("))
+        .map(|(body, _)| body)
+        .expect("common native surface constructor");
+    let configured = from_surface
+        .split_once("configure_surface(&surface, &context.adapter, &context.device, size)?;")
+        .map(|(_, tail)| tail)
+        .expect("adapter must configure the actual native surface");
+    assert!(configured.contains("context.adapter.get_info()"));
+    assert!(configured.contains("context.completion_owner.device_source_label()"));
+    assert!(configured.contains("ui_surface_adapter"));
+    for field in [
+        "device_source=",
+        "name=",
+        "backend=",
+        "vendor_id=",
+        "device_id=",
+    ] {
+        assert!(
+            configured.contains(field),
+            "missing product adapter field {field}"
+        );
+    }
+    assert_eq!(configured.matches("ui_surface_adapter").count(), 1);
+}
+
+#[test]
 fn wgpu_ui_surface_external_image_path_uses_the_shared_texture_without_cpu_upload() {
     let source = include_str!("../image_cache.rs");
     let external_prepare = source

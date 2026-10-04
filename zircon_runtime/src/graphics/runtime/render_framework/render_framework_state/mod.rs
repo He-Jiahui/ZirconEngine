@@ -7,8 +7,10 @@ mod viewport_pick_store;
 mod viewport_product_registry;
 
 #[cfg(test)]
+#[path = "tests/viewport_pick_frame_registry_tests.rs"]
 mod viewport_pick_frame_registry_tests;
 #[cfg(test)]
+#[path = "tests/viewport_pick_store_tests.rs"]
 mod viewport_pick_store_tests;
 
 pub(in crate::graphics::runtime::render_framework) use environment_capture_residency::EnvironmentCaptureResidency;

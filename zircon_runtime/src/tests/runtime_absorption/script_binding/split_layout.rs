@@ -1,3 +1,4 @@
+//! 脚本宿主绑定、游戏流程和门禁文档需对应同一运行时契约。通过源码文本核对父子路由、状态镜像和文件预算。
 const PARENT_SOURCE: &str = include_str!("../script_binding.rs");
 const GAMEPLAY_HOST_SOURCE: &str = include_str!("gameplay_host.rs");
 const INVENTORY_SOURCE: &str = include_str!("inventory.rs");
@@ -19,7 +20,7 @@ const REVIEW_FINDINGS_PLAN: &str = include_str!(
     "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
 );
 const MODULE_CONVENTION_DOC: &str =
-    include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
+    include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 const FRAMEWORKS_02_PLAN: &str = include_str!(
     "../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
 );

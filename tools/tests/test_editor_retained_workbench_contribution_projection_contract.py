@@ -25,14 +25,12 @@ class EditorRetainedWorkbenchContributionProjectionContractTests(unittest.TestCa
         self.assertNotIn("ContributionSnapshot::default()", projection)
         self.assertNotIn("CapabilitySet::default()", projection)
 
-    def test_retained_product_paths_use_the_controller_projection(self) -> None:
+    def test_full_retained_product_projections_use_the_controller_projection(self) -> None:
         product_paths = (
             "zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/"
             "shell/builder.rs",
             "zircon_editor/src/ui/retained_host/app/host_lifecycle/"
             "recompute_viewport.rs",
-            "zircon_editor/src/ui/retained_host/callback_dispatch/layout/"
-            "floating_window/dispatch.rs",
         )
 
         for relative in product_paths:
@@ -40,6 +38,16 @@ class EditorRetainedWorkbenchContributionProjectionContractTests(unittest.TestCa
             with self.subTest(path=relative):
                 self.assertIn("build_workbench_view_model", source)
                 self.assertNotIn("WorkbenchViewModel::build_with_context", source)
+
+    def test_focus_dispatch_uses_the_authoritative_layout_query(self) -> None:
+        source = self.read(
+            "zircon_editor/src/ui/retained_host/callback_dispatch/layout/"
+            "floating_window/dispatch.rs"
+        )
+
+        self.assertIn("runtime.floating_window_focus_target(window_id)", source)
+        self.assertNotIn("build_workbench_view_model", source)
+        self.assertNotIn("chrome_snapshot", source)
 
 
 if __name__ == "__main__":

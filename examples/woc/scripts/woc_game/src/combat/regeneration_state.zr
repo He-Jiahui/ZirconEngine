@@ -1,5 +1,6 @@
 var container = %import("zr.container");
 
+// 固定步长的独立回复投影；模拟时刻和步号由调用方推进，冷却标识与数值双列同序。
 class RegenerationState {
     pub var tickCount: int;
     pub var resourceType: string;
@@ -106,6 +107,8 @@ applyConsumption(
     }
 }
 
+// 调用方每步至多调用一次，并预先排除不可回复的实体；每四十步执行一轮两秒回复。
+// 本函数不推进步号，同一步重复调用会再次结算。
 pub updateRegen(state: RegenerationState): void {
     if (state.tickCount % 40 != 0) { return; }
     // Lifesap applies to whichever resource bar is currently live and pauses
@@ -166,6 +169,7 @@ pub updateRegen(state: RegenerationState): void {
     }
 }
 
+// 每个模拟步固定推进五十毫秒；到期冷却倒序删双列，绝对模拟时刻仍由上层维护。
 pub updateTimers(state: RegenerationState): void {
     state.gcdRemaining = state.gcdRemaining - 0.05;
     if (state.gcdRemaining < 0.0) { state.gcdRemaining = 0.0; }
@@ -186,6 +190,7 @@ pub updateTimers(state: RegenerationState): void {
     }
 }
 
+// 使用调用方提供的绝对模拟时刻，恰好到期也清除连击点并只记录一次。
 pub updateComboExpiry(state: RegenerationState): void {
     if (state.comboPoints > 0 && state.time >= state.comboUntil) {
         state.comboPoints = 0;

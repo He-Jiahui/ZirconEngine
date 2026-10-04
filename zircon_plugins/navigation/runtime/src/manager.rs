@@ -10,6 +10,7 @@ use std::sync::MutexGuard;
 use std::sync::{Arc, Mutex};
 
 use zircon_plugin_navigation_recast::RecastBackend;
+use zircon_runtime::asset::ProjectAssetManagerAccess;
 use zircon_runtime::core::framework::navigation::{
     NavAgentTickReport, NavMeshAsset, NavMeshBakeReport, NavMeshBakeRequest, NavMeshHandle,
     NavPathQuery, NavPathResult, NavQueryFilter, NavRaycastQuery, NavRaycastResult, NavSampleHit,
@@ -18,18 +19,20 @@ use zircon_runtime::core::framework::navigation::{
 };
 use zircon_runtime::core::math::Real;
 use zircon_runtime::core::runtime::tasks::TaskPool;
-use zircon_runtime::scene::{SceneNavigationRuntime, World};
+use zircon_runtime::scene::{LevelSystem, SceneNavigationRuntime, World};
 
 pub use self::bake::{
     NavMeshBakeTaskHandle, NavMeshBakeTaskState, NavMeshDirtyBakeReport, NavMeshDirtyBounds,
 };
-use self::state::NavigationRuntimeState;
+use self::state::{BakeGenerationToken, NavigationRuntimeState};
 use crate::NavigationOverlayFrame;
 
 #[derive(Clone, Debug)]
+/// 管理器集中持有已加载网格、烘焙代次与代理状态；场景 trait 和插件驱动共享这份状态。
 pub struct DefaultNavigationManager {
     pub(crate) backend: RecastBackend,
     pub(in crate::manager) bake_pool: TaskPool,
+    pub(in crate::manager) project_assets: ProjectAssetManagerAccess,
     pub(in crate::manager) state: Arc<Mutex<NavigationRuntimeState>>,
 }
 
@@ -40,12 +43,17 @@ impl DefaultNavigationManager {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
-    pub fn new(bake_pool: TaskPool) -> Self {
+    pub fn new(bake_pool: TaskPool, project_assets: ProjectAssetManagerAccess) -> Self {
         Self {
             backend: RecastBackend,
             bake_pool,
+            project_assets,
             state: Arc::new(Mutex::new(NavigationRuntimeState::default())),
         }
+    }
+
+    pub(in crate::manager) fn project_asset_access(&self) -> &ProjectAssetManagerAccess {
+        &self.project_assets
     }
 
     pub fn active_settings(&self) -> NavigationSettingsAsset {
@@ -106,15 +114,30 @@ impl DefaultNavigationManager {
         )
     }
 
-    pub(in crate::manager) fn begin_bake_generation(&self, surface: Option<u64>) -> u64 {
+    pub(in crate::manager) fn begin_bake_generation(
+        &self,
+        surface: Option<u64>,
+    ) -> Result<u64, NavigationError> {
         let mut state = self.lock_state();
-        state.advance_bake_context(surface)
+        state.try_advance_bake_context(surface)
+    }
+
+    pub(in crate::manager) fn capture_bake_generation(
+        &self,
+        surface: Option<u64>,
+    ) -> BakeGenerationToken {
+        self.lock_state().bake_generation_token(surface)
+    }
+
+    pub(in crate::manager) fn capture_generated_mutation_epoch(&self) -> u64 {
+        self.lock_state().generated_mutation_epoch()
     }
 
     pub(in crate::manager) fn publish_bake(
         &self,
         surface: Option<u64>,
         generation: u64,
+        generated_mutation_epoch: u64,
         tiled_bake: Option<(
             state::TiledBakeIdentity,
             zircon_plugin_navigation_recast::RecastTiledBakePlan,
@@ -125,12 +148,25 @@ impl DefaultNavigationManager {
         counts: (usize, usize, usize),
     ) -> Result<(), NavigationError> {
         let mut state = self.lock_state();
+        if state.generated_mutation_epoch != generated_mutation_epoch {
+            return Err(NavigationError::new(
+                zircon_runtime::core::framework::navigation::NavigationErrorKind::InvalidConfiguration,
+                "navigation bake result was superseded by a generated-state mutation",
+            ));
+        }
+        state.ensure_generated_mutation_epoch_available()?;
         {
             let context = state.bake_contexts.entry(surface).or_default();
             if context.current_generation != generation {
                 return Err(NavigationError::new(
                     zircon_runtime::core::framework::navigation::NavigationErrorKind::InvalidConfiguration,
                     "navigation bake result was superseded by a newer request",
+                ));
+            }
+            if context.next_generation == u64::MAX {
+                return Err(NavigationError::new(
+                    zircon_runtime::core::framework::navigation::NavigationErrorKind::InvalidConfiguration,
+                    "navigation bake generation exhausted before publication",
                 ));
             }
             context.last_tiled_bake =
@@ -140,7 +176,66 @@ impl DefaultNavigationManager {
                     asset,
                 });
         }
-        state.replace_generated_snapshot(generated_snapshot);
+        state.replace_generated_snapshot(generated_snapshot)?;
+        state.bake_diagnostics = diagnostics;
+        state.stats.active_obstacles = counts.0;
+        state.stats.active_off_mesh_links = counts.1;
+        state.stats.active_off_mesh_bridges = counts.2;
+        Ok(())
+    }
+
+    pub(in crate::manager) fn publish_operation_bake(
+        &self,
+        token: BakeGenerationToken,
+        expected_before: &NavigationGeneratedBakeSnapshot,
+        tiled_bake: Option<(
+            state::TiledBakeIdentity,
+            zircon_plugin_navigation_recast::RecastTiledBakePlan,
+            NavMeshAsset,
+        )>,
+        generated_snapshot: NavigationGeneratedBakeSnapshot,
+        diagnostics: Vec<zircon_runtime::core::framework::navigation::NavMeshBakeDiagnostic>,
+        counts: (usize, usize, usize),
+    ) -> Result<(), NavigationError> {
+        let mut state = self.lock_state();
+        let current = state.bake_generation_token(token.surface);
+        if current != token {
+            return Err(NavigationError::new(
+                zircon_runtime::core::framework::navigation::NavigationErrorKind::InvalidConfiguration,
+                "navigation bake result was superseded by a newer request or manager state change",
+            ));
+        }
+        if state.generated_snapshot(expected_before.surface_entity) != *expected_before {
+            return Err(NavigationError::new(
+                zircon_runtime::core::framework::navigation::NavigationErrorKind::InvalidConfiguration,
+                "navigation generated bake state changed before owner apply",
+            ));
+        }
+        if state
+            .bake_contexts
+            .get(&token.surface)
+            .is_some_and(|context| context.next_generation == u64::MAX)
+        {
+            return Err(NavigationError::new(
+                zircon_runtime::core::framework::navigation::NavigationErrorKind::InvalidConfiguration,
+                "navigation bake generation exhausted before owner apply",
+            ));
+        }
+        state.ensure_generated_mutation_epoch_available()?;
+        let generation = state.try_advance_bake_context(token.surface)?;
+        if generation != token.next_generation {
+            return Err(NavigationError::new(
+                zircon_runtime::core::framework::navigation::NavigationErrorKind::InvalidConfiguration,
+                "navigation bake generation changed before owner apply",
+            ));
+        }
+        let context = state.bake_contexts.entry(token.surface).or_default();
+        context.last_tiled_bake = tiled_bake.map(|(identity, plan, asset)| state::LastTiledBake {
+            identity,
+            plan,
+            asset,
+        });
+        state.replace_generated_snapshot(generated_snapshot)?;
         state.bake_diagnostics = diagnostics;
         state.stats.active_obstacles = counts.0;
         state.stats.active_off_mesh_links = counts.1;
@@ -152,10 +247,10 @@ impl DefaultNavigationManager {
 impl DefaultNavigationManager {
     pub fn bake_surface(
         &self,
-        world: &World,
+        level: &LevelSystem,
         request: NavMeshBakeRequest,
     ) -> Result<NavMeshBakeReport, NavigationError> {
-        bake::bake_surface(self, world, request)
+        bake::bake_surface(self, level, request)
     }
 
     fn load_nav_mesh(&self, asset: NavMeshAsset) -> Result<NavMeshHandle, NavigationError> {
@@ -174,15 +269,20 @@ impl DefaultNavigationManager {
     ) -> Result<(), NavigationError> {
         crate::settings_validation::validate_navigation_settings(&settings)?;
         let mut state = self.lock_state();
+        state.ensure_generated_mutation_epoch_available()?;
+        state.ensure_bake_generations_available()?;
         state.settings = settings;
-        state.clear_generated_snapshots();
+        state.clear_generated_snapshots()?;
         state.crowds.clear();
         state.obstacle_worlds.clear();
         state.off_mesh_traversal = traversal::OffMeshTraversalRuntime::default();
         state.crowd_handle_cursor = 0;
         for context in state.bake_contexts.values_mut() {
             let generation = context.next_generation;
-            context.next_generation = context.next_generation.saturating_add(1);
+            context.next_generation = context
+                .next_generation
+                .checked_add(1)
+                .expect("bake generation availability was checked above");
             context.current_generation = generation;
             context.last_tiled_bake = None;
         }
@@ -263,10 +363,10 @@ impl NavigationManager for DefaultNavigationManager {
 impl SceneNavigationRuntime for DefaultNavigationManager {
     fn bake_surface(
         &self,
-        world: &World,
+        level: &LevelSystem,
         request: NavMeshBakeRequest,
     ) -> Result<NavMeshBakeReport, NavigationError> {
-        DefaultNavigationManager::bake_surface(self, world, request)
+        DefaultNavigationManager::bake_surface(self, level, request)
     }
 
     fn generated_bake_snapshot(
@@ -280,8 +380,50 @@ impl SceneNavigationRuntime for DefaultNavigationManager {
         &self,
         snapshot: NavigationGeneratedBakeSnapshot,
     ) -> Result<(), NavigationError> {
-        self.lock_state().replace_generated_snapshot(snapshot);
-        Ok(())
+        self.lock_state().replace_generated_snapshot(snapshot)
+    }
+
+    fn generated_bake_mutation_epoch(&self, _surface_entity: Option<u64>) -> u64 {
+        self.capture_generated_mutation_epoch()
+    }
+
+    fn capture_bake_operation(
+        &self,
+        source: &zircon_runtime::scene::WorldPublicationSource,
+        request: NavMeshBakeRequest,
+    ) -> Result<
+        (
+            Box<dyn std::any::Any + Send>,
+            usize,
+            NavigationGeneratedBakeSnapshot,
+        ),
+        NavigationError,
+    > {
+        bake::capture_bake_operation(self, source, request)
+    }
+
+    fn prepare_bake_operation(
+        &self,
+        snapshot: Box<dyn std::any::Any + Send>,
+    ) -> Result<
+        (
+            Box<dyn std::any::Any + Send>,
+            NavMeshBakeReport,
+            NavigationGeneratedBakeSnapshot,
+            usize,
+        ),
+        NavigationError,
+    > {
+        bake::prepare_bake_operation(self, snapshot)
+    }
+
+    fn apply_bake_operation(
+        &self,
+        source: &zircon_runtime::scene::WorldPublicationSource,
+        expected_before: &NavigationGeneratedBakeSnapshot,
+        prepared: Box<dyn std::any::Any + Send>,
+    ) -> Result<(), NavigationError> {
+        bake::apply_bake_operation(self, source, expected_before, prepared)
     }
 
     fn tick_world_agents(

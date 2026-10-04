@@ -1,3 +1,4 @@
+# 核对资产投影复用代际拥有的项目和绘制分块，并让表格与缩略图布局保持线性访问。
 from pathlib import Path
 import unittest
 
@@ -24,7 +25,7 @@ ASSET_ACCESS = ROOT / (
 )
 WORKBENCH_SHELL_STATE = ROOT / "zircon_editor/src/ui/workbench/shell_state.rs"
 UI_PERF = ROOT / "zircon_editor/src/ui/retained_host/ui_perf.rs"
-PROFILE_COUNTER_EVIDENCE = ROOT / "tools/ui-profile-counter-evidence.ps1"
+PROFILE_COUNTER_EVIDENCE = ROOT / "tools/profiling/ui/ui-profile-counter-evidence.ps1"
 TABLE_NODES = ROOT / (
     "zircon_editor/src/ui/layouts/views/asset_browser/table_nodes.rs"
 )

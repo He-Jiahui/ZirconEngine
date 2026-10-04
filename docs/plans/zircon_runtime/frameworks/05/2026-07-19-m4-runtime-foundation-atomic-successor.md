@@ -11,7 +11,6 @@ related_code:
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/foundation
   - zircon_runtime/src/input/runtime/action_evaluator.rs
-  - zircon_runtime/src/input/runtime/action_evaluator/binding_index.rs
   - zircon_runtime/src/tests/runtime_absorption/input_stack
 plan_sources:
   - docs/plans/engine-code-structure-convention.md

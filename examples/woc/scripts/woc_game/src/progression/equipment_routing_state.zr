@@ -17,6 +17,7 @@ pub canDualWieldTwoHand(playerClass: string, spec: string): bool {
     return playerClass == contract.warrior() && spec == contract.fury();
 }
 
+/// 只按已解析的物品槽类型和当前戒指占位选择目标；权限、等级、职业和换装事务由调用方另行验证。
 pub resolveEquipSlot(itemSlot: string, ringOneOccupied: bool, ringTwoOccupied: bool): string {
     if (itemSlot == "") return "";
     if (itemSlot != contract.ringKind()) return itemSlot;

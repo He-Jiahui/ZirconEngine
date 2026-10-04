@@ -1,7 +1,8 @@
+# 核对窗口尺寸重算复用已提交载荷包，完整重算才替换共享内容。
 from pathlib import Path
 import unittest
 
-from tools.editor_window_metrics_payload_pressure import run
+from tools.analysis.performance.editor.editor_window_metrics_payload_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -72,7 +73,7 @@ class EditorWindowMetricsPayloadReusePerformanceContractTests(unittest.TestCase)
         self.assertEqual(result["payload_source_collection_reduction_ratio"], 100.0)
 
     def test_window_resize_profile_gate_exports_payload_cache_evidence(self) -> None:
-        source = (ROOT / "tools/ui-profile-counter-evidence.ps1").read_text(
+        source = (ROOT / "tools/analysis/profiling/ui/ui-profile-counter-evidence.ps1").read_text(
             encoding="utf-8"
         )
 

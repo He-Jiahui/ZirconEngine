@@ -195,5 +195,5 @@ fn asset_editor_literal_value(
 }
 
 #[cfg(test)]
-#[path = "asset_editor/borrowed_literal_tests.rs"]
+#[path = "asset_editor/tests/borrowed_literal_tests.rs"]
 mod borrowed_literal_tests;

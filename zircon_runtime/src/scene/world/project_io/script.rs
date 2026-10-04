@@ -1,7 +1,8 @@
 use crate::asset::assets::SceneScriptBindingAsset;
 use crate::scene::world::World;
 
-use super::{SCRIPT_BINDINGS_COMPONENT, SceneProjectError};
+use super::{SceneProjectError, SCRIPT_BINDINGS_COMPONENT};
+// 脚本绑定作为动态组件读取，缺少组件表示该实体没有脚本绑定，解码错误则阻止项目记录继续使用。
 pub(super) fn script_bindings_for_record(
     world: &World,
     entity: u64,

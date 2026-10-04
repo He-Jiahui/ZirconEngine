@@ -1,3 +1,4 @@
+mod evidence;
 mod material_primitives;
 mod material_state_layer;
 mod mui_x_primitives;
@@ -80,6 +81,8 @@ mod template_viewport_scene_surfaces;
 mod template_weight_heatmap;
 mod visual_assets;
 
+pub(crate) use evidence::PaintEvidenceScope;
+pub(in crate::ui::retained_host::host_contract) use evidence::{active_owner, owner_json};
 pub(crate) use sprite_atlas::{
     copy_editor_sprite_atlas_rgba, invalidate_editor_sprite_atlas_cache,
 };
@@ -97,6 +100,8 @@ pub(in crate::ui::retained_host) use visual_assets::{
 
 #[cfg(test)]
 pub(crate) use render_commands::paint_runtime_render_commands_for_test;
+
+pub(crate) use template_node_pipeline::paint_template_nodes_for_evidence_with_background;
 
 #[cfg(test)]
 pub(crate) use template_node_pipeline::{

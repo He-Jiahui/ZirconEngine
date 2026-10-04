@@ -11,4 +11,5 @@ pub(in crate::ui::retained_host::host_contract) use recording::{
 };
 
 #[cfg(test)]
+#[path = "paint_frame/tests/cases.rs"]
 mod tests;

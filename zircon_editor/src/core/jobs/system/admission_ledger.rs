@@ -124,7 +124,7 @@ impl PendingAdmissionLedger {
         self.ensure_reservation_batch_admissible_iter(requests.iter().copied(), limits, now)
     }
 
-    fn ensure_reservation_batch_admissible_iter<'a>(
+    pub(super) fn ensure_reservation_batch_admissible_iter<'a>(
         &self,
         requests: impl Clone + ExactSizeIterator<Item = &'a EditorJobAdmissionRequest>,
         limits: EditorJobAdmissionLimits,
@@ -205,9 +205,12 @@ impl PendingAdmissionLedger {
     }
 
     pub(super) fn release_all_reservations(&mut self) {
-        let reservation_ids = self.reservations.keys().copied().collect::<Vec<_>>();
-        for reservation_id in reservation_ids {
-            self.release_reservation(reservation_id);
+        let reservations = std::mem::take(&mut self.reservations);
+        for (_, reservations) in reservations {
+            for reservation in reservations {
+                self.remove(reservation.id)
+                    .expect("admission reservation entries must remain indexed");
+            }
         }
     }
 
@@ -243,7 +246,16 @@ impl PendingAdmissionLedger {
         limits: EditorJobAdmissionLimits,
         now: Instant,
     ) -> Result<(), JobSubmitError> {
-        for spec in specs {
+        self.ensure_batch_admissible_iter(specs.iter().copied(), limits, now)
+    }
+
+    pub(super) fn ensure_batch_admissible_iter<'a>(
+        &self,
+        specs: impl Clone + ExactSizeIterator<Item = &'a EditorJobSpec>,
+        limits: EditorJobAdmissionLimits,
+        now: Instant,
+    ) -> Result<(), JobSubmitError> {
+        for spec in specs.clone() {
             self.ensure_oldest_age(spec, limits, now)?;
         }
         if self.entries.len().saturating_add(specs.len()) > limits.max_pending_entries {
@@ -251,7 +263,7 @@ impl PendingAdmissionLedger {
                 limit: limits.max_pending_entries,
             });
         }
-        let requested = specs.iter().fold(0_usize, |total, spec| {
+        let requested = specs.fold(0_usize, |total, spec| {
             total.saturating_add(spec.estimated_pending_bytes)
         });
         if self.estimated_bytes.saturating_add(requested) > limits.max_pending_estimated_bytes {

@@ -1,6 +1,6 @@
 use super::state::ApplicationLifecycleState;
 
 #[derive(Debug, Default)]
-pub(super) struct ApplicationLifecycleMachine {
+pub(in crate::entry::runtime_entry_app) struct ApplicationLifecycleMachine {
     pub(super) state: ApplicationLifecycleState,
 }

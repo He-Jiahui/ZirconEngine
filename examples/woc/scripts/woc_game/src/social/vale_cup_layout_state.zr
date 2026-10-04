@@ -27,6 +27,8 @@ pub isInSowfieldShell(x: float, z: float): bool {
         z <= contract.sowfieldExcludeMaxZ(true);
 }
 
+// 场地识别采用源合同的二维边界；宿主仍需自行检查高度、
+// 地形和碰撞，不能把此谓词当作实体落点许可。
 pub isOnPitch(x: float, z: float): bool {
     return x >= contract.pitchMinX(true) &&
         x <= contract.pitchMaxX(true) &&

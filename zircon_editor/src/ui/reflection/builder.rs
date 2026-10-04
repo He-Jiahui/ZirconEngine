@@ -4,7 +4,7 @@ use zircon_runtime_interface::ui::event_ui::{
 };
 
 #[cfg(test)]
-#[path = "builder/dense_node_tests.rs"]
+#[path = "builder/tests/dense_node_tests.rs"]
 mod dense_node_tests;
 
 pub(super) struct SnapshotBuilder {

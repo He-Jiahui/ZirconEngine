@@ -19,7 +19,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束借用扩展注册字符串：回调接收借用参数源码，并注册使用借用参数直接。
 class BorrowedExtensionRegistrationStringsPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

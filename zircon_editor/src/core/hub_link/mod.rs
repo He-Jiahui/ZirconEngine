@@ -20,5 +20,5 @@ pub use focus_signal::{
 pub(crate) use focus_watch::{HubFocusSignalWatch, HubFocusSignalWatchError};
 pub(crate) use handshake::{HubEditorHandshake, HubHandshakeError};
 pub(crate) use recent_writeback::{
-    HubRecentProjectsStoreError, forget_recent_project, load_recent_projects, record_recent_project,
+    forget_recent_project, load_recent_projects, record_recent_project, HubRecentProjectsStoreError,
 };

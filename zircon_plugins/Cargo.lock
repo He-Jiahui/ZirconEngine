@@ -1476,6 +1476,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "goblin"
+version = "0.10.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17582616a7718cca54cec18e534a76c7c4aec11a8b9a85695712f262fd15a4c8"
+dependencies = [
+ "log",
+ "plain",
+ "scroll",
+]
+
+[[package]]
 name = "gltf"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3847,6 +3858,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e1cf6437eb19a8f4a6cc0f7dca544973b0b78843adbfeb3683d1a94a0024a294"
 
 [[package]]
+name = "scroll"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c1257cd4248b4132760d6524d6dda4e053bc648c9070b960929bf50cfb1e7add"
+dependencies = [
+ "scroll_derive",
+]
+
+[[package]]
+name = "scroll_derive"
+version = "0.13.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1a36a382ed65dbcc0ab47fd5e9a94112417ccd34560a392ef3b7b0f0ec39148"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.5",
+]
+
+[[package]]
 name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4457,6 +4488,17 @@ name = "syn"
 version = "2.0.119"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "872831b642d1a07999a962a351ed35b955ea2cfc8f3862091e2a240a84f17297"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "unicode-ident",
+]
+
+[[package]]
+name = "syn"
+version = "3.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12df2e0110f65b775f769bb17ef989067a1d931b2eb822bd4346631eeada89f9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6150,6 +6192,7 @@ dependencies = [
  "toml",
  "tracing",
  "unicode-segmentation",
+ "uuid",
  "windows-sys 0.61.2",
  "winit",
  "zircon_runtime",
@@ -6178,8 +6221,11 @@ dependencies = [
  "zircon_plugin_navigation_runtime",
  "zircon_plugin_net_runtime",
  "zircon_plugin_neural_runtime",
+ "zircon_plugin_obj_importer_runtime",
  "zircon_plugin_particles_runtime",
+ "zircon_plugin_physics_runtime",
  "zircon_plugin_rendering_runtime",
+ "zircon_plugin_shader_wgsl_importer_runtime",
  "zircon_plugin_solari_runtime",
  "zircon_plugin_sound_runtime",
  "zircon_plugin_texture_runtime",
@@ -6262,6 +6308,7 @@ version = "0.1.0"
 dependencies = [
  "crossbeam-channel",
  "serde",
+ "serde_json",
  "spade",
  "toml",
  "zircon_plugin_physics_runtime",
@@ -6624,6 +6671,7 @@ dependencies = [
  "rustls",
  "rustls-pki-types",
  "tokio",
+ "webpki-roots 0.26.11",
  "zircon_plugin_sdk",
  "zircon_runtime",
 ]
@@ -6689,6 +6737,7 @@ name = "zircon_plugin_obj_importer_runtime"
 version = "0.1.0"
 dependencies = [
  "tobj",
+ "toml",
  "zircon_plugin_sdk",
  "zircon_runtime",
 ]
@@ -6763,6 +6812,7 @@ version = "0.1.0"
 dependencies = [
  "joltc-sys",
  "serde",
+ "serde_json",
  "toml",
  "zircon_plugin_sdk",
  "zircon_runtime",
@@ -7463,6 +7513,7 @@ name = "zircon_runtime"
 version = "0.1.0"
 dependencies = [
  "arc-swap",
+ "base64 0.22.1",
  "bevy_mikktspace",
  "bincode",
  "blake3",
@@ -7476,6 +7527,7 @@ dependencies = [
  "glam 0.32.1",
  "gltf",
  "glyphon",
+ "goblin",
  "icu_locale_core",
  "icu_properties",
  "image",
@@ -7488,6 +7540,7 @@ dependencies = [
  "pollster",
  "raw-window-handle",
  "rayon",
+ "ring",
  "robust",
  "ron",
  "rustybuzz",
@@ -7514,12 +7567,14 @@ dependencies = [
  "unicode-vo",
  "uuid",
  "wgpu",
+ "windows-sys 0.61.2",
  "woff2-patched",
  "zeroize",
  "zip",
  "zircon_reflect_derive",
  "zircon_runtime_interface",
  "zircon_runtime_reflection_macros",
+ "zr_contracts",
  "zr_math",
  "zr_resource",
  "zr_rhi",
@@ -7568,6 +7623,14 @@ name = "zmij"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
+
+[[package]]
+name = "zr_contracts"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "thiserror 2.0.18",
+]
 
 [[package]]
 name = "zr_math"

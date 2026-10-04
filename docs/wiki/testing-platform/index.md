@@ -8,7 +8,7 @@ related_code:
 implementation_files:
   - .codex/skills/zircon-dev/scripts
   - .github/workflows
-  - tools/check_conventions.py
+  - tools/audits/check_conventions.py
 plan_sources:
   - docs/plans/milestone-validation-policy.md
   - docs/plans/mvp/index.md

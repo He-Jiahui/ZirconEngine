@@ -1,3 +1,5 @@
+//! 网格管理记录汇聚可见统计与失败原因供资产面板消费；记录的排序/汇总不应反向改变原始 MeshAsset。
+
 use serde::{Deserialize, Serialize};
 
 use crate::asset::AssetUri;
@@ -150,5 +152,5 @@ impl MeshAssetManagementRecordSet {
 }
 
 #[cfg(test)]
-#[path = "management/capacity_tests.rs"]
+#[path = "management/tests/capacity_tests.rs"]
 mod capacity_tests;

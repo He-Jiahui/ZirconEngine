@@ -882,3 +882,7 @@ fn ensure_native_diagnostic_readback_range(
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "tests/diagnostics_diagnostic_boundary_tests.rs"]
+mod diagnostic_boundary_tests;

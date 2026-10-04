@@ -1,9 +1,12 @@
+//! 此处将资源基础 crate zr_resource 导出的 API 精选到 Runtime core 路径；资源登记、状态和管理视图仍由该 crate 实现，运行时子系统因此共用这些类型。
 //! Curated Runtime projection of the canonical Resource foundation.
 
 pub mod io;
 
 pub use zr_resource::ResourceData;
 pub use zr_resource::ResourceLease;
+#[cfg(feature = "profiling")]
+pub use zr_resource::ResourceManagementScanDiagnostics;
 pub use zr_resource::ResourceRegistry;
 pub use zr_resource::ResourceSnapshot;
 pub use zr_resource::{
@@ -43,6 +46,6 @@ pub use zr_resource::{
 pub use zr_resource::{ResourceRegistryError, ResourceResult};
 
 pub(crate) use zr_resource::assembly::{
-    PreparedResourceMutation, ResourceManagerAssemblyExt, ResourceReadinessGenerationAssemblyExt,
-    ResourceRegistryAssemblyExt, ResourceRegistryStaging, approximate_event_bytes,
+    approximate_event_bytes, PreparedResourceMutation, ResourceManagerAssemblyExt,
+    ResourceReadinessGenerationAssemblyExt, ResourceRegistryAssemblyExt, ResourceRegistryStaging,
 };

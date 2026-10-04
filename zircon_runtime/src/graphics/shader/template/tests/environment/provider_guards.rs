@@ -216,11 +216,8 @@ fn forward_environment_fallback_does_not_synthesize_roughness_without_pmrem() {
     assert!(
         radiance.contains("zr_environment_sky_reflection_color(sky_direction, clamped_roughness)")
     );
-    assert!(
-        radiance.contains(
-            "world_position,\n            probe_direction,\n            clamped_roughness,"
-        )
-    );
+    assert!(radiance
+        .contains("world_position,\n            probe_direction,\n            clamped_roughness,"));
 }
 
 #[test]

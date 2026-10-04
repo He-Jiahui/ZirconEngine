@@ -22,7 +22,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束单次 ZRVM 宿主回调标签：有效参数个数路径不实体化标签，并参数个数错误格式化标签仅在失败。
 class SingleZrVmHostCallbackLabelPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

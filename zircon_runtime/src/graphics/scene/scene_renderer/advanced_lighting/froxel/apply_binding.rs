@@ -15,6 +15,7 @@ struct GpuVolumetricApplyParams {
 }
 
 impl GpuVolumetricApplyParams {
+    // 物理原点和尺寸倒数须匹配应用通道的渲染区域，着色器据此把片元坐标换算为 froxel UV。
     fn from_frame(
         frame: &ViewportRenderFrame,
         render_region: ViewportRenderRegion,
@@ -45,6 +46,8 @@ impl GpuVolumetricApplyParams {
     }
 }
 
+/// 为天空和材质着色路径保留相同的体积雾绑定契约；没有积分纹理时仍绑定合法的 3D 纹理，
+/// 由参数中的可用位阻止着色器采样占位资源。
 pub(crate) struct VolumetricApplyFallbackResources {
     integrated_view: wgpu::TextureView,
     sampler: wgpu::Sampler,
@@ -174,19 +177,5 @@ pub(crate) fn volumetric_apply_bind_group_layout_entries(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn volumetric_apply_layout_reserves_plan18_bindings() {
-        let entries = volumetric_apply_bind_group_layout_entries(wgpu::ShaderStages::FRAGMENT);
-        assert_eq!(
-            entries.map(|entry| entry.binding),
-            [
-                VOLUMETRIC_APPLY_PARAMS_BINDING,
-                VOLUMETRIC_INTEGRATED_BINDING,
-                VOLUMETRIC_SAMPLER_BINDING,
-            ]
-        );
-    }
-}
+#[path = "tests/apply_binding.rs"]
+mod tests;

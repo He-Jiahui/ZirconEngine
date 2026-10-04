@@ -17,7 +17,7 @@ plan_sources:
 tests:
   - zircon_plugins/animation/runtime/tests
   - zircon_plugins/physics/runtime/tests
-  - zircon_plugins/sound/runtime/src/tests.rs
+  - zircon_plugins/sound/runtime/src/tests/cases.rs
 doc_type: mechanism-guide
 title: 渲染、动画、导航、物理与音频扩展模式
 status: source-audited
@@ -98,4 +98,4 @@ Unreal 的 Renderer/Physics/Audio modules、Godot 的 GDExtension servers、Bevy
 - [registration.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_plugins/plugin_sdk/src/registration.rs)
 - [animation tests](https://github.com/He-Jiahui/ZirconEngine/tree/main/zircon_plugins/animation/runtime/tests)
 - [physics tests](https://github.com/He-Jiahui/ZirconEngine/tree/main/zircon_plugins/physics/runtime/tests)
-- [sound tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_plugins/sound/runtime/src/tests.rs)
+- [sound tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_plugins/sound/runtime/src/tests/cases.rs)

@@ -15,7 +15,7 @@ use crate::ui::surface::{
 };
 
 use super::{
-    UiDefaultRangePointerActionReport, is_default_range_behavior, semantics::component_role_is,
+    is_default_range_behavior, semantics::component_role_is, UiDefaultRangePointerActionReport,
 };
 
 struct UiDefaultRangeValueUpdate {

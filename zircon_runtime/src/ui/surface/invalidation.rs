@@ -8,7 +8,7 @@ use zircon_runtime_interface::ui::{
 };
 
 #[cfg(test)]
-#[path = "invalidation/domain_bitset_tests.rs"]
+#[path = "invalidation/tests/domain_bitset_tests.rs"]
 mod domain_bitset_tests;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -185,6 +185,24 @@ impl UiSurfaceInvalidationState {
 
     pub(crate) fn pending_changed_node_ids(&self) -> BTreeSet<UiNodeId> {
         self.pending.keys().copied().collect()
+    }
+
+    /// Extends a caller-owned node set without materializing a short-lived intermediate set.
+    ///
+    /// Dirty-summary and pending-rebuild callers already own their destination collection; the
+    /// old `pending_changed_node_ids` helper was needlessly allocating a second tree only to
+    /// merge it immediately.
+    pub(crate) fn extend_pending_changed_node_ids(&self, target: &mut BTreeSet<UiNodeId>) {
+        target.extend(self.pending.keys().copied());
+    }
+
+    pub(crate) fn pending_changed_node_ids_are_subset(
+        &self,
+        node_ids: &BTreeSet<UiNodeId>,
+    ) -> bool {
+        self.pending
+            .keys()
+            .all(|node_id| node_ids.contains(node_id))
     }
 
     pub(crate) fn pending_dirty_flags(&self) -> UiDirtyFlags {

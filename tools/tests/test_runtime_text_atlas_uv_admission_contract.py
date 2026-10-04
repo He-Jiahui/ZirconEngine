@@ -4,9 +4,9 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RENDER_PLAN = REPO_ROOT / "zircon_runtime/src/text/atlas/render_plan.rs"
-RENDER_PLAN_TESTS = REPO_ROOT / "zircon_runtime/src/text/atlas/render_plan/tests.rs"
+RENDER_PLAN_TESTS = REPO_ROOT / "zircon_runtime/src/text/atlas/render_plan/tests/cases.rs"
 
-
+# 读取文本图集 UV 投影，确认页边界显式检查且屏幕矩形拒绝非有限派生边。
 class RuntimeTextAtlasUvAdmissionContractTests(unittest.TestCase):
     def test_content_uv_projection_checks_page_bounds_without_clamping(self) -> None:
         source = RENDER_PLAN.read_text(encoding="utf-8")

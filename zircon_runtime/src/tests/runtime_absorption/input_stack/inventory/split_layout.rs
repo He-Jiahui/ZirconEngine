@@ -1,3 +1,4 @@
+//! 输入动作、手柄、宿主请求与公共契约保持由运行时输入栈拥有。通过源码文本核对父子路由、状态镜像和文件预算。
 use super::{
     INVENTORY_CHILD_PATHS, INVENTORY_FRAMEWORKS_STATUS, INVENTORY_GUARD, INVENTORY_PARENT_PATH,
     INVENTORY_SLICE, INVENTORY_STATUS,
@@ -97,7 +98,7 @@ fn runtime_15_input_stack_inventory_guard_is_folder_backed() {
         ),
         (
             "module convention doc",
-            include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md"),
+            include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"),
         ),
     ] {
         assert_contains_all(

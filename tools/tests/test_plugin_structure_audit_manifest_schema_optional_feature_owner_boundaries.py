@@ -28,7 +28,7 @@ def _line_count(path: Path) -> int:
     text = path.read_text(encoding="utf-8")
     return len(text.splitlines())
 
-
+# 检查可选特性模式及其符号定义留在专属 owner，通用模式模块仅做组合。
 class PluginStructureAuditManifestSchemaOptionalFeatureOwnerBoundaryTests(
     unittest.TestCase
 ):

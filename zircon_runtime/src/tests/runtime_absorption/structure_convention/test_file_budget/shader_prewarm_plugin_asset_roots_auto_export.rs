@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对着色器预热的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 const STATUS: &str = "render_plan08_plugin_shader_asset_roots_auto_export_focused_tests_passed_cargo_deferred_renderdoc_deferred";
@@ -9,8 +10,8 @@ fn runtime_15_shader_prewarm_plugin_asset_roots_auto_export_is_wired() {
     let native_fixture_shader =
         read_repo("zircon_plugins/native_dynamic_fixture/assets/shader.wgsl");
     let build_tool = read_zircon_build_sources();
-    let build_plugin_assets = read_repo("tools/zircon_build_plugin_assets.py");
-    let build_prewarm = read_repo("tools/zircon_build_shader_prewarm.py");
+    let build_plugin_assets = read_repo("tools/build/zircon_build_plugin_assets.py");
+    let build_prewarm = read_repo("tools/build/zircon_build_shader_prewarm.py");
     let build_plugin_tests = read_repo("tools/tests/test_zircon_build_plugin_carriers.py");
     let build_prewarm_tests = read_repo("tools/tests/test_zircon_build_shader_prewarm.py");
     let plan_08 = read_repo(
@@ -82,11 +83,11 @@ fn runtime_15_shader_prewarm_plugin_asset_roots_auto_export_is_wired() {
 
     for (path, source) in [
         (
-            "tools/zircon_build_plugin_assets.py",
+            "tools/build/zircon_build_plugin_assets.py",
             build_plugin_assets.as_str(),
         ),
         (
-            "tools/zircon_build_shader_prewarm.py",
+            "tools/build/zircon_build_shader_prewarm.py",
             build_prewarm.as_str(),
         ),
         (

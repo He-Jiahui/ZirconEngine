@@ -117,6 +117,7 @@ pub blocksAirborneUphill(
 // The target compares collision output with this post-slope candidate before
 // rewriting airborne velocity. Keep it explicit so scalar composition can
 // preserve that ordering without leaking a mutable entity object.
+/// 提供坡度限制后的水平候选，供空中碰撞后的速度判定使用；它尚未承担实体位置提交。
 pub horizontalCandidateCoordinate(
     positionX: float,
     positionZ: float,
@@ -182,6 +183,7 @@ pub horizontalCandidateCoordinate(
     return axis == 1 ? nextX : nextZ;
 }
 
+/// 在本帧垂直更新前解析水平坡度与扫掠碰撞；两轴查询须使用相同的原始姿态、地面状态和跳跃状态。
 pub horizontalCoordinate(
     positionX: float,
     positionZ: float,
@@ -260,6 +262,7 @@ pub horizontalCoordinate(
 
 // stepPlayerMotion updates vx/vz only after an airborne swept collision changes
 // its post-slope candidate. `previousX/Z` are the tick-prologue snapshots.
+/// 依据水平碰撞结果修正空中速度；上一位置必须是帧开始的快照，不能传本次候选位置。
 pub horizontalVelocityCoordinate(
     positionX: float,
     positionZ: float,

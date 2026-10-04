@@ -54,5 +54,5 @@ fn take_text_focus_control_id(focus: &mut HostTextInputFocusData) -> SharedStrin
 }
 
 #[cfg(test)]
-#[path = "dispatch/owned_control_id_tests.rs"]
+#[path = "dispatch/tests/owned_control_id_tests.rs"]
 mod owned_control_id_tests;

@@ -1,3 +1,6 @@
+// 调用端：npm run generate:empowered-cone-contract (tools/package.json)；职责：解析分阶段的强化锥形技能及效果派发，生成 Zr 字面数据。
+// 输入边界：src/sim/content/classes.ts, src/sim/combat/effect_dispatch.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

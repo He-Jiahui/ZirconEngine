@@ -1,0 +1,47 @@
+penpot_original_source = "[asset]\nkind = \"view\"\nid = \"res://ui/editor/host/inspector_body.zui\"\nversion = 2\ndisplay_name = \"inspector pane body\"\n\n[imports]\nwidgets = []\nstyles = [\"res://ui/editor/theme/editor_tokens.zui\"]\n\n[root]\nnode = \"root\"\n\n[nodes.root]\npixel_snapping = \"disabled\"\ncomponent = \"VerticalGroup\"\ncontrol_id = \"InspectorPaneBodyRoot\"\nclasses = [\"editor-pane\", \"inspector-pane\", \"panel\"]\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"body\" }]\n\n[nodes.body]\ncomponent = \"Container\"\ncontrol_id = \"InspectorBodySection\"\nclasses = [\"inspector-fields-host\"]\nlayout = { clip = true, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n"
+
+[asset]
+kind = "view"
+id = "res://ui/editor/host/inspector_body.zui"
+version = 2
+display_name = "inspector pane body"
+
+[imports]
+widgets = []
+styles = [ "res://ui/editor/theme/editor_tokens.zui" ]
+
+[root]
+node = "root"
+
+[nodes.root]
+pixel_snapping = "disabled"
+component = "VerticalGroup"
+control_id = "InspectorPaneBodyRoot"
+classes = [ "editor-pane", "inspector-pane", "panel" ]
+
+[nodes.root.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.root.layout.width]
+stretch = "Stretch"
+
+[nodes.root.layout.height]
+stretch = "Stretch"
+
+[[nodes.root.children]]
+node = "body"
+
+[nodes.body]
+component = "Container"
+control_id = "InspectorBodySection"
+classes = [ "inspector-fields-host" ]
+
+[nodes.body.layout]
+clip = true
+
+[nodes.body.layout.width]
+stretch = "Stretch"
+
+[nodes.body.layout.height]
+stretch = "Stretch"

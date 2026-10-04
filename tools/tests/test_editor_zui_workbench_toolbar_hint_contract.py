@@ -1,3 +1,4 @@
+# 核对收缩工具栏和活动栏图标维持明确提示文本与原有动作。
 import tomllib
 import unittest
 from pathlib import Path

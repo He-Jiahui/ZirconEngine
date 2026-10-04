@@ -1,3 +1,4 @@
+# 核对命令目录只发布不可变代际数据，查询由保留宿主在释放注册表锁后执行。
 from pathlib import Path
 import unittest
 

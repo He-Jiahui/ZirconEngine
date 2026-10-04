@@ -27,7 +27,7 @@ tests:
   - cargo test -p zircon_runtime --lib --locked glyph_artifact_batches_
   - cargo test -p zircon_runtime --lib --locked text_style_from_ui_resolved_style_preserves_layout_fields
   - cargo test -p zircon_runtime --lib --locked
-  - python tools/runtime_domain_dependency_audit.py --repo-root .
+  - python tools/audits/runtime_domain_dependency_audit.py --repo-root .
 ---
 
 # Text02: resolved glyph artifact has a concrete UI owner
@@ -619,3 +619,79 @@ accepted validation.
   unchanged fixture. The deleted rebuild/refresh/overlay literal scan is `0`, but this record stays
   open until managed compilation, execution, WGPU/PNG inspection, profiling/power evidence,
   milestone commit, and WeCom receipt are complete.
+
+### 2026-09-08 Current Test Consumer Repair
+
+Fixing Session `failure-roll-01a07160-text02` continues this lifecycle as open.
+The Windows managed graphics library job `3db36b30be88485bb06b0a5ff2c6d3e4`
+reported 90 compiler errors and executed zero tests. Thirteen diagnostics belong
+to this artifact test family: twelve uses of the shared font generation lacked
+the parent test import, and the retained-fragment rejection fixture supplied a
+scalar generation where the current API requires `FontCollectionRevision`.
+
+Source `3057`, request `fd83e51cc0c442d09a911dfae8d767f7`, changes only
+`zircon_runtime/src/text/glyph_artifact/tests.rs`, hash
+`fa4ab41f962fabd2e3ba22742f536cef0865cf17d8ba863bfb51e61cbc353fcd`.
+The file was HEAD-identical before transfer `14b8ae1586b94c74abdc19ef1fff8e36`.
+Existing child tests consume the shared import. The negative revision fixture
+retains the fragment's collection identity and changes only its generation;
+the expected stale-artifact rejection is unchanged. Rust 2021 formatting and
+scoped whitespace checks pass. Managed execution, independent review, the
+declared scale/graphics evidence and formal return/closeout remain pending.
+
+The subsequent immutable input `runtime-graphics-text-test-support-3067-20260908`
+contains 10,955 files, digest
+`c93b37d1c23413b5f1ff16f4705abfbf56ec2511dfb45f89a1b1c85500a839da`.
+Managed job `94560adfdb1a45daa7e2d5785ae6677c` verified that input and 354 dependency
+packages; it reported 67 compiler errors, zero tests. The thirteen preceding
+artifact diagnostics disappeared. Four newly exposed errors in
+`tests/invariant_failures.rs` match `TextLayoutError` directly against the current
+`TextShapingFailure` wrapper; they are distinct from the repaired imports.
+
+That child was HEAD-identical at
+`507aa02a7a2861f9a44e9ece2415fbe09e0a209d5607bb2262c8ff83d75281c7` before
+transfer `ee39d639d14f421692be7a9a8e290260` and pre-edit snapshot `3072`.
+Source `3073`, request `6bbd4234325f47a59198af3d6b772d17`, has hash
+`6bab8448d59bbe62c27df7a65e491ef51253ebc9834f56d72b6ab1faf6929b9a`.
+All four rejection patterns now inspect `failure.error()` and require exactly
+`LayoutFailed`; no-publication assertions are retained. This revision still
+needs managed execution and independent review; the failure remains open.
+
+### Text-Only Range Boundary And Review
+
+The existing task `优化协调器验证效率` reviewed sources `3057` and `3073`
+with Critical 0, Important 0, Moderate 0. Report:
+`.codex/tmp/text-framework-3080-review-20260908-result.txt`.
+Source, snapshot, ObjectStore and attribution hashes matched before and after
+review. Collection identity is preserved while generation changes, and all
+four typed invariant failures still require no partial artifact publication.
+
+Text-only compilation exposed a separate dependency on graphics-owned range
+conversion implementations. Source `3095`, request
+`9080021fe3354982972db37cbe7a7033`, freezes
+`zircon_runtime/src/text/glyph_artifact/rich.rs` at
+`2af17376e9524c27cd3b2956f0aa8212c8ad8d2187d7f12ee8451d975ffe4ff1`.
+Its HEAD-identical predecessor is retained in snapshot `3094`, hash
+`386850d92b3d379bb72c9a2fd10a47f64a3d6c58d00a8e226f5fb8862253891c`;
+transfer `b51686ed87924345a0f352dc485d612e` records ownership. The Text producer
+constructs the neutral `UiTextRange` fields directly for style and replacement
+ranges, preserving both endpoints without requiring graphics to be enabled.
+
+Managed job `1f242fb1789e44ce87d7a5cacc569d5f` verified input
+`runtime-text-owner-test-support-3095-20260908`, digest
+`4e5f800cd19e5748464ac759b4e1efbfae073ecf1c05d419327a6d6739cbe9e2`,
+with the same Text-only static/locked configuration as its 22-error parent.
+Only three compiler errors remain, zero tests. No error names `rich.rs` or
+the invariant-failure child. The retained-fragment test still depended on
+the graphics conversion, so source `3100`, request
+`3abaf9a8f91e4dfeb1e877e0645993bc`, changes its range argument to explicit
+`TextRange { start, end }`. The parent test file now has hash
+`9b81a1bb07032cb9ec75ad0fb31d9c26d275eafa7503b729bb202ee7cf3639a4`;
+its exact predecessor is the reviewed `3057` snapshot. Source bounds,
+generation rejection, glyph presence and zero shape-cache entry/miss
+assertions are unchanged. Formatting and whitespace checks pass.
+
+The new `3095`/`3100` increments still require source review and their target
+tests. The remaining Text03 owner WIP and Text04 dirty-upload attribution
+blocks are tracked under their own plans. Original renderer, trace and
+framebuffer acceptance and formal closeout binding remain pending.

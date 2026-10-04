@@ -6,6 +6,7 @@ use super::{
     ZrRuntimeArtifactIdentityV1, ZrRuntimeArtifactManifestValidationError, ZrRuntimeBuildModeV1,
     ZrRuntimeBuildSetExpectationV1, ZrRuntimeBuildSetId, ZrRuntimeDigestV1,
     ZrRuntimeIdentityEncodingError, ZrRuntimeInterfaceSpecV1, ZrRuntimeTargetModelV1,
+    ZrRuntimeTrustedHostBuildSetMetadataV1, ZR_RUNTIME_TRUSTED_HOST_BUILD_SET_METADATA_SCHEMA_V1,
 };
 
 pub const ZR_RUNTIME_ARTIFACT_MANIFEST_SCHEMA_V1: u32 = 1;
@@ -25,6 +26,10 @@ pub struct ZrRuntimeArtifactManifestV1 {
     pub artifact: ZrRuntimeArtifactIdentityV1,
     pub host_artifacts: Vec<ZrRuntimeArtifactIdentityV1>,
     pub capabilities: BTreeSet<String>,
+    /// Source BuildSet metadata supplied by the trusted product build. It is deliberately
+    /// excluded from the content-derived runtime artifact BuildSet digest below.
+    #[serde(default)]
+    pub trusted_host: Option<ZrRuntimeTrustedHostBuildSetMetadataV1>,
 }
 
 impl ZrRuntimeArtifactManifestV1 {
@@ -183,6 +188,45 @@ impl ZrRuntimeArtifactManifestV1 {
             return Err(
                 ZrRuntimeArtifactManifestValidationError::MissingRequiredCapabilities {
                     capabilities: missing,
+                },
+            );
+        }
+        Ok(())
+    }
+
+    /// Compare packaged source metadata with the compile-time identity supplied by the
+    /// validated product build. A missing expected identity is an explicit local-development
+    /// admission; production callers must pass the generated value.
+    pub fn validate_trusted_host_build_set_id(
+        &self,
+        expected: Option<&str>,
+    ) -> Result<(), ZrRuntimeArtifactManifestValidationError> {
+        if let Some(metadata) = &self.trusted_host {
+            if metadata.schema_version != ZR_RUNTIME_TRUSTED_HOST_BUILD_SET_METADATA_SCHEMA_V1 {
+                return Err(
+                    ZrRuntimeArtifactManifestValidationError::TrustedHostMetadataSchemaVersionMismatch {
+                        expected: ZR_RUNTIME_TRUSTED_HOST_BUILD_SET_METADATA_SCHEMA_V1,
+                        actual: metadata.schema_version,
+                    },
+                );
+            }
+        }
+        let Some(expected) = expected else {
+            return Ok(());
+        };
+        let expected = ZrRuntimeBuildSetId::parse(expected.to_owned()).map_err(|error| {
+            ZrRuntimeArtifactManifestValidationError::TrustedHostBuildSetExpectationInvalid {
+                message: error.to_string(),
+            }
+        })?;
+        let Some(metadata) = &self.trusted_host else {
+            return Err(ZrRuntimeArtifactManifestValidationError::TrustedHostMetadataMissing);
+        };
+        if metadata.source_build_set_id != expected {
+            return Err(
+                ZrRuntimeArtifactManifestValidationError::TrustedHostBuildSetMismatch {
+                    expected: expected.as_str().to_owned(),
+                    actual: metadata.source_build_set_id.as_str().to_owned(),
                 },
             );
         }

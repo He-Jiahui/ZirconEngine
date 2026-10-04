@@ -1,0 +1,1668 @@
+[asset]
+kind = "view"
+id = "res://ui/editor/windows/asset_window.zui#review-host"
+version = 2
+display_name = "Asset Window"
+
+[imports]
+widgets = [ "res://ui/editor/components/workbench/shell/activity_drawer_window.zui#ActivityDrawerWindow", "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown", "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton", "res://ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui#WorkbenchSearchInput", "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab", "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton", "res://ui/editor/components/workbench/primitives/data/workbench_tree_row.zui#WorkbenchTreeRow", "res://ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption", "res://ui/editor/components/workbench/primitives/data/workbench_label.zui#WorkbenchLabel", "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle", "res://ui/editor/components/workbench/composites/chrome/workbench_ui_asset_action_bar.zui#WorkbenchUiAssetActionBar", "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField", "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow" ]
+styles = [ "res://ui/theme/editor_workbench_strict.zui", "res://ui/editor/theme/editor_tokens.zui" ]
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "ActivityDrawerWindow"
+control_id = "AssetWindowRoot"
+
+[nodes.root.props]
+shell_preset = "jetbrains_shell"
+panel_preset = "fyrox_panel"
+window_model = "unreal_window_model"
+
+[[nodes.root.children]]
+node = "tree"
+
+[nodes.root.children.slot]
+name = "left_top_activity"
+
+[[nodes.root.children]]
+node = "collections"
+
+[nodes.root.children.slot]
+name = "left_bottom_activity"
+
+[[nodes.root.children]]
+node = "details"
+
+[nodes.root.children.slot]
+name = "right_top_activity"
+
+[[nodes.root.children]]
+node = "preview"
+
+[nodes.root.children.slot]
+name = "right_bottom_activity"
+
+[[nodes.root.children]]
+node = "import_log"
+
+[nodes.root.children.slot]
+name = "bottom_left_activity"
+
+[[nodes.root.children]]
+node = "dependency"
+
+[nodes.root.children.slot]
+name = "bottom_right_activity"
+
+[[nodes.root.children]]
+node = "browser"
+
+[nodes.root.children.slot]
+name = "content"
+
+[nodes.tree]
+component = "Container"
+control_id = "AssetWindowTreeActivity"
+
+[nodes.tree.layout]
+clip = true
+
+[nodes.tree.layout.width]
+stretch = "Stretch"
+
+[nodes.tree.layout.height]
+stretch = "Stretch"
+
+[[nodes.tree.children]]
+node = "review_tree__root"
+
+[nodes.collections]
+component = "Container"
+control_id = "AssetWindowCollectionsActivity"
+
+[nodes.collections.layout]
+clip = true
+
+[nodes.collections.layout.width]
+stretch = "Stretch"
+
+[nodes.collections.layout.height]
+stretch = "Stretch"
+
+[[nodes.collections.children]]
+node = "review_collections__assets_activity_root"
+
+[nodes.details]
+component = "Container"
+control_id = "AssetWindowDetailsActivity"
+
+[nodes.details.layout]
+clip = true
+
+[nodes.details.layout.width]
+stretch = "Stretch"
+
+[nodes.details.layout.height]
+stretch = "Stretch"
+
+[[nodes.details.children]]
+node = "review_details__root"
+
+[nodes.preview]
+component = "Container"
+control_id = "AssetWindowPreviewActivity"
+
+[nodes.preview.layout]
+clip = true
+
+[nodes.preview.layout.width]
+stretch = "Stretch"
+
+[nodes.preview.layout.height]
+stretch = "Stretch"
+
+[[nodes.preview.children]]
+node = "review_preview__ui_asset_editor_root"
+
+[nodes.import_log]
+component = "Container"
+control_id = "AssetWindowImportLogActivity"
+
+[nodes.import_log.layout]
+clip = true
+
+[nodes.import_log.layout.width]
+stretch = "Stretch"
+
+[nodes.import_log.layout.height]
+stretch = "Stretch"
+
+[[nodes.import_log.children]]
+node = "review_import_log__root"
+
+[nodes.dependency]
+component = "Container"
+control_id = "AssetWindowDependencyActivity"
+
+[nodes.dependency.layout]
+clip = true
+
+[nodes.dependency.layout.width]
+stretch = "Stretch"
+
+[nodes.dependency.layout.height]
+stretch = "Stretch"
+
+[[nodes.dependency.children]]
+node = "review_dependency__root"
+
+[nodes.browser]
+component = "Container"
+control_id = "AssetWindowBrowserContent"
+
+[nodes.browser.layout]
+clip = true
+
+[nodes.browser.layout.width]
+stretch = "Stretch"
+
+[nodes.browser.layout.height]
+stretch = "Stretch"
+
+[[nodes.browser.children]]
+node = "review_browser__asset_browser_root"
+
+[nodes.review_tree__root]
+pixel_snapping = "disabled"
+component = "VerticalGroup"
+control_id = "HierarchyPaneBodyRoot"
+classes = [ "editor-pane", "hierarchy-pane", "panel" ]
+
+[nodes.review_tree__root.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.review_tree__root.layout.width]
+stretch = "Stretch"
+
+[nodes.review_tree__root.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_tree__root.children]]
+node = "review_tree__header"
+
+[nodes.review_tree__header]
+component = "HorizontalGroup"
+control_id = "HierarchyHeader"
+
+[nodes.review_tree__header.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.review_tree__header.layout.width]
+stretch = "Stretch"
+
+[nodes.review_tree__header.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[nodes.review_tree__header.children]]
+node = "review_tree__select_root"
+
+[nodes.review_tree__select_root]
+component = "IconButton"
+control_id = "SelectRoot"
+
+[nodes.review_tree__select_root.props]
+label = "Select Root"
+icon = "editor_pages/hierarchy/entity/scene.svg"
+icon_placement = "leading"
+
+[nodes.review_tree__select_root.layout.width]
+stretch = "Stretch"
+
+[nodes.review_tree__select_root.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_tree__select_root.events]]
+id = "HierarchyPaneBody/SelectRoot"
+event = "Click"
+route = "workbench.selection.select_scene_node"
+
+[nodes.review_collections__toolbar_title_text]
+component = "Label"
+control_id = "AssetsActivityTitleText"
+
+[nodes.review_collections__toolbar_title_text.props]
+text = "Assets"
+font_size = "$editor.typography.overlay.size"
+font_weight = "$editor.typography.emphasis.weight"
+
+[nodes.review_collections__toolbar_title_text.layout.width]
+stretch = "Stretch"
+
+[nodes.review_collections__toolbar_title_text.layout.height]
+stretch = "Stretch"
+
+[nodes.review_collections__toolbar_open_browser_button]
+component = "WorkbenchIconButton"
+control_id = "OpenAssetBrowser"
+
+[nodes.review_collections__toolbar_open_browser_button.props]
+label = "Open Asset Browser"
+icon = "folder-open-outline"
+icon_placement = "icon_only"
+dispatch_kind = "asset"
+
+[nodes.review_collections__toolbar_open_browser_button.layout.width]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[nodes.review_collections__toolbar_open_browser_button.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_collections__toolbar_open_browser_button.events]]
+id = "Workbench/AssetsActivityOpenBrowser"
+event = "Click"
+
+[nodes.review_collections__toolbar_open_browser_button.events.action]
+action = "view.asset_browser.open"
+
+[nodes.review_collections__toolbar_title_row]
+component = "HorizontalBox"
+control_id = "AssetsActivityToolbarTitleRow"
+
+[nodes.review_collections__toolbar_title_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.review_collections__toolbar_title_row.layout.width]
+stretch = "Stretch"
+
+[nodes.review_collections__toolbar_title_row.layout.height]
+min = 20
+preferred = 20
+max = 20
+stretch = "Fixed"
+
+[[nodes.review_collections__toolbar_title_row.children]]
+node = "review_collections__toolbar_title_text"
+
+[nodes.review_collections__toolbar_search_field]
+component = "WorkbenchSearchInput"
+control_id = "SearchEdited"
+
+[nodes.review_collections__toolbar_search_field.props]
+placeholder = "Search"
+dispatch_kind = "asset"
+
+[nodes.review_collections__toolbar_search_field.layout.width]
+stretch = "Stretch"
+
+[nodes.review_collections__toolbar_search_field.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_collections__toolbar_search_field.events]]
+id = "Workbench/AssetsActivitySearchEdited"
+event = "Change"
+route = "workbench.assets_activity.search.edit"
+
+[nodes.review_collections__toolbar_view_mode_list_button]
+component = "WorkbenchIconButton"
+control_id = "AssetsActivityViewModeListButton"
+
+[nodes.review_collections__toolbar_view_mode_list_button.props]
+label = "List view"
+icon = "list-outline"
+icon_placement = "icon_only"
+dispatch_kind = "asset"
+action_id = "workbench.asset.view_mode.set"
+value = "list"
+
+[nodes.review_collections__toolbar_view_mode_list_button.layout.width]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[nodes.review_collections__toolbar_view_mode_list_button.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_collections__toolbar_view_mode_list_button.events]]
+id = "Workbench/AssetsActivityViewModeList"
+event = "Change"
+route = "workbench.assets_activity.view_mode.list"
+
+[nodes.review_collections__toolbar_view_mode_thumb_button]
+component = "WorkbenchIconButton"
+control_id = "AssetsActivityViewModeThumbButton"
+
+[nodes.review_collections__toolbar_view_mode_thumb_button.props]
+label = "Thumbnail view"
+icon = "grid-outline"
+icon_placement = "icon_only"
+dispatch_kind = "asset"
+action_id = "workbench.asset.view_mode.set"
+value = "thumbnail"
+
+[nodes.review_collections__toolbar_view_mode_thumb_button.layout.width]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[nodes.review_collections__toolbar_view_mode_thumb_button.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_collections__toolbar_view_mode_thumb_button.events]]
+id = "Workbench/AssetsActivityViewModeThumbnail"
+event = "Change"
+route = "workbench.assets_activity.view_mode.thumbnail"
+
+[nodes.review_collections__toolbar_search_row]
+component = "HorizontalBox"
+control_id = "AssetsActivityToolbarSearchRow"
+
+[nodes.review_collections__toolbar_search_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.review_collections__toolbar_search_row.layout.width]
+stretch = "Stretch"
+
+[nodes.review_collections__toolbar_search_row.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[[nodes.review_collections__toolbar_search_row.children]]
+node = "review_collections__toolbar_search_field"
+
+[[nodes.review_collections__toolbar_search_row.children]]
+node = "review_collections__toolbar_open_browser_button"
+
+[nodes.review_collections__toolbar_kind_filter_dropdown]
+component = "WorkbenchDropdown"
+control_id = "AssetsActivityKindFilterDropdown"
+
+[nodes.review_collections__toolbar_kind_filter_dropdown.props]
+value = "All"
+value_text = "All Types"
+options = [ "All|label=All Types", "Texture|label=Textures", "Material|label=Materials", "Scene|label=Scenes", "Model|label=Models", "Mesh|label=Meshes", "Shader|label=Shaders", "PhysicsMaterial|label=Physics Materials", "AnimationSkeleton|label=Animation Skeletons", "AnimationClip|label=Animation Clips", "AnimationSequence|label=Animation Sequences", "AnimationGraph|label=Animation Graphs", "AnimationStateMachine|label=Animation State Machines", "UiLayout|label=UI Layouts", "UiWidget|label=UI Widgets", "UiStyle|label=UI Styles" ]
+dispatch_kind = "asset"
+
+[nodes.review_collections__toolbar_kind_filter_dropdown.layout.width]
+min = 148
+preferred = 220
+max = 300
+stretch = "Stretch"
+
+[nodes.review_collections__toolbar_kind_filter_dropdown.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_collections__toolbar_kind_filter_dropdown.events]]
+id = "Workbench/AssetsActivityKindFilterChanged"
+event = "Change"
+route = "workbench.assets_activity.kind_filter.change"
+
+[nodes.review_collections__toolbar_filter_row]
+component = "HorizontalBox"
+control_id = "AssetsActivityToolbarFilterRow"
+
+[nodes.review_collections__toolbar_filter_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.review_collections__toolbar_filter_row.layout.width]
+stretch = "Stretch"
+
+[nodes.review_collections__toolbar_filter_row.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[[nodes.review_collections__toolbar_filter_row.children]]
+node = "review_collections__toolbar_kind_filter_dropdown"
+
+[[nodes.review_collections__toolbar_filter_row.children]]
+node = "review_collections__toolbar_view_mode_list_button"
+
+[[nodes.review_collections__toolbar_filter_row.children]]
+node = "review_collections__toolbar_view_mode_thumb_button"
+
+[nodes.review_collections__toolbar_panel]
+component = "VerticalBox"
+control_id = "AssetsActivityToolbarPanel"
+
+[nodes.review_collections__toolbar_panel.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.review_collections__toolbar_panel.layout.width]
+stretch = "Stretch"
+
+[nodes.review_collections__toolbar_panel.layout.height]
+min = 112
+preferred = 112
+max = 112
+stretch = "Fixed"
+
+[[nodes.review_collections__toolbar_panel.children]]
+node = "review_collections__toolbar_title_row"
+
+[[nodes.review_collections__toolbar_panel.children]]
+node = "review_collections__toolbar_search_row"
+
+[[nodes.review_collections__toolbar_panel.children]]
+node = "review_collections__toolbar_filter_row"
+
+[nodes.review_collections__assets_activity_root]
+component = "VerticalBox"
+control_id = "AssetsActivityRoot"
+classes = [ "workbench-shell-root" ]
+pixel_snapping = "disabled"
+
+[nodes.review_collections__assets_activity_root.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.review_collections__assets_activity_root.layout.width]
+stretch = "Stretch"
+
+[nodes.review_collections__assets_activity_root.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_collections__assets_activity_root.children]]
+node = "review_collections__toolbar_panel"
+
+[nodes.review_details__root]
+pixel_snapping = "disabled"
+component = "VerticalGroup"
+control_id = "AssetSurfaceControls"
+classes = [ "editor-surface-controls", "asset-surface-controls" ]
+
+[nodes.review_details__root.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.review_details__root.layout.width]
+stretch = "Stretch"
+
+[nodes.review_details__root.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_details__root.children]]
+node = "review_details__filter_row"
+
+[[nodes.review_details__root.children]]
+node = "review_details__display_row"
+
+[[nodes.review_details__root.children]]
+node = "review_details__navigation_row"
+
+[nodes.review_details__filter_row]
+component = "HorizontalGroup"
+control_id = "AssetFilterRow"
+
+[nodes.review_details__filter_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.review_details__filter_row.layout.width]
+stretch = "Stretch"
+
+[nodes.review_details__filter_row.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[nodes.review_details__filter_row.children]]
+node = "review_details__search"
+
+[[nodes.review_details__filter_row.children]]
+node = "review_details__kind_filter"
+
+[nodes.review_details__display_row]
+component = "HorizontalGroup"
+control_id = "AssetDisplayRow"
+
+[nodes.review_details__display_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.review_details__display_row.layout.width]
+stretch = "Stretch"
+
+[nodes.review_details__display_row.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[nodes.review_details__display_row.children]]
+node = "review_details__view_mode"
+
+[[nodes.review_details__display_row.children]]
+node = "review_details__utility_tab"
+
+[nodes.review_details__navigation_row]
+component = "HorizontalGroup"
+control_id = "AssetNavigationRow"
+
+[nodes.review_details__navigation_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.review_details__navigation_row.layout.width]
+stretch = "Stretch"
+
+[nodes.review_details__navigation_row.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[nodes.review_details__navigation_row.children]]
+node = "review_details__open_browser"
+
+[[nodes.review_details__navigation_row.children]]
+node = "review_details__locate_asset"
+
+[[nodes.review_details__navigation_row.children]]
+node = "review_details__import_model"
+
+[nodes.review_details__search]
+component = "InputField"
+control_id = "SearchEdited"
+
+[nodes.review_details__search.props]
+placeholder = "Search"
+value_text = ""
+surface_variant = "inset"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_min_height = "$editor.control.height.dense"
+input_focusable = true
+
+[nodes.review_details__search.layout.width]
+stretch = "Stretch"
+
+[nodes.review_details__search.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_details__search.events]]
+id = "AssetSurface/SearchEdited"
+event = "Change"
+route = "workbench.asset.set_search_query"
+
+[nodes.review_details__kind_filter]
+component = "ComboBox"
+control_id = "SetKindFilter"
+
+[nodes.review_details__kind_filter.props]
+label = "Kind"
+value = "All"
+value_text = "All Types"
+options = [ "All|label=All Types", "Texture|label=Textures", "Material|label=Materials", "Scene|label=Scenes", "Model|label=Models", "Mesh|label=Meshes", "Shader|label=Shaders", "PhysicsMaterial|label=Physics Materials", "AnimationSkeleton|label=Animation Skeletons", "AnimationClip|label=Animation Clips", "AnimationSequence|label=Animation Sequences", "AnimationGraph|label=Animation Graphs", "AnimationStateMachine|label=Animation State Machines", "UiLayout|label=UI Layouts", "UiWidget|label=UI Widgets", "UiStyle|label=UI Styles" ]
+surface_variant = "inset"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_min_height = "$editor.control.height.dense"
+input_focusable = true
+
+[nodes.review_details__kind_filter.layout.width]
+min = 124
+preferred = 168
+max = 220
+stretch = "Fixed"
+
+[nodes.review_details__kind_filter.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_details__kind_filter.events]]
+id = "AssetSurface/SetKindFilter"
+event = "Change"
+route = "workbench.asset.set_kind_filter"
+
+[nodes.review_details__view_mode]
+component = "IconButton"
+control_id = "SetViewMode"
+
+[nodes.review_details__view_mode.props]
+label = "View"
+icon = "list-outline"
+icon_placement = "leading"
+surface_variant = "inset"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_min_height = "$editor.control.height.dense"
+
+[nodes.review_details__view_mode.layout.width]
+stretch = "Stretch"
+
+[nodes.review_details__view_mode.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_details__view_mode.events]]
+id = "AssetSurface/SetViewMode"
+event = "Change"
+route = "workbench.asset.set_view_mode"
+
+[nodes.review_details__utility_tab]
+component = "IconButton"
+control_id = "SetUtilityTab"
+
+[nodes.review_details__utility_tab.props]
+label = "Tools"
+icon = "editor_pages/asset_browser/import_pipeline/import-settings.svg"
+icon_placement = "leading"
+surface_variant = "inset"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_min_height = "$editor.control.height.dense"
+
+[nodes.review_details__utility_tab.layout.width]
+stretch = "Stretch"
+
+[nodes.review_details__utility_tab.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_details__utility_tab.events]]
+id = "AssetSurface/SetUtilityTab"
+event = "Change"
+route = "workbench.asset.set_utility_tab"
+
+[nodes.review_details__open_browser]
+component = "IconButton"
+control_id = "OpenAssetBrowser"
+
+[nodes.review_details__open_browser.props]
+label = "Browser"
+icon = "editor_pages/asset_browser/navigation/folder.svg"
+icon_placement = "leading"
+
+[nodes.review_details__open_browser.layout.width]
+stretch = "Stretch"
+
+[nodes.review_details__open_browser.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_details__open_browser.events]]
+id = "AssetSurface/OpenAssetBrowser"
+event = "Click"
+
+[nodes.review_details__open_browser.events.action]
+action = "view.asset_browser.open"
+
+[nodes.review_details__locate_asset]
+component = "IconButton"
+control_id = "LocateSelectedAsset"
+
+[nodes.review_details__locate_asset.props]
+label = "Locate"
+icon = "editor_pages/asset_browser/navigation/search.svg"
+icon_placement = "leading"
+
+[nodes.review_details__locate_asset.layout.width]
+stretch = "Stretch"
+
+[nodes.review_details__locate_asset.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_details__locate_asset.events]]
+id = "AssetSurface/LocateSelectedAsset"
+event = "Click"
+route = "workbench.asset.locate_selected_asset"
+
+[nodes.review_details__import_model]
+component = "IconButton"
+control_id = "ImportModel"
+
+[nodes.review_details__import_model.props]
+label = "Import"
+icon = "editor_pages/asset_browser/import_pipeline/import.svg"
+icon_placement = "leading"
+
+[nodes.review_details__import_model.layout.width]
+stretch = "Stretch"
+
+[nodes.review_details__import_model.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_details__import_model.events]]
+id = "AssetSurface/ImportModel"
+event = "Click"
+route = "workbench.asset.import_model"
+
+[nodes.review_preview__ui_asset_editor_root]
+component = "VerticalGroup"
+control_id = "UiAssetEditorRoot"
+pixel_snapping = "disabled"
+classes = [ "ui-asset-shell" ]
+
+[nodes.review_preview__ui_asset_editor_root.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.review_preview__ui_asset_editor_root.layout.width]
+stretch = "Stretch"
+
+[nodes.review_preview__ui_asset_editor_root.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_preview__ui_asset_editor_root.children]]
+node = "review_preview__header_panel"
+
+[nodes.review_preview__header_panel]
+component = "VerticalGroup"
+control_id = "HeaderPanel"
+classes = [ "ui-asset-panel" ]
+
+[nodes.review_preview__header_panel.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.review_preview__header_panel.layout.width]
+stretch = "Stretch"
+
+[[nodes.review_preview__header_panel.children]]
+node = "review_preview__header_asset_row"
+
+[nodes.review_preview__header_panel.children.slot.layout.padding]
+left = "$editor.density.panel_padding"
+right = "$editor.density.panel_padding"
+
+[[nodes.review_preview__header_panel.children]]
+node = "review_preview__header_status_row"
+
+[nodes.review_preview__header_panel.children.slot.layout.padding]
+left = "$editor.density.panel_padding"
+right = "$editor.density.panel_padding"
+
+[[nodes.review_preview__header_panel.children]]
+node = "review_preview__header_action_row"
+
+[nodes.review_preview__header_panel.children.slot.layout.padding]
+left = "$editor.density.panel_padding"
+right = "$editor.density.panel_padding"
+
+[nodes.review_preview__header_asset_row]
+component = "HorizontalGroup"
+control_id = "HeaderAssetRow"
+classes = [ "ui-asset-row" ]
+
+[nodes.review_preview__header_asset_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.regular"
+
+[nodes.review_preview__header_asset_row.layout.width]
+stretch = "Stretch"
+
+[nodes.review_preview__header_asset_row.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[nodes.review_preview__header_asset_row.children]]
+node = "review_preview__header_asset_title"
+
+[[nodes.review_preview__header_asset_row.children]]
+node = "review_preview__header_asset_kind"
+
+[nodes.review_preview__header_asset_title]
+component = "WorkbenchLabel"
+control_id = "HeaderAssetTitle"
+
+[nodes.review_preview__header_asset_title.props]
+text = "UI Asset"
+text_tone = "primary"
+text_overflow = "ellipsis"
+
+[nodes.review_preview__header_asset_title.layout.width]
+stretch = "Stretch"
+
+[nodes.review_preview__header_asset_title.layout.height]
+stretch = "Stretch"
+
+[nodes.review_preview__header_asset_kind]
+component = "WorkbenchCaption"
+control_id = "HeaderAssetKind"
+
+[nodes.review_preview__header_asset_kind.props]
+text = "DESIGNER"
+text_overflow = "ellipsis"
+
+[nodes.review_preview__header_asset_kind.layout.width]
+min = "$editor.density.ui_asset.header_kind.min_width"
+preferred = "$editor.density.ui_asset.header_kind.preferred_width"
+max = "$editor.density.ui_asset.header_kind.max_width"
+stretch = "Fixed"
+
+[nodes.review_preview__header_asset_kind.layout.height]
+stretch = "Stretch"
+
+[nodes.review_preview__header_status_row]
+component = "HorizontalGroup"
+control_id = "HeaderStatusRow"
+classes = [ "ui-asset-row", "ui-asset-muted" ]
+
+[nodes.review_preview__header_status_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.regular"
+
+[nodes.review_preview__header_status_row.layout.width]
+stretch = "Stretch"
+
+[nodes.review_preview__header_status_row.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[nodes.review_preview__header_status_row.children]]
+node = "review_preview__header_status_caption"
+
+[nodes.review_preview__header_status_caption]
+component = "WorkbenchCaption"
+control_id = "HeaderStatusCaption"
+
+[nodes.review_preview__header_status_caption.props]
+text = "Prototype cache valid"
+text_overflow = "ellipsis"
+
+[nodes.review_preview__header_status_caption.layout.width]
+stretch = "Stretch"
+
+[nodes.review_preview__header_status_caption.layout.height]
+stretch = "Stretch"
+
+[nodes.review_preview__header_action_row]
+component = "HorizontalGroup"
+control_id = "HeaderActionRow"
+classes = [ "ui-asset-row" ]
+
+[nodes.review_preview__header_action_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.regular"
+
+[nodes.review_preview__header_action_row.layout.width]
+stretch = "Stretch"
+
+[nodes.review_preview__header_action_row.layout.height]
+min = "$editor.control.height.default"
+preferred = "$editor.control.height.default"
+max = "$editor.control.height.default"
+stretch = "Fixed"
+
+[[nodes.review_preview__header_action_row.children]]
+node = "review_preview__header_save_button"
+
+[[nodes.review_preview__header_action_row.children]]
+node = "review_preview__header_undo_button"
+
+[[nodes.review_preview__header_action_row.children]]
+node = "review_preview__header_redo_button"
+
+[[nodes.review_preview__header_action_row.children]]
+node = "review_preview__header_action_fill"
+
+[nodes.review_preview__header_save_button]
+component = "WorkbenchIconButton"
+control_id = "HeaderSaveButton"
+
+[nodes.review_preview__header_save_button.props]
+icon = "zircon_editor_shell/toolbar/save.svg"
+label = "Save"
+action_id = "save"
+
+[[nodes.review_preview__header_save_button.events]]
+id = "UiAssetEditor/HeaderSave"
+event = "Click"
+route = "save"
+
+[nodes.review_preview__header_save_button.layout.width]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.default"
+stretch = "Fixed"
+
+[nodes.review_preview__header_save_button.layout.height]
+stretch = "Stretch"
+
+[nodes.review_preview__header_undo_button]
+component = "WorkbenchIconButton"
+control_id = "HeaderUndoButton"
+
+[nodes.review_preview__header_undo_button.props]
+icon = "zircon_editor_shell/toolbar/undo.svg"
+label = "Undo"
+action_id = "undo"
+
+[[nodes.review_preview__header_undo_button.events]]
+id = "UiAssetEditor/HeaderUndo"
+event = "Click"
+route = "undo"
+
+[nodes.review_preview__header_undo_button.layout.width]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.default"
+stretch = "Fixed"
+
+[nodes.review_preview__header_undo_button.layout.height]
+stretch = "Stretch"
+
+[nodes.review_preview__header_redo_button]
+component = "WorkbenchIconButton"
+control_id = "HeaderRedoButton"
+
+[nodes.review_preview__header_redo_button.props]
+icon = "zircon_editor_shell/toolbar/redo.svg"
+label = "Redo"
+action_id = "redo"
+
+[[nodes.review_preview__header_redo_button.events]]
+id = "UiAssetEditor/HeaderRedo"
+event = "Click"
+route = "redo"
+
+[nodes.review_preview__header_redo_button.layout.width]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.default"
+stretch = "Fixed"
+
+[nodes.review_preview__header_redo_button.layout.height]
+stretch = "Stretch"
+
+[nodes.review_preview__header_action_fill]
+component = "Space"
+control_id = "HeaderActionFill"
+
+[nodes.review_preview__header_action_fill.layout.width]
+stretch = "Stretch"
+
+[nodes.review_preview__header_action_fill.layout.height]
+stretch = "Stretch"
+
+[nodes.review_import_log__root]
+pixel_snapping = "disabled"
+component = "VerticalGroup"
+control_id = "RuntimeDiagnosticsPaneBodyRoot"
+classes = [ "editor-pane", "diagnostics-pane" ]
+
+[nodes.review_import_log__root.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.review_import_log__root.layout.width]
+stretch = "Stretch"
+
+[nodes.review_import_log__root.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_import_log__root.children]]
+node = "review_import_log__header"
+
+[nodes.review_import_log__header]
+component = "HorizontalGroup"
+control_id = "RuntimeDiagnosticsHeader"
+
+[nodes.review_import_log__header.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.review_import_log__header.layout.width]
+stretch = "Stretch"
+
+[nodes.review_import_log__header.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[[nodes.review_import_log__header.children]]
+node = "review_import_log__summary"
+
+[[nodes.review_import_log__header.children]]
+node = "review_import_log__focus"
+
+[nodes.review_import_log__focus]
+component = "IconButton"
+control_id = "FocusDiagnostics"
+
+[nodes.review_import_log__focus.props]
+label = "Focus Diagnostics"
+icon = "editor_pages/console_profiler/diagnostics/watch.svg"
+icon_placement = "icon_only"
+
+[nodes.review_import_log__focus.layout.width]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.review_import_log__focus.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_import_log__focus.events]]
+id = "RuntimeDiagnosticsPaneBody/FocusDiagnostics"
+event = "Click"
+route = "workbench.pane.runtime_diagnostics.focus"
+
+[nodes.review_import_log__summary]
+component = "Text"
+control_id = "RuntimeDiagnosticsSummary"
+
+[nodes.review_import_log__summary.props]
+text = "Runtime diagnostics"
+
+[nodes.review_import_log__summary.layout.width]
+stretch = "Stretch"
+
+[nodes.review_import_log__summary.layout.height]
+stretch = "Stretch"
+
+[nodes.review_dependency__root]
+pixel_snapping = "disabled"
+component = "VerticalGroup"
+control_id = "ConsolePaneBodyRoot"
+classes = [ "editor-pane", "console-pane", "panel" ]
+
+[nodes.review_dependency__root.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.regular"
+
+[nodes.review_dependency__root.layout.width]
+stretch = "Stretch"
+
+[nodes.review_dependency__root.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_dependency__root.children]]
+node = "review_dependency__body"
+
+[[nodes.review_dependency__root.children]]
+node = "review_dependency__footer"
+
+[nodes.review_dependency__body]
+component = "VerticalGroup"
+control_id = "ConsoleBodySection"
+
+[nodes.review_dependency__body.layout]
+clip = true
+
+[nodes.review_dependency__body.layout.container]
+kind = "VerticalBox"
+gap = 0
+
+[nodes.review_dependency__body.layout.width]
+stretch = "Stretch"
+
+[nodes.review_dependency__body.layout.height]
+stretch = "Stretch"
+
+[nodes.review_dependency__body.layout.scroll]
+vertical = true
+
+[[nodes.review_dependency__body.children]]
+node = "review_dependency__output_line_prototype"
+
+[nodes.review_dependency__body.children.slot.layout.padding]
+left = "$editor.density.gap.medium"
+right = "$editor.density.gap.large"
+
+[nodes.review_dependency__output_line_prototype]
+component = "Label"
+control_id = "ConsoleOutputLinePrototype"
+
+[nodes.review_dependency__output_line_prototype.props]
+text = "No output yet"
+component_variant = "code"
+font_size = "$editor.typography.caption.size"
+text_tone = "muted"
+overflow = "elide"
+
+[nodes.review_dependency__output_line_prototype.layout.width]
+stretch = "Stretch"
+
+[nodes.review_dependency__output_line_prototype.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[nodes.review_dependency__footer]
+component = "HorizontalGroup"
+control_id = "ConsoleFooter"
+
+[nodes.review_dependency__footer.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.regular"
+
+[nodes.review_dependency__footer.layout.width]
+stretch = "Stretch"
+
+[nodes.review_dependency__footer.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[[nodes.review_dependency__footer.children]]
+node = "review_dependency__footer_spacer"
+
+[[nodes.review_dependency__footer.children]]
+node = "review_dependency__clear"
+
+[nodes.review_dependency__footer_spacer]
+component = "Space"
+control_id = "ConsoleFooterSpacer"
+
+[nodes.review_dependency__footer_spacer.layout.width]
+stretch = "Stretch"
+
+[nodes.review_dependency__footer_spacer.layout.height]
+stretch = "Stretch"
+
+[nodes.review_dependency__clear]
+component = "WorkbenchButton"
+control_id = "ClearConsole"
+
+[nodes.review_dependency__clear.props]
+text = "Clear"
+button_variant = "outlined"
+button_color = "secondary"
+
+[nodes.review_dependency__clear.layout.width]
+min = 50
+preferred = 58
+max = 66
+stretch = "Fixed"
+
+[nodes.review_dependency__clear.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_dependency__clear.events]]
+id = "ConsolePaneBody/ClearConsole"
+event = "Click"
+
+[nodes.review_dependency__clear.events.action]
+action = "view.console.clear"
+
+[nodes.review_browser__toolbar_title_text]
+component = "Label"
+control_id = "AssetBrowserTitleText"
+
+[nodes.review_browser__toolbar_title_text.props]
+text = "Asset Browser"
+font_weight = "$editor.typography.emphasis.weight"
+overflow = "elide"
+
+[nodes.review_browser__toolbar_title_text.layout.width]
+stretch = "Stretch"
+
+[nodes.review_browser__toolbar_title_text.layout.height]
+stretch = "Stretch"
+
+[nodes.review_browser__toolbar_title_row]
+component = "HorizontalBox"
+control_id = "AssetBrowserToolbarTitleRow"
+
+[nodes.review_browser__toolbar_title_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.review_browser__toolbar_title_row.layout.width]
+stretch = "Stretch"
+
+[nodes.review_browser__toolbar_title_row.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[[nodes.review_browser__toolbar_title_row.children]]
+node = "review_browser__toolbar_title_text"
+
+[nodes.review_browser__toolbar_search_field]
+component = "WorkbenchSearchInput"
+control_id = "SearchEdited"
+
+[nodes.review_browser__toolbar_search_field.props]
+placeholder = "Search"
+dispatch_kind = "asset:browser"
+
+[nodes.review_browser__toolbar_search_field.layout.width]
+stretch = "Stretch"
+
+[nodes.review_browser__toolbar_search_field.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_browser__toolbar_search_field.events]]
+id = "Workbench/AssetBrowserSearchEdited"
+event = "Change"
+route = "workbench.asset_browser.search.edit"
+
+[nodes.review_browser__toolbar_search_row]
+component = "HorizontalBox"
+control_id = "AssetBrowserToolbarSearchRow"
+
+[nodes.review_browser__toolbar_search_row.layout.container]
+kind = "HorizontalBox"
+gap = 0
+
+[nodes.review_browser__toolbar_search_row.layout.width]
+stretch = "Stretch"
+
+[nodes.review_browser__toolbar_search_row.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[nodes.review_browser__toolbar_search_row.children]]
+node = "review_browser__toolbar_search_field"
+
+[nodes.review_browser__toolbar_panel]
+component = "VerticalBox"
+control_id = "AssetBrowserToolbarPanel"
+
+[nodes.review_browser__toolbar_panel.props]
+surface_variant = "frame_only"
+
+[nodes.review_browser__toolbar_panel.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.review_browser__toolbar_panel.layout.width]
+stretch = "Stretch"
+
+[nodes.review_browser__toolbar_panel.layout.height]
+min = 112
+preferred = 112
+max = 112
+stretch = "Fixed"
+
+[[nodes.review_browser__toolbar_panel.children]]
+node = "review_browser__toolbar_title_row"
+
+[[nodes.review_browser__toolbar_panel.children]]
+node = "review_browser__toolbar_search_row"
+
+[nodes.review_browser__content_header_title_text]
+component = "Label"
+control_id = "AssetBrowserContentHeaderTitleText"
+
+[nodes.review_browser__content_header_title_text.props]
+text = "Content Browser"
+font_weight = "$editor.typography.emphasis.weight"
+overflow = "elide"
+
+[nodes.review_browser__content_header_title_text.layout.width]
+stretch = "Stretch"
+
+[nodes.review_browser__content_header_title_text.layout.height]
+stretch = "Stretch"
+
+[nodes.review_browser__content_header_path_text]
+component = "Label"
+control_id = "AssetBrowserContentHeaderPathText"
+
+[nodes.review_browser__content_header_path_text.props]
+text = "All assets"
+text_tone = "muted"
+text_align = "right"
+overflow = "elide"
+responsive_min_tier = "wide"
+
+[nodes.review_browser__content_header_path_text.layout.width]
+min = 92
+preferred = 92
+max = 92
+stretch = "Fixed"
+
+[nodes.review_browser__content_header_path_text.layout.height]
+stretch = "Stretch"
+
+[nodes.review_browser__content_header_row]
+component = "HorizontalBox"
+control_id = "AssetBrowserContentHeaderRow"
+
+[nodes.review_browser__content_header_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.review_browser__content_header_row.layout.width]
+stretch = "Stretch"
+
+[nodes.review_browser__content_header_row.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[[nodes.review_browser__content_header_row.children]]
+node = "review_browser__content_header_title_text"
+
+[[nodes.review_browser__content_header_row.children]]
+node = "review_browser__content_header_path_text"
+
+[nodes.review_browser__content_asset_table_header]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchAssetBrowserTableHeader"
+
+[nodes.review_browser__content_asset_table_header.props]
+text = "Name Type Size Rev"
+surface_variant = "asset-table"
+border_width = "$editor.control.border_width"
+options = [ "Name", "Type", "Size", "Revision" ]
+
+[nodes.review_browser__content_asset_table_header.layout.width]
+stretch = "Stretch"
+
+[nodes.review_browser__content_asset_table_header.layout.height]
+min = "$editor.density.row_height"
+preferred = "$editor.density.row_height"
+max = "$editor.density.row_height"
+stretch = "Fixed"
+
+[nodes.review_browser__content_asset_row_01]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchAssetBrowserAssetRow01"
+
+[nodes.review_browser__content_asset_row_01.props]
+text = "Host UI 12K r42"
+surface_variant = "asset-table"
+border_width = "$editor.control.border_width"
+options = [ "Host", "UI", "12 KB", "rev 42" ]
+
+[nodes.review_browser__content_asset_row_01.layout.width]
+stretch = "Stretch"
+
+[nodes.review_browser__content_asset_row_01.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.review_browser__content_asset_row_02]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchAssetBrowserAssetRow02"
+
+[nodes.review_browser__content_asset_row_02.props]
+text = "Base Style 8K r41"
+surface_variant = "asset-table"
+border_width = "$editor.control.border_width"
+options = [ "Base", "Style", "8 KB", "rev 41" ]
+
+[nodes.review_browser__content_asset_row_02.layout.width]
+stretch = "Stretch"
+
+[nodes.review_browser__content_asset_row_02.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.review_browser__content_asset_row_03]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchAssetBrowserAssetRow03"
+
+[nodes.review_browser__content_asset_row_03.props]
+text = "Folder Tex 4K r40"
+surface_variant = "asset-table"
+border_width = "$editor.control.border_width"
+options = [ "Folder", "Texture", "4 KB", "rev 40" ]
+
+[nodes.review_browser__content_asset_row_03.layout.width]
+stretch = "Stretch"
+
+[nodes.review_browser__content_asset_row_03.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.review_browser__content_asset_row_04]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchAssetBrowserAssetRow04"
+
+[nodes.review_browser__content_asset_row_04.props]
+text = "A11y Widget 16K r39"
+surface_variant = "asset-table"
+border_width = "$editor.control.border_width"
+options = [ "A11y", "Widget", "16 KB", "rev 39" ]
+
+[nodes.review_browser__content_asset_row_04.layout.width]
+stretch = "Stretch"
+
+[nodes.review_browser__content_asset_row_04.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.review_browser__content_asset_table]
+component = "VerticalBox"
+control_id = "AssetBrowserAssetTablePanel"
+
+[nodes.review_browser__content_asset_table.props]
+surface_variant = "asset-table"
+radius = "$editor.control.radius.control"
+border_width = "$editor.control.border_width"
+
+[nodes.review_browser__content_asset_table.layout.container]
+kind = "VerticalBox"
+gap = 0
+
+[nodes.review_browser__content_asset_table.layout.width]
+min = 360
+preferred = 640
+stretch = "Stretch"
+
+[nodes.review_browser__content_asset_table.layout.height]
+min = 156
+preferred = 156
+max = 156
+stretch = "Fixed"
+
+[[nodes.review_browser__content_asset_table.children]]
+node = "review_browser__content_asset_table_header"
+
+[[nodes.review_browser__content_asset_table.children]]
+node = "review_browser__content_asset_row_01"
+
+[[nodes.review_browser__content_asset_table.children]]
+node = "review_browser__content_asset_row_02"
+
+[[nodes.review_browser__content_asset_table.children]]
+node = "review_browser__content_asset_row_03"
+
+[[nodes.review_browser__content_asset_table.children]]
+node = "review_browser__content_asset_row_04"
+
+[nodes.review_browser__content_asset_table_scroll]
+component = "ScrollableBox"
+control_id = "AssetBrowserAssetTableScroll"
+
+[nodes.review_browser__content_asset_table_scroll.props]
+input_hoverable = true
+
+[nodes.review_browser__content_asset_table_scroll.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.review_browser__content_asset_table_scroll.layout.container]
+kind = "ScrollableBox"
+axis = "Horizontal"
+gap = 0
+scrollbar_visibility = "Auto"
+
+[nodes.review_browser__content_asset_table_scroll.layout.width]
+stretch = "Stretch"
+
+[nodes.review_browser__content_asset_table_scroll.layout.height]
+min = 156
+preferred = 156
+max = 156
+stretch = "Fixed"
+
+[[nodes.review_browser__content_asset_table_scroll.children]]
+node = "review_browser__content_asset_table"
+
+[nodes.review_browser__content_panel]
+component = "ScrollableBox"
+control_id = "AssetBrowserContentPanel"
+
+[nodes.review_browser__content_panel.props]
+surface_variant = "asset-content"
+radius = "$editor.control.radius.control"
+border_width = "$editor.control.border_width"
+
+[nodes.review_browser__content_panel.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.review_browser__content_panel.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = "$editor.density.gap.medium"
+scrollbar_visibility = "Auto"
+
+[nodes.review_browser__content_panel.layout.width]
+min = 0
+preferred = 0
+stretch = "Stretch"
+
+[nodes.review_browser__content_panel.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_browser__content_panel.children]]
+node = "review_browser__content_header_row"
+
+[[nodes.review_browser__content_panel.children]]
+node = "review_browser__content_asset_table_scroll"
+
+[nodes.review_browser__main_panel]
+component = "HorizontalBox"
+control_id = "AssetBrowserMainPanel"
+
+[nodes.review_browser__main_panel.props]
+surface_variant = "frame_only"
+
+[nodes.review_browser__main_panel.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.review_browser__main_panel.layout.width]
+stretch = "Stretch"
+
+[nodes.review_browser__main_panel.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_browser__main_panel.children]]
+node = "review_browser__content_panel"
+
+[nodes.review_browser__main_panel.children.slot.layout.width]
+min = 0
+preferred = 0
+weight = 4
+stretch = "Stretch"
+
+[nodes.review_browser__asset_browser_root]
+component = "VerticalBox"
+control_id = "AssetBrowserRoot"
+classes = [ "workbench-shell-root" ]
+pixel_snapping = "disabled"
+
+[nodes.review_browser__asset_browser_root.props]
+surface_variant = "frame_only"
+
+[nodes.review_browser__asset_browser_root.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.review_browser__asset_browser_root.layout.width]
+stretch = "Stretch"
+
+[nodes.review_browser__asset_browser_root.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_browser__asset_browser_root.children]]
+node = "review_browser__toolbar_panel"
+
+[[nodes.review_browser__asset_browser_root.children]]
+node = "review_browser__main_panel"
+
+[tokens]
+surface = "$editor.surface.0"
+panel = "$editor.surface.1"
+panel_inset = "$editor.surface.recessed"
+outline = "$editor.border"
+text = "$editor.text.primary"
+muted = "$editor.text.secondary"
+accent = "$editor.accent"
+
+[[stylesheets]]
+id = "ui_asset_editor_projection_workbench"
+
+[[stylesheets.rules]]
+selector = ".ui-asset-shell"
+
+[stylesheets.rules.set.self]
+background_color = "$surface"
+foreground_color = "$text"
+
+[[stylesheets.rules]]
+selector = ".ui-asset-panel"
+
+[stylesheets.rules.set.self]
+background_color = "$panel"
+border_color = "$outline"
+foreground_color = "$text"
+surface_variant = "panel"
+radius = "$editor.control.radius.panel"
+corner_radius = "$editor.control.radius.panel"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".ui-asset-inset"
+
+[stylesheets.rules.set.self]
+background_color = "$panel_inset"
+border_color = "$outline"
+foreground_color = "$text"
+surface_variant = "inset"
+radius = "$editor.control.radius.control"
+corner_radius = "$editor.control.radius.control"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".ui-asset-row"
+
+[stylesheets.rules.set.self]
+foreground_color = "$text"
+
+[[stylesheets.rules]]
+selector = ".ui-asset-section"
+
+[stylesheets.rules.set.self]
+foreground_color = "$text"
+
+[[stylesheets.rules]]
+selector = ".ui-asset-muted"
+
+[stylesheets.rules.set.self]
+foreground_color = "$muted"
+font_size = "$editor.typography.caption.size"

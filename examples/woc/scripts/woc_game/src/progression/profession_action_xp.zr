@@ -32,6 +32,7 @@ pub gatherActionXp(nodeLevel: int, playerLevel: int): int {
     return professionActionXp(base, nodeLevel, playerLevel);
 }
 
+/// 内容层提供配方等级，角色层提供当前等级；成功制作的调用方再决定何时入账，此函数只返回一次行为奖励。
 pub craftActionXp(recipeLevel: int, playerLevel: int): int {
     var base = contract.craftXpBase() + contract.craftXpPerLevel() * recipeLevel;
     return professionActionXp(base, recipeLevel, playerLevel);

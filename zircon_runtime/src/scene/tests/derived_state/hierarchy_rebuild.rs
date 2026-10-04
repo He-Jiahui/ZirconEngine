@@ -1,3 +1,6 @@
+//! 层级变更索引是活动性、世界矩阵和节点缓存增量重建的共同拓扑来源；
+//! 这些结构断言防止一次局部编辑重新触发全世界遍历。
+
 use super::*;
 
 #[test]
@@ -33,16 +36,6 @@ fn derived_state_rebuilds_reuse_the_mutation_hierarchy_index() {
         .nth(1)
         .and_then(|text| text.split("fn propagate_active_state").next())
         .expect("read world matrix rebuild body");
-    let active_propagate = source
-        .split("fn propagate_active_state")
-        .nth(1)
-        .and_then(|text| text.split("fn propagate_world_matrix").next())
-        .expect("read active hierarchy propagation body");
-    let world_propagate = source
-        .split("fn propagate_world_matrix")
-        .nth(1)
-        .and_then(|text| text.split("fn hierarchy_traversal_index").next())
-        .expect("read world matrix propagation body");
     assert!(
         active_rebuild.contains("let frontier = self.derived_state_dirty.take_active_frontier();")
             && active_rebuild.contains("self.ensure_hierarchy_mutation_index_current();")
@@ -67,27 +60,6 @@ fn derived_state_rebuilds_reuse_the_mutation_hierarchy_index() {
         "world matrix rebuild must reuse the mutation hierarchy index instead of constructing a temporary world traversal"
     );
     assert!(
-        active_propagate.contains("traversal: &HierarchyTopology")
-            && active_propagate.contains("let mut stack = vec![(entity, parent_active)];")
-            && active_propagate
-                .contains("while let Some((current, inherited_active)) = stack.pop()")
-            && active_propagate.contains("traversal.children_of(current)")
-            && active_propagate.contains(".rev()")
-            && !active_propagate.contains("self.propagate_active_state(")
-            && !active_propagate.contains("self.children_of(entity)"),
-        "active hierarchy propagation must use an explicit DFS stack over the traversal index instead of recursion or per-node child scans"
-    );
-    assert!(
-        world_propagate.contains("traversal: &HierarchyTopology")
-            && world_propagate.contains("let mut stack = vec![(entity, parent_world)];")
-            && world_propagate.contains("while let Some((current, inherited_world)) = stack.pop()")
-            && world_propagate.contains("traversal.children_of(current)")
-            && world_propagate.contains(".rev()")
-            && !world_propagate.contains("self.propagate_world_matrix(")
-            && !world_propagate.contains("self.children_of(entity)"),
-        "world matrix propagation must use an explicit DFS stack over the traversal index instead of recursion or per-node child scans"
-    );
-    assert!(
         topology.contains("pub(super) struct HierarchyTopology")
             && topology.contains("roots: BTreeMap<usize, EntityId>")
             && topology
@@ -110,6 +82,57 @@ fn derived_state_rebuilds_reuse_the_mutation_hierarchy_index() {
             && typed_api.contains("self.mark_inspection_subtree_fields_dirty(entity);"),
         "validated structural reparenting must retain the changed edge identity through inspection and derived-state invalidation"
     );
+}
+
+#[test]
+fn derived_propagation_preserves_nested_branch_values_and_dirty_scope() {
+    let mut world = World::empty();
+    let root = world.spawn_node(NodeKind::Empty).unwrap();
+    let left = world.spawn_node(NodeKind::Empty).unwrap();
+    let left_leaf = world.spawn_node(NodeKind::Empty).unwrap();
+    let right = world.spawn_node(NodeKind::Empty).unwrap();
+    let right_leaf = world.spawn_node(NodeKind::Empty).unwrap();
+    for (entity, parent, offset) in [
+        (left, root, 2.0),
+        (left_leaf, left, 3.0),
+        (right, root, 4.0),
+        (right_leaf, right, 5.0),
+    ] {
+        world.set_parent_checked(entity, Some(parent)).unwrap();
+        world
+            .update_transform(
+                entity,
+                Transform::from_translation(Vec3::new(offset, 0.0, 0.0)),
+            )
+            .unwrap();
+    }
+    world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+
+    world.reset_ecs_frame_performance_diagnostics();
+    world
+        .update_transform(root, Transform::from_translation(Vec3::new(10.0, 0.0, 0.0)))
+        .unwrap();
+    world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+    assert_eq!(
+        world.world_transform(left_leaf).unwrap().translation,
+        Vec3::new(15.0, 0.0, 0.0)
+    );
+    assert_eq!(
+        world.world_transform(right_leaf).unwrap().translation,
+        Vec3::new(19.0, 0.0, 0.0)
+    );
+    let diagnostics = world.ecs_frame_performance_diagnostics().derived_state;
+    assert_eq!(diagnostics.world_matrix_propagation_entities, 5);
+    assert_eq!(diagnostics.world_matrix_propagation_written_entities, 5);
+
+    world.reset_ecs_frame_performance_diagnostics();
+    world.set_active_self(left, false).unwrap();
+    world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+    assert_eq!(world.active_in_hierarchy(left_leaf), Some(false));
+    assert_eq!(world.active_in_hierarchy(right_leaf), Some(true));
+    let diagnostics = world.ecs_frame_performance_diagnostics().derived_state;
+    assert_eq!(diagnostics.active_propagation_entities, 2);
+    assert_eq!(diagnostics.active_propagation_written_entities, 2);
 }
 
 #[test]

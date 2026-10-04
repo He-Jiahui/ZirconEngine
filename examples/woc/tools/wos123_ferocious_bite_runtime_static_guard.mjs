@@ -43,14 +43,14 @@ requireText(effects, /if \(ability\.spendsCombo && spentCombo > 0\)[\s\S]*?p\.co
 const generator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
 if (!/claw',[\s\S]*?'ferocious_bite'/.test(generator) ||
-    !generator.includes("EXPECTED_ABILITY_COUNT = 79") ||
-    !zrGenerator.includes("document.entries.length === 79")) {
+    !generator.includes("EXPECTED_ABILITY_COUNT = 117") ||
+    !zrGenerator.includes("document.entries.length === 117")) {
   throw new Error("M4 Ferocious Bite projection scope is missing");
 }
 const entry = JSON.parse(read("contracts", "m4_abilities.json")).entries.find(
   (value) => value.id === "ferocious_bite",
 );
-if (!entry || entry.index !== 63 || entry.definition.cost !== 35 ||
+if (!entry || entry.index !== 67 || entry.definition.cost !== 35 ||
     entry.definition.requiresForm !== "cat" || !entry.definition.spendsCombo ||
     entry.definition.effects?.[0]?.type !== "finisherDamage" ||
     entry.definition.effects[0].base !== 10 || entry.definition.effects[0].perCombo !== 14 ||

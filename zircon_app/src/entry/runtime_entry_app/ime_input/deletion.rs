@@ -1,19 +1,18 @@
-use winit::event_loop::ActiveEventLoop;
-use zircon_runtime_interface::{ZrRuntimeEventV1, ZIRCON_RUNTIME_ABI_VERSION_V1};
+use zircon_runtime_interface::{
+    ZrRuntimeEventV1, ZrRuntimeViewportHandle, ZIRCON_RUNTIME_ABI_VERSION_V1,
+};
 
-use super::super::{converters::usize_to_u32, RuntimeEntryApp};
+use super::super::converters::usize_to_u32;
 
-pub(super) fn forward_ime_delete_surrounding(
-    app: &mut RuntimeEntryApp,
-    event_loop: &dyn ActiveEventLoop,
+pub(super) fn ime_delete_surrounding_event(
+    viewport: ZrRuntimeViewportHandle,
     before_bytes: usize,
     after_bytes: usize,
-) {
-    let event = ZrRuntimeEventV1::ime_delete_surrounding(
+) -> ZrRuntimeEventV1 {
+    ZrRuntimeEventV1::ime_delete_surrounding(
         ZIRCON_RUNTIME_ABI_VERSION_V1,
-        app.viewport,
+        viewport,
         usize_to_u32(before_bytes),
         usize_to_u32(after_bytes),
-    );
-    app.dispatch_runtime_event(event_loop, event);
+    )
 }

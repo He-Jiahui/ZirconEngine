@@ -8,7 +8,7 @@ use crate::core::runtime::{
 };
 
 use super::super::super::{
-    MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES, RuntimeSessionArchive, RuntimeSessionArchiveError,
+    RuntimeSessionArchive, RuntimeSessionArchiveError, MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES,
 };
 use super::service::RuntimeSessionArchiveReadRequest;
 
@@ -53,6 +53,7 @@ pub enum RuntimeSessionArchiveReaderSubmitError {
 }
 
 #[derive(Clone)]
+/// 成功读取结果把档案与保留字节租约一起交付；克隆共享租约，最后一个副本释放后才归还结果预算。
 pub struct RuntimeSessionArchiveReadArtifact {
     archive: RuntimeSessionArchive,
     retained_bytes: RetainedByteLease,
@@ -82,6 +83,7 @@ pub enum RuntimeSessionArchiveReadOutcome {
 }
 
 #[derive(Clone)]
+/// 未完成提交按项目解析器的 ResolvedProjectPathIdentity 共享请求、票据和结果；启动前取消会影响所有共享者。
 pub struct RuntimeSessionArchiveReadSubmission {
     pub(super) request: Arc<RuntimeSessionArchiveReadRequest>,
 }

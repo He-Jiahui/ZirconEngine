@@ -33,10 +33,11 @@ work.
 | Owned string allocations | 73,728 | 16,384 | 77.8% removed |
 | Published asset order | first-seen | first-seen | unchanged |
 
-The ignored release gate runs 17 alternating samples and emits
-`RUNTIME74_WATCH_INVALIDATION_HASH_ADMISSION_BENCH_V1`. Acceptance requires borrowed hash
-admission P95 to be at most 60% of ordered-set admission P95. Exact Windows timings remain pending
-the coordinator run.
+The ignored Release probe now runs 101 alternating samples and emits
+`RUNTIME74_WATCH_INVALIDATION_HASH_ADMISSION_BENCH_V1` with raw nearest-rank P50/P95/P99 values
+and balanced 51/50 first-order counts. Product acceptance still requires the complete watch caller
+workload under managed Windows validation and borrowed hash admission P95 at most 60% of ordered-set
+admission P95.
 
 ## Acceptance
 
@@ -45,7 +46,7 @@ the coordinator run.
 - `runtime74_batch_watch_invalidation_uses_borrowed_hash_admission`
   requires all three production hash boundaries and rejects ordered sets.
 - `runtime74_batch_watch_hash_admission_performance_evidence` checks output
-  equivalence, reports allocation counts and P95 values, and enforces the 60% threshold.
+  equivalence, reports allocation counts and paired P50/P95/P99 values, and enforces the 60% threshold.
 - Exact-file Rust 1.94.1 formatting, scoped diff checks, and source contracts must pass before
   managed validation submission.
 

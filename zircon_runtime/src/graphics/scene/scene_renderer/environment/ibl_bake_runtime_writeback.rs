@@ -29,6 +29,8 @@ use super::ibl_bake_wgpu_readback::{
 const MAX_PENDING_IBL_BAKE_RUNTIME_WRITEBACKS: usize = 4;
 
 #[derive(Default)]
+/// 把已提交的 GPU 烘焙读回延后写入运行时制品缓存，最多保留四个不同请求。
+/// 图烘焙保留调度预留直至完成；捕获的附带写回允许失败，以免中断探针发布。
 pub(in crate::graphics::scene::scene_renderer) struct IblBakeRuntimeGraphWritebackQueue {
     pending: VecDeque<PreparedIblBakeRuntimeGraphWriteback>,
 }
@@ -116,6 +118,7 @@ impl IblBakeRuntimeGraphWritebackQueue {
         }))
     }
 
+    /// 仅在包含读回复制的命令提交已被接收后接管 prepared；编码失败应直接丢弃它。
     pub(in crate::graphics::scene::scene_renderer) fn commit_submitted(
         &mut self,
         prepared: PreparedIblBakeRuntimeGraphWriteback,
@@ -123,6 +126,7 @@ impl IblBakeRuntimeGraphWritebackQueue {
         self.pending.push_back(prepared);
     }
 
+    /// 帧入口轮询已就绪读回后写制品；不在此等待 GPU，也不替调用方提交编码器。
     pub(in crate::graphics::scene::scene_renderer) fn poll_completed(
         &mut self,
     ) -> Result<(), IblBakeRuntimeGraphWritebackError> {
@@ -203,50 +207,9 @@ pub(in crate::graphics::scene::scene_renderer) enum IblBakeRuntimeGraphWriteback
 }
 
 #[cfg(test)]
-mod source_contract_tests {
-    #[test]
-    fn production_writeback_is_cpu_only_after_the_backend_completion_poll() {
-        let source = include_str!("ibl_bake_runtime_writeback.rs");
-        let production = source
-            .split_once("#[cfg(test)]\npub(in crate::graphics::scene::scene_renderer) fn write_ibl")
-            .map(|(production, _)| production)
-            .expect("runtime writeback must retain a test-only synchronous helper boundary");
-
-        assert!(production.contains("readback.poll_ready()"));
-        assert!(!production.contains("wgpu::Buffer"));
-        assert!(!production.contains("map_async("));
-        assert!(!production.contains("device.poll("));
-        assert!(!production.contains("queue.submit("));
-        assert!(!production.contains("take_command_buffer("));
-    }
-
-    #[test]
-    fn capture_writeback_reuses_bounded_poll_owner_without_graph_resource_access() {
-        let source = include_str!("ibl_bake_runtime_writeback.rs");
-        let capture = source
-            .split_once("prepare_from_capture_target(")
-            .and_then(|(_, tail)| {
-                tail.split_once(
-                    "pub(in crate::graphics::scene::scene_renderer) fn commit_submitted",
-                )
-            })
-            .map(|(capture, _)| capture)
-            .expect("capture writeback preparation must remain an explicit owner");
-
-        assert!(capture.contains("prepare_ibl_bake_artifact_wgpu_readback_from_capture_target"));
-        assert!(capture.contains("self.pending.len() >= MAX_PENDING_IBL_BAKE_RUNTIME_WRITEBACKS"));
-        assert!(capture.contains("allow_readback_failure: true"));
-        assert!(!capture.contains("RenderGraphExecutionResources"));
-        assert!(!capture.contains("owned_texture("));
-
-        let completion = source
-            .split_once("pub(in crate::graphics::scene::scene_renderer) fn poll_completed")
-            .map(|(_, tail)| tail)
-            .expect("runtime writeback must retain one bounded completion owner");
-        assert!(completion.contains("Err(_) if pending.allow_readback_failure => continue"));
-        assert!(completion.contains("if pending.allow_readback_failure"));
-    }
-}
+#[path = "tests/ibl_bake_runtime_writeback_source_contract_tests.rs"]
+mod source_contract_tests;
 
 #[cfg(test)]
+#[path = "ibl_bake_runtime_writeback/tests/cases.rs"]
 mod tests;

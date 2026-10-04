@@ -74,4 +74,5 @@ pub use zircon_editor::{
 };
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

@@ -11,9 +11,9 @@ use crate::scene::ecs::{Component, ComponentId};
 
 use super::super::{SceneError, SceneResult};
 use super::{
-    BundleInsertionTransaction, MAX_BUNDLE_COMPONENT_TYPES, MAX_BUNDLE_COMPONENTS,
-    MAX_NODE_RECORD_COMPONENT_TYPES, PendingBundleValue, PendingDeferredRemoval,
-    PreflightedBundleComponent, UnregisteredBundleComponentType, register_component_id,
+    register_component_id, BundleInsertionTransaction, PendingBundleValue, PendingDeferredRemoval,
+    PreflightedBundleComponent, UnregisteredBundleComponentType, MAX_BUNDLE_COMPONENTS,
+    MAX_BUNDLE_COMPONENT_TYPES, MAX_NODE_RECORD_COMPONENT_TYPES,
 };
 
 impl BundleInsertionTransaction<'_> {
@@ -35,6 +35,8 @@ impl BundleInsertionTransaction<'_> {
     where
         T: Component,
     {
+        crate::scene::World::validate_generic_derived_mutation::<T>("insert")?;
+        crate::scene::World::validate_generic_authored_mutation::<T>("insert")?;
         let type_id = TypeId::of::<T>();
         let existing_component_index = self.components[..self.component_count]
             .iter()
@@ -86,6 +88,8 @@ impl BundleInsertionTransaction<'_> {
     where
         T: Component,
     {
+        crate::scene::World::validate_generic_derived_mutation::<T>("remove")?;
+        crate::scene::World::validate_generic_authored_mutation::<T>("remove")?;
         let type_id = TypeId::of::<T>();
         self.remove_staged_component(type_id);
         self.remove_staged_default_value(type_id);
@@ -253,6 +257,7 @@ impl BundleInsertionTransaction<'_> {
     where
         T: Component,
     {
+        crate::scene::World::validate_generic_derived_mutation::<T>("insert")?;
         if self.default_value_count >= MAX_NODE_RECORD_COMPONENT_TYPES {
             return Err(SceneError::BundleTransactionInvariant {
                 reason: "node record default component capacity was exceeded",
@@ -321,6 +326,7 @@ impl BundleInsertionTransaction<'_> {
         Ok(())
     }
 
+    // 未注册类型先取得事务内预约 ID；发布按预约顺序登记，跨实体批次在发布前统一解析并重绑预约。
     fn staged_component_id<T>(&mut self) -> SceneResult<ComponentId>
     where
         T: Component,

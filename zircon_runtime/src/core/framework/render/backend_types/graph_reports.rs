@@ -4,6 +4,7 @@ use crate::core::framework::render::{RenderBudgetKey, RenderPassNativeResourceCr
 use crate::core::math::UVec2;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 图资源池一帧的分配与退役证据；等待 GPU 完成的资源不能算作可复用空闲项。
 pub struct RenderGraphTransientPoolReport {
     pub frame_index: u64,
     pub texture_created_count: usize,
@@ -282,6 +283,7 @@ impl RenderGraphExecutionResourceReport {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 编译图资源绑定核对；报告型外部输入可缺失，类型化资源和必需绑定仍决定执行门槛。
 pub struct RenderGraphMaterializationReport {
     pub required_texture_count: usize,
     pub bound_texture_count: usize,
@@ -587,6 +589,7 @@ impl RenderGraphParallelRecordingReport {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 计划内有效 pass 与实际执行 pass 的对账；检查漏执行、额外执行和重复提交。
 pub struct RenderGraphExecutionCoverageReport {
     pub planned_live_pass_count: usize,
     pub executed_pass_count: usize,
@@ -693,15 +696,5 @@ impl MotionVectorCameraStatus {
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::core::framework::render::RenderGraphPassProfileMetrics;
-
-    #[test]
-    fn pass_profile_metrics_are_available_from_the_framework_render_root() {
-        let metrics = RenderGraphPassProfileMetrics::new(3, 5, 7);
-
-        assert_eq!(metrics.draw_count, 3);
-        assert_eq!(metrics.instance_count, 5);
-        assert_eq!(metrics.state_change_count, 7);
-    }
-}
+#[path = "tests/graph_reports.rs"]
+mod tests;

@@ -1,0 +1,154 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/showcase/showcase_selection_section.zui"
+version = 2
+display_name = "Showcase Selection Section"
+
+[imports]
+widgets = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
+
+[components.ShowcaseSelectionSection]
+root = "selection_section_root"
+default_classes = ["showcase-panel", "material-surface"]
+
+[nodes.section_title]
+component = "Label"
+control_id = "ComponentShowcaseSelectionSectionTitle"
+classes = ["showcase-section-title"]
+props = { text = "Selection and References", font_size = "$editor.typography.body.size", font_weight = "$editor.typography.emphasis.weight" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.dropdown_demo]
+component = "Dropdown"
+control_id = "DropdownDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = "runtime", options = ["runtime", "editor", "debug"], disabled_options = ["debug"], special_options = ["runtime"], focused_options = ["editor"], hovered_options = ["editor"], pressed_options = ["runtime"], multiple = true, popup_open = true, selection_state = "multi", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/DropdownChanged", event = "Change", component_event = "SelectOption", route = "component_lab.showcase.select_option.dropdown" },
+  { id = "UiComponentShowcase/DropdownOpenPopup", event = "Click", component_event = "OpenPopup", route = "component_lab.showcase.open_popup.dropdown" },
+  { id = "UiComponentShowcase/DropdownClosePopup", event = "Click", component_event = "ClosePopup", route = "component_lab.showcase.close_popup.dropdown" },
+]
+
+[nodes.combo_box_demo]
+component = "ComboBox"
+control_id = "ComboBoxDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = "material", options = ["material", "fluent", "native"], multiple = false, selection_state = "single", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_padding_top = "$editor.density.gap.xsmall", layout_padding_bottom = "$editor.density.gap.xsmall", layout_min_height = "$editor.control.height.default", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ComboBoxChanged", event = "Change", component_event = "SelectOption", route = "component_lab.showcase.select_option.combo_box" },
+  { id = "UiComponentShowcase/ComboBoxOpenPopup", event = "Click", component_event = "OpenPopup", route = "component_lab.showcase.open_popup.combo_box" },
+  { id = "UiComponentShowcase/ComboBoxClosePopup", event = "Click", component_event = "ClosePopup", route = "component_lab.showcase.close_popup.combo_box" },
+]
+
+[nodes.enum_field_demo]
+component = "EnumField"
+control_id = "EnumFieldDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = "RiderDocking", options = ["RiderDocking", "UnityInspector", "RuntimeOverlay"], selection_state = "single", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/EnumFieldChanged", event = "Change", component_event = "SelectOption", route = "component_lab.showcase.select_option.enum_field" },
+  { id = "UiComponentShowcase/EnumFieldOpenPopup", event = "Click", component_event = "OpenPopup", route = "component_lab.showcase.open_popup.enum_field" },
+  { id = "UiComponentShowcase/EnumFieldClosePopup", event = "Click", component_event = "ClosePopup", route = "component_lab.showcase.close_popup.enum_field" },
+]
+
+[nodes.flags_field_demo]
+component = "FlagsField"
+control_id = "FlagsFieldDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = ["Selectable", "Draggable"], value_text = "Selectable, Draggable", options = ["Selectable", "Draggable", "Disabled"], multiple = true, selection_state = "flags", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/FlagsFieldChanged", event = "Change", component_event = "SelectOption", route = "component_lab.showcase.select_option.flags_field" },
+  { id = "UiComponentShowcase/FlagsFieldOpenPopup", event = "Click", component_event = "OpenPopup", route = "component_lab.showcase.open_popup.flags_field" },
+  { id = "UiComponentShowcase/FlagsFieldClosePopup", event = "Click", component_event = "ClosePopup", route = "component_lab.showcase.close_popup.flags_field" },
+]
+
+[nodes.search_select_demo]
+component = "SearchSelect"
+control_id = "SearchSelectDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = "runtime.ui.NumberField", query = "number", options = ["runtime.ui.NumberField", "runtime.ui.RangeField", "runtime.ui.Vector3Field"], input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/SearchSelectChanged", event = "Change", component_event = "SelectOption", route = "component_lab.showcase.select_option.search_select" },
+  { id = "UiComponentShowcase/SearchSelectQueryChanged", event = "Change", component_event = "ValueChanged", route = "component_lab.showcase.value_changed.search_select_query" },
+  { id = "UiComponentShowcase/SearchSelectOpenPopup", event = "Click", component_event = "OpenPopup", route = "component_lab.showcase.open_popup.search_select" },
+  { id = "UiComponentShowcase/SearchSelectClosePopup", event = "Click", component_event = "ClosePopup", route = "component_lab.showcase.close_popup.search_select" },
+]
+
+[nodes.context_menu_demo]
+component = "ContextMenu"
+control_id = "ContextMenuDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { open = true, popup_open = true, options = ["Inspect|checked,focused|Ctrl+I", "---", "Duplicate|hovered,pressed", "Archive|loading,disabled"], menu_items = ["Inspect|checked,focused|Ctrl+I", "---", "Duplicate|hovered,pressed", "Archive|loading,disabled"], popup_anchor_x = 320.0, popup_anchor_y = 28.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 112.0, max = 112.0, stretch = "Fixed" } }
+
+[nodes.dropdown_popup_demo]
+component = "DropdownPopup"
+control_id = "DropdownPopupDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = "scene", open = true, popup_open = true, selected_options = ["scene"], options = ["scene|label=Scene,selected", "assets|label=Assets,focused,hovered", "console|label=Console,disabled", "render|label=Render,loading"], input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 112.0, max = 112.0, stretch = "Fixed" } }
+
+[nodes.asset_field_demo]
+component = "AssetField"
+control_id = "AssetFieldDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = "res://textures/grid.albedo.png", validation_level = "normal", drop_hovered = true, active_drag_target = true, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/AssetFieldDropped", event = "Drop", component_event = "DropReference", route = "component_lab.showcase.drop_reference.asset_field" },
+  { id = "UiComponentShowcase/AssetFieldDropHovered", event = "Hover", component_event = "DropHover", route = "component_lab.showcase.drop_hover.asset_field" },
+  { id = "UiComponentShowcase/AssetFieldActiveDragTarget", event = "DragBegin", component_event = "ActiveDragTarget", route = "component_lab.showcase.active_drag_target.asset_field" },
+  { id = "UiComponentShowcase/AssetFieldLocate", event = "Click", component_event = "LocateReference", route = "component_lab.showcase.locate_reference.asset_field" },
+  { id = "UiComponentShowcase/AssetFieldOpen", event = "Click", component_event = "OpenReference", route = "component_lab.showcase.open_reference.asset_field" },
+  { id = "UiComponentShowcase/AssetFieldClear", event = "Click", component_event = "ClearReference", route = "component_lab.showcase.clear_reference.asset_field" },
+]
+
+[nodes.instance_field_demo]
+component = "InstanceField"
+control_id = "InstanceFieldDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = "scene://Root/CameraRig", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/InstanceFieldDropped", event = "Drop", component_event = "DropReference", route = "component_lab.showcase.drop_reference.instance_field" },
+  { id = "UiComponentShowcase/InstanceFieldLocate", event = "Click", component_event = "LocateReference", route = "component_lab.showcase.locate_reference.instance_field" },
+  { id = "UiComponentShowcase/InstanceFieldOpen", event = "Click", component_event = "OpenReference", route = "component_lab.showcase.open_reference.instance_field" },
+  { id = "UiComponentShowcase/InstanceFieldClear", event = "Click", component_event = "ClearReference", route = "component_lab.showcase.clear_reference.instance_field" },
+]
+
+[nodes.object_field_demo]
+component = "ObjectField"
+control_id = "ObjectFieldDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = "object://Selection/MainCamera", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ObjectFieldDropped", event = "Drop", component_event = "DropReference", route = "component_lab.showcase.drop_reference.object_field" },
+  { id = "UiComponentShowcase/ObjectFieldLocate", event = "Click", component_event = "LocateReference", route = "component_lab.showcase.locate_reference.object_field" },
+  { id = "UiComponentShowcase/ObjectFieldOpen", event = "Click", component_event = "OpenReference", route = "component_lab.showcase.open_reference.object_field" },
+  { id = "UiComponentShowcase/ObjectFieldClear", event = "Click", component_event = "ClearReference", route = "component_lab.showcase.clear_reference.object_field" },
+]
+
+[nodes.selection_section_root]
+component = "VerticalGroup"
+classes = ["showcase-panel", "material-surface"]
+layout = { width = { stretch = "Stretch" } }
+children = [
+  { node = "section_title" },
+  { node = "dropdown_demo", slot = { name = "content" } },
+  { node = "combo_box_demo", slot = { name = "content" } },
+  { node = "enum_field_demo", slot = { name = "content" } },
+  { node = "flags_field_demo", slot = { name = "content" } },
+  { node = "search_select_demo", slot = { name = "content" } },
+  { node = "context_menu_demo", slot = { name = "content" } },
+  { node = "dropdown_popup_demo", slot = { name = "content" } },
+  { node = "asset_field_demo", slot = { name = "content" } },
+  { node = "instance_field_demo", slot = { name = "content" } },
+  { node = "object_field_demo", slot = { name = "content" } },
+]

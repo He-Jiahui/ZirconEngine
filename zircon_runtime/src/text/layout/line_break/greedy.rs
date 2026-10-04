@@ -1,6 +1,7 @@
 use super::super::measure::measure_line_width_with_provider;
-use crate::text::TextStyle;
+use crate::text::layout_geometry::finite_sum;
 use crate::text::shaping::{TextLayoutOutcome, TextShapeRunProvider};
+use crate::text::TextStyle;
 
 const LINE_FIT_EPSILON: f32 = 0.01;
 
@@ -20,7 +21,7 @@ pub(crate) fn should_wrap_before_accumulated(
     } else {
         max_width.max(0.0)
     };
-    current_advance + next_advance > max_width + LINE_FIT_EPSILON
+    finite_sum([current_advance, next_advance]) > fit_limit(max_width)
 }
 
 pub(crate) fn line_text_fits_with_provider<P>(
@@ -33,7 +34,7 @@ where
     P: TextShapeRunProvider + ?Sized,
 {
     measure_line_width_with_provider(text, style, provider)
-        .map(|width| width <= max_width + LINE_FIT_EPSILON)
+        .map(|width| width <= fit_limit(max_width))
 }
 
 fn finite_non_negative(value: f32) -> f32 {
@@ -44,14 +45,16 @@ fn finite_non_negative(value: f32) -> f32 {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::should_wrap_before_accumulated;
-
-    #[test]
-    fn accumulated_wrap_uses_existing_and_next_advances_without_text_candidates() {
-        assert!(!should_wrap_before_accumulated(true, 8.0, 8.0, 10.0));
-        assert!(!should_wrap_before_accumulated(false, 4.0, 6.0, 10.0));
-        assert!(should_wrap_before_accumulated(false, 4.0, 6.1, 10.0));
+fn fit_limit(value: f32) -> f32 {
+    if value.is_nan() {
+        0.0
+    } else if value.is_infinite() {
+        value
+    } else {
+        finite_sum([value.max(0.0), LINE_FIT_EPSILON])
     }
 }
+
+#[cfg(test)]
+#[path = "tests/greedy.rs"]
+mod tests;

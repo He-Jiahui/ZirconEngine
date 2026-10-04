@@ -174,7 +174,7 @@ class RuntimeModelImportReceiptContractTests(unittest.TestCase):
         self.assertIn("PendingModelImport", project_close)
         self.assertLess(
             project_close.index("if !self.cancel_pending_model_import()"),
-            project_close.index("self.editor_manager.commit_project_close()"),
+            project_close.index("self.editor_manager.commit_project_close(&operation)"),
         )
 
     def test_editor_model_import_uses_one_diagnostic_ticket_and_no_legacy_runtime_access(self) -> None:

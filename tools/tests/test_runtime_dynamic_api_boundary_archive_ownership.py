@@ -18,7 +18,7 @@ from runtime_structure_audits.dynamic_runtime_api_archive_inventory import (  # 
     RUNTIME_15_RUNTIME_INDEX_OUTPUT_ARCHIVE,
 )
 
-
+# 调用动态 API 边界审计器核对 runtime15 退役证据已归档，并保持 runtime09/10 的现行契约来源。
 class RuntimeDynamicApiBoundaryArchiveOwnershipTests(unittest.TestCase):
     def test_dynamic_api_inventories_hard_cut_runtime_15_evidence_to_archive(self) -> None:
         inventory_root = AUDIT_SCRIPTS / "runtime_structure_audits"

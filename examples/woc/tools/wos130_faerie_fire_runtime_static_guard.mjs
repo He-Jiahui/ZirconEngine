@@ -41,14 +41,14 @@ if (!types.includes('FAERIE_FIRE_ARMOR_PCT = 0.1') ||
 const generator = read('tools', 'm4_ability_codegen.mjs');
 const zrGenerator = read('tools', 'm4_ability_zr_codegen.mjs');
 if (!/bash',[\s\S]*?'faerie_fire'/.test(generator) ||
-    !generator.includes('EXPECTED_ABILITY_COUNT = 79') ||
-    !zrGenerator.includes('document.entries.length === 79')) {
+    !generator.includes('EXPECTED_ABILITY_COUNT = 117') ||
+    !zrGenerator.includes('document.entries.length === 117')) {
   throw new Error('M4 Faerie Fire projection scope is missing');
 }
 const entry = JSON.parse(read('contracts', 'm4_abilities.json')).entries.find(
   (value) => value.id === 'faerie_fire',
 );
-if (!entry || entry.index !== 70 || entry.definition.cost !== 30 ||
+if (!entry || entry.index !== 74 || entry.definition.cost !== 30 ||
     entry.definition.cooldown !== 0 || entry.definition.range !== 30 ||
     entry.definition.effects?.[0]?.type !== 'faerieFire' ||
     entry.definition.effects[0].duration !== 40) {

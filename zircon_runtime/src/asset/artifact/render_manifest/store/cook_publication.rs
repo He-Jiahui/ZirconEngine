@@ -51,6 +51,8 @@ pub enum RenderArtifactCookPublicationError {
     Store(#[from] RenderArtifactStoreError),
 }
 
+/// cook 完成后先发布内容寻址块，最后发布可见清单；失败时已写块可留作后续复用。
+/// 调用前需提供与 cook 设置一致的存储限制，不能将部分块作为完整资源曝光。
 pub fn publish_render_artifact_cook_output(
     store: &RenderArtifactStore,
     output: &RenderArtifactCookOutput,
@@ -105,5 +107,5 @@ pub fn publish_render_artifact_cook_output(
 }
 
 #[cfg(test)]
-#[path = "cook_publication/tests.rs"]
+#[path = "cook_publication/tests/cases.rs"]
 mod tests;

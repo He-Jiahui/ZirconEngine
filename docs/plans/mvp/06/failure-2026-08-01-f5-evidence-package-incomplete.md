@@ -139,3 +139,127 @@ The self-executing snapshot contract
 the broader `tools/tests/mvp-staging.Tests.ps1` exceeded the local 60-second command window, so it
 is deliberately not recorded as passing or failing. There is still no fresh product executable,
 desktop launch, staged project, or PNG screenshot from this source state.
+
+## 2026-09-18 failure rolling repair successor r1
+
+Session `failure-roll-01a084c8-mvp06-f5-evidence-r1` re-claimed the archived failure record and
+the Stage/Invoke PNG evidence owners. A fresh local run exposed a current-runtime compile gap
+that the earlier SHA-256-only repair did not cover: `mvp-acceptance.Tests.ps1` failed in
+`Invoke-MvpAcceptanceTestDriver.ps1` with CS0012 because `IImage` requires
+`System.Private.Windows.GdiPlus` (and its `System.Private.Windows.Core` dependency) in the
+`Add-Type -ReferencedAssemblies` set. The lowest shared fix now resolves those optional split
+assemblies through `[Reflection.Assembly]::Load` in both `Stage-MvpProducts.ps1` and
+`Invoke-MvpAcceptance.ps1`, while retaining compatibility with hosts that do not expose them.
+The two source-contract tests assert the assembly names and loader call.
+
+Current source hashes after that repair are:
+
+- `tools/mvp/Stage-MvpProducts.ps1`: `cc0d452fe4190e6ea654ab7083ef9122fda92680f5a67318c49e7576c3071b9e`
+- `tools/mvp/Invoke-MvpAcceptance.ps1`: `2354e3071424de4c44437e9d1dcfdccd2c9de29d6d856e7e30a7c6c91d6a1bc3`
+- `tools/tests/mvp-staging.Tests.ps1`: `63b674afc6e54a33668f1dbffd8eaa478b38154241ddcf1bc1753a0e280a2989`
+- `tools/tests/mvp-acceptance.Tests.ps1`: `7c98ed8657839acbaaafba93149bc8100348b589691097b78bbb5bf71dd690f7`
+
+Local evidence matching those hashes: the staging contract passed; the Windows drawing
+reference probe compiled the same `System.Drawing` helper successfully; scoped `git diff --check`
+passed. The full acceptance script was bounded locally and interrupted after the first
+environmental run exceeded the interactive window, so no local acceptance pass is claimed.
+
+Two immutable Windows PowerShell tickets are queued against this exact manifest and session:
+
+- `e137638de01449f298b1fe56edbdbf37` / request `failure-roll-01a084c8-mvp06-contracts-20260918-r2`
+  runs the Stage, workflow, and staging-snapshot contracts.
+- `258b2002ccf24ae5bedb4cd1d1bf52b2` / request `failure-roll-01a084c8-mvp06-acceptance-20260918-r1`
+  runs the corrected acceptance-manifest contract.
+
+These tickets are pending terminal receipts. Product staging, corrected workflow execution,
+uploaded artifact inspection, independent review, fixed return, and closeout SHA remain open;
+this failure is not returned or marked fixed.
+
+## 2026-09-18 managed ticket terminal evidence and forward scope correction
+
+The two tickets reached terminal `failed` states on the immutable copies; neither is a
+source-contract GREEN:
+
+- `e137638de01449f298b1fe56edbdbf37` (job `adc5cb75965c4cb6bb0237515b3bfe5b`, run with
+  exit code `1`) stopped before the three scripts ran because the copied
+  `MvpTestFixturePaths.psm1` could not acquire a fixture: the copied repository had no
+  coordinator runtime descriptor (`offline` / `descriptor_absent`). Its coordinator-category
+  stderr is retained as an environment blocker, not test evidence.
+- `258b2002ccf24ae5bedb4cd1d1bf52b2` (job `88a9029b48424aafb3581552d63cb000`, run with exit
+  code `1`) reached `mvp-acceptance.Tests.ps1` but its immutable source copy omitted
+  `.github/workflows/mvp-editor-windows.yml`, which the test reads directly at line 74. The
+  failure is a validation-manifest closure defect, not an acceptance assertion result.
+
+The workflow file is clean at the current HEAD and had no conflicting source owner. It was
+therefore transferred into this Session's attribution with coordinator fingerprint
+`0f20f58469c1ea75a4efb58a86d06bb77c0606a40041c5cc73f848742a172e53` (no bytes changed), and
+its current SHA-256 is
+`fb19d46eb65010ae7496c78fc3f5debbbe83db6a4607c5dc563cddf1554cb577`. A forward ticket must
+include this path in the sealed manifest. The focused staging contracts still require a
+coordinator-aware validation execution environment; no ticket is reused or counted as passed.
+
+Product staging, a corrected immutable contract run, full acceptance, uploaded artifact
+inspection, independent review, fixed return, and closeout SHA remain open.
+
+The forward acceptance ticket `b9a8b9ac44df461781fe6178600ed2e0` (job
+`271bb70ed8c14a47a707b481edc6c805`) sealed the expanded eight-path manifest, including the
+workflow at the hash above, but also failed before acceptance assertions: the staging-snapshot
+contract's `New-MvpTestFixtureRoot` could not reach the coordinator from the immutable copy
+(`offline` / `descriptor_absent`). Its terminal stderr and coordinator-category classification
+are retained; this ticket is not reusable as a pass. The validation environment must provide a
+repository-bound coordinator endpoint to copy-executed fixture helpers, or the contract batch
+must remain explicitly blocked rather than bypassing fixture leases.
+
+## 2026-09-18 validation-environment handoff
+
+The expanded ticket is reconciled as a terminal coordinator failure, not a source-test result.
+The immutable-copy runner does not expose the live coordinator descriptor required by
+`MvpTestFixturePaths.psm1`; adding a descriptor to the copy or running the fixture helper from the
+mutable checkout would invalidate the managed-validation boundary. The three terminal ticket
+identities (`e137638de01449f298b1fe56edbdbf37`, `258b2002ccf24ae5bedb4cd1d1bf52b2`, and
+`b9a8b9ac44df461781fe6178600ed2e0`) and their coordinator-category stderr remain the complete
+evidence for this handoff.
+
+The successor session is suspended in `waiting_validation` after recording the current failure
+document hash and attribution. Its path leases are released so an unrelated owner is not blocked;
+the lifecycle remains open and must be reactivated only after the coordinator supplies a
+repository-bound fixture endpoint and a newly sealed manifest. No fixed document, return record,
+review, product staging, or closeout commit is claimed.
+
+## 2026-09-25 current-source rolling reconciliation
+
+- Current hashes remain aligned with the 2026-09-18 source repair:
+  `tools/mvp/Stage-MvpProducts.ps1` =
+  `cc0d452fe4190e6ea654ab7083ef9122fda92680f5a67318c49e7576c3071b9e`,
+  `tools/mvp/Invoke-MvpAcceptance.ps1` =
+  `2354e3071424de4c44437e9d1dcfdccd2c9de29d6d856e7e30a7c6c91d6a1bc3`,
+  `tools/tests/mvp-staging.Tests.ps1` =
+  `63b674afc6e54a33668f1dbffd8eaa478b38154241ddcf1bc1753a0e280a2989`,
+  `tools/tests/mvp-acceptance.Tests.ps1` =
+  `7c98ed8657839acbaaafba93149bc8100348b589691097b78bbb5bf71dd690f7`,
+  `tools/tests/mvp_editor_windows_workflow.Tests.ps1` =
+  `1c00da4397aebee89c7417662498e314477573247f73aa89a4c1234d172708af`, and
+  `.github/workflows/mvp-editor-windows.yml` =
+  `fb19d46eb65010ae7496c78fc3f5debbbe83db6a4607c5dc563cddf1554cb577`.
+- The four `tools/mvp`/Pester paths are dirty foreign overlays in the shared
+  checkout; the workflow is clean. This doc-only successor does not claim or
+  absorb those source owners. Existing local Pester receipts and ticket failures
+  remain historical evidence, not a fresh product/workflow acceptance result.
+- The corrected workflow must still run in a coordinator-bound immutable copy,
+  publish a bounded evidence package, and pass artifact inspection. Product
+  staging, external clean-worktree admission, independent C/I/M review, fixed
+  return, and closeout remain pending; the failure stays `open`.
+
+## 2026-09-25 independent static review receipt
+
+- Reviewer `/root/review_editor03_gizmo_private` re-read snapshot 3800 at
+  document SHA-256 `733b53bfa3b20fab8ae3f2c410340c0c470469fd6267b76d78ce6965a9f95ee6`.
+  All six current hashes match. The four Stage/Invoke/Pester files are dirty
+  foreign overlays, while the workflow is clean, matching the recorded
+  provenance.
+- Review result: Critical/Important/Moderate = `0/0/0`. Stage records
+  `started_at_utc`/`ended_at_utc`/`exit_code`; Invoke's `RequireF5Evidence`
+  enforces explicit summaries, source fingerprint, timing, and schema v2
+  publication. Historical Pester/ticket receipts remain non-passes; no current
+  clean coordinator workflow/artifact or product acceptance was claimed and no
+  validation command was run.

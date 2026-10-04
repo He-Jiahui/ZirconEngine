@@ -2,7 +2,9 @@ use std::path::Path;
 
 use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
-use zircon_runtime_interface::project::PROJECT_MANIFEST_FORMAT_VERSION;
+use zircon_runtime_interface::project::{
+    ProjectManifestSummaryError, MAX_PROJECT_MANIFEST_BYTES, PROJECT_MANIFEST_FORMAT_VERSION,
+};
 
 use crate::core::resource::io::{atomic_write_with_fault, AtomicWriteFault};
 
@@ -22,6 +24,14 @@ impl ProjectManifest {
         let path = path.as_ref();
         let document = serialize_current_project_manifest(self)
             .map_err(|source| ProjectManifestError::Encode { source })?;
+        if document.len() > MAX_PROJECT_MANIFEST_BYTES {
+            return Err(ProjectManifestError::Summary(
+                ProjectManifestSummaryError::DocumentTooLarge {
+                    max: MAX_PROJECT_MANIFEST_BYTES,
+                    found: document.len(),
+                },
+            ));
+        }
         atomic_write_with_fault(path, document.as_bytes(), fault)
             .map_err(|source| ProjectManifestError::Write { source })
     }
@@ -35,12 +45,15 @@ impl Serialize for CurrentProjectManifest<'_> {
         S: Serializer,
     {
         let manifest = self.0;
-        let mut state = serializer.serialize_struct("ProjectManifest", 13)?;
+        let mut state = serializer.serialize_struct("ProjectManifest", 14)?;
         state.serialize_field("name", &manifest.name)?;
         state.serialize_field("format_version", &PROJECT_MANIFEST_FORMAT_VERSION)?;
         state.serialize_field("project_guid", &manifest.project_guid)?;
         if let Some(engine_version_req) = &manifest.engine_version_req {
             state.serialize_field("engine_version_req", engine_version_req)?;
+        }
+        if let Some(template_receipt) = &manifest.template_receipt {
+            state.serialize_field("template_receipt", template_receipt)?;
         }
         state.serialize_field("default_scene", &manifest.default_scene)?;
         if !manifest.ui_roots.is_empty() {
@@ -74,5 +87,9 @@ fn serialize_current_project_manifest(
 }
 
 #[cfg(test)]
-#[path = "save/borrowed_serialization_tests.rs"]
+#[path = "save/tests/borrowed_serialization_tests.rs"]
 mod borrowed_serialization_tests;
+
+#[cfg(test)]
+#[path = "tests/save_source_integrity_tests.rs"]
+mod source_integrity_tests;

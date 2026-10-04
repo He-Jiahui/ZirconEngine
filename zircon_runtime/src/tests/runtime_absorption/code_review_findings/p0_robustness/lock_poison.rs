@@ -4,14 +4,18 @@ fn review_f2_scene_eventbus_locks_recover_after_poison() {
     let default_level_manager = include_str!("../../../../scene/module/default_level_manager.rs");
     let level_manager_lifecycle =
         include_str!("../../../../scene/module/level_manager_lifecycle.rs");
-    let event_bus = include_str!("../../../../core/runtime/events.rs");
+    let event_bus = include_str!("../../../../core/runtime/events/topic.rs");
     let event_publish = include_str!("../../../../core/runtime/events/publish.rs");
     let event_subscribe = include_str!("../../../../core/runtime/events/subscribe.rs");
     let event_prune = include_str!("../../../../core/runtime/events/prune.rs");
-    let level_doc = include_str!("../../../../../../docs/zircon_runtime/scene/level_system.md");
-    let event_doc = include_str!("../../../../../../docs/zircon_runtime/core/runtime/events.md");
+    let level_doc =
+        include_str!("../../../../../../docs/crates/zircon_runtime/scene/level_system.md");
+    let event_doc =
+        include_str!("../../../../../../docs/crates/zircon_runtime/core/runtime/events.md");
     let review_findings = concat!(
-        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!(
+            "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
+        ),
         include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
     );
     let runtime_15_plan = include_str!(
@@ -22,7 +26,7 @@ fn review_f2_scene_eventbus_locks_recover_after_poison() {
     let convention =
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
     let module_doc =
-        include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md");
+        include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 
     for required in [
         "fn lock_poison_recovered<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T>",
@@ -41,7 +45,7 @@ fn review_f2_scene_eventbus_locks_recover_after_poison() {
     }
 
     for required in [
-        "pub(super) fn lock_levels(&self) -> MutexGuard<'_, HashMap<WorldHandle, LevelSystem>>",
+        "pub(super) fn lock_levels(&self) -> MutexGuard<'_, BTreeMap<WorldHandle, LevelSystem>>",
         ".unwrap_or_else(|poisoned| poisoned.into_inner())",
     ] {
         assert!(
@@ -50,8 +54,7 @@ fn review_f2_scene_eventbus_locks_recover_after_poison() {
         );
     }
     for required in [
-        "let mut levels = self.lock_levels();",
-        "levels.insert(handle, level.clone());",
+        "self.lock_levels().insert(level.handle(), level.clone())",
         "self.lock_levels().get(&handle).cloned()",
     ] {
         assert!(
@@ -61,7 +64,7 @@ fn review_f2_scene_eventbus_locks_recover_after_poison() {
     }
 
     for required in [
-        "fn lock_subscribers(&self) -> MutexGuard<'_, EventSubscriberMap>",
+        "fn lock_subscribers(&self) -> MutexGuard<'_, EventSubscriberSnapshot>",
         "fn lock_delivery(&self) -> MutexGuard<'_, ()>",
         ".unwrap_or_else(|poisoned| poisoned.into_inner())",
     ] {
@@ -70,11 +73,7 @@ fn review_f2_scene_eventbus_locks_recover_after_poison() {
             "EventBus should retain poison-safe lock recovery anchor `{required}`"
         );
     }
-    for required in [
-        "self.lock_delivery()",
-        "self.prune_topic_subscribers(",
-        "let mut subscribers = self.lock_subscribers();",
-    ] {
+    for required in ["topic.lock_delivery()", "self.admission.lock()"] {
         assert!(
             event_publish.contains(required)
                 || event_subscribe.contains(required)

@@ -1,3 +1,4 @@
+use zircon_runtime::asset::{AssetModule, ASSET_MODULE_NAME};
 use zircon_runtime::core::framework::navigation::{
     OffMeshTraverseEvent, NAV_DESIRED_VELOCITY_COMPONENT_TYPE, NAV_MESH_AGENT_COMPONENT_TYPE,
     NAV_MESH_MODIFIER_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE,
@@ -26,10 +27,14 @@ fn navigation_module_obeys_driver_manager_dependency_layers() {
     const IMPLEMENTATION_DRIVER_NAME: &str = "navigation.runtime.Driver.DefaultNavigationRuntime";
 
     let descriptor = module_descriptor();
-    assert_eq!(descriptor.module_dependencies.len(), 1);
+    assert_eq!(descriptor.module_dependencies.len(), 2);
     assert_eq!(
         descriptor.module_dependencies[0].module_name,
         TASKS_MODULE_NAME
+    );
+    assert_eq!(
+        descriptor.module_dependencies[1].module_name,
+        ASSET_MODULE_NAME
     );
 
     let implementation = descriptor
@@ -37,7 +42,15 @@ fn navigation_module_obeys_driver_manager_dependency_layers() {
         .iter()
         .find(|driver| driver.name.as_str() == IMPLEMENTATION_DRIVER_NAME)
         .expect("navigation implementation must be registered as a driver");
-    assert!(implementation.dependencies.is_empty());
+    assert_eq!(implementation.dependencies.len(), 1);
+    assert_eq!(
+        implementation.dependencies[0].name.as_str(),
+        "AssetModule.Manager.ProjectAssetManager"
+    );
+    assert_eq!(
+        implementation.dependencies[0].name.service_kind(),
+        ServiceKind::Manager
+    );
 
     let scene_driver = descriptor
         .drivers
@@ -69,6 +82,12 @@ fn navigation_module_obeys_driver_manager_dependency_layers() {
     runtime
         .register_module(TasksModule.descriptor())
         .expect("tasks module registration");
+    runtime
+        .register_module(AssetModule.descriptor())
+        .expect("asset module registration");
+    runtime
+        .activate_module(ASSET_MODULE_NAME)
+        .expect("asset module activation");
     runtime
         .register_module(descriptor)
         .expect("navigation service dependency layering must be valid");

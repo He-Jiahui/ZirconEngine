@@ -11,13 +11,14 @@ fn resolve_host_tab_drop_route_accepts_floating_window_group_fallback_key() {
             window_id: floating_window_id.clone(),
             title: "Prefab Popout".to_string(),
             workspace: DocumentNode::SplitNode {
+                node_id: Default::default(),
                 axis: SplitAxis::Horizontal,
                 ratio: 0.5,
-                first: Box::new(DocumentNode::Tabs(TabStackLayout {
+                first: Box::new(DocumentNode::tabs(TabStackLayout {
                     tabs: vec![ViewInstanceId::new("editor.scene#float")],
                     active_tab: Some(ViewInstanceId::new("editor.scene#float")),
                 })),
-                second: Box::new(DocumentNode::Tabs(TabStackLayout {
+                second: Box::new(DocumentNode::tabs(TabStackLayout {
                     tabs: vec![ViewInstanceId::new("editor.prefab#float")],
                     active_tab: Some(ViewInstanceId::new("editor.prefab#float")),
                 })),
@@ -93,13 +94,14 @@ fn resolved_host_tab_drop_route_snapshot_matches_shared_pointer_and_group_key_fo
             window_id: floating_window_id.clone(),
             title: "Prefab Popout".to_string(),
             workspace: DocumentNode::SplitNode {
+                node_id: Default::default(),
                 axis: SplitAxis::Horizontal,
                 ratio: 0.5,
-                first: Box::new(DocumentNode::Tabs(TabStackLayout {
+                first: Box::new(DocumentNode::tabs(TabStackLayout {
                     tabs: vec![ViewInstanceId::new("editor.scene#float")],
                     active_tab: Some(ViewInstanceId::new("editor.scene#float")),
                 })),
-                second: Box::new(DocumentNode::Tabs(TabStackLayout {
+                second: Box::new(DocumentNode::tabs(TabStackLayout {
                     tabs: vec![ViewInstanceId::new("editor.prefab#float")],
                     active_tab: Some(ViewInstanceId::new("editor.prefab#float")),
                 })),
@@ -200,13 +202,14 @@ fn resolve_host_tab_drop_route_accepts_floating_window_edge_fallback_key() {
             window_id: floating_window_id.clone(),
             title: "Prefab Popout".to_string(),
             workspace: DocumentNode::SplitNode {
+                node_id: Default::default(),
                 axis: SplitAxis::Horizontal,
                 ratio: 0.5,
-                first: Box::new(DocumentNode::Tabs(TabStackLayout {
+                first: Box::new(DocumentNode::tabs(TabStackLayout {
                     tabs: vec![ViewInstanceId::new("editor.scene#float")],
                     active_tab: Some(ViewInstanceId::new("editor.scene#float")),
                 })),
-                second: Box::new(DocumentNode::Tabs(TabStackLayout {
+                second: Box::new(DocumentNode::tabs(TabStackLayout {
                     tabs: vec![ViewInstanceId::new("editor.prefab#float")],
                     active_tab: Some(ViewInstanceId::new("editor.prefab#float")),
                 })),

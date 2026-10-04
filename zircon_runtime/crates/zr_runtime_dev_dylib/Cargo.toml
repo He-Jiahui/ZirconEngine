@@ -1,0 +1,17 @@
+[package]
+name = "zr_runtime_dev_dylib"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Development-only dynamic linkage for Zircon Runtime consumers."
+
+[lib]
+crate-type = ["dylib"]
+
+[features]
+default = []
+runtime = ["dep:zircon_runtime", "zircon_runtime/dev-dynamic-linking"]
+
+[dependencies]
+zircon_runtime = { workspace = true, optional = true }

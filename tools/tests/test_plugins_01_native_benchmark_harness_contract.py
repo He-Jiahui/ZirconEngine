@@ -7,13 +7,13 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 LOADER_ROOT = REPO_ROOT / "zircon_runtime/src/plugin/native_plugin_loader"
-HARNESS_PATH = LOADER_ROOT / "benchmark_harness.rs"
+HARNESS_PATH = LOADER_ROOT / "tests/benchmark_harness.rs"
 CALLBACK_BENCHMARK_PATH = (
     LOADER_ROOT / "native_plugin_live_host/tests/callback_lease.rs"
 )
-CONTEXT_BENCHMARK_PATH = LOADER_ROOT / "host_api_adapter/context_handles/tests.rs"
+CONTEXT_BENCHMARK_PATH = LOADER_ROOT / "host_api_adapter/context_handles/tests/cases.rs"
 REGISTRATION_BENCHMARK_PATH = (
-    LOADER_ROOT / "native_plugin_live_host/tests/registration_replay.rs"
+    LOADER_ROOT / "native_plugin_live_host/tests/registration_replay/benchmarks.rs"
 )
 BROADCAST_BENCHMARK_PATH = LOADER_ROOT / "native_plugin_live_host/tests/runtime_behavior.rs"
 
@@ -240,9 +240,9 @@ class Plugins01NativeBenchmarkHarnessContractTests(unittest.TestCase):
         source = HARNESS_PATH.read_text(encoding="utf-8")
 
         self.assertIn("fn json_string(value: &str) -> String", source)
-        self.assertIn("json_string(self.workload)", source)
-        self.assertIn("json_string(&self.shape)", source)
-        self.assertIn("json_string(name)", source)
+        self.assertIn("JsonString(self.workload)", source)
+        self.assertIn("JsonString(&self.shape)", source)
+        self.assertIn("JsonString(name)", source)
         self.assertIn("\\\\u{:04x}", source)
 
 

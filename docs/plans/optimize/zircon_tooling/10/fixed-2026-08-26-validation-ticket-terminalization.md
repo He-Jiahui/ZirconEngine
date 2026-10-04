@@ -9,8 +9,6 @@ origin_child_dir: docs/plans/optimize/zircon_tooling/10
 fixing_child_dir: docs/plans/optimize/zircon_tooling/06
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/validation_ticket_worker.py
-  - tools/session_coordinator/workspace_copy.py
 tests:
   - python -u -B -m unittest tools.session_coordinator.tests.test_validation_tickets -v
   - validation ticket 9cc6e9bab31941b2b8aca8bfc0cd28fd

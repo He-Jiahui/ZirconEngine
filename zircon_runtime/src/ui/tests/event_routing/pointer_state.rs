@@ -1,4 +1,167 @@
+//! 物理命中与捕获路由可以不同；悬停、按下和焦点仍须归约到组件状态及对应渲染脏域。
+
 use super::*;
+
+#[test]
+fn pointer_button_ownership_foreign_release_does_not_click_or_clear_press() {
+    let mut surface = button_surface();
+    surface
+        .route_pointer_event_with_button(
+            UiPointerEventKind::Down,
+            UiPoint::new(20.0, 20.0),
+            UiPointerButton::Secondary,
+        )
+        .unwrap();
+    let foreign = surface
+        .route_pointer_event_with_button(
+            UiPointerEventKind::Up,
+            UiPoint::new(20.0, 20.0),
+            UiPointerButton::Primary,
+        )
+        .unwrap();
+    assert_eq!(foreign.click_target, None);
+    assert_eq!(surface.focus.pressed, Some(UiNodeId::new(2)));
+    let owner = surface
+        .route_pointer_event_with_button(
+            UiPointerEventKind::Up,
+            UiPoint::new(20.0, 20.0),
+            UiPointerButton::Secondary,
+        )
+        .unwrap();
+    assert_eq!(owner.click_target, None);
+    assert_eq!(surface.focus.pressed, None);
+}
+
+#[test]
+fn pointer_button_ownership_foreign_press_keeps_owner_and_updates_hover_focus() {
+    let mut surface = button_surface();
+    surface
+        .route_pointer_event_with_button(
+            UiPointerEventKind::Down,
+            UiPoint::new(20.0, 20.0),
+            UiPointerButton::Primary,
+        )
+        .unwrap();
+    let foreign = surface
+        .route_pointer_event_with_button(
+            UiPointerEventKind::Down,
+            UiPoint::new(20.0, 60.0),
+            UiPointerButton::Secondary,
+        )
+        .unwrap();
+    assert_eq!(foreign.target, Some(UiNodeId::new(3)));
+    assert_eq!(surface.focus.focused, Some(UiNodeId::new(3)));
+    assert!(surface.focus.hovered.contains(&UiNodeId::new(3)));
+    assert_eq!(surface.focus.pressed, Some(UiNodeId::new(2)));
+    surface
+        .route_pointer_event_with_button(
+            UiPointerEventKind::Up,
+            UiPoint::new(20.0, 60.0),
+            UiPointerButton::Secondary,
+        )
+        .unwrap();
+    let owner = surface
+        .route_pointer_event_with_button(
+            UiPointerEventKind::Up,
+            UiPoint::new(20.0, 20.0),
+            UiPointerButton::Primary,
+        )
+        .unwrap();
+    assert_eq!(owner.click_target, Some(UiNodeId::new(2)));
+    assert_eq!(surface.focus.pressed, None);
+}
+
+#[test]
+fn pointer_button_ownership_keeps_legacy_capture_until_an_up_or_cancel() {
+    let mut surface = button_surface();
+    surface.capture_pointer(UiNodeId::new(2)).unwrap();
+    surface
+        .route_pointer_event_with_button(
+            UiPointerEventKind::Up,
+            UiPoint::new(180.0, 180.0),
+            UiPointerButton::Middle,
+        )
+        .unwrap();
+    assert_eq!(surface.focus.captured, None);
+    surface.capture_pointer(UiNodeId::new(2)).unwrap();
+    surface
+        .route_pointer_event(UiPointerEventKind::Cancel, UiPoint::new(180.0, 180.0))
+        .unwrap();
+    assert_eq!(surface.focus.captured, None);
+}
+
+#[test]
+fn pointer_button_ownership_capture_survives_foreign_edges_and_routes_outside_move() {
+    for owner in [
+        UiPointerButton::Primary,
+        UiPointerButton::Secondary,
+        UiPointerButton::Middle,
+    ] {
+        let mut surface = button_surface();
+        let mut dispatcher = UiPointerDispatcher::default();
+        dispatcher.register(UiNodeId::new(2), UiPointerEventKind::Down, |_| {
+            UiPointerDispatchEffect::capture()
+        });
+        dispatcher.register(UiNodeId::new(2), UiPointerEventKind::Move, |_| {
+            UiPointerDispatchEffect::handled()
+        });
+        dispatcher.register(UiNodeId::new(2), UiPointerEventKind::Up, |_| {
+            UiPointerDispatchEffect::handled()
+        });
+        let foreign = if owner == UiPointerButton::Primary {
+            UiPointerButton::Secondary
+        } else {
+            UiPointerButton::Primary
+        };
+        for button in [owner, foreign] {
+            surface
+                .dispatch_pointer_event(
+                    &dispatcher,
+                    UiPointerEvent::new(UiPointerEventKind::Down, UiPoint::new(20.0, 20.0))
+                        .with_button(button),
+                )
+                .unwrap();
+        }
+        let release = surface
+            .dispatch_pointer_event(
+                &dispatcher,
+                UiPointerEvent::new(UiPointerEventKind::Up, UiPoint::new(180.0, 180.0))
+                    .with_button(foreign),
+            )
+            .unwrap();
+        assert_eq!(
+            release.handled_by,
+            Some(UiNodeId::new(2)),
+            "foreign events still dispatch"
+        );
+        assert!(!release.diagnostics.capture_released);
+        assert_eq!(surface.focus.captured, Some(UiNodeId::new(2)));
+        let moved = surface
+            .dispatch_pointer_event(
+                &dispatcher,
+                UiPointerEvent::new(UiPointerEventKind::Move, UiPoint::new(200.0, 190.0)),
+            )
+            .unwrap();
+        assert_eq!(moved.handled_by, Some(UiNodeId::new(2)));
+        let release = surface
+            .dispatch_pointer_event(
+                &dispatcher,
+                UiPointerEvent::new(UiPointerEventKind::Up, UiPoint::new(200.0, 190.0))
+                    .with_button(owner),
+            )
+            .unwrap();
+        assert!(release.diagnostics.capture_released);
+        assert_eq!(surface.focus.captured, None);
+        assert_eq!(surface.focus.pressed, None);
+        let moved = surface
+            .dispatch_pointer_event(
+                &dispatcher,
+                UiPointerEvent::new(UiPointerEventKind::Move, UiPoint::new(210.0, 190.0)),
+            )
+            .unwrap();
+        assert_eq!(moved.handled_by, None);
+    }
+}
 
 #[test]
 fn primary_release_inside_pressed_target_marks_click_target_and_clears_press_state() {

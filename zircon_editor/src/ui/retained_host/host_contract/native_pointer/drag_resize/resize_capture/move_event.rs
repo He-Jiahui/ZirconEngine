@@ -7,14 +7,16 @@ use super::super::super::super::redraw::NativePointerDispatchResult;
 use super::super::super::super::window::UiHostWindow;
 use super::super::super::redraw_result::resize_pointer_redraw;
 use super::super::super::HOST_POINTER_MOVE;
+use zircon_runtime_interface::ui::dispatch::UiPointerId;
 
 pub(in crate::ui::retained_host::host_contract) fn dispatch_native_resize_move(
     ui: &UiHostWindow,
+    pointer_id: UiPointerId,
     x: f32,
     y: f32,
 ) -> Option<NativePointerDispatchResult> {
     let host = ui.global::<UiHostContext>();
-    match host.update_resize_pointer_if_active(x, y) {
+    match host.update_resize_pointer_if_active(pointer_id, x, y) {
         None => return None,
         Some(false) => return Some(NativePointerDispatchResult::idle()),
         Some(true) => {}

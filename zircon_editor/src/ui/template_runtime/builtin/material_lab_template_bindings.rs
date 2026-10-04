@@ -200,5 +200,5 @@ fn material_lab_control_id(binding_id: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "material_lab_template_bindings/single_allocation_registry_tests.rs"]
+#[path = "material_lab_template_bindings/tests/single_allocation_registry_tests.rs"]
 mod single_allocation_registry_tests;

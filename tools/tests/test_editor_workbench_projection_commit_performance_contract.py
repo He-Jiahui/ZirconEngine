@@ -1,7 +1,8 @@
+# 核对工作台投影按变化行批量提交绘制、通知与原生损伤。
 from pathlib import Path
 import unittest
 
-from tools.editor_workbench_projection_pressure import run
+from tools.analysis.performance.editor.editor_workbench_projection_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -12,6 +13,7 @@ DISPATCH_SIDE_EFFECTS = HOST / "app/host_lifecycle/dispatch_effects/side_effects
 INVALIDATION_DECISION = (
     HOST / "app/host_lifecycle/recompute/invalidation/decision.rs"
 )
+INVALIDATION_TESTS = INVALIDATION_DECISION.parent / "tests" / INVALIDATION_DECISION.name
 CHROME_PROJECTION = (
     HOST / "app/viewport/toolbar_pointer/chrome_projection.rs"
 )
@@ -73,9 +75,9 @@ class EditorWorkbenchProjectionCommitPerformanceContract(unittest.TestCase):
         self.assertNotIn("HostInvalidationMask::LAYOUT", helper)
         self.assertIn(
             "workbench_projection_accepts_render_and_paint_without_full_shell_recompute",
-            source,
+            INVALIDATION_TESTS.read_text(encoding="utf-8"),
         )
-        self.assertIn("workbench_projection_rejects_global_presentation", source)
+        self.assertIn("workbench_projection_rejects_global_presentation", INVALIDATION_TESTS.read_text(encoding="utf-8"))
 
     def test_viewport_chrome_sync_is_consumed_before_invalidation(self) -> None:
         effects = EVENT_BRIDGE.read_text(encoding="utf-8")
@@ -243,7 +245,7 @@ class EditorWorkbenchProjectionCommitPerformanceContract(unittest.TestCase):
         )
 
     def test_viewport_toolbar_product_gate_rejects_full_shell_invalidation(self) -> None:
-        capture = (ROOT / "tools/ui-profile-capture.ps1").read_text(encoding="utf-8")
+        capture = (ROOT / "tools/analysis/profiling/ui/ui-profile-capture.ps1").read_text(encoding="utf-8")
 
         self.assertIn("$requiresWorkbenchProjectionAuthority", capture)
         authority = capture.split("$hasWorkbenchProjectionAuthority =", 1)[1].split(

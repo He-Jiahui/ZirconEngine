@@ -57,3 +57,31 @@ Open state: `Runtime07 已核对并修复 shared-source 守卫漂移；受管 cu
 2026-08-11 current-source 复核确认生产路径没有恢复整份 `RenderFrameExtract` clone：`viewport_terminal_camera_target` 从 `&extract.view.cameras` 调用 `resolve_camera_sequence_borrowed`，只在最终 terminal descriptor 上执行 `target.clone()`。守卫已删除过期的 `.map(|submission| submission.camera.target.clone())` 文本要求，改为限定函数体并同时验证 borrowed sequence、terminal position、final target clone，以及禁止 extract/camera-list/stale-submission clone。继续执行守卫时暴露的 `render_frame_with_pipeline(` 旧方法名也已收紧到当前 `render_frame_with_pipeline_async_capture_task_pool_with_environment_ibl_bake_reservation(`，直接 `&*frame` streaming 语义未变。
 
 source-bound standalone guard 已从原始第 75 行 panic 转为 exit 0；`rustfmt --check` 与 scoped `git diff --check` GREEN。协调器 session `runtime07-camera-target-sharing-guard-20260811` 未生成 Cargo job；artifact audit request `5e3ec570ace84f75934d5fc25513ccb4` 仍报告三个外部未登记 E 盘产物，未越权删除。故本记录不声明 managed Cargo 或完整 failure closure，继续保持 `open`。
+
+### 2026-09-18 Runtime07 static ticket terminal result
+
+The managed static ticket `75780c614d8d4159be87bf3ed96f4995` reached terminal
+`passed` with job/run `9645200eaa0d485e84c1575a1667f11f` and exit code `0`.
+The immutable Windows Python contract emitted
+`RUNTIME07_CAMERA_TARGET_SHARING_STATIC_PASS` with no coordinator blockers.
+This receipt confirms the current-source shared-camera contract only; the exact
+
+### 2026-09-19 managed current-source recheck
+
+The resumed primary Session `failure-roll-01a084c8-runtime07-camera-target-r2`
+reclaimed the current failure record and the six production/guard source paths
+before attempting the original lower-layer gate. The exact managed command was:
+
+```powershell
+validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter runtime_07_submit_context_shares_large_extract_payloads -VerboseOutput
+```
+
+Coordinator request `455a02af8b594d258025de30f41e867d` was accepted but reached
+terminal `failed` before Cargo acquisition with `unmanaged_artifacts_detected`.
+The coordinator recorded the existing cleanup reservation for
+`D:\\ZirconBuilds\\mvp-test-fixtures-28916` (reservation observed at
+`2026-09-19T19:48:11.940637+00:00`) and did not create a Cargo job or test run.
+No dynamic pass/failure is inferred from this pre-Cargo governance result; the
+directory was not deleted or modified by this Session. The lower gate, upward
+acceptance, review refresh, return, and closeout remain pending until the owning
+cleanup completes.

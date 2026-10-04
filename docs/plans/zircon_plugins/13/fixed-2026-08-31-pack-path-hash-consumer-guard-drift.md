@@ -15,9 +15,9 @@ tests:
   - tools/tests/test_zircon_export_pack_manifest_schema_helper_owner_boundaries.py
   - tools/tests/test_zircon_export_pack_delta_asset_set_semantics_owner_boundaries.py
   - tools/tests/test_zircon_export_pack_delta_semantics_owner_boundaries.py
-  - tools/zircon_export/tests/test_pipeline_report_pack_delta_schema.py
-  - tools/zircon_export/tests/test_pipeline_report_pack_delta_schema_clean.py
-  - tools/zircon_export/tests/test_pipeline_report_pack_delta_top_level_schema.py
+  - tools/export/tests/test_pipeline_report_pack_delta_schema.py
+  - tools/export/tests/test_pipeline_report_pack_delta_schema_clean.py
+  - tools/export/tests/test_pipeline_report_pack_delta_top_level_schema.py
 resolved_at: 2026-08-31
 ---
 

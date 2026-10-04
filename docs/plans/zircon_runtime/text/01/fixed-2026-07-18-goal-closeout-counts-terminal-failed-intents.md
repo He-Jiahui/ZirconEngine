@@ -8,11 +8,9 @@ fixing_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-c
 origin_child_dir: docs/plans/zircon_runtime/text/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 related_code:
-  - tools/session_coordinator/workflows/milestones.py
-  - tools/session_coordinator/tests/test_workflow_commit.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_workflow_commit -v
-  - powershell -File tools/zircon-session.ps1 -Json milestone close-goal --session-id runtime-text01-fr-m2-closeout-20260714 --run-id b5fedc3825764dc79b3c785291a40910
+  - powershell -File tools/dev/zircon-session.ps1 -Json milestone close-goal --session-id runtime-text01-fr-m2-closeout-20260714 --run-id b5fedc3825764dc79b3c785291a40910
 resolved_at: 2026-07-18
 ---
 

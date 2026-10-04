@@ -13,6 +13,7 @@ use zircon_runtime_interface::ui::surface::{
 const MIN_NATIVE_OVERLAY_WIDTH: f32 = 1.0;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
+/// 图集分配或生成失败时的回退决策统计；区分整批 native、局部覆盖与必须保留 SDF 布局的情况。
 pub(in crate::graphics::scene::scene_renderer::ui) struct ScreenSpaceUiTextSdfFallbackReport {
     pub(super) fallback_text_batch_count: usize,
     pub(super) whole_batch_fallback_text_batch_count: usize,
@@ -92,6 +93,8 @@ pub(super) fn apply_sdf_atlas_fallbacks(
     .report
 }
 
+/// 在 atlas bake 后调整当前帧 native/SDF 批次，并同步保留 CPU run 与装饰度量的下标。
+/// 只有水平且来源明确的片段可局部覆盖；塑形几何或视觉字距不能安全分割时走整批策略。
 pub(super) fn apply_sdf_atlas_fallbacks_with_cpu_runs(
     native_texts: &mut Vec<ScreenSpaceUiTextBatch>,
     sdf_texts: &mut Vec<ScreenSpaceUiTextBatch>,
@@ -341,6 +344,7 @@ impl ScreenSpaceUiTextSdfFallbackReport {
     }
 }
 
+// 局部 native 覆盖会重新塑形字符串，只有原始字符位置可由 CPU 字距重建时才允许。
 fn native_overlay_batches_for_failed_spans(
     text: &ScreenSpaceUiTextBatch,
     fallback_spans: &[SdfAtlasGlyphFallbackSpan],
@@ -533,8 +537,9 @@ fn span_source_byte_count(span: &SdfAtlasGlyphFallbackSpan) -> usize {
 }
 
 #[cfg(test)]
+#[path = "sdf_fallback/tests/cases.rs"]
 mod tests;
 
 #[cfg(test)]
-#[path = "sdf_fallback/preallocated_native_indices_tests.rs"]
+#[path = "sdf_fallback/tests/preallocated_native_indices_tests.rs"]
 mod preallocated_native_indices_tests;

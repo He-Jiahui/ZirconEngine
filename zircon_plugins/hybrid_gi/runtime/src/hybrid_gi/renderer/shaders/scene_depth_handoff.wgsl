@@ -115,6 +115,7 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let hzb_range = textureLoad(scene_hzb_tex, hzb_coord, mip_level);
 
     let tile_index = tile_coord.y * SCENE_HZB_TILE_GRID_EXTENT + tile_coord.x;
+    // 每个 8×8 tile 占四个 u32；头部字 0..15 由 tile 0 单独写入。
     let tile_word_offset =
         SCENE_HZB_TILE_WORD_OFFSET + tile_index * SCENE_HZB_TILE_WORD_COUNT;
     hybrid_gi_scene_words[tile_word_offset] = quantize_depth_q24(depth);

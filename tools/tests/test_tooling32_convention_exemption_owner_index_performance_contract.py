@@ -1,9 +1,10 @@
+# 核对约定豁免以最近父路径索引定位所有者。
 from __future__ import annotations
 
 import unittest
 from pathlib import Path
 
-from tools.convention_exemptions import _owning_workspace_member
+from tools.audits.convention_exemptions import _owning_workspace_member
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "convention_exemptions.py"

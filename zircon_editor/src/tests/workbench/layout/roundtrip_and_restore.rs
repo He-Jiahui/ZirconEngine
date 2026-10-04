@@ -1,3 +1,4 @@
+//! 布局命令结果的serde保留与恢复来源优先级测试；恢复优先级不等于完整结构校验。
 use crate::ui::workbench::layout::{
     ActivityDrawerSlot, LayoutCommand, LayoutManager, MainPageId, RestorePolicy, WorkbenchLayout,
 };
@@ -5,6 +6,7 @@ use crate::ui::workbench::project::ProjectEditorWorkspace;
 use crate::ui::workbench::view::{ViewHost, ViewInstanceId};
 
 #[test]
+/// 应用文档、抽屉和浮窗迁移后检查保存材料；不创建或关闭系统浮窗。
 fn layout_manager_moves_views_and_roundtrips_layouts() {
     let mut layout = WorkbenchLayout::default();
     let scene_view = ViewInstanceId::new("scene#1");
@@ -58,6 +60,7 @@ fn layout_manager_moves_views_and_roundtrips_layouts() {
 }
 
 #[test]
+/// 用不同活动页标记区分来源，验证项目优先回退策略；标记页刻意只用来识别选中的载荷。
 fn restore_policy_prefers_project_workspace_before_global_default() {
     let mut global = WorkbenchLayout::default();
     global.active_main_page = MainPageId::new("global");
@@ -73,6 +76,7 @@ fn restore_policy_prefers_project_workspace_before_global_default() {
                 open_view_instances: Vec::new(),
                 focused_view: None,
                 active_drawers: Vec::new(),
+                scene_viewport_sessions: Default::default(),
             }),
             Some(global),
         )

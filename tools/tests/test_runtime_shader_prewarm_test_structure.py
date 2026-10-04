@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 约束着色器预热的测试组织：着色器预热测试应目录支撑，并着色器预热结构守卫读取当前归属方。
 class RuntimeShaderPrewarmTestStructureTests(unittest.TestCase):
     def test_shader_prewarm_tests_are_folder_backed(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
@@ -13,8 +13,7 @@ class RuntimeShaderPrewarmTestStructureTests(unittest.TestCase):
             / "zircon_runtime/src/graphics/shader/variant_cache/prewarm/worker.rs"
         )
         tests_path = (
-            repo_root
-            / "zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests.rs"
+            repo_root / "zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests/cases.rs"
         )
         combined_path = (
             repo_root
@@ -28,12 +27,12 @@ class RuntimeShaderPrewarmTestStructureTests(unittest.TestCase):
 
         for source in (prewarm, worker, tests, combined):
             self.assertLessEqual(len(source.splitlines()), 800)
-        self.assertIn('#[path = "prewarm/tests.rs"]', prewarm)
+        self.assertIn("#[path = \"prewarm/tests/cases.rs\"]", prewarm)
         self.assertIn("mod tests;", prewarm)
         self.assertNotIn("mod tests {", prewarm)
         self.assertEqual(tests.count("#[test]"), 11)
         self.assertIn(
-            '#[path = "tests/combined_validation_tests.rs"]', tests
+            '#[path = "combined_validation_tests.rs"]', tests
         )
         self.assertIn("mod combined_validation_tests;", tests)
         self.assertIn("fn test_disk_key(", tests)
@@ -65,32 +64,32 @@ class RuntimeShaderPrewarmTestStructureTests(unittest.TestCase):
         guard_expectations = {
             "shader_prewarm_cache_artifact_contract.rs": (
                 "graphics/shader/variant_cache/prewarm/worker.rs",
-                "graphics/shader/variant_cache/prewarm/tests.rs",
+                "graphics/shader/variant_cache/prewarm/tests/cases.rs",
             ),
             "shader_prewarm_source_provenance_summary.rs": (
                 "graphics/shader/variant_cache/prewarm/worker.rs",
-                "graphics/shader/variant_cache/prewarm/tests.rs",
+                "graphics/shader/variant_cache/prewarm/tests/cases.rs",
             ),
             "shader_prewarm_wgpu_module_validation.rs": (
                 "graphics/shader/variant_cache/prewarm.rs",
                 "graphics/shader/variant_cache/prewarm/worker.rs",
-                "graphics/shader/variant_cache/prewarm/tests.rs",
+                "graphics/shader/variant_cache/prewarm/tests/cases.rs",
             ),
             "shader_prewarm_wgpu_pipeline_validation.rs": (
                 "graphics/shader/variant_cache/prewarm.rs",
                 "graphics/shader/variant_cache/prewarm/worker.rs",
-                "graphics/shader/variant_cache/prewarm/tests.rs",
+                "graphics/shader/variant_cache/prewarm/tests/cases.rs",
             ),
             "shader_prewarm_wgpu_validation_report_summary.rs": (
                 "graphics/shader/variant_cache/prewarm/worker.rs",
-                "graphics/shader/variant_cache/prewarm/tests.rs",
+                "graphics/shader/variant_cache/prewarm/tests/cases.rs",
             ),
         }
 
         for relative_path in (
             "graphics/shader/variant_cache/prewarm.rs",
             "graphics/shader/variant_cache/prewarm/worker.rs",
-            "graphics/shader/variant_cache/prewarm/tests.rs",
+            "graphics/shader/variant_cache/prewarm/tests/cases.rs",
             "graphics/shader/variant_cache/prewarm/tests/combined_validation_tests.rs",
         ):
             self.assertIn(relative_path, budget_sources)

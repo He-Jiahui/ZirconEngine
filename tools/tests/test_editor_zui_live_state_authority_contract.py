@@ -51,7 +51,7 @@ BUILTIN_TEMPLATE_BINDINGS = REPO_ROOT / (
 )
 WORKBENCH_TOOLBAR_BREAKPOINT_TESTS = REPO_ROOT / (
     "zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/"
-    "workbench_toolbar_breakpoints/mod.rs"
+    "workbench_toolbar_breakpoints/overflow.rs"
 )
 WORKBENCH_MAIN_MENU_BINDING_TESTS = REPO_ROOT / (
     "zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/"
@@ -59,7 +59,7 @@ WORKBENCH_MAIN_MENU_BINDING_TESTS = REPO_ROOT / (
 )
 WORKBENCH_MODULE_NAVIGATION_TESTS = REPO_ROOT / (
     "zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/"
-    "workbench_module_navigation.rs"
+    "workbench_module_navigation/workspace_selection.rs"
 )
 BLEND_SPACE_TRANSPORT = WORKBENCH_BRIDGE.parent / "blend_space_transport.rs"
 REFERENCE_MENU_ACTIONS = REPO_ROOT / (

@@ -1,7 +1,7 @@
 from pathlib import Path
 import re
 import unittest
-
+# 相机历史键为常见四层以内组合使用内联槽，超量才共享存储；本组对照 Rust 用例声明，守住两条路径的身份语义。
 
 ROOT = Path(__file__).resolve().parents[2]
 KEY_RS = ROOT / (

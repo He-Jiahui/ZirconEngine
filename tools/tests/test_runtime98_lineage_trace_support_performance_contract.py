@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 场景追踪每帧只解析一次预定区域，探针评分借用解析后的切片；检查发布基准是否记录区域解析工作量。
 
 ROOT = Path(__file__).resolve().parents[2]
 SCENE_TRACE_SUPPORT = (
@@ -8,8 +8,7 @@ SCENE_TRACE_SUPPORT = (
     / "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_trace_support.rs"
 )
 PERFORMANCE_TESTS = (
-    ROOT
-    / "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_trace_support/performance_tests.rs"
+    ROOT / "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_trace_support/tests/performance_tests.rs"
 )
 
 

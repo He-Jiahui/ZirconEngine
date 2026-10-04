@@ -1,7 +1,7 @@
 use super::*;
 use crate::core::framework::text::{TextGlyph, TextGlyphFlags, TextGlyphRotation};
 use crate::text::{
-    ResolvedTextGlyphArtifact, ResolvedTextGlyphArtifactLine, register_resolved_text_glyph_artifact,
+    register_resolved_text_glyph_artifact, ResolvedTextGlyphArtifact, ResolvedTextGlyphArtifactLine,
 };
 use crate::ui::surface::layout_text;
 use std::sync::Arc;
@@ -102,11 +102,10 @@ fn screen_space_ui_plan_renders_source_isomorphic_plain_layout_without_glyph_art
         plan.native_texts[1].frame,
         UiFrame::new(35.0, 32.0, 25.0, 12.0)
     );
-    assert!(
-        plan.native_texts
-            .iter()
-            .all(|text| text.is_source_isomorphic_layout_line)
-    );
+    assert!(plan
+        .native_texts
+        .iter()
+        .all(|text| text.is_source_isomorphic_layout_line));
     assert_eq!(
         plan.resolved_glyph_artifact_routes,
         ScreenSpaceUiResolvedGlyphArtifactRouteReport {

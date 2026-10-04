@@ -15,10 +15,13 @@ impl HostPaintCommand {
     ) -> Self {
         let (font_size, line_height) = Self::fallback_text_metrics();
         Self {
+            owner: None,
+            box_shadow: None,
             kind: HostPaintCommandKind::Quad,
             frame,
             clip_frame,
             z_index,
+            source_surface_frame: None,
             source_render_command_ref: None,
             background_color,
             foreground_color: None,

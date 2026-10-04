@@ -3,7 +3,7 @@
 ## 1. 扫描口径
 
 - 机器基线：[`../../../../_archive/zircon_runtime/frameworks/05/baselines/2026-07-10-runtime-domain-dependencies.json`](../../../../_archive/zircon_runtime/frameworks/05/baselines/2026-07-10-runtime-domain-dependencies.json)。
-- 扫描 owner：`tools/runtime_domain_dependency_audit.py`。
+- 扫描 owner：`tools/audits/runtime_domain_dependency_audit.py`。
 - 仅扫描 `zircon_runtime/src/<domain>/**/*.rs` 生产 owner；排除 `tests/`、`tests.rs`、`*_tests.rs`、`test_*.rs` 和 crate-root facade。
 - 2026-07-14 独立复审发现旧扫描器漏掉 bare/grouped root imports，并把注释与字符串计为引用；原 2399/80 与 2401/79 总数均已作废，不再作为验收证据。
 - 修复后的扫描器以 baseline 首次提交 `f7a320904d681fb30dede6d5b222fc943cdeb3a7` 的精确源码树重算为 2001 references / 86 edges。该快照中 asset → ui = 0、graphics → ui = 4、ui → graphics = 21、graphics → scene = 1；完整矩阵与逐条 `{path,line,source}` 由 JSON 持有。

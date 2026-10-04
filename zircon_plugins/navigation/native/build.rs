@@ -28,10 +28,19 @@ fn main() {
         add_cpp_sources(&mut build, &directory);
     }
 
-    if build.get_compiler().is_like_msvc() {
-        build.flag_if_supported("/std:c++17");
+    // `cc` can fail to identify a bare MSVC invocation when the build is
+    // launched outside a VS developer shell.  In that case
+    // `get_compiler().is_like_msvc()` reports false and `flag_if_supported`
+    // silently drops the standard-mode flag, leaving `std::clamp` unavailable.
+    // The Rust build target is authoritative here, so force the appropriate
+    // spelling instead of relying on compiler-family probing.
+    if cfg!(target_env = "msvc") {
+        build.flag("/std:c++17");
+        // Bridge sources and headers contain UTF-8 comments. An ambient
+        // Windows code page must not change how MSVC parses these inputs.
+        build.flag("/utf-8");
     } else {
-        build.flag_if_supported("-std=c++17");
+        build.flag("-std=c++17");
     }
 
     build.compile("zircon_navigation_recast_bridge");

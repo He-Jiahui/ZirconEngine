@@ -16,7 +16,7 @@ def function_body(source: str, name: str) -> str:
     next_functions = [boundary for boundary in boundaries if boundary >= 0]
     return source[start:] if not next_functions else source[start : min(next_functions)]
 
-
+# 读取指针路由追踪，确认已完成路径移动给追踪实体化器而不再次克隆。
 class RuntimePointerRouteTraceOwnershipPerformanceContractTests(unittest.TestCase):
     def test_pointer_trace_materializer_takes_route_ownership(self) -> None:
         source = ROUTE_POLICY.read_text(encoding="utf-8")

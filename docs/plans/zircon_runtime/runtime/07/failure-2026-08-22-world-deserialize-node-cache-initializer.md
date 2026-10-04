@@ -10,7 +10,16 @@ origin_child_dir: docs/plans/zircon_runtime/runtime/07
 fixing_child_dir: docs/plans/zircon_runtime/runtime/07
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/scene/world/world.rs:454; docs/plans/zircon_runtime/runtime/07/2026-08-22-m2-world-derived-state-generation-topology-manifest.md
+  - zircon_runtime/src/scene/world/world.rs
+  - zircon_runtime/src/scene/tests/derived_state/hierarchy_rebuild.rs
+  - zircon_runtime/src/scene/tests/derived_state/hierarchy_behavior.rs
+  - zircon_runtime/src/scene/tests/derived_state.rs
+plan_sources:
+  - docs/plans/zircon_runtime/runtime/07/2026-08-22-m2-world-derived-state-generation-topology-manifest.md
+tests:
+  - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter deserialized_world_rebuilds_node_cache_before_incremental_reparent_projection -VerboseOutput
+  - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter derived_state_structured_reparent_avoids_global_hierarchy_work_at_one_hundred_thousand_nodes -VerboseOutput
+  - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter text_oversized_run_keeps_one_logical_shaped_line -VerboseOutput
 ---
 
 # world-deserialize-node-cache-initializer: 验证失败回写
@@ -58,3 +67,14 @@ Open state: `实现已修复，等待上行验证`.
   `docs/plans/optimize/zircon_runtime/74/failure-2026-08-22-ui-asset-binding-canonical-loader-api-tests.md`
   与 `docs/plans/optimize/zircon_runtime/74/failure-2026-08-22-text03-compiled-binding-contract-compile.md`。
 - 该记录保持 open；只有原始上行验证通过后才可由协调器返回为 `fixed-*`。
+
+### 2026-09-24 handoff 路径与待验门禁更正
+
+- 原 `related_code` 把历史 `world.rs:454` 行号与一份计划 manifest 用分号拼成单个非文件路径；该原始编译位置仍保留在上方复现证据。现拆为实际存在的生产/回归文件，计划 manifest 移至 `plan_sources`，并按原受管 job `d8540e5eed3d4f38b1c5010b3993937f` 的 focused 过滤器和原始 Render11/Shader06 文本回归列出待验命令，未重复提交请求。
+- 当前 `World::from_persistent_state` 源码静态可见 `node_cache_rows: HashMap::new()` 与 `node_cache_topology_generation: 0`；但 `world.rs` 已有其他会话修改（当前 SHA-256 `45d8bcaf11d5287f860c0f6be23aa3507b21f9b3d13d1a0ed56ffc2922d540e1` 与旧 attribution 不一致）。本项 session 只接管并更正 failure 文档，不修改、不声明拥有该源码，也不复用历史编译/测试为当前快照通过。
+- 100,000-node 下层回归、原始 lib-test 与上行门禁需要由原源码 owner 的匹配快照受管验收；在此之前继续 `open / validation_pending`，不得回传或 closeout。
+
+### 2026-09-24 独立审查回执
+
+- 对文档专属快照 `3748` 的独立审查结果：Critical 0 / Important 0 / Moderate 0。`related_code` 中四条路径及 `plan_sources` 均存在；三个 `TestFilter` 分别精确匹配实际测试，受管命令参数有效。
+- 审查不等于动态验收：当前 `world.rs` 不属本 session 的源码快照；待其源码 owner 完成匹配快照的下层、原始及上行受管回归后，方可回传并关闭本项。

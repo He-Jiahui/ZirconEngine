@@ -1,3 +1,6 @@
+//! 打开的菜单行与下拉选项的统一补充绘制入口。菜单列表优先于选项列表，避免同一节点重复画两套弹层。
+//! 此入口返回unit；在专用Dropdown与fallback链上都可能被调用，调用方需依赖popup_open和实际投影数据避免重复提交。
+
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::render_commands::HostPaintCommand;
 
@@ -26,6 +29,8 @@ use menu::popup_menu_row_style;
 #[cfg(test)]
 use options::popup_option_row_style;
 
+/// 调用方须分别提供控件或弹层rect、可用bounds及绘制clip：菜单直接按rect布局，选项由template_popup_layout计算最终弹层位置。
+/// 只有open且有有效投影行时提交；优先菜单，再退回选项。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_template_popup_row_commands(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
@@ -50,5 +55,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_te
 }
 
 #[cfg(test)]
-#[path = "template_popup_rows_tests/mod.rs"]
+#[path = "template_popup_rows_tests/tests/mod.rs"]
 mod tests;

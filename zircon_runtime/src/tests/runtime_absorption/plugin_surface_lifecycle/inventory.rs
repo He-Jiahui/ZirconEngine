@@ -1,3 +1,4 @@
+//! 插件公开面、原生装载命名空间与生命周期回退保持分离。集中保存路径、锚点或预期清单；消费方负责读取实际源码。
 pub(super) const EXPECTED_RUNTIME_06_SOURCE_FILES: &[&str] = &[
     "src/plugin/mod.rs",
     "src/plugin/native.rs",
@@ -12,7 +13,7 @@ pub(super) const EXPECTED_RUNTIME_06_SOURCE_FILES: &[&str] = &[
     "src/plugin/native_plugin_loader/native_plugin_live_host/hot_reload.rs",
     "src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_failures.rs",
     "../zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs",
-    "src/script/vm/tests.rs",
+    "src/script/vm/tests/cases.rs",
     "src/script/vm/tests/lifecycle_failures.rs",
     "src/tests/runtime_absorption/plugin_surface_lifecycle.rs",
     "src/tests/runtime_absorption/plugin_surface_lifecycle/lifecycle_fallback.rs",

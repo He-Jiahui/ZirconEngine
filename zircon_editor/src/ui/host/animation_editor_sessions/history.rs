@@ -7,7 +7,7 @@ use super::super::editor_ui_host::EditorUiHost;
 impl EditorUiHost {
     /// Replays only a focused animation document. A non-animation focus leaves the caller to
     /// route the request to the scene's global history.
-    pub(super) fn replay_focused_animation_document_history(
+    pub(in crate::ui::host) fn replay_focused_animation_document_history(
         &self,
         undo: bool,
     ) -> Result<Option<bool>, EditorError> {
@@ -15,6 +15,7 @@ impl EditorUiHost {
             return Ok(None);
         };
         self.ensure_animation_editor_session(&instance_id)?;
+        let _edit = self.begin_document_edit(&instance_id)?;
         let document = self.animation_document_for_instance(&instance_id)?;
         let changed = if undo {
             self.transactions.undo(HistoryContextId::Document(document))
@@ -31,7 +32,7 @@ impl EditorUiHost {
 
     /// Returns the active animation history for command enablement without materializing a
     /// document from disk during a snapshot request.
-    pub(super) fn focused_animation_history_status(&self) -> Option<HistoryStatus> {
+    pub(in crate::ui::host) fn focused_animation_history_status(&self) -> Option<HistoryStatus> {
         let instance_id = self.focused_animation_editor_instance()?;
         let document = self
             .lock_animation_editor_sessions()

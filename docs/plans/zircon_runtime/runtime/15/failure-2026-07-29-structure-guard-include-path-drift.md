@@ -9,15 +9,18 @@ origin_child_dir: docs/plans/zircon_runtime/text/09
 fixing_child_dir: docs/plans/zircon_runtime/runtime/15
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/rhi_wgpu/ui_surface/tests.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests/native_submission.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/presentation.rs
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/late_api_cleanup/f17_entity_path_lookup.rs
   - zircon_plugins/animation/runtime/src/lib.rs
-  - zircon_runtime/src/animation/sequence/apply.rs
+  - zircon_runtime/src/animation/sequence/compiled.rs
   - zircon_runtime/src/animation/sequence/target.rs
 tests:
   - cargo +1.94.1 test -p zircon_runtime --lib tests::runtime_absorption::code_review_findings::late_api_cleanup::f17_entity_path_lookup::review_f17_entity_path_option_lookup_uses_get_verb --locked --jobs 1 --color never -- --exact --test-threads=1
   - cargo +1.94.1 test -p zircon_runtime --lib text::cache::tests::text_cache_indexes_keep_hot_lookup_and_eviction_work_constant --locked --jobs 1 --color never -- --exact --test-threads=1
+  - cargo +1.94.1 test -p zr_rhi_wgpu --lib ui_surface::tests::native_submission::wgpu_ui_surface_marks_the_complete_present_submission_for_renderdoc --locked --jobs 1 --color never -- --exact --test-threads=1
 ---
 
 # Runtime15：结构守卫 include 路径漂移
@@ -205,3 +208,32 @@ likewise now reads only the production root and
 `host_api_adapter/abi_decode/tests.rs`. Its six declaration-only architecture
 and archive document `include_str!` inputs were removed without changing the
 typed-error or ABI-decode assertions.
+
+### 2026-09-24 current-source owner-path reconciliation
+
+The current UI-surface test root at
+`zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests.rs` reads its parent
+owner `zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs` for other UI guards.
+The actual RenderDoc submission assertion moved into the root-mounted
+`tests/native_submission.rs` child: it reads `presentation.rs` and checks the
+`zircon::UI` encoder debug-group boundary. The F17 guard now directly includes
+`animation/sequence/compiled.rs` and
+`target.rs`, not the deleted `animation/sequence/apply.rs`. Only the active
+`related_code` list was migrated to those physical owners; the dated original
+include failure, commands and managed 2026-07-30 F17 result remain unchanged.
+
+The current `animation/sequence/compiled.rs` is dirty in the shared worktree
+and outside this Runtime15 document-only scope (SHA-256
+`2b8871de1ab02ca0e8ca7dac8a5302180a32bb0a74a17c881ebf095c78eba1e1`);
+its last coordinator source attribution belongs to the separate Runtime170
+owner and does not match these live bytes.
+The earlier one-test F17 receipt is historical and must not be assumed to
+cover this changed source or the RHI crate migration without an exact manifest
+match. The current fully qualified F17 filter and Text09 cache test have
+declarations, but neither has a new managed current-source pass in this
+continuation. The RenderDoc child has an actual test declaration under
+`zr_rhi_wgpu::ui_surface::tests::native_submission`, so its exact managed crate
+filter is now listed above and must execute one test on a matching snapshot;
+neither `zircon_runtime` filter can accept that separate crate test. Text03/Text09
+upward gates and WGPU product framebuffer also remain open; no return or
+closeout is claimed.

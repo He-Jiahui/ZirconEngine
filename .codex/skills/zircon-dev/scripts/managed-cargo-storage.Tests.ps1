@@ -7,6 +7,30 @@ $env:VALIDATE_MATRIX_TEST_MODE = "1"
 $env:VALIDATE_MATRIX_TEST_MODE = $script:OriginalManagedCargoStorageTestMode
 
 Describe "Managed Cargo storage modes" {
+    BeforeEach {
+        # Environment tests model an already prepared formal binding. They do not
+        # own or start a shared daemon; native ownership is covered by its verifier.
+        Mock Assert-ManagedPreparedCompilerCacheBinding {
+            $paths = Resolve-ManagedCargoStoragePaths -TargetDirectory $TargetDirectory -JobId $JobId
+            return [pscustomobject]@{ ServerPort = $paths.SccacheServerPort; ServerProcessId = 1234 }
+        }
+    }
+
+    It "uses display paths for short Cargo tool paths and keeps verbatim paths for long ones" {
+        $short = [pscustomobject]@{
+            DisplayPath = "D:\cargo-targets\zircon-engine\pool\short"
+            OperationalPath = "\\?\D:\cargo-targets\zircon-engine\pool\short"
+        }
+        ConvertTo-ManagedCargoToolPath -PathResolution $short | Should Be $short.DisplayPath
+
+        $longDisplay = "D:\" + ("deep\" * 80) + "target"
+        $long = [pscustomobject]@{
+            DisplayPath = $longDisplay
+            OperationalPath = "\\?\" + $longDisplay
+        }
+        ConvertTo-ManagedCargoToolPath -PathResolution $long | Should Be $long.OperationalPath
+    }
+
     It "defaults to a reusable hot target with compact compiler outputs" {
         $jobId = "reuse-{0}" -f [guid]::NewGuid().ToString("N")
         $targetDirectory = Join-Path "E:\cargo-targets\zircon-engine\pool" ([guid]::NewGuid().ToString("N"))
@@ -41,11 +65,12 @@ Describe "Managed Cargo storage modes" {
                 -TargetDirectory $targetDirectory `
                 -JobId $jobId `
                 -StorageMode "reuse" `
-                -CompilerCacheExecutable $sccache
+                -CompilerCacheExecutable $sccache `
+                -RepoRoot $script:ManagedCargoStorageRepoRoot -SessionId "model-owner" -PreparedCompilerCacheBinding ([pscustomobject]@{ status = "ready" })
 
-            [Environment]::GetEnvironmentVariable("CARGO_TARGET_DIR", "Process") | Should Be $lease.TargetOperationalPath
+            [Environment]::GetEnvironmentVariable("CARGO_TARGET_DIR", "Process") | Should Be $lease.TargetDisplayPath
             [Environment]::GetEnvironmentVariable("CARGO_BUILD_BUILD_DIR", "Process") | Should BeNullOrEmpty
-            [Environment]::GetEnvironmentVariable("CARGO_INCREMENTAL", "Process") | Should Be "0"
+            [Environment]::GetEnvironmentVariable("CARGO_INCREMENTAL", "Process") | Should BeNullOrEmpty
             [Environment]::GetEnvironmentVariable("CARGO_PROFILE_DEV_DEBUG", "Process") | Should Be "0"
             [Environment]::GetEnvironmentVariable("CARGO_PROFILE_TEST_DEBUG", "Process") | Should Be "0"
             [Environment]::GetEnvironmentVariable("RUSTC_WRAPPER", "Process") | Should Be $sccache
@@ -112,9 +137,10 @@ Describe "Managed Cargo storage modes" {
                 -TargetDirectory $targetDirectory `
                 -JobId $jobId `
                 -StorageMode "compact" `
-                -CompilerCacheExecutable $sccache
+                -CompilerCacheExecutable $sccache `
+                -RepoRoot $script:ManagedCargoStorageRepoRoot -SessionId "model-owner" -PreparedCompilerCacheBinding ([pscustomobject]@{ status = "ready" })
 
-            $lease.CargoHomeDisplayPath | Should Be "E:\cargo-targets\zircon-engine\cache\cargo-home"
+            $lease.CargoHomeDisplayPath | Should Be (Join-Path $targetDirectory '.zircon-compile\cargo-home')
             $lease.SccacheDisplayPath | Should Be "E:\cargo-targets\zircon-engine\cache\sccache"
             $lease.SccacheTemporaryDisplayPath | Should Be "E:\cargo-targets\zircon-engine\cache\sccache-temporary"
             $lease.SccacheServerPort | Should Be 42261
@@ -122,9 +148,9 @@ Describe "Managed Cargo storage modes" {
             $lease.TemporaryDisplayPath | Should Be "E:\cargo-targets\zircon-engine\scratch\$jobId\temporary"
             $lease.BuildDisplayPath | Should Be "E:\cargo-targets\zircon-engine\scratch\$jobId\build"
 
-            [Environment]::GetEnvironmentVariable("CARGO_TARGET_DIR", "Process") | Should Be $lease.TargetOperationalPath
-            [Environment]::GetEnvironmentVariable("CARGO_BUILD_BUILD_DIR", "Process") | Should Be $lease.BuildOperationalPath
-            [Environment]::GetEnvironmentVariable("CARGO_HOME", "Process") | Should Be $lease.CargoHomeOperationalPath
+            [Environment]::GetEnvironmentVariable("CARGO_TARGET_DIR", "Process") | Should Be $lease.TargetDisplayPath
+            [Environment]::GetEnvironmentVariable("CARGO_BUILD_BUILD_DIR", "Process") | Should Be $lease.BuildDisplayPath
+            [Environment]::GetEnvironmentVariable("CARGO_HOME", "Process") | Should Be $lease.CargoHomeDisplayPath
             [Environment]::GetEnvironmentVariable("CARGO_INCREMENTAL", "Process") | Should Be "0"
             [Environment]::GetEnvironmentVariable("CARGO_PROFILE_DEV_DEBUG", "Process") | Should Be "0"
             [Environment]::GetEnvironmentVariable("CARGO_PROFILE_TEST_DEBUG", "Process") | Should Be "0"
@@ -193,15 +219,13 @@ Describe "Managed Cargo storage modes" {
             $reuse.build_config | Should Not Be $diagnostic.build_config
             $compact.build_config | Should Not Be $diagnostic.build_config
             $reuse.build_config | Should Match '"storage_mode":"reuse"'
-            $reuse.build_config | Should Match '"cargo_incremental":"0"'
-            $reuse.build_config | Should Match '"dev_debug":"0"'
-            $reuse.build_config | Should Match '"test_debug":"0"'
-            $reuse.build_config | Should Match '"build_dir":"persistent-target-v1"'
+            $reuse.build_config | Should Match '"CARGO_INCREMENTAL":null'
+            $reuse.build_config | Should Match '"CARGO_PROFILE_DEV_DEBUG":"0"'
+            $reuse.build_config | Should Match '"CARGO_PROFILE_TEST_DEBUG":"0"'
             $compact.build_config | Should Match '"storage_mode":"compact"'
-            $compact.build_config | Should Match '"cargo_incremental":"0"'
-            $compact.build_config | Should Match '"dev_debug":"0"'
-            $compact.build_config | Should Match '"test_debug":"0"'
-            $compact.build_config | Should Match '"build_dir":"ephemeral-v1"'
+            $compact.build_config | Should Match '"CARGO_INCREMENTAL":"0"'
+            $compact.build_config | Should Match '"CARGO_PROFILE_DEV_DEBUG":"0"'
+            $compact.build_config | Should Match '"CARGO_PROFILE_TEST_DEBUG":"0"'
         }
         finally {
             $env:RUSTUP_TOOLCHAIN = $previousToolchain
@@ -214,12 +238,6 @@ Describe "Managed Cargo storage modes" {
             "D:\cargo-targets" = 42260
             "E:\cargo-targets" = 42261
             "F:\cargo-targets" = 42262
-            "D:\targets"       = 42263
-            "E:\targets"       = 42264
-            "F:\targets"       = 42265
-            "D:\ZirconBuilds"  = 42266
-            "E:\ZirconBuilds"  = 42267
-            "F:\ZirconBuilds"  = 42268
         }
 
         foreach ($entry in $expected.GetEnumerator()) {
@@ -231,57 +249,12 @@ Describe "Managed Cargo storage modes" {
         }
     }
 
-    It "keeps a shared sccache server independent from retired job scratch" {
-        $targetDirectory = Join-Path "E:\cargo-targets\zircon-engine\pool" ([guid]::NewGuid().ToString("N"))
-        $sccache = (Get-Command sccache -ErrorAction Stop).Source
-        $rustc = (Get-Command rustc -ErrorAction Stop).Source
-        $activeLease = $null
-        $retiredScratch = @()
-
-        try {
-            foreach ($sequence in 1..2) {
-                $jobId = "sccache-lifecycle-{0}-{1}" -f $sequence, [guid]::NewGuid().ToString("N")
-                $activeLease = Push-ManagedCargoEnvironment `
-                    -TargetDirectory $targetDirectory `
-                    -JobId $jobId `
-                    -StorageMode "reuse" `
-                    -CompilerCacheExecutable $sccache
-                $retiredScratch += $activeLease.ScratchOperationalPath
-
-                $source = Join-Path $activeLease.TemporaryOperationalPath "probe.rs"
-                $output = Join-Path $activeLease.TemporaryOperationalPath "probe.rmeta"
-                [System.IO.File]::WriteAllText($source, "pub fn managed_sccache_probe() -> u32 { 42 }`n")
-
-                $compilerOutput = @(
-                    & $sccache $rustc `
-                        "--crate-name" "managed_sccache_probe" `
-                        "--crate-type" "lib" `
-                        "--edition=2021" `
-                        "--emit=metadata" `
-                        "-o" $output `
-                        $source 2>&1
-                )
-                $LASTEXITCODE | Should Be 0
-                $compilerOutput -join "`n" | Should Not Match "failed to write dependency file"
-                Test-Path -LiteralPath $output -PathType Leaf | Should Be $true
-
-                Pop-ManagedCargoEnvironment -Lease $activeLease
-                $activeLease = $null
-                Test-Path -LiteralPath $retiredScratch[-1] | Should Be $false
-            }
-        }
-        finally {
-            if ($null -ne $activeLease) {
-                Pop-ManagedCargoEnvironment -Lease $activeLease
-            }
-            if (Test-Path -LiteralPath $targetDirectory) {
-                Remove-Item -LiteralPath $targetDirectory -Recurse -Force
-            }
-        }
-
-        foreach ($scratch in $retiredScratch) {
-            Test-Path -LiteralPath $scratch | Should Be $false
-        }
+    It "rejects standalone cache consumers instead of starting a shared daemon" {
+        # Shared daemon startup belongs to the formal preparation lifecycle now.
+        Mock Assert-ManagedPreparedCompilerCacheBinding { throw 'a formal prepared binding is required' }
+        Mock Initialize-ManagedCompilerCacheServer { throw 'consumer must not initialize' }
+        { Push-ManagedCargoEnvironment -TargetDirectory 'D:\cargo-targets\zircon-engine\pool\unprepared' -JobId 'unprepared' -StorageMode reuse -CompilerCacheExecutable 'C:\tools\sccache.exe' } | Should Throw
+        Assert-MockCalled Initialize-ManagedCompilerCacheServer -Times 0
     }
 
 }
@@ -439,5 +412,39 @@ Describe "Managed sccache stale binding" {
                 Remove-Item -LiteralPath $testRoot -Recurse -Force
             }
         }
+    }
+}
+
+Describe "Prepared compiler cache consumer" {
+    BeforeEach {
+        Mock Invoke-ManagedCompilerCachePython {
+            return [pscustomobject]@{ status = 'ready'; daemonPid = 123; serverPort = 42260; cacheDirectory = 'D:\cargo-targets\zircon-engine\cache\sccache'; temporaryDirectory = 'D:\cargo-targets\zircon-engine\cache\sccache-temporary'; executable = 'C:\tools\sccache.exe'; bindingMarkerPath = 'D:\cargo-targets\zircon-engine\cache\sccache-temporary\server-binding-v1.json' }
+        }
+        Mock Initialize-ManagedCompilerCacheServer { throw 'consumer must never initialize a daemon' }
+    }
+    It "derives shared cache from the nearest managed namespace" {
+        $paths = Resolve-ManagedCargoStoragePaths -TargetDirectory 'D:\cargo-targets\fixture\zircon-engine\outer\zircon-engine\pool\target' -JobId 'nested'
+        $paths.Sccache.DisplayPath | Should Be 'D:\cargo-targets\fixture\zircon-engine\outer\zircon-engine\cache\sccache'
+        $paths.SccacheTemporary.DisplayPath | Should Be 'D:\cargo-targets\fixture\zircon-engine\outer\zircon-engine\cache\sccache-temporary'
+        $paths.SccacheServerPort | Should Be 42260
+    }
+
+    It "requires prepared binding before creating reusable storage" {
+        { Push-ManagedCargoEnvironment -TargetDirectory 'D:\cargo-targets\zircon-engine\pool\consumer-test' -JobId 'consumer-test' -StorageMode reuse -CompilerCacheExecutable 'C:\tools\sccache.exe' } | Should Throw
+        Assert-MockCalled Initialize-ManagedCompilerCacheServer -Times 0
+    }
+    It "verifies the binding through the read only native ownership contract" {
+        $result = Assert-ManagedPreparedCompilerCacheBinding -RepoRoot $script:ManagedCargoStorageRepoRoot -SessionId 'owner' -JobId 'consumer-test' -TargetDirectory 'D:\cargo-targets\zircon-engine\pool\consumer-test' -CompilerCacheExecutable 'C:\tools\sccache.exe' -Binding ([pscustomobject]@{ status = 'ready' })
+        $result.ServerProcessId | Should Be 123
+        Assert-MockCalled Invoke-ManagedCompilerCachePython -Times 1 -ParameterFilter { $Operation -eq 'verify' -and $Payload.arguments.session_id -eq 'owner' -and $Payload.arguments.job_id -eq 'consumer-test' }
+        Assert-MockCalled Initialize-ManagedCompilerCacheServer -Times 0
+    }
+    It "rejects native owner or daemon drift without initialization" {
+        Mock Invoke-ManagedCompilerCachePython { throw 'native identity changed' }
+        { Assert-ManagedPreparedCompilerCacheBinding -RepoRoot $script:ManagedCargoStorageRepoRoot -SessionId 'owner' -JobId 'consumer-test' -TargetDirectory 'D:\cargo-targets\zircon-engine\pool\consumer-test' -CompilerCacheExecutable 'C:\tools\sccache.exe' -Binding ([pscustomobject]@{ status = 'ready' }) } | Should Throw
+        Assert-MockCalled Initialize-ManagedCompilerCacheServer -Times 0
+    }
+    It "rejects a daemon executable outside the consumer contract" {
+        { Assert-ManagedPreparedCompilerCacheBinding -RepoRoot $script:ManagedCargoStorageRepoRoot -SessionId 'owner' -JobId 'consumer-test' -TargetDirectory 'D:\cargo-targets\zircon-engine\pool\consumer-test' -CompilerCacheExecutable 'C:\other\sccache.exe' -Binding ([pscustomobject]@{ status = 'ready' }) } | Should Throw
     }
 }

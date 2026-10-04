@@ -20,7 +20,7 @@ def rust_block(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated Rust block: {signature}")
 
-
+# 读取模拟量输入实现，确认规范控制名的归一化借用原事件，保留输入值时不复制整份事件。
 class RuntimeUiAnalogInputOwnershipPerformanceContractTests(unittest.TestCase):
     def test_retained_analog_value_does_not_clone_the_owned_event(self) -> None:
         source = ANALOG.read_text(encoding="utf-8")

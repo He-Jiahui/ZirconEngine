@@ -45,8 +45,12 @@ impl NativeBitmapAtlasSourceCache {
             self.record_worker_font_missing();
             return NativeBitmapAtlasWorkerRequestStatus::Unavailable;
         };
-        let Some(request) =
-            SwashRasterRequest::native_bitmap_atlas_glyph(face_index as usize, cache_key)
+        let Some(text_request) = cache_key.text_raster_request() else {
+            self.record_worker_font_missing();
+            return NativeBitmapAtlasWorkerRequestStatus::Unavailable;
+        };
+        let Ok(request) =
+            SwashRasterRequest::from_text_glyph_request(face_index as usize, text_request)
         else {
             self.record_worker_font_missing();
             return NativeBitmapAtlasWorkerRequestStatus::Unavailable;

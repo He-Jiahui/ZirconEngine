@@ -1,5 +1,6 @@
-$script:WprScript = Join-Path $PSScriptRoot "..\ui-profile-wpr.ps1"
-$script:CaptureScript = Join-Path $PSScriptRoot "..\ui-profile-capture.ps1"
+# 用记录器夹具验证采样跟踪的会话目录、进程寿命过滤及失败关闭。
+$script:WprScript = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-wpr.ps1"
+$script:CaptureScript = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-capture.ps1"
 if (Test-Path -LiteralPath $script:WprScript) {
     . $script:WprScript
 }

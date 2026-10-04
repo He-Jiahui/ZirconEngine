@@ -13,8 +13,8 @@ use crate::{
         dispatch::{UiTextDocumentSession, UiTextHistoryCommit},
         surface::{
             input::{
-                commit_editable_text_properties, editable_text_state_for_node,
-                editable_value_property, prepare_editable_text_properties_with_edit,
+                editable_text_state_for_node, editable_value_property,
+                prepare_editable_text_properties_with_edit,
                 PreparedUiEditableTextDocumentTransaction,
             },
             UiSurface,
@@ -27,6 +27,8 @@ use crate::{
 
 use super::{current_document_key, UiTextModelUpdateEnvelope};
 
+// 即刻请求和失焦后延迟请求共用此提交点；必须重新核对文档版本，不能把排队时的快照当作当前内容。
+// 属性与文档先准备再共同提交；程序化替换成功后清除编辑历史，避免撤销恢复被外部模型取代的文本。
 pub(super) fn apply_now(
     text_documents: &mut UiTextDocumentSession,
     surface: &mut UiSurface,
@@ -89,13 +91,16 @@ pub(super) fn apply_now(
         );
     }
     if next_state.text == current_state.text {
-        return match commit_editable_text_properties(
+        return match prepare_editable_text_properties_with_edit(
             surface,
             envelope.node_id,
             value_property.as_str(),
             &next_state,
             UiBindingSourceKind::RuntimeState,
-        ) {
+            None,
+        )
+        .and_then(|prepared| prepared.preserving_committed_source().commit())
+        {
             Ok(_) => receipt(
                 &envelope,
                 UiTextModelUpdateStatus::Applied,
@@ -251,6 +256,7 @@ fn projected_state(
     state
 }
 
+// 同步文档时只采用已提交源；IME preedit 是暂态显示，取消投影后才能与 expected_document 比较。
 pub(super) fn committed_document_state(state: UiEditableTextState) -> UiEditableTextState {
     if state.composition.is_none() {
         return state;

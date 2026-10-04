@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+# 资产路径转 URI 用一次预留的输出缓冲处理层级与转义，避免 collect、join 和 format 中间容器；Rust 行为用例声明与本地分配模型分别提供证据。
 import re
 import unittest
 from pathlib import Path
@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime/src/asset/watch/asset_uri_for_path.rs"
-RUST_TESTS = ROOT / "zircon_runtime/src/asset/watch/asset_uri_for_path/tests.rs"
+RUST_TESTS = ROOT / "zircon_runtime/src/asset/watch/asset_uri_for_path/tests/cases.rs"
 
 
 def rust_function_body(source: str, name: str) -> str:
@@ -44,7 +44,7 @@ class Runtime25AssetUriProjectionPerformanceContract(unittest.TestCase):
         self.assertNotIn("format!(", body)
 
     def test_owned_rust_contract_is_wired(self) -> None:
-        self.assertIn("#[cfg(test)]\nmod tests;", self.source)
+        self.assertIn("#[cfg(test)]\n#[path = \"asset_uri_for_path/tests/cases.rs\"]\nmod tests;", self.source)
         tests = RUST_TESTS.read_text(encoding="utf-8")
         self.assertIn("nested_path_projects_to_resource_uri", tests)
         self.assertIn("path_outside_root_is_rejected", tests)

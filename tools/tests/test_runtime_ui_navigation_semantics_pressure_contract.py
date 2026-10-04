@@ -1,14 +1,14 @@
 import pathlib
 import unittest
 
-from tools.ui_navigation_semantics_pressure import run, run_retained_domains
+from tools.analysis.performance.ui.ui_navigation_semantics_pressure import run, run_retained_domains
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime/src/ui/surface/navigation_index.rs"
 SEMANTICS_SOURCE = ROOT / "zircon_runtime/src/ui/surface/navigation_index/semantics.rs"
 
-
+# 用压力模型核对指针与焦点语义、稳定文本样式域成本，以及未知输入的保守处理。
 class RuntimeUiNavigationSemanticsPressureContractTests(unittest.TestCase):
     def test_pressure_model_preserves_pointer_and_focus_semantics(self) -> None:
         result = run(candidate_count=128, input_update_count=128)

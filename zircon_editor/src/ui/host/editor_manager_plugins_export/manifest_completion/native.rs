@@ -34,7 +34,11 @@ impl EditorManager {
         projection: &NativePluginLoadProjection,
     ) -> ProjectManifest {
         let mut completed = self.complete_project_plugin_manifest(manifest);
-        for package in projection.package_manifests() {
+        for package in projection
+            .package_manifests()
+            .iter()
+            .filter(|package| package.package_role.is_product_catalog_eligible())
+        {
             let native_selection = native_project_selection(package);
             if !completed
                 .plugins

@@ -1,0 +1,61 @@
+penpot_original_source = "[asset]\nkind = \"view\"\nid = \"res://ui/editor/host/generated_bottom_body.zui\"\nversion = 2\ndisplay_name = \"generated bottom pane body\"\n\n[root]\nnode = \"root\"\n\n[imports]\nwidgets = [\n  \"res://ui/editor/components/workbench/modules/generated/workbench_generated_bottom_panel.zui#WorkbenchGeneratedBottomPanel\",\n]\nstyles = []\n\n[nodes.root]\npixel_snapping = \"disabled\"\ncomponent = \"VerticalGroup\"\ncontrol_id = \"GeneratedBottomPaneBodyRoot\"\nclasses = [\"editor-pane\", \"generated-bottom-pane\"]\nlayout = { clip = true, container = { kind = \"VerticalBox\", gap = 0.0 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"panel_host\" }]\n\n[nodes.panel_host]\ncomponent = \"Overlay\"\ncontrol_id = \"GeneratedBottomPanePanelHost\"\nlayout = { container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"panel_body\" }]\n\n[nodes.panel_body]\ncomponent = \"WorkbenchGeneratedBottomPanel\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n"
+
+[asset]
+kind = "view"
+id = "res://ui/editor/host/generated_bottom_body.zui"
+version = 2
+display_name = "generated bottom pane body"
+
+[root]
+node = "root"
+
+[imports]
+widgets = [ "res://ui/editor/components/workbench/modules/generated/workbench_generated_bottom_panel.zui#WorkbenchGeneratedBottomPanel" ]
+styles = []
+
+[nodes.root]
+pixel_snapping = "disabled"
+component = "VerticalGroup"
+control_id = "GeneratedBottomPaneBodyRoot"
+classes = [ "editor-pane", "generated-bottom-pane" ]
+
+[nodes.root.layout]
+clip = true
+
+[nodes.root.layout.container]
+kind = "VerticalBox"
+gap = 0
+
+[nodes.root.layout.width]
+stretch = "Stretch"
+
+[nodes.root.layout.height]
+stretch = "Stretch"
+
+[[nodes.root.children]]
+node = "panel_host"
+
+[nodes.panel_host]
+component = "Overlay"
+control_id = "GeneratedBottomPanePanelHost"
+
+[nodes.panel_host.layout.container]
+kind = "Overlay"
+
+[nodes.panel_host.layout.width]
+stretch = "Stretch"
+
+[nodes.panel_host.layout.height]
+stretch = "Stretch"
+
+[[nodes.panel_host.children]]
+node = "panel_body"
+
+[nodes.panel_body]
+component = "WorkbenchGeneratedBottomPanel"
+
+[nodes.panel_body.layout.width]
+stretch = "Stretch"
+
+[nodes.panel_body.layout.height]
+stretch = "Stretch"

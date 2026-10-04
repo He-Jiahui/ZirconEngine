@@ -8,6 +8,7 @@ use crate::ui::retained_host::host_contract::paint_theme::{
 
 type GaugeColors = [[u8; 4]; 2];
 
+/// 仪表盘数值与轨道色按当前节点和宿主色板投影；缓存键必须同步采用相同数值。
 pub(super) fn draw_gauge_raster(raster: &mut ChartRaster, value: f32) {
     let [track_color, value_color] = gauge_colors_from_host(current_host_palette());
     let center = (raster.width as f32 * 0.5, raster.height as f32 - 3.0);
@@ -42,19 +43,5 @@ fn gauge_colors_from_host(palette: HostMaterialPalette) -> GaugeColors {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
-
-    #[test]
-    fn mui_x_gauge_colors_project_from_host_palette() {
-        let mut palette = PALETTE;
-        palette.surface_hover = [10, 11, 12, 255];
-        palette.accent = [20, 21, 22, 255];
-
-        assert_eq!(
-            gauge_colors_from_host(palette),
-            [[10, 11, 12, 255], [20, 21, 22, 255]]
-        );
-    }
-}
+#[path = "tests/gauge.rs"]
+mod tests;

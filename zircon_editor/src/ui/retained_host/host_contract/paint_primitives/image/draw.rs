@@ -74,6 +74,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_gpu_image_clipped_with_r
     rect: FrameRect,
     clip: Option<&FrameRect>,
     resource_key: &str,
+    resource_generation: u64,
     image_width: u32,
     image_height: u32,
 ) -> bool {
@@ -86,10 +87,11 @@ pub(in crate::ui::retained_host::host_contract) fn draw_gpu_image_clipped_with_r
     if !frame.is_recording() {
         return false;
     }
-    frame.record_image(
+    frame.record_image_with_generation(
         rect,
         effective_clip,
         resource_key,
+        resource_generation,
         image_width,
         image_height,
         None,

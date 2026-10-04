@@ -117,24 +117,28 @@ class Editor06InspectorCustomizationContractTests(unittest.TestCase):
         self.assertNotIn(".expect(", field_editor)
 
     def test_template_replacement_checks_its_ticket_before_publish(self) -> None:
-        model = read("zircon_editor/src/core/extension/store/model.rs")
+        contribution_store = read(
+            "zircon_editor/src/core/extension/store/model/contribution_store.rs"
+        )
         typed_ticket_check = "let Some(record) = self.tickets.get_mut(&ticket) else"
         publish = "self.generation = self.generation.saturating_add(1);"
-        replacement = model[model.index("pub(crate) fn replace_ui_template_contributions") :]
+        replacement = contribution_store[
+            contribution_store.index("pub(crate) fn replace_ui_template_contributions") :
+        ]
 
         self.assertIn(typed_ticket_check, replacement)
-        self.assertNotIn("validated contribution ticket disappeared", model)
+        self.assertNotIn("validated contribution ticket disappeared", contribution_store)
         self.assertLess(replacement.index(typed_ticket_check), replacement.index(publish))
 
     def test_module_contract_docs_publish_only_the_customization_api(self) -> None:
         module_docs = (
-            read("docs/editor-and-tooling/authoring-plugin-extension-contracts.md"),
-            read("docs/editor-and-tooling/editor-command-workflow.md"),
-            read("docs/editor-and-tooling/editor-host-minimal-plugin-loading.md"),
-            read("docs/editor-and-tooling/ui-binding-reflection-architecture.md"),
-            read("docs/zircon_editor/core/editing/command.md"),
-            read("docs/zircon_runtime/ui/v2.md"),
-            read("docs/zircon_plugins/plugin-sdk-examples-editor.md"),
+            read("docs/editor/authoring-plugin-extension-contracts.md"),
+            read("docs/editor/editor-command-workflow.md"),
+            read("docs/editor/editor-host-minimal-plugin-loading.md"),
+            read("docs/editor/ui-binding-reflection-architecture.md"),
+            read("docs/crates/zircon_editor/core/editing/command.md"),
+            read("docs/crates/zircon_runtime/ui/v2.md"),
+            read("docs/crates/zircon_plugins/plugin-sdk-examples-editor.md"),
         )
         retired_api = (
             "ComponentDrawerDescriptor",

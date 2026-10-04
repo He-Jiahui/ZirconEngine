@@ -3,13 +3,13 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::{Arc, Mutex};
 
 use super::{
-    ComponentTypeRegistry,
     compiled_binding::{CompiledScenePropertyAccessDiagnostics, SceneBindingGenerations},
     derived_state::NODE_KIND_ORDINAL_COUNT,
     dirty_state::DerivedStateDirty,
     entity_id_allocator::EntityIdAllocator,
     generation::{LifecycleVisibilityRevision, WorldGeneration},
     hierarchy_topology::HierarchyTopology,
+    ComponentTypeRegistry,
 };
 use crate::scene::components::{
     ActiveSelf, AmbientLight, AnimationGraphPlayerComponent, AnimationPlayerComponent,
@@ -80,7 +80,7 @@ impl WorldSyncSubscriptionSink {
             .record_fact(world, fact);
     }
 
-    fn invalidate_component_type(&self, type_name: &str) {
+    pub(super) fn invalidate_component_type(&self, type_name: &str) {
         let Some(subscriptions) = self.0.as_ref().map(Arc::clone) else {
             return;
         };
@@ -132,6 +132,7 @@ pub struct World {
     pub(super) archetype_assignment_counter: ArchetypeAssignmentCounter,
     pub(super) lifecycle_visibility_revision: LifecycleVisibilityRevision,
     pub(super) world_generation: WorldGeneration,
+    pub(super) detach_preparation_owner: super::transaction::DetachPreparationOwner,
     pub(super) scene_binding_generations: SceneBindingGenerations,
     pub(super) compiled_scene_property_access_diagnostics: CompiledScenePropertyAccessDiagnostics,
     pub(super) change_tick: ChangeTick,
@@ -198,6 +199,7 @@ impl Clone for World {
             archetype_assignment_counter: Default::default(),
             lifecycle_visibility_revision: self.lifecycle_visibility_revision,
             world_generation,
+            detach_preparation_owner: Default::default(),
             scene_binding_generations: self.scene_binding_generations.clone(),
             compiled_scene_property_access_diagnostics: Default::default(),
             change_tick: self.change_tick,
@@ -508,6 +510,7 @@ impl World {
             archetype_assignment_counter: Default::default(),
             lifecycle_visibility_revision: LifecycleVisibilityRevision::default(),
             world_generation: WorldGeneration::default(),
+            detach_preparation_owner: Default::default(),
             scene_binding_generations: SceneBindingGenerations::default(),
             compiled_scene_property_access_diagnostics: Default::default(),
             change_tick: default_change_tick(),
@@ -555,26 +558,8 @@ impl<'de> Deserialize<'de> for World {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{World, WorldPersistentState, WorldPersistentStateError};
-    use crate::scene::SceneError;
-
-    #[test]
-    fn persistent_state_retains_invalid_entity_allocator_diagnostics() {
-        let world = World::empty();
-        let mut state: WorldPersistentState =
-            serde_json::from_value(serde_json::to_value(world).expect("world serializes"))
-                .expect("serialized world decodes as persistent state");
-        state.next_id = u64::MAX;
-
-        assert!(matches!(
-            World::from_persistent_state(state),
-            Err(WorldPersistentStateError::Scene(
-                SceneError::EntityIdExhausted { entity: u64::MAX }
-            ))
-        ));
-    }
-}
+#[path = "tests/world.rs"]
+mod tests;
 
 fn default_change_tick() -> ChangeTick {
     ChangeTick::INITIAL

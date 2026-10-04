@@ -1,6 +1,7 @@
 mod animation;
 mod asset;
 mod camera;
+mod component;
 mod defaults;
 mod entity;
 mod extensions;
@@ -9,6 +10,7 @@ mod management;
 mod mesh;
 mod physics;
 mod post_process;
+mod render2d;
 mod transform;
 
 pub use animation::{
@@ -17,6 +19,7 @@ pub use animation::{
 };
 pub use asset::SceneAsset;
 pub use camera::{SceneCameraAsset, SceneCameraTargetAsset, SceneViewportRectAsset};
+pub use component::SceneComponentAssetRecord;
 pub use entity::SceneEntityAsset;
 pub use extensions::{SceneScriptBindingAsset, SceneTerrainAsset, SceneTileMapAsset};
 pub use lighting::{
@@ -41,6 +44,7 @@ pub use post_process::{
     ScenePostProcessVolumeProfileAsset, SceneTonemapOperatorAsset, SceneTonemapSettingsAsset,
     SceneVignetteSettingsAsset, SceneVolumetricFogSettingsAsset,
 };
+pub use render2d::{SceneMesh2dAsset, SceneSprite2dAsset};
 pub use transform::TransformAsset;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]

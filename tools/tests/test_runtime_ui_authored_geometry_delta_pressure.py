@@ -2,7 +2,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from tools.runtime_ui_authored_geometry_delta_pressure import (
+from tools.analysis.performance.runtime.runtime_ui_authored_geometry_delta_pressure import (
     SourceContractError,
     pressure_report,
     source_binding_report,
@@ -12,7 +12,7 @@ from tools.runtime_ui_authored_geometry_delta_pressure import (
 
 ROOT = Path(__file__).resolve().parents[2]
 
-
+# 以几何增量模型约束变更节点、裁剪扩张和拓扑遍历的范围，并核对运行时持久权威是否避免布局与命中结果克隆。
 class RuntimeUiAuthoredGeometryDeltaPressureTests(unittest.TestCase):
     def test_exact_geometry_patch_bounds_internal_domains_to_changed_nodes(self) -> None:
         result = pressure_report()

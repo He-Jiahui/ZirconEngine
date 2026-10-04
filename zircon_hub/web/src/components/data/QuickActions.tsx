@@ -7,11 +7,13 @@ import { Box, ButtonBase, Typography } from "@mui/material";
 import { hubTokens } from "../../theme/tokens";
 import type { HubQuickAction } from "../../types/hub";
 
+// 动作可用性由快照投影给出，页面回调负责携带明确目标并接入统一错误反馈；展示列表不选择项目。
 export interface QuickActionsProps {
   actions: HubQuickAction[];
   onAction?: (action: HubQuickAction) => void;
 }
 
+// 图标仅区分入口类别，未知图标的视觉回退不改变动作身份或授权。
 const actionIcons = {
   build: BuildIcon,
   device: PhoneIphoneIcon,
@@ -19,6 +21,7 @@ const actionIcons = {
   editor: OpenInNewIcon,
 };
 
+// 展示跨页面共用的快捷入口；可用标记只是当前快照的交互门禁，后端执行前仍须重验目标和环境。
 export function QuickActions({ actions, onAction }: QuickActionsProps) {
   return (
     <Box sx={{ display: "grid", gap: 0.75 }}>

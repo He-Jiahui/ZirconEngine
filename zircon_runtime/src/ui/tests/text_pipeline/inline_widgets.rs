@@ -1,7 +1,7 @@
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
-    layout::{UiPoint, UiSize},
+    layout::{UiMargin, UiPoint, UiSize},
     surface::UiRenderCommandKind,
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
@@ -97,6 +97,43 @@ fn rich_inline_widget_arranges_and_hits_the_real_direct_child() {
             ))
             .top_hit,
         Some(UiNodeId::new(2)),
+    );
+}
+
+#[test]
+fn rich_inline_widget_respects_owner_layout_padding() {
+    let mut surface = widget_surface("[widget=2|24x16]");
+    surface
+        .tree
+        .node_mut(UiNodeId::new(1))
+        .expect("inline widget owner")
+        .layout_padding = UiMargin::new(12.0, 7.0, 18.0, 9.0);
+
+    surface
+        .compute_layout(UiSize::new(240.0, 60.0))
+        .expect("inline widget layout with owner padding");
+
+    let frame = surface
+        .tree
+        .node(UiNodeId::new(2))
+        .expect("inline child")
+        .layout_cache
+        .frame;
+    assert!(
+        frame.x >= 12.0,
+        "the inline child must begin inside the owner's left padding"
+    );
+    assert!(
+        frame.y >= 7.0,
+        "the inline child must begin inside the owner's top padding"
+    );
+    assert!(
+        frame.right() <= 222.0,
+        "the inline child must stay inside the owner's right padding"
+    );
+    assert!(
+        frame.bottom() <= 51.0,
+        "the inline child must stay inside the owner's bottom padding"
     );
 }
 

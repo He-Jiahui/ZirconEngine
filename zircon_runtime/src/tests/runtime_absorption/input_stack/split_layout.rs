@@ -1,3 +1,4 @@
+//! 输入动作、手柄、宿主请求与公共契约保持由运行时输入栈拥有。通过源码文本核对父子路由、状态镜像和文件预算。
 const SLICE: &str = "Runtime 15 M3 input-stack absorption guard folder-backed split";
 const STATUS: &str =
     "runtime_15_input_stack_absorption_guard_folder_backed_static_passed_cargo_deferred";
@@ -22,6 +23,7 @@ const CHILD_PATHS: &[&str] = &[
     "input_stack/inventory/split_layout.rs",
 ];
 
+// BUG: [CR-RUNTIME-TESTS-ABS-0004] 当前被读子文件已经超过此处明示的行数上限；该测试执行行数断言时会失败；证据：行数预算与原始源码快照。
 #[test]
 fn runtime_15_input_stack_absorption_guard_is_folder_backed() {
     let parent = include_str!("../input_stack.rs");
@@ -113,7 +115,7 @@ fn runtime_15_input_stack_absorption_guard_is_folder_backed() {
         ),
         (
             "module convention doc",
-            include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md"),
+            include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md"),
         ),
     ] {
         assert_contains_all(label, source, &[SLICE, STATUS, GUARD, CHILD_PATHS[4]]);

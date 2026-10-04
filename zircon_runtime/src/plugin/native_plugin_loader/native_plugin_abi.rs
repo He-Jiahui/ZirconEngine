@@ -1,3 +1,6 @@
+//! 将已准入动态库的原生描述符和入口报告转换为宿主拥有的加载信息。
+//! 函数地址的长期寿命由加载代际和回调租约管理。
+
 use std::ffi::CString;
 use std::path::Path;
 
@@ -31,6 +34,7 @@ use super::plugin_load_error::{
     ENTRY_EXPORT_HINT,
 };
 
+/// 探测后的宿主副本；决定入口符号与请求能力，并供后续清单注册消费。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NativePluginDescriptor {
     pub abi_version: u32,
@@ -41,6 +45,7 @@ pub struct NativePluginDescriptor {
     pub requested_capabilities: Vec<String>,
 }
 
+/// 单个 runtime/editor 入口的结果；文本已复制，回调地址仍依赖动态库。
 #[derive(Clone, Debug)]
 pub struct NativePluginEntryReport {
     pub plugin_id: String,
@@ -61,6 +66,11 @@ type NativePluginEntryFnV3 = unsafe extern "C" fn(
     *const NativePluginHostFunctionTableV3,
 ) -> *const NativePluginEntryReportV3;
 
+/// 在动态库仍加载时探测固定 v3 导出，拒绝空指针与不一致的插件身份。
+///
+/// # Safety
+/// 导出函数须遵守 v3 签名；返回对象对齐、布局正确且转换期间保持可读和不变，
+/// 其中的 C 字符串在复制完成前有效。
 pub(super) unsafe fn probe_native_plugin_descriptor(
     library: &Library,
     library_path: &Path,
@@ -97,6 +107,12 @@ pub(super) unsafe fn probe_native_plugin_descriptor(
     NativePluginDescriptor::from_abi_v3(&*descriptor, plugin_id, library_path)
 }
 
+/// 调用描述符选出的模块入口，并把能力协商、行为和桥表转换为诊断结果。
+///
+/// # Safety
+/// 导出符号遵守 v3 签名；返回值至少有可读的 u32 epoch，匹配后提供对齐且
+/// 可读的完整报告，所有外部字段在转换期间不变；
+/// 插件不得在同步入口返回后保留宿主栈表指针。
 pub(super) unsafe fn call_native_plugin_entry(
     library: &Library,
     library_path: &Path,
@@ -152,6 +168,7 @@ pub(super) unsafe fn call_native_plugin_entry(
         host_log: Some(native_host_log_v3),
         host_diagnostic: Some(native_host_diagnostic_v3),
     };
+    // SAFETY: 表、授权文本和捕获句柄仅在本次同步入口调用内有效；插件不可保存表指针。
     let report = symbol(&host_functions);
     let callback_diagnostics = take_native_host_callback_diagnostics(host_handle);
     if report.is_null() {
@@ -163,6 +180,7 @@ pub(super) unsafe fn call_native_plugin_entry(
             ENTRY_EXPORT_HINT,
         ));
     }
+    // SAFETY: 非空报告按 ABI 至少提供一个可读 u32；检查 epoch 后才读取扩展布局。
     let layout_epoch = unsafe { report.cast::<u32>().read_unaligned() };
     if layout_epoch != ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH {
         return Err(PluginLoadError::contract_mismatch(
@@ -197,6 +215,10 @@ pub(super) unsafe fn call_native_plugin_entry(
 }
 
 impl NativePluginDescriptor {
+    /// 复制仍在加载中的描述符数据。
+    ///
+    /// # Safety
+    /// 非空字段指针须在本次转换期间可读、有效且以 NUL 结束。
     unsafe fn from_abi_v3(
         abi: &NativePluginAbiV3,
         expected_plugin_id: &str,
@@ -233,6 +255,8 @@ impl NativePluginDescriptor {
         Ok(Self {
             abi_version: abi.abi_version,
             plugin_id,
+            // TODO: [CR-PLUGIN-NATIVE-0602] 确认自报清单是否必须与已准入候选的身份和能力一致；
+            // 授权及桥注册读此副本，当前未见两个清单的完整字段对账。
             package_manifest: package_manifest_from_toml(
                 &read_optional_c_string(abi.package_manifest_toml).unwrap_or_default(),
                 "native plugin package manifest is invalid",
@@ -275,6 +299,10 @@ unsafe fn read_required_descriptor_field(
 }
 
 impl NativePluginEntryReport {
+    /// 转换入口报告，并将行为、编辑器贡献和桥表错误纳入同一加载阶段。
+    ///
+    /// # Safety
+    /// epoch 已核对；报告及行为、桥表均按对应布局对齐，非空字段在转换结束前有效。
     unsafe fn from_abi_v3(
         plugin_id: &str,
         module_kind: PluginModuleKind,
@@ -392,6 +420,7 @@ impl NativePluginEntryReport {
     }
 }
 
+/// 只有 editor 入口且声明匹配 schema 时解码贡献；包 ID 必须等于当前插件。
 fn editor_contribution_batch_from_behavior(
     plugin_id: &str,
     module_kind: PluginModuleKind,
@@ -439,6 +468,7 @@ fn editor_contribution_batch_from_behavior(
     Ok(Some(batch))
 }
 
+/// 对比插件必需或拒绝能力与宿主本次实际授权，为入口拒绝生成精确原因。
 fn capability_negotiation_details(
     required_capabilities: &[String],
     denied_capabilities: &[String],
@@ -467,149 +497,5 @@ fn entry_diagnostics(diagnostics: &str) -> Vec<String> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn editor_contribution_behavior(payload: &str) -> NativePluginBehavior {
-        NativePluginBehavior {
-            is_stateless: true,
-            state_schema_version: 0,
-            command_manifest_schema: None,
-            event_manifest_schema: None,
-            registration_manifest_schema: Some(
-                SERIALIZED_EDITOR_CONTRIBUTION_BATCH_SCHEMA_V1.to_string(),
-            ),
-            command_manifest: None,
-            event_manifest: None,
-            registration_manifest: Some(payload.to_string()),
-            command_table: None,
-            invoke_command: None,
-            save_state: None,
-            restore_state: None,
-            unload: None,
-        }
-    }
-
-    #[test]
-    fn native_entry_payload_error_preserves_granted_capability_source() {
-        let source = CString::new("native\0capability")
-            .expect_err("interior NUL should be rejected by CString");
-        let error = PluginLoadError::invalid_payload(
-            "fixture",
-            PluginLoadStage::RuntimeEntry,
-            "granted_capabilities",
-            Path::new("fixture.dll"),
-            ABI_CONTRACT_HINT,
-            source,
-        );
-
-        assert!(std::error::Error::source(&error).is_some());
-    }
-
-    #[test]
-    fn native_entry_contract_error_preserves_expected_and_actual_versions() {
-        let error = PluginLoadError::contract_mismatch(
-            "fixture",
-            PluginLoadStage::RuntimeEntry,
-            "entry_report.layout_epoch",
-            ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH.to_string(),
-            "3",
-            Path::new("fixture.dll"),
-            ABI_CONTRACT_HINT,
-        );
-
-        let message = error.to_string();
-        assert!(message.contains(&format!(
-            "expected {}, actual 3",
-            ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH
-        )));
-        assert!(std::error::Error::source(&error).is_none());
-    }
-
-    #[test]
-    fn capability_negotiation_reports_missing_required_and_granted_denied_details() {
-        let required = vec![
-            "runtime.required".to_string(),
-            "runtime.available".to_string(),
-        ];
-        let denied = vec!["runtime.denied".to_string(), "runtime.absent".to_string()];
-        let granted = vec![
-            "runtime.available".to_string(),
-            "runtime.denied".to_string(),
-        ];
-
-        let (missing_required, denied) =
-            capability_negotiation_details(&required, &denied, &granted);
-
-        assert_eq!(missing_required, vec!["runtime.required"]);
-        assert_eq!(denied, vec!["runtime.denied"]);
-    }
-
-    #[test]
-    fn editor_contribution_batch_decodes_valid_editor_payload() {
-        let behavior = editor_contribution_behavior(
-            r#"{
-                "package_id": "fixture.editor",
-                "contributions": [{
-                    "kind": "view",
-                    "id": "fixture.editor.view",
-                    "schema": "zircon.editor.view/1",
-                    "title": "Fixture",
-                    "category": "Tests"
-                }]
-            }"#,
-        );
-
-        let batch = editor_contribution_batch_from_behavior(
-            "fixture.editor",
-            PluginModuleKind::Editor,
-            Path::new("fixture.dll"),
-            Some(&behavior),
-        )
-        .expect("valid editor contribution payload should decode")
-        .expect("editor contribution schema should produce a batch");
-
-        assert_eq!(batch.package_id(), "fixture.editor");
-        assert_eq!(
-            batch.contributions()[0].key(),
-            ("view", "fixture.editor.view")
-        );
-    }
-
-    #[test]
-    fn editor_contribution_batch_rejects_package_mismatch() {
-        let behavior = editor_contribution_behavior(
-            r#"{
-                "package_id": "foreign.plugin",
-                "contributions": []
-            }"#,
-        );
-
-        let error = editor_contribution_batch_from_behavior(
-            "fixture.editor",
-            PluginModuleKind::Editor,
-            Path::new("fixture.dll"),
-            Some(&behavior),
-        )
-        .expect_err("foreign package payload must be rejected");
-
-        assert!(error
-            .to_string()
-            .contains("editor_contribution_batch.package_id"));
-    }
-
-    #[test]
-    fn editor_contribution_batch_is_ignored_for_non_editor_entries() {
-        let behavior = editor_contribution_behavior("not JSON");
-
-        let batch = editor_contribution_batch_from_behavior(
-            "fixture.runtime",
-            PluginModuleKind::Runtime,
-            Path::new("fixture.dll"),
-            Some(&behavior),
-        )
-        .expect("runtime entries must not parse an editor-only payload");
-
-        assert!(batch.is_none());
-    }
-}
+#[path = "tests/native_plugin_abi.rs"]
+mod tests;

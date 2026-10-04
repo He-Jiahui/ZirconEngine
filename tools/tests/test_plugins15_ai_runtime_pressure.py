@@ -1,17 +1,21 @@
 import unittest
 from pathlib import Path
 
-from tools.plugins15_ai_runtime_pressure import run
+from tools.analysis.performance.plugins.plugins15_ai_runtime_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
 SNAPSHOT = ROOT / "zircon_plugins/ai/runtime/src/manager/snapshot.rs"
+SNAPSHOT_TESTS = SNAPSHOT.parent / "tests/snapshot_optimization_tests.rs"
 STATE = ROOT / "zircon_plugins/ai/runtime/src/manager/state.rs"
+STATE_TESTS = STATE.parent / "tests/state_optimization_tests.rs"
 SCAN = ROOT / "zircon_plugins/ai/runtime/src/perception/scan.rs"
+SCAN_TESTS = SCAN.parent / "tests/scan_sampling_tests.rs"
 STIMULI = ROOT / "zircon_plugins/ai/runtime/src/perception/stimuli.rs"
-BATCH_VALIDATOR = ROOT / "tools/zircon-validation-plugins15-ai-runtime-batch.ps1"
+STIMULI_TESTS = STIMULI.parent / "tests/stimuli_ordered_snapshot_tests.rs"
+BATCH_VALIDATOR = ROOT / "tools/analysis/validation/zircon-validation-plugins15-ai-runtime-batch.ps1"
 
-
+# 调用 AI 运行时压力模型，核对编译树代际避免深层目录克隆，且有序刺激输入无需快照排序。
 class Plugins15AiRuntimePressureTests(unittest.TestCase):
     def test_compiled_tree_generation_eliminates_deep_catalog_clones(self) -> None:
         compiled = run()["compiled_tree_generation"]
@@ -52,8 +56,8 @@ class Plugins15AiRuntimePressureTests(unittest.TestCase):
         source = STATE.read_text(encoding="utf-8")
 
         self.assertIn("compiled_behavior_tree_generation: Arc<[CompiledBehaviorTree]>", source)
-        self.assertIn("immutable_compiled_tree_generation_release_benchmark_evidence", source)
-        self.assertIn("optimized_p95.saturating_mul(10) <= legacy_p95", source)
+        self.assertIn("immutable_compiled_tree_generation_release_benchmark_evidence", STATE_TESTS.read_text(encoding="utf-8"))
+        self.assertIn("optimized_p95.saturating_mul(10) <= legacy_p95", STATE_TESTS.read_text(encoding="utf-8"))
 
     def test_ordered_stimuli_source_keeps_sort_free_snapshot(self) -> None:
         source = STIMULI.read_text(encoding="utf-8")
@@ -61,7 +65,7 @@ class Plugins15AiRuntimePressureTests(unittest.TestCase):
 
         self.assertIn("BTreeMap<StimulusKey, AiPerceptionStimulus>", source)
         self.assertNotIn("sort_by", snapshot)
-        self.assertIn("PERF_RESULT plugins15_ordered_perception_stimuli", source)
+        self.assertIn("PERF_RESULT plugins15_ordered_perception_stimuli", STIMULI_TESTS.read_text(encoding="utf-8"))
 
     def test_sampling_source_keeps_single_projection_collector(self) -> None:
         source = SCAN.read_text(encoding="utf-8")
@@ -71,14 +75,14 @@ class Plugins15AiRuntimePressureTests(unittest.TestCase):
 
         self.assertEqual(collector.count(".node_records()"), 1)
         self.assertNotIn("sort_by", collector)
-        self.assertIn("PERF_RESULT plugins15_single_pass_perception_sampling", source)
+        self.assertIn("PERF_RESULT plugins15_single_pass_perception_sampling", SCAN_TESTS.read_text(encoding="utf-8"))
 
     def test_targeted_snapshot_source_keeps_bounded_release_gate(self) -> None:
         source = SNAPSHOT.read_text(encoding="utf-8")
 
         self.assertIn("build_agent_runtime_snapshots", source)
-        self.assertIn("PERF_RESULT plugins15_targeted_debug_snapshot", source)
-        self.assertIn("optimized_p95.saturating_mul(4) <= legacy_p95", source)
+        self.assertIn("PERF_RESULT plugins15_targeted_debug_snapshot", SNAPSHOT_TESTS.read_text(encoding="utf-8"))
+        self.assertIn("optimized_p95.saturating_mul(4) <= legacy_p95", SNAPSHOT_TESTS.read_text(encoding="utf-8"))
 
     def test_batch_validator_runs_four_exact_release_benchmarks(self) -> None:
         source = BATCH_VALIDATOR.read_text(encoding="utf-8")

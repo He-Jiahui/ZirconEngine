@@ -22,7 +22,7 @@ def collect_body() -> str:
     text = source().split("pub(super) fn collect_pending_updates", 1)[1]
     return text.split("fn has_pending_ancestor_update", 1)[0]
 
-
+# 读取待处理条目更新路径，确认高开销排序键每项只计算一次，旧式重复比较已移除。
 class Plugins19CachedPendingSortKeysContract(unittest.TestCase):
     def test_pending_updates_cache_the_expensive_sort_key_once_per_item(self) -> None:
         body = compact(collect_body())

@@ -1,17 +1,21 @@
-use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 use std::fmt;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use zircon_runtime_interface::ui::surface::{UiResolvedTextLayout, UiResolvedTextLine};
 
-use crate::core::framework::text::{TextFontFaceHandle, TextGlyph};
-use crate::text::font::{
-    FontCollectionSnapshot, FontHandleResolverSnapshot, resolve_font_handle_batch_from_snapshot,
+use crate::core::framework::text::{
+    TextFontFaceHandle, TextGlyph, TextGlyphRasterError, TextGlyphRasterReceipt,
+    TextGlyphRasterRequest,
 };
+use crate::text::font::{
+    resolve_font_handle_batch_from_snapshot, FontCollectionSnapshot, FontHandleResolverSnapshot,
+};
+use crate::text::raster::RuntimeGlyphRasterFace;
 use crate::text::{
-    ResolvedTextGlyphArtifact, VariationCoords, resolve_resolved_text_glyph_artifact,
-    resolved_text_line_requires_visual_fallback,
+    resolve_resolved_text_glyph_artifact, ResolvedTextGlyphArtifact, VariationCoords,
 };
 
 /// A runtime-owned, zero-copy visual glyph line that is valid only for its matching resolved layout.
@@ -237,10 +241,16 @@ impl UiResolvedTextGlyphArtifactLine {
                 }
                 _ => return None,
             };
+            let metadata = snapshot
+                .font_collection
+                .database()
+                .face_receipt_metadata(face)
+                .ok()?;
             faces.push(UiTextGlyphArtifactRasterFace {
                 font_face,
                 font_instance,
                 font_generation: self.font_generation(),
+                font_collection: snapshot.font_collection.clone(),
                 bytes: snapshot.font_collection.database().face_bytes(face).ok()?,
                 collection_index: snapshot.font_collection.database().face_index(face).ok()?,
                 source_identity: snapshot
@@ -248,6 +258,14 @@ impl UiResolvedTextGlyphArtifactLine {
                     .database()
                     .face_source_identity(face)
                     .ok()?,
+                receipt: UiTextGlyphArtifactRasterFaceReceipt {
+                    family_name: metadata.family_name,
+                    postscript_name: metadata.postscript_name,
+                    face_index: metadata.face_index,
+                    resource_path: metadata.resource_path,
+                    resource_sha256: metadata.resource_sha256,
+                    raster_sha256: metadata.raster_sha256,
+                },
                 variations,
             });
         }
@@ -293,10 +311,27 @@ pub struct UiTextGlyphArtifactRasterFace {
     font_face: TextFontFaceHandle,
     font_instance: Option<TextFontFaceHandle>,
     font_generation: u64,
+    font_collection: FontCollectionSnapshot,
     bytes: Arc<[u8]>,
     collection_index: u32,
     source_identity: [u8; 16],
+    receipt: UiTextGlyphArtifactRasterFaceReceipt,
     variations: Option<VariationCoords>,
+}
+
+/// Facts parsed from the exact admitted face and byte source used by this raster face.
+///
+/// Optional names and resource identity remain absent when the source admission did not prove
+/// them. `raster_sha256` fingerprints the exact SFNT/TTC bytes passed to the raster service;
+/// `resource_sha256` fingerprints the raw resource file when admission retained that evidence.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UiTextGlyphArtifactRasterFaceReceipt {
+    pub family_name: Option<String>,
+    pub postscript_name: Option<String>,
+    pub face_index: u32,
+    pub resource_path: Option<PathBuf>,
+    pub resource_sha256: Option<[u8; 32]>,
+    pub raster_sha256: [u8; 32],
 }
 
 impl UiTextGlyphArtifactRasterFace {
@@ -330,6 +365,39 @@ impl UiTextGlyphArtifactRasterFace {
     /// The effective variation coordinates recorded by shaping, when an instance was selected.
     pub fn variations(&self) -> Option<&VariationCoords> {
         self.variations.as_ref()
+    }
+
+    /// Verified names and fingerprints for this exact admitted raster face.
+    pub fn font_receipt(&self) -> &UiTextGlyphArtifactRasterFaceReceipt {
+        &self.receipt
+    }
+
+    /// Rasterizes through the service owned by this exact font collection.
+    pub fn rasterize_glyph(
+        &self,
+        request: TextGlyphRasterRequest,
+    ) -> Result<TextGlyphRasterReceipt, TextGlyphRasterError> {
+        let service = self.font_collection.service();
+        if service.generation() != self.font_generation {
+            return Err(TextGlyphRasterError::StaleFontGeneration);
+        }
+        let receipt = service.glyph_raster_service().rasterize(
+            RuntimeGlyphRasterFace {
+                font_collection: self.font_face.collection,
+                font_face: self.font_face,
+                font_instance: self.font_instance,
+                font_generation: self.font_generation,
+                source_identity: self.source_identity,
+                bytes: self.bytes.as_ref(),
+                collection_index: self.collection_index as usize,
+                variations: self.variations.as_ref(),
+            },
+            request,
+        )?;
+        if service.generation() != self.font_generation {
+            return Err(TextGlyphRasterError::StaleFontGeneration);
+        }
+        Ok(receipt)
     }
 }
 
@@ -376,24 +444,35 @@ impl UiTextGlyphArtifactRasterFaces {
 
 /// Borrows one exact resolved-layout line from its runtime-owned glyph artifact without cloning glyphs.
 ///
-/// A missing artifact, synthetic line, changed line DTO, or a generation race while acquiring the
-/// initial lease returns `None`. Callers must use their established fallback path in those cases.
+/// A missing artifact, changed line DTO, incomplete projected line, or generation race while
+/// acquiring the initial lease returns `None`. Ellipsized and other generated visual runs are
+/// admitted only when the Runtime artifact owner already published their exact raster glyphs.
 pub fn resolved_text_glyph_artifact_line(
     layout: &UiResolvedTextLayout,
     line_index: usize,
 ) -> Option<UiResolvedTextGlyphArtifactLine> {
-    let layout_line = layout.lines.get(line_index)?;
-    if resolved_text_line_requires_visual_fallback(layout_line) {
+    let Some(layout_line) = layout.lines.get(line_index) else {
+        record_artifact_line_lookup(ArtifactLineLookupOutcome::MissingLayoutLine);
         return None;
-    }
-    let artifact = layout
+    };
+    let Some(artifact) = layout
         .rich_text_artifact
         .as_ref()
-        .and_then(resolve_resolved_text_glyph_artifact)?;
-    let artifact_line = artifact.lines.get(line_index)?.as_ref()?;
-    if artifact.font_generation != artifact.font_lease.generation()
-        || artifact_line.layout_line != *layout_line
-    {
+        .and_then(resolve_resolved_text_glyph_artifact)
+    else {
+        record_artifact_line_lookup(ArtifactLineLookupOutcome::MissingArtifact);
+        return None;
+    };
+    let Some(artifact_line) = artifact.lines.get(line_index).and_then(Option::as_ref) else {
+        record_artifact_line_lookup(ArtifactLineLookupOutcome::MissingArtifactLine);
+        return None;
+    };
+    if artifact.font_generation != artifact.font_lease.generation() {
+        record_artifact_line_lookup(ArtifactLineLookupOutcome::StaleFontGeneration);
+        return None;
+    }
+    if artifact_line.layout_line != *layout_line {
+        record_artifact_line_lookup(ArtifactLineLookupOutcome::LayoutLineMismatch);
         return None;
     }
     let font_collection = artifact.font_lease.font_collection().clone();
@@ -415,8 +494,10 @@ pub fn resolved_text_glyph_artifact_line(
     if requires_font_handles
         && (!handles_match_collection || !font_handles.matches_font_collection(&font_collection))
     {
+        record_artifact_line_lookup(ArtifactLineLookupOutcome::FontHandleMismatch);
         return None;
     }
+    record_artifact_line_lookup(ArtifactLineLookupOutcome::Hit);
     Some(UiResolvedTextGlyphArtifactLine {
         artifact,
         line_index,
@@ -425,5 +506,42 @@ pub fn resolved_text_glyph_artifact_line(
     })
 }
 
+#[derive(Clone, Copy)]
+enum ArtifactLineLookupOutcome {
+    MissingLayoutLine,
+    MissingArtifact,
+    MissingArtifactLine,
+    StaleFontGeneration,
+    LayoutLineMismatch,
+    FontHandleMismatch,
+    Hit,
+}
+
+fn record_artifact_line_lookup(outcome: ArtifactLineLookupOutcome) {
+    let name = match outcome {
+        ArtifactLineLookupOutcome::MissingLayoutLine => {
+            "text_artifact_line_lookup_missing_layout_line_count"
+        }
+        ArtifactLineLookupOutcome::MissingArtifact => {
+            "text_artifact_line_lookup_missing_artifact_count"
+        }
+        ArtifactLineLookupOutcome::MissingArtifactLine => {
+            "text_artifact_line_lookup_missing_projected_line_count"
+        }
+        ArtifactLineLookupOutcome::StaleFontGeneration => {
+            "text_artifact_line_lookup_stale_font_generation_count"
+        }
+        ArtifactLineLookupOutcome::LayoutLineMismatch => {
+            "text_artifact_line_lookup_layout_line_mismatch_count"
+        }
+        ArtifactLineLookupOutcome::FontHandleMismatch => {
+            "text_artifact_line_lookup_font_handle_mismatch_count"
+        }
+        ArtifactLineLookupOutcome::Hit => "text_artifact_line_lookup_hit_count",
+    };
+    crate::profile_counter!("runtime", name, 1);
+}
+
 #[cfg(test)]
+#[path = "text_artifact/tests/cases.rs"]
 mod tests;

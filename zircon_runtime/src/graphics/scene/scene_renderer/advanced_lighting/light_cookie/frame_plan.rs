@@ -26,6 +26,8 @@ pub(crate) struct CookieAtlasEntry {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+/// 一帧内供光缓冲和图集绘制共用的槽位映射；按光 ID 排序后允许二分查找。
+/// 超过 8×8 图集容量的候选不会获得槽位。
 pub(crate) struct CookieFramePlan {
     entries: Vec<CookieAtlasEntry>,
 }
@@ -43,6 +45,8 @@ impl CookieFramePlan {
     }
 }
 
+/// 对重复光 ID 采用输入中最后一次声明，随后按 ID 分配稳定图集槽位。
+/// `lighting::light_buffer` 与图集重建必须使用相同的输入顺序和规则。
 pub(crate) fn build_cookie_frame_plan(cookies: &[LightCookieData]) -> CookieFramePlan {
     let mut indexed = Vec::with_capacity(cookies.len());
     indexed.extend(cookies.iter().enumerate());
@@ -111,55 +115,9 @@ const fn wrap_mode(mode: CookieWrapMode) -> u32 {
 }
 
 #[cfg(test)]
+#[path = "frame_plan/tests/performance_tests.rs"]
 mod performance_tests;
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn cookie_frame_plan_is_sorted_deduplicated_and_uses_fixed_atlas_cells() {
-        let texture_a = ResourceId::from_stable_label("runtime://cookie/a");
-        let texture_b = ResourceId::from_stable_label("runtime://cookie/b");
-        let plan = build_cookie_frame_plan(&[
-            LightCookieData {
-                light_id: 9,
-                texture: texture_a,
-                projection: CookieProjection::Spot,
-            },
-            LightCookieData {
-                light_id: 3,
-                texture: texture_b,
-                projection: CookieProjection::PointOctahedral,
-            },
-            LightCookieData {
-                light_id: 9,
-                texture: texture_b,
-                projection: CookieProjection::Directional {
-                    offset: Vec2::new(0.25, 0.5),
-                    scale: Vec2::new(2.0, 3.0),
-                    wrap: CookieWrapMode::Repeat,
-                },
-            },
-        ]);
-
-        assert_eq!(plan.entries().len(), 2);
-        assert_eq!(plan.entries()[0].light_id, 3);
-        assert_eq!(plan.entries()[1].light_id, 9);
-        assert_eq!(plan.entries()[0].slot, 0);
-        assert_eq!(plan.entries()[1].slot, 1);
-        assert_eq!(plan.entries()[0].metadata.uv_rect, [0.0, 0.0, 0.125, 0.125]);
-        assert_eq!(
-            plan.entries()[1].metadata.uv_rect,
-            [0.125, 0.0, 0.125, 0.125]
-        );
-        assert_eq!(
-            plan.entries()[1].metadata.misc,
-            [COOKIE_PROJECTION_DIRECTIONAL, 1, 0, 0]
-        );
-        assert_eq!(
-            plan.entries()[1].metadata.directional_offset_scale,
-            [0.25, 0.5, 2.0, 3.0]
-        );
-    }
-}
+#[path = "tests/frame_plan.rs"]
+mod tests;

@@ -13,7 +13,7 @@
 
 - `zircon_runtime/src/asset/importer/ingest/import_shader_package.rs`
 - `zircon_runtime/src/asset/importer/ingest/import_shader_package/generated_material_anchor_hint.rs`
-- `docs/zircon_runtime/asset/importer/ingest/import-shader-package.md`
+- `docs/crates/zircon_runtime/asset/importer/ingest/import-shader-package.md`
 
 The implementation deliberately keeps the hint in importer diagnostics. It does not
 change the module registry, generated material ABI, shader variant key, or assembled

@@ -12,20 +12,20 @@ pub use style::{RichTextFormat, TextAlign, TextWrap};
 
 pub use rich::{
     InlineBaseline, InlineObjectRef, LaidOutLine, LaidOutText, LayoutItem, LinkRef,
-    MAX_RICH_TABLE_ROW_SPAN, ParagraphOverride, RichIconAssetId, RichInlineWidgetSlotId,
-    RichListItem, RichListItemKind, RichOrderedListMarker, RichParseResult, RichTable,
-    RichTableCell, RichTableCellBoxStyle, RichTableCellPadding, RichTableColumn,
-    RichTextAuthoringDiagnostic, RichTextAuthoringDiagnosticCode,
-    RichTextAuthoringDiagnosticSeverity, RichTextAuthoringRecovery, StyleOverride, StyledRun,
+    ParagraphOverride, RichIconAssetId, RichInlineWidgetSlotId, RichListItem, RichListItemKind,
+    RichOrderedListMarker, RichParseResult, RichTable, RichTableCell, RichTableCellBoxStyle,
+    RichTableCellPadding, RichTableColumn, RichTextAuthoringDiagnostic,
+    RichTextAuthoringDiagnosticCode, RichTextAuthoringDiagnosticSeverity,
+    RichTextAuthoringRecovery, StyleOverride, StyledRun, MAX_RICH_TABLE_ROW_SPAN,
 };
 pub(crate) use shaped_run::BackendShapeRequest;
 pub(crate) use shaped_run::HorizontalGlyphMetricSpan;
 pub(crate) use shaped_run::HorizontalLineRawMetrics;
 pub use shaped_run::{
-    Iso15924Tag, LineBreakTailoringProfile, OpenTypeFeature, ShapedGlyph, ShapedGlyphBreakSafety,
-    ShapedGlyphClusterFlags, ShapedGlyphLineBreakOpportunity, ShapedGlyphLineBreakReceipt,
-    ShapedGlyphRotation, ShapedGlyphRun, ShapedGlyphScript, ShapedHardLine, TextOrientation,
-    VerticalGlyphDecision, VerticalMode, normalized_open_type_features,
+    normalized_open_type_features, Iso15924Tag, LineBreakTailoringProfile, OpenTypeFeature,
+    ShapedGlyph, ShapedGlyphBreakSafety, ShapedGlyphClusterFlags, ShapedGlyphLineBreakOpportunity,
+    ShapedGlyphLineBreakReceipt, ShapedGlyphRotation, ShapedGlyphRun, ShapedGlyphScript,
+    ShapedHardLine, TextOrientation, VerticalGlyphDecision, VerticalMode,
 };
 pub(crate) use shaping_receipt::{TextFontResolutionReport, TextShapingRequestDiagnostics};
 pub use shaping_receipt::{

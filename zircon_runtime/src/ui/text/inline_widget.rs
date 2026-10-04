@@ -6,6 +6,7 @@ use zircon_runtime_interface::ui::{
     surface::{UiResolvedTextLayout, UiTextWritingMode},
 };
 
+use crate::text::layout_geometry::{finite_f32_or_geometry, finite_sum, FiniteGeometryAccumulator};
 use crate::text::{CompiledRichText, InlineObjectRef, RichInlineWidgetSlotId};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -94,6 +95,7 @@ pub(crate) fn inline_widget_layout_from_compiled(
     }
 
     Some(UiInlineWidgetLayout {
+        // 声明唯一性决定绑定有效性；没有唯一可见片段时仍保留有效绑定，交给布局层隐藏子树。
         bindings: states
             .into_iter()
             .map(|state| UiInlineWidgetBinding {
@@ -115,7 +117,7 @@ fn resolve_visible_widget_frames(
     for line in &layout.lines {
         let mut graphemes = line.text.grapheme_indices(true).peekable();
         let mut advance_index = 0_usize;
-        let mut main_offset = 0.0_f32;
+        let mut main_offset = FiniteGeometryAccumulator::default();
 
         for run in &line.runs {
             let Some(offset) = advance_to_visual_start(
@@ -154,7 +156,7 @@ fn advance_to_visual_start<'a>(
     graphemes: &mut std::iter::Peekable<unicode_segmentation::GraphemeIndices<'a>>,
     advances: &[f32],
     advance_index: &mut usize,
-    main_offset: &mut f32,
+    main_offset: &mut FiniteGeometryAccumulator,
     visual_start: usize,
     text_len: usize,
 ) -> Option<f32> {
@@ -163,14 +165,18 @@ fn advance_to_visual_start<'a>(
         .is_some_and(|(start, _)| *start < visual_start)
     {
         let _ = graphemes.next();
-        *main_offset += advances.get(*advance_index).copied()?;
+        let advance = advances.get(*advance_index).copied()?;
+        if !advance.is_finite() {
+            return None;
+        }
+        main_offset.add(advance);
         *advance_index = (*advance_index).saturating_add(1);
     }
     let at_boundary = graphemes
         .peek()
         .is_some_and(|(start, _)| *start == visual_start)
         || visual_start == text_len;
-    at_boundary.then_some(*main_offset)
+    at_boundary.then(|| main_offset.value())
 }
 
 fn widget_frame(
@@ -181,16 +187,19 @@ fn widget_frame(
     writing_mode: UiTextWritingMode,
 ) -> UiFrame {
     if matches!(writing_mode, UiTextWritingMode::VerticalRl) {
+        let x_candidate = line_frame.x + (line_frame.width - size.x) * 0.5;
+        let x_exact =
+            f64::from(line_frame.x) + (f64::from(line_frame.width) - f64::from(size.x)) * 0.5;
         UiFrame::new(
-            line_frame.x + (line_frame.width - size.x) * 0.5,
-            line_frame.y + main_offset,
+            finite_f32_or_geometry(x_candidate, x_exact),
+            finite_sum([line_frame.y, main_offset]),
             size.x,
             size.y,
         )
     } else {
         UiFrame::new(
-            line_frame.x + main_offset,
-            line_frame.y + baseline - size.y,
+            finite_sum([line_frame.x, main_offset]),
+            finite_sum([line_frame.y, baseline, -size.y]),
             size.x,
             size.y,
         )
@@ -198,38 +207,5 @@ fn widget_frame(
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::text::{RichTextFormat, RichTextParser};
-
-    use super::*;
-
-    #[test]
-    fn duplicate_widget_ids_publish_one_invalid_binding() {
-        let compiled = RichTextParser::default()
-            .compile("[widget=7|12x10][widget=7|12x10]", RichTextFormat::BbCodeV1)
-            .expect("test rich source fits parser budgets");
-
-        let directory =
-            inline_widget_layout_from_compiled(&compiled, None).expect("widget binding directory");
-
-        assert_eq!(directory.bindings().len(), 1);
-        assert_eq!(directory.bindings()[0].slot, RichInlineWidgetSlotId::new(7));
-        assert!(!directory.bindings()[0].valid);
-        assert_eq!(directory.bindings()[0].frame, None);
-    }
-
-    #[test]
-    fn omitted_widget_keeps_a_valid_binding_without_visible_geometry() {
-        let compiled = RichTextParser::default()
-            .compile("[widget=7|12x10]", RichTextFormat::BbCodeV1)
-            .expect("test rich source fits parser budgets");
-
-        let directory =
-            inline_widget_layout_from_compiled(&compiled, Some(&UiResolvedTextLayout::default()))
-                .expect("omitted widget binding directory");
-
-        assert_eq!(directory.bindings().len(), 1);
-        assert!(directory.bindings()[0].valid);
-        assert_eq!(directory.bindings()[0].frame, None);
-    }
-}
+#[path = "tests/inline_widget.rs"]
+mod tests;

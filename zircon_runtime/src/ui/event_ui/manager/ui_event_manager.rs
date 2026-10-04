@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use crossbeam_channel::Sender;
 
@@ -15,6 +15,6 @@ pub struct UiEventManager {
     pub(super) routes_by_id: BTreeMap<UiRouteId, RouteEntry>,
     pub(super) routes_by_binding: BTreeMap<String, UiRouteId>,
     pub(super) trees: BTreeMap<UiTreeId, UiReflectionSnapshot>,
-    pub(super) node_index: BTreeMap<UiNodePath, (UiTreeId, UiNodeId)>,
+    pub(super) node_index: HashMap<UiNodePath, (UiTreeId, UiNodeId)>,
     pub(super) subscriptions: BTreeMap<UiSubscriptionId, Sender<UiNotification>>,
 }

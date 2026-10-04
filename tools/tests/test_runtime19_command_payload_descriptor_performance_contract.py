@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+# 命令载荷描述符由生成器维护有序唯一目录，运行时按二分查找且不分配；检查发布基准是否输出实际性能样本。
 import re
 import unittest
 from pathlib import Path

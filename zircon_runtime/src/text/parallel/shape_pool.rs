@@ -6,13 +6,13 @@ use std::{collections::HashMap, sync::Arc, time::Instant};
 use std::collections::HashSet;
 
 use crate::core::framework::text::TextDirection;
-use crate::core::runtime::tasks::{TaskPool, parallel_for};
+use crate::core::runtime::tasks::{parallel_for, TaskPool};
 use crate::text::cache::{ShapedRunCache, ShapedRunCacheKey, ShapedRunCacheLookupKey};
-use crate::text::font::FontCollectionService;
 #[cfg(test)]
 use crate::text::font::shared_font_collection_service;
+use crate::text::font::FontCollectionService;
 use crate::text::layout_session::{
-    GenerationTaggedShapedRun, shape_request_with_generation_outcome_in_font_collection,
+    shape_request_with_generation_outcome_in_font_collection, GenerationTaggedShapedRun,
 };
 use crate::text::shaping::{
     TextShapingDiagnosticsReport, TextShapingFailure, TextShapingOutcome, TextShapingWorkBudget,
@@ -528,5 +528,5 @@ fn finish_pending_shape_job_in_font_collection(
 }
 
 #[cfg(test)]
-#[path = "shape_pool/tests.rs"]
+#[path = "shape_pool/tests/cases.rs"]
 mod tests;

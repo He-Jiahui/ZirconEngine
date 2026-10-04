@@ -16,7 +16,7 @@ related_code:
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/index.md
   - docs/plans/zircon_runtime/runtime/01-tech-stack-and-dependency-governance.md
-  - docs/engine-architecture/workspace-root-rules-and-hard-cutover.md
+  - docs/architecture/workspace-root-rules-and-hard-cutover.md
 reference_engines:
   - dev/bevy/crates/bevy_internal
   - dev/bevy/crates/bevy_dylib
@@ -388,7 +388,7 @@ facade   zircon_runtime 门面：builtin 组装、plugin 加载、dynamic_api、
   另执行 resource public-API/rustdoc seal 与 literal-path hard-cut guard，全量 lib 回归留给波次收口（policy §4）
 - 插件工作区防回归：`cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --all-targets --locked`
 - 验收证据：以上命令通过；`grep` 证明无 `path = "src/core/framework"` 类残留与迁移桥；增量基线复测记录。
-- 文档更新：`docs/zircon_runtime/` 受影响模块文档的 `related_code` 路径、本文件状态表，以及
+- 文档更新：`docs/crates/zircon_runtime/` 受影响模块文档的 `related_code` 路径、本文件状态表，以及
   `frameworks/{index.md,architecture-overview.md}` 中 layer-0 math/resource implementation 分类与 owner 描述；
   该规范同步是物理迁移前置，不得延迟到代码迁移后的验收清理。
 
@@ -424,12 +424,12 @@ facade   zircon_runtime 门面：builtin 组装、plugin 加载、dynamic_api、
 - 依赖验收：`cargo tree -p zr_text` 不含完整 `wgpu`、`naga`、`glyphon`；text GPU backend
   只存在于 `zr_graphics`/`zr_rhi_wgpu`，`zr_text <-> zr_graphics` 循环计数为 0；
   `cargo tree -p zr_operation` 只包含批准的 kernel/contracts/scene/interface 支撑边。
-- 文档更新：`docs/engine-architecture/` 相关文档补 crate 拓扑章节；`CLAUDE.md` workspace layout 段。
+- 文档更新：`docs/architecture/` 相关文档补 crate 拓扑章节；`CLAUDE.md` workspace layout 段。
 
 ### M4 dynamic_linking 开发模式与依赖治理收口
 
 实现切片：
-- 新增 `zr_dylib` 成员 crate 与门面 `dynamic_linking` feature（bevy_dylib 模式），`tools/dev-fast-build.ps1` 增加开关；
+- 新增 `zr_dylib` 成员 crate 与门面 `dynamic_linking` feature（bevy_dylib 模式），`tools/dev/dev-fast-build.ps1` 增加开关；
 - 依赖治理：workspace 依赖全部收敛 `[workspace.dependencies]` 单源；引入 `cargo-deny`（license/duplicate/advisory）配置文件，接入计划 06 CI。
 - 在首次 `cargo deny check` 前处理当前三个 prerelease pin：优先升级到兼容的 stable
   `notify`/`winit`/`zip`；若上游尚无可用 stable，只允许 exact-version、带 owner/原因/到期日期与

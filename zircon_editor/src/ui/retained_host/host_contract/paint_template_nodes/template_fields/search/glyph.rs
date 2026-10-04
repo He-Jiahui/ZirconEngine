@@ -1,3 +1,5 @@
+//! 搜索前缀与清除动作走统一图标资产入口；几何框放不下时省略图标以免越出字段。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_icon_assets::push_icon_asset_pixels;
@@ -34,6 +36,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
     );
 }
 
+/// 只在搜索字段声明清除动作且已有非空值时输出；资产图标框来自可点击动作几何。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_search_field_clear_glyph(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
@@ -74,27 +77,5 @@ fn search_icon_rect(rect: &FrameRect) -> Option<FrameRect> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn search_icon_preserves_fractional_post_dpi_origin() {
-        let rect = FrameRect {
-            x: 10.25,
-            y: 20.5,
-            width: 160.0,
-            height: 31.25,
-        };
-        let metrics = workbench_field_metrics();
-
-        let icon = search_icon_rect(&rect).expect("search icon frame");
-
-        assert_eq!(icon.x, rect.x + metrics.input_pad_left);
-        assert_eq!(
-            icon.y,
-            rect.y + (rect.height - metrics.search_icon_size).max(0.0) * 0.5
-        );
-        assert_ne!(icon.x.fract(), 0.0);
-        assert_ne!(icon.y.fract(), 0.0);
-    }
-}
+#[path = "tests/glyph.rs"]
+mod tests;

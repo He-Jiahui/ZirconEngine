@@ -1,14 +1,14 @@
 ---
 related_code:
   - docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md
-  - docs/zircon_runtime/performance/hotspot_inventory.md
+  - docs/crates/zircon_runtime/performance/hotspot_inventory.md
   - zircon_runtime/src/graphics/tests/render_profiling.rs
   - zircon_runtime/src/dynamic_api/session/tests/frame_diagnostics.rs
   - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
   - zircon_runtime/src/tests/runtime_absorption/performance_hotspots
 implementation_files:
   - docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md
-  - docs/zircon_runtime/performance/hotspot_inventory.md
+  - docs/crates/zircon_runtime/performance/hotspot_inventory.md
   - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
   - zircon_runtime/src/tests/runtime_absorption/performance_hotspots
 plan_sources:

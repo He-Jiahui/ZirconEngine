@@ -4,6 +4,8 @@ use zircon_runtime_interface::ui::dispatch::{
 use zircon_runtime_interface::ui::layout::UiPoint;
 use zircon_runtime_interface::ui::surface::{UiPointerButton, UiPointerEventKind};
 use zircon_runtime_interface::{
+    ui::accessibility::UiAccessibilityActionRequest, ZrRuntimeClipboardResultV1,
+    ZrRuntimeEditorTransformWriteV1, ZrRuntimeEventV1, ZrRuntimeViewportCameraV1, ZrStatus,
     ZR_RUNTIME_ACCESSIBILITY_ACTION_REQUEST_LIMIT_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
     ZR_RUNTIME_BUTTON_STATE_RELEASED_V1, ZR_RUNTIME_CLIPBOARD_RESULT_REQUEST_LIMIT_V1,
     ZR_RUNTIME_CLIPBOARD_TEXT_MAX_ENCODED_BYTES_V1, ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1,
@@ -18,20 +20,19 @@ use zircon_runtime_interface::{
     ZR_RUNTIME_EVENT_KIND_VIEWPORT_CAMERA_V1, ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1,
     ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1, ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1,
     ZR_RUNTIME_FILE_DRAG_CANCELLED_V1, ZR_RUNTIME_FILE_DRAG_DROPPED_V1,
-    ZR_RUNTIME_FILE_DRAG_HOVERED_V1, ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1,
-    ZR_RUNTIME_LIFECYCLE_STATE_FOREGROUND_V1, ZR_RUNTIME_LIFECYCLE_STATE_RESUMED_V1,
-    ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1, ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1,
-    ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1, ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1,
-    ZR_RUNTIME_MOUSE_WHEEL_COORDS_PRESENT_V1, ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1,
-    ZR_RUNTIME_TOUCH_PHASE_ENDED_V1, ZR_RUNTIME_TOUCH_PHASE_MOVED_V1,
-    ZR_RUNTIME_TOUCH_PHASE_STARTED_V1, ZR_RUNTIME_VIEWPORT_CAMERA_REQUEST_LIMIT_V1,
+    ZR_RUNTIME_FILE_DRAG_HOVERED_V1, ZR_RUNTIME_IME_COMPOSITION_V2_EVENT_STATE,
+    ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1, ZR_RUNTIME_LIFECYCLE_STATE_FOREGROUND_V1,
+    ZR_RUNTIME_LIFECYCLE_STATE_RESUMED_V1, ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1,
+    ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1, ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1,
+    ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1, ZR_RUNTIME_MOUSE_WHEEL_COORDS_PRESENT_V1,
+    ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1, ZR_RUNTIME_TOUCH_PHASE_ENDED_V1,
+    ZR_RUNTIME_TOUCH_PHASE_MOVED_V1, ZR_RUNTIME_TOUCH_PHASE_STARTED_V1,
+    ZR_RUNTIME_VIEWPORT_CAMERA_REQUEST_LIMIT_V1,
     ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1,
     ZR_RUNTIME_WINDOW_STATUS_CLOSE_REQUESTED_V1, ZR_RUNTIME_WINDOW_STATUS_DESTROYED_V1,
     ZR_RUNTIME_WINDOW_STATUS_MOVED_V1, ZR_RUNTIME_WINDOW_STATUS_OCCLUDED_V1,
     ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1,
     ZR_RUNTIME_WINDOW_STATUS_SURFACE_RECREATED_V1, ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1,
-    ZrRuntimeClipboardResultV1, ZrRuntimeEditorTransformWriteV1, ZrRuntimeEventV1,
-    ZrRuntimeViewportCameraV1, ZrStatus, ui::accessibility::UiAccessibilityActionRequest,
 };
 
 use crate::core::framework::input::{
@@ -49,10 +50,12 @@ use super::menu::{runtime_session_menu_action_at, write_runtime_menu_action};
 use super::status::{
     error_status, invalid_argument, invalid_or_limit_payload, limit_exceeded, not_found,
 };
-use super::{DEFAULT_VIEWPORT, RuntimeDynamicSession};
+use super::{RuntimeDynamicSession, DEFAULT_VIEWPORT};
 
 mod gamepad;
+pub(super) mod ime_preedit_adapter;
 mod keyboard_ime;
+mod keyboard_ime_v2;
 
 impl RuntimeDynamicSession {
     pub(super) fn handle_event(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
@@ -126,7 +129,13 @@ impl RuntimeDynamicSession {
             ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1 => self.handle_lifecycle(event),
             ZR_RUNTIME_EVENT_KIND_TOUCH_V1 => self.handle_touch(event),
             ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1 => self.handle_keyboard(event),
-            ZR_RUNTIME_EVENT_KIND_IME_V1 => self.handle_ime(event),
+            ZR_RUNTIME_EVENT_KIND_IME_V1 => {
+                if event.state == ZR_RUNTIME_IME_COMPOSITION_V2_EVENT_STATE {
+                    self.handle_ime_composition_v2(event)
+                } else {
+                    self.handle_ime(event)
+                }
+            }
             ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1 => self.handle_file_drag_drop(event),
             ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1 => self.handle_window_status(event),
             ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1 => self.handle_gamepad_connection(event),
@@ -618,161 +627,5 @@ fn ui_pointer_button(button: u32) -> Option<UiPointerButton> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::super::profile::RuntimeDynamicSessionProfile;
-    use super::gamepad::{ui_gamepad_analog_control, ui_gamepad_navigation};
-    use super::{
-        RuntimeDynamicSession, clock_discontinuity_for_lifecycle_state,
-        clock_discontinuity_for_window_status,
-    };
-    use crate::core::framework::input::WindowStatusEvent;
-    use crate::core::{
-        ClockDiscontinuity, ClockLifecycleTransition, FrameClockRebaseCause, FrameTimeDiscontinuity,
-    };
-    use zircon_runtime_interface::ui::surface::UiNavigationEventKind;
-    use zircon_runtime_interface::{
-        ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1,
-        ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_Y_V1, ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_DOWN_V1,
-        ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_LEFT_V1, ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_RIGHT_V1,
-        ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_UP_V1, ZR_RUNTIME_GAMEPAD_BUTTON_EAST_V1,
-        ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1, ZR_RUNTIME_LIFECYCLE_STATE_LOW_MEMORY_V1,
-        ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1,
-        ZR_RUNTIME_VIEWPORT_CAMERA_PROJECTION_ORTHOGRAPHIC_V1, ZrByteSlice, ZrRuntimeEventV1,
-        ZrRuntimeViewportCameraV1, ZrRuntimeViewportHandle, ZrStatusCode,
-    };
-
-    #[test]
-    fn gamepad_buttons_map_to_shared_ui_navigation_semantics() {
-        assert_eq!(
-            ui_gamepad_navigation(ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1),
-            Some(UiNavigationEventKind::Activate)
-        );
-        assert_eq!(
-            ui_gamepad_navigation(ZR_RUNTIME_GAMEPAD_BUTTON_EAST_V1),
-            Some(UiNavigationEventKind::Cancel)
-        );
-        assert_eq!(
-            ui_gamepad_navigation(ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_UP_V1),
-            Some(UiNavigationEventKind::Up)
-        );
-        assert_eq!(
-            ui_gamepad_navigation(ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_DOWN_V1),
-            Some(UiNavigationEventKind::Down)
-        );
-        assert_eq!(
-            ui_gamepad_navigation(ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_LEFT_V1),
-            Some(UiNavigationEventKind::Left)
-        );
-        assert_eq!(
-            ui_gamepad_navigation(ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_RIGHT_V1),
-            Some(UiNavigationEventKind::Right)
-        );
-        assert_eq!(ui_gamepad_navigation(u32::MAX), None);
-    }
-
-    #[test]
-    fn gamepad_left_stick_axes_use_the_shared_ui_analog_navigation_controls() {
-        assert_eq!(
-            ui_gamepad_analog_control(ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1),
-            Some("gamepad_left_stick_x")
-        );
-        assert_eq!(
-            ui_gamepad_analog_control(ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_Y_V1),
-            Some("gamepad_left_stick_y")
-        );
-        assert_eq!(ui_gamepad_analog_control(u32::MAX), None);
-    }
-
-    #[test]
-    fn lifecycle_clock_mapping_keeps_low_memory_out_of_the_time_authority() {
-        assert_eq!(
-            clock_discontinuity_for_lifecycle_state(ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1),
-            Some(ClockDiscontinuity::ApplicationLifecycle(
-                ClockLifecycleTransition::Suspended,
-            ))
-        );
-        assert_eq!(
-            clock_discontinuity_for_lifecycle_state(ZR_RUNTIME_LIFECYCLE_STATE_LOW_MEMORY_V1),
-            None
-        );
-    }
-
-    #[test]
-    fn window_clock_mapping_marks_occlusion_and_surface_recreation() {
-        assert_eq!(
-            clock_discontinuity_for_window_status(&WindowStatusEvent::Occluded(true)),
-            Some(ClockDiscontinuity::WindowOcclusionChanged { occluded: true })
-        );
-        assert_eq!(
-            clock_discontinuity_for_window_status(&WindowStatusEvent::SurfaceRecreated),
-            Some(ClockDiscontinuity::WindowSurfaceRecreated)
-        );
-    }
-
-    #[test]
-    fn dynamic_lifecycle_event_replaces_activation_rebase_with_a_typed_clock_cause() {
-        let mut session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None)
-            .expect("headless runtime session should construct");
-
-        let status = session.handle_event(ZrRuntimeEventV1::lifecycle(
-            ZIRCON_RUNTIME_ABI_VERSION_V1,
-            ZrRuntimeViewportHandle::new(1),
-            ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1,
-        ));
-        let snapshot = session
-            .runtime
-            .tick_time(session.time_policy.max_fixed_steps_per_frame());
-
-        assert_eq!(status.status_code(), ZrStatusCode::Ok);
-        assert!(matches!(
-            snapshot.discontinuity(),
-            Some(FrameTimeDiscontinuity::FrameClockRebased(receipt))
-                if receipt.cause()
-                    == FrameClockRebaseCause::ClockDiscontinuity(
-                        ClockDiscontinuity::ApplicationLifecycle(
-                            ClockLifecycleTransition::Suspended,
-                        ),
-                    )
-        ));
-    }
-
-    #[test]
-    fn simulate_camera_event_overrides_render_extract_without_mutating_the_play_world() {
-        let mut session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None)
-            .expect("headless runtime session should construct");
-        let active_camera = session.level.with_world(|world| world.active_camera());
-        let world_transform_before = session
-            .level
-            .with_world(|world| world.world_transform(active_camera).unwrap());
-        let camera = ZrRuntimeViewportCameraV1::new(
-            ZIRCON_RUNTIME_ABI_VERSION_V1,
-            crate::core::math::Transform::from_translation(crate::core::math::Vec3::new(
-                7.0, 8.0, 9.0,
-            )),
-            ZR_RUNTIME_VIEWPORT_CAMERA_PROJECTION_ORTHOGRAPHIC_V1,
-            60.0_f32.to_radians(),
-            18.0,
-            0.5,
-            750.0,
-        );
-        let payload = serde_json::to_vec(&camera).expect("camera DTO should encode");
-
-        let status = session.handle_event(ZrRuntimeEventV1::viewport_camera(
-            ZIRCON_RUNTIME_ABI_VERSION_V1,
-            ZrRuntimeViewportHandle::new(1),
-            ZrByteSlice {
-                data: payload.as_ptr(),
-                len: payload.len(),
-            },
-        ));
-        let extract = session.current_extract();
-        let world_transform_after = session
-            .level
-            .with_world(|world| world.world_transform(active_camera).unwrap());
-
-        assert_eq!(status.status_code(), ZrStatusCode::Ok);
-        assert_eq!(extract.view.camera.transform, camera.transform);
-        assert_eq!(extract.view.camera.ortho_size, 18.0);
-        assert_eq!(world_transform_after, world_transform_before);
-    }
-}
+#[path = "tests/events.rs"]
+mod tests;

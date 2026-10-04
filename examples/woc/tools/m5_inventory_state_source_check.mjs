@@ -1,3 +1,4 @@
+// 静态核对固定版本 WOC 源码与本地 Zr 投影中的背包堆叠与装备状态转换。
 import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
@@ -12,6 +13,7 @@ const rules = gitShow('src/sim/equipment_rules.ts');
 const items = gitShow('src/sim/content/items.ts');
 const scenarios = gitShow('tests/parity/scenarios.ts');
 const compactRules = rules.replace(/\s+/g, '');
+// 将一致性断言限定在背包与商店场景的函数体内。
 const inventoryScenario = functionBlock(scenarios, 'function inventoryVendor');
 const wocSourceRoot = resolve(wocRoot, 'scripts', 'woc_game', 'src');
 

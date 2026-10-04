@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use super::super::super::RetainedEditorHost;
+use super::super::pointer_event::committed_scene_viewport_id_for_surface;
 use crate::ui::retained_host::{callback_dispatch, HostWindowPresentationData};
 use zircon_runtime_interface::ui::{layout::UiPoint, layout::UiSize, surface::UiSurfaceFrame};
 
@@ -23,6 +24,13 @@ impl RetainedEditorHost {
         self.viewport_toolbar_pointer_bridge
             .sync_single_surface(surface_key, surface_size);
 
+        let source_ui = self.callback_source_ui();
+        let Some(view_id) = committed_scene_viewport_id_for_surface(&source_ui, surface_key) else {
+            self.set_status_line(format!(
+                "Missing committed Scene viewport toolbar target for {surface_key}"
+            ));
+            return;
+        };
         let generation = self.ui.get_host_presentation_generation();
         let Some(surface_frame) =
             viewport_toolbar_surface_frame_for_surface(generation.structure(), surface_key)
@@ -38,6 +46,7 @@ impl RetainedEditorHost {
             &self.viewport_toolbar_bridge,
             &mut self.viewport_toolbar_pointer_bridge,
             surface_key,
+            &view_id,
             &surface_frame,
             UiPoint::new(point_x, point_y),
         ) {
@@ -95,6 +104,12 @@ fn viewport_toolbar_surface_frame_for_surface(
         }
     }
 
+    for dock in &scene.document_leaves {
+        if dock.surface_key.as_str() == surface_key {
+            return dock.pane.viewport.toolbar_surface_frame.clone();
+        }
+    }
+
     for row in 0..scene.floating_layer.floating_windows.row_count() {
         let Some(window) = scene.floating_layer.floating_windows.row_data(row) else {
             continue;
@@ -104,5 +119,26 @@ fn viewport_toolbar_surface_frame_for_surface(
         }
     }
 
+    for row in 0..presentation
+        .native_floating_surface_data
+        .floating_windows
+        .row_count()
+    {
+        let Some(window) = presentation
+            .native_floating_surface_data
+            .floating_windows
+            .row_data(row)
+        else {
+            continue;
+        };
+        if window.window_id.as_str() == surface_key {
+            return window.active_pane.viewport.toolbar_surface_frame.clone();
+        }
+    }
+
     None
 }
+
+#[cfg(test)]
+#[path = "tests/click.rs"]
+mod tests;

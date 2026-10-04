@@ -38,6 +38,31 @@ pub(in crate::ui::retained_host::host_contract) fn draw_welcome_native_content(
     true
 }
 
+/// Restores Welcome's native text/content after template Mount surfaces have
+/// painted over the native foundation layer. The component tree owns the
+/// controls and their surfaces; this pass owns the dynamic Welcome headings,
+/// preview, validation and recent-project content.
+pub(in crate::ui::retained_host::host_contract) fn draw_welcome_native_foreground(
+    frame: &mut HostRgbaFrame,
+    pane: &PaneData,
+    body: &FrameRect,
+    clip: &FrameRect,
+) -> bool {
+    if !pane.welcome.layout.has_nodes && pane.welcome.title.is_empty() {
+        return false;
+    }
+
+    let layout = &pane.welcome.layout;
+    let (recent_panel, main_panel) = resolve_welcome_panel_frames(layout, body);
+    if let Some(recent_panel) = recent_panel.as_ref() {
+        draw_welcome_recent_projects(frame, pane, layout, body, recent_panel, clip);
+    }
+    if let Some(main_panel) = main_panel.as_ref() {
+        draw_welcome_main_column(frame, pane, layout, body, main_panel, clip);
+    }
+    true
+}
+
 fn resolve_welcome_panel_frames(
     layout: &WelcomePaneLayoutData,
     body: &FrameRect,
@@ -80,55 +105,5 @@ fn draw_welcome_panel(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn authoritative_layout_keeps_a_collapsed_recent_panel_absent() {
-        let body = FrameRect {
-            x: 10.0,
-            y: 20.0,
-            width: 640.0,
-            height: 360.0,
-        };
-        let layout = WelcomePaneLayoutData {
-            has_nodes: true,
-            outer_panel: Some(FrameRect {
-                x: 16.0,
-                y: 12.0,
-                width: 608.0,
-                height: 336.0,
-            }),
-            main_panel: Some(FrameRect {
-                x: 16.0,
-                y: 12.0,
-                width: 608.0,
-                height: 336.0,
-            }),
-            ..WelcomePaneLayoutData::default()
-        };
-
-        let (recent, main) = resolve_welcome_panel_frames(&layout, &body);
-
-        assert_eq!(recent, None);
-        assert_eq!(main.expect("project task panel").width, 608.0);
-    }
-
-    #[test]
-    fn legacy_layout_without_projected_nodes_retains_panel_fallbacks() {
-        let body = FrameRect {
-            x: 0.0,
-            y: 0.0,
-            width: 900.0,
-            height: 620.0,
-        };
-
-        let (recent, main) = resolve_welcome_panel_frames(&WelcomePaneLayoutData::default(), &body);
-
-        let recent = recent.expect("legacy recent panel");
-        let main = main.expect("legacy main panel");
-        assert!(recent.width >= 220.0);
-        assert_eq!(main.x, recent.x + recent.width);
-        assert_eq!(main.x + main.width, body.width - WELCOME_COLUMN_INSET);
-    }
-}
+#[path = "tests/welcome.rs"]
+mod tests;

@@ -8,8 +8,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::super::pane_payload_projection::{
-    append_hybrid_slot_anchor_projection, inject_pane_projection_attributes,
-    template_v2_component_patch_attributes,
+    inject_pane_projection_attributes, template_v2_component_patch_attributes,
 };
 use super::{EditorUiHostRuntime, EditorUiHostRuntimeError};
 
@@ -19,8 +18,7 @@ impl EditorUiHostRuntime {
         body: &PaneBodyPresentation,
     ) -> Result<RetainedUiProjection, EditorUiHostRuntimeError> {
         let mut projection = self.project_document_cached(&body.document_id)?;
-        let pane_attributes = inject_pane_projection_attributes(&mut projection.root, body);
-        append_hybrid_slot_anchor_projection(&mut projection.root, body, pane_attributes);
+        inject_pane_projection_attributes(&mut projection.root, body);
         Ok(projection)
     }
 

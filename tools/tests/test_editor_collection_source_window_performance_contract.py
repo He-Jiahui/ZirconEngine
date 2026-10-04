@@ -1,3 +1,4 @@
+# 核对集合项目先按可见窗口截取，再构造持有字符串与行数据。
 from pathlib import Path
 import unittest
 

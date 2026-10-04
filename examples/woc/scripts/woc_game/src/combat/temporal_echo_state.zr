@@ -31,6 +31,7 @@ pub class TemporalEchoTarget {
     }
 }
 
+// 转换计划只携带目标和倍率；实际恢复、吸收、仇恨及事件由世界事务结算。
 pub class TemporalEchoConversion {
     pub var targetId: int;
     pub var rate: float;
@@ -83,6 +84,7 @@ pub placeGroupEcho(ally: TemporalEchoTarget, casterId: int, duration: float): bo
 }
 
 // Source entity iteration order is preserved by the caller-provided target order.
+// 调用方提供已剔除过期标记的快照并保留实体顺序；每个活目标只取该施放者的一条标记。
 pub collectConversions(sourceIsPlayer: bool, sourceId: int, dealt: int, school: string, aoe: bool, targets: container.Array<TemporalEchoTarget>): container.Array<TemporalEchoConversion> {
     var out = new container.Array<TemporalEchoConversion>();
     if (!sourceIsPlayer || school != "arcane" || dealt <= 0) return out;

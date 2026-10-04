@@ -1,8 +1,7 @@
 use super::{
     execute_export_wizard_stage_with_output_and_cancel, ExportWizardCommandOutputLine,
     ExportWizardCommandRunner, ExportWizardJobSnapshot, ExportWizardJobState,
-    ExportWizardJobStatus, ExportWizardPipelineExecution, ExportWizardPipelinePlan,
-    ExportWizardProgressState,
+    ExportWizardJobStatus, ExportWizardPipelinePlan, ExportWizardProgressState,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -133,13 +132,7 @@ pub fn run_export_wizard_job(
         }
     }
 
-    let execution = ExportWizardPipelineExecution {
-        stages: job.snapshot().stages.clone(),
-        progress,
-        diagnostics: job.snapshot().diagnostics.clone(),
-        fatal: job.snapshot().fatal,
-    };
-    job.finish_from_pipeline(execution);
+    job.finish_recorded_stages();
     emit_terminal_event(emit_event, &job);
     job.into_snapshot()
 }

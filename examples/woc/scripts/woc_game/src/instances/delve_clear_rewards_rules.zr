@@ -14,6 +14,7 @@ pub tierIndex(tierId: string): int {
     return -1;
 }
 
+/// 首次完成标志来自调用方的每日进度记录；这里只计算数值，不记录完成或发放经验，因此应在完成事务中与进度写入协调。
 pub xpForClear(delveId: string, tierId: string, firstClear: bool): int {
     var delve = delveIndex(delveId);
     var tier = tierIndex(tierId);
@@ -34,6 +35,7 @@ pub copperMaximum(delveId: string, tierId: string): int {
     return delve < 0 || tier < 0 ? 0 : content.copperMaximum(delve, tier, true);
 }
 
+/// 重复普通难度的机会位由外部随机流提供；这里不自行抽取，调用方需保持与奖励事务相同的抽取次序。
 pub marksForClear(
     delveId: string,
     tierId: string,

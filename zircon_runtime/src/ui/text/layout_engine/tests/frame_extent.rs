@@ -22,18 +22,14 @@ fn text_layout_wraps_at_a_narrow_horizontal_frame_width() {
     let layout = layout_text("ii", &style, UiFrame::new(0.0, 0.0, 0.25, 48.0), None);
 
     assert_split_i_graphemes(&layout);
-    assert!(
-        layout
-            .lines
-            .iter()
-            .all(|line| line.placement_frame.width <= 0.25)
-    );
-    assert!(
-        layout
-            .lines
-            .iter()
-            .all(|line| (line.frame.width - line.measured_width).abs() <= 0.01)
-    );
+    assert!(layout
+        .lines
+        .iter()
+        .all(|line| line.placement_frame.width <= 0.25));
+    assert!(layout
+        .lines
+        .iter()
+        .all(|line| (line.frame.width - line.measured_width).abs() <= 0.01));
 }
 
 #[test]
@@ -152,18 +148,14 @@ fn text_layout_wraps_vertical_columns_at_a_narrow_frame_height() {
     let layout = layout_text("ii", &style, UiFrame::new(0.0, 0.0, 48.0, 0.25), None);
 
     assert_split_i_graphemes(&layout);
-    assert!(
-        layout
-            .lines
-            .iter()
-            .all(|line| line.placement_frame.height <= 0.25)
-    );
-    assert!(
-        layout
-            .lines
-            .iter()
-            .all(|line| (line.frame.height - line.measured_width).abs() <= 0.01)
-    );
+    assert!(layout
+        .lines
+        .iter()
+        .all(|line| line.placement_frame.height <= 0.25));
+    assert!(layout
+        .lines
+        .iter()
+        .all(|line| (line.frame.height - line.measured_width).abs() <= 0.01));
 }
 
 #[test]
@@ -178,12 +170,10 @@ fn text_block_layout_preserves_a_narrow_horizontal_extent_after_indent() {
     );
 
     assert_split_i_graphemes(&layout);
-    assert!(
-        layout
-            .lines
-            .iter()
-            .all(|line| line.placement_frame.width <= 0.25)
-    );
+    assert!(layout
+        .lines
+        .iter()
+        .all(|line| line.placement_frame.width <= 0.25));
 }
 
 #[test]
@@ -199,10 +189,8 @@ fn text_block_layout_preserves_a_narrow_vertical_extent_after_indent() {
     );
 
     assert_split_i_graphemes(&layout);
-    assert!(
-        layout
-            .lines
-            .iter()
-            .all(|line| line.placement_frame.height <= 0.25)
-    );
+    assert!(layout
+        .lines
+        .iter()
+        .all(|line| line.placement_frame.height <= 0.25));
 }

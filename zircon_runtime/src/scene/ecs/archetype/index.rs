@@ -1,10 +1,10 @@
 use std::collections::{BTreeMap, HashMap};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::scene::EntityId;
 use crate::scene::ecs::{
-    ChangeTick, ComponentId, ComponentTicks, component::TableColumnLayout, storage::StoredComponent,
+    component::TableColumnLayout, storage::StoredComponent, ChangeTick, ComponentId, ComponentTicks,
 };
+use crate::scene::EntityId;
 
 use super::id::ArchetypeId;
 use super::record::ArchetypeRecord;
@@ -63,6 +63,7 @@ struct ArchetypeIndexPerformanceCounters {
 }
 
 #[derive(Debug)]
+/// 维护原型签名、组件倒排列表与真实表行；原型注册和各原型的行成员变化分别记录代次。
 pub struct ArchetypeIndex {
     records: Vec<ArchetypeRecord>,
     by_signature: HashMap<ArchetypeSignature, ArchetypeId>,
@@ -108,6 +109,7 @@ impl ArchetypeIndex {
         }
     }
 
+    /// 注册原型数的快照；同一原型内行增删由 membership_generation 单独跟踪。
     pub fn generation(&self) -> u64 {
         self.records.len() as u64
     }
@@ -311,6 +313,7 @@ impl ArchetypeIndex {
         taken.swapped_entity().map(|swapped| (swapped, row))
     }
 
+    /// 有必需组件时从最短倒排列表筛选；无必需组件时枚举原型，再应用排除组件条件。
     pub fn matching_archetypes(
         &self,
         required: &[ComponentId],
@@ -437,6 +440,56 @@ impl ArchetypeIndex {
         self.records
             .get(id.index())?
             .component_ticks_by_slot(column_slot, row)
+    }
+
+    /// # Safety
+    /// Authorize the selected value/tick row without conflicting live access.
+    /// Keep allocation, layout and entity membership fixed for every returned
+    /// reference's complete lifetime; shared ownership proves no uniqueness.
+    pub(crate) unsafe fn get_mut_at_tick_by_slot_unchecked<T>(
+        &self,
+        id: ArchetypeId,
+        row: usize,
+        column_slot: usize,
+        tick: ChangeTick,
+    ) -> Option<&mut T>
+    where
+        T: Send + Sync + 'static,
+    {
+        let record = self.records.get(id.index())?;
+        // SAFETY: the caller covers this exact row and its complete lifetime.
+        unsafe { record.get_mut_at_tick_by_slot_unchecked::<T>(column_slot, row, tick) }
+    }
+
+    /// # Safety
+    /// Authorize the selected value/tick row without conflicting live access.
+    /// Keep allocation, layout and entity membership fixed for every returned
+    /// reference's complete lifetime; shared ownership proves no uniqueness.
+    pub(crate) unsafe fn get_mut_with_ticks_by_slot_unchecked<T>(
+        &self,
+        id: ArchetypeId,
+        row: usize,
+        column_slot: usize,
+    ) -> Option<(&mut T, &mut ComponentTicks)>
+    where
+        T: Send + Sync + 'static,
+    {
+        let record = self.records.get(id.index())?;
+        // SAFETY: the caller covers this exact row and its complete lifetime.
+        unsafe { record.get_mut_with_ticks_by_slot_unchecked::<T>(column_slot, row) }
+    }
+
+    pub(crate) fn component_ticks_by_slot_for_type<T>(
+        &self,
+        id: ArchetypeId,
+        row: usize,
+        column_slot: usize,
+    ) -> Option<ComponentTicks>
+    where
+        T: Send + Sync + 'static,
+    {
+        let record = self.records.get(id.index())?;
+        record.component_ticks_by_slot_for_type::<T>(column_slot, row)
     }
 
     pub(crate) fn get_mut_at_tick_by_slot<T>(
@@ -580,5 +633,5 @@ impl PartialEq for ArchetypeIndex {
 impl Eq for ArchetypeIndex {}
 
 #[cfg(test)]
-#[path = "index/tests.rs"]
+#[path = "index/tests/cases.rs"]
 mod tests;

@@ -62,3 +62,16 @@ Open state: `implementation_complete / managed_validation_pending`。Text01 已�
 | 2026-07-19 08:20 +08:00 | `implementation_complete / review_green / managed_validation_pending` | generation-owned glyph map 让 fallback coverage 与 SDF glyph-id 共享同一 metadata 投影；offline manifest positive/negative cache 随 font generation 清空的行为回归已补齐。 | 48 个 leased Rust 文件 rustfmt + scoped diff、9/9 结构断言通过；独立终审 0/0/0 Ready。exact Cargo 仍受 Render18 queue-1 barrier 阻塞。 |
 | 2026-07-28 01:45 +08:00 | `implementation_complete / managed_broad_runtime_passed / upward_pending` | Managed current-source job `8f1c073d40ce4bee8483c046e6ee6b9b` / run `48f0711c4ca1468d90b7545df7c6e047` completed the declared `text::font` broad return. | Exit 0: `79 passed / 0 failed / 2 ignored / 8922 filtered`, covering CJK/emoji/RTL fallback, full-cluster cache identity, bounded candidate/resolution cache, hot-reload generation isolation, and composite priority. Ignored scale and product/upward responsibilities remain explicit. |
 | 2026-07-28 02:42 +08:00 | `Text01_runtime_return_passed / external_editor_return_failed` | Editor job `4eefa547982a4bd896813d9fad698f21` / run `ceff37fc13224768af1c365287f242e5` compiled Runtime/Text then exited 101. | Its 56 diagnostics belong to editor-owned API, projection, lifetime, and test drift, with no Text01 source diagnostic. Keep the record open until the external editor return is repaired. |
+
+## 2026-09-01 current-source immutable retry
+
+The four declared Text01 source files are clean and scoped `git diff --check` passes. Immutable
+copy `c027de61328d411bab850af3956cbb2c` then passed artifact preflight but failed in
+`closure_planning` before Cargo with
+`validation_copy_compile_time_source_git_failed`. Durable details identify operation
+`git_cat_file_compile_time_sources` and stderr
+`fatal: not a git repository (or any of the parent directories): .git`.
+
+This is a Coordinator pinned-planner regression, not a Text01 test result. The copy is terminal;
+the failure remains open pending a fresh replay after baseline Git object reads are restored to the
+logical repository.

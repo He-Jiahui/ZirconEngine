@@ -1,0 +1,291 @@
+stylesheets = []
+penpot_dependency_sources = []
+penpot_original_source = "stylesheets = []\n\n[asset]\nkind = \"layout\"\nid = \"editor.host.workbench_menu_chrome\"\nversion = 1\ndisplay_name = \"workbench menu chrome\"\n\n[imports]\nwidgets = []\nstyles = []\n\n[root]\nnode_id = \"workbench_menu_chrome_root\"\nkind = \"native\"\ntype = \"Overlay\"\ncontrol_id = \"WorkbenchMenuBarRoot\"\n\n[root.layout]\nclip = true\n\n[root.layout.container]\nkind = \"Overlay\"\n\n[root.layout.width]\nstretch = \"Stretch\"\n\n[root.layout.height]\nstretch = \"Stretch\"\n\n[[root.children]]\n[root.children.node]\nnode_id = \"workbench_menu_top_bar\"\nkind = \"native\"\ntype = \"Container\"\ncontrol_id = \"WorkbenchMenuTopBar\"\n\n[root.children.node.props]\nsurface_variant = \"panel\"\nradius = 0.0\nborder_width = 0.0\n\n[root.children.node.layout.position]\nx = 0.0\ny = 0.0\n\n[root.children.node.layout.width]\nstretch = \"Stretch\"\n\n[root.children.node.layout.height]\nmin = 24.0\npreferred = 24.0\nmax = 24.0\nstretch = \"Fixed\"\n\n[[root.children]]\n[root.children.node]\nnode_id = \"workbench_menu_separator\"\nkind = \"native\"\ntype = \"Container\"\ncontrol_id = \"WorkbenchMenuSeparator\"\n\n[root.children.node.props]\nsurface_variant = \"inset\"\nradius = 0.0\nborder_width = 0.0\n\n[root.children.node.layout.position]\nx = 0.0\ny = 24.0\n\n[root.children.node.layout.width]\nstretch = \"Stretch\"\n\n[root.children.node.layout.height]\nmin = 1.0\npreferred = 1.0\nmax = 1.0\nstretch = \"Fixed\"\n\n[[root.children]]\n[root.children.node]\nnode_id = \"workbench_menu_slot_0\"\nkind = \"native\"\ntype = \"Label\"\ncontrol_id = \"MenuSlot0\"\n\n[root.children.node.props]\ntext = \"File\"\ntext_tone = \"subtle\"\nfont_size = 11.0\ntext_align = \"center\"\noverflow = \"elide\"\n\n[root.children.node.layout.position]\nx = 8.0\ny = 2.0\n\n[root.children.node.layout.width]\nmin = 40.0\npreferred = 40.0\nmax = 40.0\nstretch = \"Fixed\"\n\n[root.children.node.layout.height]\nmin = 22.0\npreferred = 22.0\nmax = 22.0\nstretch = \"Fixed\"\n\n[[root.children]]\n[root.children.node]\nnode_id = \"workbench_menu_slot_1\"\nkind = \"native\"\ntype = \"Label\"\ncontrol_id = \"MenuSlot1\"\n\n[root.children.node.props]\ntext = \"Edit\"\ntext_tone = \"subtle\"\nfont_size = 11.0\ntext_align = \"center\"\noverflow = \"elide\"\n\n[root.children.node.layout.position]\nx = 50.0\ny = 2.0\n\n[root.children.node.layout.width]\nmin = 42.0\npreferred = 42.0\nmax = 42.0\nstretch = \"Fixed\"\n\n[root.children.node.layout.height]\nmin = 22.0\npreferred = 22.0\nmax = 22.0\nstretch = \"Fixed\"\n\n[[root.children]]\n[root.children.node]\nnode_id = \"workbench_menu_slot_2\"\nkind = \"native\"\ntype = \"Label\"\ncontrol_id = \"MenuSlot2\"\n\n[root.children.node.props]\ntext = \"Selection\"\ntext_tone = \"subtle\"\nfont_size = 11.0\ntext_align = \"center\"\noverflow = \"elide\"\n\n[root.children.node.layout.position]\nx = 94.0\ny = 2.0\n\n[root.children.node.layout.width]\nmin = 74.0\npreferred = 74.0\nmax = 74.0\nstretch = \"Fixed\"\n\n[root.children.node.layout.height]\nmin = 22.0\npreferred = 22.0\nmax = 22.0\nstretch = \"Fixed\"\n\n[[root.children]]\n[root.children.node]\nnode_id = \"workbench_menu_slot_3\"\nkind = \"native\"\ntype = \"Label\"\ncontrol_id = \"MenuSlot3\"\n\n[root.children.node.props]\ntext = \"View\"\ntext_tone = \"subtle\"\nfont_size = 11.0\ntext_align = \"center\"\noverflow = \"elide\"\n\n[root.children.node.layout.position]\nx = 170.0\ny = 2.0\n\n[root.children.node.layout.width]\nmin = 42.0\npreferred = 42.0\nmax = 42.0\nstretch = \"Fixed\"\n\n[root.children.node.layout.height]\nmin = 22.0\npreferred = 22.0\nmax = 22.0\nstretch = \"Fixed\"\n\n[[root.children]]\n[root.children.node]\nnode_id = \"workbench_menu_slot_4\"\nkind = \"native\"\ntype = \"Label\"\ncontrol_id = \"MenuSlot4\"\n\n[root.children.node.props]\ntext = \"Window\"\ntext_tone = \"subtle\"\nfont_size = 11.0\ntext_align = \"center\"\noverflow = \"elide\"\n\n[root.children.node.layout.position]\nx = 214.0\ny = 2.0\n\n[root.children.node.layout.width]\nmin = 56.0\npreferred = 56.0\nmax = 56.0\nstretch = \"Fixed\"\n\n[root.children.node.layout.height]\nmin = 22.0\npreferred = 22.0\nmax = 22.0\nstretch = \"Fixed\"\n\n[[root.children]]\n[root.children.node]\nnode_id = \"workbench_menu_slot_5\"\nkind = \"native\"\ntype = \"Label\"\ncontrol_id = \"MenuSlot5\"\n\n[root.children.node.props]\ntext = \"Help\"\ntext_tone = \"subtle\"\nfont_size = 11.0\ntext_align = \"center\"\noverflow = \"elide\"\n\n[root.children.node.layout.position]\nx = 272.0\ny = 2.0\n\n[root.children.node.layout.width]\nmin = 40.0\npreferred = 40.0\nmax = 40.0\nstretch = \"Fixed\"\n\n[root.children.node.layout.height]\nmin = 22.0\npreferred = 22.0\nmax = 22.0\nstretch = \"Fixed\"\n"
+
+[imports]
+widgets = []
+styles = []
+
+[asset]
+kind = "view"
+id = "editor.host.workbench_menu_chrome"
+version = 2
+display_name = "workbench menu chrome"
+
+[root]
+node = "workbench_menu_chrome_root"
+
+[nodes.workbench_menu_chrome_root]
+component = "Overlay"
+control_id = "WorkbenchMenuBarRoot"
+legacy_kind = "native"
+legacy_type = "Overlay"
+
+[nodes.workbench_menu_chrome_root.layout]
+clip = true
+
+[nodes.workbench_menu_chrome_root.layout.container]
+kind = "Overlay"
+
+[nodes.workbench_menu_chrome_root.layout.width]
+stretch = "Stretch"
+
+[nodes.workbench_menu_chrome_root.layout.height]
+stretch = "Stretch"
+
+[[nodes.workbench_menu_chrome_root.children]]
+node = "workbench_menu_top_bar"
+
+[[nodes.workbench_menu_chrome_root.children]]
+node = "workbench_menu_separator"
+
+[[nodes.workbench_menu_chrome_root.children]]
+node = "workbench_menu_slot_0"
+
+[[nodes.workbench_menu_chrome_root.children]]
+node = "workbench_menu_slot_1"
+
+[[nodes.workbench_menu_chrome_root.children]]
+node = "workbench_menu_slot_2"
+
+[[nodes.workbench_menu_chrome_root.children]]
+node = "workbench_menu_slot_3"
+
+[[nodes.workbench_menu_chrome_root.children]]
+node = "workbench_menu_slot_4"
+
+[[nodes.workbench_menu_chrome_root.children]]
+node = "workbench_menu_slot_5"
+
+[nodes.workbench_menu_top_bar]
+component = "Container"
+control_id = "WorkbenchMenuTopBar"
+legacy_kind = "native"
+legacy_type = "Container"
+
+[nodes.workbench_menu_top_bar.props]
+surface_variant = "panel"
+radius = 0
+border_width = 0
+
+[nodes.workbench_menu_top_bar.layout.position]
+x = 0
+y = 0
+
+[nodes.workbench_menu_top_bar.layout.width]
+stretch = "Stretch"
+
+[nodes.workbench_menu_top_bar.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.workbench_menu_separator]
+component = "Container"
+control_id = "WorkbenchMenuSeparator"
+legacy_kind = "native"
+legacy_type = "Container"
+
+[nodes.workbench_menu_separator.props]
+surface_variant = "inset"
+radius = 0
+border_width = 0
+
+[nodes.workbench_menu_separator.layout.position]
+x = 0
+y = 24
+
+[nodes.workbench_menu_separator.layout.width]
+stretch = "Stretch"
+
+[nodes.workbench_menu_separator.layout.height]
+min = 1
+preferred = 1
+max = 1
+stretch = "Fixed"
+
+[nodes.workbench_menu_slot_0]
+component = "Label"
+control_id = "MenuSlot0"
+legacy_kind = "native"
+legacy_type = "Label"
+
+[nodes.workbench_menu_slot_0.props]
+text = "File"
+text_tone = "subtle"
+font_size = 11
+text_align = "center"
+overflow = "elide"
+
+[nodes.workbench_menu_slot_0.layout.position]
+x = 8
+y = 2
+
+[nodes.workbench_menu_slot_0.layout.width]
+min = 40
+preferred = 40
+max = 40
+stretch = "Fixed"
+
+[nodes.workbench_menu_slot_0.layout.height]
+min = 22
+preferred = 22
+max = 22
+stretch = "Fixed"
+
+[nodes.workbench_menu_slot_1]
+component = "Label"
+control_id = "MenuSlot1"
+legacy_kind = "native"
+legacy_type = "Label"
+
+[nodes.workbench_menu_slot_1.props]
+text = "Edit"
+text_tone = "subtle"
+font_size = 11
+text_align = "center"
+overflow = "elide"
+
+[nodes.workbench_menu_slot_1.layout.position]
+x = 50
+y = 2
+
+[nodes.workbench_menu_slot_1.layout.width]
+min = 42
+preferred = 42
+max = 42
+stretch = "Fixed"
+
+[nodes.workbench_menu_slot_1.layout.height]
+min = 22
+preferred = 22
+max = 22
+stretch = "Fixed"
+
+[nodes.workbench_menu_slot_2]
+component = "Label"
+control_id = "MenuSlot2"
+legacy_kind = "native"
+legacy_type = "Label"
+
+[nodes.workbench_menu_slot_2.props]
+text = "Selection"
+text_tone = "subtle"
+font_size = 11
+text_align = "center"
+overflow = "elide"
+
+[nodes.workbench_menu_slot_2.layout.position]
+x = 94
+y = 2
+
+[nodes.workbench_menu_slot_2.layout.width]
+min = 74
+preferred = 74
+max = 74
+stretch = "Fixed"
+
+[nodes.workbench_menu_slot_2.layout.height]
+min = 22
+preferred = 22
+max = 22
+stretch = "Fixed"
+
+[nodes.workbench_menu_slot_3]
+component = "Label"
+control_id = "MenuSlot3"
+legacy_kind = "native"
+legacy_type = "Label"
+
+[nodes.workbench_menu_slot_3.props]
+text = "View"
+text_tone = "subtle"
+font_size = 11
+text_align = "center"
+overflow = "elide"
+
+[nodes.workbench_menu_slot_3.layout.position]
+x = 170
+y = 2
+
+[nodes.workbench_menu_slot_3.layout.width]
+min = 42
+preferred = 42
+max = 42
+stretch = "Fixed"
+
+[nodes.workbench_menu_slot_3.layout.height]
+min = 22
+preferred = 22
+max = 22
+stretch = "Fixed"
+
+[nodes.workbench_menu_slot_4]
+component = "Label"
+control_id = "MenuSlot4"
+legacy_kind = "native"
+legacy_type = "Label"
+
+[nodes.workbench_menu_slot_4.props]
+text = "Window"
+text_tone = "subtle"
+font_size = 11
+text_align = "center"
+overflow = "elide"
+
+[nodes.workbench_menu_slot_4.layout.position]
+x = 214
+y = 2
+
+[nodes.workbench_menu_slot_4.layout.width]
+min = 56
+preferred = 56
+max = 56
+stretch = "Fixed"
+
+[nodes.workbench_menu_slot_4.layout.height]
+min = 22
+preferred = 22
+max = 22
+stretch = "Fixed"
+
+[nodes.workbench_menu_slot_5]
+component = "Label"
+control_id = "MenuSlot5"
+legacy_kind = "native"
+legacy_type = "Label"
+
+[nodes.workbench_menu_slot_5.props]
+text = "Help"
+text_tone = "subtle"
+font_size = 11
+text_align = "center"
+overflow = "elide"
+
+[nodes.workbench_menu_slot_5.layout.position]
+x = 272
+y = 2
+
+[nodes.workbench_menu_slot_5.layout.width]
+min = 40
+preferred = 40
+max = 40
+stretch = "Fixed"
+
+[nodes.workbench_menu_slot_5.layout.height]
+min = 22
+preferred = 22
+max = 22
+stretch = "Fixed"
+
+[legacy_migration]
+source_path = "zircon_editor/src/tests/fixtures/ui_zui/editor/host/workbench_menu_chrome.zui"
+source_kind = "layout"
+source_version = 1
+source_component_ids = []
+
+[tokens]
+[penpot_original_imports]
+widgets = []
+styles = []

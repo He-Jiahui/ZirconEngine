@@ -8,7 +8,7 @@ baseline_epoch: 575
 status: release_validation_submitted
 session_id: root-tooling28-streamed-front-matter-release-r2-20260831
 implementation_files:
-  - tools/check_conventions.py
+  - tools/audits/check_conventions.py
 tests:
   - tools/tests/test_tooling28_streamed_front_matter_performance_contract.py
   - tools/tests/test_check_conventions.py

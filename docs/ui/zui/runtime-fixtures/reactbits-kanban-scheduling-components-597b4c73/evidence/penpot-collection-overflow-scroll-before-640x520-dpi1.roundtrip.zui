@@ -1,0 +1,678 @@
+[asset]
+kind = "view"
+id = "res://ui/tests/reactbits_kanban_scheduling_components.zui"
+version = 2
+display_name = "ReactBits Kanban And Scheduling Components"
+
+[tokens]
+"surface.canvas" = "#0f1117"
+"surface.panel" = "#171b24"
+"surface.elevated" = "#1d2330"
+"surface.inset" = "#11151d"
+"border.default" = "#2a3342"
+"border.strong" = "#3a4658"
+"text.primary" = "#f4f7fb"
+"text.secondary" = "#a9b4c5"
+"text.muted" = "#718096"
+"accent.primary" = "#8b7cff"
+"accent.info" = "#5da9ff"
+"status.success" = "#55d6a0"
+"status.warning" = "#f4bd62"
+"status.error" = "#ff7d8a"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalBox"
+control_id = "ReactBitsKanbanSchedulingRoot"
+classes = ["rb-kanban-scheduling-fixture"]
+props = {
+  background_color = "$surface.canvas",
+  foreground_color = "$text.primary",
+  fixture_data_only = true,
+  reference_primary = "https://pro.reactbits.dev/docs/app-ui/kanban/kanban-5",
+  reference_supporting = [
+    "https://pro.reactbits.dev/docs/app-ui/kanban/kanban-1",
+    "https://pro.reactbits.dev/docs/app-ui/scheduling/scheduling-1",
+    "https://pro.reactbits.dev/docs/app-ui/scheduling/scheduling-7",
+  ],
+  responsive_wide = "the sprint board and booking agenda share a balanced two-panel flow",
+  responsive_compact = "columns wrap before card text becomes unreadable and the agenda keeps time values end-aligned",
+  responsive_mobile = "one vertical scroll owner exposes board columns before the day agenda and keeps primary actions reachable",
+  layout_modes = ["wip-board", "capacity-meter", "drag-state-card", "month-day-strip", "time-slot-agenda", "windowed-collections"],
+  accessibility_label = "Kanban board and scheduling reference surface",
+}
+layout = {
+  clip = true,
+  input_policy = "Receive",
+  width = { min = 360, preferred = 1160, max = 1440, stretch = "Stretch" },
+  height = { min = 520, preferred = 820, max = 1040, stretch = "Stretch" },
+  container = { kind = "VerticalBox", gap = 10 },
+  padding = { left = 14, right = 14, top = 14, bottom = 14 },
+}
+children = [{ node = "header" }, { node = "body" }]
+
+[nodes.header]
+component = "HorizontalBox"
+control_id = "ReactBitsKanbanSchedulingHeader"
+props = { background_color = "$surface.panel", border_color = "$border.default", border_width = 1, corner_radius = 8 }
+layout = { width = { stretch = "Stretch" }, height = { min = 54, preferred = 54, max = 54, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8 }, padding = { left = 12, right = 12, top = 8, bottom = 8 } }
+children = [{ node = "header_title" }, { node = "header_range" }, { node = "header_add" }]
+
+[nodes.header_title]
+component = "VerticalBox"
+control_id = "ReactBitsKanbanSchedulingHeaderTitle"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 2 } }
+children = [{ node = "title" }, { node = "subtitle" }]
+
+[nodes.title]
+component = "Label"
+control_id = "ReactBitsKanbanSchedulingTitle"
+props = { text = "Release operations", text_key = "fixture.kanban.title", foreground_color = "$text.primary", font_size = 15, font_weight = 650, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 20, preferred = 20, max = 22, stretch = "Fixed" } }
+
+[nodes.subtitle]
+component = "Label"
+control_id = "ReactBitsKanbanSchedulingSubtitle"
+props = { text = "Sprint capacity and deployment windows", text_key = "fixture.kanban.subtitle", foreground_color = "$text.secondary", font_size = 10, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 16, preferred = 16, max = 18, stretch = "Fixed" } }
+
+[nodes.header_range]
+component = "Button"
+control_id = "ReactBitsKanbanSchedulingRange"
+props = { text = "Sprint 24 · Sep 16–27", text_key = "fixture.kanban.header.range", icon = "chevron-down", icon_size = "s", button_variant = "outlined", foreground_color = "$text.secondary", border_color = "$border.strong", border_width = 1, corner_radius = 6, text_align = "right", input_interactive = true, input_focusable = true, accessibility_label = "Choose sprint range" }
+layout = { width = { min = 154, preferred = 184, max = 214, stretch = "Fixed" }, height = { stretch = "Stretch" }, padding = { left = 8, right = 8, top = 5, bottom = 5 } }
+
+[nodes.header_add]
+component = "Button"
+control_id = "ReactBitsKanbanSchedulingAdd"
+props = { text = "New item", text_key = "fixture.kanban.header.add", icon = "plus", icon_size = "s", button_variant = "contained", background_color = "$accent.primary", foreground_color = "$text.primary", corner_radius = 6, text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "Create a board item" }
+layout = { width = { min = 92, preferred = 112, max = 132, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.body]
+component = "ScrollableBox"
+control_id = "ReactBitsKanbanSchedulingBody"
+props = { background_color = "$surface.inset", border_color = "$border.default", border_width = 1, corner_radius = 8, scroll_owner = "kanban-scheduling-body", accessibility_label = "Board and schedule content" }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { min = 0, stretch = "Stretch" }, container = { kind = "ScrollableBox", axis = "Vertical", gap = 10, scrollbar_visibility = "Auto" }, padding = { left = 12, right = 12, top = 12, bottom = 12 } }
+children = [{ node = "panels" }]
+
+[nodes.panels]
+component = "FlowBox"
+control_id = "ReactBitsKanbanSchedulingPanels"
+props = { direction = "row", wrap = true, spacing = 10, accessibility_label = "Board and schedule panels" }
+layout = { width = { stretch = "Stretch" }, height = { min = 600, preferred = 660, max = 820, stretch = "Stretch" }, container = { kind = "FlowBox", gap = 10 } }
+children = [
+  { node = "board_panel", slot = { layout = { width = { min = 272, preferred = 650, weight = 1, stretch = "Stretch" } } } },
+  { node = "schedule_panel", slot = { layout = { width = { min = 272, preferred = 390, weight = 1, stretch = "Stretch" } } } },
+]
+
+[nodes.board_panel]
+component = "VerticalBox"
+control_id = "ReactBitsKanbanBoardPanel"
+classes = ["rb-kanban-board"]
+props = { background_color = "$surface.panel", border_color = "$border.default", border_width = 1, corner_radius = 9, accessibility_label = "Sprint kanban board" }
+layout = { width = { min = 272, stretch = "Stretch" }, height = { min = 600, preferred = 660, max = 820, stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 8 }, padding = { left = 10, right = 10, top = 10, bottom = 10 } }
+children = [{ node = "board_toolbar" }, { node = "board_summary" }, { node = "columns" }]
+
+[nodes.board_toolbar]
+component = "HorizontalBox"
+control_id = "ReactBitsKanbanBoardToolbar"
+layout = { width = { stretch = "Stretch" }, height = { min = 34, preferred = 36, max = 40, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 6 } }
+children = [{ node = "board_label" }, { node = "board_filter" }]
+
+[nodes.board_label]
+component = "Label"
+control_id = "ReactBitsKanbanBoardLabel"
+props = { text = "Sprint board", text_key = "fixture.kanban.board.label", foreground_color = "$text.primary", font_size = 12, font_weight = 650, text_align = "left" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.board_filter]
+component = "Button"
+control_id = "ReactBitsKanbanBoardFilter"
+props = { text = "Filter", text_key = "fixture.kanban.board.filter", icon = "info", icon_size = "s", button_variant = "text", foreground_color = "$accent.info", text_align = "right", input_interactive = true, input_focusable = true, accessibility_label = "Filter sprint items" }
+layout = { width = { min = 72, preferred = 84, max = 96, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.board_summary]
+component = "HorizontalBox"
+control_id = "ReactBitsKanbanBoardSummary"
+props = { background_color = "$surface.elevated", border_color = "$border.default", border_width = 1, corner_radius = 7 }
+layout = { width = { stretch = "Stretch" }, height = { min = 46, preferred = 50, max = 56, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8 }, padding = { left = 8, right = 8, top = 6, bottom = 6 } }
+children = [{ node = "points" }, { node = "capacity" }, { node = "burn_down" }]
+
+[nodes.points]
+component = "VerticalBox"
+control_id = "ReactBitsKanbanPoints"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 1 } }
+children = [{ node = "points_label" }, { node = "points_value" }]
+
+[nodes.points_label]
+component = "Label"
+control_id = "ReactBitsKanbanPointsLabel"
+props = { text = "Points", text_key = "fixture.kanban.summary.points.label", foreground_color = "$text.muted", font_size = 9 }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.points_value]
+component = "Label"
+control_id = "ReactBitsKanbanPointsValue"
+props = { text = "34 / 48", text_key = "fixture.kanban.summary.points.value", foreground_color = "$text.primary", font_size = 13, font_weight = 650, text_align = "right" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.capacity]
+component = "VerticalBox"
+control_id = "ReactBitsKanbanCapacity"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 1 } }
+children = [{ node = "capacity_label" }, { node = "capacity_value" }]
+
+[nodes.capacity_label]
+component = "Label"
+control_id = "ReactBitsKanbanCapacityLabel"
+props = { text = "Capacity", text_key = "fixture.kanban.summary.capacity.label", foreground_color = "$text.muted", font_size = 9 }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.capacity_value]
+component = "Label"
+control_id = "ReactBitsKanbanCapacityValue"
+props = { text = "71%", text_key = "fixture.kanban.summary.capacity.value", foreground_color = "$status.success", font_size = 13, font_weight = 650, text_align = "right" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.burn_down]
+component = "VerticalBox"
+control_id = "ReactBitsKanbanBurnDown"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 1 } }
+children = [{ node = "burn_down_label" }, { node = "burn_down_value" }]
+
+[nodes.burn_down_label]
+component = "Label"
+control_id = "ReactBitsKanbanBurnDownLabel"
+props = { text = "Burn-down", text_key = "fixture.kanban.summary.burn_down.label", foreground_color = "$text.muted", font_size = 9 }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.burn_down_value]
+component = "Label"
+control_id = "ReactBitsKanbanBurnDownValue"
+props = { text = "On track", text_key = "fixture.kanban.summary.burn_down.value", foreground_color = "$accent.info", font_size = 11, font_weight = 650, text_align = "right" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.columns]
+component = "FlowBox"
+control_id = "ReactBitsKanbanColumns"
+props = { direction = "row", wrap = true, spacing = 8, collection_role = "kanban-columns", accessibility_label = "Sprint status columns" }
+layout = { width = { stretch = "Stretch" }, height = { min = 472, stretch = "Stretch" }, container = { kind = "FlowBox", gap = 8 } }
+children = [
+  { node = "column_todo", slot = { layout = { width = { min = 148, preferred = 196, weight = 1, stretch = "Stretch" } } } },
+  { node = "column_building", slot = { layout = { width = { min = 148, preferred = 196, weight = 1, stretch = "Stretch" } } } },
+  { node = "column_review", slot = { layout = { width = { min = 148, preferred = 196, weight = 1, stretch = "Stretch" } } } },
+]
+
+[nodes.column_todo]
+component = "VerticalBox"
+control_id = "ReactBitsKanbanColumnTodo"
+props = { background_color = "$surface.inset", border_color = "$border.default", border_width = 1, corner_radius = 7, collection_virtualization = "windowed", visible_limit = 3, collection_test_cases = ["empty", "one", "normal", "overflow", "narrow", "long-locale"], long_locale_fixture_label = "A deliberately long localized backlog item label for overflow coverage", column_id = "todo", accessibility_label = "Todo column" }
+layout = { width = { min = 148, stretch = "Stretch" }, height = { min = 472, stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 6 }, padding = { left = 7, right = 7, top = 7, bottom = 7 } }
+children = [{ node = "todo_heading" }, { node = "todo_card_1" }, { node = "todo_card_2" }, { node = "todo_add" }]
+
+[nodes.todo_heading]
+component = "HorizontalBox"
+control_id = "ReactBitsKanbanTodoHeading"
+layout = { width = { stretch = "Stretch" }, height = { min = 28, preferred = 30, max = 34, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 4 } }
+children = [{ node = "todo_title" }, { node = "todo_count" }]
+
+[nodes.todo_title]
+component = "Label"
+control_id = "ReactBitsKanbanTodoTitle"
+props = { text = "Todo", text_key = "fixture.kanban.column.todo.title", foreground_color = "$text.primary", font_size = 10, font_weight = 650 }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.todo_count]
+component = "Chip"
+control_id = "ReactBitsKanbanTodoCount"
+props = { text = "3", text_key = "fixture.kanban.column.todo.count", foreground_color = "$text.muted", background_color = "$surface.elevated", text_align = "right", accessibility_label = "Three todo items" }
+layout = { width = { min = 24, preferred = 28, max = 32, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.todo_card_1]
+component = "Paper"
+control_id = "ReactBitsKanbanTodoCardOne"
+props = { background_color = "$surface.elevated", border_color = "$border.default", border_width = 1, corner_radius = 6, card_state = "normal", item_id = "layout-audit", collection_item = "normal|Layout audit|8 pts|Mina", accessibility_label = "Layout audit todo card" }
+layout = { width = { stretch = "Stretch" }, height = { min = 82, preferred = 92, max = 108, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 4 }, padding = { left = 8, right = 8, top = 7, bottom = 7 } }
+children = [{ node = "todo_card_1_title" }, { node = "todo_card_1_meta" }, { node = "todo_card_1_owner" }]
+
+[nodes.todo_card_1_title]
+component = "Label"
+control_id = "ReactBitsKanbanTodoCardOneTitle"
+props = { text = "Audit retained layout", text_key = "fixture.kanban.card.layout.title", foreground_color = "$text.primary", font_size = 10, font_weight = 600, wrap = "word", text_overflow = "clip" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26, preferred = 30, max = 36, stretch = "Fixed" } }
+
+[nodes.todo_card_1_meta]
+component = "Label"
+control_id = "ReactBitsKanbanTodoCardOneMeta"
+props = { text = "8 pts", text_key = "fixture.kanban.card.layout.points", foreground_color = "$accent.info", font_size = 9, text_align = "right" }
+layout = { width = { stretch = "Stretch" }, height = { min = 14, preferred = 16, max = 18, stretch = "Fixed" } }
+
+[nodes.todo_card_1_owner]
+component = "Label"
+control_id = "ReactBitsKanbanTodoCardOneOwner"
+props = { text = "Mina", text_key = "fixture.kanban.card.layout.owner", foreground_color = "$text.muted", font_size = 9, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 14, preferred = 16, max = 18, stretch = "Fixed" } }
+
+[nodes.todo_card_2]
+component = "Paper"
+control_id = "ReactBitsKanbanTodoCardTwo"
+props = { background_color = "$surface.elevated", border_color = "$border.default", border_width = 1, corner_radius = 6, card_state = "blocked", item_id = "font-review", collection_item = "warning|Font review|5 pts|Ravi", accessibility_label = "Font review blocked card" }
+layout = { width = { stretch = "Stretch" }, height = { min = 82, preferred = 92, max = 108, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 4 }, padding = { left = 8, right = 8, top = 7, bottom = 7 } }
+children = [{ node = "todo_card_2_title" }, { node = "todo_card_2_meta" }, { node = "todo_card_2_owner" }]
+
+[nodes.todo_card_2_title]
+component = "Label"
+control_id = "ReactBitsKanbanTodoCardTwoTitle"
+props = { text = "Resolve font fallback", text_key = "fixture.kanban.card.font.title", foreground_color = "$text.primary", font_size = 10, font_weight = 600, wrap = "word", text_overflow = "clip" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26, preferred = 30, max = 36, stretch = "Fixed" } }
+
+[nodes.todo_card_2_meta]
+component = "Label"
+control_id = "ReactBitsKanbanTodoCardTwoMeta"
+props = { text = "Blocked · 5 pts", text_key = "fixture.kanban.card.font.points", foreground_color = "$status.warning", font_size = 9, text_align = "right" }
+layout = { width = { stretch = "Stretch" }, height = { min = 14, preferred = 16, max = 18, stretch = "Fixed" } }
+
+[nodes.todo_card_2_owner]
+component = "Label"
+control_id = "ReactBitsKanbanTodoCardTwoOwner"
+props = { text = "Ravi", text_key = "fixture.kanban.card.font.owner", foreground_color = "$text.muted", font_size = 9, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 14, preferred = 16, max = 18, stretch = "Fixed" } }
+
+[nodes.todo_add]
+component = "Button"
+control_id = "ReactBitsKanbanTodoAdd"
+props = { text = "Add card", text_key = "fixture.kanban.column.todo.add", icon = "plus", icon_size = "s", button_variant = "text", foreground_color = "$text.muted", text_align = "left", input_interactive = true, input_focusable = true, accessibility_label = "Add todo card" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28, preferred = 30, max = 34, stretch = "Fixed" } }
+
+[nodes.column_building]
+component = "VerticalBox"
+control_id = "ReactBitsKanbanColumnBuilding"
+props = { background_color = "$surface.inset", border_color = "$border.default", border_width = 1, corner_radius = 7, collection_virtualization = "windowed", visible_limit = 3, collection_test_cases = ["empty", "one", "normal", "overflow", "narrow", "long-locale"], long_locale_fixture_label = "A deliberately long localized in-progress item label for overflow coverage", column_id = "building", accessibility_label = "In progress column" }
+layout = { width = { min = 148, stretch = "Stretch" }, height = { min = 472, stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 6 }, padding = { left = 7, right = 7, top = 7, bottom = 7 } }
+children = [{ node = "building_heading" }, { node = "building_card_1" }, { node = "building_card_2" }, { node = "building_add" }]
+
+[nodes.building_heading]
+component = "HorizontalBox"
+control_id = "ReactBitsKanbanBuildingHeading"
+layout = { width = { stretch = "Stretch" }, height = { min = 28, preferred = 30, max = 34, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 4 } }
+children = [{ node = "building_title" }, { node = "building_count" }]
+
+[nodes.building_title]
+component = "Label"
+control_id = "ReactBitsKanbanBuildingTitle"
+props = { text = "Building", text_key = "fixture.kanban.column.building.title", foreground_color = "$text.primary", font_size = 10, font_weight = 650 }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.building_count]
+component = "Chip"
+control_id = "ReactBitsKanbanBuildingCount"
+props = { text = "2", text_key = "fixture.kanban.column.building.count", foreground_color = "$text.muted", background_color = "$surface.elevated", text_align = "right", accessibility_label = "Two in-progress items" }
+layout = { width = { min = 24, preferred = 28, max = 32, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.building_card_1]
+component = "Paper"
+control_id = "ReactBitsKanbanBuildingCardOne"
+props = { background_color = "$surface.elevated", border_color = "$accent.primary", border_width = 1, corner_radius = 6, card_state = "active", item_id = "penpot-capture", collection_item = "selected|Penpot capture|13 pts|Yuki", accessibility_label = "Penpot capture active card" }
+layout = { width = { stretch = "Stretch" }, height = { min = 82, preferred = 92, max = 108, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 4 }, padding = { left = 8, right = 8, top = 7, bottom = 7 } }
+children = [{ node = "building_card_1_title" }, { node = "building_card_1_meta" }, { node = "building_card_1_owner" }]
+
+[nodes.building_card_1_title]
+component = "Label"
+control_id = "ReactBitsKanbanBuildingCardOneTitle"
+props = { text = "Capture Penpot states", text_key = "fixture.kanban.card.capture.title", foreground_color = "$text.primary", font_size = 10, font_weight = 600, wrap = "word", text_overflow = "clip" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26, preferred = 30, max = 36, stretch = "Fixed" } }
+
+[nodes.building_card_1_meta]
+component = "Label"
+control_id = "ReactBitsKanbanBuildingCardOneMeta"
+props = { text = "13 pts", text_key = "fixture.kanban.card.capture.points", foreground_color = "$accent.info", font_size = 9, text_align = "right" }
+layout = { width = { stretch = "Stretch" }, height = { min = 14, preferred = 16, max = 18, stretch = "Fixed" } }
+
+[nodes.building_card_1_owner]
+component = "Label"
+control_id = "ReactBitsKanbanBuildingCardOneOwner"
+props = { text = "Yuki", text_key = "fixture.kanban.card.capture.owner", foreground_color = "$text.muted", font_size = 9, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 14, preferred = 16, max = 18, stretch = "Fixed" } }
+
+[nodes.building_card_2]
+component = "Paper"
+control_id = "ReactBitsKanbanBuildingCardTwo"
+props = { background_color = "$surface.elevated", border_color = "$border.default", border_width = 1, corner_radius = 6, card_state = "normal", item_id = "icon-tier", collection_item = "normal|Converge icon tiers|3 pts|Noah", accessibility_label = "Icon tier card" }
+layout = { width = { stretch = "Stretch" }, height = { min = 82, preferred = 92, max = 108, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 4 }, padding = { left = 8, right = 8, top = 7, bottom = 7 } }
+children = [{ node = "building_card_2_title" }, { node = "building_card_2_meta" }, { node = "building_card_2_owner" }]
+
+[nodes.building_card_2_title]
+component = "Label"
+control_id = "ReactBitsKanbanBuildingCardTwoTitle"
+props = { text = "Converge icon tiers", text_key = "fixture.kanban.card.icons.title", foreground_color = "$text.primary", font_size = 10, font_weight = 600, wrap = "word", text_overflow = "clip" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26, preferred = 30, max = 36, stretch = "Fixed" } }
+
+[nodes.building_card_2_meta]
+component = "Label"
+control_id = "ReactBitsKanbanBuildingCardTwoMeta"
+props = { text = "3 pts", text_key = "fixture.kanban.card.icons.points", foreground_color = "$accent.info", font_size = 9, text_align = "right" }
+layout = { width = { stretch = "Stretch" }, height = { min = 14, preferred = 16, max = 18, stretch = "Fixed" } }
+
+[nodes.building_card_2_owner]
+component = "Label"
+control_id = "ReactBitsKanbanBuildingCardTwoOwner"
+props = { text = "Noah", text_key = "fixture.kanban.card.icons.owner", foreground_color = "$text.muted", font_size = 9, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 14, preferred = 16, max = 18, stretch = "Fixed" } }
+
+[nodes.building_add]
+component = "Button"
+control_id = "ReactBitsKanbanBuildingAdd"
+props = { text = "Add card", text_key = "fixture.kanban.column.building.add", icon = "plus", icon_size = "s", button_variant = "text", foreground_color = "$text.muted", text_align = "left", input_interactive = true, input_focusable = true, accessibility_label = "Add in-progress card" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28, preferred = 30, max = 34, stretch = "Fixed" } }
+
+[nodes.column_review]
+component = "VerticalBox"
+control_id = "ReactBitsKanbanColumnReview"
+props = { background_color = "$surface.inset", border_color = "$border.default", border_width = 1, corner_radius = 7, collection_virtualization = "windowed", visible_limit = 3, collection_test_cases = ["empty", "one", "normal", "overflow", "narrow", "long-locale"], long_locale_fixture_label = "A deliberately long localized review item label for overflow coverage", column_id = "review", accessibility_label = "Review column" }
+layout = { width = { min = 148, stretch = "Stretch" }, height = { min = 472, stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 6 }, padding = { left = 7, right = 7, top = 7, bottom = 7 } }
+children = [{ node = "review_heading" }, { node = "review_card_1" }, { node = "review_card_2" }, { node = "review_add" }]
+
+[nodes.review_heading]
+component = "HorizontalBox"
+control_id = "ReactBitsKanbanReviewHeading"
+layout = { width = { stretch = "Stretch" }, height = { min = 28, preferred = 30, max = 34, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 4 } }
+children = [{ node = "review_title" }, { node = "review_count" }]
+
+[nodes.review_title]
+component = "Label"
+control_id = "ReactBitsKanbanReviewTitle"
+props = { text = "Review", text_key = "fixture.kanban.column.review.title", foreground_color = "$text.primary", font_size = 10, font_weight = 650 }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.review_count]
+component = "Chip"
+control_id = "ReactBitsKanbanReviewCount"
+props = { text = "2", text_key = "fixture.kanban.column.review.count", foreground_color = "$text.muted", background_color = "$surface.elevated", text_align = "right", accessibility_label = "Two review items" }
+layout = { width = { min = 24, preferred = 28, max = 32, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.review_card_1]
+component = "Paper"
+control_id = "ReactBitsKanbanReviewCardOne"
+props = { background_color = "$surface.elevated", border_color = "$border.default", border_width = 1, corner_radius = 6, card_state = "ready", item_id = "rich-text", collection_item = "success|Rich text audit|5 pts|Iris", accessibility_label = "Rich text audit ready card" }
+layout = { width = { stretch = "Stretch" }, height = { min = 82, preferred = 92, max = 108, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 4 }, padding = { left = 8, right = 8, top = 7, bottom = 7 } }
+children = [{ node = "review_card_1_title" }, { node = "review_card_1_meta" }, { node = "review_card_1_owner" }]
+
+[nodes.review_card_1_title]
+component = "Label"
+control_id = "ReactBitsKanbanReviewCardOneTitle"
+props = { text = "Verify **rich-text** runs", text_key = "fixture.kanban.card.rich.title", rich_text_format = "markdown_inline_v1", foreground_color = "$text.primary", font_size = 10, font_weight = 600, wrap = "word", text_overflow = "clip" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26, preferred = 30, max = 36, stretch = "Fixed" } }
+
+[nodes.review_card_1_meta]
+component = "Label"
+control_id = "ReactBitsKanbanReviewCardOneMeta"
+props = { text = "5 pts", text_key = "fixture.kanban.card.rich.points", foreground_color = "$accent.info", font_size = 9, text_align = "right" }
+layout = { width = { stretch = "Stretch" }, height = { min = 14, preferred = 16, max = 18, stretch = "Fixed" } }
+
+[nodes.review_card_1_owner]
+component = "Label"
+control_id = "ReactBitsKanbanReviewCardOneOwner"
+props = { text = "Iris", text_key = "fixture.kanban.card.rich.owner", foreground_color = "$text.muted", font_size = 9, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 14, preferred = 16, max = 18, stretch = "Fixed" } }
+
+[nodes.review_card_2]
+component = "Paper"
+control_id = "ReactBitsKanbanReviewCardTwo"
+props = { background_color = "$surface.elevated", border_color = "$status.warning", border_width = 1, corner_radius = 6, card_state = "waiting", item_id = "native-gate", collection_item = "warning|Native gate pending|8 pts|Mara", accessibility_label = "Native gate pending card" }
+layout = { width = { stretch = "Stretch" }, height = { min = 82, preferred = 92, max = 108, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 4 }, padding = { left = 8, right = 8, top = 7, bottom = 7 } }
+children = [{ node = "review_card_2_title" }, { node = "review_card_2_meta" }, { node = "review_card_2_owner" }]
+
+[nodes.review_card_2_title]
+component = "Label"
+control_id = "ReactBitsKanbanReviewCardTwoTitle"
+props = { text = "Clear native validation gate", text_key = "fixture.kanban.card.native.title", foreground_color = "$text.primary", font_size = 10, font_weight = 600, wrap = "word", text_overflow = "clip" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26, preferred = 30, max = 36, stretch = "Fixed" } }
+
+[nodes.review_card_2_meta]
+component = "Label"
+control_id = "ReactBitsKanbanReviewCardTwoMeta"
+props = { text = "Waiting · 8 pts", text_key = "fixture.kanban.card.native.points", foreground_color = "$status.warning", font_size = 9, text_align = "right" }
+layout = { width = { stretch = "Stretch" }, height = { min = 14, preferred = 16, max = 18, stretch = "Fixed" } }
+
+[nodes.review_card_2_owner]
+component = "Label"
+control_id = "ReactBitsKanbanReviewCardTwoOwner"
+props = { text = "Mara", text_key = "fixture.kanban.card.native.owner", foreground_color = "$text.muted", font_size = 9, text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 14, preferred = 16, max = 18, stretch = "Fixed" } }
+
+[nodes.review_add]
+component = "Button"
+control_id = "ReactBitsKanbanReviewAdd"
+props = { text = "Add card", text_key = "fixture.kanban.column.review.add", icon = "plus", icon_size = "s", button_variant = "text", foreground_color = "$text.muted", text_align = "left", input_interactive = true, input_focusable = true, accessibility_label = "Add review card" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28, preferred = 30, max = 34, stretch = "Fixed" } }
+
+[nodes.schedule_panel]
+component = "VerticalBox"
+control_id = "ReactBitsSchedulingPanel"
+classes = ["rb-scheduling-panel"]
+props = { background_color = "$surface.panel", border_color = "$border.default", border_width = 1, corner_radius = 9, accessibility_label = "Deployment scheduling panel" }
+layout = { width = { min = 272, stretch = "Stretch" }, height = { min = 600, preferred = 660, max = 820, stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 8 }, padding = { left = 10, right = 10, top = 10, bottom = 10 } }
+children = [{ node = "schedule_heading" }, { node = "day_strip" }, { node = "calendar" }, { node = "agenda" }, { node = "booking_summary" }]
+
+[nodes.schedule_heading]
+component = "HorizontalBox"
+control_id = "ReactBitsSchedulingHeading"
+layout = { width = { stretch = "Stretch" }, height = { min = 34, preferred = 36, max = 40, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 6 } }
+children = [{ node = "schedule_title" }, { node = "schedule_timezone" }]
+
+[nodes.schedule_title]
+component = "Label"
+control_id = "ReactBitsSchedulingTitle"
+props = { text = "Deployment windows", text_key = "fixture.scheduling.title", foreground_color = "$text.primary", font_size = 12, font_weight = 650 }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.schedule_timezone]
+component = "Label"
+control_id = "ReactBitsSchedulingTimezone"
+props = { text = "UTC−07:00", text_key = "fixture.scheduling.timezone", foreground_color = "$text.muted", font_size = 9, text_align = "right", text_overflow = "elide" }
+layout = { width = { min = 72, preferred = 86, max = 104, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.day_strip]
+component = "HorizontalBox"
+control_id = "ReactBitsSchedulingDayStrip"
+props = { collection_role = "date-strip", accessibility_label = "Choose deployment day" }
+layout = { width = { stretch = "Stretch" }, height = { min = 48, preferred = 52, max = 58, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 4 } }
+children = [{ node = "day_mon" }, { node = "day_tue" }, { node = "day_wed" }, { node = "day_thu" }, { node = "day_fri" }]
+
+[nodes.day_mon]
+component = "Button"
+control_id = "ReactBitsSchedulingDayMon"
+props = { text = "16\nMON", text_key = "fixture.scheduling.day.mon", button_variant = "text", foreground_color = "$text.secondary", text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "Monday September 16" }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.day_tue]
+component = "Button"
+control_id = "ReactBitsSchedulingDayTue"
+props = { text = "17\nTUE", text_key = "fixture.scheduling.day.tue", button_variant = "text", foreground_color = "$text.secondary", text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "Tuesday September 17" }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.day_wed]
+component = "Button"
+control_id = "ReactBitsSchedulingDayWed"
+props = { text = "18\nWED", text_key = "fixture.scheduling.day.wed", button_variant = "text", selected = true, background_color = "$surface.elevated", foreground_color = "$text.primary", border_color = "$accent.primary", border_width = 1, corner_radius = 6, text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "Wednesday September 18 selected" }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.day_thu]
+component = "Button"
+control_id = "ReactBitsSchedulingDayThu"
+props = { text = "19\nTHU", text_key = "fixture.scheduling.day.thu", button_variant = "text", foreground_color = "$text.secondary", text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "Thursday September 19" }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.day_fri]
+component = "Button"
+control_id = "ReactBitsSchedulingDayFri"
+props = { text = "20\nFRI", text_key = "fixture.scheduling.day.fri", button_variant = "text", foreground_color = "$text.secondary", text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "Friday September 20" }
+layout = { width = { min = 0, weight = 1, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.calendar]
+component = "FlowBox"
+control_id = "ReactBitsSchedulingCalendar"
+props = { direction = "row", wrap = true, spacing = 4, collection_role = "month-calendar", collection_virtualization = "windowed", viewport_start = 0, visible_limit = 21, collection_test_cases = ["empty", "one", "normal", "overflow", "narrow", "long-locale"], long_locale_fixture_label = "A deliberately long localized calendar event label for overflow coverage", accessibility_label = "September month calendar" }
+layout = { width = { stretch = "Stretch" }, height = { min = 146, preferred = 156, max = 172, stretch = "Fixed" }, container = { kind = "FlowBox", gap = 4 }, padding = { left = 4, right = 4, top = 4, bottom = 4 } }
+children = [{ node = "date_16" }, { node = "date_17" }, { node = "date_18" }, { node = "date_19" }, { node = "date_20" }, { node = "date_21" }, { node = "date_22" }, { node = "date_23" }, { node = "date_24" }, { node = "date_25" }, { node = "date_26" }, { node = "date_27" }, { node = "date_28" }, { node = "date_29" }, { node = "date_30" }]
+
+[nodes.date_16]
+component = "Button"
+control_id = "ReactBitsSchedulingDate16"
+props = { text = "16", text_key = "fixture.scheduling.date.16", button_variant = "text", foreground_color = "$text.muted", text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "September 16" }
+layout = { width = { min = 32, preferred = 36, max = 44, stretch = "Stretch" }, height = { min = 26, preferred = 28, max = 32, stretch = "Fixed" } }
+
+[nodes.date_17]
+component = "Button"
+control_id = "ReactBitsSchedulingDate17"
+props = { text = "17", text_key = "fixture.scheduling.date.17", button_variant = "text", foreground_color = "$text.muted", text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "September 17" }
+layout = { width = { min = 32, preferred = 36, max = 44, stretch = "Stretch" }, height = { min = 26, preferred = 28, max = 32, stretch = "Fixed" } }
+
+[nodes.date_18]
+component = "Button"
+control_id = "ReactBitsSchedulingDate18"
+props = { text = "18", text_key = "fixture.scheduling.date.18", button_variant = "text", selected = true, background_color = "$accent.primary", foreground_color = "$text.primary", corner_radius = 5, text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "September 18 selected" }
+layout = { width = { min = 32, preferred = 36, max = 44, stretch = "Stretch" }, height = { min = 26, preferred = 28, max = 32, stretch = "Fixed" } }
+
+[nodes.date_19]
+component = "Button"
+control_id = "ReactBitsSchedulingDate19"
+props = { text = "19", text_key = "fixture.scheduling.date.19", button_variant = "text", foreground_color = "$text.muted", text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "September 19" }
+layout = { width = { min = 32, preferred = 36, max = 44, stretch = "Stretch" }, height = { min = 26, preferred = 28, max = 32, stretch = "Fixed" } }
+
+[nodes.date_20]
+component = "Button"
+control_id = "ReactBitsSchedulingDate20"
+props = { text = "20", text_key = "fixture.scheduling.date.20", button_variant = "text", foreground_color = "$text.muted", text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "September 20" }
+layout = { width = { min = 32, preferred = 36, max = 44, stretch = "Stretch" }, height = { min = 26, preferred = 28, max = 32, stretch = "Fixed" } }
+
+[nodes.date_21]
+component = "Button"
+control_id = "ReactBitsSchedulingDate21"
+props = { text = "21", text_key = "fixture.scheduling.date.21", button_variant = "text", foreground_color = "$text.muted", text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "September 21" }
+layout = { width = { min = 32, preferred = 36, max = 44, stretch = "Stretch" }, height = { min = 26, preferred = 28, max = 32, stretch = "Fixed" } }
+
+[nodes.date_22]
+component = "Button"
+control_id = "ReactBitsSchedulingDate22"
+props = { text = "22", text_key = "fixture.scheduling.date.22", button_variant = "text", foreground_color = "$text.muted", text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "September 22" }
+layout = { width = { min = 32, preferred = 36, max = 44, stretch = "Stretch" }, height = { min = 26, preferred = 28, max = 32, stretch = "Fixed" } }
+
+[nodes.date_23]
+component = "Button"
+control_id = "ReactBitsSchedulingDate23"
+props = { text = "23", text_key = "fixture.scheduling.date.23", button_variant = "text", foreground_color = "$text.muted", text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "September 23" }
+layout = { width = { min = 32, preferred = 36, max = 44, stretch = "Stretch" }, height = { min = 26, preferred = 28, max = 32, stretch = "Fixed" } }
+
+[nodes.date_24]
+component = "Button"
+control_id = "ReactBitsSchedulingDate24"
+props = { text = "24", text_key = "fixture.scheduling.date.24", button_variant = "text", foreground_color = "$text.muted", text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "September 24" }
+layout = { width = { min = 32, preferred = 36, max = 44, stretch = "Stretch" }, height = { min = 26, preferred = 28, max = 32, stretch = "Fixed" } }
+
+[nodes.date_25]
+component = "Button"
+control_id = "ReactBitsSchedulingDate25"
+props = { text = "25", text_key = "fixture.scheduling.date.25", button_variant = "text", foreground_color = "$text.muted", text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "September 25" }
+layout = { width = { min = 32, preferred = 36, max = 44, stretch = "Stretch" }, height = { min = 26, preferred = 28, max = 32, stretch = "Fixed" } }
+
+[nodes.date_26]
+component = "Button"
+control_id = "ReactBitsSchedulingDate26"
+props = { text = "26", text_key = "fixture.scheduling.date.26", button_variant = "text", foreground_color = "$text.muted", text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "September 26" }
+layout = { width = { min = 32, preferred = 36, max = 44, stretch = "Stretch" }, height = { min = 26, preferred = 28, max = 32, stretch = "Fixed" } }
+
+[nodes.date_27]
+component = "Button"
+control_id = "ReactBitsSchedulingDate27"
+props = { text = "27", text_key = "fixture.scheduling.date.27", button_variant = "text", foreground_color = "$text.muted", text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "September 27" }
+layout = { width = { min = 32, preferred = 36, max = 44, stretch = "Stretch" }, height = { min = 26, preferred = 28, max = 32, stretch = "Fixed" } }
+
+[nodes.date_28]
+component = "Button"
+control_id = "ReactBitsSchedulingDate28"
+props = { text = "28", text_key = "fixture.scheduling.date.28", button_variant = "text", foreground_color = "$text.muted", text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "September 28" }
+layout = { width = { min = 32, preferred = 36, max = 44, stretch = "Stretch" }, height = { min = 26, preferred = 28, max = 32, stretch = "Fixed" } }
+
+[nodes.date_29]
+component = "Button"
+control_id = "ReactBitsSchedulingDate29"
+props = { text = "29", text_key = "fixture.scheduling.date.29", button_variant = "text", foreground_color = "$text.muted", text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "September 29" }
+layout = { width = { min = 32, preferred = 36, max = 44, stretch = "Stretch" }, height = { min = 26, preferred = 28, max = 32, stretch = "Fixed" } }
+
+[nodes.date_30]
+component = "Button"
+control_id = "ReactBitsSchedulingDate30"
+props = { text = "30", text_key = "fixture.scheduling.date.30", button_variant = "text", foreground_color = "$text.muted", text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "September 30" }
+layout = { width = { min = 32, preferred = 36, max = 44, stretch = "Stretch" }, height = { min = 26, preferred = 28, max = 32, stretch = "Fixed" } }
+
+[nodes.agenda]
+component = "ScrollableBox"
+control_id = "ReactBitsSchedulingAgenda"
+props = { collection_virtualization = "windowed", viewport_start = 0, visible_limit = 3, collection_test_cases = ["empty", "one", "normal", "overflow", "narrow", "long-locale"], long_locale_fixture_label = "A deliberately long localized deployment agenda label for overflow coverage", collection_items = ["selected|09:00|Penpot visual capture|Yuki", "normal|11:30|Native validation gate|Mara", "warning|14:00|Release rehearsal|Ravi", "normal|16:30|Review handoff|Iris"], selected_item_id = "visual-capture", empty_text = "No deployment windows", empty_text_key = "fixture.scheduling.agenda.empty", scroll_owner = "deployment-agenda", background_color = "$surface.inset", border_color = "$border.default", border_width = 1, corner_radius = 7, accessibility_label = "Deployment day agenda" }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { min = 132, preferred = 148, max = 168, stretch = "Stretch" }, container = { kind = "ScrollableBox", axis = "Vertical", gap = 4, scrollbar_visibility = "Auto" }, padding = { left = 7, right = 7, top = 6, bottom = 6 } }
+children = [{ node = "agenda_heading" }, { node = "agenda_capture" }, { node = "agenda_gate" }, { node = "agenda_rehearsal" }]
+
+[nodes.agenda_heading]
+component = "Label"
+control_id = "ReactBitsSchedulingAgendaHeading"
+props = { text = "Wednesday · September 18", text_key = "fixture.scheduling.agenda.heading", foreground_color = "$text.muted", font_size = 9, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 16, preferred = 18, max = 20, stretch = "Fixed" } }
+
+[nodes.agenda_capture]
+component = "Button"
+control_id = "ReactBitsSchedulingAgendaCapture"
+props = { text = "09:00  Penpot visual capture", text_key = "fixture.scheduling.agenda.capture", value_text = "09:00", value_key = "fixture.scheduling.agenda.capture.time", button_variant = "text", selected = true, background_color = "$surface.elevated", foreground_color = "$text.primary", corner_radius = 5, text_align = "left", input_interactive = true, input_focusable = true, accessibility_label = "Penpot visual capture at 9 AM" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28, preferred = 30, max = 34, stretch = "Fixed" } }
+
+[nodes.agenda_gate]
+component = "Button"
+control_id = "ReactBitsSchedulingAgendaGate"
+props = { text = "11:30  Native validation gate", text_key = "fixture.scheduling.agenda.gate", value_text = "11:30", value_key = "fixture.scheduling.agenda.gate.time", button_variant = "text", foreground_color = "$text.secondary", text_align = "left", input_interactive = true, input_focusable = true, accessibility_label = "Native validation gate at 11:30 AM" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28, preferred = 30, max = 34, stretch = "Fixed" } }
+
+[nodes.agenda_rehearsal]
+component = "Button"
+control_id = "ReactBitsSchedulingAgendaRehearsal"
+props = { text = "14:00  Release rehearsal", text_key = "fixture.scheduling.agenda.rehearsal", value_text = "14:00", value_key = "fixture.scheduling.agenda.rehearsal.time", button_variant = "text", foreground_color = "$status.warning", text_align = "left", input_interactive = true, input_focusable = true, accessibility_label = "Release rehearsal at 2 PM" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28, preferred = 30, max = 34, stretch = "Fixed" } }
+
+[nodes.booking_summary]
+component = "Paper"
+control_id = "ReactBitsSchedulingBookingSummary"
+props = { background_color = "$surface.elevated", border_color = "$border.default", border_width = 1, corner_radius = 7, accessibility_label = "Selected deployment window summary" }
+layout = { width = { stretch = "Stretch" }, height = { min = 76, preferred = 84, max = 96, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 4 }, padding = { left = 8, right = 8, top = 7, bottom = 7 } }
+children = [{ node = "booking_title" }, { node = "booking_detail" }, { node = "booking_action" }]
+
+[nodes.booking_title]
+component = "Label"
+control_id = "ReactBitsSchedulingBookingTitle"
+props = { text = "Selected window", text_key = "fixture.scheduling.booking.title", foreground_color = "$text.primary", font_size = 10, font_weight = 650 }
+layout = { width = { stretch = "Stretch" }, height = { min = 16, preferred = 18, max = 20, stretch = "Fixed" } }
+
+[nodes.booking_detail]
+component = "Label"
+control_id = "ReactBitsSchedulingBookingDetail"
+props = { text = "09:00–10:00 · **Visual review**", text_key = "fixture.scheduling.booking.detail", rich_text_format = "markdown_inline_v1", foreground_color = "$text.secondary", font_size = 9, text_align = "right", text_overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 16, preferred = 18, max = 22, stretch = "Fixed" } }
+
+[nodes.booking_action]
+component = "Button"
+control_id = "ReactBitsSchedulingBookingAction"
+props = { text = "Reserve window", text_key = "fixture.scheduling.booking.action", button_variant = "contained", background_color = "$accent.primary", foreground_color = "$text.primary", corner_radius = 5, text_align = "center", input_interactive = true, input_focusable = true, accessibility_label = "Reserve selected deployment window" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28, preferred = 30, max = 34, stretch = "Fixed" } }
+
+[nodes.root.zircon_extension]
+owner = "reactbits-reference-slice"
+reference_profile = "reactbits-kanban-scheduling-components-v1"
+source_of_truth = "zui"
+penpot_visual_check = "required"
+
+[[stylesheets]]
+id = "reactbits-ui-typography"
+
+[[stylesheets.rules]]
+selector = "*"
+set = { self = { font = { asset = "res://fonts/editor-ui.font.toml", family = "Fira Sans" } } }

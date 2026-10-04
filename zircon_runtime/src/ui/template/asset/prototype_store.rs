@@ -6,9 +6,11 @@ use zircon_runtime_interface::ui::template::{
 };
 
 #[cfg(test)]
-#[path = "prototype_store/hash_index_tests.rs"]
+#[path = "prototype_store/tests/hash_index_tests.rs"]
 mod hash_index_tests;
 
+/// 让多个组件实例共享不可变原型，按规范资产身份或显式别名查找同一份拥有者。
+/// 映射条目数包含别名；替换某个键不会同步改写此前登记的其他别名。
 #[derive(Clone, Debug, Default)]
 pub struct UiPrototypeStore {
     assets: HashMap<String, Arc<UiRawAssetPrototype>>,
@@ -46,6 +48,7 @@ impl UiPrototypeStore {
         self.assets.is_empty()
     }
 
+    /// 解析组件引用并借共享原型给展开器；这里只检查资产存在及组件名字，节点展开和契约验证仍由编译器完成。
     pub fn component_prototype(
         &self,
         reference: &str,
@@ -66,6 +69,7 @@ impl UiPrototypeStore {
     }
 }
 
+/// 文件缓存批量装配原型时使用的导入完整性门，允许先登记引用、待全部文件加入后统一验证。
 #[derive(Clone, Debug, Default)]
 pub struct UiPrototypeStoreBuilder {
     store: UiPrototypeStore,
@@ -119,6 +123,7 @@ impl UiPrototypeStoreBuilder {
         prototype
     }
 
+    /// 消费装配状态并拒绝缺失导入；调用方须在提交前完成所有别名登记，导入循环本身不会在此展开。
     pub fn build(self) -> Result<UiPrototypeStore, UiAssetError> {
         if let Some(error) = self.invalid_widget_import {
             return Err(error);

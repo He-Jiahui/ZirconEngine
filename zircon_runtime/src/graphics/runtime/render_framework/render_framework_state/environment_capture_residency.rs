@@ -1,5 +1,6 @@
 use std::collections::{HashMap, VecDeque};
 
+use crate::core::framework::render::RenderEnvironmentCaptureHandle;
 use crate::graphics::scene::EnvironmentCaptureResidentOutput;
 
 pub(super) const MAX_RESIDENT_ENVIRONMENT_CAPTURES: usize = 64;
@@ -11,6 +12,9 @@ pub(super) const MAX_RESIDENT_ENVIRONMENT_CAPTURES: usize = 64;
 pub(in crate::graphics::runtime::render_framework) struct EnvironmentCaptureResidency {
     outputs: HashMap<String, EnvironmentCaptureResidentOutput>,
     order: VecDeque<String>,
+    observation_epoch: u64,
+    last_published_handle: Option<RenderEnvironmentCaptureHandle>,
+    last_published_output_generation: Option<u64>,
     resident_gpu_bytes: u64,
     eviction_count: u64,
 }
@@ -20,6 +24,9 @@ impl Default for EnvironmentCaptureResidency {
         Self {
             outputs: HashMap::with_capacity(MAX_RESIDENT_ENVIRONMENT_CAPTURES),
             order: VecDeque::with_capacity(MAX_RESIDENT_ENVIRONMENT_CAPTURES),
+            observation_epoch: 0,
+            last_published_handle: None,
+            last_published_output_generation: None,
             resident_gpu_bytes: 0,
             eviction_count: 0,
         }
@@ -31,6 +38,9 @@ impl EnvironmentCaptureResidency {
         &mut self,
         output: EnvironmentCaptureResidentOutput,
     ) {
+        self.observation_epoch = self.observation_epoch.saturating_add(1);
+        self.last_published_handle = Some(output.handle());
+        self.last_published_output_generation = Some(output.identity().output_generation());
         let capture_id = output.identity().capture_id().to_string();
         if let Some(previous) = self.outputs.remove(&capture_id) {
             self.resident_gpu_bytes = self.resident_gpu_bytes.saturating_sub(previous.gpu_bytes());
@@ -69,42 +79,27 @@ impl EnvironmentCaptureResidency {
         self.resident_gpu_bytes
     }
 
+    pub(in crate::graphics::runtime::render_framework) fn observation_epoch(&self) -> u64 {
+        self.observation_epoch
+    }
+
+    pub(in crate::graphics::runtime::render_framework) fn last_published_handle(
+        &self,
+    ) -> Option<RenderEnvironmentCaptureHandle> {
+        self.last_published_handle
+    }
+
+    pub(in crate::graphics::runtime::render_framework) fn last_published_output_generation(
+        &self,
+    ) -> Option<u64> {
+        self.last_published_output_generation
+    }
+
     pub(in crate::graphics::runtime::render_framework) fn eviction_count(&self) -> u64 {
         self.eviction_count
     }
 }
 
 #[cfg(test)]
-mod source_contract_tests {
-    const SOURCE: &str = include_str!("environment_capture_residency.rs");
-
-    fn production_source() -> &'static str {
-        SOURCE
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("environment capture residency must retain a test boundary")
-    }
-
-    #[test]
-    fn residency_is_bounded_and_replaces_one_capture_id_atomically() {
-        let source = production_source();
-
-        assert!(source.contains("MAX_RESIDENT_ENVIRONMENT_CAPTURES"));
-        assert!(source.contains("HashMap<String, EnvironmentCaptureResidentOutput>"));
-        assert!(source.contains("VecDeque<String>"));
-        assert!(source.contains("fn publish("));
-        assert!(source.contains("self.outputs.insert("));
-        assert!(source.contains("self.outputs.remove("));
-    }
-
-    #[test]
-    fn residency_reports_exact_filtered_gpu_bytes_without_capture_scratch() {
-        let source = production_source();
-
-        assert!(source.contains("resident_gpu_bytes"));
-        assert!(source.contains("output.gpu_bytes()"));
-        assert!(!source.contains("EnvironmentCaptureGpuTarget"));
-        assert!(!source.contains("source_texture"));
-        assert!(!source.contains("depth_texture"));
-    }
-}
+#[path = "tests/environment_capture_residency_source_contract_tests.rs"]
+mod source_contract_tests;

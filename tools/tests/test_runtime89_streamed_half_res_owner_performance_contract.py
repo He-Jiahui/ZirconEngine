@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 半分辨率资源拥有者选择只读取前两个匹配，确认唯一后才克隆；检查 Rust 回归对零个、唯一和重复拥有者的断言。
 
 ROOT = Path(__file__).resolve().parents[2]
 HALF_RES = ROOT / (

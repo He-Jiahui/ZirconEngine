@@ -83,3 +83,15 @@ Open state: `Editor03 exact14 已完成原子 saved_top token、operation-group 
   静态合同 `11/11`、exact rustfmt、旧 API 扫描和 diff-check 通过；两路独立终审均为 `0/0/0`。受管 Cargo/
   fixed return/managed SHA 尚未完成；candidate snapshot936 preview 为 exact14 `14/14` 无漂移，故 failure
   仍保持 open。
+- 2026-09-02：模块化后 `HistorySaveToken` lineage/generation owner 已迁入 `engine_state.rs`，commit、replay、
+  history clear 与 begin capability owner 也分别位于 `lifecycle.rs`、`replay.rs`、
+  `exclusive_transition.rs`、`scope.rs`。静态 guard 已改为扫描这些真实 owner，避免 facade 预算收敛后
+  产生假 RED；本轮不改变生产行为，也不替代尚缺的受管 current-source Cargo、fixed return 与 managed SHA。
+
+### 2026-09-18 static ticket terminal result
+
+The managed Editor03 static ticket `990215ffe4374e5980ee5d5c3c3f7519` reached
+terminal `passed` with job `34288a0642704a32bbef9ab4228411a4`, run
+`990215ffe4374e5980ee5d5c3c3f7519`, and exit code `0`; all 5 Python contract
+tests passed. This validates the typed save-token contract on its sealed source
+snapshot only; current-source Cargo, save/undo product gates, fixed return,

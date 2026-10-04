@@ -1,3 +1,6 @@
+// 调用端：npm run generate:combo-eligibility-contract (tools/package.json)；职责：从轮盘和连携源代码提取专业连携的准入阈值。
+// 输入边界：src/sim/professions/combo_eligibility.ts, src/sim/professions/wheel.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

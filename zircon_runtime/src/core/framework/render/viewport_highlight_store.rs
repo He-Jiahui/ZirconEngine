@@ -3,18 +3,23 @@ use std::collections::HashMap;
 use super::HighlightSet;
 
 #[cfg(test)]
-#[path = "viewport_highlight_store/hash_index_tests.rs"]
+#[path = "viewport_highlight_store/tests/hash_index_tests.rs"]
 mod hash_index_tests;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ViewportHighlightSet {
     generation: u64,
+    overlay_revision: u64,
     set: HighlightSet,
 }
 
 impl ViewportHighlightSet {
     pub const fn generation(&self) -> u64 {
         self.generation
+    }
+
+    pub const fn overlay_revision(&self) -> u64 {
+        self.overlay_revision
     }
 
     pub fn set(&self) -> &HighlightSet {
@@ -32,18 +37,33 @@ pub struct ViewportHighlightStore {
 }
 
 impl ViewportHighlightStore {
-    /// Returns false when a newer value for this viewport is already retained.
+    /// Returns false for stale generations or invalid render attributes.
     pub fn submit(&mut self, viewport: u64, generation: u64, set: HighlightSet) -> bool {
-        if self
-            .by_viewport
-            .get(&viewport)
-            .is_some_and(|current| generation < current.generation)
-        {
+        if !set.attributes().is_valid() {
             return false;
         }
-
-        self.by_viewport
-            .insert(viewport, ViewportHighlightSet { generation, set });
+        if let Some(current) = self.by_viewport.get_mut(&viewport) {
+            if generation < current.generation {
+                return false;
+            }
+            if current.set != set {
+                current.overlay_revision = current
+                    .overlay_revision
+                    .checked_add(1)
+                    .expect("viewport highlight overlay revision overflow");
+                current.set = set;
+            }
+            current.generation = generation;
+            return true;
+        }
+        self.by_viewport.insert(
+            viewport,
+            ViewportHighlightSet {
+                generation,
+                overlay_revision: 1,
+                set,
+            },
+        );
         true
     }
 
@@ -53,26 +73,5 @@ impl ViewportHighlightStore {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::ViewportHighlightStore;
-    use crate::core::framework::render::{HighlightRenderAttributes, HighlightSet};
-
-    fn set(entities: impl IntoIterator<Item = u64>) -> HighlightSet {
-        HighlightSet::new(
-            entities,
-            HighlightRenderAttributes::outlined([0.1, 0.2, 0.3, 1.0]),
-        )
-    }
-
-    #[test]
-    fn rejects_stale_generation_without_cross_viewport_leakage() {
-        let mut store = ViewportHighlightStore::default();
-        assert!(store.submit(3, 7, set([8, 2])));
-        assert!(store.submit(4, 1, set([11])));
-        assert!(!store.submit(3, 6, set([99])));
-
-        assert_eq!(store.get(3).unwrap().generation(), 7);
-        assert_eq!(store.get(3).unwrap().set().entities(), &[2, 8]);
-        assert_eq!(store.get(4).unwrap().set().entities(), &[11]);
-    }
-}
+#[path = "tests/viewport_highlight_store.rs"]
+mod tests;

@@ -26,29 +26,30 @@ pub(in crate::graphics::scene) use binding::{
 };
 
 pub(crate) use bindless_material_payload::{
-    BINDLESS_STANDARD_MATERIAL_TEXTURE_SLOT_COUNT, GPU_BINDLESS_MATERIAL_PAYLOAD_STRIDE,
-    GpuBindlessMaterialPayload,
+    GpuBindlessMaterialPayload, BINDLESS_STANDARD_MATERIAL_TEXTURE_SLOT_COUNT,
+    GPU_BINDLESS_MATERIAL_PAYLOAD_STRIDE,
 };
 pub(crate) use gpu_scene::{
     GpuScene, GpuSceneEntry, GpuSceneStats, GpuSceneUploadPath, GpuSceneUploadReport,
 };
 pub(crate) use journal_consumer::{
     GpuSceneJournalApplyPlan, GpuSceneJournalConsumer, GpuSceneJournalConsumerError,
-    GpuSceneJournalReprojectionError, GpuSceneJournalReprojectionPlan,
-    GpuSceneJournalReprojectionPreflightError, GpuSceneJournalResidentWrite,
-    GpuSceneJournalResidentWriteKind, GpuSceneJournalRetirement, GpuSceneJournalSlotMutation,
+    GpuSceneJournalOwnedStagedTransaction, GpuSceneJournalReprojectionError,
+    GpuSceneJournalReprojectionPlan, GpuSceneJournalReprojectionPreflightError,
+    GpuSceneJournalResidentWrite, GpuSceneJournalResidentWriteKind, GpuSceneJournalRetirement,
+    GpuSceneJournalSlotMutation, GpuSceneJournalStagedTransaction,
     GpuSceneJournalTransactionCommit, GpuSceneJournalTransactionError,
 };
 pub(crate) use layout::{
-    GPU_INSTANCE_DATA_STRIDE, GPU_INSTANCE_FLAG_DEGENERATE_NORMAL_TRANSFORM,
-    GPU_INSTANCE_FLAG_GENERAL_NORMAL_TRANSFORM, GPU_INSTANCE_FLAG_NEGATIVE_DETERMINANT,
-    GPU_INSTANCE_FLAG_NON_ORTHOGONAL_TRANSFORM, GPU_MORPH_DELTA_STRIDE, GPU_MORPH_PAYLOAD_STRIDE,
-    GPU_MORPH_WEIGHT_STRIDE, GPU_PRIMITIVE_DATA_STRIDE, GPU_PRIMITIVE_FLAG_CAST_SHADOWS,
+    GpuInstanceData, GpuMorphDelta, GpuMorphPayload, GpuMorphWeight, GpuPrimitiveData,
+    GpuVirtualGeometryClusterWord, GpuVirtualGeometryPage, GPU_INSTANCE_DATA_STRIDE,
+    GPU_INSTANCE_FLAG_DEGENERATE_NORMAL_TRANSFORM, GPU_INSTANCE_FLAG_GENERAL_NORMAL_TRANSFORM,
+    GPU_INSTANCE_FLAG_NEGATIVE_DETERMINANT, GPU_INSTANCE_FLAG_NON_ORTHOGONAL_TRANSFORM,
+    GPU_MORPH_DELTA_STRIDE, GPU_MORPH_PAYLOAD_STRIDE, GPU_MORPH_WEIGHT_STRIDE,
+    GPU_PRIMITIVE_DATA_STRIDE, GPU_PRIMITIVE_FLAG_CAST_SHADOWS,
     GPU_PRIMITIVE_FLAG_FORCE_HZB_VISIBLE, GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM,
     GPU_PRIMITIVE_FLAG_VISIBLE, GPU_SCENE_INVALID_PAYLOAD_SLOT,
     GPU_VIRTUAL_GEOMETRY_CLUSTER_WORDS_PER_VERTEX, GPU_VIRTUAL_GEOMETRY_PAGE_FLAG_RESIDENT,
-    GpuInstanceData, GpuMorphDelta, GpuMorphPayload, GpuMorphWeight, GpuPrimitiveData,
-    GpuVirtualGeometryClusterWord, GpuVirtualGeometryPage,
 };
 pub(crate) use morph::{GpuSceneMorphUploadReport, GpuScenePreparedMorphUpload};
 pub(crate) use prepared_upload::GpuScenePreparedUpload;

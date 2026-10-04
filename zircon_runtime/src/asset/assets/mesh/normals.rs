@@ -1,3 +1,5 @@
+//! 法线生成由网格导入/作者工具按拓扑与索引约束调用；平面和光滑路径具有不同的顶点共享前提，失败应传回作者数据校验层。
+
 use crate::core::framework::render::RenderMeshTopology;
 
 use super::attribute::MeshAttributeValues;
@@ -172,5 +174,5 @@ fn normalize(vector: [f32; 3]) -> [f32; 3] {
 }
 
 #[cfg(test)]
-#[path = "normals/reciprocal_normalize_tests.rs"]
+#[path = "normals/tests/reciprocal_normalize_tests.rs"]
 mod reciprocal_normalize_tests;

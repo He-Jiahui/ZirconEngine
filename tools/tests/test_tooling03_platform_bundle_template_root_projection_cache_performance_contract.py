@@ -1,3 +1,4 @@
+# 核对平台包模板根投影在多文件批次中只构造一次。
 from __future__ import annotations
 
 import tempfile
@@ -5,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-import tools.zircon_export.platform_bundle_template_files_materialize as materialize
+import tools.export.platform_bundle_template_files_materialize as materialize
 
 
 class Tooling03PlatformBundleTemplateRootProjectionCachePerformanceContractTests(

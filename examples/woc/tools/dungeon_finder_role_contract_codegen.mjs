@@ -1,3 +1,6 @@
+// 调用端：npm run generate:dungeon-finder-role-contract (tools/package.json)；职责：从社交与内容模块提取地下城匹配的角色和列表规则。
+// 输入边界：src/sim/social/dungeon_finder.ts, src/sim/content/dungeon_finder.ts；--check 比较生成结果，不改写目标文件。
+
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

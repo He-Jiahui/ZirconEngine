@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui"
+version = 2
+display_name = "Workbench Status Item"
+
+[imports]
+widgets = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
+
+[components.WorkbenchStatusItem]
+root = "root"
+default_classes = ["workbench-status-item", "workbench-primitive"]
+
+[nodes.root]
+component = "Label"
+control_id = "WorkbenchStatusItemRoot"
+classes = ["workbench-status-item"]
+props = { text = "Status", text_overflow = "ellipsis", font_size = "$editor.typography.body.size", line_height_ratio = "$editor.typography.line_height", foreground_color = "$editor.text.primary", disabled_foreground_color = "$editor.text.disabled", text_tone = "primary" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

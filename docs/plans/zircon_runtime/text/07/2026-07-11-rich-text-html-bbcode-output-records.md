@@ -4,8 +4,6 @@ related_code:
   - zircon_runtime/src/text/model/rich.rs
   - zircon_runtime/src/text/layout/rich.rs
   - zircon_runtime/src/text/layout/rich_vertical.rs
-  - zircon_runtime/src/ui/text/layout_engine/rich_inline.rs
-  - zircon_runtime/src/ui/text/layout_engine/rich_inline_vertical.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/screen_space_ui_image.wgsl
@@ -33,7 +31,6 @@ related_code:
   - zircon_runtime_interface/src/ui/dispatch/input/effect.rs
   - zircon_runtime_interface/src/ui/dispatch/input/result.rs
   - zircon_runtime/src/ui/text/layout_engine/tests/grapheme.rs
-  - zircon_runtime/src/ui/text/layout_engine/tests/rich_inline.rs
   - zircon_runtime/src/ui/text/layout_engine/tests/bidi.rs
   - zircon_runtime/src/ui/text/layout_engine/tests/overflow.rs
   - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs

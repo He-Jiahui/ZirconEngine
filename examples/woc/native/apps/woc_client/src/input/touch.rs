@@ -1,4 +1,4 @@
-use super::gamepad::{stick_to_move_flags, GamepadMoveFlags, GamepadStickVector};
+use super::gamepad::{stick_to_move_flags, valid_deadzone, GamepadMoveFlags, GamepadStickVector};
 
 pub const TOUCH_JOYSTICK_DEADZONE: f64 = 0.22;
 pub const MOVE_AUTORUN_REVEAL_THRESHOLD: f64 = 1.45;
@@ -21,14 +21,17 @@ pub fn map_touch_joystick(x: f64, y: f64, deadzone: Option<f64>) -> GamepadMoveF
 }
 
 pub fn is_move_autorun_push(y: f64, threshold: f64) -> bool {
-    y <= -threshold
+    y.is_finite() && threshold.is_finite() && threshold >= 0.0 && y <= -threshold
 }
 
 pub fn is_move_autorun_near(y: f64, threshold: f64) -> bool {
-    y <= -threshold
+    y.is_finite() && threshold.is_finite() && threshold >= 0.0 && y <= -threshold
 }
 
 pub fn touch_interface_mode_from_setting(value: f64) -> TouchInterfaceMode {
+    if !value.is_finite() {
+        return TouchInterfaceMode::Auto;
+    }
     if value >= 2.0 {
         TouchInterfaceMode::Touch
     } else if value >= 1.0 {
@@ -60,7 +63,14 @@ pub fn is_recenter_double_tap(
 }
 
 pub fn map_touch_look_vector(x: f64, y: f64, deadzone: Option<f64>) -> GamepadStickVector {
-    if x.hypot(y) < deadzone.unwrap_or(TOUCH_JOYSTICK_DEADZONE) {
+    let (Some(x), Some(y)) = (valid_touch_axis(x), valid_touch_axis(y)) else {
+        return GamepadStickVector::default();
+    };
+    let deadzone = deadzone.unwrap_or(TOUCH_JOYSTICK_DEADZONE);
+    if valid_deadzone(deadzone).is_none() {
+        return GamepadStickVector::default();
+    }
+    if x.hypot(y) < deadzone {
         GamepadStickVector::default()
     } else {
         GamepadStickVector {
@@ -76,11 +86,30 @@ pub fn pinch_zoom_delta(
     sensitivity: Option<f64>,
     deadzone_px: Option<f64>,
 ) -> f64 {
+    if !previous_distance.is_finite()
+        || !current_distance.is_finite()
+        || previous_distance < 0.0
+        || current_distance < 0.0
+    {
+        return 0.0;
+    }
     let delta = current_distance - previous_distance;
     let absolute = delta.abs();
     let deadzone_px = deadzone_px.unwrap_or(PINCH_ZOOM_DEADZONE_PX);
+    let sensitivity = sensitivity.unwrap_or(PINCH_ZOOM_SENSITIVITY);
+    if !deadzone_px.is_finite()
+        || deadzone_px < 0.0
+        || !sensitivity.is_finite()
+        || sensitivity < 0.0
+    {
+        return 0.0;
+    }
     if absolute <= deadzone_px {
         return 0.0;
     }
-    -delta.signum() * (absolute - deadzone_px) * sensitivity.unwrap_or(PINCH_ZOOM_SENSITIVITY)
+    -delta.signum() * (absolute - deadzone_px) * sensitivity
+}
+
+fn valid_touch_axis(value: f64) -> Option<f64> {
+    value.is_finite().then(|| value.clamp(-1.0, 1.0))
 }

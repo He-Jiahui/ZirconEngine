@@ -16,20 +16,31 @@ export interface HubListItem {
 export interface HubListProps {
   items: HubListItem[];
   onSelect?: (item: HubListItem) => void;
+  ariaLabel?: string;
 }
 
-export function HubList({ items, onSelect }: HubListProps) {
+export function HubList({ items, onSelect, ariaLabel }: HubListProps) {
   const hasSelectHandler = Boolean(onSelect);
 
   return (
-    <List dense sx={{ display: "grid", gap: 0.7, p: 0 }}>
+    <List
+      dense
+      role={hasSelectHandler ? "listbox" : undefined}
+      aria-label={hasSelectHandler ? (ariaLabel ?? "可选项目列表") : undefined}
+      sx={{ display: "grid", gap: 0.7, p: 0 }}
+    >
       {items.map((item) => {
-        const itemDisabled = item.disabled || !hasSelectHandler;
+        const itemDisabled = hasSelectHandler ? item.disabled : false;
         return (
           <ListItemButton
             key={item.id}
+            component={hasSelectHandler ? "button" : "div"}
+            role={hasSelectHandler ? "option" : undefined}
             selected={item.selected}
+            aria-selected={hasSelectHandler ? Boolean(item.selected) : undefined}
+            aria-disabled={item.disabled || undefined}
             disabled={itemDisabled}
+            tabIndex={hasSelectHandler ? 0 : -1}
             onClick={() => onSelect?.(item)}
             sx={{
               minHeight: item.secondaryDetail ? 64 : 48,
@@ -50,10 +61,10 @@ export function HubList({ items, onSelect }: HubListProps) {
               primary={<Typography variant="body2" noWrap>{item.title}</Typography>}
               secondary={
                 item.detail || item.secondaryDetail ? (
-                  <Box sx={{ minWidth: 0, display: "grid", gap: 0.15 }}>
-                    {item.detail ? <Typography variant="caption" noWrap>{item.detail}</Typography> : null}
+                  <Box component="span" sx={{ minWidth: 0, display: "grid", gap: 0.15 }}>
+                    {item.detail ? <Typography component="span" variant="caption" noWrap>{item.detail}</Typography> : null}
                     {item.secondaryDetail ? (
-                      <Typography variant="caption" noWrap sx={{ color: hubTokens.colors.textMuted }}>
+                      <Typography component="span" variant="caption" noWrap sx={{ color: hubTokens.colors.textMuted }}>
                         {item.secondaryDetail}
                       </Typography>
                     ) : null}

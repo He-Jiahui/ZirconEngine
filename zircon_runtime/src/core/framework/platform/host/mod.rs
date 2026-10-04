@@ -35,4 +35,5 @@ pub use terminal_result::PlatformHostTerminalResult;
 pub use thread_affinity::PlatformHostThreadAffinity;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

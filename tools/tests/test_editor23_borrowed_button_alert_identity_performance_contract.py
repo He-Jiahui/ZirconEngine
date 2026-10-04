@@ -1,3 +1,4 @@
+# 核对按钮与警示绘制身份使用借用字段及静态变体，避免热路径分配。
 import re
 import unittest
 from pathlib import Path

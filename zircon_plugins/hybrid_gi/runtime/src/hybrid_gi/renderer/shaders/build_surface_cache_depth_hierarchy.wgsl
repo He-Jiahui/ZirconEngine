@@ -38,6 +38,7 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     }
 
     let target_coord = vec2<i32>(global_id.xy);
+    // 无有效子像素时保留 alpha=0，后续光线步进不得把此 mip 当成命中。
     if (valid_count == 0u) {
         textureStore(target_depth, target_coord, vec4<f32>(1.0, 1.0, 0.0, 0.0));
         return;

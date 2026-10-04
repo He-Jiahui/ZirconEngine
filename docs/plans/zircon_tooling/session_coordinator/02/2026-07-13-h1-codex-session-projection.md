@@ -3,7 +3,7 @@
 Plan: docs/plans/zircon_tooling/session_coordinator/02-codex-session-hook-sync.md
 Milestone: H1
 Status: completed
-Files: ["docs/cli-and-tooling/workflow-control-center.md", "docs/plans/zircon_tooling/session_coordinator/02/2026-07-13-h1-codex-session-projection.md", "tools/session_coordinator/codex_sync/__init__.py", "tools/session_coordinator/codex_sync/discovery.py", "tools/session_coordinator/codex_sync/models.py", "tools/session_coordinator/codex_sync/store.py", "tools/session_coordinator/migrations.py", "tools/session_coordinator/tests/codex_rollout_fixture.py", "tools/session_coordinator/tests/test_codex_discovery.py", "tools/session_coordinator/tests/test_codex_store.py", "tools/session_coordinator/tests/test_database.py"]
+Files: ["docs/tooling/workflow-control-center.md", "docs/plans/zircon_tooling/session_coordinator/02/2026-07-13-h1-codex-session-projection.md", "tools/session_coordinator/codex_sync/__init__.py", "tools/session_coordinator/codex_sync/discovery.py", "tools/session_coordinator/codex_sync/models.py", "tools/session_coordinator/codex_sync/store.py", "tools/session_coordinator/migrations.py", "tools/session_coordinator/tests/codex_rollout_fixture.py", "tools/session_coordinator/tests/test_codex_discovery.py", "tools/session_coordinator/tests/test_codex_store.py", "tools/session_coordinator/tests/test_database.py"]
 
 ## 状态与产出记录
 

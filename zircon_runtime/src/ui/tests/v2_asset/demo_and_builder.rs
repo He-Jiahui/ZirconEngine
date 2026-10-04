@@ -411,7 +411,7 @@ events = [{ id = "Run", event = "Click", route = "Runtime.Run" }]
     assert_eq!(metadata.bindings.len(), 1);
     let slot = surface
         .tree
-        .slots
+        .layout_slots()
         .iter()
         .find(|slot| slot.child_id == action.node_id)
         .expect("action slot should be projected");

@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 读取插件渲染调用者，确认场景模式掩码通过 v1 接口传递且不绕开约定的层位。
 class PluginRenderLayerSchemaV1MaskCallerTests(unittest.TestCase):
     def test_plugin_callers_use_scene_schema_v1_mask_api(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]

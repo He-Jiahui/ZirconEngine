@@ -5,7 +5,7 @@ use crate::scene::ecs::{
 };
 use crate::scene::{EntityId, World};
 
-use super::query_state::{CachedArchetypePlan, find_cached_archetype_plan};
+use super::query_state::{find_cached_archetype_plan, CachedArchetypePlan};
 
 /// Read-only K-combination iterator over a stable snapshot of matching scene entities.
 pub struct QueryCombinationIter<'world, 'state, D, F = (), const K: usize = 2>
@@ -13,13 +13,14 @@ where
     D: QueryData,
     F: QueryFilter,
 {
-    world: &'world World,
+    // The API constructor binds this raw origin to the genuine loan/run lifetime.
+    world: *const World,
     candidates: QueryCombinationCandidates<'state>,
     // Lexicographic entity-list positions for the next combination to fetch.
     indices: [usize; K],
     remaining: usize,
     ticks: ChangeTickWindow,
-    _marker: PhantomData<fn() -> (D, F)>,
+    _marker: PhantomData<(&'world World, fn() -> (D, F))>,
 }
 
 enum QueryCombinationCandidates<'state> {
@@ -46,120 +47,134 @@ where
     D: QueryData,
     F: QueryFilter,
 {
-    pub(crate) fn new(world: &'world World, ticks: ChangeTickWindow) -> Self {
-        assert!(K != 0, "query combinations require K greater than zero");
-        let mut matched_entities = Vec::new();
-        for entity in world.entity_ids_for_query() {
-            if read_only_combination_candidate_matches::<D, F>(world, entity, ticks) {
-                matched_entities.push(entity);
+    pub(crate) unsafe fn new(world: *const World, ticks: ChangeTickWindow) -> Self {
+        unsafe {
+            assert!(K != 0, "query combinations require K greater than zero");
+            let mut matched_entities = Vec::new();
+            for entity in World::query_entity_ids(world) {
+                if read_only_combination_candidate_matches::<D, F>(&*world, entity, ticks) {
+                    matched_entities.push(entity);
+                }
+            }
+            if matched_entities.len() < K {
+                return Self::empty(world, ticks);
+            }
+            let candidates = QueryCombinationCandidates::Owned(matched_entities);
+            let remaining = combination_count(candidates.len(), K);
+            Self {
+                world,
+                candidates,
+                indices: array::from_fn(|index| index),
+                remaining,
+                ticks,
+                _marker: PhantomData,
             }
         }
-        if matched_entities.len() < K {
-            return Self::empty(world, ticks);
-        }
-        let candidates = QueryCombinationCandidates::Owned(matched_entities);
-        let remaining = combination_count(candidates.len(), K);
-        Self {
-            world,
-            candidates,
-            indices: array::from_fn(|index| index),
-            remaining,
-            ticks,
-            _marker: PhantomData,
+    }
+
+    unsafe fn empty(world: *const World, ticks: ChangeTickWindow) -> Self {
+        unsafe {
+            Self {
+                world,
+                candidates: QueryCombinationCandidates::Owned(Vec::new()),
+                indices: array::from_fn(|index| index),
+                remaining: 0,
+                ticks,
+                _marker: PhantomData,
+            }
         }
     }
 
-    fn empty(world: &'world World, ticks: ChangeTickWindow) -> Self {
-        Self {
-            world,
-            candidates: QueryCombinationCandidates::Owned(Vec::new()),
-            indices: array::from_fn(|index| index),
-            remaining: 0,
-            ticks,
-            _marker: PhantomData,
-        }
-    }
-
-    pub(crate) fn new_from_cached_plans(
-        world: &'world World,
+    pub(crate) unsafe fn new_from_cached_plans(
+        world: *const World,
         plans: &'state [CachedArchetypePlan],
         ticks: ChangeTickWindow,
     ) -> Self {
-        assert!(K != 0, "query combinations require K greater than zero");
-        let mut stable_locations = Vec::new();
-        let mut component_locations = Vec::new();
-        for stable_location in
-            world.stable_query_location_iter(plans.iter().map(CachedArchetypePlan::archetype_id))
-        {
-            let Some(plan) =
-                find_cached_archetype_plan(plans, stable_location.location.archetype_id)
-            else {
-                continue;
-            };
-            if plan.write_component_locations(world, stable_location, &mut component_locations)
-                && F::matches_component_locations(
-                    world,
+        unsafe {
+            assert!(K != 0, "query combinations require K greater than zero");
+            let mut stable_locations = Vec::new();
+            let mut component_locations = Vec::new();
+            for stable_location in World::query_stable_location_iter(
+                world,
+                plans.iter().map(CachedArchetypePlan::archetype_id),
+            ) {
+                let Some(plan) =
+                    find_cached_archetype_plan(plans, stable_location.location.archetype_id)
+                else {
+                    continue;
+                };
+                if plan.write_component_locations(
+                    &*world,
+                    stable_location,
+                    &mut component_locations,
+                ) && F::matches_component_locations(
+                    &*world,
                     stable_location.stable_id,
                     &component_locations,
                     ticks,
-                )
-            {
-                stable_locations.push(stable_location);
+                ) {
+                    stable_locations.push(stable_location);
+                }
             }
-        }
-        if stable_locations.len() < K {
-            return Self::empty(world, ticks);
-        }
-        let candidates = QueryCombinationCandidates::Cached {
-            plans,
-            stable_locations,
-        };
-        let remaining = combination_count(candidates.len(), K);
-        Self {
-            world,
-            candidates,
-            indices: array::from_fn(|index| index),
-            remaining,
-            ticks,
-            _marker: PhantomData,
+            if stable_locations.len() < K {
+                return Self::empty(world, ticks);
+            }
+            let candidates = QueryCombinationCandidates::Cached {
+                plans,
+                stable_locations,
+            };
+            let remaining = combination_count(candidates.len(), K);
+            Self {
+                world,
+                candidates,
+                indices: array::from_fn(|index| index),
+                remaining,
+                ticks,
+                _marker: PhantomData,
+            }
         }
     }
 
     fn fetch_current(&self) -> [D::Item<'world>; K] {
-        array::from_fn(|index| {
-            let candidate_index = self.indices[index];
-            match &self.candidates {
-                QueryCombinationCandidates::Owned(entities) => {
-                    let entity = entities[candidate_index];
-                    D::fetch_with_ticks(self.world, entity, self.ticks)
-                        .expect("combination entity should still match query data")
+        // SAFETY: the cursor grant and provider contracts preserve all returned leaves.
+        unsafe {
+            array::from_fn(|index| {
+                let candidate_index = self.indices[index];
+                match &self.candidates {
+                    QueryCombinationCandidates::Owned(entities) => {
+                        let entity = entities[candidate_index];
+                        D::fetch_with_ticks(self.world, entity, self.ticks)
+                            .expect("combination entity should still match query data")
+                    }
+                    QueryCombinationCandidates::Cached {
+                        plans,
+                        stable_locations,
+                    } => {
+                        let stable_location = stable_locations[candidate_index];
+                        let entity = stable_location.stable_id;
+                        let plan = find_cached_archetype_plan(
+                            plans,
+                            stable_location.location.archetype_id,
+                        )
+                        .expect("cached combination location must retain an archetype plan");
+                        let mut component_locations = Vec::new();
+                        assert!(plan.write_component_locations(
+                            &*self.world,
+                            stable_location,
+                            &mut component_locations,
+                        ));
+                        D::fetch_with_component_locations(
+                            self.world,
+                            entity,
+                            stable_location,
+                            &component_locations,
+                            self.ticks,
+                        )
+                        .expect("cached combination entity should still match query data")
+                    }
                 }
-                QueryCombinationCandidates::Cached {
-                    plans,
-                    stable_locations,
-                } => {
-                    let stable_location = stable_locations[candidate_index];
-                    let entity = stable_location.stable_id;
-                    let plan =
-                        find_cached_archetype_plan(plans, stable_location.location.archetype_id)
-                            .expect("cached combination location must retain an archetype plan");
-                    let mut component_locations = Vec::new();
-                    assert!(plan.write_component_locations(
-                        self.world,
-                        stable_location,
-                        &mut component_locations,
-                    ));
-                    D::fetch_with_component_locations(
-                        self.world,
-                        entity,
-                        stable_location,
-                        &component_locations,
-                        self.ticks,
-                    )
-                    .expect("cached combination entity should still match query data")
-                }
-            }
-        })
+            })
+        }
     }
 
     fn advance_indices(&mut self) {
@@ -186,16 +201,20 @@ where
     type Item = [D::Item<'world>; K];
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.remaining == 0 {
-            return None;
-        }
+        // SAFETY: the cursor's original grant keeps storage/structure and
+        // declared compatible leaves valid; no World parent is retained.
+        unsafe {
+            if self.remaining == 0 {
+                return None;
+            }
 
-        let items = self.fetch_current();
-        self.remaining -= 1;
-        if self.remaining > 0 {
-            self.advance_indices();
+            let items = self.fetch_current();
+            self.remaining -= 1;
+            if self.remaining > 0 {
+                self.advance_indices();
+            }
+            Some(items)
         }
-        Some(items)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -232,6 +251,7 @@ pub(crate) fn combination_count(entity_count: usize, group_size: usize) -> usize
     let mut denominator = 1;
     while denominator <= group_size {
         let numerator = entity_count - denominator + 1;
+        // BUG: [CR-ECS-COMBINATION-COUNT-0001] 64 位 C(67,30) 可表示，但第 24 步先乘溢出并返回 MAX；末组索引不再前进，next 仍按错误计数重复返回末组，len 也沿用该计数。
         let Some(next_count) = count.checked_mul(numerator) else {
             return usize::MAX;
         };

@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 组件类别投影用固定容量结果而不建立堆集合；检查 Rust 用例对声明顺序、重复和空输入语义的断言。
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime/src/ui/component/catalog/registry.rs"

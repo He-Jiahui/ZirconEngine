@@ -4,6 +4,7 @@ use super::super::super::{
     BaseScenePass, GridPass, HandlePass, PreviewSkyPass, SceneGizmoPass, SelectionOutlinePass,
     ViewportIconSource, WireframePass,
 };
+use super::super::depth_reconstruction::OverlayDepthReconstruction;
 use super::super::viewport_overlay_renderer::{
     ViewportInteractionOverlays, ViewportOverlayRenderer,
 };
@@ -11,7 +12,7 @@ use super::create_grid_buffer::create_grid_buffer;
 use super::create_line_pipeline::create_line_pipeline;
 use super::create_sky_pipeline::create_sky_pipeline;
 use crate::graphics::scene::scene_renderer::advanced_lighting::froxel::{
-    VolumetricApplyFallbackResources, volumetric_apply_bind_group_layout_entries,
+    volumetric_apply_bind_group_layout_entries, VolumetricApplyFallbackResources,
 };
 
 impl ViewportOverlayRenderer {
@@ -55,6 +56,7 @@ impl ViewportOverlayRenderer {
                 ),
                 handle: HandlePass,
                 line_pipeline,
+                depth_reconstruction: OverlayDepthReconstruction::new(device),
                 grid_vertex_buffer,
                 grid_vertex_count,
             }
@@ -72,35 +74,5 @@ impl ViewportOverlayRenderer {
 }
 
 #[cfg(test)]
-mod tests {
-    const SOURCE: &str = include_str!("construct.rs");
-
-    fn production_source() -> &'static str {
-        SOURCE
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("overlay construction should retain a test-module boundary")
-    }
-
-    #[test]
-    fn interaction_only_pipelines_are_constructed_lazily() {
-        let source = production_source();
-        let interaction_gate = source
-            .find("interaction_overlays_enabled.then(|| {")
-            .expect("interaction overlay resources should be conditionally constructed");
-
-        for constructor in [
-            "create_line_pipeline(device, final_color_format, scene_layout)",
-            "create_grid_buffer(device)",
-            "SceneGizmoPass::new(",
-        ] {
-            let position = source
-                .find(constructor)
-                .unwrap_or_else(|| panic!("missing interaction constructor `{constructor}`"));
-            assert!(
-                interaction_gate < position,
-                "{constructor} must remain behind the interaction-overlay gate"
-            );
-        }
-    }
-}
+#[path = "tests/construct.rs"]
+mod tests;

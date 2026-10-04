@@ -1,3 +1,4 @@
+# 核对着色器预热命令对维度摘要、资产根和报告输出的处理。
 import json
 import subprocess
 import tempfile
@@ -7,8 +8,8 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
-from tools import zircon_build
-from tools.zircon_build_shader_prewarm import (
+from tools.build import zircon_build
+from tools.build.zircon_build_shader_prewarm import (
     build_shader_prewarm_command,
     generated_shader_permutation_registry_document,
     print_shader_prewarm_plan,

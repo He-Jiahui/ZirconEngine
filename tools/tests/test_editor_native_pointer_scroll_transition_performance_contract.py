@@ -1,3 +1,4 @@
+# 核对滚轮处理仅在交互代际变化时请求重绘，边界与被动滚动保持空闲。
 from pathlib import Path
 import unittest
 

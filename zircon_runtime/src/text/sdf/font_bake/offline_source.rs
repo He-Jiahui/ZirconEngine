@@ -2,12 +2,12 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::asset::ProjectAssetManager;
-use crate::text::FontFaceId;
-use crate::text::font::{FontDatabase, FontLoadError, LoadedTextFontSource, load_text_font_source};
+use crate::text::font::{load_text_font_source, FontDatabase, FontLoadError, LoadedTextFontSource};
 use crate::text::sdf::{
-    SdfGenerationSourceContext, SdfOfflineArtifact, SdfOfflineArtifactIdentity,
-    sdf_offline_artifact_path,
+    sdf_offline_artifact_path, SdfGenerationSourceContext, SdfOfflineArtifact,
+    SdfOfflineArtifactIdentity,
 };
+use crate::text::FontFaceId;
 
 use super::distance_field::glyph_id_for_key;
 use super::{RawBakedGlyph, RawBakedGlyphSource, SdfAtlasGlyphKey, SdfGlyphMetrics};

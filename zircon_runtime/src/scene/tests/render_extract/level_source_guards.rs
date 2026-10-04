@@ -64,13 +64,11 @@ fn level_system_render_extract_uses_world_direct_path_and_merges_animation_poses
     );
 
     assert_eq!(extract.world.raw(), 705);
-    assert!(
-        extract
-            .geometry
-            .meshes
-            .iter()
-            .any(|mesh| mesh.node_id == mesh_with_skeleton)
-    );
+    assert!(extract
+        .geometry
+        .meshes
+        .iter()
+        .any(|mesh| mesh.node_id == mesh_with_skeleton));
     assert_eq!(extract.animation_poses.len(), 1);
     assert_eq!(extract.animation_poses[0].entity, mesh_with_skeleton);
     assert_eq!(extract.animation_poses[0].skeleton, skeleton_handle.id());

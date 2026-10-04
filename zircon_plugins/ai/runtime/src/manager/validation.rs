@@ -9,21 +9,23 @@ use zircon_runtime::core::framework::ai::{
 use super::parameters::{
     parse_parallel_policy, parse_perception_sense, parse_task_result,
     BLACKBOARD_CONDITION_PARAMETER_KEYS, BLACKBOARD_EXISTS_PARAMETER_KEY,
-    BLACKBOARD_INVERT_PARAMETER_KEY, BLACKBOARD_KEY_PARAMETER_KEY, DECORATOR_PARAMETER_KEYS,
-    NON_NEGATIVE_SCALAR_EXPECTED_VALUE, PARALLEL_FAILURE_POLICY_PARAMETER_KEY,
-    PARALLEL_POLICY_EXPECTED_VALUES, PARALLEL_POLICY_PARAMETER_KEYS,
-    PARALLEL_SUCCESS_POLICY_PARAMETER_KEY, PERCEPTION_CONDITION_PARAMETER_KEYS,
-    PERCEPTION_EXISTS_PARAMETER_KEY, PERCEPTION_MAX_AGE_SECONDS_PARAMETER_KEY,
-    PERCEPTION_MIN_STRENGTH_PARAMETER_KEY, PERCEPTION_SENSE_EXPECTED_VALUES,
-    PERCEPTION_SENSE_PARAMETER_KEY, PERCEPTION_SOURCE_PARAMETER_KEY,
-    SUBTREE_TARGET_EXPECTED_VALUES, SUBTREE_TARGET_PARAMETER_KEY, TASK_RESULT_EXPECTED_VALUES,
-    TASK_RESULT_PARAMETER_KEY,
+    BLACKBOARD_INVERT_PARAMETER_KEY, BLACKBOARD_KEY_PARAMETER_KEY, BLACKBOARD_VALUE_PARAMETER_KEY,
+    DECORATOR_PARAMETER_KEYS, GAMEPLAY_EVENT_NAME_PARAMETER_KEY,
+    GAMEPLAY_EVENT_PAYLOAD_PARAMETER_KEY, NON_NEGATIVE_SCALAR_EXPECTED_VALUE,
+    PARALLEL_FAILURE_POLICY_PARAMETER_KEY, PARALLEL_POLICY_EXPECTED_VALUES,
+    PARALLEL_POLICY_PARAMETER_KEYS, PARALLEL_SUCCESS_POLICY_PARAMETER_KEY,
+    PERCEPTION_CONDITION_PARAMETER_KEYS, PERCEPTION_EXISTS_PARAMETER_KEY,
+    PERCEPTION_MAX_AGE_SECONDS_PARAMETER_KEY, PERCEPTION_MIN_STRENGTH_PARAMETER_KEY,
+    PERCEPTION_SENSE_EXPECTED_VALUES, PERCEPTION_SENSE_PARAMETER_KEY,
+    PERCEPTION_SOURCE_PARAMETER_KEY, SUBTREE_TARGET_EXPECTED_VALUES, SUBTREE_TARGET_PARAMETER_KEY,
+    TASK_RESULT_EXPECTED_VALUES, TASK_RESULT_PARAMETER_KEY,
 };
 
 mod integration;
 mod runtime_inputs;
 
 #[cfg(test)]
+#[path = "validation/tests/topology_index_tests.rs"]
 mod topology_index_tests;
 
 pub(super) use runtime_inputs::{
@@ -58,6 +60,7 @@ fn validate_behavior_tree_descriptor_inner(
     ensure_non_empty(&descriptor.id, "behavior_tree.id")?;
     ensure_non_empty(&descriptor.root_node, "behavior_tree.root_node")?;
 
+    // 注册路径才要求子树目标已存在；独立编译仍检查其余描述符和拓扑约束。
     let registered_tree_index = (require_registered_subtree_target
         && descriptor
             .nodes
@@ -164,6 +167,7 @@ const VISIT_UNSEEN: u8 = 0;
 const VISIT_ACTIVE: u8 = 1;
 const VISIT_COMPLETE: u8 = 2;
 
+// 先从根检测环，再检查可达性和入边数；错误优先级由这两个阶段确定。
 fn validate_behavior_tree_topology(
     descriptor: &AiBehaviorTreeDescriptor,
     node_indices: &HashMap<&str, usize>,
@@ -296,6 +300,7 @@ fn validate_builtin_behavior_node_parameters(
     validate_parallel_policy_parameter(tree_id, node, PARALLEL_FAILURE_POLICY_PARAMETER_KEY)?;
     validate_standard_node_parameters(tree_id, node)?;
     integration::validate_integration_node_parameters(tree_id, node)?;
+    validate_effect_node_parameters(tree_id, node)?;
 
     let has_blackboard_condition =
         has_any_behavior_node_parameter(node, BLACKBOARD_CONDITION_PARAMETER_KEYS);
@@ -435,8 +440,7 @@ fn validate_builtin_behavior_node_parameter_owners(
     node: &AiBehaviorNodeDescriptor,
 ) -> Result<(), AiManagerError> {
     for parameter in &node.parameters {
-        let Some(expected) = expected_builtin_parameter_owner(parameter.key.as_str(), node.kind)
-        else {
+        let Some(expected) = expected_builtin_parameter_owner(parameter.key.as_str(), node) else {
             continue;
         };
         return Err(AiManagerError::InvalidBehaviorNodeParameterOwner {
@@ -452,21 +456,166 @@ fn validate_builtin_behavior_node_parameter_owners(
 
 fn expected_builtin_parameter_owner(
     key: &str,
-    node_kind: AiBehaviorNodeKind,
+    node: &AiBehaviorNodeDescriptor,
 ) -> Option<&'static str> {
-    if key == TASK_RESULT_PARAMETER_KEY && node_kind != AiBehaviorNodeKind::Task {
+    if key == TASK_RESULT_PARAMETER_KEY
+        && matches!(
+            node.implementation.as_str(),
+            "set_blackboard" | "emit_event"
+        )
+    {
+        return Some("typed effect nodes cannot configure the `result` status placeholder");
+    }
+    if key == "service_result" && node.kind != AiBehaviorNodeKind::Service {
+        return Some("`service` nodes");
+    }
+    if key == TASK_RESULT_PARAMETER_KEY && node.kind != AiBehaviorNodeKind::Task {
         return Some("`task` nodes");
     }
-    if PARALLEL_POLICY_PARAMETER_KEYS.contains(&key) && node_kind != AiBehaviorNodeKind::Parallel {
+    if PARALLEL_POLICY_PARAMETER_KEYS.contains(&key) && node.kind != AiBehaviorNodeKind::Parallel {
         return Some("`parallel` nodes");
     }
-    if DECORATOR_PARAMETER_KEYS.contains(&key) && node_kind != AiBehaviorNodeKind::Decorator {
+    if DECORATOR_PARAMETER_KEYS.contains(&key)
+        && node.kind != AiBehaviorNodeKind::Decorator
+        && !(key == BLACKBOARD_KEY_PARAMETER_KEY
+            && node.kind == AiBehaviorNodeKind::Task
+            && node.implementation == "set_blackboard")
+    {
         return Some("`decorator` nodes");
     }
-    if key == SUBTREE_TARGET_PARAMETER_KEY && node_kind != AiBehaviorNodeKind::Subtree {
+    if key == SUBTREE_TARGET_PARAMETER_KEY && node.kind != AiBehaviorNodeKind::Subtree {
         return Some("`subtree` nodes");
     }
     None
+}
+
+fn validate_effect_node_parameters(
+    tree_id: &str,
+    node: &AiBehaviorNodeDescriptor,
+) -> Result<(), AiManagerError> {
+    match node.implementation.as_str() {
+        "set_blackboard" => {
+            let key = required_effect_string_parameter(
+                tree_id,
+                node,
+                BLACKBOARD_KEY_PARAMETER_KEY,
+                "a nonempty Blackboard key",
+            )?;
+            if key.len() > 256 {
+                return invalid_effect_parameter_value(
+                    tree_id,
+                    node,
+                    BLACKBOARD_KEY_PARAMETER_KEY,
+                    "a nonempty Blackboard key of at most 256 bytes",
+                    key,
+                );
+            }
+            let Some(value) = behavior_node_parameter(node, BLACKBOARD_VALUE_PARAMETER_KEY) else {
+                return Err(AiManagerError::InvalidBehaviorNodeParameter {
+                    tree_id: tree_id.to_string(),
+                    node_id: node.id.clone(),
+                    key: BLACKBOARD_VALUE_PARAMETER_KEY.to_string(),
+                    expected: "a typed Blackboard value",
+                    actual: "missing",
+                });
+            };
+            validate_effect_parameter_value(tree_id, node, BLACKBOARD_VALUE_PARAMETER_KEY, value)
+        }
+        "emit_event" => {
+            let name = required_effect_string_parameter(
+                tree_id,
+                node,
+                GAMEPLAY_EVENT_NAME_PARAMETER_KEY,
+                "a nonempty gameplay event name",
+            )?;
+            if name.len() > 128 || name.chars().any(char::is_control) {
+                return invalid_effect_parameter_value(
+                    tree_id,
+                    node,
+                    GAMEPLAY_EVENT_NAME_PARAMETER_KEY,
+                    "a nonempty gameplay event name of at most 128 bytes without control characters",
+                    name,
+                );
+            }
+            if let Some(payload) =
+                behavior_node_parameter(node, GAMEPLAY_EVENT_PAYLOAD_PARAMETER_KEY)
+            {
+                validate_effect_parameter_value(
+                    tree_id,
+                    node,
+                    GAMEPLAY_EVENT_PAYLOAD_PARAMETER_KEY,
+                    payload,
+                )?;
+            }
+            Ok(())
+        }
+        _ => Ok(()),
+    }
+}
+
+fn required_effect_string_parameter<'a>(
+    tree_id: &str,
+    node: &'a AiBehaviorNodeDescriptor,
+    key: &'static str,
+    expected: &'static str,
+) -> Result<&'a str, AiManagerError> {
+    let Some(value) = behavior_node_parameter(node, key) else {
+        return Err(AiManagerError::InvalidBehaviorNodeParameter {
+            tree_id: tree_id.to_string(),
+            node_id: node.id.clone(),
+            key: key.to_string(),
+            expected,
+            actual: "missing",
+        });
+    };
+    let value = expect_string_parameter(tree_id, node, key, value)?;
+    if value.trim().is_empty() {
+        return invalid_effect_parameter_value(tree_id, node, key, expected, value);
+    }
+    Ok(value)
+}
+
+fn validate_effect_parameter_value(
+    tree_id: &str,
+    node: &AiBehaviorNodeDescriptor,
+    key: &'static str,
+    value: &AiBehaviorNodeParameterValue,
+) -> Result<(), AiManagerError> {
+    if !value.is_finite() {
+        return invalid_effect_parameter_value(
+            tree_id,
+            node,
+            key,
+            "a finite typed AI value",
+            value.value_type(),
+        );
+    }
+    if matches!(value, AiBehaviorNodeParameterValue::String(text) if text.len() > 1_024) {
+        return invalid_effect_parameter_value(
+            tree_id,
+            node,
+            key,
+            "a typed AI value whose string payload is at most 1024 bytes",
+            "string longer than 1024 bytes",
+        );
+    }
+    Ok(())
+}
+
+fn invalid_effect_parameter_value<T>(
+    tree_id: &str,
+    node: &AiBehaviorNodeDescriptor,
+    key: &'static str,
+    expected: &'static str,
+    actual: impl ToString,
+) -> Result<T, AiManagerError> {
+    Err(AiManagerError::InvalidBehaviorNodeParameterValue {
+        tree_id: tree_id.to_string(),
+        node_id: node.id.clone(),
+        key: key.to_string(),
+        expected,
+        actual: actual.to_string(),
+    })
 }
 
 fn validate_subtree_target_parameter(

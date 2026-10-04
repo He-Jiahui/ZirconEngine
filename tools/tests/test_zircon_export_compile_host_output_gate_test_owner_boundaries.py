@@ -8,10 +8,10 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 COMPILE_HOST_OUTPUT_GATE_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_compile_host_output_gate.py"
+    REPO_ROOT / "tools/export/tests/test_compile_host_output_gate.py"
 )
 COMPILE_HOST_PLAN_COMMAND_SEMANTICS_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_compile_host_plan_command_semantics.py"
+    REPO_ROOT / "tools/export/tests/test_compile_host_plan_command_semantics.py"
 )
 
 COMMAND_SEMANTICS_TEST_METHODS = (

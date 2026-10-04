@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use std::time::Instant;
 
+use super::construction::CompletionBarrierGuard;
 use super::{EditorJobSystem, ProgressObserverEvent};
 use crate::core::jobs::event_sink::JobEventSink;
 use crate::core::jobs::{
@@ -47,7 +48,11 @@ impl EditorJobSystem {
     }
 
     /// Runs two borrowing tasks through the shared runtime scheduler without creating editor threads.
-    pub fn join<A, B, RA, RB>(&self, task_a: A, task_b: B) -> (RA, RB)
+    ///
+    /// The capability is crate-private so external domains cannot bypass job
+    /// admission, progress, cancellation, and shutdown ownership. Internal
+    /// process-capture adapters use it only while already executing a job.
+    pub(crate) fn join<A, B, RA, RB>(&self, task_a: A, task_b: B) -> (RA, RB)
     where
         A: FnOnce() -> RA + Send,
         B: FnOnce() -> RB + Send,
@@ -71,6 +76,7 @@ impl EditorJobSystem {
         cancel.cancel();
         let cancel_task = pending.cancel_task;
         drop(state);
+        let _completion = CompletionBarrierGuard::new(Arc::clone(&self.inner));
         let events = JobEventSink::new(
             id,
             label,
@@ -101,7 +107,9 @@ impl EditorJobSystem {
         self.inner.cancel_pending(pending);
 
         let mut state = self.inner.lock_state();
-        while self.inner.progress.has_active() {
+        // An empty progress map is not yet quiescent when terminal observer
+        // delivery or promotion is still in flight.
+        while self.inner.progress.has_active() || self.inner.completion_barrier_active() {
             let now = Instant::now();
             if now >= deadline {
                 break;
@@ -182,5 +190,5 @@ fn into_pending_cancel_metadata(spec: EditorJobSpec) -> PendingCancelMetadata {
 }
 
 #[cfg(test)]
-#[path = "lifecycle/owned_cancel_metadata_tests.rs"]
+#[path = "lifecycle/tests/owned_cancel_metadata_tests.rs"]
 mod owned_cancel_metadata_tests;

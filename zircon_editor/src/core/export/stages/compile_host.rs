@@ -6,11 +6,10 @@ use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::thread::JoinHandle;
 
 use zircon_runtime_interface::export::{ExportPreset, ExportTargetMode};
 
-const ZIRCON_BUILD_SCRIPT: &str = "tools/zircon_build.py";
+const ZIRCON_BUILD_SCRIPT: &str = "tools/build/zircon_build.py";
 const MAX_COMMAND_OUTPUT_TAIL_BYTES: usize = 64 * 1024;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -172,33 +171,23 @@ impl ZirconBuildCommandRunner for SystemZirconBuildCommandRunner {
         let stderr_log = create_output_file(&command.stderr_log).map_err(|source| {
             ZirconBuildCommandError::io("create stderr log", &command.stderr_log, source)
         })?;
+        let child_stdout = stdout_log.try_clone().map_err(|source| {
+            ZirconBuildCommandError::io("clone stdout log", &command.stdout_log, source)
+        })?;
+        let child_stderr = stderr_log.try_clone().map_err(|source| {
+            ZirconBuildCommandError::io("clone stderr log", &command.stderr_log, source)
+        })?;
         let mut child = Command::new(&command.program)
             .args(&command.args)
             .current_dir(&command.working_directory)
             .stdin(Stdio::null())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
+            .stdout(Stdio::from(child_stdout))
+            .stderr(Stdio::from(child_stderr))
             .spawn()
             .map_err(|source| ZirconBuildCommandError::Spawn {
                 program: command.program.clone(),
                 source,
             })?;
-        let stdout = child.stdout.take().ok_or_else(|| {
-            ZirconBuildCommandError::io(
-                "open stdout pipe",
-                &command.stdout_log,
-                std::io::Error::other("spawned Zircon build command has no stdout pipe"),
-            )
-        })?;
-        let stderr = child.stderr.take().ok_or_else(|| {
-            ZirconBuildCommandError::io(
-                "open stderr pipe",
-                &command.stderr_log,
-                std::io::Error::other("spawned Zircon build command has no stderr pipe"),
-            )
-        })?;
-        let stdout_capture = std::thread::spawn(move || capture_output_stream(stdout, stdout_log));
-        let stderr_capture = std::thread::spawn(move || capture_output_stream(stderr, stderr_log));
         let status = child.wait().map_err(|source| {
             ZirconBuildCommandError::io(
                 "wait for Zircon build command",
@@ -206,12 +195,22 @@ impl ZirconBuildCommandRunner for SystemZirconBuildCommandRunner {
                 source,
             )
         })?;
-        let stdout = join_output_capture(stdout_capture, "stdout").map_err(|source| {
-            ZirconBuildCommandError::io("capture stdout", &command.stdout_log, source)
+        stdout_log.sync_all().map_err(|source| {
+            ZirconBuildCommandError::io("sync stdout log", &command.stdout_log, source)
         })?;
-        let stderr = join_output_capture(stderr_capture, "stderr").map_err(|source| {
-            ZirconBuildCommandError::io("capture stderr", &command.stderr_log, source)
+        stderr_log.sync_all().map_err(|source| {
+            ZirconBuildCommandError::io("sync stderr log", &command.stderr_log, source)
         })?;
+        let stdout = File::open(&command.stdout_log)
+            .and_then(capture_output_stream)
+            .map_err(|source| {
+                ZirconBuildCommandError::io("capture stdout", &command.stdout_log, source)
+            })?;
+        let stderr = File::open(&command.stderr_log)
+            .and_then(capture_output_stream)
+            .map_err(|source| {
+                ZirconBuildCommandError::io("capture stderr", &command.stderr_log, source)
+            })?;
         write_output_manifest(command, &stdout, &stderr).map_err(|source| {
             ZirconBuildCommandError::io("write output manifest", &command.output_manifest, source)
         })?;
@@ -310,10 +309,7 @@ fn create_output_file(path: &Path) -> std::io::Result<File> {
     File::create(path)
 }
 
-fn capture_output_stream(
-    mut reader: impl Read,
-    mut output: File,
-) -> std::io::Result<CapturedCommandOutput> {
+fn capture_output_stream(mut reader: impl Read) -> std::io::Result<CapturedCommandOutput> {
     let mut tail = VecDeque::with_capacity(MAX_COMMAND_OUTPUT_TAIL_BYTES);
     let mut byte_count = 0_u64;
     let mut digest = blake3::Hasher::new();
@@ -324,7 +320,6 @@ fn capture_output_stream(
             break;
         }
         let bytes = &chunk[..read];
-        output.write_all(bytes)?;
         digest.update(bytes);
         byte_count = byte_count.saturating_add(read as u64);
         tail.extend(bytes.iter().copied());
@@ -332,7 +327,6 @@ fn capture_output_stream(
             tail.pop_front();
         }
     }
-    output.sync_all()?;
     Ok(CapturedCommandOutput {
         tail: finalize_captured_output_tail(tail),
         byte_count,
@@ -342,15 +336,6 @@ fn capture_output_stream(
 
 fn finalize_captured_output_tail(tail: VecDeque<u8>) -> Vec<u8> {
     Vec::from(tail)
-}
-
-fn join_output_capture(
-    capture: JoinHandle<std::io::Result<CapturedCommandOutput>>,
-    stream: &'static str,
-) -> std::io::Result<CapturedCommandOutput> {
-    capture
-        .join()
-        .map_err(|_| std::io::Error::other(format!("{stream} capture thread panicked")))?
 }
 
 fn write_output_manifest(
@@ -381,49 +366,9 @@ fn write_output_manifest(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn system_runner_streams_full_logs_and_bounds_memory_tails() {
-        let root = std::env::temp_dir().join(format!(
-            "zircon-editor-system-build-output-{}-{:x}",
-            std::process::id(),
-            fixture_nonce()
-        ));
-        let _ = fs::remove_dir_all(&root);
-        fs::create_dir_all(&root).unwrap();
-        let log_path = root.join("stdout.log");
-        let bytes = (0..(MAX_COMMAND_OUTPUT_TAIL_BYTES + 8192))
-            .map(|index| (index % 251) as u8)
-            .collect::<Vec<_>>();
-
-        let captured = capture_output_stream(
-            std::io::Cursor::new(bytes.clone()),
-            File::create(&log_path).unwrap(),
-        )
-        .unwrap();
-
-        assert_eq!(captured.byte_count, bytes.len() as u64);
-        assert_eq!(captured.digest, blake3::hash(&bytes));
-        assert_eq!(captured.tail.len(), MAX_COMMAND_OUTPUT_TAIL_BYTES);
-        assert_eq!(
-            captured.tail,
-            bytes[bytes.len() - MAX_COMMAND_OUTPUT_TAIL_BYTES..]
-        );
-        assert_eq!(fs::read(&log_path).unwrap(), bytes);
-        let _ = fs::remove_dir_all(root);
-    }
-
-    fn fixture_nonce() -> u64 {
-        use std::hash::{Hash, Hasher};
-        let mut hasher = std::collections::hash_map::DefaultHasher::new();
-        std::thread::current().id().hash(&mut hasher);
-        std::time::SystemTime::now().hash(&mut hasher);
-        hasher.finish()
-    }
-}
+#[path = "tests/compile_host.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "compile_host/zero_copy_tail_finalization_tests.rs"]
+#[path = "compile_host/tests/zero_copy_tail_finalization_tests.rs"]
 mod zero_copy_tail_finalization_tests;

@@ -18,7 +18,20 @@ pub struct GamepadLookDelta {
     pub pitch: f64,
 }
 
+pub(crate) fn valid_deadzone(deadzone: f64) -> Option<f64> {
+    (deadzone.is_finite() && deadzone >= 0.0 && deadzone < 1.0).then_some(deadzone)
+}
+
+fn valid_axis(value: f64) -> Option<f64> {
+    value.is_finite().then(|| value.clamp(-1.0, 1.0))
+}
+
 pub fn apply_radial_deadzone(x: f64, y: f64, deadzone: f64) -> GamepadStickVector {
+    let (Some(x), Some(y), Some(deadzone)) =
+        (valid_axis(x), valid_axis(y), valid_deadzone(deadzone))
+    else {
+        return GamepadStickVector::default();
+    };
     let magnitude = x.hypot(y);
     if magnitude <= deadzone || magnitude == 0.0 {
         return GamepadStickVector::default();
@@ -32,6 +45,11 @@ pub fn apply_radial_deadzone(x: f64, y: f64, deadzone: f64) -> GamepadStickVecto
 }
 
 pub fn stick_to_move_flags(x: f64, y: f64, deadzone: f64) -> GamepadMoveFlags {
+    let (Some(x), Some(y), Some(deadzone)) =
+        (valid_axis(x), valid_axis(y), valid_deadzone(deadzone))
+    else {
+        return GamepadMoveFlags::default();
+    };
     if x.hypot(y) < deadzone {
         return GamepadMoveFlags::default();
     }
@@ -52,6 +70,9 @@ pub fn stick_to_look(
     invert_y: bool,
     elapsed_seconds: f64,
 ) -> GamepadLookDelta {
+    if !speed.is_finite() || speed < 0.0 || !elapsed_seconds.is_finite() || elapsed_seconds < 0.0 {
+        return GamepadLookDelta::default();
+    }
     let vector = apply_radial_deadzone(x, y, deadzone);
     if vector == GamepadStickVector::default() {
         return GamepadLookDelta::default();

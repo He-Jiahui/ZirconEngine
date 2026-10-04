@@ -26,6 +26,7 @@ mod authored_frames;
 mod authored_geometry;
 mod incremental_layout;
 mod mutation_state;
+mod patch_publication;
 mod rebuild_domains;
 mod render_domains;
 
@@ -45,6 +46,141 @@ fn surface_rebuild_collects_dirty_flags_and_node_count_in_one_tree_pass() {
         ),
         "incremental rebuild must collect both dirty summaries in one pass"
     );
+}
+
+#[test]
+fn surface_dirty_entrypoints_use_the_indexed_dirty_authority() {
+    let source = include_str!("../surface/surface/rebuild.rs");
+
+    assert!(
+        !source.contains("let dirty_summary = dirty_summary(&self.tree);"),
+        "surface rebuild entrypoints must consume the tracked dirty authority"
+    );
+    assert!(
+        source.contains("collect_dirty_summary"),
+        "surface rebuild entrypoints must share one candidate summary collector"
+    );
+    assert!(
+        source.contains("tree.nodes.dirty_flags()"),
+        "the public dirty query must use the aggregate domain mask"
+    );
+}
+
+#[test]
+fn surface_dirty_aggregate_unions_domains_without_duplicate_nodes() {
+    let mut surface = test_surface();
+
+    surface
+        .mark_node_dirty(
+            button_id(),
+            UiDirtyFlags {
+                render: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    surface
+        .mark_node_dirty(
+            button_id(),
+            UiDirtyFlags {
+                hit_test: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+    assert_eq!(surface.pending_invalidation_changed_node_count(), 1);
+    assert_eq!(
+        surface.dirty_flags(),
+        UiDirtyFlags {
+            hit_test: true,
+            render: true,
+            ..Default::default()
+        }
+    );
+}
+
+#[test]
+fn surface_dirty_discovery_and_clear_visit_only_registered_leaf() {
+    const CHILD_COUNT: usize = 10_000;
+    let mut surface = large_flat_surface(CHILD_COUNT);
+    surface.compute_layout(root_size()).unwrap();
+    surface.clear_dirty_flags();
+    surface.reset_dirty_scan_stats();
+
+    surface
+        .tree
+        .node_mut(UiNodeId::new(10_000 + CHILD_COUNT as u64 - 1))
+        .expect("leaf should exist")
+        .dirty
+        .render = true;
+
+    let report = surface.rebuild_dirty(root_size()).unwrap();
+    let stats = surface.dirty_scan_stats();
+
+    assert_eq!(report.dirty_node_count, 1);
+    assert_eq!(stats.discovery_visits, 1);
+    assert_eq!(stats.clear_visits, 1);
+    assert!(!surface.dirty_flags().any());
+}
+
+#[test]
+fn failed_surface_rebuild_keeps_dirty_authority_for_retry() {
+    let mut surface = test_surface();
+    let missing_child = UiNodeId::new(99_999);
+    surface
+        .tree
+        .node_mut(root_id())
+        .expect("root should exist")
+        .children
+        .push(missing_child);
+    surface
+        .mark_node_dirty(
+            root_id(),
+            UiDirtyFlags {
+                layout: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+    let error = surface.rebuild_dirty(root_size()).unwrap_err();
+    assert_eq!(
+        error,
+        zircon_runtime_interface::ui::tree::UiTreeError::MissingNode(missing_child)
+    );
+    assert!(surface.dirty_flags().layout);
+    assert!(surface.pending_rebuild_node_ids().contains(&root_id()));
+
+    surface
+        .tree
+        .node_mut(root_id())
+        .expect("root should exist")
+        .children
+        .retain(|child_id| *child_id != missing_child);
+    let report = surface.rebuild_dirty(root_size()).unwrap();
+    assert!(report.layout_recomputed);
+    assert!(!surface.dirty_flags().any());
+}
+
+fn large_flat_surface(child_count: usize) -> UiSurface {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.dirty_domains.large_flat"));
+    surface.tree.insert_root(
+        UiTreeNode::new(root_id(), UiNodePath::new("root")).with_container(UiContainerKind::Free),
+    );
+    for index in 0..child_count {
+        surface
+            .tree
+            .insert_child(
+                root_id(),
+                UiTreeNode::new(
+                    UiNodeId::new(10_000 + index as u64),
+                    UiNodePath::new(format!("root/item-{index}")),
+                ),
+            )
+            .expect("large flat child should insert");
+    }
+    surface
 }
 
 fn test_surface() -> UiSurface {
@@ -250,7 +386,10 @@ fn assert_layout_engine_report_exported(
     surface: &UiSurface,
     expected: &UiLayoutEngineSelectionReport,
 ) {
-    assert_eq!(&surface.surface_frame().layout_engine_report, expected);
+    assert_eq!(
+        surface.surface_frame().layout_engine_report.as_ref(),
+        expected
+    );
     assert_eq!(&surface.debug_snapshot().layout_engine_report, expected);
 
     let snapshot_json = surface

@@ -15,4 +15,5 @@ pub(in crate::hybrid_gi) use influence::GLOBAL_SDF_MAX_PAGE_CANDIDATES;
 use synchronize::aabb_intersects;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

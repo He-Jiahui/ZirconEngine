@@ -3,21 +3,21 @@ related_code:
   - .github/workflows/wiki-pages.yml
   - mkdocs.yml
   - requirements-docs.txt
-  - tools/wiki_site.py
-  - tools/wiki_mkdocs_hook.py
+  - tools/docs/wiki_site.py
+  - tools/docs/wiki_mkdocs_hook.py
   - docs/wiki/navigation.yaml
 implementation_files:
   - .github/workflows/wiki-pages.yml
   - mkdocs.yml
   - requirements-docs.txt
-  - tools/wiki_site.py
-  - tools/wiki_mkdocs_hook.py
+  - tools/docs/wiki_site.py
+  - tools/docs/wiki_mkdocs_hook.py
 plan_sources:
   - user: 2026-09-09 搭建 GitHub Pages Wiki 自动化流程
   - docs/plans/mvp/index.md
 tests:
   - .github/workflows/wiki-pages.yml
-  - tools/wiki_site.py
+  - tools/docs/wiki_site.py
   - docs/wiki/navigation.yaml
 doc_type: workflow-detail
 ---
@@ -30,7 +30,7 @@ doc_type: workflow-detail
 docs/wiki + navigation.yaml
         |
         v
-tools/wiki_site.py validate
+tools/docs/wiki_site.py validate
         |
         v
 MkDocs + Material + wiki_mkdocs_hook.py
@@ -76,9 +76,9 @@ site/ -> upload-pages-artifact -> deploy-pages -> github-pages
 ```powershell
 python -m venv .wiki-venv
 .\.wiki-venv\Scripts\python.exe -m pip install --disable-pip-version-check -r requirements-docs.txt
-.\.wiki-venv\Scripts\python.exe tools/wiki_site.py validate --json
-.\.wiki-venv\Scripts\python.exe tools/wiki_site.py build --output site --json
-.\.wiki-venv\Scripts\python.exe tools/wiki_site.py serve --dev-addr 127.0.0.1:8000
+.\.wiki-venv\Scripts\python.exe tools/docs/wiki_site.py validate --json
+.\.wiki-venv\Scripts\python.exe tools/docs/wiki_site.py build --output site --json
+.\.wiki-venv\Scripts\python.exe tools/docs/wiki_site.py serve --dev-addr 127.0.0.1:8000
 ```
 
 `validate` 不依赖 MkDocs 运行时，只检查 frontmatter、链接、代码围栏、导航覆盖率和声明的源码路径。代码、测试或计划可能与文档分开提交，因此当前 checkout 中暂时不存在的元数据目标默认记为 warning；需要完整源码快照时可加 `--strict-metadata` 让它们成为错误。`build` 会先执行同一校验，再用 `mkdocs build --strict --clean` 生成 `site/`；未找到的站内页面、导航项或锚点仍会使命令失败。`serve` 启动 MkDocs 开发服务器，修改 Markdown 后会自动刷新。
@@ -91,11 +91,11 @@ python -m venv .wiki-venv
 
 ### 2. 内容校验
 
-`tools/wiki_site.py validate` 将 `navigation.yaml` 展平后与实际 Markdown 文件集合做双向比较：遗漏页面和不存在页面都会报错。每页 frontmatter 必须按 `related_code`、`implementation_files`、`plan_sources`、`tests`、`doc_type` 顺序出现；声明路径必须是仓库内的安全相对路径。外部 URL 和 `user:` 记录不检查存在性；源码、测试或计划路径不在当前 checkout 时输出 warning，完整快照门禁使用 `--strict-metadata`。
+`tools/docs/wiki_site.py validate` 将 `navigation.yaml` 展平后与实际 Markdown 文件集合做双向比较：遗漏页面和不存在页面都会报错。每页 frontmatter 必须按 `related_code`、`implementation_files`、`plan_sources`、`tests`、`doc_type` 顺序出现；声明路径必须是仓库内的安全相对路径。外部 URL 和 `user:` 记录不检查存在性；源码、测试或计划路径不在当前 checkout 时输出 warning，完整快照门禁使用 `--strict-metadata`。
 
 ### 3. MkDocs 生成
 
-`tools/wiki_mkdocs_hook.py` 在 MkDocs 加载配置时把仓库自己的导航格式转换为 MkDocs `nav`，并在 Pages 构建中注入 `base_url`。钩子还把 `navigation.yaml` 复制到站点根目录，保留机器可读的导航清单，便于后续 Wiki 前端或索引工具消费。
+`tools/docs/wiki_mkdocs_hook.py` 在 MkDocs 加载配置时把仓库自己的导航格式转换为 MkDocs `nav`，并在 Pages 构建中注入 `base_url`。钩子还把 `navigation.yaml` 复制到站点根目录，保留机器可读的导航清单，便于后续 Wiki 前端或索引工具消费。
 
 ## 部署阶段
 
@@ -127,4 +127,4 @@ python -m venv .wiki-venv
 
 部署内容完全由 `main` 分支提交重建。要回滚到已知版本，可在默认分支上恢复对应文档提交后重新运行工作流；不应直接编辑 Pages artifact 或手工推送 `gh-pages`。站点根目录的 `wiki-build-info.json` 记录 `github.sha`，可据此把线上页面与源码快照对应起来。
 
-相关实现入口：[发布工作流](https://github.com/He-Jiahui/ZirconEngine/blob/main/.github/workflows/wiki-pages.yml)、[MkDocs 配置](https://github.com/He-Jiahui/ZirconEngine/blob/main/mkdocs.yml)、[Wiki 校验与构建脚本](https://github.com/He-Jiahui/ZirconEngine/blob/main/tools/wiki_site.py)、[MkDocs 导航钩子](https://github.com/He-Jiahui/ZirconEngine/blob/main/tools/wiki_mkdocs_hook.py)。
+相关实现入口：[发布工作流](https://github.com/He-Jiahui/ZirconEngine/blob/main/.github/workflows/wiki-pages.yml)、[MkDocs 配置](https://github.com/He-Jiahui/ZirconEngine/blob/main/mkdocs.yml)、[Wiki 校验与构建脚本](https://github.com/He-Jiahui/ZirconEngine/blob/main/tools/docs/wiki_site.py)、[MkDocs 导航钩子](https://github.com/He-Jiahui/ZirconEngine/blob/main/tools/docs/wiki_mkdocs_hook.py)。

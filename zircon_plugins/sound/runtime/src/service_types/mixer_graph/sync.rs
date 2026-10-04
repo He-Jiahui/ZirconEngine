@@ -1,3 +1,4 @@
+//! 局部图编辑在锁外准备并核对修订；后端活动时须先安装 Kira 更新计划，停机时只校验声明，随后才执行提交回调。
 use std::sync::Mutex;
 
 use zircon_runtime::core::framework::sound::{SoundError, SoundMixerGraph};
@@ -20,10 +21,15 @@ use super::super::DefaultSoundManager;
 const GRAPH_MUTATION_RETRY_LIMIT: usize = 8;
 
 #[cfg(test)]
+#[path = "sync/tests/retirement_tests.rs"]
+mod retirement_tests;
+
+#[cfg(test)]
 thread_local! {
     static LAST_GRAPH_COMMIT_LOCK_HOLD: Cell<Option<Duration>> = const { Cell::new(None) };
 }
 
+// 编译期间不占用经理状态锁；版本改变时重取图并重做变换，因此 mutate 必须能安全重试。
 pub(crate) fn mutate_graph<Mutate, Commit>(
     manager: &DefaultSoundManager,
     mutate: Mutate,
@@ -33,6 +39,9 @@ where
     Mutate: Fn(&mut SoundMixerGraph) -> Result<(), SoundError>,
     Commit: Fn(&mut SoundEngineState),
 {
+    lock_recover(&manager.state)
+        .kira
+        .ensure_provider_not_retiring()?;
     for _ in 0..GRAPH_MUTATION_RETRY_LIMIT {
         let snapshot = lock_recover(&manager.state).graph_snapshot();
         let mut graph = (*snapshot.graph).clone();
@@ -68,6 +77,9 @@ pub(crate) fn replace_graph<Commit>(
 where
     Commit: Fn(&mut SoundEngineState),
 {
+    lock_recover(&manager.state)
+        .kira
+        .ensure_provider_not_retiring()?;
     for _ in 0..GRAPH_MUTATION_RETRY_LIMIT {
         let snapshot = lock_recover(&manager.state).graph_snapshot();
         let plan = if snapshot.kira_active {
@@ -112,6 +124,7 @@ where
         plan,
         |state| state.graph_revision,
         |state| state.kira.is_active(),
+        |state| state.kira.ensure_provider_not_retiring(),
         |state, graph, plan| state.kira.apply_graph_update(graph, plan),
         |state, graph| state.replace_graph(graph),
         commit,
@@ -119,7 +132,7 @@ where
 }
 
 #[allow(clippy::too_many_arguments)]
-fn commit_graph_state_attempt<State, Revision, Active, Apply, Replace, Commit>(
+fn commit_graph_state_attempt<State, Revision, Active, Admit, Apply, Replace, Commit>(
     state: &Mutex<State>,
     expected_revision: u64,
     expected_kira_active: bool,
@@ -127,6 +140,7 @@ fn commit_graph_state_attempt<State, Revision, Active, Apply, Replace, Commit>(
     plan: Option<crate::kira_bridge::GraphSyncPlan>,
     revision: Revision,
     active: Active,
+    admit: Admit,
     apply: Apply,
     replace: Replace,
     commit: &Commit,
@@ -134,6 +148,7 @@ fn commit_graph_state_attempt<State, Revision, Active, Apply, Replace, Commit>(
 where
     Revision: Fn(&State) -> u64,
     Active: Fn(&State) -> bool,
+    Admit: Fn(&State) -> Result<(), SoundError>,
     Apply: Fn(
         &mut State,
         &SoundMixerGraph,
@@ -143,6 +158,9 @@ where
     Commit: Fn(&mut State),
 {
     let mut state = lock_recover(state);
+    // The provider may enter retirement while the graph is prepared outside this lock.
+    // Fence both active-plan and inactive-plan commits before any state mutation.
+    admit(&state)?;
     if revision(&state) != expected_revision || active(&state) != expected_kira_active {
         return Ok(false);
     }
@@ -215,6 +233,7 @@ where
                 plan,
                 |state| state.revision,
                 |state| state.kira.is_active(),
+                |state| state.kira.ensure_provider_not_retiring(),
                 |state, graph, plan| state.kira.apply_graph_update(graph, plan),
                 |state, graph| {
                     state.graph = Arc::new(graph);

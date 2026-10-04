@@ -1,4 +1,4 @@
-use crate::tests::runtime_absorption::structure_convention::support::read_runtime_src;
+use super::read_runtime_src;
 
 #[test]
 fn runtime_06_surface_source_contract_is_classified_before_pipeline_resolution() {

@@ -3,7 +3,7 @@ related_code:
   - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/text/sdf/font_bake/distance_field.rs
   - zircon_runtime/src/text/sdf/font_bake/offline_source.rs
-  - tools/check_conventions.py
+  - tools/audits/check_conventions.py
 implementation_files:
   - docs/plans/zircon_editor/editor_layout/17-text-rendering-and-typography.md
 plan_sources:
@@ -11,7 +11,7 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - python tools/check_conventions.py --only docs --json
+  - python tools/audits/check_conventions.py --only docs --json
   - git diff --check -- docs/plans/zircon_editor/editor_layout/17-text-rendering-and-typography.md
 ---
 
@@ -30,7 +30,7 @@ Session: `frameworks06-g7-sdf-font-bake-current-owner-doc-hardcut-batch19-202607
 ## Fresh Testing Evidence
 
 - 修改前 fresh G7：所选文档 `1` 个 missing-path violation。
-- 修改后 fresh `python tools/check_conventions.py --only docs --json`：所选文档 `0` violations；共享 current-source 全局快照为 `470` violations / `123` documents，G7 继续保持 RED。
+- 修改后 fresh `python tools/audits/check_conventions.py --only docs --json`：所选文档 `0` violations；共享 current-source 全局快照为 `470` violations / `123` documents，G7 继续保持 RED。
 - EditorLayout17 的 current SDF owner 机器路径全部存在；退役 scene-renderer SDF bake front-matter 路径为 `0`。
 - exact-scope `git diff --check` 通过，staged_total 为 `0`。
 

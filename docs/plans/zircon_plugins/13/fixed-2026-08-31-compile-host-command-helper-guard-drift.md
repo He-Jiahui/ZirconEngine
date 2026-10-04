@@ -10,10 +10,10 @@ fixing_child_dir: docs/plans/zircon_plugins/13
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/zircon_export/pipeline_report_compile_host.py
+  - tools/export/pipeline_report_compile_host.py
 tests:
   - tools/tests/test_zircon_export_pipeline_report_compile_host_owner_boundaries.py
-  - tools/zircon_export/tests/test_pipeline_report_compile_host_stage_schema.py
+  - tools/export/tests/test_pipeline_report_compile_host_stage_schema.py
 resolved_at: 2026-08-31
 ---
 

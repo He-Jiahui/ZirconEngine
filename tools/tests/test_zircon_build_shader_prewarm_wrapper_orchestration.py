@@ -9,7 +9,7 @@ from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 
-from tools import zircon_build
+from tools.build import zircon_build
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -43,7 +43,7 @@ class ZirconBuildShaderPrewarmWrapperOrchestrationTests(unittest.TestCase):
                     "--cargo",
                     "cargo-probe",
                     "--runtime-features",
-                    "target-server,profiling",
+                    "target-server,dynamic-api,profiling",
                     "--dry-run",
                 ]
             )
@@ -51,13 +51,14 @@ class ZirconBuildShaderPrewarmWrapperOrchestrationTests(unittest.TestCase):
         self.assertEqual(0, exit_code)
         output = stdout.getvalue()
         self.assertIn(
-            'cargo-probe build -p zircon_runtime --lib --no-default-features '
-            '--features "target-server profiling"',
+            'cargo-probe rustc -p zircon_runtime --lib --crate-type cdylib '
+            '--no-default-features '
+            '--features "target-server dynamic-api profiling"',
             output,
         )
         self.assertIn(
             'cargo-probe build -p zircon_app --bin zircon_runtime '
-            '--no-default-features --features "target-client profiling"',
+            '--no-default-features --features "target-client dynamic-api profiling"',
             output,
         )
 

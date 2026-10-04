@@ -38,7 +38,7 @@ fn chrome_builder_keeps_placeholder_tabs_for_missing_view_instances() {
     let default_window = layout
         .default_activity_window_mut()
         .expect("default workbench window");
-    default_window.content_workspace = DocumentNode::Tabs(TabStackLayout {
+    default_window.content_workspace = DocumentNode::tabs(TabStackLayout {
         tabs: vec![missing.clone()],
         active_tab: Some(missing.clone()),
     });

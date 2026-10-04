@@ -135,5 +135,5 @@ fn set_toml_string_aliases(values: &mut BTreeMap<String, toml::Value>, keys: &[&
 }
 
 #[cfg(test)]
-#[path = "selection_style/stable_alias_tests.rs"]
+#[path = "selection_style/tests/stable_alias_tests.rs"]
 mod stable_alias_tests;

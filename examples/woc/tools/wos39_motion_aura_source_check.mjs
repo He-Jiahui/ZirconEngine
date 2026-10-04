@@ -10,7 +10,7 @@ const requireText = (source, text, label) => {
 
 const state = read('scripts/woc_game/src/world/state.zr');
 for (const text of [
-  'writer.u16(<uint>67, 1, 1);',
+  'writer.u16(schemaVersion, 1, 1);',
   'schemaVersion != <uint>39',
   'pub var entityMotionAuraOffsets',
   'pub var entityMotionAuraAbilityCodes',
@@ -50,7 +50,7 @@ for (const text of [
 ]) requireText(ccGenerator, text, 'CC motion contract');
 
 const protocol = read('native/crates/woc_protocol/src/lib.rs');
-requireText(protocol, 'pub const WORLD_STATE_FORMAT: &str = "WOS67";', 'native state format');
-requireText(protocol, 'pub const WORLD_STATE_SCHEMA_VERSION: u16 = 67;', 'native schema version');
+requireText(protocol, 'pub const WORLD_STATE_FORMAT: &str = "WOS118";', 'native state format');
+requireText(protocol, 'pub const WORLD_STATE_SCHEMA_VERSION: u16 = 118;', 'native schema version');
 
 process.stdout.write('WOS39 motion aura source contract is current\n');

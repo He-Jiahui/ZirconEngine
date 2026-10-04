@@ -1,5 +1,5 @@
 use crate::text::{
-    MAX_RICH_TABLE_ROW_SPAN, RichTableCellBoxStyle, RichTableCellPadding, RichTableColumn,
+    RichTableCellBoxStyle, RichTableCellPadding, RichTableColumn, MAX_RICH_TABLE_ROW_SPAN,
 };
 
 use super::super::bbcode::{attribute_value, parse_hex_color};

@@ -1,5 +1,5 @@
-use crate::scene::EntityId;
 use crate::scene::ecs::{Bundle, Component, DeferredEntity, DeferredEntityRef};
+use crate::scene::EntityId;
 
 use super::facade::Commands;
 

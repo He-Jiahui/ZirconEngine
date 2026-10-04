@@ -3,6 +3,7 @@ use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMo
 use crate::{
     core::framework::project::ExportPackagingStrategy, plugin::CapabilityStatusManifest,
     plugin::PluginFeatureBundleManifest, plugin::PluginInterfaceManifest, plugin::PluginMaturity,
+    plugin::PluginPackageRole,
 };
 
 use super::RuntimePluginDescriptor;
@@ -74,5 +75,9 @@ impl RuntimePluginDescriptor {
 
     pub fn default_packaging(&self) -> &[ExportPackagingStrategy] {
         &self.default_packaging
+    }
+
+    pub fn package_role(&self) -> PluginPackageRole {
+        self.package_role
     }
 }

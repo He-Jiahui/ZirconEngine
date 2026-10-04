@@ -4,8 +4,11 @@ use std::sync::Arc;
 
 use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
 use zircon_runtime::asset::{AssetManager, AssetUri};
-use zircon_runtime::core::framework::project::ProjectPluginManifest;
-use zircon_runtime::plugin::native::discovery::load_discovered_native_editor_plugins;
+use zircon_runtime::core::framework::project::{ExportPackagingStrategy, ProjectPluginManifest};
+use zircon_runtime::plugin::native::{
+    discovery::load_discovered_native_editor_plugins_with_authority, NativePluginArtifactAuthority,
+    NativePluginLoadProjection,
+};
 
 use crate::core::document::{
     ActiveSceneDocumentIdentity, AuthoringSceneInstaller, SceneAssetCatalog,
@@ -17,7 +20,8 @@ use crate::core::editor_message::{
     DocumentId, DocumentMessage, EditorMessage, EditorMessagePayload, EditorTopic,
     SharedEditorMessageBus,
 };
-use crate::core::project::{SceneCreateRequest, SceneOpenRequest};
+use crate::core::plugin::EditorPluginRegistrationReport;
+use crate::core::project::{ProjectAuthority, SceneCreateRequest, SceneOpenRequest};
 use crate::core::recovery::{
     DocumentJournalCoordinator, DocumentJournalCoordinatorError, ProjectSessionEffect,
 };
@@ -52,6 +56,24 @@ impl EditorManager {
 
     pub(crate) fn active_scene_identity_for_session(&self) -> Option<ActiveSceneDocumentIdentity> {
         self.document_lifecycle.active_scene_identity_for_session()
+    }
+
+    pub(crate) fn clear_active_scene_document(&self, project_root: &Path) {
+        let messages = self
+            .document_lifecycle
+            .clear_active_scene_document(project_root);
+        if !messages.is_empty() {
+            if let Ok(journal) = self.document_journal() {
+                self.release_closed_document_journals(&messages, journal.as_ref());
+            }
+            self.publish_document_messages(messages);
+        }
+    }
+
+    pub(crate) fn active_scene_revision_for_session(
+        &self,
+    ) -> Option<(crate::core::editor_message::DocumentId, u64)> {
+        self.document_lifecycle.active_scene_revision_for_session()
     }
 
     pub fn open_project(
@@ -322,9 +344,14 @@ impl EditorManager {
     ) -> Result<(), EditorError> {
         let mut approved_manifest = manifest.clone();
         approved_manifest.plugins = approved_project_plugins.clone();
-        let (completed, native_reports) = if allows_native_extensions {
-            let native_report =
-                load_discovered_native_editor_plugins(self.plugin_directory(project_root));
+        let (completed, native_reports, native_report) = if allows_native_extensions {
+            // Project selection and discovery are not an independent trust root. Signed host
+            // proof or build-embedded authority must be wired before executing project DLLs.
+            let authority = NativePluginArtifactAuthority::deny_all();
+            let native_report = load_discovered_native_editor_plugins_with_authority(
+                self.plugin_directory(project_root),
+                &authority,
+            );
             let completed = self.complete_project_plugin_manifest_with_native_report(
                 &approved_manifest,
                 &native_report,
@@ -334,12 +361,17 @@ impl EditorManager {
                     &native_report,
                     &completed.plugins,
                 );
-            (completed, native_reports)
+            if let Some(reason) = required_native_editor_plugin_failure(
+                &approved_manifest.plugins,
+                native_report.projection(),
+                &native_reports,
+            ) {
+                return Err(EditorError::Project(reason));
+            }
+            (completed, native_reports, Some(native_report))
         } else {
-            (
-                self.complete_project_plugin_manifest(&approved_manifest),
-                Vec::new(),
-            )
+            let completed = self.complete_project_plugin_manifest(&approved_manifest);
+            (completed, Vec::new(), None)
         };
         self.plugin_manager()
             .publish_project_registration_reports(native_reports)
@@ -355,7 +387,12 @@ impl EditorManager {
                     "project plugin manifest cannot be applied to the editor plugin manager: {error}"
                 ))
             })?;
-        self.publish_project_plugin_status(self.plugin_status_report(&completed));
+        let status_report = if let Some(native_report) = native_report.as_ref() {
+            self.native_plugin_status_report_from_load_report(&completed, native_report)
+        } else {
+            self.plugin_status_report(&completed)
+        };
+        self.publish_project_plugin_status(status_report);
         Ok(())
     }
 
@@ -460,26 +497,53 @@ impl EditorManager {
     }
 }
 
-#[cfg(test)]
-mod recovery_close_contract_tests {
-    #[test]
-    fn close_refuses_to_clear_a_session_while_recovery_work_is_active() {
-        let source = include_str!("editor_manager_project.rs");
-        let close = source
-            .find("pub(crate) fn begin_project_close")
-            .expect("project close owner should exist");
-        let recovery_gate = source[close..]
-            .find("self.ensure_project_recovery_is_settled()?;")
-            .map(|offset| close + offset)
-            .expect("project close should check recovery state");
-        let begin_close = source[close..]
-            .find("self.begin_project_close_operation()")
-            .map(|offset| close + offset)
-            .expect("project close should begin the durable close phase");
-
-        assert!(recovery_gate < begin_close);
-    }
+fn required_native_editor_plugin_failure(
+    selections: &ProjectPluginManifest,
+    native_projection: &NativePluginLoadProjection,
+    registration_reports: &[EditorPluginRegistrationReport],
+) -> Option<String> {
+    selections
+        .selections
+        .iter()
+        .filter(|selection| {
+            selection.enabled
+                && selection.required
+                && selection.packaging == ExportPackagingStrategy::NativeDynamic
+                && selection.supports_target(
+                    zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost,
+                )
+        })
+        .find_map(|selection| {
+            let package_is_product = native_projection.package_manifests().iter().any(|package| {
+                package.id == selection.id && package.package_role.is_product_catalog_eligible()
+            });
+            if !package_is_product {
+                return Some(format!(
+                    "required native editor plugin `{}` has no product-eligible package; project cannot enter Ready",
+                    selection.id
+                ));
+            }
+            if !native_projection.is_loaded(&selection.id) {
+                return Some(format!(
+                    "required native editor plugin `{}` has no independently trusted loaded artifact; project cannot enter Ready",
+                    selection.id
+                ));
+            }
+            registration_reports
+                .iter()
+                .find(|report| report.package_manifest.id == selection.id && !report.is_success())
+                .map(|_| {
+                    format!(
+                        "required native editor plugin `{}` failed editor registration; project cannot enter Ready",
+                        selection.id
+                    )
+                })
+        })
 }
+
+#[cfg(test)]
+#[path = "tests/editor_manager_project_recovery_close_contract_tests.rs"]
+mod recovery_close_contract_tests;
 
 fn project_diagnostics_configuration_message(project_root: &Path, error: impl Display) -> String {
     format!(
@@ -605,190 +669,5 @@ fn project_close_terminal_root<'a>(
 }
 
 #[cfg(test)]
-mod tests {
-    use std::path::Path;
-
-    use super::super::editor_error::EditorError;
-    use crate::core::document::DocumentLifecycleAuthority;
-    use crate::core::editor_message::{
-        DocumentId, DocumentMessage, EditorMessage, EditorMessagePayload, EditorTopic,
-        SharedEditorMessageBus, TOPIC_DOCUMENT,
-    };
-
-    use super::{
-        project_close_terminal_root, project_diagnostics_configuration_message,
-        publish_committed_project_close, publish_document_messages,
-    };
-
-    #[cfg(windows)]
-    #[test]
-    fn project_diagnostics_configuration_message_hides_windows_verbatim_operation_roots() {
-        assert_eq!(
-            project_diagnostics_configuration_message(
-                Path::new(r"\\?\C:\projects\forest"),
-                "access denied"
-            ),
-            r"editor diagnostics cannot be configured for `C:\projects\forest`: access denied"
-        );
-    }
-
-    #[test]
-    fn document_events_are_published_to_the_canonical_topic_in_lifecycle_order() {
-        let bus = SharedEditorMessageBus::default();
-        let topic = EditorTopic::parse(TOPIC_DOCUMENT).unwrap();
-        let subscriber = bus.register_subscriber([topic]).unwrap();
-        let document = DocumentId::new(42);
-
-        publish_document_messages(
-            &bus,
-            [
-                DocumentMessage::Opened { doc: document },
-                DocumentMessage::Saved { doc: document },
-                DocumentMessage::Closed { doc: document },
-            ],
-        );
-
-        let delivered = bus.drain_deliveries(subscriber);
-        assert_eq!(delivered.len(), 3);
-        assert_eq!(
-            delivered
-                .iter()
-                .map(|delivery| (delivery.topic().as_str(), delivery.message().clone()))
-                .collect::<Vec<_>>(),
-            vec![
-                (
-                    TOPIC_DOCUMENT,
-                    EditorMessage::new(EditorMessagePayload::Document(DocumentMessage::Opened {
-                        doc: document,
-                    })),
-                ),
-                (
-                    TOPIC_DOCUMENT,
-                    EditorMessage::new(EditorMessagePayload::Document(DocumentMessage::Saved {
-                        doc: document,
-                    })),
-                ),
-                (
-                    TOPIC_DOCUMENT,
-                    EditorMessage::new(EditorMessagePayload::Document(DocumentMessage::Closed {
-                        doc: document,
-                    })),
-                ),
-            ]
-        );
-    }
-
-    #[test]
-    fn committed_project_close_publishes_one_closed_document_message_and_never_fabricates_one() {
-        let bus = SharedEditorMessageBus::default();
-        let topic = EditorTopic::parse(TOPIC_DOCUMENT).unwrap();
-        let subscriber = bus.register_subscriber([topic]).unwrap();
-        let lifecycle = DocumentLifecycleAuthority::default();
-        let root = Path::new("C:/projects/close-producer");
-        let document = match lifecycle.activate(root).as_slice() {
-            [DocumentMessage::Opened { doc }] => *doc,
-            actual => panic!("expected opened document, got {actual:?}"),
-        };
-
-        publish_committed_project_close(&bus, &lifecycle, None);
-        assert!(bus.drain_deliveries(subscriber).is_empty());
-
-        publish_committed_project_close(&bus, &lifecycle, Some(root));
-        assert_eq!(
-            bus.drain_deliveries(subscriber)
-                .into_iter()
-                .map(|delivery| delivery.message().clone())
-                .collect::<Vec<_>>(),
-            vec![EditorMessage::new(EditorMessagePayload::Document(
-                DocumentMessage::Closed { doc: document },
-            ))]
-        );
-
-        publish_committed_project_close(&bus, &lifecycle, Some(root));
-        assert!(bus.drain_deliveries(subscriber).is_empty());
-    }
-
-    #[test]
-    fn committed_project_close_closes_the_active_scene_document_for_a_project_session() {
-        let bus = SharedEditorMessageBus::default();
-        let topic = EditorTopic::parse(TOPIC_DOCUMENT).unwrap();
-        let subscriber = bus.register_subscriber([topic]).unwrap();
-        let lifecycle = DocumentLifecycleAuthority::default();
-        let root = Path::new("C:/projects/close-active-scene");
-        let session = lifecycle.begin_project_session(root).session;
-        let scene = lifecycle
-            .activate_scene(session, root, "res://scenes/main.scene.toml")
-            .unwrap();
-
-        publish_committed_project_close(&bus, &lifecycle, Some(root));
-
-        assert_eq!(
-            bus.drain_deliveries(subscriber)
-                .into_iter()
-                .map(|delivery| delivery.message().clone())
-                .collect::<Vec<_>>(),
-            vec![EditorMessage::new(EditorMessagePayload::Document(
-                DocumentMessage::Closed {
-                    doc: scene.document
-                }
-            ))]
-        );
-    }
-
-    #[test]
-    fn project_close_consumes_a_capability_and_quiesces_plugins_before_runtime() {
-        let source = include_str!("editor_manager_project.rs");
-        let close_start = source
-            .find("pub(crate) fn commit_project_close")
-            .expect("project close entry point");
-        let close_end = source[close_start..]
-            .find("pub(crate) fn save_active_scene")
-            .map(|offset| close_start + offset)
-            .expect("project close boundary");
-        let close = &source[close_start..close_end];
-        let plugin_close = close
-            .find("clear_project_registration_reports()")
-            .expect("plugin teardown");
-        let runtime_close = close
-            .find(".close_project(operation.project_root())")
-            .expect("runtime project teardown");
-
-        assert!(close.contains("operation: &ProjectCloseOperation"));
-        assert!(plugin_close < runtime_close);
-        assert!(close.contains("require_project_close_recovery"));
-        assert!(!close.contains("release_project_close_guard"));
-
-        let finalize = source
-            .find("pub(crate) fn finalize_project_close")
-            .expect("final close owner");
-        assert!(source[finalize..].contains("self.release_project_close_guard(operation)?"));
-    }
-
-    #[test]
-    fn project_close_retry_uses_the_retained_guard_root_after_host_close_has_committed() {
-        let retained_root = Path::new("C:/projects/retained-close");
-
-        assert_eq!(
-            project_close_terminal_root(None, Some(retained_root)),
-            Some(retained_root)
-        );
-    }
-
-    #[test]
-    fn active_scene_save_routing_uses_lifecycle_identity_without_a_manifest_default_fallback() {
-        let source = include_str!("editor_manager_project.rs");
-        let save_start = source
-            .find("pub(crate) fn save_active_scene(")
-            .expect("active-scene save entry point");
-        let save_end = source[save_start..]
-            .find("/// Publishes the manifest-selected startup scene")
-            .map(|offset| save_start + offset)
-            .expect("startup-scene boundary after active-scene save entry point");
-        let save = &source[save_start..save_end];
-
-        assert!(save.contains(".active_scene_identity(&project_root)"));
-        assert!(save.contains(".save_active_scene(&project_root, &scene_uri, world)?"));
-        assert!(save.contains(".save_scene_identity_if_active(&active_scene)"));
-        assert!(!save.contains("manifest().default_scene"));
-    }
-}
+#[path = "tests/editor_manager_project.rs"]
+mod tests;

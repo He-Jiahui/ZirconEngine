@@ -8,7 +8,7 @@ use crate::asset::project::{ProjectPaths, ResolvedProjectPath, ResolvedProjectPa
 use crate::core::resource::io::stage_atomic_write;
 
 use super::super::{
-    RuntimeSessionArchive, RuntimeSessionArchiveArtifact, RuntimeSessionArchiveError, archive_save,
+    archive_save, RuntimeSessionArchive, RuntimeSessionArchiveArtifact, RuntimeSessionArchiveError,
 };
 
 static ARCHIVE_PATH_WRITE_AUTHORITY: OnceLock<ArchivePathWriteAuthority> = OnceLock::new();

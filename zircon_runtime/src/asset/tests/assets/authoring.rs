@@ -1,3 +1,5 @@
+//! 审查地形、瓦片图、预制体和材质图的文档边界：编辑资产暴露直接依赖供注册表建边，验证错误须保留可定位的资产信息。
+
 use crate::asset::{
     AssetAuthoringError, AssetReference, AssetUri, ImportedAsset, MaterialGraphAsset,
     MaterialGraphNodeAsset, MaterialGraphNodeKindAsset, PrefabAsset, SceneAsset, SceneEntityAsset,
@@ -288,6 +290,7 @@ fn prefab_asset_collects_scene_references_without_editor_state() {
             terrain: None,
             tilemap: None,
             prefab_instance: None,
+            components: Vec::new(),
             script_bindings: Vec::new(),
         }],
     };

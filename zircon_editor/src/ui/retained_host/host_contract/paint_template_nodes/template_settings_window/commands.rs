@@ -1,5 +1,3 @@
-use std::ops::Range;
-
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use super::super::super::data::{
@@ -17,9 +15,11 @@ use super::color_controls::{push_color_popup, push_color_swatch};
 use super::enum_controls::{push_enum_control, push_enum_popup};
 use super::geometry::inset_rect;
 use super::persistence_health::push_persistence_health;
+use super::scrollbars::push_preferences_scrollbars;
 use super::text_control::push_string_control;
-
-const SETTINGS_WINDOW_PAINT_OVERSCAN_ROWS: usize = 1;
+use super::visible_rows::{
+    category_visible_rows, intersect_frames, settings_window_visible_rows, valid_frame,
+};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_settings_window_commands(
     commands: &mut Vec<HostPaintCommand>,
@@ -177,73 +177,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
     );
 
     true
-}
-
-fn push_preferences_scrollbars(
-    commands: &mut Vec<HostPaintCommand>,
-    layout: &SettingsWindowLayout,
-    clip: &FrameRect,
-    order: i32,
-    opacity: f32,
-    palette: HostMaterialPalette,
-    metrics: HostControlMetrics,
-) {
-    push_scrollbar(
-        commands,
-        layout.category_scrollbar_track.as_ref(),
-        layout.category_scrollbar_thumb.as_ref(),
-        clip,
-        order,
-        opacity,
-        palette,
-        metrics,
-    );
-    push_scrollbar(
-        commands,
-        layout.setting_scrollbar_track.as_ref(),
-        layout.setting_scrollbar_thumb.as_ref(),
-        clip,
-        order + 2,
-        opacity,
-        palette,
-        metrics,
-    );
-}
-
-fn push_scrollbar(
-    commands: &mut Vec<HostPaintCommand>,
-    track: Option<&FrameRect>,
-    thumb: Option<&FrameRect>,
-    clip: &FrameRect,
-    order: i32,
-    opacity: f32,
-    palette: HostMaterialPalette,
-    metrics: HostControlMetrics,
-) {
-    let (Some(track), Some(thumb)) = (track, thumb) else {
-        return;
-    };
-    let radius = metrics.radius_control.min(track.width * 0.5);
-    commands.push(HostPaintCommand::quad(
-        track.clone(),
-        Some(clip.clone()),
-        order,
-        Some(palette.track),
-        None,
-        0.0,
-        radius,
-        opacity,
-    ));
-    commands.push(HostPaintCommand::quad(
-        thumb.clone(),
-        Some(clip.clone()),
-        order + 1,
-        Some(palette.surface_hover),
-        None,
-        0.0,
-        radius,
-        opacity,
-    ));
 }
 
 fn selected_category(node: &TemplatePaneNodeData) -> Option<&TemplateSettingsCategoryData> {
@@ -749,202 +682,6 @@ fn setting_metadata(entry: &TemplateSettingEntryData) -> String {
     .join(" / ")
 }
 
-fn settings_window_visible_rows(
-    list: &FrameRect,
-    clip: &FrameRect,
-    row_count: usize,
-    layout: &SettingsWindowLayout,
-) -> Range<usize> {
-    visible_rows(
-        list,
-        clip,
-        row_count,
-        layout.setting_row_height,
-        layout.setting_scroll_offset(),
-    )
-}
-
-fn category_visible_rows(
-    list: &FrameRect,
-    clip: &FrameRect,
-    row_count: usize,
-    layout: &SettingsWindowLayout,
-) -> Range<usize> {
-    visible_rows(
-        list,
-        clip,
-        row_count,
-        layout.category_row_height,
-        layout.category_scroll_offset(),
-    )
-}
-
-fn visible_rows(
-    list: &FrameRect,
-    clip: &FrameRect,
-    row_count: usize,
-    row_height: f32,
-    scroll_offset: f32,
-) -> Range<usize> {
-    if row_count == 0 || !valid_frame(list) || !valid_frame(clip) || row_height <= 0.0 {
-        return 0..0;
-    }
-    if clip.x >= list.x + list.width || clip.x + clip.width <= list.x {
-        return 0..0;
-    }
-    let visible_top = clip.y.max(list.y);
-    let visible_bottom = (clip.y + clip.height).min(list.y + list.height);
-    if visible_bottom <= visible_top {
-        return 0..0;
-    }
-    let first = ((visible_top - list.y + scroll_offset) / row_height)
-        .floor()
-        .max(0.0) as usize;
-    let end = ((visible_bottom - list.y + scroll_offset) / row_height)
-        .ceil()
-        .max(0.0) as usize;
-    let end = end.min(row_count);
-    if first >= end {
-        return 0..0;
-    }
-    first.saturating_sub(SETTINGS_WINDOW_PAINT_OVERSCAN_ROWS)
-        ..end
-            .saturating_add(SETTINGS_WINDOW_PAINT_OVERSCAN_ROWS)
-            .min(row_count)
-}
-
-fn valid_frame(frame: &FrameRect) -> bool {
-    [frame.x, frame.y, frame.width, frame.height]
-        .into_iter()
-        .all(f32::is_finite)
-        && frame.width > 0.0
-        && frame.height > 0.0
-}
-
-fn intersect_frames(left: &FrameRect, right: &FrameRect) -> Option<FrameRect> {
-    let x = left.x.max(right.x);
-    let y = left.y.max(right.y);
-    let right_edge = (left.x + left.width).min(right.x + right.width);
-    let bottom_edge = (left.y + left.height).min(right.y + right.height);
-    (right_edge > x && bottom_edge > y).then_some(FrameRect {
-        x,
-        y,
-        width: right_edge - x,
-        height: bottom_edge - y,
-    })
-}
-
 #[cfg(test)]
-mod tests {
-    use std::rc::Rc;
-
-    use super::*;
-    use crate::ui::retained_host::primitives::{ModelRc, VecModel};
-
-    fn model<T: Clone + 'static>(values: Vec<T>) -> ModelRc<T> {
-        Rc::new(VecModel::from(values)).into()
-    }
-
-    #[test]
-    fn settings_window_preserves_fractional_post_dpi_surface_geometry() {
-        let panel = FrameRect {
-            x: 12.25,
-            y: 16.5,
-            width: 396.75,
-            height: 336.25,
-        };
-        let node = TemplatePaneNodeData {
-            component_role: "settings-window".into(),
-            popup_open: true,
-            ..TemplatePaneNodeData::default()
-        };
-        let mut commands = Vec::new();
-
-        assert!(push_settings_window_commands(
-            &mut commands,
-            &node,
-            &panel,
-            &panel,
-            None,
-            0,
-            1.0,
-        ));
-
-        assert_eq!(commands.first().map(|command| &command.frame), Some(&panel));
-    }
-
-    #[test]
-    fn visible_setting_rows_are_clip_bounded_with_one_overscan_row() {
-        let metrics = current_host_metrics();
-        let panel = FrameRect {
-            x: 10.0,
-            y: 20.0,
-            width: 860.0,
-            height: 560.0,
-        };
-        let layout = SettingsWindowLayout::new(&panel, metrics, 0.0, 0, 0.0, 64);
-        let clip = FrameRect {
-            x: layout.setting_list.x,
-            y: layout.setting_list.y + layout.setting_row_height * 10.25,
-            width: layout.setting_list.width,
-            height: layout.setting_row_height * 2.5,
-        };
-
-        assert_eq!(
-            settings_window_visible_rows(&layout.setting_list, &clip, 64, &layout),
-            9..14
-        );
-    }
-
-    #[test]
-    fn scrolled_setting_commands_are_clipped_to_the_setting_list() {
-        let metrics = current_host_metrics();
-        let panel = FrameRect {
-            x: 12.0,
-            y: 12.0,
-            width: 396.0,
-            height: 336.0,
-        };
-        let initial_layout = SettingsWindowLayout::new(&panel, metrics, 0.0, 0, 0.0, 12);
-        let node = TemplatePaneNodeData {
-            component_role: "settings-window".into(),
-            popup_open: true,
-            settings_scroll_offset: initial_layout.setting_row_height * 0.5,
-            settings_entries: model(vec![
-                TemplateSettingEntryData {
-                    label: "First setting".into(),
-                    schema: "bool".into(),
-                    value_text: "true".into(),
-                    ..TemplateSettingEntryData::default()
-                };
-                12
-            ]),
-            ..TemplatePaneNodeData::default()
-        };
-        let layout = SettingsWindowLayout::new(
-            &panel,
-            metrics,
-            0.0,
-            0,
-            node.settings_scroll_offset,
-            node.settings_entries.row_count(),
-        );
-        let mut commands = Vec::new();
-
-        assert!(push_settings_window_commands(
-            &mut commands,
-            &node,
-            &panel,
-            &panel,
-            None,
-            0,
-            1.0,
-        ));
-        let first_label = commands
-            .iter()
-            .find(|command| command.text.as_deref() == Some("First setting"))
-            .expect("the partially scrolled first setting must still be painted");
-
-        assert_eq!(first_label.clip_frame.as_ref(), Some(&layout.setting_list));
-    }
-}
+#[path = "tests/commands.rs"]
+mod tests;

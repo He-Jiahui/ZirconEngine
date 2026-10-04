@@ -10,6 +10,14 @@ from tools.tests.test_editor_zui_base_radius_hierarchy_contract import (
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+WORKBENCH_SHELL = REPO_ROOT / (
+    "zircon_editor/assets/ui/editor/host/workbench_shell.zui"
+)
+COMMAND_DEFAULTS = REPO_ROOT / "zircon_editor/src/core/commands/defaults.rs"
+LAYOUT_MENU_BRIDGE = REPO_ROOT / (
+    "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/"
+    "workbench/layout_menu.rs"
+)
 APP_EDIT = REPO_ROOT / (
     "zircon_editor/src/ui/retained_host/app/pane_surface_actions/edit.rs"
 )
@@ -164,6 +172,36 @@ def reachable_documents(entry):
 
 
 class EditorZuiProductInteractionEventContractTests(unittest.TestCase):
+    def test_host_reset_layout_uses_the_registered_command_action_identity(self):
+        shell = load_document(WORKBENCH_SHELL)
+        event = shell["nodes"]["reset_layout"]["events"][0]
+        componentized_bindings = TEMPLATE_BINDINGS.read_text(encoding="utf-8")
+        builtin_bindings = BUILTIN_TEMPLATE_BINDINGS.read_text(encoding="utf-8")
+        layout_menu = LAYOUT_MENU_BRIDGE.read_text(encoding="utf-8")
+
+        self.assertNotIn("route", event)
+        self.assertEqual({"action": "window.layout.reset"}, event["action"])
+        self.assertIn(
+            '"window.layout.reset"', COMMAND_DEFAULTS.read_text(encoding="utf-8")
+        )
+        self.assertIn(
+            'EditorUiBindingPayload::editor_command("window.layout.reset")',
+            componentized_bindings,
+        )
+        for source in (componentized_bindings, builtin_bindings):
+            self.assertIn(
+                'EditorUiBindingPayload::editor_command("window.layout.reset")',
+                source,
+            )
+            self.assertNotIn(
+                'EditorUiBindingPayload::menu_action("workbench.layout.reset")',
+                source,
+            )
+        self.assertIn(
+            'self.binding_by_id("MenuAction/ResetLayout")', layout_menu
+        )
+        self.assertNotIn("menu_action_binding(&MenuAction::ResetLayout)", layout_menu)
+
     def test_product_pane_bodies_expose_real_actions_instead_of_fixture_commands(self):
         inspector = load_document(INSPECTOR_PANE_BODY)
         timeline = load_document(PERFORMANCE_TIMELINE_PANE_BODY)

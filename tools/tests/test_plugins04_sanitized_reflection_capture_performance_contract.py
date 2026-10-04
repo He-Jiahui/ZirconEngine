@@ -32,7 +32,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function body for {signature}")
 
-
+# 读取反射捕获路径，确认插件只委托已净化快照给框架，不在边界实体化面列表或渲染侧带。
 class Plugins04SanitizedReflectionCapturePerformanceContract(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

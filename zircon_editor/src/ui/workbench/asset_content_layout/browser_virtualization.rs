@@ -243,16 +243,29 @@ pub(super) fn append_visible_virtual_group_rows(
     let Some(visible) = viewport.intersect(damage_clip) else {
         return 0;
     };
+    if groups.is_empty() {
+        return 0;
+    }
     let visible_top = visible.y - origin_y + scroll_px.max(0.0);
     let visible_bottom = visible.bottom() - origin_y + scroll_px.max(0.0);
+    let start_row = virtualization.window_start_row(scroll_px);
     let mut visible_item_count = 0;
     for (slot_index, group) in groups.iter().enumerate() {
-        let Some(binding) = virtualization.binding(scroll_px, slot_index) else {
+        let Some((logical_index, physical_row, logical_row)) =
+            virtualization.logical_index_for_slot(start_row, slot_index)
+        else {
             continue;
         };
-        let top = group.top + binding.y_offset;
-        let bottom = group.bottom + binding.y_offset;
+        let Some(y_offset_rows) = logical_row.checked_sub(physical_row) else {
+            continue;
+        };
+        let y_offset = y_offset_rows as f32 * virtualization.row_stride;
+        let top = group.top + y_offset;
+        let bottom = group.bottom + y_offset;
         if bottom <= visible_top || top >= visible_bottom {
+            continue;
+        }
+        if virtualization.items.get(logical_index).is_none() {
             continue;
         }
         rows.extend_from_slice(&group.node_rows);
@@ -286,106 +299,8 @@ fn finite_non_negative(value: f32) -> f32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        AssetBrowserLogicalPaintGeneration, AssetBrowserPaintItem, AssetBrowserThumbnailPaintItem,
-        AssetBrowserVirtualization,
-    };
-
-    #[test]
-    fn empty_logical_paint_generation_has_a_safe_lookup_stride() {
-        let generation = AssetBrowserLogicalPaintGeneration::default();
-
-        assert!(generation.is_empty());
-        assert_eq!(generation.len(), 0);
-        assert!(generation.get(0).is_none());
-    }
-
-    #[test]
-    fn one_row_scroll_rebinds_only_the_entering_physical_row() {
-        let virtualization = virtualization(20, 6, 2);
-        let initial = (0..6)
-            .map(|slot| virtualization.binding(0.0, slot).unwrap().logical_index)
-            .collect::<Vec<_>>();
-        let scrolled = (0..6)
-            .map(|slot| virtualization.binding(10.0, slot).unwrap().logical_index)
-            .collect::<Vec<_>>();
-
-        assert_eq!(initial, vec![0, 1, 2, 3, 4, 5]);
-        assert_eq!(scrolled, vec![6, 7, 2, 3, 4, 5]);
-        assert_eq!(
-            initial
-                .iter()
-                .zip(&scrolled)
-                .filter(|(left, right)| left != right)
-                .count(),
-            2
-        );
-        for (slot, logical_index) in scrolled.into_iter().enumerate() {
-            assert_eq!(logical_index % 2, slot % 2);
-        }
-        assert_eq!(virtualization.binding(10.0, 0).unwrap().y_offset, 30.0);
-        assert_eq!(virtualization.binding(10.0, 2).unwrap().y_offset, 0.0);
-    }
-
-    #[test]
-    fn bottom_window_backfills_the_materialized_rows() {
-        let virtualization = virtualization(10, 6, 2);
-        let mut logical_indices = (0..6)
-            .map(|slot| {
-                virtualization
-                    .binding(10_000.0, slot)
-                    .unwrap()
-                    .logical_index
-            })
-            .collect::<Vec<_>>();
-
-        logical_indices.sort_unstable();
-        assert_eq!(logical_indices, vec![4, 5, 6, 7, 8, 9]);
-    }
-
-    #[test]
-    fn partial_row_pool_falls_back_without_omitting_logical_items() {
-        let virtualization = virtualization(20, 5, 3);
-        let logical_indices = (0..5)
-            .map(|slot| virtualization.binding(10.0, slot).unwrap().logical_index)
-            .collect::<Vec<_>>();
-
-        assert_eq!(logical_indices, vec![3, 4, 5, 6, 7]);
-    }
-
-    fn virtualization(
-        item_count: usize,
-        materialized_item_count: usize,
-        columns: usize,
-    ) -> AssetBrowserVirtualization {
-        let items = (0..item_count)
-            .map(|index| {
-                AssetBrowserPaintItem::Thumbnail(AssetBrowserThumbnailPaintItem {
-                    name: format!("Asset {index}"),
-                    source_file_name: String::new(),
-                    file_extension: String::new(),
-                    name_continuation: String::new(),
-                    type_label: String::new(),
-                    type_label_width: 0.0,
-                    state_label: String::new(),
-                    visual_variant: String::new(),
-                    preview_artifact_path: String::new(),
-                })
-            })
-            .collect::<Vec<_>>();
-        AssetBrowserVirtualization::new(
-            AssetBrowserLogicalPaintGeneration::from_chunks(vec![items.into()]),
-            Vec::new(),
-            materialized_item_count,
-            columns,
-            0.0,
-            10.0,
-            0.0,
-            0,
-        )
-    }
-}
+#[path = "tests/browser_virtualization.rs"]
+mod tests;
 use super::controls::BROWSER_CONTENT_LIST_ROW_HEIGHT;
 use super::thumbnail_grid::AssetThumbnailGridMetrics;
 use crate::ui::workbench::snapshot::AssetViewMode;

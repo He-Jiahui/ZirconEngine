@@ -50,3 +50,71 @@ runtime helper把已解析的单一values map重新包装为完整scope图，再
 ## 修复结果与回传
 
 Open state: `等待EditorUI04回传generation-owned resolved style/theme snapshot、规模counter、current-source Cargo与视觉等价证据`。
+
+## 2026-09-19 rolling repair successor
+
+- Successor Session `failure-roll-01a084c8-editorui04-button-style-r1` owns the exact plan,
+  failure record, runtime helper, and focused test scope. Archived EditorUI04/EditorLayout15
+  attributions were transferred after preview fingerprint
+  `fe6d4a4af92b74a173e8ab0db909d5711bd7d26b9da571fd15a6ab1c9b76492d` and apply request
+  `431ebba87f4c4ab29237e506f7c394f6`; lease claim and baseline attribution were accepted for all
+  four paths.
+- Current source remains clean and already contains the narrow single-map resolver repair: the
+  direct `resolve_button_style_from_values` path borrows the input map, avoids `values.clone()`,
+  does not construct `Arc::downgrade`, and the exact focused test guards the retired
+  `to_ascii_lowercase()` path. Current source hashes are `style.rs`
+  `e32462027b09c58ec57a6cb93905113347f2506bfe7e0afb109c6c8a0a4be3c3` and focused test
+  `3aeeb7be56cb7f751a389d5582ee6d0c97573742807c5d0ae8188bd4d29a6083`.
+- This successor will first submit a static source-contract ticket for the narrow repair while
+  preserving the unresolved higher-level requirement: generation-owned resolved theme/style cache,
+  1/100/10k allocation/counter evidence, runtime/editor parity, and current-source Cargo remain
+  required before any fixed return or closeout.
+- The first submission (`failure-roll-01a084c8-editorui04-button-style-20260919-r1`) was rejected
+  before execution with `validation_ticket_source_snapshot_stale` because its failure-doc hash was
+  captured before the final successor note. No validator process started; the stale hash is not
+  reused.
+- Corrected static ticket `fccec502f26744b3b8a8190e66ec013c` (request
+  `failure-roll-01a084c8-editorui04-button-style-20260919-r2`) source-sealed the current failure
+  doc, runtime helper, and focused test. Managed copy `9b05613af5964d55a40f2efd650a1413` executed
+  the Windows Rust 1.94.1 parse contract and completed `passed`; terminal output was
+  `EDITORUI04_BUTTON_STYLE_SINGLE_MAP_SOURCE_CONTRACT_PARSE_PASS`. This is static source evidence
+  only and does not satisfy Cargo, generation-cache, scale-counter, visual-parity, review, or
+  fixed-return requirements.
+
+## 2026-09-20 independent review
+
+- Reviewer Session `review-editorui04-button-style-r1` inspected the source-sealed plan, failure
+  record, `zircon_runtime/src/ui/style.rs`, and
+  `zircon_runtime/src/ui/tests/material_button_style.rs` at the recorded hashes
+  (`style.rs` `e32462027b09c58ec57a6cb93905113347f2506bfe7e0afb109c6c8a0a4be3c3`, focused test
+  `3aeeb7be56cb7f751a389d5582ee6d0c97573742807c5d0ae8188bd4d29a6083`). The reviewer held the
+  failure-document lease while checking the exact owned scope.
+- Review result: `Critical=0`, `Important=0`, `Moderate=0`. The direct
+  `resolve_button_style_from_values` path borrows one `BTreeMap` and materializes the resolved
+  DTO from borrowed lookups; it does not clone `values` or construct `Arc::downgrade`. The parser
+  coverage retains canonical aliases, custom role/hex handling, and the disabled/loading/pressed/
+  dragging/focused/hovered priority cases. The focused guard rejects the retired
+  `to_ascii_lowercase()` path and asserts the borrowed string/parser contract.
+- Review boundary is explicit: the generic `StyleProperty::extract_values` compatibility entry
+  still clones a map into `UiV2ResolvedStyle`, and `ButtonStyleFields::resolve` still follows the
+  existing `Weak` cascade. Those paths, generation-owned theme/style caching, 1/100/10k allocation
+  counters, runtime/editor parity, visual checks, and current-source Cargo gates remain outside
+  this narrow repair and are not claimed as complete.
+- Scoped hygiene checks recorded `git diff --check` passed. `rustfmt --check --edition 2024
+  --config skip_children=true` reported the pre-existing import-order drift in the focused test
+  only; no source was edited by the review. The managed static ticket above remains the only
+  dynamic evidence and is not a substitute for the pending Cargo/performance/product gates.
+
+### 2026-09-25 current-source rolling reconciliation (EditorUI04 owner)
+
+- Session `failure-roll-01a084c8-editorui04-button-style-r2` owns this refresh. Snapshot `3817` seals the two owned paths:
+  - `zircon_runtime/src/ui/style.rs` — `e32462027b09c58ec57a6cb93905113347f2506bfe7e0afb109c6c8a0a4be3c3`
+  - `zircon_runtime/src/ui/tests/material_button_style.rs` — `3aeeb7be56cb7f751a389d5582ee6d0c97573742807c5d0ae8188bd4d29a6083`
+- `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/mod.rs` is already dirty foreign work and is outside this narrow runtime-owned scope; no source edits were made or absorbed. Scoped `git diff --check` passes (only normal LF→CRLF notices). `rustfmt +1.94.1 --edition 2024 --config skip_children=true --check` passes `style.rs`; the focused test retains the documented pre-existing import-order drift and is recorded as non-passing.
+- The exact current source probe `EDITORUI04_BUTTON_STYLE_SINGLE_MAP_CURRENT_SOURCE_PASS` confirms the direct `resolve_button_style_from_values` region borrows the input map without `values.clone()` or `Arc::downgrade`, while the focused test retains `material_button_single_map_resolution_borrows_style_values` and canonical alias/state coverage. This is static source evidence only.
+- Generation-owned resolved theme/style caching, 1/100/10k allocation counters, runtime/editor parity, visual checks, managed Windows Cargo, fixed return, closeout, and WeCom remain pending; the failure stays `open`/`resolving_failure`.
+
+### 2026-09-25 independent static review receipt
+
+- Reviewer `review_editor03_gizmo_private` checked snapshot `3817`, both owned hashes, and the foreign style-selector path. Result: Critical/Important/Moderate = `0/0/0`.
+- The review confirms the borrowed single-map resolver, focused ownership guard, alias/custom/state coverage, and the documented focused-test formatting drift; no Cargo or generation/scale/visual acceptance was inferred.

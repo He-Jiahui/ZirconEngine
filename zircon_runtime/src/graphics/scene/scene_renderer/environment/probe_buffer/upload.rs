@@ -139,12 +139,10 @@ pub(super) fn validate_probe_pmrem_texture<'a>(
             height: texture.height,
         });
     }
-    if descriptor.array_layer_count != REFLECTION_PROBE_FACE_COUNT
-        || descriptor.depth_or_array_layers != REFLECTION_PROBE_FACE_COUNT
-    {
+    if descriptor.depth_or_array_layers != REFLECTION_PROBE_FACE_COUNT {
         return Err(ReflectionProbeAssetError::FaceCount {
             cubemap,
-            actual: descriptor.array_layer_count,
+            actual: descriptor.depth_or_array_layers,
         });
     }
     if descriptor.mip_count != REFLECTION_PROBE_MIP_COUNT {

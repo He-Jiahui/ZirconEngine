@@ -1,3 +1,4 @@
+# 核对标签来源与选择由运行时投影，动作反馈读取当前所属与重定向。
 import tomllib
 import unittest
 from pathlib import Path

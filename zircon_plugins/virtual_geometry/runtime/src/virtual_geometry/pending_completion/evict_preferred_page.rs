@@ -1,7 +1,7 @@
 use super::super::VirtualGeometryRuntimeState;
 
 #[cfg(test)]
-#[path = "evict_preferred_page/allocation_tests.rs"]
+#[path = "evict_preferred_page/tests/allocation_tests.rs"]
 mod allocation_tests;
 
 impl VirtualGeometryRuntimeState {

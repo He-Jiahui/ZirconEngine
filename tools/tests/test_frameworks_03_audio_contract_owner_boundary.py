@@ -621,7 +621,7 @@ def neutral_audio_namespace_exports(source: str) -> tuple[str, ...]:
         exports.append("root macro/include expansion")
     return tuple(exports)
 
-
+# 检查中立音频布局声明与声音产品叶模块的导入方向；非代码文本和私有导入不应误判为公开重导出。
 class Frameworks03AudioContractOwnerBoundaryTests(unittest.TestCase):
     def test_sound_root_does_not_reexport_neutral_audio_layout_types(self) -> None:
         source = (SOUND_ROOT / "mod.rs").read_text(encoding="utf-8")

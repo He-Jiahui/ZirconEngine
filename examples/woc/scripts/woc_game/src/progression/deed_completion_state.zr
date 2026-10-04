@@ -4,6 +4,7 @@
 
 var container = %import("zr.container");
 
+/// 同一目录序号的 defined/feat/hidden/earned 是一条契约记录；调用方通过 append 维护四列对齐，再用 total/earnedTotal 计算完成率。
 pub class DeedCompletionState {
     pub var defined: container.Array<bool>;
     pub var feat: container.Array<bool>;

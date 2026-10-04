@@ -52,7 +52,7 @@ The other three runs produced P50 reductions of 64.0228%, 51.6015%, and 56.8673%
 - Current session: `root-runtime-interface03-activate-link-failure-20260831`.
 - Shared static/model ticket: `dd4881f740a74ea1997f4e20faedb233` (queued, 17 Python tests).
 - Plugins10 Cargo behavior ticket: `11945e53ecf442e7917fa876e97af501` (queued; exact expiration behavior test).
-- Shared model: `tools/plugins_rpc_routes_pressure.py`, source manifest `C7976604E82B67CA2BC572A3AF78A8DF73B86DFA54D641C591F1D89B86EEF335`.
+- Shared model: `tools/analysis/performance/plugins/plugins_rpc_routes_pressure.py`, source manifest `C7976604E82B67CA2BC572A3AF78A8DF73B86DFA54D641C591F1D89B86EEF335`.
 - Current source hashes: `dispatch.rs` `C2EFBBAE934A66BFD7DF2B200E75AE5BEAFD74D9E16084C3A3DE1715A512B852`; shared model `2C63D72FE8BAFCE0C6885A639A27B1E2E66C1BC2AFBCECAF55FBBC40AF0603D8`.
 
 The current-source model is deterministic structural evidence, not wall-clock timing. For 131,072 pending requests with 32,768 expired, it preserves one table scan and 32,768 report writes while changing expired-ID materialization `32,768 -> 0`, second-pass hash removals `32,768 -> 0`, and temporary collections `2 -> 1`. Historical alternating release evidence remains the performance claim: P50 `5.1467 -> 2.0265 ms` (`-60.6253%`), P95 `11.0896 -> 5.3114 ms` (`-52.1047%`), allocations `28 -> 14` (`-50%`), checksum `8727815200911380074`.

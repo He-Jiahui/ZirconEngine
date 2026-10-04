@@ -1,3 +1,4 @@
+# Stage 的进程树归属由 Windows Job 建立和终止证明；本组只扫描生产源码的挂载形态，不能代替真实子进程被挂入 Job 的行为测试。
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $stageScript = Join-Path $repoRoot 'tools\mvp\Stage-MvpProducts.ps1'
 $supervisorModule = Join-Path $repoRoot 'tools\mvp\StagedProcessSupervisor.psm1'

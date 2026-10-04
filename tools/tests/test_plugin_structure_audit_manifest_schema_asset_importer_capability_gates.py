@@ -1,10 +1,10 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema_asset_importer_capability_gates import (
+from tools.audits.plugins.manifest_schema_asset_importer_capability_gates import (
     collect_asset_importer_required_capability_gate_violations,
 )
 
-
+# 用导入器清单夹具验证能力门禁：未声明的必需能力被拒绝，已声明的特性能力被接受。
 class PluginStructureAuditManifestSchemaAssetImporterCapabilityGatesTests(
     unittest.TestCase
 ):

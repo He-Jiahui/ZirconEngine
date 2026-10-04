@@ -1,3 +1,4 @@
+use std::io;
 use std::path::Path;
 
 use crate::asset::project::AssetMetaDocument;
@@ -9,14 +10,35 @@ pub(super) fn load_or_create_meta(
     meta_path: &Path,
     uri: &AssetUri,
     kind: AssetKind,
-) -> Result<AssetMetaDocument, AssetImportError> {
-    if meta_path.exists() {
-        let mut meta = AssetMetaDocument::load(meta_path)?;
-        refresh_loaded_meta_identity(&mut meta, uri, kind);
-        return Ok(meta);
+) -> Result<(AssetMetaDocument, Option<AssetMetaDocument>), AssetImportError> {
+    match AssetMetaDocument::load(meta_path) {
+        Ok(mut meta) => {
+            let original = meta.clone();
+            refresh_loaded_meta_identity(&mut meta, uri, kind);
+            Ok((meta, Some(original)))
+        }
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok((mint_meta(uri, kind), None)),
+        Err(error) => Err(error.into()),
     }
+}
 
-    Ok(mint_meta(uri, kind))
+/// The caller holds the shared meta authority until its file transaction finishes.
+pub(super) fn verify_meta_precondition(
+    path: &Path,
+    expected: Option<&AssetMetaDocument>,
+) -> Result<(), AssetImportError> {
+    let current = match AssetMetaDocument::load(path) {
+        Ok(document) => Some(document),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => None,
+        Err(error) => return Err(error.into()),
+    };
+    if current.as_ref() != expected {
+        return Err(AssetImportError::Parse(format!(
+            "project metadata changed while targeted generation was prepared: {}",
+            path.display()
+        )));
+    }
+    Ok(())
 }
 
 fn refresh_loaded_meta_identity(meta: &mut AssetMetaDocument, uri: &AssetUri, kind: AssetKind) {
@@ -47,5 +69,5 @@ pub(crate) fn mint_meta_for_migration(
 }
 
 #[cfg(test)]
-#[path = "load_or_create_meta/matching_identity_tests.rs"]
+#[path = "load_or_create_meta/tests/matching_identity_tests.rs"]
 mod matching_identity_tests;

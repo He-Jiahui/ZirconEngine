@@ -1,3 +1,4 @@
+# 核对动态菜单依据实际可见内容测宽，并为尾部装饰保留空间。
 import unittest
 import re
 from pathlib import Path

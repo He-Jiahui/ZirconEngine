@@ -1,4 +1,4 @@
-use std::any::{TypeId, type_name};
+use std::any::{type_name, TypeId};
 use std::collections::{BTreeSet, HashMap, VecDeque};
 use std::marker::PhantomData;
 
@@ -361,6 +361,7 @@ impl RemovedComponentEvents {
     }
 
     pub(crate) fn advance_frame(&mut self) {
+        // 只推进仍有条目的 channel；读者落后于保留窗口时由 read_window_start 累计丢弃数。
         self.frame = self.frame.saturating_add(1);
         let active_channels = std::mem::take(&mut self.active_channels);
         self.last_advance_channel_visits = active_channels.len();

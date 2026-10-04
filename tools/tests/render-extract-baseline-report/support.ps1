@@ -3,9 +3,9 @@ $reporter = Join-Path $repoRoot 'tools\mvp\Write-RenderExtractBaselineReport.ps1
 $evidenceModule = Join-Path $repoRoot 'tools\mvp\RenderExtractBaselineEvidence.psm1'
 $metricsModule = Join-Path $repoRoot 'tools\mvp\RenderExtractBaselineMetrics.psm1'
 $scenarioModule = Join-Path $repoRoot 'tools\mvp\RenderExtractPerformanceScenario.psm1'
-Import-Module (Join-Path $repoRoot 'tools\WindowsPathResolver.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $repoRoot 'tools\maintenance\WindowsPathResolver.psm1') -Force -DisableNameChecking -ErrorAction Stop
 Import-Module $scenarioModule -Force -DisableNameChecking -ErrorAction Stop
-. (Join-Path $repoRoot 'tools\performance-machine-manifest.ps1')
+. (Join-Path $repoRoot 'tools\analysis\profiling\shared\performance-machine-manifest.ps1')
 $originalTestMode = $env:RENDER_EXTRACT_BASELINE_REPORT_TEST_MODE
 
 try {
@@ -18,7 +18,7 @@ finally {
 
 Import-Module $evidenceModule -Force -DisableNameChecking -ErrorAction Stop
 Import-Module $metricsModule -Force -DisableNameChecking -ErrorAction Stop
-Import-Module (Join-Path $repoRoot 'tools\WindowsPathResolver.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $repoRoot 'tools\maintenance\WindowsPathResolver.psm1') -Force -DisableNameChecking -ErrorAction Stop
 
 $assertEvidenceDirectoryContract = (Get-Command Assert-RenderExtractBaselineEvidenceDirectory -CommandType Function).ScriptBlock
 
@@ -407,6 +407,103 @@ function Add-RenderSchedulerWorkerOccupancyCounters {
             frame_index = $null
         }
     )
+    [IO.File]::WriteAllText($TimelinePath, ($timeline | ConvertTo-Json -Depth 7), [Text.UTF8Encoding]::new($false))
+}
+
+function Add-MeshCommandPreparationSamples {
+    param(
+        [Parameter(Mandatory)][string]$TimelinePath,
+        [string[]]$OmitSpanNames = @(),
+        [string[]]$OmitCounterNames = @()
+    )
+
+    $timeline = Get-Content -LiteralPath $TimelinePath -Raw | ConvertFrom-Json
+    $primaryFrames = @($timeline.frames | Where-Object {
+            $_.stream -eq 'app' -and $_.name -eq 'runtime_redraw'
+        })
+    $sampleFrameIndex = [Math]::Min(60, $primaryFrames.Count - 1)
+    $sampleStartUs = [Int64]$primaryFrames[$sampleFrameIndex].start_us
+    $spanNames = @(
+        'extract_cached_pre_mesh_draw',
+        'pre_mesh_materialize',
+        'prepare_cached_dispatch',
+        'normalize_source_order',
+        'parallel_admission',
+        'owner_transaction',
+        'worker_projection_wait',
+        'ordered_merge',
+        'seal_phase_buffers',
+        'finalize_old_path',
+        'indirect_plan',
+        'replay_record'
+    )
+    for ($index = 0; $index -lt $spanNames.Count; $index++) {
+        if ($OmitSpanNames -contains $spanNames[$index]) {
+            continue
+        }
+        $timeline.spans += [pscustomobject][ordered]@{
+            id = 100 + $index
+            parent_id = $null
+            frame_index = $sampleFrameIndex
+            stream = 'render'
+            category = 'mesh_commands'
+            name = $spanNames[$index]
+            path = "runtime/mesh_commands:$($spanNames[$index])"
+            start_us = $sampleStartUs + 50 + $index
+            duration_us = 1
+            depth = 0
+        }
+    }
+
+    $counterValues = [ordered]@{
+        'mesh_commands.batch_count' = 1000
+        'mesh_commands.worker_count' = 8
+        'mesh_commands.parallel_enabled' = 1
+        'mesh_commands.dispatch_reason_code' = 0
+        'mesh_commands.cache_hit_count' = 1000
+        'mesh_commands.cache_miss_count' = 0
+        'mesh_commands.command_rebuild_count' = 0
+        'mesh_commands.command_count' = 3000
+        'mesh_commands.command_arena_grow_count' = 14
+        'mesh_commands.command_arena_peak_capacity' = 4096
+        'mesh_commands.phase_bucket_grow_count' = 31
+        'mesh_commands.phase_bucket_capacity' = 6144
+        'mesh_commands.command_build_count' = 3000
+        'mesh_commands.partition_move_count' = 3000
+        'mesh_commands.merge_move_count' = 1500
+        'mesh_commands.finalize_count' = 2
+        'mesh_commands.sort_count' = 30
+        'mesh_commands.partition_command_visit_count' = 3000
+        'mesh_commands.merge_command_visit_count' = 1500
+        'mesh_commands.sort_command_visit_count' = 7500
+        'mesh_commands.active_bucket_count' = 6
+        'mesh_commands.cache_hit_payload_arc_clone_count' = 1000
+        'mesh_commands.command_generation_reuse_count' = 0
+        'mesh_commands.view_generation_reuse_count' = 0
+        'mesh_commands.bucket.depth_prepass_length' = 500
+        'mesh_commands.bucket.shadow_length' = 500
+        'mesh_commands.bucket.opaque_length' = 1000
+        'mesh_commands.bucket.alpha_mask_length' = 250
+        'mesh_commands.bucket.advanced_pbr_opaque_length' = 0
+        'mesh_commands.bucket.transmission_length' = 0
+        'mesh_commands.bucket.transparent_length' = 500
+        'mesh_commands.bucket.half_resolution_transparent_length' = 0
+        'mesh_commands.bucket.velocity_length' = 125
+        'mesh_commands.bucket.taa_reactive_mask_length' = 125
+    }
+    $counterIndex = 0
+    foreach ($entry in $counterValues.GetEnumerator()) {
+        if ($OmitCounterNames -notcontains $entry.Key) {
+            $timeline.counters += [pscustomobject][ordered]@{
+                stream = 'render'
+                name = $entry.Key
+                value = $entry.Value
+                timestamp_us = $sampleStartUs + 70 + $counterIndex
+                frame_index = $sampleFrameIndex
+            }
+        }
+        $counterIndex++
+    }
     [IO.File]::WriteAllText($TimelinePath, ($timeline | ConvertTo-Json -Depth 7), [Text.UTF8Encoding]::new($false))
 }
 

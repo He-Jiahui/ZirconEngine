@@ -1,7 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::core::resource::{
-    ResourceKind, ResourceManagementGeneration, ResourceReadinessGeneration, UntypedResourceHandle,
+    ResourceKind, ResourceManagementGeneration, ResourceReadinessGeneration,
+    ResourceReadinessRowIdentity, UntypedResourceHandle,
 };
 use crate::graphics::scene::render_scene::RenderSceneResourceReferenceDelta;
 use zr_rhi::{SubmissionStatus, SubmissionTicket};
@@ -22,12 +23,11 @@ use super::{
 pub(super) mod device_recovery;
 mod ticket_issuance;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 struct RenderAssetResidencyTicketSeed {
     resource: UntypedResourceHandle,
     asset_revision: u64,
-    readiness_generation: u64,
-    dependency_revision: u64,
+    readiness_identity: ResourceReadinessRowIdentity,
     demand_generation: RenderAssetDemandGeneration,
     device: RenderAssetDeviceEpoch,
     scope: RenderAssetResidencyScope,
@@ -40,8 +40,7 @@ impl RenderAssetResidencyTicketSeed {
             id,
             self.resource,
             self.asset_revision,
-            self.readiness_generation,
-            self.dependency_revision,
+            self.readiness_identity,
             self.demand_generation,
             self.device,
             self.scope,
@@ -49,11 +48,10 @@ impl RenderAssetResidencyTicketSeed {
         )
     }
 
-    fn matches(self, ticket: RenderAssetResidencyTicket) -> bool {
+    fn matches(&self, ticket: &RenderAssetResidencyTicket) -> bool {
         self.resource == ticket.resource()
             && self.asset_revision == ticket.asset_revision()
-            && self.readiness_generation == ticket.readiness_generation()
-            && self.dependency_revision == ticket.dependency_revision()
+            && &self.readiness_identity == ticket.readiness_identity()
             && self.demand_generation == ticket.demand_generation()
             && self.device == ticket.device()
             && self.scope == ticket.scope()
@@ -61,14 +59,14 @@ impl RenderAssetResidencyTicketSeed {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 struct PendingResidency {
     ticket: RenderAssetResidencyTicket,
     state: RenderAssetResidencyState,
     submission: Option<SubmissionTicket>,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 struct ActiveResidency {
     ticket: RenderAssetResidencyTicket,
     submission: SubmissionTicket,
@@ -82,7 +80,7 @@ pub(super) struct RenderAssetResidencyEntry {
     pub(super) active_artifact: Option<RenderAssetGpuArtifact>,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 struct PreparedReferenceChange {
     resource: UntypedResourceHandle,
     next_reference_count: usize,
@@ -90,7 +88,7 @@ struct PreparedReferenceChange {
     request: Option<RenderAssetResidencyTicket>,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 struct PreparedReconciliation {
     resource: UntypedResourceHandle,
     cancel_pending: bool,
@@ -123,6 +121,7 @@ impl RenderAssetResidencyManager {
         }
     }
 
+    /// 整批预检引用计数、资源发布与退休容量后再提交状态变更；失败时保留既有 entry 和 ticket 分配位置。
     pub(crate) fn apply_scene_reference_deltas(
         &mut self,
         deltas: &[RenderSceneResourceReferenceDelta],
@@ -216,7 +215,7 @@ impl RenderAssetResidencyManager {
                 continue;
             }
             if let Some(ticket) = change.request {
-                requests.push(ticket);
+                requests.push(ticket.clone());
                 self.entries.insert(
                     change.resource,
                     RenderAssetResidencyEntry {
@@ -274,13 +273,15 @@ impl RenderAssetResidencyManager {
                 resolve_ticket_seed(resource, management, readiness, device, demand_generation)?;
             if entry
                 .pending
-                .is_some_and(|pending| seed.matches(pending.ticket))
+                .as_ref()
+                .is_some_and(|pending| seed.matches(&pending.ticket))
             {
                 continue;
             }
             let active_matches = entry
                 .active
-                .is_some_and(|active| seed.matches(active.ticket));
+                .as_ref()
+                .is_some_and(|active| seed.matches(&active.ticket));
             prepared.push(PreparedReconciliation {
                 resource,
                 cancel_pending: entry.pending.is_some(),
@@ -303,7 +304,7 @@ impl RenderAssetResidencyManager {
                 }
             }
             if let Some(ticket) = reconciliation.request {
-                requests.push(ticket);
+                requests.push(ticket.clone());
                 entry.pending = Some(PendingResidency {
                     ticket,
                     state: RenderAssetResidencyState::QueuedIo,
@@ -321,7 +322,7 @@ impl RenderAssetResidencyManager {
 
     pub(crate) fn advance(
         &mut self,
-        ticket: RenderAssetResidencyTicket,
+        ticket: &RenderAssetResidencyTicket,
         next: RenderAssetResidencyState,
     ) -> Result<(), RenderAssetResidencyTransitionError> {
         let entry = self.entry_for_pending_ticket_mut(ticket)?;
@@ -344,7 +345,7 @@ impl RenderAssetResidencyManager {
 
     pub(crate) fn bind_upload_submission(
         &mut self,
-        ticket: RenderAssetResidencyTicket,
+        ticket: &RenderAssetResidencyTicket,
         submission: SubmissionTicket,
     ) -> Result<(), RenderAssetResidencyTransitionError> {
         self.bind_upload_submission_entry(ticket, submission)
@@ -353,7 +354,7 @@ impl RenderAssetResidencyManager {
 
     pub(super) fn bind_upload_submission_entry(
         &mut self,
-        ticket: RenderAssetResidencyTicket,
+        ticket: &RenderAssetResidencyTicket,
         submission: SubmissionTicket,
     ) -> Result<&mut RenderAssetResidencyEntry, RenderAssetResidencyTransitionError> {
         let entry = self.entry_for_pending_ticket_mut(ticket)?;
@@ -386,7 +387,7 @@ impl RenderAssetResidencyManager {
 
     pub(crate) fn fail_pending(
         &mut self,
-        ticket: RenderAssetResidencyTicket,
+        ticket: &RenderAssetResidencyTicket,
     ) -> Result<(), RenderAssetResidencyTransitionError> {
         let entry = self.entry_for_pending_ticket_mut(ticket)?;
         let pending =
@@ -413,7 +414,7 @@ impl RenderAssetResidencyManager {
 
     pub(crate) fn complete_upload(
         &mut self,
-        ticket: RenderAssetResidencyTicket,
+        ticket: &RenderAssetResidencyTicket,
         submission: SubmissionTicket,
         status: SubmissionStatus,
     ) -> Result<RenderAssetResidencyMutation, RenderAssetResidencyTransitionError> {
@@ -449,8 +450,10 @@ impl RenderAssetResidencyManager {
         let mut releases = Vec::new();
         match status {
             SubmissionStatus::Completed => {
-                if let Some(previous) = entry.active.replace(ActiveResidency { ticket, submission })
-                {
+                if let Some(previous) = entry.active.replace(ActiveResidency {
+                    ticket: pending.ticket,
+                    submission,
+                }) {
                     releases.push(release_active(previous));
                 }
             }
@@ -476,7 +479,7 @@ impl RenderAssetResidencyManager {
 
     pub(super) fn validate_upload_completion(
         &self,
-        ticket: RenderAssetResidencyTicket,
+        ticket: &RenderAssetResidencyTicket,
         submission: SubmissionTicket,
         status: SubmissionStatus,
     ) -> Result<(), RenderAssetResidencyTransitionError> {
@@ -484,11 +487,13 @@ impl RenderAssetResidencyManager {
             return Err(RenderAssetResidencyTransitionError::SubmissionNotTerminal { status });
         }
         let entry = self.entry_for_pending_ticket(ticket)?;
-        let pending = entry
-            .pending
-            .ok_or(RenderAssetResidencyTransitionError::UnknownTicket {
-                presented: ticket.id(),
-            })?;
+        let pending =
+            entry
+                .pending
+                .as_ref()
+                .ok_or(RenderAssetResidencyTransitionError::UnknownTicket {
+                    presented: ticket.id(),
+                })?;
         if pending.state != RenderAssetResidencyState::Uploading {
             return Err(RenderAssetResidencyTransitionError::InvalidTransition {
                 from: pending.state,
@@ -523,7 +528,7 @@ impl RenderAssetResidencyManager {
     ) -> Option<RenderAssetResidencyTicket> {
         self.entries
             .get(&resource)
-            .and_then(|entry| entry.pending.map(|pending| pending.ticket))
+            .and_then(|entry| entry.pending.as_ref().map(|pending| pending.ticket.clone()))
     }
 
     pub(crate) fn resident_ticket(
@@ -532,29 +537,31 @@ impl RenderAssetResidencyManager {
     ) -> Option<RenderAssetResidencyTicket> {
         self.entries
             .get(&resource)
-            .and_then(|entry| entry.active.map(|active| active.ticket))
+            .and_then(|entry| entry.active.as_ref().map(|active| active.ticket.clone()))
     }
 
     pub(crate) fn state(
         &self,
-        ticket: RenderAssetResidencyTicket,
+        ticket: &RenderAssetResidencyTicket,
     ) -> Option<RenderAssetResidencyState> {
         let entry = self.entries.get(&ticket.resource())?;
         if entry
             .pending
-            .is_some_and(|pending| pending.ticket == ticket)
+            .as_ref()
+            .is_some_and(|pending| &pending.ticket == ticket)
         {
-            return entry.pending.map(|pending| pending.state);
+            return entry.pending.as_ref().map(|pending| pending.state);
         }
         entry
             .active
-            .is_some_and(|active| active.ticket == ticket)
+            .as_ref()
+            .is_some_and(|active| &active.ticket == ticket)
             .then_some(RenderAssetResidencyState::Resident)
     }
 
     fn entry_for_pending_ticket_mut(
         &mut self,
-        ticket: RenderAssetResidencyTicket,
+        ticket: &RenderAssetResidencyTicket,
     ) -> Result<&mut RenderAssetResidencyEntry, RenderAssetResidencyTransitionError> {
         let Some(entry) = self.entries.get_mut(&ticket.resource()) else {
             return Err(RenderAssetResidencyTransitionError::UnknownTicket {
@@ -563,11 +570,17 @@ impl RenderAssetResidencyManager {
         };
         if entry
             .pending
-            .is_some_and(|pending| pending.ticket == ticket)
+            .as_ref()
+            .is_some_and(|pending| &pending.ticket == ticket)
         {
             return Ok(entry);
         }
-        if entry.active.is_some_and(|active| active.ticket == ticket) && entry.pending.is_none() {
+        if entry
+            .active
+            .as_ref()
+            .is_some_and(|active| &active.ticket == ticket)
+            && entry.pending.is_none()
+        {
             return Err(RenderAssetResidencyTransitionError::InvalidTransition {
                 from: RenderAssetResidencyState::Resident,
                 to: RenderAssetResidencyState::Reading,
@@ -575,8 +588,9 @@ impl RenderAssetResidencyManager {
         }
         let current = entry
             .pending
+            .as_ref()
             .map(|pending| pending.ticket.id())
-            .or_else(|| entry.active.map(|active| active.ticket.id()));
+            .or_else(|| entry.active.as_ref().map(|active| active.ticket.id()));
         match current {
             Some(current) => Err(RenderAssetResidencyTransitionError::StaleTicket {
                 presented: ticket.id(),
@@ -590,7 +604,7 @@ impl RenderAssetResidencyManager {
 
     fn entry_for_pending_ticket(
         &self,
-        ticket: RenderAssetResidencyTicket,
+        ticket: &RenderAssetResidencyTicket,
     ) -> Result<&RenderAssetResidencyEntry, RenderAssetResidencyTransitionError> {
         let Some(entry) = self.entries.get(&ticket.resource()) else {
             return Err(RenderAssetResidencyTransitionError::UnknownTicket {
@@ -599,11 +613,17 @@ impl RenderAssetResidencyManager {
         };
         if entry
             .pending
-            .is_some_and(|pending| pending.ticket == ticket)
+            .as_ref()
+            .is_some_and(|pending| &pending.ticket == ticket)
         {
             return Ok(entry);
         }
-        if entry.active.is_some_and(|active| active.ticket == ticket) && entry.pending.is_none() {
+        if entry
+            .active
+            .as_ref()
+            .is_some_and(|active| &active.ticket == ticket)
+            && entry.pending.is_none()
+        {
             return Err(RenderAssetResidencyTransitionError::InvalidTransition {
                 from: RenderAssetResidencyState::Resident,
                 to: RenderAssetResidencyState::Reading,
@@ -611,8 +631,9 @@ impl RenderAssetResidencyManager {
         }
         let current = entry
             .pending
+            .as_ref()
             .map(|pending| pending.ticket.id())
-            .or_else(|| entry.active.map(|active| active.ticket.id()));
+            .or_else(|| entry.active.as_ref().map(|active| active.ticket.id()));
         match current {
             Some(current) => Err(RenderAssetResidencyTransitionError::StaleTicket {
                 presented: ticket.id(),
@@ -644,17 +665,26 @@ fn resolve_ticket_seed(
     if !readiness.contains_kind(resource.id(), resource.kind()) {
         return Err(RenderAssetResidencyAdmissionError::MissingReadinessRecord { resource });
     }
-    let Some(dependency_revision) = readiness.dependency_revision(resource.id()) else {
+    let Some(readiness_identity) = readiness.row_identity(resource.id()) else {
         return Err(RenderAssetResidencyAdmissionError::MissingReadinessRecord { resource });
     };
+    let readiness_revision = readiness_identity.row().record.revision;
+    if row.revision != readiness_revision {
+        return Err(
+            RenderAssetResidencyAdmissionError::CatalogReadinessRevisionMismatch {
+                resource,
+                catalog_revision: row.revision,
+                readiness_revision,
+            },
+        );
+    }
     let Some(policy) = policy_for_resource_kind(resource.kind()) else {
         return Err(RenderAssetResidencyAdmissionError::UnsupportedResourceKind { resource });
     };
     Ok(RenderAssetResidencyTicketSeed {
         resource,
         asset_revision: row.revision,
-        readiness_generation: readiness.sequence(),
-        dependency_revision,
+        readiness_identity,
         demand_generation,
         device,
         scope: policy.scope,

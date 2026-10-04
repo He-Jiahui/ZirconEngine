@@ -1,3 +1,4 @@
+# 直接运行各控制台与托盘验收门禁，并以隔离协调器夹具核对生命周期。
 [CmdletBinding()]
 param(
     [switch]$ReadOnlyConsole,
@@ -40,11 +41,11 @@ try {
         try {
             New-Item -ItemType Directory -Path (Join-Path $fixture 'tools') -Force | Out-Null
             Set-Content -LiteralPath (Join-Path $fixture 'README.md') -Value 'tray smoke fixture' -Encoding UTF8
-            Set-Content -LiteralPath (Join-Path $fixture 'tools\zircon-session.ps1') -Value '# smoke marker' -Encoding UTF8
+            Set-Content -LiteralPath (Join-Path $fixture 'tools\dev\zircon-session.ps1') -Value '# smoke marker' -Encoding UTF8
             git -C $fixture init -q -b main
             git -C $fixture config user.email zircon-smoke@example.invalid
             git -C $fixture config user.name ZirconSmoke
-            git -C $fixture add README.md tools/zircon-session.ps1
+            git -C $fixture add README.md tools/dev/zircon-session.ps1
             git -C $fixture commit -q -m 'chore: initialize tray smoke fixture'
             $daemonOut = Join-Path $fixture 'daemon.out.log'
             $daemonErr = Join-Path $fixture 'daemon.err.log'

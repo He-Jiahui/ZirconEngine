@@ -1,3 +1,4 @@
+# 操作者取消请求按运行身份一次性发布并由 Stage 消费；隔离夹具验证不可覆盖、大小与字段边界，源码断言确认 CLI 调用该发布入口。
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $modulePath = Join-Path $repoRoot 'tools\mvp\MvpStagingCancellationRequest.psm1'
 $requestScript = Join-Path $repoRoot 'tools\mvp\Request-MvpStagingCancellation.ps1'

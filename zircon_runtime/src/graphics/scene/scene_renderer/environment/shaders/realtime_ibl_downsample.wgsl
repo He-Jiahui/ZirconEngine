@@ -1,3 +1,5 @@
+// 为后续 PMREM/SH9 构造源 mip；source_cube 视图仅暴露前一级，因此局部 LOD0 指前一级。
+// 六面方向约定与捕获一致，Cube 采样负责跨面边缘过滤，输出写入后一级存储视图。
 struct DownsampleParams {
     source_face_size: u32,
     destination_face_size: u32,

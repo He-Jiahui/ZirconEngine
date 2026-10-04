@@ -8,7 +8,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 插件公开接口完整参考
 tests:
-  - zircon_plugins/plugin_sdk/src/declaration/tests.rs
+  - zircon_plugins/plugin_sdk/src/declaration/tests/cases.rs
 doc_type: api-reference
 title: 声明与运行时 Descriptor
 status: source-audited
@@ -118,4 +118,4 @@ sequenceDiagram
 
 - [declaration.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_plugins/plugin_sdk/src/declaration.rs)
 - [runtime.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_plugins/plugin_sdk/src/runtime.rs)
-- [declaration tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_plugins/plugin_sdk/src/declaration/tests.rs)
+- [declaration tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_plugins/plugin_sdk/src/declaration/tests/cases.rs)

@@ -1,7 +1,8 @@
+# 核对指针反馈先汇总再激活，表面刷新延至帧提交阶段。
 from pathlib import Path
 import unittest
 
-from tools.editor_pointer_feedback_batch_pressure import run
+from tools.analysis.performance.editor.editor_pointer_feedback_batch_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]

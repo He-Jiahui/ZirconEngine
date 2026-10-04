@@ -4,11 +4,11 @@ use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
     AnimationStateMachineMarker, ResourceHandle, ResourceId,
 };
-use crate::scene::World;
 use crate::scene::components::{
     AnimationGraphPlayerComponent, AnimationPlayerComponent, AnimationSequencePlayerComponent,
     AnimationSkeletonComponent, AnimationStateMachinePlayerComponent,
 };
+use crate::scene::World;
 
 #[test]
 fn persistent_animation_runtime_uses_generic_storage_across_clone_serde_and_records() {

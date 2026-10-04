@@ -5,6 +5,7 @@ pub vendorStackSize(): int {
     return 5;
 }
 
+/// 商店命令与库存夹具用返回数量同时检查容量和计算总价；目录售价仍是单件价格，调用端必须乘上该数量。
 pub vendorPurchaseQuantity(itemKind: string): int {
     return itemKind == "food" || itemKind == "drink" ? vendorStackSize() : 1;
 }

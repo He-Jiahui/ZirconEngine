@@ -64,17 +64,26 @@ fn cascade_layers<'a>(
     document: &'a UiAssetDocument,
     imported_styles: &'a BTreeMap<String, UiAssetDocument>,
 ) -> Vec<UiAssetThemeCascadeLayer<'a>> {
-    let mut layers = document
-        .imports
-        .styles
-        .iter()
-        .map(|reference| UiAssetThemeCascadeLayer {
-            kind: UiAssetThemeCascadeLayerKind::Imported,
-            reference,
-            document: imported_styles.get(reference),
-        })
-        .collect::<Vec<_>>();
-    if can_promote_local_theme_to_external_style_asset(document) {
+    let local_layer = can_promote_local_theme_to_external_style_asset(document);
+    let mut layers = Vec::with_capacity(
+        document
+            .imports
+            .styles
+            .len()
+            .saturating_add(usize::from(local_layer)),
+    );
+    layers.extend(
+        document
+            .imports
+            .styles
+            .iter()
+            .map(|reference| UiAssetThemeCascadeLayer {
+                kind: UiAssetThemeCascadeLayerKind::Imported,
+                reference,
+                document: imported_styles.get(reference),
+            }),
+    );
+    if local_layer {
         layers.push(UiAssetThemeCascadeLayer {
             kind: UiAssetThemeCascadeLayerKind::Local,
             reference: "local",
@@ -85,24 +94,27 @@ fn cascade_layers<'a>(
 }
 
 fn cascade_layer_items(layers: &[UiAssetThemeCascadeLayer<'_>]) -> Vec<String> {
-    layers
-        .iter()
-        .enumerate()
-        .map(|(index, layer)| match layer.document {
-            Some(document) => format!(
-                "{}. {} • {}",
-                index + 1,
-                layer.kind.label(),
-                theme_layer_summary(layer, document),
-            ),
-            None => format!(
-                "{}. {} • {} • missing",
-                index + 1,
-                layer.kind.label(),
-                layer.reference,
-            ),
-        })
-        .collect()
+    let mut items = Vec::with_capacity(layers.len());
+    items.extend(
+        layers
+            .iter()
+            .enumerate()
+            .map(|(index, layer)| match layer.document {
+                Some(document) => format!(
+                    "{}. {} • {}",
+                    index + 1,
+                    layer.kind.label(),
+                    theme_layer_summary(layer, document),
+                ),
+                None => format!(
+                    "{}. {} • {} • missing",
+                    index + 1,
+                    layer.kind.label(),
+                    layer.reference,
+                ),
+            }),
+    );
+    items
 }
 
 fn theme_layer_summary(layer: &UiAssetThemeCascadeLayer<'_>, document: &UiAssetDocument) -> String {
@@ -137,7 +149,12 @@ fn cascade_token_items<'a>(layers: &[UiAssetThemeCascadeLayer<'a>]) -> Vec<Strin
         }
     }
 
-    let mut items = Vec::new();
+    let total_token_definitions = layers
+        .iter()
+        .filter_map(|layer| layer.document)
+        .map(|document| document.tokens.len())
+        .sum();
+    let mut items = Vec::with_capacity(total_token_definitions);
     for (name, definitions) in tokens_by_name {
         let Some((active, shadowed)) = definitions.split_last() else {
             continue;
@@ -157,7 +174,13 @@ fn cascade_token_items<'a>(layers: &[UiAssetThemeCascadeLayer<'a>]) -> Vec<Strin
 }
 
 fn cascade_rule_items<'a>(layers: &[UiAssetThemeCascadeLayer<'a>]) -> Vec<String> {
-    let mut items = Vec::new();
+    let total_rule_items = layers
+        .iter()
+        .filter_map(|layer| layer.document)
+        .map(total_rule_count)
+        .sum::<usize>()
+        .saturating_mul(2);
+    let mut items = Vec::with_capacity(total_rule_items);
     let mut rules_by_selector = BTreeMap::<&'a str, Vec<UiAssetThemeRuleDefinition<'a>>>::new();
     let mut order = 1usize;
     for layer in layers {
@@ -260,5 +283,9 @@ fn push_rule_block_value(entries: &mut Vec<String>, path: String, value: &Value)
 }
 
 #[cfg(test)]
-#[path = "theme_cascade_inspection/borrowed_definition_tests.rs"]
+#[path = "theme_cascade_inspection/tests/borrowed_definition_tests.rs"]
 mod borrowed_definition_tests;
+
+#[cfg(test)]
+#[path = "theme_cascade_inspection/tests/optimization_batch_jm_editor652_tests.rs"]
+mod optimization_batch_jm_editor652_tests;

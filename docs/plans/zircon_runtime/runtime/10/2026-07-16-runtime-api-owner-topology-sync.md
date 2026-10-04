@@ -27,7 +27,7 @@ This record accepts only the Runtime10 structural-audit synchronization. It does
 
 - `runtime_api_boundary.py` now lists the same eight owner modules already declared and re-exported by `runtime_api.rs`.
 - `test_runtime_api_boundary.py` locks the exact eight-domain tuple, folder contents, facade declarations/re-exports, line budgets, and zero-risk result.
-- `docs/zircon_runtime_interface/runtime_api.md` records the focused regression test alongside the existing ABI validation contract.
+- `docs/crates/zircon_runtime_interface/runtime_api.md` records the focused regression test alongside the existing ABI validation contract.
 
 ## Validation evidence
 

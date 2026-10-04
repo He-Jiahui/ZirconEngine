@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 HIT_TEST = ROOT / "zircon_runtime/src/ui/tree/hit_test.rs"
 
-
+# 检查基础命中网格的几何预算有显式溢出守卫，防止极端尺寸进入无界单元分配。
 class RuntimeUiHitGridBudgetContractTests(unittest.TestCase):
     def test_base_hit_grid_has_checked_geometry_budget(self):
         source = HIT_TEST.read_text(encoding="utf-8")

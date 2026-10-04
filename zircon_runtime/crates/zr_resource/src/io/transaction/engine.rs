@@ -12,12 +12,12 @@ use super::error::{DurableTransactionError, TransactionPhase};
 #[cfg(test)]
 use super::journal::create_intent;
 use super::journal::{
-    CommitPointRecord, persist_intent, plan_intent, record_commit_point, record_phase,
-    record_prepared, record_state,
+    persist_intent, plan_intent, record_commit_point, record_phase, record_prepared, record_state,
+    CommitPointRecord,
 };
 use super::observation::DurableCommitReport;
-use super::owner_lock::{TransactionOwnerLock, owner_lock_path};
-use super::pathing::{PathIdentity, next_transaction_id, valid_tag};
+use super::owner_lock::{owner_lock_path, TransactionOwnerLock};
+use super::pathing::{next_transaction_id, valid_tag, PathIdentity};
 use super::schema::{JournalIntent, JournalPhase, JournalState, TransactionFault};
 use super::stage::{
     cleanup_intents, cleanup_intents_journal_first, remove_reserved_if_exists, stage_file,
@@ -576,4 +576,5 @@ fn interruption(phase: TransactionPhase, path: &Path, message: &str) -> DurableT
 }
 
 #[cfg(test)]
+#[path = "engine/tests/cases.rs"]
 mod tests;

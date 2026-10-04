@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。通过源码文本核对父子路由、状态镜像和文件预算。
 use super::{
     D1_FOLDER_BACKED_GUARD, D1_FOLDER_BACKED_SLICE, D1_FOLDER_BACKED_STATUS, D1_FRAMEWORKS_STATUS,
 };
@@ -34,7 +35,7 @@ fn runtime_15_plugin_importer_d1_capability_guard_is_folder_backed() {
         include_str!(
             "../../../../../../../docs/plans/engine-code-review-findings-2026-06.md"
         ),
-        include_str!("../../../../../../../docs/zircon_runtime/structure/module-convention.md"),
+        include_str!("../../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"),
         crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT,
     ]
     .join("\n");

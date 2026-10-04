@@ -12,6 +12,8 @@ setHand(target: hand.CardHandState, card: uint, refill: uint): void {
     target.deck.add(refill);
 }
 
+// 独立脚本入口覆盖同回合双出牌、平局、主动弃权及期限弃权；
+// 服务层测试另核对胜场入账，避免将纯对局函数当作世界事务。
 contractTest(): int {
     var stream = new rng.Mulberry32(<uint>20061);
     var match = duel.createCardDuelMatch(<uint>10, <uint>20, stream, 0.0);

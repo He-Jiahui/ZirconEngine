@@ -1,11 +1,12 @@
+//! 调用线程负责变体解析与缓存事务，工作线程只投影准备好的计划；结果按输入顺序合并后才封存各 phase。
 use std::sync::Arc;
 
-use crate::core::framework::render::{
-    RenderMeshStaticState, RenderPhase, ShaderQualityTier,
-};
+use crate::core::framework::render::{RenderMeshStaticState, RenderPhase, ShaderQualityTier};
 use crate::core::framework::tasks::ParallelSliceExecutor;
 use crate::core::TaskPool;
 
+use super::super::super::super::mesh_draw::MeshDrawQueuePhase;
+use super::super::super::super::mesh_pipeline_cache::MeshPipelineVariantResolver;
 use super::super::super::cached_mesh_draw_commands::{
     CachedMeshDrawCommands, CachedMeshDrawKey, CachedMeshDrawLookup, MeshDrawCommandCacheStats,
 };
@@ -15,15 +16,15 @@ use super::super::super::mesh_pass_processor::{
 };
 use super::super::super::{MeshDrawCommand, MeshDrawCommandPayload, MeshPipelineVariantId};
 use super::super::{MeshDrawCommandList, MeshPassCommandBuffers};
-use super::super::super::super::mesh_draw::MeshDrawQueuePhase;
-use super::super::super::super::mesh_pipeline_cache::MeshPipelineVariantResolver;
 use super::parallel_admission::ParallelPreparationMode;
 use super::{
-    build_mesh_pass_command_buffers_from_ordered_batches_cached,
-    collect_batches_in_source_order, record_preparation_result_profile,
+    build_mesh_pass_command_buffers_from_ordered_batches_cached, collect_batches_in_source_order,
+    record_preparation_result_profile,
 };
 
-pub(super) fn build_mesh_pass_command_buffers_from_batches_cached_parallel<R>(
+pub(in crate::graphics::scene::scene_renderer::mesh::mesh_pass::mesh_draw_command_list) fn build_mesh_pass_command_buffers_from_batches_cached_parallel<
+    R,
+>(
     batches: impl IntoIterator<Item = MeshBatchRef>,
     variant_resolver: &mut R,
     command_cache: &mut CachedMeshDrawCommands,
@@ -66,6 +67,9 @@ where
         );
     }
 
+    let resolver_configuration_invalidation_count =
+        command_cache.synchronize_resolver_configuration(variant_resolver.configuration_epoch());
+
     let plans = {
         crate::profile_scope!("render", "mesh_commands", "owner_transaction");
         batches
@@ -88,12 +92,21 @@ where
 
     let mut commands = MeshDrawCommandList::new();
     let mut cache_stats = MeshDrawCommandCacheStats::default();
+    cache_stats
+        .record_resolver_configuration_invalidation(resolver_configuration_invalidation_count);
     {
         crate::profile_scope!("render", "mesh_commands", "ordered_merge");
         for chunk in chunks {
             for store in chunk.cache_stores {
                 command_cache.store(store.key, &store.state, store.payload, generation);
             }
+            #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+            commands.record_staging_arena_cost(
+                chunk.producer_arena_grow_count,
+                chunk.producer_arena_peak_capacity,
+            );
+            #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+            commands.record_staging_merge(chunk.commands.len(), chunk.commands.len());
             for command in chunk.commands {
                 commands.push(command);
             }
@@ -254,6 +267,7 @@ fn resolve_spec_variant<R>(
 where
     R: MeshPipelineVariantResolver + ?Sized,
 {
+    // BUG: [CR-R02-runtime_wave12_graphics_mesh_submission-0004] 单面材质且阴影为 TwoSided 的批次在并行新建 Shadow 命令时仍解析 raw key；下方 command 也未折叠 shadow_two_sided，准入成功后管线仍剔除背面，背向面的阴影可缺失；串行处理器会使用双面 key。
     variant_resolver.resolve_variant_for_geometry(
         spec.pipeline_kind,
         &batch.pipeline_key,
@@ -264,6 +278,10 @@ where
 
 fn build_prepared_batch_chunk(plan: PreparedBatchPlan) -> PreparedBatchChunk {
     let mut commands = Vec::with_capacity(plan.commands.len());
+    #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+    let producer_arena_grow_count = usize::from(u8::from(commands.capacity() > 0));
+    #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+    let producer_arena_peak_capacity = commands.capacity();
     let mut cache_stores = Vec::new();
     for prepared in plan.commands {
         match prepared {
@@ -297,6 +315,10 @@ fn build_prepared_batch_chunk(plan: PreparedBatchPlan) -> PreparedBatchChunk {
         commands,
         cache_stores,
         cache_stats: plan.cache_stats,
+        #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+        producer_arena_grow_count,
+        #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+        producer_arena_peak_capacity,
     }
 }
 
@@ -329,6 +351,10 @@ struct PreparedBatchChunk {
     commands: Vec<MeshDrawCommand>,
     cache_stores: Vec<PreparedCacheStore>,
     cache_stats: MeshDrawCommandCacheStats,
+    #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+    producer_arena_grow_count: usize,
+    #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+    producer_arena_peak_capacity: usize,
 }
 
 struct PreparedCacheStore {

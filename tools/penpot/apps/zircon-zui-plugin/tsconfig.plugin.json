@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../dist/out-tsc/zircon-zui-plugin-plugin",
+    "types": [],
+    "moduleResolution": "bundler"
+  },
+  "files": ["src/plugin.ts"],
+  "include": ["../../../../third_party/penpot/plugins/libs/plugin-types/index.d.ts"]
+}

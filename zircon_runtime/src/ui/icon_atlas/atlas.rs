@@ -1,3 +1,5 @@
+//! 把图标资源请求变成稳定的图集布局方案；当前内部消费者是契约测试，不执行像素光栅化或 GPU 上传。
+
 use std::collections::HashMap;
 
 use crate::asset::UiIconAsset;
@@ -7,6 +9,7 @@ const DEFAULT_ATLAS_SLOT_PADDING_PX: u32 = 2;
 const DEFAULT_ATLAS_MIN_SIDE_PX: u32 = 64;
 const DEFAULT_ATLAS_MAX_SIDE_PX: u32 = 4096;
 
+/// 一个语义图标的栅格尺寸请求；同一 icon_id 的首个请求获胜，调用方应先统一尺寸与来源。
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiIconRasterRequest {
     pub icon_id: String,
@@ -14,6 +17,7 @@ pub struct UiIconRasterRequest {
     pub dpi_scale: f32,
 }
 
+/// 图集分配结果；外部 URI 可能只有槽位而没有 SVG 文档，像素加载由后续消费者负责。
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UiIconAtlasPlan {
     pub atlas_width: u32,
@@ -79,6 +83,8 @@ impl UiIconAtlasBuilder {
         self
     }
 
+    /// 汇总并排序请求以固定槽位布局；任一内嵌 SVG 解析失败会使整批规划失败。
+    /// 它不按资源 URI 读取文件，也不会替调用方合并重复 ID 的多个 DPI 请求。
     pub fn build_plan(
         &self,
         requests: impl IntoIterator<Item = UiIconRasterRequest>,
@@ -115,6 +121,10 @@ impl UiIconAtlasBuilder {
             })
         });
 
+        // Clamp cell_size to the atlas maximum before computing layout.
+        // Without this, a single oversized icon (e.g. 5000px requested) would
+        // produce planned rects whose x/y exceed atlas_width/atlas_height, making
+        // UV coordinates greater than 1.0 and corrupting every sampled texel.
         let cell_size = pending
             .iter()
             .map(|slot| {
@@ -123,8 +133,8 @@ impl UiIconAtlasBuilder {
             })
             .max()
             .unwrap_or(1)
-            .max(1);
-        let columns = square_grid_columns(pending.len());
+            .max(1)
+            .min(self.max_side_px);
         let atlas_width = (cell_size * columns as u32)
             .max(self.min_side_px)
             .min(self.max_side_px);
@@ -209,5 +219,5 @@ fn uv_rect(rect: UiIconAtlasRect, atlas_width: u32, atlas_height: u32) -> UiIcon
 }
 
 #[cfg(test)]
-#[path = "atlas/hash_dedup_tests.rs"]
+#[path = "atlas/tests/hash_dedup_tests.rs"]
 mod hash_dedup_tests;

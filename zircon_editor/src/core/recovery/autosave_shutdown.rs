@@ -5,8 +5,8 @@ use std::time::Instant;
 use crate::core::jobs::UnfinishedEditorJob;
 
 use super::autosave_service::{
-    ActiveAutosaveProject, AutosaveDiagnosticPersistenceIssue, EditorAutosaveService,
-    RetiredAutosaveProject, persist_fallback_diagnostics,
+    persist_fallback_diagnostics, ActiveAutosaveProject, AutosaveDiagnosticPersistenceIssue,
+    EditorAutosaveService, RetiredAutosaveProject,
 };
 use super::{
     AutosaveCompletion, AutosaveDocumentId, AutosaveDocumentOutcome, AutosaveDocumentRequest,

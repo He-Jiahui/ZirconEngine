@@ -18,14 +18,14 @@ implementation_files:
   - zircon_runtime_interface/src/runtime_api/abi/host_api_shape.rs
 plan_sources:
   - user: 2026-09-09 为 ZirconEngine 构建引擎说明书级 Wiki
-  - docs/zircon_runtime_interface/runtime_api.md
-  - docs/zircon_runtime/dynamic_api/session.md
+  - docs/crates/zircon_runtime_interface/runtime_api.md
+  - docs/crates/zircon_runtime/dynamic_api/session.md
 tests:
   - zircon_runtime_interface/src/tests/abi_safety_contracts.rs
-  - zircon_runtime_interface/src/runtime_api/abi/api_shape_tests.rs
-  - zircon_runtime_interface/src/runtime_api/abi/host_api_shape_tests.rs
+  - zircon_runtime_interface/src/runtime_api/abi/tests/api_shape_tests.rs
+  - zircon_runtime_interface/src/runtime_api/abi/tests/host_api_shape_tests.rs
   - zircon_runtime/src/dynamic_api/tests/api_table.rs
-  - zircon_app/src/entry/runtime_library/tests.rs
+  - zircon_app/src/entry/runtime_library/tests/cases.rs
 doc_type: module-detail
 ---
 

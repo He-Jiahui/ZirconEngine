@@ -1,5 +1,4 @@
-// Frost frozen-cast resolution. WOS supplies targetIsRooted from combat/cc_state
-// and commits the returned first-aura consumption plan to its authoritative aura list.
+// 冰霜冻结施法的独立决策投影；当前仅叶子测试消费，接入世界时须由控制效果判定提供 rooted 并将消费计划写回权威光环列。
 var container = %import("zr.container");
 var contract = %import("generated/frost_frozen_cast_contract");
 
@@ -18,6 +17,7 @@ pub class FrostFrozenAura {
     }
 }
 
+/// 消费计划携带快照中的首项光环索引与施法者/目标归属；应用前不得改变数组顺序。
 pub class FrostSpendPlan {
     pub var hasSpend: bool;
     pub var spendCaster: bool;
@@ -44,6 +44,7 @@ pub class FrozenCastPlan {
     }
 }
 
+/// 先排除缺失目标、物理和非冰霜施法；定身优先且不耗层，之后冰枪先耗施法者寒冰指再耗目标深冬之寒。
 pub resolveFrozenCast(targetPresent: bool, targetIsRooted: bool, committedFrost: bool, abilitySchool: string, abilityId: string, casterAuras: container.Array<FrostFrozenAura>, targetAuras: container.Array<FrostFrozenAura>): FrozenCastPlan {
     var inert = new FrozenCastPlan(false, 1.0, new FrostSpendPlan(false, false, -1, false, 0));
     if (!targetPresent || abilitySchool == contract.physicalSchool()) return inert;
@@ -70,6 +71,7 @@ pub firstKind(auras: container.Array<FrostFrozenAura>, kind: string): int {
     return -1;
 }
 
+/// 缺省层数或充能按一计算，归零时要求删除对应光环；只生成结果，不修改输入快照。
 pub withSpend(damageMult: float, spendCaster: bool, auraIndex: int, aura: FrostFrozenAura, stacks: bool): FrozenCastPlan {
     var count = stacks ? (aura.hasStacks ? aura.stacks : 1) : (aura.hasCharges ? aura.charges : 1);
     var remaining = count - 1;

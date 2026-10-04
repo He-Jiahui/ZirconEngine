@@ -10,7 +10,7 @@ mod selection;
 mod world_surface;
 
 #[cfg(test)]
-#[path = "action_tests.rs"]
+#[path = "tests/action_tests.rs"]
 mod tests;
 
 pub(in crate::ui::retained_host::app) fn demo_input_for_showcase_action(

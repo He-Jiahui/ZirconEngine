@@ -8,7 +8,6 @@ use zircon_runtime_interface::resource::{
 #[test]
 fn active_scene_resource_change_requests_reload_and_runtime_sync() {
     let plan = plan_asset_backend_refresh(
-        None,
         Some("res://scenes/main.scene.toml"),
         &[AssetChange {
             kind: AssetChangeKind::Modified,

@@ -1,3 +1,5 @@
+//! 原生 ABI 文本转换边界；复制 C 字符串并保留 TOML 解析错误的类型来源。
+
 use std::collections::HashSet;
 use std::ffi::{c_char, CStr};
 
@@ -39,6 +41,7 @@ impl std::error::Error for NativeStringError {
     }
 }
 
+/// 构造供动态库查找的 NUL 结尾符号名；入口名应不含内嵌 NUL。
 pub(super) fn native_symbol_name(symbol_name: &str) -> Vec<u8> {
     let mut bytes = symbol_name.as_bytes().to_vec();
     if !bytes.ends_with(&[0]) {
@@ -47,6 +50,10 @@ pub(super) fn native_symbol_name(symbol_name: &str) -> Vec<u8> {
     bytes
 }
 
+/// 必填字段缺失时保留字段名，让上层归因到对应探测或入口阶段。
+///
+/// # Safety
+/// 非空指针须在读取期间指向可读、以 NUL 结束且未被并发改写的 C 字符串。
 pub(super) unsafe fn read_required_c_string(
     value: *const c_char,
     field_name: &str,
@@ -56,13 +63,21 @@ pub(super) unsafe fn read_required_c_string(
     })
 }
 
+/// 在当前调用内复制可选文本；空指针及非法 UTF-8 当前均视为缺省。
+///
+/// # Safety
+/// 非空指针须在读取期间指向可读、以 NUL 结束且未被并发改写的 C 字符串。
 pub(super) unsafe fn read_optional_c_string(value: *const c_char) -> Option<String> {
     if value.is_null() {
         return None;
     }
+    // TODO: [CR-PLUGIN-NATIVE-0601] 确认可选字段的非法 UTF-8 是否可与未提供等价；
+    // 描述符入口名和清单也经此处，当前会丢失坏文本的原始诊断。
+    // SAFETY: 非空指针的有效性及 NUL 终止性由调用方 ABI 前提提供；本次只复制文本。
     CStr::from_ptr(value).to_str().ok().map(str::to_string)
 }
 
+/// 空文本代表未携带内嵌清单；非空 TOML 错误留给加载阶段报告。
 pub(super) fn package_manifest_from_toml(
     manifest_toml: &str,
     invalid_message: &str,
@@ -78,6 +93,7 @@ pub(super) fn package_manifest_from_toml(
         })
 }
 
+/// 统一解析能力与诊断标签列表，并按首次出现顺序去重。
 pub(super) fn parse_native_string_list(value: &str) -> Vec<String> {
     let mut entries = Vec::new();
     let mut seen = HashSet::new();
@@ -94,43 +110,9 @@ pub(super) fn parse_native_string_list(value: &str) -> Vec<String> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn read_required_c_string_reports_missing_field_with_typed_error() {
-        let error = unsafe { read_required_c_string(std::ptr::null(), "plugin_id") }
-            .expect_err("null required field should report typed string error");
-
-        match error {
-            NativeStringError::MissingRequiredField { field_name } => {
-                assert_eq!(field_name, "plugin_id");
-            }
-            NativeStringError::InvalidPackageManifest { .. } => {
-                panic!("null required field should not report package manifest parse error")
-            }
-        }
-    }
-
-    #[test]
-    fn native_string_typed_error_preserves_package_manifest_message() {
-        let error =
-            package_manifest_from_toml("not = [", "native plugin package manifest is invalid")
-                .expect_err("invalid TOML should report typed package manifest error");
-
-        assert!(
-            error
-                .to_string()
-                .starts_with("native plugin package manifest is invalid: "),
-            "typed package manifest error should preserve existing diagnostic prefix"
-        );
-        assert!(
-            std::error::Error::source(&error).is_some(),
-            "package manifest error should preserve TOML source"
-        );
-    }
-}
+#[path = "tests/native_strings.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "native_strings/string_list_dedup_tests.rs"]
+#[path = "native_strings/tests/string_list_dedup_tests.rs"]
 mod string_list_dedup_tests;

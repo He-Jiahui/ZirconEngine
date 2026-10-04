@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 $stagingReleaseRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-Import-Module (Join-Path $stagingReleaseRepoRoot 'tools\WindowsPathResolver.psm1') -ErrorAction Stop
+Import-Module (Join-Path $stagingReleaseRepoRoot 'tools\maintenance\WindowsPathResolver.psm1') -ErrorAction Stop
 
 function Test-MvpStagedProjectDirectoryReleased {
     param(

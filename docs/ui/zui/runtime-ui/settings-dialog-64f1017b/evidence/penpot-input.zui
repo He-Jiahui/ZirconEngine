@@ -1,0 +1,353 @@
+stylesheets = []
+penpot_dependency_sources = []
+penpot_original_source = "[asset]\nkind = \"view\"\nid = \"res://ui/runtime/fixtures/settings_dialog.zui\"\nversion = 2\ndisplay_name = \"Runtime Settings Dialog\"\n\n[imports]\nwidgets = []\nstyles = []\n\n[root]\nnode = \"settings_root\"\n\n[nodes.settings_root]\ncomponent = \"Overlay\"\ncontrol_id = \"SettingsRoot\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, container = { kind = \"Overlay\" } }\nchildren = [{ node = \"scrim\" }, { node = \"dialog_panel\" }, { node = \"nav_panel\" }, { node = \"content_panel\" }, { node = \"audio_row\" }, { node = \"graphics_row\" }, { node = \"apply_button\" }, { node = \"cancel_button\" }]\n\n[nodes.scrim]\ncomponent = \"Container\"\ncontrol_id = \"SettingsScrim\"\nprops = { background = { color = \"#0d1117cc\" } }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.dialog_panel]\ncomponent = \"Container\"\ncontrol_id = \"SettingsDialog\"\nprops = { background = { color = \"#1f2933\" }, border = { color = \"#83b6d8\", width = 2.0, radius = 16.0 } }\nlayout = { width = { min = 760.0, preferred = 760.0, max = 760.0, stretch = \"Fixed\" }, height = { min = 460.0, preferred = 460.0, max = 460.0, stretch = \"Fixed\" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = 0.0 } }\n\n[nodes.nav_panel]\ncomponent = \"Container\"\ncontrol_id = \"SettingsNav\"\nprops = { text = \"Graphics\\nAudio\\nGameplay\", background = { color = \"#13212e\" }, border = { color = \"#5aa8d8\", width = 1.0, radius = 12.0 }, foreground = { color = \"#e6f6ff\" } }\nlayout = { width = { min = 180.0, preferred = 180.0, max = 180.0, stretch = \"Fixed\" }, height = { min = 360.0, preferred = 360.0, max = 360.0, stretch = \"Fixed\" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 1.0, y = 0.5 }, position = { x = -170.0, y = -12.0 } }\n\n[nodes.content_panel]\ncomponent = \"Container\"\ncontrol_id = \"SettingsContent\"\nprops = { background = { color = \"#243241\" }, border = { color = \"#99cce8\", width = 1.0, radius = 12.0 } }\nlayout = { width = { min = 420.0, preferred = 420.0, max = 420.0, stretch = \"Fixed\" }, height = { min = 360.0, preferred = 360.0, max = 360.0, stretch = \"Fixed\" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.0, y = 0.5 }, position = { x = -130.0, y = -12.0 } }\n\n[nodes.audio_row]\ncomponent = \"Button\"\ncontrol_id = \"AudioVolume\"\nprops = { text = \"Master Volume    78%\", background = { color = \"#31465c\" }, border = { color = \"#a7d4f0\", width = 1.0, radius = 10.0 }, foreground = { color = \"#f3fbff\" } }\nlayout = { width = { min = 360.0, preferred = 360.0, max = 360.0, stretch = \"Fixed\" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = \"Fixed\" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.0, y = 0.0 }, position = { x = -100.0, y = -130.0 } }\n\n[nodes.graphics_row]\ncomponent = \"Button\"\ncontrol_id = \"GraphicsQuality\"\nprops = { text = \"Graphics Quality    Epic\", background = { color = \"#31465c\" }, border = { color = \"#a7d4f0\", width = 1.0, radius = 10.0 }, foreground = { color = \"#f3fbff\" } }\nlayout = { width = { min = 360.0, preferred = 360.0, max = 360.0, stretch = \"Fixed\" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = \"Fixed\" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.0, y = 0.0 }, position = { x = -100.0, y = -56.0 } }\n\n[nodes.apply_button]\ncomponent = \"Button\"\ncontrol_id = \"ApplySettings\"\nprops = { text = \"Apply\", background = { color = \"#2f5d34\" }, border = { color = \"#c7ebb0\", width = 1.0, radius = 10.0 }, foreground = { color = \"#f6fff0\" } }\nlayout = { width = { min = 168.0, preferred = 168.0, max = 168.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 1.0, y = 1.0 }, position = { x = 278.0, y = 194.0 } }\n\n[nodes.cancel_button]\ncomponent = \"Button\"\ncontrol_id = \"CancelSettings\"\nprops = { text = \"Cancel\", background = { color = \"#3e3030\" }, border = { color = \"#f0c7c7\", width = 1.0, radius = 10.0 }, foreground = { color = \"#fff3f3\" } }\nlayout = { width = { min = 168.0, preferred = 168.0, max = 168.0, stretch = \"Fixed\" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = \"Fixed\" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 1.0, y = 1.0 }, position = { x = 94.0, y = 194.0 } }\n"
+
+[asset]
+kind = "view"
+id = "res://ui/runtime/fixtures/settings_dialog.zui"
+version = 2
+display_name = "Runtime Settings Dialog"
+
+[imports]
+widgets = []
+styles = []
+
+[root]
+node = "settings_root"
+
+[nodes.settings_root]
+component = "Overlay"
+control_id = "SettingsRoot"
+
+[nodes.settings_root.layout.width]
+stretch = "Stretch"
+
+[nodes.settings_root.layout.height]
+stretch = "Stretch"
+
+[nodes.settings_root.layout.container]
+kind = "Overlay"
+
+[[nodes.settings_root.children]]
+node = "scrim"
+
+[[nodes.settings_root.children]]
+node = "dialog_panel"
+
+[[nodes.settings_root.children]]
+node = "nav_panel"
+
+[[nodes.settings_root.children]]
+node = "content_panel"
+
+[[nodes.settings_root.children]]
+node = "audio_row"
+
+[[nodes.settings_root.children]]
+node = "graphics_row"
+
+[[nodes.settings_root.children]]
+node = "apply_button"
+
+[[nodes.settings_root.children]]
+node = "cancel_button"
+
+[nodes.scrim]
+component = "Container"
+control_id = "SettingsScrim"
+
+[nodes.scrim.props.background]
+color = "#0d1117cc"
+
+[nodes.scrim.layout.width]
+stretch = "Stretch"
+
+[nodes.scrim.layout.height]
+stretch = "Stretch"
+
+[nodes.dialog_panel]
+component = "Container"
+control_id = "SettingsDialog"
+
+[nodes.dialog_panel.props.background]
+color = "#1f2933"
+
+[nodes.dialog_panel.props.border]
+color = "#83b6d8"
+width = 2
+radius = 16
+
+[nodes.dialog_panel.layout.width]
+min = 760
+preferred = 760
+max = 760
+stretch = "Fixed"
+
+[nodes.dialog_panel.layout.height]
+min = 460
+preferred = 460
+max = 460
+stretch = "Fixed"
+
+[nodes.dialog_panel.layout.anchor]
+x = 0.5
+y = 0.5
+
+[nodes.dialog_panel.layout.pivot]
+x = 0.5
+y = 0.5
+
+[nodes.dialog_panel.layout.position]
+x = 0
+y = 0
+
+[nodes.nav_panel]
+component = "Container"
+control_id = "SettingsNav"
+
+[nodes.nav_panel.props]
+text = "Graphics\nAudio\nGameplay"
+
+[nodes.nav_panel.props.background]
+color = "#13212e"
+
+[nodes.nav_panel.props.border]
+color = "#5aa8d8"
+width = 1
+radius = 12
+
+[nodes.nav_panel.props.foreground]
+color = "#e6f6ff"
+
+[nodes.nav_panel.layout.width]
+min = 180
+preferred = 180
+max = 180
+stretch = "Fixed"
+
+[nodes.nav_panel.layout.height]
+min = 360
+preferred = 360
+max = 360
+stretch = "Fixed"
+
+[nodes.nav_panel.layout.anchor]
+x = 0.5
+y = 0.5
+
+[nodes.nav_panel.layout.pivot]
+x = 1
+y = 0.5
+
+[nodes.nav_panel.layout.position]
+x = -170
+y = -12
+
+[nodes.content_panel]
+component = "Container"
+control_id = "SettingsContent"
+
+[nodes.content_panel.props.background]
+color = "#243241"
+
+[nodes.content_panel.props.border]
+color = "#99cce8"
+width = 1
+radius = 12
+
+[nodes.content_panel.layout.width]
+min = 420
+preferred = 420
+max = 420
+stretch = "Fixed"
+
+[nodes.content_panel.layout.height]
+min = 360
+preferred = 360
+max = 360
+stretch = "Fixed"
+
+[nodes.content_panel.layout.anchor]
+x = 0.5
+y = 0.5
+
+[nodes.content_panel.layout.pivot]
+x = 0
+y = 0.5
+
+[nodes.content_panel.layout.position]
+x = -130
+y = -12
+
+[nodes.audio_row]
+component = "Button"
+control_id = "AudioVolume"
+
+[nodes.audio_row.props]
+text = "Master Volume    78%"
+
+[nodes.audio_row.props.background]
+color = "#31465c"
+
+[nodes.audio_row.props.border]
+color = "#a7d4f0"
+width = 1
+radius = 10
+
+[nodes.audio_row.props.foreground]
+color = "#f3fbff"
+
+[nodes.audio_row.layout.width]
+min = 360
+preferred = 360
+max = 360
+stretch = "Fixed"
+
+[nodes.audio_row.layout.height]
+min = 56
+preferred = 56
+max = 56
+stretch = "Fixed"
+
+[nodes.audio_row.layout.anchor]
+x = 0.5
+y = 0.5
+
+[nodes.audio_row.layout.pivot]
+x = 0
+y = 0
+
+[nodes.audio_row.layout.position]
+x = -100
+y = -130
+
+[nodes.graphics_row]
+component = "Button"
+control_id = "GraphicsQuality"
+
+[nodes.graphics_row.props]
+text = "Graphics Quality    Epic"
+
+[nodes.graphics_row.props.background]
+color = "#31465c"
+
+[nodes.graphics_row.props.border]
+color = "#a7d4f0"
+width = 1
+radius = 10
+
+[nodes.graphics_row.props.foreground]
+color = "#f3fbff"
+
+[nodes.graphics_row.layout.width]
+min = 360
+preferred = 360
+max = 360
+stretch = "Fixed"
+
+[nodes.graphics_row.layout.height]
+min = 56
+preferred = 56
+max = 56
+stretch = "Fixed"
+
+[nodes.graphics_row.layout.anchor]
+x = 0.5
+y = 0.5
+
+[nodes.graphics_row.layout.pivot]
+x = 0
+y = 0
+
+[nodes.graphics_row.layout.position]
+x = -100
+y = -56
+
+[nodes.apply_button]
+component = "Button"
+control_id = "ApplySettings"
+
+[nodes.apply_button.props]
+text = "Apply"
+
+[nodes.apply_button.props.background]
+color = "#2f5d34"
+
+[nodes.apply_button.props.border]
+color = "#c7ebb0"
+width = 1
+radius = 10
+
+[nodes.apply_button.props.foreground]
+color = "#f6fff0"
+
+[nodes.apply_button.layout.width]
+min = 168
+preferred = 168
+max = 168
+stretch = "Fixed"
+
+[nodes.apply_button.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.apply_button.layout.anchor]
+x = 0.5
+y = 0.5
+
+[nodes.apply_button.layout.pivot]
+x = 1
+y = 1
+
+[nodes.apply_button.layout.position]
+x = 278
+y = 194
+
+[nodes.cancel_button]
+component = "Button"
+control_id = "CancelSettings"
+
+[nodes.cancel_button.props]
+text = "Cancel"
+
+[nodes.cancel_button.props.background]
+color = "#3e3030"
+
+[nodes.cancel_button.props.border]
+color = "#f0c7c7"
+width = 1
+radius = 10
+
+[nodes.cancel_button.props.foreground]
+color = "#fff3f3"
+
+[nodes.cancel_button.layout.width]
+min = 168
+preferred = 168
+max = 168
+stretch = "Fixed"
+
+[nodes.cancel_button.layout.height]
+min = 46
+preferred = 46
+max = 46
+stretch = "Fixed"
+
+[nodes.cancel_button.layout.anchor]
+x = 0.5
+y = 0.5
+
+[nodes.cancel_button.layout.pivot]
+x = 1
+y = 1
+
+[nodes.cancel_button.layout.position]
+x = 94
+y = 194
+
+[tokens]
+[penpot_original_imports]
+widgets = []
+styles = []

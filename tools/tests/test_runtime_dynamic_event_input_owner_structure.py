@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 验证动态事件输入的职责切分：键盘 IME 与手柄应子节点持有，并动态事件输入归属状态应为镜像。
 class RuntimeDynamicEventInputOwnerStructureTests(unittest.TestCase):
     STATUS = (
         "runtime_10_12_15_dynamic_event_keyboard_ime_gamepad_owner_split_"
@@ -66,8 +66,8 @@ class RuntimeDynamicEventInputOwnerStructureTests(unittest.TestCase):
             / "docs/plans/zircon_runtime/runtime/12-input-stack-and-action-mapping.md",
             repo_root
             / "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
-            repo_root / "docs/zircon_runtime/dynamic_api/session.md",
-            repo_root / "docs/zircon_runtime/input/input_state.md",
+            repo_root / "docs/crates/zircon_runtime/dynamic_api/session.md",
+            repo_root / "docs/crates/zircon_runtime/input/input_state.md",
             repo_root / "docs/plans/engine-code-structure-convention.md",
             repo_root / "docs/plans/engine-code-review-findings-2026-06.md",
         )

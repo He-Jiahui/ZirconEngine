@@ -29,7 +29,7 @@ mod proof_output;
 mod proof_path;
 mod support;
 use product_project_fixture::product_fixture;
-use product_renderer::{ProductUiFrameRenderer, UiTextRasterFrameTrace, render_ui_extract_frame};
+use product_renderer::{render_ui_extract_frame, ProductUiFrameRenderer, UiTextRasterFrameTrace};
 use proof_commands::{
     proof_arabic_justify, proof_background, proof_bbcode_text, proof_horizontal_rich_table,
     proof_msdf_sharp_corner_sample, proof_native_sdf_parity, proof_rich_text,
@@ -199,12 +199,10 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
     );
     let arabic_justify_line = &arabic_justify_layout.lines[0];
     assert!(arabic_justify_line.text.contains('\u{0640}'));
-    assert!(
-        arabic_justify_line
-            .runs
-            .iter()
-            .any(|run| { run.text == "ـ" && run.source_range.start == run.source_range.end })
-    );
+    assert!(arabic_justify_line
+        .runs
+        .iter()
+        .any(|run| { run.text == "ـ" && run.source_range.start == run.source_range.end }));
     assert!(
         (arabic_justify_line.glyph_advances.iter().sum::<f32>() - arabic_justify.frame.width).abs()
             < 0.1,
@@ -252,6 +250,18 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
     assert_eq!(
         stats.last_ui_text_raster_worker_failed_count, 0,
         "the settled product framebuffer must not leave failed native raster work: {stats:#?}"
+    );
+    assert_eq!(
+        stats.last_ui_text_raster_retry_queued_glyph_count, 0,
+        "the settled product framebuffer must not capture while native-atlas retry glyphs are queued: {stats:#?}"
+    );
+    assert_eq!(
+        stats.last_ui_text_raster_retry_queue_overflow_glyph_count, 0,
+        "the settled product framebuffer must not capture after native-atlas retry queue overflow: {stats:#?}"
+    );
+    assert_eq!(
+        stats.last_ui_text_raster_retry_rejected_source_count, 0,
+        "the settled product framebuffer must not accept rejected native-atlas retry sources: {stats:#?}"
     );
     assert_eq!(
         stats.last_ui_text_visible_missing_raster_image_count, 0,

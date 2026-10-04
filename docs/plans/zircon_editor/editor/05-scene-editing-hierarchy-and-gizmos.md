@@ -162,7 +162,7 @@ struct DragTxn {
 
 - 切片 1.1：mode contract + 栈 + 分派接 `SceneModeRegistry`（首个消费者）；Select/Transform 两内建模式注册；旧枚举开关分派删除。
 - 切片 1.2：`SelectionModel` 落地接 `FocusMessage`；三视图订阅同源；框选（屏幕矩形投影求交）+ Ctrl/Shift 语义。
-- 测试阶段：`cargo test -p zircon_editor --lib --locked`（viewport/handles 既有测试须过；栈路由矩阵：Consumed/PassThrough/压退栈；三视图选中一致性；框选命中集合断言）。更新 `docs/zircon_editor/scene/modes.md`。
+- 测试阶段：`cargo test -p zircon_editor --lib --locked`（viewport/handles 既有测试须过；栈路由矩阵：Consumed/PassThrough/压退栈；三视图选中一致性；框选命中集合断言）。更新 `docs/crates/zircon_editor/scene/modes.md`。
 
 ### M2 事务化拖拽与多选操纵
 

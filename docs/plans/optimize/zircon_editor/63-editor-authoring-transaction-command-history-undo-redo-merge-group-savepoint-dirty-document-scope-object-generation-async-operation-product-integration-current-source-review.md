@@ -25,7 +25,7 @@ tests:
   - zircon_editor/src/tests/editing/context_transactions.rs
   - zircon_editor/src/tests/editing/history.rs
   - zircon_editor/src/tests/editing/reflected_command.rs
-  - zircon_editor/src/tests/editing/ui_asset_replay.rs
+  - zircon_editor/src/tests/editing/ui_asset_replay
   - zircon_editor/src/tests/editing/ui_asset/tree_and_undo.rs
   - zircon_editor/src/core/asset/dirty/tests.rs
   - zircon_plugins/navigation/editor/src/tests/operation_command.rs

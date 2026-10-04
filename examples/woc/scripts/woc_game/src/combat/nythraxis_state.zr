@@ -1,8 +1,10 @@
+//! 尼斯拉克斯团本完整拉怪路径的局部战斗投影；按 20 Hz 推进计时，测试提供随机样本以核对抽取顺序，当前无世界运行入口。
 // Stateful M4 projection of the normal-mode Nythraxis full-pull parity path.
 // Timers advance at the authoritative 20 Hz simulation rate. Random samples are
 // supplied by the host-owned stream so draw count and order stay observable.
 var container = %import("zr.container");
 
+// 单份数组承载团员生命、位置及多个计时槽；调用方在测试中构造容量受限的快照。
 class NythraxisState {
     pub var combatData: container.Array<float>;
     // Phase ids: 1 phase one, 0 transition, 2 phase two, 3 dead.
@@ -286,6 +288,7 @@ tickTransition(state: NythraxisState): void {
     state.eventOrder.add("phase2");
 }
 
+/// 只从非当前仇恨目标的存活团员中无放回抽取印记；无候选者改为短间隔重试且不消耗 RNG。
 pub castSoulRend(
     state: NythraxisState
 ): void {
@@ -362,6 +365,7 @@ tickSoulRend(
             state,
             <int><float>state.combatData[280 + index]
         );
+        // BUG: [CR-WOC-COMBAT-0002] 同一批印记中先结算的低血量目标死亡后，此处和后续计数读取已变更的存活标志；源实现先固定全体存活标记名单，导致后结算者分摊人数变少、伤害变大。
         if (playerIndex >= 0 &&
             (<int><float>state.combatData[playerIndex * 7 + 6] & 1) != 0) {
             var stacked = 0;
@@ -398,6 +402,7 @@ tickSoulRend(
     state.eventOrder.add("soulRendResolve");
 }
 
+/// 开始读条并重置已点亮守护石的引导槽，同时设定灵魂撕裂锁定期。
 pub startDeathlessRage(state: NythraxisState): void {
     state.deathlessTimer = 45.0;
     state.deathlessCastRemaining = 10.0;
@@ -528,6 +533,7 @@ startFinalStand(state: NythraxisState): void {
     state.eventOrder.add("finalStand");
 }
 
+/// 固定步按印记、转阶段、控制、当前读条、普通技能的优先级推进；提前返回决定本帧 RNG 消费顺序。
 pub tickEncounter(
     state: NythraxisState
 ): void {
@@ -596,6 +602,7 @@ pub tickEncounter(
     }
 }
 
+/// 死亡只提交一次锁定和对话请求；实际团本锁定与事件投递属于宿主。
 pub killBoss(state: NythraxisState): void {
     if (state.phase == 3) { return; }
     state.bossHp = 0;

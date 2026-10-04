@@ -25,5 +25,5 @@ fn join_drag_payloads(accepts: &[UiDragPayloadKind]) -> String {
 }
 
 #[cfg(test)]
-#[path = "drag_payloads/direct_join_tests.rs"]
+#[path = "drag_payloads/tests/direct_join_tests.rs"]
 mod direct_join_tests;

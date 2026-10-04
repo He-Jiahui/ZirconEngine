@@ -1,3 +1,6 @@
+// 把曝光、tonemap、用户 LUT 和 grading 合成内部 3D LUT，供显示映射 pass 复用。
+// CPU 的 binding mode 区分逐通道曲线、二维 strip 与三维 LUT；两类纹理槽均须有合法绑定。
+// 布局与 ColorLutBakeParams 对应；曝光 buffer 必须是本帧 ExposureResolve 的产物。
 struct ColorLutBakeParams {
     lut_size_and_flags: vec4<u32>,
     tonemap_lut: vec4<f32>,
@@ -21,6 +24,8 @@ fn lut_axis_index(value: f32, size: u32) -> u32 {
     return u32(round(clamp(value, 0.0, 1.0) * f32(max_index)));
 }
 
+// 普通二维 LUT 在此约定为第零行的单通道曲线，并分别作用于 RGB；
+// 二维 strip 则把蓝轴切片横向排布，资源准备端须先确认相应布局。
 fn sample_user_lut_1d_channel(value: f32) -> f32 {
     let dims = textureDimensions(user_lut_tex);
     let x = i32(lut_axis_index(value, dims.x));
@@ -46,6 +51,7 @@ fn sample_user_lut_2d_strip(color: vec3<f32>) -> vec3<f32> {
     return textureLoad(user_lut_tex, vec2<i32>(i32(x), i32(y)), 0).rgb;
 }
 
+// 纹理坐标落在 LUT 格点中心，以线性采样在颜色格点间插值；输入域为归一化颜色。
 fn sample_user_lut_3d(color: vec3<f32>) -> vec3<f32> {
     let dims_u32 = textureDimensions(user_lut_3d_tex);
     let dims = vec3<f32>(f32(dims_u32.x), f32(dims_u32.y), f32(dims_u32.z));
@@ -111,6 +117,8 @@ fn apply_color_grading(color: vec3<f32>) -> vec3<f32> {
     return graded * params.tint_and_exposure.rgb;
 }
 
+// 烘焙顺序与未烘焙显示路径一致；使用内部 LUT 的消费者须跳过再次 grading。
+// 格点源颜色目前覆盖 [0,1]，HDR 输入域的约定见消费端 CR-POST-SHADER-0004。
 @compute @workgroup_size(4, 4, 4)
 fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let lut_size = max(params.lut_size_and_flags.x, 1u);

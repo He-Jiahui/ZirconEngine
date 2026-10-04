@@ -6,7 +6,7 @@ Milestone: M1
 
 Status: completed
 
-Files: ["docs/plans/zircon_runtime/shader/06/2026-07-14-current-source-hdri-pbr-acceptance.md", "docs/plans/zircon_runtime/shader/06/fixed-2026-07-15-deferred-lighting-nested-include-resolution.md", "docs/plans/zircon_runtime/shader/06/fixed-2026-07-15-runtime-operation-phase-terminal-matcher.md", "docs/tests/runtime/shader/runtime_shader_pbr_ibl_metallic_smoothness_matrix_angular0003_20260715.png", "docs/zircon_runtime/tests/runtime_shader_pbr_hdri_export.md", "zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs", "zircon_runtime/tests/runtime_shader_pbr_hdri_export/pbr_matrix.rs", "zircon_runtime/tests/runtime_shader_pbr_hdri_export/pbr_matrix_quantitative.rs", "zircon_runtime/tests/runtime_shader_pbr_hdri_export/pbr_matrix_quantitative/math.rs"]
+Files: ["docs/plans/zircon_runtime/shader/06/2026-07-14-current-source-hdri-pbr-acceptance.md", "docs/plans/zircon_runtime/shader/06/fixed-2026-07-15-deferred-lighting-nested-include-resolution.md", "docs/plans/zircon_runtime/shader/06/fixed-2026-07-15-runtime-operation-phase-terminal-matcher.md", "docs/tests/runtime/shader/runtime_shader_pbr_ibl_metallic_smoothness_matrix_angular0003_20260715.png", "docs/crates/zircon_runtime/tests/runtime_shader_pbr_hdri_export.md", "zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs", "zircon_runtime/tests/runtime_shader_pbr_hdri_export/pbr_matrix.rs", "zircon_runtime/tests/runtime_shader_pbr_hdri_export/pbr_matrix_quantitative.rs", "zircon_runtime/tests/runtime_shader_pbr_hdri_export/pbr_matrix_quantitative/math.rs"]
 
 ## 状态与产出记录
 

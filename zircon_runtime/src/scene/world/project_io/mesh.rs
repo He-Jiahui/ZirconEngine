@@ -5,12 +5,13 @@ use crate::asset::project::ProjectManager;
 use crate::core::resource::{MaterialMarker, MeshMarker};
 use crate::scene::components::{MeshRenderer, MeshRendererLodLevel, MeshRendererPrimitiveBinding};
 
-use super::SceneProjectError;
 use super::references::{
     handle_for_reference, material_handle_for_reference, model_handle_for_reference,
     reference_for_material_handle, reference_for_mesh_handle, reference_for_model_handle,
 };
+use super::SceneProjectError;
 
+// 读取阶段把模型、网格、材质及 LOD 引用解析成运行时句柄；任一悬空引用都会中止该节点导入。
 pub(super) fn mesh_from_asset(
     project: &ProjectManager,
     mesh: Option<&SceneMeshInstanceAsset>,

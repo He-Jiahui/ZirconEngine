@@ -8,9 +8,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools import frameworks_01_resource_hard_cut_move_manifest as move_owner
-from tools import frameworks_01_resource_hard_cut_patch as patch_owner
-from tools import frameworks_01_resource_hard_cut_manifest as source_owner
+from tools.maintenance.resource_migration import frameworks_01_resource_hard_cut_move_manifest as move_owner
+from tools.maintenance.resource_migration import frameworks_01_resource_hard_cut_patch as patch_owner
+from tools.maintenance.resource_migration import frameworks_01_resource_hard_cut_manifest as source_owner
 
 
 def _test_temp_root() -> Path:
@@ -240,7 +240,7 @@ def _manifest_sha256(value: object) -> str:
     ).encode("utf-8")
     return _sha256(payload)
 
-
+# 在隔离仓库生成并应用资源迁移补丁，检查格式、可见性和封存输入的确定性。
 class Frameworks01ResourceHardCutPatchTests(unittest.TestCase):
     def setUp(self) -> None:
         TEST_TEMP_ROOT.mkdir(parents=True, exist_ok=True)

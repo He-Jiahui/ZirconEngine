@@ -1,8 +1,13 @@
 use crate::ui::workbench::view::ViewRegistry;
 
 use super::super::{
-    ActivityDrawerMode, LayoutManager, LayoutNormalizationReport, MainPageId, WorkbenchLayout,
+    ActivityDrawerMode, DocumentNode, LayoutManager, LayoutNormalizationReport, MainPageId,
+    WorkbenchLayout,
 };
+
+const DEFAULT_SPLIT_RATIO: f32 = 0.5;
+const MIN_SPLIT_RATIO: f32 = 0.1;
+const MAX_SPLIT_RATIO: f32 = 0.9;
 
 impl LayoutManager {
     pub fn normalize(
@@ -11,10 +16,15 @@ impl LayoutManager {
         _registry: &ViewRegistry,
     ) -> LayoutNormalizationReport {
         let mut removed_missing_active_tabs = 0;
+        layout.normalize_document_node_ids();
         for activity_window in layout.activity_windows.values_mut() {
             for drawer in activity_window.activity_drawers.values_mut() {
                 normalize_drawer(drawer, &mut removed_missing_active_tabs);
             }
+            normalize_document_splits(&mut activity_window.content_workspace);
+        }
+        for window in &mut layout.floating_windows {
+            normalize_document_splits(&mut window.workspace);
         }
 
         if !layout
@@ -34,6 +44,25 @@ impl LayoutManager {
             removed_missing_active_tabs,
         }
     }
+}
+
+fn normalize_document_splits(node: &mut DocumentNode) {
+    let DocumentNode::SplitNode {
+        ratio,
+        first,
+        second,
+        ..
+    } = node
+    else {
+        return;
+    };
+    *ratio = if ratio.is_finite() {
+        ratio.clamp(MIN_SPLIT_RATIO, MAX_SPLIT_RATIO)
+    } else {
+        DEFAULT_SPLIT_RATIO
+    };
+    normalize_document_splits(first);
+    normalize_document_splits(second);
 }
 
 fn normalize_drawer(
@@ -64,32 +93,9 @@ fn normalize_drawer(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ui::workbench::layout::{ActivityDrawerLayout, ActivityDrawerSlot};
-    use crate::ui::workbench::view::ViewInstanceId;
+#[path = "tests/normalize.rs"]
+mod tests;
 
-    #[test]
-    fn drawer_selection_only_clones_when_repair_is_required() {
-        let selected = ViewInstanceId::new("editor.selection#stable");
-        let mut drawer = ActivityDrawerLayout::new(ActivityDrawerSlot::LeftTop);
-        drawer.tab_stack.tabs.push(selected.clone());
-        drawer.tab_stack.active_tab = Some(selected.clone());
-        drawer.active_view = Some(selected.clone());
-        let mut repairs = 0;
-
-        normalize_drawer(&mut drawer, &mut repairs);
-
-        assert_eq!(repairs, 0);
-        assert_eq!(drawer.tab_stack.active_tab, Some(selected.clone()));
-        assert_eq!(drawer.active_view, Some(selected.clone()));
-
-        drawer.tab_stack.active_tab = Some(ViewInstanceId::new("editor.missing#tab"));
-        drawer.active_view = Some(ViewInstanceId::new("editor.missing#view"));
-        normalize_drawer(&mut drawer, &mut repairs);
-
-        assert_eq!(repairs, 2);
-        assert_eq!(drawer.tab_stack.active_tab, Some(selected.clone()));
-        assert_eq!(drawer.active_view, Some(selected));
-    }
-}
+#[cfg(test)]
+#[path = "normalize/tests/split_ratio_tests.rs"]
+mod split_ratio_tests;

@@ -1,7 +1,9 @@
+//! 反射目录、值转换和世界适配器共享这组可序列化错误；结构化字段让调用端匹配失败类别时不必解析显示文本。
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
+/// 反射目录、值转换和世界适配器用这些变体区分契约失败，调用端可直接匹配错误类型。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 pub enum ReflectError {
@@ -29,6 +31,9 @@ pub enum ReflectError {
     },
     MissingComponent {
         entity: u64,
+        type_path: String,
+    },
+    NonRemovableComponent {
         type_path: String,
     },
     MissingResource {
@@ -104,6 +109,9 @@ impl fmt::Display for ReflectError {
                 formatter,
                 "entity `{entity}` is missing reflected component `{type_path}`"
             ),
+            Self::NonRemovableComponent { type_path } => {
+                write!(formatter, "reflected component `{type_path}` cannot be removed")
+            }
             Self::MissingResource { type_path } => {
                 write!(formatter, "reflected resource `{type_path}` does not exist")
             }

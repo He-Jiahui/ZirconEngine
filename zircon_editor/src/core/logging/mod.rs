@@ -12,6 +12,7 @@ mod source;
 mod store;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 pub use config::EditorLogConfig;
@@ -27,4 +28,5 @@ pub(crate) use runtime_task_diagnostics::{
 pub use service::{EditorLogEventSink, EditorLogService, LogEventDelivery, LogWriteReport};
 pub use severity::LogSeverity;
 pub use source::{LogChannel, LogSource};
+pub(crate) use store::LogTailIdentity;
 pub use store::{EditorLogDiagnostics, EditorLogStore};

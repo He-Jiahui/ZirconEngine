@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use super::super::compiler::{
-    ShaderDispatchBuildDiagnostic, ShaderParameterValue, ShaderResourceBindingRequest,
-    validate_named_resource_bindings, validate_shader_entry_point,
+    validate_named_resource_bindings, validate_shader_entry_point, ShaderDispatchBuildDiagnostic,
+    ShaderParameterValue, ShaderResourceBindingRequest,
 };
 use super::super::{
     RenderShaderEntryPointDescriptor, RenderShaderStage, ShaderAssetKind, ShaderResourceAccess,

@@ -7,17 +7,21 @@ impl RetainedEditorHost {
         &mut self,
         control_id: &str,
         action_id: &str,
-    ) -> UiComponentShowcaseDemoEventInput {
-        if let Some(payload) = self.take_active_reference_drag_payload_for_drop(action_id) {
-            return UiComponentShowcaseDemoEventInput::DropReference { payload };
+    ) -> Option<UiComponentShowcaseDemoEventInput> {
+        match self.take_active_reference_drag_payload_for_drop(action_id) {
+            Ok(Some(payload)) => {
+                return Some(UiComponentShowcaseDemoEventInput::DropReference { payload });
+            }
+            Err(_) => return None,
+            Ok(None) => {}
         }
         if action_id.contains("VirtualListScrolled") {
-            return self.next_showcase_virtual_list_range(control_id);
+            return Some(self.next_showcase_virtual_list_range(control_id));
         }
         if action_id.contains("PagedListNextPage") {
-            return self.next_showcase_page(control_id);
+            return Some(self.next_showcase_page(control_id));
         }
-        static_demo_input_for_showcase_action(control_id, action_id)
+        Some(static_demo_input_for_showcase_action(control_id, action_id))
     }
 
     fn next_showcase_virtual_list_range(

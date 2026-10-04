@@ -60,6 +60,8 @@ pub runScenario(index: int): int {
     return -1;
 }
 
+/// 专用入口先审叶子合同再运行11个固定夹具；-2表示任一叶子失败，场景失败按索引编码并丢弃原始子错误，定位时还需单独跑对应入口。
+/// scenarioCount只计这里保留的路由，不代表整个世界运行或所有迁移功能的覆盖率。
 pub contractTest(): int {
     if (scenarioCount(true) != 11 || scenarioCount(false) != 0 ||
         scenarioName(-1) != "" || scenarioName(11) != "" || runScenario(-1) != -1 ||

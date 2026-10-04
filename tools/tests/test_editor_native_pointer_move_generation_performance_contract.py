@@ -1,3 +1,4 @@
+# 核对指针移动在捕获状态提前退出，稳定悬停复用界面代际和窄状态读取。
 from pathlib import Path
 import unittest
 

@@ -1,8 +1,11 @@
 use std::marker::PhantomData;
 
+use crate::scene::ecs::{
+    ChangeTickWindow, SystemParam, SystemParamAccess, SystemParamError, WorkerCommandBuffer,
+};
 use crate::scene::World;
-use crate::scene::ecs::{ChangeTickWindow, SystemParam, SystemParamAccess, SystemParamError};
 
+/// 允许组内冲突参数通过 p0、p1 等短借用依次使用；整组访问仍参与系统间的调度冲突检查。
 pub struct ParamSet<P>
 where
     P: ParamSetParam,
@@ -10,6 +13,7 @@ where
     _marker: PhantomData<fn() -> P>,
 }
 
+/// 保存本次调用的参数状态与变更窗口；取子参数时借用自身，前一子参数释放后才能取得下一项。
 pub struct ParamSetItem<'world, P>
 where
     P: ParamSetParam,
@@ -30,6 +34,11 @@ pub trait ParamSetParam {
     fn record_performance_diagnostics(world: &mut World, state: &mut Self::State);
 
     fn retire_state(_world: &mut World, _state: &mut Self::State) {}
+
+    /// Exposes the sole command lane admitted when this parameter set was initialized.
+    fn deferred_command_buffer_mut(_state: &mut Self::State) -> Option<&mut WorkerCommandBuffer> {
+        None
+    }
 }
 
 impl<P> SystemParam for ParamSet<P>
@@ -65,10 +74,15 @@ where
     fn retire_state(world: &mut World, state: &mut Self::State) {
         P::retire_state(world, state);
     }
+
+    fn deferred_command_buffer_mut(state: &mut Self::State) -> Option<&mut WorkerCommandBuffer> {
+        P::deferred_command_buffer_mut(state)
+    }
 }
 
 macro_rules! init_param_set_state {
     ($world:ident, $access:ident, $(($param:ident, $state:ident, $candidate:ident)),+ $(,)?) => {{
+        // 每个子参数只与外层访问校验，允许组内依次借用同一数据；最终仍合并保守访问并集，并累计命令 lane 数。
         let outer_access = $access.clone();
         let mut deferred_command_lane_count = outer_access.deferred_command_lane_count();
         init_param_set_state!(
@@ -153,6 +167,13 @@ where
     fn retire_state(world: &mut World, state: &mut Self::State) {
         A::retire_state(world, &mut state.0);
     }
+
+    fn deferred_command_buffer_mut(state: &mut Self::State) -> Option<&mut WorkerCommandBuffer> {
+        if let Some(buffer) = A::deferred_command_buffer_mut(&mut state.0) {
+            return Some(buffer);
+        }
+        None
+    }
 }
 
 impl<A> ParamSetItem<'_, (A,)>
@@ -194,6 +215,16 @@ where
     fn retire_state(world: &mut World, state: &mut Self::State) {
         A::retire_state(world, &mut state.0);
         B::retire_state(world, &mut state.1);
+    }
+
+    fn deferred_command_buffer_mut(state: &mut Self::State) -> Option<&mut WorkerCommandBuffer> {
+        if let Some(buffer) = A::deferred_command_buffer_mut(&mut state.0) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = B::deferred_command_buffer_mut(&mut state.1) {
+            return Some(buffer);
+        }
+        None
     }
 }
 
@@ -247,6 +278,19 @@ where
         A::retire_state(world, &mut state.0);
         B::retire_state(world, &mut state.1);
         C::retire_state(world, &mut state.2);
+    }
+
+    fn deferred_command_buffer_mut(state: &mut Self::State) -> Option<&mut WorkerCommandBuffer> {
+        if let Some(buffer) = A::deferred_command_buffer_mut(&mut state.0) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = B::deferred_command_buffer_mut(&mut state.1) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = C::deferred_command_buffer_mut(&mut state.2) {
+            return Some(buffer);
+        }
+        None
     }
 }
 
@@ -311,6 +355,22 @@ where
         B::retire_state(world, &mut state.1);
         C::retire_state(world, &mut state.2);
         D::retire_state(world, &mut state.3);
+    }
+
+    fn deferred_command_buffer_mut(state: &mut Self::State) -> Option<&mut WorkerCommandBuffer> {
+        if let Some(buffer) = A::deferred_command_buffer_mut(&mut state.0) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = B::deferred_command_buffer_mut(&mut state.1) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = C::deferred_command_buffer_mut(&mut state.2) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = D::deferred_command_buffer_mut(&mut state.3) {
+            return Some(buffer);
+        }
+        None
     }
 }
 
@@ -386,6 +446,25 @@ where
         C::retire_state(world, &mut state.2);
         D::retire_state(world, &mut state.3);
         E::retire_state(world, &mut state.4);
+    }
+
+    fn deferred_command_buffer_mut(state: &mut Self::State) -> Option<&mut WorkerCommandBuffer> {
+        if let Some(buffer) = A::deferred_command_buffer_mut(&mut state.0) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = B::deferred_command_buffer_mut(&mut state.1) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = C::deferred_command_buffer_mut(&mut state.2) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = D::deferred_command_buffer_mut(&mut state.3) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = E::deferred_command_buffer_mut(&mut state.4) {
+            return Some(buffer);
+        }
+        None
     }
 }
 
@@ -472,6 +551,28 @@ where
         D::retire_state(world, &mut state.3);
         E::retire_state(world, &mut state.4);
         F::retire_state(world, &mut state.5);
+    }
+
+    fn deferred_command_buffer_mut(state: &mut Self::State) -> Option<&mut WorkerCommandBuffer> {
+        if let Some(buffer) = A::deferred_command_buffer_mut(&mut state.0) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = B::deferred_command_buffer_mut(&mut state.1) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = C::deferred_command_buffer_mut(&mut state.2) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = D::deferred_command_buffer_mut(&mut state.3) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = E::deferred_command_buffer_mut(&mut state.4) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = F::deferred_command_buffer_mut(&mut state.5) {
+            return Some(buffer);
+        }
+        None
     }
 }
 
@@ -577,6 +678,31 @@ where
         E::retire_state(world, &mut state.4);
         F::retire_state(world, &mut state.5);
         G::retire_state(world, &mut state.6);
+    }
+
+    fn deferred_command_buffer_mut(state: &mut Self::State) -> Option<&mut WorkerCommandBuffer> {
+        if let Some(buffer) = A::deferred_command_buffer_mut(&mut state.0) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = B::deferred_command_buffer_mut(&mut state.1) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = C::deferred_command_buffer_mut(&mut state.2) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = D::deferred_command_buffer_mut(&mut state.3) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = E::deferred_command_buffer_mut(&mut state.4) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = F::deferred_command_buffer_mut(&mut state.5) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = G::deferred_command_buffer_mut(&mut state.6) {
+            return Some(buffer);
+        }
+        None
     }
 }
 
@@ -694,6 +820,34 @@ where
         F::retire_state(world, &mut state.5);
         G::retire_state(world, &mut state.6);
         H::retire_state(world, &mut state.7);
+    }
+
+    fn deferred_command_buffer_mut(state: &mut Self::State) -> Option<&mut WorkerCommandBuffer> {
+        if let Some(buffer) = A::deferred_command_buffer_mut(&mut state.0) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = B::deferred_command_buffer_mut(&mut state.1) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = C::deferred_command_buffer_mut(&mut state.2) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = D::deferred_command_buffer_mut(&mut state.3) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = E::deferred_command_buffer_mut(&mut state.4) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = F::deferred_command_buffer_mut(&mut state.5) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = G::deferred_command_buffer_mut(&mut state.6) {
+            return Some(buffer);
+        }
+        if let Some(buffer) = H::deferred_command_buffer_mut(&mut state.7) {
+            return Some(buffer);
+        }
+        None
     }
 }
 

@@ -24,6 +24,7 @@ from .job_system_anchor_inventory import (
     JOB_SYSTEM_REQUIRED_PUBLIC_SURFACE,
     MIRROR_DOCS_GUARD,
     SCHEDULE_EXECUTOR_REQUIRED_SNIPPETS,
+    TASK_GRAPH_SCOPE_FORBIDDEN_SCHEDULER_INJECTION_SNIPPETS,
 )
 from .job_system_source_inventory import (
     EXPECTED_JOB_SYSTEM_GUARD_FILE_COUNT,
@@ -61,6 +62,10 @@ def job_system_boundary_audit(root: Path) -> dict[str, object]:
     )
     job_system_guard_paths = tuple(root / path for path in JOB_SYSTEM_GUARD_FILES)
     tasks_tests = root / "zircon_runtime" / "src" / "tests" / "tasks.rs"
+    task_test_children = (
+        tasks_tests.parent / "tasks" / "diagnostics.rs",
+        tasks_tests.parent / "tasks" / "terminal_observers.rs",
+    )
     job_handle_tests = tasks_dir / "job_handle" / "tests.rs"
     job_scheduler_tests = tasks_dir / "job_scheduler" / "tests.rs"
     job_scheduler = tasks_dir / "job_scheduler.rs"
@@ -92,7 +97,9 @@ def job_system_boundary_audit(root: Path) -> dict[str, object]:
     bounded_stream_io_tests = tasks_dir / "bounded_stream_io" / "tests.rs"
     retained_byte_budget_tests = tasks_dir / "retained_byte_budget" / "tests.rs"
     runtime_manifest = root / "zircon_runtime" / "Cargo.toml"
-    task_graph_engine_tests = tasks_dir / "task_graph" / "engine_task_graph.rs"
+    task_graph_engine_tests = (
+        tasks_dir / "task_graph" / "engine_task_graph" / "tests.rs"
+    )
     task_graph_scope_tests = tasks_dir / "task_graph" / "scope" / "tests.rs"
     dynamic_scene_spawn_tests = (
         root
@@ -123,6 +130,9 @@ def job_system_boundary_audit(root: Path) -> dict[str, object]:
         _read_text(path) for path in job_system_guard_paths if path.exists()
     )
     tasks_tests_source = _read_text(tasks_tests) if tasks_tests.exists() else ""
+    task_test_children_source = tuple(
+        _read_text(path) for path in task_test_children if path.exists()
+    )
     job_handle_tests_source = (
         _read_text(job_handle_tests) if job_handle_tests.exists() else ""
     )
@@ -181,6 +191,12 @@ def job_system_boundary_audit(root: Path) -> dict[str, object]:
     task_graph_scope_tests_source = (
         _read_text(task_graph_scope_tests) if task_graph_scope_tests.exists() else ""
     )
+    task_graph_scope_source = _read_text(tasks_dir / "task_graph" / "scope.rs")
+    task_graph_scope_test_children_source = tuple(
+        _read_text(path)
+        for path in task_graph_scope_tests.parent.rglob("*.rs")
+        if path != task_graph_scope_tests
+    )
     task_graph_engine_tests_source = (
         _read_text(task_graph_engine_tests) if task_graph_engine_tests.exists() else ""
     )
@@ -198,6 +214,7 @@ def job_system_boundary_audit(root: Path) -> dict[str, object]:
         bounded_stream_io_tests_source,
         retained_byte_budget_tests_source,
         tasks_tests_source,
+        *task_test_children_source,
         job_handle_tests_source,
         job_scheduler_tests_source,
         pool_tests_source,
@@ -205,6 +222,7 @@ def job_system_boundary_audit(root: Path) -> dict[str, object]:
         diagnostic_observation_tests_source,
         task_graph_engine_tests_source,
         task_graph_scope_tests_source,
+        *task_graph_scope_test_children_source,
         dynamic_scene_spawn_tests_source,
         level_manager_project_io_tests_source,
     )
@@ -252,6 +270,11 @@ def job_system_boundary_audit(root: Path) -> dict[str, object]:
         snippet
         for snippet in JOB_SYSTEM_FORBIDDEN_SCHEDULER_OWNER_SNIPPETS
         if snippet in job_scheduler_source
+    ]
+    forbidden_task_graph_scope_scheduler_snippets = [
+        snippet
+        for snippet in TASK_GRAPH_SCOPE_FORBIDDEN_SCHEDULER_INJECTION_SNIPPETS
+        if snippet in task_graph_scope_source
     ]
     forbidden_graphics_owner_snippets = [
         snippet
@@ -390,6 +413,10 @@ def job_system_boundary_audit(root: Path) -> dict[str, object]:
         risks.append(
             "JobScheduler must receive an explicit task owner and cannot expose implicit process or private-pool constructors."
         )
+    if forbidden_task_graph_scope_scheduler_snippets:
+        risks.append(
+            "TaskGraphScope must select its execution domain from TaskDescriptor and cannot accept a caller-injected JobScheduler."
+        )
     if forbidden_graphics_owner_snippets:
         risks.append(
             "WgpuRenderFramework constructors must receive the Runtime-owned task pool and cannot create or expose a private worker owner."
@@ -446,6 +473,7 @@ def job_system_boundary_audit(root: Path) -> dict[str, object]:
         "missing_public_surface": missing_public_surface,
         "missing_api_snippets": missing_api_snippets,
         "forbidden_scheduler_owner_snippets": forbidden_scheduler_owner_snippets,
+        "forbidden_task_graph_scope_scheduler_snippets": forbidden_task_graph_scope_scheduler_snippets,
         "forbidden_graphics_owner_snippets": forbidden_graphics_owner_snippets,
         "forbidden_navigation_owner_snippets": forbidden_navigation_owner_snippets,
         "missing_navigation_owner_snippets": missing_navigation_owner_snippets,

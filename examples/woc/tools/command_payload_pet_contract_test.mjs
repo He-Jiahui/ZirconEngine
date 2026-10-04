@@ -64,9 +64,9 @@ for (const variant of [
 ]) {
   assert.match(input, new RegExp(`\\b${variant}\\b`));
 }
-assert.equal(coverage.totals.typed_contract_commands, 148);
-assert.equal(coverage.totals.typed_contract_client_send_commands, 147);
-assert.equal(coverage.totals.source_shape_only_commands, 9);
+assert.equal(coverage.totals.typed_contract_commands, 157);
+assert.equal(coverage.totals.typed_contract_client_send_commands, 156);
+assert.equal(coverage.totals.source_shape_only_commands, 0);
 
 process.stdout.write('pet command payload contracts are complete\n');
 

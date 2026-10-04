@@ -1,3 +1,4 @@
+# 构建摘要证据必须与当前注册表字节和门禁集合绑定；本组同时检查预算、字段和参数边界，并用来源扫描确认验收脚本仍消费该快照。
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 

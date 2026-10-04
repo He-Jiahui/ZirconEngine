@@ -46,3 +46,18 @@ Compute lowering 只接收资源名、类型、访问与写入模式，不携带
 ## 修复结果与回传
 
 Open state: `UI12 在无有效文件租约后补齐兼容构造器字段；待当前源码 Editor 构建验证后回传 Render01`。
+
+## 2026-09-11 rolling repair admission
+
+- Stable fixing Session `failure-roll-01a084c8-render01-compute-lowering-input-version` owns the
+  exact source and this record. Snapshot `3401` freezes the current source at HEAD
+  `c37155ba304740b3762b20585f77fb53a6da47fb` with source hash
+  `dde19304214adc1c3d69bef824decbe974f279486be454df7f2f3fca051235ef` and record hash
+  `e61e44c357ac6b1dadb926055044df7293cd4d27383cefd4d2277bd5cf9ce5fa` before this note.
+- Request `render01-compute-lowering-input-version-20260911-r1` submitted the exact required
+  Windows Rust 1.94.1 `zircon_app` editor product check with `--locked`.
+- Coordinator admission rejected the request with
+  `validation_ticket_external_worktree_dirty` for external repository `E:\Git\zr_vm` before
+  creating a validation ticket or starting Cargo. No compile, test, performance, or fixed-return
+  evidence is claimed. The external worktree was not modified; this failure remains open pending
+  an admitted current-source gate.

@@ -10,7 +10,6 @@ fixing_child_dir: docs/plans/zircon_editor/editor_ui/03
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/ui/accessibility/action/text_state.rs
-  - zircon_runtime/src/ui/accessibility/action/text_state/metadata.rs
   - zircon_runtime/src/ui/accessibility/action/text/replace.rs
   - zircon_runtime/src/ui/accessibility/action/text/selection.rs
   - zircon_runtime/src/ui/accessibility/action/value.rs

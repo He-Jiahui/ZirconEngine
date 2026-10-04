@@ -6,11 +6,11 @@ use crate::text::model::TextFontResolutionReport;
 use crate::text::{CompositeFontDescriptor, FontFaceId, FontQuery, FontScript};
 use unicode_normalization::char::canonical_combining_class;
 
-use super::composite_resolve::{CompositeFontIndex, candidate_faces_for_cluster, script_for_char};
-use super::database::{FontDatabase, codepoint_requires_font_coverage};
+use super::composite_resolve::{candidate_faces_for_cluster, script_for_char, CompositeFontIndex};
+use super::database::{codepoint_requires_font_coverage, FontDatabase};
 use super::fallback_cache::{
-    CompositeFontIdentity, FallbackQueryIdentity, fallback_candidate_cache_key,
-    fallback_query_identity, fallback_query_identity_for_asset, fallback_resolution_cache_key,
+    fallback_candidate_cache_key, fallback_query_identity, fallback_query_identity_for_asset,
+    fallback_resolution_cache_key, CompositeFontIdentity, FallbackQueryIdentity,
 };
 
 pub(super) const DEFAULT_FALLBACK_MAX_DEPTH: u8 = 10;
@@ -637,4 +637,5 @@ fn cluster_base_codepoint(codepoints: &[char]) -> Option<char> {
 }
 
 #[cfg(test)]
+#[path = "fallback/tests/cases.rs"]
 mod tests;

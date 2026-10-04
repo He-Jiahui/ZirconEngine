@@ -1,17 +1,19 @@
 use zircon_runtime_interface::ui::{
-    dispatch::{UiDispatchEffect, UiFocusEffectReason},
+    dispatch::{UiDispatchEffect, UiFocusEffectReason, UiInputEvent},
     event_ui::UiNodeId,
     focus::{UiFocusChangeReason, UiFocusVisible, UiFocusVisibleReason},
+    surface::UiPointerEventKind,
 };
 
 use super::super::super::surface::UiSurface;
 use super::super::{
-    UiSurfaceInputEffectError, UiSurfaceInputEffectResult, require_valid_input_owner,
+    require_valid_input_owner, UiSurfaceInputEffectError, UiSurfaceInputEffectResult,
 };
 
 pub(super) fn apply_focus_pointer_effect(
     surface: &mut UiSurface,
     effect: &UiDispatchEffect,
+    event: &UiInputEvent,
 ) -> UiSurfaceInputEffectResult<Option<UiNodeId>> {
     match effect {
         UiDispatchEffect::SetFocus { target, reason } => {
@@ -32,6 +34,18 @@ pub(super) fn apply_focus_pointer_effect(
             target, pointer_id, ..
         } => {
             require_valid_input_owner(surface, *target)?;
+            if let UiInputEvent::Pointer(pointer) = event {
+                if pointer.event.kind == UiPointerEventKind::Down
+                    && pointer.metadata.pointer_id.unwrap_or_default() == *pointer_id
+                    && !surface.input.can_capture_pointer_for_button(
+                        *pointer_id,
+                        *target,
+                        pointer.event.button,
+                    )
+                {
+                    return Err(UiSurfaceInputEffectError::PointerCaptureOwnerMismatch);
+                }
+            }
             if let Some(previous) = surface.focus.captured.filter(|owner| owner != target) {
                 surface.input.clear_high_precision_for(previous);
             }

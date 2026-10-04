@@ -125,7 +125,7 @@ def references_optional_physics_owner(source: str, type_name: str) -> bool:
     )
     return optional_owner_path.search(source) is not None
 
-
+# 读取应用、插件和框架清单，核对 AI、网络与声音契约特性的转发、门禁及声明归属。
 class Frameworks03ContractFeatureBoundaryTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

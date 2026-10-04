@@ -1,5 +1,11 @@
 //! Editor-plugin descriptor, lifecycle, and catalog boundaries.
 
+pub(crate) fn project_native_plugin_directory(
+    project_root: &std::path::Path,
+) -> std::path::PathBuf {
+    project_root.join("zircon_plugins")
+}
+
 mod admission;
 mod capability_report;
 mod catalog;

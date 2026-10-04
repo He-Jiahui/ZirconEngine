@@ -1,4 +1,5 @@
 var rng = %import("kernel/rng");
+// TODO: [CR-WOC-IPS-I-0004] 确认此独立测试是否由验证入口执行；当前项目清单与脚本导入图未找到入口，缺少执行回执；下一步核对测试运行器或配置专用入口。
 var pets = %import("instances/pet_state");
 
 var state = new pets.PetState();

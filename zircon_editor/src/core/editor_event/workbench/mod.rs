@@ -18,7 +18,7 @@ pub use activity_drawer_mode::ActivityDrawerMode;
 pub use activity_drawer_slot::ActivityDrawerSlot;
 pub use console_message_filter::ConsoleMessageFilter;
 pub use console_source_filter::ConsoleSourceFilter;
-pub use layout_command::LayoutCommand;
+pub use layout_command::{DocumentCloseRevision, LayoutCommand};
 pub use main_page_id::MainPageId;
 pub use menu_action::MenuAction;
 pub use split_axis::SplitAxis;

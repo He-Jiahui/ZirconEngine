@@ -5,6 +5,7 @@ var targeting = %import("combat/group_targeting_state");
 var contract = %import("generated/rewind_contract");
 var container = %import("zr.container");
 
+// 只计算近期实际损血、最大生命百分比和当前缺血三重上限；世界再走不可暴击的普通治疗事务。
 pub rewindHealAmount(
     recentDamage: int,
     hp: int,
@@ -38,6 +39,7 @@ pub rewindHealFor(
 // The WOS cast reducer supplies the party snapshot and applies each computed
 // heal through its canonical transaction. This preserves the source's shared
 // group-targeting owner without embedding world mutation in this pure module.
+// 独立队伍投影按活玩家和半径筛选并按标识排序；正式世界从自己的队伍状态构造目标。
 pub selectRewindTargets(
     state: targeting.GroupTargetingState,
     casterId: int,

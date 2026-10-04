@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码投影Bad Air 的触发间隔与光环结构，生成可核对的 JSON 和 Zr 内容。
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -75,6 +76,7 @@ function gitShow(sourcePath) {
   });
 }
 
+// 将已验证的Bad Air 的触发间隔与光环结构转换为确定性的 Zr 访问函数。
 function renderZr(content) {
   const aura = content.aura;
   return [

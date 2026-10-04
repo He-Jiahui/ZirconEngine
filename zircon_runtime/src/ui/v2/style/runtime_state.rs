@@ -1,4 +1,6 @@
-use std::{cmp::Ordering, collections::BTreeMap};
+#[cfg(test)]
+use std::cmp::Ordering;
+use std::collections::BTreeMap;
 
 use toml::Value;
 use zircon_runtime_interface::ui::component::UiComponentState;
@@ -8,8 +10,14 @@ use zircon_runtime_interface::ui::style::{
 use zircon_runtime_interface::ui::tree::{UiDirtyFlags, UiTreeNode};
 use zircon_runtime_interface::ui::v2::UiV2ArenaNode;
 
+const RUNTIME_PSEUDO_STATE_ALIAS_CAPACITY: usize = 2;
+const RUNTIME_PSEUDO_STATE_FOCUS_VISIBLE_CAPACITY: usize = 4;
+const RUNTIME_PSEUDO_STATE_SINGLE_ENTRY_CAPACITY: usize = 1;
+const RUNTIME_PSEUDO_STATE_RESOLVED_ALIAS_CAPACITY: usize = 2;
+
 pub(super) fn collect_pseudo_states(node: &UiV2ArenaNode) -> Vec<String> {
-    let mut states = Vec::new();
+    let authored_state_count = node.props.len().saturating_add(node.state.len());
+    let mut states = Vec::with_capacity(pseudo_state_initial_capacity(authored_state_count));
     collect_true_state_names(&node.props, &mut states);
     collect_true_state_names(&node.state, &mut states);
     append_resolved_painter_state(&node.component, &mut states);
@@ -18,11 +26,105 @@ pub(super) fn collect_pseudo_states(node: &UiV2ArenaNode) -> Vec<String> {
     states
 }
 
+/// Every retained authored state contributes at least one output entry and the painter resolution
+/// contributes at least one more. Keep a small extra allowance for the common alias pair while
+/// avoiding an unconditional large allocation for empty nodes.
+fn pseudo_state_initial_capacity(authored_state_count: usize) -> usize {
+    authored_state_count.saturating_add(2)
+}
+
+fn runtime_pseudo_state_initial_capacity(
+    node: &UiTreeNode,
+    component_state: Option<&UiComponentState>,
+) -> usize {
+    let authored_capacity = node
+        .template_metadata
+        .as_ref()
+        .map_or(0, |metadata| metadata.attributes.len());
+    let component_capacity = component_state.map_or(0, |state| {
+        let flags = &state.flags;
+        bool_alias_capacity(flags.hovered, RUNTIME_PSEUDO_STATE_ALIAS_CAPACITY)
+            .saturating_add(bool_alias_capacity(
+                flags.focused,
+                RUNTIME_PSEUDO_STATE_ALIAS_CAPACITY,
+            ))
+            .saturating_add(bool_alias_capacity(
+                flags.focus_visible,
+                RUNTIME_PSEUDO_STATE_FOCUS_VISIBLE_CAPACITY,
+            ))
+            .saturating_add(bool_alias_capacity(
+                flags.pressed,
+                RUNTIME_PSEUDO_STATE_ALIAS_CAPACITY,
+            ))
+            .saturating_add(bool_alias_capacity(
+                flags.checked,
+                RUNTIME_PSEUDO_STATE_SINGLE_ENTRY_CAPACITY,
+            ))
+            .saturating_add(bool_alias_capacity(
+                flags.disabled,
+                RUNTIME_PSEUDO_STATE_SINGLE_ENTRY_CAPACITY,
+            ))
+            .saturating_add(bool_alias_capacity(
+                flags.expanded,
+                RUNTIME_PSEUDO_STATE_SINGLE_ENTRY_CAPACITY,
+            ))
+            .saturating_add(bool_alias_capacity(
+                flags.popup_open,
+                RUNTIME_PSEUDO_STATE_ALIAS_CAPACITY,
+            ))
+            .saturating_add(bool_alias_capacity(
+                flags.selected,
+                RUNTIME_PSEUDO_STATE_SINGLE_ENTRY_CAPACITY,
+            ))
+            .saturating_add(bool_alias_capacity(
+                flags.dragging,
+                RUNTIME_PSEUDO_STATE_SINGLE_ENTRY_CAPACITY,
+            ))
+            .saturating_add(bool_alias_capacity(
+                flags.drop_hovered,
+                RUNTIME_PSEUDO_STATE_SINGLE_ENTRY_CAPACITY,
+            ))
+            .saturating_add(bool_alias_capacity(
+                flags.active_drag_target,
+                RUNTIME_PSEUDO_STATE_SINGLE_ENTRY_CAPACITY,
+            ))
+            .saturating_add(bool_alias_capacity(
+                flags.loading,
+                RUNTIME_PSEUDO_STATE_SINGLE_ENTRY_CAPACITY,
+            ))
+    });
+    let node_capacity = bool_alias_capacity(
+        node.state_flags.pressed,
+        RUNTIME_PSEUDO_STATE_ALIAS_CAPACITY,
+    )
+    .saturating_add(bool_alias_capacity(
+        node.state_flags.checked,
+        RUNTIME_PSEUDO_STATE_SINGLE_ENTRY_CAPACITY,
+    ))
+    .saturating_add(bool_alias_capacity(
+        !node.state_flags.enabled,
+        RUNTIME_PSEUDO_STATE_SINGLE_ENTRY_CAPACITY,
+    ));
+    authored_capacity
+        .saturating_add(component_capacity)
+        .saturating_add(node_capacity)
+        .saturating_add(RUNTIME_PSEUDO_STATE_RESOLVED_ALIAS_CAPACITY)
+}
+
+fn bool_alias_capacity(enabled: bool, capacity: usize) -> usize {
+    if enabled {
+        capacity
+    } else {
+        0
+    }
+}
+
 pub(super) fn collect_runtime_pseudo_states(
     node: &UiTreeNode,
     component_state: Option<&UiComponentState>,
 ) -> Vec<String> {
-    let mut states = Vec::new();
+    let mut states =
+        Vec::with_capacity(runtime_pseudo_state_initial_capacity(node, component_state));
     let component = node
         .template_metadata
         .as_ref()
@@ -242,57 +344,41 @@ fn pseudo_alias(name: &str) -> Option<&'static str> {
     }
 }
 
-pub(super) fn apply_retained_runtime_state_attributes(
-    attributes: &mut BTreeMap<String, Value>,
+pub(super) const RETAINED_RUNTIME_STATE_CANONICAL_KEYS: &[&str] = &[
+    "hovered",
+    "focused",
+    "focus_visible",
+    "pressed",
+    "checked",
+    "disabled",
+    "expanded",
+    "popup_open",
+    "selected",
+    "dragging",
+    "drop_hovered",
+    "active_drag_target",
+    "loading",
+];
+
+/// The outer option distinguishes ordinary properties from retained state keys.
+/// Retained aliases and inactive keys are absent even when authored in the baseline.
+pub(super) fn retained_runtime_state_attribute(
+    key: &str,
     active_states: &[String],
-) {
-    let retained_keys = [
-        "hover",
-        "hovered",
-        "focus",
-        "focused",
-        "focus_visible",
-        "focus-visible",
-        "focusVisible",
-        "active",
-        "pressed",
-        "checked",
-        "disabled",
-        "enabled",
-        "expanded",
-        "popup_open",
-        "open",
-        "selected",
-        "dragging",
-        "drop_hovered",
-        "active_drag_target",
-        "loading",
-    ];
-    for key in retained_keys {
-        attributes.remove(key);
+) -> Option<Option<&'static Value>> {
+    static ACTIVE_STATE: Value = Value::Boolean(true);
+    if !is_retained_runtime_state(key) {
+        return None;
     }
-    for state in [
-        "hovered",
-        "focused",
-        "focus_visible",
-        "pressed",
-        "checked",
-        "disabled",
-        "expanded",
-        "popup_open",
-        "selected",
-        "dragging",
-        "drop_hovered",
-        "active_drag_target",
-        "loading",
-    ] {
-        if active_states.iter().any(|active| active == state) {
-            attributes.insert(state.to_string(), Value::Boolean(true));
-        }
-    }
+    Some(
+        (RETAINED_RUNTIME_STATE_CANONICAL_KEYS.contains(&key)
+            && active_states.iter().any(|state| state == key))
+        .then_some(&ACTIVE_STATE),
+    )
 }
 
-pub(super) fn dirty_for_runtime_style_delta(
+#[cfg(test)]
+fn dirty_for_runtime_style_delta(
     old_attributes: &BTreeMap<String, Value>,
     new_attributes: &BTreeMap<String, Value>,
 ) -> UiDirtyFlags {
@@ -340,7 +426,7 @@ pub(super) fn dirty_for_runtime_style_delta(
     dirty
 }
 
-fn mark_runtime_style_delta_key(dirty: &mut UiDirtyFlags, key: &str) {
+pub(super) fn mark_runtime_style_delta_key(dirty: &mut UiDirtyFlags, key: &str) {
     if is_retained_runtime_state(key) {
         return;
     }
@@ -408,58 +494,9 @@ pub(super) fn merge_dirty_flags_into(target: &mut UiDirtyFlags, dirty: UiDirtyFl
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
+#[path = "tests/runtime_state.rs"]
+mod tests;
 
-    #[test]
-    fn runtime_style_delta_preserves_dirty_domain_classification() {
-        let old_attributes = BTreeMap::from([
-            (
-                "background".to_string(),
-                Value::String("#111111".to_string()),
-            ),
-            ("font_size".to_string(), Value::Integer(12)),
-            ("hovered".to_string(), Value::Boolean(true)),
-            ("opacity".to_string(), Value::Float(1.0)),
-            ("width".to_string(), Value::Integer(100)),
-        ]);
-        let new_attributes = BTreeMap::from([
-            (
-                "background".to_string(),
-                Value::String("#222222".to_string()),
-            ),
-            ("font_size".to_string(), Value::Integer(14)),
-            ("opacity".to_string(), Value::Float(1.0)),
-            ("pressed".to_string(), Value::Boolean(true)),
-            ("width".to_string(), Value::Integer(120)),
-        ]);
-
-        let dirty = dirty_for_runtime_style_delta(&old_attributes, &new_attributes);
-
-        assert!(dirty.render);
-        assert!(dirty.text);
-        assert!(dirty.style);
-        assert!(!dirty.layout);
-        assert!(!dirty.hit_test);
-        assert!(!dirty.input);
-        assert!(!dirty.visible_range);
-    }
-
-    #[test]
-    fn runtime_style_delta_keeps_state_and_render_only_changes_render_scoped() {
-        let old_attributes = BTreeMap::from([
-            ("hovered".to_string(), Value::Boolean(true)),
-            ("opacity".to_string(), Value::Float(1.0)),
-        ]);
-        let new_attributes = BTreeMap::from([
-            ("opacity".to_string(), Value::Float(0.5)),
-            ("pressed".to_string(), Value::Boolean(true)),
-        ]);
-
-        let dirty = dirty_for_runtime_style_delta(&old_attributes, &new_attributes);
-
-        assert!(dirty.render);
-        assert!(!dirty.text);
-        assert!(!dirty.style);
-    }
-}
+#[cfg(test)]
+#[path = "runtime_state/tests/capacity_tests.rs"]
+mod capacity_tests;

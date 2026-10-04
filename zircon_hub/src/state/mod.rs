@@ -4,6 +4,7 @@ mod hub_snapshot;
 mod navigation;
 mod project_view;
 mod scope;
+mod task_cancellation;
 mod task_status;
 
 pub use action_history::{
@@ -21,6 +22,7 @@ pub use scope::{
     HubScope, ProjectEngineScopeState, ProjectScope, ProjectScopeProject, SourceEngineScope,
     SourceEngineScopeEngine,
 };
+pub use task_cancellation::{TaskCancellationToken, TaskExecutionOutcome};
 pub use task_status::{
     TaskOperationKind, TaskSeverity, TaskStatus, TASK_PROGRESS_COMPLETE_PERCENT,
     TASK_PROGRESS_IDLE_PERCENT, TASK_PROGRESS_PREPARED_PERCENT, TASK_PROGRESS_STARTED_PERCENT,

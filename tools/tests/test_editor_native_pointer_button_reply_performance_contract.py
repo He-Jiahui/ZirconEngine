@@ -1,3 +1,4 @@
+# 核对原生指针按钮响应先排除无效命中并借用控件身份再生成绘制损伤。
 from pathlib import Path
 import unittest
 

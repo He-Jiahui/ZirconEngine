@@ -12,8 +12,8 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/material
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
-  - docs/assets-and-rendering/runtime-surface-and-assets-rules.md
-  - docs/assets-and-rendering/runtime-physics-animation-assets.md
+  - docs/rendering/runtime-surface-and-assets-rules.md
+  - docs/rendering/runtime-physics-animation-assets.md
 tests:
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests

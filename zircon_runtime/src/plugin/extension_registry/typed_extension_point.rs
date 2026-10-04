@@ -5,9 +5,10 @@ use std::hash::Hash;
 use super::owner::PluginModuleId;
 
 #[cfg(test)]
-#[path = "typed_extension_point/tests.rs"]
+#[path = "typed_extension_point/tests/cases.rs"]
 mod tests;
 
+/// 扩展键在暂存期可哈希索引，在冻结期可排序查找；两种表示须使用一致的相等语义。
 pub trait ExtensionKey: Clone + Eq + Hash + Ord {}
 
 impl<T> ExtensionKey for T where T: Clone + Eq + Hash + Ord {}
@@ -33,6 +34,7 @@ impl ExtensionSlot {
     }
 }
 
+/// owner、键、值与稳定槽位组成一族贡献；冻结只改变查询表示，不改变逻辑身份。
 #[derive(Clone, Debug)]
 pub struct TypedExtensionPoint<K, V>
 where
@@ -94,6 +96,7 @@ impl<K, V> TypedExtensionPoint<K, V>
 where
     K: ExtensionKey,
 {
+    /// 返回新逻辑槽位；同键拒绝，已退役槽位不会重新分配给后续贡献。
     pub fn register(
         &mut self,
         owner: PluginModuleId,
@@ -189,6 +192,7 @@ where
             })
     }
 
+    /// 撤销 owner 时保留其它贡献的逻辑槽位，避免热重载后已有引用指向另一项。
     pub fn remove_owned_by(&mut self, owner: PluginModuleId) -> Vec<ExtensionSlot> {
         let table = self.staging_mut();
         let mut removed = Vec::new();
@@ -241,6 +245,7 @@ where
         reassigned
     }
 
+    /// 只调整遍历顺序；调用方持有的逻辑槽位仍按重建的目录解析。
     pub fn sort_by_values<F>(&mut self, mut compare: F)
     where
         F: FnMut(&V, &V) -> std::cmp::Ordering,
@@ -300,6 +305,7 @@ where
         table
     }
 
+    // 后续注册或撤销可以从冻结态恢复暂存态；旧冻结快照由其所有者自行保持。
     fn staging_mut(&mut self) -> &mut StagingExtensionTable<K, V> {
         if self.is_frozen() {
             let state = std::mem::replace(
@@ -352,6 +358,7 @@ where
     }
 }
 
+/// 紧凑的只读查询快照；行为树等外部消费者可用借用键查找并保留稳定槽位。
 #[derive(Clone, Debug)]
 pub struct FrozenExtensionTable<K, V>
 where

@@ -1,10 +1,11 @@
+# 核对项目插件注册表来源进入预热验收证据。
 import json
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tools.zircon_build_shader_prewarm_acceptance import (
+from tools.build.zircon_build_shader_prewarm_acceptance import (
     validate_staged_shader_prewarm_acceptance_contract,
 )
 
@@ -38,11 +39,11 @@ class ZirconBuildShaderPrewarmProjectPluginRegistryAcceptanceTests(unittest.Test
         )
 
         with patch(
-            "tools.zircon_build_shader_prewarm_acceptance."
+            "tools.build.zircon_build_shader_prewarm_acceptance."
             "validate_shader_prewarm_report_contract",
         ):
             with patch(
-                "tools.zircon_build_shader_prewarm_acceptance."
+                "tools.build.zircon_build_shader_prewarm_acceptance."
                 "validate_shader_prewarm_cache_artifact_contract",
             ):
                 with self.assertRaisesRegex(
@@ -71,11 +72,11 @@ class ZirconBuildShaderPrewarmProjectPluginRegistryAcceptanceTests(unittest.Test
         )
 
         with patch(
-            "tools.zircon_build_shader_prewarm_acceptance."
+            "tools.build.zircon_build_shader_prewarm_acceptance."
             "validate_shader_prewarm_report_contract",
         ):
             with patch(
-                "tools.zircon_build_shader_prewarm_acceptance."
+                "tools.build.zircon_build_shader_prewarm_acceptance."
                 "validate_shader_prewarm_cache_artifact_contract",
             ):
                 validate_staged_shader_prewarm_acceptance_contract(config)

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::text::font::FontDatabase;
+use crate::text::layout_geometry::{finite_f32_or_geometry, finite_sum, FiniteGeometryAccumulator};
 use crate::text::{
     BackendShapeRequest, FontFaceId, ShapedGlyph, ShapedGlyphRun, TextOrientation,
     TextVerticalGlyphDecisionBasis, TextVerticalGlyphFallbackReason, TextVerticalGlyphFeatureSet,
@@ -17,13 +18,13 @@ mod backend;
 mod direct;
 
 #[cfg(test)]
-#[path = "vertical/tests.rs"]
+#[path = "vertical/tests/cases.rs"]
 mod tests;
 
 use orientation::vertical_glyph_metrics;
 
 pub(in crate::text::shaping) use orientation::{
-    VerticalShapeOrientation, vertical_shape_orientation,
+    vertical_shape_orientation, VerticalShapeOrientation,
 };
 
 pub(super) use direct::shape_vertical_request;
@@ -91,7 +92,7 @@ fn apply_vertical_layout_with_native_metrics(
     let mut max_column_height = 0.0_f32;
     let mut populated_columns = 0_usize;
     for (line_index, line) in shaped.lines.iter_mut().enumerate() {
-        let mut cursor_y = 0.0_f32;
+        let mut cursor_y = FiniteGeometryAccumulator::default();
         let mut glyph_index = 0_usize;
         while glyph_index < line.glyphs.len() {
             let cluster_range = line.glyphs[glyph_index].source_range;
@@ -103,10 +104,11 @@ fn apply_vertical_layout_with_native_metrics(
             }
 
             let cluster_text = source_cluster_text(request, cluster_range);
-            let horizontal_advance = line.glyphs[glyph_index..cluster_end]
-                .iter()
-                .map(|glyph| glyph.advance.max(0.0))
-                .sum::<f32>();
+            let horizontal_advance = finite_sum(
+                line.glyphs[glyph_index..cluster_end]
+                    .iter()
+                    .map(|glyph| glyph.advance.max(0.0)),
+            );
             let native_vertical_advance = line.glyphs[glyph_index..cluster_end]
                 .iter()
                 .enumerate()
@@ -129,8 +131,11 @@ fn apply_vertical_layout_with_native_metrics(
                 line.glyphs[glyph_index..cluster_end].iter_mut().enumerate()
             {
                 glyph.x = column_width * 0.5;
-                glyph.y = cursor_y;
-                glyph.offset_x += metrics.offset_x;
+                glyph.y = cursor_y.value();
+                glyph.offset_x = finite_f32_or_geometry(
+                    glyph.offset_x + metrics.offset_x,
+                    f64::from(glyph.offset_x) + f64::from(metrics.offset_x),
+                );
                 glyph.rotation = metrics.rotation;
                 if cluster_glyph_index == 0 && glyph.cluster_flags.vertical_decision.is_none() {
                     glyph.cluster_flags.vertical_decision = Some(decision);
@@ -141,20 +146,23 @@ fn apply_vertical_layout_with_native_metrics(
                     0.0
                 };
             }
-            cursor_y += metrics.advance;
+            cursor_y.add(metrics.advance);
             glyph_index = cluster_end;
         }
 
         if !line.glyphs.is_empty() {
             populated_columns += 1;
         }
-        line.measured_width = cursor_y;
+        line.measured_width = cursor_y.value();
         line.baseline = column_width * 0.5;
         line.line_height = column_width;
-        max_column_height = max_column_height.max(cursor_y);
+        max_column_height = max_column_height.max(cursor_y.value());
     }
 
-    shaped.measured_width = populated_columns as f32 * column_width;
+    shaped.measured_width = finite_f32_or_geometry(
+        populated_columns as f32 * column_width,
+        populated_columns as f64 * f64::from(column_width),
+    );
     shaped.measured_height = max_column_height;
 }
 

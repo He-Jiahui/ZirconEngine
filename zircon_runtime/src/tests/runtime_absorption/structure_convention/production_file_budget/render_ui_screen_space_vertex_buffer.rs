@@ -6,7 +6,7 @@ fn runtime_15_screen_space_ui_draws_reuse_segment_local_vertex_buffers() {
     let construct = read_runtime_src("graphics/scene/scene_renderer/ui/construct.rs");
     let render = read_runtime_src("graphics/scene/scene_renderer/ui/render.rs");
     let record = read_runtime_src("graphics/scene/scene_renderer/ui/render/record.rs");
-    let tests = read_runtime_src("graphics/scene/scene_renderer/ui/render/tests.rs");
+    let tests = read_runtime_src("graphics/scene/scene_renderer/ui/render/tests/cases.rs");
     let plan_cache_tests =
         read_runtime_src("graphics/scene/scene_renderer/ui/render/tests/plan_cache.rs");
 

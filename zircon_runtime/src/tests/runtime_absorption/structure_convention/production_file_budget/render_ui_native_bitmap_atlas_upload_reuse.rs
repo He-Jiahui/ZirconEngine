@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0085] 原生字形图集的稳定帧上传与实例缓存的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_native_bitmap_atlas_skips_steady_upload_plan_work() {
     let atlas_frame = read_runtime_src("text/native_bitmap_atlas.rs");
@@ -8,10 +9,11 @@ fn runtime_15_native_bitmap_atlas_skips_steady_upload_plan_work() {
         read_runtime_src("graphics/scene/scene_renderer/ui/atlas_renderer/state.rs");
     let instance_buffer =
         read_runtime_src("graphics/scene/scene_renderer/ui/atlas_renderer/instance_buffer.rs");
-    let atlas_tests = read_runtime_src("graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs");
+    let atlas_tests =
+        read_runtime_src("graphics/scene/scene_renderer/ui/atlas_renderer/tests/cases.rs");
     let text = read_runtime_src("graphics/scene/scene_renderer/ui/text.rs");
     let native_layout = read_runtime_src(
-        "graphics/scene/scene_renderer/ui/atlas_renderer/product_framebuffer/native_layout.rs",
+        "graphics/scene/scene_renderer/ui/atlas_renderer/product_framebuffer/tests/native_layout.rs",
     );
 
     assert_contains_all(

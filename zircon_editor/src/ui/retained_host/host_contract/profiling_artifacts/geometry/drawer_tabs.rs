@@ -45,5 +45,5 @@ const fn drawer_dock_tab_capacity_from_rows(left: usize, right: usize, bottom: u
 }
 
 #[cfg(test)]
-#[path = "drawer_tabs/capacity_tests.rs"]
+#[path = "drawer_tabs/tests/capacity_tests.rs"]
 mod capacity_tests;

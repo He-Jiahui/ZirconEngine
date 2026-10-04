@@ -17,6 +17,7 @@ pub class WorldBossParticipant {
     }
 }
 
+/// 世界首领参与与拾取资格的独立叶子投影；当前测试消费本对象，生产实体分配、伤害和物品结算仍需权威世界接线。
 pub class WorldBossParticipationState {
     pub var participants: container.Array<WorldBossParticipant>;
     // Source threat is a Map keyed by attacker id. An owner id of zero means
@@ -231,6 +232,7 @@ pub worldBossContributors(
     }
 }
 
+/// 以本次拉怪累计伤害者和当前仇恨者的并集输出稳定编号序；调用方用该顺序执行后续随机掉落，不能改用当前仇恨列表替代。
 pub worldBossLootContributors(
     state: WorldBossParticipationState,
     output: WorldBossContributorIds
@@ -283,6 +285,7 @@ pub resetWorldBossPull(state: WorldBossParticipationState): void {
     clearIds(state.bossDamagerIds);
 }
 
+/// 只检查登记参与者的毫秒锁定时刻；实际拾取路径仍须先确认玩家在本次贡献者集合内，不能据此单独授予掉落。
 pub isWorldBossLootEligible(
     state: WorldBossParticipationState,
     playerId: uint,

@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对着色器预热的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 const STATUS: &str =
@@ -5,8 +6,8 @@ const STATUS: &str =
 
 #[test]
 fn runtime_15_shader_prewarm_project_plugin_registry_auto_export_is_wired() {
-    let acceptance = read_repo("tools/zircon_build_shader_prewarm_acceptance.py");
-    let registry = read_repo("tools/zircon_build_shader_resource_registry.py");
+    let acceptance = read_repo("tools/build/zircon_build_shader_prewarm_acceptance.py");
+    let registry = read_repo("tools/build/zircon_build_shader_resource_registry.py");
     let acceptance_tests =
         read_repo("tools/tests/test_zircon_build_shader_prewarm_acceptance_contract.py");
     let registry_tests =
@@ -61,11 +62,11 @@ fn runtime_15_shader_prewarm_project_plugin_registry_auto_export_is_wired() {
 
     for (path, source) in [
         (
-            "tools/zircon_build_shader_prewarm_acceptance.py",
+            "tools/build/zircon_build_shader_prewarm_acceptance.py",
             acceptance.as_str(),
         ),
         (
-            "tools/zircon_build_shader_resource_registry.py",
+            "tools/build/zircon_build_shader_resource_registry.py",
             registry.as_str(),
         ),
         (

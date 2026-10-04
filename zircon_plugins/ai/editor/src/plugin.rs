@@ -91,7 +91,7 @@ pub fn plugin_registration() -> zircon_editor::EditorPluginRegistrationReport {
 }
 
 pub fn editor_host_contract_marker() -> &'static str {
-    zircon_editor::EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY
+    zircon_editor::ui::host::EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY
 }
 
 fn register_ai_authoring_extensions(

@@ -15,8 +15,8 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 扩展脚本、反射、动画与导航公开接口文档
 tests:
-  - zircon_runtime/src/core/framework/animation/compiler/sequence/tests.rs
-  - zircon_runtime/src/animation/sequence/tests.rs
+  - zircon_runtime/src/core/framework/animation/compiler/sequence/tests/cases.rs
+  - zircon_runtime/src/animation/sequence/tests/cases.rs
   - zircon_runtime/src/asset/tests/assets/animation.rs
 doc_type: module-detail
 ---
@@ -175,7 +175,7 @@ apply_compiled_sequence_to_world(&mut world, &compiled, 0.0, false)?;
 - [compiled sequence](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/animation/sequence/compiled.rs)
 - [time](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/animation/sequence/time.rs)
 - [interpolation](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/animation/sequence/interpolation.rs)
-- [sequence tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/animation/sequence/tests.rs)
+- [sequence tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/animation/sequence/tests/cases.rs)
 
 ## API 参考
 

@@ -3,9 +3,9 @@ use std::path::Path;
 use std::sync::{Arc, Barrier};
 
 use super::{
-    AtomicWriteFault, PathEntry, atomic_write_new, atomic_write_with_fault, classify_path_metadata,
+    atomic_write_new, atomic_write_with_fault, classify_path_metadata,
     is_atomic_write_transaction_path, publish_staged_file_for_transaction,
-    recover_missing_target_from_backup, stage_atomic_write,
+    recover_missing_target_from_backup, stage_atomic_write, AtomicWriteFault, PathEntry,
 };
 
 #[test]

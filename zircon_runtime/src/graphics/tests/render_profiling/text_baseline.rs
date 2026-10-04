@@ -6,9 +6,9 @@ use std::{
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::diagnostics::profiling::{
-    PROFILE_HOTSPOTS_FILE, PROFILE_SUMMARY_FILE, PROFILE_TIMELINE_NATIVE_FILE,
-    PROFILE_TIMELINE_PERFETTO_FILE, ProfileCaptureConfig, export_report, reset_capture,
-    start_capture, stop_capture, test_capture_lock,
+    export_report, reset_capture, start_capture, stop_capture, test_capture_lock,
+    ProfileCaptureConfig, PROFILE_HOTSPOTS_FILE, PROFILE_SUMMARY_FILE,
+    PROFILE_TIMELINE_NATIVE_FILE, PROFILE_TIMELINE_PERFETTO_FILE,
 };
 use crate::core::framework::render::{
     RenderBudgetKey, RenderFrameProfile, RenderFramework, RenderPipelineHandle,
@@ -19,12 +19,12 @@ use crate::core::math::UVec2;
 use crate::graphics::runtime::WgpuRenderFramework;
 use crate::text::cache::DEFAULT_TEXT_LAYOUT_CACHE_CAPACITY;
 use crate::ui::surface::UiSurface;
-use zircon_runtime_interface::ProfileSnapshot;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::{LayoutBoundary, UiFrame, UiSize},
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
+use zircon_runtime_interface::ProfileSnapshot;
 
 use super::{assert_profile_file, native_text_raster_is_settled, test_extract};
 

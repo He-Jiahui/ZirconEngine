@@ -13,7 +13,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
   - docs/plans/mvp/index.md
-  - docs/runtime-plugins/profile-selection.md
+  - docs/wiki/architecture/module-and-profile-composition.md
 tests:
   - zircon_runtime/src/tests
   - zircon_app/src/tests
@@ -47,7 +47,7 @@ doc_type: milestone-detail
 | 脚本 Host、反射、动态 API | `script`、`dynamic_api`、`zircon_runtime_interface` | 受限；需要对应 feature 和 ABI lockstep |
 | Editor 作者态、命令/事务、Viewport | `zircon_editor` | 已实现；若干编辑器工具为可扩展基础或内部 API |
 | Plugin SDK、linked/native/dist | `zircon_plugins/plugin_sdk`、runtime loader | 已实现/受限；插件成熟度逐包不同 |
-| Hub、导出、打包、Session Coordinator | `zircon_hub`、`tools/cargo-zircon`、`zircon_runtime` bins | 已实现/受平台和验证器约束 |
+| Hub、导出、打包、Session Coordinator | `zircon_hub`、`tools/cargo`、`zircon_runtime` bins | 已实现/受平台和验证器约束 |
 | AI、网络、物理、声音等可选族 | contract/插件 feature | 多数是可扩展基础或实验，不默认承诺产品闭环 |
 
 ## Feature/profile 解释

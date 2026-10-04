@@ -34,7 +34,7 @@ fn deterministic_rhi_contract_rejects_invalid_resource_descriptors() {
         device.create_texture(&zero_extent).unwrap_err(),
         zr_rhi::RhiError::InvalidTextureDescriptor {
             label: Some("zero-extent".to_string()),
-            reason: "width, height, and depth must be greater than zero".to_string(),
+            reason: "width, height, depth, and array_layers must be greater than zero".to_string(),
         }
     );
 
@@ -99,7 +99,8 @@ fn deterministic_rhi_contract_rejects_invalid_resource_descriptors() {
         device.create_texture(&invalid_cube_faces).unwrap_err(),
         zr_rhi::RhiError::InvalidTextureDescriptor {
             label: Some("invalid-cube-faces".to_string()),
-            reason: "cube textures must declare depth as a multiple of six faces".to_string(),
+            reason: "cube textures must declare array_layers as a multiple of six faces"
+                .to_string(),
         }
     );
 
@@ -132,7 +133,7 @@ fn deterministic_rhi_contract_rejects_invalid_resource_descriptors() {
         device.create_texture(&invalid_d1_extent).unwrap_err(),
         zr_rhi::RhiError::InvalidTextureDescriptor {
             label: Some("invalid-d1-extent".to_string()),
-            reason: "1D textures must declare height and depth as 1".to_string(),
+            reason: "1D textures must declare height, depth, and array_layers as 1".to_string(),
         }
     );
 
@@ -148,7 +149,43 @@ fn deterministic_rhi_contract_rejects_invalid_resource_descriptors() {
         device.create_texture(&invalid_d2_depth).unwrap_err(),
         zr_rhi::RhiError::InvalidTextureDescriptor {
             label: Some("invalid-d2-depth".to_string()),
-            reason: "2D textures must declare depth as 1".to_string(),
+            reason: "2D textures must declare depth and array_layers as 1".to_string(),
+        }
+    );
+
+    let invalid_d2_array_depth = TextureDesc::new(
+        "invalid-d2-array-depth",
+        4,
+        4,
+        TextureFormat::Rgba8UnormSrgb,
+        TextureUsage::COPY_SRC,
+    )
+    .with_dimension(TextureDimension::D2Array)
+    .with_array_layers(2)
+    .with_depth(2);
+    assert_eq!(
+        device.create_texture(&invalid_d2_array_depth).unwrap_err(),
+        zr_rhi::RhiError::InvalidTextureDescriptor {
+            label: Some("invalid-d2-array-depth".to_string()),
+            reason: "2D-array textures must declare depth as 1".to_string(),
+        }
+    );
+
+    let invalid_d3_array_layers = TextureDesc::new(
+        "invalid-d3-array-layers",
+        4,
+        4,
+        TextureFormat::Rgba8UnormSrgb,
+        TextureUsage::COPY_SRC,
+    )
+    .with_dimension(TextureDimension::D3)
+    .with_depth(2)
+    .with_array_layers(2);
+    assert_eq!(
+        device.create_texture(&invalid_d3_array_layers).unwrap_err(),
+        zr_rhi::RhiError::InvalidTextureDescriptor {
+            label: Some("invalid-d3-array-layers".to_string()),
+            reason: "3D textures must declare array_layers as 1".to_string(),
         }
     );
 

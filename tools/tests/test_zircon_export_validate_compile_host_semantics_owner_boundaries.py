@@ -8,10 +8,10 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 VALIDATE_COMPILE_HOST_SCHEMA = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_validate_compile_host_schema.py"
+    REPO_ROOT / "tools/export/pipeline_report_validate_compile_host_schema.py"
 )
 VALIDATE_COMPILE_HOST_SEMANTICS = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_validate_compile_host_semantics.py"
+    REPO_ROOT / "tools/export/pipeline_report_validate_compile_host_semantics.py"
 )
 
 MOVED_FUNCTIONS = (

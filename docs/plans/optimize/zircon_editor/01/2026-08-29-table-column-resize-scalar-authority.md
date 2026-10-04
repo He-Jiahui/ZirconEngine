@@ -51,7 +51,7 @@ the live geometry and component state consume `(owner_id, column identity, width
 
 ## Complexity model
 
-`tools/ui_table_column_resize_scalar_pressure.py` models 256 columns, 2,000 pointer moves, eight
+`tools/analysis/performance/ui/ui_table_column_resize_scalar_pressure.py` models 256 columns, 2,000 pointer moves, eight
 metadata entries per column and one compatibility flush. The current aggregate route is estimated at
 15,620,000 entry/transaction work units. The scalar route is 12,864 units: one schema build, three
 scalar operations and one property transaction per move, plus one bounded compatibility projection.

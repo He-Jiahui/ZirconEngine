@@ -1,4 +1,5 @@
 use super::vertices::ScreenSpaceUiSdfVertex;
+use std::ops::Range;
 use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
 
 const MIN_SDF_VERTEX_BUFFER_CAPACITY_BYTES: u64 = 4 * 1024;
@@ -7,6 +8,7 @@ const MIN_SDF_VERTEX_BUFFER_CAPACITY_BYTES: u64 = 4 * 1024;
 pub(super) struct SdfVertexBufferWriteReport {
     pub(super) capacity_byte_len: usize,
     pub(super) create_count: usize,
+    pub(super) write_count: usize,
     pub(super) write_byte_len: usize,
 }
 
@@ -55,8 +57,87 @@ pub(super) fn write_sdf_vertex_buffer(
     SdfVertexBufferWriteReport {
         capacity_byte_len: capacity_byte_len_usize(*capacity_bytes),
         create_count: usize::from(requires_reallocation),
+        write_count: usize::from(write_required),
         write_byte_len: write_required.then_some(required_byte_len).unwrap_or(0),
     }
+}
+
+pub(super) fn write_sdf_vertex_buffer_ranges(
+    device: &wgpu::Device,
+    buffer: &mut Option<wgpu::Buffer>,
+    capacity_bytes: &mut u64,
+    payload_hash: &mut Option<[u8; 32]>,
+    vertices: &[ScreenSpaceUiSdfVertex],
+    changed_vertex_ranges: &[Range<usize>],
+    uploads: &mut WgpuBufferUploadBatch,
+) -> SdfVertexBufferWriteReport {
+    let required_byte_len = std::mem::size_of_val(vertices);
+    if vertices.is_empty() || changed_vertex_ranges.is_empty() {
+        return SdfVertexBufferWriteReport {
+            capacity_byte_len: capacity_byte_len_usize(*capacity_bytes),
+            ..Default::default()
+        };
+    }
+    if buffer.is_none() || *capacity_bytes < required_byte_len as u64 {
+        return write_sdf_vertex_buffer(
+            device,
+            buffer,
+            capacity_bytes,
+            payload_hash,
+            vertices,
+            uploads,
+            true,
+        );
+    }
+
+    let Some(buffer) = buffer.as_ref() else {
+        unreachable!("buffer existence was checked before partial SDF vertex upload");
+    };
+    let vertex_size = std::mem::size_of::<ScreenSpaceUiSdfVertex>();
+    let ranges = coalesced_vertex_ranges(changed_vertex_ranges, vertices.len());
+    let mut write_byte_len = 0_usize;
+    for range in &ranges {
+        let bytes = bytemuck::cast_slice(&vertices[range.clone()]);
+        uploads.push(WgpuBufferUpload::from_bytes(
+            buffer.clone(),
+            range.start.saturating_mul(vertex_size) as u64,
+            bytes,
+        ));
+        write_byte_len = write_byte_len.saturating_add(bytes.len());
+    }
+    if !ranges.is_empty() {
+        // A future generic submission will conservatively restore a whole-payload hash.
+        *payload_hash = None;
+    }
+    SdfVertexBufferWriteReport {
+        capacity_byte_len: capacity_byte_len_usize(*capacity_bytes),
+        write_count: ranges.len(),
+        write_byte_len,
+        ..Default::default()
+    }
+}
+
+fn coalesced_vertex_ranges(ranges: &[Range<usize>], vertex_count: usize) -> Vec<Range<usize>> {
+    let mut ranges = ranges
+        .iter()
+        .filter_map(|range| {
+            let start = range.start.min(vertex_count);
+            let end = range.end.min(vertex_count);
+            (start < end).then_some(start..end)
+        })
+        .collect::<Vec<_>>();
+    ranges.sort_unstable_by_key(|range| range.start);
+    let mut merged: Vec<Range<usize>> = Vec::with_capacity(ranges.len());
+    for range in ranges {
+        if let Some(previous) = merged.last_mut() {
+            if range.start <= previous.end {
+                previous.end = previous.end.max(range.end);
+                continue;
+            }
+        }
+        merged.push(range);
+    }
+    merged
 }
 
 fn sdf_vertex_buffer_capacity(required_byte_len: usize) -> u64 {
@@ -72,14 +153,5 @@ fn capacity_byte_len_usize(capacity_bytes: u64) -> usize {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::sdf_vertex_buffer_capacity;
-
-    #[test]
-    fn sdf_vertex_buffer_capacity_grows_by_power_of_two_and_never_shrinks_requirement() {
-        assert_eq!(sdf_vertex_buffer_capacity(0), 0);
-        assert_eq!(sdf_vertex_buffer_capacity(1), 4 * 1024);
-        assert_eq!(sdf_vertex_buffer_capacity(4 * 1024), 4 * 1024);
-        assert_eq!(sdf_vertex_buffer_capacity(4 * 1024 + 1), 8 * 1024);
-    }
-}
+#[path = "tests/vertex_buffer.rs"]
+mod tests;

@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码中提取地下探索通关奖励字段与发放路径，供 m7_delve_clear_rewards_content_codegen.mjs 消费。
 import { execFileSync } from 'node:child_process';
 import ts from 'typescript';
 
@@ -12,6 +13,7 @@ const readSource = (path) =>
 const sourceFile = (path) =>
   ts.createSourceFile(path, readSource(path), ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
 
+// 从 AST 读取奖励字面量表；声明形状变化时立即失败。
 const initializerFor = (source, name) => {
   for (const statement of source.statements) {
     if (!ts.isVariableStatement(statement)) {

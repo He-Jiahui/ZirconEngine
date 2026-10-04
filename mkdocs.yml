@@ -12,7 +12,7 @@ strict: true
 dev_addr: 127.0.0.1:8000
 
 hooks:
-  - tools/wiki_mkdocs_hook.py
+  - tools/docs/wiki_mkdocs_hook.py
 
 theme:
   name: material

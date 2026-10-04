@@ -4,10 +4,8 @@ fn dense_and_sparse_component_values_have_exactly_one_storage_owner() {
     let archetype_record = include_str!("../ecs/archetype/record.rs");
     let archetype_table = include_str!("../ecs/archetype/table/table.rs");
 
-    assert!(
-        component_storage
-            .contains("sparse_components: HashMap<ComponentId, SparseComponentStorage>")
-    );
+    assert!(component_storage
+        .contains("sparse_components: HashMap<ComponentId, SparseComponentStorage>"));
     assert!(!component_storage.contains("table_components:"));
     assert!(!component_storage.contains("TableComponentStorage"));
     assert!(archetype_record.contains("table: ArchetypeTable"));
@@ -26,9 +24,29 @@ fn sparse_component_storage_keeps_dense_rows_and_a_single_entity_index() {
 
     assert!(sparse.contains("entities: Vec<InternalEntity>"));
     assert!(sparse.contains("entries: Vec<SparseEntry>"));
-    assert!(sparse.contains("sparse_rows: Vec<Option<SparseRowLocation>>"));
-    assert!(sparse.contains("generation: u32"));
-    assert!(sparse.contains("dense_row: usize"));
+    let locator = include_str!("../ecs/storage/component_storage/sparse/locator.rs");
+    let lookup = sparse
+        .split("fn dense_row(")
+        .nth(1)
+        .and_then(|body| body.split("fn set_sparse_row(").next())
+        .expect("sparse locator lookup body");
+    let remove_locator = sparse
+        .split("fn remove_sparse_row(")
+        .nth(1)
+        .and_then(|body| body.split("#[cfg(test)]").next())
+        .expect("sparse locator removal body");
+
+    assert!(sparse.contains("#[path = \"sparse/locator.rs\"]"));
+    assert!(sparse.contains("locator: SparseRowLocator"));
+    assert!(!sparse.contains("sparse_rows: Vec<Option<SparseRowLocation>>"));
+    assert!(locator.contains("struct SparseRowLocator"));
+    assert!(locator.contains("struct SparseRowLocation"));
+    assert!(locator.contains("fn generation(self) -> u32"));
+    assert!(locator.contains("fn dense_row(self) -> usize"));
+    assert!(lookup.contains("self.locator.get(entity.index())?"));
+    assert!(lookup.contains("location.generation() == entity.generation()"));
+    assert!(remove_locator.contains("location.generation() != entity.generation()"));
+    assert!(remove_locator.contains(".remove(entity.index())"));
     assert!(!sparse.contains("HashMap<InternalEntity, usize>"));
     assert!(!sparse.contains("HashMap<InternalEntity, SparseEntry>"));
     assert!(remove.contains("let row = self.remove_sparse_row(entity)?;"));

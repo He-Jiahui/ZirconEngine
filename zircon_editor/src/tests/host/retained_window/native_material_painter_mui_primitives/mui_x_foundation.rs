@@ -16,7 +16,10 @@ fn native_template_painter_applies_mui_transition_opacity() {
 
     let bytes = paint_template_nodes_for_test(48, 32, nodes);
 
-    assert_eq!(pixel(&bytes, 48, 12, 12), MUI_TOOLTIP_BG_FADE_HALF_ON_BLACK);
+    assert_eq!(
+        pixel(&bytes, 48, 12, 12),
+        mui_tooltip_bg_fade_half_on_black()
+    );
 }
 
 #[test]

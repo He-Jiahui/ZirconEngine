@@ -10,11 +10,14 @@ use super::super::super::super::constants::MAX_HYBRID_GI_TRACE_REGIONS;
 use super::super::super::super::hybrid_gi_trace_region_gpu::GpuHybridGiTraceRegion;
 use super::super::camera_matrices::view_projection;
 
+// 量化尺度由 prepared trace scene sideband 约定；trace 半径和 coverage 使用各自的编码域。
 const HYBRID_GI_POSITION_BIAS: i32 = 2048;
 const HYBRID_GI_POSITION_SCALE: f32 = 64.0;
 const HYBRID_GI_TRACE_RADIUS_SCALE: f32 = 96.0;
 const HYBRID_GI_TRACE_COVERAGE_SCALE: f32 = 128.0;
 
+/// 编码本帧调度的 GI trace region 支撑，只消费 runtime 已准备的空间与 RT 光照 sideband。
+/// 固定容量限制上传范围；去重、缺失描述或投影失败后，返回计数仍只覆盖有效前缀。
 pub(in super::super) fn encode_hybrid_gi_trace_regions(
     frame: &ViewportRenderFrame,
     viewport_size: UVec2,
@@ -53,6 +56,7 @@ pub(in super::super) fn encode_hybrid_gi_trace_regions(
     let camera_position = camera.transform.translation;
     let mut count = 0;
 
+    // TODO: [CR-SCENE-POST-0008] 明确上限约束的是调度候选数量还是成功编码数量；当前先截断，重复、缺失描述和投影失败都会消耗候选预算。
     for region_id in prepared_frame
         .scheduled_trace_region_ids
         .iter()
@@ -76,6 +80,7 @@ pub(in super::super) fn encode_hybrid_gi_trace_regions(
     (trace_regions, count as u32)
 }
 
+// prepared scene 描述按 ID 建索引；重复 ID 的末条记录获胜，hash-index 回归测试固定此约定。
 fn trace_region_scene_data_by_id(
     regions: &[RenderHybridGiPreparedTraceRegionSceneData],
 ) -> HashMap<u32, &RenderHybridGiPreparedTraceRegionSceneData> {
@@ -85,6 +90,7 @@ fn trace_region_scene_data_by_id(
         .collect()
 }
 
+// 将调度区域转换为 shader 的屏幕覆盖和 RT 支撑；其 ID 用作来源信息而非数组索引。
 fn project_prepared_hybrid_gi_trace_region(
     region: &RenderHybridGiPreparedTraceRegionSceneData,
     view_proj: Mat4,
@@ -117,10 +123,12 @@ fn project_prepared_hybrid_gi_trace_region(
     })
 }
 
+// 恢复与 probe sideband 共用的量化位置域；传入字段须符合 runtime 编码范围。
 fn dequantized_signed(value: u32) -> f32 {
     (value as i32 - HYBRID_GI_POSITION_BIAS) as f32 / HYBRID_GI_POSITION_SCALE
 }
 
+// 使用未抖动视图把区域中心映射到当前屏幕权重域，深度不适用的中心不参与组合。
 fn project_screen_uv(view_proj: Mat4, position: Vec3) -> Option<(f32, f32)> {
     let clip = view_proj * position.extend(1.0);
     if clip.w.abs() <= f32::EPSILON {
@@ -138,84 +146,16 @@ fn project_screen_uv(view_proj: Mat4, position: Vec3) -> Option<(f32, f32)> {
     ))
 }
 
+// 距离近似的有界覆盖用于 GI 支撑权重；与 probe 编码保持同一屏幕权重模型。
 fn projected_screen_radius(radius: f32, position: Vec3, camera_position: Vec3) -> f32 {
     let distance = (camera_position - position).length().max(1.0);
     (radius.max(0.05) / distance).clamp(0.04, 0.75)
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::framework::render::{
-        RenderFrameExtract, RenderHybridGiExtract, RenderHybridGiPreparedFrame,
-        RenderHybridGiPreparedTraceRegionSceneData, RenderPreparedRuntimeSidebands,
-    };
-    use crate::core::math::UVec2;
-    use crate::graphics::ViewportRenderFrame;
-    use crate::scene::world::World;
-
-    #[test]
-    fn hybrid_gi_trace_region_encoder_returns_no_resources_when_disabled() {
-        let frame = ViewportRenderFrame::from_extract(
-            World::new().to_render_frame_extract(),
-            UVec2::new(160, 120),
-        );
-
-        let (_, trace_region_count) =
-            encode_hybrid_gi_trace_regions(&frame, UVec2::new(160, 120), false);
-
-        assert_eq!(trace_region_count, 0);
-    }
-
-    #[test]
-    fn hybrid_gi_trace_region_encoder_projects_prepared_scene_region_with_rt_lighting() {
-        let frame = ViewportRenderFrame::from_extract(
-            hybrid_gi_scene_representation_extract(),
-            UVec2::new(160, 120),
-        )
-        .with_prepared_runtime_sidebands(
-            RenderPreparedRuntimeSidebands::default().with_hybrid_gi_prepared_frame(Some(
-                RenderHybridGiPreparedFrame {
-                    scheduled_trace_region_ids: vec![300],
-                    trace_region_scene_data: vec![RenderHybridGiPreparedTraceRegionSceneData {
-                        region_id: 300,
-                        center_x_q: 2048,
-                        center_y_q: 2048,
-                        center_z_q: 2048,
-                        radius_q: 96,
-                        coverage_q: 128,
-                        rt_lighting_rgb: [255, 72, 48],
-                    }],
-                    ..RenderHybridGiPreparedFrame::default()
-                },
-            )),
-        );
-
-        let (trace_regions, trace_region_count) =
-            encode_hybrid_gi_trace_regions(&frame, UVec2::new(160, 120), true);
-
-        assert_eq!(trace_region_count, 1);
-        assert!(trace_regions[0].screen_uv_and_radius[0] > 0.0);
-        assert!(trace_regions[0].screen_uv_and_radius[2] > 0.0);
-        assert_eq!(trace_regions[0].rt_lighting_rgb_and_weight[0], 1.0);
-        assert!(trace_regions[0].rt_lighting_rgb_and_weight[3] > 0.0);
-    }
-
-    fn hybrid_gi_scene_representation_extract() -> RenderFrameExtract {
-        let world = World::new();
-        let mut extract = world.to_render_frame_extract();
-        extract.apply_viewport_size(UVec2::new(160, 120));
-        extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
-            enabled: true,
-            trace_budget: 1,
-            card_budget: 1,
-            voxel_budget: 1,
-            ..RenderHybridGiExtract::default()
-        });
-        extract
-    }
-}
+#[path = "tests/encode.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "encode/hash_index_tests.rs"]
+#[path = "encode/tests/hash_index_tests.rs"]
 mod hash_index_tests;

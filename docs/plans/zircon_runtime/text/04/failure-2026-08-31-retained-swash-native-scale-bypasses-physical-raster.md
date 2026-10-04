@@ -9,13 +9,18 @@ origin_child_dir: docs/plans/zircon_editor/editor_ui/12
 fixing_child_dir: docs/plans/zircon_runtime/text/04
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/raster/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/raster/tests.rs
+  - zircon_runtime/src/core/framework/text/glyph_raster
+  - zircon_runtime/src/text/atlas/raster_key
+  - zircon_runtime/src/text/native_bitmap_atlas/source_cache/worker.rs
+  - zircon_runtime/src/text/raster/service
+  - zircon_runtime/src/text/raster/swash/request.rs
+  - zircon_runtime/src/ui/surface/text_artifact.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/metrics.rs
 tests:
-  - powershell -NoProfile -Command "$r=Get-Content -Raw -LiteralPath 'zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs'; $d=Get-Content -Raw -LiteralPath 'zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs'; if ($r -notmatch 'physical_raster_px_size' -or $r -notmatch '\.size\(physical_px\)' -or $r -match 'fallback_raster_scale_bits' -or $d -match 'TEXT_RASTER_SUPERSAMPLE') { exit 1 }"
+  - powershell -NoProfile -Command "Select-String over Editor paint_text and Cargo for removed backend symbols must return no matches"
+  - py -m unittest discover -s tools/tests -p 'test_runtime_text_*.py' -v
+  - managed focused zircon_runtime glyph_raster_service and native bitmap atlas request tests
   - managed focused zircon_editor paint_text raster tests after the current shared compile blockers clear
   - current-source Editor WGPU screenshots at 100%, 125%, 150%, and 200% effective scale
 ---
@@ -89,28 +94,57 @@ Fyrox的显式`super_sampling_scale`则证明local supersampling必须是独立�
   `raster_px_size`桶，并继续保留font source/cache key、glyph、subpixel phase与smoothing。
   13px在100/125/150/200%分别得到13/16/20/26 ppem；13px@125%与16px@100%
   复用同一bitmap cache entry。
-- Swash主路径与Fontdue故障回退都消费同一物理ppem。Swash继续负责color outline/bitmap、
-  alpha/subpixel格式、hinting、bearing和pen-origin phase；draw阶段只消费显式
-  `sample_scale=1.0`。通用downsample helper仍保留给未来有独立预算的local supersampling，
-  但固定`TEXT_RASTER_SUPERSAMPLE=8.0`已从生产路径删除。
-- retained raster owner新增固定低基数profile span/counters，区分cache hit/miss、miss生成bitmap
-  bytes、Swash/Fontdue route、并发miss重复发布，以及cache当前/峰值entry和bitmap bytes。驻留记账
-  仅在profiling/test构建的miss发布时做常数次更新，不遍历cache，普通构建仍只执行原HashMap
-  插入。当前不改无界cache或单mutex算法；先用这些计数
-  配合1000次交互、RSS和CPU profile确定miss、锁竞争与驻留增长，再决定single-flight、分片或
-  有界LRU。
+- Runtime Swash主路径消费唯一物理ppem。Swash继续负责color outline/bitmap、alpha/subpixel格式、
+  hinting、bearing和pen-origin phase；retained Editor不再拥有Fontdue故障回退、通用downsample helper
+  或固定`TEXT_RASTER_SUPERSAMPLE=8.0`生产路径。
+- 共享Runtime raster service新增固定低基数profile span/counters，区分request/actual bitmap route、
+  bitmap bytes、lock wait/hold、backend time与success/failure。既有native source cache继续负责
+  hit/miss、pending去重、worker背压/completion budget、eviction及resident entry/font/bitmap bytes。
+  当前不改变cache、worker或单mutex算法；先用这些计数配合1000次交互、RSS和CPU profile确定
+  重复同步栅格、锁竞争与驻留增长，再决定single-flight、分片或有界LRU。
 - retained Swash现在保留实际`Image.source`：COLR `ColorOutline`的premultiplied RGBA在进入
   straight-alpha linear-light blend前原地unpremultiply，embedded `ColorBitmap`继续保留straight
   pixels；zero-alpha RGB清零。该合同与Runtime Swash owner一致，避免半透明彩色轮廓被二次乘alpha。
+- Text04 hard-cut步骤2已完成源码实现：Runtime公开后端无关的完整glyph raster request、不可变
+  receipt和类型化失败；每个`FontCollectionService`拥有一个私有`GlyphRasterService`/Swash会话，
+  resolved artifact face可携带精确collection、face、instance、generation、source identity、variation
+  与共享font bytes请求栅格，不向框架接口泄漏Swash类型或借用字节。共享服务只增加profiling激活时的
+  固定低基数request/actual-format/bitmap-byte/lock-wait/backend-time/success/failure观测；在实测前
+  不引入LRU、分片、single-flight、异步策略或第二套bitmap cache。
+- native `GlyphRasterKey`已先投影为同一`TextGlyphRasterRequest`；同步service与异步worker共用
+  `SwashRasterRequest::from_text_glyph_request(...)`的glyph/ppem/3x4 phase/hinting/smoothing/mode/
+  synthetic校验和适配。worker batching、pending去重、背压、byte budget、face epoch、source LRU
+  和GPU atlas residency保持原算法；SDF/MSDF与不支持的synthetic bold明确fail closed。
+- 过去native atlas使用3个水平phase、retained私有路径使用8个phase，消费者会形成不同bitmap
+  identity。Runtime request现在拥有唯一3x4 phase计数与screen-position量化函数，服务验证与后续
+  consumer不再复制magic count；负坐标和非有限输入也有确定分桶。
+- Runtime artifact owner早已能为省略号/合成all-LTR视觉run生成virtual glyph并跨字体代际重建，
+  但surface adapter仍有旧的一律拒绝门，导致retained路径拿不到已发布产物。该门已源码删除，并新增
+  真实ellipsized artifact回归测试；adapter仍要求精确layout line、font generation、collection与
+  handle一致。另新增固定lookup outcome计数，在删除Editor旧成功路径前量化artifact覆盖和失败原因。
+- retained Editor现在只接受完整Runtime artifact；布局以Runtime视觉行、glyph origin、line baseline、
+  face/instance/generation为唯一事实源，缺失时fail closed，不再进入Fontdue或本地shaping路径。绘制端
+  通过精确artifact face请求`TextGlyphRasterReceipt`，直接消费receipt的size、bearing、实际bitmap
+  format与共享bitmap；斜体进入Runtime synthetic request，不再由Editor像素行二次倾斜。
+- Editor私有system fontdb、Fontdue layout/metrics、Swash `ScaleContext`、无界glyph `HashMap`、
+  artifact/font snapshot cache、8-bin phase模型及其源文件/测试/direct Cargo依赖已删除。硬切范围为
+  1,566 insertions / 5,490 deletions，相关生产owner均低于800行。
 
-算法规模：缓存查找仍为均摊O(1)，每个有效`(face, glyph, physical ppem, phase, smoothing)`
-仅栅格一次；等价物理ppem不再因逻辑字号/scale组合不同而重复驻留。此前Fontdue fallback
-的固定8倍边长会产生理论64倍bitmap面积，而Swash又完全绕过该尺度；修复后bitmap面积只随
-实际物理ppem平方增长。以上是结构性上界，不是实测性能或功耗数据。
+算法规模：artifact face lookup为均摊O(1)，单次布局与绘制对glyph数保持O(n)，且不再执行
+Fontdue与Runtime两套布局比对。此前Fontdue fallback固定8倍边长会产生理论64倍bitmap面积；硬切后
+bitmap面积只随实际物理ppem平方增长。当前共享service刻意尚未加入bitmap residency cache，因此
+重复帧可能重复栅格；必须先用已加入的lock/backend/route/bytes计数和CPU采样量化，再决定single-flight、
+分片、有界LRU或异步调度。以上是结构性上界与待测风险，不是实测性能或功耗数据。
 
-已完成非Cargo验收：6个Rust owner通过scoped `rustfmt --check`与`git diff --check`，
-Runtime text静态合同`116/116`通过。尚未获得managed `zircon_editor` Cargo check/focused tests，
+已完成非Cargo验收：retained硬切与Runtime契约/服务owner通过scoped Rust 2024
+`rustfmt --check`与`git diff --check`。Runtime text静态合同本轮为`114/116`；两个失败都来自未修改、
+未归属的并行共享owner：UI texture dependency实现不再匹配测试中的旧返回类型源码字符串，以及
+`zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs`当前829行，触发800行结构门。当前终态
+Runtime定向验证副本`d4da4a0a64424fbfa97845713680b0cf`在overlay ownership物化阶段失败，
+Cargo未启动；刷新精确claim后，替代副本`1e51cc39937545b2a729d7ff8bcbd37a` / request
+`8c9c4e7e59774579a4db9544fb067aee`已在`D:/cargo-targets/verify`接受，但尚无Cargo结果。
+尚未获得managed `zircon_editor` Cargo check/focused tests，
 也未运行100/125/150/200%当前源码WGPU截图、1000 click/pointer/resize、RSS、CPU/GPU timestamp
-或功耗采样。因此本failure继续保持`open / implementation_complete /
+或功耗采样。因此本failure继续保持`open / runtime_and_editor_hard_cut_source_implemented /
 managed_validation_and_ui12_visual_perf_pending`，不得声明Cargo GREEN、视觉GREEN、性能最优、
 功耗接近其他引擎或UI12产品验收完成。

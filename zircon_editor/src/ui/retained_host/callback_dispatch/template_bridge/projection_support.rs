@@ -9,9 +9,10 @@ use crate::ui::template_runtime::{
 };
 
 #[cfg(test)]
-#[path = "projection_support/hash_binding_tests.rs"]
+#[path = "projection_support/tests/hash_binding_tests.rs"]
 mod hash_binding_tests;
 
+// 不同宿主表面可选有序或哈希索引，但事件路由最终必须按投影的 binding ID 解析。
 pub(crate) trait BindingIndex<V> {
     fn binding_by_id(&self, binding_id: &str) -> Option<&V>;
 }
@@ -48,6 +49,7 @@ pub(crate) fn build_surface_bindings_by_id(
         .collect::<HashMap<_, _>>()
 }
 
+// 从控件和事件种类先定位模板路由，再查绑定表；避免根据可见控件名猜测编辑操作。
 pub(crate) fn binding_for_control<'a, I>(
     bindings_by_id: &'a I,
     host_projection: &'a RetainedUiHostProjection,
@@ -102,6 +104,7 @@ pub(crate) fn load_builtin_runtime_for_documents(
     Ok(runtime)
 }
 
+// 文档投影完成后注册控件路由，供宿主桥和回调分发读取同一份事件契约。
 pub(crate) fn project_builtin_document_with_runtime(
     runtime: &EditorUiHostRuntime,
     document_id: &str,

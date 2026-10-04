@@ -2,7 +2,7 @@ import sys
 import unittest
 from pathlib import Path
 
-
+# 调用审计或模型实现验证输入栈：当前子节点守卫与文档归属方闭合运行时 12 审计。
 class RuntimeInputStackAuditTests(unittest.TestCase):
     def setUp(self) -> None:
         self.repo_root = Path(__file__).resolve().parents[2]

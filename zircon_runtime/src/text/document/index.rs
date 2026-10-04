@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use unicode_segmentation::UnicodeSegmentation;
 
-use super::{TextDocumentEditError, index_profile, storage::TextDocument};
+use super::{index_profile, storage::TextDocument, TextDocumentEditError};
 
 /// Cached source-space boundaries for one document revision.
 ///
@@ -70,6 +70,7 @@ impl TextDocumentSourceIndex {
         }
     }
 
+    /// 仅为保守的 ASCII 快路径准备编辑；非 ASCII 或 CR/LF 上下文交给完整重建。
     pub(super) fn prepare_incremental_edit(
         &self,
         document: &TextDocument,
@@ -107,6 +108,7 @@ impl TextDocumentSourceIndex {
         })
     }
 
+    /// 应用已校验的 ASCII 编辑并平移后缀边界；返回 false 时调用方必须使索引失效。
     pub(super) fn apply_incremental_edit(
         &mut self,
         next_revision: u64,
@@ -209,6 +211,7 @@ fn ascii_grapheme_edit(bytes: &[u8]) -> bool {
 }
 
 impl TextDocument {
+    /// 返回当前 revision 的 grapheme 边界；索引失效后按需懒重建。
     pub(crate) fn source_index(&mut self) -> &TextDocumentSourceIndex {
         if self.source_index.matches_revision(self.revision) {
             index_profile::record_index_hit();
@@ -225,6 +228,7 @@ impl TextDocument {
         &self.source_index
     }
 
+    /// 校验 grapheme 边界后，统计替换范围之外仍保留的 grapheme 数量。
     pub(crate) fn retained_grapheme_count(
         &mut self,
         replaced_range: Range<usize>,

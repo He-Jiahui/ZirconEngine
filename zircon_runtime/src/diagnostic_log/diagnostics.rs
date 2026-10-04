@@ -1,3 +1,4 @@
+use std::fmt::Write as _;
 use std::time::Duration;
 
 use crate::core::diagnostics::{
@@ -170,14 +171,33 @@ fn format_diagnostic_values(
     max: Option<f64>,
 ) -> String {
     let unit = unit.unwrap_or("");
-    let mut line = format!("{path}: {current:.6}{unit}");
+    // Sign, a broad 16-digit integral part, decimal point, and six fractional digits.
+    const FORMATTED_VALUE_CAPACITY: usize = 24;
+
+    let mut capacity = path.len() + ": ".len() + FORMATTED_VALUE_CAPACITY + unit.len();
+    if smoothed.is_some() {
+        capacity += " (smoothed ".len() + FORMATTED_VALUE_CAPACITY + unit.len() + ")".len();
+        if min.is_some() {
+            capacity += ", min ".len() + FORMATTED_VALUE_CAPACITY + unit.len();
+        }
+        if max.is_some() {
+            capacity += ", max ".len() + FORMATTED_VALUE_CAPACITY + unit.len();
+        }
+    }
+
+    let mut line = String::with_capacity(capacity);
+    write!(&mut line, "{path}: {current:.6}{unit}")
+        .expect("writing diagnostic fields to a String cannot fail");
     if let Some(smoothed) = smoothed {
-        line.push_str(&format!(" (smoothed {:.6}{}", smoothed, unit));
+        write!(&mut line, " (smoothed {smoothed:.6}{unit}")
+            .expect("writing diagnostic fields to a String cannot fail");
         if let Some(min) = min {
-            line.push_str(&format!(", min {:.6}{}", min, unit));
+            write!(&mut line, ", min {min:.6}{unit}")
+                .expect("writing diagnostic fields to a String cannot fail");
         }
         if let Some(max) = max {
-            line.push_str(&format!(", max {:.6}{}", max, unit));
+            write!(&mut line, ", max {max:.6}{unit}")
+                .expect("writing diagnostic fields to a String cannot fail");
         }
         line.push(')');
     }

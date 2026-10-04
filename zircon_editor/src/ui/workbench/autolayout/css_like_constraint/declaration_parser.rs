@@ -1,3 +1,4 @@
+//! 将受限作者声明按顺序映射到约束DTO；嵌套函数、简写和不支持值在此边界诊断。
 use std::str::FromStr;
 
 use zircon_runtime_interface::ui::layout::{
@@ -238,6 +239,7 @@ fn parse_align(value: &str, property: &'static str) -> Result<UiAlign, CssLikeCo
     }
 }
 
+/// 仅接收能稳定映射到共享网格轨道DTO的语法，保留已知扩展的专门诊断。
 fn parse_grid_tracks(
     value: &str,
     property: &'static str,
@@ -329,6 +331,7 @@ fn parse_non_negative_number(
     finite_non_negative(value, property)
 }
 
+/// 接受单值或分子/分母；拒绝空段、多段和零分母，避免无效比率进入布局。
 fn parse_aspect_ratio(value: &str) -> Result<f32, CssLikeConstraintError> {
     let mut parts = value.split('/').map(str::trim);
     let first = parts.next().unwrap_or_default();
@@ -403,6 +406,7 @@ fn parse_overflow(value: &str) -> Result<CssLikeOverflow, CssLikeConstraintError
     }
 }
 
+/// 按函数括号外空白拆分作者值，避免破坏minmax等嵌套轨道声明。
 fn split_top_level_whitespace<'a>(
     value: &'a str,
     property: &'static str,
@@ -452,5 +456,5 @@ fn invalid_value(property: &'static str, value: &str) -> CssLikeConstraintError 
 }
 
 #[cfg(test)]
-#[path = "declaration_parser/aspect_ratio_tests.rs"]
+#[path = "declaration_parser/tests/aspect_ratio_tests.rs"]
 mod aspect_ratio_tests;

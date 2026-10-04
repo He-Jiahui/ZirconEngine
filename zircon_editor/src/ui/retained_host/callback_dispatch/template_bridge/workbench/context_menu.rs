@@ -32,7 +32,38 @@ const VALUE: &str = "value";
 const VALUE_TEXT: &str = "value_text";
 const CONTEXT_TARGET: &str = "context_target";
 const CONTEXT_TARGET_PATH: &str = "context_target_path";
+const ASSET_CONTEXT_TARGET_PREFIX: &str = "workbench://asset/";
+const ASSET_OPEN_LOCATOR_QUERY: &str = "?open_locator=";
 const LAYOUT_MIN_WIDTH: &str = "layout_min_width";
+
+fn open_asset_locator_from_context_target_path(target_path: &str) -> Option<String> {
+    let target = target_path.strip_prefix(ASSET_CONTEXT_TARGET_PREFIX)?;
+    let (asset_uuid, encoded_locator) = target.split_once(ASSET_OPEN_LOCATOR_QUERY)?;
+    if asset_uuid.is_empty() {
+        return None;
+    }
+    decode_context_path_hex(encoded_locator)
+}
+
+fn decode_context_path_hex(encoded: &str) -> Option<String> {
+    if encoded.is_empty() || encoded.len() % 2 != 0 {
+        return None;
+    }
+    let mut bytes = Vec::with_capacity(encoded.len() / 2);
+    for pair in encoded.as_bytes().chunks_exact(2) {
+        bytes.push((decode_hex_digit(pair[0])? << 4) | decode_hex_digit(pair[1])?);
+    }
+    String::from_utf8(bytes).ok()
+}
+
+fn decode_hex_digit(byte: u8) -> Option<u8> {
+    match byte {
+        b'0'..=b'9' => Some(byte - b'0'),
+        b'a'..=b'f' => Some(byte - b'a' + 10),
+        b'A'..=b'F' => Some(byte - b'A' + 10),
+        _ => None,
+    }
+}
 
 impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     pub(crate) fn context_menu_item_binding(
@@ -46,11 +77,28 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         if action_id == "menu.item.keep_play_changes" {
             return Some(menu_action_binding(&MenuAction::KeepPlayChanges));
         }
+        if action_id == "menu.item.asset.open" {
+            let asset_locator = self
+                .control_string(WORKBENCH_CONTEXT_MENU_CONTROL_ID, CONTEXT_TARGET_PATH)
+                .as_deref()
+                .and_then(open_asset_locator_from_context_target_path)?;
+            return Some(EditorUiBinding::new(
+                WORKBENCH_CONTEXT_MENU_CONTROL_ID,
+                action_id,
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::asset_command(AssetCommand::OpenAsset { asset_locator }),
+            ));
+        }
         if action_id == "menu.item.asset.delete" {
             let asset_uuid = self
                 .control_string(WORKBENCH_CONTEXT_MENU_CONTROL_ID, CONTEXT_TARGET_PATH)?
-                .strip_prefix("workbench://asset/")?
+                .strip_prefix(ASSET_CONTEXT_TARGET_PREFIX)?
+                .split('?')
+                .next()?
                 .to_owned();
+            if asset_uuid.is_empty() {
+                return None;
+            }
             return Some(EditorUiBinding::new(
                 WORKBENCH_CONTEXT_MENU_CONTROL_ID,
                 action_id,
@@ -61,6 +109,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         None
     }
 
+    // 宿主给出物理屏幕锚点与目标路径；模板弹层先换算到挂载区逻辑坐标再发布菜单状态。
     pub(crate) fn open_context_menu(
         &mut self,
         request: &WorkbenchContextMenuRequestData,

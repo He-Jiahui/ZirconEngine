@@ -1,12 +1,13 @@
+# 核对原生动态文件清单路径只归一化一次，保持原有诊断顺序。
 from __future__ import annotations
 
 import unittest
 from unittest import mock
 
-from tools.zircon_export import (
+from tools.export import (
     pipeline_report_native_dynamic_payload_file_manifest_schema as subject,
 )
-from tools.zircon_export.pipeline_report_native_dynamic_payload_schema_helpers import (
+from tools.export.pipeline_report_native_dynamic_payload_schema_helpers import (
     object_array_non_negative_integer_schema_diagnostics,
     object_array_required_non_empty_string_schema_diagnostics,
     object_array_required_trimmed_non_empty_string_schema_diagnostics,

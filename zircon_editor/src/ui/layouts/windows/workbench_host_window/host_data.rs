@@ -309,6 +309,7 @@ pub(crate) struct AnimationEditorPaneViewData {
 
 #[derive(Clone)]
 pub(crate) struct HostWindowSurfaceData {
+    pub document_leaves: Vec<super::document_leaves::DocumentLeafSurfaceData>,
     pub host_tabs: ModelRc<TabData>,
     pub left_tabs: ModelRc<TabData>,
     pub right_tabs: ModelRc<TabData>,
@@ -371,6 +372,7 @@ pub(crate) struct HostWindowShellData {
 
 #[derive(Clone)]
 pub(crate) struct HostWindowLayoutData {
+    pub authoritative: bool,
     pub center_band_frame: FrameRect,
     pub status_bar_frame: FrameRect,
     pub left_region_frame: FrameRect,
@@ -547,6 +549,7 @@ pub(crate) struct HostFloatingWindowLayerData {
 
 #[derive(Clone)]
 pub(crate) struct HostWindowSceneData {
+    pub document_leaves: Vec<HostDocumentDockSurfaceData>,
     pub layout: HostWindowLayoutData,
     pub metrics: HostWindowSurfaceMetricsData,
     pub orchestration: HostWindowSurfaceOrchestrationData,

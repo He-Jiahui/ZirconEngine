@@ -1,4 +1,4 @@
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Deserializer, Serialize};
 use thiserror::Error;
@@ -18,12 +18,14 @@ impl<'de> Deserialize<'de> for CanonicalDescriptorIdentity {
     where
         D: Deserializer<'de>,
     {
+        // 持久化值也经过同一校验，避免 serde 绕过本地构造时的路径不变量。
         PathBuf::deserialize(deserializer)
             .and_then(|path| Self::new(path).map_err(serde::de::Error::custom))
     }
 }
 
 impl CanonicalDescriptorIdentity {
+    /// 只校验绝对路径及其段形状，不查询或规范化文件系统；调用方须先解析物理路径。
     pub fn new(path: impl Into<PathBuf>) -> Result<Self, CanonicalDescriptorIdentityError> {
         let path = path.into();
         if path.as_os_str().is_empty() {
@@ -33,8 +35,10 @@ impl CanonicalDescriptorIdentity {
             return Err(CanonicalDescriptorIdentityError::NotAbsolute { path });
         }
         if path
-            .components()
-            .any(|component| matches!(component, Component::CurDir | Component::ParentDir))
+            .as_os_str()
+            .as_encoded_bytes()
+            .split(|byte| std::path::is_separator(char::from(*byte)))
+            .any(|segment| matches!(segment, b"." | b".."))
         {
             return Err(CanonicalDescriptorIdentityError::ContainsDotSegment { path });
         }

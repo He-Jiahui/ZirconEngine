@@ -67,6 +67,7 @@ serviceLifecycleTest(): int {
     return 1;
 }
 
+// 模拟玩家失效与固定步到期，验证清退早于配对、无人出牌不计胜场。
 serviceStaleAndDeadlineTest(): int {
     var stale = new serviceModule.CardDuelService(<uint>1010);
     serviceModule.upsertPlayer(stale, <uint>1, true, true);

@@ -31,6 +31,10 @@ pub use manager_state::{DefaultSoundManager, SoundDriver};
 pub(crate) use mixer_graph::sync::{
     last_graph_commit_lock_hold_for_test, ActiveGraphCommitHarness,
 };
+#[cfg(test)]
+pub(crate) use output_device::lifecycle::{
+    signal_owner_gain_writer_admitted, wait_for_owner_gain_writer_admission_attempt,
+};
 pub(crate) use playback_controls::kira_slice_position_for_absolute_frame;
 pub(crate) use playback_status::absolute_position_from_kira_slice;
 pub(crate) use source_controls::{
@@ -38,4 +42,4 @@ pub(crate) use source_controls::{
     set_bound_source_speed,
 };
 pub(crate) use source_seek::seek_bound_source;
-pub(crate) use sources::{stop_bound_source, sync_source_voice};
+pub(crate) use sources::{prepare_source_generation, stop_bound_source, sync_source_voice};

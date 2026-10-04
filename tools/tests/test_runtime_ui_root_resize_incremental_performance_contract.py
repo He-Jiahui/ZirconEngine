@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from tools.ui_root_resize_incremental_pressure import run
+from tools.analysis.performance.ui.ui_root_resize_incremental_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -13,7 +13,7 @@ RUNTIME_REGRESSION = (
     ROOT / "zircon_runtime/src/ui/tests/surface_dirty_domains/incremental_layout.rs"
 )
 
-
+# 检查根尺寸变更沿现有增量权威处理，工作量随根和尺寸依赖增长而非全部节点。
 class RuntimeUiRootResizeIncrementalPerformanceContractTests(unittest.TestCase):
     def test_product_resize_routes_to_the_existing_incremental_authority(self) -> None:
         rebuild = SURFACE_REBUILD.read_text(encoding="utf-8")

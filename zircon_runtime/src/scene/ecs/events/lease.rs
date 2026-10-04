@@ -1,8 +1,9 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
+use std::sync::Arc;
 
 use super::EventTypeId;
 
+// 每个事件类型共享一个计数器；读者 lease 的 Drop 路径是直接系统状态的兜底回收。
 pub(crate) struct EventReaderLeaseRegistry {
     reader_count: AtomicU32,
     next_generation: AtomicU64,
@@ -20,6 +21,7 @@ impl EventReaderLeaseRegistry {
         self: &Arc<Self>,
         event_type_id: EventTypeId,
     ) -> Option<EventReaderLease> {
+        // generation 与 reader_count 都在溢出时拒绝分配，避免 lease 身份或容量回绕。
         let generation = self
             .next_generation
             .fetch_update(Ordering::AcqRel, Ordering::Acquire, |generation| {

@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::asset::{AssetId, AssetKind, AssetUri, AssetUuid};
 use crate::core::resource::ResourceRegistry;
@@ -10,7 +10,13 @@ use super::{AssetRegistryDiagnostic, AssetRegistryEntry, AssetRegistryError};
 pub struct AssetRegistryIndex {
     pub(super) entries_by_uuid: HashMap<AssetUuid, AssetRegistryEntry>,
     pub(super) uuids_by_path: HashMap<AssetUri, AssetUuid>,
+    uuids_by_canonical_path: BTreeMap<AssetUri, AssetUuid>,
     pub(super) uuids_by_type: HashMap<AssetKind, HashSet<AssetUuid>>,
+    /// Lookup-only postings; `entries_by_uuid` remains the row authority.
+    pub(super) uuids_by_tag: HashMap<String, HashSet<AssetUuid>>,
+    pub(super) uuids_by_package: HashMap<String, HashSet<AssetUuid>>,
+    /// Exact path buckets are range-scanned to preserve `starts_with` filter semantics.
+    pub(super) uuids_by_path_prefix: BTreeMap<String, HashSet<AssetUuid>>,
     pub(super) uuid_by_asset_id: HashMap<AssetId, AssetUuid>,
     pub(super) referencers_by_uuid: HashMap<AssetUuid, HashSet<AssetUuid>>,
     pub(super) entry_uuids_by_source: HashMap<AssetUri, HashSet<AssetUuid>>,
@@ -23,27 +29,39 @@ impl AssetRegistryIndex {
     pub fn from_entries(
         entries: impl IntoIterator<Item = AssetRegistryEntry>,
     ) -> Result<Self, AssetRegistryError> {
+        let entries = entries.into_iter();
         let mut index = Self::default();
+        index.reserve_build_capacity(entries.size_hint().0);
         for entry in entries {
             index.insert_checked(entry)?;
         }
-        let dependency_paths = index
-            .entries_by_uuid
-            .values()
-            .map(|entry| {
-                let paths = entry
-                    .dependencies()
-                    .iter()
-                    .filter_map(|uuid| index.entries_by_uuid.get(uuid))
-                    .map(|dependency| dependency.path().clone())
-                    .collect::<Vec<_>>();
-                (entry.uuid(), paths)
-            })
-            .collect::<Vec<_>>();
-        for (uuid, paths) in dependency_paths {
-            index.replace_dependency_paths(uuid, paths);
+        let entry_uuids = index.entries_by_uuid.keys().copied().collect::<Vec<_>>();
+        for uuid in entry_uuids {
+            let paths = index
+                .entries_by_uuid
+                .get(&uuid)
+                .map(|entry| {
+                    entry
+                        .dependencies()
+                        .iter()
+                        .filter_map(|dependency_uuid| index.entries_by_uuid.get(dependency_uuid))
+                        .map(|dependency| dependency.path().clone())
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default();
+            index.replace_dependency_paths_inner(uuid, paths, false);
         }
+        index
+            .referencers_by_path
+            .retain(|_, referencers| !referencers.is_empty());
         Ok(index)
+    }
+
+    fn reserve_build_capacity(&mut self, entry_count: usize) {
+        self.entries_by_uuid.reserve(entry_count);
+        self.uuids_by_path.reserve(entry_count);
+        self.uuid_by_asset_id.reserve(entry_count);
+        self.entry_uuids_by_source.reserve(entry_count);
     }
 
     pub(crate) fn reconcile_resource_dependencies(
@@ -81,9 +99,17 @@ impl AssetRegistryIndex {
     }
 
     pub fn entries(&self) -> Vec<&AssetRegistryEntry> {
-        let mut entries = self.entries_by_uuid.values().collect::<Vec<_>>();
-        entries.sort_unstable_by(|left, right| left.path().cmp(right.path()));
-        entries
+        self.entries_iter().collect()
+    }
+
+    pub fn entries_iter(
+        &self,
+    ) -> impl ExactSizeIterator<Item = &AssetRegistryEntry> + DoubleEndedIterator {
+        self.uuids_by_canonical_path.values().map(|uuid| {
+            self.entries_by_uuid
+                .get(uuid)
+                .expect("canonical asset path index must reference a live entry")
+        })
     }
 
     pub fn diagnostics(&self) -> &[AssetRegistryDiagnostic] {
@@ -120,8 +146,26 @@ impl AssetRegistryIndex {
         }
         self.uuids_by_path
             .insert(entry.path().clone(), entry.uuid());
+        self.uuids_by_canonical_path
+            .insert(entry.path().clone(), entry.uuid());
         self.uuids_by_type
             .entry(entry.type_marker())
+            .or_default()
+            .insert(entry.uuid());
+        for tag in entry.tags() {
+            self.uuids_by_tag
+                .entry(tag.clone())
+                .or_default()
+                .insert(entry.uuid());
+        }
+        if let Some(package_id) = entry.path().package_id() {
+            self.uuids_by_package
+                .entry(package_id.to_owned())
+                .or_default()
+                .insert(entry.uuid());
+        }
+        self.uuids_by_path_prefix
+            .entry(entry.path().path().to_owned())
             .or_default()
             .insert(entry.uuid());
         self.uuid_by_asset_id
@@ -148,29 +192,67 @@ impl AssetRegistryIndex {
         for uuid in removed {
             if let Some(entry) = self.entries_by_uuid.remove(&uuid) {
                 self.uuids_by_path.remove(entry.path());
+                self.uuids_by_canonical_path.remove(entry.path());
                 let type_marker = entry.type_marker();
-                let remove_type_bucket = self
-                    .uuids_by_type
-                    .get_mut(&type_marker)
+                let remove_type_bucket =
+                    self.uuids_by_type
+                        .get_mut(&type_marker)
+                        .is_some_and(|uuids| {
+                            uuids.remove(&uuid);
+                            uuids.is_empty()
+                        });
+                if remove_type_bucket {
+                    self.uuids_by_type.remove(&type_marker);
+                }
+                for tag in entry.tags() {
+                    let remove_tag_bucket = self.uuids_by_tag.get_mut(tag).is_some_and(|uuids| {
+                        uuids.remove(&uuid);
+                        uuids.is_empty()
+                    });
+                    if remove_tag_bucket {
+                        self.uuids_by_tag.remove(tag);
+                    }
+                }
+                if let Some(package_id) = entry.path().package_id() {
+                    let remove_package_bucket = self
+                        .uuids_by_package
+                        .get_mut(package_id)
+                        .is_some_and(|uuids| {
+                            uuids.remove(&uuid);
+                            uuids.is_empty()
+                        });
+                    if remove_package_bucket {
+                        self.uuids_by_package.remove(package_id);
+                    }
+                }
+                let path_prefix = entry.path().path().to_owned();
+                let remove_path_prefix_bucket = self
+                    .uuids_by_path_prefix
+                    .get_mut(&path_prefix)
                     .is_some_and(|uuids| {
                         uuids.remove(&uuid);
                         uuids.is_empty()
                     });
-                if remove_type_bucket {
-                    self.uuids_by_type.remove(&type_marker);
+                if remove_path_prefix_bucket {
+                    self.uuids_by_path_prefix.remove(&path_prefix);
                 }
                 self.uuid_by_asset_id
                     .remove(&AssetId::from_asset_uuid(uuid));
                 for dependency in entry.dependencies() {
-                    if let Some(referencers) = self.referencers_by_uuid.get_mut(dependency) {
-                        referencers.remove(&uuid);
+                    let remove_bucket =
+                        self.referencers_by_uuid
+                            .get_mut(dependency)
+                            .is_some_and(|referencers| {
+                                referencers.remove(&uuid);
+                                referencers.is_empty()
+                            });
+                    if remove_bucket {
+                        self.referencers_by_uuid.remove(dependency);
                     }
                 }
                 self.replace_dependency_paths(uuid, Vec::new());
             }
         }
-        self.referencers_by_uuid
-            .retain(|_, referencers| !referencers.is_empty());
     }
 
     pub(super) fn replace_dependency_paths(
@@ -178,12 +260,21 @@ impl AssetRegistryIndex {
         uuid: AssetUuid,
         dependencies: Vec<AssetUri>,
     ) {
-        for dependency in self
+        self.replace_dependency_paths_inner(uuid, dependencies, true);
+    }
+
+    fn replace_dependency_paths_inner(
+        &mut self,
+        uuid: AssetUuid,
+        dependencies: Vec<AssetUri>,
+        prune_empty_buckets: bool,
+    ) {
+        let previous = self
             .dependency_paths_by_uuid
             .remove(&uuid)
-            .unwrap_or_default()
-        {
-            if let Some(referencers) = self.referencers_by_path.get_mut(&dependency) {
+            .unwrap_or_default();
+        for dependency in &previous {
+            if let Some(referencers) = self.referencers_by_path.get_mut(dependency) {
                 referencers.remove(&uuid);
             }
         }
@@ -196,8 +287,18 @@ impl AssetRegistryIndex {
         if !dependencies.is_empty() {
             self.dependency_paths_by_uuid.insert(uuid, dependencies);
         }
-        self.referencers_by_path
-            .retain(|_, referencers| !referencers.is_empty());
+        if prune_empty_buckets {
+            // Only old buckets can become empty; reinsert overlapping edges before pruning.
+            for dependency in previous {
+                if self
+                    .referencers_by_path
+                    .get(&dependency)
+                    .is_some_and(HashSet::is_empty)
+                {
+                    self.referencers_by_path.remove(&dependency);
+                }
+            }
+        }
     }
 
     pub(super) fn replace_dependencies(&mut self, uuid: AssetUuid, dependencies: Vec<AssetUuid>) {
@@ -208,8 +309,8 @@ impl AssetRegistryIndex {
         entry.set_dependencies(dependencies);
         let current = entry.dependencies().to_vec();
 
-        for dependency in previous {
-            if let Some(referencers) = self.referencers_by_uuid.get_mut(&dependency) {
+        for dependency in &previous {
+            if let Some(referencers) = self.referencers_by_uuid.get_mut(dependency) {
                 referencers.remove(&uuid);
             }
         }
@@ -219,8 +320,16 @@ impl AssetRegistryIndex {
                 .or_default()
                 .insert(uuid);
         }
-        self.referencers_by_uuid
-            .retain(|_, referencers| !referencers.is_empty());
+        // Preserve overlapping and shared buckets; only removed edges can empty a bucket.
+        for dependency in previous {
+            if self
+                .referencers_by_uuid
+                .get(&dependency)
+                .is_some_and(HashSet::is_empty)
+            {
+                self.referencers_by_uuid.remove(&dependency);
+            }
+        }
     }
 
     pub(super) fn push_diagnostic(&mut self, diagnostic: AssetRegistryDiagnostic) {
@@ -247,72 +356,29 @@ pub(super) fn source_locator(locator: &AssetUri) -> AssetUri {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::collections::HashSet;
-
-    use crate::asset::{AssetKind, AssetUri, AssetUuid};
-
-    use super::{AssetRegistryEntry, AssetRegistryIndex};
-
-    #[test]
-    fn persisted_entries_restore_dependency_path_and_referencer_indexes() {
-        let dependency_uuid = AssetUuid::new();
-        let owner_uuid = AssetUuid::new();
-        let dependency_path = AssetUri::parse("res://data/dependency.json").unwrap();
-        let owner_path = AssetUri::parse("res://data/owner.json").unwrap();
-        let index = AssetRegistryIndex::from_entries([
-            AssetRegistryEntry::new(
-                dependency_uuid,
-                dependency_path.clone(),
-                AssetKind::Data,
-                "dependency",
-            ),
-            AssetRegistryEntry::new(owner_uuid, owner_path, AssetKind::Data, "owner")
-                .with_dependencies(vec![dependency_uuid]),
-        ])
-        .unwrap();
-
-        assert_eq!(
-            index.get_referencers_by_path(&dependency_path),
-            vec![owner_uuid]
-        );
-    }
-
-    #[test]
-    fn overlapping_dependency_path_sources_resolve_to_one_uuid_edge() {
-        let dependency_uuid = AssetUuid::new();
-        let owner_uuid = AssetUuid::new();
-        let dependency_path = AssetUri::parse("res://data/dependency.json").unwrap();
-        let mut index = AssetRegistryIndex::from_entries([
-            AssetRegistryEntry::new(
-                dependency_uuid,
-                dependency_path.clone(),
-                AssetKind::Data,
-                "dependency",
-            ),
-            AssetRegistryEntry::new(
-                owner_uuid,
-                AssetUri::parse("res://data/owner.json").unwrap(),
-                AssetKind::Data,
-                "owner",
-            ),
-        ])
-        .unwrap();
-        index.replace_dependency_paths(owner_uuid, vec![dependency_path.clone(), dependency_path]);
-
-        index.refresh_dependency_owners(&HashSet::from([owner_uuid]));
-
-        assert_eq!(
-            index.entry_by_uuid(owner_uuid).unwrap().dependencies(),
-            &[dependency_uuid]
-        );
-    }
-}
+#[path = "tests/asset_registry_index.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "asset_registry_index/optimization_tests.rs"]
+#[path = "asset_registry_index/tests/optimization_tests.rs"]
 mod optimization_tests;
 
 #[cfg(test)]
-#[path = "asset_registry_index/type_posting_tests.rs"]
+#[path = "asset_registry_index/tests/type_posting_tests.rs"]
 mod type_posting_tests;
+
+#[cfg(test)]
+#[path = "asset_registry_index/tests/secondary_query_tests.rs"]
+mod secondary_query_tests;
+
+#[cfg(test)]
+#[path = "asset_registry_index/tests/build_tests.rs"]
+mod build_tests;
+
+#[cfg(test)]
+#[path = "asset_registry_index/tests/incremental_referencer_pruning_tests.rs"]
+mod incremental_referencer_pruning_tests;
+
+#[cfg(test)]
+#[path = "asset_registry_index/tests/source_removal_pruning_tests.rs"]
+mod source_removal_pruning_tests;

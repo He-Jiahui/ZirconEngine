@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "keycloak": {
+    "version": "26.7.3",
+    "realm": "zircon-local",
+    "issuer": "http://127.0.0.1:8080/realms/zircon-local",
+    "httpHost": "127.0.0.1",
+    "httpPort": 8080,
+    "managementPort": 9000
+  },
+  "clients": {
+    "desktop": "zircon-hub-desktop",
+    "service": "zircon-hub-service",
+    "callbackPort": 8480
+  },
+  "hubService": {
+    "bind": "127.0.0.1:8787",
+    "url": "http://127.0.0.1:8787",
+    "healthUrl": "http://127.0.0.1:8787/health"
+  }
+}

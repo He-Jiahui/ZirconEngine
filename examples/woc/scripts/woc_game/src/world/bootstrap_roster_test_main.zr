@@ -2,6 +2,8 @@
 
 var roster = %import("world/bootstrap_roster");
 
+// 空世界的构造顺序决定后续实体引用；这里固定各类别的编号区间，
+// 不把额外的保留 NPC 算进连续编号游标。
 if (roster.sequentialEntityCount(true) != 408 || roster.nextSequentialEntityId(true) != 409 ||
     roster.initialWorldEntityCount(true) != 410 ||
     roster.sequentialEntityId(roster.CATEGORY_STATIC_NPC, 0, true) != 1 ||
@@ -16,6 +18,8 @@ if (roster.sequentialEntityCount(true) != 408 || roster.nextSequentialEntityId(t
     throw "woc bootstrap sequential entity schedule vector failed";
 }
 
+// 从实体编号反查来源目录，并区分连续编号与保留编号；
+// 实体总数可以包含两类，下一连续编号仍只取普通构造序列。
 if (roster.categoryForSequentialEntityId(339, true) != roster.CATEGORY_GROUND_OBJECT ||
     roster.sourceIndexForSequentialEntityId(339, true) != 0 ||
     roster.categoryForSequentialEntityId(408, true) != roster.CATEGORY_SPIRIT_HEALER ||

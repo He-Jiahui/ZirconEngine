@@ -1,0 +1,197 @@
+{
+  "schema": 1,
+  "at_utc": "2026-10-03T08:55:44.164602+00:00",
+  "status": "local_readonly_jobs_frozen_not_semantically_reviewed",
+  "intent": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave13-runtime-root-partition-check-20261003-r1\\freeze-intent.json",
+    "sha256": "9a93cb55d7d8ec20a2c4c616bbb5043fb3a3a43f9a00118343620180624d69db",
+    "bytes": 169006
+  },
+  "verification": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave13-runtime-root-partition-check-20261003-r1\\root-verification.json",
+    "sha256": "025963188f94ce356e9e9aa52c7719e20ef342f6024d120f86c28a3bd8c3f7ca",
+    "bytes": 333278
+  },
+  "prepared_jobs": [
+    {
+      "owner": "runtime_wave13_graphics_pipeline_authoring",
+      "files": 60,
+      "manifest": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\jobs\\runtime_wave13_graphics_pipeline_authoring.json",
+        "sha256": "2ed845b9e33910e42ae5b407fc54c3590303ef3a84c259e6e072d071e9e637d2",
+        "bytes": 108594
+      },
+      "output_dir": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_graphics_pipeline_authoring",
+      "allow_one_readonly_child": true
+    },
+    {
+      "owner": "runtime_wave13_graphics_shader_invocation_ide",
+      "files": 30,
+      "manifest": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\jobs\\runtime_wave13_graphics_shader_invocation_ide.json",
+        "sha256": "c7397f0f0ce2562d4ce7fa5ba0ff9d09e4f8842fa87f7602f1f72544b6c1752f",
+        "bytes": 58530
+      },
+      "output_dir": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_graphics_shader_invocation_ide",
+      "allow_one_readonly_child": false
+    },
+    {
+      "owner": "runtime_wave13_graphics_shader_templates",
+      "files": 45,
+      "manifest": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\jobs\\runtime_wave13_graphics_shader_templates.json",
+        "sha256": "bb787f0a03a4252fa44f7e8c4d496e794015614e0d5764730e4b08a37fc8ce1e",
+        "bytes": 112261
+      },
+      "output_dir": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_graphics_shader_templates",
+      "allow_one_readonly_child": true
+    },
+    {
+      "owner": "runtime_wave13_graphics_graph_execution",
+      "files": 58,
+      "manifest": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\jobs\\runtime_wave13_graphics_graph_execution.json",
+        "sha256": "c757e45e503597fc5c2514ffaac4ef4af3f22306b340549f585fbca25ce1451c",
+        "bytes": 113778
+      },
+      "output_dir": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_graphics_graph_execution",
+      "allow_one_readonly_child": true
+    },
+    {
+      "owner": "runtime_wave13_graphics_postprocess_resources",
+      "files": 49,
+      "manifest": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\jobs\\runtime_wave13_graphics_postprocess_resources.json",
+        "sha256": "afcd248c6a5fdf0cc95c9688321624489d602cc3f75399b7fffe70fdb52fa77b",
+        "bytes": 98276
+      },
+      "output_dir": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_graphics_postprocess_resources",
+      "allow_one_readonly_child": true
+    },
+    {
+      "owner": "runtime_wave13_graphics_postprocess_execution",
+      "files": 60,
+      "manifest": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\jobs\\runtime_wave13_graphics_postprocess_execution.json",
+        "sha256": "5bb273201fdd0b137c7a47b2f7c6fc95bbab601f7716b43bdd1d519194ae6345",
+        "bytes": 122040
+      },
+      "output_dir": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_graphics_postprocess_execution",
+      "allow_one_readonly_child": true
+    },
+    {
+      "owner": "runtime_wave13_graphics_environment_bake",
+      "files": 32,
+      "manifest": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\jobs\\runtime_wave13_graphics_environment_bake.json",
+        "sha256": "4a6909c5d046e2d48ae895fd05fbf16460c9fe4e8aba9770d26cd1c01909c69a",
+        "bytes": 62952
+      },
+      "output_dir": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_graphics_environment_bake",
+      "allow_one_readonly_child": true
+    },
+    {
+      "owner": "runtime_wave13_graphics_environment_capture",
+      "files": 50,
+      "manifest": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\jobs\\runtime_wave13_graphics_environment_capture.json",
+        "sha256": "dc145b7e17d28c732a55a5a236b130b8039c3b7169cc3c37a4693dffbc6ef7b8",
+        "bytes": 94966
+      },
+      "output_dir": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_graphics_environment_capture",
+      "allow_one_readonly_child": true
+    },
+    {
+      "owner": "runtime_wave13_ui_accessibility_actions",
+      "files": 34,
+      "manifest": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\jobs\\runtime_wave13_ui_accessibility_actions.json",
+        "sha256": "b2b559dc4c143c766d17b9eb9e3e81384ebbbbb7b501a3cf24fbe4d2b42a394e",
+        "bytes": 63351
+      },
+      "output_dir": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_ui_accessibility_actions",
+      "allow_one_readonly_child": true
+    },
+    {
+      "owner": "runtime_wave13_ui_component_catalog",
+      "files": 34,
+      "manifest": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\jobs\\runtime_wave13_ui_component_catalog.json",
+        "sha256": "60302cf7e8f7924defb402704af129705c847931053b39ee430f8291ceaae1f6",
+        "bytes": 61778
+      },
+      "output_dir": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_ui_component_catalog",
+      "allow_one_readonly_child": true
+    },
+    {
+      "owner": "runtime_wave13_ui_component_reducer_bindings",
+      "files": 31,
+      "manifest": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\jobs\\runtime_wave13_ui_component_reducer_bindings.json",
+        "sha256": "4cb67981e2044db10c0194bddc5deab7ee62c75bbc9bed0ad93c324d0e9d7c39",
+        "bytes": 68501
+      },
+      "output_dir": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_ui_component_reducer_bindings",
+      "allow_one_readonly_child": true
+    },
+    {
+      "owner": "runtime_wave13_ui_layout",
+      "files": 49,
+      "manifest": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\jobs\\runtime_wave13_ui_layout.json",
+        "sha256": "997c1b747ecb14bff65fb030d444230ddfd8ddd1ddae7fc988023208400abcaf",
+        "bytes": 83421
+      },
+      "output_dir": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_ui_layout",
+      "allow_one_readonly_child": true
+    },
+    {
+      "owner": "runtime_wave13_ui_text",
+      "files": 59,
+      "manifest": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\jobs\\runtime_wave13_ui_text.json",
+        "sha256": "d65e33fb1d11f5f0806cb076eee2622c3c9c16d827d30724188c10a0049d0550",
+        "bytes": 107165
+      },
+      "output_dir": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_ui_text",
+      "allow_one_readonly_child": true
+    },
+    {
+      "owner": "runtime_wave13_ui_template_compiler",
+      "files": 39,
+      "manifest": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\jobs\\runtime_wave13_ui_template_compiler.json",
+        "sha256": "8034f7da57050dbd59ad8d316abdd3594566783b694027956d53bc603b4f4f9a",
+        "bytes": 76755
+      },
+      "output_dir": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_ui_template_compiler",
+      "allow_one_readonly_child": true
+    },
+    {
+      "owner": "runtime_wave13_ui_template_lifecycle_build",
+      "files": 60,
+      "manifest": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\jobs\\runtime_wave13_ui_template_lifecycle_build.json",
+        "sha256": "d748768fca7b4d0ed9e7c1a8fc186c9713c6863ff2f942080aa65a3cfff0e46b",
+        "bytes": 110316
+      },
+      "output_dir": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_ui_template_lifecycle_build",
+      "allow_one_readonly_child": true
+    }
+  ],
+  "new_jobs": 15,
+  "new_source_files": 690,
+  "total_jobs": 203,
+  "total_unique_frozen_paths": 7886,
+  "original_comments_and_business_bytes_preserved": true,
+  "source_edits": 0,
+  "canonical_review_writes": 0,
+  "business_adoption_or_product_consent": false,
+  "old_coordinator_git_process_network_calls": 0,
+  "worker_instructions": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\wave13-local-readonly-worker-instructions-20261003-r1.md",
+    "sha256": "34c2364efc7b0fb8a8e25b59301f5cbed67341dbce972a00a934ea18ffd900bc",
+    "bytes": 3419
+  },
+  "maximum_parallel_policy": "root plus15 primaries plus at most14 one-level children =30 active agents"
+}

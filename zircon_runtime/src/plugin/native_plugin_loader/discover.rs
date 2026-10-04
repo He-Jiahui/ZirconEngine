@@ -1,3 +1,5 @@
+//! 插件管理与导出流程的发现入口，共享同一权威与最后成功发布的候选集合。
+//! 需要交互式刷新时先在准备阶段取得根身份，再提交票据和查询快照；同步入口允许冷启动等待。
 use std::path::Path;
 
 use self::authority::discovery_authority;
@@ -9,6 +11,7 @@ use super::{
 pub(super) mod authority;
 
 #[cfg(test)]
+#[path = "discover/tests/cases.rs"]
 mod tests;
 
 impl NativePluginLoader {
@@ -38,11 +41,15 @@ impl NativePluginLoader {
 
     /// Projects the canonical authority's last-good snapshot. A cold root waits for the single
     /// bounded authority refresh; later calls perform no synchronous filesystem traversal.
+    /// 发现报告只描述候选与诊断；库加载、制品信任校验及注册属于后续加载入口。
+    /// 已有快照不会自行感知磁盘变化，变更来源必须显式请求刷新或提交清单通知。
     pub fn discover(&self, root: impl AsRef<Path>) -> NativePluginLoadReport {
         discovery_authority().discover(root.as_ref())
     }
 
     /// Schedules a coalesced, path-scoped manifest refresh after a watcher/editor notification.
+    /// 此返回报告的入口会等待通知票据完成，不能当作交互回调中的无等待提交函数。
+    /// 通知路径相对于发现根解释；无法归入根内的通知会退回受预算约束的全量扫描。
     pub fn refresh_discovery_manifest(
         &self,
         root: impl AsRef<Path>,
@@ -52,6 +59,8 @@ impl NativePluginLoader {
     }
 
     /// Removes a watcher-reported path from the immutable discovery index without rescanning.
+    /// 删除通知操作的是已发布索引，文件已不存在时仍可提交；相对路径须相对于发现根。
+    /// 调用会等待票据；保留的旧快照仍由持有它的消费者独立使用。
     pub fn remove_discovered_path(
         &self,
         root: impl AsRef<Path>,

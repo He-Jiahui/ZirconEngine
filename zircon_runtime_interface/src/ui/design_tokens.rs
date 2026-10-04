@@ -129,6 +129,7 @@ impl EditorDesignTokens {
                 self.density.gap_large,
                 self.density.drawer_padding,
                 self.density.panel_padding,
+                self.density.gap_group,
             ],
             control_sizes: UiThemeControlSizes {
                 default_height: self.controls.default_height,
@@ -264,6 +265,8 @@ pub struct EditorTypographyTokens {
     pub caption_size: f32,
     /// Viewport overlay font size in 96-DPI logical pixels, after converting authored points.
     pub overlay_size: f32,
+    /// Section heading font size in 96-DPI logical pixels.
+    pub heading_size: f32,
     /// Title font size in 96-DPI logical pixels, after converting authored points.
     pub title_size: f32,
     pub body_weight: u16,
@@ -297,11 +300,12 @@ pub enum EditorUtilityTabTextRole {
 }
 
 impl EditorTypographyTokens {
-    pub const DEFAULT_UI_FAMILY: &'static str = "system-ui";
-    pub const DEFAULT_CODE_FAMILY: &'static str = "monospace";
+    pub const DEFAULT_UI_FAMILY: &'static str = "Roboto";
+    pub const DEFAULT_CODE_FAMILY: &'static str = "Droid Sans Mono";
     pub const WORKBENCH_BODY_SIZE: f32 = Self::points_to_logical_pixels(10.0);
     pub const WORKBENCH_CAPTION_SIZE: f32 = Self::points_to_logical_pixels(8.0);
-    pub const WORKBENCH_OVERLAY_SIZE: f32 = Self::points_to_logical_pixels(9.0);
+    pub const WORKBENCH_OVERLAY_SIZE: f32 = 12.0;
+    pub const WORKBENCH_HEADING_SIZE: f32 = Self::points_to_logical_pixels(10.0);
     pub const WORKBENCH_TITLE_SIZE: f32 = Self::points_to_logical_pixels(14.0);
     pub const WORKBENCH_LINE_HEIGHT_RATIO: f32 = 1.2;
 
@@ -320,10 +324,11 @@ impl EditorTypographyTokens {
             body_size: Self::WORKBENCH_BODY_SIZE,
             caption_size: Self::WORKBENCH_CAPTION_SIZE,
             overlay_size: Self::WORKBENCH_OVERLAY_SIZE,
+            heading_size: Self::WORKBENCH_HEADING_SIZE,
             title_size: Self::WORKBENCH_TITLE_SIZE,
             body_weight: 400,
             medium_weight: 500,
-            strong_weight: 600,
+            strong_weight: 700,
             emphasis_weight: 700,
             code_weight: 400,
             line_height: Self::WORKBENCH_LINE_HEIGHT_RATIO,
@@ -351,6 +356,13 @@ impl EditorTypographyTokens {
                 family: self.ui_strong_family.clone(),
                 size: self.overlay_size,
                 weight: self.emphasis_weight,
+                line_height: self.line_height,
+            },
+            UiThemeTypographyVariant {
+                variant: "heading".to_string(),
+                family: self.ui_strong_family.clone(),
+                size: self.heading_size,
+                weight: self.strong_weight,
                 line_height: self.line_height,
             },
             UiThemeTypographyVariant {
@@ -391,6 +403,7 @@ impl EditorTypographyTokens {
         insert_float_token(values, "editor.typography.body.size", self.body_size);
         insert_float_token(values, "editor.typography.caption.size", self.caption_size);
         insert_float_token(values, "editor.typography.overlay.size", self.overlay_size);
+        insert_float_token(values, "editor.typography.heading.size", self.heading_size);
         insert_float_token(values, "editor.typography.title.size", self.title_size);
         insert_integer_token(values, "editor.typography.body.weight", self.body_weight);
         insert_integer_token(
@@ -437,6 +450,12 @@ pub struct EditorPaletteTokens {
     pub surface: [UiRgbaColor; 4],
     #[serde(default = "default_palette_surface_recessed")]
     pub surface_recessed: UiRgbaColor,
+    #[serde(default = "default_palette_surface_input")]
+    pub surface_input: UiRgbaColor,
+    #[serde(default = "default_palette_surface_tab_hover")]
+    pub surface_tab_hover: UiRgbaColor,
+    #[serde(default = "default_palette_text_tab_active")]
+    pub text_tab_active: UiRgbaColor,
     #[serde(default = "default_palette_surface_hover")]
     pub surface_hover: UiRgbaColor,
     #[serde(default = "default_palette_surface_selected")]
@@ -491,36 +510,42 @@ impl EditorPaletteTokens {
         [47, 47, 47, 255],
         [56, 56, 56, 255],
     ];
-    pub const WORKBENCH_SURFACE_RECESSED: [u8; 4] = [15, 15, 15, 255];
-    pub const WORKBENCH_SURFACE_HOVER: [u8; 4] = [69, 69, 69, 255];
-    pub const WORKBENCH_SURFACE_SELECTED: [u8; 4] = [36, 63, 90, 255];
-    pub const WORKBENCH_SURFACE_DISABLED: [u8; 4] = [43, 43, 43, 255];
-    pub const WORKBENCH_ACCENT: [u8; 4] = [96, 174, 255, 255];
-    pub const WORKBENCH_ACCENT_SOFT: [u8; 4] = [37, 63, 89, 255];
-    pub const WORKBENCH_BORDER: [u8; 4] = [72, 72, 72, 255];
-    pub const WORKBENCH_BORDER_DISABLED: [u8; 4] = [54, 54, 54, 255];
-    pub const WORKBENCH_SEPARATOR_STRONG: [u8; 4] = [86, 86, 86, 255];
-    pub const WORKBENCH_SEPARATOR_SOFT: [u8; 4] = [51, 51, 51, 255];
-    pub const WORKBENCH_TEXT_PRIMARY: [u8; 4] = [232, 232, 232, 255];
-    pub const WORKBENCH_TEXT_SECONDARY: [u8; 4] = [179, 179, 179, 255];
-    pub const WORKBENCH_TEXT_DISABLED: [u8; 4] = [115, 115, 115, 255];
-    pub const WORKBENCH_SUCCESS: [u8; 4] = [85, 190, 120, 255];
+    pub const WORKBENCH_SURFACE_RECESSED: [u8; 4] = [26, 26, 26, 255];
+    pub const WORKBENCH_SURFACE_INPUT: [u8; 4] = [15, 15, 15, 255];
+    pub const WORKBENCH_SURFACE_TAB_HOVER: [u8; 4] = [36, 36, 36, 204];
+    pub const WORKBENCH_TEXT_TAB_ACTIVE: [u8; 4] = [255, 255, 255, 255];
+    pub const WORKBENCH_SURFACE_HOVER: [u8; 4] = [87, 87, 87, 255];
+    pub const WORKBENCH_SURFACE_SELECTED: [u8; 4] = [0, 112, 224, 255];
+    pub const WORKBENCH_SURFACE_DISABLED: [u8; 4] = [36, 36, 36, 255];
+    pub const WORKBENCH_ACCENT: [u8; 4] = [0, 112, 224, 255];
+    pub const WORKBENCH_ACCENT_SOFT: [u8; 4] = [14, 134, 255, 255];
+    pub const WORKBENCH_BORDER: [u8; 4] = [56, 56, 56, 255];
+    pub const WORKBENCH_BORDER_DISABLED: [u8; 4] = [56, 56, 56, 255];
+    pub const WORKBENCH_SEPARATOR_STRONG: [u8; 4] = [87, 87, 87, 255];
+    pub const WORKBENCH_SEPARATOR_SOFT: [u8; 4] = [56, 56, 56, 255];
+    pub const WORKBENCH_TEXT_PRIMARY: [u8; 4] = [192, 192, 192, 255];
+    pub const WORKBENCH_TEXT_SECONDARY: [u8; 4] = [192, 192, 192, 255];
+    pub const WORKBENCH_TEXT_DISABLED: [u8; 4] = [128, 128, 128, 255];
+    pub const WORKBENCH_SUCCESS: [u8; 4] = [31, 228, 75, 255];
     pub const WORKBENCH_SUCCESS_CONTAINER: [u8; 4] = [29, 71, 47, 255];
-    pub const WORKBENCH_INFO: [u8; 4] = [95, 170, 230, 255];
+    pub const WORKBENCH_INFO: [u8; 4] = [38, 187, 255, 255];
     pub const WORKBENCH_INFO_CONTAINER: [u8; 4] = [24, 57, 91, 255];
-    pub const WORKBENCH_WARNING: [u8; 4] = [220, 172, 80, 255];
+    pub const WORKBENCH_WARNING: [u8; 4] = [255, 184, 0, 255];
     pub const WORKBENCH_WARNING_CONTAINER: [u8; 4] = [70, 49, 18, 255];
-    pub const WORKBENCH_ERROR: [u8; 4] = [235, 96, 92, 255];
+    pub const WORKBENCH_ERROR: [u8; 4] = [239, 53, 53, 255];
     pub const WORKBENCH_ERROR_CONTAINER: [u8; 4] = [76, 36, 39, 255];
-    pub const WORKBENCH_POPUP: [u8; 4] = [36, 36, 36, 255];
-    pub const WORKBENCH_TRACK: [u8; 4] = [59, 59, 59, 255];
-    pub const WORKBENCH_FOCUS_RING: [u8; 4] = [102, 178, 255, 255];
+    pub const WORKBENCH_POPUP: [u8; 4] = [56, 56, 56, 255];
+    pub const WORKBENCH_TRACK: [u8; 4] = [15, 15, 15, 255];
+    pub const WORKBENCH_FOCUS_RING: [u8; 4] = [0, 112, 224, 255];
     pub const WORKBENCH_SHADOW: [u8; 4] = [0, 0, 0, 115];
 
     pub fn workbench_dark() -> Self {
         Self {
             surface: Self::WORKBENCH_SURFACE.map(Self::rgba),
             surface_recessed: Self::rgba(Self::WORKBENCH_SURFACE_RECESSED),
+            surface_input: Self::rgba(Self::WORKBENCH_SURFACE_INPUT),
+            surface_tab_hover: Self::rgba(Self::WORKBENCH_SURFACE_TAB_HOVER),
+            text_tab_active: Self::rgba(Self::WORKBENCH_TEXT_TAB_ACTIVE),
             surface_hover: Self::rgba(Self::WORKBENCH_SURFACE_HOVER),
             surface_selected: Self::rgba(Self::WORKBENCH_SURFACE_SELECTED),
             surface_disabled: Self::rgba(Self::WORKBENCH_SURFACE_DISABLED),
@@ -557,6 +582,9 @@ impl EditorPaletteTokens {
             insert_color_token(values, &format!("editor.surface.{index}"), color);
         }
         insert_color_token(values, "editor.surface.recessed", self.surface_recessed);
+        insert_color_token(values, "editor.surface.input", self.surface_input);
+        insert_color_token(values, "editor.surface.tab_hover", self.surface_tab_hover);
+        insert_color_token(values, "editor.text.tab_active", self.text_tab_active);
         insert_color_token(values, "editor.surface.hover", self.surface_hover);
         insert_color_token(values, "editor.surface.selected", self.surface_selected);
         insert_color_token(values, "editor.surface.disabled", self.surface_disabled);
@@ -598,6 +626,18 @@ impl EditorPaletteTokens {
         insert_color_token(values, "editor.focus.ring", self.focus_ring);
         insert_color_token(values, "editor.shadow", self.shadow);
     }
+}
+
+fn default_palette_surface_input() -> UiRgbaColor {
+    EditorPaletteTokens::rgba(EditorPaletteTokens::WORKBENCH_SURFACE_INPUT)
+}
+
+fn default_palette_surface_tab_hover() -> UiRgbaColor {
+    EditorPaletteTokens::rgba(EditorPaletteTokens::WORKBENCH_SURFACE_TAB_HOVER)
+}
+
+fn default_palette_text_tab_active() -> UiRgbaColor {
+    EditorPaletteTokens::rgba(EditorPaletteTokens::WORKBENCH_TEXT_TAB_ACTIVE)
 }
 
 fn default_palette_surface_recessed() -> UiRgbaColor {
@@ -698,12 +738,12 @@ impl EditorControlTokens {
         Self {
             large_height: 48.0,
             default_height: 32.0,
-            compact_height: 30.0,
+            compact_height: 32.0,
             dense_height: 28.0,
-            small_radius: 6.0,
-            control_radius: 8.0,
-            large_radius: 10.0,
-            panel_radius: 12.0,
+            small_radius: 4.0,
+            control_radius: 4.0,
+            large_radius: 8.0,
+            panel_radius: 0.0,
             pill_radius: DEFAULT_CONTROL_PILL_RADIUS,
             border_width: 1.0,
         }

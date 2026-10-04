@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use zircon_runtime::core::framework::ai::{AiAgentTickReport, AiAgentTickRequest, AiManagerError};
+use zircon_runtime::core::framework::ai::{
+    AiAgentTickReport, AiAgentTickRequest, AiBehaviorEffectCommand, AiDecisionStatus,
+    AiManagerError,
+};
 use zircon_runtime::core::framework::scene::WorldHandle;
 
 use super::state::{ActiveBehaviorAgent, AgentBlackboard};
@@ -33,7 +36,7 @@ fn tick_agent_with_source(
     manager: &DefaultAiManager,
     request: AiAgentTickRequest,
     use_stored_blackboard: bool,
-    integration_host: Option<&mut dyn BehaviorIntegrationHost>,
+    mut integration_host: Option<&mut dyn BehaviorIntegrationHost>,
 ) -> Result<AiAgentTickReport, AiManagerError> {
     if !request.delta_seconds.is_finite() {
         return Err(AiManagerError::NonFiniteTickDelta);
@@ -50,6 +53,9 @@ fn tick_agent_with_source(
         schema,
         stored_blackboard,
         stored_perception,
+        compiled_tree_generation,
+        effect_generation,
+        effect_sink_requirement,
         mut instance,
     ) = {
         let mut state = manager
@@ -68,6 +74,17 @@ fn tick_agent_with_source(
             None
         };
         let registered_trees = Arc::clone(&state.compiled_behavior_tree_generation);
+        let compiled_tree_generation = state.compiled_tree_generation_number;
+        let effect_generation = registered_tree
+            .as_ref()
+            .and_then(|_| state.allocate_effect_generation());
+        let effect_sink_requirement = registered_tree.as_ref().and_then(|(_, tree_index)| {
+            state
+                .behavior_effect_sink_requirements
+                .get(*tree_index)
+                .cloned()
+                .flatten()
+        });
         let implementation_slots = registered_trees
             .iter()
             .flat_map(|tree| tree.implementation_slots())
@@ -135,6 +152,7 @@ fn tick_agent_with_source(
             .perceptions
             .get(&(request.world, request.entity))
             .cloned();
+        // 取出代理私有状态后释放总锁，节点执行可回调宿主；执行错误路径须放回状态。
         let stored_blackboard = state.blackboards.remove(&agent_key);
         let instance = state
             .behavior_tree_instances
@@ -147,10 +165,13 @@ fn tick_agent_with_source(
             schema,
             stored_blackboard,
             stored_perception,
+            compiled_tree_generation,
+            effect_generation,
+            effect_sink_requirement,
             instance,
         )
     };
-    let (stored_blackboard, changed_slots) = if let Some(schema) = &schema {
+    let (mut stored_blackboard, changed_slots) = if let Some(schema) = &schema {
         let mut store = match stored_blackboard {
             Some(AgentBlackboard::Dense(store))
                 if store.layout().schema_id() == schema.layout.schema_id() =>
@@ -189,46 +210,92 @@ fn tick_agent_with_source(
             Vec::new(),
         )
     };
-    let blackboard = stored_blackboard.entries_ref();
-    let blackboard_store = match &stored_blackboard {
-        AgentBlackboard::Dense(store) => Some(store),
-        AgentBlackboard::Dynamic(_) => None,
-    };
+    let effect_sink_failure = effect_sink_requirement.and_then(|requirement| {
+        let result = integration_host
+            .as_deref()
+            .ok_or_else(|| "AI behavior effect integration host is unavailable".to_string())
+            .and_then(|host| {
+                host.can_publish_behavior_effects(requirement.has_gameplay_events, true)
+            });
+        result
+            .err()
+            .map(|error| (requirement.first_effect_node, error))
+    });
 
-    let report = if let Some((_, tree_index)) = registered_tree {
+    let report = if let Some((behavior_tree_id, tree_index)) = registered_tree {
         let tree = &registered_trees[tree_index];
-        let perception = request.perception.as_ref().or(stored_perception.as_ref());
-        let execution = match evaluate_behavior_tree(
-            tree,
-            &registered_trees,
-            blackboard,
-            perception,
-            request.delta_seconds,
-            schema.as_ref().map(|schema| schema.layout.as_ref()),
-            blackboard_store,
-            &changed_slots,
-            &mut instance,
-            request.entity,
-            integration_host,
-        ) {
-            Ok(execution) => execution,
-            Err(error) => {
-                let mut state = manager.lock_state();
-                state.blackboards.insert(agent_key, stored_blackboard);
-                state.behavior_tree_instances.insert(agent_key, instance);
-                drop(state);
-                drop(execution_lease);
-                return Err(error);
+        if let Some((node_id, error)) = effect_sink_failure {
+            AiAgentTickReport {
+                world: request.world,
+                entity: request.entity,
+                status: AiDecisionStatus::Blocked,
+                active_node: Some(node_id),
+                diagnostic: Some(format!("AI behavior effect sink is unavailable: {error}")),
             }
-        };
-        AiAgentTickReport {
-            world: request.world,
-            entity: request.entity,
-            status: execution.status,
-            active_node: execution.active_node,
-            diagnostic: execution.diagnostic,
+        } else {
+            let blackboard = stored_blackboard.entries_ref();
+            let blackboard_store = match &stored_blackboard {
+                AgentBlackboard::Dense(store) => Some(store),
+                AgentBlackboard::Dynamic(_) => None,
+            };
+            let perception = request.perception.as_ref().or(stored_perception.as_ref());
+            let (mut execution, effect_commands) = match evaluate_behavior_tree(
+                tree,
+                &registered_trees,
+                request.world,
+                behavior_tree_id,
+                compiled_tree_generation,
+                effect_generation,
+                blackboard,
+                perception,
+                request.delta_seconds,
+                schema.as_ref().map(|schema| schema.layout.as_ref()),
+                blackboard_store,
+                &changed_slots,
+                &mut instance,
+                request.entity,
+                match integration_host.as_mut() {
+                    Some(host) => Some(&mut **host),
+                    None => None,
+                },
+            ) {
+                Ok(execution) => execution,
+                Err(error) => {
+                    let mut state = manager.lock_state();
+                    state.blackboards.insert(agent_key, stored_blackboard);
+                    state.behavior_tree_instances.insert(agent_key, instance);
+                    drop(state);
+                    drop(execution_lease);
+                    return Err(error);
+                }
+            };
+            if !effect_commands.is_empty() {
+                let active_effect_node = effect_commands
+                    .first()
+                    .map(|command| behavior_effect_node_id(command).to_string());
+                if let Err(error) = super::effects::commit_behavior_effects(
+                    manager,
+                    effect_commands,
+                    &mut stored_blackboard,
+                    integration_host,
+                ) {
+                    execution.status = AiDecisionStatus::Blocked;
+                    execution.active_node = active_effect_node;
+                    execution.diagnostic = Some(format!(
+                        "AI behavior effect batch could not commit: {error}"
+                    ));
+                }
+            }
+            AiAgentTickReport {
+                world: request.world,
+                entity: request.entity,
+                status: execution.status,
+                active_node: execution.active_node,
+                diagnostic: execution.diagnostic,
+            }
         }
     } else {
+        let blackboard = stored_blackboard.entries_ref();
         abort_behavior_tree_instance(
             &registered_trees,
             blackboard,
@@ -273,6 +340,13 @@ fn tick_agent_with_source(
     drop(state);
     drop(execution_lease);
     Ok(report)
+}
+
+fn behavior_effect_node_id(command: &AiBehaviorEffectCommand) -> &str {
+    match command {
+        AiBehaviorEffectCommand::SetBlackboard { effect_id, .. }
+        | AiBehaviorEffectCommand::EmitEvent { effect_id, .. } => &effect_id.node_id,
+    }
 }
 
 pub(super) fn tick_active_agents(
@@ -361,6 +435,7 @@ fn tick_active_agents_with_lod_inner(
                 .ok_or(AiManagerError::UnknownBehaviorTree {
                     id: behavior_tree.raw(),
                 })?;
+            // 降频帧累积经过的时间；实际执行时一次性传给计时节点并清零。
             active.pending_delta_seconds += delta_seconds.max(0.0);
             if !lod_for_entity(entity).should_tick(frame, entity) {
                 continue;
@@ -379,6 +454,7 @@ fn tick_active_agents_with_lod_inner(
         requests
     };
     let mut reports = Vec::with_capacity(requests.len());
+    // BUG: [CR-AI-MANAGER-0001] 前面已清零全部入选代理的累计时长；任一 tick 报错会使后续请求丢失该时长。
     for request in requests {
         let report = if let Some(host) = integration_host.as_mut() {
             tick_agent_with_source(manager, request, true, Some(&mut **host))?

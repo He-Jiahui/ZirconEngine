@@ -2,7 +2,7 @@ mod lifecycle;
 mod scene_reload;
 mod scene_route;
 
-pub(super) use lifecycle::SceneDocumentActivationReservation;
+pub(crate) use lifecycle::SceneDocumentActivationReservation;
 
 pub use lifecycle::{
     ActiveSceneDocumentIdentity, DocumentLifecycleAuthority, DocumentLifecycleRetentionSnapshot,
@@ -19,6 +19,8 @@ pub use scene_route::{
 };
 
 #[cfg(test)]
+#[path = "tests/scene_reload_tests.rs"]
 mod scene_reload_tests;
 #[cfg(test)]
+#[path = "tests/scene_route_tests.rs"]
 mod scene_route_tests;

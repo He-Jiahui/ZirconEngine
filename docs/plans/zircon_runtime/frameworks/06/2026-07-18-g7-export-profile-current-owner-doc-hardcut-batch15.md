@@ -2,7 +2,7 @@
 related_code:
   - zircon_runtime/src/core/framework/project/export_profile.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile.rs
-  - tools/check_conventions.py
+  - tools/audits/check_conventions.py
 implementation_files:
   - docs/plans/zircon_runtime/runtime/01-tech-stack-and-dependency-governance.md
 plan_sources:
@@ -12,7 +12,7 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - python tools/check_conventions.py --only docs --json
+  - python tools/audits/check_conventions.py --only docs --json
   - git diff --check -- docs/plans/zircon_runtime/runtime/01-tech-stack-and-dependency-governance.md
 ---
 
@@ -32,7 +32,7 @@ Session: `frameworks06-g7-export-profile-current-owner-doc-hardcut-batch15-20260
 ## Fresh Testing Evidence
 
 - 修改前 fresh G7：所选文档 `1` 个 missing-path violation。
-- 修改后 fresh `python tools/check_conventions.py --only docs --json`：所选文档 `0` violations；共享 current-source 全局快照为 `474` violations / `126` documents，G7 继续保持 RED。
+- 修改后 fresh `python tools/audits/check_conventions.py --only docs --json`：所选文档 `0` violations；共享 current-source 全局快照为 `474` violations / `126` documents，G7 继续保持 RED。
 - 所选文档内退役 `plugin/export_profile.rs` 机器路径为 `0`；current owner、explicit constructor 与 fatal-plan 投影路径均存在。
 - exact-scope `git diff --check` 通过，staged_total 为 `0`。
 

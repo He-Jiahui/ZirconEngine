@@ -1,3 +1,5 @@
+//! 渲染路径发布可共享交互产品，指针路径只查询已发布身份；首次失配请求重绘，后续失配等待准备，不在事件中重建渲染包。
+
 use std::{
     cell::{Cell, RefCell},
     sync::Arc,
@@ -32,6 +34,7 @@ pub(in crate::scene::viewport) struct ViewportInteractionExtractCache {
 }
 
 impl ViewportInteractionExtractCache {
+    /// 渲染包准备路径发布产品；传入构建闭包只在身份失配时调用，闭包依赖变化须先失效缓存。
     pub(in crate::scene::viewport) fn resolve_from_render_packet(
         &self,
         scene: &Scene,
@@ -64,6 +67,7 @@ impl ViewportInteractionExtractCache {
         extract
     }
 
+    /// 指针事件只取得已有产品；首次失配提示宿主重绘，再次失配表示等待准备，不做事件内渲染提取。
     pub(in crate::scene::viewport) fn resolve_for_pointer(
         &self,
         scene: &Scene,

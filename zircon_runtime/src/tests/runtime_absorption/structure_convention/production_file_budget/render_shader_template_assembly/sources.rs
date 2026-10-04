@@ -1,3 +1,4 @@
+//! 集中读取着色器模板、变体缓存和图执行的生产源码，供多个结构契约共享同一快照。
 use super::*;
 
 pub(super) struct RenderShaderTemplateAssemblySources {
@@ -50,13 +51,13 @@ pub(super) fn read_render_shader_template_assembly_sources() -> RenderShaderTemp
         assemble: read_runtime_src("graphics/shader/template/assemble.rs"),
         module_registry: read_runtime_src("graphics/shader/template/module_registry.rs"),
         module_registry_tests: read_runtime_src(
-            "graphics/shader/template/module_registry/tests.rs",
+            "graphics/shader/template/module_registry/tests/cases.rs",
         ),
         material_surface: read_runtime_src("graphics/shader/template/material_surface.rs"),
         pass_specialization: read_runtime_src("graphics/shader/template/pass_specialization.rs"),
         taa_reactive_template: read_runtime_src("graphics/shader/template/taa_reactive_mask.rs"),
         validation: read_runtime_src("graphics/shader/template/validation.rs"),
-        tests: read_runtime_src("graphics/shader/template/tests.rs"),
+        tests: read_runtime_src("graphics/shader/template/tests/cases.rs"),
         template_surface_module_tests: read_runtime_src(
             "graphics/shader/template/tests/surface_modules.rs",
         ),
@@ -68,7 +69,7 @@ pub(super) fn read_render_shader_template_assembly_sources() -> RenderShaderTemp
             "graphics/shader/variant_cache/prewarm/worker.rs",
         ),
         variant_cache_prewarm_tests: read_runtime_src(
-            "graphics/shader/variant_cache/prewarm/tests.rs",
+            "graphics/shader/variant_cache/prewarm/tests/cases.rs",
         ),
         variant_cache_prewarm_combined_tests: read_runtime_src(
             "graphics/shader/variant_cache/prewarm/tests/combined_validation_tests.rs",
@@ -84,7 +85,7 @@ pub(super) fn read_render_shader_template_assembly_sources() -> RenderShaderTemp
             "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs",
         ),
         mesh_cache_ensure_tests: read_runtime_src(
-            "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline/tests.rs",
+            "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline/tests/cases.rs",
         ),
         mesh_cache_velocity: read_runtime_src(
             "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_velocity_pipeline.rs",
@@ -99,13 +100,13 @@ pub(super) fn read_render_shader_template_assembly_sources() -> RenderShaderTemp
             "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs",
         ),
         mesh_cache_source_tests: read_runtime_src(
-            "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests.rs",
+            "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/cases.rs",
         ),
         mesh_pipeline_mod: read_runtime_src(
             "graphics/scene/scene_renderer/mesh/mesh_pipeline/mod.rs",
         ),
         mesh_pipeline_test_support: read_runtime_src(
-            "graphics/scene/scene_renderer/mesh/mesh_pipeline/test_support.rs",
+            "graphics/scene/scene_renderer/mesh/mesh_pipeline/tests/test_support.rs",
         ),
         mesh_pipeline_velocity: read_runtime_src(
             "graphics/scene/scene_renderer/mesh/mesh_pipeline/create_velocity_mesh_pipeline.rs",

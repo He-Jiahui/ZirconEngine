@@ -94,7 +94,9 @@ impl RuntimeExtensionRegistry {
 fn sorted_unique_interface_owners(
     owners: impl IntoIterator<Item = PluginModuleId>,
 ) -> Vec<PluginModuleId> {
-    let mut unique = HashSet::new();
+    let owners = owners.into_iter();
+    let (lower_bound, _) = owners.size_hint();
+    let mut unique = HashSet::with_capacity(lower_bound);
     for owner in owners {
         unique.insert(owner);
     }
@@ -104,5 +106,5 @@ fn sorted_unique_interface_owners(
 }
 
 #[cfg(test)]
-#[path = "access/interface_owner_dedup_tests.rs"]
+#[path = "access/tests/interface_owner_dedup_tests.rs"]
 mod interface_owner_dedup_tests;

@@ -170,6 +170,8 @@ pub fn settings_registry_with_defaults() -> SettingsRegistry {
             &["settings.category.viewport", "settings.category.snapping"],
         ),
     );
+    crate::core::script_build::register_script_build_settings(&mut registry)
+        .expect("the built-in script-build setting definition is unique");
     registry
 }
 

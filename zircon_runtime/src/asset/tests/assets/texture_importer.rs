@@ -298,7 +298,7 @@ fn importer_applies_texture_import_settings_to_descriptor() {
         toml::Value::Array(vec!["render_world".into()]),
     );
     settings.insert("mip_count".to_string(), 3.into());
-    settings.insert("depth_or_array_layers".to_string(), 4.into());
+    settings.insert("depth".to_string(), 4.into());
     settings.insert("sampler".to_string(), toml::Value::Table(sampler));
 
     let outcome = importer_with_first_wave_plugin_fixtures()
@@ -325,7 +325,6 @@ fn importer_applies_texture_import_settings_to_descriptor() {
                 vec![RenderImageAssetUsage::RenderWorld]
             );
             assert_eq!(descriptor.mip_count, 3);
-            assert_eq!(descriptor.array_layer_count, 1);
             assert_eq!(descriptor.depth_or_array_layers, 4);
             assert_eq!(
                 descriptor.sampler.address_mode_u,
@@ -519,7 +518,6 @@ fn importer_texture_fixture_reinterprets_stacked_array_layout() {
                 assert_eq!(texture.rgba.len(), 2 * 4 * 4, "{layout_key}");
                 let descriptor = texture.render_image_descriptor();
                 assert_eq!(descriptor.height, 2, "{layout_key}");
-                assert_eq!(descriptor.array_layer_count, 2, "{layout_key}");
                 assert_eq!(descriptor.depth_or_array_layers, 2, "{layout_key}");
                 assert_eq!(
                     descriptor.dimension,
@@ -573,7 +571,6 @@ fn importer_decodes_cube_lut_as_linear_3d_rgba8_texture() {
             let descriptor = texture.render_image_descriptor();
             assert_eq!(descriptor.dimension, RenderImageDimension::D3);
             assert_eq!(descriptor.depth_or_array_layers, 2);
-            assert_eq!(descriptor.array_layer_count, 1);
             assert_eq!(descriptor.mip_count, 1);
             assert_eq!(descriptor.format, RGBA8_UNORM_FORMAT);
             assert_eq!(descriptor.color_space, RenderImageColorSpace::Linear);

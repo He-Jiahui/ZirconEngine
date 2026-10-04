@@ -24,7 +24,7 @@ def function_body(source: str, name: str) -> str:
     next_functions = [boundary for boundary in boundaries if boundary >= 0]
     return source[start:] if not next_functions else source[start : min(next_functions)]
 
-
+# 读取指针分发路径，确认普通输入和元数据始终借用，只有必要的文本工作发生单次所有权转移。
 class RuntimePointerDispatchInputOwnershipPerformanceContractTests(unittest.TestCase):
     def test_normal_pointer_dispatch_does_not_clone_input_or_metadata(self) -> None:
         source = POINTER.read_text(encoding="utf-8")

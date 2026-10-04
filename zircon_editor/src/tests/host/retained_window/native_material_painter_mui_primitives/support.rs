@@ -5,49 +5,99 @@ pub(super) use crate::ui::retained_host::primitives::{
 };
 pub(super) use crate::ui::retained_host::{
     paint_template_nodes_for_test, paint_template_nodes_for_test_with_background,
-    TemplateNodeFrameData, TemplatePaneNodeData,
+    template_node_command_summary_for_test, TemplateNodeFrameData, TemplatePaneNodeData,
 };
+pub(super) use zircon_runtime_interface::ui::design_tokens::EditorPaletteTokens;
 pub(super) use zircon_runtime_interface::ui::style::{
     ResolvedButtonStyle, UiResolvedElementStyle, UiRgbaColor, UiStyleColor,
 };
 
 pub(super) const BACKGROUND: [u8; 4] = [0, 0, 0, 255];
 pub(super) const MID_BACKGROUND: [u8; 4] = [100, 100, 100, 255];
-pub(super) const MUI_BACKDROP_ON_MID_BACKGROUND: [u8; 4] = [49, 49, 49, 255];
-pub(super) const MATERIAL_PROGRESS_TRACK: [u8; 4] = [42, 52, 60, 255];
-pub(super) const MATERIAL_ACCENT: [u8; 4] = [53, 199, 208, 255];
-pub(super) const MATERIAL_DIVIDER: [u8; 4] = [75, 98, 109, 255];
+pub(super) const MATERIAL_PROGRESS_TRACK: [u8; 4] = EditorPaletteTokens::WORKBENCH_TRACK;
+pub(super) const MATERIAL_ACCENT: [u8; 4] = EditorPaletteTokens::WORKBENCH_ACCENT;
+pub(super) const MATERIAL_DIVIDER: [u8; 4] = EditorPaletteTokens::WORKBENCH_BORDER;
 pub(super) const MUI_SECONDARY_MAIN: [u8; 4] = [156, 39, 176, 255];
-pub(super) const MATERIAL_SKELETON_BG: [u8; 4] = [58, 66, 73, 255];
-pub(super) const MUI_SKELETON_WAVE_ON_BG: [u8; 4] = [85, 92, 98, 255];
-pub(super) const MATERIAL_WARNING_CONTAINER: [u8; 4] = [70, 49, 18, 255];
-pub(super) const MUI_TOOLTIP_BG: [u8; 4] = [97, 97, 97, 255];
-pub(super) const MUI_TOOLTIP_BG_FADE_HALF_ON_BLACK: [u8; 4] = [48, 48, 48, 255];
-pub(super) const MUI_SNACKBAR_BG: [u8; 4] = [50, 50, 50, 255];
-pub(super) const MUI_X_GRID_HEADER: [u8; 4] = [47, 70, 80, 255];
-pub(super) const MUI_X_GRID_SELECTED_ROW: [u8; 4] = [15, 101, 116, 255];
-pub(super) const MUI_X_GRID_ROW: [u8; 4] = [32, 40, 48, 255];
+pub(super) const MATERIAL_SKELETON_BG: [u8; 4] = EditorPaletteTokens::WORKBENCH_SURFACE_HOVER;
+pub(super) const MUI_SKELETON_WAVE_ON_BG: [u8; 4] = EditorPaletteTokens::WORKBENCH_SEPARATOR_SOFT;
+pub(super) const MATERIAL_WARNING_CONTAINER: [u8; 4] =
+    EditorPaletteTokens::WORKBENCH_WARNING_CONTAINER;
+pub(super) const MUI_TOOLTIP_BG: [u8; 4] = EditorPaletteTokens::WORKBENCH_POPUP;
+pub(super) const MUI_SNACKBAR_BG: [u8; 4] = EditorPaletteTokens::WORKBENCH_POPUP;
+pub(super) const MUI_X_GRID_HEADER: [u8; 4] = EditorPaletteTokens::WORKBENCH_SURFACE_HOVER;
+pub(super) const MUI_X_GRID_SELECTED_ROW: [u8; 4] = EditorPaletteTokens::WORKBENCH_SURFACE_SELECTED;
+pub(super) const MUI_X_GRID_ROW: [u8; 4] = EditorPaletteTokens::WORKBENCH_SURFACE[2];
 pub(super) const MUI_X_CUSTOM_SURFACE: [u8; 4] = [24, 57, 91, 255];
-pub(super) const MUI_X_SURFACE_INSET: [u8; 4] = [18, 24, 30, 255];
-pub(super) const MUI_X_TREE_SURFACE: [u8; 4] = [29, 71, 47, 255];
-pub(super) const MUI_X_TREE_MARKER: [u8; 4] = [92, 190, 122, 255];
-pub(super) const MUI_X_PICKER_SECONDARY: [u8; 4] = [156, 39, 176, 255];
-pub(super) const MUI_X_CHART_PLOT_BG: [u8; 4] = [32, 40, 48, 255];
-pub(super) const MUI_X_CHART_PRIMARY: [u8; 4] = [53, 199, 208, 255];
-pub(super) const MUI_X_CHART_SUCCESS: [u8; 4] = [92, 190, 122, 255];
-pub(super) const MUI_X_CHAT_ERROR_SURFACE: [u8; 4] = [76, 36, 39, 255];
-pub(super) const MUI_X_CHAT_BUBBLE: [u8; 4] = [32, 40, 48, 255];
-pub(super) const MUI_X_CHAT_SELECTED_BUBBLE: [u8; 4] = [15, 101, 116, 255];
+pub(super) const MUI_X_SURFACE_INSET: [u8; 4] = EditorPaletteTokens::WORKBENCH_SURFACE_RECESSED;
+pub(super) const MUI_X_TREE_SURFACE: [u8; 4] = EditorPaletteTokens::WORKBENCH_SUCCESS_CONTAINER;
+pub(super) const MUI_X_TREE_MARKER: [u8; 4] = EditorPaletteTokens::WORKBENCH_SUCCESS;
+pub(super) const MUI_X_PICKER_SECONDARY: [u8; 4] = EditorPaletteTokens::WORKBENCH_ACCENT_SOFT;
+pub(super) const MUI_X_CHART_PLOT_BG: [u8; 4] = EditorPaletteTokens::WORKBENCH_SURFACE[2];
+pub(super) const MUI_X_CHART_PRIMARY: [u8; 4] = EditorPaletteTokens::WORKBENCH_ACCENT;
+pub(super) const MUI_X_CHART_SUCCESS: [u8; 4] = EditorPaletteTokens::WORKBENCH_SUCCESS;
+pub(super) const MUI_X_CHAT_ERROR_SURFACE: [u8; 4] = EditorPaletteTokens::WORKBENCH_ERROR_CONTAINER;
+pub(super) const MUI_X_CHAT_BUBBLE: [u8; 4] = EditorPaletteTokens::WORKBENCH_SURFACE[2];
+pub(super) const MUI_X_CHAT_SELECTED_BUBBLE: [u8; 4] =
+    EditorPaletteTokens::WORKBENCH_SURFACE_SELECTED;
 pub(super) const MUI_AVATAR_SURFACE: [u8; 4] = [24, 57, 91, 255];
 pub(super) const MUI_AVATAR_IMAGE: [u8; 4] = [201, 42, 33, 255];
-pub(super) const MUI_BADGE_ERROR: [u8; 4] = [211, 47, 47, 255];
+pub(super) const MUI_BADGE_ERROR: [u8; 4] = EditorPaletteTokens::WORKBENCH_ERROR;
 pub(super) const MUI_CHIP_WARNING: [u8; 4] = [237, 108, 2, 255];
-pub(super) const MUI_CHIP_PRIMARY: [u8; 4] = [25, 118, 210, 255];
-pub(super) const MUI_CHIP_PRIMARY_DARK: [u8; 4] = [21, 101, 192, 255];
-pub(super) const MATERIAL_BORDER: [u8; 4] = [75, 98, 109, 255];
-pub(super) const MATERIAL_FOCUS_RING: [u8; 4] = [128, 234, 255, 255];
-pub(super) const MATERIAL_ERROR: [u8; 4] = [239, 112, 102, 255];
-pub(super) const MUI_FIELD_FILLED_BACKGROUND_ON_BLACK: [u8; 4] = [23, 23, 23, 255];
+pub(super) const MUI_CHIP_PRIMARY: [u8; 4] = EditorPaletteTokens::WORKBENCH_ACCENT;
+pub(super) const MUI_CHIP_PRIMARY_DARK: [u8; 4] = EditorPaletteTokens::WORKBENCH_ACCENT;
+pub(super) const MATERIAL_BORDER: [u8; 4] = EditorPaletteTokens::WORKBENCH_BORDER;
+pub(super) const MATERIAL_FOCUS_RING: [u8; 4] = EditorPaletteTokens::WORKBENCH_FOCUS_RING;
+pub(super) const MATERIAL_ERROR: [u8; 4] = EditorPaletteTokens::WORKBENCH_ERROR;
+pub(super) const MUI_FIELD_FILLED_BACKGROUND_ON_BLACK: [u8; 4] =
+    EditorPaletteTokens::WORKBENCH_SURFACE_RECESSED;
+
+/// Expected output of the shared linear-light compositor for the default scrim.
+pub(super) fn mui_backdrop_on_mid_background() -> [u8; 4] {
+    blend_linear_over(MID_BACKGROUND, EditorPaletteTokens::WORKBENCH_SHADOW, 1.0)
+}
+
+/// Expected output when the shared popup token is painted at half opacity over black.
+pub(super) fn mui_tooltip_bg_fade_half_on_black() -> [u8; 4] {
+    blend_linear_over(BACKGROUND, MUI_TOOLTIP_BG, 0.5)
+}
+
+fn blend_linear_over(destination: [u8; 4], source: [u8; 4], coverage: f32) -> [u8; 4] {
+    let source_alpha = (source[3] as f32 / 255.0) * coverage.clamp(0.0, 1.0);
+    let destination_alpha = destination[3] as f32 / 255.0;
+    let output_alpha = source_alpha + destination_alpha * (1.0 - source_alpha);
+    if output_alpha <= f32::EPSILON {
+        return [0, 0, 0, 0];
+    }
+    let inverse = 1.0 - source_alpha;
+    let mut output = [0; 4];
+    for channel in 0..3 {
+        let premultiplied = srgb_byte_to_linear(source[channel]) * source_alpha
+            + srgb_byte_to_linear(destination[channel]) * destination_alpha * inverse;
+        output[channel] = linear_to_srgb_byte(premultiplied / output_alpha);
+    }
+    output[3] = (output_alpha * 255.0).round().clamp(0.0, 255.0) as u8;
+    output
+}
+
+fn srgb_byte_to_linear(value: u8) -> f32 {
+    let value = value as f32 / 255.0;
+    if value <= 0.040_45 {
+        value / 12.92
+    } else {
+        ((value + 0.055) / 1.055).powf(2.4)
+    }
+}
+
+fn linear_to_srgb_byte(value: f32) -> u8 {
+    let index = (value.clamp(0.0, 1.0) * 4_096.0).round() as usize;
+    let linear = index as f32 / 4_096.0;
+    let encoded = if linear <= 0.003_130_8 {
+        linear * 12.92
+    } else {
+        1.055 * linear.powf(1.0 / 2.4) - 0.055
+    };
+    (encoded * 255.0).round().clamp(0.0, 255.0) as u8
+}
 
 pub(super) fn frame(x: f32, y: f32, width: f32, height: f32) -> TemplateNodeFrameData {
     TemplateNodeFrameData {

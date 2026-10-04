@@ -9,15 +9,15 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MANIFEST_SCHEMA_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_pipeline_report_platform_bundle_manifest_schema.py"
+    / "tools/export/tests/test_pipeline_report_platform_bundle_manifest_schema.py"
 )
 MANIFEST_TEMPLATE_SCHEMA_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_pipeline_report_platform_bundle_manifest_template_schema.py"
+    / "tools/export/tests/test_pipeline_report_platform_bundle_manifest_template_schema.py"
 )
 MANIFEST_SCHEMA_TEST_SUPPORT = (
     REPO_ROOT
-    / "tools/zircon_export/tests/platform_bundle_manifest_schema_test_support.py"
+    / "tools/export/tests/platform_bundle_manifest_schema_test_support.py"
 )
 
 TEMPLATE_SCHEMA_TEST_METHODS = (
@@ -83,7 +83,7 @@ class PlatformBundleManifestSchemaTestOwnerBoundaryTests(unittest.TestCase):
                 text = path.read_text(encoding="utf-8") if path.exists() else ""
                 self.assertNotIn("def _template_resolution(", text)
                 self.assertIn(
-                    "from tools.zircon_export.tests.platform_bundle_manifest_schema_test_support import",
+                    "from tools.export.tests.platform_bundle_manifest_schema_test_support import",
                     text,
                 )
 

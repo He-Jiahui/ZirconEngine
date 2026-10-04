@@ -7,6 +7,12 @@ use super::paths::{
 };
 use super::variants::{push_candidate, push_svg_variants};
 
+// These bounds describe packaged candidate shape only; development-module
+// discovery remains an explicitly extensible path below.
+const MAX_PACKAGED_IMAGE_CANDIDATES: usize = 4;
+const MAX_PREVIEW_ARTIFACT_CANDIDATES: usize = 5;
+const MAX_PACKAGED_ICON_CANDIDATES: usize = 6;
+
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn image_candidates(
     source: &str,
 ) -> Vec<PathBuf> {
@@ -15,7 +21,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn image_c
 }
 
 fn image_candidates_from_asset_root(source: &str, assets: &std::path::Path) -> Vec<PathBuf> {
-    let mut candidates = Vec::new();
+    let mut candidates = if source.is_empty() {
+        Vec::new()
+    } else {
+        Vec::with_capacity(MAX_PACKAGED_IMAGE_CANDIDATES)
+    };
     if !source.is_empty() {
         let source = normalized_asset_relative_path(source);
         push_svg_variants(&mut candidates, assets.join(&source));
@@ -33,11 +43,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn preview
     }
 
     let source_path = PathBuf::from(source);
-    let mut candidates = Vec::new();
     if source_path.is_absolute() {
+        let mut candidates = Vec::with_capacity(1);
         push_candidate(&mut candidates, source_path);
         return candidates;
     }
+    let mut candidates = Vec::with_capacity(MAX_PREVIEW_ARTIFACT_CANDIDATES);
     if !source.contains("://") {
         push_candidate(&mut candidates, workspace_root().join(source_path));
     }
@@ -59,7 +70,11 @@ fn icon_candidates_from_asset_root(
     assets: &std::path::Path,
     include_development_modules: bool,
 ) -> Vec<PathBuf> {
-    let mut candidates = Vec::new();
+    let mut candidates = if icon_name.is_empty() {
+        Vec::new()
+    } else {
+        Vec::with_capacity(MAX_PACKAGED_ICON_CANDIDATES)
+    };
     if !icon_name.is_empty() {
         if let Some(shell_alias) = shell_icon_alias(icon_name) {
             push_svg_variants(&mut candidates, assets.join("icons").join(shell_alias));
@@ -80,64 +95,9 @@ fn icon_candidates_from_asset_root(
 }
 
 #[cfg(test)]
-mod tests {
-    use std::path::{Path, PathBuf};
+#[path = "query/tests/capacity_tests.rs"]
+mod capacity_tests;
 
-    use super::{
-        icon_candidates_from_asset_root, image_candidates_from_asset_root,
-        preview_artifact_candidates,
-    };
-
-    #[test]
-    fn packaged_image_candidates_remain_inside_the_selected_asset_root() {
-        let root = Path::new("E:/portable-product/assets");
-        let candidates = image_candidates_from_asset_root(r"C:\source-tree\logo.svg", root);
-
-        assert!(!candidates.is_empty());
-        assert!(candidates
-            .iter()
-            .all(|candidate| candidate.starts_with(root)));
-    }
-
-    #[test]
-    fn generated_preview_artifacts_preserve_their_absolute_source_identity() {
-        #[cfg(windows)]
-        let source = r"E:\project\.zircon\cache\editor-previews\grid.png";
-        #[cfg(not(windows))]
-        let source = "/project/.zircon/cache/editor-previews/grid.png";
-
-        assert_eq!(
-            preview_artifact_candidates(source).first(),
-            Some(&PathBuf::from(source))
-        );
-    }
-
-    #[test]
-    fn packaged_icon_candidates_do_not_use_development_modules() {
-        let root = Path::new("E:/portable-product/assets");
-        let candidates = icon_candidates_from_asset_root("Search", root, false);
-
-        assert!(!candidates.is_empty());
-        assert!(candidates
-            .iter()
-            .all(|candidate| candidate.starts_with(root)));
-        assert!(candidates
-            .iter()
-            .all(|candidate| !candidate.to_string_lossy().contains("dev/material-ui")));
-    }
-
-    #[test]
-    fn search_field_semantic_icons_resolve_to_canonical_packaged_candidates() {
-        let root = Path::new("E:/portable-product/assets");
-        let search = icon_candidates_from_asset_root("search", root, false);
-        let clear = icon_candidates_from_asset_root("close-outline", root, false);
-
-        assert_eq!(
-            search.first(),
-            Some(&root.join("icons/zircon_editor_shell/controls/search.svg"))
-        );
-        assert!(clear
-            .iter()
-            .any(|candidate| candidate == &root.join("icons/ionicons/close-outline.svg")));
-    }
-}
+#[cfg(test)]
+#[path = "tests/query.rs"]
+mod tests;

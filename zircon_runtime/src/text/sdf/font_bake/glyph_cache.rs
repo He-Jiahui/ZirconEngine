@@ -1,8 +1,11 @@
+//! 缓存动态和离线得到的原始字形位图及度量，供 atlas_build.rs 重复构建时复用；预算回收必须保护当前帧槽位，避免刚选中的字形被驱逐。
+
 use std::collections::HashSet;
 
 use super::{RawBakedGlyph, SdfAtlasGlyphKey, SdfAtlasSlot, SdfFontBakeCache};
 
 #[cfg(test)]
+#[path = "glyph_cache/tests/optimization_tests.rs"]
 mod optimization_tests;
 
 const MAX_RESIDENT_BAKED_GLYPH_COUNT: usize = 4 * 1024;
@@ -47,6 +50,7 @@ impl SdfFontBakeCache {
         self.touch_cached_glyph_key(key);
     }
 
+    /// 由 atlas_build.rs 传入当前帧槽位作为保护集合；只从未占用的旧字形回收，必要时允许受保护集合暂时超过预算。
     pub(super) fn enforce_baked_glyph_budget(&mut self, slots: &[SdfAtlasSlot]) {
         if !self.baked_glyph_cache_over_budget() {
             return;
@@ -122,6 +126,7 @@ impl SdfFontBakeCache {
             .insert((self.baked_glyph_access_epoch, key));
     }
 
+    /// 至少保留唯一的一枚字形，即使它超过字节预算；否则下一帧会反复生成同一大字形。
     fn baked_glyph_cache_over_budget(&self) -> bool {
         self.baked_glyph_recency.len() > MAX_RESIDENT_BAKED_GLYPH_COUNT
             || (self.glyphs.len() > 1

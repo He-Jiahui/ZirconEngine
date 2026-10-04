@@ -79,6 +79,7 @@ impl<T> Messages<T>
 where
     T: Message,
 {
+    /// 分配单调消息序号并执行保留预算；返回的 ID 不保证消息仍在队列中，极小预算可立即淘汰本次写入。
     pub fn write(&mut self, message: T) -> MessageId<T> {
         self.write_at_frame(message, 0)
     }
@@ -115,7 +116,12 @@ where
     {
         let messages = messages.into_iter();
         let (lower_bound, _) = messages.size_hint();
-        self.messages.reserve(lower_bound);
+        let reserve_additional = bounded_batch_reserve_additional(
+            self.messages.len(),
+            self.retention.max_entries,
+            lower_bound,
+        );
+        self.messages.reserve(reserve_additional);
 
         let mut ids = Vec::with_capacity(lower_bound);
         for message in messages {
@@ -224,3 +230,17 @@ where
         self.metrics.retained_bytes = self.retained_bytes;
     }
 }
+
+fn bounded_batch_reserve_additional(
+    current_len: usize,
+    max_entries: usize,
+    lower_bound: usize,
+) -> usize {
+    // A write may hold one extra entry before enforce_budget drops the oldest.
+    let peak_len = current_len.max(max_entries).saturating_add(1);
+    lower_bound.min(peak_len.saturating_sub(current_len))
+}
+
+#[cfg(test)]
+#[path = "tests/queue_optimization_tests.rs"]
+mod optimization_tests;

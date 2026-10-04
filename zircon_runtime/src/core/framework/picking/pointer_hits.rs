@@ -7,10 +7,15 @@ use crate::core::math::Real;
 use super::{HitRecord, PointerId};
 
 #[cfg(test)]
-#[path = "pointer_hits/hash_grouping_tests.rs"]
+#[path = "pointer_hits/tests/hash_grouping_tests.rs"]
 mod hash_grouping_tests;
 
+#[cfg(test)]
+#[path = "pointer_hits/tests/optimization_batch_iz_runtime638_tests.rs"]
+mod optimization_batch_iz_runtime638_tests;
+
 #[derive(Clone, Debug, PartialEq)]
+/// 一批后端为单个指针返回的命中记录及批次顺序键，供跨批次排序和悬停投影使用。
 pub struct PointerHits {
     pub pointer: PointerId,
     pub hits: Vec<HitRecord>,
@@ -27,6 +32,7 @@ impl PointerHits {
     }
 }
 
+/// 合并指定指针的后端命中，并按目标优先级、批次顺序、命中深度及来源索引稳定排序。
 pub fn sorted_hits_for_pointer(outputs: &[PointerHits], pointer: PointerId) -> Vec<HitRecord> {
     let mut indexed: Vec<IndexedHit> = outputs
         .iter()
@@ -46,6 +52,7 @@ pub fn sorted_hits_for_pointer(outputs: &[PointerHits], pointer: PointerId) -> V
     indexed.into_iter().map(|(_, _, _, hit)| hit).collect()
 }
 
+/// 为整帧结果一次性按指针分组排序，供悬停投影和报告共享同一顺序。
 pub(super) fn sorted_hits_by_pointer(
     outputs: &[PointerHits],
 ) -> BTreeMap<PointerId, Vec<HitRecord>> {
@@ -101,8 +108,9 @@ pub fn hovered_hits_for_pointer(outputs: &[PointerHits], pointer: PointerId) -> 
     hovered_hits_from_sorted(sorted_hits)
 }
 
+/// 从已排序命中中收集可悬停目标；首个阻挡命中会被纳入（若可悬停）后停止向下遍历。
 pub(super) fn hovered_hits_from_sorted(sorted_hits: Vec<HitRecord>) -> Vec<HitRecord> {
-    let mut hovered = Vec::new();
+    let mut hovered = Vec::with_capacity(sorted_hits.len());
     for hit in sorted_hits {
         let should_block_lower = hit.pickable.should_block_lower;
         if hit.pickable.is_hoverable {

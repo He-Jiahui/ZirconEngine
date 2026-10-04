@@ -1,11 +1,11 @@
 import unittest
 from pathlib import Path
 
-from tools.plugin_structure_audits.manifest_schema import (
+from tools.audits.plugins.manifest_schema import (
     collect_manifest_schema_violations,
 )
 
-
+# 检查布局根路径的合法分隔符与专属模式归属，避免布局扫描职责回流总入口。
 class PluginStructureAuditManifestSchemaLayoutRootsOwnerBoundaryTests(
     unittest.TestCase
 ):
@@ -32,10 +32,10 @@ class PluginStructureAuditManifestSchemaLayoutRootsOwnerBoundaryTests(
     def test_layout_roots_schema_lives_in_layout_roots_owner(self):
         repo_root = Path(__file__).resolve().parents[2]
         manifest_schema_path = (
-            repo_root / "tools/plugin_structure_audits/manifest_schema.py"
+            repo_root / "tools/audits/plugins/manifest_schema.py"
         )
         owner_path = (
-            repo_root / "tools/plugin_structure_audits/manifest_schema_layout_roots.py"
+            repo_root / "tools/audits/plugins/manifest_schema_layout_roots.py"
         )
 
         self.assertTrue(owner_path.exists())

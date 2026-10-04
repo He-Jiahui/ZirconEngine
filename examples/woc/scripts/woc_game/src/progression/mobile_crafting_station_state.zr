@@ -31,6 +31,7 @@ pub class MobileCraftingStationPlacement {
     }
 }
 
+/// 返回值只是放置计划，成功时调用方再保存工作站；时间使用同一模拟 tick，过期边界不包含截止 tick。
 pub placeMobileCraftingStation(
     playerId: string,
     craftId: string,

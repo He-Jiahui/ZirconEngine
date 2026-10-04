@@ -35,14 +35,14 @@ requireText(effects, /case 'aoeDamage':[\s\S]*?ctx\.hostilesInRadius[\s\S]*?ctx\
 const generator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
 if (!/ferocious_bite',[\s\S]*?'swipe'/.test(generator) ||
-    !generator.includes("EXPECTED_ABILITY_COUNT = 79") ||
-    !zrGenerator.includes("document.entries.length === 79")) {
+    !generator.includes("EXPECTED_ABILITY_COUNT = 117") ||
+    !zrGenerator.includes("document.entries.length === 117")) {
   throw new Error("M4 Swipe projection scope is missing");
 }
 const entry = JSON.parse(read("contracts", "m4_abilities.json")).entries.find(
   (value) => value.id === "swipe",
 );
-if (!entry || entry.index !== 64 || entry.definition.cost !== 20 ||
+if (!entry || entry.index !== 68 || entry.definition.cost !== 20 ||
     entry.definition.requiresTarget || entry.definition.requiresForm !== "bear" ||
     entry.definition.threat?.mult !== 1.75 ||
     entry.definition.effects?.[0]?.type !== "aoeDamage" ||

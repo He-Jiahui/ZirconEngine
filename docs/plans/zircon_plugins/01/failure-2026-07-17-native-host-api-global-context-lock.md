@@ -106,3 +106,60 @@ broad native-host/bridge parity、failure return 与 owner milestone 记录完�
   focused group、ignored 1/16-thread benchmark 和 native-host/bridge broad gate，再复核与 fixed return。
 - 当前 managed Cargo lane 由 Frameworks04 占用；本 failure 保持 `open`，并等待新的受管终态，不重建或复用
   已撤销的 validation-copy。
+
+### 2026-09-19 rolling source-contract snapshot (Plugins01 owner)
+
+- The current owner snapshot uses `host_api_adapter/context_handles/registry.rs` as
+  the canonical registry path. It publishes an immutable `ArcSwap` directory,
+  validates the encoded slot generation twice, pins the context with
+  `ArcSwapOption::load_full`, retires wrapped generations, and increments writer
+  metrics only on registration/remove slow paths.
+- `context_handles/tests.rs` and `bridge_scope/tests.rs` cover stale-generation
+  rejection, slot reuse, in-flight Arc lifetime, writer-acquire-free parallel
+  lookup, and the dense bridge method table. Registration replay and callback-lease
+  tests retain generation cache reuse and dynamic-library owner pin assertions.
+- Exact scoped `rustfmt --edition 2021 --check` passed for all eleven owned paths.
+  This is source-only evidence; the required Windows managed focused host-context
+  tests, 1/16-thread 1M benchmark, native-host/bridge broad parity, and performance
+  thresholds remain deferred until the coordinator Cargo lane and external source
+  prerequisite are available.
+
+Current status remains `open / source_contract_static_green / cargo_pending`; no
+fixed return or closeout is claimed from this snapshot.
+
+### 2026-09-21 independent source review (review-plugins01-host-context-r1)
+
+- Review scope was limited to the attributed current-source paths: `host_api_adapter.rs`,
+  `host_api_adapter/context_handles/{mod.rs,registry.rs,tests.rs}`,
+  `host_api_adapter/bridge_scope/{mod.rs,tests.rs}`,
+  `native_plugin_live_host/{registration_replay.rs,bridge_methods.rs}`, and the
+  corresponding registration-replay test fixtures. Their manifest hashes were re-read
+  and matched the owner snapshot (`host_api_adapter.rs` `0019365ec0a773dd95151b61c60e86f0919470194b7fb66d31f7d9404e434e57`,
+  `context_handles/mod.rs` `88b738665f52563282c72ed4286b387577861aa73f75137f7a4ac746eb786c6d`,
+  `context_handles/registry.rs` `ae43bb83ca3b3a328b3b10d35e10ad3855dfc32901e3f6edbdd3534160538ee8`,
+  `context_handles/tests.rs` `f06fe86967e955b91200d98907bc0bdf25befb2d61e29452900c6e5db4a0fbc7`,
+  `bridge_scope/mod.rs` `edcce5bc2609418f0f61ce277d3e20cfb51e8ece7d8002a5a278554d21b42bd9`,
+  `bridge_scope/tests.rs` `fb6f088efe02b1b0717e25bb021e03db9f00df2e37ae5ad71964e8393059a048`,
+  `registration_replay.rs` `c9a80be267518f1e903bdfcf1762f040a76161418d2eec814fb026917ad169ac`,
+  `bridge_methods.rs` `d2e0ff7c21e4de9ad01c4d5f255b55e5ced27e36f484ab03becbcc0ccbaab38a`).
+- The registry encodes a one-based slot and high generation, publishes immutable pages with
+  `ArcSwap`, and performs a generation check before and after `ArcSwapOption::load_full`.
+  Remove clears the context before advancing the generation; `u32::MAX` retires the slot,
+  so stale handles cannot become valid after reuse. Stable lookup does not acquire the writer
+  mutex; registration, removal, and page growth remain the bounded slow paths and retain their
+  explicit mutex. An in-flight `Arc` therefore keeps the bridge table and library owner alive
+  until dispatch returns.
+- The bridge scope owns one registry enum allocation, uses `DenseBridgeMethodTable` with the
+  fixed-width sparse slot directory, and performs interface/method slot resolution during
+  construction. Callback dispatch contains no registry `BTreeMap` lookup or nested context-Arc
+  clone. Registration replay shares the frozen method-slot map and caches generation-scoped
+  bridge contexts; its build/invalidation locks are confined to the rebuild path.
+- Focused source probes passed for stale/reused handles, in-flight drop, writer-acquire-free
+  parallel lookup, page append without full slot-Arc copies, dense sparse `u32` slots, disabled
+  and missing bridge entries, panic mapping, wrong-kind handles, and frozen metadata resolution.
+  Scoped Rust 1.94.1 rustfmt and `git diff --check` also passed for the review scope.
+- Independent review result: `Critical=0, Important=0, Moderate=0`. This is a source-contract
+  review only. Windows managed focused tests, the 1/16-thread 1M benchmark thresholds,
+  native-host/bridge broad parity, reload/ABI integration, upstream Runtime06 acceptance,
+  failure return, and coordinator closeout remain pending; no dynamic or historical evidence
+  is reused. The external `zr_vm` dirty-worktree prerequisite remains an admission blocker.

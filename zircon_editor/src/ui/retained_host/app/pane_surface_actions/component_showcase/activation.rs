@@ -10,7 +10,10 @@ impl RetainedEditorHost {
         let Some(binding_id) = self.component_showcase_binding_id_for_action(action_id) else {
             return;
         };
-        let input = self.demo_input_for_showcase_action(control_id, binding_id.as_str());
+        let Some(input) = self.demo_input_for_showcase_action(control_id, binding_id.as_str())
+        else {
+            return;
+        };
         self.dispatch_component_showcase_event(control_id, binding_id.as_str(), input);
     }
 }

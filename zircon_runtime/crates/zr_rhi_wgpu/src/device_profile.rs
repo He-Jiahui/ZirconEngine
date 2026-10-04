@@ -1,3 +1,6 @@
+//! 适配器选择事实、设备请求回执和实际设备 profile 之间的转换边界。
+//! 适配器支持的 feature 只用于协商；对外能力和限制必须基于最终启用的设备与请求回执。
+
 use std::sync::atomic::{AtomicU64, Ordering};
 use zr_rhi::{
     DeviceGeneration, DeviceId, DiagnosticReadbackBudget, GpuMemoryBudget, RenderAdapterClass,
@@ -10,6 +13,7 @@ use crate::GPU_TIMESTAMP_REQUIRED_FEATURES;
 
 static NEXT_WGPU_DEVICE_ID: AtomicU64 = AtomicU64::new(1);
 
+/// 材质绑定路径按一个能力束协商；仅支持其中一部分时不能宣称此路径可用。
 pub const WGPU_BINDLESS_MATERIAL_REQUIRED_FEATURES: wgpu::Features =
     wgpu::Features::TEXTURE_BINDING_ARRAY
         .union(wgpu::Features::PARTIALLY_BOUND_BINDING_ARRAY)
@@ -83,6 +87,7 @@ pub fn next_wgpu_device_id() -> DeviceId {
 }
 
 /// Builds the shared cold-start profile for one newly requested WGPU device generation.
+/// 独立 UI 与离屏设备共用初始预算策略；预算是准入上限，不是当前显存占用测量。
 pub fn initial_wgpu_render_device_profile(
     adapter: RenderAdapterFacts,
     device: &wgpu::Device,
@@ -108,6 +113,11 @@ pub fn wgpu_device_limits(limits: &wgpu::Limits) -> RenderDeviceLimits {
         max_texture_dimension_2d: limits.max_texture_dimension_2d,
         max_texture_array_layers: limits.max_texture_array_layers,
         max_sampled_textures_per_shader_stage: limits.max_sampled_textures_per_shader_stage,
+        max_compute_workgroup_size_x: limits.max_compute_workgroup_size_x,
+        max_compute_workgroup_size_y: limits.max_compute_workgroup_size_y,
+        max_compute_workgroup_size_z: limits.max_compute_workgroup_size_z,
+        max_compute_invocations_per_workgroup: limits.max_compute_invocations_per_workgroup,
+        max_compute_workgroups_per_dimension: limits.max_compute_workgroups_per_dimension,
         max_binding_array_elements_per_shader_stage: limits
             .max_binding_array_elements_per_shader_stage,
         max_binding_array_sampler_elements_per_shader_stage: limits

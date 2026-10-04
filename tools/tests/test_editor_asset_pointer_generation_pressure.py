@@ -1,3 +1,4 @@
+# 核对资产指针布局复用发布代际与源顺序，稳定同步不重新构造几何。
 import importlib.util
 import sys
 import unittest
@@ -5,7 +6,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-TOOL = ROOT / "tools" / "editor_asset_pointer_generation_pressure.py"
+TOOL = ROOT / "tools" / "performance" / "editor" / "editor_asset_pointer_generation_pressure.py"
 LAYOUT = ROOT / "zircon_editor/src/ui/retained_host/asset_pointer/content/layout.rs"
 BRIDGE = ROOT / "zircon_editor/src/ui/retained_host/asset_pointer/content/bridge.rs"
 GENERATION = ROOT / (

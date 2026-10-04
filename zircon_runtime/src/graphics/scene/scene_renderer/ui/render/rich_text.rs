@@ -1,7 +1,7 @@
 use crate::core::math::Vec4;
 use crate::text::{
-    CompiledRichText, InlineBaseline, InlineObjectRef, StyledRun,
-    resolve_compiled_rich_text_artifact,
+    resolve_compiled_rich_text_artifact, CompiledRichText, InlineBaseline, InlineObjectRef,
+    StyledRun,
 };
 use std::sync::Arc;
 use unicode_segmentation::UnicodeSegmentation;
@@ -14,12 +14,12 @@ use zircon_runtime_interface::ui::surface::{
 use super::super::image::ScreenSpaceUiImageBatch;
 use super::background::ScreenSpaceUiBackgroundTracker;
 use super::resolved_layout::{
-    ResolvedGlyphArtifactRejection, ResolvedGlyphArtifactRouteReceipt, RichTextGlyphArtifactRoute,
-    RichTextGlyphArtifactRouteBatch, rich_text_glyph_artifact_runs,
+    rich_text_glyph_artifact_runs, ResolvedGlyphArtifactRejection,
+    ResolvedGlyphArtifactRouteReceipt, RichTextGlyphArtifactRoute, RichTextGlyphArtifactRouteBatch,
 };
-use super::text_batches::{TextPlanOutcome, push_text_batch};
-use super::text_provenance::{SourceIsomorphicTextPaintLine, source_isomorphic_text_paint_line};
-use super::{PlannedScreenSpaceUi, ScreenSpaceUiTextRouteContext, parse_color, push_rect};
+use super::text_batches::{push_text_batch, TextPlanOutcome};
+use super::text_provenance::{source_isomorphic_text_paint_line, SourceIsomorphicTextPaintLine};
+use super::{parse_color, push_rect, PlannedScreenSpaceUi, ScreenSpaceUiTextRouteContext};
 
 #[cfg(feature = "profiling")]
 const INLINE_FRAME_MATCH_TOLERANCE: f32 = 0.01;
@@ -243,6 +243,8 @@ pub(super) fn lookup_command_rich_text(command: &UiRenderCommand) -> Option<Arc<
     resolve_compiled_rich_text_artifact(command.text_layout.as_ref()?.rich_text_artifact.as_ref()?)
 }
 
+/// 在加入文字或 inline 资源前完成全部 run 的几何和 artifact 路由预检。
+/// 非 inline run 的 artifact 路由为 Rejected 且缺少已证明整行来源同构的回退时，拒绝本次文字规划。
 pub(super) fn plan_rich_text_runs(
     command: &UiRenderCommand,
     route_context: &ScreenSpaceUiTextRouteContext,

@@ -5,6 +5,8 @@
 // reference general broadcast.
 var container = %import("zr.container");
 
+// 三名固定玩家的频道、回复目标和额度共同组成命令夹具；
+// 事件只保留发送者/接收者与类别，没有生产消息正文和传输确认。
 class ChatState {
     pub var timeSeconds: int;
     pub var positionA: float;
@@ -107,6 +109,8 @@ setBucket(state: ChatState, player: int, tokens: int): void {
     if (player == 3) { state.tokensC = tokens; state.tokenAtC = state.timeSeconds; }
 }
 
+// 文本聊天命令共享玩家令牌桶；失败命令也先消耗一次额度，
+// 使频道、范围聊天和私聊在同一节流边界接受验证。
 consumeToken(state: ChatState, player: int): bool {
     if (!validPlayer(player)) { return false; }
     var elapsed = state.timeSeconds - tokenAtFor(state, player);
@@ -259,6 +263,8 @@ pub whisper(state: ChatState, player: int, targetName: string): bool {
     return true;
 }
 
+// 回复目标来自此前成功投递的私聊记录；没有记录时保留错误事件，
+// 不将本地测试状态误作生产聊天路由或消息交付。
 pub reply(state: ChatState, player: int): bool {
     if (!consumeToken(state, player)) { return false; }
     var target = lastWhisper(state, player);

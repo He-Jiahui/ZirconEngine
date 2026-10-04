@@ -16,6 +16,7 @@ minimum(first: float, second: float): float {
     return first < second ? first : second;
 }
 
+// 玩家贴墙修正只消费 groundHeight 的八向采样；调用方仍需另行处理碰撞路由与垂直运动。
 pub coordinate(
     x: float,
     z: float,

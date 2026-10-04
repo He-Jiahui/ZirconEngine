@@ -4,6 +4,7 @@ use super::super::super::super::super::*;
 use super::super::super::resources::StartupManagers;
 use super::super::interaction::StartupInteractionState;
 use super::input::StartupHostConstruction;
+use crate::ui::host::ProjectCloseCoordinator;
 
 pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_startup_host(
     input: StartupHostConstruction,
@@ -17,6 +18,7 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         runtime_gateway,
         runtime_lease,
         native_plugin_host,
+        native_plugin_authority_resolver,
         viewport,
         startup_session,
         viewport_size,
@@ -58,7 +60,8 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
                 native_plugin_host,
                 editor_jobs.clone(),
                 native_plugin_watch_wake,
-            ),
+            )
+            .with_authority_resolver(native_plugin_authority_resolver),
         ),
         desktop_export_reports: BTreeMap::new(),
         desktop_export_jobs: build_export_actions::DesktopExportJobQueue::new(editor_jobs.clone()),
@@ -131,6 +134,8 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         active_asset_drag_payload: None,
         active_scene_drag_payload: None,
         active_hierarchy_drag_node_ids: Vec::new(),
+        active_hierarchy_drag_identity: None,
+        hierarchy_input_owner: HierarchyInputOwner::default(),
         last_hierarchy_rename_click: None,
         active_object_drag_payload: None,
         native_window_presenters: NativeWindowPresenterStore::default(),

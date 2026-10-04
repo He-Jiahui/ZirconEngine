@@ -1,3 +1,6 @@
+// 调用端：npm run generate:area-echo-contract (tools/package.json)；职责：固化区域回响的生效资格、光环类别和充能规则。
+// 输入边界：src/sim/combat/area_echo.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

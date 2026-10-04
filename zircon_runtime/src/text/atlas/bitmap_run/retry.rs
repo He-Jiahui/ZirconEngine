@@ -1,9 +1,14 @@
+//! 将跨帧阻塞与当前字形出现合成一次分配输入，并保存来源索引的对应关系。
+//! 调度与提交分离：这里只决定本帧尝试哪些来源，队列轮转和最终容量上限由帧状态持有者处理。
+
 use std::collections::HashSet;
 
 use super::failure::GlyphAtlasBitmapQueuedGlyph;
 use super::types::{GlyphAtlasBitmapRunPlan, GlyphAtlasBitmapSource};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 分别限制旧重试、新光栅内容和持久阻塞队列，避免字形突发拖垮一帧。
+/// 单个来源超过其字节预算会被拒绝，而可容纳但本帧超量的来源推迟至少一帧；默认不设上限。
 pub(crate) struct GlyphAtlasBitmapRetryBackpressurePolicy {
     pub(crate) max_due_retry_sources_per_frame: Option<usize>,
     pub(crate) max_due_retry_source_bytes_per_frame: Option<usize>,
@@ -46,6 +51,8 @@ pub(crate) enum GlyphAtlasBitmapRetrySourceOrigin {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+/// 一次分配运行的输入快照；`sources` 与 `source_origins` 必须保持相同顺序。
+/// 运行产生的索引只在此快照内有效，不能直接用作原始帧或旧队列的索引。
 pub(crate) struct GlyphAtlasBitmapRetryFrameInput {
     pub(crate) sources: Vec<GlyphAtlasBitmapSource>,
     pub(crate) source_origins: Vec<GlyphAtlasBitmapRetrySourceOrigin>,
@@ -142,6 +149,8 @@ where
     )
 }
 
+/// 先保障到期重试，再接纳当前帧来源；调用者用谓词识别确实需要新像素预算的来源。
+/// 已有图集槽或本轮已安排的光栅键可以继续产生绘制出现而不重复占用新上传预算；谓词不承担输入验证。
 pub(crate) fn glyph_atlas_bitmap_retry_frame_input_with_backpressure_and_new_source_budget_predicate<
     R,
     S,
@@ -266,6 +275,8 @@ where
     input
 }
 
+/// 仅接受由同一输入快照生成的运行计划，把运行局部索引恢复成来源索引。
+/// 未到期与受背压的来源继续保留，成功来源退出队列；结果须由帧状态持有者显式应用。
 pub(crate) fn glyph_atlas_bitmap_retry_frame_outcome(
     input: &GlyphAtlasBitmapRetryFrameInput,
     run_plan: &GlyphAtlasBitmapRunPlan,
@@ -461,85 +472,5 @@ fn update_next_retry_frame_index(next_retry_frame_index: &mut Option<u64>, retry
 }
 
 #[cfg(test)]
-mod optimization_tests {
-    #[test]
-    fn optimization_batch_20260830cw_bitmap_retry_capacity_source_contract() {
-        let source = include_str!("retry.rs");
-        let input = source
-            .split("let frame_sources = frame_sources.into_iter()")
-            .nth(1)
-            .expect("bitmap retry input capacity implementation")
-            .split("for glyph in retry_plan.retry_glyphs")
-            .next()
-            .expect("bounded bitmap retry input capacity implementation");
-
-        assert!(input.contains("HashSet::with_capacity(retry_source_count)"));
-        assert!(input.contains("Vec::with_capacity(source_capacity)"));
-        assert!(input.contains("minimum_frame_source_count"));
-        assert!(!input.contains("collect::<HashSet"));
-    }
-
-    #[test]
-    #[ignore = "release performance evidence; run through the validation coordinator"]
-    fn optimization_batch_20260830cw_runtime_bitmap_retry_capacity_p95() {
-        fn measure(keys: &[Option<u64>], reserve: bool) -> u128 {
-            let started = std::time::Instant::now();
-            for _ in 0..32 {
-                let mut scheduled = if reserve {
-                    std::collections::HashSet::with_capacity(keys.len())
-                } else {
-                    std::collections::HashSet::new()
-                };
-                scheduled.extend(std::hint::black_box(keys).iter().filter_map(|key| *key));
-                let mut sources = if reserve {
-                    Vec::with_capacity(keys.len().saturating_mul(2))
-                } else {
-                    Vec::new()
-                };
-                let mut origins = if reserve {
-                    Vec::with_capacity(keys.len().saturating_mul(2))
-                } else {
-                    Vec::new()
-                };
-                for (index, key) in keys.iter().enumerate() {
-                    if key.is_some() {
-                        sources.push(index as u64);
-                        origins.push(index);
-                    }
-                }
-                std::hint::black_box((scheduled, sources, origins));
-            }
-            started.elapsed().as_nanos()
-        }
-
-        let keys = (0..32_768_u64)
-            .map(|index| (index % 8 != 0).then_some(index % 16_384))
-            .collect::<Vec<_>>();
-        let mut legacy_samples = Vec::with_capacity(17);
-        let mut optimized_samples = Vec::with_capacity(17);
-        for sample_index in 0..17 {
-            if sample_index % 2 == 0 {
-                legacy_samples.push(measure(&keys, false));
-                optimized_samples.push(measure(&keys, true));
-            } else {
-                optimized_samples.push(measure(&keys, true));
-                legacy_samples.push(measure(&keys, false));
-            }
-        }
-
-        legacy_samples.sort_unstable();
-        optimized_samples.sort_unstable();
-        let legacy_p95 = legacy_samples[16];
-        let optimized_p95 = optimized_samples[16];
-        println!(
-            "RUNTIME399_BITMAP_RETRY_CAPACITY_BENCH_V1 retry_sources={} legacy_p95_ns={} optimized_p95_ns={} target_ratio_bp=7000",
-            keys.len(),
-            legacy_p95,
-            optimized_p95,
-        );
-        assert!(
-            optimized_p95.saturating_mul(10_000) <= legacy_p95.saturating_mul(7_000),
-            "capacity-sized bitmap retry P95 {optimized_p95} ns exceeded 70% of legacy {legacy_p95} ns"
-        );
-    }
-}
+#[path = "tests/retry_optimization_tests.rs"]
+mod optimization_tests;

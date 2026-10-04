@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use thiserror::Error;
 
-use crate::asset::artifact::{RENDER_ARTIFACT_STATIC_MESH_FORMAT_V1, RenderArtifactMeshBounds};
+use crate::asset::artifact::{RenderArtifactMeshBounds, RENDER_ARTIFACT_STATIC_MESH_FORMAT_V1};
 use crate::asset::assets::{
     LIGHTMAP_RGBA16F_GPU_FORMAT, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
 };
@@ -218,7 +218,7 @@ pub(crate) struct RenderAssetGpuUploadLease {
 }
 
 impl RenderAssetGpuUploadLease {
-    pub(crate) const fn ticket(&self) -> RenderAssetResidencyTicket {
+    pub(crate) fn ticket(&self) -> RenderAssetResidencyTicket {
         self.cpu_lease.ticket()
     }
 
@@ -321,6 +321,7 @@ pub(crate) enum RenderAssetGpuUploadSubmitError {
 }
 
 impl RenderAssetGpuUploadPlan {
+    /// 在 ticket 指定的设备代际提交中性计划；返回的 lease 须保留到提交终态，成功返回仅表示已入队。
     pub(crate) fn submit(
         self,
         device: &dyn RenderDevice,
@@ -523,6 +524,7 @@ fn texture_format(format: &str) -> Option<TextureFormat> {
     }
 }
 
+// TODO: [CR-R02-runtime_wave12_graphics_resource_residency-0003] 待确认销毁失败后剩余句柄由谁重试；当前仅返回操作与清理错误，尚无故障注入证据，需验证回滚所有权及逐句柄重试契约。
 fn rollback_texture(
     device: &dyn RenderDevice,
     view: Option<TextureViewHandle>,
@@ -544,6 +546,7 @@ fn rollback_texture(
     }
 }
 
+// TODO: [CR-R02-runtime_wave12_graphics_resource_residency-0003] 待确认部分回滚失败后的句柄保留契约；当前错误不携带剩余缓冲，尚未验证实际失败路径，需用故障注入核对回收 owner 与重试顺序。
 fn rollback_mesh(
     device: &dyn RenderDevice,
     vertex_buffer: BufferHandle,

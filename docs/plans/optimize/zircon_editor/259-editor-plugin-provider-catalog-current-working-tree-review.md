@@ -13,7 +13,6 @@ related_runtime_owner:
 related_plugin_owner:
   - docs/plans/optimize/zircon_plugins/06-first-party-plugin-source-editor-runtime-dist-catalog-profile-capability-closure-review.md
 related_code:
-  - zircon_plugins/*/plugin.toml
   - zircon_plugins/first_party_editor_catalog/Cargo.toml
   - zircon_plugins/first_party_editor_catalog/src/catalog.rs
   - zircon_plugins/first_party_editor_catalog/src/tests.rs
@@ -21,8 +20,6 @@ related_code:
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_app/src/entry/product_host_config
   - zircon_editor/src/core/plugin
-  - zircon_plugins/*/editor/src/plugin.rs
-  - zircon_plugins/*/editor/**/*.zui
   - zircon_editor/assets/ui/editor/components/workbench
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Editor/UnrealEd/Private/EditorEngine.cpp

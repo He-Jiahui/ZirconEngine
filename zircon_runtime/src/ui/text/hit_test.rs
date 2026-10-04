@@ -1,4 +1,5 @@
 use crate::text::font::{shared_font_collection_snapshot, FontCollectionSnapshot};
+use crate::text::layout_geometry::{finite_geometry, finite_sum, FiniteGeometryAccumulator};
 use crate::text::{
     resolve_resolved_text_glyph_artifact, resolved_text_glyph_artifact_caret_at_advance,
 };
@@ -74,9 +75,9 @@ fn hit_test_text_layout_inner(
     };
     let line = &layout.lines[line_index];
     let visual_advance = if vertical_rl {
-        point.y - line.frame.y
+        finite_geometry(f64::from(point.y) - f64::from(line.frame.y))
     } else {
-        point.x - line.frame.x
+        finite_geometry(f64::from(point.x) - f64::from(line.frame.x))
     };
     let artifact_caret = resolved_glyph_artifact(layout).and_then(|artifact| {
         resolved_text_glyph_artifact_caret_at_advance(
@@ -197,21 +198,23 @@ fn visual_grapheme_boundary_for_x(
 
     // `line.text` and `glyph_advances` are already in post-UAX#9 visual order.
     // Logical RTL recovery belongs to the source map, not to physical hit coordinates.
-    let relative_x = point_x - line.frame.x;
+    let relative_x = finite_geometry(f64::from(point_x) - f64::from(line.frame.x));
     let Some(advances) = resolved_grapheme_advances(line, grapheme_count) else {
         return endpoint_boundary(relative_x, line.measured_width, grapheme_count);
     };
-    let advance_width = advances.iter().sum::<f32>();
+    let advance_width = finite_sum(advances.iter().copied());
     let measured_x = relative_x.clamp(0.0, line.measured_width.max(advance_width).max(0.0));
-    let mut cursor_x = 0.0_f32;
+    let mut cursor_x = FiniteGeometryAccumulator::default();
     for (index, width) in advances.iter().copied().enumerate() {
-        if index > 0 && measured_x < cursor_x {
+        if index > 0 && measured_x < cursor_x.value() {
             return (index, UiTextVisualBoundaryBias::TrailingPrevious);
         }
-        if measured_x <= cursor_x + width * 0.5 {
+        let mut midpoint = cursor_x;
+        midpoint.add(width * 0.5);
+        if measured_x <= midpoint.value() {
             return (index, UiTextVisualBoundaryBias::LeadingCurrent);
         }
-        cursor_x += width;
+        cursor_x.add(width);
     }
     (grapheme_count, UiTextVisualBoundaryBias::TrailingPrevious)
 }
@@ -225,7 +228,7 @@ fn visual_grapheme_boundary_for_y(
         return (0, UiTextVisualBoundaryBias::LeadingCurrent);
     }
 
-    let relative_y = point_y - line.frame.y;
+    let relative_y = finite_geometry(f64::from(point_y) - f64::from(line.frame.y));
     let Some(advances) = resolved_grapheme_advances(line, grapheme_count) else {
         return endpoint_boundary(
             relative_y,
@@ -233,7 +236,7 @@ fn visual_grapheme_boundary_for_y(
             grapheme_count,
         );
     };
-    let advance_height = advances.iter().sum::<f32>();
+    let advance_height = finite_sum(advances.iter().copied());
     let measured_y = relative_y.clamp(
         0.0,
         line.measured_width
@@ -241,15 +244,17 @@ fn visual_grapheme_boundary_for_y(
             .max(advance_height)
             .max(0.0),
     );
-    let mut cursor_y = 0.0_f32;
+    let mut cursor_y = FiniteGeometryAccumulator::default();
     for (index, height) in advances.iter().copied().enumerate() {
-        if index > 0 && measured_y < cursor_y {
+        if index > 0 && measured_y < cursor_y.value() {
             return (index, UiTextVisualBoundaryBias::TrailingPrevious);
         }
-        if measured_y <= cursor_y + height * 0.5 {
+        let mut midpoint = cursor_y;
+        midpoint.add(height * 0.5);
+        if measured_y <= midpoint.value() {
             return (index, UiTextVisualBoundaryBias::LeadingCurrent);
         }
-        cursor_y += height;
+        cursor_y.add(height);
     }
     (grapheme_count, UiTextVisualBoundaryBias::TrailingPrevious)
 }

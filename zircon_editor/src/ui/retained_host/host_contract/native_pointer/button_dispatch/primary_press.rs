@@ -2,6 +2,7 @@ use crate::ui::retained_host::host_contract::data::{FrameRect, HostPresentationG
 use crate::ui::retained_host::host_contract::native_popup_dismiss::dispatch_workbench_popup_outside_primary_press;
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
 use crate::ui::retained_host::host_contract::window::UiHostWindow;
+use zircon_runtime_interface::ui::dispatch::UiPointerId;
 
 use super::chrome_route::dispatch_top_level_chrome_primary_press;
 use super::dock_overflow_menu::dispatch_host_dock_overflow_menu_primary_press;
@@ -11,6 +12,7 @@ use super::page_overflow_menu::dispatch_host_page_overflow_menu_primary_press;
 pub(super) fn dispatch_primary_press_overlays(
     ui: &UiHostWindow,
     generation: &HostPresentationGeneration,
+    pointer_id: UiPointerId,
     x: f32,
     y: f32,
     cleared_text_input_frame: Option<FrameRect>,
@@ -55,5 +57,12 @@ pub(super) fn dispatch_primary_press_overlays(
     ) {
         return Some(result);
     }
-    dispatch_top_level_chrome_primary_press(ui, structure, x, y, cleared_text_input_frame)
+    dispatch_top_level_chrome_primary_press(
+        ui,
+        structure,
+        pointer_id,
+        x,
+        y,
+        cleared_text_input_frame,
+    )
 }

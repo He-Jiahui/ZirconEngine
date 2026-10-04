@@ -2,13 +2,13 @@ use crate::ui::{
     layout::plan_scrollable_virtual_window, surface::UiSurface, tree::UiRuntimeTreeScrollExt,
 };
 use zircon_runtime_interface::ui::{
-    event_ui::{UiNodeId, UiNodePath, UiTreeId},
+    event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::{
         AxisConstraint, BoxConstraints, StretchMode, UiAxis, UiContainerKind, UiFrame, UiPoint,
         UiScrollState, UiScrollableBoxConfig, UiScrollbarVisibility, UiSize, UiVirtualListConfig,
         UiVirtualListWindow,
     },
-    tree::{UiInputPolicy, UiStateFlags, UiTreeNode},
+    tree::{UiInputPolicy, UiTreeNode},
 };
 
 #[test]

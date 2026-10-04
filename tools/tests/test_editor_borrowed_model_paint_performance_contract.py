@@ -1,7 +1,8 @@
+# 核对原生面板、菜单与层级绘制借用行数据，并明确稳定载荷的压力模型。
 from pathlib import Path
 import unittest
 
-from tools.editor_borrowed_model_paint_pressure import run
+from tools.analysis.performance.editor.editor_borrowed_model_paint_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]

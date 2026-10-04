@@ -1,3 +1,5 @@
+//! 验证同一场景实体的物理与动画绑定可共存并经文档往返保留，供后续 World 实例化分别读取。
+
 use super::*;
 
 #[test]
@@ -144,6 +146,7 @@ fn scene_asset_toml_roundtrip_preserves_physics_and_animation_components() {
             terrain: None,
             tilemap: None,
             prefab_instance: None,
+            components: Vec::new(),
             script_bindings: Vec::new(),
         }],
     };

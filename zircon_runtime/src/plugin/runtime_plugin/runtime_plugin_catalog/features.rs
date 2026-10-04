@@ -57,8 +57,8 @@ fn resolve_feature_dependency_report<'a>(
         selection_partition.pending,
         projection,
         target,
-        &context.plugin_selections,
-        &context.enabled_plugins,
+        &context.selected_plugin_ids,
+        &context.canonical_enabled_plugins,
         &mut context.available_capabilities,
         &mut context.report,
     );

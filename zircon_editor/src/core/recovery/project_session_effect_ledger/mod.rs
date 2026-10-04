@@ -1,3 +1,5 @@
+//! 项目会话副作用台账的内部边界；宿主经store进行持久迁移，不能直接跳过相位写内存模型。
+
 mod effect;
 mod effect_disposition;
 mod error;
@@ -7,6 +9,7 @@ mod phase;
 mod recovery_status;
 mod store;
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 pub(crate) use effect::ProjectSessionEffect;

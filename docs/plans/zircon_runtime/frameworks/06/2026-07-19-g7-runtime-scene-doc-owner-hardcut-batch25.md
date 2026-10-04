@@ -1,9 +1,9 @@
 ---
 related_code:
-  - docs/zircon_runtime/scene/ecs-to-render-workflow.md
-  - docs/zircon_runtime/scene/inspection.md
-  - docs/zircon_runtime/scene/reflect.md
-  - docs/zircon_runtime/scene/render_extract.md
+  - docs/crates/zircon_runtime/scene/ecs-to-render-workflow.md
+  - docs/crates/zircon_runtime/scene/inspection.md
+  - docs/crates/zircon_runtime/scene/reflect.md
+  - docs/crates/zircon_runtime/scene/render_extract.md
   - zircon_runtime/src/scene/components/scene/mod.rs
   - zircon_runtime/src/scene/components/scene/transform.rs
   - zircon_runtime/src/scene/components/scene/activation.rs
@@ -16,18 +16,18 @@ related_code:
   - zircon_runtime/src/scene/components/scene/post_process.rs
   - zircon_runtime/src/core/framework/scene/mobility.rs
 implementation_files:
-  - docs/zircon_runtime/scene/ecs-to-render-workflow.md
-  - docs/zircon_runtime/scene/inspection.md
-  - docs/zircon_runtime/scene/reflect.md
-  - docs/zircon_runtime/scene/render_extract.md
+  - docs/crates/zircon_runtime/scene/ecs-to-render-workflow.md
+  - docs/crates/zircon_runtime/scene/inspection.md
+  - docs/crates/zircon_runtime/scene/reflect.md
+  - docs/crates/zircon_runtime/scene/render_extract.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
   - docs/plans/zircon_runtime/frameworks/06/2026-07-19-scene-component-owner-hardcut.md
 tests:
-  - python tools/check_conventions.py --only docs --json
-  - git diff --check -- docs/zircon_runtime/scene/ecs-to-render-workflow.md docs/zircon_runtime/scene/inspection.md docs/zircon_runtime/scene/reflect.md docs/zircon_runtime/scene/render_extract.md docs/plans/zircon_runtime/frameworks/06/2026-07-19-g7-runtime-scene-doc-owner-hardcut-batch25.md
+  - python tools/audits/check_conventions.py --only docs --json
+  - git diff --check -- docs/crates/zircon_runtime/scene/ecs-to-render-workflow.md docs/crates/zircon_runtime/scene/inspection.md docs/crates/zircon_runtime/scene/reflect.md docs/crates/zircon_runtime/scene/render_extract.md docs/plans/zircon_runtime/frameworks/06/2026-07-19-g7-runtime-scene-doc-owner-hardcut-batch25.md
 ---
 
 # Frameworks06 G7 Runtime Scene 文档 Owner 硬切 Batch 25
@@ -35,7 +35,7 @@ tests:
 Plan: docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
 Milestone: M2
 Status: accepted
-Files: ["docs/zircon_runtime/scene/ecs-to-render-workflow.md", "docs/zircon_runtime/scene/inspection.md", "docs/zircon_runtime/scene/reflect.md", "docs/zircon_runtime/scene/render_extract.md"]
+Files: ["docs/crates/zircon_runtime/scene/ecs-to-render-workflow.md", "docs/crates/zircon_runtime/scene/inspection.md", "docs/crates/zircon_runtime/scene/reflect.md", "docs/crates/zircon_runtime/scene/render_extract.md"]
 Date: 2026-07-19
 Session: `frameworks06-g7-runtime-scene-doc-owner-hardcut-batch25-20260719`
 

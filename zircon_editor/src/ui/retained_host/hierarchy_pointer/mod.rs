@@ -1,4 +1,5 @@
 mod clamp_scroll_offset;
+mod gesture;
 mod handle_click;
 mod handle_move;
 mod handle_scroll;
@@ -19,7 +20,7 @@ pub(crate) use hierarchy_pointer_dispatch::HierarchyPointerDispatch;
 pub(crate) use hierarchy_pointer_layout::HierarchyPointerLayout;
 pub(crate) use hierarchy_pointer_route::HierarchyPointerRoute;
 pub(crate) use hierarchy_pointer_state::HierarchyPointerState;
-pub(crate) use paint_metadata::{HierarchyPaintMetadata, hierarchy_paint_metadata};
+pub(crate) use paint_metadata::{hierarchy_paint_metadata, HierarchyPaintMetadata};
 pub(in crate::ui::retained_host) use row_metrics::{
     current_hierarchy_row_metrics, hierarchy_content_height,
     hierarchy_row_metrics_from_host_metrics, hierarchy_row_width, hierarchy_row_y,

@@ -19,5 +19,6 @@ pub(super) fn assign_descriptor_package_manifest_rows(
         manifest = manifest.with_optional_feature(feature.clone());
     }
     manifest.default_packaging = descriptor.default_packaging.clone();
+    manifest.package_role = descriptor.package_role;
     manifest
 }

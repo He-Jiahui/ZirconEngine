@@ -58,4 +58,5 @@ use retained_binding::{
 };
 
 #[cfg(test)]
+#[path = "view_projection/tests/cases.rs"]
 mod tests;

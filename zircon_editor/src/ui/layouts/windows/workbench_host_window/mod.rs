@@ -9,6 +9,7 @@ use crate::ui::workbench::snapshot::{
 };
 
 mod chrome_template_projection;
+mod document_leaves;
 mod floating_windows;
 mod frame_rect;
 mod host_data;

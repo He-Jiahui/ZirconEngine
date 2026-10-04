@@ -1,3 +1,4 @@
+//! 次表面散射的运行时公共契约；特性提供者将此处元数据提交到目录与图编译。
 use zircon_runtime::core::framework::render::{
     GBufferChannelMask, ShadingModelDescriptor, ShadingModelId,
 };
@@ -48,13 +49,17 @@ pub fn shading_model_descriptor() -> ShadingModelDescriptor {
     )
 }
 
+/// 复用宿主的延迟散射图契约；配置表为空、前向管线或不兼容采样模式时由编译器回退。
 pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
     zircon_runtime::graphics::subsurface_render_feature_descriptor()
 }
 
+/// 提供与特性图匹配的执行实现；宿主负责实际 GPU 资源与这些句柄的设备生命周期。
 pub fn render_pass_executor_registrations() -> Vec<RenderPassExecutorRegistration> {
     zircon_runtime::graphics::subsurface_render_pass_executor_registrations()
 }
 
+// 此测试边界覆盖声明与注册约束；GPU 效果证据需由对应产品测试另行提供。
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

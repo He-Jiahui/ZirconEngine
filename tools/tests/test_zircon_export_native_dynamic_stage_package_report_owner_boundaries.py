@@ -1,14 +1,15 @@
+# 核对阶段包报告辅助函数归属与模块行数。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 STAGE_PAYLOAD = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_native_dynamic_stage_payload.py"
+    REPO_ROOT / "tools/export/pipeline_report_native_dynamic_stage_payload.py"
 )
 STAGE_PACKAGE_REPORT = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_stage_package_report.py"
+    / "tools/export/pipeline_report_native_dynamic_stage_package_report.py"
 )
 
 

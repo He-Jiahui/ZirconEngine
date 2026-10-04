@@ -1,3 +1,6 @@
+// 调用端：npm run generate:talent-allocation-commit-contract (tools/package.json)；职责：固化天赋行解锁等级、选项 ID 和提交顺序。
+// 输入边界：src/sim/content/talents.ts, src/sim/content/talent_rows.ts, src/sim/progression/talents.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

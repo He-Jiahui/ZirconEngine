@@ -5,6 +5,8 @@ use zircon_runtime_interface::ui::{
 
 const MAX_NORMALIZED_DIRECTION_KEY_BYTES: usize = "gamepaddpadright".len();
 
+/// 识别方向键与未被命令修饰的 Tab，用于焦点导航默认动作。
+/// 本函数只分类事件，不决定目标或改变焦点。
 pub(super) fn keyboard_navigation_kind(
     keyboard: &UiKeyboardInputEvent,
 ) -> Option<UiNavigationEventKind> {
@@ -71,5 +73,5 @@ fn normalized_direction_key(
 }
 
 #[cfg(test)]
-#[path = "keyboard_navigation/single_normalize_tests.rs"]
+#[path = "keyboard_navigation/tests/single_normalize_tests.rs"]
 mod single_normalize_tests;

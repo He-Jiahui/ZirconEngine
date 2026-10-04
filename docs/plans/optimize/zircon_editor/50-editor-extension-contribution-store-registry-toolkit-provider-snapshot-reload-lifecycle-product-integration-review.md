@@ -25,7 +25,7 @@ tests:
   - zircon_editor/src/tests/editor_event/runtime/extensions_registration
   - zircon_editor/src/tests/host/manager/document_toolkit_lifecycle.rs
 plan_sources:
-  - docs/zircon_editor/core/plugin.md
+  - docs/crates/zircon_editor/core/plugin.md
   - docs/plans/performance/01/2026-07-30-editor-core-editor-extension-current-review.md
   - docs/plans/performance/01/2026-08-15-editor-extension-contribution-overlay-current-architecture-review.md
   - docs/plans/performance/01/2026-08-16-editor-core-plugin-catalog-lifecycle-current-architecture-review.md

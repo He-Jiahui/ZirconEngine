@@ -1,11 +1,12 @@
+# 核对原生构建执行与计划之间的实现归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-NATIVE_BUILD = REPO_ROOT / "tools/zircon_export/native_build.py"
-NATIVE_BUILD_EXECUTION = REPO_ROOT / "tools/zircon_export/native_build_execution.py"
-NATIVE_DYNAMIC = REPO_ROOT / "tools/zircon_export/native_dynamic.py"
+NATIVE_BUILD = REPO_ROOT / "tools/export/native_build.py"
+NATIVE_BUILD_EXECUTION = REPO_ROOT / "tools/export/native_build_execution.py"
+NATIVE_DYNAMIC = REPO_ROOT / "tools/export/native_dynamic.py"
 
 
 class ZirconExportNativeBuildExecutionOwnerBoundaryTests(unittest.TestCase):

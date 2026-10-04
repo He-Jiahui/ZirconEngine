@@ -65,6 +65,7 @@ impl PluginSummaryEntry {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 会话 profile、核心能力名称和运行时插件状态的只读概览；网关操作仍由各端点检查会话状态与 ABI 入口。
 pub struct RuntimeCapabilities {
     session_profile: SessionProfileKind,
     core_capabilities: Vec<String>,
@@ -114,6 +115,7 @@ impl RuntimeCapabilities {
         )
     }
 
+    /// 将 App 的运行时插件注册报告归纳为 Disabled/Active/Rejected 状态并保存在网关概览中。
     pub fn from_runtime_plugin_registrations(
         session_profile: SessionProfileKind,
         registrations: &[RuntimePluginRegistrationReport],
@@ -166,5 +168,5 @@ impl RuntimeCapabilities {
 }
 
 #[cfg(test)]
-#[path = "capabilities/optimization_tests.rs"]
+#[path = "capabilities/tests/optimization_tests.rs"]
 mod optimization_tests;

@@ -12,6 +12,8 @@ related_code:
   - zircon_app/src/entry/runtime_entry_app/surface_present/redraw.rs
   - zircon_app/src/entry/runtime_entry_app/frame_capture.rs
 tests:
+  - managed cargo +1.94.1 test -p zircon_app --lib --locked -- entry::runtime_entry_app::surface_present::redraw::tests::frame_capture_projects_to_the_runtime_entry_root_sibling --exact --nocapture --test-threads=1
+  - managed cargo +1.94.1 test -p zircon_app --lib --locked -- entry::runtime_entry_app::frame_capture::tests:: --nocapture --test-threads=1
   - managed cargo test -p zircon_runtime --lib graphics::tests::render_product_post_process_full_chain::render_product_post_full_chain_all_effects_on --locked -- --exact --test-threads=1
 ---
 
@@ -103,3 +105,186 @@ Open state: `MVP03 source repair complete; managed upward validation pending`; n
   longer the admission boundary, but it is not a focused GREEN. The canonical frame-capture
   failure remains `open` until the external world-query consumer repair is integrated and the
   same managed test executes successfully; MVP03 does not absorb or patch that owner here.
+
+### 2026-09-11 rolling repair continuation
+
+- Stable fixing Session `failure-roll-01a090ae-mvp03-frame-capture-sibling-r1` registered the
+  current three-path scope at baseline epoch `608`: the `surface_present/redraw.rs` caller,
+  the root-owned `frame_capture.rs` writer, and this failure record. Current attribution was
+  refreshed before and after the validation attempt; no source bytes were changed in this slice.
+- The first coordinator static ticket `5b27ca17876d4365a0029e586c005c1f` ended `failed` because
+  its checker used a substring negative assertion that also matched the legal
+  `super::super::frame_capture` path. Its diagnostic is a validator assertion error, not a Rust
+  or source failure, and is retained rather than reused as acceptance evidence.
+- Corrected static ticket `358f823ca2c347919ba941221567b502` passed with the same sealed current
+  manifest (`7e6e6036568af37f72bf9876c444e7bcd6c2eb520a6fdf589cde181549f68ba2`). The corrected
+  guard matches the complete call line, confirms `pub(super) fn write_runtime_frame_png`, and
+  rejects aliases/duplicates. This is static evidence only.
+- The new managed Cargo request
+  `failure-roll-01a090ae-mvp03-cargo-20260911-r1` used the exact focused
+  `zircon_app --lib frame_capture_projects_to_the_runtime_entry_root_sibling` command with
+  `--locked` and no caller-owned jobs flag. Coordinator admission rejected it before ticket
+  creation or Cargo execution with `validation_ticket_external_worktree_dirty` for
+  `E:\Git\zr_vm`. Therefore there is no new Cargo exit code or dynamic GREEN. The prior
+  `TransformSnapshot` compile failure remains an independently owned upstream blocker; MVP03
+  does not patch it.
+- Session status is `waiting_validation`, leases are released, and this canonical failure stays
+  `open`. No fixed return, closeout commit, review completion, or notification is claimed.
+
+### 2026-09-19 rolling successor source-contract admission
+
+- Successor Session `failure-roll-01a084c8-mvp03-frame-capture-sibling-r2` reclaimed
+  the exact caller, root writer, and canonical record under transfer fingerprint
+  `2b6793fbfe75d1583d368fa62ed8ecfeee96911617080ee7328235d4ca39df2c` at baseline
+  epoch `611`; current source hashes were preserved without edits.
+- Current-source static request
+  `failure-roll-01a084c8-mvp03-frame-capture-sibling-20260919-r1` admitted ticket
+  `5eaa2054cfb24d26adc4d2ddcc9c414b` with sealed manifest hash
+  `499a733a2bacca8be78e762f35ef4e7b98d5a7cf4ed9c4f1cc7320fa8617aade`; status is
+  `queued` pending the coordinator terminal result. The checker asserts the exact
+  `super::super::frame_capture` call and root writer export while rejecting aliases.
+- This ticket is static-only. Fresh managed `zircon_app` Cargo, the Render17
+  originating gate, independent C/I/M review, fixed return, closeout, and the
+  external `E:\Git\zr_vm` clean-worktree prerequisite remain pending.
+
+### 2026-09-19 static checker correction
+
+- The successor static ticket `5eaa2054cfb24d26adc4d2ddcc9c414b` reached the
+  coordinator terminal state `failed` at `2026-09-19T06:46:20.191550Z` after
+  running job `12394280b048455ba4e25ac4b89a783d`.
+- The source assertions for the exact sibling call and root writer export passed,
+  but the checker then used a substring negative assertion for
+  `super::frame_capture::write_runtime_frame_png(`. That substring also occurs
+  inside the legal `super::super::frame_capture::write_runtime_frame_png(`
+  path, so the failure is a coordinator checker defect (`AssertionError`), not
+  a Rust/source failure or dynamic acceptance result. The ticket is excluded
+  from failure-cache reuse (`failureCacheExcluded=true`).
+- No source bytes changed. A corrected line-based checker must be submitted
+  against a fresh manifest; the managed `zircon_app` Cargo gate, Render17
+  originating gate, independent C/I/M review, fixed return, closeout, and the
+  external `E:\Git\zr_vm` clean-worktree prerequisite remain pending.
+
+### 2026-09-19 corrected static terminal result
+
+- Corrected ticket `a003782cf27b4f36b622c2ac95a00b93` passed at
+  `2026-09-19T06:53:27.651636Z` in job
+  `8ded1dc1c4c64fa9934587571e7bf0d6`, with exit code `0` and stdout marker
+  `MVP03_FRAME_CAPTURE_SIBLING_CURRENT_SOURCE_CONTRACT_PASS`. Cleanup event
+  `10887` completed successfully.
+- The line-based checker now distinguishes the legal
+  `super::super::frame_capture::write_runtime_frame_png` route from shorter
+  aliases; this is static source-contract evidence only. It supersedes the
+  failed substring-checker ticket `5eaa2054cfb24d26adc4d2ddcc9c414b` and does
+  not add Cargo or Render17 acceptance.
+- Fresh managed `zircon_app` Cargo, the Render17 originating gate, independent
+  C/I/M review, fixed return, closeout, and the external `E:\\Git\\zr_vm`
+  clean-worktree prerequisite remain pending; the canonical failure stays
+  `open`.
+
+### 2026-09-20 independent source review r2
+
+The independent reviewer inspected the current `runtime_entry_app` module
+projection and its writer. `surface_present::redraw` has exactly one
+`super::super::frame_capture::write_runtime_frame_png` call, resolving to the
+root-owned sibling without an alias or duplicate writer. The call remains
+after a successful native or reference presentation and before the presented
+frame counter advances. The writer preserves the explicit RGBA length check,
+staging-file reservation, buffered flush, filesystem sync, atomic commit, and
+cleanup-on-error paths; no test-only fallback was added.
+
+Read-only checks:
+
+- `rustfmt +1.94.1 --edition 2021 --config skip_children=true --check` over
+  `frame_capture.rs` and `surface_present/redraw.rs`:
+  `MVP03_RUSTFMT_PASS paths=2`.
+- `git diff --check` over those paths: pass.
+
+Current source hashes inspected:
+
+```text
+zircon_app/src/entry/runtime_entry_app/frame_capture.rs afeebd2a08d95f29e54d9351fffeccca9c76ea3e86848cae177c032a6bbf7ac7
+zircon_app/src/entry/runtime_entry_app/surface_present/redraw.rs 9cd337a68a21c8e8f34c4fdbbd6f6fdd0c10a72823f32f287c04f578f9558583
+```
+
+Independent review result: `Critical=0 Important=0 Moderate=0`. No managed
+`zircon_app` Cargo, Render17 WGPU, screenshot/PNG, canonical fixed return, or
+closeout result is inferred from this source review.
+
+### 2026-09-25 current-source rolling reconciliation
+
+- Current source hashes still match the sealed sibling projection:
+  `zircon_app/src/entry/runtime_entry_app/frame_capture.rs`
+  `afeebd2a08d95f29e54d9351fffeccca9c76ea3e86848cae177c032a6bbf7ac7` and
+  `zircon_app/src/entry/runtime_entry_app/surface_present/redraw.rs`
+  `9cd337a68a21c8e8f34c4fdbbd6f6fdd0c10a72823f32f287c04f578f9558583`.
+  The working tree is clean for both paths; this successor made no source edit.
+- The exact focused Cargo command remains the frontmatter gate. The prior
+  managed replay reached Cargo but stopped before test execution at the foreign
+  `WorldQueryResult::TransformSnapshot` exhaustiveness error; the external
+  `E:\\Git\\zr_vm` dirty-worktree admission blocker also remains recorded. No
+  historical static ticket or Render17 result is reused as a dynamic pass.
+- Independent review C/I/M `0/0/0`, the Render17 upward gate, fresh managed
+  `zircon_app` execution, fixed return, and closeout remain pending; this
+  canonical failure stays `open`.
+
+### 2026-09-25 independent static review receipt
+
+- Reviewer `/root/review_editor03_gizmo_private` re-read snapshot 3798 at
+  document SHA-256 `f4d65ac21549e40200f9e143af9d6cf0f8e4dabbf08f4e1704d1b940d74ce379`.
+  Both source hashes match and the working tree is clean for the two owned
+  paths. The production tree has exactly one sibling writer call
+  `super::super::frame_capture::write_runtime_frame_png`; the root writer is
+  `pub(super)`, with no alias, duplicate, or fallback route.
+- Review result: Critical/Important/Moderate = `0/0/0`. The foreign
+  `WorldQueryResult::TransformSnapshot` compile blocker and external
+  `E:\\Git\\zr_vm` admission blocker remain accurate. Static checker, rustfmt,
+  and historical Cargo replay are not current managed Render17 acceptance; no
+  Cargo command was run.
+
+
+### 2026-09-27 current-source acceptance-command reconciliation
+
+- The frontmatter now lists the direct `zircon_app` sibling-projection regression
+  and the root PNG writer suite before the preserved original Render17 exact gate.
+  The mounted projection test is
+  `entry::runtime_entry_app::surface_present::redraw::tests::frame_capture_projects_to_the_runtime_entry_root_sibling`.
+  The writer filter is
+  `entry::runtime_entry_app::frame_capture::tests::`; current source declares seven
+  tests under that module, including RGBA PNG roundtrip, invalid payload,
+  staging cleanup, atomic replacement, and flush/sync error propagation. This
+  source inventory is not a test-run count or a dynamic pass. Each managed result
+  must show that its intended test or all seven writer tests actually executed.
+- The module chain is `lib.rs -> entry/mod.rs -> runtime_entry_app/mod.rs ->
+  surface_present/mod.rs -> redraw.rs` for the caller, and the root
+  `runtime_entry_app/mod.rs -> frame_capture.rs` for the writer. Default App
+  `target-client` features include `default-platform -> platform-winit`, which
+  admits the runtime-entry module. The corrected caller and writer still match
+  the source hashes recorded above; this reconciliation does not change them.
+- The historical Render17 command targets only `zircon_runtime --lib`; the
+  current Runtime manifest has no dependency on `zircon_app`. Its execution is
+  required for the original downstream reproduction, while the separate App
+  gate must compile the actual caller and writer to prove that the former E0433
+  boundary is resolved. The prior job's broader compilation is preserved as
+  historical evidence and is not attributed to that single Runtime command.
+- Current HEAD `bc02eefafead65dbf5050482110e8175250a5e77` already contains
+  `WorldQueryResult::TransformSnapshot { .. } => 1` at
+  `zircon_runtime_host/src/foreign_output/item_count.rs:90`. Its current bytes are
+  SHA-256 `7e643d75bc34a77a5a596a59351184ad679a10197b613a7c7255b7d00f66e322`,
+  and the file is clean against HEAD. The August replay's E0004 remains a
+  historical RED; it is not an unresolved current-source omission. This static
+  observation does not prove a fresh Cargo compile or consumer regression pass.
+- Fresh direct App regression, the seven PNG writer tests, and the originating
+  Render17 exact gate remain dynamically pending. The F2 plan's real product PNG,
+  input, and two-lifecycle gates also retain their own pending status; encoder
+  tests cannot substitute for those product results. No old ticket's terminal
+  state is changed or inferred in this reconciliation, and no request was
+  resubmitted. The external whole-worktree archive and Cargo network admission
+  prerequisites require their own verified resolution before new managed Cargo.
+- Managed Windows validation keeps `--locked` and freezes the actual relevant
+  source, tests, configuration, and external-worktree inventory. Compiler
+  products and caches must physically be under drive-root
+  `D:\cargo-targets`, `E:\cargo-targets`, or `F:\cargo-targets`; the coordinator
+  supplies the approved location. Repository-local targets, nested lookalike
+  roots, aliases, `C:`, and legacy `ZirconBuilds` paths are not acceptance storage.
+- This record remains `open`; no dynamic GREEN, canonical fixed return,
+  closeout, commit, notification, or completion follows from this reconciliation.

@@ -11,11 +11,12 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/sequences.rs
   - zircon_plugins/animation/runtime/src/lib.rs
+  - zircon_runtime/src/animation/sequence/compiled.rs
   - tools/tests/test_frameworks_05_layer_direction.py
 tests:
   - python -m unittest tools.tests.test_frameworks_05_layer_direction.Frameworks05LayerDirectionTests.test_animation_manager_contract_does_not_mutate_scene_world -v
   - python -m unittest tools.tests.test_frameworks_05_layer_direction -v
-  - cargo +1.94.1 check -p zircon_plugin_animation_runtime --lib --locked --jobs 1 --color never
+  - cargo +1.94.1 check -p zircon_plugin_animation_runtime --lib --locked --color never
 ---
 
 # Plugins04: animation sequence caller root drift
@@ -106,3 +107,49 @@ Plugins04 的 scene-hook/evaluator hard cut 已删除旧 `sequence` 根模块，
   `20260805-editor02-retention-page-hardcut` Session. Their ownership was not overridden.
 - The declared managed Cargo check and fixed return remain pending until the support failure is
   resolved and the complete Python gate is `28/28` GREEN. This artifact therefore remains `open`.
+
+## 2026-09-20 current-source guard and ownership handoff
+
+- Successor `failure-roll-01a084c8-plugins04-sequence-caller-r1` now owns this failure record and
+  future return/fixed destinations. The source implementation is treated as a read-only dependency:
+  current `sequences.rs` imports `compile_sequence_for_world` and
+  `apply_compiled_sequence_to_world` from the neutral Runtime owner and contains no
+  `crate::sequence::` caller; `compiled.rs` defines both public compiled APIs.
+- The declared focused guard was executed against the current checkout, not inferred from file
+  presence: `python -B -m unittest
+  tools.tests.test_frameworks_05_layer_direction.Frameworks05LayerDirectionTests.test_animation_manager_contract_does_not_mutate_scene_world -v`
+  passed `1/1` in `23.851s`. The complete `tools.tests.test_frameworks_05_layer_direction` command
+  then executed all `28` tests and passed `28/28` in `133.387s`. These are current-source Python
+  contract results only; they do not prove Rust module resolution.
+- Current source hashes are `sequences.rs=bfde820cdbc95be3088a214d7bc369b7eee992eed87b3fc46991b22f8e3d1746`,
+  `runtime/src/lib.rs=37111a4d129275e5a3282585b26418ac41f9468144ba2fb10a3ae90904768c6a`, and
+  `animation/sequence/compiled.rs=2b8871de1ab02ca0e8ca7dac8a5302180a32bb0a74a17c881ebf095c78eba1e1`.
+  The pipeline and compiled-owner hashes differ from their archived Runtime170 attribution and
+  contain broader changes; this Session does not absorb or rewrite them. A fresh managed Cargo
+  snapshot therefore must wait for their owning Session to commit or explicitly transfer the exact
+  bytes.
+- The original managed gate remains exactly
+  `cargo +1.94.1 check -p zircon_plugin_animation_runtime --lib --locked --color never`.
+  No new ticket is claimed from the current dirty/foreign source state, and the external
+  `E:\Git\zr_vm` clean-revision blocker remains in force. The failure stays `open /
+  waiting_validation`; canonical return, independent C0/I0/M0 review and closeout remain pending.
+
+## 2026-09-20 independent review receipt
+
+- Read-only review of the current source contract reported `Critical=0, Important=0,
+  Moderate=0`. The reviewer re-ran the focused Frameworks05 guard (`1/1`, `43.460s`)
+  and the complete module (`28/28`, `127.146s`); these Python-only results do not replace
+  the pending managed Rust check.
+- Review snapshot hashes: `sequences.rs=
+  bfde820cdbc95be3088a214d7bc369b7eee992eed87b3fc46991b22f8e3d1746`,
+  `zircon_plugins/animation/runtime/src/lib.rs=
+  37111a4d129275e5a3282585b26418ac41f9468144ba2fb10a3ae90904768c6a`,
+  `zircon_runtime/src/animation/sequence/compiled.rs=
+  2b8871de1ab02ca0e8ca7dac8a5302180a32bb0a74a17c881ebf095c78eba1e1`,
+  and guard `bbcd43f531724da729805da5d8dcb64ae2d431bb001706cd7ba51f6e70f291c6`.
+- The review also identified and this receipt corrects a bookkeeping gap: the current
+  Runtime compiled-sequence owner is now listed in `related_code`, and the declared Cargo
+  command no longer carries a forbidden compute override. Source ownership drift remains
+  explicitly deferred to the owning Session; no production bytes were absorbed.
+- Status remains `open / waiting_validation`: managed Cargo, canonical `failure return`,
+  fixed artifact, and coordinator closeout are still pending.

@@ -1,3 +1,4 @@
+//! 保存 V2 作者文档、组件与表面夹具；子模块分别验证加载、样式、交互和缓存边界。
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
@@ -19,6 +20,7 @@ use zircon_runtime_interface::ui::v2::{
     UI_V2_REPEAT_FIELD_KIND, UI_V2_REPEAT_FIELD_NODE_PATH_NAMESPACE,
     UI_V2_REPEAT_KIND_VIRTUAL_ROWS,
 };
+use zircon_runtime_interface::ui::widget::{UiPopupAnchor, UiWidgetBehavior};
 
 use crate::ui::layout::compute_virtual_list_window;
 use crate::ui::surface::{UiPropertyMutationRequest, UiPropertyMutationStatus, UiSurface};
@@ -80,6 +82,125 @@ fn v2_compiler_projects_descriptor_component_role() {
             .and_then(toml::Value::as_str),
         Some("button")
     );
+}
+
+#[test]
+fn v2_loader_compiler_and_surface_preserve_authored_widget_contract() {
+    let document = UiZuiAssetLoader::load_zui_str(
+        r#"
+[asset]
+kind = "view"
+id = "runtime.ui.v2.authored_widget"
+version = 2
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "Dialog"
+control_id = "Popup"
+widget = { behavior = "popup", popup_anchor = { kind = "control", control_id = "Invoker" }, open_property = "popup_open" }
+"#,
+    )
+    .expect("authored widget contract should parse");
+    let compiled =
+        UiV2DocumentCompiler::compile(&document).expect("authored widget contract should compile");
+    let arena_root = compiled
+        .arena
+        .node(compiled.arena.root.expect("authored widget root"))
+        .expect("authored widget arena node");
+    assert_eq!(
+        arena_root.widget.as_ref().map(|widget| widget.behavior),
+        Some(UiWidgetBehavior::Popup)
+    );
+
+    let surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
+        UiTreeId::new("runtime.ui.v2.authored_widget"),
+        &document,
+        &compiled,
+    )
+    .expect("authored widget contract should build a surface");
+    let metadata = surface
+        .tree
+        .node(surface.tree.roots[0])
+        .expect("authored widget surface root")
+        .template_metadata
+        .as_ref()
+        .expect("authored widget surface metadata");
+    assert_eq!(metadata.widget.behavior, UiWidgetBehavior::Popup);
+    assert_eq!(
+        metadata.widget.popup_anchor,
+        UiPopupAnchor::Control {
+            control_id: "Invoker".to_string()
+        }
+    );
+    assert_eq!(metadata.widget.open_property.as_deref(), Some("popup_open"));
+}
+
+#[test]
+fn v2_loader_compiler_and_surface_preserve_authored_widget_contract_mount_override() {
+    let document = UiZuiAssetLoader::load_zui_str(
+        r#"
+[asset]
+kind = "view"
+id = "runtime.ui.v2.widget_mount"
+version = 2
+[root]
+node = "root"
+[components.AnchoredPopup]
+root = "base_popup"
+[nodes.root]
+component = "Overlay"
+children = [{ node = "kept" }, { node = "overridden" }]
+[nodes.base_popup]
+component = "Dialog"
+widget = { behavior = "popup", popup_anchor = { kind = "control", control_id = "BaseInvoker" }, open_property = "base_open" }
+[nodes.kept]
+component = "AnchoredPopup"
+control_id = "KeptPopup"
+[nodes.overridden]
+component = "AnchoredPopup"
+control_id = "OverriddenPopup"
+widget = { behavior = "popup", popup_anchor = { kind = "control", control_id = "OverrideInvoker" }, open_property = "override_open" }
+"#,
+    ).unwrap();
+    let compiled = UiV2DocumentCompiler::compile(&document).unwrap();
+    let surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
+        UiTreeId::new("runtime.ui.v2.widget_mount"),
+        &document,
+        &compiled,
+    )
+    .unwrap();
+    for (control, anchor, open_property) in [
+        ("KeptPopup", "BaseInvoker", "base_open"),
+        ("OverriddenPopup", "OverrideInvoker", "override_open"),
+    ] {
+        let widget = compiled
+            .arena
+            .nodes
+            .iter()
+            .find(|node| node.control_id.as_deref() == Some(control))
+            .unwrap()
+            .widget
+            .as_ref()
+            .unwrap();
+        assert_eq!(widget.behavior, UiWidgetBehavior::Popup);
+        assert_eq!(
+            widget.popup_anchor,
+            UiPopupAnchor::Control {
+                control_id: anchor.into()
+            }
+        );
+        assert_eq!(widget.open_property.as_deref(), Some(open_property));
+        let metadata = surface
+            .tree
+            .nodes
+            .values()
+            .filter_map(|node| node.template_metadata.as_ref())
+            .find(|metadata| metadata.control_id.as_deref() == Some(control))
+            .unwrap();
+        assert_eq!(&metadata.widget, widget);
+    }
 }
 
 fn v2_cache_temp_dir(test_name: &str) -> std::path::PathBuf {

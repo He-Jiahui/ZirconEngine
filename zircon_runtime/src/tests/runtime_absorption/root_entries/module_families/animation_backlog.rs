@@ -1,3 +1,4 @@
+//! 运行时根入口只公开选定模块，模块家族和历史别名由各自子模块判定。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn runtime_animation_backlog_boundary_requires_doc_update() {
     let animation_source = include_str!("../../../../animation/mod.rs");
@@ -8,7 +9,7 @@ fn runtime_animation_backlog_boundary_requires_doc_update() {
         "animation root should expose only the public compiled sequence application hook"
     );
 
-    let sequence_tests = include_str!("../../../../animation/sequence/tests.rs");
+    let sequence_tests = include_str!("../../../../animation/sequence/tests/cases.rs");
     for required_sequence_anchor in [
         "compiled_sequence_applies_mesh_renderer_morph_weight_track",
         "MeshRenderer.morph_weights.1",
@@ -19,7 +20,8 @@ fn runtime_animation_backlog_boundary_requires_doc_update() {
         );
     }
 
-    let boundary_doc = include_str!("../../../../../../docs/zircon_runtime/animation/runtime.md");
+    let boundary_doc =
+        include_str!("../../../../../../docs/crates/zircon_runtime/animation/runtime.md");
     for required_anchor in [
         "Runtime Animation Module",
         "Root motion",

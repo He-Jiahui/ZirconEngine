@@ -30,13 +30,16 @@ impl EditorHostEventController {
     ) -> Result<ResolvedSettingsBatch, SettingsError> {
         let settings = self.context().settings();
         let snapshot = settings.snapshot();
-        let keys = category_id
+        let category_path = category_id
             .strip_prefix("builtin|")
-            .filter(|category_path| !category_path.is_empty())
-            .map_or(&[][..], |category_path| {
-                snapshot.catalog().keys_for_category_path(category_path)
-            });
-        settings.resolved_settings(keys)
+            .filter(|category_path| !category_path.is_empty());
+        if let Some(category_path) = category_path {
+            settings.resolved_settings_from_iter(
+                snapshot.catalog().keys_for_category_subtree(category_path),
+            )
+        } else {
+            settings.resolved_settings(&[])
+        }
     }
 
     pub(crate) fn capture_settings_persistence_health_projection(
@@ -50,3 +53,7 @@ impl EditorHostEventController {
         )
     }
 }
+
+#[cfg(test)]
+#[path = "tests/settings_projection.rs"]
+mod tests;

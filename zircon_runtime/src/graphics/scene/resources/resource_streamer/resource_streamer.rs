@@ -16,10 +16,15 @@ use super::super::prepared::{
 };
 use super::super::{
     GpuMaterialUniformResource, GpuTextureResource, OutputTargetFramePlan,
-    OutputTargetWritebackConverter, TextureSamplerCache, UiTexturePrepareReceipt,
+    OutputTargetWritebackConverter, RenderAssetGpuMaintenanceReport, RenderAssetResidencyManager,
+    RenderAssetResidencyWorkQueue, TextureSamplerCache, UiTextureDependencyCache,
+    UiTexturePrepareReceipt,
 };
 use super::resource_streamer_mip_streaming::{MipStreamingState, MipStreamingVisibility};
 
+use super::geometry_replay::RenderSceneGeometryReplayState;
+
+/// 场景渲染侧的资源准备与代际状态；分模块实现协作处理帧上传票据、候选发布和失败回滚，供绘制查询一致资源。
 pub(crate) struct ResourceStreamer {
     pub(super) asset_manager_access: ProjectAssetManagerAccess,
     pub(super) shading_model_registry: ShadingModelRegistry,
@@ -30,6 +35,10 @@ pub(crate) struct ResourceStreamer {
     pub(super) active_staged_material_ids: HashSet<ResourceId>,
     pub(super) next_material_draw_generation: u64,
     pub(super) textures: HashMap<ResourceId, PreparedTexture>,
+    pub(super) render_asset_residency: RenderAssetResidencyManager,
+    pub(super) render_asset_residency_work_queue: RenderAssetResidencyWorkQueue,
+    pub(super) last_render_asset_gpu_maintenance: RenderAssetGpuMaintenanceReport,
+    pub(super) geometry_replays: HashMap<u64, RenderSceneGeometryReplayState>,
     pub(super) mip_streaming_states: HashMap<ResourceId, MipStreamingState>,
     pub(super) mip_streaming_visible_instance_keys: HashSet<u64>,
     pub(super) mip_streaming_visibility: Vec<MipStreamingVisibility>,
@@ -59,6 +68,7 @@ pub(crate) struct ResourceStreamer {
     pub(super) last_post_process_lut_3d_request_count: usize,
     pub(super) last_post_process_lut_unsupported_shape_count: usize,
     pub(in crate::graphics::scene::resources) next_ui_texture_prepare_epoch: u64,
+    pub(in crate::graphics::scene::resources) ui_texture_dependencies: UiTextureDependencyCache,
     pub(in crate::graphics::scene::resources) last_ui_texture_prepare_receipt:
         Option<UiTexturePrepareReceipt>,
     pub(super) last_output_target_frame_plan: OutputTargetFramePlan,

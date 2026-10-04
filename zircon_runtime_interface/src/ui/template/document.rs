@@ -13,6 +13,7 @@ use crate::ui::widget::UiWidgetContract;
 use super::{UiActionRef, UiBindingTargetAssignment};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// 写权限与触发时机分开建模，调用方据 mode 决定方向，而不会仅凭事件类型猜测双向写入。
 pub struct UiBindingWritePermissions {
     pub writes_target: bool,
     pub writes_source: bool,
@@ -38,6 +39,7 @@ impl UiBindingWritePermissions {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 触发时机是绑定模式的稳定映射结果，覆盖实例化、源变化、事件和命令分发阶段。
 pub enum UiBindingTriggerTiming {
     Instantiation,
     SourceChange,
@@ -78,6 +80,7 @@ impl UiBindingMode {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 源绑定把事件、可选组件事件、动作路由和目标赋值组合为一项声明；编译器再生成运行时程序。
 pub struct UiBindingRef {
     pub id: String,
     pub event: UiEventKind,
@@ -138,82 +141,5 @@ pub struct UiTemplateNode {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn binding_mode_contract_serializes_trigger_timing_and_write_permissions() {
-        let cases = [
-            (
-                "OneTime",
-                UiBindingMode::OneTime,
-                UiBindingTriggerTiming::Instantiation,
-                UiBindingWritePermissions::TARGET_ONLY,
-            ),
-            (
-                "OneWay",
-                UiBindingMode::OneWay,
-                UiBindingTriggerTiming::SourceChange,
-                UiBindingWritePermissions::TARGET_ONLY,
-            ),
-            (
-                "TwoWay",
-                UiBindingMode::TwoWay,
-                UiBindingTriggerTiming::SourceOrTargetChange,
-                UiBindingWritePermissions::SOURCE_AND_TARGET,
-            ),
-            (
-                "Event",
-                UiBindingMode::Event,
-                UiBindingTriggerTiming::EventDispatch,
-                UiBindingWritePermissions::TARGET_ONLY,
-            ),
-            (
-                "Command",
-                UiBindingMode::Command,
-                UiBindingTriggerTiming::CommandDispatch,
-                UiBindingWritePermissions::COMMAND_ONLY,
-            ),
-        ];
-
-        for (serialized_mode, expected_mode, expected_trigger, expected_permissions) in cases {
-            let binding: UiBindingRef = toml::from_str(&format!(
-                "id = \"mode.contract\"\nevent = \"Click\"\nmode = \"{serialized_mode}\"\n"
-            ))
-            .unwrap();
-
-            assert_eq!(binding.mode, expected_mode);
-            assert_eq!(binding.mode.trigger_timing(), expected_trigger);
-            assert_eq!(binding.mode.write_permissions(), expected_permissions);
-            assert!(toml::to_string(&binding)
-                .unwrap()
-                .contains(&format!("mode = \"{serialized_mode}\"")));
-        }
-
-        let legacy: UiBindingRef = toml::from_str("id = \"legacy\"\nevent = \"Click\"\n").unwrap();
-        assert_eq!(legacy.mode, UiBindingMode::Event);
-    }
-
-    #[test]
-    fn typed_component_event_serde_round_trips_declared_identity() {
-        let binding: UiBindingRef = toml::from_str(
-            r#"
-id = "product.lower_snake"
-event = "Click"
-component_event = "OpenPopup"
-route = "component_lab.open_popup.product"
-"#,
-        )
-        .expect("typed component event should deserialize");
-
-        assert_eq!(
-            binding.component_event,
-            Some(UiComponentEventKind::OpenPopup)
-        );
-        let serialized = toml::to_string(&binding).expect("typed component event should serialize");
-        assert!(serialized.contains("component_event = \"OpenPopup\""));
-
-        let legacy: UiBindingRef = toml::from_str("id = \"legacy\"\nevent = \"Click\"\n").unwrap();
-        assert_eq!(legacy.component_event, None);
-    }
-}
+#[path = "tests/document.rs"]
+mod tests;

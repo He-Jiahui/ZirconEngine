@@ -73,19 +73,15 @@ fn migration_inventory_walks_overlapping_roots_once_and_classifies_files() {
 
     let authoring = assets.join("level.scene.toml");
     let texture_source = nested.join("texture.png");
-    let standalone_shader = nested.join("standalone.wgsl");
+    let standalone_source = nested.join("standalone.json");
     let current_sidecar = nested.join("texture.png.zmeta");
     let retired_sidecar = nested.join("texture.png.meta.toml");
     let orphan_sidecar = nested.join("orphan.asset.zmeta");
     let orphan_counterpart = nested.join("orphan.asset.meta.toml");
-    let prospective_sidecar = nested.join("standalone.wgsl.zmeta");
+    let prospective_sidecar = nested.join("standalone.json.zmeta");
     fs::write(&authoring, "scene = true\n").unwrap();
     fs::write(&texture_source, b"png fixture").unwrap();
-    fs::write(
-        &standalone_shader,
-        "@compute @workgroup_size(1) fn main() {}\n",
-    )
-    .unwrap();
+    fs::write(&standalone_source, "{}\n").unwrap();
     fs::write(&current_sidecar, "format_version = 7\n").unwrap();
     fs::write(&retired_sidecar, "version = 6\n").unwrap();
     fs::write(&orphan_sidecar, "format_version = 7\n").unwrap();
@@ -113,20 +109,20 @@ fn migration_inventory_walks_overlapping_roots_once_and_classifies_files() {
     let standalone_relative_paths = snapshot
         .physical_relative_paths
         .iter()
-        .find_map(|(path, relative_paths)| (path == &standalone_shader).then_some(relative_paths))
+        .find_map(|(path, relative_paths)| (path == &standalone_source).then_some(relative_paths))
         .expect("standalone source must publish root-relative physical identities");
     assert_eq!(
         standalone_relative_paths,
         &vec![
-            PathBuf::from("nested/standalone.wgsl"),
-            PathBuf::from("nested/standalone.wgsl"),
-            PathBuf::from("standalone.wgsl"),
+            PathBuf::from("nested/standalone.json"),
+            PathBuf::from("nested/standalone.json"),
+            PathBuf::from("standalone.json"),
         ]
     );
     let standalone_logical_roots = snapshot
         .logical_root_identities
         .iter()
-        .find_map(|(path, logical_roots)| (path == &standalone_shader).then_some(logical_roots))
+        .find_map(|(path, logical_roots)| (path == &standalone_source).then_some(logical_roots))
         .expect("standalone source must retain every logical root identity");
     assert_eq!(
         standalone_logical_roots,
@@ -211,17 +207,17 @@ fn migration_commandlet_reports_regular_file_asset_roots_as_scan_errors() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "requires a symlink-capable host; run with --ignored for the F1 gate"
+)]
 fn migration_inventory_rejects_reparse_asset_roots_without_visiting_their_target() {
     let root = fixture_root("migration-reparse-asset-root");
     let outside = fixture_root("migration-reparse-asset-root-outside");
     let linked_assets = root.join("assets");
     let outside_source = outside.join("must-not-scan.scene.toml");
     fs::write(&outside_source, "outside = true\n").unwrap();
-    if !create_directory_link(&outside, &linked_assets) {
-        fs::remove_dir_all(root).unwrap();
-        fs::remove_dir_all(outside).unwrap();
-        return;
-    }
+    create_directory_link(&outside, &linked_assets);
 
     let error = scan_migration_inventory_for_test(&[linked_assets.clone()])
         .err()
@@ -238,6 +234,10 @@ fn migration_inventory_rejects_reparse_asset_roots_without_visiting_their_target
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "requires a symlink-capable host; run with --ignored for the F1 gate"
+)]
 fn migration_commandlet_reports_reparse_asset_roots_as_scan_errors() {
     let root = fixture_root("migration-commandlet-reparse-asset-root");
     let outside = fixture_root("migration-commandlet-reparse-asset-root-outside");
@@ -257,11 +257,7 @@ fn migration_commandlet_reports_reparse_asset_roots_as_scan_errors() {
         "version = 2\n\n[shader]\nuuid = \"{shader_guid}\"\nurl = \"res://shaders/pbr.zshader\"\n"
     );
     fs::write(&outside_source, &original).unwrap();
-    if !create_directory_link(&outside, &linked_assets) {
-        fs::remove_dir_all(root).unwrap();
-        fs::remove_dir_all(outside).unwrap();
-        return;
-    }
+    create_directory_link(&outside, &linked_assets);
 
     let error =
         migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
@@ -295,6 +291,10 @@ fn nested_root_with_distinct_lexical_case(
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "requires a symlink-capable host; run with --ignored for the F1 gate"
+)]
 fn paired_source_link_is_not_followed_into_sidecar_preflight() {
     let root = fixture_root("migration-sidecar-source-link");
     let outside = fixture_root("migration-sidecar-source-link-outside");
@@ -304,11 +304,7 @@ fn paired_source_link_is_not_followed_into_sidecar_preflight() {
     let outside_source = outside.join("escaped.asset");
     fs::write(&outside_source, "outside source").unwrap();
     let linked_source = assets.join("linked.asset");
-    if !create_file_link(&outside_source, &linked_source) {
-        fs::remove_dir_all(root).unwrap();
-        fs::remove_dir_all(outside).unwrap();
-        return;
-    }
+    create_file_link(&outside_source, &linked_source);
     let sidecar = assets.join("linked.asset.zmeta");
     let source = "format_version = 7\nuuid = \"ff111111-2222-4333-8444-555555555555\"\nurl = \"res://data/linked.asset\"\nasset_kind = \"Data\"\nsource_digest = \"digest\"\n";
     fs::write(&sidecar, source).unwrap();
@@ -330,6 +326,10 @@ fn paired_source_link_is_not_followed_into_sidecar_preflight() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "requires a symlink-capable host; run with --ignored for the F1 gate"
+)]
 fn linked_current_sidecar_cannot_become_retired_preflight_authority() {
     let root = fixture_root("migration-current-sidecar-link");
     let outside = fixture_root("migration-current-sidecar-link-outside");
@@ -346,11 +346,7 @@ fn linked_current_sidecar_cannot_become_retired_preflight_authority() {
     let outside_source = "format_version = 7\nuuid = \"aa111111-2222-4333-8444-555555555555\"\nurl = \"res://textures/hero.png\"\nasset_kind = \"Texture\"\nsource_digest = \"outside-digest\"\n";
     fs::write(&outside_sidecar, outside_source).unwrap();
     let linked_sidecar = assets.join("hero.png.zmeta");
-    if !create_file_link(&outside_sidecar, &linked_sidecar) {
-        fs::remove_dir_all(root).unwrap();
-        fs::remove_dir_all(outside).unwrap();
-        return;
-    }
+    create_file_link(&outside_sidecar, &linked_sidecar);
 
     let report = migrate_project_assets(AssetMigrationOptions::new(
         &root,
@@ -374,6 +370,10 @@ fn linked_current_sidecar_cannot_become_retired_preflight_authority() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "requires a symlink-capable host; run with --ignored for the F1 gate"
+)]
 fn linked_retired_sidecar_cannot_suppress_current_sidecar_minting() {
     let root = fixture_root("migration-retired-sidecar-link");
     let outside = fixture_root("migration-retired-sidecar-link-outside");
@@ -385,11 +385,7 @@ fn linked_retired_sidecar_cannot_suppress_current_sidecar_minting() {
     let outside_source = "format_version = 6\nuuid = \"ab111111-2222-4333-8444-555555555555\"\nurl = \"res://textures/hero.png\"\nasset_kind = \"Texture\"\nsource_hash = \"outside-digest\"\n";
     fs::write(&outside_sidecar, outside_source).unwrap();
     let linked_sidecar = assets.join("hero.png.meta.toml");
-    if !create_file_link(&outside_sidecar, &linked_sidecar) {
-        fs::remove_dir_all(root).unwrap();
-        fs::remove_dir_all(outside).unwrap();
-        return;
-    }
+    create_file_link(&outside_sidecar, &linked_sidecar);
 
     let report = migrate_project_assets(AssetMigrationOptions::new(
         &root,
@@ -413,6 +409,10 @@ fn linked_retired_sidecar_cannot_suppress_current_sidecar_minting() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "requires a symlink-capable host; run with --ignored for the F1 gate"
+)]
 fn linked_journal_directory_cannot_escape_project_owner() {
     let root = fixture_root("migration-journal-directory-link");
     let outside = fixture_root("migration-journal-directory-link-outside");
@@ -422,11 +422,7 @@ fn linked_journal_directory_cannot_escape_project_owner() {
     fs::write(&victim, "outside = true\n").unwrap();
     fs::create_dir_all(root.join(".zircon")).unwrap();
     let linked = root.join(".zircon/asset-migration");
-    if !create_directory_link(&outside, &linked) {
-        fs::remove_dir_all(root).unwrap();
-        fs::remove_dir_all(outside).unwrap();
-        return;
-    }
+    create_directory_link(&outside, &linked);
 
     let error =
         migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
@@ -443,17 +439,17 @@ fn linked_journal_directory_cannot_escape_project_owner() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "requires a symlink-capable host; run with --ignored for the F1 gate"
+)]
 fn linked_zircon_owner_is_rejected_even_without_migration_subdirectory() {
     let root = fixture_root("migration-owner-link");
     let outside = fixture_root("migration-owner-link-outside");
     write_manifest(&root, &["assets"]);
     fs::create_dir_all(root.join("assets")).unwrap();
     let linked = root.join(".zircon");
-    if !create_directory_link(&outside, &linked) {
-        fs::remove_dir_all(root).unwrap();
-        fs::remove_dir_all(outside).unwrap();
-        return;
-    }
+    create_directory_link(&outside, &linked);
     let error =
         migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
             .unwrap_err();
@@ -468,6 +464,10 @@ fn linked_zircon_owner_is_rejected_even_without_migration_subdirectory() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "requires a symlink-capable host; run with --ignored for the F1 gate"
+)]
 fn linked_journal_file_is_rejected_without_touching_external_target() {
     let root = fixture_root("migration-journal-file-link");
     let outside = fixture_root("migration-journal-file-link-outside");
@@ -478,11 +478,7 @@ fn linked_journal_file_is_rejected_without_touching_external_target() {
     let victim = outside.join("victim.toml");
     fs::write(&victim, "outside = true\n").unwrap();
     let linked = journal_directory.join("linked.toml");
-    if !create_file_link(&victim, &linked) {
-        fs::remove_dir_all(root).unwrap();
-        fs::remove_dir_all(outside).unwrap();
-        return;
-    }
+    create_file_link(&victim, &linked);
 
     let error =
         migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
@@ -498,45 +494,59 @@ fn linked_journal_file_is_rejected_without_touching_external_target() {
     fs::remove_dir_all(outside).unwrap();
 }
 
-#[cfg(unix)]
-fn create_file_link(target: &std::path::Path, link: &std::path::Path) -> bool {
-    std::os::unix::fs::symlink(target, link).is_ok()
-}
-
-#[cfg(windows)]
-const WINDOWS_ERROR_PRIVILEGE_NOT_HELD: i32 = 1314;
-
-#[cfg(windows)]
-fn create_file_link(target: &std::path::Path, link: &std::path::Path) -> bool {
-    match std::os::windows::fs::symlink_file(target, link) {
-        Ok(()) => true,
-        Err(error)
-            if error.kind() == std::io::ErrorKind::PermissionDenied
-                || error.raw_os_error() == Some(WINDOWS_ERROR_PRIVILEGE_NOT_HELD) =>
-        {
-            false
-        }
-        Err(error) => panic!("create file reparse fixture failed: {error}"),
-    }
+fn require_link_fixture(
+    kind: &str,
+    target: &std::path::Path,
+    link: &std::path::Path,
+    result: std::io::Result<()>,
+) {
+    result.unwrap_or_else(|error| {
+        panic!(
+            "failed to create {kind} reparse fixture (target: {}, link: {}): {error}",
+            target.display(),
+            link.display()
+        )
+    });
 }
 
 #[cfg(unix)]
-fn create_directory_link(target: &std::path::Path, link: &std::path::Path) -> bool {
-    std::os::unix::fs::symlink(target, link).is_ok()
+fn create_file_link(target: &std::path::Path, link: &std::path::Path) {
+    require_link_fixture(
+        "file",
+        target,
+        link,
+        std::os::unix::fs::symlink(target, link),
+    );
 }
 
 #[cfg(windows)]
-fn create_directory_link(target: &std::path::Path, link: &std::path::Path) -> bool {
-    match std::os::windows::fs::symlink_dir(target, link) {
-        Ok(()) => true,
-        Err(error)
-            if error.kind() == std::io::ErrorKind::PermissionDenied
-                || error.raw_os_error() == Some(WINDOWS_ERROR_PRIVILEGE_NOT_HELD) =>
-        {
-            false
-        }
-        Err(error) => panic!("create directory reparse fixture failed: {error}"),
-    }
+fn create_file_link(target: &std::path::Path, link: &std::path::Path) {
+    require_link_fixture(
+        "file",
+        target,
+        link,
+        std::os::windows::fs::symlink_file(target, link),
+    );
+}
+
+#[cfg(unix)]
+fn create_directory_link(target: &std::path::Path, link: &std::path::Path) {
+    require_link_fixture(
+        "directory",
+        target,
+        link,
+        std::os::unix::fs::symlink(target, link),
+    );
+}
+
+#[cfg(windows)]
+fn create_directory_link(target: &std::path::Path, link: &std::path::Path) {
+    require_link_fixture(
+        "directory",
+        target,
+        link,
+        std::os::windows::fs::symlink_dir(target, link),
+    );
 }
 
 fn remove_file_link(link: &std::path::Path) {

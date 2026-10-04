@@ -14,7 +14,7 @@ plan_sources:
   - user: 2026-09-09 完善 ZirconEngine 公开接口、机制案例、教程与最佳实践
   - docs/plans/mvp/index.md
 tests:
-  - zircon_editor/src/core/project/authority/tests.rs
+  - zircon_editor/src/core/project/authority/tests/cases.rs
   - zircon_editor/src/core/project/tests
   - zircon_editor/src/tests
   - zircon_app/src/tests
@@ -227,7 +227,7 @@ assert!(result.first_frame_presented());
 - Host 导出：[zircon_editor/src/lib.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_editor/src/lib.rs)
 - Host 实现：[zircon_editor/src/ui/retained_host](https://github.com/He-Jiahui/ZirconEngine/tree/main/zircon_editor/src/ui/retained_host)
 - 项目授权：[zircon_editor/src/core/project/authority](https://github.com/He-Jiahui/ZirconEngine/tree/main/zircon_editor/src/core/project/authority)
-- 项目测试：[zircon_editor/src/core/project/authority/tests.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_editor/src/core/project/authority/tests.rs)
+- 项目测试：[zircon_editor/src/core/project/authority/tests/cases.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_editor/src/core/project/authority/tests/cases.rs)
 - App 集成：[zircon_app/src/entry](https://github.com/He-Jiahui/ZirconEngine/tree/main/zircon_app/src/entry)
 
 ## Host 返回值与退出

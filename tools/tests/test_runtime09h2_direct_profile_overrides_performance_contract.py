@@ -1,7 +1,7 @@
 from pathlib import Path
 import re
 import unittest
-
+# 后处理 profile 直接构造最终 override 列表并按派生数量预留；本组核对所有 effect stack 构造者及原有覆盖顺序。
 
 ROOT = Path(__file__).resolve().parents[2]
 EXTRACT_RS = ROOT / (

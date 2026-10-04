@@ -14,8 +14,10 @@ use crate::scene::dynamic_scene::{
 };
 
 #[cfg(test)]
+#[path = "capture/tests/hash_membership_tests.rs"]
 mod hash_membership_tests;
 
+// 编辑器快照、场景资产和会话捕获共用此路径；只收集可序列化反射类型，并保持世界节点的稳定顺序。
 pub(super) fn dynamic_scene_from_world(world: &World) -> Result<DynamicScene, DynamicSceneError> {
     let entities = world
         .node_records()
@@ -158,6 +160,7 @@ fn reflected_resources_from_world(
     Ok(resources)
 }
 
+// 反射读取按注册模式的槽位返回完整序列；这里只筛去非持久字段，不能重新排列剩余字段。
 fn serializable_fields(
     metadata: &ReflectTypeRegistration,
     fields: Vec<ReflectFieldValue>,
@@ -176,20 +179,5 @@ fn serializable_fields(
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn capture_reuses_node_record_order_without_resorting_entities() {
-        let source = include_str!("capture.rs");
-        let capture = source
-            .split("pub(super) fn dynamic_scene_from_world")
-            .nth(1)
-            .and_then(|source| source.split("fn dynamic_entity_from_node").next())
-            .expect("read dynamic scene capture body");
-
-        assert!(capture.contains(".node_records()"));
-        assert!(
-            !capture.contains("entities.sort_by_key"),
-            "World::node_records already publishes entity-id order; capture must not sort it again"
-        );
-    }
-}
+#[path = "tests/capture.rs"]
+mod tests;

@@ -186,6 +186,7 @@ impl HybridGiRadianceCacheState {
             self.input_revision = Some(input_revision);
         }
 
+        // 来源或参与代际变化时重采样；仅相机滚动时重映射重叠格点并复用已提交辐照。
         let demands_to_trace = selected_demands
             .iter()
             .copied()
@@ -615,6 +616,7 @@ fn radiance_sample_for_probe(
         .unwrap_or(HybridGiRadianceCacheSample::MISSING)
 }
 
+// TODO: [CR-HYBRID-GI-SR-0002] 核对脏页尚未回读时是否允许沿用旧颜色及完整置信度。
 fn surface_cache_radiance(
     surface_page_id: u32,
     surface_cache_page_contents: &[(u32, u32, u32, u32, [u8; 4], [u8; 4])],
@@ -680,4 +682,5 @@ fn radiance_strength(radiance_rgb: [u8; 3]) -> u32 {
 }
 
 #[cfg(test)]
+#[path = "radiance_cache_state/tests/cases.rs"]
 mod tests;

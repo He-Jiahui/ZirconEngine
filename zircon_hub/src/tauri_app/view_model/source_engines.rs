@@ -1,9 +1,13 @@
+//! 将各源码引擎的已完成构建记录投影为历史行，保存命令、日志和输出的追溯入口。
+//! 状态、诊断和完成时间在这里本地化；记录本身仍保留原始参数。
+
 use crate::engines::{SourceBuildRecord, SourceEngineInstall};
 use crate::settings::HubLanguage;
 
 use super::display::{path_text_en, relative_time};
 use super::{HubSourceBuildHistoryItem, HubTextBundle};
 
+/// 按保存顺序投影单个引擎的构建历史；记录索引参与行身份，不用于重新执行构建。
 pub(crate) fn source_build_history_rows(
     engine: &SourceEngineInstall,
     now_ms: u64,
@@ -33,6 +37,7 @@ pub(crate) fn source_build_history_rows(
         .collect()
 }
 
+// 命令和日志组成完整本地化诊断摘要；真正参数边界仍保留在独立数组字段。
 fn source_build_history_secondary_detail(
     record: &SourceBuildRecord,
     text: HubTextBundle,
@@ -67,6 +72,7 @@ fn source_build_history_secondary_detail(
     }
 }
 
+// 旧记录以字符串保存状态，未知值仍可展示，避免历史加载因新状态失效。
 fn source_build_status_label(status: &str, text: HubTextBundle) -> &'static str {
     match status {
         "success" => text.pair("Success", "成功"),
@@ -84,49 +90,5 @@ fn status_tone(status: &str) -> &'static str {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::path::PathBuf;
-
-    use crate::engines::{SourceBuildRecord, SourceEngineInstall};
-    use crate::settings::HubLanguage;
-    use crate::state::{EngineMessageId, HubMessage, HubMessageId};
-
-    #[test]
-    fn source_build_history_rows_localize_detail_status_and_finished_time() {
-        let engine = SourceEngineInstall {
-            id: "source-local".to_string(),
-            display_name: "Local Source".to_string(),
-            source_dir: PathBuf::from("E:/Source/ZirconEngine"),
-            output_dir: PathBuf::from("E:/Source/ZirconEngine/out"),
-            last_build_unix_ms: Some(1_000),
-            build_history: vec![SourceBuildRecord {
-                finished_unix_ms: 1_000,
-                status: "success".to_string(),
-                profile: "debug".to_string(),
-                jobs: Some(4),
-                output_dir: PathBuf::from("E:/Source/ZirconEngine/out"),
-                detail: HubMessage::new(HubMessageId::Engine(
-                    EngineMessageId::StagedEditorRuntimePayload,
-                )),
-                log_excerpt: HubMessage::new(HubMessageId::Engine(
-                    EngineMessageId::StagedEditorRuntimePayload,
-                )),
-                command_line: vec!["python".to_string(), "tools/zircon_build.py".to_string()],
-            }],
-        };
-
-        let rows = super::source_build_history_rows(&engine, 1_000, HubLanguage::Chinese);
-
-        assert_eq!(rows.len(), 1);
-        assert_eq!(rows[0].status, "成功");
-        assert_eq!(rows[0].status_tone, "success");
-        assert_eq!(rows[0].detail, "已暂存编辑器/运行时载荷");
-        assert_eq!(
-            rows[0].secondary_detail,
-            "命令：python tools/zircon_build.py；日志：已暂存编辑器/运行时载荷"
-        );
-        assert_eq!(rows[0].log_excerpt, "已暂存编辑器/运行时载荷");
-        assert_eq!(rows[0].finished, "刚刚");
-        assert_eq!(rows[0].output_dir, "E:/Source/ZirconEngine/out");
-    }
-}
+#[path = "tests/source_engines.rs"]
+mod tests;

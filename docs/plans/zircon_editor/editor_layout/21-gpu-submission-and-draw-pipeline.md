@@ -118,7 +118,7 @@ pub fn dirty_region(dirty: &ViewDirtySet, arranged: &ArrangedTree) -> Vec<UiRect
 
 | 动作 | 文件 | 说明 |
 | --- | --- | --- |
-| 新增(契约) | `docs/ui-and-layout/gpu-submission-contract.md` | 批次键/裁剪栈/图集/顶点/layer/增量上屏 |
+| 新增(契约) | `docs/ui/gpu-submission-contract.md` | 批次键/裁剪栈/图集/顶点/layer/增量上屏 |
 | DTO | `iface .../render/batch.rs` | `UiBatchKey` 合并语义 + 裁剪句柄 + 顶点 |
 | 提取/批次 | `runtime .../render/extract.rs` + 新 batch owner | 排序合并 + 裁剪栈 + 图集合批 |
 | 运行时 | `zircon_runtime/crates/zr_rhi(_wgpu)` | 消费批次计划做 wgpu 提交(实现细节,不在本契约) |

@@ -383,6 +383,7 @@ fn temporal_history_weight(
     let source_matches = history_source_and_normal.x == current.source;
     let normal_matches = temporal_normal_matches(current.normal_code, history_source_and_normal.y);
     let signature_matches = abs(history_metadata.z - current.signature) < 0.00075;
+    // 历史像素必须同时匹配深度、来源、法线和局部支持签名，避免跨几何或辐射变更重用。
     if (!depth_matches || !source_matches || !normal_matches || !signature_matches) {
         return 0.0;
     }

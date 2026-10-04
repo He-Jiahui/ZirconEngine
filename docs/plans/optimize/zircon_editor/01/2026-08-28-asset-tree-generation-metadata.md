@@ -81,7 +81,7 @@ hover paint 1,000 次；metadata generation 1 次。
 14-level overlay trie 保守计入 14 个 branch 与 1 个 leaf；contiguous model 实际没有该遍历。模型没有估算 allocator、
 layout、render、GPU、RSS、input-to-present 或 wall-clock latency。
 
-工具：`tools/editor_asset_tree_metadata_pressure.py`
+工具：`tools/analysis/performance/editor/editor_asset_tree_metadata_pressure.py`
 
 工件：`E:\zircon-profiles\editor-asset-tree-metadata-scrollbar-20260828.json`
 

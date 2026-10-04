@@ -1,3 +1,4 @@
+//! 编辑器导入入口按资源身份与源摘要共享同一代任务，合并触发原因并保留有界完成结果；后端负责实际运行时导入，调用端通过票据观察，不自行接管导入标记。
 //! Editor-owned orchestration for runtime asset imports.
 
 mod diagnostics;
@@ -349,4 +350,5 @@ impl EditorAssetImportFlow {
 }
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

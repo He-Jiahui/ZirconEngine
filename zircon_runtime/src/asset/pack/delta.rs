@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use super::dedup::zrpack_content_hash;
 use super::manifest::{
@@ -57,19 +57,16 @@ impl ZrPackDeltaWriter {
         base: &ZrPackReader,
         target: &ZrPackReader,
     ) -> Result<ZrPackDeltaWriteReport, ZrPackError> {
-        let base_hashes = base
-            .manifest()
-            .pack
-            .chunks
-            .iter()
-            .map(|chunk| chunk.hash)
-            .collect::<BTreeSet<_>>();
-        let target_paths = target
-            .manifest()
-            .assets
-            .iter()
-            .map(|asset| asset.path.as_str())
-            .collect::<BTreeSet<_>>();
+        let mut base_hashes = HashSet::with_capacity(base.manifest().pack.chunks.len());
+        base_hashes.extend(base.manifest().pack.chunks.iter().map(|chunk| chunk.hash));
+        let mut target_paths = HashSet::with_capacity(target.manifest().assets.len());
+        target_paths.extend(
+            target
+                .manifest()
+                .assets
+                .iter()
+                .map(|asset| asset.path.as_str()),
+        );
 
         let removed_assets = collect_removed_assets(&base.manifest().assets, &target_paths);
         let (changed_asset_entries, changed_assets, reused_assets, chunk_source_paths) =
@@ -113,7 +110,7 @@ impl ZrPackDeltaWriter {
 
 fn collect_removed_assets(
     base_assets: &[ZrPackAssetEntry],
-    target_paths: &BTreeSet<&str>,
+    target_paths: &HashSet<&str>,
 ) -> Vec<String> {
     let mut removed_assets = Vec::with_capacity(base_assets.len());
     for asset in base_assets {
@@ -125,7 +122,7 @@ fn collect_removed_assets(
 }
 
 fn collect_delta_asset_changes(
-    base_hashes: &BTreeSet<[u8; 32]>,
+    base_hashes: &HashSet<[u8; 32]>,
     target_assets: &[ZrPackAssetEntry],
 ) -> (
     Vec<ZrPackAssetEntry>,
@@ -290,30 +287,27 @@ fn validate_zrpack_delta_document_manifest(
 fn validate_delta_manifest_semantics(
     manifest: &ZrPackDeltaDocumentManifest,
 ) -> Result<(), ZrPackError> {
-    let target_paths = manifest
-        .target
-        .assets
-        .iter()
-        .map(|asset| asset.path.clone())
-        .collect::<BTreeSet<_>>();
+    let mut target_paths = HashSet::with_capacity(manifest.target.assets.len());
+    target_paths.extend(
+        manifest
+            .target
+            .assets
+            .iter()
+            .map(|asset| asset.path.as_str()),
+    );
     let expected_removed_assets = manifest
         .base
         .assets
         .iter()
-        .filter(|asset| !target_paths.contains(&asset.path))
+        .filter(|asset| !target_paths.contains(asset.path.as_str()))
         .map(|asset| asset.path.clone())
         .collect::<Vec<_>>();
     if manifest.removed_assets != expected_removed_assets {
         return Err(ZrPackError::DeltaRemovedAssetsMismatch);
     }
 
-    let base_hashes = manifest
-        .base
-        .pack
-        .chunks
-        .iter()
-        .map(|chunk| chunk.hash)
-        .collect::<BTreeSet<_>>();
+    let mut base_hashes = HashSet::with_capacity(manifest.base.pack.chunks.len());
+    base_hashes.extend(manifest.base.pack.chunks.iter().map(|chunk| chunk.hash));
     let expected_changed_assets = manifest
         .target
         .assets
@@ -354,9 +348,8 @@ fn read_delta_chunk_bytes(
     }
     let chunk_bytes = delta_chunk_range(bytes, chunk)
         .ok_or_else(|| ZrPackError::ChunkOutOfBounds(path.to_string()))?;
-    if zrpack_content_hash(chunk_bytes) != chunk.hash {
-        return Err(ZrPackError::ChunkHashMismatch(path.to_string()));
-    }
+    // from_bytes validates every chunk before publishing this immutable snapshot.
+    // Subsequent reads only need to select the range and return an owned copy.
     Ok(chunk_bytes.to_vec())
 }
 
@@ -375,5 +368,9 @@ fn write_delta_header(header: &mut [u8], manifest_offset: u64, manifest_size: u6
 }
 
 #[cfg(test)]
-#[path = "delta/optimization_tests.rs"]
+#[path = "delta/tests/optimization_tests.rs"]
 mod optimization_tests;
+
+#[cfg(test)]
+#[path = "delta/tests/validated_read_tests.rs"]
+mod validated_read_tests;

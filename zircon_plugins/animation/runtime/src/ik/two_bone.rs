@@ -1,3 +1,4 @@
+//! 两骨链位置求解作业保持根关节位置，目标与极向量由调用方提供；退化链在零权重时仍拒绝。
 use zircon_runtime::core::math::{Real, Vec3};
 
 use super::AnimationIkError;
@@ -35,6 +36,7 @@ impl TwoBoneIkJob {
         self
     }
 
+    /// 根、中、末端和目标须处于同一坐标空间；调用方负责将结果转换回局部骨骼姿态。
     pub fn solve_positions(
         self,
         root: Vec3,
@@ -97,5 +99,5 @@ fn validate(job: TwoBoneIkJob, root: Vec3, mid: Vec3, tip: Vec3) -> Result<(), A
 }
 
 #[cfg(test)]
-#[path = "two_bone/performance_tests.rs"]
+#[path = "two_bone/tests/performance_tests.rs"]
 mod optimization_batch_20260830ct_tests;

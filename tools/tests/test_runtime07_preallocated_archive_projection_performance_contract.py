@@ -19,7 +19,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束预分配归档投影：报告预分配已知投影边界，并归档去重集合预分配已知边界。
 class PreallocatedArchiveProjectionPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

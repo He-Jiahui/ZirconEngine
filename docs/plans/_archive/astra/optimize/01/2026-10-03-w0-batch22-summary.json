@@ -1,0 +1,18 @@
+{
+  "batch": 22,
+  "original_finding_observations": 159,
+  "distinct_report_qualified_keys": 159,
+  "original_gate_rows": 86,
+  "original_gate_null_ids": 44,
+  "non_new_successor_refresh_rows": 14,
+  "roadmap_milestones_not_gates": 16,
+  "review_file": "docs/plans/astra/optimize/01/2026-10-03-w0-batch22-review.jsonl",
+  "gate_file": "docs/plans/astra/optimize/01/2026-10-03-w0-batch22-gates.jsonl",
+  "refresh_file": "docs/plans/astra/optimize/01/2026-10-03-w0-batch22-refresh.jsonl",
+  "crosswalk_file": "docs/plans/astra/optimize/01/2026-10-03-w0-batch22-crosswalk.jsonl",
+  "manifest_file": "docs/plans/astra/optimize/01/2026-10-03-w0-batch22-manifest.json",
+  "independent_review_sha256": "7236a6c139b79a0f73ae01317583fac867e3d6d98ec3e7174b29436b8b6d7a9d",
+  "source_only": true,
+  "tests_run": 0,
+  "all_acceptance": "open"
+}

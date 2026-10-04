@@ -38,7 +38,7 @@ tests:
   - zircon_editor/src/ui/retained_host/ui/tests/floating_windows.rs
   - zircon_editor/src/ui/retained_host/viewport/tests
   - zircon_editor/src/ui/retained_host/viewport/viewport_state_job_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/tests/
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

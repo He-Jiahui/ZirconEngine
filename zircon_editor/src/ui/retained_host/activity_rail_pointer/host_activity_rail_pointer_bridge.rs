@@ -12,9 +12,15 @@ pub(crate) struct HostActivityRailPointerBridge {
     pub(super) surface: UiSurface,
     pub(super) dispatcher: UiPointerDispatcher,
     pub(super) route_intents: EditorRouteIntentMap,
+    #[cfg(test)]
+    pub(super) surface_authority_generation: u64,
 }
 
 impl HostActivityRailPointerBridge {
+    pub(crate) const fn layout(&self) -> &HostActivityRailPointerLayout {
+        &self.layout
+    }
+
     pub(crate) fn target_for_button(
         &self,
         side: HostActivityRailPointerSide,
@@ -26,5 +32,10 @@ impl HostActivityRailPointerBridge {
         };
         let tab = tabs.get(item_index)?;
         Some((tab.slot, &tab.instance_id))
+    }
+
+    #[cfg(test)]
+    pub(crate) const fn surface_authority_generation_for_test(&self) -> u64 {
+        self.surface_authority_generation
     }
 }

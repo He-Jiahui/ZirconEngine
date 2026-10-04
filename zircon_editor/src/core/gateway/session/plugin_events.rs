@@ -85,7 +85,9 @@ impl SessionGateway {
         let runtime_drain_elapsed = runtime_drain_started.elapsed();
         let encoded_bytes = usize::try_from(output.len).unwrap_or(usize::MAX);
         let decode_started = Instant::now();
-        let batch = self.decode_output(
+        // The status and output were produced above by this gateway's retained runtime provider.
+        let batch = unsafe {
+            self.decode_output(
             status,
             output,
             RuntimeForeignOutputKind::PluginEvents,
@@ -121,7 +123,8 @@ impl SessionGateway {
                 }
                 Ok(plugin_event_batch_item_count(batch))
             },
-        )?;
+        )?
+        };
         let decode_elapsed = decode_started.elapsed();
         let Some(batch) = batch else {
             return Ok(EditorRuntimePluginEventPage::new(

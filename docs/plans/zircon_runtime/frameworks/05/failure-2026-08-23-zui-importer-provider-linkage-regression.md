@@ -9,7 +9,6 @@ origin_child_dir: docs/plans/zircon_runtime/frameworks/01
 fixing_child_dir: docs/plans/zircon_runtime/frameworks/05
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/asset/importer/ingest/import_ui_v2_asset.rs
   - zircon_runtime/src/asset/importer/ingest/mod.rs
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
   - zircon_runtime/src/builtin/runtime_modules/manifest.rs
@@ -23,7 +22,7 @@ related_code:
   - zircon_app/src/entry/tests/profile_bootstrap/first_party_runtime_plugins.rs
 tests:
   - python -B -m unittest tools.tests.test_frameworks_05_asset_ui_boundary tools.tests.test_zui_static_suffix_convergence -v
-  - python -B tools/runtime_domain_dependency_audit.py --repo-root .
+  - python -B tools/audits/runtime_domain_dependency_audit.py --repo-root .
   - cargo +1.94.1 test -p zircon_app --lib --features first-party-runtime-plugins --locked runtime_profile_bootstrap --jobs 1 -- --test-threads=1
   - cargo test -p zircon_first_party_runtime_catalog --no-default-features --features ui-document-importer --locked --lib ui_document_importer --jobs 1 -- --test-threads=1
 ---
@@ -183,3 +182,8 @@ failure remains open.
   finish request `66b1fbbcfd43481d84b05f06a07d6c38` 记录 exit 0，release request
   `d16b8db33c514b96874d1d23811451b5` 成功且 `live_process_pids = []`。catalog provider 动态门已 GREEN；
   剩余 Rust 阻塞仅为 App product closure 中已交接 Plugins09 的 Particles compile regression。
+
+### 2026-09-24 current-source path and downstream dependency receipt
+
+- `import_ui_v2_asset.rs` remains physically deleted by the accepted Asset hard cut. It was removed only from current-state `related_code`; the original reintroduction diagnostic and the deletion evidence above remain unchanged. `ingest/mod.rs` and `ingest/asset_importer.rs` still name the actual current Asset boundary. The latter contains a `#[cfg(all(test, feature = "ui"))]` fixture parser, which is not a production fallback or a reason to restore the retired importer.
+- The Particles neutral-buffer and runtime-prepare source hashes still match the independently reviewed 2026-09-21 Plugins09 repair (`43b3faec1a8123ec29b1e78ddaf073a215e0accbf10ce4113bb355304cce0b92` and `a02d6f10b1ff2a8600395fc1dbe7a89ccbb82a5081cbef23b7a5b3300a3f64cd`). The 2026-08-23 App compile failure above remains valid historical evidence; it is not current-source test success. The managed App bootstrap gate, product compile and exact current-source review still precede return/closeout.

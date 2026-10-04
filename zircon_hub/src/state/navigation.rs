@@ -1,5 +1,8 @@
+//! 定义配置、动作请求和界面导航共同使用的页面身份；语言投影只改变页面名称。
+
 use serde::{Deserialize, Serialize};
 
+/// 持久化和跨端请求的页面身份；新增页面需同步动作解析、语言投影和 Web 页面分派。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum HubPage {
@@ -16,6 +19,7 @@ pub enum HubPage {
 }
 
 impl HubPage {
+    /// 输出导航协议中的稳定编号，不能使用本地化标题代替。
     pub fn id(self) -> &'static str {
         match self {
             Self::Projects => "projects",
@@ -30,6 +34,7 @@ impl HubPage {
         }
     }
 
+    /// 供动作入口识别页面；接受大小写/边缘空白差异，未知目标留给调用者报错。
     pub fn from_id(id: &str) -> Option<Self> {
         match id.trim().to_ascii_lowercase().as_str() {
             "projects" => Some(Self::Projects),
@@ -47,14 +52,5 @@ impl HubPage {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::HubPage;
-
-    #[test]
-    fn hub_page_parses_known_navigation_ids() {
-        assert_eq!(HubPage::from_id("projects"), Some(HubPage::Projects));
-        assert_eq!(HubPage::from_id("EDITOR"), Some(HubPage::Editor));
-        assert_eq!(HubPage::from_id("settings"), Some(HubPage::Settings));
-        assert_eq!(HubPage::from_id("missing"), None);
-    }
-}
+#[path = "tests/navigation.rs"]
+mod tests;

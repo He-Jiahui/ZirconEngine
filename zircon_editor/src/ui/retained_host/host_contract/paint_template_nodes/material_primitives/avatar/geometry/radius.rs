@@ -6,6 +6,7 @@ use crate::ui::retained_host::host_contract::paint_theme::{
 use super::metrics::avatar_bounded_extent;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+// variant 将形状约束为圆形、主题圆角或方形；图像遮罩和根框边框须采用同一结果。
 enum AvatarShapeVariant {
     #[default]
     Circular,
@@ -62,34 +63,9 @@ fn avatar_shape_variant(component_variant: &str) -> AvatarShapeVariant {
 }
 
 #[cfg(test)]
-#[path = "radius/single_scan_variant_tests.rs"]
+#[path = "radius/tests/single_scan_variant_tests.rs"]
 mod single_scan_variant_tests;
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ui::retained_host::host_contract::paint_theme::METRICS;
-
-    #[test]
-    fn rounded_avatar_radius_tracks_host_control_density_and_frame_bounds() {
-        let mut node = TemplatePaneNodeData::default();
-        node.component_variant = "rounded".to_owned();
-        let mut compact = METRICS;
-        compact.radius_control = 3.0;
-        let wide = FrameRect {
-            x: 0.0,
-            y: 0.0,
-            width: 32.0,
-            height: 32.0,
-        };
-        let narrow = FrameRect {
-            x: 0.0,
-            y: 0.0,
-            width: 2.0,
-            height: 8.0,
-        };
-
-        assert_eq!(avatar_corner_radius_from_host(&node, &wide, compact), 3.0);
-        assert_eq!(avatar_corner_radius_from_host(&node, &narrow, compact), 1.0);
-    }
-}
+#[path = "tests/radius.rs"]
+mod tests;

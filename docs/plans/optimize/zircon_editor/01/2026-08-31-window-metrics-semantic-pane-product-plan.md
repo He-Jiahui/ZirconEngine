@@ -50,7 +50,7 @@ Their runtime contribution depends on which floating-window conversion branches
 execute; the fixed eight-clone dock count does not depend on that ambiguity.
 
 The deterministic pressure tool is
-`tools/ui-window-metrics-pane-clone-pressure.ps1`, with its focused Pester
+`tools/analysis/profiling/ui/ui-window-metrics-pane-clone-pressure.ps1`, with its focused Pester
 contract under `tools/tests`. At 600 frames, zero floating windows and an
 explicit 1 MiB payload estimate, current source models 4,800 semantic clones
 and 5,033,164,800 copied bytes. The target is zero semantic clones. The byte

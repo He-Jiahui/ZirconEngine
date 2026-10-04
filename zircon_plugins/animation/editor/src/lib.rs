@@ -1,8 +1,10 @@
+//! 编辑器插件的公共导出层；宿主只经插件声明和作者扩展入口读取本 crate。
 mod capability;
 mod extension_ids;
 mod plugin;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 pub use capability::{ANIMATION_AUTHORING_CAPABILITY, EDITOR_CAPABILITIES, PLUGIN_ID};

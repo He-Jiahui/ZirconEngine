@@ -49,3 +49,74 @@ resolver 把 GUID/path 身份修复与 subasset 语义修复合并处理，没�
 ## 修复结果与回传
 
 Open state: `validation_pending`; no pass is claimed.
+
+## 2026-09-09 current identity-contract continuation
+
+The existing Runtime04 fixing Session `failure-roll-01a07160-runtime04`
+reconciled the archived source ownership through transfer fingerprint
+`3aee4b2393137af81af4a51f2379649b021e8e65f2d8cfe043efb2a65854ff65` and froze
+the unchanged resolver pair in snapshot 3300. Current hashes match their
+attributions and ObjectStore bytes: `reference_resolver.rs`
+`c215371aa3bc51188ab22ebb9b0b4446b1eacffd7681de9b15e59309f61058c7` and
+`migration/resolver.rs` `2feabd38460db9214ede6d05c29f2e6e0a4ddc48bceaefed3f0734c549d3e6d8`.
+
+The original managed migration batch `2b2e7158e28c4cbdaa15fff4c6517426`
+executed four tests: 2 passed and 2 failed. Both failures were the stale
+expectations that a parent GUID should be replaced by a labeled mesh GUID;
+the actual resolver returned the required `RegistryConflict`. The missing
+labeled-subasset negative test passed. No production source was changed by
+that batch.
+
+The current Runtime87 contract and asset migration/importer documentation both
+state that GUID is authoritative, a GUID/subasset mismatch is `Conflict`, and
+missing labels cannot fall back to the parent. Snapshot 3304 updates only the
+resolver and migration tests: the shared resolver now checks missing labels for
+both an existing parent GUID and an absent GUID; migration tests reject both
+parent-GUID conflict forms and verify a moved subasset hint preserves the mesh
+GUID. Rustfmt and whitespace checks pass. Final focused managed validation is
+pending; the first migration retry was rejected before a job was accepted due
+to Cargo pool owner `cf40bbda43f5443f8e980a9396a2aa90`, with empty jobs/tests.
+No accepted request was replayed.
+
+## 2026-09-09 managed identity-contract closure
+
+The corrected source was sealed in
+`E:/cargo-targets/zircon-engine/cache/build-benchmarks/runtime04-subasset-final-3304-r2-20260909`,
+with 10,968 files and manifest
+`ba5f340ed904ecf6f1905e1a53fdebee4c959fbcfa5d8a821b19e63db2dcc918`.
+The migration resolver batch ran the four exact `retired_migration_` tests:
+job `fd6afaf6e96f4598830052d49c2ea5a5`, 4 passed, 0 failed, 0 ignored.
+The reference resolver batch ran its three tests in job
+`214ae209281d4e6986a4200b5214cbb7`, 3 passed, 0 failed, 0 ignored. Both
+receipts bind the immutable `ba5f340e...` source manifest.
+
+The same input initially exposed a separate lower fixture omission: after the
+`mip_bias = 0.5` correction, `max_anisotropy = 8` was also absent while the
+test asserted it. The first descriptor rerun therefore recorded job
+`11f08f2ba0b34ffb90f5544136bb1009`, 26 passed, 1 failed, 0 ignored; no
+production default was changed. Snapshot `3305` records the test-only fixture
+addition with source hash
+`dfa7019f6c3be58c11e6508d019ab1bdd534652fdbd34118da54dfd032ef86f7`.
+
+The final descriptor input
+`E:/cargo-targets/zircon-engine/cache/build-benchmarks/runtime04-subasset-final-3305-20260909`
+contains 10,968 files and manifest
+`3bfe12829402a3c0e72beaea5fdfff8d2d7c33125d97c8a8dc24f5b69899e15c`.
+Job `2c03b7c385ba4b5eb4e31dbec084ad19` ran all 27 exact descriptor tests:
+27 passed, 0 failed, 0 ignored, including
+`import_settings_parse_texture_metadata_tokens`. The fixture handoff is
+linked in `failure-2026-09-09-texture-metadata-token-fixture-missing-mip-bias.md`.
+
+This lower Runtime04 chain now has dynamic evidence for the resolver,
+migration, and descriptor fixture. The importer upward batch, independent
+zero-finding review, canonical `failure return`, and coordinator closeout
+remain pending; no fixed return or commit is claimed.
+
+The originally listed importer filter
+`importer_outcome_exposes_complete_guid_repair` is no longer present in the
+current `import_model` test module. A one-time run of that stale filter returned
+0 tests and no job acceptance. The current test name is
+`importer_rejects_path_candidate_when_guid_is_unregistered`; its follow-up
+submission was rejected before admission because the compatible Cargo pool was
+owned by job `3c868f3a9f53493b8d4e0812e6845660` (`cargo_reuse_pool_busy`). No
+accepted request was replayed; the importer upward gate remains pending.

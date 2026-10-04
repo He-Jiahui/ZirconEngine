@@ -95,5 +95,5 @@ fn v2_preview_document_with_imported_styles(
 }
 
 #[cfg(test)]
-#[path = "v2_authoring/streaming_style_tests.rs"]
+#[path = "v2_authoring/tests/streaming_style_tests.rs"]
 mod streaming_style_tests;

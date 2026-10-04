@@ -18,4 +18,5 @@ pub(crate) use receipt::ProjectCloseReceipt;
 pub(crate) use transition_error::ProjectCloseTransitionError;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

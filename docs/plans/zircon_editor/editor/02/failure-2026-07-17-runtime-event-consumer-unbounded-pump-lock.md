@@ -11,12 +11,28 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/core/runtime_event_consumer/host.rs
   - zircon_editor/src/core/runtime_event_consumer/host/execution_support.rs
+  - zircon_editor/src/core/runtime_event_consumer/host/pump_execution.rs
+  - zircon_editor/src/core/runtime_event_consumer/host/pending.rs
+  - zircon_editor/src/core/runtime_event_consumer/host/retention.rs
+  - zircon_editor/src/core/runtime_event_consumer/host/lifecycle.rs
+  - zircon_editor/src/core/runtime_event_consumer/host/health.rs
+  - zircon_editor/src/core/runtime_event_consumer/host/round_robin.rs
+  - zircon_editor/src/core/runtime_event_consumer/pump.rs
+  - zircon_editor/src/core/runtime_event_consumer/registration.rs
+  - zircon_editor/src/core/runtime_event_consumer/error.rs
   - zircon_runtime/src/dynamic_api/session/event_mirror.rs
-  - zircon_editor/src/core/gateway/session.rs
+  - zircon_editor/src/core/gateway/session/plugin_events.rs
+  - zircon_editor/src/tests/runtime_event_consumer_bounded_pump/pumping.rs
+  - zircon_editor/src/tests/runtime_event_consumer_bounded_pump/round_robin.rs
+  - zircon_editor/src/tests/runtime_event_consumer_bounded_pump/lifecycle.rs
+  - zircon_editor/src/tests/runtime_event_consumer_bounded_pump/faults.rs
+  - zircon_editor/src/tests/runtime_event_consumer_bounded_pump/abi_storm.rs
+  - zircon_editor/src/tests/runtime_event_consumer_bounded_pump/real_runtime_abi.rs
 tests:
-  - slow and reentrant typed-consumer deadlock regression
-  - 1000/10000 delivery count/time-budget stress
-  - multi-consumer fairness and session/order parity
+  - python -B -m unittest tools.tests.test_editor02_runtime_event_consumer_bounded_pump_contract -v
+  - cargo test -p zircon_editor --lib --locked tests::runtime_event_consumer_bounded_pump -- --test-threads=1
+  - cargo test -p zircon_editor --lib --locked tests::runtime_event_consumer_bounded_pump::abi_storm::managed_thousand_and_ten_thousand_delivery_budget_report -- --exact --ignored --test-threads=1 --nocapture
+  - cargo test -p zircon_editor --lib --locked -- --test-threads=1 --nocapture
 ---
 
 # Editor02：runtime event consumer 无配额锁内 pump
@@ -52,7 +68,7 @@ consumer registry 的 generation/sequence state 与外部 drain、decode、callb
 
 ## 修复结果与回传
 
-Open state: `2026-08-05 forward repair source static green / global-budget fairness increment independent second review pending / managed Cargo pending；Plugins01 bounded transport 依赖仍开放`。
+Open state: `2026-09-25 current-source index reconciled / managed Cargo and product performance gates pending；Plugins01 bounded transport 依赖仍开放`。
 
 - `pump` 已硬切为 active consumer 快照，gateway drain、decode 与 typed callback 均在 active 锁外执行；递归 pump 通过单 owner guard 返回空报告，不形成第二 delivery owner。
 - 全量 transport drain 后的未消费 delivery 由匹配 generation 的 Editor02 pending queue 保序持有；全局 count、per-consumer count、elapsed time 与 slow-callback threshold 统一受 `EditorRuntimeEventPumpBudget` 管理。
@@ -87,3 +103,15 @@ Editor02验收更新为：pending非空时不再drain，per-consumer pending至�
 ## 2026-08-05 Editor02 current-source forward repair
 
 host 只在 snapshot 无 editor pending 时跨 gateway 获取一页；已有 pending 的 tick 先消费本地 delivery，清空后的下一 tick 才取得 runtime 的后续页。每个 active consumer 保存该唯一页的 conservative encoded-byte upper bound 与 editor-residency 起点，report 新增 `pending_encoded_bytes_upper_bound` 与 `pending_oldest_age`，不将页内已消费部分伪报为精确 RSS。pump 把一个 consumer 的 queue 一次性取出为 local batch，在 global active mutex 外验证和回调，随后按 generation/subscription 条件一次写回已提交 sequence 与未消费尾部；回调 panic 时 RAII guard 也会先恢复未消费尾部与最后成功 sequence，再继续 unwind。runtime backlog report 已硬切为带 observation age 的 `last_observed_*` 完整样本，pending-only tick 不再伪报为当前 runtime 状态。fake regression 覆盖 no-redrain、后续页保序、panic tail/sequence 恢复；ignored ABI storm 只在新 drain 样本上断言 runtime/editor backlog 关系，并继续限制 editor pending byte upper bound 至单页。独立二审 `0/0/0`；受管 Cargo 与 callback/stall/payload/64-consumer 动态矩阵仍待完成，failure 保持 open。
+
+## 2026-09-25 活动源码与验收索引复核
+
+- `core/gateway/session.rs` 已硬切为 folder-backed `core/gateway/session/plugin_events.rs`；该文件拥有 runtime plugin-event drain/ABI page 解码。Editor02 主线程调用链是 `runtime_event_consumer/host/pump_execution.rs` → gateway 页 → `host/pending.rs` 单页保序归还及 `host/round_robin.rs` 公平 cursor。活动 `related_code` 和声明测试已迁到真实路径；上文 2026-07/08 的根因和旧 ticket 保留原样。
+- 当前 `host.rs` 通过 `try_reserve_pending_bytes` 同时约束全局 retained 与 pending bytes，`pump_execution.rs` 在 `snapshot.has_pending` 时不请求新页。2026-07-30 对“无全局 pending byte 上限、pending 非空仍拉页”的判断只描述当时源码，不代表本日仍缺同一实现。真实 callback `0/1/4/16ms`、60s stall、128KiB payload、64 consumers 的内存/时延矩阵、Plugins01 transport 以及向上 Editor 全量门仍未通过。
+- 当前 `host.rs` SHA256 `0f50d6f005252fb98341158edbb3fb0417c1427824d9d61783ba39b79cfc0d50`、`gateway/session/plugin_events.rs` SHA256 `be0d4b9a780453ee81f3707ef07a9349780ea65d855d70d7020f882deb9c3518` 为其他会话的 dirty 字节，不纳入本 Session 的源码归属或复用历史通过证据。旧受管 ticket `38ceec5bcf8e4177a2f483d51a957f98` 当前为 `snapshot_stale`，不是 Cargo GREEN。本地 Python 结构合同实跑 7/7，但不能证明动态行为、性能或产品验收；failure 保持 `open`，待源码 owner 合规归属与受管门后再 return。
+
+### 2026-09-25 independent current-index review
+
+- 独立只读审查复核了本记录当前 diff，结果为 `Critical=0 / Important=0 / Moderate=0`。新增 `related_code` 路径均存在且覆盖 `pump` budget/report、health/fault、registration/error、retention/lifecycle、pending 与 round-robin owner；`tests/mod.rs` 到 `abi_storm.rs` 的模块链和 exact ignored filter 均真实。
+- 审查确认 `pump_execution → gateway/session/plugin_events → pending → round_robin` 调用链、全局 pending-byte cap 与 pending-first no-redrain 叙述符合当前源码；当前 SHA 与 foreign dirty 说明准确，历史 evidence 未删除。
+- 本审查未运行 Cargo。Python 结构合同 `7/7` 仅为静态合同；callback/stall/payload/64-consumer 矩阵、ignored ABI benchmark、Plugins01 transport 和 Editor 上行产品门仍待，failure 保持 `open`。

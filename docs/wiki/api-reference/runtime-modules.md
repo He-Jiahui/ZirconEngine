@@ -24,11 +24,11 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 运行时 API Wiki 说明书
 tests:
-  - zircon_runtime/src/foundation/tests.rs
+  - zircon_runtime/src/foundation/tests/cases.rs
   - zircon_runtime/src/builtin/runtime_modules/tests/mod.rs
   - zircon_runtime/src/render_graph/tests/mod.rs
   - zircon_runtime/crates/zr_rhi/src/tests/mod.rs
-  - zircon_runtime/src/script/vm/tests.rs
+  - zircon_runtime/src/script/vm/tests/cases.rs
   - zircon_runtime/src/dynamic_api/tests/api_table.rs
 doc_type: api-reference
 ---
@@ -124,7 +124,7 @@ fn save_ui_scale(config: &dyn ConfigManager) -> Result<(), Box<dyn std::error::E
 
 `DefaultConfigManager::new` 可返回 `CoreError`，例如配置文件恢复、JSON 解析或 worker 启动失败。已取得的 manager 则用 `ConfigManagerError` 表达三类运行中问题：`RuntimeUnavailable`、`Persistence { path, reason }`、`FlushTimedOut { path, timeout }`。`ConfigPersistenceReport` 中的 `dirty_generation`、`persisted_generation`、`pending_flushes`、`failed_writes` 和 `last_error` 是 UI 或 shutdown 逻辑判断“是否真正持久化”的依据。
 
-验证入口：[foundation tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/foundation/tests.rs)、[config manager tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/foundation/runtime/config_manager_tests.rs)。
+验证入口：[foundation tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/foundation/tests/cases.rs)、[config manager tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/foundation/runtime/config_manager_tests.rs)。
 
 ## builtin
 

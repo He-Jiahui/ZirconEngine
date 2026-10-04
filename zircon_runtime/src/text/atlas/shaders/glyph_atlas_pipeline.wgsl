@@ -1,3 +1,6 @@
+// 与 CPU 实例布局和绑定契约配套的图集绘制入口。
+// 六个顶点从像素边缘矩形展开，纹理数组层随实例保持不插值；不同片元入口承接不同采样语义。
+
 @group(0) @binding(0) var glyph_atlas: texture_2d_array<f32>;
 @group(0) @binding(1) var glyph_atlas_sampler: sampler;
 struct GlyphAtlasViewport {

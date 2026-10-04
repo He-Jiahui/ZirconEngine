@@ -5,4 +5,5 @@ pub(crate) mod raster_pool;
 pub(crate) mod shape_pool;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

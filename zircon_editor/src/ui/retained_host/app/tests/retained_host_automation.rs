@@ -7,8 +7,14 @@ use crate::ui::binding::{
     EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind, SelectionCommand,
 };
 use crate::ui::retained_host::app::automation::{
-    canonical_cli_binding_path, invoke_supported_binding, normalize_cli_action_records,
+    authoritative_project_info, canonical_cli_binding_path, invoke_supported_binding,
+    normalize_cli_action_records,
 };
+use zircon_runtime::asset::{
+    project::{ProjectManifest, ProjectPaths},
+    AssetUri,
+};
+use zircon_runtime_interface::project::RelPath;
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 
 fn invoke(harness: &ChildWindowHostHarness, binding: EditorUiBinding) {
@@ -87,6 +93,48 @@ fn automation_selection_uses_hierarchy_callback_and_changes_the_real_selection_m
             }
         )]
     );
+}
+
+#[test]
+fn automation_selection_initializes_missing_hierarchy_callback_bounds() {
+    let _guard = lock_env();
+    let harness = ChildWindowHostHarness::new("zircon_retained_automation_unmeasured_hierarchy");
+    let selected = harness
+        .host
+        .borrow()
+        .runtime
+        .editor_snapshot()
+        .scene_entries
+        .iter()
+        .last()
+        .expect("default scene should expose an authoritative hierarchy row")
+        .entity;
+    harness.host.borrow_mut().hierarchy_pointer_size =
+        zircon_runtime_interface::ui::layout::UiSize::new(0.0, 0.0);
+    let baseline = harness.journal_len();
+
+    invoke(
+        &harness,
+        EditorUiBinding::new(
+            "Hierarchy",
+            "SelectSceneNode",
+            EditorUiEventKind::Click,
+            EditorUiBindingPayload::selection_command(SelectionCommand::SelectSceneNode {
+                node_id: selected,
+            }),
+        ),
+    );
+
+    assert!(harness.host.borrow().hierarchy_pointer_size.width > 0.0);
+    assert!(harness.host.borrow().hierarchy_pointer_size.height > 0.0);
+    assert!(harness
+        .host
+        .borrow()
+        .runtime
+        .editor_snapshot()
+        .scene_entries
+        .is_selected(selected));
+    assert_eq!(harness.delta_events_since(baseline).len(), 1);
 }
 
 #[test]
@@ -317,6 +365,47 @@ fn automation_report_evidence_uses_canonical_cli_binding_paths() {
         canonical_cli_binding_path(&save).unwrap(),
         "WorkbenchMenuBar/SaveProject:onClick"
     );
+}
+
+#[test]
+fn automation_report_reads_live_project_when_startup_document_is_empty() {
+    let _guard = lock_env();
+    let harness = ChildWindowHostHarness::new("zircon_retained_automation_project_info");
+    let root = unique_temp_path("zircon_retained_automation_project_info_fixture");
+    let paths = ProjectPaths::from_root(&root).expect("project root should resolve");
+    paths
+        .ensure_layout(&[RelPath::project_assets()])
+        .expect("temporary project layout should be created");
+    ProjectManifest::new(
+        "Automation Project",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .expect("temporary project manifest should be written");
+
+    let asset_manager = harness
+        .host
+        .borrow()
+        .asset_runtime_access
+        .asset_manager()
+        .expect("host should resolve its live AssetManager");
+    let opened = asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .expect("AssetManager should open the temporary project");
+    assert!(
+        harness.host.borrow().startup_session.project.is_none(),
+        "the host startup document does not retain active project data"
+    );
+    assert_eq!(
+        authoritative_project_info(&harness.host.borrow()).unwrap(),
+        opened
+    );
+
+    asset_manager.close_project().unwrap();
+    assert!(authoritative_project_info(&harness.host.borrow()).is_err());
+    drop(asset_manager);
+    fs::remove_dir_all(root).expect("temporary project should be removed");
 }
 
 #[test]

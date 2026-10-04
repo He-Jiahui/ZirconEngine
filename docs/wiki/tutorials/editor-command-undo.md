@@ -11,9 +11,9 @@ implementation_files:
   - zircon_editor/src/core/editing/engine
 plan_sources:
   - user: 2026-09-09 扩展 ZirconEngine Wiki 教程与机制说明
-  - docs/editor-and-tooling/editor-command-workflow.md
+  - docs/editor/editor-command-workflow.md
 tests:
-  - zircon_editor/src/core/commands/registry/tests.rs
+  - zircon_editor/src/core/commands/registry/tests/cases.rs
   - zircon_editor/src/core/editing/engine
 doc_type: workflow-detail
 ---
@@ -112,6 +112,6 @@ let transaction_id = tx.commit()?;
 - [ ] 修改作者态的命令有可验证的 apply/revert，且进入单一事务。
 - [ ] 连续交互选择合适的 `operation_group`，避免将一次手势拆成无意义的历史项。
 - [ ] 外部副作用通过 `EditorEventEffect` 交给宿主执行，纯 event reducer 不直接打开对话框或启动进程。
-- [ ] 从[命令 registry 测试](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_editor/src/core/commands/registry/tests.rs)和[编辑引擎测试目录](https://github.com/He-Jiahui/ZirconEngine/tree/main/zircon_editor/src/core/editing/engine)补齐行为覆盖。
+- [ ] 从[命令 registry 测试](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_editor/src/core/commands/registry/tests/cases.rs)和[编辑引擎测试目录](https://github.com/He-Jiahui/ZirconEngine/tree/main/zircon_editor/src/core/editing/engine)补齐行为覆盖。
 
 把“请求操作”和“修改文档”分开，会让菜单、快捷键、远程控制与回放共享同一语义，而 undo/redo 只对真正的作者态变化负责。这是扩展编辑器工具时最重要的边界。

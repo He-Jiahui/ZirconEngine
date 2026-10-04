@@ -12,6 +12,7 @@ use super::{read_utf8_with, AbiDecodeError, AbiDecodeResult};
 
 pub(super) const MAX_NATIVE_SYSTEM_ACCESS_ENTRIES: usize = 4_096;
 
+/// V4 系统在解析嵌套指针前先校验版本、布局长度和非空访问契约。
 pub(in super::super) fn validate_v4_registration_header(
     registration: &ZrSystemRegistrationV2,
 ) -> AbiDecodeResult<()> {
@@ -38,6 +39,11 @@ pub(in super::super) fn stage_from_abi(stage: u32) -> AbiDecodeResult<SystemStag
         .ok_or(AbiDecodeError::UnknownSystemStage { stage })
 }
 
+/// 把插件声明的访问范围转成调度与授权共用的稳定 ID。
+///
+/// # Safety
+///
+/// 非空指针必须对齐并覆盖同步调用期间有效、已初始化的 `count` 个访问描述；函数只检查空指针和数量。
 pub(in super::super) unsafe fn read_v4_system_accesses(
     values: *const ZrNativeSystemAccessV1,
     count: usize,
@@ -51,6 +57,7 @@ pub(in super::super) unsafe fn read_v4_system_accesses(
     if count > MAX_NATIVE_SYSTEM_ACCESS_ENTRIES {
         return Err(AbiDecodeError::TooManyV4Accesses { count });
     }
+    // TODO: [CR-PLUGIN-NATIVE-0102] 确认 V4 accesses 的对齐是否也应由宿主拒绝非法输入；同级字符串列表已显式校验，本路径仅检查空指针和数量；下一步补充 ABI 指针契约与未对齐访问描述符测试。
     unsafe { std::slice::from_raw_parts(values, count) }
         .iter()
         .map(|access| {
@@ -113,14 +120,5 @@ pub(in super::super) fn v4_thread_affinity_from_abi(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::system_access_id;
-
-    #[test]
-    fn exact_capacity_system_access_id_preserves_output() {
-        assert_eq!(
-            system_access_id("read", "component", "weather.velocity"),
-            "read:component:weather.velocity"
-        );
-    }
-}
+#[path = "tests/system.rs"]
+mod tests;

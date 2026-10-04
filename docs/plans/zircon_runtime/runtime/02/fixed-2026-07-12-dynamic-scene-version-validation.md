@@ -41,7 +41,7 @@ resolved_at: 2026-07-12
 
 ## 最低共享层根因
 
-最低失败层是 `scene/tests/dynamic_scene/archive_core.rs` 的旧 fixture，而非生产校验。`docs/zircon_runtime/scene/dynamic_scene.md` 明确规定 external envelope header 是版本权威，内层 `format_version` 在后续移除前只作过渡双写；`document/write.rs` 克隆 payload 并把该字段规范化为当前值。生产 `validate_format_version` 对 typed header 的 schema id/version 校验符合该契约。
+最低失败层是 `scene/tests/dynamic_scene/archive_core.rs` 的旧 fixture，而非生产校验。`docs/crates/zircon_runtime/scene/dynamic_scene.md` 明确规定 external envelope header 是版本权威，内层 `format_version` 在后续移除前只作过渡双写；`document/write.rs` 克隆 payload 并把该字段规范化为当前值。生产 `validate_format_version` 对 typed header 的 schema id/version 校验符合该契约。
 
 ## 架构修复验收
 

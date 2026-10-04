@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f5_profile_export_uses_typed_error() {
     let export = include_str!("../../../../core/runtime/diagnostics/profiling/export.rs");
@@ -13,7 +14,7 @@ fn review_f5_profile_export_uses_typed_error() {
     let convention =
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
     let profiling_doc =
-        include_str!("../../../../../../docs/zircon_runtime/core/diagnostics/profiling.md");
+        include_str!("../../../../../../docs/crates/zircon_runtime/core/diagnostics/profiling.md");
 
     for required in [
         "pub type ProfileExportResult<T> = std::result::Result<T, ProfileExportError>;",

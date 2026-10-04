@@ -2,12 +2,15 @@ import type { ButtonProps, SxProps, Theme } from "@mui/material";
 import { Button } from "@mui/material";
 import { hubTokens } from "../../theme/tokens";
 
+// 色调表达入口层级和危险程度，不能替代调用方的禁用、确认或权限判断。
 export type HubButtonTone = "primary" | "secondary" | "tertiary" | "danger";
 
+// 调用方保留原按钮事件及表单属性，只把视觉变体收敛到公共入口样式；文案由页面本地化。
 export interface HubButtonProps extends Omit<ButtonProps, "variant"> {
   tone?: HubButtonTone;
 }
 
+// 将入口层级映射到同一套视觉语义，删除确认等危险动作仍由业务调用链控制。
 const toneStyles: Record<HubButtonTone, SxProps<Theme>> = {
   primary: {
     color: hubTokens.colors.textOnAccent,
@@ -46,6 +49,7 @@ const toneStyles: Record<HubButtonTone, SxProps<Theme>> = {
   },
 };
 
+// 为页面和对话框统一按钮外观；页面样式最后追加，以便只覆盖所在布局需要的尺寸和间距。
 export function HubButton({ tone = "secondary", sx, ...props }: HubButtonProps) {
   return (
     <Button
@@ -64,6 +68,7 @@ export function HubButton({ tone = "secondary", sx, ...props }: HubButtonProps) 
   );
 }
 
+// 保留调用方样式对象、函数及数组的原有顺序，避免包装器改变样式组合的优先级。
 function asSxArray(sx?: SxProps<Theme>) {
   if (!sx) {
     return [];

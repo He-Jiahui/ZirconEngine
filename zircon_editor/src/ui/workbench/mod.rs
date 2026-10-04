@@ -37,7 +37,7 @@ pub use floating_window::{
     FLOATING_WINDOW_DESIGN_CONTRACTS,
 };
 pub use layout_preset::{
-    CenterSplitLayout, LayoutPreset, LayoutPresetDrawerState, LayoutPresetName,
+    CenterSplitLayout, CenterSplitNode, LayoutPreset, LayoutPresetDrawerState, LayoutPresetName,
     LayoutPresetPersistenceEntry, LayoutPresetPersistenceStore, LayoutPresetRestoreFallback,
     LayoutPresetRestoreResult, LayoutPresetScope, LayoutPresetSizeOverride, LayoutUserId,
 };

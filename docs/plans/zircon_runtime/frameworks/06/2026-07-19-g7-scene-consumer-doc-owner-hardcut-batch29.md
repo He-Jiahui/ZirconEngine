@@ -1,7 +1,7 @@
 ---
 related_code:
-  - docs/zircon_editor/scene/viewport/edit_mode_projection.md
-  - docs/zircon_plugins/rendering-plugin-options.md
+  - docs/crates/zircon_editor/scene/viewport/edit_mode_projection.md
+  - docs/crates/zircon_plugins/rendering-plugin-options.md
   - zircon_runtime/src/scene/components/scene/mod.rs
   - zircon_runtime/src/scene/components/scene/transform.rs
   - zircon_runtime/src/scene/components/scene/hierarchy.rs
@@ -13,16 +13,16 @@ related_code:
   - zircon_runtime/src/scene/components/scene/animation.rs
   - zircon_runtime/src/core/framework/scene/mobility.rs
 implementation_files:
-  - docs/zircon_editor/scene/viewport/edit_mode_projection.md
-  - docs/zircon_plugins/rendering-plugin-options.md
+  - docs/crates/zircon_editor/scene/viewport/edit_mode_projection.md
+  - docs/crates/zircon_plugins/rendering-plugin-options.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
   - docs/plans/zircon_runtime/frameworks/06/2026-07-19-scene-component-owner-hardcut.md
 tests:
-  - python tools/check_conventions.py --only docs --json
-  - git diff --check -- docs/zircon_editor/scene/viewport/edit_mode_projection.md docs/zircon_plugins/rendering-plugin-options.md docs/plans/zircon_runtime/frameworks/06/2026-07-19-g7-scene-consumer-doc-owner-hardcut-batch29.md
+  - python tools/audits/check_conventions.py --only docs --json
+  - git diff --check -- docs/crates/zircon_editor/scene/viewport/edit_mode_projection.md docs/crates/zircon_plugins/rendering-plugin-options.md docs/plans/zircon_runtime/frameworks/06/2026-07-19-g7-scene-consumer-doc-owner-hardcut-batch29.md
 ---
 
 # Frameworks06 G7 Scene Consumer 文档 Owner 硬切 Batch 29
@@ -30,7 +30,7 @@ tests:
 Plan: docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
 Milestone: M2
 Status: accepted
-Files: ["docs/zircon_editor/scene/viewport/edit_mode_projection.md", "docs/zircon_plugins/rendering-plugin-options.md"]
+Files: ["docs/crates/zircon_editor/scene/viewport/edit_mode_projection.md", "docs/crates/zircon_plugins/rendering-plugin-options.md"]
 Date: 2026-07-19
 Session: `frameworks06-g7-scene-consumer-doc-owner-hardcut-batch29-20260719`
 

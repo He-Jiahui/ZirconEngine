@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use super::{
     EditCommandError, EditorTransactionEngine, HistoryContextId, HistoryDetailPage,
-    HistoryPageCursor, HistoryStatus, HistoryStore, TransactionEvent, TransactionEventKind,
-    TransactionId, TransactionJournal, TransactionJournalError, MAX_HISTORY_DETAIL_PAGE_SIZE,
+    HistoryPageCursor, HistoryStatus, TransactionEvent, TransactionEventKind, TransactionId,
+    TransactionJournal, TransactionJournalError, MAX_HISTORY_DETAIL_PAGE_SIZE,
 };
 
 impl EditorTransactionEngine {
@@ -18,14 +18,9 @@ impl EditorTransactionEngine {
     }
 
     pub fn is_dirty(&self, history: HistoryContextId) -> Result<bool, EditCommandError> {
-        self.flush_operation_group()?;
-        self.start_operation("query dirty state")?;
+        self.start_observation("query dirty state")?;
         let mut state = self.lock_state();
-        let dirty = !history.is_volatile()
-            && state
-                .histories
-                .get(&history)
-                .is_some_and(HistoryStore::is_dirty);
+        let dirty = Self::observed_history_status(&state, history).dirty;
         self.clear_operation_locked(&mut state);
         Ok(dirty)
     }
@@ -34,15 +29,9 @@ impl EditorTransactionEngine {
         &self,
         history: HistoryContextId,
     ) -> Result<HistoryStatus, EditCommandError> {
-        self.flush_operation_group()?;
-        self.start_operation("query history status")?;
+        self.start_observation("query history status")?;
         let mut state = self.lock_state();
-        let generation = Self::history_generation(&state, history);
-        let status = match state.histories.get(&history) {
-            Some(store) => store.status(generation),
-            None => HistoryStatus::empty(generation),
-        }
-        .for_context(history);
+        let status = Self::observed_history_status(&state, history);
         self.clear_operation_locked(&mut state);
         Ok(status)
     }
@@ -69,8 +58,7 @@ impl EditorTransactionEngine {
             });
         }
 
-        self.flush_operation_group()?;
-        self.start_operation("query history details")?;
+        self.start_observation("query history details")?;
         let mut state = self.lock_state();
         let generation = Self::history_generation(&state, history);
         if let Some(cursor) = cursor.filter(|cursor| cursor.generation() != generation) {
@@ -82,17 +70,10 @@ impl EditorTransactionEngine {
             });
         }
         let offset = cursor.map_or(0, HistoryPageCursor::offset);
-        let (status, records, has_more) = match state.histories.get(&history) {
-            Some(store) => {
-                let status = store.status(generation).for_context(history);
-                let (records, has_more) = store.detail_window(offset, page_size);
-                (status, records, has_more)
-            }
-            None => (
-                HistoryStatus::empty(generation).for_context(history),
-                Vec::new(),
-                false,
-            ),
+        let status = Self::observed_history_status(&state, history);
+        let (records, has_more) = match state.histories.get(&history) {
+            Some(store) => store.detail_window(offset, page_size),
+            None => (Vec::new(), false),
         };
         let next_cursor = has_more.then(|| {
             HistoryPageCursor::new(
@@ -114,9 +95,7 @@ impl EditorTransactionEngine {
         if history.is_volatile() {
             return Err(TransactionJournalError::VolatileHistory { history });
         }
-        self.flush_operation_group()
-            .map_err(TransactionJournalError::from)?;
-        self.start_operation("serialize transaction journal")
+        self.start_observation("serialize transaction journal")
             .map_err(TransactionJournalError::from)?;
         let mut state = self.lock_state();
         let journal = match state.histories.get(&history) {
@@ -135,8 +114,7 @@ impl EditorTransactionEngine {
         &self,
         history: HistoryContextId,
     ) -> Result<u64, EditCommandError> {
-        self.flush_operation_group()?;
-        self.start_operation("snapshot history generation")?;
+        self.start_observation("snapshot history generation")?;
         let mut state = self.lock_state();
         let generation = Self::history_generation(&state, history);
         self.clear_operation_locked(&mut state);

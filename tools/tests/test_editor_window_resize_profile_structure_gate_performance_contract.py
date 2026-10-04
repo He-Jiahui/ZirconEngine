@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-COUNTER_EVIDENCE_PATH = REPO_ROOT / "tools" / "ui-profile-counter-evidence.ps1"
+COUNTER_EVIDENCE_PATH = REPO_ROOT / "tools" / "profiling" / "ui" / "ui-profile-counter-evidence.ps1"
 COUNTER_CATALOG_PATH = (
     REPO_ROOT / "zircon_editor" / "src" / "ui" / "retained_host" / "ui_perf" / "counter_catalog.rs"
 )
@@ -113,7 +113,7 @@ class EditorWindowResizeProfileStructureGatePerformanceContractTests(unittest.Te
             host_state,
         )
         combined_state = host_state + viewport_chrome
-        self.assertEqual(combined_state.count("self.advance_structure_generation();"), 6)
+        self.assertEqual(combined_state.count("self.advance_structure_generation();"), 11)
         self.assertEqual(
             combined_state.count("self.presentation_structure_generation ="),
             1,

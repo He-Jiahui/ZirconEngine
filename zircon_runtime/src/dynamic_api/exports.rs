@@ -4,21 +4,22 @@ use zircon_runtime_interface::runtime_api::validate_runtime_host_api_v1_pointer;
 use zircon_runtime_interface::world_sync::WatchToken;
 use zircon_runtime_interface::{
     ZrByteSlice, ZrHostApiV1, ZrOwnedResultV2, ZrRuntimeAccessibilityTreeRequestV1,
-    ZrRuntimeAllocationId, ZrRuntimeApiV8, ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1,
-    ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2, ZrRuntimeHighlightSetV1,
-    ZrRuntimeOperationHandle, ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionConfigV3,
-    ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrRuntimeViewportPickRequestV1,
-    ZrRuntimeViewportPickResultV1, ZrRuntimeViewportPickTicket, ZrStatus, ZrStatusCode,
-    ZIRCON_RUNTIME_API_VERSION_V8,
+    ZrRuntimeAllocationId, ZrRuntimeApiV8, ZrRuntimeAppSessionConfigurationV2,
+    ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1,
+    ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2, ZrRuntimeHighlightSetV1, ZrRuntimeOperationHandle,
+    ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionConfigV3, ZrRuntimeSessionHandle,
+    ZrRuntimeViewportHandle, ZrRuntimeViewportPickRequestV1, ZrRuntimeViewportPickResultV1,
+    ZrRuntimeViewportPickTicket, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_API_VERSION_V8,
 };
 
 use super::session::{
     bind_viewport_surface, cancel_viewport_pick, capture_accessibility_tree, capture_frame,
-    create_session, destroy_session, drain_host_requests, drain_plugin_events,
-    drain_world_invalidations, handle_event, harvest_operation, poll_operation, poll_viewport_pick,
-    present_viewport, profile_control, query_world, release_allocation, request_viewport_pick,
-    submit_highlight_set, submit_operation, subscribe_plugin_event, tick_frame,
-    unbind_viewport_surface, unsubscribe_plugin_event, unwatch_world, watch_world,
+    configure_app_session, create_session, destroy_session, drain_host_requests,
+    drain_plugin_events, drain_world_invalidations, handle_event, harvest_operation,
+    poll_operation, poll_viewport_pick, present_viewport, profile_control, query_world,
+    release_allocation, request_viewport_pick, submit_highlight_set, submit_operation,
+    subscribe_plugin_event, tick_frame, unbind_viewport_surface, unsubscribe_plugin_event,
+    unwatch_world, watch_world,
 };
 
 static RUNTIME_API_V8: ZrRuntimeApiV8 = ZrRuntimeApiV8 {
@@ -93,6 +94,15 @@ unsafe extern "C" fn create_session_ffi(
     out_session: *mut ZrRuntimeSessionHandle,
 ) -> ZrStatus {
     catch_ffi_panic(|| unsafe { create_session(config, out_session) })
+}
+
+/// Versioned AppSession V2 entry point. It stays outside the frozen V8 table.
+#[no_mangle]
+pub unsafe extern "C" fn zircon_runtime_configure_app_session_v2(
+    handle: ZrRuntimeSessionHandle,
+    configuration: ZrRuntimeAppSessionConfigurationV2,
+) -> ZrStatus {
+    catch_ffi_panic(|| unsafe { configure_app_session(handle, configuration) })
 }
 
 unsafe extern "C" fn destroy_session_ffi(handle: ZrRuntimeSessionHandle) -> ZrStatus {

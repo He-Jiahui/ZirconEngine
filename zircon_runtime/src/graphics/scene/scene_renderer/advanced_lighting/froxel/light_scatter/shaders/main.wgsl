@@ -1,3 +1,5 @@
+// 介质纹理、聚簇光数据和阴影图在此汇合；输出仍是逐 froxel 的散射与消光，
+// 随后的 integrate 通道才执行沿视线的累计。
 fn punctual_visibility(light: ZrGpuLightData, light_type: u32, world_position: vec3<f32>, distance_to_light: f32) -> f32 {
     let range = max(light.position_range.w, VOLUMETRIC_EPSILON);
     if (distance_to_light >= range) {
@@ -47,6 +49,8 @@ fn scatter_light(light_index: u32, world_position: vec3<f32>, view_direction: ve
     return radiance * visibility * phase;
 }
 
+// 历史数据只在前一相机投影仍覆盖该位置且消光接近时复用；
+// 其余路径回退到本帧散射，避免相机切换或介质突变产生残影。
 fn temporal_scattering(current: vec4<f32>, world_position: vec3<f32>, grid: vec3<u32>) -> vec4<f32> {
     let history_weight = params.temporal.jitter_and_history.w;
     if (history_weight <= 0.0) {

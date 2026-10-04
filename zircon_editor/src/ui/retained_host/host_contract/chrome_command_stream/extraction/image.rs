@@ -5,6 +5,7 @@ use crate::ui::retained_host::host_contract::paint_frame::HostPaintAtlasImage;
 
 pub(super) fn chrome_image_payload_from_recorded_image(
     resource_key: String,
+    resource_generation: u64,
     width: u32,
     height: u32,
     rgba: Option<Arc<[u8]>>,
@@ -21,7 +22,7 @@ pub(super) fn chrome_image_payload_from_recorded_image(
         .unwrap_or_else(|| u64::from(width) * u64::from(height) * 4);
     ChromeImagePayload {
         resource_key,
-        resource_generation: 0,
+        resource_generation,
         width,
         height,
         upload_bytes,

@@ -76,9 +76,28 @@ pub(in super::super) fn host_template_node(
     let visual_state = projected_visual_state(&node.attributes);
     let clip_frame = projected_clip_frame(node.clip_frame.as_ref());
 
-    Some(template_pane_node_data(ProjectedTemplateNodeParts {
+    let surface_node_id = node.surface_node_id;
+    let property_field_id = node
+        .attributes
+        .get("inspector_property_field_id")
+        .and_then(toml::Value::as_str)
+        .unwrap_or_default()
+        .to_owned();
+    let property_item_key = node
+        .attributes
+        .get("inspector_property_item_key")
+        .and_then(toml::Value::as_str)
+        .unwrap_or_default()
+        .to_owned();
+    let mut projected = template_pane_node_data(ProjectedTemplateNodeParts {
         node_id: node.node_id,
         control_id,
+        source_path: node.source_path.unwrap_or_default(),
+        source_node_id: node.source_node_id.unwrap_or_default(),
+        instance_path: serialize_instance_path(node.instance_path),
+        parent_source_path: node.parent_source_path.unwrap_or_default(),
+        parent_source_node_id: node.parent_source_node_id.unwrap_or_default(),
+        parent_instance_path: serialize_instance_path(node.parent_instance_path),
         role: component,
         component_role,
         text_layout,
@@ -95,5 +114,17 @@ pub(in super::super) fn host_template_node(
         visual_state,
         visual_style,
         clip_frame,
-    }))
+    });
+    projected.surface_node_id = surface_node_id;
+    projected.inspector_property_field_id = property_field_id.into();
+    projected.inspector_property_item_key = property_item_key.into();
+    Some(projected)
+}
+
+fn serialize_instance_path(
+    instance_path: Option<Vec<zircon_runtime_interface::ui::v2::UiTemplateNodeInstancePathStep>>,
+) -> String {
+    instance_path
+        .and_then(|steps| serde_json::to_string(&steps).ok())
+        .unwrap_or_default()
 }

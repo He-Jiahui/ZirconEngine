@@ -11,9 +11,14 @@ base-runtime-plugins = [
     "dep:zircon_plugin_ai_runtime",
     "dep:zircon_plugin_animation_runtime",
     "dep:zircon_plugin_gltf_importer_runtime",
+    "dep:zircon_plugin_net_http_runtime",
+    "dep:zircon_plugin_net_websocket_runtime",
+    "dep:zircon_plugin_physics_runtime",
+    "dep:zircon_plugin_obj_importer_runtime",
     "dep:zircon_plugin_net_runtime",
     "dep:zircon_plugin_particles_runtime",
     "dep:zircon_plugin_rendering_runtime",
+    "dep:zircon_plugin_shader_wgsl_importer_runtime",
     "dep:zircon_plugin_sound_runtime",
     "dep:zircon_plugin_texture_runtime",
 ]
@@ -39,8 +44,13 @@ zircon_plugin_hybrid_gi_runtime = { path = "../hybrid_gi/runtime", optional = tr
 zircon_plugin_navigation_runtime = { path = "../navigation/runtime", optional = true }
 zircon_plugin_neural_runtime = { path = "../neural/runtime", optional = true }
 zircon_plugin_net_runtime = { path = "../net/runtime", optional = true }
+zircon_plugin_net_http_runtime = { path = "../net/features/http/runtime", optional = true }
+zircon_plugin_net_websocket_runtime = { path = "../net/features/websocket/runtime", optional = true }
+zircon_plugin_obj_importer_runtime = { path = "../obj_importer/runtime", optional = true }
+zircon_plugin_physics_runtime = { path = "../physics/runtime", optional = true }
 zircon_plugin_particles_runtime = { path = "../particles/runtime", optional = true }
 zircon_plugin_rendering_runtime = { path = "../rendering/runtime", optional = true }
+zircon_plugin_shader_wgsl_importer_runtime = { path = "../shader_wgsl_importer/runtime", optional = true }
 zircon_plugin_solari_runtime = { path = "../solari/runtime", optional = true }
 zircon_plugin_sound_runtime = { path = "../sound/runtime", optional = true }
 zircon_plugin_texture_runtime = { path = "../texture/runtime", optional = true }

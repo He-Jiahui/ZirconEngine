@@ -25,8 +25,8 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/09d-render-asset-streaming-residency-review.md
   - docs/plans/optimize/zircon_runtime/09e-direct-lighting-clustered-shadow-review.md
   - docs/plans/optimize/zircon_runtime/09f1-environment-sky-ibl-reflection-probe-review.md
-  - docs/assets-and-rendering/environment-lightmap-probe-consumption.md
-  - docs/zircon_runtime/graphics/scene/scene_renderer/environment/lightmap-binding.md
+  - docs/rendering/environment-lightmap-probe-consumption.md
+  - docs/crates/zircon_runtime/graphics/scene/scene_renderer/environment/lightmap-binding.md
   - docs/plans/zircon_runtime/render/11-environment-lighting.md
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/Engine/Classes/Engine/MapBuildDataRegistry.h

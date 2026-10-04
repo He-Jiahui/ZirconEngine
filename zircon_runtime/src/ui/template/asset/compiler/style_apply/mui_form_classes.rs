@@ -1,3 +1,5 @@
+//! 表单类名兼容根组件和嵌套输入 slot；TextField 需把父状态投影到 InputBase、InputLabel 和辅助文本的子节点。
+
 use std::collections::BTreeMap;
 
 use toml::Value;
@@ -8,6 +10,7 @@ use super::{
     string_attribute_any, string_from_attributes_any,
 };
 
+/// 由样式应用入口调用，专门处理表单组件并告知调用方是否停止后续组件族分发。
 pub(super) fn append_form_component_classes(
     node: &mut UiTemplateNode,
     component: &str,
@@ -63,6 +66,7 @@ pub(super) fn append_form_component_classes(
     }
 }
 
+/// 由 slot 契约在递归处理子节点前调用；父表单属性决定输入框、标签和图标 slot 的工具类。
 pub(super) fn append_form_slot_classes(
     child: &mut UiTemplateNode,
     owner_component: &str,
@@ -355,6 +359,7 @@ fn append_input_slot_classes(
     }
 }
 
+// TextField 的 input slot 需要按父 variant 模拟实际输入组件的根类，供样式表选择器复用。
 fn append_text_field_input_slot_classes(
     child: &mut UiTemplateNode,
     owner_attributes: &BTreeMap<String, Value>,
@@ -537,6 +542,7 @@ fn has_adornment_from_attributes(attributes: &BTreeMap<String, Value>, name: &st
         || bool_from_attributes_any(attributes, &[name])
 }
 
+// 兼容 variant 与 mui_variant；首个非空别名无效时回到 outlined，保持现有测试确认的优先级。
 fn text_field_variant(attributes: &BTreeMap<String, Value>) -> &str {
     ["variant", "mui_variant"]
         .iter()
@@ -558,7 +564,7 @@ fn text_field_label_shrinks(attributes: &BTreeMap<String, Value>) -> bool {
 }
 
 #[cfg(test)]
-#[path = "mui_form_classes/borrowed_text_field_variant_tests.rs"]
+#[path = "mui_form_classes/tests/borrowed_text_field_variant_tests.rs"]
 mod borrowed_text_field_variant_tests;
 
 fn append_prefixed_state_classes(node: &mut UiTemplateNode, prefix: &str, states: &[&str]) {

@@ -125,6 +125,20 @@ NATIVE_ABI_CONTRACT_SYMBOLS = {
 
 NATIVE_LOADER_DISCOVERY_SYMBOLS = {
     "LoadedNativePlugin",
+    "NativePackageDependencyArtifact",
+    "NativePackageKeyPolicy",
+    "NativePackageModuleArtifact",
+    "NativePackageReceiptError",
+    "NativePackageReceiptPolicy",
+    "NativePackageReceiptTrust",
+    "NativePluginArtifactAdmissionError",
+    "NativePluginArtifactAdmissionReceipt",
+    "NativePluginArtifactAuthority",
+    "NativePluginArtifactDependency",
+    "NativePluginArtifactDigest",
+    "NativePluginArtifactExpectation",
+    "NativePluginArtifactTarget",
+    "NativePluginArtifactTrust",
     "NativePluginCandidate",
     "NativePluginLoadManifest",
     "NativePluginLoadManifestAbiV3Contract",
@@ -132,11 +146,15 @@ NATIVE_LOADER_DISCOVERY_SYMBOLS = {
     "NativePluginLoadReport",
     "NativePluginLoadProjection",
     "NativePluginLoader",
+    "VerifiedNativePackageProof",
+    "verify_native_package_receipts",
 }
 
 NATIVE_LIVE_HOST_RUNTIME_SYMBOLS = {
     "NATIVE_RUNTIME_PLAY_MODE_ENTER_COMMAND",
     "NATIVE_RUNTIME_PLAY_MODE_EXIT_COMMAND",
+    "NativePluginEditorCommandBinding",
+    "NativePluginEditorCommandBindingError",
     "NativePluginLiveHost",
     "NativePluginLiveHostCommand",
     "NativePluginLiveHostLoadReport",
@@ -851,10 +869,13 @@ def native_plugin_public_surface_audit(root: Path) -> dict[str, object]:
 
     source = _read_text(plugin_root)
     native_source = _read_text(native_namespace) if native_namespace.exists() else ""
-    native_namespace_symbols: list[str] = []
-    namespace_match = PLUGIN_NATIVE_NAMESPACE_RE.search(native_source)
-    if namespace_match:
-        native_namespace_symbols = _split_use_symbols(namespace_match.group("body"))
+    native_namespace_symbols = sorted(
+        {
+            symbol
+            for namespace_match in PLUGIN_NATIVE_NAMESPACE_RE.finditer(native_source)
+            for symbol in _split_use_symbols(namespace_match.group("body"))
+        }
+    )
 
     root_reexport_symbols, root_public_reexport_locations = _native_root_reexports(
         root,

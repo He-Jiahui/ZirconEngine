@@ -1,16 +1,22 @@
 use std::sync::Arc;
 
-use crate::text::{TextSize, TextStyle, text_glyph_clusters};
+use crate::text::{text_glyph_clusters, TextSize, TextStyle};
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::core::framework::text::{TextDirection, TextLayoutError};
-use crate::text::TextRange;
+use crate::text::layout_geometry::{finite_sum, FiniteGeometryAccumulator};
 use crate::text::shaping::{
     DirectTextShapeRunProvider, TextLayoutOutcome, TextShapeRunProvider, TextShapingOutcome,
 };
+use crate::text::TextRange;
 use crate::text::{ShapedGlyph, ShapedGlyphBreakSafety, ShapedGlyphRun};
 
-use super::tab::tab_aligned_width;
+use super::tab::tab_aligned_width_for_matching_graphemes;
+
+mod grapheme_projection;
+use grapheme_projection::{
+    aligned_grapheme_span, validate_shaped_geometry_source, GraphemeProjectionCursor,
+};
 
 const DEFAULT_METRICS_SAMPLE: &str = "Hg";
 
@@ -69,7 +75,7 @@ where
     P: TextShapeRunProvider + ?Sized,
 {
     let mut width = 0.0_f32;
-    let mut height = 0.0_f32;
+    let mut height = FiniteGeometryAccumulator::default();
     let mut line_count = 0_usize;
     let mut empty_line_metrics = None;
     for hard_line in crate::text::hard_lines(text) {
@@ -94,24 +100,32 @@ where
             };
             (0.0, metrics.line_height)
         } else {
-            let measured = match measure_line_with_provider(line, style, provider) {
+            let (measured, contains_tab) = match measure_line_with_tab_presence_with_provider::<
+                true,
+                P,
+            >(line, style, provider)
+            {
                 TextShapingOutcome::Ready(measured) => measured,
-                TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
-                TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
-            };
-            let line_width = match measure_line_width_from_shaped_with_provider(
-                line, style, &measured, provider,
-            ) {
-                TextShapingOutcome::Ready(width) => width,
                 TextShapingOutcome::Deferred(error) => {
                     return TextShapingOutcome::Deferred(error);
                 }
                 TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
             };
+            let line_width = match measure_line_width_from_shaped_with_provider(
+                line,
+                contains_tab,
+                style,
+                &measured,
+                provider,
+            ) {
+                TextShapingOutcome::Ready(width) => width,
+                TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+                TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+            };
             (line_width, measured.metrics.line_height)
         };
         width = width.max(line_width);
-        height += line_height;
+        height.add(line_height);
         line_count = line_count.saturating_add(1);
     }
     if line_count == 0 {
@@ -120,9 +134,9 @@ where
             TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
             TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
         };
-        height = metrics.line_height;
+        return TextShapingOutcome::Ready(TextSize::new(width, metrics.line_height));
     }
-    TextShapingOutcome::Ready(TextSize::new(width, height))
+    TextShapingOutcome::Ready(TextSize::new(width, height.value()))
 }
 
 pub(crate) fn measure_line_width(text: &str, style: &TextStyle) -> TextLayoutOutcome<f32> {
@@ -142,9 +156,17 @@ where
         return TextShapingOutcome::Ready(0.0);
     }
 
-    measure_line_with_provider(text, style, provider).and_then(|measured| {
-        measure_line_width_from_shaped_with_provider(text, style, &measured, provider)
-    })
+    measure_line_with_tab_presence_with_provider::<true, P>(text, style, provider).and_then(
+        |(measured, contains_tab)| {
+            measure_line_width_from_shaped_with_provider(
+                text,
+                contains_tab,
+                style,
+                &measured,
+                provider,
+            )
+        },
+    )
 }
 
 pub(crate) fn measured_grapheme_widths(
@@ -191,20 +213,39 @@ pub(crate) fn measure_line_with_provider<P>(
 where
     P: TextShapeRunProvider + ?Sized,
 {
+    measure_line_with_tab_presence_with_provider::<false, P>(text, style, provider)
+        .map(|(measured, _)| measured)
+}
+
+fn measure_line_with_tab_presence_with_provider<const TRACK_TAB: bool, P>(
+    text: &str,
+    style: &TextStyle,
+    provider: &mut P,
+) -> TextLayoutOutcome<(MeasuredTextLine, bool)>
+where
+    P: TextShapeRunProvider + ?Sized,
+{
     shape_unconstrained_line_with_provider(text, style, provider).and_then(|shaped| {
-        TextShapingOutcome::from_result(measured_grapheme_geometry_from_shaped(&shaped, text)).map(
-            |geometry| MeasuredTextLine {
-                metrics: text_line_metrics_from_shaped(&shaped, style),
-                grapheme_advances: geometry.advances,
-                glyph_clusters: geometry.glyph_clusters,
-                shaped,
-            },
-        )
+        TextShapingOutcome::from_result(project_grapheme_geometry_with_tab_presence_from_shaped::<
+            TRACK_TAB,
+        >(&shaped, text, true))
+        .map(|(geometry, contains_tab)| {
+            (
+                MeasuredTextLine {
+                    metrics: text_line_metrics_from_shaped(&shaped, style),
+                    grapheme_advances: geometry.advances,
+                    glyph_clusters: geometry.glyph_clusters,
+                    shaped,
+                },
+                contains_tab,
+            )
+        })
     })
 }
 
 fn measure_line_width_from_shaped_with_provider<P>(
     text: &str,
+    contains_tab: bool,
     style: &TextStyle,
     measured: &MeasuredTextLine,
     provider: &mut P,
@@ -212,12 +253,12 @@ fn measure_line_width_from_shaped_with_provider<P>(
 where
     P: TextShapeRunProvider + ?Sized,
 {
-    if !text.contains('\t') {
+    if !contains_tab {
         return TextShapingOutcome::Ready(measured.metrics.width);
     }
 
     shape_line_with_provider(" ", style, provider).map(|space_metrics| {
-        tab_aligned_width(
+        tab_aligned_width_for_matching_graphemes(
             text,
             &measured.grapheme_advances,
             style,
@@ -349,44 +390,127 @@ fn project_grapheme_geometry_from_shaped(
     text: &str,
     retain_clusters: bool,
 ) -> Result<MeasuredGraphemeGeometry, TextLayoutError> {
-    crate::profile_scope!("runtime", "text.measure", "grapheme_projection");
-    validate_shaped_geometry_source(shaped, text)?;
+    project_grapheme_geometry_with_tab_presence_from_shaped::<false>(shaped, text, retain_clusters)
+        .map(|(geometry, _)| geometry)
+}
+
+fn project_grapheme_geometry_with_tab_presence_from_shaped<const TRACK_TAB: bool>(
+    shaped: &ShapedGlyphRun,
+    text: &str,
+    retain_clusters: bool,
+) -> Result<(MeasuredGraphemeGeometry, bool), TextLayoutError> {
     let source_offset = shaped.source_range.start;
+    let mut contains_tab = false;
     let graphemes = text
         .grapheme_indices(true)
         .map(|(start, grapheme)| {
+            if TRACK_TAB {
+                contains_tab |= grapheme == "\t";
+            }
             let end = start + grapheme.len();
             (source_offset + start, source_offset + end)
         })
         .collect::<Vec<_>>();
+    let geometry = project_shaped_geometry_to_source_ranges(
+        shaped,
+        text,
+        source_offset,
+        source_offset,
+        &graphemes,
+        retain_clusters,
+    )?;
+    Ok((geometry, contains_tab))
+}
+
+/// Projects one shaped run onto caller-owned paragraph grapheme ranges.
+///
+/// `source_text_offset` maps byte zero of `source_text` into the absolute source coordinate space.
+/// `shaped_source_offset` maps `shaped.source_range.start` into that same space. This lets a style
+/// span retain its own shaping request while a grapheme that crosses the span boundary remains one
+/// layout/caret unit owned by the paragraph.
+pub(crate) fn project_shaped_geometry_to_source_ranges(
+    shaped: &ShapedGlyphRun,
+    source_text: &str,
+    source_text_offset: usize,
+    shaped_source_offset: usize,
+    graphemes: &[(usize, usize)],
+    retain_clusters: bool,
+) -> Result<MeasuredGraphemeGeometry, TextLayoutError> {
+    crate::profile_scope!("runtime", "text.measure", "grapheme_projection");
+    validate_shaped_geometry_source(shaped, shaped.source_text.as_ref())?;
+    let source_end = source_text_offset
+        .checked_add(source_text.len())
+        .ok_or(TextLayoutError::LayoutFailed)?;
+    let shaped_delta = shaped_source_offset
+        .checked_sub(shaped.source_range.start)
+        .ok_or(TextLayoutError::LayoutFailed)?;
+    let mut previous_end = source_text_offset;
+    for &(start, end) in graphemes {
+        if start < previous_end
+            || start >= end
+            || start < source_text_offset
+            || end > source_end
+            || source_text
+                .get(start - source_text_offset..end - source_text_offset)
+                .is_none()
+        {
+            return Err(TextLayoutError::LayoutFailed);
+        }
+        previous_end = end;
+    }
     let mut widths = vec![0.0; graphemes.len()];
     let mut glyph_clusters = Vec::new();
+    let mut projection_cursor = GraphemeProjectionCursor::default();
 
     // The same zero-allocation cluster iterator feeds measurement and renderer artifact geometry.
     // This keeps one backend cluster definition even when several glyphs cover one ligature.
     for line in &shaped.lines {
         for cluster in text_glyph_clusters(&line.glyphs) {
-            let first_overlapping =
-                graphemes.partition_point(|&(_, end)| end <= cluster.source_range.start);
-            let after_last_overlapping =
-                graphemes.partition_point(|&(start, _)| start < cluster.source_range.end);
+            let absolute_cluster = crate::text::TextRange {
+                start: cluster
+                    .source_range
+                    .start
+                    .checked_add(shaped_delta)
+                    .ok_or(TextLayoutError::LayoutFailed)?,
+                end: cluster
+                    .source_range
+                    .end
+                    .checked_add(shaped_delta)
+                    .ok_or(TextLayoutError::LayoutFailed)?,
+            };
+            let (first_overlapping, after_last_overlapping) = projection_cursor.overlap_bounds(
+                graphemes,
+                absolute_cluster.start,
+                absolute_cluster.end,
+            );
             if first_overlapping >= after_last_overlapping {
                 continue;
             }
 
-            let cluster_span =
-                source_grapheme_span(&shaped.source_text, source_offset, cluster.source_range);
+            let cluster_span = if let Some(cluster_span) = aligned_grapheme_span(
+                graphemes,
+                first_overlapping,
+                after_last_overlapping,
+                absolute_cluster,
+            ) {
+                cluster_span
+            } else {
+                source_grapheme_span(source_text, source_text_offset, absolute_cluster)
+            };
             for index in first_overlapping..after_last_overlapping {
                 let (source_start, source_end) = graphemes[index];
-                widths[index] += measured_source_range_overlap_with_span(
-                    &shaped.source_text,
-                    source_offset,
-                    cluster.source_range,
-                    cluster.advance,
-                    source_start,
-                    source_end,
-                    cluster_span,
-                );
+                widths[index] = finite_sum([
+                    widths[index],
+                    measured_source_range_overlap_with_span(
+                        source_text,
+                        source_text_offset,
+                        absolute_cluster,
+                        cluster.advance,
+                        source_start,
+                        source_end,
+                        cluster_span,
+                    ),
+                ]);
             }
             if retain_clusters {
                 let break_safety = line
@@ -397,7 +521,7 @@ fn project_grapheme_geometry_from_shaped(
                         glyph.cluster_flags.break_safety
                     });
                 glyph_clusters.push(MeasuredGlyphCluster {
-                    source_range: cluster.source_range,
+                    source_range: absolute_cluster,
                     advance: cluster.advance,
                     caret_policy: if after_last_overlapping - first_overlapping > 1 {
                         MeasuredClusterCaretPolicy::AtomicCluster
@@ -415,68 +539,6 @@ fn project_grapheme_geometry_from_shaped(
         advances: widths,
         glyph_clusters,
     })
-}
-
-/// Validates the source identity carried by a shaped run before any glyph range is projected into
-/// grapheme geometry. The shaper normally establishes this contract, but cached or compatibility
-/// runs can bypass the backend admission path and must fail closed here as well.
-fn validate_shaped_geometry_source(
-    shaped: &ShapedGlyphRun,
-    text: &str,
-) -> Result<(), TextLayoutError> {
-    let source_range = shaped.source_range;
-    let Some(source_span) = source_range.end.checked_sub(source_range.start) else {
-        return Err(TextLayoutError::BidiInvariant);
-    };
-    if source_span != shaped.source_text.len() || text != shaped.source_text.as_ref() {
-        return Err(TextLayoutError::BidiInvariant);
-    }
-    if source_range.start > source_range.end {
-        return Err(TextLayoutError::BidiInvariant);
-    }
-    let mut previous_line_end = source_range.start;
-    for line in &shaped.lines {
-        if line.source_range.start < source_range.start
-            || line.source_range.end > source_range.end
-            || line.source_range.start > line.source_range.end
-            || line.source_range.start < previous_line_end
-        {
-            return Err(TextLayoutError::LayoutFailed);
-        }
-        let Some(line_start) = line.source_range.start.checked_sub(source_range.start) else {
-            return Err(TextLayoutError::LayoutFailed);
-        };
-        let Some(line_end) = line.source_range.end.checked_sub(source_range.start) else {
-            return Err(TextLayoutError::LayoutFailed);
-        };
-        if !shaped.source_text.is_char_boundary(line_start)
-            || !shaped.source_text.is_char_boundary(line_end)
-        {
-            return Err(TextLayoutError::LayoutFailed);
-        }
-        previous_line_end = line.source_range.end;
-        for glyph in &line.glyphs {
-            let range = glyph.source_range;
-            if range.start < line.source_range.start
-                || range.end > line.source_range.end
-                || range.start > range.end
-            {
-                return Err(TextLayoutError::LayoutFailed);
-            }
-            let Some(start) = range.start.checked_sub(source_range.start) else {
-                return Err(TextLayoutError::LayoutFailed);
-            };
-            let Some(end) = range.end.checked_sub(source_range.start) else {
-                return Err(TextLayoutError::LayoutFailed);
-            };
-            if !shaped.source_text.is_char_boundary(start)
-                || !shaped.source_text.is_char_boundary(end)
-            {
-                return Err(TextLayoutError::LayoutFailed);
-            }
-        }
-    }
-    Ok(())
 }
 
 pub(crate) fn line_metrics_with_provider<P>(
@@ -529,7 +591,7 @@ fn shape_unconstrained_line(text: &str, style: &TextStyle) -> ShapedGlyphRun {
     shape_unconstrained_line_with_kerning(text, style, true)
 }
 
-fn shape_unconstrained_line_with_provider<P>(
+pub(crate) fn shape_unconstrained_line_with_provider<P>(
     text: &str,
     style: &TextStyle,
     provider: &mut P,
@@ -636,18 +698,9 @@ fn measured_source_width_from_glyphs(
     source_start: usize,
     source_end: usize,
 ) -> f32 {
-    glyphs
-        .iter()
-        .map(|glyph| {
-            measured_glyph_source_overlap(
-                source_text,
-                source_offset,
-                glyph,
-                source_start,
-                source_end,
-            )
-        })
-        .sum()
+    finite_sum(glyphs.iter().map(|glyph| {
+        measured_glyph_source_overlap(source_text, source_offset, glyph, source_start, source_end)
+    }))
 }
 
 fn measured_glyph_source_overlap(
@@ -740,7 +793,9 @@ fn resolved_line_height(style: &TextStyle) -> f32 {
 }
 
 #[cfg(test)]
+#[path = "measure/tests/cases.rs"]
 mod tests;
 
 #[cfg(test)]
+#[path = "measure/tests/measured_line_contract_tests.rs"]
 mod measured_line_contract_tests;

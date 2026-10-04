@@ -7,24 +7,24 @@ PLUGIN_VALIDATE_OWNER_BOUNDARIES_TEST = (
     REPO_ROOT / "tools/tests/test_plugin_validate_owner_boundaries.py"
 )
 PLUGIN_VALIDATE_SINGLE_TARGET = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_single_target.py"
+    REPO_ROOT / "tools/export/plugin_validate_single_target.py"
 )
-PLUGIN_VALIDATE_LAYOUT = REPO_ROOT / "tools/zircon_export/plugin_validate_layout.py"
+PLUGIN_VALIDATE_LAYOUT = REPO_ROOT / "tools/export/plugin_validate_layout.py"
 PLUGIN_VALIDATE_LAYOUT_COORDINATES = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_layout_coordinates.py"
+    REPO_ROOT / "tools/export/plugin_validate_layout_coordinates.py"
 )
 PLUGIN_VALIDATE_LAYOUT_PUBLIC_METADATA = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_layout_public_metadata.py"
+    REPO_ROOT / "tools/export/plugin_validate_layout_public_metadata.py"
 )
 PLUGIN_VALIDATE_LAYOUT_TARGETS = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_layout_targets.py"
+    REPO_ROOT / "tools/export/plugin_validate_layout_targets.py"
 )
 PLUGIN_VALIDATE_LAYOUT_ROOTS = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_layout_roots.py"
+    REPO_ROOT / "tools/export/plugin_validate_layout_roots.py"
 )
-PLUGIN_VALIDATE_TEST = REPO_ROOT / "tools/zircon_export/tests/test_plugin_validate.py"
+PLUGIN_VALIDATE_TEST = REPO_ROOT / "tools/export/tests/test_plugin_validate.py"
 PLUGIN_VALIDATE_LAYOUT_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_plugin_validate_layout.py"
+    REPO_ROOT / "tools/export/tests/test_plugin_validate_layout.py"
 )
 
 LAYOUT_BOUNDARY_METHODS = (
@@ -35,7 +35,7 @@ LAYOUT_BOUNDARY_METHODS = (
     "test_layout_roots_live_in_layout_roots_owner",
 )
 
-
+# 验证校验布局归属边界的职责切分：布局边界移出通用归属文件，并布局测试位于布局测试归属。
 class PluginValidateLayoutOwnerBoundaryTests(unittest.TestCase):
     def test_layout_boundaries_leave_general_owner_file(self):
         general_owner_text = PLUGIN_VALIDATE_OWNER_BOUNDARIES_TEST.read_text(

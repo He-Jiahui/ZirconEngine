@@ -1,0 +1,15 @@
+[asset]
+id = "res://ui/editor/material_components/mui_x/material_mui_x_agent_chat.zui#editor-review"
+kind = "view"
+version = 2
+
+[imports]
+widgets = ["res://ui/editor/material_components/mui_x/material_mui_x_agent_chat.zui"]
+
+[nodes.review_mount]
+component = "res://ui/editor/material_components/mui_x/material_mui_x_agent_chat.zui#MaterialMuiXAgentChatPrototype"
+
+[nodes.review_mount.props]
+
+[root]
+node = "review_mount"

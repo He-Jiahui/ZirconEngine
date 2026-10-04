@@ -1,0 +1,230 @@
+{
+  "acceptance": "open",
+  "acceptance_state": "open; root-qualified bounded source review; no row accepted",
+  "author_artifacts": {
+    "cross": "6fdd533e63ab3ad47ebed99cd8def125c06cc8d3b6d9225214cf47def4e5fea9",
+    "manifest": "592d6f88f450c8f7e7dfb112667a385267784a0b215dd92193385940b1831dd3",
+    "review": "69fda85a0ad33ca934c92b3296ae3625174718a1ce4a3a13731f8fd1128bcc3f",
+    "summary": "e3322ca7d60c196a8b1b75ad155f434099ff56b8084b0ade714bf99f330677a5"
+  },
+  "batch": "w0-batch9",
+  "canonical_collision_check": {
+    "canonical_review_files": 8,
+    "canonical_review_inputs": [
+      {
+        "path": "docs/plans/astra/optimize/01/2026-09-30-source-review-wave.jsonl",
+        "rows": 37,
+        "sha256": "8d6d68c499d52c354a992a76bc05ffb3ed41ff4ccb9abc21b1f487d3954aefc5"
+      },
+      {
+        "path": "docs/plans/astra/optimize/01/2026-09-30-w0-second-wave-review.jsonl",
+        "rows": 30,
+        "sha256": "dccceb090592eea01f48f885ef84e53d202e6470c647b4481c44a4c23ec673d1"
+      },
+      {
+        "path": "docs/plans/astra/optimize/01/2026-09-30-w0-batch3-review.jsonl",
+        "rows": 15,
+        "sha256": "4b4137f6ef0feeb0fc4ef6f55664a80f3c8a14473c0f94ab4361d85728a68fbe"
+      },
+      {
+        "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch4-review.jsonl",
+        "rows": 24,
+        "sha256": "9ca9bc4ea5b83865c219c8fb9b3c7ac73d7d078460bf8b92c6cded896996fb2c"
+      },
+      {
+        "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch5-review.jsonl",
+        "rows": 24,
+        "sha256": "4bd6dcae8255f6d770f06cb471a1ead80b64be2c2038ed5705f256dff6a1b7cc"
+      },
+      {
+        "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch6-review.jsonl",
+        "rows": 18,
+        "sha256": "e0a4798dea7a20c842e177f4ae2007858fbd487278fd87220f2b1e3c61ec0eb3"
+      },
+      {
+        "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch7-review.jsonl",
+        "rows": 12,
+        "sha256": "ec3c9b5feb2eebdd4192b4aec98730466a7ed3d4f7efab56cb0c8d9f098449e2"
+      },
+      {
+        "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch8-review.jsonl",
+        "rows": 12,
+        "sha256": "6ee6790c7739ff8065143c7e4abb7f209168b022847f7c59729074bf941b74cc"
+      }
+    ],
+    "collision_refs": [],
+    "prior_literal_finding_ids_checked": 136,
+    "prior_report_qualified_keys_checked": 168,
+    "prior_review_objects": 172,
+    "target_prior_overlap": []
+  },
+  "canonical_prior_counts": {
+    "literal_ids": 136,
+    "observations": 172,
+    "qualified_keys": 168
+  },
+  "cargo_or_compiler_run": false,
+  "crosswalk_edges": 14,
+  "environment_context": {
+    "coordinator_service": "retired; qualification used only the authorized local evidence path",
+    "jenkins_formal_gate": "separate Jenkins/formal product gate; not executed by this source-only qualification",
+    "legacy_receipts": "prior terminal/publication receipts remain immutable historical evidence and were not rewritten",
+    "penpot_lifecycle_gates": {
+      "count": 3,
+      "execution": "not_run; no new lifecycle or font failure inferred",
+      "status": "open"
+    }
+  },
+  "fault_recovery_validation": false,
+  "limitation": "Exact current report/source/test bytes and spans were captured; no Cargo/build/test/compiler/probe/device/benchmark/visual/soak, Windows product, fault or performance command was run.",
+  "metadata_corrections": [
+    {
+      "finding_id": "INP-P1-001",
+      "original_priority": "P1",
+      "original_status": "Open",
+      "premise": "Empty InputDriver leaves ingress/clock/device/health/teardown ownership absent; no material correction.",
+      "status": "confirmed_open"
+    },
+    {
+      "finding_id": "INP-P1-002",
+      "original_priority": "P1",
+      "original_status": "Open",
+      "premise": "Descriptor/config still omit device registry, clock, schedule, health and teardown dependencies; no material correction.",
+      "status": "confirmed_open"
+    },
+    {
+      "finding_id": "INP-P1-003",
+      "original_priority": "P1",
+      "original_status": "Open",
+      "premise": "Disabled config selects a default map, but no Disabled capability is published; premise narrowed to the missing capability.",
+      "status": "confirmed_open"
+    },
+    {
+      "finding_id": "INP-P1-004",
+      "original_priority": "P1",
+      "original_status": "Open",
+      "premise": "Evaluator APIs and unit coverage exist, but no bounded production evaluate_actions tick caller was found; negative premise remains bounded and open.",
+      "status": "confirmed_open"
+    },
+    {
+      "finding_id": "INP-P1-005",
+      "original_priority": "P1",
+      "original_status": "Partial",
+      "premise": "Direct query avoids full snapshot cloning but still locks manager state without a generation lease; premise remains materially current.",
+      "status": "confirmed_partial"
+    },
+    {
+      "finding_id": "INP-P1-006",
+      "original_priority": "P1",
+      "original_status": "Open",
+      "premise": "Consumed-input parameters exist, but no caller publishes UI ownership/block/reserve decisions or receipts; no material correction.",
+      "status": "confirmed_open"
+    },
+    {
+      "finding_id": "RT-TXT-P1-001",
+      "original_priority": "P1",
+      "original_status": "Partial",
+      "premise": "TextRuntimeContext now owns font/Unicode/lifecycle/health/session identity; stale global-ownership premise narrowed to remaining one-shot/global paths.",
+      "status": "narrowed_open"
+    },
+    {
+      "finding_id": "RT-TXT-P1-002",
+      "original_priority": "P1",
+      "original_status": "Open",
+      "premise": "Shared service still resolves process-global font collection and does not require context; no material correction.",
+      "status": "confirmed_open"
+    },
+    {
+      "finding_id": "RT-TXT-P1-003",
+      "original_priority": "P1",
+      "original_status": "Open",
+      "premise": "Injected/context-aware paths exist while one-shot layout and convenience constructors still reach shared collection; no material correction beyond narrowing.",
+      "status": "confirmed_open"
+    },
+    {
+      "finding_id": "RT-TXT-P1-004",
+      "original_priority": "P1",
+      "original_status": "Open",
+      "premise": "Context IDs and retry metrics exist, but no unified runtime/session/surface/document/frame identity crosses reports; premise narrowed.",
+      "status": "confirmed_open"
+    },
+    {
+      "finding_id": "RT-TXT-P1-005",
+      "original_priority": "P1",
+      "original_status": "Open",
+      "premise": "Context has explicit draining/closed lifecycle and module cleanup; stale no-state-machine premise narrowed to missing worker/raster/atlas cancellation and receipts.",
+      "status": "narrowed_open"
+    },
+    {
+      "finding_id": "RT-TXT-P1-006",
+      "original_priority": "P1",
+      "original_status": "Open",
+      "premise": "Renderer no longer directly discovers fonts and TextModule selects target policy; compatibility global injection and incomplete capability receipt remain open.",
+      "status": "narrowed_open"
+    }
+  ],
+  "original_priority_counts": {
+    "P1": 12
+  },
+  "original_status_counts": {
+    "Open": 10,
+    "Partial": 2
+  },
+  "performance_validation": false,
+  "publication_qualification": {
+    "acceptance": "open",
+    "coordinator_boundary": "Retired. User authorizes sealed independent local evidence; historical records and original acceptance gates remain intact.",
+    "coordinator_retired_at_utc": "2026-10-02T07:19:48.379193+00:00",
+    "foreign_source_consent": "not inferred",
+    "generation": "root-publication-candidate-r2",
+    "historical_relative_capture_paths_resolve_against": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch9-root-qualified-r2",
+    "normalized_current_capture_manifest": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\root-publication-candidate-r2\\batch9\\rawcaptures\\manifest.json",
+      "sha256": "e03cdd1d10d8840e62bb8be0d8beaba9b5f15ad59fbc178e9210b2c769b05fbf"
+    },
+    "original_qualified_artifacts": {
+      "crosswalk": {
+        "bytes": 18916,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch9-root-qualified-r2\\2026-10-02-w0-batch9-crosswalk.jsonl",
+        "sha256": "bacec8333de353ab6be2d3759ad8549fb7e21ccbea3210b651c58fff1be53920"
+      },
+      "manifest": {
+        "bytes": 4196,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch9-root-qualified-r2\\2026-10-02-w0-batch9-manifest.json",
+        "sha256": "c2dff04a7b76438d77398c6d81055645f50eae6a74ac5990c0001bf4722a131a"
+      },
+      "review": {
+        "bytes": 231468,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch9-root-qualified-r2\\2026-10-02-w0-batch9-review.jsonl",
+        "sha256": "ef0dfc30bfdca1da0a50d019c17f4b5a05af4bc7f84a687d72b1e095a04e992d"
+      },
+      "summary": {
+        "bytes": 7602,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch9-root-qualified-r2\\2026-10-02-w0-batch9-summary.json",
+        "sha256": "accfbaac38484d22d92e24365ba05515d7c74051ddcbf22533949cd3a4d724bf"
+      }
+    },
+    "original_qualified_generation": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch9-root-qualified-r2",
+    "qualified_at_utc": "2026-10-02T09:27:45.157749+00:00",
+    "raw_evidence_root": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\root-publication-candidate-r2\\batch9",
+    "root_normal_claim_denial_observed_at_utc": "2026-10-02T07:35Z",
+    "tests_run": 0
+  },
+  "raw_capture_files": 41,
+  "record_type": "root_qualified_w0-batch9_summary",
+  "report_paths": 2,
+  "root_current_utc": "2026-10-02T08:04:12Z",
+  "root_publication_captured_source_count": 21,
+  "root_publication_current_context_count": 37,
+  "root_publication_scope_rows": 12,
+  "rows": 12,
+  "source_bytes_captured_total": 280232,
+  "source_status_counts": {
+    "confirmed_open": 8,
+    "confirmed_partial": 1,
+    "narrowed_open": 3
+  },
+  "source_unit_count": 21,
+  "tests_run": 0,
+  "windows_product_validation": false
+}

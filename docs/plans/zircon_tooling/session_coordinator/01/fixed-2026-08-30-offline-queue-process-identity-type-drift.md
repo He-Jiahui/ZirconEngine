@@ -10,9 +10,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 failure_scope: local
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/offline_queue.py
-  - tools/session_coordinator/processes.py
-  - tools/session_coordinator/tests/test_deferred_action_client.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_deferred_action_client.DeferredActionClientTests.test_offline_spool_reuses_shared_windows_process_identity_contract -v
   - python -m unittest tools.session_coordinator.tests.test_deferred_action_client -v

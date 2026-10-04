@@ -58,5 +58,5 @@ fn route_pointer_to_pane_with_mode<'a>(
 }
 
 #[cfg(test)]
-#[path = "route/tests.rs"]
+#[path = "route/tests/cases.rs"]
 mod tests;

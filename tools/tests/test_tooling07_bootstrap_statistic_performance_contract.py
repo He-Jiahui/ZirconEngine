@@ -1,3 +1,4 @@
+# 核对重采样只计算目标统计量并保留既有分位数契约。
 from __future__ import annotations
 
 import unittest

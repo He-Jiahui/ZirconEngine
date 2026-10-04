@@ -1,11 +1,12 @@
 use crate::core::framework::text::TextLayoutError;
+use crate::text::layout::{
+    layout_vertical_rl_columns, measured_grapheme_widths_with_provider,
+    rich_vertical_columns_with_provider, ELLIPSIS,
+};
+use crate::text::layout_geometry::finite_sum;
+use crate::text::shaping::{TextLayoutOutcome, TextShapingOutcome};
 use crate::text::SharedTextLayoutSession;
 use crate::text::VerticalMode;
-use crate::text::layout::{
-    ELLIPSIS, layout_vertical_rl_columns, measured_grapheme_widths_with_provider,
-    rich_vertical_columns_with_provider,
-};
-use crate::text::shaping::{TextLayoutOutcome, TextShapingOutcome};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiTextDirection, UiTextRange,
@@ -238,7 +239,7 @@ pub(super) fn layout_rich_vertical_text_with_provider(
             }
             overflow_clipped |= !was_ellipsized && column.ellipsized;
         } else {
-            overflow_clipped |= advances.iter().copied().sum::<f32>() > constraints.max_height;
+            overflow_clipped |= finite_sum(advances.iter().copied()) > constraints.max_height;
         }
         let mut virtual_sequence = virtual_fragment_sequence::capture_with_external_source_ranges(
             column,
@@ -260,7 +261,7 @@ pub(super) fn layout_rich_vertical_text_with_provider(
 
     let column_heights = column_advances
         .iter()
-        .map(|advances| advances.iter().copied().sum::<f32>())
+        .map(|advances| finite_sum(advances.iter().copied()))
         .collect::<Vec<_>>();
     let column_layout = layout_vertical_rl_columns(
         frame.x,
@@ -288,7 +289,7 @@ pub(super) fn layout_rich_vertical_text_with_provider(
     {
         let placement_frame = UiFrame::new(
             column_frame.x,
-            frame.y + constraints.inset,
+            super::vertical::finite_vertical_placement_y(frame.y, constraints.inset),
             column_frame.width,
             constraints.max_height,
         );

@@ -8,7 +8,10 @@ use zircon_runtime_interface::ui::widget::UI_WIDGET_COMPONENT_ROLE_ATTRIBUTE;
 
 use crate::ui::component::UiComponentDescriptorRegistry;
 
-use super::{cache::UiV2PrototypeStore, component_instancer::UiV2ComponentInstancer};
+use super::{
+    cache::UiV2PrototypeStore,
+    component_instancer::{UiV2ComponentInstancer, UiV2ExpandedNodeSource, UiV2InstancedDocument},
+};
 
 #[derive(Default)]
 pub struct UiV2DocumentCompiler;
@@ -45,7 +48,8 @@ impl UiV2DocumentCompiler {
         store: &UiV2PrototypeStore,
         registry: Option<&UiComponentDescriptorRegistry>,
     ) -> Result<UiV2CompiledDocument, UiV2AssetError> {
-        let document = instantiate_and_validate_typed_component_events(document, store, registry)?;
+        let instanced = instantiate_and_validate_typed_component_events(document, store, registry)?;
+        let document = &instanced.document;
         let node_handles = node_handles(&document)?;
         if let Some(root) = document.root_node_id() {
             validate_reachable_root(&document, &node_handles, root)?;
@@ -54,7 +58,13 @@ impl UiV2DocumentCompiler {
             validate_reachable_root(&document, &node_handles, &component.root)
                 .map_err(|error| with_component_context(error, component_name.as_str()))?;
         }
-        let arena = arena_from_document(&document, &node_handles, registry)?;
+        let arena = arena_from_document(
+            document,
+            &node_handles,
+            registry,
+            &instanced.node_sources,
+            store.source_path_for_asset_id(&document.asset.id),
+        )?;
         let component_graph = component_graph_from_arena(&arena);
         Ok(UiV2CompiledDocument {
             asset_id: document.asset.id.clone(),
@@ -69,11 +79,11 @@ fn instantiate_and_validate_typed_component_events(
     document: &UiV2AssetDocument,
     store: &UiV2PrototypeStore,
     registry: Option<&UiComponentDescriptorRegistry>,
-) -> Result<UiV2AssetDocument, UiV2AssetError> {
+) -> Result<UiV2InstancedDocument, UiV2AssetError> {
     if document.root_node_id().is_some() {
-        let document = UiV2ComponentInstancer::instantiate_document(document, store)?;
-        validate_typed_component_events(&document, registry)?;
-        return Ok(document);
+        let instanced = UiV2ComponentInstancer::instantiate_document_with_sources(document, store)?;
+        validate_typed_component_events(&instanced.document, registry)?;
+        return Ok(instanced);
     }
 
     for (component_name, component) in &document.components {
@@ -81,11 +91,31 @@ fn instantiate_and_validate_typed_component_events(
         rooted.root = Some(UiV2Root {
             node: component.root.clone(),
         });
-        let instantiated = UiV2ComponentInstancer::instantiate_document(&rooted, store)?;
-        validate_typed_component_events(&instantiated, registry)
+        let instantiated = UiV2ComponentInstancer::instantiate_owned(rooted, store)?;
+        validate_typed_component_events(&instantiated.document, registry)
             .map_err(|error| with_component_context(error, component_name))?;
     }
-    Ok(document.clone())
+    let source_path = store
+        .source_path_for_asset_id(&document.asset.id)
+        .map(str::to_string);
+    let node_sources = document
+        .nodes
+        .keys()
+        .map(|node_id| {
+            (
+                node_id.clone(),
+                UiV2ExpandedNodeSource {
+                    source_path: source_path.clone(),
+                    source_node_id: Some(node_id.clone()),
+                    instance_path: source_path.as_ref().map(|_| Vec::new()),
+                },
+            )
+        })
+        .collect();
+    Ok(UiV2InstancedDocument {
+        document: document.clone(),
+        node_sources,
+    })
 }
 
 fn validate_typed_component_events(
@@ -240,6 +270,8 @@ fn arena_from_document(
     document: &UiV2AssetDocument,
     node_handles: &BTreeMap<String, UiV2NodeHandle>,
     registry: Option<&UiComponentDescriptorRegistry>,
+    node_sources: &BTreeMap<String, UiV2ExpandedNodeSource>,
+    document_source_path: Option<&str>,
 ) -> Result<UiV2NodeArena, UiV2AssetError> {
     let mut nodes = vec![UiV2ArenaNode::default(); node_handles.len()];
     for (node_id, node) in &document.nodes {
@@ -267,8 +299,24 @@ fn arena_from_document(
                 toml::Value::String(role),
             );
         }
+        let source = node_sources.get(node_id);
+        let (source_path, source_node_id, instance_path) = match source {
+            Some(source) => (
+                source.source_path.clone(),
+                source.source_node_id.clone(),
+                source.instance_path.clone(),
+            ),
+            None => (
+                document_source_path.map(str::to_string),
+                Some(node_id.clone()),
+                document_source_path.map(|_| Vec::new()),
+            ),
+        };
         nodes[handle.index()] = UiV2ArenaNode {
             source_id: node_id.clone(),
+            source_path,
+            source_node_id,
+            instance_path,
             component: node.component.clone(),
             control_id: node.control_id.clone(),
             pixel_snapping: node.pixel_snapping.unwrap_or_default(),
@@ -280,6 +328,7 @@ fn arena_from_document(
             style: node.style.clone(),
             slots: node.slots.clone(),
             events: node.events.clone(),
+            widget: node.widget.clone(),
             children,
         };
     }

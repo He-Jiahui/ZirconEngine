@@ -102,5 +102,5 @@ fn chip_has_non_empty_attribute(
 }
 
 #[cfg(test)]
-#[path = "chip/borrowed_presence_tests.rs"]
+#[path = "chip/tests/borrowed_presence_tests.rs"]
 mod borrowed_presence_tests;

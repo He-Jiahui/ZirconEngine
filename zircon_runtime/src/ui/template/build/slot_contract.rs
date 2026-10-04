@@ -1,3 +1,6 @@
+//! 将子节点的作者输入保存为父子边上的放置契约，供布局测量、排序和渲染层级共同消费。
+//! slot 的种类由父容器决定；子节点自身的约束与边上的 padding、alignment 由不同所有者持有。
+
 use std::collections::BTreeMap;
 
 use toml::Value;
@@ -14,6 +17,7 @@ use super::parsers::{parse_bool, parse_i32, parse_point, parse_usize};
 
 const RESPONSIVE_BREAKPOINTS: &[&str] = &["xs", "sm", "md", "lg", "xl"];
 
+/// 构树在插入子节点前调用；只接纳父容器能消费的放置能力，错误保留实例路径。
 pub(super) fn infer_slot_contract(
     node: &UiTemplateNode,
     parent_id: UiNodeId,
@@ -50,6 +54,7 @@ pub(super) fn infer_slot_contract(
                 parse_i32(layout.get("z_order"), path, "slot.z_order")?.unwrap_or_default(),
             );
         }
+        // TODO: [CR-UI-TEMPLATE-BUILD-0003] 确认仅声明 slot padding/order 是否仍应采用 MUI size/offset；当前整张 layout 表阻断推断和响应式更新；需补两子节点布局测试。
         if slot.kind == UiSlotKind::Grid {
             slot = slot.with_grid_placement(parse_grid_placement(layout, path)?);
         }
@@ -61,6 +66,7 @@ pub(super) fn infer_slot_contract(
     Ok(slot)
 }
 
+// 缺少全部放置字段时保留节点级默认位置；只声明 auto_size 也代表调用方显式选择边上的放置策略。
 fn parse_canvas_placement(
     layout: &toml::map::Map<String, Value>,
     node_path: &str,
@@ -111,6 +117,7 @@ fn infer_slot_kind(parent_container: UiContainerKind) -> UiSlotKind {
         .unwrap_or(UiSlotKind::Free)
 }
 
+// 显式网格位置走有上限的整数解析，避免布局尺寸和后续轨道分配接受无界作者输入。
 fn parse_grid_placement(
     layout: &toml::map::Map<String, toml::Value>,
     path: &str,
@@ -195,6 +202,7 @@ fn parse_alignment_axis(
     }))
 }
 
+// 弹性分配是父子边的契约；子节点仍保留自身轴约束，布局执行器组合两者而非改写节点。
 fn parse_linear_sizing(
     value: Option<&Value>,
     node_path: &str,
@@ -253,9 +261,17 @@ fn parse_f32(value: Option<&Value>) -> Option<f32> {
     })
 }
 
+// MUI Grid offset and size values are user-supplied and must be clamped to reasonable
+// grid bounds before they reach the layout engine. An unbounded offset or a zero span
+// causes column+span overflow in the measure pass; cap at a value that fits safely in
+// the grid's coordinate space.
+const MUI_GRID_MAX_COLUMNS: usize = 12;
+
 fn mui_grid_item_placement(attributes: &BTreeMap<String, Value>) -> Option<UiGridSlotPlacement> {
-    let span = responsive_usize_attribute(attributes, &["size"])?;
-    let column = responsive_usize_attribute(attributes, &["offset"]).unwrap_or(0);
+    let span = responsive_usize_attribute(attributes, &["size"])?.clamp(1, MUI_GRID_MAX_COLUMNS);
+    let column = responsive_usize_attribute(attributes, &["offset"])
+        .unwrap_or(0)
+        .clamp(0, MUI_GRID_MAX_COLUMNS.saturating_sub(1));
     Some(UiGridSlotPlacement::new(column, 0).with_span(span, 1))
 }
 
@@ -289,143 +305,7 @@ fn value_as_usize(value: &Value) -> Option<usize> {
 }
 
 #[cfg(test)]
-mod optimization_tests {
-    use std::collections::BTreeMap;
-    use std::hint::black_box;
-    use std::time::Instant;
-
-    use toml::Value;
-
-    use super::parse_canvas_placement;
-
-    const PLACEMENT_KEYS: [&str; 6] = [
-        "anchor",
-        "anchor_max",
-        "pivot",
-        "position",
-        "offset",
-        "auto_size",
-    ];
-
-    #[test]
-    fn optimization_batch_dm_canvas_placement_presence_semantics_are_preserved() {
-        let empty = toml::map::Map::new();
-        assert!(parse_canvas_placement(&empty, "root").unwrap().is_none());
-
-        let mut auto_size_only = toml::map::Map::new();
-        auto_size_only.insert("auto_size".to_string(), Value::Boolean(true));
-        assert!(parse_canvas_placement(&auto_size_only, "root")
-            .unwrap()
-            .is_some());
-    }
-
-    #[test]
-    fn optimization_batch_dm_both_canvas_parsers_lookup_each_placement_field_once() {
-        let template_source = include_str!("slot_contract.rs");
-        let v2_source = include_str!("../../v2/surface_tree/slot.rs");
-
-        for source in [template_source, v2_source] {
-            let body = source
-                .split("fn parse_canvas_placement")
-                .nth(1)
-                .expect("canvas placement parser")
-                .split("fn parse_grid_placement")
-                .next()
-                .expect("canvas placement body");
-            assert!(!body.contains("layout.contains_key"));
-            for key in PLACEMENT_KEYS {
-                let lookup = format!("layout.get(\"{key}\")");
-                assert_eq!(
-                    body.matches(lookup.as_str()).count(),
-                    1,
-                    "placement field {key} should be looked up once"
-                );
-            }
-        }
-    }
-
-    #[test]
-    #[ignore = "release-only alternating p95 performance gate"]
-    fn optimization_batch_dm_cached_canvas_placement_fields_p95() {
-        const SAMPLE_PAIRS: usize = 17;
-        const PARSES_PER_SAMPLE: usize = 131_072;
-
-        let mut layout = (0..64_u64)
-            .map(|index| (format!("filler_{index:02}"), index))
-            .collect::<BTreeMap<_, _>>();
-        layout.insert("auto_size".to_string(), 1);
-        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
-        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
-        for sample_index in 0..SAMPLE_PAIRS {
-            if sample_index % 2 == 0 {
-                legacy_samples.push(measure_canvas_field_lookups(
-                    &layout,
-                    PARSES_PER_SAMPLE,
-                    true,
-                ));
-                optimized_samples.push(measure_canvas_field_lookups(
-                    &layout,
-                    PARSES_PER_SAMPLE,
-                    false,
-                ));
-            } else {
-                optimized_samples.push(measure_canvas_field_lookups(
-                    &layout,
-                    PARSES_PER_SAMPLE,
-                    false,
-                ));
-                legacy_samples.push(measure_canvas_field_lookups(
-                    &layout,
-                    PARSES_PER_SAMPLE,
-                    true,
-                ));
-            }
-        }
-
-        let legacy_p95 = p95(&mut legacy_samples);
-        let optimized_p95 = p95(&mut optimized_samples);
-        println!(
-            "RUNTIME421_CACHED_CANVAS_PLACEMENT_FIELDS_BENCH_V1 legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} ratio={:.4}",
-            optimized_p95 as f64 / legacy_p95.max(1) as f64
-        );
-        assert!(
-            optimized_p95.saturating_mul(100) <= legacy_p95.saturating_mul(70),
-            "cached canvas placement fields p95 {optimized_p95}ns exceeded 70% of legacy {legacy_p95}ns"
-        );
-    }
-
-    fn measure_canvas_field_lookups(
-        layout: &BTreeMap<String, u64>,
-        parse_count: usize,
-        legacy: bool,
-    ) -> u128 {
-        let started_at = Instant::now();
-        let mut checksum = 0_u64;
-        for _ in 0..parse_count {
-            let values = if legacy {
-                let has_placement = PLACEMENT_KEYS
-                    .iter()
-                    .any(|key| black_box(layout.contains_key(*key)));
-                has_placement.then(|| PLACEMENT_KEYS.map(|key| layout.get(key).copied()))
-            } else {
-                let values = PLACEMENT_KEYS.map(|key| layout.get(key).copied());
-                values.iter().any(Option::is_some).then_some(values)
-            };
-            checksum = checksum.wrapping_add(
-                values
-                    .into_iter()
-                    .flatten()
-                    .flatten()
-                    .map(|value| black_box(value))
-                    .sum::<u64>(),
-            );
-        }
-        black_box(checksum);
-        started_at.elapsed().as_nanos()
-    }
-
-    fn p95(samples: &mut [u128]) -> u128 {
-        samples.sort_unstable();
-        samples[(samples.len() * 95).div_ceil(100).saturating_sub(1)]
-    }
-}
+// 性能门槛仅在受管理的 release 测量中启用；普通测试保护缺省放置与显式字段存在性。
+// 两个构建入口共享源码守卫，新增说明不能伪造它们检索的调用片段。
+#[path = "tests/slot_contract_optimization_tests.rs"]
+mod optimization_tests;

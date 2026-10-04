@@ -169,5 +169,5 @@ fn dispatch_error_to_adapter_error(
 }
 
 #[cfg(test)]
-#[path = "reflection/static_translation_paths_tests.rs"]
+#[path = "reflection/tests/static_translation_paths_tests.rs"]
 mod static_translation_paths_tests;

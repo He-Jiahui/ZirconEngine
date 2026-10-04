@@ -14,5 +14,5 @@ pub(in crate::plugin::runtime_plugin) fn validate_runtime_plugin_package_field(
 }
 
 #[cfg(test)]
-#[path = "field/single_trim_tests.rs"]
+#[path = "field/tests/single_trim_tests.rs"]
 mod single_trim_tests;

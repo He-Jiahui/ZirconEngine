@@ -18,12 +18,8 @@ pub(crate) fn dispatch_tab_drop(
         ResolvedHostTabDropTarget::Attach(drop) => {
             let reopen_drawer_slot = match &drop.host {
                 ViewHost::Drawer(slot) => runtime
-                    .current_layout()
-                    .active_activity_window_drawers()
-                    .get(slot)
-                    .and_then(|drawer| {
-                        (drawer.mode == ActivityDrawerMode::Collapsed).then_some(*slot)
-                    }),
+                    .active_drawer_mode(*slot)
+                    .and_then(|mode| (mode == ActivityDrawerMode::Collapsed).then_some(*slot)),
                 _ => None,
             };
 

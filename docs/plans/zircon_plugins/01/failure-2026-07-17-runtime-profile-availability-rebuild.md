@@ -97,7 +97,7 @@ Open state: `implementation_complete / current-source static review complete / m
 - `RuntimePluginAvailabilityGeneration` 现在在 runtime plugin 公共边界提供不可变 category index、runtime-id index 与 compact summary；其 row 借用 package id 并以枚举保存原因，完整 reason/id 条目仅由 `RuntimePluginAvailabilityRow::detail` 或 `materialize_report` 在导出/诊断边界显式生成。
 - required failure 只保存一个 entry row，primary category 和 `missing_required` 通过索引共享该 row；新增 `availability_generation_shares_required_rows_and_materializes_report_bytes` 覆盖指针同一性、summary、公开重导出和旧报告字节等价。
 - 受限源范围 `rustfmt --config skip_children=true --check`、`git diff --check` 及公开边界/单行所有权源码守卫已通过。当前全局受管 Cargo 队列由其他 Session 占用，尚未获得本切片 current-source focused/broad 结果；本 handoff 保持 `open`，不得回传 fixed。
-- 2026-08-08 文档契约复核已将 `docs/engine-architecture/plugin-optional-feature-bundles.md` 从已删除的 `runtime_profile/defaults.rs` 硬切到 `assembly_presets.rs`，并显式列出 `availability_projection.rs` 与其 `generation.rs` 子模块。该更新只修复本切片的路径/所有权叙述；全仓 document-path audit 仍有其他计划的历史缺口，受管 focused/broad 和 fixed return 状态不变。
+- 2026-08-08 文档契约复核已将 `docs/architecture/plugin-optional-feature-bundles.md` 从已删除的 `runtime_profile/defaults.rs` 硬切到 `assembly_presets.rs`，并显式列出 `availability_projection.rs` 与其 `generation.rs` 子模块。该更新只修复本切片的路径/所有权叙述；全仓 document-path audit 仍有其他计划的历史缺口，受管 focused/broad 和 fixed return 状态不变。
 
 ### 2026-08-08 current-source broad compile recovery
 

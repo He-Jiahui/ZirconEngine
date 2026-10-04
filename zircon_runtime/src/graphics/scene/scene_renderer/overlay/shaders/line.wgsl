@@ -1,3 +1,4 @@
+// 世界空间辅助线共享场景投影，裁剪区域与深度策略由各叠加 pass 负责。
 struct SceneUniform {
     view_proj: mat4x4<f32>,
 };

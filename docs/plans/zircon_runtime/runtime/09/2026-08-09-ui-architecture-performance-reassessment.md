@@ -742,7 +742,7 @@ Zircon 当前已具备 dirty candidate、arranged index、hit reverse index、re
 
 为避免继续用旧 EXE 的数字推断当前源码，profiling capture 增加 `window_resize` 产品场景与 source-bound gate：
 
-- 原生窗口交互由独立 `tools/ui-profile-native-resize.ps1` 生成 24 个确定性尺寸步进，40 ms/步，最后恢复原始 extent；证据记录完成步数、耗时、working set/private bytes 起止与峰值。
+- 原生窗口交互由独立 `tools/analysis/profiling/ui/ui-profile-native-resize.ps1` 生成 24 个确定性尺寸步进，40 ms/步，最后恢复原始 extent；证据记录完成步数、耗时、working set/private bytes 起止与峰值。
 - timeline gate 要求 `ui.window_resize.command_snapshot_build_count == 1`、`command_snapshot_reuse_count > 0`、`surface_reconfigure_count > 0 && <= completed_steps`，并限制 `workbench_model_build_count <= 1`、`chrome_snapshot_count <= 1`。这可以区分“窗口在动”与“真的复用 GPU command snapshot”。
 - capture manifest 现在绑定 24 个关键源码，包括 layout/presentation、pointer dispatch、Workbench/Pane hit index、resize event loop、GPU native-resize present、资源刷新策略、raster/SVG cache、像素加载、icon atlas、batching、WGPU image cache，以及 Runtime profiling 接口和 hotspot 聚合器；editor EXE 与 runtime DLL 任一个早于最新关键源码修改时间都会 fail closed，不能启动 capture。
 - 本轮扩展为 24 个 manifest source path 后已重新实测：`ui-profile-native-resize.Tests.ps1` 2/2、`ui-profile-capture-output-contract.Tests.ps1` 14/14，PowerShell 解析通过。它们只证明 capture/source-bound 合同本身有效，不能替代当前产品 EXE 的帧时间与缓存命中率证据。
@@ -1010,7 +1010,7 @@ Drag-drop 侧以 Unreal `FDragDropEvent` 持有 `TSharedPtr<FDragDropOperation>`
 
 2026-08-14 最新 managed focused test 仍未进入 Cargo。`validate-matrix.ps1 -Package zr_rhi_wgpu -LibTests -TestFilter native_submission:: -SkipBuild` 在 admission 阶段被 coordinator 以 `unmanaged_artifacts_detected` 拒绝，当前列出的阻断根为 `D:\cargo-targets\zircon-engine\ephemeral`；它来自其他 coordinator 任务，当前会话不拥有且不得删除。此前生产 `zr_rhi_wgpu` 已在同一 managed 通道通过 rustc，但该编译早于本节新增的 RHI/WGPU/Editor 提交结果生产协议；当前生产源码与后续扩展到 11 项的 native submission 合同都待重编执行，不能沿用旧的 compile green 结论。
 
-构建产物位置也存在明确治理冲突：本机只有 C/D/E/F 四个本地盘；`tools/build-editor.ps1` 和 validator 要求 `ArtifactOutputDirectory` 位于 coordinator 管理的 D/E/F 之外，而本里程碑又禁止把产物放到 C。可行的动态路径是让 validator 在 coordinator 管理的 D 盘 Cargo target 内生成 profiling EXE，并直接从受管 target 运行，profile 数据写入合同允许的 `E:\zircon-profiles`；最终独立 bundle 发布在增加第五个本地盘、放宽 artifact publish 规则或用户允许 C 盘之前保持 blocked。
+构建产物位置也存在明确治理冲突：本机只有 C/D/E/F 四个本地盘；`tools/build/build-editor.ps1` 和 validator 要求 `ArtifactOutputDirectory` 位于 coordinator 管理的 D/E/F 之外，而本里程碑又禁止把产物放到 C。可行的动态路径是让 validator 在 coordinator 管理的 D 盘 Cargo target 内生成 profiling EXE，并直接从受管 target 运行，profile 数据写入合同允许的 `E:\zircon-profiles`；最终独立 bundle 发布在增加第五个本地盘、放宽 artifact publish 规则或用户允许 C 盘之前保持 blocked。
 
 下一步严格按证据顺序执行：
 
@@ -1077,7 +1077,7 @@ UI12 随后的受管检查从保留的 `zircon_runtime` fingerprint 中恢复了
 
 ```powershell
 $env:CARGO_TARGET_DIR = '<coordinator-managed-target>'
-.\tools\ui-profile-capture.ps1 `
+.\tools\analysis\profiling\ui\ui-profile-capture.ps1 `
   -ScenarioList material_lab_click,idle_hover,window_resize `
   -SkipBuild -AutoInteract -RequireScenarioEvidence -AutoCloseSeconds 45 `
   -AutoClickCount 1000 -AutoClickDelayMs 4 `
@@ -1376,7 +1376,7 @@ Slint partial renderer提供了资源和几何代际的边界范例：per-item c
 
 ### 15.44 新增 hierarchy_scroll 证据合同与下一轮裁决
 
-为避免在没有滚动数据时直接修改上述算法，本轮先在 `tools/ui-profile-capture.ps1` 增加 source-bound `hierarchy_scroll` 场景，在 `tools/ui-profile-native-resize.ps1` 增加原生 wheel storm。严格模式的合同如下：
+为避免在没有滚动数据时直接修改上述算法，本轮先在 `tools/analysis/profiling/ui/ui-profile-capture.ps1` 增加 source-bound `hierarchy_scroll` 场景，在 `tools/analysis/profiling/ui/ui-profile-native-resize.ps1` 增加原生 wheel storm。严格模式的合同如下：
 
 1. `-AutoWheelCount 1000 -AutoWheelDelayMs 2` 在 `ui_profile_geometry.json` 发布的 `layout.left_region` 中发送滚轮；target identity固定为 `layout.left_region / pane_region / left`。fallback坐标只允许人工排障，`RequireScenarioEvidence` 必须拒绝。
 2. wheel每32次切换方向，避免很快到达列表端点后把大量 no-op误当作滚动性能；artifact记录 requested/completed、delta、direction batch、elapsed、processor time、单核/系统 CPU以及 working set/private的 start/end/peak。
@@ -1389,7 +1389,7 @@ Slint partial renderer提供了资源和几何代际的边界范例：per-item c
 
 ```powershell
 $env:CARGO_TARGET_DIR = '<coordinator-managed-target>'
-.\tools\ui-profile-capture.ps1 `
+.\tools\analysis\profiling\ui\ui-profile-capture.ps1 `
   -ScenarioList material_lab_click,idle_hover,hierarchy_scroll,window_resize `
   -SkipBuild -AutoInteract -RequireScenarioEvidence -AutoCloseSeconds 60 `
   -AutoClickCount 1000 -AutoClickDelayMs 4 `
@@ -1737,7 +1737,7 @@ Unreal Slate没有通过“每次比较整窗行模型”发现变化。`FSlateC
 
 ### 15.69 current-source profile工具已有采集骨架，但验收仍缺样本完整性和预算判定
 
-继续只读复核`tools/ui-profile-capture.ps1`、`profile-capture-manifest.ps1`和Runtime profiler ring后，确认不需要另建第二套profile工具。当前候选已经强制使用coordinator-managed `CARGO_TARGET_DIR`、非C盘输出、current-source Editor/Runtime二进制指纹、关键源码哈希、dirty-tree哈希和二进制freshness；自动交互覆盖click/pointer/wheel/native resize，产物也已把CPU time、working set/private bytes、input-to-damage、damage-to-submit、GPU timestamp、damage分母、cache/residency与截图/hit一致性放在同一session中。这些都是应保留的正确底座。profiler entries/bytes/drop与sealed snapshot底层预算继续由既有`PERF-MVP-566`及`PERF-MVP-324/326`拥有；本节只把它们接成UI性能验收前置条件，不建立重复owner。相关工具和interface文件存在外部未提交改动，本轮不编辑它们。
+继续只读复核`tools/analysis/profiling/ui/ui-profile-capture.ps1`、`profile-capture-manifest.ps1`和Runtime profiler ring后，确认不需要另建第二套profile工具。当前候选已经强制使用coordinator-managed `CARGO_TARGET_DIR`、非C盘输出、current-source Editor/Runtime二进制指纹、关键源码哈希、dirty-tree哈希和二进制freshness；自动交互覆盖click/pointer/wheel/native resize，产物也已把CPU time、working set/private bytes、input-to-damage、damage-to-submit、GPU timestamp、damage分母、cache/residency与截图/hit一致性放在同一session中。这些都是应保留的正确底座。profiler entries/bytes/drop与sealed snapshot底层预算继续由既有`PERF-MVP-566`及`PERF-MVP-324/326`拥有；本节只把它们接成UI性能验收前置条件，不建立重复owner。相关工具和interface文件存在外部未提交改动，本轮不编辑它们。
 
 当前`-RequireScenarioEvidence`仍不能作为性能通过判据，原因是：
 
@@ -1835,7 +1835,7 @@ Unreal与Slint的参考边界再次指向“一个typed状态转换，而不是�
 
 验收先锁定热路工作量，再测产品延迟。table/tree下层回归对一次有效scroll分别要求：一个typed window transition、一个component event、一个合并binding report、一个owner dirty transaction、numeric alias pseudo-style apply为0，最终全部兼容alias值与旧行为相同；第二次同方向scroll保持同一界，边界无移动时全部计数为0。再以1,000次wheel和N=1/100/10,000/100,000逻辑项测window math、property writes、style node/subtree applies、binding reports/updates、dirty commits、rebuild nodes、materialized slots、CPU与RSS；提交前工作不得随N增长，完成data virtualization后measure/arrange/render/hit与`visible + overscan`同阶。产品层继续使用source-bound `hierarchy_scroll`和未来`asset_browser.viewport`，执行三轮同进程warmup/measured/quiescence，要求input-to-damage p95不高于1 ms、damage-to-submit p95不高于8 ms且无样本覆盖。
 
-下层动态证据入口已经加入table虚拟窗口回归，但结果仍保持pending。手动ignored基准固定为31个独立sample，每个sample从已prime的surface执行1,000次正负24 px交替wheel，并在每次dispatch后执行incremental `rebuild_dirty`；它对N=1/100/10,000/100,000分别输出storm与单event的p50/p95，同时累计typed transaction、`SetVisibleRange`事件、binding updates、dirty nodes、layout visited、arranged/hit/render outer visits以及render command rebuild/reuse。N=1必须是1,000次边界no-op且上述transaction/event为0；其余规模必须恰好每event一个transaction和一个component event，同一N的31轮工作计数完全一致，并且N=100/10,000/100,000之间的全部工作计数也必须相等，直接拒绝随逻辑行数增长的回归。该入口只裁决Runtime算法工作量和墙钟趋势，不能替代进程RSS、GPU/SVG缓存或input-to-damage证据；这些仍由既有`tools/ui-profile-capture.ps1`在非C盘执行三轮source-bound Editor产品采集。当前尚未取得managed test/benchmark或Editor profile终态，不能据此声称该项已经修复或已是唯一瓶颈。
+下层动态证据入口已经加入table虚拟窗口回归，但结果仍保持pending。手动ignored基准固定为31个独立sample，每个sample从已prime的surface执行1,000次正负24 px交替wheel，并在每次dispatch后执行incremental `rebuild_dirty`；它对N=1/100/10,000/100,000分别输出storm与单event的p50/p95，同时累计typed transaction、`SetVisibleRange`事件、binding updates、dirty nodes、layout visited、arranged/hit/render outer visits以及render command rebuild/reuse。N=1必须是1,000次边界no-op且上述transaction/event为0；其余规模必须恰好每event一个transaction和一个component event，同一N的31轮工作计数完全一致，并且N=100/10,000/100,000之间的全部工作计数也必须相等，直接拒绝随逻辑行数增长的回归。该入口只裁决Runtime算法工作量和墙钟趋势，不能替代进程RSS、GPU/SVG缓存或input-to-damage证据；这些仍由既有`tools/analysis/profiling/ui/ui-profile-capture.ps1`在非C盘执行三轮source-bound Editor产品采集。当前尚未取得managed test/benchmark或Editor profile终态，不能据此声称该项已经修复或已是唯一瓶颈。
 
 生产候选已经按上述边界完成，但动态验收仍分层保持open。`UiComponentStatePropertyChange`将普通value与真实pseudo flag转换分开；通用property mutation仅在真实retained flag转换或runtime style索引确实依赖某个自定义布尔pseudo名称时进入runtime pseudo-style，其他value-only变化保留binding/component value并只走真实dirty domain。第二轮复审补充的`pseudo_state_names: BTreeSet<String>`在document编译时从selector state token构建，mutation热路是一次集合查询而不是扫描全部rules；self与ancestor-descendant自定义布尔pseudo各有一条直接回归。table/tree现共同构造一份`UiVirtualWindowState`，`mutate_tree_metadata_properties`在一个owner borrow中跳过未变alias、合并dirty并生成reflected updates，surface层再一次同步runtime-style baseline/component values、构造最终binding report并调用一次`mark_node_dirty`。静态source guard为typed window struct 1、共享surface transaction 1、lower batch 1、旧per-alias helper 0、intermediate property report 0、pseudo-style call 0、table/tree最终report push 2；当前12个Rust/报告路径的格式与diff检查继续作为静态门，功能和style过滤器必须在managed testing stage动态通过后才允许标成GREEN。
 
@@ -2030,12 +2030,12 @@ TDD证据保持分层。RED运行得到`39 passed / 1 failed`，唯一失败为�
 压力运行参数必须显式固定，不能把默认24次resize当成15.87要求的200步压力矩阵。待current-source managed profiling Editor可用且共享Cargo lane空闲后，按同一受管binary/source manifest执行：
 
 ```powershell
-pwsh -NoProfile -File .\tools\ui-profile-capture.ps1 `
+pwsh -NoProfile -File .\tools\analysis\profiling\ui\ui-profile-capture.ps1 `
   -Scenario idle_hover -SkipBuild -AutoInteract `
   -AutoPointerMoveCount 1000 -AutoPointerMoveDelayMs 2 `
   -MeasuredRunCount 3 -RequireScenarioEvidence
 
-pwsh -NoProfile -File .\tools\ui-profile-capture.ps1 `
+pwsh -NoProfile -File .\tools\analysis\profiling\ui\ui-profile-capture.ps1 `
   -Scenario window_resize -SkipBuild -AutoInteract `
   -AutoResizeStepCount 200 -AutoResizeDelayMs 40 `
   -MeasuredRunCount 3 -RequireScenarioEvidence
@@ -2159,7 +2159,7 @@ source-bound profile manifest同时加入`hit_controls.rs`、`surface_frames/doc
 
 ### 15.96 Profile场景counter gate从3000行主脚本拆出
 
-15.90已明确`tools/ui-profile-capture.ps1`超过3000行后不得继续堆叠场景门，但15.94为补齐toolbar动态证据仍把新gate放回主文件。继续在同一文件扩展SVG、resize、scroll或Runtime Diagnostics合同，会把参数解析、进程编排、artifact导出和七类独立counter判定混成一个不可审查单元。本轮按职责新增`tools/ui-profile-counter-evidence.ps1`，集中承载asset refresh、window resize、stable visual asset、viewport toolbar cache、hierarchy scroll、welcome recent scroll与Runtime Diagnostics七个gate；主脚本只保留原函数名的薄wrapper，因此现有调用方和测试按函数名定位的合同不变。新实现继续复用主authority的`Get-UiCounterTotal`、interaction scenario解析和CPU/RSS gate，没有复制timeline解析器或创建平行报告格式。
+15.90已明确`tools/analysis/profiling/ui/ui-profile-capture.ps1`超过3000行后不得继续堆叠场景门，但15.94为补齐toolbar动态证据仍把新gate放回主文件。继续在同一文件扩展SVG、resize、scroll或Runtime Diagnostics合同，会把参数解析、进程编排、artifact导出和七类独立counter判定混成一个不可审查单元。本轮按职责新增`tools/analysis/profiling/ui/ui-profile-counter-evidence.ps1`，集中承载asset refresh、window resize、stable visual asset、viewport toolbar cache、hierarchy scroll、welcome recent scroll与Runtime Diagnostics七个gate；主脚本只保留原函数名的薄wrapper，因此现有调用方和测试按函数名定位的合同不变。新实现继续复用主authority的`Get-UiCounterTotal`、interaction scenario解析和CPU/RSS gate，没有复制timeline解析器或创建平行报告格式。
 
 新模块由主采集脚本显式dot-source，同时进入Pester source aggregation、fixture repository与`Get-ZirconProfileCaptureToolPaths`。capture tool manifest从9项变为10项且10项唯一，新文件因此参与profile source/binary fingerprint，旧采集脚本不能配合新counter逻辑生成假GREEN。主脚本从本轮前3080余行降为2723行，新模块463行；七个wrapper与七个`Test-Zircon*CounterGate`实现一一对应，两个文件均远低于1000行模块边界。critical runtime/editor source manifest不因工具拆分改变，仍为145项、145项唯一、0项缺失。
 
@@ -2215,7 +2215,7 @@ Runtime Diagnostics的双阶段构建不应冒充当前按钮卡顿主因。pane
 
 这不是P1 auto-layout问题的终点。`UiLayoutCache`当前只有结果和text revision，没有记录desired size对应的layout input、available size/scale、visibility occupancy或child-order generation；裸用`dirty=false`跳过子树会在collapsed恢复、父约束或responsive style变化时复用错误结果。正确下一步仍是先把slot/order写入收敛到显式mutation generation，再参考Unreal `bNeedsPrepass + PrepassLayoutScaleMultiplier`与Fyrox `is_measure_valid/prev_measure`建立显式validity key，让desired/occupancy真实变化自底向上推进，最后持久化Taffy node/style identity。当前只声明线性几何快照和观测链成本下降，不声明layout visited、CPU p95或窗口缩放已经动态改善。
 
-不启动Cargo的current-source合同补充为11/11通过：drawer resize阶段复用1项、native template hover 2项、pointer move generation/no-op 4项、template surface single-pass 2项、profile artifact gate 2项，均由`tools/tests/test_editor_*performance_contract.py`直接读取生产源码完成。另行完整执行`tools/tests/build-editor.Tests.ps1`为17/17通过、0失败、0跳过、241.82秒，证明`tools/build-editor.ps1`通过仓库managed validator发布`zircon_editor.exe`与`zircon_runtime.dll`、只允许D/E/F盘`ZirconBuilds`、失败不覆盖旧bundle并遵守root-bound staging lease。两组结果分别是源码结构合同和构建工具fixture，不是Editor产品交互profile，也没有授权绕过后续focused Rust与真实EXE压力门。
+不启动Cargo的current-source合同补充为11/11通过：drawer resize阶段复用1项、native template hover 2项、pointer move generation/no-op 4项、template surface single-pass 2项、profile artifact gate 2项，均由`tools/tests/test_editor_*performance_contract.py`直接读取生产源码完成。另行完整执行`tools/tests/build-editor.Tests.ps1`为17/17通过、0失败、0跳过、241.82秒，证明`tools/build/build-editor.ps1`通过仓库managed validator发布`zircon_editor.exe`与`zircon_runtime.dll`、只允许D/E/F盘`ZirconBuilds`、失败不覆盖旧bundle并遵守root-bound staging lease。两组结果分别是源码结构合同和构建工具fixture，不是Editor产品交互profile，也没有授权绕过后续focused Rust与真实EXE压力门。
 
 ### 15.101 混合资源painter order必须以单一有序segment修复
 

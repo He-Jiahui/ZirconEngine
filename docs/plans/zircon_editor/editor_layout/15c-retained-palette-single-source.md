@@ -10,8 +10,8 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/palette.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_icon_button/palette.rs
 design_references:
-  - docs/ui-and-layout/editor-workbench-designs/STYLE-NOTES.md
-  - docs/ui-and-layout/design-language-contract.md
+  - docs/ui/editor-workbench-designs/STYLE-NOTES.md
+  - docs/ui/design-language-contract.md
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/zircon_editor/editor_layout/01-design-tokens-and-language-contract.md

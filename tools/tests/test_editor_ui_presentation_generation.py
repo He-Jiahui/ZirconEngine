@@ -1,3 +1,4 @@
+# 核对界面呈现借用单一代际，命中索引与主题读取来自已提交快照。
 from pathlib import Path
 import unittest
 

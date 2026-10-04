@@ -47,14 +47,15 @@ impl ServiceEntry {
     }
 
     // 卸载完成后撤销旧实例身份；调用方必须先关闭准入并等在途调用归零。
-    pub(crate) fn invalidate_for_unload(&mut self) {
+    pub(crate) fn invalidate_for_unload(&mut self) -> Option<ServiceObject> {
         debug_assert!(!self.admission_open);
         debug_assert_eq!(self.in_flight_calls, 0);
-        self.instance = None;
+        let retired = self.instance.take();
         self.initialization_owner = None;
         self.admission_open = false;
         self.generation = next_service_generation(self.generation);
         self.lifecycle = LifecycleState::Unloaded;
+        retired
     }
 
     pub(crate) fn open_admission(&mut self) {
@@ -98,22 +99,26 @@ impl ServiceEntry {
         self.lifecycle = LifecycleState::Registered;
     }
 
-    pub(crate) fn reset_after_failed_reactivation(&mut self) {
-        if self.instance.take().is_some() {
+    pub(crate) fn reset_after_failed_reactivation(&mut self) -> Option<ServiceObject> {
+        let retired = self.instance.take();
+        if retired.is_some() {
             self.generation = next_service_generation(self.generation);
         }
         self.initialization_owner = None;
         self.admission_open = false;
         self.lifecycle = LifecycleState::Unloaded;
+        retired
     }
 
-    pub(crate) fn reset_after_failed_activation(&mut self) {
-        if self.instance.take().is_some() {
+    pub(crate) fn reset_after_failed_activation(&mut self) -> Option<ServiceObject> {
+        let retired = self.instance.take();
+        if retired.is_some() {
             self.generation = next_service_generation(self.generation);
         }
         self.initialization_owner = None;
         self.admission_open = false;
         self.lifecycle = LifecycleState::Registered;
+        retired
     }
 }
 

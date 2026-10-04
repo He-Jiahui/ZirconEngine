@@ -23,7 +23,7 @@ plan_sources:
 tests:
   - tools.tests.test_frameworks_05_layer_direction.Frameworks05LayerDirectionTests.test_input_module_identity_has_one_neutral_contract_owner
   - tools.tests.test_frameworks_05_layer_direction
-  - python tools/runtime_domain_dependency_audit.py
+  - python tools/audits/runtime_domain_dependency_audit.py
 doc_type: milestone-detail
 ---
 

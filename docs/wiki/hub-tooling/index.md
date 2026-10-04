@@ -2,17 +2,17 @@
 related_code:
   - zircon_hub/src/lib.rs
   - zircon_hub/src/tauri_app/mod.rs
-  - tools/cargo-zircon/src/main.rs
-  - tools/cargo-zircon/src/lib.rs
+  - tools/cargo/src/main.rs
+  - tools/cargo/src/lib.rs
 implementation_files:
   - zircon_hub/src
-  - tools/cargo-zircon/src
+  - tools/cargo/src
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
   - docs/plans/zircon_tooling/session_coordinator/01
 tests:
-  - zircon_hub/src/tauri_app/runtime_state/tests.rs
-  - tools/cargo-zircon/src/plugin
+  - zircon_hub/src/tauri_app/runtime_state/tests/cases.rs
+  - tools/cargo/src/plugin
 doc_type: category-index
 ---
 

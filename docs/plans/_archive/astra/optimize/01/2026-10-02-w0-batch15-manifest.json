@@ -1,0 +1,577 @@
+{
+  "record_type": "root_qualified_batch15_manifest",
+  "root_captured_at_utc": "2026-10-02T19:44:33.084160+00:00",
+  "canonical_artifacts": {
+    "2026-10-02-w0-batch15-review.jsonl": {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch15-review.jsonl",
+      "sha256": "39e759db96d1f9d5fc15a1e3698b7566e2f4a025e40705fa6c95020a77d94a1a",
+      "bytes": 628777
+    },
+    "2026-10-02-w0-batch15-crosswalk.jsonl": {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch15-crosswalk.jsonl",
+      "sha256": "035ea9ae70a6f9349925cb5ec12696e097655f939140c0353e7afd8767b2d00f",
+      "bytes": 6266
+    },
+    "2026-10-02-w0-batch15-gates.jsonl": {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch15-gates.jsonl",
+      "sha256": "5da7e11af42facd28b9503fec499aaa6616004d1fff75a080634e6f0c120cfc0",
+      "bytes": 374709
+    },
+    "2026-10-02-w0-batch15-summary.json": {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch15-summary.json",
+      "sha256": "8960857365afe066fdd8890c9f36877b718f19352b0b1297a74b62f0045d5420",
+      "bytes": 4233
+    }
+  },
+  "raw_inputs": [
+    {
+      "path": "docs/plans/optimize/zircon_runtime/175-runtime-gameplay-ability-effect-attribute-tag-cue-prediction-current-working-tree-authority-artifact-execution-review.md",
+      "captured_path": "captured-current/docs__plans__optimize__zircon_runtime__175-runtime-gameplay-ability-effect-attribute-tag-cue-prediction-current-working-tree-authority-artifact-execution-review.md",
+      "bytes": 19471,
+      "sha256": "63bea54f6ba1c5cf99df63aae534177b2ff992b2f7c4bce3fb40b69606606b4f",
+      "lines": 177,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__optimize__zircon_runtime__175-runtime-gameplay-ability-effect-attribute-tag-cue-prediction-current-working-tree-authority-artifact-execution-review.md",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/198-runtime-gameplay-ability-effect-attribute-tag-cue-prediction-current-working-tree-authority-artifact-execution-review.md",
+      "captured_path": "captured-current/docs__plans__optimize__zircon_runtime__198-runtime-gameplay-ability-effect-attribute-tag-cue-prediction-current-working-tree-authority-artifact-execution-review.md",
+      "bytes": 22020,
+      "sha256": "af9d88bec70a547510ff9d8ab6a74c167c6a4782b4e25cf6e24a07fc132b8627",
+      "lines": 187,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__optimize__zircon_runtime__198-runtime-gameplay-ability-effect-attribute-tag-cue-prediction-current-working-tree-authority-artifact-execution-review.md",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/222-runtime-gameplay-ability-effect-attribute-tag-cue-prediction-current-working-tree-review.md",
+      "captured_path": "captured-current/docs__plans__optimize__zircon_runtime__222-runtime-gameplay-ability-effect-attribute-tag-cue-prediction-current-working-tree-review.md",
+      "bytes": 16482,
+      "sha256": "c7048532d3df861a56afd4f20b6b46d2299d7b466e09b9d1f80a90d33b9e6846",
+      "lines": 160,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__optimize__zircon_runtime__222-runtime-gameplay-ability-effect-attribute-tag-cue-prediction-current-working-tree-review.md",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/gameplay_host.rs",
+      "captured_path": "captured-current/zircon_runtime__src__script__vm__gameplay_host.rs",
+      "bytes": 19128,
+      "sha256": "980b11f41c281febebdf831e6f7d5c8f76bd52e5f6283455135a380fdc28112c",
+      "lines": 398,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_runtime__src__script__vm__gameplay_host.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/gameplay_host/combat.rs",
+      "captured_path": "captured-current/zircon_runtime__src__script__vm__gameplay_host__combat.rs",
+      "bytes": 7889,
+      "sha256": "49ea20e17cfb2aa666a1e20cc808f108b9702286427418b0246949857f87feef",
+      "lines": 232,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_runtime__src__script__vm__gameplay_host__combat.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/gameplay_host/components.rs",
+      "captured_path": "captured-current/zircon_runtime__src__script__vm__gameplay_host__components.rs",
+      "bytes": 9642,
+      "sha256": "1b66fa00365a68669bb9f688769df05bc1de680443e486784b8a5dd5edd74374",
+      "lines": 255,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_runtime__src__script__vm__gameplay_host__components.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/gameplay_host/lifecycle.rs",
+      "captured_path": "captured-current/zircon_runtime__src__script__vm__gameplay_host__lifecycle.rs",
+      "bytes": 7772,
+      "sha256": "f000357cc4c987ec7a70121881701e3321f78b9fdef2ea2788dd9085a267003c",
+      "lines": 189,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_runtime__src__script__vm__gameplay_host__lifecycle.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/gameplay_host/script_bindings.rs",
+      "captured_path": "captured-current/zircon_runtime__src__script__vm__gameplay_host__script_bindings.rs",
+      "bytes": 2581,
+      "sha256": "8e73da7128957d4501b03230cb5e731a1666bc240c13796cb6b5324f856539f9",
+      "lines": 79,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_runtime__src__script__vm__gameplay_host__script_bindings.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/gameplay_host/tests.rs",
+      "captured_path": "captured-current/zircon_runtime__src__script__vm__gameplay_host__tests.rs",
+      "bytes": 1424,
+      "sha256": "23cf10cf7714b48be5b9cdd5785023e52a138515699fd2ffc602eea06f8581dc",
+      "lines": 46,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_runtime__src__script__vm__gameplay_host__tests.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/gameplay_host/tests/combat_lifecycle.rs",
+      "captured_path": "captured-current/zircon_runtime__src__script__vm__gameplay_host__tests__combat_lifecycle.rs",
+      "bytes": 8829,
+      "sha256": "f869a5fec53a08334033218921c5d6a7247c7fbc3ca2e7247a0c3e05f60f390b",
+      "lines": 272,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_runtime__src__script__vm__gameplay_host__tests__combat_lifecycle.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/gameplay_host/tests/component_state.rs",
+      "captured_path": "captured-current/zircon_runtime__src__script__vm__gameplay_host__tests__component_state.rs",
+      "bytes": 5678,
+      "sha256": "e4e2361f989c79cab76df1f0bbbe718df7c6ae1a87c56cb9042e5e782e4cf483",
+      "lines": 173,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_runtime__src__script__vm__gameplay_host__tests__component_state.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/gameplay_host/tests/property_animation.rs",
+      "captured_path": "captured-current/zircon_runtime__src__script__vm__gameplay_host__tests__property_animation.rs",
+      "bytes": 9717,
+      "sha256": "9d833750147b09d3cc395cc62349708fc739b9f95b42b766a10b13d0e0f2ba0b",
+      "lines": 293,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_runtime__src__script__vm__gameplay_host__tests__property_animation.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/gameplay_host/tests/spawn_transform.rs",
+      "captured_path": "captured-current/zircon_runtime__src__script__vm__gameplay_host__tests__spawn_transform.rs",
+      "bytes": 11000,
+      "sha256": "6d433425900e4bba48401bce756978a27e74b938d69dc882284cdf6836b9a88c",
+      "lines": 318,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_runtime__src__script__vm__gameplay_host__tests__spawn_transform.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/runtime_context.rs",
+      "captured_path": "captured-current/zircon_runtime__src__script__vm__runtime_context.rs",
+      "bytes": 9595,
+      "sha256": "d83bbacf6d4902d325d00a43e6260acc0a6eb64f1505be0ca651839d72a87e4a",
+      "lines": 266,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_runtime__src__script__vm__runtime_context.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/capability_set.rs",
+      "captured_path": "captured-current/zircon_runtime__src__script__vm__capability_set.rs",
+      "bytes": 2951,
+      "sha256": "a5419a8582e83f8b6fb7eca4ebc0e78550fbe8dec279eeb2deac7029c33102b2",
+      "lines": 92,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_runtime__src__script__vm__capability_set.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/net/sync.rs",
+      "captured_path": "captured-current/zircon_runtime__src__core__framework__net__sync.rs",
+      "bytes": 9525,
+      "sha256": "68bf2bed500c45df15af2ca43ad1efc452bf87a6dc24e31c9e71609405284f30",
+      "lines": 324,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_runtime__src__core__framework__net__sync.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/time/fixed_step_plan.rs",
+      "captured_path": "captured-current/zircon_runtime__src__core__framework__time__fixed_step_plan.rs",
+      "bytes": 1876,
+      "sha256": "9eb914d04981d066289eedc3dc70b1a931931ad46efb317f8b13c1526f4fb837",
+      "lines": 58,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_runtime__src__core__framework__time__fixed_step_plan.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/time/fixed.rs",
+      "captured_path": "captured-current/zircon_runtime__src__core__framework__time__fixed.rs",
+      "bytes": 1420,
+      "sha256": "7cfa219cadc35ddd89bc612002b5e77f8af13234a52d6a11f7b58ae0a3b2556e",
+      "lines": 48,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_runtime__src__core__framework__time__fixed.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/time/clock.rs",
+      "captured_path": "captured-current/zircon_runtime__src__core__framework__time__clock.rs",
+      "bytes": 5901,
+      "sha256": "56863f2213275b84653c47c40e29c2d0c65ce8088cf9b3f94515fa45205677cb",
+      "lines": 203,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_runtime__src__core__framework__time__clock.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/net/features/replication/runtime/src/manager/state.rs",
+      "captured_path": "captured-current/zircon_plugins__net__features__replication__runtime__src__manager__state.rs",
+      "bytes": 1938,
+      "sha256": "71b89020c1ced5f247f3693b485faff7ea5dde5ead8e05e1b6e683a551c07027",
+      "lines": 47,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_plugins__net__features__replication__runtime__src__manager__state.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/net/features/replication/runtime/src/manager/apply.rs",
+      "captured_path": "captured-current/zircon_plugins__net__features__replication__runtime__src__manager__apply.rs",
+      "bytes": 15144,
+      "sha256": "d0d10d65bf096d45e343aea0f07530c2af875ca9581abcecfb1d16368d76100d",
+      "lines": 410,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_plugins__net__features__replication__runtime__src__manager__apply.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/net/features/replication/runtime/src/tests/mod.rs",
+      "captured_path": "captured-current/zircon_plugins__net__features__replication__runtime__src__tests__mod.rs",
+      "bytes": 136,
+      "sha256": "35c13098a4f2fd3befb088eec081efaa98eb9a1255e9a4fff48a5ef13856deb9",
+      "lines": 8,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_plugins__net__features__replication__runtime__src__tests__mod.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/net/features/replication/runtime/src/tests/collect_apply.rs",
+      "captured_path": "captured-current/zircon_plugins__net__features__replication__runtime__src__tests__collect_apply.rs",
+      "bytes": 2597,
+      "sha256": "5ec0bddb3db8ad8472c0b488dc1511c70b62ec8dc9770773a7808abd4f05ab5d",
+      "lines": 71,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_plugins__net__features__replication__runtime__src__tests__collect_apply.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/net/features/replication/runtime/src/tests/delta_interest.rs",
+      "captured_path": "captured-current/zircon_plugins__net__features__replication__runtime__src__tests__delta_interest.rs",
+      "bytes": 1655,
+      "sha256": "13385c086ab1064c244e99b82463dfb489f12f22210b80149f3187b56cda564c",
+      "lines": 44,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_plugins__net__features__replication__runtime__src__tests__delta_interest.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/net/features/replication/runtime/src/tests/feature_registration.rs",
+      "captured_path": "captured-current/zircon_plugins__net__features__replication__runtime__src__tests__feature_registration.rs",
+      "bytes": 945,
+      "sha256": "ee808b208e75167a32af513d6ef7878e67dcc6fc13f71e96349f73fde08efa85",
+      "lines": 27,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_plugins__net__features__replication__runtime__src__tests__feature_registration.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/net/features/replication/runtime/src/tests/budget.rs",
+      "captured_path": "captured-current/zircon_plugins__net__features__replication__runtime__src__tests__budget.rs",
+      "bytes": 4356,
+      "sha256": "0e177da85f283ee612481fb62bc4b862f628a089f16a17c487a69c947b1d530c",
+      "lines": 117,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_plugins__net__features__replication__runtime__src__tests__budget.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/net/features/replication/runtime/src/tests/lifecycle.rs",
+      "captured_path": "captured-current/zircon_plugins__net__features__replication__runtime__src__tests__lifecycle.rs",
+      "bytes": 1049,
+      "sha256": "33bd3ea8b05375b4d7287b37e11df71f335d49b93b77b16223c1238da079e36b",
+      "lines": 31,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_plugins__net__features__replication__runtime__src__tests__lifecycle.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_runtime/src/scene/dynamic_scene/scene/world_operations.rs",
+      "captured_path": "captured-current/zircon_runtime__src__scene__dynamic_scene__scene__world_operations.rs",
+      "bytes": 2417,
+      "sha256": "b01c3aa499a598f95308e0370eddff51146fe14f68553829538ecc827c019bec",
+      "lines": 77,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_runtime__src__scene__dynamic_scene__scene__world_operations.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/first_party_runtime_catalog/src/lib.rs",
+      "captured_path": "captured-current/zircon_plugins__first_party_runtime_catalog__src__lib.rs",
+      "bytes": 5714,
+      "sha256": "1ebd17543a1986972aee39e72f2712c523f8342f84a4f7e1492adf8b8e35a704",
+      "lines": 145,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_plugins__first_party_runtime_catalog__src__lib.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/first_party_runtime_catalog/src/tests.rs",
+      "captured_path": "captured-current/zircon_plugins__first_party_runtime_catalog__src__tests.rs",
+      "bytes": 30964,
+      "sha256": "bb30816fa608e5334e34f4036bfc1ed3b55c515c9dc273e73a992732153cf01e",
+      "lines": 863,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_plugins__first_party_runtime_catalog__src__tests.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "zircon_plugins/first_party_editor_catalog/src/catalog.rs",
+      "captured_path": "captured-current/zircon_plugins__first_party_editor_catalog__src__catalog.rs",
+      "bytes": 1676,
+      "sha256": "1408aef04b44a4851ae143680fb68b91c3e807e8e144baf9f453fdb662dc5dd1",
+      "lines": 42,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\zircon_plugins__first_party_editor_catalog__src__catalog.rs",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-source-refresh-drift.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-09-30-source-refresh-drift.jsonl",
+      "bytes": 15292,
+      "sha256": "faafe9af67408d41c14053224d8c445a8b80ef3a6bd81aecea770c3bd8db5d59",
+      "lines": 10,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-09-30-source-refresh-drift.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-source-review-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-09-30-source-review-crosswalk.jsonl",
+      "bytes": 21716,
+      "sha256": "a767494fbc95ed76994efcb0b8b2660e6c0b9ddbb1fa111c35f1c1735d4db38f",
+      "lines": 12,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-09-30-source-review-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-source-review-wave.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-09-30-source-review-wave.jsonl",
+      "bytes": 594805,
+      "sha256": "8d6d68c499d52c354a992a76bc05ffb3ed41ff4ccb9abc21b1f487d3954aefc5",
+      "lines": 37,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-09-30-source-review-wave.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-batch3-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-09-30-w0-batch3-crosswalk.jsonl",
+      "bytes": 1417,
+      "sha256": "952396c0c146b947094dc9ec1fdf707789e928d0da69c32ae316845571372cb1",
+      "lines": 3,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-09-30-w0-batch3-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-batch3-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-09-30-w0-batch3-review.jsonl",
+      "bytes": 61460,
+      "sha256": "4b4137f6ef0feeb0fc4ef6f55664a80f3c8a14473c0f94ab4361d85728a68fbe",
+      "lines": 15,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-09-30-w0-batch3-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-second-wave-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-09-30-w0-second-wave-crosswalk.jsonl",
+      "bytes": 53832,
+      "sha256": "d1112228744c798263611bec04f1865d4addf5f3b9bf98bba532792bdb43f2f8",
+      "lines": 28,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-09-30-w0-second-wave-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-second-wave-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-09-30-w0-second-wave-review.jsonl",
+      "bytes": 652094,
+      "sha256": "dccceb090592eea01f48f885ef84e53d202e6470c647b4481c44a4c23ec673d1",
+      "lines": 30,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-09-30-w0-second-wave-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch4-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-01-w0-batch4-crosswalk.jsonl",
+      "bytes": 7482,
+      "sha256": "1fe60a3d24cd1998f2052fafc8e9a50eaa5c3091ae60df79b16016d340c85c9c",
+      "lines": 14,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-10-01-w0-batch4-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch4-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-01-w0-batch4-review.jsonl",
+      "bytes": 116983,
+      "sha256": "9ca9bc4ea5b83865c219c8fb9b3c7ac73d7d078460bf8b92c6cded896996fb2c",
+      "lines": 24,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-10-01-w0-batch4-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch5-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-01-w0-batch5-crosswalk.jsonl",
+      "bytes": 12181,
+      "sha256": "69a0205f8baa42ad5cd16dc6fee176c8fa2308b441b484647ef3bafe30d9cae0",
+      "lines": 21,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-10-01-w0-batch5-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch5-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-01-w0-batch5-review.jsonl",
+      "bytes": 105131,
+      "sha256": "4bd6dcae8255f6d770f06cb471a1ead80b64be2c2038ed5705f256dff6a1b7cc",
+      "lines": 24,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-10-01-w0-batch5-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch10-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch10-crosswalk.jsonl",
+      "bytes": 80633,
+      "sha256": "e8f58ae13e1c8cab083ca2153762f0b106abd7cfe733621db570493cfb5adc54",
+      "lines": 23,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch10-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch10-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch10-review.jsonl",
+      "bytes": 319774,
+      "sha256": "a7c4b5b31b99cfecabc92add058844b3694e59a607d8ef038a3727c50c7258b9",
+      "lines": 12,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch10-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch11-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch11-crosswalk.jsonl",
+      "bytes": 86726,
+      "sha256": "78895597f305eea775ebc3a77f52f9f78817e3b8a48045e29cdedb530fa6ae97",
+      "lines": 28,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch11-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch11-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch11-review.jsonl",
+      "bytes": 261601,
+      "sha256": "90409b12f8e3259b7454cb44eadc1a94ce76b4a4591af79d695289063abc13a0",
+      "lines": 12,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch11-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch12-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch12-crosswalk.jsonl",
+      "bytes": 59074,
+      "sha256": "4ec0818d122a44ee27ad68d51d8c35f8acc5ae62bb891fbb0ccecc9dc594bd43",
+      "lines": 19,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch12-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch12-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch12-review.jsonl",
+      "bytes": 185909,
+      "sha256": "39363242f17fc9581abaf4866e32339f15301fbcd70fb4aa2fe6b12381756d95",
+      "lines": 12,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch12-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch13-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch13-crosswalk.jsonl",
+      "bytes": 6715,
+      "sha256": "e776c224b625fc4861a355bf30d9d53acd61bfbe0c91442fcd4f1ac833623c61",
+      "lines": 15,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch13-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch13-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch13-review.jsonl",
+      "bytes": 80292,
+      "sha256": "2f0068518174e3799c33a68beccd36f082cf938288d91b99f72659fcd6b1d210",
+      "lines": 12,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch13-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch6-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch6-crosswalk.jsonl",
+      "bytes": 9332,
+      "sha256": "dc272a91c3c254a9dc790300da829f3716d667a7a6dae794f184e476466dc71f",
+      "lines": 17,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch6-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch6-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch6-review.jsonl",
+      "bytes": 159783,
+      "sha256": "e0a4798dea7a20c842e177f4ae2007858fbd487278fd87220f2b1e3c61ec0eb3",
+      "lines": 18,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch6-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch7-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch7-crosswalk.jsonl",
+      "bytes": 4413,
+      "sha256": "5bf38c9bfb4007f021e617bb51568d9b8ab6f97096ac2d6fe0c6e65e48a5d488",
+      "lines": 4,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch7-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch7-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch7-review.jsonl",
+      "bytes": 126773,
+      "sha256": "ec3c9b5feb2eebdd4192b4aec98730466a7ed3d4f7efab56cb0c8d9f098449e2",
+      "lines": 12,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch7-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch8-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch8-crosswalk.jsonl",
+      "bytes": 17575,
+      "sha256": "a3b5ac7671ca1376a543e1d89e931aa9e92258c6ed69b25ef0bcdbb332af4d28",
+      "lines": 16,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch8-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch8-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch8-review.jsonl",
+      "bytes": 186399,
+      "sha256": "6ee6790c7739ff8065143c7e4abb7f209168b022847f7c59729074bf941b74cc",
+      "lines": 12,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch8-review.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch9-crosswalk.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch9-crosswalk.jsonl",
+      "bytes": 52488,
+      "sha256": "5364ee53a072160a85397ae9387b61d27084fb48b16d9fe36444f6ec662b6a79",
+      "lines": 14,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch9-crosswalk.jsonl",
+      "root_current_match": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch9-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch9-review.jsonl",
+      "bytes": 264228,
+      "sha256": "6d12b5a3ac0b2b468683c63ba59d6e82232c387e49380dc9efcbe3aa2beba384",
+      "lines": 12,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch9-review.jsonl",
+      "root_current_match": true
+    }
+  ],
+  "original_artifacts": {
+    "review": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\review.jsonl",
+      "sha256": "45b7eb5d119fdd1cd21f2313c1aaec1674b97ab5867184f823a19d910b658dd0"
+    },
+    "crosswalk": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\crosswalk.jsonl",
+      "sha256": "0495bc7ee105f07778cf1690916fdb32b24a1be970c4ef7a8d28f6220fb4df0d"
+    },
+    "summary": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\summary.json",
+      "sha256": "24b53f1c22d79f03014a7ce683845162cb3eb8760157ccb1ffc0d1095ac7395c"
+    },
+    "manifest": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch15\\manifest.json",
+      "sha256": "044d2698a183f15e731086c0d1b0f5551ace0a9132b75fff2544f36ac572011c"
+    }
+  },
+  "independent_review": {
+    "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0-batch15-independent-qualification-r1\\independent-qualification.json",
+    "sha256": "ff3bd0772fa66203cfed538270084a49a7a5ce3866ed2646e48a54a2634a059b"
+  },
+  "whole_compiler_dependency_closure": false,
+  "source_ready": false,
+  "tests_run": 0,
+  "acceptance": "open",
+  "self_hash_qualification": "Exact manifest SHA is in Root terminal publication receipt; no self-hash claimed."
+}

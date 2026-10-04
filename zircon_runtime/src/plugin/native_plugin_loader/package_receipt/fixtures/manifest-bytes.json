@@ -1,0 +1,1 @@
+"id = \"weather\"\nversion = \"1.0.0\"\ndisplay_name = \"Weather\"\nsupported_targets = [\"client_runtime\"]\nsupported_platforms = [\"windows\"]\ncapabilities = [\"weather.read\"]\n[[modules]]\nname = \"WeatherRuntime\"\nkind = \"runtime\"\ncrate_name = \"weather_runtime\"\ncapabilities = [\"weather.write\"]\n"

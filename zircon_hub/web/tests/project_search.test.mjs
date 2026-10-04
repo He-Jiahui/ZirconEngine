@@ -5,22 +5,27 @@ import test from "node:test";
 import { DebouncedProjectSearch } from "../src/projects/debouncedProjectSearch.ts";
 import { buildSearchIndex, filterSearchIndex } from "../src/projects/searchIndex.ts";
 
+// 功能测试不依赖性能开关；专用性能运行使用配对样本比较同一批查询的预处理成本。
 const SAMPLE_PAIRS = 21;
 
+// 可控计时器让输入替换和卸载取消可确定地验证，不以真实等待时间推断生命周期是否正确。
 class FakeTimer {
   #nextId = 0;
   #pending = new Map();
 
+  // 返回唯一句柄，测试可统计尚未发布的输入数量；回调只在显式推进时运行。
   schedule(callback) {
     const id = ++this.#nextId;
     this.#pending.set(id, callback);
     return id;
   }
 
+  // 取消只移除尚未推进的回调，模拟页面销毁前撤销待发布输入。
   cancel(id) {
     this.#pending.delete(id);
   }
 
+  // 一次推进取出当前队列，回调中新调度的输入留给下一次推进，避免把不同静默窗口混为一批。
   flush() {
     const callbacks = [...this.#pending.values()];
     this.#pending.clear();
@@ -29,11 +34,13 @@ class FakeTimer {
     }
   }
 
+  // 待发布数量用于检验连续输入是否收敛到一个请求，而不观察内部私有状态。
   get pendingCount() {
     return this.#pending.size;
   }
 }
 
+// 合成项目名和路径供大量查询复用，只衡量索引筛选，不包含文件系统或后端通信。
 function projects(count) {
   return Array.from({ length: count }, (_, index) => ({
     id: `project-${index}`,
@@ -42,6 +49,7 @@ function projects(count) {
   }));
 }
 
+// 保留旧搜索的空查询身份及文本组合语义，作为功能和性能比较的独立基线。
 function legacyFilter(items, query) {
   const normalizedQuery = query.trim().toLowerCase();
   if (!normalizedQuery) {
@@ -52,6 +60,7 @@ function legacyFilter(items, query) {
   );
 }
 
+// 计时返回结果用于配对一致性检查，避免以少处理项目换取虚假的速度收益。
 function elapsedNanoseconds(operation) {
   const startedAt = performance.now();
   const result = operation();
@@ -59,11 +68,13 @@ function elapsedNanoseconds(operation) {
   return { elapsed, result };
 }
 
+// 性能比较采用统一秩统计，调用方只传入非空的配对样本与本文件固定百分位。
 function nearestRank(samples, percentile) {
   const sorted = [...samples].sort((left, right) => left - right);
   return sorted[Math.ceil((sorted.length * percentile) / 100) - 1];
 }
 
+// 同时约束一次建索引、空查询数组身份及原项目顺序，供两个项目页面共享搜索行为。
 test("project search indexes each item once and preserves filtering semantics", () => {
   const input = [
     { id: "alpha", name: "Alpha", location: "E:/Games/First" },
@@ -83,6 +94,7 @@ test("project search indexes each item once and preserves filtering semantics", 
   assert.deepEqual(filterSearchIndex(input, index, "missing"), []);
 });
 
+// 连续输入只发布最后一项，生命周期结束则不发布；此测试只覆盖调度器，不覆盖页面动作回包。
 test("project search debounce replaces pending input and cancels on teardown", () => {
   let optimizedDispatches = 0;
   for (let sample = 0; sample < SAMPLE_PAIRS; sample += 1) {
@@ -113,6 +125,7 @@ test("project search debounce replaces pending input and cancels on teardown", (
   );
 });
 
+// 每轮突发查询纳入一次索引构建后再比较复用收益；页面实际按数据快照缓存索引，纯函数门槛不代表端到端延迟。
 test(
   "project search index meets the 10k project burst-query P95 gate",
   { skip: process.env.ZIRCON_HUB01_PERF !== "1" },

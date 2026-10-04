@@ -28,6 +28,21 @@ use report::record_surface_rebuild_profile;
 pub use report::UiSurfaceRebuildReport;
 use report::UiTextCacheFrameStats;
 
+fn sanitized_layout_root_size(root_size: UiSize) -> UiSize {
+    fn sanitized_axis(value: f32) -> f32 {
+        if value.is_finite() {
+            value.max(0.0)
+        } else {
+            0.0
+        }
+    }
+
+    UiSize::new(
+        sanitized_axis(root_size.width),
+        sanitized_axis(root_size.height),
+    )
+}
+
 impl UiSurface {
     fn rebuild_counts(&self) -> UiSurfaceRebuildReport {
         UiSurfaceRebuildReport {
@@ -184,8 +199,7 @@ impl UiSurface {
     pub fn rebuild(&mut self) {
         #[cfg(feature = "profiling")]
         let rebuild_profile_start = Instant::now();
-        let dirty_summary = dirty_summary(&self.tree);
-        self.record_dirty_summary(&dirty_summary);
+        let dirty_summary = self.collect_dirty_summary();
         let dirty_flags =
             merge_dirty_flag_values(dirty_summary.dirty, self.invalidation.pending_dirty_flags());
         let dirty_node_count = self.invalidation.pending_changed_node_count();
@@ -244,6 +258,7 @@ impl UiSurface {
     /// Publishes geometry already authored in each node's layout cache and prepares the
     /// surface for subsequent node-local incremental layout updates at the same root size.
     pub fn rebuild_authored_frames(&mut self, root_size: UiSize) {
+        let root_size = sanitized_layout_root_size(root_size);
         self.rebuild();
         self.last_layout_root_size = Some(root_size);
         self.dirty_index_initialized = true;
@@ -256,15 +271,40 @@ impl UiSurface {
     }
 
     pub fn dirty_flags(&self) -> UiDirtyFlags {
+        merge_dirty_flag_values(
+            self.tree.nodes.dirty_flags(),
+            self.invalidation.pending_dirty_flags(),
+        )
+    }
+
+    /// Collects one coherent dirty summary from the shared node index and the surface-owned
+    /// invalidation journal. The indexed node IDs are merged with mutation candidates so direct
+    /// mutable node/state-flag access is observed without re-folding the full tree.
+    fn collect_dirty_summary(&mut self) -> UiDirtySummary {
+        let index_was_initialized = self.dirty_index_initialized;
         let mut dirty_candidates = self.dirty_node_ids.clone();
-        dirty_candidates.extend(self.invalidation.pending_changed_node_ids());
+        self.invalidation
+            .extend_pending_changed_node_ids(&mut dirty_candidates);
         dirty_candidates.extend(self.tree.pending_mutation_node_ids().iter().copied());
-        let tree_dirty = if !self.dirty_index_initialized {
-            dirty_summary(&self.tree).dirty
+        self.tree.nodes.extend_dirty_node_ids(&mut dirty_candidates);
+        let summary = if index_was_initialized {
+            dirty_summary_for_nodes(&self.tree, &dirty_candidates)
         } else {
-            dirty_summary_for_nodes(&self.tree, &dirty_candidates).dirty
+            dirty_summary(&self.tree)
         };
-        merge_dirty_flag_values(tree_dirty, self.invalidation.pending_dirty_flags())
+        self.dirty_index_initialized = true;
+        self.record_dirty_summary(&summary);
+        #[cfg(test)]
+        {
+            let visits = if index_was_initialized {
+                summary.visited_node_count
+            } else {
+                self.tree.nodes.len()
+            };
+            let mut stats = self.dirty_scan_counters.borrow_mut();
+            stats.discovery_visits = stats.discovery_visits.saturating_add(visits);
+        }
+        summary
     }
 
     fn record_dirty_summary(&mut self, summary: &UiDirtySummary) {
@@ -277,8 +317,14 @@ impl UiSurface {
     pub fn clear_dirty_flags(&mut self) {
         self.control_index.synchronize_pending(&self.tree);
         let mut dirty_node_ids = std::mem::take(&mut self.dirty_node_ids);
+        self.tree.nodes.extend_dirty_node_ids(&mut dirty_node_ids);
         dirty_node_ids.extend(self.tree.pending_mutation_node_ids().iter().copied());
         for node_id in dirty_node_ids {
+            #[cfg(test)]
+            {
+                let mut stats = self.dirty_scan_counters.borrow_mut();
+                stats.clear_visits = stats.clear_visits.saturating_add(1);
+            }
             if let Some(node) = self.tree.nodes.get_mut(&node_id) {
                 node.dirty = UiDirtyFlags::default();
                 node.state_flags.dirty = false;
@@ -358,10 +404,10 @@ impl UiSurface {
     pub fn compute_layout(&mut self, root_size: UiSize) -> Result<(), UiTreeError> {
         #[cfg(feature = "profiling")]
         let rebuild_profile_start = Instant::now();
+        let root_size = sanitized_layout_root_size(root_size);
         self.invalidate_for_changed_text_font_generation()?;
         let operation_font_generation = self.text_measure_cache.font_database_generation();
-        let dirty_summary = dirty_summary(&self.tree);
-        self.record_dirty_summary(&dirty_summary);
+        let dirty_summary = self.collect_dirty_summary();
         let dirty_flags =
             merge_dirty_flag_values(dirty_summary.dirty, self.invalidation.pending_dirty_flags());
         let dirty_node_count = self.invalidation.pending_changed_node_count();
@@ -463,6 +509,7 @@ fn physical_axis_raster_scale(physical_extent: u32, logical_extent: f32) -> Opti
 struct UiDirtySummary {
     dirty: UiDirtyFlags,
     changed_nodes: Vec<(UiNodeId, UiDirtyFlags)>,
+    visited_node_count: usize,
 }
 
 fn merge_dirty_flags_into(target: &mut UiDirtyFlags, dirty: UiDirtyFlags) {
@@ -476,30 +523,33 @@ fn merge_dirty_flags_into(target: &mut UiDirtyFlags, dirty: UiDirtyFlags) {
 }
 
 fn dirty_summary(tree: &UiTree) -> UiDirtySummary {
+    let mut summary = UiDirtySummary::default();
     tree.nodes
-        .values()
-        .fold(UiDirtySummary::default(), |mut summary, node| {
-            let node_dirty = effective_node_dirty(node);
-            if node_dirty.any() {
-                summary.dirty = merge_dirty_flag_values(summary.dirty, node_dirty);
-                summary.changed_nodes.push((node.node_id, node_dirty));
-            }
-            summary
-        })
+        .extend_dirty_node_entries(&mut summary.changed_nodes);
+    summary.visited_node_count = summary.changed_nodes.len();
+    for (_, node_dirty) in &summary.changed_nodes {
+        summary.dirty = merge_dirty_flag_values(summary.dirty, *node_dirty);
+    }
+    summary
 }
 
 fn dirty_summary_for_nodes(tree: &UiTree, node_ids: &BTreeSet<UiNodeId>) -> UiDirtySummary {
-    node_ids
-        .iter()
-        .filter_map(|node_id| tree.nodes.get(node_id))
-        .fold(UiDirtySummary::default(), |mut summary, node| {
-            let node_dirty = effective_node_dirty(node);
-            if node_dirty.any() {
-                summary.dirty = merge_dirty_flag_values(summary.dirty, node_dirty);
-                summary.changed_nodes.push((node.node_id, node_dirty));
-            }
-            summary
-        })
+    let mut summary = UiDirtySummary {
+        visited_node_count: node_ids.len(),
+        changed_nodes: Vec::with_capacity(node_ids.len()),
+        ..UiDirtySummary::default()
+    };
+    for node_id in node_ids {
+        let Some(node) = tree.nodes.get(node_id) else {
+            continue;
+        };
+        let node_dirty = effective_node_dirty(node);
+        if node_dirty.any() {
+            summary.dirty = merge_dirty_flag_values(summary.dirty, node_dirty);
+            summary.changed_nodes.push((node.node_id, node_dirty));
+        }
+    }
+    summary
 }
 
 fn effective_node_dirty(node: &UiTreeNode) -> UiDirtyFlags {

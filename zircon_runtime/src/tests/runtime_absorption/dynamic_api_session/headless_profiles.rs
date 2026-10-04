@@ -1,3 +1,4 @@
+//! 动态会话的二进制接口、宿主请求和诊断路由需与共享契约同步。以结果断言检查当前接口或源码快照对应的边界。
 use super::shared::slices::slice_between;
 
 #[test]
@@ -9,7 +10,8 @@ fn runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces() 
     let session_profile_tests = include_str!("../../../dynamic_api/tests/session_profiles.rs");
     let session_entry_point_tests =
         include_str!("../../../dynamic_api/tests/session_entry_points.rs");
-    let session_doc = include_str!("../../../../../docs/zircon_runtime/dynamic_api/session.md");
+    let session_doc =
+        include_str!("../../../../../docs/crates/zircon_runtime/dynamic_api/session.md");
     let runtime_10_output = include_str!(
         "../../../../../docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md"
     );

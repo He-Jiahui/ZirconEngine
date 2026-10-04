@@ -1,3 +1,4 @@
+// deferred 与 forward 光照共用的 tile/z-bin 索引 ABI；CPU light-grid 构建器必须写入同一打包布局。
 struct ZrLightGridParams {
     world_to_view: mat4x4<f32>,
     zbin_scale: f32,

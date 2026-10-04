@@ -7,7 +7,7 @@ from tools.tests.plugin_structure_audit_optional_feature_support import (
     plugin_manifest,
 )
 
-
+# 用插件清单夹具验证可选特性分发：拒绝可选特性分发非表格，并拒绝可选特性分发缺失 ABI。
 class PluginStructureAuditManifestSchemaOptionalFeatureDistributionTests(
     unittest.TestCase
 ):

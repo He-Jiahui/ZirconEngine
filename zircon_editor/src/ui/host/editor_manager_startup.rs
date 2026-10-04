@@ -2,15 +2,15 @@ use std::path::Path;
 use std::sync::OnceLock;
 
 use crate::core::project::{
-    NewProjectDraft, NewProjectTemplate, ProjectAuthority, ProjectPreflightCompositionProfile,
+    NewProjectDraft, ProjectAuthority, ProjectLaunchPreflight, ProjectLaunchPreflightTarget,
     RecentProjectEntry,
 };
 use crate::core::recovery::ProjectRecoveryAssessment;
 use crate::ui::workbench::startup::EditorStartupSessionDocument;
 use zircon_runtime_interface::project::{
-    ProjectActivationOperationId, ProjectActivationOperationIdGenerator, ProjectEngineVersion,
-    ProjectLaunchInstanceId, ProjectLaunchIntent, ProjectLaunchProfile, ProjectLaunchSource,
-    ProjectLaunchTarget, ProjectTemplateId,
+    ProjectActivationOperationId, ProjectActivationOperationIdGenerator, ProjectLaunchInstanceId,
+    ProjectLaunchIntent, ProjectLaunchProfile, ProjectLaunchSource, ProjectLaunchTarget,
+    ProjectTemplateId,
 };
 use zircon_runtime_interface::runtime_build_set::ZrRuntimeBuildSetId;
 
@@ -49,37 +49,27 @@ impl EditorManager {
         &self,
         intent: ProjectLaunchIntent,
     ) -> Result<EditorStartupSessionDocument, EditorError> {
+        let preflight = ProjectAuthority::default().preflight_project_launch(intent)?;
+        self.execute_project_launch_preflight(preflight)
+    }
+
+    /// Executes the immutable data-only preflight produced by App or a local UI caller.
+    pub(crate) fn execute_project_launch_preflight(
+        &self,
+        preflight: ProjectLaunchPreflight,
+    ) -> Result<EditorStartupSessionDocument, EditorError> {
+        let (intent, target) = preflight.into_parts();
         let admission = self.session_admission_request(&intent)?;
-        match intent.target() {
-            ProjectLaunchTarget::OpenExisting { requested_path } => {
-                let preflight = self.preflight_existing_project_launch(&intent, requested_path)?;
+        match target {
+            ProjectLaunchPreflightTarget::Existing(receipt) => {
                 if matches!(intent.profile(), ProjectLaunchProfile::Recovery) {
-                    self.recover_project_and_remember_with_session(preflight, &admission)
+                    self.recover_project_and_remember_with_session(receipt, &admission)
                 } else {
-                    self.open_project_and_remember_with_session(preflight, &admission)
+                    self.open_project_and_remember_with_session(receipt, &admission)
                 }
             }
-            ProjectLaunchTarget::CreateProject {
-                project_name,
-                location,
-                template,
-            } => {
-                if !matches!(intent.profile(), ProjectLaunchProfile::Normal) {
-                    return Err(EditorError::Project(
-                        "safe and recovery profiles can only open an existing project".to_string(),
-                    ));
-                }
-                let template = match template {
-                    ProjectTemplateId::RenderableEmpty => NewProjectTemplate::RenderableEmpty,
-                };
-                self.create_project_and_open_with_session(
-                    NewProjectDraft {
-                        project_name: project_name.clone(),
-                        location: location.to_string_lossy().into_owned(),
-                        template,
-                    },
-                    &admission,
-                )
+            ProjectLaunchPreflightTarget::Create { .. } => {
+                self.create_project_and_open_with_session(target, &admission)
             }
         }
     }
@@ -87,39 +77,16 @@ impl EditorManager {
     pub(super) fn preflight_existing_project_launch(
         &self,
         intent: &ProjectLaunchIntent,
-        requested_path: &Path,
+        _requested_path: &Path,
     ) -> Result<crate::core::project::ProjectPreflightReceipt, EditorError> {
-        let profile = match intent.profile() {
-            ProjectLaunchProfile::Normal => ProjectPreflightCompositionProfile::Normal,
-            ProjectLaunchProfile::Safe => ProjectPreflightCompositionProfile::Safe,
-            ProjectLaunchProfile::Recovery => ProjectPreflightCompositionProfile::Recovery,
-        };
-        let receipt = ProjectAuthority::default()
-            .preflight_project_with_composition_profile(requested_path, profile)
-            .map_err(|error| EditorError::Project(error.to_string()))?;
-        if receipt.manifest_migration().blocks_activation() {
-            return Err(EditorError::Project(
-                "project manifest requires an explicit migration decision before activation"
-                    .to_string(),
-            ));
+        let preflight = ProjectAuthority::default().preflight_project_launch(intent.clone())?;
+        let (_, target) = preflight.into_parts();
+        match target {
+            ProjectLaunchPreflightTarget::Existing(receipt) => Ok(receipt),
+            ProjectLaunchPreflightTarget::Create { .. } => Err(EditorError::Project(
+                "existing project preflight received a create launch target".to_string(),
+            )),
         }
-        let engine = ProjectEngineVersion::parse(env!("CARGO_PKG_VERSION"))
-            .map_err(|error| EditorError::Project(error.to_string()))?;
-        let engine_compatibility = receipt
-            .evaluate_engine_compatibility(&engine)
-            .map_err(|error| EditorError::Project(error.to_string()))?;
-        if !engine_compatibility.is_compatible() {
-            return Err(EditorError::Project(format!(
-                "project engine compatibility rejected activation: {:?}",
-                engine_compatibility.disposition()
-            )));
-        }
-        if receipt.project_identity().is_none() {
-            return Err(EditorError::Project(
-                "current project preflight did not produce canonical project identity".to_string(),
-            ));
-        }
-        Ok(receipt)
     }
 
     pub fn create_project_and_open(
@@ -132,9 +99,7 @@ impl EditorManager {
             ProjectLaunchProfile::Normal,
             draft.project_name,
             draft.location,
-            match draft.template {
-                NewProjectTemplate::RenderableEmpty => ProjectTemplateId::RenderableEmpty,
-            },
+            draft.template,
         )
         .map_err(|error| EditorError::Project(error.to_string()))?;
         self.execute_project_launch_intent(intent)
@@ -221,47 +186,5 @@ fn next_local_project_launch_operation_id() -> Result<ProjectActivationOperation
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn recovery_profile_defers_authoritative_assessment_to_leased_admission() {
-        let source = include_str!("editor_manager_startup.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("startup production source");
-        let recovery_profile = production
-            .find("ProjectLaunchProfile::Recovery")
-            .expect("recovery launch branch");
-        let takeover = production
-            .find("self.recover_project_and_remember_with_session")
-            .expect("recovery takeover dispatch");
-
-        assert!(recovery_profile < takeover);
-        assert!(!production.contains("require_recovery_profile_takeover"));
-    }
-
-    #[test]
-    fn project_session_transition_recovery_decisions_remain_serialized_and_fail_closed() {
-        let session = include_str!("editor_manager_project_session.rs");
-        let recovery = session
-            .split("pub(super) fn recover_project_and_remember_with_session")
-            .nth(1)
-            .expect("serialized recovery activation implementation");
-        let gate = recovery
-            .find("self.begin_project_session_transition()?")
-            .expect("recovery activation must hold the transition gate");
-        let activate = recovery
-            .find("self.activate_project_from_preflight(")
-            .expect("recovery activation call");
-        let begin = recovery
-            .find("self.begin_project_recovery_decisions(")
-            .expect("recovery decisions must begin before releasing the transition gate");
-        let retain = recovery
-            .find("self.retain_project_session_for_recovery(error)")
-            .expect("recovery coordinator failure must retain the exclusive recovery fence");
-
-        assert!(gate < activate);
-        assert!(activate < begin);
-        assert!(begin < retain);
-    }
-}
+#[path = "tests/editor_manager_startup.rs"]
+mod tests;

@@ -1,3 +1,6 @@
+//! 独立 PBR 诊断查看器的进程入口：配置与早期失败发布在主线程，场景/窗口状态交给事件循环宿主。
+//! 终态发布成功才返回记录中的退出码；无法建立记录的启动错误由最外层报告。
+
 mod app;
 mod args;
 mod background_load;
@@ -57,6 +60,7 @@ fn run() -> Result<u8, String> {
     result
 }
 
+/// 在主线程建立诊断宿主；事件循环返回后先收集清理结果，再发布终态与退出码。
 fn run_viewer(config: ViewerConfig) -> Result<u8, String> {
     let work_paths = ViewerWorkPaths::new(&config.work_dir, config.ibl_cache_dir.as_deref());
     let terminal_outcome_path = work_paths.terminal_outcome_path().to_path_buf();
@@ -78,6 +82,7 @@ fn run_viewer(config: ViewerConfig) -> Result<u8, String> {
         }
         None => None,
     };
+    // BUG: [CR-APP-VIEWER-0002] 显式加载调试库但使用尚不存在的默认捕获目录时，启动会在设备创建前失败；证据：下方预加载调用要求模板父目录已存在。
     let renderdoc_capture_path = config
         .renderdoc_capture_path
         .as_deref()
@@ -158,50 +163,5 @@ fn viewer_terminal_source_chain(config: &ViewerConfig) -> [String; 2] {
 }
 
 #[cfg(test)]
-mod tests {
-    const MAIN_SOURCE: &str = include_str!("main.rs");
-
-    #[test]
-    fn early_fatal_paths_write_a_terminal_source_chain() {
-        let production = MAIN_SOURCE
-            .split("#[cfg(test)]")
-            .next()
-            .expect("main source should retain production code before tests");
-
-        assert!(production.contains("fn viewer_terminal_source_chain(config: &ViewerConfig)"));
-        assert_eq!(
-            production
-                .matches(".with_source_chain(viewer_terminal_source_chain(&config))")
-                .count(),
-            2,
-            "RenderDoc preload and EventLoop creation failures must retain input provenance"
-        );
-    }
-
-    #[test]
-    fn profiling_build_uses_environment_capture_lifecycle() {
-        let production = MAIN_SOURCE
-            .split("#[cfg(test)]")
-            .next()
-            .expect("main source should retain production code before tests");
-
-        assert!(production.contains("start_capture_from_env(\"shader-pbr-viewer\")"));
-        assert!(production.contains("stop_and_export_capture_from_env()"));
-        assert!(
-            production
-                .find("start_capture_from_env")
-                .expect("capture start")
-                < production
-                    .find("run_viewer(config)")
-                    .expect("viewer execution")
-        );
-        assert!(
-            production
-                .find("run_viewer(config)")
-                .expect("viewer execution")
-                < production
-                    .find("stop_and_export_capture_from_env")
-                    .expect("capture export")
-        );
-    }
-}
+#[path = "tests/main.rs"]
+mod tests;

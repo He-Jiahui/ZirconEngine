@@ -1,3 +1,4 @@
+//! 动态会话的二进制接口、宿主请求和诊断路由需与共享契约同步。集中保存路径、锚点或预期清单；消费方负责读取实际源码。
 pub(in super::super) const EXPECTED_RUNTIME_10_BEHAVIOR_TEST_ANCHORS: &[(&str, &[&str])] = &[
     (
         "zircon_runtime/src/dynamic_api/tests/api_table.rs",
@@ -27,7 +28,7 @@ pub(in super::super) const EXPECTED_RUNTIME_10_BEHAVIOR_TEST_ANCHORS: &[(&str, &
         ],
     ),
     (
-        "zircon_app/src/entry/runtime_library/tests.rs",
+        "zircon_app/src/entry/runtime_library/tests/cases.rs",
         &[
             "runtime_api_pointer_rejects_null_from_entry_symbol",
             "runtime_api_pointer_rejects_version_mismatch_before_session_creation",

@@ -17,7 +17,7 @@ plan_sources:
 tests:
   - zircon_runtime/src/core/runtime/tests/registration
   - zircon_runtime/src/core/runtime/tests/resolution
-  - zircon_runtime/src/core/runtime/descriptors/module_order_tests.rs
+  - zircon_runtime/src/core/runtime/descriptors/tests/module_order_tests.rs
 doc_type: module-detail
 status: current
 ---

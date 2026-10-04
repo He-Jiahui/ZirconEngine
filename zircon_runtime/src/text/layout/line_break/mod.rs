@@ -1,11 +1,11 @@
 pub(crate) use self::boundary_correction::{
-    BOUNDARY_SHAPING_CONTEXT_GRAPHEMES, corrected_glyph_ranges_with_provider,
-    corrected_index_advance_with_provider, corrected_metric_ranges,
+    corrected_glyph_ranges_with_provider, corrected_index_advance_with_provider,
+    corrected_metric_ranges, BOUNDARY_SHAPING_CONTEXT_GRAPHEMES,
 };
 use self::glue::allows_glyph_fallback;
 pub(crate) use self::greedy::{line_text_fits_with_provider, should_wrap_before_accumulated};
 pub(crate) use self::soft_hyphen::{
-    DiscretionaryHyphenDecision, break_suffix_at as soft_hyphen_break_suffix_at,
+    break_suffix_at as soft_hyphen_break_suffix_at, DiscretionaryHyphenDecision,
 };
 pub(crate) use self::wrap_space::{trailing_wrap_space_byte_len, trim_leading_wrap_spaces};
 use super::kinsoku::apply_kinsoku_start_rules;
@@ -251,4 +251,5 @@ impl<'a> LineBreakChunk<'a> {
 }
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

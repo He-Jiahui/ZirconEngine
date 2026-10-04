@@ -59,3 +59,56 @@ fn session_abi_retains_canonical_latest_value_per_viewport() {
     assert_eq!(status.status_code(), ZrStatusCode::Ok, "{status:?}");
     assert_eq!(destroy_session_slot(handle).status_code(), ZrStatusCode::Ok);
 }
+
+#[test]
+fn session_abi_advances_overlay_revision_for_equal_generation_render_changes() {
+    let handle = insert_session(
+        RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None)
+            .expect("headless session"),
+    );
+    let viewport = ZrRuntimeViewportHandle::new(3);
+    let original = ZrRuntimeHighlightRenderAttributesV1::outlined([0.2, 0.5, 0.8, 1.0]);
+    let changed = ZrRuntimeHighlightRenderAttributesV1::outlined([0.8, 0.5, 0.2, 1.0]);
+    for (generation, attributes) in [(9, original), (9, changed)] {
+        let result = unsafe {
+            ffi::submit_highlight_set(
+                handle,
+                ZrRuntimeHighlightSetV1::new(viewport, generation, &[8, 2], attributes),
+            )
+        };
+        assert_eq!(result.status_code(), ZrStatusCode::Ok, "{result:?}");
+    }
+    let equal_generation = with_session(handle, |session| {
+        let latest = session
+            .level
+            .viewport_highlight_set(viewport.raw())
+            .unwrap();
+        assert_eq!(latest.generation(), 9);
+        assert_eq!(latest.overlay_revision(), 2);
+        assert_eq!(latest.set().attributes().tint_rgba, [0.8, 0.5, 0.2, 1.0]);
+        zircon_runtime_interface::ZrStatus::ok()
+    });
+    assert_eq!(equal_generation.status_code(), ZrStatusCode::Ok);
+    for (generation, attributes) in [(10, changed), (8, original)] {
+        let result = unsafe {
+            ffi::submit_highlight_set(
+                handle,
+                ZrRuntimeHighlightSetV1::new(viewport, generation, &[8, 2], attributes),
+            )
+        };
+        assert_eq!(result.status_code(), ZrStatusCode::Ok, "{result:?}");
+    }
+    let status = with_session(handle, |session| {
+        let latest = session
+            .level
+            .viewport_highlight_set(viewport.raw())
+            .unwrap();
+        assert_eq!(latest.generation(), 10);
+        assert_eq!(latest.overlay_revision(), 2);
+        assert_eq!(latest.set().entities(), &[2, 8]);
+        assert_eq!(latest.set().attributes().tint_rgba, [0.8, 0.5, 0.2, 1.0]);
+        zircon_runtime_interface::ZrStatus::ok()
+    });
+    assert_eq!(status.status_code(), ZrStatusCode::Ok, "{status:?}");
+    assert_eq!(destroy_session_slot(handle).status_code(), ZrStatusCode::Ok);
+}

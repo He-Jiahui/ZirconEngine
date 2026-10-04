@@ -81,3 +81,62 @@ Open state: `实现已完成，运行验证与 failure return 待 coordinator te
 | 里程碑 | 状态 | 完成日期 | 完成项目与证据 |
 |---|---|---|---|
 | Layout09 notification bounded projection | `open / implemented_static_reviewed / validation_pending` | 2026-08-11 | 通知 retained owner 已在 entry 格式化和分配前按 64 条上限截断，保持 pending→progress→toast 顺序及显式 overflow 语义；source guard、Rust 解析与差异空白检查通过。无 managed terminal evidence，不声称 handoff fixed 或已回传。 |
+
+### 2026-09-19 受管静态合同回执
+
+- 前序 checker-only 失败票据 `77f6c1a79358479b84fcd8448e60bfaf`、`e1b15d47071e4dba8c02ed6f8925a19f` 保留；失败分别来自测试字符串误命中 `candidate_entries` 与不存在的 `record_notification` 锚点，均未修改源码。
+- 修正版票据 `286583e58ad74319b3e54647cb6e7ca5`（job `8c9f076e3e054088ae58d24f945bf463` / run 同票据）已通过，退出码 `0`；输出 `S09_NOTIFICATION_SOURCE_GUARDS_OK`、`CHECKED_PATHS=13`，source manifest `3406de9c1dd3a82673e12ec7411094c84dedc15a08b41995914f13247548437d`。
+- 回执仅覆盖当前 bounded bridge、metadata/cache、visible+overscan paint 与 payload exclusion 源码合同；Cargo/ burst/WPR/product、独立 0/0/0 审查、failure return 与 closeout 仍待完成，本 failure 继续保持 `status: open`。
+
+### 2026-09-25 current-source rolling reconciliation (Layout09 owner)
+
+- Successor Session `failure-roll-01a084c8-editorlayout09-notification-r5` froze
+  the current 12-path source manifest in immutable snapshot `3811`.  The
+  snapshot is source-only so this handoff record does not self-hash; the
+  failure document remains leased separately for this receipt.
+- Current source SHA-256 manifest:
+  `callback_dispatch/template_bridge/workbench/notifications.rs=060fa63f815a01fd0abfd4e98347f16f5db28af5fbed0b28d6f6e40798ac805d`,
+  `host_contract/data/template_nodes/node.rs=26155e2c7b5c570f1db64bcc3b09380236d956d84843b6a0494418bd25679816`,
+  `host_contract/paint_template_nodes/template_notification_center/commands.rs=bb7bf74ff8bed437a5b485578d4ffe8fa27326273a68b86de753816a666a259d`,
+  `host_contract/paint_template_nodes/template_notification_center/identity.rs=5f21844d3070244bb6840bbbcbeddb6b89b2b3f516fcf53482f64e1454825704`,
+  `host_contract/paint_template_nodes/template_notification_center/instrumentation.rs=d835fc8f83844cb12b0c00fa7fa08f5719e0216a183a12242730fe19af71b882`,
+  `host_contract/paint_template_nodes/template_notification_center/panel.rs=6ba375ba6e0c80995fa465493c195783bc09cf5855d0abdf9e2f07c7d9b7fc1b`,
+  `host_contract/paint_template_nodes/template_notification_center/row.rs=7231b28d95bc85697e6061f280ba88a0a061cad0065c8e4c3fc153fb9711ffee`,
+  `ui/pane_data_conversion/pane_component_projection/notification_center/metadata.rs=43948102b5543f835436f17c155b7207bf041bc14ea199dd828f25b4c76a44cf`,
+  `ui/workbench_window_projection.rs=9b8d16615a33582c6ae16f3db82674aa969ddbb8e4753354119c73037e652a9f`,
+  `ui/workbench_window_projection/host_value_toml.rs=37d2d30694a2dac26dac1526596644adba92912ab0224be43ad99965cb5961a0`,
+  `ui/workbench_window_projection/notification_cache.rs=1f62f6c546610931244f0600dcfc51706bb815b4144e1db8272e144b81b7412c`,
+  `ui/workbench_window_projection/previous_node_index.rs=310c9be3c0b16c63a0e08addba7febe93f6a61d8bcd8be16acf6e484df324afe`.
+- `rustfmt +1.94.1 --edition 2021 --config skip_children=true --check`
+  passes for all 12 paths and scoped `git diff --check` has no whitespace
+  errors.  `notifications.rs` and `workbench_window_projection.rs` contain
+  unrelated foreign dirty edits; this Session did not absorb or attribute
+  those lines.
+- The current source still exposes the bounded 64-entry history/toast cap,
+  generation/unread/overflow metadata, parser `visible_limit` early-stop,
+  closed-center zero-work return, visible-plus-overscan row calculation, and
+  same-generation/document-keyed `Rc` reuse.  The exact managed filters are
+  sealed for `tests::host::retained_callback_dispatch::template_bridge::notifications::notification_burst_has_bounded_retention_and_explicit_generation_metadata`,
+  `ui::retained_host::ui::pane_data_conversion::pane_component_projection::notification_center::tests::visible_limit_stops_notification_parsing_before_offscreen_rows`,
+  `ui::retained_host::host_contract::paint_template_nodes::template_notification_center::commands::tests::closed_center_performs_no_palette_metrics_or_row_work`,
+  `ui::retained_host::host_contract::paint_template_nodes::template_notification_center::commands::tests::open_center_visits_only_visible_and_overscan_rows_and_copies_visible_text`,
+  `ui::retained_host::host_contract::paint_template_nodes::template_notification_center::identity::tests::header_uses_generation_metadata_without_scanning_rows`,
+  and `ui::retained_host::ui::workbench_window_projection::notification_cache::tests::reuse_requires_every_notification_presentation_key_to_match`.
+- This is current-source/static evidence only.  Managed Windows focused
+  Cargo, the 1,000-message burst and WPR/performance gates, upward Editor
+  Layout09/EditorUI08 acceptance, independent C/I/M review, canonical
+  `failure return`, and closeout remain pending; the failure stays `open`.
+
+### 2026-09-25 independent static review receipt
+
+- Reviewer `review-editor03-gizmo-private` re-read snapshot `3811`, the full
+  12-path manifest, and all six exact pending filters.  Critical / Important /
+  Moderate findings are `0 / 0 / 0`.
+- The reviewer confirmed the bounded 64-entry history/overflow contract,
+  generation/unread metadata, parser visible-limit stop, closed-center zero
+  work, visible-plus-overscan visits, and complete same-generation/document
+  cache-key reuse.  Only the two documented foreign dirty overlays remain
+  outside this Session's attribution.
+- This receipt is static only; managed Cargo, burst/WPR/performance and upward
+  acceptance, canonical `failure return`, and closeout remain pending, so the
+  failure remains `open`.

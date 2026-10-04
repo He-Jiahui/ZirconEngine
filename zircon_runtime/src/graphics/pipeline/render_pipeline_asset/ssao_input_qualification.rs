@@ -5,7 +5,7 @@ use crate::core::framework::render::{
 use crate::core::math::UVec2;
 use crate::graphics::feature::{
     BuiltinRenderFeature, RenderFeatureDescriptor, RenderFeatureResourceAccess,
-    RenderFeatureResourceDescriptor, RenderFeatureResourceVersion,
+    RenderFeatureResourceDescriptor, RenderFeatureResourceKind, RenderFeatureResourceVersion,
 };
 use crate::graphics::pipeline::declarations::{
     AmbientOcclusionDepthConvention, AmbientOcclusionInputQualification,
@@ -311,17 +311,5 @@ fn stage_index(stages: &[RenderPassStage], stage: RenderPassStage) -> Option<usi
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn render_rect_qualification_rejects_unconsumed_partial_rects() {
-        let error = validate_render_rect(
-            RenderViewportRect::new(UVec2::ZERO, UVec2::new(640, 360)),
-            UVec2::new(1280, 720),
-        )
-        .unwrap_err();
-
-        assert!(error.contains("partial rect AO is unsupported"));
-    }
-}
+#[path = "tests/ssao_input_qualification.rs"]
+mod tests;

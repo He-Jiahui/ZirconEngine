@@ -1,3 +1,4 @@
+# 核对代码生成参考目录读取一次字节流并维持增量构建链。
 from pathlib import Path
 import unittest
 

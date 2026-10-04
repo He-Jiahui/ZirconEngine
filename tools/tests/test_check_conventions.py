@@ -11,7 +11,7 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
-from tools.check_conventions import (
+from tools.audits.check_conventions import (
     ConventionCommand,
     _managed_cargo_environment_active,
     audit_rule_guard_coverage,
@@ -24,6 +24,37 @@ from tools.tests.check_conventions.document_paths import DocumentPathAuditTests
 
 
 class CheckConventionsTests(unittest.TestCase):
+    def test_controlled_incremental_policy_is_a_managed_environment(self) -> None:
+        managed = {
+            "CARGO_TARGET_DIR": r"E:\cargo-targets\zircon-engine\pool\abc",
+            "TEMP": r"E:\cargo-targets\zircon-engine\scratch\job-1\temporary",
+            "SCCACHE_DIR": r"E:\cargo-targets\zircon-engine\cache\sccache",
+            "ZIRCON_MANAGED_BUILD_POLICY": "managed-build-v4",
+            "SCCACHE_CLIENT_SIDE": "1",
+        }
+        with patch.dict("tools.audits.check_conventions.os.environ", managed, clear=True):
+            self.assertTrue(_managed_cargo_environment_active())
+            with patch.dict("tools.audits.check_conventions.os.environ", {"ZIRCON_MANAGED_BUILD_POLICY": "unknown"}):
+                self.assertFalse(_managed_cargo_environment_active())
+
+    def test_legacy_and_nested_cargo_roots_do_not_activate_managed_environment(self) -> None:
+        for root in (
+            r"C:\cargo-targets",
+            r"D:\targets",
+            r"E:\ZirconBuilds",
+            r"F:\nested\cargo-targets",
+        ):
+            with self.subTest(root=root):
+                managed = {
+                    "CARGO_TARGET_DIR": rf"{root}\zircon-engine\pool\abc",
+                    "TEMP": rf"{root}\zircon-engine\scratch\job-1\temporary",
+                    "SCCACHE_DIR": rf"{root}\zircon-engine\cache\sccache",
+                    "ZIRCON_MANAGED_BUILD_POLICY": "managed-build-v4",
+                    "SCCACHE_CLIENT_SIDE": "1",
+                }
+                with patch.dict("tools.audits.check_conventions.os.environ", managed, clear=True):
+                    self.assertFalse(_managed_cargo_environment_active())
+
     def test_managed_cargo_environment_requires_target_scratch_and_cache_contract(
         self,
     ) -> None:
@@ -31,25 +62,48 @@ class CheckConventionsTests(unittest.TestCase):
             "CARGO_TARGET_DIR": r"\\?\E:\cargo-targets\zircon-engine\pool\abc",
             "TEMP": r"E:\cargo-targets\zircon-engine\scratch\job-1\temporary",
             "SCCACHE_DIR": r"E:\cargo-targets\zircon-engine\cache\sccache",
-            "CARGO_INCREMENTAL": "0",
             "SCCACHE_CLIENT_SIDE": "1",
+            "ZIRCON_MANAGED_BUILD_POLICY": "managed-build-v4",
         }
 
-        with patch.dict("tools.check_conventions.os.environ", managed, clear=True):
+        with patch.dict("tools.audits.check_conventions.os.environ", managed, clear=True):
             self.assertTrue(_managed_cargo_environment_active())
             for missing in (
                 "CARGO_TARGET_DIR",
                 "TEMP",
                 "SCCACHE_DIR",
-                "CARGO_INCREMENTAL",
                 "SCCACHE_CLIENT_SIDE",
+                "ZIRCON_MANAGED_BUILD_POLICY",
             ):
                 with self.subTest(missing=missing), patch.dict(
-                    "tools.check_conventions.os.environ",
+                    "tools.audits.check_conventions.os.environ",
                     {key: value for key, value in managed.items() if key != missing},
                     clear=True,
                 ):
                     self.assertFalse(_managed_cargo_environment_active())
+
+    def test_legacy_incremental_override_does_not_activate_managed_environment(self) -> None:
+        managed = {
+            "CARGO_TARGET_DIR": r"E:\cargo-targets\zircon-engine\pool\abc",
+            "TEMP": r"E:\cargo-targets\zircon-engine\scratch\job-1\temporary",
+            "SCCACHE_DIR": r"E:\cargo-targets\zircon-engine\cache\sccache",
+            "CARGO_INCREMENTAL": "0",
+            "SCCACHE_CLIENT_SIDE": "1",
+            "ZIRCON_MANAGED_BUILD_POLICY": "legacy-fast-mode",
+        }
+
+        with patch.dict("tools.audits.check_conventions.os.environ", managed, clear=True):
+            self.assertFalse(_managed_cargo_environment_active())
+
+            # ``patch.dict`` copies the mapping into ``os.environ``; mutating the
+            # source mapping does not update the patched environment.  Apply the
+            # policy transition through a nested patch so this assertion exercises
+            # the actual environment contract.
+            with patch.dict(
+                "tools.audits.check_conventions.os.environ",
+                {"ZIRCON_MANAGED_BUILD_POLICY": "managed-build-v4"},
+            ):
+                self.assertTrue(_managed_cargo_environment_active())
 
     def test_ci_invokes_single_convention_entrypoint_without_duplicate_command_plan(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
@@ -503,7 +557,7 @@ class CheckConventionsTests(unittest.TestCase):
                 repo_root, ["exemptions"], dry_run=True
             )
             with patch(
-                "tools.convention_exemptions.subprocess.run",
+                "tools.audits.convention_exemptions.subprocess.run",
                 side_effect=FileNotFoundError(2, "missing executable", "git"),
             ):
                 fallback_report = audit_rust_exemptions(repo_root)
@@ -603,12 +657,12 @@ class CheckConventionsTests(unittest.TestCase):
 
             report = audit_rust_exemptions(repo_root)
             with patch(
-                "tools.convention_exemptions.subprocess.run",
+                "tools.audits.convention_exemptions.subprocess.run",
                 side_effect=FileNotFoundError(2, "missing executable", "git"),
             ):
                 git_error_report = audit_rust_exemptions(repo_root)
             with patch(
-                "tools.convention_exemptions.subprocess.run",
+                "tools.audits.convention_exemptions.subprocess.run",
                 return_value=subprocess.CompletedProcess(
                     args=("git", "grep"),
                     returncode=2,
@@ -691,7 +745,7 @@ class CheckConventionsTests(unittest.TestCase):
             )
 
             with patch(
-                "tools.convention_exemptions.subprocess.run",
+                "tools.audits.convention_exemptions.subprocess.run",
                 side_effect=FileNotFoundError(2, "missing executable", "git"),
             ):
                 report = audit_rust_exemptions(repo_root)
@@ -776,7 +830,7 @@ class CheckConventionsTests(unittest.TestCase):
                 stderr="child stderr\n",
             )
 
-        with patch("tools.check_conventions.subprocess.run", side_effect=completed_child):
+        with patch("tools.audits.check_conventions.subprocess.run", side_effect=completed_child):
             report = run_conventions(
                 repo_root,
                 ["structure"],
@@ -791,7 +845,7 @@ class CheckConventionsTests(unittest.TestCase):
 
         output = io.StringIO()
         with (
-            patch("tools.check_conventions.subprocess.run", side_effect=completed_child),
+            patch("tools.audits.check_conventions.subprocess.run", side_effect=completed_child),
             patch.object(
                 sys,
                 "argv",
@@ -861,14 +915,15 @@ class CheckConventionsTests(unittest.TestCase):
             return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
 
         with (
+            tempfile.TemporaryDirectory() as unretired_repo,
             patch(
-                "tools.check_conventions._requires_managed_cargo_delegation",
+                "tools.audits.check_conventions._requires_managed_cargo_delegation",
                 return_value=True,
             ),
-            patch("tools.check_conventions.subprocess.run", side_effect=completed_child),
+            patch("tools.audits.check_conventions.subprocess.run", side_effect=completed_child),
         ):
             report = run_conventions(
-                Path(__file__).resolve().parents[2],
+                Path(unretired_repo),
                 ["structure", "clippy"],
                 dry_run=False,
             )
@@ -882,7 +937,7 @@ class CheckConventionsTests(unittest.TestCase):
         repo_root = Path(__file__).resolve().parents[2]
         launch_error = FileNotFoundError(2, "missing executable", "cargo")
 
-        with patch("tools.check_conventions.subprocess.run", side_effect=launch_error):
+        with patch("tools.audits.check_conventions.subprocess.run", side_effect=launch_error):
             report = run_conventions(
                 repo_root,
                 ["structure"],
@@ -897,7 +952,7 @@ class CheckConventionsTests(unittest.TestCase):
 
         output = io.StringIO()
         with (
-            patch("tools.check_conventions.subprocess.run", side_effect=launch_error),
+            patch("tools.audits.check_conventions.subprocess.run", side_effect=launch_error),
             patch.object(
                 sys,
                 "argv",
@@ -916,7 +971,7 @@ class CheckConventionsTests(unittest.TestCase):
 
     def test_convention_command_plan_is_stable_and_scoped(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
-        runner_source = (repo_root / "tools/check_conventions.py").read_text(
+        runner_source = (repo_root / "tools/audits/check_conventions.py").read_text(
             encoding="utf-8-sig"
         )
         commands = convention_commands(managed_cargo=False)

@@ -1,3 +1,4 @@
+# 核对视口渲染与指针路由共用交互提取缓存，以及候选构造和旧路径退场。
 import unittest
 from pathlib import Path
 

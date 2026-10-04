@@ -5,6 +5,7 @@ pub struct TaskStatus {
     pub label: String,
     pub detail: HubMessage,
     pub running: bool,
+    pub cancellable: bool,
     pub severity: TaskSeverity,
     pub recovery: Option<HubMessage>,
     pub operation: Option<TaskOperationKind>,
@@ -43,6 +44,7 @@ impl TaskStatus {
             label: "Ready".to_string(),
             detail: HubMessage::new(HubMessageId::Shell(ShellMessageId::HubReady)),
             running: false,
+            cancellable: false,
             severity: TaskSeverity::Info,
             recovery: None,
             operation: Some(TaskOperationKind::Hub),
@@ -57,6 +59,7 @@ impl TaskStatus {
             label: label.into(),
             detail,
             running: true,
+            cancellable: false,
             severity: TaskSeverity::Info,
             recovery: None,
             operation: None,
@@ -83,6 +86,14 @@ impl TaskStatus {
         Self::new(label, detail, TaskSeverity::Warning, Some(recovery))
     }
 
+    pub fn cancelled(
+        label: impl Into<String>,
+        detail: HubMessage,
+        recovery: Option<HubMessage>,
+    ) -> Self {
+        Self::new(label, detail, TaskSeverity::Warning, recovery)
+    }
+
     pub fn error(label: impl Into<String>, detail: HubMessage, recovery: HubMessage) -> Self {
         Self::new(label, detail, TaskSeverity::Error, Some(recovery))
     }
@@ -97,6 +108,7 @@ impl TaskStatus {
             label: label.into(),
             detail,
             running: false,
+            cancellable: false,
             severity,
             recovery,
             operation: None,
@@ -111,6 +123,11 @@ impl TaskStatus {
 
     pub fn with_task_id(mut self, task_id: u64) -> Self {
         self.task_id = task_id;
+        self
+    }
+
+    pub fn with_cancellable(mut self) -> Self {
+        self.cancellable = true;
         self
     }
 
@@ -158,51 +175,5 @@ impl TaskStatus {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn task_status_operation_summary_names_scope_and_target() {
-        let status = TaskStatus::success("Project selected", HubMessage::raw_text("Game"))
-            .with_operation(TaskOperationKind::Project, "Game");
-
-        assert_eq!(status.operation_summary(), "Project: Game");
-    }
-
-    #[test]
-    fn task_status_progress_tracks_lifecycle_checkpoints() {
-        assert_eq!(
-            TaskStatus::idle().progress_percent,
-            TASK_PROGRESS_IDLE_PERCENT
-        );
-        assert_eq!(
-            TaskStatus::running(
-                "Building",
-                HubMessage::raw_text("Running tools/zircon_build.py")
-            )
-            .progress_percent,
-            TASK_PROGRESS_STARTED_PERCENT
-        );
-        assert_eq!(
-            TaskStatus::success("Build complete", HubMessage::raw_text("out")).progress_percent,
-            TASK_PROGRESS_COMPLETE_PERCENT
-        );
-        assert_eq!(
-            TaskStatus::error(
-                "Build failed",
-                HubMessage::raw_text("failed"),
-                HubMessage::raw_text("retry"),
-            )
-            .progress_percent,
-            TASK_PROGRESS_IDLE_PERCENT
-        );
-
-        let clamped = TaskStatus::running(
-            "Building",
-            HubMessage::raw_text("Running tools/zircon_build.py"),
-        )
-        .with_progress_percent(TASK_PROGRESS_COMPLETE_PERCENT + 1);
-
-        assert_eq!(clamped.progress_percent, TASK_PROGRESS_COMPLETE_PERCENT);
-    }
-}
+#[path = "tests/task_status.rs"]
+mod tests;

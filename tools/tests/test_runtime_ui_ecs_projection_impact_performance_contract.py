@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from tools.runtime_ui_ecs_projection_impact_pressure import run
+from tools.analysis.performance.runtime.runtime_ui_ecs_projection_impact_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -12,7 +12,7 @@ SURFACE_PROJECTION = ROOT / "zircon_runtime/src/ui/surface/ecs_projection.rs"
 def function_body(source: str, name: str, next_name: str) -> str:
     return source.split(f"fn {name}", 1)[1].split(f"fn {next_name}", 1)[0]
 
-
+# 读取 ECS 投影增量路径，验证派生权威预计算后移动，域与调度影响在单次输入遍历中分桶。
 class RuntimeUiEcsProjectionImpactPerformanceContractTests(unittest.TestCase):
     def test_surface_delta_helpers_move_precomputed_derived_authorities(self) -> None:
         source = SURFACE_PROJECTION.read_text(encoding="utf-8")

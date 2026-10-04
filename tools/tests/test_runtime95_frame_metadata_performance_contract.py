@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 帧元数据将体积光成员关系与 cookie 计划分别索引，后者保持连续排序；检查发布基准是否包含两个实际读取路径。
 
 ROOT = Path(__file__).resolve().parents[2]
 LIGHT_BUFFER = (
@@ -8,16 +8,14 @@ LIGHT_BUFFER = (
     / "zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer.rs"
 )
 LIGHT_BUFFER_PERFORMANCE = (
-    ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer/performance_tests.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer/tests/performance_tests.rs"
 )
 COOKIE_PLAN = (
     ROOT
     / "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/frame_plan.rs"
 )
 COOKIE_PLAN_PERFORMANCE = (
-    ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/frame_plan/performance_tests.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/frame_plan/tests/performance_tests.rs"
 )
 
 

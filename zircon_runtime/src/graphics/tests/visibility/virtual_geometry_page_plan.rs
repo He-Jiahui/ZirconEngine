@@ -186,8 +186,8 @@ fn visibility_context_with_history_tracks_virtual_geometry_requested_pages() {
 }
 
 #[test]
-fn visibility_context_refines_virtual_geometry_parent_cluster_into_visible_children_when_budget_allows()
- {
+fn visibility_context_refines_virtual_geometry_parent_cluster_into_visible_children_when_budget_allows(
+) {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
@@ -270,8 +270,8 @@ fn visibility_context_refines_virtual_geometry_parent_cluster_into_visible_child
 }
 
 #[test]
-fn visibility_context_keeps_parent_virtual_geometry_cluster_visible_while_requesting_nonresident_children()
- {
+fn visibility_context_keeps_parent_virtual_geometry_cluster_visible_while_requesting_nonresident_children(
+) {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
@@ -342,8 +342,8 @@ fn visibility_context_keeps_parent_virtual_geometry_cluster_visible_while_reques
 }
 
 #[test]
-fn visibility_context_keeps_resident_virtual_geometry_children_visible_while_requesting_nonresident_grandchildren()
- {
+fn visibility_context_keeps_resident_virtual_geometry_children_visible_while_requesting_nonresident_grandchildren(
+) {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 

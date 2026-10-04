@@ -48,17 +48,18 @@ impl ResourceReadinessGenerationAssemblyExt for ResourceReadinessGeneration {
 
 pub mod io {
     pub use crate::io::atomic_file::{
-        AtomicWriteFault, PendingAtomicWrite, atomic_write_with_fault, ensure_parent_directories,
-        is_atomic_write_transaction_path, recover_missing_target_from_backup, replace_staged_file,
-        stage_atomic_write, sync_parent_directory,
+        atomic_write_with_fault, ensure_parent_directories, is_atomic_write_transaction_path,
+        recover_missing_target_from_backup, replace_staged_file, stage_atomic_write,
+        sync_parent_directory, AtomicWriteFault, PendingAtomicWrite,
     };
 
     pub mod transaction {
         pub use crate::io::transaction::{
+            commit_prepared_files, detect_pending_transactions,
+            is_project_transaction_sibling_path, recover_pending_transactions,
             DurableCommitDisposition, DurableCommitReport, DurableRecoveryReport,
-            DurableTransactionError, JournalDocument, PreparedFileWrite, RecoveryPolicy,
-            TransactionFault, TransactionPhase, commit_prepared_files, detect_pending_transactions,
-            recover_pending_transactions,
+            DurableTransactionError, JournalDocument, PreparedFileWrite, RecoveryMode,
+            RecoveryPolicy, TransactionFault, TransactionPhase,
         };
     }
 }

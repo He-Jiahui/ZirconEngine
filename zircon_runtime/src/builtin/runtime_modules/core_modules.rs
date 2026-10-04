@@ -95,7 +95,7 @@ pub(super) fn runtime_core_module_candidates_for_target_with_render_features(
     ];
     #[cfg(feature = "text")]
     if target != RuntimeTargetMode::ServerRuntime {
-        modules.push(Arc::new(text::TextModule));
+        modules.push(Arc::new(text::TextModule::for_target(target)));
     }
     if target != RuntimeTargetMode::ServerRuntime {
         modules.push(Arc::new(
@@ -140,7 +140,7 @@ pub(super) fn runtime_core_module_candidates_for_target_with_render_features(
     ];
     #[cfg(feature = "text")]
     if target != RuntimeTargetMode::ServerRuntime {
-        modules.push(Arc::new(text::TextModule));
+        modules.push(Arc::new(text::TextModule::for_target(target)));
     }
     #[cfg(feature = "script")]
     if target != RuntimeTargetMode::ServerRuntime {

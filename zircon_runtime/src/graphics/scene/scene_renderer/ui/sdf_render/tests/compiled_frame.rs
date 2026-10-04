@@ -26,6 +26,7 @@ fn compiled_frame_rebuilds_when_text_owner_republishes_artifact() {
         &[],
         &[],
         &[],
+        None,
     );
 
     assert!(!inputs.matches(
@@ -34,6 +35,7 @@ fn compiled_frame_rebuilds_when_text_owner_republishes_artifact() {
         &[],
         &[],
         &[],
+        None,
     ));
 }
 
@@ -52,6 +54,7 @@ fn compiled_frame_rebuilds_when_source_range_changes() {
         &[],
         &[],
         &[],
+        None,
     );
 
     assert!(!inputs.matches(
@@ -60,6 +63,7 @@ fn compiled_frame_rebuilds_when_source_range_changes() {
         &[],
         &[],
         &[],
+        None,
     ));
 }
 

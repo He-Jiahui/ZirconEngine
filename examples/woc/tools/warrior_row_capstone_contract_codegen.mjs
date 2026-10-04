@@ -1,3 +1,6 @@
+// 调用端：npm run generate:warrior-row-capstone-contract (tools/package.json)；职责：把战士天赋行顶点效果绑定到技能与效果派发约定。
+// 输入边界：src/sim/content/warrior_rows.ts, src/sim/content/classes.ts, src/sim/combat/damage.ts, src/sim/combat/effect_dispatch.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

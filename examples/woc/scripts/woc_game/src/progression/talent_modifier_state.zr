@@ -118,6 +118,7 @@ ensureAbility(state: TalentModifierState, abilityId: string): int {
     return state.abilityIds.length - 1;
 }
 
+/// 战斗数值调用方按能力标识和字段名读取平铺结果；未知能力或字段返回零，表示没有该项天赋增量。
 pub abilityField(state: TalentModifierState, abilityId: string, name: string): float {
     var ability = findAbility(state, abilityId);
     if (ability < 0) return 0.0;
@@ -241,6 +242,7 @@ applySelection(state: TalentModifierState, code: uint, spec: bool, multiplier: f
 
 // Mirrors computeTalentModifiers after allocation repair: signature first,
 // scaled mastery second, then the six selected rows in source tree order.
+/// 只有已提交的规范选择码应进入此重算；它先清除旧标量和能力增量，再按专精与六行顺序重建，战斗和属性读取方复用结果。
 pub recompute(
     state: TalentModifierState,
     specCode: uint,

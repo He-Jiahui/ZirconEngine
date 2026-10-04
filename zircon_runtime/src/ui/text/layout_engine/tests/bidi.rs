@@ -68,12 +68,10 @@ fn bidi_isolate_keeps_outer_ltr_order_and_reorders_inner_rtl() {
 
     assert_eq!(layout.direction, UiTextDirection::LeftToRight);
     assert_eq!(visible_text, "A בא Z");
-    assert!(
-        layout.lines[0]
-            .runs
-            .iter()
-            .any(|run| run.text == "ב" && run.direction == UiTextDirection::RightToLeft)
-    );
+    assert!(layout.lines[0]
+        .runs
+        .iter()
+        .any(|run| run.text == "ב" && run.direction == UiTextDirection::RightToLeft));
 }
 
 #[test]
@@ -91,16 +89,14 @@ fn text_bidi_mirrors_paren_in_rtl() {
 
     assert_eq!(layout.direction, UiTextDirection::RightToLeft);
     assert_eq!(line.text, "(בא) םולש");
-    assert!(
-        line.runs
-            .iter()
-            .any(|run| run.text == "(" && run.source_range == UiTextRange { start: 14, end: 15 })
-    );
-    assert!(
-        line.runs
-            .iter()
-            .any(|run| run.text == ")" && run.source_range == UiTextRange { start: 9, end: 10 })
-    );
+    assert!(line
+        .runs
+        .iter()
+        .any(|run| run.text == "(" && run.source_range == UiTextRange { start: 14, end: 15 }));
+    assert!(line
+        .runs
+        .iter()
+        .any(|run| run.text == ")" && run.source_range == UiTextRange { start: 9, end: 10 }));
 }
 
 #[test]
@@ -113,11 +109,10 @@ fn text_bidi_mirrors_arrow_in_rtl() {
 
     assert_eq!(layout.direction, UiTextDirection::RightToLeft);
     assert_eq!(line.text, "← בא");
-    assert!(
-        line.runs
-            .iter()
-            .any(|run| run.text == "←" && run.source_range == UiTextRange { start: 5, end: 8 })
-    );
+    assert!(line
+        .runs
+        .iter()
+        .any(|run| run.text == "←" && run.source_range == UiTextRange { start: 5, end: 8 }));
 }
 
 #[test]
@@ -137,7 +132,7 @@ fn text_bidi_mirrors_unicode_math_bracket_in_rtl() {
 
 #[test]
 fn bidi_visual_order_keeps_grapheme_advances_in_visual_sequence() {
-    use super::super::candidate_line::{CandidateLine, append_segment};
+    use super::super::candidate_line::{append_segment, CandidateLine};
     use super::super::visual_order::apply_visual_order_with_advances;
     use zircon_runtime_interface::ui::surface::UiTextRunKind;
 
@@ -169,7 +164,7 @@ fn bidi_visual_order_keeps_grapheme_advances_in_visual_sequence() {
 
 #[test]
 fn bidi_visual_order_accepts_source_owned_precomputed_order() {
-    use super::super::candidate_line::{CandidateLine, append_segment};
+    use super::super::candidate_line::{append_segment, CandidateLine};
     use super::super::visual_order::apply_visual_order_from_bidi_order_with_advances;
     use crate::text::shaping::BidiLineOrder;
     use zircon_runtime_interface::ui::surface::UiTextRunKind;
@@ -198,7 +193,7 @@ fn bidi_visual_order_accepts_source_owned_precomputed_order() {
 
 #[test]
 fn bidi_visual_order_keeps_virtual_tatweel_in_rtl_visual_sequence() {
-    use super::super::candidate_line::{CandidateLine, append_segment, insert_virtual_text};
+    use super::super::candidate_line::{append_segment, insert_virtual_text, CandidateLine};
     use super::super::visual_order::apply_visual_order_with_advances;
     use zircon_runtime_interface::ui::surface::UiTextRunKind;
 
@@ -242,7 +237,7 @@ fn bidi_visual_order_keeps_virtual_tatweel_in_rtl_visual_sequence() {
 
 #[test]
 fn bidi_visual_order_keeps_a_grapheme_split_across_style_runs_atomic() {
-    use super::super::candidate_line::{CandidateLine, append_segment};
+    use super::super::candidate_line::{append_segment, CandidateLine};
     use super::super::visual_order::apply_visual_order_with_advances;
     use zircon_runtime_interface::ui::surface::UiTextRunKind;
 
@@ -286,7 +281,7 @@ fn bidi_visual_order_keeps_a_grapheme_split_across_style_runs_atomic() {
 
 #[test]
 fn bidi_visual_order_rejects_invalid_source_ranges_without_mutating_the_line() {
-    use super::super::candidate_line::{CandidateLine, append_segment};
+    use super::super::candidate_line::{append_segment, CandidateLine};
     use super::super::visual_order::apply_visual_order_with_advances;
     use crate::text::shaping::BidiInvariantError;
     use zircon_runtime_interface::ui::surface::UiTextRunKind;

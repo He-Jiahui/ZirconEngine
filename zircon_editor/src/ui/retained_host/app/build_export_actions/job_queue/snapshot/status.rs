@@ -39,5 +39,5 @@ pub(super) fn progress_pane_diagnostic(progress: &DesktopExportProgressSnapshot)
 }
 
 #[cfg(test)]
-#[path = "status/direct_format_tests.rs"]
+#[path = "status/tests/direct_format_tests.rs"]
 mod direct_format_tests;

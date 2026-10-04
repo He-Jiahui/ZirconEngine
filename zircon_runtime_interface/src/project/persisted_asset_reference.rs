@@ -6,6 +6,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use crate::project::AssetRef;
 use crate::resource::{ResourceLocator, ResourceScheme};
 
+/// Current project-file reference contract. Runtime-only locators never serialize through it.
 /// 项目文件只持久化项目资产的 AssetRef 或 builtin:// 定位符。
 /// 运行时专用定位符不得借此写入文档；读取时也须保持两类引用的区分。
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -98,23 +99,5 @@ impl<'de> Deserialize<'de> for PersistedAssetReference {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::PersistedAssetReference;
-
-    #[test]
-    fn serde_rejects_non_builtin_locator_for_builtin_variant() {
-        let error = serde_json::from_str::<PersistedAssetReference>(
-            r#"{"kind":"builtin","locator":"res://materials/hero.zmaterial"}"#,
-        )
-        .expect_err("builtin variant must reject project locator");
-        assert!(error.to_string().contains("requires builtin://"));
-    }
-
-    #[test]
-    fn serde_rejects_locator_payload_for_project_variant() {
-        serde_json::from_str::<PersistedAssetReference>(
-            r#"{"kind":"project","locator":"builtin://shader/pbr.wgsl"}"#,
-        )
-        .expect_err("project variant must contain AssetRef fields only");
-    }
-}
+#[path = "tests/persisted_asset_reference.rs"]
+mod tests;

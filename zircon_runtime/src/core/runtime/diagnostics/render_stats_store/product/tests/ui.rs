@@ -20,6 +20,9 @@ fn render_product_diagnostics_record_ui_text_raster_stats() {
         last_ui_text_visible_raster_placeholder_count: 3,
         last_ui_text_raster_worker_pending_count: 3,
         last_ui_text_raster_worker_failed_count: 1,
+        last_ui_text_raster_retry_queued_glyph_count: 4,
+        last_ui_text_raster_retry_queue_overflow_glyph_count: 5,
+        last_ui_text_raster_retry_rejected_source_count: 6,
         last_ui_text_raster_renderer_upload_requeued_count: 4,
         last_ui_text_raster_renderer_upload_failure_count: 5,
         last_ui_text_sdf_generation_pending_batch_count: 6,
@@ -84,6 +87,24 @@ fn render_product_diagnostics_record_ui_text_raster_stats() {
         &store,
         "render.ui.text.raster.worker_failed_count",
         1.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.ui.text.raster.retry_queued_glyph_count",
+        4.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.ui.text.raster.retry_queue_overflow_glyph_count",
+        5.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.ui.text.raster.retry_rejected_source_count",
+        6.0,
         "count",
     );
     assert_series(

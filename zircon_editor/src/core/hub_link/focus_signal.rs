@@ -5,8 +5,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use zircon_runtime::core::resource::io::atomic_write;
 use zircon_runtime_interface::hub_protocol::{
-    HubEditorFocusAckDispositionV1, HubEditorFocusAckV1, HubEditorFocusSignalV1, HubSessionToken,
     hub_editor_focus_ack_path, hub_editor_focus_request_directory, hub_editor_focus_signal_path,
+    HubEditorFocusAckDispositionV1, HubEditorFocusAckV1, HubEditorFocusSignalV1, HubSessionToken,
 };
 use zircon_runtime_interface::project::session_lock::ProjectSessionAdmissionLifecycleV1;
 

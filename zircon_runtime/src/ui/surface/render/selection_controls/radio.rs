@@ -6,8 +6,10 @@ use super::{
     commands::{push_label, quad_command},
     geometry::{centered_square, label_rect_after_mark, leading_mark_rect},
     state::SelectionRenderState,
-    style::{SelectionVisual, radio_background, radio_border, radio_dot},
+    style::{radio_background, radio_border, radio_dot, SelectionVisual},
 };
+
+const RADIO_COMMAND_CAPACITY: usize = 3;
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn radio_commands(
@@ -21,7 +23,8 @@ pub(super) fn radio_commands(
     opacity: f32,
 ) -> Vec<UiRenderCommand> {
     let mark = leading_mark_rect(frame, visual);
-    let mut commands = vec![quad_command(
+    let mut commands = Vec::with_capacity(RADIO_COMMAND_CAPACITY);
+    commands.push(quad_command(
         node_id,
         mark,
         clip,
@@ -32,7 +35,7 @@ pub(super) fn radio_commands(
         mark.height * 0.5,
         state,
         opacity,
-    )];
+    ));
     if state.active() {
         commands.push(quad_command(
             node_id,

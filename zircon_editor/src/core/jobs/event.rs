@@ -1,3 +1,4 @@
+//! 提供从工作生命周期到主循环消息泵的稳定事件载荷；日志序号描述保留顺序，任务身份和共享标签贯穿进度及终态，保留字节估算服务日志预算。
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
@@ -69,28 +70,8 @@ impl JobEvent {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-
-    use super::{JobEvent, JobEventKind};
-    use crate::core::jobs::{JobCategory, JobId};
-
-    #[test]
-    fn cloned_events_share_the_job_stable_label_allocation() {
-        let event = JobEvent::new(
-            JobId::new(7),
-            Arc::<str>::from("thumbnail-stable-label"),
-            JobCategory::Thumbnail,
-            JobEventKind::Started,
-        );
-
-        let cloned = event.clone();
-
-        assert_eq!(event.label(), "thumbnail-stable-label");
-        assert_eq!(cloned.label(), event.label());
-        assert!(Arc::ptr_eq(&event.label, &cloned.label));
-    }
-}
+#[path = "tests/event.rs"]
+mod tests;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum JobEventKind {

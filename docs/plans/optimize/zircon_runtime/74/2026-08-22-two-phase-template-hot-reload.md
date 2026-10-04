@@ -3,7 +3,7 @@
 Plan: docs/plans/optimize/zircon_runtime/74-runtime-ui-template-component-binding-expression-model-event-command-hot-reload-product-integration-review.md
 Milestone: M0
 Status: validation_pending
-Files: ["docs/plans/optimize/zircon_runtime/74/2026-08-22-two-phase-template-hot-reload.md","docs/zircon_runtime/ui/template/asset/hot_reload_executor.md","zircon_runtime/src/ui/surface/component_state.rs","zircon_runtime/src/ui/surface/surface.rs","zircon_runtime/src/ui/template/asset/hot_reload_executor.rs","zircon_runtime/src/ui/template/asset/mod.rs","zircon_runtime/src/ui/template/mod.rs","zircon_runtime/src/ui/tests/asset_hot_reload_executor.rs"]
+Files: ["docs/plans/optimize/zircon_runtime/74/2026-08-22-two-phase-template-hot-reload.md","docs/crates/zircon_runtime/ui/template/asset/hot_reload_executor.md","zircon_runtime/src/ui/surface/component_state.rs","zircon_runtime/src/ui/surface/surface.rs","zircon_runtime/src/ui/template/asset/hot_reload_executor.rs","zircon_runtime/src/ui/template/asset/mod.rs","zircon_runtime/src/ui/template/mod.rs","zircon_runtime/src/ui/tests/asset_hot_reload_executor.rs"]
 
 - Date: 2026-08-22
 - Owner: `optimize-runtime74-param-ref-compile-r3-bee4c707-20260822`

@@ -178,7 +178,7 @@ fn authoring_gateway_generation_mismatch_and_gateway_failure_remain_distinct_fro
     let handle = EditorRuntimeGatewayHandle::detached();
     let level =
         DefaultLevelManager::default().create_level(Scene::default(), LevelMetadata::default());
-    let facade = EditorAuthoringWorld::loaded(&handle, AuthoringWorldSeed::from(level))
+    let mut facade = EditorAuthoringWorld::loaded(&handle, AuthoringWorldSeed::from(level))
         .expect("initial authoring world");
     handle
         .replace(Arc::new(DetachedEditorRuntimeGateway))

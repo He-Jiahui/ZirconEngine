@@ -75,9 +75,16 @@ impl EditorHostEventController {
                 .selection()
                 .active_primary()?
         };
-        self.play_inspector_projection
+        let mut snapshot = self
+            .play_inspector_projection
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .snapshot_for(&gateway.identity(), entity)
+            .snapshot_for(&gateway.identity(), entity)?;
+        self.shell()
+            .lock()
+            .state
+            .asset_workspace
+            .resolve_inspector_resource_labels(&mut snapshot.native_fields);
+        Some(snapshot)
     }
 }

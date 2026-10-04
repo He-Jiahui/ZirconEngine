@@ -1,11 +1,11 @@
 use crate::text::atlas::{
-    GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasUploadCommand,
-    GlyphAtlasUploadMode, glyph_atlas_upload_command,
+    glyph_atlas_upload_command, GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec,
+    GlyphAtlasUploadCommand, GlyphAtlasUploadMode,
 };
 use crate::text::sdf::{SdfAtlasBakeDirtyPage, SdfAtlasRect};
 
 use super::sdf_atlas::{
-    SdfAtlasCacheReport, SdfAtlasDirtyPageReport, SdfAtlasPlan, distance_field_atlas_page_keys,
+    distance_field_atlas_page_keys, SdfAtlasCacheReport, SdfAtlasDirtyPageReport, SdfAtlasPlan,
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -297,8 +297,9 @@ fn union_rect(left: SdfAtlasRect, right: SdfAtlasRect) -> SdfAtlasRect {
 }
 
 #[cfg(test)]
+#[path = "sdf_upload/tests/cases.rs"]
 mod tests;
 
 #[cfg(test)]
-#[path = "sdf_upload/merge_index_tests.rs"]
+#[path = "sdf_upload/tests/merge_index_tests.rs"]
 mod merge_index_tests;

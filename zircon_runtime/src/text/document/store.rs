@@ -106,6 +106,8 @@ enum PreparedTextDocumentStoreEditKind {
     },
 }
 
+/// 将文档变更、公开回执投影和存储预算预检绑定在同一独占借用中。
+/// UI 属性事务确认成功后再提交；直接丢弃只释放准备结果，不发布文档版本。
 #[must_use = "prepared document edits must be committed or explicitly discarded"]
 pub(crate) struct PreparedTextDocumentStoreEdit<'store> {
     document: &'store mut TextDocument,
@@ -228,6 +230,8 @@ struct SnapshotLeaseUsage {
     bytes: usize,
 }
 
+/// Store 发放的连续源租约；活跃份数和字节预算在租约释放时归还。
+/// 它可比 Store 中的当前文档版本活得更久，调用方须核对租约版本。
 pub(crate) struct ManagedTextDocumentSnapshotLease {
     inner: TextDocumentSnapshotLease,
     usage: Arc<Mutex<SnapshotLeaseUsage>>,
@@ -271,6 +275,7 @@ impl Drop for ManagedTextDocumentSnapshotLease {
 }
 
 /// Mutable document authority scoped to one product surface or editing session.
+/// UI 绑定持有 Store 的文档身份与版本；所有编辑先校验版本及容量，再发布新版本和回执。
 pub(crate) struct TextDocumentStore {
     limits: TextDocumentStoreLimits,
     next_owner: Option<u64>,
@@ -390,6 +395,8 @@ impl TextDocumentStore {
     }
 
     #[allow(clippy::too_many_arguments)]
+    /// UI 编辑事务的预备入口：在改动源文档前完成版本、预算与公开选择区间投影校验。
+    /// 返回值占用 Store 的独占借用，调用方须在属性事务决议后提交或丢弃。
     pub(crate) fn prepare_replace_with_receipt(
         &mut self,
         document_id: UiTextDocumentId,
@@ -471,6 +478,8 @@ impl TextDocumentStore {
         })
     }
 
+    /// 向当前版本消费者发放受双重预算约束的快照：物化容量与活跃租约分别计量。
+    /// 调用方须传入绑定时观察到的版本；过期绑定不得读取新内容。
     pub(crate) fn snapshot(
         &mut self,
         document_id: UiTextDocumentId,
@@ -536,6 +545,29 @@ impl TextDocumentStore {
         })
     }
 
+    /// Compares the bound document across pieces without creating a flattened snapshot.
+    pub(crate) fn source_equals(
+        &self,
+        document_id: UiTextDocumentId,
+        expected_revision: UiTextDocumentRevision,
+        candidate: &str,
+    ) -> Result<bool, TextDocumentStoreError> {
+        let document = self
+            .documents
+            .get(&document_id)
+            .ok_or(TextDocumentStoreError::UnknownDocument)?;
+        let actual_revision = UiTextDocumentRevision::new(document.key().revision());
+        if expected_revision != actual_revision {
+            return Err(TextDocumentStoreError::StaleRevision {
+                expected: expected_revision,
+                actual: actual_revision,
+            });
+        }
+        document
+            .range_equals(&(0..document.len()), candidate)
+            .map_err(Into::into)
+    }
+
     pub(crate) fn source_range(
         &self,
         document_id: UiTextDocumentId,
@@ -556,6 +588,8 @@ impl TextDocumentStore {
         document.snapshot_range(range).map_err(Into::into)
     }
 
+    /// 在 UI 输入预检中查询替换后仍保留的字素数；即便只查询范围，也可能触发整版索引快照。
+    /// 因而同样先检查当前快照容量，再允许索引物化。
     pub(crate) fn retained_grapheme_count(
         &mut self,
         document_id: UiTextDocumentId,
@@ -730,3 +764,7 @@ fn admit_replacement_total(
     };
     admit_value(total, limit, failure)
 }
+
+#[cfg(test)]
+#[path = "store/tests/committed_source_tests.rs"]
+mod committed_source_tests;

@@ -232,7 +232,7 @@ pub(super) fn slot_padding_for_control(
     bridge
         .surface()
         .tree
-        .slots
+        .layout_slots()
         .iter()
         .find(|slot| slot.child_id == node_id)
         .map(|slot| slot.padding)

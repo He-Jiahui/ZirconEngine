@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f7_asset_artifact_errors_use_asset_import_error_sources() {
     let importer_error = include_str!("../../../../../asset/importer/error.rs");
@@ -19,7 +20,8 @@ fn review_f7_asset_artifact_errors_use_asset_import_error_sources() {
         include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let convention =
         include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
-    let artifact_doc = include_str!("../../../../../../../docs/zircon_runtime/asset/artifact.md");
+    let artifact_doc =
+        include_str!("../../../../../../../docs/crates/zircon_runtime/asset/artifact.md");
 
     for forbidden in [
         "Registry(String)",

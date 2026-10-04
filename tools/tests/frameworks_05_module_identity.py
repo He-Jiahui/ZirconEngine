@@ -487,12 +487,6 @@ class Frameworks05ModuleIdentityChecks:
         foundation_root = (
             REPO_ROOT / "zircon_runtime/src/foundation/mod.rs"
         ).read_text(encoding="utf-8")
-        asset_module = (
-            REPO_ROOT / "zircon_runtime/src/asset/module.rs"
-        ).read_text(encoding="utf-8")
-        platform_module = (
-            REPO_ROOT / "zircon_runtime/src/platform/module.rs"
-        ).read_text(encoding="utf-8")
         builtin_registration = (
             REPO_ROOT
             / "zircon_runtime/src/builtin/runtime_modules/tests/registration/behavior.rs"
@@ -514,7 +508,6 @@ class Frameworks05ModuleIdentityChecks:
         for child in (
             "config_manager",
             "config_persistence_report",
-            "event_manager",
             "module_identity",
         ):
             self.assertIn(f"mod {child};", foundation_contract)
@@ -523,7 +516,7 @@ class Frameworks05ModuleIdentityChecks:
             "pub use config_persistence_report::ConfigPersistenceReport;",
             foundation_contract,
         )
-        self.assertIn("pub use event_manager::EventManager;", foundation_contract)
+        self.assertNotIn("event_manager", foundation_contract)
         self.assertIn(
             "pub use module_identity::FOUNDATION_MODULE_NAME;", foundation_contract
         )
@@ -541,12 +534,7 @@ class Frameworks05ModuleIdentityChecks:
             foundation_root,
             r"pub use module::\{[^}]*\bFOUNDATION_MODULE_NAME\b",
         )
-        for runtime_internal in (
-            asset_module,
-            platform_module,
-            builtin_registration,
-            core_spine,
-        ):
+        for runtime_internal in (builtin_registration, core_spine):
             self.assertIn(
                 "core::framework::foundation::FOUNDATION_MODULE_NAME",
                 runtime_internal,
@@ -603,7 +591,7 @@ class Frameworks05ModuleIdentityChecks:
                 definition_owners.append(relative)
             if (
                 relative in allowed_runtime_facades
-                or relative == "zircon_runtime/src/foundation/tests.rs"
+                or relative == "zircon_runtime/src/foundation/tests/cases.rs"
                 or relative.startswith("zircon_runtime/src/foundation/tests/")
                 or relative.startswith("zircon_runtime/tests/")
                 or not relative.startswith("zircon_runtime/")

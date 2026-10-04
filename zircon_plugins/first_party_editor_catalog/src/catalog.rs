@@ -1,35 +1,22 @@
-use std::collections::HashSet;
-
 use zircon_editor::EditorPluginRegistrationReport;
 use zircon_runtime::builtin::RuntimePluginId;
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
-use zircon_runtime::core::framework::project::ProjectPluginManifest;
+use zircon_runtime::core::framework::project::{
+    resolve_plugin_selections, PluginSelectionResolutionReport, ProjectPluginManifest,
+};
 
 type EditorPluginRegistrationProvider = fn() -> EditorPluginRegistrationReport;
 
 pub fn first_party_editor_plugin_registrations_for_manifest(
     target_mode: RuntimeTargetMode,
     manifest: &ProjectPluginManifest,
-) -> Vec<EditorPluginRegistrationReport> {
+) -> PluginSelectionResolutionReport<EditorPluginRegistrationReport> {
     if target_mode != RuntimeTargetMode::EditorHost {
-        return Vec::new();
+        return resolve_plugin_selections(target_mode, manifest, |_| None);
     }
-
-    let mut seen = HashSet::with_capacity(manifest.selections.len());
-    let mut registrations = Vec::with_capacity(manifest.selections.len());
-    for selection in manifest.enabled_for_target(target_mode) {
-        let Some(plugin_id) = RuntimePluginId::parse_key(&selection.id) else {
-            continue;
-        };
-        let Some(provider) = first_party_editor_registration_provider(&plugin_id) else {
-            continue;
-        };
-        if !seen.insert(plugin_id) {
-            continue;
-        }
-        registrations.push(provider());
-    }
-    registrations
+    resolve_plugin_selections(target_mode, manifest, |plugin_id| {
+        first_party_editor_registration_provider(plugin_id).map(|provider| provider())
+    })
 }
 
 pub fn first_party_registration_for_editor_plugin(

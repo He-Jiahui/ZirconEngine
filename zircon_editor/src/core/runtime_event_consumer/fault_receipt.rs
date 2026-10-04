@@ -141,14 +141,14 @@ impl EditorRuntimeEventConsumerFaultReceipt {
     }
 }
 
-pub(super) struct EditorRuntimeEventConsumerFaultReceiptJournal {
+pub(crate) struct EditorRuntimeEventConsumerFaultReceiptJournal {
     budget: EditorRuntimeEventConsumerFaultReceiptBudget,
     receipts: VecDeque<EditorRuntimeEventConsumerFaultReceipt>,
     retained_payload_bytes: usize,
 }
 
 impl EditorRuntimeEventConsumerFaultReceiptJournal {
-    pub(super) fn new(budget: EditorRuntimeEventConsumerFaultReceiptBudget) -> Self {
+    pub(crate) fn new(budget: EditorRuntimeEventConsumerFaultReceiptBudget) -> Self {
         Self {
             budget,
             receipts: VecDeque::new(),
@@ -156,7 +156,7 @@ impl EditorRuntimeEventConsumerFaultReceiptJournal {
         }
     }
 
-    pub(super) fn record_callback_panic(
+    pub(crate) fn record_callback_panic(
         &mut self,
         consumer_id: &str,
         play_session_id: u64,
@@ -202,54 +202,11 @@ impl EditorRuntimeEventConsumerFaultReceiptJournal {
         self.receipts.push_back(receipt);
     }
 
-    pub(super) fn snapshot(&self) -> Vec<EditorRuntimeEventConsumerFaultReceipt> {
+    pub(crate) fn snapshot(&self) -> Vec<EditorRuntimeEventConsumerFaultReceipt> {
         self.receipts.iter().cloned().collect()
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use zircon_runtime_interface::{
-        ZrRuntimePluginEventDeliveryV1, ZrRuntimePluginEventSubscriptionHandle,
-    };
-
-    use super::{
-        EditorRuntimeEventConsumerCallbackPhase, EditorRuntimeEventConsumerFaultReceiptBudget,
-        EditorRuntimeEventConsumerFaultReceiptJournal,
-    };
-
-    #[test]
-    fn zero_receipt_capacity_keeps_one_fault_record() {
-        assert_eq!(
-            EditorRuntimeEventConsumerFaultReceiptBudget::new(0, 0).max_receipts(),
-            1
-        );
-
-        let delivery = ZrRuntimePluginEventDeliveryV1::new(
-            7,
-            ZrRuntimePluginEventSubscriptionHandle::new(11),
-            "tests.events.panic",
-            "tests.events.panic.v1",
-            1,
-            serde_json::json!({ "payload": "must-not-be-copied" }),
-        );
-        let mut journal = EditorRuntimeEventConsumerFaultReceiptJournal::new(
-            EditorRuntimeEventConsumerFaultReceiptBudget::new(0, 0),
-        );
-        journal.record_callback_panic(
-            "tests.consumer.panic",
-            7,
-            EditorRuntimeEventConsumerCallbackPhase::Consume,
-            Some(&delivery),
-            None,
-            |_| true,
-            |_| {},
-        );
-
-        let receipts = journal.snapshot();
-        assert_eq!(receipts.len(), 1);
-        assert!(receipts[0].payload_json().is_none());
-        assert!(receipts[0].payload_was_truncated());
-        assert!(receipts[0].payload_digest().is_some());
-    }
-}
+#[path = "tests/fault_receipt.rs"]
+mod tests;

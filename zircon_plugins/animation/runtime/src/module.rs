@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::animation::AnimationManager;
+use zircon_runtime::core::framework::foundation::FOUNDATION_MODULE_NAME;
 use zircon_runtime::core::manager::RegisteredManagerService;
 use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{
-    DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode,
+    DriverDescriptor, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor, ServiceKind,
+    StartupMode,
 };
 use zircon_runtime::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 
@@ -26,6 +28,7 @@ pub fn module_descriptor() -> ModuleDescriptor {
         ANIMATION_MODULE_NAME,
         "Animation scheduling and clip playback",
     )
+    .with_module_dependency(ModuleDependencySpec::named(FOUNDATION_MODULE_NAME))
     .with_driver(DriverDescriptor::new(
         qualified_name(
             ANIMATION_MODULE_NAME,
@@ -43,7 +46,11 @@ pub fn module_descriptor() -> ModuleDescriptor {
             "DefaultAnimationManager",
         ),
         StartupMode::Immediate,
-        Vec::new(),
+        vec![dependency_on(
+            FOUNDATION_MODULE_NAME,
+            ServiceKind::Manager,
+            "ConfigManager",
+        )],
         factory(|core| Ok(Arc::new(DefaultAnimationManager::new(Some(core))) as ServiceObject)),
     ))
     .with_manager(ManagerDescriptor::new(

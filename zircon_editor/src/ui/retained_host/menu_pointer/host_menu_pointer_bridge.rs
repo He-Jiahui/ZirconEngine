@@ -17,6 +17,7 @@ pub(crate) struct HostMenuPointerBridge {
     pub(in crate::ui::retained_host::menu_pointer) popup_menu_index: Option<usize>,
     pub(in crate::ui::retained_host::menu_pointer) popup_items: Vec<MenuItemSpec>,
     pub(in crate::ui::retained_host::menu_pointer) popup_route_indices: HashMap<Vec<usize>, usize>,
+    pub(in crate::ui::retained_host::menu_pointer) popup_item_path_scratch: Vec<usize>,
     #[cfg(test)]
     pub(in crate::ui::retained_host::menu_pointer) surface_authority_generation: u64,
 }

@@ -51,7 +51,7 @@ for (const field of [
 for (const needle of [
   'appendDefaultLocomotionRecoveryColumns(this);',
   'appendDefaultLocomotionRecoveryColumns(state);',
-  'writer.u16(<uint>38, 1, 1);',
+  'writer.u16(schemaVersion, 1, 1);',
   'schemaVersion != <uint>25',
   'if (schemaVersion >= <uint>25) {',
   'm8FreshPlayerStats.locomotionRecoveryFlag',
@@ -63,8 +63,8 @@ for (const needle of [
 }
 invariant((state.match(/entityFleeTimers/g) ?? []).length >= 9,
   'WOS25 flee timer lacks persistence coverage');
-invariant(main.includes('\\"world_state\\":\\"WOS38\\",'),
-  'package stateSchema must expose the WOS38 snapshot version');
+invariant(main.includes('\\"world_state\\":\\"WOS118\\",'),
+  'package stateSchema must expose the WOS118 snapshot version');
 
 process.stdout.write(`checked WOS25 locomotion-recovery source projection: ${SOURCE_COMMIT.slice(0, 15)}\n`);
 

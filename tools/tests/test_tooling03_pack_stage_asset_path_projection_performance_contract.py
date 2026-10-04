@@ -5,22 +5,22 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from tools.zircon_export.pipeline_report_pack_stage_schema import (
+from tools.export.pipeline_report_pack_stage_schema import (
     pack_report_asset_path_array_projection,
 )
-from tools.zircon_export.pipeline_report_pack_stage_schema import (
+from tools.export.pipeline_report_pack_stage_schema import (
     pack_string_array_entry_type_schema_diagnostics,
 )
-from tools.zircon_export.pipeline_report_pack_trim_schema import (
+from tools.export.pipeline_report_pack_trim_schema import (
     pack_asset_path_array_schema_diagnostics,
 )
-from tools.zircon_export.pipeline_report_schema_string_array import (
+from tools.export.pipeline_report_schema_string_array import (
     string_array_no_blank_entries_schema_diagnostics,
 )
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-OWNER = REPO_ROOT / "tools/zircon_export/pipeline_report_pack_stage_schema.py"
+OWNER = REPO_ROOT / "tools/export/pipeline_report_pack_stage_schema.py"
 
 
 def _legacy(label: str, value: object) -> list[str]:

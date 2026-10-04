@@ -1,16 +1,16 @@
 from pathlib import Path
 import unittest
 
-from tools.runtime_ui_style_delta_merge_pressure import run
+from tools.analysis.performance.runtime.runtime_ui_style_delta_merge_pressure import run
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_STATE = (
     REPO_ROOT / "zircon_runtime/src/ui/v2/style/runtime_state.rs"
 )
-PROFILE_MANIFEST = REPO_ROOT / "tools/profile-capture-manifest.ps1"
+PROFILE_MANIFEST = REPO_ROOT / "tools/analysis/profiling/shared/profile-capture-manifest.ps1"
 
-
+# 约束样式增量在一次有序合并中确定脏域，结合行为回归检查域分类和保守映射成本。
 class RuntimeUiStyleDeltaMergePerformanceContract(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

@@ -1,4 +1,4 @@
-use std::any::{TypeId, type_name};
+use std::any::{type_name, TypeId};
 use std::collections::HashMap;
 use std::fmt;
 
@@ -29,6 +29,7 @@ pub enum ComponentDescriptorSource {
 }
 
 #[derive(Clone, Default, PartialEq, Eq)]
+/// 为当前 World 分配组件 ID；Rust 类型和动态插件类型分别索引，只有静态表组件登记连续列布局。
 pub struct ComponentRegistry {
     descriptors: Vec<ComponentDescriptor>,
     rust_ids_by_type_id: HashMap<TypeId, ComponentId>,
@@ -150,5 +151,5 @@ impl fmt::Debug for ComponentRegistry {
 }
 
 #[cfg(test)]
-#[path = "registry/tests.rs"]
+#[path = "registry/tests/cases.rs"]
 mod tests;

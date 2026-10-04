@@ -1,3 +1,4 @@
+# 核对外框绘制源表以紧凑键去重，并在面板绘制到命令提取间保持身份配对。
 from pathlib import Path
 import unittest
 

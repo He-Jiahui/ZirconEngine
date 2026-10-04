@@ -1,5 +1,8 @@
 use zircon_runtime::ui::surface::UiSurface;
-use zircon_runtime_interface::ui::{event_ui::UiNodeId, layout::UiContainerKind};
+use zircon_runtime_interface::ui::{
+    event_ui::UiNodeId,
+    layout::{UiAxis, UiContainerKind},
+};
 
 use crate::ui::workbench::reference::EditorWorkbenchTemplateSurface;
 
@@ -80,7 +83,8 @@ pub(super) fn resolve_toolbar_priority(
     else {
         return compact;
     };
-    let Some(command_divider_width) = control_intrinsic_width(surface, &controls, COMMAND_DIVIDERS)
+    let Some(command_divider_width) =
+        visible_control_intrinsic_width(surface, &controls, COMMAND_DIVIDERS)
     else {
         return compact;
     };
@@ -167,14 +171,21 @@ fn control_sequence_width(
     control_ids: &[&str],
 ) -> Option<f32> {
     let width = control_intrinsic_width(surface, controls, control_ids)?;
+    let mounted_count = control_ids
+        .iter()
+        .filter(|control_id| controls.node_id(control_id).is_some())
+        .count();
+    if mounted_count == 0 {
+        return Some(0.0);
+    }
     let gap = control_ids
-        .first()
-        .and_then(|control_id| controls.node_id(control_id))
+        .iter()
+        .find_map(|control_id| controls.node_id(control_id))
         .and_then(|node_id| surface.tree.node(node_id))
         .and_then(|node| node.parent)
         .and_then(|parent_id| surface.tree.node(parent_id))
         .and_then(|node| horizontal_gap(&node.container))?;
-    Some(width + gap * control_ids.len().saturating_sub(1) as f32)
+    Some(width + gap * mounted_count.saturating_sub(1) as f32)
 }
 
 fn control_intrinsic_width(
@@ -182,11 +193,39 @@ fn control_intrinsic_width(
     controls: &ToolbarControlSlots<'_>,
     control_ids: &[&str],
 ) -> Option<f32> {
-    control_ids.iter().try_fold(0.0, |width, control_id| {
-        let node_id = controls.node_id(control_id)?;
-        let node = surface.tree.node(node_id)?;
-        Some(width + node.constraints.width.preferred.max(0.0))
-    })
+    // Potential command widths determine whether collapsed commands can return.
+    // Missing authored nodes contribute no width; current runtime visibility of
+    // priority-controlled commands must not feed back and oscillate the decision.
+    Some(
+        control_ids
+            .iter()
+            .filter_map(|control_id| {
+                controls
+                    .node_id(control_id)
+                    .and_then(|id| surface.tree.node(id))
+            })
+            .map(|node| node.constraints.width.preferred.max(0.0))
+            .sum(),
+    )
+}
+
+fn visible_control_intrinsic_width(
+    surface: &UiSurface,
+    controls: &ToolbarControlSlots<'_>,
+    control_ids: &[&str],
+) -> Option<f32> {
+    Some(
+        control_ids
+            .iter()
+            .filter_map(|control_id| {
+                controls
+                    .node_id(control_id)
+                    .and_then(|id| surface.tree.node(id))
+            })
+            .filter(|node| node.effective_visibility().occupies_layout())
+            .map(|node| node.constraints.width.preferred.max(0.0))
+            .sum(),
+    )
 }
 
 fn structural_gap_width(
@@ -197,7 +236,13 @@ fn structural_gap_width(
     let node_id = controls.node_id(control_id)?;
     let node = surface.tree.node(node_id)?;
     let gap = horizontal_gap(&node.container)?;
-    Some(gap * node.children.len().saturating_sub(1) as f32)
+    let visible_children = node
+        .children
+        .iter()
+        .filter_map(|id| surface.tree.node(*id))
+        .filter(|child| child.effective_visibility().occupies_layout())
+        .count();
+    Some(gap * visible_children.saturating_sub(1) as f32)
 }
 
 struct ToolbarControlSlots<'a> {
@@ -211,10 +256,13 @@ impl ToolbarControlSlots<'_> {
 }
 
 fn horizontal_gap(container: &UiContainerKind) -> Option<f32> {
-    let UiContainerKind::HorizontalBox(config) = container else {
-        return None;
-    };
-    Some(config.gap.max(0.0))
+    match container {
+        UiContainerKind::HorizontalBox(config) => Some(config.gap.max(0.0)),
+        UiContainerKind::ScrollableBox(config) if config.axis == UiAxis::Horizontal => {
+            Some(config.gap.max(0.0))
+        }
+        _ => None,
+    }
 }
 
 fn fits_fill_ratio(content_width: f32, available_width: f32, max_fill: f32) -> bool {

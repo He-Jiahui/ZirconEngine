@@ -24,7 +24,7 @@ def function_body(source: str, function_name: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated body for {function_name}")
 
-
+# 读取实现源码约束接口焦点链：焦点链 partitions 默认与索引化候选，并仅显式 Tab 索引应有序。
 class FocusChainPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

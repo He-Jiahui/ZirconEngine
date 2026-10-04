@@ -19,8 +19,8 @@ use crate::core::framework::render::{
 use crate::core::math::{Quat, Transform, UVec2, Vec2, Vec3, Vec4};
 use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
 use crate::graphics::{
-    RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
-    RenderPassStage, WgpuRenderFramework, oit_render_pass_executor_registrations,
+    oit_render_pass_executor_registrations, RenderFeatureCapabilityRequirement,
+    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassStage, WgpuRenderFramework,
 };
 use crate::render_graph::{QueueLane, RenderGraphAttachmentOps};
 
@@ -57,20 +57,16 @@ fn render_product_advanced_lighting_oit_feature_off_matches_sorted_baseline_exac
         sorted.frame.rgba, feature_registered_but_off.frame.rgba,
         "registering OIT must not alter a camera that has OIT disabled"
     );
-    assert!(
-        !feature_registered_but_off
-            .stats
-            .last_graph_executed_passes
-            .iter()
-            .any(|pass| pass == OIT_FRAGMENT_STORE_PASS || pass == OIT_RESOLVE_PASS)
-    );
-    assert!(
-        feature_registered_but_off
-            .stats
-            .last_graph_executed_passes
-            .iter()
-            .any(|pass| pass == SORTED_TRANSPARENT_PASS)
-    );
+    assert!(!feature_registered_but_off
+        .stats
+        .last_graph_executed_passes
+        .iter()
+        .any(|pass| pass == OIT_FRAGMENT_STORE_PASS || pass == OIT_RESOLVE_PASS));
+    assert!(feature_registered_but_off
+        .stats
+        .last_graph_executed_passes
+        .iter()
+        .any(|pass| pass == SORTED_TRANSPARENT_PASS));
 }
 
 #[test]
@@ -80,44 +76,36 @@ fn render_product_advanced_lighting_oit_three_crossing_planes_differs_from_sorte
     let oit = render_crossing_planes(true, Some(settings));
     let difference = frame_difference(&sorted.frame, &oit.frame);
 
-    assert!(
-        sorted
-            .stats
-            .last_graph_executed_passes
-            .iter()
-            .any(|pass| pass == SORTED_TRANSPARENT_PASS)
-    );
-    assert!(
-        !sorted
-            .stats
-            .last_graph_executed_passes
-            .iter()
-            .any(|pass| pass == OIT_FRAGMENT_STORE_PASS || pass == OIT_RESOLVE_PASS)
-    );
-    assert!(
-        oit.stats
-            .last_graph_executed_passes
-            .iter()
-            .any(|pass| pass == OIT_FRAGMENT_STORE_PASS)
-    );
-    assert!(
-        oit.stats
-            .last_graph_executed_passes
-            .iter()
-            .any(|pass| pass == OIT_RESOLVE_PASS)
-    );
-    assert!(
-        !oit.stats
-            .last_graph_executed_passes
-            .iter()
-            .any(|pass| pass == SORTED_TRANSPARENT_PASS)
-    );
-    assert!(
-        oit.stats
-            .last_effective_features
-            .iter()
-            .any(|name| name == "oit")
-    );
+    assert!(sorted
+        .stats
+        .last_graph_executed_passes
+        .iter()
+        .any(|pass| pass == SORTED_TRANSPARENT_PASS));
+    assert!(!sorted
+        .stats
+        .last_graph_executed_passes
+        .iter()
+        .any(|pass| pass == OIT_FRAGMENT_STORE_PASS || pass == OIT_RESOLVE_PASS));
+    assert!(oit
+        .stats
+        .last_graph_executed_passes
+        .iter()
+        .any(|pass| pass == OIT_FRAGMENT_STORE_PASS));
+    assert!(oit
+        .stats
+        .last_graph_executed_passes
+        .iter()
+        .any(|pass| pass == OIT_RESOLVE_PASS));
+    assert!(!oit
+        .stats
+        .last_graph_executed_passes
+        .iter()
+        .any(|pass| pass == SORTED_TRANSPARENT_PASS));
+    assert!(oit
+        .stats
+        .last_effective_features
+        .iter()
+        .any(|name| name == "oit"));
     assert!(
         difference.changed_pixel_count > 1_000,
         "crossing planes should expose a broad per-pixel ordering difference: {difference:?}"

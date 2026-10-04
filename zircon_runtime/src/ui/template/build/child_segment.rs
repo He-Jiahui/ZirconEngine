@@ -2,6 +2,8 @@ use std::fmt::Write;
 
 use zircon_runtime_interface::ui::template::UiTemplateNode;
 
+/// 为构树遍历生成父路径下的可诊断段；字符替换后仍以兄弟序号区分同名节点。
+/// 路径随兄弟顺序改变，不能替代跨重建使用的控件身份。
 pub(super) fn child_segment(node: &UiTemplateNode, index: usize) -> String {
     let raw = node
         .control_id
@@ -28,5 +30,5 @@ fn decimal_digit_count(mut value: usize) -> usize {
 }
 
 #[cfg(test)]
-#[path = "child_segment/direct_write_tests.rs"]
+#[path = "child_segment/tests/direct_write_tests.rs"]
 mod direct_write_tests;

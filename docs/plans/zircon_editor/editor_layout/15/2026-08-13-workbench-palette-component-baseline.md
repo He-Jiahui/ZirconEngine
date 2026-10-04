@@ -7,7 +7,7 @@ updated_at: 2026-08-13
 
 # Workbench Palette Component Baseline
 
-已完成工作台原子调色板的统一收敛。`EditorPaletteTokens::workbench_dark()` 现在以 `docs/ui-and-layout/ai-workbench-style/prototype/base.css` 为基准：外壳、chrome、面板、输入 recessed surface、hover/selected state、accent、border、popup、track 和三级文字均由一个中央令牌表定义。控件高度、圆角、间距、响应断点和业务状态机未改动；success/info/warning/error 语义色保持原值。
+已完成工作台原子调色板的统一收敛。`EditorPaletteTokens::workbench_dark()` 现在以 `docs/ui/ai-workbench-style/prototype/base.css` 为基准：外壳、chrome、面板、输入 recessed surface、hover/selected state、accent、border、popup、track 和三级文字均由一个中央令牌表定义。控件高度、圆角、间距、响应断点和业务状态机未改动；success/info/warning/error 语义色保持原值。
 
 `separator_strong` 与常驻 dock 的 `--line` 收敛为 `#223037`，而 `separator_soft` 使用其在 `#10181c` 面板上的预混合结果 `#1b2428`。保留宿主 CPU 截图帧当前覆写 RGBA 像素而不作 source-alpha blending，因此没有直接导入 CSS 的半透明分隔线，保证截图与运行时命令流可一致重放。
 

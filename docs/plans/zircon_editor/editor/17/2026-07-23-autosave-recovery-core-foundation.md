@@ -12,7 +12,7 @@ autosave core。它不宣称 Editor16 项目会话锁、Editor14 job adapter 或
   bool dirty constructor、save token 或源文件保存入口。
 - `AutosaveJobPolicy` 固定 `JobCategory::Misc`、`JobPriority::Background`，并仅
   接受调用方给出的保存 mutex group。
-- 更新 `docs/zircon_editor/core/recovery.md`，记录已实现契约与跨进程边界。
+- 更新 `docs/crates/zircon_editor/core/recovery.md`，记录已实现契约与跨进程边界。
 
 ## 产出记录与时间
 

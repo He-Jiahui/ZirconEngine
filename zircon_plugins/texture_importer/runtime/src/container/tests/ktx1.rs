@@ -13,7 +13,6 @@ fn ktx1_container_importer_reads_1d_dimension() {
             let descriptor = texture.render_image_descriptor();
             assert_eq!(descriptor.dimension, RenderImageDimension::D1);
             assert_eq!(descriptor.depth_or_array_layers, 1);
-            assert_eq!(descriptor.array_layer_count, 1);
         }
         other => panic!("unexpected imported asset: {other:?}"),
     }
@@ -216,7 +215,6 @@ fn ktx1_container_importer_reads_3d_dimension() {
             let descriptor = texture.render_image_descriptor();
             assert_eq!(descriptor.dimension, RenderImageDimension::D3);
             assert_eq!(descriptor.depth_or_array_layers, 5);
-            assert_eq!(descriptor.array_layer_count, 1);
             match texture.payload {
                 TexturePayload::Container { array_layers, .. } => {
                     assert_eq!(array_layers, 1);

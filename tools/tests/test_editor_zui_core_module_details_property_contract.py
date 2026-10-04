@@ -1,3 +1,4 @@
+# 核对核心模块详情属性采用共享名称值行，编辑控件保留提交路由。
 import tomllib
 import unittest
 from pathlib import Path

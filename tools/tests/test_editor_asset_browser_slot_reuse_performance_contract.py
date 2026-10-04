@@ -1,10 +1,11 @@
+# 核对资产浏览槽位按物理行循环复用，滚动时仅重绑进入窗口的行。
 from __future__ import annotations
 
 import re
 import unittest
 from pathlib import Path
 
-from tools.editor_asset_browser_slot_reuse_pressure import run
+from tools.analysis.performance.editor.editor_asset_browser_slot_reuse_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -17,6 +18,7 @@ SOURCE = (
     / "asset_content_layout"
     / "browser_virtualization.rs"
 )
+RUST_TESTS = SOURCE.parent / "tests" / SOURCE.name
 
 
 def logical_index_for_slot(
@@ -125,9 +127,9 @@ class AssetBrowserSlotReusePerformanceContract(unittest.TestCase):
         )
         self.assertIn(
             "one_row_scroll_rebinds_only_the_entering_physical_row",
-            source,
+            RUST_TESTS.read_text(encoding="utf-8"),
         )
-        self.assertIn("bottom_window_backfills_the_materialized_rows", source)
+        self.assertIn("bottom_window_backfills_the_materialized_rows", RUST_TESTS.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

@@ -16,7 +16,6 @@ related_code:
   - zircon_editor/src/core/recovery/autosave
   - zircon_editor/src/core/recovery/session_guard
   - zircon_runtime_interface/src/hub_protocol/recent_projects
-  - zircon_runtime_interface/src/serialization/text/canonical_spool
 tests:
   - zircon_runtime/crates/zr_resource/src/io/atomic_file/tests
   - zircon_runtime/crates/zr_resource/src/io/transaction/engine/tests

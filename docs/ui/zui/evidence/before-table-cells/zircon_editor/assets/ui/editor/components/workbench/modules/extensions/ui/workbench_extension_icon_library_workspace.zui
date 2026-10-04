@@ -1,0 +1,257 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/extensions/ui/workbench_extension_icon_library_workspace.zui"
+version = 2
+display_name = "Workbench Extension Icon Library Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
+]
+styles = []
+
+[components.WorkbenchExtensionIconLibraryWorkspace]
+root = "icon_library_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.icon_library_workspace]
+component = "Overlay"
+control_id = "WorkbenchExtensionIconLibraryWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "icon_library_workspace_main" },
+  { node = "icon_library_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
+
+[nodes.icon_library_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "icon_library_rail_gap" }, { node = "icon_library_left" }, { node = "icon_library_center" }, { node = "icon_library_right_reserve" }]
+
+[nodes.icon_library_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+[nodes.icon_library_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionIconLibraryRailGap"
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.icon_library_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionIconLibraryLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "icon_library_title" }, { node = "icon_library_left_content" }]
+
+[nodes.icon_library_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionIconLibraryLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "icon_library_editor_core_row" }, { node = "icon_library_warning_row" }, { node = "icon_library_usage_topbar_row" }]
+
+[nodes.icon_library_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionIconLibraryTitle"
+props = { text = "Icon Library" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.icon_library_editor_core_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionIconLibraryEditorCoreRow"
+classes = ["workbench-list-row"]
+props = { text = "Editor_Core", icon = "image", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/IconLibraryEditorCoreRow", event = "Click", route = "workbench.extension.icon_library.asset.editor_core" }]
+
+[nodes.icon_library_warning_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionIconLibraryWarningRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "icon-warning", icon = "alert", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/IconLibraryWarningRow", event = "Click", route = "workbench.extension.icon_library.asset.warning" }]
+
+[nodes.icon_library_usage_topbar_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionIconLibraryUsageTopbarRow"
+classes = ["workbench-list-row"]
+props = { text = "Usage_Topbar", icon = "layout", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/IconLibraryUsageTopbarRow", event = "Click", route = "workbench.extension.icon_library.asset.usage_topbar" }]
+
+[nodes.icon_library_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionIconLibraryCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "icon_library_center_header" }, { node = "icon_library_table" }, { node = "icon_library_output" }]
+
+[nodes.icon_library_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionIconLibraryCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "icon_library_center_title" }, { node = "icon_library_header_fill" }, { node = "icon_library_find_usage_button" }, { node = "icon_library_validate_button" }]
+
+[nodes.icon_library_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionIconLibraryCenterTitle"
+props = { text = "Icon Usage Matrix" }
+layout = { width = { min = 220.0, preferred = 220.0, max = 280.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.icon_library_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionIconLibraryHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.icon_library_find_usage_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionIconLibraryFindUsageButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { responsive_min_tier = "narrow", text = "Find Usage", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 98.0, preferred = 98.0, max = 108.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/IconLibraryFindUsage", event = "Click", route = "workbench.extension.icon_library.find_usage" }]
+
+[nodes.icon_library_validate_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchExtensionIconLibraryValidateButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Validate", button_variant = "filled", button_color = "accent" }
+layout = { width = { min = 88.0, preferred = 88.0, max = 98.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/IconLibraryValidate", event = "Click", route = "workbench.extension.icon_library.validate" }]
+
+[nodes.icon_library_table]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionIconLibraryTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "icon_library_save_table_row" }, { node = "icon_library_play_table_row" }, { node = "icon_library_warning_table_row" }, { node = "icon_library_archived_table_row" }]
+
+[nodes.icon_library_save_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionIconLibrarySaveTableRow"
+classes = ["workbench-table-row"]
+props = { text = "icon-save", value_text = "Editor   18 refs   ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/IconLibrarySaveTableRow", event = "Click", route = "workbench.extension.icon_library.row.save" }]
+
+[nodes.icon_library_play_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionIconLibraryPlayTableRow"
+classes = ["workbench-table-row"]
+props = { text = "icon-play", value_text = "Editor   22 refs   ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/IconLibraryPlayTableRow", event = "Click", route = "workbench.extension.icon_library.row.play" }]
+
+[nodes.icon_library_warning_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionIconLibraryWarningTableRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "icon-warning", value_text = "System   14 refs   selected" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/IconLibraryWarningTableRow", event = "Click", route = "workbench.extension.icon_library.row.warning" }]
+
+[nodes.icon_library_archived_table_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionIconLibraryArchivedTableRow"
+classes = ["workbench-table-row"]
+props = { text = "icon-archive", value_text = "Archived   0 refs   warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/IconLibraryArchivedTableRow", event = "Click", route = "workbench.extension.icon_library.row.archived" }]
+
+[nodes.icon_library_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionIconLibraryOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "Icon Library", value_text = "312 icons   268 used   4 missing", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+
+[nodes.icon_library_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionIconLibraryRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "icon_library_details_title" }, { node = "icon_library_right_content" }]
+
+[nodes.icon_library_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionIconLibraryRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "icon_library_icon_dropdown_property_row" }, { node = "icon_library_set_dropdown_property_row" }, { node = "icon_library_color_token_field_property_row" }]
+
+[nodes.icon_library_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionIconLibraryDetailsTitle"
+props = { text = "Details" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.icon_library_icon_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionIconLibraryIconDropdownPropertyRow"
+props = { text = "Icon" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "icon_library_icon_dropdown", slot = { name = "value" } }]
+
+[nodes.icon_library_icon_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionIconLibraryIconDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { value_text = "icon-warning", value = "icon-warning", options = ["icon-save", "icon-play", "icon-warning", "icon-archive"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/IconLibraryIconEdit", event = "Change", route = "workbench.extension.icon_library.icon.edit" },
+  { id = "WorkbenchExtension/IconLibraryIconCommit", event = "Submit", route = "workbench.extension.icon_library.icon.commit" },
+]
+
+[nodes.icon_library_set_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionIconLibrarySetDropdownPropertyRow"
+props = { text = "Set" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "icon_library_set_dropdown", slot = { name = "value" } }]
+
+[nodes.icon_library_set_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionIconLibrarySetDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { value_text = "Editor Core", value = "Editor Core", options = ["Editor Core", "System", "Archived"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/IconLibrarySetEdit", event = "Change", route = "workbench.extension.icon_library.set.edit" },
+  { id = "WorkbenchExtension/IconLibrarySetCommit", event = "Submit", route = "workbench.extension.icon_library.set.commit" },
+]
+
+[nodes.icon_library_color_token_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionIconLibraryColorTokenFieldPropertyRow"
+props = { text = "Color Token" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "icon_library_color_token_field", slot = { name = "value" } }]
+
+[nodes.icon_library_color_token_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionIconLibraryColorTokenField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "color.warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/IconLibraryColorTokenEdit", event = "Change", route = "workbench.extension.icon_library.color_token.edit" },
+  { id = "WorkbenchExtension/IconLibraryColorTokenCommit", event = "Submit", route = "workbench.extension.icon_library.color_token.commit" },
+]

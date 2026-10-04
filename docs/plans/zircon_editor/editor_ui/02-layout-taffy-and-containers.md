@@ -212,7 +212,7 @@ pub fn pane_content_root_constraints(geometry: &WorkbenchShellGeometry) -> Vec<P
 | M4.S1 | PaneContentRootConstraint 契约落地：autolayout 输出 → pane 内容子树 root 约束 | pane_content_contract.rs、workbench_shell_geometry.rs | `cargo test -p zircon_editor --lib autolayout --locked` | 无删除 |
 | M4.S2 | drawer 拖拽改宽 → 内容区 Taffy reflow 实机验证；删除被取代的逐 pane override | axis_constraint_override.rs、pane_constraint_override.rs | `cargo test -p zircon_editor --lib --locked` + 实机 | 删被取代 override |
 | M5.S1 | debug DTO + 采集（开关控制，默认关） | interface layout/debug.rs、debug_packet.rs | `cargo test -p zircon_runtime --lib debug_packet --locked` | 无删除 |
-| M5.S2 | 导出口（host request / dump）+ 快照测试 + `docs/zircon_runtime/ui/layout.md` 更新 | debug_packet.rs、文档 | 同上 | 无删除 |
+| M5.S2 | 导出口（host request / dump）+ 快照测试 + `docs/crates/zircon_runtime/ui/layout.md` 更新 | debug_packet.rs、文档 | 同上 | 无删除 |
 
 ## 8. 测试矩阵（代表性用例）
 

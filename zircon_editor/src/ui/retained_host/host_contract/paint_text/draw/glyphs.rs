@@ -1,111 +1,76 @@
-mod metrics;
 mod row;
 
-use std::cell::OnceCell;
-
+use zircon_runtime::core::framework::text::{
+    TextGlyphRasterHinting, TextGlyphRasterMode, TextGlyphRasterRequest, TextGlyphRasterSmoothing,
+    TextGlyphSyntheticStyle,
+};
+use zircon_runtime::ui::surface::UiTextGlyphArtifactRasterFace;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::paint_geometry::PixelRect;
 use super::super::super::paint_theme::{current_host_text_preferences, HostTextSmoothing};
-use super::super::font::{host_font_snapshot_for_face, HostTextFontFace, HostTextFontSnapshot};
-use super::super::raster::{rasterize_cached_host_glyph, rasterize_cached_runtime_artifact_glyph};
 use super::layout::RuntimeTextGlyph;
-use super::placement::retained_glyph_placement_for_smoothing;
-use metrics::logical_raster_extent;
 use row::draw_glyph_row;
 
 pub(super) fn draw_layout_glyphs(
     frame: &mut HostRgbaFrame,
     clip: &PixelRect,
-    font_face: HostTextFontFace,
     glyphs: &[RuntimeTextGlyph],
-    artifact_raster_fonts: &[HostTextFontSnapshot],
+    artifact_raster_faces: &[UiTextGlyphArtifactRasterFace],
     color: [u8; 4],
     style: UiTextRunPaintStyle,
 ) {
     let smoothing = current_host_text_preferences().smoothing;
-    let host_font = OnceCell::new();
     for glyph in glyphs {
-        draw_layout_glyph(
-            frame,
-            clip,
-            font_face,
-            &host_font,
-            glyph,
-            artifact_raster_fonts,
-            color,
-            style,
-            smoothing,
-        );
+        let Some(face) = artifact_raster_faces.get(glyph.raster_face_index) else {
+            super::visual_evidence::failure("glyph raster face is unavailable");
+            zircon_runtime::profile_counter!(
+                "editor",
+                "retained_text_raster_face_lookup_failure_count",
+                1
+            );
+            continue;
+        };
+        draw_layout_glyph(frame, clip, face, glyph, color, style, smoothing);
     }
 }
 
 fn draw_layout_glyph(
     frame: &mut HostRgbaFrame,
     clip: &PixelRect,
-    font_face: HostTextFontFace,
-    host_font: &OnceCell<HostTextFontSnapshot>,
+    face: &UiTextGlyphArtifactRasterFace,
     glyph: &RuntimeTextGlyph,
-    artifact_raster_fonts: &[HostTextFontSnapshot],
     color: [u8; 4],
     style: UiTextRunPaintStyle,
     smoothing: HostTextSmoothing,
 ) {
-    let phase_x = if glyph.origin_x.is_finite() {
-        glyph.origin_x
-    } else {
-        glyph.x
+    let request = glyph_raster_request(glyph, style, smoothing);
+    let receipt = match face.rasterize_glyph(request) {
+        Ok(receipt) => receipt,
+        Err(error) => {
+            super::visual_evidence::failure(&format!("glyph rasterization failed: {error:?}"));
+            zircon_runtime::profile_counter!(
+                "editor",
+                "retained_text_glyph_raster_failure_count",
+                1
+            );
+            return;
+        }
     };
-    let origin_placement = retained_glyph_placement_for_smoothing(phase_x, smoothing);
-    let raster = glyph
-        .raster_font_index
-        .and_then(|index| artifact_raster_fonts.get(index))
-        .map(|font| {
-            rasterize_cached_runtime_artifact_glyph(
-                font,
-                glyph.glyph_index,
-                glyph.px,
-                origin_placement.subpixel_offset,
-                smoothing,
-            )
-        })
-        .unwrap_or_else(|| {
-            rasterize_cached_host_glyph(
-                font_face,
-                host_font.get_or_init(|| host_font_snapshot_for_face(font_face)),
-                glyph.glyph_index,
-                glyph.px,
-                origin_placement.subpixel_offset,
-                smoothing,
-            )
-        });
-    let metrics = &raster.metrics;
-    let bitmap = raster.bitmap.as_ref();
-    if metrics.width == 0 || metrics.height == 0 {
+    let Ok(raster_width) = usize::try_from(receipt.size[0]) else {
+        return;
+    };
+    let Ok(raster_height) = usize::try_from(receipt.size[1]) else {
+        return;
+    };
+    let glyph_x = bitmap_left(glyph.origin_x, receipt.bearing[0]);
+    let glyph_y = bitmap_top(glyph.baseline_y, receipt.bearing[1]);
+    super::visual_evidence::glyph(face, glyph, &receipt, [glyph_x, glyph_y], clip, color[3]);
+    if raster_width == 0 || raster_height == 0 {
         return;
     }
-    let logical_width =
-        logical_raster_extent(metrics.width, raster.sample_scale, raster.sample_offset_x);
-    let logical_height = logical_raster_extent(metrics.height, raster.sample_scale, 0.0);
-    if logical_width == 0 || logical_height == 0 {
-        return;
-    }
-    let layout_bitmap_left_x = if glyph.x.is_finite() {
-        glyph.x
-    } else {
-        phase_x + metrics.x_offset as f32
-    };
-    let layout_bitmap_left_placement =
-        retained_glyph_placement_for_smoothing(layout_bitmap_left_x, smoothing);
-    let glyph_x = retained_glyph_bitmap_pixel_x(
-        glyph,
-        layout_bitmap_left_placement.pixel_x,
-        origin_placement.pixel_x,
-        metrics.x_offset,
-    );
-    let glyph_y = glyph.y.round() as i32 + metrics.y_offset;
-    for row in 0..logical_height {
+    for row in 0..raster_height {
         let y = glyph_y + row as i32;
         if y < clip.y0 as i32 || y >= clip.y1 as i32 {
             continue;
@@ -113,37 +78,47 @@ fn draw_layout_glyph(
         draw_glyph_row(
             frame,
             clip,
-            bitmap,
-            metrics.width,
-            metrics.height,
-            raster.format,
-            logical_width,
-            logical_height,
+            receipt.bitmap.as_ref(),
+            raster_width,
+            raster_height,
+            receipt.format,
             row,
             glyph_x,
             y,
             color,
-            style,
-            raster.sample_scale,
-            raster.sample_offset_x,
         );
     }
 }
 
-fn retained_glyph_bitmap_pixel_x(
+fn glyph_raster_request(
     glyph: &RuntimeTextGlyph,
-    layout_bitmap_left_pixel_x: i32,
-    origin_pixel_x: i32,
-    raster_metrics_x_offset: i32,
-) -> i32 {
-    if glyph.origin_x.is_finite() {
-        origin_pixel_x + raster_metrics_x_offset
-    } else if glyph.x.is_finite() {
-        layout_bitmap_left_pixel_x
-    } else {
-        origin_pixel_x + raster_metrics_x_offset
-    }
+    style: UiTextRunPaintStyle,
+    smoothing: HostTextSmoothing,
+) -> TextGlyphRasterRequest {
+    TextGlyphRasterRequest::new(
+        glyph.glyph_id,
+        glyph.physical_ppem,
+        TextGlyphRasterMode::ColorPreferred,
+    )
+    .with_subpixel_position(glyph.origin_x, glyph.baseline_y)
+    .with_hinting(TextGlyphRasterHinting::Full)
+    .with_smoothing(match smoothing {
+        HostTextSmoothing::Grayscale => TextGlyphRasterSmoothing::Grayscale,
+        HostTextSmoothing::Subpixel => TextGlyphRasterSmoothing::Subpixel,
+    })
+    .with_synthetic_style(TextGlyphSyntheticStyle {
+        oblique: style.emphasis,
+    })
+}
+
+fn bitmap_left(origin_x: f32, bearing_left: f32) -> i32 {
+    origin_x.floor() as i32 + bearing_left.round() as i32
+}
+
+fn bitmap_top(baseline_y: f32, bearing_top: f32) -> i32 {
+    baseline_y.floor() as i32 - bearing_top.round() as i32
 }
 
 #[cfg(test)]
+#[path = "glyphs/tests/cases.rs"]
 mod tests;

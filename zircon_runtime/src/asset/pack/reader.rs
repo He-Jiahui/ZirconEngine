@@ -25,6 +25,10 @@ impl ZrPackReader {
         &self.manifest
     }
 
+    pub(crate) fn into_bytes(self) -> Vec<u8> {
+        self.bytes
+    }
+
     pub fn read_asset(&self, path: &str) -> Result<Vec<u8>, ZrPackError> {
         let asset = self
             .manifest
@@ -168,9 +172,8 @@ fn read_chunk_range_bytes(
 ) -> Result<Vec<u8>, ZrPackError> {
     let chunk_bytes = chunk_range_bytes(bytes, chunk)
         .ok_or_else(|| ZrPackError::ChunkOutOfBounds(path.into()))?;
-    if zrpack_content_hash(chunk_bytes) != chunk.hash {
-        return Err(ZrPackError::ChunkHashMismatch(path.to_string()));
-    }
+    // from_bytes verifies every chunk before storing privately owned bytes.
+    // Reads cannot mutate that snapshot, so its payload validation is reusable.
     Ok(chunk_bytes.to_vec())
 }
 
@@ -200,5 +203,5 @@ fn read_header_bytes<const N: usize>(bytes: &[u8], offset: usize) -> Result<[u8;
 }
 
 #[cfg(test)]
-#[path = "reader/optimization_tests.rs"]
+#[path = "reader/tests/optimization_tests.rs"]
 mod optimization_tests;

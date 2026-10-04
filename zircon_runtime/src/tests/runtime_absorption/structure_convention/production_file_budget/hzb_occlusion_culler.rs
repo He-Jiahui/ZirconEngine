@@ -1,9 +1,11 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0036] 分层深度遮挡测试的夹具与上传顺序 的测试归属断言与现行模块图不符；需定位迁移后的行为测试，再调整此守卫或补缺失覆盖。
 #[test]
 fn runtime_15_hzb_occlusion_culler_tests_are_child_owner() {
     let parent = read_runtime_src("graphics/scene/scene_renderer/hzb/hzb_occlusion_culler.rs");
-    let tests = read_runtime_src("graphics/scene/scene_renderer/hzb/hzb_occlusion_culler/tests.rs");
+    let tests =
+        read_runtime_src("graphics/scene/scene_renderer/hzb/hzb_occlusion_culler/tests/cases.rs");
 
     let plan_04 = read_repo(
         "docs/plans/zircon_runtime/render/04/2026-07-09-visibility-culling-output-records.md",
@@ -61,7 +63,7 @@ fn runtime_15_hzb_occlusion_culler_tests_are_child_owner() {
             parent.as_str(),
         ),
         (
-            "scene_renderer/hzb/hzb_occlusion_culler/tests.rs",
+            "scene_renderer/hzb/hzb_occlusion_culler/tests/cases.rs",
             tests.as_str(),
         ),
     ] {
@@ -86,7 +88,7 @@ fn runtime_15_hzb_occlusion_culler_tests_are_child_owner() {
                 "HZB occlusion culler test owner split",
                 "render_plan04_hzb_occlusion_culler_test_owner_split_static_passed_cargo_deferred_active_compile_lane",
                 "graphics/scene/scene_renderer/hzb/hzb_occlusion_culler.rs",
-                "graphics/scene/scene_renderer/hzb/hzb_occlusion_culler/tests.rs",
+                "graphics/scene/scene_renderer/hzb/hzb_occlusion_culler/tests/cases.rs",
                 "runtime_15_hzb_occlusion_culler_tests_are_child_owner",
             ],
         );

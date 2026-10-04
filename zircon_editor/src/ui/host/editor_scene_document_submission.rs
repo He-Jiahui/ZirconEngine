@@ -7,6 +7,7 @@ use crate::core::document::{
 };
 use crate::core::editing::authoring_world::AuthoringWorldSeed;
 use crate::core::project::{ProjectSceneDocument, SceneCreateRequest, SceneOpenRequest};
+use crate::ui::workbench::startup::SceneReloadDiscardAuthorization;
 use crate::ui::workbench::state::{EditorState, EditorStateOperationError};
 use zircon_runtime::asset::pipeline::manager::{
     ProjectAssetGenerationToken, ProjectAssetManager, ProjectGenerationCommitOutcome,
@@ -26,13 +27,14 @@ pub(crate) enum PreparedActiveSceneReloadOutcome {
     Reloaded,
     Superseded,
     Conflict,
+    Deferred,
     ProjectGenerationSuperseded { newer_same_project_generation: bool },
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum PreparedActiveSceneReloadDirtyPolicy {
     Reject,
-    Discard,
+    Discard(SceneReloadDiscardAuthorization),
 }
 
 #[derive(Debug)]
@@ -59,15 +61,18 @@ struct EditorStateActiveSceneReloader<'a> {
     state: &'a mut EditorState,
     project_asset_manager: &'a ProjectAssetManager,
     generation: &'a ProjectAssetGenerationToken,
-    authoring_world: Option<AuthoringWorldSeed>,
-    dirty_policy: PreparedActiveSceneReloadDirtyPolicy,
+    authoring_world: &'a mut Option<AuthoringWorldSeed>,
+    dirty_policy: &'a PreparedActiveSceneReloadDirtyPolicy,
 }
 
 impl ActiveSceneReloader for EditorStateActiveSceneReloader<'_> {
     type Error = PreparedActiveSceneReloadError;
 
     fn prepare_active_scene_reload(&mut self) -> Result<(), Self::Error> {
-        if self.dirty_policy == PreparedActiveSceneReloadDirtyPolicy::Discard {
+        if matches!(
+            self.dirty_policy,
+            PreparedActiveSceneReloadDirtyPolicy::Discard(_)
+        ) {
             return Ok(());
         }
         self.state
@@ -76,13 +81,15 @@ impl ActiveSceneReloader for EditorStateActiveSceneReloader<'_> {
     }
 
     fn install_active_scene_reload(&mut self) -> Result<(), Self::Error> {
-        let authoring_world = self
-            .authoring_world
-            .take()
-            .expect("a prepared scene reload installs at most once");
         let commit = || {
+            let discard = match self.dirty_policy {
+                PreparedActiveSceneReloadDirtyPolicy::Reject => None,
+                PreparedActiveSceneReloadDirtyPolicy::Discard(authorization) => {
+                    Some(authorization.clone())
+                }
+            };
             self.state
-                .reload_active_scene_world(authoring_world)
+                .reload_active_scene_world(self.authoring_world, discard)
                 .map_err(PreparedActiveSceneReloadError::State)
         };
         match self
@@ -127,8 +134,8 @@ impl EditorHostEventController {
         project_asset_manager: &ProjectAssetManager,
         generation: &ProjectAssetGenerationToken,
         identity: ActiveSceneDocumentIdentity,
-        authoring_world: AuthoringWorldSeed,
-        dirty_policy: PreparedActiveSceneReloadDirtyPolicy,
+        authoring_world: &mut Option<AuthoringWorldSeed>,
+        dirty_policy: &PreparedActiveSceneReloadDirtyPolicy,
     ) -> Result<PreparedActiveSceneReloadOutcome, String> {
         let result = {
             let mut shell = self.shell().lock();
@@ -137,7 +144,7 @@ impl EditorHostEventController {
                 state: &mut shell.state,
                 project_asset_manager,
                 generation,
-                authoring_world: Some(authoring_world),
+                authoring_world,
                 dirty_policy,
             };
             SceneDocumentReloadCoordinator::new(&manager.document_lifecycle)
@@ -152,7 +159,14 @@ impl EditorHostEventController {
             }
             Err(SceneDocumentReloadError::Transition(PreparedActiveSceneReloadError::State(
                 EditorStateOperationError::SceneTransitionDirty,
+            )))
+            | Err(SceneDocumentReloadError::Install(PreparedActiveSceneReloadError::State(
+                EditorStateOperationError::SceneTransitionDirty,
             ))) => PreparedActiveSceneReloadOutcome::Conflict,
+            Err(SceneDocumentReloadError::Install(PreparedActiveSceneReloadError::State(
+                EditorStateOperationError::SceneActionBlockedByActiveGizmo
+                | EditorStateOperationError::SceneEditingDisabledDuringPlay,
+            ))) => PreparedActiveSceneReloadOutcome::Deferred,
             Err(SceneDocumentReloadError::Install(
                 PreparedActiveSceneReloadError::ProjectGenerationSuperseded {
                     newer_same_project_generation,
@@ -247,52 +261,5 @@ impl EditorHostEventController {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn project_scene_installer_prepares_an_authoring_seed_before_replacing_authoring_world() {
-        let source = include_str!("editor_scene_document_submission.rs");
-        let prepare_seed = [
-            "self",
-            "            .manager",
-            "            .prepare_authoring_world(document.world().clone())",
-        ]
-        .join("\n");
-        let raw_level_install = [
-            "self.state.replace_world(",
-            "document.world().clone(), &self.project_path)",
-        ]
-        .concat();
-
-        assert!(source.contains(&prepare_seed));
-        let install_authoring_world = [
-            "self.state",
-            "            .replace_world(authoring_world, &self.project_path)",
-        ]
-        .join("\n");
-        assert!(source.contains(".prepare_scene_transition()"));
-        assert!(source.contains(&install_authoring_world));
-        assert!(!source.contains(".create_runtime_level(scene.clone())"));
-        assert!(!source.contains(&raw_level_install));
-    }
-
-    #[test]
-    fn authoring_seed_preparation_does_not_reexpose_the_runtime_level_through_manager_project() {
-        let source = include_str!("editor_manager_project.rs");
-
-        assert!(source.contains(".prepare_authoring_world(scene)"));
-        assert!(!source.contains(".create_runtime_level(scene)"));
-    }
-
-    #[test]
-    fn scene_submission_binds_lifecycle_document_for_new_and_already_active_routes() {
-        let source = include_str!("editor_scene_document_submission.rs");
-
-        assert!(source.contains(
-            "SceneDocumentRouteResult::Activated(activation) => activation.activation.document"
-        ));
-        assert!(
-            source.contains("SceneDocumentRouteResult::AlreadyActive { document } => *document")
-        );
-        assert!(source.contains(".state.bind_scene_document(document)"));
-    }
-}
+#[path = "tests/editor_scene_document_submission.rs"]
+mod tests;

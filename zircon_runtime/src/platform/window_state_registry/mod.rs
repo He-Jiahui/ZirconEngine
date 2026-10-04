@@ -5,4 +5,5 @@ pub(crate) use registry::WindowStateRegistry;
 pub(crate) use window_state_registry_error::WindowStateRegistryError;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

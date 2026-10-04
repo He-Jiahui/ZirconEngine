@@ -53,6 +53,7 @@ pub(crate) fn probe_project_editor_session(
     Ok(classify_live_session_record(record))
 }
 
+// 只有持有平台租约且完成 Ready 提交的实例才允许 Hub 转为聚焦请求；恢复中状态阻止二次启动。
 fn classify_live_session_record(
     record: ProjectSessionAdmissionRecordV1,
 ) -> ProjectEditorSessionProbe {
@@ -79,6 +80,7 @@ fn resolve_project_session_root(project_root: &Path) -> Result<PathBuf, HubError
 }
 
 #[cfg(windows)]
+// 探测只读取 Editor 持有的同名系统租约，不接管锁记录或改变其生命周期。
 fn platform_lease_is_active(project_root: &Path) -> Result<bool, HubError> {
     const SYNCHRONIZE: u32 = 0x0010_0000;
     const ERROR_FILE_NOT_FOUND: i32 = 2;
@@ -155,63 +157,5 @@ unsafe extern "C" {
 }
 
 #[cfg(test)]
-mod tests {
-    use zircon_runtime_interface::project::session_lock::{
-        ProjectSessionAdmissionLifecycleV1, ProjectSessionAdmissionRecordV1,
-        ProjectSessionGenerationV1, ProjectSessionPrincipalV1,
-    };
-    use zircon_runtime_interface::project::{
-        ProjectActivationOperationIdGenerator, ProjectLaunchInstanceId,
-    };
-    use zircon_runtime_interface::runtime_build_set::ZrRuntimeBuildSetId;
-
-    use super::{classify_live_session_record, ProjectEditorSessionProbe};
-
-    #[test]
-    fn live_activating_lease_is_pending_not_focusable() {
-        let activating = fixture_claimed_record()
-            .transition_to(ProjectSessionAdmissionLifecycleV1::PreflightApproved)
-            .expect("fixture preflight approval")
-            .transition_to(ProjectSessionAdmissionLifecycleV1::Activating)
-            .expect("fixture activation");
-
-        assert!(matches!(
-            classify_live_session_record(activating),
-            ProjectEditorSessionProbe::Pending(_)
-        ));
-    }
-
-    #[test]
-    fn live_ready_lease_is_the_only_focusable_session() {
-        let ready = fixture_claimed_record()
-            .transition_to(ProjectSessionAdmissionLifecycleV1::PreflightApproved)
-            .expect("fixture preflight approval")
-            .transition_to(ProjectSessionAdmissionLifecycleV1::Activating)
-            .expect("fixture activation")
-            .commit_ready(ProjectSessionGenerationV1::new(1).expect("fixture generation"))
-            .expect("fixture ready commit");
-
-        assert!(matches!(
-            classify_live_session_record(ready),
-            ProjectEditorSessionProbe::Ready(_)
-        ));
-    }
-
-    fn fixture_claimed_record() -> ProjectSessionAdmissionRecordV1 {
-        let operation = ProjectActivationOperationIdGenerator::new(ProjectLaunchInstanceId::new())
-            .allocate()
-            .expect("fixture operation");
-        ProjectSessionAdmissionRecordV1::claim(
-            913,
-            "913-1723718523000-1",
-            ProjectSessionPrincipalV1::Hub,
-            ZrRuntimeBuildSetId::parse(
-                "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-            )
-            .expect("fixture BuildSet"),
-            operation,
-            1_723_718_523_000,
-        )
-        .expect("fixture admission record")
-    }
-}
+#[path = "tests/probe.rs"]
+mod tests;

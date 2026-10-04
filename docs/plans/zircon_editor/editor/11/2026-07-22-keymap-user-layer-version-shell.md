@@ -19,7 +19,7 @@ tests:
 Plan: docs/plans/zircon_editor/editor/11-serialization-and-versioning.md
 Milestone: M2
 Status: static_complete_dynamic_pending
-Files: ["docs/zircon_editor/core/keymap.md", "zircon_editor/src/core/commands/keymap.rs", "zircon_editor/src/core/commands/keymap/tests.rs", "zircon_editor/src/core/settings/defaults.rs", "zircon_editor/src/core/settings/io.rs", "zircon_editor/src/core/settings/keymap_overrides.rs", "zircon_editor/src/core/settings/tests.rs"]
+Files: ["docs/crates/zircon_editor/core/keymap.md", "zircon_editor/src/core/commands/keymap.rs", "zircon_editor/src/core/commands/keymap/tests.rs", "zircon_editor/src/core/settings/defaults.rs", "zircon_editor/src/core/settings/io.rs", "zircon_editor/src/core/settings/keymap_overrides.rs", "zircon_editor/src/core/settings/tests.rs"]
 
 ## 产出记录与时间
 

@@ -1,9 +1,11 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0099] 原生界面表面的几何投影测试的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_rhi_wgpu_ui_surface_geometry_tests_are_child_owner() {
     let parent = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry.rs");
-    let tests = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry/tests.rs");
+    let tests =
+        read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry/tests/cases.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");

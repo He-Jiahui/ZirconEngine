@@ -28,6 +28,11 @@ impl ViewportState {
         self.runtime_viewport
     }
 
+    pub(crate) fn set_runtime_viewport(&mut self, runtime_viewport: ZrRuntimeViewportHandle) {
+        debug_assert!(runtime_viewport.is_valid());
+        self.runtime_viewport = runtime_viewport;
+    }
+
     pub(crate) fn resize(&mut self, size: UVec2) {
         self.size = UVec2::new(size.x.max(1), size.y.max(1));
     }

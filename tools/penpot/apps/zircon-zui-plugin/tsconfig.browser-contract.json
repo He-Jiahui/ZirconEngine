@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../dist/out-tsc/zircon-zui-plugin-browser-contract",
+    "types": ["node"],
+    "moduleResolution": "bundler"
+  },
+  "files": ["tools/penpot-browser-canvas-contract.ts"]
+}

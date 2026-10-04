@@ -2,19 +2,19 @@ use super::atlas_renderer::GlyphAtlasBitmapRenderer;
 #[cfg(test)]
 use super::atlas_renderer::GlyphAtlasBitmapRendererPrepareReport;
 use super::render::{
-    PlannedScreenSpaceUi, ScreenSpaceUiResolvedGlyphArtifactRouteReport, ScreenSpaceUiTextBatch,
+    PreparedScreenSpaceUi, ScreenSpaceUiResolvedGlyphArtifactRouteReport, ScreenSpaceUiTextBatch,
 };
 use crate::asset::ProjectAssetManagerAccess;
 use crate::core::CoreError;
 use crate::graphics::types::GraphicsError;
-use crate::text::TextRenderState;
 use crate::text::atlas::{GlyphAtlasBitmapPageShadowCommit, GlyphAtlasFormat};
 #[cfg(test)]
 use crate::text::font::MissingGlyphDiagnosticsReport;
 use crate::text::font::{
-    DEFAULT_UI_FONT_ASSET as DEFAULT_FONT_ASSET, FontCollectionRevision, FontCollectionService,
-    RuntimeFontAssetClaimScope, SystemFontPolicy,
+    FontCollectionRevision, FontCollectionService, RuntimeFontAssetClaimScope,
+    DEFAULT_UI_FONT_ASSET as DEFAULT_FONT_ASSET,
 };
+use crate::text::TextRenderState;
 #[cfg(test)]
 use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextRenderMode};
 
@@ -29,21 +29,25 @@ mod sdf_fallback;
 mod segment_cache;
 
 pub(crate) use self::font_assets::UiFontAssetCacheReport;
-use self::font_assets::{UiFontAssetCache, font_asset_cache_report, refresh_font_asset_records};
+use self::font_assets::{font_asset_cache_report, refresh_font_asset_records, UiFontAssetCache};
 use self::font_id_report::ScreenSpaceUiTextFontIdReport;
 pub(in crate::graphics::scene::scene_renderer::ui) use self::native_glyph_run::native_bitmap_atlas_glyph_runs;
+#[cfg(feature = "profiling")]
+use self::prepare_report::record_text_prepare_profile;
 pub(crate) use self::prepare_report::ScreenSpaceUiTextPrepareReport;
 #[cfg(test)]
 use self::prepare_report::ScreenSpaceUiTextRasterUploadReport;
-#[cfg(feature = "profiling")]
-use self::prepare_report::record_text_prepare_profile;
-use self::prepare_report::{ScreenSpaceUiResolvedTextReport, text_prepare_report};
+use self::prepare_report::{text_prepare_report, ScreenSpaceUiResolvedTextReport};
 use self::resolved_batches::AutoTextRasterRouter;
 use self::sdf_cpu_frame::SdfTextCpuFrame;
+use self::sdf_fallback::apply_sdf_atlas_fallbacks_with_cpu_runs;
 #[cfg(test)]
 use self::sdf_fallback::ScreenSpaceUiTextSdfFallbackReport;
-use self::sdf_fallback::apply_sdf_atlas_fallbacks_with_cpu_runs;
-use self::segment_cache::{ScreenSpaceUiTextSegmentCache, ScreenSpaceUiTextSegmentProduct};
+pub(super) use self::segment_cache::{
+    ScreenSpaceUiTextFrameChangeJournal, ScreenSpaceUiTextFrameProduct,
+    ScreenSpaceUiTextSegmentProduct,
+};
+use self::segment_cache::{ScreenSpaceUiTextFrameFullRebuildReason, ScreenSpaceUiTextSegmentCache};
 use super::sdf_atlas::ScreenSpaceUiSdfAtlas;
 #[cfg(test)]
 use super::sdf_atlas::SdfAtlasCacheReport;
@@ -55,8 +59,8 @@ use super::text_pixel_snap::text_origin_device_px;
 #[cfg(test)]
 use crate::text::native_bitmap_atlas;
 use crate::text::native_bitmap_atlas::{
-    NativeBitmapAtlasFrame, NativeBitmapAtlasHandoff, NativeBitmapAtlasPrepareReport,
-    bitmap_atlas_page_size, native_bitmap_atlas_handoff_for_report,
+    bitmap_atlas_page_size, native_bitmap_atlas_handoff_for_report, NativeBitmapAtlasFrame,
+    NativeBitmapAtlasHandoff, NativeBitmapAtlasPrepareReport,
 };
 use std::sync::Arc;
 use zr_rhi_wgpu::{WgpuBufferUploadBatch, WgpuTextureUploadBatch};
@@ -169,11 +173,7 @@ impl ScreenSpaceUiTextSystem {
         font_collection: Arc<FontCollectionService>,
     ) -> Result<Self, CoreError> {
         let resolved_asset_manager = asset_manager.resolve()?;
-        // Screen-space rendering is the explicit platform-font consumer; bind discovery before
-        // TextRenderState captures its immutable database snapshot.
-        let _ = font_collection.mutate_published_snapshot(|database| {
-            database.apply_system_font_policy(SystemFontPolicy::Discover)
-        });
+        // Core-owned TextRuntimeContext fixes font policy before renderer construction.
         let mut text_state =
             TextRenderState::new_with_font_collection_and_process_raster_worker_budget(Arc::clone(
                 &font_collection,
@@ -213,11 +213,13 @@ impl ScreenSpaceUiTextSystem {
         self.text_state.published_font_collection_revision()
     }
 
+    /// 为当前帧刷新字体依赖，准备文字缓存、图集、CPU 绘制结果和回退，并保存待确认的上传状态。
+    /// 上传准备失败会清空 pending 并标记恢复需求；调用方确认上传后再通过 commit_prepared_uploads 接受图集页和 bitmap 帧。
     pub(super) fn prepare(
         &mut self,
         device: &wgpu::Device,
         viewport_size: crate::core::math::UVec2,
-        render_segments: &[Arc<PlannedScreenSpaceUi>],
+        prepared: &Arc<PreparedScreenSpaceUi>,
         resolved_glyph_artifact_routes: ScreenSpaceUiResolvedGlyphArtifactRouteReport,
         buffer_uploads: &mut WgpuBufferUploadBatch,
         texture_uploads: &mut WgpuTextureUploadBatch,
@@ -236,8 +238,8 @@ impl ScreenSpaceUiTextSystem {
                 .map_err(|error| GraphicsError::Asset(error.to_string()))?;
             self.text_state.begin_sdf_generation_frame();
             self.auto_raster_router.begin_frame();
-            self.segment_cache
-                .refresh_font_dependencies(render_segments);
+            let render_segments = prepared.render_segments();
+            self.segment_cache.refresh_font_dependencies(prepared);
             let active_font_dependencies = self.segment_cache.active_font_dependencies();
             let font_refresh = refresh_font_asset_records(
                 &mut self.text_state,
@@ -273,10 +275,12 @@ impl ScreenSpaceUiTextSystem {
             if font_faces_changed {
                 self.invalidate_font_faces();
             } else if font_records_reloaded {
-                self.segment_cache.invalidate_frame_product();
+                self.segment_cache.invalidate_frame_product(
+                    ScreenSpaceUiTextFrameFullRebuildReason::FontAssetReloaded,
+                );
             }
             let frame_product = self.segment_cache.prepare_frame_product(
-                render_segments,
+                prepared,
                 viewport_size,
                 self.text_state.font_collection_revision(),
                 &self.font_assets,
@@ -284,23 +288,19 @@ impl ScreenSpaceUiTextSystem {
                 shaping_changed,
                 &self.text_state.font_collection(),
             );
-            self.sdf_atlas.prepare_retained_segments(
-                frame_product.sdf_text_segments(),
-                frame_product.generation(),
-            );
-            let mut sdf_atlas_bake = self.text_state.build_sdf_atlas(
+            self.sdf_atlas.prepare_retained_frame(&frame_product);
+            let mut sdf_atlas_bake = self.text_state.build_sdf_atlas_retained(
                 self.sdf_atlas.plan().atlas_size,
                 &self.sdf_atlas.plan().slots,
+                self.sdf_atlas.slot_product_generation(),
                 asset_manager.as_ref(),
             );
             self.sdf_atlas
                 .record_generation_failures(&sdf_atlas_bake.generation_failures);
-            let cpu_plan_reused = self.sdf_cpu_frame.prepare_retained_segments(
-                frame_product.sdf_text_segments(),
-                frame_product.native_text_segments(),
+            let cpu_plan_reused = self.sdf_cpu_frame.prepare_retained_frame(
+                &frame_product,
                 &mut self.text_state,
                 asset_manager.as_ref(),
-                frame_product.generation(),
             );
             debug_assert_eq!(
                 frame_product.sdf_run_count(),
@@ -351,9 +351,10 @@ impl ScreenSpaceUiTextSystem {
                 self.sdf_atlas
                     .discard_cached_slots_not_in_texts(resolved_texts.sdf_texts());
                 self.sdf_atlas.prepare(resolved_texts.sdf_texts());
-                sdf_atlas_bake = self.text_state.build_sdf_atlas(
+                sdf_atlas_bake = self.text_state.build_sdf_atlas_retained(
                     self.sdf_atlas.plan().atlas_size,
                     &self.sdf_atlas.plan().slots,
+                    self.sdf_atlas.slot_product_generation(),
                     asset_manager.as_ref(),
                 );
                 self.sdf_atlas
@@ -378,19 +379,16 @@ impl ScreenSpaceUiTextSystem {
                     sdf_force_full_upload,
                 );
             } else {
-                self.sdf_renderer.prepare_retained_segments(
+                self.sdf_renderer.prepare_retained_frame(
                     device,
                     viewport_size,
-                    frame_product.sdf_text_segments(),
-                    frame_product.sdf_run_count(),
+                    &frame_product,
                     sdf_cpu_runs,
-                    frame_product.native_text_segments(),
                     native_decoration_metrics,
                     self.sdf_atlas.plan(),
                     &sdf_atlas_bake,
                     sdf_atlas_report.clone(),
                     cpu_plan_reused,
-                    frame_product.generation(),
                     buffer_uploads,
                     texture_uploads,
                     sdf_force_full_upload,
@@ -492,7 +490,8 @@ impl ScreenSpaceUiTextSystem {
 
     pub(super) fn clear_frame_state(&mut self) {
         self.abort_pending_uploads();
-        self.segment_cache.invalidate_frame_product();
+        self.segment_cache
+            .invalidate_frame_product(ScreenSpaceUiTextFrameFullRebuildReason::ExplicitRecovery);
         self.auto_raster_router.clear_active_routes();
         self.last_prepare_report = ScreenSpaceUiTextPrepareReport::default();
     }
@@ -503,7 +502,8 @@ impl ScreenSpaceUiTextSystem {
             .discard_all_for_face_invalidation();
         self.sdf_atlas.invalidate_font_faces();
         self.sdf_cpu_frame.invalidate();
-        self.segment_cache.invalidate_frame_product();
+        self.segment_cache
+            .invalidate_frame_product(ScreenSpaceUiTextFrameFullRebuildReason::FontRevisionChanged);
     }
 
     pub(super) fn render<'pass>(&'pass mut self, pass: &mut wgpu::RenderPass<'pass>) {
@@ -762,4 +762,5 @@ fn prepare_native_bitmap_atlas_transparent_placeholder(
 }
 
 #[cfg(test)]
+#[path = "text/tests/cases.rs"]
 mod tests;

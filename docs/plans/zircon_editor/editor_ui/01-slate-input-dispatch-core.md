@@ -25,7 +25,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/platform_input.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events.rs
   - zircon_editor/src/tests/host/retained_window/platform_input_translation.rs
-  - docs/zircon_editor/ui/retained_host/host_contract/platform_input.md
+  - docs/crates/zircon_editor/ui/retained_host/host_contract/platform_input.md
   - zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Framework/Application/SlateApplication.h
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Input/Reply.h

@@ -1,3 +1,4 @@
+# 以基线、候选和批准夹具验证回归判定及其统计、来源和信任边界。
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $comparisonModule = Join-Path $repoRoot 'tools\mvp\ResourceManagementComparison.psm1'
 $statisticsModule = Join-Path $repoRoot 'tools\mvp\ResourceManagementStatistics.psm1'

@@ -1,3 +1,4 @@
+# 核对提示框时序由运行时输入管理器控制，并处理窗口事件与弹窗遮挡。
 import unittest
 from pathlib import Path
 

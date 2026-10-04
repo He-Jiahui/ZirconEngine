@@ -11,6 +11,8 @@ use super::{OnnxAttribute, OnnxGraph, OnnxNode, OnnxTensor, OnnxTensorDataType};
 pub enum OnnxReadError {
     UnexpectedEnd,
     InvalidVarint,
+    InvalidDimension { value: i64 },
+    InvalidUtf8String,
     UnsupportedWireType(u8),
     MissingGraph,
     MissingTensorName,
@@ -158,7 +160,7 @@ fn parse_tensor(bytes: &[u8]) -> Result<OnnxTensor, OnnxReadError> {
     while let Some((field, wire_type)) = reader.next_field()? {
         match (field, wire_type) {
             (1, LENGTH_DELIMITED) => read_packed_i64(reader.read_bytes()?, &mut shape)?,
-            (1, VARINT) => shape.push(reader.read_varint()? as u32),
+            (1, VARINT) => shape.push(read_dimension(&mut reader)?),
             (2, VARINT) => {
                 data_type = if reader.read_varint()? == 1 {
                     OnnxTensorDataType::F32
@@ -246,7 +248,7 @@ fn parse_shape(bytes: &[u8]) -> Result<Vec<u32>, OnnxReadError> {
                 dimension_reader.next_field()?
             {
                 if dimension_field == 1 && dimension_wire_type == VARINT {
-                    dimensions.push(dimension_reader.read_varint()? as u32);
+                    dimensions.push(read_dimension(&mut dimension_reader)?);
                     break;
                 }
                 dimension_reader.skip_value(dimension_wire_type)?;
@@ -261,9 +263,15 @@ fn parse_shape(bytes: &[u8]) -> Result<Vec<u32>, OnnxReadError> {
 fn read_packed_i64(bytes: &[u8], output: &mut Vec<u32>) -> Result<(), OnnxReadError> {
     let mut reader = ProtoReader::new(bytes);
     while !reader.is_empty() {
-        output.push(reader.read_varint()? as u32);
+        output.push(read_dimension(&mut reader)?);
     }
     Ok(())
+}
+
+fn read_dimension(reader: &mut ProtoReader<'_>) -> Result<u32, OnnxReadError> {
+    let encoded = reader.read_varint()?;
+    let value = i64::from_le_bytes(encoded.to_le_bytes());
+    u32::try_from(value).map_err(|_| OnnxReadError::InvalidDimension { value })
 }
 
 fn read_packed_f32(bytes: &[u8], output: &mut Vec<f32>) -> Result<(), OnnxReadError> {
@@ -279,7 +287,9 @@ fn read_packed_f32(bytes: &[u8], output: &mut Vec<f32>) -> Result<(), OnnxReadEr
 }
 
 fn read_string(reader: &mut ProtoReader<'_>) -> Result<String, OnnxReadError> {
-    Ok(String::from_utf8_lossy(reader.read_bytes()?).into_owned())
+    std::str::from_utf8(reader.read_bytes()?)
+        .map(|value| value.to_owned())
+        .map_err(|_| OnnxReadError::InvalidUtf8String)
 }
 
 const VARINT: u8 = 0;
@@ -362,3 +372,7 @@ impl<'a> ProtoReader<'a> {
         Ok(bytes)
     }
 }
+
+#[cfg(test)]
+#[path = "tests/reader.rs"]
+mod tests;

@@ -1,3 +1,4 @@
+# 核对宿主场景的浮动窗口投影仅在完整应用阶段构造一次。
 from pathlib import Path
 import unittest
 

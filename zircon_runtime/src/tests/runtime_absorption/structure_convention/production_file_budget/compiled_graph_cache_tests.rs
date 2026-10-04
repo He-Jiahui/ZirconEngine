@@ -1,9 +1,10 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0030] 编译图缓存的命中、指纹与淘汰测试归属的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_compiled_graph_cache_tests_are_child_owner() {
     let parent = read_runtime_src("graphics/pipeline/compiled_graph_cache.rs");
-    let tests = read_runtime_src("graphics/pipeline/compiled_graph_cache/tests.rs");
+    let tests = read_runtime_src("graphics/pipeline/compiled_graph_cache/tests/cases.rs");
 
     let plan_01 = read_repo(
         "docs/plans/zircon_runtime/render/01/2026-07-09-render-graph-rdg-alignment-output-records.md",
@@ -62,7 +63,7 @@ fn runtime_15_compiled_graph_cache_tests_are_child_owner() {
     for (path, source) in [
         ("graphics/pipeline/compiled_graph_cache.rs", parent.as_str()),
         (
-            "graphics/pipeline/compiled_graph_cache/tests.rs",
+            "graphics/pipeline/compiled_graph_cache/tests/cases.rs",
             tests.as_str(),
         ),
     ] {

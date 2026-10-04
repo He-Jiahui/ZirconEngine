@@ -46,7 +46,6 @@ fn render_product_assets_texture_metadata_exposes_image_contract() {
         ]
     );
     assert_eq!(descriptor.mip_count, 7);
-    assert_eq!(descriptor.array_layer_count, 2);
     assert_eq!(descriptor.fallback, RenderImageFallbackKind::MissingImage);
 }
 
@@ -72,7 +71,6 @@ fn render_product_assets_texture_without_descriptor_uses_payload_metadata() {
     assert_eq!(descriptor.dimension, RenderImageDimension::D2);
     assert_eq!(descriptor.depth_or_array_layers, 6);
     assert_eq!(descriptor.mip_count, 4);
-    assert_eq!(descriptor.array_layer_count, 6);
 }
 
 #[test]
@@ -84,7 +82,6 @@ fn render_product_assets_texture_descriptor_overrides_payload_defaults() {
     texture_descriptor.usage = vec![RenderImageUsage::Sampled, RenderImageUsage::Storage];
     texture_descriptor.asset_usage = vec![RenderImageAssetUsage::RenderWorld];
     texture_descriptor.mip_count = 0;
-    texture_descriptor.array_layer_count = 0;
     texture_descriptor.depth_or_array_layers = 0;
 
     let texture = TextureAsset {
@@ -110,7 +107,6 @@ fn render_product_assets_texture_descriptor_overrides_payload_defaults() {
         vec![RenderImageAssetUsage::RenderWorld]
     );
     assert_eq!(descriptor.mip_count, 1);
-    assert_eq!(descriptor.array_layer_count, 1);
     assert_eq!(descriptor.depth_or_array_layers, 1);
 }
 

@@ -1,12 +1,12 @@
 ---
 related_code:
-  - docs/zircon_runtime/structure/module-convention.md
+  - docs/crates/zircon_runtime/structure/module-convention.md
   - docs/plans/zircon_runtime/frameworks/development-conventions.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
   - tools/tests/test_check_conventions.py
 implementation_files:
-  - tools/check_conventions.py
-  - tools/convention_exemptions.py
+  - tools/audits/check_conventions.py
+  - tools/audits/convention_exemptions.py
   - zircon_runtime/src/tests/runtime_absorption/structure_convention.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget.rs
@@ -16,8 +16,8 @@ plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
-  - docs/engine-architecture/large-file-ownership-m1.md
-  - docs/engine-architecture/runtime-interface-convergence.md
+  - docs/architecture/large-file-ownership-m1.md
+  - docs/architecture/runtime-interface-convergence.md
 tests:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/code_paths.rs::runtime_15_priority_plan_docs_code_paths_stay_current
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/test_paths.rs::runtime_15_priority_plan_docs_test_paths_stay_current
@@ -32,7 +32,7 @@ tests:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/moved_paths.rs::runtime_15_priority_plan_docs_moved_mirror_names_full_inventory
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/inventory_sync.rs::runtime_15_priority_plan_docs_guard_inventory_uses_child_row_data_sources
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/inventory_sync.rs::runtime_15_priority_plan_docs_listing_prose_names_full_inventory
-  - python tools/check_conventions.py --only docs --json
+  - python tools/audits/check_conventions.py --only docs --json
   - python -B -m unittest tools.tests.test_check_conventions -v
   - .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter structure_convention
 doc_type: convention-authority
@@ -49,7 +49,7 @@ status: in_progress
 
 具体结构补记、验证与修复记录已迁入 [`_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md`](_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md)。本文件仅保留结构规范、接口约定与当前现状概述。
 
-当前 G7 前置元数据收敛（2026-08-09）：本文件已删除重复枚举的历史细粒度 owner，只保留稳定的规范、守卫入口与 Runtime15 优先文档 guard 清单；没有恢复任何已删除路径。`check_conventions --only docs` 对本文件的悬空路径从 186 项降为 0；`docs/plans/engine-code-review-findings-2026-06.md` 删除 185 条已硬切 owner 并从 185 项降为 0；`docs/zircon_runtime/structure/module-convention.md` 又删除 103 条已硬切 owner（含旧 Runtime RHI、status mirror 与已删除 guard）并从 103 项降为 0；已完成的 Runtime05 计划仅清理 35 条旧 plan-status/审计脚本元数据并从 35 项降为 0，不重开其运行时里程碑。G7 同批把 `tests:` 中整条声明的具体仓库文件引用纳入审计，并排除 Cargo/Python 等命令、glob、模板占位符与 `target`/`build` 产物；这些 owned 明细均为 0，但共享工作树仍为 RED，全局数量会随其他 owner 的并发输入变化，故不作为本 exact scope 的冻结值。规范 Python 契约 26/26 GREEN；Runtime15 managed `priority_plan_docs` gate 仍待在不吸收外来 Runtime guard-owner diff 的不可变副本上执行，因此本文件和 G7 均不标 accepted。
+当前 G7 前置元数据收敛（2026-08-09）：本文件已删除重复枚举的历史细粒度 owner，只保留稳定的规范、守卫入口与 Runtime15 优先文档 guard 清单；没有恢复任何已删除路径。`check_conventions --only docs` 对本文件的悬空路径从 186 项降为 0；`docs/plans/engine-code-review-findings-2026-06.md` 删除 185 条已硬切 owner 并从 185 项降为 0；`docs/crates/zircon_runtime/structure/module-convention.md` 又删除 103 条已硬切 owner（含旧 Runtime RHI、status mirror 与已删除 guard）并从 103 项降为 0；已完成的 Runtime05 计划仅清理 35 条旧 plan-status/审计脚本元数据并从 35 项降为 0，不重开其运行时里程碑。G7 同批把 `tests:` 中整条声明的具体仓库文件引用纳入审计，并排除 Cargo/Python 等命令、glob、模板占位符与 `target`/`build` 产物；这些 owned 明细均为 0，但共享工作树仍为 RED，全局数量会随其他 owner 的并发输入变化，故不作为本 exact scope 的冻结值。规范 Python 契约 26/26 GREEN；Runtime15 managed `priority_plan_docs` gate 仍待在不吸收外来 Runtime guard-owner diff 的不可变副本上执行，因此本文件和 G7 均不标 accepted。
 
 当前 plan-status 结构同步（2026-07-10）：具体状态记录已硬切到 `zircon_runtime/runtime/01/` 至 `15/` 编号归档，父计划和总索引不再复制历史五列表格。测试支持按职责拆为 `plan_status/support/runtime_plan_archives.rs` 与 `plan_status/recent_static_guards/parent_routing.rs`，所有 owner 文件保持各自预算；Python boundary support 84/84、`risks = []`，standalone Rust plan-status 48/48。该结构同步没有恢复旧路径、兼容 facade、shim 或 re-export。
 
@@ -139,7 +139,7 @@ crate 级 `zircon_runtime::prelude` 收窄为 `pub use crate::{asset::prelude::*
 
 ## §4 测试组织（单一规则）
 
-- **R4.1**：单文件小测（< ~150 行测试）→ 内联 `#[cfg(test)] mod tests`。
+- **R4.1**：所有单元测试均放入所属 owner 的 `tests/` 目录，生产源码只保留 `#[cfg(test)]` 和外部模块声明；需要私有成员访问时用 `#[path = "tests/…rs"] mod tests;` 保持原模块层级。小测试也不再内联。
 - **R4.2**：更大 / 行为测试 → folder-backed `tests/` 镜像源树、按行为族分文件。
 - **R4.3**：禁止 > 800 行 `tests.rs`；禁止重复测试树（如 editor `src/tests/**` 镜像 `src/ui/**` 双写）——一个行为一个 owner。
 - **R4.4**：跨 crate 集成测试归 crate `tests/`；测试命名按所属子系统过滤词前缀（沿用 `render_*`、`runtime_*` guard 命名惯例），便于 milestone 末按过滤词收窄。
@@ -174,7 +174,7 @@ crate 级 `zircon_runtime::prelude` 收窄为 `pub use crate::{asset::prelude::*
 - native-dynamic 插件：`plugin.toml` 显式区分 runtime / editor 两 `[[modules]]` 的 `crate_name`，禁止两 module 指向同名 crate 却不以 `kind` 区分。
 
 ### §6.2 统一 `plugin.toml` schema（canonical）
-唯一 schema owner：`docs/zircon_plugins/plugin-manifest-schema.md`（含校验器契约）。必选 / 可选段固定形状，使 30 行与 105 行插件共享骨架：
+唯一 schema owner：`docs/crates/zircon_plugins/plugin-manifest-schema.md`（含校验器契约）。必选 / 可选段固定形状，使 30 行与 105 行插件共享骨架：
 
 ```toml
 # —— 必选头 ——
@@ -232,7 +232,7 @@ capability id 为 `capability.rs` 的 `pub const`；guard 测试交叉核对四�
 把 `plugin_sdk_examples` 固化为模板与 builder/test fixture API，新插件 ≈ 一文件声明（descriptor + capability + systems 注册），runtime system 注册通过 `plugin_sdk::registration` 隐藏 owner token 样板，runtime helper exports 通过 `plugin_sdk::runtime_plugin_exports!` 投影 trait-backed manifest/selection/registration，optional feature 能力通过 `PluginFeatureBundleBuilder` 同源投影 feature/module capabilities，editor/runtime 对称通过 `EditorPluginDeclaration::mirrors_runtime(...)` 显式声明，跨插件测试通过 `plugin_sdk::test::TestRuntime::builder()` 复用 runtime/scene/fixed-step 启动样板。
 
 ### §6.6 双形态独立构建（发行维扩展）
-由 [Plugins 13](zircon_plugins/13-standalone-plugin-build.md) 落地、规范权威 [`docs/zircon_plugins/plugin-standalone-build.md`](../zircon_plugins/plugin-standalone-build.md)。在 §6.1 骨架上扩"发行维"：每个插件一份声明投影两形态——`embed`（`rlib`，静态链接、`impl RuntimePlugin::register`）与 `dist`（`cdylib`，ABI-only、`zircon_native_plugin_descriptor_v3` 导出），二者共享 `backend/` 纯逻辑不复制。**依赖边界铁律**：`dist` 产物依赖闭包禁含 `zircon_runtime`（与 §7.5 E8 同源），`backend/`/`capability.rs` 禁 `use zircon_runtime::*`，触碰 `zircon_runtime` 的代码一律 `#[cfg(feature = "embed")]`；由 `tools/plugin_structure_audits/dependency_boundary.py` 的 `dist_dependency_boundary_violations` 守卫。
+由 [Plugins 13](zircon_plugins/13-standalone-plugin-build.md) 落地、规范权威 [`docs/crates/zircon_plugins/plugin-standalone-build.md`](../zircon_plugins/plugin-standalone-build.md)。在 §6.1 骨架上扩"发行维"：每个插件一份声明投影两形态——`embed`（`rlib`，静态链接、`impl RuntimePlugin::register`）与 `dist`（`cdylib`，ABI-only、`zircon_native_plugin_descriptor_v3` 导出），二者共享 `backend/` 纯逻辑不复制。**依赖边界铁律**：`dist` 产物依赖闭包禁含 `zircon_runtime`（与 §7.5 E8 同源），`backend/`/`capability.rs` 禁 `use zircon_runtime::*`，触碰 `zircon_runtime` 的代码一律 `#[cfg(feature = "embed")]`；由 `tools/audits/plugins/dependency_boundary.py` 的 `dist_dependency_boundary_violations` 守卫。
 
 > 请将产出记录放置在子计划中，子计划中记录超过10条则全部放到子目录，此处仅展示当前现状的概述
 
@@ -256,7 +256,7 @@ asset_importers/model/runtime/
 
 ## §7 强制机制（对后续开发与存量重构同时生效）
 
-1. **审计脚本族**：runtime 进现有 `runtime_structure_audits/`（`module_convention_gate.py` + `module_convention_gate_markdown.py`，由 `audit_runtime_structure.py` 聚合）；editor / plugins 各新建 owner 域同级目录 `editor_structure_audits/` / `tools/plugin_structure_audits/`（与 `runtime_structure_audits/` 平级），各带 `audit_editor_structure.py` / `tools/audit_plugin_structure.py` 聚合器。
+1. **审计脚本族**：runtime 进现有 `runtime_structure_audits/`（`module_convention_gate.py` + `module_convention_gate_markdown.py`，由 `audit_runtime_structure.py` 聚合）；editor / plugins 各新建 owner 域同级目录 `editor_structure_audits/` / `tools/audits/plugins/`（与 `runtime_structure_audits/` 平级），各带 `audit_editor_structure.py` / `tools/audits/audit_plugin_structure.py` 聚合器。
 2. **guard 测试**：runtime `tests/runtime_absorption/structure_convention.rs`、editor `zircon_editor/src/tests/structure_convention/`、plugins workspace guard——断言审计字段与镜像文档计数一致。
 3. **owner-class gate**：`module_convention_gate` / `plugin_skeleton_gate` 报告 `m1_gate_status` ∈ {`migration-debt-present`, `classified-and-clear`}，含 `classification_counts` 与 `migration_debt_count`（目标 → 0），`exempt` 字段登记豁免。
 4. **镜像文档**：`docs/**/structure/*.md` 计数须与审计一致，由 `*_mirror_docs_match_structure_audit_counts` 守卫锁定。
@@ -2234,3 +2234,5 @@ Text09 geometry/profile plan:
 
 - `zircon_runtime/text/03/2026-08-31-rich-paint-run-cardinality-fail-closed.md`
 - `zircon_runtime/text/09/2026-08-31-rich-paint-block-geometry-owner-and-profile-plan.md`
+
+2026-10-04 测试目录迁移：当前 plugin-input 测试文件为 `postprocess_routes/tests/plugin_inputs.rs`，完整路径和验证边界见 [Rust 测试目录迁移记录](rust-test-directory-separation-2026-10-04.md)。历史记录保留其当时路径。

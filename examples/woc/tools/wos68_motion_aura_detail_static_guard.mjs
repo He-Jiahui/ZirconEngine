@@ -16,12 +16,12 @@ requireText(
 );
 requireText(
   world,
-  /writer\.u16\(<uint>78, 1, 1\)[\s\S]*?writer\.u32\(<uint>state\.entityMotionAuraValues\.length[\s\S]*?entityMotionAuraBreakChanceScales[\s\S]*?entityFearDrStages[\s\S]*?entityFearDrResetAt/,
+  /writer\.u32\(<uint>state\.entityMotionAuraValues\.length, 1, 1, 2\)[\s\S]*?entityMotionAuraBreakChanceScales[\s\S]*?entityFearDrStages[\s\S]*?entityFearDrResetAt/,
   "WOS58 must write detail rows after historical state",
 );
 requireText(
   world,
-  /schemaVersion != <uint>57 && schemaVersion != <uint>58 &&[\s\S]*?schemaVersion != <uint>59 && schemaVersion != <uint>60 &&[\s\S]*?schemaVersion != <uint>61[\s\S]*?schemaVersion >= <uint>58[\s\S]*?motionAuraDetailCount[\s\S]*?historicalMotionAuraIndex[\s\S]*?entityFearDrStages\.add\(0\)/,
+  /schemaVersion != <uint>57\s*&&[\s\S]*?schemaVersion != <uint>58\s*&&[\s\S]*?schemaVersion != <uint>59\s*&&[\s\S]*?schemaVersion != <uint>60\s*&&[\s\S]*?schemaVersion != <uint>61[\s\S]*?schemaVersion >= <uint>58[\s\S]*?motionAuraDetailCount[\s\S]*?historicalMotionAuraIndex[\s\S]*?entityFearDrStages\.add\(0\)/,
   "WOS58 decoder must preserve WOS2-WOS57 default migration",
 );
 requireText(
@@ -41,12 +41,12 @@ requireText(
 );
 
 const main = read("scripts", "woc_game", "src", "main.zr");
-requireText(main, /\\"world_state\\":\\"WOS78\\"/, "WOC capability output must publish WOS78");
+requireText(main, /\\"world_state\\":\\"WOS118\\"/, "WOC capability output must publish WOS118");
 
 const contract = read("contracts", "world-state.md");
 requireText(
   contract,
-  /world state \(`WOS78`\)[\s\S]*?schema\s+58 then appends the source aura details[\s\S]*?WOS2-WOS57 decode with zero DR state/,
+  /world state \(`WOS118`\)[\s\S]*?Schema 58 appends a motion-aura detail tail[\s\S]*?WOS2-WOS57 decode with zero DR state/,
   "world-state contract must document WOS58 migration and ownership",
 );
 

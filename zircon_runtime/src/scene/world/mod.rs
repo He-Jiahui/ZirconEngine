@@ -46,12 +46,16 @@ pub use compiled_binding::{
 };
 pub use component_type_registry::ComponentTypeRegistry;
 pub(crate) use deferred_structural_segment::DeferredStructuralBatch;
-pub use dynamic_components::DynamicComponentInstance;
 pub(in crate::scene) use dynamic_components::json_from_scene_property_value;
+pub use dynamic_components::DynamicComponentInstance;
 pub use error::{SceneError, SceneResult};
+pub use project_io::SceneComponentSerializer;
+pub(crate) use project_io::SceneComponentSerializerRegistry;
 pub use project_io::SceneProjectError;
 pub(crate) use query_order::{StableQueryLocationIter, StableWorldEntityIter};
 pub(crate) use render_dirty_journal::{RenderDirtyEntityJournal, RenderDirtyWorldId};
-pub use transaction::{DetachedEntityBatch, DetachedEntityBatchRestoreError};
+pub use transaction::{
+    DetachedEntityBatch, DetachedEntityBatchRestoreError, PreparedEntitySubtrees,
+};
 pub(in crate::scene) use transaction::{PreflightComponentRow, PreflightDynamicComponent};
 pub use world::World;

@@ -9,10 +9,8 @@ fixing_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-c
 origin_child_dir: docs/plans/zircon_plugins/12
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 related_code:
-  - tools/session_coordinator/workflows/milestones.py
-  - tools/session_coordinator/git_finalize.py
 tests:
-  - .\tools\zircon-session.ps1 -Json milestone validate --session-id plugins12-failure-priority-20260715 --run-id 8f51a0df781d414ca86220fc90cd5d2f --milestone M4 --template coordinator-actions
+  - .\tools\dev\zircon-session.ps1 -Json milestone validate --session-id plugins12-failure-priority-20260715 --run-id 8f51a0df781d414ca86220fc90cd5d2f --milestone M4 --template coordinator-actions
 resolved_at: 2026-08-04
 ---
 
@@ -39,7 +37,7 @@ resolved_at: 2026-08-04
 准备阶段生成 run `8f51a0df781d414ca86220fc90cd5d2f`（topology version `945c...`）。执行：
 
 ```powershell
-.\tools\zircon-session.ps1 -Json milestone validate --session-id plugins12-failure-priority-20260715 --run-id 8f51a0df781d414ca86220fc90cd5d2f --milestone M4 --template coordinator-actions
+.\tools\dev\zircon-session.ps1 -Json milestone validate --session-id plugins12-failure-priority-20260715 --run-id 8f51a0df781d414ca86220fc90cd5d2f --milestone M4 --template coordinator-actions
 ```
 
 验证未只读取当前 runtime event consumer 切片，而是重新选择了 Plugins12 既有 M4 记录，包括 first-party catalog M4、event-generation closeout 以及 `schedule_runner`、`derived_state` hierarchy/world-driver 等历史路径，最终返回 `milestone_manifest_not_attributed`。这些路径不是当前 Session 的 exact manifest，也不能通过扩大 attribution 合法吸收。

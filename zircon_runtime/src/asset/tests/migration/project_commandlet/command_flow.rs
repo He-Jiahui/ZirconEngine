@@ -37,9 +37,13 @@ fn dry_run_apply_and_second_apply_are_safe_and_byte_idempotent() {
         .map(|change| change.path().to_path_buf())
         .collect::<std::collections::BTreeSet<_>>();
     assert_eq!(dry_run_paths.len(), 3);
-    assert!(dry_run_paths.contains(&material));
-    assert!(dry_run_paths.contains(&material.with_file_name("hero.zmaterial.zmeta")));
-    assert!(dry_run_paths.contains(&binary.with_file_name("hero.glb.zmeta")));
+    assert!(dry_run_paths.contains(&ProjectPaths::display_path(&material)));
+    assert!(dry_run_paths.contains(&ProjectPaths::display_path(
+        material.with_file_name("hero.zmaterial.zmeta")
+    )));
+    assert!(dry_run_paths.contains(&ProjectPaths::display_path(
+        binary.with_file_name("hero.glb.zmeta")
+    )));
     assert_eq!(fs::read_to_string(&material).unwrap(), legacy);
 
     let applied = migrate_project_assets(AssetMigrationOptions::new(
@@ -154,6 +158,7 @@ fn scene_material_and_model_are_the_only_first_wave_authoring_document_formats()
         root.join("assets/models/hero.model.toml"),
     ]
     .into_iter()
+    .map(ProjectPaths::display_path)
     .collect::<std::collections::BTreeSet<_>>();
     assert_eq!(authoring_changes, expected_authoring_changes);
     assert!(fs::read_to_string(root.join("assets/notes.toml"))

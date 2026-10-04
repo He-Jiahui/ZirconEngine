@@ -37,7 +37,8 @@ class ProcessPlayBackendContractTests(unittest.TestCase):
     def test_process_command_anchors_the_existing_relative_project_contract(self) -> None:
         command = self.source("process_backend/command.rs")
 
-        self.assertIn('.arg("--project")\n            .arg(".")', command)
+        self.assertIn('"--project",\n            ".",', command)
+        self.assertIn(".args(self.arguments())", command)
         self.assertIn('.current_dir(&self.working_directory)', command)
         self.assertIn(
             '".zircon/play/{instance_id}/play-scene.zrscene.json"',

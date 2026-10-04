@@ -1,3 +1,5 @@
+//! 网格实例记录主网格、LOD 与逐原语材质绑定；场景依赖提取和渲染抽取都依赖该引用顺序与绑定位置。
+
 use crate::asset::AssetReference;
 use crate::core::math::Real;
 use serde::ser::SerializeStruct;
@@ -245,5 +247,5 @@ impl SceneMeshInstanceAsset {
 }
 
 #[cfg(test)]
-#[path = "mesh/lod_append_tests.rs"]
+#[path = "mesh/tests/lod_append_tests.rs"]
 mod lod_append_tests;

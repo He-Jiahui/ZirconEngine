@@ -85,6 +85,7 @@ dockSurfaceYAt(dockIndex: int, localZ: float, seed: uint): float {
     return nearY + (localZ - nearLocalZ) * slope;
 }
 
+// 走路/安全点/建造统一读可行走表面：先用 terrainHeight，再加看台和船板，实例区返回固定地板。
 pub builtinGroundHeight(x: float, z: float, seed: uint, required: bool): float {
     if (!required) {
         throw "woc builtin ground height is required";

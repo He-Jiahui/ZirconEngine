@@ -1,3 +1,4 @@
+//! 从下拉弹层渲染核对选项行的定位、状态优先级与禁用项绘制；源码断言只约束布局路径与解析开销。
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},

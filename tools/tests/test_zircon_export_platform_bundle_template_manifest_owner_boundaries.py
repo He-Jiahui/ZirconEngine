@@ -1,3 +1,4 @@
+# 核对模板清单身份诊断归属与模式模块规模。
 import unittest
 from pathlib import Path
 
@@ -5,11 +6,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE_MANIFEST_SCHEMA = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_platform_bundle_template_manifest_schema.py"
+    / "tools/export/pipeline_report_platform_bundle_template_manifest_schema.py"
 )
 TEMPLATE_MANIFEST_IDENTITY = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_platform_bundle_template_manifest_identity.py"
+    / "tools/export/pipeline_report_platform_bundle_template_manifest_identity.py"
 )
 
 

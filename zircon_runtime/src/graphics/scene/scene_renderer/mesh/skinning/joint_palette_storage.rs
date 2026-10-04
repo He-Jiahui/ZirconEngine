@@ -23,6 +23,7 @@ impl SkinnedMeshJointPaletteStorage {
         }
     }
 
+    /// 超出快照容量返回 Err，供准备阶段选择 CPU 变形回退；不会截断关节矩阵或骨骼索引。
     pub(in crate::graphics::scene) fn from_matrices(matrices: &[Mat4]) -> Result<Self, String> {
         let joint_count = matrices.len();
         if joint_count > SKINNED_MESH_MAX_JOINT_MATRICES {
@@ -49,6 +50,7 @@ impl SkinnedMeshJointPaletteStorage {
         &self.joint_matrices
     }
 
+    /// 供 arena 打包上传的活动矩阵前缀；CPU 快照尾部单位阵与 params 不属于 WGSL 的 palette 数组布局。
     pub(in crate::graphics::scene) fn active_joint_matrices(&self) -> &[[[f32; 4]; 4]] {
         let joint_count =
             usize::try_from(self.joint_count()).expect("skinned joint count did not fit usize");
@@ -56,8 +58,8 @@ impl SkinnedMeshJointPaletteStorage {
     }
 }
 
-pub(in crate::graphics::scene::scene_renderer) fn skinned_joint_palette_arena_min_binding_size()
--> wgpu::BufferSize {
+pub(in crate::graphics::scene::scene_renderer) fn skinned_joint_palette_arena_min_binding_size(
+) -> wgpu::BufferSize {
     wgpu::BufferSize::new(std::mem::size_of::<[[f32; 4]; 4]>() as u64)
         .unwrap_or(std::num::NonZeroU64::MIN)
 }
@@ -74,56 +76,5 @@ pub(in crate::graphics::scene::scene_renderer) fn create_empty_skinned_joint_pal
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    const BENCHMARK_INSTANCE_COUNT: usize = 1_000;
-
-    #[test]
-    fn thousand_instance_storage_payload_contract_stays_within_expected_budget() {
-        let payload = SkinnedMeshJointPaletteStorage::from_matrices(&[Mat4::IDENTITY; 64])
-            .expect("64-joint test palette fits storage ABI");
-        let payloads = vec![payload; BENCHMARK_INSTANCE_COUNT * 2];
-
-        assert_eq!(payloads.len(), BENCHMARK_INSTANCE_COUNT * 2);
-        assert_eq!(payloads[0].joint_count(), 64);
-        assert_eq!(
-            std::mem::size_of_val(payloads.as_slice()),
-            BENCHMARK_INSTANCE_COUNT * 2 * std::mem::size_of::<SkinnedMeshJointPaletteStorage>()
-        );
-        assert!(std::mem::size_of_val(payloads.as_slice()) <= 32 * 1024 * 1024);
-    }
-
-    #[test]
-    fn active_palette_span_exposes_only_live_joint_matrices() {
-        let no_joints = SkinnedMeshJointPaletteStorage::from_matrices(&[])
-            .expect("empty palette fits storage ABI");
-        let sixty_four_joints =
-            SkinnedMeshJointPaletteStorage::from_matrices(&[Mat4::IDENTITY; 64])
-                .expect("64-joint palette fits storage ABI");
-        let full_palette = SkinnedMeshJointPaletteStorage::from_matrices(
-            &[Mat4::IDENTITY; SKINNED_MESH_MAX_JOINT_MATRICES],
-        )
-        .expect("full palette fits storage ABI");
-
-        let matrix_bytes = std::mem::size_of::<[[f32; 4]; 4]>();
-        assert_eq!(std::mem::size_of_val(no_joints.active_joint_matrices()), 0);
-        assert_eq!(
-            std::mem::size_of_val(sixty_four_joints.active_joint_matrices()),
-            64 * matrix_bytes
-        );
-        assert_eq!(
-            std::mem::size_of_val(full_palette.active_joint_matrices()),
-            SKINNED_MESH_MAX_JOINT_MATRICES * matrix_bytes
-        );
-    }
-
-    #[test]
-    fn thousand_instance_two_frame_arena_payload_is_compact() {
-        let matrix_bytes = std::mem::size_of::<[[f32; 4]; 4]>();
-        let arena_payload_bytes = BENCHMARK_INSTANCE_COUNT * 2 * 64 * matrix_bytes;
-
-        assert_eq!(arena_payload_bytes, 8_192_000);
-        assert!(arena_payload_bytes < 8 * 1024 * 1024);
-    }
-}
+#[path = "tests/joint_palette_storage.rs"]
+mod tests;

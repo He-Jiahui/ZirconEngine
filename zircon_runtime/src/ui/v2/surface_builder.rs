@@ -1,10 +1,11 @@
-use std::sync::Arc;
-
+use thiserror::Error;
 use zircon_runtime_interface::ui::event_ui::UiTreeId;
 use zircon_runtime_interface::ui::v2::{UiV2AssetError, UiV2CompiledDocument};
 
-use crate::text::font::{shared_font_collection_service, FontCollectionService};
+use crate::text::font::shared_font_collection_service;
+use crate::text::{TextRuntimeContext, TextRuntimeContextAccessError};
 use crate::ui::surface::UiSurface;
+use crate::ui::text::UiTextMeasureCache;
 use crate::ui::theme::UiThemeRegistry;
 
 use super::cache::UiV2PrototypeStore;
@@ -14,6 +15,14 @@ use super::UiV2DocumentCompiler;
 
 #[derive(Default)]
 pub struct UiV2SurfaceBuilder;
+
+#[derive(Debug, Error)]
+pub(crate) enum UiV2RuntimeSurfaceBuildError {
+    #[error(transparent)]
+    Asset(#[from] UiV2AssetError),
+    #[error(transparent)]
+    TextContext(#[from] TextRuntimeContextAccessError),
+}
 
 impl UiV2SurfaceBuilder {
     pub fn build_surface(
@@ -34,28 +43,32 @@ impl UiV2SurfaceBuilder {
         document: &zircon_runtime_interface::ui::v2::UiV2AssetDocument,
         store: &UiV2PrototypeStore,
     ) -> Result<UiSurface, UiV2AssetError> {
-        Self::build_surface_with_prototype_store_and_font_collection(
-            tree_id,
-            document,
-            store,
-            shared_font_collection_service(),
-        )
-    }
-
-    pub(crate) fn build_surface_with_prototype_store_and_font_collection(
-        tree_id: UiTreeId,
-        document: &zircon_runtime_interface::ui::v2::UiV2AssetDocument,
-        store: &UiV2PrototypeStore,
-        font_collection: Arc<FontCollectionService>,
-    ) -> Result<UiSurface, UiV2AssetError> {
         let compiled = UiV2DocumentCompiler::compile_with_prototype_store(document, store)?;
-        Self::build_surface_from_compiled_document_with_optional_theme_and_font_collection(
+        Self::build_surface_from_compiled_document_with_optional_theme_and_text_measure_cache(
             tree_id,
             document,
             &compiled,
             None,
-            font_collection,
+            UiTextMeasureCache::new_with_font_collection(shared_font_collection_service()),
         )
+    }
+
+    pub(crate) fn build_surface_with_prototype_store_and_text_context(
+        tree_id: UiTreeId,
+        document: &zircon_runtime_interface::ui::v2::UiV2AssetDocument,
+        store: &UiV2PrototypeStore,
+        text_context: &TextRuntimeContext,
+    ) -> Result<UiSurface, UiV2RuntimeSurfaceBuildError> {
+        let compiled = UiV2DocumentCompiler::compile_with_prototype_store(document, store)?;
+        let text_measure_cache = UiTextMeasureCache::new_with_text_context(text_context)?;
+        Self::build_surface_from_compiled_document_with_optional_theme_and_text_measure_cache(
+            tree_id,
+            document,
+            &compiled,
+            None,
+            text_measure_cache,
+        )
+        .map_err(Into::into)
     }
 
     pub fn build_surface_from_compiled_document(
@@ -63,12 +76,12 @@ impl UiV2SurfaceBuilder {
         document: &zircon_runtime_interface::ui::v2::UiV2AssetDocument,
         compiled: &UiV2CompiledDocument,
     ) -> Result<UiSurface, UiV2AssetError> {
-        Self::build_surface_from_compiled_document_with_optional_theme_and_font_collection(
+        Self::build_surface_from_compiled_document_with_optional_theme_and_text_measure_cache(
             tree_id,
             document,
             compiled,
             None,
-            shared_font_collection_service(),
+            UiTextMeasureCache::new_with_font_collection(shared_font_collection_service()),
         )
     }
 
@@ -78,21 +91,21 @@ impl UiV2SurfaceBuilder {
         compiled: &UiV2CompiledDocument,
         theme: &UiThemeRegistry,
     ) -> Result<UiSurface, UiV2AssetError> {
-        Self::build_surface_from_compiled_document_with_optional_theme_and_font_collection(
+        Self::build_surface_from_compiled_document_with_optional_theme_and_text_measure_cache(
             tree_id,
             document,
             compiled,
             Some(theme),
-            shared_font_collection_service(),
+            UiTextMeasureCache::new_with_font_collection(shared_font_collection_service()),
         )
     }
 
-    fn build_surface_from_compiled_document_with_optional_theme_and_font_collection(
+    fn build_surface_from_compiled_document_with_optional_theme_and_text_measure_cache(
         tree_id: UiTreeId,
         document: &zircon_runtime_interface::ui::v2::UiV2AssetDocument,
         compiled: &UiV2CompiledDocument,
         theme: Option<&UiThemeRegistry>,
-        font_collection: Arc<FontCollectionService>,
+        text_measure_cache: UiTextMeasureCache,
     ) -> Result<UiSurface, UiV2AssetError> {
         let resolved_styles = if let Some(theme) = theme {
             UiV2StyleResolver::resolve_static_with_theme(document, &compiled.arena, theme)?
@@ -113,7 +126,7 @@ impl UiV2SurfaceBuilder {
             UiV2RuntimeStyleIndex::from_document(document)?
         };
         runtime_style.capture_baseline_from_tree(&tree);
-        let mut surface = UiSurface::new_with_font_collection(tree_id, font_collection);
+        let mut surface = UiSurface::new_with_text_measure_cache(tree_id, text_measure_cache);
         surface.tree = tree;
         surface.set_runtime_style_index(runtime_style);
         surface.seed_component_states_from_tree_metadata();

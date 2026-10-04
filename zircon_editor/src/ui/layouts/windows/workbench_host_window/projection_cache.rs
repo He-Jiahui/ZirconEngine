@@ -3,6 +3,9 @@ use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::{
     view_template_resource_generation, ViewTemplateResourceGeneration,
 };
+use crate::ui::retained_host::menu_pointer::{
+    current_menu_label_slot_metrics, MenuLabelSlotMetrics,
+};
 use crate::ui::retained_host::primitives::{ModelRc, SharedString};
 use crate::ui::retained_host::runtime_text_metrics_generation;
 use crate::ui::widgets::common::{collect_tabs, document_tab_data, host_tab_data};
@@ -65,6 +68,8 @@ struct MenuChromeProjectionInput {
     outer_margin_bits: u32,
     top_bar_height_bits: u32,
     shell_width_bits: u32,
+    // Host typography and spacing may change without a font-resource generation change.
+    menu_slot_metrics: MenuLabelSlotMetrics,
 }
 
 impl HostChromeProjectionCache {
@@ -163,6 +168,7 @@ impl HostChromeProjectionCache {
     {
         let resource_generation = view_template_resource_generation(MENU_CHROME_ASSET, &[]);
         let text_metrics_generation = runtime_text_metrics_generation();
+        let menu_slot_metrics = current_menu_label_slot_metrics();
         if self.menu_chrome.as_ref().is_some_and(|cached| {
             resource_generation
                 .as_ref()
@@ -175,6 +181,7 @@ impl HostChromeProjectionCache {
                     metrics,
                     resolved_preset_name,
                     shell_width,
+                    menu_slot_metrics,
                 )
         }) {
             return self.menu_chrome.as_ref().unwrap().data.clone();
@@ -190,6 +197,7 @@ impl HostChromeProjectionCache {
                     metrics,
                     resolved_preset_name,
                     shell_width,
+                    menu_slot_metrics,
                 ),
                 resource_generation,
                 text_metrics_generation,
@@ -209,6 +217,7 @@ impl MenuChromeProjectionInput {
         metrics: &HostWindowSurfaceMetricsData,
         resolved_preset_name: &SharedString,
         shell_width: f32,
+        menu_slot_metrics: MenuLabelSlotMetrics,
     ) -> Self {
         Self {
             save_project_enabled: host_shell.save_project_enabled,
@@ -221,6 +230,7 @@ impl MenuChromeProjectionInput {
             outer_margin_bits: metrics.outer_margin_px.to_bits(),
             top_bar_height_bits: metrics.top_bar_height_px.to_bits(),
             shell_width_bits: shell_width.to_bits(),
+            menu_slot_metrics,
         }
     }
 
@@ -231,6 +241,7 @@ impl MenuChromeProjectionInput {
         metrics: &HostWindowSurfaceMetricsData,
         resolved_preset_name: &SharedString,
         shell_width: f32,
+        menu_slot_metrics: MenuLabelSlotMetrics,
     ) -> bool {
         self.save_project_enabled == host_shell.save_project_enabled
             && self.undo_enabled == host_shell.undo_enabled
@@ -244,6 +255,7 @@ impl MenuChromeProjectionInput {
             && self.outer_margin_bits == metrics.outer_margin_px.to_bits()
             && self.top_bar_height_bits == metrics.top_bar_height_px.to_bits()
             && self.shell_width_bits == shell_width.to_bits()
+            && self.menu_slot_metrics == menu_slot_metrics
     }
 }
 
@@ -292,151 +304,5 @@ fn side_tab_source_matches(
 }
 
 #[cfg(test)]
-mod tests {
-    use std::collections::BTreeMap;
-
-    use crate::core::commands::EditorCommandRegistry;
-    use crate::ui::animation_editor::AnimationEditorPanePresentation;
-    use crate::ui::asset_editor::UiAssetEditorPanePresentation;
-    use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
-    use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
-    use crate::ui::workbench::fixture::default_preview_fixture;
-    use crate::ui::workbench::model::WorkbenchViewModel;
-
-    use super::super::{
-        build_host_scene_data_with_cache, BuildExportPaneViewData, FrameRect, HostWindowLayoutData,
-        ModulePluginsPaneViewData, ShellPresentation,
-    };
-    use super::HostChromeProjectionCache;
-
-    #[test]
-    fn independent_shell_rebuilds_retain_stable_chrome_models() {
-        let fixture = default_preview_fixture();
-        let chrome = fixture.build_chrome();
-        let commands = EditorCommandRegistry::default_workbench();
-        let first_model = WorkbenchViewModel::build(&commands, &chrome);
-        let second_model = WorkbenchViewModel::build(&commands, &chrome);
-        let geometry = WorkbenchShellGeometry::default();
-        let presets = vec!["rider".to_string(), "compact".to_string()];
-        let ui_asset_panes = BTreeMap::<String, UiAssetEditorPanePresentation>::new();
-        let animation_panes = BTreeMap::<String, AnimationEditorPanePresentation>::new();
-        let template_v2_data = BTreeMap::new();
-        let floating_windows = FloatingWindowProjectionBundle::default();
-        let mut cache = HostChromeProjectionCache::default();
-
-        let first = ShellPresentation::from_state(
-            &first_model,
-            &chrome,
-            &geometry,
-            &presets,
-            Some("rider"),
-            &ui_asset_panes,
-            &animation_panes,
-            None,
-            &ModulePluginsPaneViewData::default(),
-            &BuildExportPaneViewData::default(),
-            &template_v2_data,
-            &floating_windows,
-            &mut cache,
-        );
-        let first_scene = build_host_scene_data_with_cache(
-            &first_model.menu_bar,
-            &first.host_surface_data,
-            &first.host_shell,
-            &host_layout_fixture(),
-            &first.status_primary,
-            chrome.inspector.is_some(),
-            &chrome.project_overview,
-            &chrome,
-            &mut cache,
-        );
-
-        let second = ShellPresentation::from_state(
-            &second_model,
-            &chrome,
-            &geometry,
-            &presets,
-            Some("rider"),
-            &ui_asset_panes,
-            &animation_panes,
-            None,
-            &ModulePluginsPaneViewData::default(),
-            &BuildExportPaneViewData::default(),
-            &template_v2_data,
-            &floating_windows,
-            &mut cache,
-        );
-        let second_scene = build_host_scene_data_with_cache(
-            &second_model.menu_bar,
-            &second.host_surface_data,
-            &second.host_shell,
-            &host_layout_fixture(),
-            &second.status_primary,
-            chrome.inspector.is_some(),
-            &chrome.project_overview,
-            &chrome,
-            &mut cache,
-        );
-
-        assert!(first
-            .host_surface_data
-            .host_tabs
-            .shares_values_with(&second.host_surface_data.host_tabs));
-        assert!(first
-            .host_surface_data
-            .left_tabs
-            .shares_values_with(&second.host_surface_data.left_tabs));
-        assert!(first
-            .host_surface_data
-            .document_tabs
-            .shares_values_with(&second.host_surface_data.document_tabs));
-        assert!(first_scene
-            .page_chrome
-            .template_nodes
-            .shares_values_with(&second_scene.page_chrome.template_nodes));
-        assert!(first_scene
-            .left_dock
-            .header_nodes
-            .shares_values_with(&second_scene.left_dock.header_nodes));
-        assert!(first_scene
-            .left_dock
-            .rail_nodes
-            .shares_values_with(&second_scene.left_dock.rail_nodes));
-        assert!(first_scene
-            .document_dock
-            .header_nodes
-            .shares_values_with(&second_scene.document_dock.header_nodes));
-        assert!(first_scene
-            .menu_chrome
-            .menus
-            .shares_values_with(&second_scene.menu_chrome.menus));
-        assert!(first_scene
-            .menu_chrome
-            .template_nodes
-            .shares_values_with(&second_scene.menu_chrome.template_nodes));
-    }
-
-    fn host_layout_fixture() -> HostWindowLayoutData {
-        HostWindowLayoutData {
-            center_band_frame: host_layout_frame_fixture(0.0, 64.0, 1280.0, 616.0),
-            status_bar_frame: host_layout_frame_fixture(0.0, 698.0, 1280.0, 22.0),
-            left_region_frame: host_layout_frame_fixture(0.0, 64.0, 280.0, 516.0),
-            document_region_frame: host_layout_frame_fixture(280.0, 64.0, 720.0, 516.0),
-            right_region_frame: host_layout_frame_fixture(1000.0, 64.0, 280.0, 516.0),
-            bottom_region_frame: host_layout_frame_fixture(0.0, 580.0, 1280.0, 118.0),
-            left_splitter_frame: host_layout_frame_fixture(276.0, 64.0, 4.0, 516.0),
-            right_splitter_frame: host_layout_frame_fixture(1000.0, 64.0, 4.0, 516.0),
-            bottom_splitter_frame: host_layout_frame_fixture(0.0, 576.0, 1280.0, 4.0),
-            viewport_content_frame: host_layout_frame_fixture(280.0, 96.0, 720.0, 484.0),
-        }
-    }
-
-    fn host_layout_frame_fixture(x: f32, y: f32, width: f32, height: f32) -> FrameRect {
-        FrameRect {
-            x,
-            y,
-            width,
-            height,
-        }
-    }
-}
+#[path = "tests/projection_cache.rs"]
+mod tests;

@@ -1,18 +1,24 @@
 use std::fmt;
+use std::path::PathBuf;
 use std::sync::Arc;
 
-use zircon_runtime::builtin::{RuntimeModuleCompositionIdentity, RuntimeModuleCompositionPlan};
+use zircon_runtime::builtin::{
+    RuntimeModuleCompositionIdentity, RuntimeModuleCompositionPlan, RuntimePluginId,
+};
 use zircon_runtime::core::diagnostics::RuntimeDevtoolsPluginCatalogEntry;
 use zircon_runtime::core::framework::platform::{
     PreferenceStorageBackendKind, RuntimeTargetMode, PLATFORM_MODULE_NAME,
 };
-use zircon_runtime::core::framework::project::RuntimeProfileId;
+use zircon_runtime::core::framework::project::{
+    resolve_plugin_selections, PluginSelectionResolution, RuntimeProfileId,
+};
 use zircon_runtime::core::framework::render::RENDER_PROFILE_CONFIG_KEY;
 use zircon_runtime::core::framework::window::{
     WindowDescriptor, PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY,
 };
-use zircon_runtime::core::{CoreError, CoreHandle, CoreRuntime, ModuleDescriptor};
+use zircon_runtime::core::{CoreError, CoreRuntime, ModuleDescriptor};
 use zircon_runtime::engine_module::EngineModule;
+use zircon_runtime::foundation::{self, FOUNDATION_MODULE_NAME};
 use zircon_runtime::platform::{
     PlatformConfig, PlatformDriver, PlatformFeatureSelection, PreferenceStorageBackend,
     PLATFORM_CONFIG_KEY, PLATFORM_DRIVER_NAME,
@@ -30,7 +36,7 @@ use crate::plugins::{PluginGroupError, ResolvedPluginGroup};
 
 use super::{
     builtin_modules::{
-        builtin_modules_for_config_with_effective_manifest_and_runtime_plugin_registrations,
+        builtin_modules_for_config_with_effective_manifest_and_runtime_plugin_and_feature_registrations,
         builtin_modules_for_config_with_runtime_plugin_and_feature_registrations,
         builtin_modules_for_config_with_runtime_plugin_registrations,
         effective_project_plugin_manifest,
@@ -39,7 +45,7 @@ use super::{
     ProductRoleRequest, ResolvedProductHostConfig,
 };
 
-use super::first_party_runtime_plugin_registrations_for_manifest;
+use super::first_party_runtime_plugins::first_party_runtime_catalog_for_manifest;
 use super::platform_preferences::{
     planned_preference_storage_backend, preference_storage_backend_for_bootstrap,
     HostPreferenceStorageBackend,
@@ -86,6 +92,7 @@ pub struct EntryModuleSelectionReport {
     pub runtime_plugin_availability: RuntimePluginAvailabilityReport,
     pub runtime_module_composition_identity: RuntimeModuleCompositionIdentity,
     pub runtime_module_warnings: Vec<String>,
+    pub plugin_selection_outcomes: Vec<PluginSelectionResolution>,
     pub modules: Vec<EntryModuleSelection>,
 }
 
@@ -180,6 +187,12 @@ impl EntryModuleSelectionReport {
                 .map(|warning| format!("entry.runtime_module_warning={warning}")),
         );
         lines.push(format!("entry.modules={}", self.modules.len()));
+        lines.extend(self.plugin_selection_outcomes.iter().map(|outcome| {
+            format!(
+                "entry.plugin_selection={} status={:?} required={}",
+                outcome.selection.id, outcome.status, outcome.selection.required
+            )
+        }));
         lines.extend(
             self.modules
                 .iter()
@@ -226,8 +239,7 @@ pub(crate) trait EngineEntry: Send + Sync + fmt::Debug {
             .collect()
     }
 
-    fn bootstrap(&self) -> Result<CoreHandle, CoreError> {
-        let runtime = CoreRuntime::new();
+    fn bootstrap(&self, runtime: &CoreRuntime) -> Result<(), CoreError> {
         let descriptors = self.module_descriptors();
 
         for descriptor in &descriptors {
@@ -235,7 +247,7 @@ pub(crate) trait EngineEntry: Send + Sync + fmt::Debug {
         }
         runtime.activate_registered_modules()?;
 
-        Ok(runtime.handle())
+        Ok(())
     }
 }
 
@@ -247,6 +259,8 @@ pub(crate) struct BuiltinEngineEntry {
     plugin_bridge_lifecycle_state: Option<RuntimePluginBridgeLifecycleState>,
     compiled_project_plugin_plan: Option<Arc<CompiledProjectPluginPlan>>,
     preference_storage_backend: Option<HostPreferenceStorageBackend>,
+    config_file_path: Option<PathBuf>,
+    plugin_selection_outcomes: Vec<PluginSelectionResolution>,
 }
 
 impl BuiltinEngineEntry {
@@ -273,16 +287,26 @@ impl BuiltinEngineEntry {
         config: &ResolvedProductHostConfig,
     ) -> Result<Self, CoreError> {
         let effective_manifest = effective_project_plugin_manifest(config);
-        let registrations = first_party_runtime_plugin_registrations_for_manifest(
-            config.target_mode(),
+        let catalog_report =
+            first_party_runtime_catalog_for_manifest(config.target_mode(), &effective_manifest);
+        let super::first_party_runtime_plugins::FirstPartyRuntimeCatalogReports {
+            runtime_plugins,
+            runtime_plugin_features,
+        } = catalog_report;
+        let registrations = runtime_plugins
+            .into_registrations_if_required_resolved()
+            .map_err(|error| {
+                CoreError::Initialization(
+                    "zircon_app first-party runtime plugin selection".to_owned(),
+                    error.to_string(),
+                )
+            })?;
+        let selection = builtin_modules_for_config_with_effective_manifest_and_runtime_plugin_and_feature_registrations(
+            config,
             &effective_manifest,
-        );
-        let selection =
-            builtin_modules_for_config_with_effective_manifest_and_runtime_plugin_registrations(
-                config,
-                &effective_manifest,
-                &registrations,
-            )?;
+            &registrations,
+            runtime_plugin_features,
+        )?;
         Ok(Self {
             config: config.clone(),
             plugin_group: plugin_group_for_config(config, &selection.composition)?,
@@ -290,6 +314,8 @@ impl BuiltinEngineEntry {
             plugin_bridge_lifecycle_state: selection.plugin_bridge_lifecycle_state,
             compiled_project_plugin_plan: selection.compiled_project_plugin_plan,
             preference_storage_backend: None,
+            config_file_path: None,
+            plugin_selection_outcomes: registrations.outcomes().to_vec(),
         })
     }
 
@@ -305,7 +331,8 @@ impl BuiltinEngineEntry {
         config: &ResolvedProductHostConfig,
         registrations: impl IntoIterator<Item = RuntimePluginRegistrationReport>,
     ) -> Result<Self, CoreError> {
-        let registrations = registrations.into_iter().collect::<Vec<_>>();
+        let (registrations, plugin_selection_outcomes) =
+            admit_explicit_runtime_plugin_registrations(config, registrations)?;
         let selection =
             builtin_modules_for_config_with_runtime_plugin_registrations(config, &registrations)?;
         Ok(Self {
@@ -315,6 +342,8 @@ impl BuiltinEngineEntry {
             plugin_bridge_lifecycle_state: selection.plugin_bridge_lifecycle_state,
             compiled_project_plugin_plan: selection.compiled_project_plugin_plan,
             preference_storage_backend: None,
+            config_file_path: None,
+            plugin_selection_outcomes,
         })
     }
 
@@ -336,7 +365,8 @@ impl BuiltinEngineEntry {
         registrations: impl IntoIterator<Item = RuntimePluginRegistrationReport>,
         feature_registrations: impl IntoIterator<Item = RuntimePluginFeatureRegistrationReport>,
     ) -> Result<Self, CoreError> {
-        let registrations = registrations.into_iter().collect::<Vec<_>>();
+        let (registrations, plugin_selection_outcomes) =
+            admit_explicit_runtime_plugin_registrations(config, registrations)?;
         let feature_registrations = feature_registrations.into_iter().collect::<Vec<_>>();
         let selection = builtin_modules_for_config_with_runtime_plugin_and_feature_registrations(
             config,
@@ -350,6 +380,8 @@ impl BuiltinEngineEntry {
             plugin_bridge_lifecycle_state: selection.plugin_bridge_lifecycle_state,
             compiled_project_plugin_plan: selection.compiled_project_plugin_plan,
             preference_storage_backend: None,
+            config_file_path: None,
+            plugin_selection_outcomes,
         })
     }
 
@@ -359,6 +391,24 @@ impl BuiltinEngineEntry {
     ) -> Self {
         self.preference_storage_backend = Some(HostPreferenceStorageBackend::new(backend));
         self
+    }
+
+    pub(crate) fn with_config_file_path(mut self, path: PathBuf) -> Result<Self, CoreError> {
+        let mut descriptor = self
+            .runtime_module_composition
+            .module_descriptors()
+            .iter()
+            .find(|descriptor| descriptor.name == FOUNDATION_MODULE_NAME)
+            .cloned()
+            .ok_or_else(|| {
+                CoreError::Initialization(
+                    "foundation config persistence".to_owned(),
+                    "product composition has no Foundation descriptor".to_owned(),
+                )
+            })?;
+        foundation::bind_config_file_path(&mut descriptor, path.clone())?;
+        self.config_file_path = Some(path);
+        Ok(self)
     }
 
     pub fn plugin_group(&self) -> &ResolvedPluginGroup {
@@ -406,6 +456,7 @@ impl BuiltinEngineEntry {
                 .clone(),
             runtime_module_composition_identity: self.runtime_module_composition.identity().clone(),
             runtime_module_warnings: self.runtime_module_composition.warning_messages(),
+            plugin_selection_outcomes: self.plugin_selection_outcomes.clone(),
             modules: self
                 .runtime_module_composition
                 .module_descriptors()
@@ -433,17 +484,66 @@ impl BuiltinEngineEntry {
         if matches!(self.config.profile(), EntryProfile::Editor) {
             if let Some(subsystems) = self.config.editor_enabled_subsystems() {
                 runtime.store_config_value(
-                    zircon_editor::EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY,
+                    zircon_editor::ui::host::EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY,
                     serde_json::json!(subsystems),
                 );
             }
             runtime.store_config_value(
-                zircon_editor::EDITOR_RUNTIME_SANDBOX_ENABLED_CONFIG_KEY,
+                zircon_editor::ui::host::EDITOR_RUNTIME_SANDBOX_ENABLED_CONFIG_KEY,
                 serde_json::json!(self.config.editor_runtime_sandbox_enabled()),
             );
         }
         Ok(())
     }
+}
+
+fn admit_explicit_runtime_plugin_registrations(
+    config: &ResolvedProductHostConfig,
+    registrations: impl IntoIterator<Item = RuntimePluginRegistrationReport>,
+) -> Result<
+    (
+        Vec<RuntimePluginRegistrationReport>,
+        Vec<PluginSelectionResolution>,
+    ),
+    CoreError,
+> {
+    // Explicit reports cross the App product boundary. Carrier-only packages may still be used
+    // by catalog tests, but they must never become product providers or contribute extensions.
+    let registrations = registrations
+        .into_iter()
+        .filter(|registration| {
+            registration
+                .package_manifest
+                .package_role
+                .is_product_catalog_eligible()
+        })
+        .collect::<Vec<_>>();
+    let target_mode = config.target_mode();
+    let effective_manifest = effective_project_plugin_manifest(config);
+    let resolution = resolve_plugin_selections(target_mode, &effective_manifest, |plugin_id| {
+        registrations
+            .iter()
+            .find(|registration| {
+                registration.project_selection.enabled
+                    && registration.project_selection.supports_target(target_mode)
+                    && RuntimePluginId::parse_key(&registration.project_selection.id)
+                        .is_some_and(|registration_id| &registration_id == plugin_id)
+            })
+            .cloned()
+    });
+    let outcomes = resolution.outcomes().to_vec();
+    let registrations = resolution
+        .into_registrations_if_required_resolved()
+        .map_err(|error| {
+            CoreError::Initialization(
+                "zircon_app explicit runtime plugin selection".to_owned(),
+                error.to_string(),
+            )
+        })?
+        .into_iter()
+        .collect::<Vec<_>>();
+
+    Ok((registrations, outcomes))
 }
 
 impl EngineEntry for BuiltinEngineEntry {
@@ -465,12 +565,11 @@ impl EngineEntry for BuiltinEngineEntry {
             .to_vec()
     }
 
-    fn bootstrap(&self) -> Result<CoreHandle, CoreError> {
-        let runtime = CoreRuntime::new();
+    fn bootstrap(&self, runtime: &CoreRuntime) -> Result<(), CoreError> {
         let descriptors = self.runtime_module_composition.module_descriptors();
         let platform_config = platform_config_for_entry_config(&self.config);
 
-        self.store_entry_config(&runtime)?;
+        self.store_entry_config(runtime)?;
         runtime.replace_devtools_plugin_catalog_entries(builtin_plugin_catalog_entries());
         if let Some(state) = self.plugin_bridge_lifecycle_state.clone() {
             runtime.install_runtime_module_lifecycle_observer(Arc::new(state));
@@ -480,15 +579,21 @@ impl EngineEntry for BuiltinEngineEntry {
             self.preference_storage_backend.as_ref(),
         );
         for descriptor in descriptors {
+            let mut descriptor = descriptor.clone();
+            if descriptor.name == FOUNDATION_MODULE_NAME {
+                if let Some(path) = self.config_file_path.as_ref() {
+                    foundation::bind_config_file_path(&mut descriptor, path.clone())?;
+                }
+            }
             runtime.register_module(descriptor_with_preference_storage_backend(
-                descriptor.clone(),
+                descriptor,
                 preference_storage_backend.as_ref(),
             )?)?;
         }
         runtime.activate_registered_modules()?;
-        self.store_entry_config(&runtime)?;
+        self.store_entry_config(runtime)?;
 
-        Ok(runtime.handle())
+        Ok(())
     }
 }
 

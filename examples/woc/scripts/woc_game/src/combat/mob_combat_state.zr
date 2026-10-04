@@ -1,5 +1,7 @@
+//! 怪物近战配置的标量投影；追击状态读取范围与速度参数，世界状态负责目标选择、移动提交和挥击结算。
 // Primitive-only projection of src/sim/mob_combat.ts. AI, pathfinding and
 // swing execution stay with their authoritative WorldState owners.
+/// 追击投影读写的近战配置；缺省范围、追击速度和入距挥击策略由具体模板覆盖。
 pub class MobCombatProfile {
     pub var meleeRange: float;
     pub var desiredRange: float;
@@ -40,6 +42,7 @@ pub scaledDefaultMobMeleeRange(scale: float): float {
     return meleeRange() + extraScale * 3.0;
 }
 
+/// 为尼斯拉克斯首领及其护卫选专用范围，其余模板按展示比例计算缺省配置。
 pub combatProfileForMob(templateId: string, scale: float, output: MobCombatProfile): void {
     if (templateId == "nythraxis_scourge_of_thornpeak") {
         output.meleeRange = 8.0;
@@ -68,6 +71,7 @@ pub combatProfileForMob(templateId: string, scale: float, output: MobCombatProfi
     applyDefaultProfile(output, scale);
 }
 
+/// 仅本步发生移动时附加运动容差；追击投影在发出挥击请求前调用。
 pub effectiveMobMeleeRange(profile: MobCombatProfile, mobMoved: bool): float {
     return mobMoved ? profile.meleeRange + profile.movingRangeBonus : profile.meleeRange;
 }

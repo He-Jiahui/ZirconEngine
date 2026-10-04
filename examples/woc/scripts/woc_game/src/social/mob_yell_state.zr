@@ -3,6 +3,8 @@ var container = %import("kernel/container");
 // Mob-yell events are separate from the fixed three-player chat-command
 // fixture. This preserves the simulation event shape for any registered player
 // entity without claiming ownership of host event delivery.
+// 玩家登记顺序决定广播事件顺序；玩家与事件各自使用对齐数组，
+// 宿主每次投影须刷新位置和实体存在标志，事件消费后自行管理批次。
 pub class MobYellState {
     pub var playerIds: container.Array<int>;
     pub var playerX: container.Array<float>;
@@ -95,6 +97,8 @@ recordYellEvent(
     state.eventRecipientIds.add(recipientId);
 }
 
+// 模拟层只选择当前可接收的玩家并保存有序事件；聊天广播的
+// 传输、订阅与客户端呈现仍由外层宿主完成。
 pub emitMobYell(
     state: MobYellState,
     mobId: int,

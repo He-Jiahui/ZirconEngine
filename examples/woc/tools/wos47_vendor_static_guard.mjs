@@ -25,7 +25,7 @@ const contentProjection = read("tools", "m5_content_zr_codegen.mjs");
 const contracts = JSON.parse(read("contracts", "command_payloads.json"));
 const content = JSON.parse(read("contracts", "m5_content.json"));
 
-requireText(world, /writer\.u16\(<uint>67, 1, 1\)/, "current WOS writer must retain WOS47 vendor state");
+requireText(world, /writer\.u16\(schemaVersion, 1, 1\)/, "current WOS writer must retain WOS47 vendor state");
 requireText(
   world,
   /schemaVersion != <uint>45 &&\s*schemaVersion != <uint>46 &&\s*schemaVersion != <uint>47 &&\s*schemaVersion != <uint>48 &&\s*schemaVersion != <uint>49 &&\s*schemaVersion != <uint>50 &&\s*schemaVersion != <uint>51 &&\s*schemaVersion != <uint>52 &&\s*schemaVersion != <uint>53 &&\s*schemaVersion != <uint>54 &&\s*schemaVersion != <uint>55/,
@@ -99,7 +99,7 @@ requireText(
 
 requireText(sourceExtract, /vendorItemIds[\s\S]*?vendor_item_ids/, "vendor source extraction is missing");
 requireText(contentCodegen, /EXPECTED_VENDOR_ITEM_IDS[\s\S]*?addDerivedVendorItemUses/, "vendor item pin is missing");
-requireText(contentProjection, /items: 35/, "WOS47 content projection count is stale");
+requireText(contentProjection, /items: 82/, "WOS47 content projection count is stale");
 requireText(catalog, /pub itemIdUtf8Length[\s\S]*?pub itemIdUtf8Byte/, "scalar UTF-8 catalog query is missing");
 requireText(catalog, /field == "noVendorSell"[\s\S]*?field == "soulbound"/, "vendor policy flags are missing");
 requireText(catalog, /pub npcHasVendorStock[\s\S]*?index == 5\) \{ return true; \}/, "Trader Wilkes vendor projection is missing");
@@ -124,11 +124,11 @@ requireText(native, /struct BuyItemCommandPayload[\s\S]*?npc_id: u64[\s\S]*?item
 requireText(native, /struct SellItemCommandPayload[\s\S]*?count: Option<u32>/, "native sell payload is missing");
 requireText(native, /struct BuybackItemCommandPayload[\s\S]*?encode_utf8_id/, "native buyback payload is missing");
 requireText(nativeTests, /vendor_payloads_preserve_source_item_and_npc_fields/, "native vendor payload coverage is missing");
-requireText(main, /\\"world_state\\":\\"WOS67\\"/, "package WOS64 identity is missing");
-requireText(nativeLib, /WORLD_STATE_FORMAT: &str = "WOS67"/, "native WOS64 format is missing");
-requireText(nativeLib, /WORLD_STATE_SCHEMA_VERSION: u16 = 67/, "native WOS64 version is missing");
+requireText(main, /\\"world_state\\":\\"WOS118\\"/, "package WOS118 identity is missing");
+requireText(nativeLib, /WORLD_STATE_FORMAT: &str = "WOS118"/, "native WOS118 format is missing");
+requireText(nativeLib, /WORLD_STATE_SCHEMA_VERSION: u16 = 118/, "native WOS118 version is missing");
 
-if (content.items.length !== 35) throw new Error("WOS47 vendor catalog item count drifted");
+if (content.items.length !== 82) throw new Error("WOS47 vendor catalog item count drifted");
 const wilkes = content.npcs.find((npc) => npc.id === "trader_wilkes");
 if (wilkes?.definition?.vendorItems?.length !== 17) {
   throw new Error("Trader Wilkes vendor stock drifted");

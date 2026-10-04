@@ -58,7 +58,7 @@ pub(super) fn sample_workbench_chrome() -> EditorChromeSnapshot {
     let default_window = layout
         .default_activity_window_mut()
         .expect("default workbench window");
-    default_window.content_workspace = DocumentNode::Tabs(TabStackLayout {
+    default_window.content_workspace = DocumentNode::tabs(TabStackLayout {
         tabs: vec![scene_instance.instance_id.clone()],
         active_tab: Some(scene_instance.instance_id.clone()),
     });
@@ -236,7 +236,7 @@ pub(super) fn sample_floating_window_chrome() -> EditorChromeSnapshot {
             let default_window = layout
                 .default_activity_window_mut()
                 .expect("default workbench window");
-            default_window.content_workspace = DocumentNode::Tabs(TabStackLayout {
+            default_window.content_workspace = DocumentNode::tabs(TabStackLayout {
                 tabs: vec![scene_instance.instance_id.clone()],
                 active_tab: Some(scene_instance.instance_id.clone()),
             });
@@ -248,13 +248,14 @@ pub(super) fn sample_floating_window_chrome() -> EditorChromeSnapshot {
                 window_id: MainPageId::new("window:prefab"),
                 title: "Prefab Popout".to_string(),
                 workspace: DocumentNode::SplitNode {
+                    node_id: Default::default(),
                     axis: SplitAxis::Horizontal,
                     ratio: 0.5,
-                    first: Box::new(DocumentNode::Tabs(TabStackLayout {
+                    first: Box::new(DocumentNode::tabs(TabStackLayout {
                         tabs: vec![floating_scene_instance.instance_id.clone()],
                         active_tab: Some(floating_scene_instance.instance_id.clone()),
                     })),
-                    second: Box::new(DocumentNode::Tabs(TabStackLayout {
+                    second: Box::new(DocumentNode::tabs(TabStackLayout {
                         tabs: vec![prefab_instance.instance_id.clone()],
                         active_tab: Some(prefab_instance.instance_id.clone()),
                     })),

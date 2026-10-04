@@ -1,6 +1,10 @@
-use std::cell::RefCell;
+// 核对宿主页溢出菜单的键盘、指针滚动、悬停和激活路径。
+use std::cell::{Cell, RefCell};
 use std::path::Path;
 use std::rc::Rc;
+
+use winit::event::{ElementState, KeyEvent};
+use winit::keyboard::{Key, KeyCode, KeyLocation, ModifiersState, NamedKey, PhysicalKey};
 
 use crate::ui::retained_host::primitives::{ModelRc, PhysicalSize, VecModel};
 use crate::ui::retained_host::{
@@ -49,6 +53,38 @@ fn host_page_overflow_keyboard_wraps_backward_and_escape_closes_without_activati
     assert!(cancel.requires_frame_update());
     assert!(!overflow_state(&ui).open);
     assert!(clicks.borrow().is_empty());
+}
+
+#[test]
+fn enter_is_consumed_by_an_active_popup_without_a_current_row() {
+    let ui = host_page_overflow_window_without_current_row();
+    let unhandled_count = Rc::new(Cell::new(0));
+    let count_for_callback = unhandled_count.clone();
+    ui.global::<UiHostContext>()
+        .on_unhandled_keyboard_input(move |_| {
+            count_for_callback.set(count_for_callback.get() + 1);
+        });
+
+    let result = ui.dispatch_native_key_for_test(enter_key_event(), ModifiersState::empty());
+
+    assert!(!result.request_redraw());
+    assert_eq!(unhandled_count.get(), 0);
+}
+
+#[test]
+fn enter_without_an_active_popup_reaches_the_unhandled_host_route() {
+    let ui = UiHostWindow::new().expect("host window should construct");
+    let unhandled_count = Rc::new(Cell::new(0));
+    let count_for_callback = unhandled_count.clone();
+    ui.global::<UiHostContext>()
+        .on_unhandled_keyboard_input(move |_| {
+            count_for_callback.set(count_for_callback.get() + 1);
+        });
+
+    let result = ui.dispatch_native_key_for_test(enter_key_event(), ModifiersState::empty());
+
+    assert!(!result.request_redraw());
+    assert_eq!(unhandled_count.get(), 1);
 }
 
 #[test]
@@ -177,6 +213,32 @@ fn capture_host_page_overflow_keyboard_visual_artifact() {
 
 fn host_page_overflow_window() -> UiHostWindow {
     host_page_overflow_window_at(420, 260)
+}
+
+fn host_page_overflow_window_without_current_row() -> UiHostWindow {
+    let ui = host_page_overflow_window();
+    let mut presentation = ui.get_host_presentation();
+    presentation
+        .host_page_overflow_menu_state
+        .hovered_page_index = -1;
+    let state = presentation.host_page_overflow_menu_state.clone();
+    ui.set_host_presentation(presentation);
+    ui.global::<UiHostContext>()
+        .set_host_page_overflow_menu_state(state);
+    ui
+}
+
+fn enter_key_event() -> KeyEvent {
+    KeyEvent {
+        physical_key: PhysicalKey::Code(KeyCode::Enter),
+        logical_key: Key::Named(NamedKey::Enter),
+        text: Some("\r".into()),
+        location: KeyLocation::Standard,
+        state: ElementState::Pressed,
+        repeat: false,
+        text_with_all_modifiers: Some("\r".into()),
+        key_without_modifiers: Key::Named(NamedKey::Enter),
+    }
 }
 
 fn host_page_overflow_window_at(width: u32, height: u32) -> UiHostWindow {

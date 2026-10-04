@@ -24,7 +24,7 @@ fn project_source_deletion_retires_files_and_publishes_one_removed_generation() 
     write_default_scene(assets_root.join("scenes/main.scene.toml"));
     let deleted_source_path = assets_root.join("textures/orphan.png");
     let deleted_meta_path = assets_root.join("textures/orphan.png.zmeta");
-    write_checker_png(&deleted_source_path);
+    write_checker_png(deleted_source_path.clone());
 
     let manager = project_asset_manager_with_first_wave_plugin_fixtures();
     manager
@@ -32,6 +32,7 @@ fn project_source_deletion_retires_files_and_publishes_one_removed_generation() 
         .unwrap();
     let deleted_meta = AssetMetaDocument::load(&deleted_meta_path).unwrap();
     let deleted_uri = AssetUri::parse("res://textures/orphan.png").unwrap();
+    let deleted_uri_text = deleted_uri.to_string();
     let asset_changes = manager.subscribe_asset_changes();
     let resource_changes = manager.subscribe_resource_changes();
 
@@ -39,36 +40,28 @@ fn project_source_deletion_retires_files_and_publishes_one_removed_generation() 
         .delete_project_source(deleted_meta.uuid)
         .expect("unreferenced project source deletion should commit");
 
-    assert!(
-        removed
-            .iter()
-            .any(|status| status.uri == deleted_uri.as_str())
-    );
+    assert!(removed.iter().any(|status| status.uri == deleted_uri_text));
     assert!(!deleted_source_path.exists());
     assert!(!deleted_meta_path.exists());
-    assert!(manager.asset_status(deleted_uri.as_str()).is_none());
-    assert!(manager.resource_status(deleted_uri.as_str()).is_none());
-    assert!(
-        !manager
-            .list_assets()
-            .iter()
-            .any(|status| status.uri.starts_with(deleted_uri.as_str()))
-    );
-    assert!(
-        !manager
-            .resource_management_generation()
-            .page(
-                crate::core::resource::ResourceManagementQuery::default(),
-                0,
-                usize::MAX,
-            )
-            .rows
-            .iter()
-            .any(|record| record
-                .primary_locator
-                .as_ref()
-                .starts_with(deleted_uri.as_str()))
-    );
+    assert!(manager.asset_status(&deleted_uri_text).is_none());
+    assert!(manager.resource_status(&deleted_uri_text).is_none());
+    assert!(!manager
+        .list_assets()
+        .iter()
+        .any(|status| status.uri.starts_with(&deleted_uri_text)));
+    assert!(!manager
+        .resource_management_generation()
+        .page(
+            crate::core::resource::ResourceManagementQuery::default(),
+            0,
+            usize::MAX,
+        )
+        .rows
+        .iter()
+        .any(|record| record
+            .primary_locator
+            .as_ref()
+            .starts_with(&deleted_uri_text)));
 
     let asset_change = asset_changes.recv_timeout(Duration::from_secs(1)).unwrap();
     assert_eq!(asset_change.kind, AssetChangeKind::Removed);
@@ -83,12 +76,10 @@ fn project_source_deletion_retires_files_and_publishes_one_removed_generation() 
     );
 
     let persisted = ProjectManager::open(&root).unwrap();
-    assert!(
-        persisted
-            .asset_registry()
-            .entry_by_path(&deleted_uri)
-            .is_none()
-    );
+    assert!(persisted
+        .asset_registry()
+        .entry_by_path(&deleted_uri)
+        .is_none());
     assert!(persisted.registry().get_by_locator(&deleted_uri).is_none());
 
     let _ = fs::remove_dir_all(root);

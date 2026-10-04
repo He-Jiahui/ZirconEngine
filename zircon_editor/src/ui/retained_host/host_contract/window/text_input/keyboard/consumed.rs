@@ -19,7 +19,16 @@ fn text_focus_consumes_keyboard_event(event: &KeyEvent) -> bool {
         return false;
     }
     match &event.logical_key {
-        Key::Named(NamedKey::Backspace | NamedKey::Escape | NamedKey::Enter) => true,
+        Key::Named(
+            NamedKey::Backspace
+            | NamedKey::Delete
+            | NamedKey::ArrowLeft
+            | NamedKey::ArrowRight
+            | NamedKey::Home
+            | NamedKey::End
+            | NamedKey::Escape
+            | NamedKey::Enter,
+        ) => true,
         _ => event
             .text
             .as_deref()

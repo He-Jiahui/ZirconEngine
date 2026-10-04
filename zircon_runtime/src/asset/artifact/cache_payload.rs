@@ -72,6 +72,7 @@ pub(super) enum ArtifactCacheAsset {
 }
 
 impl ArtifactCacheAsset {
+    /// 在 ArtifactStore 写入前把编辑格式转换为顺序式缓存载荷，并拒绝无效纹理元数据。
     pub(super) fn from_imported(asset: &ImportedAsset) -> Result<Self, AssetImportError> {
         Ok(match asset {
             ImportedAsset::Data(asset) => Self::Data(ArtifactCacheDataAsset::from(asset)),
@@ -95,8 +96,25 @@ impl ArtifactCacheAsset {
             ImportedAsset::TerrainLayerStack(asset) => Self::TerrainLayerStack(asset.clone()),
             ImportedAsset::TileSet(asset) => Self::TileSet(asset.clone()),
             ImportedAsset::TileMap(asset) => Self::TileMap(asset.clone()),
-            ImportedAsset::Prefab(asset) => Self::Prefab(ArtifactCachePrefabAsset::from(asset)),
-            ImportedAsset::Scene(asset) => Self::Scene(ArtifactCacheSceneAsset::from(asset)),
+            ImportedAsset::Prefab(asset) => {
+                asset
+                    .scene
+                    .validate_component_references()
+                    .map_err(|error| {
+                        AssetImportError::Parse(format!(
+                        "reject prefab artifact with malformed scene component references: {error}"
+                    ))
+                    })?;
+                Self::Prefab(ArtifactCachePrefabAsset::from(asset))
+            }
+            ImportedAsset::Scene(asset) => {
+                asset.validate_component_references().map_err(|error| {
+                    AssetImportError::Parse(format!(
+                        "reject scene artifact with malformed component references: {error}"
+                    ))
+                })?;
+                Self::Scene(ArtifactCacheSceneAsset::from(asset))
+            }
             ImportedAsset::Model(asset) => Self::Model(ArtifactCacheModelAsset::from(asset)),
             ImportedAsset::Mesh(asset) => Self::Mesh(ArtifactCacheMeshAsset::from(asset)),
             ImportedAsset::AnimationSkeleton(asset) => Self::AnimationSkeleton(asset.clone()),
@@ -129,6 +147,7 @@ impl ArtifactCacheAsset {
         })
     }
 
+    /// 在库工件读出后恢复运行时资产；转换失败必须作为缓存损坏传播，不能默默使用部分数据。
     pub(super) fn into_imported(self) -> Result<ImportedAsset, AssetImportError> {
         Ok(match self {
             Self::Data(asset) => ImportedAsset::Data(asset.into_asset()?),
@@ -393,5 +412,5 @@ impl From<ArtifactCachePhysicsMaterialAsset> for PhysicsMaterialAsset {
 }
 
 #[cfg(test)]
-#[path = "cache_payload/metadata_error_buffer_tests.rs"]
+#[path = "cache_payload/tests/metadata_error_buffer_tests.rs"]
 mod metadata_error_buffer_tests;

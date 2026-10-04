@@ -6,8 +6,9 @@ use crate::core::framework::render::{RenderCameraTarget, RenderViewportRect};
 use crate::core::resource::TextureMarker;
 use crate::scene::components::CameraComponent;
 
-use super::SceneProjectError;
 use super::references::{handle_for_reference, reference_for_handle};
+use super::SceneProjectError;
+// 项目资源中的相机目标先解析纹理引用，再转换为运行时渲染目标；内置目标不经过资产注册表。
 pub(super) fn camera_target_from_asset(
     project: &ProjectManager,
     target: SceneCameraTargetAsset,

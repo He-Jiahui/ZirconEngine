@@ -560,5 +560,5 @@ impl EditorUiHostRuntime {
 }
 
 #[cfg(test)]
-#[path = "plugin_documents/tests.rs"]
+#[path = "plugin_documents/tests/cases.rs"]
 mod tests;

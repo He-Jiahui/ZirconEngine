@@ -32,6 +32,7 @@ fn scene_assets_keep_script_only_entities_as_empty_nodes() {
             terrain: None,
             tilemap: None,
             prefab_instance: None,
+            components: Vec::new(),
             script_bindings: vec![SceneScriptBindingAsset {
                 package: "vampire_game".to_string(),
                 module: "player".to_string(),
@@ -106,16 +107,15 @@ fn scene_assets_preserve_prefab_instance_metadata_through_world_roundtrip() {
                     }),
                 }],
             }),
+            components: Vec::new(),
             script_bindings: Vec::new(),
         }],
     };
 
     let world = World::from_scene_asset(&project, &scene).unwrap();
-    assert!(
-        world
-            .dynamic_component(42, "zircon.prefab.instance")
-            .is_some()
-    );
+    assert!(world
+        .dynamic_component(42, "zircon.prefab.instance")
+        .is_some());
 
     let saved = world.to_scene_asset(&project).unwrap();
     assert_eq!(
@@ -172,6 +172,7 @@ fn scene_assets_keep_prefab_instance_metadata_after_runtime_extension_installati
                     value: serde_json::json!({ "color": [0.25, 0.5, 1.0, 1.0] }),
                 }],
             }),
+            components: Vec::new(),
             script_bindings: Vec::new(),
         }],
     };
@@ -322,6 +323,7 @@ fn scene_assets_keep_transform_only_hierarchy_nodes() {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                components: Vec::new(),
                 script_bindings: Vec::new(),
             },
             SceneEntityAsset {
@@ -362,6 +364,7 @@ fn scene_assets_keep_transform_only_hierarchy_nodes() {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                components: Vec::new(),
                 script_bindings: Vec::new(),
             },
         ],
@@ -372,18 +375,14 @@ fn scene_assets_keep_transform_only_hierarchy_nodes() {
     assert!(matches!(root_node.kind, NodeKind::Empty));
     assert_eq!(world.parent_of(11), Some(10));
     let saved = world.to_scene_asset(&project).unwrap();
-    assert!(
-        saved
-            .entities
-            .iter()
-            .any(|entity| entity.entity == 10 && entity.mesh.is_none())
-    );
-    assert!(
-        saved
-            .entities
-            .iter()
-            .any(|entity| entity.entity == 11 && entity.parent == Some(10))
-    );
+    assert!(saved
+        .entities
+        .iter()
+        .any(|entity| entity.entity == 10 && entity.mesh.is_none()));
+    assert!(saved
+        .entities
+        .iter()
+        .any(|entity| entity.entity == 11 && entity.parent == Some(10)));
 
     let _ = fs::remove_dir_all(root);
 }

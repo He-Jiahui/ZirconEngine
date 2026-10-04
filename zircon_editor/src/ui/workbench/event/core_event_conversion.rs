@@ -23,6 +23,16 @@ pub(crate) fn core_layout_command_from_ui(command: LayoutCommand) -> CoreLayoutC
         LayoutCommand::CloseView { instance_id } => CoreLayoutCommand::CloseView {
             instance_id: core_view_instance_id(instance_id),
         },
+        LayoutCommand::CloseViews {
+            window_id,
+            instance_ids,
+        } => CoreLayoutCommand::CloseViews {
+            window_id: core_main_page_id(window_id),
+            instance_ids: instance_ids
+                .into_iter()
+                .map(core_view_instance_id)
+                .collect(),
+        },
         LayoutCommand::FocusView { instance_id } => CoreLayoutCommand::FocusView {
             instance_id: core_view_instance_id(instance_id),
         },
@@ -125,6 +135,13 @@ pub(crate) fn ui_layout_command_from_core(command: &CoreLayoutCommand) -> Layout
         },
         CoreLayoutCommand::CloseView { instance_id } => LayoutCommand::CloseView {
             instance_id: ui_view_instance_id(instance_id),
+        },
+        CoreLayoutCommand::CloseViews {
+            window_id,
+            instance_ids,
+        } => LayoutCommand::CloseViews {
+            window_id: ui_main_page_id(window_id),
+            instance_ids: instance_ids.iter().map(ui_view_instance_id).collect(),
         },
         CoreLayoutCommand::FocusView { instance_id } => LayoutCommand::FocusView {
             instance_id: ui_view_instance_id(instance_id),

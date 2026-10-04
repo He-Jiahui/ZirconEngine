@@ -9,8 +9,8 @@ fixing_plan: docs/plans/zircon_plugins/12-plugin-dx-and-structure-framework.md
 origin_child_dir: docs/plans/zircon_editor/editor/09
 fixing_child_dir: docs/plans/zircon_plugins/12
 related_code:
-  - tools/plugin_structure_audits/registration.py
-  - tools/audit_plugin_structure.py
+  - tools/audits/plugins/registration.py
+  - tools/audits/audit_plugin_structure.py
   - tools/tests/test_audit_plugin_structure_report.py
 tests:
   - python -m unittest tools.tests.test_audit_plugin_structure_report
@@ -30,8 +30,8 @@ tests:
 - 来源计划：`docs/plans/zircon_editor/editor/09-editor-asset-management.md`
 - 来源执行切片：M1 完整验收期间的 `engine-code-structure-convention` / review-findings 优先静态复核
 - 修复责任计划：`docs/plans/zircon_plugins/12-plugin-dx-and-structure-framework.md`
-- 交接原因：Plugins12 的 `implementation_files` 明确拥有 `tools/audit_plugin_structure.py`、
-  `tools/plugin_structure_audits/registration.py` 与插件结构审计测试；Editor09 只消费该门禁。
+- 交接原因：Plugins12 的 `implementation_files` 明确拥有 `tools/audits/audit_plugin_structure.py`、
+  `tools/audits/plugins/registration.py` 与插件结构审计测试；Editor09 只消费该门禁。
 
 ## 失败现象与复现证据
 

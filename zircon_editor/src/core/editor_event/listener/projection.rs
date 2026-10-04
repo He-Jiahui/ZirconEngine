@@ -1,11 +1,17 @@
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 use super::{
     EditorEventListenerDelivery, EditorEventListenerDescriptor, EditorEventListenerStatus,
 };
 
+#[cfg(test)]
+#[path = "projection/tests/capacity_tests.rs"]
+mod capacity_tests;
+
 pub(crate) fn listener_descriptors(listeners: &[EditorEventListenerDescriptor]) -> Vec<Value> {
-    listeners.iter().map(listener_descriptor).collect()
+    let mut projected = Vec::with_capacity(listeners.len());
+    projected.extend(listeners.iter().map(listener_descriptor));
+    projected
 }
 
 pub(crate) fn listener_status(status: &EditorEventListenerStatus) -> Value {
@@ -22,21 +28,20 @@ pub(super) fn listener_descriptor(listener: &EditorEventListenerDescriptor) -> V
 }
 
 pub(crate) fn listener_deliveries(deliveries: &[EditorEventListenerDelivery]) -> Vec<Value> {
-    deliveries
-        .iter()
-        .map(|delivery| {
-            json!({
-                "listener_id": delivery.listener_id,
-                "delivery_cursor": delivery.delivery_cursor,
-                "event_id": delivery.event_id,
-                "sequence": delivery.sequence,
-                "source": delivery.source,
-                "operation_id": delivery.operation_id,
-                "operation_display_name": delivery.operation_display_name,
-                "operation_arguments": delivery.operation_arguments,
-                "operation_group": delivery.operation_group,
-                "result": delivery.result,
-            })
+    let mut projected = Vec::with_capacity(deliveries.len());
+    projected.extend(deliveries.iter().map(|delivery| {
+        json!({
+            "listener_id": delivery.listener_id,
+            "delivery_cursor": delivery.delivery_cursor,
+            "event_id": delivery.event_id,
+            "sequence": delivery.sequence,
+            "source": delivery.source,
+            "operation_id": delivery.operation_id,
+            "operation_display_name": delivery.operation_display_name,
+            "operation_arguments": delivery.operation_arguments,
+            "operation_group": delivery.operation_group,
+            "result": delivery.result,
         })
-        .collect()
+    }));
+    projected
 }

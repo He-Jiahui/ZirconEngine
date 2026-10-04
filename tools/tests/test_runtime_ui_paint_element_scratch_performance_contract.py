@@ -10,7 +10,7 @@ PAINT_PROJECTION = (
     / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/paint_projection.rs"
 )
 
-
+# 确认渲染命令写入可复用瞬时绘制缓冲，UI 计划器每帧复用同一缓冲区。
 class RuntimeUiPaintElementScratchPerformanceContractTests(unittest.TestCase):
     def test_render_command_can_fill_reusable_transient_paint_scratch(self):
         source = COMMAND.read_text(encoding="utf-8")

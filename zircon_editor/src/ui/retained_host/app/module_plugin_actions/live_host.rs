@@ -8,7 +8,8 @@ pub(super) use dispatch::{
 };
 pub(in crate::ui::retained_host::app) use native_backend::NativePluginDevelopmentLiveHostBackend;
 pub(in crate::ui::retained_host::app) use types::{
-    ModulePluginLiveHostBackend, ModulePluginLiveHostCommand,
+    ModulePluginLiveHostBackend, ModulePluginLiveHostCommand, ModulePluginLiveHostCompletion,
+    ModulePluginLiveHostProject,
 };
 #[cfg(test)]
 pub(in crate::ui::retained_host::app) use types::{
@@ -16,4 +17,5 @@ pub(in crate::ui::retained_host::app) use types::{
 };
 
 #[cfg(test)]
+#[path = "live_host/tests/cases.rs"]
 mod tests;

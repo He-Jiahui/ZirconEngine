@@ -1,30 +1,30 @@
-use crate::core::TaskPool;
 use crate::core::framework::render::RenderCapabilitySummary;
-use crate::graphics::CompiledRenderPipeline;
+use crate::core::TaskPool;
 use crate::graphics::backend::RenderBackend;
 use crate::graphics::scene::gpu_scene::GpuScenePreparedUpload;
 use crate::graphics::scene::resources::ResourceStreamer;
-use crate::graphics::scene::scene_renderer::HALF_RES_TRANSPARENCY_MESH_EXECUTOR_ID;
 use crate::graphics::scene::scene_renderer::graph_execution::RenderPassMeshCommandLists;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshIndirectWorkspacePreparedUpload, MeshPassIndirectDrawExecutions, MeshSceneDataBindHandle,
 };
 use crate::graphics::scene::scene_renderer::mesh::{
+    build_mesh_pass_command_buffers_cached, build_mesh_pass_command_buffers_cached_parallel,
     MaterialPipelineFeatureSet, MeshDrawReplayStatsAccumulator, MeshPassCommandBuffers,
-    MeshPassIndirectDrawPlans, PreparedMeshQueueStats, build_mesh_pass_command_buffers_cached,
-    build_mesh_pass_command_buffers_cached_parallel,
+    MeshPassIndirectDrawPlans, PreparedMeshQueueStats,
 };
 use crate::graphics::scene::scene_renderer::post_process::SceneRuntimeFeatureFlags;
 use crate::graphics::scene::scene_renderer::shadow::ShadowFramePlan;
 use crate::graphics::scene::scene_renderer::sprite::{
-    PreparedSpriteQueueStats, prepare_sprite_queue_stats,
+    prepare_sprite_queue_stats, PreparedSpriteQueueStats,
 };
+use crate::graphics::scene::scene_renderer::transparency::HALF_RES_TRANSPARENCY_MESH_EXECUTOR_ID;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
+use crate::graphics::CompiledRenderPipeline;
 use zr_rhi_wgpu::WgpuBufferUploadBatch;
 
 use super::super::super::scene_renderer_core::SceneRendererCore;
 use super::assign_execution_owned_indirect_args::assign_execution_owned_indirect_args;
-use super::build_compiled_scene_draws::{CompiledSceneDraws, build_compiled_scene_draws};
+use super::build_compiled_scene_draws::{build_compiled_scene_draws, CompiledSceneDraws};
 use super::frame_lifecycle::RenderGenerationIds;
 use super::sprite_stage_selection::active_sprite_graph_stages;
 
@@ -151,19 +151,25 @@ impl SceneRendererCore {
                 frame.shader_quality(),
             )
         };
-        mesh_pass_command_buffers.extend(residual_mesh_pass_command_buffers);
-        self.cached_mesh_draw_commands
-            .retain_generation(generation_ids.mesh_commands);
-        self.mesh_command_generation = self.mesh_command_generation.wrapping_add(1);
         let half_resolution_mesh_pass_available = pipeline.graph().passes().iter().any(|pass| {
             pass.executor_id.as_deref() == Some(HALF_RES_TRANSPARENCY_MESH_EXECUTOR_ID)
         });
-        if !half_resolution_mesh_pass_available {
-            // Preserve material-marked transparent meshes on profile, MSAA, and plugin fallbacks.
-            mesh_pass_command_buffers.merge_half_resolution_transparent_into_transparent();
+        {
+            crate::profile_scope!("render", "mesh_commands", "finalize_old_path");
+            mesh_pass_command_buffers.extend(residual_mesh_pass_command_buffers);
+            if !half_resolution_mesh_pass_available {
+                // Preserve material-marked transparent meshes on profile, MSAA, and plugin fallbacks.
+                mesh_pass_command_buffers.merge_half_resolution_transparent_into_transparent();
+            }
         }
-        let mesh_pass_indirect_plans =
-            MeshPassIndirectDrawPlans::build(&mesh_pass_command_buffers, capabilities);
+        self.cached_mesh_draw_commands
+            .retain_generation(generation_ids.mesh_commands);
+        self.mesh_command_generation = self.mesh_command_generation.wrapping_add(1);
+        mesh_pass_command_buffers.record_materialization_profile();
+        let mesh_pass_indirect_plans = {
+            crate::profile_scope!("render", "mesh_commands", "indirect_plan");
+            MeshPassIndirectDrawPlans::build(&mesh_pass_command_buffers, capabilities)
+        };
         let mesh_pass_command_stats =
             mesh_pass_command_buffers.stats_with_indirect_plan(mesh_pass_indirect_plans.stats());
         let (

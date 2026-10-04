@@ -7,7 +7,7 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/mod.rs
   - zircon_runtime/src/ui/text/geometry.rs
   - zircon_runtime/src/ui/text/hit_test.rs
-  - tools/check_conventions.py
+  - tools/audits/check_conventions.py
 implementation_files:
   - docs/plans/zircon_runtime/text/03-line-breaking-measure-and-layout.md
 plan_sources:
@@ -15,7 +15,7 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - python tools/check_conventions.py --only docs --json
+  - python tools/audits/check_conventions.py --only docs --json
   - git diff --check -- docs/plans/zircon_runtime/text/03-line-breaking-measure-and-layout.md
 ---
 
@@ -35,7 +35,7 @@ Session: `frameworks06-g7-text-geometry-current-owner-doc-hardcut-batch17-r2-202
 ## Fresh Testing Evidence
 
 - 修改前 fresh G7：所选文档 `1` 个 missing-path violation。
-- 修改后 fresh `python tools/check_conventions.py --only docs --json`：所选文档 `0` violations；共享 current-source 全局快照为 `472` violations / `125` documents，G7 继续保持 RED。
+- 修改后 fresh `python tools/audits/check_conventions.py --only docs --json`：所选文档 `0` violations；共享 current-source 全局快照为 `472` violations / `125` documents，G7 继续保持 RED。
 - Text03 front matter 的 G7 机器路径全部存在；退役 flat interface owner 的 front-matter 机器路径为 `0`。不固化会随 current owner 扩展而漂移的路径总数。
 - exact-scope `git diff --check` 通过，staged_total 为 `0`。
 

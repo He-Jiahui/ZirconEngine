@@ -7,8 +7,8 @@ use zircon_runtime_interface::ui::{
     tree::{UiDirtyFlags, UiTree, UiTreeError, UiTreeNode},
 };
 
-use super::UiInvalidationReason;
 use super::surface::UiSurface;
+use super::UiInvalidationReason;
 
 // Detached template identities can otherwise grow without bound. These limits
 // preserve a small reusable working set while making retention explicit.
@@ -145,11 +145,48 @@ impl UiSurfaceNodePool {
         self.buckets.len()
     }
 
+    #[inline]
+    fn residency_counts(&self) -> (usize, usize) {
+        (
+            self.buckets.values().map(Vec::len).sum(),
+            self.buckets.len(),
+        )
+    }
+
     fn trim(&mut self) -> (usize, usize) {
-        let trimmed_node_count = self.resident_node_count();
-        let trimmed_bucket_count = self.resident_bucket_count();
+        let (trimmed_node_count, trimmed_bucket_count) = self.residency_counts();
         self.buckets.clear();
         (trimmed_node_count, trimmed_bucket_count)
+    }
+
+    /// Looks up a pooled node while moving the desired node's key fields instead of cloning
+    /// them. The fields are restored before returning so a cache miss keeps the exact input node.
+    #[inline]
+    fn take_owned(&mut self, mut desired: UiTreeNode) -> (UiTreeNode, Option<UiTreeNode>) {
+        let Some(mut metadata) = desired.template_metadata.take() else {
+            return (desired, None);
+        };
+        let key = UiSurfaceNodePoolKey {
+            component: std::mem::take(&mut metadata.component),
+            control_id: metadata.control_id.take(),
+            node_path: std::mem::take(&mut desired.node_path.0),
+        };
+        let (pooled, remove_bucket) = match self.buckets.get_mut(&key) {
+            Some(bucket) => {
+                let pooled = bucket.pop();
+                (pooled, bucket.is_empty())
+            }
+            None => (None, false),
+        };
+        if remove_bucket {
+            self.buckets.remove(&key);
+        }
+
+        desired.node_path.0 = key.node_path;
+        metadata.component = key.component;
+        metadata.control_id = key.control_id;
+        desired.template_metadata = Some(metadata);
+        (desired, pooled)
     }
 
     pub fn take(&mut self, desired: &UiTreeNode) -> Option<UiTreeNode> {
@@ -190,8 +227,9 @@ impl UiSurfaceNodePool {
 
 impl UiSurfaceNodePoolReport {
     fn record_residency(&mut self, pool: &UiSurfaceNodePool) {
-        self.resident_node_count = pool.resident_node_count();
-        self.resident_bucket_count = pool.resident_bucket_count();
+        let (resident_node_count, resident_bucket_count) = pool.residency_counts();
+        self.resident_node_count = resident_node_count;
+        self.resident_bucket_count = resident_bucket_count;
         self.max_resident_node_count = UiSurfaceNodePool::max_resident_node_count();
     }
 }
@@ -265,7 +303,8 @@ pub(crate) fn insert_or_reuse_pooled_child(
     }
 
     let mut report = UiSurfaceNodePoolReport::default();
-    let mut node = if let Some(pooled) = pool.take(&desired) {
+    let (desired, pooled) = pool.take_owned(desired);
+    let mut node = if let Some(pooled) = pooled {
         report.reused_count = 1;
         merge_reused_node(pooled, desired)
     } else {
@@ -355,3 +394,7 @@ fn structure_dirty_flags() -> UiDirtyFlags {
         ..UiDirtyFlags::default()
     }
 }
+
+#[cfg(test)]
+#[path = "tests/node_pool.rs"]
+mod tests;

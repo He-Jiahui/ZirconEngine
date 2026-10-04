@@ -1,3 +1,11 @@
+#![cfg(windows)]
+
+use crate::plugin::native::discovery::{
+    load_discovered_native_editor_plugins_with_authority,
+    load_discovered_native_plugins_with_authority,
+    load_discovered_native_runtime_plugins_with_authority,
+    load_native_plugins_from_load_manifest_with_authority,
+};
 use std::sync::Arc;
 
 use super::*;
@@ -48,7 +56,10 @@ path = "plugins/native_dynamic_fixture"
     )
     .unwrap();
 
-    let report = NativePluginLoader.load_all_from_load_manifest(&export_root);
+    let report = load_native_plugins_from_load_manifest_with_authority(
+        &export_root,
+        &fixture_authority(&library_path),
+    );
 
     assert!(
         report.diagnostics().is_empty(),
@@ -96,7 +107,10 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
     )
     .unwrap();
 
-    let report = NativePluginLoader.load_discovered_all(&package_root);
+    let report = load_discovered_native_plugins_with_authority(
+        &package_root,
+        &fixture_authority(&library_path),
+    );
 
     assert!(
         report.diagnostics().is_empty(),
@@ -327,7 +341,10 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
         .iter()
         .any(|message| message.contains("runtime v3 entry reached with host ABI table")));
 
-    let runtime_report = NativePluginLoader.load_discovered_runtime(&package_root);
+    let runtime_report = load_discovered_native_runtime_plugins_with_authority(
+        &package_root,
+        &fixture_authority(&library_path),
+    );
     assert!(
         runtime_report.diagnostics().is_empty(),
         "{:?}",
@@ -348,7 +365,10 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
         .iter()
         .any(|message| message.contains("editor entry reached")));
 
-    let editor_report = NativePluginLoader.load_discovered_editor(&package_root);
+    let editor_report = load_discovered_native_editor_plugins_with_authority(
+        &package_root,
+        &fixture_authority(&library_path),
+    );
     assert!(
         editor_report.diagnostics().is_empty(),
         "{:?}",
@@ -399,7 +419,10 @@ fn native_loader_rejects_unknown_abi_version_with_explicit_report() {
     )
     .unwrap();
 
-    let report = NativePluginLoader.load_discovered_runtime(&package_root);
+    let report = load_discovered_native_runtime_plugins_with_authority(
+        &package_root,
+        &fixture_authority(&library_path),
+    );
 
     assert!(report
         .diagnostics()
@@ -438,7 +461,10 @@ fn native_loader_rejects_library_without_descriptor_export() {
     )
     .unwrap();
 
-    let report = NativePluginLoader.load_discovered_runtime(&package_root);
+    let report = load_discovered_native_runtime_plugins_with_authority(
+        &package_root,
+        &fixture_authority(&library_path),
+    );
 
     assert!(report.loaded().is_empty());
     assert!(report.diagnostics().iter().any(|message| {
@@ -477,7 +503,10 @@ fn native_loader_rejects_library_when_requested_runtime_entry_is_missing() {
     )
     .unwrap();
 
-    let report = NativePluginLoader.load_discovered_runtime(&package_root);
+    let report = load_discovered_native_runtime_plugins_with_authority(
+        &package_root,
+        &fixture_authority(&library_path),
+    );
 
     assert!(report.loaded().is_empty());
     assert!(report.diagnostics().iter().any(|message| {
@@ -516,7 +545,10 @@ fn native_loader_reports_structured_missing_required_capability() {
     )
     .unwrap();
 
-    let report = NativePluginLoader.load_discovered_runtime(&package_root);
+    let report = load_discovered_native_runtime_plugins_with_authority(
+        &package_root,
+        &fixture_authority(&library_path),
+    );
 
     assert!(report.loaded().is_empty());
     assert!(report.diagnostics().iter().any(|message| {
@@ -552,7 +584,10 @@ fn native_loader_fixture_can_import_data_asset_through_native_importer_handler()
     )
     .unwrap();
 
-    let mut report = NativePluginLoader.load_discovered_runtime(&package_root);
+    let mut report = load_discovered_native_runtime_plugins_with_authority(
+        &package_root,
+        &fixture_authority(&library_path),
+    );
     assert!(
         report.diagnostics().is_empty(),
         "{:?}",
@@ -606,4 +641,31 @@ fn native_loader_fixture_can_import_data_asset_through_native_importer_handler()
 
     let _ = fs::remove_dir_all(fixture_target);
     let _ = fs::remove_dir_all(package_root);
+}
+
+fn fixture_authority(
+    library_path: &std::path::Path,
+) -> crate::plugin::native::NativePluginArtifactAuthority {
+    use crate::core::framework::{platform::RuntimeTargetMode, project::ExportTargetPlatform};
+    use crate::plugin::native::{
+        NativePluginArtifactAuthority, NativePluginArtifactDigest, NativePluginArtifactExpectation,
+        NativePluginArtifactTarget,
+    };
+    let manifest_path = repo_root().join("zircon_plugins/native_dynamic_fixture/plugin.toml");
+    let manifest: crate::plugin::PluginPackageManifest =
+        toml::from_str(&fs::read_to_string(&manifest_path).unwrap()).unwrap();
+    let expectation = NativePluginArtifactExpectation::trusted_local_first_party(
+        "native_dynamic_fixture",
+        manifest.package_id(),
+        NativePluginArtifactDigest::capture(manifest_path).unwrap(),
+        NativePluginArtifactDigest::capture(library_path).unwrap(),
+        "fixture-build-authority",
+        NativePluginArtifactTarget::new(
+            RuntimeTargetMode::ClientRuntime,
+            ExportTargetPlatform::Windows,
+        ),
+        [PluginModuleKind::Runtime, PluginModuleKind::Editor],
+        manifest.capabilities,
+    );
+    NativePluginArtifactAuthority::from_expectations([expectation]).unwrap()
 }

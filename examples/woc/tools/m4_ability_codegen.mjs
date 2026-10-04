@@ -1,3 +1,4 @@
+// 按一致性场景和离线回放保留名单选取技能定义，生成固定的 M4 JSON 目录。
 import { spawnSync, execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -246,6 +247,7 @@ const checkOnly = process.argv.includes('--check');
 
 main();
 
+// 先确定一致性场景对应的源码标识，再对选中记录计算哈希并写入目录。
 function main() {
   execFileSync('git', ['-C', sourceRoot, 'cat-file', '-e', `${SOURCE_COMMIT}^{commit}`]);
 
@@ -366,6 +368,7 @@ function main() {
   );
 }
 
+// 通过固定源码加载器导入定义前，按稳定顺序收集源码拥有的 ID。
 function extractCastAbilityIds(declaration, sourceFile) {
   const stringArrays = new Map();
   visit(declaration.body, (node) => {

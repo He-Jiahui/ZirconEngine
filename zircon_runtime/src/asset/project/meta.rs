@@ -2,13 +2,17 @@ use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::{BTreeSet, HashSet};
 use std::fmt::{self, Display, Formatter};
-use std::fs;
+use std::fs::File;
+use std::io::{self, Read};
 use std::path::Path;
 use thiserror::Error;
 
 use crate::asset::{AssetKind, AssetUri, AssetUuid};
 
 const ASSET_META_FORMAT_VERSION: u32 = 7;
+// A sidecar is parsed into TOML values and document collections. Bound one document separately
+// from the 2 GiB cumulative source payload, which is too large to be a safe parse admission.
+pub(crate) const MAX_ASSET_META_DOCUMENT_BYTES: usize = 64 * 1024 * 1024;
 
 #[derive(Clone, Copy)]
 struct EntryTagScope(usize);
@@ -23,6 +27,8 @@ pub type AssetMetaResult<T> = std::result::Result<T, AssetMetaError>;
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum AssetMetaError {
+    #[error("asset meta document is {found} bytes, exceeding the {max}-byte limit")]
+    DocumentTooLarge { max: usize, found: u64 },
     #[error("asset meta document is missing integer `format_version`")]
     MissingFormatVersion,
     #[error("asset meta `format_version` must be an integer")]
@@ -275,11 +281,30 @@ impl AssetMetaDocument {
     }
 
     pub fn load(path: impl AsRef<Path>) -> Result<Self, std::io::Error> {
-        let document = fs::read_to_string(path)?;
+        let document = Self::read_bounded_text(path)?;
         Self::from_toml_str(&document).map_err(invalid_data)
     }
 
+    pub(crate) fn read_bounded_text(path: impl AsRef<Path>) -> io::Result<String> {
+        let file = File::open(path)?;
+        let metadata_len = file.metadata()?.len();
+        if metadata_len > MAX_ASSET_META_DOCUMENT_BYTES as u64 {
+            return Err(document_too_large_io(
+                MAX_ASSET_META_DOCUMENT_BYTES,
+                metadata_len,
+            ));
+        }
+        let capacity_hint = usize::try_from(metadata_len).unwrap_or(MAX_ASSET_META_DOCUMENT_BYTES);
+        read_bounded_meta_text_from_reader(file, capacity_hint, MAX_ASSET_META_DOCUMENT_BYTES)
+    }
+
     pub fn from_toml_str(document: &str) -> AssetMetaResult<Self> {
+        if document.len() > MAX_ASSET_META_DOCUMENT_BYTES {
+            return Err(AssetMetaError::DocumentTooLarge {
+                max: MAX_ASSET_META_DOCUMENT_BYTES,
+                found: document.len() as u64,
+            });
+        }
         let value: toml::Value = toml::from_str(document).map_err(deserialize_error)?;
         let table = value
             .as_table()
@@ -311,10 +336,39 @@ impl AssetMetaDocument {
     }
 
     pub(crate) fn to_pretty_bytes(&self) -> Result<Vec<u8>, std::io::Error> {
+        self.to_pretty_bytes_with_limit(MAX_ASSET_META_DOCUMENT_BYTES)
+    }
+
+    fn to_pretty_bytes_with_limit(&self, limit: usize) -> Result<Vec<u8>, io::Error> {
         self.validate_current().map_err(invalid_data)?;
         let document = toml::to_string_pretty(self).map_err(invalid_data)?;
+        if document.len() > limit {
+            return Err(document_too_large_io(limit, document.len() as u64));
+        }
         Ok(document.into_bytes())
     }
+}
+
+fn read_bounded_meta_text_from_reader(
+    reader: impl Read,
+    capacity_hint: usize,
+    limit: usize,
+) -> io::Result<String> {
+    let mut bytes = Vec::with_capacity(capacity_hint.min(limit));
+    reader
+        .take(limit.saturating_add(1) as u64)
+        .read_to_end(&mut bytes)?;
+    if bytes.len() > limit {
+        return Err(document_too_large_io(limit, bytes.len() as u64));
+    }
+    String::from_utf8(bytes).map_err(|source| io::Error::new(io::ErrorKind::InvalidData, source))
+}
+
+fn document_too_large_io(max: usize, found: u64) -> io::Error {
+    io::Error::new(
+        io::ErrorKind::InvalidData,
+        AssetMetaError::DocumentTooLarge { max, found },
+    )
 }
 
 impl AssetMetaDocument {
@@ -347,7 +401,7 @@ fn validate_tag_value(
     let Some(tags) = value.and_then(toml::Value::as_array) else {
         return Ok(());
     };
-    let mut seen = HashSet::new();
+    let mut seen = HashSet::with_capacity(tags.len());
     for tag in tags.iter().filter_map(toml::Value::as_str) {
         validate_tag(scope, tag)?;
         if !seen.insert(tag) {
@@ -361,7 +415,7 @@ fn validate_tag_value(
 }
 
 fn validate_tag_list(scope: impl Display + Copy, tags: &[String]) -> AssetMetaResult<()> {
-    let mut seen = HashSet::new();
+    let mut seen = HashSet::with_capacity(tags.len());
     for tag in tags {
         validate_tag(scope, tag)?;
         if !seen.insert(tag) {
@@ -429,32 +483,17 @@ fn invalid_data(error: impl std::error::Error) -> std::io::Error {
 }
 
 #[cfg(test)]
-#[path = "meta/lazy_tag_scope_tests.rs"]
+#[path = "meta/tests/optimization_batch_iw_runtime633_tests.rs"]
+mod optimization_batch_iw_runtime633_tests;
+
+#[cfg(test)]
+#[path = "meta/tests/lazy_tag_scope_tests.rs"]
 mod lazy_tag_scope_tests;
 
 #[cfg(test)]
-mod tests {
-    use super::*;
+#[path = "meta/tests/sidecar_budget_tests.rs"]
+mod sidecar_budget_tests;
 
-    #[test]
-    fn asset_meta_validation_reports_typed_future_version_error() {
-        let mut meta = AssetMetaDocument::new(
-            AssetUuid::new(),
-            AssetUri::parse("res://data/future.json").unwrap(),
-            AssetKind::Data,
-        );
-        meta.format_version = ASSET_META_FORMAT_VERSION + 1;
-
-        let error = meta
-            .validate_current()
-            .expect_err("future meta version should fail");
-
-        assert_eq!(
-            error,
-            AssetMetaError::UnsupportedFutureFormatVersion {
-                found: ASSET_META_FORMAT_VERSION + 1,
-                supported: ASSET_META_FORMAT_VERSION,
-            }
-        );
-    }
-}
+#[cfg(test)]
+#[path = "tests/meta.rs"]
+mod tests;

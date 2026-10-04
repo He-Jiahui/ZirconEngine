@@ -189,6 +189,7 @@ pub(super) fn workbench_model(
             page_id: MainPageId::workbench(),
             title: "Workbench".to_string(),
             workspace: DocumentWorkspaceSnapshot::Tabs {
+                node_id: Default::default(),
                 tabs: Vec::new(),
                 active_tab: None,
             },

@@ -34,6 +34,12 @@ if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
 }
 
 $RepoRoot = [System.IO.Path]::GetFullPath($RepoRoot)
+if ($WindowWidth -lt 0 -or $WindowHeight -lt 0 -or (($WindowWidth -eq 0) -ne ($WindowHeight -eq 0))) {
+    throw "WindowWidth and WindowHeight must be positive and provided together."
+}
+if ($ConfigMode -ne "Isolated" -and ($WindowWidth -gt 0 -or $WindowHeight -gt 0)) {
+    throw "WindowWidth and WindowHeight require ConfigMode Isolated."
+}
 $outDir = Join-Path $RepoRoot "target\hub-visual-check"
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 
@@ -53,18 +59,23 @@ if ([string]::IsNullOrWhiteSpace($OutputPath)) {
 $OutputPath = [System.IO.Path]::GetFullPath($OutputPath)
 New-Item -ItemType Directory -Force -Path ([System.IO.Path]::GetDirectoryName($OutputPath)) | Out-Null
 
+$previousLocalAppData = $env:LOCALAPPDATA
+$previousAppData = $env:APPDATA
+$previousUserProfile = $env:USERPROFILE
+$previousEditorConfig = $env:ZIRCON_CONFIG_PATH
 if ($ConfigMode -eq "Isolated") {
     if ([string]::IsNullOrWhiteSpace($ConfigRoot)) {
         $ConfigRoot = Join-Path $outDir "config"
     }
 
     New-Item -ItemType Directory -Force -Path $ConfigRoot | Out-Null
-    $env:LOCALAPPDATA = Join-Path $ConfigRoot "localappdata"
-    $env:APPDATA = Join-Path $ConfigRoot "appdata"
-    $env:ZIRCON_CONFIG_PATH = Join-Path $ConfigRoot "zircon-editor-config.json"
-    New-Item -ItemType Directory -Force -Path $env:LOCALAPPDATA, $env:APPDATA | Out-Null
-    if (-not (Test-Path -LiteralPath $env:ZIRCON_CONFIG_PATH)) {
-        Set-Content -LiteralPath $env:ZIRCON_CONFIG_PATH -Value "{}" -Encoding UTF8
+    $isolatedLocalAppData = Join-Path $ConfigRoot "localappdata"
+    $isolatedAppData = Join-Path $ConfigRoot "appdata"
+    $isolatedUserProfile = Join-Path $ConfigRoot "userprofile"
+    $isolatedEditorConfig = Join-Path $ConfigRoot "zircon-editor-config.json"
+    New-Item -ItemType Directory -Force -Path $isolatedLocalAppData, $isolatedAppData, $isolatedUserProfile | Out-Null
+    if (-not (Test-Path -LiteralPath $isolatedEditorConfig)) {
+        Set-Content -LiteralPath $isolatedEditorConfig -Value "{}" -Encoding UTF8
     }
 
     if ($WindowWidth -gt 0 -or $WindowHeight -gt 0) {
@@ -72,7 +83,7 @@ if ($ConfigMode -eq "Isolated") {
             throw "WindowWidth and WindowHeight must be provided together."
         }
 
-        $hubConfigDir = Join-Path $env:LOCALAPPDATA "ZirconHub"
+        $hubConfigDir = Join-Path $isolatedLocalAppData "ZirconHub"
         New-Item -ItemType Directory -Force -Path $hubConfigDir | Out-Null
         $hubConfigPath = Join-Path $hubConfigDir "config.toml"
         $toml = @"
@@ -163,15 +174,21 @@ $stdoutPath = "$outputBase.stdout.log"
 $stderrPath = "$outputBase.stderr.log"
 $previousVisualTaskState = $env:ZIRCON_HUB_VISUAL_TASK_STATE
 $visualTaskStateChanged = -not [string]::IsNullOrWhiteSpace($VisualTaskState)
-if ($visualTaskStateChanged) {
-    $env:ZIRCON_HUB_VISUAL_TASK_STATE = $VisualTaskState
-}
 $process = $null
 $frontendProcess = $null
 $previousWebViewArguments = $null
 $debugPort = Get-HubCaptureAvailableTcpPort
 
 try {
+    if ($ConfigMode -eq "Isolated") {
+        $env:LOCALAPPDATA = $isolatedLocalAppData
+        $env:APPDATA = $isolatedAppData
+        $env:USERPROFILE = $isolatedUserProfile
+        $env:ZIRCON_CONFIG_PATH = $isolatedEditorConfig
+    }
+    if ($visualTaskStateChanged) {
+        $env:ZIRCON_HUB_VISUAL_TASK_STATE = $VisualTaskState
+    }
     $frontendProcess = Start-HubCaptureFrontendDevServer -RepoRoot $RepoRoot -LogBasePath $outputBase
     $previousWebViewArguments = Set-HubCaptureWebViewDebugEnvironment -Port $debugPort
     $process = Start-Process -FilePath $BinaryPath -WorkingDirectory $RepoRoot -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
@@ -308,7 +325,7 @@ try {
         throw "Hub process exited before screenshot capture. ExitCode=$($process.ExitCode)."
     }
 
-    Invoke-HubCaptureWebViewScreenshot -Port $debugPort -OutputPath $OutputPath -WaitSeconds $WaitSeconds -Title "Zircon Hub"
+    Invoke-HubCaptureWebViewScreenshot -Port $debugPort -OutputPath $OutputPath -WaitSeconds $WaitSeconds -Title "Zircon Hub" -ViewportWidth $WindowWidth -ViewportHeight $WindowHeight
     $imageSize = Get-HubCaptureImageSize -Path $OutputPath
 
     [void][ZirconHubWindowCapture]::SetWindowPos($selected.Handle, $hwndNotTopmost, $captureRect.Left, $captureRect.Top, 0, 0, $setPositionNoSizeFlags)
@@ -322,6 +339,12 @@ try {
         ConfigMode = $ConfigMode
     } | Format-List
 } finally {
+    if ($ConfigMode -eq "Isolated") {
+        $env:LOCALAPPDATA = $previousLocalAppData
+        $env:APPDATA = $previousAppData
+        $env:USERPROFILE = $previousUserProfile
+        $env:ZIRCON_CONFIG_PATH = $previousEditorConfig
+    }
     if ($process -and -not $process.HasExited -and -not $LeaveOpen) {
         $process.CloseMainWindow() | Out-Null
         Start-Sleep -Milliseconds 500

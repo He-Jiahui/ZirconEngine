@@ -1,3 +1,6 @@
+//! 拖拽许可的呈现映射：正常与阻止状态共用宿主语义色，drop_allowed 来自上游落放判定。
+//! 此层显示判定结果，不应自行推断权限或改变目标有效性。
+
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 
@@ -48,25 +51,5 @@ pub(super) fn preview_accent_color(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::super::super::super::paint_theme::PALETTE;
-    use super::*;
-
-    #[test]
-    fn drag_overlay_palette_projects_from_host_material_roles() {
-        let mut host = PALETTE;
-        host.accent_soft = [1, 2, 3, 4];
-        host.error_container = [5, 6, 7, 8];
-        host.accent = [9, 10, 11, 12];
-        host.error = [13, 14, 15, 16];
-        host.text = [17, 18, 19, 20];
-
-        let overlay = drag_overlay_palette_from_host(host);
-
-        assert_eq!(overlay.preview_surface, [1, 2, 3, 4]);
-        assert_eq!(overlay.preview_surface_blocked, [5, 6, 7, 8]);
-        assert_eq!(overlay.preview_border, [9, 10, 11, 12]);
-        assert_eq!(overlay.preview_border_blocked, [13, 14, 15, 16]);
-        assert_eq!(overlay.preview_text, [17, 18, 19, 20]);
-    }
-}
+#[path = "tests/style.rs"]
+mod tests;

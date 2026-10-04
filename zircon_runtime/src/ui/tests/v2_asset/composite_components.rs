@@ -1,3 +1,5 @@
+//! 验证 V2 组件参数、导入、槽位填充和实例样式在展开图中的调用方归属。
+// BUG: [CR-UI-TEST-0001] 本文件原有 869 行超过两处小于 800 行的测试文件规模约束；需按独立组件契约拆分并更新对应结构证据。
 use super::*;
 use crate::ui::v2::UiV2PrototypeStoreBuilder;
 use zircon_runtime_interface::ui::layout::UiSlotKind;
@@ -84,6 +86,200 @@ children = [{ node = "primary" }, { node = "secondary" }]
         Some("Primary applied")
     );
     assert_eq!(secondary.events[0].targets[1].expression, "false");
+}
+
+#[test]
+fn ui_v2_nested_repeated_component_nodes_keep_authored_owner_and_instance_ancestry() {
+    let root = UiV2AssetLoader::load_toml_str(
+        r#"
+[asset]
+kind = "view"
+id = "res://ui/tests/source_identity_root.zui"
+version = 2
+
+[imports]
+widgets = ["res://ui/components/source_identity_outer.zui#Outer"]
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalGroup"
+children = [{ node = "outer_left" }, { node = "outer_right" }]
+
+[nodes.outer_left]
+component = "Outer"
+control_id = "OuterLeft"
+
+[nodes.outer_right]
+component = "Outer"
+control_id = "OuterRight"
+"#,
+    )
+    .unwrap();
+    let outer = UiV2AssetLoader::load_toml_str(
+        r#"
+[asset]
+kind = "component"
+id = "res://ui/components/source_identity_outer.zui"
+version = 2
+
+[imports]
+widgets = ["res://ui/components/source_identity_inner.zui#Inner"]
+
+[components.Outer]
+root = "outer_root"
+
+[nodes.outer_root]
+component = "VerticalGroup"
+children = [{ node = "inner_left" }, { node = "inner_right" }]
+
+[nodes.inner_left]
+component = "Inner"
+control_id = "InnerLeft"
+
+[nodes.inner_right]
+component = "Inner"
+control_id = "InnerRight"
+"#,
+    )
+    .unwrap();
+    let inner = UiV2AssetLoader::load_toml_str(
+        r#"
+[asset]
+kind = "component"
+id = "res://ui/components/source_identity_inner.zui"
+version = 2
+
+[components.Inner]
+root = "inner_root"
+
+[nodes.inner_root]
+component = "Button"
+props = { text = "Same authored button" }
+"#,
+    )
+    .unwrap();
+    let mut builder = UiV2PrototypeStoreBuilder::new();
+    let _ = builder.insert_with_source_path(
+        root.clone(),
+        "zircon_editor/assets/ui/tests/source_identity_root.zui",
+    );
+    let _ = builder.insert_with_source_path(
+        outer,
+        "zircon_editor/assets/ui/components/source_identity_outer.zui",
+    );
+    let _ = builder.insert_with_source_path(
+        inner,
+        "zircon_editor/assets/ui/components/source_identity_inner.zui",
+    );
+    let store = builder.build().unwrap();
+
+    let compiled = UiV2DocumentCompiler::compile_with_prototype_store(&root, &store).unwrap();
+    let repeated = compiled
+        .arena
+        .nodes
+        .iter()
+        .filter(|node| node.component == "Button")
+        .collect::<Vec<_>>();
+
+    assert_eq!(repeated.len(), 4);
+    assert!(repeated.iter().all(|node| {
+        node.source_path.as_deref()
+            == Some("zircon_editor/assets/ui/components/source_identity_inner.zui")
+            && node.source_node_id.as_deref() == Some("inner_root")
+    }));
+    let paths = repeated
+        .iter()
+        .map(|node| {
+            node.instance_path
+                .as_ref()
+                .expect("source instance ancestry")
+                .iter()
+                .map(|step| (step.source_path.as_str(), step.source_node_id.as_str()))
+                .collect::<Vec<_>>()
+        })
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(paths.len(), 4);
+    assert_eq!(
+        paths,
+        std::collections::BTreeSet::from([
+            vec![
+                (
+                    "zircon_editor/assets/ui/tests/source_identity_root.zui",
+                    "outer_left",
+                ),
+                (
+                    "zircon_editor/assets/ui/components/source_identity_outer.zui",
+                    "inner_left",
+                ),
+            ],
+            vec![
+                (
+                    "zircon_editor/assets/ui/tests/source_identity_root.zui",
+                    "outer_left",
+                ),
+                (
+                    "zircon_editor/assets/ui/components/source_identity_outer.zui",
+                    "inner_right",
+                ),
+            ],
+            vec![
+                (
+                    "zircon_editor/assets/ui/tests/source_identity_root.zui",
+                    "outer_right",
+                ),
+                (
+                    "zircon_editor/assets/ui/components/source_identity_outer.zui",
+                    "inner_left",
+                ),
+            ],
+            vec![
+                (
+                    "zircon_editor/assets/ui/tests/source_identity_root.zui",
+                    "outer_right",
+                ),
+                (
+                    "zircon_editor/assets/ui/components/source_identity_outer.zui",
+                    "inner_right",
+                ),
+            ],
+        ])
+    );
+
+    let surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
+        UiTreeId::new("runtime.ui.v2.repeated_source_identity"),
+        &root,
+        &compiled,
+    )
+    .unwrap();
+    let retained_paths = surface
+        .tree
+        .nodes
+        .values()
+        .filter_map(|node| {
+            let metadata = node.template_metadata.as_ref()?;
+            (metadata.component == "Button").then(|| {
+                (
+                    metadata.source_path.as_deref(),
+                    metadata.source_node_id.as_deref(),
+                    metadata.instance_path.as_ref().map(|steps| {
+                        steps
+                            .iter()
+                            .map(|step| (step.source_path.as_str(), step.source_node_id.as_str()))
+                            .collect::<Vec<_>>()
+                    }),
+                )
+            })
+        })
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(retained_paths.len(), 4);
+    assert!(retained_paths
+        .iter()
+        .all(|(source_path, source_node_id, _)| {
+            *source_path == Some("zircon_editor/assets/ui/components/source_identity_inner.zui")
+                && *source_node_id == Some("inner_root")
+        }));
 }
 
 #[test]

@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "owner": "runtime_ecs_query_change_windows",
+  "prepared_at_utc": "2026-10-02T08:15:51.908614+00:00",
+  "files": [
+    {
+      "path": "docs/_data/source-comment-audit/round-02/coverage/runtime_ecs_query_change_windows.jsonl",
+      "before_exists": false,
+      "before_sha256": null,
+      "after_sha256": "b909a48167614f13e0b27dd0c05b13aaf3b95bc4b40bd2182a6a1661a4e50aed"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/issues/runtime_ecs_query_change_windows.jsonl",
+      "before_exists": false,
+      "before_sha256": null,
+      "after_sha256": "5921086239d2b41db0cc24e028cb605882c8258e7e52abcaa0371ebea3b23cd2"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/inventory.jsonl",
+      "before_exists": true,
+      "before_sha256": "0e1b0a8bdbc03d655f90986e035e48830c36d35f1d8cf8f8925166c3f1f87823",
+      "after_sha256": "0a054210c38a47cf0f65c2d42cc9b4b68fd77a85966894bc5f716d09823336e6"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/batches.jsonl",
+      "before_exists": true,
+      "before_sha256": "09fd0130d85793e72ff9de488d99caa979f5b3f0c77a8997bab314dfe68c7e5b",
+      "after_sha256": "181b2082c1553f9e0b82546e2556745683adc820b6e39126d2d2cc309f50182f"
+    }
+  ],
+  "source_hashes": {
+    "zircon_runtime/src/scene/ecs/change_detection/change_tick.rs": "9cd60bce75868e7e520da4f36273eca78c822cfa35b81084182112d86435d7e8",
+    "zircon_runtime/src/scene/ecs/change_detection/change_tick_window.rs": "366ccc8edb67944ef7a0d545a7af602a1bcc648a66521134b09d3ef7deed984e",
+    "zircon_runtime/src/scene/ecs/change_detection/component_ticks.rs": "1646f1cf3649d97ae9b7d56c007fb130baaf8708358fe6cc4d4d70e822781e98",
+    "zircon_runtime/src/scene/ecs/change_detection/stats.rs": "66ea902d1f9878031dab16fd8ae854a07f3d7de1f55151e0c7a573969cfdebbc",
+    "zircon_runtime/src/scene/ecs/change_detection/wrappers.rs": "cd131df0aad54b15357b31cb418ca038e70236b01dbc7770b590657051914a50",
+    "zircon_runtime/src/scene/ecs/query/cached_query_iter.rs": "cefbfbc40f3b7a6b89ded16461fefd79272279f536010c93684c9b9090d74c20",
+    "zircon_runtime/src/scene/ecs/query/query_access.rs": "d394bc79a85a5bb6f1086ca8c6cc373fedb0b482fb165bd5e6b42e9bb932f58a",
+    "zircon_runtime/src/scene/ecs/query/query_access_error.rs": "3b5a76c0f54668ca85bea3cddb624957fec373a118cfa9d4dca1e3ecd87f8113",
+    "zircon_runtime/src/scene/ecs/query/query_combinations_mut_iter.rs": "736e23aff9ef963d5b75564d0f75b13b18776254be6702fc434236048251f8b9",
+    "zircon_runtime/src/scene/ecs/query/query_data.rs": "b8561f8c9dde5351f813b9b79b88e4f4b7b6278e15be2fa562e14169a31a2a39",
+    "zircon_runtime/src/scene/ecs/query/query_filter.rs": "937c120db435083b97cf706e3d73a650b34bc19b9e9445a78863c3504a54156d",
+    "zircon_runtime/src/scene/ecs/query/query_mut_iter.rs": "08b5ffb265c71dd14e2c96a6323568834b7d3be91c4f6c11613b6d2e93ccea9b",
+    "zircon_runtime/src/scene/ecs/query/query_state/archetype_plan.rs": "31c5cae16c568bbfea097b55a44c7ace56d39661c2dcb6ea722630e424fcc080",
+    "zircon_runtime/src/scene/ecs/query/query_state/cache.rs": "b664c4ca7f98ebd1ec0f3ac06c1440ff1385ec4062eb312aeb505a088d15434c",
+    "zircon_runtime/src/scene/ecs/query/query_state/state.rs": "1f7cd013c7009d48c16ca53e37d7d416a14712e09ae7bcace57edbc8bce1fefc",
+    "zircon_runtime/src/scene/ecs/query/query_state/stats.rs": "2e049a502473311a665e9aa845f5523b462b06f0b0040ce128a02982d02e5859",
+    "zircon_runtime/src/scene/ecs/query/unique_entities.rs": "843c7c2c0be37e94394a403148c9c21af5c00a9ff1db8cb480883c26ba3446cb",
+    "zircon_runtime/src/scene/tests/ecs_cached_query_iter_structure.rs": "9667ba9a20f8fbdeccf2795394e59fa8131c8837e87c1c01db7abe105cf9b251",
+    "zircon_runtime/src/scene/tests/ecs_change_detection.rs": "209081f4abf9b221c28e7551e69d78f6a2ab18353ab90a5faea518534bca81db",
+    "zircon_runtime/src/scene/tests/ecs_query.rs": "a8bb700195fae9365a652638c1285a675411d6b283aac5d16d2794af80aba83c",
+    "zircon_runtime/src/scene/tests/ecs_query/cached_queries.rs": "77d87e707b72ea5d8cd5eac825ec5d8b9a51a01395ab4735df5c11df38ba8fd5",
+    "zircon_runtime/src/scene/tests/ecs_query/fixed_ticks.rs": "27936ec2836a3bba3cf60f57e7fe5b9fb8a1c58b687bcc62a71e3edb785fe8d4",
+    "zircon_runtime/src/scene/tests/ecs_query/iter_many.rs": "82b9f19804dad564419c1d90bd7670eb25a19531858bd2ed3e52044364146b6b",
+    "zircon_runtime/src/scene/tests/ecs_query/mutation_access.rs": "056c604150522deabb89ad4d6faca31b0c6b28a30345b68cd41ab527d57d84c9",
+    "zircon_runtime/src/scene/tests/ecs_query/read_items.rs": "d602fe5791fcd5ba9431238d1bc48ee949bbd5207408516bc67239ff7503ae47",
+    "zircon_runtime/src/scene/tests/ecs_query_combinations.rs": "1795a94ab1ea4f20bb832b9dedd5c42c7917a60553f72c2e563298548e016be7",
+    "zircon_runtime/src/scene/tests/ecs_query_data_structure.rs": "7458af8795c3a17b20433e125591d11bb46acac8d31bbd96ce13454cd4e1097e",
+    "zircon_runtime/src/scene/tests/ecs_query_filter_structure.rs": "929648cd82d62260c9f13f6629f75d40b5dfbf93ae2207ffcc5f69a4fa563d9b",
+    "zircon_runtime/src/scene/tests/ecs_query_many.rs": "a7a8add1240bfef08c764db0440ef932b51ed0796f9adfa5a19e36d2c04388e8",
+    "zircon_runtime/src/scene/tests/ecs_query_single.rs": "72ba7e33c44cd84c4b757a56aa46c92ea9d80598bee75937e0657ac306b66098",
+    "zircon_runtime/src/scene/tests/ecs_query_state_structure.rs": "bb08243a7f86b2a0e970649f1d38cf55970de79d139353f662cd4570874c08ce",
+    "zircon_runtime/src/scene/tests/ecs_query_structure.rs": "79282128d3719c904d8a0ff55f13c1fd47f3cd4d0b40b8b985804a62358b79b9",
+    "zircon_runtime/src/scene/tests/ecs_query_structure/archetype_access.rs": "9d11774044d9b53327f151946f280793edaf2cace640d872bd3ea1483c95039c",
+    "zircon_runtime/src/scene/tests/ecs_query_structure/cache_rebuild.rs": "4da9895dffe6c119f5685767eb7d518f050fb9e1802df2b3d7995f3959d38040",
+    "zircon_runtime/src/scene/tests/ecs_query_structure/cached_iterators.rs": "90c3321cfdece22aa2c1014e56dff9171f48338094d6eb13da1db99060d9d173",
+    "zircon_runtime/src/scene/tests/ecs_query_structure/combinations.rs": "8dc9075e8d42c81b50a45b939f8d11e1eddad91b334c111613a81d931d56c54a",
+    "zircon_runtime/src/scene/tests/ecs_query_structure/mutable_iterators.rs": "b773327ba9a0a3752b58deaf72b62d6290926beec4d448bb5ab95d5f4479b891",
+    "zircon_runtime/src/scene/tests/ecs_query_structure/query_state_layout.rs": "4fc157f9131773df0987bc7a2fddc9d76feccaaf1347cde3288c6325a8d40d67",
+    "zircon_runtime/src/scene/world/change_detection.rs": "a0a2d5f0cf6b4ad963ca1053a8fc8eb606e10c1916e0f0816bb2a5ef7a3e1dc1",
+    "zircon_runtime/src/scene/world/query.rs": "d46d8a788577de71c8ab0cd65d7b55130e640a12f5e9c2fecf2ae18b515dc794",
+    "zircon_runtime/src/scene/world/query_order.rs": "1686f3459e7311368c770beb7df2e88e1593377544ad04fee02e9967a2742847"
+  },
+  "installation": {
+    "path": "E:\\Git\\ZirconEngine\\docs\\cli-and-tooling\\source-comment-audit\\round-02\\ownership\\local-install-runtime_ecs_query_change_windows-20261002-r1.json",
+    "sha256": "728849b8b05f65e47ccc962fbdfe01bc87b8eb3a3b28319286a5b1ee847d718f"
+  },
+  "coverage_records": 41,
+  "new_issues": 3,
+  "historical_issue_references": 5,
+  "source_writes": 0,
+  "canonical_writes": 0,
+  "completed_at_utc": "2026-10-02T08:16:47.211987+00:00",
+  "status": "exact_final_coverage_published",
+  "intent": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-publish-runtime_ecs_query_change_windows-20261002-r1\\intent.json",
+    "sha256": "4cd4f2b8ee5afd1d47c9884a43476edf92cd8fa118affea2d18f28abc22d5248"
+  },
+  "inventory_reviewed_current_records": 3764,
+  "canonical_batch_records": 98,
+  "canonical_ledger_writes": 4,
+  "native_calls": 0,
+  "git_writes": 0,
+  "business_adoption": false,
+  "dynamic_acceptance": false,
+  "future_source_edit_pending": false,
+  "submission": "pending_index_ownership_resolution"
+}

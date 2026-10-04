@@ -2,7 +2,9 @@ use std::fmt;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use crate::core::runtime::{CoreHandle, CoreWeak, RegisteredServiceIdentity, RegistryName};
+use crate::core::runtime::{
+    CoreHandle, CoreWeak, RegisteredServiceIdentity, RegistryName, ServiceCallGuard,
+};
 use crate::core::CoreError;
 
 /// 管理器注册身份的轻量令牌，供编辑器、脚本和运行时任务跨调用保存。
@@ -101,7 +103,7 @@ pub trait ManagerServiceResolver {
     fn resolve<T: ?Sized + Send + Sync + 'static>(
         &self,
         handle: ManagerServiceHandle<T>,
-    ) -> Result<Arc<T>, CoreError>;
+    ) -> Result<ServiceCallGuard<T>, CoreError>;
 }
 
 /// 取得已注册管理器的版本化身份，适合长期保存并在使用时重新解析。
@@ -114,13 +116,12 @@ pub fn manager_service_handle<T: ?Sized>(
         .map(|identity| ManagerServiceHandle::from_identity(core.downgrade(), identity))
 }
 
-// TODO: [CR-RUNTIME-MISC-0001] 确认已解析的 Arc<T> 是否可跨模块卸载继续调用；解析时校验代数，但返回值的后续调用不经过服务调用守卫。
 /// 在使用点以原运行时重新解析令牌，拒绝跨运行时来源或已失效的注册代数。
-/// 返回共享管理器，调用方须按所属模块的生命周期约束安排使用时机。
+/// 返回在途调用守卫；跨调用保存令牌，完成此次调用后释放守卫以允许卸载。
 pub fn resolve_manager_service<T: ?Sized + Send + Sync + 'static>(
     core: &CoreHandle,
     handle: ManagerServiceHandle<T>,
-) -> Result<Arc<T>, CoreError> {
+) -> Result<ServiceCallGuard<T>, CoreError> {
     ManagerServiceResolver::resolve(core, handle)
 }
 
@@ -128,7 +129,7 @@ impl ManagerServiceResolver for CoreHandle {
     fn resolve<T: ?Sized + Send + Sync + 'static>(
         &self,
         handle: ManagerServiceHandle<T>,
-    ) -> Result<Arc<T>, CoreError> {
+    ) -> Result<ServiceCallGuard<T>, CoreError> {
         if !handle.belongs_to(self) {
             return Err(CoreError::ServiceUnavailable(
                 handle.service_name().to_string(),
@@ -137,6 +138,6 @@ impl ManagerServiceResolver for CoreHandle {
         let identity = handle.into_identity();
         let registered =
             self.resolve_registered_manager::<RegisteredManagerService<T>>(&identity)?;
-        Ok(registered.shared())
+        Ok(registered.map(RegisteredManagerService::shared))
     }
 }

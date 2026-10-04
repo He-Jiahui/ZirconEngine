@@ -8,9 +8,7 @@ use serde::ser::{
 };
 use serde::{Serialize, Serializer};
 
-#[path = "canonical_writer/json_string.rs"]
 mod json_string;
-#[path = "canonical_writer/output.rs"]
 mod output;
 
 use self::json_string::{write_json_display, write_json_string, write_json_string_preaccounted};

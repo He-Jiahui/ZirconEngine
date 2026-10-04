@@ -1,11 +1,12 @@
 use std::marker::PhantomData;
 
-use crate::scene::World;
 use crate::scene::ecs::{
-    ChangeTickWindow, EventCursor, EventReadIter, EventReaderLease, EventStore, EventTypeId,
+    ChangeTickWindow, EventCursor, EventReadIter, EventReaderLease, EventTypeId, EventWriterGrant,
     Events, SystemParam, SystemParamAccess, SystemParamError,
 };
+use crate::scene::World;
 
+/// 由系统参数状态持有 reader lease，并在 retire_state 中交还给所属 World。
 pub struct EventReaderParam<T>(PhantomData<fn() -> T>);
 
 pub struct EventWriterParam<T>(PhantomData<fn() -> T>);
@@ -16,9 +17,7 @@ pub struct EventReader<'world, T> {
 }
 
 pub struct EventWriter<'world, T> {
-    store: &'world mut EventStore,
-    event_type_id: EventTypeId,
-    _marker: PhantomData<fn() -> T>,
+    channel: EventWriterGrant<'world, T>,
 }
 
 impl<'world, T> EventReader<'world, T> {
@@ -48,15 +47,14 @@ where
     T: 'static + Send + Sync,
 {
     pub fn send(&mut self, event: T) -> bool {
-        self.store.send_by_id(self.event_type_id, event)
+        self.channel.send(event)
     }
 
     pub fn send_batch<I>(&mut self, events: I) -> usize
     where
         I: IntoIterator<Item = T>,
     {
-        self.store
-            .send_batch_by_id::<T, I>(self.event_type_id, events)
+        self.channel.send_batch(events)
     }
 }
 
@@ -89,10 +87,9 @@ where
         state: &'world mut Self::State,
         _ticks: ChangeTickWindow,
     ) -> Self::Item<'world> {
-        let world = &*world;
         EventReader {
             cursor: &mut state.cursor,
-            events: world.event_store().events_by_id::<T>(state.event_type_id),
+            events: unsafe { World::event_reader_grant::<T>(world, state.event_type_id) },
         }
     }
 
@@ -130,11 +127,8 @@ where
         state: &'world mut Self::State,
         _ticks: ChangeTickWindow,
     ) -> Self::Item<'world> {
-        let world = &mut *world;
         EventWriter {
-            store: world.event_store_mut(),
-            event_type_id: state.event_type_id,
-            _marker: PhantomData,
+            channel: unsafe { World::event_writer_grant::<T>(world, state.event_type_id) },
         }
     }
 }

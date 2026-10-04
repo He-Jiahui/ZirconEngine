@@ -2,7 +2,7 @@ mod dispatch;
 mod node;
 mod surface;
 
-pub(super) use dispatch::is_dispatchable;
+pub(super) use dispatch::{accepts_pointer_move, is_dispatchable};
 pub(in crate::ui::retained_host::host_contract) use surface::build_template_surface_frame;
 
 #[cfg(test)]

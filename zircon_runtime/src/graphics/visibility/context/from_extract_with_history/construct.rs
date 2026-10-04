@@ -1,15 +1,15 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::core::TaskPool;
 use crate::core::framework::render::{
-    ProjectionMode, RenderFrameExtract, RenderHybridGiExtract, RenderVirtualGeometryExtract,
-    ViewportCameraSnapshot,
+    ProjectionMode, RenderFrameExtract, RenderHybridGiExtract, RenderMeshBounds,
+    RenderVirtualGeometryExtract, ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::{EntityId, Mobility};
-use crate::core::math::{Real, is_finite_vec3};
+use crate::core::math::{is_finite_vec3, Real};
+use crate::core::TaskPool;
 
 use super::super::super::culling::parallel_frustum::{
-    MeshFrustumCandidate, mesh_frustum_visibility,
+    mesh_frustum_visibility, MeshFrustumCandidate,
 };
 use super::super::super::declarations::{
     VisibilityBounds, VisibilityBvhInstance, VisibilityBvhUpdatePlan, VisibilityBvhUpdateStrategy,
@@ -24,9 +24,11 @@ use super::super::super::planning::{
 };
 use super::super::super::view_context::FrameVisibility;
 use super::super::super::{VisibilityStaticIndex, VisibilityStaticIndexReport};
-use super::batching_result::{BatchingResult, sorted_entity_ids};
+use super::batching_result::{sorted_entity_ids, BatchingResult};
 use super::build_history_snapshot::build_history_snapshot;
-use super::collect_batching_result::collect_batching_result;
+use super::collect_batching_result::{
+    collect_batching_result, collect_batching_result_with_prepared_bounds,
+};
 use super::collect_gpu_instancing_candidates::collect_gpu_instancing_candidates;
 
 const STATIC_INDEX_PREFILTER_MIN_STATIC_INSTANCES: usize = 10_000;
@@ -79,6 +81,28 @@ impl VisibilityContext {
         _hybrid_global_illumination: Option<&RenderHybridGiExtract>,
         virtual_geometry: Option<&RenderVirtualGeometryExtract>,
     ) -> Self {
+        Self::from_extract_with_history_static_index_task_pool_and_feature_payloads_with_prepared_bounds(
+            value,
+            previous,
+            previous_static_index,
+            previous_dynamic_index,
+            task_pool,
+            _hybrid_global_illumination,
+            virtual_geometry,
+            None,
+        )
+    }
+
+    pub(crate) fn from_extract_with_history_static_index_task_pool_and_feature_payloads_with_prepared_bounds(
+        value: &RenderFrameExtract,
+        previous: Option<&VisibilityHistorySnapshot>,
+        previous_static_index: Option<&VisibilityStaticIndex>,
+        previous_dynamic_index: Option<&VisibilityStaticIndex>,
+        task_pool: Option<&TaskPool>,
+        _hybrid_global_illumination: Option<&RenderHybridGiExtract>,
+        virtual_geometry: Option<&RenderVirtualGeometryExtract>,
+        prepared_local_bounds: Option<&[Option<RenderMeshBounds>]>,
+    ) -> Self {
         let BatchingResult {
             renderable_entities,
             static_entities,
@@ -87,7 +111,10 @@ impl VisibilityContext {
             batches,
             bvh_instances,
             history_entries,
-        } = collect_batching_result(value);
+        } = match prepared_local_bounds {
+            Some(bounds) => collect_batching_result_with_prepared_bounds(value, Some(bounds)),
+            None => collect_batching_result(value),
+        };
 
         let bvh_update_plan = build_bvh_update_plan(&history_entries, previous);
         let static_index_instances = static_bvh_instances(&bvh_instances);
@@ -355,4 +382,5 @@ fn conservative_camera_query_bounds(camera: &ViewportCameraSnapshot) -> Option<V
 }
 
 #[cfg(test)]
+#[path = "construct/tests/cases.rs"]
 mod tests;

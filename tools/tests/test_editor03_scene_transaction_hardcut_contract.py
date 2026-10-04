@@ -136,7 +136,9 @@ class Editor03SceneTransactionHardcutTests(unittest.TestCase):
         self.assertNotIn("set_scene_selection", reflected)
 
         state_tests = source("zircon_editor/src/tests/editing/state/selection.rs")
-        reflected_tests = source("zircon_editor/src/tests/editing/reflected_command.rs")
+        reflected_tests = source(
+            "zircon_editor/src/tests/editing/reflected_command/multi_selection.rs"
+        )
         self.assertIn("non_selection_edit_preserves_active_multi_selection", state_tests)
         self.assertIn("reflected_edit_preserves_active_multi_selection", reflected_tests)
 

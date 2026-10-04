@@ -1,3 +1,4 @@
+# 核对工具栏菜单显示文案与稳定动作身份分离，动态重建保留显式动作。
 import tomllib
 import unittest
 from pathlib import Path

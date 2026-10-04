@@ -1,3 +1,4 @@
+mod actual_inspector_components;
 mod command_palette;
 mod context_menu;
 mod floating_window_source;

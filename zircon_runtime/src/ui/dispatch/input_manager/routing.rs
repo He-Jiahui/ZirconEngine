@@ -1,6 +1,7 @@
 use zircon_runtime_interface::ui::dispatch::UiInputRoutePolicy;
 
 #[cfg(test)]
+#[path = "routing/tests/route_stage_names_tests.rs"]
 mod route_stage_names_tests;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -26,6 +27,7 @@ pub const UI_INPUT_ROUTE_ORDER: [UiInputRouteStage; 7] = [
     UiInputRouteStage::DefaultAction,
 ];
 
+/// 给诊断与路由权限报告投影策略涉及的阶段；不执行阶段、命中测试或默认动作。
 pub fn route_stage_names_for_policy(policy: UiInputRoutePolicy) -> Vec<&'static str> {
     let mut names = Vec::with_capacity(4);
     for stage in UI_INPUT_ROUTE_ORDER {

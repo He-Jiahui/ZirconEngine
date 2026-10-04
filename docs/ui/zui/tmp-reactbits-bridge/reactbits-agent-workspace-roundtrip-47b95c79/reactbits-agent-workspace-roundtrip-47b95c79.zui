@@ -1,0 +1,2630 @@
+[asset]
+kind = "view"
+id = "res://ui/tests/reactbits_agent_workspace.zui"
+version = 2
+display_name = "ReactBits Agent Workspace"
+
+[tokens]
+"surface.canvas" = "#0f1117"
+"surface.panel" = "#171b24"
+"surface.elevated" = "#1d2330"
+"surface.inset" = "#11151d"
+"border.default" = "#2a3342"
+"border.strong" = "#3a4658"
+"text.primary" = "#f4f7fb"
+"text.secondary" = "#a9b4c5"
+"text.muted" = "#718096"
+"accent.primary" = "#8b7cff"
+"accent.info" = "#5da9ff"
+"status.success" = "#55d6a0"
+"status.warning" = "#f4bd62"
+"status.error" = "#ff7d8a"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentWorkspaceRoot"
+classes = [ "rb-shell" ]
+
+[nodes.root.props]
+background_color = "$surface.canvas"
+foreground_color = "$text.primary"
+reference_primary = "https://pro.reactbits.dev/docs/app-ui/app-shell/app-shell-4"
+reference_supporting = [ "https://pro.reactbits.dev/docs/app-ui/ai-chat/ai-chat-1", "https://pro.reactbits.dev/docs/app-ui/agent-activity/agent-activity-2", "https://pro.reactbits.dev/docs/app-ui/tool-calls/tool-calls-2", "https://pro.reactbits.dev/docs/app-ui/agent-approval" ]
+responsive_wide = "sidebar + conversation + context panel"
+responsive_compact = "context panel moves below the conversation"
+responsive_mobile = "sidebar becomes a priority dock; composer stays primary"
+
+[nodes.root.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.root.layout.width]
+min = 640
+preferred = 1280
+max = 1600
+stretch = "Stretch"
+
+[nodes.root.layout.height]
+min = 520
+preferred = 800
+max = 1000
+stretch = "Stretch"
+
+[nodes.root.layout.container]
+kind = "HorizontalBox"
+gap = 12
+
+[[nodes.root.children]]
+node = "sidebar"
+
+[nodes.root.children.slot.layout.width]
+min = 220
+preferred = 232
+max = 260
+stretch = "Fixed"
+
+[[nodes.root.children]]
+node = "main"
+
+[nodes.root.children.slot.layout.width]
+min = 440
+preferred = 700
+weight = 1
+stretch = "Stretch"
+
+[[nodes.root.children]]
+node = "context"
+
+[nodes.root.children.slot.layout.width]
+min = 280
+preferred = 320
+max = 360
+stretch = "Fixed"
+
+[nodes.root.zircon_extension]
+owner = "reactbits-reference-slice"
+reference_profile = "reactbits-app-ui-agent-workspace-v1"
+source_of_truth = "zui"
+penpot_visual_check = "required"
+
+[nodes.sidebar]
+component = "VerticalBox"
+control_id = "ReactBitsAgentSidebar"
+classes = [ "rb-panel", "rb-sidebar" ]
+
+[nodes.sidebar.props]
+background_color = "$surface.panel"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 10
+
+[nodes.sidebar.layout]
+clip = true
+
+[nodes.sidebar.layout.width]
+stretch = "Stretch"
+
+[nodes.sidebar.layout.height]
+stretch = "Stretch"
+
+[nodes.sidebar.layout.container]
+kind = "VerticalBox"
+gap = 10
+
+[nodes.sidebar.layout.padding]
+left = 14
+right = 14
+top = 14
+bottom = 14
+
+[[nodes.sidebar.children]]
+node = "sidebar_brand"
+
+[[nodes.sidebar.children]]
+node = "new_session"
+
+[[nodes.sidebar.children]]
+node = "sidebar_nav"
+
+[[nodes.sidebar.children]]
+node = "sidebar_history"
+
+[[nodes.sidebar.children]]
+node = "sidebar_footer"
+
+[nodes.sidebar_brand]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentSidebarBrand"
+
+[nodes.sidebar_brand.props]
+background_color = "$surface.elevated"
+corner_radius = 8
+border_color = "$border.default"
+border_width = 1
+
+[nodes.sidebar_brand.layout.width]
+stretch = "Stretch"
+
+[nodes.sidebar_brand.layout.height]
+min = 42
+preferred = 42
+max = 42
+stretch = "Fixed"
+
+[nodes.sidebar_brand.layout.container]
+kind = "HorizontalBox"
+gap = 8
+
+[nodes.sidebar_brand.layout.padding]
+left = 10
+right = 10
+top = 8
+bottom = 8
+
+[[nodes.sidebar_brand.children]]
+node = "brand_mark"
+
+[[nodes.sidebar_brand.children]]
+node = "brand_title"
+
+[[nodes.sidebar_brand.children]]
+node = "brand_status"
+
+[nodes.brand_mark]
+component = "Label"
+control_id = "ReactBitsAgentBrandMark"
+
+[nodes.brand_mark.props]
+text = "Z"
+foreground_color = "$accent.primary"
+font_size = 18
+font_weight = 700
+accessibility_label = "Zircon"
+
+[nodes.brand_mark.layout.width]
+min = 22
+preferred = 22
+max = 22
+stretch = "Fixed"
+
+[nodes.brand_mark.layout.height]
+stretch = "Stretch"
+
+[nodes.brand_title]
+component = "Label"
+control_id = "ReactBitsAgentBrandTitle"
+
+[nodes.brand_title.props]
+text = "Zircon Agent"
+foreground_color = "$text.primary"
+font_size = 13
+font_weight = 650
+text_overflow = "elide"
+
+[nodes.brand_title.layout.width]
+stretch = "Stretch"
+
+[nodes.brand_title.layout.height]
+stretch = "Stretch"
+
+[nodes.brand_status]
+component = "Label"
+control_id = "ReactBitsAgentBrandStatus"
+
+[nodes.brand_status.props]
+text = "●"
+foreground_color = "$status.success"
+font_size = 12
+accessibility_label = "Connected"
+
+[nodes.brand_status.layout.width]
+min = 16
+preferred = 16
+max = 16
+stretch = "Fixed"
+
+[nodes.brand_status.layout.height]
+stretch = "Stretch"
+
+[nodes.new_session]
+component = "Button"
+control_id = "ReactBitsAgentNewSession"
+classes = [ "rb-primary-action" ]
+
+[nodes.new_session.props]
+text = "+  New session"
+button_variant = "contained"
+background_color = "$accent.primary"
+foreground_color = "$text.primary"
+corner_radius = 8
+border_width = 0
+input_interactive = true
+input_focusable = true
+accessibility_label = "Create new agent session"
+
+[nodes.new_session.layout.width]
+stretch = "Stretch"
+
+[nodes.new_session.layout.height]
+min = 38
+preferred = 38
+max = 38
+stretch = "Fixed"
+
+[[nodes.new_session.events]]
+id = "ReactBitsAgent/NewSession"
+event = "Click"
+route = "agent.session.create"
+
+[nodes.sidebar_nav]
+component = "VerticalBox"
+control_id = "ReactBitsAgentSidebarNav"
+
+[nodes.sidebar_nav.layout.width]
+stretch = "Stretch"
+
+[nodes.sidebar_nav.layout.height]
+min = 148
+preferred = 148
+max = 148
+stretch = "Fixed"
+
+[nodes.sidebar_nav.layout.container]
+kind = "VerticalBox"
+gap = 4
+
+[[nodes.sidebar_nav.children]]
+node = "nav_label"
+
+[[nodes.sidebar_nav.children]]
+node = "nav_home"
+
+[[nodes.sidebar_nav.children]]
+node = "nav_runs"
+
+[[nodes.sidebar_nav.children]]
+node = "nav_artifacts"
+
+[[nodes.sidebar_nav.children]]
+node = "nav_settings"
+
+[nodes.nav_label]
+component = "Label"
+control_id = "ReactBitsAgentNavLabel"
+
+[nodes.nav_label.props]
+text = "WORKSPACE"
+foreground_color = "$text.muted"
+font_size = 10
+font_weight = 700
+letter_spacing = 1.2
+
+[nodes.nav_label.layout.width]
+stretch = "Stretch"
+
+[nodes.nav_label.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[nodes.nav_home]
+component = "Button"
+control_id = "ReactBitsAgentNavHome"
+
+[nodes.nav_home.props]
+text = "⌂  Overview"
+button_variant = "text"
+background_color = "$surface.elevated"
+foreground_color = "$text.primary"
+corner_radius = 6
+text_align = "left"
+input_interactive = true
+input_focusable = true
+
+[nodes.nav_home.layout.width]
+stretch = "Stretch"
+
+[nodes.nav_home.layout.height]
+min = 30
+preferred = 30
+max = 30
+stretch = "Fixed"
+
+[nodes.nav_runs]
+component = "Button"
+control_id = "ReactBitsAgentNavRuns"
+
+[nodes.nav_runs.props]
+text = "◌  Agent runs"
+button_variant = "text"
+foreground_color = "$text.secondary"
+corner_radius = 6
+text_align = "left"
+input_interactive = true
+input_focusable = true
+
+[nodes.nav_runs.layout.width]
+stretch = "Stretch"
+
+[nodes.nav_runs.layout.height]
+min = 30
+preferred = 30
+max = 30
+stretch = "Fixed"
+
+[nodes.nav_artifacts]
+component = "Button"
+control_id = "ReactBitsAgentNavArtifacts"
+
+[nodes.nav_artifacts.props]
+text = "◇  Artifacts"
+button_variant = "text"
+foreground_color = "$text.secondary"
+corner_radius = 6
+text_align = "left"
+input_interactive = true
+input_focusable = true
+
+[nodes.nav_artifacts.layout.width]
+stretch = "Stretch"
+
+[nodes.nav_artifacts.layout.height]
+min = 30
+preferred = 30
+max = 30
+stretch = "Fixed"
+
+[nodes.nav_settings]
+component = "Button"
+control_id = "ReactBitsAgentNavSettings"
+
+[nodes.nav_settings.props]
+text = "⚙  Settings"
+button_variant = "text"
+foreground_color = "$text.secondary"
+corner_radius = 6
+text_align = "left"
+input_interactive = true
+input_focusable = true
+
+[nodes.nav_settings.layout.width]
+stretch = "Stretch"
+
+[nodes.nav_settings.layout.height]
+min = 30
+preferred = 30
+max = 30
+stretch = "Fixed"
+
+[nodes.sidebar_history]
+component = "ScrollableBox"
+control_id = "ReactBitsAgentConversationHistory"
+
+[nodes.sidebar_history.props]
+background_color = "$surface.inset"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 8
+
+[nodes.sidebar_history.layout]
+clip = true
+
+[nodes.sidebar_history.layout.width]
+stretch = "Stretch"
+
+[nodes.sidebar_history.layout.height]
+min = 120
+preferred = 240
+weight = 1
+stretch = "Stretch"
+
+[nodes.sidebar_history.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = 4
+scrollbar_visibility = "Auto"
+
+[nodes.sidebar_history.layout.padding]
+left = 8
+right = 8
+top = 8
+bottom = 8
+
+[[nodes.sidebar_history.children]]
+node = "history_label"
+
+[[nodes.sidebar_history.children]]
+node = "history_current"
+
+[[nodes.sidebar_history.children]]
+node = "history_previous"
+
+[[nodes.sidebar_history.children]]
+node = "history_old"
+
+[nodes.history_label]
+component = "Label"
+control_id = "ReactBitsAgentHistoryLabel"
+
+[nodes.history_label.props]
+text = "RECENT SESSIONS"
+foreground_color = "$text.muted"
+font_size = 10
+font_weight = 700
+letter_spacing = 1.1
+
+[nodes.history_label.layout.width]
+stretch = "Stretch"
+
+[nodes.history_label.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[nodes.history_current]
+component = "Button"
+control_id = "ReactBitsAgentHistoryCurrent"
+
+[nodes.history_current.props]
+text = "UI parity review"
+button_variant = "text"
+background_color = "$accent.primary"
+foreground_color = "$text.primary"
+corner_radius = 6
+text_align = "left"
+selected = true
+input_interactive = true
+input_focusable = true
+
+[nodes.history_current.layout.width]
+stretch = "Stretch"
+
+[nodes.history_current.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.history_previous]
+component = "Button"
+control_id = "ReactBitsAgentHistoryPrevious"
+
+[nodes.history_previous.props]
+text = "Penpot importer"
+button_variant = "text"
+foreground_color = "$text.secondary"
+corner_radius = 6
+text_align = "left"
+input_interactive = true
+input_focusable = true
+
+[nodes.history_previous.layout.width]
+stretch = "Stretch"
+
+[nodes.history_previous.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.history_old]
+component = "Button"
+control_id = "ReactBitsAgentHistoryOld"
+
+[nodes.history_old.props]
+text = "Runtime layout audit"
+button_variant = "text"
+foreground_color = "$text.secondary"
+corner_radius = 6
+text_align = "left"
+input_interactive = true
+input_focusable = true
+
+[nodes.history_old.layout.width]
+stretch = "Stretch"
+
+[nodes.history_old.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.sidebar_footer]
+component = "VerticalBox"
+control_id = "ReactBitsAgentSidebarFooter"
+
+[nodes.sidebar_footer.layout.width]
+stretch = "Stretch"
+
+[nodes.sidebar_footer.layout.height]
+min = 56
+preferred = 56
+max = 56
+stretch = "Fixed"
+
+[nodes.sidebar_footer.layout.container]
+kind = "VerticalBox"
+gap = 4
+
+[[nodes.sidebar_footer.children]]
+node = "connection_text"
+
+[[nodes.sidebar_footer.children]]
+node = "usage_text"
+
+[nodes.connection_text]
+component = "Label"
+control_id = "ReactBitsAgentConnectionText"
+
+[nodes.connection_text.props]
+text = "Runtime connected · local"
+foreground_color = "$text.secondary"
+font_size = 11
+text_overflow = "elide"
+
+[nodes.connection_text.layout.width]
+stretch = "Stretch"
+
+[nodes.connection_text.layout.height]
+min = 22
+preferred = 22
+max = 22
+stretch = "Fixed"
+
+[nodes.usage_text]
+component = "Label"
+control_id = "ReactBitsAgentUsageText"
+
+[nodes.usage_text.props]
+text = "12.4k / 32k context tokens"
+foreground_color = "$text.muted"
+font_size = 10
+text_overflow = "elide"
+
+[nodes.usage_text.layout.width]
+stretch = "Stretch"
+
+[nodes.usage_text.layout.height]
+min = 22
+preferred = 22
+max = 22
+stretch = "Fixed"
+
+[nodes.main]
+component = "VerticalBox"
+control_id = "ReactBitsAgentMain"
+classes = [ "rb-main" ]
+
+[nodes.main.layout.width]
+stretch = "Stretch"
+
+[nodes.main.layout.height]
+stretch = "Stretch"
+
+[nodes.main.layout.container]
+kind = "VerticalBox"
+gap = 12
+
+[[nodes.main.children]]
+node = "main_header"
+
+[[nodes.main.children]]
+node = "conversation"
+
+[[nodes.main.children]]
+node = "composer"
+
+[nodes.main_header]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentMainHeader"
+classes = [ "rb-panel" ]
+
+[nodes.main_header.props]
+background_color = "$surface.panel"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 10
+
+[nodes.main_header.layout.width]
+stretch = "Stretch"
+
+[nodes.main_header.layout.height]
+min = 52
+preferred = 52
+max = 52
+stretch = "Fixed"
+
+[nodes.main_header.layout.container]
+kind = "HorizontalBox"
+gap = 10
+
+[nodes.main_header.layout.padding]
+left = 14
+right = 10
+top = 8
+bottom = 8
+
+[[nodes.main_header.children]]
+node = "header_title_stack"
+
+[[nodes.main_header.children]]
+node = "model_picker"
+
+[[nodes.main_header.children]]
+node = "header_context"
+
+[[nodes.main_header.children]]
+node = "header_more"
+
+[nodes.header_title_stack]
+component = "VerticalBox"
+control_id = "ReactBitsAgentHeaderTitleStack"
+
+[nodes.header_title_stack.layout.width]
+stretch = "Stretch"
+
+[nodes.header_title_stack.layout.height]
+stretch = "Stretch"
+
+[nodes.header_title_stack.layout.container]
+kind = "VerticalBox"
+gap = 2
+
+[[nodes.header_title_stack.children]]
+node = "header_title"
+
+[[nodes.header_title_stack.children]]
+node = "header_subtitle"
+
+[nodes.header_title]
+component = "Label"
+control_id = "ReactBitsAgentHeaderTitle"
+
+[nodes.header_title.props]
+text = "UI parity review"
+foreground_color = "$text.primary"
+font_size = 14
+font_weight = 650
+text_overflow = "elide"
+
+[nodes.header_title.layout.width]
+stretch = "Stretch"
+
+[nodes.header_title.layout.height]
+min = 20
+preferred = 20
+max = 20
+stretch = "Fixed"
+
+[nodes.header_subtitle]
+component = "Label"
+control_id = "ReactBitsAgentHeaderSubtitle"
+
+[nodes.header_subtitle.props]
+text = "Agent run · 4 steps · streaming"
+foreground_color = "$text.secondary"
+font_size = 10
+text_overflow = "elide"
+
+[nodes.header_subtitle.layout.width]
+stretch = "Stretch"
+
+[nodes.header_subtitle.layout.height]
+min = 16
+preferred = 16
+max = 16
+stretch = "Fixed"
+
+[nodes.model_picker]
+component = "Button"
+control_id = "ReactBitsAgentModelPicker"
+
+[nodes.model_picker.props]
+text = "Claude Sonnet 4  ▾"
+button_variant = "outlined"
+background_color = "$surface.elevated"
+foreground_color = "$text.secondary"
+border_color = "$border.strong"
+border_width = 1
+corner_radius = 6
+input_interactive = true
+input_focusable = true
+accessibility_label = "Choose model"
+
+[nodes.model_picker.layout.width]
+min = 144
+preferred = 168
+max = 188
+stretch = "Fixed"
+
+[nodes.model_picker.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.header_context]
+component = "Label"
+control_id = "ReactBitsAgentHeaderContext"
+
+[nodes.header_context.props]
+text = "12.4k tokens"
+foreground_color = "$accent.info"
+font_size = 10
+text_align = "right"
+text_overflow = "elide"
+
+[nodes.header_context.layout.width]
+min = 72
+preferred = 86
+max = 104
+stretch = "Fixed"
+
+[nodes.header_context.layout.height]
+stretch = "Stretch"
+
+[nodes.header_more]
+component = "Button"
+control_id = "ReactBitsAgentHeaderMore"
+
+[nodes.header_more.props]
+text = "···"
+button_variant = "text"
+foreground_color = "$text.secondary"
+corner_radius = 6
+input_interactive = true
+input_focusable = true
+accessibility_label = "Conversation actions"
+
+[nodes.header_more.layout.width]
+min = 34
+preferred = 34
+max = 34
+stretch = "Fixed"
+
+[nodes.header_more.layout.height]
+stretch = "Stretch"
+
+[nodes.conversation]
+component = "ScrollableBox"
+control_id = "ReactBitsAgentConversation"
+classes = [ "rb-panel", "rb-conversation" ]
+
+[nodes.conversation.props]
+background_color = "$surface.inset"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 10
+
+[nodes.conversation.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.conversation.layout.width]
+stretch = "Stretch"
+
+[nodes.conversation.layout.height]
+min = 300
+preferred = 560
+weight = 1
+stretch = "Stretch"
+
+[nodes.conversation.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = 12
+scrollbar_visibility = "Auto"
+
+[nodes.conversation.layout.padding]
+left = 18
+right = 18
+top = 18
+bottom = 18
+
+[[nodes.conversation.children]]
+node = "user_message"
+
+[[nodes.conversation.children]]
+node = "assistant_message"
+
+[[nodes.conversation.children]]
+node = "followup_message"
+
+[nodes.user_message]
+component = "VerticalBox"
+control_id = "ReactBitsAgentUserMessage"
+classes = [ "rb-message", "rb-user-message" ]
+
+[nodes.user_message.props]
+background_color = "$surface.elevated"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 8
+
+[nodes.user_message.layout.width]
+min = 0
+stretch = "Stretch"
+
+[nodes.user_message.layout.height]
+min = 64
+preferred = 76
+max = 96
+stretch = "Fixed"
+
+[nodes.user_message.layout.container]
+kind = "VerticalBox"
+gap = 6
+
+[nodes.user_message.layout.padding]
+left = 12
+right = 12
+top = 10
+bottom = 10
+
+[[nodes.user_message.children]]
+node = "user_message_meta"
+
+[[nodes.user_message.children]]
+node = "user_message_text"
+
+[nodes.user_message_meta]
+component = "Label"
+control_id = "ReactBitsAgentUserMeta"
+
+[nodes.user_message_meta.props]
+text = "You  ·  just now"
+foreground_color = "$text.muted"
+font_size = 10
+font_weight = 600
+
+[nodes.user_message_meta.layout.width]
+stretch = "Stretch"
+
+[nodes.user_message_meta.layout.height]
+min = 16
+preferred = 16
+max = 16
+stretch = "Fixed"
+
+[nodes.user_message_text]
+component = "Label"
+control_id = "ReactBitsAgentUserText"
+
+[nodes.user_message_text.props]
+text = "Recreate the ReactBits agent workspace in ZUI and verify the layout in Penpot."
+foreground_color = "$text.primary"
+font_size = 13
+wrap = "word"
+text_overflow = "clip"
+
+[nodes.user_message_text.layout.width]
+stretch = "Stretch"
+
+[nodes.user_message_text.layout.height]
+min = 32
+preferred = 38
+max = 52
+stretch = "Fixed"
+
+[nodes.assistant_message]
+component = "VerticalBox"
+control_id = "ReactBitsAgentAssistantMessage"
+classes = [ "rb-message", "rb-assistant-message" ]
+
+[nodes.assistant_message.props]
+background_color = "$surface.panel"
+border_color = "$border.strong"
+border_width = 1
+corner_radius = 8
+
+[nodes.assistant_message.layout.width]
+min = 0
+stretch = "Stretch"
+
+[nodes.assistant_message.layout.height]
+min = 290
+preferred = 360
+max = 440
+stretch = "Fixed"
+
+[nodes.assistant_message.layout.container]
+kind = "VerticalBox"
+gap = 10
+
+[nodes.assistant_message.layout.padding]
+left = 14
+right = 14
+top = 12
+bottom = 12
+
+[[nodes.assistant_message.children]]
+node = "assistant_header"
+
+[[nodes.assistant_message.children]]
+node = "reasoning"
+
+[[nodes.assistant_message.children]]
+node = "tool_call"
+
+[[nodes.assistant_message.children]]
+node = "assistant_body"
+
+[[nodes.assistant_message.children]]
+node = "sources"
+
+[nodes.assistant_header]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentAssistantHeader"
+
+[nodes.assistant_header.layout.width]
+stretch = "Stretch"
+
+[nodes.assistant_header.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.assistant_header.layout.container]
+kind = "HorizontalBox"
+gap = 8
+
+[[nodes.assistant_header.children]]
+node = "assistant_avatar"
+
+[[nodes.assistant_header.children]]
+node = "assistant_name"
+
+[[nodes.assistant_header.children]]
+node = "assistant_streaming"
+
+[nodes.assistant_avatar]
+component = "Label"
+control_id = "ReactBitsAgentAssistantAvatar"
+
+[nodes.assistant_avatar.props]
+text = "✦"
+foreground_color = "$accent.primary"
+font_size = 16
+accessibility_label = "Assistant"
+
+[nodes.assistant_avatar.layout.width]
+min = 22
+preferred = 22
+max = 22
+stretch = "Fixed"
+
+[nodes.assistant_avatar.layout.height]
+stretch = "Stretch"
+
+[nodes.assistant_name]
+component = "Label"
+control_id = "ReactBitsAgentAssistantName"
+
+[nodes.assistant_name.props]
+text = "Zircon Agent"
+foreground_color = "$text.primary"
+font_size = 12
+font_weight = 650
+
+[nodes.assistant_name.layout.width]
+stretch = "Stretch"
+
+[nodes.assistant_name.layout.height]
+stretch = "Stretch"
+
+[nodes.assistant_streaming]
+component = "Label"
+control_id = "ReactBitsAgentAssistantStreaming"
+
+[nodes.assistant_streaming.props]
+text = "STREAMING"
+foreground_color = "$accent.info"
+font_size = 9
+font_weight = 700
+letter_spacing = 1
+
+[nodes.assistant_streaming.layout.width]
+min = 66
+preferred = 66
+max = 66
+stretch = "Fixed"
+
+[nodes.assistant_streaming.layout.height]
+stretch = "Stretch"
+
+[nodes.reasoning]
+component = "VerticalBox"
+control_id = "ReactBitsAgentReasoning"
+classes = [ "rb-disclosure", "rb-reasoning-expanded" ]
+
+[nodes.reasoning.props]
+background_color = "$surface.inset"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 6
+disclosure_state = "expanded"
+accessible_role = "group"
+
+[nodes.reasoning.layout.width]
+stretch = "Stretch"
+
+[nodes.reasoning.layout.height]
+min = 58
+preferred = 68
+max = 84
+stretch = "Fixed"
+
+[nodes.reasoning.layout.container]
+kind = "VerticalBox"
+gap = 5
+
+[nodes.reasoning.layout.padding]
+left = 10
+right = 10
+top = 8
+bottom = 8
+
+[[nodes.reasoning.children]]
+node = "reasoning_summary"
+
+[[nodes.reasoning.children]]
+node = "reasoning_detail"
+
+[nodes.reasoning_summary]
+component = "Label"
+control_id = "ReactBitsAgentReasoningSummary"
+
+[nodes.reasoning_summary.props]
+text = "⌄  Reasoning  ·  2.4s"
+foreground_color = "$text.secondary"
+font_size = 10
+font_weight = 650
+
+[nodes.reasoning_summary.layout.width]
+stretch = "Stretch"
+
+[nodes.reasoning_summary.layout.height]
+min = 16
+preferred = 16
+max = 16
+stretch = "Fixed"
+
+[nodes.reasoning_detail]
+component = "Label"
+control_id = "ReactBitsAgentReasoningDetail"
+
+[nodes.reasoning_detail.props]
+text = "Comparing retained layout slots with the three-column reference and preserving a single scroll owner."
+foreground_color = "$text.muted"
+font_size = 10
+wrap = "word"
+text_overflow = "clip"
+
+[nodes.reasoning_detail.layout.width]
+stretch = "Stretch"
+
+[nodes.reasoning_detail.layout.height]
+min = 24
+preferred = 30
+max = 38
+stretch = "Fixed"
+
+[nodes.tool_call]
+component = "VerticalBox"
+control_id = "ReactBitsAgentToolCall"
+classes = [ "rb-tool-call", "rb-tool-call-running" ]
+
+[nodes.tool_call.props]
+background_color = "$surface.elevated"
+border_color = "$accent.info"
+border_width = 1
+corner_radius = 6
+status = "running"
+disclosure_state = "expanded"
+
+[nodes.tool_call.layout.width]
+stretch = "Stretch"
+
+[nodes.tool_call.layout.height]
+min = 66
+preferred = 76
+max = 92
+stretch = "Fixed"
+
+[nodes.tool_call.layout.container]
+kind = "VerticalBox"
+gap = 5
+
+[nodes.tool_call.layout.padding]
+left = 10
+right = 10
+top = 8
+bottom = 8
+
+[[nodes.tool_call.children]]
+node = "tool_call_header"
+
+[[nodes.tool_call.children]]
+node = "tool_call_output"
+
+[nodes.tool_call_header]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentToolCallHeader"
+
+[nodes.tool_call_header.layout.width]
+stretch = "Stretch"
+
+[nodes.tool_call_header.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[nodes.tool_call_header.layout.container]
+kind = "HorizontalBox"
+gap = 6
+
+[[nodes.tool_call_header.children]]
+node = "tool_call_name"
+
+[[nodes.tool_call_header.children]]
+node = "tool_call_status"
+
+[[nodes.tool_call_header.children]]
+node = "tool_call_elapsed"
+
+[nodes.tool_call_name]
+component = "Label"
+control_id = "ReactBitsAgentToolCallName"
+
+[nodes.tool_call_name.props]
+text = "▣  zui.inspect_layout"
+foreground_color = "$text.primary"
+font_size = 11
+font_weight = 650
+
+[nodes.tool_call_name.layout.width]
+stretch = "Stretch"
+
+[nodes.tool_call_name.layout.height]
+stretch = "Stretch"
+
+[nodes.tool_call_status]
+component = "Label"
+control_id = "ReactBitsAgentToolCallStatus"
+
+[nodes.tool_call_status.props]
+text = "running"
+foreground_color = "$accent.info"
+font_size = 10
+font_weight = 650
+
+[nodes.tool_call_status.layout.width]
+min = 54
+preferred = 54
+max = 54
+stretch = "Fixed"
+
+[nodes.tool_call_status.layout.height]
+stretch = "Stretch"
+
+[nodes.tool_call_elapsed]
+component = "Label"
+control_id = "ReactBitsAgentToolCallElapsed"
+
+[nodes.tool_call_elapsed.props]
+text = "1.8s"
+foreground_color = "$text.muted"
+font_size = 10
+text_align = "right"
+
+[nodes.tool_call_elapsed.layout.width]
+min = 34
+preferred = 34
+max = 34
+stretch = "Fixed"
+
+[nodes.tool_call_elapsed.layout.height]
+stretch = "Stretch"
+
+[nodes.tool_call_output]
+component = "Label"
+control_id = "ReactBitsAgentToolCallOutput"
+
+[nodes.tool_call_output.props]
+text = "Reading 12 retained nodes · checking overflow bounds…"
+foreground_color = "$text.secondary"
+font_size = 10
+wrap = "word"
+text_overflow = "clip"
+
+[nodes.tool_call_output.layout.width]
+stretch = "Stretch"
+
+[nodes.tool_call_output.layout.height]
+min = 24
+preferred = 28
+max = 36
+stretch = "Fixed"
+
+[nodes.assistant_body]
+component = "Label"
+control_id = "ReactBitsAgentAssistantBody"
+
+[nodes.assistant_body.props]
+text = "The shell now has explicit sidebar, conversation, and context slots. I’m keeping the approval decision beside the destructive action and reserving a stable composer row for streaming input."
+foreground_color = "$text.primary"
+font_size = 12
+wrap = "word"
+text_overflow = "clip"
+
+[nodes.assistant_body.layout.width]
+stretch = "Stretch"
+
+[nodes.assistant_body.layout.height]
+min = 42
+preferred = 52
+max = 68
+stretch = "Fixed"
+
+[nodes.sources]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentSources"
+classes = [ "rb-sources" ]
+
+[nodes.sources.layout.width]
+stretch = "Stretch"
+
+[nodes.sources.layout.height]
+min = 26
+preferred = 30
+max = 34
+stretch = "Fixed"
+
+[nodes.sources.layout.container]
+kind = "HorizontalBox"
+gap = 6
+
+[[nodes.sources.children]]
+node = "source_zui"
+
+[[nodes.sources.children]]
+node = "source_penpot"
+
+[[nodes.sources.children]]
+node = "source_reference"
+
+[nodes.source_zui]
+component = "Button"
+control_id = "ReactBitsAgentSourceZui"
+
+[nodes.source_zui.props]
+text = "ZUI source"
+button_variant = "outlined"
+background_color = "$surface.elevated"
+foreground_color = "$accent.info"
+border_color = "$border.strong"
+border_width = 1
+corner_radius = 5
+font_size = 10
+input_interactive = true
+input_focusable = true
+accessibility_label = "Open ZUI source"
+
+[nodes.source_zui.layout.width]
+min = 76
+preferred = 82
+max = 96
+stretch = "Fixed"
+
+[nodes.source_zui.layout.height]
+stretch = "Stretch"
+
+[nodes.source_penpot]
+component = "Button"
+control_id = "ReactBitsAgentSourcePenpot"
+
+[nodes.source_penpot.props]
+text = "Penpot board"
+button_variant = "outlined"
+background_color = "$surface.elevated"
+foreground_color = "$accent.info"
+border_color = "$border.strong"
+border_width = 1
+corner_radius = 5
+font_size = 10
+input_interactive = true
+input_focusable = true
+accessibility_label = "Open Penpot board"
+
+[nodes.source_penpot.layout.width]
+min = 88
+preferred = 98
+max = 112
+stretch = "Fixed"
+
+[nodes.source_penpot.layout.height]
+stretch = "Stretch"
+
+[nodes.source_reference]
+component = "Button"
+control_id = "ReactBitsAgentSourceReference"
+
+[nodes.source_reference.props]
+text = "ReactBits refs"
+button_variant = "outlined"
+background_color = "$surface.elevated"
+foreground_color = "$accent.info"
+border_color = "$border.strong"
+border_width = 1
+corner_radius = 5
+font_size = 10
+input_interactive = true
+input_focusable = true
+accessibility_label = "Open design references"
+
+[nodes.source_reference.layout.width]
+min = 94
+preferred = 106
+max = 120
+stretch = "Fixed"
+
+[nodes.source_reference.layout.height]
+stretch = "Stretch"
+
+[nodes.followup_message]
+component = "VerticalBox"
+control_id = "ReactBitsAgentFollowupMessage"
+classes = [ "rb-message", "rb-followup-message" ]
+
+[nodes.followup_message.props]
+background_color = "$surface.elevated"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 8
+
+[nodes.followup_message.layout.width]
+min = 0
+stretch = "Stretch"
+
+[nodes.followup_message.layout.height]
+min = 56
+preferred = 66
+max = 84
+stretch = "Fixed"
+
+[nodes.followup_message.layout.container]
+kind = "VerticalBox"
+gap = 5
+
+[nodes.followup_message.layout.padding]
+left = 12
+right = 12
+top = 10
+bottom = 10
+
+[[nodes.followup_message.children]]
+node = "followup_meta"
+
+[[nodes.followup_message.children]]
+node = "followup_text"
+
+[nodes.followup_meta]
+component = "Label"
+control_id = "ReactBitsAgentFollowupMeta"
+
+[nodes.followup_meta.props]
+text = "Next checkpoint"
+foreground_color = "$status.success"
+font_size = 10
+font_weight = 650
+
+[nodes.followup_meta.layout.width]
+stretch = "Stretch"
+
+[nodes.followup_meta.layout.height]
+min = 16
+preferred = 16
+max = 16
+stretch = "Fixed"
+
+[nodes.followup_text]
+component = "Label"
+control_id = "ReactBitsAgentFollowupText"
+
+[nodes.followup_text.props]
+text = "After the native baseline is green, compare wide, compact, and mobile captures against the same Penpot board."
+foreground_color = "$text.secondary"
+font_size = 11
+wrap = "word"
+text_overflow = "clip"
+
+[nodes.followup_text.layout.width]
+stretch = "Stretch"
+
+[nodes.followup_text.layout.height]
+min = 26
+preferred = 32
+max = 42
+stretch = "Fixed"
+
+[nodes.composer]
+component = "VerticalBox"
+control_id = "ReactBitsAgentComposer"
+classes = [ "rb-panel", "MuiAgentChat-composer", "MuiAgentChat-composerStreaming", "MuiAgentChat-composerHasText" ]
+
+[nodes.composer.props]
+background_color = "$surface.panel"
+border_color = "$accent.primary"
+border_width = 1
+corner_radius = 10
+
+[nodes.composer.layout.width]
+stretch = "Stretch"
+
+[nodes.composer.layout.height]
+min = 112
+preferred = 128
+max = 148
+stretch = "Fixed"
+
+[nodes.composer.layout.container]
+kind = "VerticalBox"
+gap = 6
+
+[nodes.composer.layout.padding]
+left = 10
+right = 10
+top = 10
+bottom = 8
+
+[[nodes.composer.children]]
+node = "composer_chat"
+
+[[nodes.composer.children]]
+node = "composer_toolbar"
+
+[nodes.composer_chat]
+component = "ChatComposer"
+control_id = "ReactBitsAgentComposerInput"
+classes = [ "MuiChatComposer-root", "MuiChatComposer-streaming", "MuiChatComposer-hasText" ]
+
+[nodes.composer_chat.props]
+composer_text = "Review the responsive collapse path…"
+streaming = true
+background_color = "$surface.inset"
+foreground_color = "$text.primary"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 7
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+placeholder = "Ask the agent…"
+accessibility_label = "Agent prompt"
+
+[nodes.composer_chat.layout.width]
+stretch = "Stretch"
+
+[nodes.composer_chat.layout.height]
+min = 54
+preferred = 60
+max = 70
+stretch = "Fixed"
+
+[[nodes.composer_chat.events]]
+id = "ReactBitsAgent/ComposerSubmit"
+event = "Submit"
+route = "agent.prompt.submit"
+
+[nodes.composer_toolbar]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentComposerToolbar"
+
+[nodes.composer_toolbar.layout.width]
+stretch = "Stretch"
+
+[nodes.composer_toolbar.layout.height]
+min = 30
+preferred = 30
+max = 30
+stretch = "Fixed"
+
+[nodes.composer_toolbar.layout.container]
+kind = "HorizontalBox"
+gap = 6
+
+[[nodes.composer_toolbar.children]]
+node = "composer_attach"
+
+[[nodes.composer_toolbar.children]]
+node = "composer_reasoning"
+
+[[nodes.composer_toolbar.children]]
+node = "composer_spacer"
+
+[[nodes.composer_toolbar.children]]
+node = "composer_send"
+
+[nodes.composer_attach]
+component = "Button"
+control_id = "ReactBitsAgentComposerAttach"
+
+[nodes.composer_attach.props]
+text = "＋ Attach"
+button_variant = "text"
+foreground_color = "$text.secondary"
+corner_radius = 5
+font_size = 10
+input_interactive = true
+input_focusable = true
+accessibility_label = "Attach file"
+
+[nodes.composer_attach.layout.width]
+min = 72
+preferred = 78
+max = 90
+stretch = "Fixed"
+
+[nodes.composer_attach.layout.height]
+stretch = "Stretch"
+
+[nodes.composer_reasoning]
+component = "Button"
+control_id = "ReactBitsAgentComposerReasoning"
+
+[nodes.composer_reasoning.props]
+text = "Reasoning: high"
+button_variant = "text"
+foreground_color = "$text.secondary"
+corner_radius = 5
+font_size = 10
+input_interactive = true
+input_focusable = true
+accessibility_label = "Reasoning effort"
+
+[nodes.composer_reasoning.layout.width]
+min = 108
+preferred = 122
+max = 138
+stretch = "Fixed"
+
+[nodes.composer_reasoning.layout.height]
+stretch = "Stretch"
+
+[nodes.composer_spacer]
+component = "Space"
+control_id = "ReactBitsAgentComposerSpacer"
+
+[nodes.composer_spacer.layout.width]
+stretch = "Stretch"
+
+[nodes.composer_spacer.layout.height]
+stretch = "Stretch"
+
+[nodes.composer_send]
+component = "Button"
+control_id = "ReactBitsAgentComposerSend"
+
+[nodes.composer_send.props]
+text = "Send  ↑"
+button_variant = "contained"
+background_color = "$accent.primary"
+foreground_color = "$text.primary"
+corner_radius = 6
+font_size = 10
+input_interactive = true
+input_focusable = true
+accessibility_label = "Send prompt"
+
+[nodes.composer_send.layout.width]
+min = 68
+preferred = 74
+max = 86
+stretch = "Fixed"
+
+[nodes.composer_send.layout.height]
+stretch = "Stretch"
+
+[[nodes.composer_send.events]]
+id = "ReactBitsAgent/ComposerSend"
+event = "Click"
+route = "agent.prompt.submit"
+
+[nodes.context]
+component = "ScrollableBox"
+control_id = "ReactBitsAgentContextPanel"
+classes = [ "rb-panel", "rb-context-panel" ]
+
+[nodes.context.props]
+background_color = "$surface.panel"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 10
+
+[nodes.context.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.context.layout.width]
+stretch = "Stretch"
+
+[nodes.context.layout.height]
+stretch = "Stretch"
+
+[nodes.context.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = 12
+scrollbar_visibility = "Auto"
+
+[nodes.context.layout.padding]
+left = 12
+right = 12
+top = 12
+bottom = 12
+
+[[nodes.context.children]]
+node = "context_header"
+
+[[nodes.context.children]]
+node = "plan_card"
+
+[[nodes.context.children]]
+node = "activity_card"
+
+[[nodes.context.children]]
+node = "tool_calls_card"
+
+[[nodes.context.children]]
+node = "approval_card"
+
+[[nodes.context.children]]
+node = "usage_card"
+
+[nodes.context_header]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentContextHeader"
+
+[nodes.context_header.layout.width]
+stretch = "Stretch"
+
+[nodes.context_header.layout.height]
+min = 30
+preferred = 30
+max = 30
+stretch = "Fixed"
+
+[nodes.context_header.layout.container]
+kind = "HorizontalBox"
+gap = 6
+
+[[nodes.context_header.children]]
+node = "context_title"
+
+[[nodes.context_header.children]]
+node = "context_collapse"
+
+[nodes.context_title]
+component = "Label"
+control_id = "ReactBitsAgentContextTitle"
+
+[nodes.context_title.props]
+text = "Run context"
+foreground_color = "$text.primary"
+font_size = 13
+font_weight = 650
+
+[nodes.context_title.layout.width]
+stretch = "Stretch"
+
+[nodes.context_title.layout.height]
+stretch = "Stretch"
+
+[nodes.context_collapse]
+component = "Button"
+control_id = "ReactBitsAgentContextCollapse"
+
+[nodes.context_collapse.props]
+text = "‹"
+button_variant = "text"
+foreground_color = "$text.secondary"
+corner_radius = 5
+font_size = 14
+input_interactive = true
+input_focusable = true
+accessibility_label = "Collapse context panel"
+
+[nodes.context_collapse.layout.width]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[nodes.context_collapse.layout.height]
+stretch = "Stretch"
+
+[nodes.plan_card]
+component = "VerticalBox"
+control_id = "ReactBitsAgentPlanCard"
+classes = [ "rb-card", "rb-plan" ]
+
+[nodes.plan_card.props]
+background_color = "$surface.elevated"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 8
+
+[nodes.plan_card.layout.width]
+stretch = "Stretch"
+
+[nodes.plan_card.layout.height]
+min = 106
+preferred = 124
+max = 148
+stretch = "Fixed"
+
+[nodes.plan_card.layout.container]
+kind = "VerticalBox"
+gap = 6
+
+[nodes.plan_card.layout.padding]
+left = 10
+right = 10
+top = 10
+bottom = 10
+
+[[nodes.plan_card.children]]
+node = "plan_title"
+
+[[nodes.plan_card.children]]
+node = "plan_step_done"
+
+[[nodes.plan_card.children]]
+node = "plan_step_active"
+
+[[nodes.plan_card.children]]
+node = "plan_step_next"
+
+[nodes.plan_title]
+component = "Label"
+control_id = "ReactBitsAgentPlanTitle"
+
+[nodes.plan_title.props]
+text = "Agent plan  ·  2/4 complete"
+foreground_color = "$text.primary"
+font_size = 11
+font_weight = 650
+
+[nodes.plan_title.layout.width]
+stretch = "Stretch"
+
+[nodes.plan_title.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[nodes.plan_step_done]
+component = "Label"
+control_id = "ReactBitsAgentPlanDone"
+
+[nodes.plan_step_done.props]
+text = "✓  Map ReactBits references"
+foreground_color = "$status.success"
+font_size = 10
+
+[nodes.plan_step_done.layout.width]
+stretch = "Stretch"
+
+[nodes.plan_step_done.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[nodes.plan_step_active]
+component = "Label"
+control_id = "ReactBitsAgentPlanActive"
+
+[nodes.plan_step_active.props]
+text = "◉  Build retained ZUI surface"
+foreground_color = "$accent.info"
+font_size = 10
+
+[nodes.plan_step_active.layout.width]
+stretch = "Stretch"
+
+[nodes.plan_step_active.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[nodes.plan_step_next]
+component = "Label"
+control_id = "ReactBitsAgentPlanNext"
+
+[nodes.plan_step_next.props]
+text = "○  Compare native screenshots"
+foreground_color = "$text.muted"
+font_size = 10
+
+[nodes.plan_step_next.layout.width]
+stretch = "Stretch"
+
+[nodes.plan_step_next.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[nodes.activity_card]
+component = "VerticalBox"
+control_id = "ReactBitsAgentActivityCard"
+classes = [ "rb-card", "rb-activity" ]
+
+[nodes.activity_card.props]
+background_color = "$surface.elevated"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 8
+
+[nodes.activity_card.layout.width]
+stretch = "Stretch"
+
+[nodes.activity_card.layout.height]
+min = 132
+preferred = 164
+max = 198
+stretch = "Fixed"
+
+[nodes.activity_card.layout.container]
+kind = "VerticalBox"
+gap = 7
+
+[nodes.activity_card.layout.padding]
+left = 10
+right = 10
+top = 10
+bottom = 10
+
+[[nodes.activity_card.children]]
+node = "activity_title"
+
+[[nodes.activity_card.children]]
+node = "activity_prepare"
+
+[[nodes.activity_card.children]]
+node = "activity_nested"
+
+[[nodes.activity_card.children]]
+node = "activity_nested_child"
+
+[[nodes.activity_card.children]]
+node = "activity_verify"
+
+[nodes.activity_title]
+component = "Label"
+control_id = "ReactBitsAgentActivityTitle"
+
+[nodes.activity_title.props]
+text = "Agent activity  ·  live"
+foreground_color = "$text.primary"
+font_size = 11
+font_weight = 650
+
+[nodes.activity_title.layout.width]
+stretch = "Stretch"
+
+[nodes.activity_title.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[nodes.activity_prepare]
+component = "Label"
+control_id = "ReactBitsAgentActivityPrepare"
+
+[nodes.activity_prepare.props]
+text = "●  Prepare workspace                         0.8s"
+foreground_color = "$status.success"
+font_size = 10
+text_overflow = "elide"
+
+[nodes.activity_prepare.layout.width]
+stretch = "Stretch"
+
+[nodes.activity_prepare.layout.height]
+min = 20
+preferred = 20
+max = 20
+stretch = "Fixed"
+
+[nodes.activity_nested]
+component = "Label"
+control_id = "ReactBitsAgentActivityNested"
+
+[nodes.activity_nested.props]
+text = "⌄  Inspect layout tree                     1.8s"
+foreground_color = "$accent.info"
+font_size = 10
+text_overflow = "elide"
+
+[nodes.activity_nested.layout.width]
+stretch = "Stretch"
+
+[nodes.activity_nested.layout.height]
+min = 20
+preferred = 20
+max = 20
+stretch = "Fixed"
+
+[nodes.activity_nested_child]
+component = "Label"
+control_id = "ReactBitsAgentActivityNestedChild"
+
+[nodes.activity_nested_child.props]
+text = "    └─ Check slot overflow                 0.6s"
+foreground_color = "$text.secondary"
+font_size = 10
+text_overflow = "elide"
+
+[nodes.activity_nested_child.layout.width]
+stretch = "Stretch"
+
+[nodes.activity_nested_child.layout.height]
+min = 20
+preferred = 20
+max = 20
+stretch = "Fixed"
+
+[nodes.activity_verify]
+component = "Label"
+control_id = "ReactBitsAgentActivityVerify"
+
+[nodes.activity_verify.props]
+text = "○  Verify Penpot export                     queued"
+foreground_color = "$text.muted"
+font_size = 10
+text_overflow = "elide"
+
+[nodes.activity_verify.layout.width]
+stretch = "Stretch"
+
+[nodes.activity_verify.layout.height]
+min = 20
+preferred = 20
+max = 20
+stretch = "Fixed"
+
+[nodes.tool_calls_card]
+component = "VerticalBox"
+control_id = "ReactBitsAgentToolCallsCard"
+classes = [ "rb-card", "rb-tool-calls" ]
+
+[nodes.tool_calls_card.props]
+background_color = "$surface.elevated"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 8
+
+[nodes.tool_calls_card.layout.width]
+stretch = "Stretch"
+
+[nodes.tool_calls_card.layout.height]
+min = 164
+preferred = 196
+max = 228
+stretch = "Fixed"
+
+[nodes.tool_calls_card.layout.container]
+kind = "VerticalBox"
+gap = 6
+
+[nodes.tool_calls_card.layout.padding]
+left = 10
+right = 10
+top = 10
+bottom = 10
+
+[[nodes.tool_calls_card.children]]
+node = "tool_calls_title"
+
+[[nodes.tool_calls_card.children]]
+node = "call_success"
+
+[[nodes.tool_calls_card.children]]
+node = "call_pending"
+
+[[nodes.tool_calls_card.children]]
+node = "call_failure"
+
+[nodes.tool_calls_title]
+component = "Label"
+control_id = "ReactBitsAgentToolCallsTitle"
+
+[nodes.tool_calls_title.props]
+text = "Tool calls  ·  3"
+foreground_color = "$text.primary"
+font_size = 11
+font_weight = 650
+
+[nodes.tool_calls_title.layout.width]
+stretch = "Stretch"
+
+[nodes.tool_calls_title.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[nodes.call_success]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentCallSuccess"
+classes = [ "rb-tool-row", "rb-tool-success" ]
+
+[nodes.call_success.props]
+background_color = "$surface.inset"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 5
+status = "success"
+
+[nodes.call_success.layout.width]
+stretch = "Stretch"
+
+[nodes.call_success.layout.height]
+min = 30
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[nodes.call_success.layout.container]
+kind = "HorizontalBox"
+gap = 5
+
+[nodes.call_success.layout.padding]
+left = 7
+right = 7
+top = 5
+bottom = 5
+
+[[nodes.call_success.children]]
+node = "call_success_label"
+
+[[nodes.call_success.children]]
+node = "call_success_status"
+
+[nodes.call_success_label]
+component = "Label"
+control_id = "ReactBitsAgentCallSuccessLabel"
+
+[nodes.call_success_label.props]
+text = "✓  read_file  ·  layout.zui"
+foreground_color = "$text.secondary"
+font_size = 10
+text_overflow = "elide"
+
+[nodes.call_success_label.layout.width]
+stretch = "Stretch"
+
+[nodes.call_success_label.layout.height]
+stretch = "Stretch"
+
+[nodes.call_success_status]
+component = "Label"
+control_id = "ReactBitsAgentCallSuccessStatus"
+
+[nodes.call_success_status.props]
+text = "done"
+foreground_color = "$status.success"
+font_size = 10
+font_weight = 650
+text_align = "right"
+
+[nodes.call_success_status.layout.width]
+min = 34
+preferred = 34
+max = 34
+stretch = "Fixed"
+
+[nodes.call_success_status.layout.height]
+stretch = "Stretch"
+
+[nodes.call_pending]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentCallPending"
+classes = [ "rb-tool-row", "rb-tool-pending" ]
+
+[nodes.call_pending.props]
+background_color = "$surface.inset"
+border_color = "$accent.info"
+border_width = 1
+corner_radius = 5
+status = "pending"
+
+[nodes.call_pending.layout.width]
+stretch = "Stretch"
+
+[nodes.call_pending.layout.height]
+min = 30
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[nodes.call_pending.layout.container]
+kind = "HorizontalBox"
+gap = 5
+
+[nodes.call_pending.layout.padding]
+left = 7
+right = 7
+top = 5
+bottom = 5
+
+[[nodes.call_pending.children]]
+node = "call_pending_label"
+
+[[nodes.call_pending.children]]
+node = "call_pending_status"
+
+[nodes.call_pending_label]
+component = "Label"
+control_id = "ReactBitsAgentCallPendingLabel"
+
+[nodes.call_pending_label.props]
+text = "◌  search_web  ·  ReactBits"
+foreground_color = "$text.secondary"
+font_size = 10
+text_overflow = "elide"
+
+[nodes.call_pending_label.layout.width]
+stretch = "Stretch"
+
+[nodes.call_pending_label.layout.height]
+stretch = "Stretch"
+
+[nodes.call_pending_status]
+component = "Label"
+control_id = "ReactBitsAgentCallPendingStatus"
+
+[nodes.call_pending_status.props]
+text = "wait"
+foreground_color = "$accent.info"
+font_size = 10
+font_weight = 650
+text_align = "right"
+
+[nodes.call_pending_status.layout.width]
+min = 34
+preferred = 34
+max = 34
+stretch = "Fixed"
+
+[nodes.call_pending_status.layout.height]
+stretch = "Stretch"
+
+[nodes.call_failure]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentCallFailure"
+classes = [ "rb-tool-row", "rb-tool-failure" ]
+
+[nodes.call_failure.props]
+background_color = "$surface.inset"
+border_color = "$status.error"
+border_width = 1
+corner_radius = 5
+status = "failure"
+
+[nodes.call_failure.layout.width]
+stretch = "Stretch"
+
+[nodes.call_failure.layout.height]
+min = 30
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[nodes.call_failure.layout.container]
+kind = "HorizontalBox"
+gap = 5
+
+[nodes.call_failure.layout.padding]
+left = 7
+right = 7
+top = 5
+bottom = 5
+
+[[nodes.call_failure.children]]
+node = "call_failure_label"
+
+[[nodes.call_failure.children]]
+node = "call_failure_retry"
+
+[nodes.call_failure_label]
+component = "Label"
+control_id = "ReactBitsAgentCallFailureLabel"
+
+[nodes.call_failure_label.props]
+text = "!  apply_patch  ·  blocked"
+foreground_color = "$text.secondary"
+font_size = 10
+text_overflow = "elide"
+
+[nodes.call_failure_label.layout.width]
+stretch = "Stretch"
+
+[nodes.call_failure_label.layout.height]
+stretch = "Stretch"
+
+[nodes.call_failure_retry]
+component = "Button"
+control_id = "ReactBitsAgentCallFailureRetry"
+
+[nodes.call_failure_retry.props]
+text = "Retry"
+button_variant = "text"
+foreground_color = "$status.error"
+corner_radius = 4
+font_size = 10
+input_interactive = true
+input_focusable = true
+accessibility_label = "Retry failed tool call"
+
+[nodes.call_failure_retry.layout.width]
+min = 42
+preferred = 46
+max = 54
+stretch = "Fixed"
+
+[nodes.call_failure_retry.layout.height]
+stretch = "Stretch"
+
+[[nodes.call_failure_retry.events]]
+id = "ReactBitsAgent/RetryToolCall"
+event = "Click"
+route = "agent.tool.retry"
+
+[nodes.approval_card]
+component = "VerticalBox"
+control_id = "ReactBitsAgentApprovalCard"
+classes = [ "rb-card", "rb-approval" ]
+
+[nodes.approval_card.props]
+background_color = "$surface.elevated"
+border_color = "$status.warning"
+border_width = 1
+corner_radius = 8
+approval_state = "pending"
+destructive = true
+
+[nodes.approval_card.layout.width]
+stretch = "Stretch"
+
+[nodes.approval_card.layout.height]
+min = 148
+preferred = 178
+max = 208
+stretch = "Fixed"
+
+[nodes.approval_card.layout.container]
+kind = "VerticalBox"
+gap = 7
+
+[nodes.approval_card.layout.padding]
+left = 10
+right = 10
+top = 10
+bottom = 10
+
+[[nodes.approval_card.children]]
+node = "approval_title"
+
+[[nodes.approval_card.children]]
+node = "approval_body"
+
+[[nodes.approval_card.children]]
+node = "approval_scope"
+
+[[nodes.approval_card.children]]
+node = "approval_actions"
+
+[nodes.approval_title]
+component = "Label"
+control_id = "ReactBitsAgentApprovalTitle"
+
+[nodes.approval_title.props]
+text = "⚠  Approval required"
+foreground_color = "$status.warning"
+font_size = 11
+font_weight = 700
+
+[nodes.approval_title.layout.width]
+stretch = "Stretch"
+
+[nodes.approval_title.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[nodes.approval_body]
+component = "Label"
+control_id = "ReactBitsAgentApprovalBody"
+
+[nodes.approval_body.props]
+text = "The agent wants to write the generated layout into the project."
+foreground_color = "$text.primary"
+font_size = 10
+wrap = "word"
+text_overflow = "clip"
+
+[nodes.approval_body.layout.width]
+stretch = "Stretch"
+
+[nodes.approval_body.layout.height]
+min = 26
+preferred = 32
+max = 42
+stretch = "Fixed"
+
+[nodes.approval_scope]
+component = "Label"
+control_id = "ReactBitsAgentApprovalScope"
+
+[nodes.approval_scope.props]
+text = "Scope: zircon_runtime/tests/fixtures/ui  ·  reversible"
+foreground_color = "$text.secondary"
+font_size = 10
+wrap = "word"
+text_overflow = "clip"
+
+[nodes.approval_scope.layout.width]
+stretch = "Stretch"
+
+[nodes.approval_scope.layout.height]
+min = 26
+preferred = 30
+max = 38
+stretch = "Fixed"
+
+[nodes.approval_actions]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentApprovalActions"
+
+[nodes.approval_actions.layout.width]
+stretch = "Stretch"
+
+[nodes.approval_actions.layout.height]
+min = 32
+preferred = 34
+max = 38
+stretch = "Fixed"
+
+[nodes.approval_actions.layout.container]
+kind = "HorizontalBox"
+gap = 6
+
+[[nodes.approval_actions.children]]
+node = "approval_reject"
+
+[[nodes.approval_actions.children]]
+node = "approval_spacer"
+
+[[nodes.approval_actions.children]]
+node = "approval_allow"
+
+[nodes.approval_reject]
+component = "Button"
+control_id = "ReactBitsAgentApprovalReject"
+
+[nodes.approval_reject.props]
+text = "Deny"
+button_variant = "outlined"
+foreground_color = "$text.secondary"
+border_color = "$border.strong"
+border_width = 1
+corner_radius = 5
+input_interactive = true
+input_focusable = true
+accessibility_label = "Deny agent write"
+
+[nodes.approval_reject.layout.width]
+min = 54
+preferred = 60
+max = 70
+stretch = "Fixed"
+
+[nodes.approval_reject.layout.height]
+stretch = "Stretch"
+
+[[nodes.approval_reject.events]]
+id = "ReactBitsAgent/ApprovalDeny"
+event = "Click"
+route = "agent.approval.deny"
+
+[nodes.approval_spacer]
+component = "Space"
+control_id = "ReactBitsAgentApprovalSpacer"
+
+[nodes.approval_spacer.layout.width]
+stretch = "Stretch"
+
+[nodes.approval_spacer.layout.height]
+stretch = "Stretch"
+
+[nodes.approval_allow]
+component = "Button"
+control_id = "ReactBitsAgentApprovalAllow"
+
+[nodes.approval_allow.props]
+text = "Allow write"
+button_variant = "contained"
+background_color = "$status.warning"
+foreground_color = "$surface.canvas"
+corner_radius = 5
+input_interactive = true
+input_focusable = true
+accessibility_label = "Allow agent write"
+
+[nodes.approval_allow.layout.width]
+min = 86
+preferred = 98
+max = 112
+stretch = "Fixed"
+
+[nodes.approval_allow.layout.height]
+stretch = "Stretch"
+
+[[nodes.approval_allow.events]]
+id = "ReactBitsAgent/ApprovalAllow"
+event = "Click"
+route = "agent.approval.allow"
+
+[nodes.usage_card]
+component = "VerticalBox"
+control_id = "ReactBitsAgentUsageCard"
+classes = [ "rb-card", "rb-usage" ]
+
+[nodes.usage_card.props]
+background_color = "$surface.elevated"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 8
+
+[nodes.usage_card.layout.width]
+stretch = "Stretch"
+
+[nodes.usage_card.layout.height]
+min = 76
+preferred = 88
+max = 104
+stretch = "Fixed"
+
+[nodes.usage_card.layout.container]
+kind = "VerticalBox"
+gap = 6
+
+[nodes.usage_card.layout.padding]
+left = 10
+right = 10
+top = 10
+bottom = 10
+
+[[nodes.usage_card.children]]
+node = "usage_title"
+
+[[nodes.usage_card.children]]
+node = "usage_bar"
+
+[[nodes.usage_card.children]]
+node = "usage_detail"
+
+[nodes.usage_title]
+component = "Label"
+control_id = "ReactBitsAgentUsageTitle"
+
+[nodes.usage_title.props]
+text = "AI usage"
+foreground_color = "$text.primary"
+font_size = 11
+font_weight = 650
+
+[nodes.usage_title.layout.width]
+stretch = "Stretch"
+
+[nodes.usage_title.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[nodes.usage_bar]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentUsageBar"
+
+[nodes.usage_bar.props]
+background_color = "$surface.inset"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 4
+
+[nodes.usage_bar.layout.width]
+stretch = "Stretch"
+
+[nodes.usage_bar.layout.height]
+min = 8
+preferred = 8
+max = 8
+stretch = "Fixed"
+
+[nodes.usage_bar.layout.container]
+kind = "HorizontalBox"
+gap = 0
+
+[[nodes.usage_bar.children]]
+node = "usage_bar_fill"
+
+[[nodes.usage_bar.children]]
+node = "usage_bar_rest"
+
+[nodes.usage_bar_fill]
+component = "Space"
+control_id = "ReactBitsAgentUsageBarFill"
+
+[nodes.usage_bar_fill.props]
+background_color = "$accent.primary"
+corner_radius = 4
+
+[nodes.usage_bar_fill.layout.width]
+min = 0
+preferred = 38
+weight = 0.39
+stretch = "Stretch"
+
+[nodes.usage_bar_fill.layout.height]
+stretch = "Stretch"
+
+[nodes.usage_bar_rest]
+component = "Space"
+control_id = "ReactBitsAgentUsageBarRest"
+
+[nodes.usage_bar_rest.props]
+background_color = "$surface.inset"
+
+[nodes.usage_bar_rest.layout.width]
+min = 0
+preferred = 60
+weight = 0.61
+stretch = "Stretch"
+
+[nodes.usage_bar_rest.layout.height]
+stretch = "Stretch"
+
+[nodes.usage_detail]
+component = "Label"
+control_id = "ReactBitsAgentUsageDetail"
+
+[nodes.usage_detail.props]
+text = "12.4k used  ·  19.6k remaining  ·  $0.08"
+foreground_color = "$text.secondary"
+font_size = 10
+text_overflow = "elide"
+
+[nodes.usage_detail.layout.width]
+stretch = "Stretch"
+
+[nodes.usage_detail.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"

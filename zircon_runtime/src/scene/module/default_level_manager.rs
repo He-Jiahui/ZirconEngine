@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fmt;
 use std::sync::atomic::AtomicU64;
 use std::sync::{Mutex, MutexGuard, OnceLock};
@@ -7,13 +7,13 @@ use crate::core::framework::scene::WorldHandle;
 use crate::core::runtime::TaskPool;
 use crate::core::{CoreHandle, CoreWeak};
 
-use crate::scene::{LevelSystem, world::SceneProjectError};
+use crate::scene::{world::SceneProjectError, LevelSystem};
 
 use super::scene_artifact_io::SceneArtifactIo;
 
 pub struct DefaultLevelManager {
     pub(super) next_handle: AtomicU64,
-    pub(super) levels: Mutex<HashMap<WorldHandle, LevelSystem>>,
+    pub(super) levels: Mutex<BTreeMap<WorldHandle, LevelSystem>>,
     pub(super) core: Option<CoreWeak>,
     scene_io_pool: Option<TaskPool>,
     scene_artifact_io: OnceLock<SceneArtifactIo>,
@@ -23,7 +23,7 @@ impl Default for DefaultLevelManager {
     fn default() -> Self {
         Self {
             next_handle: AtomicU64::new(0),
-            levels: Mutex::new(HashMap::new()),
+            levels: Mutex::new(BTreeMap::new()),
             core: None,
             scene_io_pool: None,
             scene_artifact_io: OnceLock::new(),
@@ -46,7 +46,7 @@ impl DefaultLevelManager {
     pub(super) fn with_core(core: &CoreHandle) -> Self {
         Self {
             next_handle: AtomicU64::new(0),
-            levels: Mutex::new(HashMap::new()),
+            levels: Mutex::new(BTreeMap::new()),
             core: Some(core.downgrade()),
             scene_io_pool: Some(core.task_graph().worker_pool().clone()),
             scene_artifact_io: OnceLock::new(),
@@ -57,7 +57,7 @@ impl DefaultLevelManager {
     pub(super) fn with_scene_io_pool(scene_io_pool: TaskPool) -> Self {
         Self {
             next_handle: AtomicU64::new(0),
-            levels: Mutex::new(HashMap::new()),
+            levels: Mutex::new(BTreeMap::new()),
             core: None,
             scene_io_pool: Some(scene_io_pool),
             scene_artifact_io: OnceLock::new(),
@@ -74,7 +74,7 @@ impl DefaultLevelManager {
             .get_or_init(|| SceneArtifactIo::new(pool.clone())))
     }
 
-    pub(super) fn lock_levels(&self) -> MutexGuard<'_, HashMap<WorldHandle, LevelSystem>> {
+    pub(super) fn lock_levels(&self) -> MutexGuard<'_, BTreeMap<WorldHandle, LevelSystem>> {
         self.levels
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())

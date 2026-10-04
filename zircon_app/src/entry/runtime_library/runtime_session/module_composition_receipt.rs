@@ -8,6 +8,10 @@ use zircon_runtime_interface::{
 
 use super::{RuntimeLibraryError, RuntimeSession};
 
+#[cfg(test)]
+#[path = "module_composition_receipt/tests/cases.rs"]
+mod tests;
+
 pub(super) fn query(
     session: &RuntimeSession,
     requested_profile: &[u8],

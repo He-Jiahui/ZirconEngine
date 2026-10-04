@@ -2,17 +2,17 @@ use std::fs;
 use std::path::Path;
 use std::sync::Arc;
 
-use crate::asset::AssetUri;
 use crate::asset::pipeline::manager::ProjectAssetManager;
+use crate::asset::AssetUri;
 use crate::core::framework::render::{
-    AntiAliasSettings, CorePipelineKind, DEFAULT_RENDER_LAYER_MASK, DisplayMode,
-    GEOMETRY_SOURCE_ID_STATIC_MESH, GeometryExtract, LightShadowSettings,
+    AntiAliasSettings, CorePipelineKind, DisplayMode, GeometryExtract, LightShadowSettings,
     PostProcessGraphResourceNames, ProjectionMode, RenderDirectionalLightSnapshot, RenderFramework,
     RenderLayerSet, RenderMeshSnapshot, RenderPhase, RenderPipelineHandle, RenderQualityProfile,
-    RenderStats, RenderViewportDescriptor, RenderWorldSnapshotHandle,
-    SHADING_MODEL_ID_STANDARD_PBR, ShaderFeatureBits, ShaderQualityTier, ShaderVariantMissReport,
-    ShaderVariantPrewarmDimensionCount, ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport,
-    ShaderVariantRuntimeDimensionCount, ShadowPcfQuality, ShadowResolutionTier,
+    RenderStats, RenderViewportDescriptor, RenderWorldSnapshotHandle, ShaderFeatureBits,
+    ShaderQualityTier, ShaderVariantMissReport, ShaderVariantPrewarmDimensionCount,
+    ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport, ShaderVariantRuntimeDimensionCount,
+    ShadowPcfQuality, ShadowResolutionTier, DEFAULT_RENDER_LAYER_MASK,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_ID_STANDARD_PBR,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
@@ -155,9 +155,10 @@ fn material_mesh_cache_extract(
     );
     extract.lighting.directional_lights = vec![material_mesh_cache_shadow_light()];
     extract.view.anti_alias = AntiAliasSettings::taa();
+    let anti_alias = extract.view.anti_alias.clone();
     extract
         .post_process
-        .rebuild_graph_with_anti_alias(true, true, &extract.view.anti_alias);
+        .rebuild_graph_with_anti_alias(true, true, &anti_alias);
     extract.debug.overlays.display_mode = DisplayMode::Shaded;
     extract.post_process.display_mode = DisplayMode::Shaded;
     extract
@@ -631,25 +632,23 @@ fn material_mesh_deferred_lighting_product_feature() -> RenderFeatureDescriptor 
             "lighting".to_string(),
         ],
         Vec::new(),
-        vec![
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::Lighting,
-                "plan08-staged-prewarm-deferred-lighting",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("lighting.deferred")
-            .read_texture(PostProcessGraphResourceNames::GBUFFER_ALBEDO)
-            .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
-            .read_texture(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
-            .read_texture(PostProcessGraphResourceNames::GBUFFER_EMISSIVE)
-            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-            .read_required_external_texture(PostProcessGraphResourceNames::SHADOW_ATLAS)
-            .read_buffer(PostProcessGraphResourceNames::LIGHT_GRID_PARAMS)
-            .read_buffer(PostProcessGraphResourceNames::LIGHT_ZBINS)
-            .read_buffer(PostProcessGraphResourceNames::LIGHT_TILE_MASKS)
-            .read_external_texture(PostProcessGraphResourceNames::FINAL_COLOR)
-            .write_texture(PostProcessGraphResourceNames::SCENE_COLOR),
-        ],
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::Lighting,
+            "plan08-staged-prewarm-deferred-lighting",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("lighting.deferred")
+        .read_texture(PostProcessGraphResourceNames::GBUFFER_ALBEDO)
+        .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
+        .read_texture(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
+        .read_texture(PostProcessGraphResourceNames::GBUFFER_EMISSIVE)
+        .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+        .read_required_external_texture(PostProcessGraphResourceNames::SHADOW_ATLAS)
+        .read_buffer(PostProcessGraphResourceNames::LIGHT_GRID_PARAMS)
+        .read_buffer(PostProcessGraphResourceNames::LIGHT_ZBINS)
+        .read_buffer(PostProcessGraphResourceNames::LIGHT_TILE_MASKS)
+        .read_external_texture(PostProcessGraphResourceNames::FINAL_COLOR)
+        .write_texture(PostProcessGraphResourceNames::SCENE_COLOR)],
     )
 }
 

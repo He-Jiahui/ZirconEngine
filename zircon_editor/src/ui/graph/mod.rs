@@ -8,16 +8,17 @@ mod routing;
 
 pub use canvas::{GraphCanvasState, GraphNodeDrag, GraphNodeMove, GraphSelection};
 pub use commands::{
-    GraphAlignment, GraphClipboardModel, GraphDeltaCommand, GraphEditContext, aligned_node_moves,
+    aligned_node_moves, GraphAlignment, GraphClipboardModel, GraphDeltaCommand, GraphEditContext,
 };
 pub use model::{
-    ConnectVerdict, GraphAttachmentView, GraphConnectRejection, GraphDiagnostic, GraphEdgeView,
-    GraphModel, GraphMutationEffect, GraphNodeBounds, GraphNodeView, GraphPinDirection,
-    GraphPinView, GraphPoint, GraphPortRef, StructureConstraint, default_connection_verdict,
-    required_input_diagnostics,
+    default_connection_verdict, required_input_diagnostics, ConnectVerdict, GraphAttachmentView,
+    GraphConnectRejection, GraphDiagnostic, GraphEdgeView, GraphModel, GraphMutationEffect,
+    GraphNodeBounds, GraphNodeView, GraphPinDirection, GraphPinView, GraphPoint, GraphPortRef,
+    StructureConstraint,
 };
 pub use node_widget::GraphNodePresentation;
-pub use routing::{GraphConnectionRoute, GraphRouteStyle, route_connection};
+pub use routing::{route_connection, GraphConnectionRoute, GraphRouteStyle};
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

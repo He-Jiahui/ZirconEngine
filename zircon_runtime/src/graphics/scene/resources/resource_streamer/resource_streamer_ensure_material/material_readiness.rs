@@ -2,7 +2,7 @@ use crate::core::framework::render::{
     RenderMaterialDiagnosticSource, RenderMaterialFallbackPolicy, RenderMaterialFallbackReason,
     RenderMaterialFallbackUsage, RenderMaterialReadinessReport, RenderMaterialValidationError,
 };
-use crate::core::resource::{ResourceId, ResourceLocator};
+use crate::core::resource::{ResourceId, ResourceLocator, ResourceReadinessRowIdentity};
 use crate::graphics::types::GraphicsError;
 
 use super::super::super::prepared::{
@@ -12,6 +12,7 @@ use super::super::super::prepared::{
 
 const FALLBACK_MATERIAL_URI: &str = "builtin://missing-material";
 
+// 修订相同仍须比较发布身份；shader、texture 的未解析状态也必须与缓存一致，随后由 readiness 决定可绘制性。
 pub(super) fn prepared_material_cache_identity_is_current(
     prepared_revision: Option<u64>,
     requested_revision: Option<u64>,
@@ -20,8 +21,17 @@ pub(super) fn prepared_material_cache_identity_is_current(
     requested_texture_support: crate::asset::TextureUploadSupport,
     shader_dependency: &PreparedMaterialShaderDependency,
     dependencies: &[PreparedMaterialTextureDependency],
-    mut material_identity_for_id: impl FnMut(ResourceId) -> Option<(ResourceId, u64, u64)>,
-    mut shader_identity_for_locator: impl FnMut(&ResourceLocator) -> Option<(ResourceId, u64, u64)>,
+    mut material_identity_for_id: impl FnMut(
+        ResourceId,
+    )
+        -> Option<(ResourceId, u64, ResourceReadinessRowIdentity)>,
+    mut shader_identity_for_locator: impl FnMut(
+        &ResourceLocator,
+    ) -> Option<(
+        ResourceId,
+        u64,
+        ResourceReadinessRowIdentity,
+    )>,
     mut texture_revision_for_locator: impl FnMut(&ResourceLocator) -> Option<(ResourceId, u64)>,
 ) -> bool {
     prepared_revision == requested_revision
@@ -30,12 +40,25 @@ pub(super) fn prepared_material_cache_identity_is_current(
             material_identity_for_id(material_dependency.id),
         )
         && prepared_texture_support == requested_texture_support
-        && shader_identity_for_locator(&shader_dependency.locator)
-            == shader_dependency
-                .id
-                .zip(shader_dependency.revision)
-                .zip(shader_dependency.dependency_revision)
-                .map(|((id, revision), dependency_revision)| (id, revision, dependency_revision))
+        && match (
+            shader_identity_for_locator(&shader_dependency.locator),
+            shader_dependency.id,
+            shader_dependency.revision,
+            shader_dependency.dependency_identity.as_ref(),
+        ) {
+            (
+                Some((id, revision, publication)),
+                Some(prepared_id),
+                Some(prepared_revision),
+                Some(prepared_publication),
+            ) => {
+                id == prepared_id
+                    && revision == prepared_revision
+                    && &publication == prepared_publication
+            }
+            (None, None, None, None) => true,
+            _ => false,
+        }
         && dependencies.iter().all(|dependency| {
             texture_revision_for_locator(&dependency.locator)
                 == dependency.id.zip(dependency.revision)
@@ -46,8 +69,13 @@ pub(super) fn prepared_material_candidate_identity_is_current(
     identity: &PreparedMaterialCandidateIdentity,
     requested_revision: Option<u64>,
     requested_texture_support: crate::asset::TextureUploadSupport,
-    material_identity_for_id: impl FnMut(ResourceId) -> Option<(ResourceId, u64, u64)>,
-    shader_identity_for_locator: impl FnMut(&ResourceLocator) -> Option<(ResourceId, u64, u64)>,
+    material_identity_for_id: impl FnMut(
+        ResourceId,
+    ) -> Option<(ResourceId, u64, ResourceReadinessRowIdentity)>,
+    shader_identity_for_locator: impl FnMut(
+        &ResourceLocator,
+    )
+        -> Option<(ResourceId, u64, ResourceReadinessRowIdentity)>,
     texture_revision_for_locator: impl FnMut(&ResourceLocator) -> Option<(ResourceId, u64)>,
 ) -> bool {
     prepared_material_cache_identity_is_current(
@@ -66,9 +94,13 @@ pub(super) fn prepared_material_candidate_identity_is_current(
 
 pub(super) fn prepared_material_dependency_identity_is_current(
     prepared: &PreparedMaterialDependency,
-    current: Option<(ResourceId, u64, u64)>,
+    current: Option<(ResourceId, u64, ResourceReadinessRowIdentity)>,
 ) -> bool {
-    current == Some((prepared.id, prepared.revision, prepared.dependency_revision))
+    current.is_some_and(|(id, revision, publication)| {
+        id == prepared.id
+            && revision == prepared.revision
+            && publication == prepared.dependency_identity
+    })
 }
 
 pub(super) fn material_prepare_result(
@@ -149,108 +181,5 @@ pub(super) fn is_standard_texture_slot(slot: &str) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        has_blocking_material_validation, prepared_material_candidate_identity_is_current,
-        prepared_material_dependency_identity_is_current,
-    };
-    use crate::asset::TextureUploadSupport;
-    use crate::core::framework::render::RenderMaterialValidationError;
-    use crate::core::resource::{ResourceId, ResourceLocator};
-    use crate::graphics::scene::resources::prepared::{
-        PreparedMaterialCandidateIdentity, PreparedMaterialDependency,
-        PreparedMaterialShaderDependency, PreparedMaterialTextureDependency,
-    };
-
-    #[test]
-    fn material_dependency_identity_requires_root_and_recursive_parent_generations() {
-        let id = ResourceId::from_stable_label("res://materials/child.zmaterial");
-        let dependency = PreparedMaterialDependency {
-            id,
-            revision: 7,
-            dependency_revision: 11,
-        };
-
-        assert!(prepared_material_dependency_identity_is_current(
-            &dependency,
-            Some((id, 7, 11))
-        ));
-        assert!(!prepared_material_dependency_identity_is_current(
-            &dependency,
-            Some((id, 8, 11))
-        ));
-        assert!(!prepared_material_dependency_identity_is_current(
-            &dependency,
-            Some((id, 7, 12))
-        ));
-    }
-
-    #[test]
-    fn unsupported_texture_uv_channel_blocks_material_preparation() {
-        assert!(has_blocking_material_validation(&[
-            RenderMaterialValidationError::UnsupportedTextureUvChannel {
-                slot: "base_color".to_string(),
-                channel: 2,
-                supported_channel_count: 2,
-            },
-        ]));
-    }
-
-    #[test]
-    fn failed_candidate_cache_identity_covers_every_rebuild_input() {
-        let material_id = ResourceId::from_stable_label("res://materials/child.zmaterial");
-        let shader_id = ResourceId::from_stable_label("res://shaders/pbr.zshader");
-        let texture_id = ResourceId::from_stable_label("res://textures/base.ztexture");
-        let shader_locator = ResourceLocator::parse("res://shaders/pbr.zshader").unwrap();
-        let texture_locator = ResourceLocator::parse("res://textures/base.ztexture").unwrap();
-        let support = TextureUploadSupport::uncompressed_only();
-        let identity = PreparedMaterialCandidateIdentity {
-            revision: Some(7),
-            material_dependency: PreparedMaterialDependency {
-                id: material_id,
-                revision: 7,
-                dependency_revision: 11,
-            },
-            shader_dependency: PreparedMaterialShaderDependency {
-                locator: shader_locator.clone(),
-                id: Some(shader_id),
-                revision: Some(13),
-                dependency_revision: Some(17),
-            },
-            texture_dependencies: vec![PreparedMaterialTextureDependency {
-                locator: texture_locator.clone(),
-                id: Some(texture_id),
-                revision: Some(19),
-                upload_unsupported_reason: None,
-            }],
-            texture_support: support,
-        };
-        let is_current = |requested_revision,
-                          material_dependency_revision,
-                          shader_revision,
-                          texture_revision,
-                          requested_support| {
-            prepared_material_candidate_identity_is_current(
-                &identity,
-                requested_revision,
-                requested_support,
-                |id| (id == material_id).then_some((material_id, 7, material_dependency_revision)),
-                |locator| (locator == &shader_locator).then_some((shader_id, shader_revision, 17)),
-                |locator| (locator == &texture_locator).then_some((texture_id, texture_revision)),
-            )
-        };
-
-        assert!(is_current(Some(7), 11, 13, 19, support));
-        assert!(!is_current(Some(8), 11, 13, 19, support));
-        assert!(!is_current(Some(7), 12, 13, 19, support));
-        assert!(!is_current(Some(7), 11, 14, 19, support));
-        assert!(!is_current(Some(7), 11, 13, 20, support));
-        assert!(!is_current(
-            Some(7),
-            11,
-            13,
-            19,
-            TextureUploadSupport::all_compressed(),
-        ));
-    }
-}
+#[path = "tests/material_readiness.rs"]
+mod tests;

@@ -14,7 +14,7 @@ pub(super) struct TimelineStripMetrics {
     pub footer_height: f32,
     pub font_size: f32,
     pub line_height: f32,
-    pub key_radius: i32,
+    pub key_radius: f32,
     pub playhead_width: f32,
 }
 
@@ -32,7 +32,7 @@ pub(super) fn timeline_metrics_from_host(host: HostControlMetrics) -> TimelineSt
         footer_height: host.line_height(host.font_small) + host.gap_s * 2.0,
         font_size: host.font_small,
         line_height: host.line_height(host.font_small),
-        key_radius: (host.border_width * KEY_RADIUS_SCALE).round().max(2.0) as i32,
+        key_radius: (host.border_width * KEY_RADIUS_SCALE).max(2.0),
         playhead_width: (host.border_width * PLAYHEAD_WIDTH_SCALE).max(1.0),
     }
 }

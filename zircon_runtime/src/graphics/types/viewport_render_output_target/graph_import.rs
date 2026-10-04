@@ -1,13 +1,15 @@
+//! 图导入计划把视口纹理格式与准备后的 GPU 目标对齐，决定直接导入、转换写回或阻止。
 use crate::core::framework::render::RenderCameraTargetKind;
 use crate::core::math::UVec2;
 use crate::core::resource::{ResourceHandle, TextureMarker};
 
 use super::{
-    FRAMEWORK_OUTPUT_FORMAT_LABEL, LINEAR_OUTPUT_FORMAT_LABEL, ViewportRenderOutputTarget,
-    format_label_matches,
+    format_label_matches, ViewportRenderOutputTarget, FRAMEWORK_OUTPUT_FORMAT_LABEL,
+    LINEAR_OUTPUT_FORMAT_LABEL,
 };
 
 impl ViewportRenderOutputTarget {
+    /// 根据准备目标格式计算图导入状态；调用者在已准备纹理后评估并保存报告。
     pub(crate) fn graph_import_plan(
         self,
         target_format: Option<&str>,
@@ -206,6 +208,7 @@ impl ViewportTextureGraphImportPlan {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 图导入计划状态，包括未请求、等待目标描述、直接导入、需转换写回及格式阻止。
 pub(crate) enum ViewportTextureGraphImportStatus {
     #[default]
     NotRequested,

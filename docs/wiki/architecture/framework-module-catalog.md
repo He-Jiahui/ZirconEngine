@@ -14,7 +14,7 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - docs/plans/zircon_runtime/render/index.md
 tests:
-  - zircon_runtime/src/core/framework/tests.rs
+  - zircon_runtime/src/core/framework/tests/cases.rs
   - zircon_runtime/src/tests/runtime_absorption
   - zircon_plugins
 doc_type: module-catalog

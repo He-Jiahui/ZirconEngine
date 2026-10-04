@@ -134,7 +134,7 @@ Editor consumers
 | watch delta | exactly one Added/Modified/Removed 可 targeted；rename/previous URI/multi-event 回退 full reconciliation | `G23 Partial` |
 | typed query disposition | UUID resolve 更严格，但 dependency/referencer missing 与 empty 仍相同 | `G30 Partial` |
 
-`docs/zircon_runtime/asset/registry.md` 当前声称 candidate 会先持久化、成功后才交换 live state。该陈述对普通 Durable 路径描述了意图，但对 `RecoveryDeferred` 不成立：ProjectAssetManager 已经可能安装并发布 candidate 后才返回 durability error。修复 P0-002 前，模块文档不得被当作已满足的 publication contract。
+`docs/crates/zircon_runtime/asset/registry.md` 当前声称 candidate 会先持久化、成功后才交换 live state。该陈述对普通 Durable 路径描述了意图，但对 `RecoveryDeferred` 不成立：ProjectAssetManager 已经可能安装并发布 candidate 后才返回 durability error。修复 P0-002 前，模块文档不得被当作已满足的 publication contract。
 
 ## 5. 五引擎参考差异
 

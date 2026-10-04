@@ -3,7 +3,8 @@ from __future__ import annotations
 import unittest
 from unittest import mock
 
-from tools.zircon_export import (
+from tools.export import (
+    pipeline_report_native_dynamic_payload_loadable_artifacts_schema as loadable_subject,
     pipeline_report_native_dynamic_payload_string_array_schema_helpers as subject,
 )
 
@@ -33,7 +34,7 @@ class NativeDynamicLoadableArtifactSinglePassPerformanceContractTests(unittest.T
         fields = ("loadable_artifacts",)
         legacy: list[str] = []
         legacy.extend(
-            subject.object_array_loadable_artifacts_schema_diagnostics(
+            loadable_subject.object_array_loadable_artifacts_schema_diagnostics(
                 label, payload, field
             )
         )

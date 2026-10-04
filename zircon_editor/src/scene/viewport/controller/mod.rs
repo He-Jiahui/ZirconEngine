@@ -26,6 +26,9 @@ mod scene_viewport_state_construction;
 mod viewport_drag_session;
 mod viewport_hover_state;
 
-pub(crate) use scene_viewport_controller::SceneViewportController;
+pub(crate) use scene_viewport_controller::{
+    SceneViewportCameraSnapshot, SceneViewportController, SceneViewportSessionRegistry,
+    SceneViewportWorkspaceSessionSnapshot,
+};
 pub(crate) use scene_viewport_controller_error::SceneViewportControllerError;
 pub(crate) use scene_viewport_controller_overlay_providers::ViewportOverlayProviderError;

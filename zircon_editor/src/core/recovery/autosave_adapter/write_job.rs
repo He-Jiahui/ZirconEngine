@@ -1,3 +1,5 @@
+//! 后台作业在捕获、序号分配、快照提交和诊断归档之间保留阶段边界；取消只在捕获和写入前检查，提交后的结果须保留可用路径。
+
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -100,33 +102,5 @@ impl AutosaveWriteJob {
 }
 
 #[cfg(test)]
-mod outcome_tests {
-    use std::path::PathBuf;
-
-    use super::{AutosaveDocumentOutcome, AutosaveFailureStage, AutosaveWriteFailure};
-    use crate::core::recovery::{AutosaveDocumentId, AutosaveError, AutosaveSourcePath};
-
-    #[test]
-    fn retention_failure_keeps_the_persisted_snapshot_available_to_the_outcome() {
-        let snapshot_path = PathBuf::from(".zircon/autosave/scene_main/1.zscene");
-        let failure = AutosaveWriteFailure::from_autosave_error(
-            AutosaveFailureStage::SnapshotCommit,
-            AutosaveError::RotationAfterWrite {
-                snapshot: snapshot_path.clone(),
-                source: Box::new(AutosaveError::InvalidSequence { sequence: 0 }),
-            },
-        );
-        let outcome = AutosaveDocumentOutcome::failed(
-            AutosaveDocumentId::parse("scene_main").unwrap(),
-            AutosaveSourcePath::parse("scenes/main.zscene").unwrap(),
-            &failure,
-        );
-
-        assert_eq!(
-            outcome.failure_stage(),
-            Some(AutosaveFailureStage::Retention)
-        );
-        assert_eq!(outcome.usable_snapshot(), Some(snapshot_path.as_path()));
-        assert!(outcome.diagnostic_persisted());
-    }
-}
+#[path = "tests/write_job_outcome_tests.rs"]
+mod outcome_tests;

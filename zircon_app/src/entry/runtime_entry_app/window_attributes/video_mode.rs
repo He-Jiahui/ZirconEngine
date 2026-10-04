@@ -1,6 +1,10 @@
+//! 独占全屏模式的配置匹配边界。
+//! 未指定的深度或刷新率不限制候选；匹配失败交上层无边框降级。
+
 use winit::monitor::{MonitorHandle, VideoMode};
 use zircon_runtime::core::framework::window::{WindowVideoMode, WindowVideoModeSelection};
 
+/// 为独占全屏选模式；返回 None 由调用方退到无边框。
 pub(super) fn selected_video_mode(
     monitor: &MonitorHandle,
     selection: WindowVideoModeSelection,
@@ -38,40 +42,5 @@ fn optional_video_mode_field_matches<T: PartialEq>(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use std::num::{NonZeroU16, NonZeroU32};
-    use winit::dpi::PhysicalSize;
-
-    #[test]
-    fn video_mode_matching_treats_unspecified_fields_as_wildcards() {
-        let candidate = VideoMode::new(
-            PhysicalSize::new(1920, 1080),
-            NonZeroU16::new(32),
-            NonZeroU32::new(60_000),
-        );
-
-        assert!(video_mode_matches(
-            &candidate,
-            WindowVideoMode::new(1920, 1080)
-        ));
-        assert!(video_mode_matches(
-            &candidate,
-            WindowVideoMode::new(1920, 1080)
-                .with_bit_depth(32)
-                .with_refresh_rate_millihertz(60_000)
-        ));
-        assert!(!video_mode_matches(
-            &candidate,
-            WindowVideoMode::new(1280, 720)
-        ));
-        assert!(!video_mode_matches(
-            &candidate,
-            WindowVideoMode::new(1920, 1080).with_bit_depth(24)
-        ));
-        assert!(!video_mode_matches(
-            &candidate,
-            WindowVideoMode::new(1920, 1080).with_refresh_rate_millihertz(59_940)
-        ));
-    }
-}
+#[path = "tests/video_mode.rs"]
+mod tests;

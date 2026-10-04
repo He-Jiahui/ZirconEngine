@@ -76,10 +76,6 @@ impl Drop for PreparedLevelPublication {
     }
 }
 
-fn sort_levels_by_handle(levels: &mut [LevelSystem]) {
-    levels.sort_unstable_by_key(|level| level.handle().get());
-}
-
 impl DefaultLevelManager {
     pub fn create_default_level(&self) -> LevelSystem {
         self.try_create_default_level()
@@ -151,9 +147,7 @@ impl DefaultLevelManager {
     }
 
     fn level_snapshots_in_handle_order(&self) -> Vec<LevelSystem> {
-        let mut levels = self.lock_levels().values().cloned().collect::<Vec<_>>();
-        sort_levels_by_handle(&mut levels);
-        levels
+        self.lock_levels().values().cloned().collect()
     }
 
     pub(crate) fn sync_vm_types_atomically<T>(
@@ -162,8 +156,7 @@ impl DefaultLevelManager {
         commit: impl FnOnce() -> T,
     ) -> crate::scene::SceneResult<T> {
         let levels = self.lock_levels();
-        let mut ordered_levels = levels.values().cloned().collect::<Vec<_>>();
-        sort_levels_by_handle(&mut ordered_levels);
+        let ordered_levels = levels.values().cloned().collect::<Vec<_>>();
         let mut worlds = ordered_levels
             .iter()
             .map(LevelSystem::lock_world)
@@ -188,69 +181,5 @@ impl DefaultLevelManager {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-    use std::sync::atomic::Ordering;
-
-    use crate::core::CoreError;
-    use crate::core::framework::scene::WorldHandle;
-
-    use super::{DefaultLevelManager, PreparedLevel};
-
-    #[test]
-    fn level_handle_allocation_accepts_the_maximum_once_then_reports_exhaustion() {
-        let manager = DefaultLevelManager::default();
-        manager.next_handle.store(u64::MAX - 1, Ordering::Relaxed);
-
-        let last_level = manager.try_create_default_level().unwrap();
-        assert_eq!(last_level.handle(), WorldHandle::new(u64::MAX));
-        assert!(manager.level(last_level.handle()).is_some());
-        assert!(matches!(
-            manager.try_create_default_level(),
-            Err(CoreError::LevelHandleExhausted)
-        ));
-        assert!(manager.level(WorldHandle::new(0)).is_none());
-    }
-
-    #[test]
-    fn level_manager_registry_orders_world_snapshots_by_handle() {
-        let manager = DefaultLevelManager::default();
-        manager.next_handle.store(40, Ordering::Relaxed);
-        manager.try_create_default_level().unwrap();
-        manager.try_create_default_level().unwrap();
-        manager.try_create_default_level().unwrap();
-
-        let handles = manager
-            .level_snapshots_in_handle_order()
-            .into_iter()
-            .map(|level| level.handle().get())
-            .collect::<Vec<_>>();
-
-        assert_eq!(handles, vec![41, 42, 43]);
-    }
-
-    #[test]
-    fn prepared_level_publication_rolls_back_until_committed() {
-        let manager = Arc::new(DefaultLevelManager::default());
-        let first = manager
-            .try_prepare_level(crate::scene::World::empty(), Default::default())
-            .unwrap();
-        let first_handle = first.handle();
-        let first = PreparedLevel::new(Arc::clone(&manager), first);
-        assert!(manager.level(first_handle).is_none());
-
-        let publication = first.publish();
-        assert!(manager.level(first_handle).is_some());
-        drop(publication);
-        assert!(manager.level(first_handle).is_none());
-
-        let second = manager
-            .try_prepare_level(crate::scene::World::empty(), Default::default())
-            .unwrap();
-        let second_handle = second.handle();
-        let publication = PreparedLevel::new(Arc::clone(&manager), second).publish();
-        let committed = publication.commit();
-        assert_eq!(committed.handle(), second_handle);
-        assert!(manager.level(second_handle).is_some());
-    }
-}
+#[path = "tests/level_manager_lifecycle.rs"]
+mod tests;

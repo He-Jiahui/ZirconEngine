@@ -9,15 +9,31 @@ origin_child_dir: docs/plans/zircon_editor/editor/09
 fixing_child_dir: docs/plans/zircon_editor/editor/07
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/tests/editor_event/animation_runtime/
+  - zircon_editor/src/tests/editor_event/animation_runtime/support.rs
+  - zircon_editor/src/tests/editor_event/animation_runtime/graph.rs
+  - zircon_editor/src/tests/editor_event/animation_runtime/sequence.rs
+  - zircon_editor/src/tests/editor_event/animation_runtime/rebind.rs
+  - zircon_editor/src/tests/editor_event/animation_runtime/state_machine.rs
+  - zircon_editor/src/tests/editor_event/runtime/animation_assets.rs
   - zircon_editor/src/tests/workbench/reflection/action_dispatch.rs
   - zircon_editor/src/tests/editor_event/support.rs
   - zircon_editor/src/ui/host/editor_event_execution/asset_event.rs
-  - zircon_editor/src/ui/host/animation_editor_sessions/
+  - zircon_editor/src/ui/host/animation_editor_sessions/mod.rs
+  - zircon_editor/src/ui/host/animation_editor_sessions/editing.rs
+  - zircon_editor/src/ui/host/animation_editor_sessions/history.rs
+  - zircon_editor/src/ui/host/animation_editor_sessions/lifecycle.rs
+  - zircon_editor/src/ui/host/animation_editor_sessions/save.rs
   - zircon_editor/src/core/asset/toolkit_route.rs
 tests:
   - cargo test -p zircon_editor --lib --locked tests::editor_event::animation_runtime -- --test-threads=1
   - cargo test -p zircon_editor --lib --locked tests::workbench::reflection::action_dispatch -- --test-threads=1
+  - cargo test -p zircon_editor --lib --locked tests::editor_event::animation_runtime::graph::animation_graph_ignores_connections_from_missing_source_nodes -- --exact --test-threads=1
+  - cargo test -p zircon_editor --lib --locked tests::editor_event::animation_runtime::sequence::animation_sequence_binding_marks_active_sequence_editor_dirty_and_updates_session_state -- --exact --test-threads=1
+  - cargo test -p zircon_editor --lib --locked tests::editor_event::animation_runtime::rebind::animation_rebind_to_existing_track_keeps_original_sequence_tracks_intact -- --exact --test-threads=1
+  - cargo test -p zircon_editor --lib --locked tests::editor_event::animation_runtime::state_machine::animation_state_machine_event_marks_open_graph_editor_dirty_and_updates_transition_summary -- --exact --test-threads=1
+  - cargo test -p zircon_editor --lib --locked tests::editor_event::runtime::animation_assets::asset_open_event_rejects_canonical_unindexed_ui_asset_locator -- --exact --test-threads=1
+  - cargo test -p zircon_editor --lib --locked tests::workbench::reflection::action_dispatch::workbench_reflection_call_action_dispatches_animation_track_creation_from_inspector -- --exact --test-threads=1
+  - cargo test -p zircon_editor --lib --locked --no-run --message-format short --color never
 ---
 
 # Editor07：动画资产打开测试夹具未迁移索引权威
@@ -84,3 +100,129 @@ domain fixture 统一迁移为 locator；`asset_path/graph_path/state_machine_pa
 ## 修复结果与回传
 
 Open state: `待修复`; no pass is claimed.
+
+## 2026-09-25 current-source rolling reconciliation (Editor07 owner)
+
+- The current fixture chain now creates a real `ProjectAuthority` project,
+  writes canonical `res://...zranim` assets, indexes them through the project
+  catalog, opens them through `AssetToolkitOpenRoute`, and dispatches animation
+  commands with `graph_locator` / `state_machine_locator`. The production
+  `OpenAsset` path parses the locator, rejects unindexed assets, resolves the
+  indexed type, and constructs the typed toolkit route; no suffix fallback or
+  legacy path field remains in the claimed chain.
+- Current-source guard: `rg` finds no
+  `legacy_asset_kind_for_v2`, `v2_document_to_legacy_projection_document`,
+  `legacy_projection_document_to_v2_document`,
+  `serialize_v2_projection_document`, or `UiAssetDocument` in the animation
+  session, event execution, or toolkit-route owners listed above. The
+  representative graph, sequence, rebind, state-machine, runtime animation,
+  and reflection tests all use indexed canonical locators.
+- Current SHA-256 manifest (all 15 paths exist):
+  `animation_runtime/support.rs=2d27b1685746cb24b5ec7893bf04fa5275d53d10870ad321ac86c088cb3e21de`,
+  `animation_runtime/graph.rs=cecae665096f1d5c94875b12da14ca72782296ffb51e1d9dc591d05743f4bea9`,
+  `animation_runtime/sequence.rs=d7e90eea02f463302af5c59d92d9e0808da9ac16e57e5248463c67b9a8b6c87d`,
+  `animation_runtime/rebind.rs=be55059f7e48b2d1f3bf9580bf6f88e8e5c96ba3a70d0f69ddb72b29641e3f24`,
+  `animation_runtime/state_machine.rs=23e27d8a9ab36fb8ec913c2163df8e47298dcbb0e19a75af9595ce8bf7d04478`,
+  `runtime/animation_assets.rs=8d430bded5bd6dad087c2d98eea6c1036faa79414c09c465830b3d193f2f778e`,
+  `workbench/reflection/action_dispatch.rs=5953c4ab4c85fac8207a2185bb6912ee352911f2be602e4789d7b23d7f172e5c`,
+  `editor_event/support.rs=24fb7736ceae18eafbb2481fa711552ffc8146c57bbe857fcc8ce1fe2214e796`,
+  `editor_event_execution/asset_event.rs=446a149d60a3a6b9eb0fe0d9b718ba0cda2af999b3cdc149869bc4d95a409e12`,
+  `animation_editor_sessions/mod.rs=4ef855dcf7e378ad07b3a2db0d1d100099cbeea3f5275b7d438964497bf685d3`,
+  `animation_editor_sessions/editing.rs=a0a4e503c84d110cda7381bb90201af34a2147bb537c463a58e6e14f08fab66f`,
+  `animation_editor_sessions/history.rs=5f839e1a24a9e2458d6787d40b861303502912c35d066558958cdf13a0b58f87`,
+  `animation_editor_sessions/lifecycle.rs=6183d24b949904cc395292e080eee1c9257ab7c78bb00f939185042854585688`,
+  `animation_editor_sessions/save.rs=41a19b2a457244c449496d3290137dd224bef557104656f898bd47ef0f7561a4`,
+  `core/asset/toolkit_route.rs=b392f736994887188d4745806a166a2c8d8624e107ef97ec9df9774c00a593d5`.
+  Foreign dirty edits are present in `graph.rs`, `editor_event/support.rs`,
+  `action_dispatch.rs`, `history.rs`, `lifecycle.rs`, and `asset_event.rs`; no
+  source line was edited or absorbed by this Session.
+- Static checks: exact path existence and scoped `git diff --check` pass (with
+  the repository's normal LF-to-CRLF warnings). No Cargo command was run
+  directly. The two existing group filters plus the representative exact
+  graph/sequence/rebind/state-machine/runtime/reflection filters above are
+  sealed for managed Windows execution; the full Editor lib gate remains an
+  upward requirement.
+- This is current-source/static evidence only. Managed exact/group Cargo,
+  upward Editor M1, the external `E:/Git/zr_vm` admission, independent C/I/M
+  review, canonical fixed return, and closeout remain pending; the failure
+  stays `open`.
+
+## 2026-09-25 independent static review receipt
+
+- Reviewer Session `review-editor03-gizmo-private` re-read this refreshed
+  Editor07 handoff and its complete 15-path owner/dependency chain. Critical /
+  Important / Moderate findings are `0 / 0 / 0`.
+- The reviewer confirmed all 15 paths exist, all six representative exact
+  filters resolve to concrete graph/sequence/rebind/state-machine/runtime
+  unindexed-locator/reflection functions, both group filters and the no-run
+  gate are represented, and the current fixtures use indexed
+  `ProjectAuthority` assets, canonical `res://` locators,
+  `AssetToolkitOpenRoute`, graph/state-machine locator fields, and explicit
+  unindexed rejection. No legacy locator/projection symbols remain in the
+  claimed owners.
+- The six dirty files named in the current-source section are exactly the
+  foreign overlay observed by review. This receipt is static only; managed
+  Cargo, upward Editor M1, external admission, canonical fixed return, and
+  closeout remain pending, so the failure stays `open`.
+
+## 2026-09-26 successor intake (failure-roll-01a084c8-editor07-animation-open-index-r2)
+
+- The stale r1 lifecycle was cancelled through the coordinator with no active
+  lease. Successor `failure-roll-01a084c8-editor07-animation-open-index-r2`
+  now owns only this failure document; its document lease was acquired against
+  base SHA-256 `1110611838fb26cd64b8a364ce5f8663bdbabc9607bed119ef451e0a96e7cd4e`.
+  No production source path is leased or edited by this successor.
+- All fifteen current related-code paths were rehashed before intake and match
+  the current-source manifest: `animation_runtime/support.rs`
+  `2d27b1685746cb24b5ec7893bf04fa5275d53d10870ad321ac86c088cb3e21de`,
+  `animation_runtime/graph.rs`
+  `cecae665096f1d5c94875b12da14ca72782296ffb51e1d9dc591d05743f4bea9`,
+  `animation_runtime/sequence.rs`
+  `d7e90eea02f463302af5c59d92d9e0808da9ac16e57e5248463c67b9a8b6c87d`,
+  `animation_runtime/rebind.rs`
+  `be55059f7e48b2d1f3bf9580bf6f88e8e5c96ba3a70d0f69ddb72b29641e3f24`,
+  `animation_runtime/state_machine.rs`
+  `23e27d8a9ab36fb8ec913c2163df8e47298dcbb0e19a75af9595ce8bf7d04478`,
+  `runtime/animation_assets.rs`
+  `8d430bded5bd6dad087c2d98eea6c1036faa79414c09c465830b3d193f2f778e`,
+  `workbench/reflection/action_dispatch.rs`
+  `5953c4ab4c85fac8207a2185bb6912ee352911f2be602e4789d7b23d7f172e5c`,
+  `editor_event/support.rs`
+  `24fb7736ceae18eafbb2481fa711552ffc8146c57bbe857fcc8ce1fe2214e796`,
+  `editor_event_execution/asset_event.rs`
+  `446a149d60a3a6b9eb0fe0d9b718ba0cda2af999b3cdc149869bc4d95a409e12`,
+  `animation_editor_sessions/mod.rs`
+  `4ef855dcf7e378ad07b3a2db0d1d100099cbeea3f5275b7d438964497bf685d3`,
+  `animation_editor_sessions/editing.rs`
+  `a0a4e503c84d110cda7381bb90201af34a2147bb537c463a58e6e14f08fab66f`,
+  `animation_editor_sessions/history.rs`
+  `5f839e1a24a9e2458d6787d40b861303502912c35d066558958cdf13a0b58f87`,
+  `animation_editor_sessions/lifecycle.rs`
+  `6183d24b949904cc395292e080eee1c9257ab7c78bb00f939185042854585688`,
+  `animation_editor_sessions/save.rs`
+  `41a19b2a457244c449496d3290137dd224bef557104656f898bd47ef0f7561a4`,
+  and `core/asset/toolkit_route.rs`
+  `b392f736994887188d4745806a166a2c8d8624e107ef97ec9df9774c00a593d5`.
+  Dirty state in `graph.rs`, `editor_event/support.rs`,
+  `action_dispatch.rs`, `history.rs`, `lifecycle.rs`, and `asset_event.rs` is
+  foreign provenance and remains unclaimed.
+- Existing exact/group results and the prior C/I/M=0/0/0 review are retained
+  as static evidence only. Fresh managed animation/reflection Cargo, upward
+  Editor M1, external `E:/Git/zr_vm` admission, independent successor review,
+ canonical `fixed-*` return, coordinator closeout, and WeCom notification
+ remain pending. The failure stays `open`.
+
+## 2026-09-26 independent successor review (review-editor03-gizmo-private)
+
+- Reviewer `/root/review_editor03_gizmo_private` rechecked intake snapshot
+  `3931` at document SHA-256
+  `df07ac854ceef9d925a8526c6dd83bba2411ca21406651a68110ad5ec4188b34`.
+  Stale-r1 cancellation/no-lease evidence, the r2 document-only lease/base
+  hash, all fifteen current source hashes, and the six-file foreign dirty
+  overlay are consistent; no source line was absorbed.
+- Existing exact/group results remain static-only evidence. Fresh managed
+  animation/reflection Cargo, upward Editor M1, external admission, canonical
+  `fixed-*` return, coordinator closeout, and WeCom notification remain
+  pending.
+- Independent review result: `Critical=0, Important=0, Moderate=0`. The
+  successor remains open pending managed validation and closeout.

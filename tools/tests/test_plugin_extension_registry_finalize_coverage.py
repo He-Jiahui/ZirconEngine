@@ -16,7 +16,7 @@ def _function_body(source: str, signature: str) -> str:
                 return source[open_brace + 1 : index]
     raise AssertionError(f"unterminated function body: {signature}")
 
-
+# 读取扩展注册表的终结路径，确认每类类型化扩展点参与冻结，并由最终运行时表持有哈希与状态。
 class PluginExtensionRegistryFinalizeCoverageTests(unittest.TestCase):
     def test_all_typed_extension_points_participate_in_finalize_state(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]

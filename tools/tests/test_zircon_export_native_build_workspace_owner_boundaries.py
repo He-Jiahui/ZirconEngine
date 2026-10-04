@@ -1,11 +1,12 @@
+# 核对原生构建工作区元数据的实现归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-NATIVE_BUILD = REPO_ROOT / "tools/zircon_export/native_build.py"
-NATIVE_BUILD_EXECUTION = REPO_ROOT / "tools/zircon_export/native_build_execution.py"
-NATIVE_BUILD_WORKSPACE = REPO_ROOT / "tools/zircon_export/native_build_workspace.py"
+NATIVE_BUILD = REPO_ROOT / "tools/export/native_build.py"
+NATIVE_BUILD_EXECUTION = REPO_ROOT / "tools/export/native_build_execution.py"
+NATIVE_BUILD_WORKSPACE = REPO_ROOT / "tools/export/native_build_workspace.py"
 
 
 class ZirconExportNativeBuildWorkspaceOwnerBoundaryTests(unittest.TestCase):
@@ -59,13 +60,13 @@ class ZirconExportNativeBuildWorkspaceOwnerBoundaryTests(unittest.TestCase):
 
     def test_workspace_metadata_consumers_import_owner_directly(self):
         for relative_path in (
-            "tools/zircon_export/plugin_build.py",
-            "tools/zircon_export/plugin_package_source.py",
-            "tools/zircon_export/plugin_validate.py",
-            "tools/zircon_export/plugin_validate_dist_crate.py",
-            "tools/zircon_export/plugin_validate_distribution_modules.py",
-            "tools/zircon_export/plugin_validate_engine_version.py",
-            "tools/zircon_export/plugin_validate_target_discovery.py",
+            "tools/export/plugin_build.py",
+            "tools/export/plugin_package_source.py",
+            "tools/export/plugin_validate.py",
+            "tools/export/plugin_validate_dist_crate.py",
+            "tools/export/plugin_validate_distribution_modules.py",
+            "tools/export/plugin_validate_engine_version.py",
+            "tools/export/plugin_validate_target_discovery.py",
         ):
             text = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
             self.assertIn(

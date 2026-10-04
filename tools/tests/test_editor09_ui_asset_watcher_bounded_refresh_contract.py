@@ -1,3 +1,4 @@
+# 核对界面资源观察器按预算轮询和刷新，避免无界提取进入宿主。
 from __future__ import annotations
 
 import unittest

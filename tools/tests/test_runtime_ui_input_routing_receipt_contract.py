@@ -20,6 +20,9 @@ OWNER_ROUTE = ROOT / "zircon_runtime/src/ui/surface/input/owner_route.rs"
 INPUT_MANAGER = ROOT / "zircon_runtime/src/ui/dispatch/input_manager/manager.rs"
 POINTER_TABLE = ROOT / "zircon_runtime/src/ui/dispatch/input_manager/pointer_table.rs"
 DYNAMIC_RUNTIME_UI = ROOT / "zircon_runtime/src/dynamic_api/session/runtime_ui.rs"
+DYNAMIC_RUNTIME_UI_INPUT_ROUTING = (
+    ROOT / "zircon_runtime/src/dynamic_api/session/runtime_ui/input_routing.rs"
+)
 EDITOR_SHELL = ROOT / "zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs"
 SURFACE_ROUTING = ROOT / "zircon_runtime/src/ui/surface/surface/event_routing.rs"
 
@@ -97,7 +100,12 @@ class RuntimeUiInputRoutingReceiptContractTests(unittest.TestCase):
         self.assertIn("pub fn set_hovered_path_iter", table)
 
     def test_product_pointer_paths_select_summary_and_consume_receipts(self) -> None:
-        dynamic = DYNAMIC_RUNTIME_UI.read_text(encoding="utf-8")
+        dynamic = "\n".join(
+            (
+                DYNAMIC_RUNTIME_UI.read_text(encoding="utf-8"),
+                DYNAMIC_RUNTIME_UI_INPUT_ROUTING.read_text(encoding="utf-8"),
+            )
+        )
         dynamic_product = dynamic.split("#[cfg(test)]", 1)[0]
         editor = EDITOR_SHELL.read_text(encoding="utf-8")
         surface = SURFACE_ROUTING.read_text(encoding="utf-8")

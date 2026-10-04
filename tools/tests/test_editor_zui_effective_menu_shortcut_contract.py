@@ -1,3 +1,4 @@
+# 核对菜单文本与键盘触发共享管理器的有效快捷键权威。
 import unittest
 from pathlib import Path
 

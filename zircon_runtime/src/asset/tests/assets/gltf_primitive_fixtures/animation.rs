@@ -5,6 +5,7 @@ pub(in super::super) fn write_node_animation_gltf(root: &Path) -> PathBuf {
     let buffer_path = root.join("node_animation.bin");
     let gltf_path = root.join("node_animation.gltf");
 
+    // 布局对应下方 bufferViews：36B 顶点、6B 索引加 2B 对齐填充、8B 时间、24B 位移，共 76B。
     let mut bytes = Vec::new();
     for value in [
         0.0_f32, 0.0, 0.0, //

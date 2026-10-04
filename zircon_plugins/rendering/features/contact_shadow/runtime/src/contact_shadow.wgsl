@@ -1,3 +1,4 @@
+//! 接触阴影计算着色器；Rust executor 提供四个图资源绑定，并按输出纹理像素范围调度。
 @group(0) @binding(0) var depth_tex: texture_depth_2d;
 @group(0) @binding(1) var normal_tex: texture_2d<f32>;
 @group(0) @binding(2) var hzb_furthest_tex: texture_2d<f32>;
@@ -8,6 +9,7 @@ fn load_depth(coord: vec2<i32>, size: vec2<i32>) -> f32 {
     return textureLoad(depth_tex, clamped, 0);
 }
 
+// HZB 是按最远深度约定构建的金字塔；采样级别与视口比例必须同图生产者保持一致。
 fn load_hzb_furthest(coord: vec2<i32>, viewport_size: vec2<u32>, mip_level: u32) -> f32 {
     let mip_count = textureNumLevels(hzb_furthest_tex);
     let safe_mip = min(mip_level, max(mip_count, 1u) - 1u);
@@ -27,6 +29,7 @@ fn contact_shadow_sample_weight(offset: vec2<i32>) -> f32 {
     return 1.0 / distance;
 }
 
+// 由 Rust 侧按输出尺寸向上取整调度；越界线程不得访问读写纹理。
 @compute @workgroup_size(8, 8, 1)
 fn cs_main(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let viewport_size = textureDimensions(contact_shadow_out);

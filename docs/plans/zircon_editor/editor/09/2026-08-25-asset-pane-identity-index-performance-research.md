@@ -12,9 +12,7 @@ related_code:
   - zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_nodes.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_layout.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/projector.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline/{transform.rs,draw.rs}
-  - zircon_editor/src/ui/retained_host/ui_perf/{counter_catalog.rs,mod.rs}
-  - tools/ui-profile-capture.ps1
+  - tools/analysis/profiling/ui/ui-profile-capture.ps1
 ---
 
 # Asset pane identity-index performance research
@@ -59,7 +57,7 @@ related_code:
 
 ## 基线与验证方案
 
-实施前先增加可观测性，而非先猜测优化效果。现有 `UiPerfCounter` 与 `asset_browser_scroll` gate 已记录 logical/materialized/visible item 与 node 数、投影构建数、logical paint chunk build/reuse 和 logical paint item projection。本次已补充 generation 与 retained-host projection 的两个边界计数，并将它们接入 `tools/ui-profile-counter-evidence.ps1` 的 `asset_browser_scroll` gate：稳定滚动要求 generation identity parse 为零，且必须观察到实际 descriptor lookup。它们的动态数值仍受 RHI blocker 限制，不能由静态代码推导为性能结果。
+实施前先增加可观测性，而非先猜测优化效果。现有 `UiPerfCounter` 与 `asset_browser_scroll` gate 已记录 logical/materialized/visible item 与 node 数、投影构建数、logical paint chunk build/reuse 和 logical paint item projection。本次已补充 generation 与 retained-host projection 的两个边界计数，并将它们接入 `tools/analysis/profiling/ui/ui-profile-counter-evidence.ps1` 的 `asset_browser_scroll` gate：稳定滚动要求 generation identity parse 为零，且必须观察到实际 descriptor lookup。它们的动态数值仍受 RHI blocker 限制，不能由静态代码推导为性能结果。
 
 | 指标 | 采样位置 | 目标 |
 |---|---|---|

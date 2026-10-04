@@ -1,3 +1,4 @@
+# 核对弹窗绑定路径统一归一化并只分配一个输出缓冲区。
 from pathlib import Path
 import unittest
 

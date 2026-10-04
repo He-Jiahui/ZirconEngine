@@ -44,6 +44,7 @@ if (!rules.finalBellDue(false, 100, 1000, true) || rules.finalBellDue(false, 101
     return -3;
 }
 
+// BUG: [CR-WOC-IPS-I-0014] 本组与内部合同复制了同一越界断言极性错误：两次已越界的正查询直接作为失败条件，执行到此处必返回-4。
 if (rules.initialBellVolleyTimer(true) != 12.0 || rules.bellCount(true) != 4 ||
     rules.tollingBellLifetime(true) != 12.0 || rules.tollingBellSpeed(true) != 8.0 ||
     rules.tollingBellHitRadius(true) != 2.0 || rules.bellSpawnCoordinate(1, true) != 0.0 ||

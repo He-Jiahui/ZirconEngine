@@ -7,6 +7,11 @@ use woc_server::{
     FixedServerTickDriver, ServerTickDriverInitError, ServerTickInputError, SERVER_TICK_NS,
 };
 
+#[test]
+fn server_tick_duration_tracks_the_protocol_simulation_step() {
+    assert_eq!(SERVER_TICK_NS, woc_protocol::SIMULATION_STEP_NS);
+}
+
 #[derive(Default)]
 struct RecordingVm {
     inputs: Vec<FixedTickInput>,
@@ -14,6 +19,29 @@ struct RecordingVm {
 }
 
 impl WocProjectVm for RecordingVm {
+    type Checkpoint = Vec<u8>;
+
+    fn checkpoint(&mut self) -> Result<Vec<u8>, VmTickError> {
+        Ok((self.inputs.len() as u64).to_le_bytes().to_vec())
+    }
+
+    fn rollback(&mut self, checkpoint: &Self::Checkpoint) -> Result<(), VmTickError> {
+        let count = checkpoint
+            .get(..8)
+            .and_then(|bytes| bytes.try_into().ok())
+            .map(u64::from_le_bytes)
+            .ok_or_else(|| VmTickError::Transport("invalid checkpoint".to_string()))?;
+        self.inputs.truncate(count as usize);
+        Ok(())
+    }
+
+    fn install_full_snapshot(
+        &mut self,
+        _snapshot: &woc_runtime::CommittedSnapshot,
+    ) -> Result<(), VmTickError> {
+        Ok(())
+    }
+
     fn fixed_tick(
         &mut self,
         input_payload: &[u8],
@@ -87,6 +115,23 @@ fn driver_requires_positive_catch_up_and_queue_budgets() {
 }
 
 #[test]
+fn rejected_driver_configuration_returns_the_vm_to_its_host() {
+    let vm = RecordingVm::default();
+    let result = FixedServerTickDriver::new_with_vm_recovery(
+        vm,
+        TickBudgets::default(),
+        0,
+        1,
+        1,
+    );
+    let Err((error, vm)) = result else {
+        panic!("zero catch-up budget must return the activated VM to the host");
+    };
+    assert_eq!(error, ServerTickDriverInitError::ZeroCatchUpBudget);
+    assert!(vm.inputs.is_empty());
+}
+
+#[test]
 fn driver_delivers_one_canonical_batch_at_a_twenty_hz_boundary() {
     let mut driver =
         FixedServerTickDriver::new(RecordingVm::default(), TickBudgets::default(), 2, 4, 4)
@@ -136,6 +181,38 @@ fn driver_bounds_input_atomically_and_limits_catch_up_without_dropping_backlog()
     assert_eq!(advance.backlog_ticks, 1);
     assert_eq!(driver.runtime().vm().inputs[0].commands.len(), 2);
     assert!(driver.runtime().vm().inputs[1].commands.is_empty());
+}
+
+#[test]
+fn driver_rejects_invalid_commands_without_mutating_queue_or_reserving_sequences() {
+    let mut malformed = command(3);
+    malformed.payload.push(1);
+    let mut unknown = command(3);
+    unknown.command_id = u16::MAX;
+
+    for invalid in [malformed, unknown] {
+        assert!(invalid.validate().is_err());
+        let mut driver =
+            FixedServerTickDriver::new(RecordingVm::default(), TickBudgets::default(), 1, 4, 4)
+                .unwrap();
+        driver.enqueue_commands(vec![command(1)]).unwrap();
+
+        assert!(matches!(
+            driver.enqueue_commands(vec![command(2), invalid]),
+            Err(ServerTickInputError::Command(_))
+        ));
+        assert_eq!(driver.pending_command_count(), 1);
+        assert!(driver.runtime().vm().inputs.is_empty());
+
+        driver
+            .enqueue_commands(vec![command(2), command(3)])
+            .unwrap();
+        driver.advance(SERVER_TICK_NS).unwrap();
+        assert_eq!(
+            driver.runtime().vm().inputs[0].commands,
+            vec![command(1), command(2), command(3)]
+        );
+    }
 }
 
 #[test]
@@ -226,4 +303,44 @@ fn driver_faults_the_server_and_retains_the_failed_canonical_batch_for_diagnosti
         .expect("fault diagnostics must retain the canonical input once");
     assert_eq!(failed.commands, vec![command(1)]);
     assert_eq!(failed.movement_frames, vec![movement(3, 1)]);
+    assert_eq!(driver.pending_command_count(), 1);
+    assert_eq!(driver.pending_movement_count(), 1);
+
+    let retry_fault = driver
+        .advance(0)
+        .expect_err("a faulted server must refuse work until recovery");
+    assert!(matches!(
+        retry_fault,
+        woc_server::ServerTickDriverError::Tick(_)
+    ));
+    let failed_after_retry = driver
+        .last_failed_input()
+        .expect("the original failed batch must remain the diagnostic");
+    assert_eq!(failed_after_retry.commands, vec![command(1)]);
+    assert_eq!(failed_after_retry.movement_frames, vec![movement(3, 1)]);
+}
+
+#[test]
+fn recovered_server_retries_the_same_failed_batch_without_new_time() {
+    let mut vm = RecordingVm::default();
+    vm.fail_next = true;
+    let mut driver = FixedServerTickDriver::new(vm, TickBudgets::default(), 1, 4, 4)
+        .expect("valid scheduler configuration");
+    driver.enqueue_commands(vec![command(1)]).unwrap();
+    driver.enqueue_movement(vec![movement(3, 1)]).unwrap();
+    driver
+        .advance(SERVER_TICK_NS)
+        .expect_err("first tick fails");
+
+    let snapshot = driver.runtime().committed().clone();
+    driver
+        .runtime_mut()
+        .install_full_snapshot(snapshot)
+        .expect("snapshot recovery resumes the runtime");
+    let advance = driver.advance(0).expect("recovery retries pending input");
+    assert_eq!(advance.committed_ticks, 1);
+    assert_eq!(driver.pending_command_count(), 0);
+    assert_eq!(driver.pending_movement_count(), 0);
+    assert_eq!(driver.runtime().vm().inputs.len(), 1);
+    assert_eq!(driver.runtime().vm().inputs[0].commands, vec![command(1)]);
 }

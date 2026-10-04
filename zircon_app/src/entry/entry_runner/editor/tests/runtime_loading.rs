@@ -58,6 +58,9 @@ fn product_editor_paths_load_the_staged_runtime_library() {
             "GUI startup failures must identify the {component} component"
         );
     }
+    assert!(source.contains("error.diagnostic_with_recovery()"));
+    assert!(source.contains("retry_product_cleanup_until"));
+    assert!(!source.contains("error.retry_cleanup()"));
 }
 
 #[test]
@@ -67,24 +70,35 @@ fn product_editor_collects_runtime_session_teardown_before_returning_success() {
     for needle in [
         "let runtime_teardown_failure = runtime_session.teardown_failure_state();",
         "let product_failure_ledger = runtime_teardown_failure.failure_ledger();",
-        "let host_result: Result<_, Box<dyn Error>> = (|| {",
+        "let host_result: Result<_, Box<dyn Error + Send + Sync>> = (|| {",
         "let runtime_gateway = runtime_session",
         "let host_config = editor_host_run_config_with_first_frame_exit(",
         "run_editor_with_config(core, runtime_gateway, host_config)",
         "Ok(())",
         "record_editor_host_failure(&product_failure_ledger, &host_result);",
-        "drop(product_composition);",
-        "drop(runtime_session);",
-        "let failure_report = product_failure_ledger.snapshot();",
-        "finish_editor_host(",
+        "finish_owned_editor_host(",
+        "&editor_host_request",
         "host_result",
-        "failure_report",
+        "product_composition",
+        "runtime_session",
         ")?;",
-        "Ok(0)",
+        "Ok(ProductTerminalOutcome::host(",
+        "ProductExitClass::Success",
+        "\"editor_completed\"",
     ] {
         let index = source[offset..]
             .find(needle)
             .unwrap_or_else(|| panic!("editor runtime teardown path is missing `{needle}`"));
         offset += index + needle.len();
     }
+}
+
+#[test]
+fn editor_finish_checks_actual_owned_close_before_the_terminal_snapshot() {
+    let source = include_str!("../ownership.rs");
+    assert!(
+        source.find("packet.close_until(deadline)").unwrap()
+            < source.find("failures.snapshot()").unwrap()
+    );
+    assert!(source.contains("ProductCompositionFailure::retained"));
 }

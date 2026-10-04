@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, HashSet};
 use std::io;
 use std::path::Path;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -7,9 +7,9 @@ use crate::core::editor_message::DocumentId;
 
 use super::save::{DocumentSourceWriteAuthority, DocumentSourceWriteLease};
 use super::{
-    DocumentAutosavePayload, DocumentCloseLease, DocumentSaveReport, DocumentToolkit,
-    DocumentToolkitDescriptor, DocumentToolkitSnapshot, SaveCtx, SaveError, SaveReason,
-    ToolkitInstanceId, ToolkitRegistryError,
+    DocumentAutosavePayload, DocumentClearLease, DocumentCloseLease, DocumentEditLease,
+    DocumentSaveReport, DocumentToolkit, DocumentToolkitDescriptor, DocumentToolkitSnapshot,
+    SaveCtx, SaveError, SaveReason, ToolkitInstanceId, ToolkitRegistryError,
 };
 
 pub struct DocumentToolkitRegistry<Host> {
@@ -28,12 +28,14 @@ struct RegistryEntry<Host> {
     toolkit: Arc<dyn DocumentToolkit<Host>>,
     descriptor: DocumentToolkitDescriptor,
     active_saves: usize,
+    active_edits: usize,
+    edit_generation: u64,
     closing: bool,
 }
 
 fn validate_menu_items(descriptor: &DocumentToolkitDescriptor) -> Result<(), ToolkitRegistryError> {
     let instance = descriptor.instance_id();
-    let mut paths = BTreeSet::new();
+    let mut paths = HashSet::with_capacity(descriptor.menu_items().len());
     for menu_item in descriptor.menu_items() {
         let mut segment_count = 0;
         let valid = menu_item.path().split('/').all(|segment| {
@@ -141,6 +143,8 @@ impl<Host> DocumentToolkitRegistry<Host> {
                 toolkit,
                 descriptor,
                 active_saves: 0,
+                active_edits: 0,
+                edit_generation: 0,
                 closing: false,
             },
         );
@@ -176,6 +180,12 @@ impl<Host> DocumentToolkitRegistry<Host> {
                 active_saves: entry.active_saves,
             });
         }
+        if entry.active_edits > 0 {
+            return Err(ToolkitRegistryError::DocumentEditing {
+                document,
+                active_edits: entry.active_edits,
+            });
+        }
         if entry.closing {
             return Err(ToolkitRegistryError::CloseAlreadyInProgress { document });
         }
@@ -188,9 +198,13 @@ impl<Host> DocumentToolkitRegistry<Host> {
     }
 
     pub fn clear(&self) -> Result<Vec<DocumentToolkitDescriptor>, ToolkitRegistryError> {
+        self.begin_clear()?.commit()
+    }
+
+    pub fn begin_clear(&self) -> Result<DocumentClearLease<'_, Host>, ToolkitRegistryError> {
         let mut state = self.lock_state();
         if state.by_document.is_empty() {
-            return Ok(Vec::new());
+            return Ok(DocumentClearLease::new(self, Vec::new()));
         }
         let busy_documents = state
             .by_document
@@ -202,6 +216,16 @@ impl<Host> DocumentToolkitRegistry<Host> {
                 documents: busy_documents,
             });
         }
+        let editing_documents = state
+            .by_document
+            .iter()
+            .filter_map(|(document, entry)| (entry.active_edits > 0).then_some(*document))
+            .collect::<Vec<_>>();
+        if !editing_documents.is_empty() {
+            return Err(ToolkitRegistryError::DocumentsEditing {
+                documents: editing_documents,
+            });
+        }
         let closing_documents = state
             .by_document
             .iter()
@@ -211,6 +235,36 @@ impl<Host> DocumentToolkitRegistry<Host> {
             return Err(ToolkitRegistryError::DocumentsClosing {
                 documents: closing_documents,
             });
+        }
+        let _generation = state.next_generation()?;
+        let documents = state
+            .by_document
+            .iter_mut()
+            .map(|(document, entry)| {
+                entry.closing = true;
+                (*document, entry.descriptor.instance_id().clone())
+            })
+            .collect();
+        Ok(DocumentClearLease::new(self, documents))
+    }
+
+    pub(super) fn commit_clear(
+        &self,
+        documents: &[(DocumentId, ToolkitInstanceId)],
+    ) -> Result<Vec<DocumentToolkitDescriptor>, ToolkitRegistryError> {
+        let mut state = self.lock_state();
+        if documents.len() != state.by_document.len()
+            || documents.iter().any(|(document, instance)| {
+                state.by_instance.get(instance).copied() != Some(*document)
+                    || state.by_document.get(document).is_none_or(|entry| {
+                        !entry.closing || entry.active_saves > 0 || entry.active_edits > 0
+                    })
+            })
+        {
+            return Err(ToolkitRegistryError::ClearLeaseInvalid);
+        }
+        if documents.is_empty() {
+            return Ok(Vec::new());
         }
         let generation = state.next_generation()?;
         let closed = state
@@ -226,8 +280,62 @@ impl<Host> DocumentToolkitRegistry<Host> {
         Ok(closed)
     }
 
+    pub(super) fn rollback_clear(&self, documents: &[(DocumentId, ToolkitInstanceId)]) {
+        let mut state = self.lock_state();
+        for (document, instance) in documents {
+            if state.by_instance.get(instance).copied() == Some(*document) {
+                if let Some(entry) = state.by_document.get_mut(document) {
+                    entry.closing = false;
+                }
+            }
+        }
+    }
+
     pub fn document_for_instance(&self, instance: &ToolkitInstanceId) -> Option<DocumentId> {
         self.lock_state().by_instance.get(instance).copied()
+    }
+
+    pub fn begin_edit(
+        &self,
+        instance: &ToolkitInstanceId,
+    ) -> Result<DocumentEditLease<'_, Host>, ToolkitRegistryError> {
+        let mut state = self.lock_state();
+        let document = state.by_instance.get(instance).copied().ok_or_else(|| {
+            ToolkitRegistryError::EditInstanceNotRegistered {
+                instance: instance.clone(),
+            }
+        })?;
+        let entry = state
+            .by_document
+            .get_mut(&document)
+            .ok_or(ToolkitRegistryError::CloseLeaseInvalid { document })?;
+        if entry.closing {
+            return Err(ToolkitRegistryError::CloseAlreadyInProgress { document });
+        }
+        entry.edit_generation = entry
+            .edit_generation
+            .checked_add(1)
+            .ok_or(ToolkitRegistryError::EditGenerationExhausted { document })?;
+        entry.active_edits = entry
+            .active_edits
+            .checked_add(1)
+            .ok_or(ToolkitRegistryError::EditCountExhausted { document })?;
+        Ok(DocumentEditLease::new(self, document))
+    }
+
+    pub fn edit_generation(&self, document: DocumentId) -> Result<u64, ToolkitRegistryError> {
+        self.lock_state()
+            .by_document
+            .get(&document)
+            .map(|entry| entry.edit_generation)
+            .ok_or(ToolkitRegistryError::CloseLeaseInvalid { document })
+    }
+
+    pub(super) fn finish_edit(&self, document: DocumentId) {
+        let mut state = self.lock_state();
+        if let Some(entry) = state.by_document.get_mut(&document) {
+            entry.active_edits = entry.active_edits.saturating_sub(1);
+        }
     }
 
     pub fn snapshot(&self) -> DocumentToolkitSnapshot {
@@ -359,7 +467,7 @@ impl<Host> DocumentToolkitRegistry<Host> {
             .by_document
             .get(&document)
             .ok_or(ToolkitRegistryError::CloseLeaseInvalid { document })?;
-        if !entry.closing || entry.active_saves > 0 {
+        if !entry.closing || entry.active_saves > 0 || entry.active_edits > 0 {
             return Err(ToolkitRegistryError::CloseLeaseInvalid { document });
         }
         let generation = state.next_generation()?;
@@ -396,3 +504,7 @@ impl<Host> Drop for SaveLease<'_, Host> {
         self.registry.finish_save(self.document);
     }
 }
+
+#[cfg(test)]
+#[path = "registry/tests/optimization_batch_ih_editor618_tests.rs"]
+mod optimization_batch_ih_editor618_tests;

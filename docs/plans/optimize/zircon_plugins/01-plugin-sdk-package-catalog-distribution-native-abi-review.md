@@ -11,10 +11,10 @@ related_code:
   - zircon_editor/src/ui/host/editor_manager_plugins_export
   - zircon_editor/src/ui/host/editor_manager_project.rs
   - zircon_app/src/entry/entry_runner/editor.rs
-  - tools/cargo-zircon/src/plugin
-  - tools/zircon_export/plugin_build.py
-  - tools/zircon_export/plugin_validate.py
-  - tools/zircon_export/plugin_build_signature.py
+  - tools/cargo/src/plugin
+  - tools/export/plugin_build.py
+  - tools/export/plugin_validate.py
+  - tools/export/plugin_build_signature.py
   - .github/workflows/ci.yml
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
@@ -79,7 +79,7 @@ source_recheck_required: true
 
 ### 2.2 结构与动态证据
 
-本轮实际运行 `python tools/audit_plugin_structure.py --json`，结果为 `classified-and-clear`：39 份预期/生成 manifest、0 schema violation、0 generated-header violation、0 skeleton migration debt、29 runtime descriptor roots、0 single-source violation、0 capability mismatch、41 个 dist build matrix entry、0 dependency boundary violation。该结果证明结构门工作正常，不证明 native ABI soundness、签名准入、动态行为等价或产品加载安全。
+本轮实际运行 `python tools/audits/audit_plugin_structure.py --json`，结果为 `classified-and-clear`：39 份预期/生成 manifest、0 schema violation、0 generated-header violation、0 skeleton migration debt、29 runtime descriptor roots、0 single-source violation、0 capability mismatch、41 个 dist build matrix entry、0 dependency boundary violation。该结果证明结构门工作正常，不证明 native ABI soundness、签名准入、动态行为等价或产品加载安全。
 
 本轮没有运行 Cargo、真实 DLL、Editor/App、外部 signer、Windows/macOS 构建、sanitizer、fuzzer、旧新 engine/plugin skew 或崩溃隔离测试。现有 CI 和历史计划记录只作为“已有门”证据，不被本文重新宣称通过。静态源码已经足以确认无条件 unsafe impl、free 算法、入口 panic 路径、load-before-select 顺序、version 默认值和 39 个 dist macro 参数。
 
@@ -278,7 +278,7 @@ Runtime 07 已登记in-process native isolation与callback budget；本轮补充
 
 #### P2-04 · standalone build文档已退化为约928 KiB的追加式历史台账
 
-`docs/zircon_plugins/plugin-standalone-build.md` 约2,305行但接近1 MiB，混入大量会话状态、历史命令与未声明验收，难以作为作者手册。将稳定合同、操作指南、failure history和benchmark evidence拆开；历史记录归plan output，不进入主用户文档。
+`docs/crates/zircon_plugins/plugin-standalone-build.md` 约2,305行但接近1 MiB，混入大量会话状态、历史命令与未声明验收，难以作为作者手册。将稳定合同、操作指南、failure history和benchmark evidence拆开；历史记录归plan output，不进入主用户文档。
 
 #### P2-05 · SDK examples偏Editor authoring，没有最小第三方runtime/native产品样例
 

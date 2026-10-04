@@ -257,18 +257,9 @@ fn scene_picker_action_name(mode: ScenePickerMode) -> &'static str {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn startup_scene_submission_reuses_the_document_route() {
-        let source = include_str!("scene_picker_actions.rs");
-
-        assert!(source.contains("fn open_startup_scene"));
-        assert!(source.contains("self.runtime.begin_scene_picker()"));
-        assert!(source.contains("SceneOpenRequest::new(scene_uri)"));
-        assert!(source.contains(".submit_scene_open_request(ticket, request)"));
-    }
-}
+#[path = "tests/scene_picker_actions.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "scene_picker_actions/borrowed_window_request_tests.rs"]
+#[path = "scene_picker_actions/tests/borrowed_window_request_tests.rs"]
 mod borrowed_window_request_tests;

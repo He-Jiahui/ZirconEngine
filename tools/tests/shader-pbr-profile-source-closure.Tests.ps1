@@ -1,5 +1,6 @@
-$script:ShaderPbrProfileSourceClosure = Join-Path $PSScriptRoot "..\shader-pbr-profile-source-closure.ps1"
-$script:ShaderPbrProfileContract = Join-Path $PSScriptRoot "..\shader-pbr-profile-contract.ps1"
+# 以临时模块树验证查看器生产源码闭包，并排除仅测试模块。
+$script:ShaderPbrProfileSourceClosure = Join-Path $PSScriptRoot "..\profiling\shader_pbr\shader-pbr-profile-source-closure.ps1"
+$script:ShaderPbrProfileContract = Join-Path $PSScriptRoot "..\profiling\shader_pbr\shader-pbr-profile-contract.ps1"
 
 if (Test-Path -LiteralPath $script:ShaderPbrProfileSourceClosure) {
     . $script:ShaderPbrProfileSourceClosure

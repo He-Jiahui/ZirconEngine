@@ -19,7 +19,7 @@ class GraphicsPipelineCacheProjectRootTests(unittest.TestCase):
 
         self.assertIn("project_root: &std::path::Path", source)
         self.assertIn("default_runtime_shader_cache(project_root)", source)
-        self.assertIn("RuntimePipelineCache::new(device, info, project_root)", source)
+        self.assertIn("RuntimePipelineCache::new(device, facts, project_root)", source)
         self.assertIn("#[cfg(test)]\n    pub(crate) fn new(", source)
         self.assertNotIn("std::env::current_dir()", source)
 

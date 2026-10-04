@@ -1,3 +1,4 @@
+# 核对包路径诊断归属与平台包模块规模。
 import unittest
 from pathlib import Path
 
@@ -5,11 +6,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PAYLOAD_PLATFORM_BUNDLE = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_payload_platform_bundle.py"
+    / "tools/export/pipeline_report_native_dynamic_payload_platform_bundle.py"
 )
 PACKAGE_PATH_OWNER = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_payload_package_path.py"
+    / "tools/export/pipeline_report_native_dynamic_payload_package_path.py"
 )
 
 

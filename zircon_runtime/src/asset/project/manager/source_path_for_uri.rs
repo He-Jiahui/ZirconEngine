@@ -1,13 +1,16 @@
+//! URI 到物理路径的解析是项目 I/O 的共同入口；现有源选择唯一匹配，尚未创建的目标明确落在首个项目根。
+
 use std::path::{Component, Path, PathBuf};
 
 use crate::core::resource::ResourceScheme;
 
-use crate::asset::project::{ProjectPaths, ResolvedProjectPath};
+use crate::asset::project::{ProjectPaths, ResolvedProjectPath, ResolvedProjectPathIdentity};
 use crate::asset::{AssetImportError, AssetUri};
 
 use super::ProjectManager;
 
 impl ProjectManager {
+    // BUG: [CR-ASSET-TYPESPROJECT-0001] 已存在的 res:// 源仅在各根下检查路径存在，随后物理解析却未复核是否仍位于该根；链接可使场景保存写到项目外。证据：source_operation_path_for_project_uri 与 scene/world/project_io/scene_asset.rs::save_scene_to_project。
     /// Resolves a logical asset URI through the project/package root registry once.
     ///
     /// The returned operation path is the sole filesystem input. Its display path is retained
@@ -20,6 +23,32 @@ impl ProjectManager {
         Ok(ProjectPaths::resolve_path(
             self.source_operation_path_for_uri(uri)?,
         )?)
+    }
+
+    /// Re-checks a source destination's physical identity immediately before publication.
+    ///
+    /// URI selection is lexical, while a directory junction/symlink can redirect an existing
+    /// tail outside every registered project asset root.  Keep the physical admission in this
+    /// lower resolver so World, editor, and importer writes share one boundary.
+    pub(crate) fn validate_project_source_path_for_write(
+        &self,
+        path: &ResolvedProjectPath,
+    ) -> Result<(), AssetImportError> {
+        let physical = ProjectPaths::resolve_path(path.operation_path())?;
+        let physical_identity = ResolvedProjectPathIdentity::from(physical.clone());
+        let contained = self.package_assets.project_roots().iter().any(|root| {
+            ProjectPaths::resolve_existing(root)
+                .map(ResolvedProjectPathIdentity::from)
+                .map(|root| physical_identity.is_within(&root))
+                .unwrap_or(false)
+        });
+        if !contained {
+            return Err(AssetImportError::UnsupportedFormat(format!(
+                "project source destination resolves outside registered asset roots: {}",
+                physical.display_path().display()
+            )));
+        }
+        Ok(())
     }
 
     pub fn source_path_for_uri(&self, uri: &AssetUri) -> Result<PathBuf, AssetImportError> {
@@ -101,9 +130,14 @@ impl ProjectManager {
         uri: &AssetUri,
     ) -> Result<ResolvedProjectPath, AssetImportError> {
         match self.resolve_source_path_for_uri(uri) {
-            Ok(path) => Ok(path),
+            Ok(path) => {
+                self.validate_project_source_path_for_write(&path)?;
+                Ok(path)
+            }
             Err(AssetImportError::MissingProjectAssetUri { .. }) => {
-                self.resolve_primary_project_source_path_for_uri(uri)
+                let path = self.resolve_primary_project_source_path_for_uri(uri)?;
+                self.validate_project_source_path_for_write(&path)?;
+                Ok(path)
             }
             Err(error) => Err(error),
         }
@@ -160,3 +194,7 @@ fn validate_relative_package_path(package_path: &str) -> Result<(), AssetImportE
     }
     Ok(())
 }
+
+#[cfg(all(test, windows))]
+#[path = "tests/source_path_for_uri.rs"]
+mod tests;

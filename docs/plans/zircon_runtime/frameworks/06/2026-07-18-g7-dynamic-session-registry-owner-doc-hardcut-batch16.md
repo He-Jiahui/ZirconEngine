@@ -7,16 +7,16 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/registry/frame_demand.rs
   - zircon_runtime/src/dynamic_api/session/registry/session_slot.rs
   - zircon_runtime/src/dynamic_api/session/registry/wake_registration.rs
-  - tools/check_conventions.py
+  - tools/audits/check_conventions.py
 implementation_files:
-  - docs/zircon_runtime/structure/module-convention.md
+  - docs/crates/zircon_runtime/structure/module-convention.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - python tools/check_conventions.py --only docs --json
-  - git diff --check -- docs/zircon_runtime/structure/module-convention.md
+  - python tools/audits/check_conventions.py --only docs --json
+  - git diff --check -- docs/crates/zircon_runtime/structure/module-convention.md
 ---
 
 # Frameworks06 G7 Dynamic Session Registry 当前 Owner 文档硬切 Batch 16
@@ -34,7 +34,7 @@ Session: `frameworks06-g7-dynamic-session-registry-owner-doc-hardcut-batch16-202
 ## Fresh Testing Evidence
 
 - 修改前 fresh G7：所选文档 `2` 个 missing-path violations。
-- 修改后 fresh `python tools/check_conventions.py --only docs --json`：所选文档 `0` violations；共享 current-source 全局快照为 `473` violations / `126` documents，G7 继续保持 RED。
+- 修改后 fresh `python tools/audits/check_conventions.py --only docs --json`：所选文档 `0` violations；共享 current-source 全局快照为 `473` violations / `126` documents，G7 继续保持 RED。
 - 所选文档内退役 flat registry 机器路径为 `0`，folder-backed route 与五个 child owners 均存在。
 - exact-scope `git diff --check` 通过，staged_total 为 `0`。
 

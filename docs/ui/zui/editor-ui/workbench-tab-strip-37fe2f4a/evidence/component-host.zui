@@ -1,0 +1,54 @@
+[asset]
+kind = "view"
+version = 2
+id = "res://ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui#review-host"
+display_name = "Workbench Tab Strip"
+
+[imports]
+widgets = [ "res://ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui", "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui" ]
+styles = []
+
+[root]
+node = "review_component"
+
+[nodes.review_component]
+component = "res://ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui#WorkbenchTabStrip"
+
+[[nodes.review_component.children]]
+node = "review_tab_0"
+
+[nodes.review_component.children.slot]
+name = "default"
+
+[[nodes.review_component.children]]
+node = "review_tab_1"
+
+[nodes.review_component.children.slot]
+name = "default"
+
+[[nodes.review_component.children]]
+node = "review_tab_2"
+
+[nodes.review_component.children.slot]
+name = "default"
+
+[nodes.review_tab_0]
+component = "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab"
+
+[nodes.review_tab_0.props]
+text = "overview"
+selected = true
+
+[nodes.review_tab_1]
+component = "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab"
+
+[nodes.review_tab_1.props]
+text = "details"
+selected = false
+
+[nodes.review_tab_2]
+component = "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab"
+
+[nodes.review_tab_2.props]
+text = "stats"
+selected = false

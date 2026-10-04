@@ -1,4 +1,5 @@
 //! Static contracts for React/MUI Hub project path scope and path display.
+//! 沿项目输入、后端匹配与目录发现、展示投影到页面消费核对路径归属；文件系统身份判断集中在 Rust。
 
 use std::{fs, path::PathBuf};
 
@@ -17,6 +18,7 @@ fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
+/// 读取相对 Hub 包根的受审源码作为结构证据；调用方依赖仓库检出完整，读取失败应暴露契约来源缺失。
 fn read_crate_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(crate_dir().join(path))
@@ -24,6 +26,7 @@ fn read_crate_file(path: &str) -> String {
     )
 }
 
+/// 读取仓库级交接文档或工具证据；约定 Hub 包位于仓库根下一层，不能依赖测试启动时的工作目录。
 fn read_repo_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(repo_dir().join(path))
@@ -49,6 +52,8 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+// BUG: [CR-HUBTESTA-0002] 项目同步文件已从当前模块树移走，测试仍读取旧文件并在进入断言前失败；证据：项目模块声明与不存在的目标路径。
+/// 检查路径身份与根目录有效性拥有统一后端入口，创建和共享最近项目同步应复用同一约束。
 #[test]
 fn project_modules_expose_one_shared_path_key_and_validation_surface() {
     let metadata = read_crate_file("src/projects/metadata.rs");
@@ -68,6 +73,12 @@ fn project_modules_expose_one_shared_path_key_and_validation_surface() {
             ".canonicalize()",
             "project_metadata_key(resolved)",
             "pub fn project_paths_match(left: impl AsRef<Path>, right: impl AsRef<Path>) -> bool",
+        ],
+    );
+    assert_contains_all(
+        "metadata.rs",
+        &read_crate_file("src/projects/tests/metadata.rs"),
+        &[
             "metadata_key_normalizes_separators_and_trailing_slashes",
             "project_paths_match_uses_metadata_key_normalization",
             "filesystem_path_key_canonicalizes_when_possible",
@@ -106,8 +117,12 @@ fn project_modules_expose_one_shared_path_key_and_validation_surface() {
             "project location is required",
             "pub fn target_root(&self) -> PathBuf",
             "self.location.join(&self.project_name)",
-            "create_request_preserves_name_and_validates_launch_fields",
         ],
+    );
+    assert_contains_all(
+        "create_project_request.rs",
+        &read_crate_file("src/projects/tests/create_project_request.rs"),
+        &["create_request_preserves_name_and_validates_launch_fields"],
     );
     assert_contains_all(
         "editor_recent_sync.rs",
@@ -121,6 +136,7 @@ fn project_modules_expose_one_shared_path_key_and_validation_surface() {
     );
 }
 
+/// 核对目录发现和项目上下文刷新对文件系统根的去重规则，防止同一根因路径表示不同而重复扫描。
 #[test]
 fn catalogs_team_and_runtime_roots_share_filesystem_path_keys() {
     for (label, file) in [
@@ -182,6 +198,7 @@ fn catalogs_team_and_runtime_roots_share_filesystem_path_keys() {
     );
 }
 
+/// 检查持久化选择恢复和操作目标解析共用路径匹配，失效选择不能继续成为后续工作流的隐式目标。
 #[test]
 fn tauri_runtime_selected_project_paths_use_shared_matching() {
     let runtime_state = read_crate_file("src/tauri_app/runtime_state.rs");
@@ -242,6 +259,7 @@ fn tauri_runtime_selected_project_paths_use_shared_matching() {
     );
 }
 
+/// 固定后端把路径投影为展示字段的职责及前端对应类型；展示文案不能承担文件系统身份判断。
 #[test]
 fn view_model_and_types_project_paths_as_display_dtos() {
     let view_model = read_crate_file("src/tauri_app/view_model.rs");
@@ -314,6 +332,7 @@ fn view_model_and_types_project_paths_as_display_dtos() {
     );
 }
 
+/// 核对页面和共享行组件直接消费后端路径字段，避免前端局部格式化产生与操作目标不同的路径身份。
 #[test]
 fn react_components_display_paths_from_dtos_without_path_normalization_helpers() {
     let dashboard = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
@@ -444,6 +463,7 @@ fn react_components_display_paths_from_dtos_without_path_normalization_helpers()
     }
 }
 
+/// 要求文档保留路径归属、当前文件与可执行测试入口，使后续调整能找到同一条跨层链路。
 #[test]
 fn project_path_scope_documentation_records_react_mui_contract_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -476,6 +496,7 @@ fn project_path_scope_documentation_records_react_mui_contract_cutover() {
     );
 }
 
+/// 自读测试源码核对受审目标仍指向当前前端；禁用词分段构造，新增注释也不能携带其完整旧引用。
 #[test]
 fn project_path_scope_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/project_path_scope_contract.rs");

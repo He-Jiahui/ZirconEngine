@@ -58,7 +58,7 @@ EVENT_COMPONENT_MODULE_BOUNDARY_METHODS = (
     "test_module_tests_live_in_module_test_owner",
 )
 
-
+# 验证校验事件组件模块归属边界的职责切分：事件组件模块边界移出通用归属文件，并事件目录位于事件目录归属。
 class PluginValidateEventComponentModuleOwnerBoundaryTests(unittest.TestCase):
     def test_event_component_module_boundaries_leave_general_owner_file(self):
         general_owner_text = PLUGIN_VALIDATE_OWNER_BOUNDARIES_TEST.read_text(

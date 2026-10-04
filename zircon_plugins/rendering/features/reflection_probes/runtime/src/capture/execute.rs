@@ -1,3 +1,4 @@
+//! 把反射探针捕获请求转为 RenderFramework 的异步句柄；本模块不持有场景渲染器或资源缓存。
 use thiserror::Error;
 use zircon_runtime::asset::AssetUri;
 use zircon_runtime::core::framework::render::{
@@ -11,6 +12,7 @@ use super::{
     ReflectionProbeCaptureRequest, ReflectionProbeCaptureRequestError,
 };
 
+/// 提交没有 placement 的独立捕获，调用方用返回句柄向同一框架轮询、取消或领取结果。
 pub fn request_reflection_probe_capture(
     framework: &dyn RenderFramework,
     scene: &RenderSceneSnapshot,
@@ -22,6 +24,7 @@ pub fn request_reflection_probe_capture(
         .map_err(ReflectionProbeCaptureError::Framework)
 }
 
+/// 为指定探针目标附加已验证 placement 和纹理身份；目标 URI 必须可由资源系统解析。
 pub fn request_reflection_probe_capture_with_placement(
     framework: &dyn RenderFramework,
     scene: &RenderSceneSnapshot,
@@ -41,6 +44,7 @@ pub fn request_reflection_probe_capture_with_placement(
         .map_err(ReflectionProbeCaptureError::Framework)
 }
 
+/// 查询该句柄的非阻塞状态；句柄属于创建它的框架，不能跨独立框架复用。
 pub fn poll_reflection_probe_capture(
     framework: &dyn RenderFramework,
     handle: RenderEnvironmentCaptureHandle,
@@ -50,6 +54,7 @@ pub fn poll_reflection_probe_capture(
         .map_err(ReflectionProbeCaptureError::Framework)
 }
 
+/// 向原框架请求取消未完成捕获；已发生的异步工作是否完成由框架状态决定。
 pub fn cancel_reflection_probe_capture(
     framework: &dyn RenderFramework,
     handle: RenderEnvironmentCaptureHandle,
@@ -59,6 +64,7 @@ pub fn cancel_reflection_probe_capture(
         .map_err(ReflectionProbeCaptureError::Framework)
 }
 
+/// 从原框架取走已完成源 payload；后续编码及项目持久化由消费方完成。
 pub fn take_reflection_probe_capture_source(
     framework: &dyn RenderFramework,
     handle: RenderEnvironmentCaptureHandle,
@@ -68,6 +74,7 @@ pub fn take_reflection_probe_capture_source(
         .map_err(ReflectionProbeCaptureError::Framework)
 }
 
+/// 请求验证、目标 URI 和框架执行错误在此边界统一向编辑器命令传递。
 #[derive(Debug, Error)]
 pub enum ReflectionProbeCaptureError {
     #[error(transparent)]
@@ -81,17 +88,5 @@ pub enum ReflectionProbeCaptureError {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn capture_execution_is_a_nonblocking_framework_boundary() {
-        let source = include_str!("execute.rs");
-        assert!(source.contains("request_environment_capture"));
-        assert!(source.contains("poll_environment_capture"));
-        assert!(source.contains("cancel_environment_capture"));
-        assert!(source.contains("take_environment_capture_source_payload"));
-        assert!(!source.contains(&["Scene", "Renderer"].concat()));
-        assert!(!source.contains(&["render_scene", "_color_hdr"].concat()));
-        assert!(!source.contains(&["IblSourceCubemap", "StagingStore"].concat()));
-        assert!(!source.contains("Vec::with_capacity"));
-    }
-}
+#[path = "tests/execute.rs"]
+mod tests;

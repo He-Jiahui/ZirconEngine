@@ -196,10 +196,10 @@ manifest = "plugins/physics/plugin.toml"
 
     assert_eq!(report.pack_install.base_pack, base_pack);
     assert_eq!(report.pack_install.delta_pack, delta_pack);
-    assert_eq!(report.pack_promotion.backup_pack, Some(backup_pack));
+    assert_eq!(report.pack_promotion.backup_pack, Some(backup_pack.clone()));
     assert_eq!(
         report.pack_promotion.promotion_method,
-        ZrPackPromotionMethod::Renamed
+        ZrPackPromotionMethod::AtomicReplacement
     );
     assert_eq!(
         report
@@ -226,6 +226,31 @@ manifest = "plugins/physics/plugin.toml"
         b"new"
     );
     assert!(receipt_path.exists());
+
+    let backup_before = fs::read(&backup_pack).unwrap();
+    fs::remove_file(&receipt_path).unwrap();
+    let retry = NativePluginRuntimeDeltaHotUpdateRequest::new(
+        &export_root,
+        &base_pack,
+        &delta_pack,
+        &staged_pack,
+        &base_pack,
+    )
+    .with_backup_pack(&backup_pack)
+    .with_receipt_path(&receipt_path);
+    let retried = NativePluginLiveHost::default()
+        .hot_reload_runtime_plugins_after_delta_pack_install(retry)
+        .expect("restart after pack commit must recreate receipt and continue plugin discovery");
+    assert_eq!(
+        retried.pack_promotion.promotion_method,
+        ZrPackPromotionMethod::AlreadyInstalled
+    );
+    assert_eq!(fs::read(&backup_pack).unwrap(), backup_before);
+    assert!(receipt_path.exists());
+    assert_eq!(
+        retried.plugin_hot_update.runtime_plugin_ids,
+        vec!["physics"]
+    );
 
     let _ = fs::remove_dir_all(export_root);
 }

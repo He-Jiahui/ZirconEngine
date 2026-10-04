@@ -72,3 +72,124 @@ upload command使用page-wide `bytes_per_row/source_offset`，staging对象也�
 2026-07-31 独立静态复审：fresh page pending-zero-init 与 committed-shadow sibling split 两个覆盖路径均复核为 P0/P1/P2=0；renderer 按 atlas format 复用 texture-array，partial shadow patches 按 split 顺序合并，不能再覆盖 sibling 像素。该结论不替代受管 Cargo/WGPU 和产品像素证据。
 
 Open state: `等待Text04联动Render17/PERF231受管 current-source Cargo 与产品 WGPU/像素证据；在收到成功回执前，本 failure 不转 fixed。`。
+
+## 2026-09-25 current-source rolling reconciliation (bitmap staging r1)
+
+Coordinator Session `failure-roll-01a084c8-text04-bitmap-staging-r1` reclaimed the exact
+failure record and the eleven related atlas/upload paths. No Rust source was edited in this
+session. The current source probe emitted
+`TEXT04_BITMAP_ATLAS_CURRENT_SOURCE_PASS 11 files`, covering page-shadow replay and generation
+guards, retained dirty-region merge/full-page threshold policy, compact row staging, storage
+split handling, persistent-slot regressions, and WGPU source-offset/row-layout bounds.
+
+The immutable current manifest captured before this record update is:
+
+| Path | SHA-256 |
+| --- | --- |
+| `zircon_runtime/src/text/atlas/bitmap_run/staging.rs` | `3506cd400510b962d784cb57ef86c468a03f8dede086101a2c01a062e3c7ed08` |
+| `zircon_runtime/src/text/atlas/bitmap_run/tests/persistent_slots.rs` | `cc88a00eb0b02f9df9d19339e36ad849606d9449cbc457f14dcbdc4a39f03dc3` |
+| `zircon_runtime/src/text/atlas/bitmap_run/staged_upload.rs` | `22f3218a03a26274d3ce80d968d2c4e33c8428c6f83e0439bbc6beca477ec536` |
+| `zircon_runtime/src/text/atlas/dirty.rs` | `e30c76fe72a1adfa5fd205ecb06f040b96d6e6a606941df6189ee16ade82f6cf` |
+| `zircon_runtime/src/text/atlas/page_shadow/commit.rs` | `80d7e3d2ad8f2d1d68013f2e19f1207a6dcfb69fd2540cda27fb4c5763927018` |
+| `zircon_runtime/src/text/atlas/page_shadow/patch.rs` | `a25ddc5b4882840dcbf1045620fbb45adecaf0e080d863a67c2bd2403b1a41e9` |
+| `zircon_runtime/src/text/atlas/page_shadow/store.rs` | `32a4cb0cf0fd9a0fb07b977b4174e3ad050251b5c42c75fdb2d11da3cac200cc` |
+| `zircon_runtime/src/text/atlas/upload.rs` | `a8d248f11eea985c8abfe59d9fb00044360e17f948ac0b1ec8cd38d66623333a` |
+| `zircon_runtime/src/text/native_bitmap_atlas/storage.rs` | `368f0798da3c071d51104acf780114b6b10717afd81b4d34b69504f0c4e6631a` |
+| `zircon_runtime/src/text/native_bitmap_atlas/tests/storage.rs` | `7a4eb7e585f0d44da298810c3ee0fc8f8045d529016307b45a28434ba8c7bde5` |
+| `zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/binding.rs` | `41cc3c99b86b03083007274fe22eb49985ebc0f7f54c5b7f47ffc74df1fc626f` |
+
+The working-tree edits in `staged_upload.rs`, `persistent_slots.rs`, `page_shadow/commit.rs`,
+`native_bitmap_atlas/tests/storage.rs`, and `atlas_texture_upload/binding.rs` predate this
+Session (the binding/staged-upload capacity changes are foreign current-source edits); they are
+recorded as unowned drift and are not absorbed. `git diff --check` is clean. Strict
+`rustfmt +1.94.1 --edition 2024 --config skip_children=true --check` remains non-green only
+on the documented pre-existing formatting drift in five dirty files; no formatter result is
+reused as dynamic acceptance. The authoritative post-reconciliation document/source manifest
+is coordinator snapshot `3835` (superseding the wording-only intermediate snapshot `3834`).
+
+This is static handoff evidence only. Managed Windows Text04 Cargo, dirty-region/stable-frame
+scale, Render17 row-layout/WGPU and RenderDoc/pixel evidence, PERF-MVP-231 slot coupling,
+independent review, canonical fixed return, closeout and WeCom remain pending; historical jobs
+and prior static receipts are not reused as current dynamic acceptance.
+
+Independent review receipt (2026-09-25): the reviewer rechecked coordinator snapshot `3835`
+and confirmed all eleven source hashes, the five-file dirty provenance/count, the static source
+probe, clean scoped diff check, rustfmt caveat, and explicit pending Cargo/WGPU/RenderDoc/perf
+gates. Review result is Critical `0`, Important `0`, Moderate `0`. This receipt is carried
+forward in the post-review coordinator manifest snapshot `3836`; snapshot `3835` remains the
+reviewed source state and `3834` is wording-only intermediate evidence.
+
+### 2026-09-08 Shared Upload Bytes Test Repair
+
+Stable fixing Session `failure-roll-01a07160-text04` preserves this lifecycle.
+The text-only managed job `9e3f8ac2a6564bd48fbeab45874342e3` reported three
+test comparisons between the current `Arc<[u8]>` staging storage and obsolete
+owned `Vec` expectations. Source `3091`, request
+`a1e848c73e1042c7b9264a60a433e073`, compares borrowed slices instead, keeping
+every expected byte, target rectangle, packed row stride and failure check:
+
+- `zircon_runtime/src/text/atlas/bitmap_run/tests.rs`, hash
+  `0c34b57af01fd73a477bdaf28172d340c674db35993f4167d7b3e7cbfa811ceb`.
+- `zircon_runtime/src/text/raster/swash/tests.rs`, hash
+  `c34a0fc6286da14683db2f67a510dc180c1b2a1f34b8bb020249173bb482fe34`.
+
+Their pre-edit hashes are in snapshot `3086`, with exact archived attribution
+and audited transfer `4d260401693b4376983c7fd585acbf72`. Existing production
+and prior regression changes remain intact. Formatting and whitespace checks
+pass; no dynamic pass is inferred. A fourth byte-comparison diagnostic in
+`atlas/bitmap_run/tests/dirty_upload.rs` belongs to a currently unproven dirty
+revision: hash `971c6c7eca190fbf2acdc7f90c809c700711c15befc06f547a718f09d588dc34`
+matches neither HEAD nor its retained attribution, and no source snapshot
+contains those bytes. That path is suspended pending provenance; it was not
+edited or included in Text04 ownership. The original dirty-region scale,
+stable-frame, Render17 upload and product-pixel gates remain open.
+
+The subsequent text-only managed job `1f242fb1789e44ce87d7a5cacc569d5f`
+compiled source `3091` without diagnostics in either edited byte-comparison
+file. Its exact input/receipt is recorded in the sibling persistent-slot
+failure: `runtime-text-owner-test-support-3095-20260908`, digest
+`4e5f800cd19e5748464ac759b4e1efbfae073ecf1c05d419327a6d6739cbe9e2`.
+Three unrelated/unowned fixture errors remain, including the suspended
+dirty-upload path above, and no tests ran. The source review and original
+dynamic acceptance remain pending.
+
+### 2026-09-08 Dirty Upload Provenance Resolved
+
+The existing coordinator-efficiency task completed the six-file 3091 review at
+C0 / I0 / M0 (`.codex/tmp/text-3100-review-20260908-result.txt`). This supersedes
+the source-review-pending statement above; dynamic atlas acceptance is still open.
+
+The suspended `dirty_upload.rs` preimage was compared with HEAD through the
+repository's Rust 2021 / style-edition 2024 rustfmt, using stdout only. Both
+canonical outputs were identical with zero differing lines: the unexpected
+preimage hash was due solely to import ordering and formatting. No semantic
+foreign change was present. Transfer preview `81a450e1bc514547b7281233b98ceb47`
+was eligible, and apply `96a474ee9db24c1abeb6d2ca8e21d36a` assigned the exact
+bytes to the stable Text04 Session. Pre-edit snapshot 3117 preserves the original
+`971c6c7eca190fbf2acdc7f90c809c700711c15befc06f547a718f09d588dc34` bytes
+and this record; the archived attribution remains visible in the transfer.
+
+Source snapshot 3118, request `15de81f26efd49308de240b615366393`, changes only
+the semantic assertion `staging.pages[0].bytes` to `.bytes.as_ref()`. The exact
+128-byte array, off-origin rectangle, packed row stride, zero source offset,
+rows-per-image and failure assertions are preserved. Current source hash:
+`665d619ce3fb1c5ed8f45691e24953caadcefba715b387122e096bc4f275ddff`.
+Repository rustfmt and scoped whitespace checks pass. This source was not part of
+the earlier 3091 review or 3095 managed input; its own compilation and incremental
+review remain required. The original scale, stable-frame and product gates remain.
+
+### 2026-09-08 incremental review and compiler result
+
+The existing coordinator-efficiency task reviewed source 3118 and record 3121 at
+Critical 0 / Important 0 / Moderate 0. Its preserved result is
+`.codex/tmp/runtime22-text-3122-review-20260908-result.txt`; the preimage provenance,
+128-byte packed upload, off-origin rectangle, stride and failure assertions were checked,
+and selected hashes remained unchanged before and after review.
+
+Managed graphics job `77612283b03b47af9d69d7c58500c323` used the exact derived input
+`E:/cargo-targets/zircon-engine/cache/build-benchmarks/runtime-graphics-text-consumers-3120-20260908`,
+digest `e6d232251b629d6bf665204dcc7bd222c8f958ed13a04854490f48c6ee442a00`.
+Its `results/graphics-library-3120.{json,log}` and compiler-diagnostics JSON preserve
+25 external compiler errors and zero tests. No diagnostic remains in the 3118 path.
+Source review is complete; dirty-region scale, stable-frame, Render17 upload, WGPU/product pixel
+and formal fixing-Session acceptance remain pending. This lifecycle stays open.

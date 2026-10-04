@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Repository-local Jenkins deployment specification",
+  "state": "runtime-offline-recovery-pending",
+  "applied": true,
+  "workflowSpecification": ".jenkins/workflow-spec.json",
+  "coordinationTopology": "single-host",
+  "multiMachineImplementationEnabled": false,
+  "repositoryRoot": "E:\\Git\\ZirconEngine",
+  "controller": {
+    "version": "2.580.1",
+    "java": {
+      "version": "21.0.12.1",
+      "implementor": "Microsoft",
+      "executable": "E:\\Git\\ZirconEngine\\.jenkins\\runtime\\jdk\\bin\\java.exe"
+    },
+    "listenAddress": "127.0.0.1",
+    "httpPort": 18080,
+    "executors": 0,
+    "jenkinsHome": "E:\\Git\\ZirconEngine\\.jenkins\\jenkins_home",
+    "logs": "E:\\Git\\ZirconEngine\\.jenkins\\logs",
+    "processState": "E:\\Git\\ZirconEngine\\.jenkins\\state",
+    "pluginVersionLock": ".jenkins/plugins.lock",
+    "buildArchives": "metadata-and-receipts-only",
+    "runtimeRoot": "E:\\Git\\ZirconEngine\\.jenkins\\runtime",
+    "warPath": "E:\\Git\\ZirconEngine\\.jenkins\\runtime\\jenkins.war",
+    "pluginChecksums": ".jenkins/plugin-checksums.json",
+    "webroot": "E:\\Git\\ZirconEngine\\.jenkins\\cache\\war",
+    "pluginWorkDir": "E:\\Git\\ZirconEngine\\.jenkins\\cache\\plugins",
+    "tempRoot": "E:\\Git\\ZirconEngine\\.jenkins\\tmp\\controller"
+  },
+  "agent": {
+    "name": "zircon-windows-agent",
+    "label": "zircon-windows",
+    "transport": "websocket-inbound",
+    "executors": 2,
+    "remoteRoot": "E:\\Git\\ZirconEngine\\.jenkins\\agent",
+    "controllerRunsCompiler": false,
+    "workDir": "E:\\Git\\ZirconEngine\\.jenkins\\agent\\remoting",
+    "tempRoot": "E:\\Git\\ZirconEngine\\.jenkins\\tmp\\agent",
+    "remotingCache": "E:\\Git\\ZirconEngine\\.jenkins\\cache\\remoting",
+    "initialExecutors": 1
+  },
+  "storage": {
+    "allowedPhysicalRoots": [
+      "E:\\Git\\ZirconEngine\\.jenkins\\builds"
+    ],
+    "jenkinsCacheRoot": "E:\\Git\\ZirconEngine\\.jenkins\\cache",
+    "jenkinsTempRoot": "E:\\Git\\ZirconEngine\\.jenkins\\tmp",
+    "targetAllocation": "tools/jenkins/workflow/pools under resources reservation",
+    "compilerCacheAllocation": "compatible PreparationKey pool under the explicit buildRoot",
+    "compiledArtifactRegistry": "tools/jenkins/artifacts immutable objects and per-consumer references",
+    "requireCanonicalPhysicalPath": true,
+    "rejectReparsePointsAndPathAliases": true,
+    "requireLeaseAndIndexOwnership": true,
+    "copyCompilerProductsToJenkinsHome": false,
+    "historicalOwnerReferences": {
+      "targetAllocation": "existing-managed-cargo-allocator",
+      "compilerCacheAllocation": "existing-managed-compiler-cache-layer",
+      "compiledArtifactRegistry": "existing-managed-artifact-storage-layer"
+    },
+    "buildRoot": "E:\\Git\\ZirconEngine\\.jenkins\\builds",
+    "buildNamespace": "zircon-jenkins",
+    "explicitBuildRootFallbackAllowed": false,
+    "runtimeRoot": "E:\\Git\\ZirconEngine\\.jenkins",
+    "runtimeAndCompilerPathDomainsSeparate": true,
+    "resourcePolicy": {
+      "buildRoot": "E:\\Git\\ZirconEngine\\.jenkins\\builds",
+      "cpuBudget": 3,
+      "memoryBudget": 4294967296,
+      "diskBudget": 8589934592,
+      "maxHeavyWriters": 3,
+      "inventoryMaxAgeSeconds": 30,
+      "diskReserveBytes": 37580963840,
+      "agingSeconds": 60,
+      "parallelAdmission": "independent-pools-within-one-atomic-budget",
+      "quarantineReserve": {
+        "executionId": "0e14eb5450d57b2f48df030f42693e6f",
+        "countedInBudget": true,
+        "releaseRequires": "trusted Job proof or Windows boot boundary",
+        "executionIds": [
+          "0e14eb5450d57b2f48df030f42693e6f",
+          "ed8734ffd554e3db0dc12406dcf07fb4"
+        ]
+      },
+      "configurationScope": "temporary-acceptance-with-protected-failure-reservations",
+      "allowedBuildRoots": [
+        "E:\\Git\\ZirconEngine\\.jenkins\\builds"
+      ]
+    },
+    "buildRootLayout": "repository-local"
+  },
+  "requiredBuildPolicy": {
+    "soleSubmissionEntry": "Jenkins",
+    "soleEntryEnforcementApplied": false,
+    "formalAcceptanceOwner": "tools/jenkins/validation authoritative acceptance",
+    "sameInputArtifactReuseRequired": true,
+    "artifactReuseAccepted": false,
+    "requiredIdentityInputs": [
+      "immutable-main-source-closure-including-dirty-new-deleted-files",
+      "immutable-external-source-and-generated-input-closures",
+      "dependency-lockfile-and-resolved-dependency-configuration",
+      "rust-cargo-native-compiler-linker-and-wrapper-identities",
+      "host-platform-and-target-triple",
+      "package-target-profile-feature-set-and-complete-command",
+      "build-affecting-environment-and-cargo-configuration"
+    ],
+    "requireArtifactDigestAndManagedAcceptanceReceipt": true,
+    "concurrentSameIdentity": "one-writer-with-waiters-reusing-accepted-artifact",
+    "failedOrPartialBuildsReusable": false,
+    "crossIdentityReuse": "compatible PreparationKey pool governed by Cargo invalidation; no stale test result reuse",
+    "gcPolicy": "retain-live-leases-and-accepted-artifact-references",
+    "sameInputSharingRuntimeAccepted": true,
+    "warmPreparationFreshTestsRuntimeAccepted": true
+  },
+  "activationRequirements": [
+    "preserve-foreign-edits-and-read-only-history-without-restoring-retired-coordinator",
+    "implement-new-support-ownership-admission-native-proof-and-acceptance-before-heavy-work",
+    "complete-M0-through-M8-relevant-runtime-acceptance-before-sole-entry-enforcement",
+    "drain-submissions-and-prove-native-process-termination-before-home-migration",
+    "stop-controller-before-copying-consistent-home-and-private-identity-if-migration-is-needed",
+    "register-new-namespace-agent-cache-temp-and-artifact-path-ownership-before-use",
+    "apply-path-validation-before-launch-and-recheck-effective-paths-after-start",
+    "cut-over-known-build-callers-and-enforce-jenkins-submission-at-new-admission-owner",
+    "verify-shared-execution-consumer-cancel-restart-and-reference-aware-gc",
+    "preserve-original-history-and-provide-a-reconciled-jenkins-configuration-rollback"
+  ],
+  "architectureSpecification": "docs/cli-and-tooling/jenkins-session-coordination-architecture.md",
+  "architectureVersion": 1,
+  "ownerBindingsImplemented": true,
+  "pipeline": {
+    "engine": "scripted",
+    "stepLoading": "sealed-version-workflow-cps-load",
+    "jobs": [
+      "zircon-flow",
+      "zircon-execution",
+      "zircon-maintenance"
+    ],
+    "executionOwnership": "independent executionId with per-flow consumers",
+    "implemented": true
+  },
+  "runtimeSupport": {
+    "python": {
+      "version": "3.14.4",
+      "executable": "E:\\Git\\ZirconEngine\\.jenkins\\runtime\\python\\python.exe",
+      "assetManifest": "E:\\Git\\ZirconEngine\\.jenkins\\state\\python-assets.json"
+    },
+    "driver": {
+      "contentAddressed": true,
+      "manifestRequired": true,
+      "activationRecord": "E:\\Git\\ZirconEngine\\.jenkins\\state\\deployment\\driver.json"
+    }
+  },
+  "acceptance": {
+    "M0": "accepted",
+    "M1": "accepted",
+    "M2": "pending-runtime-refresh",
+    "M3": "accepted",
+    "M4": "accepted-bounded-fixture",
+    "M5": "pending-source-change-incremental-runtime",
+    "M6": "pending-independent-parallel-runtime",
+    "M7": "pending-joint-input-and-failure-recovery-runtime",
+    "M8": "pending-sole-entry-and-performance"
+  },
+  "runtimeStatus": {
+    "ready": false,
+    "status": "offline-awaiting-boot-evidence",
+    "driver": {
+      "driverDigest": "a71820c8fd7b298ff2f821f414500298f799bf092526cd2f34c3c30e785d6029",
+      "root": "E:\\Git\\ZirconEngine\\.jenkins\\runtime\\drivers\\a71820c8fd7b298ff2f821f414500298f799bf092526cd2f34c3c30e785d6029",
+      "launcher": "E:\\Git\\ZirconEngine\\.jenkins\\runtime\\drivers\\a71820c8fd7b298ff2f821f414500298f799bf092526cd2f34c3c30e785d6029\\launcher.py",
+      "steps": "E:\\Git\\ZirconEngine\\.jenkins\\runtime\\drivers\\a71820c8fd7b298ff2f821f414500298f799bf092526cd2f34c3c30e785d6029\\pipeline\\steps.groovy",
+      "manifest": "E:\\Git\\ZirconEngine\\.jenkins\\runtime\\drivers\\a71820c8fd7b298ff2f821f414500298f799bf092526cd2f34c3c30e785d6029\\driver-manifest.json",
+      "state": "selected-failed-start-preserved",
+      "runtimeOperationId": "start-1791091874631246000",
+      "requiresBootBoundaryBeforeStart": true,
+      "runtimeAcceptance": false,
+      "supportRegression": {
+        "path": "E:\\Git\\ZirconEngine\\.jenkins\\state\\migration-baseline\\repository-build-root-tests-1791091036098673300.json",
+        "sha256": "20f23fcd42f181780e28e755e44182460bf9ec5fd0afb51e1eac1a56a0b8d2e6",
+        "scope": "historical-repository-build-root-affected-regression"
+      }
+    }
+  },
+  "productionResourceDefaults": {
+    "cpuBudget": 2,
+    "maxHeavyWriters": 1,
+    "activateAfter": "trusted recovery of all protected failures and explicit M6 acceptance-policy closeout"
+  },
+  "directoryPolicyAuthorization": {
+    "source": "user",
+    "date": "2026-10-04",
+    "scope": "Jenkins runtime and pipeline build data under repository .jenkins",
+    "supersedes": "previous Jenkins D/E/F drive-root layout"
+  }
+}

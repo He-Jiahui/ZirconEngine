@@ -36,7 +36,7 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         report.failure_flags.bits() as usize,
         tags,
     );
-// BUG: [CR-RENDER-STATS-0002] 64 位产物指纹经 usize 和 f64 记录后可能丢失低位精度，快照不能可靠标识原始产物；证据：下列指纹进入 record_count -> record_static。
+    // BUG: [CR-RENDER-STATS-0002] 64 位产物指纹经 usize 和 f64 记录后可能丢失低位精度，快照不能可靠标识原始产物；证据：下列指纹进入 record_count -> record_static。
     for (path, value) in [
         (
             "render.ambient_occlusion.execution.frame_generation",

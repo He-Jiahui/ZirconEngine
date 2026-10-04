@@ -12,7 +12,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 扩展 zircon_app 公开接口、机制案例、教程和最佳实践
 tests:
-  - zircon_app/src/plugins/tests.rs
+  - zircon_app/src/plugins/tests/cases.rs
   - zircon_app/tests/plugin_group_error_contract.rs
   - zircon_app/src/entry/tests/product_composition.rs
 doc_type: module-detail

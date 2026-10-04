@@ -9,8 +9,6 @@ fixing_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-c
 origin_child_dir: docs/plans/zircon_runtime/runtime/04
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 related_code:
-  - tools/session_coordinator/failures.py
-  - tools/session_coordinator/tests/test_failures.py
 tests:
   - python -m unittest -v tools.session_coordinator.tests.test_failures.FailureGraphTests.test_child_record_only_return_moves_fixed_artifact_without_writing_parent_plans
 resolved_at: 2026-07-16

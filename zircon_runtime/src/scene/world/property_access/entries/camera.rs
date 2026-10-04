@@ -1,10 +1,11 @@
 use crate::core::framework::scene::ScenePropertyValue;
-use crate::scene::EntityId;
 use crate::scene::components::CameraComponent;
+use crate::scene::EntityId;
 
 use super::super::super::World;
 
 impl World {
+    // 相机属性只暴露可编辑的投影参数；目标纹理和视口由项目 IO 负责序列化。
     pub(super) fn visit_camera_property_entries<F>(&self, entity: EntityId, visitor: &mut F) -> bool
     where
         F: FnMut(&str, &mut dyn FnMut() -> ScenePropertyValue, bool) -> bool,

@@ -44,6 +44,7 @@ pub(in crate::graphics::runtime::render_framework) struct ViewportRecord {
 }
 
 pub(super) struct ViewportAsyncCaptureMailbox {
+    pub(super) armed: std::collections::BTreeSet<u64>,
     pub(super) pending: std::collections::BTreeMap<u64, PendingViewportCapture>,
     pub(super) completed: std::collections::BTreeMap<u64, Result<Vec<u8>, String>>,
     pub(super) ready: Option<ReadyViewportCapture>,

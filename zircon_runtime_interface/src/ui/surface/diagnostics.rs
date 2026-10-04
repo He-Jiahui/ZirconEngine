@@ -146,6 +146,12 @@ pub struct UiSurfaceRebuildDebugStats {
     pub arranged_rebuilt: bool,
     pub hit_grid_rebuilt: bool,
     pub render_rebuilt: bool,
+    #[serde(default)]
+    pub arranged_patched: bool,
+    #[serde(default)]
+    pub hit_grid_patched: bool,
+    #[serde(default)]
+    pub render_patched: bool,
     pub arranged_node_count: usize,
     pub render_command_count: usize,
     pub hit_grid_entry_count: usize,

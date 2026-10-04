@@ -16,7 +16,7 @@ use super::error::EditorUiError;
 use crate::ui::activity::{ActivityViewDescriptor, ActivityWindowDescriptor};
 
 #[cfg(test)]
-#[path = "service/activity_registry_hash_tests.rs"]
+#[path = "service/tests/activity_registry_hash_tests.rs"]
 mod activity_registry_hash_tests;
 
 #[derive(Default)]
@@ -62,13 +62,15 @@ impl EditorUiControlService {
     }
 
     pub fn activity_views(&self) -> Vec<ActivityViewDescriptor> {
-        let mut views = self.activity_views.values().cloned().collect::<Vec<_>>();
+        let mut views = Vec::with_capacity(self.activity_views.len());
+        views.extend(self.activity_views.values().cloned());
         views.sort_by(|left, right| left.view_id.cmp(&right.view_id));
         views
     }
 
     pub fn activity_windows(&self) -> Vec<ActivityWindowDescriptor> {
-        let mut windows = self.activity_windows.values().cloned().collect::<Vec<_>>();
+        let mut windows = Vec::with_capacity(self.activity_windows.len());
+        windows.extend(self.activity_windows.values().cloned());
         windows.sort_by(|left, right| left.window_id.cmp(&right.window_id));
         windows
     }

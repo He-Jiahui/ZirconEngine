@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SHAPING_TESTS = ROOT / "zircon_runtime/src/text/shaping/tests.rs"
+SHAPING_TESTS = ROOT / "zircon_runtime/src/text/shaping/tests/cases.rs"
 PROFILE = (
     ROOT / "zircon_runtime/src/text/shaping/tests/letter_spacing_profile.rs"
 )
@@ -12,7 +12,7 @@ REVIEW = (
     / "docs/plans/zircon_runtime/text/07/2026-08-30-rich-style-shaping-projection-and-letter-spacing-review.md"
 )
 
-
+# 读取字距剖析配置，确认发布版样本覆盖脚本方向和跨距通道且使用受管执行入口。
 class RuntimeTextLetterSpacingProfileContractTests(unittest.TestCase):
     def test_release_profile_is_profiling_only_and_managed(self) -> None:
         root = SHAPING_TESTS.read_text(encoding="utf-8")

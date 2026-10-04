@@ -1,11 +1,10 @@
 use super::*;
-use crate::text::InstancedFaceId;
 use crate::text::atlas::{
-    GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasRect, GlyphHintingMode, GlyphRasterKey,
-    GlyphSmoothingMode, SyntheticGlyphStyle, glyph_atlas_bitmap_page_shadow_commit,
-    glyph_atlas_bitmap_render_submission_plan,
-    glyph_atlas_bitmap_render_submission_plan_with_atlas,
+    glyph_atlas_bitmap_page_shadow_commit, glyph_atlas_bitmap_render_submission_plan,
+    glyph_atlas_bitmap_render_submission_plan_with_atlas, GlyphAtlasBitmapUploadSourceBytes,
+    GlyphAtlasRect, GlyphHintingMode, GlyphRasterKey, GlyphSmoothingMode, SyntheticGlyphStyle,
 };
+use crate::text::InstancedFaceId;
 
 #[test]
 fn native_bitmap_atlas_interleaved_storage_uses_one_canonical_frame_plan() {
@@ -29,20 +28,16 @@ fn native_bitmap_atlas_canonical_frame_plan_prepares_interleaved_sources_once() 
 
     assert!(!prepared_upload.has_failures());
     assert_eq!(frame.submission.run.upload_copies.len(), 3);
-    assert!(
-        prepared_upload
-            .staged_uploads
-            .uploads
-            .iter()
-            .any(|upload| upload.command.page_key.format == GlyphAtlasFormat::AlphaMask)
-    );
-    assert!(
-        prepared_upload
-            .staged_uploads
-            .uploads
-            .iter()
-            .any(|upload| upload.command.page_key.format == GlyphAtlasFormat::Color)
-    );
+    assert!(prepared_upload
+        .staged_uploads
+        .uploads
+        .iter()
+        .any(|upload| upload.command.page_key.format == GlyphAtlasFormat::AlphaMask));
+    assert!(prepared_upload
+        .staged_uploads
+        .uploads
+        .iter()
+        .any(|upload| upload.command.page_key.format == GlyphAtlasFormat::Color));
 
     let first_alpha = &frame.submission.run.glyphs[0];
     let second_alpha = &frame.submission.run.glyphs[2];
@@ -107,13 +102,11 @@ fn native_bitmap_atlas_canonical_frame_plan_keeps_persistent_alpha_shadow_safe()
 
     assert!(!prepared_upload.has_failures());
     assert_eq!(frame.canonical_frame_plan_count(), 1);
-    assert!(
-        prepared_upload
-            .staged_uploads
-            .uploads
-            .iter()
-            .any(|upload| upload.command.page_key.format == GlyphAtlasFormat::AlphaMask)
-    );
+    assert!(prepared_upload
+        .staged_uploads
+        .uploads
+        .iter()
+        .any(|upload| upload.command.page_key.format == GlyphAtlasFormat::AlphaMask));
 }
 
 fn interleaved_sources() -> [GlyphAtlasBitmapSource; 3] {

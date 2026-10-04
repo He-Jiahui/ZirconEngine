@@ -2,8 +2,8 @@ use zircon_runtime_interface::ui::{
     binding::{UiBindingSourceKind, UiEventKind},
     component::UiValue,
     dispatch::{
-        UiComponentEventReport, UiDispatchReply, UiInputDispatchResult, UiInputEvent,
-        UiNumberInputCommitMethod, UiNumberInputCommitStatus,
+        UiComponentEventReport, UiDispatchReply, UiImeInputEventKind, UiInputDispatchResult,
+        UiInputEvent, UiKeyboardInputState, UiNumberInputCommitMethod, UiNumberInputCommitStatus,
     },
     event_ui::UiNodeId,
     surface::{UiEditableTextState, UiTextCaret, UiTextCaretAffinity, UiTextEditAction},
@@ -14,7 +14,7 @@ use zircon_runtime_interface::ui::{
 use crate::ui::{
     dispatch::UiTextDocumentSession,
     surface::UiTextComponentEventKind,
-    text::{CommittedTextEditIntent, apply_text_edit_action_with_intent},
+    text::{apply_text_edit_action_with_intent, CommittedTextEditIntent},
 };
 
 use super::super::super::surface::UiSurface;
@@ -166,7 +166,23 @@ pub(in crate::ui) fn commit_editable_text_transaction(
     UiEditableTextTransactionError,
 > {
     let Some(intent) = committed_edit else {
-        return commit_editable_text_properties_with_edit(
+        let preserve_source = match preserves_committed_source(
+            surface,
+            text_documents.as_deref(),
+            target,
+            state,
+            &result.event,
+        ) {
+            Ok(preserve_source) => preserve_source,
+            Err(error) => {
+                result.diagnostics.notes.push(format!(
+                    "text_composition_source_reset:{}",
+                    error.diagnostic_code()
+                ));
+                false
+            }
+        };
+        let prepared = prepare_editable_text_properties_with_edit(
             surface,
             target,
             value_property,
@@ -174,7 +190,15 @@ pub(in crate::ui) fn commit_editable_text_transaction(
             source_kind,
             None,
         )
-        .map_err(UiEditableTextTransactionError::Property);
+        .map_err(UiEditableTextTransactionError::Property)?;
+        let prepared = if preserve_source {
+            prepared.preserving_committed_source()
+        } else {
+            prepared
+        };
+        return prepared
+            .commit()
+            .map_err(UiEditableTextTransactionError::Property);
     };
     let Some(text_documents) = text_documents else {
         result
@@ -259,6 +283,71 @@ pub(in crate::ui) fn commit_editable_text_transaction(
         });
     }
     Ok(properties)
+}
+
+fn preserves_committed_source(
+    surface: &UiSurface,
+    text_documents: Option<&UiTextDocumentSession>,
+    target: UiNodeId,
+    state: &UiEditableTextState,
+    event: &UiInputEvent,
+) -> Result<bool, UiEditableTextTransactionError> {
+    if state.composition.is_some() {
+        return Ok(true);
+    }
+    let active_composition = surface
+        .tree
+        .node(target)
+        .and_then(|node| node.template_metadata.as_ref())
+        .is_some_and(|metadata| {
+            let nonnegative_offset = |key: &str| match metadata.attributes.get(key) {
+                Some(toml::Value::Integer(offset)) => *offset >= 0,
+                Some(toml::Value::Float(offset)) => offset.is_finite() && *offset >= 0.0,
+                _ => false,
+            };
+            nonnegative_offset("composition_start")
+                && nonnegative_offset("composition_end")
+                && matches!(
+                    metadata.attributes.get("composition_text"),
+                    Some(
+                        toml::Value::String(_)
+                            | toml::Value::Integer(_)
+                            | toml::Value::Float(_)
+                            | toml::Value::Boolean(_)
+                    )
+                )
+        });
+    if !active_composition {
+        return Ok(false);
+    }
+    let explicit_cancel = match event {
+        UiInputEvent::Ime(ime) => ime.kind == UiImeInputEventKind::Cancel,
+        UiInputEvent::Keyboard(keyboard) => {
+            (keyboard.logical_key == "Escape" || keyboard.key_code == 27)
+                && matches!(
+                    keyboard.state,
+                    UiKeyboardInputState::Pressed | UiKeyboardInputState::Repeated
+                )
+        }
+        _ => false,
+    };
+    if let (Some(text_documents), Some(source_epoch)) =
+        (text_documents, surface.input.text_document_epoch(target))
+    {
+        // Only a no-intent transition ending active composition reaches this scan.
+        // Ordinary editing and provisional updates do not compare the whole source.
+        return match text_documents.committed_source_matches(
+            &surface.tree.tree_id,
+            target,
+            source_epoch,
+            &state.text,
+        ) {
+            Ok(matches) => Ok(matches),
+            Err(_) if explicit_cancel => Ok(true),
+            Err(error) => Err(UiEditableTextTransactionError::Document(error)),
+        };
+    }
+    Ok(explicit_cancel)
 }
 
 const fn text_edit_source(event: &UiInputEvent) -> UiTextEditSource {
@@ -441,7 +530,7 @@ fn cancel_editable_text_composition(
     let restored =
         apply_text_edit_action_with_intent(editable, UiTextEditAction::CancelComposition).state;
     let value_property = editable_value_property(surface, target)?;
-    commit_editable_text_properties_with_edit(
+    prepare_editable_text_properties_with_edit(
         surface,
         target,
         value_property.as_str(),
@@ -449,6 +538,9 @@ fn cancel_editable_text_composition(
         UiBindingSourceKind::WidgetBehavior,
         None,
     )
+    .ok()?
+    .preserving_committed_source()
+    .commit()
     .ok()?;
     Some(restored)
 }

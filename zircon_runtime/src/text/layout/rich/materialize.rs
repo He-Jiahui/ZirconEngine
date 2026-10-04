@@ -1,12 +1,13 @@
 use std::ops::Range;
 
 use crate::core::math::Vec2;
+use crate::text::layout_geometry::{finite_sum, FiniteGeometryAccumulator};
 use crate::text::shaping::{TextLayoutOutcome, TextShapeRunProvider, TextShapingOutcome};
 use crate::text::{LaidOutLine, LaidOutText, LayoutItem, TextRange, TextStyle};
 
 use super::super::line_metrics_with_provider;
 use super::metrics::{inline_box_metrics, inline_origin_y};
-use super::{RichAdvanceIndex, RichTextLayoutSource, resolve_rich_run_style};
+use super::{resolve_rich_run_style, RichAdvanceIndex, RichTextLayoutSource};
 
 pub(crate) fn layout_rich_line_with_provider<S, P>(
     source: &S,
@@ -45,7 +46,7 @@ where
 {
     let mut items = Vec::new();
     let mut lines = Vec::new();
-    let mut cursor_y = 0.0;
+    let mut cursor_y = FiniteGeometryAccumulator::default();
     let mut max_width = 0.0_f32;
     let mut run_cursor = 0_usize;
 
@@ -69,20 +70,20 @@ where
         items.append(&mut line_layout.items);
         let item_end = u32::try_from(items.len()).unwrap_or(u32::MAX);
         let line = line_layout.lines.into_iter().next().unwrap_or_default();
-        let line_height = line.ascent + line.descent;
+        let line_height = finite_sum([line.ascent, line.descent]);
         max_width = max_width.max(line.width);
         lines.push(LaidOutLine {
             item_range: (item_start, item_end),
-            origin: Vec2::new(0.0, cursor_y),
+            origin: Vec2::new(0.0, cursor_y.value()),
             ..line
         });
-        cursor_y += line_height;
+        cursor_y.add(line_height);
     }
 
     LaidOutText {
         items,
         lines,
-        size: Vec2::new(max_width, cursor_y),
+        size: Vec2::new(max_width, cursor_y.value()),
     }
 }
 
@@ -132,8 +133,9 @@ where
     }
 
     let mut items = Vec::with_capacity(run_range.len());
-    let mut cursor_x = 0.0;
+    let mut cursor_x = FiniteGeometryAccumulator::default();
     let line_baseline = ascent;
+    let line_extent = finite_sum([ascent, descent]);
     for (inline_metric_index, local_run_index) in run_range.clone().enumerate() {
         let Some(run) = source.run(local_run_index) else {
             continue;
@@ -145,17 +147,17 @@ where
             continue;
         };
         if let (Some(inline), Some(metrics)) = (run.inline, inline_metrics[inline_metric_index]) {
-            let origin_y = inline_origin_y(metrics, line_baseline, ascent + descent);
+            let origin_y = inline_origin_y(metrics, line_baseline, line_extent);
             items.push(LayoutItem::Inline {
                 run_index: run.source_index,
                 source_range: clipped_range,
                 object: inline.clone(),
                 size: metrics.size,
                 baseline: metrics.baseline,
-                origin: Vec2::new(cursor_x, origin_y),
+                origin: Vec2::new(cursor_x.value(), origin_y),
                 advance: metrics.advance,
             });
-            cursor_x += metrics.advance;
+            cursor_x.add(metrics.advance);
             continue;
         }
         if source
@@ -176,13 +178,13 @@ where
         items.push(LayoutItem::Text {
             run_index: run.source_index,
             source_range: clipped_range,
-            origin: Vec2::new(cursor_x, line_baseline - run_metrics.ascent),
+            origin: Vec2::new(cursor_x.value(), line_baseline - run_metrics.ascent),
             advance,
         });
-        cursor_x += advance;
+        cursor_x.add(advance);
     }
 
-    let line_height = ascent + descent;
+    let line_height = line_extent;
     let item_count = u32::try_from(items.len()).unwrap_or(u32::MAX);
     LaidOutText {
         items,
@@ -190,11 +192,11 @@ where
             item_range: (0, item_count),
             origin: Vec2::new(0.0, 0.0),
             baseline: line_baseline,
-            width: cursor_x,
+            width: cursor_x.value(),
             ascent,
             descent,
         }],
-        size: Vec2::new(cursor_x, line_height),
+        size: Vec2::new(cursor_x.value(), line_height),
     }
 }
 

@@ -9,6 +9,7 @@ const GIT_COMMAND: &str = "git";
 const RECENT_AUTHOR_LIMIT: usize = 8;
 const RECENT_COMMIT_SCAN_LIMIT: &str = "200";
 
+/// 当前作用域的本地 Git 协作概览；仅根据可访问仓库和近期提交生成，不代表远程团队成员表。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TeamOverview {
     pub repository_path: PathBuf,
@@ -41,6 +42,8 @@ pub struct TeamMemberEntry {
     pub commits: u32,
 }
 
+/// 依次选取当前项目和源码引擎中的首个 Git 仓库，供 Hub 团队页展示本机身份与近期作者。
+/// 未找到仓库时返回空视图；读取 Git 配置或历史失败时可保留部分概览。
 pub fn discover_team_overview<I>(repo_roots: I) -> Result<TeamOverview, HubError>
 where
     I: IntoIterator<Item = PathBuf>,
@@ -121,6 +124,7 @@ fn git_output(path: &Path, args: &[&str]) -> Result<Option<String>, HubError> {
     Ok(Some(String::from_utf8_lossy(&output.stdout).into_owned()))
 }
 
+// 作者计数仅覆盖有界的近期提交样本，不应解释为仓库的完整贡献统计。
 fn parse_git_log_authors(output: &str) -> Vec<TeamMemberEntry> {
     let mut counts = BTreeMap::<(String, String), u32>::new();
     for line in output.lines() {
@@ -157,30 +161,5 @@ fn parse_git_log_authors(output: &str) -> Vec<TeamMemberEntry> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parse_git_log_authors_counts_and_sorts_recent_authors() {
-        let members = parse_git_log_authors(
-            "Ada\x1fada@example.com\nLin\x1flin@example.com\nAda\x1fada@example.com\n",
-        );
-
-        assert_eq!(members.len(), 2);
-        assert_eq!(members[0].name, "Ada");
-        assert_eq!(members[0].email, "ada@example.com");
-        assert_eq!(members[0].commits, 2);
-        assert_eq!(members[1].name, "Lin");
-        assert_eq!(members[1].commits, 1);
-    }
-
-    #[test]
-    fn parse_git_log_authors_skips_invalid_and_empty_lines() {
-        let members = parse_git_log_authors("\nmissing separator\n\x1f\nName\x1f\n");
-
-        assert_eq!(members.len(), 1);
-        assert_eq!(members[0].name, "Name");
-        assert_eq!(members[0].email, "");
-        assert_eq!(members[0].commits, 1);
-    }
-}
+#[path = "tests/local_git.rs"]
+mod tests;

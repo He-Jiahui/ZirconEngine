@@ -35,5 +35,5 @@ impl<'a> UiAssetDetailSurfaceBinding<'a> {
 }
 
 #[cfg(test)]
-#[path = "ui_asset_detail/borrowed_binding_tests.rs"]
+#[path = "ui_asset_detail/tests/borrowed_binding_tests.rs"]
 mod borrowed_binding_tests;

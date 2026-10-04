@@ -1,3 +1,4 @@
+//! 保护脚本虚拟机的子模块职责、检查入口与源码规模；这些约束读取检出文本，具体业务结果由被列出的行为测试另行验证。
 use super::*;
 
 #[path = "script_vm_tests/gameplay_host.rs"]
@@ -130,7 +131,7 @@ fn runtime_15_script_vm_hot_reload_guard_is_child_owner() {
         &[
             "pub(super) fn assert_hot_reload_coordinator_tests_are_folder_backed",
             "script/vm/runtime/hot_reload_coordinator.rs",
-            "script/vm/runtime/hot_reload_coordinator/tests.rs",
+            "script/vm/runtime/hot_reload_coordinator/tests/cases.rs",
             concat!(
                 "fn hot_reload_policy_preserves_state_and_",
                 "increments_generation_by_default"
@@ -205,7 +206,7 @@ fn runtime_15_script_vm_gameplay_host_guard_is_child_owner() {
         &child,
         &[
             "pub(super) fn assert_gameplay_host_tests_are_folder_backed",
-            "script/vm/gameplay_host/tests.rs",
+            "script/vm/gameplay_host/tests/cases.rs",
             "script/vm/gameplay_host/tests/spawn_transform.rs",
             concat!("fn gameplay_pose_exports_update_entity_", "transform"),
             concat!(

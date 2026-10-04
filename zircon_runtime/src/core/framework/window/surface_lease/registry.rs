@@ -12,6 +12,8 @@ use crate::core::framework::window::{DisplayTopologySnapshot, WindowId};
 /// own native windows or graphics resources: callers must validate the window
 /// registry first, create/fence graphics resources outside this registry, and
 /// then publish or retire the returned lease at the documented transition.
+/// 中文：WindowRegistry 仍拥有原生窗口与 viewport 的绑定，本表只记录 graphics surface 的 generation；
+/// 平台驱动须在同一生命周期事务中先核对两侧所有权，再提交 lease 状态。
 #[derive(Default)]
 pub struct SurfaceLeaseRegistry {
     entries: HashMap<SurfaceLeaseKey, SurfaceLeaseEntry>,
@@ -25,6 +27,7 @@ impl SurfaceLeaseRegistry {
         request: SurfaceLeaseRequest,
         topology: &DisplayTopologySnapshot,
     ) -> Result<PreparedSurfaceLease, SurfaceLeaseError> {
+        // PlatformDriver 在调用前已验证窗口代次和 viewport 所属；此处只核对 lease 请求与当前拓扑及本地索引。
         if !request.viewport().is_valid() {
             return Err(SurfaceLeaseError::InvalidViewport {
                 viewport: request.viewport(),
@@ -45,6 +48,7 @@ impl SurfaceLeaseRegistry {
 
         let key = SurfaceLeaseKey::from_request(&request);
         let entry_exists = self.entries.contains_key(&key);
+        // 先互证 viewport 反向索引和 entry：同一 handle 不能在旧租约仍存在时转给别的窗口，索引分叉则拒绝继续。
         match self.viewport_to_window.get(&request.viewport()).copied() {
             Some(bound_window) if bound_window != request.window() => {
                 let bound_key = SurfaceLeaseKey {
@@ -101,6 +105,7 @@ impl SurfaceLeaseRegistry {
             }
             Some(_) => {}
         }
+        // 仅 Active 可作为替换失败时的恢复点；Preparing/Retiring 拒绝重入，首次绑定先为两张索引预留容量。
         let active = match self.entries.get(&key) {
             Some(SurfaceLeaseEntry::Preparing { .. }) => {
                 return Err(SurfaceLeaseError::ReplacementInFlight {
@@ -124,6 +129,7 @@ impl SurfaceLeaseRegistry {
                 None
             }
         };
+        // 登记 Preparing 后候选仍不能路由；若有旧 lease，它继续承接调用，直到 publish 原子切换或 cancel 恢复。
         let candidate = SurfaceLease::new(request, self.next_generation()?);
         if !entry_exists {
             let previous = self
@@ -144,6 +150,7 @@ impl SurfaceLeaseRegistry {
     /// Publishes only the exact candidate returned by `prepare`. If a prior
     /// lease existed it becomes stale for routing immediately and is returned
     /// solely for graphics-resource retirement.
+    /// 中文：提交前再次匹配当前拓扑和登记中的精确候选；成功这一刻才切换可路由代次，旧 lease 仅供后续清理。
     pub(crate) fn publish(
         &mut self,
         prepared: &PreparedSurfaceLease,
@@ -195,6 +202,7 @@ impl SurfaceLeaseRegistry {
 
     /// Abandons a preparation failure without disturbing the last routable
     /// surface lease for the window and viewport.
+    /// 中文：替换候选取消会恢复暂存的 Active；首次候选取消则同时释放 entry 和 viewport 所有权。
     pub(crate) fn cancel(
         &mut self,
         prepared: &PreparedSurfaceLease,
@@ -276,6 +284,7 @@ impl SurfaceLeaseRegistry {
     /// Begins retirement for every active lease associated with one window
     /// generation. The all-or-nothing preflight rejects a pending replacement
     /// before any viewport route becomes unavailable.
+    /// 中文：单窗口入口也先完成整组预检再统一撤销路由，因此一个 viewport 正在准备或清理时不会只撤掉同窗的一部分。
     pub(crate) fn begin_retire_window(
         &mut self,
         window: WindowId,
@@ -288,6 +297,7 @@ impl SurfaceLeaseRegistry {
     /// native window route. This is the surface-only half of suspend and
     /// `destroy_surfaces`; the caller releases graphics resources after the
     /// returned leases become non-routable.
+    /// 中文：全局 surface 清理和挂起会复用此计划；先去重窗口并按 generation 身份排序，避免依赖 HashMap 的遍历顺序。
     pub(crate) fn plan_all_retirement(
         &self,
     ) -> Result<SurfaceLeaseRetirementPlan, SurfaceLeaseError> {
@@ -302,16 +312,13 @@ impl SurfaceLeaseRegistry {
                 });
             }
         }
+        // entries.len() 是去重集合的安全容量上界，避免随每个新窗口反复扩容。
         let mut unique_windows = HashSet::new();
+        unique_windows
+            .try_reserve(self.entries.len())
+            .map_err(|_| SurfaceLeaseError::CapacityExhausted)?;
         for key in self.entries.keys() {
-            if unique_windows.contains(&key.window) {
-                continue;
-            }
-            unique_windows
-                .try_reserve(1)
-                .map_err(|_| SurfaceLeaseError::CapacityExhausted)?;
-            let inserted = unique_windows.insert(key.window);
-            debug_assert!(inserted);
+            unique_windows.insert(key.window);
         }
         let mut windows = Vec::new();
         windows
@@ -327,6 +334,7 @@ impl SurfaceLeaseRegistry {
     /// Collects every active lease in child-first window order before any
     /// route changes. The plan is intentionally opaque so only the registry
     /// can commit its already-validated state transition.
+    /// 中文：宿主先给出关闭顺序；完整预检目标集合，拒绝其中 Preparing/Retiring 或双索引不一致，再只收集 Active 并按该顺序及 viewport 排序。
     pub(crate) fn plan_window_retirement(
         &self,
         windows: &[WindowId],
@@ -376,6 +384,7 @@ impl SurfaceLeaseRegistry {
             }
         }
 
+        // 同序保留两份：一份交给图形/原生所有者清理，一份用于提交时核对并更新 registry；到这里才开始构造完整计划。
         let mut retiring_leases = Vec::new();
         retiring_leases
             .try_reserve(active_count)
@@ -411,6 +420,7 @@ impl SurfaceLeaseRegistry {
         &mut self,
         plan: SurfaceLeaseRetirementPlan,
     ) -> Vec<SurfaceLease> {
+        // 调用方须在预检到提交期间持有 registry 外层互斥锁；计划若已与当前状态分叉，说明事务不变量被破坏。
         let (retiring_leases, registry_leases) = plan.into_parts();
         debug_assert_eq!(retiring_leases.len(), registry_leases.len());
         for (retiring_lease, registry_lease) in retiring_leases.iter().zip(&registry_leases) {
@@ -441,6 +451,7 @@ impl SurfaceLeaseRegistry {
 
     /// Removes a lease only after the graphics owner has dropped its native
     /// surface and no future submission can use it.
+    /// 中文：图形所有者确认 surface 已释放且不再提交后才回执；只有精确匹配 Retiring 的 lease 才会解除 viewport 绑定。
     pub(crate) fn complete_retirement(
         &mut self,
         lease: &SurfaceLease,
@@ -470,6 +481,7 @@ impl SurfaceLeaseRegistry {
     }
 
     pub(crate) fn active(&self, lease: &SurfaceLease) -> Result<(), SurfaceLeaseError> {
+        // 替换期间的旧 Active 仍可路由；新 candidate 和 Retiring 中的精确 lease 都不能通过此检查。
         let key = SurfaceLeaseKey::from_lease(lease);
         self.ensure_viewport_binding(key)?;
         let Some(entry) = self.entries.get(&key) else {
@@ -500,6 +512,7 @@ impl SurfaceLeaseRegistry {
         }
     }
 
+    // Preparing(旧 Active + 新 candidate) 同时计入两道门槛，驱动挂起前还会分别确认三种状态计数均为零。
     pub(crate) fn active_count(&self) -> usize {
         self.entries
             .values()
@@ -522,6 +535,7 @@ impl SurfaceLeaseRegistry {
     }
 
     fn next_generation(&mut self) -> Result<SurfaceLeaseGeneration, SurfaceLeaseError> {
+        // generation 在整个 registry 内单调递增，跨窗口复用或 replacement 也不会重新授权旧 token。
         let next = self
             .last_generation
             .checked_add(1)
@@ -533,6 +547,7 @@ impl SurfaceLeaseRegistry {
     }
 
     fn ensure_viewport_binding(&self, key: SurfaceLeaseKey) -> Result<(), SurfaceLeaseError> {
+        // 每次按 lease 操作前互证反向索引，防止 entry 的局部键掩盖 viewport 所属已经漂移。
         if self.viewport_to_window.get(&key.viewport).copied() != Some(key.window) {
             return Err(SurfaceLeaseError::InconsistentViewportBinding {
                 window: key.window,
@@ -543,6 +558,7 @@ impl SurfaceLeaseRegistry {
     }
 }
 
+// entry 由窗口代次和 viewport 共同定位；lease 自身的 generation 再区分同一绑定上的先后候选。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct SurfaceLeaseKey {
     window: WindowId,
@@ -565,6 +581,7 @@ impl SurfaceLeaseKey {
     }
 }
 
+// 首次准备是 Preparing(active=None)；替换暂存旧 Active；发布转为新 Active，退休则保留绑定直到清理回执。
 enum SurfaceLeaseEntry {
     Active {
         lease: SurfaceLease,
@@ -579,6 +596,7 @@ enum SurfaceLeaseEntry {
 }
 
 impl SurfaceLeaseEntry {
+    // 统计仍可路由的代次时，Preparing 只暴露被暂存的旧 lease，不暴露 candidate。
     const fn active(&self) -> Option<&SurfaceLease> {
         match self {
             Self::Active { lease } => Some(lease),

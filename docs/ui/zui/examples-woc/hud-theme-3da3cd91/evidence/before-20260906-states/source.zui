@@ -1,0 +1,222 @@
+[asset]
+kind = "style"
+id = "res://ui/hud/hud_theme.zui"
+version = 2
+display_name = "World of ClaudeCraft HUD Theme"
+
+[imports]
+widgets = []
+styles = ["res://ui/shell/shell_theme.zui"]
+
+[tokens]
+woc_hud_panel = "#11101dee"
+woc_hud_panel_soft = "#17151ecc"
+woc_hud_rail = "#09090fcc"
+woc_hud_slot = "#17151f"
+woc_hud_slot_border = "#5b4618"
+woc_hud_health = "#3fa65a"
+woc_hud_absorb = "#d9e4f2aa"
+woc_hud_mana = "#2476d3"
+woc_hud_rage = "#a63838"
+woc_hud_energy = "#d5c536"
+woc_hud_cooldown = "#000000b8"
+woc_hud_danger = "#c73535"
+woc_hud_touch = "#282a3b"
+woc_hud_touch_border = "#8a6c2a"
+woc_hud_vignette = "#8d101066"
+woc_hud_focus = "#f7d45c"
+
+[[stylesheets]]
+id = "woc-hud"
+
+[[stylesheets.rules]]
+selector = ".woc-hud-root"
+set = { self = { background = { color = "#00000000" }, foreground = { color = "$woc_text" } } }
+
+[[stylesheets.rules]]
+selector = ".woc-live-region"
+set = { self = { foreground = { color = "#00000000" }, font = { size = 1.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-unit-frame"
+set = { self = { background = { color = "$woc_hud_panel" }, foreground = { color = "$woc_text" }, border = { color = "$woc_border", width = 2.0, radius = 6.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-unit-frame-target"
+set = { self = { border = { color = "$woc_gold_dim", width = 2.0, radius = 6.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-unit-frame-dead"
+set = { self = { foreground = { color = "$woc_text_muted" }, border = { color = "$woc_hud_danger", width = 2.0, radius = 6.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-portrait"
+set = { self = { background = { color = "$woc_hud_panel_soft" }, border = { color = "$woc_border", width = 3.0, radius = 31.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-level-chip"
+set = { self = { background = { color = "$woc_hud_slot" }, foreground = { color = "$woc_gold" }, border = { color = "$woc_gold_dim", width = 2.0, radius = 12.0 }, font = { size = 11.0, weight = 700.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-unit-name"
+set = { self = { foreground = { color = "$woc_text" }, font = { size = 13.0, weight = 700.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-bar-rail"
+set = { self = { background = { color = "$woc_hud_rail" }, border = { color = "$woc_border_soft", width = 1.0, radius = 3.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-health-fill"
+set = { self = { background = { color = "$woc_hud_health" }, border = { radius = 2.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-absorb-fill"
+set = { self = { background = { color = "$woc_hud_absorb" }, border = { radius = 2.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-resource-fill"
+set = { self = { background = { color = "$woc_hud_mana" }, border = { radius = 2.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-resource-rage"
+set = { self = { background = { color = "$woc_hud_rage" } } }
+
+[[stylesheets.rules]]
+selector = ".woc-resource-energy"
+set = { self = { background = { color = "$woc_hud_energy" } } }
+
+[[stylesheets.rules]]
+selector = ".woc-bar-text"
+set = { self = { foreground = { color = "#ffffff" }, font = { size = 10.0, weight = 700.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-cast-fill"
+set = { self = { background = { color = "$woc_gold_dim" }, border = { radius = 2.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-xp-fill"
+set = { self = { background = { color = "#8e3bc1" }, border = { radius = 2.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-xp-rested"
+set = { self = { background = { color = "#438ed0aa" }, border = { radius = 2.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-action-bar"
+set = { self = { background = { color = "$woc_hud_panel" }, border = { color = "$woc_border_soft", width = 1.0, radius = 7.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot"
+set = { self = { background = { color = "$woc_hud_slot" }, foreground = { color = "$woc_text" }, border = { color = "$woc_hud_slot_border", width = 2.0, radius = 6.0 }, font = { size = 10.0, weight = 700.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot:hover"
+set = { self = { border = { color = "$woc_gold", width = 2.0, radius = 6.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot:focus"
+set = { self = { border = { color = "$woc_hud_focus", width = 3.0, radius = 6.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot:disabled"
+set = { self = { background = { color = "$woc_hud_rail" }, foreground = { color = "$woc_text_muted" }, border = { color = "$woc_border_soft", width = 1.0, radius = 6.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot-queued"
+set = { self = { border = { color = "$woc_gold", width = 3.0, radius = 6.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot-out-of-range"
+set = { self = { border = { color = "$woc_hud_danger", width = 2.0, radius = 6.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot-proc"
+set = { self = { foreground = { color = "$woc_gold" }, border = { color = "$woc_gold", width = 3.0, radius = 6.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-cooldown-overlay"
+set = { self = { background = { color = "$woc_hud_cooldown" }, border = { radius = 5.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-keybind"
+set = { self = { foreground = { color = "$woc_text_muted" }, font = { size = 9.0, weight = 700.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-tracker"
+set = { self = { background = { color = "$woc_hud_panel_soft" }, foreground = { color = "$woc_text" }, border = { color = "$woc_border_soft", width = 1.0, radius = 6.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-minimap"
+set = { self = { background = { color = "#18362f" }, border = { color = "$woc_gold_dim", width = 3.0, radius = 8.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-touch-action"
+set = { self = { background = { color = "$woc_hud_touch" }, foreground = { color = "$woc_text" }, border = { color = "$woc_hud_touch_border", width = 2.0, radius = 8.0 }, font = { size = 11.0, weight = 700.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-touch-action:focus"
+set = { self = { border = { color = "$woc_hud_focus", width = 3.0, radius = 8.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-touch-zone"
+set = { self = { background = { color = "#20222a22" }, border = { color = "#a6b2c244", width = 1.0, radius = 8.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-pause-scrim"
+set = { self = { background = { color = "#05050acc" } } }
+
+[[stylesheets.rules]]
+selector = ".woc-pause-menu"
+set = { self = { background = { color = "$woc_hud_panel" }, foreground = { color = "$woc_text" }, border = { color = "$woc_border", width = 2.0, radius = 8.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-pause-action"
+set = { self = { background = { color = "$woc_hud_panel_soft" }, foreground = { color = "$woc_text" }, border = { color = "$woc_border_soft", width = 1.0, radius = 5.0 }, font = { size = 14.0, weight = 700.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-pause-action:focus"
+set = { self = { border = { color = "$woc_hud_focus", width = 2.0, radius = 5.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-low-health-vignette"
+set = { self = { background = { color = "$woc_hud_vignette" } } }
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-window"
+set = { self = { background = { color = "$woc_hud_panel" }, foreground = { color = "$woc_text" }, border = { color = "$woc_gold_dim", width = 2.0, radius = 8.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-ante"
+set = { self = { background = { color = "$woc_hud_panel_soft" }, foreground = { color = "$woc_text" }, border = { color = "$woc_hud_slot_border", width = 2.0, radius = 6.0 }, font = { size = 13.0, weight = 700.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-ante:focus"
+set = { self = { border = { color = "$woc_hud_focus", width = 3.0, radius = 6.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-board"
+set = { self = { background = { color = "$woc_hud_rail" }, border = { color = "$woc_hud_slot_border", width = 2.0, radius = 6.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-timer"
+set = { self = { background = { color = "$woc_hud_rail" }, border = { color = "$woc_border_soft", width = 1.0, radius = 4.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-timer-fill"
+set = { self = { background = { color = "$woc_gold" }, border = { radius = 3.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-action"
+set = { self = { background = { color = "$woc_hud_slot" }, foreground = { color = "$woc_text" }, border = { color = "$woc_hud_slot_border", width = 2.0, radius = 5.0 }, font = { size = 12.0, weight = 700.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-action:focus"
+set = { self = { border = { color = "$woc_hud_focus", width = 3.0, radius = 5.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-feedback"
+set = { self = { foreground = { color = "$woc_gold" }, font = { size = 13.0, weight = 700.0 } } }
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-coffer"
+set = { self = { foreground = { color = "$woc_gold" }, font = { size = 13.0, weight = 700.0 } } }

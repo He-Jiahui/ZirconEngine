@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use std::sync::atomic::Ordering;
+use std::sync::Arc;
 use std::time::Instant;
 
 use crate::core::runtime::{TaskCancellationPolicy, TaskDescriptor, TaskId, TaskPoolKind};
@@ -13,6 +13,7 @@ use super::state::take_task_id;
 use super::worker::run_manifest_io_task;
 
 impl RenderArtifactManifestLoaderInner {
+    // 按 frontier 优先级提交 I/O；提交失败会恢复该项，已提交任务使用 CancelOnDrop 配合 owner 关闭时的条目取消。
     pub(super) fn dispatch_io(
         self: &Arc<Self>,
         budget: RenderArtifactManifestIoDispatchBudget,

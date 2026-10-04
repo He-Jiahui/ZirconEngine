@@ -1,3 +1,4 @@
+// 材质和 deferred shader 共用的阴影 include；slot 标志、级联顺序与 Rust atlas/plan 的数据布局一致。
 struct ZrShadowSlot {
     view_proj: mat4x4<f32>,
     atlas_scale_bias: vec4<f32>,

@@ -25,8 +25,6 @@ related_code:
   - zircon_runtime/src/text/layout/rich_vertical/tests.rs
   - zircon_runtime/src/ui/text/layout_engine/wrapping.rs
   - zircon_runtime/src/ui/text/layout_engine/wrapping/tests.rs
-  - zircon_runtime/src/ui/text/layout_engine/rich_inline.rs
-  - zircon_runtime/src/ui/text/layout_engine/rich_inline_vertical.rs
   - zircon_runtime/src/ui/text/layout_engine/tests/soft_hyphen.rs
   - zircon_runtime/src/ui/text/layout_engine
   - zircon_runtime/src/text/rich

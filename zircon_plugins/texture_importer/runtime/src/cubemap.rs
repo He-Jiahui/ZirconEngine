@@ -1,16 +1,16 @@
-use image::{Rgba, RgbaImage, imageops};
+use image::{imageops, Rgba, RgbaImage};
 use serde::Deserialize;
 use zircon_runtime::asset::{
-    AssetImportContext, AssetImportError, AssetImportOutcome, CUBEMAP_FACE_COUNT, CubemapAsset,
-    CubemapSourceLayout, TextureAsset, TextureAssetDescriptor, is_zcube_source_cubemap_bytes,
-    texture_asset_from_encoded_source_cubemap_zcube,
+    is_zcube_source_cubemap_bytes, texture_asset_from_encoded_source_cubemap_zcube,
+    AssetImportContext, AssetImportError, AssetImportOutcome, CubemapAsset, CubemapSourceLayout,
+    TextureAsset, TextureAssetDescriptor, CUBEMAP_FACE_COUNT,
 };
 use zircon_runtime::core::framework::render::{
-    CubemapFace, RenderImageDimension, cubemap_texel_direction, equirect_uv_from_direction,
+    cubemap_texel_direction, equirect_uv_from_direction, CubemapFace, RenderImageDimension,
 };
 
 use crate::importers::{apply_texture_import_settings, texture_import_outcome};
-use crate::manifest_source::{DecodedManifestImage, decode_manifest_image};
+use crate::manifest_source::{decode_manifest_image, DecodedManifestImage};
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -230,7 +230,6 @@ fn enforce_cube_descriptor(texture: TextureAsset) -> TextureAsset {
     let mut descriptor = texture.texture_descriptor();
     descriptor.dimension = RenderImageDimension::Cube;
     descriptor.depth_or_array_layers = CUBEMAP_FACE_COUNT as u32;
-    descriptor.array_layer_count = CUBEMAP_FACE_COUNT as u32;
     texture.with_descriptor(descriptor)
 }
 
@@ -239,7 +238,7 @@ fn cubemap_face_size(context: &AssetImportContext, source_height: u32) -> u32 {
         source_height,
     );
     context
-        .import_settings
+        .import_settings()
         .get("cubemap_face_size")
         .and_then(toml::Value::as_integer)
         .and_then(|value| u32::try_from(value).ok())

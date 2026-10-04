@@ -6,6 +6,7 @@ use zr_rhi_wgpu::WgpuTextureUploadBatch;
 use super::super::super::ViewportIconSource;
 use super::super::{icon_entry::IconEntry, icon_slot::icon_slot};
 
+/// 固定图标集合的延迟资源缓存；不存在的素材也保留结果，避免每帧重复解码或查找。
 pub(crate) struct ViewportIconAtlas {
     pub(super) source: Arc<dyn ViewportIconSource>,
     pub(super) entries: Vec<IconEntry>,
@@ -19,6 +20,7 @@ impl ViewportIconAtlas {
         }
     }
 
+    /// 判断本帧是否可使用图标绑定，从而关闭几何回退；准备态仍需同帧上传完成后再绘制。
     pub(crate) fn has(&self, id: ViewportIconId) -> bool {
         matches!(
             self.entries[icon_slot(id)],
@@ -26,6 +28,7 @@ impl ViewportIconAtlas {
         )
     }
 
+    /// 每次帧准备都重放未确认的上传债务；失败帧不消耗债务，后续帧可以重试。
     pub(crate) fn append_pending_uploads(&self, texture_uploads: &mut WgpuTextureUploadBatch) {
         for entry in &self.entries {
             if let IconEntry::Pending { upload, .. } = entry {
@@ -34,6 +37,7 @@ impl ViewportIconAtlas {
         }
     }
 
+    /// 仅在包含图标上传的帧提交成功后调用；此确认会停止后续帧重放，不能在准备阶段调用。
     pub(crate) fn commit_pending_uploads(&mut self) -> u32 {
         let mut committed = 0_u32;
         for entry in &mut self.entries {
@@ -51,24 +55,5 @@ impl ViewportIconAtlas {
 }
 
 #[cfg(test)]
-mod tests {
-    const SOURCE: &str = include_str!("declaration.rs");
-
-    fn production_source() -> &'static str {
-        SOURCE
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("viewport icon atlas source should retain a test-module boundary")
-    }
-
-    #[test]
-    fn viewport_icon_upload_debt_is_replayed_then_committed_from_fixed_slots() {
-        let source = production_source();
-
-        assert!(source.contains("entries: vec![IconEntry::Unloaded; 2]"));
-        assert!(source.contains("for entry in &self.entries"));
-        assert!(source.contains("texture_uploads.push(upload.clone())"));
-        assert!(source.contains("IconEntry::Pending { sprite, .. }"));
-        assert!(source.contains("*entry = IconEntry::Ready(sprite)"));
-    }
-}
+#[path = "tests/declaration.rs"]
+mod tests;

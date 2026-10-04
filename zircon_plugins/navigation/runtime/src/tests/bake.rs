@@ -1,13 +1,14 @@
 use serde_json::json;
 use std::time::{Duration, Instant};
 use zircon_runtime::core::framework::navigation::{
-    NavMeshBakeRequest, NavPathQuery, NavPathStatus, NavigationAreaSettings, NavigationManager,
-    AREA_JUMP, NAV_MESH_MODIFIER_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE,
-    NAV_MESH_OFF_MESH_BRIDGE_COMPONENT_TYPE, NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE,
-    NAV_MESH_SURFACE_COMPONENT_TYPE,
+    NavMeshBakeDiagnosticSeverity, NavMeshBakeRequest, NavPathQuery, NavPathStatus,
+    NavigationAreaSettings, NavigationManager, AREA_JUMP, NAV_MESH_MODIFIER_COMPONENT_TYPE,
+    NAV_MESH_OBSTACLE_COMPONENT_TYPE, NAV_MESH_OFF_MESH_BRIDGE_COMPONENT_TYPE,
+    NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE, NAV_MESH_SURFACE_COMPONENT_TYPE,
 };
 use zircon_runtime::core::math::{Real, Transform, Vec3};
 use zircon_runtime::scene::components::NodeKind;
+use zircon_runtime::scene::navigation::SceneNavigationRuntime;
 use zircon_runtime::scene::world::World;
 
 use crate::test_support::navigation_manager;
@@ -17,7 +18,7 @@ use crate::{navigation_component_descriptors, NavMeshBakeTaskState, NavMeshDirty
 fn bake_surface_accepts_typed_resource_json_from_dynamic_properties() {
     let manager = navigation_manager();
     let mut world = World::new();
-    let entity = world.spawn_node(NodeKind::Cube);
+    let entity = world.spawn_node(NodeKind::Cube).unwrap();
     world
         .register_component_type(navigation_component_descriptors()[0].clone())
         .unwrap();
@@ -51,8 +52,8 @@ fn bake_surface_accepts_typed_resource_json_from_dynamic_properties() {
 fn bake_surface_ignores_script_only_empty_nodes() {
     let manager = navigation_manager();
     let mut world = World::new();
-    let surface = world.spawn_node(NodeKind::Cube);
-    let empty = world.spawn_node(NodeKind::Empty);
+    let surface = world.spawn_node(NodeKind::Cube).unwrap();
+    let empty = world.spawn_node(NodeKind::Empty).unwrap();
     world
         .register_component_type(navigation_component_descriptors()[0].clone())
         .unwrap();
@@ -79,14 +80,72 @@ fn bake_surface_ignores_script_only_empty_nodes() {
 }
 
 #[test]
+fn bake_surface_without_source_geometry_publishes_no_walkable_mesh() {
+    let manager = navigation_manager();
+    let mut world = World::empty();
+    let surface = world.spawn_node(NodeKind::Empty).unwrap();
+    world
+        .register_component_type(navigation_component_descriptors()[0].clone())
+        .unwrap();
+    world
+        .set_dynamic_component(
+            surface,
+            NAV_MESH_SURFACE_COMPONENT_TYPE,
+            json!({
+                "enabled": true,
+                "volume_size": [6.0, 2.0, 6.0]
+            }),
+        )
+        .unwrap();
+
+    let report = manager
+        .bake_surface(&world, NavMeshBakeRequest::default())
+        .unwrap();
+
+    assert_eq!(report.surfaces, 1);
+    assert_eq!(report.source_triangles, 0);
+    assert_eq!(report.baked_vertices, 0);
+    assert_eq!(report.baked_polygons, 0);
+    assert_eq!(report.tiles, 0);
+    let asset = report
+        .asset
+        .as_ref()
+        .expect("a source-less bake should publish an explicit empty asset");
+    assert!(asset.vertices.is_empty());
+    assert!(asset.indices.is_empty());
+    assert!(asset.polygons.is_empty());
+    assert!(asset.tiles.is_empty());
+
+    let published = manager.generated_bake_snapshot(Some(surface));
+    let published_asset = published
+        .asset
+        .as_ref()
+        .expect("the generated snapshot should contain the bake result");
+    assert!(published_asset.vertices.is_empty());
+    assert!(published_asset.indices.is_empty());
+    assert!(published_asset.polygons.is_empty());
+    assert!(published_asset.tiles.is_empty());
+    assert!(report.diagnostics.iter().any(|diagnostic| {
+        diagnostic.severity == NavMeshBakeDiagnosticSeverity::Warning
+            && diagnostic.entity == Some(surface)
+            && diagnostic
+                .message
+                .contains("no render mesh or collider bake source was collected")
+            && diagnostic
+                .message
+                .contains("no walkable polygons were generated")
+    }));
+}
+
+#[test]
 fn bake_surface_applies_modifier_area_and_embeds_offmesh_links() {
     let manager = navigation_manager();
     let mut world = World::new();
     for descriptor in navigation_component_descriptors() {
         world.register_component_type(descriptor).unwrap();
     }
-    let surface = world.spawn_node(NodeKind::Cube);
-    let link = world.spawn_node(NodeKind::Cube);
+    let surface = world.spawn_node(NodeKind::Cube).unwrap();
+    let link = world.spawn_node(NodeKind::Cube).unwrap();
     world
         .update_transform(link, Transform::from_translation(Vec3::new(4.0, 0.0, 0.0)))
         .unwrap();
@@ -146,8 +205,8 @@ fn bake_surface_expands_offmesh_bridge_lanes_and_tracks_stats() {
     for descriptor in navigation_component_descriptors() {
         world.register_component_type(descriptor).unwrap();
     }
-    let surface = world.spawn_node(NodeKind::Cube);
-    let bridge = world.spawn_node(NodeKind::Cube);
+    let surface = world.spawn_node(NodeKind::Cube).unwrap();
+    let bridge = world.spawn_node(NodeKind::Cube).unwrap();
     world
         .set_dynamic_component(
             surface,
@@ -210,8 +269,8 @@ fn bake_surface_respects_disabled_link_generation_and_settings_hash() {
     for descriptor in navigation_component_descriptors() {
         world.register_component_type(descriptor).unwrap();
     }
-    let surface = world.spawn_node(NodeKind::Cube);
-    let link = world.spawn_node(NodeKind::Cube);
+    let surface = world.spawn_node(NodeKind::Cube).unwrap();
+    let link = world.spawn_node(NodeKind::Cube).unwrap();
     world
         .set_dynamic_component(
             surface,
@@ -270,8 +329,8 @@ fn carved_obstacle_removes_static_bake_source() {
     for descriptor in navigation_component_descriptors() {
         world.register_component_type(descriptor).unwrap();
     }
-    let surface = world.spawn_node(NodeKind::Cube);
-    let obstacle = world.spawn_node(NodeKind::Cube);
+    let surface = world.spawn_node(NodeKind::Cube).unwrap();
+    let obstacle = world.spawn_node(NodeKind::Cube).unwrap();
     world
         .set_dynamic_component(surface, NAV_MESH_SURFACE_COMPONENT_TYPE, json!({}))
         .unwrap();
@@ -307,8 +366,8 @@ fn bake_input_falls_back_to_render_mesh_without_physics() {
     for descriptor in navigation_component_descriptors() {
         world.register_component_type(descriptor).unwrap();
     }
-    let surface = world.spawn_node(NodeKind::Empty);
-    world.spawn_node(NodeKind::Cube);
+    let surface = world.spawn_node(NodeKind::Empty).unwrap();
+    world.spawn_node(NodeKind::Cube).unwrap();
     world
         .set_dynamic_component(
             surface,
@@ -338,8 +397,8 @@ fn golden_level_bake_then_path_length_within_tolerance() {
     for descriptor in navigation_component_descriptors() {
         world.register_component_type(descriptor).unwrap();
     }
-    let surface = world.spawn_node(NodeKind::Empty);
-    world.spawn_node(NodeKind::Cube);
+    let surface = world.spawn_node(NodeKind::Empty).unwrap();
+    world.spawn_node(NodeKind::Cube).unwrap();
     world
         .set_dynamic_component(
             surface,
@@ -370,9 +429,9 @@ fn modifier_volume_marks_area_id_in_polymesh() {
     for descriptor in navigation_component_descriptors() {
         world.register_component_type(descriptor).unwrap();
     }
-    let surface = world.spawn_node(NodeKind::Empty);
-    let source = world.spawn_node(NodeKind::Cube);
-    let modifier_volume = world.spawn_node(NodeKind::Empty);
+    let surface = world.spawn_node(NodeKind::Empty).unwrap();
+    let source = world.spawn_node(NodeKind::Cube).unwrap();
+    let modifier_volume = world.spawn_node(NodeKind::Empty).unwrap();
     world
         .update_transform(
             source,
@@ -656,7 +715,7 @@ pub(super) fn tiled_test_world(cube_count: usize) -> World {
     for descriptor in navigation_component_descriptors() {
         world.register_component_type(descriptor).unwrap();
     }
-    let surface = world.spawn_node(NodeKind::Empty);
+    let surface = world.spawn_node(NodeKind::Empty).unwrap();
     world
         .set_dynamic_component(
             surface,
@@ -669,7 +728,7 @@ pub(super) fn tiled_test_world(cube_count: usize) -> World {
         .unwrap();
     let offset = cube_count as Real * 0.5;
     for index in 0..cube_count {
-        let cube = world.spawn_node(NodeKind::Cube);
+        let cube = world.spawn_node(NodeKind::Cube).unwrap();
         world
             .update_transform(
                 cube,

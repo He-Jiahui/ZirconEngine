@@ -3,7 +3,11 @@ use zircon_runtime_interface::ui::component::{
 };
 
 #[cfg(test)]
+#[path = "overlay/tests/borrowed_confirm_action_tests.rs"]
 mod borrowed_confirm_action_tests;
+#[cfg(test)]
+#[path = "overlay/tests/borrowed_state_key_tests.rs"]
+mod borrowed_state_key_tests;
 
 pub(super) fn open_popup(
     state: &mut UiComponentState,
@@ -21,8 +25,8 @@ pub(super) fn open_popup_at(
     y: f64,
 ) -> Result<(), UiComponentEventError> {
     open_popup(state, descriptor)?;
-    super::set_value(state, "popup_anchor_x".to_string(), UiValue::Float(x));
-    super::set_value(state, "popup_anchor_y".to_string(), UiValue::Float(y));
+    set_overlay_value(state, "popup_anchor_x", UiValue::Float(x));
+    set_overlay_value(state, "popup_anchor_y", UiValue::Float(y));
     Ok(())
 }
 
@@ -38,6 +42,7 @@ pub(super) fn close_popup(
     Ok(())
 }
 
+// 返回 true 表示对话框已消费取消动作；禁用 Escape 或要求明确确认时仍保持弹层打开。
 pub(super) fn apply_cancel(
     state: &mut UiComponentState,
     descriptor: &UiComponentDescriptor,
@@ -72,13 +77,9 @@ pub(super) fn apply_commit(
         return Ok(true);
     }
 
-    super::set_value(
-        state,
-        "dialog_action_id".to_string(),
-        UiValue::String(action_id),
-    );
+    set_overlay_value(state, "dialog_action_id", UiValue::String(action_id));
     if descriptor.prop("confirmed").is_some() || state.values.contains_key("confirmed") {
-        super::set_value(state, "confirmed".to_string(), UiValue::Bool(confirmed));
+        set_overlay_value(state, "confirmed", UiValue::Bool(confirmed));
     }
     close_popup_unchecked(state, descriptor);
     Ok(true)
@@ -92,8 +93,17 @@ fn close_popup_unchecked(state: &mut UiComponentState, descriptor: &UiComponentD
 fn set_open_values(state: &mut UiComponentState, descriptor: &UiComponentDescriptor, open: bool) {
     for property in ["popup_open", "popupOpen", "open"] {
         if descriptor.prop(property).is_some() || state.values.contains_key(property) {
-            super::set_value(state, property.to_string(), UiValue::Bool(open));
+            set_overlay_value(state, property, UiValue::Bool(open));
         }
+    }
+}
+
+fn set_overlay_value(state: &mut UiComponentState, property: &'static str, value: UiValue) {
+    super::clear_reference_source(state, property);
+    if let Some(existing) = state.values.get_mut(property) {
+        *existing = value;
+    } else {
+        state.values.insert(property.to_owned(), value);
     }
 }
 

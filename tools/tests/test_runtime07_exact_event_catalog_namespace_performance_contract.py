@@ -8,7 +8,7 @@ SOURCE = (
     / "zircon_runtime/src/plugin/extension_registry/register/event_registration.rs"
 )
 
-
+# 读取实现源码约束精确事件目录命名空间：命名空间预分配插件 ID 与后缀，并命名空间路径不使用格式器增长。
 class ExactEventCatalogNamespacePerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

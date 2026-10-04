@@ -1,3 +1,5 @@
+//! 视口指针模块借 UI 表面粗筛并交 Runtime 统一解析，编辑器保留几何呈现与 owner 映射，不另建输入权威。
+
 mod candidates;
 mod constants;
 mod local_handle_route;
@@ -5,6 +7,7 @@ mod overlay_router;
 mod precision;
 mod runtime_picking_adapter;
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 mod viewport_pointer_dispatch;
 mod viewport_pointer_layout;

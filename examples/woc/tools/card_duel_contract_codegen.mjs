@@ -1,3 +1,6 @@
+// 调用端：npm run generate:card-duel-contract (tools/package.json)；职责：把卡牌决斗手牌与社交规则投影为运行时标量约定。
+// 输入边界：src/sim/minigames/card_hand.ts, src/sim/social/card_duel.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

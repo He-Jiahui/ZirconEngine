@@ -3,6 +3,7 @@
 // ordering, while standalone scenario drivers can supply their own stream.
 var rng = %import("kernel/rng");
 
+/// 有意推进caller流并丢弃返回值，用于夹具复现抽取轨迹；不是peek。读取drawCount/digest/state不推进流，多系统必须共用原始流与既定调用顺序。
 pub consume(stream: rng.Mulberry32, count: int, required: bool): void {
     if (!required || count < 0) {
         throw "woc M7 RNG observation count is invalid";

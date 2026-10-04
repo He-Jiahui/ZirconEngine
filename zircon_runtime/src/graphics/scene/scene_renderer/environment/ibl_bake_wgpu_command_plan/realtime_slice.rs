@@ -6,6 +6,8 @@ use crate::graphics::scene::scene_renderer::environment::ibl_bake_graph_plan::ib
 use crate::graphics::scene::scene_renderer::environment::ibl_bake_shader_plan::ibl_bake_pmrem_kernel_plan;
 use crate::graphics::scene::scene_renderer::environment::realtime_ibl_time_slice::RealtimeIblPrefilterDispatchSlice;
 
+/// 将调度器的 mip/面切片转换为无制品读回的实时 PMREM 命令。
+/// 越界返回 None；只有完整六面切片才允许末级一次计算并广播到所有面。
 pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_wgpu_prefilter_command_for_slice(
     request: &IblBakeArtifactRequest,
     slice: RealtimeIblPrefilterDispatchSlice,
@@ -34,4 +36,5 @@ pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_wgpu_prefilter_comman
 }
 
 #[cfg(test)]
+#[path = "realtime_slice/tests/cases.rs"]
 mod tests;

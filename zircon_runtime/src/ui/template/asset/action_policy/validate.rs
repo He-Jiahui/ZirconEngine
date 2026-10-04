@@ -4,6 +4,9 @@ use zircon_runtime_interface::ui::template::{
     UiActionPolicyReport, UiActionSideEffectClass, UiAssetDocument,
 };
 
+// TODO: [CR-UI-TEMPLATE-CONTRACT-0002] 确认宿主策略报告是否必须阻断被拒动作的运行时包；目前 compile_package_artifact 仍返回包含该诊断的产物，缺少消费端准入约定；后续核对打包与宿主执行入口。
+/// 为打包配置和编辑器预览汇总动作副作用诊断；调用方负责检查报告的准入结果。
+/// 有效路由与模板事件派发一致：嵌套动作路由优先于绑定上的备用路由。
 pub fn validate_document_action_policy(
     document: &UiAssetDocument,
     policy: &UiActionHostPolicy,
@@ -39,5 +42,5 @@ pub fn validate_document_action_policy(
 }
 
 #[cfg(test)]
-#[path = "validate/action_ref_tests.rs"]
+#[path = "validate/tests/action_ref_tests.rs"]
 mod action_ref_tests;

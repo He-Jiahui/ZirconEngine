@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对着色器预热的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 const STATUS: &str = "render_plan08_asset_root_resource_registry_revision_overlay_typecheck_passed_test_timeout_no_result";
@@ -9,13 +10,13 @@ fn runtime_15_shader_prewarm_resource_registry_revision_overlay_is_wired() {
     let run = read_runtime_src("bin/zircon_shader_prewarm/run.rs");
     let manifest = read_runtime_src("bin/zircon_shader_prewarm/manifest.rs");
     let registry = read_runtime_src("bin/zircon_shader_prewarm/manifest/resource_registry.rs");
-    let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests.rs");
+    let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/cases.rs");
     let manifest_registry_tests =
         read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/resource_registry.rs");
     let registry_tests =
-        read_runtime_src("bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs");
+        read_runtime_src("bin/zircon_shader_prewarm/manifest/resource_registry/tests/cases.rs");
     let build_tool = read_zircon_build_sources();
-    let build_prewarm = read_repo("tools/zircon_build_shader_prewarm.py");
+    let build_prewarm = read_repo("tools/build/zircon_build_shader_prewarm.py");
     let plan_08 = read_repo(
         "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
     );
@@ -114,7 +115,7 @@ fn runtime_15_shader_prewarm_resource_registry_revision_overlay_is_wired() {
             registry.as_str(),
         ),
         (
-            "bin/zircon_shader_prewarm/manifest/tests.rs",
+            "bin/zircon_shader_prewarm/manifest/tests/cases.rs",
             tests.as_str(),
         ),
         (
@@ -122,7 +123,7 @@ fn runtime_15_shader_prewarm_resource_registry_revision_overlay_is_wired() {
             manifest_registry_tests.as_str(),
         ),
         (
-            "bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs",
+            "bin/zircon_shader_prewarm/manifest/resource_registry/tests/cases.rs",
             registry_tests.as_str(),
         ),
     ] {

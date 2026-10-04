@@ -1,3 +1,4 @@
+// 核查 Zr 投影及测试入口中的自动攻击权威随机抽样。
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';

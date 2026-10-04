@@ -75,23 +75,26 @@ impl SessionGateway {
         let harvest = Self::required(self.api.harvest_operation, "runtime.operation.harvest")?;
         let mut output = ZrOwnedResultV2::empty();
         let status = unsafe { harvest(self.session, handle, &mut output) };
-        let result = self.decode_output(
-            status,
-            output,
-            RuntimeForeignOutputKind::OperationResult,
-            OPERATION_RESULT_OUTPUT_BUDGET,
-            "harvest runtime operation",
-            "free runtime operation output",
-            |result: &ZrRuntimeOperationResultV1| {
-                ensure_output_abi(
-                    result.abi_version,
-                    ZIRCON_RUNTIME_ABI_VERSION_V1,
-                    "runtime operation result",
-                )?;
-                ensure_operation_handle(result.handle, handle, "runtime operation result")?;
-                Ok::<usize, GatewayError>(operation_result_item_count(result))
-            },
-        )?;
+        // The status and output were produced above by this gateway's retained runtime provider.
+        let result = unsafe {
+            self.decode_output(
+                status,
+                output,
+                RuntimeForeignOutputKind::OperationResult,
+                OPERATION_RESULT_OUTPUT_BUDGET,
+                "harvest runtime operation",
+                "free runtime operation output",
+                |result: &ZrRuntimeOperationResultV1| {
+                    ensure_output_abi(
+                        result.abi_version,
+                        ZIRCON_RUNTIME_ABI_VERSION_V1,
+                        "runtime operation result",
+                    )?;
+                    ensure_operation_handle(result.handle, handle, "runtime operation result")?;
+                    Ok::<usize, GatewayError>(operation_result_item_count(result))
+                },
+            )?
+        };
         result.ok_or_else(|| GatewayError::Protocol {
             message: "harvest runtime operation returned an empty payload".to_owned(),
         })

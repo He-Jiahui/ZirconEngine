@@ -1,4 +1,4 @@
-use super::{RenderFixture, average_channel_in_region, centered_quad_transform, resource_handle};
+use super::{average_channel_in_region, centered_quad_transform, resource_handle, RenderFixture};
 use crate::asset::assets::AlphaMode;
 use crate::core::framework::render::{
     CorePipelineKind, GeometryExtract, GeometryPhaseInput, RenderFramework, RenderLayerSet,
@@ -8,7 +8,7 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{Transform, UVec2, Vec2, Vec4};
 use crate::core::resource::TextureMarker;
-use crate::scene::components::{Mobility, default_render_layer_mask};
+use crate::scene::components::{default_render_layer_mask, Mobility};
 
 #[test]
 fn transparent3d_product_interleaves_mesh_and_sprite_pixels_by_phase_sort_key() {
@@ -108,11 +108,9 @@ fn transparent3d_product_interleaves_mesh_and_sprite_pixels_by_phase_sort_key() 
             .with_anti_alias(false),
     );
     let stats = server.query_stats().unwrap();
-    assert!(
-        stats
-            .last_graph_executed_executor_ids
-            .contains(&"mesh.transparent".to_string())
-    );
+    assert!(stats
+        .last_graph_executed_executor_ids
+        .contains(&"mesh.transparent".to_string()));
 
     let sample_origin = UVec2::new(
         fixture.viewport_size.x / 2 - 12,
@@ -229,11 +227,9 @@ fn transparent3d_product_treats_world_space_ui_sprite_as_transparent_member() {
             .with_anti_alias(false),
     );
     let stats = server.query_stats().unwrap();
-    assert!(
-        stats
-            .last_graph_executed_executor_ids
-            .contains(&"mesh.transparent".to_string())
-    );
+    assert!(stats
+        .last_graph_executed_executor_ids
+        .contains(&"mesh.transparent".to_string()));
 
     let sample_origin = UVec2::new(
         fixture.viewport_size.x / 2 - 12,

@@ -1,0 +1,2196 @@
+penpot_dependency_sources = [ "examples/woc/assets/ui/shell/shell_theme.zui", "examples/woc/assets/ui/hud/hud_theme.zui" ]
+penpot_original_source = "[asset]\nkind = \"view\"\nid = \"res://ui/hud/lockpick_window.zui\"\nversion = 2\ndisplay_name = \"World of ClaudeCraft Tumbler's Path\"\n\n[imports]\nwidgets = []\nstyles = [\"res://ui/shell/shell_theme.zui\", \"res://ui/hud/hud_theme.zui\"]\nresources = []\n\n[root]\nnode = \"lockpick_root\"\n\n[nodes.lockpick_selector_title]\ncomponent = \"Label\"\ncontrol_id = \"LockpickSelectorTitle\"\nclasses = [\"woc-screen-title\"]\nprops = { text = \"Tumbler's Path\", overflow = \"elide\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 34.0, max = 40.0, stretch = \"Fixed\" } }\n\n[nodes.lockpick_selector_close]\ncomponent = \"Button\"\ncontrol_id = \"LockpickSelectorClose\"\nclasses = [\"woc-secondary-action\"]\nprops = { text = \"Close\" }\nlayout = { width = { min = 64.0, preferred = 72.0, max = 88.0, stretch = \"Fixed\" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocLockpick/SelectorClose\", event = \"Click\", route = \"woc.hud.lockpick.close\" }]\n\n[nodes.lockpick_selector_header]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"LockpickSelectorHeader\"\nlayout = { container = { kind = \"HorizontalBox\", gap = 10.0 }, width = { stretch = \"Stretch\" }, height = { min = 44.0, preferred = 48.0, max = 52.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"lockpick_selector_title\" }, { node = \"lockpick_selector_close\" }]\n\n[nodes.lockpick_selector_blurb]\ncomponent = \"Label\"\ncontrol_id = \"LockpickSelectorBlurb\"\nclasses = [\"woc-muted\"]\nprops = { text = \"Choose an ante. Every page must be cleared without a slip.\", overflow = \"wrap\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 44.0, preferred = 58.0, max = 76.0, stretch = \"Fixed\" } }\n\n[nodes.lockpick_coffer_hint]\ncomponent = \"Label\"\ncontrol_id = \"LockpickCofferHint\"\nclasses = [\"woc-lockpick-coffer\"]\nprops = { text = \"Only Premium can open this coffer.\", visibility = \"collapsed\", overflow = \"wrap\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 36.0, max = 52.0, stretch = \"Fixed\" } }\n\n[nodes.lockpick_ante_premium]\ncomponent = \"Button\"\ncontrol_id = \"LockpickAntePremium\"\nclasses = [\"woc-lockpick-ante\"]\nprops = { text = \"Premium\\n3 locks • 1 try • 3s\" }\nlayout = { width = { min = 128.0, preferred = 180.0, max = 240.0, stretch = \"Stretch\" }, height = { min = 88.0, preferred = 100.0, max = 112.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocLockpick/Engage/Premium\", event = \"Click\", route = \"woc.hud.lockpick.engage.1\" }]\n\n[nodes.lockpick_ante_medium]\ncomponent = \"Button\"\ncontrol_id = \"LockpickAnteMedium\"\nclasses = [\"woc-lockpick-ante\"]\nprops = { text = \"Medium\\n2 locks • 2 tries • 6s\" }\nlayout = { width = { min = 128.0, preferred = 180.0, max = 240.0, stretch = \"Stretch\" }, height = { min = 88.0, preferred = 100.0, max = 112.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocLockpick/Engage/Medium\", event = \"Click\", route = \"woc.hud.lockpick.engage.2\" }]\n\n[nodes.lockpick_ante_low]\ncomponent = \"Button\"\ncontrol_id = \"LockpickAnteLow\"\nclasses = [\"woc-lockpick-ante\"]\nprops = { text = \"Modest\\n1 lock • 3 tries • 9s\" }\nlayout = { width = { min = 128.0, preferred = 180.0, max = 240.0, stretch = \"Stretch\" }, height = { min = 88.0, preferred = 100.0, max = 112.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocLockpick/Engage/Low\", event = \"Click\", route = \"woc.hud.lockpick.engage.3\" }]\n\n[nodes.lockpick_ante_row]\ncomponent = \"Stack\"\ncontrol_id = \"LockpickAnteRow\"\nlayout = { container = { kind = \"Stack\", gap = 8.0 }, width = { stretch = \"Stretch\" }, height = { min = 88.0, preferred = 100.0, max = 224.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"lockpick_ante_premium\" }, { node = \"lockpick_ante_medium\" }, { node = \"lockpick_ante_low\" }]\n\n[nodes.lockpick_selector]\ncomponent = \"Container\"\ncontrol_id = \"LockpickSelector\"\nlayout = { container = { kind = \"VerticalBox\", gap = 10.0 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"lockpick_selector_header\" }, { node = \"lockpick_selector_blurb\" }, { node = \"lockpick_coffer_hint\" }, { node = \"lockpick_ante_row\" }]\n\n[nodes.lockpick_live_title]\ncomponent = \"Label\"\ncontrol_id = \"LockpickLiveTitle\"\nclasses = [\"woc-screen-title\"]\nprops = { text = \"Tumbler's Path\", overflow = \"elide\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 34.0, max = 40.0, stretch = \"Fixed\" } }\n\n[nodes.lockpick_abort]\ncomponent = \"Button\"\ncontrol_id = \"LockpickAbort\"\nclasses = [\"woc-secondary-action\"]\nprops = { text = \"Withdraw\" }\nlayout = { width = { min = 84.0, preferred = 96.0, max = 116.0, stretch = \"Fixed\" }, height = { min = 44.0, preferred = 44.0, max = 48.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocLockpick/Abort\", event = \"Click\", route = \"woc.hud.lockpick.abort\" }]\n\n[nodes.lockpick_live_header]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"LockpickLiveHeader\"\nlayout = { container = { kind = \"HorizontalBox\", gap = 10.0 }, width = { stretch = \"Stretch\" }, height = { min = 44.0, preferred = 48.0, max = 52.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"lockpick_live_title\" }, { node = \"lockpick_abort\" }]\n\n[nodes.lockpick_page]\ncomponent = \"Label\"\ncontrol_id = \"LockpickPageStatus\"\nclasses = [\"woc-section-title\"]\nprops = { text = \"Lock 1 / 3\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 24.0, preferred = 24.0, max = 28.0, stretch = \"Fixed\" } }\n\n[nodes.lockpick_tries]\ncomponent = \"Label\"\ncontrol_id = \"LockpickTriesStatus\"\nclasses = [\"woc-muted\"]\nprops = { text = \"1 / 1 tries\", text_align = \"right\" }\nlayout = { width = { min = 96.0, preferred = 116.0, max = 144.0, stretch = \"Fixed\" }, height = { min = 24.0, preferred = 24.0, max = 28.0, stretch = \"Fixed\" } }\n\n[nodes.lockpick_status]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"LockpickStatus\"\nlayout = { container = { kind = \"HorizontalBox\", gap = 8.0 }, width = { stretch = \"Stretch\" }, height = { min = 24.0, preferred = 24.0, max = 28.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"lockpick_page\" }, { node = \"lockpick_tries\" }]\n\n[nodes.lockpick_timer_fill]\ncomponent = \"Space\"\ncontrol_id = \"LockpickTimerFill\"\nclasses = [\"woc-lockpick-timer-fill\"]\nlayout = { width = { min = 0.0, preferred = 100.0, max = 100.0, stretch = \"Stretch\" }, height = { min = 8.0, preferred = 8.0, max = 8.0, stretch = \"Fixed\" } }\n\n[nodes.lockpick_timer]\ncomponent = \"Container\"\ncontrol_id = \"LockpickTimer\"\nclasses = [\"woc-lockpick-timer\"]\nlayout = { container = { kind = \"HorizontalBox\", gap = 0.0 }, width = { stretch = \"Stretch\" }, height = { min = 8.0, preferred = 8.0, max = 8.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"lockpick_timer_fill\" }]\n\n[nodes.lockpick_board_host]\ncomponent = \"GridGroup\"\ncontrol_id = \"LockpickTumblerTrackHost\"\nclasses = [\"woc-lockpick-board\"]\nprops = { dynamic_route_prefix = \"woc.hud.lockpick.track\" }\nlayout = { container = { kind = \"GridBox\", columns = 16, rows = 6, column_gap = 4.0, row_gap = 4.0 }, width = { stretch = \"Stretch\" }, height = { min = 184.0, preferred = 244.0, max = 340.0, stretch = \"Stretch\" } }\nchildren = []\n\n[nodes.lockpick_feedback]\ncomponent = \"Label\"\ncontrol_id = \"LockpickFeedback\"\nclasses = [\"woc-lockpick-feedback\"]\nprops = { text = \"\", visibility = \"collapsed\", overflow = \"wrap\", text_align = \"center\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 36.0, max = 52.0, stretch = \"Fixed\" } }\n\n[nodes.lockpick_action_hard_set]\ncomponent = \"Button\"\ncontrol_id = \"LockpickActionHardSet\"\nclasses = [\"woc-lockpick-action\"]\nprops = { text = \"Q  Hard Set\" }\nlayout = { width = { min = 96.0, preferred = 120.0, max = 156.0, stretch = \"Stretch\" }, height = { min = 44.0, preferred = 48.0, max = 52.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocLockpick/Action/HardSet\", event = \"Click\", route = \"woc.hud.lockpick.action.hard_set\" }]\n\n[nodes.lockpick_action_set]\ncomponent = \"Button\"\ncontrol_id = \"LockpickActionSet\"\nclasses = [\"woc-lockpick-action\"]\nprops = { text = \"W  Set\" }\nlayout = { width = { min = 84.0, preferred = 104.0, max = 132.0, stretch = \"Stretch\" }, height = { min = 44.0, preferred = 48.0, max = 52.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocLockpick/Action/Set\", event = \"Click\", route = \"woc.hud.lockpick.action.set\" }]\n\n[nodes.lockpick_action_steady]\ncomponent = \"Button\"\ncontrol_id = \"LockpickActionSteady\"\nclasses = [\"woc-lockpick-action\"]\nprops = { text = \"E  Steady\" }\nlayout = { width = { min = 88.0, preferred = 108.0, max = 136.0, stretch = \"Stretch\" }, height = { min = 44.0, preferred = 48.0, max = 52.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocLockpick/Action/Steady\", event = \"Click\", route = \"woc.hud.lockpick.action.steady\" }]\n\n[nodes.lockpick_action_ease]\ncomponent = \"Button\"\ncontrol_id = \"LockpickActionEase\"\nclasses = [\"woc-lockpick-action\"]\nprops = { text = \"A  Ease\" }\nlayout = { width = { min = 84.0, preferred = 104.0, max = 132.0, stretch = \"Stretch\" }, height = { min = 44.0, preferred = 48.0, max = 52.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocLockpick/Action/Ease\", event = \"Click\", route = \"woc.hud.lockpick.action.ease\" }]\n\n[nodes.lockpick_action_drop]\ncomponent = \"Button\"\ncontrol_id = \"LockpickActionDrop\"\nclasses = [\"woc-lockpick-action\"]\nprops = { text = \"Z  Drop\" }\nlayout = { width = { min = 84.0, preferred = 108.0, max = 136.0, stretch = \"Stretch\" }, height = { min = 44.0, preferred = 48.0, max = 52.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WocLockpick/Action/Drop\", event = \"Click\", route = \"woc.hud.lockpick.action.drop\" }]\n\n[nodes.lockpick_actions]\ncomponent = \"Stack\"\ncontrol_id = \"LockpickActions\"\nlayout = { container = { kind = \"Stack\", gap = 6.0 }, width = { stretch = \"Stretch\" }, height = { min = 44.0, preferred = 48.0, max = 112.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"lockpick_action_hard_set\" }, { node = \"lockpick_action_set\" }, { node = \"lockpick_action_steady\" }, { node = \"lockpick_action_ease\" }, { node = \"lockpick_action_drop\" }]\n\n[nodes.lockpick_live]\ncomponent = \"Container\"\ncontrol_id = \"LockpickLiveBoard\"\nprops = { visibility = \"collapsed\" }\nlayout = { container = { kind = \"VerticalBox\", gap = 10.0 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"lockpick_live_header\" }, { node = \"lockpick_status\" }, { node = \"lockpick_timer\" }, { node = \"lockpick_board_host\" }, { node = \"lockpick_feedback\" }, { node = \"lockpick_actions\" }]\n\n[nodes.lockpick_root]\ncomponent = \"Container\"\ncontrol_id = \"LockpickWindow\"\nclasses = [\"woc-lockpick-window\"]\nprops = { visibility = \"collapsed\" }\nlayout = { container = { kind = \"VerticalBox\", gap = 0.0 }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = 0.0 }, padding = { left = 18.0, right = 18.0, top = 16.0, bottom = 16.0 }, width = { min = 320.0, preferred = 720.0, max = 840.0, stretch = \"Fixed\" }, height = { min = 360.0, preferred = 480.0, max = 640.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"lockpick_selector\" }, { node = \"lockpick_live\" }]\n"
+
+[asset]
+kind = "view"
+id = "res://ui/hud/lockpick_window.zui"
+version = 2
+display_name = "World of ClaudeCraft Tumbler's Path"
+
+[imports]
+widgets = []
+styles = []
+resources = []
+
+[root]
+node = "lockpick_root"
+
+[nodes.lockpick_selector_title]
+component = "Label"
+control_id = "LockpickSelectorTitle"
+classes = [ "woc-screen-title" ]
+
+[nodes.lockpick_selector_title.props]
+text = "Tumbler's Path"
+overflow = "elide"
+
+[nodes.lockpick_selector_title.layout.width]
+stretch = "Stretch"
+
+[nodes.lockpick_selector_title.layout.height]
+min = 30
+preferred = 34
+max = 40
+stretch = "Fixed"
+
+[nodes.lockpick_selector_close]
+component = "Button"
+control_id = "LockpickSelectorClose"
+classes = [ "woc-secondary-action" ]
+
+[nodes.lockpick_selector_close.props]
+text = "Close"
+
+[nodes.lockpick_selector_close.layout.width]
+min = 64
+preferred = 72
+max = 88
+stretch = "Fixed"
+
+[nodes.lockpick_selector_close.layout.height]
+min = 44
+preferred = 44
+max = 48
+stretch = "Fixed"
+
+[[nodes.lockpick_selector_close.events]]
+id = "WocLockpick/SelectorClose"
+event = "Click"
+route = "woc.hud.lockpick.close"
+
+[nodes.lockpick_selector_header]
+component = "HorizontalBox"
+control_id = "LockpickSelectorHeader"
+
+[nodes.lockpick_selector_header.layout.container]
+kind = "HorizontalBox"
+gap = 10
+
+[nodes.lockpick_selector_header.layout.width]
+stretch = "Stretch"
+
+[nodes.lockpick_selector_header.layout.height]
+min = 44
+preferred = 48
+max = 52
+stretch = "Fixed"
+
+[[nodes.lockpick_selector_header.children]]
+node = "lockpick_selector_title"
+
+[[nodes.lockpick_selector_header.children]]
+node = "lockpick_selector_close"
+
+[nodes.lockpick_selector_blurb]
+component = "Label"
+control_id = "LockpickSelectorBlurb"
+classes = [ "woc-muted" ]
+
+[nodes.lockpick_selector_blurb.props]
+text = "Choose an ante. Every page must be cleared without a slip."
+overflow = "wrap"
+
+[nodes.lockpick_selector_blurb.layout.width]
+stretch = "Stretch"
+
+[nodes.lockpick_selector_blurb.layout.height]
+min = 44
+preferred = 58
+max = 76
+stretch = "Fixed"
+
+[nodes.lockpick_coffer_hint]
+component = "Label"
+control_id = "LockpickCofferHint"
+classes = [ "woc-lockpick-coffer" ]
+
+[nodes.lockpick_coffer_hint.props]
+text = "Only Premium can open this coffer."
+visibility = "collapsed"
+overflow = "wrap"
+
+[nodes.lockpick_coffer_hint.layout.width]
+stretch = "Stretch"
+
+[nodes.lockpick_coffer_hint.layout.height]
+min = 28
+preferred = 36
+max = 52
+stretch = "Fixed"
+
+[nodes.lockpick_ante_premium]
+component = "Button"
+control_id = "LockpickAntePremium"
+classes = [ "woc-lockpick-ante" ]
+
+[nodes.lockpick_ante_premium.props]
+text = "Premium\n3 locks • 1 try • 3s"
+
+[nodes.lockpick_ante_premium.layout.width]
+min = 128
+preferred = 180
+max = 240
+stretch = "Stretch"
+
+[nodes.lockpick_ante_premium.layout.height]
+min = 88
+preferred = 100
+max = 112
+stretch = "Fixed"
+
+[[nodes.lockpick_ante_premium.events]]
+id = "WocLockpick/Engage/Premium"
+event = "Click"
+route = "woc.hud.lockpick.engage.1"
+
+[nodes.lockpick_ante_medium]
+component = "Button"
+control_id = "LockpickAnteMedium"
+classes = [ "woc-lockpick-ante" ]
+
+[nodes.lockpick_ante_medium.props]
+text = "Medium\n2 locks • 2 tries • 6s"
+
+[nodes.lockpick_ante_medium.layout.width]
+min = 128
+preferred = 180
+max = 240
+stretch = "Stretch"
+
+[nodes.lockpick_ante_medium.layout.height]
+min = 88
+preferred = 100
+max = 112
+stretch = "Fixed"
+
+[[nodes.lockpick_ante_medium.events]]
+id = "WocLockpick/Engage/Medium"
+event = "Click"
+route = "woc.hud.lockpick.engage.2"
+
+[nodes.lockpick_ante_low]
+component = "Button"
+control_id = "LockpickAnteLow"
+classes = [ "woc-lockpick-ante" ]
+
+[nodes.lockpick_ante_low.props]
+text = "Modest\n1 lock • 3 tries • 9s"
+
+[nodes.lockpick_ante_low.layout.width]
+min = 128
+preferred = 180
+max = 240
+stretch = "Stretch"
+
+[nodes.lockpick_ante_low.layout.height]
+min = 88
+preferred = 100
+max = 112
+stretch = "Fixed"
+
+[[nodes.lockpick_ante_low.events]]
+id = "WocLockpick/Engage/Low"
+event = "Click"
+route = "woc.hud.lockpick.engage.3"
+
+[nodes.lockpick_ante_row]
+component = "Stack"
+control_id = "LockpickAnteRow"
+
+[nodes.lockpick_ante_row.layout.container]
+kind = "Stack"
+gap = 8
+
+[nodes.lockpick_ante_row.layout.width]
+stretch = "Stretch"
+
+[nodes.lockpick_ante_row.layout.height]
+min = 88
+preferred = 100
+max = 224
+stretch = "Fixed"
+
+[[nodes.lockpick_ante_row.children]]
+node = "lockpick_ante_premium"
+
+[[nodes.lockpick_ante_row.children]]
+node = "lockpick_ante_medium"
+
+[[nodes.lockpick_ante_row.children]]
+node = "lockpick_ante_low"
+
+[nodes.lockpick_selector]
+component = "Container"
+control_id = "LockpickSelector"
+
+[nodes.lockpick_selector.layout.container]
+kind = "VerticalBox"
+gap = 10
+
+[nodes.lockpick_selector.layout.width]
+stretch = "Stretch"
+
+[nodes.lockpick_selector.layout.height]
+stretch = "Stretch"
+
+[[nodes.lockpick_selector.children]]
+node = "lockpick_selector_header"
+
+[[nodes.lockpick_selector.children]]
+node = "lockpick_selector_blurb"
+
+[[nodes.lockpick_selector.children]]
+node = "lockpick_coffer_hint"
+
+[[nodes.lockpick_selector.children]]
+node = "lockpick_ante_row"
+
+[nodes.lockpick_live_title]
+component = "Label"
+control_id = "LockpickLiveTitle"
+classes = [ "woc-screen-title" ]
+
+[nodes.lockpick_live_title.props]
+text = "Tumbler's Path"
+overflow = "elide"
+
+[nodes.lockpick_live_title.layout.width]
+stretch = "Stretch"
+
+[nodes.lockpick_live_title.layout.height]
+min = 30
+preferred = 34
+max = 40
+stretch = "Fixed"
+
+[nodes.lockpick_abort]
+component = "Button"
+control_id = "LockpickAbort"
+classes = [ "woc-secondary-action" ]
+
+[nodes.lockpick_abort.props]
+text = "Withdraw"
+
+[nodes.lockpick_abort.layout.width]
+min = 84
+preferred = 96
+max = 116
+stretch = "Fixed"
+
+[nodes.lockpick_abort.layout.height]
+min = 44
+preferred = 44
+max = 48
+stretch = "Fixed"
+
+[[nodes.lockpick_abort.events]]
+id = "WocLockpick/Abort"
+event = "Click"
+route = "woc.hud.lockpick.abort"
+
+[nodes.lockpick_live_header]
+component = "HorizontalBox"
+control_id = "LockpickLiveHeader"
+
+[nodes.lockpick_live_header.layout.container]
+kind = "HorizontalBox"
+gap = 10
+
+[nodes.lockpick_live_header.layout.width]
+stretch = "Stretch"
+
+[nodes.lockpick_live_header.layout.height]
+min = 44
+preferred = 48
+max = 52
+stretch = "Fixed"
+
+[[nodes.lockpick_live_header.children]]
+node = "lockpick_live_title"
+
+[[nodes.lockpick_live_header.children]]
+node = "lockpick_abort"
+
+[nodes.lockpick_page]
+component = "Label"
+control_id = "LockpickPageStatus"
+classes = [ "woc-section-title" ]
+
+[nodes.lockpick_page.props]
+text = "Lock 1 / 3"
+
+[nodes.lockpick_page.layout.width]
+stretch = "Stretch"
+
+[nodes.lockpick_page.layout.height]
+min = 24
+preferred = 24
+max = 28
+stretch = "Fixed"
+
+[nodes.lockpick_tries]
+component = "Label"
+control_id = "LockpickTriesStatus"
+classes = [ "woc-muted" ]
+
+[nodes.lockpick_tries.props]
+text = "1 / 1 tries"
+text_align = "right"
+
+[nodes.lockpick_tries.layout.width]
+min = 96
+preferred = 116
+max = 144
+stretch = "Fixed"
+
+[nodes.lockpick_tries.layout.height]
+min = 24
+preferred = 24
+max = 28
+stretch = "Fixed"
+
+[nodes.lockpick_status]
+component = "HorizontalBox"
+control_id = "LockpickStatus"
+
+[nodes.lockpick_status.layout.container]
+kind = "HorizontalBox"
+gap = 8
+
+[nodes.lockpick_status.layout.width]
+stretch = "Stretch"
+
+[nodes.lockpick_status.layout.height]
+min = 24
+preferred = 24
+max = 28
+stretch = "Fixed"
+
+[[nodes.lockpick_status.children]]
+node = "lockpick_page"
+
+[[nodes.lockpick_status.children]]
+node = "lockpick_tries"
+
+[nodes.lockpick_timer_fill]
+component = "Space"
+control_id = "LockpickTimerFill"
+classes = [ "woc-lockpick-timer-fill" ]
+
+[nodes.lockpick_timer_fill.layout.width]
+min = 0
+preferred = 100
+max = 100
+stretch = "Stretch"
+
+[nodes.lockpick_timer_fill.layout.height]
+min = 8
+preferred = 8
+max = 8
+stretch = "Fixed"
+
+[nodes.lockpick_timer]
+component = "Container"
+control_id = "LockpickTimer"
+classes = [ "woc-lockpick-timer" ]
+
+[nodes.lockpick_timer.layout.container]
+kind = "HorizontalBox"
+gap = 0
+
+[nodes.lockpick_timer.layout.width]
+stretch = "Stretch"
+
+[nodes.lockpick_timer.layout.height]
+min = 8
+preferred = 8
+max = 8
+stretch = "Fixed"
+
+[[nodes.lockpick_timer.children]]
+node = "lockpick_timer_fill"
+
+[nodes.lockpick_board_host]
+component = "GridGroup"
+control_id = "LockpickTumblerTrackHost"
+classes = [ "woc-lockpick-board" ]
+children = []
+
+[nodes.lockpick_board_host.props]
+dynamic_route_prefix = "woc.hud.lockpick.track"
+
+[nodes.lockpick_board_host.layout.container]
+kind = "GridBox"
+columns = 16
+rows = 6
+column_gap = 4
+row_gap = 4
+
+[nodes.lockpick_board_host.layout.width]
+stretch = "Stretch"
+
+[nodes.lockpick_board_host.layout.height]
+min = 184
+preferred = 244
+max = 340
+stretch = "Stretch"
+
+[nodes.lockpick_feedback]
+component = "Label"
+control_id = "LockpickFeedback"
+classes = [ "woc-lockpick-feedback" ]
+
+[nodes.lockpick_feedback.props]
+text = ""
+visibility = "collapsed"
+overflow = "wrap"
+text_align = "center"
+
+[nodes.lockpick_feedback.layout.width]
+stretch = "Stretch"
+
+[nodes.lockpick_feedback.layout.height]
+min = 28
+preferred = 36
+max = 52
+stretch = "Fixed"
+
+[nodes.lockpick_action_hard_set]
+component = "Button"
+control_id = "LockpickActionHardSet"
+classes = [ "woc-lockpick-action" ]
+
+[nodes.lockpick_action_hard_set.props]
+text = "Q  Hard Set"
+
+[nodes.lockpick_action_hard_set.layout.width]
+min = 96
+preferred = 120
+max = 156
+stretch = "Stretch"
+
+[nodes.lockpick_action_hard_set.layout.height]
+min = 44
+preferred = 48
+max = 52
+stretch = "Fixed"
+
+[[nodes.lockpick_action_hard_set.events]]
+id = "WocLockpick/Action/HardSet"
+event = "Click"
+route = "woc.hud.lockpick.action.hard_set"
+
+[nodes.lockpick_action_set]
+component = "Button"
+control_id = "LockpickActionSet"
+classes = [ "woc-lockpick-action" ]
+
+[nodes.lockpick_action_set.props]
+text = "W  Set"
+
+[nodes.lockpick_action_set.layout.width]
+min = 84
+preferred = 104
+max = 132
+stretch = "Stretch"
+
+[nodes.lockpick_action_set.layout.height]
+min = 44
+preferred = 48
+max = 52
+stretch = "Fixed"
+
+[[nodes.lockpick_action_set.events]]
+id = "WocLockpick/Action/Set"
+event = "Click"
+route = "woc.hud.lockpick.action.set"
+
+[nodes.lockpick_action_steady]
+component = "Button"
+control_id = "LockpickActionSteady"
+classes = [ "woc-lockpick-action" ]
+
+[nodes.lockpick_action_steady.props]
+text = "E  Steady"
+
+[nodes.lockpick_action_steady.layout.width]
+min = 88
+preferred = 108
+max = 136
+stretch = "Stretch"
+
+[nodes.lockpick_action_steady.layout.height]
+min = 44
+preferred = 48
+max = 52
+stretch = "Fixed"
+
+[[nodes.lockpick_action_steady.events]]
+id = "WocLockpick/Action/Steady"
+event = "Click"
+route = "woc.hud.lockpick.action.steady"
+
+[nodes.lockpick_action_ease]
+component = "Button"
+control_id = "LockpickActionEase"
+classes = [ "woc-lockpick-action" ]
+
+[nodes.lockpick_action_ease.props]
+text = "A  Ease"
+
+[nodes.lockpick_action_ease.layout.width]
+min = 84
+preferred = 104
+max = 132
+stretch = "Stretch"
+
+[nodes.lockpick_action_ease.layout.height]
+min = 44
+preferred = 48
+max = 52
+stretch = "Fixed"
+
+[[nodes.lockpick_action_ease.events]]
+id = "WocLockpick/Action/Ease"
+event = "Click"
+route = "woc.hud.lockpick.action.ease"
+
+[nodes.lockpick_action_drop]
+component = "Button"
+control_id = "LockpickActionDrop"
+classes = [ "woc-lockpick-action" ]
+
+[nodes.lockpick_action_drop.props]
+text = "Z  Drop"
+
+[nodes.lockpick_action_drop.layout.width]
+min = 84
+preferred = 108
+max = 136
+stretch = "Stretch"
+
+[nodes.lockpick_action_drop.layout.height]
+min = 44
+preferred = 48
+max = 52
+stretch = "Fixed"
+
+[[nodes.lockpick_action_drop.events]]
+id = "WocLockpick/Action/Drop"
+event = "Click"
+route = "woc.hud.lockpick.action.drop"
+
+[nodes.lockpick_actions]
+component = "Stack"
+control_id = "LockpickActions"
+
+[nodes.lockpick_actions.layout.container]
+kind = "Stack"
+gap = 6
+
+[nodes.lockpick_actions.layout.width]
+stretch = "Stretch"
+
+[nodes.lockpick_actions.layout.height]
+min = 44
+preferred = 48
+max = 112
+stretch = "Fixed"
+
+[[nodes.lockpick_actions.children]]
+node = "lockpick_action_hard_set"
+
+[[nodes.lockpick_actions.children]]
+node = "lockpick_action_set"
+
+[[nodes.lockpick_actions.children]]
+node = "lockpick_action_steady"
+
+[[nodes.lockpick_actions.children]]
+node = "lockpick_action_ease"
+
+[[nodes.lockpick_actions.children]]
+node = "lockpick_action_drop"
+
+[nodes.lockpick_live]
+component = "Container"
+control_id = "LockpickLiveBoard"
+
+[nodes.lockpick_live.props]
+visibility = "collapsed"
+
+[nodes.lockpick_live.layout.container]
+kind = "VerticalBox"
+gap = 10
+
+[nodes.lockpick_live.layout.width]
+stretch = "Stretch"
+
+[nodes.lockpick_live.layout.height]
+stretch = "Stretch"
+
+[[nodes.lockpick_live.children]]
+node = "lockpick_live_header"
+
+[[nodes.lockpick_live.children]]
+node = "lockpick_status"
+
+[[nodes.lockpick_live.children]]
+node = "lockpick_timer"
+
+[[nodes.lockpick_live.children]]
+node = "lockpick_board_host"
+
+[[nodes.lockpick_live.children]]
+node = "lockpick_feedback"
+
+[[nodes.lockpick_live.children]]
+node = "lockpick_actions"
+
+[nodes.lockpick_root]
+component = "Container"
+control_id = "LockpickWindow"
+classes = [ "woc-lockpick-window" ]
+
+[nodes.lockpick_root.props]
+visibility = "collapsed"
+
+[nodes.lockpick_root.layout.container]
+kind = "VerticalBox"
+gap = 0
+
+[nodes.lockpick_root.layout.anchor]
+x = 0.5
+y = 0.5
+
+[nodes.lockpick_root.layout.pivot]
+x = 0.5
+y = 0.5
+
+[nodes.lockpick_root.layout.position]
+x = 0
+y = 0
+
+[nodes.lockpick_root.layout.padding]
+left = 18
+right = 18
+top = 16
+bottom = 16
+
+[nodes.lockpick_root.layout.width]
+min = 320
+preferred = 720
+max = 840
+stretch = "Fixed"
+
+[nodes.lockpick_root.layout.height]
+min = 360
+preferred = 480
+max = 640
+stretch = "Fixed"
+
+[[nodes.lockpick_root.children]]
+node = "lockpick_selector"
+
+[[nodes.lockpick_root.children]]
+node = "lockpick_live"
+
+[tokens]
+woc_shell_bg = "#10121f"
+woc_shell_scrim = "#00000066"
+woc_panel_bg = "#11101ddd"
+woc_panel_bg_strong = "#0d0d16ee"
+woc_border = "#6f5a2a"
+woc_border_soft = "#3b3547"
+woc_gold = "#ffd100"
+woc_gold_dim = "#c8a94d"
+woc_gold_light = "#ffe46b"
+woc_control_hover = "#282737"
+woc_control_pressed = "#3a3018"
+woc_control_disabled = "#1b1a24"
+woc_text = "#f4ead3"
+woc_text_muted = "#998d6a"
+woc_input_bg = "#10101acc"
+woc_discord = "#5865f2"
+woc_discord_border = "#3c46b0"
+woc_success = "#9fdc7f"
+woc_error = "#e06c75"
+woc_shadow = "#00000073"
+woc_hud_panel = "#11101dee"
+woc_hud_panel_soft = "#17151ecc"
+woc_hud_rail = "#09090fcc"
+woc_hud_slot = "#17151f"
+woc_hud_slot_border = "#5b4618"
+woc_hud_health = "#3fa65a"
+woc_hud_absorb = "#d9e4f2aa"
+woc_hud_mana = "#2476d3"
+woc_hud_rage = "#a63838"
+woc_hud_energy = "#d5c536"
+woc_hud_cooldown = "#000000b8"
+woc_hud_danger = "#c73535"
+woc_hud_touch = "#282a3b"
+woc_hud_touch_border = "#8a6c2a"
+woc_hud_vignette = "#8d101066"
+woc_hud_focus = "#f7d45c"
+
+[[stylesheets]]
+id = "woc-shell"
+
+[[stylesheets.rules]]
+selector = ".woc-shell"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_shell_bg"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[[stylesheets.rules]]
+selector = ".woc-stage-scrim"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_shell_scrim"
+
+[[stylesheets.rules]]
+selector = ".woc-panel"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-panel-strong"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg_strong"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-screen-title"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.font]
+size = 22
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-welcome-title"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.font]
+size = 27
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-section-title"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold_dim"
+
+[stylesheets.rules.set.self.font]
+size = 15
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-label"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.font]
+size = 14
+weight = 600
+
+[[stylesheets.rules]]
+selector = ".woc-muted"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.font]
+size = 12
+
+[[stylesheets.rules]]
+selector = ".woc-error"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_error"
+
+[stylesheets.rules.set.self.font]
+size = 12
+weight = 600
+
+[[stylesheets.rules]]
+selector = ".woc-input"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_input_bg"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[stylesheets.rules.set.self.font]
+size = 14
+
+[[stylesheets.rules]]
+selector = ".woc-input:hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-input:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 2
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-input:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-class-button"
+
+[stylesheets.rules.set.self.background]
+color = "#11101d00"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 2
+radius = 31
+
+[stylesheets.rules.set.self.font]
+size = 12
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:hover"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_light"
+width = 3
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:checked"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:selected"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-class-button:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".class-warrior"
+
+[stylesheets.rules.set.self.foreground]
+color = "#c79c6e"
+
+[[stylesheets.rules]]
+selector = ".class-paladin"
+
+[stylesheets.rules.set.self.foreground]
+color = "#f58cba"
+
+[[stylesheets.rules]]
+selector = ".class-hunter"
+
+[stylesheets.rules.set.self.foreground]
+color = "#abd473"
+
+[[stylesheets.rules]]
+selector = ".class-rogue"
+
+[stylesheets.rules.set.self.foreground]
+color = "#fff569"
+
+[[stylesheets.rules]]
+selector = ".class-priest"
+
+[stylesheets.rules.set.self.foreground]
+color = "#fffff0"
+
+[[stylesheets.rules]]
+selector = ".class-shaman"
+
+[stylesheets.rules.set.self.foreground]
+color = "#0070de"
+
+[[stylesheets.rules]]
+selector = ".class-mage"
+
+[stylesheets.rules.set.self.foreground]
+color = "#69ccf0"
+
+[[stylesheets.rules]]
+selector = ".class-warlock"
+
+[stylesheets.rules.set.self.foreground]
+color = "#9482c9"
+
+[[stylesheets.rules]]
+selector = ".class-druid"
+
+[stylesheets.rules.set.self.foreground]
+color = "#ff7d0a"
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg_strong"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 2
+radius = 8
+
+[stylesheets.rules.set.self.font]
+size = 12
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:hover"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_hover"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_light"
+width = 3
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:checked"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:selected"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-skin-swatch:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-primary-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.foreground]
+color = "#1a1608"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 16
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-primary-action:hover"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold_light"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-primary-action:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold_dim"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-primary-action:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_text"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-primary-action:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "#242431"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-secondary-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg_strong"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 14
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-secondary-action:hover"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-secondary-action:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-secondary-action:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_light"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-secondary-action:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-discord-strip"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_discord"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-discord-badge"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_discord"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_discord_border"
+width = 1
+radius = 10
+
+[[stylesheets.rules]]
+selector = ".woc-discord-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_discord"
+
+[stylesheets.rules.set.self.foreground]
+color = "#ffffff"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_discord_border"
+width = 1
+radius = 5
+
+[stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-ready-dot"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_success"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_success"
+width = 1
+radius = 4
+
+[[stylesheets.rules]]
+selector = ".woc-preview-host"
+
+[stylesheets.rules.set.self.background]
+color = "#090a12aa"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-roster-host"
+
+[stylesheets.rules.set.self.background]
+color = "#090a1299"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-roster-row:selected"
+
+[stylesheets.rules.set.self.background]
+color = "#3a301880"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-modal-card"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_panel_bg_strong"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-danger-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_error"
+
+[stylesheets.rules.set.self.foreground]
+color = "#ffffff"
+
+[stylesheets.rules.set.self.border]
+color = "#8f343b"
+width = 1
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 14
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-danger-action:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "#2b252d"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-mode-trigger"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_input_bg"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 16
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-mode-option"
+
+[stylesheets.rules.set.self.background]
+color = "#11101d00"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[stylesheets.rules.set.self.font]
+size = 15
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-mode-option:selected"
+
+[stylesheets.rules.set.self.background]
+color = "#3a301880"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-play-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.foreground]
+color = "#1a1608"
+
+[stylesheets.rules.set.self.border]
+color = "#fff2a8"
+width = 2
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 20
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-contract-address"
+
+[stylesheets.rules.set.self.background]
+color = "#090a12aa"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 11
+weight = 600
+
+[[stylesheets.rules]]
+selector = ".woc-auth-form"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-auth-link"
+
+[stylesheets.rules.set.self.background]
+color = "#00000000"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold_dim"
+
+[stylesheets.rules.set.self.border]
+color = "#00000000"
+width = 1
+radius = 4
+
+[stylesheets.rules.set.self.font]
+size = 14
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-auth-link:hover"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold_light"
+
+[[stylesheets.rules]]
+selector = ".woc-auth-link:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[[stylesheets.rules]]
+selector = ".woc-auth-link:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_light"
+width = 2
+radius = 4
+
+[[stylesheets.rules]]
+selector = ".woc-auth-link:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "#00000000"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "#00000000"
+width = 1
+radius = 4
+
+[[stylesheets.rules]]
+selector = ".woc-auth-provider-host"
+
+[stylesheets.rules.set.self.background]
+color = "#090a1299"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-auth-status"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.font]
+size = 12
+weight = 600
+
+[[stylesheets]]
+id = "woc-hud"
+
+[[stylesheets.rules]]
+selector = ".woc-hud-root"
+
+[stylesheets.rules.set.self.background]
+color = "#00000000"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[[stylesheets.rules]]
+selector = ".woc-live-region"
+
+[stylesheets.rules.set.self.foreground]
+color = "#00000000"
+
+[stylesheets.rules.set.self.font]
+size = 1
+
+[[stylesheets.rules]]
+selector = ".woc-unit-frame"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-unit-frame-target"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-unit-frame-dead"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_danger"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-portrait"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel_soft"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 3
+radius = 31
+
+[[stylesheets.rules]]
+selector = ".woc-level-chip"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_slot"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 12
+
+[stylesheets.rules.set.self.font]
+size = 11
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-unit-name"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-bar-rail"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_rail"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 3
+
+[[stylesheets.rules]]
+selector = ".woc-health-fill"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_health"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-absorb-fill"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_absorb"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-resource-fill"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_mana"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-resource-rage"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_rage"
+
+[[stylesheets.rules]]
+selector = ".woc-resource-energy"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_energy"
+
+[[stylesheets.rules]]
+selector = ".woc-bar-text"
+
+[stylesheets.rules.set.self.foreground]
+color = "#ffffff"
+
+[stylesheets.rules.set.self.font]
+size = 10
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-cast-fill"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold_dim"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-xp-fill"
+
+[stylesheets.rules.set.self.background]
+color = "#8e3bc1"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-xp-rested"
+
+[stylesheets.rules.set.self.background]
+color = "#438ed0aa"
+
+[stylesheets.rules.set.self.border]
+radius = 2
+
+[[stylesheets.rules]]
+selector = ".woc-action-bar"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 7
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_slot"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_slot_border"
+width = 2
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 10
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot:hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 3
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_rail"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot-queued"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot-out-of-range"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_danger"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-action-slot-proc"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 3
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-cooldown-overlay"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_cooldown"
+
+[stylesheets.rules.set.self.border]
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-keybind"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.font]
+size = 9
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-tracker"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel_soft"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-minimap"
+
+[stylesheets.rules.set.self.background]
+color = "#18362f"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 3
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-touch-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_touch"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_touch_border"
+width = 2
+radius = 8
+
+[stylesheets.rules.set.self.font]
+size = 11
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-touch-action:hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-touch-action:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-touch-action:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 3
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-touch-action:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-touch-zone"
+
+[stylesheets.rules.set.self.background]
+color = "#20222a22"
+
+[stylesheets.rules.set.self.border]
+color = "#a6b2c244"
+width = 1
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-pause-scrim"
+
+[stylesheets.rules.set.self.background]
+color = "#05050acc"
+
+[[stylesheets.rules]]
+selector = ".woc-pause-menu"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-pause-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel_soft"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[stylesheets.rules.set.self.font]
+size = 14
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-pause-action:hover"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-pause-action:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 1
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-pause-action:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 2
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-pause-action:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-low-health-vignette"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_vignette"
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-window"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 8
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-ante"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_panel_soft"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_slot_border"
+width = 2
+radius = 6
+
+[stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-ante:hover"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_hover"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-ante:pressed"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_pressed"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_gold_dim"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-ante:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 3
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-ante:disabled"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_control_disabled"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text_muted"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-board"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_rail"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_slot_border"
+width = 2
+radius = 6
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-timer"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_rail"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_border_soft"
+width = 1
+radius = 4
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-timer-fill"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.border]
+radius = 3
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-action"
+
+[stylesheets.rules.set.self.background]
+color = "$woc_hud_slot"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_text"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_slot_border"
+width = 2
+radius = 5
+
+[stylesheets.rules.set.self.font]
+size = 12
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-action:focus"
+
+[stylesheets.rules.set.self.border]
+color = "$woc_hud_focus"
+width = 3
+radius = 5
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-feedback"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[[stylesheets.rules]]
+selector = ".woc-lockpick-coffer"
+
+[stylesheets.rules.set.self.foreground]
+color = "$woc_gold"
+
+[stylesheets.rules.set.self.font]
+size = 13
+weight = 700
+
+[penpot_original_imports]
+widgets = []
+styles = [ "res://ui/shell/shell_theme.zui", "res://ui/hud/hud_theme.zui" ]
+resources = []

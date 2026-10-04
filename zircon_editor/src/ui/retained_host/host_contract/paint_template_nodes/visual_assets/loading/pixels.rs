@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use super::super::super::evidence::register_media_source;
 use super::super::super::sprite_atlas::resolve_editor_sprite_atlas_image;
 use super::super::candidates::{first_existing_path, is_svg_path};
 use super::super::svg::render_svg_file_pixels;
@@ -13,7 +14,7 @@ use super::key::image_pixels_cache_key;
 use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 
-pub(super) enum CandidatePixelsLoad {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) enum CandidatePixelsLoad {
     Ready(HostPaintImagePixels),
     Missing,
     Deferred,
@@ -34,7 +35,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn load_pi
     }
 }
 
-pub(super) fn load_pixels_from_candidates_with_status(
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn load_pixels_from_candidates_with_status(
     candidates: impl FnOnce() -> Vec<PathBuf>,
     base_key: &str,
     target: Option<RasterTargetSize>,
@@ -123,6 +124,10 @@ pub(super) fn load_visual_asset_pixels_uncached(
         },
     );
 
+    if let Some(pixels) = &loaded {
+        register_media_source(&pixels.resource_key, &path);
+    }
+
     loaded
 }
 
@@ -132,79 +137,5 @@ fn icon_raster_resource_key(base_key: &str, content_key: &str) -> Option<String>
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
-
-    use super::{
-        icon_raster_resource_key, load_pixels_from_candidates,
-        load_pixels_from_candidates_with_status, CandidatePixelsLoad,
-    };
-
-    #[test]
-    fn icon_raster_identity_can_preserve_the_content_addressed_pixel_key() {
-        assert_eq!(
-            icon_raster_resource_key("icon:save", "retained-image:16x16:abcd").as_deref(),
-            Some("icon-raster:retained-image:16x16:abcd")
-        );
-        assert!(icon_raster_resource_key("image:preview", "retained-image:16x16:abcd").is_none());
-    }
-
-    #[test]
-    fn warm_pixel_cache_skips_candidate_path_construction() {
-        static NEXT_KEY: AtomicU64 = AtomicU64::new(1);
-        let base_key = format!(
-            "test:warm-candidate-cache:{}",
-            NEXT_KEY.fetch_add(1, Ordering::Relaxed)
-        );
-        let candidate_builds = AtomicUsize::new(0);
-
-        assert!(load_pixels_from_candidates(
-            || {
-                candidate_builds.fetch_add(1, Ordering::Relaxed);
-                Vec::new()
-            },
-            &base_key,
-            None,
-            None,
-            None,
-        )
-        .is_none());
-        assert!(load_pixels_from_candidates(
-            || {
-                candidate_builds.fetch_add(1, Ordering::Relaxed);
-                Vec::new()
-            },
-            &base_key,
-            None,
-            None,
-            None,
-        )
-        .is_none());
-
-        assert_eq!(candidate_builds.load(Ordering::Relaxed), 1);
-    }
-
-    #[test]
-    fn cached_missing_candidate_is_distinct_from_a_deferred_load() {
-        static NEXT_KEY: AtomicU64 = AtomicU64::new(1);
-        let base_key = format!(
-            "test:missing-candidate-status:{}",
-            NEXT_KEY.fetch_add(1, Ordering::Relaxed)
-        );
-
-        assert!(matches!(
-            load_pixels_from_candidates_with_status(Vec::new, &base_key, None, None, None),
-            CandidatePixelsLoad::Missing
-        ));
-        assert!(matches!(
-            load_pixels_from_candidates_with_status(
-                || panic!("cached missing entry must skip candidate construction"),
-                &base_key,
-                None,
-                None,
-                None,
-            ),
-            CandidatePixelsLoad::Missing
-        ));
-    }
-}
+#[path = "tests/pixels.rs"]
+mod tests;

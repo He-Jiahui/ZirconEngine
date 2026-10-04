@@ -1,3 +1,4 @@
+//! 首帧固定全部操作路径，后续只追加证据与阶段迁移；折叠验证状态机，文件真实性由恢复层另行检查。
 //! Immutable transaction intent and append-only state transitions.
 
 use std::path::PathBuf;
@@ -77,6 +78,7 @@ pub(super) enum JournalPhase {
     Intent,
     CleanupIntent,
     Active,
+    CleanupActive,
     RollbackCompleted,
     CleanupRollback,
     AllCommitted,
@@ -139,6 +141,7 @@ pub(super) struct FoldedTransactionJournal {
     pub(super) documents: Vec<JournalDocument>,
 }
 
+/// 已折叠的单文档恢复证据；领域策略借此约束目标与退休文件，不能仅凭日志内的路径执行操作。
 #[derive(Debug)]
 pub struct JournalDocument {
     pub(super) state: JournalState,
@@ -309,6 +312,21 @@ fn fold_phase_transition(
                     .any(|document| document.state != JournalState::Prepared)
             {
                 return Err(format!("{label} activates an incomplete transaction"));
+            }
+        }
+        JournalPhase::CleanupActive => {
+            if *phase != JournalPhase::Active
+                || documents.iter().any(|document| {
+                    !matches!(
+                        document.state,
+                        JournalState::Prepared
+                            | JournalState::Committing
+                            | JournalState::Committed
+                            | JournalState::RollingBack
+                    )
+                })
+            {
+                return Err(format!("{label} cleans an inactive transaction as active"));
             }
         }
         JournalPhase::RollbackCompleted => {

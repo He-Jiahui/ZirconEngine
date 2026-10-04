@@ -54,4 +54,14 @@ pub enum ZrRuntimeArtifactManifestValidationError {
     HostArtifactIdentityInvalid { message: String },
     #[error("runtime artifact manifest lists host artifact `{file_name}` more than once")]
     DuplicateHostArtifact { file_name: String },
+    #[error("runtime artifact manifest trusted Host metadata schema {actual} is unsupported; expected {expected}")]
+    TrustedHostMetadataSchemaVersionMismatch { expected: u32, actual: u32 },
+    #[error("runtime artifact manifest does not contain trusted Host BuildSet metadata")]
+    TrustedHostMetadataMissing,
+    #[error(
+        "runtime artifact manifest trusted Host source BuildSet `{actual}` does not match compiled Host BuildSet `{expected}`"
+    )]
+    TrustedHostBuildSetMismatch { expected: String, actual: String },
+    #[error("compiled trusted Host BuildSet identity is invalid: {message}")]
+    TrustedHostBuildSetExpectationInvalid { message: String },
 }

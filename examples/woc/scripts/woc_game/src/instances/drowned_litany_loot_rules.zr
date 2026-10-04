@@ -89,6 +89,7 @@ pub secondDrawAwardsBonus(tier: int, bountiful: bool, secondDraw: float, require
     return secondDraw < bonusChance(tier, bountiful, required);
 }
 
+/// 调用前世界流固定观察两次，即使当前tier的第二次奖励概率为0；count与itemId必须复用相同两值，以保留物品次序及后续共享随机轨迹。
 pub lootItemCount(tier: int, bountiful: bool, secondDraw: float, required: bool): int {
     requireTier(tier, required);
     var bonus = secondDrawAwardsBonus(tier, bountiful, secondDraw, true);
@@ -100,6 +101,7 @@ pub lootItemCount(tier: int, bountiful: bool, secondDraw: float, required: bool)
 
 // `ordinal` is the target array insertion order. The caller has already
 // observed both draws, even where the requested tier awards no second-slot item.
+/// ordinal为本次结算插入次序；Bountiful可能有第三件，具体库存实例/发奖对象由上层负责，不能按每件物品各抽两次。
 pub lootItemId(
     classId: string,
     tier: int,

@@ -28,30 +28,29 @@ pub(crate) use failure::{
 };
 pub(crate) use placeholder::{GlyphAtlasBitmapPlaceholderGlyph, GlyphAtlasBitmapPlaceholderMode};
 pub(crate) use retry::{
-    GlyphAtlasBitmapRetryBackpressurePolicy, GlyphAtlasBitmapRetryFrameInput,
-    GlyphAtlasBitmapRetryFrameOutcome, GlyphAtlasBitmapRetryPlan,
-    GlyphAtlasBitmapRetrySourceOrigin, glyph_atlas_bitmap_retry_frame_input,
-    glyph_atlas_bitmap_retry_frame_input_with_backpressure,
+    glyph_atlas_bitmap_retry_frame_input, glyph_atlas_bitmap_retry_frame_input_with_backpressure,
     glyph_atlas_bitmap_retry_frame_input_with_backpressure_and_new_source_budget_predicate,
     glyph_atlas_bitmap_retry_frame_outcome, glyph_atlas_bitmap_retry_plan,
-    glyph_atlas_bitmap_retry_plan_with_backpressure,
+    glyph_atlas_bitmap_retry_plan_with_backpressure, GlyphAtlasBitmapRetryBackpressurePolicy,
+    GlyphAtlasBitmapRetryFrameInput, GlyphAtlasBitmapRetryFrameOutcome, GlyphAtlasBitmapRetryPlan,
+    GlyphAtlasBitmapRetrySourceOrigin,
 };
 pub(crate) use staged_upload::{
-    GlyphAtlasBitmapFaceValidity, GlyphAtlasBitmapPreparedUploadPlan,
-    GlyphAtlasBitmapRequeueReason, GlyphAtlasBitmapRequeuedUpload, GlyphAtlasBitmapStagedUpload,
-    GlyphAtlasBitmapStagedUploadFailure, GlyphAtlasBitmapStagedUploadFailureReason,
-    GlyphAtlasBitmapStagedUploadPlan, GlyphAtlasBitmapTextureUploadRequest,
-    GlyphAtlasBitmapTextureUploadRequestPlan, glyph_atlas_bitmap_page_shadow_commit,
-    glyph_atlas_bitmap_prepared_upload_plan,
+    glyph_atlas_bitmap_page_shadow_commit, glyph_atlas_bitmap_prepared_upload_plan,
     glyph_atlas_bitmap_prepared_upload_plan_with_full_shadow_replay,
     glyph_atlas_bitmap_staged_upload_plan, glyph_atlas_bitmap_texture_upload_request_plan,
     glyph_atlas_bitmap_texture_upload_request_plan_with_atlas,
     glyph_atlas_bitmap_texture_upload_request_plan_with_atlas_and_face_validity,
+    GlyphAtlasBitmapFaceValidity, GlyphAtlasBitmapPreparedUploadPlan,
+    GlyphAtlasBitmapRequeueReason, GlyphAtlasBitmapRequeuedUpload, GlyphAtlasBitmapStagedUpload,
+    GlyphAtlasBitmapStagedUploadFailure, GlyphAtlasBitmapStagedUploadFailureReason,
+    GlyphAtlasBitmapStagedUploadPlan, GlyphAtlasBitmapTextureUploadRequest,
+    GlyphAtlasBitmapTextureUploadRequestPlan,
 };
 pub(crate) use staging::{
-    GlyphAtlasBitmapPageUploadStaging, GlyphAtlasBitmapUploadSourceBytes,
-    GlyphAtlasBitmapUploadStagingFailure, GlyphAtlasBitmapUploadStagingFailureReason,
-    GlyphAtlasBitmapUploadStagingPlan, glyph_atlas_bitmap_upload_staging_plan,
+    glyph_atlas_bitmap_upload_staging_plan, GlyphAtlasBitmapPageUploadStaging,
+    GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasBitmapUploadStagingFailure,
+    GlyphAtlasBitmapUploadStagingFailureReason, GlyphAtlasBitmapUploadStagingPlan,
 };
 pub(crate) use types::{
     GlyphAtlasBitmapGlyph, GlyphAtlasBitmapRunPlan, GlyphAtlasBitmapSlotInvalidation,
@@ -295,4 +294,5 @@ where
 }
 
 #[cfg(test)]
+#[path = "bitmap_run/tests/cases.rs"]
 mod tests;

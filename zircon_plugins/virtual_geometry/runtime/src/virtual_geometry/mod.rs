@@ -10,19 +10,19 @@ mod residency_management;
 mod snapshot;
 mod types;
 #[cfg(test)]
-#[path = "test_sources/virtual_geometry_imported_extract.rs"]
+#[path = "test_sources/tests/virtual_geometry_imported_extract.rs"]
 mod virtual_geometry_imported_extract;
 #[cfg(test)]
-#[path = "test_sources/virtual_geometry_nanite_cpu.rs"]
+#[path = "test_sources/tests/virtual_geometry_nanite_cpu.rs"]
 mod virtual_geometry_nanite_cpu;
 #[cfg(test)]
-#[path = "test_sources/virtual_geometry_render_framework_stats.rs"]
+#[path = "test_sources/tests/virtual_geometry_render_framework_stats.rs"]
 mod virtual_geometry_render_framework_stats;
 #[cfg(test)]
-#[path = "test_sources/virtual_geometry_renderer_test_promotion_guard.rs"]
+#[path = "test_sources/tests/virtual_geometry_renderer_test_promotion_guard.rs"]
 mod virtual_geometry_renderer_test_promotion_guard;
 #[cfg(test)]
-#[path = "test_sources/virtual_geometry_unified_indirect_cpu.rs"]
+#[path = "test_sources/tests/virtual_geometry_unified_indirect_cpu.rs"]
 mod virtual_geometry_unified_indirect_cpu;
 
 // Broad moved renderer snapshots stay unwired until their old runtime-owner

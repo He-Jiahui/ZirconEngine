@@ -1,5 +1,10 @@
 #[cfg(test)]
+#[path = "pose/tests/performance_tests.rs"]
 mod performance_tests;
+
+#[cfg(test)]
+#[path = "pose/tests/borrowed_path_tests.rs"]
+mod borrowed_path_tests;
 
 use std::collections::HashMap;
 
@@ -156,11 +161,11 @@ impl<'skeleton> ClipTrackBoneIndex<'skeleton> {
 
 fn skeleton_bone_path(skeleton: &AnimationSkeletonAsset, index: usize) -> Option<String> {
     let bone = skeleton.bones.get(index)?;
-    let mut segments = vec![bone.name.clone()];
+    let mut segments = vec![bone.name.as_str()];
     let mut parent = bone.parent_index;
     while let Some(parent_index) = parent {
         let parent_bone = skeleton.bones.get(parent_index as usize)?;
-        segments.push(parent_bone.name.clone());
+        segments.push(parent_bone.name.as_str());
         parent = parent_bone.parent_index;
     }
     segments.reverse();

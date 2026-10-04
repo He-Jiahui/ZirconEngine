@@ -11,7 +11,7 @@ related_code:
   - zircon_editor/src/tests/editor_asset_type_registry
   - zircon_editor/src/tests/mod.rs
 related_docs:
-  - docs/zircon_editor/core/asset.md
+  - docs/crates/zircon_editor/core/asset.md
   - docs/plans/zircon_editor/editor/09/2026-07-13-m1-approved-asset-type-registry-design.md
 ---
 

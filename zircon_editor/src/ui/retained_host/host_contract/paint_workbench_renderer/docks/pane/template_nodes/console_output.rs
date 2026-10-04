@@ -17,6 +17,7 @@ use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter_batch, UiPerfCounter};
 
 pub(in crate::ui::retained_host::host_contract::paint_workbench_renderer::docks::pane::template_nodes)
+// 控制台绘制以代次元数据给出的逻辑行与可见槽为准，避免在每次重绘中扫描完整日志模型。
 struct ConsoleOutputProjector
 {
     metadata: Rc<ConsoleOutputPaintMetadata>,
@@ -175,5 +176,5 @@ impl ConsoleOutputProjector {
 }
 
 #[cfg(test)]
-#[path = "console_output/tests.rs"]
+#[path = "console_output/tests/cases.rs"]
 mod tests;

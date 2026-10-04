@@ -21,6 +21,8 @@ pub const RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION: u32 = 1;
 static NEXT_RUNTIME_SESSION_ARCHIVE_GENERATION: AtomicU64 = AtomicU64::new(1);
 static NEXT_RUNTIME_SESSION_ARCHIVE_LINEAGE: AtomicU64 = AtomicU64::new(1);
 
+/// 磁盘线格式与内存索引的共同载体；读入后由验证入口建立可信状态，序列化只输出规范排序的槽位。
+/// 索引是派生数据，不能由调用者作为独立持久化契约使用。
 #[doc(hidden)]
 #[derive(Clone, Debug)]
 pub struct RuntimeSessionArchivePayload {
@@ -231,11 +233,14 @@ impl PartialEq for RuntimeSessionArchivePayload {
     }
 }
 
+/// 会话快照的可克隆句柄；同一代际共享不可变负载，写入时产生新代际和谱系修订号。
+/// 捕获、预览、合并与保存均以此为入口；跨文件保存时应先封存产物，再交给路径写入权威发布。
 pub struct RuntimeSessionArchive {
     payload: Arc<RuntimeSessionArchivePayload>,
     pub(super) state: Arc<RuntimeSessionArchiveGenerationState>,
 }
 
+// 预览计划绑定 generation/revision；封存缓存与验证票据只属于当前代际，克隆分支共享发布谱系。
 pub(super) struct RuntimeSessionArchiveGenerationState {
     pub(super) generation: u64,
     pub(super) lineage: u64,
@@ -341,6 +346,7 @@ impl RuntimeSessionArchive {
         Arc::clone(&self.payload)
     }
 
+    // 所有槽位写入先换代际，使旧预览计划和封存结果不能被误当作新负载的证明。
     fn payload_mut(&mut self) -> &mut RuntimeSessionArchivePayload {
         self.state = next_revision_state(&self.state);
         Arc::make_mut(&mut self.payload)
@@ -441,6 +447,7 @@ impl RuntimeSessionArchive {
         Some(payload.remove_slot(slot_index))
     }
 
+    // 合并与保留策略完成预检后在此批量发布；调用者必须已排除重复 ID 和过期计划。
     pub(in crate::scene::dynamic_scene::session) fn commit_staged_slot_rows<'slot>(
         &mut self,
         replacements: Vec<RuntimeSessionSlot>,
@@ -573,23 +580,5 @@ fn next_revision_state(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::RuntimeSessionArchive;
-
-    #[test]
-    fn invalid_runtime_session_archive_generation_caches_its_seal_rejection() {
-        let archive = RuntimeSessionArchive::from_payload(u32::MAX, Vec::new());
-
-        let first = archive
-            .sealed_artifact()
-            .expect_err("unsupported format must reject the generation");
-        let second = archive
-            .sealed_artifact()
-            .expect_err("deterministic validation rejection must be cached");
-
-        assert_eq!(first.to_string(), second.to_string());
-        let diagnostics = archive.artifact_diagnostics();
-        assert_eq!(diagnostics.validate_count, 0);
-        assert_eq!(diagnostics.serialize_count, 0);
-    }
-}
+#[path = "tests/archive.rs"]
+mod tests;

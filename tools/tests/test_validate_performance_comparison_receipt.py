@@ -1,3 +1,4 @@
+# 核对性能比较回执独立签名、样本置信度与输入指纹门控。
 from __future__ import annotations
 
 import base64
@@ -14,7 +15,7 @@ from tempfile import TemporaryDirectory
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from tools.validate_performance_comparison_receipt import (
+from tools.analysis.validation.validate_performance_comparison_receipt import (
     PERFORMANCE_COMPARISON_RECEIPT_SCHEMA,
     sign_performance_comparison_receipt,
     validate_performance_comparison_receipt,
@@ -371,7 +372,7 @@ class ValidatePerformanceComparisonReceiptTests(unittest.TestCase):
                 [
                     sys.executable,
                     "-B",
-                    "tools/validate_performance_comparison_receipt.py",
+                    "tools/analysis/validation/validate_performance_comparison_receipt.py",
                     str(root / "comparison-receipt.json"),
                     str(baseline_path),
                     str(candidate_path),

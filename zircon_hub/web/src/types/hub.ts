@@ -11,11 +11,18 @@ export interface HubTaskSummary {
   detail: string;
   tone: StatusTone;
   running: boolean;
+  cancellable: boolean;
   recovery: string | null;
   operation: string;
   progressPercent: number;
   taskId: number;
   queued: number;
+}
+
+export interface HubWindowCloseSaveError {
+  label: string;
+  detail: string;
+  recovery: string | null;
 }
 
 export interface HubProjectSummary {
@@ -52,6 +59,7 @@ export interface HubProjectDetail {
   templateLabel: string;
   exists: boolean;
   status: string;
+  cancelTask: string;
   pendingDelete: boolean;
 }
 
@@ -343,6 +351,8 @@ export interface HubProjectsText {
   browserTitle: string;
   detailTitle: string;
   searchPlaceholder: string;
+  filterLabel: string;
+  sortLabel: string;
   filterAll: string;
   filterExisting: string;
   filterMissing: string;
@@ -429,6 +439,7 @@ export interface HubCommonText {
   operation: string;
   detail: string;
   status: string;
+  cancelTask: string;
   none: string;
   noProjectSelected: string;
   noSelectedProject: string;
@@ -646,6 +657,7 @@ export const HUB_ACTION = {
   installDevice: "install-device",
   openEditor: "open-editor",
   openOutputFolder: "open-output-folder",
+  cancelBackgroundTask: "cancel-background-task",
 } as const;
 
 export type HubActionId = (typeof HUB_ACTION)[keyof typeof HUB_ACTION];
@@ -704,9 +716,15 @@ export interface OpenResourcePayload {
   path?: string;
 }
 
+export type OpenOutputFolderCapability =
+  | "default-build-output"
+  | "default-device-install"
+  | "source-engine-output";
+
 export interface OpenOutputFolderPayload {
-  outputDir?: string;
-  historyId?: string;
+  receiptId?: string;
+  capability?: OpenOutputFolderCapability;
+  engineId?: string;
 }
 
 export interface HubActionPayloadById {
@@ -742,6 +760,8 @@ export type HubActionHandler = <TActionId extends HubActionId>(
 ) => void | Promise<void>;
 
 export interface HubShellState {
+  backendEpoch: string;
+  stateRevision: string;
   productName: string;
   engineVersion: string;
   activePage: string;
@@ -757,6 +777,7 @@ export interface HubShellState {
   selectedProjectId: string | null;
   activeSourceEngineId: string | null;
   taskSummary: HubTaskSummary;
+  windowCloseSaveError?: HubWindowCloseSaveError | null;
   taskStatus: HubStatusPill[];
   projects: HubProjectSummary[];
   browserProjects: HubRecentProject[];

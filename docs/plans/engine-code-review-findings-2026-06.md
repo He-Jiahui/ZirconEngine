@@ -1,13 +1,10 @@
 ---
 related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention.rs
-  - tests/acceptance/runtime-priority-plan-output-archive-ownership.md
   - docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md
   - docs/plans/zircon_runtime/runtime/15/2026-07-10-priority-plan-doc-current-owner-inventory.md
   - docs/plans/zircon_runtime/runtime/15/2026-07-10-engine-review-current-evidence-row-reconciliation.md
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/status_placeholder_guard.rs
-  - tests/acceptance/runtime-priority-review-current-evidence-status.md
-  - tests/acceptance/runtime-plan-status-archive-ownership-sync.md
   - tools/tests/test_zui_docs_suffix_convergence.py
   - zircon_runtime/src/core/framework/animation/error.rs
   - zircon_runtime/src/core/framework/animation/manager.rs
@@ -32,7 +29,7 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners/split_layout.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_core_scene.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_core_scene_ecs.rs
-  - docs/zircon_runtime/core/framework/camera_controller.md
+  - docs/crates/zircon_runtime/core/framework/camera_controller.md
   - zircon_runtime/src/scene/tests/ecs_systems.rs
   - zircon_runtime/src/scene/tests/ecs_systems/many_single_queries.rs
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/scene_tests.rs
@@ -50,7 +47,7 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/banned_names.rs
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/banned_names/scene_dynamic.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_banned_names.rs
-  - docs/zircon_runtime/asset/render-assets.md
+  - docs/crates/zircon_runtime/asset/render-assets.md
   - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
   - zircon_runtime/src/scene/level_system.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
@@ -59,7 +56,7 @@ related_code:
   - zircon_runtime/src/ui/mod.rs
   - zircon_runtime/src/ui/platform_input/keyboard_map.rs
   - zircon_runtime/src/ui/platform_input/winit_translation.rs
-  - docs/zircon_runtime/ui/platform_input.md
+  - docs/crates/zircon_runtime/ui/platform_input.md
   - zircon_runtime/src/ui/text/geometry.rs
   - zircon_runtime/src/text/cache/mod.rs
   - zircon_runtime/src/text/cache/frame_dedup.rs
@@ -117,8 +114,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/metrics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/text.rs
@@ -306,8 +301,8 @@ related_code:
   - zircon_runtime/src/bin/zircon_shader_prewarm/run.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_manifest.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_permutation_registry.rs
-  - tools/zircon_build.py
-  - tools/zircon_build_shader_prewarm.py
+  - tools/build/zircon_build.py
+  - tools/build/zircon_build_shader_prewarm.py
   - tools/tests/test_zircon_build_shader_prewarm.py
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_project_render_quality_tests.rs
   - zircon_runtime/src/graphics/tests/visibility.rs
@@ -369,9 +364,9 @@ related_code:
   - zircon_plugins/plugin_sdk/Cargo.toml
   - zircon_plugins/plugin_sdk/src/dist.rs
   - zircon_plugins/plugin_sdk/src/native.rs
-  - tools/audit_plugin_structure.py
-  - tools/plugin_structure_audits/capability.py
-  - tools/plugin_structure_audits/dependency_boundary.py
+  - tools/audits/audit_plugin_structure.py
+  - tools/audits/plugins/capability.py
+  - tools/audits/plugins/dependency_boundary.py
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
   - zircon_plugins/animation/runtime/src/lib.rs
   - zircon_plugins/animation/runtime/src/capability.rs
@@ -410,29 +405,29 @@ related_code:
   - zircon_plugins/native_dynamic_fixture/native/Cargo.toml
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
   - zircon_plugins/native_dynamic_fixture/assets/shader.wgsl
-  - tools/zircon_export/cli.py
-  - tools/zircon_export/validate_stage.py
-  - tools/zircon_export/plugin_command.py
-  - tools/zircon_export/plugin_build.py
-  - tools/zircon_export/plugin_build_command.py
-  - tools/zircon_export/plugin_build_preflight.py
-  - tools/zircon_export/plugin_build_package.py
-  - tools/zircon_export/plugin_build_asset_pack.py
-  - tools/zircon_export/plugin_build_signature.py
-  - tools/zircon_export/plugin_package_source.py
-  - tools/zircon_export/plugin_package_template.py
-  - tools/zircon_export/plugin_package_identity.py
-  - tools/zircon_export/plugin_validate.py
-  - tools/zircon_export/plugin_validate_report.py
-  - tools/zircon_export/plugin_validate_engine_version.py
-  - tools/zircon_export/plugin_validate_distribution_assets.py
-  - tools/zircon_export/plugin_validate_feature_provider.py
-  - tools/zircon_export/plugin_validate_feature_provider_projection_compare.py
-  - tools/zircon_export/tests/test_plugin_build.py
-  - tools/zircon_export/tests/test_plugin_validate.py
-  - tools/zircon_export/tests/test_plugin_validate_feature_provider.py
-  - tools/zircon_export/tests/test_plugin_validate_distribution_modules.py
-  - tools/zircon_export/tests/plugin_validate_support.py
+  - tools/export/cli.py
+  - tools/export/validate_stage.py
+  - tools/export/plugin_command.py
+  - tools/export/plugin_build.py
+  - tools/export/plugin_build_command.py
+  - tools/export/plugin_build_preflight.py
+  - tools/export/plugin_build_package.py
+  - tools/export/plugin_build_asset_pack.py
+  - tools/export/plugin_build_signature.py
+  - tools/export/plugin_package_source.py
+  - tools/export/plugin_package_template.py
+  - tools/export/plugin_package_identity.py
+  - tools/export/plugin_validate.py
+  - tools/export/plugin_validate_report.py
+  - tools/export/plugin_validate_engine_version.py
+  - tools/export/plugin_validate_distribution_assets.py
+  - tools/export/plugin_validate_feature_provider.py
+  - tools/export/plugin_validate_feature_provider_projection_compare.py
+  - tools/export/tests/test_plugin_build.py
+  - tools/export/tests/test_plugin_validate.py
+  - tools/export/tests/test_plugin_validate_feature_provider.py
+  - tools/export/tests/test_plugin_validate_distribution_modules.py
+  - tools/export/tests/plugin_validate_support.py
   - tools/tests/test_zircon_export_cli_owner_boundaries.py
   - tools/tests/test_zircon_build_plugin_carriers.py
   - tools/tests/test_plugin_standalone_ci_matrix.py
@@ -515,7 +510,7 @@ related_code:
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_plugins/ui_document_importer/runtime/src/capability.rs
   - zircon_plugins/ui_document_importer/runtime/src/plugin.rs
-  - tools/plugin_structure_audits/registration.py
+  - tools/audits/plugins/registration.py
   - zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs
   - zircon_runtime/src/builtin/runtime_modules/plugin_modules/loader.rs
   - zircon_runtime/src/builtin/runtime_modules/tests/registration/structure.rs
@@ -578,7 +573,6 @@ related_code:
   - zircon_plugins/zr_vm_language/runtime/src/tests/registration.rs
   - zircon_plugins/native_window_hosting/editor/src/lib.rs
   - zircon_plugins/native_window_hosting/editor/src/capability.rs
-  - zircon_plugins/native_window_hosting/editor/src/extension_ids.rs
   - zircon_plugins/native_window_hosting/editor/src/plugin.rs
   - zircon_plugins/native_window_hosting/editor/src/tests.rs
   - zircon_plugins/native_window_hosting/plugin.toml
@@ -808,7 +802,7 @@ Frameworks 审查增量（2026-08-03）：`rhi→rhi_wgpu=1` 已通过物理 `zr
 
 当前文本 artifact identity 同步（2026-08-26）：公共 opaque handle 已删除 identity-free 构造器后，Text08 的 secure-presentation marker 仍有一处旧调用，会直接阻断 current-source 编译；其 layout child 同时从未导出该函数的 `ui::text` facade 导入，也会阻断编译。该 marker 现由 secure presentation owner 注册显式版本化 identity，layout child 直接依赖真实 sibling owner；独立分配保持 value equality，同时 payload 类型识别不变，没有恢复兼容构造器、增加 facade re-export 或把 identity 规则移入公共 DTO。focused regression、精确 leaf Rustfmt、旧构造器静态扫描和 793 行文件预算通过；状态为 `compile_repair_complete / managed_validation_pending`，不能据此声称 Cargo、WGPU、截图、性能或功耗验收完成。
 
-当前插件架构审查同步（2026-07-10，`plugins_01_m2_t2_t4_typed_extension_freeze_runtime_finalize`）：Plugins 01 的类型化扩展点已补实际 runtime finalize/apply 闭环与 owner unload 回归；实现和测试均归属现有子模块/独立 test owner，没有新增 root 行为、兼容 facade 或 shim。详细证据归档在 Plugins 01 与 `docs/zircon_runtime/plugin/extension_registry.md`；插件架构整体状态：进行中，Sound 等后续计划不得据此标记完成。
+当前插件架构审查同步（2026-07-10，`plugins_01_m2_t2_t4_typed_extension_freeze_runtime_finalize`）：Plugins 01 的类型化扩展点已补实际 runtime finalize/apply 闭环与 owner unload 回归；实现和测试均归属现有子模块/独立 test owner，没有新增 root 行为、兼容 facade 或 shim。详细证据归档在 Plugins 01 与 `docs/crates/zircon_runtime/plugin/extension_registry.md`；插件架构整体状态：进行中，Sound 等后续计划不得据此标记完成。
 
 > 本文是 2026-06-22 一轮聚焦代码审查的发现目录，作为结构规范与各子计划的**补充输入**。每条带 file:line 证据、严重度与目标计划。规范级规则已并入 [`engine-code-structure-convention.md`](engine-code-structure-convention.md)；结构级发现已并入 Runtime 15 / Editor UI 10 / Plugins 12；属既有受 guard 计划（02/04/06/07/08/09、render）的项在此登记为"建议补入"，由该计划 owner 在其切片内吸收（避免直接改动受计数 guard 的文件）。
 >
@@ -4348,3 +4342,5 @@ Render-pass native capability的owner收窄与资源创建测量门禁已完成s
 RenderDoc、300帧profile、VRAM与功耗仍pending。规范状态与证据见
 `docs/plans/optimize/zircon_runtime/90/2026-08-27-pfo-4d-native-resource-write-data-plane-plan.md`
 的PFO-4d4z、PFO-4d5a、PFO-4d5b与PFO-4d5c。
+
+2026-10-04 测试目录迁移：当前 plugin-input 测试文件为 `postprocess_routes/tests/plugin_inputs.rs`，完整路径和验证边界见 [Rust 测试目录迁移记录](rust-test-directory-separation-2026-10-04.md)。历史记录保留其当时路径。

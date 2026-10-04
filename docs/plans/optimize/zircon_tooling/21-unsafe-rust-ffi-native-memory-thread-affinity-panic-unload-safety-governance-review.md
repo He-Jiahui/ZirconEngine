@@ -45,7 +45,7 @@ related_code:
   - zircon_plugins/physics/runtime/src/backend/jolt/native_world.rs
   - zircon_plugins/physics/runtime/src/backend/jolt/runtime.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/runtime_owner.rs
-  - tools/cargo-zircon/src/plugin/validate/native_artifact.rs
+  - tools/cargo/src/plugin/validate/native_artifact.rs
   - tools/tests/test_frameworks_06_ci_toolchain_contract.py
   - tools/tests/test_frameworks_06_dependency_governance_contract.py
 plan_sources:

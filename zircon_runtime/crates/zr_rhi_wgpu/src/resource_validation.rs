@@ -64,12 +64,6 @@ pub(crate) fn validate_texture_desc(
     desc: &TextureDesc,
     supports_sparse_texture: bool,
 ) -> Result<(), RhiError> {
-    if desc.width == 0 || desc.height == 0 || desc.depth == 0 {
-        return Err(RhiError::InvalidTextureDescriptor {
-            label: desc.label.clone(),
-            reason: "width, height, and depth must be greater than zero".to_string(),
-        });
-    }
     if desc.mip_levels == 0 {
         return Err(RhiError::InvalidTextureDescriptor {
             label: desc.label.clone(),
@@ -89,39 +83,11 @@ pub(crate) fn validate_texture_desc(
         });
     }
     validate_texture_view_formats(desc)?;
-    match desc.dimension {
-        TextureDimension::D1 => {
-            if desc.height != 1 || desc.depth != 1 {
-                return Err(RhiError::InvalidTextureDescriptor {
-                    label: desc.label.clone(),
-                    reason: "1D textures must declare height and depth as 1".to_string(),
-                });
-            }
-        }
-        TextureDimension::D2 => {
-            if desc.depth != 1 {
-                return Err(RhiError::InvalidTextureDescriptor {
-                    label: desc.label.clone(),
-                    reason: "2D textures must declare depth as 1".to_string(),
-                });
-            }
-        }
-        TextureDimension::D2Array | TextureDimension::D3 => {}
-        TextureDimension::Cube => {
-            if desc.width != desc.height {
-                return Err(RhiError::InvalidTextureDescriptor {
-                    label: desc.label.clone(),
-                    reason: "cube textures must be square".to_string(),
-                });
-            }
-            if desc.depth % 6 != 0 {
-                return Err(RhiError::InvalidTextureDescriptor {
-                    label: desc.label.clone(),
-                    reason: "cube textures must declare depth as a multiple of six faces"
-                        .to_string(),
-                });
-            }
-        }
+    if let Some(reason) = desc.shape_validation_error() {
+        return Err(RhiError::InvalidTextureDescriptor {
+            label: desc.label.clone(),
+            reason: reason.to_string(),
+        });
     }
     if desc.sample_count > 1 && desc.dimension != TextureDimension::D2 {
         return Err(RhiError::InvalidTextureDescriptor {

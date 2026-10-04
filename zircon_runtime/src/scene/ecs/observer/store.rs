@@ -6,13 +6,13 @@ use std::sync::Arc;
 use crate::scene::ecs::{ComponentId, ComponentLifecycleEvent, LifecycleEventKind};
 use crate::scene::{EntityId, SceneError, SceneResult, World};
 
-use super::ObserverId;
 use super::callback_registry::{insert_observer_into_bucket, remove_observer_from_indexed_bucket};
 use super::entry::{
     EntityEventCallbackBucket, EntityEventObserver, EntityEventObserverKey, EventCallbackBucket,
     EventObserver, LifecycleCallbackBucket, LifecycleObserver, LifecycleObserverKey,
     ObserverBucket,
 };
+use super::ObserverId;
 
 #[derive(Default)]
 pub struct ObserverStore {
@@ -192,12 +192,10 @@ impl ObserverStore {
     }
 
     pub(crate) fn restore_detached_entity_observers(&mut self, detached: DetachedEntityObservers) {
-        debug_assert!(
-            detached
-                .buckets
-                .iter()
-                .all(|(key, _)| key.1 == detached.entity)
-        );
+        debug_assert!(detached
+            .buckets
+            .iter()
+            .all(|(key, _)| key.1 == detached.entity));
         if detached.event_types.is_empty() {
             return;
         }

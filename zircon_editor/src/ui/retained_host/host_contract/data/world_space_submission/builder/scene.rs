@@ -9,11 +9,13 @@ pub(crate) fn build_world_space_ui_surface_submissions_from_host_scene(
     let mut submissions = Vec::new();
 
     extend_world_space_pane_submissions("left-dock", &scene.left_dock.pane, &mut submissions);
-    extend_world_space_pane_submissions(
-        "document-dock",
-        &scene.document_dock.pane,
-        &mut submissions,
-    );
+    for leaf in scene.document_surfaces() {
+        extend_world_space_pane_submissions(
+            leaf.surface_key.as_str(),
+            &leaf.pane,
+            &mut submissions,
+        );
+    }
     extend_world_space_pane_submissions("right-dock", &scene.right_dock.pane, &mut submissions);
     extend_world_space_pane_submissions("bottom-dock", &scene.bottom_dock.pane, &mut submissions);
 

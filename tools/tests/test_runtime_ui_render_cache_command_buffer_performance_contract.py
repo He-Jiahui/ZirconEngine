@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-from tools.runtime_ui_render_cache_command_buffer_pressure import run
+from tools.analysis.performance.runtime.runtime_ui_render_cache_command_buffer_pressure import run
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -11,9 +11,9 @@ REBUILD = REPO_ROOT / "zircon_runtime/src/ui/surface/surface/rebuild.rs"
 UPDATE_TESTS = (
     REPO_ROOT / "zircon_runtime/src/ui/surface/render/cache/tests/update.rs"
 )
-PROFILE_MANIFEST = REPO_ROOT / "tools/profile-capture-manifest.ps1"
+PROFILE_MANIFEST = REPO_ROOT / "tools/analysis/profiling/shared/profile-capture-manifest.ps1"
 
-
+# 约束缓存更新借用原命令缓冲、返回原提取结果，并避免第二份完整命令向量进入序列化表面。
 class RuntimeUiRenderCacheCommandBufferPerformanceContract(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

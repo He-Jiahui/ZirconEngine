@@ -6,6 +6,7 @@ mod state;
 mod surface;
 
 #[cfg(test)]
+#[path = "workbench_tree_row/tests/cases.rs"]
 mod tests;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use model::WorkbenchTreeRowStyle;

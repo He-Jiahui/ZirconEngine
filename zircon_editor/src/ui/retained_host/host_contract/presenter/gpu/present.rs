@@ -3,6 +3,7 @@ use zircon_runtime::rhi::{UiSurfaceDrawList, UiSurfacePresentStats, UiSurfacePre
 use super::super::super::chrome_command_stream::{
     build_chrome_command_stream_with_residency,
     ui_surface_draw_list_from_owned_stream_with_generation_and_residency,
+    ui_surface_draw_list_from_owned_stream_with_residency,
     ui_surface_draw_list_from_stream_with_residency, ChromeCommandStream,
 };
 use super::super::super::data::{
@@ -26,9 +27,18 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
         invalidation: HostInvalidationDiagnostics,
     ) -> HostPresenterResult<HostRefreshDiagnostics> {
         let _ = presentation_cursor;
+        self.submitted_text_profile = None;
+        self.surface.set_text_layout_observation(
+            super::super::super::profiling_artifacts::profile_capture_enabled(),
+        );
         self.native_resize_draw_list = None;
         self.native_resize_projection_size = self.size;
-        let stream_damage = damage.as_ref().filter(|_| self.surface_cache_initialized);
+        // Explicit capture observes all current visible text by actually submitting a full stream.
+        let stream_damage = observed_stream_damage(
+            damage.as_ref(),
+            self.surface_cache_initialized,
+            super::super::super::profiling_artifacts::profile_capture_enabled(),
+        );
         let stream = build_chrome_command_stream_with_residency(
             presentation,
             self.size,
@@ -39,6 +49,9 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
                     .is_image_resource_resident(resource_key, generation)
             },
         );
+        let sources = super::super::super::profiling_artifacts::profile_capture_enabled()
+            .then(|| super::super::super::profiling_artifacts::source_rows(&stream, presentation));
+        let command_stream_full_rebuild = stream.is_full_rebuild();
         let submitted_damage = stream.damage().cloned();
         let region_present = submitted_damage.is_some();
         let surface_size = stream.surface_size();
@@ -51,13 +64,26 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
                     .is_image_resource_resident(resource_key, generation)
             },
         );
-        self.present_draw_list_with_damage_diagnostics(
+        let result = self.present_draw_list_with_damage_diagnostics(
             draw_list,
             surface_size,
             region_present,
             submitted_damage.as_ref(),
             invalidation,
-        )
+        );
+        if result.is_ok() {
+            if let (Some(snapshot), Some(sources)) =
+                (self.surface.last_submitted_text_layout(), sources)
+            {
+                self.submitted_text_profile =
+                    Some(super::super::super::profiling_artifacts::bind_submitted(
+                        snapshot,
+                        &sources,
+                        command_stream_full_rebuild,
+                    ));
+            }
+        }
+        result
     }
 
     pub(in crate::ui::retained_host::host_contract) fn present_during_native_resize(
@@ -67,6 +93,7 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
         invalidation: HostInvalidationDiagnostics,
     ) -> HostPresenterResult<HostRefreshDiagnostics> {
         let _ = presentation_cursor;
+        self.submitted_text_profile = None;
         let reused_snapshot = self.native_resize_draw_list.is_some();
         if !reused_snapshot {
             self.native_resize_generation = self.native_resize_generation.saturating_add(1);
@@ -135,6 +162,7 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
         stream: &ChromeCommandStream,
         invalidation: HostInvalidationDiagnostics,
     ) -> HostPresenterResult<HostRefreshDiagnostics> {
+        self.submitted_text_profile = None;
         self.present_stream_with_damage_diagnostics(stream, stream.damage(), invalidation)
     }
 
@@ -219,3 +247,14 @@ fn require_submitted_present(
         Err(HostPresenterError::RetryableSurfacePresent)
     }
 }
+
+fn observed_stream_damage<'a>(
+    damage: Option<&'a FrameRect>,
+    cache_ready: bool,
+    observe: bool,
+) -> Option<&'a FrameRect> {
+    damage.filter(|_| cache_ready && !observe)
+}
+#[cfg(test)]
+#[path = "tests/present_text_observation_tests.rs"]
+mod text_observation_tests;

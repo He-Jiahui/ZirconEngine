@@ -1,5 +1,6 @@
 mod animation_evaluation_pipeline;
 mod clip_sample;
+mod diagnostics;
 mod direct_clip_worker;
 mod events;
 mod graph_cache;

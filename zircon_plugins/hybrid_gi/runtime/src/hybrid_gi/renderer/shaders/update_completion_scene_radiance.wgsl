@@ -93,6 +93,7 @@ fn scene_prepare_descriptor_base_rgb(descriptor: ScenePrepareDescriptor) -> vec3
             );
         }
     }
+    // 已捕获的卡页或体素辐射直接使用；仅非权威占位颜色追加场景光种子。
     if (scene_prepare_descriptor_has_authoritative_radiance(descriptor)) {
         return base_rgb;
     }

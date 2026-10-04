@@ -9,7 +9,7 @@ use super::super::resource_upload::ScreenSpaceUiPreparedUpload;
 use super::super::screen_space_ui_renderer::{
     ScreenSpaceUiRenderer, ScreenSpaceUiVertexSegmentBuffer,
 };
-use super::{PlannedScreenSpaceUi, PreparedScreenSpaceUi, framebuffer_background_color};
+use super::{framebuffer_background_color, PlannedScreenSpaceUi, PreparedScreenSpaceUi};
 
 const SCREEN_SPACE_UI_MIN_VERTEX_BUFFER_CAPACITY_BYTES: u64 = 4 * 1024;
 
@@ -40,6 +40,7 @@ impl ScreenSpaceUiRenderer {
         });
         let Some(prepared) = prepared else {
             self.vertex_buffer_plan = None;
+            self.vertex_buffer_generation = None;
             for vertex_segment in &mut self.vertex_segments {
                 vertex_segment.plan = None;
             }
@@ -69,7 +70,7 @@ impl ScreenSpaceUiRenderer {
         self.text_system.prepare(
             device,
             frame.viewport_size,
-            &prepared.render_segments,
+            &prepared,
             prepared.resolved_glyph_artifact_routes,
             buffer_uploads,
             texture_uploads,
@@ -79,7 +80,7 @@ impl ScreenSpaceUiRenderer {
         self.image_system.prepare(
             device,
             frame.viewport_size,
-            &prepared.render_segments,
+            &prepared,
             streamer,
             prepared_upload.buffer_uploads_mut(),
             force_full_upload,
@@ -187,63 +188,57 @@ impl ScreenSpaceUiRenderer {
         let mut segment_write_count = 0_usize;
         let mut segment_write_bytes = 0_usize;
         let mut segment_buffer_allocation_count = 0_usize;
-        for (segment, vertex_segment) in prepared
-            .render_segments
-            .iter()
-            .zip(&mut self.vertex_segments)
-        {
-            if !force_full_upload
-                && screen_space_ui_vertex_segment_plan_reused(vertex_segment.plan.as_ref(), segment)
+        let journal = prepared.change_journal();
+        let apply_journal = !force_full_upload
+            && !journal.is_full_rebuild()
+            && journal.base_generation() == self.vertex_buffer_generation;
+        if apply_journal {
+            for &index in journal.changed_segment_indices() {
+                let Some(segment) = prepared.render_segments.get(index) else {
+                    continue;
+                };
+                let Some(vertex_segment) = self.vertex_segments.get_mut(index) else {
+                    continue;
+                };
+                prepare_screen_space_ui_vertex_segment(
+                    device,
+                    segment,
+                    vertex_segment,
+                    uploads,
+                    force_full_upload,
+                    &mut segment_plan_reuse_count,
+                    &mut segment_hash_count,
+                    &mut segment_hash_input_bytes,
+                    &mut segment_write_count,
+                    &mut segment_write_bytes,
+                    &mut segment_buffer_allocation_count,
+                );
+            }
+        } else {
+            for (segment, vertex_segment) in prepared
+                .render_segments
+                .iter()
+                .zip(&mut self.vertex_segments)
             {
-                segment_plan_reuse_count = segment_plan_reuse_count.saturating_add(1);
-                continue;
+                prepare_screen_space_ui_vertex_segment(
+                    device,
+                    segment,
+                    vertex_segment,
+                    uploads,
+                    force_full_upload,
+                    &mut segment_plan_reuse_count,
+                    &mut segment_hash_count,
+                    &mut segment_hash_input_bytes,
+                    &mut segment_write_count,
+                    &mut segment_write_bytes,
+                    &mut segment_buffer_allocation_count,
+                );
             }
-
-            let vertex_bytes = bytemuck::cast_slice(segment.vertices.as_slice());
-            if vertex_bytes.is_empty() {
-                vertex_segment.payload_hash = None;
-                vertex_segment.plan = Some(Arc::downgrade(segment));
-                continue;
-            }
-            segment_hash_count = segment_hash_count.saturating_add(1);
-            segment_hash_input_bytes = segment_hash_input_bytes.saturating_add(vertex_bytes.len());
-            let required_byte_len = vertex_bytes.len();
-            let requires_reallocation = vertex_segment.buffer.is_none()
-                || vertex_segment.capacity_bytes < required_byte_len as u64;
-            if requires_reallocation {
-                vertex_segment.capacity_bytes =
-                    screen_space_ui_vertex_buffer_capacity(required_byte_len);
-                vertex_segment.buffer = Some(device.create_buffer(&wgpu::BufferDescriptor {
-                    label: Some("zircon-screen-space-ui-segment-vertices"),
-                    size: vertex_segment.capacity_bytes,
-                    usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                    mapped_at_creation: false,
-                }));
-                segment_buffer_allocation_count = segment_buffer_allocation_count.saturating_add(1);
-            }
-
-            let payload_hash = *blake3::hash(vertex_bytes).as_bytes();
-            if screen_space_ui_vertex_buffer_write_required(
-                requires_reallocation || force_full_upload,
-                vertex_segment.payload_hash,
-                payload_hash,
-            ) {
-                if let Some(vertex_buffer) = vertex_segment.buffer.as_ref() {
-                    uploads.push(WgpuBufferUpload::from_bytes(
-                        vertex_buffer.clone(),
-                        0,
-                        vertex_bytes,
-                    ));
-                    vertex_segment.payload_hash = Some(payload_hash);
-                    segment_write_count = segment_write_count.saturating_add(1);
-                    segment_write_bytes = segment_write_bytes.saturating_add(vertex_bytes.len());
-                }
-            }
-            vertex_segment.plan = Some(Arc::downgrade(segment));
         }
         self.vertex_segments
             .truncate(prepared.render_segments.len());
         self.vertex_buffer_plan = Some(Arc::downgrade(prepared));
+        self.vertex_buffer_generation = Some(prepared.generation());
         crate::core::diagnostics::profiling::record_counter_batch(
             "runtime",
             &[
@@ -274,6 +269,69 @@ impl ScreenSpaceUiRenderer {
             ],
         );
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn prepare_screen_space_ui_vertex_segment(
+    device: &wgpu::Device,
+    segment: &Arc<PlannedScreenSpaceUi>,
+    vertex_segment: &mut ScreenSpaceUiVertexSegmentBuffer,
+    uploads: &mut WgpuBufferUploadBatch,
+    force_full_upload: bool,
+    segment_plan_reuse_count: &mut usize,
+    segment_hash_count: &mut usize,
+    segment_hash_input_bytes: &mut usize,
+    segment_write_count: &mut usize,
+    segment_write_bytes: &mut usize,
+    segment_buffer_allocation_count: &mut usize,
+) {
+    if !force_full_upload
+        && screen_space_ui_vertex_segment_plan_reused(vertex_segment.plan.as_ref(), segment)
+    {
+        *segment_plan_reuse_count = (*segment_plan_reuse_count).saturating_add(1);
+        return;
+    }
+
+    let vertex_bytes = bytemuck::cast_slice(segment.vertices.as_slice());
+    if vertex_bytes.is_empty() {
+        vertex_segment.payload_hash = None;
+        vertex_segment.plan = Some(Arc::downgrade(segment));
+        return;
+    }
+    *segment_hash_count = (*segment_hash_count).saturating_add(1);
+    *segment_hash_input_bytes = (*segment_hash_input_bytes).saturating_add(vertex_bytes.len());
+    let required_byte_len = vertex_bytes.len();
+    let requires_reallocation =
+        vertex_segment.buffer.is_none() || vertex_segment.capacity_bytes < required_byte_len as u64;
+    if requires_reallocation {
+        vertex_segment.capacity_bytes = screen_space_ui_vertex_buffer_capacity(required_byte_len);
+        vertex_segment.buffer = Some(device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("zircon-screen-space-ui-segment-vertices"),
+            size: vertex_segment.capacity_bytes,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        }));
+        *segment_buffer_allocation_count = (*segment_buffer_allocation_count).saturating_add(1);
+    }
+
+    let payload_hash = *blake3::hash(vertex_bytes).as_bytes();
+    if screen_space_ui_vertex_buffer_write_required(
+        requires_reallocation || force_full_upload,
+        vertex_segment.payload_hash,
+        payload_hash,
+    ) {
+        if let Some(vertex_buffer) = vertex_segment.buffer.as_ref() {
+            uploads.push(WgpuBufferUpload::from_bytes(
+                vertex_buffer.clone(),
+                0,
+                vertex_bytes,
+            ));
+            vertex_segment.payload_hash = Some(payload_hash);
+            *segment_write_count = (*segment_write_count).saturating_add(1);
+            *segment_write_bytes = (*segment_write_bytes).saturating_add(vertex_bytes.len());
+        }
+    }
+    vertex_segment.plan = Some(Arc::downgrade(segment));
 }
 
 pub(super) fn screen_space_ui_vertex_plan_reused(

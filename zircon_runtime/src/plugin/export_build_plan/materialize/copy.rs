@@ -1,11 +1,24 @@
 use std::collections::HashSet;
-use std::fs::{self, File};
-use std::io::{BufReader, ErrorKind, Read};
+use std::ffi::OsString;
+use std::fs::{self, File, OpenOptions};
+use std::io::{ErrorKind, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+
+use sha2::{Digest, Sha256};
+
+use crate::core::resource::io::replace_staged_file;
+use crate::plugin::native::NativePluginArtifactDigest;
+
+const NATIVE_COPY_BUFFER_BYTES: usize = 64 * 1024;
+const MATERIALIZED_FILE_STAGING_ATTEMPTS: usize = 1_024;
+static MATERIALIZED_FILE_STAGING_SEQUENCE: AtomicU64 = AtomicU64::new(1);
 
 pub(super) struct NativeDynamicPackageFileEntry {
     pub(super) source_path: PathBuf,
     pub(super) relative_path: String,
+    pub(super) source_file: File,
+    pub(super) source_digest: NativePluginArtifactDigest,
 }
 
 pub(super) struct NativeDynamicPackageFileInventory {
@@ -13,12 +26,76 @@ pub(super) struct NativeDynamicPackageFileInventory {
     pub(super) diagnostics: Vec<String>,
 }
 
+pub(super) struct MaterializedFileStaging {
+    path: PathBuf,
+    destination: PathBuf,
+    published: bool,
+}
+
+impl MaterializedFileStaging {
+    pub(super) fn create(destination: &Path) -> Result<(File, Self), std::io::Error> {
+        let parent = destination
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+            .unwrap_or_else(|| Path::new("."));
+        fs::create_dir_all(parent)?;
+        let destination_name = destination
+            .file_name()
+            .unwrap_or_else(|| std::ffi::OsStr::new("zircon-export"));
+        for _ in 0..MATERIALIZED_FILE_STAGING_ATTEMPTS {
+            let sequence = MATERIALIZED_FILE_STAGING_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+            if sequence == 0 {
+                continue;
+            }
+            let mut staging_name = OsString::from(".");
+            staging_name.push(destination_name);
+            staging_name.push(format!(".zr-staging-{}-{sequence}", std::process::id()));
+            let path = parent.join(staging_name);
+            match OpenOptions::new().write(true).create_new(true).open(&path) {
+                Ok(file) => {
+                    return Ok((
+                        file,
+                        Self {
+                            path,
+                            destination: destination.to_path_buf(),
+                            published: false,
+                        },
+                    ));
+                }
+                Err(error) if error.kind() == ErrorKind::AlreadyExists => continue,
+                Err(error) => return Err(error),
+            }
+        }
+        Err(std::io::Error::new(
+            ErrorKind::AlreadyExists,
+            format!(
+                "could not allocate a staging file for {}",
+                destination.display()
+            ),
+        ))
+    }
+
+    pub(super) fn publish(mut self) -> Result<(), std::io::Error> {
+        replace_staged_file(&self.path, &self.destination)?;
+        self.published = true;
+        Ok(())
+    }
+}
+
+impl Drop for MaterializedFileStaging {
+    fn drop(&mut self) {
+        if !self.published {
+            let _ = fs::remove_file(&self.path);
+        }
+    }
+}
+
 pub(super) fn copy_native_dynamic_package_files(
     entries: &[NativeDynamicPackageFileEntry],
     destination: &Path,
 ) -> Result<usize, std::io::Error> {
-    let mut copied = 0;
     let mut created_parents = HashSet::new();
+    let mut staged_files = Vec::with_capacity(entries.len());
     fs::create_dir_all(destination)?;
     for entry in entries {
         let destination_path = destination.join(&entry.relative_path);
@@ -27,49 +104,152 @@ pub(super) fn copy_native_dynamic_package_files(
                 fs::create_dir_all(parent)?;
             }
         }
-        if copy_file_if_changed(&entry.source_path, &destination_path)? {
-            copied += 1;
+        if let Some(staging) = stage_file_if_changed(
+            &entry.source_file,
+            &entry.source_digest,
+            &entry.source_path,
+            &destination_path,
+        )? {
+            staged_files.push(staging);
         }
+    }
+    let copied = staged_files.len();
+    for staging in staged_files {
+        staging.publish()?;
     }
     Ok(copied)
 }
 
-// Native payloads can be large, so equality is checked with bounded buffers after the cheap size
-// gate. Timestamps are deliberately ignored because export roots can be restored or copied.
-fn copy_file_if_changed(source: &Path, destination: &Path) -> Result<bool, std::io::Error> {
-    if files_match(source, destination)? {
-        return Ok(false);
+pub(super) fn validate_native_dynamic_package_file_entries(
+    entries: &[NativeDynamicPackageFileEntry],
+) -> Result<(), std::io::Error> {
+    for entry in entries {
+        let current_digest =
+            NativePluginArtifactDigest::capture_file(&entry.source_file, &entry.source_path)
+                .map_err(std::io::Error::other)?;
+        if current_digest != entry.source_digest {
+            return Err(std::io::Error::new(
+                ErrorKind::PermissionDenied,
+                format!(
+                    "native package source {} changed after inventory capture",
+                    entry.source_path.display()
+                ),
+            ));
+        }
     }
-    fs::copy(source, destination)?;
+    Ok(())
+}
+
+// Native payloads can be large, so existing outputs and replacement streams are hashed with
+// bounded buffers. Timestamps are ignored because export roots can be restored or copied.
+fn copy_file_if_changed(
+    source: &File,
+    source_digest: &NativePluginArtifactDigest,
+    source_path: &Path,
+    destination: &Path,
+) -> Result<bool, std::io::Error> {
+    let Some(staging) = stage_file_if_changed(source, source_digest, source_path, destination)?
+    else {
+        return Ok(false);
+    };
+    staging.publish()?;
     Ok(true)
 }
 
-fn files_match(source: &Path, destination: &Path) -> Result<bool, std::io::Error> {
-    let source_metadata = fs::metadata(source)?;
-    let destination_metadata = match fs::metadata(destination) {
+fn stage_file_if_changed(
+    source: &File,
+    source_digest: &NativePluginArtifactDigest,
+    source_path: &Path,
+    destination: &Path,
+) -> Result<Option<MaterializedFileStaging>, std::io::Error> {
+    if file_matches_digest(destination, source_digest)? {
+        return Ok(None);
+    }
+    let (mut staging_file, staging) = MaterializedFileStaging::create(destination)?;
+    let write_result =
+        write_verified_native_source(source, source_digest, source_path, &mut staging_file)
+            .and_then(|_| staging_file.sync_all());
+    drop(staging_file);
+    write_result?;
+    Ok(Some(staging))
+}
+
+fn file_matches_digest(
+    path: &Path,
+    expected: &NativePluginArtifactDigest,
+) -> Result<bool, std::io::Error> {
+    let metadata = match fs::symlink_metadata(path) {
         Ok(metadata) => metadata,
         Err(error) if error.kind() == ErrorKind::NotFound => return Ok(false),
         Err(error) => return Err(error),
     };
-    if source_metadata.len() != destination_metadata.len() {
+    if !metadata.is_file() || metadata.file_type().is_symlink() {
+        return Ok(false);
+    }
+    if metadata.len() != expected.byte_length {
         return Ok(false);
     }
 
-    let mut source = BufReader::new(File::open(source)?);
-    let mut destination = BufReader::new(File::open(destination)?);
-    let mut source_buffer = [0_u8; 64 * 1024];
-    let mut destination_buffer = [0_u8; 64 * 1024];
-    let mut remaining = source_metadata.len();
-    while remaining > 0 {
-        let chunk_len = remaining.min(source_buffer.len() as u64) as usize;
-        source.read_exact(&mut source_buffer[..chunk_len])?;
-        destination.read_exact(&mut destination_buffer[..chunk_len])?;
-        if source_buffer[..chunk_len] != destination_buffer[..chunk_len] {
-            return Ok(false);
+    let file = File::open(path)?;
+    let actual =
+        NativePluginArtifactDigest::capture_file(&file, path).map_err(std::io::Error::other)?;
+    Ok(actual == *expected)
+}
+
+pub(super) fn write_verified_native_file<W: Write>(
+    entry: &NativeDynamicPackageFileEntry,
+    destination: &mut W,
+) -> Result<u64, std::io::Error> {
+    write_verified_native_source(
+        &entry.source_file,
+        &entry.source_digest,
+        &entry.source_path,
+        destination,
+    )
+}
+
+fn write_verified_native_source<W: Write>(
+    source: &File,
+    expected: &NativePluginArtifactDigest,
+    source_path: &Path,
+    destination: &mut W,
+) -> Result<u64, std::io::Error> {
+    let mut source = source.try_clone()?;
+    source.seek(SeekFrom::Start(0))?;
+    let mut sha256 = Sha256::new();
+    let mut buffer = [0_u8; NATIVE_COPY_BUFFER_BYTES];
+    let mut byte_length = 0_u64;
+    loop {
+        let read = source.read(&mut buffer)?;
+        if read == 0 {
+            break;
         }
-        remaining -= chunk_len as u64;
+        destination.write_all(&buffer[..read])?;
+        sha256.update(&buffer[..read]);
+        byte_length = byte_length.checked_add(read as u64).ok_or_else(|| {
+            std::io::Error::new(
+                ErrorKind::InvalidData,
+                format!(
+                    "native package source {} exceeds supported byte length",
+                    source_path.display()
+                ),
+            )
+        })?;
     }
-    Ok(true)
+    let actual = NativePluginArtifactDigest {
+        sha256: format!("{:x}", sha256.finalize()),
+        byte_length,
+    };
+    if actual != *expected {
+        return Err(std::io::Error::new(
+            ErrorKind::PermissionDenied,
+            format!(
+                "native package source {} changed while materialization was streaming it",
+                source_path.display()
+            ),
+        ));
+    }
+    Ok(byte_length)
 }
 
 pub(super) fn native_dynamic_package_file_inventory(
@@ -99,7 +279,7 @@ pub(super) fn native_dynamic_package_file_inventory(
             if file_name == "native" {
                 saw_native_dir = true;
                 let previous_entry_count = entries.len();
-                collect_native_artifact_entries(&source_path, file_name, &mut entries)?;
+                collect_native_artifact_entries(&source_path, file_name, source, &mut entries)?;
                 if entries.len() == previous_entry_count {
                     diagnostics.push(format!(
                         "native dynamic package {package_id} has no dynamic library artifacts under {}",
@@ -107,13 +287,14 @@ pub(super) fn native_dynamic_package_file_inventory(
                     ));
                 }
             } else if should_copy_native_resource_dir(file_name) {
-                collect_resource_entries(&source_path, file_name, &mut entries)?;
+                collect_resource_entries(&source_path, file_name, source, &mut entries)?;
             }
         } else if should_copy_native_dynamic_file(file_name) {
-            entries.push(NativeDynamicPackageFileEntry {
+            entries.push(native_file_entry(
                 source_path,
-                relative_path: file_name.to_string(),
-            });
+                file_name.to_string(),
+                source,
+            )?);
         }
     }
     if !saw_native_dir {
@@ -140,6 +321,7 @@ fn should_copy_native_dynamic_file(name: &str) -> bool {
 fn collect_resource_entries(
     source: &Path,
     relative_prefix: &str,
+    package_root: &Path,
     entries: &mut Vec<NativeDynamicPackageFileEntry>,
 ) -> Result<(), std::io::Error> {
     for entry in fs::read_dir(source)? {
@@ -155,12 +337,9 @@ fn collect_resource_entries(
         };
         let relative_path = format!("{relative_prefix}/{file_name}");
         if file_type.is_dir() {
-            collect_resource_entries(&source_path, &relative_path, entries)?;
+            collect_resource_entries(&source_path, &relative_path, package_root, entries)?;
         } else {
-            entries.push(NativeDynamicPackageFileEntry {
-                source_path,
-                relative_path,
-            });
+            entries.push(native_file_entry(source_path, relative_path, package_root)?);
         }
     }
     Ok(())
@@ -169,6 +348,7 @@ fn collect_resource_entries(
 fn collect_native_artifact_entries(
     source: &Path,
     relative_prefix: &str,
+    package_root: &Path,
     entries: &mut Vec<NativeDynamicPackageFileEntry>,
 ) -> Result<(), std::io::Error> {
     if !is_real_directory(source)? {
@@ -191,12 +371,47 @@ fn collect_native_artifact_entries(
         else {
             continue;
         };
-        entries.push(NativeDynamicPackageFileEntry {
+        entries.push(native_file_entry(
             source_path,
-            relative_path: format!("{relative_prefix}/{file_name}"),
-        });
+            format!("{relative_prefix}/{file_name}"),
+            package_root,
+        )?);
     }
     Ok(())
+}
+
+fn native_file_entry(
+    source_path: PathBuf,
+    relative_path: String,
+    package_root: &Path,
+) -> Result<NativeDynamicPackageFileEntry, std::io::Error> {
+    let source_file = open_native_source_file(&source_path, package_root)?;
+    let source_digest = NativePluginArtifactDigest::capture_file(&source_file, &source_path)
+        .map_err(std::io::Error::other)?;
+    Ok(NativeDynamicPackageFileEntry {
+        source_path,
+        relative_path,
+        source_file,
+        source_digest,
+    })
+}
+
+fn open_native_source_file(path: &Path, package_root: &Path) -> Result<File, std::io::Error> {
+    open_native_source_file_with_hook(path, package_root, || {})
+}
+
+fn open_native_source_file_with_hook(
+    path: &Path,
+    package_root: &Path,
+    before_open: impl FnOnce(),
+) -> Result<File, std::io::Error> {
+    let relative = path
+        .strip_prefix(package_root)
+        .map_err(std::io::Error::other)?;
+    let admitted_root = fs::canonicalize(package_root)?;
+    let admitted_path = admitted_root.join(relative);
+    before_open();
+    crate::asset::importer::open_admitted_file(&admitted_path, &admitted_root)
 }
 
 fn is_real_directory(path: &Path) -> Result<bool, std::io::Error> {
@@ -223,86 +438,9 @@ fn is_native_dynamic_artifact(path: &Path) -> bool {
 }
 
 #[cfg(test)]
-#[path = "copy/native_extension_tests.rs"]
+#[path = "copy/tests/native_extension_tests.rs"]
 mod native_extension_tests;
 
 #[cfg(test)]
-mod tests {
-    use std::fs;
-    use std::path::PathBuf;
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    use super::copy_file_if_changed;
-
-    #[test]
-    fn native_file_copy_skips_equal_contents_and_replaces_changed_contents() {
-        let root = temporary_test_root();
-        fs::create_dir_all(&root).expect("test root should be created");
-        let source = root.join("source.dll");
-        let destination = root.join("destination.dll");
-        fs::write(&source, "stable").expect("source fixture should be written");
-        fs::write(&destination, "stable").expect("destination fixture should be written");
-
-        let original_permissions = fs::metadata(&destination)
-            .expect("destination metadata should be readable")
-            .permissions();
-        let mut read_only_permissions = original_permissions.clone();
-        read_only_permissions.set_readonly(true);
-        fs::set_permissions(&destination, read_only_permissions)
-            .expect("destination should become read-only");
-
-        assert!(!copy_file_if_changed(&source, &destination)
-            .expect("equal native contents should not rewrite the destination"));
-
-        fs::set_permissions(&destination, original_permissions)
-            .expect("destination should become writable again");
-        fs::write(&source, "changed").expect("source fixture should be updated");
-
-        assert!(copy_file_if_changed(&source, &destination)
-            .expect("changed native contents should replace the destination"));
-        assert_eq!(
-            fs::read_to_string(&destination).expect("destination should be readable"),
-            "changed"
-        );
-
-        fs::remove_dir_all(root).expect("test root should be removable");
-    }
-
-    #[test]
-    fn native_file_copy_compares_every_bounded_buffer_chunk() {
-        let root = temporary_test_root();
-        fs::create_dir_all(&root).expect("test root should be created");
-        let source = root.join("source.pdb");
-        let destination = root.join("destination.pdb");
-        let mut payload = vec![7_u8; 64 * 1024 + 3];
-        fs::write(&source, &payload).expect("source fixture should be written");
-        fs::write(&destination, &payload).expect("destination fixture should be written");
-
-        assert!(!copy_file_if_changed(&source, &destination)
-            .expect("equal multi-chunk native contents should be skipped"));
-
-        *payload
-            .last_mut()
-            .expect("multi-chunk fixture should have a trailing byte") = 9;
-        fs::write(&source, &payload).expect("source fixture should be updated");
-        assert!(copy_file_if_changed(&source, &destination)
-            .expect("a trailing chunk change should replace the destination"));
-        assert_eq!(
-            fs::read(&destination).expect("destination should be readable"),
-            payload
-        );
-
-        fs::remove_dir_all(root).expect("test root should be removable");
-    }
-
-    fn temporary_test_root() -> PathBuf {
-        let nonce = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system clock should be after the Unix epoch")
-            .as_nanos();
-        std::env::temp_dir().join(format!(
-            "zircon-export-native-incremental-{}-{nonce}",
-            std::process::id()
-        ))
-    }
-}
+#[path = "tests/copy.rs"]
+mod tests;

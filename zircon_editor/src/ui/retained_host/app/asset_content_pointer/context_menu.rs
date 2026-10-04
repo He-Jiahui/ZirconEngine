@@ -1,7 +1,18 @@
 use super::super::{AssetPointerContentRoute, RetainedEditorHost, UiPoint};
 use crate::ui::retained_host::WorkbenchContextMenuRequestData;
 
+const ASSET_OPEN_ACTION_ID: &str = "menu.item.asset.open";
 const ASSET_DELETE_ACTION_ID: &str = "menu.item.asset.delete";
+
+fn encode_asset_locator_for_context_path(locator: &str) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut encoded = String::with_capacity(locator.len() * 2);
+    for byte in locator.bytes() {
+        encoded.push(char::from(HEX[usize::from(byte >> 4)]));
+        encoded.push(char::from(HEX[usize::from(byte & 0x0f)]));
+    }
+    encoded
+}
 
 impl RetainedEditorHost {
     pub(super) fn dispatch_asset_content_context_menu(
@@ -46,16 +57,25 @@ impl RetainedEditorHost {
             return;
         };
 
+        let open_label = self
+            .runtime
+            .context()
+            .i18n()
+            .translate("menu.assets.open.label");
+        let encoded_locator = encode_asset_locator_for_context_path(&asset.locator);
         self.dispatch_workbench_context_menu_requested(WorkbenchContextMenuRequestData {
             target_control_id: format!("AssetContent:{surface_mode}").into(),
-            target_action_id: ASSET_DELETE_ACTION_ID.into(),
+            target_action_id: ASSET_OPEN_ACTION_ID.into(),
             target_dispatch_kind: "asset".into(),
             target_role: "asset-row".into(),
             target_value_text: asset.display_name.clone().into(),
-            target_path: format!("workbench://asset/{asset_uuid}").into(),
+            target_path: format!("workbench://asset/{asset_uuid}?open_locator={encoded_locator}")
+                .into(),
             popup_anchor_x,
             popup_anchor_y,
             menu_items: vec![
+                format!("{open_label}|action={ASSET_OPEN_ACTION_ID},icon=folder").into(),
+                "---".into(),
                 format!("Delete|action={ASSET_DELETE_ACTION_ID},danger,icon=trash").into(),
             ],
         });

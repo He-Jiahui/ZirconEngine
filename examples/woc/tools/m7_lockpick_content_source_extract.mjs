@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码中提取撬锁源码常量与索引查询表，供 m7_lockpick_content_codegen.mjs 消费。
 import { execFileSync } from 'node:child_process';
 import ts from 'typescript';
 
@@ -43,6 +44,7 @@ function objectProperty(object, name) {
   throw new Error(`missing property ${name}`);
 }
 
+// 只解析受支持的源码字面量表达式；未知语法必须中止提取。
 function expressionValue(expression, resolveIdentifier = null) {
   if (ts.isParenthesizedExpression(expression)) return expressionValue(expression.expression, resolveIdentifier);
   if (ts.isStringLiteral(expression) || ts.isNoSubstitutionTemplateLiteral(expression)) return expression.text;

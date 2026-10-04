@@ -66,6 +66,10 @@ impl MigrationCompoundBinding {
             physical_path,
         }
     }
+
+    pub(crate) fn source_relative(&self) -> &str {
+        &self.source_relative
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -90,6 +94,7 @@ struct PersistedHintIdentity {
 /// project-root projections needed to resolve persisted authoring references without probing the
 /// filesystem for every reference.
 #[derive(Clone, Debug, Default)]
+/// 把已验证的物理源映射到逻辑 URI 与项目路径；歧义显式报错，迁移阶段不凭首次命中猜测。
 pub(crate) struct MigrationResolverIndex {
     by_locator: HashMap<AssetUri, Vec<PersistedSourceIdentity>>,
     by_project_hint: HashMap<RelPath, Vec<PersistedHintIdentity>>,
@@ -348,28 +353,9 @@ fn compound_sidecar_relative_path(locator: &AssetUri, suffix: &str) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn base_project_locator_borrows_the_common_unlabeled_key() {
-        let locator = AssetUri::parse("res://textures/albedo.ztexture").unwrap();
-        let base = base_project_locator(&locator).unwrap();
-
-        assert!(matches!(base, Cow::Borrowed(value) if std::ptr::eq(value, &locator)));
-        assert_eq!(into_base_project_locator(locator.clone()).unwrap(), locator);
-    }
-
-    #[test]
-    fn base_project_locator_owns_only_the_label_stripped_key() {
-        let locator = AssetUri::parse("res://models/hero.glb#Mesh0").unwrap();
-        let expected = AssetUri::parse("res://models/hero.glb").unwrap();
-
-        assert_eq!(base_project_locator(&locator).unwrap().as_ref(), &expected);
-        assert_eq!(into_base_project_locator(locator).unwrap(), expected);
-    }
-}
+#[path = "tests/resolver_index.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "resolver_index/optimization_tests.rs"]
+#[path = "resolver_index/tests/optimization_tests.rs"]
 mod optimization_tests;

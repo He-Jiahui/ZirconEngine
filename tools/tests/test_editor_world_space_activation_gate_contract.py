@@ -1,3 +1,4 @@
+# 核对世界空间激活门控字段投影，并保留禁用时的单位缩放默认值。
 from pathlib import Path
 import unittest
 

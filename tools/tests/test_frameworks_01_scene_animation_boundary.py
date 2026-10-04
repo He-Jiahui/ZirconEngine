@@ -2,7 +2,7 @@ import unittest
 from pathlib import Path
 import re
 
-from tools.runtime_domain_dependency_audit import (
+from tools.audits.runtime_domain_dependency_audit import (
     _rust_code_view,
     _rust_use_paths,
     audit_runtime_domain_dependencies,
@@ -416,12 +416,18 @@ class Frameworks01SceneAnimationBoundaryTests(unittest.TestCase):
             level_runtime,
         )
         self.assertIn("pub pose: AnimationPoseHandle", render_pose)
-        self.assertIn("pose: AnimationPoseHandle", history)
+        # Global temporal history deliberately uses a structural compatibility key.  Pose
+        # identity is retained by the sealed render rows above, while per-domain motion and
+        # reactive metadata determine whether a history consumer can reuse its own samples.
+        self.assertIn("world_identity: u64", history)
         self.assertIn(
-            "impl PartialEq for FrameHistoryAnimationPoseValidationKey",
+            "camera: FrameHistoryCameraCompatibilityKey",
             history,
         )
-        self.assertIn("Arc::ptr_eq(&self.pose, &other.pose)", history)
+        self.assertIn("effective_features: Vec<String>", history)
+        self.assertNotIn("FrameHistoryAnimationPoseValidationKey", history)
+        self.assertNotIn("pose: AnimationPoseHandle", history)
+        self.assertNotIn("animation_poses", history)
         self.assertIn("PresentationPoseChange::Partial", tick)
         self.assertIn("targets.remove", tick)
         self.assertIn("pub fn remove", skeletal_targets)

@@ -13,7 +13,7 @@ use super::popup_layout::{
 
 impl HostMenuPointerBridge {
     pub(super) fn project_route_at_point(
-        &self,
+        &mut self,
         dispatched_route: Option<HostMenuPointerRouteIntent>,
         point: UiPoint,
     ) -> Option<HostMenuPointerRouteIntent> {
@@ -29,7 +29,7 @@ impl HostMenuPointerBridge {
     }
 
     pub(super) fn project_open_popup_route_at_point(
-        &self,
+        &mut self,
         point: UiPoint,
     ) -> Option<HostMenuPointerRouteIntent> {
         let menu_index = self.state.open_menu_index?;
@@ -40,17 +40,22 @@ impl HostMenuPointerBridge {
             self.state.popup_scroll_offset,
             self.state.menu_bar_scroll_offset,
         );
-        let mut item_path = popup_item_path(self.state.open_submenu_path.as_slice());
-        project_popup_layer(PopupProjection {
+        prepare_popup_item_path_scratch(
+            &mut self.popup_item_path_scratch,
+            self.state.open_submenu_path.len(),
+        );
+        let route = project_popup_layer(PopupProjection {
             layout: &self.layout,
             menu_index,
             items: self.popup_items.as_slice(),
             route_indices: &self.popup_route_indices,
             open_submenu_path: self.state.open_submenu_path.as_slice(),
-            item_path: &mut item_path,
+            item_path: &mut self.popup_item_path_scratch,
             grid: root_grid,
             point,
-        })
+        });
+        self.popup_item_path_scratch.clear();
+        route
     }
 
     pub(super) fn root_popup_accepts_scroll(&self, point: UiPoint) -> bool {
@@ -89,6 +94,12 @@ impl HostMenuPointerBridge {
     }
 }
 
+fn prepare_popup_item_path_scratch(target: &mut Vec<usize>, open_depth: usize) {
+    target.clear();
+    target.reserve(open_depth.saturating_add(1));
+}
+
+#[cfg(test)]
 fn popup_item_path(open_submenu_path: &[usize]) -> Vec<usize> {
     Vec::with_capacity(open_submenu_path.len().saturating_add(1))
 }
@@ -172,71 +183,5 @@ fn project_popup_layer(args: PopupProjection<'_>) -> Option<HostMenuPointerRoute
 }
 
 #[cfg(test)]
-mod optimization_tests {
-    use super::popup_item_path;
-
-    #[test]
-    fn optimization_batch_20260830cx_popup_item_path_reserves_open_depth_and_hit() {
-        let path = popup_item_path(&[2, 4, 1]);
-
-        assert!(path.is_empty());
-        assert!(path.capacity() >= 4);
-    }
-
-    #[test]
-    fn optimization_batch_20260830cx_popup_item_path_capacity_source_contract() {
-        let source = include_str!("host_menu_pointer_bridge_project_route.rs");
-        assert!(source.contains("let mut item_path = popup_item_path("));
-        assert!(source.contains("Vec::with_capacity(open_submenu_path.len().saturating_add(1))"));
-        assert!(!source.contains("item_path: &mut Vec::new()"));
-    }
-
-    #[test]
-    #[ignore = "release performance evidence; run through the validation coordinator"]
-    fn optimization_batch_20260830cx_editor_popup_item_path_capacity_p95() {
-        fn measure(open_path: &[usize], reserve: bool) -> u128 {
-            let started = std::time::Instant::now();
-            for _ in 0..16_384 {
-                let mut path = if reserve {
-                    popup_item_path(open_path)
-                } else {
-                    Vec::new()
-                };
-                for index in std::hint::black_box(open_path) {
-                    path.push(*index);
-                }
-                path.push(open_path.len());
-                std::hint::black_box(path);
-            }
-            started.elapsed().as_nanos()
-        }
-
-        let open_path = (0..24).collect::<Vec<_>>();
-        let mut legacy_samples = Vec::with_capacity(17);
-        let mut optimized_samples = Vec::with_capacity(17);
-        for sample_index in 0..17 {
-            if sample_index % 2 == 0 {
-                legacy_samples.push(measure(&open_path, false));
-                optimized_samples.push(measure(&open_path, true));
-            } else {
-                optimized_samples.push(measure(&open_path, true));
-                legacy_samples.push(measure(&open_path, false));
-            }
-        }
-
-        legacy_samples.sort_unstable();
-        optimized_samples.sort_unstable();
-        let legacy_p95 = legacy_samples[16];
-        let optimized_p95 = optimized_samples[16];
-        println!(
-            "EDITOR340_POPUP_ITEM_PATH_CAPACITY_BENCH_V1 depth={} legacy_p95_ns={} optimized_p95_ns={} target_ratio_bp=7000",
-            open_path.len(),
-            legacy_p95,
-            optimized_p95,
-        );
-        assert!(
-            optimized_p95.saturating_mul(10_000) <= legacy_p95.saturating_mul(7_000),
-            "preallocated popup path P95 {optimized_p95} ns exceeded 70% of legacy {legacy_p95} ns"
-        );
-    }
-}
+#[path = "tests/host_menu_pointer_bridge_project_route_optimization_tests.rs"]
+mod optimization_tests;

@@ -1,9 +1,10 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0047] 图形场景上传和增量更新测试的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_gpu_scene_tests_are_child_owner() {
     let root = read_runtime_src("graphics/scene/gpu_scene/gpu_scene.rs");
-    let tests = read_runtime_src("graphics/scene/gpu_scene/gpu_scene/tests.rs");
+    let tests = read_runtime_src("graphics/scene/gpu_scene/gpu_scene/tests/cases.rs");
 
     let plan_03 = read_repo(
         "docs/plans/zircon_runtime/render/03/2026-07-09-gpu-scene-gpu-driven-output-records.md",
@@ -66,7 +67,7 @@ fn runtime_15_gpu_scene_tests_are_child_owner() {
 
     for (path, source) in [
         ("gpu_scene/gpu_scene.rs", root.as_str()),
-        ("gpu_scene/gpu_scene/tests.rs", tests.as_str()),
+        ("gpu_scene/gpu_scene/tests/cases.rs", tests.as_str()),
     ] {
         let line_count = source.lines().count();
         assert!(
@@ -90,7 +91,7 @@ fn runtime_15_gpu_scene_tests_are_child_owner() {
                 "GPUScene tests owner split",
                 "render_plan03_gpu_scene_tests_owner_split_static_passed_cargo_deferred_active_compile_lane",
                 "graphics/scene/gpu_scene/gpu_scene.rs",
-                "graphics/scene/gpu_scene/gpu_scene/tests.rs",
+                "graphics/scene/gpu_scene/gpu_scene/tests/cases.rs",
                 "runtime_15_gpu_scene_tests_are_child_owner",
             ],
         );

@@ -1,0 +1,1751 @@
+penpot_host_theme_source = "zircon_editor/assets/ui/editor/theme/editor_tokens.zui"
+stylesheets = []
+penpot_dependency_sources = [ "zircon_editor/assets/ui/editor/theme/editor_tokens.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui", "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui", "zircon_editor/assets/icons/zircon_editor_shell/controls/search.svg", "zircon_editor/assets/icons/ionicons/close-outline.svg", "zircon_editor/assets/icons/zircon_editor_shell/controls/field-stepper.svg" ]
+penpot_original_source = "[asset]\nkind = \"component\"\nid = \"res://ui/editor/components/workbench/modules/extensions/world/workbench_extension_foliage_editor_workspace.zui\"\nversion = 2\ndisplay_name = \"Workbench Extension Foliage Editor Workspace\"\n\n[imports]\nwidgets = [\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton\",\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown\",\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField\",\n  \"res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow\",\n  \"res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle\",\n  \"res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow\",\n  \"res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow\",\n]\nstyles = []\n\n[components.WorkbenchExtensionFoliageEditorWorkspace]\nroot = \"foliage_editor_workspace\"\ndefault_classes = [\"workbench-module-body\", \"workbench-extension-module-body\"]\n\n[nodes.foliage_editor_workspace]\ncomponent = \"Overlay\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorWorkspace\"\nclasses = [\"workbench-module-body\", \"workbench-extension-module-body\"]\nprops = { visibility = \"collapsed\" }\nlayout = { clip = true, container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [\n  { node = \"foliage_editor_workspace_main\" },\n  { node = \"foliage_editor_right\", slot = { layout = { alignment = { horizontal = \"End\", vertical = \"Fill\" }, z_order = 20 } } },\n]\n\n[nodes.foliage_editor_workspace_main]\ncomponent = \"HorizontalGroup\"\nclasses = [\"workbench-module-layout-main\"]\nlayout = { clip = true, container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.medium\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"foliage_editor_rail_gap\" }, { node = \"foliage_editor_left\" }, { node = \"foliage_editor_center\" }, { node = \"foliage_editor_right_reserve\" }]\n\n[nodes.foliage_editor_right_reserve]\ncomponent = \"Container\"\nclasses = [\"workbench-module-details-reserve\"]\nprops = { responsive_min_tier = \"wide\" }\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n[nodes.foliage_editor_rail_gap]\ncomponent = \"Container\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorRailGap\"\nprops = { responsive_min_tier = \"narrow\" }\nlayout = { width = { min = \"$editor.chrome.activity_rail.width\", preferred = \"$editor.chrome.activity_rail.width\", max = \"$editor.chrome.activity_rail.width\", stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.foliage_editor_left]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorLeftPanel\"\nclasses = [\"workbench-panel\", \"workbench-module-side\"]\nprops = { responsive_min_tier = \"narrow\" }\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"foliage_editor_title\" }, { node = \"foliage_editor_left_content\" }]\n\n[nodes.foliage_editor_left_content]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorLeftContent\"\nprops = { input_hoverable = true }\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = \"$editor.density.gap.small\", scrollbar_visibility = \"Auto\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"foliage_editor_forest_row\" }, { node = \"foliage_editor_oak_row\" }, { node = \"foliage_editor_biome_row\" }]\n\n[nodes.foliage_editor_title]\ncomponent = \"WorkbenchSectionTitle\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorTitle\"\nprops = { text = \"Foliage Editor\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = \"Fixed\" } }\n\n[nodes.foliage_editor_forest_row]\ncomponent = \"WorkbenchListRow\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorForestRow\"\nclasses = [\"workbench-list-row\", \"workbench-row-selected\"]\nprops = { text = \"FOL_Forest\", icon = \"tree\", selected = true }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/FoliageEditorForestRow\", event = \"Click\", route = \"workbench.extension.foliage_editor.forest\" }]\n\n[nodes.foliage_editor_oak_row]\ncomponent = \"WorkbenchListRow\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorOakRow\"\nclasses = [\"workbench-list-row\"]\nprops = { text = \"Oak_Tall\", icon = \"leaf\", selected = false }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/FoliageEditorOakRow\", event = \"Click\", route = \"workbench.extension.foliage_editor.oak\" }]\n\n[nodes.foliage_editor_biome_row]\ncomponent = \"WorkbenchListRow\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorBiomeRow\"\nclasses = [\"workbench-list-row\"]\nprops = { text = \"Biome_Riverbank\", icon = \"layers\", selected = false }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/FoliageEditorBiomeRow\", event = \"Click\", route = \"workbench.extension.foliage_editor.biome\" }]\n\n[nodes.foliage_editor_center]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorCenterPanel\"\nclasses = [\"workbench-panel\", \"workbench-module-center\"]\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"foliage_editor_center_header\" }, { node = \"foliage_editor_cluster_table\" }, { node = \"foliage_editor_output\" }]\n\n[nodes.foliage_editor_center_header]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorCenterHeader\"\nclasses = [\"workbench-panel-toolbar\"]\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Horizontal\", gap = \"$editor.density.gap.medium\", scrollbar_visibility = \"Never\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"foliage_editor_center_title\" }, { node = \"foliage_editor_header_fill\" }, { node = \"foliage_editor_preview_button\" }, { node = \"foliage_editor_build_button\" }]\n\n[nodes.foliage_editor_center_title]\ncomponent = \"WorkbenchSectionTitle\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorCenterTitle\"\nprops = { text = \"Foliage Cluster Workspace\" }\nlayout = { width = { min = 240.0, preferred = 240.0, max = 320.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.foliage_editor_header_fill]\ncomponent = \"Container\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorHeaderFill\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.foliage_editor_preview_button]\ncomponent = \"WorkbenchButton\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorPreviewButton\"\nclasses = [\"workbench-control-button\", \"workbench-module-command\"]\nprops = { responsive_min_tier = \"narrow\", text = \"Preview\", button_variant = \"outlined\", button_color = \"secondary\" }\nlayout = { width = { min = 86, preferred = 86, max = 96, stretch = \"Fixed\" }, height = { min = 28, preferred = 28, max = 28, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/FoliageEditorPreview\", event = \"Click\", route = \"workbench.extension.foliage_editor.preview\" }]\n\n[nodes.foliage_editor_build_button]\ncomponent = \"WorkbenchButton\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorBuildButton\"\nclasses = [\"workbench-control-button\", \"workbench-module-command\"]\nprops = { text = \"Build\", button_variant = \"filled\", button_color = \"accent\" }\nlayout = { width = { min = 86, preferred = 86, max = 96, stretch = \"Fixed\" }, height = { min = 28, preferred = 28, max = 28, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/FoliageEditorBuild\", event = \"Click\", route = \"workbench.extension.foliage_editor.build\" }]\n\n[nodes.foliage_editor_cluster_table]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorClusterTable\"\nclasses = [\"workbench-panel\", \"workbench-module-canvas\"]\nprops = { input_hoverable = true }\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = 0.0, scrollbar_visibility = \"Auto\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"foliage_editor_forest_a12_row\" }, { node = \"foliage_editor_forest_a13_row\" }, { node = \"foliage_editor_river_02_row\" }, { node = \"foliage_editor_cliff_01_row\" }]\n\n[nodes.foliage_editor_forest_a12_row]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorForestA12Row\"\nclasses = [\"workbench-table-row\"]\nprops = { text = \"Forest_A12\", value_text = \"Oak   0.72   Ready\", options = [\"Forest_A12\",\"Oak\",\"0.72\",\"Ready\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/FoliageEditorForestA12TableRow\", event = \"Click\", route = \"workbench.extension.foliage_editor.cluster.forest_a12\" }]\n\n[nodes.foliage_editor_forest_a13_row]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorForestA13Row\"\nclasses = [\"workbench-table-row\", \"workbench-row-selected\"]\nprops = { text = \"Forest_A13\", value_text = \"Fern   0.58   Selected\", selected = true, options = [\"Forest_A13\",\"Fern\",\"0.58\",\"Selected\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/FoliageEditorForestA13TableRow\", event = \"Click\", route = \"workbench.extension.foliage_editor.cluster.forest_a13\" }]\n\n[nodes.foliage_editor_river_02_row]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorRiver02Row\"\nclasses = [\"workbench-table-row\"]\nprops = { text = \"River_02\", value_text = \"Grass   0.81   Queued\", options = [\"River_02\",\"Grass\",\"0.81\",\"Queued\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/FoliageEditorRiver02TableRow\", event = \"Click\", route = \"workbench.extension.foliage_editor.cluster.river02\" }]\n\n[nodes.foliage_editor_cliff_01_row]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorCliff01Row\"\nclasses = [\"workbench-table-row\"]\nprops = { text = \"Cliff_01\", value_text = \"Shrub   0.24   Warning\", options = [\"Cliff_01\",\"Shrub\",\"0.24\",\"Warning\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/FoliageEditorCliff01TableRow\", event = \"Click\", route = \"workbench.extension.foliage_editor.cluster.cliff01\" }]\n\n[nodes.foliage_editor_output]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorOutputRow\"\nclasses = [\"workbench-table-row\"]\nprops = { text = \"Paint Output\", value_text = \"84K instances   2 warnings\", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false, options = [\"Paint Output\",\"84K instances\",\"2 warnings\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\n\n[nodes.foliage_editor_right]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorRightPanel\"\nclasses = [\"workbench-panel\", \"workbench-module-side\"]\nprops = { responsive_min_tier = \"wide\", responsive_compact_drawer = \"module_details\" }\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"foliage_editor_details_title\" }, { node = \"foliage_editor_right_content\" }]\n\n[nodes.foliage_editor_right_content]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorRightContent\"\nprops = { input_hoverable = true }\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = \"$editor.density.gap.small\", scrollbar_visibility = \"Auto\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"foliage_editor_type_dropdown_property_row\" }, { node = \"foliage_editor_density_field_property_row\" }, { node = \"foliage_editor_radius_field_property_row\" }]\n\n[nodes.foliage_editor_details_title]\ncomponent = \"WorkbenchSectionTitle\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorDetailsTitle\"\nprops = { text = \"Brush Properties\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = \"Fixed\" } }\n\n[nodes.foliage_editor_type_dropdown_property_row]\ncomponent = \"WorkbenchPropertyEditorRow\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorTypeDropdownPropertyRow\"\nprops = { text = \"Type\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"foliage_editor_type_dropdown\", slot = { name = \"value\" } }]\n\n[nodes.foliage_editor_type_dropdown]\ncomponent = \"WorkbenchDropdown\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorTypeDropdown\"\nclasses = [\"workbench-dropdown\", \"workbench-component-dropdown\"]\nprops = { value_text = \"Oak_Tall\", value = \"Oak_Tall\", options = [\"Oak_Tall\", \"Fern_A\", \"Grass_Clump\", \"Bush_A\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\nevents = [\n  { id = \"WorkbenchExtension/FoliageEditorTypeEdit\", event = \"Change\", route = \"workbench.extension.foliage_editor.type.edit\" },\n  { id = \"WorkbenchExtension/FoliageEditorTypeCommit\", event = \"Submit\", route = \"workbench.extension.foliage_editor.type.commit\" },\n]\n\n[nodes.foliage_editor_density_field_property_row]\ncomponent = \"WorkbenchPropertyEditorRow\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorDensityFieldPropertyRow\"\nprops = { text = \"Density\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"foliage_editor_density_field\", slot = { name = \"value\" } }]\n\n[nodes.foliage_editor_density_field]\ncomponent = \"WorkbenchField\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorDensityField\"\nclasses = [\"workbench-field\", \"workbench-component-field\"]\nprops = { value = \"Density: 0.72\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\nevents = [\n  { id = \"WorkbenchExtension/FoliageEditorDensityEdit\", event = \"Change\", route = \"workbench.extension.foliage_editor.density.edit\" },\n  { id = \"WorkbenchExtension/FoliageEditorDensityCommit\", event = \"Submit\", route = \"workbench.extension.foliage_editor.density.commit\" },\n]\n\n[nodes.foliage_editor_radius_field_property_row]\ncomponent = \"WorkbenchPropertyEditorRow\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorRadiusFieldPropertyRow\"\nprops = { text = \"Radius\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"foliage_editor_radius_field\", slot = { name = \"value\" } }]\n\n[nodes.foliage_editor_radius_field]\ncomponent = \"WorkbenchField\"\ncontrol_id = \"WorkbenchExtensionFoliageEditorRadiusField\"\nclasses = [\"workbench-field\", \"workbench-component-field\"]\nprops = { value = \"Radius: 480\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\nevents = [\n  { id = \"WorkbenchExtension/FoliageEditorRadiusEdit\", event = \"Change\", route = \"workbench.extension.foliage_editor.radius.edit\" },\n  { id = \"WorkbenchExtension/FoliageEditorRadiusCommit\", event = \"Submit\", route = \"workbench.extension.foliage_editor.radius.commit\" },\n]\n"
+
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/extensions/world/workbench_extension_foliage_editor_workspace.zui"
+version = 2
+display_name = "Workbench Extension Foliage Editor Workspace"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchExtensionFoliageEditorWorkspace]
+root = "foliage_editor_workspace"
+default_classes = [ "workbench-module-body", "workbench-extension-module-body" ]
+
+[nodes.foliage_editor_workspace]
+component = "Overlay"
+control_id = "WorkbenchExtensionFoliageEditorWorkspace"
+classes = [ "workbench-module-body", "workbench-extension-module-body" ]
+
+[nodes.foliage_editor_workspace.props]
+visibility = "visible"
+
+[nodes.foliage_editor_workspace.layout]
+clip = true
+
+[nodes.foliage_editor_workspace.layout.container]
+kind = "Overlay"
+
+[nodes.foliage_editor_workspace.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_workspace.layout.height]
+stretch = "Stretch"
+
+[[nodes.foliage_editor_workspace.children]]
+node = "foliage_editor_workspace_main"
+
+[[nodes.foliage_editor_workspace.children]]
+node = "foliage_editor_right"
+
+[nodes.foliage_editor_workspace.children.slot.layout]
+z_order = 20
+
+[nodes.foliage_editor_workspace.children.slot.layout.alignment]
+horizontal = "End"
+vertical = "Fill"
+
+[nodes.foliage_editor_workspace_main]
+component = "HorizontalGroup"
+classes = [ "workbench-module-layout-main" ]
+
+[nodes.foliage_editor_workspace_main.layout]
+clip = true
+
+[nodes.foliage_editor_workspace_main.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.foliage_editor_workspace_main.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_workspace_main.layout.height]
+stretch = "Stretch"
+
+[[nodes.foliage_editor_workspace_main.children]]
+node = "foliage_editor_rail_gap"
+
+[[nodes.foliage_editor_workspace_main.children]]
+node = "foliage_editor_left"
+
+[[nodes.foliage_editor_workspace_main.children]]
+node = "foliage_editor_center"
+
+[[nodes.foliage_editor_workspace_main.children]]
+node = "foliage_editor_right_reserve"
+
+[nodes.foliage_editor_right_reserve]
+component = "Container"
+classes = [ "workbench-module-details-reserve" ]
+
+[nodes.foliage_editor_right_reserve.props]
+responsive_min_tier = "wide"
+
+[nodes.foliage_editor_right_reserve.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.foliage_editor_right_reserve.layout.width]
+min = 320
+preferred = 320
+max = 340
+stretch = "Fixed"
+
+[nodes.foliage_editor_right_reserve.layout.height]
+stretch = "Stretch"
+
+[nodes.foliage_editor_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionFoliageEditorRailGap"
+
+[nodes.foliage_editor_rail_gap.props]
+responsive_min_tier = "narrow"
+
+[nodes.foliage_editor_rail_gap.layout.width]
+min = "$editor.chrome.activity_rail.width"
+preferred = "$editor.chrome.activity_rail.width"
+max = "$editor.chrome.activity_rail.width"
+stretch = "Fixed"
+
+[nodes.foliage_editor_rail_gap.layout.height]
+stretch = "Stretch"
+
+[nodes.foliage_editor_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionFoliageEditorLeftPanel"
+classes = [ "workbench-panel", "workbench-module-side" ]
+
+[nodes.foliage_editor_left.props]
+responsive_min_tier = "narrow"
+
+[nodes.foliage_editor_left.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.foliage_editor_left.layout.width]
+min = 270
+preferred = 270
+max = 290
+stretch = "Fixed"
+
+[nodes.foliage_editor_left.layout.height]
+stretch = "Stretch"
+
+[[nodes.foliage_editor_left.children]]
+node = "foliage_editor_title"
+
+[[nodes.foliage_editor_left.children]]
+node = "foliage_editor_left_content"
+
+[nodes.foliage_editor_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionFoliageEditorLeftContent"
+
+[nodes.foliage_editor_left_content.props]
+input_hoverable = true
+
+[nodes.foliage_editor_left_content.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.foliage_editor_left_content.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = "$editor.density.gap.small"
+scrollbar_visibility = "Auto"
+
+[nodes.foliage_editor_left_content.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_left_content.layout.height]
+stretch = "Stretch"
+
+[[nodes.foliage_editor_left_content.children]]
+node = "foliage_editor_forest_row"
+
+[[nodes.foliage_editor_left_content.children]]
+node = "foliage_editor_oak_row"
+
+[[nodes.foliage_editor_left_content.children]]
+node = "foliage_editor_biome_row"
+
+[nodes.foliage_editor_title]
+component = "Label"
+control_id = "WorkbenchExtensionFoliageEditorTitle"
+classes = [ "workbench-section-title", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle"
+
+[nodes.foliage_editor_title.props]
+text = "Foliage Editor"
+text_overflow = "ellipsis"
+component_variant = "section-title"
+font_size = "$editor.typography.heading.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "primary"
+
+[nodes.foliage_editor_title.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_title.layout.height]
+min = 28
+preferred = 28
+max = 30
+stretch = "Fixed"
+
+[nodes.foliage_editor_title.state]
+[nodes.foliage_editor_title.style.self]
+[nodes.foliage_editor_title.style.slot]
+[nodes.foliage_editor_title.slots]
+[nodes.foliage_editor_forest_row]
+component = "ListRow"
+control_id = "WorkbenchExtensionFoliageEditorForestRow"
+classes = [ "workbench-list-row", "workbench-primitive", "workbench-row-selected" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow"
+
+[nodes.foliage_editor_forest_row.props]
+text = "FOL_Forest"
+text_overflow = "ellipsis"
+value = "item"
+selected = true
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+icon = "tree"
+
+[nodes.foliage_editor_forest_row.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_forest_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.foliage_editor_forest_row.events]]
+id = "WorkbenchExtension/FoliageEditorForestRow"
+event = "Click"
+route = "workbench.extension.foliage_editor.forest"
+
+[nodes.foliage_editor_forest_row.state]
+[nodes.foliage_editor_forest_row.style.self]
+[nodes.foliage_editor_forest_row.style.slot]
+[nodes.foliage_editor_forest_row.slots]
+[nodes.foliage_editor_oak_row]
+component = "ListRow"
+control_id = "WorkbenchExtensionFoliageEditorOakRow"
+classes = [ "workbench-list-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow"
+
+[nodes.foliage_editor_oak_row.props]
+text = "Oak_Tall"
+text_overflow = "ellipsis"
+value = "item"
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+icon = "leaf"
+
+[nodes.foliage_editor_oak_row.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_oak_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.foliage_editor_oak_row.events]]
+id = "WorkbenchExtension/FoliageEditorOakRow"
+event = "Click"
+route = "workbench.extension.foliage_editor.oak"
+
+[nodes.foliage_editor_oak_row.state]
+[nodes.foliage_editor_oak_row.style.self]
+[nodes.foliage_editor_oak_row.style.slot]
+[nodes.foliage_editor_oak_row.slots]
+[nodes.foliage_editor_biome_row]
+component = "ListRow"
+control_id = "WorkbenchExtensionFoliageEditorBiomeRow"
+classes = [ "workbench-list-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow"
+
+[nodes.foliage_editor_biome_row.props]
+text = "Biome_Riverbank"
+text_overflow = "ellipsis"
+value = "item"
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+icon = "layers"
+
+[nodes.foliage_editor_biome_row.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_biome_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.foliage_editor_biome_row.events]]
+id = "WorkbenchExtension/FoliageEditorBiomeRow"
+event = "Click"
+route = "workbench.extension.foliage_editor.biome"
+
+[nodes.foliage_editor_biome_row.state]
+[nodes.foliage_editor_biome_row.style.self]
+[nodes.foliage_editor_biome_row.style.slot]
+[nodes.foliage_editor_biome_row.slots]
+[nodes.foliage_editor_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionFoliageEditorCenterPanel"
+classes = [ "workbench-panel", "workbench-module-center" ]
+
+[nodes.foliage_editor_center.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.foliage_editor_center.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_center.layout.height]
+stretch = "Stretch"
+
+[[nodes.foliage_editor_center.children]]
+node = "foliage_editor_center_header"
+
+[[nodes.foliage_editor_center.children]]
+node = "foliage_editor_cluster_table"
+
+[[nodes.foliage_editor_center.children]]
+node = "foliage_editor_output"
+
+[nodes.foliage_editor_center_header]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionFoliageEditorCenterHeader"
+classes = [ "workbench-panel-toolbar" ]
+
+[nodes.foliage_editor_center_header.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.foliage_editor_center_header.layout.container]
+kind = "ScrollableBox"
+axis = "Horizontal"
+gap = "$editor.density.gap.medium"
+scrollbar_visibility = "Never"
+
+[nodes.foliage_editor_center_header.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_center_header.layout.height]
+min = 34
+preferred = 34
+max = 36
+stretch = "Fixed"
+
+[[nodes.foliage_editor_center_header.children]]
+node = "foliage_editor_center_title"
+
+[[nodes.foliage_editor_center_header.children]]
+node = "foliage_editor_header_fill"
+
+[[nodes.foliage_editor_center_header.children]]
+node = "foliage_editor_preview_button"
+
+[[nodes.foliage_editor_center_header.children]]
+node = "foliage_editor_build_button"
+
+[nodes.foliage_editor_center_title]
+component = "Label"
+control_id = "WorkbenchExtensionFoliageEditorCenterTitle"
+classes = [ "workbench-section-title", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle"
+
+[nodes.foliage_editor_center_title.props]
+text = "Foliage Cluster Workspace"
+text_overflow = "ellipsis"
+component_variant = "section-title"
+font_size = "$editor.typography.heading.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "primary"
+
+[nodes.foliage_editor_center_title.layout.width]
+stretch = "Fixed"
+min = 240
+preferred = 240
+max = 320
+
+[nodes.foliage_editor_center_title.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.compact"
+stretch = "Stretch"
+
+[nodes.foliage_editor_center_title.state]
+[nodes.foliage_editor_center_title.style.self]
+[nodes.foliage_editor_center_title.style.slot]
+[nodes.foliage_editor_center_title.slots]
+[nodes.foliage_editor_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionFoliageEditorHeaderFill"
+
+[nodes.foliage_editor_header_fill.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_header_fill.layout.height]
+stretch = "Stretch"
+
+[nodes.foliage_editor_preview_button]
+component = "Button"
+control_id = "WorkbenchExtensionFoliageEditorPreviewButton"
+classes = [ "workbench-control-button", "workbench-primitive", "workbench-module-command" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton"
+
+[nodes.foliage_editor_preview_button.props]
+text = "Preview"
+text_overflow = "ellipsis"
+text_align = "center"
+button_variant = "outlined"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+validation_level = "normal"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font = "res://fonts/editor-ui.font.toml"
+font_family = "Fira Sans"
+font_weight = "$editor.typography.strong.weight"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.large"
+layout_padding_right = "$editor.density.gap.large"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.medium"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+responsive_min_tier = "narrow"
+
+[nodes.foliage_editor_preview_button.layout.width]
+stretch = "Fixed"
+min = 86
+preferred = 86
+max = 96
+
+[nodes.foliage_editor_preview_button.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[[nodes.foliage_editor_preview_button.events]]
+id = "WorkbenchExtension/FoliageEditorPreview"
+event = "Click"
+route = "workbench.extension.foliage_editor.preview"
+
+[nodes.foliage_editor_preview_button.state]
+[nodes.foliage_editor_preview_button.style.self]
+[nodes.foliage_editor_preview_button.style.slot]
+[nodes.foliage_editor_preview_button.slots]
+[nodes.foliage_editor_build_button]
+component = "Button"
+control_id = "WorkbenchExtensionFoliageEditorBuildButton"
+classes = [ "workbench-control-button", "workbench-primitive", "workbench-module-command" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton"
+
+[nodes.foliage_editor_build_button.props]
+text = "Build"
+text_overflow = "ellipsis"
+text_align = "center"
+button_variant = "filled"
+button_color = "accent"
+button_size = "small"
+button_interaction_state = "normal"
+validation_level = "normal"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font = "res://fonts/editor-ui.font.toml"
+font_family = "Fira Sans"
+font_weight = "$editor.typography.strong.weight"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.large"
+layout_padding_right = "$editor.density.gap.large"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.medium"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.foliage_editor_build_button.layout.width]
+stretch = "Fixed"
+min = 86
+preferred = 86
+max = 96
+
+[nodes.foliage_editor_build_button.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[[nodes.foliage_editor_build_button.events]]
+id = "WorkbenchExtension/FoliageEditorBuild"
+event = "Click"
+route = "workbench.extension.foliage_editor.build"
+
+[nodes.foliage_editor_build_button.state]
+[nodes.foliage_editor_build_button.style.self]
+[nodes.foliage_editor_build_button.style.slot]
+[nodes.foliage_editor_build_button.slots]
+[nodes.foliage_editor_cluster_table]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionFoliageEditorClusterTable"
+classes = [ "workbench-panel", "workbench-module-canvas" ]
+
+[nodes.foliage_editor_cluster_table.props]
+input_hoverable = true
+
+[nodes.foliage_editor_cluster_table.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.foliage_editor_cluster_table.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = 0
+scrollbar_visibility = "Auto"
+
+[nodes.foliage_editor_cluster_table.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_cluster_table.layout.height]
+stretch = "Stretch"
+
+[[nodes.foliage_editor_cluster_table.children]]
+node = "foliage_editor_forest_a12_row"
+
+[[nodes.foliage_editor_cluster_table.children]]
+node = "foliage_editor_forest_a13_row"
+
+[[nodes.foliage_editor_cluster_table.children]]
+node = "foliage_editor_river_02_row"
+
+[[nodes.foliage_editor_cluster_table.children]]
+node = "foliage_editor_cliff_01_row"
+
+[nodes.foliage_editor_forest_a12_row]
+component = "Table"
+control_id = "WorkbenchExtensionFoliageEditorForestA12Row"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.foliage_editor_forest_a12_row.props]
+text = "Forest_A12"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Forest_A12", "Oak", "0.72", "Ready" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+value_text = "Oak   0.72   Ready"
+
+[nodes.foliage_editor_forest_a12_row.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_forest_a12_row.layout.height]
+min = 30
+preferred = 30
+max = 32
+stretch = "Fixed"
+
+[[nodes.foliage_editor_forest_a12_row.events]]
+id = "WorkbenchExtension/FoliageEditorForestA12TableRow"
+event = "Click"
+route = "workbench.extension.foliage_editor.cluster.forest_a12"
+
+[nodes.foliage_editor_forest_a12_row.state]
+[nodes.foliage_editor_forest_a12_row.style.self]
+[nodes.foliage_editor_forest_a12_row.style.slot]
+[nodes.foliage_editor_forest_a12_row.slots]
+[nodes.foliage_editor_forest_a13_row]
+component = "Table"
+control_id = "WorkbenchExtensionFoliageEditorForestA13Row"
+classes = [ "workbench-table-row", "workbench-primitive", "workbench-row-selected" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.foliage_editor_forest_a13_row.props]
+text = "Forest_A13"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Forest_A13", "Fern", "0.58", "Selected" ]
+selected = true
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+value_text = "Fern   0.58   Selected"
+
+[nodes.foliage_editor_forest_a13_row.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_forest_a13_row.layout.height]
+min = 30
+preferred = 30
+max = 32
+stretch = "Fixed"
+
+[[nodes.foliage_editor_forest_a13_row.events]]
+id = "WorkbenchExtension/FoliageEditorForestA13TableRow"
+event = "Click"
+route = "workbench.extension.foliage_editor.cluster.forest_a13"
+
+[nodes.foliage_editor_forest_a13_row.state]
+[nodes.foliage_editor_forest_a13_row.style.self]
+[nodes.foliage_editor_forest_a13_row.style.slot]
+[nodes.foliage_editor_forest_a13_row.slots]
+[nodes.foliage_editor_river_02_row]
+component = "Table"
+control_id = "WorkbenchExtensionFoliageEditorRiver02Row"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.foliage_editor_river_02_row.props]
+text = "River_02"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "River_02", "Grass", "0.81", "Queued" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+value_text = "Grass   0.81   Queued"
+
+[nodes.foliage_editor_river_02_row.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_river_02_row.layout.height]
+min = 30
+preferred = 30
+max = 32
+stretch = "Fixed"
+
+[[nodes.foliage_editor_river_02_row.events]]
+id = "WorkbenchExtension/FoliageEditorRiver02TableRow"
+event = "Click"
+route = "workbench.extension.foliage_editor.cluster.river02"
+
+[nodes.foliage_editor_river_02_row.state]
+[nodes.foliage_editor_river_02_row.style.self]
+[nodes.foliage_editor_river_02_row.style.slot]
+[nodes.foliage_editor_river_02_row.slots]
+[nodes.foliage_editor_cliff_01_row]
+component = "Table"
+control_id = "WorkbenchExtensionFoliageEditorCliff01Row"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.foliage_editor_cliff_01_row.props]
+text = "Cliff_01"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Cliff_01", "Shrub", "0.24", "Warning" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+value_text = "Shrub   0.24   Warning"
+
+[nodes.foliage_editor_cliff_01_row.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_cliff_01_row.layout.height]
+min = 30
+preferred = 30
+max = 32
+stretch = "Fixed"
+
+[[nodes.foliage_editor_cliff_01_row.events]]
+id = "WorkbenchExtension/FoliageEditorCliff01TableRow"
+event = "Click"
+route = "workbench.extension.foliage_editor.cluster.cliff01"
+
+[nodes.foliage_editor_cliff_01_row.state]
+[nodes.foliage_editor_cliff_01_row.style.self]
+[nodes.foliage_editor_cliff_01_row.style.slot]
+[nodes.foliage_editor_cliff_01_row.slots]
+[nodes.foliage_editor_output]
+component = "Table"
+control_id = "WorkbenchExtensionFoliageEditorOutputRow"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.foliage_editor_output.props]
+text = "Paint Output"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Paint Output", "84K instances", "2 warnings" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = false
+input_clickable = false
+input_hoverable = false
+input_focusable = false
+value_text = "84K instances   2 warnings"
+
+[nodes.foliage_editor_output.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_output.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[nodes.foliage_editor_output.state]
+[nodes.foliage_editor_output.style.self]
+[nodes.foliage_editor_output.style.slot]
+[nodes.foliage_editor_output.slots]
+[nodes.foliage_editor_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionFoliageEditorRightPanel"
+classes = [ "workbench-panel", "workbench-module-side" ]
+
+[nodes.foliage_editor_right.props]
+responsive_min_tier = "wide"
+responsive_compact_drawer = "module_details"
+
+[nodes.foliage_editor_right.layout]
+z_order = 20
+
+[nodes.foliage_editor_right.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.foliage_editor_right.layout.width]
+min = 320
+preferred = 320
+max = 340
+stretch = "Fixed"
+
+[nodes.foliage_editor_right.layout.height]
+stretch = "Stretch"
+
+[nodes.foliage_editor_right.layout.alignment]
+horizontal = "End"
+vertical = "Fill"
+
+[nodes.foliage_editor_right.layout.anchor]
+x = 1
+
+[nodes.foliage_editor_right.layout.pivot]
+x = 1
+
+[[nodes.foliage_editor_right.children]]
+node = "foliage_editor_details_title"
+
+[[nodes.foliage_editor_right.children]]
+node = "foliage_editor_right_content"
+
+[nodes.foliage_editor_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionFoliageEditorRightContent"
+
+[nodes.foliage_editor_right_content.props]
+input_hoverable = true
+
+[nodes.foliage_editor_right_content.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.foliage_editor_right_content.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = "$editor.density.gap.small"
+scrollbar_visibility = "Auto"
+
+[nodes.foliage_editor_right_content.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_right_content.layout.height]
+stretch = "Stretch"
+
+[[nodes.foliage_editor_right_content.children]]
+node = "foliage_editor_type_dropdown_property_row"
+
+[[nodes.foliage_editor_right_content.children]]
+node = "foliage_editor_density_field_property_row"
+
+[[nodes.foliage_editor_right_content.children]]
+node = "foliage_editor_radius_field_property_row"
+
+[nodes.foliage_editor_details_title]
+component = "Label"
+control_id = "WorkbenchExtensionFoliageEditorDetailsTitle"
+classes = [ "workbench-section-title", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle"
+
+[nodes.foliage_editor_details_title.props]
+text = "Brush Properties"
+text_overflow = "ellipsis"
+component_variant = "section-title"
+font_size = "$editor.typography.heading.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "primary"
+
+[nodes.foliage_editor_details_title.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_details_title.layout.height]
+min = 28
+preferred = 28
+max = 30
+stretch = "Fixed"
+
+[nodes.foliage_editor_details_title.state]
+[nodes.foliage_editor_details_title.style.self]
+[nodes.foliage_editor_details_title.style.slot]
+[nodes.foliage_editor_details_title.slots]
+[nodes.foliage_editor_type_dropdown_property_row]
+component = "PropertyRow"
+control_id = "WorkbenchExtensionFoliageEditorTypeDropdownPropertyRow"
+classes = [ "workbench-property-editor-row", "workbench-composite" ]
+events = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow"
+
+[nodes.foliage_editor_type_dropdown_property_row.props]
+text = "Type"
+
+[nodes.foliage_editor_type_dropdown_property_row.layout]
+clip = true
+
+[nodes.foliage_editor_type_dropdown_property_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.foliage_editor_type_dropdown_property_row.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_type_dropdown_property_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.foliage_editor_type_dropdown_property_row.children]]
+node = "foliage_editor_type_dropdown_property_row__name_column"
+
+[[nodes.foliage_editor_type_dropdown_property_row.children]]
+node = "foliage_editor_type_dropdown"
+
+[nodes.foliage_editor_type_dropdown_property_row.children.slot]
+name = "value"
+
+[nodes.foliage_editor_type_dropdown_property_row.children.slot.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_type_dropdown_property_row.children.slot.layout.height]
+stretch = "Stretch"
+
+[nodes.foliage_editor_type_dropdown_property_row.state]
+[nodes.foliage_editor_type_dropdown_property_row.style.self]
+[nodes.foliage_editor_type_dropdown_property_row.style.slot]
+[nodes.foliage_editor_type_dropdown_property_row.slots]
+[nodes.foliage_editor_type_dropdown]
+component = "Dropdown"
+control_id = "WorkbenchExtensionFoliageEditorTypeDropdown"
+pixel_snapping = "disabled"
+classes = [ "workbench-field", "workbench-dropdown", "workbench-primitive", "workbench-component-dropdown" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown"
+
+[nodes.foliage_editor_type_dropdown.props]
+value = "Oak_Tall"
+value_text = "Oak_Tall"
+options = [ "Oak_Tall", "Fern_A", "Grass_Clump", "Bush_A" ]
+multiple = false
+popup_open = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+selection_state = "single"
+validation_level = "normal"
+background_color = "$editor.surface.recessed"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+open_background_color = "$editor.accent.soft"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+label_color = "$editor.text.secondary"
+icon_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+horizontal_inset = "$editor.density.gap.medium"
+caret_size = "$editor.typography.overlay.size"
+caret_right_inset = "$editor.density.gap.large"
+caret_gap = "$editor.density.gap.small"
+label_top = "$editor.control.border_width"
+label_font_size = "$editor.typography.caption.size"
+label_line_height_ratio = "$editor.typography.line_height"
+value_bottom_inset = "$editor.control.border_width"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.control.border_width"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.foliage_editor_type_dropdown.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_type_dropdown.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Stretch"
+
+[[nodes.foliage_editor_type_dropdown.events]]
+id = "WorkbenchExtension/FoliageEditorTypeEdit"
+event = "Change"
+route = "workbench.extension.foliage_editor.type.edit"
+
+[[nodes.foliage_editor_type_dropdown.events]]
+id = "WorkbenchExtension/FoliageEditorTypeCommit"
+event = "Submit"
+route = "workbench.extension.foliage_editor.type.commit"
+
+[nodes.foliage_editor_type_dropdown.state]
+[nodes.foliage_editor_type_dropdown.style.self]
+[nodes.foliage_editor_type_dropdown.style.slot]
+[nodes.foliage_editor_type_dropdown.slots]
+[nodes.foliage_editor_density_field_property_row]
+component = "PropertyRow"
+control_id = "WorkbenchExtensionFoliageEditorDensityFieldPropertyRow"
+classes = [ "workbench-property-editor-row", "workbench-composite" ]
+events = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow"
+
+[nodes.foliage_editor_density_field_property_row.props]
+text = "Density"
+
+[nodes.foliage_editor_density_field_property_row.layout]
+clip = true
+
+[nodes.foliage_editor_density_field_property_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.foliage_editor_density_field_property_row.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_density_field_property_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.foliage_editor_density_field_property_row.children]]
+node = "foliage_editor_density_field_property_row__name_column"
+
+[[nodes.foliage_editor_density_field_property_row.children]]
+node = "foliage_editor_density_field"
+
+[nodes.foliage_editor_density_field_property_row.children.slot]
+name = "value"
+
+[nodes.foliage_editor_density_field_property_row.children.slot.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_density_field_property_row.children.slot.layout.height]
+stretch = "Stretch"
+
+[nodes.foliage_editor_density_field_property_row.state]
+[nodes.foliage_editor_density_field_property_row.style.self]
+[nodes.foliage_editor_density_field_property_row.style.slot]
+[nodes.foliage_editor_density_field_property_row.slots]
+[nodes.foliage_editor_density_field]
+component = "InputField"
+control_id = "WorkbenchExtensionFoliageEditorDensityField"
+classes = [ "workbench-field", "workbench-primitive", "workbench-component-field" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField"
+
+[nodes.foliage_editor_density_field.props]
+value = "Density: 0.72"
+placeholder = ""
+validation_level = "normal"
+focused = false
+hovered = false
+disabled = false
+editable_text = true
+background_color = "$editor.surface.recessed"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+focused_background_color = "$editor.surface.recessed"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.separator.soft"
+hover_border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+placeholder_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.foliage_editor_density_field.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_density_field.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Stretch"
+
+[[nodes.foliage_editor_density_field.events]]
+id = "WorkbenchExtension/FoliageEditorDensityEdit"
+event = "Change"
+route = "workbench.extension.foliage_editor.density.edit"
+
+[[nodes.foliage_editor_density_field.events]]
+id = "WorkbenchExtension/FoliageEditorDensityCommit"
+event = "Submit"
+route = "workbench.extension.foliage_editor.density.commit"
+
+[nodes.foliage_editor_density_field.state]
+[nodes.foliage_editor_density_field.style.self]
+[nodes.foliage_editor_density_field.style.slot]
+[nodes.foliage_editor_density_field.slots]
+[nodes.foliage_editor_radius_field_property_row]
+component = "PropertyRow"
+control_id = "WorkbenchExtensionFoliageEditorRadiusFieldPropertyRow"
+classes = [ "workbench-property-editor-row", "workbench-composite" ]
+events = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow"
+
+[nodes.foliage_editor_radius_field_property_row.props]
+text = "Radius"
+
+[nodes.foliage_editor_radius_field_property_row.layout]
+clip = true
+
+[nodes.foliage_editor_radius_field_property_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.foliage_editor_radius_field_property_row.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_radius_field_property_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.foliage_editor_radius_field_property_row.children]]
+node = "foliage_editor_radius_field_property_row__name_column"
+
+[[nodes.foliage_editor_radius_field_property_row.children]]
+node = "foliage_editor_radius_field"
+
+[nodes.foliage_editor_radius_field_property_row.children.slot]
+name = "value"
+
+[nodes.foliage_editor_radius_field_property_row.children.slot.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_radius_field_property_row.children.slot.layout.height]
+stretch = "Stretch"
+
+[nodes.foliage_editor_radius_field_property_row.state]
+[nodes.foliage_editor_radius_field_property_row.style.self]
+[nodes.foliage_editor_radius_field_property_row.style.slot]
+[nodes.foliage_editor_radius_field_property_row.slots]
+[nodes.foliage_editor_radius_field]
+component = "InputField"
+control_id = "WorkbenchExtensionFoliageEditorRadiusField"
+classes = [ "workbench-field", "workbench-primitive", "workbench-component-field" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField"
+
+[nodes.foliage_editor_radius_field.props]
+value = "Radius: 480"
+placeholder = ""
+validation_level = "normal"
+focused = false
+hovered = false
+disabled = false
+editable_text = true
+background_color = "$editor.surface.recessed"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+focused_background_color = "$editor.surface.recessed"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.separator.soft"
+hover_border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+placeholder_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.foliage_editor_radius_field.layout.width]
+stretch = "Stretch"
+
+[nodes.foliage_editor_radius_field.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Stretch"
+
+[[nodes.foliage_editor_radius_field.events]]
+id = "WorkbenchExtension/FoliageEditorRadiusEdit"
+event = "Change"
+route = "workbench.extension.foliage_editor.radius.edit"
+
+[[nodes.foliage_editor_radius_field.events]]
+id = "WorkbenchExtension/FoliageEditorRadiusCommit"
+event = "Submit"
+route = "workbench.extension.foliage_editor.radius.commit"
+
+[nodes.foliage_editor_radius_field.state]
+[nodes.foliage_editor_radius_field.style.self]
+[nodes.foliage_editor_radius_field.style.slot]
+[nodes.foliage_editor_radius_field.slots]
+[nodes.foliage_editor_type_dropdown_property_row__name_column]
+component = "Container"
+
+[nodes.foliage_editor_type_dropdown_property_row__name_column.layout.width]
+min = 60
+preferred = 105
+max = 105
+stretch = "Fixed"
+
+[nodes.foliage_editor_type_dropdown_property_row__name_column.layout.height]
+stretch = "Stretch"
+
+[nodes.foliage_editor_density_field_property_row__name_column]
+component = "Container"
+
+[nodes.foliage_editor_density_field_property_row__name_column.layout.width]
+min = 60
+preferred = 105
+max = 105
+stretch = "Fixed"
+
+[nodes.foliage_editor_density_field_property_row__name_column.layout.height]
+stretch = "Stretch"
+
+[nodes.foliage_editor_radius_field_property_row__name_column]
+component = "Container"
+
+[nodes.foliage_editor_radius_field_property_row__name_column.layout.width]
+min = 60
+preferred = 105
+max = 105
+stretch = "Fixed"
+
+[nodes.foliage_editor_radius_field_property_row__name_column.layout.height]
+stretch = "Stretch"
+
+[penpot_host_colors]
+primary = "#60aeff"
+accent = "#60aeff"
+"material.primary" = "#60aeff"
+material_color_primary = "#60aeff"
+on_primary = "#151515"
+"material.on_primary" = "#151515"
+material_color_on_primary = "#151515"
+surface = "#2f2f2f"
+"material.surface" = "#2f2f2f"
+surface_inset = "#0f0f0f"
+"material.surface_inset" = "#0f0f0f"
+surface_hover = "#454545"
+"material.surface_hover" = "#454545"
+surface_pressed = "#383838"
+"material.surface_pressed" = "#383838"
+surface_selected = "#243f5a"
+"material.surface_selected" = "#243f5a"
+disabled = "#2b2b2b"
+"material.disabled" = "#2b2b2b"
+border = "#484848"
+outline = "#484848"
+"material.outline" = "#484848"
+focus = "#66b2ff"
+focus_ring = "#66b2ff"
+"material.focus_ring" = "#66b2ff"
+text = "#e8e8e8"
+on_surface = "#e8e8e8"
+"material.text" = "#e8e8e8"
+"material.on_surface" = "#e8e8e8"
+text_muted = "#b3b3b3"
+muted = "#b3b3b3"
+"material.text_muted" = "#b3b3b3"
+text_disabled = "#737373"
+"material.text_disabled" = "#737373"
+warning = "#dcac50"
+"material.warning" = "#dcac50"
+error = "#eb605c"
+danger = "#eb605c"
+"material.error" = "#eb605c"
+success = "#55be78"
+"material.success" = "#55be78"
+info = "#5faae6"
+"material.info" = "#5faae6"
+
+[penpot_host_palette]
+surface = [ "#151515", "#242424", "#2f2f2f", "#383838" ]
+surface_recessed = "#0f0f0f"
+surface_hover = "#454545"
+surface_selected = "#243f5a"
+surface_disabled = "#2b2b2b"
+accent = "#60aeff"
+accent_soft = "#253f59"
+border = "#484848"
+border_disabled = "#363636"
+separator_strong = "#565656"
+separator_soft = "#333333"
+text_primary = "#e8e8e8"
+text_secondary = "#b3b3b3"
+text_disabled = "#737373"
+success = "#55be78"
+success_container = "#1d472f"
+info = "#5faae6"
+info_container = "#18395b"
+warning = "#dcac50"
+warning_container = "#463112"
+error = "#eb605c"
+error_container = "#4c2427"
+popup = "#242424"
+track = "#3b3b3b"
+focus_ring = "#66b2ff"
+shadow = "#00000073"
+
+[tokens]
+"theme.palette.surface.0" = "#151515"
+"theme.palette.surface.1" = "#242424"
+"theme.palette.surface.2" = "#2f2f2f"
+"theme.palette.surface.3" = "#383838"
+"theme.palette.text.primary" = "#e8e8e8"
+"theme.palette.text.secondary" = "#b3b3b3"
+"theme.palette.text.disabled" = "#737373"
+"theme.palette.accent" = "#60aeff"
+"theme.palette.success" = "#55be78"
+"theme.palette.info" = "#5faae6"
+"theme.palette.warning" = "#dcac50"
+"theme.palette.error" = "#eb605c"
+"theme.palette.separator" = "#484848"
+"editor.surface.0" = "#151515"
+"editor.surface.1" = "#242424"
+"editor.surface.2" = "#2f2f2f"
+"editor.surface.3" = "#383838"
+"editor.surface.recessed" = "#0f0f0f"
+"editor.surface.hover" = "#454545"
+"editor.surface.selected" = "#243f5a"
+"editor.surface.disabled" = "#2b2b2b"
+"editor.accent" = "#60aeff"
+"editor.accent.soft" = "#253f59"
+"editor.border" = "#484848"
+"editor.border.disabled" = "#363636"
+"editor.separator.strong" = "#565656"
+"editor.separator.soft" = "#333333"
+"editor.text.primary" = "#e8e8e8"
+"editor.text.secondary" = "#b3b3b3"
+"editor.text.disabled" = "#737373"
+"editor.semantic.success" = "#55be78"
+"editor.semantic.success.container" = "#1d472f"
+"editor.semantic.info" = "#5faae6"
+"editor.semantic.info.container" = "#18395b"
+"editor.semantic.warning" = "#dcac50"
+"editor.semantic.warning.container" = "#463112"
+"editor.semantic.error" = "#eb605c"
+"editor.semantic.error.container" = "#4c2427"
+"editor.popup" = "#242424"
+"editor.track" = "#3b3b3b"
+"editor.focus.ring" = "#66b2ff"
+"editor.shadow" = "#00000073"
+"editor.typography.ui.family" = "Fira Sans"
+"editor.typography.ui.strong.family" = "Fira Sans"
+"editor.typography.code.family" = "Fira Mono"
+"editor.typography.utility_tab.text_role" = "ui"
+"editor.typography.font_smoothing" = "grayscale"
+"editor.typography.body.size" = 14
+"editor.typography.caption.size" = 12
+"editor.typography.overlay.size" = 12
+"editor.typography.heading.size" = 16
+"editor.typography.title.size" = 20
+"editor.typography.body.weight" = 400
+"editor.typography.medium.weight" = 500
+"editor.typography.strong.weight" = 600
+"editor.typography.emphasis.weight" = 700
+"editor.typography.code.weight" = 400
+"editor.typography.line_height" = 1.4
+"editor.control.height.large" = 48
+"editor.control.height.default" = 32
+"editor.control.height.compact" = 32
+"editor.control.height.dense" = 28
+"editor.control.radius.small" = 4
+"editor.control.radius.control" = 4
+"editor.control.radius.large" = 8
+"editor.control.radius.panel" = 0
+"editor.control.radius.pill" = 999
+"editor.control.border_width" = 1
+"editor.chrome.top_bar.height" = 25
+"editor.chrome.host_bar.height" = 32
+"editor.chrome.workbench_toolbar.height" = 66
+"editor.chrome.workbench_toolbar.command_row.height" = 34
+"editor.chrome.workbench_toolbar.popup.command_offset_y" = 29
+"editor.chrome.workbench_toolbar.popup.module_offset_y" = -6
+"editor.chrome.status_bar.height" = 24
+"editor.chrome.panel_header.height" = 30
+"editor.chrome.document_header.height" = 31
+"editor.chrome.viewport_toolbar.height" = 28
+"editor.chrome.activity_rail.width" = 34
+"editor.chrome.separator.thickness" = 1
+"editor.chrome.splitter.hit_size" = 8
+"editor.density.gap.xsmall" = 2
+"editor.density.gap.tight" = 4
+"editor.density.gap.small" = 4
+"editor.density.gap.regular" = 8
+"editor.density.gap.medium" = 8
+"editor.density.gap.large" = 12
+"editor.density.gap.group" = 24
+"editor.density.drawer_padding" = 12
+"editor.density.panel_padding" = 16
+"editor.density.toolbar_action_width" = 76
+"editor.density.toolbar_wide_action_width" = 96
+"editor.density.ui_asset_action.min_width" = 40
+"editor.density.ui_asset_action.preferred_width" = 52
+"editor.density.ui_asset_action.max_width" = 64
+"editor.density.ui_asset.side.min_width" = 128
+"editor.density.ui_asset.side.preferred_width" = 220
+"editor.density.ui_asset.center.min_width" = 256
+"editor.density.ui_asset.center.preferred_width" = 420
+"editor.density.ui_asset.header_kind.min_width" = 64
+"editor.density.ui_asset.header_kind.preferred_width" = 70
+"editor.density.ui_asset.header_kind.max_width" = 84
+"editor.density.ui_asset.tool.min_width" = 56
+"editor.density.ui_asset.tool.preferred_width" = 64
+"editor.density.ui_asset.tool.max_width" = 80
+"editor.density.command_palette.min_width" = 520
+"editor.density.command_palette.preferred_width" = 560
+"editor.density.command_palette.max_width" = 640
+"editor.density.command_palette.min_height" = 180
+"editor.density.command_palette.preferred_height" = 220
+"editor.density.command_palette.max_height" = 280
+"editor.density.dialog.min_width" = 420
+"editor.density.dialog.preferred_width" = 480
+"editor.density.dialog.max_width" = 560
+"editor.density.dialog.min_height" = 180
+"editor.density.dialog.preferred_height" = 220
+"editor.density.dialog.max_height" = 320
+"editor.density.confirm_dialog.preferred_width" = 460
+"editor.density.confirm_dialog.max_width" = 540
+"editor.density.confirm_dialog.min_height" = 174
+"editor.density.confirm_dialog.preferred_height" = 210
+"editor.density.confirm_dialog.max_height" = 300
+"editor.density.notification_panel.min_width" = 280
+"editor.density.notification_panel.preferred_width" = 320
+"editor.density.notification_panel.max_width" = 380
+"editor.density.notification_panel.min_height" = 160
+"editor.density.notification_panel.preferred_height" = 220
+"editor.density.notification_panel.max_height" = 320
+"editor.density.caption.min_height" = 20
+"editor.density.caption.preferred_height" = 22
+"editor.density.caption.max_height" = 24
+"editor.density.label.min_height" = 22
+"editor.density.label.preferred_height" = 24
+"editor.density.label.max_height" = 32
+"editor.density.chip.min_width" = 40
+"editor.density.chip.preferred_width" = 80
+"editor.density.chip.max_width" = 160
+"editor.density.axis_value_field.min_width" = 54
+"editor.density.axis_value_field.preferred_width" = 62
+"editor.density.axis_value_field.max_width" = 72
+"editor.density.row_height" = 28
+"editor.density.left_drawer_width" = 332
+"editor.density.right_drawer_width" = 404
+"editor.density.bottom_output_height" = 228
+"editor.density.breakpoint_ultra_width" = 480
+"editor.density.breakpoint_narrow_width" = 640
+"editor.density.breakpoint_wide_width" = 1260
+"editor.density.compact_side_width" = 1100
+"editor.density.ultra_compact_side_width" = 760
+"editor.density.compact_left_drawer_max_width" = 340
+"editor.density.compact_right_drawer_max_width" = 220
+"editor.density.compact_side_min_width" = 196
+"editor.density.minimum_document_width_fraction" = 0.5
+"editor.density.ultra_compact_left_drawer_max_width" = 220
+"editor.density.ultra_compact_right_drawer_max_width" = 160
+"editor.density.compact_bottom_available_height" = 900
+"editor.density.compact_bottom_max_height" = 148
+"editor.density.compact_bottom_max_available_fraction" = 0.23
+"editor.density.compact_bottom_min_height" = 120
+"editor.density.ultra_compact_bottom_available_height" = 420
+"editor.density.ultra_compact_bottom_max_height" = 96
+"editor.density.ultra_compact_bottom_max_available_fraction" = 0.2
+"editor.density.ultra_compact_bottom_min_height" = 80
+"editor.density.minimum_window_width" = 640
+"editor.density.minimum_window_height" = 420
+"editor.density.ultra_minimum_window_width" = 420
+"editor.density.ultra_minimum_window_height" = 360
+"editor.state.default" = "surface_1"
+"editor.state.hovered" = "surface_2"
+"editor.state.pressed" = "surface_3"
+"editor.state.selected" = "surface_selected"
+"editor.state.focused" = "surface_1"
+"editor.state.disabled" = "text_disabled"
+"editor.state.loading" = "accent"
+
+[penpot_original_imports]
+widgets = [ "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton", "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown", "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField", "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow", "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle", "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow", "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow" ]
+styles = []
+
+[penpot_field_icons]
+search = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Search\">\n  <circle cx=\"10.5\" cy=\"10.5\" r=\"5.4\" fill=\"none\" stroke=\"#cbd2dc\" stroke-width=\"1.8\"/>\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-width=\"1.9\" d=\"m14.5 14.5 4.5 4.5\"/>\n</svg>\n"
+clear = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"512\" height=\"512\" viewBox=\"0 0 512 512\"><line x1=\"368\" y1=\"368\" x2=\"144\" y2=\"144\" style=\"fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px\"/><line x1=\"368\" y1=\"144\" x2=\"144\" y2=\"368\" style=\"fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px\"/></svg>"
+stepper = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Field stepper\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\" d=\"m7 9 5-5 5 5M7 15l5 5 5-5\"/>\n</svg>\n"
+
+[penpot_dynamic_review_state]
+schema = "dev.zircon.zui.dynamic-review-state"
+version = 1
+sourcePath = "zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_foliage_editor_workspace.zui"
+selectedNodeIds = [ "foliage_editor_workspace" ]
+selectionPolicy = "authored-visible-root"

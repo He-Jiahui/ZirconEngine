@@ -1,7 +1,7 @@
 from pathlib import Path
 import re
 import unittest
-
+# 终端资源缓存以单调 epoch 更新命中项，满载时替换最旧槽；命中不移动整个列表并检查 Rust LRU 行为回归入口。
 
 ROOT = Path(__file__).resolve().parents[2]
 CACHE_RS = ROOT / (

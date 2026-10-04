@@ -1,8 +1,10 @@
 use crate::ui::retained_host::host_contract::WorkbenchTooltipPointerTarget;
 use crate::ui::retained_host::primitives::SharedString;
-use zircon_runtime_interface::ui::dispatch::{UiKeyboardInputEvent, UiPointerInputEvent};
+use zircon_runtime_interface::ui::dispatch::{
+    UiKeyboardInputEvent, UiPointerId, UiPointerInputEvent,
+};
 
-use super::types::{Callback0, Callback1, Callback2, Callback3, Callback6};
+use super::types::{Callback0, Callback1, Callback2, Callback3, Callback4, Callback6};
 
 #[derive(Default)]
 pub(in crate::ui::retained_host::host_contract) struct UiHostCallbacks {
@@ -10,6 +12,10 @@ pub(in crate::ui::retained_host::host_contract) struct UiHostCallbacks {
     pub(in crate::ui::retained_host::host_contract) interactive_frame_requested: Option<Callback0>,
     pub(in crate::ui::retained_host::host_contract) workbench_pointer_input:
         Option<Callback2<UiPointerInputEvent, Option<WorkbenchTooltipPointerTarget>>>,
+    pub(in crate::ui::retained_host::host_contract) workbench_pointer_move_pre_dispatch:
+        Option<Callback4<UiPointerId, f32, f32, bool>>,
+    pub(in crate::ui::retained_host::host_contract) workbench_primary_release_post_dispatch:
+        Option<Callback1<UiPointerId>>,
     pub(in crate::ui::retained_host::host_contract) workbench_input_activity: Option<Callback0>,
     pub(in crate::ui::retained_host::host_contract) asset_deletion_blocker_closed:
         Option<Callback0>,

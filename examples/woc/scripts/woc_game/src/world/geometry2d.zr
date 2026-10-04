@@ -12,6 +12,7 @@ pub class Point2D {
     }
 }
 
+// 用 hasValue/value 传递 TS 的 nullable 交点结果；复用此对象的调用方每次查询后先检查 hasValue。
 pub class PolygonXAtZResult {
     pub var hasValue: bool;
     pub var value: float;
@@ -63,6 +64,7 @@ pub polygonContainsPoint(points: container.Array<Point2D>, x: float, z: float): 
     return inside;
 }
 
+// 作者工具的 kernel 检查先按面积统一绕序；pole 必须在每条边的内部半平面。
 pub polygonIsStarShaped(
     points: container.Array<Point2D>, poleX: float, poleZ: float
 ): bool {
@@ -133,6 +135,7 @@ pub polygonSelfIntersects(points: container.Array<Point2D>): bool {
 
 // `side` uses the source's -1 west / +1 east convention. `hasValue` represents
 // the source null result without requiring a nullable ZrVM ABI value.
+// 墙面剖线的几何查询合同：西/东侧分别选最外交点，未命中时清除上一次输出状态。
 pub polygonXAtZ(
     points: container.Array<Point2D>, z: float, side: int, output: PolygonXAtZResult
 ): void {

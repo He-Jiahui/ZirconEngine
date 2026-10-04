@@ -43,7 +43,7 @@ for (const needle of [
   'this.entityWanderTimers = new container.Array<float>();',
   'appendDefaultWanderColumns(this);',
   'appendDefaultWanderColumns(state);',
-  'writer.u16(<uint>38, 1, 1);',
+  'writer.u16(schemaVersion, 1, 1);',
   'schemaVersion != <uint>23',
   'if (schemaVersion >= <uint>23) {',
   'state.entityWanderTimers[entityIndex] = m8EastbrookEncounter.wanderTimer(spawnIndex);',
@@ -53,8 +53,8 @@ for (const needle of [
 }
 invariant((state.match(/entityWanderTimers/g) ?? []).length >= 9,
   'WOS23 wander timer lacks persistence coverage');
-invariant(main.includes('\\"world_state\\":\\"WOS38\\",'),
-  'package stateSchema must expose the WOS38 snapshot version');
+invariant(main.includes('\\"world_state\\":\\"WOS118\\",'),
+  'package stateSchema must expose the WOS118 snapshot version');
 
 process.stdout.write(`checked WOS23 wander-timer source projection: ${SOURCE_COMMIT.slice(0, 15)}\n`);
 

@@ -16,6 +16,8 @@ enum PlanarProbeCaptureState {
 }
 
 impl PlanarReflectionUpdateState {
+    /// 提交前查询按需捕获资格；只有整条相机捕获链成功后才能调用 mark_captured。
+    /// 内容或目标变化时由拥有者 mark_dirty，卸载探针时 forget。
     pub fn should_capture(&self, probe: &PlanarReflectionProbeData) -> bool {
         probe.update == PlanarUpdateMode::EveryFrame
             || !matches!(
@@ -40,5 +42,5 @@ impl PlanarReflectionUpdateState {
 }
 
 #[cfg(test)]
-#[path = "update_state/hash_state_tests.rs"]
+#[path = "update_state/tests/hash_state_tests.rs"]
 mod hash_state_tests;

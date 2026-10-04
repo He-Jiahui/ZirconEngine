@@ -1,14 +1,15 @@
+# 核对阶段加载器清单诊断归属与模块行数。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 NATIVE_DYNAMIC_STAGE_PAYLOAD = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_native_dynamic_stage_payload.py"
+    REPO_ROOT / "tools/export/pipeline_report_native_dynamic_stage_payload.py"
 )
 NATIVE_DYNAMIC_STAGE_LOADER_MANIFEST = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_stage_loader_manifest.py"
+    / "tools/export/pipeline_report_native_dynamic_stage_loader_manifest.py"
 )
 
 

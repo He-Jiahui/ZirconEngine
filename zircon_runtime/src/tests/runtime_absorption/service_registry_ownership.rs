@@ -17,11 +17,6 @@ fn registry_owned_services_store_only_weak_runtime_back_references() {
             "core: CoreWeak",
         ),
         (
-            "zircon_runtime/src/foundation/runtime/event_manager.rs",
-            "core: CoreHandle",
-            "core: CoreWeak",
-        ),
-        (
             "zircon_runtime/src/animation/manager/mod.rs",
             "core: Option<CoreHandle>",
             "core: Option<CoreWeak>",
@@ -67,10 +62,6 @@ fn registry_owned_services_store_only_weak_runtime_back_references() {
             "DefaultConfigManager::new(core)",
         ),
         (
-            "zircon_runtime/src/foundation/module.rs",
-            "DefaultEventManager::new(core)",
-        ),
-        (
             "zircon_runtime/src/animation/module.rs",
             "DefaultAnimationManager::new(Some(core))",
         ),
@@ -103,5 +94,56 @@ fn registry_owned_services_store_only_weak_runtime_back_references() {
             !source.contains("core.clone()"),
             "registry-owned service factory {relative_path} must not clone the Runtime root"
         );
+    }
+}
+
+#[test]
+fn foundation_descriptor_exposes_no_retired_event_facade_or_false_dependents() {
+    let root = workspace_root();
+
+    for retired_path in [
+        "zircon_runtime/src/foundation/runtime/event_manager.rs",
+        "zircon_runtime/src/core/framework/foundation/event_manager.rs",
+    ] {
+        assert!(
+            !root.join(retired_path).exists(),
+            "retired Foundation event facade must be physically removed: {retired_path}"
+        );
+    }
+
+    for relative_path in [
+        "zircon_runtime/src/asset/module.rs",
+        "zircon_runtime/src/platform/module.rs",
+    ] {
+        let source = std::fs::read_to_string(root.join(relative_path))
+            .unwrap_or_else(|error| panic!("failed to read {relative_path}: {error}"));
+        assert!(
+            !source.contains("FOUNDATION_MODULE_NAME"),
+            "{relative_path} must not declare an unconsumed Foundation dependency"
+        );
+    }
+
+    for relative_path in [
+        "zircon_runtime/src/foundation/module.rs",
+        "zircon_runtime/src/foundation/mod.rs",
+        "zircon_runtime/src/foundation/runtime/mod.rs",
+        "zircon_runtime/src/core/framework/foundation/mod.rs",
+        "zircon_runtime/src/core/manager/resolver.rs",
+        "zircon_runtime/src/core/manager/service_names.rs",
+        "zircon_runtime/src/core/manager/mod.rs",
+    ] {
+        let source = std::fs::read_to_string(root.join(relative_path))
+            .unwrap_or_else(|error| panic!("failed to read {relative_path}: {error}"));
+        for retired_symbol in [
+            "EventManager",
+            "DefaultEventManager",
+            "EVENT_MANAGER_NAME",
+            "event_manager_handle",
+        ] {
+            assert!(
+                !source.contains(retired_symbol),
+                "{relative_path} must not retain retired symbol `{retired_symbol}`"
+            );
+        }
     }
 }

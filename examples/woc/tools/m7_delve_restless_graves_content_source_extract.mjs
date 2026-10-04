@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码中提取Restless Graves 死亡钩子与延迟生成，供 m7_delve_restless_graves_content_codegen.mjs 消费。
 import { execFileSync } from 'node:child_process';
 import ts from 'typescript';
 const root=process.env.WOC_GIT_ROOT, commit=process.env.WOC_GIT_COMMIT;
@@ -9,6 +10,7 @@ const functionText=(path,name)=>{
   if(!declaration) throw new Error(`${name} missing from ${path}`);
   return declaration.getText(source);
 };
+// 同时核对死亡钩子的触发条件与计时生成顺序，再输出固定契约。
 const hook=functionText('src/sim/combat/damage.ts','handleDeath');
 if(!hook) throw new Error('handleDeath missing');
 if(!hook.includes("run?.affixes.includes('restless_graves')")||!hook.includes("mobId: 'reliquary_bonewalker'")) throw new Error('restless graves death hook drifted');

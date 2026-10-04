@@ -1,3 +1,4 @@
+# 资格上下文把构建收据、场景身份和进程事件关联起来，发布前仍待观测授权；本组核对五种场景的 Stage 绑定与日志上下文，而非自行授予资格。
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $contextModule = Join-Path $repoRoot 'tools\mvp\MvpProcessQualificationContext.psm1'
 $registryModule = Join-Path $repoRoot 'tools\mvp\MvpScenarioRegistry.psm1'

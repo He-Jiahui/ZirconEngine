@@ -32,7 +32,7 @@ def rust_function(source: str, name: str) -> str:
         raise AssertionError(f"unterminated Rust function: {name}")
     return source[opening + 1 : index - 1]
 
-
+# 读取无路由鼠标运动路径，确认不构造表面路由追踪，并将事件只移动一次到公开结果。
 class RuntimeUiMouseMotionFastPathPerformanceContractTests(unittest.TestCase):
     def test_unrouted_motion_does_not_materialize_a_surface_route_trace(self):
         source = MOUSE_MOTION_PATH.read_text(encoding="utf-8")

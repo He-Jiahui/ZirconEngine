@@ -1,3 +1,6 @@
+//! 原子发布依赖的平台持久化屏障：Unix 同步目录项，Windows 同步发布后的目标句柄。
+//! 上层必须把替换操作与相应屏障作为一个提交步骤，不能把重命名成功直接视为持久化完成。
+
 use std::io;
 use std::path::Path;
 
@@ -48,6 +51,7 @@ pub(super) fn rename_staging(staging_path: &Path, target: &Path) -> io::Result<(
 
     let staging_wide = windows_api_path(staging_path)?;
     let target_wide = windows_api_path(target)?;
+    // SAFETY: 两个 UTF-16 缓冲区已经拒绝内嵌 NUL、带终止符，并在同步系统调用返回前保持存活；API 只读取路径。
     let moved = unsafe {
         MoveFileExW(
             staging_wide.as_ptr(),
@@ -98,6 +102,7 @@ pub(super) fn replace_existing_staged_file(staging: &Path, target: &Path) -> io:
 
     let target = windows_api_path(target)?;
     let staging = windows_api_path(staging)?;
+    // SAFETY: 路径缓冲区带唯一终止 NUL 且在调用期间存活；不请求备份，两个保留参数按 API 要求传入空指针。
     let replaced = unsafe {
         ReplaceFileW(
             target.as_ptr(),
@@ -114,6 +119,7 @@ pub(super) fn replace_existing_staged_file(staging: &Path, target: &Path) -> io:
     Ok(())
 }
 
+// 保留已有设备或长路径命名；普通长路径先绝对化，避免添加长路径前缀后改变相对路径含义。
 #[cfg(windows)]
 fn windows_api_path(path: &Path) -> io::Result<Vec<u16>> {
     const LEGACY_MAX_PATH: usize = 260;
@@ -177,5 +183,5 @@ fn encode_nul_terminated_path(path: &Path) -> Vec<u16> {
 }
 
 #[cfg(all(test, windows))]
-#[path = "platform/windows_path_encoding_tests.rs"]
+#[path = "platform/tests/windows_path_encoding_tests.rs"]
 mod windows_path_encoding_tests;

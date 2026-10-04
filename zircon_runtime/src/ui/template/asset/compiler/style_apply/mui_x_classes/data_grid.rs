@@ -1,3 +1,5 @@
+//! DataGrid 的模型状态先被压缩为根和 slot 类名，供模板样式规则选择；这些类名来自父网格属性。
+
 use std::collections::BTreeMap;
 
 use toml::Value;
@@ -13,6 +15,7 @@ use super::{
     string_attribute_any_from_attributes,
 };
 
+// 高密度网格可能生成大量状态类，单缓冲构造保持类名字节契约并减少中间分配。
 fn prefixed_pascal_class(prefix: &str, infix: &str, value: &str) -> String {
     let mut class = String::with_capacity(prefix.len() + infix.len() + value.len());
     class.push_str(prefix);
@@ -34,6 +37,7 @@ fn prefixed_pascal_class(prefix: &str, infix: &str, value: &str) -> String {
     class
 }
 
+/// 由 MUI X 分发入口处理网格根节点，生成数据、视口和工具条状态供后续样式表匹配。
 pub(super) fn append_component_classes(node: &mut UiTemplateNode, prefix: &str) {
     append_class(&mut node.classes, format!("{prefix}-withBorderColor"));
     let density = string_attribute_any(node, &["density"])
@@ -210,6 +214,7 @@ pub(super) fn append_component_classes(node: &mut UiTemplateNode, prefix: &str) 
     }
 }
 
+/// 由 slot 契约调用；当前仅拿到父网格模型，适合网格整体状态，单列和单元格状态仍需核对身份来源。
 pub(super) fn append_slot_classes(
     child: &mut UiTemplateNode,
     owner_attributes: &BTreeMap<String, Value>,
@@ -231,6 +236,7 @@ pub(super) fn append_slot_classes(
     true
 }
 
+// TODO: [CR-UI-TEMPLATE-STYLE-0003] 确认多列或多单元格模板中是否应按子节点身份应用 sorted、editing 类；当前任一父 sortModel 或模式映射使同类所有 slot 命中，需补多 slot 契约测试。
 fn append_column_header_slot_classes(
     child: &mut UiTemplateNode,
     owner_attributes: &BTreeMap<String, Value>,
@@ -305,5 +311,5 @@ fn append_cell_slot_classes(
 }
 
 #[cfg(test)]
-#[path = "data_grid/single_buffer_pascal_class_tests.rs"]
+#[path = "data_grid/tests/single_buffer_pascal_class_tests.rs"]
 mod single_buffer_pascal_class_tests;

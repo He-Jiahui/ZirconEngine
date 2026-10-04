@@ -1,3 +1,6 @@
+// 调用端：npm run generate:cc-contract (tools/package.json)；职责：跨战斗模块核对控制效果身份、光环效果和行动锁定规则。
+// 输入边界：src/sim/combat/cc.ts, src/sim/content/classes.ts, src/sim/content/talent_abilities_v2_a.ts, src/sim/player_motion.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

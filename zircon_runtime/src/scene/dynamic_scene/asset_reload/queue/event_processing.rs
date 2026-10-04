@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use crate::{
-    asset::{AssetEvent, AssetEventKind, AssetId, SceneAsset, facade::AssetEventPoll},
+    asset::{facade::AssetEventPoll, AssetEvent, AssetEventKind, AssetId, SceneAsset},
     core::{JobScheduler, TaskState},
     scene::dynamic_scene::DynamicSceneSpawnTask,
 };
@@ -13,8 +13,8 @@ use super::{
         skip::{DynamicSceneAssetReloadSkipReason, DynamicSceneAssetReloadSkippedEvent},
         task::DynamicSceneAssetReloadTask,
     },
-    DeferredReload, DynamicSceneAssetReloadQueue, LATEST_REVISION_METADATA_BYTES,
-    LatestRevisionState, ORDER_ENTRY_METADATA_BYTES, locator_metadata_bytes,
+    locator_metadata_bytes, DeferredReload, DynamicSceneAssetReloadQueue, LatestRevisionState,
+    LATEST_REVISION_METADATA_BYTES, ORDER_ENTRY_METADATA_BYTES,
 };
 
 impl DynamicSceneAssetReloadQueue {
@@ -207,23 +207,35 @@ impl DynamicSceneAssetReloadQueue {
     ) {
         let task = match self.task_graph_scope.as_ref() {
             Some(scope) => DynamicSceneSpawnTask::schedule_scene_asset_uri_with_limit_in_scope(
+                scheduler,
                 scope,
+                self.project.clone(),
+                deferred.uri,
+                deferred.label.clone(),
+                self.limits.max_prepared_scene_bytes,
+            ),
+            None => DynamicSceneSpawnTask::schedule_scene_asset_uri_with_limit(
                 scheduler,
                 self.project.clone(),
                 deferred.uri,
                 deferred.label.clone(),
                 self.limits.max_prepared_scene_bytes,
-            )
-            .unwrap_or_else(|error| {
-                DynamicSceneSpawnTask::rejected(deferred.label, error.to_string())
-            }),
-            None => DynamicSceneSpawnTask::schedule_scene_asset_uri_with_limit(
-                scheduler,
-                self.project.clone(),
-                deferred.uri,
-                deferred.label,
-                self.limits.max_prepared_scene_bytes,
             ),
+        };
+        let task = match task {
+            Ok(task) => task,
+            Err(reason) => {
+                report.failed.push(
+                    super::super::result::DynamicSceneAssetReloadApplyFailure::new(
+                        deferred.event,
+                        crate::scene::DynamicSceneError::SpawnTaskAdmission {
+                            label: deferred.label,
+                            reason,
+                        },
+                    ),
+                );
+                return;
+            }
         };
         self.pending_metadata_bytes = self
             .pending_metadata_bytes

@@ -1,11 +1,12 @@
+# 核对源模板生成项目物化与阶段执行归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SOURCE_TEMPLATE_STAGE = REPO_ROOT / "tools/zircon_export/source_template.py"
+SOURCE_TEMPLATE_STAGE = REPO_ROOT / "tools/export/source_template.py"
 SOURCE_TEMPLATE_GENERATED_PROJECT = (
-    REPO_ROOT / "tools/zircon_export/source_template_generated_project.py"
+    REPO_ROOT / "tools/export/source_template_generated_project.py"
 )
 
 

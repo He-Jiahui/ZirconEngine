@@ -11,7 +11,7 @@ related_code:
   - zircon_runtime/src/ui/tree/hit_test.rs
   - zircon_runtime/src/ui/surface/render/cache.rs
   - zircon_runtime/src/ui/surface/surface/frame_publication.rs
-  - tools/runtime_ui_authored_geometry_delta_pressure.py
+  - tools/analysis/performance/runtime/runtime_ui_authored_geometry_delta_pressure.py
   - tools/tests/test_runtime_ui_authored_geometry_delta_pressure.py
 status: persistent_authority_resize_envelope_and_editor_receipt_static_validated_managed_validation_pending
 product_timing: false

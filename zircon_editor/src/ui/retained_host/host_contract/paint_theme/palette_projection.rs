@@ -23,6 +23,10 @@ pub(in crate::ui::retained_host::host_contract) fn project_host_palette(
         shell_background: palette.surface[0].to_u8(),
         surface: palette.surface[2].to_u8(),
         surface_inset: palette.surface_recessed.to_u8(),
+        surface_input: palette.surface_input.to_u8(),
+        surface_panel: palette.surface[1].to_u8(),
+        surface_tab_hover: palette.surface_tab_hover.to_u8(),
+        text_tab_active: palette.text_tab_active.to_u8(),
         surface_hover: palette.surface_hover.to_u8(),
         surface_pressed: palette.surface[3].to_u8(),
         surface_selected: palette.surface_selected.to_u8(),
@@ -56,6 +60,10 @@ const fn default_host_palette_from_central_tokens() -> HostMaterialPalette {
         shell_background: EditorPaletteTokens::WORKBENCH_SURFACE[0],
         surface: EditorPaletteTokens::WORKBENCH_SURFACE[2],
         surface_inset: EditorPaletteTokens::WORKBENCH_SURFACE_RECESSED,
+        surface_input: EditorPaletteTokens::WORKBENCH_SURFACE_INPUT,
+        surface_panel: EditorPaletteTokens::WORKBENCH_SURFACE[1],
+        surface_tab_hover: EditorPaletteTokens::WORKBENCH_SURFACE_TAB_HOVER,
+        text_tab_active: EditorPaletteTokens::WORKBENCH_TEXT_TAB_ACTIVE,
         surface_hover: EditorPaletteTokens::WORKBENCH_SURFACE_HOVER,
         surface_pressed: EditorPaletteTokens::WORKBENCH_SURFACE[3],
         surface_selected: EditorPaletteTokens::WORKBENCH_SURFACE_SELECTED,
@@ -85,35 +93,5 @@ const fn default_host_palette_from_central_tokens() -> HostMaterialPalette {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn host_palette_projects_from_central_tokens() {
-        let tokens = EditorDesignTokens::workbench_dark();
-
-        assert_eq!(project_host_palette(&tokens), DEFAULT_HOST_PALETTE);
-        assert_eq!(DEFAULT_HOST_PALETTE.border, tokens.palette.border.to_u8());
-        assert_eq!(
-            DEFAULT_HOST_PALETTE.text,
-            tokens.palette.text_primary.to_u8()
-        );
-        assert_eq!(
-            DEFAULT_HOST_PALETTE.text_muted,
-            tokens.palette.text_secondary.to_u8()
-        );
-        assert_eq!(DEFAULT_HOST_PALETTE.error, tokens.palette.error.to_u8());
-    }
-
-    #[test]
-    fn changing_central_accent_moves_projected_accent_roles() {
-        let mut tokens = EditorDesignTokens::workbench_dark();
-        tokens.palette.accent = UiRgbaColor::from_u8(9, 180, 220, 255);
-        tokens.palette.focus_ring = tokens.palette.accent;
-
-        let projected = project_host_palette(&tokens);
-
-        assert_eq!(projected.accent, [9, 180, 220, 255]);
-        assert_eq!(projected.focus_ring, [9, 180, 220, 255]);
-    }
-}
+#[path = "tests/palette_projection.rs"]
+mod tests;

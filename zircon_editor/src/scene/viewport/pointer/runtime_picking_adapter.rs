@@ -93,14 +93,13 @@ fn runtime_pointer_hits_for_candidates_with_renderer_candidates(
     renderer_candidates: &[PrecisionCandidate],
 ) -> Vec<PointerHits> {
     let cursor = Vec2::new(point.x, point.y);
-    let mut hits = stacked
-        .iter()
-        .filter_map(|node_id| {
-            let candidate = candidates.get(node_id)?;
-            let score = candidate.score(cursor)?;
-            Some(runtime_hit_record(candidate, score))
-        })
-        .collect::<Vec<_>>();
+    let hit_capacity = runtime_pointer_hit_capacity(stacked.len(), renderer_candidates.len());
+    let mut hits = Vec::with_capacity(hit_capacity);
+    hits.extend(stacked.iter().filter_map(|node_id| {
+        let candidate = candidates.get(node_id)?;
+        let score = candidate.score(cursor)?;
+        Some(runtime_hit_record(candidate, score))
+    }));
     hits.extend(renderer_candidates.iter().filter_map(|candidate| {
         let score = candidate.score(cursor)?;
         Some(runtime_hit_record(candidate, score))
@@ -110,6 +109,14 @@ fn runtime_pointer_hits_for_candidates_with_renderer_candidates(
     } else {
         vec![PointerHits::new(EDITOR_VIEWPORT_POINTER_ID, hits, 0.0)]
     }
+}
+
+fn runtime_pointer_hit_capacity(stacked_count: usize, renderer_count: usize) -> usize {
+    let candidate_count = stacked_count.saturating_add(renderer_count);
+    if candidate_count == 0 {
+        return 0;
+    }
+    candidate_count
 }
 
 pub(in crate::scene::viewport::pointer) fn runtime_debug_feed_for_candidates(
@@ -149,3 +156,7 @@ fn finite_or_large(value: f32) -> f32 {
         NON_FINITE_DEPTH
     }
 }
+
+#[cfg(test)]
+#[path = "runtime_picking_adapter/tests/hit_capacity_tests.rs"]
+mod hit_capacity_tests;

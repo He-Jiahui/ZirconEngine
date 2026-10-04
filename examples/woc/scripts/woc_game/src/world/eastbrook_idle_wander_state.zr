@@ -4,6 +4,7 @@
 var math = %import("zr.zircon.math");
 var mobMotion = %import("world/mob_motion_world");
 
+/// 一个怪物的游荡阶段临时投影；生成目标与抵达收尾分开，允许世界按实际路径消费随机数并保留统一随机流。
 pub class EastbrookIdleWanderState {
     pub var x: float;
     pub var y: float;
@@ -44,6 +45,7 @@ pub wanderRange(minimum: float, maximum: float, unit: float): float {
 // Source order before calling moveToward. The caller supplies only the units
 // that this phase can consume: zero, one for an expired existing target, or
 // two for a newly-created target.
+/// 本帧先更新等待时间，再按当前目标状态消费预先取得的随机值；调用者不得为未进入的分支提前抽取。
 pub selectEastbrookIdleWanderTarget(
     state: EastbrookIdleWanderState,
     firstUnit: float,
@@ -83,7 +85,8 @@ pub finishEastbrookIdleWanderArrival(
 }
 
 // Applies the source idle wander branch's timer/target/movement behavior. The
-// result is the number of caller-owned RNG draws consumed: 0, 1 or 2.
+// 返回调用者随机流的消费数量；新目标同帧抵达时可为三，其余路径为零、一或二。
+/// 标量叶子测试用的完整游荡步骤；生产世界使用选择、世界移动、抵达收尾三阶段，以维持随机抽取顺序。
 pub stepEastbrookIdleWander(
     state: EastbrookIdleWanderState,
     firstUnit: float,
@@ -147,6 +150,7 @@ pub moveEastbrookIdleWanderTargetWithWorldMotion(
 
 // Standalone composition for the existing leaf test project. WOS uses the
 // public select/move/finish stages directly so it never prefetches draw three.
+/// 供独立调用组合世界移动的游荡步骤；若本帧新建目标又立即抵达，会消费第三个随机值，返回抽取数可为三。
 pub stepEastbrookIdleWanderWithWorldMotion(
     state: EastbrookIdleWanderState,
     firstUnit: float,

@@ -31,9 +31,11 @@ publication order remain unchanged. Only the non-published visited index changes
 | Graph identity clones for visited/queue | 0 | 0 |
 | Published target order | sorted-dependent BFS | sorted-dependent BFS |
 
-The ignored release gate runs 17 alternating samples and emits
-`RUNTIME74_DEPENDENCY_CASCADE_HASH_VISITED_BENCH_V1`. Acceptance requires hash-visited P95 to be at
-most 60% of ordered-visited P95. Exact Windows timings remain pending the coordinator run.
+The ignored Release probe now runs 101 alternating samples and emits
+`RUNTIME74_DEPENDENCY_CASCADE_HASH_VISITED_BENCH_V1` with raw nearest-rank P50/P95/P99 values and
+balanced 51/50 first-order counts. This hardens the evidence shape, but product acceptance still
+requires the complete dependency caller workload under managed Windows validation and hash-visited
+P95 at most 60% of ordered-visited P95.
 
 ## Acceptance
 
@@ -42,7 +44,7 @@ most 60% of ordered-visited P95. Exact Windows timings remain pending the coordi
 - `optimization_batch_20260826x_runtime74_dependency_cascade_uses_borrowed_hash_visited` updates
   the existing source boundary contract to require borrowed hash membership.
 - `optimization_batch_20260826x_runtime74_dependency_cascade_hash_visited_performance_evidence`
-  checks admission equivalence, reports both P95 values, and enforces the 60% threshold.
+  checks admission equivalence, reports paired P50/P95/P99 values, and enforces the 60% threshold.
 - Exact-file Rust 1.94.1 formatting, scoped diff checks, and source contracts must pass before
   managed validation submission.
 

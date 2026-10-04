@@ -17,7 +17,10 @@ fn resolve_dependencies(
     dependencies: &[AssetUri],
     registry: &ResourceRegistry,
 ) -> ResolvedDependencies {
-    let mut resolved = ResolvedDependencies::default();
+    let mut resolved = ResolvedDependencies {
+        dependency_ids: Vec::with_capacity(dependencies.len()),
+        diagnostics: Vec::new(),
+    };
     let mut seen_dependency_ids = HashSet::with_capacity(dependencies.len());
     for dependency in dependencies {
         if let Some(record) = registry.get_by_locator(dependency) {
@@ -27,6 +30,9 @@ fn resolve_dependencies(
                 record.id(),
             );
         } else {
+            if resolved.diagnostics.is_empty() {
+                resolved.diagnostics.reserve(dependencies.len());
+            }
             resolved.diagnostics.push(ResourceDiagnostic::error(format!(
                 "unresolved asset dependency {dependency}"
             )));
@@ -92,142 +98,81 @@ pub(super) fn merge_handwritten_dependencies_into_meta(
 ) {
     let dependencies =
         crate::asset::registry::dependency_extractors::handwritten_dependencies(asset);
-    for dependency in dependencies {
-        if !meta.dependencies.contains(&dependency) {
-            meta.dependencies.push(dependency.clone());
-        }
-        if let Some(root) = meta
-            .entries
-            .iter_mut()
-            .find(|entry| entry.url.label().is_none())
-        {
-            if !root.dependencies.contains(&dependency) {
-                root.dependencies.push(dependency);
+    if dependencies.is_empty() {
+        return;
+    }
+
+    let meta_dependencies = &mut meta.dependencies;
+    let meta_dependency_capacity = meta_dependencies.len().saturating_add(dependencies.len());
+    let mut meta_dependency_index: HashSet<&AssetUri> =
+        HashSet::with_capacity(meta_dependency_capacity);
+    meta_dependency_index.extend(meta_dependencies.iter());
+
+    let mut root = meta
+        .entries
+        .iter_mut()
+        .find(|entry| entry.url.label().is_none());
+    let mut root_dependency_index: Option<HashSet<&AssetUri>> = root.as_deref().map(|root| {
+        let root_dependency_capacity = root.dependencies.len().saturating_add(dependencies.len());
+        let mut index = HashSet::with_capacity(root_dependency_capacity);
+        index.extend(root.dependencies.iter());
+        index
+    });
+
+    const META_ADMISSION: u8 = 1;
+    const ROOT_ADMISSION: u8 = 1 << 1;
+    let mut admission_flags = Vec::with_capacity(dependencies.len());
+    let mut meta_addition_count = 0;
+    let mut root_addition_count = 0;
+    for dependency in &dependencies {
+        let meta_is_new = meta_dependency_index.insert(dependency);
+        let root_is_new = root_dependency_index
+            .as_mut()
+            .map(|index| index.insert(dependency))
+            .unwrap_or(false);
+        admission_flags
+            .push(u8::from(meta_is_new) * META_ADMISSION + u8::from(root_is_new) * ROOT_ADMISSION);
+        meta_addition_count += usize::from(meta_is_new);
+        root_addition_count += usize::from(root_is_new);
+    }
+    drop(meta_dependency_index);
+    drop(root_dependency_index);
+
+    meta_dependencies.reserve(meta_addition_count);
+    let mut root_dependencies = root.map(|entry| &mut entry.dependencies);
+    if let Some(root_dependencies) = root_dependencies.as_mut() {
+        root_dependencies.reserve(root_addition_count);
+    }
+
+    for (dependency, flags) in dependencies.into_iter().zip(admission_flags) {
+        let meta_is_new = flags & META_ADMISSION != 0;
+        let root_is_new = flags & ROOT_ADMISSION != 0;
+        match (meta_is_new, root_is_new) {
+            (true, true) => {
+                meta_dependencies.push(dependency.clone());
+                root_dependencies
+                    .as_mut()
+                    .expect("root admission requires a root entry")
+                    .push(dependency);
             }
+            (true, false) => meta_dependencies.push(dependency),
+            (false, true) => root_dependencies
+                .as_mut()
+                .expect("root admission requires a root entry")
+                .push(dependency),
+            (false, false) => {}
         }
     }
 }
 
 #[cfg(test)]
-mod optimization_tests {
-    use std::collections::HashSet;
-    use std::hint::black_box;
-    use std::time::Instant;
+#[path = "tests/dependency_resolution_optimization_tests.rs"]
+mod optimization_tests;
 
-    use crate::asset::AssetId;
+#[cfg(test)]
+#[path = "dependency_resolution/tests/optimization_batch_jd_runtime643_tests.rs"]
+mod optimization_batch_jd_runtime643_tests;
 
-    use super::admit_resolved_dependency_id;
-
-    #[test]
-    fn runtime85_project_dedup_recovery_batch_dependency_preserves_first_order() {
-        let first = AssetId::new();
-        let second = AssetId::new();
-        let third = AssetId::new();
-        let input = [second, first, second, third, first];
-        let mut ordered = Vec::new();
-        let mut seen = HashSet::new();
-
-        for dependency_id in input {
-            admit_resolved_dependency_id(&mut ordered, &mut seen, dependency_id);
-        }
-
-        assert_eq!(ordered, vec![second, first, third]);
-    }
-
-    #[test]
-    fn runtime85_project_dedup_recovery_batch_dependency_uses_hash_admission() {
-        const SOURCE: &str = include_str!("dependency_resolution.rs");
-        let production = SOURCE.split("#[cfg(test)]").next().unwrap();
-
-        assert!(production.contains("HashSet::with_capacity(dependencies.len())"));
-        assert!(production.contains("admit_resolved_dependency_id("));
-        assert!(!production.contains("resolved.dependency_ids.contains"));
-    }
-
-    #[test]
-    #[ignore = "release-only performance evidence"]
-    fn runtime85_project_dedup_recovery_batch_dependency_performance_evidence() {
-        const DEPENDENCY_COUNT: usize = 4_096;
-        const UNIQUE_DEPENDENCY_COUNT: usize = 1_024;
-        const LEGACY_COMPARISONS: usize = 2_098_176;
-        const SAMPLE_COUNT: usize = 21;
-        let unique = (0..UNIQUE_DEPENDENCY_COUNT)
-            .map(|_| AssetId::new())
-            .collect::<Vec<_>>();
-        let dependencies = (0..DEPENDENCY_COUNT)
-            .map(|index| unique[index % UNIQUE_DEPENDENCY_COUNT])
-            .collect::<Vec<_>>();
-
-        let (legacy_samples, optimized_samples) = benchmark_paired_samples::<SAMPLE_COUNT>(
-            || legacy_deduplicate(&dependencies),
-            || hash_deduplicate(&dependencies),
-        );
-        assert_eq!(legacy_deduplicate(&dependencies), unique);
-        assert_eq!(hash_deduplicate(&dependencies), unique);
-
-        let legacy_p95 = percentile(&legacy_samples, 95);
-        let optimized_p95 = percentile(&optimized_samples, 95);
-        println!(
-            "PERF_RESULT RUNTIME85_PROJECT_DEPENDENCY_DEDUP_BENCH_V1 dependencies={DEPENDENCY_COUNT} unique_dependencies={UNIQUE_DEPENDENCY_COUNT} samples={SAMPLE_COUNT} sample_order=alternating legacy_linear_comparisons={LEGACY_COMPARISONS} optimized_hash_admissions={DEPENDENCY_COUNT} deterministic_admission_reduction_percent=99.8048 legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95}"
-        );
-        assert!(
-            optimized_p95 * 2 <= legacy_p95,
-            "optimized P95 {optimized_p95}ns must be no more than 50% of legacy P95 {legacy_p95}ns"
-        );
-    }
-
-    fn legacy_deduplicate(dependencies: &[AssetId]) -> Vec<AssetId> {
-        let mut ordered = Vec::with_capacity(dependencies.len());
-        for dependency_id in dependencies.iter().copied() {
-            if !ordered.contains(&dependency_id) {
-                ordered.push(dependency_id);
-            }
-        }
-        ordered
-    }
-
-    fn hash_deduplicate(dependencies: &[AssetId]) -> Vec<AssetId> {
-        let mut ordered = Vec::with_capacity(dependencies.len());
-        let mut seen = HashSet::with_capacity(dependencies.len());
-        for dependency_id in dependencies.iter().copied() {
-            admit_resolved_dependency_id(&mut ordered, &mut seen, dependency_id);
-        }
-        ordered
-    }
-
-    fn benchmark_paired_samples<const SAMPLE_COUNT: usize>(
-        mut legacy: impl FnMut() -> Vec<AssetId>,
-        mut optimized: impl FnMut() -> Vec<AssetId>,
-    ) -> (Vec<u128>, Vec<u128>) {
-        black_box(legacy());
-        black_box(optimized());
-        let mut legacy_samples = Vec::with_capacity(SAMPLE_COUNT);
-        let mut optimized_samples = Vec::with_capacity(SAMPLE_COUNT);
-        for sample_index in 0..SAMPLE_COUNT {
-            if sample_index % 2 == 0 {
-                legacy_samples.push(benchmark_sample(&mut legacy));
-                optimized_samples.push(benchmark_sample(&mut optimized));
-            } else {
-                optimized_samples.push(benchmark_sample(&mut optimized));
-                legacy_samples.push(benchmark_sample(&mut legacy));
-            }
-        }
-        (legacy_samples, optimized_samples)
-    }
-
-    fn benchmark_sample(operation: &mut impl FnMut() -> Vec<AssetId>) -> u128 {
-        let started = Instant::now();
-        let result = black_box(operation());
-        let elapsed = started.elapsed().as_nanos();
-        black_box(result);
-        elapsed
-    }
-
-    fn percentile(samples: &[u128], percentile: usize) -> u128 {
-        let mut sorted = samples.to_vec();
-        sorted.sort_unstable();
-        assert!(!sorted.is_empty());
-        assert!((1..=100).contains(&percentile));
-        sorted[(sorted.len() * percentile).div_ceil(100) - 1]
-    }
-}
+#[cfg(test)]
+#[path = "dependency_resolution/tests/optimization_batch_runtime866_resolved_dependency_capacity_tests.rs"]
+mod optimization_batch_runtime866_resolved_dependency_capacity_tests;

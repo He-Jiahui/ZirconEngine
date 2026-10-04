@@ -12,7 +12,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::painter_state::UiRenderPainterStateSource;
-use super::popup_position::{PopupPlacement, resolve_anchored_popup_geometry};
+use super::popup_position::{resolve_anchored_popup_geometry, PopupPlacement};
 use crate::ui::text::UiTextMeasureCache;
 
 const DIALOG_PADDING_X: f32 = 20.0;
@@ -22,6 +22,7 @@ const DIALOG_ACTION_BOTTOM: f32 = 20.0;
 const DIALOG_ACTION_GAP: f32 = 16.0;
 const DIALOG_ACTION_MIN_WIDTH: f32 = 56.0;
 const DIALOG_ACTION_TEXT_PADDING_X: f32 = 10.0;
+const DIALOG_COMMAND_CAPACITY: usize = 6;
 
 #[derive(Clone, Copy)]
 struct DialogVisual {
@@ -176,7 +177,8 @@ pub(super) fn dialog_render_commands(
 
     let state = DialogRenderState::resolve(metadata, state_flags, component_state);
     let visual = DialogVisual::resolve(metadata);
-    let mut commands = vec![quad_command(
+    let mut commands = Vec::with_capacity(DIALOG_COMMAND_CAPACITY);
+    commands.push(quad_command(
         node_id,
         frame,
         clip_frame,
@@ -187,7 +189,7 @@ pub(super) fn dialog_render_commands(
         visual.corner_radius,
         state.visual_state,
         opacity,
-    )];
+    ));
 
     if matches!(kind, DialogKind::ConfirmDialog) {
         commands.push(quad_command(
@@ -557,6 +559,7 @@ fn severity_border_color(metadata: &UiTemplateNodeMetadata, visual: &DialogVisua
     }
 }
 
+// 动作宽度使用本轮提取共享的测量缓存，确认与取消的相同标签可以复用文本测量。
 fn action_width(
     text: &str,
     visual: &DialogVisual,

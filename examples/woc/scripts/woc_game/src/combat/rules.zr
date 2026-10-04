@@ -1,5 +1,7 @@
 // One scalar entry is intentional while ZrVM same-module helper dispatch and
 // cross-module container ABI gaps are owned by Plugins 08.
+/// 标量战斗入口：命中与未命中为 0-2，护甲与怒气为 3-6，威胁为 7-9，生命为 10-13，资源限幅为 14。
+/// 参数含义随 kind 变化；不支持的种类抛出错误。
 pub metric(
     kind: int,
     first: float,

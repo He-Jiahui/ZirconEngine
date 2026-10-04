@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/data/workbench_preview_viewport.zui"
+version = 2
+display_name = "Workbench Preview Viewport"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchPreviewViewport]
+root = "root"
+default_classes = ["workbench-preview-viewport", "workbench-primitive"]
+
+[nodes.root]
+component = "Image"
+control_id = "WorkbenchPreviewViewportRoot"
+classes = ["workbench-preview-viewport", "workbench-surface-inset"]
+props = { image = "ui/editor/workbench/preview/animation_mannequin_viewport.svg", preserve_aspect = true, input_interactive = false, input_clickable = false, input_focusable = false }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

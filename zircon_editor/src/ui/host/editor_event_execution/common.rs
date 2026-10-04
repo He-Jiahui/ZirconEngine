@@ -81,6 +81,15 @@ pub(super) fn open_view(
     let instance_id = shell
         .manager
         .open_view(ViewDescriptorId::new(descriptor_id), None)?;
+    if descriptor_id == "editor.scene" {
+        // Scene session lifetime follows the view lifecycle. Toolbar and
+        // viewport command paths must never create sessions for stale IDs.
+        shell
+            .state
+            .ensure_scene_viewport_session(crate::core::editor_event::ViewInstanceId::new(
+                instance_id.0.clone(),
+            ));
+    }
     let focused = shell.manager.focus_view(&instance_id)?;
     shell.state.set_status_line(status_line);
     Ok(ExecutionOutcome {
@@ -89,6 +98,9 @@ pub(super) fn open_view(
             EditorEventEffect::LayoutChanged,
             EditorEventEffect::PresentationChanged,
             EditorEventEffect::ReflectionChanged,
+            EditorEventEffect::OpenedViewVisibilityRequested {
+                instance_id: crate::core::editor_event::ViewInstanceId::new(instance_id.0.clone()),
+            },
         ],
     })
 }

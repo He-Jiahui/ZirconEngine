@@ -1,7 +1,9 @@
+
+from tools.tests.rust_test_files import read_rust_test_file
 from pathlib import Path
 import unittest
 
-from tools.runtime_ui_virtual_list_slot_materialization_pressure import run
+from tools.analysis.performance.runtime.runtime_ui_virtual_list_slot_materialization_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -12,7 +14,7 @@ MATERIALIZATION = (
 MATERIALIZED_ARRANGE = (
     ROOT / "zircon_runtime/src/ui/layout/pass/arrange/virtual_list.rs"
 )
-ARRANGE_TESTS = ROOT / "zircon_runtime/src/ui/layout/pass/arrange/tests.rs"
+ARRANGE_TESTS = ROOT / "zircon_runtime/src/ui/layout/pass/arrange/tests/cases.rs"
 
 
 class RuntimeUiVirtualListSlotMaterializationPerformanceContractTests(unittest.TestCase):
@@ -41,12 +43,13 @@ class RuntimeUiVirtualListSlotMaterializationPerformanceContractTests(unittest.T
     def test_lower_contract_covers_scale_scroll_seek_and_shrink(self) -> None:
         source = MATERIALIZATION.read_text(encoding="utf-8")
 
-        self.assertIn("slot_count_is_independent_of_logical_count", source)
-        self.assertIn("one_row_scroll_rebinds_only_one_boundary_slot", source)
-        self.assertIn("large_seek_rebinds_at_most_the_slot_capacity", source)
-        self.assertIn("model_shrink_clears_out_of_range_assignments", source)
+        self.assertIn("slot_count_is_independent_of_logical_count", read_rust_test_file("zircon_runtime/src/ui/layout/virtualization/tests/materialization.rs"))
+        self.assertIn("one_row_scroll_rebinds_only_one_boundary_slot", read_rust_test_file("zircon_runtime/src/ui/layout/virtualization/tests/materialization.rs"))
+        self.assertIn("large_seek_rebinds_at_most_the_slot_capacity", read_rust_test_file("zircon_runtime/src/ui/layout/virtualization/tests/materialization.rs"))
+        self.assertIn("model_shrink_clears_out_of_range_assignments", read_rust_test_file("zircon_runtime/src/ui/layout/virtualization/tests/materialization.rs"))
+        self.assertIn("clone_from_reuses_slot_storage", read_rust_test_file("zircon_runtime/src/ui/layout/virtualization/tests/materialization.rs"))
         self.assertIn(
-            "fractional_scroll_capacity_keeps_both_partial_boundary_items", source
+            "fractional_scroll_capacity_keeps_both_partial_boundary_items", read_rust_test_file("zircon_runtime/src/ui/layout/virtualization/tests/materialization.rs")
         )
 
     def test_boundary_windows_keep_every_physical_slot_materialized(self) -> None:
@@ -55,7 +58,7 @@ class RuntimeUiVirtualListSlotMaterializationPerformanceContractTests(unittest.T
         arrange_tests = ARRANGE_TESTS.read_text(encoding="utf-8")
 
         self.assertIn("backfill_window_to_slot_count", source)
-        self.assertIn("boundary_windows_backfill_to_slot_capacity", source)
+        self.assertIn("boundary_windows_backfill_to_slot_capacity", read_rust_test_file("zircon_runtime/src/ui/layout/virtualization/tests/materialization.rs"))
         self.assertIn(
             "materialized_virtual_list_arranges_backfilled_slot_outside_visible_window",
             arrange_tests,

@@ -220,7 +220,7 @@ fn scene_camera_extraction_stays_on_typed_camera_storage() {
     assert!(
         table_fallback.contains("registered_component_id::<CameraComponent>")
             && table_fallback.contains("for_each_table_component::<CameraComponent>")
-            && table_fallback.contains("location_for_internal")
+            && !table_fallback.contains("location_for_internal")
             && !table_fallback.contains("self.cameras")
             && !table_fallback.contains("self.entities"),
         "camera fallback selection must traverse only registered camera table rows and retain stable identities"
@@ -238,6 +238,35 @@ fn scene_camera_fallback_uses_the_first_stable_camera_without_an_active_camera()
 
     let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
         RenderWorldSnapshotHandle::new(709),
+        SceneViewportExtractRequest::default(),
+    ));
+
+    assert_eq!(extract.view.scene_camera_entity, Some(first_camera));
+}
+
+#[test]
+fn scene_camera_fallback_keeps_the_smallest_stable_id_after_table_row_reordering() {
+    let mut world = World::empty();
+    let first_camera = spawn_camera_on_layer(&mut world, 0b0001);
+    let second_camera = spawn_camera_on_layer(&mut world, 0b0010);
+    let retired_active_camera = spawn_camera_on_layer(&mut world, 0b0100);
+    world.set_active_camera(retired_active_camera);
+    world
+        .remove::<CameraComponent>(retired_active_camera)
+        .unwrap();
+    let first_component = world
+        .remove::<CameraComponent>(first_camera)
+        .unwrap()
+        .expect("first camera should own a typed table component");
+    let without_first = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
+        RenderWorldSnapshotHandle::new(710),
+        SceneViewportExtractRequest::default(),
+    ));
+    assert_eq!(without_first.view.scene_camera_entity, Some(second_camera));
+    world.insert(first_camera, first_component).unwrap();
+
+    let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
+        RenderWorldSnapshotHandle::new(711),
         SceneViewportExtractRequest::default(),
     ));
 
@@ -299,20 +328,16 @@ fn render_frame_extract_keeps_custom_target_layer_geometry_for_visibility_views(
     ));
 
     assert_eq!(extract.view.scene_camera_entity, Some(primary));
-    assert!(
-        extract
-            .geometry
-            .meshes
-            .iter()
-            .any(|mesh| mesh.node_id == main_mesh)
-    );
-    assert!(
-        extract
-            .geometry
-            .meshes
-            .iter()
-            .any(|mesh| mesh.node_id == custom_target_mesh)
-    );
+    assert!(extract
+        .geometry
+        .meshes
+        .iter()
+        .any(|mesh| mesh.node_id == main_mesh));
+    assert!(extract
+        .geometry
+        .meshes
+        .iter()
+        .any(|mesh| mesh.node_id == custom_target_mesh));
     assert_eq!(
         extract
             .view

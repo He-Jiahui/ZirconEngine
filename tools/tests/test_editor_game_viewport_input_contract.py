@@ -43,15 +43,19 @@ class EditorGameViewportInputContractTests(unittest.TestCase):
 
     def test_play_controller_is_the_single_runtime_input_gate(self) -> None:
         controller = self.read("zircon_editor/src/core/play/controller.rs")
-        route = controller.split("pub fn route_preview_input", 1)[1].split(
+        preview_routing = self.read(
+            "zircon_editor/src/core/play/controller/preview_routing.rs"
+        )
+        route = preview_routing.split("pub fn route_preview_input", 1)[1].split(
             "pub fn preview_input_active", 1
         )[0]
 
+        self.assertIn("mod preview_routing;", controller)
         self.assertIn("PlayMode::Playing", route)
         self.assertIn("kind: PlayKind::Play", route)
         self.assertIn("return Ok(false)", route)
         self.assertNotIn("PlayKind::Simulate", route)
-        self.assertRegex(route, r"play_gateway\s*\.handle_event\(event\)")
+        self.assertRegex(route, r"play_gateway\s*\.handle_event_at_identity\(")
 
     def test_game_keyboard_routes_before_editor_keymap_and_keeps_release_events(self) -> None:
         keyboard = self.read(
@@ -124,6 +128,9 @@ class EditorGameViewportInputContractTests(unittest.TestCase):
             "zircon_runtime/src/dynamic_api/camera_controller.rs"
         )
         controller = self.read("zircon_editor/src/core/play/controller.rs")
+        preview_routing = self.read(
+            "zircon_editor/src/core/play/controller/preview_routing.rs"
+        )
         tick = self.read(
             "zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs"
         )
@@ -142,9 +149,10 @@ class EditorGameViewportInputContractTests(unittest.TestCase):
         self.assertIn("ZR_RUNTIME_EVENT_KIND_VIEWPORT_CAMERA_V1", runtime_events)
         self.assertIn("apply_editor_camera", runtime_camera)
 
-        route = controller.split("pub fn route_simulate_camera", 1)[1].split(
+        route = preview_routing.split("pub fn route_simulate_camera", 1)[1].split(
             "pub fn", 1
         )[0]
+        self.assertIn("mod preview_routing;", controller)
         self.assertIn("kind: PlayKind::Simulate", route)
         self.assertNotIn("kind: PlayKind::Play", route)
         self.assertIn("ZrRuntimeEventV1::viewport_camera", route)

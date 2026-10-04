@@ -1,3 +1,4 @@
+//! Added/Changed 过滤器在组件或变更标记缺失时不匹配；缓存位置路径保持相同契约。
 fn section_between<'a>(source: &'a str, start: &str, end: &str) -> &'a str {
     source
         .split(start)
@@ -11,13 +12,13 @@ fn added_and_changed_filters_use_direct_tick_branches() {
     let source = include_str!("../ecs/query/query_filter.rs");
     let added_filter = section_between(
         source,
-        "impl<T> QueryFilter for Added<T>",
+        "unsafe impl<T> QueryFilter for Added<T>",
         "pub struct Changed<T>",
     );
     let changed_filter = section_between(
         source,
-        "impl<T> QueryFilter for Changed<T>",
-        "impl QueryFilter for ()",
+        "unsafe impl<T> QueryFilter for Changed<T>",
+        "unsafe impl QueryFilter for ()",
     );
     let location_helper = section_between(source, "fn component_ticks_at_location<T>", "}");
 
@@ -43,10 +44,8 @@ fn added_and_changed_filters_use_direct_tick_branches() {
         "cached query filter locations must use direct missing-location branches"
     );
     assert!(
-        location_helper.contains(
-            "let (_, ticks) = world.component_ref_with_ticks_at_location::<T>(*location)?;"
-        ) && location_helper.contains("Some(ticks)")
-            && !location_helper.contains(".map(|(_, ticks)| ticks)"),
-        "component tick location lookup must return ticks without a tuple-map adapter"
+        location_helper.contains("world.component_ticks_at_location::<T>(*location)")
+            && !location_helper.contains("component_ref_with_ticks_at_location"),
+        "component tick location lookup must use typed tick access without fetching the value"
     );
 }

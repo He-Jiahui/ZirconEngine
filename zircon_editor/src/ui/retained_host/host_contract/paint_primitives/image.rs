@@ -9,4 +9,5 @@ pub(in crate::ui::retained_host::host_contract) use draw::{
 };
 
 #[cfg(test)]
+#[path = "image/tests/cases.rs"]
 mod tests;

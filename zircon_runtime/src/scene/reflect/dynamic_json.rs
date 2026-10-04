@@ -60,6 +60,13 @@ fn reflected_value_from_declared_json(
         DeclaredValueType::Entity => reflected_entity_from_json(value),
         DeclaredValueType::Resource => reflected_resource_from_json(value),
         DeclaredValueType::Json => Some(ReflectedValue::Json(value.clone())),
+        DeclaredValueType::DynamicList => {
+            reflected_list_from_json(type_path, field_name, &DeclaredValueType::Json, value)?
+        }
+        DeclaredValueType::DynamicMap => {
+            reflected_map_from_json(type_path, field_name, &DeclaredValueType::Json, value)?
+        }
+        DeclaredValueType::Named(_) => None,
         DeclaredValueType::List(item_type) => {
             reflected_list_from_json(type_path, field_name, item_type, value)?
         }
@@ -246,3 +253,7 @@ fn json_value_type_name(value: &Value) -> &'static str {
         Value::Object(_) => "JsonObject",
     }
 }
+
+#[cfg(test)]
+#[path = "dynamic_json/tests/astra_declared_tests.rs"]
+mod astra_declared_tests;

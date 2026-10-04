@@ -1,11 +1,12 @@
+# 核对导出模板清单辅助函数与编排职责归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-EXPORT_TEMPLATE = REPO_ROOT / "tools/zircon_export/export_template.py"
+EXPORT_TEMPLATE = REPO_ROOT / "tools/export/export_template.py"
 EXPORT_TEMPLATE_MANIFEST = (
-    REPO_ROOT / "tools/zircon_export/export_template_manifest.py"
+    REPO_ROOT / "tools/export/export_template_manifest.py"
 )
 
 

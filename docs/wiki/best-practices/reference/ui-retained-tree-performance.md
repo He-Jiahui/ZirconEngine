@@ -106,7 +106,7 @@ Unreal Slate 使用 retained widget tree 和 invalidation panel；Godot Control 
 
 - `zircon_runtime_interface/src/ui`：窗口输入、绑定和 UI DTO。
 - `zircon_runtime/src/ui`：布局、文本和渲染实现。
-- `docs/zircon_runtime_interface/ui/layout.md`、`text.md`：公开契约说明。
+- `docs/crates/zircon_runtime_interface/ui/layout.md`、`text.md`：公开契约说明。
 
 ## API 参数说明
 

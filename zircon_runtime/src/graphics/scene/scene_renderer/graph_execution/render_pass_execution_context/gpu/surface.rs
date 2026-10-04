@@ -76,6 +76,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             RenderGraphResourceAccessKind::Write,
         )?;
         if source_desc.depth != destination_desc.depth
+            || source_desc.array_layers != destination_desc.array_layers
             || source_desc.format != destination_desc.format
         {
             return Err(format!(
@@ -141,7 +142,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             wgpu::Extent3d {
                 width: copy_size.x,
                 height: copy_size.y,
-                depth_or_array_layers: destination_desc.depth,
+                depth_or_array_layers: destination_desc.depth_or_array_layers(),
             },
         );
         Ok(())
@@ -291,6 +292,85 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         Ok(())
     }
 
+    pub(in crate::graphics::scene::scene_renderer) fn record_overlay_depth_reconstruction(
+        &mut self,
+        pass_name: &str,
+        source_resource_name: &str,
+        output_resource_name: &str,
+    ) -> Result<(), String> {
+        let resources = &*self.resources;
+        let resolver = self.resource_resolver;
+        let source_desc = Self::require_texture_desc_by_name(
+            resources,
+            resolver,
+            source_resource_name,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let output_desc = Self::require_texture_desc_by_name(
+            resources,
+            resolver,
+            output_resource_name,
+            RenderGraphResourceAccessKind::Write,
+        )?;
+        if source_desc.format != crate::rhi::TextureFormat::Depth32Float
+            || output_desc.format != crate::rhi::TextureFormat::Depth32Float
+            || source_desc.sample_count != 1
+            || output_desc.sample_count != 1
+        {
+            return Err(format!(
+                "overlay depth reconstruction `{pass_name}` requires single-sample Depth32Float source and output: source={source_desc:?}, output={output_desc:?}"
+            ));
+        }
+        let source_region = self.render_region_for_write_resource(source_resource_name);
+        let output_region = self.render_region_for_write_resource(
+            crate::core::framework::render::PostProcessGraphResourceNames::VIEWPORT_OUTPUT,
+        );
+        for (name, region, desc) in [
+            (source_resource_name, source_region, &source_desc),
+            (output_resource_name, output_region, &output_desc),
+        ] {
+            let origin = region.physical_position();
+            let size = region.physical_size();
+            if origin.x.saturating_add(size.x) > desc.width
+                || origin.y.saturating_add(size.y) > desc.height
+            {
+                return Err(format!(
+                    "overlay depth reconstruction `{pass_name}` region for `{name}` exceeds {}x{} texture extent",
+                    desc.width, desc.height
+                ));
+            }
+        }
+        let source_view = Self::require_texture_view_by_name(
+            resources,
+            resolver,
+            source_resource_name,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let output_view = Self::require_texture_view_by_name(
+            resources,
+            resolver,
+            output_resource_name,
+            RenderGraphResourceAccessKind::Write,
+        )?;
+        let prepared = self.prepared_overlays.ok_or_else(|| {
+            format!("overlay depth reconstruction `{pass_name}` requires prepared overlays")
+        })?;
+        let overlay_renderer = self.overlay_renderer.as_deref_mut().ok_or_else(|| {
+            format!("overlay depth reconstruction `{pass_name}` requires overlay renderer")
+        })?;
+        overlay_renderer.record_overlay_depth_reconstruction(
+            self.device,
+            self.encoder,
+            source_view,
+            output_view,
+            self.frame,
+            prepared,
+            source_region,
+            output_region,
+        );
+        Ok(())
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn record_overlay_to_resources(
         &mut self,
         pass_name: &str,
@@ -311,6 +391,25 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             depth_resource_name,
             RenderGraphResourceAccessKind::Read,
         )?;
+        let color_desc = Self::require_texture_desc_by_name(
+            resources,
+            resource_resolver,
+            color_resource_name,
+            RenderGraphResourceAccessKind::Write,
+        )?;
+        let depth_desc = Self::require_texture_desc_by_name(
+            resources,
+            resource_resolver,
+            depth_resource_name,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        if (color_desc.width, color_desc.height, color_desc.sample_count)
+            != (depth_desc.width, depth_desc.height, depth_desc.sample_count)
+        {
+            return Err(format!(
+                "overlay `{pass_name}` color/depth attachment extent or sample count mismatch: color={color_desc:?}, depth={depth_desc:?}"
+            ));
+        }
         let render_region = self.render_region_for_write_resource(color_resource_name);
         let overlay_renderer = self.overlay_renderer.as_deref_mut().ok_or_else(|| {
             format!(

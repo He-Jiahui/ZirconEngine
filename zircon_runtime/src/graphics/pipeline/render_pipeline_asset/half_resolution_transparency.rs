@@ -4,11 +4,10 @@ use crate::graphics::feature::{
 };
 use crate::graphics::pipeline::{RenderPassStage, RenderPipelineCompileOptions};
 use crate::graphics::scene::{
-    HALF_RES_TRANSPARENCY_COMPOSITE_EXECUTOR_ID, HALF_RES_TRANSPARENCY_COMPOSITE_PASS_NAME,
-    HALF_RES_TRANSPARENCY_DEPTH_DOWNSAMPLE_EXECUTOR_ID,
+    half_resolution_transparency_supported, HALF_RES_TRANSPARENCY_COMPOSITE_EXECUTOR_ID,
+    HALF_RES_TRANSPARENCY_COMPOSITE_PASS_NAME, HALF_RES_TRANSPARENCY_DEPTH_DOWNSAMPLE_EXECUTOR_ID,
     HALF_RES_TRANSPARENCY_DEPTH_DOWNSAMPLE_PASS_NAME, HALF_RES_TRANSPARENCY_MESH_EXECUTOR_ID,
     HALF_RES_TRANSPARENCY_MESH_PASS_NAME, HALF_RES_TRANSPARENCY_PARTICLE_EXECUTOR_ID,
-    half_resolution_transparency_supported,
 };
 use crate::render_graph::{QueueLane, RenderGraphAttachmentOps};
 
@@ -39,44 +38,40 @@ pub(super) fn maybe_insert_half_resolution_transparency_passes(
             "half-resolution-transparency-depth",
             vec!["view".to_string()],
             Vec::new(),
-            vec![
-                RenderFeaturePassDescriptor::new(
-                    RenderPassStage::Transparent3d,
-                    HALF_RES_TRANSPARENCY_DEPTH_DOWNSAMPLE_PASS_NAME,
-                    QueueLane::Graphics,
-                )
-                .with_executor_id(HALF_RES_TRANSPARENCY_DEPTH_DOWNSAMPLE_EXECUTOR_ID)
-                .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-                .write_texture_with_ops(
-                    PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_COLOR,
-                    RenderGraphAttachmentOps::clear_store(),
-                )
-                .write_texture_with_ops(
-                    PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_DEPTH,
-                    RenderGraphAttachmentOps::clear_store(),
-                ),
-            ],
+            vec![RenderFeaturePassDescriptor::new(
+                RenderPassStage::Transparent3d,
+                HALF_RES_TRANSPARENCY_DEPTH_DOWNSAMPLE_PASS_NAME,
+                QueueLane::Graphics,
+            )
+            .with_executor_id(HALF_RES_TRANSPARENCY_DEPTH_DOWNSAMPLE_EXECUTOR_ID)
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_COLOR,
+                RenderGraphAttachmentOps::clear_store(),
+            )
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_DEPTH,
+                RenderGraphAttachmentOps::clear_store(),
+            )],
         ),
     );
     descriptors.push(RenderFeatureDescriptor::new(
         "half-resolution-transparency-composite",
         vec!["view".to_string()],
         Vec::new(),
-        vec![
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::Transparent3d,
-                HALF_RES_TRANSPARENCY_COMPOSITE_PASS_NAME,
-                QueueLane::Graphics,
-            )
-            .with_executor_id(HALF_RES_TRANSPARENCY_COMPOSITE_EXECUTOR_ID)
-            .read_texture(PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_COLOR)
-            .read_texture(PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_DEPTH)
-            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-            .write_texture_with_ops(
-                PostProcessGraphResourceNames::SCENE_COLOR,
-                RenderGraphAttachmentOps::load_store(),
-            ),
-        ],
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::Transparent3d,
+            HALF_RES_TRANSPARENCY_COMPOSITE_PASS_NAME,
+            QueueLane::Graphics,
+        )
+        .with_executor_id(HALF_RES_TRANSPARENCY_COMPOSITE_EXECUTOR_ID)
+        .read_texture(PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_COLOR)
+        .read_texture(PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_DEPTH)
+        .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+        .write_texture_with_ops(
+            PostProcessGraphResourceNames::SCENE_COLOR,
+            RenderGraphAttachmentOps::load_store(),
+        )],
     ));
     Ok(())
 }
@@ -154,45 +149,5 @@ fn replace_with_half_resolution_transparent_mesh_pass(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn streamed_half_resolution_owner_selection_preserves_cardinality_contract() {
-        let mut empty = Vec::new();
-        assert!(!replace_with_half_resolution_transparent_mesh_pass(&mut empty).unwrap());
-
-        let mut unique = vec![transparent_owner("unique")];
-        assert!(replace_with_half_resolution_transparent_mesh_pass(&mut unique).unwrap());
-        assert_eq!(
-            unique[0].stage_passes[0].executor_id.as_str(),
-            HALF_RES_TRANSPARENCY_MESH_EXECUTOR_ID
-        );
-
-        let mut duplicate = vec![transparent_owner("first"), transparent_owner("second")];
-        let duplicate_error =
-            replace_with_half_resolution_transparent_mesh_pass(&mut duplicate).unwrap_err();
-        assert!(duplicate_error.contains("exactly one"));
-    }
-
-    fn transparent_owner(name: &str) -> RenderFeatureDescriptor {
-        RenderFeatureDescriptor::new(
-            name,
-            Vec::new(),
-            Vec::new(),
-            vec![
-                RenderFeaturePassDescriptor::new(
-                    RenderPassStage::Transparent3d,
-                    "transparent-mesh",
-                    QueueLane::Graphics,
-                )
-                .with_executor_id("mesh.transparent")
-                .write_texture_with_ops(
-                    PostProcessGraphResourceNames::SCENE_COLOR,
-                    RenderGraphAttachmentOps::load_store(),
-                )
-                .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH),
-            ],
-        )
-    }
-}
+#[path = "tests/half_resolution_transparency.rs"]
+mod tests;

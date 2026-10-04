@@ -6,10 +6,10 @@ related_code:
   - zircon_app/src/reference_cpu_presenter.rs
   - zircon_editor/src/ui/workbench
 implementation_files:
-  - tools/profile-capture-paths.ps1
-  - tools/ui-profile-capture.ps1
-  - tools/validate_render_measurement_evidence.py
-  - tools/validate_performance_comparison_receipt.py
+  - tools/analysis/profiling/shared/profile-capture-paths.ps1
+  - tools/analysis/profiling/ui/ui-profile-capture.ps1
+  - tools/analysis/validation/validate_render_measurement_evidence.py
+  - tools/analysis/validation/validate_performance_comparison_receipt.py
 plan_sources:
   - docs/plans/milestone-validation-policy.md
 tests:
@@ -79,23 +79,23 @@ warmup 样本不能与 measurement 混算；首帧 shader 编译、asset import 
 
 ## 5. 采集路径约定
 
-`tools/profile-capture-paths.ps1`、`tools/ui-profile-capture.ps1` 和众多 `*_pressure.py` 工具都拒绝 C 盘输出。先准备 run-bound 目录，再把路径传给脚本：
+`tools/analysis/profiling/shared/profile-capture-paths.ps1`、`tools/analysis/profiling/ui/ui-profile-capture.ps1` 和众多 `*_pressure.py` 工具都拒绝 C 盘输出。先准备 run-bound 目录，再把路径传给脚本：
 
 ```powershell
 $root = 'D:\ZirconBuilds\profile-zircon-20260909'
 New-Item -ItemType Directory -Force $root | Out-Null
-.\tools\profile-capture-paths.ps1 -OutputRoot $root
+.\tools\analysis\profiling\shared\profile-capture-paths.ps1 -OutputRoot $root
 ```
 
 具体参数以脚本 `Get-Help` 为准；文档中的目录示例不能覆盖用户已有证据。
 
 ## 6. 性能比较 receipt
 
-`tools/validate_performance_comparison_receipt.py` 用于检查比较结果的结构；`tools/validate_render_measurement_evidence.py` 检查 render measurement 证据。典型检查：
+`tools/analysis/validation/validate_performance_comparison_receipt.py` 用于检查比较结果的结构；`tools/analysis/validation/validate_render_measurement_evidence.py` 检查 render measurement 证据。典型检查：
 
 ```powershell
-python tools/validate_performance_comparison_receipt.py --help
-python tools/validate_render_measurement_evidence.py --help
+python tools/analysis/validation/validate_performance_comparison_receipt.py --help
+python tools/analysis/validation/validate_render_measurement_evidence.py --help
 ```
 
 receipt 至少应包含 scenario、commit/source fingerprint、host、toolchain、feature/profile、采样数量、统计方法、基线、当前值、单位、阈值和原始文件 hash。

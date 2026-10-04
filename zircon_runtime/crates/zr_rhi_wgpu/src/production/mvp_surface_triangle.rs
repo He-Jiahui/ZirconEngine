@@ -21,6 +21,7 @@ pub struct WgpuMvpSurfaceTriangle {
 }
 
 impl WgpuMvpSurfaceTriangle {
+    /// 为 swapchain 尺寸分配深度附件并创建匹配格式的管线；零宽高会在分配前返回错误。
     pub fn new(device: &WgpuRenderDevice, swapchain: &SwapchainDesc) -> Result<Self, RhiError> {
         Self::new_for_device(device, swapchain)
     }
@@ -154,19 +155,5 @@ impl WgpuMvpSurfaceTriangle {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn direct_surface_triangle_has_no_native_queue_or_offscreen_color_owner() {
-        let source = include_str!("mvp_surface_triangle.rs");
-
-        assert!(source.contains("frame.target()"));
-        assert!(source.contains("frame.default_view()"));
-        assert!(source.contains("frame.frame().device_id()"));
-        assert!(source.contains("device.device_id()"));
-        assert!(source.contains("device.submit(command_list)"));
-        assert!(source.contains("device.present_surface_frame(frame.clone(), ticket)"));
-        assert!(source.contains("device.discard_surface_frame(frame)"));
-        assert!(!source.contains(concat!("wgpu", "::")));
-        assert!(!source.contains(concat!("TextureUsage", "::COPY_SRC")));
-    }
-}
+#[path = "tests/mvp_surface_triangle.rs"]
+mod tests;

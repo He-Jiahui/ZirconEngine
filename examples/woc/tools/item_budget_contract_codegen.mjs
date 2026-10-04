@@ -1,3 +1,6 @@
+// 调用端：npm run generate:item-budget-contract (tools/package.json)；职责：提取物品预算表及数值上限，供运行时查找使用。
+// 输入边界：src/sim/item_budget.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

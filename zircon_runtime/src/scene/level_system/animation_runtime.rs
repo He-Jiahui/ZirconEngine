@@ -16,6 +16,10 @@ use super::frame_state::{
 };
 use super::{AnimationStateTransitionRuntime, LevelSystem};
 
+#[cfg(test)]
+#[path = "animation_runtime/tests/drain_output_capacity_tests.rs"]
+mod drain_output_capacity_tests;
+
 const ANIMATION_CLIP_EVENT_MAX_DRAIN_SAMPLES: usize = 32;
 const ANIMATION_CLIP_EVENT_RETAINED_DRAIN_WINDOWS: usize = 8;
 const ANIMATION_CLIP_EVENT_MAX_PENDING_SAMPLES: usize =
@@ -95,8 +99,6 @@ impl LevelSystem {
         sampler: &dyn AnimationClipEventSampler,
     ) -> Option<Vec<AnimationClipEvent>> {
         let limits = AnimationClipEventSamplingLimits::default();
-        let mut events = Vec::new();
-        let mut emitted_event_bytes: usize = 0;
         let mut metrics = AnimationClipEventDrainMetrics::default();
         let pending_sample_count = {
             let mut state = self.lock_animation_state_if_replacement_epoch(replacement_epoch)?;
@@ -105,6 +107,12 @@ impl LevelSystem {
             metrics.overflowed_sample_count = overflowed_sample_count;
             pending_sample_count
         };
+        let mut events = if pending_sample_count == 0 {
+            Vec::new()
+        } else {
+            Vec::with_capacity(limits.max_events)
+        };
+        let mut emitted_event_bytes: usize = 0;
 
         for _ in 0..pending_sample_count {
             let Some(mut pending) = self
@@ -117,20 +125,20 @@ impl LevelSystem {
                 limits.max_event_bytes.checked_sub(emitted_event_bytes)
             else {
                 self.lock_animation_state_if_replacement_epoch(replacement_epoch)?
-                    .requeue_clip_event_sample_back(pending);
+                    .requeue_clip_event_sample_front(pending);
                 metrics.budget_exhausted = true;
                 break;
             };
             if remaining_event_bytes == 0 {
                 self.lock_animation_state_if_replacement_epoch(replacement_epoch)?
-                    .requeue_clip_event_sample_back(pending);
+                    .requeue_clip_event_sample_front(pending);
                 metrics.budget_exhausted = true;
                 break;
             }
             let remaining_events = limits.max_events.saturating_sub(events.len());
             if remaining_events == 0 {
                 self.lock_animation_state_if_replacement_epoch(replacement_epoch)?
-                    .requeue_clip_event_sample_back(pending);
+                    .requeue_clip_event_sample_front(pending);
                 metrics.budget_exhausted = true;
                 break;
             }
@@ -161,10 +169,10 @@ impl LevelSystem {
             if let Some(cursor) = batch.next_cursor {
                 pending.cursor = cursor;
                 self.lock_animation_state_if_replacement_epoch(replacement_epoch)?
-                    .requeue_clip_event_sample_back(pending);
-                if batch.budget_exhausted {
-                    break;
-                }
+                    .requeue_clip_event_sample_front(pending);
+                // Finish a range's resumable portion before visiting later playback ranges.
+                // Otherwise a direction change can overtake events still pending in this range.
+                break;
             }
         }
 

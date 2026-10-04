@@ -1,3 +1,4 @@
+# 核对粒子曲线以二分查找关键帧并保留端点快速路径。
 from pathlib import Path
 import unittest
 

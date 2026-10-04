@@ -18,6 +18,7 @@ pub enum DeliveryMessageId {
     DeviceInstallAlreadyExists,
     CheckInstallOutputRecovery,
     OutputFolderDoesNotExist,
+    OutputFolderNotRecorded,
     OpenOutputTargetRequired,
     OpenContainingFolderRecovery,
     ChooseRecordedOutputRecovery,
@@ -45,6 +46,7 @@ impl DeliveryMessageId {
         Self::DeviceInstallAlreadyExists,
         Self::CheckInstallOutputRecovery,
         Self::OutputFolderDoesNotExist,
+        Self::OutputFolderNotRecorded,
         Self::OpenOutputTargetRequired,
         Self::OpenContainingFolderRecovery,
         Self::ChooseRecordedOutputRecovery,
@@ -72,6 +74,7 @@ impl DeliveryMessageId {
             Self::DeviceInstallAlreadyExists => "delivery.device-install-already-exists",
             Self::CheckInstallOutputRecovery => "delivery.check-install-output-recovery",
             Self::OutputFolderDoesNotExist => "delivery.output-folder-does-not-exist",
+            Self::OutputFolderNotRecorded => "delivery.output-folder-not-recorded",
             Self::OpenOutputTargetRequired => "delivery.open-output-target-required",
             Self::OpenContainingFolderRecovery => "delivery.open-containing-folder-recovery",
             Self::ChooseRecordedOutputRecovery => "delivery.choose-recorded-output-recovery",
@@ -88,6 +91,7 @@ impl DeliveryMessageId {
             Self::PackageDirectoryAlreadyExists
             | Self::DeviceInstallAlreadyExists
             | Self::OutputFolderDoesNotExist
+            | Self::OutputFolderNotRecorded
             | Self::OutputPathMustBeAbsolute
             | Self::OutputDirectoryMustBeAbsolute => 1,
             _ => 0,
@@ -128,6 +132,8 @@ impl DeliveryMessageId {
             (HubLanguage::Chinese, Self::CheckInstallOutputRecovery) => "重试前检查包输出和已配置的本地设备安装目录",
             (HubLanguage::English, Self::OutputFolderDoesNotExist) => "Output folder does not exist: {0}",
             (HubLanguage::Chinese, Self::OutputFolderDoesNotExist) => "输出文件夹不存在：{0}",
+            (HubLanguage::English, Self::OutputFolderNotRecorded) => "Output folder is not a recorded Hub output: {0}",
+            (HubLanguage::Chinese, Self::OutputFolderNotRecorded) => "输出文件夹不是 Hub 已记录的输出：{0}",
             (HubLanguage::English, Self::OpenOutputTargetRequired) => "Open Output target is required",
             (HubLanguage::Chinese, Self::OpenOutputTargetRequired) => "需要打开输出目标",
             (HubLanguage::English, Self::OpenContainingFolderRecovery) => "Open the containing folder from the file system and verify shell integration",

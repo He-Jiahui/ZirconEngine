@@ -5,7 +5,7 @@ use crate::ui::text::{
 use zircon_runtime_interface::ui::{
     layout::UiFrame,
     surface::{
-        UiResolvedStyle, UiTextOverflow, UiTextRenderMode, UiTextWrap, resolve_ui_text_render_mode,
+        resolve_ui_text_render_mode, UiResolvedStyle, UiTextOverflow, UiTextRenderMode, UiTextWrap,
     },
 };
 
@@ -53,6 +53,29 @@ fn text_render_mode_resolver_matches_runtime_font_asset_policy() {
         resolve_ui_text_render_mode(UiTextRenderMode::Native, Some(UiTextRenderMode::Sdf)),
         UiTextRenderMode::Native
     );
+}
+
+#[test]
+fn text_shaper_stack_uses_shared_text_service_for_font_backends() {
+    for render_mode in [UiTextRenderMode::Native, UiTextRenderMode::Sdf] {
+        let style = UiResolvedStyle {
+            text_render_mode: render_mode,
+            ..test_style(UiTextWrap::Glyph, UiTextOverflow::Ellipsis)
+        };
+        let frame = UiFrame::new(0.0, 0.0, ellipsis_width_for_test(&style), 12.0);
+        let request = UiTextShapeRequest::new("a\u{0301}bc", &style, frame, None);
+
+        // Native glyph submission and SDF atlas rendering intentionally share the same
+        // layout/measurement service until a backend replacement milestone lands.
+        assert_eq!(
+            UiSharedTextShaper.shape_text(&request),
+            layout_text("a\u{0301}bc", &style, frame, None)
+        );
+        assert_eq!(
+            UiSharedTextShaper.measure_text("a\u{0301}b", &style),
+            measure_text_size("a\u{0301}b", &style)
+        );
+    }
 }
 
 fn test_style(wrap: UiTextWrap, overflow: UiTextOverflow) -> UiResolvedStyle {

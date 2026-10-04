@@ -33,7 +33,7 @@ def function_body(source: str, function_name: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated body for {function_name}")
 
-
+# 读取瓦片烘焙计划的异步状态，确认工人只克隆外层 Arc 并共享同一不可变计划。
 class TiledBakePlanArcPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

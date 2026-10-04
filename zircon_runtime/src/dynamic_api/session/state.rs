@@ -5,10 +5,10 @@ use zircon_runtime_interface::world_sync::{
     AssetReloadFrameApplyReportDto, InvalidationBatch, WorldFact,
 };
 use zircon_runtime_interface::{
-    RuntimeInputDiagnosticsSnapshot, ZIRCON_RUNTIME_ABI_VERSION_V1,
-    ZR_RUNTIME_ACCESSIBILITY_TREE_OUTPUT_LIMIT_V1, ZR_RUNTIME_HOST_REQUEST_OUTPUT_LIMIT_V1,
+    ui::accessibility::UiAccessibilityTreeSnapshot, RuntimeInputDiagnosticsSnapshot,
     ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeFrameRequestV1, ZrRuntimeHostRequestBatchV1,
-    ZrRuntimeHostRequestV1, ui::accessibility::UiAccessibilityTreeSnapshot,
+    ZrRuntimeHostRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZR_RUNTIME_ACCESSIBILITY_TREE_OUTPUT_LIMIT_V1, ZR_RUNTIME_HOST_REQUEST_OUTPUT_LIMIT_V1,
 };
 
 use crate::builtin::RuntimeModuleCompositionIdentity;
@@ -16,12 +16,12 @@ use crate::core::framework::channel::ChannelWakeCallback;
 use crate::core::framework::input::{InputEvent, InputManager};
 use crate::core::framework::render::{RenderFrameTiming, RenderViewportSurfaceDescriptor};
 use crate::core::framework::time::ProductTimePolicy;
-use crate::core::manager::{ManagerServiceHandle, resolve_manager_service};
+use crate::core::manager::{resolve_manager_service, ManagerServiceHandle};
 use crate::core::math::{UVec2, Vec2};
 use crate::core::{CoreRuntime, FrameClockRebaseReceipt, TaskGraphScope};
 use crate::diagnostic_log::{
-    DiagnosticStoreLogSchedule, DynamicProcessLogLease, write_diagnostic_store_current_snapshot,
-    write_log, write_log_lazy,
+    write_diagnostic_store_current_snapshot, write_log, write_log_lazy, DiagnosticStoreLogSchedule,
+    DynamicProcessLogLease,
 };
 use crate::operation::RuntimeOperationService;
 use crate::plugin::{
@@ -34,26 +34,27 @@ use crate::scene::{
 
 use super::super::bounded_json::BoundedJsonError;
 use super::super::camera_controller::RuntimeCameraController;
-use super::super::frame::{EncodedRuntimeFrame, encode_frame, encode_host_request_page};
+use super::super::frame::{encode_frame, encode_host_request_page, EncodedRuntimeFrame};
 use super::super::runtime_loop::RuntimeRenderBridge;
 use super::construction;
+use super::construction::RuntimeConstructionFailure;
 use super::event_mirror;
 use super::host_requests::{
     runtime_clipboard_host_request, runtime_cursor_host_request, runtime_gamepad_rumble_request,
     runtime_ime_host_request,
 };
+use super::ime_composition_route::RuntimeImeCompositionRoute;
 use super::preview::{dynamic_preview_accessibility_snapshot, empty_captured_frame};
 use super::profile::RuntimeDynamicSessionProfile;
 use super::project::RuntimeProjectConfig;
 use super::registry::RuntimeFrameDemand;
 use super::runtime_ui::RuntimeUiSurfaceSet;
 use super::scene_asset_reload_diagnostics::record_scene_asset_reload_frame_report;
+use super::shutdown::{shutdown_runtime_core_until, DYNAMIC_SESSION_LIBRARY_UNLOAD_TIMEOUT};
 use super::ui_extract_cache::RuntimeUiExtractCache;
-use super::{DEFAULT_VIEWPORT, RuntimeDynamicSessionError, RuntimeDynamicSessionResult};
+use super::{RuntimeDynamicSessionError, RuntimeDynamicSessionResult, DEFAULT_VIEWPORT};
 
 const DYNAMIC_RUNTIME_DIAGNOSTIC_LOG_SCOPE: &str = "runtime_diagnostics";
-const DYNAMIC_SESSION_DESTROY_DRAIN_TIMEOUT: Duration = Duration::ZERO;
-const DYNAMIC_SESSION_TASK_GRAPH_DRAIN_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Default)]
 pub(super) struct RuntimeInputDiagnostics {
@@ -139,9 +140,13 @@ pub(super) struct RuntimeDynamicSession {
     pub(super) _runtime_plugin_catalog_snapshot: Arc<RuntimePluginCatalogSnapshot>,
     /// Pins the project projection derived from the same catalog generation.
     pub(super) _compiled_project_plugin_plan: Arc<CompiledProjectPluginPlan>,
+    /// Keeps owner revocation listeners alive until the runtime session shuts down.
+    pub(super) _runtime_extension_registry: crate::plugin::RuntimeExtensionRegistry,
     pub(super) project_watchers_shutdown: bool,
     pub(super) dynamic_process_log: Option<DynamicProcessLogLease>,
     pub(super) runtime_ui: RuntimeUiSurfaceSet,
+    /// State 10 remains disabled until a versioned host configuration is accepted.
+    pub(super) ime_composition_route: RuntimeImeCompositionRoute,
     pub(super) viewport_picks: super::viewport_pick::RuntimeViewportPickStore,
     pub(super) editor_transform: super::editor_transform::RuntimeEditorTransformState,
 }
@@ -169,43 +174,36 @@ impl RuntimeDynamicSession {
     }
 
     pub(super) fn shutdown_before_library_unload(&mut self) -> bool {
-        let event_mirrors_shutdown = self.shutdown_plugin_event_subscriptions();
+        self.shutdown_before_library_unload_with_timeout(DYNAMIC_SESSION_LIBRARY_UNLOAD_TIMEOUT)
+    }
+
+    pub(super) fn shutdown_before_library_unload_with_timeout(
+        &mut self,
+        timeout: Duration,
+    ) -> bool {
+        let Some(deadline) = Instant::now().checked_add(timeout) else {
+            return false;
+        };
+        self.shutdown_before_library_unload_until(deadline)
+    }
+
+    pub(super) fn shutdown_before_library_unload_until(&mut self, deadline: Instant) -> bool {
+        let event_mirrors_shutdown = self.shutdown_plugin_event_subscriptions_until(deadline);
         if !event_mirrors_shutdown {
             return false;
         }
-        if !self.project_watchers_shutdown {
-            // Watch callbacks may still emit diagnostics, so they must stop before the final lease.
-            let core = self.runtime.handle();
-            if let Ok(handle) = crate::asset::project_asset_manager_handle(&core) {
-                if let Ok(manager) = resolve_manager_service(&core, handle) {
-                    manager.shutdown_project_watchers();
-                }
-            }
-            self.project_watchers_shutdown = true;
-        }
-        self.task_graph_scope.close_admission();
-        if !self
-            .task_graph_scope
-            .wait_until_quiescent(DYNAMIC_SESSION_TASK_GRAPH_DRAIN_TIMEOUT)
-        {
-            return false;
-        }
-        if self
-            .runtime
-            .shutdown_registered_modules_with_drain_timeout(DYNAMIC_SESSION_DESTROY_DRAIN_TIMEOUT)
-            .is_err()
-        {
-            return false;
-        }
-        if self
-            .runtime
-            .shutdown_task_graph(DYNAMIC_SESSION_TASK_GRAPH_DRAIN_TIMEOUT)
-            .is_err()
+        if shutdown_runtime_core_until(
+            &self.runtime,
+            Some(&self.task_graph_scope),
+            &mut self.project_watchers_shutdown,
+            deadline,
+        )
+        .is_err()
         {
             return false;
         }
         let process_log_shutdown = if let Some(process_log) = self.dynamic_process_log.as_mut() {
-            let shutdown = process_log.shutdown();
+            let shutdown = process_log.shutdown_until(deadline);
             if shutdown {
                 self.dynamic_process_log = None;
             }
@@ -213,22 +211,30 @@ impl RuntimeDynamicSession {
         } else {
             true
         };
-        process_log_shutdown
+        process_log_shutdown && Instant::now() <= deadline
     }
 
     pub(super) fn new(
         profile: RuntimeDynamicSessionProfile,
         project_config: Option<RuntimeProjectConfig>,
-    ) -> RuntimeDynamicSessionResult<Self> {
-        construction::build(profile, project_config, Vec::new())
+    ) -> Result<Self, RuntimeConstructionFailure> {
+        construction::build(
+            profile,
+            project_config,
+            construction::RuntimePluginPlanInput::CoreOnly,
+        )
     }
 
     pub(super) fn new_with_linked_plugins(
         profile: RuntimeDynamicSessionProfile,
         project_config: Option<RuntimeProjectConfig>,
         linked_plugin_registrations: Vec<RuntimePluginRegistrationReport>,
-    ) -> RuntimeDynamicSessionResult<Self> {
-        construction::build(profile, project_config, linked_plugin_registrations)
+    ) -> Result<Self, RuntimeConstructionFailure> {
+        construction::build(
+            profile,
+            project_config,
+            construction::RuntimePluginPlanInput::Linked(linked_plugin_registrations),
+        )
     }
 
     pub(super) fn tick_frame(&mut self) -> RuntimeDynamicSessionResult<()> {
@@ -251,9 +257,7 @@ impl RuntimeDynamicSession {
         {
             crate::profile_scope!("runtime", "frame", "runtime_operation_owner_apply");
             let core = self.runtime.handle();
-            let operations = &self.operations;
-            self.level
-                .with_world_mut(|world| operations.tick(&core, world));
+            self.operations.tick(&core, &self.level);
         }
         self.resolve_input_manager()
             .map_err(|source| RuntimeDynamicSessionError::CoreStep {
@@ -261,6 +265,12 @@ impl RuntimeDynamicSession {
                 source,
             })?
             .begin_frame();
+        {
+            crate::profile_scope!("runtime", "frame", "runtime_ui_input_timer_update");
+            self.runtime_ui
+                .tick_input_timers()
+                .map_err(|source| RuntimeDynamicSessionError::RuntimeUiInputTimers { source })?;
+        }
         if self.diagnostic_log_schedule.tick(advance.raw_real_delta()) {
             let snapshot = collect_runtime_diagnostic_current_store(&self.runtime.handle());
             write_diagnostic_store_current_snapshot(
@@ -272,12 +282,13 @@ impl RuntimeDynamicSession {
     }
 
     pub(super) fn frame_demand(&self) -> RuntimeFrameDemand {
-        asset_reload_frame_demand(
+        let base_demand = asset_reload_frame_demand(
             self.scene_asset_reload_queue
                 .as_ref()
                 .is_some_and(DynamicSceneAssetReloadQueue::has_pending_work),
         )
-        .unwrap_or_else(|| animation_frame_demand(&self.level))
+        .unwrap_or_else(|| animation_frame_demand(&self.level));
+        merge_ui_timer_frame_demand(base_demand, self.runtime_ui.next_input_timer_delay())
     }
 
     pub(super) fn reset_frame_demand_after_failed_tick(&self) {
@@ -525,6 +536,11 @@ impl RuntimeDynamicSession {
         &mut self,
         request: ZrRuntimeFrameRequestV1,
     ) -> RuntimeDynamicSessionResult<EncodedRuntimeFrame> {
+        if self.profile == RuntimeDynamicSessionProfile::Runtime {
+            static FIRST_CAPTURE_ENTERED: std::sync::Once = std::sync::Once::new();
+            FIRST_CAPTURE_ENTERED
+                .call_once(|| write_log("runtime_session", "runtime_first_capture_entered"));
+        }
         let requested = UVec2::new(request.size.width.max(1), request.size.height.max(1));
         self.resize_viewport(requested);
         let extract = self.current_extract();
@@ -540,6 +556,11 @@ impl RuntimeDynamicSession {
         } else {
             empty_captured_frame(requested)
         };
+        if self.profile == RuntimeDynamicSessionProfile::Runtime {
+            static FIRST_CAPTURE_RETURNED: std::sync::Once = std::sync::Once::new();
+            FIRST_CAPTURE_RETURNED
+                .call_once(|| write_log("runtime_session", "runtime_first_capture_returned"));
+        }
         Ok(encode_frame(frame))
     }
 
@@ -688,108 +709,28 @@ pub(super) fn animation_frame_demand(level: &LevelSystem) -> RuntimeFrameDemand 
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use zircon_runtime_interface::world_sync::{AssetReloadFrameApplyReportDto, WorldFact};
-
-    use crate::core::LifecycleState;
-    use crate::scene::DynamicSceneAssetReloadFrameApplyReport;
-
-    use super::super::profile::RuntimeDynamicSessionProfile;
-    use super::{
-        RuntimeDynamicSession, RuntimeInputDiagnostics, asset_reload_frame_demand,
-        asset_reload_world_fact,
+pub(super) fn merge_ui_timer_frame_demand(
+    base_demand: RuntimeFrameDemand,
+    timer_delay: Option<Duration>,
+) -> RuntimeFrameDemand {
+    let Some(timer_delay) = timer_delay else {
+        return base_demand;
     };
-
-    #[test]
-    fn dynamic_session_shutdown_runs_core_module_cleanup_before_library_unload() {
-        let mut session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None)
-            .expect("headless dynamic session");
-        let handle = session.runtime.handle();
-        let running_modules = handle
-            .inner
-            .modules
-            .lock()
-            .expect("test module registry")
-            .values()
-            .filter(|entry| entry.lifecycle == LifecycleState::Running)
-            .count();
-        assert!(
-            running_modules > 0,
-            "dynamic session must own running core modules"
-        );
-
-        assert!(session.shutdown_before_library_unload());
-        assert!(
-            handle
-                .inner
-                .modules
-                .lock()
-                .expect("test module registry")
-                .values()
-                .all(|entry| entry.lifecycle == LifecycleState::Unloaded)
-        );
+    if timer_delay.is_zero() {
+        return RuntimeFrameDemand::Immediate;
     }
-
-    #[test]
-    fn dynamic_session_records_the_activation_frame_clock_rebase_receipt() {
-        let session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None)
-            .expect("headless dynamic session");
-
-        assert_eq!(session.frame_clock_activation_rebase.generation(), 1);
-    }
-
-    #[test]
-    fn input_diagnostics_accumulate_successfully_submitted_product_events() {
-        let mut diagnostics = RuntimeInputDiagnostics::default();
-
-        diagnostics.record_viewport_resize();
-        diagnostics.record_pointer_move();
-        diagnostics.record_mouse_button_press();
-        diagnostics.record_mouse_button_release();
-        diagnostics.record_keyboard_press();
-        diagnostics.record_keyboard_release();
-
-        assert_eq!(
-            diagnostics.snapshot(),
-            zircon_runtime_interface::RuntimeInputDiagnosticsSnapshot {
-                viewport_resize_count: 1,
-                pointer_move_count: 1,
-                mouse_button_press_count: 1,
-                mouse_button_release_count: 1,
-                keyboard_press_count: 1,
-                keyboard_release_count: 1,
-            }
-        );
-    }
-
-    #[test]
-    fn asset_reload_activity_maps_once_to_the_world_sync_fact_contract() {
-        let mut report = DynamicSceneAssetReloadFrameApplyReport::default();
-        assert_eq!(asset_reload_world_fact(&report), None);
-
-        report.drain.events_drained = 1;
-        report.apply.pending_count = 7;
-        assert_eq!(
-            asset_reload_world_fact(&report),
-            Some(WorldFact::AssetReloadApplied(
-                AssetReloadFrameApplyReportDto {
-                    applied: 0,
-                    failed: 0,
-                    stale: 0,
-                    pending_count: 7,
-                }
-            ))
-        );
-    }
-
-    #[test]
-    fn pending_asset_reload_work_keeps_the_reactive_loop_alive_until_completion() {
-        assert_eq!(asset_reload_frame_demand(false), None);
-        assert_eq!(
-            asset_reload_frame_demand(true),
-            Some(super::RuntimeFrameDemand::Immediate)
-        );
-        assert_eq!(asset_reload_frame_demand(false), None);
+    match base_demand {
+        RuntimeFrameDemand::Immediate => RuntimeFrameDemand::Immediate,
+        RuntimeFrameDemand::Idle => RuntimeFrameDemand::After(timer_delay),
+        RuntimeFrameDemand::After(base_delay) if base_delay.is_zero() => {
+            RuntimeFrameDemand::Immediate
+        }
+        RuntimeFrameDemand::After(base_delay) => {
+            RuntimeFrameDemand::After(base_delay.min(timer_delay))
+        }
     }
 }
+
+#[cfg(test)]
+#[path = "tests/state.rs"]
+mod tests;

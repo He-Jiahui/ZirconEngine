@@ -1,3 +1,4 @@
+# 核对租约冲突按路径层级索引查找，并批量插入获准项。
 from __future__ import annotations
 
 import inspect

@@ -1,3 +1,4 @@
+# 核对平台包输入文件用一次元数据探测区分缺失、目录和空文件。
 from __future__ import annotations
 
 import tempfile
@@ -5,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_export.platform_bundle_materialize import (
+from tools.export.platform_bundle_materialize import (
     platform_bundle_file_input_diagnostic,
 )
 

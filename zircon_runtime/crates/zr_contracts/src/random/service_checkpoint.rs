@@ -1,3 +1,6 @@
+use std::fmt;
+
+use serde::de::{DeserializeSeed, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 
 use super::{RandomServiceCheckpointError, RandomServiceState, RandomStreamCheckpoint};
@@ -14,7 +17,64 @@ pub struct RandomServiceCheckpoint {
 struct RandomServiceCheckpointWire {
     format_version: u16,
     service: RandomServiceState,
+    #[serde(deserialize_with = "deserialize_bounded_streams")]
     streams: Vec<RandomStreamCheckpoint>,
+}
+
+fn deserialize_bounded_streams<'de, D>(
+    deserializer: D,
+) -> Result<Vec<RandomStreamCheckpoint>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct BoundedStreamsVisitor;
+
+    impl<'de> Visitor<'de> for BoundedStreamsVisitor {
+        type Value = Vec<RandomStreamCheckpoint>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter
+                .write_str("a random stream checkpoint sequence within the stream count budget")
+        }
+
+        fn visit_seq<A>(self, mut sequence: A) -> Result<Self::Value, A::Error>
+        where
+            A: SeqAccess<'de>,
+        {
+            // A wire-provided size hint is not an allocation budget. Grow only for admitted entries.
+            let mut streams = Vec::new();
+            for _ in 0..RandomServiceCheckpoint::MAX_STREAMS {
+                match sequence.next_element()? {
+                    Some(stream) => streams.push(stream),
+                    None => return Ok(streams),
+                }
+            }
+
+            // Probe for element N+1 without deserializing or retaining its payload.
+            let _: Option<()> = sequence.next_element_seed(RejectExtraStream)?;
+            Ok(streams)
+        }
+    }
+
+    struct RejectExtraStream;
+
+    impl<'de> DeserializeSeed<'de> for RejectExtraStream {
+        type Value = ();
+
+        fn deserialize<D>(self, _: D) -> Result<Self::Value, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            Err(serde::de::Error::custom(
+                RandomServiceCheckpointError::TooManyStreams {
+                    max: RandomServiceCheckpoint::MAX_STREAMS,
+                    actual: RandomServiceCheckpoint::MAX_STREAMS + 1,
+                },
+            ))
+        }
+    }
+
+    deserializer.deserialize_seq(BoundedStreamsVisitor)
 }
 
 impl<'de> Deserialize<'de> for RandomServiceCheckpoint {
@@ -35,6 +95,8 @@ impl<'de> Deserialize<'de> for RandomServiceCheckpoint {
 
 impl RandomServiceCheckpoint {
     pub const FORMAT_VERSION: u16 = 2;
+    /// Maximum number of persisted streams accepted by the v2 checkpoint contract.
+    pub const MAX_STREAMS: usize = 65_536;
 
     pub fn try_new(
         service: RandomServiceState,
@@ -72,6 +134,12 @@ impl RandomServiceCheckpoint {
         if format_version != Self::FORMAT_VERSION {
             return Err(RandomServiceCheckpointError::UnsupportedFormatVersion {
                 version: format_version,
+            });
+        }
+        if streams.len() > Self::MAX_STREAMS {
+            return Err(RandomServiceCheckpointError::TooManyStreams {
+                max: Self::MAX_STREAMS,
+                actual: streams.len(),
             });
         }
 

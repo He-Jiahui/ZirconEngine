@@ -3,7 +3,7 @@
 Plan: docs/plans/optimize/zircon_runtime/74-runtime-ui-template-component-binding-expression-model-event-command-hot-reload-product-integration-review.md
 Milestone: P2 cleanup
 Status: validation_pending
-Files: [".codex/state/session-coordinator/cargo-runs/zircon-validation-runtime74-p0-p1-endpoint-superbatch.ps1",".codex/state/session-coordinator/cargo-runs/zircon-validation-runtime74-p2-schema-cleanup.ps1","docs/plans/optimize/zircon_runtime/74/2026-08-22-test-only-template-router-hard-cut.md","docs/zircon_runtime/ui/template/pipeline.md","zircon_runtime/src/ui/binding/mod.rs","zircon_runtime/src/ui/binding/router.rs","zircon_runtime/src/ui/template/loader.rs","zircon_runtime/src/ui/template/pipeline.rs","zircon_runtime/src/ui/template/validate.rs","zircon_runtime/src/ui/tests/binding.rs","zircon_runtime/src/ui/tests/boundary/binding_event_roots.rs","zircon_runtime/src/ui/tests/template/loader_instance_validation.rs"]
+Files: [".codex/state/session-coordinator/cargo-runs/zircon-validation-runtime74-p0-p1-endpoint-superbatch.ps1",".codex/state/session-coordinator/cargo-runs/zircon-validation-runtime74-p2-schema-cleanup.ps1","docs/plans/optimize/zircon_runtime/74/2026-08-22-test-only-template-router-hard-cut.md","docs/crates/zircon_runtime/ui/template/pipeline.md","zircon_runtime/src/ui/binding/mod.rs","zircon_runtime/src/ui/binding/router.rs","zircon_runtime/src/ui/template/loader.rs","zircon_runtime/src/ui/template/pipeline.rs","zircon_runtime/src/ui/template/validate.rs","zircon_runtime/src/ui/tests/binding.rs","zircon_runtime/src/ui/tests/boundary/binding_event_roots.rs","zircon_runtime/src/ui/tests/template/loader_instance_validation.rs"]
 
 - Date: 2026-08-22
 - Owner: `optimize-runtime74-param-ref-compile-r3-bee4c707-20260822`

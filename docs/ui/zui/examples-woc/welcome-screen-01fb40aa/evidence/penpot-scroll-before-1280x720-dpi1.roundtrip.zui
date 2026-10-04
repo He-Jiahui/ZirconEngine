@@ -1,0 +1,226 @@
+[asset]
+kind = "view"
+id = "res://ui/shell/welcome_screen.zui"
+version = 2
+display_name = "World of ClaudeCraft Welcome Screen"
+
+[imports]
+widgets = []
+styles = ["res://ui/shell/shell_theme.zui"]
+resources = [
+  { kind = "image", uri = "res://m8/env/vale_backdrop.webp", fallback = { mode = "optional" } },
+]
+
+[root]
+node = "welcome_root"
+
+[nodes.stage_host]
+component = "Space"
+control_id = "WelcomeCharacterStageHost"
+classes = ["woc-welcome-stage"]
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.stage_scrim]
+component = "Space"
+classes = ["woc-stage-scrim"]
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.header_title]
+component = "Label"
+control_id = "WelcomeBackTitle"
+classes = ["woc-welcome-title"]
+props = { text = "Welcome back", overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+
+[nodes.header_meta]
+component = "Label"
+control_id = "WelcomeCharacterMeta"
+classes = ["woc-muted"]
+props = { text = "", overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
+
+[nodes.header]
+component = "VerticalBox"
+control_id = "WelcomeHeader"
+layout = { container = { kind = "VerticalBox", gap = 2.0 }, width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+children = [{ node = "header_title" }, { node = "header_meta" }]
+
+[nodes.news_title]
+component = "Label"
+control_id = "WelcomeNewsTitle"
+classes = ["woc-section-title"]
+props = { text = "News & Updates" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.news_loading]
+component = "Label"
+control_id = "WelcomeNewsLoading"
+classes = ["woc-muted"]
+props = { text = "Loading the latest updates...", text_align = "center" }
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" } }
+
+[nodes.news_feed]
+component = "ScrollBox"
+control_id = "WelcomeNewsFeed"
+props = { scroll_axis = "vertical", scroll_x = false, scroll_y = true, show_scrollbars = true, clip_content = true }
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "news_loading" }]
+
+[nodes.news_panel]
+component = "VerticalBox"
+control_id = "WelcomeNewsPanel"
+classes = ["woc-panel"]
+layout = { container = { kind = "VerticalBox", gap = 10.0 }, padding = { left = 20.0, right = 20.0, top = 16.0, bottom = 12.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "news_title" }, { node = "news_feed" }]
+
+[nodes.discord_badge]
+component = "Space"
+control_id = "WelcomeDiscordBadge"
+classes = ["woc-discord-badge"]
+layout = { width = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+
+[nodes.discord_title]
+component = "Label"
+control_id = "WelcomeDiscordTitle"
+classes = ["woc-label"]
+props = { text = "The community lives on Discord", overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
+
+[nodes.discord_subtitle]
+component = "Label"
+control_id = "WelcomeDiscordSubtitle"
+classes = ["woc-muted"]
+props = { text = "Patch previews, events, dev chat, and 2 bonus bank slots for linking.", overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
+
+[nodes.discord_copy]
+component = "VerticalBox"
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+children = [{ node = "discord_title" }, { node = "discord_subtitle" }]
+
+[nodes.discord_join]
+component = "Button"
+control_id = "WelcomeDiscordJoin"
+classes = ["woc-discord-action"]
+props = { text = "Join our Discord", button_variant = "contained" }
+layout = { width = { min = 142.0, preferred = 142.0, max = 142.0, stretch = "Fixed" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" } }
+events = [{ id = "WocWelcome/JoinDiscord", event = "Click", route = "woc.shell.welcome.join_discord" }]
+
+[nodes.discord_strip]
+component = "HorizontalBox"
+control_id = "WelcomeDiscordStrip"
+classes = ["woc-discord-strip"]
+props = { visibility = "collapsed" }
+layout = { container = { kind = "HorizontalBox", gap = 14.0 }, padding = { left = 16.0, right = 16.0, top = 11.0, bottom = 11.0 }, width = { stretch = "Stretch" }, height = { min = 62.0, preferred = 62.0, max = 62.0, stretch = "Fixed" } }
+children = [{ node = "discord_badge" }, { node = "discord_copy" }, { node = "discord_join" }]
+
+[nodes.main_column]
+component = "VerticalBox"
+control_id = "WelcomeMainColumn"
+layout = { container = { kind = "VerticalBox", gap = 14.0 }, width = { min = 460.0, preferred = 700.0, max = 760.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "news_panel" }, { node = "discord_strip" }]
+
+[nodes.armory_card]
+component = "Button"
+control_id = "WelcomeArmoryCard"
+classes = ["woc-panel", "woc-primary-action"]
+props = { text = "Season 1 Armory", button_variant = "contained", visibility = "collapsed" }
+layout = { width = { stretch = "Stretch" }, height = { min = 210.0, preferred = 240.0, max = 260.0, stretch = "Fixed" } }
+events = [{ id = "WocWelcome/OpenArmory", event = "Click", route = "woc.shell.welcome.open_armory" }]
+
+[nodes.chest_dot]
+component = "Space"
+control_id = "WelcomeChestReadyDot"
+classes = ["woc-ready-dot"]
+layout = { width = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" }, height = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" } }
+
+[nodes.chest_label]
+component = "Label"
+control_id = "WelcomeChestReadyLabel"
+classes = ["woc-label"]
+props = { text = "Daily chest ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.chest_tile]
+component = "HorizontalBox"
+control_id = "WelcomeChestTile"
+classes = ["woc-panel"]
+props = { visibility = "collapsed" }
+layout = { container = { kind = "HorizontalBox", gap = 12.0 }, padding = { left = 14.0, right = 14.0, top = 10.0, bottom = 10.0 }, width = { stretch = "Stretch" }, height = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" } }
+children = [{ node = "chest_dot" }, { node = "chest_label" }]
+
+[nodes.event_slot]
+component = "Space"
+control_id = "WelcomeEventSlot"
+classes = ["woc-panel"]
+props = { visibility = "collapsed" }
+layout = { width = { stretch = "Stretch" }, height = { min = 60.0, preferred = 60.0, max = 120.0, stretch = "Fixed" } }
+
+[nodes.rail]
+component = "VerticalBox"
+control_id = "WelcomeRail"
+props = { visibility = "collapsed" }
+layout = { container = { kind = "VerticalBox", gap = 12.0 }, width = { min = 300.0, preferred = 340.0, max = 372.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "armory_card" }, { node = "chest_tile" }, { node = "event_slot" }]
+
+[nodes.body]
+component = "Stack"
+control_id = "WelcomeBody"
+props = { direction = { xs = "column", md = "row" }, spacing = { xs = 1, md = 2.25 } }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "main_column" }, { node = "rail" }]
+
+[nodes.status]
+component = "Label"
+control_id = "WelcomeConnectionStatus"
+classes = ["woc-muted"]
+props = { text = "Connecting to realm...", text_align = "right" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.continue]
+component = "Button"
+control_id = "WelcomeContinue"
+classes = ["woc-primary-action", "woc-welcome-continue"]
+props = { text = "Enter World", button_variant = "contained", disabled = true }
+layout = { width = { min = 200.0, preferred = 240.0, max = 280.0, stretch = "Fixed" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocWelcome/Continue", event = "Click", route = "woc.shell.welcome.continue" }]
+
+[nodes.continue_hint]
+component = "Label"
+control_id = "WelcomeContinueHint"
+classes = ["woc-muted"]
+props = { text = "Enter to continue, Esc to skip", text_align = "center" }
+layout = { width = { min = 240.0, preferred = 280.0, max = 320.0, stretch = "Fixed" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
+
+[nodes.continue_group]
+component = "VerticalBox"
+control_id = "WelcomeContinueGroup"
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { min = 240.0, preferred = 280.0, max = 320.0, stretch = "Fixed" }, height = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" } }
+children = [{ node = "continue" }, { node = "continue_hint" }]
+
+[nodes.version]
+component = "Label"
+control_id = "WelcomeVersion"
+classes = ["woc-muted"]
+props = { text = "", text_align = "right" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.footer]
+component = "HorizontalBox"
+control_id = "WelcomeFooter"
+layout = { container = { kind = "HorizontalBox", gap = 16.0 }, width = { stretch = "Stretch" }, height = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" } }
+children = [{ node = "status" }, { node = "continue_group" }, { node = "version" }]
+
+[nodes.content]
+component = "VerticalBox"
+control_id = "WelcomeContent"
+layout = { container = { kind = "VerticalBox", gap = 14.0 }, anchor = { x = 0.5, y = 0.0 }, pivot = { x = 0.5, y = 0.0 }, position = { x = 0.0, y = 0.0 }, padding = { left = 48.0, right = 48.0, top = 24.0, bottom = 18.0 }, width = { preferred = 1100.0, max = 1196.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "header" }, { node = "body" }, { node = "footer" }]
+
+[nodes.welcome_root]
+component = "Overlay"
+control_id = "WelcomeScreen"
+classes = ["woc-shell", "woc-welcome-screen"]
+props = { background_image = "res://m8/env/vale_backdrop.webp" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "stage_host" }, { node = "stage_scrim" }, { node = "content" }]

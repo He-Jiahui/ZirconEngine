@@ -71,6 +71,8 @@ where
     })
 }
 
+// 各资源的 from_bytes 共用此信任边界：先约束输入大小，再兼容文档与流式封套；
+// 保留两条解码路径的错误，供 importer 区分资源种类、格式版本和损坏输入。
 pub(super) fn decode_binary_asset<T>(
     kind: AnimationBinaryAssetKind,
     bytes: &[u8],
@@ -116,6 +118,8 @@ where
     }
 }
 
+// 旧 payload 的尝试顺序是磁盘兼容契约；仅当当前布局无法解码时退回，
+// 成功后仍由调用方把旧字段提升为当前资源模型。
 pub(super) fn decode_binary_asset_with_v3_v2_v1_payload_fallback<T, V3, V2, V1>(
     kind: AnimationBinaryAssetKind,
     bytes: &[u8],
@@ -249,40 +253,5 @@ fn validate_binary_header(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        decode_binary_asset, encode_binary_asset, validate_binary_input_len,
-        AnimationBinaryAssetKind, ANIMATION_BINARY_MAX_DECODE_BYTES,
-    };
-    use crate::core::framework::animation::AnimationAssetError;
-
-    #[test]
-    fn animation_binary_rejects_oversized_input_before_deserialization() {
-        let error = validate_binary_input_len(
-            AnimationBinaryAssetKind::Graph,
-            ANIMATION_BINARY_MAX_DECODE_BYTES + 1,
-        )
-        .expect_err("oversized input must be rejected before deserialize");
-
-        assert!(matches!(
-            error,
-            AnimationAssetError::InputTooLarge {
-                kind: "graph",
-                actual_bytes,
-                limit_bytes,
-            } if actual_bytes == limit_bytes + 1
-        ));
-    }
-
-    #[test]
-    fn animation_binary_budgeting_preserves_legacy_trailing_byte_decoding() {
-        let mut bytes = encode_binary_asset(AnimationBinaryAssetKind::Graph, &7_u8)
-            .expect("fixture serialization succeeds");
-        bytes.push(0);
-
-        let decoded = decode_binary_asset::<u8>(AnimationBinaryAssetKind::Graph, &bytes)
-            .expect("legacy trailing bytes remain accepted");
-
-        assert_eq!(decoded, 7);
-    }
-}
+#[path = "tests/binary.rs"]
+mod tests;

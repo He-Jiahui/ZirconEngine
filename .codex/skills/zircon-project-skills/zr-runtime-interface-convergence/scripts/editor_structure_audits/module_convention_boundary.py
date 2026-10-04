@@ -5,6 +5,8 @@ from pathlib import Path
 import re
 from typing import Any
 
+from runtime_structure_audits.native_plugin_public_surface import _mask_rust_non_code
+
 
 EDITOR_SRC = Path("zircon_editor/src")
 PRODUCTION_LINE_LIMIT = 1000
@@ -132,7 +134,7 @@ def is_test_owner(path: Path, editor_src: Path) -> bool:
     if path.name != "tests.rs" and not path.name.endswith("_tests.rs"):
         return False
 
-    source = path.read_text(encoding="utf-8")
+    source = _mask_rust_non_code(path.read_text(encoding="utf-8"))
     return any(TEST_ATTRIBUTE_PATTERN.match(line) for line in source.splitlines())
 
 

@@ -6,7 +6,7 @@ use zircon_runtime::core::framework::{
 };
 
 #[cfg(test)]
-#[path = "overlay_lookup/allocation_tests.rs"]
+#[path = "overlay_lookup/tests/allocation_tests.rs"]
 mod allocation_tests;
 
 pub(super) struct OverlayClusterLookup {
@@ -16,6 +16,7 @@ pub(super) struct OverlayClusterLookup {
 }
 
 impl OverlayClusterLookup {
+    /// 依据 extract 实例范围建立实体到簇、实例索引和簇序号的查找表。
     pub(super) fn new(extract: &RenderVirtualGeometryExtract) -> Self {
         let mut clusters_by_entity = HashMap::<EntityId, Vec<RenderVirtualGeometryCluster>>::new();
         let mut instance_index_by_cluster = HashMap::new();

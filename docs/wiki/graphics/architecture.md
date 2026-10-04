@@ -11,7 +11,7 @@ implementation_files:
   - zircon_runtime/src/render_graph/builder/compile.rs
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
-  - docs/assets-and-rendering/render-framework-architecture.md
+  - docs/rendering/render-framework-architecture.md
 tests:
   - zircon_runtime/src/graphics/tests/project_render.rs
   - zircon_runtime/src/render_graph/tests

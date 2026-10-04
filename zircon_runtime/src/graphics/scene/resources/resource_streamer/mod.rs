@@ -1,5 +1,8 @@
+//! 场景资源的装载、候选发布、上传回滚与几何重放由各子模块负责；这里只声明模块并导出渲染侧使用的类型。
+mod geometry_replay;
 pub(in crate::graphics::scene::resources) mod model_geometry_resolution;
 mod published_material_draw_proxy;
+mod render_scene_geometry;
 mod resource_streamer;
 mod resource_streamer_accessors;
 mod resource_streamer_advanced_lighting;
@@ -16,6 +19,7 @@ mod resource_streamer_execute_output_target_writeback;
 mod resource_streamer_load_animation_skeleton_asset;
 mod resource_streamer_load_model_asset;
 mod resource_streamer_mip_streaming;
+mod resource_streamer_residency;
 mod resource_streamer_resolve_texture_id;
 mod resource_streamer_resource_revision;
 mod resource_streamer_shading_models;
@@ -31,3 +35,7 @@ pub(in crate::graphics::scene) use published_material_draw_proxy::{
 pub(crate) use resource_streamer::ResourceStreamer;
 pub(crate) use resource_streamer_advanced_lighting::IrradianceVolumeTextureBinding;
 pub(in crate::graphics::scene::resources) use resource_streamer_ensure_texture::TextureSnapshotFramePrepareError;
+pub(crate) use resource_streamer_residency::{
+    RenderAssetSemanticRoutingBudget, RenderAssetSemanticRoutingFailure,
+    RenderAssetSemanticRoutingReport, RenderSceneFrameAdmissionError, RenderSceneWorldReleaseError,
+};

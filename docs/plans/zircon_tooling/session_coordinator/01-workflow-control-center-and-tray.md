@@ -20,7 +20,7 @@
 
 **Approved design:** `docs/superpowers/specs/2026-07-11-workflow-control-center-and-tray-design.md`
 
-**Execution boundary:** Work directly on shared `main`; do not create a branch, worktree, stash checkpoint, hidden intermediate Git commit, or repository-local Cargo target. M1 and M2 execute serially. After M2, concurrent Sessions may work only on the disjoint scopes named in §3 and must claim concrete files through `tools/zircon-session.ps1` before editing.
+**Execution boundary:** Work directly on shared `main`; do not create a branch, worktree, stash checkpoint, hidden intermediate Git commit, or repository-local Cargo target. M1 and M2 execute serially. After M2, concurrent Sessions may work only on the disjoint scopes named in §3 and must claim concrete files through `tools/dev/zircon-session.ps1` before editing.
 
 ---
 
@@ -84,9 +84,9 @@ The coordinator imports this fenced JSON as schema version 1. Human prose remain
 
 ### Integration, docs, and acceptance
 
-- Modify `tools/install-session-coordinator-task.ps1`: install/query/remove coordinator and tray user-startup entries without embedding capabilities.
+- Modify `tools/setup/install-session-coordinator-task.ps1`: install/query/remove coordinator and tray user-startup entries without embedding capabilities.
 - Modify `zircon_hub/src/tauri_app/commands.rs` and the minimum matching Hub UI files only in M6: open the same browser console through a coordinator-issued ticket; do not embed workflow authority.
-- Modify `docs/cli-and-tooling/local-session-coordinator.md` and create `docs/cli-and-tooling/workflow-control-center.md`.
+- Modify `docs/tooling/local-session-coordinator.md` and create `docs/tooling/workflow-control-center.md`.
 - Create `tests/acceptance/workflow-control-center-and-tray.md`, `tools/tests/workflow-control-center-smoke.Tests.ps1`, and `tools/tests/workflow-control-center-soak.ps1`.
 
 ### Safe parallel scopes after M2
@@ -244,7 +244,7 @@ Candidate submissions use `candidate:{candidate_id}` as their idempotency key; r
 
 - [ ] **M1.6 Record M1 documentation and slice evidence.**
 
-  **Files:** modify `docs/cli-and-tooling/local-session-coordinator.md`; create `docs/cli-and-tooling/workflow-control-center.md`; write one record per completed slice under `docs/plans/zircon_tooling/session_coordinator/01/` after coordinator authorization.
+  **Files:** modify `docs/tooling/local-session-coordinator.md`; create `docs/tooling/workflow-control-center.md`; write one record per completed slice under `docs/plans/zircon_tooling/session_coordinator/01/` after coordinator authorization.
 
   Document the trust boundary, runtime descriptor additions, Observer bootstrap, snapshot/event cursor, diagnostic commands, and recovery behavior. No concrete evidence row is appended to this protected plan definition.
 
@@ -419,7 +419,7 @@ Expected: topology/gate/current-attempt/commit tests pass; a temporary repositor
 - [ ] **M5.1 Add schema v17 and scaffold the tray workspace.** Migration 17 creates `service_supervision_events` and `service_recovery_state` with exact supervision-state checks, daemon instance/process creation identity, reason code, actor, action ID, timestamp, and recovery counters. Create `tools/session_tray/Cargo.toml` with an empty local `[workspace]`, Tauri 2.11.2, serde/serde_json, thiserror, and Windows 0.54 APIs; create `build.rs`, `tauri.conf.json`, `capabilities/default.json`, icons, `src/main.rs`, `src/lib.rs`. Configure no visible main window and only required tray/notification/shell permissions. Build target comes from a coordinator Cargo lane outside the repo.
 - [ ] **M5.2 Implement runtime descriptor and identity verification.** Create `runtime_descriptor.rs`, `process_identity.rs`, `repository_identity.rs`. Compute a normalized repository SHA-256 key; acquire a Windows named mutex; verify descriptor repo, PID liveness, process creation time, executable/command line, authenticated `/health`, instance ID, and API version before any lifecycle action. A stale descriptor never authorizes termination.
 - [ ] **M5.3 Implement client, state machine, menu, and icon.** Create `coordinator_client.rs`, `tray_state.rs`, `menu.rs`, `notifications.rs`. Poll health with bounded timeouts; map exact supervision enums to icon/tooltip/menu; disable invalid actions; open browser through a one-time ticket; expose diagnostic copy with secrets redacted. Exiting tray releases only the tray mutex and never sends stop.
-- [ ] **M5.4 Implement start, drain, stop, restart, and force recovery.** Create `lifecycle.rs`. Offline start invokes hidden `tools/zircon-session.ps1 start -Json`; normal drain/stop/restart use M3 action preview/confirm and display active Git/Cargo/patch sections. Force termination is Maintainer-only, requires a second identity verification immediately before `TerminateProcess`, and is unavailable for mismatch/fatal migration states.
+- [ ] **M5.4 Implement start, drain, stop, restart, and force recovery.** Create `lifecycle.rs`. Offline start invokes hidden `tools/dev/zircon-session.ps1 start -Json`; normal drain/stop/restart use M3 action preview/confirm and display active Git/Cargo/patch sections. Force termination is Maintainer-only, requires a second identity verification immediately before `TerminateProcess`, and is unavailable for mismatch/fatal migration states.
 - [ ] **M5.5 Implement recovery and startup.** Create `recovery.rs`, `startup.rs`. Unexpected exits retry after 1/2/5/15/30 seconds; five failures in ten minutes open the circuit; ten healthy minutes clear it. Explicit stop, migration failure, identity mismatch, valid competing instance, fatal integrity error, maintenance-held offline state, or exhausted attempts never auto-restart. Register tray and coordinator separately for the current user with absolute paths and no credentials.
 - [ ] **M5.6 Add Rust/unit/Windows smoke tests and docs.** Unit-test descriptor parsing, state transitions, backoff, circuit breaker, explicit stop, and menu enablement. Windows integration fixtures use a harmless child process to prove stale PID substitution and unrelated-process protection. Update operator docs and write numbered output records.
 
@@ -428,7 +428,7 @@ Expected: topology/gate/current-attempt/commit tests pass; a temporary repositor
 Allocate a managed lane, then run from `tools/session_tray`:
 
 ```powershell
-$lease = (& .\tools\zircon-session.ps1 cargo acquire test --session-id workflow-control-center-20260711-1915 -Json | ConvertFrom-Json)
+$lease = (& .\tools\dev\zircon-session.ps1 cargo acquire test --session-id workflow-control-center-20260711-1915 -Json | ConvertFrom-Json)
 $env:CARGO_TARGET_DIR = $lease.job.target_dir
 try {
     cargo fmt --manifest-path tools/session_tray/Cargo.toml -- --check
@@ -436,7 +436,7 @@ try {
     cargo build --manifest-path tools/session_tray/Cargo.toml --locked
     powershell -NoProfile -ExecutionPolicy Bypass -File tools/tests/workflow-control-center-smoke.Tests.ps1 -TrayLifecycle
 } finally {
-    & .\tools\zircon-session.ps1 cargo release $lease.job.job_id --session-id workflow-control-center-20260711-1915 -Json
+    & .\tools\dev\zircon-session.ps1 cargo release $lease.job.job_id --session-id workflow-control-center-20260711-1915 -Json
 }
 ```
 
@@ -526,7 +526,7 @@ Verified against the current implementation under `tools/session_coordinator/` a
 
 ### Diverges from current code, needs revision
 
-- §3 file map (line 87) states `tools/install-session-coordinator-task.ps1` installs/queries/removes "coordinator and tray user-startup entries". The tray startup lifecycle has actually been split into a separate script: `tools/install-session-tray-startup.ps1` exists, and `tools/install-session-coordinator-task.ps1` contains no `tray` reference at all. The "single script installs both" wording no longer matches the code; update §3 to reference both scripts and their split responsibilities.
+- §3 file map (line 87) states `tools/setup/install-session-coordinator-task.ps1` installs/queries/removes "coordinator and tray user-startup entries". The tray startup lifecycle has actually been split into a separate script: `tools/setup/install-session-tray-startup.ps1` exists, and `tools/setup/install-session-coordinator-task.ps1` contains no `tray` reference at all. The "single script installs both" wording no longer matches the code; update §3 to reference both scripts and their split responsibilities.
 - §3 file map (line 65) constrains work to "monotonic schema versions 14-17 only". The chain has since advanced far past that window: `tools/session_coordinator/migrations.py:16` sets `LATEST_SCHEMA_VERSION = 51` (with M6.8 alone landing schema 41, per the §6 status row). A reader could mistake 17 for the current ceiling. Add a note that 14-17 was this plan's original allocation and later domains carried the chain to 51.
 
 ### Implementation risk / tech debt

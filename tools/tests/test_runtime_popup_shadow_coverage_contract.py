@@ -6,7 +6,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 POPUP_ROWS = REPO_ROOT / "zircon_runtime/src/ui/surface/render/popup_rows.rs"
 SURFACE = REPO_ROOT / "zircon_runtime/src/ui/surface/surface.rs"
 
-
+# 读取弹窗背景与阴影构造，确认双覆盖层先于权威填充，阴影不进入命中几何。
 class RuntimePopupShadowCoverageContractTests(unittest.TestCase):
     def test_popup_background_publishes_two_coverage_layers_before_authoritative_fill(self):
         source = POPUP_ROWS.read_text(encoding="utf-8")

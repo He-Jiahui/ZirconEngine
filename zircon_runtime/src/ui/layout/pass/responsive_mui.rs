@@ -1,3 +1,5 @@
+//! 在测量前解析组件响应式属性，使后续后端使用相同容器、槽位和可见性契约。
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use toml::Value;
@@ -40,6 +42,7 @@ pub(super) fn apply_mui_responsive_layout(
     apply_responsive_grid_slots(tree, viewport, &candidates.implicit_grid_parent_ids)
 }
 
+/// 完整表面入口重用候选索引；调用前应同步节点属性变化，否则同一宽度的缓存门可能漏算。
 pub(super) fn apply_mui_responsive_layout_indexed(
     tree: &mut UiTree,
     root_size: UiSize,
@@ -57,6 +60,7 @@ pub(super) fn apply_mui_responsive_layout_indexed(
     })
 }
 
+/// 增量更新还检查脏节点的直接子项，覆盖父 Grid 变更对边契约的影响；槽位索引失配时回退全量。
 pub(super) fn apply_mui_responsive_layout_for_nodes(
     tree: &mut UiTree,
     root_size: UiSize,
@@ -346,6 +350,7 @@ fn responsive_visibility_for_node(
     }))
 }
 
+// TODO: [CR-UI-LAYOUTV2-0006] 确认同时声明 min_width 与 max_width 是否应取交集；当前只采用首个存在条件，缺少组合属性契约测试；下一步对照 query 字符串的双界限语义。
 fn use_media_query_match_for_node(
     tree: &UiTree,
     node_id: UiNodeId,
@@ -491,6 +496,10 @@ fn mui_grid_config(
     }
 }
 
+// row-reverse is not yet a first-class UiContainerKind variant. Until it is added
+// to the interface, map it to HorizontalBox. Children will appear in authored order,
+// which is incorrect for row-reverse, but at least the horizontal axis is right.
+// Tracked: CR-UI-LAYOUTV2-0007 — add HorizontalBoxReverse variant to UiContainerKind.
 fn mui_stack_container(
     attributes: &std::collections::BTreeMap<String, Value>,
     viewport: MuiResponsiveViewport,
@@ -520,6 +529,7 @@ fn mui_masonry_config(
     }
 }
 
+// 显式布局是作者选择的运行时契约，兼容组件属性不能在视口变化时覆盖它。
 fn has_explicit_layout_container(attributes: &std::collections::BTreeMap<String, Value>) -> bool {
     attributes
         .get("layout")
@@ -623,15 +633,29 @@ fn responsive_visibility_attribute(
     value_as_visibility(value)
 }
 
+// Responsive column counts must stay within a reasonable upper bound so they
+// do not overflow the layout engine's measurement buffers. 1024 is a safe cap
+// well above any realistic grid while leaving headroom for future expansion.
+const MAX_RESPONSIVE_COLUMNS: usize = 1024;
+
 fn value_as_usize(value: &Value) -> Option<usize> {
     match value {
-        Value::Integer(value) => usize::try_from(*value).ok(),
-        Value::Float(value) if value.is_finite() && *value >= 0.0 => Some(*value as usize),
-        Value::String(value) => value.trim().parse().ok(),
+        Value::Integer(value) => usize::try_from(*value)
+            .ok()
+            .map(|v| v.min(MAX_RESPONSIVE_COLUMNS)),
+        Value::Float(value) if value.is_finite() && *value >= 0.0 => {
+            Some((*value as usize).min(MAX_RESPONSIVE_COLUMNS))
+        }
+        Value::String(value) => value
+            .trim()
+            .parse::<usize>()
+            .ok()
+            .map(|v| v.min(MAX_RESPONSIVE_COLUMNS)),
         _ => None,
     }
 }
 
+// 数字间距使用组件间距单位，字符串间距直接表示尺寸；普通媒体查询宽度走另一解析入口。
 fn value_as_f32(value: &Value) -> Option<f32> {
     match value {
         Value::Integer(value) => Some(*value as f32 * MUI_DEFAULT_SPACING_UNIT),
@@ -748,116 +772,8 @@ fn mark_node_visibility_dirty(
 }
 
 #[cfg(test)]
-mod tests {
-    use toml::Value;
-    use zircon_runtime_interface::ui::{
-        event_ui::{UiNodeId, UiNodePath},
-        layout::UiSize,
-        tree::{UiTemplateNodeMetadata, UiTree, UiTreeNode},
-    };
-
-    use super::{apply_mui_responsive_layout, MuiResponsiveCandidates};
-
-    fn node(id: u64, component: &str, attributes: &[(&str, Value)]) -> UiTreeNode {
-        UiTreeNode::new(UiNodeId::new(id), UiNodePath::new(format!("root/{id}")))
-            .with_template_metadata(UiTemplateNodeMetadata {
-                component: component.to_string(),
-                attributes: attributes
-                    .iter()
-                    .map(|(name, value)| ((*name).to_string(), value.clone()))
-                    .collect(),
-                ..UiTemplateNodeMetadata::default()
-            })
-    }
-
-    #[test]
-    fn full_pass_candidates_exclude_non_responsive_template_nodes() {
-        let mut tree = UiTree::default();
-        tree.nodes.insert(UiNodeId::new(1), node(1, "Button", &[]));
-        tree.nodes.insert(
-            UiNodeId::new(2),
-            node(
-                2,
-                "UseMediaQuery",
-                &[("query", Value::String("(min-width: 600px)".into()))],
-            ),
-        );
-        tree.nodes.insert(
-            UiNodeId::new(3),
-            node(3, "Box", &[("display", Value::String("none".into()))]),
-        );
-        tree.nodes.insert(
-            UiNodeId::new(4),
-            node(4, "Grid", &[("container", Value::Boolean(true))]),
-        );
-
-        let candidates = MuiResponsiveCandidates::for_tree(&tree);
-
-        assert_eq!(
-            candidates.media_query_node_ids,
-            [UiNodeId::new(2)].into_iter().collect()
-        );
-        assert_eq!(
-            candidates.visibility_node_ids,
-            [UiNodeId::new(3)].into_iter().collect()
-        );
-        assert_eq!(
-            candidates.container_node_ids,
-            [UiNodeId::new(4)].into_iter().collect()
-        );
-        assert_eq!(
-            candidates.implicit_grid_parent_ids,
-            [UiNodeId::new(4)].into_iter().collect()
-        );
-    }
-
-    #[test]
-    fn candidate_patch_tracks_same_cardinality_metadata_changes() {
-        let node_id = UiNodeId::new(1);
-        let mut tree = UiTree::default();
-        tree.nodes.insert(node_id, node(1, "Button", &[]));
-        let mut candidates = MuiResponsiveCandidates::for_tree(&tree);
-        assert!(candidates.media_query_node_ids.is_empty());
-
-        tree.nodes.insert(
-            node_id,
-            node(
-                1,
-                "UseMediaQuery",
-                &[("query", Value::String("(min-width: 600px)".into()))],
-            ),
-        );
-        candidates.patch_nodes(&tree, &[node_id].into_iter().collect());
-
-        assert_eq!(
-            candidates.media_query_node_ids,
-            [node_id].into_iter().collect()
-        );
-    }
-
-    #[test]
-    fn unchanged_responsive_values_do_not_create_mutation_candidates() {
-        let node_id = UiNodeId::new(1);
-        let mut tree = UiTree::default();
-        tree.nodes.insert(
-            node_id,
-            node(
-                1,
-                "UseMediaQuery",
-                &[
-                    ("query", Value::String("(min-width: 600px)".into())),
-                    ("matches", Value::Boolean(true)),
-                ],
-            ),
-        );
-        tree.clear_pending_mutation_node_ids();
-
-        apply_mui_responsive_layout(&mut tree, UiSize::new(800.0, 600.0))
-            .expect("stable responsive pass");
-
-        assert!(tree.pending_mutation_node_ids().is_empty());
-    }
-}
+#[path = "tests/responsive_mui.rs"]
+mod tests;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct ResponsiveVisibility {
@@ -887,6 +803,7 @@ impl MuiResponsiveViewport {
         }
     }
 
+    // 宽度增大时沿用最后一个已声明断点值；未声明当前断点不等同于恢复默认。
     fn responsive_value<'a>(&self, value: Option<&'a Value>) -> Option<&'a Value> {
         match value? {
             Value::Table(values) => {

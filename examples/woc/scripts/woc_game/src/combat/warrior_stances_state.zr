@@ -1,7 +1,13 @@
+//! 按专精与当前姿态形成允许列表和修复计划；实体光环增删由调用方提交。
 var container=%import("zr.container");var contract=%import("generated/warrior_stances_contract");
+/// 重算计划而非已提交状态；调用方按 removeKinds、applyId 的顺序执行。
 pub class StanceReconcile { pub var removeKinds:container.Array<string>;pub var applyId:string;pub var applies:bool;pub @constructor(){this.removeKinds=new container.Array<string>();this.applyId="";this.applies=false;} }
 contains(values:container.Array<string>,value:string):bool{var i=0;while(i<values.length){if(<string>values[i]==value)return true;i=i+1;}return false;}
+/// 专精限定可用姿态；未知专精走默认战斗姿态分支。
 pub available(spec:string):container.Array<string>{var out=new container.Array<string>();if(spec=="fury"){out.add(contract.berserker());return out;}out.add(contract.battle());if(spec=="arms"||spec=="prot")out.add(contract.defensive());return out;}
+/// 只为需要补姿态的计划挑选默认 ID，不能代替现有姿态合法性检查。
 pub defaultId(spec:string):string{return spec=="fury"?contract.berserker():contract.battle();}
+/// 只要当前集合有一个合法姿态就保留整组；否则计划先移除旧项再补默认项。
+/// 不修改 worn 输入，也不负责世界光环生命周期。
 pub reconcile(spec:string,worn:container.Array<string>):StanceReconcile{var out=new StanceReconcile(),valid=available(spec),i=0;while(i<worn.length){if(contains(valid,<string>worn[i]))return out;i=i+1;}i=0;while(i<worn.length){out.removeKinds.add(<string>worn[i]);i=i+1;}out.applyId=defaultId(spec);out.applies=true;return out;}
 pub contractTest():int{var none=new container.Array<string>();var fury=available("fury");if(fury.length!=1||<string>fury[0]!=contract.berserker()||defaultId("prot")!=contract.battle())return -1;var worn=new container.Array<string>();worn.add(contract.berserker());var plan=reconcile("arms",worn);if(!plan.applies||plan.removeKinds.length!=1||plan.applyId!=contract.battle())return -2;worn.clear();worn.add(contract.defensive());plan=reconcile("prot",worn);if(plan.applies||plan.removeKinds.length!=0)return -3;return 1;}

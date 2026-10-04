@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use super::menu_item_spec::MenuItemSpec;
 
 #[cfg(test)]
-#[path = "menu_item_tree/capacity_tests.rs"]
+#[path = "menu_item_tree/tests/capacity_tests.rs"]
 mod capacity_tests;
 
 pub(in crate::ui::retained_host::menu_pointer) fn menu_item_route_indices(
@@ -42,11 +42,13 @@ fn menu_item_tree_shape(items: &[MenuItemSpec]) -> (usize, usize) {
     (item_count, max_depth)
 }
 
-pub(in crate::ui::retained_host::menu_pointer) fn parent_path(path: &[usize]) -> Vec<usize> {
-    path.iter()
-        .take(path.len().saturating_sub(1))
-        .copied()
-        .collect()
+pub(in crate::ui::retained_host::menu_pointer) fn reuse_parent_path(
+    target: &mut Vec<usize>,
+    path: &[usize],
+) {
+    let parent_len = path.len().saturating_sub(1);
+    target.clear();
+    target.extend_from_slice(&path[..parent_len]);
 }
 
 fn index_item_paths(

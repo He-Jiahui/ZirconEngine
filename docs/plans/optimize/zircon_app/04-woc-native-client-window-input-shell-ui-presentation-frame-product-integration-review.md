@@ -135,6 +135,36 @@ source_recheck_required: true
 
 ## 4. P0：Native Client 产品准入前必须硬阻断
 
+### 当前接续状态（2026-09-11）
+
+`woc_client` binary 已新增 engine-owned `ClientProductHost` 入口：它会
+加载并激活真实 `ZrVmProjectVm`，通过 `StateOnlyClientAuthority` 驱动有限离线
+fixed-tick/frame 生命周期，并在报告中显式标记 `stateOnly=true`、
+`presentationReady=false`、`nativeWindowReady=false`。因此 WOC-CLIENT-P0-001
+的 identity-only reachability 缺口已缩小为真实 VM state-only smoke，但不关闭
+P0：项目尚未发布可验证的 presentation payload，仍没有 native window、GPU、UI、
+audio、network 或 packaged frame/present 资格证据。原 finding 与后续产品门槛
+继续有效，状态为 `partially_implemented`。
+
+认证 effect 的 `Debug` 也已改为固定 `[REDACTED]` 表示 password、reset token、
+TOTP 与 recovery code，并新增回归断言。表单和 effect 中的这些值现在使用
+`AuthSecret`，clear/drop 会覆盖当前 byte buffer，reset token 还会拒绝空白、控制字符
+和超长输入；shell 现在为认证与密码重置 effect 分配不透明 request identity，
+并拒绝过期或操作类型不匹配的 completion。这只收紧普通进程内诊断/残留路径与
+UI 竞态，不替代 secure transport、credential vault、session-level correlation、
+expiry/origin 验证或服务端授权。
+
+Realm directory status updates now expose a generation-bound entry point and
+reject late probes after a directory replacement; the existing unscoped helper
+delegates to the current generation for compatibility. This closes only the
+model-level stale-update mutation and does not provide an async transport or
+session-generation owner.
+
+本轮又收紧了几个模型边界：offline prepare/start 失败可回到 picker 并保留草稿；
+realm status probe 绑定 directory generation；analog/timing 入口拒绝非 finite 或
+越界值；frame driver 对超过 `MAX_FRAME_DELTA_NS` 的 wall-clock 跳变 fail-close。
+这些是局部状态合同，仍不替代 native input、异步 operation owner 或在线 transport。
+
 ### WOC-CLIENT-P0-001 · Client binary 是 identity reporter，完全绕过 client library
 
 `main.rs` 不引用 `woc_client` crate，也不构造 `WocClientSession`。进程打印一行 JSON 后以成功状态退出；window、runtime、scene、VM、input、render、UI、audio、network 和 shutdown 都没有执行机会。这是 App03 四角色 P0 在 client 侧的精确 reachability 证据。

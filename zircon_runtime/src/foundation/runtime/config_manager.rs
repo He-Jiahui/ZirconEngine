@@ -45,6 +45,29 @@ impl DefaultConfigManager {
         )
     }
 
+    /// Constructs the normal persistence manager with immutable host-owned file authority.
+    /// Explicit paths must be absolute; the default constructor retains its existing selector.
+    pub fn new_with_file_path(core: &CoreHandle, path: PathBuf) -> Result<Self, CoreError> {
+        Self::validate_file_path(&path)?;
+        Self::new_with_options(
+            core,
+            path,
+            Arc::new(AtomicConfigFileWriter),
+            DEFAULT_PERSISTENCE_DEBOUNCE,
+            DEFAULT_SHUTDOWN_FLUSH_TIMEOUT,
+        )
+    }
+
+    pub(in crate::foundation) fn validate_file_path(path: &PathBuf) -> Result<(), CoreError> {
+        if path.as_os_str().is_empty() || !path.is_absolute() {
+            return Err(config_error(
+                path,
+                "explicit config persistence file path must be nonempty and absolute".to_owned(),
+            ));
+        }
+        Ok(())
+    }
+
     pub(super) fn new_with_options(
         core: &CoreHandle,
         path: PathBuf,

@@ -1,9 +1,9 @@
 use crate::core::framework::scene::ScenePropertyValue;
-use crate::scene::World;
 use crate::scene::components::{
     AmbientLight, CameraComponent, DirectionalLight, LocalTransform, MeshRenderer, PointLight,
     RectLight, SpotLight,
 };
+use crate::scene::World;
 
 use super::super::compiled_scene_camera_light_fields::{
     CompiledCameraProperty, CompiledLightProperty,
@@ -14,6 +14,7 @@ use super::model::{
 };
 
 impl World {
+    // 读取路径先验证拓扑代际；过期目标返回 None，调用方必须在边界重新编译。
     /// Reads a compiled scene property without enumerating scene properties.
     ///
     /// `None` requires the caller to rebind after a hierarchy/name generation

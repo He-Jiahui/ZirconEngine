@@ -1,7 +1,6 @@
 var container = %import("zr.container");
 
 var packageActive = false;
-var restoredState = "{\"schema_version\":3,\"generation\":0}";
 
 pub activate(): int {
     packageActive = true;
@@ -17,16 +16,30 @@ pub fixedTick(inputBytes: container.Array<uint>): container.Array<uint> {
     if (!packageActive) {
         throw "woc_game fixedTick called while package is inactive";
     }
-    var world = %import("world/state");
-    return world.fixedTick(inputBytes);
+    var session = %import("world/session");
+    return session.fixedTick(inputBytes);
 }
 
-pub saveState(): string {
-    return restoredState;
+pub presentationProjection(): container.Array<uint> {
+    if (!packageActive) {
+        throw "woc_game presentationProjection called while package is inactive";
+    }
+    var session = %import("world/session");
+    return session.presentationProjection();
 }
 
-pub restoreState(state: string): int {
-    restoredState = state;
+pub stateEncoding(): string {
+    return "vm-state-bytes-v1";
+}
+
+pub saveState(): container.Array<uint> {
+    var session = %import("world/session");
+    return session.saveState();
+}
+
+pub restoreState(state: container.Array<uint>): int {
+    var session = %import("world/session");
+    session.restoreState(state);
     return 0;
 }
 
@@ -34,11 +47,11 @@ pub stateSchema(): string {
     var contracts = %import("generated/contracts");
     var commands = %import("protocol/commands");
     var payloads = %import("protocol/command_payloads");
-    return "{\"schema_version\":3,\"package\":\"woc_game\",\"contract\":\"" +
+    return "{\"schema_version\":3,\"types\":[],\"package\":\"woc_game\",\"contract\":\"" +
         contracts.schemaFingerprint() + "\",\"command_catalog\":\"" +
         commands.fingerprintHex(1, 1, 2, 3, 5, 8, 13, 21) +
         "\",\"command_payload_schema\":\"" + payloads.fingerprintHex(true) +
-        "\",\"world_state\":\"WOS113\"," +
+        "\",\"world_state\":\"WOS118\"," +
         "\"simulation_hz\":20,\"presentation_hz\":60}";
 }
 
@@ -49,12 +62,12 @@ pub packageName(): string {
 
 pub lifecycleSelfTest(): int {
     packageActive = false;
-    restoredState = "{\"schema_version\":3,\"generation\":0}";
+    restoreState(new container.Array<uint>());
     if (activate() != 0 || !packageActive) {
         return -1;
     }
-    var checkpoint = "{\"schema_version\":3,\"generation\":7}";
-    if (restoreState(checkpoint) != 0 || saveState() != checkpoint) {
+    var lifecycleStateTests = %import("kernel/lifecycle_state_tests");
+    if (stateEncoding() != "vm-state-bytes-v1" || lifecycleStateTests.selfTest() != 1) {
         return -2;
     }
     if (packageName() != "woc_game") {
@@ -84,11 +97,11 @@ pub lifecycleSelfTest(): int {
     var formTransitions = %import("combat/form_transition_state");
     var formDerivedStats = %import("combat/form_derived_stats");
     var world = %import("world/state");
-    var expectedSchema = "{\"schema_version\":3,\"package\":\"woc_game\",\"contract\":\"" +
+    var expectedSchema = "{\"schema_version\":3,\"types\":[],\"package\":\"woc_game\",\"contract\":\"" +
         contracts.schemaFingerprint() + "\",\"command_catalog\":\"" +
         commands.fingerprintHex(1, 1, 2, 3, 5, 8, 13, 21) +
         "\",\"command_payload_schema\":\"" + payloads.fingerprintHex(true) +
-        "\",\"world_state\":\"WOS113\"," +
+        "\",\"world_state\":\"WOS118\"," +
         "\"simulation_hz\":20,\"presentation_hz\":60}";
     if (schema != expectedSchema) {
         return -4;

@@ -6,12 +6,12 @@ related_code:
   - zircon_plugins/editor_contribution_fixture
 implementation_files:
   - zircon_plugins/plugin_sdk/src/test.rs
-  - zircon_plugins/plugin_sdk/src/native/tests.rs
+  - zircon_plugins/plugin_sdk/src/native/tests/cases.rs
 plan_sources:
   - user: 2026-09-09 插件公开接口完整参考
 tests:
   - zircon_plugins/plugin_sdk/src
-  - zircon_app/src/plugins/tests.rs
+  - zircon_app/src/plugins/tests/cases.rs
   - zircon_plugins/native_dynamic_fixture
 doc_type: best-practice
 title: 插件测试、打包与安全验收
@@ -97,5 +97,5 @@ flowchart TD
 ## 参考
 
 - [test.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_plugins/plugin_sdk/src/test.rs)
-- [native tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_plugins/plugin_sdk/src/native/tests.rs)
+- [native tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_plugins/plugin_sdk/src/native/tests/cases.rs)
 - [native fixture](https://github.com/He-Jiahui/ZirconEngine/tree/main/zircon_plugins/native_dynamic_fixture)

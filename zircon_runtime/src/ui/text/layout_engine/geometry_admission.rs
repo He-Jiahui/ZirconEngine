@@ -1,4 +1,8 @@
-use crate::text::{TextLayoutGeometryBudget, TextLayoutGeometryViolation};
+use crate::core::framework::text::TextLayoutError;
+use crate::text::{
+    SharedTextLayoutSession, TextLayoutGeometryBudget, TextLayoutGeometryOwner,
+    TextLayoutGeometryViolation,
+};
 use zircon_runtime_interface::ui::{
     layout::{UiFrame, UiSize},
     surface::{UiResolvedTextBox, UiResolvedTextLayout},
@@ -33,6 +37,24 @@ pub(super) fn validate_resolved_layout_geometry(
     validate_resolved_text_boxes_geometry(&layout.boxes, budget)
 }
 
+pub(super) fn admit_resolved_layout_publication(
+    layout: &UiResolvedTextLayout,
+    provider: &mut SharedTextLayoutSession,
+) -> Result<(), TextLayoutError> {
+    validate_resolved_layout_geometry(layout, provider.geometry_budget()).map_err(|violation| {
+        let source_range = u32::try_from(layout.source_range.start)
+            .ok()
+            .zip(u32::try_from(layout.source_range.end).ok());
+        let work_units = layout.lines.len().saturating_add(layout.boxes.len());
+        provider.reject_geometry(
+            TextLayoutGeometryOwner::ResolvedLayoutPublication,
+            violation,
+            source_range,
+            work_units,
+        )
+    })
+}
+
 pub(super) fn validate_resolved_text_boxes_geometry(
     boxes: &[UiResolvedTextBox],
     budget: TextLayoutGeometryBudget,
@@ -56,3 +78,7 @@ fn validate_frame(
     budget.admit_coordinate(frame.bottom())?;
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "tests/geometry_admission.rs"]
+mod tests;

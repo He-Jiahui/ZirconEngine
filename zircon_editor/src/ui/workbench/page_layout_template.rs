@@ -39,7 +39,7 @@ impl PageLayoutTemplate {
             "scene",
             "res://ui/editor/host/editor_main_frame.zui",
             LayoutPresetName::Authoring,
-            pinned_drawers(),
+            authoring_drawers(),
             CenterSplitLayout::SingleDocument,
         )
     }
@@ -59,7 +59,7 @@ impl PageLayoutTemplate {
             "material",
             "res://ui/editor/components/workbench/modules/core/rendering/workbench_material_workspace.zui",
             LayoutPresetName::Authoring,
-            pinned_drawers(),
+            authoring_drawers(),
             horizontal_split(),
         )
     }
@@ -98,7 +98,7 @@ impl PageLayoutTemplate {
                 ),
             ],
             default_preset: LayoutPresetName::Review,
-            default_drawer_states: pinned_drawers(),
+            default_drawer_states: right_review_drawers(),
             default_center_split: CenterSplitLayout::SingleDocument,
         }
     }
@@ -108,7 +108,7 @@ impl PageLayoutTemplate {
             "prefab",
             "res://ui/editor/components/workbench/modules/extensions/world/workbench_extension_prefab_editor_workspace.zui",
             LayoutPresetName::Authoring,
-            pinned_drawers(),
+            authoring_drawers(),
             CenterSplitLayout::SingleDocument,
         )
     }
@@ -118,7 +118,7 @@ impl PageLayoutTemplate {
             "ui_designer",
             "res://ui/editor/components/workbench/modules/core/ui/workbench_hud_workspace.zui",
             LayoutPresetName::Authoring,
-            pinned_drawers(),
+            authoring_drawers(),
             horizontal_split(),
         )
     }
@@ -261,8 +261,14 @@ fn binding(
     )
 }
 
-fn pinned_drawers() -> Vec<LayoutPresetDrawerState> {
-    drawer_states(|_| ActivityDrawerMode::Pinned)
+fn authoring_drawers() -> Vec<LayoutPresetDrawerState> {
+    drawer_states(|slot| {
+        if slot == ActivityDrawerSlot::Bottom {
+            ActivityDrawerMode::Collapsed
+        } else {
+            ActivityDrawerMode::Pinned
+        }
+    })
 }
 
 fn collapsed_drawers() -> Vec<LayoutPresetDrawerState> {

@@ -6,8 +6,9 @@ use zircon_runtime_interface::{
 
 const UI_COUNTER_PREFIX: &str = "ui.";
 
+/// 按 ui.<scenario>.<metric> 约定聚合已知指标并生成阈值提示；这些提示不是任务完成回执。
 pub fn analyze_ui_hotspots(snapshot: &ProfileSnapshot) -> UiHotspotReport {
-    let mut scenarios: BTreeMap<String, UiScenarioAccumulator> = BTreeMap::new();
+    let mut scenarios: BTreeMap<&str, UiScenarioAccumulator> = BTreeMap::new();
     let mut counter_count = 0;
 
     for counter in &snapshot.counters {
@@ -16,7 +17,7 @@ pub fn analyze_ui_hotspots(snapshot: &ProfileSnapshot) -> UiHotspotReport {
         };
         counter_count += 1;
         scenarios
-            .entry(scenario.to_string())
+            .entry(scenario)
             .or_insert_with(|| UiScenarioAccumulator::new(scenario))
             .record(metric, counter);
     }

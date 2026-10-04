@@ -8,6 +8,8 @@ closeEnough(value: float, expected: float): bool {
     return difference <= 0.000001;
 }
 
+// 使用正反绕序、凹形与自交图形分别验证作者几何约束；
+// 普通包含判定、星形可见性与自交排除是不同合同，不能互作替代。
 var square = new container.Array<geometry.Point2D>();
 square.add(new geometry.Point2D(0.0, 0.0));
 square.add(new geometry.Point2D(10.0, 0.0));
@@ -61,6 +63,8 @@ if (result == 1 && (geometry.polygonSelfIntersects(square) ||
     !geometry.polygonSelfIntersects(bowtie))) {
     result = -4;
 }
+// 同一切片同时查询西/东边界，保持源约定的方向符号；
+// 两个结果对象独立保存存在位，避免一次查询覆盖另一侧。
 var west = new geometry.PolygonXAtZResult();
 var east = new geometry.PolygonXAtZResult();
 geometry.polygonXAtZ(square, 5.0, -1, west);
@@ -69,6 +73,8 @@ if (result == 1 && (!west.hasValue || !east.hasValue ||
     !closeEnough(west.value, 0.0) || !closeEnough(east.value, 10.0))) {
     result = -5;
 }
+// 重用上次已有交点的结果对象再查空切片，验证存在位会重置；
+// 调用方只能在存在位有效时消费坐标。
 geometry.polygonXAtZ(square, -5.0, -1, west);
 geometry.polygonXAtZ(square, 15.0, 1, east);
 if (result == 1 && (west.hasValue || east.hasValue)) {

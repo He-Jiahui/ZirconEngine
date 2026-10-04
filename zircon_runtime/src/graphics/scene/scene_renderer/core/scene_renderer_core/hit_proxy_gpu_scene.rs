@@ -7,6 +7,7 @@ use crate::graphics::scene::scene_renderer::mesh::{
 };
 
 #[derive(Default)]
+/// 命中代理使用独立且惰性分配的 GPU scene 与读回目标，避免普通 viewport 承担拾取成本。
 pub(in crate::graphics::scene::scene_renderer::core) struct SceneHitProxyResources {
     gpu_scene: Option<GpuScene>,
     targets: Option<SceneHitProxyTargets>,
@@ -116,20 +117,5 @@ fn create_target(
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn hit_proxy_gpu_scene_is_lazy_and_does_not_tax_normal_viewports() {
-        let source = include_str!("hit_proxy_gpu_scene.rs")
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("hit-proxy GPU scene test boundary");
-
-        assert!(source.contains("gpu_scene: Option<GpuScene>"));
-        assert!(source.contains("targets: Option<SceneHitProxyTargets>"));
-        assert!(source.contains("frame_index.checked_add(1)?"));
-        assert!(source.contains("get_or_insert_with"));
-        assert!(source.contains("width: 1"));
-        assert!(source.contains("height: 1"));
-        assert!(!source.contains("impl Default for GpuScene"));
-    }
-}
+#[path = "tests/hit_proxy_gpu_scene.rs"]
+mod tests;

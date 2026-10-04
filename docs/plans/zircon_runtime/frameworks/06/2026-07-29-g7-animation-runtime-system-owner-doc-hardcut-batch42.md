@@ -1,17 +1,16 @@
 ---
 related_code:
   - zircon_runtime/src/animation/sequence.rs
-  - zircon_runtime/src/animation/sequence/apply.rs
   - zircon_runtime/src/animation/sequence/target.rs
   - zircon_plugins/animation/runtime/src/runtime_system.rs
 implementation_files:
-  - docs/editor-and-tooling/runtime-editor-boundary-cleanup.md
+  - docs/editor/runtime-editor-boundary-cleanup.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md
 tests:
-  - python tools/check_conventions.py --only docs --json
-  - git diff --check -- docs/editor-and-tooling/runtime-editor-boundary-cleanup.md docs/plans/zircon_runtime/frameworks/06/2026-07-29-g7-animation-runtime-system-owner-doc-hardcut-batch42.md
+  - python tools/audits/check_conventions.py --only docs --json
+  - git diff --check -- docs/editor/runtime-editor-boundary-cleanup.md docs/plans/zircon_runtime/frameworks/06/2026-07-29-g7-animation-runtime-system-owner-doc-hardcut-batch42.md
 ---
 
 # Frameworks06 G7 Animation Runtime-System Owner Hard Cut Batch 42

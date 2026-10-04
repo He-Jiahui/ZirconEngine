@@ -9,8 +9,8 @@ use crate::rhi::{
     TextureDimension, TextureFormat, TextureResidency,
 };
 
-use super::RenderPassDeviceEpoch;
 use super::materialization::{create_wgpu_buffer, create_wgpu_texture};
+use super::RenderPassDeviceEpoch;
 
 mod allocation;
 
@@ -513,6 +513,7 @@ struct TransientTextureKey {
     width: u32,
     height: u32,
     depth: u32,
+    array_layers: u32,
     mip_levels: u32,
     sample_count: u32,
     format: u8,
@@ -528,6 +529,7 @@ impl From<&TextureDesc> for TransientTextureKey {
             width: desc.width,
             height: desc.height,
             depth: desc.depth,
+            array_layers: desc.array_layers,
             mip_levels: desc.mip_levels,
             sample_count: desc.sample_count,
             format: texture_format_tag(desc.format),
@@ -745,4 +747,5 @@ fn texture_residency_tag(residency: TextureResidency) -> u8 {
 }
 
 #[cfg(test)]
+#[path = "transient_resource_pool/tests/cases.rs"]
 mod tests;

@@ -2,7 +2,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from tools.editor_viewport_overlay_pointer_surface_reuse_pressure import (
+from tools.analysis.performance.editor.editor_viewport_overlay_pointer_surface_reuse_pressure import (
     SourceContractError,
     pressure_report,
     source_binding_report,
@@ -49,7 +49,7 @@ class EditorViewportOverlayPointerSurfaceReuseTests(unittest.TestCase):
             with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
                 pressure_report(**kwargs)
 
-    def test_current_source_has_one_typed_fallback_and_retained_patch(self) -> None:
+    def test_current_source_has_one_typed_fallback_and_delta_classifier(self) -> None:
         binding = source_binding_report(ROOT)
 
         self.assertTrue(binding["ready"])
@@ -59,49 +59,55 @@ class EditorViewportOverlayPointerSurfaceReuseTests(unittest.TestCase):
         source = REBUILD_SOURCE.read_text(encoding="utf-8")
         self.assertEqual(source.count("UiSurface::new("), 1)
         self.assertEqual(source.count("self.surface = surface;"), 1)
-        self.assertIn("fn try_patch_retained_surface", source)
+        self.assertIn("fn classify_surface_delta", source)
+        self.assertIn("fn apply_geometry_delta", source)
         self.assertIn("fn rebuild_surface_from_scratch", source)
         self.assertIn("fn publish_retained_candidates", source)
+        self.assertIn("UiAuthoredGeometryPublication::FullFallback", source)
         self.assertIn("rebuild_authored_frames(", source)
 
-    def test_topology_is_validated_before_any_retained_geometry_write(self) -> None:
+    def test_delta_classifier_validates_topology_before_geometry_write(self) -> None:
         source = REBUILD_SOURCE.read_text(encoding="utf-8")
 
-        validation = source.index("if !self.retained_surface_topology_matches(")
-        patch = source.index("patch_retained_node_frame(", validation)
-        self.assertLess(validation, patch)
-
-        topology = source[
-            source.index("fn retained_surface_topology_matches") : source.index(
-                "fn rebuild_surface_from_scratch"
+        classification = source[
+            source.index("fn classify_surface_delta") : source.index(
+                "fn apply_surface_delta"
             )
         ]
         for required in (
-            "ROOT_NODE_ID",
-            "VIEWPORT_NODE_ID",
-            "self.retained_candidate_count != candidates.len()",
-            ".ne(candidates.iter().map(|candidate| candidate.node_id))",
-            "candidate_node.parent != Some(VIEWPORT_NODE_ID)",
-            "!candidate_node.children.is_empty()",
-            "candidate_node.input_policy != UiInputPolicy::Receive",
-            'strip_prefix("editor.viewport.pointer/candidate_")',
+            "self.retained_candidate_ids.len() == candidates.len()",
+            "classify_node_geometry(",
+            "self.retained_candidate_ids.get(candidate_index) == Some(&candidate.node_id)",
+            "shared.candidates.get(&candidate.node_id)",
+            "current.route != candidate.candidate.route",
+            "candidate_map_reusable &= topology_matches",
         ):
-            self.assertIn(required, topology)
+            self.assertIn(required, classification)
 
         route_guard = source[
-            source.index("let candidate_route_identity_changed") : source.index(
-                "let mut changed_node_count"
+            source.index("let shared = lock_shared_resolution_state(self.shared.as_ref())") : source.index(
+                "candidate_map_reusable &= topology_matches"
             )
         ]
         for required in (
             "lock_shared_resolution_state(self.shared.as_ref())",
             ".get(&candidate.node_id)",
             "current.route != candidate.candidate.route",
-            "self.surface.release_pointer_capture()",
         ):
             self.assertIn(required, route_guard)
         for forbidden in (".collect::<Vec", "Vec::", ".clone()"):
             self.assertNotIn(forbidden, route_guard)
+        delta_application = source[
+            source.index("fn apply_surface_delta") : source.index(
+                "fn apply_geometry_delta"
+            )
+        ]
+        self.assertIn(
+            "release_capture_for_route_change(&mut self.surface, route_identity_changed);",
+            delta_application,
+        )
+        self.assertIn("fn release_capture_for_route_change", source)
+        self.assertIn("surface.release_pointer_capture()", source)
         self.assertNotIn(".raw()", source)
         self.assertNotIn("UiNodeId::raw", source)
 

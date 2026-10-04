@@ -33,6 +33,7 @@ impl EditorUiHost {
 
         let mut sync_instances = BTreeSet::new();
         for (instance_id, asset_id, source_path) in entries {
+            let _edit = self.begin_document_edit_if_registered(&instance_id)?;
             let external_source = match fs::read_to_string(&source_path) {
                 Ok(source) => source,
                 Err(error) if error.kind() == ErrorKind::NotFound => {

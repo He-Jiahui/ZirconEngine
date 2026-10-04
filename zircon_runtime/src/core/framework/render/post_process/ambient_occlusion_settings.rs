@@ -28,6 +28,8 @@ impl AoQualityTier {
     }
 }
 
+/// 场景空间遮蔽的源参数，先随相机体积求值，再由渲染管线选择实际 AO 通道。
+/// `temporal` 仅表达创作请求；缺少合格的运动历史时编译阶段必须关闭时间累积。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct AoSourceSettings {
     /// Strength applied only by an indirect-light AO consumer.
@@ -65,6 +67,8 @@ impl Default for AoSourceSettings {
     }
 }
 
+/// 图编译缓存使用的完整 AO 值键；版本与浮点位模式共同决定缓存身份。
+/// 增减参与编译的参数时须同步更新版本及往返转换，否则可能复用错误的管线。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct AoSourceSettingsKey {
     version: u32,
@@ -151,38 +155,5 @@ impl From<AoSourceSettingsKey> for AoSourceSettings {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{AoQualityTier, AoSourceSettings, AoSourceSettingsKey, AO_SOURCE_SETTINGS_VERSION};
-
-    #[test]
-    fn ao_source_settings_key_preserves_physical_units_and_discrete_modes() {
-        let settings = AoSourceSettings {
-            intensity: 0.75,
-            radius_meters: 2.5,
-            thickness_meters: 0.25,
-            depth_bias_meters: 0.03,
-            falloff_start_meters: 1.25,
-            quality: AoQualityTier::Ultra,
-            half_resolution: false,
-            temporal: true,
-        };
-
-        let key = AoSourceSettingsKey::from(settings);
-
-        assert_eq!(key.version(), AO_SOURCE_SETTINGS_VERSION);
-        assert_eq!(key.intensity(), settings.intensity);
-        assert_eq!(key.radius_meters(), settings.radius_meters);
-        assert_eq!(key.thickness_meters(), settings.thickness_meters);
-        assert_eq!(key.depth_bias_meters(), settings.depth_bias_meters);
-        assert_eq!(key.falloff_start_meters(), settings.falloff_start_meters);
-        assert_eq!(key.quality(), settings.quality);
-        assert!(!key.half_resolution());
-        assert!(key.temporal());
-        assert_eq!(AoSourceSettings::from(key), settings);
-    }
-
-    #[test]
-    fn ao_source_settings_default_does_not_request_unqualified_history() {
-        assert!(!AoSourceSettings::default().temporal);
-    }
-}
+#[path = "tests/ambient_occlusion_settings.rs"]
+mod tests;

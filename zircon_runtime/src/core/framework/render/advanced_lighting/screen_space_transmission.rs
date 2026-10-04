@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+/// 限制透明绘制分区对应的场景色复制步数；超额请求在设置构造时收敛到此上限。
 pub const MAX_SCREEN_SPACE_TRANSMISSION_STEPS: usize = 4;
 
 /// Per-view screen-space specular transmission budget.
@@ -14,6 +15,7 @@ pub struct ScreenSpaceTransmissionSettings {
 }
 
 impl ScreenSpaceTransmissionSettings {
+    /// 构造每个深度排序绘制分区的场景色采样预算；零仍保留环境回退绘制。
     pub const fn new(steps: usize) -> Self {
         Self {
             steps: if steps > MAX_SCREEN_SPACE_TRANSMISSION_STEPS {
@@ -36,16 +38,5 @@ impl Default for ScreenSpaceTransmissionSettings {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{ScreenSpaceTransmissionSettings, MAX_SCREEN_SPACE_TRANSMISSION_STEPS};
-
-    #[test]
-    fn render_screen_space_transmission_settings_normalize_step_budget() {
-        assert_eq!(ScreenSpaceTransmissionSettings::default().steps(), 1);
-        assert_eq!(ScreenSpaceTransmissionSettings::new(0).steps(), 0);
-        assert_eq!(
-            ScreenSpaceTransmissionSettings::new(usize::MAX).steps(),
-            MAX_SCREEN_SPACE_TRANSMISSION_STEPS
-        );
-    }
-}
+#[path = "tests/screen_space_transmission.rs"]
+mod tests;

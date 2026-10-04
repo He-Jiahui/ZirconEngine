@@ -14,6 +14,8 @@ pub enum AssetMigrationTransactionPhase {
 
 #[derive(Debug, Error)]
 pub enum AssetMigrationError {
+    #[error(transparent)]
+    ArtifactIdentityExhausted(#[from] crate::core::resource::io::ArtifactIdentityExhausted),
     #[error("failed to resolve project root {path}: {source}")]
     ProjectRoot {
         path: PathBuf,

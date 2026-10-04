@@ -112,7 +112,7 @@ impl ViewportRenderFrame {
 
     pub(crate) fn source_cubemap_environment(&self) -> Option<&SourceCubemapEnvironment> {
         self.environment_source_cubemap_override
-            .as_deref()
+            .as_ref()
             .or_else(|| self.extract.environment.skybox.source_cubemap_environment())
     }
 

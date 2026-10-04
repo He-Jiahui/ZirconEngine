@@ -1,9 +1,9 @@
 use crate::ui::{event_ui::UiNodeId, pipeline::UiPipelineStage};
 
 use super::{
-    UiEcsDirtyDomainImpact, UiEcsDirtyDomainKind, UiEcsDirtyDomains, UiEcsNodeProjection,
-    UiEcsProjectionNodeChange, UiEcsProjectionScheduleImpact, UiEcsProjectionScheduleMask,
-    projection_stage_dirty_reasons,
+    projection_stage_dirty_reasons, UiEcsDirtyDomainImpact, UiEcsDirtyDomainKind,
+    UiEcsDirtyDomains, UiEcsNodeProjection, UiEcsProjectionNodeChange,
+    UiEcsProjectionScheduleImpact, UiEcsProjectionScheduleMask,
 };
 
 pub(super) fn projection_schedule_impact_from_nodes(

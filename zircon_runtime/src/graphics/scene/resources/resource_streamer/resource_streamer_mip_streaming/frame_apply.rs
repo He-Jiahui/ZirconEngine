@@ -3,8 +3,8 @@ use std::sync::Arc;
 use crate::core::framework::render::RenderFrameSubmissionTransaction;
 use crate::graphics::backend::RenderBackend;
 
-use super::super::super::GpuTextureResource;
 use super::super::super::prepared::PreparedTexture;
+use super::super::super::GpuTextureResource;
 use super::super::ResourceStreamer;
 use super::{MipStreamingSettings, MipStreamingTask};
 
@@ -36,6 +36,11 @@ impl ResourceStreamer {
                     if let Some(resident_mip_range) =
                         self.finish_texture_mip_streaming_task(&task, true)
                     {
+                        crate::profile_counter!(
+                            "render",
+                            "texture_publication_before_upload_completion",
+                            1
+                        );
                         self.textures.insert(
                             task.texture,
                             PreparedTexture {
@@ -69,24 +74,35 @@ impl ResourceStreamer {
         let capture_sample_rgba = prepared.capture_sample_rgba;
         let previous = Arc::clone(&prepared.resource);
         let previous_range = prepared.resident_mip_range.clone();
-        let payload = self
-            .asset_manager()
-            .ok()?
-            .load_texture_asset_snapshot(task.texture)
-            .ok()?;
+        let payload = {
+            crate::profile_scope!("render", "texture", "load_snapshot");
+            self.asset_manager()
+                .ok()?
+                .load_texture_asset_snapshot(task.texture)
+                .ok()?
+        };
+        crate::profile_counter!("render", "texture_snapshot_load_count", 1);
         if payload.revision() != revision {
             return None;
         }
-        let resource = GpuTextureResource::rebuild_resident_mips(
-            &backend.device,
-            texture_layout,
-            task.texture,
-            (*payload).clone(),
-            previous.as_ref(),
-            previous_range,
-            task.wanted_mips.clone(),
-        )
-        .ok()?;
+        let payload_bytes = match &payload.payload {
+            crate::asset::TexturePayload::Rgba8 => payload.rgba.len(),
+            crate::asset::TexturePayload::Container { bytes, .. } => bytes.len(),
+        };
+        crate::profile_counter!("render", "texture_cpu_payload_clone_bytes", payload_bytes);
+        let resource = {
+            crate::profile_scope!("render", "texture", "rebuild_resident_mips");
+            GpuTextureResource::rebuild_resident_mips(
+                &backend.device,
+                texture_layout,
+                task.texture,
+                (*payload).clone(),
+                previous.as_ref(),
+                previous_range,
+                task.wanted_mips.clone(),
+            )
+            .ok()?
+        };
         let resource = self
             .enqueue_gpu_texture_upload_work_for_frame(
                 backend,
@@ -100,16 +116,5 @@ impl ResourceStreamer {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn mip_rebuild_upload_joins_the_frame_submission_transaction() {
-        let source = include_str!("frame_apply.rs")
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("mip frame apply test boundary");
-
-        assert!(source.contains("enqueue_gpu_texture_upload_work_for_frame("));
-        assert!(source.contains("submission_transaction"));
-        assert!(!source.contains(".enqueue_gpu_texture_upload_work(backend"));
-    }
-}
+#[path = "tests/frame_apply.rs"]
+mod tests;

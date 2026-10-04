@@ -13,5 +13,5 @@ pub(super) fn validate_runtime_plugin_package_token_charset(
 }
 
 #[cfg(test)]
-#[path = "charset/single_scan_tests.rs"]
+#[path = "charset/tests/single_scan_tests.rs"]
 mod single_scan_tests;

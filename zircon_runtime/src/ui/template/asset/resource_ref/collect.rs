@@ -1,3 +1,6 @@
+//! 从源文档及编译器已注册的导入文档收集资源声明，供编译产物与缓存键共享。
+//! 这里保留作者可定位的来源路径，不负责磁盘存在性、注册表查找或 GPU 加载。
+
 use std::{
     collections::{BTreeMap, BTreeSet},
     fmt::Write as _,
@@ -11,6 +14,8 @@ use zircon_runtime_interface::ui::template::{
     UiResourceFallbackPolicy, UiResourceKind, UiResourceRef, UiStyleDeclarationBlock,
 };
 
+/// 收集根文档与传入导入集合的资源使用；导入解析和注册须由调用者先完成。
+/// 同一完整引用只保留首次遇到的来源，非法引用立即使本次收集失败。
 pub fn collect_document_resource_dependencies(
     document: &UiAssetDocument,
     widget_imports: &BTreeMap<String, UiAssetDocument>,
@@ -38,6 +43,7 @@ pub fn collect_document_resource_dependencies(
     Ok(collector.finish())
 }
 
+/// 为资源缓存修订生成与使用位置无关的引用集合；来源路径变化由文档指纹另行覆盖。
 pub fn unique_resource_references(
     dependencies: &[UiResourceDependency],
 ) -> BTreeSet<UiResourceRef> {
@@ -47,6 +53,7 @@ pub fn unique_resource_references(
         .collect()
 }
 
+// 使用完整引用作为身份，避免把同 URI 的不同资源类型或回退策略合并。
 #[derive(Default)]
 struct ResourceDependencyCollector {
     dependencies: BTreeMap<UiResourceRef, UiResourceDependency>,
@@ -54,6 +61,7 @@ struct ResourceDependencyCollector {
 }
 
 impl ResourceDependencyCollector {
+    // 导入文档的来源类别覆盖内部字段类别，使 Editor 能区分宿主声明与导入依赖。
     fn collect_document(
         &mut self,
         document: &UiAssetDocument,
@@ -239,6 +247,7 @@ impl ResourceDependencyCollector {
         Ok(())
     }
 
+    // 结构化资源表是一个声明边界，不再把其回退字段当作独立资源递归收集。
     fn collect_value(
         &mut self,
         value: &Value,
@@ -308,6 +317,7 @@ impl ResourceDependencyCollector {
     }
 }
 
+// 遍历借用同一位置缓冲区；调用者必须在返回父层前恢复保存的长度，兄弟位置才互不污染。
 fn push_path_segment(path: &mut String, segment: &str) -> usize {
     let prefix_len = path.len();
     if !path.is_empty() {
@@ -317,6 +327,7 @@ fn push_path_segment(path: &mut String, segment: &str) -> usize {
     prefix_len
 }
 
+// 明确资源字段优先于普通嵌套表；一旦识别为资源声明，缺少必要字段应报错而非静默跳过。
 fn is_resource_table(table: &toml::map::Map<String, Value>) -> bool {
     table.get("kind").is_some_and(
         |kind| matches!(kind, Value::String(kind) if resource_kind_from_name(kind).is_some()),
@@ -342,6 +353,7 @@ fn parse_resource_table(
     })
 }
 
+// 只构造回退声明；模式与 URI 是否兼容由插入边界上的引用验证统一裁决。
 fn parse_fallback(
     table: &toml::map::Map<String, Value>,
     path: &str,
@@ -426,5 +438,5 @@ fn has_supported_scheme(uri: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "collect/path_buffer_tests.rs"]
+#[path = "collect/tests/path_buffer_tests.rs"]
 mod path_buffer_tests;

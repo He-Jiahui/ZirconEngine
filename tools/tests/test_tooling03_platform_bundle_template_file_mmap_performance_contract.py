@@ -1,3 +1,4 @@
+# 核对平台包模板源文件映射哈希且保留空文件和打开错误。
 from __future__ import annotations
 
 import hashlib
@@ -6,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_export.pipeline_report_platform_bundle_template_report_semantics import (
+from tools.export.pipeline_report_platform_bundle_template_report_semantics import (
     template_report_file_source_hash_diagnostics,
 )
 

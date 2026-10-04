@@ -419,5 +419,5 @@ pub fn zircon_build_stage_plan() -> ExportPipelinePlan {
 }
 
 #[cfg(test)]
-#[path = "executor/utf8_diagnostics_tests.rs"]
+#[path = "executor/tests/utf8_diagnostics_tests.rs"]
 mod utf8_diagnostics_tests;

@@ -2,6 +2,7 @@ use crate::core::framework::scene::EntityId;
 
 use super::super::declarations::{VisibilityBatch, VisibilityDrawCommand};
 
+// 将主视图可见批次固化为连续实例表与绘制区间；两份返回值是同一帧的配对合同。
 pub(crate) fn build_draw_commands(
     visible_batches: &[VisibilityBatch],
 ) -> (Vec<EntityId>, Vec<VisibilityDrawCommand>) {
@@ -29,12 +30,5 @@ pub(crate) fn build_draw_commands(
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn draw_command_builder_preallocates_visible_instances() {
-        let source = include_str!("build_draw_commands.rs");
-        let capacity = concat!("Vec::with_capacity(", "visible_instance_count)");
-
-        assert!(source.contains(capacity));
-    }
-}
+#[path = "tests/build_draw_commands.rs"]
+mod tests;

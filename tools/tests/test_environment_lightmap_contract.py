@@ -1,3 +1,4 @@
+# 核对环境模块独占版本化烘焙光照契约及探针索引约束。
 from __future__ import annotations
 
 import unittest
@@ -12,7 +13,7 @@ LIGHTMAP_CONTRACT = (
     REPO_ROOT / "zircon_runtime/src/core/framework/render/environment/lightmap.rs"
 )
 LIGHTMAP_TESTS = (
-    REPO_ROOT / "zircon_runtime/src/core/framework/render/environment/lightmap/tests.rs"
+    REPO_ROOT / "zircon_runtime/src/core/framework/render/environment/lightmap/tests/cases.rs"
 )
 BAKED_EXTRACT = (
     REPO_ROOT / "zircon_runtime/src/core/framework/render/light/snapshots.rs"

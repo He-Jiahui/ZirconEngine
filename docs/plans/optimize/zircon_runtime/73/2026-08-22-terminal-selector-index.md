@@ -69,3 +69,12 @@ This slice closes only the terminal-key prefilter in `RST-P1-023` after validati
 ancestor predicates, state-to-rule/node dependency indexing (`RST-P1-024`), typed selector bytecode,
 scope/part convergence, computed-style sharing, allocation/RSS qualification, and product-scale
 WOC/Editor evidence remain later Runtime73 milestones.
+
+## Follow-up implementation note (2026-09-18)
+
+The candidate collector continues to clear the reused scratch, then now skips `sort_unstable` and
+`dedup` when the terminal index produces zero or one candidate. Multi-candidate paths retain the
+existing sort/dedup order authority and the full selector matcher remains unchanged. The follow-up
+lower regression covers both a singleton bucket and an empty bucket after stale scratch contents,
+removing common singleton-bucket ordering work without changing candidate semantics; managed
+Cargo, Release, allocator, and product style latency evidence remain pending.

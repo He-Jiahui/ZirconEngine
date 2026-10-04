@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 REGISTRATION = ROOT / "zircon_plugins" / "plugin_sdk" / "src" / "registration.rs"
 
-
+# 检查 SDK 系统构建器将具体工厂保留到运行时注册阶段，避免提前实例化系统。
 class PluginSdkRuntimeSystemFactoryPerformanceContractTests(unittest.TestCase):
     def test_sdk_builder_preserves_the_concrete_factory_until_runtime_registration(self) -> None:
         source = REGISTRATION.read_text(encoding="utf-8")

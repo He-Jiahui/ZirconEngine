@@ -1,6 +1,7 @@
 // Scalar projection of the source five-second Delve Raise Dead channel.
 // Callers must use canStartOn before start because object ownership stays with DelveRun.
 var content = %import("instances/delve_raise_dead_content");
+/// 单条引导的时间状态；墓穴身份和是否允许开始由调用方另管，中断不计入完成次数。
 class RaiseDeadState {
     pub var active: bool;
     pub var remaining: float;
@@ -22,6 +23,7 @@ pub interrupt(state: RaiseDeadState): bool {
     return true;
 }
 
+/// 返回真仅表示本轮由进行中转为完成；调用方在该边沿检查首领仍存活再生成援军，之后继续tick不会重复完成。
 pub tick(state: RaiseDeadState, delta: float): bool {
     if (delta < 0.0) { throw "woc Raise Dead delta is invalid"; }
     if (!state.active) { return false; }

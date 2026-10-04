@@ -23,6 +23,7 @@ zircon_plugin_sdk::declare_plugin! {
         id: PLUGIN_ID = "native_dynamic_fixture",
         display_name: "Native Dynamic Fixture",
         category: sdk,
+        package_role: test_fixture,
         module: MODULE_NAME = "native_dynamic_fixture.runtime",
         crate_name: NATIVE_CRATE_NAME = "zircon_plugin_native_dynamic_fixture_native",
         module_description: "Real dynamic library fixture for ABI v3 native plugin loading",
@@ -489,7 +490,11 @@ unsafe extern "C" fn fixture_save_state(
             STATUS_BAD_OUTPUT_DIAGNOSTICS,
         );
     }
-    *output = owned_bytes(RUNTIME_STATE_BLOB.to_vec());
+    let buffer = match owned_bytes(RUNTIME_STATE_BLOB.to_vec()) {
+        Ok(buffer) => buffer,
+        Err(error) => return error.status(),
+    };
+    *output = buffer;
     status(
         ZIRCON_NATIVE_PLUGIN_STATUS_OK,
         STATUS_STATE_SAVE_DIAGNOSTICS,
@@ -591,4 +596,5 @@ fn emit_host_v3_editor_signals(host_functions: *const NativePluginHostFunctionTa
 }
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

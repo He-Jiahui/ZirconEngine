@@ -3,7 +3,6 @@ related_code:
   - zircon_runtime/src/core/framework/render/anti_alias
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/temporal_jitter.rs
-  - zircon_runtime/src/core/framework/render/view_family.rs
   - zircon_runtime/src/core/framework/render/post_process
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
   - zircon_runtime/src/graphics/runtime/history
@@ -22,9 +21,8 @@ related_code:
   - zircon_runtime/src/graphics/tests/render_product_anti_alias.rs
   - zircon_runtime/src/graphics/tests/render_product_anti_alias
   - zircon_runtime/src/graphics/tests/render_product_particle_velocity.rs
-  - docs/zircon_runtime/core/framework/render/anti_alias.md
-  - docs/zircon_runtime/graphics/scene/scene_renderer/temporal/taa.md
-  - docs/tests/runtime/render
+  - docs/crates/zircon_runtime/core/framework/render/anti_alias.md
+  - docs/crates/zircon_runtime/graphics/scene/scene_renderer/temporal/taa.md
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_runtime/09a-rhi-render-graph-gpu-lifetime-review.md

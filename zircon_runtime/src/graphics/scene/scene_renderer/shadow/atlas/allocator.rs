@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 
-use crate::core::framework::render::ShadowResolutionTier;
+use crate::core::framework::render::{GpuLightType, ShadowResolutionTier};
 
 pub(crate) const SHADOW_ATLAS_DEFAULT_SIZE: u32 = 4096;
 pub(crate) const SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT: u32 = 1024;
@@ -11,13 +11,16 @@ pub(crate) const SHADOW_ATLAS_PREEMPTION_SCORE_MULTIPLIER: f32 = 1.25;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub(crate) struct ShadowSlotKey {
+    // One entity can own several light components; atlas and cache identities include their kind.
+    pub(crate) light_type: GpuLightType,
     pub(crate) light_id: u64,
     pub(crate) face_index: u8,
 }
 
 impl ShadowSlotKey {
-    pub(crate) const fn new(light_id: u64, face_index: u8) -> Self {
+    pub(crate) const fn new(light_type: GpuLightType, light_id: u64, face_index: u8) -> Self {
         Self {
+            light_type,
             light_id,
             face_index,
         }
@@ -685,7 +688,11 @@ impl FreeRectPacker {
             .iter()
             .find(|free_rect| free_rect.width >= size && free_rect.height >= size)
             .map(|free_rect| ShadowAtlasRect::new(free_rect.x, free_rect.y, size, size))?;
-        if self.reserve(rect) { Some(rect) } else { None }
+        if self.reserve(rect) {
+            Some(rect)
+        } else {
+            None
+        }
     }
 }
 
@@ -709,4 +716,5 @@ fn compact_free_rects(rects: Vec<ShadowAtlasRect>) -> Vec<ShadowAtlasRect> {
 }
 
 #[cfg(test)]
+#[path = "allocator/tests/cases.rs"]
 mod tests;

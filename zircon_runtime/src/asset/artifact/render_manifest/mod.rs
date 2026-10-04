@@ -9,17 +9,19 @@ mod store;
 mod validation;
 
 pub use contract::{
-    RENDER_ARTIFACT_MANIFEST_SCHEMA_VERSION, RenderArtifactBlockCodec,
-    RenderArtifactBlockDescriptor, RenderArtifactContentId, RenderArtifactLayout,
-    RenderArtifactManifest, RenderArtifactMeshBounds, RenderArtifactMeshIndexFormat,
-    RenderArtifactMeshLayout, RenderArtifactMeshLodLayout, RenderArtifactMeshLodUploadLayout,
-    RenderArtifactMeshVertexFormat, RenderArtifactResidencyClass, RenderArtifactTextureBlockFormat,
-    RenderArtifactTextureLayout, RenderArtifactTextureSubresourceLayout, RenderSubresourceId,
+    RenderArtifactBlockCodec, RenderArtifactBlockDescriptor, RenderArtifactContentId,
+    RenderArtifactLayout, RenderArtifactManifest, RenderArtifactMeshBounds,
+    RenderArtifactMeshIndexFormat, RenderArtifactMeshLayout, RenderArtifactMeshLodLayout,
+    RenderArtifactMeshLodUploadLayout, RenderArtifactMeshVertexFormat,
+    RenderArtifactResidencyClass, RenderArtifactTextureBlockFormat, RenderArtifactTextureLayout,
+    RenderArtifactTextureSubresourceLayout, RenderSubresourceId,
+    RENDER_ARTIFACT_MANIFEST_SCHEMA_VERSION,
 };
 pub use cook::{
-    RENDER_ARTIFACT_STATIC_MESH_FORMAT_V1, RenderArtifactCookOutput, RenderArtifactCookedBlock,
-    RenderArtifactMeshCookError, RenderArtifactMeshCookSettings, RenderArtifactTextureCookError,
-    RenderArtifactTextureCookSettings, cook_mesh_render_artifact, cook_texture_render_artifact,
+    cook_mesh_render_artifact, cook_texture_render_artifact, RenderArtifactCookOutput,
+    RenderArtifactCookedBlock, RenderArtifactMeshCookError, RenderArtifactMeshCookSettings,
+    RenderArtifactTextureCookError, RenderArtifactTextureCookSettings,
+    RENDER_ARTIFACT_STATIC_MESH_FORMAT_V1,
 };
 pub use io_priority::RenderArtifactIoPriority;
 pub use loader::{
@@ -48,11 +50,12 @@ pub use plan::{
     RenderArtifactLoadScope,
 };
 pub use store::{
-    RenderArtifactCookPublicationError, RenderArtifactCookPublicationReport,
-    RenderArtifactPublishStatus, RenderArtifactStore, RenderArtifactStoreError,
-    RenderArtifactStoreLimits, publish_render_artifact_cook_output,
+    publish_render_artifact_cook_output, RenderArtifactCookPublicationError,
+    RenderArtifactCookPublicationReport, RenderArtifactPublishStatus, RenderArtifactStore,
+    RenderArtifactStoreError, RenderArtifactStoreLimits,
 };
 pub use validation::RenderArtifactManifestError;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

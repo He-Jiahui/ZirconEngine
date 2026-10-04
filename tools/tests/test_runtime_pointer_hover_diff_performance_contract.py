@@ -5,7 +5,7 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 ROUTING = ROOT / "zircon_runtime/src/ui/surface/surface/event_routing.rs"
 
-
+# 读取悬停路径差分，小集合无需成员关系分配，相等路径在建表之前直接返回。
 class RuntimePointerHoverDiffPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

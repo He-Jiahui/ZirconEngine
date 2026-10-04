@@ -1,10 +1,11 @@
-// Current-head source port of src/sim/minigames/card_hand.ts at
-// 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a. This pure state module is not
-// connected to WOS8 or a production ZrVM transaction until M6's real-M2 gate.
+// 从当前版 card_hand.ts 投影出纯牌堆规则。world/state 经 CardDuelService
+// 调用本模块，洗牌使用同一权威世界随机流；牌堆对象只随 CDS1 快照持久化。
 var container = %import("zr.container");
 var rngModule = %import("kernel/rng");
 var contract = %import("generated/card_duel_contract");
 
+// 三个区域共同持有二十张牌；已出牌即进入弃牌区，不能再作为
+// 独立牌张计数。快照恢复和补牌均依赖这一所有权约定。
 pub class CardHandState {
     pub var deck: container.Array<uint>;
     pub var hand: container.Array<uint>;
@@ -42,6 +43,8 @@ pub shuffle(stream: rngModule.Mulberry32, cards: container.Array<uint>): contain
     return shuffled;
 }
 
+// 配对创建两副牌时由同一 Service 随机流连续取样；后续序列化需保留
+// 随机游标和牌序，恢复后才能复演同一对局。
 pub createCardHand(stream: rngModule.Mulberry32): CardHandState {
     var unshuffled = new container.Array<uint>();
     var value: uint = <uint>1;

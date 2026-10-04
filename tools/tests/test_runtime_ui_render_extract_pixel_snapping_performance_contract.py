@@ -7,10 +7,10 @@ EXTRACT = ROOT / "zircon_runtime/src/ui/surface/render/extract.rs"
 PIXEL_SNAPPING = (
     ROOT / "zircon_runtime/src/ui/surface/render/extract/pixel_snapping.rs"
 )
-PROFILE_MANIFEST = ROOT / "tools/profile-capture-manifest.ps1"
-PRESSURE_MODEL = ROOT / "tools/runtime_ui_render_extract_pixel_snapping_pressure.py"
+PROFILE_MANIFEST = ROOT / "tools/analysis/profiling/shared/profile-capture-manifest.ps1"
+PRESSURE_MODEL = ROOT / "tools/analysis/performance/runtime/runtime_ui_render_extract_pixel_snapping_pressure.py"
 
-
+# 核对像素对齐归属提取子模块，局部渲染补丁只解析命令祖先闭包而不访问无关兄弟。
 class RuntimeUiRenderExtractPixelSnappingPerformanceContractTests(unittest.TestCase):
     def test_pixel_snapping_is_a_cohesive_extract_submodule(self) -> None:
         extract = EXTRACT.read_text(encoding="utf-8")
@@ -61,7 +61,7 @@ class RuntimeUiRenderExtractPixelSnappingPerformanceContractTests(unittest.TestC
 
     def test_pressure_model_separates_local_patch_from_full_extract(self) -> None:
         self.assertTrue(PRESSURE_MODEL.exists())
-        from tools.runtime_ui_render_extract_pixel_snapping_pressure import run
+        from tools.analysis.performance.runtime.runtime_ui_render_extract_pixel_snapping_pressure import run
 
         result = run(
             tree_node_count=16_384,

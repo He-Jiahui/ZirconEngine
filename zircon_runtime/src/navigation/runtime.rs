@@ -8,13 +8,14 @@ use crate::core::framework::navigation::{
     NavigationRuntimeStats, NavigationSettingsAsset,
 };
 use crate::core::math::{Real, Transform, Vec3};
-use crate::scene::{SceneNavigationRuntime, World};
+use crate::scene::{LevelSystem, SceneNavigationRuntime, World};
 
 mod avoidance;
 mod baked_mesh;
 mod math;
 mod state;
 #[cfg(test)]
+#[path = "runtime/tests/cases.rs"]
 mod tests;
 mod world_scan;
 
@@ -58,7 +59,7 @@ impl Default for BuiltinNavigationManager {
 impl BuiltinNavigationManager {
     pub fn bake_surface(
         &self,
-        _world: &World,
+        _level: &LevelSystem,
         _request: NavMeshBakeRequest,
     ) -> Result<NavMeshBakeReport, NavigationError> {
         Err(NavigationError::new(
@@ -278,10 +279,10 @@ impl NavigationManager for BuiltinNavigationManager {
 impl SceneNavigationRuntime for BuiltinNavigationManager {
     fn bake_surface(
         &self,
-        world: &World,
+        level: &LevelSystem,
         request: NavMeshBakeRequest,
     ) -> Result<NavMeshBakeReport, NavigationError> {
-        BuiltinNavigationManager::bake_surface(self, world, request)
+        BuiltinNavigationManager::bake_surface(self, level, request)
     }
 
     fn generated_bake_snapshot(
@@ -295,8 +296,11 @@ impl SceneNavigationRuntime for BuiltinNavigationManager {
         &self,
         snapshot: NavigationGeneratedBakeSnapshot,
     ) -> Result<(), NavigationError> {
-        self.lock_state().replace_generated_snapshot(snapshot);
-        Ok(())
+        self.lock_state().replace_generated_snapshot(snapshot)
+    }
+
+    fn generated_bake_mutation_epoch(&self, _surface_entity: Option<u64>) -> u64 {
+        self.lock_state().generated_mutation_epoch()
     }
 
     fn tick_world_agents(

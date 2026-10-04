@@ -4,7 +4,7 @@ use crate::core::settings::{
     settings_registry_with_defaults, SettingsLoad, SettingsScope, SettingsStore,
 };
 use zircon_runtime::asset::{
-    project::{ProjectManager, ProjectPaths},
+    project::{ProjectManager, ProjectManifest, ProjectPaths},
     AssetReference, AssetRegistryDiagnostic, AssetUri, ReferenceResolutionError, SceneAsset,
     SceneCameraAsset, SceneEntityAsset, SceneMobilityAsset,
 };
@@ -17,7 +17,9 @@ use zircon_runtime_interface::math::{view_matrix, Quat, Transform, Vec3};
 use zircon_runtime_interface::project::PROJECT_MANIFEST_FORMAT_VERSION;
 use zircon_runtime_interface::resource::ResourceScheme;
 
-use super::super::{NewProjectDraft, NewProjectTemplate, ProjectAuthority};
+use super::super::{
+    NewProjectDraft, ProjectAuthority, ProjectPreflightRevalidation, ProjectTemplateId,
+};
 use super::temp_root;
 
 #[test]
@@ -26,19 +28,44 @@ fn template_creation_copies_pack_rewrites_manifest_and_opens() {
     let draft = NewProjectDraft {
         project_name: "Authority Project".to_string(),
         location: location.to_string_lossy().into_owned(),
-        template: NewProjectTemplate::RenderableEmpty,
+        template: ProjectTemplateId::RenderableEmpty,
     };
 
-    let created = ProjectAuthority::default().create_project(&draft).unwrap();
-    let opened = created.project();
+    let authority = ProjectAuthority::default();
+    let provenance = crate::tests::support::test_project_creation_provenance();
+    let created = authority.create_project(&draft, &provenance).unwrap();
+    let opened = authority.open_resolved_project(created.identity()).unwrap();
 
     assert_eq!(created.summary.name, "Authority Project");
-    assert_eq!(opened.manifest().summary(), created.summary);
+    assert_eq!(opened.project().manifest().summary(), created.summary);
+    let receipt = opened
+        .project()
+        .manifest()
+        .template_receipt
+        .as_ref()
+        .expect("created project manifest must retain its template provenance");
     assert_eq!(
-        opened.manifest().summary().format_version,
+        receipt.descriptor().id(),
+        ProjectTemplateId::RenderableEmpty
+    );
+    assert_eq!(receipt.descriptor().version(), 1);
+    assert_eq!(
+        receipt.project_guid(),
+        opened.project().manifest().project_guid
+    );
+    assert_eq!(receipt.operation_id(), provenance.operation_id());
+    assert_eq!(
+        receipt.creator_engine_version(),
+        provenance.creator_engine_version()
+    );
+    assert_eq!(receipt.build_set_id(), provenance.build_set_id());
+    assert_eq!(created.summary.template_receipt.as_ref(), Some(receipt));
+    assert_eq!(
+        opened.project().manifest().summary().format_version,
         PROJECT_MANIFEST_FORMAT_VERSION
     );
     let export_profile = opened
+        .project()
         .manifest()
         .export_profiles
         .iter()
@@ -58,7 +85,7 @@ fn template_creation_copies_pack_rewrites_manifest_and_opens() {
             ExportPackagingStrategy::NativeDynamic,
         ]
     );
-    assert_eq!(opened.paths().root(), created.root.as_path());
+    assert_eq!(opened.project().paths().root(), created.root.as_path());
     for relative in [
         "assets/scenes/main.scene.toml",
         "assets/materials/default.zmaterial",
@@ -89,15 +116,62 @@ fn template_creation_copies_pack_rewrites_manifest_and_opens() {
 }
 
 #[test]
+fn template_receipt_identity_cannot_drift_from_the_project_manifest() {
+    let location = temp_root("template-receipt-identity");
+    let draft = NewProjectDraft {
+        project_name: "Template Receipt Identity".to_string(),
+        location: location.to_string_lossy().into_owned(),
+        template: ProjectTemplateId::RenderableEmpty,
+    };
+    let created = ProjectAuthority::default()
+        .create_project(
+            &draft,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
+        .unwrap();
+    let opened = ProjectAuthority::default()
+        .open_resolved_project(created.identity())
+        .unwrap();
+    let mut manifest = opened.project().manifest().clone();
+    let receipt_guid = manifest
+        .template_receipt
+        .as_ref()
+        .expect("created project must retain provenance")
+        .project_guid();
+    assert_eq!(receipt_guid, manifest.project_guid);
+
+    manifest.project_guid = zircon_runtime_interface::project::ProjectGuid::new();
+    assert!(matches!(
+        manifest.save(created.root.join("zircon-project.toml")),
+        Err(zircon_runtime::asset::project::ProjectManifestError::TemplateReceiptProjectGuidMismatch { .. })
+    ));
+
+    manifest.project_guid = receipt_guid;
+    manifest.engine_version_req = Some(">=0.2.0".to_string());
+    assert!(matches!(
+        manifest.save(created.root.join("zircon-project.toml")),
+        Err(zircon_runtime::asset::project::ProjectManifestError::TemplateReceiptEngineRequirementMismatch)
+    ));
+
+    drop((manifest, opened, created));
+    fs::remove_dir_all(location).unwrap();
+}
+
+#[test]
 fn renderable_empty_template_has_the_f2_camera_cube_and_sun_contract() {
     let location = temp_root("f2-template-scene-contract");
     let draft = NewProjectDraft {
         project_name: "F2 Template Contract".to_string(),
         location: location.to_string_lossy().into_owned(),
-        template: NewProjectTemplate::RenderableEmpty,
+        template: ProjectTemplateId::RenderableEmpty,
     };
 
-    let created = ProjectAuthority::default().create_project(&draft).unwrap();
+    let created = ProjectAuthority::default()
+        .create_project(
+            &draft,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
+        .unwrap();
     let document = fs::read_to_string(created.root.join("assets/scenes/main.scene.toml")).unwrap();
     let scene = SceneAsset::from_project_toml_str(&document, resolve_template_scene_reference)
         .expect("RenderableEmpty main scene must satisfy the persisted scene schema");
@@ -105,6 +179,11 @@ fn renderable_empty_template_has_the_f2_camera_cube_and_sun_contract() {
         scene.entities.len(),
         3,
         "the F2 canonical scene must contain exactly Camera, Sun, and Cube"
+    );
+    assert_eq!(scene.overview().root_entity_count, 3);
+    assert!(
+        scene.entities.iter().all(|entity| entity.parent.is_none()),
+        "RenderableEmpty Camera, Sun, and Cube must be scene roots"
     );
 
     let camera = scene
@@ -270,12 +349,20 @@ fn renderable_empty_template_scene_refs_match_the_project_registry_after_scan() 
     let draft = NewProjectDraft {
         project_name: "F2 Template Registry Contract".to_string(),
         location: location.to_string_lossy().into_owned(),
-        template: NewProjectTemplate::RenderableEmpty,
+        template: ProjectTemplateId::RenderableEmpty,
     };
 
-    let created = ProjectAuthority::default().create_project(&draft).unwrap();
+    let created = ProjectAuthority::default()
+        .create_project(
+            &draft,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
+        .unwrap();
     let root = created.root.clone();
-    let mut manager = created.into_project();
+    let mut manager = ProjectAuthority::default()
+        .open_resolved_project(created.identity())
+        .unwrap()
+        .into_project();
     let imported = manager.scan_and_import().unwrap();
     assert!(!imported.is_empty());
 
@@ -349,13 +436,21 @@ fn template_creation_rebuilds_regenerable_asset_state_from_source_after_deletion
     let draft = NewProjectDraft {
         project_name: "Derived State Rebuild".to_string(),
         location: location.to_string_lossy().into_owned(),
-        template: NewProjectTemplate::RenderableEmpty,
+        template: ProjectTemplateId::RenderableEmpty,
     };
 
-    let created = ProjectAuthority::default().create_project(&draft).unwrap();
+    let created = ProjectAuthority::default()
+        .create_project(
+            &draft,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
+        .unwrap();
     let project_root = created.root.clone();
-    let cache_root = created.project().paths().cache_root().to_path_buf();
-    let registry_root = created.project().paths().registry_root().to_path_buf();
+    let opened = ProjectAuthority::default()
+        .open_resolved_project(created.identity())
+        .unwrap();
+    let cache_root = opened.project().paths().cache_root().to_path_buf();
+    let registry_root = opened.project().paths().registry_root().to_path_buf();
     let expected_registry_entries = [
         AssetUri::parse("res://models/cube.obj").unwrap(),
         AssetUri::parse("res://materials/default.zmaterial").unwrap(),
@@ -363,7 +458,7 @@ fn template_creation_rebuilds_regenerable_asset_state_from_source_after_deletion
     ]
     .into_iter()
     .map(|locator| {
-        let uuid = created
+        let uuid = opened
             .project()
             .asset_registry()
             .entry_by_path(&locator)
@@ -372,6 +467,7 @@ fn template_creation_rebuilds_regenerable_asset_state_from_source_after_deletion
         (locator, uuid)
     })
     .collect::<Vec<_>>();
+    drop(opened);
     drop(created);
 
     fs::remove_dir_all(&cache_root).unwrap();
@@ -414,22 +510,31 @@ fn template_creation_recovers_a_corrupt_persisted_registry_from_source_metadata(
     let draft = NewProjectDraft {
         project_name: "Corrupt Registry Recovery".to_string(),
         location: location.to_string_lossy().into_owned(),
-        template: NewProjectTemplate::RenderableEmpty,
+        template: ProjectTemplateId::RenderableEmpty,
     };
 
-    let created = ProjectAuthority::default().create_project(&draft).unwrap();
+    let created = ProjectAuthority::default()
+        .create_project(
+            &draft,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
+        .unwrap();
     let project_root = created.root.clone();
-    let registry_path = created
+    let opened = ProjectAuthority::default()
+        .open_resolved_project(created.identity())
+        .unwrap();
+    let registry_path = opened
         .project()
         .paths()
         .registry_root()
         .join("asset-registry.json");
-    let expected_cube_uuid = created
+    let expected_cube_uuid = opened
         .project()
         .asset_registry()
         .entry_by_path(&AssetUri::parse("res://models/cube.obj").unwrap())
         .expect("the created template registry must contain the Cube model")
         .uuid();
+    drop(opened);
     drop(created);
 
     fs::write(&registry_path, b"not-json").unwrap();
@@ -488,14 +593,19 @@ fn template_creation_returns_the_canonical_published_root() {
     let draft = NewProjectDraft {
         project_name: project_name.to_string(),
         location: location.join(".").to_string_lossy().into_owned(),
-        template: NewProjectTemplate::RenderableEmpty,
+        template: ProjectTemplateId::RenderableEmpty,
     };
 
-    let created = ProjectAuthority::default().create_project(&draft).unwrap();
+    let created = ProjectAuthority::default()
+        .create_project(
+            &draft,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
+        .unwrap();
     let expected_root = ProjectPaths::resolve_existing_path(location.join(project_name)).unwrap();
 
     assert_eq!(created.root, expected_root);
-    assert_eq!(created.project().paths().root(), expected_root.as_path());
+    assert_eq!(created.identity().operation_path(), expected_root.as_path());
 
     drop(created);
     fs::remove_dir_all(location).unwrap();
@@ -507,10 +617,15 @@ fn template_creation_persists_current_project_settings_source() {
     let draft = NewProjectDraft {
         project_name: "Project Settings".to_string(),
         location: location.to_string_lossy().into_owned(),
-        template: NewProjectTemplate::RenderableEmpty,
+        template: ProjectTemplateId::RenderableEmpty,
     };
 
-    let created = ProjectAuthority::default().create_project(&draft).unwrap();
+    let created = ProjectAuthority::default()
+        .create_project(
+            &draft,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
+        .unwrap();
     let expected_path = created.root.join(".zircon").join("settings.toml");
     let store = SettingsStore::from_roots(location.join("user"), Some(&created.root));
     let mut registry = settings_registry_with_defaults();
@@ -535,10 +650,15 @@ fn template_creation_reopens_from_a_space_and_non_ascii_parent_path() {
     let draft = NewProjectDraft {
         project_name: "Path Safe Project".to_string(),
         location: location.to_string_lossy().into_owned(),
-        template: NewProjectTemplate::RenderableEmpty,
+        template: ProjectTemplateId::RenderableEmpty,
     };
 
-    let created = ProjectAuthority::default().create_project(&draft).unwrap();
+    let created = ProjectAuthority::default()
+        .create_project(
+            &draft,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
+        .unwrap();
     assert_eq!(
         created.root,
         ProjectPaths::resolve_existing_path(location.join("Path Safe Project")).unwrap()
@@ -559,24 +679,35 @@ fn template_creation_reopens_from_a_space_and_non_ascii_parent_path() {
 }
 
 #[test]
-fn created_project_owns_one_generation_after_the_disk_manifest_changes() {
+fn created_project_receipt_detects_a_manifest_change_before_materialization() {
     let location = temp_root("opened-generation");
     let draft = NewProjectDraft {
         project_name: "Generation One".to_string(),
         location: location.to_string_lossy().into_owned(),
-        template: NewProjectTemplate::RenderableEmpty,
+        template: ProjectTemplateId::RenderableEmpty,
     };
-    let created = ProjectAuthority::default().create_project(&draft).unwrap();
-    let opened = created.project().clone();
+    let authority = ProjectAuthority::default();
+    let created = authority
+        .create_project(
+            &draft,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
+        .unwrap();
+    let approved = created.into_preflight();
 
-    let manifest_path = created.root.join("zircon-project.toml");
+    let manifest_path = approved.root().join("zircon-project.toml");
     let rewritten = fs::read_to_string(&manifest_path)
         .unwrap()
         .replace("name = \"Generation One\"", "name = \"Generation Two\"");
     fs::write(&manifest_path, rewritten).unwrap();
 
-    assert_eq!(opened.manifest().summary().name, "Generation One");
-    assert_eq!(opened.manifest().name, "Generation One");
+    assert_eq!(approved.summary().name, "Generation One");
+    let ProjectPreflightRevalidation::Changed { observed, .. } =
+        authority.revalidate_preflight(&approved).unwrap()
+    else {
+        panic!("manifest changes must invalidate the data-only creation receipt");
+    };
+    assert_eq!(observed.summary().name, "Generation Two");
     fs::remove_dir_all(location).unwrap();
 }
 
@@ -589,11 +720,14 @@ fn non_empty_target_is_rejected_without_modifying_existing_content() {
     let draft = NewProjectDraft {
         project_name: "Existing".to_string(),
         location: location.to_string_lossy().into_owned(),
-        template: NewProjectTemplate::RenderableEmpty,
+        template: ProjectTemplateId::RenderableEmpty,
     };
 
     let error = ProjectAuthority::default()
-        .create_project(&draft)
+        .create_project(
+            &draft,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
         .unwrap_err();
 
     assert!(matches!(
@@ -612,9 +746,14 @@ fn draft_rejects_unsafe_project_name_components_before_touching_disk() {
         let draft = NewProjectDraft {
             project_name: project_name.to_string(),
             location: location.to_string_lossy().into_owned(),
-            template: NewProjectTemplate::RenderableEmpty,
+            template: ProjectTemplateId::RenderableEmpty,
         };
-        assert!(ProjectAuthority::default().create_project(&draft).is_err());
+        assert!(ProjectAuthority::default()
+            .create_project(
+                &draft,
+                &crate::tests::support::test_project_creation_provenance()
+            )
+            .is_err());
     }
     assert_eq!(fs::read_dir(&location).unwrap().count(), 0);
     fs::remove_dir_all(location).unwrap();
@@ -633,17 +772,18 @@ fn read_only_probe_parses_manifest_and_does_not_create_derived_layout() {
 #[test]
 fn conflicting_rendered_entry_rolls_back_staging_and_leaves_no_project() {
     use zircon_runtime_interface::project::{
-        ProjectManifestSummary, ProjectTemplateId, RelPath, RenderedProjectTemplate,
-        RenderedProjectTemplateEntry,
+        project_template_descriptor, ProjectManifestSummary, ProjectTemplateId, RelPath,
+        RenderedProjectTemplate, RenderedProjectTemplateEntry,
     };
 
     let location = temp_root("rollback");
     let target = location.join("Broken");
     let rendered = RenderedProjectTemplate {
-        id: ProjectTemplateId::RenderableEmpty,
+        descriptor: project_template_descriptor(ProjectTemplateId::RenderableEmpty),
         summary: ProjectManifestSummary {
             name: "Broken".to_string(),
             engine_version_req: None,
+            template_receipt: None,
             default_scene: "res://scenes/main.scene.toml".to_string(),
             format_version: PROJECT_MANIFEST_FORMAT_VERSION,
             project_guid: None,
@@ -661,7 +801,11 @@ fn conflicting_rendered_entry_rolls_back_staging_and_leaves_no_project() {
     };
 
     assert!(ProjectAuthority::default()
-        .create_rendered_project(&target, rendered)
+        .create_rendered_project(
+            &target,
+            &rendered,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
         .is_err());
     assert!(!target.exists());
     assert_eq!(staging_entries(&location), Vec::<String>::new());
@@ -669,29 +813,33 @@ fn conflicting_rendered_entry_rolls_back_staging_and_leaves_no_project() {
 }
 
 #[test]
-fn failed_open_after_commit_rolls_back_new_target_and_transaction_artifacts() {
+fn failed_data_only_preflight_before_publication_leaves_new_target_absent() {
     let location = temp_root("open-rollback");
     let target = location.join("Broken Open");
-    let rendered = rendered_template_with_corrupt_asset_metadata("Broken Open");
+    let rendered = rendered_template_with_oversized_manifest("Broken Open");
 
     let error = ProjectAuthority::default()
-        .create_rendered_project(&target, rendered)
+        .create_rendered_project(
+            &target,
+            &rendered,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
         .unwrap_err();
 
     assert!(matches!(
         error,
-        super::super::ProjectAuthorityError::ProjectGeneration { .. }
+        super::super::ProjectAuthorityError::ManifestPreflightTooLarge { .. }
     ));
     assert!(
         !target.exists(),
-        "a failed post-commit project open must not leave a partial project"
+        "a failed staged preflight must not publish a partial project"
     );
     assert_eq!(staging_entries(&location), Vec::<String>::new());
     fs::remove_dir_all(location).unwrap();
 }
 
 #[test]
-fn failed_open_after_commit_restores_the_original_empty_target() {
+fn failed_data_only_preflight_before_publication_leaves_original_empty_target_untouched() {
     let location = temp_root("open-rollback-empty-target");
     let target = location.join("Broken Open");
     fs::create_dir(&target).unwrap();
@@ -699,43 +847,135 @@ fn failed_open_after_commit_restores_the_original_empty_target() {
     let error = ProjectAuthority::default()
         .create_rendered_project(
             &target,
-            rendered_template_with_corrupt_asset_metadata("Broken Open"),
+            &rendered_template_with_oversized_manifest("Broken Open"),
+            &crate::tests::support::test_project_creation_provenance(),
         )
         .unwrap_err();
 
     assert!(matches!(
         error,
-        super::super::ProjectAuthorityError::ProjectGeneration { .. }
+        super::super::ProjectAuthorityError::ManifestPreflightTooLarge { .. }
     ));
     assert!(
         target.is_dir(),
-        "the original empty target must be restored"
+        "preflight failure before publication must preserve the original empty target"
     );
     assert_eq!(fs::read_dir(&target).unwrap().count(), 0);
     assert_eq!(staging_entries(&location), Vec::<String>::new());
     fs::remove_dir_all(location).unwrap();
 }
 
-fn rendered_template_with_corrupt_asset_metadata(
-    project_name: &str,
-) -> zircon_runtime_interface::project::RenderedProjectTemplate {
-    use zircon_runtime_interface::project::{
-        render_project_template, RelPath, RenderedProjectTemplateEntry,
+#[test]
+fn creation_for_activation_returns_a_finalized_project_with_the_target_identity() {
+    let location = temp_root("create-finalized-target");
+    let target = location.join("Provisional Project");
+    let draft = NewProjectDraft {
+        project_name: "Provisional Project".to_string(),
+        location: location.to_string_lossy().into_owned(),
+        template: ProjectTemplateId::RenderableEmpty,
     };
 
+    let created = ProjectAuthority::default()
+        .create_project_for_activation(
+            &draft,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
+        .unwrap();
+    assert!(target.join("zircon-project.toml").is_file());
+    assert_eq!(
+        created.identity().operation_path(),
+        fs::canonicalize(&target).unwrap().as_path()
+    );
+    assert_eq!(staging_entries(&location), Vec::<String>::new());
+    fs::remove_dir_all(location).unwrap();
+}
+
+#[test]
+fn public_creation_rejects_a_concurrent_target_lease_without_publishing() {
+    use super::super::authority::ProjectCreationLease;
+
+    let location = temp_root("public-create-lease");
+    let target = location.join("Leased Project");
+    let draft = NewProjectDraft {
+        project_name: "Leased Project".to_string(),
+        location: location.to_string_lossy().into_owned(),
+        template: ProjectTemplateId::RenderableEmpty,
+    };
+    let authority = ProjectAuthority::default();
+    let lease = ProjectCreationLease::acquire(&target).unwrap();
+
+    let error = authority
+        .create_project(
+            &draft,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        super::super::ProjectAuthorityError::TargetCreationLeaseHeld { ref path }
+            if path == &target
+    ));
+    assert!(!target.exists());
+    assert_eq!(staging_entries(&location), Vec::<String>::new());
+
+    drop(lease);
+    let created = authority
+        .create_project(
+            &draft,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
+        .unwrap();
+    assert!(created.root.join("zircon-project.toml").is_file());
+    fs::remove_dir_all(location).unwrap();
+}
+
+#[test]
+fn creation_for_activation_finalizes_replacement_of_original_empty_target() {
+    let location = temp_root("create-finalize-empty-target");
+    let target = location.join("Provisional Project");
+    fs::create_dir(&target).unwrap();
+    let draft = NewProjectDraft {
+        project_name: "Provisional Project".to_string(),
+        location: location.to_string_lossy().into_owned(),
+        template: ProjectTemplateId::RenderableEmpty,
+    };
+
+    let created = ProjectAuthority::default()
+        .create_project_for_activation(
+            &draft,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
+        .unwrap();
+    assert!(target.join("zircon-project.toml").is_file());
+    assert_eq!(staging_entries(&location), Vec::<String>::new());
+    assert_eq!(
+        created.identity().operation_path(),
+        fs::canonicalize(&target).unwrap().as_path()
+    );
+    fs::remove_dir_all(location).unwrap();
+}
+
+fn rendered_template_with_oversized_manifest(
+    project_name: &str,
+) -> zircon_runtime_interface::project::RenderedProjectTemplate {
+    use zircon_runtime_interface::project::render_project_template;
+
     let mut rendered =
-        render_project_template(NewProjectTemplate::RenderableEmpty.pack_id(), project_name)
-            .unwrap();
-    rendered.entries.extend([
-        RenderedProjectTemplateEntry {
-            path: RelPath::parse("assets/broken.asset").unwrap(),
-            bytes: b"source that requires metadata".to_vec(),
-        },
-        RenderedProjectTemplateEntry {
-            path: RelPath::parse("assets/broken.asset.zmeta").unwrap(),
-            bytes: b"not valid metadata".to_vec(),
-        },
-    ]);
+        render_project_template(ProjectTemplateId::RenderableEmpty, project_name).unwrap();
+    let manifest_entry = rendered
+        .entries
+        .iter_mut()
+        .find(|entry| entry.path.as_str() == "zircon-project.toml")
+        .expect("RenderableEmpty template manifest entry");
+    let oversized_name = "X"
+        .repeat(super::super::preflight_manifest_reader::MAX_PROJECT_PREFLIGHT_MANIFEST_BYTES + 1);
+    let manifest = ProjectManifest::new(
+        oversized_name,
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    );
+    manifest_entry.bytes = toml::to_string_pretty(&manifest).unwrap().into_bytes();
     rendered
 }
 

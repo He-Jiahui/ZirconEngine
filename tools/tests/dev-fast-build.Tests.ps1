@@ -1,31 +1,24 @@
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-$scriptPath = Join-Path $repoRoot 'tools\dev-fast-build.ps1'
-$aliasesPath = Join-Path $repoRoot 'tools\dev-fast-aliases.ps1'
+$scriptPath = Join-Path $repoRoot 'tools\dev\dev-fast-build.ps1'
+$aliasesPath = Join-Path $repoRoot 'tools\dev\dev-fast-aliases.ps1'
 
 Describe 'Dev fast build managed output policy' {
-    It 'resolves the shared target through the physical Windows path resolver' {
+    It 'delegates target allocation to the coordinator validator' {
         $source = Get-Content -Raw -Encoding UTF8 $scriptPath
 
-        $source | Should Match 'WindowsPathResolver\.psm1'
-        $source | Should Match 'function Resolve-AllowedCargoTargetPath'
-        $source | Should Match 'Resolve-ZirconWindowsPath -Path \$Path'
-        $source | Should Match 'must physically resolve below D:\\cargo-targets, E:\\cargo-targets, or F:\\cargo-targets'
+        $source | Should Match 'validate-matrix\.ps1'
+        $source | Should Match 'coordinator compatibility pools'
+        $source | Should Not Match '& cargo'
     }
 
-    It 'binds all Cargo compiler cache directories to the shared target and restores the caller environment' {
+    It 'forwards explicit link and storage modes through the common entry' {
         $source = Get-Content -Raw -Encoding UTF8 $scriptPath
 
-        $source | Should Match 'function Push-ManagedFastBuildEnvironment'
-        $source | Should Match 'function Pop-ManagedFastBuildEnvironment'
-        foreach ($name in @('CARGO_TARGET_DIR', 'CARGO_HOME', 'SCCACHE_DIR', 'TEMP', 'TMP', 'TMPDIR')) {
-            $source | Should Match [regex]::Escape($name)
+        foreach ($name in @('LinkMode', 'Linker', 'StorageMode', 'RuntimeProductDll', 'LibTests', 'TestTarget', 'TestFilter')) {
+            $source | Should Match ([regex]::Escape($name))
         }
-        $source | Should Match 'cargo-home'
-        $source | Should Match 'sccache'
-        $source | Should Match 'temporary'
-        $source | Should Match '\[System\.IO\.Directory\]::CreateDirectory\(\$resolution\.OperationalPath\)'
-        $source | Should Match 'Pop-ManagedFastBuildEnvironment -Lease \$buildEnvironmentLease'
-        $source | Should Match 'SetEnvironmentVariable\(''RUSTC_WRAPPER'', \$previousRustcWrapper, ''Process''\)'
+        $source | Should Match 'NoDefaultFeatures = \$true'
+        $source | Should Match "'test' \{"
     }
 }
 

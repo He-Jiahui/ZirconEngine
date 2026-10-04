@@ -2,6 +2,8 @@ var console = %import("zr.system.console");
 var service = %import("social/card_duel_service");
 var snapshot = %import("social/card_duel_snapshot");
 
+// 在一方已出牌的中途往返 CDS1，随后用原状态与恢复状态
+// 回答同一张牌，核对分数和随机游标的重放一致性。
 contractTest(): int {
     var original = new service.CardDuelService(<uint>1010);
     service.upsertPlayer(original, <uint>1, true, true);

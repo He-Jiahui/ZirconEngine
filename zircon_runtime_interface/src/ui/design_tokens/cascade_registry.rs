@@ -8,14 +8,7 @@ use super::EditorDesignTokens;
 
 pub(super) fn cascade_token_values(tokens: &EditorDesignTokens) -> BTreeMap<String, Value> {
     let mut values = canonical_cascade_token_values(tokens);
-    let canonical_names = values.keys().cloned().collect::<Vec<_>>();
-    for canonical_name in canonical_names {
-        let custom_property_name = format!("--{}", canonical_name.replace('.', "-"));
-        values.insert(
-            custom_property_name,
-            Value::String(format!("${canonical_name}")),
-        );
-    }
+    values.extend(custom_property_aliases(&values));
 
     for (legacy_name, canonical_name) in legacy_density_token_aliases() {
         values.insert(
@@ -26,6 +19,52 @@ pub(super) fn cascade_token_values(tokens: &EditorDesignTokens) -> BTreeMap<Stri
     values
 }
 
+fn custom_property_aliases(values: &BTreeMap<String, Value>) -> Vec<(String, Value)> {
+    values
+        .keys()
+        .map(|canonical_name| {
+            (
+                custom_property_alias_name(canonical_name),
+                Value::String(format!("${canonical_name}")),
+            )
+        })
+        .collect()
+}
+
+fn custom_property_alias_name(canonical_name: &str) -> String {
+    let mut alias = String::with_capacity(canonical_name.len() + 2);
+    alias.push_str("--");
+    let mut components = canonical_name.split('.');
+    if let Some(first) = components.next() {
+        alias.push_str(first);
+    }
+    for component in components {
+        alias.push('-');
+        alias.push_str(component);
+    }
+    alias
+}
+
+#[cfg(test)]
+fn custom_property_alias_name_replacing(canonical_name: &str) -> String {
+    format!("--{}", canonical_name.replace('.', "-"))
+}
+
+#[cfg(test)]
+fn custom_property_aliases_cloning(values: &BTreeMap<String, Value>) -> Vec<(String, Value)> {
+    let canonical_names = values.keys().cloned().collect::<Vec<_>>();
+    canonical_names
+        .into_iter()
+        .map(|canonical_name| {
+            (
+                format!("--{}", canonical_name.replace('.', "-")),
+                Value::String(format!("${canonical_name}")),
+            )
+        })
+        .collect()
+}
+
+// 别名解析只跟随一层 $ 引用；每个别名须直接指向规范值，循环或嵌套引用会返回 None。
 pub(super) fn numeric_token_value(
     tokens: &BTreeMap<String, Value>,
     token_name: &str,
@@ -49,13 +88,21 @@ pub(super) fn insert_color_token(
     name: &str,
     color: UiRgbaColor,
 ) {
-    let [red, green, blue, alpha] = color.to_u8();
-    let value = if alpha == u8::MAX {
-        format!("#{red:02x}{green:02x}{blue:02x}")
-    } else {
-        format!("#{red:02x}{green:02x}{blue:02x}{alpha:02x}")
-    };
-    values.insert(name.to_string(), Value::String(value));
+    values.insert(name.to_string(), Value::String(color_token_hex(color)));
+}
+
+fn color_token_hex(color: UiRgbaColor) -> String {
+    const COLOR_HEX_LOWER: &[u8; 16] = b"0123456789abcdef";
+
+    let channels = color.to_u8();
+    let channel_count = if channels[3] == u8::MAX { 3 } else { 4 };
+    let mut encoded = String::with_capacity(1 + channel_count * 2);
+    encoded.push('#');
+    for &channel in &channels[..channel_count] {
+        encoded.push(COLOR_HEX_LOWER[usize::from(channel >> 4)] as char);
+        encoded.push(COLOR_HEX_LOWER[usize::from(channel & 0x0f)] as char);
+    }
+    encoded
 }
 
 pub(super) fn insert_float_token(values: &mut BTreeMap<String, Value>, name: &str, value: f32) {
@@ -184,61 +231,13 @@ fn legacy_density_token_aliases() -> [(&'static str, &'static str); 26] {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::canonical_cascade_token_values;
-    use crate::ui::design_tokens::EditorDesignTokens;
+#[path = "tests/cascade_registry.rs"]
+mod tests;
 
-    #[test]
-    fn workbench_chrome_metrics_are_registered_as_logical_float_tokens() {
-        let values = canonical_cascade_token_values(&EditorDesignTokens::workbench_dark());
+#[cfg(test)]
+#[path = "cascade_registry/tests/custom_property_alias_performance_tests.rs"]
+mod custom_property_alias_performance_tests;
 
-        for (name, expected) in [
-            ("editor.chrome.top_bar.height", 25.0),
-            ("editor.chrome.host_bar.height", 32.0),
-            ("editor.chrome.status_bar.height", 24.0),
-            ("editor.chrome.panel_header.height", 30.0),
-            ("editor.chrome.document_header.height", 31.0),
-            ("editor.chrome.viewport_toolbar.height", 28.0),
-            ("editor.chrome.activity_rail.width", 34.0),
-            ("editor.chrome.separator.thickness", 1.0),
-            ("editor.chrome.splitter.hit_size", 8.0),
-        ] {
-            assert_eq!(
-                values.get(name).and_then(toml::Value::as_float),
-                Some(expected),
-                "missing or invalid Workbench chrome token `{name}`"
-            );
-        }
-    }
-
-    #[test]
-    fn workbench_dark_palette_matches_component_prototype_baseline() {
-        let values = canonical_cascade_token_values(&EditorDesignTokens::workbench_dark());
-
-        for (name, expected) in [
-            ("editor.surface.0", "#111416"),
-            ("editor.surface.1", "#171a1d"),
-            ("editor.surface.2", "#1b1f23"),
-            ("editor.surface.3", "#252b31"),
-            ("editor.surface.recessed", "#0f1316"),
-            ("editor.surface.hover", "#2a3036"),
-            ("editor.surface.selected", "#173942"),
-            ("editor.accent", "#3cc7d6"),
-            ("editor.border", "#323a41"),
-            ("editor.separator.strong", "#414b54"),
-            ("editor.separator.soft", "#262d33"),
-            ("editor.text.primary", "#e8ecee"),
-            ("editor.text.secondary", "#a4aeb4"),
-            ("editor.text.disabled", "#656f76"),
-            ("editor.popup", "#141618"),
-            ("editor.track", "#2c3339"),
-            ("editor.focus.ring", "#38bdd0"),
-        ] {
-            assert_eq!(
-                values.get(name).and_then(toml::Value::as_str),
-                Some(expected),
-                "palette token `{name}` diverged from the component prototype baseline"
-            );
-        }
-    }
-}
+#[cfg(test)]
+#[path = "cascade_registry/tests/color_hex_performance_tests.rs"]
+mod color_hex_performance_tests;

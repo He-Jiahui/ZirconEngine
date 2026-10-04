@@ -1,3 +1,5 @@
+//! render 公共中立契约门面，汇聚图形、插件和编辑器共享的提取 DTO、容量计划、图执行报告及动态后端接口。
+//! 这些 re-export 描述跨模块状态与句柄，实际 GPU 资源和提交生命周期仍由 graphics 后端管理。
 mod advanced;
 mod advanced_lighting;
 mod anti_alias;
@@ -158,7 +160,8 @@ pub use environment::{
     source_cubemap_sample_irradiance_cube, CubemapCaptureCamera, CubemapCaptureView, CubemapFace,
     CubemapFaceProjectionAxes, EnvironmentBrdfLutFormat, EnvironmentBrdfLutIntegrator,
     EnvironmentBrdfLutRecipe, EnvironmentBrdfLutRecipeIdentity, EnvironmentBrdfLutTexel,
-    EnvironmentExtract, EnvironmentPbrEnergyMode, EnvironmentPbrRecipe,
+    EnvironmentCaptureResidencyReport, EnvironmentCubemapUploadReport, EnvironmentExtract,
+    EnvironmentIblHydrationReport, EnvironmentPbrEnergyMode, EnvironmentPbrRecipe,
     EnvironmentPbrRecipeIdentity, EnvironmentRuntimeSnapshot, EnvironmentRuntimeSnapshotError,
     IblBakeArtifactBlob, IblBakeArtifactBlobCandidate, IblBakeArtifactBlobError,
     IblBakeArtifactCandidate, IblBakeArtifactContents, IblBakeArtifactDescriptor,
@@ -183,7 +186,8 @@ pub use environment::{
     CANONICAL_IBL_BAKE_DIFFUSE_SOURCE_FACE_SIZE, CANONICAL_IBL_BAKE_IRRADIANCE_CUBE_FACE_SIZE,
     CANONICAL_IBL_BAKE_RECIPE, CANONICAL_IBL_BAKE_ROUGHEST_MIP_OFFSET,
     CANONICAL_IBL_BAKE_ROUGHNESS_MIP_SCALE, ENVIRONMENT_BRDF_LUT_HEIGHT,
-    ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT, ENVIRONMENT_BRDF_LUT_WIDTH, IBL_BAKE_ALGORITHM_VERSION,
+    ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT, ENVIRONMENT_BRDF_LUT_WIDTH,
+    ENVIRONMENT_IBL_HYDRATION_REPORT_CAPACITY, IBL_BAKE_ALGORITHM_VERSION,
     IBL_BAKE_ARTIFACT_HEADER_SIZE, IBL_BAKE_ARTIFACT_PAYLOAD_CHECKSUM_SIZE,
     IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES, IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES,
     LIGHTMAP_CONSUME_CONTRACT_VERSION, LIGHTMAP_SCENE_SNAPSHOT_VERSION,
@@ -196,7 +200,7 @@ pub use environment::{
 };
 pub use environment_capture::{
     RenderEnvironmentCaptureHandle, RenderEnvironmentCaptureOutputIdentity,
-    RenderEnvironmentCapturePhase, RenderEnvironmentCaptureRequest,
+    RenderEnvironmentCapturePhase, RenderEnvironmentCaptureReport, RenderEnvironmentCaptureRequest,
     RenderEnvironmentCaptureRequestError, RenderEnvironmentCaptureStatus,
     RenderEnvironmentCaptureStatusError, RENDER_ENVIRONMENT_CAPTURE_WORK_ITEM_COUNT,
 };
@@ -210,9 +214,9 @@ pub use frame_extract::{
     RenderComponentMeshLodLevel, RenderComponentMeshPayload, RenderComponentMeshPrimitiveBinding,
     RenderComponentProjectionMode, RenderComponentSnapshot, RenderComponentSourceWorldId,
     RenderComponentValue, RenderExtractContext, RenderExtractProducer, RenderFrameExtract,
-    RenderFrameTiming, RenderParticleGpuFrameExtract, RenderSkeletalPoseExtract, RenderViewExtract,
-    RenderWorldSnapshotHandle, SpritePhaseExtractInput, StaticMeshBatchExtract, VisibilityInput,
-    VisibilityRenderableInput,
+    RenderFrameScenePayload, RenderFrameTiming, RenderParticleGpuFrameExtract,
+    RenderSkeletalPoseExtract, RenderViewExtract, RenderWorldSnapshotHandle,
+    SpritePhaseExtractInput, StaticMeshBatchExtract, VisibilityInput, VisibilityRenderableInput,
 };
 pub use frame_phase_queue_summary::{
     RenderFramePhaseQueueSummary, RenderFramePhaseQueueSummaryPhaseCount,
@@ -243,10 +247,10 @@ pub use image::{
     default_color_space_for_texture_usage, default_compression_for_texture_usage,
     default_mip_filter_for_texture_usage, validate_texture_metadata, RenderImageAssetUsage,
     RenderImageColorSpace, RenderImageDescriptor, RenderImageDimension, RenderImageFallbackKind,
-    RenderImageUsage, RenderSamplerAddressMode, RenderSamplerDescriptor, RenderSamplerFilter,
-    TextureCompressionTarget, TextureMetadata, TextureMetadataDiagnostic,
-    TextureMetadataDiagnosticSeverity, TextureMipFilter, TextureMipPolicy, TextureNormalConvention,
-    TextureUsageHint,
+    RenderImageShape, RenderImageShapeError, RenderImageUsage, RenderSamplerAddressMode,
+    RenderSamplerDescriptor, RenderSamplerFilter, TextureCompressionTarget, TextureExtent3D,
+    TextureMetadata, TextureMetadataDiagnostic, TextureMetadataDiagnosticSeverity,
+    TextureMipFilter, TextureMipPolicy, TextureNormalConvention, TextureUsageHint, TextureViewKind,
 };
 pub use light::{
     GpuLightData, GpuLightType, LightShadowSettings, RenderAmbientLightSnapshot,
@@ -471,11 +475,12 @@ pub use virtual_geometry_debug_snapshot::{
     RenderVirtualGeometryNodeAndClusterCullTraversalChildSource,
     RenderVirtualGeometryNodeAndClusterCullTraversalOp,
     RenderVirtualGeometryNodeAndClusterCullTraversalRecord, RenderVirtualGeometryPagePayload,
-    RenderVirtualGeometryPagePayloadVertex, RenderVirtualGeometryPageRequestInspection,
-    RenderVirtualGeometryResidentPageInspection, RenderVirtualGeometrySelectedCluster,
-    RenderVirtualGeometrySelectedClusterSource, RenderVirtualGeometrySubmissionEntry,
-    RenderVirtualGeometrySubmissionRecord, RenderVirtualGeometryVisBuffer64Entry,
-    RenderVirtualGeometryVisBuffer64Source, RenderVirtualGeometryVisBufferMark,
+    RenderVirtualGeometryPagePayloadClusterRange, RenderVirtualGeometryPagePayloadVertex,
+    RenderVirtualGeometryPageRequestInspection, RenderVirtualGeometryResidentPageInspection,
+    RenderVirtualGeometrySelectedCluster, RenderVirtualGeometrySelectedClusterSource,
+    RenderVirtualGeometrySubmissionEntry, RenderVirtualGeometrySubmissionRecord,
+    RenderVirtualGeometryVisBuffer64Entry, RenderVirtualGeometryVisBuffer64Source,
+    RenderVirtualGeometryVisBufferMark,
 };
 pub use virtual_geometry_debug_snapshot_streams::{
     RenderVirtualGeometryDebugSnapshotDecodedStreams,

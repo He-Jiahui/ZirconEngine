@@ -12,17 +12,19 @@ related_code:
   - zircon_editor/src/core/gateway/contract.rs
   - zircon_editor/src/core/gateway/handle.rs
   - zircon_editor/src/core/gateway/capabilities.rs
-  - zircon_editor/src/core/gateway/session.rs
+  - zircon_editor/src/core/gateway/session
   - zircon_editor/src/ui/host/editor_host_event_controller.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/redraw.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/lifecycle.rs
+  - zircon_editor/src/tests/gateway
 tests:
-  - stable gateway tick/event/capture call lock-count regression
-  - gateway replacement concurrency and lifetime matrix
-  - editor idle and interaction WPR trace
-  - session demand immediate/idle/after/malformed ABI matrix
-  - retained host deadline replacement and native wait reset
+  - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests -TestFilter gateway_stable_path_has_no_shared_read_lock -TestThreads 1 -VerboseOutput
+  - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests -TestFilter tests::gateway::handle -TestThreads 1 -VerboseOutput
+  - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests -TestFilter tests::gateway::session -TestThreads 1 -VerboseOutput
+  - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests -TestFilter gateway:: -TestThreads 1 -VerboseOutput
+  - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests -TestThreads 1 -VerboseOutput
+  - editor idle/interaction WPR lock and wake trace; 1080p/4K capture copied-bytes, lifetime and RSS product matrix
 ---
 
 # Editor01：gateway 稳态调用锁与快照复制
@@ -59,6 +61,10 @@ tests:
 ## 修复结果与回传
 
 Open state: `generation-bound ArcSwap gateway/capability snapshot、V3 frame-demand contract 与 capture-frame foreign-buffer ownership 已落地；并发/poison/RwLock-zero、demand matrix、foreign-frame explicit/drop release tests 已具备。静态合同、依赖 guard、格式与 scoped diff 均通过。新的 source-bound managed focused/matrix、独立复审与1080p/4K产品 trace 完成前不生成 fixed return`。
+
+2026-09-24 当前源路径修正：`gateway/session.rs` 与对应 flat test owner 均已拆为 `gateway/session/` 目录，计划入口和本 failure 的 `related_code` 现指向真实模块。受管测试清单对应已存在的 lock-zero、handle replacement、session frame-demand/foreign-output 及原始 gateway 过滤组；原 2026-07-29 编译失败、性能量测要求和历史证据均保持原样。当前关联 gateway/host 源码有其他会话未提交改动，外部 `E:/Git/zr_vm` 也未清洁，未为这些不稳定输入封存 Cargo/WPR 票据；本项继续 open。
+
+同日对计划与本记录两路径的精确快照 `3756` 进行独立只读审查：Critical 0 / Important 0 / Moderate 0。审查核对了真实 folder-backed 模块接线、锁/替换/session/原始 gateway 过滤器和单线程 `--locked` 受管参数，也确认 1080p/4K WPR/拷贝量门槛及历史外部编译失败仍保留。结论仅针对当前文档修正；源码动态测试和产品性能验证均未执行，本 failure 不回传。
 
 原 exact-11 managed reservation `a604598586b74e0e8e6b4d63fe948347` 在租约已过期且 Coordinator01 的 absolute-expiry FIFO failure 仍 open 时不再具备可接受的 current-source 保护，本会话已于 2026-07-18 在 `jobId=null/startedAt=null` 下主动释放。待 `pending-cpu-reservation-absolute-expiry-not-enforced` fixed return 后，必须基于重新取得的 exact scope 生成 fresh manifest/reservation；不得续约或复用该 reservation，也不得释放 foreign FIFO head 绕过协调器失败。
 

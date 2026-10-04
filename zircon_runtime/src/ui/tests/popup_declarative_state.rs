@@ -108,6 +108,23 @@ fn declarative_popup_branch_close_orders_unstacked_deep_child_first() {
 }
 
 #[test]
+fn declarative_popup_branch_close_streams_the_stack_tail() {
+    let source = include_str!("../surface/popup_stack.rs");
+    let (_, branch_closures) = source
+        .split_once("    pub(crate) fn popup_branch_closures")
+        .expect("popup branch closure collection should remain surface-owned");
+    let (branch_closures, _) = branch_closures
+        .split_once("    pub(crate) fn declarative_popup_closures")
+        .expect("declarative popup closure collection should follow branch collection");
+
+    assert!(branch_closures.contains("if let Some(stack_index)"));
+    assert!(branch_closures.contains("self.input.popup_stack[stack_index + 1..]"));
+    assert!(branch_closures.contains(".filter_map(|popup| popup.popup_node)"));
+    assert!(!branch_closures.contains("let stack_tail"));
+    assert!(!branch_closures.contains("collect::<Vec<_>>()"));
+}
+
+#[test]
 fn declarative_popup_transient_dismissal_clears_state_before_rebuild() {
     let mut surface = declarative_popup_surface(true);
     insert_deep_nested_popup(&mut surface);

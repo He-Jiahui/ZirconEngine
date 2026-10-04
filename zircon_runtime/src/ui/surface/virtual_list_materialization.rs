@@ -4,9 +4,9 @@ use thiserror::Error;
 use zircon_runtime_interface::ui::{event_ui::UiNodeId, layout::UiContainerKind, tree::UiTree};
 
 use crate::ui::layout::{
-    UiLayoutSlotIndex, UiVirtualListSlotChange, UiVirtualListSlotMap, compute_virtual_list_window,
-    fixed_extent_slot_capacity, fixed_extent_virtual_list_content_extent,
-    fixed_extent_virtual_list_step_extent,
+    compute_virtual_list_window, fixed_extent_slot_capacity,
+    fixed_extent_virtual_list_content_extent, fixed_extent_virtual_list_step_extent,
+    UiLayoutSlotIndex, UiVirtualListSlotChange, UiVirtualListSlotMap, MAX_UI_LAYOUT_DISCRETE_VALUE,
 };
 
 use super::surface::UiSurface;
@@ -21,15 +21,40 @@ pub(super) struct UiVirtualListMaterializationIndex {
     owners: BTreeMap<UiNodeId, UiVirtualListOwnerMaterialization>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 struct UiVirtualListOwnerMaterialization {
     slots: UiVirtualListSlotMap,
+    /// Reconciliation scratch retained separately so protected-slot failures leave the
+    /// published assignment untouched while warm requests reuse the bounded slot buffers.
+    candidate_slots: UiVirtualListSlotMap,
     slot_item_keys: Vec<Option<UiVirtualListItemKey>>,
+    candidate_item_keys: Vec<Option<UiVirtualListItemKey>>,
     slot_assignment_generations: Vec<u64>,
+    candidate_assignment_generations: Vec<u64>,
     planner_changes: Vec<UiVirtualListSlotChange>,
     generation: u64,
     slot_node_ids: Vec<Vec<UiNodeId>>,
     node_slots: BTreeMap<UiNodeId, usize>,
+}
+
+impl Clone for UiVirtualListOwnerMaterialization {
+    fn clone(&self) -> Self {
+        Self {
+            slots: self.slots.clone(),
+            // Candidate state is a rebuild scratch buffer, not published surface state.
+            candidate_slots: UiVirtualListSlotMap::default(),
+            slot_item_keys: self.slot_item_keys.clone(),
+            candidate_item_keys: Vec::new(),
+            slot_assignment_generations: self.slot_assignment_generations.clone(),
+            candidate_assignment_generations: Vec::new(),
+            // Planner changes are transaction scratch and must not be copied with published
+            // assignment state when a surface snapshot is cloned.
+            planner_changes: Vec::new(),
+            generation: self.generation,
+            slot_node_ids: self.slot_node_ids.clone(),
+            node_slots: self.node_slots.clone(),
+        }
+    }
 }
 
 /// Transactional physical-slot change enriched with the external model identity.
@@ -70,6 +95,14 @@ pub enum UiVirtualListMaterializationError {
         owner_id: UiNodeId,
         expected: usize,
         actual: usize,
+    },
+    #[error(
+        "virtual-list owner {owner_id:?} requests {requested} physical slots, exceeding the maximum {maximum}"
+    )]
+    SlotCapacityExceeded {
+        owner_id: UiNodeId,
+        requested: usize,
+        maximum: usize,
     },
     #[error("virtual-list slot {slot_index} node {node_id:?} is not under owner {owner_id:?}")]
     InvalidSlotRoot {
@@ -247,38 +280,59 @@ impl UiVirtualListMaterializationIndex {
             virtualization.overscan,
             logical_count,
         );
+        if slot_capacity > MAX_UI_LAYOUT_DISCRETE_VALUE {
+            return Err(UiVirtualListMaterializationError::SlotCapacityExceeded {
+                owner_id,
+                requested: slot_capacity,
+                maximum: MAX_UI_LAYOUT_DISCRETE_VALUE,
+            });
+        }
         let state = self.owners.entry(owner_id).or_default();
-        let mut candidate = state.slots.clone();
-        candidate.reconcile(
+        // Keep the published assignment immutable until every validation step succeeds.  The
+        // scratch maps/vectors are clone-from'd in place, which preserves their bounded backing
+        // storage across warm scroll requests and leaves a failed protected rebind retryable.
+        state.candidate_slots.clone_from(&state.slots);
+        state.candidate_slots.reconcile(
             logical_count,
             slot_capacity,
             requested_window,
             &mut state.planner_changes,
         );
-        let mut candidate_keys = state.slot_item_keys.clone();
-        candidate_keys.resize(candidate.slot_count(), None);
-        let mut candidate_assignment_generations = state.slot_assignment_generations.clone();
-        candidate_assignment_generations.resize(candidate.slot_count(), 0);
-        for slot_index in 0..candidate.slot_count() {
-            candidate_keys[slot_index] = candidate
+        state.candidate_item_keys.clone_from(&state.slot_item_keys);
+        state
+            .candidate_item_keys
+            .resize(state.candidate_slots.slot_count(), None);
+        state
+            .candidate_assignment_generations
+            .clone_from(&state.slot_assignment_generations);
+        state
+            .candidate_assignment_generations
+            .resize(state.candidate_slots.slot_count(), 0);
+        for slot_index in 0..state.candidate_slots.slot_count() {
+            state.candidate_item_keys[slot_index] = state
+                .candidate_slots
                 .logical_index_for_slot(slot_index)
                 .map(&mut *item_key_for_logical_index);
         }
         changes.extend(
-            (0..state.slot_item_keys.len().max(candidate.slot_count())).filter_map(|slot_index| {
-                let previous_logical_index = state.slots.logical_index_for_slot(slot_index);
-                let logical_index = candidate.logical_index_for_slot(slot_index);
-                let previous_item_key = state.slot_item_keys.get(slot_index).copied().flatten();
-                let item_key = candidate_keys.get(slot_index).copied().flatten();
-                (previous_logical_index != logical_index || previous_item_key != item_key)
-                    .then_some(UiVirtualListMaterializationChange {
-                        slot_index,
-                        previous_logical_index,
-                        logical_index,
-                        previous_item_key,
-                        item_key,
-                    })
-            }),
+            (0..state
+                .slot_item_keys
+                .len()
+                .max(state.candidate_slots.slot_count()))
+                .filter_map(|slot_index| {
+                    let previous_logical_index = state.slots.logical_index_for_slot(slot_index);
+                    let logical_index = state.candidate_slots.logical_index_for_slot(slot_index);
+                    let previous_item_key = state.slot_item_keys.get(slot_index).copied().flatten();
+                    let item_key = state.candidate_item_keys.get(slot_index).copied().flatten();
+                    (previous_logical_index != logical_index || previous_item_key != item_key)
+                        .then_some(UiVirtualListMaterializationChange {
+                            slot_index,
+                            previous_logical_index,
+                            logical_index,
+                            previous_item_key,
+                            item_key,
+                        })
+                }),
         );
         if let Some((slot_index, node_id)) = state.protected_rebind(changes, &mut is_protected) {
             changes.clear();
@@ -288,20 +342,23 @@ impl UiVirtualListMaterializationIndex {
                 node_id,
             });
         }
-        if state.slots.generation() != candidate.generation() || !changes.is_empty() {
+        if state.slots.generation() != state.candidate_slots.generation() || !changes.is_empty() {
             state.generation = state.generation.wrapping_add(1);
             let generation = state.generation;
             for change in changes.iter() {
                 if change.logical_index.is_some()
-                    && change.slot_index < candidate_assignment_generations.len()
+                    && change.slot_index < state.candidate_assignment_generations.len()
                 {
-                    candidate_assignment_generations[change.slot_index] = generation;
+                    state.candidate_assignment_generations[change.slot_index] = generation;
                 }
             }
         }
-        state.slots = candidate;
-        state.slot_item_keys = candidate_keys;
-        state.slot_assignment_generations = candidate_assignment_generations;
+        std::mem::swap(&mut state.slots, &mut state.candidate_slots);
+        std::mem::swap(&mut state.slot_item_keys, &mut state.candidate_item_keys);
+        std::mem::swap(
+            &mut state.slot_assignment_generations,
+            &mut state.candidate_assignment_generations,
+        );
         let registered_slot_count = state.slot_node_ids.len();
         let requires_slot_registration = registered_slot_count != state.slots.slot_count();
         Ok(UiVirtualListMaterializationReport {
@@ -481,451 +538,5 @@ impl PartialEq for UiVirtualListMaterializationIndex {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{UiVirtualListItemKey, UiVirtualListMaterializationError};
-    use crate::ui::surface::UiSurface;
-    use zircon_runtime_interface::ui::{
-        dispatch::UiPointerId,
-        event_ui::{UiNodeId, UiNodePath, UiTreeId},
-        layout::{UiContainerKind, UiScrollState, UiScrollableBoxConfig, UiVirtualListConfig},
-        tree::UiTreeNode,
-    };
-
-    #[test]
-    fn rejects_a_non_virtualized_owner() {
-        let mut surface = surface_with_owner(false);
-        let mut changes = Vec::new();
-
-        let error = surface
-            .reconcile_virtual_list_materialization(owner_id(), 100, &mut changes)
-            .unwrap_err();
-
-        assert_eq!(
-            error,
-            UiVirtualListMaterializationError::NotVirtualizedOwner {
-                owner_id: owner_id()
-            }
-        );
-        assert!(changes.is_empty());
-    }
-
-    #[test]
-    fn one_row_scroll_rebinds_only_one_surface_owned_slot() {
-        let mut surface = surface_with_owner(true);
-        surface.tree.node_mut(owner_id()).unwrap().scroll_state = Some(UiScrollState {
-            offset: 96.0,
-            ..scroll_state()
-        });
-        let mut changes = Vec::new();
-        let first = surface
-            .reconcile_virtual_list_materialization(owner_id(), 100_000, &mut changes)
-            .unwrap();
-        let first_generation = first.generation;
-        surface.tree.node_mut(owner_id()).unwrap().scroll_state = Some(UiScrollState {
-            offset: 120.0,
-            ..scroll_state()
-        });
-
-        let second = surface
-            .reconcile_virtual_list_materialization(owner_id(), 100_000, &mut changes)
-            .unwrap();
-
-        assert_eq!(first.slot_capacity, 41);
-        assert_eq!(second.slot_capacity, 41);
-        assert_eq!(second.changed_slot_count, 1);
-        assert_eq!(second.generation, first_generation + 1);
-    }
-
-    #[test]
-    fn identical_request_preserves_surface_owned_generation() {
-        let mut surface = surface_with_owner(true);
-        let mut changes = Vec::new();
-        let first = surface
-            .reconcile_virtual_list_materialization(owner_id(), 100_000, &mut changes)
-            .unwrap();
-
-        let second = surface
-            .reconcile_virtual_list_materialization(owner_id(), 100_000, &mut changes)
-            .unwrap();
-
-        assert_eq!(second.generation, first.generation);
-        assert_eq!(second.changed_slot_count, 0);
-        assert!(changes.is_empty());
-    }
-
-    #[test]
-    fn removed_owner_state_is_pruned_without_scanning_logical_rows() {
-        let mut surface = surface_with_owner(true);
-        let mut changes = Vec::new();
-        surface
-            .reconcile_virtual_list_materialization(owner_id(), 100_000, &mut changes)
-            .unwrap();
-        surface.tree.nodes.remove(&owner_id());
-        surface.tree.roots.clear();
-
-        let removed = surface.prune_removed_virtual_list_materialization_owners();
-
-        assert_eq!(removed, 1);
-        assert!(surface.virtual_list_slot_map(owner_id()).is_none());
-    }
-
-    #[test]
-    fn invalidated_owner_evicts_assignments_and_clears_reused_changes() {
-        let mut surface = surface_with_owner(true);
-        let mut changes = Vec::new();
-        surface
-            .reconcile_virtual_list_materialization(owner_id(), 100_000, &mut changes)
-            .unwrap();
-        surface.tree.node_mut(owner_id()).unwrap().container = UiContainerKind::default();
-
-        let error = surface
-            .reconcile_virtual_list_materialization(owner_id(), 100_000, &mut changes)
-            .unwrap_err();
-
-        assert_eq!(
-            error,
-            UiVirtualListMaterializationError::NotVirtualizedOwner {
-                owner_id: owner_id()
-            }
-        );
-        assert!(changes.is_empty());
-        assert!(surface.virtual_list_slot_map(owner_id()).is_none());
-    }
-
-    #[test]
-    fn descendant_binding_resolves_through_registered_slot() {
-        let mut surface = surface_with_owner(true);
-        let mut changes = Vec::new();
-        let report = surface
-            .reconcile_virtual_list_materialization(owner_id(), 100_000, &mut changes)
-            .unwrap();
-        let (slot_roots, descendants) = install_slot_subtrees(&mut surface, report.slot_capacity);
-        surface
-            .register_virtual_list_slots(owner_id(), &slot_roots)
-            .unwrap();
-
-        let slot_index = 7;
-        let binding = surface
-            .virtual_list_binding_for_node(owner_id(), descendants[slot_index])
-            .unwrap();
-
-        assert_eq!(binding.owner_id, owner_id());
-        assert_eq!(binding.slot_index, slot_index);
-        assert_eq!(binding.slot_root_id, slot_roots[slot_index]);
-        assert_eq!(
-            binding.item_key,
-            UiVirtualListItemKey::new(binding.logical_index as u128)
-        );
-        assert_eq!(
-            Some(binding.logical_index),
-            surface
-                .virtual_list_slot_map(owner_id())
-                .unwrap()
-                .logical_index_for_slot(slot_index)
-        );
-    }
-
-    #[test]
-    fn captured_slot_rebind_is_rejected_before_assignment_commit() {
-        let mut surface = surface_with_owner(true);
-        surface.tree.node_mut(owner_id()).unwrap().scroll_state = Some(UiScrollState {
-            offset: 96.0,
-            ..scroll_state()
-        });
-        let mut changes = Vec::new();
-        let report = surface
-            .reconcile_virtual_list_materialization(owner_id(), 100_000, &mut changes)
-            .unwrap();
-        let (slot_roots, _) = install_slot_subtrees(&mut surface, report.slot_capacity);
-        surface
-            .register_virtual_list_slots(owner_id(), &slot_roots)
-            .unwrap();
-        let protected_slot = 1;
-        let generation = surface
-            .virtual_list_slot_map(owner_id())
-            .unwrap()
-            .generation();
-        let logical_index = surface
-            .virtual_list_slot_map(owner_id())
-            .unwrap()
-            .logical_index_for_slot(protected_slot);
-        surface
-            .input
-            .set_pointer_capture_for_id(UiPointerId::new(7), slot_roots[protected_slot]);
-        surface.tree.node_mut(owner_id()).unwrap().scroll_state = Some(UiScrollState {
-            offset: 120.0,
-            ..scroll_state()
-        });
-
-        let error = surface
-            .reconcile_virtual_list_materialization(owner_id(), 100_000, &mut changes)
-            .unwrap_err();
-
-        assert_eq!(
-            error,
-            UiVirtualListMaterializationError::ProtectedSlotRebind {
-                owner_id: owner_id(),
-                slot_index: protected_slot,
-                node_id: slot_roots[protected_slot],
-            }
-        );
-        assert!(changes.is_empty());
-        let slots = surface.virtual_list_slot_map(owner_id()).unwrap();
-        assert_eq!(slots.generation(), generation);
-        assert_eq!(slots.logical_index_for_slot(protected_slot), logical_index);
-    }
-
-    #[test]
-    fn stable_item_key_follows_logical_item_across_slot_reuse() {
-        let mut surface = surface_with_owner(true);
-        let mut changes = Vec::new();
-        let report = surface
-            .reconcile_virtual_list_materialization_with_keys(
-                owner_id(),
-                100_000,
-                &mut changes,
-                |logical_index| UiVirtualListItemKey::new(10_000 + logical_index as u128),
-            )
-            .unwrap();
-        let (slot_roots, _) = install_slot_subtrees(&mut surface, report.slot_capacity);
-        surface
-            .register_virtual_list_slots(owner_id(), &slot_roots)
-            .unwrap();
-        let slot_index = 7;
-        let previous = surface
-            .virtual_list_binding_for_node(owner_id(), slot_roots[slot_index])
-            .unwrap();
-        surface.tree.node_mut(owner_id()).unwrap().scroll_state = Some(UiScrollState {
-            offset: 1_200_000.0,
-            ..scroll_state()
-        });
-
-        surface
-            .reconcile_virtual_list_materialization_with_keys(
-                owner_id(),
-                100_000,
-                &mut changes,
-                |logical_index| UiVirtualListItemKey::new(10_000 + logical_index as u128),
-            )
-            .unwrap();
-
-        let rebound = surface
-            .virtual_list_binding_for_node(owner_id(), slot_roots[slot_index])
-            .unwrap();
-        assert_eq!(rebound.slot_root_id, previous.slot_root_id);
-        assert_ne!(rebound.logical_index, previous.logical_index);
-        assert_eq!(
-            rebound.item_key,
-            UiVirtualListItemKey::new(10_000 + rebound.logical_index as u128)
-        );
-    }
-
-    #[test]
-    fn key_only_rebind_advances_materialization_generation() {
-        let mut surface = surface_with_owner(true);
-        let mut changes = Vec::new();
-        let first = surface
-            .reconcile_virtual_list_materialization_with_keys(
-                owner_id(),
-                100_000,
-                &mut changes,
-                |logical_index| UiVirtualListItemKey::new(1_000 + logical_index as u128),
-            )
-            .unwrap();
-        let (slot_roots, _) = install_slot_subtrees(&mut surface, first.slot_capacity);
-        surface
-            .register_virtual_list_slots(owner_id(), &slot_roots)
-            .unwrap();
-
-        let second = surface
-            .reconcile_virtual_list_materialization_with_keys(
-                owner_id(),
-                100_000,
-                &mut changes,
-                |logical_index| {
-                    if logical_index == 7 {
-                        UiVirtualListItemKey::new(99_999)
-                    } else {
-                        UiVirtualListItemKey::new(1_000 + logical_index as u128)
-                    }
-                },
-            )
-            .unwrap();
-
-        assert_eq!(second.generation, first.generation + 1);
-        assert_eq!(second.changed_slot_count, 1);
-        assert_eq!(changes[0].logical_index, Some(7));
-        assert_eq!(changes[0].item_key, Some(UiVirtualListItemKey::new(99_999)));
-        assert_eq!(
-            surface
-                .virtual_list_binding_for_node(owner_id(), slot_roots[7])
-                .unwrap()
-                .item_key,
-            UiVirtualListItemKey::new(99_999)
-        );
-    }
-
-    #[test]
-    fn rebound_slot_rejects_its_previous_logical_identity() {
-        let mut surface = surface_with_owner(true);
-        surface.tree.node_mut(owner_id()).unwrap().scroll_state = Some(UiScrollState {
-            offset: 96.0,
-            ..scroll_state()
-        });
-        let mut changes = Vec::new();
-        let report = surface
-            .reconcile_virtual_list_materialization(owner_id(), 100_000, &mut changes)
-            .unwrap();
-        let (slot_roots, _) = install_slot_subtrees(&mut surface, report.slot_capacity);
-        surface
-            .register_virtual_list_slots(owner_id(), &slot_roots)
-            .unwrap();
-        let previous = slot_roots
-            .iter()
-            .map(|node_id| {
-                surface
-                    .virtual_list_binding_for_node(owner_id(), *node_id)
-                    .unwrap()
-            })
-            .collect::<Vec<_>>();
-        surface.tree.node_mut(owner_id()).unwrap().scroll_state = Some(UiScrollState {
-            offset: 120.0,
-            ..scroll_state()
-        });
-
-        surface
-            .reconcile_virtual_list_materialization(owner_id(), 100_000, &mut changes)
-            .unwrap();
-
-        assert_eq!(changes.len(), 1);
-        let slot_index = changes[0].slot_index;
-        let current = surface
-            .virtual_list_binding_for_node(owner_id(), slot_roots[slot_index])
-            .unwrap();
-        assert_ne!(
-            current.item_identity(),
-            previous[slot_index].item_identity()
-        );
-        assert_ne!(
-            current.assignment_generation,
-            previous[slot_index].assignment_generation
-        );
-        assert!(
-            !surface.virtual_list_binding_is_current(slot_roots[slot_index], previous[slot_index],)
-        );
-        assert!(surface.virtual_list_binding_is_current(slot_roots[slot_index], current));
-    }
-
-    #[test]
-    fn unchanged_slot_preserves_its_assignment_generation() {
-        let mut surface = surface_with_owner(true);
-        surface.tree.node_mut(owner_id()).unwrap().scroll_state = Some(UiScrollState {
-            offset: 96.0,
-            ..scroll_state()
-        });
-        let mut changes = Vec::new();
-        let report = surface
-            .reconcile_virtual_list_materialization(owner_id(), 100_000, &mut changes)
-            .unwrap();
-        let (slot_roots, _) = install_slot_subtrees(&mut surface, report.slot_capacity);
-        surface
-            .register_virtual_list_slots(owner_id(), &slot_roots)
-            .unwrap();
-        let previous = slot_roots
-            .iter()
-            .map(|node_id| {
-                surface
-                    .virtual_list_binding_for_node(owner_id(), *node_id)
-                    .unwrap()
-            })
-            .collect::<Vec<_>>();
-        surface.tree.node_mut(owner_id()).unwrap().scroll_state = Some(UiScrollState {
-            offset: 120.0,
-            ..scroll_state()
-        });
-
-        surface
-            .reconcile_virtual_list_materialization(owner_id(), 100_000, &mut changes)
-            .unwrap();
-
-        assert_eq!(changes.len(), 1);
-        let rebound_slot = changes[0].slot_index;
-        let unchanged_slot = (0..slot_roots.len())
-            .find(|slot_index| *slot_index != rebound_slot)
-            .unwrap();
-        let current = surface
-            .virtual_list_binding_for_node(owner_id(), slot_roots[unchanged_slot])
-            .unwrap();
-        assert_eq!(current, previous[unchanged_slot]);
-        assert!(
-            surface.virtual_list_binding_is_current(
-                slot_roots[unchanged_slot],
-                previous[unchanged_slot],
-            )
-        );
-    }
-
-    fn install_slot_subtrees(
-        surface: &mut UiSurface,
-        slot_count: usize,
-    ) -> (Vec<UiNodeId>, Vec<UiNodeId>) {
-        let mut slot_roots = Vec::with_capacity(slot_count);
-        let mut descendants = Vec::with_capacity(slot_count);
-        for slot_index in 0..slot_count {
-            let slot_root = UiNodeId::new(10 + slot_index as u64);
-            let descendant = UiNodeId::new(1_000 + slot_index as u64);
-            surface
-                .tree
-                .insert_child(
-                    owner_id(),
-                    UiTreeNode::new(
-                        slot_root,
-                        UiNodePath::new(format!("root/list/slot-{slot_index}")),
-                    ),
-                )
-                .unwrap();
-            surface
-                .tree
-                .insert_child(
-                    slot_root,
-                    UiTreeNode::new(
-                        descendant,
-                        UiNodePath::new(format!("root/list/slot-{slot_index}/label")),
-                    ),
-                )
-                .unwrap();
-            slot_roots.push(slot_root);
-            descendants.push(descendant);
-        }
-        (slot_roots, descendants)
-    }
-
-    fn surface_with_owner(virtualized: bool) -> UiSurface {
-        let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.virtual_list.surface"));
-        let virtualization = virtualized.then_some(UiVirtualListConfig {
-            item_extent: 24.0,
-            overscan: 3,
-        });
-        surface.tree.insert_root(
-            UiTreeNode::new(owner_id(), UiNodePath::new("root/list"))
-                .with_container(UiContainerKind::ScrollableBox(UiScrollableBoxConfig {
-                    virtualization,
-                    ..UiScrollableBoxConfig::default()
-                }))
-                .with_scroll_state(scroll_state()),
-        );
-        surface
-    }
-
-    fn scroll_state() -> UiScrollState {
-        UiScrollState {
-            offset: 0.0,
-            viewport_extent: 800.0,
-            content_extent: 2_400_000.0,
-        }
-    }
-
-    fn owner_id() -> UiNodeId {
-        UiNodeId::new(1)
-    }
-}
+#[path = "tests/virtual_list_materialization.rs"]
+mod tests;

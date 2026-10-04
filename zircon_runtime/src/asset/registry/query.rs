@@ -1,3 +1,6 @@
+use std::collections::HashSet;
+use std::ops::Bound;
+
 use crate::asset::{AssetId, AssetKind, AssetReference, AssetUri, AssetUuid};
 
 use super::{AssetRegistryEntry, AssetRegistryError, AssetRegistryFilter, AssetRegistryIndex};
@@ -11,11 +14,19 @@ impl AssetRegistryIndex {
     /// UE `GetAssets(FARFilter)` equivalent.
     pub fn get_assets(&self, filter: &AssetRegistryFilter) -> Vec<&AssetRegistryEntry> {
         if let Some(type_marker) = filter.type_marker {
-            return self.sorted_type_matches(type_marker, |entry| {
-                entry_matches_filter(entry, filter)
-            });
+            return self
+                .sorted_type_matches(type_marker, |entry| entry_matches_filter(entry, filter));
         }
-        self.sorted_matches(|entry| entry_matches_filter(entry, filter))
+        if filter.required_tags.is_empty()
+            && filter.path_prefix.is_none()
+            && filter.package_id.is_none()
+        {
+            return self.entries();
+        }
+        let mut entries = self.candidate_entries(filter);
+        entries.retain(|entry| entry_matches_filter(entry, filter));
+        entries.sort_by(|left, right| left.path().cmp(right.path()));
+        entries
     }
 
     /// UE uuid dependency signature.
@@ -41,7 +52,7 @@ impl AssetRegistryIndex {
             .flatten()
             .copied()
             .collect::<Vec<_>>();
-        referencers.sort_by_key(ToString::to_string);
+        referencers.sort_unstable_by(|left, right| left.binary_key().cmp(right.binary_key()));
         referencers
     }
 
@@ -97,17 +108,55 @@ impl AssetRegistryIndex {
             .filter(|current| *current != path)
     }
 
-    fn sorted_matches(
-        &self,
-        predicate: impl Fn(&AssetRegistryEntry) -> bool,
-    ) -> Vec<&AssetRegistryEntry> {
-        let mut entries = self
-            .entries_by_uuid
-            .values()
-            .filter(|entry| predicate(entry))
-            .collect::<Vec<_>>();
-        entries.sort_by(|left, right| left.path().cmp(right.path()));
-        entries
+    fn candidate_entries(&self, filter: &AssetRegistryFilter) -> Vec<&AssetRegistryEntry> {
+        // Keep direct postings borrowed; build a path-prefix union only when no direct
+        // posting can already bound the candidate set.
+        let mut candidate_uuids = None;
+
+        if let Some(package_id) = filter.package_id.as_deref() {
+            let Some(posting) = self.uuids_by_package.get(package_id) else {
+                return Vec::new();
+            };
+            choose_borrowed_posting(&mut candidate_uuids, posting);
+        }
+
+        for tag in &filter.required_tags {
+            let Some(posting) = self.uuids_by_tag.get(tag) else {
+                return Vec::new();
+            };
+            choose_borrowed_posting(&mut candidate_uuids, posting);
+        }
+
+        if candidate_uuids.is_none() {
+            if let Some(prefix) = filter.path_prefix.as_deref() {
+                let mut posting = HashSet::new();
+                for (path, uuids) in self
+                    .uuids_by_path_prefix
+                    .range::<str, _>((Bound::Included(prefix), Bound::Unbounded))
+                {
+                    if !path.starts_with(prefix) {
+                        break;
+                    }
+                    posting.extend(uuids.iter().copied());
+                }
+                if posting.is_empty() {
+                    return Vec::new();
+                }
+                choose_owned_posting(&mut candidate_uuids, posting);
+            }
+        }
+
+        match candidate_uuids {
+            Some(CandidatePosting::Borrowed(uuids)) => uuids
+                .iter()
+                .filter_map(|uuid| self.entries_by_uuid.get(uuid))
+                .collect(),
+            Some(CandidatePosting::Owned(uuids)) => uuids
+                .into_iter()
+                .filter_map(|uuid| self.entries_by_uuid.get(&uuid))
+                .collect(),
+            None => self.entries_iter().collect(),
+        }
     }
 
     fn sorted_type_matches(
@@ -128,6 +177,44 @@ impl AssetRegistryIndex {
     }
 }
 
+enum CandidatePosting<'a> {
+    Borrowed(&'a HashSet<AssetUuid>),
+    Owned(HashSet<AssetUuid>),
+}
+
+impl CandidatePosting<'_> {
+    fn len(&self) -> usize {
+        match self {
+            Self::Borrowed(posting) => posting.len(),
+            Self::Owned(posting) => posting.len(),
+        }
+    }
+}
+
+fn choose_borrowed_posting<'a>(
+    selected: &mut Option<CandidatePosting<'a>>,
+    posting: &'a HashSet<AssetUuid>,
+) {
+    if selected
+        .as_ref()
+        .is_none_or(|current| posting.len() < current.len())
+    {
+        *selected = Some(CandidatePosting::Borrowed(posting));
+    }
+}
+
+fn choose_owned_posting<'a>(
+    selected: &mut Option<CandidatePosting<'a>>,
+    posting: HashSet<AssetUuid>,
+) {
+    if selected
+        .as_ref()
+        .is_none_or(|current| posting.len() < current.len())
+    {
+        *selected = Some(CandidatePosting::Owned(posting));
+    }
+}
+
 fn entry_matches_filter(entry: &AssetRegistryEntry, filter: &AssetRegistryFilter) -> bool {
     filter
         .type_marker
@@ -145,3 +232,7 @@ fn entry_matches_filter(entry: &AssetRegistryEntry, filter: &AssetRegistryFilter
             .as_deref()
             .is_none_or(|package_id| entry.path().package_id() == Some(package_id))
 }
+
+#[cfg(all(test, windows))]
+#[path = "query/tests/unfiltered_profile.rs"]
+mod unfiltered_profile;

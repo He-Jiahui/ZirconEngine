@@ -75,8 +75,8 @@ fn sync_toast_state(
     state: &mut UiComponentState,
     descriptor: &UiComponentDescriptor,
 ) -> Result<(), UiComponentEventError> {
-    let current_id = string_setting(state, descriptor, CURRENT_TOAST_ID).unwrap_or_default();
-    let scan = scan_toast_queue(queue_value(state, descriptor), &current_id);
+    let current_id = string_setting_ref(state, descriptor, CURRENT_TOAST_ID).unwrap_or("");
+    let scan = scan_toast_queue(queue_value(state, descriptor), current_id);
     write_queue_length(state, scan.len);
 
     if scan.len == 0 {
@@ -99,19 +99,19 @@ fn sync_authored_message_state(
     state: &mut UiComponentState,
     descriptor: &UiComponentDescriptor,
 ) -> Result<(), UiComponentEventError> {
-    let message = [MESSAGE, TEXT]
+    let Some(message) = [MESSAGE, TEXT]
         .into_iter()
-        .filter_map(|property| string_setting(state, descriptor, property))
+        .filter_map(|property| string_setting_ref(state, descriptor, property))
         .find(|value| !value.is_empty())
-        .unwrap_or_default();
-    if message.is_empty() {
+    else {
         clear_current_toast(state, descriptor)?;
         return Ok(());
-    }
+    };
 
-    let current_id = string_setting(state, descriptor, CURRENT_TOAST_ID)
+    let current_id = string_setting_ref(state, descriptor, CURRENT_TOAST_ID)
         .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| message.clone());
+        .unwrap_or(message)
+        .to_owned();
     super::set_value(
         state,
         CURRENT_TOAST_ID.to_string(),
@@ -126,7 +126,9 @@ fn expire_current_toast(
     descriptor: &UiComponentDescriptor,
 ) -> Result<(), UiComponentEventError> {
     sync_toast_state(state, descriptor)?;
-    let current_id = string_setting(state, descriptor, CURRENT_TOAST_ID).unwrap_or_default();
+    let current_id = string_setting_ref(state, descriptor, CURRENT_TOAST_ID)
+        .unwrap_or("")
+        .to_owned();
     expire_toast(state, descriptor, &current_id)
 }
 
@@ -135,16 +137,20 @@ fn expire_toast(
     descriptor: &UiComponentDescriptor,
     expired_id: &str,
 ) -> Result<(), UiComponentEventError> {
-    let current_id = string_setting(state, descriptor, CURRENT_TOAST_ID).unwrap_or_default();
-    if !expired_id.is_empty() && !current_id.is_empty() && expired_id != current_id {
+    let should_resync = !expired_id.is_empty()
+        && string_setting_ref(state, descriptor, CURRENT_TOAST_ID)
+            .is_some_and(|current_id| !current_id.is_empty() && expired_id != current_id);
+    if should_resync {
         sync_toast_state(state, descriptor)?;
         return Ok(());
     }
 
     let expired_id = if expired_id.is_empty() {
-        current_id
+        string_setting_ref(state, descriptor, CURRENT_TOAST_ID)
+            .unwrap_or("")
+            .to_owned()
     } else {
-        expired_id.to_string()
+        expired_id.to_owned()
     };
     if expired_id.is_empty() {
         clear_current_toast(state, descriptor)?;
@@ -255,7 +261,7 @@ fn toast_id_from_commit(
 }
 
 fn has_current_toast(state: &UiComponentState, descriptor: &UiComponentDescriptor) -> bool {
-    string_setting(state, descriptor, CURRENT_TOAST_ID)
+    string_setting_ref(state, descriptor, CURRENT_TOAST_ID)
         .map(|value| !value.is_empty())
         .unwrap_or(false)
 }
@@ -479,7 +485,15 @@ fn string_setting(
     descriptor: &UiComponentDescriptor,
     property: &str,
 ) -> Option<String> {
-    value_setting(state, descriptor, property).and_then(string_value)
+    string_setting_ref(state, descriptor, property).map(str::to_owned)
+}
+
+fn string_setting_ref<'a>(
+    state: &'a UiComponentState,
+    descriptor: &'a UiComponentDescriptor,
+    property: &str,
+) -> Option<&'a str> {
+    value_setting(state, descriptor, property).and_then(string_value_ref)
 }
 
 fn first_string_value_ref<'a>(
@@ -543,101 +557,9 @@ fn set_optional_int(
 }
 
 #[cfg(test)]
-mod scan_tests {
-    use super::*;
+#[path = "tests/toast_scan_tests.rs"]
+mod scan_tests;
 
-    #[test]
-    fn borrowed_toast_scan_flattens_and_selects_current_entry() {
-        let mut mapped = BTreeMap::new();
-        mapped.insert("id".to_string(), UiValue::String("second".to_string()));
-        mapped.insert(
-            "message".to_string(),
-            UiValue::String("Second message".to_string()),
-        );
-        let queue = UiValue::Array(vec![
-            UiValue::String("first|message=First message".to_string()),
-            UiValue::Array(vec![UiValue::Map(mapped)]),
-        ]);
-
-        let scan = scan_toast_queue(Some(&queue), "second");
-
-        assert_eq!(scan.len, 2);
-        let current = scan.current.unwrap();
-        assert_eq!(current.id, "second");
-        assert_eq!(current.message, "Second message");
-    }
-
-    #[test]
-    fn borrowed_toast_raw_preserves_enum_to_string_normalization() {
-        let queue = UiValue::Enum("notice|message=Hello".to_string());
-        let mut retained = Vec::new();
-
-        visit_toast_entries(&queue, &mut |entry| {
-            retained.push(entry.raw.to_owned_value());
-        });
-
-        assert_eq!(
-            retained,
-            vec![UiValue::String("notice|message=Hello".to_string())]
-        );
-    }
-
-    #[test]
-    fn optimization_batch_20260830da_toast_queue_capacity_uses_root_shape() {
-        let flat = UiValue::Array(vec![
-            UiValue::String("first".to_string()),
-            UiValue::String("second".to_string()),
-            UiValue::Bool(false),
-        ]);
-
-        assert_eq!(toast_queue_root_capacity(&flat), 3);
-        assert_eq!(
-            toast_queue_root_capacity(&UiValue::String("single".to_string())),
-            1
-        );
-        assert_eq!(toast_queue_root_capacity(&UiValue::Bool(false)), 0);
-
-        let source = include_str!("toast.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("toast reducer production source");
-        assert!(production.contains("remaining.reserve(toast_queue_root_capacity(queue));"));
-    }
-
-    #[test]
-    #[ignore = "release-only performance evidence"]
-    fn optimization_batch_20260830da_toast_queue_root_capacity_evidence() {
-        const BATCH_COUNT: usize = 32_768;
-        const QUEUE_ENTRY_COUNT: usize = 32;
-        const MARKER: &str = "RUNTIME513_TOAST_QUEUE_ROOT_CAPACITY_BENCH_V1";
-
-        let legacy_growth_events = queue_growth_events(BATCH_COUNT, QUEUE_ENTRY_COUNT, false);
-        let optimized_growth_events = queue_growth_events(BATCH_COUNT, QUEUE_ENTRY_COUNT, true);
-
-        assert!(legacy_growth_events > 0);
-        assert_eq!(optimized_growth_events, 0);
-        println!(
-            "{MARKER} batches={BATCH_COUNT} root_entries={QUEUE_ENTRY_COUNT} \
-             legacy_growth_events={legacy_growth_events} \
-             optimized_growth_events={optimized_growth_events} reduction_pct=100"
-        );
-    }
-
-    fn queue_growth_events(batch_count: usize, entry_count: usize, reserve: bool) -> usize {
-        let mut growth_events = 0;
-        for _ in 0..batch_count {
-            let mut remaining = if reserve {
-                Vec::with_capacity(entry_count)
-            } else {
-                Vec::new()
-            };
-            for entry in 0..entry_count {
-                let previous_capacity = remaining.capacity();
-                remaining.push(entry);
-                growth_events += usize::from(remaining.capacity() != previous_capacity);
-            }
-        }
-        growth_events
-    }
-}
+#[cfg(test)]
+#[path = "toast/tests/borrowed_setting_tests.rs"]
+mod borrowed_setting_tests;

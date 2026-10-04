@@ -10,6 +10,7 @@ mod export_validate_report;
 mod from_project_manifest;
 mod generated_files;
 mod library_embed_compile_plan;
+mod linked_feature_source;
 mod main_template;
 mod materialize;
 mod native_dynamic_package_plan;
@@ -20,7 +21,7 @@ mod project_manifest_validation;
 mod source_template_build_plan;
 
 pub use error::ExportBuildPlanError;
-pub use export_build_plan::ExportBuildPlan;
+pub use export_build_plan::{ExportBuildPlan, ExportPlanAdmissionProof};
 pub(crate) use export_build_plan::{ExportLinkedRuntimeCrate, ExportRuntimeCrateRegistrationKind};
 pub use export_generated_file::ExportGeneratedFile;
 pub use export_materialize_report::ExportMaterializeReport;
@@ -31,6 +32,8 @@ pub use export_validate_report::{
 pub use library_embed_compile_plan::{
     LibraryEmbedCompileHostPlan, LibraryEmbedCompileHostTarget, LibraryEmbedLinkedRuntimeCrate,
 };
+use linked_feature_source::admit_linked_feature_sources;
+pub use linked_feature_source::ExportLinkedFeatureSourceReceipt;
 pub use native_dynamic_package_plan::{
     NativeDynamicPackageAbiV3Contract, NativeDynamicPackageExportPlan,
 };

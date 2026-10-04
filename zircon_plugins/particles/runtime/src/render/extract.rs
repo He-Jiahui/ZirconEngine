@@ -8,7 +8,7 @@ use zircon_runtime::core::math::{Real, Vec3};
 use crate::ParticleRuntimeSnapshot;
 
 #[cfg(test)]
-#[path = "extract/performance_tests.rs"]
+#[path = "extract/tests/performance_tests.rs"]
 mod performance_tests;
 
 pub fn build_particle_extract(

@@ -1,3 +1,4 @@
+// 把场景与检查器快照同步到工作台模板桥，约束仅保留作者定义的树骨架。
 use super::*;
 
 #[test]
@@ -35,12 +36,14 @@ fn componentized_workbench_window_template_bridge_syncs_scene_and_inspector_snap
         [2],
     );
     let inspector = InspectorSnapshot {
+        rotation_degrees: None,
         id: 2,
         name: "GameplayRoot".to_string(),
         parent: "World".to_string(),
         translation: ["12.0".to_string(), "3.5".to_string(), "-8.0".to_string()],
         scale: ["1.0".to_string(), "1.0".to_string(), "1.0".to_string()],
         render_layer_mask: 0x21,
+        native_fields: Vec::new(),
         plugin_components: vec![InspectorPluginComponentSnapshot {
             component_id: "zircon.transform".to_string(),
             display_name: "Transform Component".to_string(),
@@ -150,6 +153,31 @@ fn componentized_workbench_window_template_bridge_syncs_scene_and_inspector_snap
     assert_eq!(
         control_string(&bridge, "WorkbenchTransformPositionZ", "value").as_deref(),
         Some("-8.0")
+    );
+    let painted = to_host_contract_workbench_window_nodes(Some(bridge.host_projection()));
+    assert_eq!(
+        template_contract_node(&painted, "WorkbenchInspectorTitle")
+            .text
+            .as_str(),
+        "GameplayRoot"
+    );
+    assert_eq!(
+        template_contract_node(&painted, "WorkbenchTransformPositionX")
+            .value_text
+            .as_str(),
+        "12.0"
+    );
+    assert_eq!(
+        template_contract_node(&painted, "WorkbenchMeshLabel")
+            .text
+            .as_str(),
+        "Transform Component"
+    );
+    assert_eq!(
+        template_contract_node(&painted, "WorkbenchComponentPropertySlot04Row")
+            .value_text
+            .as_str(),
+        "true"
     );
     let position_x = bridge
         .host_projection()
@@ -418,12 +446,14 @@ fn componentized_workbench_scene_tree_keeps_only_the_authored_retained_skeleton(
         "v2",
     );
     let inspector = InspectorSnapshot {
+        rotation_degrees: None,
         id: 13,
         name: "SceneNode_13".to_string(),
         parent: "SceneNode_12".to_string(),
         translation: ["0.0".to_string(), "1.0".to_string(), "2.0".to_string()],
         scale: ["1.0".to_string(), "1.0".to_string(), "1.0".to_string()],
         render_layer_mask: 1,
+        native_fields: Vec::new(),
         plugin_components: Vec::new(),
     };
     let thirteen_entries = numbered_scene_entries(13, 12);
@@ -457,4 +487,152 @@ fn componentized_workbench_scene_tree_keeps_only_the_authored_retained_skeleton(
         .host_projection()
         .node_by_control_id("WorkbenchSceneVirtualItem12")
         .is_none());
+}
+
+#[test]
+fn inspector_live_values_reach_host_paint_after_sparse_and_full_surface_refresh() {
+    let _guard = env_lock().lock().unwrap();
+    let mut bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1280.0, 800.0)).unwrap();
+    let entries = SceneEntries::from_entries(
+        vec![
+            SceneEntry {
+                id: 1,
+                name: "Camera".to_string(),
+                depth: 0,
+            },
+            SceneEntry {
+                id: 3,
+                name: "Cube".to_string(),
+                depth: 0,
+            },
+        ],
+        [1],
+    );
+    let mut inspector = InspectorSnapshot {
+        rotation_degrees: None,
+        id: 1,
+        name: "Camera".to_string(),
+        parent: String::new(),
+        translation: ["21.00".to_string(), "2.00".to_string(), "14.50".to_string()],
+        scale: ["1.00".to_string(), "1.00".to_string(), "1.00".to_string()],
+        render_layer_mask: 1,
+        native_fields: Vec::new(),
+        plugin_components: Vec::new(),
+    };
+    bridge
+        .sync_scene_and_inspector(&entries, Some(&inspector))
+        .unwrap();
+    let nodes = to_host_contract_workbench_window_nodes(Some(bridge.host_projection()));
+    assert_eq!(
+        template_contract_node(&nodes, "WorkbenchInspectorTitle")
+            .text
+            .as_str(),
+        "Camera"
+    );
+    assert_eq!(
+        template_contract_node(&nodes, "WorkbenchTransformPositionX")
+            .value_text
+            .as_str(),
+        "21.00"
+    );
+    assert_eq!(
+        template_contract_node(&nodes, "WorkbenchTransformPositionZ")
+            .value_text
+            .as_str(),
+        "14.50"
+    );
+    inspector.id = 3;
+    inspector.name = "Cube".to_string();
+    inspector.translation = ["0.00".to_string(), "0.00".to_string(), "0.00".to_string()];
+    let entries = SceneEntries::from_entries(
+        vec![
+            SceneEntry {
+                id: 1,
+                name: "Camera".to_string(),
+                depth: 0,
+            },
+            SceneEntry {
+                id: 3,
+                name: "Cube".to_string(),
+                depth: 0,
+            },
+        ],
+        [3],
+    );
+    bridge
+        .sync_scene_and_inspector(&entries, Some(&inspector))
+        .unwrap();
+    let nodes = to_host_contract_workbench_window_nodes(Some(bridge.host_projection()));
+    assert_eq!(
+        template_contract_node(&nodes, "WorkbenchInspectorTitle")
+            .text
+            .as_str(),
+        "Cube"
+    );
+    assert_eq!(
+        template_contract_node(&nodes, "WorkbenchTransformPositionX")
+            .value_text
+            .as_str(),
+        "0.00"
+    );
+    // An edit is a sparse surface mutation; the callback must retain its typed real commit.
+    assert_eq!(
+        bridge
+            .edit_inspector_transform_axis(
+                "WorkbenchTransformPositionX",
+                "Inspector/TransformPositionXEdit",
+                "4.25"
+            )
+            .unwrap(),
+        Some(true)
+    );
+    let nodes = to_host_contract_workbench_window_nodes(Some(bridge.host_projection()));
+    assert_eq!(
+        template_contract_node(&nodes, "WorkbenchTransformPositionX")
+            .value_text
+            .as_str(),
+        "4.25"
+    );
+    let binding = bridge
+        .transform_axis_commit_binding(
+            "WorkbenchTransformPositionX",
+            "Inspector/TransformPositionXCommit",
+            "4.25",
+        )
+        .unwrap()
+        .unwrap();
+    let EditorUiBindingPayload::InspectorFieldBatch { changes, .. } = binding.payload() else {
+        panic!("real inspector commit binding");
+    };
+    assert_eq!(changes[0].field_id, "transform.translation.x");
+    assert_eq!(
+        changes[0].value,
+        zircon_runtime_interface::ui::binding::UiBindingValue::Float(4.25)
+    );
+    // Removing selection must publish collapsed Inspector groups with the new title.
+    bridge
+        .sync_scene_and_inspector(&SceneEntries::default(), None)
+        .unwrap();
+    let nodes = to_host_contract_workbench_window_nodes(Some(bridge.host_projection()));
+    assert_eq!(
+        template_contract_node(&nodes, "WorkbenchInspectorTitle")
+            .text
+            .as_str(),
+        "No Selection"
+    );
+    assert_eq!(
+        control_visibility(&bridge, "WorkbenchInspectorTransform"),
+        Some(UiVisibility::Collapsed)
+    );
+    let transform = bridge
+        .host_projection()
+        .node_by_control_id("WorkbenchInspectorTransform")
+        .unwrap();
+    assert_eq!(
+        transform.properties.get("visibility"),
+        Some(&crate::ui::template_runtime::RetainedUiHostValue::String(
+            "collapsed".to_string()
+        ))
+    );
 }

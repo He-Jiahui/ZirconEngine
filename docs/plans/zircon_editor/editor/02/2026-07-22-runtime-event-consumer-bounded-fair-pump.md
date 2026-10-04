@@ -19,7 +19,7 @@ failure:
 Plan: docs/plans/zircon_editor/editor/02-data-sync-and-messaging.md
 Milestone: M2
 Status: review_clean_static_green_validation_pending
-Files: ["docs/plans/zircon_editor/editor/02/failure-2026-07-17-runtime-event-consumer-unbounded-pump-lock.md", "docs/zircon_editor/core/runtime_event_consumer.md", "tools/tests/test_editor02_runtime_event_consumer_bounded_pump_contract.py", "zircon_editor/src/core/runtime_event_consumer/error.rs", "zircon_editor/src/core/runtime_event_consumer/host.rs", "zircon_editor/src/core/runtime_event_consumer/pump.rs", "zircon_editor/src/core/runtime_event_consumer/mod.rs", "zircon_editor/src/tests/mod.rs", "zircon_editor/src/tests/runtime_event_consumer_bounded_pump.rs"]
+Files: ["docs/plans/zircon_editor/editor/02/failure-2026-07-17-runtime-event-consumer-unbounded-pump-lock.md", "docs/crates/zircon_editor/core/runtime_event_consumer.md", "tools/tests/test_editor02_runtime_event_consumer_bounded_pump_contract.py", "zircon_editor/src/core/runtime_event_consumer/error.rs", "zircon_editor/src/core/runtime_event_consumer/host.rs", "zircon_editor/src/core/runtime_event_consumer/pump.rs", "zircon_editor/src/core/runtime_event_consumer/mod.rs", "zircon_editor/src/tests/mod.rs", "zircon_editor/src/tests/runtime_event_consumer_bounded_pump.rs"]
 
 本切片修复 Editor02 runtime event consumer 主线程泵的最低共享层。active registry 只在快照、pending ownership 和 sequence 条件提交时短暂加锁；gateway、JSON decode 与 plugin callback 全部在锁外。transport 当前仍可一次返回完整 `Vec`，但未进入本 tick 预算的 delivery 不再丢失，而是由 Editor02 generation 绑定的 pending queue 保序延后。
 

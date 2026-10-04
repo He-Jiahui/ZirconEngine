@@ -1,3 +1,4 @@
+# 核对原生动态载荷前缀索引支持有序子项查询与批量插件根复用。
 from __future__ import annotations
 
 import tempfile
@@ -5,8 +6,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_export import native_dynamic_payload_directory as payload_directory
-from tools.zircon_export import (
+from tools.export import native_dynamic_payload_directory as payload_directory
+from tools.export import (
     pipeline_report_native_dynamic_stage_payload_operation_audit as operation_audit,
 )
 

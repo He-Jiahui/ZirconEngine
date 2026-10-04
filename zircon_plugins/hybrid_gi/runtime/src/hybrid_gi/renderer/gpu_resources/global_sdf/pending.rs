@@ -144,6 +144,7 @@ fn completed_requests_from_words(
             requests.len()
         )));
     }
+    // 仅完成字为 1 的页可提交为可采样；未完成或未初始化的页保留后续重建机会。
     Ok(requests
         .iter()
         .copied()
@@ -153,21 +154,5 @@ fn completed_requests_from_words(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn empty_gpu_dispatch_retains_terminal_fallback_statistics() {
-        let stats = GlobalSdfGpuBuildStats {
-            candidate_overflow_page_count: 1,
-            deferred_page_count: 3,
-            ..GlobalSdfGpuBuildStats::default()
-        };
-
-        let dispatch = GlobalSdfGpuBuildDispatch::without_pending(stats);
-
-        assert_eq!(dispatch.stats(), stats);
-        assert!(!dispatch.encoded_gpu_work());
-        assert!(dispatch.into_pending().is_none());
-    }
-}
+#[path = "tests/pending.rs"]
+mod tests;

@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime/src/ui/surface/surface/rebuild/incremental.rs"
 
-
+# 读取布局预算与更新路径，约束局部增量的显式上限，以及大范围变更只执行一次完整遍历。
 class RuntimeUiLayoutRebuildBudgetPerformanceContract(unittest.TestCase):
     def test_layout_path_has_an_explicit_bounded_incremental_budget(self):
         source = SOURCE.read_text(encoding="utf-8")

@@ -3,7 +3,8 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 
-use glyphon::{FontSystem, fontdb};
+use glyphon::{fontdb, FontSystem};
+use sha2::{Digest, Sha256};
 
 use crate::asset::assets::{
     decode_font_source, validate_font_metadata_budget, validate_font_source_file_len,
@@ -23,7 +24,7 @@ use super::face_metadata::FontFaceMetadata;
 use super::fallback::MissingGlyphLog;
 use super::fallback_cache::{CompositeFontIdentity, FallbackCaches};
 use super::instance::{EffectiveInstanceCache, FontInstanceRegistry};
-use super::matching::{FontFamilyIdentity, font_family_identity};
+use super::matching::{font_family_identity, FontFamilyIdentity};
 
 mod asset_lifecycle;
 mod error;
@@ -44,6 +45,8 @@ struct StoredFontFace {
     active: bool,
     descriptor: FontFaceDescriptor,
     source: StoredFontSource,
+    resource_path: Option<PathBuf>,
+    resource_sha256: Option<[u8; 32]>,
     source_bytes: Arc<OnceLock<Arc<[u8]>>>,
     standalone_bytes: Arc<OnceLock<Arc<[u8]>>>,
     metadata: Arc<OnceLock<FontFaceMetadata>>,
@@ -82,6 +85,12 @@ impl FontSourceKey {
 #[derive(Clone, Debug)]
 struct SharedFontBytes {
     bytes: Arc<[u8]>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct ReadFontSource {
+    pub(super) bytes: Vec<u8>,
+    pub(super) resource_sha256: [u8; 32],
 }
 
 #[derive(Clone, Debug)]
@@ -229,15 +238,19 @@ impl FontDatabase {
             return Ok(*face);
         }
 
-        let bytes = read_decoded_font_source(source_path)?;
-        let metadata = FontFaceMetadata::from_sfnt_bytes(&bytes, face_index);
+        let source = read_font_source(source_path)?;
+        let metadata = FontFaceMetadata::from_sfnt_bytes(&source.bytes, face_index)
+            .with_resource_sha256(source.resource_sha256);
         let descriptor = descriptor_from_font_metadata(&metadata, family, source_path, face_index);
-        self.register_stored_face_with_metadata(
+        let resource_path = std::fs::canonicalize(source_path).ok();
+        let face = self.register_stored_face_with_metadata(
             descriptor,
-            Arc::from(bytes.into_boxed_slice()),
+            Arc::from(source.bytes.into_boxed_slice()),
             metadata,
-            Some(source_key.path),
-        )
+            resource_path,
+        )?;
+        self.source_face_index.insert(source_key, face);
+        Ok(face)
     }
 
     pub(crate) fn set_project_composite_font(
@@ -443,10 +456,16 @@ impl FontDatabase {
             StoredFontSource::SharedBytes(bytes) => initialized_face_bytes(Arc::clone(bytes)),
             StoredFontSource::FontDb { .. } => Arc::new(OnceLock::new()),
         };
+        let resource_path = source_path.or_else(|| {
+            fontdb_source_path(&source).and_then(|path| std::fs::canonicalize(path).ok())
+        });
+        let resource_sha256 = metadata.get().and_then(FontFaceMetadata::resource_sha256);
         self.faces.push(StoredFontFace {
             active: true,
             descriptor,
             source,
+            resource_path: resource_path.clone(),
+            resource_sha256,
             source_bytes,
             standalone_bytes: Arc::new(OnceLock::new()),
             metadata,
@@ -461,10 +480,10 @@ impl FontDatabase {
         }
         self.default_instances.insert(id, default_instance);
         self.family_index.entry(family_key).or_default().push(id);
-        if let Some(source_path) = source_path {
+        if let Some(resource_path) = resource_path {
             self.source_face_index.insert(
                 FontSourceKey {
-                    path: source_path,
+                    path: resource_path,
                     face_index,
                 },
                 id,
@@ -501,7 +520,7 @@ impl FontDatabase {
         source_path: &Path,
     ) -> Result<FontFaceId, FontDatabaseError> {
         let metadata = FontFaceMetadata::from_sfnt_bytes(bytes.as_ref(), descriptor.face_index);
-        self.register_asset_registration(descriptor, metadata, bytes, source_path)
+        self.register_asset_registration(descriptor, metadata, bytes, source_path, None)
             .map(|(_, face)| face)
     }
 
@@ -511,6 +530,7 @@ impl FontDatabase {
         metadata: FontFaceMetadata,
         bytes: Arc<[u8]>,
         source_path: &Path,
+        resource_path: Option<&Path>,
     ) -> Result<(FontAssetSourceKey, FontFaceId), FontDatabaseError> {
         descriptor.variations = metadata.effective_variations(&descriptor.variations, None);
         let source_key = FontAssetSourceKey::from_descriptor(
@@ -518,10 +538,19 @@ impl FontDatabase {
             &descriptor,
             metadata.source_identity(),
         );
-        if let Some(face) = self.asset_source_index.get(&source_key) {
-            return Ok((source_key, *face));
+        if let Some(face) = self.asset_source_index.get(&source_key).copied() {
+            if let Some(stored) = self.face_mut(face) {
+                stored.resource_path = resource_path.map(Path::to_path_buf);
+                stored.resource_sha256 = metadata.resource_sha256();
+            }
+            return Ok((source_key, face));
         }
-        let face = self.register_stored_face_with_metadata(descriptor, bytes, metadata, None)?;
+        let face = self.register_stored_face_with_metadata(
+            descriptor,
+            bytes,
+            metadata,
+            resource_path.map(Path::to_path_buf),
+        )?;
         self.asset_source_index.insert(source_key.clone(), face);
         Ok((source_key, face))
     }
@@ -533,6 +562,11 @@ impl FontDatabase {
     fn face(&self, face: FontFaceId) -> Option<&StoredFontFace> {
         let index = face.0.checked_sub(1)? as usize;
         self.faces.get(index).filter(|stored| stored.active)
+    }
+
+    fn face_mut(&mut self, face: FontFaceId) -> Option<&mut StoredFontFace> {
+        let index = face.0.checked_sub(1)? as usize;
+        self.faces.get_mut(index).filter(|stored| stored.active)
     }
 
     #[cfg(test)]
@@ -627,6 +661,18 @@ fn fontdb_source_from_stored(source: &StoredFontSource) -> fontdb::Source {
     }
 }
 
+fn fontdb_source_path(source: &StoredFontSource) -> Option<&Path> {
+    match source {
+        StoredFontSource::FontDb {
+            source: fontdb::Source::File(path) | fontdb::Source::SharedFile(path, _),
+        } => Some(path.as_path()),
+        StoredFontSource::SharedBytes(_)
+        | StoredFontSource::FontDb {
+            source: fontdb::Source::Binary(_),
+        } => None,
+    }
+}
+
 impl AsRef<[u8]> for SharedFontBytes {
     fn as_ref(&self) -> &[u8] {
         self.bytes.as_ref()
@@ -641,7 +687,7 @@ pub(super) fn canonical_source_key(source_path: &Path) -> PathBuf {
     std::fs::canonicalize(source_path).unwrap_or_else(|_| source_path.to_path_buf())
 }
 
-fn read_decoded_font_source(source_path: &Path) -> Result<Vec<u8>, FontDatabaseError> {
+pub(super) fn read_font_source(source_path: &Path) -> Result<ReadFontSource, FontDatabaseError> {
     let source_size = std::fs::metadata(source_path)
         .map_err(|source| FontDatabaseError::ReadFailed {
             path: source_path.to_path_buf(),
@@ -658,6 +704,7 @@ fn read_decoded_font_source(source_path: &Path) -> Result<Vec<u8>, FontDatabaseE
         path: source_path.to_path_buf(),
         source,
     })?;
+    let resource_sha256 = Sha256::digest(&bytes).into();
     let source = decode_font_source(bytes).map_err(|source| match source {
         crate::asset::assets::FontSourceDecodeError::Budget(source) => {
             FontDatabaseError::SourceBudget {
@@ -676,10 +723,14 @@ fn read_decoded_font_source(source_path: &Path) -> Result<Vec<u8>, FontDatabaseE
             source,
         }
     })?;
-    Ok(source.into_bytes())
+    Ok(ReadFontSource {
+        bytes: source.into_bytes(),
+        resource_sha256,
+    })
 }
 
 mod equivalence;
 
 #[cfg(test)]
+#[path = "database/tests/cases.rs"]
 mod tests;

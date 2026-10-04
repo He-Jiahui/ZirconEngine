@@ -1,0 +1,451 @@
+penpot_host_theme_source = "zircon_editor/assets/ui/editor/theme/editor_tokens.zui"
+stylesheets = []
+penpot_dependency_sources = [ "zircon_editor/assets/ui/editor/theme/editor_tokens.zui" ]
+penpot_original_source = "[asset]\nkind = \"component\"\nid = \"res://ui/editor/components/showcase/showcase_state_panel.zui\"\nversion = 2\ndisplay_name = \"Showcase State Panel\"\n\n[imports]\nwidgets = []\nstyles = [\"res://ui/editor/theme/editor_tokens.zui\"]\n\n[components.ShowcaseStatePanel]\nroot = \"state_panel_root\"\ndefault_classes = [\"showcase-panel\"]\n\n[nodes.state_title]\ncomponent = \"Label\"\ncontrol_id = \"ComponentShowcaseStateTitle\"\nclasses = [\"showcase-title\"]\nprops = { text = \"Runtime State and Events\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = \"Fixed\" } }\n\n[nodes.selected_category]\ncomponent = \"PropertyRow\"\ncontrol_id = \"ComponentShowcaseSelectedCategory\"\nclasses = [\"showcase-field\"]\nprops = { text = \"Category\", value = \"All\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = \"Fixed\" } }\n\n[nodes.last_control]\ncomponent = \"PropertyRow\"\ncontrol_id = \"ComponentShowcaseLastControl\"\nclasses = [\"showcase-field\"]\nprops = { text = \"Last Control\", value = \"No component event yet\" }\n# Status values remain readable at the 240px compact showcase width. The two-line\n# content-driven row is the narrow translation of the ReactBits app-shell detail\n# panel; it avoids clipping the retained event state while preserving 14px body text.\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 48.0, max = 48.0, stretch = \"Fixed\" } }\n\n[nodes.last_action]\ncomponent = \"PropertyRow\"\ncontrol_id = \"ComponentShowcaseLastAction\"\nclasses = [\"showcase-field\"]\nprops = { text = \"Last Action\", value = \"Waiting for Runtime UI event\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 48.0, max = 48.0, stretch = \"Fixed\" } }\n\n[nodes.current_value]\ncomponent = \"PropertyRow\"\ncontrol_id = \"ComponentShowcaseCurrentValue\"\nclasses = [\"showcase-field\"]\nprops = { text = \"Current Value\", value = \"Select or edit a control\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 48.0, max = 48.0, stretch = \"Fixed\" } }\n\n[nodes.validation]\ncomponent = \"PropertyRow\"\ncontrol_id = \"ComponentShowcaseValidation\"\nclasses = [\"showcase-field\"]\nprops = { text = \"Validation\", value = \"normal\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = \"Fixed\" } }\n\n[nodes.drag_payload]\ncomponent = \"PropertyRow\"\ncontrol_id = \"ComponentShowcaseDragPayload\"\nclasses = [\"showcase-field\"]\nprops = { text = \"Drag / Drop\", value = \"No retained drop payload\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 48.0, max = 48.0, stretch = \"Fixed\" } }\n\n[nodes.event_log]\ncomponent = \"Label\"\ncontrol_id = \"ComponentShowcaseEventLog\"\nclasses = [\"showcase-muted\"]\nprops = { text = \"Registered events: NumberField drag/commit, popup open/close, Dropdown change, Foldout toggle, Array/Map change, reference drop\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 64.0, preferred = 64.0, max = 64.0, stretch = \"Fixed\" } }\n\n[nodes.state_panel_root]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ComponentShowcaseStatePanel\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.small\" } }\nchildren = [\n  { node = \"state_title\" },\n  { node = \"selected_category\" },\n  { node = \"last_control\" },\n  { node = \"last_action\" },\n  { node = \"current_value\" },\n  { node = \"validation\" },\n  { node = \"drag_payload\" },\n  { node = \"event_log\" },\n]\n"
+
+[asset]
+kind = "component"
+id = "res://ui/editor/components/showcase/showcase_state_panel.zui"
+version = 2
+display_name = "Showcase State Panel"
+
+[imports]
+widgets = []
+styles = []
+
+[components.ShowcaseStatePanel]
+root = "state_panel_root"
+default_classes = [ "showcase-panel" ]
+
+[nodes.state_title]
+component = "Label"
+control_id = "ComponentShowcaseStateTitle"
+classes = [ "showcase-title" ]
+
+[nodes.state_title.props]
+text = "Runtime State and Events"
+
+[nodes.state_title.layout.width]
+stretch = "Stretch"
+
+[nodes.state_title.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.selected_category]
+component = "PropertyRow"
+control_id = "ComponentShowcaseSelectedCategory"
+classes = [ "showcase-field" ]
+
+[nodes.selected_category.props]
+text = "Category"
+value = "All"
+
+[nodes.selected_category.layout.width]
+stretch = "Stretch"
+
+[nodes.selected_category.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.last_control]
+component = "PropertyRow"
+control_id = "ComponentShowcaseLastControl"
+classes = [ "showcase-field" ]
+
+[nodes.last_control.props]
+text = "Last Control"
+value = "No component event yet"
+
+[nodes.last_control.layout.width]
+stretch = "Stretch"
+
+[nodes.last_control.layout.height]
+min = 32
+preferred = 48
+max = 48
+stretch = "Fixed"
+
+[nodes.last_action]
+component = "PropertyRow"
+control_id = "ComponentShowcaseLastAction"
+classes = [ "showcase-field" ]
+
+[nodes.last_action.props]
+text = "Last Action"
+value = "Waiting for Runtime UI event"
+
+[nodes.last_action.layout.width]
+stretch = "Stretch"
+
+[nodes.last_action.layout.height]
+min = 32
+preferred = 48
+max = 48
+stretch = "Fixed"
+
+[nodes.current_value]
+component = "PropertyRow"
+control_id = "ComponentShowcaseCurrentValue"
+classes = [ "showcase-field" ]
+
+[nodes.current_value.props]
+text = "Current Value"
+value = "Select or edit a control"
+
+[nodes.current_value.layout.width]
+stretch = "Stretch"
+
+[nodes.current_value.layout.height]
+min = 32
+preferred = 48
+max = 48
+stretch = "Fixed"
+
+[nodes.validation]
+component = "PropertyRow"
+control_id = "ComponentShowcaseValidation"
+classes = [ "showcase-field" ]
+
+[nodes.validation.props]
+text = "Validation"
+value = "normal"
+
+[nodes.validation.layout.width]
+stretch = "Stretch"
+
+[nodes.validation.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.drag_payload]
+component = "PropertyRow"
+control_id = "ComponentShowcaseDragPayload"
+classes = [ "showcase-field" ]
+
+[nodes.drag_payload.props]
+text = "Drag / Drop"
+value = "No retained drop payload"
+
+[nodes.drag_payload.layout.width]
+stretch = "Stretch"
+
+[nodes.drag_payload.layout.height]
+min = 32
+preferred = 48
+max = 48
+stretch = "Fixed"
+
+[nodes.event_log]
+component = "Label"
+control_id = "ComponentShowcaseEventLog"
+classes = [ "showcase-muted" ]
+
+[nodes.event_log.props]
+text = "Registered events: NumberField drag/commit, popup open/close, Dropdown change, Foldout toggle, Array/Map change, reference drop"
+
+[nodes.event_log.layout.width]
+stretch = "Stretch"
+
+[nodes.event_log.layout.height]
+min = 64
+preferred = 64
+max = 64
+stretch = "Fixed"
+
+[nodes.state_panel_root]
+component = "VerticalBox"
+control_id = "ComponentShowcaseStatePanel"
+
+[nodes.state_panel_root.layout.width]
+stretch = "Stretch"
+
+[nodes.state_panel_root.layout.height]
+stretch = "Stretch"
+
+[nodes.state_panel_root.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.small"
+
+[[nodes.state_panel_root.children]]
+node = "state_title"
+
+[[nodes.state_panel_root.children]]
+node = "selected_category"
+
+[[nodes.state_panel_root.children]]
+node = "last_control"
+
+[[nodes.state_panel_root.children]]
+node = "last_action"
+
+[[nodes.state_panel_root.children]]
+node = "current_value"
+
+[[nodes.state_panel_root.children]]
+node = "validation"
+
+[[nodes.state_panel_root.children]]
+node = "drag_payload"
+
+[[nodes.state_panel_root.children]]
+node = "event_log"
+
+[penpot_host_colors]
+primary = "#60aeff"
+accent = "#60aeff"
+"material.primary" = "#60aeff"
+material_color_primary = "#60aeff"
+on_primary = "#151515"
+"material.on_primary" = "#151515"
+material_color_on_primary = "#151515"
+surface = "#2f2f2f"
+"material.surface" = "#2f2f2f"
+surface_inset = "#0f0f0f"
+"material.surface_inset" = "#0f0f0f"
+surface_hover = "#454545"
+"material.surface_hover" = "#454545"
+surface_pressed = "#383838"
+"material.surface_pressed" = "#383838"
+surface_selected = "#243f5a"
+"material.surface_selected" = "#243f5a"
+disabled = "#2b2b2b"
+"material.disabled" = "#2b2b2b"
+border = "#484848"
+outline = "#484848"
+"material.outline" = "#484848"
+focus = "#66b2ff"
+focus_ring = "#66b2ff"
+"material.focus_ring" = "#66b2ff"
+text = "#e8e8e8"
+on_surface = "#e8e8e8"
+"material.text" = "#e8e8e8"
+"material.on_surface" = "#e8e8e8"
+text_muted = "#b3b3b3"
+muted = "#b3b3b3"
+"material.text_muted" = "#b3b3b3"
+text_disabled = "#737373"
+"material.text_disabled" = "#737373"
+warning = "#dcac50"
+"material.warning" = "#dcac50"
+error = "#eb605c"
+danger = "#eb605c"
+"material.error" = "#eb605c"
+success = "#55be78"
+"material.success" = "#55be78"
+info = "#5faae6"
+"material.info" = "#5faae6"
+
+[penpot_host_palette]
+surface = [ "#151515", "#242424", "#2f2f2f", "#383838" ]
+surface_recessed = "#0f0f0f"
+surface_hover = "#454545"
+surface_selected = "#243f5a"
+surface_disabled = "#2b2b2b"
+accent = "#60aeff"
+accent_soft = "#253f59"
+border = "#484848"
+border_disabled = "#363636"
+separator_strong = "#565656"
+separator_soft = "#333333"
+text_primary = "#e8e8e8"
+text_secondary = "#b3b3b3"
+text_disabled = "#737373"
+success = "#55be78"
+success_container = "#1d472f"
+info = "#5faae6"
+info_container = "#18395b"
+warning = "#dcac50"
+warning_container = "#463112"
+error = "#eb605c"
+error_container = "#4c2427"
+popup = "#242424"
+track = "#3b3b3b"
+focus_ring = "#66b2ff"
+shadow = "#00000073"
+
+[tokens]
+"theme.palette.surface.0" = "#151515"
+"theme.palette.surface.1" = "#242424"
+"theme.palette.surface.2" = "#2f2f2f"
+"theme.palette.surface.3" = "#383838"
+"theme.palette.text.primary" = "#e8e8e8"
+"theme.palette.text.secondary" = "#b3b3b3"
+"theme.palette.text.disabled" = "#737373"
+"theme.palette.accent" = "#60aeff"
+"theme.palette.success" = "#55be78"
+"theme.palette.info" = "#5faae6"
+"theme.palette.warning" = "#dcac50"
+"theme.palette.error" = "#eb605c"
+"theme.palette.separator" = "#484848"
+"editor.surface.0" = "#151515"
+"editor.surface.1" = "#242424"
+"editor.surface.2" = "#2f2f2f"
+"editor.surface.3" = "#383838"
+"editor.surface.recessed" = "#0f0f0f"
+"editor.surface.hover" = "#454545"
+"editor.surface.selected" = "#243f5a"
+"editor.surface.disabled" = "#2b2b2b"
+"editor.accent" = "#60aeff"
+"editor.accent.soft" = "#253f59"
+"editor.border" = "#484848"
+"editor.border.disabled" = "#363636"
+"editor.separator.strong" = "#565656"
+"editor.separator.soft" = "#333333"
+"editor.text.primary" = "#e8e8e8"
+"editor.text.secondary" = "#b3b3b3"
+"editor.text.disabled" = "#737373"
+"editor.semantic.success" = "#55be78"
+"editor.semantic.success.container" = "#1d472f"
+"editor.semantic.info" = "#5faae6"
+"editor.semantic.info.container" = "#18395b"
+"editor.semantic.warning" = "#dcac50"
+"editor.semantic.warning.container" = "#463112"
+"editor.semantic.error" = "#eb605c"
+"editor.semantic.error.container" = "#4c2427"
+"editor.popup" = "#242424"
+"editor.track" = "#3b3b3b"
+"editor.focus.ring" = "#66b2ff"
+"editor.shadow" = "#00000073"
+"editor.typography.ui.family" = "Fira Sans"
+"editor.typography.ui.strong.family" = "Fira Sans"
+"editor.typography.code.family" = "Fira Mono"
+"editor.typography.utility_tab.text_role" = "ui"
+"editor.typography.font_smoothing" = "grayscale"
+"editor.typography.body.size" = 14
+"editor.typography.caption.size" = 12
+"editor.typography.overlay.size" = 12
+"editor.typography.heading.size" = 16
+"editor.typography.title.size" = 20
+"editor.typography.body.weight" = 400
+"editor.typography.medium.weight" = 500
+"editor.typography.strong.weight" = 600
+"editor.typography.emphasis.weight" = 700
+"editor.typography.code.weight" = 400
+"editor.typography.line_height" = 1.4
+"editor.control.height.large" = 48
+"editor.control.height.default" = 32
+"editor.control.height.compact" = 32
+"editor.control.height.dense" = 28
+"editor.control.radius.small" = 4
+"editor.control.radius.control" = 4
+"editor.control.radius.large" = 8
+"editor.control.radius.panel" = 0
+"editor.control.radius.pill" = 999
+"editor.control.border_width" = 1
+"editor.chrome.top_bar.height" = 25
+"editor.chrome.host_bar.height" = 32
+"editor.chrome.workbench_toolbar.height" = 66
+"editor.chrome.workbench_toolbar.command_row.height" = 34
+"editor.chrome.workbench_toolbar.popup.command_offset_y" = 29
+"editor.chrome.workbench_toolbar.popup.module_offset_y" = -6
+"editor.chrome.status_bar.height" = 24
+"editor.chrome.panel_header.height" = 30
+"editor.chrome.document_header.height" = 31
+"editor.chrome.viewport_toolbar.height" = 28
+"editor.chrome.activity_rail.width" = 34
+"editor.chrome.separator.thickness" = 1
+"editor.chrome.splitter.hit_size" = 8
+"editor.density.gap.xsmall" = 2
+"editor.density.gap.tight" = 4
+"editor.density.gap.small" = 4
+"editor.density.gap.regular" = 8
+"editor.density.gap.medium" = 8
+"editor.density.gap.large" = 12
+"editor.density.gap.group" = 24
+"editor.density.drawer_padding" = 12
+"editor.density.panel_padding" = 16
+"editor.density.toolbar_action_width" = 76
+"editor.density.toolbar_wide_action_width" = 96
+"editor.density.ui_asset_action.min_width" = 40
+"editor.density.ui_asset_action.preferred_width" = 52
+"editor.density.ui_asset_action.max_width" = 64
+"editor.density.ui_asset.side.min_width" = 128
+"editor.density.ui_asset.side.preferred_width" = 220
+"editor.density.ui_asset.center.min_width" = 256
+"editor.density.ui_asset.center.preferred_width" = 420
+"editor.density.ui_asset.header_kind.min_width" = 64
+"editor.density.ui_asset.header_kind.preferred_width" = 70
+"editor.density.ui_asset.header_kind.max_width" = 84
+"editor.density.ui_asset.tool.min_width" = 56
+"editor.density.ui_asset.tool.preferred_width" = 64
+"editor.density.ui_asset.tool.max_width" = 80
+"editor.density.command_palette.min_width" = 520
+"editor.density.command_palette.preferred_width" = 560
+"editor.density.command_palette.max_width" = 640
+"editor.density.command_palette.min_height" = 180
+"editor.density.command_palette.preferred_height" = 220
+"editor.density.command_palette.max_height" = 280
+"editor.density.dialog.min_width" = 420
+"editor.density.dialog.preferred_width" = 480
+"editor.density.dialog.max_width" = 560
+"editor.density.dialog.min_height" = 180
+"editor.density.dialog.preferred_height" = 220
+"editor.density.dialog.max_height" = 320
+"editor.density.confirm_dialog.preferred_width" = 460
+"editor.density.confirm_dialog.max_width" = 540
+"editor.density.confirm_dialog.min_height" = 174
+"editor.density.confirm_dialog.preferred_height" = 210
+"editor.density.confirm_dialog.max_height" = 300
+"editor.density.notification_panel.min_width" = 280
+"editor.density.notification_panel.preferred_width" = 320
+"editor.density.notification_panel.max_width" = 380
+"editor.density.notification_panel.min_height" = 160
+"editor.density.notification_panel.preferred_height" = 220
+"editor.density.notification_panel.max_height" = 320
+"editor.density.caption.min_height" = 20
+"editor.density.caption.preferred_height" = 22
+"editor.density.caption.max_height" = 24
+"editor.density.label.min_height" = 22
+"editor.density.label.preferred_height" = 24
+"editor.density.label.max_height" = 32
+"editor.density.chip.min_width" = 40
+"editor.density.chip.preferred_width" = 80
+"editor.density.chip.max_width" = 160
+"editor.density.axis_value_field.min_width" = 54
+"editor.density.axis_value_field.preferred_width" = 62
+"editor.density.axis_value_field.max_width" = 72
+"editor.density.row_height" = 28
+"editor.density.left_drawer_width" = 332
+"editor.density.right_drawer_width" = 404
+"editor.density.bottom_output_height" = 228
+"editor.density.breakpoint_ultra_width" = 480
+"editor.density.breakpoint_narrow_width" = 640
+"editor.density.breakpoint_wide_width" = 1260
+"editor.density.compact_side_width" = 1100
+"editor.density.ultra_compact_side_width" = 760
+"editor.density.compact_left_drawer_max_width" = 340
+"editor.density.compact_right_drawer_max_width" = 220
+"editor.density.compact_side_min_width" = 196
+"editor.density.minimum_document_width_fraction" = 0.5
+"editor.density.ultra_compact_left_drawer_max_width" = 220
+"editor.density.ultra_compact_right_drawer_max_width" = 160
+"editor.density.compact_bottom_available_height" = 900
+"editor.density.compact_bottom_max_height" = 148
+"editor.density.compact_bottom_max_available_fraction" = 0.23
+"editor.density.compact_bottom_min_height" = 120
+"editor.density.ultra_compact_bottom_available_height" = 420
+"editor.density.ultra_compact_bottom_max_height" = 96
+"editor.density.ultra_compact_bottom_max_available_fraction" = 0.2
+"editor.density.ultra_compact_bottom_min_height" = 80
+"editor.density.minimum_window_width" = 640
+"editor.density.minimum_window_height" = 420
+"editor.density.ultra_minimum_window_width" = 420
+"editor.density.ultra_minimum_window_height" = 360
+"editor.state.default" = "surface_1"
+"editor.state.hovered" = "surface_2"
+"editor.state.pressed" = "surface_3"
+"editor.state.selected" = "surface_selected"
+"editor.state.focused" = "surface_1"
+"editor.state.disabled" = "text_disabled"
+"editor.state.loading" = "accent"
+
+[penpot_original_imports]
+widgets = []
+styles = [ "res://ui/editor/theme/editor_tokens.zui" ]

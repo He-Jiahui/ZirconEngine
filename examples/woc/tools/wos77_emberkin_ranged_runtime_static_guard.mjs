@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node wos77_emberkin_ranged_runtime_static_guard.mjs；缺少源码契约时脚本抛错退出。
+// 检查锁定的 Emberkin 射程、伤害与随机数规则及 Zr 纯规则，再核对世界投射物、固定帧顺序、自测和合同文本。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -53,6 +57,7 @@ for (const expected of [
   'pub emberkinRangedProjectileStateTest(): int',
 ]) requireText(world, expected, 'WOS77 world reducer');
 
+// 比较源码位置，要求同一帧中先推进投射物，再更新宠物，最后处理怪物 AI。
 const projectilePhase = world.indexOf('stepOfflineEastbrookProjectiles(state);');
 const petPhase = world.indexOf('stepOfflineEmberkinRangedAttack(state);', projectilePhase);
 const mobPhase = world.indexOf('stepOfflineEastbrookMobIdleAggro(state);');

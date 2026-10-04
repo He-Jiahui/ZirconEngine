@@ -2,6 +2,7 @@ var console = %import("zr.system.console");
 var fiesta = %import("social/fiesta_state");
 
 console.printLine("m6-fiesta-state-test");
+// 独立 zrp 入口检查事件顺序、私有随机流与死亡清理。
 var result = fiesta.contractTest();
 console.printLine(result);
 return result == 1 ? 0 : result;

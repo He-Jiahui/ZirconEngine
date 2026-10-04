@@ -12,6 +12,11 @@ pub trait UiRuntimeTreeInteractionExt {
         candidates: &[UiNodeId],
     ) -> Result<Option<UiNodeId>, UiTreeError>;
     fn scrollable_candidates(&self, candidates: &[UiNodeId]) -> Result<Vec<UiNodeId>, UiTreeError>;
+    fn collect_scrollable_candidates(
+        &self,
+        candidates: &[UiNodeId],
+        scrollables: &mut Vec<UiNodeId>,
+    ) -> Result<(), UiTreeError>;
     fn passes_clip_chain(&self, node_id: UiNodeId, point: UiPoint) -> Result<bool, UiTreeError>;
 }
 
@@ -54,6 +59,16 @@ impl UiRuntimeTreeInteractionExt for UiTree {
 
     fn scrollable_candidates(&self, candidates: &[UiNodeId]) -> Result<Vec<UiNodeId>, UiTreeError> {
         let mut scrollables = Vec::new();
+        self.collect_scrollable_candidates(candidates, &mut scrollables)?;
+        Ok(scrollables)
+    }
+
+    fn collect_scrollable_candidates(
+        &self,
+        candidates: &[UiNodeId],
+        scrollables: &mut Vec<UiNodeId>,
+    ) -> Result<(), UiTreeError> {
+        scrollables.clear();
         for node_id in candidates {
             let node = self
                 .nodes
@@ -63,7 +78,7 @@ impl UiRuntimeTreeInteractionExt for UiTree {
                 scrollables.push(*node_id);
             }
         }
-        Ok(scrollables)
+        Ok(())
     }
 
     fn passes_clip_chain(&self, node_id: UiNodeId, point: UiPoint) -> Result<bool, UiTreeError> {
@@ -90,5 +105,5 @@ fn node_is_scrollable_candidate(node: &zircon_runtime_interface::ui::tree::UiTre
 }
 
 #[cfg(test)]
-#[path = "interaction/first_scrollable_short_circuit_tests.rs"]
+#[path = "interaction/tests/first_scrollable_short_circuit_tests.rs"]
 mod first_scrollable_short_circuit_tests;

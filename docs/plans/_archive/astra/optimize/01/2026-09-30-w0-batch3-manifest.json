@@ -1,0 +1,119 @@
+{
+  "batch": "w0-batch3",
+  "created_at_utc": "2026-09-30",
+  "crosswalk_artifact": {
+    "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch3\\2026-09-30-w0-batch3-crosswalk.jsonl",
+    "rows": 3,
+    "sha256": "952396c0c146b947094dc9ec1fdf707789e928d0da69c32ae316845571372cb1"
+  },
+  "imported_collision_check": {
+    "checked_wave_paths": [
+      "docs/plans/astra/optimize/01/2026-09-30-source-review-wave.jsonl",
+      "docs/plans/astra/optimize/01/2026-09-30-w0-second-wave-review.jsonl"
+    ],
+    "collisions": []
+  },
+  "limitations": [
+    "No Cargo/build/test command; no product, DLL, device, stress, Miri, or benchmark evidence.",
+    "Source hashes are current working-tree captures; report paths remain inventory-unreviewed.",
+    "No semantic deduplication; only explicit report-level refresh edges are recorded."
+  ],
+  "record_type": "w0_batch3_artifact_manifest",
+  "report_snapshots": [
+    {
+      "path": "docs/plans/optimize/zircon_runtime/211-runtime-clock-time-policy-world-fixed-step-timer-cadence-current-working-tree-review.md",
+      "sha256_current_working_tree": "056911f3bea727a2d38a1a9e7429a50d6a582b8667ddb64155b493a41b8ad83a"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/163-runtime-platform-input-process-host-current-source-review.md",
+      "sha256_current_working_tree": "803e897bd2d767d1368acba0dd292564226abcdd94d2cf9cd6307793073715a2"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime_interface/09-runtime-host-foreign-output-safe-owner-admission-budget-fuse-observability-current-source-review.md",
+      "sha256_current_working_tree": "fb2b89d41f0524e0554dacfc06a0e31ff518640c36ece75d13fcb691d7489e44"
+    }
+  ],
+  "review_artifact": {
+    "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch3\\2026-09-30-w0-batch3-review.jsonl",
+    "rows": 15,
+    "sha256": "4b4137f6ef0feeb0fc4ef6f55664a80f3c8a14473c0f94ab4361d85728a68fbe"
+  },
+  "source_snapshots": [
+    {
+      "path": "zircon_app/src/entry/runtime_library/runtime_session/operation.rs",
+      "sha256_current_working_tree": "9e574524aadec28dfd76846eed291e7536efdcb6f54a3951057f2660d264d440"
+    },
+    {
+      "path": "zircon_editor/src/core/gateway/session/gateway.rs",
+      "sha256_current_working_tree": "88faab5e235123154d281829f4a0fff212566e26a602cbabb62b44068336faec"
+    },
+    {
+      "path": "zircon_editor/src/core/gateway/session/output.rs",
+      "sha256_current_working_tree": "98ee9ed09a36d487422b0ff0727ca84d74bfb6554c30209edbf9c3e8cb97e789"
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/time/clock.rs",
+      "sha256_current_working_tree": "56863f2213275b84653c47c40e29c2d0c65ce8088cf9b3f94515fa45205677cb"
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/clock_source.rs",
+      "sha256_current_working_tree": "b8ffe89afdd6b54ea3fc80a776ceb63edcfe85e69c22e31ed9ba99484491ed3d"
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/frame_clock.rs",
+      "sha256_current_working_tree": "1e5baad28f06d441cdc59c9ffe50a1b7a8e0d80a4a592fdc5e66f6c927e8048b"
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/handle/time.rs",
+      "sha256_current_working_tree": "06d2333d7fd47ff14b848600d488092cabb5091c12f05ae7c33487bbd67cb16e"
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/tasks/timer.rs",
+      "sha256_current_working_tree": "a4e222a74c57c2e2bcbedf380cf3b7858f0f75fa57bcd8552f51c63986d6d0ee"
+    },
+    {
+      "path": "zircon_runtime/src/core/runtime/time.rs",
+      "sha256_current_working_tree": "b4f0b7240ecf22450063fd4b6c4fbb6529f91618b15640cd40f888f95bf40164"
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/events.rs",
+      "sha256_current_working_tree": "3290cc6039d7a30292e42378e1a0a8493ba51b973be1a061b424366396fdc343"
+    },
+    {
+      "path": "zircon_runtime/src/input/module/descriptor.rs",
+      "sha256_current_working_tree": "43048c2417bf9b51cf06e1eb8d81322b84b0afef8ae838ec87e5ed866c978870"
+    },
+    {
+      "path": "zircon_runtime/src/input/runtime/input_driver.rs",
+      "sha256_current_working_tree": "74ac375306b98b3f5f6386ecb7926ef292fd9b17438832395cfe7e35653c56fd"
+    },
+    {
+      "path": "zircon_runtime/src/scene/level_system.rs",
+      "sha256_current_working_tree": "83ba4bdcf1f9ef7ddb08d22c8936a627ae329a0486bb103d37ca7b6eb087ce44"
+    },
+    {
+      "path": "zircon_runtime/src/scene/module/world_driver.rs",
+      "sha256_current_working_tree": "51b5c07e83b3b1506e8f5a83feaeabb6c41d785c10572b2014f2161a555420f4"
+    },
+    {
+      "path": "zircon_runtime/src/scene/world_time/controller.rs",
+      "sha256_current_working_tree": "e96ac5125582014955824c35acb33a9f5e2af7a112842d2afdc451b7757cf50b"
+    },
+    {
+      "path": "zircon_runtime_host/src/foreign_output/owned_buffer.rs",
+      "sha256_current_working_tree": "dcf0c56907ac6d94c6c59ba2baa8239236cd707c6d10775abede3afb1e61444e"
+    },
+    {
+      "path": "zircon_runtime_host/src/foreign_output/state.rs",
+      "sha256_current_working_tree": "797e81bb44dbc57af1030d3d79c3087d070dc1b0a61d0ea6f2762d1fd5beb25d"
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/events.rs",
+      "sha256_current_working_tree": "e7cc218535c76b162ae56f825750374b9b1d84eb33262ffdfe71827a6f927646"
+    }
+  ],
+  "summary_artifact": {
+    "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch3\\2026-09-30-w0-batch3-summary.json",
+    "sha256": "e56a25f936d274995912e3ca6722fc3def274fc01a78ca1f85caf1f7f916d1ae"
+  }
+}

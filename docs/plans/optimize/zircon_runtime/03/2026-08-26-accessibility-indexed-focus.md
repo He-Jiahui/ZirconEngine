@@ -48,3 +48,11 @@ least 25% below post-index linear lookup. Exact Windows timings remain pending t
 
 Runtime03 still owns UI pipeline architecture, scheduling, cache reuse, invalidation, diagnostics,
 and product-scale performance receipts. This slice only converges accessibility focus validation.
+
+## Follow-up capacity slice
+
+The related [Runtime819 accessibility diagnostic node-index deduplication](2026-09-19-accessibility-diagnostic-index-dedup.md)
+extends the retained-node-index owner: duplicate-ID admission and
+relation/focus lookup now share one `BTreeMap::entry` index instead of building
+a parallel `BTreeSet`. Its lower regression and deferred Release marker are
+tracked in the linked Astra completion record.

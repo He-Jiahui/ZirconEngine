@@ -1,3 +1,4 @@
+# 核对原生界面尺寸变化采用物理采样契约，并在计划中保留双线性要求。
 import unittest
 from pathlib import Path
 

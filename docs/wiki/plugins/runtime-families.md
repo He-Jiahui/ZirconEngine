@@ -76,7 +76,7 @@ use zircon_plugin_animation_runtime::{
 
 ## Network
 
-`net`（beta，partial）主包提供配置、TCP/UDP/HTTP/WebSocket 服务抽象、TLS 帮助函数、worker、运行时状态、ingress/egress 系统和诊断。`NetConfig`、`DefaultNetManager`、`NetDriver`、`NetRuntimeManager` 是主要入口。TLS API 包括 `rustls_client_config`、`rustls_server_config`、证书 pin 摘要与校验。
+`net`（beta，partial）主包提供配置、TCP/UDP/HTTP/WebSocket 服务抽象、TLS 帮助函数、worker、运行时状态、ingress/egress 系统和诊断。`NetConfig`、`DefaultNetManager`、`NetDriver`、`NetRuntimeManager` 是主要入口。TLS API 包括 `rustls_client_config`、`rustls_client_config_for_websocket`、`rustls_server_config`、证书 pin 摘要与校验；WebSocket 的自定义根和 pin 会在 TLS 握手 verifier 中执行。
 
 网络功能被拆成独立 feature runtime crate：
 

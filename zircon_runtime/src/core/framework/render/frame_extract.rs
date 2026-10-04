@@ -1,3 +1,5 @@
+//! 场景世界在提交 GPU 工作前，把视图、几何、光照和变化集投影为帧快照。
+//! 下游可见性与渲染器消费同一抽取结果，避免各阶段重新读取可变世界状态。
 mod camera_target_size;
 mod debug_overlay;
 mod extract_context;
@@ -49,4 +51,5 @@ pub(super) use camera_target_size::camera_target_size_from_descriptor;
 pub(super) use phase_queue::resolved_phase_queue;
 
 #[cfg(test)]
+#[path = "frame_extract/tests/cases.rs"]
 mod tests;

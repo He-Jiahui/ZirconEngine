@@ -23,7 +23,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束索引化唯一刷新合并：刷新使用动作索引先于扫描通知顺序，并合并路径仍有一个顺序归属与一个动作归属。
 class IndexedUniqueRefreshMergePerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

@@ -1,5 +1,6 @@
 use thiserror::Error;
 
+use zircon_runtime_interface::project::ProjectGuid;
 use zircon_runtime_interface::project::ProjectManifestSummaryError;
 
 /// Typed project-manifest load, migration, validation, or persistence failure.
@@ -21,6 +22,15 @@ pub enum ProjectManifestError {
         "project manifest format_version {source_format_version} requires an explicit migration before runtime open"
     )]
     MigrationRequired { source_format_version: u32 },
+    #[error(
+        "project manifest GUID {manifest_guid} does not match template receipt GUID {receipt_guid}"
+    )]
+    TemplateReceiptProjectGuidMismatch {
+        manifest_guid: ProjectGuid,
+        receipt_guid: ProjectGuid,
+    },
+    #[error("project manifest engine requirement does not match its template receipt")]
+    TemplateReceiptEngineRequirementMismatch,
     #[error("project manifest JSON value could not decode into the current schema: {source}")]
     Decode {
         #[source]

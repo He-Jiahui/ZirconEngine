@@ -24,7 +24,7 @@ def function_header(source: str, signature: str) -> str:
     start = source.index(signature)
     return source[start : source.index("{", start)]
 
-
+# 读取实现源码约束延迟 ZRVM 导出值标签：成功路径不格式化导出前缀，并包装器遍历借用导出标签直接。
 class LazyZrVmExportValueLabelPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

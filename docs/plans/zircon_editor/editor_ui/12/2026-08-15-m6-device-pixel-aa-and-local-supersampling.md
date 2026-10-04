@@ -797,7 +797,7 @@ The focused Python contract and complete 53/53 ZUI suite are green; the new
   providing asset-level evidence without treating this contact sheet as an
   Editor product screenshot.
 - A fresh managed Windows product build was submitted on 2026-08-25 with
-  `\.\tools\build-editor.ps1 -Ephemeral`. The coordinator admitted target
+  `\.\tools\build\build-editor.ps1 -Ephemeral`. The coordinator admitted target
   `F:\cargo-targets\zircon-engine\ephemeral\check\ba774352932c4e7daea94f508ab8064d`;
   the build reached current workspace crates and reported exactly one error,
   E0004 in the new Editor51-owned
@@ -1517,7 +1517,7 @@ The focused Python contract and complete 53/53 ZUI suite are green; the new
   and all 248 current Editor UI `.zui` files parse. The protected asset hash
   remains unchanged.
 - Product screenshot acceptance now has a dedicated post-capture oracle at
-  `tools/zircon_editor_ui_visual_oracle.py`. It consumes the native capture
+  `tools/analysis/visual/zircon_editor_ui_visual_oracle.py`. It consumes the native capture
   manifest and matching `ui_profile_geometry.json`, requires exactly one GPU
   process for each 640x520, 900x620, and 1672x941 physical extent, verifies
   `GetDpiForWindow` scale and framebuffer dimensions, then uses real profiled
@@ -1561,7 +1561,7 @@ The focused Python contract and complete 53/53 ZUI suite are green; the new
   failed before Cargo with `admission_checkpoint_stale`; it produced no rustc
   diagnostics and no bundle, and UI12 did not poll or retry the coordinator.
 - Native product capture is no longer dependent on an untracked `.codex/state`
-  helper. `tools/capture-editor-ui-visual.ps1` now owns the repeatable workflow:
+  helper. `tools/analysis/visual/capture-editor-ui-visual.ps1` now owns the repeatable workflow:
   three visible Editor processes, exact physical client extents, GPU-only
   presenter evidence, native DPI recording, tiled desktop capture for displays
   smaller than the requested frame, stable `capture-manifest.json`, and default
@@ -2024,7 +2024,7 @@ The focused Python contract and complete 53/53 ZUI suite are green; the new
   Current-source Rust execution and the three product WGPU captures remain
   pending the shared Cargo lane.
 - After the shared Cargo/rustc processes naturally cleared on 2026-08-29, one
-  additional `tools/build-editor.ps1 -Ephemeral` invocation was allowed to run
+  additional `tools/build/build-editor.ps1 -Ephemeral` invocation was allowed to run
   for the complete 904-second tool window. It emitted no stdout or stderr and
   the outer invocation timed out. Its managed `validate-matrix` child then
   exited naturally without ever starting Cargo or rustc; the bound
@@ -2035,7 +2035,7 @@ The focused Python contract and complete 53/53 ZUI suite are green; the new
   product visual result.
 - The newest managed current-source product build at HEAD
   `8aabbee3e99dc919f6da4611e3a44e8463a7fe7f` plus the shared overlay ran
-  `tools/build-editor.ps1 -Ephemeral -SkipSmokeTest` and entered the real
+  `tools/build/build-editor.ps1 -Ephemeral -SkipSmokeTest` and entered the real
   locked `zircon_app` Editor Cargo build. It stopped in `zircon_runtime` with
   28 shared-source diagnostics before compiling `zircon_editor`; representative
   failures are `text/font/shared.rs:66` E0015,
@@ -2108,3 +2108,200 @@ The focused Python contract and complete 53/53 ZUI suite are green; the new
   physical-radius floor instead of inferring an 8px radius from the window scale.
   Focused AA/oracle and Editor UI contracts are 59/59 and 87/87 respectively;
   native current-source WGPU captures remain pending.
+- Product pixel snapping is now an explicit root/primitive choice instead of an
+  inherited Workbench-wide quantizer. The shared RuntimeInterface fallback remains
+  compatible, while Workbench, standalone Welcome, Activity Drawer, Host Shell,
+  Editor Main Frame, Floating Window Source, Component Showcase, and Material
+  Demo/Lab roots publish `Disabled`; Activity Drawer also covers Asset Window and
+  UI Layout Editor. The rounded Dropdown primitive no longer requests snapping.
+  The render-extract ancestor walk is unchanged, so explicit `SnapToPixel` on
+  `WorkbenchDivider` and `WorkbenchStatusBar` still wins for static one-pixel chrome while buttons,
+  fields, rounded boxes, scrolling, and transformed content retain fractional
+  post-DPI paint geometry. The focused source contract completed RED/GREEN at 6/6;
+  its follow-up surface audit first failed all six newly covered roots on the
+  absent declaration, then passed after the root-only correction. The complete
+  Editor `.zui` matrix is 355/355, all 253 Editor `.zui` assets parse,
+  scoped diff checks pass, and the protected UI Asset Editor hash remains
+  `1F092C929EB6D7DE66E3684A4A2BD8A3335FD1358E37E073657FD487F4523335`.
+  A managed Windows `zircon_runtime_interface --locked` build was rejected before
+  Cargo by the foreign cleanup reservation
+  `E:\cargo-targets\zircon-engine\cache\cargo-metadata-home`; no Cargo/rustc ran
+  and no foreign cleanup was attempted. After artifact audit returned
+  `unmanaged = []`, one managed `build-editor.ps1` attempt ended with exit 1 when
+  the coordinator runtime descriptor became unavailable; it returned no attributable
+  Job/stdout/stderr, published no bundle, and left zero Cargo/rustc processes.
+  Rust execution and current-source WGPU visual acceptance remain pending.
+- Fractional-DPI authored diamonds now retain their physical target extent
+  instead of quantizing the radius back to an integer. The shared timeline and
+  sample-grid glyph painter accepts an `f32` radius, sizes its cached local
+  raster to `ceil(2r + 1)` physical pixels, keys the cache by both source and
+  target extent, and maps 4x coverage samples through the exact target geometry.
+  Timeline key radii and sample-grid point/interior/inset metrics also remain
+  fractional at 125% and 150% host scale. The focused RED/GREEN contract passes
+  2/2, the complete device-pixel AA contract passes 41/41, and exact Rust
+  formatting plus scoped `git diff --check` pass. At the evidence check, the
+  shared lane was already occupied by Cargo and current Runtime source still
+  contained the known reflection exhaustiveness and moved platform-host snapshot
+  blockers; no competing Cargo was launched and no product visual acceptance is
+  claimed from static evidence.
+- The same local-resolution rule now covers circular progress feedback. Its
+  source raster is `ceil(target_size)` while annulus coverage, thickness, and
+  the uploaded draw frame use the exact fractional physical target; source and
+  target extents participate in both the topology and RHI resource identities.
+  This avoids a fractional-DPI ring silently changing radius when its bitmap is
+  generated, while keeping the bounded local cache and 4x edge coverage. The
+  new Rust regressions pin a 31.25px target in a 32px source and distinguish
+  adjacent fractional target keys; static formatting and the complete AA
+  contract remain green. Dynamic compilation and product screenshots are still
+  pending the shared Runtime lane.
+- A fresh managed Windows `zircon_editor` build/test was allowed after the
+  Cargo lane cleared (`validate-matrix.ps1`, package `zircon_editor`, focused
+  `workbench_main_menu_business_items_resolve_canonical_bindings`). It entered
+  the current Editor dependency graph, but both Cargo stages stopped in shared
+  `zircon_runtime` with 41 errors; the current `dynamic_json.rs` match still
+  omits `DynamicList`, `DynamicMap`, and `Named`, among the shared blockers.
+  The job released with no live Cargo/rustc process and published no Editor
+  executable or bundle, so no current-source WGPU screenshot or interaction
+  profile is claimed. The UI12 static result remains 42/42 AA tests plus exact
+  rustfmt and scoped diff checks.
+- The subsequent isolated `zr_rhi_wgpu` managed matrix did not start Cargo.
+  Coordinator request `b3f4c1526446492b8b6c6b66b96c70cb` reached the durable
+  terminal state `unmanaged_artifacts_detected` for three external target/cache
+  paths, with no cleanup reservation and no live Cargo/rustc process. UI12 did
+  not delete, move, claim, or retry those foreign artifacts; the current lower
+  WGPU matrix therefore remains pending rather than failed by renderer code.
+- After the external artifact audit returned `unmanaged = []`, UI12 retried the
+  same locked Windows `zr_rhi_wgpu` build plus lib-test matrix through managed
+  job `9c2993c8c710403ab95d64821598e2fa`. Cargo and rustc ran against the current
+  shared worktree, both stages exited 101, and the job then naturally released
+  with no live compiler process. The current lower-layer blocker set is five
+  E0425 diagnostics: four test-scope lookups of
+  `committed_external_image_prepare_generation` in
+  `ui_surface/image_cache.rs:650/654/658/662`, plus the removed
+  `texture_view_layer_count` lookup in `render_pass_validation.rs:455`. Both
+  source files are foreign in-flight RHI changes with no live lease; UI12 left
+  them untouched. This supersedes the preceding no-Cargo admission result, but
+  it does not provide a green lower WGPU gate, an Editor executable, a current
+  product screenshot, or visual acceptance of the fractional raster changes.
+- Asset Browser placeholder and typed-thumbnail SVGs now follow the same
+  source/target split. Their host-derived min/max icon metrics and centered draw
+  frames remain `f32`, while the shared `raster_size_from_frame` authority
+  produces a bounded `ceil(target)` source before the vector loader applies its
+  4x small-icon local supersampling. Fractional tile extents therefore no longer
+  pass through the former `floor` container and `round` icon-edge pair. A Rust
+  regression pins a 27.04px target to a 28px source without changing the draw
+  frame; the focused AA/interaction/radius/pixel-snap source matrix passes
+  92/92, exact rustfmt passes, and scoped diff checks report only existing line
+  ending warnings. Product WGPU visual acceptance remains pending the external
+  compile blockers above.
+- Asset Browser compact layout now yields space to the content surface by tier:
+  the Sources and Details rails are `narrow`-only, and the bottom utility
+  surface is hidden below `narrow` so ultra-width views do not spend most of
+  their height on secondary controls. The compact column budget then collapses
+  Sources below the same `640px` narrow breakpoint and drops Details only when
+  the content reserve would fall below its `52%` minimum. The content panel, table,
+  and preview card use the shared `8px` control radius for smoother physical-DPI
+  corners, while `asset_browser_root` explicitly disables pixel snapping. The
+  focused asset-browser interaction/dynamic-view/pixel-policy checks pass
+  `37/37`, core density and details-scroll checks pass `5/5`, the `.zui` parses
+  as TOML, and the protected UI Asset Editor hash is unchanged. This is static
+  layout evidence only; no current-source product capture is claimed while the
+  shared WGPU dependency blockers remain.
+- All standalone workbench product roots now declare the fractional paint policy
+  explicitly: Asset Browser, Assets Activity, Hierarchy, Inspector, Console,
+  and Project Overview use `pixel_snapping = "disabled"`. Static one-pixel
+  dividers continue to opt into snapping locally, so this removes inherited
+  ambiguity without changing chrome separator rasterization. The pixel-policy
+  contract now covers the complete product-root set. The complete
+  `test_editor_zui*.py` matrix passes `358/358`, the focused device-pixel and
+  Asset Browser checks pass `59/59`, and all Editor `.zui` documents parse as
+  TOML.
+- The companion `assets_activity.zui` entry point now follows the same compact
+  surface contract: tree and utility regions are `narrow`-only, the root keeps
+  fractional geometry with `pixel_snapping = "disabled"`, and the preview card
+  uses the shared `8px` control radius. Its responsive Rust projection now sets
+  utility height to `0px` below the same `640px` breakpoint, so hidden controls
+  cannot reserve blank vertical space. The focused dynamic-view, asset-surface,
+  and pixel-policy checks remain green after the shared-tier assertions.
+- The compact Asset Browser runtime now consumes the same `640px` narrow
+  breakpoint as the `.zui` visibility metadata. Below that width the column
+  budget collapses Sources before the content reserve is squeezed, and the
+  vertical budget assigns the hidden utility surface `0px`, returning the space
+  to the main content instead of leaving a blank footer. At exactly `640px`,
+  the existing narrow layout remains eligible. The Rust regression and exact
+  rustfmt check pass; the focused static UI matrix remains green and no Cargo
+  or product capture was started.
+- Material Alert close actions now reuse the same supersampled
+  `template_alert_glyphs::push_close_mark` SVG authority as the other Alert and
+  Toast surfaces. The former fallback assembled an X from ten rounded quads,
+  which produced a visibly dotted diagonal at compact sizes and bypassed the
+  vector source/physical-target pipeline. The obsolete dot-size module was
+  removed and the device-pixel contract now rejects both a direct quad fallback
+  and the old `alert_close_dot` symbols. The complete focused AA contract passes
+  `43/43`, exact rustfmt and scoped diff checks pass, and the protected UI Asset
+  Editor hash remains
+  `1F092C929EB6D7DE66E3684A4A2BD8A3335FD1358E37E073657FD487F4523335`.
+- Project Overview received a semantic radius/layout audit without a cosmetic
+  rewrite. Its outer, details, and catalog regions are already one unframed
+  scroll surface; the only explicit `6px` radii belong to compact, row-height
+  path/value fields. Those remain on the small tier, while real content cards
+  elsewhere use the `8px` control tier. This preserves the MagicaVoxel-style
+  density distinction instead of globally enlarging every corner and restoring
+  nested-card chrome.
+- Material Chip delete actions now share
+  `template_alert_glyphs::push_close_mark` with Alert and Toast close actions.
+  The previous compact fallback also assembled its X from ten rounded quads;
+  its dot and metrics modules are deleted, so Chip deletion now follows the
+  same supersampled vector-source/exact-physical-target path as the rest of the
+  close-glyph family. The device-pixel contract rejects both a direct quad
+  fallback and the old `chip_delete_dot` symbols. The focused AA contract passes
+  `43/43`, exact rustfmt and scoped diff checks pass, and the protected UI Asset
+  Editor hash remains
+  `1F092C929EB6D7DE66E3684A4A2BD8A3335FD1358E37E073657FD487F4523335`.
+- The separately compiled Menu Bar, Menu Popup, Dock Header, Page Chrome, and
+  legacy Status Bar roots now explicitly disable inherited global pixel
+  snapping. Their rounded menu, row, and tab feedback therefore preserves
+  fractional device geometry even when each chrome document is materialized
+  outside the main Workbench tree. The Menu and Status 1px separators opt back
+  into `snap_to_pixel` locally, keeping straight chrome rules aligned without
+  quantizing the surrounding rounded controls. The policy contract passes
+  `6/6`, the complete Editor `.zui` matrix passes `358/358`, the focused visual
+  contract matrix passes `90/90`, and all `248/248` Editor `.zui` files parse.
+- The separately compiled Activity Rail overlay now declares the same
+  fractional-geometry root policy. Its 28x32 rail buttons and 18px SVG icons
+  keep their authored fixed frames, while hover/selected rounded coverage is
+  no longer quantized by an implicit inherited default. The shared pixel policy
+  contract remains green at `6/6`; the full `.zui` matrix remains `358/358` and
+  all `248/248` Editor `.zui` documents still parse.
+- The UI Asset Editor bootstrap view is also an independently loaded product
+  surface, so `UiAssetEditorRoot` now explicitly disables global pixel
+  snapping. Its existing tokenized three-column minimum widths and three
+  independent vertical scroll authorities remain unchanged; only the root
+  policy is made explicit so panel corners, fields, and the designer surface
+  retain fractional geometry at non-integer DPI. The focused pixel-policy
+  contract passes `6/6`, and the protected UI Asset Editor workspace asset
+  remains untouched at hash
+  `1F092C929EB6D7DE66E3684A4A2BD8A3335FD1358E37E073657FD487F4523335`.
+- The main Workbench Status Bar retains its snapped band/separator authority,
+  but its rounded `WorkbenchChip` and `WorkbenchIconButton` children no longer
+  inherit that whole-band policy. Both reusable component roots now explicitly
+  disable pixel snapping, matching the already-unsnapped progress component;
+  status text and the 1px top rule remain unchanged. This keeps compact status
+  controls physically crisp without sacrificing straight-line chrome. The
+  pixel-policy, full `.zui`, focused visual, and parser gates remain green at
+  `6/6`, `358/358`, `90/90`, and `248/248` respectively.
+- A fresh 2026-09-02 product build attempt used
+  `tools/build/build-editor.ps1 -Ephemeral -StorageMode diagnostic`. The managed
+  `cargo.acquire` request `41ebb3bb896242238db3a1ef7e773e57` was accepted but
+  had no terminal coordinator result within the validator's 15-second
+  fail-closed window, so the script exited before Cargo, product staging,
+  smoke-test, or capture. No direct Cargo fallback or coordinator polling was
+  started; current-source WGPU visual acceptance therefore remains pending.
+- The UI Asset Editor-specific static batch was also rechecked after the root
+  policy change. Its pixel and surface contracts remain green, while two
+  unrelated `editor07` performance assertions still target older source
+  shapes: one searches for a removed artifact marker and another expects the
+  pre-optimization chained iterator form instead of the current preallocated
+  presentation loop. These files are outside this UI12 change set and were not
+  rewritten; the failures are recorded as external drift rather than treated
+  as evidence against the pixel-policy change.

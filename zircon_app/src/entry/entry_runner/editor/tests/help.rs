@@ -70,7 +70,9 @@ fn editor_help_returns_before_commandlet_or_gui_startup() {
         .find("initialize_process_log_with_config(")
         .expect("editor startup should initialize diagnostics before routing");
     let route = source
-        .find("let (gui_startup_request, startup_scene_uri, startup_layout_preset) =")
+        .find(
+            "let (gui_startup_request, startup_scene_uri, startup_layout_preset, hub_handshake) =",
+        )
         .expect("editor startup should consume the typed launch route");
     let help = source
         .find("EditorLaunchRoute::Help => {")

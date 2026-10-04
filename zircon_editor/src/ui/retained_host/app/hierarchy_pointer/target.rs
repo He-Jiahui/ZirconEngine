@@ -12,6 +12,12 @@ impl RetainedEditorHost {
         focus_source_window: bool,
     ) -> Arc<[WorldInspectionHierarchyRow]> {
         self.use_committed_pointer_layout();
+        let generation = self.ui.get_host_presentation_generation();
+        let authored_metrics = crate::ui::retained_host::host_contract::componentized_workbench_regions::authored_hierarchy(generation.structure()).map(|hierarchy| hierarchy.metrics);
+        drop(generation);
+        let row_metrics_changed = self
+            .hierarchy_pointer_bridge
+            .set_authored_row_metrics(authored_metrics);
         let target_size = self.resolve_callback_surface_size_for_kind(
             width,
             height,
@@ -19,7 +25,7 @@ impl RetainedEditorHost {
             ViewContentKind::Hierarchy,
         );
         let scene_entries = Arc::clone(&self.hierarchy_scene_entries);
-        if self.hierarchy_pointer_size != target_size {
+        if self.hierarchy_pointer_size != target_size || row_metrics_changed {
             self.hierarchy_pointer_size = target_size;
             self.sync_hierarchy_pointer_layout(Arc::clone(&scene_entries));
         }
@@ -31,13 +37,5 @@ impl RetainedEditorHost {
 }
 
 #[cfg(test)]
-mod performance_tests {
-    #[test]
-    fn hierarchy_pointer_reuses_the_committed_scene_projection() {
-        let source = include_str!("target.rs");
-        let production = source.split("#[cfg(test)]").next().unwrap_or(source);
-
-        assert!(!production.contains("self.runtime.editor_snapshot()"));
-        assert!(production.contains("if self.hierarchy_pointer_size != target_size"));
-    }
-}
+#[path = "tests/target_performance_tests.rs"]
+mod performance_tests;

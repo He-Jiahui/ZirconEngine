@@ -8,6 +8,7 @@ mod plugin_events;
 mod profile;
 mod protocol;
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 mod viewport;
 mod viewport_pick;

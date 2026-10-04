@@ -29,6 +29,7 @@ impl HybridGiRuntimeState {
         self.replace_scheduled_trace_regions(scheduled_trace_regions);
     }
 
+    // 当前区域支持与衰减后的近期记录取较大值，避免短暂调度空窗立即抹掉层级权重。
     pub(in crate::hybrid_gi) fn refresh_recent_lineage_trace_support(&mut self) {
         let scheduled_trace_regions = self.resolve_scheduled_scene_trace_regions();
         let probe_ids = self.probe_scene_data().keys().copied().collect::<Vec<_>>();
@@ -247,5 +248,5 @@ fn dequantize_support_q8(value: u16) -> f32 {
 }
 
 #[cfg(test)]
-#[path = "scene_trace_support/performance_tests.rs"]
+#[path = "scene_trace_support/tests/performance_tests.rs"]
 mod performance_tests;

@@ -1,3 +1,4 @@
+use super::super::rust_source_view::production_section;
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
 #[test]
@@ -150,7 +151,7 @@ fn runtime_90_system_textures_are_lazy_device_generation_resources() {
         "graphics/scene/scene_renderer/core/scene_renderer_core/environment_cubemap.rs",
     );
 
-    let owner_production = owner.split("#[cfg(test)]").next().unwrap_or_default();
+    let owner_production = production_section(&owner);
     let owner_new = owner_production
         .split("pub(crate) fn new")
         .nth(1)
@@ -235,8 +236,8 @@ fn runtime_90_system_textures_are_lazy_device_generation_resources() {
     assert!(renderer.lines().count() <= 800);
     assert!(startup_report.lines().count() <= 800);
 
-    let brdf_production = brdf.split("#[cfg(test)]").next().unwrap_or_default();
-    let cubemap_production = cubemap.split("#[cfg(test)]").next().unwrap_or_default();
+    let brdf_production = production_section(&brdf);
+    let cubemap_production = production_section(&cubemap);
     let fallback = cubemap_production
         .split("fn fallback(")
         .nth(1)

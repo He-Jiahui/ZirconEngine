@@ -1,9 +1,9 @@
 use crate::core::framework::render::{
-    GENERATED_MATERIAL_MODULE_IMPORT_PATH, RenderShaderDefinitionValue, ShaderPassType,
+    RenderShaderDefinitionValue, ShaderPassType, GENERATED_MATERIAL_MODULE_IMPORT_PATH,
 };
 
 use super::super::assemble::{
-    MaterialShaderTemplateRequest, ShaderTemplateAssemblyError, assemble_material_shader_template,
+    assemble_material_shader_template, MaterialShaderTemplateRequest, ShaderTemplateAssemblyError,
 };
 use super::super::module_registry::ShaderTemplateInclude;
 use super::{has_include_token, static_mesh_descriptor};
@@ -52,27 +52,19 @@ fn user_surface(input: ZrVertexOutput) -> ZrSurfaceOutput {
             .count(),
         1
     );
-    assert!(
-        assembly
-            .wgsl_source
-            .contains("fn cloth_debug_color(color: vec4<f32>)")
-    );
-    assert!(
-        assembly
-            .wgsl_source
-            .contains("const ZR_OPT_DETAIL_LAYER: bool = true;")
-    );
+    assert!(assembly
+        .wgsl_source
+        .contains("fn cloth_debug_color(color: vec4<f32>)"));
+    assert!(assembly
+        .wgsl_source
+        .contains("const ZR_OPT_DETAIL_LAYER: bool = true;"));
     assert!(!assembly.wgsl_source.contains("#include <self::material>"));
-    assert!(
-        !assembly
-            .wgsl_source
-            .contains("#include <project::cloth_math>")
-    );
-    assert!(
-        !assembly
-            .wgsl_source
-            .contains("#include <zr_surface_types.wgsl>")
-    );
+    assert!(!assembly
+        .wgsl_source
+        .contains("#include <project::cloth_math>"));
+    assert!(!assembly
+        .wgsl_source
+        .contains("#include <zr_surface_types.wgsl>"));
 }
 
 #[test]
@@ -122,11 +114,9 @@ fn user_surface(input: ZrVertexOutput) -> ZrSurfaceOutput {
             .count(),
         1
     );
-    assert!(
-        !with_anchor
-            .wgsl_source
-            .contains("#include <self::material>")
-    );
+    assert!(!with_anchor
+        .wgsl_source
+        .contains("#include <self::material>"));
 }
 
 #[test]

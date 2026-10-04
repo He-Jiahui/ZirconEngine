@@ -5,10 +5,10 @@ use crate::core::resource::ResourceId;
 use crate::graphics::backend::RenderBackend;
 use crate::graphics::types::GraphicsError;
 
-use super::super::super::MaterialRuntime;
 use super::super::super::prepared::{
     PreparedMaterialTextureBinding, PreparedMaterialTextureResource, PreparedMaterialTextureSet,
 };
+use super::super::super::MaterialRuntime;
 use super::super::ResourceStreamer;
 
 impl ResourceStreamer {

@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use crate::text::font::FontDatabase;
 use crate::text::sdf::{
-    SdfGenerationSourceContext, SdfGenerationSourceHandle, SdfGlyphGenerationError,
-    sdf_variation_hash,
+    sdf_variation_hash, SdfGenerationSourceContext, SdfGenerationSourceHandle,
+    SdfGlyphGenerationError,
 };
 use crate::text::{FontFaceId, InstancedFaceId, StableContentDigest};
 

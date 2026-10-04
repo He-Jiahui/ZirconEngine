@@ -12,8 +12,12 @@ related_code:
   - zircon_runtime/src/graphics/shader/wgsl/zr_shading_standard_pbr.wgsl
   - zircon_runtime/src/graphics/shader/includes/zr_pbr_extras.wgsl
   - zircon_runtime/src/graphics/shader/template/tests.rs
+  - zircon_runtime/src/graphics/shader/template/tests/material_template_assembly.rs
+  - zircon_runtime/src/graphics/shader/template/tests/standard_pbr_specialization.rs
 tests:
-  - cargo +1.94.1 test -p zircon_runtime --lib graphics::tests::render_product_camera_targets::visual_export::export_camera_custom_target_overlay_wgpu_png --locked --jobs 1 -- --ignored --exact --nocapture --test-threads=1
+  - cargo +1.94.1 test -p zircon_runtime --lib --locked standard_pbr_clearcoat_base_energy_variants_validate_with_naga -- --test-threads=1
+  - cargo +1.94.1 test -p zircon_runtime --lib --locked standard_pbr_specialization -- --test-threads=1
+  - cargo +1.94.1 test -p zircon_runtime --lib --locked graphics::tests::render_product_camera_targets::visual_export::export_camera_custom_target_overlay_wgpu_png -- --ignored --exact --nocapture --test-threads=1
 ---
 
 # Render18: Standard PBR clearcoat base energy 必须保持 vec3 类型
@@ -57,3 +61,137 @@ Open state: `current-source shader repair present; managed validation pending`.
 - Standard PBR initializes the forward-owned `clearcoat_base_energy` as `vec3<f32>(1.0)` and passes it as the direct-light `direct_base_energy` argument, matching the RGB clearcoat Fresnel scale and preserving the existing downstream energy multiplication.
 - The template suite assembles and Naga-validates the complete Standard PBR forward WGSL with clearcoat disabled, clearcoat enabled, and Blinn-Phong selected, so the vector contract is no longer protected only by a text assertion.
 - The Render09 managed product exporter, exact PNG inspection, and DX12 RenderDoc capture remain required before this handoff can close; it remains `open`.
+
+### 2026-09-11 current-source re-admission
+
+- Fixing Session `failure-roll-01a084c8-render18-clearcoat-r1` froze snapshot `3490` at
+  `c37155ba304740b3762b20585f77fb53a6da47fb`. The owned forward shader, clearcoat include,
+  and template test root have SHA-256 `c1a9ee72c0c8ae50ab72dd8b7c1d6908529c7b3755561868ae4bc9d680d8a03e`,
+  `a50064e197658e029889a0c364a7950dc42cd4326bec2b2b4eccada012345b85`, and
+  `b268b73aaa6a3dfec4563537985fd7e76aeebeb5c0e0f3ca4f49676d62c9c53d` respectively.
+- The owner submitted the focused composed-WGSL Naga regression
+  `standard_pbr_clearcoat_base_energy_variants_validate_with_naga` through the Windows
+  coordinator. Admission was rejected before a validation ticket, validation copy, Cargo run,
+or test execution because external repository `E:\Git\zr_vm` is dirty. This is not a dynamic
+pass and does not replace the required Render09 exporter/PNG/RenderDoc evidence.
+
+### 2026-09-19 rolling source-contract recheck
+
+Successor Session `failure-roll-01a084c8-render18-clearcoat-r2` reclaimed the
+complete clearcoat shader/template slice after an audited ownership transfer at
+baseline epoch `611`. Current source checks pass:
+
+- `zr_shading_standard_pbr.wgsl` initializes `clearcoat_base_energy` as
+  `vec3<f32>(1.0)`, applies the normalized RGB clearcoat scale, and forwards
+  that vector to direct, environment, transmission, and emission base-layer
+  paths;
+- `zr_pbr_extras.wgsl` keeps the clearcoat base-energy helpers vector-valued;
+- the focused template tests retain the complete composed WGSL Naga variants
+  for clearcoat disabled/enabled and Blinn-Phong, plus specialization coverage;
+- the local WGSL/source contract probe passes for the current bytes.
+
+Current immutable manifest hashes are:
+
+```text
+docs/plans/zircon_runtime/render/18/failure-2026-07-18-standard-pbr-clearcoat-base-energy-vector-type.md
+  4e991192037cd598aab2eb1fb71b55afa5d095356183cc3c1df915bfb466fc25
+zircon_runtime/src/graphics/shader/wgsl/zr_shading_standard_pbr.wgsl
+  c1a9ee72c0c8ae50ab72dd8b7c1d6908529c7b3755561868ae4bc9d680d8a03e
+zircon_runtime/src/graphics/shader/includes/zr_pbr_extras.wgsl
+  a50064e197658e029889a0c364a7950dc42cd4326bec2b2b4eccada012345b85
+zircon_runtime/src/graphics/shader/template/tests.rs
+  47c519014a794722748ad62193701be3a37010088b4934a7566df61b66db8e64
+zircon_runtime/src/graphics/shader/template/tests/material_template_assembly.rs
+  0bf6f528b060e03feb88060a627b359af654e87bdc7b46fcbe810395524c1bd4
+zircon_runtime/src/graphics/shader/template/tests/standard_pbr_specialization.rs
+  0030342fc4f0e1d02a5e083b90af1b6eaea2b600e82302b38f8d528cca8a6131
+```
+
+The managed Rust/Naga gate and the originating Render09 exact WGPU PNG plus
+DX12 RenderDoc replay remain required. External `E:/Git/zr_vm` dirt previously
+blocked admission before Cargo; no dynamic or visual pass is claimed here.
+This lifecycle remains `open` with no fixed return or closeout.
+
+Successor static ticket `15861a1eb182491ba825afc58671e096` completed on
+managed job/run `344f0abc671d46fe8d6bdd050b9106c7` with exit code 0 and marker
+`RENDER18_CLEARCOAT_SOURCE_CONTRACT_PASS`; coordinator cleanup completed. The
+receipt covers only the current WGSL/template source contract. Managed
+Rust/Naga, Render09 WGPU PNG and DX12 RenderDoc gates, independent review,
+fixed return and closeout remain pending; no dynamic or visual acceptance is
+claimed.
+
+### 2026-09-20 independent review
+
+- Reviewer Session `review-render18-clearcoat-r2` inspected the source-sealed plan,
+  failure record, Standard PBR WGSL, clearcoat helpers, template assembly tests, and
+  specialization tests. The owned source hashes are `zr_shading_standard_pbr.wgsl`
+  `c1a9ee72c0c8ae50ab72dd8b7c1d6908529c7b3755561868ae4bc9d680d8a03e`,
+  `zr_pbr_extras.wgsl` `a50064e197658e029889a0c364a7950dc42cd4326bec2b2b4eccada012345b85`,
+  `template/tests.rs` `47c519014a794722748ad62193701be3a37010088b4934a7566df61b66db8e64`,
+  `material_template_assembly.rs` `0bf6f528b060e03feb88060a627b359af654e87bdc7b46fcbe810395524c1bd4`,
+  and `standard_pbr_specialization.rs`
+  `0030342fc4f0e1d02a5e083b90af1b6eaea2b600e82302b38f8d528cca8a6131`.
+  The reviewer held the failure-document lease during the audit.
+- Review result: `Critical=0`, `Important=0`, `Moderate=0`. The forward shader initializes
+  `clearcoat_base_energy` as `vec3<f32>(1.0)`, assigns the vector-valued normalized clearcoat
+  helper, forwards it through `direct_base_energy`, and reuses it for environment, transmission,
+  and emission base-layer paths. The focused test assembles and invokes Naga validation for
+  clearcoat-disabled, clearcoat-enabled, and Blinn-Phong variants; specialization tests preserve
+  the non-clearcoat and KHR base-layer semantics.
+- The independent textual vector probe passed and `git diff --check` passed. Scoped Rustfmt for
+  the three test owners reports existing import/order and assertion-format drift in those shared
+  files; the review did not edit or normalize that foreign/pre-existing drift. No dynamic Naga,
+  Cargo, WGPU, PNG, or RenderDoc result is inferred from this receipt. Render09 product evidence,
+  managed shader validation, fixed return, and closeout remain pending.
+
+### 2026-09-25 successor current-source reconciliation r3
+
+Fixing Session `failure-roll-01a084c8-render18-clearcoat-r3` reclaimed the
+complete six-path clearcoat/template slice with no active lease conflict. The
+current source hashes are:
+
+```text
+zircon_runtime/src/graphics/shader/wgsl/zr_shading_standard_pbr.wgsl
+  c1a9ee72c0c8ae50ab72dd8b7c1d6908529c7b3755561868ae4bc9d680d8a03e
+zircon_runtime/src/graphics/shader/includes/zr_pbr_extras.wgsl
+  a50064e197658e029889a0c364a7950dc42cd4326bec2b2b4eccada012345b85
+zircon_runtime/src/graphics/shader/template/tests.rs
+  47c519014a794722748ad62193701be3a37010088b4934a7566df61b66db8e64
+zircon_runtime/src/graphics/shader/template/tests/material_template_assembly.rs
+  0bf6f528b060e03feb88060a627b359af654e87bdc7b46fcbe810395524c1bd4
+zircon_runtime/src/graphics/shader/template/tests/standard_pbr_specialization.rs
+  0030342fc4f0e1d02a5e083b90af1b6eaea2b600e82302b38f8d528cca8a6131
+```
+
+The current-source probe passed:
+`RENDER18_CLEARCOAT_CURRENT_SOURCE_PASS 5 paths`. It confirms the forward
+`vec3<f32>(1.0)` accumulator and vector direct-light contract, vector-valued
+clearcoat helpers, complete composed-template Naga variant test anchors for
+clearcoat disabled/enabled and Blinn-Phong, and specialization reuse across
+environment/transmission/emission paths. Scoped `git diff --check` passed.
+Rustfmt remains non-passing only on the existing import/order and assertion
+format drift in the three Rust template test owners; the WGSL files require no
+Rustfmt and no formatting-only edit was made.
+
+This is source/static evidence only. Managed Rust/Naga Cargo, the originating
+Render09 exact WGPU PNG and DX12 RenderDoc replay, independent review, canonical
+`failure return`, fixed status, closeout and WeCom remain pending.
+
+### 2026-09-25 independent current-source review r3
+
+Reviewer Session `review-render18-clearcoat-r3` rechecked coordinator snapshot
+`3824` without editing or absorbing foreign changes. All five source hashes
+match the manifest. Static inspection confirms the WGSL `vec3<f32>(1.0)`
+`clearcoat_base_energy`, vector `direct_base_energy`, vector-valued clearcoat
+helpers and propagation through direct/environment/transmission/emission paths;
+the focused Naga anchor explicitly assembles clearcoat-disabled,
+clearcoat-enabled and Blinn-Phong variants. Scoped `git diff --check` is clean;
+the documented rustfmt drift remains confined to the three Rust template test
+owners, with WGSL unaffected.
+
+Independent result: **Critical=0 / Important=0 / Moderate=0**. This is static
+source evidence only; no Cargo/Naga dynamic pass, WGPU product export, PNG, or
+RenderDoc replay is inferred. The source manifest was sealed in snapshot 3824
+before this receipt, so the current document hash is a post-snapshot doc-only
+change. Managed/product gates, canonical return, fixed status, closeout and
+WeCom remain pending.

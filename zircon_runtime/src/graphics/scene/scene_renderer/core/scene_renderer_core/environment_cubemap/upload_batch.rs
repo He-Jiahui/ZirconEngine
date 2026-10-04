@@ -1,7 +1,10 @@
 use std::fmt;
 use std::sync::Arc;
 
-use crate::core::framework::render::{SOURCE_CUBEMAP_FACE_COUNT, SourceCubemapUploadMip};
+use crate::core::framework::render::{
+    EnvironmentCubemapUploadReport, SourceCubemapUploadKey, SourceCubemapUploadMip,
+    SOURCE_CUBEMAP_FACE_COUNT,
+};
 use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
 
 const INITIAL_STAGING_CAPACITY_BYTES: u64 = 64 * 1024;
@@ -21,6 +24,86 @@ pub(super) struct CubemapUploadStagingArena {
     capacity_bytes: u64,
     bytes: Vec<u8>,
     copies: Vec<CubemapUploadCopy>,
+    statistics: CubemapUploadStagingStatistics,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct CubemapUploadStagingStatistics {
+    observation_epoch: u64,
+    last_scheduled_upload_bytes: u64,
+    last_scheduled_copy_count: u64,
+    peak_scheduled_upload_bytes: u64,
+    peak_scheduled_copy_count: u64,
+    cumulative_scheduled_upload_bytes: u64,
+    scheduled_upload_batch_count: u64,
+    host_staging_growth_batch_count: u64,
+    gpu_staging_growth_batch_count: u64,
+}
+
+impl CubemapUploadStagingStatistics {
+    fn begin_observation(&mut self) {
+        self.observation_epoch = self.observation_epoch.saturating_add(1);
+        self.last_scheduled_upload_bytes = 0;
+        self.last_scheduled_copy_count = 0;
+    }
+
+    fn record_host_capacity_growth(&mut self, previous: usize, current: usize) {
+        if current > previous {
+            self.host_staging_growth_batch_count =
+                self.host_staging_growth_batch_count.saturating_add(1);
+        }
+    }
+
+    fn record_gpu_capacity_growth(&mut self, previous: u64, current: u64) {
+        if current > previous {
+            self.gpu_staging_growth_batch_count =
+                self.gpu_staging_growth_batch_count.saturating_add(1);
+        }
+    }
+
+    fn record_scheduled_batch(&mut self, upload_bytes: u64, copy_count: u64) {
+        self.last_scheduled_upload_bytes = upload_bytes;
+        self.last_scheduled_copy_count = copy_count;
+        self.peak_scheduled_upload_bytes = self.peak_scheduled_upload_bytes.max(upload_bytes);
+        self.peak_scheduled_copy_count = self.peak_scheduled_copy_count.max(copy_count);
+        self.cumulative_scheduled_upload_bytes = self
+            .cumulative_scheduled_upload_bytes
+            .saturating_add(upload_bytes);
+        self.scheduled_upload_batch_count = self.scheduled_upload_batch_count.saturating_add(1);
+    }
+
+    fn report(
+        self,
+        committed_upload_key: SourceCubemapUploadKey,
+        pending_upload_key: Option<SourceCubemapUploadKey>,
+        host_staging_capacity_bytes: usize,
+        gpu_staging_capacity_bytes: u64,
+        resident_source_texture_bytes: u64,
+        resident_specular_texture_bytes: u64,
+        resident_irradiance_texture_bytes: u64,
+        resident_texture_bytes: u64,
+    ) -> EnvironmentCubemapUploadReport {
+        EnvironmentCubemapUploadReport {
+            observation_epoch: self.observation_epoch,
+            committed_upload_key,
+            pending_upload_key,
+            last_scheduled_upload_bytes: self.last_scheduled_upload_bytes,
+            last_scheduled_copy_count: self.last_scheduled_copy_count,
+            peak_scheduled_upload_bytes: self.peak_scheduled_upload_bytes,
+            peak_scheduled_copy_count: self.peak_scheduled_copy_count,
+            cumulative_scheduled_upload_bytes: self.cumulative_scheduled_upload_bytes,
+            scheduled_upload_batch_count: self.scheduled_upload_batch_count,
+            host_staging_capacity_bytes: u64::try_from(host_staging_capacity_bytes)
+                .unwrap_or(u64::MAX),
+            gpu_staging_capacity_bytes,
+            host_staging_growth_batch_count: self.host_staging_growth_batch_count,
+            gpu_staging_growth_batch_count: self.gpu_staging_growth_batch_count,
+            resident_source_texture_bytes,
+            resident_specular_texture_bytes,
+            resident_irradiance_texture_bytes,
+            resident_texture_bytes,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -53,11 +136,37 @@ impl Default for CubemapUploadStagingArena {
             capacity_bytes: 0,
             bytes: Vec::new(),
             copies: Vec::new(),
+            statistics: CubemapUploadStagingStatistics::default(),
         }
     }
 }
 
 impl CubemapUploadStagingArena {
+    pub(super) fn begin_observation(&mut self) {
+        self.statistics.begin_observation();
+    }
+
+    pub(super) fn report(
+        &self,
+        committed_upload_key: SourceCubemapUploadKey,
+        pending_upload_key: Option<SourceCubemapUploadKey>,
+        resident_source_texture_bytes: u64,
+        resident_specular_texture_bytes: u64,
+        resident_irradiance_texture_bytes: u64,
+        resident_texture_bytes: u64,
+    ) -> EnvironmentCubemapUploadReport {
+        self.statistics.report(
+            committed_upload_key,
+            pending_upload_key,
+            self.bytes.capacity(),
+            self.capacity_bytes,
+            resident_source_texture_bytes,
+            resident_specular_texture_bytes,
+            resident_irradiance_texture_bytes,
+            resident_texture_bytes,
+        )
+    }
+
     pub(super) fn encode(
         &mut self,
         device: &wgpu::Device,
@@ -65,6 +174,7 @@ impl CubemapUploadStagingArena {
         uploads: &[Option<(&wgpu::Texture, &[SourceCubemapUploadMip])>],
         frame_uploads: &mut WgpuBufferUploadBatch,
     ) -> Result<(), CubemapUploadStagingError> {
+        let previous_host_capacity = self.bytes.capacity();
         self.bytes.clear();
         self.copies.clear();
 
@@ -88,6 +198,8 @@ impl CubemapUploadStagingArena {
                 });
             }
         }
+        self.statistics
+            .record_host_capacity_growth(previous_host_capacity, self.bytes.capacity());
 
         if self.copies.is_empty() {
             return Err(CubemapUploadStagingError::EmptyUpload);
@@ -110,6 +222,11 @@ impl CubemapUploadStagingArena {
             WgpuBufferUpload::new(buffer.clone(), 0, payload, 0..self.bytes.len())
                 .ok_or(CubemapUploadStagingError::InvalidUploadRange)?,
         );
+        let upload_bytes = u64::try_from(self.bytes.len())
+            .map_err(|_| CubemapUploadStagingError::ByteLengthOverflow)?;
+        let copy_count = u64::try_from(self.copies.len()).unwrap_or(u64::MAX);
+        self.statistics
+            .record_scheduled_batch(upload_bytes, copy_count);
         for copy in &self.copies {
             let Some((texture, _)) = uploads.get(copy.target_index).and_then(Option::as_ref) else {
                 return Err(CubemapUploadStagingError::MissingTarget);
@@ -156,6 +273,8 @@ impl CubemapUploadStagingArena {
             usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         }));
+        self.statistics
+            .record_gpu_capacity_growth(self.capacity_bytes, capacity_bytes);
         self.capacity_bytes = capacity_bytes;
         Ok(())
     }
@@ -169,31 +288,5 @@ fn aligned_copy_offset(byte_len: usize) -> Option<usize> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn copy_offsets_keep_wgpu_row_alignment() {
-        let alignment = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as usize;
-        assert_eq!(aligned_copy_offset(0), Some(0));
-        assert_eq!(aligned_copy_offset(1), Some(alignment));
-        assert_eq!(aligned_copy_offset(alignment), Some(alignment));
-    }
-
-    #[test]
-    fn prepared_upload_batch_encodes_into_the_caller_frame_encoder() {
-        let product = include_str!("upload_batch.rs")
-            .split("#[cfg(test)]")
-            .next()
-            .expect("product source precedes tests");
-
-        assert!(product.contains("encoder: &mut wgpu::CommandEncoder"));
-        assert!(product.contains("frame_uploads: &mut WgpuBufferUploadBatch"));
-        assert!(product.contains("frame_uploads.push("));
-        assert!(product.contains("return Err(CubemapUploadStagingError::MissingTarget)"));
-        assert!(!product.contains("cubemap upload target was validated before batch publication"));
-        assert!(!product.contains("queue.submit("));
-        assert!(!product.contains("queue.write_buffer("));
-        assert!(!product.contains("encoder.finish()"));
-    }
-}
+#[path = "tests/upload_batch.rs"]
+mod tests;

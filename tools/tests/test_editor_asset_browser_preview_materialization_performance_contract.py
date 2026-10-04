@@ -1,3 +1,4 @@
+# 核对资产预览只在可见绘制目标处物化像素，并通过有界缓存与可信路径读取。
 from pathlib import Path
 import unittest
 

@@ -1,3 +1,4 @@
+use super::super::rust_source_view::production_code_view;
 use super::super::support::assert_contains_all_exact;
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
@@ -8,22 +9,28 @@ fn runtime_15_texture_descriptor_settings_parser_is_child_owner() {
     let current_anchor_owner = read_repo(
         "docs/plans/zircon_runtime/runtime/15/2026-07-17-descriptor-filter-plan-anchor-current-owner.md",
     );
+    let parent_production = production_code_view(&parent);
+    let settings_production = production_code_view(&settings);
 
     assert_contains_all(
         "texture descriptor parent keeps public descriptor behavior and delegates settings parsing",
-        &parent,
+        &parent_production,
         &[
             "mod settings;",
             "use self::settings::{",
             "pub struct TextureAssetDescriptor",
+            "pub depth_or_array_layers: u32",
             "pub fn apply_import_settings(",
             "pub fn to_render_image_descriptor(",
             "fn normalize_extent_fields(",
-            "fn normalize_import_extent_fields(",
+            "fn apply_import_extent_settings(",
+            "fn reject_retired_extent_settings(",
+            "fn non_zero_extent_setting(",
+            "reject_retired_extent_settings(settings)?;",
+            "self.apply_import_extent_settings(depth, array_layers)?;",
         ],
     );
     for moved_owner in [
-        "struct ExtentSettingKeys",
         "fn parse_usage_list(",
         "fn parse_asset_usage_list(",
         "fn parse_sampler(",
@@ -34,15 +41,15 @@ fn runtime_15_texture_descriptor_settings_parser_is_child_owner() {
         "fn normalized_token(",
     ] {
         assert!(
-            !parent.contains(moved_owner),
+            !parent_production.contains(moved_owner),
             "asset/assets/texture/descriptor.rs should delegate {moved_owner} to descriptor/settings.rs"
         );
     }
     assert_contains_all(
         "texture descriptor settings child owns TOML parser helpers and sampler token normalization",
-        &settings,
+        &settings_production,
         &[
-            "pub(super) struct ExtentSettingKeys",
+            "pub(super) fn u32_setting(",
             "pub(super) fn parse_usage_list(",
             "pub(super) fn parse_asset_usage_list(",
             "pub(super) fn parse_sampler(",
@@ -53,6 +60,20 @@ fn runtime_15_texture_descriptor_settings_parser_is_child_owner() {
             "fn normalized_token(",
         ],
     );
+    for (path, production) in [
+        ("texture descriptor", parent_production.as_str()),
+        ("texture settings parser", settings_production.as_str()),
+    ] {
+        for retired_owner in [
+            "struct ExtentSettingKeys",
+            "fn normalize_import_extent_fields(",
+        ] {
+            assert!(
+                !production.contains(retired_owner),
+                "{path} must not restore retired extent owner `{retired_owner}`"
+            );
+        }
+    }
 
     for (path, source) in [
         ("asset/assets/texture/descriptor.rs", parent.as_str()),

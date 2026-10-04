@@ -9,22 +9,13 @@ origin_child_dir: docs/plans/zircon_editor/editor_ui/12
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/build-editor.ps1
-  - tools/session_coordinator/artifact_product_staging.py
-  - tools/session_coordinator/artifact_governance.py
-  - tools/session_coordinator/migrations.py
-  - tools/session_coordinator/cli.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/tests/test_artifact_product_staging.py
-  - tools/session_coordinator/tests/test_artifact_governance.py
-  - tools/session_coordinator/tests/test_migrations.py
-  - tools/session_coordinator/tests/test_server.py
+  - tools/build/build-editor.ps1
   - tools/tests/build-editor.Tests.ps1
 tests:
   - "python -B -m unittest tools.session_coordinator.tests.test_artifact_product_staging tools.session_coordinator.tests.test_artifact_governance tools.session_coordinator.tests.test_migrations -v"
   - "Invoke-Pester -Script .\\tools\\tests\\build-editor.Tests.ps1 -PassThru"
-  - ".\\tools\\build-editor.ps1 -OutputDirectory D:\\ZirconBuilds\\editor-ui12-aa-20260816-025812"
-  - ".\\tools\\zircon-session.ps1 artifact audit"
+  - ".\\tools\\build\\build-editor.ps1"
+  - ".\\tools\\dev\\zircon-session.ps1 artifact audit"
 ---
 
 # Session Coordinator 01: build-editor product staging is unregistered
@@ -41,7 +32,7 @@ tests:
 在 schema64 coordinator 和 Tooling commit `f29459ad1` 已加载、预检 `artifact audit` 返回 `unmanaged:[]` 后执行：
 
 ```powershell
-.\tools\build-editor.ps1 -OutputDirectory D:\ZirconBuilds\editor-ui12-aa-20260816-025812
+.\tools\build\build-editor.ps1 -OutputDirectory D:\ZirconBuilds\editor-ui12-aa-20260816-025812
 ```
 
 脚本先创建 `D:\ZirconBuilds\mvp-product-inputs-build-editor-466b291c59b9480da25e7fa00be3018a`，随后第一次 `validate-matrix.ps1` Cargo acquire 以 `unmanaged_artifacts_detected` 拒绝该路径；没有 Cargo/rustc 启动。`build-editor.ps1` 的 `catch/finally` 随后删除 staging，复检 `artifact audit` 再次为 `unmanaged:[]`。
@@ -50,12 +41,12 @@ tests:
 
 ## 最低共享层根因
 
-`tools/build-editor.ps1` 在 coordinator 为 production staging 建立 reservation 之前，直接用 `Directory.CreateDirectory` 创建 `mvp-product-inputs-build-editor-*`。schema64 只认识 coordinator-managed fixture/Cargo/artifact 生命周期；生产 staging 没有对应 lease，因而 validator 的 acquire 依法把调用方刚创建的目录判定为 unmanaged。
+`tools/build/build-editor.ps1` 在 coordinator 为 production staging 建立 reservation 之前，直接用 `Directory.CreateDirectory` 创建 `mvp-product-inputs-build-editor-*`。schema64 只认识 coordinator-managed fixture/Cargo/artifact 生命周期；生产 staging 没有对应 lease，因而 validator 的 acquire 依法把调用方刚创建的目录判定为 unmanaged。
 
 ## 架构修复验收
 
 - production `build-editor` staging 必须在物理创建前获得 coordinator-issued artifact identity/lease，并在成功 rename 或失败清理后精确 release；不得复用仅面向 Pester 的 `mvp-test-fixtures-*` 语义。
-- 真实 `tools/build-editor.ps1` 复现必须越过 artifact audit，启动 managed Cargo，成功发布 editor/runtime/assets，失败路径仍须回到 `unmanaged:[]`。
+- 真实 `tools/build/build-editor.ps1` 复现必须越过 artifact audit，启动 managed Cargo，成功发布 editor/runtime/assets，失败路径仍须回到 `unmanaged:[]`。
 - 增加使用真实 coordinator artifact audit 的集成测试，覆盖 staging 已存在于 Cargo acquire 前这一顺序，不能只用 stub validator。
 - UI12 M6 必须在修复返回后重跑正式 build-editor gate；本 handoff 打开期间不宣称该包装脚本通过。
 

@@ -1,0 +1,1686 @@
+penpot_host_theme_source = "zircon_editor/assets/ui/editor/theme/editor_tokens.zui"
+penpot_dependency_sources = [ "zircon_editor/assets/ui/editor/theme/editor_tokens.zui", "zircon_editor/assets/ui/theme/editor_workbench_strict.zui" ]
+penpot_original_source = "stylesheets = []\r\n\r\n[asset]\r\nkind = \"view\"\r\nid = \"res://ui/editor/workbench_activity_rail.zui\"\nversion = 2\r\ndisplay_name = \"workbench activity rail\"\r\n\r\n[imports]\r\nwidgets = []\r\nstyles = [\"res://ui/theme/editor_workbench_strict.zui\"]\n\r\n[root]\r\nnode = \"activity_rail_root\"\r\n\r\n[nodes.activity_rail_root]\ncomponent = \"Overlay\"\ncontrol_id = \"ActivityRailRoot\"\npixel_snapping = \"disabled\"\nclasses = [\"activity-rail\", \"editor-shell\", \"workbench-shell-root\"]\nlayout = { clip = true, container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\nchildren = [\r\n  { node = \"activity_rail_panel\" },\r\n  { node = \"activity_rail_button_0\" },\r\n  { node = \"activity_rail_button_icon_0\" },\r\n  { node = \"activity_rail_button_1\" },\r\n  { node = \"activity_rail_button_icon_1\" },\r\n]\r\n\r\n[nodes.activity_rail_panel]\ncomponent = \"Container\"\ncontrol_id = \"ActivityRailPanel\"\nclasses = [\"workbench-rail\"]\nprops = { surface_variant = \"panel\", radius = 0.0, border_width = 0.0 }\nlayout = { position = { x = 0.0, y = 0.0 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\n\r\n[nodes.activity_rail_button_0]\ncomponent = \"Container\"\ncontrol_id = \"ActivityRailButton0\"\nclasses = [\"workbench-rail-button\"]\nprops = { surface_variant = \"transparent\", radius = \"$editor.control.radius.small\", border_width = 0.0 }\nlayout = { position = { x = 3.0, y = 6.0 }, width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = \"Fixed\" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = \"Fixed\" } }\n\r\n[nodes.activity_rail_button_icon_0]\r\ncomponent = \"Icon\"\r\ncontrol_id = \"ActivityRailButtonIcon0\"\r\nprops = { icon = \"editor_pages/asset_browser/navigation/folder.svg\", value = \"editor_pages/asset_browser/navigation/folder.svg\", text_tone = \"muted\" }\nlayout = { position = { x = 8.0, y = 13.0 }, width = { min = 18.0, preferred = 18.0, max = 18.0, stretch = \"Fixed\" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = \"Fixed\" } }\n\r\n[nodes.activity_rail_button_1]\ncomponent = \"Container\"\ncontrol_id = \"ActivityRailButton1\"\nclasses = [\"workbench-rail-button\"]\nprops = { surface_variant = \"transparent\", radius = \"$editor.control.radius.small\", border_width = 0.0 }\nlayout = { position = { x = 3.0, y = 42.0 }, width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = \"Fixed\" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = \"Fixed\" } }\n\r\n[nodes.activity_rail_button_icon_1]\r\ncomponent = \"Icon\"\r\ncontrol_id = \"ActivityRailButtonIcon1\"\r\nprops = { icon = \"editor_pages/hierarchy/entity/scene.svg\", value = \"editor_pages/hierarchy/entity/scene.svg\", text_tone = \"muted\" }\nlayout = { position = { x = 8.0, y = 49.0 }, width = { min = 18.0, preferred = 18.0, max = 18.0, stretch = \"Fixed\" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = \"Fixed\" } }\n"
+
+[[stylesheets]]
+id = "editor_workbench_strict"
+
+[[stylesheets.rules]]
+selector = ".editor-workbench"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_shell"
+foreground_color = "$workbench_text"
+
+[[stylesheets.rules]]
+selector = ".workbench-shell-root"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_shell"
+foreground_color = "$workbench_text"
+
+[[stylesheets.rules]]
+selector = ".workbench-window-root"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_shell"
+foreground_color = "$workbench_text"
+
+[[stylesheets.rules]]
+selector = ".workbench-topbar"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_surface"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = 0
+radius = 0
+
+[[stylesheets.rules]]
+selector = ".workbench-strip"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_surface"
+border_color = "$workbench_border_soft"
+border_width = "$editor.control.border_width"
+radius = 0
+
+[[stylesheets.rules]]
+selector = ".workbench-divider"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_border"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-group"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_surface"
+foreground_color = "$workbench_text"
+
+[[stylesheets.rules]]
+selector = ".workbench-panel-header"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel_raised"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border_soft"
+border_width = 0
+radius = 0
+
+[[stylesheets.rules]]
+selector = ".workbench-icon-button"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-button"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-icon-button:hovered"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-button:hovered"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-rail"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_inset"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = 0
+radius = 0
+
+[[stylesheets.rules]]
+selector = ".workbench-rail-button"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_inset"
+foreground_color = "$workbench_text_muted"
+border_color = "$workbench_border_soft"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-rail-button:hovered"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-icon-button:selected"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-rail-button:selected"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-tab:hovered"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-field:hovered"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_field_hot"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-component-property-row"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_panel"
+border_width = 0
+radius = 0
+
+[[stylesheets.rules]]
+selector = ".workbench-component-property-row:hovered"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_hover"
+border_width = 0
+radius = 0
+
+[[stylesheets.rules]]
+selector = ".workbench-component-field:hovered"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_field_hot"
+foreground_color = "$workbench_text"
+border_color = "$workbench_field_component_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-dropdown:hovered"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_field_hot"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-slider:hovered"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_field_hot"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-tree-item:hovered"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-list-row:hovered"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-table-row:hovered"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-check:hovered"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-radio:hovered"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-toggle:hovered"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-segmented-control:hovered"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-control-button:hovered"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-icon-button:pressed"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-button:pressed"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-rail-button:pressed"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-tab:pressed"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-tree-item:pressed"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-list-row:pressed"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-table-row:pressed"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-slider:pressed"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-check:pressed"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-radio:pressed"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-toggle:pressed"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-segmented-control:pressed"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-control-button:pressed"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-panel"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = 0
+
+[[stylesheets.rules]]
+selector = ".workbench-module-canvas"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_inset"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border_soft"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-component-sample-card"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.panel"
+
+[[stylesheets.rules]]
+selector = ".workbench-left-panel"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-right-panel"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-tabs"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_surface"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-tab"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_surface"
+foreground_color = "$workbench_text_muted"
+
+[[stylesheets.rules]]
+selector = ".workbench-tab:checked"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_text"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-tab:selected"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_text"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-field"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_field"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-component-field"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_field_component"
+foreground_color = "$workbench_text_muted"
+border_color = "$workbench_field_component_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-dropdown"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_field"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-muted"
+
+[stylesheets.rules.set.self]
+foreground_color = "$workbench_text_muted"
+
+[[stylesheets.rules]]
+selector = ".workbench-tree-item:disabled"
+
+[stylesheets.rules.set.self]
+foreground_color = "$workbench_text_dim"
+background_color = "$workbench_inset"
+border_color = "$workbench_border_soft"
+
+[[stylesheets.rules]]
+selector = ".workbench-component-field:disabled"
+
+[stylesheets.rules.set.self]
+foreground_color = "$workbench_field_component_disabled_text"
+background_color = "$workbench_field_component_disabled"
+border_color = "$workbench_field_component_disabled_border"
+
+[[stylesheets.rules]]
+selector = ".workbench-tree-item:selected"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-list-row:selected"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-table-row:selected"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-check:checked"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_checkbox_checked"
+foreground_color = "$workbench_selection_label"
+border_color = "$workbench_checkbox_checked"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-radio:checked"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_radio_checked"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_radio_checked_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-toggle:checked"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_toggle_checked_track"
+foreground_color = "$workbench_toggle_checked_thumb"
+border_color = "$workbench_toggle_checked_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-segmented-control:selected"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-control-button:selected"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-dropdown:popup_open"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_field_hot"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-component-property-row:focus-visible"
+
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-field:focus-visible"
+
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-component-field:focus-visible"
+
+[stylesheets.rules.set.self]
+border_color = "$workbench_field_component_focus_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-dropdown:focus-visible"
+
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-number-field:focus-visible"
+
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-check:focus-visible"
+
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-radio:focus-visible"
+
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-toggle:focus-visible"
+
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-slider:focus-visible"
+
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-tree-item:focus-visible"
+
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-list-row:focus-visible"
+
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-table-row:focus-visible"
+
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-control-button:focus-visible"
+
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-action"
+
+[stylesheets.rules.set.self]
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-action:hovered"
+
+[stylesheets.rules.set.self]
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-action:pressed"
+
+[stylesheets.rules.set.self]
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-action:selected"
+
+[stylesheets.rules.set.self]
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-action:focus-visible"
+
+[stylesheets.rules.set.self]
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-quiet-action"
+
+[stylesheets.rules.set.self]
+background_color = "transparent"
+border_color = "transparent"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-quiet-action:hovered"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "transparent"
+
+[[stylesheets.rules]]
+selector = ".workbench-quiet-action:pressed"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "transparent"
+
+[[stylesheets.rules]]
+selector = ".workbench-quiet-action:checked"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent_soft"
+
+[[stylesheets.rules]]
+selector = ".workbench-quiet-action:selected"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent_soft"
+
+[[stylesheets.rules]]
+selector = ".workbench-quiet-action:popup_open"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent_soft"
+
+[[stylesheets.rules]]
+selector = ".workbench-quiet-action:disabled"
+
+[stylesheets.rules.set.self]
+background_color = "transparent"
+foreground_color = "$workbench_button_disabled_text"
+border_color = "transparent"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-tab"
+
+[stylesheets.rules.set.self]
+background_color = "transparent"
+foreground_color = "$workbench_text_muted"
+border_color = "transparent"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-tab:hovered"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "transparent"
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-tab:pressed"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "transparent"
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-tab:checked"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent_soft"
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-tab:selected"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent_soft"
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-tab:focus-visible"
+
+[stylesheets.rules.set.self]
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-tab:disabled"
+
+[stylesheets.rules.set.self]
+background_color = "transparent"
+foreground_color = "$workbench_button_disabled_text"
+border_color = "transparent"
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-icon-button:focus-visible"
+
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-rail-button:focus-visible"
+
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-tab:focus-visible"
+
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-segmented-control:focus-visible"
+
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-table-header"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_inset"
+foreground_color = "$workbench_table_header_text"
+border_color = "$workbench_border_soft"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+layout_content_offset_x = -1
+layout_content_offset_y = 3
+layout_padding_top = 2
+layout_padding_bottom = 0
+
+[[stylesheets.rules]]
+selector = ".workbench-indent-1"
+
+[stylesheets.rules.set.self]
+layout_padding_left = 22
+
+[[stylesheets.rules]]
+selector = ".workbench-indent-2"
+
+[stylesheets.rules.set.self]
+layout_padding_left = 40
+
+[[stylesheets.rules]]
+selector = ".workbench-tree-item"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border_soft"
+border_width = 0
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-list-row"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border_soft"
+border_width = 0
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-table-row"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border_soft"
+border_width = 0
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-section-title"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel_raised"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border_soft"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.small"
+font_size = "$editor.typography.body.size"
+font_weight = "$editor.typography.strong.weight"
+
+[[stylesheets.rules]]
+selector = ".workbench-property-section"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = 0
+
+[[stylesheets.rules]]
+selector = ".workbench-property-row"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+
+[[stylesheets.rules]]
+selector = ".workbench-chip"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel_raised"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-component-drawer"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_surface"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = 0
+
+[[stylesheets.rules]]
+selector = ".workbench-control-button"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel_raised"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-disabled-button"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_button_disabled"
+foreground_color = "$workbench_button_disabled_text"
+border_color = "$workbench_button_disabled_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-check"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_selection_mark"
+foreground_color = "$workbench_selection_label"
+border_color = "$workbench_selection_mark_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-radio"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_selection_mark"
+foreground_color = "$workbench_selection_label"
+border_color = "$workbench_selection_mark_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-toggle"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_toggle_track"
+foreground_color = "$workbench_toggle_thumb"
+border_color = "$workbench_toggle_track_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.pill"
+
+[[stylesheets.rules]]
+selector = ".workbench-slider"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_field"
+foreground_color = "$workbench_text_muted"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-progress-bar"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_field"
+foreground_color = "$workbench_progress_fill"
+border_width = 0
+radius = "$editor.control.radius.small"
+
+[[stylesheets.rules]]
+selector = ".workbench-segmented-control"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_segmented"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-popup-menu"
+
+[stylesheets.rules.set.self]
+background_color = "$editor.popup"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.panel"
+
+[[stylesheets.rules]]
+selector = ".workbench-primary-button"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_accent_dim"
+foreground_color = "$workbench_text"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-alert"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel_raised"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-toast"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_toast_surface"
+foreground_color = "$workbench_toast_text"
+border_color = "$workbench_toast_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.panel"
+
+[[stylesheets.rules]]
+selector = ".workbench-info"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_info_surface"
+foreground_color = "$workbench_info"
+border_color = "$workbench_info"
+
+[[stylesheets.rules]]
+selector = ".workbench-success"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_success_surface"
+foreground_color = "$workbench_success"
+border_color = "$workbench_success"
+
+[[stylesheets.rules]]
+selector = ".workbench-warning"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_warning_surface"
+foreground_color = "$workbench_warning"
+border_color = "$workbench_warning"
+
+[[stylesheets.rules]]
+selector = ".workbench-error"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_error_surface"
+foreground_color = "$workbench_error"
+border_color = "$workbench_error"
+
+[[stylesheets.rules]]
+selector = ".workbench-danger"
+
+[stylesheets.rules.set.self]
+foreground_color = "$workbench_error"
+border_color = "$workbench_error"
+
+[[stylesheets.rules]]
+selector = ".workbench-status"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_surface"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = 0
+radius = 0
+
+[[stylesheets.rules]]
+selector = ".workbench-status-item"
+
+[stylesheets.rules.set.self]
+foreground_color = "$workbench_text"
+
+[[stylesheets.rules]]
+selector = ".workbench-status-right-control"
+
+[stylesheets.rules.set.self]
+background_color = "transparent"
+foreground_color = "$workbench_status_right_text"
+border_color = "transparent"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-status-right-icon"
+
+[stylesheets.rules.set.self]
+background_color = "transparent"
+border_color = "transparent"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.small"
+
+[[stylesheets.rules]]
+selector = ".workbench-overlay-region"
+
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = 0
+
+[[stylesheets.rules]]
+selector = ".workbench-primitive"
+
+[stylesheets.rules.set.self]
+foreground_color = "$workbench_text"
+
+[asset]
+kind = "view"
+id = "res://ui/editor/workbench_activity_rail.zui"
+version = 2
+display_name = "workbench activity rail"
+
+[imports]
+widgets = []
+styles = []
+
+[root]
+node = "activity_rail_root"
+
+[nodes.activity_rail_root]
+component = "Overlay"
+control_id = "ActivityRailRoot"
+pixel_snapping = "disabled"
+classes = [ "activity-rail", "editor-shell", "workbench-shell-root" ]
+
+[nodes.activity_rail_root.layout]
+clip = true
+
+[nodes.activity_rail_root.layout.container]
+kind = "Overlay"
+
+[nodes.activity_rail_root.layout.width]
+stretch = "Stretch"
+
+[nodes.activity_rail_root.layout.height]
+stretch = "Stretch"
+
+[[nodes.activity_rail_root.children]]
+node = "activity_rail_panel"
+
+[[nodes.activity_rail_root.children]]
+node = "activity_rail_button_0"
+
+[[nodes.activity_rail_root.children]]
+node = "activity_rail_button_icon_0"
+
+[[nodes.activity_rail_root.children]]
+node = "activity_rail_button_1"
+
+[[nodes.activity_rail_root.children]]
+node = "activity_rail_button_icon_1"
+
+[nodes.activity_rail_panel]
+component = "Container"
+control_id = "ActivityRailPanel"
+classes = [ "workbench-rail" ]
+
+[nodes.activity_rail_panel.props]
+surface_variant = "panel"
+radius = 0
+border_width = 0
+
+[nodes.activity_rail_panel.layout.position]
+x = 0
+y = 0
+
+[nodes.activity_rail_panel.layout.width]
+stretch = "Stretch"
+
+[nodes.activity_rail_panel.layout.height]
+stretch = "Stretch"
+
+[nodes.activity_rail_button_0]
+component = "Container"
+control_id = "ActivityRailButton0"
+classes = [ "workbench-rail-button" ]
+
+[nodes.activity_rail_button_0.props]
+surface_variant = "transparent"
+radius = "$editor.control.radius.small"
+border_width = 0
+
+[nodes.activity_rail_button_0.layout.position]
+x = 3
+y = 6
+
+[nodes.activity_rail_button_0.layout.width]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[nodes.activity_rail_button_0.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.activity_rail_button_icon_0]
+component = "Icon"
+control_id = "ActivityRailButtonIcon0"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Folder\"><path fill=\"#172033\" stroke=\"#cbd2dc\" stroke-linejoin=\"round\" stroke-width=\"1.4\" d=\"M3.5 7h6l1.6 2H20a1 1 0 0 1 1 1v8.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5v-10A1.5 1.5 0 0 1 4.5 7z\"/><path fill=\"none\" stroke=\"#26d8d1\" stroke-linecap=\"round\" stroke-width=\"1.4\" d=\"M5 11h14\"/></svg>\n"
+
+[nodes.activity_rail_button_icon_0.props]
+icon = "editor_pages/asset_browser/navigation/folder.svg"
+value = "editor_pages/asset_browser/navigation/folder.svg"
+text_tone = "muted"
+
+[nodes.activity_rail_button_icon_0.layout.position]
+x = 8
+y = 13
+
+[nodes.activity_rail_button_icon_0.layout.width]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[nodes.activity_rail_button_icon_0.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[nodes.activity_rail_button_1]
+component = "Container"
+control_id = "ActivityRailButton1"
+classes = [ "workbench-rail-button" ]
+
+[nodes.activity_rail_button_1.props]
+surface_variant = "transparent"
+radius = "$editor.control.radius.small"
+border_width = 0
+
+[nodes.activity_rail_button_1.layout.position]
+x = 3
+y = 42
+
+[nodes.activity_rail_button_1.layout.width]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[nodes.activity_rail_button_1.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.activity_rail_button_icon_1]
+component = "Icon"
+control_id = "ActivityRailButtonIcon1"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Scene\"><path fill=\"#172033\" stroke=\"#cbd2dc\" stroke-linejoin=\"round\" stroke-width=\"1.4\" d=\"m12 4 7 4v8l-7 4-7-4V8z\"/><path fill=\"none\" stroke=\"#26d8d1\" stroke-linejoin=\"round\" stroke-width=\"1.2\" d=\"M5 8l7 4 7-4M12 12v8\"/><circle cx=\"12\" cy=\"12\" r=\"1.5\" fill=\"#26d8d1\"/></svg>\n"
+
+[nodes.activity_rail_button_icon_1.props]
+icon = "editor_pages/hierarchy/entity/scene.svg"
+value = "editor_pages/hierarchy/entity/scene.svg"
+text_tone = "muted"
+
+[nodes.activity_rail_button_icon_1.layout.position]
+x = 8
+y = 49
+
+[nodes.activity_rail_button_icon_1.layout.width]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[nodes.activity_rail_button_icon_1.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[penpot_host_colors]
+primary = "#60aeff"
+accent = "#60aeff"
+"material.primary" = "#60aeff"
+material_color_primary = "#60aeff"
+on_primary = "#151515"
+"material.on_primary" = "#151515"
+material_color_on_primary = "#151515"
+surface = "#2f2f2f"
+"material.surface" = "#2f2f2f"
+surface_inset = "#0f0f0f"
+"material.surface_inset" = "#0f0f0f"
+surface_hover = "#454545"
+"material.surface_hover" = "#454545"
+surface_pressed = "#383838"
+"material.surface_pressed" = "#383838"
+surface_selected = "#243f5a"
+"material.surface_selected" = "#243f5a"
+disabled = "#2b2b2b"
+"material.disabled" = "#2b2b2b"
+border = "#484848"
+outline = "#484848"
+"material.outline" = "#484848"
+focus = "#66b2ff"
+focus_ring = "#66b2ff"
+"material.focus_ring" = "#66b2ff"
+text = "#e8e8e8"
+on_surface = "#e8e8e8"
+"material.text" = "#e8e8e8"
+"material.on_surface" = "#e8e8e8"
+text_muted = "#b3b3b3"
+muted = "#b3b3b3"
+"material.text_muted" = "#b3b3b3"
+text_disabled = "#737373"
+"material.text_disabled" = "#737373"
+warning = "#dcac50"
+"material.warning" = "#dcac50"
+error = "#eb605c"
+danger = "#eb605c"
+"material.error" = "#eb605c"
+success = "#55be78"
+"material.success" = "#55be78"
+info = "#5faae6"
+"material.info" = "#5faae6"
+
+[penpot_host_palette]
+surface = [ "#151515", "#242424", "#2f2f2f", "#383838" ]
+surface_recessed = "#0f0f0f"
+surface_hover = "#454545"
+surface_selected = "#243f5a"
+surface_disabled = "#2b2b2b"
+accent = "#60aeff"
+accent_soft = "#253f59"
+border = "#484848"
+border_disabled = "#363636"
+separator_strong = "#565656"
+separator_soft = "#333333"
+text_primary = "#e8e8e8"
+text_secondary = "#b3b3b3"
+text_disabled = "#737373"
+success = "#55be78"
+success_container = "#1d472f"
+info = "#5faae6"
+info_container = "#18395b"
+warning = "#dcac50"
+warning_container = "#463112"
+error = "#eb605c"
+error_container = "#4c2427"
+popup = "#242424"
+track = "#3b3b3b"
+focus_ring = "#66b2ff"
+shadow = "#00000073"
+
+[tokens]
+"theme.palette.surface.0" = "#151515"
+"theme.palette.surface.1" = "#242424"
+"theme.palette.surface.2" = "#2f2f2f"
+"theme.palette.surface.3" = "#383838"
+"theme.palette.text.primary" = "#e8e8e8"
+"theme.palette.text.secondary" = "#b3b3b3"
+"theme.palette.text.disabled" = "#737373"
+"theme.palette.accent" = "#60aeff"
+"theme.palette.success" = "#55be78"
+"theme.palette.info" = "#5faae6"
+"theme.palette.warning" = "#dcac50"
+"theme.palette.error" = "#eb605c"
+"theme.palette.separator" = "#484848"
+"editor.surface.0" = "#151515"
+"editor.surface.1" = "#242424"
+"editor.surface.2" = "#2f2f2f"
+"editor.surface.3" = "#383838"
+"editor.surface.recessed" = "#0f0f0f"
+"editor.surface.hover" = "#454545"
+"editor.surface.selected" = "#243f5a"
+"editor.surface.disabled" = "#2b2b2b"
+"editor.accent" = "#60aeff"
+"editor.accent.soft" = "#253f59"
+"editor.border" = "#484848"
+"editor.border.disabled" = "#363636"
+"editor.separator.strong" = "#565656"
+"editor.separator.soft" = "#333333"
+"editor.text.primary" = "#e8e8e8"
+"editor.text.secondary" = "#b3b3b3"
+"editor.text.disabled" = "#737373"
+"editor.semantic.success" = "#55be78"
+"editor.semantic.success.container" = "#1d472f"
+"editor.semantic.info" = "#5faae6"
+"editor.semantic.info.container" = "#18395b"
+"editor.semantic.warning" = "#dcac50"
+"editor.semantic.warning.container" = "#463112"
+"editor.semantic.error" = "#eb605c"
+"editor.semantic.error.container" = "#4c2427"
+"editor.popup" = "#242424"
+"editor.track" = "#3b3b3b"
+"editor.focus.ring" = "#66b2ff"
+"editor.shadow" = "#00000073"
+"editor.typography.ui.family" = "Fira Sans"
+"editor.typography.ui.strong.family" = "Fira Sans"
+"editor.typography.code.family" = "Fira Mono"
+"editor.typography.utility_tab.text_role" = "ui"
+"editor.typography.font_smoothing" = "grayscale"
+"editor.typography.body.size" = 14
+"editor.typography.caption.size" = 12
+"editor.typography.overlay.size" = 12
+"editor.typography.heading.size" = 16
+"editor.typography.title.size" = 20
+"editor.typography.body.weight" = 400
+"editor.typography.medium.weight" = 500
+"editor.typography.strong.weight" = 600
+"editor.typography.emphasis.weight" = 700
+"editor.typography.code.weight" = 400
+"editor.typography.line_height" = 1.4
+"editor.control.height.large" = 48
+"editor.control.height.default" = 32
+"editor.control.height.compact" = 32
+"editor.control.height.dense" = 28
+"editor.control.radius.small" = 4
+"editor.control.radius.control" = 4
+"editor.control.radius.large" = 8
+"editor.control.radius.panel" = 0
+"editor.control.radius.pill" = 999
+"editor.control.border_width" = 1
+"editor.chrome.top_bar.height" = 25
+"editor.chrome.host_bar.height" = 32
+"editor.chrome.workbench_toolbar.height" = 66
+"editor.chrome.workbench_toolbar.command_row.height" = 34
+"editor.chrome.workbench_toolbar.popup.command_offset_y" = 29
+"editor.chrome.workbench_toolbar.popup.module_offset_y" = -6
+"editor.chrome.status_bar.height" = 24
+"editor.chrome.panel_header.height" = 30
+"editor.chrome.document_header.height" = 31
+"editor.chrome.viewport_toolbar.height" = 28
+"editor.chrome.activity_rail.width" = 34
+"editor.chrome.separator.thickness" = 1
+"editor.chrome.splitter.hit_size" = 8
+"editor.density.gap.xsmall" = 2
+"editor.density.gap.tight" = 4
+"editor.density.gap.small" = 4
+"editor.density.gap.regular" = 8
+"editor.density.gap.medium" = 8
+"editor.density.gap.large" = 12
+"editor.density.gap.group" = 24
+"editor.density.drawer_padding" = 12
+"editor.density.panel_padding" = 16
+"editor.density.toolbar_action_width" = 76
+"editor.density.toolbar_wide_action_width" = 96
+"editor.density.ui_asset_action.min_width" = 40
+"editor.density.ui_asset_action.preferred_width" = 52
+"editor.density.ui_asset_action.max_width" = 64
+"editor.density.ui_asset.side.min_width" = 128
+"editor.density.ui_asset.side.preferred_width" = 220
+"editor.density.ui_asset.center.min_width" = 256
+"editor.density.ui_asset.center.preferred_width" = 420
+"editor.density.ui_asset.header_kind.min_width" = 64
+"editor.density.ui_asset.header_kind.preferred_width" = 70
+"editor.density.ui_asset.header_kind.max_width" = 84
+"editor.density.ui_asset.tool.min_width" = 56
+"editor.density.ui_asset.tool.preferred_width" = 64
+"editor.density.ui_asset.tool.max_width" = 80
+"editor.density.command_palette.min_width" = 520
+"editor.density.command_palette.preferred_width" = 560
+"editor.density.command_palette.max_width" = 640
+"editor.density.command_palette.min_height" = 180
+"editor.density.command_palette.preferred_height" = 220
+"editor.density.command_palette.max_height" = 280
+"editor.density.dialog.min_width" = 420
+"editor.density.dialog.preferred_width" = 480
+"editor.density.dialog.max_width" = 560
+"editor.density.dialog.min_height" = 180
+"editor.density.dialog.preferred_height" = 220
+"editor.density.dialog.max_height" = 320
+"editor.density.confirm_dialog.preferred_width" = 460
+"editor.density.confirm_dialog.max_width" = 540
+"editor.density.confirm_dialog.min_height" = 174
+"editor.density.confirm_dialog.preferred_height" = 210
+"editor.density.confirm_dialog.max_height" = 300
+"editor.density.notification_panel.min_width" = 280
+"editor.density.notification_panel.preferred_width" = 320
+"editor.density.notification_panel.max_width" = 380
+"editor.density.notification_panel.min_height" = 160
+"editor.density.notification_panel.preferred_height" = 220
+"editor.density.notification_panel.max_height" = 320
+"editor.density.caption.min_height" = 20
+"editor.density.caption.preferred_height" = 22
+"editor.density.caption.max_height" = 24
+"editor.density.label.min_height" = 22
+"editor.density.label.preferred_height" = 24
+"editor.density.label.max_height" = 32
+"editor.density.chip.min_width" = 40
+"editor.density.chip.preferred_width" = 80
+"editor.density.chip.max_width" = 160
+"editor.density.axis_value_field.min_width" = 54
+"editor.density.axis_value_field.preferred_width" = 62
+"editor.density.axis_value_field.max_width" = 72
+"editor.density.row_height" = 28
+"editor.density.left_drawer_width" = 332
+"editor.density.right_drawer_width" = 404
+"editor.density.bottom_output_height" = 228
+"editor.density.breakpoint_ultra_width" = 480
+"editor.density.breakpoint_narrow_width" = 640
+"editor.density.breakpoint_wide_width" = 1260
+"editor.density.compact_side_width" = 1100
+"editor.density.ultra_compact_side_width" = 760
+"editor.density.compact_left_drawer_max_width" = 340
+"editor.density.compact_right_drawer_max_width" = 220
+"editor.density.compact_side_min_width" = 196
+"editor.density.minimum_document_width_fraction" = 0.5
+"editor.density.ultra_compact_left_drawer_max_width" = 220
+"editor.density.ultra_compact_right_drawer_max_width" = 160
+"editor.density.compact_bottom_available_height" = 900
+"editor.density.compact_bottom_max_height" = 148
+"editor.density.compact_bottom_max_available_fraction" = 0.23
+"editor.density.compact_bottom_min_height" = 120
+"editor.density.ultra_compact_bottom_available_height" = 420
+"editor.density.ultra_compact_bottom_max_height" = 96
+"editor.density.ultra_compact_bottom_max_available_fraction" = 0.2
+"editor.density.ultra_compact_bottom_min_height" = 80
+"editor.density.minimum_window_width" = 640
+"editor.density.minimum_window_height" = 420
+"editor.density.ultra_minimum_window_width" = 420
+"editor.density.ultra_minimum_window_height" = 360
+"editor.state.default" = "surface_1"
+"editor.state.hovered" = "surface_2"
+"editor.state.pressed" = "surface_3"
+"editor.state.selected" = "surface_selected"
+"editor.state.focused" = "surface_1"
+"editor.state.disabled" = "text_disabled"
+"editor.state.loading" = "accent"
+workbench_shell = "$editor.surface.0"
+workbench_surface = "$editor.surface.1"
+workbench_panel = "$editor.surface.2"
+workbench_panel_raised = "$editor.surface.3"
+workbench_inset = "$editor.surface.recessed"
+workbench_hover = "$editor.surface.hover"
+workbench_active = "$editor.surface.selected"
+workbench_selected = "$editor.surface.selected"
+workbench_border = "$editor.border"
+workbench_border_soft = "$editor.separator.soft"
+workbench_accent = "$editor.accent"
+workbench_accent_2 = "$editor.accent"
+workbench_accent_soft = "$editor.accent.soft"
+workbench_accent_dim = "$editor.accent.soft"
+workbench_toast_surface = "$editor.popup"
+workbench_toast_text = "$editor.text.secondary"
+workbench_toast_border = "$editor.accent.soft"
+workbench_button_disabled = "$editor.surface.disabled"
+workbench_button_disabled_text = "$editor.text.disabled"
+workbench_button_disabled_border = "$editor.border.disabled"
+workbench_text = "$editor.text.primary"
+workbench_text_muted = "$editor.text.secondary"
+workbench_mesh_title_text = "$editor.text.secondary"
+workbench_text_dim = "$editor.text.disabled"
+workbench_status_right_text = "$editor.text.secondary"
+workbench_status_no_errors_fill = "$editor.semantic.success"
+workbench_table_header_text = "$editor.text.secondary"
+workbench_success = "$editor.semantic.success"
+workbench_warning = "$editor.semantic.warning"
+workbench_error = "$editor.semantic.error"
+workbench_info = "$editor.semantic.info"
+workbench_field = "$editor.surface.recessed"
+workbench_field_hot = "$editor.surface.2"
+workbench_progress_fill = "$editor.separator.strong"
+workbench_field_component = "$editor.surface.recessed"
+workbench_field_component_border = "$editor.border"
+workbench_field_component_focused = "$editor.surface.1"
+workbench_field_component_focused_text = "$editor.text.primary"
+workbench_field_component_focus_border = "$editor.focus.ring"
+workbench_field_component_disabled = "$editor.surface.disabled"
+workbench_field_component_disabled_text = "$editor.text.disabled"
+workbench_field_component_disabled_border = "$editor.border.disabled"
+workbench_segmented = "$editor.surface.2"
+workbench_selection_label = "$editor.text.secondary"
+workbench_selection_mark = "$editor.surface.1"
+workbench_selection_mark_border = "$editor.separator.strong"
+workbench_checkbox_checked = "$editor.surface.selected"
+workbench_radio_checked = "$editor.surface.selected"
+workbench_radio_checked_border = "$editor.accent"
+workbench_toggle_track = "$editor.track"
+workbench_toggle_track_border = "$editor.border"
+workbench_toggle_thumb = "$editor.text.secondary"
+workbench_toggle_checked_track = "$editor.surface.selected"
+workbench_toggle_checked_border = "$editor.accent"
+workbench_toggle_checked_thumb = "$editor.text.secondary"
+workbench_warning_surface = "$editor.semantic.warning.container"
+workbench_error_surface = "$editor.semantic.error.container"
+workbench_success_surface = "$editor.semantic.success.container"
+workbench_info_surface = "$editor.semantic.info.container"
+
+[penpot_original_imports]
+widgets = []
+styles = [ "res://ui/theme/editor_workbench_strict.zui" ]

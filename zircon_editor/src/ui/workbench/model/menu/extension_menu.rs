@@ -180,11 +180,24 @@ fn insert_menu_item(
 }
 
 fn menu_operation_paths(menu_bar: &MenuBarModel) -> HashSet<EditorOperationPath> {
-    let mut operation_paths = HashSet::new();
+    let operation_capacity = menu_bar
+        .menus
+        .iter()
+        .map(|menu| count_menu_items(&menu.items))
+        .fold(0, usize::saturating_add);
+    let mut operation_paths = HashSet::with_capacity(operation_capacity);
     for menu in &menu_bar.menus {
         collect_menu_operation_paths(&menu.items, &mut operation_paths);
     }
     operation_paths
+}
+
+fn count_menu_items(items: &[MenuItemModel]) -> usize {
+    items.iter().fold(0, |count, item| {
+        count
+            .saturating_add(1)
+            .saturating_add(count_menu_items(&item.children))
+    })
 }
 
 fn collect_menu_operation_paths(
@@ -200,4 +213,9 @@ fn collect_menu_operation_paths(
 }
 
 #[cfg(test)]
+#[path = "extension_menu/tests/operation_index_tests.rs"]
 mod operation_index_tests;
+
+#[cfg(test)]
+#[path = "tests/optimization_batch_iz_editor639_tests.rs"]
+mod optimization_batch_iz_editor639_tests;

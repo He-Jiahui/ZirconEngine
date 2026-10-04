@@ -3,7 +3,9 @@ use std::sync::Arc;
 
 use zircon_runtime::plugin::RuntimePluginCatalog;
 
-use crate::core::plugin::{EditorPluginCatalogSnapshot, EditorPluginPanelSource};
+use crate::core::plugin::{
+    project_native_plugin_directory, EditorPluginCatalogSnapshot, EditorPluginPanelSource,
+};
 
 pub(in crate::ui::host) use self::status::ProjectPluginStatusSnapshot;
 use super::editor_manager::EditorManager;
@@ -54,7 +56,7 @@ pub use self::reports::{
 
 impl EditorManager {
     pub fn plugin_directory(&self, project_root: impl AsRef<Path>) -> PathBuf {
-        project_root.as_ref().join("zircon_plugins")
+        project_native_plugin_directory(project_root.as_ref())
     }
 
     pub fn plugin_catalog(&self) -> Arc<EditorPluginCatalogSnapshot> {

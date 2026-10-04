@@ -1,3 +1,4 @@
+from tools.tests.rust_test_files import read_rust_test_file
 import unittest
 from pathlib import Path
 
@@ -16,12 +17,12 @@ SOURCE_AUTHORITY = (
     EDITOR_SOURCE / "core/extension/toolkit/save/source_write_authority.rs"
 )
 SOURCE_AUTHORITY_TESTS = (
-    EDITOR_SOURCE / "core/extension/toolkit/save/source_write_authority/tests.rs"
+    EDITOR_SOURCE / "core/extension/toolkit/save/source_write_authority/tests/cases.rs"
 )
 PROJECT_PATH_IDENTITY = RUNTIME_SOURCE / "asset/project/paths/identity.rs"
 PROJECT_PATH_WINDOWS = RUNTIME_SOURCE / "asset/project/paths/windows.rs"
 PROJECT_PATHS = RUNTIME_SOURCE / "asset/project/paths.rs"
-PROJECT_PATH_TESTS = RUNTIME_SOURCE / "asset/project/paths/tests.rs"
+PROJECT_PATH_TESTS = RUNTIME_SOURCE / "asset/project/paths/tests/cases.rs"
 PROJECT_META_WRITE_AUTHORITY = (
     RUNTIME_SOURCE / "asset/project/meta_write_authority.rs"
 )
@@ -56,9 +57,9 @@ class ResourceConditionalWriteAuthorityTests(unittest.TestCase):
         self.assertEqual([], violations)
 
         facade = RESOURCE_FACADE.read_text(encoding="utf-8")
-        self.assertIn(
-            "pub use zr_resource::io::{atomic_write, atomic_write_new};", facade
-        )
+        self.assertIn("pub use zr_resource::io::", facade)
+        self.assertIn("atomic_write", facade)
+        self.assertIn("atomic_write_new", facade)
         resource_io_owner = RESOURCE_IO_OWNER.read_text(encoding="utf-8")
         self.assertIn(
             "pub use atomic_file::{atomic_write, atomic_write_new};", resource_io_owner
@@ -156,19 +157,19 @@ class ResourceConditionalWriteAuthorityTests(unittest.TestCase):
         self.assertIn("earlier_waiter_conflicts", meta_authority)
         self.assertNotIn("DefaultHasher", meta_authority)
         self.assertNotIn("META_WRITE_STRIPE", meta_authority)
-        self.assertIn("one_resolved_meta_identity_admits_only_one_writer", meta_authority)
+        self.assertIn("one_resolved_meta_identity_admits_only_one_writer", read_rust_test_file("zircon_runtime/src/asset/project/tests/meta_write_authority.rs"))
         self.assertIn(
             "unrelated_meta_identities_do_not_share_a_false_lock_stripe",
-            meta_authority,
+            read_rust_test_file("zircon_runtime/src/asset/project/tests/meta_write_authority.rs"),
         )
         self.assertIn(
             "earlier_conflicting_multi_path_waiter_cannot_be_barged_by_a_later_writer",
-            meta_authority,
+            read_rust_test_file("zircon_runtime/src/asset/project/tests/meta_write_authority.rs"),
         )
-        self.assertIn("later_waiting_receive", meta_authority)
+        self.assertIn("later_waiting_receive", read_rust_test_file("zircon_runtime/src/asset/project/tests/meta_write_authority.rs"))
         self.assertIn(
             "later_disjoint_writer_can_pass_an_earlier_blocked_waiter",
-            meta_authority,
+            read_rust_test_file("zircon_runtime/src/asset/project/tests/meta_write_authority.rs"),
         )
 
         durable = PROJECT_IDENTITY_CONSUMERS[0].read_text(encoding="utf-8")
@@ -217,7 +218,11 @@ class ResourceConditionalWriteAuthorityTests(unittest.TestCase):
         ):
             with self.subTest(path=path.relative_to(REPO_ROOT).as_posix()):
                 self.assertLess(len(source.splitlines()), 800)
-                self.assertIn("#[cfg(test)]\nmod tests;", source)
+                self.assertIn("#[cfg(test)]", source)
+                self.assertIn("mod tests;", source)
+                self.assertIn(
+                    f'#[path = "{path.stem}/tests/cases.rs"]', source
+                )
 
         self.assertTrue(PROJECT_PATH_TESTS.is_file())
         self.assertTrue(SOURCE_AUTHORITY_TESTS.is_file())
@@ -400,7 +405,7 @@ class ResourceConditionalWriteAuthorityTests(unittest.TestCase):
         self.assertIn("error.rollback_required()", durable_commit)
         self.assertIn(
             "prepublication_conflict_preserves_external_target_and_skips_rollback",
-            durable_commit,
+            read_rust_test_file("zircon_runtime/crates/zr_resource/src/io/transaction/tests/commit.rs"),
         )
 
     def test_durable_transaction_presence_checks_fail_closed(self) -> None:
@@ -421,12 +426,12 @@ class ResourceConditionalWriteAuthorityTests(unittest.TestCase):
         self.assertIn("pub(super) fn file_presence", stage)
         self.assertIn("Err(error) if error.kind() == io::ErrorKind::NotFound", stage)
         self.assertIn("Err(error) => Err(error)", stage)
-        self.assertIn("file_presence_treats_only_not_found_as_missing", stage)
+        self.assertIn("file_presence_treats_only_not_found_as_missing", read_rust_test_file("zircon_runtime/crates/zr_resource/src/io/transaction/tests/stage.rs"))
 
         engine_tests = "\n".join(
             path.read_text(encoding="utf-8")
             for path in (
-                RESOURCE_TRANSACTION / "engine/tests.rs",
+                RESOURCE_TRANSACTION / "engine/tests/cases.rs",
                 *rust_sources(RESOURCE_TRANSACTION / "engine/tests"),
             )
         )
@@ -445,7 +450,7 @@ class ResourceConditionalWriteAuthorityTests(unittest.TestCase):
         replay = (RESOURCE_TRANSACTION / "recovery/replay.rs").read_text(
             encoding="utf-8"
         )
-        recovery_tests = (RESOURCE_TRANSACTION / "recovery/tests.rs").read_text(
+        recovery_tests = (RESOURCE_TRANSACTION / "recovery/tests/cases.rs").read_text(
             encoding="utf-8"
         )
 
@@ -465,7 +470,7 @@ class ResourceConditionalWriteAuthorityTests(unittest.TestCase):
         intent = (RESOURCE_TRANSACTION / "journal/intent.rs").read_text(
             encoding="utf-8"
         )
-        journal_tests = (RESOURCE_TRANSACTION / "journal/tests.rs").read_text(
+        journal_tests = (RESOURCE_TRANSACTION / "journal/tests/cases.rs").read_text(
             encoding="utf-8"
         )
 
@@ -483,14 +488,14 @@ class ResourceConditionalWriteAuthorityTests(unittest.TestCase):
         engine_tests = "\n".join(
             path.read_text(encoding="utf-8")
             for path in (
-                RESOURCE_TRANSACTION / "engine/tests.rs",
+                RESOURCE_TRANSACTION / "engine/tests/cases.rs",
                 *rust_sources(RESOURCE_TRANSACTION / "engine/tests"),
             )
         )
         replay = (RESOURCE_TRANSACTION / "recovery/replay.rs").read_text(
             encoding="utf-8"
         )
-        recovery_tests = (RESOURCE_TRANSACTION / "recovery/tests.rs").read_text(
+        recovery_tests = (RESOURCE_TRANSACTION / "recovery/tests/cases.rs").read_text(
             encoding="utf-8"
         )
 

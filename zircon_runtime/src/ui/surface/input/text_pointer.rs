@@ -23,6 +23,8 @@ use super::{
     text_state::editable_text_state_for_node,
 };
 
+/// 在已完成的 pointer 路由上执行文本选择/插入点默认动作，再投影回统一输入结果。
+/// 选择拖拽仅允许匹配 pointer 捕获继续，双击/三击使用词/硬行范围。
 pub(super) fn dispatch_pointer_text_edit(
     surface: &mut UiSurface,
     pointer: &UiPointerInputEvent,
@@ -76,9 +78,11 @@ pub(super) fn dispatch_pointer_text_edit(
 
     if matches!(route.kind, UiPointerEventKind::Down) {
         surface.capture_pointer(target).ok()?;
-        if let Some(pointer_id) = pointer.metadata.pointer_id {
-            surface.input.set_pointer_capture_for_id(pointer_id, target);
-        }
+        surface.input.set_pointer_capture_for_button(
+            pointer.metadata.pointer_id.unwrap_or_default(),
+            target,
+            pointer.event.button,
+        );
     }
     let drag = match route.kind {
         UiPointerEventKind::Down if primary_press => {
@@ -244,7 +248,15 @@ fn text_pointer_target(
             text_pointer_capture_matches(surface, pointer, *target)
                 && surface.input.pointer_drags.contains_key(target)
         }),
-        UiPointerEventKind::Up => route.captured,
+        UiPointerEventKind::Up
+            if matches!(
+                route.activation_phase,
+                UiPointerActivationPhase::PrimaryRelease
+                    | UiPointerActivationPhase::SecondaryRelease
+            ) =>
+        {
+            route.captured
+        }
         _ => None,
     }
 }
@@ -257,12 +269,13 @@ fn text_pointer_capture_matches(
     if surface.focus.captured != Some(target) {
         return false;
     }
-    pointer
-        .metadata
-        .pointer_id
-        .is_some_and(|pointer_id| surface.input.pointer_capture_owner(pointer_id) == Some(target))
+    surface
+        .input
+        .pointer_capture_owner(pointer.metadata.pointer_id.unwrap_or_default())
+        == Some(target)
 }
 
+// 命中必须使用与已发布文字布局同代的字体度量；字体已变时保留布局几何回退，等待正常重建。
 fn text_pointer_hit(
     surface: &UiSurface,
     target: UiNodeId,

@@ -1,6 +1,6 @@
 import pathlib
 import unittest
-
+# ECS 查询计划增量编译直接写回保留缓存，全量重建复用容量；每个匹配 archetype 只编译一次。
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 SOURCE_PATH = REPO_ROOT / "zircon_runtime/src/scene/ecs/query/query_state/cache.rs"

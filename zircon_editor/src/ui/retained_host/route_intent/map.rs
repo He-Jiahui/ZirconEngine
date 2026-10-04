@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    sync::atomic::{AtomicU64, Ordering},
+};
 
 use zircon_runtime_interface::ui::{
     dispatch::{UiComponentEventReport, UiPointerDispatchResult},
@@ -20,9 +23,45 @@ pub(crate) enum EditorRouteIntent {
     ViewportToolbar(ViewportToolbarPointerRoute),
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct EditorRouteIntentHandle {
+    generation: u64,
+    pub(crate) node_id: UiNodeId,
+    pub(crate) route_id: UiRouteId,
+}
+
+#[derive(Debug)]
 pub(crate) struct EditorRouteIntentMap {
+    generation: u64,
     bindings_by_node: HashMap<UiNodeId, EditorRouteBinding>,
+}
+
+static NEXT_ROUTE_INTENT_GENERATION: AtomicU64 = AtomicU64::new(1);
+
+fn next_route_intent_generation() -> u64 {
+    NEXT_ROUTE_INTENT_GENERATION
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |generation| {
+            generation.checked_add(1)
+        })
+        .expect("route intent generation exhausted")
+}
+
+impl Default for EditorRouteIntentMap {
+    fn default() -> Self {
+        Self {
+            generation: next_route_intent_generation(),
+            bindings_by_node: HashMap::new(),
+        }
+    }
+}
+
+impl Clone for EditorRouteIntentMap {
+    fn clone(&self) -> Self {
+        Self {
+            generation: next_route_intent_generation(),
+            bindings_by_node: self.bindings_by_node.clone(),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -38,8 +77,36 @@ impl EditorRouteIntentMap {
         route_id: UiRouteId,
         intent: EditorRouteIntent,
     ) {
+        self.generation = next_route_intent_generation();
         self.bindings_by_node
             .insert(node_id, EditorRouteBinding { route_id, intent });
+    }
+
+    pub(crate) fn handle_for_node(&self, node_id: UiNodeId) -> Option<EditorRouteIntentHandle> {
+        let binding = self.bindings_by_node.get(&node_id)?;
+        Some(EditorRouteIntentHandle {
+            generation: self.generation,
+            node_id,
+            route_id: binding.route_id,
+        })
+    }
+
+    pub(crate) fn handle_for_pointer_dispatch(
+        &self,
+        dispatch: &UiPointerDispatchResult,
+    ) -> Option<EditorRouteIntentHandle> {
+        pointer_dispatch_route_node(dispatch).and_then(|node_id| self.handle_for_node(node_id))
+    }
+
+    pub(crate) fn resolve_handle(
+        &self,
+        handle: EditorRouteIntentHandle,
+    ) -> Option<&EditorRouteIntent> {
+        if handle.generation != self.generation {
+            return None;
+        }
+        let binding = self.bindings_by_node.get(&handle.node_id)?;
+        (binding.route_id == handle.route_id).then_some(&binding.intent)
     }
 
     pub(crate) fn route_id_for_node(&self, node_id: UiNodeId) -> Option<UiRouteId> {
@@ -111,13 +178,5 @@ fn pointer_dispatch_route_node(dispatch: &UiPointerDispatchResult) -> Option<UiN
 }
 
 #[cfg(test)]
-mod performance_tests {
-    #[test]
-    fn route_intent_map_uses_one_hash_index_for_hot_pointer_lookup() {
-        let source = include_str!("map.rs");
-        let implementation = source.split("#[cfg(test)]").next().expect("implementation");
-        assert!(implementation.contains("HashMap<UiNodeId, EditorRouteBinding>"));
-        assert_eq!(implementation.matches("HashMap<").count(), 1);
-        assert!(!implementation.contains("BTreeMap"));
-    }
-}
+#[path = "tests/map_performance_tests.rs"]
+mod performance_tests;

@@ -1,3 +1,5 @@
+//! 集合组件类名在模板样式匹配前生成，供列表、图像列表和表格选择器使用；slot 类名由父节点属性推导，不能只看子节点。
+
 use std::collections::BTreeMap;
 
 use toml::Value;
@@ -8,6 +10,7 @@ use super::{
     string_from_attributes_any,
 };
 
+/// 由样式应用入口分发集合组件；返回值表示组件族已接管类名，调用方据此停止后续组件族分发。
 pub(super) fn append_component_classes(
     node: &mut UiTemplateNode,
     component: &str,
@@ -30,6 +33,7 @@ pub(super) fn append_component_classes(
     true
 }
 
+/// 由 slot 契约传入父组件和 slot 名；文本与排序标记要沿父节点取值，避免子节点缺少这些属性时丢失选择器。
 pub(super) fn append_slot_classes(
     child: &mut UiTemplateNode,
     owner_component: &str,
@@ -236,6 +240,7 @@ fn append_table_sort_label_classes(node: &mut UiTemplateNode, prefix: &str) {
     );
 }
 
+// 热路径只借用已裁剪的属性值；测试比较返回切片与原 TOML 字符串的存储地址。
 fn borrowed_collection_attribute<'a>(
     attributes: &'a BTreeMap<String, Value>,
     names: &[&str],
@@ -272,5 +277,5 @@ fn has_text_slot(owner_attributes: &BTreeMap<String, Value>, slot_name: &str) ->
 }
 
 #[cfg(test)]
-#[path = "mui_collection_classes/borrowed_default_tests.rs"]
+#[path = "mui_collection_classes/tests/borrowed_default_tests.rs"]
 mod borrowed_default_tests;

@@ -1,8 +1,8 @@
 use crate::text::atlas::{GlyphAtlasBitmapRenderSubmissionPlan, GlyphAtlasBitmapUploadSourceBytes};
 
 use super::frame::{
-    GlyphAtlasBitmapTextureUploadFrameReport,
     glyph_atlas_bitmap_texture_upload_frame_plan_for_atlas,
+    GlyphAtlasBitmapTextureUploadFrameReport,
 };
 
 pub(in crate::graphics::scene::scene_renderer::ui) fn glyph_atlas_bitmap_render_submission_texture_upload_frame_report<

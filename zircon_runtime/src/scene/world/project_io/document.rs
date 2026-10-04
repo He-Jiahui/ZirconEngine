@@ -2,9 +2,9 @@ use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
-use crate::asset::AssetUuid;
 use crate::asset::assets::ProjectDocumentError;
 use crate::asset::importer::AssetImportError;
+use crate::asset::AssetUuid;
 use crate::core::resource::io::atomic_write;
 use crate::core::resource::{ResourceId, ResourceLocator};
 use crate::scene::components::{
@@ -20,9 +20,9 @@ use super::super::transform_validation::{
     validate_persisted_transform_map, validate_persisted_transforms,
 };
 use super::super::{
-    World,
     entity_id_allocator::EntityIdAllocator,
     world::{WorldPersistentState, WorldPersistentStateError},
+    World,
 };
 use super::BUILTIN_CUBE;
 

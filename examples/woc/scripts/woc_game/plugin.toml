@@ -6,6 +6,7 @@ backend = "zr_vm:project"
 [capabilities]
 capabilities = [
   "foundation.log",
+  "math.scalar",
 ]
 
 [management]

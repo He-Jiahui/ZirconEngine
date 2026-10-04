@@ -1,7 +1,7 @@
 use crate::core::asset::{AssetSourceAuthority, AssetTypeId, AssetTypeIdError, AssetWriteAccess};
 use crate::core::commands::{
     AssetWriteTargetDescriptor, EditorCommandDescriptor, EditorCommandDispatchError,
-    EditorCommandRegistry, EditorCommandRegistryError,
+    EditorCommandExecutorRegistryError, EditorCommandRegistry, EditorCommandRegistryError,
 };
 use crate::core::editing::engine::{EditCommandError, HistoryContextId};
 use crate::core::editing::operation::OperationCommandFactoryError;
@@ -23,6 +23,8 @@ use zircon_runtime_interface::resource::ResourceLocatorError;
 
 #[derive(Debug, Error)]
 pub enum EditorOperationDispatchError {
+    #[error(transparent)]
+    ExecutorRegistry(#[from] EditorCommandExecutorRegistryError),
     #[error(transparent)]
     ExtensionRegistry(#[from] EditorExtensionRegistryError),
     #[error(transparent)]
@@ -79,7 +81,9 @@ pub enum EditorOperationDispatchError {
         operation: EditorOperationPath,
         detail: String,
     },
-    #[error("native editor command {operation} returned a result that could not be decoded as {codec}: {detail}")]
+    #[error(
+        "native editor command {operation} returned a result that could not be decoded as {codec}: {detail}"
+    )]
     NativeResultDecoding {
         operation: EditorOperationPath,
         codec: String,
@@ -374,7 +378,7 @@ impl EditorHostEventController {
                     invocation.arguments,
                     invocation.operation_group,
                     binding_path,
-                )
+                );
             }
         };
         let receipt = match self
@@ -391,7 +395,7 @@ impl EditorHostEventController {
                     invocation.arguments,
                     invocation.operation_group,
                     binding_path,
-                )
+                );
             }
         };
         if receipt.status_code() != ZIRCON_NATIVE_PLUGIN_STATUS_OK {
@@ -423,7 +427,7 @@ impl EditorHostEventController {
                     invocation.arguments,
                     invocation.operation_group,
                     binding_path,
-                )
+                );
             }
         };
         self.dispatch_normalized_native_result(

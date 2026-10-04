@@ -55,3 +55,8 @@ PERF-MVP-267：TreeView每select/expand/nav/edit递归重建id Vec，Vec线性�
 ## 修复结果与回传
 
 Open state: `table两项局部clone已止损；等待EditorUI06回传tree/table generation model、typed comparator、worker budget与规模证据`。
+
+## 2026-09-11 滚动修复记录
+
+- 源码快照 `3413` 已冻结：`TreeIndex` 持有可见行、id/parent/label 索引与 enabled adjacency，`TableIndex` 持有 typed field/permutation，Editor showcase 已接入持久 model；定向 rustfmt/diff 检查通过。
+- 受管动态验证请求 `editorui06-state-model-runtime-20260911-r3` 未获 admission：协调器报告外部仓库 `E:\Git\zr_vm` 工作树脏（`validation_ticket_external_worktree_dirty`）。没有执行 Cargo 或规模门禁，待外部 owner 提交其变更后，以快照 `3413` 的精确 manifest 重新提交。

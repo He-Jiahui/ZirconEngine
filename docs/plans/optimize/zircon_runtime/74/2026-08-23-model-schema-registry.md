@@ -3,7 +3,7 @@
 Plan: docs/plans/optimize/zircon_runtime/74-runtime-ui-template-component-binding-expression-model-event-command-hot-reload-product-integration-review.md
 Milestone: M1
 Status: validation_pending
-Files: ["docs/plans/optimize/zircon_runtime/74/2026-08-23-model-schema-registry.md","docs/zircon_runtime/ui/template/pipeline.md","zircon_runtime/src/ui/binding/mod.rs","zircon_runtime/src/ui/binding/model_schema_registry.rs","zircon_runtime/src/ui/tests/mod.rs","zircon_runtime/src/ui/tests/model_schema_registry.rs","zircon_runtime_interface/src/tests/mod.rs","zircon_runtime_interface/src/tests/model_schema_contracts.rs","zircon_runtime_interface/src/ui/binding/mod.rs","zircon_runtime_interface/src/ui/binding/model/mod.rs","zircon_runtime_interface/src/ui/binding/model/model_schema.rs"]
+Files: ["docs/plans/optimize/zircon_runtime/74/2026-08-23-model-schema-registry.md","docs/crates/zircon_runtime/ui/template/pipeline.md","zircon_runtime/src/ui/binding/mod.rs","zircon_runtime/src/ui/binding/model_schema_registry.rs","zircon_runtime/src/ui/tests/mod.rs","zircon_runtime/src/ui/tests/model_schema_registry.rs","zircon_runtime_interface/src/tests/mod.rs","zircon_runtime_interface/src/tests/model_schema_contracts.rs","zircon_runtime_interface/src/ui/binding/mod.rs","zircon_runtime_interface/src/ui/binding/model/mod.rs","zircon_runtime_interface/src/ui/binding/model/model_schema.rs"]
 
 - Date: 2026-08-23
 - Owner: `optimize-runtime74-param-ref-compile-r3-bee4c707-20260822`

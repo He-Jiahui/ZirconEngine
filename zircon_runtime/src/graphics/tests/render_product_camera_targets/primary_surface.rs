@@ -1,10 +1,10 @@
 use super::assertions::{
-    RenderViewportRegion, average_channel_in_region, dominant_green_pixels,
-    dominant_green_pixels_in_region, dominant_red_pixels, dominant_red_pixels_in_region,
+    average_channel_in_region, dominant_green_pixels, dominant_green_pixels_in_region,
+    dominant_red_pixels, dominant_red_pixels_in_region, RenderViewportRegion,
 };
 use super::camera::{
-    CameraDescriptorTestExt, camera_target_product_profile, primary_surface_camera_descriptor,
-    primary_surface_stack_camera_descriptor,
+    camera_target_product_profile, primary_surface_camera_descriptor,
+    primary_surface_stack_camera_descriptor, CameraDescriptorTestExt,
 };
 use super::fixture::RenderFixture;
 use super::mesh::colored_mesh_on_layer;

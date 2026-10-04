@@ -276,7 +276,7 @@ fn record_particle_gpu_transparent(
             draw.device,
             draw.scene_bind_group_layout,
             ParticleGpuTransparentRenderConfig::new(draw.target_format, draw.depth_format),
-            &mut draw.buffer_uploads,
+            draw.buffer_uploads,
             draw.encoder,
             draw.color_view,
             draw.depth_view,

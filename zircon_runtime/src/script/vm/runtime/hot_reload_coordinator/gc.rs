@@ -21,8 +21,10 @@ impl HotReloadCoordinator {
         let due_slots = self.lock_gc_schedule().take_due(frame_index);
         let report_capacity = {
             let mut pending = self.lock_pending_gc_slots();
-            pending.extend(due_slots);
-            pending.len()
+            for slot in due_slots {
+                pending.push_back(slot);
+            }
+            pending.queue.len()
         };
 
         let mut slot_reports = Vec::with_capacity(report_capacity);

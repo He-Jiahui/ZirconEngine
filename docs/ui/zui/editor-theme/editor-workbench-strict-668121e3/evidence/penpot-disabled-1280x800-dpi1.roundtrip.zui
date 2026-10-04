@@ -1,0 +1,1134 @@
+[asset]
+kind = "style"
+id = "res://ui/theme/editor_workbench_strict.zui"
+version = 2
+display_name = "Editor Workbench Strict"
+
+[imports]
+widgets = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
+
+[tokens]
+workbench_shell = "$editor.surface.0"
+workbench_surface = "$editor.surface.1"
+workbench_panel = "$editor.surface.2"
+workbench_panel_raised = "$editor.surface.3"
+workbench_inset = "$editor.surface.recessed"
+workbench_hover = "$editor.surface.hover"
+workbench_active = "$editor.surface.selected"
+workbench_selected = "$editor.surface.selected"
+workbench_border = "$editor.border"
+workbench_border_soft = "$editor.separator.soft"
+workbench_accent = "$editor.accent"
+workbench_accent_2 = "$editor.accent"
+workbench_accent_soft = "$editor.accent.soft"
+workbench_accent_dim = "$editor.accent.soft"
+workbench_toast_surface = "$editor.popup"
+workbench_toast_text = "$editor.text.secondary"
+workbench_toast_border = "$editor.accent.soft"
+workbench_button_disabled = "$editor.surface.disabled"
+workbench_button_disabled_text = "$editor.text.disabled"
+workbench_button_disabled_border = "$editor.border.disabled"
+workbench_text = "$editor.text.primary"
+workbench_text_muted = "$editor.text.secondary"
+workbench_mesh_title_text = "$editor.text.secondary"
+workbench_text_dim = "$editor.text.disabled"
+workbench_status_right_text = "$editor.text.secondary"
+workbench_status_no_errors_fill = "$editor.semantic.success"
+workbench_table_header_text = "$editor.text.secondary"
+workbench_success = "$editor.semantic.success"
+workbench_warning = "$editor.semantic.warning"
+workbench_error = "$editor.semantic.error"
+workbench_info = "$editor.semantic.info"
+workbench_field = "$editor.surface.recessed"
+workbench_field_hot = "$editor.surface.2"
+workbench_progress_fill = "$editor.separator.strong"
+workbench_field_component = "$editor.surface.recessed"
+workbench_field_component_border = "$editor.border"
+workbench_field_component_focused = "$editor.surface.1"
+workbench_field_component_focused_text = "$editor.text.primary"
+workbench_field_component_focus_border = "$editor.focus.ring"
+workbench_field_component_disabled = "$editor.surface.disabled"
+workbench_field_component_disabled_text = "$editor.text.disabled"
+workbench_field_component_disabled_border = "$editor.border.disabled"
+workbench_segmented = "$editor.surface.2"
+workbench_selection_label = "$editor.text.secondary"
+workbench_selection_mark = "$editor.surface.1"
+workbench_selection_mark_border = "$editor.separator.strong"
+workbench_checkbox_checked = "$editor.surface.selected"
+workbench_radio_checked = "$editor.surface.selected"
+workbench_radio_checked_border = "$editor.accent"
+workbench_toggle_track = "$editor.track"
+workbench_toggle_track_border = "$editor.border"
+workbench_toggle_thumb = "$editor.text.secondary"
+workbench_toggle_checked_track = "$editor.surface.selected"
+workbench_toggle_checked_border = "$editor.accent"
+workbench_toggle_checked_thumb = "$editor.text.secondary"
+workbench_warning_surface = "$editor.semantic.warning.container"
+workbench_error_surface = "$editor.semantic.error.container"
+workbench_success_surface = "$editor.semantic.success.container"
+workbench_info_surface = "$editor.semantic.info.container"
+
+[[stylesheets]]
+id = "editor_workbench_strict"
+
+[[stylesheets.rules]]
+selector = ".editor-workbench"
+[stylesheets.rules.set.self]
+background_color = "$workbench_shell"
+foreground_color = "$workbench_text"
+
+[[stylesheets.rules]]
+selector = ".workbench-shell-root"
+[stylesheets.rules.set.self]
+background_color = "$workbench_shell"
+foreground_color = "$workbench_text"
+
+[[stylesheets.rules]]
+selector = ".workbench-window-root"
+[stylesheets.rules.set.self]
+background_color = "$workbench_shell"
+foreground_color = "$workbench_text"
+
+[[stylesheets.rules]]
+selector = ".workbench-topbar"
+[stylesheets.rules.set.self]
+background_color = "$workbench_surface"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = 0.0
+radius = 0.0
+
+[[stylesheets.rules]]
+selector = ".workbench-strip"
+[stylesheets.rules.set.self]
+background_color = "$workbench_surface"
+border_color = "$workbench_border_soft"
+border_width = "$editor.control.border_width"
+radius = 0.0
+
+[[stylesheets.rules]]
+selector = ".workbench-divider"
+[stylesheets.rules.set.self]
+background_color = "$workbench_border"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-group"
+[stylesheets.rules.set.self]
+background_color = "$workbench_surface"
+foreground_color = "$workbench_text"
+
+[[stylesheets.rules]]
+selector = ".workbench-panel-header"
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel_raised"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border_soft"
+border_width = 0.0
+radius = 0.0
+
+[[stylesheets.rules]]
+selector = ".workbench-icon-button"
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-button"
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-icon-button:hovered"
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-button:hovered"
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-rail"
+[stylesheets.rules.set.self]
+background_color = "$workbench_inset"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = 0.0
+radius = 0.0
+
+[[stylesheets.rules]]
+selector = ".workbench-rail-button"
+[stylesheets.rules.set.self]
+background_color = "$workbench_inset"
+foreground_color = "$workbench_text_muted"
+border_color = "$workbench_border_soft"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-rail-button:hovered"
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-icon-button:selected"
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-rail-button:selected"
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-tab:hovered"
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-field:hovered"
+[stylesheets.rules.set.self]
+background_color = "$workbench_field_hot"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-component-property-row"
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_panel"
+border_width = 0.0
+radius = 0.0
+
+[[stylesheets.rules]]
+selector = ".workbench-component-property-row:hovered"
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_hover"
+border_width = 0.0
+radius = 0.0
+
+[[stylesheets.rules]]
+selector = ".workbench-component-field:hovered"
+[stylesheets.rules.set.self]
+background_color = "$workbench_field_hot"
+foreground_color = "$workbench_text"
+border_color = "$workbench_field_component_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-dropdown:hovered"
+[stylesheets.rules.set.self]
+background_color = "$workbench_field_hot"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-slider:hovered"
+[stylesheets.rules.set.self]
+background_color = "$workbench_field_hot"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-tree-item:hovered"
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-list-row:hovered"
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-table-row:hovered"
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-check:hovered"
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-radio:hovered"
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-toggle:hovered"
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-segmented-control:hovered"
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-control-button:hovered"
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-icon-button:pressed"
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-button:pressed"
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-rail-button:pressed"
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-tab:pressed"
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-tree-item:pressed"
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-list-row:pressed"
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-table-row:pressed"
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-slider:pressed"
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-check:pressed"
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-radio:pressed"
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-toggle:pressed"
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-segmented-control:pressed"
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-control-button:pressed"
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-panel"
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = 0.0
+
+[[stylesheets.rules]]
+selector = ".workbench-module-canvas"
+[stylesheets.rules.set.self]
+background_color = "$workbench_inset"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border_soft"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-component-sample-card"
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.panel"
+
+[[stylesheets.rules]]
+selector = ".workbench-left-panel"
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-right-panel"
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-tabs"
+[stylesheets.rules.set.self]
+background_color = "$workbench_surface"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-tab"
+[stylesheets.rules.set.self]
+background_color = "$workbench_surface"
+foreground_color = "$workbench_text_muted"
+
+[[stylesheets.rules]]
+selector = ".workbench-tab:checked"
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_text"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-tab:selected"
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_text"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-field"
+[stylesheets.rules.set.self]
+background_color = "$workbench_field"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-component-field"
+[stylesheets.rules.set.self]
+background_color = "$workbench_field_component"
+foreground_color = "$workbench_text_muted"
+border_color = "$workbench_field_component_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-dropdown"
+[stylesheets.rules.set.self]
+background_color = "$workbench_field"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-muted"
+[stylesheets.rules.set.self]
+foreground_color = "$workbench_text_muted"
+
+[[stylesheets.rules]]
+selector = ".workbench-tree-item:disabled"
+[stylesheets.rules.set.self]
+foreground_color = "$workbench_text_dim"
+background_color = "$workbench_inset"
+border_color = "$workbench_border_soft"
+
+[[stylesheets.rules]]
+selector = ".workbench-component-field:disabled"
+[stylesheets.rules.set.self]
+foreground_color = "$workbench_field_component_disabled_text"
+background_color = "$workbench_field_component_disabled"
+border_color = "$workbench_field_component_disabled_border"
+
+[[stylesheets.rules]]
+selector = ".workbench-tree-item:selected"
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-list-row:selected"
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-table-row:selected"
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-check:checked"
+[stylesheets.rules.set.self]
+background_color = "$workbench_checkbox_checked"
+foreground_color = "$workbench_selection_label"
+border_color = "$workbench_checkbox_checked"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-radio:checked"
+[stylesheets.rules.set.self]
+background_color = "$workbench_radio_checked"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_radio_checked_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-toggle:checked"
+[stylesheets.rules.set.self]
+background_color = "$workbench_toggle_checked_track"
+foreground_color = "$workbench_toggle_checked_thumb"
+border_color = "$workbench_toggle_checked_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-segmented-control:selected"
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-control-button:selected"
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-dropdown:popup_open"
+[stylesheets.rules.set.self]
+background_color = "$workbench_field_hot"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+# Focus is an independent outline overlay. Keep these rules after every
+# primary field/selection/open recipe and do not assign background/foreground.
+[[stylesheets.rules]]
+selector = ".workbench-component-property-row:focus-visible"
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-field:focus-visible"
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-component-field:focus-visible"
+[stylesheets.rules.set.self]
+border_color = "$workbench_field_component_focus_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-dropdown:focus-visible"
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-number-field:focus-visible"
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-check:focus-visible"
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-radio:focus-visible"
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-toggle:focus-visible"
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-slider:focus-visible"
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-tree-item:focus-visible"
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-list-row:focus-visible"
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-table-row:focus-visible"
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-control-button:focus-visible"
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-action"
+[stylesheets.rules.set.self]
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-action:hovered"
+[stylesheets.rules.set.self]
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-action:pressed"
+[stylesheets.rules.set.self]
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-action:selected"
+[stylesheets.rules.set.self]
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-action:focus-visible"
+[stylesheets.rules.set.self]
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-quiet-action"
+[stylesheets.rules.set.self]
+background_color = "transparent"
+border_color = "transparent"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-quiet-action:hovered"
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "transparent"
+
+[[stylesheets.rules]]
+selector = ".workbench-quiet-action:pressed"
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "transparent"
+
+[[stylesheets.rules]]
+selector = ".workbench-quiet-action:checked"
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent_soft"
+
+[[stylesheets.rules]]
+selector = ".workbench-quiet-action:selected"
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent_soft"
+
+[[stylesheets.rules]]
+selector = ".workbench-quiet-action:popup_open"
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent_soft"
+
+[[stylesheets.rules]]
+selector = ".workbench-quiet-action:disabled"
+[stylesheets.rules.set.self]
+background_color = "transparent"
+foreground_color = "$workbench_button_disabled_text"
+border_color = "transparent"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-tab"
+[stylesheets.rules.set.self]
+background_color = "transparent"
+foreground_color = "$workbench_text_muted"
+border_color = "transparent"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-tab:hovered"
+[stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "transparent"
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-tab:pressed"
+[stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "transparent"
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-tab:checked"
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent_soft"
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-tab:selected"
+[stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent_soft"
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-tab:focus-visible"
+[stylesheets.rules.set.self]
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-toolbar-tab:disabled"
+[stylesheets.rules.set.self]
+background_color = "transparent"
+foreground_color = "$workbench_button_disabled_text"
+border_color = "transparent"
+radius = "$editor.control.radius.large"
+
+[[stylesheets.rules]]
+selector = ".workbench-icon-button:focus-visible"
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-rail-button:focus-visible"
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-tab:focus-visible"
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-segmented-control:focus-visible"
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-table-header"
+[stylesheets.rules.set.self]
+background_color = "$workbench_inset"
+foreground_color = "$workbench_table_header_text"
+border_color = "$workbench_border_soft"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+layout_content_offset_x = -1.0
+layout_content_offset_y = 3.0
+layout_padding_top = 2.0
+layout_padding_bottom = 0.0
+
+[[stylesheets.rules]]
+selector = ".workbench-indent-1"
+[stylesheets.rules.set.self]
+layout_padding_left = 22.0
+
+[[stylesheets.rules]]
+selector = ".workbench-indent-2"
+[stylesheets.rules.set.self]
+layout_padding_left = 40.0
+
+[[stylesheets.rules]]
+selector = ".workbench-tree-item"
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border_soft"
+border_width = 0.0
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-list-row"
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border_soft"
+border_width = 0.0
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-table-row"
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border_soft"
+border_width = 0.0
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-section-title"
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel_raised"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border_soft"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.small"
+font_size = "$editor.typography.body.size"
+font_weight = "$editor.typography.strong.weight"
+
+[[stylesheets.rules]]
+selector = ".workbench-property-section"
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = 0.0
+
+[[stylesheets.rules]]
+selector = ".workbench-property-row"
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+
+[[stylesheets.rules]]
+selector = ".workbench-chip"
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel_raised"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-component-drawer"
+[stylesheets.rules.set.self]
+background_color = "$workbench_surface"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = 0.0
+
+[[stylesheets.rules]]
+selector = ".workbench-control-button"
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel_raised"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-disabled-button"
+[stylesheets.rules.set.self]
+background_color = "$workbench_button_disabled"
+foreground_color = "$workbench_button_disabled_text"
+border_color = "$workbench_button_disabled_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-check"
+[stylesheets.rules.set.self]
+background_color = "$workbench_selection_mark"
+foreground_color = "$workbench_selection_label"
+border_color = "$workbench_selection_mark_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-radio"
+[stylesheets.rules.set.self]
+background_color = "$workbench_selection_mark"
+foreground_color = "$workbench_selection_label"
+border_color = "$workbench_selection_mark_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-toggle"
+[stylesheets.rules.set.self]
+background_color = "$workbench_toggle_track"
+foreground_color = "$workbench_toggle_thumb"
+border_color = "$workbench_toggle_track_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.pill"
+
+[[stylesheets.rules]]
+selector = ".workbench-slider"
+[stylesheets.rules.set.self]
+background_color = "$workbench_field"
+foreground_color = "$workbench_text_muted"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-progress-bar"
+[stylesheets.rules.set.self]
+background_color = "$workbench_field"
+foreground_color = "$workbench_progress_fill"
+border_width = 0.0
+radius = "$editor.control.radius.small"
+
+[[stylesheets.rules]]
+selector = ".workbench-segmented-control"
+[stylesheets.rules.set.self]
+background_color = "$workbench_segmented"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-popup-menu"
+[stylesheets.rules.set.self]
+background_color = "$editor.popup"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.panel"
+
+[[stylesheets.rules]]
+selector = ".workbench-primary-button"
+[stylesheets.rules.set.self]
+background_color = "$workbench_accent_dim"
+foreground_color = "$workbench_text"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-alert"
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel_raised"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-toast"
+[stylesheets.rules.set.self]
+background_color = "$workbench_toast_surface"
+foreground_color = "$workbench_toast_text"
+border_color = "$workbench_toast_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.panel"
+
+[[stylesheets.rules]]
+selector = ".workbench-info"
+[stylesheets.rules.set.self]
+background_color = "$workbench_info_surface"
+foreground_color = "$workbench_info"
+border_color = "$workbench_info"
+
+[[stylesheets.rules]]
+selector = ".workbench-success"
+[stylesheets.rules.set.self]
+background_color = "$workbench_success_surface"
+foreground_color = "$workbench_success"
+border_color = "$workbench_success"
+
+[[stylesheets.rules]]
+selector = ".workbench-warning"
+[stylesheets.rules.set.self]
+background_color = "$workbench_warning_surface"
+foreground_color = "$workbench_warning"
+border_color = "$workbench_warning"
+
+[[stylesheets.rules]]
+selector = ".workbench-error"
+[stylesheets.rules.set.self]
+background_color = "$workbench_error_surface"
+foreground_color = "$workbench_error"
+border_color = "$workbench_error"
+
+[[stylesheets.rules]]
+selector = ".workbench-danger"
+[stylesheets.rules.set.self]
+foreground_color = "$workbench_error"
+border_color = "$workbench_error"
+
+[[stylesheets.rules]]
+selector = ".workbench-status"
+[stylesheets.rules.set.self]
+background_color = "$workbench_surface"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = 0.0
+radius = 0.0
+
+[[stylesheets.rules]]
+selector = ".workbench-status-item"
+[stylesheets.rules.set.self]
+foreground_color = "$workbench_text"
+
+[[stylesheets.rules]]
+selector = ".workbench-status-right-control"
+[stylesheets.rules.set.self]
+background_color = "transparent"
+foreground_color = "$workbench_status_right_text"
+border_color = "transparent"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-status-right-icon"
+[stylesheets.rules.set.self]
+background_color = "transparent"
+border_color = "transparent"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.small"
+
+[[stylesheets.rules]]
+selector = ".workbench-overlay-region"
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = 0.0
+
+[[stylesheets.rules]]
+selector = ".workbench-primitive"
+[stylesheets.rules.set.self]
+foreground_color = "$workbench_text"

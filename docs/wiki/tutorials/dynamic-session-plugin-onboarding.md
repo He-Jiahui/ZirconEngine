@@ -14,7 +14,7 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
 tests:
   - zircon_runtime/src/dynamic_api/tests
-  - zircon_runtime/src/plugin/runtime_plugin/feature_validation/tests.rs
+  - zircon_runtime/src/plugin/runtime_plugin/feature_validation/tests/cases.rs
   - zircon_editor/src/core/play/plugin_activation
 doc_type: workflow-detail
 ---

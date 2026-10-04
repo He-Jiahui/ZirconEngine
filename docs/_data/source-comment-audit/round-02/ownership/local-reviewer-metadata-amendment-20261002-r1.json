@@ -1,0 +1,145 @@
+{
+  "schema": 1,
+  "owner": "wave6_reviewer_metadata_amendment",
+  "at_utc": "2026-10-02T09:49:58.918647+00:00",
+  "path": "E:\\Git\\ZirconEngine\\docs\\cli-and-tooling\\source-comment-audit\\round-02\\batches.jsonl",
+  "before_sha256": "c2023d94a1873a804408dc6269dd3bd0ca0db7c6bbe7bccd75248b1c9c81228f",
+  "after_sha256": "eb95947ad47c4dc3864df4f61f7dcdb63c5952696365d63d7307bc1dd13f0fb9",
+  "changed_batch_rows": 5,
+  "evidence": [
+    {
+      "owner": "runtime_ecs_identity_storage",
+      "original_job": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\jobs\\runtime_ecs_identity_storage.json",
+        "sha256": "0c7c8ce57647ec97fc2a5abfdf1d3b76fe95a5667a5f66d36054462cd69cab7e"
+      },
+      "original_reviews": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_ecs_identity_storage\\reviews.jsonl",
+        "sha256": "29baa66f613c1f78d952206dc9692ddf1f95d1b8f60132ab0986bd10f7df0e7b"
+      },
+      "original_reviewers": [
+        "/root/wave6_ecs_storage"
+      ],
+      "frozen_model": "gpt-6-sol",
+      "original_effort_evidence": "not recorded in frozen job metadata",
+      "new_parser_model": "gpt-6-luna",
+      "new_parser_effort": "max",
+      "candidate_parser_scope": "exact private parsing/reconstruction only; not original semantic-review authorship",
+      "prior_metadata": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "coverage_and_issue_objects_not_changed": true
+    },
+    {
+      "owner": "runtime_ecs_query_change_windows",
+      "original_job": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\jobs\\runtime_ecs_query_change_windows.json",
+        "sha256": "b0f8eafacd86e7c0776068203afc85dc00e365e7b51f46c0db5c55c2f3003ced"
+      },
+      "original_reviews": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_ecs_query_change_windows\\reviews.jsonl",
+        "sha256": "919d6ab3e7192b48e4590a0529ca80bae9748ba549c7024a18e5cd3c9752c598"
+      },
+      "original_reviewers": [
+        "wave6_ecs_query"
+      ],
+      "frozen_model": "gpt-6-sol",
+      "original_effort_evidence": "not recorded in frozen job metadata",
+      "new_parser_model": "gpt-6-luna",
+      "new_parser_effort": "max",
+      "candidate_parser_scope": "exact private parsing/reconstruction only; not original semantic-review authorship",
+      "prior_metadata": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "coverage_and_issue_objects_not_changed": true
+    },
+    {
+      "owner": "runtime_ecs_events_observers",
+      "original_job": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\jobs\\runtime_ecs_events_observers.json",
+        "sha256": "0395979128b849a28478d610874df6f5badabfa5c207154cefc74e84a004af87"
+      },
+      "original_reviews": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_ecs_events_observers\\reviews.jsonl",
+        "sha256": "6e9c4e2855cd6b45b85bcb39ca389449016aec6c2576934d9107f35d1a07f372"
+      },
+      "original_reviewers": [
+        "/root/wave6_ecs_events"
+      ],
+      "frozen_model": "gpt-6-sol",
+      "original_effort_evidence": "not recorded in frozen job metadata",
+      "new_parser_model": "gpt-6-luna",
+      "new_parser_effort": "max",
+      "candidate_parser_scope": "exact private parsing/reconstruction only; not original semantic-review authorship",
+      "prior_metadata": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "coverage_and_issue_objects_not_changed": true
+    },
+    {
+      "owner": "runtime_ecs_commands_bundle_commit",
+      "original_job": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\jobs\\runtime_ecs_commands_bundle_commit.json",
+        "sha256": "2a065df600ea0f6dba74dfbd27728054a7074bd126a4dae2a6016a4e4abbd9c1"
+      },
+      "original_reviews": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_ecs_commands_bundle_commit\\reviews.jsonl",
+        "sha256": "3fb671f37d901a9ce1609eb695ba901c85439d31c35b32210275e8ee4fe113d0"
+      },
+      "original_reviewers": [
+        "/root/wave6_ecs_commands"
+      ],
+      "frozen_model": "gpt-6-sol",
+      "original_effort_evidence": "not recorded in frozen job metadata",
+      "new_parser_model": "gpt-6-luna",
+      "new_parser_effort": "max",
+      "candidate_parser_scope": "exact private parsing/reconstruction only; not original semantic-review authorship",
+      "prior_metadata": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "coverage_and_issue_objects_not_changed": true
+    },
+    {
+      "owner": "runtime_world_property_binding",
+      "original_job": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\jobs\\runtime_world_property_binding.json",
+        "sha256": "cc49b2ffc2bec5b88a541371ea55f017a31b98e7643d1b5a5848783688d31768"
+      },
+      "original_reviews": {
+        "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_world_property_binding\\reviews.jsonl",
+        "sha256": "362f457ebfd9a18d86b71b66a9e3f02caf88e3d58f69b5f8449539751f9dbc31"
+      },
+      "original_reviewers": [
+        "/root/wave6_world_property"
+      ],
+      "frozen_model": "gpt-6-sol",
+      "original_effort_evidence": "not recorded in frozen job metadata",
+      "new_parser_model": "gpt-6-luna",
+      "new_parser_effort": "max",
+      "candidate_parser_scope": "exact private parsing/reconstruction only; not original semantic-review authorship",
+      "prior_metadata": {
+        "model": "gpt-6-luna",
+        "effort": "max"
+      },
+      "coverage_and_issue_objects_not_changed": true
+    }
+  ],
+  "source_writes": 0,
+  "coverage_writes": 0,
+  "issue_writes": 0,
+  "original_reports_and_receipts_unchanged": true,
+  "status": "reviewer_metadata_amended",
+  "completed_at_utc": "2026-10-02T09:51:15.905321+00:00",
+  "intent": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave6-reviewer-metadata-amendment-20261002-r1\\intent.json",
+    "sha256": "a76ee901b558b85b16ec4df9687e6b5c550f3b8ec62e17a5cdde71b73c87ae83"
+  },
+  "canonical_writes": 1,
+  "native_calls": 0,
+  "git_writes": 0,
+  "business_adoption": false
+}

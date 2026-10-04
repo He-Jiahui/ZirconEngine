@@ -2,7 +2,7 @@
 related_code:
   - zircon_runtime/src/tests/runtime_absorption/current_source_fixture.rs
   - docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md
-  - tools/check_conventions.py
+  - tools/audits/check_conventions.py
 implementation_files:
   - docs/plans/zircon_runtime/render/05/fixed-2026-07-16-runtime-absorption-missing-session-fixture.md
 plan_sources:
@@ -10,7 +10,7 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - python tools/check_conventions.py --only docs --json
+  - python tools/audits/check_conventions.py --only docs --json
   - git diff --check -- docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md docs/plans/zircon_runtime/frameworks/06/2026-07-18-g7-runtime-absorption-evidence-owner-doc-hardcut-batch22.md docs/plans/zircon_runtime/render/05/fixed-2026-07-16-runtime-absorption-missing-session-fixture.md
 ---
 
@@ -29,7 +29,7 @@ Session: `frameworks06-g7-runtime-absorption-evidence-owner-doc-hardcut-batch22-
 ## Fresh Testing Evidence
 
 - 修改前 fresh G7：所选 Render05 fixed 记录有 `1` 个 missing-path violation。
-- 修改后 fresh `python tools/check_conventions.py --only docs --json`：所选 Render05 fixed 记录 `0` violations；共享 current-source 全局快照为 `472` violations / `123` documents / `66,940` checked paths，G7 继续保持 RED。
+- 修改后 fresh `python tools/audits/check_conventions.py --only docs --json`：所选 Render05 fixed 记录 `0` violations；共享 current-source 全局快照为 `472` violations / `123` documents / `66,940` checked paths，G7 继续保持 RED。
 - 所选记录 front matter 中退役 `.codex/sessions/20260612-0847-runtime-architecture-implementation.md` 为 `0`；Runtime15 archive 与 `runtime_absorption/current_source_fixture.rs` 两个 current owner 均存在。
 - exact-scope `git diff --check` 通过；staged_total 为 `0`。
 

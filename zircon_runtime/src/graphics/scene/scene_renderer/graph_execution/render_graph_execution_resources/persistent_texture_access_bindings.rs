@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::render_graph::{
     CompiledRenderGraph, RenderGraphResource, RenderGraphResourceAccessId,
-    RenderGraphResourceAccessRange,
+    RenderGraphResourceAccessRange, RenderGraphVersionedAccessKey,
 };
 
 use super::RenderGraphExecutionResources;
@@ -10,6 +10,7 @@ use super::RenderGraphExecutionResources;
 #[derive(Debug, Default)]
 pub(super) struct RenderGraphExecutionPersistentTextureAccessBindings {
     resources_by_access: HashMap<RenderGraphResourceAccessId, RenderGraphResource>,
+    keys_by_access: HashMap<RenderGraphResourceAccessId, RenderGraphVersionedAccessKey>,
     textures_by_resource: HashMap<RenderGraphResource, wgpu::Texture>,
     views_by_access: HashMap<RenderGraphResourceAccessId, wgpu::TextureView>,
 }
@@ -20,9 +21,10 @@ impl RenderGraphExecutionPersistentTextureAccessBindings {
         graph: &CompiledRenderGraph,
     ) -> Result<Self, String> {
         let mut resources_by_access = HashMap::new();
+        let mut keys_by_access = HashMap::new();
         let mut textures_by_resource = HashMap::new();
         let mut views_by_access = HashMap::new();
-        let mut views_by_scope = HashMap::new();
+        let mut views_by_scope: HashMap<_, wgpu::TextureView> = HashMap::new();
 
         for binding in graph.access_allocation_bindings() {
             if binding.physical_allocation.is_some() {
@@ -77,6 +79,12 @@ impl RenderGraphExecutionPersistentTextureAccessBindings {
                     key.access_id
                 ));
             }
+            if keys_by_access.insert(key.access_id, key).is_some() {
+                return Err(format!(
+                    "persistent graph texture access packet contains duplicate key {:?}",
+                    key.access_id
+                ));
+            }
             if views_by_access.insert(key.access_id, view).is_some() {
                 return Err(format!(
                     "persistent graph texture view packet contains duplicate access {:?}",
@@ -87,6 +95,7 @@ impl RenderGraphExecutionPersistentTextureAccessBindings {
 
         Ok(Self {
             resources_by_access,
+            keys_by_access,
             textures_by_resource,
             views_by_access,
         })
@@ -94,6 +103,13 @@ impl RenderGraphExecutionPersistentTextureAccessBindings {
 
     pub(super) fn contains(&self, access: RenderGraphResourceAccessId) -> bool {
         self.resources_by_access.contains_key(&access)
+    }
+
+    pub(super) fn key(
+        &self,
+        access: RenderGraphResourceAccessId,
+    ) -> Option<RenderGraphVersionedAccessKey> {
+        self.keys_by_access.get(&access).copied()
     }
 
     pub(super) fn texture(
@@ -143,6 +159,13 @@ impl RenderGraphExecutionPersistentTextureAccessBindings {
 }
 
 impl RenderGraphExecutionResources {
+    pub(in crate::graphics::scene::scene_renderer) fn persistent_texture_access_key(
+        &self,
+        access: RenderGraphResourceAccessId,
+    ) -> Option<RenderGraphVersionedAccessKey> {
+        self.persistent_texture_access_bindings.key(access)
+    }
+
     pub(in crate::graphics::scene::scene_renderer::graph_execution) fn materialize_persistent_texture_access_bindings(
         &mut self,
         graph: &CompiledRenderGraph,

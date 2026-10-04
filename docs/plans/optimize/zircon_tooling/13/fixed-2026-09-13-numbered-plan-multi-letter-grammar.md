@@ -10,8 +10,6 @@ origin_child_dir: docs/plans/optimize/zircon_tooling/13
 fixing_child_dir: docs/plans/optimize/zircon_tooling/13
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/plans.py
-  - tools/session_coordinator/tests/test_plans.py
   - .codex/skills/zircon-project-skills/handle-plan-failure-handoffs/scripts/validate_plan_failure_handoffs.py
   - .codex/skills/zircon-project-skills/handle-plan-failure-handoffs/scripts/test_validate_plan_failure_handoffs.py
 tests:

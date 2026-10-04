@@ -1,3 +1,5 @@
+//! 共享夹具将命中、焦点、编译绑定和滚动节点接到同一 UiSurface，供子模块核对路由及默认动作。
+
 use super::template::compiled_instance_from_toml;
 use crate::ui::template::UiTemplateSurfaceBuilder;
 use crate::ui::{
@@ -31,53 +33,12 @@ use zircon_runtime_interface::ui::{
 };
 
 mod component_events;
+mod contracts;
 mod dispatch_effects;
 mod pointer_state;
 mod shared_input;
 
-#[test]
-fn pointer_dispatch_does_not_clone_an_unused_hover_path() {
-    let source = include_str!("../surface/surface/event_routing.rs");
-
-    assert!(
-        !source.contains("_hover_before_dispatch"),
-        "pointer dispatch must not clone the hovered path before routing when that copy is unused"
-    );
-}
-
-#[test]
-fn pointer_hot_path_reuses_hit_routes_and_skips_empty_handler_contexts() {
-    let routing_source = include_str!("../surface/surface/event_routing.rs");
-    let dispatcher_source = include_str!("../dispatch/pointer/dispatcher.rs");
-
-    assert!(
-        routing_source.contains("UiPointerRoutingPath::HitPath"),
-        "top-hit pointer routing should reuse the canonical hit path"
-    );
-    assert!(
-        !routing_source.contains("hit.path.bubble_route.clone()"),
-        "top-hit pointer routing must not copy the hit path"
-    );
-    assert!(
-        dispatcher_source.contains("if self.handlers.is_empty() && self.phase_handlers.is_empty()"),
-        "the default pointer dispatcher should bypass route traversal entirely"
-    );
-    assert!(
-        dispatcher_source.contains("if phase_handlers.is_none() && unqualified_handlers.is_none()"),
-        "nodes without pointer handlers must not allocate a dispatch context"
-    );
-}
-
-#[test]
-fn default_table_sort_borrows_common_scalar_text() {
-    let source = include_str!("../surface/surface/default_interactions/table/columns.rs");
-
-    assert!(
-        source.contains("left.and_then(borrowed_sort_text)"),
-        "default table sorting should compare common string-like values without allocating display text"
-    );
-}
-
+// 夹具直接同步旧焦点捕获和按指针编号的捕获表，以制造后续路由前置状态；生产捕获应经过效果入口。
 fn capture_pointer_for_test(surface: &mut UiSurface, pointer_id: UiPointerId, owner: UiNodeId) {
     surface.focus.captured = Some(owner);
     surface.input.set_pointer_capture_for_id(pointer_id, owner);
@@ -91,6 +52,7 @@ fn button_surface() -> UiSurface {
     button_surface_with_metadata(None)
 }
 
+// 先安装编译程序，再让测试改变声明元数据；后续事件应消费已编译的契约。
 fn bound_button_surface(bindings: Vec<UiBindingRef>) -> UiSurface {
     let program_root = UiTemplateNode {
         component: Some("Root".to_string()),
@@ -268,6 +230,7 @@ fn button_surface_with_metadata(template_metadata: Option<UiTemplateNodeMetadata
     surface
 }
 
+// 仅供本模块固定的可编辑文本案例；value 直接嵌入 TOML，调用者应避免引号和换行等需转义内容。
 fn editable_text_surface(value: &str, caret_offset: usize) -> UiSurface {
     button_surface_with_metadata(Some(UiTemplateNodeMetadata {
         component: "TextField".to_string(),

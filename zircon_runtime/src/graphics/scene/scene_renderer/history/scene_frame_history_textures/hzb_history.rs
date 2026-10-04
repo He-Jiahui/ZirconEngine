@@ -1,5 +1,6 @@
 use crate::core::math::UVec2;
-use crate::graphics::scene::scene_renderer::hzb::{HzbBuilder, HzbSampledResourceIdentity};
+use crate::graphics::scene::scene_renderer::hzb::HzbSampledResourceIdentity;
+use crate::graphics::visibility::HzbBuilder;
 
 use super::super::texture_extent::texture_extent;
 

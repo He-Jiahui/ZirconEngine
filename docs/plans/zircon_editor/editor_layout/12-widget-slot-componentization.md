@@ -11,8 +11,8 @@ related_code:
   - zircon_runtime/src/ui/template/asset/compiler/prototype_instancer.rs
   - zircon_editor/assets/ui/editor/components
 design_references:
-  - docs/ui-and-layout/ai-workbench-style/component-prototype/web-native-handoff-matrix.md
-  - docs/ui-and-layout/editor-workbench-designs/STYLE-NOTES.md
+  - docs/ui/ai-workbench-style/component-prototype/web-native-handoff-matrix.md
+  - docs/ui/editor-workbench-designs/STYLE-NOTES.md
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/02-declarative-layout-interface.md
   - docs/plans/zircon_editor/editor_layout/05-page-layout-templates.md
@@ -130,7 +130,7 @@ pub fn validate_slot_fill(entry: &EditorComponentCatalogEntry, fills: &SlotFills
 | 新增 | `zircon_editor/src/ui/workbench/component_catalog/mod.rs` | 组件层级 + slot/prop 契约 + 目录 |
 | 新增 | `zircon_editor/assets/ui/editor/components/catalog.v2.ui.toml` | 泛用组件目录(物料索引) |
 | 修改 | `prototype_instancer.rs`(只读校验,不改展开逻辑) | slot 填充期接 `validate_slot_fill` |
-| 新增 | `docs/ui-and-layout/component-composition-contract.md` | 三层 + slot/prop 契约规范 |
+| 新增 | `docs/ui/component-composition-contract.md` | 三层 + slot/prop 契约规范 |
 
 ## 6. 里程碑切片化
 

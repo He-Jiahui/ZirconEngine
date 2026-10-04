@@ -1,6 +1,6 @@
 ---
 related_code:
-  - docs/engine-architecture/plugin-optional-feature-bundles.md
+  - docs/architecture/plugin-optional-feature-bundles.md
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/derived_projection.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities/feature.rs
@@ -8,14 +8,14 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution/ordered_ready_set.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project.rs
 implementation_files:
-  - docs/engine-architecture/plugin-optional-feature-bundles.md
+  - docs/architecture/plugin-optional-feature-bundles.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - python -B tools/check_conventions.py --repo-root E:\Git\ZirconEngine --only docs
-  - git diff --check -- docs/engine-architecture/plugin-optional-feature-bundles.md docs/plans/zircon_runtime/frameworks/06/2026-07-22-g7-plugin-feature-projection-owner-doc-hardcut-batch35.md
+  - python -B tools/audits/check_conventions.py --repo-root E:\Git\ZirconEngine --only docs
+  - git diff --check -- docs/architecture/plugin-optional-feature-bundles.md docs/plans/zircon_runtime/frameworks/06/2026-07-22-g7-plugin-feature-projection-owner-doc-hardcut-batch35.md
 ---
 
 # Frameworks06 G7 Plugin Feature Projection Owner 文档硬切 Batch 35
@@ -23,7 +23,7 @@ tests:
 Plan: docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
 Milestone: M1
 Status: accepted
-Files: ["docs/engine-architecture/plugin-optional-feature-bundles.md"]
+Files: ["docs/architecture/plugin-optional-feature-bundles.md"]
 Date: 2026-07-22
 Session: `frameworks06-g7-plugin-feature-projection-owner-batch35-20260722`
 

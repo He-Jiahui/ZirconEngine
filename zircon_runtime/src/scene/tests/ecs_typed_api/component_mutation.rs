@@ -1,3 +1,5 @@
+//! 类型化和动态组件经 World 验证实体及组件约束，成功写入须出现在查询与变更追踪中。
+
 use super::*;
 
 #[test]
@@ -8,13 +10,13 @@ fn world_spawn_insert_get_mut_and_remove_typed_components() {
     assert!(!world.is_component_changed::<Health>(u64::MAX));
 
     let entity = world
-        .spawn((
-            Name("Typed Entity".to_string()),
-            Health(7),
-            LocalTransform {
-                transform: Transform::from_translation(Vec3::new(2.0, 0.0, 0.0)),
-            },
-        ))
+        .spawn((Name("Typed Entity".to_string()), Health(7)))
+        .unwrap();
+    world
+        .update_transform(
+            entity,
+            Transform::from_translation(Vec3::new(2.0, 0.0, 0.0)),
+        )
         .unwrap();
 
     assert!(world.contains_component::<Health>(entity));
@@ -72,7 +74,7 @@ fn world_spawn_insert_get_mut_and_remove_typed_components() {
 }
 
 #[test]
-fn typed_local_transform_insertion_rejects_values_that_cannot_be_persisted() {
+fn checked_transform_update_rejects_values_that_cannot_be_persisted() {
     let mut world = World::new();
     let entity = world
         .spawn_node(crate::scene::NodeKind::Mesh)
@@ -84,8 +86,15 @@ fn typed_local_transform_insertion_rejects_values_that_cannot_be_persisted() {
     let mut invalid = original;
     invalid.scale.z = 0.0;
 
-    assert!(matches!(
+    assert_eq!(
         world.insert(entity, LocalTransform { transform: invalid }),
+        Err(SceneError::ProtectedAuthoredComponentMutation {
+            component: "LocalTransform",
+            operation: "insert",
+        })
+    );
+    assert!(matches!(
+        world.update_transform(entity, invalid),
         Err(SceneError::ZeroScaleTransform { entity: error_entity, axis: "z" })
             if error_entity == entity
     ));

@@ -150,7 +150,11 @@ fn visible_after_local_grammar() { poison_safe_lock(); }
     assert!(local_production.contains("Value::Test => observer.lock().unwrap()"));
     assert!(local_production.contains("fn visible_after_local_grammar()"));
 
-    let event_stream = read_runtime_src("core/resource/event_stream.rs");
+    assert!(
+        !runtime_src_path("core/resource/event_stream.rs").exists(),
+        "resource event stream must remain in its canonical zr_resource owner"
+    );
+    let event_stream = read_repo("zircon_runtime/crates/zr_resource/src/event_stream.rs");
     assert!(event_stream.contains("pub(crate) fn poison_state"));
     let event_stream_production = production_code_view(&event_stream);
     assert!(!event_stream_production.contains("pub(crate) fn poison_state"));

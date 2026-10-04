@@ -13,7 +13,7 @@ const main = read("scripts", "woc_game", "src", "main.zr");
 const protocol = read("native", "crates", "woc_protocol", "src", "lib.rs");
 const autoAttack = read("scripts", "woc_game", "src", "combat", "auto_attack_state.zr");
 
-requireText(world, /writer\.u16\(<uint>67, 1, 1\)/, "current WOS writer is missing");
+requireText(world, /writer\.u16\(schemaVersion, 1, 1\)/, "current WOS writer is missing");
 requireText(
   world,
   /schemaVersion != <uint>53 &&\s*schemaVersion != <uint>54 &&\s*schemaVersion != <uint>55/,
@@ -105,8 +105,8 @@ requireText(
   "ranged auto dispatch is missing",
 );
 requireText(world, /offlineHunterAutoShotStateTest[\s\S]*?form_moonkin/, "ranged state coverage is missing");
-requireText(main, /\\"world_state\\":\\"WOS67\\"/, "package WOS64 identity is missing");
-requireText(protocol, /WORLD_STATE_FORMAT: &str = "WOS67"/, "native WOS64 format is missing");
-requireText(protocol, /WORLD_STATE_SCHEMA_VERSION: u16 = 67/, "native WOS64 version is missing");
+requireText(main, /\\"world_state\\":\\"WOS118\\"/, "package WOS118 identity is missing");
+requireText(protocol, /WORLD_STATE_FORMAT: &str = "WOS118"/, "native WOS118 format is missing");
+requireText(protocol, /WORLD_STATE_SCHEMA_VERSION: u16 = 118/, "native WOS118 version is missing");
 
 process.stdout.write("WOS54 ranged-auto compatibility guards passed\n");

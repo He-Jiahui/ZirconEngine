@@ -98,5 +98,5 @@ pub(super) fn append_dialog_variant_tokens(
 }
 
 #[cfg(test)]
-#[path = "alert_dialog/borrowed_variant_tests.rs"]
+#[path = "alert_dialog/tests/borrowed_variant_tests.rs"]
 mod borrowed_variant_tests;

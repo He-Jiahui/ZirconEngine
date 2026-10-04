@@ -11,6 +11,9 @@ use super::types::{
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum RenderGraphError {
+    #[error("render graph texture resource `{resource}` has invalid descriptor: {reason}")]
+    TextureDescriptorInvalid { resource: String, reason: String },
+
     #[error(
         "render graph compute pass `{pass}` binding {binding} has no declared {access:?} access for resource `{resource}`"
     )]

@@ -1,4 +1,4 @@
-// Pure per-application DoT extension. The WOS aura store supplies the live array.
+// 单项持续伤害延长的独立规则投影；当前只有叶子测试提供光环数组，尚无 world/state 导入消费者。
 var contract = %import("generated/dot_mutation_contract");
 var container = %import("zr.container");
 
@@ -22,6 +22,7 @@ pub class DotApplicationState {
 }
 
 // Returns the positive extension applied to the first matching application.
+/// 在给定快照中延长第一项同来源同身份的持续伤害，并把累计延长额保存在该应用上；上限属于此应用，重复来源行不共享额度，调用者必须写回同一应用对象。
 pub extendOwnedDot(auras: container.Array<DotApplicationState>, sourceId: int, dotId: string, seconds: float, maxBonus: float): float {
     var i = 0;
     while (i < auras.length) {

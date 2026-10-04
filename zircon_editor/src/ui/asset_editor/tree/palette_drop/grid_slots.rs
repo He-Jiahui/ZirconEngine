@@ -9,7 +9,7 @@ use super::resolution::{
 };
 
 #[cfg(test)]
-#[path = "grid_slots/capacity_tests.rs"]
+#[path = "grid_slots/tests/capacity_tests.rs"]
 mod capacity_tests;
 
 pub(super) fn grid_slot_target_overlays(

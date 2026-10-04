@@ -1,4 +1,4 @@
 interface:
   display_name: "Capture Hub Window Screenshot"
-  short_description: "Capture a real Zircon Hub window screenshot for visual checks."
-  default_prompt: "Capture a real Zircon Hub window screenshot and report the saved image path and window size."
+  short_description: "Capture and inspect a real Zircon Hub window."
+  default_prompt: "Use $capture-hub-window-screenshot to capture the affected Hub state and inspect the real-window evidence."

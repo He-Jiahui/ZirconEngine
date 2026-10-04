@@ -1,3 +1,4 @@
+# 以伪造解释器和仓库夹具验证启动器异步日志、互斥和保留世代。
 [CmdletBinding()]
 param()
 
@@ -33,7 +34,7 @@ exit /b 0
     $env:PATH = "$fakeBin;$oldPath"
     $env:LOCALAPPDATA = $fakeLocal
     $env:ZIRCON_LAUNCHER_TEST_REPO = $fakeRepo
-    $launcher = Join-Path $repoRoot 'tools\zircon-session.ps1'
+    $launcher = Join-Path $repoRoot 'tools\dev\zircon-session.ps1'
     $startupTimer = [Diagnostics.Stopwatch]::StartNew()
     $process = Start-Process -FilePath 'powershell.exe' -ArgumentList @(
         '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',

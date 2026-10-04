@@ -38,8 +38,8 @@ const generator = read('tools', 'm4_ability_codegen.mjs');
 const zrGenerator = read('tools', 'm4_ability_zr_codegen.mjs');
 const ccGenerator = read('tools', 'cc_contract_codegen.mjs');
 if (!/hurricane',[\s\S]*?'skull_bash'/.test(generator) ||
-    !generator.includes('EXPECTED_ABILITY_COUNT = 79') ||
-    !zrGenerator.includes('document.entries.length === 79')) {
+    !generator.includes('EXPECTED_ABILITY_COUNT = 117') ||
+    !zrGenerator.includes('document.entries.length === 117')) {
   throw new Error('M4 Skull Bash projection scope is missing');
 }
 if (!ccGenerator.includes('lockout: 13')) throw new Error('lockout motion-aura code is missing');
@@ -50,7 +50,7 @@ if (!zrGenerator.includes('pub idUtf8Length(index: int): int') ||
 const entry = JSON.parse(read('contracts', 'm4_abilities.json')).entries.find(
   (value) => value.id === 'skull_bash',
 );
-if (!entry || entry.index !== 78 || entry.definition.cost !== 10 ||
+if (!entry || entry.index !== 82 || entry.definition.cost !== 10 ||
     entry.definition.cooldown !== 15 || entry.definition.range !== 8 ||
     entry.definition.effects?.[0]?.type !== 'interrupt' ||
     entry.definition.effects[0].lockout !== 4) {

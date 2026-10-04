@@ -4,7 +4,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 
-
+# 读取分配注册表实现，确认注册流程沿用生产者向量容量而不主动收缩。
 class RuntimeAllocationRegistryStorageContract(unittest.TestCase):
     def test_registration_preserves_the_producer_vec_without_capacity_shrink(self) -> None:
         registry = (

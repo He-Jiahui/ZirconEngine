@@ -1,6 +1,6 @@
 use std::num::NonZeroU64;
 
-use crate::core::resource::UntypedResourceHandle;
+use crate::core::resource::{ResourceReadinessRowIdentity, UntypedResourceHandle};
 use zr_rhi::{DeviceGeneration, DeviceId, SubmissionStatus, SubmissionTicket};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -71,13 +71,13 @@ pub(crate) enum RenderAssetResidencyRoute {
     PreparedDependencies,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+/// 把资产、依赖发布、需求与设备代际固定为同一次工作身份；完成与取消必须匹配完整 ticket，资源 ID 相同不足以复用旧工作。
 pub(crate) struct RenderAssetResidencyTicket {
     id: RenderAssetResidencyTicketId,
     resource: UntypedResourceHandle,
     asset_revision: u64,
-    readiness_generation: u64,
-    dependency_revision: u64,
+    readiness_identity: ResourceReadinessRowIdentity,
     demand_generation: RenderAssetDemandGeneration,
     device: RenderAssetDeviceEpoch,
     scope: RenderAssetResidencyScope,
@@ -85,12 +85,11 @@ pub(crate) struct RenderAssetResidencyTicket {
 }
 
 impl RenderAssetResidencyTicket {
-    pub(super) const fn from_parts(
+    pub(super) fn from_parts(
         id: RenderAssetResidencyTicketId,
         resource: UntypedResourceHandle,
         asset_revision: u64,
-        readiness_generation: u64,
-        dependency_revision: u64,
+        readiness_identity: ResourceReadinessRowIdentity,
         demand_generation: RenderAssetDemandGeneration,
         device: RenderAssetDeviceEpoch,
         scope: RenderAssetResidencyScope,
@@ -100,8 +99,7 @@ impl RenderAssetResidencyTicket {
             id,
             resource,
             asset_revision,
-            readiness_generation,
-            dependency_revision,
+            readiness_identity,
             demand_generation,
             device,
             scope,
@@ -109,39 +107,35 @@ impl RenderAssetResidencyTicket {
         }
     }
 
-    pub(crate) const fn id(self) -> RenderAssetResidencyTicketId {
+    pub(crate) const fn id(&self) -> RenderAssetResidencyTicketId {
         self.id
     }
 
-    pub(crate) const fn resource(self) -> UntypedResourceHandle {
+    pub(crate) const fn resource(&self) -> UntypedResourceHandle {
         self.resource
     }
 
-    pub(crate) const fn asset_revision(self) -> u64 {
+    pub(crate) const fn asset_revision(&self) -> u64 {
         self.asset_revision
     }
 
-    pub(crate) const fn readiness_generation(self) -> u64 {
-        self.readiness_generation
+    pub(crate) fn readiness_identity(&self) -> &ResourceReadinessRowIdentity {
+        &self.readiness_identity
     }
 
-    pub(crate) const fn dependency_revision(self) -> u64 {
-        self.dependency_revision
-    }
-
-    pub(crate) const fn demand_generation(self) -> RenderAssetDemandGeneration {
+    pub(crate) const fn demand_generation(&self) -> RenderAssetDemandGeneration {
         self.demand_generation
     }
 
-    pub(crate) const fn device(self) -> RenderAssetDeviceEpoch {
+    pub(crate) const fn device(&self) -> RenderAssetDeviceEpoch {
         self.device
     }
 
-    pub(crate) const fn scope(self) -> RenderAssetResidencyScope {
+    pub(crate) const fn scope(&self) -> RenderAssetResidencyScope {
         self.scope
     }
 
-    pub(crate) const fn route(self) -> RenderAssetResidencyRoute {
+    pub(crate) const fn route(&self) -> RenderAssetResidencyRoute {
         self.route
     }
 }
@@ -167,7 +161,7 @@ pub(crate) enum RenderAssetResidencyReleaseKind {
     DropTerminal,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct RenderAssetResidencyRelease {
     ticket: RenderAssetResidencyTicket,
     kind: RenderAssetResidencyReleaseKind,
@@ -187,15 +181,15 @@ impl RenderAssetResidencyRelease {
         }
     }
 
-    pub(crate) const fn ticket(self) -> RenderAssetResidencyTicket {
-        self.ticket
+    pub(crate) fn ticket(&self) -> RenderAssetResidencyTicket {
+        self.ticket.clone()
     }
 
-    pub(crate) const fn kind(self) -> RenderAssetResidencyReleaseKind {
+    pub(crate) const fn kind(&self) -> RenderAssetResidencyReleaseKind {
         self.kind
     }
 
-    pub(crate) const fn submission(self) -> Option<SubmissionTicket> {
+    pub(crate) const fn submission(&self) -> Option<SubmissionTicket> {
         self.submission
     }
 }
@@ -293,6 +287,11 @@ pub(crate) enum RenderAssetResidencyAdmissionError {
     },
     MissingReadinessRecord {
         resource: UntypedResourceHandle,
+    },
+    CatalogReadinessRevisionMismatch {
+        resource: UntypedResourceHandle,
+        catalog_revision: u64,
+        readiness_revision: u64,
     },
     UnsupportedResourceKind {
         resource: UntypedResourceHandle,

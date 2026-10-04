@@ -16,6 +16,7 @@ pub(super) fn collect_execution_cluster_selections_from_submission_keys(
     let initial_capacity = cluster_selections.len().min(executed_submission_keys.len());
     let mut emitted_clusters = HashSet::<(u64, u32)>::with_capacity(initial_capacity);
     let mut executed_selections = Vec::with_capacity(initial_capacity);
+    // 只保留已提交的 entity/submission 键，每个实体簇仅发一次并按稳定键排序。
     for selection in cluster_selections.iter().copied() {
         if executed_submission_keys.contains(&(selection.entity, selection.submission_index))
             && emitted_clusters.insert((selection.entity, selection.cluster_id))
@@ -42,4 +43,5 @@ fn execution_selection_sort_key(
 }
 
 #[cfg(test)]
+#[path = "selection_filter/tests/allocation_tests.rs"]
 mod allocation_tests;

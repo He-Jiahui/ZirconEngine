@@ -1,8 +1,8 @@
 import unittest
 
-from tools.runtime_pointer_hover_hot_paths_pressure import run
+from tools.analysis.performance.runtime.runtime_pointer_hover_hot_paths_pressure import run
 
-
+# 调用悬停压力模型，核对稳定路由的零克隆工作与大型差分的线性比较量。
 class RuntimePointerHoverHotPathsPressureTests(unittest.TestCase):
     def test_stable_pointer_route_eliminates_clone_copy_and_allocation_work(self) -> None:
         report = run(event_count=1_000_000)

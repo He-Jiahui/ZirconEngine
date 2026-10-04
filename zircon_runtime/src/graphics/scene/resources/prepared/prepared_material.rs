@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::asset::TextureUploadSupport;
 use crate::core::framework::render::RenderMaterialReadinessReport;
-use crate::core::resource::{ResourceId, ResourceLocator};
+use crate::core::resource::{ResourceId, ResourceLocator, ResourceReadinessRowIdentity};
 
 use super::super::{
     GpuMaterialUniformResource, GpuTextureResource, MaterialRuntime, OutputTargetTextureResource,
@@ -75,7 +75,7 @@ impl PreparedMaterialBundle {
     ) -> PreparedMaterialCandidateIdentity {
         PreparedMaterialCandidateIdentity::new(
             self.revision,
-            self.material_dependency,
+            self.material_dependency.clone(),
             &self.shader_dependency,
             &self.texture_dependencies,
             self.texture_support,
@@ -86,13 +86,13 @@ impl PreparedMaterialBundle {
 /// Identifies the material asset that produced a prepared bundle, including its parent closure.
 ///
 /// `id` can differ from the requested draw material when the engine-owned missing-material
-/// fallback is used. `dependency_revision` is maintained by the resource registry's reverse
-/// dependency graph, so stable-frame validation does not traverse the parent chain.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// fallback is used. The retained readiness row includes the parent closure, so
+/// stable-frame validation does not traverse the parent chain.
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(in crate::graphics::scene::resources) struct PreparedMaterialDependency {
     pub(in crate::graphics::scene::resources) id: ResourceId,
     pub(in crate::graphics::scene::resources) revision: u64,
-    pub(in crate::graphics::scene::resources) dependency_revision: u64,
+    pub(in crate::graphics::scene::resources) dependency_identity: ResourceReadinessRowIdentity,
 }
 
 /// Lightweight identity retained for a failed candidate.
@@ -161,7 +161,8 @@ pub(in crate::graphics::scene::resources) struct PreparedMaterialShaderDependenc
     pub(in crate::graphics::scene::resources) locator: ResourceLocator,
     pub(in crate::graphics::scene::resources) id: Option<ResourceId>,
     pub(in crate::graphics::scene::resources) revision: Option<u64>,
-    pub(in crate::graphics::scene::resources) dependency_revision: Option<u64>,
+    pub(in crate::graphics::scene::resources) dependency_identity:
+        Option<ResourceReadinessRowIdentity>,
 }
 
 pub(in crate::graphics::scene::resources) struct RejectedPreparedMaterialCandidate {
@@ -178,27 +179,5 @@ pub(in crate::graphics::scene::resources) struct PreparedMaterialTextureDependen
 }
 
 #[cfg(test)]
-mod tests {
-    use super::StagedMaterialPipelineAdmissionCycle;
-
-    #[test]
-    fn viewport_cycle_requires_an_observed_all_ready_candidate() {
-        let mut cycle = StagedMaterialPipelineAdmissionCycle::default();
-
-        assert_eq!(cycle.finish(), None);
-        cycle.record(false);
-        cycle.record(false);
-        assert_eq!(cycle.finish(), Some(true));
-        assert_eq!(cycle.finish(), None);
-    }
-
-    #[test]
-    fn one_deferred_camera_blocks_the_whole_viewport_cycle() {
-        let mut cycle = StagedMaterialPipelineAdmissionCycle::default();
-
-        cycle.record(false);
-        cycle.record(true);
-        cycle.record(false);
-        assert_eq!(cycle.finish(), Some(false));
-    }
-}
+#[path = "tests/prepared_material.rs"]
+mod tests;

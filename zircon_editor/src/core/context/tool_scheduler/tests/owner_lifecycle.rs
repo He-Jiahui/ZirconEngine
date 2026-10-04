@@ -140,12 +140,10 @@ fn owner_generation_revoke_is_capture_first_atomic_and_stale_safe() {
         }) if *revoked_generation == generation
     ));
     assert!(scheduler.active_input_capture(&source).is_none());
-    assert!(
-        !scheduler
-            .snapshot()
-            .active_owner_generations()
-            .contains(&generation)
-    );
+    assert!(!scheduler
+        .snapshot()
+        .active_owner_generations()
+        .contains(&generation));
     assert!(matches!(
         scheduler.allocate_instance_id(&definition, generation),
         Err(ToolSchedulerServiceError::OwnerGenerationUnavailable {
@@ -310,19 +308,15 @@ fn resource_kind_owner_revoke_cleans_foreign_claims_and_unregisters_the_kind() {
     };
     assert_eq!(released_leases.as_ref(), &[lease]);
     assert_eq!(revoked_resource_kinds.as_ref(), &[kind.clone()]);
-    assert!(
-        scheduler
-            .snapshot()
-            .active_owner_generations()
-            .contains(&consumer)
-    );
-    assert!(
-        scheduler
-            .snapshot()
-            .resource_catalog()
-            .iter()
-            .all(|entry| entry.kind() != &kind)
-    );
+    assert!(scheduler
+        .snapshot()
+        .active_owner_generations()
+        .contains(&consumer));
+    assert!(scheduler
+        .snapshot()
+        .resource_catalog()
+        .iter()
+        .all(|entry| entry.kind() != &kind));
     assert!(matches!(
         revoked.events().get(revoked.events().len().saturating_sub(2)),
         Some(ToolLifecycleEvent::ResourceKindsRevoked {

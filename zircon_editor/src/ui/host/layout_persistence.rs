@@ -30,11 +30,11 @@ impl EditorUiHost {
     }
 
     pub(super) fn preset_names(&self) -> Result<Vec<String>, EditorError> {
-        let mut names = Vec::new();
-        names.extend(list_layout_preset_assets(
-            self.asset_manager()?.current_project_asset_uris(),
-        ));
-        names.extend(self.load_presets()?.into_keys());
+        let asset_uris = self.asset_manager()?.current_project_asset_uris();
+        let presets = self.load_presets()?;
+        let mut names = Vec::with_capacity(asset_uris.len().saturating_add(presets.len()));
+        names.extend(list_layout_preset_assets(asset_uris));
+        names.extend(presets.into_keys());
         names.sort_unstable();
         names.dedup();
         Ok(names)
@@ -166,23 +166,9 @@ impl EditorUiHost {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::error::Error;
-    use std::io;
+#[path = "tests/optimization_batch_editor830_layout_preset_capacity_tests.rs"]
+mod optimization_batch_editor830_layout_preset_capacity_tests;
 
-    use zircon_runtime::scene::world::SceneProjectError;
-
-    use super::EditorError;
-
-    #[test]
-    fn scene_project_conversion_preserves_the_typed_source_chain() {
-        let error: EditorError =
-            SceneProjectError::from(io::Error::other("layout preset source")).into();
-        let source = error
-            .source()
-            .expect("EditorError should expose its source");
-
-        assert!(source.downcast_ref::<SceneProjectError>().is_some());
-        assert!(source.source().is_some());
-    }
-}
+#[cfg(test)]
+#[path = "tests/layout_persistence.rs"]
+mod tests;

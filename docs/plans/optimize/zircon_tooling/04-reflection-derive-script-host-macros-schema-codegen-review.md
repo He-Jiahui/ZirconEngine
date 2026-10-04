@@ -26,7 +26,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/04-core-resource-asset-serialization-review.md
   - docs/plans/optimize/zircon_editor/05-inspector-reflection-property-authoring-customization-review.md
   - docs/plans/optimize/zircon_plugins/01-plugin-sdk-package-catalog-distribution-native-abi-review.md
-  - docs/engine-architecture/generated-code-boundary.md
+  - docs/architecture/generated-code-boundary.md
 reference_engines:
   - dev/bevy/crates/bevy_reflect/derive
   - dev/bevy/crates/bevy_reflect/compile_fail

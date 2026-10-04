@@ -1,7 +1,10 @@
+//! 专用 worker 的 socket 所有者，单线程串行处理 TCP/UDP 命令，内部 Tokio runtime 只执行实际 I/O。
+//! 与 manager 的 HTTP/WS Tokio runtime 分离，feature 不直接触摸 worker socket 表。
+
 mod dispatch;
 
 #[cfg(test)]
-#[path = "transport_runtime/performance_tests.rs"]
+#[path = "transport_runtime/tests/performance_tests.rs"]
 mod performance_tests;
 
 use std::collections::HashMap;
@@ -400,6 +403,7 @@ impl WorkerCore {
         NetConnectionId::new(self.next_connection_id.fetch_add(1, Ordering::Relaxed) + 1)
     }
 
+    // BUG: [CR-PLUGIN-NET-0001] ingress 满时静默丢掉连接/监听生命周期事件，ECS 与 worker 状态会失配。
     fn push_event(&self, event: NetEvent) {
         let _ = self.ingress.try_send(NetIngress::Event(event));
     }

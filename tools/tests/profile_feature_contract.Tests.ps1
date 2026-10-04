@@ -1,3 +1,4 @@
+# 直接比对工作流和本地验证器的特性矩阵，防止产品入口与目标配置分离。
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 

@@ -4,22 +4,22 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PLUGIN_VALIDATE_FEATURE_PROVIDER = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider.py"
+    REPO_ROOT / "tools/export/plugin_validate_feature_provider.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_EXTENSION = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider_extension.py"
+    REPO_ROOT / "tools/export/plugin_validate_feature_provider_extension.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_EXTENSION_SCHEMA = (
     REPO_ROOT
-    / "tools/zircon_export/plugin_validate_feature_provider_extension_schema.py"
+    / "tools/export/plugin_validate_feature_provider_extension_schema.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_EXTENSION_SCHEMA_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/"
+    / "tools/export/tests/"
     "test_plugin_validate_feature_provider_extension_schema.py"
 )
 
-
+# 验证校验特性提供者扩展模式归属边界的职责切分：特性提供者扩展模式留在模式叶。
 class PluginValidateFeatureProviderExtensionSchemaOwnerBoundaryTests(
     unittest.TestCase
 ):

@@ -1,0 +1,858 @@
+penpot_host_theme_source = "zircon_editor/assets/ui/editor/theme/editor_tokens.zui"
+stylesheets = []
+penpot_dependency_sources = [ "zircon_editor/assets/ui/editor/theme/editor_tokens.zui" ]
+penpot_original_source = "[asset]\nkind = \"component\"\nid = \"res://ui/editor/components/showcase/showcase_collections_section.zui\"\nversion = 2\ndisplay_name = \"Showcase Collections Section\"\n\n[imports]\nwidgets = []\nstyles = [\"res://ui/editor/theme/editor_tokens.zui\"]\n\n[components.ShowcaseCollectionsSection]\nroot = \"collections_section_root\"\ndefault_classes = [\"showcase-panel\", \"material-surface\"]\n\n[nodes.section_title]\ncomponent = \"Label\"\ncontrol_id = \"ComponentShowcaseCollectionsSectionTitle\"\nclasses = [\"showcase-section-title\"]\nprops = { text = \"Collections and Inspector Structures\", font_size = \"$editor.typography.body.size\", font_weight = \"$editor.typography.emphasis.weight\" }\n# The compact App Shell main slot wraps this title; reserve two body lines so\n# the collection surface keeps its full semantic heading in flow.\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 24.0, preferred = 44.0, max = 44.0, stretch = \"Fixed\" } }\n\n[nodes.group_demo]\ncomponent = \"Group\"\ncontrol_id = \"GroupDemo\"\nclasses = [\"showcase-panel\", \"material-control\"]\nprops = { text = \"Foldout Group\", expanded = true }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 96.0, preferred = 96.0, max = 96.0, stretch = \"Fixed\" } }\nevents = [\n  { id = \"UiComponentShowcase/GroupToggled\", event = \"Toggle\", component_event = \"ToggleExpanded\", route = \"component_lab.showcase.toggle_expanded.group\" },\n]\n\n[nodes.foldout_demo]\ncomponent = \"Foldout\"\ncontrol_id = \"FoldoutDemo\"\nclasses = [\"showcase-panel\", \"material-control\"]\nprops = { text = \"Foldout\", expanded = false, validation_level = \"normal\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [\n  { id = \"UiComponentShowcase/FoldoutToggled\", event = \"Toggle\", component_event = \"ToggleExpanded\", route = \"component_lab.showcase.toggle_expanded.foldout\" },\n]\n\n[nodes.property_row_demo]\ncomponent = \"PropertyRow\"\ncontrol_id = \"PropertyRowDemo\"\nclasses = [\"showcase-field\"]\nprops = { text = \"Property Row\", value = \"Label + Field\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = \"Fixed\" } }\n\n[nodes.inspector_section_demo]\ncomponent = \"InspectorSection\"\ncontrol_id = \"InspectorSectionDemo\"\nclasses = [\"showcase-panel\", \"material-control\"]\nprops = { text = \"Inspector Section\", expanded = true, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [\n  { id = \"UiComponentShowcase/InspectorSectionToggled\", event = \"Toggle\", component_event = \"ToggleExpanded\", route = \"component_lab.showcase.toggle_expanded.inspector_section\" },\n]\n\n[nodes.array_field_demo]\ncomponent = \"ArrayField\"\ncontrol_id = \"ArrayFieldDemo\"\nclasses = [\"showcase-field\", \"material-control\"]\nprops = { items = [\"Label\", \"NumberField\", \"AssetField\"], value_text = \"3 elements\", element_type = \"UiComponentRef\", validation_level = \"normal\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [\n  { id = \"UiComponentShowcase/ArrayFieldChanged\", event = \"Change\", component_event = \"ValueChanged\", route = \"component_lab.showcase.value_changed.array_field\" },\n  { id = \"UiComponentShowcase/ArrayFieldAddElement\", event = \"Submit\", component_event = \"AddElement\", route = \"component_lab.showcase.add_element.array_field\" },\n  { id = \"UiComponentShowcase/ArrayFieldSetElement\", event = \"Submit\", component_event = \"SetElement\", route = \"component_lab.showcase.set_element.array_field\" },\n  { id = \"UiComponentShowcase/ArrayFieldRemoveElement\", event = \"Submit\", component_event = \"RemoveElement\", route = \"component_lab.showcase.remove_element.array_field\" },\n  { id = \"UiComponentShowcase/ArrayFieldMoveElement\", event = \"DragEnd\", component_event = \"MoveElement\", route = \"component_lab.showcase.move_element.array_field\" },\n]\n\n[nodes.map_field_demo]\ncomponent = \"MapField\"\ncontrol_id = \"MapFieldDemo\"\nclasses = [\"showcase-field\", \"material-control\"]\nprops = { entries = { speed = 1.0, visible = true }, value_text = \"2 entries\", key_type = \"String\", value_type = \"UiValue\", validation_level = \"normal\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [\n  { id = \"UiComponentShowcase/MapFieldChanged\", event = \"Change\", component_event = \"ValueChanged\", route = \"component_lab.showcase.value_changed.map_field\" },\n  { id = \"UiComponentShowcase/MapFieldAddEntry\", event = \"Submit\", component_event = \"AddMapEntry\", route = \"component_lab.showcase.add_map_entry.map_field\" },\n  { id = \"UiComponentShowcase/MapFieldSetEntry\", event = \"Submit\", component_event = \"SetMapEntry\", route = \"component_lab.showcase.set_map_entry.map_field\" },\n  { id = \"UiComponentShowcase/MapFieldRemoveEntry\", event = \"Submit\", component_event = \"RemoveMapEntry\", route = \"component_lab.showcase.remove_map_entry.map_field\" },\n]\n\n[nodes.list_row_demo]\ncomponent = \"ListRow\"\ncontrol_id = \"ListRowDemo\"\nclasses = [\"showcase-field\", \"material-control\"]\nprops = { text = \"List Row\", value = \"selected\", selected = true, focused = true, hovered = true, pressed = false, layout_padding_left = \"$editor.density.gap.medium\", layout_padding_right = \"$editor.density.gap.medium\", layout_spacing = \"$editor.density.gap.small\", layout_min_height = \"$editor.control.height.default\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = \"Fixed\" } }\nevents = [\n  { id = \"UiComponentShowcase/ListRowClicked\", event = \"Click\", route = \"component_lab.showcase.select.list_row\" },\n  { id = \"UiComponentShowcase/ListRowHovered\", event = \"Hover\", component_event = \"Hover\", route = \"component_lab.showcase.hover.list_row\" },\n  { id = \"UiComponentShowcase/ListRowPressed\", event = \"Press\", component_event = \"Press\", route = \"component_lab.showcase.press.list_row\" },\n]\n\n[nodes.table_row_demo]\ncomponent = \"TableRow\"\ncontrol_id = \"TableRowDemo\"\nclasses = [\"showcase-field\", \"material-control\"]\nprops = { text = \"Table Row\", value = \"row-42\", selected = true, focused = true, hovered = false, pressed = false, layout_padding_left = \"$editor.density.gap.medium\", layout_padding_right = \"$editor.density.gap.medium\", layout_spacing = \"$editor.density.gap.small\", layout_min_height = \"$editor.control.height.default\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = \"Fixed\" } }\n\n[nodes.virtual_list_demo]\ncomponent = \"VirtualList\"\ncontrol_id = \"VirtualListDemo\"\nclasses = [\"showcase-field\", \"material-control\"]\nprops = { items = [\"Row 0\", \"Row 1\", \"Row 2\", \"Row 3\", \"Row 4\", \"Row 5\", \"Row 6\", \"Row 7\"], total_count = 10000, viewport_start = 0, viewport_count = 25, item_extent = 28.0, layout_padding_left = \"$editor.density.gap.medium\", layout_padding_right = \"$editor.density.gap.medium\", layout_spacing = \"$editor.density.gap.small\", layout_min_height = \"$editor.control.height.default\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 104.0, preferred = 104.0, max = 104.0, stretch = \"Fixed\" } }\nevents = [\n  { id = \"UiComponentShowcase/VirtualListScrolled\", event = \"Scroll\", component_event = \"SetVisibleRange\", route = \"component_lab.showcase.set_visible_range.virtual_list\" },\n]\n\n[nodes.paged_list_demo]\ncomponent = \"PagedList\"\ncontrol_id = \"PagedListDemo\"\nclasses = [\"showcase-field\"]\nprops = { data_source = \"showcase.large_items\", total_count = 10000, page_index = 0, page_size = 100, page_count = 100, items = [\"Page row 0\", \"Page row 1\", \"Page row 2\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = \"Fixed\" } }\nevents = [\n  { id = \"UiComponentShowcase/PagedListNextPage\", event = \"Click\", component_event = \"SetPage\", route = \"component_lab.showcase.set_page.paged_list\" },\n]\n\n[nodes.world_space_surface_demo]\ncomponent = \"WorldSpaceSurface\"\ncontrol_id = \"WorldSpaceSurfaceDemo\"\nclasses = [\"showcase-field\"]\nprops = { world_position = [0.0, 1.5, 3.0], world_rotation = [0.0, 180.0, 0.0], world_scale = [1.0, 1.0, 1.0], world_size = [2.0, 1.0], pixels_per_meter = 256.0, billboard = true, depth_test = true, render_order = 0, camera_target = \"viewport-main\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = \"Fixed\" } }\nevents = [\n  { id = \"UiComponentShowcase/WorldSpaceSurfaceMoved\", event = \"DragEnd\", component_event = \"SetWorldTransform\", route = \"component_lab.showcase.set_world_transform.world_space_surface\" },\n  { id = \"UiComponentShowcase/WorldSpaceSurfaceConfigured\", event = \"Submit\", component_event = \"SetWorldSurface\", route = \"component_lab.showcase.set_world_surface.world_space_surface\" },\n]\n\n[nodes.tree_row_demo]\ncomponent = \"TreeRow\"\ncontrol_id = \"TreeRowDemo\"\nclasses = [\"showcase-field\", \"material-control\"]\nprops = { text = \"Tree Row\", expanded = true, tree_depth = 2, tree_indent_px = 24.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = \"Fixed\" } }\nevents = [\n  { id = \"UiComponentShowcase/TreeRowToggled\", event = \"Toggle\", component_event = \"ToggleExpanded\", route = \"component_lab.showcase.toggle_expanded.tree_row\" },\n]\n\n[nodes.context_action_menu_demo]\ncomponent = \"ContextActionMenu\"\ncontrol_id = \"ContextActionMenuDemo\"\nclasses = [\"showcase-field\", \"material-control\"]\nprops = { value = \"Inspect\", menu_items = [\"Inspect|checked,focused|Ctrl+I\", \"---\", \"Duplicate|hovered,pressed|Ctrl+D\", \"Delete|disabled|Del\"], popup_open = true, popup_anchor_x = 156.0, popup_anchor_y = 24.0, layout_padding_left = \"$editor.density.gap.medium\", layout_padding_right = \"$editor.density.gap.medium\", layout_spacing = \"$editor.density.gap.small\", layout_min_height = \"$editor.control.height.default\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 132.0, preferred = 132.0, max = 132.0, stretch = \"Fixed\" } }\nevents = [\n  { id = \"UiComponentShowcase/ContextActionMenuChanged\", event = \"Change\", component_event = \"SelectOption\", route = \"component_lab.showcase.select_option.context_action_menu\" },\n  { id = \"UiComponentShowcase/ContextActionMenuOpenPopup\", event = \"Click\", component_event = \"OpenPopup\", route = \"component_lab.showcase.open_popup.context_action_menu\" },\n  { id = \"UiComponentShowcase/ContextActionMenuOpenAt\", event = \"Press\", component_event = \"OpenPopupAt\", route = \"component_lab.showcase.open_popup_at.context_action_menu\" },\n  { id = \"UiComponentShowcase/ContextActionMenuClosePopup\", event = \"Click\", component_event = \"ClosePopup\", route = \"component_lab.showcase.close_popup.context_action_menu\" },\n]\n\n[nodes.collections_section_root]\ncomponent = \"ScrollableBox\"\nclasses = [\"showcase-panel\", \"material-surface\"]\nlayout = { width = { min = 0, stretch = \"Stretch\" }, clip = true, input_policy = \"Receive\", container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = \"$editor.density.gap.medium\", scrollbar_visibility = \"Auto\" }, height = { min = 0, stretch = \"Stretch\" } }\nchildren = [\n  { node = \"section_title\" },\n  { node = \"group_demo\", slot = { name = \"content\" } },\n  { node = \"foldout_demo\", slot = { name = \"content\" } },\n  { node = \"property_row_demo\", slot = { name = \"content\" } },\n  { node = \"inspector_section_demo\", slot = { name = \"content\" } },\n  { node = \"array_field_demo\", slot = { name = \"content\" } },\n  { node = \"map_field_demo\", slot = { name = \"content\" } },\n  { node = \"list_row_demo\", slot = { name = \"content\" } },\n  { node = \"table_row_demo\", slot = { name = \"content\" } },\n  { node = \"virtual_list_demo\", slot = { name = \"content\" } },\n  { node = \"paged_list_demo\", slot = { name = \"content\" } },\n  { node = \"world_space_surface_demo\", slot = { name = \"content\" } },\n  { node = \"tree_row_demo\", slot = { name = \"content\" } },\n  { node = \"context_action_menu_demo\", slot = { name = \"content\" } },\n]\n"
+
+[asset]
+kind = "component"
+id = "res://ui/editor/components/showcase/showcase_collections_section.zui"
+version = 2
+display_name = "Showcase Collections Section"
+
+[imports]
+widgets = []
+styles = []
+
+[components.ShowcaseCollectionsSection]
+root = "collections_section_root"
+default_classes = [ "showcase-panel", "material-surface" ]
+
+[nodes.section_title]
+component = "Label"
+control_id = "ComponentShowcaseCollectionsSectionTitle"
+classes = [ "showcase-section-title" ]
+
+[nodes.section_title.props]
+text = "Collections and Inspector Structures"
+font_size = "$editor.typography.body.size"
+font_weight = "$editor.typography.emphasis.weight"
+
+[nodes.section_title.layout.width]
+stretch = "Stretch"
+
+[nodes.section_title.layout.height]
+min = 24
+preferred = 44
+max = 44
+stretch = "Fixed"
+
+[nodes.group_demo]
+component = "Group"
+control_id = "GroupDemo"
+classes = [ "showcase-panel", "material-control" ]
+
+[nodes.group_demo.props]
+text = "Foldout Group"
+expanded = true
+
+[nodes.group_demo.layout.width]
+stretch = "Stretch"
+
+[nodes.group_demo.layout.height]
+min = 96
+preferred = 96
+max = 96
+stretch = "Fixed"
+
+[[nodes.group_demo.events]]
+id = "UiComponentShowcase/GroupToggled"
+event = "Toggle"
+component_event = "ToggleExpanded"
+route = "component_lab.showcase.toggle_expanded.group"
+
+[nodes.foldout_demo]
+component = "Foldout"
+control_id = "FoldoutDemo"
+classes = [ "showcase-panel", "material-control" ]
+
+[nodes.foldout_demo.props]
+text = "Foldout"
+expanded = false
+validation_level = "normal"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.foldout_demo.layout.width]
+stretch = "Stretch"
+
+[nodes.foldout_demo.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[[nodes.foldout_demo.events]]
+id = "UiComponentShowcase/FoldoutToggled"
+event = "Toggle"
+component_event = "ToggleExpanded"
+route = "component_lab.showcase.toggle_expanded.foldout"
+
+[nodes.property_row_demo]
+component = "PropertyRow"
+control_id = "PropertyRowDemo"
+classes = [ "showcase-field" ]
+
+[nodes.property_row_demo.props]
+text = "Property Row"
+value = "Label + Field"
+
+[nodes.property_row_demo.layout.width]
+stretch = "Stretch"
+
+[nodes.property_row_demo.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.inspector_section_demo]
+component = "InspectorSection"
+control_id = "InspectorSectionDemo"
+classes = [ "showcase-panel", "material-control" ]
+
+[nodes.inspector_section_demo.props]
+text = "Inspector Section"
+expanded = true
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.inspector_section_demo.layout.width]
+stretch = "Stretch"
+
+[nodes.inspector_section_demo.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[[nodes.inspector_section_demo.events]]
+id = "UiComponentShowcase/InspectorSectionToggled"
+event = "Toggle"
+component_event = "ToggleExpanded"
+route = "component_lab.showcase.toggle_expanded.inspector_section"
+
+[nodes.array_field_demo]
+component = "ArrayField"
+control_id = "ArrayFieldDemo"
+classes = [ "showcase-field", "material-control" ]
+
+[nodes.array_field_demo.props]
+items = [ "Label", "NumberField", "AssetField" ]
+value_text = "3 elements"
+element_type = "UiComponentRef"
+validation_level = "normal"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.array_field_demo.layout.width]
+stretch = "Stretch"
+
+[nodes.array_field_demo.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[[nodes.array_field_demo.events]]
+id = "UiComponentShowcase/ArrayFieldChanged"
+event = "Change"
+component_event = "ValueChanged"
+route = "component_lab.showcase.value_changed.array_field"
+
+[[nodes.array_field_demo.events]]
+id = "UiComponentShowcase/ArrayFieldAddElement"
+event = "Submit"
+component_event = "AddElement"
+route = "component_lab.showcase.add_element.array_field"
+
+[[nodes.array_field_demo.events]]
+id = "UiComponentShowcase/ArrayFieldSetElement"
+event = "Submit"
+component_event = "SetElement"
+route = "component_lab.showcase.set_element.array_field"
+
+[[nodes.array_field_demo.events]]
+id = "UiComponentShowcase/ArrayFieldRemoveElement"
+event = "Submit"
+component_event = "RemoveElement"
+route = "component_lab.showcase.remove_element.array_field"
+
+[[nodes.array_field_demo.events]]
+id = "UiComponentShowcase/ArrayFieldMoveElement"
+event = "DragEnd"
+component_event = "MoveElement"
+route = "component_lab.showcase.move_element.array_field"
+
+[nodes.map_field_demo]
+component = "MapField"
+control_id = "MapFieldDemo"
+classes = [ "showcase-field", "material-control" ]
+
+[nodes.map_field_demo.props]
+value_text = "2 entries"
+key_type = "String"
+value_type = "UiValue"
+validation_level = "normal"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.map_field_demo.props.entries]
+speed = 1
+visible = true
+
+[nodes.map_field_demo.layout.width]
+stretch = "Stretch"
+
+[nodes.map_field_demo.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[[nodes.map_field_demo.events]]
+id = "UiComponentShowcase/MapFieldChanged"
+event = "Change"
+component_event = "ValueChanged"
+route = "component_lab.showcase.value_changed.map_field"
+
+[[nodes.map_field_demo.events]]
+id = "UiComponentShowcase/MapFieldAddEntry"
+event = "Submit"
+component_event = "AddMapEntry"
+route = "component_lab.showcase.add_map_entry.map_field"
+
+[[nodes.map_field_demo.events]]
+id = "UiComponentShowcase/MapFieldSetEntry"
+event = "Submit"
+component_event = "SetMapEntry"
+route = "component_lab.showcase.set_map_entry.map_field"
+
+[[nodes.map_field_demo.events]]
+id = "UiComponentShowcase/MapFieldRemoveEntry"
+event = "Submit"
+component_event = "RemoveMapEntry"
+route = "component_lab.showcase.remove_map_entry.map_field"
+
+[nodes.list_row_demo]
+component = "ListRow"
+control_id = "ListRowDemo"
+classes = [ "showcase-field", "material-control" ]
+
+[nodes.list_row_demo.props]
+text = "List Row"
+value = "selected"
+selected = true
+focused = true
+hovered = true
+pressed = false
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.list_row_demo.layout.width]
+stretch = "Stretch"
+
+[nodes.list_row_demo.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[[nodes.list_row_demo.events]]
+id = "UiComponentShowcase/ListRowClicked"
+event = "Click"
+route = "component_lab.showcase.select.list_row"
+
+[[nodes.list_row_demo.events]]
+id = "UiComponentShowcase/ListRowHovered"
+event = "Hover"
+component_event = "Hover"
+route = "component_lab.showcase.hover.list_row"
+
+[[nodes.list_row_demo.events]]
+id = "UiComponentShowcase/ListRowPressed"
+event = "Press"
+component_event = "Press"
+route = "component_lab.showcase.press.list_row"
+
+[nodes.table_row_demo]
+component = "TableRow"
+control_id = "TableRowDemo"
+classes = [ "showcase-field", "material-control" ]
+
+[nodes.table_row_demo.props]
+text = "Table Row"
+value = "row-42"
+selected = true
+focused = true
+hovered = false
+pressed = false
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.table_row_demo.layout.width]
+stretch = "Stretch"
+
+[nodes.table_row_demo.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[nodes.virtual_list_demo]
+component = "VirtualList"
+control_id = "VirtualListDemo"
+classes = [ "showcase-field", "material-control" ]
+
+[nodes.virtual_list_demo.props]
+items = [ "Row 0", "Row 1", "Row 2", "Row 3", "Row 4", "Row 5", "Row 6", "Row 7" ]
+total_count = 10000
+viewport_start = 0
+viewport_count = 25
+item_extent = 28
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.virtual_list_demo.layout.width]
+stretch = "Stretch"
+
+[nodes.virtual_list_demo.layout.height]
+min = 104
+preferred = 104
+max = 104
+stretch = "Fixed"
+
+[[nodes.virtual_list_demo.events]]
+id = "UiComponentShowcase/VirtualListScrolled"
+event = "Scroll"
+component_event = "SetVisibleRange"
+route = "component_lab.showcase.set_visible_range.virtual_list"
+
+[nodes.paged_list_demo]
+component = "PagedList"
+control_id = "PagedListDemo"
+classes = [ "showcase-field" ]
+
+[nodes.paged_list_demo.props]
+data_source = "showcase.large_items"
+total_count = 10000
+page_index = 0
+page_size = 100
+page_count = 100
+items = [ "Page row 0", "Page row 1", "Page row 2" ]
+
+[nodes.paged_list_demo.layout.width]
+stretch = "Stretch"
+
+[nodes.paged_list_demo.layout.height]
+min = 56
+preferred = 56
+max = 56
+stretch = "Fixed"
+
+[[nodes.paged_list_demo.events]]
+id = "UiComponentShowcase/PagedListNextPage"
+event = "Click"
+component_event = "SetPage"
+route = "component_lab.showcase.set_page.paged_list"
+
+[nodes.world_space_surface_demo]
+component = "WorldSpaceSurface"
+control_id = "WorldSpaceSurfaceDemo"
+classes = [ "showcase-field" ]
+
+[nodes.world_space_surface_demo.props]
+world_position = [ 0, 1.5, 3 ]
+world_rotation = [ 0, 180, 0 ]
+world_scale = [ 1, 1, 1 ]
+world_size = [ 2, 1 ]
+pixels_per_meter = 256
+billboard = true
+depth_test = true
+render_order = 0
+camera_target = "viewport-main"
+
+[nodes.world_space_surface_demo.layout.width]
+stretch = "Stretch"
+
+[nodes.world_space_surface_demo.layout.height]
+min = 56
+preferred = 56
+max = 56
+stretch = "Fixed"
+
+[[nodes.world_space_surface_demo.events]]
+id = "UiComponentShowcase/WorldSpaceSurfaceMoved"
+event = "DragEnd"
+component_event = "SetWorldTransform"
+route = "component_lab.showcase.set_world_transform.world_space_surface"
+
+[[nodes.world_space_surface_demo.events]]
+id = "UiComponentShowcase/WorldSpaceSurfaceConfigured"
+event = "Submit"
+component_event = "SetWorldSurface"
+route = "component_lab.showcase.set_world_surface.world_space_surface"
+
+[nodes.tree_row_demo]
+component = "TreeRow"
+control_id = "TreeRowDemo"
+classes = [ "showcase-field", "material-control" ]
+
+[nodes.tree_row_demo.props]
+text = "Tree Row"
+expanded = true
+tree_depth = 2
+tree_indent_px = 24
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.tree_row_demo.layout.width]
+stretch = "Stretch"
+
+[nodes.tree_row_demo.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[[nodes.tree_row_demo.events]]
+id = "UiComponentShowcase/TreeRowToggled"
+event = "Toggle"
+component_event = "ToggleExpanded"
+route = "component_lab.showcase.toggle_expanded.tree_row"
+
+[nodes.context_action_menu_demo]
+component = "ContextActionMenu"
+control_id = "ContextActionMenuDemo"
+classes = [ "showcase-field", "material-control" ]
+
+[nodes.context_action_menu_demo.props]
+value = "Inspect"
+menu_items = [ "Inspect|checked,focused|Ctrl+I", "---", "Duplicate|hovered,pressed|Ctrl+D", "Delete|disabled|Del" ]
+popup_open = true
+popup_anchor_x = 156
+popup_anchor_y = 24
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.context_action_menu_demo.layout.width]
+stretch = "Stretch"
+
+[nodes.context_action_menu_demo.layout.height]
+min = 132
+preferred = 132
+max = 132
+stretch = "Fixed"
+
+[[nodes.context_action_menu_demo.events]]
+id = "UiComponentShowcase/ContextActionMenuChanged"
+event = "Change"
+component_event = "SelectOption"
+route = "component_lab.showcase.select_option.context_action_menu"
+
+[[nodes.context_action_menu_demo.events]]
+id = "UiComponentShowcase/ContextActionMenuOpenPopup"
+event = "Click"
+component_event = "OpenPopup"
+route = "component_lab.showcase.open_popup.context_action_menu"
+
+[[nodes.context_action_menu_demo.events]]
+id = "UiComponentShowcase/ContextActionMenuOpenAt"
+event = "Press"
+component_event = "OpenPopupAt"
+route = "component_lab.showcase.open_popup_at.context_action_menu"
+
+[[nodes.context_action_menu_demo.events]]
+id = "UiComponentShowcase/ContextActionMenuClosePopup"
+event = "Click"
+component_event = "ClosePopup"
+route = "component_lab.showcase.close_popup.context_action_menu"
+
+[nodes.collections_section_root]
+component = "ScrollableBox"
+classes = [ "showcase-panel", "material-surface" ]
+
+[nodes.collections_section_root.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.collections_section_root.layout.width]
+min = 0
+stretch = "Stretch"
+
+[nodes.collections_section_root.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = "$editor.density.gap.medium"
+scrollbar_visibility = "Auto"
+
+[nodes.collections_section_root.layout.height]
+min = 0
+stretch = "Stretch"
+
+[[nodes.collections_section_root.children]]
+node = "section_title"
+
+[[nodes.collections_section_root.children]]
+node = "group_demo"
+
+[nodes.collections_section_root.children.slot]
+name = "content"
+
+[[nodes.collections_section_root.children]]
+node = "foldout_demo"
+
+[nodes.collections_section_root.children.slot]
+name = "content"
+
+[[nodes.collections_section_root.children]]
+node = "property_row_demo"
+
+[nodes.collections_section_root.children.slot]
+name = "content"
+
+[[nodes.collections_section_root.children]]
+node = "inspector_section_demo"
+
+[nodes.collections_section_root.children.slot]
+name = "content"
+
+[[nodes.collections_section_root.children]]
+node = "array_field_demo"
+
+[nodes.collections_section_root.children.slot]
+name = "content"
+
+[[nodes.collections_section_root.children]]
+node = "map_field_demo"
+
+[nodes.collections_section_root.children.slot]
+name = "content"
+
+[[nodes.collections_section_root.children]]
+node = "list_row_demo"
+
+[nodes.collections_section_root.children.slot]
+name = "content"
+
+[[nodes.collections_section_root.children]]
+node = "table_row_demo"
+
+[nodes.collections_section_root.children.slot]
+name = "content"
+
+[[nodes.collections_section_root.children]]
+node = "virtual_list_demo"
+
+[nodes.collections_section_root.children.slot]
+name = "content"
+
+[[nodes.collections_section_root.children]]
+node = "paged_list_demo"
+
+[nodes.collections_section_root.children.slot]
+name = "content"
+
+[[nodes.collections_section_root.children]]
+node = "world_space_surface_demo"
+
+[nodes.collections_section_root.children.slot]
+name = "content"
+
+[[nodes.collections_section_root.children]]
+node = "tree_row_demo"
+
+[nodes.collections_section_root.children.slot]
+name = "content"
+
+[[nodes.collections_section_root.children]]
+node = "context_action_menu_demo"
+
+[nodes.collections_section_root.children.slot]
+name = "content"
+
+[penpot_host_colors]
+primary = "#60aeff"
+accent = "#60aeff"
+"material.primary" = "#60aeff"
+material_color_primary = "#60aeff"
+on_primary = "#151515"
+"material.on_primary" = "#151515"
+material_color_on_primary = "#151515"
+surface = "#2f2f2f"
+"material.surface" = "#2f2f2f"
+surface_inset = "#0f0f0f"
+"material.surface_inset" = "#0f0f0f"
+surface_hover = "#454545"
+"material.surface_hover" = "#454545"
+surface_pressed = "#383838"
+"material.surface_pressed" = "#383838"
+surface_selected = "#243f5a"
+"material.surface_selected" = "#243f5a"
+disabled = "#2b2b2b"
+"material.disabled" = "#2b2b2b"
+border = "#484848"
+outline = "#484848"
+"material.outline" = "#484848"
+focus = "#66b2ff"
+focus_ring = "#66b2ff"
+"material.focus_ring" = "#66b2ff"
+text = "#e8e8e8"
+on_surface = "#e8e8e8"
+"material.text" = "#e8e8e8"
+"material.on_surface" = "#e8e8e8"
+text_muted = "#b3b3b3"
+muted = "#b3b3b3"
+"material.text_muted" = "#b3b3b3"
+text_disabled = "#737373"
+"material.text_disabled" = "#737373"
+warning = "#dcac50"
+"material.warning" = "#dcac50"
+error = "#eb605c"
+danger = "#eb605c"
+"material.error" = "#eb605c"
+success = "#55be78"
+"material.success" = "#55be78"
+info = "#5faae6"
+"material.info" = "#5faae6"
+
+[penpot_host_palette]
+surface = [ "#151515", "#242424", "#2f2f2f", "#383838" ]
+surface_recessed = "#0f0f0f"
+surface_hover = "#454545"
+surface_selected = "#243f5a"
+surface_disabled = "#2b2b2b"
+accent = "#60aeff"
+accent_soft = "#253f59"
+border = "#484848"
+border_disabled = "#363636"
+separator_strong = "#565656"
+separator_soft = "#333333"
+text_primary = "#e8e8e8"
+text_secondary = "#b3b3b3"
+text_disabled = "#737373"
+success = "#55be78"
+success_container = "#1d472f"
+info = "#5faae6"
+info_container = "#18395b"
+warning = "#dcac50"
+warning_container = "#463112"
+error = "#eb605c"
+error_container = "#4c2427"
+popup = "#242424"
+track = "#3b3b3b"
+focus_ring = "#66b2ff"
+shadow = "#00000073"
+
+[tokens]
+"theme.palette.surface.0" = "#151515"
+"theme.palette.surface.1" = "#242424"
+"theme.palette.surface.2" = "#2f2f2f"
+"theme.palette.surface.3" = "#383838"
+"theme.palette.text.primary" = "#e8e8e8"
+"theme.palette.text.secondary" = "#b3b3b3"
+"theme.palette.text.disabled" = "#737373"
+"theme.palette.accent" = "#60aeff"
+"theme.palette.success" = "#55be78"
+"theme.palette.info" = "#5faae6"
+"theme.palette.warning" = "#dcac50"
+"theme.palette.error" = "#eb605c"
+"theme.palette.separator" = "#484848"
+"editor.surface.0" = "#151515"
+"editor.surface.1" = "#242424"
+"editor.surface.2" = "#2f2f2f"
+"editor.surface.3" = "#383838"
+"editor.surface.recessed" = "#0f0f0f"
+"editor.surface.hover" = "#454545"
+"editor.surface.selected" = "#243f5a"
+"editor.surface.disabled" = "#2b2b2b"
+"editor.accent" = "#60aeff"
+"editor.accent.soft" = "#253f59"
+"editor.border" = "#484848"
+"editor.border.disabled" = "#363636"
+"editor.separator.strong" = "#565656"
+"editor.separator.soft" = "#333333"
+"editor.text.primary" = "#e8e8e8"
+"editor.text.secondary" = "#b3b3b3"
+"editor.text.disabled" = "#737373"
+"editor.semantic.success" = "#55be78"
+"editor.semantic.success.container" = "#1d472f"
+"editor.semantic.info" = "#5faae6"
+"editor.semantic.info.container" = "#18395b"
+"editor.semantic.warning" = "#dcac50"
+"editor.semantic.warning.container" = "#463112"
+"editor.semantic.error" = "#eb605c"
+"editor.semantic.error.container" = "#4c2427"
+"editor.popup" = "#242424"
+"editor.track" = "#3b3b3b"
+"editor.focus.ring" = "#66b2ff"
+"editor.shadow" = "#00000073"
+"editor.typography.ui.family" = "Fira Sans"
+"editor.typography.ui.strong.family" = "Fira Sans"
+"editor.typography.code.family" = "Fira Mono"
+"editor.typography.utility_tab.text_role" = "ui"
+"editor.typography.font_smoothing" = "grayscale"
+"editor.typography.body.size" = 14
+"editor.typography.caption.size" = 12
+"editor.typography.overlay.size" = 12
+"editor.typography.heading.size" = 16
+"editor.typography.title.size" = 20
+"editor.typography.body.weight" = 400
+"editor.typography.medium.weight" = 500
+"editor.typography.strong.weight" = 600
+"editor.typography.emphasis.weight" = 700
+"editor.typography.code.weight" = 400
+"editor.typography.line_height" = 1.4
+"editor.control.height.large" = 48
+"editor.control.height.default" = 32
+"editor.control.height.compact" = 32
+"editor.control.height.dense" = 28
+"editor.control.radius.small" = 4
+"editor.control.radius.control" = 4
+"editor.control.radius.large" = 8
+"editor.control.radius.panel" = 0
+"editor.control.radius.pill" = 999
+"editor.control.border_width" = 1
+"editor.chrome.top_bar.height" = 25
+"editor.chrome.host_bar.height" = 32
+"editor.chrome.workbench_toolbar.height" = 66
+"editor.chrome.workbench_toolbar.command_row.height" = 34
+"editor.chrome.workbench_toolbar.popup.command_offset_y" = 29
+"editor.chrome.workbench_toolbar.popup.module_offset_y" = -6
+"editor.chrome.status_bar.height" = 24
+"editor.chrome.panel_header.height" = 30
+"editor.chrome.document_header.height" = 31
+"editor.chrome.viewport_toolbar.height" = 28
+"editor.chrome.activity_rail.width" = 34
+"editor.chrome.separator.thickness" = 1
+"editor.chrome.splitter.hit_size" = 8
+"editor.density.gap.xsmall" = 2
+"editor.density.gap.tight" = 4
+"editor.density.gap.small" = 4
+"editor.density.gap.regular" = 8
+"editor.density.gap.medium" = 8
+"editor.density.gap.large" = 12
+"editor.density.gap.group" = 24
+"editor.density.drawer_padding" = 12
+"editor.density.panel_padding" = 16
+"editor.density.toolbar_action_width" = 76
+"editor.density.toolbar_wide_action_width" = 96
+"editor.density.ui_asset_action.min_width" = 40
+"editor.density.ui_asset_action.preferred_width" = 52
+"editor.density.ui_asset_action.max_width" = 64
+"editor.density.ui_asset.side.min_width" = 128
+"editor.density.ui_asset.side.preferred_width" = 220
+"editor.density.ui_asset.center.min_width" = 256
+"editor.density.ui_asset.center.preferred_width" = 420
+"editor.density.ui_asset.header_kind.min_width" = 64
+"editor.density.ui_asset.header_kind.preferred_width" = 70
+"editor.density.ui_asset.header_kind.max_width" = 84
+"editor.density.ui_asset.tool.min_width" = 56
+"editor.density.ui_asset.tool.preferred_width" = 64
+"editor.density.ui_asset.tool.max_width" = 80
+"editor.density.command_palette.min_width" = 520
+"editor.density.command_palette.preferred_width" = 560
+"editor.density.command_palette.max_width" = 640
+"editor.density.command_palette.min_height" = 180
+"editor.density.command_palette.preferred_height" = 220
+"editor.density.command_palette.max_height" = 280
+"editor.density.dialog.min_width" = 420
+"editor.density.dialog.preferred_width" = 480
+"editor.density.dialog.max_width" = 560
+"editor.density.dialog.min_height" = 180
+"editor.density.dialog.preferred_height" = 220
+"editor.density.dialog.max_height" = 320
+"editor.density.confirm_dialog.preferred_width" = 460
+"editor.density.confirm_dialog.max_width" = 540
+"editor.density.confirm_dialog.min_height" = 174
+"editor.density.confirm_dialog.preferred_height" = 210
+"editor.density.confirm_dialog.max_height" = 300
+"editor.density.notification_panel.min_width" = 280
+"editor.density.notification_panel.preferred_width" = 320
+"editor.density.notification_panel.max_width" = 380
+"editor.density.notification_panel.min_height" = 160
+"editor.density.notification_panel.preferred_height" = 220
+"editor.density.notification_panel.max_height" = 320
+"editor.density.caption.min_height" = 20
+"editor.density.caption.preferred_height" = 22
+"editor.density.caption.max_height" = 24
+"editor.density.label.min_height" = 22
+"editor.density.label.preferred_height" = 24
+"editor.density.label.max_height" = 32
+"editor.density.chip.min_width" = 40
+"editor.density.chip.preferred_width" = 80
+"editor.density.chip.max_width" = 160
+"editor.density.axis_value_field.min_width" = 54
+"editor.density.axis_value_field.preferred_width" = 62
+"editor.density.axis_value_field.max_width" = 72
+"editor.density.row_height" = 28
+"editor.density.left_drawer_width" = 332
+"editor.density.right_drawer_width" = 404
+"editor.density.bottom_output_height" = 228
+"editor.density.breakpoint_ultra_width" = 480
+"editor.density.breakpoint_narrow_width" = 640
+"editor.density.breakpoint_wide_width" = 1260
+"editor.density.compact_side_width" = 1100
+"editor.density.ultra_compact_side_width" = 760
+"editor.density.compact_left_drawer_max_width" = 340
+"editor.density.compact_right_drawer_max_width" = 220
+"editor.density.compact_side_min_width" = 196
+"editor.density.minimum_document_width_fraction" = 0.5
+"editor.density.ultra_compact_left_drawer_max_width" = 220
+"editor.density.ultra_compact_right_drawer_max_width" = 160
+"editor.density.compact_bottom_available_height" = 900
+"editor.density.compact_bottom_max_height" = 148
+"editor.density.compact_bottom_max_available_fraction" = 0.23
+"editor.density.compact_bottom_min_height" = 120
+"editor.density.ultra_compact_bottom_available_height" = 420
+"editor.density.ultra_compact_bottom_max_height" = 96
+"editor.density.ultra_compact_bottom_max_available_fraction" = 0.2
+"editor.density.ultra_compact_bottom_min_height" = 80
+"editor.density.minimum_window_width" = 640
+"editor.density.minimum_window_height" = 420
+"editor.density.ultra_minimum_window_width" = 420
+"editor.density.ultra_minimum_window_height" = 360
+"editor.state.default" = "surface_1"
+"editor.state.hovered" = "surface_2"
+"editor.state.pressed" = "surface_3"
+"editor.state.selected" = "surface_selected"
+"editor.state.focused" = "surface_1"
+"editor.state.disabled" = "text_disabled"
+"editor.state.loading" = "accent"
+
+[penpot_original_imports]
+widgets = []
+styles = [ "res://ui/editor/theme/editor_tokens.zui" ]

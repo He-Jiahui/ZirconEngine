@@ -131,6 +131,7 @@ pub(crate) fn to_host_contract_workbench_window_nodes_with_previous_at_mount_and
                     previous,
                     scale_factor,
                 )
+                .map(|mut node| node)
             })
             .map(|node| apply_table_layout_context_variant(node, layout_context_width))
             .map(|node| project_node_into_physical_mount(node, mount_frame, scale_factor))
@@ -247,6 +248,7 @@ pub(crate) fn build_host_contract_workbench_window_geometry_patch_at_mount_and_s
         }
 
         let mut projected = previous.clone();
+        bind_published_source(&mut projected, node.source_surface_frame.as_ref());
         projected.frame = project_frame_into_physical_mount(
             template_frame(node.frame),
             mount_frame,
@@ -327,10 +329,9 @@ fn to_host_contract_workbench_window_node_with_previous(
     let settings_window_data =
         projected_settings_window_data(component_role.as_str(), &button_style_values);
     let settings_category_scroll_offset =
-        numeric_property(&button_style_values, "settings_category_scroll_offset").unwrap_or(0.0)
-            as f32;
+        numeric_property(&node.properties, "settings_category_scroll_offset").unwrap_or(0.0) as f32;
     let settings_scroll_offset =
-        numeric_property(&button_style_values, "settings_scroll_offset").unwrap_or(0.0) as f32;
+        numeric_property(&node.properties, "settings_scroll_offset").unwrap_or(0.0) as f32;
     if is_cleared_inspector_property_row(control_id.as_str(), &node.properties) {
         clear_button_surface_style_values(&mut button_style_values);
     }
@@ -383,7 +384,13 @@ fn to_host_contract_workbench_window_node_with_previous(
     };
     let menu_item_values = string_array_property(&node.properties, "menu_items", &node.menu_items);
     let collection_item_values =
-        string_array_property(&node.properties, "collection_items", &node.collection_items);
+        if matches!(component_role.as_str(), "mui-x-agent-chat" | "AgentChat")
+            || node.component == "AgentChat"
+        {
+            string_array_property(&node.properties, "messages", &node.collection_items)
+        } else {
+            string_array_property(&node.properties, "collection_items", &node.collection_items)
+        };
     let action_id = preferred_route_action_id(
         &node.routes,
         [UiEventKind::Click, UiEventKind::Toggle, UiEventKind::Change],
@@ -484,9 +491,29 @@ fn to_host_contract_workbench_window_node_with_previous(
             .or_else(|| color_property(&node.properties, "selected_underline_color"))
             .unwrap_or_default();
 
-    Some(host_contract::TemplatePaneNodeData {
+    let mut projected = host_contract::TemplatePaneNodeData {
         node_id: node.node_id.clone().into(),
         surface_node_id: node.surface_node_id,
+        source_path: node.source_path.clone().unwrap_or_default().into(),
+        source_node_id: node.source_node_id.clone().unwrap_or_default().into(),
+        instance_path: node
+            .instance_path
+            .as_ref()
+            .and_then(|steps| serde_json::to_string(steps).ok())
+            .unwrap_or_default()
+            .into(),
+        inspector_property_field_id: first_string_property(
+            &node.properties,
+            &["inspector_property_field_id"],
+        )
+        .unwrap_or_default()
+        .into(),
+        inspector_property_item_key: first_string_property(
+            &node.properties,
+            &["inspector_property_item_key"],
+        )
+        .unwrap_or_default()
+        .into(),
         has_workbench_icon_tooltip: node.has_workbench_icon_tooltip,
         parent_node_id: node_index
             .projected_parent_node_id(node)
@@ -654,9 +681,46 @@ fn to_host_contract_workbench_window_node_with_previous(
             .unwrap_or_else(host_contract::TemplateNodeFrameData::default),
         frame: template_frame(node.frame),
         ..host_contract::TemplatePaneNodeData::default()
-    })
+    };
+    bind_published_source(&mut projected, node.source_surface_frame.as_ref());
+    Some(projected)
 }
 
 #[cfg(test)]
-#[path = "workbench_window_projection/tests.rs"]
+#[path = "workbench_window_projection/tests/cases.rs"]
 mod tests;
+
+fn bind_published_source(
+    node: &mut host_contract::TemplatePaneNodeData,
+    frame: Option<&std::sync::Arc<zircon_runtime_interface::ui::surface::UiSurfaceFrame>>,
+) {
+    node.source_surface_frame = None;
+    node.surface_render_command_ref = None;
+    let Some(frame) = frame else {
+        return;
+    };
+    let Some(id) = node.surface_node_id else {
+        return;
+    };
+    let Some(arranged) = frame.arranged_tree.get(id) else {
+        return;
+    };
+    if arranged.node_path.0 != node.node_id.as_str()
+        || arranged.control_id.as_deref() != Some(node.control_id.as_str())
+    {
+        return;
+    }
+    let Some(range) = frame.render_extract.command_range(id) else {
+        return;
+    };
+    if range.is_empty() {
+        return;
+    }
+    // Node owner anchor, not primitive correspondence to shared-painter fragments.
+    let reference = zircon_runtime_interface::ui::surface::UiRenderFrameCommandRef::new(id, 0);
+    if frame.render_extract.command_by_ref(reference).is_none() {
+        return;
+    }
+    node.source_surface_frame = Some(std::sync::Arc::clone(frame));
+    node.surface_render_command_ref = Some(reference);
+}

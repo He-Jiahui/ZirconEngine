@@ -1,11 +1,12 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0094] 可见性上下文构建与阴影视图测试 的测试归属断言与现行模块图不符；需定位迁移后的行为测试，再调整此守卫或补缺失覆盖。
 #[test]
 fn runtime_15_visibility_context_construct_tests_are_child_owner() {
     let parent =
         read_runtime_src("graphics/visibility/context/from_extract_with_history/construct.rs");
     let tests = read_runtime_src(
-        "graphics/visibility/context/from_extract_with_history/construct/tests.rs",
+        "graphics/visibility/context/from_extract_with_history/construct/tests/cases.rs",
     );
 
     let plan_04 = read_repo(
@@ -78,7 +79,7 @@ fn runtime_15_visibility_context_construct_tests_are_child_owner() {
             parent.as_str(),
         ),
         (
-            "visibility/context/from_extract_with_history/construct/tests.rs",
+            "visibility/context/from_extract_with_history/construct/tests/cases.rs",
             tests.as_str(),
         ),
     ] {
@@ -105,7 +106,7 @@ fn runtime_15_visibility_context_construct_tests_are_child_owner() {
                 "VisibilityContext construct tests owner split",
                 "render_plan04_visibility_context_construct_tests_owner_split_static_passed_cargo_deferred_active_compile_lane",
                 "graphics/visibility/context/from_extract_with_history/construct.rs",
-                "graphics/visibility/context/from_extract_with_history/construct/tests.rs",
+                "graphics/visibility/context/from_extract_with_history/construct/tests/cases.rs",
                 "runtime_15_visibility_context_construct_tests_are_child_owner",
             ],
         );

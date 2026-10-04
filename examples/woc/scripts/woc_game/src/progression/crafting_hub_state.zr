@@ -22,6 +22,7 @@ pub canUseCraftingHubStation(x: float, z: float, level: int): bool {
 // Converts current world position and character level into the existing
 // crafting transaction precondition. It deliberately leaves all other
 // transaction state untouched.
+/// 仅把当前位置和等级投影进制作事务的 atHub 前提；世界位置更新后应先同步，再执行需要工坊的配方。
 pub syncCraftingHubAccess(
     state: crafting.CraftingTransactionState, x: float, z: float, level: int
 ): bool {

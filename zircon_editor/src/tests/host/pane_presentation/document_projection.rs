@@ -85,7 +85,7 @@ fn document_pane_projects_first_wave_pane_presentations_alongside_legacy_data() 
         *layout
             .content_workspace_for_page_mut(&MainPageId::workbench())
             .expect("workbench page should resolve its activity-window content workspace") =
-            DocumentNode::Tabs(TabStackLayout {
+            DocumentNode::tabs(TabStackLayout {
                 tabs: vec![instance_id.clone()],
                 active_tab: Some(instance_id.clone()),
             });

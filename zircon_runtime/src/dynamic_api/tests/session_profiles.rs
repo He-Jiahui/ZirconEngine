@@ -208,3 +208,27 @@ fn project_session_startup_reuses_one_prepared_project_manager_snapshot() {
         "default-scene loading must snapshot the activated project without reopening or rescanning it"
     );
 }
+
+#[test]
+fn linked_plugin_catalog_reaches_prepared_project_codec_consumer_transactionally() {
+    let project_source = include_str!("../session/project.rs");
+    let construction_source = include_str!("../session/construction.rs");
+    let catalog_source = include_str!(
+        "../../plugin/runtime_plugin/runtime_plugin_catalog/contributions/extension.rs"
+    );
+    assert!(
+        construction_source.contains("runtime_extensions_handle()")
+            && construction_source.contains("linked_extensions.registry.clone()"),
+        "RuntimePreparedProject must consume the selected catalog report, not an isolated registry"
+    );
+    assert!(catalog_source.contains("scene_component_codecs()"));
+    assert!(catalog_source.contains("project_owner_revocation_listeners_to"));
+    assert!(project_source.contains("apply_scene_component_codecs_to_project_manager"));
+    assert!(project_source.contains("project.clone()"));
+    assert!(project_source.contains("restore_scene_component_registry"));
+    assert!(
+        project_source.contains("self.project.take();")
+            && project_source.contains("open_prepared_project(project_for_activation)"),
+        "prepared manager ownership is committed only after activation succeeds"
+    );
+}

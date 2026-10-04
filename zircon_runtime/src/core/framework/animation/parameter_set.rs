@@ -13,9 +13,11 @@ use super::{AnimationParameterMap, AnimationParameterValue};
 static NEXT_ANIMATION_PARAMETER_REVISION: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// 参数内容发生变化时分配的新运行期版本，用于使状态机采样缓存失效；序列化不会保留此标识。
 pub struct AnimationParameterRevision(u64);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// 参数映射内容的快速索引摘要；缓存命中仍应核对完整映射，以免摘要碰撞复用错误结果。
 pub struct AnimationParameterContentFingerprint(u64);
 
 impl AnimationParameterRevision {
@@ -30,6 +32,8 @@ impl AnimationParameterRevision {
 }
 
 #[derive(Clone)]
+/// 可共享的参数映射；克隆共享底层数据，内容变化时才触发写时复制并更新版本和摘要。
+/// 序列化只保存映射内容，因此反序列化后会建立新的运行期版本。
 pub struct AnimationParameterSet {
     values: Arc<AnimationParameterMap>,
     revision: AnimationParameterRevision,
@@ -69,6 +73,24 @@ impl AnimationParameterSet {
         self.revision = AnimationParameterRevision::next();
         self.refresh_content_fingerprint();
         previous
+    }
+
+    pub fn update_existing<Q>(&mut self, name: &Q, value: AnimationParameterValue) -> bool
+    where
+        String: Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
+        let Some(current) = self.values.get(name) else {
+            return false;
+        };
+        if current != &value {
+            *Arc::make_mut(&mut self.values)
+                .get_mut(name)
+                .expect("existing parameter") = value;
+            self.revision = AnimationParameterRevision::next();
+            self.refresh_content_fingerprint();
+        }
+        true
     }
 
     pub fn remove<Q>(&mut self, name: &Q) -> Option<AnimationParameterValue>
@@ -202,117 +224,5 @@ impl<'de> Deserialize<'de> for AnimationParameterSet {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn clone_shares_values_until_content_changes() {
-        let mut source =
-            AnimationParameterSet::from([("speed".into(), AnimationParameterValue::Scalar(0.25))]);
-        let original = source.clone();
-        let original_revision = source.revision();
-
-        source.insert("speed".into(), AnimationParameterValue::Scalar(0.75));
-
-        assert_ne!(source.revision(), original_revision);
-        assert_eq!(
-            original.get("speed"),
-            Some(&AnimationParameterValue::Scalar(0.25))
-        );
-        assert_eq!(
-            source.get("speed"),
-            Some(&AnimationParameterValue::Scalar(0.75))
-        );
-    }
-
-    #[test]
-    fn iterator_collection_constructs_one_revisioned_owner() {
-        let parameters: AnimationParameterSet = [
-            ("speed".into(), AnimationParameterValue::Scalar(0.25)),
-            ("grounded".into(), AnimationParameterValue::Bool(true)),
-        ]
-        .into_iter()
-        .collect();
-        let cloned = parameters.clone();
-
-        assert_eq!(parameters.len(), 2);
-        assert_eq!(cloned.revision(), parameters.revision());
-        assert_eq!(
-            cloned.content_fingerprint(),
-            parameters.content_fingerprint()
-        );
-        assert!(Arc::ptr_eq(&cloned.values, &parameters.values));
-    }
-
-    #[test]
-    fn equal_insert_and_missing_remove_preserve_revision() {
-        let mut parameters =
-            AnimationParameterSet::from([("speed".into(), AnimationParameterValue::Scalar(0.25))]);
-        let revision = parameters.revision();
-
-        assert_eq!(
-            parameters.insert("speed".into(), AnimationParameterValue::Scalar(0.25)),
-            Some(AnimationParameterValue::Scalar(0.25))
-        );
-        assert_eq!(parameters.remove("missing"), None);
-        assert_eq!(parameters.revision(), revision);
-    }
-
-    #[test]
-    fn serialization_reconstructs_runtime_revision_without_changing_values() {
-        let parameters =
-            AnimationParameterSet::from([("speed".into(), AnimationParameterValue::Scalar(0.25))]);
-        let encoded = serde_json::to_vec(&parameters).unwrap();
-
-        let decoded: AnimationParameterSet = serde_json::from_slice(&encoded).unwrap();
-
-        assert_eq!(decoded, parameters);
-        assert_ne!(decoded.revision(), parameters.revision());
-        assert_eq!(
-            decoded.content_fingerprint(),
-            parameters.content_fingerprint()
-        );
-    }
-
-    #[test]
-    fn content_fingerprint_tracks_mutation_and_normalizes_signed_zero() {
-        let positive_zero = AnimationParameterSet::from([
-            ("scalar".into(), AnimationParameterValue::Scalar(0.0)),
-            (
-                "vector".into(),
-                AnimationParameterValue::Vec4([0.0, 1.0, 2.0, 3.0]),
-            ),
-        ]);
-        let mut negative_zero = AnimationParameterSet::from([
-            ("scalar".into(), AnimationParameterValue::Scalar(-0.0)),
-            (
-                "vector".into(),
-                AnimationParameterValue::Vec4([-0.0, 1.0, 2.0, 3.0]),
-            ),
-        ]);
-
-        assert_eq!(positive_zero, negative_zero);
-        assert_eq!(
-            positive_zero.content_fingerprint(),
-            negative_zero.content_fingerprint()
-        );
-
-        negative_zero.insert("scalar".into(), AnimationParameterValue::Scalar(1.0));
-        assert_ne!(positive_zero, negative_zero);
-        assert_ne!(
-            positive_zero.content_fingerprint(),
-            negative_zero.content_fingerprint()
-        );
-    }
-
-    #[test]
-    fn content_fingerprint_collision_still_requires_value_equality() {
-        let left =
-            AnimationParameterSet::from([("speed".into(), AnimationParameterValue::Scalar(0.25))]);
-        let mut right =
-            AnimationParameterSet::from([("speed".into(), AnimationParameterValue::Scalar(0.75))]);
-        right.content_fingerprint = left.content_fingerprint;
-
-        assert_ne!(left, right);
-    }
-}
+#[path = "tests/parameter_set.rs"]
+mod tests;

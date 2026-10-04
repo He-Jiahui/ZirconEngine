@@ -1,3 +1,4 @@
+//! 真实 LevelSystem 帧入口同时推进物理、动画、事件和场景姿态的集成契约。
 use std::collections::BTreeMap;
 
 #[path = "runtime_physics_animation_tick_contract/additive_reference_pose.rs"]
@@ -336,6 +337,157 @@ fn level_tick_emits_animation_clip_event_tracks_crossed_by_player_time() {
     assert_eq!(events[0].payload.as_deref(), Some("left"));
     assert_eq!(events[0].clip_time_seconds, 0.25);
     assert_eq!(events[0].playback_time_seconds, 0.25);
+}
+
+#[test]
+fn negative_speed_looping_player_emits_reverse_events_across_the_loop_boundary() {
+    let runtime = runtime_with_physics_animation_scene_asset();
+    let core = runtime.handle();
+    let asset_manager = runtime_asset_manager(&core);
+    let skeleton_uri = AssetUri::parse("res://animation/reverse-loop.skeleton.zranim").unwrap();
+    let clip_uri = AssetUri::parse("res://animation/reverse-loop.clip.zranim").unwrap();
+    let clip_id = ResourceId::from_locator(&clip_uri);
+    let mut clip = single_hand_translation_clip(&skeleton_uri, 0.0);
+    clip.event_tracks = vec![
+        AnimationEventTrackAsset {
+            target_id: None,
+            event: "loop-start".to_string(),
+            time_seconds: 0.0,
+            payload: None,
+        },
+        AnimationEventTrackAsset {
+            target_id: None,
+            event: "loop-end".to_string(),
+            time_seconds: 1.0,
+            payload: None,
+        },
+        AnimationEventTrackAsset {
+            target_id: None,
+            event: "three-quarter".to_string(),
+            time_seconds: 0.75,
+            payload: None,
+        },
+    ];
+    asset_manager.resource_manager().register_ready(
+        ResourceRecord::new(clip_id, ResourceKind::AnimationClip, clip_uri),
+        clip,
+    );
+    let level = runtime.create_default_level().unwrap();
+    let entity = level.with_world_mut(|world| {
+        let entity = world.spawn_node(NodeKind::Cube);
+        world
+            .set_animation_player(
+                entity,
+                Some(AnimationPlayerComponent {
+                    clip: ResourceHandle::<AnimationClipMarker>::new(clip_id),
+                    playback_speed: -1.0,
+                    time_seconds: 2.25,
+                    weight: 1.0,
+                    looping: true,
+                    playing: true,
+                }),
+            )
+            .unwrap();
+        entity
+    });
+
+    let mut event_subscription = subscribe_animation_clip_events(&level);
+    runtime.tick_level_seconds(&level, 0.5).unwrap();
+    let events = drain_animation_clip_events(&level, &mut event_subscription);
+
+    assert_eq!(
+        events
+            .iter()
+            .map(|event| (
+                event.entity,
+                event.event.as_str(),
+                event.clip_time_seconds,
+                event.playback_time_seconds
+            ))
+            .collect::<Vec<_>>(),
+        vec![
+            (entity, "loop-start", 0.0, 2.0),
+            (entity, "three-quarter", 0.75, 1.75),
+        ]
+    );
+    assert_eq!(
+        level.with_world(|world| world.animation_player(entity).unwrap().time_seconds),
+        1.75
+    );
+}
+
+#[test]
+fn reversing_a_clip_player_does_not_repeat_the_direction_change_endpoint() {
+    let runtime = runtime_with_physics_animation_scene_asset();
+    let core = runtime.handle();
+    let asset_manager = runtime_asset_manager(&core);
+    let skeleton_uri = AssetUri::parse("res://animation/reverse-turn.skeleton.zranim").unwrap();
+    let clip_uri = AssetUri::parse("res://animation/reverse-turn.clip.zranim").unwrap();
+    let clip_id = ResourceId::from_locator(&clip_uri);
+    let mut clip = single_hand_translation_clip(&skeleton_uri, 0.0);
+    clip.event_tracks = vec![
+        AnimationEventTrackAsset {
+            target_id: None,
+            event: "destination".to_string(),
+            time_seconds: 0.25,
+            payload: None,
+        },
+        AnimationEventTrackAsset {
+            target_id: None,
+            event: "turn".to_string(),
+            time_seconds: 0.5,
+            payload: None,
+        },
+    ];
+    asset_manager.resource_manager().register_ready(
+        ResourceRecord::new(clip_id, ResourceKind::AnimationClip, clip_uri),
+        clip,
+    );
+    let level = runtime.create_default_level().unwrap();
+    let entity = level.with_world_mut(|world| {
+        let entity = world.spawn_node(NodeKind::Cube);
+        world
+            .set_animation_player(
+                entity,
+                Some(AnimationPlayerComponent {
+                    clip: ResourceHandle::<AnimationClipMarker>::new(clip_id),
+                    playback_speed: 1.0,
+                    time_seconds: 0.25,
+                    weight: 1.0,
+                    looping: false,
+                    playing: true,
+                }),
+            )
+            .unwrap();
+        entity
+    });
+
+    let mut event_subscription = subscribe_animation_clip_events(&level);
+    runtime.tick_level_seconds(&level, 0.25).unwrap();
+    let forward = drain_animation_clip_events(&level, &mut event_subscription);
+    assert_eq!(
+        forward
+            .iter()
+            .map(|event| event.event.as_str())
+            .collect::<Vec<_>>(),
+        vec!["turn"]
+    );
+
+    level.with_world_mut(|world| {
+        let mut player = world.animation_player(entity).unwrap().clone();
+        player.playback_speed = -1.0;
+        world.set_animation_player(entity, Some(player)).unwrap();
+    });
+    runtime.tick_level_seconds(&level, 0.25).unwrap();
+    let reverse = drain_animation_clip_events(&level, &mut event_subscription);
+
+    assert_eq!(
+        reverse
+            .iter()
+            .map(|event| (event.event.as_str(), event.playback_time_seconds))
+            .collect::<Vec<_>>(),
+        vec![("destination", 0.25)]
+    );
 }
 
 #[test]

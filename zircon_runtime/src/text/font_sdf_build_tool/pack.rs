@@ -1,3 +1,5 @@
+//! 把一次统一模式的生成结果打包为离线页面及字形记录；输入顺序来自 bake.rs 的有序字形集合，页面编号和矩形必须供 runtime 稳定复用。
+
 //! Deterministic atlas packing for offline font distance-field artifacts.
 
 use crate::core::math::UVec2;
@@ -8,12 +10,14 @@ use crate::text::sdf::{
 
 use super::FontSdfBakeError;
 
+/// 一枚已经生成并通过 SdfGlyphData 校验的字形；同一打包批次必须统一 mode 和 channels，bake.rs 用同一 params 生成整批。
 pub(super) struct GeneratedGlyph {
     pub(super) codepoint: u32,
     pub(super) glyph_id: u32,
     pub(super) data: SdfGlyphData,
 }
 
+/// 只接收非空、模式统一的生成批次；调用方固定输入顺序，才能使页面分配与离线字节输出可复现。
 pub(super) fn pack_generated_glyphs(
     generated: Vec<GeneratedGlyph>,
     page_size_px: u32,
@@ -99,6 +103,7 @@ pub(super) fn pack_generated_glyphs(
     Ok((pages, glyphs))
 }
 
+/// 调用前矩形由 shelf allocator 放入页面且通道数与页面模式相符；将紧密字形行放进整页行跨度，保留分配器的透明间隔。
 fn copy_glyph_pixels(
     page: &mut [u8],
     page_size_px: u32,
@@ -145,39 +150,5 @@ fn copy_glyph_pixels(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::text::sdf::SdfMode;
-
-    #[test]
-    fn font_sdf_pack_reuses_earlier_page_before_allocating_another() {
-        let generated = vec![
-            generated_glyph(1, 32, 16),
-            generated_glyph(2, 40, 60),
-            generated_glyph(3, 30, 16),
-        ];
-
-        let (pages, glyphs) = pack_generated_glyphs(generated, 64).unwrap();
-
-        assert_eq!(pages.len(), 2);
-        assert_eq!(glyphs[2].page_index, 0);
-    }
-
-    fn generated_glyph(glyph_id: u32, width: u32, height: u32) -> GeneratedGlyph {
-        GeneratedGlyph {
-            codepoint: glyph_id,
-            glyph_id,
-            data: SdfGlyphData {
-                size: UVec2::new(width, height),
-                bitmap_left: 0.0,
-                bitmap_bottom: 0.0,
-                advance: width as f32,
-                ascent: height as f32,
-                pixels: vec![glyph_id as u8; (width * height) as usize],
-                channels: 1,
-                spread_px: 8.0,
-                mode: SdfMode::Sdf,
-            },
-        }
-    }
-}
+#[path = "tests/pack.rs"]
+mod tests;

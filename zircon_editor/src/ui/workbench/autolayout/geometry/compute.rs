@@ -119,7 +119,7 @@ pub fn compute_workbench_shell_geometry_with_region_defaults_and_scale_mode(
         scale_mode,
     );
     let logical_size = resolution.logical_size();
-    let size = ShellSizePx::new(logical_size.width.max(1.0), logical_size.height.max(1.0));
+    let size = logical_size;
     // Resize capture records host-space extents. Borrow both maps and convert only values that the
     // logical solver actually requests, avoiding two temporary maps per geometry solve.
     let transient_region_preferred =
@@ -174,10 +174,11 @@ pub fn compute_workbench_shell_geometry_with_region_defaults_and_scale_mode(
         right,
         bottom,
         resolved_frames.left_frame,
+        resolved_frames.document_frame,
         resolved_frames.right_frame,
         resolved_frames.bottom_frame,
         resolved_frames.center_band_frame,
-        size.width,
+        size,
         metrics,
     );
     let floating_window_frames = build_floating_window_frames(
@@ -185,8 +186,10 @@ pub fn compute_workbench_shell_geometry_with_region_defaults_and_scale_mode(
         resolved_frames.document_frame,
         resolved_frames.center_band_frame,
     );
-    let viewport_content_frame =
-        build_viewport_content_frame(model, resolved_frames.document_frame, metrics);
+    let viewport_content_frame = clamp_frame_to_bounds(
+        build_viewport_content_frame(model, resolved_frames.document_frame, metrics),
+        resolved_frames.document_frame,
+    );
     let window_min_width =
         compute_window_min_width(left, document, right, metrics, resolution.logical_width());
     let window_min_height =
@@ -205,13 +208,17 @@ pub fn compute_workbench_shell_geometry_with_region_defaults_and_scale_mode(
     .scaled_to_physical(resolution)
 }
 
-#[cfg(test)]
-mod performance_tests {
-    #[test]
-    fn geometry_indexes_descriptor_rows_by_borrowed_id() {
-        let source = include_str!("compute.rs");
-        let implementation = source.split("#[cfg(test)]").next().expect("implementation");
-        assert!(!implementation.contains("descriptor.descriptor_id.clone()"));
-        assert!(implementation.contains("HashMap<&str, &ViewDescriptor>"));
-    }
+fn clamp_frame_to_bounds(frame: ShellFrame, bounds: ShellFrame) -> ShellFrame {
+    let x = frame.x.clamp(bounds.x, bounds.right());
+    let y = frame.y.clamp(bounds.y, bounds.bottom());
+    ShellFrame::new(
+        x,
+        y,
+        frame.width.max(0.0).min((bounds.right() - x).max(0.0)),
+        frame.height.max(0.0).min((bounds.bottom() - y).max(0.0)),
+    )
 }
+
+#[cfg(test)]
+#[path = "tests/compute_performance_tests.rs"]
+mod performance_tests;

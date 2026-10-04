@@ -1,6 +1,6 @@
 import unittest
 from pathlib import Path
-
+# Toast 队列扫描借用嵌套项，只为选中提示物化状态；过期处理仅复制需保留的原始值。
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE = REPO_ROOT / "zircon_runtime/src/ui/component/state_reducer/toast.rs"

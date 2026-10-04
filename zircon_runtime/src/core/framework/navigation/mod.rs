@@ -62,4 +62,5 @@ pub use stats::NavigationRuntimeStats;
 pub use surface::{NavMeshCollectMode, NavMeshSurfaceDescriptor, NavMeshUseGeometry};
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

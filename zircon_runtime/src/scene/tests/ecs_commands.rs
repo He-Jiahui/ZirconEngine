@@ -1,15 +1,15 @@
-use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::{
-    Arc,
     atomic::{AtomicUsize, Ordering},
+    Arc,
 };
 
-use crate::scene::World;
 use crate::scene::components::{Hierarchy, Name};
 use crate::scene::ecs::{
     Command, CommandQueue, Component, DeferredCommandOperation, DeferredCommandTarget,
     DeferredSystemKey, LifecycleEventKind, Resource, StorageType, WorkerCommandBuffer,
 };
+use crate::scene::World;
 
 #[derive(Debug, PartialEq, Eq)]
 struct Health(u32);
@@ -110,5 +110,6 @@ impl Command for EnqueueThenPanic {
     }
 }
 
+mod checked_reparent;
 mod packed_arena;
 mod structural_batches;

@@ -7,7 +7,7 @@ use super::loader::{
     RenderArtifactBlockLoaderInner, RenderArtifactBlockTicket, RenderArtifactBlockTicketBatch,
 };
 use super::policy::quote_retained_bytes;
-use super::registry::{RenderArtifactDecodeKey, register_ticket};
+use super::registry::{register_ticket, RenderArtifactDecodeKey};
 use super::worker::atomic_add;
 
 struct PreparedGroup {
@@ -18,6 +18,7 @@ struct PreparedGroup {
 }
 
 impl RenderArtifactBlockLoaderInner {
+    // 先合并 decode key，再检查票据、条目和保留字节上限；所有可失败的准入检查都在 registry 提交前完成，避免部分请求被接纳。
     pub(super) fn request_batch(
         self: &Arc<Self>,
         requests: &[RenderArtifactBlockRequest],

@@ -12,17 +12,17 @@ related_code:
   - .github/workflows/profile-feature-contract.yml
   - .github/workflows/mvp-editor-windows.yml
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
-  - tools/check_conventions.py
-  - tools/check-conventions.ps1
-  - tools/convention_exemptions.py
-  - tools/runtime_domain_dependency_audit.py
-  - tools/check-runtime-domain-features.ps1
-  - tools/check-runtime-profile-features.ps1
-  - tools/runtime-profile-feature-presets.py
-  - tools/dev-fast-build.ps1
-  - tools/dev-fast-aliases.ps1
-  - tools/dev-module-interactive.ps1
-  - tools/README-fast-build.md
+  - tools/audits/check_conventions.py
+  - tools/audits/check-conventions.ps1
+  - tools/audits/convention_exemptions.py
+  - tools/audits/runtime_domain_dependency_audit.py
+  - tools/analysis/validation/check-runtime-domain-features.ps1
+  - tools/analysis/validation/check-runtime-profile-features.ps1
+  - tools/analysis/validation/runtime-profile-feature-presets.py
+  - tools/dev/dev-fast-build.ps1
+  - tools/dev/dev-fast-aliases.ps1
+  - tools/dev/dev-module-interactive.ps1
+  - tools/dev/README-fast-build.md
 tests:
   - .codex/skills/zircon-dev/scripts/validate-matrix.Tests.ps1
   - tools/tests/test_check_conventions.py
@@ -91,7 +91,7 @@ CI目前也不能证明“支持的平台、profile和发布物真的可用”�
 cargo metadata --format-version 1 --no-deps --locked
 cargo metadata --format-version 1 --locked
 cargo tree --duplicates --workspace --locked --depth 0
-python tools/runtime_domain_dependency_audit.py --pretty
+python tools/audits/runtime_domain_dependency_audit.py --pretty
 ```
 
 结果包括：根workspace实际有36个package；34个dependency family同时存在多个版本，共72个版本实例。domain audit用约18.1秒输出19,557行，报告2,741条production reference和72条direct domain edge，但无论发现何种edge，程序最终都返回0。
@@ -107,7 +107,7 @@ Cargo在编译前返回：`cannot update the lock file ... zircon_plugins/Cargo.
 Developer wrapper也通过只读调用复现参数失败：
 
 ```powershell
-cmd /c tools\dev-fast-client-check-debug.cmd
+cmd /c tools\dev\dev-fast-client-check-debug.cmd
 ```
 
 `dev-fast-build.ps1`拒绝wrapper传入的`client`；合法集合是`minimal/client2d/client3d/editor/dev/server`。交互脚本仍传`client`，并请求当前manifest不存在的`plugin-graphics-base`、`plugin-physics`、`plugin-sound`等feature。

@@ -21,10 +21,8 @@ refreshes:
   - docs/plans/optimize/zircon_runtime/158-runtime-core-events-tasks-timer-event-bus-task-graph-current-source-review.md
 related_code:
   - zircon_runtime/src/core/framework/events.rs
-  - zircon_runtime/src/core/framework/foundation/event_manager.rs
   - zircon_runtime/src/core/runtime/events
   - zircon_runtime/src/core/runtime/handle/events.rs
-  - zircon_runtime/src/foundation/runtime/event_manager.rs
   - zircon_runtime/src/scene/ecs/events
   - zircon_runtime/src/scene/ecs/messages
   - zircon_runtime/src/scene/ecs/observer

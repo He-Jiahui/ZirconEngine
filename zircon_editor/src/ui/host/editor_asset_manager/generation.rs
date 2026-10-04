@@ -206,14 +206,19 @@ impl EditorAssetCatalogGeneration {
         let index = *self.asset_index_by_uuid.get(updated.uuid.as_str())?;
         let mut assets = self.assets.iter().cloned().collect::<Vec<_>>();
         assets[index] = Arc::clone(&updated);
-        let mut details = self
-            .details_by_asset_index
-            .iter()
-            .cloned()
-            .collect::<Vec<_>>();
-        if let Some(current_details) = details[index].as_ref() {
-            details[index] = Some(Arc::new(current_details.with_asset(updated)));
-        }
+        let details = if self.details_by_asset_index[index].is_some() {
+            let mut details = self
+                .details_by_asset_index
+                .iter()
+                .cloned()
+                .collect::<Vec<_>>();
+            if let Some(current_details) = details[index].as_ref() {
+                details[index] = Some(Arc::new(current_details.with_asset(Arc::clone(&updated))));
+            }
+            details.into()
+        } else {
+            Arc::clone(&self.details_by_asset_index)
+        };
         Some(Self {
             project_name: Arc::clone(&self.project_name),
             project_root: Arc::clone(&self.project_root),
@@ -248,14 +253,21 @@ impl EditorAssetCatalogGeneration {
         ));
         let mut assets = self.assets.iter().cloned().collect::<Vec<_>>();
         assets[index] = Arc::clone(&updated_asset);
-        let mut details = self
-            .details_by_asset_index
-            .iter()
-            .cloned()
-            .collect::<Vec<_>>();
-        if let Some(current_details) = details[index].as_ref() {
-            details[index] = Some(Arc::new(current_details.with_asset(updated_asset)));
-        }
+        let details = if self.details_by_asset_index[index].is_some() {
+            let mut details = self
+                .details_by_asset_index
+                .iter()
+                .cloned()
+                .collect::<Vec<_>>();
+            if let Some(current_details) = details[index].as_ref() {
+                details[index] = Some(Arc::new(
+                    current_details.with_asset(Arc::clone(&updated_asset)),
+                ));
+            }
+            details.into()
+        } else {
+            Arc::clone(&self.details_by_asset_index)
+        };
         let mut catalog_records = self.catalog_records.iter().cloned().collect::<Vec<_>>();
         catalog_records[index] = Some(Arc::new(updated));
         debug_assert_eq!(current_catalog.asset_uuid.to_string(), assets[index].uuid);
@@ -288,7 +300,8 @@ impl EditorAssetCatalogGeneration {
         updates: impl IntoIterator<Item = AssetCatalogRecord>,
         publish_epoch: u64,
     ) -> Option<Self> {
-        let mut updates_by_index = HashMap::new();
+        let updates = updates.into_iter();
+        let mut updates_by_index = HashMap::with_capacity(updates.size_hint().0);
         for updated in updates {
             let Some(index) = self
                 .asset_index_by_uuid
@@ -312,11 +325,15 @@ impl EditorAssetCatalogGeneration {
         let mut updates = updates_by_index.into_iter().collect::<Vec<_>>();
         updates.sort_by_key(|(index, _)| *index);
         let mut assets = self.assets.iter().cloned().collect::<Vec<_>>();
-        let mut details = self
-            .details_by_asset_index
+        let mut details = updates
             .iter()
-            .cloned()
-            .collect::<Vec<_>>();
+            .any(|(index, _)| self.details_by_asset_index[*index].is_some())
+            .then(|| {
+                self.details_by_asset_index
+                    .iter()
+                    .cloned()
+                    .collect::<Vec<_>>()
+            });
         let mut catalog_records = self.catalog_records.iter().cloned().collect::<Vec<_>>();
         for (index, updated) in updates {
             let current_asset = self
@@ -328,11 +345,17 @@ impl EditorAssetCatalogGeneration {
                 &updated,
             ));
             assets[index] = Arc::clone(&updated_asset);
-            if let Some(current_details) = details[index].as_ref() {
-                details[index] = Some(Arc::new(current_details.with_asset(updated_asset)));
+            if let Some(details) = details.as_mut() {
+                if let Some(current_details) = details[index].as_ref() {
+                    details[index] = Some(Arc::new(current_details.with_asset(updated_asset)));
+                }
             }
             catalog_records[index] = Some(Arc::new(updated));
         }
+
+        let details_by_asset_index = details
+            .map(Into::into)
+            .unwrap_or_else(|| Arc::clone(&self.details_by_asset_index));
 
         Some(Self {
             project_name: Arc::clone(&self.project_name),
@@ -347,7 +370,7 @@ impl EditorAssetCatalogGeneration {
             asset_index_by_uuid: Arc::clone(&self.asset_index_by_uuid),
             asset_index_by_locator: Arc::clone(&self.asset_index_by_locator),
             folder_index_by_id: Arc::clone(&self.folder_index_by_id),
-            details_by_asset_index: details.into(),
+            details_by_asset_index,
             catalog_records: catalog_records.into(),
         })
     }
@@ -383,31 +406,9 @@ fn public_record_with_current_references(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::EditorAssetCatalogGeneration;
+#[path = "generation/tests/optimization_batch_jq_editor656_tests.rs"]
+mod optimization_batch_jq_editor656_tests;
 
-    #[test]
-    fn catalog_identity_advances_revision_and_publish_epoch_together() {
-        let generation = EditorAssetCatalogGeneration::default();
-
-        assert_eq!(generation.next_catalog_identity(), (1, 1));
-    }
-
-    #[test]
-    #[should_panic(expected = "editor asset catalog revision exhausted")]
-    fn catalog_revision_exhaustion_never_reuses_an_identity() {
-        let mut generation = EditorAssetCatalogGeneration::default();
-        generation.catalog_revision = u64::MAX;
-
-        let _ = generation.next_catalog_identity();
-    }
-
-    #[test]
-    #[should_panic(expected = "editor asset catalog publish epoch exhausted")]
-    fn publish_epoch_exhaustion_never_reuses_an_identity() {
-        let mut generation = EditorAssetCatalogGeneration::default();
-        generation.publish_epoch = u64::MAX;
-
-        let _ = generation.next_publish_epoch();
-    }
-}
+#[cfg(test)]
+#[path = "tests/generation.rs"]
+mod tests;

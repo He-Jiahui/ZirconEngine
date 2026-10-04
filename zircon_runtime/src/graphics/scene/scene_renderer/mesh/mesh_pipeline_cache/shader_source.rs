@@ -1,16 +1,16 @@
+//! 装配各 mesh pass 的 WGSL，并保留源码身份与诊断片段映射；运行时表面、插件 shading model 及 OIT 派生在此汇合。
 use crate::core::framework::render::{
-    GEOMETRY_SOURCE_ID_STATIC_MESH, GeometrySourceDescriptor, GeometrySourceId, ShaderFeatureBits,
-    ShaderPassType, builtin_geometry_source_descriptor,
+    builtin_geometry_source_descriptor, GeometrySourceDescriptor, GeometrySourceId,
+    ShaderFeatureBits, ShaderPassType, GEOMETRY_SOURCE_ID_STATIC_MESH,
 };
 use crate::graphics::scene::resources::{PipelineKey, ResourceStreamer};
 use crate::graphics::shader::{
-    DeferredGBufferShaderTemplateRequest, MaterialShaderTemplateAssembly,
-    MaterialShaderTemplateRequest, ShaderAssemblySegment, ShaderAssemblySegmentKind,
-    ShaderTemplateAssemblyError, ShaderTemplateReflection, ShaderTemplateValidationError,
-    TaaReactiveMaskShaderTemplateRequest, assemble_deferred_gbuffer_shader_template,
-    assemble_material_shader_template, assemble_taa_reactive_mask_shader_template,
-    standard_material_surface_source_for_features,
-    validate_material_shader_template_wgsl_with_segments,
+    assemble_deferred_gbuffer_shader_template, assemble_material_shader_template,
+    assemble_taa_reactive_mask_shader_template, standard_material_surface_source_for_features,
+    validate_material_shader_template_wgsl_with_segments, DeferredGBufferShaderTemplateRequest,
+    MaterialShaderTemplateAssembly, MaterialShaderTemplateRequest, ShaderAssemblySegment,
+    ShaderAssemblySegmentKind, ShaderTemplateAssemblyError, ShaderTemplateReflection,
+    ShaderTemplateValidationError, TaaReactiveMaskShaderTemplateRequest,
 };
 use std::sync::Arc;
 
@@ -781,5 +781,5 @@ fn mesh_pipeline_wgsl_hash(source: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "shader_source/tests.rs"]
+#[path = "shader_source/tests/cases.rs"]
 mod tests;

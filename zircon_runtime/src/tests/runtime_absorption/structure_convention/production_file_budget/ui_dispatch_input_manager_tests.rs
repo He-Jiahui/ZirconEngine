@@ -1,9 +1,10 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0110] 界面输入管理器的计时器行为测试的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_ui_dispatch_input_manager_tests_are_child_owner() {
     let parent = read_runtime_src("ui/dispatch/input_manager/manager.rs");
-    let tests = read_runtime_src("ui/dispatch/input_manager/manager/tests.rs");
+    let tests = read_runtime_src("ui/dispatch/input_manager/manager/tests/cases.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -61,7 +62,10 @@ fn runtime_15_ui_dispatch_input_manager_tests_are_child_owner() {
 
     for (path, source) in [
         ("ui/dispatch/input_manager/manager.rs", parent.as_str()),
-        ("ui/dispatch/input_manager/manager/tests.rs", tests.as_str()),
+        (
+            "ui/dispatch/input_manager/manager/tests/cases.rs",
+            tests.as_str(),
+        ),
     ] {
         let line_count = source.lines().count();
         assert!(

@@ -17,7 +17,7 @@ tests:
 Plan: docs/plans/zircon_editor/editor/09-editor-asset-management.md
 Milestone: M2
 Status: source_complete_review_clean_external_text04_blocked
-Files: ["docs/zircon_editor/core/asset_index.md", "tools/tests/test_editor09_runtime_asset_index_projection_contract.py", "zircon_editor/src/core/asset/mod.rs", "zircon_editor/src/core/asset/index.rs", "zircon_editor/src/core/asset/index/tests.rs", "zircon_editor/tests/editor_asset_index_projection.rs"]
+Files: ["docs/crates/zircon_editor/core/asset_index.md", "tools/tests/test_editor09_runtime_asset_index_projection_contract.py", "zircon_editor/src/core/asset/mod.rs", "zircon_editor/src/core/asset/index.rs", "zircon_editor/src/core/asset/index/tests.rs", "zircon_editor/tests/editor_asset_index_projection.rs"]
 
 ## 范围
 

@@ -7,13 +7,13 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-COMPILE_HOST_PLAN = REPO_ROOT / "tools/zircon_export/compile_host_plan.py"
+COMPILE_HOST_PLAN = REPO_ROOT / "tools/export/compile_host_plan.py"
 COMPILE_HOST_PLAN_COMMAND_SEMANTICS = (
-    REPO_ROOT / "tools/zircon_export/compile_host_plan_command_semantics.py"
+    REPO_ROOT / "tools/export/compile_host_plan_command_semantics.py"
 )
 VALIDATE_COMPILE_HOST_COMMAND_SEMANTICS = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_validate_compile_host_command_semantics.py"
+    / "tools/export/pipeline_report_validate_compile_host_command_semantics.py"
 )
 
 

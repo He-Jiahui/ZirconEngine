@@ -1,3 +1,4 @@
+/// 兼容组件名与语义图标名，但只有可解析的 MUI 名称才进入模块路径。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn module_name(
     icon_name: &str,
 ) -> Option<String> {
@@ -64,5 +65,5 @@ fn pascal_case_ligature_name(name: &str) -> Option<String> {
 }
 
 #[cfg(test)]
-#[path = "names/capacity_tests.rs"]
+#[path = "names/tests/capacity_tests.rs"]
 mod capacity_tests;

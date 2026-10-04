@@ -14,7 +14,7 @@ mod generation;
 mod workspace;
 
 #[cfg(test)]
-#[path = "action_evaluator/button_state_single_pass_tests.rs"]
+#[path = "action_evaluator/tests/button_state_single_pass_tests.rs"]
 mod button_state_single_pass_tests;
 
 use consumed_input_index::ConsumedInputIndex;
@@ -22,6 +22,7 @@ use frame_axis_index::FrameAxisIndex;
 use generation::ActionEvaluationGeneration;
 use workspace::{ActionEvaluationWorkspace, EvaluatedAction};
 
+/// 对一份动作表编译索引并复用每帧工作区；修改配置必须调用 set_action_map，消费列表由调用方按本帧提供。
 #[derive(Debug)]
 pub struct InputActionEvaluator {
     action_map: InputActionMap,
@@ -209,6 +210,7 @@ impl InputActionEvaluator {
         )
     }
 
+    /// 按调用方给定的活动上下文和 UI 已消费输入求值；空上下文列表表示所有已启用上下文。
     pub fn evaluate_with_active_contexts_and_consumed_input(
         &self,
         frame: &InputFrameSnapshot,
@@ -265,6 +267,7 @@ impl InputActionEvaluator {
     }
 }
 
+// 管理器与独立求值器共用一次求值路径：先准备帧索引，再按动作配置顺序汇总按钮和轴的状态。
 fn evaluate_with_workspace(
     action_map: &InputActionMap,
     generation: &ActionEvaluationGeneration,
@@ -318,6 +321,7 @@ fn evaluate_with_workspace(
                 continue;
             }
 
+            // BUG: [CR-INPUT-0001] 直接反序列化或构造的空按钮空轴绑定会因 all_pressed 初值为 true 而使动作常按住；证据：InputActionMap 公共 bindings 字段可绕过 bind 的空绑定过滤。
             let has_buttons = !binding.buttons.is_empty();
             let has_axes = !binding.axes.is_empty();
             let mut all_pressed = true;

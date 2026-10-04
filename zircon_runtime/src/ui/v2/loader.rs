@@ -1,12 +1,16 @@
+//! 区分通用 V2 TOML 与产品 .zui 资源的入口约束，后续编译器再校验图和事件语义。
+
 use std::path::Path;
 
 use zircon_runtime_interface::ui::v2::{
     UiV2AssetDocument, UiV2AssetError, UiV2AssetKind, UI_V2_ASSET_SCHEMA_VERSION,
 };
 
+/// 接收通用版本化文档，仅解析结构并校验 schema 版本；不会解析导入或创建运行时节点。
 #[derive(Default)]
 pub struct UiV2AssetLoader;
 
+/// 文件缓存的产品资源入口，额外约束 view/component/style 各类文档的根节点形态。
 #[derive(Default)]
 pub struct UiZuiAssetLoader;
 
@@ -17,6 +21,7 @@ impl UiV2AssetLoader {
         validate_version(document)
     }
 
+    /// 同步读取 UTF-8 文件，适用于资源加载阶段；实时输入和渲染路径应复用已加载文档。
     pub fn load_toml_file<P: AsRef<Path>>(path: P) -> Result<UiV2AssetDocument, UiV2AssetError> {
         let path = path.as_ref();
         let input = std::fs::read_to_string(path)
@@ -26,6 +31,7 @@ impl UiV2AssetLoader {
 }
 
 impl UiZuiAssetLoader {
+    /// 先完成通用版本检查，再约束资源种类；导入存在性和组件事件由后续仓库与编译器处理。
     pub fn load_zui_str(input: &str) -> Result<UiV2AssetDocument, UiV2AssetError> {
         let document = UiV2AssetLoader::load_toml_str(input)?;
         validate_zui_document_profile(&document)?;
@@ -150,5 +156,5 @@ fn validate_zui_style_profile(document: &UiV2AssetDocument) -> Result<(), UiV2As
 }
 
 #[cfg(test)]
-#[path = "loader/owned_schema_error_tests.rs"]
+#[path = "loader/tests/owned_schema_error_tests.rs"]
 mod owned_schema_error_tests;

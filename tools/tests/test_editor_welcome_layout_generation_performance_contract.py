@@ -1,3 +1,4 @@
+# 核对欢迎页布局投影由宿主持有，分发与绘制复用已编译结果。
 from pathlib import Path
 import unittest
 

@@ -1,6 +1,6 @@
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-$sourceScript = Join-Path $repoRoot 'tools\build-editor.ps1'
-$sourcePathResolver = Join-Path $repoRoot 'tools\WindowsPathResolver.psm1'
+$sourceScript = Join-Path $repoRoot 'tools\build\build-editor.ps1'
+$sourcePathResolver = Join-Path $repoRoot 'tools\maintenance\WindowsPathResolver.psm1'
 Import-Module (Join-Path $repoRoot 'tools\mvp\MvpTestFixturePaths.psm1') -Force -ErrorAction Stop
 
 function New-EditorBuildFixtureRoot {
@@ -28,6 +28,12 @@ function Invoke-EditorBuildFixture {
         [ValidateSet('reuse', 'compact', 'diagnostic')]
         [string]$StorageMode = 'reuse',
 
+        [ValidateSet('development', 'shipping')]
+        [string]$CargoProfile = 'development',
+
+        [string]$SourceSnapshot,
+        [string]$SourceSnapshotDigest,
+
         [switch]$Ephemeral
     )
 
@@ -45,6 +51,12 @@ function Invoke-EditorBuildFixture {
         $arguments += @('-TargetDir', $TargetDir)
     }
     $arguments += @('-StorageMode', $StorageMode)
+    if ($CargoProfile -eq 'shipping') {
+        $arguments += @('-CargoProfile', $CargoProfile)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($SourceSnapshot)) {
+        $arguments += @('-SourceSnapshot', $SourceSnapshot, '-SourceSnapshotDigest', $SourceSnapshotDigest)
+    }
     if ($Ephemeral) {
         $arguments += '-Ephemeral'
     }
@@ -63,22 +75,35 @@ Describe 'Editor build bundle script' {
         $fixtureTools = Join-Path $fixtureRoot 'tools'
         $fixtureValidatorDirectory = Join-Path $fixtureRoot '.codex\skills\zircon-dev\scripts'
         $fixtureAssets = Join-Path $fixtureRoot 'zircon_runtime\assets\fonts'
+        $fixtureFontSources = Join-Path $fixtureAssets 'editor-ui-sources'
         $fixtureEditorAssets = Join-Path $fixtureRoot 'zircon_editor\assets\icons'
+        $fixtureRuntimeBuildSet = Join-Path $fixtureRoot 'zircon_runtime_interface\src\runtime_build_set'
         $fixtureScript = Join-Path $fixtureTools 'build-editor.ps1'
         $fixturePathResolver = Join-Path $fixtureTools 'WindowsPathResolver.psm1'
         $fixtureCoordinator = Join-Path $fixtureTools 'zircon-session.ps1'
         $fixtureValidator = Join-Path $fixtureValidatorDirectory 'validate-matrix.ps1'
         $callLog = Join-Path $fixtureRoot 'validator-calls.log'
+        $profileLog = Join-Path $fixtureRoot 'validator-profiles.log'
         $artifactLog = Join-Path $fixtureRoot 'validator-artifacts.log'
+        $snapshotLog = Join-Path $fixtureRoot 'validator-snapshots.log'
         $coordinatorLog = Join-Path $fixtureRoot 'coordinator-calls.log'
 
         [System.IO.Directory]::CreateDirectory($fixtureTools) | Out-Null
         [System.IO.Directory]::CreateDirectory($fixtureValidatorDirectory) | Out-Null
         [System.IO.Directory]::CreateDirectory($fixtureAssets) | Out-Null
+        [System.IO.Directory]::CreateDirectory($fixtureFontSources) | Out-Null
         [System.IO.Directory]::CreateDirectory($fixtureEditorAssets) | Out-Null
+        [System.IO.Directory]::CreateDirectory($fixtureRuntimeBuildSet) | Out-Null
         Copy-Item -LiteralPath $sourceScript -Destination $fixtureScript
         Copy-Item -LiteralPath $sourcePathResolver -Destination $fixturePathResolver
+        Copy-Item -LiteralPath (Join-Path $repoRoot 'tools\build\zircon_build_runtime_manifest.py') -Destination $fixtureTools
+        foreach ($specification in @('interface_spec_v1.json', 'payload_schema_set_v1.json')) {
+            Copy-Item -LiteralPath (Join-Path $repoRoot "zircon_runtime_interface\src\runtime_build_set\$specification") `
+                -Destination $fixtureRuntimeBuildSet
+        }
         Set-Content -LiteralPath (Join-Path $fixtureAssets 'fixture.txt') -Value 'asset fixture'
+        Set-Content -LiteralPath (Join-Path $fixtureAssets 'editor-ui.ttc') -Value 'compiled font fixture'
+        Set-Content -LiteralPath (Join-Path $fixtureFontSources 'source.ttf') -Value 'font source fixture'
         Set-Content -LiteralPath (Join-Path $fixtureEditorAssets 'fixture.svg') -Value '<svg />'
 
         @'
@@ -116,11 +141,11 @@ else {
 }
 $path = [System.IO.Path]::GetFullPath($finalPath)
 $root = [System.IO.Directory]::GetParent($path)
-while ($null -ne $root -and $root.Name -ne 'ZirconBuilds') {
+while ($null -ne $root -and $root.Name -ne 'cargo-targets') {
     $root = $root.Parent
 }
 if ($null -eq $root) {
-    throw "Fixture final path is not below ZirconBuilds: $finalPath"
+    throw "Fixture final path is not below cargo-targets: $finalPath"
 }
 $status = switch ($command) {
     'staging-acquire' { 'active' }
@@ -156,15 +181,21 @@ param(
     [string]$ArtifactOutputDirectory,
     [string[]]$PublishArtifact,
     [string]$TargetDir,
+    [string]$SourceSnapshot,
+    [string]$SourceSnapshotDigest,
     [ValidateSet('reuse', 'compact', 'diagnostic')]
     [string]$StorageMode = 'reuse',
+    [ValidateSet('development', 'shipping')]
+    [string]$CargoProfile = 'development',
     [switch]$Ephemeral
 )
 
 $record = '{0}|{1}|{2}|{3}|{4}|{5}|{6}|{7}|{8}|{9}' -f `
     $Package, $Bin, $NoDefaultFeatures.IsPresent, $Features, $SkipTest.IsPresent, ($PublishArtifact -join ','), $MvpProductInputArtifactOutput.IsPresent, $TargetDir, $Ephemeral.IsPresent, $StorageMode
 [System.IO.File]::AppendAllText($env:BUILD_EDITOR_TEST_LOG, $record + [Environment]::NewLine)
+[System.IO.File]::AppendAllText($env:BUILD_EDITOR_TEST_PROFILE_LOG, $CargoProfile + [Environment]::NewLine)
 [System.IO.File]::AppendAllText($env:BUILD_EDITOR_TEST_ARTIFACT_LOG, $ArtifactOutputDirectory + [Environment]::NewLine)
+[System.IO.File]::AppendAllText($env:BUILD_EDITOR_TEST_SNAPSHOT_LOG, "$SourceSnapshot|$SourceSnapshotDigest" + [Environment]::NewLine)
 
 if ($env:BUILD_EDITOR_TEST_REQUIRE_COORDINATOR -eq '1') {
     $coordinatorCalls = @(Get-Content -LiteralPath $env:BUILD_EDITOR_TEST_COORDINATOR_LOG)
@@ -188,7 +219,9 @@ exit 0
 '@ | Set-Content -LiteralPath $fixtureValidator -Encoding UTF8
 
         $env:BUILD_EDITOR_TEST_LOG = $callLog
+        $env:BUILD_EDITOR_TEST_PROFILE_LOG = $profileLog
         $env:BUILD_EDITOR_TEST_ARTIFACT_LOG = $artifactLog
+        $env:BUILD_EDITOR_TEST_SNAPSHOT_LOG = $snapshotLog
         $env:BUILD_EDITOR_TEST_COORDINATOR_LOG = $coordinatorLog
         $env:BUILD_EDITOR_TEST_FINAL_PATH = $null
         $env:BUILD_EDITOR_TEST_REQUIRE_COORDINATOR = $null
@@ -197,7 +230,9 @@ exit 0
 
     AfterEach {
         $env:BUILD_EDITOR_TEST_LOG = $null
+        $env:BUILD_EDITOR_TEST_PROFILE_LOG = $null
         $env:BUILD_EDITOR_TEST_ARTIFACT_LOG = $null
+        $env:BUILD_EDITOR_TEST_SNAPSHOT_LOG = $null
         $env:BUILD_EDITOR_TEST_COORDINATOR_LOG = $null
         $env:BUILD_EDITOR_TEST_FINAL_PATH = $null
         $env:BUILD_EDITOR_TEST_REQUIRE_COORDINATOR = $null
@@ -215,7 +250,20 @@ exit 0
         $result.ExitCode | Should Be 0
         Test-Path -LiteralPath (Join-Path $bundle 'zircon_editor.exe') | Should Be $true
         Test-Path -LiteralPath (Join-Path $bundle 'zircon_runtime.dll') | Should Be $true
+        $manifestPath = Join-Path $bundle 'zircon_runtime.dll.manifest.json'
+        Test-Path -LiteralPath $manifestPath | Should Be $true
+        $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+        $manifest.artifact.file_name | Should Be 'zircon_runtime.dll'
+        $manifest.artifact.sha256 | Should Be (Get-FileHash -LiteralPath (Join-Path $bundle 'zircon_runtime.dll') -Algorithm SHA256).Hash.ToLowerInvariant()
+        @($manifest.host_artifacts).Count | Should Be 1
+        $manifest.host_artifacts[0].file_name | Should Be 'zircon_editor.exe'
+        $manifest.host_artifacts[0].sha256 | Should Be (Get-FileHash -LiteralPath (Join-Path $bundle 'zircon_editor.exe') -Algorithm SHA256).Hash.ToLowerInvariant()
+        $profiles = @(Get-Content -LiteralPath $profileLog)
+        $profiles.Count | Should Be 2
+        $profiles[0] | Should Be 'development'
+        $profiles[1] | Should Be 'development'
         Test-Path -LiteralPath (Join-Path $bundle 'assets\fonts\fixture.txt') | Should Be $true
+        Test-Path -LiteralPath (Join-Path $bundle 'assets\fonts\editor-ui-sources\source.ttf') | Should Be $true
         Test-Path -LiteralPath (Join-Path $bundle 'assets\icons\fixture.svg') | Should Be $true
 
         $calls = @(Get-Content -LiteralPath $callLog)
@@ -225,13 +273,71 @@ exit 0
         $artifactDirectories = @(Get-Content -LiteralPath $artifactLog)
         $artifactDirectories.Count | Should Be 2
         foreach ($artifactDirectory in $artifactDirectories) {
-            $artifactDirectory | Should Match '^\\\\\?\\[D-F]:\\ZirconBuilds\\mvp-product-inputs-build-editor-[0-9a-f]{32}$'
+            $artifactDirectory | Should Match '^\\\\\?\\[D-F]:\\cargo-targets\\mvp-product-inputs-build-editor-[0-9a-f]{32}$'
         }
         $coordinatorCalls = @(Get-Content -LiteralPath $coordinatorLog)
         $coordinatorCalls.Count | Should Be 3
         $coordinatorCalls[0] | Should Match 'staging-acquire'
         $coordinatorCalls[1] | Should Match 'staging-begin-publish'
         $coordinatorCalls[2] | Should Match 'staging-complete-publish'
+    }
+
+    It 'builds shipping editor and runtime with matching BuildSet and essential assets' {
+        $bundle = Join-Path $fixtureRoot 'editor-shipping-bundle'
+
+        $result = Invoke-EditorBuildFixture -ScriptPath $fixtureScript -OutputDirectory $bundle -CargoProfile shipping
+
+        $result.ExitCode | Should Be 0
+        $calls = @(Get-Content -LiteralPath $callLog)
+        $calls.Count | Should Be 2
+        $calls[0] | Should Be 'zircon_app|zircon_editor|True|shipping-editor|True|zircon_editor.exe|True||False|reuse'
+        $calls[1] | Should Be 'zircon_runtime||True|shipping-editor|True|zircon_runtime.dll|True||False|reuse'
+        $profiles = @(Get-Content -LiteralPath $profileLog)
+        $profiles.Count | Should Be 2
+        $profiles[0] | Should Be 'shipping'
+        $profiles[1] | Should Be 'shipping'
+        $manifest = Get-Content -LiteralPath (Join-Path $bundle 'zircon_runtime.dll.manifest.json') -Raw | ConvertFrom-Json
+        $manifest.build_mode | Should Be 'release'
+        @($manifest.runtime_features).Count | Should Be 1
+        $manifest.runtime_features[0] | Should Be 'shipping-editor'
+        $manifest.artifact.sha256 | Should Be (Get-FileHash -LiteralPath (Join-Path $bundle 'zircon_runtime.dll') -Algorithm SHA256).Hash.ToLowerInvariant()
+        $manifest.host_artifacts[0].sha256 | Should Be (Get-FileHash -LiteralPath (Join-Path $bundle 'zircon_editor.exe') -Algorithm SHA256).Hash.ToLowerInvariant()
+        Test-Path -LiteralPath (Join-Path $bundle 'assets\fonts\editor-ui.ttc') | Should Be $true
+        Test-Path -LiteralPath (Join-Path $bundle 'assets\fonts\editor-ui-sources') | Should Be $false
+        Test-Path -LiteralPath (Join-Path $bundle 'assets\icons\fixture.svg') | Should Be $true
+    }
+
+    It 'uses one sealed snapshot for both builds, assets, and Runtime BuildSet contracts' {
+        $bundle = Join-Path $fixtureRoot 'snapshot-editor-bundle'
+        $snapshot = Join-Path $fixtureRoot 'sealed\source'
+        $snapshotTools = Join-Path $snapshot 'tools'
+        $snapshotRuntimeAssets = Join-Path $snapshot 'zircon_runtime\assets\fonts'
+        $snapshotEditorAssets = Join-Path $snapshot 'zircon_editor\assets\icons'
+        $snapshotBuildSet = Join-Path $snapshot 'zircon_runtime_interface\src\runtime_build_set'
+        foreach ($directory in @($snapshotTools, $snapshotRuntimeAssets, $snapshotEditorAssets, $snapshotBuildSet)) {
+            [System.IO.Directory]::CreateDirectory($directory) | Out-Null
+        }
+        Copy-Item -LiteralPath (Join-Path $repoRoot 'tools\build\zircon_build_runtime_manifest.py') -Destination $snapshotTools
+        foreach ($specification in @('interface_spec_v1.json', 'payload_schema_set_v1.json')) {
+            Copy-Item -LiteralPath (Join-Path $repoRoot "zircon_runtime_interface\src\runtime_build_set\$specification") `
+                -Destination $snapshotBuildSet
+        }
+        Set-Content -LiteralPath (Join-Path $snapshotRuntimeAssets 'snapshot-font.txt') -Value 'snapshot font'
+        Set-Content -LiteralPath (Join-Path $snapshotEditorAssets 'snapshot-icon.svg') -Value '<svg />'
+        $digest = 'a' * 64
+
+        $result = Invoke-EditorBuildFixture -ScriptPath $fixtureScript -OutputDirectory $bundle `
+            -SourceSnapshot $snapshot -SourceSnapshotDigest $digest
+
+        if ($result.ExitCode -ne 0) { throw ($result.Output -join [Environment]::NewLine) }
+        Test-Path -LiteralPath (Join-Path $bundle 'assets\fonts\snapshot-font.txt') | Should Be $true
+        Test-Path -LiteralPath (Join-Path $bundle 'assets\icons\snapshot-icon.svg') | Should Be $true
+        Test-Path -LiteralPath (Join-Path $bundle 'assets\fonts\fixture.txt') | Should Be $false
+        Test-Path -LiteralPath (Join-Path $bundle 'zircon_runtime.dll.manifest.json') | Should Be $true
+        $snapshots = @(Get-Content -LiteralPath $snapshotLog)
+        $snapshots.Count | Should Be 2
+        $snapshots[0] | Should Be "$snapshot|$digest"
+        $snapshots[1] | Should Be "$snapshot|$digest"
     }
 
     It 'forwards one explicit managed target directory to both package builds' {
@@ -304,10 +410,24 @@ exit 0
         $coordinatorCalls[1] | Should Match 'staging-release'
     }
 
+    It 'does not publish a bundle when the runtime BuildSet manifest cannot be generated' {
+        $bundle = Join-Path $fixtureRoot 'editor-bundle'
+        Remove-Item -LiteralPath (Join-Path $fixtureRuntimeBuildSet 'interface_spec_v1.json')
+
+        $result = Invoke-EditorBuildFixture -ScriptPath $fixtureScript -OutputDirectory $bundle
+
+        $result.ExitCode | Should Be 1
+        ($result.Output -join [Environment]::NewLine) | Should Match 'Runtime BuildSet manifest generation failed'
+        Test-Path -LiteralPath $bundle | Should Be $false
+    }
+
     It 'rejects reparse-point asset content without leaving staged artifacts' {
         $bundle = Join-Path $fixtureRoot 'editor-bundle'
         $fixtureAssetFile = Join-Path $fixtureAssets 'fixture.txt'
         [System.IO.File]::Delete($fixtureAssetFile)
+        [System.IO.File]::Delete((Join-Path $fixtureAssets 'editor-ui.ttc'))
+        [System.IO.File]::Delete((Join-Path $fixtureFontSources 'source.ttf'))
+        [System.IO.Directory]::Delete($fixtureFontSources)
         [System.IO.Directory]::Delete($fixtureAssets)
         New-Item -ItemType Junction -Path $fixtureAssets -Target $repoRoot | Out-Null
 
@@ -347,7 +467,7 @@ exit 0
     }
 
     It 'resolves a relative output below the approved artifact root' {
-        $approvedRoot = Join-Path ([System.IO.Path]::GetPathRoot($fixtureRoot)) 'ZirconBuilds'
+        $approvedRoot = Join-Path ([System.IO.Path]::GetPathRoot($fixtureRoot)) 'cargo-targets'
         $relativeFixtureRoot = $fixtureRoot.Substring($approvedRoot.Length).TrimStart('\')
         $relativeBundle = Join-Path $relativeFixtureRoot 'relative-editor-bundle'
         $bundle = Join-Path $fixtureRoot 'relative-editor-bundle'
@@ -363,10 +483,10 @@ exit 0
     }
 
     It 'rejects a C drive output before invoking the managed validator' {
-        $result = Invoke-EditorBuildFixture -ScriptPath $fixtureScript -OutputDirectory 'C:\ZirconBuilds\editor-bundle'
+        $result = Invoke-EditorBuildFixture -ScriptPath $fixtureScript -OutputDirectory 'C:\cargo-targets\editor-bundle'
 
         $result.ExitCode | Should Be 1
-        ($result.Output -join [Environment]::NewLine) | Should Match 'approved D:\\ZirconBuilds, E:\\ZirconBuilds, or F:\\ZirconBuilds'
+        ($result.Output -join [Environment]::NewLine) | Should Match 'approved D:\\cargo-targets, E:\\cargo-targets, or F:\\cargo-targets'
         Test-Path -LiteralPath $callLog | Should Be $false
     }
 
@@ -549,7 +669,7 @@ Write-Output 'NativeMethodsV4 loaded'
     It 'rejects a resolved output parent outside the approved root without moving the source' {
         Import-Module $sourcePathResolver -Force -DisableNameChecking -ErrorAction Stop
         $fixtureDriveRoot = [System.IO.Path]::GetPathRoot($fixtureRoot)
-        $approvedRoot = Join-Path $fixtureDriveRoot 'ZirconBuilds'
+        $approvedRoot = Join-Path $fixtureDriveRoot 'cargo-targets'
         $sourceDirectory = Join-Path $fixtureRoot 'rename-source'
         $outsideTarget = Join-Path $fixtureDriveRoot ('zircon-build-editor-rename-outside-' + [guid]::NewGuid().ToString('N'))
         $junctionDirectory = Join-Path $fixtureRoot 'rename-outside-root'
@@ -598,7 +718,7 @@ Write-Output 'NativeMethodsV4 loaded'
                 -OutputDirectory (Join-Path $junctionDirectory 'editor-bundle')
 
             $result.ExitCode | Should Be 1
-            ($result.Output -join [Environment]::NewLine) | Should Match 'approved D:\\ZirconBuilds, E:\\ZirconBuilds, or F:\\ZirconBuilds'
+            ($result.Output -join [Environment]::NewLine) | Should Match 'approved D:\\cargo-targets, E:\\cargo-targets, or F:\\cargo-targets'
             Test-Path -LiteralPath $callLog | Should Be $false
         }
         finally {

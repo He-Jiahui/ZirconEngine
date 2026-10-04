@@ -1,10 +1,12 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f5_sound_asset_uses_typed_error() {
     let sound = include_str!("../../../../../asset/assets/sound.rs");
     let asset_assets_mod = include_str!("../../../../../asset/assets/mod.rs");
     let asset_mod = include_str!("../../../../../asset/mod.rs");
     let sound_tests = include_str!("../../../../../asset/tests/assets/sound.rs");
-    let import_sound_asset = include_str!("../../../../../asset/importer/ingest/import_sound.rs");
+    let import_sound_asset =
+        include_str!("../../../../../asset/importer/ingest/tests/import_sound.rs");
     let review_findings =
         include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
     let runtime_15_plan = include_str!(
@@ -14,8 +16,10 @@ fn review_f5_sound_asset_uses_typed_error() {
         include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let convention =
         include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
-    let sound_doc = include_str!("../../../../../../../docs/zircon_runtime/asset/assets/sound.md");
-    let importer_doc = include_str!("../../../../../../../docs/zircon_runtime/asset/importer.md");
+    let sound_doc =
+        include_str!("../../../../../../../docs/crates/zircon_runtime/asset/assets/sound.md");
+    let importer_doc =
+        include_str!("../../../../../../../docs/crates/zircon_runtime/asset/importer.md");
 
     for required in [
         "pub type SoundAssetResult<T> = std::result::Result<T, SoundAssetError>;",

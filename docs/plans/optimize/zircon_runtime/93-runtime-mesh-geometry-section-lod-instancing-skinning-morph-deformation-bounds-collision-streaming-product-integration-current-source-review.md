@@ -106,7 +106,7 @@ source_recheck_required: true
 
 当前Zircon的Mesh路径不是空壳。`MeshAsset`已有typed attribute/index/topology、normal/tangent生成、morph target、inverse-bind临时载体、local bounds、SDF与Virtual Geometry数据；内置glTF路径已有meshopt、WebP、skin/animation subasset与scene import；Graphics已有真实vertex/index buffer、GPU Scene current/previous transform、skin/morph history、cached command、indirect workspace、HZB、velocity pass和PNG产品测试。`PreparedModel`还会计算external Mesh dependency composite revision，morph storage也有changed-row upload。这些真实底座应迁入新架构，不能以“追赶Unreal”为由推倒重写。
 
-但完整产品链仍不是工程级Mesh系统。`MeshAsset`、`ModelPrimitiveAsset`、Model root、Mesh subasset与first-party importer可能同时持有多份完整geometry；没有stable section/material slot/LOD family、平台化semantic bulk block、明确schema support window或统一derived generation。实际高优先级glTF插件是version 1/priority 120，丢失source tangent和vertex color、把animation写成generic Data placeholder，并对skinned mesh无条件cook默认Virtual Geometry；低优先级内置glTF却是version 2、保留更多attribute并产生真实animation asset。测试中的“first wave plugin fixture”直接调用内置importer，因而没有验证默认产品真正选择的插件实现。
+但完整产品链仍不是工程级Mesh系统。`MeshAsset`、`ModelPrimitiveAsset`、Model root、Mesh subasset与first-party importer可能同时持有多份完整geometry；没有stable section/material slot/LOD family、平台化semantic bulk block、明确schema support window或统一derived generation。实际高优先级glTF插件当前为importer version 4/priority 120，并与低优先级内置glTF共享 typed animation helper；Skin/IBM仍是generic Data，geometry/extension/priority authority仍可能分叉，skinned mesh的Virtual Geometry策略仍需产品级资格门。测试中的“first wave plugin fixture”直接调用内置importer，因而没有验证默认产品真正选择的插件实现。
 
 运行时仍在render submission同步load/clone/convert/create GPU geometry。GPU Scene虽暴露`instance_count`，当前循环对每个pending draw固定`register(..., 1)`并写一条instance；multi-draw不是hardware instancing。更严重的是primitive bounds只用model translation作为center、变换列最大长度作为radius，既没消费`PreparedMesh.local_bounds`，也没有deformed bounds。GPU skin路径在选择前已经clone并CPU skin整primitive；GPU morph也会逐实例扫描target/vertex重建delta payload。动态fallback在draw build中创建新GPU mesh，而每个普通GPU mesh还无条件构建并保留wireframe edge segments。
 
@@ -211,8 +211,8 @@ OBJ / glTF / zmesh / model.toml
 | MESH93-P1-08 | reference-only Model overview只看inline vertex而得到空统计/bounds | manifest携validated aggregate section/LOD/bounds；Editor/runtime都不临时加载bulk猜overview |
 | MESH93-P1-09 | skin、morph、SDF、VG、collision、shadow/RT派生物没有共同source generation | `MeshDerivedArtifactSet`以source/import/platform hash关联，允许独立失败但禁止跨代组合 |
 | MESH93-P1-10 | `MeshAssetUsage`只有MainWorld/RenderWorld bool | 定义metadata/bulk CPU retention、GPU residency、collision/nav pin、editor pin、streamable block与release policy |
-| MESH93-P1-11 | priority-120 actual glTF plugin与priority-10 builtin在version/output kind/attribute/animation/VG语义上分叉 | importer contract、feature matrix与artifact output必须由同一BuildSet验证；默认选择不能比fallback路径更弱且无告警 |
-| MESH93-P1-12 | actual glTF plugin丢tangent/color、animation占位、skinned mesh照常cook VG；两条路径都按mesh取first node skin并忽略node morph override | 精确保留glTF node/mesh/skin/morph语义；多node skin binding、node weights、tangent/color与unsupported extension有真实fixture |
+| MESH93-P1-11 | priority-120 actual glTF plugin与priority-10 builtin仍存在provider authority、output/cook与Skin/IBM语义分叉；旧的tangent/color丢失与animation placeholder断言已由共享路径收敛 | importer contract、feature matrix与artifact output必须由同一BuildSet验证；默认选择不能比fallback路径更弱且无告警 |
+| MESH93-P1-12 | actual glTF plugin与builtin当前保留 authored tangent/color、共享 typed clip/skeleton helper，默认设置不 eager cook optional VG；两条路径仍按mesh取first node skin并忽略node morph override | 精确保留glTF node/mesh/skin/morph语义；多node skin binding、node weights、Skin/IBM artifact与unsupported extension有真实fixture |
 
 ## 7. P1：Scene、LOD、Extract、Bounds与Identity
 

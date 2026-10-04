@@ -1,0 +1,522 @@
+stylesheets = []
+penpot_dependency_sources = []
+penpot_original_source = "[asset]\nkind = \"view\"\nid = \"res://ui/runtime/fixtures/inventory_list.zui\"\nversion = 2\ndisplay_name = \"Runtime Inventory List\"\n\n[imports]\nwidgets = []\nstyles = []\n\n[root]\nnode = \"inventory_root\"\n\n[nodes.inventory_root]\ncomponent = \"Overlay\"\ncontrol_id = \"InventoryRoot\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, container = { kind = \"Overlay\" } }\nchildren = [{ node = \"inventory_panel\" }, { node = \"inventory_header\" }, { node = \"inventory_list\" }]\n\n[nodes.inventory_panel]\ncomponent = \"Container\"\ncontrol_id = \"InventoryPanel\"\nprops = { background = { color = \"#1d2330\" }, border = { color = \"#7aa3d0\", width = 2.0, radius = 16.0 } }\nlayout = { width = { min = 540.0, preferred = 540.0, max = 540.0, stretch = \"Fixed\" }, height = { min = 380.0, preferred = 380.0, max = 380.0, stretch = \"Fixed\" }, anchor = { x = 1.0, y = 0.5 }, pivot = { x = 1.0, y = 0.5 }, position = { x = -36.0, y = 0.0 } }\n\n[nodes.inventory_header]\ncomponent = \"Container\"\ncontrol_id = \"InventoryHeader\"\nprops = { text = \"Field Inventory\", background = { color = \"#7a4e23\" }, border = { color = \"#f2d1a0\", width = 1.0, radius = 12.0 }, foreground = { color = \"#fff2de\" } }\nlayout = { width = { min = 476.0, preferred = 476.0, max = 476.0, stretch = \"Fixed\" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = \"Fixed\" }, anchor = { x = 1.0, y = 0.5 }, pivot = { x = 1.0, y = 0.5 }, position = { x = -68.0, y = -140.0 } }\n\n[nodes.inventory_list]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"InventoryList\"\nlayout = { clip = true, width = { min = 476.0, preferred = 476.0, max = 476.0, stretch = \"Fixed\" }, height = { min = 260.0, preferred = 260.0, max = 260.0, stretch = \"Fixed\" }, anchor = { x = 1.0, y = 0.5 }, pivot = { x = 1.0, y = 0.5 }, position = { x = -68.0, y = 22.0 }, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = 8.0, scrollbar_visibility = \"Always\", virtualization = { item_extent = 36.0, overscan = 2 } } }\nchildren = [\n  { node = \"row_00\" },\n  { node = \"row_01\" },\n  { node = \"row_02\" },\n  { node = \"row_03\" },\n  { node = \"row_04\" },\n  { node = \"row_05\" },\n  { node = \"row_06\" },\n  { node = \"row_07\" },\n  { node = \"row_08\" },\n  { node = \"row_09\" },\n  { node = \"row_10\" },\n  { node = \"row_11\" },\n]\n\n[nodes.row_00]\ncomponent = \"Button\"\ncontrol_id = \"InventoryRow00\"\nprops = { text = \"01  Pulse Cells x24\", background = { color = \"#30465e\" }, border = { color = \"#96c2e6\", width = 1.0, radius = 8.0 }, foreground = { color = \"#eef8ff\" } }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = \"Fixed\" } }\n\n[nodes.row_01]\ncomponent = \"Button\"\ncontrol_id = \"InventoryRow01\"\nprops = { text = \"02  Med Kit x4\", background = { color = \"#2c394c\" }, border = { color = \"#89b6d9\", width = 1.0, radius = 8.0 }, foreground = { color = \"#eef8ff\" } }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = \"Fixed\" } }\n\n[nodes.row_02]\ncomponent = \"Button\"\ncontrol_id = \"InventoryRow02\"\nprops = { text = \"03  Signal Beacon\", background = { color = \"#30465e\" }, border = { color = \"#96c2e6\", width = 1.0, radius = 8.0 }, foreground = { color = \"#eef8ff\" } }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = \"Fixed\" } }\n\n[nodes.row_03]\ncomponent = \"Button\"\ncontrol_id = \"InventoryRow03\"\nprops = { text = \"04  Alloy Plate x12\", background = { color = \"#2c394c\" }, border = { color = \"#89b6d9\", width = 1.0, radius = 8.0 }, foreground = { color = \"#eef8ff\" } }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = \"Fixed\" } }\n\n[nodes.row_04]\ncomponent = \"Button\"\ncontrol_id = \"InventoryRow04\"\nprops = { text = \"05  Repair Foam x3\", background = { color = \"#30465e\" }, border = { color = \"#96c2e6\", width = 1.0, radius = 8.0 }, foreground = { color = \"#eef8ff\" } }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = \"Fixed\" } }\n\n[nodes.row_05]\ncomponent = \"Button\"\ncontrol_id = \"InventoryRow05\"\nprops = { text = \"06  Cryo Charge x2\", background = { color = \"#2c394c\" }, border = { color = \"#89b6d9\", width = 1.0, radius = 8.0 }, foreground = { color = \"#eef8ff\" } }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = \"Fixed\" } }\n\n[nodes.row_06]\ncomponent = \"Button\"\ncontrol_id = \"InventoryRow06\"\nprops = { text = \"07  Survey Drone\", background = { color = \"#30465e\" }, border = { color = \"#96c2e6\", width = 1.0, radius = 8.0 }, foreground = { color = \"#eef8ff\" } }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = \"Fixed\" } }\n\n[nodes.row_07]\ncomponent = \"Button\"\ncontrol_id = \"InventoryRow07\"\nprops = { text = \"08  Circuit Weave x7\", background = { color = \"#2c394c\" }, border = { color = \"#89b6d9\", width = 1.0, radius = 8.0 }, foreground = { color = \"#eef8ff\" } }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = \"Fixed\" } }\n\n[nodes.row_08]\ncomponent = \"Button\"\ncontrol_id = \"InventoryRow08\"\nprops = { text = \"09  Field Rations x9\", background = { color = \"#30465e\" }, border = { color = \"#96c2e6\", width = 1.0, radius = 8.0 }, foreground = { color = \"#eef8ff\" } }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = \"Fixed\" } }\n\n[nodes.row_09]\ncomponent = \"Button\"\ncontrol_id = \"InventoryRow09\"\nprops = { text = \"10  Archive Key\", background = { color = \"#2c394c\" }, border = { color = \"#89b6d9\", width = 1.0, radius = 8.0 }, foreground = { color = \"#eef8ff\" } }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = \"Fixed\" } }\n\n[nodes.row_10]\ncomponent = \"Button\"\ncontrol_id = \"InventoryRow10\"\nprops = { text = \"11  Arc Knife\", background = { color = \"#30465e\" }, border = { color = \"#96c2e6\", width = 1.0, radius = 8.0 }, foreground = { color = \"#eef8ff\" } }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = \"Fixed\" } }\n\n[nodes.row_11]\ncomponent = \"Button\"\ncontrol_id = \"InventoryRow11\"\nprops = { text = \"12  Shield Capacitor x5\", background = { color = \"#2c394c\" }, border = { color = \"#89b6d9\", width = 1.0, radius = 8.0 }, foreground = { color = \"#eef8ff\" } }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = \"Fixed\" } }\n"
+
+[asset]
+kind = "view"
+id = "res://ui/runtime/fixtures/inventory_list.zui"
+version = 2
+display_name = "Runtime Inventory List"
+
+[imports]
+widgets = []
+styles = []
+
+[root]
+node = "inventory_root"
+
+[nodes.inventory_root]
+component = "Overlay"
+control_id = "InventoryRoot"
+
+[nodes.inventory_root.layout.width]
+stretch = "Stretch"
+
+[nodes.inventory_root.layout.height]
+stretch = "Stretch"
+
+[nodes.inventory_root.layout.container]
+kind = "Overlay"
+
+[[nodes.inventory_root.children]]
+node = "inventory_panel"
+
+[[nodes.inventory_root.children]]
+node = "inventory_header"
+
+[[nodes.inventory_root.children]]
+node = "inventory_list"
+
+[nodes.inventory_panel]
+component = "Container"
+control_id = "InventoryPanel"
+
+[nodes.inventory_panel.props.background]
+color = "#1d2330"
+
+[nodes.inventory_panel.props.border]
+color = "#7aa3d0"
+width = 2
+radius = 16
+
+[nodes.inventory_panel.layout.width]
+min = 540
+preferred = 540
+max = 540
+stretch = "Fixed"
+
+[nodes.inventory_panel.layout.height]
+min = 380
+preferred = 380
+max = 380
+stretch = "Fixed"
+
+[nodes.inventory_panel.layout.anchor]
+x = 1
+y = 0.5
+
+[nodes.inventory_panel.layout.pivot]
+x = 1
+y = 0.5
+
+[nodes.inventory_panel.layout.position]
+x = -36
+y = 0
+
+[nodes.inventory_header]
+component = "Container"
+control_id = "InventoryHeader"
+
+[nodes.inventory_header.props]
+text = "Field Inventory"
+
+[nodes.inventory_header.props.background]
+color = "#7a4e23"
+
+[nodes.inventory_header.props.border]
+color = "#f2d1a0"
+width = 1
+radius = 12
+
+[nodes.inventory_header.props.foreground]
+color = "#fff2de"
+
+[nodes.inventory_header.layout.width]
+min = 476
+preferred = 476
+max = 476
+stretch = "Fixed"
+
+[nodes.inventory_header.layout.height]
+min = 56
+preferred = 56
+max = 56
+stretch = "Fixed"
+
+[nodes.inventory_header.layout.anchor]
+x = 1
+y = 0.5
+
+[nodes.inventory_header.layout.pivot]
+x = 1
+y = 0.5
+
+[nodes.inventory_header.layout.position]
+x = -68
+y = -140
+
+[nodes.inventory_list]
+component = "ScrollableBox"
+control_id = "InventoryList"
+
+[nodes.inventory_list.layout]
+clip = true
+
+[nodes.inventory_list.layout.width]
+min = 476
+preferred = 476
+max = 476
+stretch = "Fixed"
+
+[nodes.inventory_list.layout.height]
+min = 260
+preferred = 260
+max = 260
+stretch = "Fixed"
+
+[nodes.inventory_list.layout.anchor]
+x = 1
+y = 0.5
+
+[nodes.inventory_list.layout.pivot]
+x = 1
+y = 0.5
+
+[nodes.inventory_list.layout.position]
+x = -68
+y = 22
+
+[nodes.inventory_list.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = 8
+scrollbar_visibility = "Always"
+
+[nodes.inventory_list.layout.container.virtualization]
+item_extent = 36
+overscan = 2
+
+[[nodes.inventory_list.children]]
+node = "row_00"
+
+[[nodes.inventory_list.children]]
+node = "row_01"
+
+[[nodes.inventory_list.children]]
+node = "row_02"
+
+[[nodes.inventory_list.children]]
+node = "row_03"
+
+[[nodes.inventory_list.children]]
+node = "row_04"
+
+[[nodes.inventory_list.children]]
+node = "row_05"
+
+[[nodes.inventory_list.children]]
+node = "row_06"
+
+[[nodes.inventory_list.children]]
+node = "row_07"
+
+[[nodes.inventory_list.children]]
+node = "row_08"
+
+[[nodes.inventory_list.children]]
+node = "row_09"
+
+[[nodes.inventory_list.children]]
+node = "row_10"
+
+[[nodes.inventory_list.children]]
+node = "row_11"
+
+[nodes.row_00]
+component = "Button"
+control_id = "InventoryRow00"
+
+[nodes.row_00.props]
+text = "01  Pulse Cells x24"
+
+[nodes.row_00.props.background]
+color = "#30465e"
+
+[nodes.row_00.props.border]
+color = "#96c2e6"
+width = 1
+radius = 8
+
+[nodes.row_00.props.foreground]
+color = "#eef8ff"
+
+[nodes.row_00.layout.width]
+stretch = "Stretch"
+
+[nodes.row_00.layout.height]
+min = 36
+preferred = 36
+max = 36
+stretch = "Fixed"
+
+[nodes.row_01]
+component = "Button"
+control_id = "InventoryRow01"
+
+[nodes.row_01.props]
+text = "02  Med Kit x4"
+
+[nodes.row_01.props.background]
+color = "#2c394c"
+
+[nodes.row_01.props.border]
+color = "#89b6d9"
+width = 1
+radius = 8
+
+[nodes.row_01.props.foreground]
+color = "#eef8ff"
+
+[nodes.row_01.layout.width]
+stretch = "Stretch"
+
+[nodes.row_01.layout.height]
+min = 36
+preferred = 36
+max = 36
+stretch = "Fixed"
+
+[nodes.row_02]
+component = "Button"
+control_id = "InventoryRow02"
+
+[nodes.row_02.props]
+text = "03  Signal Beacon"
+
+[nodes.row_02.props.background]
+color = "#30465e"
+
+[nodes.row_02.props.border]
+color = "#96c2e6"
+width = 1
+radius = 8
+
+[nodes.row_02.props.foreground]
+color = "#eef8ff"
+
+[nodes.row_02.layout.width]
+stretch = "Stretch"
+
+[nodes.row_02.layout.height]
+min = 36
+preferred = 36
+max = 36
+stretch = "Fixed"
+
+[nodes.row_03]
+component = "Button"
+control_id = "InventoryRow03"
+
+[nodes.row_03.props]
+text = "04  Alloy Plate x12"
+
+[nodes.row_03.props.background]
+color = "#2c394c"
+
+[nodes.row_03.props.border]
+color = "#89b6d9"
+width = 1
+radius = 8
+
+[nodes.row_03.props.foreground]
+color = "#eef8ff"
+
+[nodes.row_03.layout.width]
+stretch = "Stretch"
+
+[nodes.row_03.layout.height]
+min = 36
+preferred = 36
+max = 36
+stretch = "Fixed"
+
+[nodes.row_04]
+component = "Button"
+control_id = "InventoryRow04"
+
+[nodes.row_04.props]
+text = "05  Repair Foam x3"
+
+[nodes.row_04.props.background]
+color = "#30465e"
+
+[nodes.row_04.props.border]
+color = "#96c2e6"
+width = 1
+radius = 8
+
+[nodes.row_04.props.foreground]
+color = "#eef8ff"
+
+[nodes.row_04.layout.width]
+stretch = "Stretch"
+
+[nodes.row_04.layout.height]
+min = 36
+preferred = 36
+max = 36
+stretch = "Fixed"
+
+[nodes.row_05]
+component = "Button"
+control_id = "InventoryRow05"
+
+[nodes.row_05.props]
+text = "06  Cryo Charge x2"
+
+[nodes.row_05.props.background]
+color = "#2c394c"
+
+[nodes.row_05.props.border]
+color = "#89b6d9"
+width = 1
+radius = 8
+
+[nodes.row_05.props.foreground]
+color = "#eef8ff"
+
+[nodes.row_05.layout.width]
+stretch = "Stretch"
+
+[nodes.row_05.layout.height]
+min = 36
+preferred = 36
+max = 36
+stretch = "Fixed"
+
+[nodes.row_06]
+component = "Button"
+control_id = "InventoryRow06"
+
+[nodes.row_06.props]
+text = "07  Survey Drone"
+
+[nodes.row_06.props.background]
+color = "#30465e"
+
+[nodes.row_06.props.border]
+color = "#96c2e6"
+width = 1
+radius = 8
+
+[nodes.row_06.props.foreground]
+color = "#eef8ff"
+
+[nodes.row_06.layout.width]
+stretch = "Stretch"
+
+[nodes.row_06.layout.height]
+min = 36
+preferred = 36
+max = 36
+stretch = "Fixed"
+
+[nodes.row_07]
+component = "Button"
+control_id = "InventoryRow07"
+
+[nodes.row_07.props]
+text = "08  Circuit Weave x7"
+
+[nodes.row_07.props.background]
+color = "#2c394c"
+
+[nodes.row_07.props.border]
+color = "#89b6d9"
+width = 1
+radius = 8
+
+[nodes.row_07.props.foreground]
+color = "#eef8ff"
+
+[nodes.row_07.layout.width]
+stretch = "Stretch"
+
+[nodes.row_07.layout.height]
+min = 36
+preferred = 36
+max = 36
+stretch = "Fixed"
+
+[nodes.row_08]
+component = "Button"
+control_id = "InventoryRow08"
+
+[nodes.row_08.props]
+text = "09  Field Rations x9"
+
+[nodes.row_08.props.background]
+color = "#30465e"
+
+[nodes.row_08.props.border]
+color = "#96c2e6"
+width = 1
+radius = 8
+
+[nodes.row_08.props.foreground]
+color = "#eef8ff"
+
+[nodes.row_08.layout.width]
+stretch = "Stretch"
+
+[nodes.row_08.layout.height]
+min = 36
+preferred = 36
+max = 36
+stretch = "Fixed"
+
+[nodes.row_09]
+component = "Button"
+control_id = "InventoryRow09"
+
+[nodes.row_09.props]
+text = "10  Archive Key"
+
+[nodes.row_09.props.background]
+color = "#2c394c"
+
+[nodes.row_09.props.border]
+color = "#89b6d9"
+width = 1
+radius = 8
+
+[nodes.row_09.props.foreground]
+color = "#eef8ff"
+
+[nodes.row_09.layout.width]
+stretch = "Stretch"
+
+[nodes.row_09.layout.height]
+min = 36
+preferred = 36
+max = 36
+stretch = "Fixed"
+
+[nodes.row_10]
+component = "Button"
+control_id = "InventoryRow10"
+
+[nodes.row_10.props]
+text = "11  Arc Knife"
+
+[nodes.row_10.props.background]
+color = "#30465e"
+
+[nodes.row_10.props.border]
+color = "#96c2e6"
+width = 1
+radius = 8
+
+[nodes.row_10.props.foreground]
+color = "#eef8ff"
+
+[nodes.row_10.layout.width]
+stretch = "Stretch"
+
+[nodes.row_10.layout.height]
+min = 36
+preferred = 36
+max = 36
+stretch = "Fixed"
+
+[nodes.row_11]
+component = "Button"
+control_id = "InventoryRow11"
+
+[nodes.row_11.props]
+text = "12  Shield Capacitor x5"
+
+[nodes.row_11.props.background]
+color = "#2c394c"
+
+[nodes.row_11.props.border]
+color = "#89b6d9"
+width = 1
+radius = 8
+
+[nodes.row_11.props.foreground]
+color = "#eef8ff"
+
+[nodes.row_11.layout.width]
+stretch = "Stretch"
+
+[nodes.row_11.layout.height]
+min = 36
+preferred = 36
+max = 36
+stretch = "Fixed"
+
+[tokens]
+[penpot_original_imports]
+widgets = []
+styles = []

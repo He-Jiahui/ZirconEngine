@@ -6,6 +6,7 @@
 // cooldown mirror that those integration layers consume.
 var container = %import("zr.container");
 
+/// 世界状态按实体与能力加载的临时充能投影，使用后需将 charges、并行计时器及空槽冷却镜像写回同一持久化行；构造仅接受额外充能和正重充时间。
 pub class AbilityChargeState {
     pub var charges: int;
     pub var maxCharges: int;
@@ -114,6 +115,7 @@ materializeLegacyRecharges(state: AbilityChargeState): void {
 // Models updateTimers: every in-flight per-charge timer ages together. When
 // the first timer expires it returns exactly one use; a full pool drops all
 // remaining timers and clears the generic cooldown mirror.
+/// 世界每个固定步为每项充能推进并行重充，再按空槽状态同步通用冷却镜像；调用者必须先加载对应实体与能力的完整行，并在推进后写回。
 pub tickAbilityCharges(state: AbilityChargeState, delta: float): void {
     if (delta <= 0.0 || state.charges >= state.maxCharges) { return; }
     materializeLegacyRecharges(state);

@@ -13,4 +13,5 @@ pub(super) fn decode_f32(bytes: &[u8]) -> Result<Vec<f32>, OnnxReadError> {
 }
 
 #[cfg(test)]
+#[path = "raw_data/tests/performance_tests.rs"]
 mod performance_tests;

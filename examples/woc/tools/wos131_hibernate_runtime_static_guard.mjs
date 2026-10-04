@@ -34,14 +34,14 @@ requireText(dispatch, /case 'incapacitate':[\s\S]*?kind: 'incapacitate',[\s\S]*?
 const generator = read('tools', 'm4_ability_codegen.mjs');
 const zrGenerator = read('tools', 'm4_ability_zr_codegen.mjs');
 if (!/faerie_fire',[\s\S]*?'hibernate'/.test(generator) ||
-    !generator.includes('EXPECTED_ABILITY_COUNT = 79') ||
-    !zrGenerator.includes('document.entries.length === 79')) {
+    !generator.includes('EXPECTED_ABILITY_COUNT = 117') ||
+    !zrGenerator.includes('document.entries.length === 117')) {
   throw new Error('M4 Hibernate projection scope is missing');
 }
 const entry = JSON.parse(read('contracts', 'm4_abilities.json')).entries.find(
   (value) => value.id === 'hibernate',
 );
-if (!entry || entry.index !== 71 || entry.definition.cost !== 50 ||
+if (!entry || entry.index !== 75 || entry.definition.cost !== 50 ||
     entry.definition.castTime !== 1.5 || entry.definition.range !== 30 ||
     entry.definition.effects?.[0]?.type !== 'incapacitate' ||
     entry.definition.effects[0].duration !== 8) {

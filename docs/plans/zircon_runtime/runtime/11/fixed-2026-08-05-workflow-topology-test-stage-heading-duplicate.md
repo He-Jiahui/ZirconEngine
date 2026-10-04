@@ -9,10 +9,9 @@ origin_child_dir: docs/plans/zircon_runtime/runtime/11
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/workflows/topology.py
   - docs/plans/zircon_runtime/runtime/11-job-system-task-model.md
 tests:
-  - .\tools\zircon-session.ps1 milestone prepare --session-id runtime11-native-plugin-refresh-contract-r1-20260729 --milestone M2
+  - .\tools\dev\zircon-session.ps1 milestone prepare --session-id runtime11-native-plugin-refresh-contract-r1-20260729 --milestone M2
 resolved_at: 2026-08-05
 ---
 
@@ -31,7 +30,7 @@ resolved_at: 2026-08-05
 2026-07-29 Windows PowerShell 执行：
 
 ```powershell
-.\tools\zircon-session.ps1 milestone prepare --session-id runtime11-native-plugin-refresh-contract-r1-20260729 --milestone M2
+.\tools\dev\zircon-session.ps1 milestone prepare --session-id runtime11-native-plugin-refresh-contract-r1-20260729 --milestone M2
 ```
 
 命令未启动 Cargo，终端结果为 `Duplicate workflow node ID: M0`。Runtime11 计划的人类可读结构同时包含 `### M0 ...` 与 `#### M0 测试阶段（milestone-first）`；`tools/session_coordinator/workflows/topology.py` 的 `_PLAIN_NUMBERED_MILESTONE` 以任意二至六级 `M<n>` 标题作为 milestone，因此将测试阶段也加入拓扑并在 `_validate_graph` 中拒绝重复 ID。

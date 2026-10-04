@@ -63,3 +63,34 @@ failure return。独立源码复核发现的 virtualization private-helper impor
 | 时间 | 里程碑/切片 | 状态 | 完成项目与证据 | 后续门禁 |
 | --- | --- | --- | --- | --- |
 | 2026-08-25 | M3 asset-browser test-budget handoff | `implementation-complete / upstream-validation-blocked` | 删除 1065 行的 flat `tests.rs`；新增薄 `tests/mod.rs` 与 6 个行为/fixture 子模块，所有文件均不超过 411 行；结构审计不再列出该 owner（31 -> 30）。主树 20 个测试与既有 reference-list 2 个测试均保留。独立 review 修复并复核了 virtualization private-helper import。`cargo test -p zircon_editor --lib --locked asset_browser` 在 `zr_rhi_wgpu` 的 14 个既有编译错误处截断。 | RHI 修复后重跑聚焦 Cargo 测试，并通过 coordinator failure return 回传 origin。 |
+
+## 2026-09-11 rolling repair continuation
+
+The stable fixing Session `failure-roll-01a090ae-editor09-asset-browser-budget-r1`
+sealed only the seven folder-backed test owners and this failure record.  The
+current SHA-256 manifest has no production `asset_browser` files, so unrelated
+working-tree edits cannot enter this validation slice.  The exact local shape
+guard was executed by Coordinator ticket `ee3db15a316246f8b57686006b9819e8` and
+finished `passed` (exit `0`):
+
+- `chrome_and_regions.rs` 323 lines
+- `list_view.rs` 167 lines
+- `mod.rs` 20 lines
+- `reference_lists.rs` 107 lines
+- `support.rs` 68 lines
+- `thumbnail_view.rs` 434 lines
+- `virtualization.rs` 65 lines
+
+The guard also proved that the flat `tests.rs` path is absent, `tests/mod.rs`
+declares exactly the six folder-backed behavior modules, and no `#[path]` mount
+exists in the sealed directory.  The repository-wide editor structure audit
+continues to report 18 unrelated migration debts, but no asset-browser owner.
+
+The declared current-source Cargo gate was submitted with the same eight-path
+manifest and `cargo +1.94.1 test -p zircon_editor --lib asset_browser --locked
+-- --nocapture --test-threads=1`.  Coordinator admission rejected it before a
+ticket or Cargo process was created with durable diagnostic
+`validation_ticket_external_worktree_dirty` for foreign repository
+`E:\\Git\\zr_vm`.  No dynamic test result is claimed; after that external
+worktree is clean, resubmit the unchanged focused command from this exact
+manifest, then run the required upstream gate before `failure return`.

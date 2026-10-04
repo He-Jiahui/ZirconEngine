@@ -1,3 +1,4 @@
+//! 视图声明的链式配置入口；只收集宿主、模板、能力及预设意图，实际可用性由注册和打开链判定。
 use crate::core::commands::DocumentKind;
 use crate::core::extension::{DefaultWorkbenchPreset, WorkbenchSlot};
 use crate::ui::workbench::autolayout::PaneConstraints;
@@ -32,6 +33,7 @@ impl ViewDescriptor {
         self
     }
 
+    /// 对四种预设身份去重并按产品固定顺序发布，避免调用者迭代顺序改变默认布局投影。
     pub fn with_default_presets(
         mut self,
         presets: impl IntoIterator<Item = DefaultWorkbenchPreset>,
@@ -73,6 +75,7 @@ impl ViewDescriptor {
     }
 }
 
+// 预设集合规模固定；归一化是builder契约，直接反序列化或修改公开字段不经此入口。
 fn normalize_default_presets(
     presets: impl IntoIterator<Item = DefaultWorkbenchPreset>,
 ) -> Vec<DefaultWorkbenchPreset> {
@@ -97,5 +100,5 @@ fn normalize_default_presets(
 }
 
 #[cfg(test)]
-#[path = "view_descriptor_builder/finite_preset_tests.rs"]
+#[path = "view_descriptor_builder/tests/finite_preset_tests.rs"]
 mod finite_preset_tests;

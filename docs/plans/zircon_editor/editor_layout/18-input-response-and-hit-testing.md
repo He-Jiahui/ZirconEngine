@@ -124,7 +124,7 @@ pub struct UiDispatchReply { /* disposition / handler / phase / effects */ }
 
 | 动作 | 文件 | 说明 |
 | --- | --- | --- |
-| 新增(契约) | `docs/ui-and-layout/input-response-contract.md` | 命中单源 + 三相 + pointer-events + 捕获 + 拖拽 + cursor |
+| 新增(契约) | `docs/ui/input-response-contract.md` | 命中单源 + 三相 + pointer-events + 捕获 + 拖拽 + cursor |
 | 运行时实现 | `editor_ui/01` 的 dispatch/route owner(不在本计划) | 把全链次序固化为单实现 + 命中单源,迁出 11 个 bridge 的命中 |
 | DTO | `zircon_runtime_interface/src/ui/tree/node/pointer_events.rs`、`ui/dispatch/input/{reply,effect}.rs` | 维护 `UiPointerEvents`/`UiCursor`、相位/Reply 与捕获 effect 契约 |
 

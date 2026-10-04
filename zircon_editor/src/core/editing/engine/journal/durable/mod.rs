@@ -9,11 +9,11 @@ mod reader;
 mod store;
 mod writer;
 
-pub use discovery::{JournalDiscoveryEntry, JournalDiscoveryIssue, JournalDiscoveryReport};
 pub use document_key::{JournalDocumentKey, JournalDocumentKeyError};
 pub use error::{DurableJournalError, JournalRecordPreparationError};
 pub use model::{
-    DurableJournalEntry, JournalCompactionReport, JournalReadReport, JournalTailFault,
+    DurableJournalEntry, JournalCompactionReport, JournalDiscoveryEntry, JournalDiscoveryIssue,
+    JournalDiscoveryReport, JournalReadReport, JournalTailFault,
 };
 pub use prepared::PreparedJournalRecord;
 pub use store::DurableJournal;

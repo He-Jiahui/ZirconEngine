@@ -7,7 +7,7 @@ DISPATCHER = ROOT / "zircon_runtime/src/ui/dispatch/navigation/dispatcher.rs"
 NAVIGATION = ROOT / "zircon_runtime/src/ui/surface/input/navigation.rs"
 ROUTE_POLICY = ROOT / "zircon_runtime/src/ui/surface/input/route_policy.rs"
 
-
+# 读取导航路由分发，确认候选路径借用且已访问集合容量有界。
 class RuntimeNavigationDispatchOwnershipPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

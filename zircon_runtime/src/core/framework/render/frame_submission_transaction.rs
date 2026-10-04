@@ -22,6 +22,7 @@ pub(crate) struct RenderFrameSubmissionTransaction {
 }
 
 impl RenderFrameSubmissionTransaction {
+    /// 由帧提交拥有者在场景提交前开启；poll 固定本帧设备代次。
     pub(crate) fn begin(frame_generation: u64, poll: SubmissionPollReceipt) -> Self {
         Self {
             frame_generation,
@@ -109,6 +110,7 @@ impl RenderFrameSubmissionTransaction {
         Ok(())
     }
 
+    /// 场景票据取得后关闭账本并生成成功回执；调用方仍负责展示与完成观察。
     pub(crate) fn finish(
         self,
         scene: SubmissionTicket,
@@ -140,6 +142,7 @@ impl RenderFrameSubmissionTransaction {
             .collect()
     }
 
+    /// 帧中途失败时只接受已结算的前场景状态，供资源流送器按真实结果回滚。
     pub(crate) fn abort(
         self,
         statuses: Vec<SubmissionStatus>,
@@ -169,5 +172,5 @@ impl RenderFrameSubmissionTransaction {
 }
 
 #[cfg(test)]
-#[path = "frame_submission_transaction/tests.rs"]
+#[path = "frame_submission_transaction/tests/cases.rs"]
 mod tests;

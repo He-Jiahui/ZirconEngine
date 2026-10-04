@@ -13,7 +13,7 @@ CONTRACTS_RS = (
     / "accessibility_contracts.rs"
 )
 
-
+# 读取实现源码约束接口无障碍节点查找：有序无障碍快照使用对数节点查找，并无序无障碍快照保持兼容回退。
 def _node_lookup_body() -> str:
     source = ACCESSIBILITY_RS.read_text(encoding="utf-8")
     start = source.index("    pub fn node(&self, node_id: UiNodeId)")

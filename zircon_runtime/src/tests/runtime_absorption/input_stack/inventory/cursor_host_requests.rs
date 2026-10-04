@@ -6,7 +6,7 @@ fn runtime_12_input_stack_cursor_host_request_anchors_remain_visible() {
         include_str!("../../../../input/runtime/default_input_manager.rs"),
         include_str!("../../../../dynamic_api/session.rs"),
         include_str!("../../../../dynamic_api/session/host_requests.rs"),
-        include_str!("../../../../../../zircon_runtime_interface/src/runtime_api/host_requests.rs"),
+        include_str!("../../../../../../zircon_runtime_interface/src/runtime_api/host/host_requests.rs"),
         include_str!(
             "../../../../../../zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs"
         ),

@@ -6,7 +6,7 @@ from tools.tests.plugin_structure_audit_feature_extension_support import (
     plugin_manifest,
 )
 
-
+# 用插件清单夹具验证特性扩展：拒绝未知特性扩展字段，并拒绝空特性扩展数组。
 class PluginStructureAuditManifestSchemaFeatureExtensionsTests(unittest.TestCase):
     def test_manifest_schema_rejects_unknown_feature_extension_field(self):
         violations: list[str] = []

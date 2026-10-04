@@ -1,7 +1,7 @@
 // Current-head source port of the pure match transitions in
 // src/sim/social/card_duel.ts at 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a.
-// World liveness, NPC range, logs and deed persistence stay outside this
-// module; M6 must wire this result into one authoritative WOS transaction.
+// CardDuelService 在世界命令和固定步更新中使用这里的纯对局迁移；角色存活、
+// NPC 距离和 WOS 事务由外层负责，不能由对局函数单独判定。
 var handModule = %import("social/card_duel_hand");
 var queueModule = %import("social/card_duel_queue");
 var rngModule = %import("kernel/rng");
@@ -34,6 +34,8 @@ pub class CardDuelMatch {
     }
 }
 
+// 一次命令的迁移结果供 Service 决定移除对局与记录胜场；
+// accepted、finished 和 voided 是独立状态，拒绝与无胜者终局不能合并。
 pub class CardDuelTransition {
     pub var accepted: bool;
     pub var error: int;
@@ -91,6 +93,8 @@ finish(
     transition.winner = winner;
     transition.forfeiter = forfeiter;
 }
+// 第二名玩家出牌后才结算一轮，并按 A、B 顺序各补一张牌；
+// 此调用顺序影响共享随机流，WOS 快照重放依赖它保持稳定。
 
 resolveRound(
     match: CardDuelMatch,

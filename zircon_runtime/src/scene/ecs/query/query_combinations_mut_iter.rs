@@ -1,12 +1,12 @@
 use std::{array, marker::PhantomData};
 
-use crate::scene::World;
 use crate::scene::ecs::{
     ChangeTickWindow, ComponentStorageLocation, QueryFilter, QueryMutData, StableEntityLocation,
 };
+use crate::scene::World;
 
 use super::query_combinations_iter::combination_count;
-use super::query_state::{CachedArchetypePlan, find_cached_archetype_plan};
+use super::query_state::{find_cached_archetype_plan, CachedArchetypePlan};
 
 /// Mutable K-combination cursor. Items are produced only through `fetch_next`.
 pub struct QueryCombinationMutIter<'world, 'state, D, F = (), const K: usize = 2>
@@ -28,42 +28,47 @@ where
     D: QueryMutData,
     F: QueryFilter,
 {
-    pub(crate) fn new_from_cached_plans(
-        world: &'world mut World,
+    pub(crate) unsafe fn new_from_cached_plans(
+        world: *mut World,
         plans: &'state [CachedArchetypePlan],
         ticks: ChangeTickWindow,
     ) -> Self {
-        assert!(K != 0, "query combinations require K greater than zero");
-        let mut candidates = Vec::new();
-        let mut component_locations = Vec::new();
-        for stable_location in
-            world.stable_query_location_iter(plans.iter().map(CachedArchetypePlan::archetype_id))
-        {
-            let Some(plan) =
-                find_cached_archetype_plan(plans, stable_location.location.archetype_id)
-            else {
-                continue;
-            };
-            if plan.write_component_locations(world, stable_location, &mut component_locations)
-                && F::matches_component_locations(
-                    world,
+        unsafe {
+            assert!(K != 0, "query combinations require K greater than zero");
+            let mut candidates = Vec::new();
+            let mut component_locations = Vec::new();
+            for stable_location in World::query_stable_location_iter(
+                world,
+                plans.iter().map(CachedArchetypePlan::archetype_id),
+            ) {
+                let Some(plan) =
+                    find_cached_archetype_plan(plans, stable_location.location.archetype_id)
+                else {
+                    continue;
+                };
+                if plan.write_component_locations(
+                    &*world,
+                    stable_location,
+                    &mut component_locations,
+                ) && F::matches_component_locations(
+                    &*world,
                     stable_location.stable_id,
                     &component_locations,
                     ticks,
-                )
-            {
-                candidates.push(stable_location);
+                ) {
+                    candidates.push(stable_location);
+                }
             }
-        }
-        let remaining = combination_count(candidates.len(), K);
-        Self {
-            world,
-            plans,
-            candidates,
-            indices: array::from_fn(|index| index),
-            remaining,
-            ticks,
-            _marker: PhantomData,
+            let remaining = combination_count(candidates.len(), K);
+            Self {
+                world,
+                plans,
+                candidates,
+                indices: array::from_fn(|index| index),
+                remaining,
+                ticks,
+                _marker: PhantomData,
+            }
         }
     }
 
@@ -90,11 +95,11 @@ where
                 stable_location,
                 &mut component_locations,
             ));
-            // Combination indices are distinct, so every mutable item belongs
-            // to a different stable entity.
+            // Distinct indices, the retained World loan and the raw fetch
+            // contract preserve all earlier row items within this batch.
             unsafe {
                 D::fetch_mut_with_component_locations(
-                    &mut *self.world,
+                    self.world,
                     stable_location.stable_id,
                     &component_locations,
                     self.ticks,

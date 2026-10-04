@@ -222,12 +222,10 @@ fn export_render17_pfm1_render_graph_cold_warm_wgpu_png() {
             .map(String::as_str)
             .collect::<Vec<_>>(),
     );
-    assert!(
-        profile
-            .passes
-            .iter()
-            .all(|pass| graph_dump.contains(&pass.pass_name))
-    );
+    assert!(profile
+        .passes
+        .iter()
+        .all(|pass| graph_dump.contains(&pass.pass_name)));
     assert_terminal_signal_covers_frame(&frame);
     assert_terminal_signal_has_chromatic_content(
         &frame,
@@ -326,7 +324,7 @@ fn assert_capture_profile_observability(
 
     let mesh_submission = &profile.mesh_submission;
     assert_eq!(
-        (
+        [
             mesh_submission.draw_count,
             mesh_submission.command_count,
             mesh_submission.opaque_command_count,
@@ -340,8 +338,8 @@ fn assert_capture_profile_observability(
             mesh_submission.indirect_fallback_draw_count,
             mesh_submission.replay_state_change_count,
             mesh_submission.replay_bind_skip_count,
-        ),
-        (
+        ],
+        [
             stats.last_mesh_draw_count.min(u32::MAX as usize) as u32,
             stats.last_mesh_command_count.min(u32::MAX as usize) as u32,
             stats.last_mesh_opaque_command_count.min(u32::MAX as usize) as u32,
@@ -371,7 +369,7 @@ fn assert_capture_profile_observability(
             stats
                 .last_mesh_replay_bind_skip_count
                 .min(u32::MAX as usize) as u32,
-        ),
+        ],
         "Render17 {phase} evidence must retain same-frame mesh cache, indirect, and replay metrics"
     );
     assert_eq!(

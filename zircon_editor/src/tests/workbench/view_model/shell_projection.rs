@@ -1,7 +1,11 @@
-use crate::core::commands::EditorCommandDescriptor;
+use crate::core::commands::{EditorCommandDescriptor, EditorCommandPresentation, EditorKeymap};
 use crate::core::editor_event::{MenuAction, ViewDescriptorId as EventViewDescriptorId};
 use crate::core::editor_extension::{EditorExtensionRegistry, EditorMenuItemDescriptor};
 use crate::core::editor_operation::EditorOperationPath;
+use crate::core::extension::CapabilitySet;
+use crate::core::i18n::EditorLocalizationBundle;
+use crate::core::play::PlayModeKind;
+use crate::core::settings::EditorKeymapOverrides;
 use crate::ui::workbench::autolayout::ShellFrame;
 use std::collections::BTreeMap;
 
@@ -392,41 +396,83 @@ fn workbench_view_model_filters_and_orders_plugin_menu_contributions() {
     let weather_capability = "editor.extension.weather_menu";
     let public_operation = EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap();
     let gated_operation = EditorOperationPath::parse("weather.cloud_layer.secret").unwrap();
+    let bundle = EditorLocalizationBundle::from_locale_maps(
+        "weather.editor",
+        BTreeMap::from([(
+            "en".to_string(),
+            BTreeMap::from([
+                ("menu.tools.label".to_string(), "Tools".to_string()),
+                (
+                    "menu.tools.weather.label".to_string(),
+                    "Weather".to_string(),
+                ),
+                (
+                    "command.weather.cloud_layer.refresh.label".to_string(),
+                    "Refresh Cloud Layers".to_string(),
+                ),
+                (
+                    "command.weather.cloud_layer.refresh.description".to_string(),
+                    "Refresh Cloud Layers".to_string(),
+                ),
+                (
+                    "command.weather.cloud_layer.secret.label".to_string(),
+                    "Secret Cloud Pass".to_string(),
+                ),
+                (
+                    "command.weather.cloud_layer.secret.description".to_string(),
+                    "Secret Cloud Pass".to_string(),
+                ),
+            ]),
+        )]),
+    )
+    .unwrap();
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_menu_item(
-            EditorMenuItemDescriptor::new(
-                "Tools/Weather/Refresh Cloud Layers",
-                public_operation.clone(),
-            )
-            .with_priority(20)
-            .with_enabled(false),
+            EditorMenuItemDescriptor::builtin(public_operation.clone(), "tools", &["weather"])
+                .with_priority(20)
+                .with_enabled(false),
         )
         .unwrap();
     extension
         .register_menu_item(
-            EditorMenuItemDescriptor::new(
-                "Tools/Weather/Secret Cloud Pass",
-                gated_operation.clone(),
-            )
-            .with_priority(-10)
-            .with_required_capabilities([weather_capability]),
+            EditorMenuItemDescriptor::builtin(gated_operation.clone(), "tools", &["weather"])
+                .with_priority(-10)
+                .with_required_capabilities([weather_capability]),
         )
         .unwrap();
 
     let mut commands = crate::core::commands::EditorCommandRegistry::default_workbench();
-    commands
-        .register(EditorCommandDescriptor::operation(
-            public_operation,
-            "Refresh Cloud Layers",
-        ))
-        .unwrap();
-    commands
-        .register(
-            EditorCommandDescriptor::operation(gated_operation, "Secret Cloud Pass")
-                .with_required_capabilities([weather_capability]),
+    let mut public_command = EditorCommandDescriptor::localized_operation(
+        public_operation.clone(),
+        EditorCommandPresentation::localized(
+            "weather.editor",
+            "command.weather.cloud_layer.refresh.label",
+            "command.weather.cloud_layer.refresh.description",
         )
-        .unwrap();
+        .unwrap(),
+    );
+    public_command.bind_localization_bundle(&bundle).unwrap();
+    commands.register(public_command).unwrap();
+    let mut gated_command = EditorCommandDescriptor::localized_operation(
+        gated_operation.clone(),
+        EditorCommandPresentation::localized(
+            "weather.editor",
+            "command.weather.cloud_layer.secret.label",
+            "command.weather.cloud_layer.secret.description",
+        )
+        .unwrap(),
+    )
+    .with_required_capabilities([weather_capability]);
+    gated_command.bind_localization_bundle(&bundle).unwrap();
+    commands.register(gated_command).unwrap();
+
+    let keymap = EditorKeymap::default_workbench().with_overrides(&EditorKeymapOverrides::new(
+        BTreeMap::from([
+            (public_operation, Some("Ctrl+Alt+R".parse().unwrap())),
+            (gated_operation, Some("Ctrl+Alt+S".parse().unwrap())),
+        ]),
+    ));
 
     let mut contributions = crate::core::extension::ContributionStore::default();
     contributions
@@ -436,11 +482,22 @@ fn workbench_view_model_filters_and_orders_plugin_menu_contributions() {
         )
         .unwrap();
     let contribution_snapshot = contributions.snapshot();
-    let disabled_model = WorkbenchViewModel::build_with_contributions_and_capabilities(
+    let i18n = crate::core::i18n::EditorI18nService::default();
+    let locale = crate::core::i18n::EditorLocale::english();
+    let disabled_model = WorkbenchViewModel::build_with_contributions_and_context(
         &commands,
+        &keymap,
+        &i18n,
+        &locale,
         &chrome,
         &contribution_snapshot,
-        &[],
+        &CapabilitySet::default(),
+        None,
+        &crate::ui::host::command_eval_projection::command_eval_ctx_from_chrome(
+            &chrome,
+            PlayModeKind::Edit,
+            std::iter::empty::<String>(),
+        ),
     );
     let disabled_tools = disabled_model
         .menu_bar
@@ -461,7 +518,7 @@ fn workbench_view_model_filters_and_orders_plugin_menu_contributions() {
             .children
             .first()
             .and_then(|item| item.shortcut.as_deref()),
-        None
+        Some("Ctrl+Alt+R")
     );
     assert!(!disabled_tools.items[0].enabled);
     assert_eq!(
@@ -470,15 +527,27 @@ fn workbench_view_model_filters_and_orders_plugin_menu_contributions() {
             .iter()
             .map(|item| item.label.as_str())
             .collect::<Vec<_>>(),
-        vec!["Secret Cloud Pass", "Refresh Cloud Layers"]
+        vec!["Refresh Cloud Layers"]
     );
 
     let enabled_capabilities = vec![weather_capability.to_string()];
-    let enabled_model = WorkbenchViewModel::build_with_contributions_and_capabilities(
+    let enabled_model = WorkbenchViewModel::build_with_contributions_and_context(
         &commands,
+        &keymap,
+        &i18n,
+        &locale,
         &chrome,
         &contribution_snapshot,
-        &enabled_capabilities,
+        &enabled_capabilities
+            .iter()
+            .cloned()
+            .collect::<CapabilitySet>(),
+        None,
+        &crate::ui::host::command_eval_projection::command_eval_ctx_from_chrome(
+            &chrome,
+            PlayModeKind::Edit,
+            enabled_capabilities.iter().cloned(),
+        ),
     );
     let enabled_tools = enabled_model
         .menu_bar
@@ -569,7 +638,7 @@ fn sample_two_activity_windows_chrome(active_window: ActivityWindowId) -> Editor
                         ActivityDrawerSlot::LeftTop,
                         workbench_drawer,
                     )]),
-                    content_workspace: DocumentNode::Tabs(TabStackLayout {
+                    content_workspace: DocumentNode::tabs(TabStackLayout {
                         tabs: vec![scene_instance.instance_id.clone()],
                         active_tab: Some(scene_instance.instance_id.clone()),
                     }),
@@ -585,7 +654,7 @@ fn sample_two_activity_windows_chrome(active_window: ActivityWindowId) -> Editor
                     descriptor_id: ViewDescriptorId::new("editor.asset_browser"),
                     host_mode: ActivityWindowHostMode::EmbeddedMainFrame,
                     activity_drawers: BTreeMap::new(),
-                    content_workspace: DocumentNode::Tabs(TabStackLayout {
+                    content_workspace: DocumentNode::tabs(TabStackLayout {
                         tabs: vec![asset_browser_instance.instance_id.clone()],
                         active_tab: Some(asset_browser_instance.instance_id.clone()),
                     }),

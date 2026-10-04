@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime/src/script/vm/host/host_registry.rs"
 
-
+# 读取实现源码约束预分配宿主能力快照：快照使用精确实时记录容量，并快照扩展预分配向量不带收集增长。
 class PreallocatedHostCapabilitySnapshotPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

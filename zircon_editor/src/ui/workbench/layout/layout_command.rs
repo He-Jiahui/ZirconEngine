@@ -17,6 +17,10 @@ pub enum LayoutCommand {
     CloseView {
         instance_id: ViewInstanceId,
     },
+    CloseViews {
+        window_id: MainPageId,
+        instance_ids: Vec<ViewInstanceId>,
+    },
     FocusView {
         instance_id: ViewInstanceId,
     },

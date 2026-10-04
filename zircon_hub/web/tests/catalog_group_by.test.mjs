@@ -6,9 +6,11 @@ import test from "node:test";
 import { buildCatalogSearchIndex, filterCatalogSearchIndex } from "../src/catalog/catalogSearchIndex.ts";
 import { groupBy } from "../src/catalog/groupBy.ts";
 
+// 语义测试始终执行；性能门槛由专用环境开关启用，配对样本用于同一次运行内比较而非绝对耗时承诺。
 const SAMPLE_PAIRS = 21;
 const SCALE_BATCH_REPETITIONS = 10;
 
+// 冻结原先反复复制组数组的对照路径，用于量化优化收益；不能将这条路径作为生产回退。
 function legacyGroupBy(items, key) {
   return items.reduce((groups, item) => {
     const groupKey = key(item);
@@ -17,6 +19,7 @@ function legacyGroupBy(items, key) {
   }, new Map());
 }
 
+// 计时同时返回结果供校验，防止把遗漏输出的快速路径计为有效性能样本。
 function elapsedNanoseconds(operation) {
   const startedAt = performance.now();
   const result = operation();
@@ -24,11 +27,13 @@ function elapsedNanoseconds(operation) {
   return { elapsed, result };
 }
 
+// 所有性能样本采用同一种秩统计口径；只供非空样本及本文件选定的百分位使用。
 function nearestRank(samples, percentile) {
   const sorted = [...samples].sort((left, right) => left - right);
   return sorted[Math.ceil((sorted.length * percentile) / 100) - 1];
 }
 
+// 可控分类数量生成目录负载，单分类用于暴露历史数组复制成本及连续分类缓存收益。
 function rows(count, groupCount = 1) {
   return Array.from({ length: count }, (_, index) => ({
     id: index,
@@ -36,10 +41,12 @@ function rows(count, groupCount = 1) {
   }));
 }
 
+// 聚合组内条目数作为性能样本校验，避免只验证组数而漏掉目录行。
 function totalItems(groups) {
   return Array.from(groups.values()).reduce((total, group) => total + group.length, 0);
 }
 
+// 独立保留旧标签筛选语义，避免对照路径复用被测辅助函数而掩盖模式回归。
 function matchesCatalogTab(row, mode, tab) {
   return (
     tab === "all" ||
@@ -51,6 +58,7 @@ function matchesCatalogTab(row, mode, tab) {
   );
 }
 
+// 对照路径保留逐字段搜索语义，并可观察重复规范化成本；它是索引优化的语义基线。
 function legacyCatalogFilter(input, mode, tab, query, normalizationCounter) {
   const normalizedQuery = query.trim().toLowerCase();
   return input.filter((row) => {
@@ -64,10 +72,12 @@ function legacyCatalogFilter(input, mode, tab, query, normalizationCounter) {
   });
 }
 
+// 同一测试入口把原数组与其索引配对，确保边界字符查询也可与旧逐字段路径比较。
 function indexedCatalogFilter(input, index, mode, tab, query) {
   return filterCatalogSearchIndex(input, index, mode, tab, query);
 }
 
+// 覆盖多种类别、作用域及路径的合成目录，供查询突发负载比较使用，不模拟资源加载。
 function catalogRows(count) {
   return Array.from({ length: count }, (_, index) => ({
     id: `catalog-${index}`,
@@ -82,6 +92,7 @@ function catalogRows(count) {
   }));
 }
 
+// 分组结果承担目录树显示顺序契约，测试同时约束键求值次数与非连续重复分类。
 test("groupBy preserves first-key and item order while evaluating each key once", () => {
   const input = [
     { id: 1, category: "b" },
@@ -114,6 +125,7 @@ test("groupBy constructs a complete 100k single-group catalog", () => {
   assert.equal(groups.get("category-0")?.[99_999]?.id, 99_999);
 });
 
+// 将字段边界、大小写与模式标签一起比较；带分隔符的查询必须只在单字段内命中。
 test("catalog search index preserves field, Unicode, and tab filtering semantics", () => {
   const input = [
     {
@@ -169,6 +181,7 @@ test("catalog search index preserves field, Unicode, and tab filtering semantics
   ]);
 });
 
+// 页面接线的文本约束补充函数语义测试，防止实际界面重新退回逐查询预处理。
 test("CatalogPage builds one row search index instead of normalizing every query", async () => {
   const page = await readFile(new URL("../src/pages/CatalogPage.tsx", import.meta.url), "utf8");
 
@@ -178,6 +191,7 @@ test("CatalogPage builds one row search index instead of normalizing every query
   assert.doesNotMatch(page, /projects\/searchIndex/);
 });
 
+// 在预构建索引后比较同一批突发查询；结果校验、交替配对及预热服务相对性能判定。
 test(
   "catalog search index meets the Hub02 10k burst-query P95 gate",
   { skip: process.env.ZIRCON_HUB02_PERF !== "1" },
@@ -255,6 +269,7 @@ test(
   },
 );
 
+// 单组大目录同时约束优化相对成本与规模增长；该纯函数计时不包含浏览器布局或原生资源扫描。
 test(
   "groupBy meets the Hub02 10k comparison and 100k linear-scale gates",
   { skip: process.env.ZIRCON_HUB02_PERF !== "1" },

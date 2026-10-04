@@ -10,6 +10,7 @@ const DEFAULT_LOG_TOOL_PREFERRED_HEIGHT: f32 = 148.0;
 const DEFAULT_CONSOLE_MIN_WIDTH: f32 = 186.0;
 const DEFAULT_CONSOLE_PREFERRED_WIDTH: f32 = 204.0;
 
+/// descriptor缺席时的区域保底需求；文档更高优先级，侧栏/底栏可为中心释放空间。
 pub fn default_region_constraints(region: ShellRegionId) -> PaneConstraints {
     match region {
         ShellRegionId::Left | ShellRegionId::Right => PaneConstraints {
@@ -32,6 +33,7 @@ pub fn default_region_constraints(region: ShellRegionId) -> PaneConstraints {
     }
 }
 
+/// view描述符的内容空间基线；与实际内容类型共同决定拥挤时的优先级和伸展权重。
 pub fn default_constraints_for_content(kind: ViewContentKind) -> PaneConstraints {
     match kind {
         ViewContentKind::Welcome => default_region_constraints(ShellRegionId::Document),
@@ -90,18 +92,5 @@ pub fn default_constraints_for_content(kind: ViewContentKind) -> PaneConstraints
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        default_constraints_for_content, DEFAULT_CONSOLE_MIN_WIDTH, DEFAULT_CONSOLE_PREFERRED_WIDTH,
-    };
-    use crate::ui::workbench::snapshot::ViewContentKind;
-
-    #[test]
-    fn console_constraints_preserve_the_compact_filter_group_minimum() {
-        let constraints = default_constraints_for_content(ViewContentKind::Console);
-
-        assert_eq!(constraints.width.min, DEFAULT_CONSOLE_MIN_WIDTH);
-        assert_eq!(constraints.width.preferred, DEFAULT_CONSOLE_PREFERRED_WIDTH);
-        assert!(constraints.width.max < 0.0);
-    }
-}
+#[path = "tests/defaults.rs"]
+mod tests;

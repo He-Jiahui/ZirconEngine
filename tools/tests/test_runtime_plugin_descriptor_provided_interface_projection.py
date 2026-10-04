@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 沿描述符、构建器、清单行与物理插件调用链，验证所提供接口完整投影到包清单。
 class RuntimePluginDescriptorProvidedInterfaceProjectionTests(unittest.TestCase):
     def test_descriptor_projects_provided_interfaces_to_package_manifest(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]

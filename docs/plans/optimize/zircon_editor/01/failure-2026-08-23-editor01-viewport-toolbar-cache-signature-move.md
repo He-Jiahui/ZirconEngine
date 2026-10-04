@@ -25,7 +25,7 @@ related_code:
 
 ## 失败现象与复现证据
 
-- Managed command: `tools/build-editor.ps1 -TargetDir
+- Managed command: `tools/build/build-editor.ps1 -TargetDir
   D:\cargo-targets\zircon-engine\ui12\bundle-current-bee4c707-20260822 -OutputDirectory
   D:\ZirconBuilds\ui12-editor-aa-current-bee4c707-20260822`.
 - Managed Job: `95421ec3365b4a6b9223b3a0647f1374`; released with exit code 1 at
@@ -70,3 +70,80 @@ are therefore misaligned: an in-place cache update is expressed as a move out of
 ## 修复结果与回传
 
 Open state: awaiting the active Editor01 owner repair and current-source managed validation.
+
+## 2026-09-11 rolling repair admission
+
+- The current source was rechecked at `c37155ba304740b3762b20585f77fb53a6da47fb` under
+  session `failure-roll-01a084c8-editor01-viewport-toolbar-cache`; the lease covers this
+  failure record and `zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/surface_frame_cache.rs`.
+- Snapshot `3409` sealed the failure record and source. The source hash is
+  `f046194d51347229dfe09ce342b4ce9bf0008eae4495bca611b353354761c771`; the failure record
+  hash is `b69094d4518925f632f22c1ebfe5ca9a57f5ff3a559426095b4ada3089d8df14`.
+- Direct managed validation request
+  `editor01-viewport-toolbar-cache-20260911-r1` was submitted with
+  `cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked`.
+  The coordinator returned `internal_error` with correlation/request id
+  `17080839e7bc42218f34fdbc46b7feb5`.
+- Read-only coordinator inspection at 2026-09-11 07:25 +08:00 found that request still
+  `accepted`, with no `validation_ticket_requests`, no `validation_tickets`, and no
+  terminal response or error persisted. This is an interrupted coordinator command, not
+  dynamic Cargo evidence; no pass, upward acceptance, review, fixed return, or closeout is
+  claimed. The item remains waiting for coordinator request reconciliation and a fresh
+admitted validation after the external validation state is healthy.
+
+## 2026-09-12 local ownership repair
+
+The current owner repair is now present in
+`surface_frame_cache.rs`: same-size route changes mutate the borrowed
+`SurfaceFrameSignature` in place and rebuild the published frame only when a
+mapped hit-control ID changes. The route-key update reuses the cache entry's
+owned vector and string capacities, and initial signature construction reserves
+the projection upper bound. Focused in-file regressions cover the remap and
+route-key contracts; the batched Editor cache/pointer contract run passed
+`43/43` in `0.813s`.
+
+The refreshed Runtime/Editor performance-plus-pressure batch loaded `536`
+modules and passed `1993/1993` in `12.193s` after the Runtime712 summary extension. This local evidence resolves the
+previously described move-out shape but does not close the handoff. The record
+remains open for the owner-attributed managed Cargo build and current-source
+Editor Release/product measurements; no coordinator state was polled or
+re-submitted during this repair.
+
+Runtime714 subsequently added the defensive unordered-line text-decoration fallback and shared
+the touched source map with caret projection in the Runtime Interface path. The current combined
+static batch remains `1993/1993` across 536 modules in `12.015s`; a later single-invocation rerun
+after this cache change passed in `8.398s`. This does not alter the handoff's managed validation
+requirement.
+
+## 2026-09-19 rolling successor source reconciliation
+
+- Successor Session `failure-roll-01a084c8-editor01-toolbar-cache-r2` reclaimed the
+  cache source and canonical record at baseline epoch `611`. Ownership transfer
+  fingerprint: `8597e6f93875bbf821a01d2071ec7bff8e3185e36f175c653b1cb4c646728e75`.
+- Current source mutates `SurfaceFrameSignature` in place through
+  `remap_hit_control_ids`, updates retained route-key allocations, and rebuilds
+  the frame only when mapping changes. Current working file also contains the
+  owner's focused capacity/remap tests; no bytes were reverted or attributed
+  beyond scope.
+- Fresh managed Editor Cargo/build, current-source independent review binding,
+  fixed return, closeout, and clean `E:\Git\zr_vm` remain pending. No dynamic
+  acceptance is inferred from prior local `43/43` or `1993/1993` evidence.
+
+## 2026-09-19 corrected static source-contract ticket
+
+- Current-source checker executed locally with the exact managed command payload and
+  passed `EDITOR01_VIEWPORT_TOOLBAR_CACHE_IN_PLACE_REMAP_CURRENT_SOURCE_CONTRACT_PASS`.
+- Managed validation ticket `42bd56b9d978415890ecc122709dae27` was admitted and is
+  queued under request `failure-roll-01a084c8-editor01-toolbar-cache-20260919-r1`.
+  The ticket binds the current failure-record hash
+  `8d19a28047fca249524e7c225429e0d75bdf14e2770db087c7ca811eca105c8e` and source hash
+  `4416a22121dff46c060a822f2d36af653f8f2f7ee2d8af0439abf5cf30511500`.
+- The ticket is static-only (`staticParseOnly=true`, `upwardAcceptance=false`) and
+  records the external `E:\Git\zr_vm` dirty-worktree blocker. It does not establish
+  the required dynamic Editor Cargo/build, independent C/I/M review, fixed return, or
+  failure closeout.
+
+- Terminal result: ticket `42bd56b9d978415890ecc122709dae27` reached `passed` at
+  `2026-09-19T07:55:09.424445Z`; the managed Python contract emitted
+  `EDITOR01_VIEWPORT_TOOLBAR_CACHE_IN_PLACE_REMAP_CURRENT_SOURCE_CONTRACT_PASS`.
+  This is source-contract evidence only and leaves the dynamic and closeout gates open.

@@ -7,6 +7,8 @@ use crate::core::framework::bridge::{BridgeError, PluginInterface};
 
 use super::{FrozenBridgeTable, WeakBridge};
 
+/// 消费插件在注册阶段拿到此句柄；合并后的注册表才把它接到最终冻结表。
+/// 克隆共享绑定槽，owner 撤销会解绑新调用，已进入回调的调用可依其 Arc 完成。
 /// Cloneable consumer-side bridge handle bound after the runtime catalog has
 /// merged and finalized every plugin contribution.
 pub struct BridgeImport<T: ?Sized> {
@@ -35,6 +37,7 @@ impl<T> BridgeImport<T>
 where
     T: PluginInterface + ?Sized,
 {
+    /// 成对交给消费方和注册表：前者发起调用，后者以静态接口 ID 在 finalize/撤销时更新绑定。
     pub(crate) fn new() -> (Self, InterfaceImport) {
         let binding = Arc::new(ArcSwapOption::empty());
         let imported = Self {
@@ -53,6 +56,7 @@ where
         (imported, erased)
     }
 
+    /// 未完成绑定时返回 Absent；绑定后仍须检查 provider 的当前代际，不能把一次 is_enabled 当调用许可。
     pub fn call<R>(&self, callback: impl FnOnce(&T) -> R) -> Result<R, BridgeError> {
         let binding = self.binding.load();
         let bridge = binding.as_ref().ok_or(BridgeError::Absent)?;
@@ -67,6 +71,7 @@ where
     }
 }
 
+/// 注册表保存的擦除端，只负责把同一消费句柄切换到最终表或解除绑定。
 #[derive(Clone)]
 pub(crate) struct InterfaceImport {
     interface_id: &'static str,
@@ -97,29 +102,5 @@ impl fmt::Debug for InterfaceImport {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::BridgeImport;
-    use crate::core::framework::bridge::PluginInterface;
-
-    struct StaticInterface;
-
-    impl PluginInterface for StaticInterface {
-        const INTERFACE_ID: &'static str = "zircon.fixture.static-interface.v1";
-    }
-
-    #[test]
-    fn erased_import_clones_share_static_interface_identity() {
-        let (_, erased) = BridgeImport::<StaticInterface>::new();
-        let cloned = erased.clone();
-
-        assert_eq!(erased.interface_id(), StaticInterface::INTERFACE_ID);
-        assert!(std::ptr::eq(
-            erased.interface_id().as_ptr(),
-            StaticInterface::INTERFACE_ID.as_ptr(),
-        ));
-        assert!(std::ptr::eq(
-            erased.interface_id().as_ptr(),
-            cloned.interface_id().as_ptr(),
-        ));
-    }
-}
+#[path = "tests/import.rs"]
+mod tests;

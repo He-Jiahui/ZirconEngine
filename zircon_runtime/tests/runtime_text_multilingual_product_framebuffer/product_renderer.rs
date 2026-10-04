@@ -3,9 +3,10 @@ use std::sync::Arc;
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::core::framework::render::{
     EnvironmentExtract, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode,
-    RenderFrameExtract, RenderFramework, RenderOverlayExtract, RenderQualityProfile,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderViewportDescriptor,
-    RenderViewportHandle, RenderWorldSnapshotHandle, UiRenderSubmission, ViewportCameraSnapshot,
+    RenderCameraTarget, RenderFrameExtract, RenderFramework, RenderOverlayExtract,
+    RenderPipelineHandle, RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
+    RenderViewportDescriptor, RenderViewportHandle, RenderWorldSnapshotHandle, UiRenderSubmission,
+    ViewportCameraSnapshot,
 };
 use zircon_runtime::core::math::{Transform, UVec2, Vec4};
 use zircon_runtime::graphics::WgpuRenderFramework;
@@ -42,6 +43,11 @@ impl ProductUiFrameRenderer {
             .set_quality_profile(
                 viewport,
                 RenderQualityProfile::new("runtime-multilingual-text")
+                    // The product renderer must select the registered forward pipeline. Without
+                    // an explicit pipeline the viewport can submit UI quads through the fallback
+                    // path while never instantiating the native text executor, producing a
+                    // misleading zero-glyph framebuffer despite valid text commands.
+                    .with_pipeline_asset(RenderPipelineHandle::new(1))
                     .with_clustered_lighting(false)
                     .with_screen_space_ambient_occlusion(false)
                     .with_temporal_history(false),
@@ -92,13 +98,28 @@ impl ProductUiFrameRenderer {
         for frame_index in 0..settle_frame_limit {
             let snapshot_id = self.next_snapshot_id;
             self.next_snapshot_id = self.next_snapshot_id.saturating_add(1);
-            self.server
-                .submit_frame_extract_with_ui(
-                    self.viewport,
-                    empty_extract(self.viewport_size, snapshot_id),
-                    Some(Arc::clone(&submission)),
-                )
-                .expect("submit multilingual text settle frame");
+            if let Err(error) = self.server.submit_frame_extract_with_ui(
+                self.viewport,
+                empty_extract(self.viewport_size, snapshot_id),
+                Some(Arc::clone(&submission)),
+            ) {
+                // A newly admitted font can require one recovery frame to publish the
+                // bitmap/SDF atlas backing. The product renderer deliberately rejects that
+                // frame so callers cannot sample incomplete GPU state; retry the same
+                // immutable submission and let the normal settle gate observe the result.
+                if is_retryable_text_atlas_upload_error(&error)
+                    && frame_index + 1 < settle_frame_limit
+                {
+                    std::thread::sleep(std::time::Duration::from_millis(
+                        TEXT_RASTER_SETTLE_FRAME_DELAY_MILLIS,
+                    ));
+                    continue;
+                }
+                let first_fault = self.server.first_device_fault();
+                panic!(
+                    "submit multilingual text settle frame: {error}; first device fault: {first_fault:?}"
+                );
+            }
             let stats = self.server.query_stats().expect("text proof render stats");
             source_cache_miss_count = source_cache_miss_count
                 .saturating_add(stats.last_ui_text_raster_source_cache_miss_count);
@@ -112,6 +133,9 @@ impl ProductUiFrameRenderer {
                 stats.last_ui_text_sdf_generation_pending_batch_count,
                 stats.last_ui_text_sdf_generation_completion_backlog_count,
                 stats.last_ui_text_sdf_generation_failure_count,
+                stats.last_ui_text_raster_retry_queued_glyph_count,
+                stats.last_ui_text_raster_retry_queue_overflow_glyph_count,
+                stats.last_ui_text_raster_retry_rejected_source_count,
             );
             final_stats = Some(stats);
             capture_is_stable =
@@ -149,6 +173,12 @@ impl ProductUiFrameRenderer {
     }
 }
 
+fn is_retryable_text_atlas_upload_error(error: &impl std::fmt::Display) -> bool {
+    let message = error.to_string();
+    message.contains("screen-space UI bitmap atlas upload preparation was incomplete")
+        || message.contains("screen-space UI SDF atlas upload preparation was incomplete")
+}
+
 pub(super) fn render_ui_extract_frame(
     ui: UiRenderExtract,
     viewport_size: UVec2,
@@ -170,6 +200,9 @@ fn text_raster_frame_is_settled(
     sdf_generation_pending_batch_count: usize,
     sdf_generation_completion_backlog_count: usize,
     sdf_generation_failure_count: usize,
+    retry_queued_glyph_count: usize,
+    retry_queue_overflow_glyph_count: usize,
+    retry_rejected_source_count: usize,
 ) -> bool {
     pending_count == 0
         && failed_count == 0
@@ -180,6 +213,9 @@ fn text_raster_frame_is_settled(
         && sdf_generation_pending_batch_count == 0
         && sdf_generation_completion_backlog_count == 0
         && sdf_generation_failure_count == 0
+        && retry_queued_glyph_count == 0
+        && retry_queue_overflow_glyph_count == 0
+        && retry_rejected_source_count == 0
 }
 
 fn text_raster_capture_is_stable(
@@ -187,6 +223,21 @@ fn text_raster_capture_is_stable(
     current_frame_settled: bool,
 ) -> bool {
     previous_frame_settled && current_frame_settled
+}
+
+#[test]
+fn product_text_quality_profile_selects_the_ui_pipeline() {
+    let profile = RenderQualityProfile::new("runtime-multilingual-text")
+        .with_pipeline_asset(RenderPipelineHandle::new(1))
+        .with_clustered_lighting(false)
+        .with_screen_space_ambient_occlusion(false)
+        .with_temporal_history(false);
+
+    assert_eq!(
+        profile.pipeline_override,
+        Some(RenderPipelineHandle::new(1)),
+        "the product framebuffer must exercise the registered UI pipeline"
+    );
 }
 
 fn empty_extract(viewport_size: UVec2, snapshot_id: u64) -> RenderFrameExtract {
@@ -200,7 +251,7 @@ fn empty_extract(viewport_size: UVec2, snapshot_id: u64) -> RenderFrameExtract {
     };
     camera.apply_viewport_size(viewport_size);
 
-    RenderFrameExtract::from_snapshot(
+    let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(snapshot_id),
         RenderSceneSnapshot {
             scene: RenderSceneGeometryExtract {
@@ -222,21 +273,61 @@ fn empty_extract(viewport_size: UVec2, snapshot_id: u64) -> RenderFrameExtract {
             },
             virtual_geometry_debug: None,
         },
-    )
+    );
+    // This renderer captures an offscreen texture and does not acquire a window
+    // surface. Keep the extracted camera target aligned with that host so graph
+    // compilation does not author a surface-present pass that cannot execute.
+    extract
+        .view
+        .selected_camera_descriptor_mut()
+        .expect("test extract should carry a selected camera descriptor")
+        .target = RenderCameraTarget::Headless {
+        size: viewport_size,
+    };
+    extract
 }
 
 #[test]
 fn product_framebuffer_capture_requires_two_consecutive_successful_raster_frames() {
-    assert!(text_raster_frame_is_settled(0, 0, 0, 0, 0, 0, 0, 0, 0));
-    assert!(!text_raster_frame_is_settled(1, 0, 0, 0, 0, 0, 0, 0, 0));
-    assert!(!text_raster_frame_is_settled(0, 1, 0, 0, 0, 0, 0, 0, 0));
-    assert!(!text_raster_frame_is_settled(0, 0, 1, 0, 0, 0, 0, 0, 0));
-    assert!(!text_raster_frame_is_settled(0, 0, 0, 1, 0, 0, 0, 0, 0));
-    assert!(!text_raster_frame_is_settled(0, 0, 0, 0, 1, 0, 0, 0, 0));
-    assert!(!text_raster_frame_is_settled(0, 0, 0, 0, 0, 1, 0, 0, 0));
-    assert!(!text_raster_frame_is_settled(0, 0, 0, 0, 0, 0, 1, 0, 0));
-    assert!(!text_raster_frame_is_settled(0, 0, 0, 0, 0, 0, 0, 1, 0));
-    assert!(!text_raster_frame_is_settled(0, 0, 0, 0, 0, 0, 0, 0, 1));
+    assert!(text_raster_frame_is_settled(
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0
+    ));
+    assert!(!text_raster_frame_is_settled(
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+    ));
     assert!(!text_raster_capture_is_stable(false, true));
     assert!(!text_raster_capture_is_stable(true, false));
     assert!(text_raster_capture_is_stable(true, true));

@@ -1,3 +1,5 @@
+//! 状态栏专用入口按 control_id/诊断变体认领 chip、图标和信号，避免通用按钮重绘一层背景。
+
 mod chips;
 mod commands;
 mod icons;
@@ -30,5 +32,5 @@ use identity::{status_control_kind, StatusControlKind};
 use signals::{status_signal_icon_fill, status_signal_text_color};
 
 #[cfg(test)]
-#[path = "template_status_controls_tests/mod.rs"]
+#[path = "template_status_controls_tests/tests/mod.rs"]
 mod tests;

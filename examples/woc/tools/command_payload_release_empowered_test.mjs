@@ -41,8 +41,8 @@ assert.match(zr, /payloadMinLength\(<uint>149, true\) == 4/);
 assert.match(zr, /payloadMaxLength\(<uint>149, true\) == 260/);
 assert.match(rust, /pub const RELEASE_EMPOWERED_COMMAND_ID: u16 = 149;/);
 assert.match(rust, /name: "releaseEmpowered",\n        kind: CommandPayloadKind::Utf8Id,/);
-assert.equal(coverage.totals.typed_contract_commands, 148);
-assert.equal(coverage.totals.typed_contract_client_send_commands, 147);
-assert.equal(coverage.totals.source_shape_only_commands, 9);
+assert.equal(coverage.totals.typed_contract_commands, 157);
+assert.equal(coverage.totals.typed_contract_client_send_commands, 156);
+assert.equal(coverage.totals.source_shape_only_commands, 0);
 
 process.stdout.write('releaseEmpowered payload contract is complete\n');

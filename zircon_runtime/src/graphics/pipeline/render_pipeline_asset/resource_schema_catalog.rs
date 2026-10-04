@@ -1,6 +1,6 @@
 use crate::core::framework::render::RenderFrameExtract;
-use crate::graphics::RenderResourceSchema;
 use crate::graphics::pipeline::RenderPipelineCompileOptions;
+use crate::graphics::RenderResourceSchema;
 use crate::rhi::{BufferDesc, TextureDesc};
 
 use super::resource_descriptors::{

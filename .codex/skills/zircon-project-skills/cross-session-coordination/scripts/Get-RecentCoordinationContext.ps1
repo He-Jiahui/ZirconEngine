@@ -95,29 +95,6 @@ function Get-RecentPlanFiles {
     )
 }
 
-function Invoke-CoordinatorJson {
-    param([string[]]$Arguments)
-
-    $python = Get-Command python -ErrorAction SilentlyContinue
-    if ($null -eq $python) {
-        return $null
-    }
-    Push-Location $resolvedRepoRoot
-    try {
-        $raw = & $python.Source -m tools.session_coordinator --repo-root $resolvedRepoRoot --json @Arguments 2>$null
-        if ($LASTEXITCODE -ne 0 -or -not $raw) {
-            return $null
-        }
-        return ($raw -join [Environment]::NewLine) | ConvertFrom-Json
-    }
-    catch {
-        return $null
-    }
-    finally {
-        Pop-Location
-    }
-}
-
 function Get-RecentSessionFiles {
     param(
         [string]$DirectoryPath,
@@ -153,23 +130,8 @@ $output.Add("- Generated: $(Get-Date -Format $timestampFormat)")
 $output.Add("- Lookback window: last $LookbackHours hour(s)")
 $output.Add("- Cutoff: $($cutoff.ToString($timestampFormat))")
 $output.Add('')
-$output.Add('## Coordinator Service')
-
-$coordinatorHealth = Invoke-CoordinatorJson -Arguments @('status')
-if ($null -eq $coordinatorHealth) {
-    $output.Add('- Offline; using recursive Markdown compatibility scan.')
-}
-else {
-    $output.Add("- status=$($coordinatorHealth.status) | branch=$($coordinatorHealth.branch) | mode=$($coordinatorHealth.mode)")
-    $coordinatorSessions = Invoke-CoordinatorJson -Arguments @('session', 'list')
-    if ($null -ne $coordinatorSessions) {
-        $output.Add("- indexed Sessions: $(@($coordinatorSessions.sessions).Count)")
-    }
-    $failureAudit = Invoke-CoordinatorJson -Arguments @('failure', 'audit')
-    if ($null -ne $failureAudit) {
-        $output.Add("- Failure graph: $($failureAudit.audit.node_count) node(s), $(@($failureAudit.audit.diagnostics).Count) diagnostic(s)")
-    }
-}
+$output.Add('## Context Source')
+$output.Add('- Current Markdown plans and task notes; no retired coordinator service is queried.')
 
 $output.Add('')
 $output.Add('## Recent Plans')

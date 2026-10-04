@@ -1,0 +1,87 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "apps",
+  "projects": {
+    "zircon-zui-plugin": {
+      "projectType": "application",
+      "root": "apps/zircon-zui-plugin",
+      "sourceRoot": "apps/zircon-zui-plugin/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "outputPath": {
+              "base": "dist/apps/zircon-zui-plugin",
+              "browser": ""
+            },
+            "index": "apps/zircon-zui-plugin/src/index.html",
+            "browser": "apps/zircon-zui-plugin/src/main.ts",
+            "polyfills": [
+              "zone.js"
+            ],
+            "tsConfig": "apps/zircon-zui-plugin/tsconfig.app.json",
+            "assets": [
+              "apps/zircon-zui-plugin/src/_headers",
+              "apps/zircon-zui-plugin/src/manifest.json",
+              "apps/zircon-zui-plugin/src/assets"
+            ],
+            "styles": [
+              "../../third_party/penpot/plugins/libs/plugins-styles/src/lib/styles.css",
+              "apps/zircon-zui-plugin/src/styles.css"
+            ],
+            "scripts": [],
+            "optimization": {
+              "scripts": true,
+              "styles": true,
+              "fonts": false
+            }
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kb",
+                  "maximumError": "1mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "4kb",
+                  "maximumError": "8kb"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "zircon-zui-plugin:build:production"
+            },
+            "development": {
+              "buildTarget": "zircon-zui-plugin:build:development",
+              "host": "0.0.0.0",
+              "port": 4213
+            }
+          },
+          "defaultConfiguration": "development"
+        }
+      }
+    }
+  },
+  "cli": {
+    "cache": {
+      "enabled": false
+    }
+  }
+}

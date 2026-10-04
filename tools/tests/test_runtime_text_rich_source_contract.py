@@ -1,3 +1,5 @@
+
+from tools.tests.rust_test_files import read_rust_test_file
 import unittest
 from pathlib import Path
 
@@ -94,7 +96,7 @@ class RuntimeTextRichSourceContractTests(unittest.TestCase):
         source = (ROOT / "zircon_runtime/src/ui/text/rich_text.rs").read_text(
             encoding="utf-8"
         )
-        tests = (ROOT / "zircon_runtime/src/ui/text/rich_text/tests.rs").read_text(
+        tests = (ROOT / "zircon_runtime/src/ui/text/rich_text/tests/cases.rs").read_text(
             encoding="utf-8"
         )
 
@@ -182,22 +184,30 @@ class RuntimeTextRichSourceContractTests(unittest.TestCase):
         source = (ROOT / "zircon_runtime/src/text/layout/measure.rs").read_text(
             encoding="utf-8"
         )
-        self.assertIn("fn validate_shaped_geometry_source", source)
-        self.assertIn("validate_shaped_geometry_source(shaped, text)?", source)
+        projection = (
+            ROOT / "zircon_runtime/src/text/layout/measure/grapheme_projection.rs"
+        ).read_text(encoding="utf-8")
+        self.assertIn("fn validate_shaped_geometry_source", projection)
+        self.assertIn(
+            "validate_shaped_geometry_source(shaped, shaped.source_text.as_ref())?",
+            source,
+        )
+        self.assertIn("source_text_offset", source)
+        self.assertIn("end > source_end", source)
         self.assertIn("TextShapingOutcome::from_result(measured_grapheme_geometry_from_shaped", source)
         self.assertNotIn("let start = start.min(source_text.len())", source)
         self.assertNotIn("let end = end.min(source_text.len()).max(start)", source)
         self.assertIn("!run.source_text.is_char_boundary(relative_start)", source)
-        self.assertIn("line.source_range.start < previous_line_end", source)
+        self.assertIn("line.source_range.start < previous_line_end", projection)
         self.assertIn("measured_grapheme_geometry_rejects_non_boundary_glyph_ranges", 
-                      (ROOT / "zircon_runtime/src/text/layout/measure/tests.rs").read_text(encoding="utf-8"))
+                      (ROOT / "zircon_runtime/src/text/layout/measure/tests/cases.rs").read_text(encoding="utf-8"))
 
     def test_gap_fill_semantics_are_documented_and_regressed(self):
         source = (ROOT / "zircon_runtime/src/text/layout/rich_source.rs").read_text(
             encoding="utf-8"
         )
         self.assertIn("Gaps are allowed", source)
-        self.assertIn("source_contract_accepts_empty_and_partially_covered_text", source)
+        self.assertIn("source_contract_accepts_empty_and_partially_covered_text", read_rust_test_file("zircon_runtime/src/text/layout/tests/rich_source.rs"))
         plan = (ROOT / "docs/plans/zircon_runtime/text/03-line-breaking-measure-and-layout.md").read_text(
             encoding="utf-8"
         )
@@ -423,7 +433,7 @@ class RuntimeTextRichSourceContractTests(unittest.TestCase):
         hit = (
             ROOT / "zircon_runtime/src/ui/text/rich_text/link_hit.rs"
         ).read_text(encoding="utf-8")
-        tests = (ROOT / "zircon_runtime/src/text/rich/tests.rs").read_text(
+        tests = (ROOT / "zircon_runtime/src/text/rich/tests/cases.rs").read_text(
             encoding="utf-8"
         )
 

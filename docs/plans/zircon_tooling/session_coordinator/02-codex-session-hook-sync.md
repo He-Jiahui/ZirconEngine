@@ -28,7 +28,7 @@
 
 - `.codex/hooks/zircon_session_sync.py` — bounded stdin event reduction, repository filter, atomic trigger write, authenticated wake signal, and event-specific stdout.
 - `.codex/hooks.json` — exact SessionStart/UserPromptSubmit/Stop/SubagentStart/SubagentStop matcher groups and Windows/git-root commands.
-- `tools/install-codex-session-hook.ps1` — idempotent Query/Install/Update/Remove/DryRun management of the exact project Hook definition and feature flag.
+- `tools/setup/install-codex-session-hook.ps1` — idempotent Query/Install/Update/Remove/DryRun management of the exact project Hook definition and feature flag.
 - `tools/session_coordinator/codex_sync/__init__.py` — narrow public exports.
 - `tools/session_coordinator/codex_sync/models.py` — source-location/state/event enums and immutable discovery/reconcile records.
 - `tools/session_coordinator/codex_sync/discovery.py` — bounded rollout membership scan and first-line/tail parser.
@@ -64,7 +64,7 @@
 - `tools/session_coordinator/web/src/pages/SessionsPage.tsx` — separate business and Codex Session panels.
 - `tools/session_coordinator/web/src/App.tsx` — pass the bounded Codex projection to the Sessions route.
 - `tools/session_coordinator/web/src/__tests__/contracts.test.ts` — producer-shape and malformed-input coverage.
-- `docs/cli-and-tooling/workflow-control-center.md` — hook installation, privacy, recovery, status, and removal operations.
+- `docs/tooling/workflow-control-center.md` — hook installation, privacy, recovery, status, and removal operations.
 - `tests/acceptance/workflow-control-center-and-tray.md` — requirement-to-evidence acceptance matrix and final commands.
 - `tools/session_coordinator/soak.py` — include Codex worker/queue/session projection continuity in the source-frozen 24-hour gate.
 - `tools/session_coordinator/tests/test_soak.py` — two-generation Codex projection continuity and queue-drain assertions.
@@ -88,7 +88,7 @@ Establish the lowest shared domain: typed source states, bounded rollout parsing
 - [ ] **H1.3 Implement bounded discovery.** Read at most the first JSONL line plus a 64 KiB tail, tolerate a concurrently partial final line, cap membership at 10,000 rollout files, normalize Windows paths case-insensitively, and sort output by thread ID for deterministic reconciliation.
 - [ ] **H1.4 Add schema-v27 failure-first tests.** Prove migration atomicity, idempotency, enum checks, foreign-key behavior, indexes, and rollback to a valid v26 database after injected failure.
 - [ ] **H1.5 Implement v27 and `CodexSessionStore`.** Add `codex_sessions` and `codex_sync_runs`; upsert changed revisions, bind only exact `sessions.session_id == thread_id`, require two complete membership scans before `unavailable`, and emit sanitized events only on discovery/state/location/diagnostic changes.
-- [ ] **H1.6 Document the module boundary.** Add machine-readable related-code/test headers to `docs/cli-and-tooling/workflow-control-center.md` and explain why Codex source presence is separate from business Session authority.
+- [ ] **H1.6 Document the module boundary.** Add machine-readable related-code/test headers to `docs/tooling/workflow-control-center.md` and explain why Codex source presence is separate from business Session authority.
 
 ### Testing stage H1-T
 

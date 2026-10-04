@@ -7,8 +7,8 @@ related_code:
   - .github/workflows/mvp-editor-windows.yml
 implementation_files:
   - zircon_runtime/tests/zui_native_visual_acceptance
-  - tools/capture-editor-ui-visual.ps1
-  - tools/zircon_pbr_visual_oracle.py
+  - tools/analysis/visual/capture-editor-ui-visual.ps1
+  - tools/analysis/visual/zircon_pbr_visual_oracle.py
 plan_sources:
   - docs/plans/mvp/index.md
 tests:

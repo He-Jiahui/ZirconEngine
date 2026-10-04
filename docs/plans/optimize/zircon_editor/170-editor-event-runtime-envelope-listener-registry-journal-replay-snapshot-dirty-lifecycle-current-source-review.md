@@ -32,7 +32,7 @@ tests:
   - zircon_editor/src/ui/retained_host/app/tests/retained_host_automation.rs
   - zircon_app/tests/editor_mvp_authoring.rs
 plan_sources:
-  - docs/zircon_editor/core/editor_event.md
+  - docs/crates/zircon_editor/core/editor_event.md
   - docs/plans/zircon_editor/editor/02/failure-2026-07-17-editor-event-journal-listener-unbounded-retention.md
   - docs/plans/zircon_editor/editor/02/2026-07-18-editor-event-retention-and-lock-split.md
   - docs/plans/performance/01/2026-08-15-editor-event-retention-routing-current-architecture-review.md

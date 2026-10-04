@@ -29,15 +29,20 @@ impl SessionGateway {
                 &mut output,
             )
         };
-        self.decode_output(
-            status,
-            output,
-            RuntimeForeignOutputKind::WorldQuery,
-            WORLD_QUERY_OUTPUT_BUDGET,
-            "query runtime world",
-            "free runtime world query output",
-            |result: &WorldQueryResult| Ok::<usize, GatewayError>(world_query_item_count(result)),
-        )?
+        // The status and output were produced above by this gateway's retained runtime provider.
+        unsafe {
+            self.decode_output(
+                status,
+                output,
+                RuntimeForeignOutputKind::WorldQuery,
+                WORLD_QUERY_OUTPUT_BUDGET,
+                "query runtime world",
+                "free runtime world query output",
+                |result: &WorldQueryResult| {
+                    Ok::<usize, GatewayError>(world_query_item_count(result))
+                },
+            )?
+        }
         .ok_or_else(|| GatewayError::Protocol {
             message: "query runtime world returned an empty payload".to_owned(),
         })
@@ -113,19 +118,22 @@ impl SessionGateway {
         )?;
         let mut output = ZrOwnedResultV2::empty();
         let status = unsafe { drain(self.session, &mut output) };
-        self.decode_output(
-            status,
-            output,
-            RuntimeForeignOutputKind::WorldInvalidations,
-            WORLD_INVALIDATION_OUTPUT_BUDGET,
-            "drain runtime world invalidations",
-            "free runtime world invalidation output",
-            |batches: &Vec<InvalidationBatch>| {
-                Ok::<usize, GatewayError>(batches.iter().fold(0_usize, |count, batch| {
-                    count.saturating_add(world_invalidation_item_count(batch))
-                }))
-            },
-        )
+        // The status and output were produced above by this gateway's retained runtime provider.
+        unsafe {
+            self.decode_output(
+                status,
+                output,
+                RuntimeForeignOutputKind::WorldInvalidations,
+                WORLD_INVALIDATION_OUTPUT_BUDGET,
+                "drain runtime world invalidations",
+                "free runtime world invalidation output",
+                |batches: &Vec<InvalidationBatch>| {
+                    Ok::<usize, GatewayError>(batches.iter().fold(0_usize, |count, batch| {
+                        count.saturating_add(world_invalidation_item_count(batch))
+                    }))
+                },
+            )
+        }
         .map(|batches| batches.unwrap_or_default())
     }
 }

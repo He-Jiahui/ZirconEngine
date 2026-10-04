@@ -1,3 +1,5 @@
+//! 不可变发布中的清单路径索引保留重复包的全部候选，使删除当前赢家后可确定性提升下一候选。
+//! 增量操作应用在基准索引的副本上；失败副本不会替换消费者仍持有的快照。
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -8,7 +10,7 @@ use super::{
 };
 
 #[cfg(test)]
-#[path = "manifest_index/capacity_tests.rs"]
+#[path = "manifest_index/tests/capacity_tests.rs"]
 mod capacity_tests;
 
 /// Immutable manifest-path truth used to project deterministic candidates and duplicate reports.
@@ -28,6 +30,8 @@ impl NativePluginDiscoveryManifestIndex {
         index
     }
 
+    /// 工作动作与候选须来自同一通知批次；按通知顺序执行父目录删除与子清单重建。
+    /// 调用者必须使用未发布的副本，因为报错前可能已修改此索引。
     pub(super) fn apply_incremental(
         &mut self,
         work: &NativePluginDiscoveryRefreshWork,
@@ -84,6 +88,7 @@ impl NativePluginDiscoveryManifestIndex {
         Ok(())
     }
 
+    /// 清单路径排序决定同包标识的唯一赢家；重复项留在索引中，诊断随每次投影重算。
     pub(super) fn project(&self) -> (Vec<NativePluginCandidate>, Vec<String>) {
         let mut selected = BTreeMap::<String, PathBuf>::new();
         let mut candidates = Vec::with_capacity(self.candidates.len());
@@ -91,6 +96,8 @@ impl NativePluginDiscoveryManifestIndex {
 
         for (manifest_path, candidate) in &self.candidates {
             if let Some(first_path) = selected.get(&candidate.plugin_id) {
+                // BUG: [CR-PLUGIN-NATIVE-0206] 这些重复包诊断未经过收集槽准入，也未校验最终诊断数；
+                // 候选总数在额度内但重复项超过诊断上限时，发布快照仍越过声明的诊断预算；证据：快照直接接收本投影。
                 diagnostics.push(format!(
                     "duplicate native plugin package id `{}`: keeping {}, ignoring {}",
                     candidate.plugin_id,

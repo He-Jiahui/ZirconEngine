@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 def source(relative: str) -> str:
     return (ROOT / relative).read_text(encoding="utf-8")
 
-
+# 读取实现源码约束诊断日志 M0：已知完整尽力执行门禁先于延迟消息求值，并空编译后过滤返回不带哈希探测。
 class RuntimeDiagnosticLogM0PerformanceContract(unittest.TestCase):
     def test_known_full_best_effort_gate_precedes_lazy_message_evaluation(self) -> None:
         worker = source("zircon_runtime/src/diagnostic_log/sink/worker.rs")

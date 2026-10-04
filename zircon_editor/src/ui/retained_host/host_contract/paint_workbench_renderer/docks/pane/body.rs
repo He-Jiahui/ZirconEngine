@@ -4,6 +4,7 @@ use super::super::super::super::paint_primitives::draw_rect;
 use super::super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 use super::super::viewport_toolbar;
 
+// pane 内容的绘制起点由种类决定；视口工具栏占用内容上缘后，返回剩余区域供模板与原生内容共用。
 pub(super) fn draw_pane_shell_and_body(
     frame: &mut HostRgbaFrame,
     pane: &PaneData,
@@ -18,8 +19,9 @@ pub(super) fn draw_pane_shell_and_body(
             pane_background_color(pane.kind.as_str(), palette),
         );
     }
-    if viewport_toolbar_is_visible(pane) {
-        let toolbar = viewport_toolbar_frame(content);
+    if let Some(toolbar) =
+        super::super::super::super::viewport_chrome_geometry::viewport_toolbar_frame(pane, content)
+    {
         {
             zircon_runtime::profile_scope!(
                 "editor",
@@ -42,37 +44,8 @@ fn pane_background_color(kind: &str, palette: HostMaterialPalette) -> [u8; 4] {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
-
-    #[test]
-    fn pane_backgrounds_project_viewport_and_empty_roles_from_the_current_theme() {
-        let mut palette = PALETTE;
-        palette.shell_background = [3, 5, 7, 255];
-        palette.surface_inset = [11, 13, 17, 255];
-
-        assert_eq!(pane_background_color("Scene", palette), [3, 5, 7, 255]);
-        assert_eq!(pane_background_color("Game", palette), [3, 5, 7, 255]);
-        assert_eq!(
-            pane_background_color("Hierarchy", palette),
-            [11, 13, 17, 255]
-        );
-    }
-}
-
-fn viewport_toolbar_is_visible(pane: &PaneData) -> bool {
-    matches!(pane.kind.as_str(), "Scene" | "Game") && pane.show_toolbar
-}
-
-fn viewport_toolbar_frame(content: &FrameRect) -> FrameRect {
-    FrameRect {
-        x: content.x,
-        y: content.y,
-        width: content.width,
-        height: 28.0_f32.min(content.height),
-    }
-}
+#[path = "tests/body.rs"]
+mod tests;
 
 fn body_after_toolbar(content: &FrameRect, toolbar: &FrameRect) -> FrameRect {
     FrameRect {

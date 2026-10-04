@@ -3,22 +3,26 @@
 mod pending;
 
 use std::fmt;
-use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, Weak};
 use std::time::Instant;
 
 use crate::core::diagnostics::DiagnosticStore;
 
 use super::callback_dispatcher::TaskCallbackDispatcher;
+use super::task_graph::{engine_task_graph::EngineTaskGraphInner, TaskGraphAdmissionError};
 use super::{
     JobHandle, JobSchedulerDiagnosticsState, JobSchedulerReport, TaskDiagnosticIdentity,
     TaskDiagnosticKind, TaskDiagnosticSource, TaskPool, TaskPoolKind, TaskPoolSubmission,
 };
-use pending::{PendingScheduledJob, PendingScheduledWork, PrelaunchTerminalHook};
+use pending::{
+    complete_scheduled_task, PendingScheduledJob, PendingScheduledWork, PostTerminalHook,
+    PrelaunchTerminalHook,
+};
 
 #[derive(Clone)]
 pub struct JobScheduler {
     pool: TaskPool,
+    graph: Option<Weak<EngineTaskGraphInner>>,
     callback_dispatcher: TaskCallbackDispatcher,
     diagnostics: Arc<JobSchedulerDiagnosticsState>,
 }
@@ -40,13 +44,14 @@ impl JobScheduler {
         Self::from_pool_with_callback_dispatcher(pool.clone(), TaskCallbackDispatcher::new(pool))
     }
 
-    fn from_pool_with_callback_dispatcher(
+    pub(super) fn from_pool_with_callback_dispatcher(
         pool: TaskPool,
         callback_dispatcher: TaskCallbackDispatcher,
     ) -> Self {
         Self {
             callback_dispatcher,
             pool,
+            graph: None,
             diagnostics: Arc::default(),
         }
     }
@@ -84,6 +89,44 @@ impl JobScheduler {
         self.schedule_with_submission(submission, task)
     }
 
+    pub(super) fn pending_task_completion(
+        &self,
+        descriptor: super::TaskDescriptor,
+        remaining_dependencies: usize,
+    ) -> JobHandle {
+        JobHandle::pending_task_with_scheduler_diagnostics(
+            descriptor,
+            remaining_dependencies,
+            Arc::clone(&self.diagnostics),
+            self.callback_dispatcher.clone(),
+        )
+    }
+
+    pub(super) fn pending_graph_task_completion_with_dispatcher(
+        &self,
+        descriptor: super::TaskDescriptor,
+        remaining_dependencies: usize,
+        callback_dispatcher: TaskCallbackDispatcher,
+        graph_owner: Weak<()>,
+    ) -> JobHandle {
+        JobHandle::pending_graph_task_with_scheduler_diagnostics(
+            descriptor,
+            remaining_dependencies,
+            Arc::clone(&self.diagnostics),
+            callback_dispatcher,
+            graph_owner,
+        )
+    }
+
+    pub(super) fn schedule_existing_with_outcome(
+        &self,
+        handle: JobHandle,
+        task: impl FnOnce() -> JobExecutionOutcome + Send + 'static,
+    ) -> JobHandle {
+        let submission = self.submission_or_panic();
+        self.schedule_existing_with_submission(handle, submission, task)
+    }
+
     pub(super) fn schedule_with_submission(
         &self,
         submission: TaskPoolSubmission,
@@ -94,6 +137,25 @@ impl JobScheduler {
             Arc::clone(&self.diagnostics),
             self.callback_dispatcher.clone(),
         );
+        self.schedule_existing_with_submission(handle, submission, task)
+    }
+
+    pub(super) fn schedule_existing_with_submission(
+        &self,
+        handle: JobHandle,
+        submission: TaskPoolSubmission,
+        task: impl FnOnce() -> JobExecutionOutcome + Send + 'static,
+    ) -> JobHandle {
+        self.schedule_existing_with_submission_and_post_terminal(handle, submission, task, None)
+    }
+
+    pub(super) fn schedule_existing_with_submission_and_post_terminal(
+        &self,
+        handle: JobHandle,
+        submission: TaskPoolSubmission,
+        task: impl FnOnce() -> JobExecutionOutcome + Send + 'static,
+        post_terminal: Option<PostTerminalHook>,
+    ) -> JobHandle {
         let handle_for_task = handle.clone();
         let diagnostics = Arc::clone(&self.diagnostics);
         let enqueued_at = diagnostics.record_scheduled_and_enqueued();
@@ -107,6 +169,7 @@ impl JobScheduler {
                 identity,
                 execution_started_at,
                 task,
+                post_terminal,
             );
         });
         handle
@@ -138,7 +201,7 @@ impl JobScheduler {
         submission: TaskPoolSubmission,
         task: impl FnOnce() -> JobExecutionOutcome + Send + 'static,
     ) -> JobHandle {
-        self.schedule_after_with_submission_inner(dependencies, submission, task, None)
+        self.schedule_after_with_submission_inner(dependencies, submission, task, None, None, None)
     }
 
     pub(super) fn schedule_after_with_submission_and_prelaunch_terminal(
@@ -153,27 +216,80 @@ impl JobScheduler {
             submission,
             task,
             Some(Box::new(prelaunch_terminal)),
+            None,
+            None,
         )
     }
 
+    pub(super) fn schedule_after_existing_with_submission_and_prelaunch_terminal(
+        &self,
+        handle: JobHandle,
+        dependencies: &[JobHandle],
+        submission: TaskPoolSubmission,
+        task: impl FnOnce() -> JobExecutionOutcome + Send + 'static,
+        prelaunch_terminal: impl FnOnce(TaskDiagnosticKind, Arc<str>) + Send + 'static,
+    ) -> JobHandle {
+        self.schedule_after_with_submission_inner(
+            dependencies,
+            submission,
+            task,
+            Some(Box::new(prelaunch_terminal)),
+            Some(handle),
+            None,
+        )
+    }
+
+    pub(super) fn schedule_after_existing_with_submission_and_hooks(
+        &self,
+        handle: JobHandle,
+        dependencies: &[JobHandle],
+        submission: TaskPoolSubmission,
+        task: impl FnOnce() -> JobExecutionOutcome + Send + 'static,
+        prelaunch_terminal: impl FnOnce(TaskDiagnosticKind, Arc<str>) + Send + 'static,
+        post_terminal: impl FnOnce(JobExecutionOutcome) + Send + 'static,
+    ) -> JobHandle {
+        self.schedule_after_with_submission_inner(
+            dependencies,
+            submission,
+            task,
+            Some(Box::new(prelaunch_terminal)),
+            Some(handle),
+            Some(Box::new(post_terminal)),
+        )
+    }
+
+    // 有依赖时 PendingScheduledJob 独占一次性工作体；每个终态回调只推进依赖计数或赢得失败/取消终态，避免竞态下重复启动。
     fn schedule_after_with_submission_inner(
         &self,
         dependencies: &[JobHandle],
         submission: TaskPoolSubmission,
         task: impl FnOnce() -> JobExecutionOutcome + Send + 'static,
         prelaunch_terminal: Option<PrelaunchTerminalHook>,
+        existing_handle: Option<JobHandle>,
+        post_terminal: Option<PostTerminalHook>,
     ) -> JobHandle {
         if dependencies.is_empty() {
-            return self.schedule_with_submission(submission, task);
+            return if let Some(handle) = existing_handle {
+                self.schedule_existing_with_submission_and_post_terminal(
+                    handle,
+                    submission,
+                    task,
+                    post_terminal,
+                )
+            } else {
+                self.schedule_with_submission(submission, task)
+            };
         }
 
         let diagnostics_tracked = self.diagnostics.record_scheduled();
         let identity = self.diagnostics.task_identity();
-        let handle = JobHandle::pending_with_scheduler_diagnostics(
-            dependencies.len(),
-            Arc::clone(&self.diagnostics),
-            self.callback_dispatcher.clone(),
-        );
+        let handle = existing_handle.unwrap_or_else(|| {
+            JobHandle::pending_with_scheduler_diagnostics(
+                dependencies.len(),
+                Arc::clone(&self.diagnostics),
+                self.callback_dispatcher.clone(),
+            )
+        });
         let pending = Arc::new(PendingScheduledJob {
             handle: handle.clone(),
             diagnostics: Arc::clone(&self.diagnostics),
@@ -185,10 +301,14 @@ impl JobScheduler {
                 task: Box::new(task),
                 submission,
                 prelaunch_terminal,
+                post_terminal,
             })),
         });
 
         for dependency in dependencies {
+            if !pending.has_pending_work() || handle.is_complete() {
+                break;
+            }
             let dependency_for_callback = dependency.clone();
             let handle_for_callback = handle.clone();
             let pending_for_callback = Arc::clone(&pending);
@@ -217,11 +337,13 @@ impl JobScheduler {
                         TaskDiagnosticKind::Panicked,
                         Arc::clone(&panic_message),
                     );
+                    break;
                 } else if dependency.is_cancelled() {
                     pending.record_terminal_without_launch(
                         TaskDiagnosticKind::Cancelled,
                         Arc::from("dependency cancelled before task launch"),
                     );
+                    break;
                 } else if handle.dependency_completed() {
                     pending.try_launch();
                 }
@@ -254,7 +376,34 @@ impl JobScheduler {
         self.pool.parallelism()
     }
 
-    pub(super) fn pool_kind(&self) -> TaskPoolKind {
+    pub(super) fn with_graph_owner(mut self, graph: Weak<EngineTaskGraphInner>) -> Self {
+        self.graph = Some(graph);
+        self
+    }
+
+    pub(super) fn acquire_task_submission(
+        &self,
+    ) -> Result<(TaskPoolSubmission, Option<Arc<EngineTaskGraphInner>>), TaskGraphAdmissionError>
+    {
+        match &self.graph {
+            Some(owner) => {
+                let graph = owner
+                    .upgrade()
+                    .ok_or(TaskGraphAdmissionError::RuntimeUnavailable)?;
+                let submission = graph.acquire_worker_submission(self.pool_kind())?;
+                Ok((submission, Some(graph)))
+            }
+            None => self
+                .pool
+                .try_acquire_submission()
+                .map(|submission| (submission, None))
+                .ok_or(TaskGraphAdmissionError::SchedulerPoolUnavailable {
+                    kind: self.pool_kind(),
+                }),
+        }
+    }
+
+    pub fn pool_kind(&self) -> TaskPoolKind {
         self.pool.kind()
     }
 
@@ -333,61 +482,6 @@ fn run_detached_task(
     task();
 }
 
-fn complete_scheduled_task(
-    handle: JobHandle,
-    diagnostics: Arc<JobSchedulerDiagnosticsState>,
-    identity: Option<TaskDiagnosticIdentity>,
-    execution_started_at: Option<Instant>,
-    task: impl FnOnce() -> JobExecutionOutcome,
-) {
-    handle.mark_running();
-    let result = catch_unwind(AssertUnwindSafe(task));
-    match result {
-        Ok(JobExecutionOutcome::Completed) => {
-            diagnostics.record_active_terminal(false, execution_started_at);
-            handle.mark_complete();
-        }
-        Ok(JobExecutionOutcome::Cancelled) => {
-            diagnostics.record_active_cancelled(execution_started_at);
-            diagnostics.record_task_observation(
-                identity,
-                TaskDiagnosticKind::Cancelled,
-                Arc::from("task cancellation acknowledged"),
-            );
-            handle.mark_cancelled();
-        }
-        Ok(JobExecutionOutcome::Panicked(message)) => {
-            diagnostics.record_active_terminal(true, execution_started_at);
-            diagnostics.record_task_observation(
-                identity,
-                TaskDiagnosticKind::Panicked,
-                Arc::clone(&message),
-            );
-            handle.mark_panicked(message);
-        }
-        Err(payload) => {
-            let message = panic_payload_message(payload);
-            diagnostics.record_active_terminal(true, execution_started_at);
-            diagnostics.record_task_observation(
-                identity,
-                TaskDiagnosticKind::Panicked,
-                Arc::clone(&message),
-            );
-            handle.mark_panicked(message);
-        }
-    }
-}
-
 #[cfg(test)]
-#[path = "job_scheduler/tests.rs"]
+#[path = "job_scheduler/tests/cases.rs"]
 mod tests;
-
-fn panic_payload_message(payload: Box<dyn std::any::Any + Send>) -> Arc<str> {
-    if let Some(message) = payload.downcast_ref::<&str>() {
-        Arc::from(*message)
-    } else if let Some(message) = payload.downcast_ref::<String>() {
-        Arc::from(message.as_str())
-    } else {
-        Arc::from("non-string panic payload")
-    }
-}

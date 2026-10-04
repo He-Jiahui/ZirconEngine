@@ -1,29 +1,30 @@
+# 核对包报告诊断归属与动态载荷主模块规模。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 NATIVE_DYNAMIC_PAYLOAD = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_native_dynamic_payload.py"
+    REPO_ROOT / "tools/export/pipeline_report_native_dynamic_payload.py"
 )
 NATIVE_DYNAMIC_PAYLOAD_PLATFORM_BUNDLE = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_payload_platform_bundle.py"
+    / "tools/export/pipeline_report_native_dynamic_payload_platform_bundle.py"
 )
 NATIVE_DYNAMIC_STAGE_PAYLOAD = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_native_dynamic_stage_payload.py"
+    REPO_ROOT / "tools/export/pipeline_report_native_dynamic_stage_payload.py"
 )
 NATIVE_DYNAMIC_PAYLOAD_PACKAGE_REPORT = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_payload_package_report.py"
+    / "tools/export/pipeline_report_native_dynamic_payload_package_report.py"
 )
 NATIVE_DYNAMIC_PAYLOAD_PACKAGE_PATH = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_payload_package_path.py"
+    / "tools/export/pipeline_report_native_dynamic_payload_package_path.py"
 )
 NATIVE_DYNAMIC_STAGE_PACKAGE_REPORT = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_stage_package_report.py"
+    / "tools/export/pipeline_report_native_dynamic_stage_package_report.py"
 )
 
 

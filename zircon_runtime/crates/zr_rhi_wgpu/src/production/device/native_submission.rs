@@ -1,3 +1,4 @@
+//! 原生上传与命令包只通过设备入口取得票据，产品层不能自行决定提交完成或资源退休。
 use zr_rhi::{RenderQueueClass, RhiError, SubmissionStatus, SubmissionTicket};
 
 use super::super::{WgpuBufferUploadBatch, WgpuResourceUploadBatch, WgpuTextureUploadBatch};
@@ -88,23 +89,5 @@ impl WgpuRenderDevice {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn native_submission_bridge_reuses_the_device_owner_without_queue_escape_hatches() {
-        let source = include_str!("native_submission.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("production native submission source");
-
-        assert!(!production.contains("wgpu::Queue"));
-        assert!(!production.contains(".poll("));
-        assert!(!production.contains(".flush("));
-        assert!(!production.contains("queue.submit"));
-        assert!(production.contains("self.submissions.begin_packet(RenderQueueClass::Copy)?"));
-        assert!(production.contains("commit_buffer_upload_batch(ticket, batch)"));
-        assert!(production.contains("commit_texture_upload_batch(ticket, batch)"));
-        assert!(production.contains("commit_resource_upload_batch(ticket, batch)"));
-        assert!(production.contains("settle_abandoned_submissions(tickets)?"));
-    }
-}
+#[path = "tests/native_submission.rs"]
+mod tests;

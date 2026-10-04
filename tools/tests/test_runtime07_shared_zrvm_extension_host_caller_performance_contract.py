@@ -19,7 +19,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束共享 ZRVM 扩展宿主 caller：注册共享一个 Arc caller 跨回调，并注册不深层克隆接口 caller。
 class SharedZrVmExtensionHostCallerPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

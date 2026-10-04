@@ -22,8 +22,8 @@ related_code:
   - zircon_hub/tests/ui_input_navigation_api_contract.rs
 plan_sources:
   - docs/plans/zircon_hub/index.md
-  - docs/zircon_hub/pages/settings-status.md
-  - docs/zircon_hub/state/foundations.md
+  - docs/crates/zircon_hub/pages/settings-status.md
+  - docs/crates/zircon_hub/state/foundations.md
 status: in_progress
 ---
 
@@ -33,12 +33,12 @@ status: in_progress
 
 ## 现状与证据
 
-- 契约口径已定：`update-settings-draft` 只改 `settings_draft` 并重算 Configuration Health，不 persist；`save-settings` 才持久化、注册 Source Engine、刷新 source-scoped catalogs；`browse-settings-folder` 接收 `{ field, initialDir, settings }`，取消与错误不得污染已存设置（`docs/zircon_hub/pages/settings-status.md`）。
+- 契约口径已定：`update-settings-draft` 只改 `settings_draft` 并重算 Configuration Health，不 persist；`save-settings` 才持久化、注册 Source Engine、刷新 source-scoped catalogs；`browse-settings-folder` 接收 `{ field, initialDir, settings }`，取消与错误不得污染已存设置（`docs/crates/zircon_hub/pages/settings-status.md`）。
 - 实仓缺口（`runtime_state/settings_actions.rs`，457 行）：
   - draft 生命周期缺"放弃修改"（cancel-draft / 回到已存设置）与"恢复默认"（restore-defaults）两个动作，前端只能靠重启丢弃脏 draft。【2026-06-12 终核快照】该缺口正在被并行工作树按本计划 M2 同口径补齐：typed id（`action_id.rs` 31 变体，as_str 88-89 行）、解析/路由臂、`settings_actions.rs` 两方法与单测、DTO 按钮词条、前端 `HUB_ACTION`（`hub.ts:632-633`）与 SettingsPage 按钮、`project_workflow_contract.rs:107`（已改 `[HubActionId; 31]`）在本文档细化期间陆续落仓——M2 据此从"新增"调整为"盘点补缺 + 验收"，明细见 M2 落地状态终核。
   - 【2026-06-12 修正】"folder picker 的取消与失败在部分路径上共用错误通道，取消可能落 error history"不成立：`process/folder_picker.rs:20-65` 早已返回 `Result<Option<PathBuf>, HubError>`、取消（对话框 exit code 2，56-58 行）= `Ok(None)`；settings browse 的取消分支走 warning 摘要（`"Folder selection cancelled"`），不写 history、不 persist。03 计划的 session 级 `folder_picker` 函数指针注入缝已落仓（`runtime_state.rs:65` 字段、118 行初始化；import 链路已走缝，`project_actions.rs:131`），且终核时 settings browse 也已切到 `(self.folder_picker)`（`settings_actions.rs:155`）并出现取消注入测试——剩余缺口收窄为失败注入测试与取消零副作用断言面核对。
   - save 时对 draft 的路径校验逐字段散落（`settings_dto.rs::apply_to` 逐字段 `trimmed_required`/`path_from_required`），与 health 计算（`settings_dto.rs::settings_health` 手写 7 行 `vec![...]`）两处维护，无统一"字段 → 校验规则 → health 贡献"表；且 `save_settings`（`runtime_state.rs:437` 行起）无 payload 分支直接 `self.config.settings = self.settings_draft.clone()`，**不经任何必填校验**——含空必填字段的 draft 可直接落盘。【2026-06-12 终核】并行工作树已按本计划 M1 口径落地 spec 表：`SETTINGS_FIELD_SPECS` 内联于 `settings_dto.rs`（非独立模块）、`settings_health` 已遍历该表（412 行起 `settings_field_row`）、browse/update 链路已统一 `apply_to_draft`；`apply_to` 仅剩 `runtime_state.rs::save_settings`（451 行）一处生产调用，save 必填校验缺口仍在。
-- 【2026-06-12 修正】"Source Engine 校验过浅：仅验 source dir 存在 `Cargo.toml`；不验 `tools/zircon_build.py` 存在"已部分过时：`engines/validation.rs:37-49` 现已依次校验目录存在、`Cargo.toml` 存在、`tools/zircon_build.py` 存在（`MissingRoot`/`MissingWorkspaceManifest`/`MissingBuildTool` 三变体）。仍缺：不验 `Cargo.toml` 可解析、不验 workspace members 含 `zircon_runtime`——空文件或任意 TOML 都算"有效引擎"。
+- 【2026-06-12 修正】"Source Engine 校验过浅：仅验 source dir 存在 `Cargo.toml`；不验 `tools/build/zircon_build.py` 存在"已部分过时：`engines/validation.rs:37-49` 现已依次校验目录存在、`Cargo.toml` 存在、`tools/build/zircon_build.py` 存在（`MissingRoot`/`MissingWorkspaceManifest`/`MissingBuildTool` 三变体）。仍缺：不验 `Cargo.toml` 可解析、不验 workspace members 含 `zircon_runtime`——空文件或任意 TOML 都算"有效引擎"。
 - 【2026-06-12 修正】"active engine 失效无预检"对 build 不成立：`build_actions.rs::validate_active_source_engine_for_build`（210-236 行）已在 prepare 阶段做 `validate_source_engine` 预检并落 `"Source Engine invalid"` error + recovery。仍缺：open-editor 链路（`editor_launch_actions.rs::prepare_editor_launch`：97-114 行）只查 staged 可执行文件（`ensure_editor_available`：256-265 行），引擎目录被移走时错误不指向根因；save-settings 注册引擎与启动注册（`runtime_state.rs:129` 调 `register_source_engine_from_settings`：548 行起）完全不校验，失效引擎静默入册。
 
 ## 目标
@@ -46,7 +46,7 @@ status: in_progress
 1. draft 生命周期补全为五动作闭环：`update-settings-draft` / `browse-settings-folder` / `save-settings` / `discard-settings-draft`（回到已存设置）/ `restore-default-settings`（回到内置默认值，仅改 draft 不落盘）。新动作走 01 计划的 typed id + payload。
 2. 校验规则单点化：落一张 `SettingsFieldSpec` 表（字段 id、是否必填、校验器、health 权重、recovery 文案 key），save 校验与 Configuration Health 同源计算；health 百分比由真实字段状态推导，无任何硬编码常量。
 3. picker 取消语义统一：取消 = 零持久副作用（不写 history、不改 draft、不 persist）；失败 = error TaskStatus + recovery。【2026-06-12 修正】`process/folder_picker.rs` 返回类型**无需改造**——现已是 `Result<Option<PathBuf>, HubError>` 且取消 = `Ok(None)`；本目标收敛为：settings browse 链路迁移到 03 计划的 `folder_picker` 注入缝并补取消/失败锚定测试；取消保留既有 `"Folder selection cancelled"` warning 摘要口径（与 03 计划 import 取消保留 `"Import cancelled"` warning 同原则，该摘要已被 `project_workflow_contract.rs:361` 契约锁定，删除属契约面收缩，无收益不做）。
-4. Source Engine 注册校验加深：`Cargo.toml` 可解析且 workspace members 含 `zircon_runtime` + `tools/zircon_build.py` 存在，缺一项则 save-settings 链路注册失败（不 upsert 引擎记录）并给出指向性 recovery；同时为 open-editor 增加执行前 active engine 健康预检（build 预检已存在，升级为含上述深校验），失败早报。
+4. Source Engine 注册校验加深：`Cargo.toml` 可解析且 workspace members 含 `zircon_runtime` + `tools/build/zircon_build.py` 存在，缺一项则 save-settings 链路注册失败（不 upsert 引擎记录）并给出指向性 recovery；同时为 open-editor 增加执行前 active engine 健康预检（build 预检已存在，升级为含上述深校验），失败早报。
 5. save-settings 成功后行为保持契约：注册/更新 Source Engine、刷新 catalogs、persist 一次（走 02 的单点 persist）。
 
 ## 非目标
@@ -282,7 +282,7 @@ fn save_settings(
 2. 【2026-06-12 修正】`folder_picker.rs` 返回类型已是 `Result<Option<PathBuf>, HubError>`，本切片改为：settings browse 链路切到 session 级 `folder_picker` 注入缝（03 计划 M1 落点），取消零副作用补测试锚定。
 3. 前端 SettingsPage 增加"放弃修改 / 恢复默认"入口（组件落点与 05 计划的 SettingsSection 拆分对齐）。
 
-【2026-06-12 落地状态终核】三个切片的代码面已由并行工作树基本落地：typed id 31（`action_id.rs:88-89`）、`parse_as` 两臂（`action_request.rs:260-261`）、路由两臂（`runtime_state.rs:194-195`）、`settings_actions.rs::discard_settings_draft`/`restore_default_settings`（108-126 行，raw 字符串 + view-model 期本地化）及单测（`discard_settings_draft_restores_saved_settings_without_persisting`、`restore_default_settings_updates_draft_without_persisting`）、DTO 按钮词条（`settings_dto.rs:63-64、331-332`）、localized 词条（实落中文为 `"已放弃设置修改"`，118-119 行）、前端 `HUB_ACTION` 两 id（`hub.ts:632-633`）与 SettingsPage 两按钮（112-117 行）、`project_workflow_contract.rs:107` 已改 31、browse 已走 `(self.folder_picker)`（155 行）且已有取消注入测试（`browse_settings_folder_cancel_keeps_existing_draft`，438 行起）。实落文案/测试名与下文规格有措辞差异（如 detail `"Draft restored to built-in defaults"`）——以实仓为准，不回改。实施者 `rg` 盘点后的可见剩余项：picker 失败注入测试（`browse_settings_folder_picker_error_sets_recoverable_status` 口径）、parse 无 payload 单测、取消测试是否断言 history/`hub.toml` 零副作用（缺则补强）、`docs/zircon_hub/pages/settings-status.md` 增补、`npm run typecheck && npm run build` 回归。下文四块内容继续作为终态规格与验收依据。
+【2026-06-12 落地状态终核】三个切片的代码面已由并行工作树基本落地：typed id 31（`action_id.rs:88-89`）、`parse_as` 两臂（`action_request.rs:260-261`）、路由两臂（`runtime_state.rs:194-195`）、`settings_actions.rs::discard_settings_draft`/`restore_default_settings`（108-126 行，raw 字符串 + view-model 期本地化）及单测（`discard_settings_draft_restores_saved_settings_without_persisting`、`restore_default_settings_updates_draft_without_persisting`）、DTO 按钮词条（`settings_dto.rs:63-64、331-332`）、localized 词条（实落中文为 `"已放弃设置修改"`，118-119 行）、前端 `HUB_ACTION` 两 id（`hub.ts:632-633`）与 SettingsPage 两按钮（112-117 行）、`project_workflow_contract.rs:107` 已改 31、browse 已走 `(self.folder_picker)`（155 行）且已有取消注入测试（`browse_settings_folder_cancel_keeps_existing_draft`，438 行起）。实落文案/测试名与下文规格有措辞差异（如 detail `"Draft restored to built-in defaults"`）——以实仓为准，不回改。实施者 `rg` 盘点后的可见剩余项：picker 失败注入测试（`browse_settings_folder_picker_error_sets_recoverable_status` 口径）、parse 无 payload 单测、取消测试是否断言 history/`hub.toml` 零副作用（缺则补强）、`docs/crates/zircon_hub/pages/settings-status.md` 增补、`npm run typecheck && npm run build` 回归。下文四块内容继续作为终态规格与验收依据。
 
 #### 目标代码形状
 
@@ -395,7 +395,7 @@ restore_defaults_button: text.pair("Restore Defaults", "恢复默认").to_string
 | `zircon_hub/web/src/types/hub.ts` | 修改 | `HUB_ACTION` 同位序插入两 id；settings text 接口加两个按钮字段 |
 | `zircon_hub/web/src/pages/SettingsPage.tsx` | 修改 | 头部按钮区加"恢复默认/放弃修改"两个最小按钮 |
 | `zircon_hub/tests/project_workflow_contract.rs` | 修改（部分已落地） | `ALL` 长度断言已由并行工作树改 31（107 行）；settings_actions / parse_as / types / SettingsPage 各块只增新 snippet（缺则补） |
-| `docs/zircon_hub/pages/settings-status.md` | 修改 | 增补 draft 闭环两动作与取消语义描述（machine-readable header 与 `hub_docs_contract.rs:171-186` 既有 snippet 保持） |
+| `docs/crates/zircon_hub/pages/settings-status.md` | 修改 | 增补 draft 闭环两动作与取消语义描述（machine-readable header 与 `hub_docs_contract.rs:171-186` 既有 snippet 保持） |
 
 #### 实施步骤
 
@@ -403,7 +403,7 @@ restore_defaults_button: text.pair("Restore Defaults", "恢复默认").to_string
 2. 动作实现与本地化（终核已落，本步为验收 + 差异核对）：`settings_actions.rs` 两方法（形状 c 后半；实落为 raw 字符串 + view-model 期本地化，语义等价）与单测（实落名 `discard_settings_draft_restores_saved_settings_without_persisting`、`restore_default_settings_updates_draft_without_persisting`）、`localized.rs` 词条（实落中文 `"已放弃设置修改"` 等，以实仓为准）。核对要点：两方法不得调用任何 persist 变体；restore 后 `settings_draft == HubSettings::default()`；若实落单测未断言磁盘 `hub.toml` 不变则补强。验证：`cargo test -p zircon_hub --lib settings_actions --locked`、`cargo test -p zircon_hub --lib localized --locked`。
 3. picker 注入缝（迁移本体已落地，本步为测试补强）：复核 `(self.folder_picker)` 调用（终核快照 `settings_actions.rs:155`）与既有取消注入测试 `browse_settings_folder_cancel_keeps_existing_draft`（438 行起）的断言面——若未断言 `config.action_history` 为空与 `HubConfig::load(&config_path)` 不变，按 `browse_settings_folder_cancel_keeps_draft_and_history_silent` 口径补强；新增 `browse_settings_folder_picker_error_sets_recoverable_status`（`session.folder_picker = |_| Err(HubError::message("picker boom"));` → 断言 `task_status.label == "Browse folder failed"`、detail 含 `picker boom`、draft 不变、history 为空）。同步 `project_workflow_contract.rs` settings_actions 块只增 `"(self.folder_picker)("`（既有 `"FolderPickerRequest::new("` 保留）。验证：`cargo test -p zircon_hub --lib browse_settings_folder --locked`、`cargo test -p zircon_hub --test project_workflow_contract --locked`。
 4. 前端接线（终核已落，本步为验收 + 契约补增）：复核 `hub.ts:632-633` 两 id、settings text 接口字段与 `SettingsPage.tsx:112-117` 两按钮、`settings_dto.rs:63-64、331-332` DTO 词条；`project_workflow_contract.rs` types 块（680 行 `"types/hub.ts"` 起）复核只增 `"discardSettingsDraft: \"discard-settings-draft\""`、`"restoreDefaultSettings: \"restore-default-settings\""`，SettingsPage 块（820 行 `"SettingsPage.tsx"` 起）复核只增 `"void onAction(HUB_ACTION.discardSettingsDraft)"`、`"void onAction(HUB_ACTION.restoreDefaultSettings)"`（缺则补）。验证（前端命令在 `zircon_hub/` 下执行，package.json 位于 `zircon_hub/package.json`）：`npm run typecheck`、`npm run build`；`cargo test -p zircon_hub --test ui_input_navigation_api_contract --test project_workflow_contract --locked`。
-5. 文档与回归：`docs/zircon_hub/pages/settings-status.md` 增补两动作描述；`cargo test -p zircon_hub --test hub_docs_contract --locked`、`cargo test -p zircon_hub --lib --locked`、`cargo test -p zircon_hub --locked`、`cargo fmt --all --check`。
+5. 文档与回归：`docs/crates/zircon_hub/pages/settings-status.md` 增补两动作描述；`cargo test -p zircon_hub --test hub_docs_contract --locked`、`cargo test -p zircon_hub --lib --locked`、`cargo test -p zircon_hub --locked`、`cargo fmt --all --check`。
 
 #### 契约联动
 
@@ -425,7 +425,7 @@ restore_defaults_button: text.pair("Restore Defaults", "恢复默认").to_string
 ### M3 Source Engine 深校验与预检
 
 切片：
-1. `engines/validation.rs` 增加 workspace 解析（toml 读 members）与 `tools/zircon_build.py` 存在性校验（【2026-06-12 修正】后者已存在于 45-47 行，本切片实际只新增"可解析 + members 含 `zircon_runtime`"两级）；注册失败 recovery 指明缺失项。
+1. `engines/validation.rs` 增加 workspace 解析（toml 读 members）与 `tools/build/zircon_build.py` 存在性校验（【2026-06-12 修正】后者已存在于 45-47 行，本切片实际只新增"可解析 + members 含 `zircon_runtime`"两级）；注册失败 recovery 指明缺失项。
 2. build / open-editor prepare 阶段调用同一 engine 健康预检；active engine 失效时错误文案指向 Settings 页修复。【2026-06-12 修正】build 预检已存在（`validate_active_source_engine_for_build`，自动获得深校验）；package 不依赖 staged engine 产物（`pending_project_package_from_project`（`project_delivery_actions.rs:166-194`）只用项目路径 + 输出目录构造 `ProjectPackageRequest`），不加引擎预检。
 3. 启动时 `register_source_engine_from_settings` 失败不再静默：落一条 warning 级 TaskStatus。
 
@@ -572,7 +572,7 @@ fn warn_on_invalid_startup_source_engine(&mut self) {
 （f）测试 fixture 升级（深校验变严的机械后果）：
 - `build_actions.rs::create_source_engine_root`（521-527 行）的 `fs::write(source.join("Cargo.toml"), "[workspace]\n")`（524 行）改写 `"[workspace]\nmembers = [\"zircon_runtime\"]\n"`。
 - `validation.rs` 既有单测 `source_engine_validation_requires_manifest_and_build_tool`（57-87 行，名称保留——`project_source_engine_contract.rs` validation 块 snippet 锁定）：`fs::write(root.join("Cargo.toml"), "[workspace]")`（70 行）后断言序列扩展为 `MissingBuildTool` →（写 build 脚本后）`MissingRuntimeWorkspaceMember` →（改写含 members 的 Cargo.toml 后）`Valid`；另插一步写非法 TOML（如 `"[workspace"`）断言 `InvalidWorkspaceManifest`。
-- `runtime_state.rs` 两个 save 测试（`save_settings_action_applies_typed_payload_and_refreshes_source_engine`：882 行起；`save_settings_refreshes_source_scoped_catalogs_in_returned_view_model`：956 行起）的 `source_path` 由裸目录升级为完整引擎根（补写含 members 的 `Cargo.toml` 与 `tools/zircon_build.py`），其注册/`"Settings saved"` 断言（946 行等）全部原样保留。
+- `runtime_state.rs` 两个 save 测试（`save_settings_action_applies_typed_payload_and_refreshes_source_engine`：882 行起；`save_settings_refreshes_source_scoped_catalogs_in_returned_view_model`：956 行起）的 `source_path` 由裸目录升级为完整引擎根（补写含 members 的 `Cargo.toml` 与 `tools/build/zircon_build.py`），其注册/`"Settings saved"` 断言（946 行等）全部原样保留。
 
 #### 文件变更清单
 

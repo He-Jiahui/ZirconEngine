@@ -7,6 +7,7 @@ var NORMAL = 0;
 var HEROIC = 1;
 var RESET_COOLDOWN_SECONDS = 300;
 
+/// id是本轮实体身份，durableId优先作为跨重组的冷却键；partyMember控制Reset All受影响者，实体ID更换不能改变持久锁身份。
 pub class DungeonResetOwner {
     pub var id: int;
     pub var durableId: int;
@@ -19,6 +20,8 @@ pub class DungeonResetOwner {
     }
 }
 
+/// 保存Reset All需要的当前权威快照；someoneInside/corpseInside/lootRemaining由外部世界同步，本地不查位置或物品实体。
+/// claimId区分替换前后实例，partyKey只标所属队伍，二者不能互相替代。
 pub class DungeonResetClaim {
     pub var claimId: int;
     pub var dungeonId: string;
@@ -67,6 +70,7 @@ pub class DungeonResetLock {
     }
 }
 
+/// 外层bucket始终按ownerKey升序且唯一，供二分定位；内层按dungeonId唯一。public字段只供夹具读取，直接追加会破坏定位不变量。
 pub class DungeonResetLockBucket {
     pub var ownerKey: int;
     pub var locks: container.Array<DungeonResetLock>;
@@ -207,6 +211,7 @@ findResetLockIndex(bucket: DungeonResetLockBucket, dungeonId: string): int {
     return -1;
 }
 
+// 查询会顺便删掉过期锁及空bucket，调用者不得跨调用缓存数组索引；返回的活动锁对象可更新，now须保持同一秒单位与单调时序。
 activeResetLock(
     state: DungeonResetState,
     ownerKeyValue: int,
@@ -262,6 +267,7 @@ pub resetLockClaimId(state: DungeonResetState, ownerId: int, dungeonId: string):
     return lock == null ? 0 : lock.claimId;
 }
 
+/// 新成员加入既有队伍后继承各标准实例最晚活动锁；该锁仍指向精确claim，防止重新组队后借另一个实例跳过冷却。
 pub inheritResetLocks(state: DungeonResetState, joiningOwnerId: int): void {
     var joiningIndex = findOwnerIndex(state, joiningOwnerId);
     if (joiningIndex < 0 || !(<DungeonResetOwner>state.owners[joiningIndex]).partyMember) { return; }
@@ -296,6 +302,8 @@ pub inheritResetLocks(state: DungeonResetState, joiningOwnerId: int): void {
 
 // Returns the number of replacement claims or a stable negative rejection code.
 // Every resettable claim is validated before any claim id/difficulty changes.
+/// 此合同仅替换需要切换有效难度的标准claim；所有候选先验证占用/尸体/战利品/锁，再统一改claim身份并为受影响owner写冷却。
+/// 验证失败仍可能清理已经过期的锁，但不会部分替换claim；由外层持有同步快照，不能在验证与提交中途穿插世界写入。
 pub resetOwnedInstances(state: DungeonResetState): int {
     state.lastError = 0;
     if (findOwnerIndex(state, state.actorId) < 0 || state.actorId != state.partyLeaderId) {
@@ -397,6 +405,7 @@ pub resetOwnedInstances(state: DungeonResetState): int {
 // Returns one on entry to the exact live replacement claim, otherwise a stable
 // error. Lock identity, rather than the ephemeral party key, closes party-reform
 // and friend-claim bypasses during the cooldown.
+/// 只检查活动claim与持久冷却身份是否相容；副本门口范围、队伍归属和普通进入门槛仍由世界层调用链负责。
 pub enterResetClaim(state: DungeonResetState, dungeonId: string, claimId: int): int {
     var claimIndex = findClaimIndex(state, claimId);
     if (claimIndex < 0 || !(<DungeonResetClaim>state.claims[claimIndex]).active ||

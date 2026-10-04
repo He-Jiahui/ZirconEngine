@@ -1,7 +1,8 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::{collections::BTreeMap, collections::BTreeSet, sync::Arc};
 
+use zircon_runtime::scene::EntityId;
 use zircon_runtime::ui::surface::{UiSurface, UiVirtualListItemKey};
-use zircon_runtime::ui::tree::UiRuntimeTreeRoutingExt;
+use zircon_runtime::ui::tree::{UiRuntimeTreeLayoutExt, UiRuntimeTreeRoutingExt};
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,
     event_ui::UiNodeId,
@@ -9,6 +10,7 @@ use zircon_runtime_interface::ui::{
     surface::{UiPointerButton, UiPointerEventKind, UiPointerRoute},
 };
 
+use crate::core::i18n::EditorI18nService;
 use crate::scene::modes::SceneModeActivation;
 use crate::scene::viewport::TransformHandleKind;
 use crate::ui::binding::{
@@ -63,6 +65,7 @@ use resolution_projection::{normalized_presentation_scale_factor, scale_frame};
 
 pub(crate) struct BuiltinWorkbenchWindowTemplateSurfaceBridge {
     pub(super) runtime: Arc<EditorUiHostRuntime>,
+    pub(super) i18n: Arc<EditorI18nService>,
     bindings_by_id: BTreeMap<String, EditorUiBinding>,
     pub(super) template_surface: EditorWorkbenchTemplateSurface,
     pub(super) mount_frame: UiFrame,
@@ -71,6 +74,9 @@ pub(crate) struct BuiltinWorkbenchWindowTemplateSurfaceBridge {
     committed_presentation_scale_factor: f32,
     pub(super) asset_creation_menu: AssetCreationMenuState,
     pub(super) scene_hierarchy_projection: SceneHierarchyProjectionState,
+    pub(super) scene_expanded_by_entity: BTreeMap<EntityId, bool>,
+    pub(super) scene_filter_query: String,
+    pub(super) scene_filter_forced_expanded_entities: BTreeSet<EntityId>,
     pub(super) inspector_source_properties: Arc<[InspectorPluginComponentPropertySnapshot]>,
     pub(super) inspector_component_label: String,
     pub(super) inspector_has_selection: bool,
@@ -93,15 +99,28 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         runtime: Arc<EditorUiHostRuntime>,
         shell_size: UiSize,
     ) -> Result<Self, BuiltinHostWindowTemplateBridgeError> {
-        Self::new_mounted_with_runtime(
+        Self::new_mounted_with_runtime_and_i18n(
             runtime,
             UiFrame::new(0.0, 0.0, shell_size.width, shell_size.height),
+            Arc::new(EditorI18nService::default()),
         )
     }
 
     pub(crate) fn new_mounted_with_runtime(
         runtime: Arc<EditorUiHostRuntime>,
         mount_frame: UiFrame,
+    ) -> Result<Self, BuiltinHostWindowTemplateBridgeError> {
+        Self::new_mounted_with_runtime_and_i18n(
+            runtime,
+            mount_frame,
+            Arc::new(EditorI18nService::default()),
+        )
+    }
+
+    pub(crate) fn new_mounted_with_runtime_and_i18n(
+        runtime: Arc<EditorUiHostRuntime>,
+        mount_frame: UiFrame,
+        i18n: Arc<EditorI18nService>,
     ) -> Result<Self, BuiltinHostWindowTemplateBridgeError> {
         let mount_frame = normalized_mount_frame(mount_frame);
         let shell_size = UiSize::new(mount_frame.width, mount_frame.height);
@@ -112,12 +131,14 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             runtime.as_ref(),
             EditorWorkbenchReferenceMetrics::default(),
         )?;
+        template_surface.install_localization_context(Arc::clone(&i18n));
         if shell_size != template_surface.metrics.target_size() {
             template_surface.recompute_layout(runtime.as_ref(), shell_size)?;
         }
 
         let mut bridge = Self {
             runtime,
+            i18n,
             bindings_by_id,
             template_surface,
             mount_frame,
@@ -126,6 +147,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             committed_presentation_scale_factor: 1.0,
             asset_creation_menu: AssetCreationMenuState::default(),
             scene_hierarchy_projection: SceneHierarchyProjectionState::default(),
+            scene_expanded_by_entity: BTreeMap::new(),
+            scene_filter_query: String::new(),
+            scene_filter_forced_expanded_entities: BTreeSet::new(),
             inspector_source_properties: Arc::from([]),
             inspector_component_label: String::new(),
             inspector_has_selection: false,
@@ -273,10 +297,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             mount_frame: Some(self.mount_frame),
             center_band_frame: mounted(EditorWorkbenchTemplateControlIds::MAIN_BAND),
             activity_rail_frame: mounted(EditorWorkbenchTemplateControlIds::ACTIVITY_RAIL),
-            left_region_frame: union_visible_frames([
-                mounted(EditorWorkbenchTemplateControlIds::ACTIVITY_RAIL),
-                mounted(EditorWorkbenchTemplateControlIds::SCENE_TREE),
-            ]),
+            left_region_frame: mounted(EditorWorkbenchTemplateControlIds::ACTIVITY_RAIL),
             left_drawer_shell_frame: mounted(LEFT_DRAWER_SHELL_CONTROL_ID),
             left_drawer_header_frame: mounted(LEFT_DRAWER_HEADER_CONTROL_ID),
             left_drawer_content_frame: mounted(LEFT_DRAWER_CONTENT_CONTROL_ID),
@@ -285,7 +306,10 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             right_drawer_shell_frame: mounted(RIGHT_DRAWER_SHELL_CONTROL_ID),
             right_drawer_header_frame: mounted(RIGHT_DRAWER_HEADER_CONTROL_ID),
             right_drawer_content_frame: mounted(RIGHT_DRAWER_CONTENT_CONTROL_ID),
-            right_region_frame: mounted(EditorWorkbenchTemplateControlIds::INSPECTOR),
+            right_region_frame: union_visible_frames([
+                mounted(EditorWorkbenchTemplateControlIds::SCENE_TREE),
+                mounted(EditorWorkbenchTemplateControlIds::INSPECTOR),
+            ]),
             bottom_drawer_shell_frame: mounted(BOTTOM_DRAWER_SHELL_CONTROL_ID),
             bottom_drawer_header_frame: mounted(BOTTOM_DRAWER_HEADER_CONTROL_ID),
             bottom_drawer_content_frame: mounted(BOTTOM_DRAWER_CONTENT_CONTROL_ID),
@@ -349,7 +373,15 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             .nodes
             .iter()
             .flat_map(|node| node.routes.iter())
-            .find(|route| binding_path_action_id(&route.binding_id) == action_id)
+            .find(|route| route.action_id == action_id)
+            .or_else(|| {
+                self.template_surface
+                    .host_projection
+                    .nodes
+                    .iter()
+                    .flat_map(|node| node.routes.iter())
+                    .find(|route| binding_path_action_id(&route.binding_id) == action_id)
+            })
             .map(|route| route.binding_id.clone())
     }
 
@@ -484,7 +516,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     fn initialize_live_control_state(
         &mut self,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        self.select_exclusive(MODULE_TAB_CONTROLS, "WorkbenchModuleEffect")?;
+        self.select_exclusive(MODULE_TAB_CONTROLS, "WorkbenchModuleScene")?;
         self.select_exclusive(TOOL_CONTROLS, "WorkbenchToolSelect")?;
         self.select_exclusive(RAIL_CONTROLS, "WorkbenchRailScene")?;
         self.initialize_panel_live_control_state()?;
@@ -492,7 +524,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.initialize_run_mode_menu_indicator()?;
         self.initialize_layout_menu_indicator()?;
         self.set_control_active("WorkbenchModuleDetailsDrawerToggle", false)?;
-        self.apply_workbench_module_workspace("workbench.module.effect.select")
+        self.apply_workbench_module_workspace("workbench.module.scene.select")
     }
 
     pub(super) fn select_exclusive_selected(
@@ -716,3 +748,7 @@ fn camel_to_snake_segment(value: &str) -> String {
     }
     output.trim_matches('_').to_string()
 }
+
+#[cfg(test)]
+#[path = "tests/componentized_window_action_identity_tests.rs"]
+mod action_identity_tests;

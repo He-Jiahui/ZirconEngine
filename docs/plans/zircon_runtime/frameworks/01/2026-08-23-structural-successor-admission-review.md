@@ -192,7 +192,7 @@ commit 后，才可把状态从 `implementation_not_started` 提升。
 - fresh `python -B -m unittest tools.tests.test_frameworks_03_server_feature_boundary -v`
   为 14/14 GREEN，测试本体耗时 3.743 秒，覆盖 server feature closure、physical RHI split 和
   dotted-key reverse-dependency detection。
-- fresh `python -B tools/runtime_domain_dependency_audit.py --repo-root .` 成功，结果为
+- fresh `python -B tools/audits/runtime_domain_dependency_audit.py --repo-root .` 成功，结果为
   2,749 production references / 72 domain edges；其中 `asset -> ui = 1`、
   `graphics -> plugin = 12`，与本记录 A/B 的结构性 owner 判断一致。
 - 第一份 exact4 materialization request `b4592532f00a4e0f8c51d5096fdb91ac`

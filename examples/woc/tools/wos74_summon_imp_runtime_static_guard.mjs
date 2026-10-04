@@ -22,7 +22,7 @@ const world = read("scripts", "woc_game", "src", "world", "state.zr");
 requireText(world, /OFFLINE_EMBERKIN_TEMPLATE_CODE: uint = <uint>48[\s\S]*?OFFLINE_EMBERKIN_HP_BASE: int = 30[\s\S]*?OFFLINE_EMBERKIN_MOVE_SPEED: float = 5\.2[\s\S]*?OFFLINE_EMBERKIN_PRESENTATION_SCALE: float = 0\.55/, "WOS74 must pin the Emberkin source profile");
 requireText(world, /summonImpAbilityCode\(\)[\s\S]*?knownAbilityCatalog\.abilityCode\("summon_imp"\)[\s\S]*?m4AbilityCatalog\.text\(abilityIndex, "class"\) != "warlock"/, "Summon Imp must resolve its generated catalog identity");
 requireText(world, /startOfflineSummonImpCast[\s\S]*?summonImpProfileIsValid[\s\S]*?cast\.armTimed\([\s\S]*?summonImpCastSeconds[\s\S]*?summonImpGlobalCooldownSeconds/, "Summon Imp must use the source timed cast and haste-aware GCD");
-requireText(world, /completeOfflineSummonImpCast[\s\S]*?entityResources\[casterIndex\] = <int>state\.entityResources\[casterIndex\] - cost[\s\S]*?retireOfflineOwnedPet[\s\S]*?spawnOfflineEmberkin/, "Summon Imp must bill on completion then replace the live pet");
+requireText(world, /completeOfflineSummonImpCast[\s\S]*?spendOfflineAbilityResource\(state, casterIndex, cost\)[\s\S]*?retireOfflineOwnedPet[\s\S]*?spawnOfflineEmberkin/, "Summon Imp must bill on completion then replace the live pet");
 requireText(world, /spawnOfflineEmberkin[\s\S]*?state\.spawnMob\([\s\S]*?terrainGround\.builtinGroundHeight[\s\S]*?entityOwnerIds\[petIndex\][\s\S]*?entityHostile\[petIndex\] = false[\s\S]*?entityPresentationScales\[petIndex\]/, "Summon Imp must create a friendly source-profile Emberkin");
 requireText(world, /retireOfflineOwnedPet[\s\S]*?entityDead\[petIndex\] = true[\s\S]*?clearStateThreat/, "WOS74 must retain the temporary inert-row replacement boundary");
 requireText(world, /summonImpPayloadAbilityIsExact[\s\S]*?startOfflineSummonImpCast[\s\S]*?completedAbility == summonImpAbilityCode\(\)[\s\S]*?completeOfflineSummonImpCast/, "Summon Imp must route typed casts and completion");
@@ -30,6 +30,6 @@ requireText(world, /summonImpCommandStateTest[\s\S]*?appendCastSlotCommand[\s\S]
 requireText(world, /if \(summonImpCommandStateTest\(\) != 1\) \{[\s\S]*?return -68;/, "world selfTest must execute Summon Imp");
 
 const main = read("scripts", "woc_game", "src", "main.zr");
-if ((main.match(/world_state[^\r\n]*WOS78/g) ?? []).length !== 2) throw new Error("WOS74 guard must accept the current WOS77 schema");
+if ((main.match(/world_state[^\r\n]*WOS118/g) ?? []).length !== 2) throw new Error("WOS74 guard must accept the current WOS118 schema");
 requireText(read("contracts", "world-state.md"), /WOS74 retains M4 Warlock `summon_imp`[\s\S]*?inert, dead, owner-bound row/, "contract must document WOS74 and the current entity-removal boundary");
 process.stdout.write("WOS74 Summon Imp runtime static guards passed\n");

@@ -179,6 +179,7 @@ fn append_tree_view_classes(node: &mut UiTemplateNode) {
     }
 }
 
+// 子区域按父组件配置投影样式标记；这里不会按单个树项身份判断选中或展开状态。
 fn append_tree_item_state_classes(
     child: &mut UiTemplateNode,
     owner_attributes: &BTreeMap<String, Value>,
@@ -515,6 +516,9 @@ fn append_chat_composer_classes(node: &mut UiTemplateNode) {
     if bool_attribute_any(node, &["streaming"]) {
         append_class(&mut node.classes, "MuiChatComposer-streaming".to_string());
     }
+    if bool_attribute_any(node, &["error"]) {
+        append_class(&mut node.classes, "MuiChatComposer-error".to_string());
+    }
     if string_attribute_any(node, &["composer_text", "composerText"]).is_some() {
         append_class(&mut node.classes, "MuiChatComposer-hasText".to_string());
     }
@@ -604,5 +608,5 @@ fn number_attribute_any_from_attributes(
 }
 
 #[cfg(test)]
-#[path = "mui_x_classes/borrowed_owner_attribute_tests.rs"]
+#[path = "mui_x_classes/tests/borrowed_owner_attribute_tests.rs"]
 mod borrowed_owner_attribute_tests;

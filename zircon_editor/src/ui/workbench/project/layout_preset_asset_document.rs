@@ -18,12 +18,14 @@ struct LayoutPresetAssetDocumentRef<'layout> {
     workbench: &'layout WorkbenchLayout,
 }
 
+/// 借用布局写项目资源版本壳；与全局配置preset协议分开。
 pub(super) fn encode_layout_preset_asset_document(
     workbench: &WorkbenchLayout,
 ) -> Result<String, WriteError> {
     write_versioned_text(&LayoutPresetAssetDocumentRef { workbench })
 }
 
+/// 读取当前项目资源协议；解码成功不替代恢复时的实例与宿主校验。
 pub(super) fn decode_layout_preset_asset_document(
     source: &[u8],
 ) -> Result<WorkbenchLayout, LoadError> {
@@ -63,32 +65,5 @@ fn reject_legacy_layout_preset_asset(_value: Value) -> Result<Value, MigrateErro
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn project_layout_preset_uses_the_current_version_shell_and_roundtrips() {
-        let layout = WorkbenchLayout::default();
-
-        let encoded = encode_layout_preset_asset_document(&layout).unwrap();
-
-        assert!(encoded.contains(LayoutPresetAssetDocument::SCHEMA.as_str()));
-        assert_eq!(
-            decode_layout_preset_asset_document(encoded.as_bytes()).unwrap(),
-            layout
-        );
-    }
-
-    #[test]
-    fn unversioned_project_layout_preset_is_rejected() {
-        let legacy = serde_json::to_vec(&LayoutPresetAssetDocument {
-            workbench: WorkbenchLayout::default(),
-        })
-        .unwrap();
-
-        assert!(matches!(
-            decode_layout_preset_asset_document(&legacy),
-            Err(LoadError::MissingTextEnvelope { .. })
-        ));
-    }
-}
+#[path = "tests/layout_preset_asset_document.rs"]
+mod tests;

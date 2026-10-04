@@ -1,4 +1,4 @@
-use crate::core::framework::render::{IrradianceVolumeData, select_irradiance_volume_for_view};
+use crate::core::framework::render::{select_irradiance_volume_for_view, IrradianceVolumeData};
 use crate::graphics::scene::resources::{IrradianceVolumeTextureBinding, ResourceStreamer};
 use crate::graphics::types::ViewportRenderFrame;
 

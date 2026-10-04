@@ -1,4 +1,7 @@
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::OnceLock;
+use std::time::Instant;
 
 use crate::core::framework::render::{
     CapturedFrame, RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderProfileBundle,
@@ -34,6 +37,7 @@ pub(super) struct RuntimeRenderBridge {
     render_framework: ManagerServiceHandle<dyn RenderFramework>,
     viewport: Option<ActiveViewport>,
     last_generation: Option<u64>,
+    first_submit_logged: bool,
 }
 
 impl RuntimeRenderBridge {
@@ -63,6 +67,7 @@ impl RuntimeRenderBridge {
             render_framework,
             viewport: None,
             last_generation: None,
+            first_submit_logged: false,
         })
     }
 
@@ -82,8 +87,22 @@ impl RuntimeRenderBridge {
     ) -> Result<Option<CapturedFrame>, RenderFrameworkError> {
         crate::profile_scope!("runtime", "frame", "runtime_frame_submit");
         crate::profile_scope!("runtime", "render_bridge", "submit_extract");
+        let first_submit = !self.first_submit_logged;
+        self.first_submit_logged = true;
+        if first_submit {
+            crate::diagnostic_log::write_log(
+                "runtime_session",
+                "render_bridge_first_submit_entered",
+            );
+        }
         let render_framework = self.resolve_render_framework()?;
+        if first_submit {
+            crate::diagnostic_log::write_log("runtime_session", "render_bridge_framework_resolved");
+        }
         let viewport = self.ensure_viewport(size, render_framework.as_ref())?;
+        if first_submit {
+            crate::diagnostic_log::write_log("runtime_session", "render_bridge_viewport_ready");
+        }
         extract.apply_viewport_size(size);
 
         let pipelined_before_submit = render_framework.submission_config().pipelined_render;
@@ -95,7 +114,35 @@ impl RuntimeRenderBridge {
             None
         };
 
-        render_framework.submit_frame_extract_with_ui(viewport, extract, ui)?;
+        if first_submit {
+            crate::diagnostic_log::write_log("runtime_session", "render_bridge_submit_entered");
+        }
+        static SUBMIT_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+        let submit_sequence =
+            play_stop_trace_enabled().then(|| SUBMIT_SEQUENCE.fetch_add(1, Ordering::Relaxed) + 1);
+        let submit_started = submit_sequence.map(|_| Instant::now());
+        if let Some(sequence) = submit_sequence {
+            eprintln!(
+                "mvp_play_trace component=runtime_render_bridge seq={sequence} stage=submit_enter"
+            );
+        }
+        let submit_result = render_framework.submit_frame_extract_with_ui(viewport, extract, ui);
+        if let (Some(sequence), Some(started)) = (submit_sequence, submit_started) {
+            match &submit_result {
+                Ok(()) => eprintln!(
+                    "mvp_play_trace component=runtime_render_bridge seq={sequence} stage=submit_return result=ok elapsed_us={}",
+                    started.elapsed().as_micros()
+                ),
+                Err(error) => eprintln!(
+                    "mvp_play_trace component=runtime_render_bridge seq={sequence} stage=submit_return result=error elapsed_us={} error={error}",
+                    started.elapsed().as_micros()
+                ),
+            }
+        }
+        submit_result?;
+        if first_submit {
+            crate::diagnostic_log::write_log("runtime_session", "render_bridge_submit_returned");
+        }
         if pipelined_before_submit && render_framework.submission_config().pipelined_render {
             return Ok(completed_frame);
         }
@@ -281,6 +328,14 @@ impl RuntimeRenderBridge {
         resolve_manager_service(&self.core, self.render_framework.clone())
             .map_err(|error| RenderFrameworkError::Backend(error.to_string()))
     }
+}
+
+fn play_stop_trace_enabled() -> bool {
+    static TRACE_ENABLED: OnceLock<bool> = OnceLock::new();
+    *TRACE_ENABLED.get_or_init(|| {
+        std::env::var("ZIRCON_TRACE_PLAY_STOP")
+            .is_ok_and(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+    })
 }
 
 impl Drop for RuntimeRenderBridge {

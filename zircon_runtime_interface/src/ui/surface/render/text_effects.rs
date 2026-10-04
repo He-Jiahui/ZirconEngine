@@ -17,21 +17,9 @@ pub struct UiTextDistanceFieldEffects {
 impl UiTextDistanceFieldEffects {
     pub fn normalized(&self) -> Self {
         Self {
-            outline: self
-                .outline
-                .as_ref()
-                .map(UiTextOutlineEffect::normalized)
-                .filter(UiTextOutlineEffect::is_active),
-            shadow: self
-                .shadow
-                .as_ref()
-                .map(UiTextShadowEffect::normalized)
-                .filter(UiTextShadowEffect::is_active),
-            glow: self
-                .glow
-                .as_ref()
-                .map(UiTextGlowEffect::normalized)
-                .filter(UiTextGlowEffect::is_active),
+            outline: self.outline.as_ref().and_then(normalized_active_outline),
+            shadow: self.shadow.as_ref().and_then(normalized_active_shadow),
+            glow: self.glow.as_ref().and_then(normalized_active_glow),
         }
     }
 
@@ -46,9 +34,42 @@ impl UiTextDistanceFieldEffects {
             || self.glow.as_ref().is_some_and(UiTextGlowEffect::is_active)
     }
 
+    /// 当前只有有效 Glow 要求 true-distance 表示；有效描边和阴影只要求距离场。
     pub fn requires_true_distance(&self) -> bool {
         self.glow.as_ref().is_some_and(UiTextGlowEffect::is_active)
     }
+}
+
+fn normalized_active_outline(value: &UiTextOutlineEffect) -> Option<UiTextOutlineEffect> {
+    if !value.width_px.is_finite() || value.width_px <= 0.0 {
+        return None;
+    }
+    if !value.color.trim().is_empty() && !color_has_visible_alpha(&value.color) {
+        return None;
+    }
+    Some(value.normalized())
+}
+
+fn normalized_active_shadow(value: &UiTextShadowEffect) -> Option<UiTextShadowEffect> {
+    let offset_x_px = normalized_signed_extent(value.offset_x_px);
+    let offset_y_px = normalized_signed_extent(value.offset_y_px);
+    if offset_x_px.abs() <= f32::EPSILON && offset_y_px.abs() <= f32::EPSILON {
+        return None;
+    }
+    if !value.color.trim().is_empty() && !color_has_visible_alpha(&value.color) {
+        return None;
+    }
+    Some(value.normalized())
+}
+
+fn normalized_active_glow(value: &UiTextGlowEffect) -> Option<UiTextGlowEffect> {
+    if !value.radius_px.is_finite() || value.radius_px <= 0.0 {
+        return None;
+    }
+    if !value.color.trim().is_empty() && !color_has_visible_alpha(&value.color) {
+        return None;
+    }
+    Some(value.normalized())
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -197,75 +218,9 @@ fn color_has_visible_alpha(value: &str) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
+#[path = "text_effects/tests/performance_tests.rs"]
+mod performance_tests;
 
-    #[test]
-    fn text_effect_contract_normalizes_non_finite_and_out_of_range_values() {
-        let effects = UiTextDistanceFieldEffects {
-            outline: Some(UiTextOutlineEffect {
-                width_px: f32::INFINITY,
-                color: String::new(),
-            }),
-            shadow: Some(UiTextShadowEffect {
-                offset_x_px: -128.0,
-                offset_y_px: f32::NAN,
-                color: "  #11223344  ".to_string(),
-            }),
-            glow: Some(UiTextGlowEffect {
-                radius_px: 96.0,
-                color: String::new(),
-            }),
-        }
-        .normalized();
-
-        assert!(effects.outline.is_none());
-        assert_eq!(
-            effects.shadow,
-            Some(UiTextShadowEffect {
-                offset_x_px: -MAX_TEXT_EFFECT_EXTENT_PX,
-                offset_y_px: 0.0,
-                color: "#11223344".to_string(),
-            })
-        );
-        assert_eq!(
-            effects.glow,
-            Some(UiTextGlowEffect {
-                radius_px: MAX_TEXT_EFFECT_EXTENT_PX,
-                color: "#ffffffff".to_string(),
-            })
-        );
-    }
-
-    #[test]
-    fn text_effect_contract_only_requests_true_distance_for_active_glow() {
-        let outline = UiTextDistanceFieldEffects {
-            outline: Some(UiTextOutlineEffect {
-                width_px: 2.0,
-                color: "#123456".to_string(),
-            }),
-            ..Default::default()
-        };
-        assert!(outline.requires_distance_field());
-        assert!(!outline.requires_true_distance());
-
-        let glow = UiTextDistanceFieldEffects {
-            glow: Some(UiTextGlowEffect {
-                radius_px: 3.0,
-                color: "#ffffff".to_string(),
-            }),
-            ..Default::default()
-        };
-        assert!(glow.requires_true_distance());
-
-        let transparent = UiTextDistanceFieldEffects {
-            outline: Some(UiTextOutlineEffect {
-                width_px: 2.0,
-                color: "#00000000".to_string(),
-            }),
-            ..Default::default()
-        };
-        assert!(!transparent.requires_distance_field());
-        assert!(transparent.normalized().outline.is_none());
-    }
-}
+#[cfg(test)]
+#[path = "tests/text_effects.rs"]
+mod tests;

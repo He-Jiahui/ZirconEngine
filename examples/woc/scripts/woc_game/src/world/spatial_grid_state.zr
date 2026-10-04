@@ -1,6 +1,5 @@
-// Source-compatible spatial.ts state projection. Entity objects remain owned
-// by the authoritative world; this grid only maintains their live cell roster
-// and returns ordered radius-query plans instead of invoking a host callback.
+// 空间索引的独立规则投影，目前由叶子测试入口消费；实体对象仍由调用方持有。
+// 网格只维护单元名册并返回有顺序的范围查询结果，不直接调用宿主回调。
 var container = %import("zr.system.container");
 var math = %import("zr.zircon.math");
 
@@ -28,6 +27,8 @@ pub class SpatialCell {
     }
 }
 
+/// 空间查询的独立状态投影；单元保留实体引用，位置更新后须显式刷新索引，不能只修改坐标就认为索引同步。
+/// 单元尺寸须为正有限值；同一实体首次插入一次，后续跨单元移动使用更新入口，重复插入会保留旧列表项。
 pub class SpatialGridState {
     pub var cellSize: float;
     pub var cells: container.Array<SpatialCell>;
@@ -157,6 +158,7 @@ pub update(grid: SpatialGridState, entity: SpatialEntity): void {
 
 // Mirrors refresh(Iterable<Entity>) in the iteration order supplied by the
 // caller's canonical entity roster.
+/// 按调用者给定的名单顺序更新位置索引；此操作不会删除未出现在名单中的实体，销毁仍须显式移除。
 pub refresh(grid: SpatialGridState, entities: container.Array<SpatialEntity>): void {
     var index = 0;
     while (index < entities.length) {
@@ -174,6 +176,7 @@ clearQuery(output: SpatialQueryResult): void {
 
 // Source forEachInRadius projection. The output order is its callback order:
 // increasing cell X/Z then retained cell-array order, with exact live XZ d2.
+/// 输出覆盖上次查询结果，并保留单元扫描与单元内部顺序；等距优先规则的消费者不能将结果当无序集合。
 pub queryInRadius(
     grid: SpatialGridState,
     x: float,

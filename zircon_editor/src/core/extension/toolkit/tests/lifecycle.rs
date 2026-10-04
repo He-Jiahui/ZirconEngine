@@ -116,6 +116,7 @@ fn document_toolkit_snapshot_retains_menu_contributions_and_supports_instance_lo
     registry
         .register(Arc::new(FixtureToolkit {
             descriptor,
+            validate_references: Arc::new(|| Ok(())),
             save: Arc::new(|_| Ok(())),
             descriptor_calls: None,
             drop_callback: None,
@@ -280,6 +281,37 @@ fn document_toolkit_close_lease_blocks_new_saves_and_rolls_back_uncommitted_clos
     assert_eq!(descriptor.document_id(), DocumentId::new(7));
     assert_eq!(registry.snapshot().generation(), generation + 1);
     assert!(registry.snapshot().descriptors().is_empty());
+}
+
+#[test]
+fn document_edit_lease_blocks_close_and_clear_until_mutation_finishes() {
+    let registry = DocumentToolkitRegistry::<()>::default();
+    registry
+        .register(Arc::new(FixtureToolkit::new(7, "view.asset.7", |_| Ok(()))))
+        .unwrap();
+    let instance = registry.snapshot().descriptors()[0].instance_id().clone();
+    let edit = registry.begin_edit(&instance).unwrap();
+    assert!(matches!(
+        registry.begin_close(&instance),
+        Err(ToolkitRegistryError::DocumentEditing { document, .. })
+            if document == DocumentId::new(7)
+    ));
+    assert!(matches!(
+        registry.clear(),
+        Err(ToolkitRegistryError::DocumentsEditing { .. })
+    ));
+    drop(edit);
+
+    let close = registry.begin_close(&instance).unwrap().unwrap();
+    assert!(matches!(
+        registry.begin_edit(&instance),
+        Err(ToolkitRegistryError::CloseAlreadyInProgress { document })
+            if document == DocumentId::new(7)
+    ));
+    drop(close);
+    let edit = registry.begin_edit(&instance).unwrap();
+    drop(edit);
+    assert_eq!(registry.clear().unwrap().len(), 1);
 }
 
 #[test]

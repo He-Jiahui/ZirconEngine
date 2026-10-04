@@ -4,9 +4,9 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::path::Path;
 
-use super::PreparedFileWrite;
 use super::error::{DurableTransactionError, TransactionPhase};
 use super::schema::{JournalIntent, TransactionFault};
+use super::PreparedFileWrite;
 use crate::io::{ensure_parent_directories, sync_parent_directory};
 
 const COPY_BUFFER_BYTES: usize = 64 * 1024;
@@ -295,19 +295,5 @@ fn operation(path: &Path, source: io::Error) -> DurableTransactionError {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::io;
-
-    use super::{FilePresence, classify_file_metadata};
-
-    #[test]
-    fn file_presence_treats_only_not_found_as_missing() {
-        let missing = classify_file_metadata(Err(io::Error::from(io::ErrorKind::NotFound)))
-            .expect("NotFound is the only missing-file classification");
-        assert_eq!(missing, FilePresence::Missing);
-
-        let error = classify_file_metadata(Err(io::Error::from(io::ErrorKind::PermissionDenied)))
-            .expect_err("metadata access failures must not become missing-file evidence");
-        assert_eq!(error.kind(), io::ErrorKind::PermissionDenied);
-    }
-}
+#[path = "tests/stage.rs"]
+mod tests;

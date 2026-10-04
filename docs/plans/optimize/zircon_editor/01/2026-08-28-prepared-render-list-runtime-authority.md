@@ -99,7 +99,7 @@ compaction returns before `self.commands.iter().any`, so the owned GPU conversio
 second O(D) probe over the damage stream.
 
 The deterministic pressure model
-`tools/editor_chrome_command_stream_allocation_pressure.py` uses 4,096 presents and 32,768 commands
+`tools/analysis/performance/editor/editor_chrome_command_stream_allocation_pressure.py` uses 4,096 presents and 32,768 commands
 per present. It reports 134,217,728 removed redundant command visits. This is an operation count only;
 it excludes first compaction, recording/extraction, atlas scans, Runtime conversion/compaction,
 batching, CPU, allocator, RSS, latency, power and GPU timing.
@@ -411,7 +411,7 @@ The required image architecture is:
    changed text segment does not reconstruct frame-wide indexes.
 
 The current-source residual pressure model is
-`tools/runtime_ui_render_dependency_product_pressure.py`. Its default scenario partitions 4,096
+`tools/analysis/performance/runtime/runtime_ui_render_dependency_product_pressure.py`. Its default scenario partitions 4,096
 frames into 4,060 stable frames, 32 one-segment delta frames and four resource-generation fallback
 frames over 64 segments. Each segment has four image dependencies, 32 text dependencies and eight
 text run spans; the image binding cache contains 512 entries. This is deliberately narrower than the
@@ -482,7 +482,7 @@ Rust struct-size estimate; product acceptance must additionally report process p
 GPU resident/resource counts after warmup, pressure and quiescence.
 
 The conservative retained-memory model
-`tools/runtime_ui_render_dependency_product_memory_pressure.py` makes that bound explicit. Its default
+`tools/analysis/performance/runtime/runtime_ui_render_dependency_product_memory_pressure.py` makes that bound explicit. Its default
 fixture uses 64 segments, three simultaneously retained generations, one changed segment per delta
 generation and one million presents. Present count does not affect retained bytes.
 
@@ -508,9 +508,9 @@ path/payload scaling and a single-segment directory edge case. Artifact
 `F1E0FD558DC9AC948163B976DBF46787FEC30C2F0319B1B15BF3F04DF2F99659` and text segment-cache SHA-256
 `64FF29CC167B0812A710D3E25A08204303A879FBDDC161795759B6D2C8207DF0`.
 
-Product memory acceptance is defined by `tools/ui_render_dependency_memory_evidence.py`. It reuses the
+Product memory acceptance is defined by `tools/analysis/performance/ui/ui_render_dependency_memory_evidence.py`. It reuses the
 existing same-process CPU/working/private/quiescence contract from
-`tools/ui-profile-process-evidence.ps1` (64 MiB end/quiescent growth and 96 MiB peak growth), plus the
+`tools/analysis/profiling/ui/ui-profile-process-evidence.ps1` (64 MiB end/quiescent growth and 96 MiB peak growth), plus the
 existing 64 MiB local and 64 MiB shared WGPU UI image-pool limits. It requires exactly one source-bound
 warmup, pressure and quiescent snapshot; at most three live generations; at most 8 MiB dependency
 metadata; binding-product/identity conservation; at least five completed same-identity delta cycles;
@@ -538,8 +538,8 @@ absent, and the capture pipeline has no `render_dependency_memory_pressure` acti
 owners are externally dirty, so this review records the required contract and makes no overlapping edit.
 
 Static acceptance already rejects any dependency work in a measured stable-frame trace through
-`tools/ui_render_segment_evidence.py`. The complementary
-`tools/ui_render_dependency_delta_evidence.py` requires, for `N` input segments and `D` changed
+`tools/analysis/performance/ui/ui_render_segment_evidence.py`. The complementary
+`tools/analysis/performance/ui/ui_render_dependency_delta_evidence.py` requires, for `N` input segments and `D` changed
 segments, reuse counters to conserve `N - D`, render/image/text work to equal the published changed
 payload, and binding-map/global dependency scans to remain zero. Its focused contracts pass 9/9. A
 historical image pressure artifact is deliberately rejected with 21 missing delta counters and one

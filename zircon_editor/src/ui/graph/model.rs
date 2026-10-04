@@ -320,7 +320,8 @@ where
     }
 
     let target = candidate.from.node_id.clone();
-    let mut pending = vec![candidate.to.node_id.clone()];
+    let mut pending = Vec::with_capacity(cycle_pending_capacity(edges.len()));
+    pending.push(candidate.to.node_id.clone());
     let mut visited = BTreeSet::new();
     while let Some(node_id) = pending.pop() {
         if node_id == target {
@@ -335,3 +336,14 @@ where
     }
     false
 }
+
+/// A cycle probe expands each accepted adjacency edge at most once, after the candidate target
+/// has been admitted. Reserve that bounded number of pending node slots so large graph connection
+/// validation does not grow the scratch vector geometrically.
+fn cycle_pending_capacity(edge_count: usize) -> usize {
+    edge_count.saturating_add(1)
+}
+
+#[cfg(test)]
+#[path = "tests/model_optimization_batch_editor816_tests.rs"]
+mod optimization_batch_editor816_tests;

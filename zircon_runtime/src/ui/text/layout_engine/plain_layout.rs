@@ -1,4 +1,5 @@
 use crate::text::layout::measure_text_size_with_provider as measure_backend_text_size_with_provider;
+use crate::text::layout_geometry::{finite_geometry, finite_sum, FiniteGeometryAccumulator};
 use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::*;
@@ -263,12 +264,13 @@ pub(super) fn layout_parsed_text_without_tables_with_retained_fragments(
         .as_ref()
         .map(|_| Vec::with_capacity(lines.len()));
     let mut unclipped_measured_width = 0.0_f32;
-    let mut y = frame.y
-        + if virtualized {
-            line_index_offset as f32 * sample_line_height
-        } else {
-            0.0
-        };
+    let mut y = FiniteGeometryAccumulator::default();
+    y.add(frame.y);
+    if virtualized {
+        y.add(finite_geometry(
+            line_index_offset as f64 * f64::from(sample_line_height),
+        ));
+    }
     for (index, line) in lines.iter().enumerate() {
         let line_index = line_index_offset.saturating_add(index);
         let physical_metrics = physical_metrics[index];
@@ -296,13 +298,13 @@ pub(super) fn layout_parsed_text_without_tables_with_retained_fragments(
             paragraph_layout::inset_logical_start(frame, constraints.inset, direction);
         let placement_frame = UiFrame::new(
             content_frame.x,
-            y,
+            y.value(),
             content_frame.width,
             physical_metrics.line_height,
         );
         let line_frame = UiFrame::new(
             aligned_x(content_frame, line_width, line_align, direction),
-            y,
+            y.value(),
             measured_width,
             physical_metrics.line_height,
         );
@@ -345,7 +347,7 @@ pub(super) fn layout_parsed_text_without_tables_with_retained_fragments(
         } else {
             overflow_clipped = true;
         }
-        y += physical_metrics.line_height;
+        y.add(physical_metrics.line_height);
     }
 
     let measured_width = if virtualized {
@@ -357,7 +359,7 @@ pub(super) fn layout_parsed_text_without_tables_with_retained_fragments(
         unclipped_measured_width
     };
     let measured_height = if virtualized {
-        total_line_count as f32 * sample_line_height
+        finite_geometry(total_line_count as f64 * f64::from(sample_line_height))
     } else {
         physical_line_metrics::total_line_height(&physical_metrics)
     };

@@ -6,6 +6,7 @@ use super::{
     asset_watch_event::AssetWatchEvent, watched_asset_uri_for_path::watched_asset_uri_for_path,
 };
 
+// TODO: [CR-ASSET-PIPELINE-0005] 核实跨资产根及 From/To 分拆重命名在各平台的 notify 事件形态；当前无法映射 Both 任一端时静默丢弃，可能缺少退役或导入。
 pub(super) fn map_notify_event(assets_root: &Path, event: Event) -> Vec<AssetWatchEvent> {
     match event.kind {
         EventKind::Create(_) => {
@@ -22,14 +23,43 @@ pub(super) fn map_notify_event(assets_root: &Path, event: Event) -> Vec<AssetWat
             }
             Vec::new()
         }
-        EventKind::Modify(_) => {
-            map_paths_with_capacity(assets_root, &event.paths, AssetWatchEvent::Modified)
-        }
+        EventKind::Modify(_) => map_modified_paths_with_capacity(assets_root, &event.paths),
         EventKind::Remove(_) => {
             map_paths_with_capacity(assets_root, &event.paths, AssetWatchEvent::Removed)
         }
         _ => Vec::new(),
     }
+}
+
+fn map_modified_paths_with_capacity(
+    assets_root: &Path,
+    paths: &[std::path::PathBuf],
+) -> Vec<AssetWatchEvent> {
+    let mut events = Vec::with_capacity(paths.len());
+    for path in paths {
+        if is_ordinary_directory_modify_echo(path) {
+            continue;
+        }
+        if let Ok(uri) = watched_asset_uri_for_path(assets_root, path) {
+            events.push(AssetWatchEvent::Modified(uri));
+        }
+    }
+    events
+}
+
+fn is_ordinary_directory_modify_echo(path: &Path) -> bool {
+    let Ok(metadata) = std::fs::symlink_metadata(path) else {
+        return false;
+    };
+    if !metadata.file_type().is_dir() {
+        return false;
+    }
+    let Some(file_name) = path.file_name() else {
+        return false;
+    };
+    let mut compound_sidecar_name = file_name.to_os_string();
+    compound_sidecar_name.push(".zmeta");
+    !path.with_file_name(compound_sidecar_name).is_file()
 }
 
 fn map_paths_with_capacity<F>(
@@ -50,105 +80,5 @@ where
 }
 
 #[cfg(test)]
-mod optimization_batch_20260830bq_runtime_tests {
-    use std::path::PathBuf;
-    use std::time::Instant;
-
-    use notify::{Event, EventKind};
-
-    use super::*;
-
-    const SAMPLE_PAIRS: usize = 17;
-    const PATHS_PER_SAMPLE: usize = 4_096;
-
-    #[test]
-    fn mapped_file_events_preserve_order_and_filter_sidecars() {
-        let root = Path::new("C:/project/assets");
-        let event = Event::new(EventKind::Create(notify::event::CreateKind::Any))
-            .add_path(root.join("first.zasset"))
-            .add_path(root.join(".second.zasset.zr-staging-1-2"))
-            .add_path(root.join("third.zasset"));
-
-        let mapped = map_notify_event(root, event);
-        assert_eq!(mapped.len(), 2);
-        assert!(
-            matches!(&mapped[0], AssetWatchEvent::Added(uri) if uri.matches_display("res://first.zasset"))
-        );
-        assert!(
-            matches!(&mapped[1], AssetWatchEvent::Added(uri) if uri.matches_display("res://third.zasset"))
-        );
-    }
-
-    #[test]
-    fn mapped_file_events_reserve_the_input_upper_bound() {
-        let source = include_str!("map_notify_event.rs");
-        let implementation = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("production implementation");
-        assert!(implementation.contains("Vec::with_capacity(paths.len())"));
-        assert!(implementation.contains("for path in paths"));
-        assert!(!implementation.contains("filter_map(|path| watched_asset_uri_for_path"));
-    }
-
-    #[test]
-    #[ignore = "managed Windows release performance evidence"]
-    fn optimization_batch_20260830bq_runtime_watch_event_mapping_capacity_p95() {
-        let root = Path::new("C:/project/assets");
-        let paths = (0..PATHS_PER_SAMPLE)
-            .map(|index| root.join(format!("asset-{index}.zasset")))
-            .collect::<Vec<_>>();
-        let mut legacy = Vec::with_capacity(SAMPLE_PAIRS);
-        let mut optimized = Vec::with_capacity(SAMPLE_PAIRS);
-        for pair in 0..SAMPLE_PAIRS {
-            if pair % 2 == 0 {
-                legacy.push(measure(root, &paths, false));
-                optimized.push(measure(root, &paths, true));
-            } else {
-                optimized.push(measure(root, &paths, true));
-                legacy.push(measure(root, &paths, false));
-            }
-        }
-        let legacy_p95_ns = percentile(&legacy, 95);
-        let optimized_p95_ns = percentile(&optimized, 95);
-        println!(
-            "RUNTIME369_WATCH_EVENT_MAPPING_CAPACITY_BENCH_V1 sample_pairs={SAMPLE_PAIRS} paths_per_sample={PATHS_PER_SAMPLE} legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} legacy_raw_ns={} optimized_raw_ns={}",
-            sample_csv(&legacy),
-            sample_csv(&optimized),
-        );
-        assert!(optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(70));
-    }
-
-    fn measure(root: &Path, paths: &[PathBuf], optimized: bool) -> u128 {
-        let started = Instant::now();
-        let mut checksum = 0usize;
-        for _ in 0..64 {
-            let mapped = if optimized {
-                map_paths_with_capacity(root, paths, AssetWatchEvent::Added)
-            } else {
-                paths
-                    .iter()
-                    .filter_map(|path| watched_asset_uri_for_path(root, path).ok())
-                    .map(AssetWatchEvent::Added)
-                    .collect::<Vec<_>>()
-            };
-            checksum ^= mapped.len();
-        }
-        std::hint::black_box(checksum);
-        started.elapsed().as_nanos().max(1)
-    }
-
-    fn percentile(samples: &[u128], percentile: usize) -> u128 {
-        let mut sorted = samples.to_vec();
-        sorted.sort_unstable();
-        sorted[(sorted.len() * percentile).div_ceil(100).saturating_sub(1)]
-    }
-
-    fn sample_csv(samples: &[u128]) -> String {
-        samples
-            .iter()
-            .map(u128::to_string)
-            .collect::<Vec<_>>()
-            .join(",")
-    }
-}
+#[path = "tests/map_notify_event_optimization_batch_20260830bq_runtime_tests.rs"]
+mod optimization_batch_20260830bq_runtime_tests;

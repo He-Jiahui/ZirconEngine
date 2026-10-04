@@ -4,6 +4,7 @@ mod selection;
 mod state;
 
 #[cfg(test)]
+#[path = "workbench_popup_row/tests/cases.rs"]
 mod tests;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use model::{

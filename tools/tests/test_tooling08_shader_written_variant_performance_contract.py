@@ -1,8 +1,9 @@
+# 核对着色器写入变体以固定槽位读取字段并保留重复诊断。
 from __future__ import annotations
 
 import unittest
 
-from tools import zircon_build_shader_prewarm_written_variants as written_variants
+from tools.build import zircon_build_shader_prewarm_written_variants as written_variants
 
 
 class _CountingMapping(dict[str, object]):

@@ -1,3 +1,4 @@
+// 环境预览专用的 deferred 片段：保留相同 GBuffer/SceneUniform ABI，只省略完整灯光计算。
 struct SceneUniform {
     view_proj: mat4x4<f32>,
     view_proj_unjittered: mat4x4<f32>,

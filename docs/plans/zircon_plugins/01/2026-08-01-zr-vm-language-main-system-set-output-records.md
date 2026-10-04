@@ -18,7 +18,7 @@ Date: 2026-08-01
 - 测试先行静态 RED：测试合同已存在时，production descriptor 与 TOML 均尚无 `zr_vm_language.main`；随后只补齐合同所需实现。
 - Rust 1.94.1、edition 2021 scoped `rustfmt --check`：通过。
 - 四文件限定范围 `git diff --check`：通过，仅有工作树既有行尾转换提示。
-- `python tools/audit_plugin_structure.py --json --repo-root E:\\Git\\ZirconEngine`：`manifest_schema_violations = 0`、`generated_manifest_header_violations = 0`、`runtime_plugin_descriptor_single_source_violation_count = 0`、`runtime_registration_builder_violation_count = 0`、`registration_compatibility_shim_sites = 0`。全局既有 `dist_abi_projection_violations = 37` 不归属本切片，本记录不声明 broad audit 全绿。
+- `python tools/audits/audit_plugin_structure.py --json --repo-root E:\\Git\\ZirconEngine`：`manifest_schema_violations = 0`、`generated_manifest_header_violations = 0`、`runtime_plugin_descriptor_single_source_violation_count = 0`、`runtime_registration_builder_violation_count = 0`、`registration_compatibility_shim_sites = 0`。全局既有 `dist_abi_projection_violations = 37` 不归属本切片，本记录不声明 broad audit 全绿。
 - 当前源码 SHA-256：`plugin.toml` = `8C66C0576E91A625E4D55D87BC4FEF876F82B759BCA71FEA2DB81FB8143B5579`；`lib.rs` = `B18034638DBA829FFCFB273FC121FB06D5431B05D931745D0B07E3593588EF34`；`plugin.rs` = `9545D5FC44109A23A456C67F34EC0BEEE7F55061125EEDE5A1C82E14D6520ACA`；registration tests = `AADC67C6EB747ECC5659EE92780BA8CB428A9D934510F0909C4433F551206384`。
 - 独立只读复核：Critical 0 / Important 0 / Minor 0；未运行 Cargo、未编辑源码。
 

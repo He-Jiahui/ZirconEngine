@@ -49,7 +49,7 @@ fn readiness_generation_reuses_stable_snapshot_and_updates_only_reverse_closure(
         .unwrap();
 
     let published = resources.readiness_generation();
-    let dependency_revision = published.dependency_revision(material_id).unwrap();
+    let dependency_identity = published.row_identity(material_id).unwrap();
     assert!(manager
         .load_states(material_handle)
         .is_loaded_with_dependencies());
@@ -61,8 +61,8 @@ fn readiness_generation_reuses_stable_snapshot_and_updates_only_reverse_closure(
     assert!(!Arc::ptr_eq(&published, &reloaded));
     assert_eq!(reloaded.diagnostics().changed_row_count, 3);
     assert_ne!(
-        reloaded.dependency_revision(material_id),
-        Some(dependency_revision)
+        reloaded.row_identity(material_id),
+        Some(dependency_identity)
     );
     assert_eq!(
         manager

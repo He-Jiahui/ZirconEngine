@@ -1,11 +1,12 @@
+# 核对平台包策略交接诊断归属与主模块规模。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PLATFORM_BUNDLE = REPO_ROOT / "tools/zircon_export/platform_bundle.py"
+PLATFORM_BUNDLE = REPO_ROOT / "tools/export/platform_bundle.py"
 PLATFORM_BUNDLE_STRATEGY_HANDOFF = (
-    REPO_ROOT / "tools/zircon_export/platform_bundle_strategy_handoff.py"
+    REPO_ROOT / "tools/export/platform_bundle_strategy_handoff.py"
 )
 
 

@@ -1,0 +1,3056 @@
+[asset]
+kind = "style"
+id = "res://ui/theme/editor_material.zui"
+version = 2
+display_name = "Editor Material"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+accent = "$theme.palette.accent"
+panel_bg = "$theme.palette.surface.2"
+panel_bg_soft = "$theme.palette.surface.3"
+field_bg = "$theme.palette.surface.0"
+border = "$theme.palette.separator"
+text = "$theme.palette.text.primary"
+muted = "$theme.palette.text.secondary"
+warning = "$theme.palette.warning"
+error = "$theme.palette.error"
+material_surface = "$theme.palette.surface.2"
+material_surface_inset = "$theme.palette.surface.0"
+material_surface_hover = "$theme.palette.surface.3"
+material_surface_pressed = "$theme.palette.surface.3"
+material_surface_selected = "#243f5a"
+material_surface_disabled = "$theme.palette.surface.0"
+material_accent = "$theme.palette.accent"
+material_accent_soft = "#253f59"
+material_border = "$theme.palette.separator"
+material_text = "$theme.palette.text.primary"
+material_text_muted = "$theme.palette.text.secondary"
+material_text_disabled = "$theme.palette.text.disabled"
+material_warning = "$theme.palette.warning"
+material_error = "$theme.palette.error"
+material_success = "$theme.palette.success"
+material_info = "$theme.palette.info"
+material_warning_container = "#463112"
+material_error_container = "#4c2427"
+material_success_container = "#1d472f"
+material_info_container = "#18395b"
+material_popup = "$theme.palette.surface.1"
+material_track = "#3b3b3b"
+material_focus_ring = "$theme.palette.accent"
+material_primary = "$theme.palette.accent"
+material_on_primary = "$theme.palette.surface.0"
+material_surface_container = "$theme.palette.surface.2"
+material_surface_container_low = "$theme.palette.surface.1"
+material_surface_container_high = "$theme.palette.surface.3"
+material_outline = "$theme.palette.separator"
+material_outline_variant = "$theme.palette.separator"
+material_on_error = "#fff0ee"
+material_on_success = "#07140c"
+material_on_info = "#07101a"
+material_shadow = "#00000066"
+material_shadow_soft = "#00000033"
+material_scrim = "#0b1020cc"
+material_inverse_surface = "#d2dceb"
+material_inverse_on_surface = "#171a20"
+material_color_primary = "$material_primary"
+material_color_on_primary = "$material_on_primary"
+material_color_surface = "$material_surface"
+material_color_surface_container = "$material_surface_container"
+material_color_surface_container_low = "$material_surface_container_low"
+material_color_surface_container_high = "$material_surface_container_high"
+material_color_on_surface = "$material_text"
+material_color_on_surface_variant = "$material_text_muted"
+material_color_outline = "$material_outline"
+material_color_outline_variant = "$material_outline_variant"
+material_color_error = "$material_error"
+material_color_on_error = "$material_on_error"
+material_color_success = "$material_success"
+material_color_on_success = "$material_on_success"
+material_color_info = "$material_info"
+material_color_on_info = "$material_on_info"
+material_color_shadow = "$material_shadow"
+material_color_scrim = "$material_scrim"
+material_state_layer_opacity_hover = 0.12
+material_state_layer_opacity_focus = 0.18
+material_state_layer_opacity_pressed = 0.16
+material_state_layer_opacity_disabled = 0.38
+material_state_layer_opacity_dragged = 0.20
+material_state_layer_opacity_press = "$material_state_layer_opacity_pressed"
+material_state_layer_opacity_drag = "$material_state_layer_opacity_dragged"
+material_disabled_opacity = 0.38
+material_focus_ring_width = 2.0
+material_focus_ring_offset = 1.0
+material_elevation_level0 = 0.0
+material_elevation_level1 = 1.0
+material_elevation_level2 = 3.0
+material_radius_none = 0.0
+material_radius_control = 10.0
+material_radius_surface = 12.0
+material_radius_small = 8.0
+material_radius_medium = 12.0
+material_radius_large = 18.0
+material_radius_pill = 999.0
+material_border_width = 1.0
+material_border_width_none = 0.0
+material_density_compact_height = 32.0
+material_density_default_height = 40.0
+material_density_prominent_height = 56.0
+material_density_compact_control_height = "$material_density_compact_height"
+material_density_default_control_height = "$material_density_default_height"
+material_density_field_control_height = "$material_density_prominent_height"
+material_density_list_item_height = "$material_density_default_height"
+material_spacing_button_content_x = 12.0
+material_spacing_button_content_y = 6.0
+material_spacing_button_gap = 6.0
+material_spacing_field_content_x = 10.0
+material_spacing_field_content_y = 4.0
+material_spacing_list_item_content_x = 10.0
+material_spacing_list_item_gap = 6.0
+material_icon_size_button = 16.0
+material_icon_size_standard = 18.0
+material_font_size_body = 12.0
+material_font_size_meta = 11.0
+material_font_size_title = 15.0
+
+mui_web_source_version = "9.0.1"
+mui_web_source_package = "dev/material-ui"
+mui_web_palette_default_mode = "light"
+mui_web_palette_primary_main = "#1976d2"
+mui_web_palette_primary_light = "#42a5f5"
+mui_web_palette_primary_dark = "#1565c0"
+mui_web_palette_primary_dark_mode_main = "#90caf9"
+mui_web_palette_secondary_main = "#9c27b0"
+mui_web_palette_secondary_light = "#ba68c8"
+mui_web_palette_secondary_dark = "#7b1fa2"
+mui_web_palette_secondary_dark_mode_main = "#ce93d8"
+mui_web_palette_error_main = "#d32f2f"
+mui_web_palette_error_dark_mode_main = "#f44336"
+mui_web_palette_warning_main = "#ed6c02"
+mui_web_palette_warning_dark_mode_main = "#ffa726"
+mui_web_palette_info_main = "#0288d1"
+mui_web_palette_info_dark_mode_main = "#29b6f6"
+mui_web_palette_success_main = "#2e7d32"
+mui_web_palette_success_dark_mode_main = "#66bb6a"
+mui_web_palette_light_background_default = "#ffffff"
+mui_web_palette_light_background_paper = "#ffffff"
+mui_web_palette_light_text_primary = "rgba(0, 0, 0, 0.87)"
+mui_web_palette_light_text_secondary = "rgba(0, 0, 0, 0.6)"
+mui_web_palette_light_text_disabled = "rgba(0, 0, 0, 0.38)"
+mui_web_palette_light_divider = "rgba(0, 0, 0, 0.12)"
+mui_web_palette_dark_background_default = "#121212"
+mui_web_palette_dark_background_paper = "#121212"
+mui_web_palette_dark_text_primary = "#ffffff"
+mui_web_palette_dark_text_secondary = "rgba(255, 255, 255, 0.7)"
+mui_web_palette_dark_text_disabled = "rgba(255, 255, 255, 0.5)"
+mui_web_palette_dark_divider = "rgba(255, 255, 255, 0.12)"
+mui_web_action_light_hover_opacity = 0.04
+mui_web_action_light_selected_opacity = 0.08
+mui_web_action_light_focus_opacity = 0.12
+mui_web_action_light_activated_opacity = 0.12
+mui_web_action_dark_hover_opacity = 0.08
+mui_web_action_dark_selected_opacity = 0.16
+mui_web_action_dark_focus_opacity = 0.12
+mui_web_action_dark_activated_opacity = 0.24
+mui_web_action_disabled_opacity = 0.38
+mui_web_shape_border_radius = 4.0
+mui_web_spacing_unit = 8.0
+mui_web_typography_font_family = "\"Roboto\", \"Helvetica\", \"Arial\", sans-serif"
+mui_web_typography_font_size = 14.0
+mui_web_typography_html_font_size = 16.0
+mui_web_typography_font_weight_light = 300.0
+mui_web_typography_font_weight_regular = 400.0
+mui_web_typography_font_weight_medium = 500.0
+mui_web_typography_font_weight_bold = 700.0
+mui_web_typography_h1_size = 96.0
+mui_web_typography_h2_size = 60.0
+mui_web_typography_h3_size = 48.0
+mui_web_typography_h4_size = 34.0
+mui_web_typography_h5_size = 24.0
+mui_web_typography_h6_size = 20.0
+mui_web_typography_body1_size = 16.0
+mui_web_typography_body2_size = 14.0
+mui_web_typography_button_size = 14.0
+mui_web_typography_caption_size = 12.0
+mui_web_shadow_key_umbra_opacity = 0.20
+mui_web_shadow_key_penumbra_opacity = 0.14
+mui_web_shadow_ambient_opacity = 0.12
+mui_web_shadow_0 = "none"
+mui_web_shadow_1 = "0px 2px 1px -1px rgba(0,0,0,0.2),0px 1px 1px 0px rgba(0,0,0,0.14),0px 1px 3px 0px rgba(0,0,0,0.12)"
+mui_web_shadow_24 = "0px 11px 15px -7px rgba(0,0,0,0.2),0px 24px 38px 3px rgba(0,0,0,0.14),0px 9px 46px 8px rgba(0,0,0,0.12)"
+mui_web_z_index_mobile_stepper = 1000.0
+mui_web_z_index_fab = 1050.0
+mui_web_z_index_speed_dial = 1050.0
+mui_web_z_index_app_bar = 1100.0
+mui_web_z_index_drawer = 1200.0
+mui_web_z_index_modal = 1300.0
+mui_web_z_index_snackbar = 1400.0
+mui_web_z_index_tooltip = 1500.0
+mui_web_transition_ease_in_out = "cubic-bezier(0.4, 0, 0.2, 1)"
+mui_web_transition_ease_out = "cubic-bezier(0.0, 0, 0.2, 1)"
+mui_web_transition_ease_in = "cubic-bezier(0.4, 0, 1, 1)"
+mui_web_transition_sharp = "cubic-bezier(0.4, 0, 0.6, 1)"
+mui_web_transition_duration_shortest = 150.0
+mui_web_transition_duration_shorter = 200.0
+mui_web_transition_duration_short = 250.0
+mui_web_transition_duration_standard = 300.0
+mui_web_transition_duration_complex = 375.0
+mui_web_transition_duration_entering_screen = 225.0
+mui_web_transition_duration_leaving_screen = 195.0
+
+slint_material_scheme = "dark"
+slint_material_primary = "#adc6ff"
+slint_material_surface_tint = "$slint_material_primary"
+slint_material_on_primary = "#112f60"
+slint_material_primary_container = "#2b4678"
+slint_material_on_primary_container = "#d8e2ff"
+slint_material_secondary = "#bfc6dc"
+slint_material_on_secondary = "#293041"
+slint_material_secondary_container = "#3f4759"
+slint_material_on_secondary_container = "#dbe2f9"
+slint_material_tertiary = "#debcdf"
+slint_material_on_tertiary = "#402843"
+slint_material_tertiary_container = "#583e5b"
+slint_material_on_tertiary_container = "#fcd7fb"
+slint_material_error = "#ffb4ab"
+slint_material_on_error = "#690005"
+slint_material_error_container = "#93000a"
+slint_material_on_error_container = "#ffdad6"
+slint_material_background = "#111318"
+slint_material_on_background = "#e2e2e9"
+slint_material_surface = "#111318"
+slint_material_on_surface = "#e2e2e9"
+slint_material_surface_variant = "#44474f"
+slint_material_on_surface_variant = "#c4c6d0"
+slint_material_outline = "#8e9099"
+slint_material_outline_variant = "#44474f"
+slint_material_shadow = "#000000"
+slint_material_scrim = "#000000"
+slint_material_inverse_surface = "#e2e2e9"
+slint_material_inverse_on_surface = "#2f3036"
+slint_material_inverse_primary = "#445e91"
+slint_material_primary_fixed = "#d8e2ff"
+slint_material_on_primary_fixed = "#001a42"
+slint_material_primary_fixed_dim = "#adc6ff"
+slint_material_on_primary_fixed_variant = "#2b4678"
+slint_material_secondary_fixed = "#dbe2f9"
+slint_material_on_secondary_fixed = "#141b2c"
+slint_material_secondary_fixed_dim = "#bfc6dc"
+slint_material_on_secondary_fixed_variant = "#3f4759"
+slint_material_tertiary_fixed = "#fcd7fb"
+slint_material_on_tertiary_fixed = "#29132d"
+slint_material_tertiary_fixed_dim = "#debcdf"
+slint_material_on_tertiary_fixed_variant = "#583e5b"
+slint_material_surface_dim = "#111318"
+slint_material_surface_bright = "#37393e"
+slint_material_surface_container_lowest = "#0c0e13"
+slint_material_surface_container_low = "#1a1b20"
+slint_material_surface_container = "#1e1f25"
+slint_material_surface_container_high = "#282a2f"
+slint_material_surface_container_highest = "#33353a"
+slint_material_shadow_15 = "#00000026"
+slint_material_shadow_30 = "#0000004d"
+slint_material_shadow_15_alpha = 0.15
+slint_material_shadow_30_alpha = 0.30
+slint_material_background_modal = "#00000080"
+slint_material_color_primary = "$slint_material_primary"
+slint_material_color_on_primary = "$slint_material_on_primary"
+slint_material_color_surface = "$slint_material_surface"
+slint_material_color_surface_container = "$slint_material_surface_container"
+slint_material_color_surface_container_low = "$slint_material_surface_container_low"
+slint_material_color_surface_container_high = "$slint_material_surface_container_high"
+slint_material_color_on_surface = "$slint_material_on_surface"
+slint_material_color_on_surface_variant = "$slint_material_on_surface_variant"
+slint_material_color_outline = "$slint_material_outline"
+slint_material_color_outline_variant = "$slint_material_outline_variant"
+slint_material_color_error = "$slint_material_error"
+slint_material_color_on_error = "$slint_material_on_error"
+slint_material_color_shadow = "$slint_material_shadow"
+slint_material_color_scrim = "$slint_material_scrim"
+
+slint_material_state_layer_opacity_hover = 0.08
+slint_material_state_layer_opacity_focus = 0.10
+slint_material_state_layer_opacity_press = 0.10
+slint_material_state_layer_opacity_pressed = "$slint_material_state_layer_opacity_press"
+slint_material_state_layer_opacity_disabled = 0.12
+slint_material_state_layer_opacity_drag = 0.16
+slint_material_state_layer_opacity_dragged = "$slint_material_state_layer_opacity_drag"
+slint_material_disabled_opacity = 0.38
+
+slint_material_size_1 = 1.0
+slint_material_size_2 = 2.0
+slint_material_size_3 = 3.0
+slint_material_size_4 = 4.0
+slint_material_size_6 = 6.0
+slint_material_size_8 = 8.0
+slint_material_size_14 = 14.0
+slint_material_size_16 = 16.0
+slint_material_size_18 = 18.0
+slint_material_size_20 = 20.0
+slint_material_size_24 = 24.0
+slint_material_size_30 = 30.0
+slint_material_size_32 = 32.0
+slint_material_size_36 = 36.0
+slint_material_size_38 = 38.0
+slint_material_size_40 = 40.0
+slint_material_size_48 = 48.0
+slint_material_size_49 = 49.0
+slint_material_size_52 = 52.0
+slint_material_size_56 = 56.0
+slint_material_size_64 = 64.0
+slint_material_size_72 = 72.0
+slint_material_size_80 = 80.0
+slint_material_size_90 = 96.0
+slint_material_size_200 = 200.0
+slint_material_size_256 = 256.0
+slint_material_size_344 = 344.0
+slint_material_size_360 = 360.0
+slint_material_size_572 = 572.0
+slint_material_size_640 = 640.0
+slint_material_icon_size_18 = 18.0
+slint_material_icon_size_24 = 24.0
+slint_material_icon_size_36 = 36.0
+slint_material_icon_size_90 = 27.0
+slint_material_padding_4 = 4.0
+slint_material_padding_6 = 6.0
+slint_material_padding_8 = 8.0
+slint_material_padding_10 = 10.0
+slint_material_padding_12 = 12.0
+slint_material_padding_14 = 14.0
+slint_material_padding_16 = 16.0
+slint_material_padding_20 = 20.0
+slint_material_padding_24 = 24.0
+slint_material_padding_28 = 28.0
+slint_material_padding_30 = 30.0
+slint_material_padding_44 = 44.0
+slint_material_padding_56 = 56.0
+slint_material_spacing_2 = 2.0
+slint_material_spacing_4 = 4.0
+slint_material_spacing_6 = 6.0
+slint_material_spacing_8 = 8.0
+slint_material_spacing_12 = 12.0
+slint_material_spacing_16 = 16.0
+slint_material_spacing_40 = 40.0
+slint_material_spacing_52 = 52.0
+slint_material_border_radius_2 = 2.0
+slint_material_border_radius_4 = 4.0
+slint_material_border_radius_8 = 8.0
+slint_material_border_radius_12 = 12.0
+slint_material_border_radius_16 = 16.0
+slint_material_border_radius_28 = 28.0
+
+slint_material_typography_regular_weight = 300
+slint_material_typography_medium_weight = 600
+slint_material_typography_semibold_weight = 900
+slint_material_typography_display_large_size = 57.0
+slint_material_typography_display_large_weight = "$slint_material_typography_regular_weight"
+slint_material_typography_display_medium_size = 45.0
+slint_material_typography_display_medium_weight = "$slint_material_typography_regular_weight"
+slint_material_typography_display_small_size = 36.0
+slint_material_typography_display_small_weight = "$slint_material_typography_regular_weight"
+slint_material_typography_headline_large_size = 32.0
+slint_material_typography_headline_large_weight = "$slint_material_typography_regular_weight"
+slint_material_typography_headline_medium_size = 28.0
+slint_material_typography_headline_medium_weight = "$slint_material_typography_regular_weight"
+slint_material_typography_headline_small_size = 24.0
+slint_material_typography_headline_small_weight = "$slint_material_typography_regular_weight"
+slint_material_typography_title_large_size = 22.0
+slint_material_typography_title_large_weight = "$slint_material_typography_regular_weight"
+slint_material_typography_title_medium_size = 16.0
+slint_material_typography_title_medium_weight = "$slint_material_typography_medium_weight"
+slint_material_typography_title_small_size = 14.0
+slint_material_typography_title_small_weight = "$slint_material_typography_medium_weight"
+slint_material_typography_label_large_size = 14.0
+slint_material_typography_label_large_weight = "$slint_material_typography_medium_weight"
+slint_material_typography_label_medium_size = 12.0
+slint_material_typography_label_medium_weight = "$slint_material_typography_medium_weight"
+slint_material_typography_label_medium_prominent_size = 12.0
+slint_material_typography_label_medium_prominent_weight = "$slint_material_typography_semibold_weight"
+slint_material_typography_label_small_size = 11.0
+slint_material_typography_label_small_weight = "$slint_material_typography_medium_weight"
+slint_material_typography_body_large_size = 16.0
+slint_material_typography_body_large_weight = "$slint_material_typography_regular_weight"
+slint_material_typography_body_medium_size = 14.0
+slint_material_typography_body_medium_weight = "$slint_material_typography_regular_weight"
+slint_material_typography_body_small_size = 12.0
+slint_material_typography_body_small_weight = "$slint_material_typography_regular_weight"
+
+slint_material_emphasized_easing = "cubic-bezier(0.05, 0.7, 0.1, 1.0)"
+slint_material_emphasized_duration_ms = 500.0
+slint_material_emphasized_decelerate_duration_ms = 400.0
+slint_material_emphasized_accelerate_duration_ms = 200.0
+slint_material_standard_easing = "cubic-bezier(0, 0, 0, 1)"
+slint_material_standard_decelerate_duration_ms = 250.0
+slint_material_standard_accelerate_duration_ms = 200.0
+slint_material_standard_fast_duration_ms = 150.0
+slint_material_ripple_easing = "ease_out"
+slint_material_ripple_duration_ms = 2000.0
+slint_material_opacity_easing = "ease"
+slint_material_opacity_duration_ms = 250.0
+
+slint_material_elevation_level1_light_outer_offset_y = 1.0
+slint_material_elevation_level1_light_outer_blur = 2.0
+slint_material_elevation_level1_light_outer_alpha = "$slint_material_shadow_30_alpha"
+slint_material_elevation_level1_light_inner_offset_y = 1.0
+slint_material_elevation_level1_light_inner_blur = 2.0
+slint_material_elevation_level1_light_inner_alpha = "$slint_material_shadow_15_alpha"
+slint_material_elevation_level2_light_outer_offset_y = 1.0
+slint_material_elevation_level2_light_outer_blur = 2.0
+slint_material_elevation_level2_light_outer_alpha = "$slint_material_shadow_30_alpha"
+slint_material_elevation_level2_light_inner_offset_y = 2.0
+slint_material_elevation_level2_light_inner_blur = 6.0
+slint_material_elevation_level2_light_inner_alpha = "$slint_material_shadow_15_alpha"
+slint_material_elevation_level3_light_outer_offset_y = 4.0
+slint_material_elevation_level3_light_outer_blur = 8.0
+slint_material_elevation_level3_light_outer_alpha = "$slint_material_shadow_15_alpha"
+slint_material_elevation_level3_light_inner_offset_y = 1.0
+slint_material_elevation_level3_light_inner_blur = 3.0
+slint_material_elevation_level3_light_inner_alpha = "$slint_material_shadow_30_alpha"
+slint_material_elevation_level4_light_outer_offset_y = 6.0
+slint_material_elevation_level4_light_outer_blur = 10.0
+slint_material_elevation_level4_light_outer_alpha = "$slint_material_shadow_15_alpha"
+slint_material_elevation_level4_light_inner_offset_y = 2.0
+slint_material_elevation_level4_light_inner_blur = 3.0
+slint_material_elevation_level4_light_inner_alpha = "$slint_material_shadow_30_alpha"
+slint_material_elevation_level5_light_outer_offset_y = 8.0
+slint_material_elevation_level5_light_outer_blur = 12.0
+slint_material_elevation_level5_light_outer_alpha = "$slint_material_shadow_15_alpha"
+slint_material_elevation_level5_light_inner_offset_y = 4.0
+slint_material_elevation_level5_light_inner_blur = 4.0
+slint_material_elevation_level5_light_inner_alpha = "$slint_material_shadow_30_alpha"
+slint_material_elevation_level1_dark_outer_offset_y = 1.0
+slint_material_elevation_level1_dark_outer_blur = 3.0
+slint_material_elevation_level1_dark_outer_alpha = "$slint_material_shadow_15_alpha"
+slint_material_elevation_level1_dark_inner_offset_y = 1.0
+slint_material_elevation_level1_dark_inner_blur = 2.0
+slint_material_elevation_level1_dark_inner_alpha = "$slint_material_shadow_30_alpha"
+slint_material_elevation_level2_dark_outer_offset_y = 2.0
+slint_material_elevation_level2_dark_outer_blur = 6.0
+slint_material_elevation_level2_dark_outer_alpha = "$slint_material_shadow_15_alpha"
+slint_material_elevation_level2_dark_inner_offset_y = 1.0
+slint_material_elevation_level2_dark_inner_blur = 2.0
+slint_material_elevation_level2_dark_inner_alpha = "$slint_material_shadow_30_alpha"
+slint_material_elevation_level3_dark_outer_offset_y = 4.0
+slint_material_elevation_level3_dark_outer_blur = 8.0
+slint_material_elevation_level3_dark_outer_alpha = "$slint_material_shadow_15_alpha"
+slint_material_elevation_level3_dark_inner_offset_y = 1.0
+slint_material_elevation_level3_dark_inner_blur = 3.0
+slint_material_elevation_level3_dark_inner_alpha = "$slint_material_shadow_30_alpha"
+slint_material_elevation_level4_dark_outer_offset_y = 6.0
+slint_material_elevation_level4_dark_outer_blur = 10.0
+slint_material_elevation_level4_dark_outer_alpha = "$slint_material_shadow_15_alpha"
+slint_material_elevation_level4_dark_inner_offset_y = 2.0
+slint_material_elevation_level4_dark_inner_blur = 3.0
+slint_material_elevation_level4_dark_inner_alpha = "$slint_material_shadow_30_alpha"
+slint_material_elevation_level5_dark_outer_offset_y = 8.0
+slint_material_elevation_level5_dark_outer_blur = 12.0
+slint_material_elevation_level5_dark_outer_alpha = "$slint_material_shadow_15_alpha"
+slint_material_elevation_level5_dark_inner_offset_y = 4.0
+slint_material_elevation_level5_dark_inner_blur = 4.0
+slint_material_elevation_level5_dark_inner_alpha = "$slint_material_shadow_30_alpha"
+slint_material_state_layer_priority = "disabled>pressed>drag>focus>hover>default"
+slint_material_state_layer_disabled_uses_focus_opacity = "true"
+slint_material_hover_disable_token = "disable_hover"
+slint_material_ripple_pressed_x_attr = "pressed_x"
+slint_material_ripple_pressed_y_attr = "pressed_y"
+slint_material_ripple_clip_attr = "clip_ripple"
+slint_material_ripple_static_pulse_contract = "pressed_or_enter_pressed_static_circle"
+slint_material_elevation_retained_painter_contract = "retained_template_elevation_shadow"
+slint_material_button_variants = "filled,outlined,text,tonal,elevated"
+slint_material_base_button_horizontal_padding = 24.0
+slint_material_base_button_vertical_padding = 10.0
+slint_material_base_button_spacing = 8.0
+slint_material_base_button_min_layout_width = 40.0
+slint_material_base_button_min_layout_height = 40.0
+slint_material_base_button_icon_size = 18.0
+slint_material_button_radius_policy = "height_half"
+slint_material_button_hover_elevations = "filled=1,tonal=2,elevated=3"
+slint_material_icon_button_display_background = "false"
+slint_material_icon_button_inline_icon_size = 18.0
+slint_material_icon_button_default_icon_size = 24.0
+slint_material_icon_button_inline_min_layout = 18.0
+slint_material_icon_button_default_min_layout = 40.0
+slint_material_icon_button_clip_ripple_contract = "clip_unless_inline"
+slint_material_fab_styles = "small,standard,large"
+slint_material_fab_small_min_layout = 40.0
+slint_material_fab_standard_min_layout = 56.0
+slint_material_fab_large_min_layout = 96.0
+slint_material_fab_small_radius = 12.0
+slint_material_fab_standard_radius = 16.0
+slint_material_fab_large_radius = 28.0
+slint_material_fab_elevation_level = 3.0
+slint_material_fab_hover_elevation_level = 4.0
+
+[[stylesheets]]
+id = "editor_material"
+
+[[stylesheets.rules]]
+selector = ".showcase-shell"
+set = { self = { background = { color = "$field_bg" } } }
+
+[[stylesheets.rules]]
+selector = ".showcase-panel"
+set = { self = { background = { color = "$panel_bg" }, border = { color = "$border", width = "$material_border_width", radius = "$material_radius_surface" } } }
+
+[[stylesheets.rules]]
+selector = ".showcase-field"
+set = { self = { background = { color = "$panel_bg_soft" }, border = { color = "$border", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".showcase-title"
+set = { self = { foreground = { color = "$text" }, font = { size = "$material_font_size_title" } } }
+
+[[stylesheets.rules]]
+selector = ".showcase-muted"
+set = { self = { foreground = { color = "$muted" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".material-state-layer"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-control"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-control:hover"
+set = { self = { background = { color = "$material_surface_hover" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-control:pressed"
+set = { self = { background = { color = "$material_surface_pressed" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-control:focus"
+set = { self = { border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-control:selected"
+set = { self = { background = { color = "$material_surface_selected" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-control:disabled"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-surface-success"
+set = { self = { background = { color = "$material_success_container" }, foreground = { color = "$material_success" }, border = { color = "$material_success", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-surface-info"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$material_info", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-surface-warning"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" }, border = { color = "$material_warning", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-surface-error"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" }, border = { color = "$material_error", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-button"
+set = { self = { button_size = "medium", background = { color = "$material_surface_hover" } } }
+
+[[stylesheets.rules]]
+selector = ".material-button:hover"
+set = { self = { button_interaction_state = "hover", background = { color = "$material_surface_container_high" } } }
+
+[[stylesheets.rules]]
+selector = ".material-button:pressed"
+set = { self = { button_interaction_state = "pressed", background = { color = "$material_surface_pressed" } } }
+
+[[stylesheets.rules]]
+selector = ".material-button-primary"
+set = { self = { button_variant = "contained", button_color = "primary", button_size = "medium", icon_placement = "none", background = { color = "$material_color_primary" }, foreground = { color = "$material_color_on_primary" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-button-primary:hover"
+set = { self = { button_variant = "contained", button_color = "primary", button_size = "medium", icon_placement = "none", button_interaction_state = "hover", background = { color = "$material_accent_soft" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-button-primary:pressed"
+set = { self = { button_variant = "contained", button_color = "primary", button_size = "medium", icon_placement = "none", button_interaction_state = "pressed", background = { color = "$material_surface_selected" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-button-base"
+set = { self = { button_variant = "default", button_color = "primary", button_size = "medium", icon_placement = "none", background = { color = "$material_surface" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-icon-button"
+set = { self = { button_variant = "text", button_color = "primary", button_size = "small", icon_placement = "icon_only", background = { color = "$material_surface" } } }
+
+[[stylesheets.rules]]
+selector = ".material-icon-button:hover"
+set = { self = { button_variant = "text", button_color = "primary", button_size = "small", icon_placement = "icon_only", button_interaction_state = "hover", background = { color = "$material_surface_hover" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-icon-button:pressed"
+set = { self = { button_variant = "text", button_color = "primary", button_size = "small", icon_placement = "icon_only", button_interaction_state = "pressed", background = { color = "$material_surface_pressed" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-icon-button:focus"
+set = { self = { button_variant = "text", button_color = "primary", button_size = "small", icon_placement = "icon_only", button_interaction_state = "focused", border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button"
+set = { self = { button_variant = "outlined", button_color = "primary", button_size = "medium", icon_placement = "none", background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button:hover"
+set = { self = { button_interaction_state = "hover", background = { color = "$material_surface_hover" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button:pressed"
+set = { self = { button_interaction_state = "pressed", background = { color = "$material_surface_pressed" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button:focus"
+set = { self = { button_interaction_state = "focused", border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button:selected"
+set = { self = { background = { color = "$material_surface_selected" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button:disabled"
+set = { self = { button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button-row"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button-selected"
+set = { self = { button_interaction_state = "focused", background = { color = "$material_accent_soft" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_none" } } }
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button-hover"
+set = { self = { button_interaction_state = "hover", background = { color = "$material_surface_hover" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_none" } } }
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button-multiple"
+set = { self = { background = { color = "$material_surface_selected" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_none" } } }
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button-disabled"
+set = { self = { button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_none" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-checkbox-row"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-checkbox"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-checkbox:focus"
+set = { self = { button_interaction_state = "focused", border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-checkbox:selected"
+set = { self = { background = { color = "$material_surface_selected" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-checkbox:disabled"
+set = { self = { button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-checkbox-unchecked"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-checkbox-checked"
+set = { self = { background = { color = "$material_accent_soft" }, foreground = { color = "$material_text" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-checkbox-indeterminate"
+set = { self = { background = { color = "$material_surface_selected" }, foreground = { color = "$material_text" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-checkbox-error"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" }, border = { color = "$material_error", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-checkbox-disabled"
+set = { self = { button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-radio-group-row"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-radio"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-radio:focus"
+set = { self = { button_interaction_state = "focused", border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-radio:selected"
+set = { self = { background = { color = "$material_surface_selected" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-radio:disabled"
+set = { self = { button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-radio-selected"
+set = { self = { background = { color = "$material_accent_soft" }, foreground = { color = "$material_text" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-radio-unselected"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-radio-disabled"
+set = { self = { button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-radio-error"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" }, border = { color = "$material_error", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-outlined-field"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-slider-field"
+set = { self = { background = { color = "$material_surface_inset" } } }
+
+[[stylesheets.rules]]
+selector = ".material-ripple"
+set = { self = { background = { color = "$material_surface_hover" }, border = { color = "$material_surface_hover", width = "$material_border_width_none", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-list-item"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-table-row"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-button"
+set = { self = { button_variant = "text", button_color = "primary", button_size = "medium", icon_placement = "none", background = { color = "$material_surface" }, foreground = { color = "$material_accent" }, border = { color = "$material_surface", width = "$material_border_width_none", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-button:hover"
+set = { self = { button_variant = "text", button_color = "primary", button_size = "medium", icon_placement = "none", button_interaction_state = "hover", background = { color = "$material_surface_hover" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-button:pressed"
+set = { self = { button_variant = "text", button_color = "primary", button_size = "medium", icon_placement = "none", button_interaction_state = "pressed", background = { color = "$material_surface_pressed" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-button:focus"
+set = { self = { button_interaction_state = "focused", border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-button:disabled"
+set = { self = { button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-button-group"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-button-group-segment"
+set = { self = { border = { color = "$material_focus_ring", width = "$material_border_width_none", radius = "$material_radius_none" } } }
+
+[[stylesheets.rules]]
+selector = ".material-button-group-first"
+set = { self = { border = { color = "$material_focus_ring", width = "$material_border_width_none", radius = "$material_radius_none" } } }
+
+[[stylesheets.rules]]
+selector = ".material-button-group-middle"
+set = { self = { border = { color = "$material_focus_ring", width = "$material_border_width_none", radius = "$material_radius_none" } } }
+
+[[stylesheets.rules]]
+selector = ".material-button-group-last"
+set = { self = { border = { color = "$material_focus_ring", width = "$material_border_width_none", radius = "$material_radius_none" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-button:focus"
+set = { self = { button_variant = "text", button_color = "primary", button_size = "medium", icon_placement = "none", button_interaction_state = "focused", foreground = { color = "$material_text" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-button:disabled"
+set = { self = { button_variant = "text", button_color = "primary", button_size = "medium", icon_placement = "none", button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-button-primary:focus"
+set = { self = { button_variant = "contained", button_color = "primary", button_size = "medium", icon_placement = "none", button_interaction_state = "focused", foreground = { color = "$material_color_on_primary" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-button-primary:disabled"
+set = { self = { button_variant = "contained", button_color = "primary", button_size = "medium", icon_placement = "none", button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-icon-button:disabled"
+set = { self = { button_variant = "text", button_color = "primary", button_size = "small", icon_placement = "icon_only", button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-fab-row"
+set = { self = { button_variant = "contained", button_color = "primary", button_size = "medium", icon_placement = "icon_only", background = { color = "$material_surface_inset" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-fab"
+set = { self = { button_variant = "contained", button_color = "primary", button_size = "medium", elevation = "$material_elevation_level2", shadow = "$material_shadow", background = { color = "$material_color_primary" }, foreground = { color = "$material_color_on_primary" }, border = { color = "$material_shadow", width = "$material_border_width_none", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-fab:hover"
+set = { self = { button_interaction_state = "hover", background = { color = "$material_accent_soft" }, border = { color = "$material_shadow", width = "$material_border_width_none", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-fab:pressed"
+set = { self = { button_interaction_state = "pressed", background = { color = "$material_surface_selected" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-fab:focus"
+set = { self = { button_interaction_state = "focused", border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-fab:disabled"
+set = { self = { button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-fab-circular"
+set = { self = { button_shape = "circular", icon_placement = "icon_only", border = { color = "$material_shadow", width = "$material_border_width_none", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-fab-small"
+set = { self = { button_size = "small", button_shape = "circular", icon_placement = "icon_only", border = { color = "$material_shadow", width = "$material_border_width_none", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-fab-extended"
+set = { self = { button_size = "medium", button_shape = "extended", icon_placement = "leading", border = { color = "$material_shadow", width = "$material_border_width_none", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-check-box"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-combo-box"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-popup-frame"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-date-picker-popup"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-time-picker-popup"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-group-box"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-line-edit"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-outlined-field:focus"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-line-edit:focus"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-menu-bar"
+set = { self = { background = { color = "$material_surface" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-menu-bar-item"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-menu-bar-item:hover"
+set = { self = { background = { color = "$material_surface_hover" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-menu-frame"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-menu-item"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-menu-item:hover"
+set = { self = { background = { color = "$material_surface_hover" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-menu-item:selected"
+set = { self = { background = { color = "$material_surface_selected" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-progress-indicator"
+set = { self = { background = { color = "$material_track" }, foreground = { color = "$material_accent" } } }
+
+[[stylesheets.rules]]
+selector = ".material-scroll-view"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-slider"
+set = { self = { background = { color = "$material_track" }, foreground = { color = "$material_accent" } } }
+
+[[stylesheets.rules]]
+selector = ".material-spin-box"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-spinner"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_accent" }, border = { color = "$material_surface", width = "$material_border_width_none", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-switch"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_accent" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_large" } } }
+
+[[stylesheets.rules]]
+selector = ".material-switch-row"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-switch:focus"
+set = { self = { button_interaction_state = "focused", border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-switch:selected"
+set = { self = { background = { color = "$material_surface_selected" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-switch:disabled"
+set = { self = { button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-switch-on"
+set = { self = { background = { color = "$material_accent_soft" }, foreground = { color = "$material_text" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-switch-off"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-switch-small"
+set = { self = { background = { color = "$material_surface_selected" }, foreground = { color = "$material_text" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-switch-disabled"
+set = { self = { button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-switch-error"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" }, border = { color = "$material_error", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-standard-table-view"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-list-item:hover"
+set = { self = { background = { color = "$material_surface_hover" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-list-item:selected"
+set = { self = { background = { color = "$material_surface_selected" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-table-row:hover"
+set = { self = { background = { color = "$material_surface_hover" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-table-row:selected"
+set = { self = { background = { color = "$material_surface_selected" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-tab-widget"
+set = { self = { background = { color = "$material_surface" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-tab-widget-impl"
+set = { self = { background = { color = "$material_surface" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-tab-bar"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-tab-bar-horizontal"
+set = { self = { background = { color = "$material_surface_inset" } } }
+
+[[stylesheets.rules]]
+selector = ".material-tab-bar-vertical"
+set = { self = { background = { color = "$material_surface_inset" } } }
+
+[[stylesheets.rules]]
+selector = ".material-tab-impl"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_surface_inset", width = "$material_border_width_none", radius = "$material_radius_none" } } }
+
+[[stylesheets.rules]]
+selector = ".material-tab-impl:hover"
+set = { self = { background = { color = "$material_surface_hover" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-tab-impl:selected"
+set = { self = { background = { color = "$material_surface_selected" }, foreground = { color = "$material_text" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-edit"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-field"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-field:hover"
+set = { self = { background = { color = "$material_surface_hover" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-field:focus"
+set = { self = { border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-field:disabled"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-text-field-row"
+set = { self = { background = { color = "$material_surface" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-field-outlined"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-field-filled"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-field-standard"
+set = { self = { background = { color = "$material_surface" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_none" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-field-focused"
+set = { self = { border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-field-error"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" }, border = { color = "$material_error", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-field-disabled"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-textarea-row"
+set = { self = { background = { color = "$material_surface" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-textarea"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-textarea:hover"
+set = { self = { background = { color = "$material_surface_hover" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-textarea:focus"
+set = { self = { border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-textarea:disabled"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-textarea-min-rows"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-textarea-max-rows"
+set = { self = { background = { color = "$material_surface_hover" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-textarea-autosize"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-textarea-focused"
+set = { self = { border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-textarea-error"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" }, border = { color = "$material_error", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-textarea-disabled"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-number-field-row"
+set = { self = { background = { color = "$material_surface" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-number-field"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-number-field:hover"
+set = { self = { background = { color = "$material_surface_hover" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-number-field:pressed"
+set = { self = { background = { color = "$material_surface_pressed" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-number-field:focus"
+set = { self = { border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-number-field:disabled"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-number-field-stepper"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-number-field-clamped"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-number-field-drag-active"
+set = { self = { background = { color = "$material_accent_soft" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-number-field-error"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" }, border = { color = "$material_error", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-number-field-disabled"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-select-row"
+set = { self = { background = { color = "$material_surface" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-select"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-select:hover"
+set = { self = { background = { color = "$material_surface_hover" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-select:focus"
+set = { self = { border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-select:selected"
+set = { self = { background = { color = "$material_surface_selected" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-select:disabled"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-select-closed"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-select-open"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-select-selected"
+set = { self = { background = { color = "$material_accent_soft" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-select-multiple"
+set = { self = { background = { color = "$material_surface_selected" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-select-disabled"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-row"
+set = { self = { background = { color = "$material_surface" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-root"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-root.MuiAutocomplete-expanded.MuiAutocomplete-focused.MuiAutocomplete-fullWidth.MuiAutocomplete-hasClearIcon.MuiAutocomplete-hasPopupIcon"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-inputRoot"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-inputRoot.MuiAutocomplete-hasClearIcon.MuiAutocomplete-hasPopupIcon"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-input"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-input.MuiAutocomplete-inputFocused"
+set = { self = { background = { color = "$material_surface_selected" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-tag"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-tag.MuiAutocomplete-tagSizeSmall"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-endAdornment"
+set = { self = { foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-clearIndicator"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-popupIndicator"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-popupIndicator.MuiAutocomplete-popupIndicatorOpen"
+set = { self = { background = { color = "$material_surface_selected" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-popper"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-popper.MuiAutocomplete-popperDisablePortal"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-paper"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-listbox"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-loading"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text_muted" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-noOptions"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-option"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-option.MuiAutocomplete-focused.MuiAutocomplete-focusVisible"
+set = { self = { background = { color = "$material_surface_selected" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-groupLabel"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAutocomplete-groupUl"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete:hover"
+set = { self = { background = { color = "$material_surface_hover" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete:focus"
+set = { self = { border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete:selected"
+set = { self = { background = { color = "$material_surface_selected" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete:disabled"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-query"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-open"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-selected"
+set = { self = { background = { color = "$material_accent_soft" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-multiple"
+set = { self = { background = { color = "$material_surface_selected" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-disabled"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-input-root"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-input"
+set = { self = { background = { color = "$material_surface_selected" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-tag"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-popup-indicator"
+set = { self = { background = { color = "$material_surface_selected" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-popper"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-paper"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-listbox"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-option"
+set = { self = { background = { color = "$material_surface_selected" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTransferList-root"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTransferList-root.MuiTransferList-hasSourceItems.MuiTransferList-hasTargetItems.MuiTransferList-hasSelectedItems.MuiTransferList-hasDisabledItems.MuiTransferList-hasDisabledActions"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTransferList-source"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTransferList-source.MuiTransferList-sourcePopulated.MuiTransferList-sourceSelected"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTransferList-target"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_success_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTransferList-target.MuiTransferList-targetPopulated.MuiTransferList-targetSelected"
+set = { self = { background = { color = "$material_success_container" }, foreground = { color = "$material_success" }, border = { color = "$mui_web_palette_success_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTransferList-actions"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTransferList-actions.MuiTransferList-actionsDisabled"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" }, border = { color = "$material_warning", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-transfer-list-sample"
+set = { self = { background = { color = "$material_surface" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-transfer-list-source"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-transfer-list-target"
+set = { self = { background = { color = "$material_success_container" }, foreground = { color = "$material_success" }, border = { color = "$mui_web_palette_success_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-transfer-list-actions"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" }, border = { color = "$material_warning", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-runtime-dialog"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_medium" } } }
+
+[[stylesheets.rules]]
+selector = ".material-runtime-hud"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_surface" } } }
+
+[[stylesheets.rules]]
+selector = ".material-runtime-backdrop"
+set = { self = { background = { color = "$material_color_scrim" } } }
+
+[[stylesheets.rules]]
+selector = ".material-title"
+set = { self = { foreground = { color = "$material_text" }, font = { size = "$material_font_size_title" } } }
+
+[[stylesheets.rules]]
+selector = ".material-body"
+set = { self = { foreground = { color = "$material_text" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".material-meta"
+set = { self = { foreground = { color = "$material_text_muted" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-loading"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-autoHeight"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-root--densityCompact"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-root--densityStandard"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-root--densityComfortable"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-checkboxSelection.MuiDataGrid-disableColumnMenu.MuiDataGrid-disableRowSelectionOnClick"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-sortingModeServer.MuiDataGrid-filterModeServer.MuiDataGrid-rowSelection"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-hasSortModel.MuiDataGrid-hasFilterModel.MuiDataGrid-hasPaginationModel.MuiDataGrid-hasQuickFilter"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-showToolbar.MuiDataGrid-hideFooterPagination.MuiDataGrid-hideFooterSelectedRowCount.MuiDataGrid-withVerticalBorder.MuiDataGrid-showCellVerticalBorder.MuiDataGrid-rowSpacingBorder.MuiDataGrid-hasScrollbarSize.MuiDataGrid-hasLabel"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-emptyRows.MuiDataGrid-emptyColumns.MuiDataGrid-loading"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-hasRows.MuiDataGrid-hasColumns.MuiDataGrid-rowSelection"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-hasPage.MuiDataGrid-hasPageSize"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-hasRowCount.MuiDataGrid-hasRowHeight.MuiDataGrid-hasOverscan.MuiDataGrid-disableVirtualization"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_info_main" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-hasViewportRange.MuiDataGrid-hasRequestedRange.MuiDataGrid-hasScrollOffset"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_info_main" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root.MuiDataGrid-editModeRow.MuiDataGrid-hasCellModes.MuiDataGrid-hasRowModes.MuiDataGrid-hasColumnVisibilityModel.MuiDataGrid-hasPinnedColumns"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$mui_web_palette_warning_main" }, border = { color = "$mui_web_palette_warning_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-loading"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-autoHeight"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root--densityCompact"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root--densityStandard"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-root--densityComfortable"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-withBorderColor"
+set = { self = { border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasRows"
+set = { self = { foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasColumns"
+set = { self = { border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-emptyRows"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-emptyColumns"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-checkboxSelection"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-disableColumnMenu"
+set = { self = { foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-disableRowSelectionOnClick"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-sortingModeClient"
+set = { self = { foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-sortingModeServer"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-filterModeClient"
+set = { self = { foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-filterModeServer"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasSortModel"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasFilterModel"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasPaginationModel"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasQuickFilter"
+set = { self = { background = { color = "$material_success_container" }, foreground = { color = "$material_success" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-showToolbar"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hideFooter"
+set = { self = { foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hideFooterPagination"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hideFooterSelectedRowCount"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-withVerticalBorder"
+set = { self = { border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-showCellVerticalBorder"
+set = { self = { border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-rowSpacingBorder"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-rowSpacingMargin"
+set = { self = { foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasScrollbarSize"
+set = { self = { foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasLabel"
+set = { self = { foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-rowSelection"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasPage"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasPageSize"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasRowCount"
+set = { self = { foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasRowHeight"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasOverscan"
+set = { self = { foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-disableVirtualization"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasViewportRange"
+set = { self = { foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasRequestedRange"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasScrollOffset"
+set = { self = { foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-editModeRow"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-editModeCell"
+set = { self = { foreground = { color = "$mui_web_palette_warning_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasCellModes"
+set = { self = { foreground = { color = "$material_warning" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasRowModes"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_warning_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasColumnVisibilityModel"
+set = { self = { border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-hasPinnedColumns"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_warning" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-columnHeader"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-columnHeader--sortable"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-columnHeader--sorted"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-columnHeader--withRightBorder"
+set = { self = { border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-cell"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-cell--editable"
+set = { self = { foreground = { color = "$mui_web_palette_warning_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-cell--editing"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-cell--withRightBorder"
+set = { self = { border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-columnHeaders"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-row"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-row.MuiDataGrid-row--loading"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-Toolbar"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-Footer"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-LoadingOverlay"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDataGrid-NoRowsOverlay"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-header"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-row"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-column-header"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-cell"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeView-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_success_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiMaterialTreeView-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_success_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeView-root.MuiTreeView-multiSelect"
+set = { self = { background = { color = "$material_success_container" }, foreground = { color = "$material_success" }, border = { color = "$mui_web_palette_success_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeView-root.MuiTreeView-checkboxSelection.MuiTreeView-disabledItemsFocusable.MuiTreeView-editable"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_success" }, border = { color = "$mui_web_palette_success_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeView-root.MuiTreeView-hasExpandedItems.MuiTreeView-hasSelectedItems.MuiTreeView-hasItemIndentation"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$mui_web_palette_info_main" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeView-multiSelect"
+set = { self = { background = { color = "$material_success_container" }, foreground = { color = "$material_success" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeView-checkboxSelection"
+set = { self = { background = { color = "$material_success_container" }, foreground = { color = "$mui_web_palette_success_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeView-disabledItemsFocusable"
+set = { self = { foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeView-editable"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeView-hasExpandedItems"
+set = { self = { foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeView-hasSelectedItems"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeView-hasItemIndentation"
+set = { self = { border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-tree-item"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-tree-content"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-tree-label"
+set = { self = { foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-tree-icon"
+set = { self = { background = { color = "$material_success_container" }, foreground = { color = "$mui_web_palette_success_main" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-tree-checkbox"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-root"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-root.MuiTreeItem-expanded.MuiTreeItem-selected.MuiTreeItem-editable.MuiTreeItem-disabledItemsFocusable"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$mui_web_palette_info_main" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-content"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-content.MuiTreeItem-expanded.MuiTreeItem-selected"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-label"
+set = { self = { foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-labelInput"
+set = { self = { border = { color = "$mui_web_palette_success_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-label.MuiTreeItem-labelInput"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_success" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-iconContainer"
+set = { self = { background = { color = "$material_success_container" }, foreground = { color = "$mui_web_palette_success_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-checkbox"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-checkbox.MuiTreeItem-checkboxSelection"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-expanded"
+set = { self = { foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-selected"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-editable"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-disabledItemsFocusable"
+set = { self = { foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTreeItem-checkboxSelection"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDateTimePicker-root"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDateTimePickers-root"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDatePicker-root"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimePicker-root"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersField"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersField-readOnly"
+set = { self = { foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersField-hasValue"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersField-hasFormat"
+set = { self = { border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersField.MuiPickersField-readOnly.MuiPickersField-hasValue.MuiPickersField-hasFormat"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersLayout"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersLayout-hasViews"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersLayout-Desktop"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersLayout.MuiPickersLayout-Desktop.MuiPickersLayout-hasViews"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersLayout-Mobile"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersLayout-Static"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDateTimePicker-root.MuiPickersLayout-Desktop"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDatePicker-root.MuiPickersLayout-Mobile"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimePicker-root.MuiPickersLayout-Static"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDateTimePicker-root.MuiPickers-readOnly.MuiPickers-ampm.MuiPickers-hasDateBounds.MuiPickers-hasViews"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDateTimePicker-root.MuiPickers-hasValue.MuiPickers-hasView.MuiPickers-hasFormat"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickers-readOnly"
+set = { self = { foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickers-ampm"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickers-hasDateBounds"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickers-hasViews"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickers-hasValue"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickers-hasView"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickers-hasFormat"
+set = { self = { border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersToolbar"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersToolbar-ampm"
+set = { self = { foreground = { color = "$mui_web_palette_warning_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersToolbar-hasViews"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersToolbar.MuiPickersToolbar-ampm.MuiPickersToolbar-hasViews"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersPopper"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersPopper-open"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersPopper-hasDateBounds"
+set = { self = { border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPickersPopper.MuiPickersPopper-open.MuiPickersPopper-hasDateBounds"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-field"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-layout"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-toolbar"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-popper"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsSurface-root"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiCharts-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsSurface-root.MuiCharts-loading"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiCharts-loading"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiCharts-hasSeries"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiCharts-hasAxes"
+set = { self = { border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiCharts-hasCustomColors"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiCharts-hasMargin"
+set = { self = { background = { color = "$material_surface_container_high" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiCharts-root.MuiChartsSurface-root.MuiCharts-hasSeries.MuiCharts-hasAxes.MuiCharts-hasCustomColors.MuiCharts-hasMargin"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiLineChart-root.MuiChartsSurface-root.MuiCharts-hasSeries.MuiCharts-hasAxes.MuiCharts-hasCustomColors.MuiCharts-hasMargin"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBarChart-root.MuiChartsSurface-root.MuiCharts-hasSeries.MuiCharts-hasAxes.MuiCharts-hasCustomColors.MuiCharts-hasMargin"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_success_main" }, border = { color = "$mui_web_palette_success_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPieChart-root.MuiChartsSurface-root.MuiCharts-hasSeries.MuiCharts-hasAxes.MuiCharts-hasCustomColors.MuiCharts-hasMargin"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_warning_main" }, border = { color = "$mui_web_palette_warning_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSparkLineChart-root.MuiChartsSurface-root.MuiCharts-hasSeries.MuiCharts-hasAxes.MuiCharts-hasCustomColors.MuiCharts-hasMargin"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_info_main" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiGauge-root.MuiChartsSurface-root.MuiGauge-hasValue.MuiCharts-hasSeries.MuiCharts-hasAxes.MuiCharts-hasCustomColors.MuiCharts-hasMargin"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiLineChart-root"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBarChart-root"
+set = { self = { foreground = { color = "$mui_web_palette_success_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPieChart-root"
+set = { self = { foreground = { color = "$mui_web_palette_warning_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSparkLineChart-root"
+set = { self = { foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiGauge-root"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiGauge-hasValue"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsLegend-hasSeries"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsLegend-hasCustomColors"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsLegend-loading"
+set = { self = { foreground = { color = "$material_warning" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsLegend.MuiChartsLegend-hasSeries.MuiChartsLegend-hasCustomColors"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsTooltip-loading"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsTooltip-hasSeries"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsTooltip-hasAxes"
+set = { self = { border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsTooltip-hasMargin"
+set = { self = { background = { color = "$material_popup" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsTooltip-interactionHover"
+set = { self = { border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsTooltip-hasValue"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsTooltip.MuiChartsTooltip-loading.MuiChartsTooltip-hasSeries.MuiChartsTooltip-hasAxes.MuiChartsTooltip-hasMargin.MuiChartsTooltip-interactionHover"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsTooltip.MuiChartsTooltip-hasValue.MuiChartsTooltip-hasMargin"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-legend"
+set = { self = { foreground = { color = "$material_text_muted" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsLegend"
+set = { self = { foreground = { color = "$material_text_muted" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-tooltip"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChartsTooltip"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-root.MuiAgentChat-streaming"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-root.MuiAgentChat-error"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" }, border = { color = "$mui_web_palette_error_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-root.MuiAgentChat-hasMessages.MuiAgentChat-hasComposerText"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-streaming"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-error"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-hasMessages"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-hasComposerText"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatComposer-root"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatComposer-root.MuiChatComposer-streaming"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatComposer-root.MuiChatComposer-streaming.MuiChatComposer-hasText"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatComposer-streaming"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatComposer-hasText"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatConversationList-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatConversationList-root.MuiChatConversationList-populated"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatMessageList-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatMessageList-root.MuiChatMessageList-populated"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatConversationList-populated"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatMessageList-populated"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-messages"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-messagesPopulated"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-messagesStreaming"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-messagesError"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-messages.MuiAgentChat-messagesPopulated.MuiAgentChat-messagesStreaming.MuiAgentChat-messagesError"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" }, border = { color = "$mui_web_palette_error_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-composer"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-composerStreaming"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-composerError"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-composerHasText"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAgentChat-composer.MuiAgentChat-composerStreaming.MuiAgentChat-composerError.MuiAgentChat-composerHasText"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" }, border = { color = "$mui_web_palette_error_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatMessage-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatMessage-populated"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatMessage-root.MuiChatMessage-populated"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-messages"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-mui-x-composer"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiMasonry-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiMasonry-columnsConfigured"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiMasonry-spacingConfigured"
+set = { self = { border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiMasonry-sequential"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiMasonry-ssrDefaults"
+set = { self = { foreground = { color = "$mui_web_palette_warning_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiMasonry-root.MuiMasonry-columnsConfigured.MuiMasonry-spacingConfigured.MuiMasonry-sequential.MuiMasonry-ssrDefaults"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-masonry-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiMasonry-item"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-masonry-tile"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_light", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimeline-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimeline-positionAlternateReverse"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimeline-root.MuiTimeline-positionAlternateReverse"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineItem-root"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineItem-positionAlternateReverse"
+set = { self = { foreground = { color = "$mui_web_palette_info_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineItem-missingOppositeContent"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineItem-root.MuiTimelineItem-positionAlternateReverse.MuiTimelineItem-missingOppositeContent"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineContent-root"
+set = { self = { foreground = { color = "$material_text" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineContent-positionRight"
+set = { self = { text_align = "left", foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineContent-root.MuiTimelineContent-positionRight"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_light", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineOppositeContent-root"
+set = { self = { foreground = { color = "$material_text_muted" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineOppositeContent-positionLeft"
+set = { self = { text_align = "right", foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineSeparator-root"
+set = { self = { foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineConnector-root"
+set = { self = { background = { color = "$mui_web_palette_primary_main" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineDot-root"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineDot-outlined"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_outline", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineDot-outlinedSecondary"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTimelineDot-root.MuiTimelineDot-outlined.MuiTimelineDot-outlinedSecondary"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-timeline-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-timeline-item"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-timeline-content"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_light", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-timeline-separator"
+set = { self = { foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".material-timeline-connector"
+set = { self = { background = { color = "$mui_web_palette_primary_main" }, foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".material-timeline-dot"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTypography-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, font = { size = "$mui_web_typography_body1_size" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTypography-h6"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" }, font = { size = "$mui_web_typography_h6_size" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTypography-alignCenter"
+set = { self = { text_align = "center", foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTypography-gutterBottom"
+set = { self = { border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTypography-noWrap"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTypography-root.MuiTypography-h6.MuiTypography-alignCenter.MuiTypography-gutterBottom.MuiTypography-noWrap"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" }, font = { size = "$mui_web_typography_h6_size" } } }
+
+[[stylesheets.rules]]
+selector = ".material-typography-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPaper-root"
+set = { self = { background = { color = "$mui_web_palette_light_background_paper" }, foreground = { color = "$mui_web_palette_light_text_primary" }, border = { color = "$mui_web_palette_light_divider", width = "$material_border_width_none", radius = "$mui_web_shape_border_radius" }, font = { size = "$mui_web_typography_body2_size" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPaper-rounded"
+set = { self = { border = { color = "$mui_web_palette_light_divider", width = "$material_border_width_none", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPaper-outlined"
+set = { self = { background = { color = "$mui_web_palette_light_background_paper" }, foreground = { color = "$mui_web_palette_light_text_primary" }, border = { color = "$mui_web_palette_light_divider", width = "$material_border_width", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPaper-elevation"
+set = { self = { background = { color = "$mui_web_palette_light_background_paper" }, foreground = { color = "$mui_web_palette_light_text_primary" }, border = { color = "$material_shadow_soft", width = "$material_border_width_none", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPaper-elevation0"
+set = { self = { border = { color = "$mui_web_palette_light_divider", width = "$material_border_width_none", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPaper-elevation1"
+set = { self = { background = { color = "$material_surface_container" }, border = { color = "$material_shadow_soft", width = "$material_border_width", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPaper-elevation3"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$material_shadow", width = "$material_border_width", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiPaper-root.MuiPaper-elevation.MuiPaper-rounded.MuiPaper-elevation3"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$material_shadow", width = "$material_focus_ring_width", radius = "$mui_web_shape_border_radius" }, font = { size = "$mui_web_typography_body2_size" } } }
+
+[[stylesheets.rules]]
+selector = ".material-paper-sample"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$material_shadow", width = "$material_border_width", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".material-paper-content"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width_none", radius = "$mui_web_shape_border_radius" }, font = { size = "$mui_web_typography_body2_size" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-standard"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-filled"
+set = { self = { background = { color = "$mui_web_palette_success_main" }, foreground = { color = "$material_on_success" }, font = { size = "$mui_web_typography_body2_size" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-outlined"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-colorSuccess"
+set = { self = { background = { color = "$material_success_container" }, foreground = { color = "$mui_web_palette_success_main" }, border = { color = "$mui_web_palette_success_main", width = "$material_border_width", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-colorInfo"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$mui_web_palette_info_main" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-colorWarning"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$mui_web_palette_warning_main" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-colorError"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$mui_web_palette_error_main" }, border = { color = "$mui_web_palette_error_main", width = "$material_border_width", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-root.MuiAlert-outlined.MuiAlert-colorWarning"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$mui_web_palette_warning_main" }, border = { color = "$mui_web_palette_warning_main", width = "$material_focus_ring_width", radius = "$mui_web_shape_border_radius" }, font = { size = "$mui_web_typography_body2_size" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-icon"
+set = { self = { foreground = { color = "$mui_web_palette_warning_main" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-message"
+set = { self = { foreground = { color = "$material_text" }, font = { size = "$mui_web_typography_body2_size" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAlert-action"
+set = { self = { foreground = { color = "$mui_web_palette_warning_main" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-alert-sample"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$mui_web_palette_warning_main" }, border = { color = "$mui_web_palette_warning_main", width = "$material_focus_ring_width", radius = "$mui_web_shape_border_radius" } } }
+
+[[stylesheets.rules]]
+selector = ".material-alert-icon"
+set = { self = { foreground = { color = "$mui_web_palette_warning_main" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-alert-message"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".material-alert-action"
+set = { self = { foreground = { color = "$mui_web_palette_warning_main" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiIcon-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiIcon-colorPrimary"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiIcon-colorSecondary"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiIcon-colorAction"
+set = { self = { foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiIcon-colorError"
+set = { self = { foreground = { color = "$mui_web_palette_error_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiIcon-colorDisabled"
+set = { self = { foreground = { color = "$material_text_disabled" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".MuiIcon-fontSizeInherit"
+set = { self = { font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiIcon-fontSizeSmall"
+set = { self = { font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiIcon-fontSizeMedium"
+set = { self = { font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiIcon-fontSizeLarge"
+set = { self = { font = { size = "$material_font_size_title" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiIcon-root.MuiIcon-colorPrimary.MuiIcon-fontSizeLarge"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" }, font = { size = "$material_font_size_title" } } }
+
+[[stylesheets.rules]]
+selector = ".material-icon-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" }, font = { size = "$material_font_size_title" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSvgIcon-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSvgIcon-colorPrimary"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSvgIcon-colorSecondary"
+set = { self = { foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSvgIcon-colorAction"
+set = { self = { foreground = { color = "$material_text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSvgIcon-colorError"
+set = { self = { foreground = { color = "$mui_web_palette_error_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSvgIcon-colorDisabled"
+set = { self = { foreground = { color = "$material_text_disabled" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".MuiSvgIcon-fontSizeInherit"
+set = { self = { font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSvgIcon-fontSizeSmall"
+set = { self = { font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSvgIcon-fontSizeMedium"
+set = { self = { font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSvgIcon-fontSizeLarge"
+set = { self = { font = { size = "$material_font_size_title" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSvgIcon-root.MuiSvgIcon-colorSecondary.MuiSvgIcon-fontSizeLarge"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" }, font = { size = "$material_font_size_title" } } }
+
+[[stylesheets.rules]]
+selector = ".material-material-icon-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_control" }, font = { size = "$material_font_size_title" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-root"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-filled"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$material_surface_container_high", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-outlined"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-sizeSmall"
+set = { self = { background = { color = "$material_surface_container_low" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-sizeMedium"
+set = { self = { background = { color = "$material_surface_container" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-colorDefault"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-colorPrimary"
+set = { self = { background = { color = "$mui_web_palette_primary_main" }, foreground = { color = "$material_on_primary" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-colorSecondary"
+set = { self = { background = { color = "$mui_web_palette_secondary_main" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-colorWarning"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-colorError"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" }, border = { color = "$mui_web_palette_error_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-clickable"
+set = { self = { background = { color = "$material_surface_hover" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-deletable"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-disabled"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-focusVisible"
+set = { self = { border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-label"
+set = { self = { foreground = { color = "$material_text" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-deleteIcon"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-icon"
+set = { self = { foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-avatar"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiChip-root.MuiChip-outlined.MuiChip-sizeSmall.MuiChip-colorWarning.MuiChip-clickable.MuiChip-deletable"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_focus_ring_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".material-chip-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-chip-label"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".material-chip-delete-icon"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDivider-root"
+set = { self = { background = { color = "$material_outline_variant" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDivider-middle"
+set = { self = { background = { color = "$material_surface_container_low" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDivider-vertical"
+set = { self = { background = { color = "$mui_web_palette_primary_main" }, foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDivider-flexItem"
+set = { self = { border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDivider-withChildren"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDivider-root.MuiDivider-middle.MuiDivider-vertical.MuiDivider-flexItem.MuiDivider-withChildren"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDivider-wrapper"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiDivider-wrapperVertical"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_secondary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".material-divider-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-divider-wrapper"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTable-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiTable-stickyHeader"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" }, z_index = 2 } }
+
+[[stylesheets.rules]]
+selector = ".MuiTable-root.MuiTable-stickyHeader"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" }, z_index = 2 } }
+
+[[stylesheets.rules]]
+selector = ".material-table-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-table-header"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiImageList-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiImageList-masonry"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiImageList-quilted"
+set = { self = { background = { color = "$material_info_container" }, foreground = { color = "$material_info" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiImageList-standard"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiImageList-woven"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiImageList-root.MuiImageList-masonry"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-image-list-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-image-list-item"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiList-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiList-padding"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiList-dense"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_primary_main" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiList-subheader"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiList-root.MuiList-padding.MuiList-dense.MuiList-subheader"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-list-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-list-subheader"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAvatar-root"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAvatar-colorDefault"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAvatar-circular"
+set = { self = { border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = 999.0 } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAvatar-rounded"
+set = { self = { border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAvatar-square"
+set = { self = { background = { color = "$material_warning_container" }, foreground = { color = "$material_warning" }, border = { color = "$mui_web_palette_warning_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAvatar-img"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAvatar-fallback"
+set = { self = { foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiAvatar-root.MuiAvatar-rounded.MuiAvatar-colorDefault"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$mui_web_palette_primary_main" }, border = { color = "$mui_web_palette_primary_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-avatar-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$mui_web_palette_secondary_main" }, border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-avatar-fallback"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-root"
+set = { self = { background = { color = "$material_surface_container" }, foreground = { color = "$material_text" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-badge"
+set = { self = { background = { color = "$material_error" }, foreground = { color = "$material_on_error" }, border = { color = "$material_error", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_meta" }, z_index = 1 } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-standard"
+set = { self = { border = { color = "$material_error", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-dot"
+set = { self = { background = { color = "$mui_web_palette_error_main" }, foreground = { color = "$material_on_error" }, border = { color = "$mui_web_palette_error_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-invisible"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-overlapCircular"
+set = { self = { border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-overlapRectangular"
+set = { self = { border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-anchorOriginTopRight"
+set = { self = { border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-anchorOriginBottomLeft"
+set = { self = { border = { color = "$mui_web_palette_secondary_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-anchorOriginBottomLeftCircular"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_on_error" }, border = { color = "$mui_web_palette_error_main", width = "$material_focus_ring_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-colorPrimary"
+set = { self = { background = { color = "$mui_web_palette_primary_main" }, foreground = { color = "$material_on_primary" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-colorSecondary"
+set = { self = { background = { color = "$mui_web_palette_secondary_main" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-colorError"
+set = { self = { background = { color = "$mui_web_palette_error_main" }, foreground = { color = "$material_on_error" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-colorInfo"
+set = { self = { background = { color = "$mui_web_palette_info_main" }, foreground = { color = "$material_on_info" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-colorSuccess"
+set = { self = { background = { color = "$mui_web_palette_success_main" }, foreground = { color = "$material_on_success" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-colorWarning"
+set = { self = { background = { color = "$mui_web_palette_warning_main" }, foreground = { color = "$material_on_primary" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiBadge-badge.MuiBadge-standard.MuiBadge-anchorOriginBottomLeft.MuiBadge-anchorOriginBottomLeftCircular.MuiBadge-overlapCircular.MuiBadge-colorError"
+set = { self = { background = { color = "$mui_web_palette_error_main" }, foreground = { color = "$material_on_error" }, border = { color = "$mui_web_palette_error_main", width = "$material_focus_ring_width", radius = "$material_radius_pill" }, z_index = 2 } }
+
+[[stylesheets.rules]]
+selector = ".material-badge-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-badge-slot"
+set = { self = { background = { color = "$mui_web_palette_error_main" }, foreground = { color = "$material_on_error" }, border = { color = "$mui_web_palette_error_main", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_meta" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSkeleton-root"
+set = { self = { background = { color = "$material_surface_container_low" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSkeleton-text"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSkeleton-rectangular"
+set = { self = { background = { color = "$material_surface_container_low" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSkeleton-rounded"
+set = { self = { background = { color = "$material_surface_container_low" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSkeleton-circular"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSkeleton-pulse"
+set = { self = { background = { color = "$material_surface_container" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSkeleton-wave"
+set = { self = { background = { color = "$material_surface_hover" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSkeleton-withChildren"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSkeleton-fitContent"
+set = { self = { background = { color = "$material_surface_container_low" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSkeleton-heightAuto"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$mui_web_palette_info_main", width = "$material_border_width", radius = "$material_radius_small" } } }
+
+[[stylesheets.rules]]
+selector = ".MuiSkeleton-root.MuiSkeleton-rounded.MuiSkeleton-wave"
+set = { self = { background = { color = "$material_surface_hover" }, foreground = { color = "$material_text_muted" }, border = { color = "$mui_web_palette_info_main", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-skeleton-sample"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text_muted" }, border = { color = "$mui_web_palette_primary_main", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-skeleton-child"
+set = { self = { background = { color = "$material_surface_container_high" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_small" }, font = { size = "$material_font_size_meta" } } }

@@ -10,6 +10,8 @@ use super::{
     PostProcessPassGraph, RenderPostProcessEffectStackSettings,
 };
 
+/// 帧提交从生效设置生成的效果与初始资源声明，随后交给图验证器确定合法执行顺序。
+/// 时间历史、抗锯齿和 ViewFamily 阶段须在构造前解析，避免栈声明与实际纹理分配分歧。
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PostProcessStackDescriptor {
     pub initial_resources: Vec<String>,
@@ -101,6 +103,8 @@ impl PostProcessStackDescriptor {
         )
     }
 
+    /// 帧提交的完整构造入口；上采样阶段与生效抗锯齿应来自同一 ViewFamily 解析结果。
+    /// `history_available` 决定时间通道是否声明上一帧输入，调用方须先处理历史失效。
     pub fn from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale_phases(
         bloom: &RenderBloomSettings,
         color_grading: &RenderColorGradingSettings,
@@ -539,6 +543,8 @@ impl PostProcessStackDescriptor {
         self
     }
 
+    /// 预算降级时关闭一个效果，并重接后续通道的资源依赖以维持图可校验性。
+    /// 调用后需重新编译图；原始描述符不能代表已降级管线。
     pub fn with_effect_disabled(mut self, kind: PostProcessEffectKind) -> Self {
         let disabled_output_groups = self
             .effects
@@ -688,88 +694,9 @@ fn screen_space_reflection_resolve_inputs(ssr_temporal_enabled: bool) -> Vec<&'s
 }
 
 #[cfg(test)]
-mod effect_disable_tests {
-    use super::{PostProcessEffectKind, PostProcessEffectSettings, PostProcessStackDescriptor};
-
-    fn effect(
-        kind: PostProcessEffectKind,
-        required_inputs: &[&str],
-        produced_outputs: &[&str],
-        after: &[PostProcessEffectKind],
-    ) -> PostProcessEffectSettings {
-        PostProcessEffectSettings::new(kind)
-            .with_required_inputs(required_inputs.iter().copied())
-            .with_produced_outputs(produced_outputs.iter().copied())
-            .with_after(after.iter().copied())
-    }
-
-    #[test]
-    fn effect_disable_preserves_provider_output_metadata() {
-        let stack = PostProcessStackDescriptor {
-            initial_resources: vec![],
-            effects: vec![
-                effect(PostProcessEffectKind::Bloom, &[], &["bloom.output"], &[]),
-                effect(
-                    PostProcessEffectKind::Uber,
-                    &["bloom.output", "scene.color"],
-                    &["final.color"],
-                    &[PostProcessEffectKind::Bloom],
-                ),
-            ],
-        };
-
-        let disabled = stack.with_effect_disabled(PostProcessEffectKind::Bloom);
-
-        assert!(!disabled.effects[0].enabled);
-        assert_eq!(disabled.effects[0].produced_outputs, ["bloom.output"]);
-        assert_eq!(disabled.effects[1].required_inputs, ["scene.color"]);
-        assert!(disabled.effects[1].after.is_empty());
-    }
-
-    #[test]
-    fn effect_disable_indexes_outputs_from_every_matching_provider() {
-        let stack = PostProcessStackDescriptor {
-            initial_resources: vec![],
-            effects: vec![
-                effect(PostProcessEffectKind::Bloom, &[], &["bloom.a"], &[]),
-                effect(PostProcessEffectKind::Bloom, &[], &["bloom.b"], &[]),
-                effect(
-                    PostProcessEffectKind::Uber,
-                    &["bloom.a", "scene.color", "bloom.b"],
-                    &[],
-                    &[PostProcessEffectKind::Bloom],
-                ),
-            ],
-        };
-
-        let disabled = stack.with_effect_disabled(PostProcessEffectKind::Bloom);
-
-        assert!(disabled.effects[..2].iter().all(|effect| !effect.enabled));
-        assert_eq!(disabled.effects[0].produced_outputs, ["bloom.a"]);
-        assert_eq!(disabled.effects[1].produced_outputs, ["bloom.b"]);
-        assert_eq!(disabled.effects[2].required_inputs, ["scene.color"]);
-    }
-
-    #[test]
-    fn effect_disable_removes_dangling_dependency_without_a_provider() {
-        let stack = PostProcessStackDescriptor {
-            initial_resources: vec![],
-            effects: vec![effect(
-                PostProcessEffectKind::Uber,
-                &["scene.color"],
-                &["final.color"],
-                &[PostProcessEffectKind::Bloom],
-            )],
-        };
-
-        let disabled = stack.with_effect_disabled(PostProcessEffectKind::Bloom);
-
-        assert!(disabled.effects[0].enabled);
-        assert_eq!(disabled.effects[0].required_inputs, ["scene.color"]);
-        assert_eq!(disabled.effects[0].produced_outputs, ["final.color"]);
-        assert!(disabled.effects[0].after.is_empty());
-    }
-}
+#[path = "tests/stack_effect_disable_tests.rs"]
+mod effect_disable_tests;
 
 #[cfg(test)]
+#[path = "stack/tests/cases.rs"]
 mod tests;

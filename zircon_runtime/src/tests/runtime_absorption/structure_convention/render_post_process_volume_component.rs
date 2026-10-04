@@ -1,10 +1,12 @@
 use super::{assert_contains_all, repo_path, runtime_src_path};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0132] 后处理体积组件子模块的迁移测试数量不符；需查明原测试迁往何处及是否仍覆盖原行为，再更新计数。
 #[test]
 fn runtime_15_post_process_volume_component_is_folder_backed() {
     let parent = read_runtime_src("core/framework/render/post_process/volume_component.rs");
     let params = read_runtime_src("core/framework/render/post_process/volume_component/params.rs");
-    let tests = read_runtime_src("core/framework/render/post_process/volume_component/tests.rs");
+    let tests =
+        read_runtime_src("core/framework/render/post_process/volume_component/tests/cases.rs");
     let render_index =
         read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let plan_07 = format!(
@@ -95,7 +97,7 @@ fn runtime_15_post_process_volume_component_is_folder_backed() {
             250,
         ),
         (
-            "core/framework/render/post_process/volume_component/tests.rs",
+            "core/framework/render/post_process/volume_component/tests/cases.rs",
             tests.as_str(),
             300,
         ),

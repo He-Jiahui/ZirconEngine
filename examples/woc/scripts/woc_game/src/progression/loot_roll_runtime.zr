@@ -27,6 +27,8 @@ pub choiceIsValid(choice: uint): bool {
     return choice <= passChoice();
 }
 
+/// 世界状态在每次有效的玩家答复后调用；空候选集或仍有 Pending 时不可结算。
+/// 候选人资格和选择值域由 world/state.zr 的状态校验与命令入口负责。
 pub allAnswered(choices: container.Array<uint>): bool {
     if (choices.length == 0) { return false; }
     for (var choice in choices) {
@@ -47,6 +49,8 @@ pub preferredChoice(choices: container.Array<uint>): uint {
     return pendingChoice();
 }
 
+/// 权威世界先借此确认是否需要平局随机数，再把该随机数传给 winnerCandidateIndex；
+/// 两次调用必须基于同一组、同一顺序的选择和点数，才能保持随机流确定性。
 pub tiedWinnerCount(
     choices: container.Array<uint>, values: container.Array<uint>
 ): int {

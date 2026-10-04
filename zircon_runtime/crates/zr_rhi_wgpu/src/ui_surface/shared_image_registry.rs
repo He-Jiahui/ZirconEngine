@@ -1,3 +1,4 @@
+//! 设备级图像池跨窗口共享不可变资源代际，淘汰只撤销索引，存活引用仍计入预算。
 use std::collections::{BTreeMap, HashMap};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -86,6 +87,7 @@ impl WgpuUiSharedImageRegistry {
     }
 
     #[allow(clippy::too_many_arguments)]
+    // 相同资源键和代际表示不可变像素；多窗口共享已上传纹理并各自持有采样引用。
     pub(super) fn prepare_pixels(
         &self,
         device: &wgpu::Device,
@@ -316,72 +318,5 @@ fn shared_image_admission_plan<'a>(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{shared_image_admission_plan, ImageCacheAdmissionAction};
-
-    #[test]
-    fn shared_registry_evicts_the_least_recent_cross_window_texture() {
-        let entries = [
-            ("older", 1, 3, 32 * 1024 * 1024, true, false),
-            ("newer", 1, 8, 32 * 1024 * 1024, true, false),
-        ];
-
-        let action =
-            shared_image_admission_plan(entries.into_iter(), 3, 80 * 1024 * 1024, 16 * 1024 * 1024);
-
-        assert_eq!(
-            action,
-            ImageCacheAdmissionAction::Admit {
-                evict_keys: vec![("older".to_owned(), 1)],
-            }
-        );
-    }
-
-    #[test]
-    fn shared_registry_never_evicts_the_resource_being_replaced() {
-        let entries = [("target", 7, 1, 60 * 1024 * 1024, true, true)];
-
-        let action =
-            shared_image_admission_plan(entries.into_iter(), 1, 65 * 1024 * 1024, 65 * 1024 * 1024);
-
-        assert_eq!(
-            action,
-            ImageCacheAdmissionAction::Reject {
-                entry_saturated: false,
-            }
-        );
-    }
-
-    #[test]
-    fn shared_registry_counts_pinned_evictions_as_live_device_bytes() {
-        let entries = [
-            ("pinned", 1, 1, 32 * 1024 * 1024, false, false),
-            ("releasable", 1, 2, 32 * 1024 * 1024, true, false),
-        ];
-
-        let action =
-            shared_image_admission_plan(entries.into_iter(), 3, 80 * 1024 * 1024, 16 * 1024 * 1024);
-
-        assert_eq!(
-            action,
-            ImageCacheAdmissionAction::Admit {
-                evict_keys: vec![("pinned".to_owned(), 1), ("releasable".to_owned(), 1),],
-            }
-        );
-    }
-
-    #[test]
-    fn shared_registry_rejects_when_only_surface_pinned_bytes_remain() {
-        let entries = [("pinned", 1, 1, 64 * 1024 * 1024, false, false)];
-
-        let action =
-            shared_image_admission_plan(entries.into_iter(), 2, 65 * 1024 * 1024, 1024 * 1024);
-
-        assert_eq!(
-            action,
-            ImageCacheAdmissionAction::Reject {
-                entry_saturated: false,
-            }
-        );
-    }
-}
+#[path = "tests/shared_image_registry.rs"]
+mod tests;

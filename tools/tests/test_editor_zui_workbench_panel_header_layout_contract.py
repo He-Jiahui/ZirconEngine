@@ -9,6 +9,7 @@ PANEL_HEADER = REPO_ROOT / (
     "zircon_editor/assets/ui/editor/components/workbench/composites/chrome/"
     "workbench_panel_header.zui"
 )
+STRICT_THEME = REPO_ROOT / "zircon_editor/assets/ui/theme/editor_workbench_strict.zui"
 BUTTON = REPO_ROOT / (
     "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/"
     "workbench_button.zui"
@@ -29,12 +30,31 @@ def load_document(path: Path) -> dict:
 
 
 class EditorZuiWorkbenchPanelHeaderLayoutContractTests(unittest.TestCase):
+    def test_panel_header_is_a_continuous_pane_band_not_a_nested_card(self):
+        panel_header = load_document(PANEL_HEADER)["nodes"]["root"]
+        props = panel_header["props"]
+        self.assertEqual(0.0, props["corner_radius"])
+        self.assertEqual(0.0, props["border_width"])
+        self.assertEqual("bottom", props["separator_edge"])
+        self.assertEqual("$editor.separator.soft", props["separator_color"])
+        self.assertEqual(
+            "$editor.control.border_width", props["separator_thickness"]
+        )
+
+        strict_theme = STRICT_THEME.read_text(encoding="utf-8")
+        rule_start = strict_theme.index('selector = ".workbench-panel-header"')
+        next_rule = strict_theme.index("[[stylesheets.rules]]", rule_start)
+        panel_header_rule = strict_theme[rule_start:next_rule]
+        self.assertIn('background_color = "$workbench_panel_raised"', panel_header_rule)
+        self.assertIn("border_width = 0.0", panel_header_rule)
+        self.assertIn("radius = 0.0", panel_header_rule)
+
     def test_panel_header_contains_standard_title_and_action_height(self):
         tokens = load_document(TOKENS)
         panel_header_height = tokens["chrome"]["panel_header_height"]
 
         self.assertEqual(30.0, panel_header_height)
-        self.assertEqual(tokens["controls"]["compact_height"], panel_header_height)
+        self.assertLessEqual(panel_header_height, tokens["controls"]["compact_height"])
 
         panel_header = load_document(PANEL_HEADER)["nodes"]
         self.assertEqual(

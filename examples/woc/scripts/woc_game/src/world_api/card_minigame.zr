@@ -82,6 +82,7 @@ pub idleInfo(queued: bool, available: bool): CardMinigameInfo {
     return info;
 }
 
+/// 为局部查询结果创建独立手牌快照；计数与牌值须合法，本入口不执行排队、出牌或胜负裁决。
 pub matchInfo(
     opponentId: uint,
     opponentName: string,
@@ -117,9 +118,9 @@ pub matchInfo(
     return info;
 }
 
-// The world owns identity/display-name lookup. The Card Duel service exposes
-// only the queried player's hand, and this adapter copies that one local view
-// into the IWorld-shaped DTO used by the retained UI projection.
+// 身份与显示名称由查询调用方负责；这里只复制当前玩家可见的信息。
+// 当前适配器由服务及视图合同测试调用，尚未接入世界发布或保留式界面。
+/// 调用方负责身份解析并提供对手名称；服务只提供当前玩家可见的对手标识、计数及自己的手牌。
 pub infoFromService(
     state: serviceModule.CardDuelService,
     pid: uint,
@@ -154,6 +155,7 @@ pub viewState(info: CardMinigameInfo): int {
     return info.available ? 1 : 2;
 }
 
+/// 从快照生成界面状态与可交互提示；提示可能随服务推进过期，实际出牌仍须经过服务验证。
 pub buildView(info: CardMinigameInfo): CardDuelViewModel {
     var view = new CardDuelViewModel();
     view.state = viewState(info);

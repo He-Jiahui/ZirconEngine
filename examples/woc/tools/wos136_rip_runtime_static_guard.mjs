@@ -38,14 +38,14 @@ requireText(dispatch, /case 'dot':[\s\S]*?Physical bleeds[\s\S]*?ctx\.applyAura[
 const generator = read('tools', 'm4_ability_codegen.mjs');
 const zrGenerator = read('tools', 'm4_ability_zr_codegen.mjs');
 if (!/tigers_fury',[\s\S]*?'rip'/.test(generator) ||
-    !generator.includes('EXPECTED_ABILITY_COUNT = 79') ||
-    !zrGenerator.includes('document.entries.length === 79')) {
+    !generator.includes('EXPECTED_ABILITY_COUNT = 117') ||
+    !zrGenerator.includes('document.entries.length === 117')) {
   throw new Error('M4 Rip projection scope is missing');
 }
 const entry = JSON.parse(read('contracts', 'm4_abilities.json')).entries.find(
   (value) => value.id === 'rip',
 );
-if (!entry || entry.index !== 76 || entry.definition.cost !== 30 ||
+if (!entry || entry.index !== 80 || entry.definition.cost !== 30 ||
     entry.definition.spendsCombo !== true || entry.definition.requiresForm !== 'cat' ||
     entry.definition.effects?.[0]?.type !== 'dot' || entry.definition.effects[0].total !== 60 ||
     entry.definition.effects[0].duration !== 12 || entry.definition.effects[0].interval !== 2) {

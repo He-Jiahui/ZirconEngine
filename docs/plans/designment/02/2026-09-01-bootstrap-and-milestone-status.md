@@ -1,0 +1,24 @@
+# Bootstrap 与界面设计里程碑状态
+
+本记录归档 `02-milestone-execution-and-evidence.md` 的里程碑状态。具体命令、结果和 deferred checks 仍以对应 evidence/manifest 为准；状态不得替代 Runtime、Editor、Hub 或 MVP owner 的验收记录。
+
+| 里程碑 | 范围                                                  | 状态                                      | 完成日期   | 证据                                                                       |
+| ------ | ----------------------------------------------------- | ----------------------------------------- | ---------- | -------------------------------------------------------------------------- |
+| A0     | `.zui`/Penpot bridge contract                         | validated                                 | 2026-08-31 | [a0-zui-penpot-contract.md](../evidence/a0-zui-penpot-contract.md)         |
+| A1     | Penpot import/edit/export adapter                     | browser-validated / self-hosted-backend-deferred | 2026-09-01 | [a1-penpot-roundtrip.md](../evidence/a1-penpot-roundtrip.md)               |
+| A2-C   | Engine contract ingest + project Runtime surface path | source-ready / managed-validation-blocked |            | [a2-engine-bootstrap-parity.md](../evidence/a2-engine-bootstrap-parity.md) |
+| A2-P   | Engine/Editor rendered layout parity                  | blocked-by-mvp-and-layout-owner           |            | [a2-engine-bootstrap-parity.md](../evidence/a2-engine-bootstrap-parity.md) |
+| M0     | 基线与模式映射                                        | planned                                   |            | [执行定义](../02-milestone-execution-and-evidence.md#4-里程碑登记)         |
+| M1     | token/component contract                              | planned                                   |            | [执行定义](../02-milestone-execution-and-evidence.md#4-里程碑登记)         |
+| M2     | shell/入口 contract                                   | planned                                   |            | [执行定义](../02-milestone-execution-and-evidence.md#4-里程碑登记)         |
+| M3     | viewport/Inspector MVP contract                       | planned                                   |            | [执行定义](../02-milestone-execution-and-evidence.md#4-里程碑登记)         |
+| M4     | assets/library/tokens                                 | planned                                   |            | [执行定义](../02-milestone-execution-and-evidence.md#4-里程碑登记)         |
+| M5     | feedback/tasks/recovery                               | planned                                   |            | [执行定义](../02-milestone-execution-and-evidence.md#4-里程碑登记)         |
+| M6     | Hub entry/product surface                             | planned                                   |            | [执行定义](../02-milestone-execution-and-evidence.md#4-里程碑登记)         |
+| M7     | domain/extension                                      | planned                                   |            | [执行定义](../02-milestone-execution-and-evidence.md#4-里程碑登记)         |
+| M8     | quality/performance/a11y                              | planned                                   |            | [执行定义](../02-milestone-execution-and-evidence.md#4-里程碑登记)         |
+| M9     | release/maintenance                                   | planned                                   |            | [执行定义](../02-milestone-execution-and-evidence.md#4-里程碑登记)         |
+
+A1 已增加两层互补证据：Penpot 官方 `plugins-runtime` SES host contract 执行真实插件入口并覆盖 import -> Shape edit -> descendant selection -> export；Playwright browser contract 加载当前官方 Penpot 前端工作区，在仓库 fixture/mock backend 下通过真实 layer tree、文本 contenteditable、Inspector radius input 和插件 download 完成同一 round-trip，并保留 event、`zircon_extension`、`runtime_only`。浏览器契约输出 8 个 semantic boards、18 个 shapes、2 个 projected edits，并保存 canvas screenshot；后端、登录和持久化仍由 mock 隔离，本机自托管服务检查单独保持 deferred，不降低 adapter browser validation 状态。
+
+A2-C 的当前阻塞不是 bridge 或 focused Runtime test 源码失败，而是两条彼此独立的下层验证故障。Text04 已把 Editor 依赖删除同步进 `Cargo.lock`，原 live `--locked` 前置阻塞已解除；其后 managed job `6526ab1f6ed141f2b73af12e148886aa` 真实进入 rustc，但在 A2 test binary 生成前被 246 个 shared `zircon_runtime` compile errors 阻断，且编译期间 Runtime worktree diff 指纹发生变化。代表性错误与既有 [Editor UI12 current-source compile evidence](../../zircon_editor/editor_ui/12-unreal-magicavoxel-zui-design-convergence.md) 相同，因此本计划不跨界修复 render/scene/platform owner，也不重复提交同一 lib test。clean pinned baseline 路径中，原有三个 Session 的 15 个 Cargo validation-copy job 全部在 `closure_planning` 以 `pinned_cargo_metadata_failed` / `101` 终止；Coordinator01 后续修复后的 HEAD `9963f8eb72e2d725d2536eb50b393b30387a1ffa` 上，精确重试 job `5ff634d72d67424faa2b7f0370976d5a` 仍同样失败并已清理。源码审计已证明 planner 捕获的 bounded `stderr` 被 durable error whitelist 丢弃，因此真实 Cargo 101 原因需在恢复诊断后再由 managed clean-pinned 复现确定，继续由 [Coordinator01 failure](../../zircon_tooling/session_coordinator/01/failure-2026-09-01-validation-copy-pinned-cargo-metadata-global-failure.md) 跟踪。两项都不得通过移除 `--locked`、generic exact-file copy 或未受管 Cargo 绕过。

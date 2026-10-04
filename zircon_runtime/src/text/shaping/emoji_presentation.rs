@@ -4,6 +4,8 @@ const TEXT_PRESENTATION_SELECTOR: char = '\u{fe0e}';
 const EMOJI_PRESENTATION_SELECTOR: char = '\u{fe0f}';
 const COMBINING_ENCLOSING_KEYCAP: char = '\u{20e3}';
 
+/// 决定一个完整字素簇是否采用 emoji 呈现偏好，供脚本分析和后备字体选择共用。
+/// 输入须是调用方已分出的字素簇；变体选择符影响呈现偏好，不改变原源字节区间。
 pub(super) fn cluster_uses_emoji_presentation(cluster: &str) -> bool {
     let mut chars = cluster.chars().peekable();
     while let Some(ch) = chars.next() {
@@ -51,22 +53,5 @@ fn has_default_emoji_presentation(status: EmojiStatus) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::cluster_uses_emoji_presentation;
-
-    #[test]
-    fn presentation_follows_unicode_properties_and_variation_selectors() {
-        assert!(cluster_uses_emoji_presentation("\u{1f600}"));
-        assert!(!cluster_uses_emoji_presentation("\u{2600}"));
-        assert!(cluster_uses_emoji_presentation("\u{2600}\u{fe0f}"));
-        assert!(!cluster_uses_emoji_presentation("\u{1f600}\u{fe0e}"));
-        assert!(!cluster_uses_emoji_presentation("\u{1f02c}"));
-        assert!(!cluster_uses_emoji_presentation("A\u{fe0f}"));
-    }
-
-    #[test]
-    fn keycaps_support_both_standard_selector_forms() {
-        assert!(cluster_uses_emoji_presentation("1\u{20e3}"));
-        assert!(cluster_uses_emoji_presentation("1\u{fe0f}\u{20e3}"));
-    }
-}
+#[path = "tests/emoji_presentation.rs"]
+mod tests;

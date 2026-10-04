@@ -41,15 +41,15 @@ requireText(
 const generator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
 if (!/rain_of_fire',[\s\S]*?'conflagrate'/.test(generator) ||
-    !generator.includes("EXPECTED_ABILITY_COUNT = 79") ||
-    !zrGenerator.includes("document.entries.length === 79") ||
+    !generator.includes("EXPECTED_ABILITY_COUNT = 117") ||
+    !zrGenerator.includes("document.entries.length === 117") ||
     !zrGenerator.includes("consumeAuraIdAt") || !zrGenerator.includes("effect.deal")) {
   throw new Error("M4 Conflagrate projection scope is missing");
 }
 const entry = JSON.parse(read("contracts", "m4_abilities.json")).entries.find(
   (item) => item.id === "conflagrate",
 );
-if (!entry || entry.index !== 50 || entry.definition.class !== "warlock" ||
+if (!entry || entry.index !== 54 || entry.definition.class !== "warlock" ||
     entry.definition.school !== "fire" || entry.definition.learnLevel !== 10 ||
     entry.definition.cost !== 55 || entry.definition.castTime !== 0 ||
     entry.definition.cooldown !== 6 || entry.definition.range !== 30 ||
@@ -59,9 +59,9 @@ if (!entry || entry.index !== 50 || entry.definition.class !== "warlock" ||
   throw new Error("M4 Conflagrate projection drifted");
 }
 const effects = read("scripts", "woc_game", "src", "generated", "m4_ability_effects.zr");
-requireText(effects, /pub consumeAuraIdAt[\s\S]*?index == 50[\s\S]*?slot == 0\) \{ return "immolate"; \}/,
+requireText(effects, /pub consumeAuraIdAt[\s\S]*?index == 54[\s\S]*?slot == 0\) \{ return "immolate"; \}/,
   "generated consumeAura id projection is missing");
-requireText(effects, /index == 50[\s\S]*?field == "max"\) \{ return 64\.0; \}[\s\S]*?field == "min"\) \{ return 54\.0; \}/,
+requireText(effects, /index == 54[\s\S]*?field == "max"\) \{ return 64\.0; \}[\s\S]*?field == "min"\) \{ return 54\.0; \}/,
   "generated consumeAura deal metrics are missing");
 
 const world = read("scripts", "woc_game", "src", "world", "state.zr");

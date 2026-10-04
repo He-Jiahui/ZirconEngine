@@ -19,20 +19,32 @@ pub(super) fn dispatch_pane_pointer_move_target(
         clear_asset_reference_hover_if_needed(&pane_host, before);
     }
     match &pointer.target {
-        PanePointerTarget::Hierarchy | PanePointerTarget::Welcome => {
-            dispatch_native_pane_move(&pane_host, pointer)
+        PanePointerTarget::Hierarchy => dispatch_native_pane_move(&pane_host, pointer),
+        PanePointerTarget::Welcome => {
+            clear_passive_pane_move_hover(ui);
+            dispatch_native_pane_move(&pane_host, pointer);
         }
         PanePointerTarget::AssetTree(_)
         | PanePointerTarget::AssetContent(_)
         | PanePointerTarget::AssetReference(_, _) => dispatch_asset_pane_move(&pane_host, pointer),
         PanePointerTarget::TemplateNode(hit) => dispatch_template_pane_move(ui, hit),
+        PanePointerTarget::ViewportToolbar {
+            source_control_id,
+            control_frame,
+            ..
+        } => {
+            if let Some(source_id) = source_control_id {
+                ui.set_hovered_template_node_for_pointer_move(source_id, control_frame);
+            } else {
+                clear_passive_pane_move_hover(ui);
+            }
+        }
         PanePointerTarget::SceneViewport(_) | PanePointerTarget::GameViewport(_) => {
             dispatch_viewport_pane_move(ui, &pane_host, pointer)
         }
         PanePointerTarget::Console
         | PanePointerTarget::Inspector
         | PanePointerTarget::BrowserAssetDetails
-        | PanePointerTarget::ViewportToolbar { .. }
         | PanePointerTarget::UiAsset
         | PanePointerTarget::Other => clear_passive_pane_move_hover(ui),
     }
@@ -59,25 +71,5 @@ fn retains_asset_reference_hover(target: &PanePointerTarget<'_>) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::retains_asset_reference_hover;
-    use crate::ui::retained_host::host_contract::native_pointer::routing::{
-        PaneAssetReferenceList, PaneAssetSurface, PanePointerTarget,
-    };
-
-    #[test]
-    fn only_asset_reference_targets_retain_hover() {
-        assert!(!retains_asset_reference_hover(
-            &PanePointerTarget::AssetContent(PaneAssetSurface::Browser)
-        ));
-        assert!(!retains_asset_reference_hover(
-            &PanePointerTarget::BrowserAssetDetails
-        ));
-        assert!(retains_asset_reference_hover(
-            &PanePointerTarget::AssetReference(
-                PaneAssetSurface::Browser,
-                PaneAssetReferenceList::References,
-            )
-        ));
-    }
-}
+#[path = "tests/target.rs"]
+mod tests;

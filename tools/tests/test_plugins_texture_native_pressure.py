@@ -1,15 +1,16 @@
 import unittest
 from pathlib import Path
 
-from tools.plugins_texture_native_pressure import run
+from tools.analysis.performance.plugins.plugins_texture_native_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
 KAISER_SOURCE = ROOT / "zircon_plugins/texture_importer/runtime/src/mipgen/kernel.rs"
+KAISER_TESTS = KAISER_SOURCE.parent / "tests/kernel.rs"
 NATIVE_SOURCE = ROOT / "zircon_plugins/native_dynamic_fixture/native/src/lib.rs"
-NATIVE_TESTS = ROOT / "zircon_plugins/native_dynamic_fixture/native/src/tests.rs"
+NATIVE_TESTS = ROOT / "zircon_plugins/native_dynamic_fixture/native/src/tests/cases.rs"
 
-
+# 调用纹理原生压力模型，核对 Kaiser 轴缓存减少重复权重计算并保留发布版源码契约。
 class PluginsTextureNativePressureTests(unittest.TestCase):
     def test_kaiser_axis_cache_eliminates_more_than_ninety_nine_percent_of_weights(
         self,
@@ -28,8 +29,8 @@ class PluginsTextureNativePressureTests(unittest.TestCase):
         source = KAISER_SOURCE.read_text(encoding="utf-8")
 
         self.assertIn("build_kaiser_axis_weights", source)
-        self.assertIn("TEXTURE_KAISER_AXIS_CACHE_BENCH_V1", source)
-        self.assertIn("assert_eq!(axis_weight_evaluations, (487_305, 1_274))", source)
+        self.assertIn("TEXTURE_KAISER_AXIS_CACHE_BENCH_V1", KAISER_TESTS.read_text(encoding="utf-8"))
+        self.assertIn("assert_eq!(axis_weight_evaluations, (487_305, 1_274))", KAISER_TESTS.read_text(encoding="utf-8"))
 
     def test_bounded_response_halves_full_buffers_and_eliminates_source_clone(
         self,

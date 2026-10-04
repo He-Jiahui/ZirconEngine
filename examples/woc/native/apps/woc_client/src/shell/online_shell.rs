@@ -117,17 +117,18 @@ impl OnlineShellController {
         }
     }
 
-    pub fn submit_auth(&self) -> Result<OnlineShellEffect, OnlineShellError> {
+    pub fn submit_auth(&mut self) -> Result<OnlineShellEffect, OnlineShellError> {
         self.require_screen("submit_auth", OnlineShellScreen::Authentication)?;
         Ok(OnlineShellEffect::Authentication(self.auth.submit_auth()?))
     }
 
     pub fn complete_auth(
         &mut self,
+        request_id: super::AuthRequestId,
         completion: AuthCompletion,
     ) -> Result<Option<OnlineShellEffect>, OnlineShellError> {
         self.require_screen("complete_auth", OnlineShellScreen::Authentication)?;
-        match self.auth.complete_auth(completion) {
+        match self.auth.complete_auth(request_id, completion) {
             Some(AuthFlowEffect::NavigateToRealmDirectory) => {
                 self.screen = OnlineShellScreen::RealmDirectory;
                 Ok(Some(OnlineShellEffect::LoadRealmDirectory))
@@ -135,6 +136,20 @@ impl OnlineShellController {
             None => Ok(None),
             Some(effect) => Ok(Some(OnlineShellEffect::Authentication(effect))),
         }
+    }
+
+    pub fn complete_password_reset_request(
+        &mut self,
+        request_id: super::AuthRequestId,
+        outcome: super::PasswordResetRequestOutcome,
+    ) -> Result<bool, OnlineShellError> {
+        self.require_screen(
+            "complete_password_reset_request",
+            OnlineShellScreen::Authentication,
+        )?;
+        Ok(self
+            .auth
+            .complete_password_reset_request(request_id, outcome))
     }
 
     pub fn replace_realm_directory(

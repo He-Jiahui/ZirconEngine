@@ -22,7 +22,7 @@ impl EditorHostStartupSession {
         editor_manager: Arc<EditorManager>,
         startup_request: Option<EditorGuiStartupRequest>,
         viewport_size: UVec2,
-    ) -> Result<Self, Box<dyn Error>> {
+    ) -> Result<Self, Box<dyn Error + Send + Sync>> {
         let mut startup_session =
             resolve_editor_startup_session(editor_manager.as_ref(), startup_request)?;
         let state =
@@ -46,7 +46,7 @@ impl EditorHostStartupSession {
         startup_session: EditorStartupSessionDocument,
         state: EditorState,
         editor_manager: Arc<EditorManager>,
-    ) -> Result<Self, Box<dyn Error>> {
+    ) -> Result<Self, Box<dyn Error + Send + Sync>> {
         let controller = EditorHostEventController::new(state, editor_manager);
 
         Ok(Self {
@@ -61,9 +61,15 @@ pub(crate) fn resolve_editor_startup_session(
     startup_request: Option<EditorGuiStartupRequest>,
 ) -> Result<EditorStartupSessionDocument, EditorError> {
     match startup_request {
-        Some(EditorGuiStartupRequest::Project { intent }) => {
-            editor_manager.execute_project_launch_intent(intent)
-        }
+        Some(EditorGuiStartupRequest::Project { intent, preflight }) => match preflight {
+            Some(preflight) if preflight.intent() == &intent => {
+                editor_manager.execute_project_launch_preflight(preflight)
+            }
+            Some(_) => Err(EditorError::Project(
+                "project startup intent does not match its preflight receipt".to_string(),
+            )),
+            None => editor_manager.execute_project_launch_intent(intent),
+        },
         Some(EditorGuiStartupRequest::OpenBuiltinView { descriptor_id }) => {
             Ok(EditorStartupSessionDocument {
                 mode: EditorSessionMode::Welcome,
@@ -81,16 +87,5 @@ pub(crate) fn resolve_editor_startup_session(
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn editor_startup_leaves_play_backend_ownership_to_the_app_composition() {
-        let source = include_str!("editor_host_startup.rs");
-        let product_source = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("product startup source should precede its tests");
-
-        assert!(!product_source.contains("ProcessPlayBackend"));
-        assert!(!product_source.contains("set_play_backend"));
-    }
-}
+#[path = "tests/editor_host_startup.rs"]
+mod tests;

@@ -1,3 +1,4 @@
+# 核对模块详情在宽屏固定侧栏、窄屏覆盖抽屉之间保持标题与滚动可达。
 import tomllib
 import unittest
 from pathlib import Path

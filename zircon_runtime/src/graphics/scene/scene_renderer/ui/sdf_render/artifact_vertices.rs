@@ -1,14 +1,14 @@
 use crate::core::framework::text::{TextGlyph, TextGlyphRotation};
-use crate::text::ShapedGlyphRotation;
 use crate::text::atlas::{GlyphAtlasFormat, GlyphRasterPlacement, GlyphSmoothingMode};
+use crate::text::ShapedGlyphRotation;
 use zircon_runtime_interface::ui::layout::UiFrame;
 
 use super::super::render::ScreenSpaceUiTextBatch;
 use super::super::sdf_atlas::SdfAtlasPlan;
 use super::super::text_pixel_snap::{text_frame_device_origin, text_glyph_device_frame};
 use super::vertices::{
-    RunGlyph, ScreenSpaceUiSdfVertex, aligned_text_start_x, atlas_uv_rect,
-    horizontal_sdf_text_baseline, push_clipped_glyph_quad, vertical_sdf_glyph_frame,
+    aligned_text_start_x, atlas_uv_rect, horizontal_sdf_text_baseline, push_clipped_glyph_quad,
+    vertical_sdf_glyph_frame, RunGlyph, ScreenSpaceUiSdfVertex,
 };
 
 pub(super) fn push_horizontal_artifact_sdf_text_vertices(

@@ -278,6 +278,289 @@ fn asset_workspace_reference_navigation_relocates_selection() {
 }
 
 #[test]
+fn selected_asset_external_move_reconciles_folder_in_full_and_exact_catalog_sync() {
+    const UUID: &str = "11111111-1111-1111-1111-111111111111";
+    const LOCATOR: &str = "res://scenes/grid.zmaterial";
+
+    for exact_changes in [false, true] {
+        let mut workspace = AssetWorkspaceState::default();
+        workspace.sync_catalog(sample_catalog_generation());
+        workspace.navigate_to_asset(UUID);
+        workspace.set_search_query("GRID");
+        workspace.set_kind_filter(Some(ResourceKind::Material));
+        workspace.set_activity_view_mode(AssetViewMode::Thumbnail);
+        workspace.set_browser_view_mode(AssetViewMode::List);
+        workspace.set_activity_utility_tab(AssetUtilityTab::References);
+        workspace.set_browser_utility_tab(AssetUtilityTab::Metadata);
+        workspace.sync_selected_details(Some(sample_material_details_generation()));
+        let before = workspace.build_snapshot(AssetSurfaceMode::Explorer);
+        assert_eq!(before.visible_assets.len(), 1);
+
+        let mut moved = sample_catalog();
+        moved.catalog_revision += 1;
+        let asset = moved
+            .assets
+            .iter_mut()
+            .find(|asset| asset.uuid == UUID)
+            .unwrap();
+        asset.locator = LOCATOR.to_string();
+        asset.meta_path = "E:/Sandbox/assets/scenes/grid.zmaterial.zmeta".to_string();
+        let source = moved
+            .folders
+            .iter_mut()
+            .find(|folder| folder.folder_id == "res://materials")
+            .unwrap();
+        source.direct_asset_uuids.retain(|uuid| uuid != UUID);
+        source.recursive_asset_count -= 1;
+        let destination = moved
+            .folders
+            .iter_mut()
+            .find(|folder| folder.folder_id == "res://scenes")
+            .unwrap();
+        destination.direct_asset_uuids.push(UUID.to_string());
+        destination.recursive_asset_count += 1;
+        // Rebuild indices and folder membership together; updated_asset is payload-only.
+        let moved = Arc::new(EditorAssetCatalogGeneration::from_snapshot_record(moved, 1));
+        assert_eq!(moved.asset_by_locator(LOCATOR).unwrap().uuid, UUID);
+        if exact_changes {
+            workspace.sync_catalog_changes(moved, &[UUID.to_string()]);
+        } else {
+            workspace.sync_catalog(moved);
+        }
+
+        let (activity, browser) = workspace.build_surface_snapshots();
+        for snapshot in [&activity, &browser] {
+            assert_eq!(snapshot.selected_folder_id.as_deref(), Some("res://scenes"));
+            assert_eq!(snapshot.selected_asset_uuid.as_deref(), Some(UUID));
+            assert_eq!(snapshot.selection.uuid.as_deref(), Some(UUID));
+            assert_eq!(snapshot.selection.locator, LOCATOR);
+            assert!(snapshot.selection.references.is_empty());
+            assert_eq!(snapshot.visible_assets.len(), 1);
+            assert_eq!(snapshot.visible_assets[0].uuid, UUID);
+            assert_eq!(snapshot.visible_assets[0].locator, LOCATOR);
+            assert_eq!(snapshot.search_query, "GRID");
+            assert_eq!(snapshot.kind_filter, Some(ResourceKind::Material));
+            assert!(snapshot
+                .folder_tree
+                .iter()
+                .any(|folder| { folder.folder_id == "res://scenes" && folder.selected }));
+        }
+        assert_eq!(activity.view_mode, AssetViewMode::Thumbnail);
+        assert_eq!(browser.view_mode, AssetViewMode::List);
+        assert_eq!(activity.utility_tab, AssetUtilityTab::References);
+        assert_eq!(browser.utility_tab, AssetUtilityTab::Metadata);
+        assert!(!before
+            .visible_assets
+            .shares_items_with(&browser.visible_assets));
+        let stable = workspace.build_snapshot(AssetSurfaceMode::Explorer);
+        assert!(browser
+            .visible_assets
+            .shares_items_with(&stable.visible_assets));
+    }
+}
+
+#[test]
+fn unchanged_selected_locator_and_unrelated_delta_preserve_folder_and_item_generation() {
+    const UUID: &str = "11111111-1111-1111-1111-111111111111";
+    const UNRELATED_UUID: &str = "22222222-2222-2222-2222-222222222222";
+
+    for exact_changes in [false, true] {
+        let catalog = sample_catalog_generation();
+        let mut workspace = AssetWorkspaceState::default();
+        workspace.sync_catalog(Arc::clone(&catalog));
+        workspace.navigate_to_asset(UUID);
+        let before = workspace.build_snapshot(AssetSurfaceMode::Explorer);
+        if exact_changes {
+            workspace.sync_catalog_changes(catalog, &[]);
+        } else {
+            workspace.sync_catalog(catalog);
+        }
+        let unchanged = workspace.build_snapshot(AssetSurfaceMode::Explorer);
+        assert_eq!(unchanged.selected_folder_id, before.selected_folder_id);
+        assert!(before
+            .visible_assets
+            .shares_items_with(&unchanged.visible_assets));
+
+        let mut changed = sample_catalog();
+        changed
+            .assets
+            .iter_mut()
+            .find(|asset| asset.uuid == UNRELATED_UUID)
+            .unwrap()
+            .preview_artifact_path = "E:/cache/unrelated-preview.png".to_string();
+        workspace.sync_catalog_changes(
+            Arc::new(EditorAssetCatalogGeneration::from_snapshot_record(
+                changed, 1,
+            )),
+            &[UNRELATED_UUID.to_string()],
+        );
+        let unrelated = workspace.build_snapshot(AssetSurfaceMode::Explorer);
+        assert_eq!(
+            unrelated.selected_folder_id.as_deref(),
+            Some("res://materials")
+        );
+        assert_eq!(unrelated.selected_asset_uuid.as_deref(), Some(UUID));
+        assert!(unchanged
+            .visible_assets
+            .shares_items_with(&unrelated.visible_assets));
+    }
+}
+
+#[test]
+fn catalog_sync_does_not_navigate_an_unchanged_selection_from_another_folder() {
+    let catalog = sample_catalog_generation();
+    let mut workspace = AssetWorkspaceState::default();
+    workspace.sync_catalog(Arc::clone(&catalog));
+    workspace.select_folder("res://textures");
+    workspace.select_asset(Some("11111111-1111-1111-1111-111111111111".to_string()));
+    workspace.sync_catalog(catalog);
+
+    assert_eq!(workspace.selected_folder_id(), "res://textures");
+    assert_eq!(
+        workspace.selected_asset_uuid(),
+        Some("11111111-1111-1111-1111-111111111111")
+    );
+}
+
+#[test]
+fn selected_asset_external_move_preserves_detached_folder_in_full_and_exact_catalog_sync() {
+    const UUID: &str = "11111111-1111-1111-1111-111111111111";
+    const LOCATOR: &str = "res://scenes/grid.zmaterial";
+
+    for exact_changes in [false, true] {
+        let mut workspace = AssetWorkspaceState::default();
+        workspace.sync_catalog(sample_catalog_generation());
+        workspace.select_folder("res://textures");
+        workspace.select_asset(Some(UUID.to_string()));
+        workspace.sync_selected_details(Some(sample_material_details_generation()));
+        let before = workspace.build_snapshot(AssetSurfaceMode::Explorer);
+        assert!(!before.selection.references.is_empty());
+
+        let mut moved = sample_catalog();
+        moved.catalog_revision += 1;
+        let asset = moved
+            .assets
+            .iter_mut()
+            .find(|asset| asset.uuid == UUID)
+            .unwrap();
+        asset.locator = LOCATOR.to_string();
+        asset.meta_path = "E:/Sandbox/assets/scenes/grid.zmaterial.zmeta".to_string();
+        let source = moved
+            .folders
+            .iter_mut()
+            .find(|folder| folder.folder_id == "res://materials")
+            .unwrap();
+        source.direct_asset_uuids.retain(|uuid| uuid != UUID);
+        source.recursive_asset_count -= 1;
+        let destination = moved
+            .folders
+            .iter_mut()
+            .find(|folder| folder.folder_id == "res://scenes")
+            .unwrap();
+        destination.direct_asset_uuids.push(UUID.to_string());
+        destination.recursive_asset_count += 1;
+        let moved = Arc::new(EditorAssetCatalogGeneration::from_snapshot_record(moved, 1));
+        assert_eq!(moved.asset_by_locator(LOCATOR).unwrap().uuid, UUID);
+        if exact_changes {
+            workspace.sync_catalog_changes(moved, &[UUID.to_string()]);
+        } else {
+            workspace.sync_catalog(moved);
+        }
+
+        let (activity, browser) = workspace.build_surface_snapshots();
+        for snapshot in [&activity, &browser] {
+            assert_eq!(
+                snapshot.selected_folder_id.as_deref(),
+                Some("res://textures")
+            );
+            assert_eq!(snapshot.selected_asset_uuid.as_deref(), Some(UUID));
+            assert_eq!(snapshot.selection.uuid.as_deref(), Some(UUID));
+            assert_eq!(snapshot.selection.locator, LOCATOR);
+            assert!(snapshot.selection.references.is_empty());
+            assert_eq!(snapshot.visible_assets.len(), 1);
+            assert_eq!(
+                snapshot.visible_assets[0].locator,
+                "res://textures/checker.png"
+            );
+        }
+    }
+}
+
+#[test]
+fn selected_asset_rename_invalidates_old_details_without_changing_folder() {
+    const UUID: &str = "11111111-1111-1111-1111-111111111111";
+    let mut workspace = AssetWorkspaceState::default();
+    workspace.sync_catalog(sample_catalog_generation());
+    workspace.navigate_to_asset(UUID);
+    workspace.sync_selected_details(Some(sample_material_details_generation()));
+    let mut renamed = sample_catalog();
+    renamed.catalog_revision += 1;
+    let asset = renamed
+        .assets
+        .iter_mut()
+        .find(|asset| asset.uuid == UUID)
+        .unwrap();
+    asset.locator = "res://materials/renamed.zmaterial".to_string();
+    asset.file_name = "renamed.zmaterial".to_string();
+    workspace.sync_catalog_changes(
+        Arc::new(EditorAssetCatalogGeneration::from_snapshot_record(
+            renamed, 1,
+        )),
+        &[UUID.to_string()],
+    );
+
+    let snapshot = workspace.build_snapshot(AssetSurfaceMode::Explorer);
+    assert_eq!(
+        snapshot.selected_folder_id.as_deref(),
+        Some("res://materials")
+    );
+    assert_eq!(snapshot.selected_asset_uuid.as_deref(), Some(UUID));
+    assert_eq!(
+        snapshot.selection.locator,
+        "res://materials/renamed.zmaterial"
+    );
+    assert!(snapshot.selection.references.is_empty());
+}
+
+#[test]
+fn selected_asset_removal_clears_selection_in_full_and_exact_catalog_sync() {
+    const UUID: &str = "11111111-1111-1111-1111-111111111111";
+
+    for exact_changes in [false, true] {
+        let mut workspace = AssetWorkspaceState::default();
+        workspace.sync_catalog(sample_catalog_generation());
+        workspace.navigate_to_asset(UUID);
+        workspace.sync_selected_details(Some(sample_material_details_generation()));
+        let mut removed = sample_catalog();
+        removed.catalog_revision += 1;
+        removed.assets.retain(|asset| asset.uuid != UUID);
+        for folder in &mut removed.folders {
+            folder.direct_asset_uuids.retain(|uuid| uuid != UUID);
+            if folder.folder_id == "res://materials" || folder.folder_id == "res://" {
+                folder.recursive_asset_count -= 1;
+            }
+        }
+        let removed = Arc::new(EditorAssetCatalogGeneration::from_snapshot_record(
+            removed, 1,
+        ));
+        if exact_changes {
+            workspace.sync_catalog_changes(removed, &[UUID.to_string()]);
+        } else {
+            workspace.sync_catalog(removed);
+        }
+        let snapshot = workspace.build_snapshot(AssetSurfaceMode::Explorer);
+        assert_eq!(
+            snapshot.selected_folder_id.as_deref(),
+            Some("res://materials")
+        );
+        assert_eq!(snapshot.selected_asset_uuid, None);
+        assert_eq!(snapshot.selection.uuid, None);
+        assert!(snapshot.selection.references.is_empty());
+        assert!(snapshot.visible_assets.is_empty());
+    }
+}
+
+#[test]
 fn asset_workspace_filters_physics_and_animation_asset_kinds() {
     let mut workspace = AssetWorkspaceState::default();
     workspace.sync_catalog(sample_catalog_generation());

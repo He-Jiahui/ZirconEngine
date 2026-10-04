@@ -19,16 +19,19 @@ _ARTIFACT_DIRECTORY_CREATION_COMMAND = re.compile(
     re.IGNORECASE,
 )
 _MANAGED_ARTIFACT_ROOT = re.compile(
+    # Include forbidden legacy roots so manual creation remains blocked there too.
     r"(?<![A-Za-z0-9_.-])[DEF]:[\\/](?:cargo-targets|targets|zirconbuilds)(?:[\\/]|$)",
     re.IGNORECASE,
 )
 _CARGO_DENIAL_REASON = (
-    "ZirconEngine 构建必须通过协调器：请使用 validate-matrix.ps1、"
-    "受控里程碑验证，或 zircon-session cargo 租约命令。"
+    "The local coordinator is retired. Use tools/local-cargo.ps1 for compilation: "
+    "an explicit Cargo target alone does not confine build, cache and temporary outputs. "
+    "Every compiler output must physically stay below D:/cargo-targets, E:/cargo-targets "
+    "or F:/cargo-targets. Jenkins migration acceptance remains pending."
 )
 _ARTIFACT_DIRECTORY_DENIAL_REASON = (
-    "ZirconEngine 工件目录必须先由协调器登记：请通过受管 Cargo 租约、"
-    "validation-copy 或 workflow artifact 创建输出；不要直接在 D/E/F 工件根目录创建目录。"
+    "Use the physical-output-checked local build wrapper to create compiler output directories. "
+    "Legacy roots and aliases are forbidden."
 )
 
 
@@ -118,7 +121,7 @@ def _append_denial(
             "subcommand": subcommand,
             "reason": reason,
         }
-        destination = repo_root / ".codex/state/session-coordinator/logs/blocked-workflow.jsonl"
+        destination = repo_root / ".codex/state/local-validation/blocked-output.jsonl"
         destination.parent.mkdir(parents=True, exist_ok=True)
         with destination.open("a", encoding="utf-8", newline="\n") as stream:
             stream.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")

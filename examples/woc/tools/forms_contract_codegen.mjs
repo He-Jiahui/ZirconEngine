@@ -1,3 +1,6 @@
+// 调用端：npm run generate:forms-contract (tools/package.json)；职责：跨模块核对变形资源条、行动锁、技能和派生属性。
+// 输入边界：src/sim/combat/forms.ts, src/sim/types.ts, src/sim/content/classes.ts, src/sim/entity.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

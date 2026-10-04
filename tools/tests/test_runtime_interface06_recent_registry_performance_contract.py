@@ -34,7 +34,7 @@ def function_body(source: str, function_name: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated body for {function_name}")
 
-
+# 读取实现源码约束接口 recent 注册表：校验检查规范顺序不带重新合并，并发布版证据跟踪克隆与规范化降低。
 class RecentRegistryPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

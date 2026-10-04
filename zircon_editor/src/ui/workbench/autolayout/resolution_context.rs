@@ -6,6 +6,7 @@ const DEFAULT_REFERENCE_HEIGHT: f32 = 1080.0;
 
 /// Declares how one rendering root converts layout coordinates to physical pixels.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
+/// 宿主根声明的坐标策略；同根布局、命中和最终几何须共用，不能各自叠加DPI。
 pub enum ResolutionScaleMode {
     #[default]
     ConstantPhysical,
@@ -18,6 +19,7 @@ pub enum ResolutionScaleMode {
 /// Root-owned conversion boundary between physical window metrics and logical layout units.
 /// Every exposed extent stays finite and non-negative before it reaches shell geometry.
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 本轮窗口度量的归一快照；拖动偏好进入logical与最终frame返回physical沿同一有效比例。
 pub struct ResolutionContext {
     effective_scale_factor: f32,
     scale_mode: ResolutionScaleMode,
@@ -87,10 +89,12 @@ impl ResolutionContext {
         self.logical_size.width
     }
 
+    /// 最终发布或host输入所需的物理长度；仅用于logical到physical的边界转换。
     pub fn to_physical(self, logical_extent: f32) -> f32 {
         normalized_extent(normalized_extent(logical_extent) * self.effective_scale_factor)
     }
 
+    /// host物理长度进入布局时的边界转换；持久化logical偏好不能重复转换。
     pub fn to_logical(self, physical_extent: f32) -> f32 {
         normalized_extent(normalized_extent(physical_extent) / self.effective_scale_factor)
     }
@@ -115,6 +119,7 @@ impl ResolutionScaleMode {
     }
 }
 
+/// 相对参考分辨率按DPI独立的窗口大小求比例，避免高DPI密度被计算两次。
 fn resolution_relative_scale(
     physical_size: ShellSizePx,
     system_scale_factor: f32,
@@ -145,6 +150,7 @@ fn normalized_scale_factor(scale_factor: f32) -> f32 {
     }
 }
 
+/// 将无效或溢出度量隔离在根边界，避免非有限值污染布局执行器。
 fn normalized_extent(extent: f32) -> f32 {
     if extent.is_finite() {
         extent.max(0.0)
@@ -162,123 +168,5 @@ fn normalized_reference_extent(extent: f32, fallback: f32) -> f32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{ResolutionContext, ResolutionScaleMode, ShellSizePx};
-
-    #[test]
-    fn default_context_keeps_constant_physical_dpi_behavior() {
-        let default_context =
-            ResolutionContext::from_physical_size(ShellSizePx::new(3840.0, 2160.0), 2.0);
-        let explicit_context = ResolutionContext::from_physical_size_with_scale_mode(
-            ShellSizePx::new(3840.0, 2160.0),
-            2.0,
-            ResolutionScaleMode::ConstantPhysical,
-        );
-
-        assert_eq!(default_context, explicit_context);
-        assert_eq!(default_context.scale_factor(), 2.0);
-        assert_eq!(
-            default_context.logical_size(),
-            ShellSizePx::new(1920.0, 1080.0)
-        );
-    }
-
-    #[test]
-    fn constant_pixel_mode_keeps_layout_coordinates_in_physical_pixels() {
-        let context = ResolutionContext::from_physical_size_with_scale_mode(
-            ShellSizePx::new(3840.0, 2160.0),
-            2.0,
-            ResolutionScaleMode::ConstantPixel,
-        );
-
-        assert_eq!(context.scale_factor(), 1.0);
-        assert_eq!(context.logical_size(), ShellSizePx::new(3840.0, 2160.0));
-        assert_eq!(context.to_physical(24.0), 24.0);
-    }
-
-    #[test]
-    fn scale_with_resolution_uses_dpi_independent_size_before_reference_ratio() {
-        let reference_size = ShellSizePx::new(1920.0, 1080.0);
-        let standard = ResolutionContext::from_physical_size_with_scale_mode(
-            ShellSizePx::new(3840.0, 2160.0),
-            1.0,
-            ResolutionScaleMode::ScaleWithResolution { reference_size },
-        );
-        let high_dpi = ResolutionContext::from_physical_size_with_scale_mode(
-            ShellSizePx::new(7680.0, 4320.0),
-            2.0,
-            ResolutionScaleMode::ScaleWithResolution { reference_size },
-        );
-
-        assert_eq!(standard.scale_factor(), 2.0);
-        assert_eq!(high_dpi.scale_factor(), 4.0);
-        assert_eq!(standard.logical_size(), reference_size);
-        assert_eq!(high_dpi.logical_size(), reference_size);
-        assert_eq!(standard.to_physical(24.0), 48.0);
-        assert_eq!(high_dpi.to_physical(24.0), 96.0);
-    }
-
-    #[test]
-    fn scale_with_resolution_normalizes_invalid_reference_extents() {
-        let context = ResolutionContext::from_physical_size_with_scale_mode(
-            ShellSizePx::new(3840.0, 2160.0),
-            2.0,
-            ResolutionScaleMode::ScaleWithResolution {
-                reference_size: ShellSizePx::new(f32::NAN, 0.0),
-            },
-        );
-
-        assert_eq!(context.effective_scale_factor(), 2.0);
-        assert_eq!(context.logical_size(), ShellSizePx::new(1920.0, 1080.0));
-    }
-
-    #[test]
-    fn equivalent_physical_windows_share_one_logical_resolution() {
-        let standard = ResolutionContext::from_physical_size(ShellSizePx::new(1920.0, 1080.0), 1.0);
-        let high_dpi = ResolutionContext::from_physical_size(ShellSizePx::new(3840.0, 2160.0), 2.0);
-
-        assert_eq!(standard.logical_size(), high_dpi.logical_size());
-        assert_eq!(standard.logical_width(), 1920.0);
-        assert_eq!(high_dpi.to_physical(24.0), 48.0);
-    }
-
-    #[test]
-    fn invalid_window_metrics_fall_back_without_poisoning_layout() {
-        let context =
-            ResolutionContext::from_physical_size(ShellSizePx::new(f32::NAN, f32::INFINITY), 0.0);
-
-        assert_eq!(context.scale_factor(), 1.0);
-        assert_eq!(context.physical_size(), ShellSizePx::new(0.0, 0.0));
-        assert_eq!(context.logical_size(), ShellSizePx::new(0.0, 0.0));
-        assert_eq!(context.to_logical(80.0), 80.0);
-    }
-
-    #[test]
-    fn construction_normalizes_scaled_extent_overflow() {
-        let context = ResolutionContext::from_physical_size(
-            ShellSizePx::new(f32::MAX, f32::MAX),
-            f32::MIN_POSITIVE,
-        );
-
-        assert_eq!(
-            context.physical_size(),
-            ShellSizePx::new(f32::MAX, f32::MAX)
-        );
-        assert_eq!(context.logical_size(), ShellSizePx::new(0.0, 0.0));
-    }
-
-    #[test]
-    fn conversions_keep_invalid_extents_out_of_layout() {
-        let context = ResolutionContext::from_physical_size(ShellSizePx::new(1920.0, 1080.0), 2.0);
-
-        assert_eq!(context.to_physical(-12.0), 0.0);
-        assert_eq!(context.to_physical(f32::NAN), 0.0);
-        assert_eq!(context.to_physical(f32::MAX), 0.0);
-        assert_eq!(context.to_logical(-48.0), 0.0);
-        assert_eq!(context.to_logical(f32::INFINITY), 0.0);
-        assert_eq!(
-            ResolutionContext::logical_extent(f32::MAX, f32::MIN_POSITIVE),
-            0.0
-        );
-    }
-}
+#[path = "tests/resolution_context.rs"]
+mod tests;

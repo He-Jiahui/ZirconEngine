@@ -1,3 +1,5 @@
+//! 把脏文档按稳定身份选入单次自动保存窗口；常规周期与关闭时最终窗口共享单飞门，提交失败可释放窗口重试。
+
 use std::collections::BTreeSet;
 use std::time::Duration;
 
@@ -59,6 +61,7 @@ impl AutosaveScheduler {
     /// Creates one final shutdown window without waiting for the periodic
     /// deadline. The caller must have already fenced regular autosave
     /// admission, and this still preserves the single-flight invariant.
+    /// 关闭流程先阻断常规准入才可跳过周期截止；仍受单飞门保护，避免与在途写入重叠。
     pub(in crate::core::recovery) fn plan_final_window(
         &mut self,
         documents: &[AutosaveDocumentState],
@@ -133,28 +136,5 @@ fn insert_bounded_document(
 }
 
 #[cfg(test)]
-mod tests {
-    use std::time::Duration;
-
-    use super::{AutosavePolicy, AutosaveScheduler};
-
-    #[test]
-    fn policy_update_recalculates_the_next_deadline_from_the_existing_anchor() {
-        let mut scheduler = AutosaveScheduler::new(AutosavePolicy::default());
-
-        scheduler.update_policy(AutosavePolicy::new(Duration::from_secs(60)).unwrap());
-
-        assert!(scheduler.is_due(Duration::from_secs(100)));
-    }
-
-    #[test]
-    fn policy_update_does_not_make_a_longer_interval_due_early() {
-        let mut scheduler =
-            AutosaveScheduler::new(AutosavePolicy::new(Duration::from_secs(60)).unwrap());
-
-        scheduler.update_policy(AutosavePolicy::new(Duration::from_secs(300)).unwrap());
-
-        assert!(!scheduler.is_due(Duration::from_secs(20)));
-        assert!(scheduler.is_due(Duration::from_secs(300)));
-    }
-}
+#[path = "tests/scheduler.rs"]
+mod tests;

@@ -1,3 +1,4 @@
+# 核对布局报告增量聚合与持久化分段选择数据在边界才转换格式。
 from pathlib import Path
 import unittest
 

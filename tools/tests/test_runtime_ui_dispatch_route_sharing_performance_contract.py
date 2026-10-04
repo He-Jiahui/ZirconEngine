@@ -29,7 +29,7 @@ def rust_block(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated Rust block: {signature}")
 
-
+# 检查分发上下文借用事件路由、处理器接受路由生命周期，并让表面结果接管唯一规范路由序列。
 class RuntimeUiDispatchRouteSharingPerformanceContractTests(unittest.TestCase):
     def test_dispatch_contexts_borrow_the_event_lifetime_route(self) -> None:
         pointer = POINTER_CONTEXT.read_text(encoding="utf-8")

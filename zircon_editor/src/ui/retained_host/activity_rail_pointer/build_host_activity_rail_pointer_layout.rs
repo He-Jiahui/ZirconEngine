@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use zircon_runtime_interface::ui::layout::UiFrame;
 
 #[cfg(test)]
@@ -8,6 +10,7 @@ use crate::ui::workbench::layout::ActivityDrawerSlot;
 use crate::ui::workbench::model::WorkbenchViewModel;
 
 use super::collect_tabs::collect_tabs;
+use super::host_activity_rail_pointer_item::HostActivityRailPointerItem;
 use super::host_activity_rail_pointer_layout::HostActivityRailPointerLayout;
 
 #[cfg(test)]
@@ -45,6 +48,29 @@ pub(crate) fn build_host_activity_rail_pointer_layout_with_workbench_layout_fram
             ActivityDrawerSlot::RightBottom,
         ],
     );
+    build_layout_from_semantics(left_tabs, right_tabs, metrics, workbench_layout_frames)
+}
+
+pub(crate) fn build_host_activity_rail_pointer_geometry_layout(
+    previous: &HostActivityRailPointerLayout,
+    metrics: &WorkbenchChromeMetrics,
+    workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
+) -> HostActivityRailPointerLayout {
+    zircon_runtime::profile_counter!("editor", "ui.activity_rail.geometry_product_build_count", 1);
+    build_layout_from_semantics(
+        Arc::clone(&previous.left_tabs),
+        Arc::clone(&previous.right_tabs),
+        metrics,
+        workbench_layout_frames,
+    )
+}
+
+fn build_layout_from_semantics(
+    left_tabs: Arc<[HostActivityRailPointerItem]>,
+    right_tabs: Arc<[HostActivityRailPointerItem]>,
+    metrics: &WorkbenchChromeMetrics,
+    workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
+) -> HostActivityRailPointerLayout {
     let right_region = workbench_layout_frames
         .drawer_shell_frame(ShellRegionId::Right)
         .filter(ui_frame_is_visible)

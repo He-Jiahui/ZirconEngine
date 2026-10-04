@@ -49,6 +49,7 @@ pub(in crate::ui::retained_host::host_contract) enum HostRecordedPaintKind {
     },
     Image {
         resource_key: String,
+        resource_generation: u64,
         width: u32,
         height: u32,
         rgba: Option<Arc<[u8]>>,

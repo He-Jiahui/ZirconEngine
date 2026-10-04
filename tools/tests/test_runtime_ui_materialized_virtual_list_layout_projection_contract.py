@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SLOT_INDEX = ROOT / "zircon_runtime/src/ui/layout/pass/slot.rs"
 PROJECTION = ROOT / "zircon_runtime/src/ui/layout/pass/virtual_list_layout.rs"
 ARRANGE = ROOT / "zircon_runtime/src/ui/layout/pass/arrange.rs"
-ARRANGE_TESTS = ROOT / "zircon_runtime/src/ui/layout/pass/arrange/tests.rs"
+ARRANGE_TESTS = ROOT / "zircon_runtime/src/ui/layout/pass/arrange/tests/cases.rs"
 VIRTUAL_LIST_ARRANGE = (
     ROOT / "zircon_runtime/src/ui/layout/pass/arrange/virtual_list.rs"
 )
@@ -14,7 +14,7 @@ MATERIALIZATION = (
     ROOT / "zircon_runtime/src/ui/surface/virtual_list_materialization.rs"
 )
 
-
+# 验证虚拟列表以独立可重建投影保存布局槽位，仅发布已注册物理槽位并按逻辑范围定位。
 class RuntimeUiMaterializedVirtualListLayoutProjectionContractTests(
     unittest.TestCase
 ):

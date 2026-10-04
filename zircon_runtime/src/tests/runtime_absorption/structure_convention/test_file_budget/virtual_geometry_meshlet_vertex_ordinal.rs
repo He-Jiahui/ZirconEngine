@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对虚拟几何链路的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 const STATUS: &str = "render_plan08_virtual_geometry_meshlet_vertex_ordinal_direct_binary_asset_shader_passed_renderdoc_deferred";
@@ -14,7 +15,7 @@ fn runtime_15_virtual_geometry_meshlet_vertex_ordinal_is_wired() {
     let shader_source =
         read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs");
     let shader_source_tests = read_runtime_src(
-        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests.rs",
+        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/cases.rs",
     );
     let model_tests = read_runtime_src("asset/tests/assets/model.rs");
     let mesh_conversion_tests = read_runtime_src("asset/tests/assets/mesh/conversion_import.rs");

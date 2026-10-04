@@ -17,6 +17,19 @@ name = "zircon_runtime"
 path = "src/bin/runtime_preview.rs"
 required-features = ["target-client"]
 
+# Shipping uses a separate Cargo target so the development preview's
+# target-client gate can remain backwards-compatible without pulling its
+# full feature closure into the product binary.
+[[bin]]
+name = "zircon_runtime_product"
+path = "src/bin/runtime_product.rs"
+required-features = ["runtime-product"]
+
+[[bin]]
+name = "zircon_server"
+path = "src/bin/server.rs"
+required-features = ["target-server"]
+
 [[bin]]
 name = "zircon_shader_pbr_viewer"
 path = "src/bin/zircon_shader_pbr_viewer/main.rs"
@@ -24,7 +37,9 @@ required-features = ["target-client"]
 
 [features]
 default = ["target-client"]
+dev-dynamic-linking = ["dep:zr_runtime_dev_dylib", "zr_runtime_dev_dylib/runtime"]
 core-min = ["zircon_runtime/core-min"]
+cooked-assets = ["zircon_runtime/cooked-assets"]
 ai-contracts = ["zircon_runtime/ai-contracts"]
 net-contracts = ["zircon_runtime/net-contracts"]
 physics-contracts = ["zircon_runtime/physics-contracts"]
@@ -41,6 +56,8 @@ dynamic-api = [
     "zircon_runtime/dynamic-api",
 ]
 graphics = ["text", "zircon_runtime/graphics"]
+graphics-core = ["graphics", "zircon_runtime/graphics-core"]
+runtime-api-core = ["dynamic-api", "zircon_runtime/runtime-api-core"]
 navigation = ["zircon_runtime/navigation"]
 script = ["diagnostic-log", "zircon_runtime/script"]
 text = ["zircon_runtime/text"]
@@ -93,6 +110,22 @@ default-platform = [
     "input-gamepad",
     "gamepad-gilrs",
 ]
+shipping-runtime = [
+    "zircon_runtime/shipping-runtime",
+    "diagnostic-log",
+    "runtime-api-core",
+    "graphics-core",
+    "platform-winit",
+    "input-mouse",
+    "input-keyboard",
+]
+runtime-shipping = ["shipping-runtime"]
+runtime-product = ["shipping-runtime"]
+shipping-editor = [
+    "target-editor-host",
+    "zircon_runtime/shipping-editor",
+]
+editor-shipping = ["shipping-editor"]
 platform-window = ["zircon_runtime/platform-window", "dep:softbuffer"]
 platform-winit = ["platform-window", "zircon_runtime/platform-winit", "dep:winit"]
 platform-headless = ["zircon_runtime/platform-headless"]
@@ -119,6 +152,7 @@ target-client = [
     "physics-contracts",
     "sound-contracts",
     "animation",
+    "first-party-runtime-plugins",
     "diagnostic-log",
     "dynamic-api",
     "graphics",
@@ -135,6 +169,7 @@ target-server = [
 ]
 target-editor-host = [
     "zircon_runtime/target-editor-host",
+    "first-party-runtime-plugins",
     "first-party-advanced-render-runtime-plugins",
     "first-party-navigation-runtime-plugin",
     "first-party-navigation-editor-plugin",
@@ -172,6 +207,7 @@ zircon_first_party_runtime_catalog = { path = "../zircon_plugins/first_party_run
 zircon_runtime = { path = "../zircon_runtime", default-features = false }
 zircon_runtime_host.workspace = true
 zircon_runtime_interface = { path = "../zircon_runtime_interface" }
+zr_runtime_dev_dylib = { workspace = true, optional = true }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { workspace = true, features = [
@@ -179,4 +215,5 @@ windows-sys = { workspace = true, features = [
     "Win32_System_DataExchange",
     "Win32_System_Memory",
     "Win32_System_Ole",
+    "Win32_System_Console",
 ] }

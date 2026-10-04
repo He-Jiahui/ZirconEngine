@@ -1,5 +1,7 @@
 pub const EXPOSURE_READBACK_EXPECTED_BYTE_LEN: usize = 16;
 
+/// 曝光缓冲读回的帧后诊断；按 GPU 的四个 f32 字布局保存位模式以供历史有效性核对。
+/// 读回可缺席或长度异常，消费者应先检查 `history_valid` 再比较曝光乘数。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct RenderExposureReadbackReport {
     pub available: bool,
@@ -93,42 +95,9 @@ fn f32_to_nonnegative_micro(value: f32) -> usize {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::RenderExposureReadbackReport;
-
-    #[test]
-    fn exposure_readback_report_accepts_valid_history_words() {
-        let report = RenderExposureReadbackReport::from_words([1.25, 9.5, 9.25, 1.0]);
-
-        assert!(report.available);
-        assert_eq!(report.byte_len, 16);
-        assert_eq!(report.expected_byte_len, 16);
-        assert!(!report.invalid_byte_len);
-        assert_eq!(report.invalid_word_count, 0);
-        assert_eq!(report.multiplier(), 1.25);
-        assert_eq!(report.resolved_ev100(), 9.5);
-        assert_eq!(report.average_ev100(), 9.25);
-        assert_eq!(report.valid_flag(), 1.0);
-        assert_eq!(report.multiplier_micro(), 1_250_000);
-        assert_eq!(report.valid_flag_micro(), 1_000_000);
-        assert!(report.history_valid());
-        assert!(report.multiplier_within_epsilon(1.25, 0.0001));
-    }
-
-    #[test]
-    fn exposure_readback_report_rejects_invalid_length_and_nan_words() {
-        let mut bytes = [0_u8; 12];
-        bytes[0..4].copy_from_slice(&f32::NAN.to_le_bytes());
-
-        let report = RenderExposureReadbackReport::from_raw_f32x4_bytes(&bytes);
-
-        assert!(report.available);
-        assert!(report.invalid_byte_len);
-        assert_eq!(report.invalid_word_count, 1);
-        assert!(!report.history_valid());
-    }
-}
+#[path = "tests/exposure_readback.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "exposure_readback/single_pass_tests.rs"]
+#[path = "exposure_readback/tests/single_pass_tests.rs"]
 mod single_pass_tests;

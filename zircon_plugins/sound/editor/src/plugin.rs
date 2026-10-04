@@ -1,3 +1,4 @@
+//! 编辑插件把混音面板与三种声音组件抽屉注册到宿主扩展表，模板 URI 由编辑器资源加载器解析。
 use zircon_plugin_editor_support::{
     register_authoring_extensions, EditorAuthoringExtensions, EditorAuthoringSurface,
 };
@@ -99,7 +100,7 @@ pub fn plugin_registration() -> zircon_editor::EditorPluginRegistrationReport {
 }
 
 pub fn editor_host_contract_marker() -> &'static str {
-    zircon_editor::EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY
+    zircon_editor::ui::host::EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY
 }
 
 pub fn component_drawer_ids() -> [&'static str; 3] {

@@ -1,7 +1,6 @@
-// Current-head Card Duel lifecycle from src/sim/social/card_duel.ts. This is
-// the authoritative state layer between the pure queue/match rules and the
-// later WOS transaction bridge: it owns liveness sweeping, pairing, deadlines
-// and deed-worthy wins without exposing a rival's hand to callers.
+// Card Duel 生命周期层由 world/state 在命令和固定步更新中恢复并提交 CDS1 快照。
+// 它连接队列与纯对局规则，负责配对、期限和胜场；世界层同步存活与 NPC 距离，
+// world_api 只投影查询者自己的手牌，不能把对手手牌带入本地视图。
 var container = %import("zr.container");
 var matchModule = %import("social/card_duel_match");
 var queueModule = %import("social/card_duel_queue_coordinator");
@@ -219,6 +218,10 @@ pub joinQueue(state: CardDuelService, pid: uint): int {
     if (!player.queueable) return -2;
     if (!player.cardMasterInRange) return -3;
     if (!hasOtherQueueablePlayer(state, pid)) return -4;
+    // BUG: [CR-WOC-IPS-S-0001] joinQueue 的成员调用少传
+    // Card Master 距离实参并使已有对局状态落到错误参数位，Zr 编译器报
+    // Missing required member argument；证据：QueueCoordinator.join 声明三项
+    // 无默认参数，语言编译器 compile_expression_types.c 拒绝缺失成员参数。
     return state.queue.join(pid, inMatch(state, pid));
 }
 

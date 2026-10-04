@@ -1,7 +1,11 @@
+//! App 与动态 Runtime 边界使用的错误分类和诊断文本。
+//! 调用方可展示文本；若按 kind 分流，应核实经过哪些包装层。
+
 use std::error::Error;
 use std::fmt;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 区分普通调用、可选能力不可用和跨 ABI 协议违规的内部诊断类别。
 pub(crate) enum RuntimeLibraryErrorKind {
     General,
     CapabilityUnavailable,
@@ -40,6 +44,7 @@ impl RuntimeLibraryError {
         self.kind
     }
 
+    /// 将清理阶段错误附于主错误，同时保留主错误的分类供上层判定。
     pub(crate) fn with_cleanup_failure(self, cleanup: &RuntimeLibraryError) -> Self {
         Self {
             kind: self.kind,
@@ -70,21 +75,5 @@ impl From<zircon_runtime_host::foreign_output::RuntimeForeignOutputError> for Ru
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{RuntimeLibraryError, RuntimeLibraryErrorKind};
-
-    #[test]
-    fn protocol_violations_retain_a_typed_error_kind() {
-        let error = RuntimeLibraryError::protocol_violation("foreign output exceeded its budget");
-
-        assert_eq!(error.kind(), RuntimeLibraryErrorKind::ProtocolViolation);
-        assert_eq!(error.to_string(), "foreign output exceeded its budget");
-    }
-
-    #[test]
-    fn unavailable_capabilities_retain_a_typed_error_kind() {
-        let error = RuntimeLibraryError::capability_unavailable("no qualified surface backend");
-
-        assert_eq!(error.kind(), RuntimeLibraryErrorKind::CapabilityUnavailable);
-    }
-}
+#[path = "tests/runtime_library_error.rs"]
+mod tests;

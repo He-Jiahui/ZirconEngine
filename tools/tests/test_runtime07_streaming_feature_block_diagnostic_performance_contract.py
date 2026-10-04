@@ -22,7 +22,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束流式特性阻断诊断：特性阻断诊断使用一个精确输出缓冲区，并详情与列表行流式写入不带拼接中间值。
 class StreamingFeatureBlockDiagnosticPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

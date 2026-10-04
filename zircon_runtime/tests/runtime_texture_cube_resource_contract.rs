@@ -17,7 +17,6 @@ fn runtime_texture_cube_descriptor_contract_defaults_to_six_faces() {
         .expect("cube descriptor should normalize");
 
     assert_eq!(descriptor.dimension, RenderImageDimension::Cube);
-    assert_eq!(descriptor.array_layer_count, 6);
     assert_eq!(descriptor.depth_or_array_layers, 6);
 }
 
@@ -42,7 +41,6 @@ fn runtime_texture_cube_upload_contract_accepts_complete_rgba8_face_payloads() {
     let mut descriptor = TextureAssetDescriptor::rgba8_srgb();
     descriptor.dimension = RenderImageDimension::Cube;
     descriptor.depth_or_array_layers = 6;
-    descriptor.array_layer_count = 6;
 
     let face_size = 2;
     let layer_count = 6;
@@ -79,7 +77,7 @@ fn runtime_cubemap_asset_contract_preserves_wgpu_face_order() {
         texture.render_image_descriptor().dimension,
         RenderImageDimension::Cube
     );
-    assert_eq!(texture.render_image_descriptor().array_layer_count, 6);
+    assert_eq!(texture.render_image_descriptor().depth_or_array_layers, 6);
     for face in 0_usize..6 {
         let face_offset = face * 2 * 2 * 4;
         assert_eq!(texture.rgba[face_offset], face as u8);
@@ -149,7 +147,7 @@ fn runtime_texture_array_asset_contract_preserves_layer_order() {
 
     let descriptor = texture.render_image_descriptor();
     assert_eq!(descriptor.dimension, RenderImageDimension::D2);
-    assert_eq!(descriptor.array_layer_count, 3);
+    assert_eq!(descriptor.depth_or_array_layers, 3);
     for layer in 0_usize..3 {
         let layer_offset = layer * 2 * 2 * 4;
         assert_eq!(texture.rgba[layer_offset], layer as u8);

@@ -1,3 +1,4 @@
+# 核对资产与目录选择由运行时拥有，导入反馈读取当前元数据。
 import tomllib
 import unittest
 from pathlib import Path

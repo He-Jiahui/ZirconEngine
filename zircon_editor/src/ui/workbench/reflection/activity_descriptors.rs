@@ -1,3 +1,4 @@
+//! 视图注册声明在反射刷新边界转换为公开能力；停靠限制来自原始descriptor。
 use crate::ui::{ActivityViewDescriptor, ActivityWindowDescriptor};
 use zircon_runtime_interface::ui::event_ui::UiNodePath;
 
@@ -8,9 +9,10 @@ use crate::ui::workbench::view::{DockPolicy, ViewDescriptor, ViewKind};
 use super::drawer_slot_preference::drawer_slot_preference;
 
 #[cfg(test)]
-#[path = "activity_descriptors/capacity_tests.rs"]
+#[path = "activity_descriptors/tests/capacity_tests.rs"]
 mod capacity_tests;
 
+/// 将ViewDescriptor转换为宿主可查询能力；调用方应先登记这些能力再发布活动快照。
 pub fn activity_descriptors_from_views(
     descriptors: &[ViewDescriptor],
 ) -> (Vec<ActivityViewDescriptor>, Vec<ActivityWindowDescriptor>) {

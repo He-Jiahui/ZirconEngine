@@ -10,17 +10,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/session_coordinator/control_plane/actions/service.py
-  - tools/session_coordinator/control_plane/history.py
-  - tools/session_coordinator/control_plane/http.py
-  - tools/session_coordinator/control_plane/router.py
-  - tools/session_coordinator/control_plane/snapshot.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/tests/test_action_execution.py
-  - tools/session_coordinator/tests/test_control_history.py
-  - tools/session_coordinator/tests/test_control_http.py
-  - tools/session_coordinator/tests/test_control_lazy_projections.py
-  - tools/session_coordinator/tests/test_control_snapshot.py
 tests:
   - python -B -m unittest tools.session_coordinator.tests.test_control_snapshot tools.session_coordinator.tests.test_control_lazy_projections tools.session_coordinator.tests.test_control_history -v
   - python -B -m unittest tools.session_coordinator.tests.test_action_execution tools.session_coordinator.tests.test_control_http -v

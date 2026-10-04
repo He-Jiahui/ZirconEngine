@@ -23,7 +23,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束单次分配导入器回退能力：回退预分配前缀加上短名长度，并回退转换下划线在写入输出。
 class SingleAllocationImporterFallbackCapabilityPerformanceContractTests(
     unittest.TestCase
 ):

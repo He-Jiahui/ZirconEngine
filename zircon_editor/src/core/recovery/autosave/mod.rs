@@ -18,10 +18,11 @@ pub use policy::{AutosaveDocumentState, AutosaveJobPolicy, AutosavePlan, Autosav
 pub use scheduler::AutosaveScheduler;
 pub use snapshot_provenance::AutosaveSnapshotProvenance;
 pub use source_digest::AutosaveSourceDigest;
-pub use store::{AUTOSAVE_RETAINED_SNAPSHOT_COUNT, AutosaveStore};
+pub use store::{AutosaveStore, AUTOSAVE_RETAINED_SNAPSHOT_COUNT};
 
 // The recovery catalog owns metadata semantics but shares the one atomic-publish primitive.
 pub(super) use store::write_new_atomically;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

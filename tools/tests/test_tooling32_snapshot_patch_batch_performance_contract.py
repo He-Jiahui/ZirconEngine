@@ -31,7 +31,7 @@ class SnapshotPatchBatchPerformanceContractTests(unittest.TestCase):
             self.assertEqual(expected_hash, actual_hash)
 
     def test_patch_attributions_use_one_batch_upsert(self) -> None:
-        source = inspect.getsource(PatchService._apply)
+        source = inspect.getsource(PatchService._apply_locked)
 
         self.assertIn("attribution_rows", source)
         self.assertEqual(1, source.count("connection.executemany("))

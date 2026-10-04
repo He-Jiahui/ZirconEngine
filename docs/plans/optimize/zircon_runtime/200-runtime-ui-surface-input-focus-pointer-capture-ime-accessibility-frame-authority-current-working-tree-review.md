@@ -136,9 +136,9 @@ Runtime11A P0-6 hit-grid allocation和 P0-7 public tree invariants 不在本轮 
 
 ### 5.2 Identity、focus 和 capture 仍不能支持 multi-seat/multi-window
 
-`UiInputEventMetadata` 的 user/device/window/surface/pointer 全部 optional，默认 timestamp/sequence 为零。`UiFocusState` 只有一个 `focused/previous/captured/pressed/hovered` 集合；`UiSurfaceInputState` 的 capture key 只有 `UiPointerId`，IME/high-precision/pointer-lock owner 只有 node id；Dynamic 的跨 surface capture map更退化为 `BTreeMap<Option<u64>, usize>`，普通鼠标 `None` 在整个 session 只有一份 capture。
+`UiInputEventMetadata` 的 user/device/window/surface/pointer 全部 optional，默认 timestamp/sequence 为零。`UiFocusState` 只有一个 `focused/previous/captured/pressed/hovered` 集合；`UiSurfaceInputState` 的 capture key 只有 `UiPointerId`，IME/high-precision/pointer-lock owner 只有 node id；Dynamic 的跨 surface capture/position maps 当前已改为私有 `HashMap<Option<u64>, usize>`，普通鼠标 `None` 在整个 session 仍只有一份 capture，qualified multi-seat identity 仍未闭合。
 
-`UiActivePointerTable` 使用线性 `Vec` 查找，按钮状态只有 primary/secondary/middle 三位 mask，没有 user/device/window/surface generation，也没有 tablet pressure/tilt/twist。modal restore、focus path 和 navigation index已有真实能力，但仍是 per-surface single-seat state；多用户、虚拟用户、多个 viewport 或窗口重建后无法拒绝 stale event/capture。
+`UiActivePointerTable` 现以私有 `HashMap<UiPointerId, usize>` 做 exact lookup，同时保留有序 `Vec`、middle-remove 和三位按钮 mask；这只关闭了查找复杂度，仍没有 user/device/window/surface generation，也没有 tablet pressure/tilt/twist。modal restore、focus path 和 navigation index已有真实能力，但仍是 per-surface single-seat state；多用户、虚拟用户、多个 viewport 或窗口重建后无法拒绝 stale event/capture。详见 Runtime740/742 的局部记录。
 
 ### 5.3 产品 window pump 与 scheduler 未接线
 
@@ -189,7 +189,7 @@ Dynamic accessibility capture会同步 `rebuild_dirty`，合并多个 surface并
 | RUII-P1-013 | Open | focus仍是per-surface single-seat；建立per-user/per-window focus publication |
 | RUII-P1-014 | Partial | Dynamic按反向surface order route并有capture surface；仍无global focus/modal arbiter与surface z snapshot |
 | RUII-P1-015 | Open | capture只按pointer id/Option id；改为user/device/window/surface/generation qualified lease |
-| RUII-P1-016 | Open | active pointer是linear Vec和三键mask；建立bounded indexed contact/tool/button state |
+| RUII-P1-016 | Partial | active pointer保留ordered Vec与三键mask，但已由`UiPointerId`索引和Touch/Pen primary计数器消除常见线性查询；仍需bounded indexed contact/tool/button state与多seat identity |
 | RUII-P1-017 | Partial | frame发布focus path、modal restore已存在；仍缺per-seat path和严格lost/gained/within transaction |
 | RUII-P1-018 | Partial | navigation index已出现；仍需证明随tree/layout generation原子更新且无route full scan |
 | RUII-P1-019 | Partial | modal group/trap/restore已有实现；tab boundary、wrap policy和多seat scope仍不完整 |
@@ -294,3 +294,94 @@ Runtime77 的 `RUII-P2-001..012` 继续有效：proposal/committed命名、versi
 - 未查询、轮询、等待或实时跟踪协调器状态；全部结论来自本地当前工作树和本地参考源码。
 
 实现会话应从 G-UI-01、02、04、06、13、19、20、22 开始；在统一 owner、clock、transaction 和 product window path 前，不应继续堆叠新的widget或只增加更多测试helper来宣称Runtime UI已工程化。
+
+## 12. 已完成的低风险性能切片
+
+2026-09-13 已落地 Runtime200 active-pointer table index：
+[`Runtime200 active pointer index`](200/2026-09-13-active-pointer-index.md)。
+该切片只优化 exact `UiPointerId` 查找，保留有序 entries、middle-remove
+语义与全部多 seat / generation 架构边界；对应 Astra 记录为
+[`Runtime740`](../../astra/features/runtime/740-active-pointer-table-index.md)。
+托管 Cargo、Release 与产品输入 p50/p95/p99 门禁仍由合批验证负责。
+
+随后将 Runtime UI 原型库的 registry 读取切换到 canonical `entries_iter()`，
+移除每次准备前的临时 entry-pointer Vec；类型筛选、artifact 加载与 alias
+语义不变，详见 [`Runtime200 registry iterator streaming`](200/2026-09-13-registry-iterator-streaming.md)
+及 Astra [`Runtime741`](../../astra/features/runtime/741-registry-iterator-streaming.md)。
+
+跨 surface 的 pointer capture 与 last-position lookup 也切换为私有
+`HashMap<Option<u64>, _>`，保留 `None` 鼠标键和 Down/Up/Cancel 清理语义，
+详见 [`Runtime200 dynamic pointer state hash`](200/2026-09-13-dynamic-pointer-state-hash.md)
+及 Astra [`Runtime742`](../../astra/features/runtime/742-dynamic-pointer-state-hash.md)。
+
+2026-09-14 又将大路径 pointer-hover diff 的 membership `HashSet` 收敛到
+surface-owned、非序列化 scratch；相等路径与小路径仍走原有 fast path，且以
+容量上限防止异常输入造成长期驻留。生产路由不再为每个大路径事件新建集合，
+详见 [`Runtime200 hover-diff membership scratch`](200/2026-09-14-hover-diff-membership-scratch.md)
+及 Astra [`Runtime748`](../../astra/features/runtime/748-runtime-hover-diff-membership-scratch.md)。
+该切片的 Rust Release marker 与托管编译/分配/输入延迟闸门继续随合批验证；
+本地全 Runtime/Editor Python 合同合批覆盖 869 个模块并通过 3557/3557，
+但尚未宣称产品 p50/p95/p99 通过。
+
+Runtime749 追加了 Touch/Pen primary-pointer membership counter；新 pointer
+判定由表内计数器提供 expected O(1) probe，ordered entries 与多 seat 边界不变。
+详见 `200/2026-09-14-primary-pointer-source-counter.md` 与
+`docs/plans/astra/features/runtime/749-runtime-primary-pointer-source-counter.md`。
+最终单进程 Runtime/Editor 合同合批覆盖 870 个模块，3562/3562 通过，
+耗时 396.106s；该收据仍是本地 source/model evidence，不替代 managed
+Cargo、Release allocation 或 pointer-input p50/p95/p99 门禁。
+随后在 Rust 回归断言收口后复跑同一批次，仍为 870 模块、3562/3562，
+零 failures/errors/skips，墙钟 517.932s；时间波动不作为产品延迟结论。
+
+Runtime750 将 route-step ancestor loop 的 stop 状态作为局部 bit 传入
+out-of-route terminal append guard，移除对已累积 steps 的重复 `O(H)` 扫描；
+route 顺序、terminal disposition 与公开诊断 DTO 保持不变。详见
+[`Runtime200 route terminal state bit`](200/2026-09-14-route-terminal-state-bit.md)
+与 Astra [`Runtime750`](../../astra/features/runtime/750-route-terminal-state-bit.md)。
+该切片的 focused contract 与 Runtime/Editor 合批收据加入同一受管编译、Release
+分配及输入延迟门禁；在门禁完成前仍标记为 `implemented_pending_validation`。
+
+Runtime751 进一步移除了 generic route diagnostics 中仅用于生成
+`preview_tunnel` 的 `route_path` 中间 clone，改为直接借用已拥有的
+bubble/focus path；bubble 优先级、空 bubble fallback 与公开 trace DTO 不变。
+详见 [`Runtime200 route path borrow`](200/2026-09-14-route-path-borrow.md)
+与 Astra [`Runtime751`](../../astra/features/runtime/751-route-path-borrow.md)。
+该切片与 Runtime750、Runtime749 共同加入下一次多任务 Release 门禁，
+当前状态仍为 `implemented_pending_validation`。
+
+2026-09-19 又在同一 dispatch-output 边界加入空结果早退：当本方法拥有的
+`host_requests` 与 `component_events` 同时为空时，不再查找 surface、克隆
+`UiTreeId` 或进入两个空队列；非空输出和 secure-text revoke 路径保持原样。
+100,000 次空 dispatch 的确定性下界从 100,000 次 tree-id clone 与两次队列
+遍历/事件降为零。详见 [`Runtime200 empty dispatch output fast path`](200/2026-09-19-empty-dispatch-output-fast-path.md)
+与 Astra [`Runtime804`](../../astra/features/runtime/804-dispatch-output-empty-fast-path.md)。
+这仍是结构性 source/model evidence，托管 Cargo、Release allocation 与产品
+input p50/p95/p99 尚未完成。
+
+2026-09-19 又将 action queue 的 secure-reference revoke scratch 收敛为惰性有界
+追加：`record_result` 在无撤销值时保持零容量，首次实际撤销时按剩余
+`component_events` 上界预留，避免撤销密集批次的几何增长；所有拒绝、撤销、
+supersession、队列上限与 admission 顺序保持不变。详见 [`Runtime200 action
+revocation scratch capacity`](200/2026-09-19-action-revocation-scratch-capacity.md)
+与 Astra [`Runtime807`](../../astra/features/runtime/807-action-revocation-scratch-capacity.md)。
+该切片仍只提供结构性 allocation-shape evidence，托管 Cargo、Release allocation
+与产品 input p50/p95/p99 尚未完成。
+
+2026-09-19 又将 tree-change focus cleanup 的 hovered 路径改为保留式过滤：
+`focus.hovered` 通过 `mem::take` 暂存后使用原地 `retain`，再恢复同一缓冲，
+因此稳定 hover path 不再为每次 reconciliation 构造 replacement `Vec`；
+input-owner 校验、重复项、来源顺序和空路径语义保持不变。详见
+[`Runtime200 focus hovered-path in-place retention`](200/2026-09-19-focus-hovered-retain-capacity.md)
+与 Astra [`Runtime821`](../../astra/features/runtime/821-focus-hovered-retain-capacity.md)。
+该切片的 source/model contract、lower order/capacity regression 与 ignored
+Release marker 已接线，但托管 Cargo、Release allocation 及 input 产品
+p50/p95/p99 仍待合批验证。
+
+同一 cleanup 又将 invalid pointer-drag owner 的临时 `Vec` 与逐项二次删除
+改为 `mem::take` 后的 `BTreeMap::retain`，保持有效拖拽 payload、key 顺序与
+input-owner 校验不变。详见 [`Runtime200 focus pointer-drag owner in-place
+retention`](200/2026-09-19-focus-pointer-drag-retain-capacity.md) 与 Astra
+[`Runtime822`](../../astra/features/runtime/822-focus-pointer-drag-retain-capacity.md)。
+该切片的 source/model contract、lower semantic regression 与 ignored Release
+marker 已接线，但托管 Cargo、Release allocation 及 input 产品 p50/p95/p99
+仍待合批验证。

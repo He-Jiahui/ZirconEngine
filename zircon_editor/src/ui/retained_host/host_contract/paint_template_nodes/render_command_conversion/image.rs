@@ -10,6 +10,7 @@ use super::super::visual_assets::{
     raster_size_from_frame,
 };
 
+/// Runtime 图像资源在宿主侧选择可用的像素或占位路径；实际物理尺寸优先于逻辑框估算。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_image_resource_command(
     output: &mut Vec<HostPaintCommand>,
     resource: &UiRenderResourceKey,
@@ -102,22 +103,5 @@ fn resource_image_key(resource: &UiRenderResourceKey) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{raster_target_for_resource, FrameRect};
-
-    #[test]
-    fn runtime_resource_physical_size_precedes_the_logical_frame() {
-        let frame = FrameRect {
-            x: 0.0,
-            y: 0.0,
-            width: 24.0,
-            height: 16.0,
-        };
-
-        assert_eq!(
-            raster_target_for_resource(Some((36.0, 24.0)), &frame),
-            Some((36, 24))
-        );
-        assert_eq!(raster_target_for_resource(None, &frame), Some((24, 16)));
-    }
-}
+#[path = "tests/image.rs"]
+mod tests;

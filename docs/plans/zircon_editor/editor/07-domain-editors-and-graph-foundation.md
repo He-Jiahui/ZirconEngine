@@ -171,7 +171,7 @@ impl PreviewScene {
 - 切片 1.1：`GraphModel` + canvas/node_widget/routing（渲染走 editor_ui 栈）；选择/框选/拖拽/缩放。
 - 切片 1.2：连接校验（value_type 缺省 + 覆写）/复制粘贴（子图序列化为 delta）/对齐；`commands.rs` 接 03（逆 delta=revert）。
 - 切片 1.3：`graph_node_palettes` descriptor 在 active catalog materialization 时绑定 package owner 与 schema version，随后接通 `graph_editors/graph_node_palettes` 表物化（06 store）；`validate/compile_operation` 投影为图工具栏命令（08）。
-- 测试阶段：`cargo test -p zircon_editor --lib --locked`（夹具 GraphModel：三约束矩阵/校验/delta 往返/粘贴幂等/撤销往返/required 端口悬空诊断）。更新 `docs/zircon_editor/ui/graph.md`。
+- 测试阶段：`cargo test -p zircon_editor --lib --locked`（夹具 GraphModel：三约束矩阵/校验/delta 往返/粘贴幂等/撤销往返/required 端口悬空诊断）。更新 `docs/crates/zircon_editor/ui/graph.md`。
 
 ### M2 时间轴基座与预览框架
 

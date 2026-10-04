@@ -9,8 +9,8 @@ mod physics;
 use crate::core::framework::scene::{
     ComponentPropertyPath, ScenePropertyEntry, ScenePropertyValue,
 };
-use crate::scene::EntityId;
 use crate::scene::components::{LocalTransform, Mobility, Name};
+use crate::scene::EntityId;
 
 use super::super::World;
 

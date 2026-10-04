@@ -181,4 +181,5 @@ impl PaneSurfaceHostContext<'_> {
 }
 
 #[cfg(test)]
+#[path = "interaction/tests/cases.rs"]
 mod tests;

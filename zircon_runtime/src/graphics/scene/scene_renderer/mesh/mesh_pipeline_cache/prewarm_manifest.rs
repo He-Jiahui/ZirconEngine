@@ -1,7 +1,7 @@
 use crate::core::framework::render::{
     ShaderFeatureBits, ShaderPassType, ShaderVariantPrewarmManifest, ShaderVariantPrewarmRequest,
 };
-use crate::graphics::scene::resources::{PipelineKey, default_pipeline_key};
+use crate::graphics::scene::resources::{default_pipeline_key, PipelineKey, ResourceStreamer};
 
 use super::super::mesh_pass::{MeshPassPipelineKind, MeshPipelineVariantId};
 use super::super::mesh_pipeline::{
@@ -12,7 +12,10 @@ use super::super::mesh_pipeline::{
 };
 use super::{MeshPipelineCache, MeshPipelineShaderSource, PipelineCreationTarget};
 
+mod runtime_identity;
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
+/// 运行时 manifest 预热的逐请求结果；Ready 统计全部所需管线已命中或成功安装的请求，失败索引对应原 manifest 顺序。
 pub struct RuntimeShaderPipelinePrewarmReport {
     requested_count: usize,
     ready_count: usize,
@@ -78,6 +81,7 @@ impl MeshPipelineCache {
     pub(crate) fn prewarm_manifest(
         &mut self,
         device: &wgpu::Device,
+        streamer: &mut ResourceStreamer,
         manifest: &ShaderVariantPrewarmManifest,
     ) -> RuntimeShaderPipelinePrewarmReport {
         let mut report = RuntimeShaderPipelinePrewarmReport {
@@ -109,10 +113,9 @@ impl MeshPipelineCache {
                 );
                 continue;
             };
-            if self
-                .geometry_source_descriptor(request.key.geometry_source)
-                .is_none()
-            {
+            let Some(geometry_source) =
+                self.geometry_source_descriptor(request.key.geometry_source)
+            else {
                 report.record_failure(
                     variant_index,
                     format!(
@@ -121,8 +124,13 @@ impl MeshPipelineCache {
                     ),
                 );
                 continue;
-            }
-            let pipeline_key = match pipeline_key_from_prewarm_request(request) {
+            };
+            let pipeline_key = match runtime_identity::bind_runtime_prewarm_request(
+                streamer,
+                request,
+                source,
+                &geometry_source,
+            ) {
                 Ok(pipeline_key) => pipeline_key,
                 Err(error) => {
                     report.record_failure(variant_index, error);
@@ -334,6 +342,7 @@ impl MeshPipelineCache {
     ) -> wgpu::RenderPipeline {
         let pipeline_cache = self.runtime_pipeline_cache.cache();
         match pipeline_kind {
+            // TODO: [CR-R02-runtime_wave12_graphics_mesh_pipeline-0006] 确认通用 manifest 是否允许环境专用 profile：注册表可返回专用 ID，但这里仍用通用布局，runtime_identity 也未加该 feature；尚缺此配置的生产调用证据，需核对调用约束并验证预热后的 Base 绘制。
             MeshPassPipelineKind::Base => create_mesh_pipeline(
                 device,
                 &self.mesh_pipeline_layout,
@@ -502,58 +511,5 @@ pub(super) fn pipeline_kind_from_prewarm_request(
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::core::framework::render::{
-        ShaderPassType, ShaderPipelinePrewarmState, ShaderVariantPrewarmRequest,
-    };
-    use crate::graphics::scene::resources::default_pipeline_key;
-
-    use super::pipeline_key_from_prewarm_request;
-
-    #[test]
-    fn runtime_prewarm_pipeline_state_reconstructs_complete_pipeline_key() {
-        let mut expected = default_pipeline_key();
-        expected.shader_revision = 19;
-        expected.material_layout_hash = 23;
-        expected.material_option_bits = 29;
-        expected.double_sided = true;
-        expected.alpha_blend = true;
-        expected.alpha_mask = true;
-        expected.alpha_cutoff_bits = Some(0.42_f32.to_bits());
-        expected.receive_shadows = false;
-        expected.unlit = true;
-        expected.has_normal_texture = true;
-        expected.pbr_clearcoat = true;
-        expected.pbr_anisotropy = true;
-        expected.pbr_transmission = true;
-        expected.volumetric_fog = true;
-        let request = ShaderVariantPrewarmRequest {
-            key: expected.shader_variant_key(ShaderPassType::Forward, "wgpu-runtime"),
-            pipeline_state: Some(ShaderPipelinePrewarmState {
-                alpha_blend: expected.alpha_blend,
-                alpha_cutoff_bits: expected.alpha_cutoff_bits,
-                unlit: expected.unlit,
-            }),
-            // Source-table resolution is outside this key-projection unit test.
-            source_id: Default::default(),
-        };
-
-        assert_eq!(pipeline_key_from_prewarm_request(&request), Ok(expected));
-    }
-
-    #[test]
-    fn runtime_prewarm_rejects_manifest_request_without_exact_pipeline_state() {
-        let key = default_pipeline_key();
-        let request = ShaderVariantPrewarmRequest {
-            key: key.shader_variant_key(ShaderPassType::Forward, "wgpu-runtime"),
-            pipeline_state: None,
-            // Source-table resolution is outside this key-projection unit test.
-            source_id: Default::default(),
-        };
-
-        assert_eq!(
-            pipeline_key_from_prewarm_request(&request),
-            Err("runtime shader pipeline prewarm requires the exact pipeline_state descriptor")
-        );
-    }
-}
+#[path = "tests/prewarm_manifest.rs"]
+mod tests;

@@ -8,9 +8,9 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-ZIRCON_BUILD = REPO_ROOT / "tools/zircon_build.py"
-ZIRCON_BUILD_HUB = REPO_ROOT / "tools/zircon_build_hub.py"
-ZIRCON_BUILD_HUB_OUTPUTS = REPO_ROOT / "tools/zircon_build_hub_outputs.py"
+ZIRCON_BUILD = REPO_ROOT / "tools/build/zircon_build.py"
+ZIRCON_BUILD_HUB = REPO_ROOT / "tools/build/zircon_build_hub.py"
+ZIRCON_BUILD_HUB_OUTPUTS = REPO_ROOT / "tools/build/zircon_build_hub_outputs.py"
 
 
 class ZirconBuildHubOwnerBoundaryTests(unittest.TestCase):
@@ -24,8 +24,8 @@ class ZirconBuildHubOwnerBoundaryTests(unittest.TestCase):
         hub_text = ZIRCON_BUILD_HUB.read_text(encoding="utf-8")
         outputs_text = ZIRCON_BUILD_HUB_OUTPUTS.read_text(encoding="utf-8")
 
-        self.assertIn("from .zircon_build_hub import build_hub", build_text)
-        self.assertIn("from zircon_build_hub import build_hub", build_text)
+        self.assertIn("from .build.zircon_build_hub import build_hub", build_text)
+        self.assertIn("from .build.zircon_build_hub import build_hub", build_text)
 
         for function_name in (
             "build_hub",
@@ -52,7 +52,7 @@ class ZirconBuildHubOwnerBoundaryTests(unittest.TestCase):
             self.assertIn(f"def {function_name}(", outputs_text)
 
         self.assertIn("from .zircon_build_hub_outputs import", hub_text)
-        self.assertIn("from zircon_build_hub_outputs import", hub_text)
+        self.assertIn("from .zircon_build_hub_outputs import", hub_text)
 
         for constant_name in ("HUB_TAURI_BUNDLE_TARGET", "HUB_INSTALLERS_DIR_NAME"):
             self.assertNotIn(f"{constant_name} =", hub_text)
@@ -74,17 +74,17 @@ class ZirconBuildHubOwnerBoundaryTests(unittest.TestCase):
         )
 
     def test_hub_owner_preserves_staging_semantics(self):
-        from tools.zircon_build_hub import build_hub, hub_cargo_environment
-        from tools.zircon_build_hub_outputs import stage_hub_tauri_outputs
+        from tools.build.zircon_build_hub import build_hub, hub_cargo_environment
+        from tools.build.zircon_build_hub_outputs import stage_hub_tauri_outputs
 
         with (
             tempfile.TemporaryDirectory() as tmp,
             mock.patch(
-                "tools.zircon_build_cargo_environment."
+                "tools.build.zircon_build_cargo_environment."
                 "assert_managed_windows_build_root"
             ),
             mock.patch(
-                "tools.zircon_build_hub_outputs.assert_managed_windows_build_root"
+                "tools.build.zircon_build_hub_outputs.assert_managed_windows_build_root"
             ),
         ):
             root = Path(tmp)
@@ -143,9 +143,9 @@ class ZirconBuildHubOwnerBoundaryTests(unittest.TestCase):
                 build_hub(config)
 
     def test_hub_dry_run_does_not_create_managed_cargo_directories(self):
-        from tools.zircon_build_hub import run_tauri_build
+        from tools.build.zircon_build_hub import run_tauri_build
 
-        root = Path(r"D:\ZirconBuilds") / f"hub-dry-run-{uuid4().hex}"
+        root = Path(r"D:\cargo-targets") / f"hub-dry-run-{uuid4().hex}"
         target_dir = root / "targets" / "hub"
         config = types.SimpleNamespace(
             repo_root=root,
@@ -157,10 +157,10 @@ class ZirconBuildHubOwnerBoundaryTests(unittest.TestCase):
         )
         with (
             mock.patch(
-                "tools.zircon_build_hub.tauri_cli_path",
+                "tools.build.zircon_build_hub.tauri_cli_path",
                 return_value=root / "tauri.js",
             ),
-            mock.patch("tools.zircon_build_hub.hub_cargo_environment") as environment,
+            mock.patch("tools.build.zircon_build_hub.hub_cargo_environment") as environment,
         ):
             run_tauri_build(config, target_dir)
 
@@ -169,7 +169,7 @@ class ZirconBuildHubOwnerBoundaryTests(unittest.TestCase):
 
     @unittest.skipUnless(os.name == "nt", "Windows staging roots are Windows-only")
     def test_hub_tauri_build_rejects_unmanaged_target_before_process_start(self):
-        from tools.zircon_build_hub import run_tauri_build
+        from tools.build.zircon_build_hub import run_tauri_build
 
         root = Path(r"C:\ZirconBuilds") / f"hub-must-not-be-created-{uuid4().hex}"
         target_dir = root / "targets" / "hub"
@@ -185,10 +185,10 @@ class ZirconBuildHubOwnerBoundaryTests(unittest.TestCase):
         self.assertFalse(root.exists())
         with (
             mock.patch(
-                "tools.zircon_build_hub.tauri_cli_path",
+                "tools.build.zircon_build_hub.tauri_cli_path",
                 return_value=root / "tauri.js",
             ),
-            mock.patch("tools.zircon_build_hub.subprocess.run") as run,
+            mock.patch("tools.build.zircon_build_hub.subprocess.run") as run,
             self.assertRaisesRegex(ValueError, "approved build root"),
         ):
             run_tauri_build(config, target_dir)

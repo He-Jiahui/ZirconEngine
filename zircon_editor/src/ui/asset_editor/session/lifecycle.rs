@@ -62,6 +62,19 @@ use source_outline_cache::{initial_source_outline_state, refresh_valid_source_ou
 
 pub(super) use v2_projection::*;
 
+pub(super) fn preflight_v2_palette_catalog(
+    document: &UiAssetDocument,
+    widget_imports: &BTreeMap<String, UiV2AssetDocument>,
+) -> Result<
+    Option<crate::ui::asset_editor::palette::UiAssetPaletteCatalog>,
+    UiAssetEditorSessionError,
+> {
+    if widget_imports.is_empty() {
+        return Ok(None);
+    }
+    palette_catalog::build_v2(document, widget_imports).map(Some)
+}
+
 impl UiAssetEditorSession {
     pub fn from_source(
         route: UiAssetEditorRoute,
@@ -600,7 +613,9 @@ impl UiAssetEditorSession {
         self.revalidate_with_palette_catalog(true)
     }
 
-    fn revalidate_without_palette_catalog(&mut self) -> Result<(), UiAssetEditorSessionError> {
+    pub(super) fn revalidate_without_palette_catalog(
+        &mut self,
+    ) -> Result<(), UiAssetEditorSessionError> {
         self.revalidate_with_palette_catalog(false)
     }
 

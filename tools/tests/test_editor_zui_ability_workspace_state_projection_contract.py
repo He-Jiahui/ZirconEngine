@@ -1,3 +1,4 @@
+# 核对能力选择、任务阶段和试玩反馈投影读取当前运行时状态。
 import tomllib
 import unittest
 from pathlib import Path

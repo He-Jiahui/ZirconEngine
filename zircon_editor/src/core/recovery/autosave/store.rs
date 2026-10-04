@@ -8,8 +8,8 @@ use zircon_runtime::asset::project::ProjectPaths;
 
 use super::{AutosaveDocumentId, AutosaveError, AutosaveExtension};
 use crate::core::recovery::autosave_catalog::{
-    AutosaveRecoveryCatalog, AutosaveRecoveryCatalogReport, AutosaveSnapshotMetadata,
-    AutosaveSourcePath, snapshot_metadata_path, snapshot_metadata_sequence,
+    snapshot_metadata_path, snapshot_metadata_sequence, AutosaveRecoveryCatalog,
+    AutosaveRecoveryCatalogReport, AutosaveSnapshotMetadata, AutosaveSourcePath,
 };
 use crate::core::recovery::{
     AutosaveContentDigest, AutosaveDiagnosticError, AutosaveDiagnosticRecord,

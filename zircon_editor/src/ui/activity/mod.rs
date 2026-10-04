@@ -3,14 +3,18 @@ mod slot;
 mod view;
 mod window;
 
+#[cfg(test)]
+#[path = "tests/capacity_tests.rs"]
+mod capacity_tests;
+
 pub(crate) use decision::{
-    ActivityDecisionOption, ActivityDecisionSelectionError, ActivityDecisionSelectionId,
-    activity_decision_options,
+    activity_decision_options, ActivityDecisionOption, ActivityDecisionSelectionError,
+    ActivityDecisionSelectionId,
 };
 pub use slot::ActivityDrawerSlotPreference;
 pub use view::ActivityViewDescriptor;
 pub(crate) use view::{
-    ActivityLogView, ActivityProgressView, ActivityToastView, activity_log_views,
-    activity_progress_views, activity_toast_views,
+    activity_log_views, activity_progress_views, activity_toast_views, ActivityLogView,
+    ActivityProgressView, ActivityToastView,
 };
 pub use window::ActivityWindowDescriptor;

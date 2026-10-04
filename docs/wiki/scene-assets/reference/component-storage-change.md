@@ -10,7 +10,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 ECS 组件公开接口详解
 tests:
-  - zircon_runtime/src/scene/ecs/storage/component_storage/sparse/tests.rs
+  - zircon_runtime/src/scene/ecs/storage/component_storage/sparse/tests/cases.rs
   - zircon_runtime/src/scene/world/typed_api/component_mutation_effects.rs
 doc_type: module-detail
 ---
@@ -123,7 +123,7 @@ let window = ChangeTickWindow::new(before, after);
 - [ComponentRegistry](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/scene/ecs/component/registry.rs)
 - [typed API](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/scene/world/typed_api.rs)
 - [change detection](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/scene/ecs/change_detection/mod.rs)
-- [sparse storage tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/scene/ecs/storage/component_storage/sparse/tests.rs)
+- [sparse storage tests](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/scene/ecs/storage/component_storage/sparse/tests/cases.rs)
 
 ## 描述字段
 

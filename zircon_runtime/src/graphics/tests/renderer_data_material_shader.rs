@@ -1,3 +1,4 @@
+//! asset-aware 编译应沿材质引用找到其 shader，并把材质自身错误与 shader 契约错误归到正确引用。
 use std::collections::HashMap;
 use std::str::FromStr;
 

@@ -4,6 +4,7 @@ use crate::core::resource::{MaterialMarker, ResourceHandle};
 
 use super::{RenderLayerSet, RenderQueueValue};
 
+/// 渲染器在主视图和阴影阶段的可见性策略；ShadowsOnly 仍可投影但不进主视图。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CastShadowsMode {
@@ -61,6 +62,7 @@ impl LodGroupId {
     }
 }
 
+/// 按材质槽排序并去重的覆盖集；构造、插入和反序列化维持同一查找契约。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 pub struct MaterialOverrideSet {
     slots: Vec<(u32, ResourceHandle<MaterialMarker>)>,
@@ -88,6 +90,15 @@ impl MaterialOverrideSet {
 
     pub fn slots(&self) -> &[(u32, ResourceHandle<MaterialMarker>)] {
         &self.slots
+    }
+
+    /// Declared bytes of the owned slot buffer, using its actual retained capacity.
+    /// ResourceHandle is a Copy identifier; referenced material assets belong to
+    /// their resource owner and are not retained heap allocations of this buffer.
+    pub fn retained_payload_bytes(&self) -> Option<usize> {
+        self.slots
+            .capacity()
+            .checked_mul(std::mem::size_of::<(u32, ResourceHandle<MaterialMarker>)>())
     }
 
     pub fn get(&self, slot: u32) -> Option<ResourceHandle<MaterialMarker>> {
@@ -128,6 +139,7 @@ impl<'de> Deserialize<'de> for MaterialOverrideSet {
     }
 }
 
+/// 场景提取传给各渲染路径的共享渲染器策略；材质专属限制可在建 draw 前收紧。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RendererCommon {
     pub enabled: bool,
@@ -158,194 +170,5 @@ impl Default for RendererCommon {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::hint::black_box;
-    use std::time::Instant;
-
-    use crate::core::resource::{MaterialMarker, ResourceHandle, ResourceId};
-
-    use super::{
-        CastShadowsMode, LodGroupId, MaterialOverrideSet, MotionVectorMode, RendererCommon,
-    };
-
-    #[test]
-    fn render_renderer_common_default_preserves_visible_mesh_semantics() {
-        let common = RendererCommon::default();
-
-        assert!(common.enabled);
-        assert_eq!(common.layer_mask, super::RenderLayerSet::default());
-        assert_eq!(common.queue_override, None);
-        assert_eq!(common.cast_shadows, CastShadowsMode::On);
-        assert!(common.receive_shadows);
-        assert_eq!(common.motion_vectors, MotionVectorMode::Auto);
-        assert!(common.material_overrides.is_empty());
-        assert!(!common.is_static);
-        assert_eq!(common.lod_group, None);
-    }
-
-    #[test]
-    fn render_material_override_set_keeps_one_handle_per_sorted_slot() {
-        let first_slot_seven = material_handle("res://materials/slot-seven-a.zmaterial");
-        let replacement_slot_seven = material_handle("res://materials/slot-seven-b.zmaterial");
-        let slot_two = material_handle("res://materials/slot-two.zmaterial");
-        let mut overrides = MaterialOverrideSet::default();
-
-        assert_eq!(overrides.insert(7, first_slot_seven), None);
-        assert_eq!(overrides.insert(2, slot_two), None);
-        assert_eq!(
-            overrides.insert(7, replacement_slot_seven),
-            Some(first_slot_seven)
-        );
-
-        assert_eq!(
-            overrides.slots(),
-            &[(2, slot_two), (7, replacement_slot_seven)]
-        );
-        assert_eq!(overrides.get(2), Some(slot_two));
-        assert_eq!(overrides.get(7), Some(replacement_slot_seven));
-        assert_eq!(overrides.get(9), None);
-    }
-
-    #[test]
-    fn render_material_override_set_deserialization_normalizes_unsorted_duplicate_slots() {
-        let first_slot_seven = material_handle("res://materials/serde-slot-seven-a.zmaterial");
-        let replacement_slot_seven =
-            material_handle("res://materials/serde-slot-seven-b.zmaterial");
-        let slot_two = material_handle("res://materials/serde-slot-two.zmaterial");
-        let encoded = serde_json::json!({
-            "slots": [
-                [7, first_slot_seven],
-                [2, slot_two],
-                [7, replacement_slot_seven]
-            ]
-        });
-
-        let overrides: MaterialOverrideSet =
-            serde_json::from_value(encoded).expect("material override set should deserialize");
-
-        assert_eq!(
-            overrides.slots(),
-            &[(2, slot_two), (7, replacement_slot_seven)]
-        );
-    }
-
-    #[test]
-    fn optimization_batch_20260831fe_runtime570_bulk_slots_preserve_incremental_semantics() {
-        let entries = [
-            (7, material_handle("res://materials/seven-a.zmaterial")),
-            (2, material_handle("res://materials/two-a.zmaterial")),
-            (7, material_handle("res://materials/seven-b.zmaterial")),
-            (5, material_handle("res://materials/five.zmaterial")),
-            (2, material_handle("res://materials/two-b.zmaterial")),
-        ];
-
-        assert_eq!(
-            MaterialOverrideSet::from_slots(entries).slots(),
-            legacy_from_slots(&entries).slots()
-        );
-    }
-
-    #[test]
-    #[ignore = "managed Windows release performance evidence"]
-    fn optimization_batch_20260831fe_runtime570_bulk_slots_reverse_order_p95() {
-        const SAMPLE_PAIRS: usize = 13;
-        const SLOT_COUNT: usize = 4_096;
-        const ITERATIONS: usize = 4;
-        let entries = (0..SLOT_COUNT)
-            .rev()
-            .map(|slot| {
-                (
-                    slot as u32,
-                    material_handle(&format!("res://materials/{slot}.zmaterial")),
-                )
-            })
-            .collect::<Vec<_>>();
-        let mut legacy = Vec::with_capacity(SAMPLE_PAIRS);
-        let mut optimized = Vec::with_capacity(SAMPLE_PAIRS);
-        for pair in 0..SAMPLE_PAIRS {
-            if pair % 2 == 0 {
-                legacy.push(measure_bulk_slots(false, &entries, ITERATIONS));
-                optimized.push(measure_bulk_slots(true, &entries, ITERATIONS));
-            } else {
-                optimized.push(measure_bulk_slots(true, &entries, ITERATIONS));
-                legacy.push(measure_bulk_slots(false, &entries, ITERATIONS));
-            }
-        }
-        let legacy_p95_ns = percentile(&legacy, 95);
-        let optimized_p95_ns = percentile(&optimized, 95);
-        println!(
-            "RUNTIME570_MATERIAL_OVERRIDE_BULK_SORT_BENCH_V1 sample_pairs={SAMPLE_PAIRS} \
-slots={SLOT_COUNT} iterations={ITERATIONS} legacy_p95_ns={legacy_p95_ns} \
-optimized_p95_ns={optimized_p95_ns} legacy_raw_ns={} optimized_raw_ns={}",
-            csv(&legacy),
-            csv(&optimized)
-        );
-        assert!(optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(35));
-    }
-
-    #[test]
-    fn render_renderer_common_modes_resolve_shadow_and_velocity_contracts() {
-        assert!(!CastShadowsMode::Off.casts_shadows());
-        assert!(CastShadowsMode::On.casts_shadows());
-        assert!(CastShadowsMode::TwoSided.casts_shadows());
-        assert!(CastShadowsMode::ShadowsOnly.casts_shadows());
-        assert!(!CastShadowsMode::ShadowsOnly.renders_in_main_view());
-        assert!(CastShadowsMode::Off.renders_in_main_view());
-        assert!(CastShadowsMode::On.renders_in_main_view());
-        assert!(CastShadowsMode::TwoSided.renders_in_main_view());
-
-        assert!(!MotionVectorMode::Auto.resolves_enabled(false, false));
-        assert!(MotionVectorMode::Auto.resolves_enabled(true, false));
-        assert!(MotionVectorMode::Auto.resolves_enabled(false, true));
-        assert!(MotionVectorMode::ForceOn.resolves_enabled(false, false));
-        assert!(!MotionVectorMode::ForceOff.resolves_enabled(true, true));
-
-        assert_eq!(LodGroupId::new(17).raw(), 17);
-    }
-
-    fn material_handle(label: &str) -> ResourceHandle<MaterialMarker> {
-        ResourceHandle::new(ResourceId::from_stable_label(label))
-    }
-
-    fn legacy_from_slots(entries: &[(u32, ResourceHandle<MaterialMarker>)]) -> MaterialOverrideSet {
-        let mut overrides = MaterialOverrideSet::default();
-        for (slot, material) in entries.iter().copied() {
-            overrides.insert(slot, material);
-        }
-        overrides
-    }
-
-    fn measure_bulk_slots(
-        optimized: bool,
-        entries: &[(u32, ResourceHandle<MaterialMarker>)],
-        iterations: usize,
-    ) -> u128 {
-        let started = Instant::now();
-        let mut checksum = 0_usize;
-        for _ in 0..iterations {
-            let overrides = if optimized {
-                MaterialOverrideSet::from_slots(entries.iter().copied())
-            } else {
-                legacy_from_slots(entries)
-            };
-            checksum ^= overrides.slots().len();
-            black_box(overrides);
-        }
-        black_box(checksum);
-        started.elapsed().as_nanos().max(1)
-    }
-
-    fn percentile(samples: &[u128], percentile: usize) -> u128 {
-        let mut sorted = samples.to_vec();
-        sorted.sort_unstable();
-        sorted[(sorted.len() * percentile).div_ceil(100).saturating_sub(1)]
-    }
-
-    fn csv(samples: &[u128]) -> String {
-        samples
-            .iter()
-            .map(u128::to_string)
-            .collect::<Vec<_>>()
-            .join(",")
-    }
-}
+#[path = "tests/renderer_common.rs"]
+mod tests;

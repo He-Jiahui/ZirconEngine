@@ -1,8 +1,8 @@
 import unittest
 
-from tools.runtime_input_manager_metadata_capacity_pressure import run
+from tools.analysis.performance.runtime.runtime_input_manager_metadata_capacity_pressure import run
 
-
+# 调用输入元数据压力模型，核对顶层遍历减半与 IME 批次容量一次性计算。
 class RuntimeInputManagerMetadataCapacityPressureTests(unittest.TestCase):
     def test_dispatch_metadata_halves_top_level_passes_and_visits(self) -> None:
         metadata = run()["dispatch_metadata"]

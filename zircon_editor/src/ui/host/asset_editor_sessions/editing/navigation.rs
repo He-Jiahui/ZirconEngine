@@ -14,6 +14,7 @@ fn apply_external_effect_batch<T, U, E>(
 impl EditorUiHost {
     pub fn undo_ui_asset_editor(&self, instance_id: &ViewInstanceId) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
+        let _edit = self.begin_document_edit(instance_id)?;
         let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
@@ -45,6 +46,7 @@ impl EditorUiHost {
 
     pub fn redo_ui_asset_editor(&self, instance_id: &ViewInstanceId) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
+        let _edit = self.begin_document_edit(instance_id)?;
         let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
@@ -80,6 +82,7 @@ impl EditorUiHost {
         mode: UiAssetEditorMode,
     ) -> Result<(), EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
+        let _edit = self.begin_document_edit(instance_id)?;
         let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
@@ -99,6 +102,7 @@ impl EditorUiHost {
         index: usize,
     ) -> Result<(), EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
+        let _edit = self.begin_document_edit(instance_id)?;
         let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
@@ -126,6 +130,7 @@ impl EditorUiHost {
         index: usize,
     ) -> Result<(), EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
+        let _edit = self.begin_document_edit(instance_id)?;
         let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
@@ -140,5 +145,5 @@ impl EditorUiHost {
 }
 
 #[cfg(test)]
-#[path = "navigation/capacity_tests.rs"]
+#[path = "navigation/tests/capacity_tests.rs"]
 mod capacity_tests;

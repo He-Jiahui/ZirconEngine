@@ -16,6 +16,12 @@ pub(in crate::ui::retained_host::host_contract) fn profile_screenshot_capture_en
     env_truthy("ZIRCON_PROFILE_CAPTURE_SCREENSHOTS")
 }
 
+/// Opt-in recapture for visible-host interaction receipts. The default keeps
+/// the existing one-shot profile admission and artifact cost unchanged.
+pub(in crate::ui::retained_host::host_contract) fn profile_dynamic_capture_enabled() -> bool {
+    env_truthy("ZIRCON_PROFILE_CAPTURE_EVERY_PRESENT")
+}
+
 pub(in crate::ui::retained_host::host_contract) fn profile_export_dir(
 ) -> Result<Option<PathBuf>, ProfileOutputRootError> {
     let output_root = match std::env::var("ZIRCON_PROFILE_OUTPUT_ROOT") {
@@ -59,5 +65,5 @@ fn env_truthy(name: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "environment/tests.rs"]
+#[path = "environment/tests/cases.rs"]
 mod tests;

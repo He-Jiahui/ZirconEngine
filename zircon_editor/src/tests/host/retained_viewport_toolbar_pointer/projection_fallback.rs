@@ -1,6 +1,7 @@
+// 核对控制矩形为空时表面投影回退、支点动作及投影签名复用。
 use std::sync::Arc;
 
-use crate::core::editor_event::{EditorEvent, EditorViewportEvent};
+use crate::core::editor_event::{EditorEvent, EditorViewportEvent, ViewInstanceId};
 use crate::scene::viewport::{DisplayMode, PivotMode};
 use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::ui::retained_host::callback_dispatch::{
@@ -24,12 +25,14 @@ fn shared_viewport_toolbar_pointer_click_falls_back_to_surface_projection_when_c
         .expect("viewport toolbar layout should compute");
     let mut pointer_bridge = ViewportToolbarPointerBridge::new();
     pointer_bridge.sync(build_viewport_toolbar_pointer_layout(["scene.main"]));
+    let view_id = ViewInstanceId::new("editor.scene#1");
 
     let dispatched = dispatch_shared_viewport_toolbar_pointer_click(
         &harness.runtime,
         &template_bridge,
         &mut pointer_bridge,
         "scene.main",
+        &view_id,
         "SetDisplayMode",
         0.0,
         0.0,
@@ -50,8 +53,11 @@ fn shared_viewport_toolbar_pointer_click_falls_back_to_surface_projection_when_c
     assert!(effects.presentation_dirty);
     assert_eq!(
         harness.runtime.journal().records().last().unwrap().event,
-        EditorEvent::Viewport(EditorViewportEvent::SetDisplayMode {
-            mode: DisplayMode::Shaded,
+        EditorEvent::Viewport(EditorViewportEvent::ForView {
+            view_id,
+            event: Box::new(EditorViewportEvent::SetDisplayMode {
+                mode: DisplayMode::Shaded,
+            }),
         })
     );
 }
@@ -126,9 +132,14 @@ fn projected_pivot_control_cycles_the_authoritative_viewport_mode() {
         .expect("viewport toolbar layout should compute");
     let mut pointer_bridge = ViewportToolbarPointerBridge::new();
     pointer_bridge.sync(build_viewport_toolbar_pointer_layout(["scene.main"]));
+    let view_id = ViewInstanceId::new("editor.scene#1");
 
     assert_eq!(
-        harness.runtime.scene_viewport_settings().pivot_mode,
+        harness
+            .runtime
+            .scene_viewport_settings_for_view(&view_id)
+            .expect("the committed Scene leaf should be live")
+            .pivot_mode,
         PivotMode::Centroid
     );
     dispatch_shared_viewport_toolbar_pointer_click(
@@ -136,6 +147,7 @@ fn projected_pivot_control_cycles_the_authoritative_viewport_mode() {
         &template_bridge,
         &mut pointer_bridge,
         "scene.main",
+        &view_id,
         "SetPivotMode",
         0.0,
         0.0,
@@ -146,13 +158,20 @@ fn projected_pivot_control_cycles_the_authoritative_viewport_mode() {
     .expect("projected pivot control should dispatch its cycle route");
 
     assert_eq!(
-        harness.runtime.scene_viewport_settings().pivot_mode,
+        harness
+            .runtime
+            .scene_viewport_settings_for_view(&view_id)
+            .expect("the targeted Scene leaf should retain its session")
+            .pivot_mode,
         PivotMode::Primary
     );
     assert_eq!(
         harness.runtime.journal().records().last().unwrap().event,
-        EditorEvent::Viewport(EditorViewportEvent::SetPivotMode {
-            mode: PivotMode::Primary,
+        EditorEvent::Viewport(EditorViewportEvent::ForView {
+            view_id,
+            event: Box::new(EditorViewportEvent::SetPivotMode {
+                mode: PivotMode::Primary,
+            }),
         })
     );
 }

@@ -5,7 +5,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 PARITY_RS = REPO_ROOT / "zircon_runtime_interface" / "src" / "ui" / "surface" / "render" / "parity.rs"
 CONTRACTS_RS = REPO_ROOT / "zircon_runtime_interface" / "src" / "tests" / "render_parity_performance_contracts.rs"
 
-
+# 读取实现源码约束接口渲染一致性批次映射：渲染器一致性 maps 源码索引一个遍历，并发布版基准保持规模与阈值契约。
 def test_renderer_parity_maps_source_indices_in_one_pass() -> None:
     source = PARITY_RS.read_text(encoding="utf-8")
 

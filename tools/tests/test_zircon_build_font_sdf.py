@@ -1,10 +1,11 @@
+# 核对字体距离场构建参数、码位范围和清单错误留在专属入口。
 import json
 import tempfile
 import types
 import unittest
 from pathlib import Path
 
-from tools.zircon_build_font_sdf import (
+from tools.build.zircon_build_font_sdf import (
     FontSdfBakeManifestError,
     build_font_sdf_command,
     load_font_sdf_manifest,
@@ -133,8 +134,8 @@ class ZirconBuildFontSdfTests(unittest.TestCase):
 
     def test_build_root_does_not_absorb_font_bake_policy(self):
         repo_root = Path(__file__).resolve().parents[2]
-        root_text = (repo_root / "tools/zircon_build.py").read_text(encoding="utf-8")
-        child_text = (repo_root / "tools/zircon_build_font_sdf.py").read_text(
+        root_text = (repo_root / "tools/build/zircon_build.py").read_text(encoding="utf-8")
+        child_text = (repo_root / "tools/build/zircon_build_font_sdf.py").read_text(
             encoding="utf-8"
         )
 

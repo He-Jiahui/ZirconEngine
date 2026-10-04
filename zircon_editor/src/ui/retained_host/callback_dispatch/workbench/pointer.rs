@@ -69,7 +69,10 @@ pub(crate) fn dispatch_componentized_workbench_pointer_event(
             Ok(candidate) => candidate,
             Err(error) => return Some(Err(error.to_string())),
         };
-    let pointer_feedback_candidate = tooltip_feedback_candidate
+    let pointer_feedback_candidate = (route.kind
+        == zircon_runtime_interface::ui::surface::UiPointerEventKind::Scroll
+        && bridge.surface().pending_invalidation_changed_node_count() > 0)
+        || tooltip_feedback_candidate
         || hover_feedback_candidate
         || press_feedback_candidate
         || range_feedback_candidate

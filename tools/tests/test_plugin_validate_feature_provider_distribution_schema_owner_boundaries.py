@@ -18,7 +18,7 @@ PLUGIN_VALIDATE_FEATURE_PROVIDER_DISTRIBUTION_SCHEMA_TEST = (
     / "tools/zircon_export/tests/test_plugin_validate_feature_provider_distribution_schema.py"
 )
 
-
+# 验证校验特性提供者分发模式归属边界的职责切分：特性提供者分发模式留在模式叶。
 class PluginValidateFeatureProviderDistributionSchemaOwnerBoundaryTests(
     unittest.TestCase
 ):

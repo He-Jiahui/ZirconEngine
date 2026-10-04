@@ -1,3 +1,4 @@
+# 核对设置页贡献的唯一注册、页面归属与扩展宿主入口之间的源码契约。
 from pathlib import Path
 import unittest
 

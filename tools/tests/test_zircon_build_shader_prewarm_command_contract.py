@@ -1,7 +1,8 @@
+# 核对预热命令参数与注册表选择的输入契约。
 import unittest
 from pathlib import Path
 
-from tools.zircon_build_shader_prewarm import (
+from tools.build.zircon_build_shader_prewarm import (
     build_shader_prewarm_command,
     validate_shader_prewarm_command_contract,
 )

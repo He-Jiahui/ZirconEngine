@@ -15,8 +15,8 @@ plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
   - docs/plans/zircon_runtime/shader/index.md
 tests:
-  - zircon_runtime/src/graphics/shader/ide_env_generation/tests.rs
-  - zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests.rs
+  - zircon_runtime/src/graphics/shader/ide_env_generation/tests/cases.rs
+  - zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests/cases.rs
   - tools/tests/test_zircon_build_shader_prewarm_wgpu_report_contract.py
 doc_type: module-detail
 ---

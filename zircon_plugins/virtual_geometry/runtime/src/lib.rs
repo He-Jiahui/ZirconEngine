@@ -3,13 +3,17 @@ use zircon_runtime::graphics::{
     RenderPassExecutorRegistration, RenderPassStage, RuntimePrepareCollectorContext,
     RuntimePrepareCollectorRegistration,
 };
-use zircon_runtime::render_graph::{QueueLane, RenderGraphComputeWorkload};
+use zircon_runtime::render_graph::{
+    QueueLane, RenderBufferSchema, RenderGraphComputeWorkload, RenderResourceSchema,
+};
+use zircon_runtime::rhi::BufferUsage;
 
 mod capability;
 mod plugin;
 mod provider;
 mod render_pass_executors;
 #[cfg(test)]
+#[path = "test_support/tests/mod.rs"]
 pub(crate) mod test_support;
 mod virtual_geometry;
 
@@ -40,7 +44,17 @@ pub const VIRTUAL_GEOMETRY_MODULE_NAME: &str = "virtual_geometry.runtime";
 const VIRTUAL_GEOMETRY_NODE_CLUSTER_CULL_PIPELINE_LABEL: &str =
     "zircon-virtual-geometry-node-cluster-cull";
 const VIRTUAL_GEOMETRY_NODE_CLUSTER_CULL_WORKGROUP_SIZE: [u32; 3] = [64, 1, 1];
-const VIRTUAL_GEOMETRY_NODE_CLUSTER_CULL_DISPATCH_GROUPS: [u32; 3] = [1, 1, 1];
+const VIRTUAL_GEOMETRY_NODE_CLUSTER_CULL_DISPATCH_GROUPS: [u32; 3] = [64, 1, 1];
+const VIRTUAL_GEOMETRY_GRAPH_ID_CAPACITY: u64 = 4096;
+const VIRTUAL_GEOMETRY_GRAPH_BUFFER_SIZE_BYTES: u64 =
+    (VIRTUAL_GEOMETRY_GRAPH_ID_CAPACITY + 1) * std::mem::size_of::<u32>() as u64;
+
+fn virtual_geometry_graph_buffer_schema() -> RenderResourceSchema {
+    RenderResourceSchema::buffer(RenderBufferSchema::new(
+        VIRTUAL_GEOMETRY_GRAPH_BUFFER_SIZE_BYTES,
+        BufferUsage::STORAGE | BufferUsage::COPY_SRC | BufferUsage::COPY_DST,
+    ))
+}
 
 pub fn virtual_geometry_runtime_provider_registration(
 ) -> zircon_runtime::graphics::VirtualGeometryRuntimeProviderRegistration {
@@ -73,7 +87,10 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
                 QueueLane::Graphics,
             )
             .with_executor_id("virtual-geometry.prepare")
-            .write_buffer("virtual-geometry-page-requests"),
+            .write_buffer_with_schema(
+                "virtual-geometry-page-requests",
+                virtual_geometry_graph_buffer_schema(),
+            ),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::DepthPrepass,
                 "virtual-geometry-node-cluster-cull",
@@ -85,15 +102,24 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
                 VIRTUAL_GEOMETRY_NODE_CLUSTER_CULL_WORKGROUP_SIZE,
                 VIRTUAL_GEOMETRY_NODE_CLUSTER_CULL_DISPATCH_GROUPS,
             ))
-            .read_buffer("virtual-geometry-page-requests")
-            .write_buffer("virtual-geometry-visible-clusters"),
+            .read_buffer_with_schema(
+                "virtual-geometry-page-requests",
+                virtual_geometry_graph_buffer_schema(),
+            )
+            .write_buffer_with_schema(
+                "virtual-geometry-visible-clusters",
+                virtual_geometry_graph_buffer_schema(),
+            ),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::DepthPrepass,
                 "virtual-geometry-page-feedback",
                 QueueLane::AsyncCopy,
             )
             .with_executor_id("virtual-geometry.page-feedback")
-            .read_buffer("virtual-geometry-visible-clusters")
+            .read_buffer_with_schema(
+                "virtual-geometry-visible-clusters",
+                virtual_geometry_graph_buffer_schema(),
+            )
             .write_external_buffer("virtual-geometry-feedback"),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::DepthPrepass,
@@ -101,7 +127,10 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
                 QueueLane::Graphics,
             )
             .with_executor_id("virtual-geometry.visbuffer")
-            .read_buffer("virtual-geometry-visible-clusters")
+            .read_buffer_with_schema(
+                "virtual-geometry-visible-clusters",
+                virtual_geometry_graph_buffer_schema(),
+            )
             .write_texture("scene-depth"),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Overlay,
@@ -109,7 +138,10 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
                 QueueLane::Graphics,
             )
             .with_executor_id("virtual-geometry.debug-overlay")
-            .read_buffer("virtual-geometry-visible-clusters")
+            .read_buffer_with_schema(
+                "virtual-geometry-visible-clusters",
+                virtual_geometry_graph_buffer_schema(),
+            )
             .read_texture("scene-color")
             .write_texture("scene-color"),
         ],
@@ -161,4 +193,5 @@ fn virtual_geometry_runtime_prepare_collector(
 }
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

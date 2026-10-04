@@ -5,6 +5,8 @@ use super::{
     IndirectDrawBatcherStats, MeshDrawCommand, MeshPassCommandBuffers,
 };
 
+/// 单个 pass 的批次、压缩 metadata 与统计来自同一命令快照。
+/// GPU 资源准备阶段消费计划，避免执行时重新划分批次。
 pub(crate) struct MeshIndirectDrawPlan {
     pub(super) batcher: IndirectDrawBatcher,
     pub(super) compaction_plan: IndirectCompactionPlan,
@@ -162,4 +164,5 @@ fn accumulate_stats(total: &mut IndirectDrawBatcherStats, phase: IndirectDrawBat
 }
 
 #[cfg(test)]
+#[path = "indirect_draw_plan/tests/cases.rs"]
 mod tests;

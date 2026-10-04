@@ -14,6 +14,7 @@ related_code:
   - zircon_plugins/gltf_importer/runtime/src/lib.rs
   - zircon_plugins/obj_importer/runtime/src/lib.rs
   - zircon_plugins/asset_importers/model/runtime/src/mesh_importer.rs
+  - zircon_plugins/asset_importers/model/runtime/src/cad.rs
 tests:
   - cargo test -p zircon_runtime --lib asset::tests::virtual_geometry_cook --locked --jobs 1 -- --nocapture --test-threads=1
   - runtime, glTF, OBJ and model importer feature-off/on, cold/warm and large-mesh matrices
@@ -54,4 +55,12 @@ import contract没有typed VG request policy，asset pipeline没有content+confi
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+## 本轮下层 request gate 收敛（2026-09-11）
+
+- 调用链审计确认 OBJ、STL、PLY 与 DXF/CAD 均曾在格式插件中直接构造 `VirtualGeometryCookConfig`；DXF 通过 model importer 的共享 indexed-mesh helper 复用了同一绕过路径。
+- 这四条入口现统一从 `AssetImportContext::virtual_geometry_cook_request()` 取得 typed request，并仅在 `cook_config_for` 返回配置时调用 cook。Mesh SDF 请求、输入解析顺序和现有 subasset 投影未改变。
+- 回归面覆盖默认关闭的 OBJ、STL、PLY、DXF 以及显式 `[virtual_geometry] enabled = true` 的 OBJ 和 model-format 矩阵；Runtime source contract 同时守卫 runtime、OBJ、STL/PLY、DXF 导入入口不得直接构造 cook config。
+- 本地仅完成 source-contract 与 `git diff --check` 静态核验。受管 Windows Cargo 动态验证尚未提交：协调器仍报告外部 `E:\Git\zr_vm` 工作树脏状态，不能以裸 Cargo 替代。
+- 此切片不声称完成 content+config artifact cache、single-flight、last-good、预算调度、热/冷矩阵或百万三角形性能验收；这些验收仍由本 failure 的后续 Runtime04 工作保留。
+
+Open state: `下层 request gate 已修，受管动态验证与剩余架构验收待完成`; no pass is claimed.

@@ -1,0 +1,27 @@
+{
+  "name": "zircon-zui-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bridge": "tsx src/cli.ts",
+    "build": "node ../../tools/scripts/assert-managed-workspace.mjs && pnpm run build:plugin && ng build zircon-zui-plugin",
+    "build:dev": "node ../../tools/scripts/assert-managed-workspace.mjs && ng build zircon-zui-plugin --configuration development",
+    "build:plugin": "node ../../tools/scripts/assert-managed-workspace.mjs && node ../../tools/scripts/build-plugin.mjs --plugin=zircon-zui-plugin",
+    "watch": "node ../../tools/scripts/assert-managed-workspace.mjs && node ../../tools/scripts/build-plugin.mjs --plugin=zircon-zui-plugin --watch",
+    "serve": "node ../../tools/scripts/assert-managed-workspace.mjs && ng serve zircon-zui-plugin",
+    "init": "node ../../tools/scripts/assert-managed-workspace.mjs && concurrently --kill-others --names plugin,serve \"pnpm run watch\" \"pnpm run serve\"",
+    "lint": "eslint .",
+    "test": "node ../../tools/scripts/assert-managed-workspace.mjs && vitest run && pnpm run test:host-contract",
+    "test:browser-contract": "node ../../tools/scripts/assert-managed-workspace.mjs && tsx tools/penpot-browser-canvas-contract.ts",
+    "test:layout-visual": "node ../../tools/scripts/assert-managed-workspace.mjs && tsx tools/zui-layout-visual-validation.ts",
+    "test:host-contract": "node ../../tools/scripts/assert-managed-workspace.mjs && tsx tools/penpot-runtime-host-contract.ts"
+  },
+  "dependencies": {
+    "smol-toml": "^1.8.0"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  },
+  "packageManager": "pnpm@11.20.0+sha512.9a6f330a95b66446ea088faf1521405a8a01f07fde7124cc9958dfed52d4bb436737e65b08f85f37b46fcba375092558ac51262b816844b22f63406ed166bfee"
+}

@@ -22,7 +22,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束预分配原生库路径投影：路径投影使用模块类型上界绑定，并现有路径去重仍合并模块类型。
 class PreallocatedNativeLibraryPathProjectionPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

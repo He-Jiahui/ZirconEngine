@@ -1,3 +1,6 @@
+//! 图集页的容量与逐帧引用策略：本帧已被绘制引用的页不能驱逐。
+//! 普通分配优先增加页面，整页重建优先复用未引用页面；页键复用依靠世代变化拒绝旧上传与旧槽。
+
 use crate::core::math::UVec2;
 
 use super::{GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec};
@@ -12,6 +15,8 @@ struct PageFormatOccupancy {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 记录页规格与当前帧保护状态；帧开始清除引用后，命中或分配路径再标记使用。
+/// 使用时间用于跨帧 LRU，引用标志用于保护同一帧先前已规划的绘制。
 pub(crate) struct GlyphAtlasResidentPage {
     spec: GlyphAtlasPageSpec,
     last_used_frame: u64,
@@ -121,6 +126,8 @@ pub(crate) fn page_rebuild_residency_decision(
     GlyphAtlasPageResidencyDecision::Blocked
 }
 
+/// 应用刚从同一页面集合取得的驻留决策；调用方应先失效被驱逐页的槽和阴影。
+/// 此函数只更新页规格及引用状态，不承担像素上传或缓存清理。
 pub(crate) fn apply_page_residency_decision(
     pages: &mut Vec<GlyphAtlasResidentPage>,
     decision: GlyphAtlasPageResidencyDecision,
@@ -240,8 +247,9 @@ fn next_free_page_index(
 }
 
 #[cfg(test)]
+#[path = "page_residency/tests/cases.rs"]
 mod tests;
 
 #[cfg(test)]
-#[path = "page_residency/single_pass_index_tests.rs"]
+#[path = "page_residency/tests/single_pass_index_tests.rs"]
 mod single_pass_index_tests;

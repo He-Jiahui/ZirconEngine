@@ -3,7 +3,8 @@ from __future__ import annotations
 import unittest
 from unittest import mock
 
-from tools.zircon_export import pipeline_report_pack_delta_asset_set_semantics as subject
+from tools.export import pipeline_report_pack_delta_asset_set_semantics as subject
+from tools.export import pipeline_report_pack_delta_asset_projection as projection_owner
 
 
 def _manifest(asset_count: int, hash_offset: int = 0) -> dict[str, object]:
@@ -37,7 +38,10 @@ class PackDeltaAssetProjectionPerformanceContractTests(unittest.TestCase):
         }
         report = {"delta_removed_assets": [], "delta_reused_assets": []}
 
-        original = subject.pack_document_manifest_is_schema_clean
+        # The projection owner now performs the one schema validation pass for
+        # the base and target document manifests.  Patch that binding rather
+        # than the compatibility import retained by the set-semantics owner.
+        original = projection_owner.pack_document_manifest_is_schema_clean
         checked: list[object] = []
 
         def count_manifest(manifest: dict[str, object]) -> bool:
@@ -45,7 +49,7 @@ class PackDeltaAssetProjectionPerformanceContractTests(unittest.TestCase):
             return original(manifest)
 
         with mock.patch.object(
-            subject,
+            projection_owner,
             "pack_document_manifest_is_schema_clean",
             count_manifest,
         ):

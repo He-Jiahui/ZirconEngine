@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+# 偏好持久化的有界 I/O lane 留在中立 runtime 层，平台适配器持有后端和授权；本组跨 Rust 与 WOC 消费者追查旧同步接口是否彻底切断。
 import re
 import tomllib
 import unittest
@@ -27,7 +27,7 @@ HOST_PREFERENCES_ROUTE = PLATFORM_PREFERENCES_ROOT / "mod.rs"
 PLATFORM_ROOT = REPO_ROOT / "zircon_runtime/src/platform"
 PLATFORM_ROUTE = PLATFORM_ROOT / "mod.rs"
 PERSISTENCE_WORK = PERSISTENCE_ROOT / "work.rs"
-PERSISTENCE_TESTS = PERSISTENCE_ROOT / "tests.rs"
+PERSISTENCE_TESTS = PERSISTENCE_ROOT / "tests/cases.rs"
 ATOMIC_FILE_BACKEND = PLATFORM_PREFERENCES_ROOT / "atomic_file.rs"
 EXTERNAL_BACKEND_AUTHORITY_TEST = (
     REPO_ROOT / "zircon_runtime/tests/runtime11_preference_backend_authority.rs"
@@ -278,7 +278,7 @@ class Runtime11PreferencePersistenceLaneContractTests(unittest.TestCase):
             "one_second_backend_stall_remains_off_caller_filesystem_wall",
             "PreferenceStorageBackend",
         ):
-            self.assertIn(anchor, source)
+            self.assertIn(anchor, read(PERSISTENCE_TESTS) if anchor in {'flush_before_later_different_key', 'rejects_pending_and_durable_eviction', 'one_second_backend_stall_remains_off_caller_filesystem_wall', 'default_limits_allow_maximum_value_failure_retry'} else source)
 
     def test_sync_backend_spi_is_hard_cut_from_neutral_framework_surface(self) -> None:
         neutral_source = read(NEUTRAL_PREFERENCES_ROUTE) + read(NEUTRAL_PLATFORM_ROUTE)
@@ -424,20 +424,8 @@ class Runtime11PreferencePersistenceLaneContractTests(unittest.TestCase):
         self.assertIsNone(backend_trait.search(source))
         self.assertIn("PreferencePersistenceAdapter", source)
 
-        backend_type_allowlist = {
-            "mod.rs",
-            "preferences/atomic_file.rs",
-            "preferences/backend.rs",
-            "preferences/mod.rs",
-            "preferences/persistence/adapter.rs",
-            "preferences/persistence/tests.rs",
-            "preferences/persistence/work.rs",
-            "preferences/unavailable.rs",
-            "service_types/driver.rs",
-            "test_support.rs",
-            "tests/preferences.rs",
-        }
-        primitive_call_allowlist = {"preferences/persistence/work.rs"}
+        backend_type_allowlist = {'mod.rs', 'preferences/atomic_file.rs', 'preferences/backend.rs', 'preferences/mod.rs', 'preferences/persistence/adapter.rs', 'preferences/persistence/tests/cases.rs', 'preferences/persistence/work.rs', 'preferences/tests/atomic_file.rs', 'preferences/unavailable.rs', 'service_types/driver.rs', 'tests/preferences.rs', 'tests/test_support.rs'}
+        primitive_call_allowlist = {'preferences/persistence/work.rs'}
         primitive_call = re.compile(
             r"(?<!\.)\bbackend\s*\.\s*(?:open_read|write|remove|flush)\s*\("
         )

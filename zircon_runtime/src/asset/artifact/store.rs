@@ -2,8 +2,8 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{self, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{
-    Arc,
     atomic::{AtomicU64, Ordering},
+    Arc,
 };
 
 use bincode::Options;
@@ -14,22 +14,24 @@ use crate::core::resource::{ResourceRecord, ResourceScheme};
 
 use super::cache_payload::ArtifactCacheAsset;
 use super::chunk_residency::{
-    ARTIFACT_CHUNK_BYTES, ARTIFACT_CHUNK_DIRECTORY, ArtifactChunkDescriptor,
-    ArtifactChunkInventory, ArtifactChunkResidency, ArtifactChunkResidencyDiagnostics,
-    ArtifactChunkResidencyTrimReport, ChunkReader, chunk_path,
+    chunk_path, ArtifactChunkDescriptor, ArtifactChunkInventory, ArtifactChunkResidency,
+    ArtifactChunkResidencyDiagnostics, ArtifactChunkResidencyTrimReport, ChunkReader,
+    ARTIFACT_CHUNK_BYTES, ARTIFACT_CHUNK_DIRECTORY,
 };
 use crate::asset::project::ProjectPaths;
 use crate::asset::{
-    AssetImportError, AssetKind, AssetUri, ImportedAsset, asset_kind_for_imported_asset,
+    asset_kind_for_imported_asset, AssetImportError, AssetKind, AssetUri, ImportedAsset,
 };
 
 const ARTIFACT_CACHE_EXTENSION: &str = "zasset";
 const ARTIFACT_CACHE_SUFFIX: &str = ".zasset";
-// The artifact payload gained a cooked font blob. Its bincode encoding is
-// sequential, so caches written before this revision must be rejected before
-// payload deserialization rather than interpreted as the new layout.
-const ARTIFACT_MANIFEST_MAGIC: &[u8] = b"ZRARTM06";
-const ARTIFACT_MANIFEST_SCHEMA_VERSION: u32 = 6;
+// Scene entities gained an opaque provider-row vector. The payload encoding is
+// positional bincode, so schema 6 manifests must be admitted only far enough to
+// report the explicit rebuild boundary, never as schema 7 payloads.
+const ARTIFACT_MANIFEST_MAGIC: &[u8] = b"ZRARTM07";
+const PRE_SCENE_COMPONENT_MANIFEST_MAGIC: &[u8] = b"ZRARTM06";
+const PRE_SCENE_COMPONENT_MANIFEST_SCHEMA_VERSION: u32 = 6;
+const ARTIFACT_MANIFEST_SCHEMA_VERSION: u32 = 7;
 const ARTIFACT_STAGING_DIRECTORY: &str = ".staging";
 const ARTIFACT_CACHE_ZSTD_LEVEL: i32 = 1;
 const BLAKE3_HEX_LENGTH: usize = 64;
@@ -540,7 +542,10 @@ fn read_manifest(path: &Path) -> Result<ArtifactManifest, AssetImportError> {
             "artifact manifest exceeds the {ARTIFACT_MANIFEST_MAX_BYTES}-byte limit"
         )));
     }
-    let Some(bytes) = payload.strip_prefix(ARTIFACT_MANIFEST_MAGIC) else {
+    let bytes = payload
+        .strip_prefix(ARTIFACT_MANIFEST_MAGIC)
+        .or_else(|| payload.strip_prefix(PRE_SCENE_COMPONENT_MANIFEST_MAGIC));
+    let Some(bytes) = bytes else {
         return Err(AssetImportError::Parse(
             "unsupported artifact manifest format; expected versioned chunk manifest".to_string(),
         ));
@@ -560,6 +565,12 @@ fn validate_manifest(path: &str, manifest: &ArtifactManifest) -> Result<(), Asse
         )));
     }
     if manifest.schema_version != ARTIFACT_MANIFEST_SCHEMA_VERSION {
+        if manifest.schema_version == PRE_SCENE_COMPONENT_MANIFEST_SCHEMA_VERSION {
+            return Err(AssetImportError::Parse(format!(
+                "artifact cache schema {} predates scene component rows and must be rebuilt before reading its positional payload",
+                manifest.schema_version
+            )));
+        }
         return Err(AssetImportError::Parse(format!(
             "unsupported artifact manifest schema {}; expected {}",
             manifest.schema_version, ARTIFACT_MANIFEST_SCHEMA_VERSION
@@ -730,27 +741,5 @@ fn asset_kind_from_artifact_path(path: &str) -> Option<AssetKind> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn artifact_zstd_compress_bound_large_payload_accepts_exact_bound() {
-        let raw_bytes = ZSTD_COMPRESS_BOUND_SMALL_INPUT_BYTES + 1;
-        let compressed_bound = raw_bytes + raw_bytes / 256;
-
-        assert!(validate_artifact_compressed_payload_bytes(raw_bytes, compressed_bound).is_ok());
-    }
-
-    #[test]
-    fn artifact_zstd_compress_bound_large_payload_rejects_bytes_above_bound() {
-        let raw_bytes = ZSTD_COMPRESS_BOUND_SMALL_INPUT_BYTES + 1;
-        let compressed_bound = raw_bytes + raw_bytes / 256;
-
-        let error = validate_artifact_compressed_payload_bytes(raw_bytes, compressed_bound + 1)
-            .expect_err("bytes above the Zstd bound must be rejected");
-        let AssetImportError::Parse(message) = error else {
-            panic!("expected a parse error for an oversized compressed payload");
-        };
-        assert!(message.contains("exceeds the"));
-    }
-}
+#[path = "tests/store.rs"]
+mod tests;

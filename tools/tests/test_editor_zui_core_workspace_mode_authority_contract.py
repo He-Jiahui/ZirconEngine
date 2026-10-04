@@ -1,3 +1,4 @@
+# 核对核心工作区只有内容栈真实区分时才呈现模式标签。
 import re
 import tomllib
 import unittest
@@ -43,10 +44,7 @@ DOCUMENT_MODULE_TESTS = REPO_ROOT / (
     "zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/"
     "workbench_projection/document_module.rs"
 )
-ASSETS_WORKSPACE_ROUTE_TESTS = REPO_ROOT / (
-    "zircon_editor/src/ui/template_runtime/builtin/"
-    "workbench_module_template_bindings/assets_workspace_routes.rs"
-)
+ASSETS_WORKSPACE_ROUTE_TESTS = REPO_ROOT / "zircon_editor/src/ui/template_runtime/builtin/workbench_module_template_bindings/tests/assets_workspace_routes.rs"
 SURFACE_CHROME_ROUTE_TESTS = REPO_ROOT / (
     "zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/"
     "workbench_projection/surface_contract/chrome_routes.rs"

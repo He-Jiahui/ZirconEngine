@@ -16,8 +16,10 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/dispatch.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/dispatch/actions.rs
 tests:
-  - cargo test -p zircon_editor --lib host_page_overflow_keyboard --locked --jobs 1 --color never -- --test-threads=1
-  - cargo test -p zircon_editor --lib native_keyboard --locked --jobs 1 --color never -- --test-threads=1
+  - cargo +1.94.1 test -p zircon_editor --lib --locked --no-run --message-format short --color never
+  - cargo +1.94.1 test -p zircon_editor --lib --locked host_page_overflow_keyboard -- --test-threads=1
+  - cargo +1.94.1 test -p zircon_editor --lib --locked native_keyboard -- --test-threads=1
+  - cargo +1.94.1 test -p zircon_editor --lib --locked export -- --test-threads=1
 ---
 
 # Layout15：native keyboard window contract 编译回归
@@ -73,3 +75,9 @@ Resolving state: `Layout15 已完成原子合同迁移与 source/static 复核�
 | 2026-07-22 05:12 +08:00 | `resolving_failure / fresh locked upward gate reached workspace compile` | 根 lockfile ArcSwap consumer edge 已由 Plugins01 child return 修复；snapshot `680` 的受管 Windows reservation `997d474015c3403eb27a5b56fbf99833` 消费为 job `8e229f6cd2c749f495b0f701e0c07bc0` / run `b410b0de35d14f2d9980be50241c640e`，重跑同一 `zircon_editor --lib --locked --no-run` 命令。日志明确编译 `arc-swap v1.9.2`、`zircon_runtime` 与 `zircon_editor`，原始 3×E0603、E0063、E0382 及旧 Editor03 `GizmoTransactionCapture` 诊断均未出现。job 按实际 exit `101` 由 coordinator 自动 finish/release，进程树为空，target retained。 | 最新仅有既存 Plugins01 owner 的 `plugin/bridge/import.rs:66` E0631 与 `native_plugin_live_host/registration_replay.rs:392` E0308；测试二进制未生成，故 focused filters 仍未计通过。lockfile 子失败已 fixed return 至本目录；待 Plugins01 既有 bridge-import / registration-replay failures return 后复用 retained target 重跑，不在 Layout15 混修。 |
 | 2026-07-22 05:51 +08:00 | `resolving_failure / Plugins blockers removed, Text01 blocker isolated` | Plugins01 已分别以 `ArcSwapOption::load().as_deref()` 与 typed error `to_string()` adapter 修复 E0631/E0308；同一 snapshot `680` warm reservation `0905384dda9c4f57836d0cf4329ee2c0` 复用 retained target 为 job `4576d0ee13194594a5dfe684bec27c13` / run `3d7907529ce14245a00399c50e4eff57`。编译越过两处 Plugins 源码和全部 native-keyboard，未出现原始 5 错，job 按实际 exit `101` 自动 finish/release。 | 当前唯一错误为 Text01 `scene_renderer/ui/text/font_assets.rs:151` E0502；测试二进制仍未生成。已建立 child-only 交接：[UI font asset cache borrow regression](../../../zircon_runtime/text/01/failure-2026-07-22-ui-font-asset-cache-borrow-regression.md)，并由 active Text01 owner 续租源文件。待其 fixed return 后再次复用 warm target；focused tests、独立复审与 native failure return 仍 pending。 |
 | 2026-08-13 | `open / implemented_static / validation_pending` | 当前 `native_keyboard::target` 仅向 `host_contract` 窄回导出 move/request/focus DTO，dispatch 不穿透私有 `target::model`；host-page overflow producer 明确本地窗口 `offset=0/count=total`、禁用窗口导航，通用 selection producer 在移动 `rows` 前计算 `window_count/total_count`，没有为规避 E0382 克隆行表。 | 本轮只做 current-source 静态审计，原始 E0603/E0063/E0382 的源码根因仍保持消除；未运行受管 host-page/native-keyboard focused Cargo，不声称 fixed return 或 accepted closeout。 |
+
+### 2026-09-19 受管静态合同回执
+
+- 前序校验票据 `95703348a4da48f8bb6776d7bb88e2b5`、`1bfa660639ef42f08190b4c6e1f710b1`、`df24b6e3e901402aa9b2bd3810d5b56d` 保留；失败均为校验器文本锚点与当前记录/模块可见性拼写不一致，未修改源码。
+- 修正版票据 `582ac8a422364f8589c6cc451c98ffd9`（job `c9a2622988044bdd98215980e96759ba` / run 同票据）已通过，退出码 `0`；输出 `LAYOUT15_NATIVE_KEYBOARD_SOURCE_CONTRACT_PASS`、`CHECKED_PATHS=8`，source manifest `85f2c559e40354d775d9ca7e175e2897e44179eeb68f135e477a3f21310e2e8f`。
+- 回执仅覆盖窄 target re-export、overflow 明确字段、selection move 前计数及 dispatch/action 私有边界；host-page/native-keyboard focused Cargo、fresh upward compile、Text01 blocker、独立 0/0/0 review、failure return 与 closeout 仍待完成，本 failure 继续保持 `status: open`。

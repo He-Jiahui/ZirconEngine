@@ -1,3 +1,6 @@
+//! 将内建场景 pass 的逻辑资源读写交给受限 GPU 上下文。
+//! 每个入口须由 executor 注册表配对；实际视图、附件操作和可用 renderer 服务由本帧图上下文提供。
+
 use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::scene_renderer::transparency::{
@@ -288,6 +291,8 @@ pub(super) fn screen_space_ui_executor(
     )
 }
 
+// 输出可能经过 UI 合成，也可能直接来自最终颜色；以编译 pass 的读边为准，
+// 不能仅凭全局资源表中存在某个视图来决定展示哪张图。
 pub(super) fn surface_present_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
@@ -345,6 +350,8 @@ pub(super) fn output_target_writeback_executor(
     )
 }
 
+// 直导入路径已经由目标资源绑定承载物理输出；它只记录计划结果，
+// 不得再声明写回边或重复编码一次目标拷贝。
 pub(super) fn output_target_direct_import_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
@@ -378,6 +385,17 @@ pub(super) fn output_target_direct_import_executor(
         .record_output_target_direct_import(source_resource_name)
 }
 
+pub(super) fn overlay_depth_reconstruct_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let pass_name = context.pass_name.clone();
+    context.require_gpu()?.record_overlay_depth_reconstruction(
+        &pass_name,
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        PostProcessGraphResourceNames::VIEWPORT_OVERLAY_DEPTH,
+    )
+}
+
 pub(super) fn overlay_gizmo_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
@@ -386,6 +404,6 @@ pub(super) fn overlay_gizmo_executor(
     gpu.record_overlay_to_resources(
         &pass_name,
         PostProcessGraphResourceNames::VIEWPORT_OUTPUT,
-        PostProcessGraphResourceNames::SCENE_DEPTH,
+        PostProcessGraphResourceNames::VIEWPORT_OVERLAY_DEPTH,
     )
 }

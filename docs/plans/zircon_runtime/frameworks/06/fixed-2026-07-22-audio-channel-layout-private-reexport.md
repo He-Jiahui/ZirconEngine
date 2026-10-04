@@ -20,10 +20,10 @@ related_code:
   - zircon_runtime/src/core/framework/sound/status.rs
   - zircon_runtime/src/core/framework/sound/tests.rs
   - tools/tests/test_frameworks_03_audio_contract_owner_boundary.py
-  - docs/zircon_runtime/core/framework/audio.md
+  - docs/crates/zircon_runtime/core/framework/audio.md
 tests:
   - python -m unittest tools.tests.test_frameworks_03_audio_contract_owner_boundary -v
-  - python tools/check_conventions.py --only docs --json
+  - python tools/audits/check_conventions.py --only docs --json
   - cargo check -p zircon_runtime --lib --no-default-features --features sound-contracts --locked
 resolved_at: 2026-07-22
 ---
@@ -40,7 +40,7 @@ resolved_at: 2026-07-22
 
 ## 失败现象与复现证据
 
-`docs/zircon_runtime/core/framework/audio.md` 声明 Sound namespace 不重导出 `AudioChannelLayout`，但 `zircon_runtime/src/core/framework/sound/mod.rs` 仍有 `pub(crate) use crate::core::framework::audio::AudioChannelLayout;`。七个 Sound leaf owner 与测试通过 `super::AudioChannelLayout` 间接消费，因此文档 focused G7 虽为 0，独立复审仍为 Important 1。
+`docs/crates/zircon_runtime/core/framework/audio.md` 声明 Sound namespace 不重导出 `AudioChannelLayout`，但 `zircon_runtime/src/core/framework/sound/mod.rs` 仍有 `pub(crate) use crate::core::framework::audio::AudioChannelLayout;`。七个 Sound leaf owner 与测试通过 `super::AudioChannelLayout` 间接消费，因此文档 focused G7 虽为 0，独立复审仍为 Important 1。
 
 ## 最低共享层根因
 

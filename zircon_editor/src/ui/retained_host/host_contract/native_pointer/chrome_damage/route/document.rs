@@ -7,6 +7,14 @@ pub(super) fn route_document_tab_damage_frame(
     presentation: &HostWindowPresentationData,
     surface_key: &str,
 ) -> Option<FrameRect> {
+    if let Some(leaf) = presentation
+        .host_scene_data
+        .document_leaves
+        .iter()
+        .find(|leaf| leaf.surface_key.as_str() == surface_key)
+    {
+        return Some(leaf.region_frame.clone());
+    }
     let document_surface_key = presentation
         .host_scene_data
         .document_dock

@@ -145,7 +145,7 @@ fn delta_installer_promotes_staged_pack_with_backup() {
 }
 
 #[test]
-fn delta_installer_copies_staged_pack_when_promotion_rename_fails() {
+fn delta_installer_atomically_promotes_from_separate_staging_directory() {
     let root = unique_pack_temp_dir("delta-promote-copy-fallback");
     let installed_path = root.join("installed").join("assets.zrpack");
     let backup_path = root.join("backup").join("assets.previous.zrpack");
@@ -166,7 +166,7 @@ fn delta_installer_copies_staged_pack_when_promotion_rename_fails() {
     fs::write(&installed_path, installed.bytes).unwrap();
     fs::write(&staged_path, staged.bytes).unwrap();
 
-    let report = ZrPackDeltaInstaller::promote_staged_pack_with_forced_staged_rename_failure(
+    let report = ZrPackDeltaInstaller::promote_staged_pack(
         &staged_path,
         &installed_path,
         Some(&backup_path),
@@ -177,7 +177,7 @@ fn delta_installer_copies_staged_pack_when_promotion_rename_fails() {
     let backup_reader = ZrPackReader::from_bytes(fs::read(&backup_path).unwrap()).unwrap();
     assert_eq!(
         report.promotion_method,
-        ZrPackPromotionMethod::CopiedAfterRenameFailure
+        ZrPackPromotionMethod::AtomicReplacement
     );
     assert_eq!(report.installed_manifest, staged_reader.manifest().clone());
     assert_eq!(
@@ -279,7 +279,10 @@ fn delta_installer_writes_install_receipt_from_staging_and_promotion() {
     assert_eq!(receipt.staged_size, staging_report.staged_size);
     assert_eq!(receipt.installed_size, promotion_report.installed_size);
     assert!(receipt.delta_apply_verified);
-    assert_eq!(receipt.promotion_method, ZrPackPromotionMethod::Renamed);
+    assert_eq!(
+        receipt.promotion_method,
+        ZrPackPromotionMethod::AtomicReplacement
+    );
     assert!(receipt.promoted);
     assert_eq!(
         receipt.format_version,
@@ -292,7 +295,7 @@ fn delta_installer_writes_install_receipt_from_staging_and_promotion() {
 }
 
 #[test]
-fn delta_installer_receipt_records_copy_fallback_promotion_method() {
+fn delta_installer_receipt_records_atomic_promotion_method() {
     let root = unique_pack_temp_dir("delta-receipt-copy-fallback");
     let base_path = root.join("installed").join("assets.zrpack");
     let delta_path = root.join("downloads").join("assets.delta.zrpd");
@@ -319,12 +322,8 @@ fn delta_installer_receipt_records_copy_fallback_promotion_method() {
     let staging_report =
         ZrPackDeltaInstaller::rebuild_to_staging(&base_path, &delta_path, &staged_path).unwrap();
     let promotion_report =
-        ZrPackDeltaInstaller::promote_staged_pack_with_forced_staged_rename_failure(
-            &staged_path,
-            &base_path,
-            Some(&backup_path),
-        )
-        .unwrap();
+        ZrPackDeltaInstaller::promote_staged_pack(&staged_path, &base_path, Some(&backup_path))
+            .unwrap();
 
     let receipt = ZrPackDeltaInstaller::write_install_receipt(
         &receipt_path,
@@ -336,15 +335,15 @@ fn delta_installer_receipt_records_copy_fallback_promotion_method() {
 
     assert_eq!(
         promotion_report.promotion_method,
-        ZrPackPromotionMethod::CopiedAfterRenameFailure
+        ZrPackPromotionMethod::AtomicReplacement
     );
     assert_eq!(
         receipt.promotion_method,
-        ZrPackPromotionMethod::CopiedAfterRenameFailure
+        ZrPackPromotionMethod::AtomicReplacement
     );
     assert_eq!(
         read_receipt.promotion_method,
-        ZrPackPromotionMethod::CopiedAfterRenameFailure
+        ZrPackPromotionMethod::AtomicReplacement
     );
     assert!(fs::read_to_string(&receipt_path)
         .unwrap()

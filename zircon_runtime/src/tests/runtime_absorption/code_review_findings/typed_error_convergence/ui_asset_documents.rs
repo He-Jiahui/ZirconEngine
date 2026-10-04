@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f5_ui_asset_documents_use_typed_errors_before_import_boundary() {
     let ui_assets = include_str!("../../../../asset/assets/ui.rs");
@@ -23,8 +24,9 @@ fn review_f5_ui_asset_documents_use_typed_errors_before_import_boundary() {
     let convention =
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
     let module_doc =
-        include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let ui_asset_doc = include_str!("../../../../../../docs/zircon_runtime/asset/assets/ui.md");
+        include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
+    let ui_asset_doc =
+        include_str!("../../../../../../docs/crates/zircon_runtime/asset/assets/ui.md");
 
     for required in [
         "pub type UiAssetDocumentResult<T>",

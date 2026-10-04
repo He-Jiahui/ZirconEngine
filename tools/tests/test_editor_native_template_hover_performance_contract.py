@@ -1,3 +1,4 @@
+# 核对模板悬停在控件不匹配时提前退出，快照不物化模型行。
 from pathlib import Path
 import unittest
 

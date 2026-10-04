@@ -6,8 +6,8 @@ use crate::core::framework::render::builtin_geometry_source_descriptors;
 use crate::graphics::backend::SystemTextureGenerationLease;
 use crate::graphics::pipeline::{PipelineAsyncCompiler, RuntimePipelineCache};
 use crate::graphics::scene::gpu_scene::{
-    GPU_SCENE_PREVIOUS_SKINNED_JOINT_PALETTE_BINDING, GPU_SCENE_SKINNED_JOINT_PALETTE_BINDING,
-    gpu_scene_bind_group_layout_entries,
+    gpu_scene_bind_group_layout_entries, GPU_SCENE_PREVIOUS_SKINNED_JOINT_PALETTE_BINDING,
+    GPU_SCENE_SKINNED_JOINT_PALETTE_BINDING,
 };
 use crate::graphics::scene::resources::GpuMeshVertex;
 use crate::graphics::scene::scene_renderer::advanced_lighting::froxel::VolumetricApplyFallbackResources;
@@ -16,7 +16,7 @@ use crate::graphics::scene::scene_renderer::advanced_lighting::light_cookie::Lig
 use crate::graphics::scene::scene_renderer::advanced_lighting::transmission::TransmissionSceneColorFallbackResources;
 use crate::graphics::scene::scene_renderer::core::material_texture_bind_group_layout_entries;
 use crate::graphics::scene::scene_renderer::environment::{
-    SceneLightmapResources, SceneReflectionProbeResources, scene_bind_group_layout_entries,
+    scene_bind_group_layout_entries, SceneLightmapResources, SceneReflectionProbeResources,
 };
 use crate::graphics::shader::ShaderVariantCacheDisk;
 
@@ -31,8 +31,8 @@ use super::mesh_shader_fragment_contract_wgpu::MeshShaderFragmentOutputContracts
 use super::mesh_shader_resource_contract::MeshShaderPipelineLayoutContract;
 use super::mesh_shader_vertex_contract::MeshShaderVertexLayoutContract;
 use super::{
-    MAX_ASYNC_BASE_PIPELINES_IN_FLIGHT, MAX_ASYNC_SHADER_SOURCE_VALIDATIONS_IN_FLIGHT,
-    MeshPipelineCache, MeshPipelineVariantRegistry,
+    MeshPipelineCache, MeshPipelineVariantRegistry, MAX_ASYNC_BASE_PIPELINES_IN_FLIGHT,
+    MAX_ASYNC_SHADER_SOURCE_VALIDATIONS_IN_FLIGHT,
 };
 
 impl MeshPipelineCache {
@@ -340,28 +340,5 @@ fn default_runtime_shader_cache(project_root: &std::path::Path) -> ShaderVariant
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn gpu_scene_shader_contract_keeps_dynamic_palette_minimums_late_bound() {
-        let entries = gpu_scene_shader_contract_layout_entries();
-
-        for binding in [
-            GPU_SCENE_SKINNED_JOINT_PALETTE_BINDING,
-            GPU_SCENE_PREVIOUS_SKINNED_JOINT_PALETTE_BINDING,
-        ] {
-            let entry = entries
-                .iter()
-                .find(|entry| entry.binding == binding)
-                .expect("GPU Scene palette binding must exist");
-            assert!(matches!(
-                &entry.ty,
-                wgpu::BindingType::Buffer {
-                    min_binding_size: None,
-                    ..
-                }
-            ));
-        }
-    }
-}
+#[path = "tests/construct.rs"]
+mod tests;

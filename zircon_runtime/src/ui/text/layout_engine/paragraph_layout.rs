@@ -2,8 +2,9 @@ use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 
 use crate::text::layout::{
-    checked_source_range, measure_line_width_with_provider, tab_interval_width,
+    checked_source_range_to_u32, measure_line_width_with_provider, tab_interval_width,
 };
+use crate::text::layout_geometry::{finite_f32_or_geometry, finite_sum, FiniteGeometryAccumulator};
 use crate::text::shaping::{TextLayoutOutcome, TextShapingOutcome};
 use crate::text::{ParagraphOverride, SharedTextLayoutSession, TextAlign};
 use zircon_runtime_interface::ui::layout::UiFrame;
@@ -306,7 +307,7 @@ pub(super) fn aligned_column_y(
         UiTextAlign::Right | UiTextAlign::End => remaining,
         UiTextAlign::Left | UiTextAlign::Start | UiTextAlign::Justify => 0.0,
     };
-    frame.y + constraints.inset + alignment_offset
+    finite_sum([frame.y, constraints.inset, alignment_offset])
 }
 
 pub(super) fn wrap_block_paragraphs_with_provider(
@@ -448,7 +449,7 @@ pub(super) fn inset_logical_start(
     let x = if is_rtl_direction(direction) {
         frame.x
     } else {
-        frame.x + inset
+        finite_sum([frame.x, inset])
     };
     UiFrame::new(x, frame.y, (frame.width - inset).max(0.0), frame.height)
 }
@@ -460,7 +461,7 @@ fn paragraph_insets(
     provider: &mut SharedTextLayoutSession,
 ) -> TextLayoutOutcome<(f32, f32)> {
     let indent_level = layout.indent_level.unwrap_or_default();
-    let first_indent = layout.indent.unwrap_or_default().max(0.0);
+    let first_indent = finite_non_negative_extent(layout.indent.unwrap_or_default());
     if indent_level == 0 && layout.list_prefix.is_none() {
         return TextShapingOutcome::Ready((first_indent, 0.0));
     }
@@ -474,15 +475,18 @@ fn paragraph_insets(
             TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
             TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
         };
-        f32::from(indent_level) * tab_interval_width(&neutral_style, space_width)
+        let tab_interval = tab_interval_width(&neutral_style, space_width);
+        finite_f32_or_geometry(
+            f32::from(indent_level) * tab_interval,
+            f64::from(indent_level) * f64::from(tab_interval),
+        )
     };
     let prefix_width = match layout.list_prefix {
         Some(range) => {
-            let (start, end) = match checked_source_range(text, range) {
-                Ok(range) => range,
-                Err(error) => return TextShapingOutcome::failed(error),
-            };
-            let Some(prefix) = text.get(start..end) else {
+            if let Err(error) = checked_source_range_to_u32(text, range.start, range.end) {
+                return TextShapingOutcome::failed(error);
+            }
+            let Some(prefix) = text.get(range.start..range.end) else {
                 return TextShapingOutcome::failed(
                     crate::core::framework::text::TextLayoutError::LayoutFailed,
                 );
@@ -495,7 +499,10 @@ fn paragraph_insets(
         }
         None => 0.0,
     };
-    TextShapingOutcome::Ready((level_indent + first_indent, level_indent + prefix_width))
+    TextShapingOutcome::Ready((
+        finite_sum([level_indent, first_indent]),
+        finite_sum([level_indent, prefix_width]),
+    ))
 }
 
 fn resolved_physical_paragraph_overrides(
@@ -534,7 +541,7 @@ fn resolve_physical_paragraph_override_spans(
     let mut next_span = 0;
     let mut next_end = 0;
     let mut indent_level = 0_u32;
-    let mut first_indent = 0.0_f32;
+    let mut first_indent = FiniteGeometryAccumulator::default();
     let mut align_owners = BinaryHeap::new();
     let mut prefix_owners = BinaryHeap::new();
     let mut resolved = Vec::with_capacity(physical_ranges.len());
@@ -545,7 +552,9 @@ fn resolve_physical_paragraph_override_spans(
             active[next_span] = true;
             indent_level = indent_level
                 .saturating_add(u32::from(span.paragraph.indent_level.unwrap_or_default()));
-            first_indent += span.paragraph.indent.unwrap_or_default().max(0.0);
+            first_indent.add(finite_non_negative_extent(
+                span.paragraph.indent.unwrap_or_default(),
+            ));
             if span.paragraph.align.is_some() {
                 align_owners.push(ParagraphOwner::from_span(next_span, span));
             }
@@ -560,7 +569,9 @@ fn resolve_physical_paragraph_override_spans(
                 let span = &spans[span_index];
                 indent_level = indent_level
                     .saturating_sub(u32::from(span.paragraph.indent_level.unwrap_or_default()));
-                first_indent -= span.paragraph.indent.unwrap_or_default().max(0.0);
+                first_indent.add(-finite_non_negative_extent(
+                    span.paragraph.indent.unwrap_or_default(),
+                ));
                 active[span_index] = false;
             }
             next_end = next_end.saturating_add(1);
@@ -574,7 +585,7 @@ fn resolve_physical_paragraph_override_spans(
                 .unwrap_or(MAX_RESOLVED_INDENT_LEVEL)
                 .min(MAX_RESOLVED_INDENT_LEVEL),
         );
-        layout.indent = (first_indent > 0.0).then_some(first_indent);
+        layout.indent = (first_indent.value() > 0.0).then_some(first_indent.value());
         layout.align = align_owners
             .peek()
             .and_then(|owner| spans[owner.span_index].paragraph.align);
@@ -622,5 +633,10 @@ fn resolved_inset(frame_width: f32, inset: f32) -> f32 {
     inset.max(0.0).min((frame_width - minimum_extent).max(0.0))
 }
 
+fn finite_non_negative_extent(extent: f32) -> f32 {
+    finite_f32_or_geometry(extent.max(0.0), f64::from(extent).max(0.0))
+}
+
 #[cfg(test)]
+#[path = "paragraph_layout/tests/cases.rs"]
 mod tests;

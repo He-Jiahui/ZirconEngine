@@ -20,7 +20,7 @@ PROFILE_PLAN = (
     / "docs/plans/zircon_runtime/text/09/2026-08-31-rich-paint-block-geometry-owner-and-profile-plan.md"
 )
 
-
+# 读取富文本内联几何剖析配置，确认低基数计数器只在剖析构建中出现。
 class RuntimeTextRichInlineGeometryProfileContractTests(unittest.TestCase):
     def test_profile_uses_fixed_low_cardinality_counter_names(self) -> None:
         source = RICH_RENDER.read_text(encoding="utf-8")

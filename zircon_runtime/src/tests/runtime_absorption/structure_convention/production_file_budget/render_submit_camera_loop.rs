@@ -1,12 +1,13 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0081] 相机提交循环的帧投影与状态恢复的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_render_submit_camera_loop_tests_are_child_owner() {
     let parent = read_runtime_src(
         "graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs",
     );
     let tests = read_runtime_src(
-        "graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs",
+        "graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests/cases.rs",
     );
     let frame_tests = read_runtime_src(
         "graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests/frame.rs",
@@ -90,7 +91,7 @@ fn runtime_15_render_submit_camera_loop_tests_are_child_owner() {
             parent.as_str(),
         ),
         (
-            "graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs",
+            "graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests/cases.rs",
             tests.as_str(),
         ),
         (

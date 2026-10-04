@@ -1,4 +1,5 @@
-$script:HierarchyFilterInput = Join-Path $PSScriptRoot "..\ui-profile-hierarchy-filter-input.ps1"
+# 验证层级筛选输入选择唯一可见控件，并保持原生输入布局和 Unicode 单元。
+$script:HierarchyFilterInput = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-hierarchy-filter-input.ps1"
 
 . $script:HierarchyFilterInput
 

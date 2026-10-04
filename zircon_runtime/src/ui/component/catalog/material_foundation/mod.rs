@@ -1,3 +1,5 @@
+//! Material 编辑器目录的统一注册入口：模板和编辑器保留宿主共享同一份只读元数据，项目扩展可取得独立副本。
+
 use std::sync::OnceLock;
 
 use crate::ui::component::UiComponentDescriptorRegistry;
@@ -31,6 +33,7 @@ mod surfaces;
 mod text_inputs;
 
 #[cfg(test)]
+#[path = "tests/capacity_tests.rs"]
 mod capacity_tests;
 
 static MATERIAL_EDITOR_FOUNDATION_REGISTRY: OnceLock<UiComponentDescriptorRegistry> =
@@ -40,6 +43,7 @@ const MATERIAL_FOUNDATION_DESCRIPTOR_GROUP_COUNT: usize = 25;
 
 impl UiComponentDescriptorRegistry {
     /// Builds the component catalog for the Material Dark editor foundation.
+    /// 需要增加或替换项目描述符时使用独立副本；编译与只读查询可直接借用共享目录。
     pub fn material_editor_foundation() -> Self {
         Self::material_editor_foundation_shared().clone()
     }
@@ -50,6 +54,7 @@ impl UiComponentDescriptorRegistry {
     }
 }
 
+// 内建描述符必须在构建目录时通过统一校验；失败表示内建声明违反契约，无法交付半成品目录。
 fn build_material_editor_foundation_registry() -> UiComponentDescriptorRegistry {
     let mut registry = UiComponentDescriptorRegistry::new();
     for descriptor in material_editor_foundation_descriptors() {

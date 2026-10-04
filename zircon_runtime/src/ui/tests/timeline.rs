@@ -1,3 +1,4 @@
+//! 核对 UI 调试时间线的帧保留、选择和淘汰语义；历史选择不应改写实时 surface 快照。
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},

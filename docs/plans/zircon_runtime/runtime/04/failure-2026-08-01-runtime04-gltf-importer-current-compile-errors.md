@@ -12,8 +12,8 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/import_gltf.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets.rs
 tests:
-  - cargo +1.94.1 test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --lib --features backend-zr-vm zr_vm_backend_has_one_plugin_owned_dense_production_path --locked --jobs 1 -- --nocapture --test-threads=1
   - cargo +1.94.1 test -p zircon_runtime --lib asset::tests::assets::gltf_importer --locked --jobs 1 -- --nocapture --test-threads=1
+  - cargo +1.94.1 test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --lib --features backend-zr-vm zr_vm_backend_has_one_plugin_owned_dense_production_path --locked --jobs 1 -- --nocapture --test-threads=1
 ---
 
 # Runtime 04: current glTF importer changes do not compile
@@ -79,3 +79,12 @@ Open state: `编译修复已存在，受管验证与独立审查待终态`; no p
   `0f1d7f304a10e57a9d2ead2b22fc68ea652bb50930e8a3fecd81172571f19a58`，command
   `cargo +1.94.1 test -p zircon_runtime --lib asset::tests::assets::gltf_importer --locked --jobs 1 -- --nocapture --test-threads=1`；receipt状态为`queued`，不等于GREEN。
 - current-source focused GREEN 与受管提交证据返回后，Plugins01 才能在协调器FIFO下消费原 exact validation；不得重建已经终态的validation copy或重放旧请求。
+
+## 2026-09-28 current-source and receipt reconciliation
+
+- Original focused ticket f8fe64c14b324e238691970284a44c35 is terminal snapshot_stale (observed 2026-08-02); the historical queued receipt above is not a pass.
+- Its four-path manifest 0f1d7f304a10e57a9d2ead2b22fc68ea652bb50930e8a3fecd81172571f19a58 cannot be reused. Current hashes: Cargo.lock c1016294d0e616a7ae9dcee930480a9e68cfc73d8128b8ea38533e1019f4722c; Cargo.toml ecdce0b1816df1f703cab92c22ca4f9843d17e8f0129b32e103685607a90089e; import_gltf.rs 99ee682a2b42d07dcc8cc80e2964eac8b11a872f6a85e11a9903a42f33cea347; gltf_animation_subassets.rs 27223e9a22966f23baaa87bec2886005b235e1abfbb59190615d23c1b355eec2.
+- The ModelPrimitiveAsset import and explicit Vec<Option<usize>> repair are already present in HEAD bc02eefafead65dbf5050482110e8175250a5e77. Other working-tree edits in the two importer paths are preserved and are not claimed as this compile repair.
+- Fresh acceptance runs the Runtime04 glTF importer module before the original Plugins08 ZR VM consumer. Both filters must execute nonzero intended tests from one exact pinned source/configuration snapshot.
+- The glTF importer test module currently includes seven active source-comment audit paths. Freeze their exact postimages before submitting a managed source manifest; the external zr_vm inventory/archive gate also remains open for the original consumer.
+- Dynamic Cargo, the original consumer gate, failure return, independent closeout review, and commit remain open.

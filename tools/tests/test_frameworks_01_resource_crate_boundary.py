@@ -204,7 +204,7 @@ class Frameworks01ResourceCrateBoundaryTests(unittest.TestCase):
     def test_event_order_is_terminal_and_commit_admitted(self) -> None:
         event_stream = self.read_required(ZR_RESOURCE_ROOT / "src/event_stream.rs")
         event_stream_tests = self.read_required(
-            ZR_RESOURCE_ROOT / "src/event_stream/publication_index_tests.rs"
+            ZR_RESOURCE_ROOT / "src/event_stream/tests/publication_index_tests.rs"
         )
         commit = self.read_required(ZR_RESOURCE_ROOT / "src/manager/commit.rs")
 
@@ -267,7 +267,7 @@ class Frameworks01ResourceCrateBoundaryTests(unittest.TestCase):
 
     def test_management_projection_profile_is_reproducible_and_externalized(self) -> None:
         tests = self.read_required(
-            ZR_RESOURCE_ROOT / "src/manager/management_projection/tests.rs"
+            ZR_RESOURCE_ROOT / "src/manager/management_projection/tests/cases.rs"
         )
         profile = self.read_required(
             ZR_RESOURCE_ROOT
@@ -356,7 +356,7 @@ class Frameworks01ResourceCrateBoundaryTests(unittest.TestCase):
 
     def test_durable_io_profile_is_release_only_measured_and_externalized(self) -> None:
         tests = self.read_required(
-            ZR_RESOURCE_ROOT / "src/io/transaction/engine/tests.rs"
+            ZR_RESOURCE_ROOT / "src/io/transaction/engine/tests/cases.rs"
         )
         profile = self.read_required(
             ZR_RESOURCE_ROOT
@@ -393,7 +393,7 @@ class Frameworks01ResourceCrateBoundaryTests(unittest.TestCase):
             ZR_RESOURCE_ROOT / "src/manager/readiness_projection.rs"
         )
         tests = self.read_required(
-            ZR_RESOURCE_ROOT / "src/manager/readiness_projection/tests.rs"
+            ZR_RESOURCE_ROOT / "src/manager/readiness_projection/tests/cases.rs"
         )
         behavior_red = self.read_required(
             ZR_RESOURCE_ROOT
@@ -402,7 +402,7 @@ class Frameworks01ResourceCrateBoundaryTests(unittest.TestCase):
         profile = self.read_required(
             ZR_RESOURCE_ROOT / "src/manager/readiness_projection/tests/profile.rs"
         )
-        support = self.read_required(ZR_RESOURCE_ROOT / "src/test_profile.rs")
+        support = self.read_required(ZR_RESOURCE_ROOT / "src/tests/test_profile.rs")
 
         self.assertIn("mod tests;", projection)
         self.assertIn("mod behavior_red;", tests)
@@ -466,6 +466,36 @@ class Frameworks01ResourceCrateBoundaryTests(unittest.TestCase):
         ):
             with self.subTest(scenario=scenario):
                 self.assertIn(scenario, profile)
+
+    def test_readiness_projection_is_iterative_canonical_and_fail_closed(self) -> None:
+        projection = self.read_required(
+            ZR_RESOURCE_ROOT / "src/manager/readiness_projection.rs"
+        )
+        behavior = self.read_required(
+            ZR_RESOURCE_ROOT
+            / "src/manager/readiness_projection/tests/behavior_red.rs"
+        )
+
+        self.assertIn("struct TraversalFrame", projection)
+        self.assertIn("let mut traversal = vec![TraversalFrame", projection)
+        self.assertIn("while !traversal.is_empty()", projection)
+        self.assertNotIn("fn strong_connect", projection)
+        self.assertNotIn("compute_recursive", projection)
+        self.assertIn("record.dependency_ids.sort_unstable();", projection)
+        self.assertIn("record.dependency_ids.dedup();", projection)
+        self.assertIn("fn reverse_closure", projection)
+        self.assertIn("component.len() > 1", projection)
+        self.assertIn("source.record.dependency_ids.binary_search(member)", projection)
+        self.assertIn(
+            "readiness components must be evaluated dependency-first", projection
+        )
+        self.assertIn(
+            "failure_propagates_across_multiple_strongly_connected_components",
+            behavior,
+        )
+        self.assertEqual(2, behavior.count("#[ignore ="))
+        self.assertIn("cycles must fail closed", behavior)
+        self.assertIn("current recursive evaluator consumes graph-depth call stack", behavior)
 
 
 if __name__ == "__main__":

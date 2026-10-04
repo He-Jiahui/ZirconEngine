@@ -15,10 +15,10 @@ use crate::{
         layout::{UiPoint, UiSize},
         surface::{UiPointerButton, UiPointerEventKind},
         window::{
-            runtime_event_to_window_input_pump_event, runtime_events_to_window_input_pump_batch,
-            UiRuntimeEventAdapterContext, UiRuntimeEventAdapterError, UiWindowEventKind,
-            UiWindowInputPumpEvent, UiWindowMetrics, UiWindowPixelPosition, UiWindowPixelSize,
-            UiWindowRedrawReason,
+            runtime_abi_event_to_window_input_pump_event,
+            runtime_abi_events_to_window_input_pump_batch, UiRuntimeEventAdapterContext,
+            UiRuntimeEventAdapterError, UiWindowEventKind, UiWindowInputPumpEvent, UiWindowMetrics,
+            UiWindowPixelPosition, UiWindowPixelSize, UiWindowRedrawReason,
         },
     },
     ZrByteSlice, ZrRuntimeEventV1, ZrRuntimeViewportHandle, ZrRuntimeViewportMetricsV1,
@@ -54,7 +54,7 @@ fn bytes(value: &str) -> ZrByteSlice {
 }
 
 fn adapt(event: ZrRuntimeEventV1) -> UiWindowInputPumpEvent {
-    runtime_event_to_window_input_pump_event(&adapter_context(), event).unwrap()
+    unsafe { runtime_abi_event_to_window_input_pump_event(&adapter_context(), event) }.unwrap()
 }
 
 #[test]
@@ -480,21 +480,29 @@ fn runtime_event_adapter_maps_keyboard_ime_drag_gamepad_and_accessibility_inputs
 
 #[test]
 fn runtime_event_adapter_preserves_batch_order_and_stops_on_invalid_event() {
-    let batch = runtime_events_to_window_input_pump_batch(
-        &adapter_context(),
-        [
-            ZrRuntimeEventV1::pointer_moved(ZIRCON_RUNTIME_ABI_VERSION_V1, viewport(), 1.0, 2.0),
-            ZrRuntimeEventV1::keyboard(
-                ZIRCON_RUNTIME_ABI_VERSION_V1,
-                viewport(),
-                ZR_RUNTIME_KEY_ACTION_TEXT_V1,
-                0,
-                0,
-                bytes("a"),
-            ),
-            ZrRuntimeEventV1::window_close_requested(ZIRCON_RUNTIME_ABI_VERSION_V1, viewport()),
-        ],
-    )
+    // 这里故意交错窗口与输入事件，顺序是 pump 后续状态合并的前提；坏事件另测整批转换的失败边界。
+    let batch = unsafe {
+        runtime_abi_events_to_window_input_pump_batch(
+            &adapter_context(),
+            [
+                ZrRuntimeEventV1::pointer_moved(
+                    ZIRCON_RUNTIME_ABI_VERSION_V1,
+                    viewport(),
+                    1.0,
+                    2.0,
+                ),
+                ZrRuntimeEventV1::keyboard(
+                    ZIRCON_RUNTIME_ABI_VERSION_V1,
+                    viewport(),
+                    ZR_RUNTIME_KEY_ACTION_TEXT_V1,
+                    0,
+                    0,
+                    bytes("a"),
+                ),
+                ZrRuntimeEventV1::window_close_requested(ZIRCON_RUNTIME_ABI_VERSION_V1, viewport()),
+            ],
+        )
+    }
     .unwrap();
 
     assert_eq!(batch.events.len(), 3);
@@ -508,7 +516,8 @@ fn runtime_event_adapter_preserves_batch_order_and_stops_on_invalid_event() {
     let mut bad =
         ZrRuntimeEventV1::window_occluded(ZIRCON_RUNTIME_ABI_VERSION_V1, viewport(), true);
     bad.button = 99;
-    let error = runtime_events_to_window_input_pump_batch(&adapter_context(), [bad]).unwrap_err();
+    let error = unsafe { runtime_abi_events_to_window_input_pump_batch(&adapter_context(), [bad]) }
+        .unwrap_err();
     assert_eq!(error, UiRuntimeEventAdapterError::UnknownWindowBool(99));
 }
 
@@ -517,7 +526,8 @@ fn runtime_event_adapter_rejects_unsupported_or_malformed_events() {
     let mut wrong_abi = ZrRuntimeEventV1::pointer_moved(999, viewport(), 1.0, 2.0);
     wrong_abi.abi_version = 999;
     assert_eq!(
-        runtime_event_to_window_input_pump_event(&adapter_context(), wrong_abi).unwrap_err(),
+        unsafe { runtime_abi_event_to_window_input_pump_event(&adapter_context(), wrong_abi) }
+            .unwrap_err(),
         UiRuntimeEventAdapterError::UnsupportedAbi {
             actual: 999,
             expected: ZIRCON_RUNTIME_ABI_VERSION_V1,
@@ -532,7 +542,8 @@ fn runtime_event_adapter_rejects_unsupported_or_malformed_events() {
         bytes("Pad"),
     );
     assert_eq!(
-        runtime_event_to_window_input_pump_event(&adapter_context(), connection).unwrap_err(),
+        unsafe { runtime_abi_event_to_window_input_pump_event(&adapter_context(), connection) }
+            .unwrap_err(),
         UiRuntimeEventAdapterError::NoPumpEquivalent(ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1)
     );
 
@@ -549,7 +560,8 @@ fn runtime_event_adapter_rejects_unsupported_or_malformed_events() {
         },
     );
     assert_eq!(
-        runtime_event_to_window_input_pump_event(&adapter_context(), bad_keyboard).unwrap_err(),
+        unsafe { runtime_abi_event_to_window_input_pump_event(&adapter_context(), bad_keyboard) }
+            .unwrap_err(),
         UiRuntimeEventAdapterError::InvalidTextPayload
     );
 
@@ -565,8 +577,10 @@ fn runtime_event_adapter_rejects_unsupported_or_malformed_events() {
         },
     );
     assert_eq!(
-        runtime_event_to_window_input_pump_event(&adapter_context(), malformed_keyboard)
-            .unwrap_err(),
+        unsafe {
+            runtime_abi_event_to_window_input_pump_event(&adapter_context(), malformed_keyboard)
+        }
+        .unwrap_err(),
         UiRuntimeEventAdapterError::InvalidTextPayload
     );
 
@@ -577,7 +591,8 @@ fn runtime_event_adapter_rejects_unsupported_or_malformed_events() {
     );
     theme.state = ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1;
     assert_eq!(
-        runtime_event_to_window_input_pump_event(&adapter_context(), theme).unwrap_err(),
+        unsafe { runtime_abi_event_to_window_input_pump_event(&adapter_context(), theme) }
+            .unwrap_err(),
         UiRuntimeEventAdapterError::NoPumpEquivalent(crate::ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1)
     );
 
@@ -588,7 +603,8 @@ fn runtime_event_adapter_rejects_unsupported_or_malformed_events() {
     );
     bad_window.state = 99;
     assert_eq!(
-        runtime_event_to_window_input_pump_event(&adapter_context(), bad_window).unwrap_err(),
+        unsafe { runtime_abi_event_to_window_input_pump_event(&adapter_context(), bad_window) }
+            .unwrap_err(),
         UiRuntimeEventAdapterError::UnknownWindowStatus(99)
     );
 }

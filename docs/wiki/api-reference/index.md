@@ -18,7 +18,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 API 公开接口覆盖审计
 tests:
-  - tools/wiki_site.py
+  - tools/docs/wiki_site.py
 doc_type: category-index
 ---
 
@@ -210,8 +210,8 @@ cargo doc -p zircon_app -p zircon_editor -p zircon_runtime_interface `
 ## 文档验证
 
 ```powershell
-.wiki-venv\Scripts\python.exe tools/wiki_site.py validate --strict-metadata --json
-.wiki-venv\Scripts\python.exe tools/wiki_site.py build --strict-metadata --output site --json
+.wiki-venv\Scripts\python.exe tools/docs/wiki_site.py validate --strict-metadata --json
+.wiki-venv\Scripts\python.exe tools/docs/wiki_site.py build --strict-metadata --output site --json
 ```
 
 验证通过只证明元数据、导航和链接一致，不证明所有 API 语义完整；覆盖矩阵中的 `partial` 必须继续作为开放缺口维护。

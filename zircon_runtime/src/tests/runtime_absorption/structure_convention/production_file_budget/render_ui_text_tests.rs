@@ -1,12 +1,13 @@
 use super::{assert_contains_all, read_runtime_src};
 use crate::tests::runtime_absorption::structure_convention::runtime_src_path;
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0090] 界面文本路由、准备报告和图集交接的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_screen_space_ui_text_tests_are_child_owner_split() {
     let parent = read_runtime_src("graphics/scene/scene_renderer/ui/text.rs");
     let resolved_batches =
         read_runtime_src("graphics/scene/scene_renderer/ui/text/resolved_batches.rs");
-    let tests = read_runtime_src("graphics/scene/scene_renderer/ui/text/tests.rs");
+    let tests = read_runtime_src("graphics/scene/scene_renderer/ui/text/tests/cases.rs");
     let font_asset_tests =
         read_runtime_src("graphics/scene/scene_renderer/ui/text/tests/font_assets.rs");
     let prepare_report_tests =
@@ -19,7 +20,7 @@ fn runtime_15_screen_space_ui_text_tests_are_child_owner_split() {
     let native_bitmap_atlas = read_runtime_src("text/native_bitmap_atlas.rs");
     let native_bitmap_handoff = read_runtime_src("text/native_bitmap_atlas/handoff.rs");
     let render_state = read_runtime_src("text/render_state.rs");
-    let native_bitmap_atlas_tests = read_runtime_src("text/native_bitmap_atlas/tests.rs");
+    let native_bitmap_atlas_tests = read_runtime_src("text/native_bitmap_atlas/tests/cases.rs");
     let native_bitmap_source_cache_tests =
         read_runtime_src("text/native_bitmap_atlas/tests/source_cache.rs");
     let native_bitmap_source_cache_worker_request_tests =

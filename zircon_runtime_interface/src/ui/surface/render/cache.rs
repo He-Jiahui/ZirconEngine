@@ -4,6 +4,11 @@ use crate::ui::event_ui::UiNodeId;
 
 use super::{UiBatchKey, UiBatchPlan, UiPaintElement};
 
+#[cfg(test)]
+#[path = "cache/tests/performance_tests.rs"]
+mod performance_tests;
+
+/// 把外部失效原因与 generation 投影为诊断状态；该 DTO 不持有或调度后端资源缓存。
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiRenderCachePlan {
     pub surface_generation: u64,
@@ -19,24 +24,31 @@ impl UiRenderCachePlan {
         batch_plan: &UiBatchPlan,
         reason: UiRenderCacheInvalidationReason,
     ) -> Self {
+        let mut reused_paint_count = 0;
         let paint_entries = elements
             .iter()
             .enumerate()
-            .map(|(paint_index, element)| UiRenderCachePaintEntry {
-                node_id: element.node_id,
-                paint_index,
-                cache_generation: element.cache_generation,
-                status: UiRenderCacheStatus::from_generation(element.cache_generation, reason),
-                reason,
+            .map(|(paint_index, element)| {
+                let status = UiRenderCacheStatus::from_generation(element.cache_generation, reason);
+                reused_paint_count += usize::from(status == UiRenderCacheStatus::Reused);
+                UiRenderCachePaintEntry {
+                    node_id: element.node_id,
+                    paint_index,
+                    cache_generation: element.cache_generation,
+                    status,
+                    reason,
+                }
             })
             .collect::<Vec<_>>();
 
+        let mut reused_batch_count = 0;
         let batch_entries = batch_plan
             .batches
             .iter()
             .enumerate()
             .map(|(batch_index, batch)| {
                 let status = batch_cache_status(elements, &batch.source_indices, reason);
+                reused_batch_count += usize::from(status == UiRenderCacheStatus::Reused);
 
                 UiRenderCacheBatchEntry {
                     batch_index,
@@ -48,7 +60,14 @@ impl UiRenderCachePlan {
             })
             .collect::<Vec<_>>();
 
-        let stats = UiRenderCacheStats::from_entries(&paint_entries, &batch_entries);
+        let stats = UiRenderCacheStats {
+            paint_count: paint_entries.len(),
+            reused_paint_count,
+            rebuilt_paint_count: paint_entries.len() - reused_paint_count,
+            batch_count: batch_entries.len(),
+            reused_batch_count,
+            rebuilt_batch_count: batch_entries.len() - reused_batch_count,
+        };
         Self {
             surface_generation,
             paint_entries,
@@ -63,6 +82,7 @@ fn batch_cache_status(
     source_indices: &[usize],
     reason: UiRenderCacheInvalidationReason,
 ) -> UiRenderCacheStatus {
+    // 批次只有在整帧未失效且每个来源元素都带稳定 generation 时才投影为复用。
     if reason != UiRenderCacheInvalidationReason::Unchanged {
         return UiRenderCacheStatus::Rebuilt;
     }
@@ -79,89 +99,8 @@ fn batch_cache_status(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ui::layout::UiGeometry;
-    use crate::ui::surface::{UiPaintEffects, UiPaintPayload};
-
-    fn element(node_id: u64, generation: Option<u64>) -> UiPaintElement {
-        UiPaintElement {
-            node_id: UiNodeId::new(node_id),
-            geometry: UiGeometry::default(),
-            clip: None,
-            z_index: 0,
-            paint_order: node_id,
-            payload: UiPaintPayload::Empty,
-            effects: UiPaintEffects::default(),
-            cache_generation: generation,
-            debug_label: None,
-        }
-    }
-
-    #[test]
-    fn cache_plan_reuses_a_batch_without_collecting_source_elements() {
-        let mut elements = vec![element(1, Some(7)), element(2, Some(7))];
-        let batch_plan = UiBatchPlan::from_paint_elements(&elements);
-
-        let cache_plan = UiRenderCachePlan::from_paint_elements_and_batches(
-            1,
-            &elements,
-            &batch_plan,
-            UiRenderCacheInvalidationReason::Unchanged,
-        );
-        assert_eq!(
-            cache_plan.batch_entries[0].status,
-            UiRenderCacheStatus::Reused
-        );
-
-        elements[1].cache_generation = None;
-        let cache_plan = UiRenderCachePlan::from_paint_elements_and_batches(
-            2,
-            &elements,
-            &batch_plan,
-            UiRenderCacheInvalidationReason::Unchanged,
-        );
-        assert_eq!(
-            cache_plan.batch_entries[0].status,
-            UiRenderCacheStatus::Rebuilt
-        );
-    }
-
-    #[test]
-    fn cache_plan_rebuilds_when_a_batch_source_index_is_missing() {
-        let elements = vec![element(3, Some(9))];
-        let mut batch_plan = UiBatchPlan::from_paint_elements(&elements);
-        batch_plan.batches[0].source_indices.push(99);
-
-        let cache_plan = UiRenderCachePlan::from_paint_elements_and_batches(
-            3,
-            &elements,
-            &batch_plan,
-            UiRenderCacheInvalidationReason::Unchanged,
-        );
-        assert_eq!(
-            cache_plan.batch_entries[0].status,
-            UiRenderCacheStatus::Rebuilt
-        );
-    }
-
-    #[test]
-    fn cache_plan_rebuilds_batches_for_non_unchanged_reasons() {
-        let elements = vec![element(4, Some(11))];
-        let batch_plan = UiBatchPlan::from_paint_elements(&elements);
-
-        let cache_plan = UiRenderCachePlan::from_paint_elements_and_batches(
-            4,
-            &elements,
-            &batch_plan,
-            UiRenderCacheInvalidationReason::NodeDirty,
-        );
-        assert_eq!(
-            cache_plan.batch_entries[0].status,
-            UiRenderCacheStatus::Rebuilt
-        );
-    }
-}
+#[path = "tests/cache.rs"]
+mod tests;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiRenderCachePaintEntry {
@@ -221,28 +160,4 @@ pub struct UiRenderCacheStats {
     pub batch_count: usize,
     pub reused_batch_count: usize,
     pub rebuilt_batch_count: usize,
-}
-
-impl UiRenderCacheStats {
-    fn from_entries(
-        paint_entries: &[UiRenderCachePaintEntry],
-        batch_entries: &[UiRenderCacheBatchEntry],
-    ) -> Self {
-        let reused_paint_count = paint_entries
-            .iter()
-            .filter(|entry| entry.status == UiRenderCacheStatus::Reused)
-            .count();
-        let reused_batch_count = batch_entries
-            .iter()
-            .filter(|entry| entry.status == UiRenderCacheStatus::Reused)
-            .count();
-        Self {
-            paint_count: paint_entries.len(),
-            reused_paint_count,
-            rebuilt_paint_count: paint_entries.len() - reused_paint_count,
-            batch_count: batch_entries.len(),
-            reused_batch_count,
-            rebuilt_batch_count: batch_entries.len() - reused_batch_count,
-        }
-    }
 }

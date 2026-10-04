@@ -190,7 +190,8 @@ fn optimization_wave_20260825vw_editor15_material_projection_borrows_schema_name
         .next()
         .expect("production projection source should exist");
 
-    assert!(production.contains("BTreeSet<&str>"));
+    assert!(production.contains("HashSet<&str>"));
+    assert!(production.contains("HashSet::with_capacity"));
     assert!(production.contains("seen.insert(property.name.as_str())"));
     assert!(production.contains("seen.insert(slot.name.as_str())"));
     assert!(!production.contains("seen.insert(property.name.clone())"));

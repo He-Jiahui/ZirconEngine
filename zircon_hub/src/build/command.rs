@@ -17,6 +17,7 @@ pub struct BuildCommand {
     pub program: PathBuf,
     pub args: Vec<String>,
     pub cwd: PathBuf,
+    pub capture_dir: PathBuf,
 }
 
 impl BuildCommand {
@@ -45,6 +46,7 @@ impl BuildCommand {
             program: options.python_path.clone(),
             args,
             cwd: options.source_dir.clone(),
+            capture_dir: build_capture_dir(&options.output_dir),
         }
     }
 
@@ -53,6 +55,14 @@ impl BuildCommand {
             .chain(self.args.iter().cloned())
             .collect()
     }
+}
+
+fn build_capture_dir(output_dir: &Path) -> PathBuf {
+    let base = output_dir
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or(output_dir);
+    base.join(".zircon-hub").join("build-capture")
 }
 
 impl BuildCommandOptions {
@@ -94,42 +104,5 @@ impl BuildCommandOptions {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn build_command_matches_staged_tool_contract() {
-        let command = BuildCommand::for_editor_runtime(&BuildCommandOptions::new(
-            "python",
-            "cargo-nextest",
-            "E:/Git/ZirconEngine",
-            "E:/build out",
-            BuildProfile::Debug,
-            Some(4),
-        ));
-
-        assert_eq!(command.program, PathBuf::from("python"));
-        assert_eq!(command.cwd, PathBuf::from("E:/Git/ZirconEngine"));
-        assert_eq!(
-            PathBuf::from(&command.args[0]),
-            PathBuf::from("E:/Git/ZirconEngine")
-                .join("tools")
-                .join("zircon_build.py")
-        );
-        assert_eq!(
-            &command.args[1..],
-            [
-                "--targets",
-                "editor,runtime",
-                "--out",
-                "E:/build out",
-                "--mode",
-                "debug",
-                "--cargo",
-                "cargo-nextest",
-                "--jobs",
-                "4",
-            ]
-        );
-    }
-}
+#[path = "tests/command.rs"]
+mod tests;

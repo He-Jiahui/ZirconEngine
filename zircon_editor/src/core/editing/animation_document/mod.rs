@@ -24,4 +24,5 @@ pub(crate) use revision::AnimationDocumentRevision;
 pub(crate) use store::AnimationAuthoringDocumentStore;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

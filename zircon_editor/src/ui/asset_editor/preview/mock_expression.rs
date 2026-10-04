@@ -166,5 +166,5 @@ fn is_identifier_segment(segment: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "mock_expression/utf8_slice_parser_tests.rs"]
+#[path = "mock_expression/tests/utf8_slice_parser_tests.rs"]
 mod utf8_slice_parser_tests;

@@ -7,9 +7,9 @@ use crate::asset::pipeline::manager::{
 };
 use crate::asset::AssetImporterRegistry;
 use crate::core::framework::asset::ResourceManager;
-use crate::core::framework::foundation::FOUNDATION_MODULE_NAME;
 use crate::core::manager::{resolve_manager_service, RegisteredManagerService};
 use crate::core::runtime::modules::TASKS_MODULE_NAME;
+use crate::core::runtime::tasks::TaskPoolKind;
 use crate::core::runtime::ServiceObject;
 use crate::core::{
     CoreError, InitLevel, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor, ServiceKind,
@@ -48,7 +48,6 @@ fn module_descriptor_with_asset_importers(
     let manager_asset_importers = asset_importers.clone();
     ModuleDescriptor::new(ASSET_MODULE_NAME, ASSET_MODULE_DESCRIPTION)
         .with_init_level(InitLevel::Services)
-        .with_module_dependency(ModuleDependencySpec::named(FOUNDATION_MODULE_NAME))
         .with_module_dependency(ModuleDependencySpec::named(TASKS_MODULE_NAME))
         .with_lifecycle(Arc::new(AssetModuleLifecycle))
         .with_manager(ManagerDescriptor::new(
@@ -61,7 +60,8 @@ fn module_descriptor_with_asset_importers(
             Vec::new(),
             factory(move |core| {
                 let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
-                let manager = ProjectAssetManager::new(core.task_graph().worker_pool().clone());
+                let manager =
+                    ProjectAssetManager::new(core.task_graph().task_pool(TaskPoolKind::Io).clone());
                 for importer in manager_asset_importers.importers() {
                     manager.register_asset_importer_arc(importer)?;
                 }

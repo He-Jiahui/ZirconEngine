@@ -1,24 +1,24 @@
 use std::collections::{BTreeMap, HashMap};
 
 use crate::core::framework::render::{
-    GpuLightData, LightShadowSettings, LightingExtract, RenderDirectionalLightSnapshot,
-    SHADOW_SLOT_NONE, ViewportCameraSnapshot,
+    GpuLightData, GpuLightType, LightShadowSettings, LightingExtract,
+    RenderDirectionalLightSnapshot, ViewportCameraSnapshot, SHADOW_SLOT_NONE,
 };
 use crate::core::math::Mat4;
 use crate::graphics::types::ViewportRenderFrame;
 use crate::graphics::visibility::VisibilityViewKey;
 
 use super::atlas::{
-    SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT, ShadowAtlasAllocator, ShadowAtlasRect,
-    ShadowAtlasResourceConfig, ShadowSlotAllocation, ShadowSlotKey, ShadowSlotRequest,
+    ShadowAtlasAllocator, ShadowAtlasRect, ShadowAtlasResourceConfig, ShadowSlotAllocation,
+    ShadowSlotKey, ShadowSlotRequest, SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT,
 };
-use super::cascade::{CascadeSplitConfig, compute_cascade_ranges};
+use super::cascade::{compute_cascade_ranges, CascadeSplitConfig};
 use super::shadow_cache::{
-    ShadowCacheInput, shadow_light_params_hash, static_shadow_caster_revision_from_meshes,
+    shadow_light_params_hash, static_shadow_caster_revision_from_meshes, ShadowCacheInput,
 };
 use super::slot::{
-    GPU_SHADOW_SLOT_FLAG_DIRECTIONAL_CASCADE, GPU_SHADOW_SLOT_FLAG_POINT_FACE,
-    GPU_SHADOW_SLOT_FLAG_SPOT, GpuShadowGlobals, GpuShadowSlot,
+    GpuShadowGlobals, GpuShadowSlot, GPU_SHADOW_SLOT_FLAG_DIRECTIONAL_CASCADE,
+    GPU_SHADOW_SLOT_FLAG_POINT_FACE, GPU_SHADOW_SLOT_FLAG_SPOT,
 };
 use super::view_projection::{
     directional_cascade_view_projection, point_light_face_view_projection,
@@ -39,18 +39,19 @@ pub(crate) struct ShadowLightSlotAssignment {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct ShadowLightSlotAssignments {
-    assignments: BTreeMap<u64, ShadowLightSlotAssignment>,
+    assignments: BTreeMap<(GpuLightType, u64), ShadowLightSlotAssignment>,
 }
 
 impl ShadowLightSlotAssignments {
     pub(crate) fn insert(
         &mut self,
+        light_type: GpuLightType,
         light_id: u64,
         first_slot: u32,
         slot_count: u32,
     ) -> Option<ShadowLightSlotAssignment> {
         self.assignments.insert(
-            light_id,
+            (light_type, light_id),
             ShadowLightSlotAssignment {
                 first_slot,
                 slot_count,
@@ -58,8 +59,12 @@ impl ShadowLightSlotAssignments {
         )
     }
 
-    pub(crate) fn get(&self, light_id: u64) -> Option<ShadowLightSlotAssignment> {
-        self.assignments.get(&light_id).copied()
+    pub(crate) fn get(
+        &self,
+        light_type: GpuLightType,
+        light_id: u64,
+    ) -> Option<ShadowLightSlotAssignment> {
+        self.assignments.get(&(light_type, light_id)).copied()
     }
 
     pub(crate) fn is_empty(&self) -> bool {
@@ -73,19 +78,31 @@ impl ShadowLightSlotAssignments {
     ) {
         let mut light_index = 0usize;
         for light in &lighting.directional_lights {
-            apply_assignment_to_light(self.get(light.light_id), lights.get_mut(light_index));
+            apply_assignment_to_light(
+                self.get(GpuLightType::Directional, light.light_id),
+                lights.get_mut(light_index),
+            );
             light_index += 1;
         }
         for light in &lighting.point_lights {
-            apply_assignment_to_light(self.get(light.light_id), lights.get_mut(light_index));
+            apply_assignment_to_light(
+                self.get(GpuLightType::Point, light.light_id),
+                lights.get_mut(light_index),
+            );
             light_index += 1;
         }
         for light in &lighting.spot_lights {
-            apply_assignment_to_light(self.get(light.light_id), lights.get_mut(light_index));
+            apply_assignment_to_light(
+                self.get(GpuLightType::Spot, light.light_id),
+                lights.get_mut(light_index),
+            );
             light_index += 1;
         }
         for light in &lighting.rect_lights {
-            apply_assignment_to_light(self.get(light.light_id), lights.get_mut(light_index));
+            apply_assignment_to_light(
+                self.get(GpuLightType::Rect, light.light_id),
+                lights.get_mut(light_index),
+            );
             light_index += 1;
         }
     }
@@ -353,7 +370,7 @@ fn append_shadow_slot_requests(requests: &mut Vec<ShadowSlotRequest>, lighting: 
         for face in 0..POINT_LIGHT_SHADOW_FACE_COUNT {
             requests.push(
                 ShadowSlotRequest::new(
-                    ShadowSlotKey::new(light.light_id, face as u8),
+                    ShadowSlotKey::new(GpuLightType::Point, light.light_id, face as u8),
                     shadow.resolution_preference,
                     punctual_priority(light.intensity, light.range),
                 )
@@ -367,7 +384,7 @@ fn append_shadow_slot_requests(requests: &mut Vec<ShadowSlotRequest>, lighting: 
         };
         requests.push(
             ShadowSlotRequest::new(
-                ShadowSlotKey::new(light.light_id, 0),
+                ShadowSlotKey::new(GpuLightType::Spot, light.light_id, 0),
                 shadow.resolution_preference,
                 punctual_priority(light.intensity, light.range),
             )
@@ -430,7 +447,12 @@ fn append_directional_cascades(
             GPU_SHADOW_SLOT_FLAG_DIRECTIONAL_CASCADE,
         ));
     }
-    light_slots.insert(light.light_id, first_slot, cascade_count as u32);
+    light_slots.insert(
+        GpuLightType::Directional,
+        light.light_id,
+        first_slot,
+        cascade_count as u32,
+    );
     GpuShadowGlobals::from_cascade_ranges(&ranges, resource_config.width, resource_config.height)
 }
 
@@ -452,7 +474,11 @@ fn append_point_light_slots(
         let allocations: [Option<(ShadowSlotAllocation, u64)>;
             POINT_LIGHT_SHADOW_FACE_COUNT as usize] = std::array::from_fn(|face| {
             allocations_by_key
-                .get(&ShadowSlotKey::new(light.light_id, face as u8))
+                .get(&ShadowSlotKey::new(
+                    GpuLightType::Point,
+                    light.light_id,
+                    face as u8,
+                ))
                 .copied()
         });
         if allocations.iter().any(Option::is_none) {
@@ -484,7 +510,12 @@ fn append_point_light_slots(
                 GPU_SHADOW_SLOT_FLAG_POINT_FACE,
             ));
         }
-        light_slots.insert(light.light_id, first_slot, POINT_LIGHT_SHADOW_FACE_COUNT);
+        light_slots.insert(
+            GpuLightType::Point,
+            light.light_id,
+            first_slot,
+            POINT_LIGHT_SHADOW_FACE_COUNT,
+        );
     }
 }
 
@@ -504,7 +535,7 @@ fn append_spot_light_slots(
             return;
         }
         let Some((allocation, generation)) = allocations_by_key
-            .get(&ShadowSlotKey::new(light.light_id, 0))
+            .get(&ShadowSlotKey::new(GpuLightType::Spot, light.light_id, 0))
             .copied()
         else {
             continue;
@@ -531,7 +562,12 @@ fn append_spot_light_slots(
             shadow.pcf_quality,
             GPU_SHADOW_SLOT_FLAG_SPOT,
         ));
-        light_slots.insert(light.light_id, first_slot, SPOT_LIGHT_SHADOW_SLOT_COUNT);
+        light_slots.insert(
+            GpuLightType::Spot,
+            light.light_id,
+            first_slot,
+            SPOT_LIGHT_SHADOW_SLOT_COUNT,
+        );
     }
 }
 
@@ -543,7 +579,11 @@ fn directional_cascade_allocation(
 ) -> ShadowSlotAllocation {
     let size = allocated_tier.size_px();
     ShadowSlotAllocation {
-        key: ShadowSlotKey::new(light.light_id, cascade_index as u8),
+        key: ShadowSlotKey::new(
+            GpuLightType::Directional,
+            light.light_id,
+            cascade_index as u8,
+        ),
         rect: ShadowAtlasRect::new(cascade_index * size, 0, size, size),
         requested_tier: shadow.resolution_preference,
         allocated_tier,
@@ -614,4 +654,5 @@ impl ShadowResolutionTierMinimum for crate::core::framework::render::ShadowResol
 }
 
 #[cfg(test)]
+#[path = "plan/tests/cases.rs"]
 mod tests;

@@ -1,8 +1,8 @@
 use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::MeshPipelineVariantResolver;
 
 use super::super::{
-    MeshBatchRef, MeshDrawCommandList, MeshPassBuildContext, MeshPassProcessor,
-    velocity_command_spec,
+    velocity_command_spec, MeshBatchRef, MeshDrawCommandList, MeshPassBuildContext,
+    MeshPassProcessor,
 };
 
 pub(crate) struct VelocityPassProcessor;

@@ -14,6 +14,7 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) struct FeatureSele
 }
 
 /// Unknown feature rows are blocked before capability resolution so the loop only sees catalog-backed definitions.
+/// 仅已启用选择进入此分区；未知特性立即生成 unknown_feature 阻塞行，不进入后续能力依赖求解。
 pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn feature_selection_partition<'a>(
     manifest: &'a ProjectPluginManifest,
     feature_definitions: &FeatureDefinitionMap,
@@ -46,5 +47,5 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn feature_selecti
 }
 
 #[cfg(test)]
-#[path = "partition/capacity_tests.rs"]
+#[path = "partition/tests/capacity_tests.rs"]
 mod capacity_tests;

@@ -5,6 +5,7 @@
 var container = %import("zr.container");
 var lootFfa = %import("progression/loot_ffa_state");
 
+/// 尸体拾取权利的独立规则状态，当前由叶子测试消费；并行列须保持同一实体行，不能代替产品世界的战利品事务或背包状态。
 pub class CorpseLootRightsState {
     // Numeric kinds match the world kernel: player=1, mob=2, pet=3.
     pub var entityIds: container.Array<uint>;
@@ -208,6 +209,7 @@ partyMembersForTapper(
 
 // honorFfa=true is manual interaction. The passive walk-by path passes false,
 // exactly as interaction.ts does before delegating to its shared loot routine.
+/// 按拾取时的队伍关系判定共享权利；手动交互可尊重计时解锁，路过自动拾取不能借此绕过原归属。
 pub sharedLootAllowed(
     state: CorpseLootRightsState, mobId: uint, playerId: uint, honorFfa: bool
 ): bool {

@@ -16,6 +16,7 @@ pub bagSockets(): int {
     return BAG_SOCKETS;
 }
 
+/// 命令载荷使用以一为起点的目录码，零表示无物品；解码后调用方再以目录索引读取物品字段。
 pub itemIndexFromCode(itemCode: uint): int {
     var itemIndex = <int>itemCode - 1;
     return itemCode == <uint>0 || itemIndex < 0 || itemIndex >= catalog.count("item") ?
@@ -32,6 +33,7 @@ pub itemCodeForId(itemId: string): uint {
     return <uint>(itemIndex + 1);
 }
 
+/// 世界库存路径按生成目录中显式堆叠上限优先；非堆叠装备退化为单件，其余缺省上限只适用于已验证索引。
 pub stackLimitForItemIndex(itemIndex: int): int {
     if (itemIndex < 0 || itemIndex >= catalog.count("item")) { return 0; }
     var explicitLimit = <int>catalog.metric("item", itemIndex, "stackSize");

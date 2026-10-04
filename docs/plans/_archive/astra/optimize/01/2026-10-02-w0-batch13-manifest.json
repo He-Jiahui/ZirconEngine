@@ -1,0 +1,360 @@
+{
+  "record_type": "root_qualified_batch13_manifest",
+  "root_captured_at_utc": "2026-10-02T12:10:41.817459+00:00",
+  "canonical_artifacts": {
+    "review": {
+      "path": "2026-10-02-w0-batch13-review.jsonl",
+      "sha256": "2f0068518174e3799c33a68beccd36f082cf938288d91b99f72659fcd6b1d210",
+      "bytes": 80292
+    },
+    "crosswalk": {
+      "path": "2026-10-02-w0-batch13-crosswalk.jsonl",
+      "sha256": "e776c224b625fc4861a355bf30d9d53acd61bfbe0c91442fcd4f1ac833623c61",
+      "bytes": 6715
+    },
+    "summary": {
+      "path": "2026-10-02-w0-batch13-summary.json",
+      "sha256": "491a72e4800ef03aab0ecf7f7a5260a9921a2cac86c024b2e9912f34fadc884b",
+      "bytes": 3055
+    }
+  },
+  "source_capture_root": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13",
+  "raw_inputs": [
+    {
+      "path": "docs/plans/optimize/zircon_runtime/186-runtime-physics-backend-shape-query-event-lifecycle-current-working-tree-review.md",
+      "captured_path": "captured-current/docs__plans__optimize__zircon_runtime__186-runtime-physics-backend-shape-query-event-lifecycle-current-working-tree-review.md",
+      "sha256": "25eb5e307d2bf52d853183dcd7891e4e62812cb6c114eaca834e062f4a613d3a",
+      "bytes": 23621,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\docs__plans__optimize__zircon_runtime__186-runtime-physics-backend-shape-query-event-lifecycle-current-working-tree-review.md",
+      "current_matches": true
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/219-runtime-physics-world-solver-jolt-shape-material-constraint-query-contact-trigger-character-vehicle-ragdoll-editor-product-current-working-tree-review.md",
+      "captured_path": "captured-current/docs__plans__optimize__zircon_runtime__219-runtime-physics-world-solver-jolt-shape-material-constraint-query-contact-trigger-character-vehicle-ragdoll-editor-product-current-working-tree-review.md",
+      "sha256": "c22157285953b2ea916c8bb3153032242892edc78f6b06520e2c2eb052f44cff",
+      "bytes": 30390,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\docs__plans__optimize__zircon_runtime__219-runtime-physics-world-solver-jolt-shape-material-constraint-query-contact-trigger-character-vehicle-ragdoll-editor-product-current-working-tree-review.md",
+      "current_matches": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-source-review-wave.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-09-30-source-review-wave.jsonl",
+      "sha256": "8d6d68c499d52c354a992a76bc05ffb3ed41ff4ccb9abc21b1f487d3954aefc5",
+      "bytes": 594805,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\docs__plans__astra__optimize__01__2026-09-30-source-review-wave.jsonl",
+      "current_matches": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-second-wave-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-09-30-w0-second-wave-review.jsonl",
+      "sha256": "dccceb090592eea01f48f885ef84e53d202e6470c647b4481c44a4c23ec673d1",
+      "bytes": 652094,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\docs__plans__astra__optimize__01__2026-09-30-w0-second-wave-review.jsonl",
+      "current_matches": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-batch3-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-09-30-w0-batch3-review.jsonl",
+      "sha256": "4b4137f6ef0feeb0fc4ef6f55664a80f3c8a14473c0f94ab4361d85728a68fbe",
+      "bytes": 61460,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\docs__plans__astra__optimize__01__2026-09-30-w0-batch3-review.jsonl",
+      "current_matches": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch4-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-01-w0-batch4-review.jsonl",
+      "sha256": "9ca9bc4ea5b83865c219c8fb9b3c7ac73d7d078460bf8b92c6cded896996fb2c",
+      "bytes": 116983,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\docs__plans__astra__optimize__01__2026-10-01-w0-batch4-review.jsonl",
+      "current_matches": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch5-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-01-w0-batch5-review.jsonl",
+      "sha256": "4bd6dcae8255f6d770f06cb471a1ead80b64be2c2038ed5705f256dff6a1b7cc",
+      "bytes": 105131,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\docs__plans__astra__optimize__01__2026-10-01-w0-batch5-review.jsonl",
+      "current_matches": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch6-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch6-review.jsonl",
+      "sha256": "e0a4798dea7a20c842e177f4ae2007858fbd487278fd87220f2b1e3c61ec0eb3",
+      "bytes": 159783,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch6-review.jsonl",
+      "current_matches": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch7-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch7-review.jsonl",
+      "sha256": "ec3c9b5feb2eebdd4192b4aec98730466a7ed3d4f7efab56cb0c8d9f098449e2",
+      "bytes": 126773,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch7-review.jsonl",
+      "current_matches": true
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch8-review.jsonl",
+      "captured_path": "captured-current/docs__plans__astra__optimize__01__2026-10-02-w0-batch8-review.jsonl",
+      "sha256": "6ee6790c7739ff8065143c7e4abb7f209168b022847f7c59729074bf941b74cc",
+      "bytes": 186399,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\docs__plans__astra__optimize__01__2026-10-02-w0-batch8-review.jsonl",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/manager/world_sync.rs",
+      "captured_path": "captured-current/zircon_plugins__physics__runtime__src__manager__world_sync.rs",
+      "sha256": "3fe13312870c08ceb0bc275abb61a7039fca88c1fce48315612397fd4c3863fa",
+      "bytes": 14033,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_plugins__physics__runtime__src__manager__world_sync.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/manager/clock.rs",
+      "captured_path": "captured-current/zircon_plugins__physics__runtime__src__manager__clock.rs",
+      "sha256": "cdec3ca4155b1dc30138938f3a12a343cf8f85748908821af3dcec9977b8462a",
+      "bytes": 2383,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_plugins__physics__runtime__src__manager__clock.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/manager/service.rs",
+      "captured_path": "captured-current/zircon_plugins__physics__runtime__src__manager__service.rs",
+      "sha256": "23e440070bca62d0e39019b2549813195a42cd4d590b84ea4922f8b4a198c859",
+      "bytes": 9409,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_plugins__physics__runtime__src__manager__service.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/manager.rs",
+      "captured_path": "captured-current/zircon_plugins__physics__runtime__src__manager.rs",
+      "sha256": "38cc14ba761c511e3eb22c3b1698263bfb3da890a0c4290d390fb8edbad1b4f7",
+      "bytes": 2019,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_plugins__physics__runtime__src__manager.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/manager/poison_recovery.rs",
+      "captured_path": "captured-current/zircon_plugins__physics__runtime__src__manager__poison_recovery.rs",
+      "sha256": "29d6a6d06f8ae30b836785e725a35627cc485e6685d86f23a2ea04ee63cb7b9c",
+      "bytes": 284,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_plugins__physics__runtime__src__manager__poison_recovery.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/manager/jolt_world.rs",
+      "captured_path": "captured-current/zircon_plugins__physics__runtime__src__manager__jolt_world.rs",
+      "sha256": "f02f29b2f4a2c46f703b1f5f3208d5e9c1271d9079f17051a3e785bcc482a976",
+      "bytes": 17273,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_plugins__physics__runtime__src__manager__jolt_world.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/runtime_system.rs",
+      "captured_path": "captured-current/zircon_plugins__physics__runtime__src__runtime_system.rs",
+      "sha256": "7ea40e5d5f59012b15fec187e86c4005d983c0ae8f67db3048f2e1edf59ae79d",
+      "bytes": 7075,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_plugins__physics__runtime__src__runtime_system.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/backend/jolt/runtime.rs",
+      "captured_path": "captured-current/zircon_plugins__physics__runtime__src__backend__jolt__runtime.rs",
+      "sha256": "105ae5da9faaa7711dcfa3b11bc347345a51ad5a23a578c62b30f7c3e8696c36",
+      "bytes": 23661,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_plugins__physics__runtime__src__backend__jolt__runtime.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/backend/jolt/native_world.rs",
+      "captured_path": "captured-current/zircon_plugins__physics__runtime__src__backend__jolt__native_world.rs",
+      "sha256": "e5db53bdfcab1384e8e6acea78801cc38025edd9a5dbf584d82ed3813efeda26",
+      "bytes": 5992,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_plugins__physics__runtime__src__backend__jolt__native_world.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/backend/jolt/layers.rs",
+      "captured_path": "captured-current/zircon_plugins__physics__runtime__src__backend__jolt__layers.rs",
+      "sha256": "6059cca26ab28e8e2aba9fcb4b10dd290c9830178b87dc7e31e76f7f822a46ee",
+      "bytes": 2291,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_plugins__physics__runtime__src__backend__jolt__layers.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/backend/jolt/mesh_shape.rs",
+      "captured_path": "captured-current/zircon_plugins__physics__runtime__src__backend__jolt__mesh_shape.rs",
+      "sha256": "09f849cf14c7e109c50b22a1dab7addd97b791403087fd4394b9287adbfb5c78",
+      "bytes": 7010,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_plugins__physics__runtime__src__backend__jolt__mesh_shape.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/backend/jolt/conversion.rs",
+      "captured_path": "captured-current/zircon_plugins__physics__runtime__src__backend__jolt__conversion.rs",
+      "sha256": "7dc2eb07efcb9fd82402482b10c2eed1673518179a089a937af575eaa8f67ce8",
+      "bytes": 9761,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_plugins__physics__runtime__src__backend__jolt__conversion.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/backend/mass_properties.rs",
+      "captured_path": "captured-current/zircon_plugins__physics__runtime__src__backend__mass_properties.rs",
+      "sha256": "68256f3db261794f21b3042ccf1be602e8a510a8456f892152a4474ec33ce24a",
+      "bytes": 8451,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_plugins__physics__runtime__src__backend__mass_properties.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/constraint/projection.rs",
+      "captured_path": "captured-current/zircon_plugins__physics__runtime__src__constraint__projection.rs",
+      "sha256": "3c44c553c19db1fc618d908cd9eac78c4fd66c4aea41ad9fee5a376665223896",
+      "bytes": 8684,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_plugins__physics__runtime__src__constraint__projection.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/constraint/descriptor.rs",
+      "captured_path": "captured-current/zircon_plugins__physics__runtime__src__constraint__descriptor.rs",
+      "sha256": "0c9da566f7ad117b59014fb55b61564f1b91133542e5477b8d75ab4fa9bb636c",
+      "bytes": 1843,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_plugins__physics__runtime__src__constraint__descriptor.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/backend/handle_pool.rs",
+      "captured_path": "captured-current/zircon_plugins__physics__runtime__src__backend__handle_pool.rs",
+      "sha256": "dcf5b2ff1a2f7afd771700fa1f64a9793bcc73db34b64cc8a4344d3cfaf50e66",
+      "bytes": 5196,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_plugins__physics__runtime__src__backend__handle_pool.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/backend/tests/builtin_contract.rs",
+      "captured_path": "captured-current/zircon_plugins__physics__runtime__src__backend__tests__builtin_contract.rs",
+      "sha256": "4e74e4826c9d5df07d93e4498d866691668e094c0d0ef0a8dc5734812b8220c3",
+      "bytes": 11060,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_plugins__physics__runtime__src__backend__tests__builtin_contract.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/backend/tests/jolt_contract.rs",
+      "captured_path": "captured-current/zircon_plugins__physics__runtime__src__backend__tests__jolt_contract.rs",
+      "sha256": "1bface8b91dc03a36995bf5f614ff0d477573d3ae52cc9397d7bc38a32385caa",
+      "bytes": 22359,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_plugins__physics__runtime__src__backend__tests__jolt_contract.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/manager/tests.rs",
+      "captured_path": "captured-current/zircon_plugins__physics__runtime__src__manager__tests.rs",
+      "sha256": "386886b2083e265c16e7e8ac5b4e4ce3ef493745bda774f6e054c7aa7a3f617b",
+      "bytes": 14939,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_plugins__physics__runtime__src__manager__tests.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/physics/world_sync_state.rs",
+      "captured_path": "captured-current/zircon_runtime__src__core__framework__physics__world_sync_state.rs",
+      "sha256": "6b405b7c3c63809344d897903306691a227eb1b0ace0e57e210a84a0470973f4",
+      "bytes": 1005,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_runtime__src__core__framework__physics__world_sync_state.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/physics/collider_shape.rs",
+      "captured_path": "captured-current/zircon_runtime__src__core__framework__physics__collider_shape.rs",
+      "sha256": "9d4629e58ad5c633a2b15f60cdec6e8540bdcdaf5bd597b91a755d4b839d49eb",
+      "bytes": 925,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_runtime__src__core__framework__physics__collider_shape.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/physics/collider_sync_state.rs",
+      "captured_path": "captured-current/zircon_runtime__src__core__framework__physics__collider_sync_state.rs",
+      "sha256": "24ca0575d4a0fc8d83283495bcf314df7aeb269ef4f8f908badec38f11c4f09f",
+      "bytes": 712,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_runtime__src__core__framework__physics__collider_sync_state.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/physics/material_sync_state.rs",
+      "captured_path": "captured-current/zircon_runtime__src__core__framework__physics__material_sync_state.rs",
+      "sha256": "eb9d29023e213c251cf6c102ec51d7ec81fecca91f6dcf83b8f876126a47b23c",
+      "bytes": 670,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_runtime__src__core__framework__physics__material_sync_state.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_runtime/src/core/framework/physics/settings.rs",
+      "captured_path": "captured-current/zircon_runtime__src__core__framework__physics__settings.rs",
+      "sha256": "24dd07769d93eb478531cbdaa7a3f4a9f56788178c1a4e09d25ec3c1e049ce08",
+      "bytes": 1118,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_runtime__src__core__framework__physics__settings.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/query.rs",
+      "captured_path": "captured-current/zircon_runtime__src__scene__world__query.rs",
+      "sha256": "d46d8a788577de71c8ab0cd65d7b55130e640a12f5e9c2fecf2ae18b515dc794",
+      "bytes": 11940,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_runtime__src__scene__world__query.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/derived_state/projected_reads.rs",
+      "captured_path": "captured-current/zircon_runtime__src__scene__tests__derived_state__projected_reads.rs",
+      "sha256": "654a8db38e68a438a9d7c08ae614d29409857950be41d56b6db5fb8ebcd62360",
+      "bytes": 21353,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_runtime__src__scene__tests__derived_state__projected_reads.rs",
+      "current_matches": true
+    },
+    {
+      "path": "zircon_plugins/ai/runtime/src/perception/scan.rs",
+      "captured_path": "captured-current/zircon_plugins__ai__runtime__src__perception__scan.rs",
+      "sha256": "3d3f0ac5dfb0070980f5a473f8c62c2ed96addc448f7449806a3c0f6f2c65360",
+      "bytes": 19460,
+      "absolute_capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\captured-current\\zircon_plugins__ai__runtime__src__perception__scan.rs",
+      "current_matches": true
+    }
+  ],
+  "original_artifacts": {
+    "review.jsonl": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\review.jsonl",
+      "sha256": "7c5478e3ec9dc7b34495676895be46e4dbbe86f35b65173d296c4103ed5db364"
+    },
+    "crosswalk.jsonl": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\crosswalk.jsonl",
+      "sha256": "e776c224b625fc4861a355bf30d9d53acd61bfbe0c91442fcd4f1ac833623c61"
+    },
+    "summary.json": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\summary.json",
+      "sha256": "38c47c91ee57f5a56f246c9c53f1011016828d34a4e5656b030b0989f3d55859"
+    },
+    "manifest.json": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\manifest.json",
+      "sha256": "f73bc41cf55ec529e8c137766662e838d532ffc312315beeb6a0cff6bdcfcbd0"
+    },
+    "reviews/independent-source-qualification-o.json": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\reviews\\independent-source-qualification-o.json",
+      "sha256": "975b0196d92ec6a05e315ccd8550b1a8c1a9e86456f3ac7b86a6bdb15c41c1af"
+    },
+    "reviews/independent-source-qualification-o.md": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch13\\reviews\\independent-source-qualification-o.md",
+      "sha256": "a2bed3cbf31065bb11c1374dd9f10ba16a4df351095e70c0b30fa6dbc273f29d"
+    }
+  },
+  "full_compiler_dependency_closure": false,
+  "canonical_counts_with_this_batch": [
+    232,
+    228,
+    195
+  ],
+  "whole_report_inventory_counts_unchanged": [
+    576,
+    61,
+    515
+  ],
+  "tests_run": 0,
+  "acceptance": "open",
+  "self_hash_qualification": "Manifest has no self-hash; exact postimage is recorded in the Root terminal publication receipt."
+}

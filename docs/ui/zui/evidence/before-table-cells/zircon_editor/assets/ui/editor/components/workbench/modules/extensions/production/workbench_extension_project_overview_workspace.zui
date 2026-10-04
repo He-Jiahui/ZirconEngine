@@ -1,0 +1,240 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/extensions/production/workbench_extension_project_overview_workspace.zui"
+version = 2
+display_name = "Workbench Extension Project Overview Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
+]
+styles = []
+
+[components.WorkbenchExtensionProjectOverviewWorkspace]
+root = "project_overview_workspace"
+default_classes = ["workbench-module-body", "workbench-extension-module-body"]
+
+[nodes.project_overview_workspace]
+component = "Overlay"
+control_id = "WorkbenchExtensionProjectOverviewWorkspace"
+classes = ["workbench-module-body", "workbench-extension-module-body"]
+props = { visibility = "collapsed" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "project_overview_workspace_main" },
+  { node = "project_overview_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
+
+[nodes.project_overview_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "project_overview_rail_gap" }, { node = "project_overview_left" }, { node = "project_overview_center" }, { node = "project_overview_right_reserve" }]
+
+[nodes.project_overview_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+[nodes.project_overview_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionProjectOverviewRailGap"
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.project_overview_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionProjectOverviewLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "project_overview_title" }, { node = "project_overview_left_content" }]
+
+[nodes.project_overview_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionProjectOverviewLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "project_overview_project_row" }, { node = "project_overview_milestone_row" }, { node = "project_overview_risk_row" }]
+
+[nodes.project_overview_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionProjectOverviewTitle"
+props = { text = "Project Overview" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.project_overview_project_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionProjectOverviewProjectRow"
+classes = ["workbench-list-row", "workbench-row-selected"]
+props = { text = "NebulaGame", icon = "folder", selected = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ProjectOverviewProjectRow", event = "Click", route = "workbench.extension.project_overview.project" }]
+
+[nodes.project_overview_milestone_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionProjectOverviewMilestoneRow"
+classes = ["workbench-list-row"]
+props = { text = "Milestone M3", icon = "flag", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ProjectOverviewMilestoneRow", event = "Click", route = "workbench.extension.project_overview.milestone" }]
+
+[nodes.project_overview_risk_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchExtensionProjectOverviewRiskRow"
+classes = ["workbench-list-row"]
+props = { text = "Release Risks", icon = "alert", selected = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ProjectOverviewRiskRow", event = "Click", route = "workbench.extension.project_overview.risks" }]
+
+[nodes.project_overview_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionProjectOverviewCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "project_overview_center_header" }, { node = "project_overview_status_table" }, { node = "project_overview_output" }]
+
+[nodes.project_overview_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchExtensionProjectOverviewCenterHeader"
+classes = ["workbench-panel-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "project_overview_center_title" }, { node = "project_overview_header_fill" }]
+
+[nodes.project_overview_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionProjectOverviewCenterTitle"
+props = { text = "Project Health Board" }
+layout = { width = { min = 240.0, preferred = 240.0, max = 300.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.project_overview_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionProjectOverviewHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.project_overview_status_table]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionProjectOverviewStatusTable"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "project_overview_health_row" }, { node = "project_overview_build_row" }, { node = "project_overview_coverage_row" }, { node = "project_overview_dependency_row" }]
+
+[nodes.project_overview_health_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionProjectOverviewHealthRow"
+classes = ["workbench-table-row", "workbench-row-selected"]
+props = { text = "Project Health", value_text = "Healthy   All systems nominal" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ProjectOverviewHealthRow", event = "Click", route = "workbench.extension.project_overview.status.health" }]
+
+[nodes.project_overview_build_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionProjectOverviewBuildRow"
+classes = ["workbench-table-row"]
+props = { text = "Build Status", value_text = "Success   Win64 Development" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ProjectOverviewBuildRow", event = "Click", route = "workbench.extension.project_overview.status.build" }]
+
+[nodes.project_overview_coverage_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionProjectOverviewCoverageRow"
+classes = ["workbench-table-row"]
+props = { text = "Test Coverage", value_text = "72 percent   1248 / 1728" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ProjectOverviewCoverageRow", event = "Click", route = "workbench.extension.project_overview.status.coverage" }]
+
+[nodes.project_overview_dependency_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionProjectOverviewDependencyRow"
+classes = ["workbench-table-row"]
+props = { text = "Module Dependencies", value_text = "Core -> Engine -> Gameplay   2 warnings" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchExtension/ProjectOverviewDependencyRow", event = "Click", route = "workbench.extension.project_overview.status.dependencies" }]
+
+[nodes.project_overview_output]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchExtensionProjectOverviewOutputRow"
+classes = ["workbench-table-row"]
+props = { text = "Overview", value_text = "Healthy   7 tasks   3 build jobs", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+
+[nodes.project_overview_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionProjectOverviewRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "project_overview_details_title" }, { node = "project_overview_right_content" }]
+
+[nodes.project_overview_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionProjectOverviewRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "project_overview_owner_field_property_row" }, { node = "project_overview_channel_dropdown_property_row" }, { node = "project_overview_health_dropdown_property_row" }]
+
+[nodes.project_overview_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchExtensionProjectOverviewDetailsTitle"
+props = { text = "Details" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.project_overview_owner_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionProjectOverviewOwnerFieldPropertyRow"
+props = { text = "Owner" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "project_overview_owner_field", slot = { name = "value" } }]
+
+[nodes.project_overview_owner_field]
+component = "WorkbenchField"
+control_id = "WorkbenchExtensionProjectOverviewOwnerField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Owner: Editor Team" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/ProjectOverviewOwnerEdit", event = "Change", route = "workbench.extension.project_overview.owner.edit" },
+  { id = "WorkbenchExtension/ProjectOverviewOwnerCommit", event = "Submit", route = "workbench.extension.project_overview.owner.commit" },
+]
+
+[nodes.project_overview_channel_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionProjectOverviewChannelDropdownPropertyRow"
+props = { text = "Channel" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "project_overview_channel_dropdown", slot = { name = "value" } }]
+
+[nodes.project_overview_channel_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionProjectOverviewChannelDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { value_text = "Development", value = "Development", options = ["Development", "Release", "Hotfix"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/ProjectOverviewChannelEdit", event = "Change", route = "workbench.extension.project_overview.channel.edit" },
+  { id = "WorkbenchExtension/ProjectOverviewChannelCommit", event = "Submit", route = "workbench.extension.project_overview.channel.commit" },
+]
+
+[nodes.project_overview_health_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionProjectOverviewHealthDropdownPropertyRow"
+props = { text = "Health" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "project_overview_health_dropdown", slot = { name = "value" } }]
+
+[nodes.project_overview_health_dropdown]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchExtensionProjectOverviewHealthDropdown"
+classes = ["workbench-dropdown", "workbench-component-dropdown"]
+props = { value_text = "Healthy", value = "Healthy", options = ["Healthy", "Warning", "Blocked"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchExtension/ProjectOverviewHealthEdit", event = "Change", route = "workbench.extension.project_overview.health.edit" },
+  { id = "WorkbenchExtension/ProjectOverviewHealthCommit", event = "Submit", route = "workbench.extension.project_overview.health.commit" },
+]

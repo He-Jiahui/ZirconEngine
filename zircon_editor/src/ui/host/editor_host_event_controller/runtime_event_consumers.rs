@@ -35,11 +35,24 @@ impl EditorHostEventController {
             .capability_snapshot()
             .enabled_capabilities()
             .to_vec();
+        self.begin_runtime_event_consumers_with_capabilities(&enabled_capabilities)
+    }
+
+    pub(crate) fn begin_runtime_event_consumers_with_capabilities(
+        &self,
+        enabled_capabilities: &[String],
+    ) -> Result<(), EditorRuntimeEventConsumerError> {
+        if self.play_sessions.attached_world_domain().is_none() {
+            return Err(EditorRuntimeEventConsumerError::Gateway {
+                consumer_id: "play.domain".to_string(),
+                message: "no play gateway is attached".to_string(),
+            });
+        }
         let play_session_id = self
             .next_play_session_generation
             .fetch_add(1, Ordering::Relaxed);
         self.runtime_event_consumers
-            .begin_play_session(play_session_id, &enabled_capabilities)
+            .begin_play_session(play_session_id, enabled_capabilities)
     }
 
     pub fn pump_runtime_event_consumers(
@@ -184,3 +197,7 @@ impl EditorHostEventController {
             .is_some()
     }
 }
+
+#[cfg(test)]
+#[path = "tests/runtime_event_consumers.rs"]
+mod tests;

@@ -10,7 +10,7 @@ use zircon_runtime_interface::ui::{
 use crate::ui::tree::UiRuntimeTreeRoutingExt;
 
 use super::super::surface::UiSurface;
-use super::is_valid_input_owner;
+use super::{is_valid_input_owner, validation::valid_input_owner_route};
 
 pub(super) fn owner_routed_result(
     surface: &mut UiSurface,
@@ -35,7 +35,14 @@ pub(super) fn owner_routed_result_with_diagnostics_mode(
     diagnostics_mode: UiInputDiagnosticsMode,
 ) -> UiInputDispatchResult {
     let kind = focused_input_kind_for_event(&event);
-    let valid_target = target.filter(|node_id| is_valid_input_owner(surface, *node_id));
+    let (valid_target, route) = match target {
+        Some(node_id) if kind.is_some() => {
+            let route = valid_input_owner_route(surface, node_id);
+            (route.as_ref().map(|_| node_id), route)
+        }
+        Some(node_id) if is_valid_input_owner(surface, node_id) => (Some(node_id), None),
+        _ => (None, None),
+    };
     let reply = if valid_target.is_some() {
         UiDispatchReply::handled()
     } else {
@@ -53,11 +60,11 @@ pub(super) fn owner_routed_result_with_diagnostics_mode(
             .notes
             .push("owner route rejected".to_string());
     }
-    if let (Some(kind), Some(target)) = (kind, valid_target) {
-        record_owner_focused_input(
-            surface,
+    if let (Some(kind), Some(target), Some(route)) = (kind, valid_target, route) {
+        surface.record_focused_input(
             kind,
             target,
+            route,
             Some(target),
             result.reply.disposition != UiDispatchDisposition::Unhandled,
         );

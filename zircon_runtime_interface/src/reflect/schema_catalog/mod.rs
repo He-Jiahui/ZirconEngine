@@ -20,6 +20,7 @@ use fingerprint::fingerprint;
 pub use entry::ReflectSchemaCatalogEntry;
 pub use fingerprint::{ReflectSchemaFingerprint, REFLECT_SCHEMA_CATALOG_ALGORITHM_VERSION};
 
+/// Admitted neutral reflection catalog shared by runtime, tooling, editor, and script hosts.
 /// 已接纳的中立反射目录；保留规范化元数据、字段索引和依赖关系供多个宿主共享。
 #[derive(Clone, Debug)]
 pub struct ReflectSchemaCatalog {
@@ -33,6 +34,7 @@ pub struct ReflectSchemaCatalog {
     fingerprint: OnceLock<ReflectSchemaFingerprint>,
 }
 
+/// Serializable immutable projection of one admitted catalog generation.
 /// 一个已接纳目录代际的可序列化投影，包含供重载时复核的指纹与派生索引。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -318,6 +320,7 @@ impl ReflectSchemaCatalog {
         Ok(())
     }
 
+    /// 仅当没有其他目录项依赖该类型时才可移除；未知类型路径返回 None，成功后会清理字段索引并使派生指纹与依赖顺序缓存失效。
     pub fn try_remove(
         &mut self,
         type_path: &str,
@@ -401,4 +404,5 @@ impl Default for ReflectSchemaCatalog {
 }
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

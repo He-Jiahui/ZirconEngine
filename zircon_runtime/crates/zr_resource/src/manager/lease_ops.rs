@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use crate::{
-    ResourceData, ResourceHandle, ResourceId, ResourceLease, ResourceMarker, ResourceState,
-    RuntimeResourceState, lease::ResourceLeaseIdentity,
+    lease::ResourceLeaseIdentity, ResourceData, ResourceHandle, ResourceId, ResourceLease,
+    ResourceMarker, ResourceState, RuntimeResourceState,
 };
 
 use super::resource_manager::ResourceManager;

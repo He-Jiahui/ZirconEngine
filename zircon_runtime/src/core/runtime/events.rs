@@ -1,6 +1,9 @@
 //! Topic-based event distribution with explicit delivery policy.
 
+mod admission;
+mod close;
 mod diagnostics;
+mod frozen;
 mod prune;
 mod publish;
 mod subscribe;
@@ -10,7 +13,7 @@ mod topic;
 use std::fmt;
 use std::sync::Arc;
 
-use crate::core::framework::events::EventBusDiagnosticsMode;
+use crate::core::framework::events::{EventBusDiagnosticsMode, EventBusLimits};
 
 use topic::EventBusState;
 
@@ -29,9 +32,18 @@ impl Default for EventBus {
 }
 
 impl EventBus {
+    /// 按指定模式初始化总线状态；默认构造使用框架默认诊断模式，显式构造可选全量、采样或关闭诊断。
     pub fn new(diagnostics_mode: EventBusDiagnosticsMode) -> Self {
         Self {
-            state: Arc::new(EventBusState::new(diagnostics_mode)),
+            state: Arc::new(EventBusState::new(
+                diagnostics_mode,
+                EventBusLimits::default(),
+            )),
+        }
+    }
+    pub fn with_limits(diagnostics_mode: EventBusDiagnosticsMode, limits: EventBusLimits) -> Self {
+        Self {
+            state: Arc::new(EventBusState::new(diagnostics_mode, limits)),
         }
     }
 }

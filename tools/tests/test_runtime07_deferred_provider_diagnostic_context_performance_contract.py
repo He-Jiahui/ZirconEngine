@@ -26,7 +26,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束延迟提供者诊断上下文：包 ID 验证器借用格式参数，并选择与提供者调用延迟上下文格式化。
 class DeferredProviderDiagnosticContextPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

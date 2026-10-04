@@ -16,6 +16,14 @@ use crate::{
 use super::action_id::HubActionId;
 use super::view_model::{HubSettingsActionPayload, HubSettingsPayload};
 
+/// Admission limits for WebView-controlled JSON before it is cloned into a
+/// typed payload.  The walk below is iterative so a hostile nesting shape
+/// cannot consume the native thread's call stack.
+const MAX_PAYLOAD_BYTES: usize = 256 * 1024;
+const MAX_PAYLOAD_DEPTH: usize = 32;
+const MAX_PAYLOAD_NODES: usize = 4 * 1024;
+const MAX_PAYLOAD_STRING_BYTES: usize = 64 * 1024;
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct HubActionRequest {
@@ -107,7 +115,6 @@ pub(crate) enum HubAction {
         payload: Option<OpenResourcePayload>,
     },
     OpenOutputFolder {
-        target_id: Option<String>,
         payload: Option<OpenOutputFolderPayload>,
     },
     BuildProject {
@@ -125,6 +132,9 @@ pub(crate) enum HubAction {
     OpenEditor {
         target_id: Option<String>,
         payload: Option<ProjectTargetActionPayload>,
+    },
+    CancelBackgroundTask {
+        task_id: u64,
     },
 }
 
@@ -198,9 +208,22 @@ pub(crate) struct OpenResourcePayload {
 #[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct OpenOutputFolderPayload {
-    pub path: Option<PathBuf>,
-    pub output_dir: Option<PathBuf>,
-    pub history_id: Option<String>,
+    /// A Hub-generated action/source-build receipt id. The native side uses
+    /// this only as a selector and resolves the recorded output path itself.
+    pub receipt_id: Option<String>,
+    /// A narrow, server-defined capability for a configured output root.
+    pub capability: Option<OpenOutputFolderCapability>,
+    /// Required only by `source-engine-output`; this is an engine registry id,
+    /// never a filesystem path.
+    pub engine_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum OpenOutputFolderCapability {
+    DefaultBuildOutput,
+    DefaultDeviceInstall,
+    SourceEngineOutput,
 }
 
 impl HubActionRequest {
@@ -298,10 +321,16 @@ impl HubActionRequest {
                 target_id: self.trimmed_target(),
                 payload: parse_optional_payload(action, self.payload.as_ref())?,
             }),
-            HubActionId::OpenOutputFolder => Ok(HubAction::OpenOutputFolder {
-                target_id: self.trimmed_target(),
-                payload: parse_optional_payload(action, self.payload.as_ref())?,
-            }),
+            HubActionId::OpenOutputFolder => {
+                if self.trimmed_target().is_some() {
+                    return Err(invalid_output_folder_payload(
+                        "targetId is not accepted; use receiptId or capability",
+                    ));
+                }
+                Ok(HubAction::OpenOutputFolder {
+                    payload: parse_optional_payload(action, self.payload.as_ref())?,
+                })
+            }
             HubActionId::BuildProject => Ok(HubAction::BuildProject {
                 target_id: self.trimmed_target(),
                 payload: parse_optional_payload(action, self.payload.as_ref())?,
@@ -317,6 +346,9 @@ impl HubActionRequest {
             HubActionId::OpenEditor => Ok(HubAction::OpenEditor {
                 target_id: self.trimmed_target(),
                 payload: parse_optional_payload(action, self.payload.as_ref())?,
+            }),
+            HubActionId::CancelBackgroundTask => Ok(HubAction::CancelBackgroundTask {
+                task_id: self.required_task_id()?,
             }),
         }
     }
@@ -352,6 +384,23 @@ impl HubActionRequest {
                     self.action_id
                 ))
             })
+    }
+
+    fn required_task_id(&self) -> Result<u64, HubError> {
+        let target = self.required_target()?;
+        let task_id = target.parse::<u64>().map_err(|_| {
+            HubError::message(format!(
+                "Task id must be an unsigned integer for Hub action {}: {target}",
+                self.action_id
+            ))
+        })?;
+        if task_id == 0 {
+            return Err(HubError::message(format!(
+                "Task id must be non-zero for Hub action {}",
+                self.action_id
+            )));
+        }
+        Ok(task_id)
     }
 }
 
@@ -396,6 +445,7 @@ fn deserialize_payload<T>(action: HubActionId, payload: &Value) -> Result<T, Hub
 where
     T: DeserializeOwned + ValidatePayload,
 {
+    validate_payload_budget(action, payload)?;
     let parsed: T = serde_json::from_value(payload.clone()).map_err(|error| {
         HubError::status(
             HubMessage::with_params(
@@ -409,6 +459,78 @@ where
     })?;
     parsed.validate()?;
     Ok(parsed)
+}
+
+fn validate_payload_budget(action: HubActionId, payload: &Value) -> Result<(), HubError> {
+    let mut stack = vec![(payload, 0usize)];
+    let mut nodes = 0usize;
+    let mut bytes = 0usize;
+
+    while let Some((value, depth)) = stack.pop() {
+        if depth > MAX_PAYLOAD_DEPTH {
+            return Err(payload_budget_error(action, "nesting depth"));
+        }
+        nodes = nodes.saturating_add(1);
+        if nodes > MAX_PAYLOAD_NODES {
+            return Err(payload_budget_error(action, "node count"));
+        }
+
+        let add_bytes = |bytes: &mut usize, amount: usize| {
+            *bytes = bytes.saturating_add(amount);
+            *bytes <= MAX_PAYLOAD_BYTES
+        };
+
+        let within_budget = match value {
+            Value::Null => add_bytes(&mut bytes, 4),
+            Value::Bool(value) => add_bytes(&mut bytes, if *value { 4 } else { 5 }),
+            Value::Number(number) => add_bytes(&mut bytes, number.to_string().len()),
+            Value::String(text) => {
+                text.len() <= MAX_PAYLOAD_STRING_BYTES
+                    && add_bytes(&mut bytes, text.len().saturating_add(2))
+            }
+            Value::Array(values) => {
+                if values.len() > MAX_PAYLOAD_NODES {
+                    return Err(payload_budget_error(action, "array item count"));
+                }
+                for child in values {
+                    stack.push((child, depth.saturating_add(1)));
+                }
+                add_bytes(&mut bytes, values.len().saturating_add(2))
+            }
+            Value::Object(values) => {
+                if values.len() > MAX_PAYLOAD_NODES {
+                    return Err(payload_budget_error(action, "object member count"));
+                }
+                let mut object_bytes = 2usize;
+                for (key, child) in values {
+                    object_bytes = object_bytes.saturating_add(key.len()).saturating_add(4);
+                    stack.push((child, depth.saturating_add(1)));
+                }
+                add_bytes(&mut bytes, object_bytes)
+            }
+        };
+
+        if !within_budget {
+            return Err(payload_budget_error(action, "serialized bytes"));
+        }
+    }
+
+    Ok(())
+}
+
+fn payload_budget_error(action: HubActionId, dimension: &str) -> HubError {
+    HubError::status(
+        HubMessage::with_params(
+            HubMessageId::Shell(ShellMessageId::InvalidPayloadForAction),
+            [
+                action.as_str().to_string(),
+                format!("payload exceeds the Hub budget ({dimension})"),
+            ],
+        ),
+        Some(HubMessage::new(HubMessageId::Shell(
+            ShellMessageId::ReviewActionPayload,
+        ))),
+    )
 }
 
 impl ValidatePayload for SearchProjectsPayload {}
@@ -455,9 +577,73 @@ impl ValidatePayload for OpenResourcePayload {
 
 impl ValidatePayload for OpenOutputFolderPayload {
     fn validate(&self) -> Result<(), HubError> {
-        validate_optional_absolute_path(self.path.as_ref(), "Output path")?;
-        validate_optional_absolute_path(self.output_dir.as_ref(), "Output directory")
+        let receipt_id = self
+            .receipt_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty());
+        let has_capability = self.capability.is_some();
+        if receipt_id.is_some() == has_capability {
+            return Err(invalid_output_folder_payload(
+                "provide exactly one Hub receiptId or capability",
+            ));
+        }
+        if let Some(receipt_id) = receipt_id {
+            if receipt_id.len() > 512 {
+                return Err(invalid_output_folder_payload(
+                    "receiptId exceeds the 512-byte limit",
+                ));
+            }
+            if self.engine_id.is_some() {
+                return Err(invalid_output_folder_payload(
+                    "engineId is only valid with source-engine-output",
+                ));
+            }
+        }
+        match self.capability {
+            Some(OpenOutputFolderCapability::SourceEngineOutput) => {
+                let Some(engine_id) = self
+                    .engine_id
+                    .as_deref()
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                else {
+                    return Err(invalid_output_folder_payload(
+                        "source-engine-output requires engineId",
+                    ));
+                };
+                if engine_id.len() > 256 {
+                    return Err(invalid_output_folder_payload(
+                        "engineId exceeds the 256-byte limit",
+                    ));
+                }
+            }
+            Some(
+                OpenOutputFolderCapability::DefaultBuildOutput
+                | OpenOutputFolderCapability::DefaultDeviceInstall,
+            ) => {
+                if self.engine_id.is_some() {
+                    return Err(invalid_output_folder_payload(
+                        "engineId is only valid with source-engine-output",
+                    ));
+                }
+            }
+            None => {}
+        }
+        Ok(())
     }
+}
+
+fn invalid_output_folder_payload(detail: &str) -> HubError {
+    HubError::status(
+        HubMessage::with_params(
+            HubMessageId::Shell(ShellMessageId::InvalidPayloadForAction),
+            ["open-output-folder", detail],
+        ),
+        Some(HubMessage::new(HubMessageId::Shell(
+            ShellMessageId::ReviewActionPayload,
+        ))),
+    )
 }
 
 impl ValidatePayload for HubSettingsActionPayload {}
@@ -562,330 +748,5 @@ fn absolute_path_message_id(label: &str) -> HubMessageId {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parses_create_project_payload_for_create_project_action() {
-        let action = HubActionRequest {
-            action_id: "create-project".to_string(),
-            target_id: None,
-            payload: Some(serde_json::json!({
-                "name": "Game",
-                "location": "E:/Projects",
-                "template": "renderable-empty",
-                "engineId": "engine"
-            })),
-        }
-        .parse()
-        .expect("create-project should parse a project payload");
-
-        let HubAction::CreateProject { payload } = action else {
-            panic!("create-project should parse to the create-project action variant");
-        };
-        assert_eq!(payload.name, "Game");
-        assert_eq!(payload.template, "renderable-empty");
-        assert_eq!(payload.engine_id.as_deref(), Some("engine"));
-    }
-
-    #[test]
-    fn parses_new_project_draft_payload_for_runtime_state_update() {
-        let action = HubActionRequest {
-            action_id: "update-new-project-draft".to_string(),
-            target_id: None,
-            payload: Some(serde_json::json!({
-                "name": "Draft Game",
-                "location": "E:/Drafts",
-                "template": "renderable-empty",
-                "engineId": "engine"
-            })),
-        }
-        .parse()
-        .expect("update-new-project-draft should parse a draft payload");
-
-        let HubAction::UpdateNewProjectDraft { payload } = action else {
-            panic!("update-new-project-draft should parse to the draft update variant");
-        };
-        assert_eq!(payload.name, "Draft Game");
-        assert_eq!(payload.location, PathBuf::from("E:/Drafts"));
-        assert_eq!(payload.template, "renderable-empty");
-        assert_eq!(payload.engine_id.as_deref(), Some("engine"));
-    }
-
-    #[test]
-    fn parses_search_projects_typed_payload() {
-        let action = HubActionRequest {
-            action_id: "search-projects".to_string(),
-            target_id: Some("archived query".to_string()),
-            payload: Some(serde_json::json!({
-                "query": "typed query"
-            })),
-        }
-        .parse()
-        .expect("search-projects should parse a typed search payload");
-
-        let HubAction::SearchProjects { query } = action else {
-            panic!("search-projects should parse to the search action variant");
-        };
-        assert_eq!(query, "typed query");
-    }
-
-    #[test]
-    fn parses_browse_settings_folder_payload_for_folder_action() {
-        let action = HubActionRequest {
-            action_id: "browse-settings-folder".to_string(),
-            target_id: None,
-            payload: Some(serde_json::json!({
-                "field": "defaultProjectDir",
-                "initialDir": "E:/Drafts",
-                "settings": {
-                    "defaultProjectDir": "E:/Projects"
-                }
-            })),
-        }
-        .parse()
-        .expect("browse-settings-folder should parse a folder payload");
-
-        let HubAction::BrowseSettingsFolder { payload, .. } = action else {
-            panic!("browse-settings-folder should parse to the browse folder action variant");
-        };
-        let payload = payload.expect("folder payload should be present");
-        assert_eq!(payload.field.as_deref(), Some("defaultProjectDir"));
-        assert_eq!(payload.initial_dir, Some(PathBuf::from("E:/Drafts")));
-        assert!(payload.settings.is_some());
-    }
-
-    #[test]
-    fn parses_update_settings_draft_payload_for_draft_action() {
-        let action = HubActionRequest {
-            action_id: "update-settings-draft".to_string(),
-            target_id: None,
-            payload: Some(serde_json::json!({
-                "settings": {
-                    "pythonPath": "",
-                    "language": "Chinese"
-                }
-            })),
-        }
-        .parse()
-        .expect("update-settings-draft should parse a settings payload");
-
-        let HubAction::UpdateSettingsDraft { payload } = action else {
-            panic!("update-settings-draft should parse to the settings draft action variant");
-        };
-        assert_eq!(payload.python_path.as_deref(), Some(""));
-        assert_eq!(payload.language.as_deref(), Some("Chinese"));
-    }
-
-    #[test]
-    fn parses_project_target_payload_for_background_project_actions() {
-        let action = HubActionRequest {
-            action_id: "package-project".to_string(),
-            target_id: Some("fallback-project".to_string()),
-            payload: Some(serde_json::json!({
-                "projectId": "target-project",
-                "projectPath": "E:/Projects/Target"
-            })),
-        }
-        .parse()
-        .expect("package-project should parse a typed project target payload");
-
-        let HubAction::PackageProject { target_id, payload } = action else {
-            panic!("package-project should parse to the package action variant");
-        };
-        assert_eq!(target_id.as_deref(), Some("fallback-project"));
-        let payload = payload.expect("project target payload should be present");
-        assert_eq!(payload.project_id.as_deref(), Some("target-project"));
-        assert_eq!(
-            payload.project_path,
-            Some(PathBuf::from("E:/Projects/Target"))
-        );
-    }
-
-    #[test]
-    fn parses_cancel_delete_project_target_payload() {
-        let action = HubActionRequest {
-            action_id: "cancel-delete".to_string(),
-            target_id: Some("fallback-project".to_string()),
-            payload: Some(serde_json::json!({
-                "projectId": "target-project",
-                "projectPath": "E:/Projects/Target"
-            })),
-        }
-        .parse()
-        .expect("cancel-delete should parse a typed project target payload");
-
-        let HubAction::CancelDelete { target_id, payload } = action else {
-            panic!("cancel-delete should parse to the cancel delete action variant");
-        };
-        assert_eq!(target_id.as_deref(), Some("fallback-project"));
-        let payload = payload.expect("project target payload should be present");
-        assert_eq!(payload.project_id.as_deref(), Some("target-project"));
-        assert_eq!(
-            payload.project_path,
-            Some(PathBuf::from("E:/Projects/Target"))
-        );
-    }
-
-    #[test]
-    fn parses_open_output_folder_flat_payload_for_output_action() {
-        let action = HubActionRequest {
-            action_id: "open-output-folder".to_string(),
-            target_id: None,
-            payload: Some(serde_json::json!({
-                "historyId": "123:package-project:Game"
-            })),
-        }
-        .parse()
-        .expect("open-output-folder should parse an output payload");
-
-        let HubAction::OpenOutputFolder { payload, .. } = action else {
-            panic!("open-output-folder should parse to the open-output action variant");
-        };
-        assert_eq!(
-            payload
-                .expect("output payload should be present")
-                .history_id
-                .as_deref(),
-            Some("123:package-project:Game")
-        );
-    }
-
-    #[test]
-    fn create_project_rejects_empty_name_with_recoverable_message() {
-        let error = HubActionRequest {
-            action_id: "create-project".to_string(),
-            target_id: None,
-            payload: Some(serde_json::json!({
-                "name": "  ",
-                "location": "E:/Projects",
-                "template": "renderable-empty"
-            })),
-        }
-        .parse()
-        .expect_err("empty project names should be rejected");
-
-        assert_eq!(error.to_string(), "Project name must not be empty");
-    }
-
-    #[test]
-    fn create_project_rejects_relative_location() {
-        let error = HubActionRequest {
-            action_id: "create-project".to_string(),
-            target_id: None,
-            payload: Some(serde_json::json!({
-                "name": "Game",
-                "location": "projects/Game",
-                "template": "renderable-empty"
-            })),
-        }
-        .parse()
-        .expect_err("relative project locations should be rejected");
-
-        assert_eq!(
-            error.to_string(),
-            "Project location must be an absolute path: projects/Game"
-        );
-    }
-
-    #[test]
-    fn create_project_rejects_unknown_template_id() {
-        let disabled_template = HubActionRequest {
-            action_id: "create-project".to_string(),
-            target_id: None,
-            payload: Some(serde_json::json!({
-                "name": "Game",
-                "location": "E:/Projects",
-                "template": "3d-scene"
-            })),
-        }
-        .parse()
-        .expect("disabled catalog templates should reach runtime as coming soon");
-        assert!(matches!(
-            disabled_template,
-            HubAction::CreateProject { payload } if payload.template == "3d-scene"
-        ));
-
-        let error = HubActionRequest {
-            action_id: "create-project".to_string(),
-            target_id: None,
-            payload: Some(serde_json::json!({
-                "name": "Game",
-                "location": "E:/Projects",
-                "template": "not-a-template"
-            })),
-        }
-        .parse()
-        .expect_err("unknown templates should be rejected before runtime creation");
-
-        assert_eq!(
-            error.to_string(),
-            "Unknown project template: not-a-template"
-        );
-    }
-
-    #[test]
-    fn project_target_envelope_payload_is_rejected_after_hard_cutover() {
-        let error = HubActionRequest {
-            action_id: "package-project".to_string(),
-            target_id: None,
-            payload: Some(serde_json::json!({
-                "project": {
-                    "projectId": "target-project"
-                }
-            })),
-        }
-        .parse()
-        .expect_err("project target envelopes should be removed after hard cutover");
-
-        assert!(error
-            .to_string()
-            .contains("Invalid payload for Hub action package-project"));
-    }
-
-    #[test]
-    fn missing_required_payload_is_rejected_with_action_id() {
-        let error = HubActionRequest {
-            action_id: "create-project".to_string(),
-            target_id: None,
-            payload: None,
-        }
-        .parse()
-        .expect_err("required payloads should include the action id in errors");
-
-        assert_eq!(
-            error.to_string(),
-            "Payload is required for Hub action: create-project"
-        );
-    }
-
-    #[test]
-    fn settings_payload_requires_settings_wrapper() {
-        let error = HubActionRequest {
-            action_id: "update-settings-draft".to_string(),
-            target_id: None,
-            payload: Some(serde_json::json!({
-                "pythonPath": "python"
-            })),
-        }
-        .parse()
-        .expect_err("settings actions should require a settings wrapper");
-
-        assert!(error
-            .to_string()
-            .contains("Invalid payload for Hub action update-settings-draft"));
-    }
-
-    #[test]
-    fn unknown_action_is_rejected_before_runtime_routing() {
-        let error = HubActionRequest {
-            action_id: "upload-to-cloud".to_string(),
-            target_id: None,
-            payload: None,
-        }
-        .parse()
-        .expect_err("unknown actions should not reach runtime routing");
-
-        assert_eq!(error.to_string(), "Unknown Hub action: upload-to-cloud");
-    }
-}
+#[path = "tests/action_request.rs"]
+mod tests;

@@ -9,7 +9,8 @@ status: release_validation_submitted
 session: root-tooling31-streamed-asset-staging-release-r2-20260831
 validation_request_id: 87bd1069905d46b885ca61146c20af99
 implementation_files:
-  - tools/zircon_build_asset_staging.py
+  - tools/build/zircon_build_asset_staging.py
+  - tools/build/zircon_build_filesystem.py
 tests:
   - tools/tests/test_tooling31_streamed_asset_tree_staging_performance_contract.py
   - tools/tests/test_zircon_build_asset_staging_owner_boundaries.py
@@ -25,7 +26,7 @@ Engine asset staging and compiled UI artifact staging both called `sorted(source
 
 Both staging paths now share an `os.scandir` depth-first iterator. It sorts only the current directory, reuses `DirEntry` file-type information, and yields entries immediately. Global path order, directory creation order, file validation, dry-run output, non-file exclusion, and the existing rule that directory symlinks are emitted but not recursively followed remain unchanged.
 
-The performance contract rejects any use of `Path.rglob`, builds a nested asset fixture, and verifies that streamed traversal preserves the legacy globally sorted path order and directory/file classification. Its acceptance case invokes the production `_iter_tree_entries` implementation and a test-only reconstruction of the former `sorted(Path.rglob("*"))` traversal over the same physical tree.
+The performance contract rejects any use of `Path.rglob`, builds a nested asset fixture, and verifies that streamed traversal preserves the legacy globally sorted path order and directory/file classification. Its acceptance case invokes the production `iter_tree_entries` helper (now shared by `zircon_build_filesystem`) and a test-only reconstruction of the former `sorted(Path.rglob("*"))` traversal over the same physical tree.
 
 ## Historical preflight
 

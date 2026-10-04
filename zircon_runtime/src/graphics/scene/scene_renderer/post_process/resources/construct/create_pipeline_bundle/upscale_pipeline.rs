@@ -2,6 +2,7 @@ use crate::graphics::scene::scene_renderer::post_process::POST_PROCESS_TONEMAPPE
 
 use super::super::super::shader_sources::UPSCALE_SHADER;
 
+/// 把逻辑视口放大到中间色调映射目标；真正的显示设备格式转换由终端管线完成。
 pub(super) fn upscale_pipeline(
     device: &wgpu::Device,
     upscale_bind_group_layout: &wgpu::BindGroupLayout,
@@ -44,19 +45,5 @@ pub(super) fn upscale_pipeline(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::super::super::super::shader_sources::UPSCALE_SHADER;
-
-    #[test]
-    fn upscale_shader_parses() {
-        let module = naga::front::wgsl::parse_str(UPSCALE_SHADER)
-            .unwrap_or_else(|error| panic!("{}", error.emit_to_string(UPSCALE_SHADER)));
-        let mut validator = naga::valid::Validator::new(
-            naga::valid::ValidationFlags::all(),
-            naga::valid::Capabilities::all(),
-        );
-        validator
-            .validate(&module)
-            .unwrap_or_else(|error| panic!("{error}"));
-    }
-}
+#[path = "tests/upscale_pipeline.rs"]
+mod tests;

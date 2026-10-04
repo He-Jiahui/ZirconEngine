@@ -12,6 +12,10 @@ mod target;
 mod text_services;
 mod transaction;
 
+#[cfg(test)]
+#[path = "effect/tests/capacity_tests.rs"]
+mod capacity_tests;
+
 use component_event::{apply_component_event_effect, component_event_report_for_effect};
 use drag_drop::apply_drag_drop_effect;
 use focus_pointer::apply_focus_pointer_effect;
@@ -59,6 +63,7 @@ pub(super) fn apply_dispatch_reply_core(
     let transaction = UiInputTransaction::prepare(surface, &reply.effects);
     let effect_count = reply.effects.len();
     let mut result = UiInputDispatchResult::new(event, reply);
+    reserve_effect_result_capacity(&mut result, effect_count);
     result.diagnostics.routed = true;
     result.diagnostics.route_target = result.reply.handler;
     if diagnostics_mode.captures_full_trace() {
@@ -99,6 +104,19 @@ pub(super) fn apply_dispatch_reply_core(
     result
 }
 
+/// Reserve the bounded projection buffers before applying a reply's effects.
+///
+/// Every effect produces either an applied or rejected record, and an applied effect may also
+/// produce a host request or component event.  The reply already owns the exact effect count, so
+/// reserving that known upper bound avoids repeated Vec growth while preserving the existing
+/// projection and rejection semantics.
+fn reserve_effect_result_capacity(result: &mut UiInputDispatchResult, effect_count: usize) {
+    result.applied_effects.reserve(effect_count);
+    result.rejected_effects.reserve(effect_count);
+    result.host_requests.reserve(effect_count);
+    result.component_events.reserve(effect_count);
+}
+
 pub(in crate::ui::surface::input) fn append_dispatch_effect_to_result(
     surface: &mut UiSurface,
     result: &mut UiInputDispatchResult,
@@ -116,8 +134,26 @@ fn apply_dispatch_effect_at_index(
     effect: UiDispatchEffect,
 ) {
     let high_precision_release_target = high_precision_release_target_for_effect(surface, &effect);
-    match apply_effect(surface, &effect) {
+    match apply_effect(surface, &effect, &result.event) {
         Ok(applied) => {
+            if let (
+                UiDispatchEffect::CapturePointer {
+                    target, pointer_id, ..
+                },
+                UiInputEvent::Pointer(pointer),
+            ) = (&effect, &result.event)
+            {
+                if pointer.event.kind
+                    == zircon_runtime_interface::ui::surface::UiPointerEventKind::Down
+                    && pointer.metadata.pointer_id.unwrap_or_default() == *pointer_id
+                {
+                    surface.input.set_pointer_capture_for_button(
+                        *pointer_id,
+                        *target,
+                        pointer.event.button,
+                    );
+                }
+            }
             let high_precision_released = high_precision_release_target
                 .filter(|target| surface.input.high_precision_owner != Some(*target));
             if result.diagnostics.route_target.is_none() {
@@ -215,6 +251,7 @@ pub(crate) fn apply_dispatch_reply_steps(
 fn apply_effect(
     surface: &mut UiSurface,
     effect: &UiDispatchEffect,
+    event: &UiInputEvent,
 ) -> UiSurfaceInputEffectResult<Option<UiNodeId>> {
     match effect {
         UiDispatchEffect::SetFocus { .. }
@@ -224,7 +261,7 @@ fn apply_effect(
         | UiDispatchEffect::LockPointer { .. }
         | UiDispatchEffect::UnlockPointer { .. }
         | UiDispatchEffect::UseHighPrecisionPointer { .. } => {
-            apply_focus_pointer_effect(surface, effect)
+            apply_focus_pointer_effect(surface, effect, event)
         }
         UiDispatchEffect::DragDrop { .. } => apply_drag_drop_effect(surface, effect),
         UiDispatchEffect::RequestNavigation { .. } => apply_navigation_effect(surface, effect),

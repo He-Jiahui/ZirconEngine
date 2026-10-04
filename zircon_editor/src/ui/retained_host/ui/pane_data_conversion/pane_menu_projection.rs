@@ -1,3 +1,4 @@
+//! 菜单项字符串协议同时携带展示标签和稳定动作 ID；显式 ID 优先，旧条目才从标签推导。
 use crate::ui::retained_host as host_contract;
 
 pub(in crate::ui::retained_host::ui) fn structured_menu_items(
@@ -88,23 +89,5 @@ fn has_flag(flags: &str, expected: &str) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::structured_menu_item;
-
-    #[test]
-    fn explicit_action_id_is_independent_from_display_label() {
-        let item =
-            structured_menu_item("Open Workspace|action=menu.item.open_project,icon=folder|Ctrl+O");
-
-        assert_eq!(item.action_id, "menu.item.open_project");
-        assert_eq!(item.label, "Open Workspace");
-        assert_eq!(item.shortcut, "Ctrl+O");
-    }
-
-    #[test]
-    fn label_derived_action_id_remains_as_legacy_fallback() {
-        let item = structured_menu_item("Open Project|icon=folder");
-
-        assert_eq!(item.action_id, "menu.item.open_project");
-    }
-}
+#[path = "tests/pane_menu_projection.rs"]
+mod tests;

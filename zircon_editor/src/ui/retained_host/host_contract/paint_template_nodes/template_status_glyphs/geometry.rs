@@ -1,3 +1,5 @@
+//! 把信号点与资源图标限定在可用帧内；更外层仍需检查父裁剪与节点边界。
+
 use super::super::super::data::FrameRect;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn has_paintable_status_glyph_extent(
@@ -26,20 +28,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn centere
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn status_icon_centered_rect_clamps_to_the_available_extent() {
-        let origin = FrameRect {
-            x: 1.0,
-            y: 3.0,
-            width: 20.0,
-            height: 24.0,
-        };
-
-        let rect = centered_rect(&origin, 28.0);
-
-        assert_eq!(rect, origin);
-    }
-}
+#[path = "tests/geometry.rs"]
+mod tests;

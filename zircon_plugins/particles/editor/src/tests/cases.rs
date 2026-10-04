@@ -1,0 +1,204 @@
+use super::*;
+use zircon_editor::core::editor_operation::EditorOperationPath;
+use zircon_plugin_particles_runtime::PARTICLE_SYSTEM_COMPONENT_TYPE;
+
+const CPU_SPRITE_TEMPLATE: &str = include_str!("../../../templates/cpu_sprite_system.toml");
+const AUTHORING_UI_TEMPLATE: &str = include_str!("../../authoring.zui");
+const PREVIEW_UI_TEMPLATE: &str = include_str!("../../preview.zui");
+const COMPONENT_DRAWER_UI_TEMPLATE: &str = include_str!("../../particle_system.drawer.zui");
+
+fn operation(path: &str) -> EditorOperationPath {
+    EditorOperationPath::parse(path).expect("valid particles test operation path")
+}
+
+#[test]
+fn particles_editor_plugin_contributes_authoring_extensions() {
+    let registration = plugin_registration();
+    let create_asset = operation("particles.authoring.create_cpu_sprite_asset");
+
+    assert!(registration.is_success(), "{:?}", registration.diagnostics);
+    assert!(registration
+        .capabilities
+        .contains(&PARTICLES_AUTHORING_CAPABILITY.to_string()));
+    assert!(registration
+        .extensions
+        .views()
+        .iter()
+        .any(|view| view.id() == PARTICLES_AUTHORING_VIEW_ID));
+    assert!(registration
+        .extensions
+        .views()
+        .iter()
+        .any(|view| view.id() == PARTICLES_PREVIEW_VIEW_ID));
+    assert!(registration
+        .extensions
+        .drawers()
+        .iter()
+        .any(|drawer| drawer.id() == PARTICLES_DRAWER_ID));
+    assert!(registration
+        .extensions
+        .ui_templates()
+        .iter()
+        .any(|template| template.id() == PARTICLES_TEMPLATE_ID));
+    assert!(registration
+        .extensions
+        .ui_templates()
+        .iter()
+        .any(|template| template.id() == PARTICLES_PREVIEW_TEMPLATE_ID));
+    assert!(registration
+        .extensions
+        .inspector_customizations()
+        .iter()
+        .any(|customization| {
+            customization.target_type() == PARTICLE_SYSTEM_COMPONENT_TYPE
+                && customization.surface().controller() == PARTICLES_COMPONENT_DRAWER_ID
+        }));
+    let particle_type = registration
+        .extensions
+        .asset_type_contributions()
+        .into_iter()
+        .find(|contribution| contribution.asset_type().as_str() == PARTICLES_SYSTEM_ASSET_KIND)
+        .expect("particle system asset type contribution");
+    assert_eq!(
+        particle_type.toolkit().unwrap().view_id(),
+        PARTICLES_AUTHORING_VIEW_ID
+    );
+    assert!(particle_type.creation_templates().iter().any(|template| {
+        template.id() == PARTICLES_CPU_SPRITE_TEMPLATE_ID
+            && template.default_document() == Some(PARTICLES_CPU_SPRITE_TEMPLATE_DOCUMENT)
+            && template.operation() == &create_asset
+    }));
+    assert!(registration
+        .extensions
+        .menu_items()
+        .iter()
+        .any(|menu| menu.operation().as_str() == "view.particles.authoring.open"));
+    assert!(registration
+        .extensions
+        .menu_items()
+        .iter()
+        .any(|menu| menu.operation().as_str() == "view.particles.preview.open"));
+    assert!(registration
+        .extensions
+        .commands()
+        .commands()
+        .any(|operation| operation.id().as_str() == "view.particles.authoring.open"));
+    assert!(registration
+        .extensions
+        .commands()
+        .commands()
+        .any(|operation| operation.id().as_str() == "view.particles.preview.open"));
+
+    let create_asset_descriptor = registration
+        .extensions
+        .commands()
+        .command(&create_asset)
+        .expect("create CPU sprite asset operation should be registered");
+    assert_eq!(
+        create_asset_descriptor.payload_schema_id(),
+        Some("particles.create_cpu_sprite_asset.v1")
+    );
+    assert!(!create_asset_descriptor.callable_from_remote());
+    assert_eq!(
+        create_asset_descriptor
+            .menu_path()
+            .expect("create command menu path")
+            .stable_path(),
+        "plugins/particles/particles.authoring.create_cpu_sprite_asset"
+    );
+
+    assert!(registration.extensions.menu_items().next().is_none());
+
+    assert!(CPU_SPRITE_TEMPLATE.contains("cpu_sprite_system"));
+    assert_cpu_sprite_template_shape(CPU_SPRITE_TEMPLATE);
+    assert_ui_template_shape(
+        AUTHORING_UI_TEMPLATE,
+        "particles.authoring",
+        "ParticlesAuthoringRoot",
+        &[
+            "ParticlesEmitterList",
+            "ParticlesModuleStack",
+            "ParticlesCurveEditor",
+            "ParticlesDiagnosticsPanel",
+        ],
+    );
+    assert_ui_template_shape(
+        PREVIEW_UI_TEMPLATE,
+        "particles.preview",
+        "ParticlesPreviewRoot",
+        &[
+            "ParticlesPreviewViewport",
+            "ParticlesPreviewTransport",
+            "ParticlesPreviewStats",
+        ],
+    );
+    assert_ui_template_shape(
+        COMPONENT_DRAWER_UI_TEMPLATE,
+        "particles.particle_system.drawer",
+        "ParticlesComponentDrawerRoot",
+        &[
+            "ParticlesComponentAssetRow",
+            "ParticlesComponentPlaybackRow",
+            "ParticlesComponentBackendRow",
+            "ParticlesComponentDiagnosticsRow",
+        ],
+    );
+
+    for path in [
+        "particles.authoring.add_component",
+        "particles.authoring.open_asset",
+        "particles.authoring.add_emitter",
+        "particles.authoring.add_module",
+        "particles.authoring.edit_curve",
+        "particles.authoring.validate_asset",
+        "particles.preview.play",
+        "particles.preview.pause",
+        "particles.preview.stop",
+        "particles.preview.rewind",
+        "particles.preview.warmup",
+    ] {
+        let operation = operation(path);
+        let descriptor = registration
+            .extensions
+            .commands()
+            .command(&operation)
+            .unwrap_or_else(|| panic!("operation {path} should be registered"));
+        assert!(!descriptor.callable_from_remote());
+
+        let menu = registration
+            .extensions
+            .menu_items()
+            .into_iter()
+            .find(|menu| menu.operation() == &operation)
+            .unwrap_or_else(|| panic!("operation {path} should have a menu row"));
+        assert!(!menu.enabled(), "menu row for {path} should be disabled");
+    }
+}
+
+fn assert_cpu_sprite_template_shape(template: &str) {
+    assert!(template.contains("[system]"));
+    assert!(template.contains("id = \"cpu_sprite_system\""));
+    assert!(template.contains("backend = \"Cpu\""));
+    assert!(template.contains("looped = true"));
+    assert!(template.contains("[[emitters]]"));
+    assert!(template.contains("id = \"sprite_emitter\""));
+    assert!(template.contains("max_particles = 256"));
+    assert!(template.contains("spawn_rate_per_second = 32.0"));
+    assert!(template.contains("[emitters.shape]"));
+    assert!(template.contains("[[emitters.color_over_lifetime]]"));
+    assert!(template.contains("[[emitters.size_over_lifetime]]"));
+}
+
+fn assert_ui_template_shape(template: &str, id: &str, root: &str, controls: &[&str]) {
+    assert!(template.contains("[asset]"));
+    assert!(template.contains(&format!("id = \"{id}\"")));
+    assert!(template.contains("kind = \"view\""));
+    assert!(template.contains("version = 2"));
+    assert!(template.contains(&format!("control_id = \"{root}\"")));
+    for control in controls {
+        assert!(
+            template.contains(&format!("control_id = \"{control}\"")),
+            "template {id} should contain control {control}"
+        );
+    }
+}

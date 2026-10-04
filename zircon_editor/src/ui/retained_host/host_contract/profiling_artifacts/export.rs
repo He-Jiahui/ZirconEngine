@@ -47,7 +47,10 @@ struct ProfileScreenshot {
 pub(in crate::ui::retained_host::host_contract) fn submit_present_artifacts(
     jobs: &EditorJobSystem,
     size: &PhysicalSize,
+    winit_scale_factor: f32,
+    capture_sequence: u64,
     backend: HostPresenterBackend,
+    submitted_gpu_text: Option<serde_json::Value>,
     materialize_presentation: impl FnOnce() -> HostWindowPresentationData,
 ) -> Result<Option<JobId>, ProfileArtifactSubmissionError> {
     if !profile_capture_enabled() {
@@ -56,9 +59,12 @@ pub(in crate::ui::retained_host::host_contract) fn submit_present_artifacts(
     submit_present_artifacts_with_export_dir(
         jobs,
         size,
+        winit_scale_factor,
+        capture_sequence,
         backend,
         profile_export_dir(),
         profile_screenshot_capture_enabled(),
+        submitted_gpu_text,
         materialize_presentation,
     )
 }
@@ -66,13 +72,21 @@ pub(in crate::ui::retained_host::host_contract) fn submit_present_artifacts(
 fn submit_present_artifacts_with_export_dir(
     jobs: &EditorJobSystem,
     size: &PhysicalSize,
+    winit_scale_factor: f32,
+    capture_sequence: u64,
     backend: HostPresenterBackend,
     export_dir: Result<Option<PathBuf>, ProfileOutputRootError>,
     screenshot_enabled: bool,
+    submitted_gpu_text: Option<serde_json::Value>,
     materialize_presentation: impl FnOnce() -> HostWindowPresentationData,
 ) -> Result<Option<JobId>, ProfileArtifactSubmissionError> {
     let Some(export_dir) = export_dir? else {
         return Ok(None);
+    };
+    let export_dir = if capture_sequence == 0 {
+        export_dir
+    } else {
+        export_dir.join(format!("present-{capture_sequence:016}"))
     };
     let estimated_pending_bytes = PROFILE_ARTIFACT_GEOMETRY_PENDING_BYTES.saturating_add(
         screenshot_enabled
@@ -87,8 +101,15 @@ fn submit_present_artifacts_with_export_dir(
             None,
             screenshot_enabled,
         );
-        let geometry =
-            UiProfileGeometry::from_presentation_with_stream(&presentation, size, backend, &stream);
+        let mut geometry = UiProfileGeometry::from_presentation_with_stream_sequence(
+            &presentation,
+            size,
+            winit_scale_factor,
+            backend,
+            &stream,
+            capture_sequence,
+        );
+        geometry.submitted_gpu_text = submitted_gpu_text;
         let screenshot = screenshot_enabled.then(|| {
             let frame = paint_chrome_command_stream_to_frame(size.width, size.height, &stream);
             ProfileScreenshot {
@@ -195,149 +216,5 @@ fn write_present_artifacts(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use std::time::Duration;
-
-    use crate::core::jobs::{
-        test_job_system, test_job_system_with_limits, EditorJobAdmissionLimits, EditorJobLimits,
-    };
-
-    #[test]
-    fn present_artifact_export_runs_as_an_injected_export_job() {
-        let root = std::env::temp_dir().join(format!(
-            "zircon-editor-profile-artifact-job-{}-{:x}",
-            std::process::id(),
-            fixture_nonce()
-        ));
-        let _ = fs::remove_dir_all(&root);
-        let export = PresentArtifactExport {
-            export_dir: root.clone(),
-            geometry: UiProfileGeometry::from_presentation(
-                &HostWindowPresentationData::default(),
-                &PhysicalSize::new(640, 480),
-                HostPresenterBackend::Gpu,
-            ),
-            screenshot: None,
-        };
-
-        let jobs = test_job_system();
-        let ticket = submit_present_artifact_after_admission(
-            &jobs,
-            estimated_pending_bytes(&export),
-            || export,
-        )
-        .expect("profile artifact job should be admitted");
-
-        assert_eq!(ticket.wait(), Ok(()));
-        assert!(root.join(GEOMETRY_FILE).is_file());
-        let _ = fs::remove_dir_all(root);
-    }
-
-    #[test]
-    fn screenshot_pending_bytes_match_rgba_payload_size_without_overflow() {
-        assert_eq!(
-            screenshot_pending_bytes(&PhysicalSize::new(640, 480)),
-            1_228_800
-        );
-        assert_eq!(
-            screenshot_pending_bytes(&PhysicalSize::new(u32::MAX, u32::MAX)),
-            usize::MAX
-        );
-    }
-
-    #[test]
-    fn profile_artifact_admission_reservation_bounds_capture_before_materialization() {
-        let jobs = test_job_system_with_limits(EditorJobLimits::default().with_admission_limits(
-            EditorJobAdmissionLimits::new(
-                1,
-                PROFILE_ARTIFACT_GEOMETRY_PENDING_BYTES,
-                Duration::from_secs(60),
-            ),
-        ));
-
-        let reservation =
-            reserve_present_artifact_admission(&jobs, PROFILE_ARTIFACT_GEOMETRY_PENDING_BYTES)
-                .expect("the first artifact capture reserves the only pending admission slot");
-        assert!(
-            reserve_present_artifact_admission(&jobs, PROFILE_ARTIFACT_GEOMETRY_PENDING_BYTES)
-                .is_err(),
-            "a later capture must be rejected before it materializes a screenshot"
-        );
-
-        drop(reservation);
-        assert!(
-            reserve_present_artifact_admission(&jobs, PROFILE_ARTIFACT_GEOMETRY_PENDING_BYTES)
-                .is_ok(),
-            "dropping an uncommitted capture must return the shared admission capacity"
-        );
-    }
-
-    #[test]
-    fn profile_artifact_rejection_precedes_export_materialization() {
-        let jobs = test_job_system_with_limits(EditorJobLimits::default().with_admission_limits(
-            EditorJobAdmissionLimits::new(
-                1,
-                PROFILE_ARTIFACT_GEOMETRY_PENDING_BYTES,
-                Duration::from_secs(60),
-            ),
-        ));
-        let _occupied =
-            reserve_present_artifact_admission(&jobs, PROFILE_ARTIFACT_GEOMETRY_PENDING_BYTES)
-                .expect("the only admission slot should be occupied before capture");
-        let materialized = std::cell::Cell::new(false);
-
-        let result = submit_present_artifact_after_admission(
-            &jobs,
-            PROFILE_ARTIFACT_GEOMETRY_PENDING_BYTES,
-            || -> PresentArtifactExport {
-                materialized.set(true);
-                panic!("rejected admission must not materialize an export payload");
-            },
-        );
-
-        assert!(matches!(
-            result,
-            Err(JobSubmitError::AdmissionEntryLimitExceeded { limit: 1 })
-        ));
-        assert!(
-            !materialized.get(),
-            "the rejected capture must not allocate or paint a screenshot"
-        );
-    }
-
-    #[test]
-    fn invalid_profile_output_root_precedes_export_materialization() {
-        let materialized = std::cell::Cell::new(false);
-
-        let result = submit_present_artifacts_with_export_dir(
-            &test_job_system(),
-            &PhysicalSize::new(640, 480),
-            HostPresenterBackend::Gpu,
-            Err(ProfileOutputRootError),
-            false,
-            || -> HostWindowPresentationData {
-                materialized.set(true);
-                panic!("an invalid output root must not materialize an export payload");
-            },
-        );
-
-        assert!(matches!(
-            result,
-            Err(ProfileArtifactSubmissionError::InvalidOutputRoot(_))
-        ));
-        assert!(
-            !materialized.get(),
-            "the invalid root must be rejected before snapshot materialization"
-        );
-    }
-
-    fn fixture_nonce() -> u64 {
-        use std::hash::{Hash, Hasher};
-
-        let mut hasher = std::collections::hash_map::DefaultHasher::new();
-        std::thread::current().id().hash(&mut hasher);
-        std::time::SystemTime::now().hash(&mut hasher);
-        hasher.finish()
-    }
-}
+#[path = "tests/export.rs"]
+mod tests;

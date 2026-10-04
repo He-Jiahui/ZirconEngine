@@ -1,3 +1,4 @@
+// 热力图专用入口消费已归一化的 source generation，先布局场与图例再画静态色块、动态标记及借用标签。
 mod field;
 mod geometry;
 mod identity;
@@ -13,6 +14,8 @@ use identity::is_weight_heatmap;
 use markers::push_heat_source_markers;
 use text::{legend_label_width, push_heatmap_legend_text};
 
+/// secondary specialized 链仅在 canvas+weight-heatmap 上认领；无效外框也需认领以避免通用表面重画。
+/// generation 由 typed projection 提供；字段缓存依赖静态代次及 plot 尺寸，选中 marker 则按当前 source 状态绘制。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_weight_heatmap_commands(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
@@ -44,5 +47,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_we
 }
 
 #[cfg(test)]
-#[path = "template_weight_heatmap_tests/mod.rs"]
+#[path = "template_weight_heatmap_tests/tests/mod.rs"]
 mod tests;

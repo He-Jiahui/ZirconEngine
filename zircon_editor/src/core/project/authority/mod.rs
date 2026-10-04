@@ -7,9 +7,10 @@ mod transaction;
 
 pub use project_authority::ProjectAuthority;
 pub(super) use transaction::{
-    cleanup_failed_transaction_staging, commit_staged_directory, finalize_empty_target_backup,
-    rollback_committed_project,
+    cleanup_failed_transaction_staging, commit_staged_directory, finalize_published_project,
+    ProjectCreationLease,
 };
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

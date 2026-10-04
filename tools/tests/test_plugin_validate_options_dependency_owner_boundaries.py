@@ -3,22 +3,25 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PLUGIN_VALIDATE = REPO_ROOT / "tools/zircon_export/plugin_validate.py"
+PLUGIN_VALIDATE = REPO_ROOT / "tools/export/plugin_validate.py"
 PLUGIN_VALIDATE_SINGLE_TARGET = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_single_target.py"
+    REPO_ROOT / "tools/export/plugin_validate_single_target.py"
 )
 PLUGIN_VALIDATE_ASSET_IMPORTERS = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_asset_importers.py"
+    REPO_ROOT / "tools/export/plugin_validate_asset_importers.py"
 )
-PLUGIN_VALIDATE_OPTIONS = REPO_ROOT / "tools/zircon_export/plugin_validate_options.py"
+PLUGIN_VALIDATE_OPTIONS = REPO_ROOT / "tools/export/plugin_validate_options.py"
 PLUGIN_VALIDATE_OPTION_SCHEMA = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_option_schema.py"
+    REPO_ROOT / "tools/export/plugin_validate_option_schema.py"
 )
 PLUGIN_VALIDATE_OPTION_GLOBAL_KEYS = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_option_global_keys.py"
+    REPO_ROOT / "tools/export/plugin_validate_option_global_keys.py"
+)
+PLUGIN_VALIDATE_GLOBAL_IDENTITIES = (
+    REPO_ROOT / "tools/export/plugin_validate_global_identities.py"
 )
 PLUGIN_VALIDATE_DEPENDENCIES = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_dependencies.py"
+    REPO_ROOT / "tools/export/plugin_validate_dependencies.py"
 )
 
 
@@ -209,6 +212,9 @@ class PluginValidateOptionsDependencyOwnerBoundaryTests(unittest.TestCase):
         global_keys_text = PLUGIN_VALIDATE_OPTION_GLOBAL_KEYS.read_text(
             encoding="utf-8"
         )
+        global_identities_text = PLUGIN_VALIDATE_GLOBAL_IDENTITIES.read_text(
+            encoding="utf-8"
+        )
 
         for symbol in (
             "validate_plugin_option_global_keys",
@@ -219,11 +225,15 @@ class PluginValidateOptionsDependencyOwnerBoundaryTests(unittest.TestCase):
         ):
             self.assertIn(symbol, global_keys_text)
         self.assertIn(
-            "from .plugin_validate_option_global_keys import",
+            "from .plugin_validate_global_identities import",
             validate_text,
-            "plugin validate --all should dispatch global option key checks",
+            "plugin validate --all should dispatch global identity checks",
         )
-        self.assertIn("validate_plugin_option_global_keys(", validate_text)
+        self.assertIn(
+            "from .plugin_validate_option_global_keys import",
+            global_identities_text,
+        )
+        self.assertIn("validate_plugin_option_global_keys(", global_identities_text)
         for parent_text, parent_name in (
             (single_target_text, "plugin_validate_single_target.py"),
             (options_text, "plugin_validate_options.py"),

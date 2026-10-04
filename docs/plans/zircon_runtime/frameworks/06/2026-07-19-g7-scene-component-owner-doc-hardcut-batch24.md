@@ -1,21 +1,21 @@
 ---
 related_code:
-  - docs/engine-architecture/runtime-foundation-precision-and-scene-authority.md
+  - docs/architecture/runtime-foundation-precision-and-scene-authority.md
   - zircon_runtime/src/scene/components/scene/mod.rs
   - zircon_runtime/src/scene/components/scene/transform.rs
   - zircon_runtime/src/scene/components/scene/activation.rs
   - zircon_runtime/src/core/framework/scene/mobility.rs
   - zircon_runtime/src/scene/components/scene/node.rs
 implementation_files:
-  - docs/engine-architecture/runtime-foundation-precision-and-scene-authority.md
+  - docs/architecture/runtime-foundation-precision-and-scene-authority.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
   - docs/plans/zircon_runtime/frameworks/06/2026-07-19-scene-component-owner-hardcut.md
 tests:
-  - python tools/check_conventions.py --only docs --json
-  - git diff --check -- docs/engine-architecture/runtime-foundation-precision-and-scene-authority.md docs/plans/zircon_runtime/frameworks/06/2026-07-19-g7-scene-component-owner-doc-hardcut-batch24.md
+  - python tools/audits/check_conventions.py --only docs --json
+  - git diff --check -- docs/architecture/runtime-foundation-precision-and-scene-authority.md docs/plans/zircon_runtime/frameworks/06/2026-07-19-g7-scene-component-owner-doc-hardcut-batch24.md
 ---
 
 # Frameworks06 G7 Scene Component Owner 文档硬切 Batch 24
@@ -23,7 +23,7 @@ tests:
 Plan: docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
 Milestone: M2
 Status: accepted
-Files: ["docs/engine-architecture/runtime-foundation-precision-and-scene-authority.md"]
+Files: ["docs/architecture/runtime-foundation-precision-and-scene-authority.md"]
 Date: 2026-07-19
 Session: `frameworks06-g7-scene-component-owner-doc-hardcut-batch24-20260719`
 

@@ -1,6 +1,6 @@
 use winit::dpi::PhysicalPosition;
 use winit::event::MouseScrollDelta;
-use zircon_runtime_interface::ui::surface::UiPointerEventKind;
+use zircon_runtime_interface::ui::surface::{UiPointerButton, UiPointerEventKind};
 
 use super::super::platform_input::platform_pointer_input;
 use super::super::platform_input::PlatformInputTranslation;
@@ -12,7 +12,7 @@ use crate::ui::retained_host::host_contract::native_pointer::{
 };
 
 impl UiHostWindowEventLoop {
-    pub(super) fn handle_pointer_moved(
+    pub(in crate::ui::retained_host::host_contract::window::event_loop) fn handle_pointer_moved(
         &mut self,
         platform_event: PlatformInputTranslation,
         fallback_position: PhysicalPosition<f64>,
@@ -29,9 +29,26 @@ impl UiHostWindowEventLoop {
                 )
             });
         self.last_pointer_position = Some((point.x, point.y));
-        let pointer = pointer.filter(|pointer| !pointer.metadata.pointer_source.is_touch_like());
+        let eligible = pointer
+            .as_ref()
+            .is_some_and(|pointer| !pointer.metadata.pointer_source.is_touch_like());
+        self.host
+            .global::<UiHostContext>()
+            .invoke_workbench_pointer_move_pre_dispatch(
+                pointer
+                    .as_ref()
+                    .and_then(|pointer| pointer.metadata.pointer_id)
+                    .unwrap_or_default(),
+                point.x,
+                point.y,
+                eligible,
+            );
+        let pointer = pointer.filter(|_| eligible);
+        let native_pointer_id = pointer
+            .as_ref()
+            .map(|pointer| pointer.metadata.pointer_id.unwrap_or_default());
         let (result, tooltip_target): (_, Option<WorkbenchTooltipPointerTarget>) =
-            dispatch_native_pointer_move(&self.host, point.x, point.y);
+            dispatch_native_pointer_move(&self.host, native_pointer_id, point.x, point.y);
         if let Some(pointer) = pointer {
             self.host
                 .global::<UiHostContext>()
@@ -72,12 +89,19 @@ impl UiHostWindowEventLoop {
         pointer.event.point.x = x;
         pointer.event.point.y = y;
         let button = pointer.event.button;
+        let pointer_id = pointer.metadata.pointer_id.unwrap_or_default();
         let modifiers = pointer.metadata.modifiers;
         self.last_pointer_position = Some((x, y));
         self.host
             .global::<UiHostContext>()
             .invoke_workbench_pointer_input(pointer, None);
-        let result = dispatch_native_pointer_button(&self.host, state, button, modifiers, x, y);
+        let result =
+            dispatch_native_pointer_button(&self.host, pointer_id, state, button, modifiers, x, y);
+        if state == NativePointerButtonState::Released && button == Some(UiPointerButton::Primary) {
+            self.host
+                .global::<UiHostContext>()
+                .invoke_workbench_primary_release_post_dispatch(pointer_id);
+        }
         self.dispatch_pointer_result(result);
         self.sync_ime_allowed();
     }
@@ -88,13 +112,15 @@ impl UiHostWindowEventLoop {
         _fallback_delta: MouseScrollDelta,
     ) {
         self.begin_input_outcome(platform_event.sequence);
-        if let Some(pointer) = platform_pointer_input(platform_event.event) {
+        if let Some(mut pointer) = platform_pointer_input(platform_event.event) {
             if !matches!(pointer.event.kind, UiPointerEventKind::Scroll) {
                 self.reject_input_outcome();
                 return;
             }
             let (x, y) = self.last_pointer_position.unwrap_or((0.0, 0.0));
             let scroll_delta = pointer.event.scroll_delta;
+            pointer.event.point.x = x;
+            pointer.event.point.y = y;
             self.host
                 .global::<UiHostContext>()
                 .invoke_workbench_pointer_input(pointer, None);

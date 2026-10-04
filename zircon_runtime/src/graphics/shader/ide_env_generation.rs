@@ -6,23 +6,23 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
-use crate::asset::AssetUri;
 use crate::asset::assets::{ImportedAsset, ShaderAsset};
 use crate::asset::project::ProjectManager;
+use crate::asset::AssetUri;
 use crate::core::framework::render::{
-    GENERATED_MATERIAL_MODULE_IMPORT_PATH, RenderShaderDefinitionValue, SHADER_IDE_ENV_CACHE_DIR,
-    SHADER_IDE_MODULE_MAP_FILE, ShaderAssetKind, ShaderIdeModuleMap, ShaderIdeModuleMapEntry,
-    ShaderIdeModuleSource, ShaderIdePreviewMap, ShaderIdePreviewVariant,
     shader_ide_generated_material_stub_relative_path, shader_ide_module_stub_relative_path,
     shader_ide_preview_relative_path, shader_ide_preview_segments_relative_path,
     shader_ide_relative_path_string, strip_wgsl_include_directives, wgsl_include_paths,
+    RenderShaderDefinitionValue, ShaderAssetKind, ShaderIdeModuleMap, ShaderIdeModuleMapEntry,
+    ShaderIdeModuleSource, ShaderIdePreviewMap, ShaderIdePreviewVariant,
+    GENERATED_MATERIAL_MODULE_IMPORT_PATH, SHADER_IDE_ENV_CACHE_DIR, SHADER_IDE_MODULE_MAP_FILE,
 };
 use crate::core::resource::{ResourceKind, ResourceRecord, ResourceState};
 
 use super::ide_preview::{assemble_shader_ide_surface_preview_with_index, shader_include_index};
 use super::{
-    ShaderIdeSurfacePreview, builtin_shader_ide_module_sources, parse_shader_ide_wgsl_module,
-    validate_shader_ide_wgsl_module,
+    builtin_shader_ide_module_sources, parse_shader_ide_wgsl_module,
+    validate_shader_ide_wgsl_module, ShaderIdeSurfacePreview,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -437,10 +437,10 @@ fn shader_ide_stub_validation_dependencies<'a>(
     let mut dependencies = Vec::new();
     let mut visited_paths = BTreeSet::new();
     let mut visiting = vec![stub];
-    for candidate in stubs
-        .iter()
-        .filter(|candidate| shader_ide_common_builtin_validation_dependency(stub, candidate))
-    {
+    for candidate in stubs.iter().filter(|candidate| {
+        shader_ide_common_builtin_validation_dependency(stub, candidate)
+            && !shader_ide_validation_dependency_reaches_root(stub, candidate, stubs)
+    }) {
         append_shader_ide_stub_validation_dependency(
             stub,
             candidate,
@@ -553,6 +553,32 @@ fn shader_ide_common_builtin_validation_dependency(
         && !candidate.entry.generated
         && SHADER_IDE_COMMON_BUILTIN_VALIDATION_MODULES
             .contains(&candidate.entry.import_path.as_str())
+}
+
+fn shader_ide_validation_dependency_reaches_root<'a>(
+    root: &ShaderIdeStub,
+    candidate: &'a ShaderIdeStub,
+    stubs: &'a [ShaderIdeStub],
+) -> bool {
+    let mut visited_paths = BTreeSet::new();
+    let mut pending = vec![candidate];
+    while let Some(current) = pending.pop() {
+        if current.entry.stub_path == root.entry.stub_path {
+            return true;
+        }
+        if !visited_paths.insert(current.entry.stub_path.as_str()) {
+            continue;
+        }
+        for include_path in &current.include_paths {
+            for dependency in stubs.iter().filter(|dependency| {
+                dependency.entry.import_path == *include_path
+                    && shader_ide_include_validation_dependency_matches_scope(root, dependency)
+            }) {
+                pending.push(dependency);
+            }
+        }
+    }
+    false
 }
 
 fn validate_shader_ide_previews(previews: &[ShaderIdePreviewFile]) -> Result<usize, String> {
@@ -695,8 +721,9 @@ fn remove_stale_shader_ide_files_in_dir(
 }
 
 #[cfg(test)]
-#[path = "ide_env_generation/single_buffer_stub_header_tests.rs"]
+#[path = "ide_env_generation/tests/single_buffer_stub_header_tests.rs"]
 mod single_buffer_stub_header_tests;
 
 #[cfg(test)]
+#[path = "ide_env_generation/tests/cases.rs"]
 mod tests;

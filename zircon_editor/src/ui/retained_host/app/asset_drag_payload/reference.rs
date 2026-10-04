@@ -85,5 +85,5 @@ fn extension_from_locator(locator: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "reference/single_scan_extension_tests.rs"]
+#[path = "reference/tests/single_scan_extension_tests.rs"]
 mod single_scan_extension_tests;

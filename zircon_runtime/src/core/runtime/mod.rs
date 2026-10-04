@@ -1,3 +1,4 @@
+//! Service registry and core runtime.
 //! CoreRuntime 的注册、依赖冻结、生命周期和服务访问入口。
 //!
 //! 描述符提供声明，CoreHandle 持有可变状态；宿主通过 CoreRuntime 驱动外帧与模块阶段。
@@ -16,6 +17,7 @@ mod module_lifecycle_observer;
 pub mod modules;
 pub mod random;
 mod runtime;
+mod shutdown;
 mod state;
 pub mod state_machine;
 pub mod tasks;
@@ -46,7 +48,8 @@ pub use modules::{
     TimeModule, DIAGNOSTICS_CORE_MODULE_NAME, FRAME_COUNT_MODULE_NAME, LOG_DIAGNOSTICS_MODULE_NAME,
     LOG_MODULE_NAME, TASKS_MODULE_NAME, TIME_MODULE_NAME,
 };
-pub use runtime::CoreRuntime;
+pub use runtime::{CoreRuntime, ModuleShutdownReport};
+pub use shutdown::CoreShutdownError;
 pub use tasks::{
     parallel_for, parallel_map_indices, BoundedKeyedIoAdmission, BoundedKeyedIoAdmissionError,
     BoundedKeyedIoCancelAuthority, BoundedKeyedIoCancelError, BoundedKeyedIoDiagnostics,
@@ -78,4 +81,5 @@ pub use time::{
 pub use weak::CoreWeak;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

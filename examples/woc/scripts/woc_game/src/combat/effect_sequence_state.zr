@@ -1,6 +1,6 @@
-// Stateful M4 projection of the runEffects envelope. Effect bodies remain in
-// their numeric, aura and world owners; this module owns prelude, array order,
-// target invalidation after each body and the single post-loop combo reset.
+// 仅独立测试消费的旧 M4 效果顺序投影。效果正文分别属于
+// 数值、光环与世界规则；该局部状态保留前置处理、目录顺序、
+// 效果后目标失效与循环后单次连击清理的契约意图。
 var container = %import("zr.container");
 var abilities = %import("generated/m4_ability_catalog");
 var effects = %import("generated/m4_ability_effects");
@@ -83,6 +83,7 @@ preservesStealth(abilityIndex: int, rank: int): bool {
     return isStealthToggle(abilityIndex, rank) || id == "sprint" || id == "sap";
 }
 
+/// 只分类旧 M4 效果集合；当前完整目录含更多效果类型，返回 0 的条目必须交由真实所有者处理，不能直接调用 routeNextEffect 期望全目录可派发。
 pub ownerCode(effectType: string): int {
     if (effectType == "weaponStrike" || effectType == "directDamage" ||
         effectType == "finisherDamage" || effectType == "heal" ||
@@ -136,6 +137,7 @@ pub beginAbility(
     }
 }
 
+/// 按目录次序逐项路由当前能力；遇到 ownerCode 为 0 会抛错，因此调用方须先限定到本投影覆盖的旧能力集合或扩充分类契约。
 pub routeNextEffect(state: EffectSequenceState): int {
     if (!state.active ||
         state.nextEffectIndex >= effects.count(state.abilityIndex, state.rank)) {
@@ -238,6 +240,7 @@ pub contractTest(): int {
         return -6;
     }
 
+    // BUG: [CR-WOC-CW-CE-0001] 当前 abilities.count 为 117，索引 26 的 power_word_shield 首效果为 absorb，而 ownerCode 无此类型；此全目录遍历必在该条返回 -7，无法到达旧版总数 24 断言。核对生成目录及本测试入口后再更新派发覆盖与期望值。
     var counts = new container.Array<int>();
     counts.add(0);
     counts.add(0);

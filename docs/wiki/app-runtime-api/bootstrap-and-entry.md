@@ -19,8 +19,8 @@ implementation_files:
   - zircon_app/src/entry/product_composition/composition.rs
 plan_sources:
   - user: 2026-09-09 为 ZirconEngine 构建引擎说明书级 Wiki
-  - docs/zircon_app/editor-host-entry.md
-  - docs/zircon_app/export-bootstrap.md
+  - docs/crates/zircon_app/editor-host-entry.md
+  - docs/crates/zircon_app/export-bootstrap.md
 tests:
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - zircon_app/src/entry/tests/export_bootstrap.rs
@@ -134,7 +134,7 @@ let composition = bootstrap_export_runtime_with_native_plugins_from_export_root(
 
 ## 错误处理
 
-启动错误文本采用 `component / requested / cause / recovery` 结构。调用者应完整记录错误，而不是只匹配英文文本。语义进程退出策略由 `ProductExitClass` 和 `ProductProcessExitCode` 负责：成功为 0，产品失败通常为 1，显式命令结果可保留非零 `u8` code。
+启动错误文本采用 `component / requested / cause / recovery` 结构。调用者应完整记录错误，而不是只匹配英文文本。`ProductExitClass` 的宿主退出码依次为 0 成功、1 未分类、2 参数用法、3 能力、4 配置、5 启动、6 运行、7 关闭和 8 强制终止；Editor commandlet 保留独立的原始 `u8` 结果。当前 Editor/Runtime binary 对尚未分类的 boxed runner 错误使用码 1，typed failure stage 和产品级验收仍待完成。
 
 平台 C/JNI 导出必须用 `catch_unwind` 包围 Rust 入口，禁止 panic 穿过外部 ABI。移动和浏览器模板使用带 `Vacant / Starting / Running / Stopping` 状态的进程级所有者，防止重复启动或销毁期间重入。
 

@@ -1,3 +1,6 @@
+// 调用端：npm run generate:group-haste-contract (tools/package.json)；职责：固化团队急速爆发的倍率和持续时间。
+// 输入边界：src/sim/combat/haste_burst.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

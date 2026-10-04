@@ -1,6 +1,6 @@
 use zircon_runtime::core::framework::sound::{SoundError, SoundImpulseResponseId};
 
-use crate::ray_tracing::status::refresh_ray_tracing_status;
+use crate::ray_tracing::status::refresh_ray_tracing_status_for_state;
 
 use super::DefaultSoundManager;
 
@@ -32,7 +32,7 @@ impl DefaultSoundManager {
             .map(|_| ())
             .ok_or(SoundError::UnknownImpulseResponse { impulse_response })?;
         state.ray_traced_impulse_responses.remove(&impulse_response);
-        refresh_ray_tracing_status(&mut state.ray_tracing, &state.ray_traced_impulse_responses);
+        refresh_ray_tracing_status_for_state(&mut *state);
         Ok(())
     }
 }

@@ -1,10 +1,11 @@
+//! 从源码和约定文档核对着色器预热的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 #[test]
 fn runtime_15_shader_prewarm_asset_revision_export_is_wired() {
     let manifest = read_runtime_src("bin/zircon_shader_prewarm/manifest.rs");
     let revision = read_runtime_src("bin/zircon_shader_prewarm/manifest/revision.rs");
-    let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests.rs");
+    let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/cases.rs");
     let raw_revision_tests =
         read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/raw_revision.rs");
     let plan_08 = read_repo(
@@ -62,7 +63,7 @@ fn runtime_15_shader_prewarm_asset_revision_export_is_wired() {
             revision.as_str(),
         ),
         (
-            "bin/zircon_shader_prewarm/manifest/tests.rs",
+            "bin/zircon_shader_prewarm/manifest/tests/cases.rs",
             tests.as_str(),
         ),
         (

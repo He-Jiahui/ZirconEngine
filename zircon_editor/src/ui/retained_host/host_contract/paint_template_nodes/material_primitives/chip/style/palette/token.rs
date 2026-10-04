@@ -1,5 +1,6 @@
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 
+/// 将外观词元归一为宿主色板键，供 Chip 的填充、边框、头像和文字使用同一颜色意图。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes::material_primitives::chip::style) fn chip_color_token(
     node: &TemplatePaneNodeData,
 ) -> &str {
@@ -49,5 +50,5 @@ fn chip_color_token_for_variant(component_variant: &str) -> &'static str {
 }
 
 #[cfg(test)]
-#[path = "token/single_scan_color_tests.rs"]
+#[path = "token/tests/single_scan_color_tests.rs"]
 mod single_scan_color_tests;

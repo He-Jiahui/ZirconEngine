@@ -87,3 +87,47 @@ Resolving state: `single-inventory predecessor 与 indexed-resolver 后继已在
   `d284c06bcf06402085f70582b41c16c3` 在 Cargo admission 前以
   `command_post_timeout` 退出，未产生 compiler/test/performance receipt。状态继续保持
   `open`；不重复提交、不轮询，并继续执行不依赖该 lane 的源码与架构收敛。
+
+## 2026-09-09 production-counter acceptance repair
+
+Managed Windows job `9aa5c29f3f6640a1808d55c69973254f` on immutable input
+`runtime04-migration-fixtures-3329-20260909`, manifest
+`3d03d4e4fdb130c29e772a3fe2d08d29459a5e3737f0a24fa41ef932b42fe644`,
+passed the public migration batch: 71 passed, 0 failed, 1 ignored. All eleven
+`project_commandlet::resolver_index` tests executed, including the 100k-entry,
+1/4-root query matrix, compound bindings, missing/ambiguous cases and duplicate
+registry precedence. The ignored case belongs to the separate filesystem
+scale-acceptance lifecycle.
+
+Review of the passing scale test found that its printed lookup count was
+computed from `reference_count * 2`; it did not assert the production counter
+for each workload. The fixture now samples `MigrationResolverIndex::lookup_count`
+before and after the actual forward/reverse queries, asserts the observed
+delta against the required count, and prints that observed value. The same
+index remains alive across all three cardinalities for each root count; all
+existing order and full-result assertions remain. Production resolver/index
+code is unchanged. The fixture preimage hash is
+`c70c363dd02952dfcdfafbf582db7e474baf49ab8a1228c94998233859fba2ce`.
+
+The strengthened test requires a new managed run. The earlier 71-test receipt
+does not validate these new assertions, provide uncaptured timing rows, or
+replace the required filesystem/whole-commandlet performance evidence.
+This lifecycle remains open through complete validation, independent review
+and coordinator closeout.
+
+The strengthened resolver batch completed as managed Windows job
+`131f0f22cde34897be53e25343f1b853`, exit 0: 11 passed, 0 failed, 0 ignored.
+Input `runtime04-migration-metrics-red-3340-20260909` has manifest
+`8c631afa4cec4191b00dceb04b454857011f5954f1c2ac74aa3b1cbb9ab304ae`;
+the unrelated document-counter RED cases were outside this resolver filter.
+The current resolver test hash remains
+`934b3f5fad3f52cc9d7cbe5b6a27c244e17461cff32953595f974ac69e99f61c`
+from snapshot `3336`, identical to the tested bytes.
+
+The actual 1/1k/100k forward/reverse workloads for 1/4 roots now pass their
+production `lookup_count` assertions, as do all retained ambiguity, compound,
+registry-precedence and path-result checks. Exact command and receipt are in
+`results/runtime04-resolver-counters-3336-r1.json` and its sibling log.
+The successful harness captures printed output, so this supplies executed
+counter assertions rather than per-cardinality timing samples. Filesystem
+observations, whole-commandlet acceptance, review and closeout remain open.

@@ -135,7 +135,7 @@ Hub source选择集覆盖 `build`、`engines`、`process`、`projects`、`settin
 
 `SourceEngineInstall` 只持有 `id/display_name/source_dir/output_dir/last_build/build_history`。engine ID 是 normalized source path 的 FNV-1a hash；移动 checkout 会换身份，同一路径内容、revision、toolchain 或 target 改变却不换身份。registry 在 active engine 缺失时选择第一项，并会把项目上指向缺失 engine 的 binding 清空。
 
-`validate_source_engine()` 同步整文件读取 `Cargo.toml`，只检查 directory、workspace members 中出现 `zircon_runtime` 路径字符串，以及 `tools/zircon_build.py` 存在。它不使用 `cargo metadata` 或受控 resolver，不解析 glob/exclude，不冻结 toolchain/host/target/required artifacts，也不生成可缓存的 revision-keyed qualification receipt。
+`validate_source_engine()` 同步整文件读取 `Cargo.toml`，只检查 directory、workspace members 中出现 `zircon_runtime` 路径字符串，以及 `tools/build/zircon_build.py` 存在。它不使用 `cargo metadata` 或受控 resolver，不解析 glob/exclude，不冻结 toolchain/host/target/required artifacts，也不生成可缓存的 revision-keyed qualification receipt。
 
 ### 4.3 Launch attempt 没有长期 owner
 

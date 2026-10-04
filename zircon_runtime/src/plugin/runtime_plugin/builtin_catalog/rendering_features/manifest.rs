@@ -17,6 +17,7 @@ fn join_string_parts(parts: &[&str]) -> String {
     joined
 }
 
+// 一个渲染特性同时生成运行时与编辑器模块；先写基础 rendering 依赖，再追加行级依赖。
 pub(super) fn rendering_feature(row: &RenderingFeatureRow) -> PluginFeatureBundleManifest {
     let feature_id = join_string_parts(&["rendering.", row.id_suffix]);
     let capability = join_string_parts(&["runtime.feature.rendering.", row.id_suffix]);
@@ -56,14 +57,5 @@ pub(super) fn rendering_feature(row: &RenderingFeatureRow) -> PluginFeatureBundl
 }
 
 #[cfg(test)]
-mod tests {
-    use super::join_string_parts;
-
-    #[test]
-    fn exact_rendering_identifier_join_preserves_parts() {
-        assert_eq!(
-            join_string_parts(&["runtime.feature.rendering.", "shader_graph"]),
-            "runtime.feature.rendering.shader_graph"
-        );
-    }
-}
+#[path = "tests/manifest.rs"]
+mod tests;

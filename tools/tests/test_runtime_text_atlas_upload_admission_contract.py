@@ -4,9 +4,9 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 UPLOAD = REPO_ROOT / "zircon_runtime/src/text/atlas/upload.rs"
-UPLOAD_TESTS = REPO_ROOT / "zircon_runtime/src/text/atlas/upload/tests.rs"
+UPLOAD_TESTS = REPO_ROOT / "zircon_runtime/src/text/atlas/upload/tests/cases.rs"
 
-
+# 读取文本图集上传准入，确认页数与步长受检，零页和非法页矩形会被拒绝。
 class RuntimeTextAtlasUploadAdmissionContractTests(unittest.TestCase):
     def test_upload_math_is_checked_and_zero_pages_are_not_normalized(self) -> None:
         source = UPLOAD.read_text(encoding="utf-8")

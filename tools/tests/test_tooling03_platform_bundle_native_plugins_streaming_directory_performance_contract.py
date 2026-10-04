@@ -1,10 +1,11 @@
+# 核对平台包插件目录以流式子项遍历并保留迭代错误诊断。
 from __future__ import annotations
 
 import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_export.platform_bundle_native_plugins_materialize import (
+from tools.export.platform_bundle_native_plugins_materialize import (
     copy_platform_bundle_native_plugins_dir,
 )
 
@@ -45,7 +46,7 @@ class Tooling03PlatformBundleNativePluginsStreamingDirectoryPerformanceContractT
             "is_dir",
             return_value=False,
         ), mock.patch(
-            "tools.zircon_export.platform_bundle_native_plugins_materialize.copy_platform_bundle_native_plugins_file",
+            "tools.export.platform_bundle_native_plugins_materialize.copy_platform_bundle_native_plugins_file",
             return_value=True,
         ) as copy_file:
             copied = copy_platform_bundle_native_plugins_dir(

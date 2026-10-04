@@ -9,10 +9,11 @@ use crate::asset::{
 use crate::core::framework::render::RenderMaterialTextureTransform;
 
 use super::super::toml_value::{
-    ArtifactCacheTomlValue, cache_table_like_to_toml, toml_table_like_to_cache,
+    cache_table_like_to_toml, toml_table_like_to_cache, ArtifactCacheTomlValue,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+// 将材质的 TOML 属性表转成顺序缓存值，供 ArtifactStore 使用 bincode 保存；读回时再恢复编辑态属性。
 pub(in super::super) struct ArtifactCacheMaterialAsset {
     name: Option<String>,
     shader: AssetReference,
@@ -74,6 +75,7 @@ impl From<&MaterialAsset> for ArtifactCacheMaterialAsset {
 }
 
 impl ArtifactCacheMaterialAsset {
+    // 属性与选项表还原 TOML 日期时可能失败；纹理槽仅做字段转换，表转换错误会阻止整个材质缓存被返回。
     pub(in super::super) fn into_asset(self) -> Result<MaterialAsset, AssetImportError> {
         Ok(MaterialAsset {
             name: self.name,

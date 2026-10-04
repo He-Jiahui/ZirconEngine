@@ -12,7 +12,7 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention
   - tools/tests/test_runtime_receipt_hard_cut.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
-  - docs/engine-architecture/runtime-architecture-review-m0.md
+  - docs/architecture/runtime-architecture-review-m0.md
 tests:
   - python -m unittest tools.tests.test_runtime_receipt_hard_cut tools.tests.test_runtime_schedule_frame_loop_audit
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_runtime -LibTests -TestFilter runtime_absorption
@@ -34,7 +34,7 @@ tests:
 - `plan_status.rs` 加子树共 711 个 Rust 文件、38,656 行；
 - 仅 48 个 `#[test]`，主体读取 `docs/plans`、archive 和状态表措辞，而非运行时产品行为；
 - `status_output_tables/` 单独包含 654 个 Rust 数据文件，`#[test]` 数为 0，只为上层 receipt tests 提供计划状态常量；
-- `docs/engine-architecture/runtime-architecture-review-m0.md` 与 Runtime15 的 structure-convention guards 又枚举这些测试文件，形成“测试树约束文档、文档再约束测试树”的自引用。
+- `docs/architecture/runtime-architecture-review-m0.md` 与 Runtime15 的 structure-convention guards 又枚举这些测试文件，形成“测试树约束文档、文档再约束测试树”的自引用。
 
 精确盘点使用 `Path.rglob("*.rs")` 统计文件/行，并逐文件计数 `#[test]`。当前子树还有 4 个并发修改文件（Runtime02/03/08/13 cargo-gate anchors）；直接整树删除会覆盖其他 Session 的未提交工作，因此本轮只保留 failure，不抢写这些文件。
 
@@ -67,3 +67,37 @@ Open state: `receipt_tree_and_status_mirror_hard_delete_implemented_review_green
 - 静态 M0.3 审计发现并删除 `naming_boundary/split_layout.rs` 对退役 `support/status_evidence.rs` 的最后一个 `include_str!`；receipt guard 现在扫描所有存活 Rust 的六类退役 route fragment，红测精确命中后回归恢复 5/5，未恢复旧文件。
 - current-source validation manifest 已冻结为 1,865 路径，其中 1,858 个 JSON `null` 删除墓碑、7 个存活验证输入，canonical JSON 为 305,657 bytes，SHA-256 为 `856cec8429e8fb16d3391fd33be7cc60c568271c299b57121ceb81cfc1fb4237`。该 manifest 不纳入记录自身或其他 failure 记录，避免状态回写造成自引用哈希漂移；所有实际编译/静态验证输入仍完整封存。
 - 该 manifest 超过 Windows process command-line 上限，不能再使用 inline JSON 参数；Coordinator01 已以 [fixed return](../../../mvp/00/fixed-2026-08-04-validation-ticket-large-manifest-cli-transport.md) 提供同一严格校验路径上的 UTF-8 stdin transport，并有 managed `30/30` 证据。此前没有 Runtime lib-test ticket 的记录早于该 return；下一次 current-source snapshot 必须通过 stdin 重新提交完整 manifest，不省略任何删除路径。failure 继续保持 `open`，因为 Runtime lib-test、handoff validator 与 plan-output audit 尚无该刷新 snapshot 的 terminal evidence。
+
+## 2026-09-09 current-source validation continuation
+
+The stable Runtime15 fixing Session `failure-roll-01a07160-runtime15` acquired
+this unchanged record from its archived owner with transfer fingerprint
+`2547f9e262b336b903028a228d63361090e98189d900ee20189fdbc3e2eb84ba`.
+The preimage hash is
+`858bf8ae88826c69fb1a1776250553c4ebd695ad625e090328910bed0ac8bda1`.
+No retired Rust receipt source, compatibility route, test or audit implementation
+was changed for the following checks on current main.
+
+- `python -m unittest tools.tests.test_runtime_receipt_hard_cut tools.tests.test_runtime_schedule_frame_loop_audit`:
+  6 tests passed in 0.648 seconds. Log:
+  `.codex/tmp/runtime15-receipt-hard-cut-python-20260909-r2.log`.
+  The two test modules have hashes
+  `1751d9ec9840e7a2798ec9257050d9e46df29e740ec725f9aa656b6609ba7340`
+  and `8195b1b3c9963763cf7bc9dcfc0087a5530719fc830071a4151dad15b49d50b6`.
+  This is a local Python result, not a managed Rust validation ticket or proof
+  that the historical 1,865-path manifest still matches current source.
+- The repository handoff validator checked 813 artifacts and returned 17 errors
+  in two other records: five in the skipped Astra profile-root handoff and
+  twelve in the Runtime136 composition-validation handoff. It reported no error
+  for this lifecycle. Full log:
+  `.codex/tmp/failure-roll-record-lint-20260909-r16.log`.
+- The plan-output audit returned 77 violations across existing overview and
+  child-plan records, including forbidden concrete evidence in both engine-code
+  overview files and several child-record limits and archive-link mismatches.
+  Full log: `.codex/tmp/runtime15-receipt-plan-output-audit-20260909.log`.
+  This is a failed repository gate; unrelated owner documents were not edited
+  to manufacture a passing result.
+
+Managed Runtime acceptance, the complete deletion manifest, repository-wide
+record gates, fresh review, canonical return and closeout remain outstanding.
+The additional local checks do not change this failure's open status.

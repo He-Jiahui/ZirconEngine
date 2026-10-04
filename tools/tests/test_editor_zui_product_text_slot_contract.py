@@ -1,3 +1,4 @@
+# 核对产品可达文档中固定父槽位为子标签保留足够行高。
 import tomllib
 import unittest
 from pathlib import Path

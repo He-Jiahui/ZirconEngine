@@ -18,6 +18,8 @@ distance(x0: float, z0: float, x1: float, z1: float): float {
     return math.sqrt(dx * dx + dz * dz);
 }
 
+/// 为水平运动完成后的同一输入快照查询垂直结果；多字段调用须保持输入一致，调用间不能提前回写。
+/// 只返回姿态、速度、落地标记或待结算伤害；权威实体与生命值由上层一次性提交。
 pub verticalField(
     positionX: float,
     positionZ: float,

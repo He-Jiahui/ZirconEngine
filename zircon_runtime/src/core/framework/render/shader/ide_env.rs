@@ -46,6 +46,7 @@ pub fn shader_ide_preview_variant_name(
     format!("{}_options_0x{material_option_bits:08x}", pass_type.token())
 }
 
+/// IDE 缓存的模块索引；每条路径指向生成的 stub，源 URI 和内容哈希用于回溯实际资产。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ShaderIdeModuleMap {
     pub schema_version: u32,
@@ -79,6 +80,7 @@ pub struct ShaderIdeModuleMapEntry {
     pub generated: bool,
 }
 
+/// 预览 WGSL 到源模块的行段映射；诊断定位需与同次生成的预览文件和 schema 版本配套。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ShaderIdePreviewMap {
     pub schema_version: u32,
@@ -135,6 +137,8 @@ impl ShaderIdeModuleSource {
     }
 }
 
+// TODO: [CR-RENDER-SHADER-0001] 确认导入路径规范化是否足以保证 stub 路径唯一；不同原始段可映射同一路径，生成器尚无显式冲突检查。
+/// 从导入名生成 IDE 缓存相对路径；调用方应与同版本 module map 一起发布。
 pub fn shader_ide_module_stub_relative_path(import_path: &str) -> PathBuf {
     let mut path = PathBuf::from("modules");
     if import_path.contains("::") {
@@ -243,62 +247,9 @@ fn sanitize_shader_ide_path_segment(value: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "ide_env/path_join_tests.rs"]
+#[path = "ide_env/tests/path_join_tests.rs"]
 mod path_join_tests;
 
 #[cfg(test)]
-mod tests {
-    use crate::core::resource::ResourceLocator;
-
-    use super::*;
-
-    #[test]
-    fn shader_ide_module_stub_path_maps_logical_modules_to_files() {
-        assert_eq!(
-            shader_ide_relative_path_string(&shader_ide_module_stub_relative_path(
-                "myproj::cloth::common"
-            )),
-            "modules/myproj/cloth/common.wgsl"
-        );
-        assert_eq!(
-            shader_ide_relative_path_string(&shader_ide_module_stub_relative_path(
-                "zr_surface_types.wgsl"
-            )),
-            "modules/builtin/zr_surface_types.wgsl"
-        );
-    }
-
-    #[test]
-    fn shader_ide_generated_material_stub_path_is_scoped_by_source_uri() {
-        let uri = ResourceLocator::parse("res://shaders/hero_cloth").unwrap();
-
-        assert_eq!(
-            shader_ide_relative_path_string(&shader_ide_generated_material_stub_relative_path(
-                &uri
-            )),
-            "generated/res_shaders_hero_cloth.material.wgsl"
-        );
-    }
-
-    #[test]
-    fn shader_ide_preview_paths_are_scoped_by_source_uri_and_variant() {
-        let uri = ResourceLocator::parse("res://shaders/hero_cloth").unwrap();
-        let variant = ShaderIdePreviewVariant::new(ShaderPassType::GBuffer, 1);
-
-        assert_eq!(
-            shader_ide_relative_path_string(&shader_ide_preview_relative_path(&uri, "default")),
-            "preview/res_shaders_hero_cloth.default.wgsl"
-        );
-        assert_eq!(
-            shader_ide_relative_path_string(&shader_ide_preview_segments_relative_path(
-                &uri, "default"
-            )),
-            "preview/res_shaders_hero_cloth.default.segments.json"
-        );
-        assert_eq!(variant.name, "gbuffer_options_0x00000001");
-        assert_eq!(
-            shader_ide_relative_path_string(&shader_ide_preview_relative_path(&uri, &variant.name)),
-            "preview/res_shaders_hero_cloth.gbuffer_options_0x00000001.wgsl"
-        );
-    }
-}
+#[path = "tests/ide_env.rs"]
+mod tests;

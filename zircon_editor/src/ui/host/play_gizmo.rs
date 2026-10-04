@@ -14,12 +14,14 @@ use crate::core::play::{
     PlayInstanceId, PlayKind, PlayMode, PlayPreviewFrameIdentity, WorldDomain,
 };
 use crate::scene::viewport::GizmoAxis;
+use crate::ui::workbench::shell_state::WorkbenchShellStateData;
 
 use super::EditorHostEventController;
 
 const FIRST_PLAY_GIZMO_INTERACTION_ID: u64 = 1;
 const FIRST_PLAY_GIZMO_SEQUENCE: u64 = 1;
 
+#[path = "play_gizmo/overlay.rs"]
 mod overlay;
 
 pub(crate) use overlay::PlayGizmoOverlaySnapshot;
@@ -184,16 +186,24 @@ impl EditorHostEventController {
     }
 
     pub(super) fn retire_play_gizmo_local_state(&self) {
+        self.retire_play_gizmo_interaction();
+        let mut shell = self.shell().lock();
+        clear_play_gizmo_viewport_interaction(&mut shell);
+    }
+
+    pub(super) fn retire_play_gizmo_local_state_with_shell(
+        &self,
+        shell: &mut WorkbenchShellStateData,
+    ) {
+        self.retire_play_gizmo_interaction();
+        clear_play_gizmo_viewport_interaction(shell);
+    }
+
+    fn retire_play_gizmo_interaction(&self) {
         self.play_gizmo
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .retire_local();
-        let mut shell = self.shell().lock();
-        shell.state.viewport_controller.cancel_interaction();
-        shell
-            .state
-            .viewport_controller
-            .set_handle_hover_for_transform(None);
     }
 
     fn begin_play_gizmo(
@@ -323,7 +333,7 @@ impl EditorHostEventController {
                     return Err(PlayGizmoError::LocalHandleMissing);
                 }
             };
-            if preview.node_id != active.projection.entity {
+            if preview.primary != active.projection.entity {
                 owner.retire_local();
                 drop(owner);
                 self.shell()
@@ -333,7 +343,7 @@ impl EditorHostEventController {
                     .cancel_interaction();
                 return Err(PlayGizmoError::LocalHandleEntityMismatch);
             }
-            if preview.transform == active.current {
+            if preview.target_pivot_world == active.current {
                 return Ok(PlayGizmoPointerOutcome::Previewed { changed: false });
             }
             let sequence = PlayGizmoInteractionController::next_sequence(&active)?;
@@ -347,7 +357,7 @@ impl EditorHostEventController {
                     active.projection.world_replacement_epoch,
                     ZrRuntimeEditorTransformPhaseV1::Preview,
                     active.current,
-                    preview.transform,
+                    preview.target_pivot_world,
                 ),
                 "preview",
             ) {
@@ -361,12 +371,12 @@ impl EditorHostEventController {
                 return Err(error);
             }
             if let Some(current) = owner.active.as_mut() {
-                current.current = preview.transform;
+                current.current = preview.target_pivot_world;
                 current.sequence = sequence;
-                current.projection.transform = preview.transform;
+                current.projection.transform = preview.target_pivot_world;
             }
             if let Some(projection) = owner.projection.as_mut() {
-                projection.transform = preview.transform;
+                projection.transform = preview.target_pivot_world;
             }
             zircon_runtime::profile_counter!("editor", "play.gizmo.preview_write_count", 1);
             return Ok(PlayGizmoPointerOutcome::Previewed { changed: true });
@@ -590,6 +600,14 @@ impl EditorHostEventController {
     }
 }
 
+fn clear_play_gizmo_viewport_interaction(shell: &mut WorkbenchShellStateData) {
+    shell.state.viewport_controller.cancel_interaction();
+    shell
+        .state
+        .viewport_controller
+        .set_handle_hover_for_transform(None);
+}
+
 fn capture_projection(
     gateway: &EditorRuntimeGatewayHandle,
     frame: &PlayPreviewFrameIdentity,
@@ -749,31 +767,5 @@ pub(crate) enum PlayGizmoError {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn interaction_and_sequence_ids_do_not_wrap() {
-        let mut owner = PlayGizmoInteractionController {
-            next_interaction_id: Some(u64::MAX),
-            projection: None,
-            active: None,
-        };
-
-        assert_eq!(owner.take_interaction_id().unwrap(), u64::MAX);
-        assert!(matches!(
-            owner.take_interaction_id(),
-            Err(PlayGizmoError::InteractionIdExhausted)
-        ));
-    }
-
-    #[test]
-    fn hover_never_consumes_the_scene_pick_path() {
-        assert!(!PlayGizmoPointerOutcome::Hover {
-            axis: Some(GizmoAxis::X),
-            changed: true,
-        }
-        .consumed());
-        assert!(PlayGizmoPointerOutcome::Began { axis: GizmoAxis::X }.consumed());
-    }
-}
+#[path = "tests/play_gizmo.rs"]
+mod tests;

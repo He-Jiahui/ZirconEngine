@@ -5,7 +5,7 @@ related_code:
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/handle.rs
   - zircon_runtime/src/core/manager/resolver.rs
   - zircon_runtime/src/core/manager/service.rs
-  - docs/zircon_runtime/dynamic_api/session.md
+  - docs/crates/zircon_runtime/dynamic_api/session.md
 implementation_files:
   - zircon_runtime/src/dynamic_api/session/project.rs
 plan_sources:
@@ -47,7 +47,7 @@ queue 与 navmesh load 也收敛为 `project_asset_manager_handle` / `navigation
 共享 service resolver，移除了 named concrete-manager lookup 和旧 navigation helper。
 
 没有保留 `pub use` shim、Arc-holder adapter、重复 resolver、静默 fallback 或旧模块路径。
-模块文档 `docs/zircon_runtime/dynamic_api/session.md` 已记录这三条 handle-based use-point
+模块文档 `docs/crates/zircon_runtime/dynamic_api/session.md` 已记录这三条 handle-based use-point
 解析及生命周期边界。
 
 ## 验证

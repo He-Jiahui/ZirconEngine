@@ -94,17 +94,20 @@ impl ToolScheduler {
             .resources
             .iter()
             .map(|(resource, state)| {
+                let mut queued = Vec::with_capacity(state.queue.len());
+                queued.extend(
+                    state
+                        .queue
+                        .iter()
+                        .filter_map(|request_id| self.requests.get(request_id).cloned()),
+                );
                 ToolResourceStateSnapshot::new(
                     resource.clone(),
                     state
                         .holder
                         .and_then(|lease_id| self.leases.get(&lease_id))
                         .cloned(),
-                    state
-                        .queue
-                        .iter()
-                        .filter_map(|request_id| self.requests.get(request_id).cloned())
-                        .collect(),
+                    queued.into_boxed_slice(),
                 )
             })
             .collect();
@@ -260,24 +263,28 @@ impl ToolScheduler {
         generation: ToolOwnerGeneration,
         revoked_resource_kinds: &[ToolResourceKindId],
     ) -> ToolScheduleReport<ToolOwnerRevokeOutcome> {
-        let lease_ids = self
-            .leases
-            .iter()
-            .filter_map(|(lease_id, lease)| {
-                (lease.owner_generation() == generation
-                    || claim_uses_revoked_kind(lease.resources(), revoked_resource_kinds))
-                .then_some(*lease_id)
-            })
-            .collect::<Vec<_>>();
-        let request_positions = self
-            .requests
-            .iter()
-            .filter_map(|(request_id, request)| {
-                (request.owner_generation() == generation
-                    || claim_uses_revoked_kind(request.resources(), revoked_resource_kinds))
-                .then(|| (*request_id, self.request_position(request).unwrap_or(1)))
-            })
-            .collect::<Vec<_>>();
+        let mut lease_ids = Vec::new();
+        for (lease_id, lease) in &self.leases {
+            if lease.owner_generation() == generation
+                || claim_uses_revoked_kind(lease.resources(), revoked_resource_kinds)
+            {
+                if lease_ids.is_empty() {
+                    lease_ids.reserve(self.leases.len());
+                }
+                lease_ids.push(*lease_id);
+            }
+        }
+        let mut request_positions = Vec::new();
+        for (request_id, request) in &self.requests {
+            if request.owner_generation() == generation
+                || claim_uses_revoked_kind(request.resources(), revoked_resource_kinds)
+            {
+                if request_positions.is_empty() {
+                    request_positions.reserve(self.requests.len());
+                }
+                request_positions.push((*request_id, self.request_position(request).unwrap_or(1)));
+            }
+        }
         let mut events = Vec::new();
 
         for lease_id in &lease_ids {
@@ -287,16 +294,20 @@ impl ToolScheduler {
                 &mut events,
             );
         }
-        let released_leases = lease_ids
-            .into_iter()
-            .filter_map(|lease_id| self.detach_active_lease_state(lease_id, &mut events))
-            .collect::<Vec<_>>();
-        let withdrawn_requests = request_positions
-            .into_iter()
-            .filter_map(|(request_id, previous_position)| {
+        let mut released_leases = Vec::with_capacity(lease_ids.len());
+        for lease_id in lease_ids {
+            if let Some(lease) = self.detach_active_lease_state(lease_id, &mut events) {
+                released_leases.push(lease);
+            }
+        }
+        let mut withdrawn_requests = Vec::with_capacity(request_positions.len());
+        for (request_id, previous_position) in request_positions {
+            if let Some(request) =
                 self.detach_queued_request_state(request_id, previous_position, &mut events)
-            })
-            .collect::<Vec<_>>();
+            {
+                withdrawn_requests.push(request);
+            }
+        }
         let activated_leases = self.promote_available_claims(&mut events);
         self.remove_empty_resource_states();
 
@@ -315,19 +326,15 @@ impl ToolScheduler {
     pub(crate) fn shutdown(&mut self) -> ToolScheduleReport<ToolShutdownOutcome> {
         let capture_report = self.input_captures.shutdown();
         let (_, capture_events) = capture_report.into_parts();
-        let queued = self
+        let queued_request_count = self.requests.len();
+        let active_lease_count = self.leases.len();
+        let queued_positions = self
             .requests
             .values()
-            .cloned()
-            .map(|request| {
-                let position = self.request_position(&request).unwrap_or(1);
-                (request, position)
-            })
+            .map(|request| self.request_position(request).unwrap_or(1))
             .collect::<Vec<_>>();
-        let leases = std::mem::take(&mut self.leases)
-            .into_values()
-            .collect::<Vec<_>>();
-        self.requests.clear();
+        let queued_requests = std::mem::take(&mut self.requests);
+        let leases = std::mem::take(&mut self.leases);
         self.instances.clear();
         self.resources.clear();
         self.set_queue.clear();
@@ -336,15 +343,15 @@ impl ToolScheduler {
         let mut events = Vec::with_capacity(
             capture_events
                 .len()
-                .saturating_add(leases.len())
-                .saturating_add(queued.len()),
+                .saturating_add(active_lease_count)
+                .saturating_add(queued_request_count),
         );
         events.extend(
             capture_events
                 .into_iter()
                 .map(|event| ToolLifecycleEvent::InputCapture { event }),
         );
-        for lease in leases {
+        for lease in leases.into_values() {
             if lease.resources().len() == 1 {
                 outcome.released_single_leases += 1;
             } else {
@@ -352,7 +359,7 @@ impl ToolScheduler {
             }
             events.push(ToolLifecycleEvent::Deactivated { lease });
         }
-        for (request, previous_position) in queued {
+        for (request, previous_position) in queued_requests.into_values().zip(queued_positions) {
             if request.resources().len() == 1 {
                 outcome.withdrawn_single_requests += 1;
             } else {
@@ -679,6 +686,9 @@ impl ToolScheduler {
             self.detach_request(&request);
             self.requests.remove(&request_id);
             let lease = self.activate_reserved_request(&request);
+            if activated.is_empty() {
+                activated.reserve(self.set_queue.len());
+            }
             events.push(ToolLifecycleEvent::Activated {
                 lease: lease.clone(),
             });
@@ -692,27 +702,34 @@ impl ToolScheduler {
         events: &mut Vec<ToolLifecycleEvent>,
     ) -> Vec<ToolLeaseHandle> {
         let mut activated = Vec::new();
-        let resources = self.resources.keys().cloned().collect::<Vec<_>>();
-        for resource in resources {
-            if self.holder(&resource).is_some() || self.set_head_overlaps(&resource) {
+        let mut promotable_request_ids = Vec::new();
+        for (resource, state) in &self.resources {
+            if self.holder(resource).is_some() || self.set_head_overlaps(resource) {
                 continue;
             }
-            let request_id = self.resources.get(&resource).and_then(|state| {
-                state.queue.iter().copied().find(|request_id| {
-                    self.requests
-                        .get(request_id)
-                        .is_some_and(|request| request.resources().len() == 1)
-                })
+            let request_id = state.queue.iter().copied().find(|request_id| {
+                self.requests
+                    .get(request_id)
+                    .is_some_and(|request| request.resources().len() == 1)
             });
             let Some(request_id) = request_id else {
                 continue;
             };
+            if promotable_request_ids.is_empty() {
+                promotable_request_ids.reserve(self.resources.len());
+            }
+            promotable_request_ids.push(request_id);
+        }
+        for request_id in promotable_request_ids {
             let Some(request) = self.requests.get(&request_id).cloned() else {
                 continue;
             };
             self.detach_request(&request);
             self.requests.remove(&request_id);
             let lease = self.activate_reserved_request(&request);
+            if activated.is_empty() {
+                activated.reserve(self.resources.len());
+            }
             events.push(ToolLifecycleEvent::Activated {
                 lease: lease.clone(),
             });
@@ -754,3 +771,19 @@ fn claim_uses_revoked_kind(
             .is_ok()
     })
 }
+
+#[cfg(test)]
+#[path = "tests/optimization_batch_editor827_tool_scheduler_promotion_tests.rs"]
+mod optimization_batch_editor827_tool_scheduler_promotion_tests;
+
+#[cfg(test)]
+#[path = "tests/optimization_batch_editor828_tool_scheduler_revoke_capacity_tests.rs"]
+mod optimization_batch_editor828_tool_scheduler_revoke_capacity_tests;
+
+#[cfg(test)]
+#[path = "tests/optimization_batch_editor875_tool_scheduler_promotable_request_projection_tests.rs"]
+mod optimization_batch_editor875_tool_scheduler_promotable_request_projection_tests;
+
+#[cfg(test)]
+#[path = "tests/optimization_batch_editor876_tool_scheduler_shutdown_owned_drain_tests.rs"]
+mod optimization_batch_editor876_tool_scheduler_shutdown_owned_drain_tests;

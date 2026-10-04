@@ -3,16 +3,16 @@ use std::sync::Arc;
 use zr_rhi_wgpu::{WgpuTextureUpload, WgpuTextureUploadBatch};
 
 use crate::text::atlas::{
-    GlyphAtlasBitmapFaceValidity, GlyphAtlasBitmapPageShadowCommit,
-    GlyphAtlasBitmapPreparedUploadPlan, GlyphAtlasBitmapRequeueReason, GlyphAtlasBitmapRunPlan,
-    GlyphAtlasBitmapTextureUploadRequestPlan, GlyphAtlasFormat, GlyphAtlasSet,
     glyph_atlas_bitmap_page_shadow_commit, glyph_atlas_bitmap_texture_upload_request_plan,
     glyph_atlas_bitmap_texture_upload_request_plan_with_atlas,
     glyph_atlas_bitmap_texture_upload_request_plan_with_atlas_and_face_validity,
+    GlyphAtlasBitmapFaceValidity, GlyphAtlasBitmapPageShadowCommit,
+    GlyphAtlasBitmapPreparedUploadPlan, GlyphAtlasBitmapRequeueReason, GlyphAtlasBitmapRunPlan,
+    GlyphAtlasBitmapTextureUploadRequestPlan, GlyphAtlasFormat, GlyphAtlasSet,
 };
 
 use super::binding::{
-    GlyphAtlasBitmapTextureUploadBindingPlan, glyph_atlas_bitmap_texture_upload_binding_plan,
+    glyph_atlas_bitmap_texture_upload_binding_plan, GlyphAtlasBitmapTextureUploadBindingPlan,
 };
 use super::write::{glyph_atlas_texture_upload_region, glyph_atlas_texture_upload_source_range};
 

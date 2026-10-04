@@ -7,7 +7,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::{
-    metadata::{ChromeKind, color_attribute, number_attribute},
+    metadata::{color_attribute, number_attribute, ChromeKind},
     state::ChromeRenderState,
 };
 

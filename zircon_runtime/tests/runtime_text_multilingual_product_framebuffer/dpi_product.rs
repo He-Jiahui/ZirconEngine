@@ -134,6 +134,18 @@ fn assert_raster_capture_settled(stats: &zircon_runtime::core::framework::render
         "{stats:#?}"
     );
     assert_eq!(
+        stats.last_ui_text_raster_retry_queued_glyph_count, 0,
+        "{stats:#?}"
+    );
+    assert_eq!(
+        stats.last_ui_text_raster_retry_queue_overflow_glyph_count, 0,
+        "{stats:#?}"
+    );
+    assert_eq!(
+        stats.last_ui_text_raster_retry_rejected_source_count, 0,
+        "{stats:#?}"
+    );
+    assert_eq!(
         stats.last_ui_text_visible_missing_raster_image_count, 0,
         "{stats:#?}"
     );

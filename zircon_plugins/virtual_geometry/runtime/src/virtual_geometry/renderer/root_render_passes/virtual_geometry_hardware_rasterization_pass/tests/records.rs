@@ -1,0 +1,259 @@
+use super::{
+    collect_execution_hardware_rasterization_records,
+    collect_execution_hardware_rasterization_records_from_pass,
+};
+use zircon_runtime::core::framework::render::{
+    RenderVirtualGeometryExecutionState, RenderVirtualGeometryHardwareRasterizationRecord,
+    RenderVirtualGeometrySelectedCluster, RenderVirtualGeometrySelectedClusterSource,
+};
+use crate::virtual_geometry::renderer::root_render_passes::virtual_geometry_executed_cluster_selection_pass::VirtualGeometryExecutedClusterSelectionPassOutput;
+use crate::virtual_geometry::types::{
+    VirtualGeometryClusterSelection, VirtualGeometryPrepareClusterState,
+};
+
+#[test]
+fn hardware_rasterization_pass_records_follow_shared_executed_cluster_selection_order_and_preserve_startup_parameters(
+) {
+    let records = collect_execution_hardware_rasterization_records(&[
+        selection(
+            Some(0),
+            42,
+            9,
+            40,
+            2,
+            400,
+            1,
+            401,
+            2,
+            2,
+            1,
+            3,
+            9,
+            Some(8),
+            Some(9),
+            VirtualGeometryPrepareClusterState::PendingUpload,
+        ),
+        selection(
+            Some(0),
+            42,
+            7,
+            30,
+            1,
+            300,
+            0,
+            300,
+            0,
+            1,
+            1,
+            2,
+            4,
+            Some(3),
+            Some(4),
+            VirtualGeometryPrepareClusterState::Resident,
+        ),
+        selection(
+            None,
+            43,
+            3,
+            50,
+            0,
+            500,
+            0,
+            500,
+            0,
+            0,
+            1,
+            1,
+            2,
+            Some(7),
+            Some(8),
+            VirtualGeometryPrepareClusterState::PendingUpload,
+        ),
+    ]);
+
+    assert_eq!(
+        records,
+        vec![
+            RenderVirtualGeometryHardwareRasterizationRecord {
+                instance_index: Some(0),
+                entity: 42,
+                cluster_id: 40,
+                cluster_ordinal: 2,
+                page_id: 400,
+                lod_level: 1,
+                submission_index: 9,
+                submission_page_id: 401,
+                submission_lod_level: 2,
+                entity_cluster_start_ordinal: 2,
+                entity_cluster_span_count: 1,
+                entity_cluster_total_count: 3,
+                lineage_depth: 1,
+                frontier_rank: 9,
+                resident_slot: Some(8),
+                submission_slot: Some(9),
+                state: RenderVirtualGeometryExecutionState::PendingUpload,
+            },
+            RenderVirtualGeometryHardwareRasterizationRecord {
+                instance_index: Some(0),
+                entity: 42,
+                cluster_id: 30,
+                cluster_ordinal: 1,
+                page_id: 300,
+                lod_level: 0,
+                submission_index: 7,
+                submission_page_id: 300,
+                submission_lod_level: 0,
+                entity_cluster_start_ordinal: 1,
+                entity_cluster_span_count: 1,
+                entity_cluster_total_count: 2,
+                lineage_depth: 1,
+                frontier_rank: 4,
+                resident_slot: Some(3),
+                submission_slot: Some(4),
+                state: RenderVirtualGeometryExecutionState::Resident,
+            },
+            RenderVirtualGeometryHardwareRasterizationRecord {
+                instance_index: None,
+                entity: 43,
+                cluster_id: 50,
+                cluster_ordinal: 0,
+                page_id: 500,
+                lod_level: 0,
+                submission_index: 3,
+                submission_page_id: 500,
+                submission_lod_level: 0,
+                entity_cluster_start_ordinal: 0,
+                entity_cluster_span_count: 1,
+                entity_cluster_total_count: 1,
+                lineage_depth: 1,
+                frontier_rank: 2,
+                resident_slot: Some(7),
+                submission_slot: Some(8),
+                state: RenderVirtualGeometryExecutionState::PendingUpload,
+            },
+        ],
+        "expected the hardware-rasterization baseline pass to preserve the ordering and startup fields of the shared executed-cluster seam instead of rebuilding its own execution filtering layer"
+    );
+}
+
+#[test]
+fn hardware_rasterization_pass_prefers_pass_owned_selected_clusters() {
+    let records = collect_execution_hardware_rasterization_records_from_pass(
+        &VirtualGeometryExecutedClusterSelectionPassOutput::from_test_parts(
+            vec![selection(
+                Some(0),
+                42,
+                7,
+                30,
+                1,
+                300,
+                0,
+                301,
+                2,
+                1,
+                1,
+                3,
+                4,
+                Some(3),
+                Some(4),
+                VirtualGeometryPrepareClusterState::PendingUpload,
+            )],
+            vec![selected_cluster(
+                Some(5),
+                900,
+                20,
+                0,
+                200,
+                1,
+                RenderVirtualGeometryExecutionState::Resident,
+            )],
+            RenderVirtualGeometrySelectedClusterSource::RenderPathExecutionSelections,
+            1,
+            None,
+        ),
+    );
+
+    assert_eq!(
+        records,
+        vec![RenderVirtualGeometryHardwareRasterizationRecord {
+            instance_index: Some(5),
+            entity: 900,
+            cluster_id: 20,
+            cluster_ordinal: 0,
+            page_id: 200,
+            lod_level: 1,
+            submission_index: 7,
+            submission_page_id: 301,
+            submission_lod_level: 2,
+            entity_cluster_start_ordinal: 1,
+            entity_cluster_span_count: 1,
+            entity_cluster_total_count: 3,
+            lineage_depth: 1,
+            frontier_rank: 4,
+            resident_slot: Some(3),
+            submission_slot: Some(4),
+            state: RenderVirtualGeometryExecutionState::Resident,
+        }],
+        "expected the hardware-rasterization baseline pass to trust the pass-owned selected-cluster seam for cluster identity and execution state while still preserving startup-only submission metadata from the internal selection DTO"
+    );
+}
+
+#[allow(clippy::too_many_arguments)]
+fn selection(
+    instance_index: Option<u32>,
+    entity: u64,
+    submission_index: u32,
+    cluster_id: u32,
+    cluster_ordinal: u32,
+    page_id: u32,
+    lod_level: u8,
+    submission_page_id: u32,
+    submission_lod_level: u8,
+    entity_cluster_start_ordinal: usize,
+    entity_cluster_span_count: usize,
+    entity_cluster_total_count: usize,
+    frontier_rank: u32,
+    resident_slot: Option<u32>,
+    submission_slot: Option<u32>,
+    state: VirtualGeometryPrepareClusterState,
+) -> VirtualGeometryClusterSelection {
+    VirtualGeometryClusterSelection {
+        submission_index,
+        instance_index,
+        entity,
+        cluster_id,
+        cluster_ordinal,
+        page_id,
+        lod_level,
+        submission_page_id,
+        submission_lod_level,
+        entity_cluster_start_ordinal,
+        entity_cluster_span_count,
+        entity_cluster_total_count,
+        lineage_depth: 1,
+        frontier_rank,
+        resident_slot,
+        submission_slot,
+        state,
+    }
+}
+
+fn selected_cluster(
+    instance_index: Option<u32>,
+    entity: u64,
+    cluster_id: u32,
+    cluster_ordinal: u32,
+    page_id: u32,
+    lod_level: u8,
+    state: RenderVirtualGeometryExecutionState,
+) -> RenderVirtualGeometrySelectedCluster {
+    RenderVirtualGeometrySelectedCluster {
+        instance_index,
+        entity,
+        cluster_id,
+        cluster_ordinal,
+        page_id,
+        lod_level,
+        state,
+    }
+}

@@ -1,8 +1,8 @@
 use crate::ui::surface::{
-    component_state::{UiComponentStatePropertyChange, property_may_affect_runtime_pseudo_state},
+    component_state::{property_may_affect_runtime_pseudo_state, UiComponentStatePropertyChange},
     property_mutation::{
-        UiPropertyMutationReport, UiPropertyMutationRequest, UiPropertyMutationStatus,
-        mutate_tree_property,
+        mutate_tree_property, UiPropertyMutationReport, UiPropertyMutationRequest,
+        UiPropertyMutationStatus,
     },
 };
 use zircon_runtime_interface::ui::{
@@ -111,6 +111,7 @@ impl UiSurface {
         Ok(true)
     }
 
+    // 关闭后代弹层按顺序提交，早于当前节点属性提交；后续拒绝或错误不会整体回滚已经完成的关闭。
     fn mutate_property_with_popup_branch_close(
         &mut self,
         request: UiPropertyMutationRequest,

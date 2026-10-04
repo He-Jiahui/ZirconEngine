@@ -11,15 +11,14 @@ mod number_model_update;
 mod rich_link_target;
 
 pub use model_update::{
-    UI_TEXT_MODEL_UPDATE_SCHEMA_VERSION, UiTextDocumentKey, UiTextModelUpdateFailure,
-    UiTextModelUpdateId, UiTextModelUpdateOrigin, UiTextModelUpdateReceipt,
-    UiTextModelUpdateRequest, UiTextModelUpdateStatus,
+    UiTextDocumentKey, UiTextModelUpdateFailure, UiTextModelUpdateId, UiTextModelUpdateOrigin,
+    UiTextModelUpdateReceipt, UiTextModelUpdateRequest, UiTextModelUpdateStatus,
+    UI_TEXT_MODEL_UPDATE_SCHEMA_VERSION,
 };
 pub use number_model_update::{
-    UI_NUMBER_MODEL_UPDATE_SCHEMA_VERSION, UiNumberModelId, UiNumberModelKey,
-    UiNumberModelRevision, UiNumberModelUpdateFailure, UiNumberModelUpdateId,
-    UiNumberModelUpdateOrigin, UiNumberModelUpdateReceipt, UiNumberModelUpdateRequest,
-    UiNumberModelUpdateStatus,
+    UiNumberModelId, UiNumberModelKey, UiNumberModelRevision, UiNumberModelUpdateFailure,
+    UiNumberModelUpdateId, UiNumberModelUpdateOrigin, UiNumberModelUpdateReceipt,
+    UiNumberModelUpdateRequest, UiNumberModelUpdateStatus, UI_NUMBER_MODEL_UPDATE_SCHEMA_VERSION,
 };
 pub use rich_link_target::{UiRichLinkTarget, UiRichLinkTargetError};
 
@@ -162,6 +161,7 @@ impl TryFrom<UiTextEditReceiptWire> for UiTextEditReceipt {
 }
 
 impl UiTextEditReceipt {
+    // EXEMPT(GEN-Q7): text edit receipt construction preserves the fixed UI/runtime ABI field set.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         node_id: UiNodeId,

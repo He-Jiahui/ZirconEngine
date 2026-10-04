@@ -31,10 +31,9 @@ related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/hard_cutover_migration_smells.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_boundary.py
   - docs/plans/zircon_runtime/frameworks/development-conventions.md
-  - tools/check-conventions.ps1
-  - tools/check_conventions.py
-  - tools/install-codex-session-hook.ps1
-  - tools/session_coordinator/codex_sync/hook.py
+  - tools/audits/check-conventions.ps1
+  - tools/audits/check_conventions.py
+  - tools/setup/install-codex-session-hook.ps1
   - .github/workflows/ci.yml
 tests:
   - tools/session_coordinator/tests/test_cargo_guard.py
@@ -89,7 +88,7 @@ source_recheck_required: true
 
 最严重的安全边界是tracked `.codex/config.toml`把`approval_policy`固定为`never`、把`sandbox_mode`固定为`danger-full-access`。仓库内容因此试图替用户或执行环境授予最高权限；与此同时Cargo guard与五个Session lifecycle hook都显式fail-open。前者只接受`tool_name == Bash`的payload并用命令字符串正则判断，后者捕获任意异常后返回0。规则声称Cargo和跨Session协调是强制约束，执行层却允许命名、别名、解释器、payload或依赖异常静默旁路。
 
-第二个硬阻断是工程规范双真源。`.codex/skills/zircon-project-skills/development-conventions.md`与CI读取的`docs/plans/zircon_runtime/frameworks/development-conventions.md`同为169行却有不同hash，并已在三个关键MUST规则分叉：`KernelError`/`CoreError`、旧`ZrByteSlice/ZrOwnedByteBuffer` ABI/当前不可复制`ZrOwnedResultV2 + opaque allocation id + table release`、九个D/E/F受管根/普通共享`CARGO_TARGET_DIR`。代理读取第一份，`tools/check_conventions.py`只验证第二份，因此旧ABI和旧构建政策可被代理当作权威，而CI对另一份文档保持绿色。
+第二个硬阻断是工程规范双真源。`.codex/skills/zircon-project-skills/development-conventions.md`与CI读取的`docs/plans/zircon_runtime/frameworks/development-conventions.md`同为169行却有不同hash，并已在三个关键MUST规则分叉：`KernelError`/`CoreError`、旧`ZrByteSlice/ZrOwnedByteBuffer` ABI/当前不可复制`ZrOwnedResultV2 + opaque allocation id + table release`、九个D/E/F受管根/普通共享`CARGO_TARGET_DIR`。代理读取第一份，`tools/audits/check_conventions.py`只验证第二份，因此旧ABI和旧构建政策可被代理当作权威，而CI对另一份文档保持绿色。
 
 第三个硬阻断是结构审计没有门语义。Runtime aggregate实测114.6秒、输出673,171字符JSON，明确报告`runtime_naming_boundary=blocked`、多个`migration-debt-present`、missing source/anchor和native surface差异，却固定返回0；Editor aggregate实测8.6秒、报告30项migration debt，也固定返回0。19个外部结构测试模块运行50个用例耗时180.597秒，当前12个失败，外层命令在182.1秒超时；CI只运行dependency governance与两个convention runner测试，不运行aggregate或这19个模块。故“运行了audit”与“通过工程门”目前没有可机读关系。
 
@@ -130,7 +129,7 @@ source_recheck_required: true
 | catalog summary | 10 | 不覆盖11个顶层目录或53个skill入口 |
 | catalog更新时间 | 2026-08-03 | 无source tree digest、generator version或CI currentness gate |
 
-111个脚本的语法清洁度可保留，但语法可解析不等于规则正确、结果可作为gate或clean clone可重现。ignored目录内还存在一份231行的旧`.codex/skills/zircon-dev/scripts/WindowsPathResolver.psm1`，与tracked `tools/WindowsPathResolver.psm1`的980行实现hash不同；正式validator已导入tracked tools owner，这份隐藏副本仍会误导本机维护者和ad-hoc调用。
+111个脚本的语法清洁度可保留，但语法可解析不等于规则正确、结果可作为gate或clean clone可重现。ignored目录内还存在一份231行的旧`.codex/skills/zircon-dev/scripts/WindowsPathResolver.psm1`，与tracked `tools/maintenance/WindowsPathResolver.psm1`的980行实现hash不同；正式validator已导入tracked tools owner，这份隐藏副本仍会误导本机维护者和ad-hoc调用。
 
 ### 2.3 动态审计证据
 
@@ -186,7 +185,7 @@ Runtime与Editor aggregate在所有分支末尾返回0，JSON/Markdown中的`blo
 
 ### CODEX-CONTROL-P0-004 · 当前12个结构合同失败未进入required CI
 
-19个外部module的50项test当前有12项失败，CI只运行另外3个Python module与`tools/check_conventions.py`。这使Runtime API、UI、render naming、hotpath、job/input/module family等已知结构漂移长期不影响main资格。先恢复当前red baseline的owner/expected-currentness，再把完整suite按快速/慢速lane接入；不得删除失败测试或放宽expected list制造绿色。
+19个外部module的50项test当前有12项失败，CI只运行另外3个Python module与`tools/audits/check_conventions.py`。这使Runtime API、UI、render naming、hotpath、job/input/module family等已知结构漂移长期不影响main资格。先恢复当前red baseline的owner/expected-currentness，再把完整suite按快速/慢速lane接入；不得删除失败测试或放宽expected list制造绿色。
 
 ### CODEX-CONTROL-P0-005 · Cargo guard是可旁路、fail-open的字符串过滤器
 

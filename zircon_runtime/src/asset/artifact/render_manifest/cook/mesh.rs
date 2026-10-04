@@ -3,9 +3,9 @@ use std::sync::Arc;
 use thiserror::Error;
 
 use crate::asset::{
-    MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT,
-    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0, MESH_ATTRIBUTE_UV1,
-    MeshAsset, MeshAttributeValues, MeshIndices, MeshValidationError,
+    MeshAsset, MeshAttributeValues, MeshIndices, MeshValidationError, MESH_ATTRIBUTE_COLOR,
+    MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT, MESH_ATTRIBUTE_NORMAL,
+    MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0, MESH_ATTRIBUTE_UV1,
 };
 use crate::core::framework::render::RenderMeshTopology;
 use crate::core::resource::{ResourceKind, UntypedResourceHandle};
@@ -78,6 +78,7 @@ pub enum RenderArtifactMeshCookError {
     Manifest(#[from] RenderArtifactManifestError),
 }
 
+/// 将三角形网格打包为固定顶点步幅与 Uint32 索引块；拒绝需单独处理的 morph、skin 等载荷，输出内容哈希和布局供清单及存储层校验。
 pub fn cook_mesh_render_artifact(
     resource: UntypedResourceHandle,
     asset_revision: u64,
@@ -257,6 +258,7 @@ fn pack_vertices(
     ))
 }
 
+// 缺少或为空的索引缓冲按顶点顺序物化为 u32；已有 u16 索引在这里一次性扩宽，保证最终块格式与 manifest 的 Uint32 声明一致。
 fn pack_indices(mesh: &MeshAsset, vertex_count: u32, output: &mut Vec<u8>) {
     match mesh.indices.as_ref() {
         Some(MeshIndices::U16(indices)) if !indices.is_empty() => {
@@ -326,5 +328,5 @@ fn push_u16<const N: usize>(output: &mut Vec<u8>, values: &[u16; N]) {
 }
 
 #[cfg(test)]
-#[path = "mesh/tests.rs"]
+#[path = "mesh/tests/cases.rs"]
 mod tests;

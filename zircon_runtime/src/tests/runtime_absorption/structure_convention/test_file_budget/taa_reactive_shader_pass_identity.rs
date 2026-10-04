@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对时域抗锯齿反应通道的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 const STATUS: &str = "render_plan08_taa_reactive_shader_pass_identity_static_passed_cargo_deferred";
@@ -16,7 +17,7 @@ fn runtime_15_taa_reactive_shader_pass_identity_is_wired() {
     let prewarm_manifest = read_runtime_src("bin/zircon_shader_prewarm/manifest.rs");
     let prewarm_manifest_pass_types =
         read_runtime_src("bin/zircon_shader_prewarm/manifest/pass_types.rs");
-    let prewarm_tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests.rs");
+    let prewarm_tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/cases.rs");
     let plan_08 = read_repo(
         "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
     );
@@ -37,8 +38,12 @@ fn runtime_15_taa_reactive_shader_pass_identity_is_wired() {
             "TaaReactiveMask",
             "Self::TaaReactiveMask => 5",
             "Self::TaaReactiveMask => \"taa_reactive_mask\"",
-            "render_shader_pass_type_names_taa_reactive_mask_separately_from_forward",
         ],
+    );
+    assert_contains_all(
+        "framework shader pass key exposes a dedicated TAA reactive mask pass",
+        &read_runtime_src("core/framework/render/shader/tests/variant_key.rs"),
+        &["render_shader_pass_type_names_taa_reactive_mask_separately_from_forward"],
     );
     assert_contains_all(
         "material template specialization can assemble the TAA reactive mask template",
@@ -56,12 +61,22 @@ fn runtime_15_taa_reactive_shader_pass_identity_is_wired() {
         &[
             "MeshPassPipelineKind::TaaReactiveMask | MeshPassPipelineKind::TaaReactiveMaterialMask",
             "ShaderPassType::TaaReactiveMask",
+        ],
+    );
+    assert_contains_all(
+        "mesh pipeline variant registry maps TAA reactive kinds to the dedicated pass",
+        &read_runtime_src(
+        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/tests/mesh_pipeline_variant_registry.rs",
+    ),
+        &[
             "mesh_pipeline_variant_registry_maps_taa_reactive_to_taa_reactive_pass_type",
         ],
     );
     assert_contains_all(
         "TAA reactive shader module key records the dedicated pass identity",
-        &taa_cache,
+        &read_runtime_src(
+        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/tests/ensure_taa_reactive_mask_pipeline.rs",
+    ),
         &[
             "ShaderPassType::TaaReactiveMask",
             "|pass=taa_reactive_mask|",

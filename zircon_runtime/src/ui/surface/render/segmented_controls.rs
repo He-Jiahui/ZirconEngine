@@ -13,7 +13,7 @@ use zircon_runtime_interface::ui::{
     tree::UiTemplateNodeMetadata,
 };
 
-use metadata::{SegmentedControlKind, control_kind, is_segmented_or_tab};
+use metadata::{control_kind, is_segmented_or_tab, SegmentedControlKind};
 use segments::segmented_commands;
 use state::SegmentedRenderState;
 use style::SegmentedVisual;

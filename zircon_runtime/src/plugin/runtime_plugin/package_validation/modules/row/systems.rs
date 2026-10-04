@@ -3,6 +3,7 @@ use crate::plugin::PluginModuleManifest;
 
 use super::super::super::validate_runtime_plugin_package_namespace;
 
+// 系统集合与锚点必须处在本包命名空间内，后续注册阶段才可用这些名称定位具体运行时锚点。
 pub(super) fn validate_runtime_plugin_package_module_system_contracts(
     package_id: &str,
     module: &PluginModuleManifest,
@@ -60,23 +61,5 @@ fn runtime_plugin_package_system_name_has_owner(package_id: &str, value: &str) -
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn module_system_owner_check_does_not_format_a_prefix() {
-        let source = include_str!("systems.rs");
-        let formatted_prefix = ["format!(\"", "{package_id}.", "\")"].concat();
-        assert!(!source.contains(&formatted_prefix));
-    }
-
-    #[test]
-    fn module_system_owner_check_preserves_the_dot_boundary() {
-        assert!(super::runtime_plugin_package_system_name_has_owner(
-            "physics",
-            "physics.simulation"
-        ));
-        assert!(!super::runtime_plugin_package_system_name_has_owner(
-            "phys",
-            "physics.simulation"
-        ));
-    }
-}
+#[path = "tests/systems.rs"]
+mod tests;

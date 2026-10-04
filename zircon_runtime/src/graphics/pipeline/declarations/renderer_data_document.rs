@@ -1,3 +1,4 @@
+//! 此处把可编辑 TOML 文档转为运行时 renderer 资产；最终图资源兼容性仍在编译阶段验证。
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::{Display, Formatter};
 
@@ -694,5 +695,5 @@ const fn default_renderer_data_document_version() -> u32 {
 }
 
 #[cfg(test)]
-#[path = "renderer_data_document/borrowed_feature_name_tests.rs"]
+#[path = "renderer_data_document/tests/borrowed_feature_name_tests.rs"]
 mod borrowed_feature_name_tests;

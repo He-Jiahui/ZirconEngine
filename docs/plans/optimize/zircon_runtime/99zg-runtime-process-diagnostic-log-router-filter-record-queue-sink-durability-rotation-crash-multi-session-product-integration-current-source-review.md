@@ -23,7 +23,6 @@ related_code:
   - zircon_editor/src/core/context
   - zircon_editor/src/ui
   - zircon_plugins/plugin_sdk/src/native.rs
-  - zircon_plugins/*/dist/src/lib.rs
 tests:
   - zircon_runtime/src/diagnostic_log/diagnostics/tests
   - zircon_runtime/src/diagnostic_log/sink/tests

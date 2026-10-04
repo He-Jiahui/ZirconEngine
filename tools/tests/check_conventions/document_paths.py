@@ -1,3 +1,4 @@
+# 核对文档声明路径的存在性、越界与重解析点拒绝逻辑。
 from __future__ import annotations
 
 import os
@@ -8,7 +9,7 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-from tools.check_conventions import _RepositoryPathValidator, audit_document_paths
+from tools.audits.check_conventions import _RepositoryPathValidator, audit_document_paths
 
 
 class DocumentPathAuditTests(unittest.TestCase):
@@ -101,7 +102,7 @@ class DocumentPathAuditTests(unittest.TestCase):
                 "  - zircon_runtime/build/generated/report.json\n"
                 "  - https://example.com/tests/guide.rs\n"
                 "  - http://example.com/tests/reference.md\n"
-                "  - python tools/check_conventions.py --only docs\n"
+                "  - python tools/audits/check_conventions.py --only docs\n"
                 "  - cargo test --manifest-path tools/tests/missing.py\n"
                 "  - git diff --check -- tools/tests/missing.py\n"
                 "  - python -m unittest tools.tests.test_check_conventions -v\n"

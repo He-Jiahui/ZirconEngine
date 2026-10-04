@@ -27,13 +27,13 @@ invariant(state.includes('pub var entityTappedByIds: container.Array<uint>;'),
 for (const needle of [
   'appendDefaultTapOwnershipColumns(this);',
   'appendDefaultTapOwnershipColumns(state);',
-  'writer.u16(<uint>38, 1, 1);', 'schemaVersion != <uint>32', 'schemaVersion != <uint>33',
+  'writer.u16(schemaVersion, 1, 1);', 'schemaVersion != <uint>32', 'schemaVersion != <uint>33',
   'if (schemaVersion >= <uint>32) {',
   'm8FreshPlayerStats.tapOwnershipId',
   'm8EastbrookEncounter.tapOwnershipId',
   'entityState.entityTappedByIds[0] = <uint>900;',
 ]) invariant(state.includes(needle), `WOS32 tap-ownership projection omitted: ${needle}`);
-invariant(main.includes('\\"world_state\\":\\"WOS38\\",'), 'package stateSchema must expose WOS38');
+invariant(main.includes('\\"world_state\\":\\"WOS118\\",'), 'package stateSchema must expose WOS118');
 
 process.stdout.write(`checked WOS32 tap-ownership source projection: ${SOURCE_COMMIT.slice(0, 15)}\n`);
 

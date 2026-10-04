@@ -69,10 +69,10 @@ impl EditorMessageSchemaId {
             (Some(ROOT_NAMESPACE), Some(EDITOR_NAMESPACE), count) if count >= 3 => {}
             (Some(ROOT_NAMESPACE), Some(PLUGIN_NAMESPACE), count) if count >= 4 => {}
             (Some(ROOT_NAMESPACE), Some(EDITOR_NAMESPACE), _) => {
-                return Err(EditorMessageSchemaIdError::MissingEditorSchema)
+                return Err(EditorMessageSchemaIdError::MissingEditorSchema);
             }
             (Some(ROOT_NAMESPACE), Some(PLUGIN_NAMESPACE), _) => {
-                return Err(EditorMessageSchemaIdError::MissingPluginIdentityOrSchema)
+                return Err(EditorMessageSchemaIdError::MissingPluginIdentityOrSchema);
             }
             _ => {
                 return Err(EditorMessageSchemaIdError::UnsupportedNamespace {

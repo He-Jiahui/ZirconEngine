@@ -11,7 +11,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 扩展脚本、反射、动画与导航公开接口文档
 tests:
-  - zircon_reflect_derive/src/tests.rs
+  - zircon_reflect_derive/src/tests/cases.rs
   - zircon_runtime/src/script/vm/tests/reflection_docs.rs
   - zircon_runtime/tests/runtime_environment_reflection_probe_contract.rs
 doc_type: module-detail

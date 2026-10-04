@@ -1,5 +1,7 @@
-// Pure mob-AI observability. These counters must not participate in gameplay
-// decisions or RNG consumption; a host resets them at each simulation tick.
+// 怪物 AI 的纯观测计数，不能参与玩法决策或随机数消费；
+// 当前脚本叶子尚未接入宿主的逐帧重置路径。
+// TODO: [CR-WOC-CW-2001] 确认这些扫描计数是否应接入当前世界的运行期诊断；现有调用仅见叶子测试，尚无固定帧收集与导出证据；下一步核对诊断契约及世界索敌、仇恨扫描的统计消费端。
+/// 纯观测用计数容器；叶子测试验证累加与重置，计数不能影响目标选择或随机数消费。
 pub class MobScanCounters {
     pub var aggroScanPlayerVisits: int;
     pub var threatEntryVisits: int;

@@ -26,6 +26,7 @@ qualityFallbackLevel(quality: string): int {
 // explicitPresent must be true only when source ItemDef.requiredLevel was finite.
 // sourceLevelPresent is itemSourceLevel(item.id) !== undefined. Empty quality
 // denotes the source's missing quality and therefore follows common's ungated path.
+/// 装备判定与装备属性贡献共用同一等级门槛；显式等级的存在标志须在目录归一化时确定，零本身不能表示缺项。
 pub requiredLevel(
     quality: string,
     explicitPresent: bool,
@@ -41,6 +42,7 @@ pub requiredLevel(
 
 // Source composition equivalent to requiredLevelFor: resolve itemSourceLevel by
 // id first, then apply the explicit/gated/fallback policy above.
+/// 调用方须先确认物品身份有效，再用目录中的品质和显式等级调用；未知标识不会在此返回失败。
 pub requiredLevelForCatalogItem(
     itemId: string,
     quality: string,

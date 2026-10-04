@@ -1,6 +1,6 @@
 use crate::core::math::{Transform, Vec3};
-use crate::scene::World;
 use crate::scene::components::{ActiveSelf, Hierarchy, LocalTransform, Name};
+use crate::scene::World;
 
 #[test]
 fn persistent_entity_core_components_use_generic_storage_across_clone_serde_and_records() {
@@ -27,11 +27,11 @@ fn persistent_entity_core_components_use_generic_storage_across_clone_serde_and_
         .insert(entity, name.clone())
         .expect("name should use component storage");
     world
-        .insert(entity, hierarchy.clone())
-        .expect("hierarchy should use component storage");
+        .set_parent_checked(entity, hierarchy.parent)
+        .expect("hierarchy should use checked Scene authoring");
     world
-        .insert(entity, local_transform)
-        .expect("local transform should use component storage");
+        .update_transform(entity, local_transform.transform)
+        .expect("local transform should use checked Scene authoring");
     world
         .insert(entity, active_self)
         .expect("active state should use component storage");

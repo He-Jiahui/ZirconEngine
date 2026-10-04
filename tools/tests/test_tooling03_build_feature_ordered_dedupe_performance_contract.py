@@ -1,12 +1,13 @@
+# 核对构建特性与组件去重通过索引保留首次出现顺序。
 from __future__ import annotations
 
 import unittest
 
-from tools.zircon_export.native_build_command import (
+from tools.export.native_build_command import (
     normalized_native_dynamic_build_features,
 )
-from tools.zircon_export.native_build_workspace import dedupe as dedupe_workspace_crates
-from tools.zircon_export.plugin_build_command import plugin_build_features
+from tools.export.native_build_workspace import dedupe as dedupe_workspace_crates
+from tools.export.plugin_build_command import plugin_build_features
 
 
 class EqualityCountingString(str):

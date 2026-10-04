@@ -1,3 +1,4 @@
+//! 命名策略扫描需区分生产源码、测试夹具和已分类的历史名称。以结果断言检查当前接口或源码快照对应的边界。
 use super::*;
 
 #[test]
@@ -92,7 +93,8 @@ fn runtime_15_render_feature_fallback_capability_fixtures_use_current_names() {
 fn runtime_15_render_material_stale_texture_fixtures_use_current_names() {
     let manifest_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let material_runtime = read_text(
-        &manifest_root.join("src/graphics/scene/render_product_streamer_tests/material_runtime.rs"),
+        &manifest_root
+            .join("src/graphics/scene/render_product_streamer_tests/tests/material_runtime.rs"),
         "render product material runtime fixture source should be readable",
     );
     let runtime_15_plan = read_repo_text(
@@ -186,7 +188,7 @@ fn runtime_15_render_graph_fallback_fixtures_use_current_names() {
     );
     let compute_workload_tests = read_text(
         &manifest_root.join(
-            "src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/compute_workload/tests.rs",
+            "src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/compute_workload/tests/cases.rs",
         ),
         "render graph compute workload test fixture source should be readable",
     );

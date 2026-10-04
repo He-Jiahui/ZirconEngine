@@ -1,3 +1,6 @@
+//! 资源发布的唯一在线写入链：先完整预检，再一次更新权威状态，最后按批次发布失效事件。
+//! 批次按首次触及资源的顺序折叠成最终变化；状态、载荷与两个只读投影在同一权威写锁下配对。
+
 use std::collections::HashMap;
 use std::sync::{Arc, MutexGuard};
 
@@ -104,6 +107,8 @@ impl StagedResources {
     }
 }
 
+/// 已预检但尚未发布的资源批次，并持有发布串行锁；项目导入可在磁盘批次提交后再发布内存状态。
+/// 丢弃即可放弃，预检不会修改权威状态；持有期间不要重入同一管理器的提交，否则会等待自己持有的锁。
 pub struct PreparedResourceMutation<'a> {
     manager: &'a ResourceManager,
     commit_serial: MutexGuard<'a, ()>,
@@ -113,6 +118,7 @@ pub struct PreparedResourceMutation<'a> {
 }
 
 impl PreparedResourceMutation<'_> {
+    /// 应用已验证的完整批次并返回同次投影；事件发布保持串行，但其他读者可在事件通知前读到新权威状态。
     pub fn commit(self) -> ResourceMutationReceipt {
         let receipt = {
             let mut authority = self.manager.lock_authority_write();
@@ -127,6 +133,7 @@ impl PreparedResourceMutation<'_> {
 }
 
 impl ResourceManager {
+    /// 原子提交一个资源批次；身份、定位符、状态或版本预检失败时，整个批次保留原状。
     pub fn commit(&self, batch: ResourceMutationBatch) -> ResourceResult<ResourceMutationReceipt> {
         Ok(self.prepare_commit(batch)?.commit())
     }
@@ -455,6 +462,8 @@ fn staged_entry<'a>(
     staged.get_or_insert_with(id, || registry.get(id).cloned())
 }
 
+// 先移除发生变化的旧定位符，再写入最终记录，让同一批次的显式迁移共享最终命名空间。
+// 投影和回执必须在权威写锁内取得，调用端才能按一次发布结果更新后续视图。
 fn apply_staged(
     authority: &mut ResourceAuthority,
     staged: StagedResources,
@@ -617,5 +626,5 @@ fn invalid_transition(
 }
 
 #[cfg(test)]
-#[path = "commit/optimization_tests.rs"]
+#[path = "commit/tests/optimization_tests.rs"]
 mod optimization_tests;

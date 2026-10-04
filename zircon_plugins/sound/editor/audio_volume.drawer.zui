@@ -1,3 +1,4 @@
+# 音量区域组件检查器按注册 URI 选择此占位布局；形状与卷积属性编辑需由宿主按 Sound 命令契约接线。
 [asset]
 kind = "view"
 id = "sound.audio_volume.drawer"

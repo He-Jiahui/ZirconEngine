@@ -65,9 +65,13 @@ fn destroy_session_removes_registry_entry_only_after_event_mirror_quiescent_tear
     assert!(destroy_body.contains("destroy_session_slot(handle)"));
     assert!(session_store_source.contains("if !slot.begin_close()"));
     assert!(session_store_source.contains("slot.frame_activity().disable_wake_entries()"));
-    assert!(session_store_source.contains("slot.wait_for_actions()"));
-    assert!(session_store_source.contains("slot.frame_activity().wait_for_wake_callbacks()"));
-    assert!(session_store_source.contains("RuntimeDynamicSession::shutdown_before_library_unload"));
+    assert!(session_store_source.contains(
+        "slot.wait_for_actions(destroy_deadline.saturating_duration_since(Instant::now()))"
+    ));
+    assert!(session_store_source
+        .contains(".wait_for_wake_callbacks(destroy_deadline.saturating_duration_since("));
+    assert!(session_store_source.contains("slot.preserve_failed_teardown_for_retry();"));
+    assert!(session_store_source.contains("slot.shutdown_until(destroy_deadline)"));
     let shutdown = session_store_source
         .find("let session_shutdown = slot")
         .expect("session shutdown result");
@@ -77,107 +81,112 @@ fn destroy_session_removes_registry_entry_only_after_event_mirror_quiescent_tear
     let preserve = session_store_source
         .find("slot.preserve_failed_teardown_for_retry()")
         .expect("failed teardown retry owner");
-    let take = session_store_source
-        .find("drop(slot.take_session())")
-        .expect("successful teardown Session take");
     let remove = session_store_source
         .find("registry.sessions.remove(&handle.raw())")
         .expect("successful teardown registry removal");
     assert!(shutdown < incomplete);
     assert!(incomplete < preserve);
-    assert!(preserve < take);
-    assert!(take < remove);
+    assert!(preserve < remove);
     assert!(slot_source.contains("SessionSlotPhase::TeardownRetryPending"));
     assert!(slot_source.contains("if lifecycle.phase != SessionSlotPhase::Open"));
     assert!(session_state_source.contains("self.dynamic_process_log.as_mut()"));
-    assert!(session_state_source.contains("let shutdown = process_log.shutdown()"));
+    assert!(session_state_source.contains("let shutdown = process_log.shutdown_until(deadline)"));
     assert!(session_state_source.contains("if shutdown {"));
     assert!(session_state_source.contains("self.dynamic_process_log = None"));
     assert!(export_body.contains("catch_ffi_panic(|| unsafe { destroy_session(handle) })"));
 }
 
 #[test]
-fn session_scope_drains_before_modules_and_task_graph_stops_last() {
-    let session_state_source = include_str!("../session/state.rs");
-    let shutdown_start = session_state_source
-        .find("pub(super) fn shutdown_before_library_unload")
-        .expect("dynamic session shutdown owner");
-    let shutdown_end = session_state_source[shutdown_start..]
+fn dynamic_session_shutdown_keeps_mirrors_before_core_and_process_log_last() {
+    let state_source = include_str!("../session/state.rs");
+    let start = state_source
+        .find("pub(super) fn shutdown_before_library_unload_until")
+        .unwrap();
+    let end = state_source[start..]
         .find("\n    pub(super) fn new(")
-        .map(|offset| shutdown_start + offset)
-        .expect("dynamic session constructor after shutdown owner");
-    let shutdown_body = &session_state_source[shutdown_start..shutdown_end];
-    let close_admission = shutdown_body
-        .find("self.task_graph_scope.close_admission();")
-        .expect("session scope admission close");
-    let drain_scope = shutdown_body
-        .find(".wait_until_quiescent(DYNAMIC_SESSION_TASK_GRAPH_DRAIN_TIMEOUT)")
-        .expect("session scope drain");
-    let shutdown_modules = shutdown_body
-        .find(".shutdown_registered_modules_with_drain_timeout(")
-        .expect("runtime module shutdown");
-    let shutdown_task_graph = shutdown_body
-        .find(".shutdown_task_graph(DYNAMIC_SESSION_TASK_GRAPH_DRAIN_TIMEOUT)")
-        .expect("task graph shutdown");
-
-    assert!(close_admission < drain_scope);
-    assert!(drain_scope < shutdown_modules);
-    assert!(shutdown_modules < shutdown_task_graph);
+        .unwrap()
+        + start;
+    let body = &state_source[start..end];
+    let mirrors = body
+        .find("self.shutdown_plugin_event_subscriptions_until(deadline)")
+        .unwrap();
+    let core = body.find("shutdown_runtime_core_until(").unwrap();
+    let log = body.find("process_log.shutdown_until(deadline)").unwrap();
+    assert!(mirrors < core);
+    assert!(core < log);
 }
 
 #[test]
 fn create_session_validates_abi_and_startup_config_before_acquiring_the_dynamic_log_lease() {
-    let session_source = include_str!("../session/ffi.rs");
-    let create_start = session_source
+    let ffi = include_str!("../session/ffi.rs");
+    let start = ffi
         .find("pub(in crate::dynamic_api) unsafe fn create_session(")
-        .expect("create_session rust owner");
-    let create_end = session_source[create_start..]
+        .unwrap();
+    let end = ffi[start..]
         .find("\nfn invalid_runtime_startup_config")
-        .map(|offset| create_start + offset)
-        .expect("create_session helper after owner");
-    let create_body = &session_source[create_start..create_end];
-    let abi_validation = create_body
+        .unwrap()
+        + start;
+    let body = &ffi[start..end];
+    let abi = body
         .find("if config.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V3")
-        .expect("ABI validation");
-    let project_validation = create_body
+        .unwrap();
+    let config = body
         .find("let project_config = match RuntimeProjectConfig::from_abi_startup_config(")
-        .expect("startup config validation");
-    let lease_acquisition = create_body
-        .find("acquire_dynamic_unity_process_log")
-        .expect("dynamic log lease acquisition");
+        .unwrap();
+    let owner = body.find("try_create_session_with_wake(").unwrap();
+    assert!(abi < owner);
+    assert!(config < owner);
 
-    assert!(abi_validation < lease_acquisition);
-    assert!(project_validation < lease_acquisition);
+    let owner_source = include_str!("../session/registry/session_owner/runtime.rs");
+    let start = owner_source
+        .find("pub(in crate::dynamic_api::session) fn create(")
+        .unwrap();
+    let end = owner_source[start..]
+        .find("\n    pub(in crate::dynamic_api::session) fn dispatch<")
+        .unwrap()
+        + start;
+    let factory = &owner_source[start..end];
+    let lease = factory.find("acquire_dynamic_unity_process_log(").unwrap();
+    let construction = factory
+        .find("RuntimeDynamicSession::new(profile, project)")
+        .unwrap();
+    assert!(lease < construction);
 }
 
 #[test]
 fn create_session_aborts_before_dynamic_library_unload_when_post_lease_bootstrap_cannot_stop_the_worker(
 ) {
-    let session_source = include_str!("../session/ffi.rs");
-    let create_start = session_source
-        .find("pub(in crate::dynamic_api) unsafe fn create_session(")
-        .expect("create_session rust owner");
-    let create_end = session_source[create_start..]
-        .find("\nfn invalid_runtime_startup_config")
-        .map(|offset| create_start + offset)
-        .expect("create_session helper after owner");
-    let create_body = &session_source[create_start..create_end];
-    let lease_acquisition = create_body
-        .find("let mut dynamic_process_log =")
-        .expect("dynamic log lease acquisition");
-    let construction = create_body
-        .find("match RuntimeDynamicSession::new(profile, project_config) {")
-        .expect("runtime session construction");
-    let failed_construction_cleanup = create_body
-        .find("if !dynamic_process_log.shutdown() {")
-        .expect("failed construction must explicitly release the dynamic log lease");
-    let process_abort = create_body
-        .find("std::process::abort();")
-        .expect("unconfirmed worker shutdown must prevent dynamic library unload");
-
-    assert!(lease_acquisition < construction);
-    assert!(construction < failed_construction_cleanup);
-    assert!(failed_construction_cleanup < process_abort);
+    let owner_source = include_str!("../session/registry/session_owner/runtime.rs");
+    let production = owner_source
+        .split("\n#[cfg(test)]\nmod tests")
+        .next()
+        .unwrap();
+    let log_start = production.find("fn with_dynamic_process_log(").unwrap();
+    let log_end = production[log_start..]
+        .find("\n    fn shutdown_until(")
+        .unwrap()
+        + log_start;
+    let log = &production[log_start..log_end];
+    let pending = log.find("self.construction.has_pending_core()").unwrap();
+    let retain = log.find("self.dynamic_process_log = Some(log)").unwrap();
+    let shutdown = log.find("!log.shutdown()").unwrap();
+    let abort = log.find("std::process::abort();").unwrap();
+    assert!(pending < retain);
+    assert!(retain < shutdown);
+    assert!(shutdown < abort);
+    let callback = production.find("fn shutdown_owner_state_until(").unwrap();
+    assert!(production[callback..].contains("Err(failure) => failure.shutdown_until(deadline)"));
+    let join = production.find("fn join_failed_startup(").unwrap();
+    let body = &production[join..];
+    let cleanup = body
+        .find("shutdown_owner_state_until(state, deadline)")
+        .unwrap();
+    let accepted = body
+        .find("OwnerShutdownReceipt::Joined | OwnerShutdownReceipt::Panicked")
+        .unwrap();
+    let fatal = body.find("std::process::abort();").unwrap();
+    assert!(cleanup < accepted);
+    assert!(accepted < fatal);
 }
 
 #[test]

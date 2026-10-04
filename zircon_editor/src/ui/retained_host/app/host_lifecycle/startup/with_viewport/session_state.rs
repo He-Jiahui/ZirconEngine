@@ -15,7 +15,7 @@ pub(super) fn resolve_startup_session_state(
     editor_manager: Arc<EditorManager>,
     startup_request: Option<EditorGuiStartupRequest>,
     viewport_size: UVec2,
-) -> Result<StartupSessionState, Box<dyn Error>> {
+) -> Result<StartupSessionState, Box<dyn Error + Send + Sync>> {
     #[cfg(not(test))]
     {
         return EditorHostStartupSession::open(editor_manager, startup_request, viewport_size);

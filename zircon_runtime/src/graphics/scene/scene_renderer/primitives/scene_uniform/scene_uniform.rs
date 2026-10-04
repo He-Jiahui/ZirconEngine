@@ -5,6 +5,8 @@ const ENVIRONMENT_CAPTURE_SURFACE_POLICY_ENABLED: f32 = 1.0;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
+/// 场景组绑定 0 的共享 WGSL 前缀布局，跨网格、天空、阴影、粒子与环境捕获使用。
+/// 字段顺序和 496 字节大小是着色器接口契约；修改需同时核对各 WGSL 镜像及布局断言。
 pub(crate) struct SceneUniform {
     /// Current frame clip-from-world matrix. This may include temporal jitter.
     pub(crate) view_proj: [[f32; 4]; 4],
@@ -45,6 +47,7 @@ pub(crate) struct SceneUniform {
 }
 
 impl SceneUniform {
+    /// 在场景上传前规范全局材质 mip 偏移；非有限输入不得进入 GPU uniform。
     pub(in crate::graphics::scene::scene_renderer) fn set_global_material_mip_bias(
         &mut self,
         mip_bias: f32,
@@ -56,6 +59,7 @@ impl SceneUniform {
         };
     }
 
+    /// 环境捕获完成后切换实时 IBL 采样元数据，调用方须提供对应 cubemap 资源。
     pub(in crate::graphics::scene::scene_renderer) fn use_realtime_ibl(
         &mut self,
         source_face_size: u32,
@@ -70,6 +74,7 @@ impl SceneUniform {
         ];
     }
 
+    /// 仅环境捕获表面 pass 显式开启该策略，普通视口默认保持关闭。
     pub(in crate::graphics::scene::scene_renderer) fn use_environment_capture_surface_policy(
         &mut self,
     ) {
@@ -104,40 +109,5 @@ impl Default for SceneUniform {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::SceneUniform;
-    use std::mem::{offset_of, size_of};
-
-    #[test]
-    fn scene_uniform_ambient_policy_preserves_the_wgsl_byte_layout() {
-        assert_eq!(offset_of!(SceneUniform, ambient_color), 192);
-        assert_eq!(offset_of!(SceneUniform, lightmapped_ambient_color), 208);
-        assert_eq!(offset_of!(SceneUniform, previous_view_proj_unjittered), 224);
-        assert_eq!(size_of::<SceneUniform>(), 496);
-    }
-
-    #[test]
-    fn render_perf_global_material_mip_bias_is_sanitized_before_gpu_upload() {
-        let mut uniform = SceneUniform::default();
-
-        uniform.set_global_material_mip_bias(1.0);
-        assert_eq!(uniform.camera_world_position[3], 1.0);
-
-        uniform.set_global_material_mip_bias(f32::NAN);
-        assert_eq!(uniform.camera_world_position[3], 0.0);
-
-        uniform.set_global_material_mip_bias(f32::MAX);
-        assert_eq!(uniform.camera_world_position[3], 4.0);
-    }
-
-    #[test]
-    fn environment_capture_surface_policy_is_opt_in() {
-        let mut uniform = SceneUniform::default();
-
-        assert_eq!(uniform.sky_sun_params[3], 0.0);
-
-        uniform.use_environment_capture_surface_policy();
-
-        assert_eq!(uniform.sky_sun_params[3], 1.0);
-    }
-}
+#[path = "tests/scene_uniform.rs"]
+mod tests;

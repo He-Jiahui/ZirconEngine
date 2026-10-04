@@ -252,16 +252,5 @@ fn normalize_relative_path_components(path: &str) -> Result<Vec<String>, Resourc
 }
 
 #[cfg(test)]
-mod tests {
-    use super::ResourceLocator;
-
-    #[test]
-    fn matches_display_without_formatting() {
-        let locator =
-            ResourceLocator::parse("package://com.zircon.navigation/nav/agent.znav#mesh").unwrap();
-
-        assert!(locator.matches_display("package://com.zircon.navigation/nav/agent.znav#mesh"));
-        assert!(!locator.matches_display("package://com.zircon.navigation/nav/agent.znav#other"));
-        assert!(!locator.matches_display("res://com.zircon.navigation/nav/agent.znav#mesh"));
-    }
-}
+#[path = "tests/locator.rs"]
+mod tests;

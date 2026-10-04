@@ -165,9 +165,12 @@ fn visibility_is(value: Option<&RetainedUiHostValue>, expected: &str) -> bool {
     };
     match value {
         RetainedUiHostValue::String(value) => normalized_ascii_eq(value, expected),
-        RetainedUiHostValue::Integer(value) => normalized_ascii_eq(&value.to_string(), expected),
-        RetainedUiHostValue::Float(value) => normalized_ascii_eq(&value.to_string(), expected),
-        RetainedUiHostValue::Bool(value) => normalized_ascii_eq(&value.to_string(), expected),
+        // Visibility accepts only the string spellings used by the product
+        // surface. Non-string scalar values cannot equal any of those fixed
+        // names, so avoid formatting a temporary value on every node probe.
+        RetainedUiHostValue::Integer(_)
+        | RetainedUiHostValue::Float(_)
+        | RetainedUiHostValue::Bool(_) => false,
         RetainedUiHostValue::Datetime(_)
         | RetainedUiHostValue::Array(_)
         | RetainedUiHostValue::Table(_) => expected == "visible",
@@ -181,3 +184,7 @@ fn normalized_ascii_eq(value: &str, expected: &str) -> bool {
         .map(|byte| byte.to_ascii_lowercase())
         .eq(expected.bytes())
 }
+
+#[cfg(test)]
+#[path = "node_index/tests/visibility_nonstring_tests.rs"]
+mod visibility_nonstring_tests;

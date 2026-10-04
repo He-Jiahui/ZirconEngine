@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f8_runtime_plugin_descriptor_status_mirrors_do_not_claim_public_field_pending() {
     let descriptor = include_str!("../../../../../plugin/runtime_plugin/descriptor.rs");
@@ -24,7 +25,7 @@ fn review_f8_runtime_plugin_descriptor_status_mirrors_do_not_claim_public_field_
         "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
     );
     let package_manifest_doc =
-        include_str!("../../../../../../../docs/zircon_runtime/plugin/package_manifest.md");
+        include_str!("../../../../../../../docs/crates/zircon_runtime/plugin/package_manifest.md");
 
     let stale_pending_anchor = [
         "RuntimePluginDescriptor public-field convergence",

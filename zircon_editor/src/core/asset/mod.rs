@@ -1,5 +1,6 @@
 //! Canonical editor-side asset type contracts.
 
+mod activation;
 mod dirty;
 mod import_flow;
 mod index;
@@ -8,6 +9,9 @@ mod source_authority;
 mod toolkit_route;
 mod type_registry;
 
+pub use activation::{
+    AssetActivationIntent, AssetActivationReceipt, AssetActivationResult, AssetActivationSource,
+};
 pub use dirty::{
     DirtyDocumentSnapshot, DirtyExternalEffectId, DirtyExternalEffectIdError,
     DirtyExternalEffectRevision, DirtyRegistry, DirtyRegistryCursor, DirtyRegistryDelta,
@@ -32,9 +36,9 @@ pub use source_authority::{
 };
 pub use toolkit_route::AssetToolkitOpenRoute;
 pub use type_registry::{
-    AssetContextCommandAccess, AssetContextCommandDescriptor, AssetCreationMenuEntry,
-    AssetCreationMenuGeneration, AssetCreationTemplateDescriptor, AssetToolkitDescriptor,
-    AssetTypeContribution, AssetTypeDefinition, AssetTypeId, AssetTypeIdError,
-    AssetTypePresentation, AssetTypeRegistry, AssetTypeRegistryError, ThumbnailPlaceholderPalette,
-    ThumbnailProviderDescriptor, builtin_asset_type_definition,
+    builtin_asset_type_definition, AssetContextCommandAccess, AssetContextCommandDescriptor,
+    AssetCreationMenuEntry, AssetCreationMenuGeneration, AssetCreationTemplateDescriptor,
+    AssetToolkitDescriptor, AssetTypeContribution, AssetTypeDefinition, AssetTypeId,
+    AssetTypeIdError, AssetTypePresentation, AssetTypeRegistry, AssetTypeRegistryError,
+    ThumbnailPlaceholderPalette, ThumbnailProviderDescriptor,
 };

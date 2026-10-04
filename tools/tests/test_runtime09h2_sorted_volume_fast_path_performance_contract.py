@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 已排序的 Volume 输入直接求值，未排序输入保留稳定优先级排序回退；本组确认快路径在构造候选集合之前选择。
 
 ROOT = Path(__file__).resolve().parents[2]
 EVALUATOR_RS = ROOT / (

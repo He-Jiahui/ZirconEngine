@@ -4,15 +4,15 @@ use crate::text::{LaidOutText, TextStyle};
 
 use super::rich_advance_index::RichAdvanceIndex;
 use super::{
-    RichTextLayoutSource, line_break_chunks_with_provider, line_metrics_with_provider,
-    trim_leading_wrap_spaces, word_smart_line_break_chunks_with_provider,
+    line_break_chunks_with_provider, line_metrics_with_provider, trim_leading_wrap_spaces,
+    word_smart_line_break_chunks_with_provider, RichTextLayoutSource,
 };
 
 mod materialize;
 mod metrics;
 
 pub(crate) use materialize::layout_rich_line_with_provider;
-use materialize::{HorizontalRichLayoutIndex, layout_rich_ranges_with_index};
+use materialize::{layout_rich_ranges_with_index, HorizontalRichLayoutIndex};
 use metrics::inline_box_metrics;
 pub(crate) use metrics::resolve_rich_run_style;
 
@@ -372,4 +372,5 @@ fn finite_non_negative(value: f32) -> f32 {
 }
 
 #[cfg(test)]
+#[path = "rich/tests/cases.rs"]
 mod tests;

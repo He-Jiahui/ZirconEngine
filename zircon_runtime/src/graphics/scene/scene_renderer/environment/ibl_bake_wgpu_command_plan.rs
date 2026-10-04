@@ -1,8 +1,11 @@
 use crate::core::framework::render::{
-    source_cubemap_face_mip_offset, source_cubemap_mip_size, ComputePipelineCacheKey, CubemapFace,
+    source_cubemap_face_mip_offset, source_cubemap_mip_size, CubemapFace,
     IblBakeArtifactDescriptor, IblBakeArtifactReadbackSectionKind, IblBakeArtifactRequest,
-    ShaderDispatchExtent, ShaderParameterValue, IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES,
-    IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES, SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
+    IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES, IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES,
+    SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
+};
+use crate::graphics::shader::invocation::{
+    ComputePipelineCacheKey, ShaderDispatchExtent, ShaderParameterValue,
 };
 
 use super::ibl_bake_graph_plan::{
@@ -545,4 +548,5 @@ fn output_layout_entry(
 }
 
 #[cfg(test)]
+#[path = "ibl_bake_wgpu_command_plan/tests/cases.rs"]
 mod tests;

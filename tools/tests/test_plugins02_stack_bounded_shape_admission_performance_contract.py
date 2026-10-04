@@ -21,7 +21,7 @@ def validation_body() -> str:
     text = source().split("pub(super) fn validate_executable_v1_shapes", 1)[1]
     return text.split("fn gemm_shapes_are_executable", 1)[0]
 
-
+# 读取形状准入实现，确认输入引用在固定栈上有界收集并保留对应 Rust 回归锚点。
 class Plugins02StackBoundedShapeAdmissionContract(unittest.TestCase):
     def test_v1_shape_admission_has_an_explicit_stack_input_bound(self) -> None:
         self.assertIn("const MAX_EXECUTABLE_V1_INPUTS: usize = 5;", source())

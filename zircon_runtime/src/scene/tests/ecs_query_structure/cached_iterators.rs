@@ -1,3 +1,4 @@
+//! 缓存所有权留在 QueryState，迭代器仅借用计划并持有当次行缓冲；刷新入口必须独占查询句柄。
 use super::*;
 
 #[test]
@@ -110,7 +111,10 @@ fn system_query_cache_refresh_requires_an_exclusive_run_query_borrow() {
         .nth(1)
         .and_then(|source| source.split("\n    pub fn ").next())
         .expect("uncached many iterator must exist");
-    assert!(iter_many.contains("state.iter_many_with_ticks(world, entities, self.ticks)"));
+    assert!(iter_many
+        .split_whitespace()
+        .collect::<String>()
+        .contains("state.iter_many_with_ticks(self.world.cast_const(),entities,self.ticks)"));
 }
 
 #[test]
@@ -122,6 +126,6 @@ fn cached_point_queries_resolve_entity_location_then_apply_the_compiled_plan() {
     assert!(plan.contains("let stable_location = world.internal_entity_location(entity)?;"));
     assert!(plan.contains("find_cached_archetype_plan(plans"));
     assert!(plan.contains("plan.write_component_locations(world, stable_location"));
-    assert!(cached.contains("self.project_entity(world, entity, &mut component_locations)"));
+    assert!(cached.contains("self.project_entity(&*world, entity, &mut component_locations)"));
     assert!(cached.contains("D::fetch_with_component_locations("));
 }

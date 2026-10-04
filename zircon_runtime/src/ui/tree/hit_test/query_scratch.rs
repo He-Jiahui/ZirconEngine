@@ -1,16 +1,21 @@
 use std::sync::{Mutex, MutexGuard};
 
-use zircon_runtime_interface::ui::{layout::UiPoint, surface::UiHitTestGrid};
+use zircon_runtime_interface::ui::{event_ui::UiNodeId, layout::UiPoint, surface::UiHitTestGrid};
 
 const MIN_RETAINED_QUERY_ENTRIES: usize = 1_024;
 const RETAINED_QUERY_SCALE: usize = 4;
-const RETAINED_BYTES_PER_ENTRY: usize = std::mem::size_of::<u32>() + std::mem::size_of::<usize>();
+pub(super) type UiHitRadiusHit = (f32, UiNodeId, usize);
+
+const RETAINED_BYTES_PER_ENTRY: usize = std::mem::size_of::<u32>()
+    + std::mem::size_of::<usize>()
+    + std::mem::size_of::<UiHitRadiusHit>();
 
 #[derive(Debug, Default)]
 pub(super) struct UiHitQueryScratch {
     generation: u32,
     marks: Vec<u32>,
     pub(super) candidates: Vec<usize>,
+    pub(super) radius_hits: Vec<UiHitRadiusHit>,
     #[cfg(test)]
     dedupe_probes: usize,
     #[cfg(test)]
@@ -23,6 +28,7 @@ impl UiHitQueryScratch {
     fn begin(&mut self, entry_count: usize) {
         self.release_excess_capacity(entry_count);
         self.candidates.clear();
+        self.radius_hits.clear();
         #[cfg(test)]
         {
             self.dedupe_probes = 0;
@@ -49,6 +55,9 @@ impl UiHitQueryScratch {
         if self.candidates.capacity() > retained_entry_budget {
             self.candidates = Vec::with_capacity(entry_count);
         }
+        if self.radius_hits.capacity() > retained_entry_budget {
+            self.radius_hits = Vec::with_capacity(entry_count);
+        }
     }
 
     fn retained_entry_budget(entry_count: usize) -> usize {
@@ -69,6 +78,11 @@ impl UiHitQueryScratch {
                 self.candidates
                     .capacity()
                     .saturating_mul(std::mem::size_of::<usize>()),
+            )
+            .saturating_add(
+                self.radius_hits
+                    .capacity()
+                    .saturating_mul(std::mem::size_of::<UiHitRadiusHit>()),
             )
     }
 
@@ -161,6 +175,8 @@ impl UiHitQueryScratchCell {
             unique_candidates: scratch.candidates.len(),
             mark_capacity: scratch.marks.capacity(),
             candidate_capacity: scratch.candidates.capacity(),
+            radius_hit_count: scratch.radius_hits.len(),
+            radius_hit_capacity: scratch.radius_hits.capacity(),
             retained_bytes: scratch.retained_bytes(),
             retained_byte_budget: UiHitQueryScratch::retained_byte_budget(scratch.entry_count),
         }
@@ -176,64 +192,12 @@ pub(crate) struct UiHitQueryScratchStats {
     pub unique_candidates: usize,
     pub mark_capacity: usize,
     pub candidate_capacity: usize,
+    pub radius_hit_count: usize,
+    pub radius_hit_capacity: usize,
     pub retained_bytes: usize,
     pub retained_byte_budget: usize,
 }
 
 #[cfg(test)]
-mod tests {
-    use super::UiHitQueryScratch;
-
-    #[test]
-    fn historical_high_water_is_released_to_the_current_entry_byte_budget() {
-        let mut scratch = UiHitQueryScratch::default();
-        scratch.begin(16_384);
-        for entry_index in 0..16_384 {
-            scratch.insert_candidate(entry_index);
-        }
-        let high_water_bytes = scratch.retained_bytes();
-
-        scratch.begin(32);
-        let retained_after_shrink = scratch.retained_bytes();
-        let small_entry_budget = UiHitQueryScratch::retained_byte_budget(32);
-        let mark_capacity = scratch.marks.capacity();
-        let candidate_capacity = scratch.candidates.capacity();
-
-        assert!(retained_after_shrink < high_water_bytes);
-        assert!(retained_after_shrink <= small_entry_budget);
-        assert!(scratch.candidates.is_empty());
-
-        for entry_index in 0..32 {
-            scratch.insert_candidate(entry_index);
-        }
-        scratch.begin(32);
-
-        assert_eq!(scratch.marks.capacity(), mark_capacity);
-        assert_eq!(scratch.candidates.capacity(), candidate_capacity);
-        assert!(scratch.retained_bytes() <= small_entry_budget);
-    }
-
-    #[test]
-    fn dedupe_probe_count_scales_linearly_through_ten_thousand_entries() {
-        const CELL_REFERENCES_PER_ENTRY: usize = 4;
-
-        for entry_count in [1, 100, 1_000, 10_000] {
-            let mut scratch = UiHitQueryScratch::default();
-            scratch.begin(entry_count);
-            for _ in 0..CELL_REFERENCES_PER_ENTRY {
-                for entry_index in 0..entry_count {
-                    scratch.insert_candidate(entry_index);
-                }
-            }
-
-            assert_eq!(scratch.candidates.len(), entry_count);
-            assert_eq!(
-                scratch.dedupe_probes,
-                entry_count * CELL_REFERENCES_PER_ENTRY
-            );
-            assert!(
-                scratch.retained_bytes() <= UiHitQueryScratch::retained_byte_budget(entry_count)
-            );
-        }
-    }
-}
+#[path = "tests/query_scratch.rs"]
+mod tests;

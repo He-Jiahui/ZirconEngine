@@ -2,6 +2,7 @@
 handoff_kind: failure
 status: open
 created_at: 2026-07-22
+updated_at: 2026-09-27
 summary_slug: ecs-archetype-columnar-storage
 origin_plan: docs/plans/performance/01-mvp-performance-audit-and-optimization.md
 fixing_plan: docs/plans/zircon_runtime/runtime/08-ecs-kernel-data-alignment.md
@@ -9,13 +10,16 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_runtime/runtime/08
 plan_link_mode: child_record_only
 related_code:
+  - zircon_runtime/src/scene/tests/ecs_component_storage_structure.rs
   - zircon_runtime/src/scene/ecs/archetype
   - zircon_runtime/src/scene/ecs/storage/component_storage
   - zircon_runtime/src/scene/ecs/query
   - zircon_runtime/src/scene/world/identity.rs
 tests:
-  - cargo test -p zircon_runtime --lib ecs_storage --locked --jobs 1 -- --nocapture --test-threads=1
-  - cargo test -p zircon_runtime --lib ecs_query --locked --jobs 1 -- --nocapture --test-threads=1
+  - cargo +1.94.1 test -p zircon_runtime --lib --locked -- scene::ecs::storage::component_storage::sparse::tests --nocapture --test-threads=1
+  - cargo +1.94.1 test -p zircon_runtime --lib --locked -- ecs_component_storage_structure --nocapture --test-threads=1
+  - cargo +1.94.1 test -p zircon_runtime --lib --locked -- ecs_identity_storage --nocapture --test-threads=1
+  - cargo +1.94.1 test -p zircon_runtime --lib --locked -- ecs_query --nocapture --test-threads=1
   - 100k entity archetype/query/despawn counters
 ---
 
@@ -98,8 +102,27 @@ Open state: `前向修复中`; no pass is claimed.
   faster to 4.2631% slower; partial P50 regresses at most 28.0677%, high offset mixed/hits improve
   6.4199%-15.0733% / 7.2077%-13.7094%, and dual-span hits regress 4.3081%-16.1994%. Truly disjoint
   overflow remains a memory-first profile boundary.
-- Focused source/status contract 3/3 and direct real-owner Rust behavior harness 16/16 pass,
-  including cross-representation deletion compaction. Status is
-  `runtime_08_60_sparse_component_locator_algorithm_source_passed_diagnostics_cargo_product_profile_deferred`.
-  Production locator-byte aggregation, managed Cargo, million-entity counters/RSS, real-scene P95,
-  WPR/CPU/power, and wider query/table acceptance remain open, so `RECS-P1-11` is partial.
+- Earlier focused source/status contract 3/3 and direct real-owner Rust behavior harness 16/16
+  passed, including cross-representation deletion compaction. Locator entry/page/modeled-byte
+  snapshots now aggregate through the shared `ComponentStorage` owner; the current focused source
+  contract is 5/5; its two-owner Rust regression includes a 32 KiB modeled structural bound and
+  awaits managed Cargo. Status is
+  `runtime_08_60_sparse_component_locator_source_complete_cargo_product_profile_pending`.
+  Managed Cargo, million-entity counters/RSS, real-scene P95, WPR/CPU/power, and wider
+  query/table acceptance remain open, so the managed Runtime08 qualification is not closed.
+
+## 2026-09-27 sparse locator 测试 owner 修复
+
+- 沿用 Runtime08 稳定 primary `failure-roll-01a0df1a-runtime08-message-lifecycle-r1`，base `bc02eefafead65dbf5050482110e8175250a5e77`，epoch `628`；新增领取仅为结构测试及本 failure，保留原 messages 范围、snapshot4599/4600 和未提交验证规格的归属。生产 diagnostics 等活动增量未接管。
+- 根因：`sparse_component_storage_keeps_dense_rows_and_a_single_entity_index` 仍要求父 `sparse.rs` 有连续 `sparse_rows: Vec<Option<SparseRowLocation>>` 与独立 `generation: u32` 字段；这两条件在 HEAD 与现行源码均为 false。`dense_row: usize` 因方法参数存在而为 true，不能证明 row 存储合同。本次是精确静态复现，尚无 Cargo RED。
+- 改为核对唯一 `SparseRowLocator` owner 和现行 child 路径、opaque location 的 generation/dense-row accessor、lookup 与 removal 的 stale-generation 检查，以及被交换实体的 locator 修复。保留 dense table 唯一 owner 和 column-slot 两条结构测试；总数保持 3。未把旧连续高水位 Vec 重新放回生产代码，未修改布局、算法或公共接口。
+- 原始命令保留：`cargo test -p zircon_runtime --lib ecs_storage --locked --jobs 1 -- --nocapture --test-threads=1`；`cargo test -p zircon_runtime --lib ecs_query --locked --jobs 1 -- --nocapture --test-threads=1`。当前 Rust 源码无 `ecs_storage` 模块/目标名称匹配，文头已纠正为真实 owner 过滤器并移除 jobs 覆盖；必须核真实执行数，不能以零测试通过回传。
+- 最小受管回归需实际运行基底已有 sparse 下层 16 项（generation、swap-remove、最高合法 index、空 locator 释放与混合操作）、本结构模块 3 项，以及 identity storage / query 直接消费者。同一受管源码闭包精确保留已归属的既有 Runtime08 EventReader 闭包类型修正（snapshot4599）；其编译必要性仍待受管结果确认，不吸收其他活动 owner 的 dirty 源码。原 ticket `fc66d7eb3e7f4a58a160e073ac46e99c` 当前为 `snapshot_stale`，不得复用为通过证据。
+- 当前外部工作树捕获漂移和 metadata 代理故障仍未恢复；保留源码并挂起受管动态门，不重复已有请求、不手工 Cargo或 caller archive。原文 entities/components/archetypes 1/1k/100k、change 0/1/100%、hash/downcast/move/cache/bytes/p95，以及百万实体/RSS/WPR/产品与 query/table 验收均继续开放。没有完整通过、failure return、closeout 或提交完成声明。
+
+### 源码冻结、独立审查与待提交规格
+
+- 源码冻结 snapshot `4601`，请求 `e997ba3492e34215995708ebfe082956`；结构测试 SHA-256 `ee2d32d03f5fe305dfe33f27c5f65d6ce737a1a1e0611a8baa09955f3d8d9c18`。`rustfmt +1.94.1 --check` 与两路径 `git diff --check` 实际通过。独立 scoped 审查在收窄编译必要性措辞后为 Critical / Important / Moderate = `0 / 0 / 0`；29 条新旧结构断言在真实 HEAD 路径静态成立，反向还原精确回到领取前测试 SHA-256 `bd4c0f9eb8a2d1bd0ba613396a84e6d10b2c9aac05eb4ddc4fba5d34684c7e6f`。这些是静态结构与源码审查证据，非动态行为或正式命名 closeout 审查结果。
+- 四个受管命令的待提交规格保存在 `.codex/tmp/failure-roll-01a0df1a-runtime08-columnar-validation-prepared.json`，状态 `prepared_not_submitted`，accepted request/ticket 列表为空。请求 ID 按 `failure-roll-01a0df1a-runtime08-columnar-4601-{sparse-lower|storage-owner|identity-storage|query}-20260927-r1` 分别保留；需要真实执行 sparse 16、结构 3、identity storage 35、query 56 项，并核实际输出允许的额外匹配。identity 35 是已挂载父模块 28 加 child 5/2；不会把无挂载文件计入通过。
+- 规格源码闭包只包含本结构测试和已归属 snapshot4599 的消息测试支持修正；仍未证明该注解对编译是否必需。生产文件来自同一 pinned baseline，没有 overlay 活动 owner 的 diagnostics/queue/cursor 等脏源码。原 messages 待验规格及 lifecycle 独立保留，不因本次修复关闭。
+- 已向外部 zr_vm 实际写入/构建根任务各排入一份就绪协调请求（`01a0e382-5de0-7141-be89-884a64de2cd7`、`01a0e382-6188-7773-ad08-de23257110d9`），尚未证明 quiet 窗口或捕获成功；本机联网方式选择也仍待回复。保持本项待验，不重复验证、提交或消息，不生成 fixed return。

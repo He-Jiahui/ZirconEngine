@@ -129,7 +129,7 @@ Let `S` be semantic nodes/payload rows, `L` total layout nodes, `H` total hit en
 - Target per cadence commit: `O(L_aff + H_aff + D)` and `O(L_aff + D)` transient memory.
 - Target over an interaction: multiply the local cost by cadence commits, not raw native events.
 
-The deterministic model is `tools/editor_window_resize_reflow_pressure.py`. Schema v2 labels the
+The deterministic model is `tools/analysis/performance/editor/editor_window_resize_reflow_pressure.py`. Schema v2 labels the
 trailing path as a rejected baseline rather than a current implementation and binds the artifact to
 current Zircon sources, checked-in Unreal sources, and HEAD
 `b2e76ff33cc298ad76f7b801a1d06d1e2faa046d`. The artifact is
@@ -185,7 +185,7 @@ non_duplicate_resize_inputs
 The existing `input_to_damage_us` and `damage_to_submit_us` remain useful, but cannot substitute
 for input-to-matching-geometry evidence.
 
-The read-only executable gate is `tools/ui-window-resize-geometry-evidence.ps1`. It rejects
+The read-only executable gate is `tools/analysis/profiling/ui/ui-window-resize-geometry-evidence.ps1`. It rejects
 missing counters instead of treating an absent stream as zero, validates both input and geometry
 transaction conservation, and computes nearest-rank summaries for
 `ui.window_resize.input_to_matching_geometry_us` and

@@ -1,8 +1,8 @@
-use crate::scene::EntityId;
 use crate::scene::ecs::{
     ArchetypeId, ArchetypeIndexPerformanceStats, ArchetypeSignature, ComponentId, ComponentTicks,
     EntityLocation, InternalEntity, StableEntityLocation,
 };
+use crate::scene::EntityId;
 use std::collections::BTreeMap;
 
 use super::{SceneResult, World};
@@ -23,6 +23,7 @@ impl World {
         self.entity_registry.contains_internal(entity)
     }
 
+    // 注册表先预留身份，再发布空表行并回填位置；哨兵行号只存在于尚未对外发布的这段注册过程。
     pub(super) fn register_stable_entity(
         &mut self,
         entity: EntityId,
@@ -194,6 +195,7 @@ impl World {
         self.archetype_index.id_or_insert(signature, table_columns)
     }
 
+    // 在移出源行之前验证完整目标列集合与类型；交换删除后先修复被搬实体，再安装目标行与查询顺序位置。
     pub(super) fn transition_entity_archetype_row(
         &mut self,
         entity: EntityId,

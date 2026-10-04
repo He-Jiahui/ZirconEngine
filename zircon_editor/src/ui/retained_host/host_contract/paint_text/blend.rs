@@ -45,4 +45,5 @@ fn write_pixel_channels(pixel: &mut [u8], color: [u8; 4]) {
 }
 
 #[cfg(test)]
+#[path = "blend/tests/cases.rs"]
 mod tests;

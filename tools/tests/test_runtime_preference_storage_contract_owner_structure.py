@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 验证偏好存储的职责切分：偏好存储契约使用专属目录支撑归属方。
 class RuntimePreferenceStorageContractOwnerStructureTests(unittest.TestCase):
     def setUp(self) -> None:
         self.repo_root = Path(__file__).resolve().parents[2]

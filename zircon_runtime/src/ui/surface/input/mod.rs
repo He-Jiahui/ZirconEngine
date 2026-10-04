@@ -54,7 +54,7 @@ pub(in crate::ui) use number_field::{
     number_field_commit_decision, number_field_edit_is_active, number_field_value_revision,
     NumberFieldCommitDecision, NumberFieldRevisionError,
 };
-pub use state::UiSurfaceInputState;
+pub use state::{UiSurfaceInputState, UiSurfacePointerDragResizeState};
 pub(crate) use text_constraints::text_input_constraints_for_node;
 pub(in crate::ui) use text_constraints::{TextInputConstraints, TextInputRetainedGraphemeCount};
 pub(crate) use text_state::editable_text_input_is_secure;

@@ -1,3 +1,4 @@
+// CPU 顶点布局和管线入口共同定义本着色器接口；所有材质输出遵守预乘合成约定。
 struct SolidVertexInput {
     @location(0) position: vec2<f32>,
     @location(1) color: vec4<f32>,

@@ -203,4 +203,5 @@ pub(super) fn registration_inputs_for_plugin_and_feature_reports(
 }
 
 #[cfg(all(test, feature = "graphics"))]
+#[path = "registration_inputs/tests/cases.rs"]
 mod tests;

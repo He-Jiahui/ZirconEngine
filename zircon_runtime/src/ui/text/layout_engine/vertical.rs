@@ -1,7 +1,8 @@
+use crate::text::layout::{layout_vertical_rl_columns, TextLineMetrics};
+use crate::text::layout_geometry::finite_sum;
+use crate::text::shaping::{TextLayoutOutcome, TextShapingOutcome};
 use crate::text::SharedTextLayoutSession;
 use crate::text::VerticalMode;
-use crate::text::layout::{TextLineMetrics, layout_vertical_rl_columns};
-use crate::text::shaping::{TextLayoutOutcome, TextShapingOutcome};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiTextOverflow, UiTextRange,
@@ -15,8 +16,8 @@ use super::ellipsis::{
 };
 use super::layout_result::LayoutWithoutArtifact;
 use super::line_box::{
-    MIN_TEXT_FONT_SIZE, available_wrap_extent, materialize_arabic_tatweels_for_justified_line,
-    resolve_line_widths_with_provider,
+    available_wrap_extent, materialize_arabic_tatweels_for_justified_line,
+    resolve_line_widths_with_provider, MIN_TEXT_FONT_SIZE,
 };
 use super::paragraph_layout;
 use super::visual_order;
@@ -240,7 +241,7 @@ pub(super) fn layout_vertical_text_with_provider(
     {
         let placement_frame = UiFrame::new(
             column_frame.x,
-            frame.y + constraints.inset,
+            finite_vertical_placement_y(frame.y, constraints.inset),
             column_frame.width,
             constraints.max_height,
         );
@@ -294,4 +295,8 @@ pub(super) fn layout_vertical_text_with_provider(
             rich_text_artifact: None,
         },
     ))
+}
+
+pub(super) fn finite_vertical_placement_y(frame_y: f32, inset: f32) -> f32 {
+    finite_sum([frame_y, inset])
 }

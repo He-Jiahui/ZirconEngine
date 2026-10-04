@@ -1,3 +1,4 @@
+# Stage 复制项目时先按版本化策略保留源码并排除生成目录；本组校验规则身份、路径安全和策略收据，同时检查 Stage 是否按该策略裁剪。
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 

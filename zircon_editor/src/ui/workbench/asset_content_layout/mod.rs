@@ -32,6 +32,7 @@ pub(crate) use thumbnail_geometry::{asset_thumbnail_card_geometry, AssetThumbnai
 pub(crate) use thumbnail_grid::AssetThumbnailGridMetrics;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 pub(crate) use browser_virtualization::{
     asset_browser_materialized_item_budget, AssetBrowserListPaintItem,

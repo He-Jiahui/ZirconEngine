@@ -1,3 +1,6 @@
+//! 将属性行的显示字符串解释为分组轴值，仅接受独立大写轴标记和其后的非空值。
+//! 此格式用于绘制摘要，不是向量数据反序列化；commands 只有得到至少两组时才采用多轴布局。
+
 #[derive(Debug, PartialEq, Eq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct PropertyAxisValue {
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) axis: String,
@@ -43,5 +46,5 @@ fn is_axis_token(token: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "template_property_axis_values/token_buffer_tests.rs"]
+#[path = "template_property_axis_values/tests/token_buffer_tests.rs"]
 mod token_buffer_tests;

@@ -39,7 +39,11 @@ impl RuntimeForeignOutputError {
         Self::protocol_violation(format!("{}; cleanup also failed: {cleanup}", self.message))
     }
 
-    pub(super) fn from_status(status: ZrStatus, operation: &'static str) -> Option<Self> {
+    /// # Safety
+    ///
+    /// On failure, `status.diagnostics` must point to synchronously readable bytes supplied by the
+    /// still-loaded runtime provider that produced this status.
+    pub(super) unsafe fn from_status(status: ZrStatus, operation: &'static str) -> Option<Self> {
         if status.is_ok() {
             return None;
         }

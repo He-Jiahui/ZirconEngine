@@ -2,12 +2,12 @@
 related_code:
   - .github/workflows/mvp-editor-windows.yml
   - .github/workflows/ci.yml
-  - tools/check_conventions.py
+  - tools/audits/check_conventions.py
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
 implementation_files:
-  - tools/dev-fast-build.ps1
-  - tools/profile-capture-paths.ps1
-  - tools/cleanup-stale-targets.ps1
+  - tools/dev/dev-fast-build.ps1
+  - tools/analysis/profiling/shared/profile-capture-paths.ps1
+  - tools/maintenance/cleanup-stale-targets.ps1
 plan_sources:
   - docs/plans/milestone-validation-policy.md
 tests:
@@ -46,8 +46,8 @@ cargo +1.94.1 metadata --locked --no-deps --format-version 1
 
 ```powershell
 rustup run 1.94.1 pwsh -NoProfile -ExecutionPolicy Bypass -File .codex/skills/zircon-dev/scripts/validate-matrix.ps1 -SkipBuild -SkipTest -RunConventionStructure
-python tools/check_conventions.py --json
-python tools/validate_cargo_test_reachability.py --json
+python tools/audits/check_conventions.py --json
+python tools/audits/validate_cargo_test_reachability.py --json
 ```
 
 预期输出为 JSON 或 validator 的成功摘要；任何 convention、reachability 或 target-policy 失败都应先修复环境/边界，不应通过删除测试或降低 gate 规避。
@@ -57,7 +57,7 @@ python tools/validate_cargo_test_reachability.py --json
 CI 的 `rust` 与 profile matrix job 安装 `pkg-config`、fontconfig、udev、input、dbus、X11/XCB、Wayland 和 ALSA 开发包。缺少这些库时，链接失败是环境失败，不是 Rust API 失败。
 
 ```bash
-python tools/runtime-profile-feature-presets.py matrix
+python tools/analysis/validation/runtime-profile-feature-presets.py matrix
 cargo check -p zircon_app --lib --no-default-features --features core-min --locked --verbose
 cargo test --workspace --locked --verbose
 ```
@@ -71,7 +71,7 @@ pwd
 uname -a
 rustc -Vv
 cargo -V
-python tools/validate_cargo_test_reachability.py --json
+python tools/audits/validate_cargo_test_reachability.py --json
 ```
 
 ## 6. 平台 target policy
@@ -131,7 +131,7 @@ flowchart TD
 
 ## 11. 源码索引
 
-环境治理看 `tools/check_conventions.py`、`validate-matrix.ps1` 和 `tools/cleanup-stale-targets.ps1`；CI 策略看 `.github/workflows/ci.yml` 与 `.github/workflows/mvp-editor-windows.yml`；server/headless 语义看 `zircon_runtime/tests/frameworks_03_server_profile.rs`。
+环境治理看 `tools/audits/check_conventions.py`、`validate-matrix.ps1` 和 `tools/maintenance/cleanup-stale-targets.ps1`；CI 策略看 `.github/workflows/ci.yml` 与 `.github/workflows/mvp-editor-windows.yml`；server/headless 语义看 `zircon_runtime/tests/frameworks_03_server_profile.rs`。
 
 ## 12. Windows editor smoke
 
@@ -164,7 +164,7 @@ Linux CI 必须安装 winit/wgpu/retained UI 所需系统包；Windows 则依赖
 ```powershell
 Get-Process cargo,rustc -ErrorAction SilentlyContinue
 Get-ChildItem D:\ZirconBuilds -Directory -ErrorAction SilentlyContinue
-Get-Help .\tools\cleanup-stale-targets.ps1 -Full
+Get-Help .\tools\maintenance\cleanup-stale-targets.ps1 -Full
 ```
 
 如果仍有活动进程，先结束冲突任务并重新检查；不能直接递归删除未知目录。

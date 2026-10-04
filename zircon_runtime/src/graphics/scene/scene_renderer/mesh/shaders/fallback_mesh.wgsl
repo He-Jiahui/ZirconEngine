@@ -1,3 +1,5 @@
+// 后备材质的多 pass WGSL 源片段，由着色器源常量与 GPUScene、光照和环境辅助片段拼接。
+// 单独片段不能表达完整资源契约；调整入口或资源布局时应验证完整拼接源。
 struct SceneUniform {
     view_proj: mat4x4<f32>,
     view_proj_unjittered: mat4x4<f32>,

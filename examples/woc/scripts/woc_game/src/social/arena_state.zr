@@ -4,6 +4,8 @@
 // also projected at the fixed 20 Hz tick rate.
 var container = %import("zr.container");
 
+// 四人固定夹具保存战前返回池与比赛内状态；入场重置和回场恢复
+// 分别验证，不能把其中的玩家编号当作真实世界实体编号。
 class ArenaState {
     pub var tick: int;
     pub var queuedFormats: container.Array<int>;
@@ -245,6 +247,8 @@ startMatch(
     recordEvent(state, 2);
 }
 
+// 固定步先尝试配对，再推进倒计时。此四人投影按玩家编号枚举等待者，
+// 仅供 M6 场景契约验证；世界竞技场队列不由此夹具持有。
 matchmake(state: ArenaState): void {
     if (state.matchExists) { return; }
     var ones = queuedPlayers(state, 1);
@@ -372,6 +376,8 @@ pub markDefeated(state: ArenaState, player: int): bool {
     return true;
 }
 
+// 击败记录与整队淘汰分开，确保 2v2 第一名倒地不会提前记分；
+// 双队同时淘汰走平局，且 endMatch 的结果锁防止重复入账。
 pub resolveWipes(state: ArenaState): bool {
     if (!state.matchExists || state.matchPhase != 2) { return false; }
     var wipedA = teamWiped(state, 1);

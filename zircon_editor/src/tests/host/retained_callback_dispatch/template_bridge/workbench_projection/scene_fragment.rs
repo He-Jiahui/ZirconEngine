@@ -463,7 +463,13 @@ fn ten_thousand_row_patch_does_not_reflow_the_projection() {
     assert_eq!(applied.updated_rows(), 1);
     assert!(!applied.reflowed());
     assert_eq!(applied.logical_row_patches()[0].row_index(), 9_999);
-    assert_eq!(applied.logical_row_patches()[0].entity(), 9_999);
+    assert_eq!(
+        applied.logical_row_patches()[0]
+            .replacement()
+            .expect("renamed row must contain replacement content")
+            .entity(),
+        9_999
+    );
 }
 
 #[test]
@@ -497,9 +503,12 @@ fn unmaterialized_hierarchy_row_rename_applies_without_reflow() {
     assert!(applied.changed_control_ids().is_empty());
     let logical_patch = &applied.logical_row_patches()[0];
     assert_eq!(logical_patch.row_index(), 10);
-    assert_eq!(logical_patch.entity(), 11);
-    assert_eq!(logical_patch.display_name(), "Renamed Virtual Entity");
-    assert_eq!(logical_patch.depth(), 0);
+    let replacement = logical_patch
+        .replacement()
+        .expect("renamed virtual row must contain replacement content");
+    assert_eq!(replacement.entity(), 11);
+    assert_eq!(replacement.display_name(), "Renamed Virtual Entity");
+    assert_eq!(replacement.depth(), 0);
     assert!(!logical_patch.selected());
     assert!(bridge
         .host_projection()
@@ -537,9 +546,10 @@ fn selection_delta_publishes_unmaterialized_logical_row_state() {
     let unmaterialized = applied
         .logical_row_patches()
         .iter()
-        .find(|patch| patch.entity() == 11)
+        .find(|patch| patch.row_index() == 10)
         .expect("unmaterialized selection row patch");
     assert_eq!(unmaterialized.row_index(), 10);
+    assert!(unmaterialized.replacement().is_none());
     assert!(unmaterialized.selected());
 }
 

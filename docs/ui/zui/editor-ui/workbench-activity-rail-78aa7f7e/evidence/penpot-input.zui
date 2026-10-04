@@ -1,0 +1,726 @@
+penpot_host_theme_source = "zircon_editor/assets/ui/editor/theme/editor_tokens.zui"
+stylesheets = []
+penpot_dependency_sources = [ "zircon_editor/assets/ui/editor/theme/editor_tokens.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_rail_button.zui" ]
+penpot_original_source = "[asset]\nkind = \"component\"\nid = \"res://ui/editor/components/workbench/shell/workbench_activity_rail.zui\"\nversion = 2\ndisplay_name = \"Workbench Activity Rail\"\n\n[imports]\nwidgets = [\n  \"res://ui/editor/components/workbench/primitives/chrome/workbench_rail_button.zui#WorkbenchRailButton\",\n]\nstyles = [\"res://ui/editor/theme/editor_tokens.zui\"]\n\n[components.WorkbenchActivityRail]\nroot = \"activity_rail\"\ndefault_classes = [\"workbench-rail\"]\n\n[nodes.activity_rail]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"WorkbenchWindowActivityRail\"\nclasses = [\"workbench-rail\"]\nprops = { border_width = 0.0, separator_color = \"$editor.separator.soft\", separator_edge = \"right\", separator_thickness = \"$editor.control.border_width\" }\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = \"$editor.density.gap.medium\", scrollbar_visibility = \"Auto\" }, width = { min = \"$editor.chrome.activity_rail.width\", preferred = \"$editor.chrome.activity_rail.width\", max = \"$editor.chrome.activity_rail.width\", stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"rail_scene\" }, { node = \"rail_cube\" }, { node = \"rail_graph\" }, { node = \"rail_image\" }, { node = \"rail_audio\" }, { node = \"rail_code\" }]\n\n[nodes.rail_scene]\ncomponent = \"WorkbenchRailButton\"\ncontrol_id = \"WorkbenchRailScene\"\nclasses = [\"workbench-rail-button\"]\nprops = { icon = \"zircon_editor_shell/activity/play.svg\", label = \"Scene\" }\nlayout = { width = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"DockCommand/ActivateScene\", event = \"Click\", route = \"workbench.dock.activate_scene\" }]\n\n[nodes.rail_cube]\ncomponent = \"WorkbenchRailButton\"\ncontrol_id = \"WorkbenchRailCube\"\nclasses = [\"workbench-rail-button\"]\nprops = { icon = \"zircon_editor_shell/activity/cube.svg\", label = \"Entities\" }\nlayout = { width = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"DockCommand/ActivateHierarchy\", event = \"Click\", route = \"workbench.dock.activate_hierarchy\" }]\n\n[nodes.rail_graph]\ncomponent = \"WorkbenchRailButton\"\ncontrol_id = \"WorkbenchRailGraph\"\nclasses = [\"workbench-rail-button\"]\nprops = { icon = \"zircon_editor_shell/activity/node-graph.svg\", label = \"Graph\" }\nlayout = { width = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"DockCommand/ActivateGraph\", event = \"Click\", route = \"workbench.dock.activate_graph\" }]\n\n[nodes.rail_image]\ncomponent = \"WorkbenchRailButton\"\ncontrol_id = \"WorkbenchRailImage\"\nclasses = [\"workbench-rail-button\"]\nprops = { icon = \"zircon_editor_shell/activity/image.svg\", label = \"Assets\" }\nlayout = { width = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"DockCommand/ActivateAssets\", event = \"Click\", route = \"workbench.dock.activate_assets\" }]\n\n[nodes.rail_audio]\ncomponent = \"WorkbenchRailButton\"\ncontrol_id = \"WorkbenchRailAudio\"\nclasses = [\"workbench-rail-button\"]\nprops = { icon = \"zircon_editor_shell/activity/audio.svg\", label = \"Audio\" }\nlayout = { width = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"DockCommand/ActivateAudio\", event = \"Click\", route = \"workbench.dock.activate_audio\" }]\n\n[nodes.rail_code]\ncomponent = \"WorkbenchRailButton\"\ncontrol_id = \"WorkbenchRailCode\"\nclasses = [\"workbench-rail-button\"]\nprops = { icon = \"zircon_editor_shell/activity/code.svg\", label = \"Code\" }\nlayout = { width = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" }, height = { min = \"$editor.control.height.compact\", preferred = \"$editor.control.height.compact\", max = \"$editor.control.height.compact\", stretch = \"Fixed\" } }\nevents = [{ id = \"DockCommand/ActivateCode\", event = \"Click\", route = \"workbench.dock.activate_code\" }]\n"
+
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/shell/workbench_activity_rail.zui"
+version = 2
+display_name = "Workbench Activity Rail"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchActivityRail]
+root = "activity_rail"
+default_classes = [ "workbench-rail" ]
+
+[nodes.activity_rail]
+component = "VerticalGroup"
+control_id = "WorkbenchWindowActivityRail"
+classes = [ "workbench-rail" ]
+
+[nodes.activity_rail.props]
+border_width = 0
+separator_color = "$editor.separator.soft"
+separator_edge = "right"
+separator_thickness = "$editor.control.border_width"
+
+[nodes.activity_rail.layout]
+clip = true
+
+[nodes.activity_rail.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = "$editor.density.gap.medium"
+scrollbar_visibility = "Auto"
+
+[nodes.activity_rail.layout.width]
+min = "$editor.chrome.activity_rail.width"
+preferred = "$editor.chrome.activity_rail.width"
+max = "$editor.chrome.activity_rail.width"
+stretch = "Fixed"
+
+[nodes.activity_rail.layout.height]
+stretch = "Stretch"
+
+[[nodes.activity_rail.children]]
+node = "rail_scene"
+
+[[nodes.activity_rail.children]]
+node = "rail_cube"
+
+[[nodes.activity_rail.children]]
+node = "rail_graph"
+
+[[nodes.activity_rail.children]]
+node = "rail_image"
+
+[[nodes.activity_rail.children]]
+node = "rail_audio"
+
+[[nodes.activity_rail.children]]
+node = "rail_code"
+
+[nodes.rail_scene]
+component = "IconButton"
+control_id = "WorkbenchRailScene"
+classes = [ "workbench-rail-button", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_rail_button.zui#WorkbenchRailButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Activity play\">\n  <path fill=\"#26d8d1\" d=\"M7 4.5 19 12 7 19.5z\"/>\n</svg>\n"
+
+[nodes.rail_scene.props]
+icon = "zircon_editor_shell/activity/play.svg"
+text = ""
+label = "Scene"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.small"
+layout_padding_right = "$editor.density.gap.small"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.compact"
+layout_min_height = "$editor.control.height.compact"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.rail_scene.layout.width]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.rail_scene.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[[nodes.rail_scene.events]]
+id = "DockCommand/ActivateScene"
+event = "Click"
+route = "workbench.dock.activate_scene"
+
+[nodes.rail_scene.state]
+[nodes.rail_scene.style.self]
+[nodes.rail_scene.style.slot]
+[nodes.rail_scene.slots]
+[nodes.rail_cube]
+component = "IconButton"
+control_id = "WorkbenchRailCube"
+classes = [ "workbench-rail-button", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_rail_button.zui#WorkbenchRailButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Activity cube\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linejoin=\"round\" stroke-width=\"1.7\" d=\"m12 3 8 4.5v9L12 21l-8-4.5v-9z\"/>\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linejoin=\"round\" stroke-width=\"1.4\" d=\"m4.5 7.7 7.5 4.2 7.5-4.2M12 11.9v8.5\"/>\n</svg>\n"
+
+[nodes.rail_cube.props]
+icon = "zircon_editor_shell/activity/cube.svg"
+text = ""
+label = "Entities"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.small"
+layout_padding_right = "$editor.density.gap.small"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.compact"
+layout_min_height = "$editor.control.height.compact"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.rail_cube.layout.width]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.rail_cube.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[[nodes.rail_cube.events]]
+id = "DockCommand/ActivateHierarchy"
+event = "Click"
+route = "workbench.dock.activate_hierarchy"
+
+[nodes.rail_cube.state]
+[nodes.rail_cube.style.self]
+[nodes.rail_cube.style.slot]
+[nodes.rail_cube.slots]
+[nodes.rail_graph]
+component = "IconButton"
+control_id = "WorkbenchRailGraph"
+classes = [ "workbench-rail-button", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_rail_button.zui#WorkbenchRailButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Activity graph\">\n  <circle cx=\"6\" cy=\"7\" r=\"2.3\" fill=\"none\" stroke=\"#cbd2dc\" stroke-width=\"1.6\"/>\n  <circle cx=\"18\" cy=\"6\" r=\"2.3\" fill=\"none\" stroke=\"#cbd2dc\" stroke-width=\"1.6\"/>\n  <circle cx=\"13\" cy=\"18\" r=\"2.3\" fill=\"none\" stroke=\"#cbd2dc\" stroke-width=\"1.6\"/>\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-width=\"1.5\" d=\"m8.2 7 7.5-.7M7.2 9.2l4.7 6.7M17.1 8.2 14 15.9\"/>\n</svg>\n"
+
+[nodes.rail_graph.props]
+icon = "zircon_editor_shell/activity/node-graph.svg"
+text = ""
+label = "Graph"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.small"
+layout_padding_right = "$editor.density.gap.small"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.compact"
+layout_min_height = "$editor.control.height.compact"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.rail_graph.layout.width]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.rail_graph.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[[nodes.rail_graph.events]]
+id = "DockCommand/ActivateGraph"
+event = "Click"
+route = "workbench.dock.activate_graph"
+
+[nodes.rail_graph.state]
+[nodes.rail_graph.style.self]
+[nodes.rail_graph.style.slot]
+[nodes.rail_graph.slots]
+[nodes.rail_image]
+component = "IconButton"
+control_id = "WorkbenchRailImage"
+classes = [ "workbench-rail-button", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_rail_button.zui#WorkbenchRailButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Activity image\">\n  <rect x=\"4\" y=\"5\" width=\"16\" height=\"14\" rx=\"1.5\" fill=\"none\" stroke=\"#cbd2dc\" stroke-width=\"1.7\"/>\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"m5.5 17 4.6-5 3.2 3.4 2-2.1 3.2 3.7\"/>\n  <circle cx=\"16\" cy=\"9\" r=\"1.2\" fill=\"#26d8d1\"/>\n</svg>\n"
+
+[nodes.rail_image.props]
+icon = "zircon_editor_shell/activity/image.svg"
+text = ""
+label = "Assets"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.small"
+layout_padding_right = "$editor.density.gap.small"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.compact"
+layout_min_height = "$editor.control.height.compact"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.rail_image.layout.width]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.rail_image.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[[nodes.rail_image.events]]
+id = "DockCommand/ActivateAssets"
+event = "Click"
+route = "workbench.dock.activate_assets"
+
+[nodes.rail_image.state]
+[nodes.rail_image.style.self]
+[nodes.rail_image.style.slot]
+[nodes.rail_image.slots]
+[nodes.rail_audio]
+component = "IconButton"
+control_id = "WorkbenchRailAudio"
+classes = [ "workbench-rail-button", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_rail_button.zui#WorkbenchRailButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Activity audio\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linejoin=\"round\" stroke-width=\"1.7\" d=\"M4 9.5h4l5-4v13l-5-4H4z\"/>\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-width=\"1.5\" d=\"M16 9a5 5 0 0 1 0 6M18.5 6.5a8.5 8.5 0 0 1 0 11\"/>\n</svg>\n"
+
+[nodes.rail_audio.props]
+icon = "zircon_editor_shell/activity/audio.svg"
+text = ""
+label = "Audio"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.small"
+layout_padding_right = "$editor.density.gap.small"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.compact"
+layout_min_height = "$editor.control.height.compact"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.rail_audio.layout.width]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.rail_audio.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[[nodes.rail_audio.events]]
+id = "DockCommand/ActivateAudio"
+event = "Click"
+route = "workbench.dock.activate_audio"
+
+[nodes.rail_audio.state]
+[nodes.rail_audio.style.self]
+[nodes.rail_audio.style.slot]
+[nodes.rail_audio.slots]
+[nodes.rail_code]
+component = "IconButton"
+control_id = "WorkbenchRailCode"
+classes = [ "workbench-rail-button", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_rail_button.zui#WorkbenchRailButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Activity code\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\" d=\"m8 7-5 5 5 5M16 7l5 5-5 5M13.5 4.5l-3 15\"/>\n</svg>\n"
+
+[nodes.rail_code.props]
+icon = "zircon_editor_shell/activity/code.svg"
+text = ""
+label = "Code"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.small"
+layout_padding_right = "$editor.density.gap.small"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.compact"
+layout_min_height = "$editor.control.height.compact"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.rail_code.layout.width]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[nodes.rail_code.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[[nodes.rail_code.events]]
+id = "DockCommand/ActivateCode"
+event = "Click"
+route = "workbench.dock.activate_code"
+
+[nodes.rail_code.state]
+[nodes.rail_code.style.self]
+[nodes.rail_code.style.slot]
+[nodes.rail_code.slots]
+[penpot_host_colors]
+primary = "#60aeff"
+accent = "#60aeff"
+"material.primary" = "#60aeff"
+material_color_primary = "#60aeff"
+on_primary = "#151515"
+"material.on_primary" = "#151515"
+material_color_on_primary = "#151515"
+surface = "#2f2f2f"
+"material.surface" = "#2f2f2f"
+surface_inset = "#0f0f0f"
+"material.surface_inset" = "#0f0f0f"
+surface_hover = "#454545"
+"material.surface_hover" = "#454545"
+surface_pressed = "#383838"
+"material.surface_pressed" = "#383838"
+surface_selected = "#243f5a"
+"material.surface_selected" = "#243f5a"
+disabled = "#2b2b2b"
+"material.disabled" = "#2b2b2b"
+border = "#484848"
+outline = "#484848"
+"material.outline" = "#484848"
+focus = "#66b2ff"
+focus_ring = "#66b2ff"
+"material.focus_ring" = "#66b2ff"
+text = "#e8e8e8"
+on_surface = "#e8e8e8"
+"material.text" = "#e8e8e8"
+"material.on_surface" = "#e8e8e8"
+text_muted = "#b3b3b3"
+muted = "#b3b3b3"
+"material.text_muted" = "#b3b3b3"
+text_disabled = "#737373"
+"material.text_disabled" = "#737373"
+warning = "#dcac50"
+"material.warning" = "#dcac50"
+error = "#eb605c"
+danger = "#eb605c"
+"material.error" = "#eb605c"
+success = "#55be78"
+"material.success" = "#55be78"
+info = "#5faae6"
+"material.info" = "#5faae6"
+
+[penpot_host_palette]
+surface = [ "#151515", "#242424", "#2f2f2f", "#383838" ]
+surface_recessed = "#0f0f0f"
+surface_hover = "#454545"
+surface_selected = "#243f5a"
+surface_disabled = "#2b2b2b"
+accent = "#60aeff"
+accent_soft = "#253f59"
+border = "#484848"
+border_disabled = "#363636"
+separator_strong = "#565656"
+separator_soft = "#333333"
+text_primary = "#e8e8e8"
+text_secondary = "#b3b3b3"
+text_disabled = "#737373"
+success = "#55be78"
+success_container = "#1d472f"
+info = "#5faae6"
+info_container = "#18395b"
+warning = "#dcac50"
+warning_container = "#463112"
+error = "#eb605c"
+error_container = "#4c2427"
+popup = "#242424"
+track = "#3b3b3b"
+focus_ring = "#66b2ff"
+shadow = "#00000073"
+
+[tokens]
+"theme.palette.surface.0" = "#151515"
+"theme.palette.surface.1" = "#242424"
+"theme.palette.surface.2" = "#2f2f2f"
+"theme.palette.surface.3" = "#383838"
+"theme.palette.text.primary" = "#e8e8e8"
+"theme.palette.text.secondary" = "#b3b3b3"
+"theme.palette.text.disabled" = "#737373"
+"theme.palette.accent" = "#60aeff"
+"theme.palette.success" = "#55be78"
+"theme.palette.info" = "#5faae6"
+"theme.palette.warning" = "#dcac50"
+"theme.palette.error" = "#eb605c"
+"theme.palette.separator" = "#484848"
+"editor.surface.0" = "#151515"
+"editor.surface.1" = "#242424"
+"editor.surface.2" = "#2f2f2f"
+"editor.surface.3" = "#383838"
+"editor.surface.recessed" = "#0f0f0f"
+"editor.surface.hover" = "#454545"
+"editor.surface.selected" = "#243f5a"
+"editor.surface.disabled" = "#2b2b2b"
+"editor.accent" = "#60aeff"
+"editor.accent.soft" = "#253f59"
+"editor.border" = "#484848"
+"editor.border.disabled" = "#363636"
+"editor.separator.strong" = "#565656"
+"editor.separator.soft" = "#333333"
+"editor.text.primary" = "#e8e8e8"
+"editor.text.secondary" = "#b3b3b3"
+"editor.text.disabled" = "#737373"
+"editor.semantic.success" = "#55be78"
+"editor.semantic.success.container" = "#1d472f"
+"editor.semantic.info" = "#5faae6"
+"editor.semantic.info.container" = "#18395b"
+"editor.semantic.warning" = "#dcac50"
+"editor.semantic.warning.container" = "#463112"
+"editor.semantic.error" = "#eb605c"
+"editor.semantic.error.container" = "#4c2427"
+"editor.popup" = "#242424"
+"editor.track" = "#3b3b3b"
+"editor.focus.ring" = "#66b2ff"
+"editor.shadow" = "#00000073"
+"editor.typography.ui.family" = "Fira Sans"
+"editor.typography.ui.strong.family" = "Fira Sans"
+"editor.typography.code.family" = "Fira Mono"
+"editor.typography.utility_tab.text_role" = "ui"
+"editor.typography.font_smoothing" = "grayscale"
+"editor.typography.body.size" = 14
+"editor.typography.caption.size" = 12
+"editor.typography.overlay.size" = 12
+"editor.typography.heading.size" = 16
+"editor.typography.title.size" = 20
+"editor.typography.body.weight" = 400
+"editor.typography.medium.weight" = 500
+"editor.typography.strong.weight" = 600
+"editor.typography.emphasis.weight" = 700
+"editor.typography.code.weight" = 400
+"editor.typography.line_height" = 1.4
+"editor.control.height.large" = 48
+"editor.control.height.default" = 32
+"editor.control.height.compact" = 32
+"editor.control.height.dense" = 28
+"editor.control.radius.small" = 4
+"editor.control.radius.control" = 4
+"editor.control.radius.large" = 8
+"editor.control.radius.panel" = 0
+"editor.control.radius.pill" = 999
+"editor.control.border_width" = 1
+"editor.chrome.top_bar.height" = 25
+"editor.chrome.host_bar.height" = 32
+"editor.chrome.workbench_toolbar.height" = 66
+"editor.chrome.workbench_toolbar.command_row.height" = 34
+"editor.chrome.workbench_toolbar.popup.command_offset_y" = 29
+"editor.chrome.workbench_toolbar.popup.module_offset_y" = -6
+"editor.chrome.status_bar.height" = 24
+"editor.chrome.panel_header.height" = 30
+"editor.chrome.document_header.height" = 31
+"editor.chrome.viewport_toolbar.height" = 28
+"editor.chrome.activity_rail.width" = 34
+"editor.chrome.separator.thickness" = 1
+"editor.chrome.splitter.hit_size" = 8
+"editor.density.gap.xsmall" = 2
+"editor.density.gap.tight" = 4
+"editor.density.gap.small" = 4
+"editor.density.gap.regular" = 8
+"editor.density.gap.medium" = 8
+"editor.density.gap.large" = 12
+"editor.density.gap.group" = 24
+"editor.density.drawer_padding" = 12
+"editor.density.panel_padding" = 16
+"editor.density.toolbar_action_width" = 76
+"editor.density.toolbar_wide_action_width" = 96
+"editor.density.ui_asset_action.min_width" = 40
+"editor.density.ui_asset_action.preferred_width" = 52
+"editor.density.ui_asset_action.max_width" = 64
+"editor.density.ui_asset.side.min_width" = 128
+"editor.density.ui_asset.side.preferred_width" = 220
+"editor.density.ui_asset.center.min_width" = 256
+"editor.density.ui_asset.center.preferred_width" = 420
+"editor.density.ui_asset.header_kind.min_width" = 64
+"editor.density.ui_asset.header_kind.preferred_width" = 70
+"editor.density.ui_asset.header_kind.max_width" = 84
+"editor.density.ui_asset.tool.min_width" = 56
+"editor.density.ui_asset.tool.preferred_width" = 64
+"editor.density.ui_asset.tool.max_width" = 80
+"editor.density.command_palette.min_width" = 520
+"editor.density.command_palette.preferred_width" = 560
+"editor.density.command_palette.max_width" = 640
+"editor.density.command_palette.min_height" = 180
+"editor.density.command_palette.preferred_height" = 220
+"editor.density.command_palette.max_height" = 280
+"editor.density.dialog.min_width" = 420
+"editor.density.dialog.preferred_width" = 480
+"editor.density.dialog.max_width" = 560
+"editor.density.dialog.min_height" = 180
+"editor.density.dialog.preferred_height" = 220
+"editor.density.dialog.max_height" = 320
+"editor.density.confirm_dialog.preferred_width" = 460
+"editor.density.confirm_dialog.max_width" = 540
+"editor.density.confirm_dialog.min_height" = 174
+"editor.density.confirm_dialog.preferred_height" = 210
+"editor.density.confirm_dialog.max_height" = 300
+"editor.density.notification_panel.min_width" = 280
+"editor.density.notification_panel.preferred_width" = 320
+"editor.density.notification_panel.max_width" = 380
+"editor.density.notification_panel.min_height" = 160
+"editor.density.notification_panel.preferred_height" = 220
+"editor.density.notification_panel.max_height" = 320
+"editor.density.caption.min_height" = 20
+"editor.density.caption.preferred_height" = 22
+"editor.density.caption.max_height" = 24
+"editor.density.label.min_height" = 22
+"editor.density.label.preferred_height" = 24
+"editor.density.label.max_height" = 32
+"editor.density.chip.min_width" = 40
+"editor.density.chip.preferred_width" = 80
+"editor.density.chip.max_width" = 160
+"editor.density.axis_value_field.min_width" = 54
+"editor.density.axis_value_field.preferred_width" = 62
+"editor.density.axis_value_field.max_width" = 72
+"editor.density.row_height" = 28
+"editor.density.left_drawer_width" = 332
+"editor.density.right_drawer_width" = 404
+"editor.density.bottom_output_height" = 228
+"editor.density.breakpoint_ultra_width" = 480
+"editor.density.breakpoint_narrow_width" = 640
+"editor.density.breakpoint_wide_width" = 1260
+"editor.density.compact_side_width" = 1100
+"editor.density.ultra_compact_side_width" = 760
+"editor.density.compact_left_drawer_max_width" = 340
+"editor.density.compact_right_drawer_max_width" = 220
+"editor.density.compact_side_min_width" = 196
+"editor.density.minimum_document_width_fraction" = 0.5
+"editor.density.ultra_compact_left_drawer_max_width" = 220
+"editor.density.ultra_compact_right_drawer_max_width" = 160
+"editor.density.compact_bottom_available_height" = 900
+"editor.density.compact_bottom_max_height" = 148
+"editor.density.compact_bottom_max_available_fraction" = 0.23
+"editor.density.compact_bottom_min_height" = 120
+"editor.density.ultra_compact_bottom_available_height" = 420
+"editor.density.ultra_compact_bottom_max_height" = 96
+"editor.density.ultra_compact_bottom_max_available_fraction" = 0.2
+"editor.density.ultra_compact_bottom_min_height" = 80
+"editor.density.minimum_window_width" = 640
+"editor.density.minimum_window_height" = 420
+"editor.density.ultra_minimum_window_width" = 420
+"editor.density.ultra_minimum_window_height" = 360
+"editor.state.default" = "surface_1"
+"editor.state.hovered" = "surface_2"
+"editor.state.pressed" = "surface_3"
+"editor.state.selected" = "surface_selected"
+"editor.state.focused" = "surface_1"
+"editor.state.disabled" = "text_disabled"
+"editor.state.loading" = "accent"
+
+[penpot_original_imports]
+widgets = [ "res://ui/editor/components/workbench/primitives/chrome/workbench_rail_button.zui#WorkbenchRailButton" ]
+styles = [ "res://ui/editor/theme/editor_tokens.zui" ]

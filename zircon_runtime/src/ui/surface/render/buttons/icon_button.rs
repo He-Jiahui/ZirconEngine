@@ -6,7 +6,7 @@ use super::{
     commands::{icon_command, surface_command},
     metadata::icon_name,
     state::ButtonRenderState,
-    style::{ButtonVisual, icon_button_foreground},
+    style::{icon_button_foreground, ButtonVisual},
 };
 
 pub(super) fn icon_button_commands(

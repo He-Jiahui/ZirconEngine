@@ -158,7 +158,7 @@ pub trait DocumentToolkit: Send {
 
 - 切片 1.1：`core/extension/` 目录化（描述符原样迁移分文件）；store + ticket/revoke/changed_since + 合并索引；`register_*` 调用方全量迁移删旧 API。
 - 切片 1.2：`WorkbenchSlot` 定稿（editor_layout/03 区域名会签）；`editor_extensions` 批列表收编（配 01 M1 批 4）。
-- 测试阶段：`cargo test -p zircon_editor --lib --locked`（extension 既有注册测试迁移后须过 + 生命周期/命名空间冲突/revoke 回收/能力过滤矩阵）。更新 `docs/zircon_editor/core/extension.md`。
+- 测试阶段：`cargo test -p zircon_editor --lib --locked`（extension 既有注册测试迁移后须过 + 生命周期/命名空间冲突/revoke 回收/能力过滤矩阵）。更新 `docs/crates/zircon_editor/core/extension.md`。
 
 ### M2 Inspector 双层定制
 

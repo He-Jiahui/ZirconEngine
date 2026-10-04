@@ -63,6 +63,7 @@ fn editor_viewport_sources_route_through_render_framework_without_wgpu_preview_b
             && viewport_submit_source.contains("render_framework.submit_frame_extract_with_ui")
             && viewport_submit_source
                 .contains("render_framework.query_visible_spatial_snapshot(viewport)")
+            && viewport_submit_source.contains("viewports")
             && viewport_submit_source.contains("active.handle == viewport"),
         "editor viewport controller should retain the viewport operation while submitting outside its state mutex"
     );
@@ -75,15 +76,15 @@ fn editor_viewport_sources_route_through_render_framework_without_wgpu_preview_b
     );
     assert!(
         viewport_poll_source.contains("poll_captured_frame_if_newer")
-            && viewport_poll_source.contains("shared.latest_generation")
+            && viewport_poll_source.contains("latest_generation")
             && !viewport_state_source.contains("latest_image")
             && !viewport_poll_source.contains("SharedPixelBuffer")
             && !viewport_poll_source.contains("Image::"),
         "editor viewport fallback should transfer the captured RGBA owner after generation validation"
     );
     assert!(
-        viewport_redraw_source.contains("poll_captured_frame()")
-            && viewport_redraw_source.contains("set_scene_viewport_capture(viewport, frame)")
+        viewport_redraw_source.contains("poll_captured_frames()")
+            && viewport_redraw_source.contains("set_scene_viewport_capture_for_surface")
             && host_viewport_image_production_source.contains("rgba: frame.rgba")
             && host_viewport_image_production_source
                 .contains("viewport_image_resource_key(viewport, generation)")

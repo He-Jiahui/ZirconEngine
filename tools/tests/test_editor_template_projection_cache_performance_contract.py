@@ -1,3 +1,4 @@
+# 核对模板文档投影缓存按注册失效，动态属性在缓存基底之后应用。
 from pathlib import Path
 import unittest
 

@@ -1,9 +1,10 @@
+use std::fmt::Write as _;
 use std::{
     collections::{btree_map::Entry, BTreeMap},
     fmt,
 };
 
-use serde::{de::Error as _, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{de::Error as _, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use thiserror::Error;
 
@@ -19,6 +20,7 @@ pub const UI_BINDING_VALUE_MAX_COLLECTION_ENTRIES: usize = 256;
 pub const UI_BINDING_VALUE_IDENTITY_MAX_BYTES: usize = 256;
 pub const UI_BINDING_COLLECTION_VIEW_MAX_LENGTH: u32 = 256;
 
+/// 约束整个 binding 值树的资源预算；验证会累计节点与字符串字节，并限制嵌套深度及各容器项数。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiBindingValueBudget {
     pub max_depth: usize,
@@ -127,11 +129,23 @@ pub enum UiBindingMapKey {
 
 impl UiBindingMapKey {
     pub(super) fn native_repr(&self) -> String {
+        let mut output = String::new();
+        self.native_repr_into(&mut output);
+        output
+    }
+
+    pub(super) fn native_repr_into(&self, output: &mut String) {
         match self {
-            Self::String(value) => quoted(value),
-            Self::Unsigned(value) => value.to_string(),
-            Self::Signed(value) => value.to_string(),
-            Self::Bool(value) => value.to_string(),
+            Self::String(value) => quoted_into(value, output),
+            Self::Unsigned(value) => {
+                let _ = write!(output, "{value}");
+            }
+            Self::Signed(value) => {
+                let _ = write!(output, "{value}");
+            }
+            Self::Bool(value) => {
+                let _ = write!(output, "{value}");
+            }
         }
     }
 
@@ -145,6 +159,7 @@ impl UiBindingMapKey {
     }
 }
 
+/// 以异构类型键表达的 binding map；构造时拒绝重复键，内部排序使迭代和序列化顺序稳定。
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiBindingMap(BTreeMap<UiBindingMapKey, UiBindingValue>);
 
@@ -193,16 +208,17 @@ struct UiBindingMapEntry {
     value: UiBindingValue,
 }
 
+// 用 entry 序列而非 JSON 对象编码，以保留字符串、整数和布尔键的类型；反序列化会再次检查重复键。
 impl Serialize for UiBindingMap {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        self.0
-            .iter()
-            .map(|(key, value)| UiBindingMapEntryRef { key, value })
-            .collect::<Vec<_>>()
-            .serialize(serializer)
+        let mut sequence = serializer.serialize_seq(Some(self.0.len()))?;
+        for (key, value) in &self.0 {
+            sequence.serialize_element(&UiBindingMapEntryRef { key, value })?;
+        }
+        sequence.end()
     }
 }
 
@@ -471,14 +487,27 @@ pub(super) fn validate_identity(
 }
 
 pub(super) fn quoted(value: &str) -> String {
-    format!("\"{}\"", escape_string(value))
+    let mut output = String::new();
+    quoted_into(value, &mut output);
+    output
 }
 
-fn escape_string(value: &str) -> String {
-    value
-        .replace('\\', "\\\\")
-        .replace('"', "\\\"")
-        .replace('\n', "\\n")
-        .replace('\r', "\\r")
-        .replace('\t', "\\t")
+// 该转义集合必须与 parser.rs 的 parse_string 保持互逆；新增转义时两端需一起更新。
+pub(super) fn quoted_into(value: &str, output: &mut String) {
+    output.push('"');
+    for character in value.chars() {
+        match character {
+            '\\' => output.push_str("\\\\"),
+            '"' => output.push_str("\\\""),
+            '\n' => output.push_str("\\n"),
+            '\r' => output.push_str("\\r"),
+            '\t' => output.push_str("\\t"),
+            character => output.push(character),
+        }
+    }
+    output.push('"');
 }
+
+#[cfg(test)]
+#[path = "types/tests/map_serialize_performance_tests.rs"]
+mod map_serialize_performance_tests;

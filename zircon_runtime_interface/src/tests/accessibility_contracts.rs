@@ -4,8 +4,8 @@ use crate::{
         accessibility::{
             UiAccessibilityAction, UiAccessibilityActionRequest, UiAccessibilityActionResult,
             UiAccessibilityActionSource, UiAccessibilityActionStatus, UiAccessibilityDiagnostic,
-            UiAccessibilityDiagnosticCode, UiAccessibilityDiagnosticSeverity,
-            UiAccessibilityNode, UiAccessibilityTreeSnapshot,
+            UiAccessibilityDiagnosticCode, UiAccessibilityDiagnosticSeverity, UiAccessibilityNode,
+            UiAccessibilityTreeSnapshot,
         },
         dispatch::{
             UiAccessibilityInputEvent, UiInputEvent, UiInputEventMetadata, UiInputSequence,
@@ -86,11 +86,7 @@ fn accessibility_snapshot_sorted_node_lookup_benchmark() {
         let measure_indexed = || {
             let started = Instant::now();
             for node_id in &probes {
-                black_box(
-                    snapshot
-                        .node(*node_id)
-                        .expect("benchmark probe must exist"),
-                );
+                black_box(snapshot.node(*node_id).expect("benchmark probe must exist"));
             }
             started.elapsed().as_nanos()
         };

@@ -178,12 +178,10 @@ fn locator_collision_rejects_the_whole_batch_without_publication() {
             requested_id: conflicting.id.to_string(),
         }
     );
-    assert!(
-        manager
-            .registry()
-            .get(ResourceId::from_stable_label("model-c"))
-            .is_none()
-    );
+    assert!(manager
+        .registry()
+        .get(ResourceId::from_stable_label("model-c"))
+        .is_none());
     assert_eq!(
         manager
             .registry()
@@ -656,11 +654,9 @@ fn importer_identity_change_advances_revision_and_invalidates_old_payload() {
         manager.runtime_state(original.id),
         Some(RuntimeResourceState::Unloaded)
     );
-    assert!(
-        manager
-            .get::<ModelMarker, TestPayload>(ResourceHandle::new(original.id))
-            .is_none()
-    );
+    assert!(manager
+        .get::<ModelMarker, TestPayload>(ResourceHandle::new(original.id))
+        .is_none());
 
     let error = manager
         .commit(ResourceMutationBatch::new().store_payload(

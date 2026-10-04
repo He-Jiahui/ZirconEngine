@@ -1,0 +1,170 @@
+{
+  "batch": "w0-batch27",
+  "recorded_at_utc": "2026-10-03T22:47:36.428724+00:00",
+  "author_root": "E:\\Git\\ZirconEngine\\.codex\\tmp\\w0-runtime-remaining-batch27-physics-readonly-r1-completeness-erratum-e2",
+  "author_terminal_sha256": "8dafbfbf823f8faf1e6c43e154dfba05f7cbca57c6abc7567f25d2a796e5f710",
+  "author_output_manifest_sha256": "639ebd46a1461a0c05dc8cf69c2e22b362b1d3693fe4ac54a9c5b4f4aa0e03b9",
+  "raw_capture_root": "E:\\Git\\ZirconEngine\\.codex\\tmp\\astra-current-evidence-20261004-root-01a0f033\\w0-batch27-root-canonical-preparation-r1\\raw-author",
+  "raw_capture_inventory": [
+    {
+      "name": "canonical-joins.jsonl",
+      "bytes": 40486,
+      "sha256": "075556d617ecc3bcd86ae6bec5364d4435d5ac88bfe3d8cdee2dcda34a58d78e"
+    },
+    {
+      "name": "finding-gate-identity.jsonl",
+      "bytes": 805358,
+      "sha256": "772a83a5d14a220e326766c327e4b3f7f72c3ffa057316b0c285a7fedb4a1ca0"
+    },
+    {
+      "name": "preimage-manifest.json",
+      "bytes": 4610,
+      "sha256": "420cd396e9eda34211c5568021ba25cdb9492c09e004cb46b5bde60d3ad74060"
+    },
+    {
+      "name": "proposed-owner-groups.json",
+      "bytes": 17984,
+      "sha256": "40b89229cc7d090b9f2fed59188afcdf828eab0698fe01752e84e6c69b39397e"
+    },
+    {
+      "name": "report-ledger.json",
+      "bytes": 19340,
+      "sha256": "3c1b3add052625f866f37b2d82a2a5d6127f92b3c95d1a7bca838094c51bb3e3"
+    },
+    {
+      "name": "terminal.json",
+      "bytes": 3439,
+      "sha256": "8dafbfbf823f8faf1e6c43e154dfba05f7cbca57c6abc7567f25d2a796e5f710"
+    },
+    {
+      "name": "terminal.md",
+      "bytes": 836,
+      "sha256": "e8f4784e1086b7c2e0571463bb29630c8c1b7ec6e16d7e781ceae7f2284ac68e"
+    },
+    {
+      "name": "terminal.sha256",
+      "bytes": 80,
+      "sha256": "aa7b4a50fbbe89553b1e525106aaf332cf62ba7458e51826d47b5cda4673390e"
+    }
+  ],
+  "raw_report_root": "E:\\Git\\ZirconEngine\\.codex\\tmp\\astra-current-evidence-20261004-root-01a0f033\\w0-batch27-root-canonical-preparation-r1\\original-reports",
+  "original_reports": [
+    {
+      "bytes": 34612,
+      "line_count": 265,
+      "report_id": "R04",
+      "report_path": "docs/plans/optimize/zircon_runtime/04-core-resource-asset-serialization-review.md",
+      "sha256": "f0c73866c635dcec9b469a2c94a4fb43ff0cef8b39e13fc2b7e91698b1c914f5"
+    },
+    {
+      "bytes": 40730,
+      "line_count": 308,
+      "report_id": "R05",
+      "report_path": "docs/plans/optimize/zircon_runtime/05-scene-ecs-world-lifecycle-review.md",
+      "sha256": "b2f8089dd0a3921fa589d19300b7df6707b136c29e75bf6998c6e8d98f0ce269"
+    },
+    {
+      "bytes": 39952,
+      "line_count": 305,
+      "report_id": "R06",
+      "report_path": "docs/plans/optimize/zircon_runtime/06-platform-input-process-review.md",
+      "sha256": "8945130067bcafdbc8f0cf93f1d10ba61e4f5ecf0ecc31b43556d1809e4c51ba"
+    },
+    {
+      "bytes": 43341,
+      "line_count": 312,
+      "report_id": "R07",
+      "report_path": "docs/plans/optimize/zircon_runtime/07-script-plugin-runtime-review.md",
+      "sha256": "4da9727f8d44a2d9153eba674ccea8fd363a075b2b5b6a23de310b0d360943d9"
+    },
+    {
+      "bytes": 46673,
+      "line_count": 399,
+      "report_id": "R08B",
+      "report_path": "docs/plans/optimize/zircon_runtime/08b-audio-runtime-review.md",
+      "sha256": "6a8707690fa36c62ca2498442db8a064c43f33e65b235d9ac301f4c0513f8cbb"
+    },
+    {
+      "bytes": 54435,
+      "line_count": 477,
+      "report_id": "R08D",
+      "report_path": "docs/plans/optimize/zircon_runtime/08d-navigation-runtime-review.md",
+      "sha256": "b413b78f9c9faa85c6d9ad9029be1b4a3dc04f09f0f148f93327fd2e5fe1e587"
+    },
+    {
+      "bytes": 57596,
+      "line_count": 433,
+      "report_id": "R08E",
+      "report_path": "docs/plans/optimize/zircon_runtime/08e-network-runtime-review.md",
+      "sha256": "923fdb9b655105bad6e038f2245d449fc05d1217fc0e6581260c1191db6022fc"
+    },
+    {
+      "bytes": 46278,
+      "line_count": 381,
+      "report_id": "R08F",
+      "report_path": "docs/plans/optimize/zircon_runtime/08f-ai-behavior-tree-blackboard-perception-runtime-review.md",
+      "sha256": "4e0364df496148f9d3ede6d78664c1d3e17eba9a94059c7b6e2face262c456b2"
+    },
+    {
+      "bytes": 44306,
+      "line_count": 379,
+      "report_id": "R08G",
+      "report_path": "docs/plans/optimize/zircon_runtime/08g-gameplay-ability-effect-attribute-tag-cue-prediction-runtime-review.md",
+      "sha256": "88c856147d64da550ac6d3e838ca1629c9ce9c550603fe9281a104844bd9fae8"
+    },
+    {
+      "bytes": 74825,
+      "line_count": 502,
+      "report_id": "R09A",
+      "report_path": "docs/plans/optimize/zircon_runtime/09a-rhi-render-graph-gpu-lifetime-review.md",
+      "sha256": "dd91628b1986f5b548bc46af19acfda453b05a6df31602458e6c7e1ea5a2797c"
+    },
+    {
+      "bytes": 208831,
+      "line_count": 1167,
+      "report_id": "R09C",
+      "report_path": "docs/plans/optimize/zircon_runtime/09c-material-shader-pipeline-pso-review.md",
+      "sha256": "fbf632047354b3549919829d096d71fc4ae5ec254f22c05e7965dd4d4a5466b8"
+    },
+    {
+      "bytes": 77071,
+      "line_count": 526,
+      "report_id": "R09D",
+      "report_path": "docs/plans/optimize/zircon_runtime/09d-render-asset-streaming-residency-review.md",
+      "sha256": "5cd6c3735485d161e6a977e3c9660e0413c12e1621956fc0bf201fc5ec634a3d"
+    }
+  ],
+  "counts": {
+    "source_observations": 2053,
+    "report_qualified_keys": 2038,
+    "distinct_original_literal_ids": 1533,
+    "unlabelled_original_finding_ordinals": 84,
+    "original_gate_rows": 1095,
+    "this_batch_original_findings": 275,
+    "this_batch_finding_locations": 286,
+    "this_batch_repeat_location_observations": 11,
+    "this_batch_original_gates": 212,
+    "this_batch_priority_split": {
+      "P1": 202,
+      "P2": 49,
+      "P0": 24
+    },
+    "this_batch_unique_original_literal_ids": 43,
+    "this_batch_report_count": 12,
+    "preserved_nonnew_bounded_relations": 21,
+    "whole_inventory": false
+  },
+  "qualifications": {
+    "author_terminal_inner_self_pin": "Stale self-entry09309c...3305B preserved; actual8daf...3439B and outputmanifest agree. No historical seal reconstruction.",
+    "independent_review_path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\w0-runtime-batch27-completeness-independent-review-foundation-r1\\review.json",
+    "independent_review_sha256": "972148469fae03bd885a319671e130f8023890aebb9058cedec3fddc0696b23a",
+    "identity": "Full report path + literal ID; repeat locations share original key; null gates use stable perreport ordinals.",
+    "reported_source_paths": "Owner hints only; current source and behavior unchecked.",
+    "relations": "21 bounded aliases/baseline relations NONNEW; no individual pairings inferred."
+  },
+  "prior_canonical_inventory_sha256": "5c290c2ab19890dac0bb6af4b5c424f375384f12d2d4b2e85ff3b9c6903c96b5",
+  "source_writes": 0,
+  "tests_run": 0,
+  "whole_inventory": false,
+  "acceptance": "open"
+}

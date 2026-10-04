@@ -1,3 +1,4 @@
+# 核对资源内容视图投影所用代际元数据及绘制身份来源。
 from pathlib import Path
 import unittest
 
@@ -119,7 +120,7 @@ class Editor09AssetContentGenerationProjectionContract(unittest.TestCase):
             "zircon_editor/src/ui/retained_host/host_contract/"
             "paint_workbench_renderer/docks/pane/template_nodes/asset_content/projector.rs"
         )
-        evidence_gate = self.read("tools/ui-profile-counter-evidence.ps1")
+        evidence_gate = self.read("tools/profiling/ui/ui-profile-counter-evidence.ps1")
 
         self.assertIn("identity_parse_count: row_descriptors.len()", metadata)
         self.assertIn("fn identity_parse_count(&self)", metadata)

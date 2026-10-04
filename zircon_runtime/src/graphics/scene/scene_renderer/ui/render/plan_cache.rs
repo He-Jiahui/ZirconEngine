@@ -12,11 +12,60 @@ use crate::text::font::FontCollectionRevision;
 use super::background::{ScreenSpaceUiBackgroundEffect, ScreenSpaceUiBackgroundTracker};
 use super::paint_projection::ScreenSpaceUiTextPaintProjectionReport;
 use super::{
-    PlannedScreenSpaceUi, PreparedScreenSpaceUi, ScreenSpaceUiScissor,
     append_screen_space_ui_command_batches, record_background_tracker_profile,
+    PlannedScreenSpaceUi, PreparedScreenSpaceUi, ScreenSpaceUiScissor,
 };
 
 const SCREEN_SPACE_UI_INITIAL_BACKGROUND_GENERATION: u64 = 0;
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub(in crate::graphics::scene::scene_renderer::ui) struct ScreenSpaceUiFrameChangeJournal {
+    base_generation: Option<u64>,
+    changed_segment_indices: Arc<[usize]>,
+    appended_segment_count: usize,
+    truncated_segment_count: usize,
+    full_rebuild: bool,
+}
+
+impl ScreenSpaceUiFrameChangeJournal {
+    #[cfg(test)]
+    pub(in crate::graphics::scene::scene_renderer::ui) fn for_test_local_delta(
+        base_generation: u64,
+        changed_segment_indices: &[usize],
+        appended_segment_count: usize,
+        truncated_segment_count: usize,
+    ) -> Self {
+        Self {
+            base_generation: Some(base_generation),
+            changed_segment_indices: Arc::from(changed_segment_indices),
+            appended_segment_count,
+            truncated_segment_count,
+            full_rebuild: false,
+        }
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::ui) fn base_generation(&self) -> Option<u64> {
+        self.base_generation
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::ui) fn changed_segment_indices(
+        &self,
+    ) -> &[usize] {
+        &self.changed_segment_indices
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::ui) fn appended_segment_count(&self) -> usize {
+        self.appended_segment_count
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::ui) fn truncated_segment_count(&self) -> usize {
+        self.truncated_segment_count
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::ui) fn is_full_rebuild(&self) -> bool {
+        self.full_rebuild
+    }
+}
 
 #[derive(Default)]
 pub(in crate::graphics::scene::scene_renderer::ui) struct ScreenSpaceUiPlanCache {
@@ -24,6 +73,7 @@ pub(in crate::graphics::scene::scene_renderer::ui) struct ScreenSpaceUiPlanCache
     cached_plan: Option<Arc<PreparedScreenSpaceUi>>,
     segment_entries: Vec<ScreenSpaceUiSegmentPlanCacheEntry>,
     next_background_generation: u64,
+    next_frame_generation: u64,
 }
 
 struct ScreenSpaceUiPlanCacheKey {
@@ -121,6 +171,8 @@ impl ScreenSpaceUiSegmentPlanner {
 
 fn compose_screen_space_ui_segment_plans(
     segment_plans: &[Arc<PlannedScreenSpaceUi>],
+    generation: u64,
+    change_journal: ScreenSpaceUiFrameChangeJournal,
 ) -> (Option<PreparedScreenSpaceUi>, usize) {
     let mut combined = PlannedScreenSpaceUi::default();
     let mut has_render_activity = false;
@@ -135,6 +187,8 @@ fn compose_screen_space_ui_segment_plans(
         Some(PreparedScreenSpaceUi {
             render_segments: Arc::from(segment_plans.to_vec()),
             resolved_glyph_artifact_routes: combined.resolved_glyph_artifact_routes,
+            generation,
+            change_journal,
         }),
         0,
     )
@@ -191,6 +245,7 @@ impl ScreenSpaceUiPlanCache {
             .map(|segment| segment.extract().list.commands.segment_count())
             .sum::<usize>();
         let previous_entry_count = self.segment_entries.len();
+        let previous_generation = self.cached_plan.as_ref().map(|plan| plan.generation());
         let previous_entries = if planner_inputs_match {
             std::mem::take(&mut self.segment_entries)
         } else {
@@ -207,9 +262,12 @@ impl ScreenSpaceUiPlanCache {
         let mut segment_command_visit_count = 0_usize;
         let mut all_segments_reused =
             planner_inputs_match && previous_entry_count == command_segment_count;
+        let full_rebuild = !planner_inputs_match || previous_generation.is_none();
+        let mut changed_segment_indices = Vec::new();
 
         for segment in submission.segments() {
             for command_segment in segment.extract().command_segments() {
+                let segment_index = next_entries.len();
                 let segment_incoming_background_generation = incoming_background_generation;
                 let mut previous = previous_entries.next();
                 if previous.as_ref().is_some_and(|entry| {
@@ -231,6 +289,9 @@ impl ScreenSpaceUiPlanCache {
                 }
 
                 all_segments_reused = false;
+                if !full_rebuild {
+                    changed_segment_indices.push(segment_index);
+                }
                 segment_command_visit_count =
                     segment_command_visit_count.saturating_add(command_segment.len());
                 let (plan, background_effects) =
@@ -277,8 +338,34 @@ impl ScreenSpaceUiPlanCache {
             return self.cached_plan.as_ref().map(Arc::clone);
         }
 
-        let (cached_plan, composition_payload_clone_count) =
-            compose_screen_space_ui_segment_plans(&segment_plans);
+        self.next_frame_generation = self.next_frame_generation.saturating_add(1).max(1);
+        let change_journal = ScreenSpaceUiFrameChangeJournal {
+            // `then_some` evaluates its argument eagerly.  A full rebuild has
+            // no previous plan generation by design, so use a lazy branch to
+            // avoid asserting on the first frame (or after planner inputs
+            // change).
+            base_generation: (!full_rebuild).then(|| {
+                previous_generation
+                    .expect("a local plan delta must retain its previous frame generation")
+            }),
+            changed_segment_indices: Arc::from(changed_segment_indices),
+            appended_segment_count: if full_rebuild {
+                0
+            } else {
+                command_segment_count.saturating_sub(previous_entry_count)
+            },
+            truncated_segment_count: if full_rebuild {
+                0
+            } else {
+                previous_entry_count.saturating_sub(command_segment_count)
+            },
+            full_rebuild,
+        };
+        let (cached_plan, composition_payload_clone_count) = compose_screen_space_ui_segment_plans(
+            &segment_plans,
+            self.next_frame_generation,
+            change_journal,
+        );
         crate::core::diagnostics::profiling::record_counter_batch(
             "runtime",
             &[

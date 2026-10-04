@@ -65,6 +65,93 @@ fn nn_model_asset_rejects_weight_tensor_past_the_blob_end() {
 }
 
 #[test]
+fn nn_model_asset_rejects_tensor_use_before_its_producer() {
+    let mut model = sample_model();
+    model.tensors.push(NnTensorDesc::new(
+        NnDataType::F32,
+        NnTensorKind::Intermediate,
+        2,
+        [1, 1, 2, 2],
+    ));
+    model.ops = vec![NnOp::new(NnOpCode::Relu, vec![3], vec![2], NnOpAttrs::None)];
+
+    assert!(matches!(
+        model.validate(),
+        Err(crate::NnModelValidationError::TensorUsedBeforeProduced { op: 0, tensor: 3 })
+    ));
+}
+
+#[test]
+fn nn_model_asset_rejects_duplicate_tensor_producers() {
+    let mut model = sample_model();
+    model
+        .ops
+        .push(NnOp::new(NnOpCode::Relu, vec![2], vec![2], NnOpAttrs::None));
+
+    assert!(matches!(
+        model.validate(),
+        Err(crate::NnModelValidationError::DuplicateTensorProducer {
+            tensor: 2,
+            first_op: 0,
+            second_op: 1,
+        })
+    ));
+}
+
+#[test]
+fn nn_model_asset_rejects_writing_input_or_weight_tensors() {
+    for (tensor, kind) in [(0_u16, NnTensorKind::Input), (1_u16, NnTensorKind::Weight)] {
+        let mut model = sample_model();
+        model.ops[0].outputs = vec![tensor];
+
+        assert!(matches!(
+            model.validate(),
+            Err(crate::NnModelValidationError::InvalidOutputTensorKind {
+                op: 0,
+                tensor: actual,
+                kind: actual_kind,
+            }) if actual == tensor && actual_kind == kind
+        ));
+    }
+}
+
+#[test]
+fn nn_model_asset_accepts_weight_only_resource_models() {
+    let model = NnModelAsset {
+        tensors: vec![
+            NnTensorDesc::new(NnDataType::F32, NnTensorKind::Weight, 1, [1, 1, 1, 1])
+                .with_weight_offset(0),
+        ],
+        ops: Vec::new(),
+        weights: vec![0; NN_WEIGHT_ALIGNMENT as usize],
+    };
+
+    assert_eq!(model.validate(), Ok(()));
+}
+
+#[test]
+fn nn_model_asset_accepts_topological_branching() {
+    let mut model = sample_model();
+    model.tensors[2].kind = NnTensorKind::Intermediate;
+    model.tensors.extend([
+        NnTensorDesc::new(NnDataType::F32, NnTensorKind::Output, 2, [1, 1, 2, 2]),
+        NnTensorDesc::new(NnDataType::F32, NnTensorKind::Output, 2, [1, 1, 2, 2]),
+    ]);
+    model.ops = vec![
+        NnOp::new(
+            NnOpCode::Gemm,
+            vec![0, 1],
+            vec![2],
+            NnOpAttrs::Gemm(NnGemmAttrs::default()),
+        ),
+        NnOp::new(NnOpCode::Relu, vec![2], vec![3], NnOpAttrs::None),
+        NnOp::new(NnOpCode::Sigmoid, vec![2], vec![4], NnOpAttrs::None),
+    ];
+
+    assert_eq!(model.validate(), Ok(()));
+}
+
+#[test]
 fn nn_model_asset_rejects_declared_op_count_beyond_table_capacity_before_allocation() {
     let mut bytes = sample_model()
         .to_znn_bytes()

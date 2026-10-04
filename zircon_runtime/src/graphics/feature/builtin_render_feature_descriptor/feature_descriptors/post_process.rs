@@ -1,4 +1,4 @@
-use crate::core::framework::render::{EXPOSURE_BUFFER_WORD_COUNT, PostProcessGraphResourceNames};
+use crate::core::framework::render::{PostProcessGraphResourceNames, EXPOSURE_BUFFER_WORD_COUNT};
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::shader::motion_vector_tile_max_pass_plan;
 use crate::render_graph::{
@@ -38,8 +38,8 @@ fn view_hdr_history_schema() -> RenderResourceSchema {
     )
 }
 
-pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor()
--> RenderFeatureDescriptor {
+pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor(
+) -> RenderFeatureDescriptor {
     let motion_vector_tile_max_plan = motion_vector_tile_max_pass_plan();
 
     RenderFeatureDescriptor::new(
@@ -54,7 +54,6 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             )
             .with_executor_id("post.motion-vector-tile-max")
             .with_fullscreen_pass_plan(motion_vector_tile_max_plan)
-            .read_texture(PostProcessGraphResourceNames::SCENE_VELOCITY)
             .write_texture_with_ops(
                 PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX,
                 RenderGraphAttachmentOps::clear_store(),
@@ -379,3 +378,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
         ],
     )
 }
+
+#[cfg(test)]
+#[path = "tests/post_process.rs"]
+mod tests;

@@ -54,12 +54,27 @@ pub(super) fn pointer_component_handler(
         .map(|event| event.node_id)
 }
 
+// 回复效果按捕获/释放、焦点变化、逐 invocation 的 dirty 请求和兜底重绘顺序写入；同一遍扫描同时记录 handler 与 redraw phase，供后续 route trace 解释实际终止阶段。
 fn pointer_reply_effects(
     routed_result: &UiPointerDispatchResult,
     pointer_id: UiPointerId,
     handler: Option<UiNodeId>,
 ) -> (Vec<UiDispatchEffect>, PointerInvocationPhases) {
-    let mut effects = Vec::new();
+    let release_target = pointer_release_target(routed_result);
+    let fixed_effect_count = usize::from(routed_result.captured_by.is_some())
+        + usize::from(release_target.is_some())
+        + usize::from(routed_result.focus_changed_to.is_some())
+        + usize::from(routed_result.focus_cleared && routed_result.route.focused.is_some());
+    let fallback_effect_count = routed_result
+        .route
+        .target
+        .map_or(routed_result.route.root_targets.len(), |_| 1);
+    let effect_capacity = pointer_reply_effect_capacity_hint(
+        fixed_effect_count,
+        routed_result.invocations.len(),
+        fallback_effect_count,
+    );
+    let mut effects = Vec::with_capacity(effect_capacity);
     if let Some(target) = routed_result.captured_by {
         effects.push(UiDispatchEffect::CapturePointer {
             target,
@@ -67,7 +82,7 @@ fn pointer_reply_effects(
             reason: UiPointerCaptureReason::Press,
         });
     }
-    if let Some(target) = pointer_release_target(routed_result) {
+    if let Some(target) = release_target {
         effects.push(UiDispatchEffect::ReleasePointerCapture {
             target,
             pointer_id,
@@ -118,6 +133,14 @@ fn pointer_reply_effects(
     (effects, invocation_phases)
 }
 
+fn pointer_reply_effect_capacity_hint(
+    fixed_effect_count: usize,
+    invocation_count: usize,
+    fallback_effect_count: usize,
+) -> usize {
+    fixed_effect_count.saturating_add(invocation_count.max(fallback_effect_count))
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 struct PointerInvocationPhases {
     handler_phase: Option<UiDispatchPhase>,
@@ -162,9 +185,14 @@ fn pointer_release_target(routed_result: &UiPointerDispatchResult) -> Option<UiN
 }
 
 #[cfg(test)]
-#[path = "pointer_reply/single_pass_tests.rs"]
+#[path = "pointer_reply/tests/single_pass_tests.rs"]
 mod single_pass_tests;
 
+#[cfg(test)]
+#[path = "pointer_reply/tests/capacity_tests.rs"]
+mod capacity_tests;
+
+// 指针路由先产生基础回复，文本编辑随后追加自己的 effects 与事件；保留已有 Blocked 状态，并把文本侧 effect 索引整体平移，保证 applied/rejected/host request 仍指向合并后的序列。
 pub(super) fn merge_pointer_text_result(
     result: &mut UiInputDispatchResult,
     text_result: UiInputDispatchResult,
@@ -176,6 +204,29 @@ pub(super) fn merge_pointer_text_result(
     }
     let effect_index_offset = result.reply.effects.len();
     let text_effect_count = text_result.reply.effects.len();
+    result.reply.effects.reserve(text_effect_count);
+    result
+        .applied_effects
+        .reserve(text_result.applied_effects.len());
+    result
+        .component_events
+        .reserve(text_result.component_events.len());
+    result
+        .widget_events
+        .reserve(text_result.widget_events.len());
+    result
+        .binding_reports
+        .reserve(text_result.binding_reports.len());
+    result
+        .host_requests
+        .reserve(text_result.host_requests.len());
+    result
+        .rejected_effects
+        .reserve(text_result.rejected_effects.len());
+    result
+        .diagnostics
+        .notes
+        .reserve(text_result.diagnostics.notes.len());
     for (local_effect_index, effect) in text_result.reply.effects.into_iter().enumerate() {
         debug_assert_eq!(
             result.reply.effects.len(),
@@ -192,6 +243,7 @@ pub(super) fn merge_pointer_text_result(
             applied
         }));
     result.component_events.extend(text_result.component_events);
+    result.widget_events.extend(text_result.widget_events);
     result.binding_reports.extend(text_result.binding_reports);
     result
         .host_requests
@@ -229,122 +281,5 @@ pub(super) fn merge_pointer_text_result(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use zircon_runtime_interface::ui::{
-        dispatch::{
-            UiDispatchAppliedEffect, UiDispatchHostRequest, UiDispatchHostRequestKind,
-            UiDispatchRejectedEffect, UiInputEvent, UiInputEventMetadata, UiInputSequence,
-            UiInputTimestamp, UiPointerEvent, UiPointerInputEvent, UiPopupEffectKind,
-        },
-        layout::UiPoint,
-        surface::{UiPointerButton, UiPointerEventKind},
-    };
-
-    #[test]
-    fn merge_pointer_text_result_preserves_text_effect_statuses_when_rebasing_indexes() {
-        let pointer_effect = release_pointer_effect(UiNodeId::new(1), UiPointerId::new(1));
-        let mut result = UiInputDispatchResult::new(
-            pointer_event(),
-            UiDispatchReply::handled().with_effect(pointer_effect.clone()),
-        );
-        result.applied_effects.push(UiDispatchAppliedEffect {
-            effect_index: 0,
-            effect: pointer_effect.clone(),
-        });
-
-        let text_applied = focus_effect(UiNodeId::new(2));
-        let text_rejected = popup_effect("stale-popup");
-        let mut text_result = UiInputDispatchResult::new(
-            pointer_event(),
-            UiDispatchReply::handled().with_effects([text_applied.clone(), text_rejected.clone()]),
-        );
-        text_result.applied_effects.push(UiDispatchAppliedEffect {
-            effect_index: 0,
-            effect: text_applied.clone(),
-        });
-        text_result.rejected_effects.push(UiDispatchRejectedEffect {
-            effect_index: 1,
-            effect: text_rejected.clone(),
-            reason: "invalid text popup owner".to_string(),
-        });
-        text_result.host_requests.push(UiDispatchHostRequest {
-            effect_index: 1,
-            request: UiDispatchHostRequestKind::Popup {
-                kind: UiPopupEffectKind::Open,
-                popup_id: "stale-popup".to_string(),
-                anchor: Some(UiPoint::new(10.0, 4.0)),
-            },
-            reason: "text popup".to_string(),
-        });
-
-        merge_pointer_text_result(&mut result, text_result);
-
-        assert_eq!(
-            result.reply.effects,
-            vec![
-                pointer_effect.clone(),
-                text_applied.clone(),
-                text_rejected.clone()
-            ]
-        );
-        assert_eq!(
-            result.applied_effects,
-            vec![
-                UiDispatchAppliedEffect {
-                    effect_index: 0,
-                    effect: pointer_effect,
-                },
-                UiDispatchAppliedEffect {
-                    effect_index: 1,
-                    effect: text_applied,
-                },
-            ]
-        );
-        assert_eq!(result.rejected_effects.len(), 1);
-        assert_eq!(result.rejected_effects[0].effect_index, 2);
-        assert_eq!(result.rejected_effects[0].effect, text_rejected);
-        assert_eq!(
-            result.rejected_effects[0].reason,
-            "invalid text popup owner"
-        );
-        assert_eq!(result.host_requests.len(), 1);
-        assert_eq!(result.host_requests[0].effect_index, 2);
-    }
-
-    fn pointer_event() -> UiInputEvent {
-        UiInputEvent::Pointer(UiPointerInputEvent {
-            metadata: UiInputEventMetadata::new(
-                UiInputTimestamp::from_micros(1),
-                UiInputSequence::new(1),
-            ),
-            event: UiPointerEvent::new(UiPointerEventKind::Up, UiPoint::new(0.0, 0.0))
-                .with_button(UiPointerButton::Secondary),
-            precise_scroll: None,
-        })
-    }
-
-    fn release_pointer_effect(target: UiNodeId, pointer_id: UiPointerId) -> UiDispatchEffect {
-        UiDispatchEffect::ReleasePointerCapture {
-            target,
-            pointer_id,
-            reason: UiPointerCaptureReason::Cancel,
-        }
-    }
-
-    fn focus_effect(target: UiNodeId) -> UiDispatchEffect {
-        UiDispatchEffect::SetFocus {
-            target,
-            reason: UiFocusEffectReason::Input,
-        }
-    }
-
-    fn popup_effect(popup_id: &str) -> UiDispatchEffect {
-        UiDispatchEffect::Popup {
-            kind: UiPopupEffectKind::Open,
-            popup_id: popup_id.to_string(),
-            owner: Some(UiNodeId::new(2)),
-            anchor: Some(UiPoint::new(10.0, 4.0)),
-        }
-    }
-}
+#[path = "tests/pointer_reply.rs"]
+mod tests;

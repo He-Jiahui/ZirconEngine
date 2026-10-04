@@ -1,5 +1,6 @@
 use super::shared::*;
 
+// 这些声明交由 Material 目录统一校验；能力和事件用于实例准入与路由，声明本身不创建宿主行为。
 pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
     vec![
         virtualized_range_props(
@@ -210,6 +211,7 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         )
         .with_prop(string_prop("composer_text"))
         .with_prop(bool_prop("streaming", false))
+        .with_prop(bool_prop("error", false))
         .slot(UiSlotSchema::new("root"))
         .events([
             UiComponentEventKind::Focus,

@@ -3,6 +3,7 @@ use std::process::Command;
 
 use crate::error::HubError;
 
+/// 项目删除动作的 Windows 回收站命令投影，供执行路径与安全转义测试共用。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RecycleDeleteCommand {
     pub program: String,
@@ -40,6 +41,8 @@ impl RecycleDeleteCommand {
     }
 }
 
+/// 将项目交给系统回收站；调用方应先确认项目身份并在成功后同步近期项目登记。
+/// 命令退出成功仅表示系统接受删除动作，恢复能力由系统回收站决定。
 pub fn recycle_delete_project(path: impl Into<PathBuf>) -> Result<(), HubError> {
     let command = RecycleDeleteCommand::for_project(path.into())?;
     let output = Command::new(&command.program)
@@ -68,44 +71,5 @@ pub fn recycle_delete_project(path: impl Into<PathBuf>) -> Result<(), HubError> 
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn windows_recycle_command_uses_shell_recycle_bin_api() {
-        let command =
-            RecycleDeleteCommand::windows_delete_directory(Path::new("E:/Projects/My Game"));
-
-        assert_eq!(command.program, "powershell");
-        assert_eq!(command.args[0], "-NoProfile");
-        assert!(command.args[3].contains("Microsoft.VisualBasic.FileIO.FileSystem"));
-        assert!(command.args[3].contains("SendToRecycleBin"));
-        assert!(command.args[3].contains("E:/Projects/My Game"));
-    }
-
-    #[test]
-    fn recycle_command_rejects_empty_path() {
-        assert!(RecycleDeleteCommand::for_project("").is_err());
-    }
-
-    #[test]
-    fn windows_recycle_script_escapes_quotes_spaces_unicode_and_newlines() {
-        for (raw, expected_fragment) in [
-            ("E:/Projects/Designer's Game", "Designer''s Game"),
-            ("E:/Projects/My Game", "My Game"),
-            ("E:/项目/我的 游戏", "我的 游戏"),
-            ("E:/Projects/Line1\nLine2", "Line1\nLine2"),
-            (
-                "E:/Projects/It's '; Remove-Item x",
-                "It''s ''; Remove-Item x",
-            ),
-        ] {
-            let command = RecycleDeleteCommand::windows_delete_directory(Path::new(raw));
-            let script = &command.args[3];
-
-            assert!(script.contains(expected_fragment), "raw={raw}");
-            assert_eq!(script.matches('\'').count() % 2, 0, "raw={raw}");
-            assert!(script.contains("SendToRecycleBin"));
-        }
-    }
-}
+#[path = "tests/recycle_bin.rs"]
+mod tests;

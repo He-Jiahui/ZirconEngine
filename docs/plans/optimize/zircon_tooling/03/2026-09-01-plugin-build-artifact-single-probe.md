@@ -1,3 +1,7 @@
+---
+status: local_candidate
+---
+
 # Tooling03 Plugin build artifact single probe
 
 ## Problem

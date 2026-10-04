@@ -1,3 +1,4 @@
+# 核对宿主页面原生命中先识别关闭动作，回调仅携带类型化动作目标。
 import re
 import unittest
 from pathlib import Path

@@ -1,3 +1,4 @@
+# 核对中心消息标识按命名空间查找静态类别，避免构建全量标识表。
 from pathlib import Path
 import unittest
 

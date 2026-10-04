@@ -7,14 +7,15 @@ use super::{
     },
     promotion_state::reference_asset_id,
     theme_authoring::{
-        UiAssetThemeRefactorAction, UiAssetThemeRuleHelperAction, adopt_active_cascade_rule,
-        adopt_active_cascade_rules, adopt_active_cascade_token, adopt_active_cascade_tokens,
-        adopt_all_active_cascade_changes, adopt_all_imported_theme_changes,
-        adopt_imported_theme_compare_diffs, adopt_imported_theme_rule, adopt_imported_theme_rules,
-        adopt_imported_theme_token, adopt_imported_theme_tokens, apply_theme_refactor_action,
+        adopt_active_cascade_rule, adopt_active_cascade_rules, adopt_active_cascade_token,
+        adopt_active_cascade_tokens, adopt_all_active_cascade_changes,
+        adopt_all_imported_theme_changes, adopt_imported_theme_compare_diffs,
+        adopt_imported_theme_rule, adopt_imported_theme_rules, adopt_imported_theme_token,
+        adopt_imported_theme_tokens, apply_theme_refactor_action,
         clone_imported_theme_to_local_theme_layer, detach_imported_theme_to_local_theme_layer,
         prune_duplicate_local_theme_overrides, prune_imported_theme_compare_duplicates,
-        theme_refactor_actions, theme_rule_helper_actions,
+        theme_refactor_actions, theme_rule_helper_actions, UiAssetThemeRefactorAction,
+        UiAssetThemeRuleHelperAction,
     },
     theme_summary::reconcile_selected_theme_source_key,
     ui_asset_editor_session::{UiAssetEditorSession, UiAssetEditorSessionError},
@@ -618,7 +619,7 @@ fn build_style_token_replay_commands(
         return Vec::new();
     }
 
-    let mut commands = Vec::new();
+    let mut commands = Vec::with_capacity(current.len().saturating_add(target.len()));
     for token_name in current.keys().rev() {
         if target.contains_key(token_name) {
             continue;
@@ -829,5 +830,9 @@ fn has_duplicate_borrowed_entries<'a>(mut entries: impl ExactSizeIterator<Item =
 }
 
 #[cfg(test)]
-#[path = "theme_state/optimization_tests.rs"]
+#[path = "theme_state/tests/optimization_batch_jj_editor649_tests.rs"]
+mod optimization_batch_jj_editor649_tests;
+
+#[cfg(test)]
+#[path = "theme_state/tests/optimization_tests.rs"]
 mod optimization_tests;

@@ -71,10 +71,10 @@ const m4ZrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
 const m4Contract = JSON.parse(read("contracts", "m4_abilities.json"));
 const m4Effects = read("scripts", "woc_game", "src", "generated", "m4_ability_effects.zr");
 if (!/WOC_RETAINED_ABILITY_IDS\s*=\s*\[[\s\S]*?'gouge'/.test(m4SourceGenerator) ||
-!m4SourceGenerator.includes("EXPECTED_ABILITY_COUNT = 78")) {
+!m4SourceGenerator.includes("EXPECTED_ABILITY_COUNT = 117")) {
   throw new Error("M4 WOC-only Gouge projection scope is missing");
 }
-if (!m4ZrGenerator.includes("document.entries.length === 78")) {
+if (!m4ZrGenerator.includes("document.entries.length === 117")) {
   throw new Error("M4 Zr Gouge projection count is missing");
 }
 const gougeEntry = m4Contract.entries.find((entry) => entry.id === "gouge");
@@ -102,7 +102,7 @@ requireText(
 );
 requireText(
   world,
-  /startOfflineGougeCast[\s\S]*?abilityCooldownExpiresAt[\s\S]*?nextAuthoritativeRandomUnit[\s\S]*?nextAuthoritativeRandomUnit[\s\S]*?armorReductionFromArmor[\s\S]*?clearOfflineBreakableIncapacitateOnDamage[\s\S]*?applyOfflineGougeIncapacitate[\s\S]*?setAbilityCooldownExpiration/,
+  /startOfflineGougeCast[\s\S]*?abilityCooldownExpiresAt[\s\S]*?spendOfflineAbilityResource[\s\S]*?nextAuthoritativeRandomUnit[\s\S]*?offlinePhysicalCritical[\s\S]*?armorReductionFromArmor[\s\S]*?clearOfflineBreakableIncapacitateOnDamage[\s\S]*?applyOfflineGougeIncapacitate[\s\S]*?setAbilityCooldownExpiration/,
   "WOS60 Gouge damage, break, incap and cooldown reducer is incomplete",
 );
 requireText(

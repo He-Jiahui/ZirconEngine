@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码投影固定种子的 Eastbrook 营地与怪物遭遇快照，生成可核对的 JSON 和 Zr 内容。
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
@@ -308,6 +309,7 @@ function main() {
   );
 }
 
+// 将固定版本源码归档到临时目录，再以固定种子执行其模拟器。
 function extractPinnedSource() {
   const isolatedRoot = mkdtempSync(join(tmpdir(), 'woc-m8-encounter-'));
   try {
@@ -338,6 +340,7 @@ function extractPinnedSource() {
   }
 }
 
+// 写入遭遇战与 Zr 快照前，核对营地顺序和怪物状态。
 function validateExtracted(extracted) {
   invariant(extracted && typeof extracted === 'object', 'encounter extraction is not an object');
   invariant(Array.isArray(extracted.camps) && Array.isArray(extracted.spawns), 'encounter data is missing');

@@ -20,6 +20,9 @@ use zircon_runtime_interface::ui::{
     widget::{UiWidgetContract, UiWidgetEvent},
 };
 
+#[cfg(feature = "profiling")]
+mod scale;
+
 fn id(value: u64) -> UiNodeId {
     UiNodeId::new(value)
 }
@@ -296,9 +299,12 @@ fn accessibility_set_value_applies_text_input_constraints_before_mutation() {
     assert_eq!(metadata.attributes["selection_focus"].as_integer(), Some(3));
     assert_eq!(
         metadata.attributes["composition_start"].as_integer(),
-        Some(3)
+        Some(-1)
     );
-    assert_eq!(metadata.attributes["composition_end"].as_integer(), Some(3));
+    assert_eq!(
+        metadata.attributes["composition_end"].as_integer(),
+        Some(-1)
+    );
     assert_eq!(metadata.attributes["composition_text"].as_str(), Some(""));
     assert_eq!(
         metadata.attributes["composition_restore_text"].as_str(),
@@ -352,28 +358,22 @@ fn accessibility_set_value_updates_secure_text_without_exposing_its_value_or_sel
         .unwrap();
     assert_eq!(metadata.attributes["text"].as_str(), Some("New secret"));
 
-    let snapshot_node = surface
-        .accessibility_snapshot()
+    let snapshot = surface.accessibility_snapshot();
+    let snapshot_node = snapshot
         .node(id(2))
         .expect("secure text input remains discoverable");
     assert_eq!(snapshot_node.name, None);
     assert_eq!(snapshot_node.state.value, None);
     assert_eq!(snapshot_node.state.text_selection, None);
-    assert!(
-        snapshot_node
-            .actions
-            .contains(&UiAccessibilityAction::SetValue)
-    );
-    assert!(
-        !snapshot_node
-            .actions
-            .contains(&UiAccessibilityAction::ReplaceSelectedText)
-    );
-    assert!(
-        !snapshot_node
-            .actions
-            .contains(&UiAccessibilityAction::SetTextSelection)
-    );
+    assert!(snapshot_node
+        .actions
+        .contains(&UiAccessibilityAction::SetValue));
+    assert!(!snapshot_node
+        .actions
+        .contains(&UiAccessibilityAction::ReplaceSelectedText));
+    assert!(!snapshot_node
+        .actions
+        .contains(&UiAccessibilityAction::SetTextSelection));
 }
 
 #[test]
@@ -460,17 +460,21 @@ fn accessibility_set_value_clears_active_composition_metadata() {
     assert_eq!(metadata.attributes["selection_focus"].as_integer(), Some(5));
     assert_eq!(
         metadata.attributes["composition_start"].as_integer(),
-        Some(5)
+        Some(-1)
     );
-    assert_eq!(metadata.attributes["composition_end"].as_integer(), Some(5));
+    assert_eq!(
+        metadata.attributes["composition_end"].as_integer(),
+        Some(-1)
+    );
     assert_eq!(metadata.attributes["composition_text"].as_str(), Some(""));
     assert_eq!(
         metadata.attributes["composition_restore_text"].as_str(),
         Some("")
     );
+    let empty_clauses = Vec::<toml::Value>::new();
     assert_eq!(
         metadata.attributes["composition_clauses"].as_array(),
-        Some([].as_slice())
+        Some(&empty_clauses)
     );
 
     let snapshot = surface.accessibility_snapshot();
@@ -530,17 +534,21 @@ fn accessibility_replace_selected_text_updates_selected_range_only() {
     assert_eq!(metadata.attributes["selection_focus"].as_integer(), Some(2));
     assert_eq!(
         metadata.attributes["composition_start"].as_integer(),
-        Some(2)
+        Some(-1)
     );
-    assert_eq!(metadata.attributes["composition_end"].as_integer(), Some(2));
+    assert_eq!(
+        metadata.attributes["composition_end"].as_integer(),
+        Some(-1)
+    );
     assert_eq!(metadata.attributes["composition_text"].as_str(), Some(""));
     assert_eq!(
         metadata.attributes["composition_restore_text"].as_str(),
         Some("")
     );
+    let empty_clauses = Vec::<toml::Value>::new();
     assert_eq!(
         metadata.attributes["composition_clauses"].as_array(),
-        Some([].as_slice())
+        Some(&empty_clauses)
     );
 
     let snapshot = surface.accessibility_snapshot();
@@ -625,10 +633,7 @@ fn input_manager_accessibility_set_value_and_replace_share_document_revision_cha
         "Z",
     );
 
-    let UiWidgetEvent::TextEditChange {
-        receipt: set_value,
-    } = &set_value.widget_events[0]
-    else {
+    let UiWidgetEvent::TextEditChange { receipt: set_value } = &set_value.widget_events[0] else {
         panic!("expected accessibility set-value receipt");
     };
     let UiWidgetEvent::TextEditChange { receipt: replace } = &replace.widget_events[0] else {
@@ -695,9 +700,12 @@ fn accessibility_replace_selected_text_applies_constraints_to_selected_range() {
     assert_eq!(metadata.attributes["selection_focus"].as_integer(), Some(2));
     assert_eq!(
         metadata.attributes["composition_start"].as_integer(),
-        Some(2)
+        Some(-1)
     );
-    assert_eq!(metadata.attributes["composition_end"].as_integer(), Some(2));
+    assert_eq!(
+        metadata.attributes["composition_end"].as_integer(),
+        Some(-1)
+    );
 }
 
 #[test]
@@ -757,9 +765,12 @@ fn accessibility_set_text_selection_updates_read_only_text_input_selection() {
     assert_eq!(metadata.attributes["selection_focus"].as_integer(), Some(4));
     assert_eq!(
         metadata.attributes["composition_start"].as_integer(),
-        Some(4)
+        Some(-1)
     );
-    assert_eq!(metadata.attributes["composition_end"].as_integer(), Some(4));
+    assert_eq!(
+        metadata.attributes["composition_end"].as_integer(),
+        Some(-1)
+    );
     assert_eq!(metadata.attributes["composition_text"].as_str(), Some(""));
     assert_eq!(
         metadata.attributes["composition_restore_text"].as_str(),
@@ -815,9 +826,12 @@ fn accessibility_set_text_selection_preserves_distinct_clamped_caret_offset() {
     assert_eq!(metadata.attributes["selection_focus"].as_integer(), Some(4));
     assert_eq!(
         metadata.attributes["composition_start"].as_integer(),
-        Some(1)
+        Some(-1)
     );
-    assert_eq!(metadata.attributes["composition_end"].as_integer(), Some(1));
+    assert_eq!(
+        metadata.attributes["composition_end"].as_integer(),
+        Some(-1)
+    );
     assert_eq!(metadata.attributes["composition_text"].as_str(), Some(""));
     assert_eq!(
         metadata.attributes["composition_restore_text"].as_str(),

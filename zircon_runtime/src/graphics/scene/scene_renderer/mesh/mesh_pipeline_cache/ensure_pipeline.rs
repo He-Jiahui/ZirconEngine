@@ -4,7 +4,7 @@ use crate::graphics::pipeline::{
     PipelineAdmission, PipelineAdmissionReason, PipelineAsyncCompileError, PipelineAsyncQueueResult,
 };
 use crate::graphics::scene::resources::{
-    PipelineKey, ResourceStreamer, default_pipeline_key, fallback_shader_uri,
+    default_pipeline_key, fallback_shader_uri, PipelineKey, ResourceStreamer,
 };
 use crate::graphics::types::GraphicsError;
 
@@ -125,6 +125,7 @@ impl MeshPipelineCache {
         allow_async_defer: bool,
         allow_synchronous_fallback: bool,
     ) -> PipelineAdmission<()> {
+        // 同步回退权限来自调用方；后台变体延期被禁用时仍应报告不可用，避免把编译成本迁入帧内。
         let requested_async_defer = allow_async_defer;
         let allow_async_defer = self.allow_async_base_pipeline_defer(allow_async_defer);
         self.drain_ready_base_pipelines();
@@ -827,7 +828,7 @@ impl MeshPipelineCache {
         let started = std::time::Instant::now();
         let mut pipeline_key = default_pipeline_key();
         let shader_source_started = std::time::Instant::now();
-        let (shader_id, shader_revision, shader_dependency_revision, _) =
+        let (shader_id, shader_revision, shader_dependency_identity, _) =
             streamer.ensure_shader_source(&AssetReference::from_locator(fallback_shader_uri()))?;
         let shader_source_resolution = shader_source_started.elapsed();
         if shader_id != pipeline_key.shader_id {
@@ -837,7 +838,7 @@ impl MeshPipelineCache {
             )));
         }
         pipeline_key.shader_revision = shader_revision;
-        pipeline_key.shader_dependency_revision = shader_dependency_revision;
+        pipeline_key.shader_dependency_identity = Some(shader_dependency_identity);
         // The viewer's static fixtures do not receive shadows. Keep the generic
         // Forward IOR warmup keyed to that submitted material, not to the
         // default receiver variant.
@@ -968,5 +969,5 @@ fn mesh_shader_module_cache_key(
 }
 
 #[cfg(all(test, feature = "dynamic-api"))]
-#[path = "ensure_pipeline/tests.rs"]
+#[path = "ensure_pipeline/tests/cases.rs"]
 mod tests;

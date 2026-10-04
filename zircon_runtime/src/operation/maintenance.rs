@@ -41,12 +41,23 @@ pub(super) fn expire_due_deadlines_in_state(state: &mut RuntimeOperationTaskStat
             {
                 continue;
             }
-            let released_bytes = std::mem::replace(&mut task.retained_bytes, 0);
+            let worker_still_owns_snapshot = task.prepare_in_flight;
+            let released_bytes = if worker_still_owns_snapshot {
+                0
+            } else {
+                std::mem::replace(&mut task.retained_bytes, 0)
+            };
             task.payload = None;
             task.prepared_command = None;
             task.prepared_result = None;
+            task.prepared_owner_state = None;
+            if !worker_still_owns_snapshot {
+                task.snapshot_owner_bytes = 0;
+                task.in_flight_owner_bytes = 0;
+            }
             task.prepared_command_bytes = 0;
             task.prepared_result_bytes = 0;
+            task.prepared_owner_bytes = 0;
             task.result = None;
             task.deadline_armed = false;
             task.snapshot_claimed = false;
@@ -107,8 +118,12 @@ pub(super) fn expire_terminal_results_in_state(
             task.payload = None;
             task.prepared_command = None;
             task.prepared_result = None;
+            task.prepared_owner_state = None;
+            task.snapshot_owner_bytes = 0;
+            task.in_flight_owner_bytes = 0;
             task.prepared_command_bytes = 0;
             task.prepared_result_bytes = 0;
+            task.prepared_owner_bytes = 0;
             task.result = None;
             task.phase = ZrRuntimeOperationPhase::Expired;
             task.detail_kind = ZrRuntimeOperationDetailKindV2::TerminalTtlElapsed;

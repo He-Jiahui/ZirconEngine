@@ -12,7 +12,7 @@ plan_link_mode: child_record_only
 related_code:
   - tools/tests/test_zui_docs_suffix_convergence.py
   - tools/tests/test_editor06_inspector_customization_contract.py
-  - docs/editor-and-tooling/editor-command-workflow.md
+  - docs/editor/editor-command-workflow.md
   - zircon_editor/src/core/extension/inspector.rs
 tests:
   - python -m unittest tools.tests.test_zui_docs_suffix_convergence tools.tests.test_editor06_inspector_customization_contract

@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node m6_yumi_queue_state_source_check.mjs；缺少源码契约时脚本抛错退出。
+// 核对锁定的 Yumi 队伍装箱函数及源测试样例，再检查 Zr 队伍填充顺序、失败分支、测试入口和项目元数据。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -33,6 +37,7 @@ for (const needle of [
 ]) {
   invariant(source.includes(needle), `source Yumi queue rule drifted: ${needle}`);
 }
+// 除函数源码外，源测试名称也固定了贪心装箱的预期例子。
 for (const needle of [
   'premade of 3 fills team A; three solos fill team B',
   'a premade of 2 + solo per side',

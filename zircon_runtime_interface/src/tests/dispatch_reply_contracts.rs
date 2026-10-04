@@ -126,6 +126,7 @@ fn dispatch_reply_merge_reserves_route_trace_capacity_from_exact_size_steps() {
 
 #[test]
 fn dispatch_reply_merge_does_not_trust_an_unbounded_size_hint() {
+    // 只会产出一个步骤却谎报 4096 的下界，验证非精确迭代器不会触发大额预分配。
     struct MisleadingHint(Option<UiDispatchReplyStep>);
 
     impl Iterator for MisleadingHint {
@@ -311,11 +312,9 @@ fn dispatch_reply_rich_link_activation_roundtrips_with_host_request_kind() {
         effect_json["RequestLinkActivation"]["href"],
         "res://docs/help.md"
     );
-    assert!(
-        effect_json["RequestLinkActivation"]
-            .get("link_target")
-            .is_none()
-    );
+    assert!(effect_json["RequestLinkActivation"]
+        .get("link_target")
+        .is_none());
     let reply = UiDispatchReply::handled().with_effect(effect);
 
     let reply_round_trip: UiDispatchReply =
@@ -331,11 +330,9 @@ fn dispatch_reply_rich_link_activation_roundtrips_with_host_request_kind() {
         host_request_json["ActivateLink"]["href"],
         "res://docs/help.md"
     );
-    assert!(
-        host_request_json["ActivateLink"]
-            .get("link_target")
-            .is_none()
-    );
+    assert!(host_request_json["ActivateLink"]
+        .get("link_target")
+        .is_none());
     let host_request_round_trip: UiDispatchHostRequestKind =
         serde_json::from_value(serde_json::to_value(&host_request).unwrap()).unwrap();
     assert_eq!(host_request_round_trip, host_request);

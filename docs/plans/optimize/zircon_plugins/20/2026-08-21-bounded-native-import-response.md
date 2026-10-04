@@ -13,7 +13,7 @@
 - Current session: `root-runtime-interface03-activate-link-failure-20260831`.
 - Shared static/model ticket: `d49fbe45b4534105bc4be8fc36273fec` (queued, 7 Python tests).
 - Release performance ticket: `5ad3550bb264437b9e10aea407c6f3ba` (queued; exact ignored bounded-response benchmark).
-- Shared model: `tools/plugins_texture_native_pressure.py`, source manifest `DEF4AD94090A71DB775902D1190AA327F94910C7B0AF1E9FB38BB2C1553C5B37`.
+- Shared model: `tools/analysis/performance/plugins/plugins_texture_native_pressure.py`, source manifest `DEF4AD94090A71DB775902D1190AA327F94910C7B0AF1E9FB38BB2C1553C5B37`.
 - Current source hashes: `lib.rs` `3B1CE1E31A1F8B1B97AE12A3AF7DC2A0B18CB35111F0A1A9822145EAB0BC698C`; `tests.rs` `BC50857F300570DB9F465EAF8D729076D253266D0F779838A91535D96F5DA52C`; shared model `5FFA4EF8EA38EC84143374E4471E14B7AEF4F437B6179E7C94412516844B6981`.
 
 The current-source model is structural evidence, not wall-clock timing. Across eight 131,101-byte encodes it changes full response-sized buffers `16 -> 8`, source-text clone bytes `1,048,808 -> 0`, and intermediate metadata buffers `8 -> 0`, while retaining the explicit 64 KiB metadata, 256 KiB source, and 1 MiB host-output limits. The exact ignored 21-pair release benchmark remains authoritative for timing and must satisfy bounded P95 `<= 110%` of legacy before integration or WeCom publication.

@@ -173,7 +173,7 @@ each before/after pair.
 
 The first current-source validator dry-run did not launch Cargo. Its durable
 `session.register` request was accepted at `2026-08-15T01:33:51.224186Z` and completed at
-`2026-08-15T01:34:31.813546Z` (40.589 seconds), while `tools/zircon-session.ps1` applies a
+`2026-08-15T01:34:31.813546Z` (40.589 seconds), while `tools/dev/zircon-session.ps1` applies a
 15-second command deadline and a one-second reconciliation interval. The resulting
 `command_post_timeout` is therefore a control-plane latency failure, not a Rust or WGPU
 diagnostic and not evidence of a Cargo lane leak.

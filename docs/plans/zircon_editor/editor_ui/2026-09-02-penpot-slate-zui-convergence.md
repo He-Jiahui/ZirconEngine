@@ -6,15 +6,10 @@ related_code:
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_activity_rail.zui
   - zircon_editor/assets/ui/theme/editor_workbench_strict.zui
   - zircon_editor/assets/ui/editor/layout/shell_regions.toml
-  - zircon_runtime_interface/src/ui/**
-  - zircon_runtime/src/ui/**
-  - zircon_editor/src/ui/**
-  - zircon_editor/src/scene/selection/**
-  - zircon_editor/src/scene/viewport/**
 design_references:
   - docs/plans/designment/01-penpot-inspired-interface-design.md
   - docs/plans/designment/02-milestone-execution-and-evidence.md
-  - docs/ui-and-layout/editor-workbench-designs/STYLE-NOTES.md
+  - docs/ui/editor-workbench-designs/STYLE-NOTES.md
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Widgets/SWidget.h
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Framework/Application/SlateApplication.h
 plan_sources:

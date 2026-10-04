@@ -45,14 +45,14 @@ requireText(
 const generator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
 if (!/wrath',[\s\S]*?'healing_touch'/.test(generator) ||
-    !generator.includes("EXPECTED_ABILITY_COUNT = 79") ||
-    !zrGenerator.includes("document.entries.length === 79")) {
+    !generator.includes("EXPECTED_ABILITY_COUNT = 117") ||
+    !zrGenerator.includes("document.entries.length === 117")) {
   throw new Error("M4 Healing Touch projection scope is missing");
 }
 const entry = JSON.parse(read("contracts", "m4_abilities.json")).entries.find(
   (value) => value.id === "healing_touch",
 );
-if (!entry || entry.index !== 54 || entry.definition.class !== "druid" ||
+if (!entry || entry.index !== 58 || entry.definition.class !== "druid" ||
     entry.definition.school !== "nature" || entry.definition.cost !== 25 ||
     entry.definition.castTime !== 2.5 || entry.definition.cooldown !== 0 ||
     entry.definition.range !== 30 || !entry.definition.requiresTarget ||

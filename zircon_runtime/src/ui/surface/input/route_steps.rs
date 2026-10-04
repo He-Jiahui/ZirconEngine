@@ -6,6 +6,7 @@ use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
 };
 
+// 统一分派完成后才生成步骤投影：先使用显式 handler/阻断者，再按 route policy 选择捕获、焦点或冒泡路径。已有步骤表示上游已合并的真实回执，因此这里保持幂等而不覆盖它。
 pub(super) fn annotate_result_route_steps(result: &mut UiInputDispatchResult) {
     if !result.diagnostics.route_steps.is_empty() {
         return;
@@ -59,6 +60,7 @@ fn routed_path_steps(
     terminal_phase: Option<UiDispatchPhase>,
 ) -> Vec<UiDispatchReplyStepTrace> {
     let terminal = explicit_handler.or(route_target).or(trace.target);
+    // 键盘/IME 等焦点输入可能没有 bubble 轨迹；此时用 focus_path 保留 leaf-to-root 的目标和祖先步骤。
     let path = if trace.bubble_path.is_empty() {
         &trace.focus_path
     } else {
@@ -81,6 +83,7 @@ fn routed_path_steps(
     } else {
         Vec::with_capacity(step_capacity)
     };
+    let mut stopped = false;
 
     for node_id in &trace.preview_tunnel {
         steps.push(routed_step(
@@ -103,7 +106,7 @@ fn routed_path_steps(
     }
 
     let Some((&target, ancestors)) = path.split_first() else {
-        append_out_of_route_terminal_step(&mut steps, terminal, disposition, effect_count);
+        append_out_of_route_terminal_step(&mut steps, terminal, disposition, effect_count, stopped);
         return steps;
     };
 
@@ -141,11 +144,12 @@ fn routed_path_steps(
             UiDispatchPhase::Bubble,
             disposition,
         ) {
+            stopped = true;
             break;
         }
     }
 
-    append_out_of_route_terminal_step(&mut steps, terminal, disposition, effect_count);
+    append_out_of_route_terminal_step(&mut steps, terminal, disposition, effect_count, stopped);
     steps
 }
 
@@ -154,8 +158,9 @@ fn append_out_of_route_terminal_step(
     terminal: Option<UiNodeId>,
     disposition: UiDispatchDisposition,
     effect_count: usize,
+    stopped: bool,
 ) {
-    if steps.iter().any(|step| step.stopped)
+    if stopped
         || !matches!(
             disposition,
             UiDispatchDisposition::Handled | UiDispatchDisposition::Blocked
@@ -174,6 +179,10 @@ fn append_out_of_route_terminal_step(
         effect_count,
     ));
 }
+
+#[cfg(test)]
+#[path = "tests/route_steps_tests.rs"]
+mod route_steps_tests;
 
 fn direct_route_steps(
     target: Option<UiNodeId>,

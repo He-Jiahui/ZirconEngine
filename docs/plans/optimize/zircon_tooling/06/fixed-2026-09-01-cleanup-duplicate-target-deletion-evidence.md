@@ -10,8 +10,6 @@ fixing_child_dir: docs/plans/optimize/zircon_tooling/06
 failure_scope: local
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/cleanup.py
-  - tools/session_coordinator/tests/test_cleanup.py
 tests:
   - python -B -m unittest tools.session_coordinator.tests.test_cleanup -v
 resolved_at: 2026-09-01

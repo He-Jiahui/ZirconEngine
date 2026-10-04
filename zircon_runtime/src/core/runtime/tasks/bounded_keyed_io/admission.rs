@@ -45,23 +45,22 @@ pub enum BoundedKeyedIoAdmissionError {
 
 #[derive(Clone, Debug)]
 pub struct BoundedKeyedIoCancelAuthority {
-    ticket_id: u64,
-    _private: (),
+    ticket: BoundedKeyedIoTicket,
 }
 
 impl BoundedKeyedIoCancelAuthority {
-    pub(crate) const fn new(ticket_id: u64) -> Self {
+    pub(crate) fn new(ticket: &BoundedKeyedIoTicket) -> Self {
         Self {
-            ticket_id,
-            _private: (),
+            ticket: ticket.clone(),
         }
     }
 
-    pub(crate) const fn ticket_id(&self) -> u64 {
-        self.ticket_id
+    pub(super) fn authorizes(&self, ticket: &BoundedKeyedIoTicket) -> bool {
+        self.ticket.same_instance(ticket)
     }
 }
 
+/// 该对象在激活前代表 suspended 条目持有的预算；activate 转交队列所有权，未激活时由 Drop 归还资源。
 pub struct BoundedKeyedIoAdmission {
     pub(crate) lane: Arc<LaneInner>,
     pub(crate) ticket_id: u64,

@@ -1,7 +1,7 @@
 import re
 import unittest
 from pathlib import Path
-
+# 服务描述符把依赖集合冻结为共享切片，合约构造沿用同一份数据；检查 Rust 用例对各服务种类共享身份的断言。
 
 ROOT = Path(__file__).resolve().parents[2]
 DESCRIPTOR_FILES = (

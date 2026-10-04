@@ -1,3 +1,4 @@
+//! Sound 插件运行时公共面向框架暴露模块注册、能力清单和经理服务，实际音频资源由内部 Kira 桥接独占。
 mod automation;
 mod capability;
 mod components;
@@ -46,4 +47,5 @@ pub use runtime_plugin::feature_manifest::{
 pub use service_types::{DefaultSoundManager, SoundDriver};
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

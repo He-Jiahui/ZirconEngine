@@ -13,6 +13,8 @@ related_code:
 tests:
   - .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zr_rhi -SkipBuild -LibTests -TestFilter surface_handle -VerboseOutput
   - .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zr_rhi -SkipBuild -LibTests -VerboseOutput
+  - .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zr_rhi_wgpu -SkipBuild -LibTests -TestFilter tests::surface_lifecycle:: -VerboseOutput
+  - .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -LibTests -TestFilter journal -VerboseOutput
 ---
 
 # Runtime90: RHI surface allocator mutable-borrow compile blocker
@@ -73,3 +75,66 @@ the original E0499 no longer appears.
 Open state: `current-source repair and managed validation green / Runtime90 atomic
 integration pending`. Editor17's original product-level journal gate remains owned by
 Editor17 and is not claimed by this lower-layer result.
+
+## 2026-09-19 rolling successor formal source binding
+
+- Successor Session `failure-roll-01a084c8-runtime90-surface-r4` reclaimed the canonical
+  failure record and `zircon_runtime/crates/zr_rhi/src/surface.rs` through coordinator transfer
+  fingerprint `b51e4ec9b76001ef855b4ed41e0ee28a59d917991718c1d2fe732bc42a6e0b95` at baseline
+  epoch `611`; no source bytes changed during attribution.
+- A successor Windows source-contract ticket will assert the single-lock allocation sequence,
+  checked overflow/stale handling, and all focused session/frame allocator regressions. It
+  defers fresh current-source Cargo, Editor17's originating journal gate, independent C/I/M
+  review, fixed return and closeout; the two prior managed GREEN jobs remain supporting
+  evidence only.
+- Request `failure-roll-01a084c8-runtime90-surface-20260919-r1` admitted ticket
+  `4b75d0e349b547be8b9c85fabe0e4566` with sealed manifest hash
+  `4d7cf0ceca398ca3d4063eb95f3dc7485e2968563e03a4fe163c806f6092af0d`; status is `queued`
+  pending the coordinator terminal result.
+
+## 2026-09-19 corrected source-contract ticket terminal evidence
+
+- The coordinator terminalized ticket `4b75d0e349b547be8b9c85fabe0e4566` as
+  `passed` at `2026-09-19T05:42:13.094075Z` (run id equal to the ticket id).
+- Managed validation job `c76fba5f49e8493bb255bcc7b3bb985c` exited `0`; the
+  terminal stdout marker was
+  `RUNTIME90_RHI_SURFACE_ALLOCATOR_SOURCE_CONTRACT_PARSE_PASS`. The coordinator
+  recorded an empty stderr tail and completed cleanup (`event 10860`).
+- This is a current-source static contract pass only. Fresh managed `zr_rhi`
+  Cargo validation, the Editor17 originating journal gate, independent
+  Critical/Important/Moderate review, canonical fixed return, and failure
+  closeout remain pending. The external `E:\Git\zr_vm` dirty-worktree blocker
+  remains unchanged.
+
+## 2026-09-21 independent source review receipt
+
+- Reviewer Session `review-runtime90-surface-r4` inspected the current owned
+  `zircon_runtime/crates/zr_rhi/src/surface.rs` without editing it. The source
+  remains byte-identical to the sealed static ticket manifest at SHA-256
+  `0de95d13171efc2b1d5e2fc6a0ce308e108576e0484497879f313d5983e3b996`.
+- The review re-ran `rustfmt +1.94.1 --edition 2021 --config
+  skip_children=true --check` and scoped `git diff --check`; both passed with
+  markers `RUNTIME90_RUSTFMT_PASS` and `RUNTIME90_DIFF_CHECK_PASS`.
+- The independent source probe passed as
+  `RUNTIME90_RHI_SURFACE_ALLOCATOR_REVIEW_PASS`. It verified that allocation
+  advances the selected counter and publishes into the matching active set
+  within one lock domain, uses checked overflow handling, and contains no
+  overlapping `(&mut next_counter, &mut active_set)` borrow. It also verified
+  the focused session/frame monotonicity, stale-after-release,
+  overflow-without-publication, bounded terminal-history, owner-validation,
+  and foreign-allocator regression contracts.
+- Independent review result: **Critical=0 / Important=0 / Moderate=0**. No
+  Editor17 or foreign RHI source was absorbed.
+- This receipt does not promote the two historical green jobs to current
+  acceptance. Fresh managed `zr_rhi` Cargo validation and the Editor17
+  originating journal gate remain pending because external `E:\Git\zr_vm` is
+  dirty. Canonical `fixed-*` return, closeout, and WeCom notification remain
+  pending until matching source-bound dynamic evidence exists.
+
+## 2026-09-28 acceptance command correction
+
+The `tests` field now includes the direct WGPU surface lifecycle consumer and
+the originating Editor17 `journal` gate alongside the two original lower RHI
+commands. This only corrects the executable acceptance scope. The filters must
+execute nonzero target tests under managed Windows `--locked` validation; no
+new Cargo pass, failure return, closeout, or notification is claimed here.

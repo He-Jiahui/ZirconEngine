@@ -1,3 +1,4 @@
+//! 给决策、进度和短时提示建立统一且有界的稳定身份语法；身份只用于中心索引，不包含本地化文字或操作者的自由文本。
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
 
@@ -49,5 +50,5 @@ fn valid_notification_id_syntax(value: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "id/single_pass_validation_tests.rs"]
+#[path = "id/tests/single_pass_validation_tests.rs"]
 mod single_pass_validation_tests;

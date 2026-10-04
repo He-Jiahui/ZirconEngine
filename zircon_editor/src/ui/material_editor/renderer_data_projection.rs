@@ -109,7 +109,8 @@ impl RendererDataEditorProjection {
     pub fn diagnostics_by_material(
         &self,
     ) -> HashMap<AssetReference, Vec<&RendererDataDiagnosticRow>> {
-        let mut diagnostics = HashMap::new();
+        let mut diagnostics: HashMap<AssetReference, Vec<&RendererDataDiagnosticRow>> =
+            HashMap::new();
         for diagnostic in &self.diagnostics {
             let Some(material) = diagnostic.material_reference.as_ref() else {
                 continue;
@@ -126,7 +127,8 @@ impl RendererDataEditorProjection {
     pub fn diagnostics_by_shader(
         &self,
     ) -> HashMap<AssetReference, Vec<&RendererDataDiagnosticRow>> {
-        let mut diagnostics = HashMap::new();
+        let mut diagnostics: HashMap<AssetReference, Vec<&RendererDataDiagnosticRow>> =
+            HashMap::new();
         for diagnostic in &self.diagnostics {
             for shader in &diagnostic.shader_references {
                 if let Some(rows) = diagnostics.get_mut(shader) {
@@ -411,6 +413,21 @@ fn material_validation_diagnostic_row(
             message: format!(
                 "texture `{}` has an incompatible dimension: expected {expected:?}, resolved {actual:?}",
                 reference.locator
+            ),
+        },
+        RenderMaterialValidationError::UnsupportedTextureUvChannel {
+            slot,
+            channel,
+            supported_channel_count,
+        } => RendererDataDiagnosticRow {
+            feature: feature.to_string(),
+            material_reference: None,
+            shader_references: Vec::new(),
+            source: Some(RenderMaterialDiagnosticSource::DependencyResolution),
+            severity: RendererFeatureContractDiagnosticSeverity::Error,
+            path: format!("textures.{slot}.uv_channel"),
+            message: format!(
+                "texture slot `{slot}` requests UV channel {channel}, but only {supported_channel_count} channel(s) are supported"
             ),
         },
         RenderMaterialValidationError::InvalidLightingModel { path, value } => {

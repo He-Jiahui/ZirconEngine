@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node m6_yumi_match_state_source_check.mjs；缺少源码契约时脚本抛错退出。
+// 将锁定的 Yumi 随机种子、传送、突然死亡和复活状态标记与 Zr 比赛状态及专用测试项目对应核对。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';

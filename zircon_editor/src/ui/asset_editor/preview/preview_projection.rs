@@ -218,7 +218,8 @@ fn node_component_label(node: &UiNodeDefinition) -> Option<&str> {
 }
 
 fn control_id_index(document: &UiAssetDocument) -> HashMap<&str, &UiNodeDefinition> {
-    let mut index = HashMap::new();
+    let (node_capacity, _) = document.iter_nodes().size_hint();
+    let mut index = HashMap::with_capacity(node_capacity);
     for node in document.iter_nodes() {
         if let Some(control_id) = node.control_id.as_deref() {
             let _ = index.entry(control_id).or_insert(node);
@@ -228,5 +229,9 @@ fn control_id_index(document: &UiAssetDocument) -> HashMap<&str, &UiNodeDefiniti
 }
 
 #[cfg(test)]
-#[path = "preview_projection/control_hash_index_tests.rs"]
+#[path = "preview_projection/tests/control_hash_index_tests.rs"]
 mod control_hash_index_tests;
+
+#[cfg(test)]
+#[path = "preview_projection/tests/optimization_batch_iz_editor638_tests.rs"]
+mod optimization_batch_iz_editor638_tests;

@@ -11,6 +11,9 @@ mod layout;
 mod metrics;
 mod placement;
 mod recording;
+mod visual_evidence;
+
+pub(crate) use visual_evidence::TextPaintEvidenceScope;
 
 use self::clip_rect::resolve_text_pixel_clip;
 use self::glyphs::draw_layout_glyphs;
@@ -66,12 +69,21 @@ fn draw_text_with_size_and_style_impl(
             return;
         }
     }
+    let _text_evidence = visual_evidence::begin_run(
+        text,
+        &rect,
+        &clip,
+        font_size,
+        line_height,
+        style,
+        &layout,
+        layout_policy,
+    );
     draw_layout_glyphs(
         frame,
         &clip,
-        layout.font_face,
         &layout.glyphs,
-        &layout.artifact_raster_fonts,
+        &layout.artifact_raster_faces,
         color,
         style,
     );

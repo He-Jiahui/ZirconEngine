@@ -1,4 +1,4 @@
-// Frost utility decisions. WOS owns actual cooldown maps and aura mutations.
+// 冰霜实用技能的独立查询与冷却计划；当前仅叶子测试消费，若接入世界则由世界维护光环及冷却表。
 var container = %import("zr.container");
 var contract = %import("generated/frost_utility_contract");
 
@@ -13,6 +13,7 @@ pub class FrostUtilityAura {
     }
 }
 
+/// 暴风雪引导计划区分额度更新、冷却缩短和冷却删除；消费者应在同一引导状态中连续提交额度。
 pub class BlizzardChannelPlan {
     pub var resetBudget: bool;
     pub var updateBudget: bool;
@@ -30,6 +31,7 @@ pub class BlizzardChannelPlan {
     }
 }
 
+/// 仅寒冰指对应冰枪、冰冷智慧对应冰风暴时报告可用高亮；不消费光环。
 pub frostProcGlowActive(auras: container.Array<FrostUtilityAura>, abilityId: string): bool {
     var i = 0;
     while (i < auras.length) {
@@ -41,6 +43,7 @@ pub frostProcGlowActive(auras: container.Array<FrostUtilityAura>, abilityId: str
     return false;
 }
 
+/// 从首项冰刺光环读层数；无显式层数字段视为一层，无光环为零。
 pub frostIcicleCharges(auras: container.Array<FrostUtilityAura>): int {
     var i = 0;
     while (i < auras.length) {
@@ -65,6 +68,7 @@ pub channelStartPlan(abilityId: string): BlizzardChannelPlan {
     return new BlizzardChannelPlan(abilityId == contract.blizzardId(), false, 0.0, false, false, 0.0);
 }
 
+/// 只对命中至少一人的暴风雪脉冲退还冰球冷却；先累加受上限约束的额度，再决定缩短或删除现存冷却。
 pub channelPulsePlan(abilityId: string, struck: int, spent: float, hasFrozenOrbCooldown: bool, frozenOrbCooldown: float): BlizzardChannelPlan {
     var inert = new BlizzardChannelPlan(false, false, spent, false, false, frozenOrbCooldown);
     if (abilityId != contract.blizzardId() || struck <= 0) return inert;

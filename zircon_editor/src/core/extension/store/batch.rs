@@ -48,7 +48,7 @@ pub struct ContributionBatch {
         BTreeMap<EditorOperationPath, OperationCommandFactoryRegistration>,
     pub(super) native_command_bindings:
         BTreeMap<EditorOperationPath, NativePluginEditorCommandBinding>,
-    pub(super) required_capabilities: Vec<String>,
+    pub(super) required_capabilities: Arc<[String]>,
 }
 
 impl fmt::Debug for ContributionBatch {
@@ -102,9 +102,13 @@ impl ContributionBatch {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        self.required_capabilities = capabilities.into_iter().map(Into::into).collect();
-        self.required_capabilities.sort();
-        self.required_capabilities.dedup();
+        let mut capabilities = capabilities
+            .into_iter()
+            .map(Into::into)
+            .collect::<Vec<String>>();
+        capabilities.sort_unstable();
+        capabilities.dedup();
+        self.required_capabilities = capabilities.into();
         self
     }
 
@@ -127,14 +131,13 @@ impl ContributionBatch {
     }
 
     pub(crate) fn bind_matching_ui_templates_to_views(&mut self) {
-        let template_ids = self
-            .ui_templates
-            .iter()
-            .filter(|(_, template)| template.ui_document().starts_with("plugins://"))
-            .map(|(template_id, _)| template_id.clone())
-            .collect::<std::collections::BTreeSet<_>>();
         for view in self.views.values_mut() {
-            if view.ui_template_id().is_none() && template_ids.contains(view.id()) {
+            if view.ui_template_id().is_none()
+                && self
+                    .ui_templates
+                    .get(view.id())
+                    .is_some_and(|template| template.ui_document().starts_with("plugins://"))
+            {
                 view.bind_ui_template_id(view.id().to_owned());
             }
         }
@@ -717,3 +720,11 @@ where
         }
     }
 }
+
+#[cfg(test)]
+#[path = "batch/tests/optimization_batch_hq_editor598_tests.rs"]
+mod optimization_batch_hq_editor598_tests;
+
+#[cfg(test)]
+#[path = "batch/tests/optimization_batch_editor826_template_binding_tests.rs"]
+mod optimization_batch_editor826_template_binding_tests;

@@ -1,8 +1,9 @@
+# 核对滚动条损伤压力模型只准备相交子视图，并拒绝无效工作量和输出路径。
 from pathlib import Path
 import tempfile
 import unittest
 
-from tools.editor_native_pane_scrollbar_damage_pressure import run, write_result
+from tools.analysis.performance.editor.editor_native_pane_scrollbar_damage_pressure import run, write_result
 
 
 class EditorNativePaneScrollbarDamagePressureTests(unittest.TestCase):

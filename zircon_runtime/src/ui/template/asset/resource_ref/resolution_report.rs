@@ -1,3 +1,6 @@
+//! 将资源引用、占位结果和诊断下标组合成调用者可保存的批量报告。
+//! 诊断快照包含解析器的完整历史，使缓存占位结果中的下标仍可直接查找。
+
 use std::collections::HashMap;
 
 use zircon_runtime_interface::ui::template::{
@@ -6,6 +9,7 @@ use zircon_runtime_interface::ui::template::{
 
 use super::{UiResolvedUiResource, UiResourceResolveDiagnostic, UiResourceResolver};
 
+/// 一个作者来源与它的解析结果；诊断下标指向同一报告的诊断快照，不能跨报告复用。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UiResolvedResourceDependency {
     pub dependency: UiResourceDependency,
@@ -13,6 +17,7 @@ pub struct UiResolvedResourceDependency {
     pub diagnostic_indices: Vec<usize>,
 }
 
+/// 批量解析的可独立持有快照；错误判断也包含解析器此前留下的错误。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct UiResourceResolutionReport {
     pub resources: Vec<UiResolvedResourceDependency>,
@@ -44,6 +49,8 @@ impl UiResourceResolutionReport {
 }
 
 impl UiResourceResolver {
+    /// 按调用者顺序保留依赖，即使多个位置复用同一引用也分别报告。
+    /// 缓存命中的占位项按 URI 关联历史诊断；使用新解析器可隔离不同诊断会话。
     pub fn resolve_dependencies(
         &mut self,
         dependencies: &[UiResourceDependency],
@@ -113,6 +120,7 @@ fn index_diagnostic(
     }
 }
 
+// 合并主 URI 与回退 URI 的历史位置后恢复全局顺序；二者相同不得重复返回下标。
 fn diagnostic_indices_for_cached_resolution(
     reference: &UiResourceRef,
     diagnostic_index: usize,
@@ -154,5 +162,5 @@ fn diagnostic_matches_reference(
 }
 
 #[cfg(test)]
-#[path = "resolution_report/cached_diagnostic_index_tests.rs"]
+#[path = "resolution_report/tests/cached_diagnostic_index_tests.rs"]
 mod cached_diagnostic_index_tests;

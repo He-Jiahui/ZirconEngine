@@ -1,0 +1,73 @@
+use super::super::super::render_feature_pass_descriptor::{
+    RenderFeatureResourceAccess, RenderFeatureResourceKind,
+};
+use super::*;
+use crate::render_graph::RenderGraphExternalResourceBinding;
+
+#[test]
+fn deferred_preview_sky_composites_scene_color_after_lighting_before_transparency() {
+    let descriptor = descriptor();
+    let sky_index = descriptor
+        .stage_passes
+        .iter()
+        .position(|pass| pass.pass_name == "preview-sky")
+        .expect("preview sky pass");
+    let transparent_index = descriptor
+        .stage_passes
+        .iter()
+        .position(|pass| pass.pass_name == "transparent-mesh")
+        .expect("transparent mesh pass");
+    let sky = &descriptor.stage_passes[sky_index];
+
+    assert_eq!(sky.stage, RenderPassStage::Transparent3d);
+    assert!(sky_index < transparent_index);
+    assert!(sky.resources.iter().any(|resource| {
+        resource.name == PostProcessGraphResourceNames::SCENE_COLOR
+            && resource.access == RenderFeatureResourceAccess::Write
+    }));
+    assert!(sky.resources.iter().any(|resource| {
+        resource.name == PostProcessGraphResourceNames::SCENE_DEPTH
+            && resource.access == RenderFeatureResourceAccess::Read
+    }));
+    assert!(!sky
+        .resources
+        .iter()
+        .any(|resource| { resource.name == PostProcessGraphResourceNames::FINAL_COLOR }));
+}
+
+#[test]
+fn deferred_transparent_mesh_requires_shadow_atlas_external_texture() {
+    let descriptor = descriptor();
+    let pass = descriptor
+        .stage_passes
+        .iter()
+        .find(|pass| pass.pass_name == "transparent-mesh")
+        .expect("transparent mesh pass");
+    let atlas = pass
+        .resources
+        .iter()
+        .find(|resource| resource.name == PostProcessGraphResourceNames::SHADOW_ATLAS)
+        .expect("shadow atlas resource");
+
+    assert_eq!(atlas.kind, RenderFeatureResourceKind::External);
+    assert_eq!(atlas.access, RenderFeatureResourceAccess::Read);
+    assert_eq!(
+        atlas.external_binding,
+        RenderGraphExternalResourceBinding::required_texture()
+    );
+}
+
+#[test]
+fn deferred_geometry_writes_hdr_emissive_gbuffer_resource() {
+    let descriptor = descriptor();
+    let pass = descriptor
+        .stage_passes
+        .iter()
+        .find(|pass| pass.pass_name == "gbuffer-mesh")
+        .expect("gbuffer mesh pass");
+
+    assert!(pass.resources.iter().any(|resource| {
+        resource.name == PostProcessGraphResourceNames::GBUFFER_EMISSIVE
+            && resource.access == RenderFeatureResourceAccess::Write
+    }));
+}

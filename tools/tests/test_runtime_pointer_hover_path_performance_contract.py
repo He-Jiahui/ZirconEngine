@@ -21,7 +21,7 @@ def rust_block(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated Rust block: {signature}")
 
-
+# 读取悬停路径设置器，确认切片适配器借用迭代器，路径比较先于保留缓冲区复用。
 class RuntimePointerHoverPathPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -47,9 +47,9 @@ class RuntimePointerHoverPathPerformanceContractTests(unittest.TestCase):
         self.assertNotIn("to_vec()", body)
 
     def test_retained_buffer_and_release_benchmark_are_compiled_as_rust_tests(self) -> None:
-        self.assertIn('path = "pointer_table/hovered_path_tests.rs"', self.source)
+        self.assertIn('path = "pointer_table/tests/hovered_path_tests.rs"', self.source)
         tests = (
-            POINTER_TABLE.parent / "pointer_table/hovered_path_tests.rs"
+            POINTER_TABLE.parent / "pointer_table/tests/hovered_path_tests.rs"
         ).read_text(encoding="utf-8")
         self.assertIn("runtime200_pointer_hover_path_reuses_retained_buffer", tests)
         self.assertIn("runtime200_pointer_hover_path_reuse_p95", tests)

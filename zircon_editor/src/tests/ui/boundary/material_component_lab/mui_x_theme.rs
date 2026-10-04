@@ -105,6 +105,8 @@ const MUI_X_THEME_SELECTORS: &[&str] = &[
     ".MuiChatComposer-root",
     ".MuiChatComposer-root.MuiChatComposer-streaming",
     ".MuiChatComposer-root.MuiChatComposer-streaming.MuiChatComposer-hasText",
+    ".MuiChatComposer-root.MuiChatComposer-error",
+    ".MuiChatComposer-error",
     ".material-mui-x-messages",
     ".material-mui-x-composer",
 ];
@@ -259,6 +261,7 @@ const MUI_X_RUNTIME_ROOT_STATE_SELECTORS: &[&str] = &[
     ".MuiChatConversationList-populated",
     ".MuiChatMessageList-populated",
     ".MuiChatComposer-streaming",
+    ".MuiChatComposer-error",
     ".MuiChatComposer-hasText",
 ];
 
@@ -519,6 +522,7 @@ const MUI_X_SAMPLE_STATE_SELECTORS: &[SampleStateContract] = &[
         selectors: &[
             ".MuiChatComposer-root.MuiChatComposer-streaming",
             ".MuiChatComposer-root.MuiChatComposer-streaming.MuiChatComposer-hasText",
+            ".MuiChatComposer-root.MuiChatComposer-error",
         ],
     },
 ];

@@ -5,6 +5,7 @@ use super::geometry::chip_label_frame;
 use super::style::chip_foreground_color;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
+/// 标签优先使用模板正文，缺失时才使用 value_text；布局和绘制共用测量后的帧。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_chip_label(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
@@ -38,5 +39,5 @@ fn chip_label(node: &TemplatePaneNodeData) -> &str {
 }
 
 #[cfg(test)]
-#[path = "text/capacity_tests.rs"]
+#[path = "text/tests/capacity_tests.rs"]
 mod capacity_tests;

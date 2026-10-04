@@ -1,3 +1,6 @@
+//! 统一界面和动作对“已选项目”“最近项目”和“源码引擎”的解释。
+//! 这里依据注册表生成逻辑范围，磁盘存在性、清单有效性和构建产物可用性由执行路径校验。
+
 use std::path::{Path, PathBuf};
 
 use crate::engines::SourceEngineInstall;
@@ -13,6 +16,7 @@ pub struct HubScope {
     pub source_engine: SourceEngineScope,
 }
 
+/// 保留显式选择与最近项目后备的区别；过期的显式选择不得悄悄变成另一个项目。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ProjectScope {
     Selected(ProjectScopeProject),
@@ -21,6 +25,7 @@ pub enum ProjectScope {
     None,
 }
 
+/// 动作和目录扫描需要的项目逻辑身份及绑定状态；不代表磁盘项目已验证。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ProjectScopeProject {
     pub display_name: String,
@@ -29,6 +34,7 @@ pub struct ProjectScopeProject {
     pub engine_state: ProjectEngineScopeState,
 }
 
+/// 只反映项目是否绑定已注册引擎；就绪不保证检出目录或构建产物可执行。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProjectEngineScopeState {
     Ready,
@@ -36,6 +42,7 @@ pub enum ProjectEngineScopeState {
     Unavailable,
 }
 
+/// 选中项目优先约束引擎范围；没有有效显式项目时才允许活动引擎/首个引擎后备。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SourceEngineScope {
     ProjectBound(SourceEngineScopeEngine),
@@ -50,6 +57,7 @@ pub enum SourceEngineScope {
     None,
 }
 
+/// 供范围消费端再次查注册表的轻量引擎身份，不复制执行配置。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SourceEngineScopeEngine {
     pub id: String,
@@ -57,6 +65,7 @@ pub struct SourceEngineScopeEngine {
 }
 
 impl HubScope {
+    /// 从同一组快照输入生成范围，供界面与运行时共同使用；调用后仍须执行具体动作的有效性校验。
     pub fn resolve(
         selected_project_path: Option<&Path>,
         recent_projects: &[RecentProject],
@@ -79,6 +88,7 @@ impl HubScope {
         }
     }
 
+    /// 用于只能作用于显式选择的目录扫描或绑定操作，不采用最近项目后备。
     pub fn selected_project(&self) -> Option<&ProjectScopeProject> {
         match &self.project {
             ProjectScope::Selected(project) => Some(project),
@@ -88,6 +98,7 @@ impl HubScope {
         }
     }
 
+    /// 用于允许最近项目后备的动作；显式过期选择仍返回空值。
     pub fn selected_or_latest_project(&self) -> Option<&ProjectScopeProject> {
         match &self.project {
             ProjectScope::Selected(project) | ProjectScope::LatestRecent(project) => Some(project),
@@ -95,18 +106,21 @@ impl HubScope {
         }
     }
 
+    /// 供调用者区分“没有选择”与“选择已经失效”，避免静默改换目标。
     pub fn has_stale_selected_project(&self) -> bool {
         matches!(self.project, ProjectScope::StaleSelection { .. })
     }
 }
 
 impl ProjectScopeProject {
+    /// 表示逻辑绑定允许尝试构建；实际源码、项目清单和工具链校验仍由构建动作负责。
     pub fn can_build(&self) -> bool {
         self.engine_state == ProjectEngineScopeState::Ready
     }
 }
 
 impl SourceEngineScope {
+    /// 返回可查注册表的范围身份；选中项目缺少有效绑定时不给出活动引擎替代。
     pub fn engine_id(&self) -> Option<&str> {
         match self {
             Self::ProjectBound(engine) | Self::Active(engine) => Some(&engine.id),
@@ -168,6 +182,7 @@ fn project_scope_project(
     }
 }
 
+// 有明确选中项目时，缺失/不可用绑定必须继续显式呈现；活动引擎不能覆盖该约束。
 fn resolve_source_engine_scope(
     project: &ProjectScope,
     engines: &[SourceEngineInstall],
@@ -225,148 +240,5 @@ fn project_display_name(project: &RecentProject) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::projects::{metadata_for_path_mut, ProjectMetadataMap, RecentProject};
-
-    fn engine(id: &str) -> SourceEngineInstall {
-        SourceEngineInstall {
-            id: id.to_string(),
-            display_name: format!("{id} Engine"),
-            source_dir: PathBuf::from(format!("E:/{id}")),
-            output_dir: PathBuf::from(format!("E:/out/{id}")),
-            last_build_unix_ms: None,
-            build_history: Vec::new(),
-        }
-    }
-
-    #[test]
-    fn scope_prefers_selected_project_and_project_bound_engine() {
-        let projects = vec![
-            RecentProject::fixture("Latest", "E:/Projects/Latest", 20),
-            RecentProject::fixture("Selected", "E:/Projects/Selected", 10),
-        ];
-        let engines = vec![engine("local")];
-        let mut metadata = ProjectMetadataMap::new();
-        metadata_for_path_mut(&mut metadata, "E:/Projects/Selected").engine_id =
-            Some("local".to_string());
-
-        let scope = HubScope::resolve(
-            Some(Path::new("E:/Projects/Selected")),
-            &projects,
-            &metadata,
-            &engines,
-            None,
-        );
-
-        assert_eq!(scope.selected_project().unwrap().display_name, "Selected");
-        assert_eq!(scope.source_engine.engine_id(), Some("local"));
-        assert!(scope.selected_project().unwrap().can_build());
-    }
-
-    #[test]
-    fn stale_selected_project_does_not_fallback_to_latest_recent() {
-        let projects = vec![RecentProject::fixture("Latest", "E:/Projects/Latest", 20)];
-        let scope = HubScope::resolve(
-            Some(Path::new("E:/Projects/Missing")),
-            &projects,
-            &ProjectMetadataMap::new(),
-            &[],
-            None,
-        );
-
-        assert!(scope.has_stale_selected_project());
-        assert!(scope.selected_or_latest_project().is_none());
-    }
-
-    #[test]
-    fn no_selection_uses_latest_recent_and_active_engine_scope() {
-        let projects = vec![
-            RecentProject::fixture("Old", "E:/Projects/Old", 1),
-            RecentProject::fixture("Latest", "E:/Projects/Latest", 20),
-        ];
-        let engines = vec![engine("first"), engine("active")];
-
-        let scope = HubScope::resolve(
-            None,
-            &projects,
-            &ProjectMetadataMap::new(),
-            &engines,
-            Some("active"),
-        );
-
-        assert_eq!(
-            scope.selected_or_latest_project().unwrap().display_name,
-            "Latest"
-        );
-        assert_eq!(scope.source_engine.engine_id(), Some("active"));
-    }
-
-    #[test]
-    fn selected_project_without_engine_binding_reports_project_unbound() {
-        let projects = vec![RecentProject::fixture("Game", "E:/Projects/Game", 20)];
-
-        let scope = HubScope::resolve(
-            Some(Path::new("E:/Projects/Game")),
-            &projects,
-            &ProjectMetadataMap::new(),
-            &[engine("active")],
-            Some("active"),
-        );
-
-        assert_eq!(
-            scope.source_engine,
-            SourceEngineScope::ProjectUnbound {
-                project_name: "Game".to_string()
-            }
-        );
-    }
-
-    #[test]
-    fn selected_project_with_missing_engine_reports_unavailable_binding() {
-        let projects = vec![RecentProject::fixture("Game", "E:/Projects/Game", 20)];
-        let mut metadata = ProjectMetadataMap::new();
-        metadata_for_path_mut(&mut metadata, "E:/Projects/Game").engine_id =
-            Some("missing".to_string());
-
-        let scope = HubScope::resolve(
-            Some(Path::new("E:/Projects/Game")),
-            &projects,
-            &metadata,
-            &[engine("active")],
-            Some("active"),
-        );
-
-        assert_eq!(
-            scope.source_engine,
-            SourceEngineScope::ProjectEngineUnavailable {
-                project_name: "Game".to_string(),
-                engine_id: "missing".to_string()
-            }
-        );
-        assert!(!scope.selected_project().unwrap().can_build());
-    }
-
-    #[test]
-    fn active_engine_scope_falls_back_to_first_engine_then_none() {
-        let projects = vec![RecentProject::fixture("Latest", "E:/Projects/Latest", 20)];
-
-        let first_fallback = HubScope::resolve(
-            None,
-            &projects,
-            &ProjectMetadataMap::new(),
-            &[engine("first"), engine("second")],
-            Some("missing"),
-        );
-        let no_engine = HubScope::resolve(
-            None,
-            &projects,
-            &ProjectMetadataMap::new(),
-            &[],
-            Some("missing"),
-        );
-
-        assert_eq!(first_fallback.source_engine.engine_id(), Some("first"));
-        assert_eq!(no_engine.source_engine, SourceEngineScope::None);
-    }
-}
+#[path = "tests/scope.rs"]
+mod tests;

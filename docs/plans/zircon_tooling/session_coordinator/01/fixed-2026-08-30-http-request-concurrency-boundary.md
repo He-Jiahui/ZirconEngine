@@ -10,8 +10,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/tests/test_server.py
 tests:
   - python -m unittest -v tools.session_coordinator.tests.test_server.ServerTests.test_http_requests_are_bounded_and_shutdown_drains_handlers
   - python -m unittest -v tools.session_coordinator.tests.test_server.ServerTests.test_http_requests_enforce_per_client_quota

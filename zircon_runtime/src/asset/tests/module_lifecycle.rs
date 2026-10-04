@@ -3,15 +3,23 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::{project_asset_manager_handle, ProjectAssetManager};
 use crate::asset::{module_descriptor, ASSET_MODULE_NAME};
 use crate::core::manager::{resolve_manager_service, RegisteredManagerService};
+use crate::core::runtime::modules::TasksModule;
+use crate::core::runtime::tasks::{EngineTaskGraphOptions, TaskPoolKind};
 use crate::core::runtime::ServiceObject;
 use crate::core::{
     CoreRuntime, ManagerDescriptor, ModuleContext, ModuleDescriptor, RegistryName, ServiceKind,
     StartupMode,
 };
+use crate::engine_module::EngineModule;
 
 #[test]
 fn asset_module_manager_uses_the_activating_runtime_io_owner() {
-    let runtime = CoreRuntime::new();
+    let runtime =
+        CoreRuntime::try_with_task_graph_options(EngineTaskGraphOptions::with_worker_threads(3))
+            .expect("runtime task domains should initialize");
+    runtime
+        .register_module(TasksModule.descriptor())
+        .expect("asset task dependency should register");
     runtime
         .register_module(module_descriptor())
         .expect("asset module should register");
@@ -23,9 +31,10 @@ fn asset_module_manager_uses_the_activating_runtime_io_owner() {
     let manager: Arc<ProjectAssetManager> =
         resolve_manager_service(&core, project_asset_manager_handle(&core).unwrap()).unwrap();
 
-    assert!(manager
-        .worker_task_pool()
-        .shares_execution_owner_with(runtime.task_graph().worker_pool()));
+    let pool = manager.worker_task_pool();
+    assert_eq!(pool.kind(), TaskPoolKind::Io);
+    assert!(pool.shares_execution_owner_with(runtime.task_graph().task_pool(TaskPoolKind::Io)));
+    assert!(!pool.shares_execution_owner_with(runtime.task_graph().worker_pool()));
 }
 
 #[test]

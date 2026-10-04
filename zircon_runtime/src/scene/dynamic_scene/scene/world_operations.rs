@@ -1,7 +1,7 @@
 use crate::scene::World;
 
 use super::super::{DynamicSceneError, EntityRemap, ScenePatchPreviewReport};
-use super::{DynamicScene, capture, spawn, validation};
+use super::{capture, spawn, validation, DynamicScene};
 
 impl DynamicScene {
     pub fn from_world(world: &World) -> Result<Self, DynamicSceneError> {

@@ -1,3 +1,6 @@
+// 调用端：known_ability_catalog_codegen.mjs；职责：将求值后的职业技能记录交给上级已知技能目录生成器。
+// 上层生成器通过固定版本的 wocgit 加载器运行此脚本；标准输出为机器可读的 JSON。
+
 const [sourceModule] = process.argv.slice(2);
 if (!sourceModule) {
   throw new Error('usage: known_ability_catalog_source_extract.mjs <source-module>');

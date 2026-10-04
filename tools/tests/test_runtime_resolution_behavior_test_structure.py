@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 约束解析行为的测试组织：精确依赖解析测试应子节点持有。
 class RuntimeResolutionBehaviorTestStructureTests(unittest.TestCase):
     def test_exact_dependency_resolution_tests_are_child_owned(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]

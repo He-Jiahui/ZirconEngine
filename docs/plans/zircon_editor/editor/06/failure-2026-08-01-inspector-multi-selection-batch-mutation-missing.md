@@ -12,7 +12,7 @@ plan_link_mode: child_record_only
 failure_scope: local
 related_code:
   - zircon_editor/src/ui/workbench/state/editor_state_selection.rs
-  - zircon_editor/src/tests/editing/reflected_command.rs
+  - zircon_editor/src/tests/editing/reflected_command/multi_selection.rs
   - zircon_editor/src/core/editing/engine/transaction.rs
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_selection.rs
 tests:
@@ -34,7 +34,8 @@ tests:
 
 `EditorState::apply_inspector_changes` 读取
 `viewport_controller.selection().active_primary()`，仅为主选中实体生成 reflected commands。现有
-`reflected_edit_preserves_active_multi_selection` 仅断言编辑、撤销和重做后选集不丢失；它没有断言同一
+`reflected_edit_preserves_active_multi_selection`（位于
+`zircon_editor/src/tests/editing/reflected_command/multi_selection.rs`）仅断言编辑、撤销和重做后选集不丢失；它没有断言同一
 Inspector 修改会写入每一个 active item，也没有断言它们共享一个历史条目。
 
 因此当 Edit domain 中存在多个选中实体时，Inspector 的批量修改实际只变更 primary，和 Editor06 M2 的

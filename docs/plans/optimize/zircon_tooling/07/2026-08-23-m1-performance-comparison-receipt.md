@@ -6,7 +6,7 @@ Milestone: M1
 
 Status: integrated_validation_pending
 
-Files: ["docs/plans/optimize/zircon_tooling/07/2026-08-23-m1-performance-comparison-receipt.md", "tools/tests/test_validate_performance_comparison_receipt.py", "tools/validate_performance_comparison_receipt.py"]
+Files: ["docs/plans/optimize/zircon_tooling/07/2026-08-23-m1-performance-comparison-receipt.md", "tools/tests/test_validate_performance_comparison_receipt.py", "tools/validation/validate_performance_comparison_receipt.py"]
 
 ## Scope
 

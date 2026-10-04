@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::rhi::{BufferUsage, TextureDesc, TextureDimension, TextureUsage};
+use crate::rhi::{BufferUsage, TextureDesc, TextureUsage};
 
 use super::super::access::{
     RenderGraphResourceAccessIntent, RenderGraphResourceAccessRange, RenderGraphTextureAspect,
@@ -16,6 +16,8 @@ pub(super) fn validate_resource_access_ranges(
     builder: &RenderGraphBuilder,
     resource_names: &HashMap<RenderGraphResource, &str>,
 ) -> Result<(), RenderGraphError> {
+    // 范围检查发生在编译前：typed external 只有提供 descriptor 才能验证，report-only external
+    // 只能保留 Legacy/UnresolvedExternal，不能假装拥有可物化的物理视图。
     let resources = builder
         .resources
         .iter()
@@ -120,10 +122,7 @@ fn validate_texture_range(
         });
     }
 
-    let array_layers = match desc.dimension {
-        TextureDimension::D2Array | TextureDimension::Cube => desc.depth,
-        TextureDimension::D1 | TextureDimension::D2 | TextureDimension::D3 => 1,
-    };
+    let array_layers = desc.array_layer_count();
     if range_end_exceeds_u32(
         range.base_array_layer,
         range.array_layer_count,
@@ -189,6 +188,7 @@ fn validate_access_intent(
     intent: RenderGraphResourceAccessIntent,
     node: &ResourceNode,
 ) -> Result<(), RenderGraphError> {
+    // Intent 同时约束读写方向、shader stage 和 RHI usage；这些约束必须在资源绑定生成前收敛。
     if matches!(intent, RenderGraphResourceAccessIntent::Legacy) {
         return Ok(());
     }

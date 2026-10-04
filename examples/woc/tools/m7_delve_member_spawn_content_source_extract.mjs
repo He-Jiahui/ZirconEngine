@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码中提取地下探索成员出生点间距与人数上限，供 m7_delve_member_spawn_content_codegen.mjs 消费。
 import { execFileSync } from 'node:child_process';
 import ts from 'typescript';
 
@@ -24,6 +25,7 @@ const functionText = (path, name) => {
 };
 
 const runs = functionText('src/sim/delves/runs.ts', 'delveMemberSpawnPos');
+// 先锁定六方向出生点偏移与人数上限，再输出成员出生契约。
 for (const marker of [
   'if (slotIndex <= 0) return entry;',
   'const angle = (slotIndex * Math.PI * 2) / 6;',

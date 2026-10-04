@@ -1,7 +1,7 @@
 use std::io;
 use std::path::Path;
 
-use super::{PathEntry, path_entry};
+use super::{path_entry, PathEntry};
 
 #[cfg(windows)]
 use super::directory::sync_parent_directory;

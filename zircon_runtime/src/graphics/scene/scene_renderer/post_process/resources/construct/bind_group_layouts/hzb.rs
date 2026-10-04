@@ -1,7 +1,7 @@
 use crate::graphics::shader::{
-    HZB_SCENE_DEPTH_RESOURCE, HZB_SOURCE_RESOURCE, HZB_TARGET_RESOURCE,
-    ShaderWgpuResourceDescriptor, create_compute_shader_bind_group_layout, hzb_build_dispatch_plan,
-    hzb_build_msaa_dispatch_plan,
+    create_compute_shader_bind_group_layout, hzb_build_dispatch_plan, hzb_build_msaa_dispatch_plan,
+    ShaderWgpuResourceDescriptor, HZB_SCENE_DEPTH_RESOURCE, HZB_SOURCE_RESOURCE,
+    HZB_TARGET_RESOURCE,
 };
 
 pub(crate) fn hzb(device: &wgpu::Device) -> wgpu::BindGroupLayout {
@@ -17,6 +17,7 @@ fn hzb_for_depth_sampling(
     multisampled: bool,
     label: &'static str,
 ) -> wgpu::BindGroupLayout {
+    // 布局由命名资源计划分配槽位；仅深度输入切换多重采样，父级金字塔输入始终单采样。
     let plan = if multisampled {
         hzb_build_msaa_dispatch_plan()
     } else {

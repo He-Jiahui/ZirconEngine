@@ -3,6 +3,8 @@ var container = %import("kernel/container");
 // This is the post-classification party-frame projection. The caller supplies
 // `relevant` and `priority` from the source aura classifier so this module does
 // not replace its Unicode-sensitive `buff_` prefix rule.
+// 面板来源快照与输出摘要分开保存；投影可重复执行，但各组来源
+// 数组必须对齐。施法效果须完整追加到最近注册的施法者后再注册下一人。
 pub class PartyFrameProjectionState {
     pub var auraIds: container.Array<string>;
     pub var auraKinds: container.Array<string>;
@@ -136,6 +138,8 @@ sortRelevantAuraIndexes(state: PartyFrameProjectionState): container.Array<int> 
     return indexes;
 }
 
+// 调用方先完成来源敏感的光环分类，再将 relevant/priority 传入；
+// 此投影只排序和截断面板可见项，不替代真实 buff 前缀判定。
 pub projectPartyFrameAuras(state: PartyFrameProjectionState, cap: int): void {
     clearAuraSummary(state);
     var indexes = sortRelevantAuraIndexes(state);
@@ -273,6 +277,8 @@ clearIncomingHeals(state: PartyFrameProjectionState): void {
     }
 }
 
+// 施法/目标关系由外层提供；这里汇总仍在途的治疗预览，
+// 不改变战斗治疗结果或目标实体状态。
 pub projectPartyFrameIncomingHeals(state: PartyFrameProjectionState): void {
     clearIncomingHeals(state);
     var caster = 0;

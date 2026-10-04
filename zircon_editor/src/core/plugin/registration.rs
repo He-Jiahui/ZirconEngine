@@ -17,6 +17,7 @@ use super::sdk::lifecycle::{
 };
 
 #[derive(Clone, Debug)]
+/// 插件发现时的原始贡献、能力和阶段诊断；目录保留它，管理器快照另构建阶段受控的活动扩展视图。
 pub struct EditorPluginRegistrationReport {
     pub package_manifest: PluginPackageManifest,
     pub capabilities: Vec<String>,
@@ -33,6 +34,8 @@ pub struct EditorPluginRegistrationReport {
 }
 
 impl EditorPluginRegistrationReport {
+    /// 将扩展登记和事件消费者发现分别置于 panic 边界；扩展登记只在整个回调成功后采用候选表。
+    /// 生命周期回调留到目录通过准入并达到加载阶段后由管理器调度。
     pub fn from_plugin(plugin: &dyn EditorPlugin, runtime_manifest: PluginPackageManifest) -> Self {
         let package_id = plugin.descriptor().package_id.as_str();
         let mut diagnostics = Vec::new();
@@ -103,6 +106,7 @@ impl EditorPluginRegistrationReport {
         self.record_lifecycle_report(report)
     }
 
+    // 维护已成功/待重试阶段的历史以支持替换中断恢复；同一实例可经历多个启停周期，历史成功不自动表示本轮清理完成。
     fn record_lifecycle_report(
         &mut self,
         report: EditorPluginLifecycleReport,
@@ -178,5 +182,5 @@ fn dispatch_lifecycle_event(
 }
 
 #[cfg(test)]
-#[path = "registration/optimization_tests.rs"]
+#[path = "registration/tests/optimization_tests.rs"]
 mod optimization_tests;

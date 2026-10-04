@@ -5,7 +5,7 @@ import unittest
 import uuid
 from pathlib import Path
 
-from tools.runtime_domain_dependency_audit import _rust_code_view, _rust_use_paths
+from tools.audits.runtime_domain_dependency_audit import _rust_code_view, _rust_use_paths
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -251,7 +251,7 @@ def old_builder_import_lines(source: str) -> list[int]:
             lines.add(code_view.count("\n", 0, reference.start()) + 1)
     return sorted(lines)
 
-
+# 比对框架契约与图形产品目录，确认计算和全屏着色调用行为迁出旧归属，旧导入扫描覆盖别名与分组路径。
 class Frameworks01ShaderInvocationOwnerBoundaryTests(unittest.TestCase):
     def test_product_fixtures_cover_compute_and_fullscreen_invocation_bindings(self) -> None:
         expected_files = {

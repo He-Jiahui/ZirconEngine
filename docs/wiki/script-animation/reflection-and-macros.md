@@ -13,11 +13,11 @@ implementation_files:
   - zircon_runtime/src/script/vm/host/reflection_docs
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
-  - docs/zircon_runtime_interface/reflect.md
+  - docs/crates/zircon_runtime_interface/reflect.md
 tests:
-  - zircon_runtime_interface/src/reflect/schema_catalog/tests.rs
+  - zircon_runtime_interface/src/reflect/schema_catalog/tests/cases.rs
   - zircon_runtime/src/script/vm/tests/reflection_docs.rs
-  - zircon_runtime/reflection_macros/src/tests.rs
+  - zircon_runtime/reflection_macros/src/tests/cases.rs
 doc_type: module-detail
 ---
 

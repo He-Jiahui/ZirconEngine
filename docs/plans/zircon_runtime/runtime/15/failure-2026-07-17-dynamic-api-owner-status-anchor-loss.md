@@ -86,3 +86,55 @@ Runtime15 父计划和 runtime index 被压缩为路由/概览时，没有把既
 - 同日 `dynamic_api_session_profile.rs` 删除两个无断言消费者的 module/session 文档读取，继续 exact 验证唯一 current child tuple、parent/FFI/state/profile owner、moved-owner absence 与文件预算。
 
 Open state: `resolving_failure`。fresh immutable review 与五项 managed current-source test 仍 pending；不声明 fixed/accepted。
+
+## 2026-09-25 successor current-source static seal
+
+The stable plan Session `failure-roll-01a084c8-runtime15-descriptor-filter-r1`
+continued into this independent Dynamic API handoff. Six dirty/archived-owner
+paths were transferred under audited fingerprint
+`d335c8fb9ea494958e1eab166a986a0f8ec5d049e79e069cc6e0cb3100619c4a`; the
+shader-prewarm guard was clean at the baseline and therefore was not eligible
+for that transfer, then was separately leased and attributed to this Session
+at its unchanged current hash. No production implementation was edited.
+
+The current-source probe passed
+`RUNTIME15_DYNAMIC_API_OWNER_CURRENT_SOURCE_PASS=5/5`, checking all five
+canonical tuples in `2026-07-19-dynamic-api-filter-plan-anchor-current-owner.md`
+and each guard's owner-record/test anchors. Exact guard `rustfmt --edition
+2021 --check` exited 0; scoped `git diff --check` exited 0 (with only the
+normal LF/CRLF warning for the pre-existing dynamic-scene overlay).
+
+Pre-ticket snapshot `3870` froze these hashes:
+
+```text
+docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md 4aadfcecd06c9adccf21685e50131b767033256174a350f358b5579e156b1b1b
+docs/plans/zircon_runtime/runtime/15/failure-2026-07-17-dynamic-api-owner-status-anchor-loss.md bc4719d55d9a0061212133451c2cd01512cbcab62940b0d5eb05915cb30bae7e
+docs/plans/zircon_runtime/runtime/15/2026-07-19-dynamic-api-filter-plan-anchor-current-owner.md 335c179bd9f9a7910c8b58aae27fca4b0ff12f447f17ca8340f2640c60460d86
+zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/runtime_services/dynamic_scene.rs 8e5bd431311347e923a7c9f25430056739b0bb81e465d65ee41a1b24992a7b0d
+zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/dynamic_api_session_profile.rs 602c002b96ca0cada9dd3089b35d2d9008d2655ac83ae9977522118b9d2547cd
+zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/dynamic_api_session_registry.rs 9b44315a5a6a1196a808b6b90e1f9feed4f780539d2abd10b0c25490dff1f2e7
+zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/dynamic_api_shader_prewarm_tests.rs d1faac356db194708ab90ad837893e1097de8438410c35c8f45f2ae932fda73f
+zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_asset_dynamic_dynamic_api_vampire.rs 7be73ad4d6b6be694d3c41e0b39797186bc7a318c5db3f2c1957a0404ee65d3d
+```
+
+## 2026-09-25 static validation ticket receipt
+
+Coordinator ticket `c3df02c53a5242beb810307463749f5b` (request
+`runtime15-dynamic-api-owner-static-20260925-r2`) is queued with
+`executionKind=pending`. Its eight-path manifest is snapshot `3870`; the
+recorded command is the exact Python 5/5 owner probe with Cargo and Rust
+disabled, `staticParseOnly=true`, and `fullCoverage=false`. Admission retained
+the existing Runtime09/Render01/Render07/Plugins13 dependency blockers. No
+Dynamic API exact Cargo filters, aggregate gate, `zr_vm`, product/upward gate,
+fixed return, closeout, or WeCom notification was executed or promoted.
+
+## 2026-09-25 independent static review
+
+Reviewer `/root/review_editor03_gizmo_private` reviewed snapshot `3870` and
+reported `Critical=0`, `Important=0`, `Moderate=0`. The review confirmed the
+five canonical child tuples, absence of parent/index duplicate truth, the
+audited transfer and clean shader attribution provenance, the eight-path hash
+manifest, formatting evidence, and queued (not passed) ticket
+`c3df02c53a5242beb810307463749f5b`. Exact Dynamic API Cargo filters, the
+aggregate gate, `zr_vm`, upward/product acceptance, fixed return, and closeout
+remain pending.

@@ -1,0 +1,11 @@
+id = "weather"
+version = "1.0.0"
+display_name = "Weather"
+supported_targets = ["client_runtime"]
+supported_platforms = ["windows"]
+capabilities = ["weather.read"]
+[[modules]]
+name = "WeatherRuntime"
+kind = "runtime"
+crate_name = "weather_runtime"
+capabilities = ["weather.write"]

@@ -12,4 +12,5 @@ mod workbench_projection;
 pub use asset_access::EditorAssetOperationInvokeError;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

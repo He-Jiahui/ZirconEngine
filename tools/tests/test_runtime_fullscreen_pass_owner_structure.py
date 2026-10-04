@@ -7,11 +7,17 @@ class RuntimeFullscreenPassOwnerStructureTests(unittest.TestCase):
         self.repo_root = Path(__file__).resolve().parents[2]
         self.owner = (
             self.repo_root
-            / "zircon_runtime/src/core/framework/render/shader/fullscreen_pass.rs"
+            / "zircon_runtime/src/graphics/shader/invocation/fullscreen_pass.rs"
         )
         self.owner_dir = self.owner.with_suffix("")
 
     def test_fullscreen_pass_uses_focused_folder_backed_owners(self) -> None:
+        self.assertFalse(
+            (
+                self.repo_root
+                / "zircon_runtime/src/core/framework/render/shader/fullscreen_pass.rs"
+            ).exists()
+        )
         owner_source = self.owner.read_text(encoding="utf-8")
         production_lines = [
             line

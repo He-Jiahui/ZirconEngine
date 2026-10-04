@@ -42,6 +42,7 @@ export function BuildsPage({ state, onAction }: BuildsPageProps) {
       detail: state.settings.buildWorkflowDetail,
       meta: state.settings.defaultBuildOutputDir,
       icon: <BuildOutlinedIcon fontSize="small" />,
+      disabled: !workflowProjectTarget,
     },
     {
       id: HUB_ACTION.packageProject,
@@ -49,6 +50,7 @@ export function BuildsPage({ state, onAction }: BuildsPageProps) {
       detail: text.packageDetail,
       meta: workflowProject?.name ?? common.noProjectSelected,
       icon: <Inventory2OutlinedIcon fontSize="small" />,
+      disabled: !workflowProjectTarget,
     },
     {
       id: HUB_ACTION.installDevice,
@@ -56,6 +58,7 @@ export function BuildsPage({ state, onAction }: BuildsPageProps) {
       detail: text.installDetail,
       meta: state.settings.defaultDeviceInstallDir,
       icon: <PhoneIphoneOutlinedIcon fontSize="small" />,
+      disabled: !workflowProjectTarget,
     },
   ];
   const buildTree = useMemo(
@@ -96,28 +99,24 @@ export function BuildsPage({ state, onAction }: BuildsPageProps) {
         "@media (max-width: 980px)": { px: 2, py: 2 },
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, mb: 2.5 }}>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="h4">{state.pageTitle}</Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.9 }}>
-            {state.pageSubtitle}
-          </Typography>
-        </Box>
-        <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <HubButton startIcon={<BuildOutlinedIcon />} onClick={() => void onAction(HUB_ACTION.buildProject, undefined, workflowProjectTarget)}>
+      <PageHeader title={state.pageTitle} subtitle={state.pageSubtitle} actions={<>
+          <HubButton disabled={!workflowProjectTarget} startIcon={<BuildOutlinedIcon />} onClick={() => void onAction(HUB_ACTION.buildProject, undefined, workflowProjectTarget)}>
             {text.buildButton}
           </HubButton>
-          <HubButton tone="primary" startIcon={<Inventory2OutlinedIcon />} onClick={() => void onAction(HUB_ACTION.packageProject, undefined, workflowProjectTarget)}>
+          <HubButton disabled={!workflowProjectTarget} tone="primary" startIcon={<Inventory2OutlinedIcon />} onClick={() => void onAction(HUB_ACTION.packageProject, undefined, workflowProjectTarget)}>
             {text.packageButton}
           </HubButton>
-          <HubButton startIcon={<PhoneIphoneOutlinedIcon />} onClick={() => void onAction(HUB_ACTION.installDevice, undefined, workflowProjectTarget)}>
+          <HubButton disabled={!workflowProjectTarget} startIcon={<PhoneIphoneOutlinedIcon />} onClick={() => void onAction(HUB_ACTION.installDevice, undefined, workflowProjectTarget)}>
             {text.installButton}
           </HubButton>
-        </Box>
-      </Box>
+        </>} />
 
       <Box sx={{ mb: 1.4 }}>
-        <HubStatusBanner task={state.taskSummary} />
+        <HubStatusBanner
+          task={state.taskSummary}
+          cancelLabel={common.cancelTask}
+          onCancel={() => void onAction(HUB_ACTION.cancelBackgroundTask, String(state.taskSummary.taskId))}
+        />
       </Box>
 
       <Box
@@ -165,6 +164,7 @@ export function BuildsPage({ state, onAction }: BuildsPageProps) {
             <HubPanel title={text.buildWorkflow}>
               <Box sx={{ display: "grid", gap: 1.2 }}>
                 <LinearProgress
+                  aria-label={text.buildWorkflow}
                   variant="determinate"
                   value={state.taskSummary.progressPercent}
                   sx={{
@@ -210,7 +210,7 @@ export function BuildsPage({ state, onAction }: BuildsPageProps) {
               {buildHistory.length > 0 ? (
                 <HubList
                   items={buildHistory.map(historyRow)}
-                  onSelect={(item) => void onAction(HUB_ACTION.openOutputFolder, item.id, { historyId: item.id })}
+                  onSelect={(item) => void onAction(HUB_ACTION.openOutputFolder, undefined, { receiptId: item.id })}
                 />
               ) : (
                 <EmptyStateBlock title={text.noBuildHistory} detail={text.noBuildHistoryDetail} />
@@ -221,7 +221,7 @@ export function BuildsPage({ state, onAction }: BuildsPageProps) {
                 <BuildActionDetail
                   action={latestAction}
                   text={text}
-                  onOpenOutput={() => void onAction(HUB_ACTION.openOutputFolder, latestAction.id, { historyId: latestAction.id })}
+                  onOpenOutput={() => void onAction(HUB_ACTION.openOutputFolder, undefined, { receiptId: latestAction.id })}
                 />
               ) : (
                 <EmptyStateBlock title={text.noWorkflowSelected} detail={text.noWorkflowSelectedDetail} />
@@ -252,11 +252,11 @@ export function BuildsPage({ state, onAction }: BuildsPageProps) {
                   },
                 ]}
                 onSelect={(item) => {
-                  const outputDir =
+                  const capability =
                     item.id === "build-output-root"
-                      ? state.settings.defaultBuildOutputDir
-                      : state.settings.defaultDeviceInstallDir;
-                  void onAction(HUB_ACTION.openOutputFolder, undefined, { outputDir });
+                      ? ("default-build-output" as const)
+                      : ("default-device-install" as const);
+                  void onAction(HUB_ACTION.openOutputFolder, undefined, { capability });
                 }}
               />
             </HubPanel>
@@ -309,3 +309,4 @@ function BuildActionDetail({
     </Box>
   );
 }
+import { PageHeader } from "../components/data/PageHeader";

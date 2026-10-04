@@ -3,7 +3,7 @@ use super::super::paint_theme::{
     current_host_metrics, current_host_palette, HostControlMetrics, HostMaterialPalette,
 };
 use super::render_commands::HostPaintCommand;
-use super::visual_assets::load_existing_icon_asset_pixels_for_size;
+use super::visual_assets::{load_existing_icon_asset_pixels_for_size, raster_size_from_frame};
 
 mod geometry;
 mod preview_image;
@@ -28,10 +28,10 @@ struct WorkbenchAssetVisualMetrics {
     typed_surface_max_inset: f32,
     surface_radius: f32,
     border_width: f32,
-    icon_min_edge: u32,
-    icon_max_edge: u32,
-    typed_preview_icon_min_edge: u32,
-    typed_preview_icon_max_edge: u32,
+    icon_min_edge: f32,
+    icon_max_edge: f32,
+    typed_preview_icon_min_edge: f32,
+    typed_preview_icon_max_edge: f32,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -53,13 +53,12 @@ fn asset_visual_metrics_from_host(metrics: HostControlMetrics) -> WorkbenchAsset
     let visual_surface_max_inset = metrics.gap_m.max(visual_surface_min_inset);
     let typed_surface_min_inset = (metrics.gap_s - metrics.border_width).max(metrics.border_width);
     let typed_surface_max_inset = metrics.gap_s.max(typed_surface_min_inset);
-    let icon_min_edge = metric_edge(metrics.row_height);
-    let icon_max_edge = metric_edge(metrics.row_height + metrics.gap_m).max(icon_min_edge);
+    let icon_min_edge = metrics.row_height.max(0.0);
+    let icon_max_edge = (metrics.row_height + metrics.gap_m).max(icon_min_edge);
 
-    let typed_preview_icon_min_edge =
-        metric_edge(metrics.row_height + metrics.gap_m).max(icon_min_edge);
+    let typed_preview_icon_min_edge = (metrics.row_height + metrics.gap_m).max(icon_min_edge);
     let typed_preview_icon_max_edge =
-        metric_edge(metrics.row_height + metrics.gap_l * 2.0).max(typed_preview_icon_min_edge);
+        (metrics.row_height + metrics.gap_l * 2.0).max(typed_preview_icon_min_edge);
 
     WorkbenchAssetVisualMetrics {
         visual_surface_min_inset,
@@ -88,13 +87,6 @@ fn asset_visual_palette_from_host(palette: HostMaterialPalette) -> WorkbenchAsse
         focused_border: palette.focus_ring,
         placeholder_icon_tint: palette.text_muted,
     }
-}
-
-fn metric_edge(value: f32) -> u32 {
-    if !value.is_finite() || value <= 0.0 {
-        return 0;
-    }
-    value.round() as u32
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_asset_placeholder_visual_commands(
@@ -223,17 +215,20 @@ fn push_thumbnail_icon_command(
     metrics: WorkbenchAssetVisualMetrics,
     palette: WorkbenchAssetVisualPalette,
 ) {
-    let Some(edge) = thumbnail_icon_edge(node, rect, metrics) else {
+    let Some(target_edge) = thumbnail_icon_target_edge(node, rect, metrics) else {
         return;
     };
-    let icon_rect = thumbnail_icon_rect(node, rect, edge);
+    let Some(source_edge) = thumbnail_icon_source_edge(target_edge) else {
+        return;
+    };
+    let icon_rect = thumbnail_icon_rect(node, rect, target_edge);
     let Some(damage_frame) = intersect(&icon_rect, clip) else {
         return;
     };
     let Some(image) = load_existing_icon_asset_pixels_for_size(
         thumbnail_icon_name(node),
-        edge,
-        edge,
+        source_edge,
+        source_edge,
         thumbnail_icon_tint(node, palette),
         Some(damage_frame),
     ) else {
@@ -262,17 +257,20 @@ fn push_typed_thumbnail_preview_commands(
     metrics: WorkbenchAssetVisualMetrics,
     palette: WorkbenchAssetVisualPalette,
 ) {
-    let Some(edge) = typed_thumbnail_preview_icon_edge(rect, metrics) else {
+    let Some(target_edge) = typed_thumbnail_preview_icon_target_edge(rect, metrics) else {
         return;
     };
-    let icon_rect = typed_thumbnail_preview_icon_rect(rect, edge);
+    let Some(source_edge) = thumbnail_icon_source_edge(target_edge) else {
+        return;
+    };
+    let icon_rect = typed_thumbnail_preview_icon_rect(rect, target_edge);
     let Some(damage_frame) = intersect(&icon_rect, clip) else {
         return;
     };
     let Some(image) = load_existing_icon_asset_pixels_for_size(
         thumbnail_icon_name(node),
-        edge,
-        edge,
+        source_edge,
+        source_edge,
         thumbnail_icon_tint(node, palette),
         Some(damage_frame),
     ) else {
@@ -316,42 +314,45 @@ fn thumbnail_icon_tint(
     (!is_typed_thumbnail_visual(node)).then_some(palette.placeholder_icon_tint)
 }
 
-fn thumbnail_icon_edge(
+fn thumbnail_icon_target_edge(
     _node: &TemplatePaneNodeData,
     rect: &FrameRect,
     metrics: WorkbenchAssetVisualMetrics,
-) -> Option<u32> {
-    let max_edge = rect.width.min(rect.height).floor() as u32;
-    if max_edge == 0 {
+) -> Option<f32> {
+    let max_edge = rect.width.min(rect.height);
+    if !max_edge.is_finite() || max_edge <= 0.0 {
         return None;
     }
-    let desired_edge = ((max_edge as f32) * THUMBNAIL_ICON_RATIO).round() as u32;
+    let desired_edge = max_edge * THUMBNAIL_ICON_RATIO;
     let edge = desired_edge
         .clamp(metrics.icon_min_edge, metrics.icon_max_edge)
         .min(max_edge);
-    (edge > 0).then_some(edge)
+    (edge > 0.0).then_some(edge)
 }
 
-fn typed_thumbnail_preview_icon_edge(
+fn typed_thumbnail_preview_icon_target_edge(
     rect: &FrameRect,
     metrics: WorkbenchAssetVisualMetrics,
-) -> Option<u32> {
-    let max_edge = rect.width.min(rect.height).floor() as u32;
-    if max_edge == 0 {
+) -> Option<f32> {
+    let max_edge = rect.width.min(rect.height);
+    if !max_edge.is_finite() || max_edge <= 0.0 {
         return None;
     }
-    let desired_edge = ((max_edge as f32) * TYPED_THUMBNAIL_PREVIEW_ICON_RATIO).round() as u32;
+    let desired_edge = max_edge * TYPED_THUMBNAIL_PREVIEW_ICON_RATIO;
     let edge = desired_edge
         .clamp(
             metrics.typed_preview_icon_min_edge,
             metrics.typed_preview_icon_max_edge,
         )
         .min(max_edge);
-    (edge > 0).then_some(edge)
+    (edge > 0.0).then_some(edge)
 }
 
-fn thumbnail_icon_rect(_node: &TemplatePaneNodeData, rect: &FrameRect, edge: u32) -> FrameRect {
-    let edge = edge as f32;
+fn thumbnail_icon_source_edge(target_edge: f32) -> Option<u32> {
+    raster_size_from_frame(target_edge, target_edge).map(|(width, _)| width)
+}
+
+fn thumbnail_icon_rect(_node: &TemplatePaneNodeData, rect: &FrameRect, edge: f32) -> FrameRect {
     FrameRect {
         x: rect.x + (rect.width - edge) * 0.5,
         y: rect.y + (rect.height - edge) * 0.5,
@@ -360,8 +361,7 @@ fn thumbnail_icon_rect(_node: &TemplatePaneNodeData, rect: &FrameRect, edge: u32
     }
 }
 
-fn typed_thumbnail_preview_icon_rect(rect: &FrameRect, edge: u32) -> FrameRect {
-    let edge = edge as f32;
+fn typed_thumbnail_preview_icon_rect(rect: &FrameRect, edge: f32) -> FrameRect {
     FrameRect {
         x: rect.x + (rect.width - edge) * 0.5,
         y: rect.y + (rect.height - edge) * 0.5,
@@ -371,4 +371,5 @@ fn typed_thumbnail_preview_icon_rect(rect: &FrameRect, edge: u32) -> FrameRect {
 }
 
 #[cfg(test)]
+#[path = "template_asset_placeholder_visuals/tests/cases.rs"]
 mod tests;

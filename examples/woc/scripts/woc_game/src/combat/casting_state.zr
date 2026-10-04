@@ -2,6 +2,7 @@
 // validity, events and errors; the state retains only source-owned cast transitions.
 var lifecycleContract = %import("generated/casting_lifecycle_contract");
 
+/// 世界按实体加载和写回的暂态施法时钟，保存目标锁、排队槽、引导脉冲与强化等级；能力解析、目标再验证和效果提交仍由世界拥有。
 pub class CastState {
     pub var castingAbility: uint;
     pub var castRemaining: float;
@@ -162,6 +163,7 @@ pub class CastState {
         this.startedCasts = this.startedCasts + 1;
     }
 
+    /// 只在现有读条最后 0.4 秒收下一个候选，成功仅保存在同一 CastState；真正发射由后续固定步和公共冷却共同决定。
     pub queueTimed(ability: uint, duration: float, gcd: float, physical: bool): bool {
         if (this.castingAbility == <uint>0 || this.fishing ||
             this.castRemaining > 0.4 || ability == <uint>0 ||
@@ -303,6 +305,7 @@ empoweredStageForProgress(progress: float, stageCount: int): int {
 // The client sends only an ability identity. The live cast clock is the sole
 // authority for stage selection, matching releaseEmpoweredAbility in the
 // current target; release timing supplied by a client is never represented.
+/// 世界应传入当前施法的能力身份；强化阶段从服务器持有的计时状态导出，释放后沿正常完成路径清理锁和继续排队。
 pub releaseEmpoweredAbility(state: CastState, ability: uint): void {
     if (state.castingAbility != ability || state.channeling || state.empowerStages <= 0) {
         return;
@@ -428,6 +431,7 @@ pub updateCasting(state: CastState): void {
     }
 }
 
+/// 世界确认存活、控制状态与目标通道有效后每固定步调用；先推进施法再缩减公共冷却，调用者须比较前后完成计数并由世界执行真实能力效果。
 pub advanceFixedTick(state: CastState): void {
     // Source tick order runs casting before updateTimers decrements the GCD.
     updateCasting(state);

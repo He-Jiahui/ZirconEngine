@@ -1,3 +1,7 @@
+---
+status: local_candidate
+---
+
 # PlatformBundle template root projection cache
 
 ## Change

@@ -1,6 +1,7 @@
-$script:EvidenceModule = Join-Path $PSScriptRoot '..\ui-profile-counter-evidence.ps1'
-$script:CaptureScript = Join-Path $PSScriptRoot '..\ui-profile-capture.ps1'
-$script:CaptureManifestScript = Join-Path $PSScriptRoot '..\profile-capture-manifest.ps1'
+# 用计数器时间线验证损伤区域证据的完整性、试验资格和跨运行来源绑定。
+$script:EvidenceModule = Join-Path $PSScriptRoot '..\profiling\ui\ui-profile-counter-evidence.ps1'
+$script:CaptureScript = Join-Path $PSScriptRoot '..\profiling\ui\ui-profile-capture.ps1'
+$script:CaptureManifestScript = Join-Path $PSScriptRoot '..\profiling\shared\profile-capture-manifest.ps1'
 . $script:EvidenceModule
 
 function Write-DamageTimeline {
@@ -108,7 +109,7 @@ function Write-DamageSourceManifest {
             }
             tool_files = @(
                 [pscustomobject]@{
-                    relative_path = 'tools/ui-profile-counter-evidence.ps1'
+                    relative_path = 'tools/analysis/profiling/ui/ui-profile-counter-evidence.ps1'
                     sha256 = $sourceHash
                     byte_length = 400
                 }

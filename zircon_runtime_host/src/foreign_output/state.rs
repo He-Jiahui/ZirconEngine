@@ -81,7 +81,14 @@ impl RuntimeForeignOutputState {
         )
     }
 
-    pub fn ensure_call_succeeded(
+    /// Consumes a foreign status and releases any output returned by a failed call.
+    ///
+    /// # Safety
+    ///
+    /// `status` and `output` must come from the same live provider/session as `releaser`.
+    /// Failure diagnostics and non-empty output bytes must remain synchronously readable, and the
+    /// caller must transfer unique release authority for `output` to this method.
+    pub unsafe fn ensure_call_succeeded(
         &self,
         status: ZrStatus,
         output: ZrOwnedResultV2,
@@ -90,13 +97,16 @@ impl RuntimeForeignOutputState {
         operation: &'static str,
         release_operation: &'static str,
     ) -> Result<ZrOwnedResultV2, RuntimeForeignOutputError> {
-        let Some(call_error) = RuntimeForeignOutputError::from_status(status, operation) else {
+        let Some(call_error) =
+            (unsafe { RuntimeForeignOutputError::from_status(status, operation) })
+        else {
             return Ok(output);
         };
         self.counters[kind.index()].record_call_failure();
         let encoded_len = reported_len(&output);
         let ownership_error = validate_owned_result(&output, release_operation).err();
-        let release_error = release_owned_result(output, releaser, release_operation).err();
+        let release_error =
+            unsafe { release_owned_result(output, releaser, release_operation) }.err();
         match (ownership_error, release_error) {
             (None, None) => Err(call_error),
             (ownership_error, release_error) => {
@@ -116,7 +126,39 @@ impl RuntimeForeignOutputState {
         }
     }
 
-    pub fn decode_json<T, E>(
+    /// Decodes and releases a runtime-owned JSON result.
+    ///
+    /// ```compile_fail
+    /// use zircon_runtime_host::foreign_output::{
+    ///     RuntimeForeignOutputBudget, RuntimeForeignOutputKind, RuntimeForeignOutputState,
+    ///     RuntimeOwnedOutputReleaser,
+    /// };
+    /// use zircon_runtime_interface::ZrOwnedResultV2;
+    ///
+    /// fn decode(
+    ///     state: &RuntimeForeignOutputState,
+    ///     output: ZrOwnedResultV2,
+    ///     releaser: RuntimeOwnedOutputReleaser,
+    ///     budget: RuntimeForeignOutputBudget,
+    /// ) {
+    ///     let _ = state.decode_json::<serde_json::Value, &str>(
+    ///         output,
+    ///         releaser,
+    ///         RuntimeForeignOutputKind::ProfileResponse,
+    ///         budget,
+    ///         "decode",
+    ///         "release",
+    ///         |_| Ok(0),
+    ///     );
+    /// }
+    /// ```
+    ///
+    /// # Safety
+    ///
+    /// `output` must come from the same live provider/session as `releaser`. For a non-empty
+    /// result, its pointer must remain valid, immutable, and readable for its reported length until
+    /// this method releases it. The caller must transfer unique release authority to this method.
+    pub unsafe fn decode_json<T, E>(
         &self,
         output: ZrOwnedResultV2,
         releaser: RuntimeOwnedOutputReleaser,
@@ -241,7 +283,7 @@ impl RuntimeForeignOutputState {
         error: RuntimeForeignOutputError,
         release_operation: &'static str,
     ) -> Result<T, RuntimeForeignOutputError> {
-        let error = match release_owned_result(output, releaser, release_operation) {
+        let error = match unsafe { release_owned_result(output, releaser, release_operation) } {
             Ok(()) => error,
             Err(release_error) => error.with_cleanup_failure(&release_error),
         };
@@ -259,7 +301,8 @@ impl RuntimeForeignOutputState {
         release_operation: &'static str,
         value: Option<T>,
     ) -> Result<Option<T>, RuntimeForeignOutputError> {
-        let release_error = release_owned_result(output, releaser, release_operation).err();
+        let release_error =
+            unsafe { release_owned_result(output, releaser, release_operation) }.err();
         let _acceptance = self
             .acceptance_gate
             .lock()

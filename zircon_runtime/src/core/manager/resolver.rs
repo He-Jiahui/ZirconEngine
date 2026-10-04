@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use crate::core::runtime::ServiceCallGuard;
 
 #[cfg(feature = "ai-contracts")]
 use crate::core::framework::ai::AiManager;
@@ -11,7 +11,7 @@ use crate::core::framework::sound::SoundManager;
 use crate::core::framework::{
     animation::AnimationManager,
     asset::ResourceManager,
-    foundation::{ConfigManager, EventManager},
+    foundation::ConfigManager,
     input::{InputActionManager, InputManager},
     navigation::NavigationManager,
     platform::PreferenceStorage,
@@ -30,13 +30,15 @@ use super::PHYSICS_MANAGER_NAME;
 use super::SOUND_MANAGER_NAME;
 use super::{
     manager_service_handle, ManagerServiceHandle, ManagerServiceResolver, ANIMATION_MANAGER_NAME,
-    CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME, INPUT_ACTION_MANAGER_NAME, INPUT_MANAGER_NAME,
-    LEVEL_MANAGER_NAME, NAVIGATION_MANAGER_NAME, PLATFORM_MANAGER_NAME, RENDERING_MANAGER_NAME,
-    RENDER_FRAMEWORK_NAME, RESOURCE_MANAGER_NAME,
+    CONFIG_MANAGER_NAME, INPUT_ACTION_MANAGER_NAME, INPUT_MANAGER_NAME, LEVEL_MANAGER_NAME,
+    NAVIGATION_MANAGER_NAME, PLATFORM_MANAGER_NAME, RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME,
+    RESOURCE_MANAGER_NAME,
 };
 
+// 每次展开将框架 trait 与注册名配对，同时生成显式 CoreHandle 函数和弱引用 resolver 方法。
 macro_rules! define_manager_handle_access {
     ($trait_name:ident, $handle_fn:ident, $service_name:ident, $method:ident) => {
+        /// 按注册名从给定 Core 取得管理器身份句柄；具体 trait 类型在后续解析时由服务包装校验。
         pub fn $handle_fn(
             core: &CoreHandle,
         ) -> Result<ManagerServiceHandle<dyn $trait_name>, CoreError> {
@@ -44,6 +46,7 @@ macro_rules! define_manager_handle_access {
         }
 
         impl ManagerResolver {
+            /// 使用 resolver 绑定的 Core 查询同一服务的身份句柄；Core 已释放或服务不可用时返回错误。
             pub fn $method(&self) -> Result<ManagerServiceHandle<dyn $trait_name>, CoreError> {
                 let core = self.upgrade_core()?;
                 $handle_fn(&core)
@@ -52,12 +55,14 @@ macro_rules! define_manager_handle_access {
     };
 }
 
+/// 只弱引用创建时的 CoreRuntime；每次访问先升级它，再由该运行时查询句柄或解析服务。
 #[derive(Clone, Debug)]
 pub struct ManagerResolver {
     core: CoreWeak,
 }
 
 impl ManagerResolver {
+    /// 从现有 CoreHandle 创建不会延长运行时寿命的 resolver。
     pub fn new(core: CoreHandle) -> Self {
         Self {
             core: core.downgrade(),
@@ -70,10 +75,11 @@ impl ManagerResolver {
             .ok_or_else(|| CoreError::ServiceUnavailable("CoreRuntime".to_owned()))
     }
 
+    /// 消费句柄并由绑定的 Core 重新核验来源、槽位代数与服务包装类型后取回共享管理器。
     pub fn resolve<T: ?Sized + Send + Sync + 'static>(
         &self,
         handle: ManagerServiceHandle<T>,
-    ) -> Result<Arc<T>, CoreError> {
+    ) -> Result<ServiceCallGuard<T>, CoreError> {
         let core = self.upgrade_core()?;
         ManagerServiceResolver::resolve(&core, handle)
     }
@@ -83,7 +89,7 @@ impl ManagerServiceResolver for ManagerResolver {
     fn resolve<T: ?Sized + Send + Sync + 'static>(
         &self,
         handle: ManagerServiceHandle<T>,
-    ) -> Result<Arc<T>, CoreError> {
+    ) -> Result<ServiceCallGuard<T>, CoreError> {
         let core = self.upgrade_core()?;
         ManagerServiceResolver::resolve(&core, handle)
     }
@@ -130,12 +136,6 @@ define_manager_handle_access!(
     config_manager_handle,
     CONFIG_MANAGER_NAME,
     config_handle
-);
-define_manager_handle_access!(
-    EventManager,
-    event_manager_handle,
-    EVENT_MANAGER_NAME,
-    event_handle
 );
 #[cfg(feature = "ai-contracts")]
 define_manager_handle_access!(AiManager, ai_manager_handle, AI_MANAGER_NAME, ai_handle);

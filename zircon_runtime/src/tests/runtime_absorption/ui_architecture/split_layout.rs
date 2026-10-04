@@ -1,3 +1,4 @@
+//! 运行时界面结构和历史命名迁移需遵守架构与文档边界。通过源码文本核对父子路由、状态镜像和文件预算。
 const PARENT_SOURCE: &str = include_str!("../ui_architecture.rs");
 const ARCHITECTURE_BOUNDARIES_SOURCE: &str = include_str!("architecture_boundaries.rs");
 const LEGACY_RENAMES_SOURCE: &str = include_str!("legacy_renames.rs");
@@ -17,7 +18,7 @@ const STRUCTURE_CONVENTION_PLAN: &str =
 const REVIEW_FINDINGS_PLAN: &str =
     include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md");
 const MODULE_CONVENTION_DOC: &str =
-    include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
+    include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 #[rustfmt::skip]
 const NUMBERED_STATUS_RECORDS: &str = concat!(
     include_str!("../../../../../docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md"),

@@ -1,13 +1,14 @@
+# 核对打包文件与二进制证据模块归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PACK_STAGE_SCHEMA = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_pack_stage_schema.py"
+    REPO_ROOT / "tools/export/pipeline_report_pack_stage_schema.py"
 )
 PACK_FILE_EVIDENCE = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_pack_file_evidence.py"
+    REPO_ROOT / "tools/export/pipeline_report_pack_file_evidence.py"
 )
 
 

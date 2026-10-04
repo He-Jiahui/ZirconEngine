@@ -330,16 +330,18 @@ fn try_fold_bounded(
 ) -> bool {
     let touched = touched_uris(&event);
     let previous = touched
+        .each_ref()
+        .map(|uri| uri.as_ref().and_then(|uri| folded.get(uri).cloned()));
+    let previous_bytes = touched
         .iter()
-        .map(|uri| (uri.clone(), folded.get(uri).cloned()))
-        .collect::<Vec<_>>();
-    let previous_bytes = previous
-        .iter()
-        .filter_map(|(uri, value)| value.as_ref().map(|value| folded_entry_bytes(uri, value)))
+        .zip(previous.iter())
+        .filter_map(|(uri, value)| uri.as_ref().zip(value.as_ref()))
+        .map(|(uri, value)| folded_entry_bytes(uri, value))
         .sum::<usize>();
     fold_event(folded, event);
     let next_bytes = touched
         .iter()
+        .flatten()
         .filter_map(|uri| folded.get(uri).map(|value| folded_entry_bytes(uri, value)))
         .sum::<usize>();
     let candidate_bytes = approximate_bytes
@@ -349,23 +351,23 @@ fn try_fold_bounded(
         *approximate_bytes = candidate_bytes;
         return true;
     }
-    for uri in touched {
-        folded.remove(&uri);
+    for uri in touched.iter().flatten() {
+        folded.remove(uri);
     }
-    for (uri, value) in previous {
-        if let Some(value) = value {
+    for (uri, value) in touched.into_iter().zip(previous) {
+        if let (Some(uri), Some(value)) = (uri, value) {
             folded.insert(uri, value);
         }
     }
     false
 }
 
-fn touched_uris(event: &AssetWatchEvent) -> Vec<crate::asset::AssetUri> {
+fn touched_uris(event: &AssetWatchEvent) -> [Option<crate::asset::AssetUri>; 2] {
     match event {
         AssetWatchEvent::Added(uri)
         | AssetWatchEvent::Modified(uri)
-        | AssetWatchEvent::Removed(uri) => vec![uri.clone()],
-        AssetWatchEvent::Renamed { from, to } => vec![from.clone(), to.clone()],
+        | AssetWatchEvent::Removed(uri) => [Some(uri.clone()), None],
+        AssetWatchEvent::Renamed { from, to } => [Some(from.clone()), Some(to.clone())],
     }
 }
 
@@ -402,3 +404,7 @@ fn approximate_notify_result_bytes(result: &notify::Result<Event>) -> usize {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "watch_loop/tests/optimization_tests.rs"]
+mod optimization_tests;

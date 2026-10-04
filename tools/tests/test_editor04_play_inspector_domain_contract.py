@@ -19,7 +19,8 @@ class Editor04PlayInspectorDomainContractTests(unittest.TestCase):
         self.assertIn("PLAY_INSPECTOR_QUERY_INTERVAL", projection)
         self.assertIn("WorldQueryResult::InspectionFields", projection)
         self.assertIn("WorldQueryResult::NotModified", projection)
-        self.assertIn("editable: false", projection)
+        self.assertIn("let editable = field.writable && field.serializable;", projection)
+        self.assertIn("editable,", projection)
 
     def test_route_queries_only_the_attached_play_gateway_for_active_selection(self) -> None:
         route = read(

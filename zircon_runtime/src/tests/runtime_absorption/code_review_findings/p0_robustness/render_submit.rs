@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f4_render_submit_capability_gaps_return_typed_errors() {
     let viewport_guard = include_str!(
@@ -27,8 +28,9 @@ fn review_f4_render_submit_capability_gaps_return_typed_errors() {
     let render_index = include_str!("../../../../../../docs/plans/zircon_runtime/render/index.md");
     let convention =
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
-    let advanced_doc =
-        include_str!("../../../../../../docs/zircon_runtime/core/framework/render/advanced.md");
+    let advanced_doc = include_str!(
+        "../../../../../../docs/crates/zircon_runtime/core/framework/render/advanced.md"
+    );
 
     for required in [
         "pub(super) fn validate_viewport_generation",

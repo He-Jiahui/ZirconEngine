@@ -2,7 +2,7 @@ mod activity_rail;
 mod content;
 mod pane;
 mod surface_frame;
-mod template_nodes;
+pub(super) mod template_nodes;
 
 pub(in crate::ui::retained_host::host_contract) use self::activity_rail::collect_activity_rail_buttons;
 pub(in crate::ui::retained_host::host_contract) use self::content::{

@@ -1,6 +1,6 @@
 use std::{
     cell::RefCell,
-    collections::{BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet, HashSet},
     sync::Arc,
 };
 
@@ -24,15 +24,15 @@ use super::{
     navigation_index::UiSurfaceNavigationIndex,
     node_pool::{UiSurfaceNodePool, UiSurfaceNodePoolReport},
     reflector_snapshot,
-    render::{UiSurfaceRenderCache, popup_base_z},
+    render::{popup_base_z, UiSurfaceRenderCache},
     secure_text_values::UiSurfaceSecureTextValueStore,
     session_identity::{UiSurfaceSessionIdentity, UiSurfaceSessionIdentityHandle},
     virtual_list_materialization::UiVirtualListMaterializationIndex,
     virtual_list_prototype_pool::UiVirtualListPrototypePoolIndex,
 };
 use crate::text::{
+    font::{shared_font_collection_service, FontCollectionService},
     RichSemanticProjection, RichTextFormat,
-    font::{FontCollectionService, shared_font_collection_service},
 };
 use crate::ui::text::UiTextMeasureCache;
 use crate::ui::v2::UiV2RuntimeStyleIndex;
@@ -72,6 +72,26 @@ pub use rebuild::{
 };
 use virtual_window::UiVirtualWindowState;
 
+#[derive(Debug, Default)]
+pub(super) struct UiSurfaceHoverDiffScratch {
+    pub(super) membership: HashSet<UiNodeId>,
+}
+
+// The membership table is an event-local cache, not part of the serialized or value identity of
+// a surface. Cloning a surface must start with an empty scratch table rather than copying transient
+// pointer-route state into the clone.
+impl Clone for UiSurfaceHoverDiffScratch {
+    fn clone(&self) -> Self {
+        Self::default()
+    }
+}
+
+impl PartialEq for UiSurfaceHoverDiffScratch {
+    fn eq(&self, _other: &Self) -> bool {
+        true
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiSurface {
     pub tree: UiTree,
@@ -93,6 +113,10 @@ pub struct UiSurface {
     pub hit_test: UiHitTestIndex,
     #[serde(default, skip)]
     pub(super) projected_hit_test: UiProjectedHitTestIndex,
+    #[serde(default, skip)]
+    pub(super) scrollable_candidate_scratch: Vec<UiNodeId>,
+    #[serde(default, skip)]
+    pub(super) hover_diff_scratch: UiSurfaceHoverDiffScratch,
     pub focus: UiFocusState,
     #[serde(default)]
     pub input: UiSurfaceInputState,
@@ -128,6 +152,9 @@ pub struct UiSurface {
     pub(super) dirty_node_ids: BTreeSet<UiNodeId>,
     #[serde(default, skip)]
     pub(super) dirty_index_initialized: bool,
+    #[cfg(test)]
+    #[serde(skip)]
+    pub(super) dirty_scan_counters: RefCell<UiSurfaceDirtyScanStats>,
     #[serde(default, skip)]
     pub(super) last_layout_root_size: Option<zircon_runtime_interface::ui::layout::UiSize>,
     pub last_rebuild_report: UiSurfaceRebuildReport,
@@ -143,6 +170,13 @@ pub struct UiSurface {
     pub(super) virtual_list_materialization: UiVirtualListMaterializationIndex,
     #[serde(default, skip)]
     pub(super) virtual_list_prototype_pool: UiVirtualListPrototypePoolIndex,
+}
+
+#[cfg(test)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct UiSurfaceDirtyScanStats {
+    pub discovery_visits: usize,
+    pub clear_visits: usize,
 }
 
 impl UiSurface {
@@ -170,8 +204,8 @@ impl UiSurface {
     }
 
     /// Builds an Editor-host or standalone surface from the process-owner font collection.
-    /// Core-owned Runtime surfaces use `new_with_font_collection` through their owner-aware
-    /// builders so layout and rendering share one font collection revision.
+    /// Core-owned Runtime surfaces use a context-bound text measure cache through their
+    /// owner-aware builders so layout and rendering share one text-runtime lineage.
     pub fn new(tree_id: UiTreeId) -> Self {
         Self::new_with_font_collection(tree_id, shared_font_collection_service())
     }
@@ -184,7 +218,17 @@ impl UiSurface {
         tree_id: UiTreeId,
         font_collection: Arc<FontCollectionService>,
     ) -> Self {
-        let observed_text_font_generation = font_collection.generation();
+        Self::new_with_text_measure_cache(
+            tree_id,
+            UiTextMeasureCache::new_with_font_collection(font_collection),
+        )
+    }
+
+    pub(crate) fn new_with_text_measure_cache(
+        tree_id: UiTreeId,
+        text_measure_cache: UiTextMeasureCache,
+    ) -> Self {
+        let observed_text_font_generation = text_measure_cache.font_database_generation();
         Self {
             tree: UiTree::new(tree_id.clone()),
             session_identity: UiSurfaceSessionIdentity::default(),
@@ -200,6 +244,8 @@ impl UiSurface {
             layout_slot_index: UiLayoutSlotIndex::default(),
             hit_test: UiHitTestIndex::default(),
             projected_hit_test: UiProjectedHitTestIndex::default(),
+            scrollable_candidate_scratch: Vec::new(),
+            hover_diff_scratch: UiSurfaceHoverDiffScratch::default(),
             focus: UiFocusState::default(),
             input: UiSurfaceInputState::default(),
             component_states: UiSurfaceComponentStateStore::default(),
@@ -216,13 +262,15 @@ impl UiSurface {
             },
             window_state: UiSurfaceWindowState::default(),
             render_cache: UiSurfaceRenderCache::default(),
-            text_measure_cache: UiTextMeasureCache::new_with_font_collection(font_collection),
+            text_measure_cache,
             observed_text_font_generation,
             node_pool: UiSurfaceNodePool::default(),
             invalidation: UiSurfaceInvalidationState::default(),
             last_layout_geometry_changed_node_ids: BTreeSet::new(),
             dirty_node_ids: BTreeSet::new(),
             dirty_index_initialized: true,
+            #[cfg(test)]
+            dirty_scan_counters: RefCell::new(UiSurfaceDirtyScanStats::default()),
             last_layout_root_size: None,
             last_rebuild_report: UiSurfaceRebuildReport::default(),
             layout_engine_report: UiLayoutEngineSelectionReport::default(),
@@ -236,6 +284,16 @@ impl UiSurface {
 
     pub(crate) fn session_identity(&self) -> UiSurfaceSessionIdentityHandle {
         self.session_identity.handle()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn reset_dirty_scan_stats(&self) {
+        *self.dirty_scan_counters.borrow_mut() = UiSurfaceDirtyScanStats::default();
+    }
+
+    #[cfg(test)]
+    pub(crate) fn dirty_scan_stats(&self) -> UiSurfaceDirtyScanStats {
+        *self.dirty_scan_counters.borrow()
     }
 
     pub fn component_state(
@@ -271,8 +329,10 @@ impl UiSurface {
 
     pub fn pending_rebuild_node_ids(&self) -> BTreeSet<UiNodeId> {
         let mut node_ids = self.dirty_node_ids.clone();
-        node_ids.extend(self.invalidation.pending_changed_node_ids());
+        self.invalidation
+            .extend_pending_changed_node_ids(&mut node_ids);
         node_ids.extend(self.tree.pending_mutation_node_ids().iter().copied());
+        self.tree.nodes.extend_dirty_node_ids(&mut node_ids);
         node_ids
     }
 

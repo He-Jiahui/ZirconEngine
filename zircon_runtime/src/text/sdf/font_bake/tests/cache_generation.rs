@@ -240,15 +240,13 @@ fn sdf_font_bake_packs_mixed_formats_and_reuses_mode_keyed_cache() {
         baked_glyph_rect(plan.slots[2].rect, &first.glyphs[2]),
     );
     assert!(sdf.iter().any(|sample| *sample != 0));
-    assert!(
-        msdf.chunks_exact(4)
-            .filter(|sample| sample[0] != 0 || sample[1] != 0 || sample[2] != 0)
-            .all(|sample| sample[3] == u8::MAX)
-    );
-    assert!(
-        msdf.chunks_exact(4)
-            .any(|sample| sample[0] != sample[1] || sample[1] != sample[2])
-    );
+    assert!(msdf
+        .chunks_exact(4)
+        .filter(|sample| sample[0] != 0 || sample[1] != 0 || sample[2] != 0)
+        .all(|sample| sample[3] == u8::MAX));
+    assert!(msdf
+        .chunks_exact(4)
+        .any(|sample| sample[0] != sample[1] || sample[1] != sample[2]));
     assert!(mtsdf.chunks_exact(4).any(|sample| sample[3] != u8::MAX));
     assert!(mtsdf.chunks_exact(4).any(|sample| {
         let mut rgb = [sample[0], sample[1], sample[2]];
@@ -265,13 +263,11 @@ fn sdf_font_bake_packs_mixed_formats_and_reuses_mode_keyed_cache() {
         &second.generation_failures
     ));
     assert!(second.dirty_pages.is_empty());
-    assert!(
-        first
-            .pages
-            .iter()
-            .zip(second.pages.iter())
-            .all(|(first, second)| Arc::ptr_eq(&first.pixels, &second.pixels))
-    );
+    assert!(first
+        .pages
+        .iter()
+        .zip(second.pages.iter())
+        .all(|(first, second)| Arc::ptr_eq(&first.pixels, &second.pixels)));
     assert_eq!(second.generation_failures, first.generation_failures);
     let mut expected_second_report = first.report;
     expected_second_report.loaded_font_count = 0;
@@ -503,11 +499,9 @@ fn sdf_prepared_atlas_refreshes_visible_glyph_recency_before_a_layout_change() {
     );
 
     assert!(bake.glyphs.contains_key(&hot_key));
-    assert!(
-        !bake
-            .glyphs
-            .contains_key(&oldest_filler.expect("oldest filler key"))
-    );
+    assert!(!bake
+        .glyphs
+        .contains_key(&oldest_filler.expect("oldest filler key")));
 }
 
 #[test]
@@ -532,12 +526,10 @@ fn sdf_font_bake_scheduled_generation_falls_back_then_commits_next_frame() {
     );
 
     assert_eq!(first.generation_failures.len(), 2);
-    assert!(
-        first
-            .generation_failures
-            .iter()
-            .all(|failure| failure.error == SdfGlyphGenerationError::GenerationPending)
-    );
+    assert!(first
+        .generation_failures
+        .iter()
+        .all(|failure| failure.error == SdfGlyphGenerationError::GenerationPending));
     assert_eq!(first.report.visible_glyph_count, 0);
     assert_eq!(first.report.generation_failure_count, 2);
     assert_eq!(

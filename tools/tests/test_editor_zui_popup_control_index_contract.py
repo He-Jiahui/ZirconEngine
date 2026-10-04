@@ -1,3 +1,4 @@
+# 核对弹窗、静态菜单与提示状态通过保留式控件索引查询。
 import unittest
 from pathlib import Path
 

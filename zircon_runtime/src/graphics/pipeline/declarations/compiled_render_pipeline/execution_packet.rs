@@ -1,8 +1,12 @@
+use std::collections::HashMap;
 use std::ops::Range;
 
 use crate::core::framework::render::RenderGraphExecutionBatchReport;
 use crate::render_graph::{
-    CompiledRenderGraph, QueueLane, RenderGraphResourceAccessId, RenderPassId,
+    CompiledRenderGraph, CompiledRenderGraphAccessAllocationBinding,
+    CompiledRenderGraphResourceStateTransition, QueueLane, RenderGraphBufferRange,
+    RenderGraphResourceAccessId, RenderGraphResourceAccessRange, RenderGraphTextureAspect,
+    RenderGraphTextureSubresourceRange, RenderPassId,
 };
 
 use super::super::render_pass_stage::RenderPassStage;
@@ -25,10 +29,12 @@ impl RenderGraphExecutionPassMetadata {
 }
 
 /// Immutable stage placement for one compiled graph pass.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct RenderGraphExecutionPass {
     pub(crate) graph_pass_index: usize,
     pub(crate) stage: RenderPassStage,
+    pub(crate) device_access_bindings: Box<[CompiledRenderGraphAccessAllocationBinding]>,
+    pub(crate) device_transitions_before: Box<[CompiledRenderGraphResourceStateTransition]>,
 }
 
 /// One contiguous executable segment of the compiled graph.
@@ -53,13 +59,19 @@ impl RenderGraphExecutionBatch {
     }
 }
 
-/// Monotonic frame-local position in the immutable compiled pass sequence.
+/// Frame-local admission state for the immutable compiled pass sequence.
 ///
-/// Stage routing may select services for a pass, but it may not reorder, repeat,
-/// or omit live compiled passes. Culled passes are skipped by the packet itself.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// Stage routing may select services in a different order than the compiler's
+/// topological list when passes are independent.  Admission still rejects
+/// duplicate passes and a pass whose compiled dependencies have not run; the
+/// frame tail check rejects omitted live passes.  The only intentional
+/// exception is an explicitly accounted-for primary-surface `Present` pass
+/// when an offscreen frame has no surface target.  This keeps dependency
+/// safety without conflating topological tie-breaking with the renderer's
+/// stage service order.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct RenderGraphExecutionCursor {
-    next_graph_pass_index: usize,
+    executed_graph_passes: Vec<bool>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -98,6 +110,8 @@ impl RenderGraphExecutionPacket {
             passes_by_graph_index[graph_pass_index] = Some(RenderGraphExecutionPass {
                 graph_pass_index,
                 stage: metadata.stage,
+                device_access_bindings: Box::default(),
+                device_transitions_before: Box::default(),
             });
         }
 
@@ -114,7 +128,7 @@ impl RenderGraphExecutionPacket {
             ));
         }
 
-        let passes_by_graph_index = passes_by_graph_index
+        let mut passes_by_graph_index = passes_by_graph_index
             .into_iter()
             .enumerate()
             .map(|(graph_pass_index, pass)| {
@@ -143,6 +157,17 @@ impl RenderGraphExecutionPacket {
                     .collect::<Result<Box<[_]>, _>>()
             })
             .collect::<Result<Vec<_>, _>>()?;
+        let device_execution_plan = CompiledRenderGraphDeviceExecutionPlan::from_graph(&graph)?;
+        for (graph_pass_index, execution_pass) in passes_by_graph_index.iter_mut().enumerate() {
+            execution_pass.device_access_bindings = device_execution_plan
+                .access_bindings_for_pass(graph_pass_index)
+                .unwrap_or_default()
+                .into();
+            execution_pass.device_transitions_before = device_execution_plan
+                .transitions_for_pass(graph_pass_index)
+                .unwrap_or_default()
+                .into();
+        }
         let mut stage_counts = [0_usize; RenderPassStage::COUNT];
         for execution_pass in &passes_by_graph_index {
             stage_counts[execution_pass.stage.index()] += 1;
@@ -345,9 +370,9 @@ impl RenderGraphExecutionPacket {
         self.execution_batch_report
     }
 
-    pub(crate) const fn begin_execution(&self) -> RenderGraphExecutionCursor {
+    pub(crate) fn begin_execution(&self) -> RenderGraphExecutionCursor {
         RenderGraphExecutionCursor {
-            next_graph_pass_index: 0,
+            executed_graph_passes: vec![false; self.graph.passes().len()],
         }
     }
 
@@ -361,6 +386,40 @@ impl RenderGraphExecutionPacket {
                 "render graph execution cursor references missing compiled graph pass index {graph_pass_index}"
             )
         })?;
+        if std::env::var_os("ZR_TRACE_RENDER_GRAPH").is_some() {
+            let stage = self
+                .execution_pass_at(graph_pass_index)
+                .map(|execution_pass| format!("{:?}", execution_pass.stage))
+                .unwrap_or_else(|| "<missing-stage>".to_owned());
+            let dependencies = actual
+                .dependencies
+                .iter()
+                .filter_map(|dependency| {
+                    self.graph.indexed_pass(*dependency).map(|(index, pass)| {
+                        format!("{}:{}:{}", index, pass.name, dependency.index())
+                    })
+                })
+                .collect::<Vec<_>>();
+            let executed = cursor
+                .executed_graph_passes
+                .iter()
+                .enumerate()
+                .filter_map(|(index, is_executed)| {
+                    if *is_executed {
+                        self.graph
+                            .passes()
+                            .get(index)
+                            .map(|pass| format!("{}:{}", index, pass.name))
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>();
+            eprintln!(
+                "ZR_TRACE admit graph_index={} name={} stage={} deps={:?} executed={:?}",
+                graph_pass_index, actual.name, stage, dependencies, executed
+            );
+        }
         if actual.culled {
             return Err(format!(
                 "render graph execution cursor cannot execute culled compiled graph pass `{}` at index {graph_pass_index}",
@@ -368,45 +427,177 @@ impl RenderGraphExecutionPacket {
             ));
         }
 
-        let Some(expected_index) = self.next_live_pass_index(cursor.next_graph_pass_index) else {
+        let Some(executed) = cursor.executed_graph_passes.get(graph_pass_index).copied() else {
             return Err(format!(
-                "render graph execution cursor has no remaining live pass but received `{}` at index {graph_pass_index}",
-                actual.name
+                "render graph execution cursor references graph pass index {graph_pass_index} outside the packet"
             ));
         };
-        if expected_index != graph_pass_index {
-            let expected = &self.graph.passes()[expected_index];
+        if executed {
             return Err(format!(
-                "render graph execution cursor expected compiled graph pass `{}` at index {expected_index}, but stage routing selected `{}` at index {graph_pass_index}",
-                expected.name, actual.name
+                "render graph execution cursor admitted compiled graph pass `{}` at index {graph_pass_index} more than once",
+                actual.name
             ));
         }
 
-        cursor.next_graph_pass_index = graph_pass_index + 1;
+        for dependency in &actual.dependencies {
+            let Some((dependency_index, dependency_pass)) = self.graph.indexed_pass(*dependency)
+            else {
+                return Err(format!(
+                    "render graph execution pass `{}` at index {graph_pass_index} references missing dependency {:?}",
+                    actual.name, dependency
+                ));
+            };
+            if dependency_pass.culled {
+                continue;
+            }
+            if !cursor
+                .executed_graph_passes
+                .get(dependency_index)
+                .copied()
+                .unwrap_or(false)
+            {
+                return Err(format!(
+                    "render graph execution pass `{}` at index {graph_pass_index} depends on `{}` at index {dependency_index} which has not executed",
+                    actual.name, dependency_pass.name
+                ));
+            }
+        }
+
+        // The immutable dependency checks above must complete before taking a
+        // mutable borrow of the admission bitset.  Keeping the borrow narrow
+        // also makes it impossible to accidentally inspect another dependency
+        // through an aliased mutable slice in future changes.
+        if let Some(executed) = cursor.executed_graph_passes.get_mut(graph_pass_index) {
+            *executed = true;
+        }
+        Ok(())
+    }
+
+    /// Marks an unavailable primary-surface presentation pass as intentionally
+    /// elided for this frame.
+    ///
+    /// A compiled pipeline is shared by surface-backed and offscreen frames.
+    /// The `Present` pass is authored for a primary surface, but an offscreen
+    /// submission has no acquired surface target to encode into.  Such a pass
+    /// still participates in dependency and completion accounting so skipping
+    /// it cannot hide an omitted ordinary pass or leave the execution cursor
+    /// inconsistent.
+    pub(crate) fn skip_surface_present_execution_pass(
+        &self,
+        cursor: &mut RenderGraphExecutionCursor,
+        graph_pass_index: usize,
+    ) -> Result<(), String> {
+        let actual = self.graph.passes().get(graph_pass_index).ok_or_else(|| {
+            format!(
+                "render graph execution cursor references missing compiled graph pass index {graph_pass_index}"
+            )
+        })?;
+        let Some(execution_pass) = self.execution_pass_at(graph_pass_index) else {
+            return Err(format!(
+                "render graph execution packet references missing stage metadata for graph pass index {graph_pass_index}"
+            ));
+        };
+        if execution_pass.stage != RenderPassStage::Present {
+            return Err(format!(
+                "render graph execution cannot skip non-terminal graph pass `{}` at index {graph_pass_index}",
+                actual.name
+            ));
+        }
+        if actual.name != super::super::terminal_surface_pass::SURFACE_PRESENT_PASS_NAME {
+            return Err(format!(
+                "render graph execution cannot skip non-surface terminal graph pass `{}` at index {graph_pass_index}",
+                actual.name
+            ));
+        }
+        if actual.culled {
+            return Err(format!(
+                "render graph execution cannot skip culled compiled graph pass `{}` at index {graph_pass_index}",
+                actual.name
+            ));
+        }
+
+        let Some(executed) = cursor.executed_graph_passes.get(graph_pass_index).copied() else {
+            return Err(format!(
+                "render graph execution cursor references graph pass index {graph_pass_index} outside the packet"
+            ));
+        };
+        if executed {
+            return Err(format!(
+                "render graph execution cursor admitted or skipped compiled graph pass `{}` at index {graph_pass_index} more than once",
+                actual.name
+            ));
+        }
+
+        for dependency in &actual.dependencies {
+            let Some((dependency_index, dependency_pass)) = self.graph.indexed_pass(*dependency)
+            else {
+                return Err(format!(
+                    "render graph execution pass `{}` at index {graph_pass_index} references missing dependency {:?}",
+                    actual.name, dependency
+                ));
+            };
+            if dependency_pass.culled {
+                continue;
+            }
+            if !cursor
+                .executed_graph_passes
+                .get(dependency_index)
+                .copied()
+                .unwrap_or(false)
+            {
+                return Err(format!(
+                    "render graph execution pass `{}` at index {graph_pass_index} depends on `{}` at index {dependency_index} which has not executed",
+                    actual.name, dependency_pass.name
+                ));
+            }
+        }
+
+        // A skipped terminal pass must not feed another live pass.  This is
+        // normally guaranteed by the compiler's terminal-stage contract, but
+        // checking it here keeps the escape hatch safe for custom pipelines.
+        for (dependent_index, dependent_pass) in self.graph.passes().iter().enumerate() {
+            if dependent_pass.culled || dependent_index == graph_pass_index {
+                continue;
+            }
+            if dependent_pass.dependencies.iter().any(|dependency| {
+                self.graph
+                    .indexed_pass(*dependency)
+                    .is_some_and(|(index, _)| index == graph_pass_index)
+            }) {
+                return Err(format!(
+                    "render graph execution cannot skip graph pass `{}` at index {graph_pass_index}; live pass `{}` at index {dependent_index} depends on it",
+                    actual.name, dependent_pass.name
+                ));
+            }
+        }
+
+        if let Some(executed) = cursor.executed_graph_passes.get_mut(graph_pass_index) {
+            *executed = true;
+        }
         Ok(())
     }
 
     pub(crate) fn finish_execution(
         &self,
-        cursor: RenderGraphExecutionCursor,
+        cursor: &RenderGraphExecutionCursor,
     ) -> Result<(), String> {
-        let Some(missing_index) = self.next_live_pass_index(cursor.next_graph_pass_index) else {
-            return Ok(());
-        };
-        let missing = &self.graph.passes()[missing_index];
-        Err(format!(
-            "render graph execution did not execute compiled graph pass `{}` at index {missing_index}",
-            missing.name
-        ))
-    }
-
-    fn next_live_pass_index(&self, start: usize) -> Option<usize> {
-        self.graph
-            .passes()
-            .iter()
-            .enumerate()
-            .skip(start)
-            .find_map(|(index, pass)| (!pass.culled).then_some(index))
+        for (missing_index, missing) in self.graph.passes().iter().enumerate() {
+            if missing.culled {
+                continue;
+            }
+            if !cursor
+                .executed_graph_passes
+                .get(missing_index)
+                .copied()
+                .unwrap_or(false)
+            {
+                return Err(format!(
+                    "render graph execution did not execute compiled graph pass `{}` at index {missing_index}",
+                    missing.name
+                ));
+            }
+        }
+        Ok(())
     }
 
     pub(crate) fn stage_for_pass_name(&self, pass_name: &str) -> Option<RenderPassStage> {
@@ -498,4 +689,226 @@ fn validate_execution_batches(
         }
     }
     Ok(())
+}
+
+/// Exact graph-use and transition rows carried to product execution.
+///
+/// This is compiler output, not a backend barrier command list. On WGPU the
+/// native command encoders still declare concrete usages and `wgpu_core`
+/// tracks those usages and inserts the required transitions. Product execution
+/// consumes these rows to validate pass order, access identity, range, state,
+/// and backing lease before it records native work.
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct CompiledRenderGraphDeviceExecutionPlan {
+    access_bindings_by_graph_pass: Vec<Option<Box<[CompiledRenderGraphAccessAllocationBinding]>>>,
+    transitions_by_graph_pass: Vec<Option<Box<[CompiledRenderGraphResourceStateTransition]>>>,
+}
+
+impl CompiledRenderGraphDeviceExecutionPlan {
+    fn from_graph(graph: &CompiledRenderGraph) -> Result<Self, String> {
+        let pass_count = graph.passes().len();
+        let mut access_bindings_by_graph_pass = (0..pass_count)
+            .map(|graph_pass_index| (!graph.passes()[graph_pass_index].culled).then(Vec::new))
+            .collect::<Vec<_>>();
+        let mut transitions_by_graph_pass = (0..pass_count)
+            .map(|graph_pass_index| (!graph.passes()[graph_pass_index].culled).then(Vec::new))
+            .collect::<Vec<_>>();
+        let mut access_owner = HashMap::new();
+
+        for (graph_pass_index, pass) in graph.passes().iter().enumerate() {
+            if pass.culled {
+                continue;
+            }
+            for (access_ordinal, pass_access) in pass.resources.iter().enumerate() {
+                let access_id = graph
+                    .access_id_at(pass.id, access_ordinal)
+                    .ok_or_else(|| {
+                        format!(
+                            "device execution plan is missing access identity for live pass `{}` access ordinal {access_ordinal}",
+                            pass.name
+                        )
+                    })?;
+                let binding = graph.access_allocation_binding(access_id).ok_or_else(|| {
+                    format!(
+                        "device execution plan is missing compiled access binding for live pass `{}` access {:?}",
+                        pass.name, access_id
+                    )
+                })?;
+                let metadata = graph.access_metadata(access_id).ok_or_else(|| {
+                    format!(
+                        "device execution plan is missing access metadata for live pass `{}` access {:?}",
+                        pass.name, access_id
+                    )
+                })?;
+                let declaration = graph
+                    .resource_declaration(binding.key.resource)
+                    .ok_or_else(|| {
+                        format!(
+                            "device execution plan access {:?} references an undeclared resource",
+                            access_id
+                        )
+                    })?;
+                if binding.key.access_id != access_id
+                    || binding.key.range != metadata.range
+                    || binding.key.intent != metadata.intent
+                    || binding.key.access != pass_access.access
+                    || declaration.name != pass_access.name
+                    || declaration.kind != pass_access.kind
+                {
+                    return Err(format!(
+                        "device execution plan access {:?} disagrees with its compiled pass metadata",
+                        access_id
+                    ));
+                }
+                if access_owner
+                    .insert(access_id, (graph_pass_index, binding))
+                    .is_some()
+                {
+                    return Err(format!(
+                        "device execution plan contains duplicate access identity {:?}",
+                        access_id
+                    ));
+                }
+                access_bindings_by_graph_pass[graph_pass_index]
+                    .as_mut()
+                    .expect("live passes own a plan row")
+                    .push(*binding);
+            }
+        }
+
+        for &transition in graph.resource_state_plan().transitions() {
+            let (from_pass_index, from_binding) =
+                access_owner.get(&transition.from_access).ok_or_else(|| {
+                    format!(
+                        "device execution transition references missing live source access {:?}",
+                        transition.from_access
+                    )
+                })?;
+            let (to_pass_index, to_binding) =
+                access_owner.get(&transition.to_access).ok_or_else(|| {
+                    format!(
+                        "device execution transition references missing live destination access {:?}",
+                        transition.to_access
+                    )
+                })?;
+            let from_pass = &graph.passes()[*from_pass_index];
+            let to_pass = &graph.passes()[*to_pass_index];
+            if from_pass_index >= to_pass_index
+                || transition.resource != from_binding.key.resource
+                || transition.resource != to_binding.key.resource
+                || transition.from_state
+                    != crate::render_graph::RenderGraphResourceState::from(from_binding.key.intent)
+                || transition.to_state
+                    != crate::render_graph::RenderGraphResourceState::from(to_binding.key.intent)
+                || transition.from_queue != from_pass.queue
+                || transition.to_queue != to_pass.queue
+                || !access_ranges_overlap(transition.range, from_binding.key.range)
+                || !access_ranges_overlap(transition.range, to_binding.key.range)
+            {
+                return Err(format!(
+                    "device execution transition {:?}->{:?} disagrees with its ordered access rows",
+                    transition.from_access, transition.to_access
+                ));
+            }
+            transitions_by_graph_pass[*to_pass_index]
+                .as_mut()
+                .expect("live transition destinations own a plan row")
+                .push(transition);
+        }
+
+        Ok(Self {
+            access_bindings_by_graph_pass: access_bindings_by_graph_pass
+                .into_iter()
+                .map(|bindings| bindings.map(Vec::into_boxed_slice))
+                .collect(),
+            transitions_by_graph_pass: transitions_by_graph_pass
+                .into_iter()
+                .map(|transitions| transitions.map(Vec::into_boxed_slice))
+                .collect(),
+        })
+    }
+
+    fn access_bindings_for_pass(
+        &self,
+        graph_pass_index: usize,
+    ) -> Option<&[CompiledRenderGraphAccessAllocationBinding]> {
+        self.access_bindings_by_graph_pass
+            .get(graph_pass_index)
+            .and_then(Option::as_deref)
+    }
+
+    fn transitions_for_pass(
+        &self,
+        graph_pass_index: usize,
+    ) -> Option<&[CompiledRenderGraphResourceStateTransition]> {
+        self.transitions_by_graph_pass
+            .get(graph_pass_index)
+            .and_then(Option::as_deref)
+    }
+}
+
+fn access_ranges_overlap(
+    transition: RenderGraphResourceAccessRange,
+    access: RenderGraphResourceAccessRange,
+) -> bool {
+    match (transition, access) {
+        (
+            RenderGraphResourceAccessRange::Texture(left),
+            RenderGraphResourceAccessRange::Texture(right),
+        ) => texture_ranges_overlap(left, right),
+        (
+            RenderGraphResourceAccessRange::Buffer(left),
+            RenderGraphResourceAccessRange::Buffer(right),
+        ) => buffer_ranges_overlap(left, right),
+        _ => false,
+    }
+}
+
+fn texture_ranges_overlap(
+    left: RenderGraphTextureSubresourceRange,
+    right: RenderGraphTextureSubresourceRange,
+) -> bool {
+    let aspect_overlaps = left.aspect == right.aspect
+        || left.aspect == RenderGraphTextureAspect::All
+        || right.aspect == RenderGraphTextureAspect::All;
+    aspect_overlaps
+        && intervals_overlap(
+            left.base_mip_level,
+            left.mip_level_count,
+            right.base_mip_level,
+            right.mip_level_count,
+        )
+        && intervals_overlap(
+            left.base_array_layer,
+            left.array_layer_count,
+            right.base_array_layer,
+            right.array_layer_count,
+        )
+}
+
+fn intervals_overlap(
+    left_start: u32,
+    left_count: Option<u32>,
+    right_start: u32,
+    right_count: Option<u32>,
+) -> bool {
+    let left_end = left_count
+        .map(|count| u64::from(left_start) + u64::from(count))
+        .unwrap_or(u64::MAX);
+    let right_end = right_count
+        .map(|count| u64::from(right_start) + u64::from(count))
+        .unwrap_or(u64::MAX);
+    u64::from(left_start) < right_end && u64::from(right_start) < left_end
+}
+
+fn buffer_ranges_overlap(left: RenderGraphBufferRange, right: RenderGraphBufferRange) -> bool {
+    let left_end = left
+        .size
+        .and_then(|size| left.offset.checked_add(size))
+        .unwrap_or(u64::MAX);
+    let right_end = right
+        .size
+        .and_then(|size| right.offset.checked_add(size))
+        .unwrap_or(u64::MAX);
+    left.offset < right_end && right.offset < left_end
 }

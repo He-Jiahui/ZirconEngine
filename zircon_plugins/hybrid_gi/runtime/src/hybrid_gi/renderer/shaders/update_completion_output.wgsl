@@ -5,6 +5,7 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let completed_trace_count = min(params.trace_region_count, params.tracing_budget);
     let irradiance_count = params.resident_probe_count + completed_probe_count;
 
+    // 首个 invocation 写四个输出缓冲区的计数头，实体记录从字 1 开始。
     if (index == 0u) {
         completed_probe_updates[0] = completed_probe_count;
         completed_trace_regions[0] = completed_trace_count;

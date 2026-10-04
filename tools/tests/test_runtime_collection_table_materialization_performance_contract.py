@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 TABLE = ROOT / "zircon_runtime/src/ui/surface/render/collection_rows/table.rs"
 
-
+# 读取集合表格投影，确认网格单元保持固定四槽权威，行宽之外不实体化多余列。
 class RuntimeCollectionTableMaterializationContractTests(unittest.TestCase):
     def test_table_cells_use_a_fixed_four_slot_authority(self) -> None:
         source = TABLE.read_text(encoding="utf-8")

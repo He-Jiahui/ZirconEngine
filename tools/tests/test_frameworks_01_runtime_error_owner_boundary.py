@@ -5,7 +5,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-
+# 沿核心模块导出链检查 CoreError 的唯一内核归属，防止框架层重新暴露兼容错误类型。
 class Frameworks01RuntimeErrorOwnerBoundaryTests(unittest.TestCase):
     def test_core_error_is_kernel_owned_without_framework_compatibility(self) -> None:
         runtime_error = REPO_ROOT / "zircon_runtime/src/core/runtime/error.rs"

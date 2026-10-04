@@ -3,8 +3,12 @@
 mod client_hud_projection;
 mod client_projection;
 mod client_window_projection;
+#[cfg(feature = "engine-host")]
+mod engine_host;
 mod presentation;
 mod transaction;
+#[cfg(feature = "backend-zr-vm")]
+mod zr_vm_project_vm;
 
 pub use client_hud_projection::{
     ClientPresentationProjection, ClientProjectionCodecError, ClientProjectionError, HudAction,
@@ -22,6 +26,8 @@ pub use client_window_projection::{
     QuestLogObjectiveProjection, QuestLogProjectionError, QuestLogWindowProjection,
     WindowProjectionError, INVENTORY_BAG_SOCKET_COUNT,
 };
+#[cfg(feature = "engine-host")]
+pub use engine_host::{load_engine_project_vm, WocEngineHostError};
 pub use presentation::{
     PresentationBlendMode, PresentationCadence, PresentationCadenceError, PresentationSample,
     PresentationSnapshot, PresentationTimeline, PresentationTimelineError,
@@ -29,9 +35,12 @@ pub use presentation::{
 };
 pub use transaction::{
     BudgetKind, CommittedSnapshot, RuntimeRole, RuntimeStatus, TickBudgets, TickUsage,
-    VmReloadStage, VmTickError, VmTickResult, WocOfflineBootstrapError, WocProjectVm,
-    WocReloadError, WocReloadableVm, WocTickFault, WocTickFaultKind, WocTransactionalRuntime,
+    VmExecutionTermination, VmReloadStage, VmTickError, VmTickResult, WocOfflineBootstrapError,
+    WocProjectVm, WocReloadError, WocReloadableVm, WocRuntimeCheckpoint, WocTickFault,
+    WocTickFaultKind, WocTransactionalRuntime,
 };
+#[cfg(feature = "backend-zr-vm")]
+pub use zr_vm_project_vm::{ZrVmProjectCheckpoint, ZrVmProjectOptions, ZrVmProjectVm};
 
 use std::fs;
 use std::path::{Path, PathBuf};

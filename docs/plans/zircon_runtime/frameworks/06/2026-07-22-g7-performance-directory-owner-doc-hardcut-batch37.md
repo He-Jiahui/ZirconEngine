@@ -13,7 +13,7 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - python -B tools/check_conventions.py --repo-root E:\Git\ZirconEngine --only docs
+  - python -B tools/audits/check_conventions.py --repo-root E:\Git\ZirconEngine --only docs
   - git diff --check -- docs/plans/performance/01/2026-07-17-editor-host-window-static-review.md docs/plans/performance/01/2026-07-17-editor-material-primitives-static-review.md docs/plans/performance/01/2026-07-17-editor-mui-x-primitives-static-review.md docs/plans/performance/01/2026-07-17-editor-native-pointer-button-dispatch-static-review.md docs/plans/zircon_runtime/frameworks/06/2026-07-22-g7-performance-directory-owner-doc-hardcut-batch37.md
 ---
 

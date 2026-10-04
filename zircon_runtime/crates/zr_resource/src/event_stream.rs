@@ -1,3 +1,6 @@
+//! 面向缓存失效与增量同步的有界共享日志；每个订阅者持有自己的游标，载荷只存一份。
+//! 更新可合并，旧事件可因容量或时限淘汰；缺口要求调用端重新读取权威快照后再继续同步。
+
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
@@ -15,6 +18,7 @@ const RESOURCE_EVENT_LOG_MAX_AGE: Duration = Duration::from_secs(60);
 
 type ResourceEventIdentity = (ResourceKind, ResourceId);
 
+/// 日志当前保留量与累计淘汰统计；字节数是估算值，不能作为实际堆占用或完整历史的证明。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct ResourceEventStreamDiagnostics {
     pub depth: usize,
@@ -27,6 +31,8 @@ pub struct ResourceEventStreamDiagnostics {
     pub rejected_publish_count: u64,
 }
 
+/// 游标与下一条可读事件之间的缺口。可用序号为 `None` 时，序号空间已经耗尽。
+/// 消费者应先重新同步资源状态；接收端已经把游标推进到可继续读取的位置。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ResourceEventGap {
     pub expected_sequence: u64,
@@ -327,6 +333,8 @@ impl Default for ResourceEventPublisher {
 }
 
 #[derive(Debug)]
+// 批次预检只确认序号空间足够，并未提前保留序号；调用端必须一直持有发布串行锁，
+// 直到应用权威状态并写入事件完成，避免其他批次抢占这段序号。
 pub(crate) struct ResourceEventPublishPermit {
     first_sequence: Option<u64>,
     successor_sequence: Option<u64>,
@@ -334,6 +342,7 @@ pub(crate) struct ResourceEventPublishPermit {
 }
 
 impl ResourceEventPublisher {
+    /// 从订阅时刻之后的事件开始；初始化视图仍须读取管理器快照，不能靠此日志重建全部目录。
     pub(crate) fn subscribe(&self) -> ResourceEventReceiver {
         let next_sequence = self.hub.lock_state().next_sequence;
         ResourceEventReceiver {
@@ -509,6 +518,8 @@ fn publish_one(
 }
 
 #[derive(Debug)]
+/// 一个独立订阅游标。共享同一接收端会竞争同一游标；阻塞读取持有游标锁直到返回，
+/// 同一接收端的并发读取会串行等待。需要独立消费进度时应分别订阅。
 pub struct ResourceEventReceiver {
     hub: Arc<ResourceEventHub>,
     publisher_lifetime: Weak<ResourceEventPublisherLifetime>,
@@ -516,6 +527,7 @@ pub struct ResourceEventReceiver {
 }
 
 impl ResourceEventReceiver {
+    /// 当前游标之后仍保留的事件数，仅供调度参考；不会执行时限淘汰，也不代表事件连续无缺口。
     pub fn len(&self) -> usize {
         let cursor = lock_cursor(&self.cursor);
         let state = self.hub.lock_state();
@@ -528,6 +540,7 @@ impl ResourceEventReceiver {
         self.len() == 0
     }
 
+    /// 非阻塞读取下一条事件；缺口应触发全量同步，断开或序号耗尽则需要重新建立发布关系。
     pub fn try_recv(&self) -> Result<ResourceEvent, ResourceEventTryRecvError> {
         let mut cursor = lock_cursor(&self.cursor);
         let mut state = self.hub.lock_state();
@@ -542,6 +555,7 @@ impl ResourceEventReceiver {
         }
     }
 
+    /// 等待事件或终止状态；等待期间独占此接收端的游标，适合一个消费者负责一条订阅。
     pub fn recv(&self) -> Result<ResourceEvent, ResourceEventRecvError> {
         let mut cursor = lock_cursor(&self.cursor);
         let mut state = self.hub.lock_state();
@@ -566,6 +580,7 @@ impl ResourceEventReceiver {
         }
     }
 
+    /// 等待上限作用于日志的条件变量等待；并发调用争用游标锁或日志锁时仍需先等待锁。
     pub fn recv_timeout(
         &self,
         timeout: Duration,
@@ -686,6 +701,7 @@ fn is_coalescable(kind: ResourceEventKind) -> bool {
     matches!(kind, ResourceEventKind::Added | ResourceEventKind::Updated)
 }
 
+/// 估算保留日志的容量成本，计入字段与定位符文本长度；不追踪分配器开销或字符串预留容量。
 pub fn approximate_event_bytes(event: &ResourceEvent) -> usize {
     std::mem::size_of::<ResourceEvent>()
         + event
@@ -731,9 +747,9 @@ fn drop_oldest(state: &mut ResourceEventLogState) {
 }
 
 #[cfg(test)]
-#[path = "event_stream/publication_index_tests.rs"]
+#[path = "event_stream/tests/publication_index_tests.rs"]
 mod publication_index_tests;
 
 #[cfg(test)]
-#[path = "event_stream/event_order_tests.rs"]
+#[path = "event_stream/tests/event_order_tests.rs"]
 mod event_order_tests;

@@ -1,15 +1,12 @@
 from pathlib import Path
 import unittest
-
+# 视口高亮由哈希所有者按视口与代际隔离；本组同时检查交替热样本的 p95 证据入口和行为回归。
 
 ROOT = Path(__file__).resolve().parents[2]
 STORE = ROOT / (
     "zircon_runtime/src/core/framework/render/viewport_highlight_store.rs"
 )
-BENCHMARK = ROOT / (
-    "zircon_runtime/src/core/framework/render/viewport_highlight_store/"
-    "hash_index_tests.rs"
-)
+BENCHMARK = ROOT / "zircon_runtime/src/core/framework/render/viewport_highlight_store/tests/hash_index_tests.rs"
 
 
 class Runtime62ViewportHighlightHashIndexPerformanceContract(unittest.TestCase):

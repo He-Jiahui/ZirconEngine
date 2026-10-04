@@ -49,8 +49,8 @@ related_code:
   - zircon_runtime_interface/src/status.rs
   - zircon_runtime_interface/src/version.rs
   - zircon_runtime_interface/src/ui
-  - docs/engine-architecture/runtime-interface-cdylib-loader.md
-  - docs/engine-architecture/runtime-interface-convergence.md
+  - docs/architecture/runtime-interface-cdylib-loader.md
+  - docs/architecture/runtime-interface-convergence.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_runtime_api_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_runtime_api_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_runtime_api_abi_inventory.py
@@ -62,14 +62,14 @@ related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_runtime_api_validation_inventory.py
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
-  - docs/engine-architecture/runtime-interface-convergence.md
+  - docs/architecture/runtime-interface-convergence.md
 status: in_progress
 last_refined: 2026-08-25
 ---
 
 # 10 dynamic_api 与 runtime_interface 收敛线
 
-子计划 06 显式排除的"另一条收敛线"落成计划：cdylib 函数表 ABI、session 生命周期出口、interface 契约纯净性与 UI 镜像契约的漂移治理。**native 插件 ABI（NativePluginAbiV3 族）归 06，不在本计划**；editor 客户端实现归 editor 计划。既有口径承接 `docs/engine-architecture/runtime-interface-convergence.md` 与 `runtime-interface-cdylib-loader.md`（2026-06-12 实测存在），本计划不另起口径，只把其目标态落成切片。
+子计划 06 显式排除的"另一条收敛线"落成计划：cdylib 函数表 ABI、session 生命周期出口、interface 契约纯净性与 UI 镜像契约的漂移治理。**native 插件 ABI（NativePluginAbiV3 族）归 06，不在本计划**；editor 客户端实现归 editor 计划。既有口径承接 `docs/architecture/runtime-interface-convergence.md` 与 `runtime-interface-cdylib-loader.md`（2026-06-12 实测存在），本计划不另起口径，只把其目标态落成切片。
 
 ```zircon-workflow
 {
@@ -87,12 +87,12 @@ last_refined: 2026-08-25
 
 <!-- workflow schema 不接受 M0，因此机器节点 M1-M4 映射正文 M0-M3；正文 M0/M1 的实现与证据早于协调器节点，机器 M2 作为 late-adoption 独立可提交切片，正文任务顺序仍为权威。 -->
 
-## Current V7 ABI State
+## Current V8 ABI State
 
-- **唯一 runtime 出口**：`zircon_runtime::dynamic_api::zircon_runtime_get_api_v7(host: *const ZrHostApiV1) -> *const ZrRuntimeApiV7` 是唯一可装载的 runtime C ABI 入口。`ZrRuntimeApiV7` 是冻结的 25-field table：`abi_version` 与 `size_bytes` 两个头字段、17 个必需 function slot，以及 6 个可选 function slot；23 个函数指针全部落在 FFI panic wrapper，行为 owner 保持 Rust ABI。
-- **版本与部署身份单一来源**：`zircon_runtime_interface/src/runtime_build_set/interface_spec_v1.json` 定义 V7 entry symbol、table version、必需 slot inventory、可选 slot inventory 与 host optional slot inventory；build script 生成 `ZIRCON_RUNTIME_API_VERSION_V7` 与 `ZR_RUNTIME_GET_API_SYMBOL_V7`。任何表字段或 slot 分类变化都必须新建 table version，并对 Runtime、App、Editor host 与 artifact manifest 进行原子硬切，不保留旧表 lookup、fallback、alias 或 compatibility facade。
-- **加载方的 fail-closed 验证**：`zircon_app::entry::runtime_library::LoadedRuntime` 只解析 `ZR_RUNTIME_GET_API_SYMBOL_V7`，验证 `ZrRuntimeApiV7` 指针对齐、ABI version、精确 `size_bytes`、全部必需 slot，再把可选 surface 作为明确 capability 读取。`ZrHostApiV1` 仍是独立的四字段 host table；native-plugin `ZrHostApiV3/V4` 与其子 API 是另一版本域，不能与 runtime V7 table 混用。
-- **接口物理边界**：`zircon_runtime_interface::runtime_api` 是 `abi`、`constants`、`frame`、`host`、`session` 五个领域、15 个 production owner 的 folder-backed facade；`runtime_api.rs` 已删除。BuildSet 只拥有冻结 identity/slot catalog，`runtime_api` 只拥有 ABI DTO 与 table，不拥有 runtime、ECS、窗口、GPU 或 session 生命周期行为。
+- **唯一 runtime 出口**：`zircon_runtime::dynamic_api::zircon_runtime_get_api_v8(host: *const ZrHostApiV1) -> *const ZrRuntimeApiV8` 是唯一可装载的 runtime C ABI 入口。`ZrRuntimeApiV8` 是冻结的 28-field table：`abi_version` 与 `size_bytes` 两个头字段、20 个必需 function slot，以及 6 个可选 function slot；26 个函数指针全部落在 FFI panic wrapper，行为 owner 保持 Rust ABI。V8 增加 viewport pick 的 request、poll、cancel 三个必需 slot。
+- **版本与部署身份单一来源**：`zircon_runtime_interface/src/runtime_build_set/interface_spec_v1.json` 定义 V8 entry symbol、table version、必需 slot inventory、可选 slot inventory 与 host optional slot inventory；build script 生成 `ZIRCON_RUNTIME_API_VERSION_V8` 与 `ZR_RUNTIME_GET_API_SYMBOL_V8`，`version.rs` 从 `runtime_build_set` 导出版本常量。任何表字段或 slot 分类变化都必须新建 table version，并对 Runtime、App、Editor host 与 artifact manifest 进行原子硬切，不保留旧表 lookup、fallback、alias 或 compatibility facade。
+- **加载方的 fail-closed 验证**：`zircon_app::entry::runtime_library::LoadedRuntime` 只解析 `ZR_RUNTIME_GET_API_SYMBOL_V8`，验证 `ZrRuntimeApiV8` 指针对齐、ABI version、精确 `size_bytes`、全部必需 slot，再把可选 surface 作为明确 capability 读取。`ZrHostApiV1` 仍是独立的四字段 host table；native-plugin `ZrHostApiV3/V4` 与其子 API 是另一版本域，不能与 runtime V8 table 混用。
+- **接口物理边界**：`zircon_runtime_interface::runtime_api` 是 `abi`、`constants`、`frame`、`host`、`session` 五个领域的 folder-backed facade；`runtime_api.rs` 已删除。BuildSet 只拥有冻结 identity/slot catalog，`runtime_api` 只拥有 ABI DTO 与 table，不拥有 runtime、ECS、窗口、GPU 或 session 生命周期行为。
 
 ## Historical V3 Baseline (2026-06-12)
 
@@ -112,7 +112,7 @@ last_refined: 2026-08-25
 
 ## 目标
 
-1. 函数表版本策略维持：`ZrRuntimeApiV7` 是 runtime 单一当前表，任何字段或 slot 分类变化必须新建版本并原子硬切；`ZrHostApiV1` 宿主回调面与 native-plugin `ZrHostApiV3/V4` 及其子 API 各自独立演进，协商失败必须显式。
+1. 函数表版本策略维持：`ZrRuntimeApiV8` 是 runtime 单一当前表，任何字段或 slot 分类变化必须新建版本并原子硬切；`ZrHostApiV1` 宿主回调面与 native-plugin `ZrHostApiV3/V4` 及其子 API 各自独立演进，协商失败必须显式。
 2. ABI-safe 结构守卫：函数表与跨界 DTO 全部 `#[repr(C)]`/ABI-safe，违例可被结构测试拒绝。
 3. UI 镜像契约漂移治理：共享 DTO 单一来源判定规则 + 同步守卫，消化 09 移交的重复定义清单。
 4. session 生命周期出口收口：经函数表的 session 操作面盘点成册，失败路径（坏句柄、双 destroy、tick 在 destroy 后）测试完备。
@@ -128,7 +128,7 @@ last_refined: 2026-08-25
 
 ## 执行前检查清单
 
-1. 既有口径精读：`docs/engine-architecture/runtime-interface-convergence.md` 与 `runtime-interface-cdylib-loader.md` 全文——本计划切片与其目标态逐条对表，冲突处以既有口径为准并记录。
+1. 既有口径精读：`docs/architecture/runtime-interface-convergence.md` 与 `runtime-interface-cdylib-loader.md` 全文——本计划切片与其目标态逐条对表，冲突处以既有口径为准并记录。
 2. 活动会话对齐：`dynamic_api/**` 被 10fps 会话与 wgpu 主链触及——`git status --porcelain -- zircon_runtime/src/dynamic_api/ zircon_runtime_interface/src/`，脏区避让。
 3. 事实重核：
    - `grep -rn "no_mangle" zircon_runtime/src/dynamic_api/`（核出口仍单点）
@@ -142,15 +142,15 @@ last_refined: 2026-08-25
 
 #### 切片 0.1 函数表与跨界类型清册
 
-- 目标文件：`docs/engine-architecture/runtime-interface-convergence.md`（扩展"现状清册"节，不另起新文件）。
-- 改动形态：纯文档。清册三表：(a) 函数表族（逐表列字段数、版本、消费方 crate）；(b) 跨界 DTO 域（handles/buffer/status/manifest/reflect/resource/ui/...，逐域列 `#[repr(C)]` vs serde-序列化两类传输形态）；(c) session 操作面（经 `ZrRuntimeApiV7` 可达的 23 个函数指针，含 create/destroy、allocation release、event/frame/surface、profile/tick、host/plugin drains、operation 与 world-sync 族）。
+- 目标文件：`docs/architecture/runtime-interface-convergence.md`（扩展"现状清册"节，不另起新文件）。
+- 改动形态：纯文档。清册三表：(a) 函数表族（逐表列字段数、版本、消费方 crate）；(b) 跨界 DTO 域（handles/buffer/status/manifest/reflect/resource/ui/...，逐域列 `#[repr(C)]` vs serde-序列化两类传输形态）；(c) session 操作面（经 `ZrRuntimeApiV8` 可达的 26 个函数指针，含 create/destroy、allocation release、event/frame/surface、profile/tick、host/plugin drains、operation、world-sync 与 viewport pick 族）。
 - 验收：三表齐备；每个函数表有版本与消费方两列。
 - DoD：清册落文档；后续守卫以清册为白名单源。
 
 #### 切片 0.2 版本矩阵与 bump 规则定稿
 
 - 目标文件：同 0.1 文档（"版本策略"节）。
-- 改动形态：决策记录——矩阵现状（RuntimeApi V7 / HostApi V1 / plugin 宿主 HostApi V3/V4 / 各版本化子 API）+ 已冻结规则：`ZrRuntimeApiV7` 任何字段或 slot 分类变化都要求新表版本与所有 dynamic host 原子硬切，不做尾追兼容；`runtime_build_set` InterfaceSpec、`version.rs` 与 API table 的版本对应保持单点。
+- 改动形态：决策记录——矩阵现状（RuntimeApi V8 / HostApi V1 / plugin 宿主 HostApi V3/V4 / 各版本化子 API）+ 已冻结规则：`ZrRuntimeApiV8` 任何字段或 slot 分类变化都要求新表版本与所有 dynamic host 原子硬切，不做尾追兼容；`runtime_build_set` InterfaceSpec、`version.rs` 与 API table 的版本对应保持单点。
 - 验收：规则判词 + 矩阵表；与 06-M3 的 ABI 支持矩阵互引。
 - DoD：策略落文档且 `version.rs` 引用关系明确。
 
@@ -185,11 +185,11 @@ last_refined: 2026-08-25
 
 #### 切片 1.3 FFI panic 边界（已落地，保留 current-source 验收）
 
-- 目标文件：`zircon_runtime/src/dynamic_api/exports.rs`、`zircon_runtime/src/dynamic_api/tests/api_table.rs`、`docs/zircon_runtime/dynamic_api/session.md`。
-- 当前实现：`zircon_runtime_get_api_v7` 有顶层 `catch_unwind`，25-field `ZrRuntimeApiV7` 的 23 个 function entries 全部经过 `catch_ffi_panic` `_ffi` wrapper 后委派给 Rust-ABI owner；panic 映射为 `ZrStatusCode::Panic`，获取表期间 panic 返回 null。
-- 调用方迁移：`zircon_app` 已按 `ZR_RUNTIME_GET_API_SYMBOL_V7` 加载并校验 `ZIRCON_RUNTIME_API_VERSION_V7`、alignment、精确 table size 与全部必需函数字段；不保留 V1-V6 runtime table fallback。
+- 目标文件：`zircon_runtime/src/dynamic_api/exports.rs`、`zircon_runtime/src/dynamic_api/tests/api_table.rs`、`docs/crates/zircon_runtime/dynamic_api/session.md`。
+- 当前实现：`zircon_runtime_get_api_v8` 有顶层 `catch_unwind`，28-field `ZrRuntimeApiV8` 的 26 个 function entries 全部经过 `catch_ffi_panic` `_ffi` wrapper 后委派给 Rust-ABI owner；panic 映射为 `ZrStatusCode::Panic`，获取表期间 panic 返回 null。
+- 调用方迁移：`zircon_app` 已按 `ZR_RUNTIME_GET_API_SYMBOL_V8` 加载并校验 `ZIRCON_RUNTIME_API_VERSION_V8`、alignment、精确 table size 与全部必需函数字段；不保留 V1-V7 runtime table fallback。
 - 剩余验收：current-source dynamic API 与 app loader Cargo；显式锁定非 null 错 ABI 返回 null，以及 null host 放行是否继续作为内嵌加载契约。
-- DoD：函数表不得直接指向 session owner；session owner 不恢复 `extern "C"`；无 V1-V6 runtime symbol/table/alias；focused tests 与 app loader 失败注入通过。
+- DoD：函数表不得直接指向 session owner；session owner 不恢复 `extern "C"`；无 V1-V7 runtime symbol/table/alias；focused tests 与 app loader 失败注入通过。
 
 #### M1 测试阶段（milestone-first）
 
@@ -225,8 +225,8 @@ last_refined: 2026-08-25
 
 #### 切片 3.1 runtime 库重载失败注入
 
-- 目标文件：加载侧 `zircon_app`（libloading 装载点，执行时核验 `libloading|zircon_runtime_get_api_v7|ZR_RUNTIME_GET_API_SYMBOL_V7`）+ `runtime-interface-cdylib-loader.md` 口径刷新。
-- 改动形态：对照 06-M3 的热重载回滚测试模式，保持 runtime cdylib 三类装载失败路径：V7 符号缺失、`ZIRCON_RUNTIME_API_VERSION_V7`/精确 table size 协商失败、装载后首调用失败；不得回退 V1-V6 表。
+- 目标文件：加载侧 `zircon_app`（libloading 装载点，执行时核验 `libloading|zircon_runtime_get_api_v8|ZR_RUNTIME_GET_API_SYMBOL_V8`）+ `runtime-interface-cdylib-loader.md` 口径刷新。
+- 改动形态：对照 06-M3 的热重载回滚测试模式，保持 runtime cdylib 三类装载失败路径：V8 符号缺失、`ZIRCON_RUNTIME_API_VERSION_V8`/精确 table size 协商失败、装载后首调用失败；不得回退 V1-V7 表。
 - 调用方迁移：无公共面变化。
 - 验收（测试名草案）：`runtime_library_missing_entry_symbol_fails_load_with_explicit_report`、`runtime_api_version_mismatch_is_rejected_before_session_creation`。
 - DoD：`cargo test -p zircon_app --locked` 含新测试全绿；loader 文档与行为一致。

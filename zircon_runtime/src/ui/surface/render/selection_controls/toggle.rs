@@ -6,8 +6,10 @@ use super::{
     commands::{push_label, quad_command},
     geometry::{toggle_label_rect, toggle_thumb_rect, toggle_track_rect},
     state::SelectionRenderState,
-    style::{SelectionVisual, toggle_border, toggle_thumb, toggle_track},
+    style::{toggle_border, toggle_thumb, toggle_track, SelectionVisual},
 };
+
+const TOGGLE_COMMAND_CAPACITY: usize = 3;
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn toggle_commands(
@@ -21,7 +23,7 @@ pub(super) fn toggle_commands(
     opacity: f32,
 ) -> Vec<UiRenderCommand> {
     let track = toggle_track_rect(frame, visual);
-    let mut commands = Vec::new();
+    let mut commands = Vec::with_capacity(TOGGLE_COMMAND_CAPACITY);
     push_label(
         &mut commands,
         node_id,

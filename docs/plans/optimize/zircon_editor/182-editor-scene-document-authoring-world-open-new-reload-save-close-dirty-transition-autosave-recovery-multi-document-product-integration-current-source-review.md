@@ -26,7 +26,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/startup.rs
   - zircon_runtime/src/scene/world/project_io
   - zircon_runtime/src/asset/assets/scene
-  - zircon_runtime/src/core/resource/io/atomic_file
 tests:
   - zircon_editor/src/core/document/lifecycle/tests.rs
   - zircon_editor/src/core/document/scene_route_tests.rs

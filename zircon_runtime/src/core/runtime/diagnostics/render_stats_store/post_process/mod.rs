@@ -13,4 +13,5 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
 }
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

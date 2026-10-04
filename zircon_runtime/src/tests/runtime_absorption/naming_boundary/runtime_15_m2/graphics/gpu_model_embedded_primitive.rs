@@ -1,3 +1,4 @@
+//! 命名策略扫描需区分生产源码、测试夹具和已分类的历史名称。以结果断言检查当前接口或源码快照对应的边界。
 use super::*;
 
 #[test]
@@ -34,8 +35,17 @@ fn runtime_15_gpu_model_embedded_primitive_uses_current_names() {
     assert_contains_all(
         "GPU model embedded primitive source names",
         &gpu_model_source,
+        &["model_primitives_preferring_mesh_assets"],
+    );
+    assert_contains_all(
+        "GPU model embedded primitive source names",
+        &read_text(
+            &manifest_root.join(
+                "src/graphics/scene/resources/gpu_model/tests/gpu_model_resource_from_asset.rs",
+            ),
+            "GPU model resource from asset owner should be readable",
+        ),
         &[
-            "model_primitives_preferring_mesh_assets",
             "model_render_primitives_keep_embedded_payload_when_mesh_reference_unresolved",
             "let embedded = embedded_primitive(",
             "fn embedded_primitive(",

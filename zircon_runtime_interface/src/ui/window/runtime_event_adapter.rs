@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 use crate::{
-    ZrRuntimeEventV1, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
     ZR_RUNTIME_BUTTON_STATE_RELEASED_V1, ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1,
     ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1, ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1,
     ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1,
@@ -11,30 +11,29 @@ use crate::{
     ZR_RUNTIME_EVENT_KIND_MOUSE_MOTION_V1, ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1,
     ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1, ZR_RUNTIME_EVENT_KIND_TOUCH_V1,
     ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1, ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1,
-    ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1, ZR_RUNTIME_FILE_DRAG_CANCELLED_V1,
-    ZR_RUNTIME_FILE_DRAG_DROPPED_V1, ZR_RUNTIME_FILE_DRAG_HOVERED_V1,
-    ZR_RUNTIME_GAMEPAD_AXIS_DPAD_X_V1, ZR_RUNTIME_GAMEPAD_AXIS_DPAD_Y_V1,
-    ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1, ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_Y_V1,
-    ZR_RUNTIME_GAMEPAD_AXIS_LEFT_Z_V1, ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_STICK_X_V1,
-    ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_STICK_Y_V1, ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_Z_V1,
-    ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_DOWN_V1, ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_LEFT_V1,
-    ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_RIGHT_V1, ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_UP_V1,
-    ZR_RUNTIME_GAMEPAD_BUTTON_EAST_V1, ZR_RUNTIME_GAMEPAD_BUTTON_NORTH_V1,
-    ZR_RUNTIME_GAMEPAD_BUTTON_SELECT_V1, ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1,
-    ZR_RUNTIME_GAMEPAD_BUTTON_START_V1, ZR_RUNTIME_GAMEPAD_BUTTON_WEST_V1,
-    ZR_RUNTIME_IME_STATE_COMMIT_V1, ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1,
-    ZR_RUNTIME_IME_STATE_DISABLED_V1, ZR_RUNTIME_IME_STATE_PREEDIT_V1,
-    ZR_RUNTIME_KEY_ACTION_PRESSED_V1, ZR_RUNTIME_KEY_ACTION_RELEASED_V1,
-    ZR_RUNTIME_KEY_ACTION_TEXT_V1, ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1,
-    ZR_RUNTIME_LIFECYCLE_STATE_FOREGROUND_V1, ZR_RUNTIME_LIFECYCLE_STATE_LOW_MEMORY_V1,
-    ZR_RUNTIME_LIFECYCLE_STATE_RESUMED_V1, ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1,
-    ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1, ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1,
-    ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1, ZR_RUNTIME_MOUSE_WHEEL_COORDS_PRESENT_V1,
-    ZR_RUNTIME_MOUSE_WHEEL_UNIT_LINE_V1, ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1,
-    ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1, ZR_RUNTIME_TOUCH_PHASE_ENDED_V1,
-    ZR_RUNTIME_TOUCH_PHASE_MOVED_V1, ZR_RUNTIME_TOUCH_PHASE_STARTED_V1,
-    ZR_RUNTIME_WINDOW_BOOL_FALSE_V1, ZR_RUNTIME_WINDOW_BOOL_TRUE_V1,
-    ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1,
+    ZR_RUNTIME_FILE_DRAG_CANCELLED_V1, ZR_RUNTIME_FILE_DRAG_DROPPED_V1,
+    ZR_RUNTIME_FILE_DRAG_HOVERED_V1, ZR_RUNTIME_GAMEPAD_AXIS_DPAD_X_V1,
+    ZR_RUNTIME_GAMEPAD_AXIS_DPAD_Y_V1, ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1,
+    ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_Y_V1, ZR_RUNTIME_GAMEPAD_AXIS_LEFT_Z_V1,
+    ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_STICK_X_V1, ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_STICK_Y_V1,
+    ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_Z_V1, ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_DOWN_V1,
+    ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_LEFT_V1, ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_RIGHT_V1,
+    ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_UP_V1, ZR_RUNTIME_GAMEPAD_BUTTON_EAST_V1,
+    ZR_RUNTIME_GAMEPAD_BUTTON_NORTH_V1, ZR_RUNTIME_GAMEPAD_BUTTON_SELECT_V1,
+    ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1, ZR_RUNTIME_GAMEPAD_BUTTON_START_V1,
+    ZR_RUNTIME_GAMEPAD_BUTTON_WEST_V1, ZR_RUNTIME_IME_STATE_COMMIT_V1,
+    ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1, ZR_RUNTIME_IME_STATE_DISABLED_V1,
+    ZR_RUNTIME_IME_STATE_PREEDIT_V1, ZR_RUNTIME_KEY_ACTION_PRESSED_V1,
+    ZR_RUNTIME_KEY_ACTION_RELEASED_V1, ZR_RUNTIME_KEY_ACTION_TEXT_V1,
+    ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1, ZR_RUNTIME_LIFECYCLE_STATE_FOREGROUND_V1,
+    ZR_RUNTIME_LIFECYCLE_STATE_LOW_MEMORY_V1, ZR_RUNTIME_LIFECYCLE_STATE_RESUMED_V1,
+    ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1, ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1,
+    ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1, ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1,
+    ZR_RUNTIME_MOUSE_WHEEL_COORDS_PRESENT_V1, ZR_RUNTIME_MOUSE_WHEEL_UNIT_LINE_V1,
+    ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1, ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1,
+    ZR_RUNTIME_TOUCH_PHASE_ENDED_V1, ZR_RUNTIME_TOUCH_PHASE_MOVED_V1,
+    ZR_RUNTIME_TOUCH_PHASE_STARTED_V1, ZR_RUNTIME_WINDOW_BOOL_FALSE_V1,
+    ZR_RUNTIME_WINDOW_BOOL_TRUE_V1, ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1,
     ZR_RUNTIME_WINDOW_STATUS_CLOSE_REQUESTED_V1, ZR_RUNTIME_WINDOW_STATUS_DESTROYED_V1,
     ZR_RUNTIME_WINDOW_STATUS_MOVED_V1, ZR_RUNTIME_WINDOW_STATUS_OCCLUDED_V1,
     ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1,
@@ -54,7 +53,7 @@ use crate::ui::{
 };
 
 use super::{
-    UiWindowEvent, UiWindowEventKind, UiWindowEventMetadata, UiWindowInputContext,
+    UiRuntimeEvent, UiWindowEvent, UiWindowEventKind, UiWindowEventMetadata, UiWindowInputContext,
     UiWindowInputPumpBatch, UiWindowInputPumpEvent, UiWindowMetrics, UiWindowPixelPosition,
     UiWindowPixelSize, UiWindowPlatformInputEvent, UiWindowRedrawReason, UiWindowTouchPhase,
 };
@@ -165,7 +164,7 @@ pub type UiRuntimeEventAdapterResult<T> = Result<T, UiRuntimeEventAdapterError>;
 
 pub fn runtime_event_to_window_input_pump_event(
     context: &UiRuntimeEventAdapterContext,
-    event: ZrRuntimeEventV1,
+    event: UiRuntimeEvent<'_>,
 ) -> UiRuntimeEventAdapterResult<UiWindowInputPumpEvent> {
     validate_abi(event)?;
     let pump_event = match event.kind {
@@ -227,18 +226,20 @@ pub fn runtime_event_to_window_input_pump_event(
     Ok(pump_event)
 }
 
-pub fn runtime_events_to_window_input_pump_batch(
+/// 按输入顺序转换；任一事件失败即返回错误，不交付已经转换的前缀批次。
+pub fn runtime_events_to_window_input_pump_batch<'payload>(
     context: &UiRuntimeEventAdapterContext,
-    events: impl IntoIterator<Item = ZrRuntimeEventV1>,
+    events: impl IntoIterator<Item = UiRuntimeEvent<'payload>>,
 ) -> UiRuntimeEventAdapterResult<UiWindowInputPumpBatch> {
-    let mut batch = UiWindowInputPumpBatch::default();
+    let events = events.into_iter();
+    let mut batch = UiWindowInputPumpBatch::with_capacity(events.size_hint().0);
     for event in events {
         batch.push(runtime_event_to_window_input_pump_event(context, event)?);
     }
     Ok(batch)
 }
 
-fn validate_abi(event: ZrRuntimeEventV1) -> UiRuntimeEventAdapterResult<()> {
+fn validate_abi(event: UiRuntimeEvent<'_>) -> UiRuntimeEventAdapterResult<()> {
     if event.abi_version == ZIRCON_RUNTIME_ABI_VERSION_V1 {
         return Ok(());
     }
@@ -252,7 +253,7 @@ fn input_event(event: UiWindowPlatformInputEvent) -> UiWindowInputPumpEvent {
     UiWindowInputPumpEvent::Input(event.normalize())
 }
 
-fn viewport_metrics(event: ZrRuntimeEventV1) -> UiWindowMetrics {
+fn viewport_metrics(event: UiRuntimeEvent<'_>) -> UiWindowMetrics {
     let metrics = event.metrics;
     if metrics.logical_size.width > 0
         || metrics.logical_size.height > 0
@@ -284,13 +285,13 @@ fn sanitized_scale_factor(scale_factor: f32) -> f64 {
     }
 }
 
-fn event_point(event: ZrRuntimeEventV1) -> UiPoint {
+fn event_point(event: UiRuntimeEvent<'_>) -> UiPoint {
     UiPoint::new(event.x, event.y)
 }
 
 fn mouse_button_event(
     context: UiWindowInputContext,
-    event: ZrRuntimeEventV1,
+    event: UiRuntimeEvent<'_>,
 ) -> UiRuntimeEventAdapterResult<UiWindowPlatformInputEvent> {
     let button = pointer_button(event.button)?;
     match event.state {
@@ -310,7 +311,7 @@ fn mouse_button_event(
 
 fn mouse_wheel_event(
     context: UiWindowInputContext,
-    event: ZrRuntimeEventV1,
+    event: UiRuntimeEvent<'_>,
 ) -> UiRuntimeEventAdapterResult<UiWindowPlatformInputEvent> {
     let point = if event.button == ZR_RUNTIME_MOUSE_WHEEL_COORDS_PRESENT_V1 {
         event_point(event)
@@ -344,7 +345,7 @@ fn mouse_wheel_event(
 
 fn lifecycle_window_event(
     metadata: UiWindowEventMetadata,
-    event: ZrRuntimeEventV1,
+    event: UiRuntimeEvent<'_>,
 ) -> UiRuntimeEventAdapterResult<UiWindowEvent> {
     match event.state {
         ZR_RUNTIME_LIFECYCLE_STATE_FOREGROUND_V1 | ZR_RUNTIME_LIFECYCLE_STATE_RESUMED_V1 => Ok(
@@ -362,7 +363,7 @@ fn lifecycle_window_event(
 
 fn touch_event(
     context: UiWindowInputContext,
-    event: ZrRuntimeEventV1,
+    event: UiRuntimeEvent<'_>,
 ) -> UiRuntimeEventAdapterResult<UiWindowPlatformInputEvent> {
     let phase = match event.state {
         ZR_RUNTIME_TOUCH_PHASE_STARTED_V1 => UiWindowTouchPhase::Started,
@@ -381,7 +382,7 @@ fn touch_event(
 
 fn keyboard_pump_event(
     context: UiWindowInputContext,
-    event: ZrRuntimeEventV1,
+    event: UiRuntimeEvent<'_>,
 ) -> UiRuntimeEventAdapterResult<UiWindowInputPumpEvent> {
     let text = optional_payload_text(event)?;
     match event.button {
@@ -415,7 +416,7 @@ fn keyboard_pump_event(
 
 fn ime_pump_event(
     context: UiWindowInputContext,
-    event: ZrRuntimeEventV1,
+    event: UiRuntimeEvent<'_>,
 ) -> UiRuntimeEventAdapterResult<UiWindowInputPumpEvent> {
     match event.state {
         ZR_RUNTIME_IME_STATE_PREEDIT_V1 => Ok(UiWindowInputPumpEvent::Input(
@@ -452,7 +453,7 @@ fn ime_pump_event(
 
 fn file_drag_drop_event(
     context: UiWindowInputContext,
-    event: ZrRuntimeEventV1,
+    event: UiRuntimeEvent<'_>,
 ) -> UiRuntimeEventAdapterResult<UiWindowPlatformInputEvent> {
     let point = event_point(event);
     match event.state {
@@ -481,7 +482,7 @@ fn file_drag_drop_event(
 
 fn window_status_event(
     metadata: UiWindowEventMetadata,
-    event: ZrRuntimeEventV1,
+    event: UiRuntimeEvent<'_>,
 ) -> UiRuntimeEventAdapterResult<UiWindowEvent> {
     match event.state {
         ZR_RUNTIME_WINDOW_STATUS_MOVED_V1 => Ok(UiWindowEvent::moved_window(
@@ -523,7 +524,7 @@ fn window_status_event(
 
 fn gamepad_button_event(
     context: UiWindowInputContext,
-    event: ZrRuntimeEventV1,
+    event: UiRuntimeEvent<'_>,
 ) -> UiRuntimeEventAdapterResult<UiWindowPlatformInputEvent> {
     let button = gamepad_button_name(event.button);
     match event.state {
@@ -539,7 +540,7 @@ fn gamepad_button_event(
 
 fn gamepad_axis_event(
     context: UiWindowInputContext,
-    event: ZrRuntimeEventV1,
+    event: UiRuntimeEvent<'_>,
 ) -> UiWindowPlatformInputEvent {
     UiWindowPlatformInputEvent::controller_analog(
         context,
@@ -550,11 +551,10 @@ fn gamepad_axis_event(
 
 fn accessibility_event(
     context: UiWindowInputContext,
-    event: ZrRuntimeEventV1,
+    event: UiRuntimeEvent<'_>,
 ) -> UiRuntimeEventAdapterResult<UiWindowPlatformInputEvent> {
-    let payload = payload_bytes(event)
-        .map_err(|_| UiRuntimeEventAdapterError::InvalidAccessibilityPayload)?;
-    let request = serde_json::from_slice::<UiAccessibilityActionRequest>(&payload)
+    let payload = event.payload;
+    let request = serde_json::from_slice::<UiAccessibilityActionRequest>(payload)
         .map_err(|_| UiRuntimeEventAdapterError::InvalidAccessibilityPayload)?;
     Ok(UiWindowPlatformInputEvent::accessibility(context, request))
 }
@@ -576,7 +576,7 @@ fn runtime_bool(value: u32) -> UiRuntimeEventAdapterResult<bool> {
     }
 }
 
-fn optional_payload_text(event: ZrRuntimeEventV1) -> UiRuntimeEventAdapterResult<Option<String>> {
+fn optional_payload_text(event: UiRuntimeEvent<'_>) -> UiRuntimeEventAdapterResult<Option<String>> {
     let payload = payload_bytes(event)?;
     if payload.is_empty() {
         return Ok(None);
@@ -586,22 +586,16 @@ fn optional_payload_text(event: ZrRuntimeEventV1) -> UiRuntimeEventAdapterResult
         .map_err(|_| UiRuntimeEventAdapterError::InvalidTextPayload)
 }
 
-fn payload_text(event: ZrRuntimeEventV1) -> UiRuntimeEventAdapterResult<String> {
+fn payload_text(event: UiRuntimeEvent<'_>) -> UiRuntimeEventAdapterResult<String> {
     String::from_utf8(payload_bytes(event)?)
         .map_err(|_| UiRuntimeEventAdapterError::InvalidTextPayload)
 }
 
-fn payload_bytes(event: ZrRuntimeEventV1) -> UiRuntimeEventAdapterResult<Vec<u8>> {
-    unsafe {
-        event
-            .payload
-            .checked_slice(ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1)
-    }
-    .map(<[u8]>::to_vec)
-    .map_err(|_| UiRuntimeEventAdapterError::InvalidTextPayload)
+fn payload_bytes(event: UiRuntimeEvent<'_>) -> UiRuntimeEventAdapterResult<Vec<u8>> {
+    Ok(event.payload.to_vec())
 }
 
-fn scan_code(event: ZrRuntimeEventV1) -> Option<u32> {
+fn scan_code(event: UiRuntimeEvent<'_>) -> Option<u32> {
     (event.scan_code != 0).then_some(event.scan_code)
 }
 
@@ -609,14 +603,37 @@ fn physical_key_name(key_code: u32) -> String {
     if let Some(name) = named_keyboard_key(key_code) {
         name.to_string()
     } else {
-        format!("KeyCode{key_code}")
+        let mut name = String::with_capacity("KeyCode".len() + 10);
+        name.push_str("KeyCode");
+        push_u32_decimal(&mut name, key_code);
+        name
+    }
+}
+
+fn push_u32_decimal(output: &mut String, mut value: u32) {
+    let mut digits = [0_u8; 10];
+    let mut start = digits.len();
+    loop {
+        start -= 1;
+        digits[start] = b'0' + (value % 10) as u8;
+        value /= 10;
+        if value == 0 {
+            break;
+        }
+    }
+    for digit in &digits[start..] {
+        output.push(char::from(*digit));
     }
 }
 
 fn logical_key_name(key_code: u32) -> String {
-    named_keyboard_key(key_code)
-        .map(str::to_string)
-        .unwrap_or_else(|| key_code.to_string())
+    if let Some(name) = named_keyboard_key(key_code) {
+        name.to_string()
+    } else {
+        let mut name = String::with_capacity(10);
+        push_u32_decimal(&mut name, key_code);
+        name
+    }
 }
 
 fn named_keyboard_key(key_code: u32) -> Option<&'static str> {
@@ -698,3 +715,18 @@ fn gamepad_axis_name(axis: u32) -> String {
     }
     .to_string()
 }
+
+#[cfg(test)]
+#[path = "runtime_event_adapter/tests/key_name_performance_tests.rs"]
+mod key_name_performance_tests;
+
+#[cfg(test)]
+#[path = "runtime_event_adapter/tests/batch_capacity_performance_tests.rs"]
+mod batch_capacity_performance_tests;
+
+#[cfg(test)]
+#[path = "runtime_event_adapter/tests/accessibility_payload_performance_tests.rs"]
+mod accessibility_payload_performance_tests;
+
+#[cfg(test)]
+use crate::ZrRuntimeEventV1;

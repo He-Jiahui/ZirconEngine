@@ -14,6 +14,8 @@ use super::super::prepare_scene_data_uploads;
 use super::record_pass::record_pass;
 
 impl ScenePostProcessResources {
+    /// DisplayMapping 的最终组合入口，将 scene sideband 与参数上传和双附件 draw 作为一次节点事务交回图层。
+    /// 独立效果节点已完成的部分通过 skip 标志关闭，避免再次叠加；各历史域和当前 GI 输出可用性分别传入。
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn execute_post_process(
         &self,
@@ -160,12 +162,14 @@ impl ScenePostProcessResources {
     }
 }
 
+// 让两种布局必需视图与实际消费模式一起传递，避免资源选择后 shader 仍按旧布局解释。
 struct EffectLutTextureViews<'a> {
     texture_2d_view: &'a wgpu::TextureView,
     texture_3d_view: &'a wgpu::TextureView,
     binding_mode: EffectLutBindingMode,
 }
 
+// 模式 ID 属于 WGSL 效果分支契约，烘焙 LUT 与用户 LUT 的显示变换语义不同。
 #[derive(Clone, Copy)]
 enum EffectLutBindingMode {
     Disabled,
@@ -176,6 +180,7 @@ enum EffectLutBindingMode {
 }
 
 impl EffectLutBindingMode {
+    // 与 effect_flags[1] 的 shader 分支同步，枚举顺序不能隐式决定这个外部契约。
     fn shader_id(self) -> u32 {
         match self {
             Self::Disabled => 0,
@@ -187,6 +192,8 @@ impl EffectLutBindingMode {
     }
 }
 
+// 优先使用 streamer 已准备的用户 LUT，未解析成功时允许使用图提供的烘焙 LUT，最后使用系统占位。
+// 选择结果同时决定采样维度和 shader 模式，两个占位视图始终满足共享布局。
 fn select_effect_lut_texture_views<'a>(
     resources: &'a ScenePostProcessResources,
     streamer: &'a ResourceStreamer,
@@ -246,24 +253,5 @@ fn select_effect_lut_texture_views<'a>(
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn post_process_scene_data_and_params_share_the_pass_upload_transaction() {
-        let source = include_str!("execute.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("post-process execute source");
-
-        assert!(!production.contains("queue.write_buffer"));
-        assert!(!production.contains("queue: &wgpu::Queue"));
-        let scene_data = production
-            .find("prepare_scene_data_uploads(")
-            .expect("scene-data preparation");
-        let params = production
-            .find("post_process_params_upload(")
-            .expect("parameter preparation");
-        let append = production.find("uploads.append(").expect("batch append");
-        assert!(scene_data < params && params < append);
-    }
-}
+#[path = "tests/execute.rs"]
+mod tests;

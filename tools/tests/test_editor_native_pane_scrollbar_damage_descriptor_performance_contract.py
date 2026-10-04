@@ -1,3 +1,4 @@
+# 核对原生面板滚动条先按有效损伤筛选有界描述符，再计算样式与几何。
 from pathlib import Path
 import unittest
 
@@ -78,7 +79,7 @@ class EditorNativePaneScrollbarDamageDescriptorContractTests(unittest.TestCase):
         content = (NATIVE_PANES / "content.rs").read_text(encoding="utf-8")
         scrollbar = (NATIVE_PANES / "scrollbar.rs").read_text(encoding="utf-8")
         asset = (NATIVE_PANES / "scrollbar/asset.rs").read_text(encoding="utf-8")
-        lower_tests = (NATIVE_PANES / "scrollbar/tests.rs").read_text(
+        lower_tests = (NATIVE_PANES / "scrollbar/tests/cases.rs").read_text(
             encoding="utf-8"
         )
         production = scrollbar.split("#[cfg(test)]", 1)[0]

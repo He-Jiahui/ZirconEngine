@@ -1,3 +1,4 @@
+# 运行工件预算从一次基线对各阶段增量计费，监督器的每轮心跳共享扫描状态；本组用隔离目录验证配额与重解析点拒绝，并核对 Stage 共用基线。
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $modulePath = Join-Path $repoRoot 'tools\mvp\MvpRunArtifactBudget.psm1'
 

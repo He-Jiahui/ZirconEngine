@@ -13,13 +13,14 @@ use super::super::{
     FroxelIntegratePipeline, FroxelIntegrateRequest, FroxelViewReconstruction,
     VOLUMETRIC_INTEGRATE_PIPELINE_LABEL, VOLUMETRIC_INTEGRATE_WORKGROUP_SIZE,
 };
-use super::{VOLUMETRIC_INTEGRATE_EXECUTOR_ID, validate_compute_context};
+use super::{validate_compute_context, VOLUMETRIC_INTEGRATE_EXECUTOR_ID};
 
 #[derive(Default)]
 pub(super) struct VolumetricIntegrateExecutor {
     pipeline: Mutex<RenderPassDeviceEpochCache<(), FroxelIntegratePipeline>>,
 }
 
+// 积分管线按设备世代复用，读取本帧散射并生成应用纹理；散射历史由 light_scatter 执行器记录。
 impl RenderPassExecutor for VolumetricIntegrateExecutor {
     fn execute(&self, context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
         validate_compute_context(context, VOLUMETRIC_INTEGRATE_EXECUTOR_ID)?;

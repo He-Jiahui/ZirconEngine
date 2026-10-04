@@ -1,0 +1,97 @@
+source = "editor-ui.ttc"
+family = "Roboto"
+render_mode = "native"
+fallback_families = ["Noto Sans SC", "Segoe UI Emoji", "Segoe UI Symbol"]
+
+[[family_members]]
+family = "Fira Sans"
+face_index = 0
+weight = 400
+width_class = 5
+style = "normal"
+
+[[family_members]]
+family = "Fira Sans"
+face_index = 1
+weight = 500
+width_class = 5
+style = "normal"
+
+[[family_members]]
+family = "Fira Sans"
+face_index = 2
+weight = 600
+width_class = 5
+style = "normal"
+
+[[family_members]]
+family = "Fira Sans"
+face_index = 3
+weight = 700
+width_class = 5
+style = "normal"
+
+[[family_members]]
+family = "Fira Mono"
+face_index = 4
+weight = 400
+width_class = 5
+style = "normal"
+
+[[family_members]]
+family = "Fira Mono"
+face_index = 5
+weight = 500
+width_class = 5
+style = "normal"
+
+[[family_members]]
+family = "Fira Mono"
+face_index = 6
+weight = 700
+width_class = 5
+style = "normal"
+
+[[family_members]]
+family = "Noto Sans SC"
+face_index = 7
+weight = 400
+width_class = 5
+style = "normal"
+
+[[family_members]]
+family = "Roboto"
+face_index = 8
+weight = 400
+width_class = 5
+style = "normal"
+
+[[family_members]]
+family = "Roboto"
+face_index = 9
+weight = 500
+width_class = 5
+style = "normal"
+
+[[family_members]]
+family = "Roboto"
+face_index = 10
+weight = 700
+width_class = 5
+style = "normal"
+
+[[family_members]]
+family = "Droid Sans Mono"
+face_index = 11
+weight = 400
+width_class = 5
+style = "normal"
+
+[composite_font]
+default_family = "Roboto"
+
+[[composite_font.sub_fonts]]
+family = "Noto Sans SC"
+scripts = ["han"]
+ranges = [[11904, 12255], [12288, 12351], [13312, 19903], [19968, 40959], [63744, 64255], [65280, 65519], [131072, 195103]]
+cultures = ["zh-Hans"]

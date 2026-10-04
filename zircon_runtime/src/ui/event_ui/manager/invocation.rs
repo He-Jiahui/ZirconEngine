@@ -6,6 +6,8 @@ use zircon_runtime_interface::ui::event_ui::{
 };
 
 impl UiEventManager {
+    /// 供可信宿主按 route_id 调用；空参数沿用注册绑定的默认参数，而不是显式清空参数。
+    /// 此入口不进行节点动作的远程可调用性检查；远程节点动作应通过 call_action。
     pub fn invoke_route(
         &self,
         route_id: UiRouteId,
@@ -27,6 +29,7 @@ impl UiEventManager {
         self.invoke_route_internal(route_id, arguments, UiInvocationSource::Binding)
     }
 
+    /// 先验证反射节点动作的远程权限和路由，再进入同一处理器；只有已发布的可调用动作能走此路径。
     pub fn call_action(
         &self,
         node_path: UiNodePath,
@@ -115,6 +118,12 @@ impl UiEventManager {
                 arguments,
             } => UiControlResponse::Invocation(self.call_action(node_path, action_id, arguments)),
             UiControlRequest::SubscribeDiffs => {
+                // The Receiver from subscribe() must be delivered to the caller so they can
+                // consume notifications. The current UiControlResponse::Subscription variant
+                // only carries the subscription ID; the Receiver is discarded here which means
+                // diff/invocation notifications have no live recipient.
+                // Tracked: CR-UI-COMP-0002 — add UiControlResponse::SubscriptionWithReceiver or
+                // change the API to return (UiSubscriptionId, Receiver<UiNotification>) directly.
                 let (subscription_id, _receiver) = self.subscribe();
                 UiControlResponse::Subscription(subscription_id)
             }
@@ -187,5 +196,5 @@ fn take_binding_arguments(binding: &mut UiEventBinding) -> Vec<UiBindingValue> {
 }
 
 #[cfg(test)]
-#[path = "invocation/owned_binding_arguments_tests.rs"]
+#[path = "invocation/tests/owned_binding_arguments_tests.rs"]
 mod owned_binding_arguments_tests;

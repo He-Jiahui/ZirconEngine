@@ -6,6 +6,8 @@
 // like PartyMachine.
 var container = %import("zr.container");
 
+// 此夹具只表达一个派对和十一名固定玩家；成员数组与小队数组
+// 共同维护入队顺序。生产 ready-check 扫描使用外层传入的行数组。
 class PartyRaidState {
     pub var timeSeconds: int;
     pub var partyExists: bool;
@@ -163,6 +165,8 @@ pub invite(state: PartyRaidState, actor: int, target: int): bool {
     return true;
 }
 
+// 邀请先按共同时间戳检查并一次性消费；组队/团队成员顺序
+// 随后作为后续队长转移与小队归一化的稳定输入。
 pub accept(state: PartyRaidState, player: int): bool {
     state.lastError = 0;
     if (!validPlayer(player)) { state.lastError = -1; return false; }
@@ -377,6 +381,8 @@ clearReadyCheckSweepRow(
 
 // Completion is handled when a response or member removal mutates the ready
 // check. The fixed-tick path only expires rows whose shared deadline elapsed.
+// 生产固定步仅借用此纯数组扫描清空过期 ready-check 行；
+// 响应完成、成员离队和 UI 通知仍由 world/state 的事务路径负责。
 pub expireRows(
     nowMicros: uint,
     readyCheckIds: container.Array<uint>,

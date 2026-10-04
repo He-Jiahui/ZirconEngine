@@ -16,12 +16,11 @@ impl JournalDocumentKey {
                 path: source_path.to_path_buf(),
             });
         };
-        let normalized = normalize_project_relative_path(source).ok_or_else(|| {
+        let source_path = normalize_project_relative_path(source).ok_or_else(|| {
             JournalDocumentKeyError::InvalidSourcePath {
                 path: source_path.to_path_buf(),
             }
         })?;
-        let source_path = normalized.join("/");
         let value = format!("document_{}", blake3::hash(source_path.as_bytes()).to_hex());
         Ok(Self {
             value,
@@ -38,25 +37,27 @@ impl JournalDocumentKey {
     }
 }
 
-fn normalize_project_relative_path(source: &str) -> Option<Vec<&str>> {
+fn normalize_project_relative_path(source: &str) -> Option<String> {
     let bytes = source.as_bytes();
     let has_drive_prefix = bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':';
     if source.is_empty() || source.starts_with(['/', '\\']) || has_drive_prefix {
         return None;
     }
 
-    let components = source
-        .split(['/', '\\'])
-        .filter(|component| !component.is_empty())
-        .collect::<Vec<_>>();
-    if components.is_empty()
-        || components
-            .iter()
-            .any(|component| matches!(*component, "." | ".."))
-    {
-        return None;
+    let mut normalized = String::with_capacity(source.len());
+    for component in source.split(['/', '\\']) {
+        if component.is_empty() {
+            continue;
+        }
+        if matches!(component, "." | "..") {
+            return None;
+        }
+        if !normalized.is_empty() {
+            normalized.push('/');
+        }
+        normalized.push_str(component);
     }
-    Some(components)
+    (!normalized.is_empty()).then_some(normalized)
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -66,3 +67,7 @@ pub enum JournalDocumentKeyError {
     #[error("journal source path must be UTF-8: {path}")]
     NonUtf8SourcePath { path: PathBuf },
 }
+
+#[cfg(test)]
+#[path = "tests/document_key_optimization_batch_hv_editor604_tests.rs"]
+mod optimization_batch_hv_editor604_tests;

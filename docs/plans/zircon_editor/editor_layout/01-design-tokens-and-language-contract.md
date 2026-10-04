@@ -6,8 +6,8 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector
   - zircon_editor/assets/ui/editor/components
 design_references:
-  - docs/ui-and-layout/editor-workbench-designs/STYLE-NOTES.md
-  - docs/ui-and-layout/ai-workbench-style/ai-workbench-web-framework.png
+  - docs/ui/editor-workbench-designs/STYLE-NOTES.md
+  - docs/ui/ai-workbench-style/ai-workbench-web-framework.png
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/04-style-theme-and-painter-selector.md
 status: in_progress
@@ -87,7 +87,7 @@ pub fn apply_tokens_to_selector(tokens: &EditorDesignTokens, selector: &mut UiPa
 | --- | --- | --- |
 | 新增 | `zircon_runtime_interface/src/ui/design_tokens.rs` | 中央 token 类型 |
 | 新增 | `zircon_editor/assets/ui/editor/theme/editor_tokens.zui` | token 资产 |
-| 新增 | `docs/ui-and-layout/design-language-contract.md` | 设计语言契约文档 |
+| 新增 | `docs/ui/design-language-contract.md` | 设计语言契约文档 |
 | 修改 | `paint_template_nodes/style_selector` | 接受 token 喂入 |
 
 ## 6. 里程碑切片化
@@ -123,7 +123,7 @@ token 中央化、契约文档落地、组件引用 token、选择器消费 toke
 
 | 日期 | 切片 | 状态 | 产出/证据 | 后续项 |
 | --- | --- | --- | --- | --- |
-| 2026-06-23 | 01.S1 token 资产骨架 + 契约文档 | completed | 已新增 `zircon_runtime_interface/src/ui/design_tokens.rs`、`zircon_editor/assets/ui/editor/theme/editor_tokens.zui`、`docs/ui-and-layout/design-language-contract.md` 与 `zircon_runtime_interface/src/tests/editor_design_tokens.rs`;`zircon_runtime_interface/src/ui/mod.rs` 已导出 token 模块。`cargo test -p zircon_runtime_interface --lib editor_design_tokens --offline --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-runtime-interface-0623` 3/3 通过;scoped rustfmt 与 `git diff --check` 通过。 | 01.S2:把 token 喂入样式选择器,并清理组件 `.zui` 内裸色值/裸控件规格引用。 |
+| 2026-06-23 | 01.S1 token 资产骨架 + 契约文档 | completed | 已新增 `zircon_runtime_interface/src/ui/design_tokens.rs`、`zircon_editor/assets/ui/editor/theme/editor_tokens.zui`、`docs/ui/design-language-contract.md` 与 `zircon_runtime_interface/src/tests/editor_design_tokens.rs`;`zircon_runtime_interface/src/ui/mod.rs` 已导出 token 模块。`cargo test -p zircon_runtime_interface --lib editor_design_tokens --offline --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-runtime-interface-0623` 3/3 通过;scoped rustfmt 与 `git diff --check` 通过。 | 01.S2:把 token 喂入样式选择器,并清理组件 `.zui` 内裸色值/裸控件规格引用。 |
 | 2026-06-23 | 01.S2 token 喂入选择器 + 布局新增资产引用 token 名 | partial-runtime-interface-passed-editor-cargo-blocked | 已新增 `EditorResolvedPainterStyle` 与 `EditorDesignTokens::resolve_painter_style(...)`,通过 `UiPainterStyleSelector::resolved_state_for_family(...)` 后再映射 palette/foreground/border/radius/height,不改 selector 优先级。`editor_tokens.zui` 增加 `editor.*` token 名表;`workbench_skeleton.zui`、`command_palette.zui`、`preferences.zui` 导入 token 资产并引用 `editor.surface.*`/`editor.text.*`/`editor.border`;`editor_layout_contracts.rs` 增加新增布局资产不得回退裸 hex 的静态契约。RED: focused runtime-interface 测试先因缺 `resolve_painter_style` 失败;GREEN: `cargo test -p zircon_runtime_interface --lib editor_design_tokens_feed_painter_styles_through_selector_state --offline --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-token-feed-0623` 1/1 通过。 | 继续 01.S2 的 wider cleanup:旧 `components/workbench/shell` 与 `components/workbench/modules` 仍有历史裸 hex/裸规格值,需要在 editor Cargo lane 恢复后按资产族逐步替换为 token 引用并接入 retained painter 端验收。当前 `zircon_editor` Cargo gate 仍被 active render mesh import 漂移阻塞。 |
 | 2026-06-23 | 01.S2 density token lookup + editor lane restored | partial-editor-verified | `EditorDesignTokens::density_value_for_token_name(...)` 已把 `editor.density.*` 与 `--left-drawer-width`/`--right-drawer-width`/`--bottom-output-height` 映射到中央 density token,供 02.S2 壳声明投影消费。为恢复 editor 验证,最小修复下层 render mesh owner split 后的 re-export/import 漂移:`MeshPassCommandBuffers`、`CachedMeshDrawLookup` 与 `mesh_draw_command_list::builder` 上级路径。验证:`cargo test -p zircon_runtime_interface --lib editor_design_tokens --offline --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-token-feed-0623 --message-format short --color never` 5/5 通过;`cargo check -p zircon_editor --lib --offline --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-editor-0623 --message-format short --color never` 通过;`cargo test -p zircon_editor --lib editor_layout_contracts --no-run --offline --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-editor-0623 --message-format short --color never` 通过,随后直接运行测试二进制 `editor_layout_contracts --test-threads=1 --nocapture` 8/8 通过。 | 01.S2 仍未关闭整个资产族 hard cutover:旧 shell/module 资产的历史裸 hex/裸规格值和 retained painter 端视觉验收继续保留为后续项。 |
 | 2026-07-27 | 01.S2 通用按钮原子控件 token 投影 + 资产收束 | partial-static-verified | `buttons.rs` 新增缓存的 `ButtonVisual`,由 `EditorDesignTokens` 与 `EditorTypographyTokens` 投影 Button/ToggleButton/IconButton 的 normal/hover/pressed/selected/focus/disabled 状态、低圆角、密度尺寸与逻辑文本行高;经 `style_overrides` 接收有效 CSS 色和有限度量,非法色、负间距、非正尺寸回退中央 token。`workbench_button.zui` 与 `workbench_icon_button.zui` 已移除局部颜色/像素规格并声明 palette/control/density/typography token;`render_buttons.rs` 覆盖有效覆盖优先和非法回退;`editor_design_token_contracts.rs` 校验资产令牌输入。已执行 scoped `rustfmt`,无旧按钮色板/裸 hex/模块超限/文档和 diff 静态守卫。 | 仍需在桌面宿主稳定后经受管 Cargo 验证当前 Rust 测试，并以当前源启动 retained host 后把真实截图写到 `docs/tests/editor/`；同时继续按原子控件优先顺序清理余下历史资产。 |

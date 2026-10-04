@@ -20,6 +20,7 @@ pub primaryStatSum(
     return strength + agility + stamina + intelligence + spirit;
 }
 
+/// 内容评分夹具接收已归一化的非负属性；有武器时速度必须为正。结果用于评分比较，不代表装备许可或战斗伤害。
 pub itemScore(
     strength: float,
     agility: float,

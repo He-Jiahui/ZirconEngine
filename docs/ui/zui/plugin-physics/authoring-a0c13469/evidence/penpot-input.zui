@@ -1,0 +1,57 @@
+penpot_original_source = "[asset]\nkind = \"view\"\nid = \"physics.authoring\"\nversion = 2\ndisplay_name = \"Physics\"\n\n[imports]\nstyles = [\"res://ui/theme/editor_base.zui\"]\n\n[root]\nnode = \"physics_authoring_root\"\n\n[nodes.physics_authoring_toolbar]\ncomponent = \"Space\"\ncontrol_id = \"PhysicsAuthoringToolbar\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = \"Fixed\" } }\n\n[nodes.physics_authoring_scene]\ncomponent = \"Space\"\ncontrol_id = \"PhysicsAuthoringScene\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.physics_authoring_root]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"PhysicsAuthoringRoot\"\nclasses = [\"editor-shell\"]\nlayout = { container = { kind = \"VerticalBox\", gap = 8 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"physics_authoring_toolbar\" }, { node = \"physics_authoring_scene\" }]\n"
+
+[asset]
+kind = "view"
+id = "physics.authoring"
+version = 2
+display_name = "Physics"
+
+[imports]
+styles = [ "res://ui/theme/editor_base.zui" ]
+
+[root]
+node = "physics_authoring_root"
+
+[nodes.physics_authoring_toolbar]
+component = "Space"
+control_id = "PhysicsAuthoringToolbar"
+
+[nodes.physics_authoring_toolbar.layout.width]
+stretch = "Stretch"
+
+[nodes.physics_authoring_toolbar.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.physics_authoring_scene]
+component = "Space"
+control_id = "PhysicsAuthoringScene"
+
+[nodes.physics_authoring_scene.layout.width]
+stretch = "Stretch"
+
+[nodes.physics_authoring_scene.layout.height]
+stretch = "Stretch"
+
+[nodes.physics_authoring_root]
+component = "VerticalGroup"
+control_id = "PhysicsAuthoringRoot"
+classes = [ "editor-shell" ]
+
+[nodes.physics_authoring_root.layout.container]
+kind = "VerticalBox"
+gap = 8
+
+[nodes.physics_authoring_root.layout.width]
+stretch = "Stretch"
+
+[nodes.physics_authoring_root.layout.height]
+stretch = "Stretch"
+
+[[nodes.physics_authoring_root.children]]
+node = "physics_authoring_toolbar"
+
+[[nodes.physics_authoring_root.children]]
+node = "physics_authoring_scene"

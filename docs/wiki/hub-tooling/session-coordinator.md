@@ -1,67 +1,64 @@
 ---
 related_code:
-  - tools/zircon-session.ps1
-  - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
-  - .codex/skills/zircon-dev/scripts/managed-cargo-storage.ps1
-  - .codex/skills/zircon-dev/scripts/coordinator-request-recovery.ps1
+  - tools/dev/zircon-session.ps1
+  - tools/dev/local-cargo.ps1
+  - tools/dev/local_cargo.py
+  - tools/jenkins/jenkins_coordinator.py
   - docs/plans/milestone-validation-policy.md
 implementation_files:
-  - tools/zircon-session.ps1
-  - .codex/skills/zircon-dev/scripts
-  - tools/session_coordinator
+  - tools/dev/local-cargo.ps1
+  - tools/dev/local_cargo.py
+  - tools/jenkins
 plan_sources:
   - docs/plans/milestone-validation-policy.md
+  - docs/tooling/coordinator-retirement.md
   - docs/plans/zircon_tooling/session_coordinator/01
 tests:
-  - tools/session_coordinator/tests
+  - tools/tests/test_local_cargo.py
   - .github/workflows/ci.yml
 doc_type: operations-reference
 ---
 
 # Session Coordinator 与受管验证
 
-Session Coordinator 是验证资源和证据的调度边界。它把“谁在验证、验证什么源码、占用哪个 Cargo pool、结果在哪里”记录成可恢复的 job，而不是让多个终端各自猜测 target 目录。
+旧 Session Coordinator 及其服务、托盘、自动登记、租约、验证票据和提交接口已经退役。`tools/dev/zircon-session.ps1` 是返回退出码 3 的停用入口；不要为普通开发恢复旧服务、队列或自动同步。历史数据与恢复约束见 [协调器退役记录](../../tooling/coordinator-retirement.md)。
 
-## 核心对象
+当前开发使用独立本地命令证据或已核验激活状态的 Jenkins 协调器。执行节奏遵循 [里程碑验证策略](../../plans/milestone-validation-policy.md)，具体命令遵循 [Zircon Dev 验证指南](../../../.codex/skills/zircon-dev/validation/guide.md)。这两个入口都不自动授予全工作区、里程碑或生产迁移接受。
 
-| 对象 | 含义 |
-| --- | --- |
-| Session | 人或自动化任务的长期身份与写入范围 |
-| Validation ticket/job | 一次具体验证请求、兼容性描述和状态 |
-| Cargo pool/lane | 按 repo、平台、toolchain、profile、feature 等键隔离的编译资源 |
-| Validation copy | 从源快照物化的不可变工作副本 |
-| Lease | 对共享源码或 Cargo lane 的暂时所有权 |
-| Evidence | 命令、stdout/stderr、exit code、source digest 和 artifact 清单 |
-
-## Windows 优先策略
-
-普通 `check`、`build`、`test` 和 milestone 验证使用 Windows PowerShell。Cargo target 只能位于 `D:\cargo-targets`、`E:\cargo-targets`、`F:\cargo-targets`、`targets` 或 `ZirconBuilds` 下。仓库内 `target/`、用户目录和未受管临时目录都拒绝。
-
-WSL 只在 Linux 专属失败、Linux-only 工具或用户明确要求时使用，并把 `/mnt/d|e|f/...` 作为 Windows 目标根的映射；不能把 WSL home 当 Cargo target。
-
-## 推荐流程
+## 当前本地入口
 
 ```powershell
-.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 `
-  -Package zircon_runtime `
-  -SkipBuild -LibTests -TestFilter export_visual_evidence
+# 预览命令；不会编译，也不是通过证据
+.\tools\dev\local-cargo.ps1 -DryRun check -p zircon_runtime --locked
+
+# 在该变更的编译批次到期时运行
+.\tools\dev\local-cargo.ps1 check -p zircon_runtime --locked
 ```
 
-里程碑边界使用 `tools/zircon-session.ps1 milestone validate`，它会提交完整 compatibility description、创建 validation copy、申请 lane、运行命令并终止清理。`-DryRun` 只渲染命令，不创建 coordinator state 或目录。
+本地入口核验实际物理输出路径、35 GiB 空间保留量及原生 Cargo 锁，默认使用独立的 `zircon-local` 命名空间。它保留实际命令与退出码，不要求恢复旧 session、heartbeat 或 lease。已经启用的 Jenkins 唯一入口约束仍然适用；不能通过独立预览绕过它。
 
-## 兼容性键和资源模式
+所有编译产物、构建目录、编译缓存和临时编译输出必须物理位于盘根 `D:\cargo-targets`、`E:\cargo-targets` 或 `F:\cargo-targets` 下。其他盘、仓库 `target`、`targets`、`ZirconBuilds`、嵌套同名目录及路径别名全部拒绝。普通验证默认 Windows；只有明确的 Linux 专属失败、工具、CI 复现或平台要求才使用 WSL，并遵守同一物理输出边界。
 
-键至少包含 repository identity、平台、Rust toolchain、架构、workspace identity、Cargo profile、features、link mode、测试/构建开关和 target projection。`reuse` 保留热 pool；`compact` 减少调试物料；`diagnostic` 保留符号；三者不能互用同一不兼容配置。
+## Jenkins 的独立激活和接受
 
-一个 primary lane 同时只允许一个 owner；资源不足时必须等待 FIFO job。若提交后客户端超时，先通过 coordinator 查询原 job，不得启动并行 retry。
+根据 [jenkins-coordination 技能](../../../.codex/skills/jenkins-coordination/SKILL.md)，先核验 `.codex/state/jenkins-coordinator/active.json` 的启用状态、`functionalTestsAllowed` 及对应证据。核验通过后，才在任务授权范围内运行协调器功能测试或提交有边界的命令。普通本地命令结果和旧票据都不能替代新的 Jenkins 接受回执。
 
-## 失败处理
+异步提交后保留原请求 ID，并查询、归并同一请求。客户端超时或暂时没有终端输出不表示任务未运行；不得因此重复提交。pending、dry run 与本地退出码不能改写为里程碑或生产迁移接受。
 
-- `cargo_cpu_lane_reserved`：表示 lane 已被占用，不是 Cargo 编译失败。
-- source/materialization 错误：检查 validation copy 的源 digest 和外部 sibling 路径。
-- 测试失败：把最小根因归到实际 owner，写入对应编号计划的 `failure-*.md`，不要在 MVP 计划复制正文。
-- 终端失败：保留 job id、命令、返回码和最后一段输出，再释放 lease。
+## 需要保留的历史对象
 
-## 机器可读证据
+| 对象 | 迁移时保留的内容 |
+| --- | --- |
+| Session 与 Lease | 原身份、路径归属、时间及冻结时的实际进程证据；不作为当前登记前提。 |
+| Validation ticket/job | 原命令、输入身份、状态、控制请求与回执；不自动回放旧队列。 |
+| Cargo pool/lane | 历史兼容性键、物料及原生锁；不删除旧池来使新检查通过。 |
+| Validation copy 与 Patch | 来源、补丁和哈希；由获得授权的协调器准备验证源码，agent 不创建源码快照或备份。 |
+| Review 与 Evidence | 原结论、审阅来源及未接受边界；新验收提供新的实际证据。 |
 
-脚本的 JSON readiness、ticket、heartbeat、finish 和 release 响应是自动化消费面。文本日志只是展示层；CI 或后续 agent 应解析字段而不是依赖自然语言。验证结束后报告 Windows/WSL、target 目录、profile、命令和结果，不能只写“已测试”。
+兼容性仍需要区分仓库、平台、toolchain、架构、profile、features、链接模式与完整命令。旧 `reuse`、`compact`、`diagnostic` 模式是历史迁移资料，不能推定为当前本地入口的参数，也不能混用不兼容编译产物。
+
+## 失败与回执
+
+命令失败时记录平台、物理输出目录、profile、features、测试筛选、源码身份、命令和实际退出码；聚焦到真实 owner 的失败后只重跑受影响批次。保持历史回执、数据库、对象、队列记录和仍有所有者的锁，不通过删除记录或伪造成功状态关闭任务。
+
+独立命令的 JSON 结果、Jenkins 的请求回执和里程碑接受记录各有范围。报告应标明哪一种证据已完成、哪一种仍 pending，并保留可以恢复原请求的身份。

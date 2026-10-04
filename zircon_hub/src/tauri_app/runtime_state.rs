@@ -3,12 +3,19 @@ use std::{
     collections::VecDeque,
     env,
     path::{Path, PathBuf},
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
+    time::Duration,
 };
 
 mod action_targets;
 pub(in crate::tauri_app) mod action_tasks;
 mod build_actions;
+mod cloud_bindings;
 mod editor_launch_actions;
+mod editor_process_ledger;
 mod learn_actions;
 mod new_project_actions;
 mod output_actions;
@@ -17,6 +24,9 @@ mod project_delivery_actions;
 mod quick_actions;
 mod scoped_views;
 mod settings_actions;
+mod window_geometry;
+
+pub(in crate::tauri_app) use window_geometry::{NormalWindowGeometry, WindowGeometrySample};
 
 use crate::assets::AssetCatalogEntry;
 use crate::engines::{
@@ -28,9 +38,9 @@ use crate::error::HubError;
 use crate::learn::LearnCatalogEntry;
 use crate::plugins::PluginCatalogEntry;
 use crate::projects::{
-    load_shared_recent_projects_snapshot, metadata_for_path, project_filesystem_path_key,
-    project_metadata_key, project_paths_match, reconcile_shared_recent_projects_snapshot,
-    RecentProject, SharedRecentProjectsSnapshot,
+    load_shared_recent_projects_snapshot, metadata_for_path, normalize_project_root,
+    project_filesystem_path_key, project_metadata_key, project_paths_match,
+    reconcile_shared_recent_projects_snapshot, RecentProject, SharedRecentProjectsSnapshot,
 };
 use crate::settings::{default_hub_config_path, HubConfig, HubRuntimeState, HubSettings};
 use crate::state::{
@@ -39,19 +49,34 @@ use crate::state::{
     SettingsMessageId, ShellMessageId, TaskOperationKind, TaskStatus,
 };
 use crate::team::TeamOverview;
-use zircon_runtime_interface::hub_protocol::hub_recent_projects_path;
+use zircon_runtime_interface::hub_protocol::{
+    hub_recent_projects_path, HubRecentProjectV1, HubRecentProjectsLoad,
+    HubRecentProjectsLoadDisposition, HubRecentProjectsStore, HubRecentProjectsStoreError,
+    HubRecentProjectsWritePolicy,
+};
 
 use super::action_id::HubActionId;
 use super::action_request::{HubAction, HubActionRequest};
 use super::view_model::{validate_settings_for_save, HubSettingsPayload, HubViewModel};
 
 const VISUAL_TASK_STATE_ENV: &str = "ZIRCON_HUB_VISUAL_TASK_STATE";
+const HUB_RECENT_PROJECTS_STARTUP_MIGRATION_WAIT: Duration = Duration::from_millis(250);
+static BACKEND_EPOCH_COUNTER: AtomicU64 = AtomicU64::new(1);
+
+#[derive(Clone)]
+struct ActiveBackgroundTask {
+    cancellation: crate::state::TaskCancellationToken,
+    status: TaskStatus,
+}
 
 pub(super) struct HubRuntimeSession {
+    backend_epoch: String,
+    state_revision: u64,
     config_path: PathBuf,
     shared_recent_projects_path: PathBuf,
     shared_recent_projects_snapshot: SharedRecentProjectsSnapshot,
     config: HubConfig,
+    config_save_pending: bool,
     project_availability: RefCell<ProjectAvailabilitySnapshot>,
     settings_draft: HubSettings,
     selected_page: HubPage,
@@ -69,9 +94,14 @@ pub(super) struct HubRuntimeSession {
     folder_picker: fn(&crate::process::FolderPickerRequest) -> Result<Option<PathBuf>, HubError>,
     recycle_delete: fn(PathBuf) -> Result<(), HubError>,
     task_status: TaskStatus,
+    window_close_save_error: Option<TaskStatus>,
     background_task_counter: u64,
+    active_background_task: Option<ActiveBackgroundTask>,
+    active_editor_launch_task_id: Option<u64>,
+    editor_launch_owner: Arc<action_tasks::EditorLaunchOwner>,
     background_worker_active: bool,
     background_action_queue: VecDeque<HubActionRequest>,
+    editor_process_ledger: editor_process_ledger::EditorProcessLedger,
     asset_catalog: Vec<AssetCatalogEntry>,
     learn_catalog: Vec<LearnCatalogEntry>,
     plugin_catalog: Vec<PluginCatalogEntry>,
@@ -88,12 +118,11 @@ impl HubRuntimeSession {
         shared_recent_projects_path: PathBuf,
     ) -> Result<Self, HubError> {
         let mut config = HubConfig::load(&config_path)?;
-        let shared_recent_projects_snapshot = reconcile_shared_recent_projects_snapshot(
+        let shared_recent_projects_snapshot = load_startup_shared_recent_projects_snapshot(
             &shared_recent_projects_path,
-            &SharedRecentProjectsSnapshot::default(),
             &config.recent_projects,
-        )
-        .map_err(shared_recent_projects_error)?;
+            config.last_seen_shared_recent_revision,
+        )?;
         config.recent_projects = shared_recent_projects_snapshot.projects().to_vec();
         config.repair_registries();
         let project_availability = RefCell::new(ProjectAvailabilitySnapshot::capture(
@@ -108,10 +137,18 @@ impl HubRuntimeSession {
 
         let settings_draft = config.settings.clone();
         let mut session = Self {
+            backend_epoch: format!(
+                "{}-{}-{}",
+                crate::projects::now_unix_ms(),
+                std::process::id(),
+                BACKEND_EPOCH_COUNTER.fetch_add(1, Ordering::Relaxed),
+            ),
+            state_revision: 0,
             config_path,
             shared_recent_projects_path,
             shared_recent_projects_snapshot,
             config,
+            config_save_pending: false,
             project_availability,
             settings_draft,
             selected_page: runtime_state.selected_page,
@@ -129,9 +166,14 @@ impl HubRuntimeSession {
             folder_picker: crate::process::pick_folder,
             recycle_delete: |path| crate::projects::recycle_delete_project(path),
             task_status: TaskStatus::idle(),
+            window_close_save_error: None,
             background_task_counter: 0,
+            active_background_task: None,
+            active_editor_launch_task_id: None,
+            editor_launch_owner: Arc::new(action_tasks::EditorLaunchOwner::default()),
             background_worker_active: false,
             background_action_queue: VecDeque::new(),
+            editor_process_ledger: editor_process_ledger::EditorProcessLedger::default(),
             asset_catalog: Vec::new(),
             learn_catalog: Vec::new(),
             plugin_catalog: Vec::new(),
@@ -164,7 +206,23 @@ impl HubRuntimeSession {
             &snapshot.recent_projects,
             snapshot.selected_project_path.as_deref(),
         );
-        HubViewModel::from_snapshot_with_availability(&snapshot, &project_availability)
+        let mut view_model =
+            HubViewModel::from_snapshot_with_availability(&snapshot, &project_availability);
+        view_model.backend_epoch = self.backend_epoch.clone();
+        view_model.state_revision = self.state_revision.to_string();
+        view_model.set_window_close_save_error(
+            self.window_close_save_error.as_ref(),
+            self.config.settings.language,
+        );
+        view_model
+    }
+
+    pub(super) fn publish_view_model(&mut self) -> HubViewModel {
+        self.state_revision = self
+            .state_revision
+            .checked_add(1)
+            .expect("Hub state revision exhausted");
+        self.view_model()
     }
 
     /// Refreshes Editor-written recents after the Hub window regains focus.
@@ -195,7 +253,7 @@ impl HubRuntimeSession {
             Ok(action) => action,
             Err(error) => {
                 self.record_action_payload_failure(action_id, error)?;
-                return Ok(self.view_model());
+                return Ok(self.publish_view_model());
             }
         };
 
@@ -231,7 +289,11 @@ impl HubRuntimeSession {
             HubAction::BrowseSettingsFolder { target_id, payload } => {
                 self.browse_settings_folder(target_id.as_deref(), payload)?
             }
-            HubAction::CreateProject { payload } => self.create_project_from_payload(payload)?,
+            HubAction::CreateProject { .. } => {
+                return Err(HubError::message(
+                    "Create Project must run through the background Editor admission workflow",
+                ));
+            }
             HubAction::ImportProject { target_id, payload } => {
                 self.import_project_from_action(target_id.as_deref(), payload)?
             }
@@ -256,41 +318,36 @@ impl HubRuntimeSession {
             HubAction::OpenResource { target_id, payload } => {
                 self.open_learn_resource(target_id.as_deref(), payload)?
             }
-            HubAction::OpenOutputFolder { target_id, payload } => {
-                self.open_output_folder(target_id.as_deref(), payload)?
-            }
+            HubAction::OpenOutputFolder { payload } => self.open_output_folder(payload)?,
             HubAction::BuildProject { target_id, payload } => {
-                self.apply_action_project_target(
-                    target_id.as_deref(),
-                    payload.as_ref(),
-                    HubActionId::BuildProject,
-                )?;
-                self.build_selected_project_engine()?
+                let _ = (target_id, payload);
+                return Err(HubError::message(
+                    "BuildProject must be dispatched through the Hub background action runner",
+                ));
             }
             HubAction::PackageProject { target_id, payload } => {
-                self.apply_action_project_target(
-                    target_id.as_deref(),
-                    payload.as_ref(),
-                    HubActionId::PackageProject,
-                )?;
-                self.package_recent_project()?
+                let _ = (target_id, payload);
+                return Err(HubError::message(
+                    "PackageProject must be dispatched through the Hub background action runner",
+                ));
             }
             HubAction::InstallDevice { target_id, payload } => {
-                self.apply_action_project_target(
-                    target_id.as_deref(),
-                    payload.as_ref(),
-                    HubActionId::InstallDevice,
-                )?;
-                self.install_recent_project_to_device()?
+                let _ = (target_id, payload);
+                return Err(HubError::message(
+                    "InstallDevice must be dispatched through the Hub background action runner",
+                ));
             }
             HubAction::OpenEditor { .. } => {
                 return Err(HubError::message(
                     "OpenEditor must be dispatched through the Hub background action runner",
                 ));
             }
+            HubAction::CancelBackgroundTask { task_id } => {
+                self.request_background_task_cancellation(task_id)
+            }
         }
 
-        Ok(self.view_model())
+        Ok(self.publish_view_model())
     }
 
     fn record_action_payload_failure(
@@ -324,7 +381,11 @@ impl HubRuntimeSession {
             new_project_location: self.new_project_location.clone(),
             new_project_engine_id: self.new_project_engine_id.clone(),
             pending_delete_project_path: self.pending_delete_project_path.clone(),
-            task_status: self.task_status.clone(),
+            task_status: self
+                .active_background_task
+                .as_ref()
+                .map(|task| task.status.clone())
+                .unwrap_or_else(|| self.task_status.clone()),
             queued_background_actions: self.background_action_queue.len(),
             recent_projects: self.config.recent_projects.clone(),
             project_metadata: self.config.project_metadata.clone(),
@@ -487,7 +548,9 @@ impl HubRuntimeSession {
         };
         self.config.active_engine_id = Some(engine.id.clone());
         self.config.settings.default_source_dir = engine.source_dir.clone();
-        self.config.settings.default_build_output_dir = engine.output_dir.clone();
+        self.config
+            .settings
+            .set_default_build_output_from_registered_engine(engine.output_dir.clone());
         self.settings_draft = self.config.settings.clone();
         self.sync_new_project_engine_after_active_engine_change(active_engine_before.as_deref());
         self.refresh_source_scoped_views()?;
@@ -505,11 +568,14 @@ impl HubRuntimeSession {
         settings_payload: Option<HubSettingsPayload>,
     ) -> Result<(), HubError> {
         let settings = if let Some(settings_payload) = settings_payload {
+            let draft = self.settings_draft.clone();
+            let provenance_payload = settings_payload.clone();
             let mut settings = self.config.settings.clone();
             if let Err(error) = settings_payload.apply_to(&mut settings) {
                 self.record_settings_save_failure(error.into_status_messages().0);
                 return Ok(());
             }
+            provenance_payload.preserve_native_output_provenance(&mut settings, &draft);
             settings
         } else {
             self.settings_draft.clone()
@@ -564,8 +630,8 @@ impl HubRuntimeSession {
         )
         .map_err(shared_recent_projects_error)?;
         self.config.recent_projects = reconciled_recent_projects.projects().to_vec();
-        self.persist_config()?;
         self.shared_recent_projects_snapshot = reconciled_recent_projects;
+        self.persist_config_at_recent_revision(self.shared_recent_projects_snapshot.revision())?;
         Ok(())
     }
 
@@ -590,17 +656,32 @@ impl HubRuntimeSession {
             &self.config.recent_projects,
             self.selected_project_path.as_deref(),
         );
-        if recent_projects_changed || hub_has_pending_recent_projects {
-            self.persist_config()?;
-        }
         self.shared_recent_projects_snapshot = refreshed_recent_projects;
+        if recent_projects_changed
+            || hub_has_pending_recent_projects
+            || self.config_save_pending
+            || self.config.last_seen_shared_recent_revision
+                != Some(self.shared_recent_projects_snapshot.revision())
+        {
+            self.persist_config_at_recent_revision(
+                self.shared_recent_projects_snapshot.revision(),
+            )?;
+        }
         Ok(recent_projects_changed || availability_changed)
     }
 
-    fn persist_config(&self) -> Result<(), HubError> {
+    fn persist_config(&mut self) -> Result<(), HubError> {
+        self.persist_config_at_recent_revision(self.shared_recent_projects_snapshot.revision())
+    }
+
+    fn persist_config_at_recent_revision(&mut self, revision: u64) -> Result<(), HubError> {
         let mut config = self.config.clone();
         config.runtime = self.runtime_state_for_config();
+        config.last_seen_shared_recent_revision = Some(revision);
+        self.config_save_pending = true;
         config.save(&self.config_path)?;
+        self.config.last_seen_shared_recent_revision = Some(revision);
+        self.config_save_pending = false;
         Ok(())
     }
 
@@ -800,7 +881,9 @@ impl HubRuntimeSession {
             .or_else(|| self.config.engines.first())
         {
             self.config.settings.default_source_dir = engine.source_dir.clone();
-            self.config.settings.default_build_output_dir = engine.output_dir.clone();
+            self.config
+                .settings
+                .set_default_build_output_from_registered_engine(engine.output_dir.clone());
             self.settings_draft = self.config.settings.clone();
         }
     }
@@ -880,6 +963,59 @@ fn startup_selected_project_path(
     }
 
     recent_projects.first().map(|project| project.path.clone())
+}
+
+fn load_startup_shared_recent_projects_snapshot(
+    registry_path: &Path,
+    legacy_projects: &[RecentProject],
+    last_seen_revision: Option<u64>,
+) -> Result<SharedRecentProjectsSnapshot, HubError> {
+    let observed = HubRecentProjectsStore::new(registry_path)
+        .load_projection()
+        .map_err(|error| shared_recent_projects_error(error.into()))?;
+    reconcile_startup_shared_recent_projects_from_observed(
+        registry_path,
+        observed,
+        legacy_projects,
+        last_seen_revision,
+    )
+}
+
+fn reconcile_startup_shared_recent_projects_from_observed(
+    registry_path: &Path,
+    observed: HubRecentProjectsLoad,
+    legacy_projects: &[RecentProject],
+    last_seen_revision: Option<u64>,
+) -> Result<SharedRecentProjectsSnapshot, HubError> {
+    let clean_empty_registry = observed.disposition() == HubRecentProjectsLoadDisposition::Clean
+        && observed.registry().revision() == 0
+        && observed.registry().projects.is_empty()
+        && observed.registry().tombstones.is_empty();
+    if last_seen_revision.is_none() && clean_empty_registry && !legacy_projects.is_empty() {
+        let store = HubRecentProjectsStore::new(registry_path);
+        match store.compare_and_update_if_clean(
+            HubRecentProjectsWritePolicy::with_timeout(HUB_RECENT_PROJECTS_STARTUP_MIGRATION_WAIT),
+            0,
+            |registry| {
+                if registry.projects.is_empty() && registry.tombstones.is_empty() {
+                    for project in legacy_projects {
+                        registry.record(HubRecentProjectV1::new(
+                            project.summary.clone(),
+                            normalize_project_root(project.path.clone()),
+                            project.last_opened_unix_ms,
+                        )?)?;
+                    }
+                }
+                Ok(())
+            },
+        ) {
+            Ok(_)
+            | Err(HubRecentProjectsStoreError::RevisionConflict { .. })
+            | Err(HubRecentProjectsStoreError::ProjectionNotClean { .. }) => {}
+            Err(error) => return Err(shared_recent_projects_error(error.into())),
+        }
+    }
+    load_shared_recent_projects_snapshot(registry_path).map_err(shared_recent_projects_error)
 }
 
 fn shared_recent_projects_error(error: crate::projects::SharedRecentProjectsError) -> HubError {
@@ -984,5 +1120,5 @@ fn recent_project_slug(project: &RecentProject) -> String {
 }
 
 #[cfg(test)]
-#[path = "runtime_state/tests.rs"]
+#[path = "runtime_state/tests/cases.rs"]
 mod tests;

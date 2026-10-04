@@ -9,6 +9,7 @@ var terrainGradient = %import("world/terrain_gradient");
 var terrainGround = %import("world/terrain_ground");
 var worldCollision = %import("world/world_collision_router");
 
+/// 游荡和近战追逐共用的临时姿态投影；调用者先从实体行载入，移动成功与否都须按所属事务回写结果。
 pub class MobMotionState {
     pub var initialized: bool;
     pub var x: float;
@@ -139,6 +140,8 @@ mobSurfaceY(x: float, z: float, ground: float, canSwim: bool): float {
     return ground;
 }
 
+/// 推进一个固定帧的追向移动，返回是否已进入抵达容差；返回真时不保证坐标与目标完全相等。
+/// 调用前须初始化姿态且速度非负；目标选择、定身和战斗结算由外层决定，不能把此函数的返回值当作攻击许可。
 pub stepMobToward(
     state: MobMotionState,
     destinationX: float,

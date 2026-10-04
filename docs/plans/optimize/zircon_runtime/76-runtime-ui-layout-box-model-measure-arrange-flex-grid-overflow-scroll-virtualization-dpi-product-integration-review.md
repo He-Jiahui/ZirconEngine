@@ -418,3 +418,15 @@ Editor component lab、UI asset editor、workbench virtual rows以及WOC invento
 - 本轮未修改Rust、测试或资产，未运行Cargo和动态产品验证；所有性能、parity与稳定性声明仍为未资格。
 
 Runtime76关闭的是“当前源码被逐项审查并形成可执行重构合同”，不是“布局系统已经完成”。实施必须按M0到M6硬切收敛，不得长期并存public style、container fallback、responsive metadata和component-specific layout四套authority，也不得以更多happy-path测试掩盖无界分配、假capability或全树假virtualization。
+
+## 13. Bounded product-cache introspection maintenance candidate
+
+This note tracks an applied source-maintenance repair; it does not satisfy or close any acceptance item above.
+
+- **Source candidate:** `zircon_runtime/src/ui/layout/taffy_bridge/product_cache.rs`; frozen current preimage SHA-256 `ad0a0706444e2296ad94434e1ee75dea59144474a2faab91708d448aeb5561c5`, candidate SHA-256 `1b5ee788c0433f77080d0bdb9b856f6603f531f6f757a10f5c6321dae120fcc4`. The source patch SHA-256 is `400bcb7300ee69bf92905226788778223d97ab8ef79513d91be8eca48221a11c`.
+- **Caller chain:** `pass/arrange.rs::try_arrange_taffy_owned_children` → `pass/taffy_arrange.rs::try_arrange_taffy_owned_children_with_scratch` → `taffy_bridge/compute.rs::compute_taffy_child_frames` → `TaffyParentProductCache::compute_child_frames`. Cache ownership and retain/discard entry points are in `pass/slot.rs`; the arranger falls back through its existing error branch if the bridge returns an error.
+- **Behavioral evidence:** Existing arrangement tests `taffy_parent_product_root_resize_reuses_all_child_contracts` and `taffy_exact_unchanged_contract_reuses_solve_and_publishes_only_required_child` in `pass/arrange/tests.rs` cover retained-product behavior. The candidate adds a lower-level update-error regression that warms a snapshot, triggers an exact revision mismatch, and asserts that the naturally discarded product has no stale snapshot.
+- **Bounded change:** `last_updates` is test introspection. Gating its map, successful-update write, retain pruning, and discard removal with `cfg(test)` removes that test-only storage/work in production. A valid update clears the prior test snapshot before the existing product update/removal path; a shape-invalid early return leaves the existing product/snapshot intact. Layout geometry and cached-product semantics are unchanged.
+- **Acceptance remains pending:** Run the normal managed `zircon_runtime` library check with `cfg(test)` off and grouped library tests with `cfg(test)` on after exact admission. Release library unit/ignored benchmarks still compile with test instrumentation and cannot demonstrate production allocation reduction. A product-grounded Release workload and performance evidence remain required.
+- **Unclosed owner requirement:** `RUL-P1-019` still requires one complete nested Taffy graph; this per-parent product-cache repair does not change that architecture or close the item.
+- **Candidate record:** The matching Astra Runtime completion-list draft is `1070-runtime76-taffy-product-cache-test-snapshot-overhead-completion-list.md`; the source and these records are applied and attributed; managed validation and product acceptance remain pending.

@@ -3,7 +3,7 @@ use std::{collections::BTreeSet, time::Instant};
 use crate::ui::surface::{authored_geometry_affected_node_ids, patch_arranged_tree_geometry};
 use zircon_runtime_interface::ui::{event_ui::UiNodeId, layout::UiSize, tree::UiDirtyFlags};
 
-use super::{elapsed_micros, UiSurface, UiSurfaceRebuildReport};
+use super::{elapsed_micros, sanitized_layout_root_size, UiSurface, UiSurfaceRebuildReport};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UiAuthoredGeometryFallbackReason {
@@ -36,6 +36,7 @@ impl UiSurface {
         changed_node_ids: &BTreeSet<UiNodeId>,
         observed_topology_generation: u64,
     ) -> UiAuthoredGeometryPublication {
+        let root_size = sanitized_layout_root_size(root_size);
         if changed_node_ids.is_empty() {
             self.last_layout_root_size = Some(root_size);
             return UiAuthoredGeometryPublication::Unchanged;
@@ -47,13 +48,14 @@ impl UiSurface {
                 UiAuthoredGeometryFallbackReason::TopologyGenerationChanged,
             );
         }
-        let pending_invalidation_node_ids = self.invalidation.pending_changed_node_ids();
         if !self
             .tree
             .pending_mutation_node_ids()
             .is_subset(changed_node_ids)
             || !self.dirty_node_ids.is_subset(changed_node_ids)
-            || !pending_invalidation_node_ids.is_subset(changed_node_ids)
+            || !self
+                .invalidation
+                .pending_changed_node_ids_are_subset(changed_node_ids)
         {
             return self.authored_geometry_full_fallback(
                 root_size,
@@ -193,6 +195,9 @@ impl UiSurface {
             arranged_rebuilt: true,
             hit_grid_rebuilt: true,
             render_rebuilt: true,
+            arranged_patched: true,
+            hit_grid_patched: !hit_grid_rebuilt,
+            render_patched: true,
             arranged_outer_node_visit_count: affected_node_ids.len(),
             hit_grid_outer_node_visit_count,
             render_outer_node_visit_count: affected_node_ids.len(),

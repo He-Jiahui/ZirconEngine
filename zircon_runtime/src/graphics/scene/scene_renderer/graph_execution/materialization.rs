@@ -5,7 +5,7 @@ use crate::rhi::{
 };
 
 use super::{
-    TransientResourcePool, render_graph_execution_resources::RenderGraphExecutionResources,
+    render_graph_execution_resources::RenderGraphExecutionResources, TransientResourcePool,
 };
 
 pub(super) fn materialize_transient_resources(
@@ -54,6 +54,12 @@ pub(super) fn create_wgpu_texture(
     device: &wgpu::Device,
     desc: &TextureDesc,
 ) -> Result<wgpu::Texture, String> {
+    if let Some(reason) = desc.shape_validation_error() {
+        return Err(format!(
+            "texture descriptor `{}` has an invalid shape: {reason}",
+            desc.label.as_deref().unwrap_or("unnamed")
+        ));
+    }
     let view_formats = desc
         .view_formats
         .iter()
@@ -65,7 +71,7 @@ pub(super) fn create_wgpu_texture(
         size: wgpu::Extent3d {
             width: desc.width,
             height: desc.height,
-            depth_or_array_layers: desc.depth,
+            depth_or_array_layers: desc.depth_or_array_layers(),
         },
         mip_level_count: desc.mip_levels,
         sample_count: desc.sample_count,
@@ -175,4 +181,5 @@ fn wgpu_buffer_usages(usage: BufferUsage) -> wgpu::BufferUsages {
 }
 
 #[cfg(test)]
+#[path = "materialization/tests/cases.rs"]
 mod tests;

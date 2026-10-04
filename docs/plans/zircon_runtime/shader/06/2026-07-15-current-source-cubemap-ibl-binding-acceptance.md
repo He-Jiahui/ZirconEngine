@@ -13,7 +13,7 @@ related_code:
 implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch/tests/reference_parity.rs
   - zircon_runtime/tests/runtime_environment_external_cubemap_import_staging_contract.rs
-  - docs/zircon_runtime/graphics/scene/scene_renderer/environment/ibl-bake-wgpu-dispatch.md
+  - docs/crates/zircon_runtime/graphics/scene/scene_renderer/environment/ibl-bake-wgpu-dispatch.md
 plan_sources:
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
   - dev/cmft/src/cmft/cubemapfilter.cpp
@@ -35,7 +35,7 @@ Milestone: M2
 
 Status: completed
 
-Files: ["docs/plans/zircon_runtime/shader/06/2026-07-15-current-source-cubemap-ibl-binding-acceptance.md", "docs/zircon_runtime/graphics/scene/scene_renderer/environment/ibl-bake-wgpu-dispatch.md", "zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch/tests/reference_parity.rs", "zircon_runtime/tests/runtime_environment_external_cubemap_import_staging_contract.rs"]
+Files: ["docs/plans/zircon_runtime/shader/06/2026-07-15-current-source-cubemap-ibl-binding-acceptance.md", "docs/crates/zircon_runtime/graphics/scene/scene_renderer/environment/ibl-bake-wgpu-dispatch.md", "zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch/tests/reference_parity.rs", "zircon_runtime/tests/runtime_environment_external_cubemap_import_staging_contract.rs"]
 
 ## 状态与产出记录
 

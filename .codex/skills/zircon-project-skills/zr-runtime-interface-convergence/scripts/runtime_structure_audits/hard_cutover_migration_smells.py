@@ -10,6 +10,11 @@ MIGRATION_BRIDGE_CONTEXT_RE = re.compile(
     r"\b(legacy|compat|shim|deprecated|compatibility|forwarding)\b",
     re.I,
 )
+RUST_NON_STRUCTURAL_TOKEN_RE = re.compile(
+    r"//[^\r\n]*|/\*.*?\*/|"
+    r'(?:b|c)?r(?P<raw_hashes>\#{0,255})".*?"(?P=raw_hashes)|'
+    r'(?:b|c)?"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])\''
+)
 
 HARD_CUTOVER_CLASSIFICATION_ORDER = (
     "hard-cutover-compat-shim-blocker",
@@ -27,6 +32,14 @@ HARD_CUTOVER_CLASSIFICATION_ORDER = (
     "legacy-runtime-ui-layout-debt",
     "legacy-runtime-interface-diagnostics-debt",
     "editor-typography-point-as-pixel-migration-policy",
+    "legacy-editor-host-service-debt",
+    "legacy-runtime-module-composition-debt",
+    "legacy-runtime-plugin-selection-admission-debt",
+    "legacy-runtime-render-graph-access-debt",
+    "legacy-runtime-text-compatibility-debt",
+    "legacy-runtime-ui-event-dto-debt",
+    "legacy-runtime-ui-table-update-route-debt",
+    "legacy-runtime-reflect-schema-import-debt",
     "unclassified-hard-cutover-smell",
 )
 
@@ -137,6 +150,62 @@ HARD_CUTOVER_CLASSIFICATION_DECISIONS = {
             "the editor preference migration leaf; do not expose an alias API"
         ),
     },
+    "legacy-editor-host-service-debt": {
+        "target_owner": "editor retained-host service owner",
+        "required_action": (
+            "replace stale legacy manager or reflection-boundary wording with the "
+            "current materialized host-service contract"
+        ),
+    },
+    "legacy-runtime-module-composition-debt": {
+        "target_owner": "runtime module composition identity owner",
+        "required_action": (
+            "supply an explicit composition identity at every assembly entry and "
+            "remove the legacy seed and diagnostic fallback"
+        ),
+    },
+    "legacy-runtime-plugin-selection-admission-debt": {
+        "target_owner": "runtime plugin selection readiness owner",
+        "required_action": (
+            "replace the best-effort legacy selection route with explicit selection "
+            "status or a scoped versioned migration policy"
+        ),
+    },
+    "legacy-runtime-render-graph-access-debt": {
+        "target_owner": "runtime render-graph typed access owner",
+        "required_action": (
+            "remove the legacy access intent and pass/resource/kind lookup after all "
+            "consumers author exact typed access identities"
+        ),
+    },
+    "legacy-runtime-text-compatibility-debt": {
+        "target_owner": "runtime text retained-source and shaping owner",
+        "required_action": (
+            "replace legacy text-consumer wording with explicit retained or one-shot "
+            "contracts, then remove the compatibility path"
+        ),
+    },
+    "legacy-runtime-ui-event-dto-debt": {
+        "target_owner": "runtime UI state-reducer owner",
+        "required_action": (
+            "cut callers to typed derived indexes and delete the legacy event DTO "
+            "adapter"
+        ),
+    },
+    "legacy-runtime-ui-table-update-route-debt": {
+        "target_owner": "runtime UI table interaction owner",
+        "required_action": (
+            "replace the legacy retained-aggregate update route with the current "
+            "transaction/report contract"
+        ),
+    },
+    "legacy-runtime-reflect-schema-import-debt": {
+        "target_owner": "runtime interface reflection schema owner",
+        "required_action": (
+            "rename the historical-field import API to an explicit versioned schema "
+            "import or retire the compatibility path"
+        ),
+    },
     "unclassified-hard-cutover-smell": {
         "target_owner": "unknown",
         "required_action": (
@@ -215,6 +284,12 @@ def _production_rust_files(root: Path) -> list[Path]:
     )
 
 
+def _structural_brace_delta(line: str) -> int:
+    """Count Rust item braces without letting literals or comments change nesting."""
+    code_line = RUST_NON_STRUCTURAL_TOKEN_RE.sub("", line)
+    return code_line.count("{") - code_line.count("}")
+
+
 def _production_source_lines(source: str) -> list[tuple[int, str]]:
     """Return lines outside items explicitly compiled only for tests."""
     lines: list[tuple[int, str]] = []
@@ -225,7 +300,7 @@ def _production_source_lines(source: str) -> list[tuple[int, str]]:
         stripped = line.strip()
 
         if skipped_item_depth:
-            skipped_item_depth += line.count("{") - line.count("}")
+            skipped_item_depth += _structural_brace_delta(line)
             if skipped_item_depth <= 0:
                 skipped_item_depth = 0
             continue
@@ -237,7 +312,7 @@ def _production_source_lines(source: str) -> list[tuple[int, str]]:
         if pending_test_cfg:
             if stripped.startswith("#["):
                 continue
-            item_depth = line.count("{") - line.count("}")
+            item_depth = _structural_brace_delta(line)
             if item_depth > 0:
                 skipped_item_depth = item_depth
             pending_test_cfg = False
@@ -257,6 +332,31 @@ def _classify_reference(relative_path: str, line: str, term: str) -> str:
         if MIGRATION_BRIDGE_CONTEXT_RE.search(line):
             return "migration-bridge-smell-blocker"
         return "allowed-business-bridge-reference"
+    if normalized == "zircon_app/src/entry/engine_entry.rs":
+        return "legacy-runtime-module-composition-debt"
+    if normalized == "zircon_editor/src/ui/host/editor_manager.rs":
+        return "legacy-editor-host-service-debt"
+    if normalized in {
+        "zircon_runtime/src/builtin/runtime_modules/assembly.rs",
+        "zircon_runtime/src/builtin/runtime_modules/composition/identity.rs",
+    }:
+        return "legacy-runtime-module-composition-debt"
+    if normalized == (
+        "zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project/selection.rs"
+    ):
+        return "legacy-runtime-plugin-selection-admission-debt"
+    if normalized.startswith("zircon_runtime/src/render_graph/"):
+        return "legacy-runtime-render-graph-access-debt"
+    if normalized.startswith("zircon_runtime/src/text/"):
+        return "legacy-runtime-text-compatibility-debt"
+    if normalized == "zircon_runtime/src/ui/component/state_reducer/state_model.rs":
+        return "legacy-runtime-ui-event-dto-debt"
+    if normalized == (
+        "zircon_runtime/src/ui/surface/surface/default_interactions/table/width_mutation.rs"
+    ):
+        return "legacy-runtime-ui-table-update-route-debt"
+    if normalized == "zircon_runtime_interface/src/reflect/schema_catalog/mod.rs":
+        return "legacy-runtime-reflect-schema-import-debt"
     if normalized.startswith("zircon_runtime/src/ui/surface/input/"):
         return "legacy-runtime-ui-input-debt"
     if normalized.startswith("zircon_plugins/texture_importer/"):

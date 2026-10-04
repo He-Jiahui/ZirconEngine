@@ -1,3 +1,4 @@
+# 核对资源预览命中索引独立于投影列表，并在会话生命周期内更新。
 from pathlib import Path
 import unittest
 

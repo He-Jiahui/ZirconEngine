@@ -46,14 +46,14 @@ for (const field of [
 for (const needle of [
   'appendDefaultPetRuntimeColumns(this);',
   'appendDefaultPetRuntimeColumns(state);',
-  'writer.u16(<uint>38, 1, 1);', 'schemaVersion != <uint>36',
+  'writer.u16(schemaVersion, 1, 1);', 'schemaVersion != <uint>36',
   'if (schemaVersion >= <uint>36) {',
   'm8FreshPlayerStats.petMode',
   'm8EastbrookEncounter.petMode',
   'entityState.entityPetModes[0] = <uint>3;',
   'entityState.entityPetPathCooldowns[0] = 0.75;',
 ]) invariant(state.includes(needle), 'WOS36 pet runtime projection omitted: ' + needle);
-invariant(main.includes('\\"world_state\\":\\"WOS38\\",'), 'package stateSchema must expose WOS38');
+invariant(main.includes('\\"world_state\\":\\"WOS118\\",'), 'package stateSchema must expose WOS118');
 
 process.stdout.write('checked WOS36 pet runtime source projection: ' + SOURCE_COMMIT.slice(0, 15) + '\n');
 

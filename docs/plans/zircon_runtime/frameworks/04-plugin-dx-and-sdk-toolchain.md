@@ -11,12 +11,12 @@ related_code:
   - zircon_app/src/entry/export_bootstrap.rs
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_runtime_interface/src/plugin_api.rs
-  - tools/plugin_structure_audits/capability.py
+  - tools/audits/plugins/capability.py
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/index.md
   - docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md
-  - docs/engine-architecture/plugin-optional-feature-bundles.md
-  - docs/engine-architecture/native-plugin-boundary.md
+  - docs/architecture/plugin-optional-feature-bundles.md
+  - docs/architecture/native-plugin-boundary.md
 reference_engines:
   - dev/bevy/crates/bevy_app/src/plugin.rs
   - dev/Fyrox/fyrox-impl/src/plugin/mod.rs
@@ -45,7 +45,7 @@ reference_engines:
   dylib，不代表 TOML 反向拥有 Rust 声明。仍缺可复现的 sync/generator 命令与全 first-party 覆盖，
   因此尚不能把 M1 标为完成。
 - **接入面广**：新插件需 touch `zircon_plugins/Cargo.toml`、`first_party_runtime_catalog` 的 Cargo.toml + lib.rs（match 分支 + STATIC_PLUGIN_MANIFESTS）、`zircon_app/Cargo.toml` feature，共 ~11 文件。
-- **Rust 开发者工具尚未落地**：Python `tools.zircon_export plugin validate` 与 structure audits 已能
+- **Rust 开发者工具尚未落地**：Python `tools.export plugin validate` 与 structure audits 已能
   做发布/回归校验，但计划要求的 workspace Rust `cargo-zircon` crate 及 `plugin new/check/validate`
   三命令不存在；Python 门不是 M2 的兼容替代品。
 - **类型化诊断主体已落地**：native loader 已使用 `PluginLoadError` 类型树，覆盖缺符号、契约漂移、
@@ -124,7 +124,7 @@ TOML 再生成 Rust identity/capability/ABI 常量。静态审计脚本继续消
 
 状态（2026-08-08）：Rust `cargo-zircon` tool crate 已实现 `plugin new/check/validate`，模板覆盖
 importer/system/editor 三形态；`plugin check` 已接入 CI，五分钟工作流与 manifest sync/check
-入口由 `docs/cli-and-tooling/cargo-zircon-plugin-workflow.md` 持有。current-source hardening 将
+入口由 `docs/tooling/cargo-zircon-plugin-workflow.md` 持有。current-source hardening 将
 check/scaffold/manifest-sync 的 production `panic/unwrap/expect` 扫描归零，并由 integration source
 contract 常驻防回归。scaffold/check/validate/manifest-sync 的 managed Rust 测试和真实 generated-plugin
 package build E2E 仍 pending，因此 M2 为 `implementation-complete / validation-pending`，不声明 accepted。
@@ -167,7 +167,7 @@ gltf importer 样板、dev-only 文件监视、计划 02 生命周期完整勾�
   `cargo test -p zircon_runtime --lib --locked restore_state`（重载状态迁移契约测试）；全量 lib
   回归留给波次收口（policy §4）；
 - 手工验收脚本：修改 fixture 源码 → 重编 dist → 运行中的 editor-host 完成替换且句柄不变；
-- 验收证据：契约测试 + 替换日志；文档更新 `docs/engine-architecture/native-plugin-boundary.md` 勾稽。
+- 验收证据：契约测试 + 替换日志；文档更新 `docs/architecture/native-plugin-boundary.md` 勾稽。
 
 ## 5. 风险与回退
 

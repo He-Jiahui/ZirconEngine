@@ -7,7 +7,12 @@ mod activity_window_host_mode;
 mod activity_window_id;
 mod activity_window_layout;
 mod dock_edge;
+#[cfg(test)]
+#[path = "tests/document_identity_tests.rs"]
+mod document_identity_tests;
+mod document_leaf_layout;
 mod document_node;
+mod document_node_id;
 mod drag_payload;
 mod drop_target;
 mod editor_main_frame_layout;
@@ -37,7 +42,9 @@ pub use activity_window_host_mode::ActivityWindowHostMode;
 pub use activity_window_id::ActivityWindowId;
 pub use activity_window_layout::ActivityWindowLayout;
 pub use dock_edge::DockEdge;
+pub use document_leaf_layout::DocumentLeafLayout;
 pub use document_node::DocumentNode;
+pub use document_node_id::DocumentNodeId;
 pub use drag_payload::DragPayload;
 pub use drop_target::DropTarget;
 pub use editor_main_frame_layout::EditorMainFrameLayout;

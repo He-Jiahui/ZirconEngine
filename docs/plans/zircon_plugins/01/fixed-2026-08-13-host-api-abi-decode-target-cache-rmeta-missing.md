@@ -9,14 +9,6 @@ origin_child_dir: docs/plans/zircon_plugins/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/cargo_jobs.py
-  - tools/session_coordinator/cargo_runner.py
-  - tools/session_coordinator/cleanup.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/tests/test_cargo_jobs.py
-  - tools/session_coordinator/tests/test_cleanup.py
-  - .codex/state/session-coordinator/cargo-runs/784cbb25cd9148b5aa40c3029826a3f1/0c318642355048afb0fd306e615b5d57/stderr.log
-  - .codex/state/session-coordinator/cargo-runs/a790e2f9673c462fafb02b3558628d47/3c32d521abc4427c9663ce39a6a6005e/stderr.log
 tests:
   - python -m unittest tools.session_coordinator.tests.test_cargo_jobs tools.session_coordinator.tests.test_cleanup -v
   - cargo test -p zircon_runtime --lib host_api_adapter --no-default-features --features core-min --locked --jobs 1 --target-dir <fresh-coordinator-managed-target> --message-format short --color never -- --test-threads=1 --nocapture

@@ -1,3 +1,4 @@
+# 核对非网络服务命名扫描区分生产所有者、测试源与合法上下文。
 import sys
 import tempfile
 import unittest

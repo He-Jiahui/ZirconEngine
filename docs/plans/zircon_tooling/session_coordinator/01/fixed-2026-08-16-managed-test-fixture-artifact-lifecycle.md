@@ -11,13 +11,6 @@ origin_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/artifact_governance.py
-  - tools/session_coordinator/migrations.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/cli.py
-  - tools/session_coordinator/tests/test_artifact_governance.py
-  - tools/session_coordinator/tests/test_migrations.py
-  - tools/session_coordinator/tests/test_server.py
   - tools/mvp/MvpTestFixturePaths.psm1
   - tools/tests/mvp-test-fixture-paths.Tests.ps1
   - tools/tests/build-editor.Tests.ps1

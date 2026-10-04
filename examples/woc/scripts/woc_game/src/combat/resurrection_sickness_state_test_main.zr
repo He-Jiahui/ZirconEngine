@@ -13,6 +13,7 @@ if (result == 1 && (sickness.resSicknessDuration(1.0) != 0 ||
     sickness.resSicknessDuration(20.0) != 600)) {
     result = -2;
 }
+// 超出最高等级仍按同一曲线外推；这里固定该直接调用契约，避免误加最高时长封顶。
 if (result == 1 && (sickness.resSicknessDuration(15.0) != 330 ||
     sickness.resSicknessDuration(11.0) != 114 || sickness.resSicknessDuration(21.0) != 654)) {
     result = -3;

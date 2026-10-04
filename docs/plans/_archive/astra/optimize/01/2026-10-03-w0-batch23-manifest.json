@@ -1,0 +1,1524 @@
+{
+  "batch": 23,
+  "at_utc": "2026-10-03T05:39:56.064747+00:00",
+  "independent_review_sha256": "7236a6c139b79a0f73ae01317583fac867e3d6d98ec3e7174b29436b8b6d7a9d",
+  "raw_author_artifacts": [
+    {
+      "batch": 23,
+      "role": "review_file",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch23\\review.jsonl",
+      "bytes": 593715,
+      "sha256": "91b02e48cef57b3986d1ef0d235a26a3fc2df65a5adffd4bd700f24b24c139d0"
+    },
+    {
+      "batch": 23,
+      "role": "crosswalk_file",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch23\\crosswalk.jsonl",
+      "bytes": 59207,
+      "sha256": "c505a1e5b939a7d905107b329cfe5c9e3437a4bb3e90b961618e2175b5dc12de"
+    },
+    {
+      "batch": 23,
+      "role": "manifest_file",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch23\\manifest.json",
+      "bytes": 48524,
+      "sha256": "8bee95454e6eae10ea8520c3d03c55b258a7bb2b5a3098315d4e2f8f6c789b69"
+    },
+    {
+      "batch": 23,
+      "role": "summary_file",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch23\\summary.json",
+      "bytes": 4241,
+      "sha256": "18f7146750db7d75f2d2dc6207412e8a2b1fca4d764e17846dbc2bd60eccf414"
+    },
+    {
+      "batch": 23,
+      "role": "summary_md_file",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch23\\summary.md",
+      "bytes": 954,
+      "sha256": "4654d2301c7412fe49f6628533c182688d44fd30034b7e17e27c1b0cc94f4675"
+    },
+    {
+      "batch": 23,
+      "role": "author-after-seal-erratum",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\P\\w0\\batch23\\erratum-r1.md",
+      "bytes": 2374,
+      "sha256": "2293efaea19858ce3bea3fa8fe4c20463c1fc40312f0a8fd5d366de545557343"
+    }
+  ],
+  "raw_capture_inventory": [
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/lib.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_plugins\\particles\\runtime\\src\\lib.rs",
+      "sha256": "591523d2591e51da6e97162c178b3cfb0450273fe2181572efbd4474e72803fa",
+      "bytes": 3323
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/service.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_plugins\\particles\\runtime\\src\\service.rs",
+      "sha256": "c120026b4985fbc47cb7ced1e16b3605637554fbe14f11248fd30b0e40e99ed2",
+      "bytes": 18570
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/component.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_plugins\\particles\\runtime\\src\\component.rs",
+      "sha256": "84c3993d85e891b204bbf7c19e59a7f2fcd0f4b3e9565e0141f47ace29b9414a",
+      "bytes": 2041
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/asset.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_plugins\\particles\\runtime\\src\\asset.rs",
+      "sha256": "7a805ce195044d162aff66e02b7048e906c0c384b46e0fc461ed7f8f46ccb197",
+      "bytes": 12162
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/simulation/cpu.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_plugins\\particles\\runtime\\src\\simulation\\cpu.rs",
+      "sha256": "a4c723b8122175fbead3ea6515b5caebb03b5b0eb0c5877d4fec5ab2e230761e",
+      "bytes": 16937
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/simulation/pool.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_plugins\\particles\\runtime\\src\\simulation\\pool.rs",
+      "sha256": "5b45c06a413be8c16d54795f205aa09850d0a83c550d9cf7b90763e6580398f6",
+      "bytes": 4938
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/render/extract.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_plugins\\particles\\runtime\\src\\render\\extract.rs",
+      "sha256": "566fc70aa07f3a40e8e6650418bda45db61cb830de306d083007275a7eb73f92",
+      "bytes": 3214
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/render/feature.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_plugins\\particles\\runtime\\src\\render\\feature.rs",
+      "sha256": "b3c4a72ddb1b84d78f5a4cb07fa1ebd3bcee05a0d913352f4f54a56e9b22628d",
+      "bytes": 3478
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/render/runtime_prepare.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_plugins\\particles\\runtime\\src\\render\\runtime_prepare.rs",
+      "sha256": "a02d6f10b1ff2a8600395fc1dbe7a89ccbb82a5081cbef23b7a5b3300a3f64cd",
+      "bytes": 25769
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/render/gpu/backend.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_plugins\\particles\\runtime\\src\\render\\gpu\\backend.rs",
+      "sha256": "2e928978b6280f9afaf7bfb868d108a58aa5a7517cc034e7d04b567ad85b7436",
+      "bytes": 19461
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/render/gpu/planner.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_plugins\\particles\\runtime\\src\\render\\gpu\\planner.rs",
+      "sha256": "077d63751cf7ab4b170372a99ab0e707ba5335ba5d6182d0ab7100a3fcd0485b",
+      "bytes": 13068
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/render/gpu/runtime_owner.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_plugins\\particles\\runtime\\src\\render\\gpu\\runtime_owner.rs",
+      "sha256": "9c69651839b9562bfad4bb0da41261efbe45fc4260a1b9c8ea33958ad03dd66c",
+      "bytes": 18921
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/render/gpu/program.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_plugins\\particles\\runtime\\src\\render\\gpu\\program.rs",
+      "sha256": "5c022cd35fad0b33f2b5cacd4d876fb9a2bdf2967010d91d9bc7dc4667a4f26e",
+      "bytes": 8670
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/render/gpu/neutral_buffers.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_plugins\\particles\\runtime\\src\\render\\gpu\\neutral_buffers.rs",
+      "sha256": "43b3faec1a8123ec29b1e78ddaf073a215e0accbf10ce4113bb355304cce0b92",
+      "bytes": 6895
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/tests/mod.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_plugins\\particles\\runtime\\src\\tests\\mod.rs",
+      "sha256": "f684dbaae4c0e03d1db59ec961f0ea8e57c44b2acb9a25c8d2626e606c81fd7d",
+      "bytes": 183
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/render/gpu/backend/test_readback.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_plugins\\particles\\runtime\\src\\render\\gpu\\backend\\test_readback.rs",
+      "sha256": "0aa9cf6dcbcb2fd917b13b7799cdd1525187552fda352bd8ecd002bceaef2620",
+      "bytes": 2887
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/editor/src/tests.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_plugins\\particles\\editor\\src\\tests.rs",
+      "sha256": "d26973b0ce6b7ee34d66a018023e93d88ca069aa444feae60dbf700d7b874214",
+      "bytes": 7419
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/rendering/features/vfx_graph/runtime/src/lib.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_plugins\\rendering\\features\\vfx_graph\\runtime\\src\\lib.rs",
+      "sha256": "ed244d10ffd2e39e66fdff6ebbce1dec6ef1b80fd5dca21f168a9069a9b4cb45",
+      "bytes": 7578
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_runtime/src/scene/world/render_particles.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_runtime\\src\\scene\\world\\render_particles.rs",
+      "sha256": "3c6c91da77daf1c56958cec61a6b7189e3cb1c2af1111af21a81ace393434e9d",
+      "bytes": 30997
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_runtime/src/core/framework/render/frame_extract/particle.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_runtime\\src\\core\\framework\\render\\frame_extract\\particle.rs",
+      "sha256": "31dfdab5e952976e5f208c253ea392a6359b1028667f9980a364f71e83b02eee",
+      "bytes": 838
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_runtime/src/graphics/particle_runtime_provider/mod.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_runtime\\src\\graphics\\particle_runtime_provider\\mod.rs",
+      "sha256": "6773c85158adc700757f9503adcaafdf76895ccc2205efd13dbb5dffb7d68e54",
+      "bytes": 235
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_runtime/src/graphics/scene/scene_renderer/particle/mod.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_runtime\\src\\graphics\\scene\\scene_renderer\\particle\\mod.rs",
+      "sha256": "a79fd9ac6e0f27650cb31a2345d0b7d40e35ff063e262f64e0aff9bba4c31144",
+      "bytes": 1604
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/particle.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_runtime\\src\\graphics\\scene\\scene_renderer\\graph_execution\\render_pass_execution_context\\gpu\\particle.rs",
+      "sha256": "74191b0a1d813133e9e04c6981f106c9502f0caa0144c4ccf0ffb11c24dfb11e",
+      "bytes": 5609
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_runtime/src/graphics/visibility/declarations/visibility_particle_upload_plan.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_runtime\\src\\graphics\\visibility\\declarations\\visibility_particle_upload_plan.rs",
+      "sha256": "c7638b30514e76f31079585104863bc30de5083ba9f1475944475d42b28bab8b",
+      "bytes": 345
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_runtime/src/graphics/visibility/planning/build_particle_upload_plan.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_runtime\\src\\graphics\\visibility\\planning\\build_particle_upload_plan.rs",
+      "sha256": "94d645c650c64d8b94dc0195197a3f17a0aaf19b4fed63b9a77955f0da1c866d",
+      "bytes": 6728
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_runtime/src/script/vm/gameplay_host.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_runtime\\src\\script\\vm\\gameplay_host.rs",
+      "sha256": "980b11f41c281febebdf831e6f7d5c8f76bd52e5f6283455135a380fdc28112c",
+      "bytes": 19128
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_runtime/src/script/vm/gameplay_host/lifecycle.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_runtime\\src\\script\\vm\\gameplay_host\\lifecycle.rs",
+      "sha256": "f000357cc4c987ec7a70121881701e3321f78b9fdef2ea2788dd9085a267003c",
+      "bytes": 7772
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/render_asset_vfx.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_editor\\src\\ui\\retained_host\\callback_dispatch\\template_bridge\\workbench\\extension_module_navigation\\specs\\render_asset_vfx.rs",
+      "sha256": "b199aff46ad4dd4a94fffdbd042ac38940b3e59650e215c966f4a2deaee5f6c2",
+      "bytes": 11288
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_vfx_workspace.zui",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_editor\\assets\\ui\\editor\\components\\workbench\\modules\\core\\rendering\\workbench_vfx_workspace.zui",
+      "sha256": "4acc65c4d955f5c4b80ea2dd27335169ea89becccafed3ffd31d71e575f6bd37",
+      "bytes": 12919
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_particle_library_workspace.zui",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\zircon_editor\\assets\\ui\\editor\\components\\workbench\\modules\\extensions\\rendering\\workbench_extension_particle_library_workspace.zui",
+      "sha256": "797fbfcceb75daf6cf4ed662b119850a427bfeb52e3fb6368b5c6ed04e0c4668",
+      "bytes": 16634
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/examples/vampire/scripts/vampire_game/main.zr",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\examples\\vampire\\scripts\\vampire_game\\main.zr",
+      "sha256": "ff796b4ec820d21b6f90ad631f35f4e00bc8540cf64fa995bda96127070641e3",
+      "bytes": 9146
+    },
+    {
+      "batch": 23,
+      "kind": "source",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/tests/acceptance/particles-gpu-readback-mailbox.md",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\source\\tests\\acceptance\\particles-gpu-readback-mailbox.md",
+      "sha256": "47da66a42e2e2b29a09e0efa11fe907257b314ab1c67175a0ea2db76f198285c",
+      "bytes": 7350
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Public/NiagaraComponent.h",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\UnrealEngine\\Engine\\Plugins\\FX\\Niagara\\Source\\Niagara\\Public\\NiagaraComponent.h",
+      "sha256": "56c8f6c8c1fcc116851f5c4c14ea267a14bb2e85b88d0f0e313eb75917f2689b",
+      "bytes": 55379
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraWorldManager.cpp",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\UnrealEngine\\Engine\\Plugins\\FX\\Niagara\\Source\\Niagara\\Private\\NiagaraWorldManager.cpp",
+      "sha256": "2847895e2194d67539b9fe5a471f73e0b001a023ce4a1cf9c6847999b90577f4",
+      "bytes": 96918
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraScalabilityManager.cpp",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\UnrealEngine\\Engine\\Plugins\\FX\\Niagara\\Source\\Niagara\\Private\\NiagaraScalabilityManager.cpp",
+      "sha256": "5e9e737d8d2d9a708f4e243adf440019b567f64b79e6224065145959f634ace4",
+      "bytes": 32113
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraGpuComputeDispatch.cpp",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\UnrealEngine\\Engine\\Plugins\\FX\\Niagara\\Source\\Niagara\\Private\\NiagaraGpuComputeDispatch.cpp",
+      "sha256": "d8989f85d4b5897d21453966824367ec5a0fd8cfe70781eddf937717f15fd08d",
+      "bytes": 120265
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraRendererSprites.cpp",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\UnrealEngine\\Engine\\Plugins\\FX\\Niagara\\Source\\Niagara\\Private\\NiagaraRendererSprites.cpp",
+      "sha256": "dce013cabddb0b5998be41718780202c40299a4040b8ca66444b6c7daf19d87c",
+      "bytes": 65276
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraRendererMeshes.cpp",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\UnrealEngine\\Engine\\Plugins\\FX\\Niagara\\Source\\Niagara\\Private\\NiagaraRendererMeshes.cpp",
+      "sha256": "6e67e4e8781c1ceee8d6bf21b04015074043475cc271ee1883780fb319015ca9",
+      "bytes": 87313
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraRendererRibbons.cpp",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\UnrealEngine\\Engine\\Plugins\\FX\\Niagara\\Source\\Niagara\\Private\\NiagaraRendererRibbons.cpp",
+      "sha256": "c5f42215c33a5cb6991c2c8f4dbb874f47e3a2ea4d50b86da9d1e4115106d50e",
+      "bytes": 147159
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraSystemSimulation.cpp",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\UnrealEngine\\Engine\\Plugins\\FX\\Niagara\\Source\\Niagara\\Private\\NiagaraSystemSimulation.cpp",
+      "sha256": "599f4223700bc3fdaba8cbba6be1ef2edf87bb4551616760917ca285549b1e7a",
+      "bytes": 101290
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/Fyrox/fyrox-impl/src/scene/particle_system/mod.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\Fyrox\\fyrox-impl\\src\\scene\\particle_system\\mod.rs",
+      "sha256": "82d4abc584ede3c5bfa8c11f4d8af340d818bdb878af8e0b0ed0a979f7f48e68",
+      "bytes": 29535
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/Fyrox/fyrox-impl/src/scene/particle_system/draw.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\Fyrox\\fyrox-impl\\src\\scene\\particle_system\\draw.rs",
+      "sha256": "754699ea750b0069f60b95c3007e9fb66fd084d45ce3213c346bac2d95d4c02e",
+      "bytes": 3232
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/Fyrox/fyrox-impl/src/scene/particle_system/particle.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\Fyrox\\fyrox-impl\\src\\scene\\particle_system\\particle.rs",
+      "sha256": "cef156d54da2ebc43b1692169bd5295ea5e6567b314bbf47731823c168c8416f",
+      "bytes": 4205
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/Fyrox/fyrox-impl/src/scene/particle_system/emitter/base.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\Fyrox\\fyrox-impl\\src\\scene\\particle_system\\emitter\\base.rs",
+      "sha256": "9e0a11096640f3c04cfa6294b041b46ce45742627ed5a62516c0e308e8883941",
+      "bytes": 15651
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/godot/scene/3d/gpu_particles_3d.cpp",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\godot\\scene\\3d\\gpu_particles_3d.cpp",
+      "sha256": "ed126d09833b729eccfc4603bca492927cbb083ec99867e2aa82b553409dfc41",
+      "bytes": 40891
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/godot/scene/3d/cpu_particles_3d.cpp",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\godot\\scene\\3d\\cpu_particles_3d.cpp",
+      "sha256": "e0b78d6c997e5e938d5eb65709ac4d14697ab4d5f6580649678506dd08c122d1",
+      "bytes": 73290
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/godot/servers/rendering/renderer_rd/storage_rd/particles_storage.cpp",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\godot\\servers\\rendering\\renderer_rd\\storage_rd\\particles_storage.cpp",
+      "sha256": "2e391c572841c9523ad54e5027dcf4b5c51498d8bf301d2c9c7cbbb09838fa2c",
+      "bytes": 84860
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/godot/scene/resources/particle_process_material.cpp",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\godot\\scene\\resources\\particle_process_material.cpp",
+      "sha256": "df6c6e07e7257aaae4e52dd6a7093311311cffb862f39f4b71b6f5a08aa9ef5e",
+      "bytes": 140284
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/Graphics/Packages/com.unity.visualeffectgraph/Editor/Data/VFXDataParticle.cs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\Graphics\\Packages\\com.unity.visualeffectgraph\\Editor\\Data\\VFXDataParticle.cs",
+      "sha256": "28ef58060ffac60a8ffd2486252fc8d8cc3ef475ad8c7f4bc38372f9380f2ca6",
+      "bytes": 85051
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/Graphics/Packages/com.unity.visualeffectgraph/Editor/Compiler/VFXGraphCompiledData.cs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\Graphics\\Packages\\com.unity.visualeffectgraph\\Editor\\Compiler\\VFXGraphCompiledData.cs",
+      "sha256": "309053ee481f6653a2a9026e3673a6deebc9f2cf302fc7270bddc09a143ae997",
+      "bytes": 72543
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/Graphics/Packages/com.unity.visualeffectgraph/Editor/Compiler/VFXCodeGenerator.cs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\Graphics\\Packages\\com.unity.visualeffectgraph\\Editor\\Compiler\\VFXCodeGenerator.cs",
+      "sha256": "6dc3fe71758325487590e0954d8a83584cf12010ef1c58fdaf750ba511b1b718",
+      "bytes": 45253
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/Graphics/Packages/com.unity.visualeffectgraph/Shaders/VFXCommon.hlsl",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\Graphics\\Packages\\com.unity.visualeffectgraph\\Shaders\\VFXCommon.hlsl",
+      "sha256": "ad489a333a7120560ad32de95a175df8c6fb42174c35b192a9e6a84262322d4b",
+      "bytes": 29384
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/Graphics/Packages/com.unity.visualeffectgraph/Runtime/Types/VFXTypes.cs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\Graphics\\Packages\\com.unity.visualeffectgraph\\Runtime\\Types\\VFXTypes.cs",
+      "sha256": "cbac90c862cf66cbadb2863145eb17e0c4d10736593b3197108ebdbcbe527a4a",
+      "bytes": 1481
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/Graphics/Packages/com.unity.visualeffectgraph/Runtime/Utilities/VFXRuntimeResources.cs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\Graphics\\Packages\\com.unity.visualeffectgraph\\Runtime\\Utilities\\VFXRuntimeResources.cs",
+      "sha256": "0361e41b5696ece1c911958a8375ff8caa585b04480fc7452bf1f5d98c3af991",
+      "bytes": 1237
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/bevy/crates/bevy_render/src/extract_component.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\bevy\\crates\\bevy_render\\src\\extract_component.rs",
+      "sha256": "dd81e501fe9ac21a4caec8f91c628f174b0ff4bf51b0507bbb0347ad965b0a15",
+      "bytes": 5329
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/bevy/crates/bevy_render/src/render_asset.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\bevy\\crates\\bevy_render\\src\\render_asset.rs",
+      "sha256": "fec69e4c27506056a55fc472e30fb113fdf316dc73647fb11794fb6c1ac77377",
+      "bytes": 22170
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/bevy/crates/bevy_render/src/gpu_component_array_buffer.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\bevy\\crates\\bevy_render\\src\\gpu_component_array_buffer.rs",
+      "sha256": "49fb853316ed88462a5581a75682345360a954a172f53c4d268c1b3dbf91b20d",
+      "bytes": 1953
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/bevy/crates/bevy_render/src/gpu_readback.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\bevy\\crates\\bevy_render\\src\\gpu_readback.rs",
+      "sha256": "04190bced0abd329ccc21e085e8e7308a7dc3591710bd310c7759518b1332821",
+      "bytes": 16026
+    },
+    {
+      "batch": 23,
+      "kind": "references",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/bevy/crates/bevy_render/src/batching/gpu_preprocessing.rs",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\references\\dev\\bevy\\crates\\bevy_render\\src\\batching\\gpu_preprocessing.rs",
+      "sha256": "d837223bbfd2193b27939d991f3428f41bf214a7b3ae3b3d2af25d59bdeb7aa1",
+      "bytes": 116446
+    },
+    {
+      "batch": 23,
+      "kind": "reports",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/reports/docs/plans/optimize/zircon_runtime/26-particle-vfx-system-emitter-cpu-gpu-simulation-rendering-scalability-determinism-product-integration-review.md",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\reports\\docs\\plans\\optimize\\zircon_runtime\\26-particle-vfx-system-emitter-cpu-gpu-simulation-rendering-scalability-determinism-product-integration-review.md",
+      "sha256": "1d55c81a11c7277d286a044ecca2fc71735661d5710022a185079cc8afa3995d",
+      "bytes": 45720
+    },
+    {
+      "batch": 23,
+      "kind": "reports",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/reports/docs/plans/optimize/zircon_runtime/99d-runtime-particle-vfx-system-emitter-cpu-gpu-simulation-rendering-scalability-determinism-product-integration-current-source-review.md",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\reports\\docs\\plans\\optimize\\zircon_runtime\\99d-runtime-particle-vfx-system-emitter-cpu-gpu-simulation-rendering-scalability-determinism-product-integration-current-source-review.md",
+      "sha256": "c7b93dd04d0cba9f0f67bb69824c11d230b64e58a5f62a1f72ab06e2ff5a39ac",
+      "bytes": 37733
+    },
+    {
+      "batch": 23,
+      "kind": "reports",
+      "authored_capture_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/reports/docs/plans/optimize/zircon_runtime/171-runtime-particle-vfx-current-working-tree-world-authority-gpu-graph-renderer-scalability-editor-boundary-review.md",
+      "actual_root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch23\\raw-evidence\\reports\\docs\\plans\\optimize\\zircon_runtime\\171-runtime-particle-vfx-current-working-tree-world-authority-gpu-graph-renderer-scalability-editor-boundary-review.md",
+      "sha256": "761f59f42e35883a50909d48be2da931a793792f47c17cf87cc7da5249675764",
+      "bytes": 22959
+    }
+  ],
+  "raw_manifest": [
+    {
+      "kind": "source",
+      "repo_path": "zircon_plugins/particles/runtime/src/lib.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_plugins/particles/runtime/src/lib.rs",
+      "source_sha256": "591523d2591e51da6e97162c178b3cfb0450273fe2181572efbd4474e72803fa",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/lib.rs",
+      "captured_sha256": "591523d2591e51da6e97162c178b3cfb0450273fe2181572efbd4474e72803fa",
+      "hash_match": true,
+      "bytes": 3323,
+      "lines": 71
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_plugins/particles/runtime/src/service.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_plugins/particles/runtime/src/service.rs",
+      "source_sha256": "c120026b4985fbc47cb7ced1e16b3605637554fbe14f11248fd30b0e40e99ed2",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/service.rs",
+      "captured_sha256": "c120026b4985fbc47cb7ced1e16b3605637554fbe14f11248fd30b0e40e99ed2",
+      "hash_match": true,
+      "bytes": 18570,
+      "lines": 527
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_plugins/particles/runtime/src/component.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_plugins/particles/runtime/src/component.rs",
+      "source_sha256": "84c3993d85e891b204bbf7c19e59a7f2fcd0f4b3e9565e0141f47ace29b9414a",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/component.rs",
+      "captured_sha256": "84c3993d85e891b204bbf7c19e59a7f2fcd0f4b3e9565e0141f47ace29b9414a",
+      "hash_match": true,
+      "bytes": 2041,
+      "lines": 71
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_plugins/particles/runtime/src/asset.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_plugins/particles/runtime/src/asset.rs",
+      "source_sha256": "7a805ce195044d162aff66e02b7048e906c0c384b46e0fc461ed7f8f46ccb197",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/asset.rs",
+      "captured_sha256": "7a805ce195044d162aff66e02b7048e906c0c384b46e0fc461ed7f8f46ccb197",
+      "hash_match": true,
+      "bytes": 12162,
+      "lines": 442
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_plugins/particles/runtime/src/simulation/cpu.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_plugins/particles/runtime/src/simulation/cpu.rs",
+      "source_sha256": "a4c723b8122175fbead3ea6515b5caebb03b5b0eb0c5877d4fec5ab2e230761e",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/simulation/cpu.rs",
+      "captured_sha256": "a4c723b8122175fbead3ea6515b5caebb03b5b0eb0c5877d4fec5ab2e230761e",
+      "hash_match": true,
+      "bytes": 16937,
+      "lines": 486
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_plugins/particles/runtime/src/simulation/pool.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_plugins/particles/runtime/src/simulation/pool.rs",
+      "source_sha256": "5b45c06a413be8c16d54795f205aa09850d0a83c550d9cf7b90763e6580398f6",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/simulation/pool.rs",
+      "captured_sha256": "5b45c06a413be8c16d54795f205aa09850d0a83c550d9cf7b90763e6580398f6",
+      "hash_match": true,
+      "bytes": 4938,
+      "lines": 163
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_plugins/particles/runtime/src/render/extract.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_plugins/particles/runtime/src/render/extract.rs",
+      "source_sha256": "566fc70aa07f3a40e8e6650418bda45db61cb830de306d083007275a7eb73f92",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/render/extract.rs",
+      "captured_sha256": "566fc70aa07f3a40e8e6650418bda45db61cb830de306d083007275a7eb73f92",
+      "hash_match": true,
+      "bytes": 3214,
+      "lines": 99
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_plugins/particles/runtime/src/render/feature.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_plugins/particles/runtime/src/render/feature.rs",
+      "source_sha256": "b3c4a72ddb1b84d78f5a4cb07fa1ebd3bcee05a0d913352f4f54a56e9b22628d",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/render/feature.rs",
+      "captured_sha256": "b3c4a72ddb1b84d78f5a4cb07fa1ebd3bcee05a0d913352f4f54a56e9b22628d",
+      "hash_match": true,
+      "bytes": 3478,
+      "lines": 80
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_plugins/particles/runtime/src/render/runtime_prepare.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_plugins/particles/runtime/src/render/runtime_prepare.rs",
+      "source_sha256": "a02d6f10b1ff2a8600395fc1dbe7a89ccbb82a5081cbef23b7a5b3300a3f64cd",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/render/runtime_prepare.rs",
+      "captured_sha256": "a02d6f10b1ff2a8600395fc1dbe7a89ccbb82a5081cbef23b7a5b3300a3f64cd",
+      "hash_match": true,
+      "bytes": 25769,
+      "lines": 650
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_plugins/particles/runtime/src/render/gpu/backend.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_plugins/particles/runtime/src/render/gpu/backend.rs",
+      "source_sha256": "2e928978b6280f9afaf7bfb868d108a58aa5a7517cc034e7d04b567ad85b7436",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/render/gpu/backend.rs",
+      "captured_sha256": "2e928978b6280f9afaf7bfb868d108a58aa5a7517cc034e7d04b567ad85b7436",
+      "hash_match": true,
+      "bytes": 19461,
+      "lines": 556
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_plugins/particles/runtime/src/render/gpu/planner.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_plugins/particles/runtime/src/render/gpu/planner.rs",
+      "source_sha256": "077d63751cf7ab4b170372a99ab0e707ba5335ba5d6182d0ab7100a3fcd0485b",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/render/gpu/planner.rs",
+      "captured_sha256": "077d63751cf7ab4b170372a99ab0e707ba5335ba5d6182d0ab7100a3fcd0485b",
+      "hash_match": true,
+      "bytes": 13068,
+      "lines": 417
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_plugins/particles/runtime/src/render/gpu/runtime_owner.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_plugins/particles/runtime/src/render/gpu/runtime_owner.rs",
+      "source_sha256": "9c69651839b9562bfad4bb0da41261efbe45fc4260a1b9c8ea33958ad03dd66c",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/render/gpu/runtime_owner.rs",
+      "captured_sha256": "9c69651839b9562bfad4bb0da41261efbe45fc4260a1b9c8ea33958ad03dd66c",
+      "hash_match": true,
+      "bytes": 18921,
+      "lines": 539
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_plugins/particles/runtime/src/render/gpu/program.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_plugins/particles/runtime/src/render/gpu/program.rs",
+      "source_sha256": "5c022cd35fad0b33f2b5cacd4d876fb9a2bdf2967010d91d9bc7dc4667a4f26e",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/render/gpu/program.rs",
+      "captured_sha256": "5c022cd35fad0b33f2b5cacd4d876fb9a2bdf2967010d91d9bc7dc4667a4f26e",
+      "hash_match": true,
+      "bytes": 8670,
+      "lines": 254
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_plugins/particles/runtime/src/render/gpu/neutral_buffers.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_plugins/particles/runtime/src/render/gpu/neutral_buffers.rs",
+      "source_sha256": "43b3faec1a8123ec29b1e78ddaf073a215e0accbf10ce4113bb355304cce0b92",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/render/gpu/neutral_buffers.rs",
+      "captured_sha256": "43b3faec1a8123ec29b1e78ddaf073a215e0accbf10ce4113bb355304cce0b92",
+      "hash_match": true,
+      "bytes": 6895,
+      "lines": 200
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_plugins/particles/runtime/src/tests/mod.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_plugins/particles/runtime/src/tests/mod.rs",
+      "source_sha256": "f684dbaae4c0e03d1db59ec961f0ea8e57c44b2acb9a25c8d2626e606c81fd7d",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/tests/mod.rs",
+      "captured_sha256": "f684dbaae4c0e03d1db59ec961f0ea8e57c44b2acb9a25c8d2626e606c81fd7d",
+      "hash_match": true,
+      "bytes": 183,
+      "lines": 11
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_plugins/particles/runtime/src/render/gpu/backend/test_readback.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_plugins/particles/runtime/src/render/gpu/backend/test_readback.rs",
+      "source_sha256": "0aa9cf6dcbcb2fd917b13b7799cdd1525187552fda352bd8ecd002bceaef2620",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/runtime/src/render/gpu/backend/test_readback.rs",
+      "captured_sha256": "0aa9cf6dcbcb2fd917b13b7799cdd1525187552fda352bd8ecd002bceaef2620",
+      "hash_match": true,
+      "bytes": 2887,
+      "lines": 80
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_plugins/particles/editor/src/tests.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_plugins/particles/editor/src/tests.rs",
+      "source_sha256": "d26973b0ce6b7ee34d66a018023e93d88ca069aa444feae60dbf700d7b874214",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/particles/editor/src/tests.rs",
+      "captured_sha256": "d26973b0ce6b7ee34d66a018023e93d88ca069aa444feae60dbf700d7b874214",
+      "hash_match": true,
+      "bytes": 7419,
+      "lines": 204
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_plugins/rendering/features/vfx_graph/runtime/src/lib.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_plugins/rendering/features/vfx_graph/runtime/src/lib.rs",
+      "source_sha256": "ed244d10ffd2e39e66fdff6ebbce1dec6ef1b80fd5dca21f168a9069a9b4cb45",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_plugins/rendering/features/vfx_graph/runtime/src/lib.rs",
+      "captured_sha256": "ed244d10ffd2e39e66fdff6ebbce1dec6ef1b80fd5dca21f168a9069a9b4cb45",
+      "hash_match": true,
+      "bytes": 7578,
+      "lines": 192
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_runtime/src/scene/world/render_particles.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_runtime/src/scene/world/render_particles.rs",
+      "source_sha256": "3c6c91da77daf1c56958cec61a6b7189e3cb1c2af1111af21a81ace393434e9d",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_runtime/src/scene/world/render_particles.rs",
+      "captured_sha256": "3c6c91da77daf1c56958cec61a6b7189e3cb1c2af1111af21a81ace393434e9d",
+      "hash_match": true,
+      "bytes": 30997,
+      "lines": 845
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_runtime/src/core/framework/render/frame_extract/particle.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_runtime/src/core/framework/render/frame_extract/particle.rs",
+      "source_sha256": "31dfdab5e952976e5f208c253ea392a6359b1028667f9980a364f71e83b02eee",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_runtime/src/core/framework/render/frame_extract/particle.rs",
+      "captured_sha256": "31dfdab5e952976e5f208c253ea392a6359b1028667f9980a364f71e83b02eee",
+      "hash_match": true,
+      "bytes": 838,
+      "lines": 19
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_runtime/src/graphics/particle_runtime_provider/mod.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_runtime/src/graphics/particle_runtime_provider/mod.rs",
+      "source_sha256": "6773c85158adc700757f9503adcaafdf76895ccc2205efd13dbb5dffb7d68e54",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_runtime/src/graphics/particle_runtime_provider/mod.rs",
+      "captured_sha256": "6773c85158adc700757f9503adcaafdf76895ccc2205efd13dbb5dffb7d68e54",
+      "hash_match": true,
+      "bytes": 235,
+      "lines": 6
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_runtime/src/graphics/scene/scene_renderer/particle/mod.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_runtime/src/graphics/scene/scene_renderer/particle/mod.rs",
+      "source_sha256": "a79fd9ac6e0f27650cb31a2345d0b7d40e35ff063e262f64e0aff9bba4c31144",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_runtime/src/graphics/scene/scene_renderer/particle/mod.rs",
+      "captured_sha256": "a79fd9ac6e0f27650cb31a2345d0b7d40e35ff063e262f64e0aff9bba4c31144",
+      "hash_match": true,
+      "bytes": 1604,
+      "lines": 37
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/particle.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/particle.rs",
+      "source_sha256": "74191b0a1d813133e9e04c6981f106c9502f0caa0144c4ccf0ffb11c24dfb11e",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/particle.rs",
+      "captured_sha256": "74191b0a1d813133e9e04c6981f106c9502f0caa0144c4ccf0ffb11c24dfb11e",
+      "hash_match": true,
+      "bytes": 5609,
+      "lines": 148
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_runtime/src/graphics/visibility/declarations/visibility_particle_upload_plan.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_runtime/src/graphics/visibility/declarations/visibility_particle_upload_plan.rs",
+      "source_sha256": "c7638b30514e76f31079585104863bc30de5083ba9f1475944475d42b28bab8b",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_runtime/src/graphics/visibility/declarations/visibility_particle_upload_plan.rs",
+      "captured_sha256": "c7638b30514e76f31079585104863bc30de5083ba9f1475944475d42b28bab8b",
+      "hash_match": true,
+      "bytes": 345,
+      "lines": 9
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_runtime/src/graphics/visibility/planning/build_particle_upload_plan.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_runtime/src/graphics/visibility/planning/build_particle_upload_plan.rs",
+      "source_sha256": "94d645c650c64d8b94dc0195197a3f17a0aaf19b4fed63b9a77955f0da1c866d",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_runtime/src/graphics/visibility/planning/build_particle_upload_plan.rs",
+      "captured_sha256": "94d645c650c64d8b94dc0195197a3f17a0aaf19b4fed63b9a77955f0da1c866d",
+      "hash_match": true,
+      "bytes": 6728,
+      "lines": 182
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_runtime/src/script/vm/gameplay_host.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_runtime/src/script/vm/gameplay_host.rs",
+      "source_sha256": "980b11f41c281febebdf831e6f7d5c8f76bd52e5f6283455135a380fdc28112c",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_runtime/src/script/vm/gameplay_host.rs",
+      "captured_sha256": "980b11f41c281febebdf831e6f7d5c8f76bd52e5f6283455135a380fdc28112c",
+      "hash_match": true,
+      "bytes": 19128,
+      "lines": 398
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_runtime/src/script/vm/gameplay_host/lifecycle.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_runtime/src/script/vm/gameplay_host/lifecycle.rs",
+      "source_sha256": "f000357cc4c987ec7a70121881701e3321f78b9fdef2ea2788dd9085a267003c",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_runtime/src/script/vm/gameplay_host/lifecycle.rs",
+      "captured_sha256": "f000357cc4c987ec7a70121881701e3321f78b9fdef2ea2788dd9085a267003c",
+      "hash_match": true,
+      "bytes": 7772,
+      "lines": 189
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/render_asset_vfx.rs",
+      "realpath": "E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/render_asset_vfx.rs",
+      "source_sha256": "b199aff46ad4dd4a94fffdbd042ac38940b3e59650e215c966f4a2deaee5f6c2",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/render_asset_vfx.rs",
+      "captured_sha256": "b199aff46ad4dd4a94fffdbd042ac38940b3e59650e215c966f4a2deaee5f6c2",
+      "hash_match": true,
+      "bytes": 11288,
+      "lines": 306
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_vfx_workspace.zui",
+      "realpath": "E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_vfx_workspace.zui",
+      "source_sha256": "4acc65c4d955f5c4b80ea2dd27335169ea89becccafed3ffd31d71e575f6bd37",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_vfx_workspace.zui",
+      "captured_sha256": "4acc65c4d955f5c4b80ea2dd27335169ea89becccafed3ffd31d71e575f6bd37",
+      "hash_match": true,
+      "bytes": 12919,
+      "lines": 242
+    },
+    {
+      "kind": "source",
+      "repo_path": "zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_particle_library_workspace.zui",
+      "realpath": "E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_particle_library_workspace.zui",
+      "source_sha256": "797fbfcceb75daf6cf4ed662b119850a427bfeb52e3fb6368b5c6ed04e0c4668",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_particle_library_workspace.zui",
+      "captured_sha256": "797fbfcceb75daf6cf4ed662b119850a427bfeb52e3fb6368b5c6ed04e0c4668",
+      "hash_match": true,
+      "bytes": 16634,
+      "lines": 257
+    },
+    {
+      "kind": "source",
+      "repo_path": "examples/vampire/scripts/vampire_game/main.zr",
+      "realpath": "E:/Git/ZirconEngine/examples/vampire/scripts/vampire_game/main.zr",
+      "source_sha256": "ff796b4ec820d21b6f90ad631f35f4e00bc8540cf64fa995bda96127070641e3",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/examples/vampire/scripts/vampire_game/main.zr",
+      "captured_sha256": "ff796b4ec820d21b6f90ad631f35f4e00bc8540cf64fa995bda96127070641e3",
+      "hash_match": true,
+      "bytes": 9146,
+      "lines": 192
+    },
+    {
+      "kind": "source",
+      "repo_path": "tests/acceptance/particles-gpu-readback-mailbox.md",
+      "realpath": "E:/Git/ZirconEngine/tests/acceptance/particles-gpu-readback-mailbox.md",
+      "source_sha256": "47da66a42e2e2b29a09e0efa11fe907257b314ab1c67175a0ea2db76f198285c",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/source/tests/acceptance/particles-gpu-readback-mailbox.md",
+      "captured_sha256": "47da66a42e2e2b29a09e0efa11fe907257b314ab1c67175a0ea2db76f198285c",
+      "hash_match": true,
+      "bytes": 7350,
+      "lines": 53
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Public/NiagaraComponent.h",
+      "realpath": "E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Public/NiagaraComponent.h",
+      "source_sha256": "56c8f6c8c1fcc116851f5c4c14ea267a14bb2e85b88d0f0e313eb75917f2689b",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Public/NiagaraComponent.h",
+      "captured_sha256": "56c8f6c8c1fcc116851f5c4c14ea267a14bb2e85b88d0f0e313eb75917f2689b",
+      "hash_match": true,
+      "bytes": 55379,
+      "lines": 1017
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraWorldManager.cpp",
+      "realpath": "E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraWorldManager.cpp",
+      "source_sha256": "2847895e2194d67539b9fe5a471f73e0b001a023ce4a1cf9c6847999b90577f4",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraWorldManager.cpp",
+      "captured_sha256": "2847895e2194d67539b9fe5a471f73e0b001a023ce4a1cf9c6847999b90577f4",
+      "hash_match": true,
+      "bytes": 96918,
+      "lines": 2782
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraScalabilityManager.cpp",
+      "realpath": "E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraScalabilityManager.cpp",
+      "source_sha256": "5e9e737d8d2d9a708f4e243adf440019b567f64b79e6224065145959f634ace4",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraScalabilityManager.cpp",
+      "captured_sha256": "5e9e737d8d2d9a708f4e243adf440019b567f64b79e6224065145959f634ace4",
+      "hash_match": true,
+      "bytes": 32113,
+      "lines": 833
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraGpuComputeDispatch.cpp",
+      "realpath": "E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraGpuComputeDispatch.cpp",
+      "source_sha256": "d8989f85d4b5897d21453966824367ec5a0fd8cfe70781eddf937717f15fd08d",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraGpuComputeDispatch.cpp",
+      "captured_sha256": "d8989f85d4b5897d21453966824367ec5a0fd8cfe70781eddf937717f15fd08d",
+      "hash_match": true,
+      "bytes": 120265,
+      "lines": 2797
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraRendererSprites.cpp",
+      "realpath": "E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraRendererSprites.cpp",
+      "source_sha256": "dce013cabddb0b5998be41718780202c40299a4040b8ca66444b6c7daf19d87c",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraRendererSprites.cpp",
+      "captured_sha256": "dce013cabddb0b5998be41718780202c40299a4040b8ca66444b6c7daf19d87c",
+      "hash_match": true,
+      "bytes": 65276,
+      "lines": 1289
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraRendererMeshes.cpp",
+      "realpath": "E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraRendererMeshes.cpp",
+      "source_sha256": "6e67e4e8781c1ceee8d6bf21b04015074043475cc271ee1883780fb319015ca9",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraRendererMeshes.cpp",
+      "captured_sha256": "6e67e4e8781c1ceee8d6bf21b04015074043475cc271ee1883780fb319015ca9",
+      "hash_match": true,
+      "bytes": 87313,
+      "lines": 1968
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraRendererRibbons.cpp",
+      "realpath": "E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraRendererRibbons.cpp",
+      "source_sha256": "c5f42215c33a5cb6991c2c8f4dbb874f47e3a2ea4d50b86da9d1e4115106d50e",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraRendererRibbons.cpp",
+      "captured_sha256": "c5f42215c33a5cb6991c2c8f4dbb874f47e3a2ea4d50b86da9d1e4115106d50e",
+      "hash_match": true,
+      "bytes": 147159,
+      "lines": 3045
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraSystemSimulation.cpp",
+      "realpath": "E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraSystemSimulation.cpp",
+      "source_sha256": "599f4223700bc3fdaba8cbba6be1ef2edf87bb4551616760917ca285549b1e7a",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraSystemSimulation.cpp",
+      "captured_sha256": "599f4223700bc3fdaba8cbba6be1ef2edf87bb4551616760917ca285549b1e7a",
+      "hash_match": true,
+      "bytes": 101290,
+      "lines": 2577
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/Fyrox/fyrox-impl/src/scene/particle_system/mod.rs",
+      "realpath": "E:/Git/ZirconEngine/dev/Fyrox/fyrox-impl/src/scene/particle_system/mod.rs",
+      "source_sha256": "82d4abc584ede3c5bfa8c11f4d8af340d818bdb878af8e0b0ed0a979f7f48e68",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/Fyrox/fyrox-impl/src/scene/particle_system/mod.rs",
+      "captured_sha256": "82d4abc584ede3c5bfa8c11f4d8af340d818bdb878af8e0b0ed0a979f7f48e68",
+      "hash_match": true,
+      "bytes": 29535,
+      "lines": 819
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/Fyrox/fyrox-impl/src/scene/particle_system/draw.rs",
+      "realpath": "E:/Git/ZirconEngine/dev/Fyrox/fyrox-impl/src/scene/particle_system/draw.rs",
+      "source_sha256": "754699ea750b0069f60b95c3007e9fb66fd084d45ce3213c346bac2d95d4c02e",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/Fyrox/fyrox-impl/src/scene/particle_system/draw.rs",
+      "captured_sha256": "754699ea750b0069f60b95c3007e9fb66fd084d45ce3213c346bac2d95d4c02e",
+      "hash_match": true,
+      "bytes": 3232,
+      "lines": 88
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/Fyrox/fyrox-impl/src/scene/particle_system/particle.rs",
+      "realpath": "E:/Git/ZirconEngine/dev/Fyrox/fyrox-impl/src/scene/particle_system/particle.rs",
+      "source_sha256": "cef156d54da2ebc43b1692169bd5295ea5e6567b314bbf47731823c168c8416f",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/Fyrox/fyrox-impl/src/scene/particle_system/particle.rs",
+      "captured_sha256": "cef156d54da2ebc43b1692169bd5295ea5e6567b314bbf47731823c168c8416f",
+      "hash_match": true,
+      "bytes": 4205,
+      "lines": 125
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/Fyrox/fyrox-impl/src/scene/particle_system/emitter/base.rs",
+      "realpath": "E:/Git/ZirconEngine/dev/Fyrox/fyrox-impl/src/scene/particle_system/emitter/base.rs",
+      "source_sha256": "9e0a11096640f3c04cfa6294b041b46ce45742627ed5a62516c0e308e8883941",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/Fyrox/fyrox-impl/src/scene/particle_system/emitter/base.rs",
+      "captured_sha256": "9e0a11096640f3c04cfa6294b041b46ce45742627ed5a62516c0e308e8883941",
+      "hash_match": true,
+      "bytes": 15651,
+      "lines": 446
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/godot/scene/3d/gpu_particles_3d.cpp",
+      "realpath": "E:/Git/ZirconEngine/dev/godot/scene/3d/gpu_particles_3d.cpp",
+      "source_sha256": "ed126d09833b729eccfc4603bca492927cbb083ec99867e2aa82b553409dfc41",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/godot/scene/3d/gpu_particles_3d.cpp",
+      "captured_sha256": "ed126d09833b729eccfc4603bca492927cbb083ec99867e2aa82b553409dfc41",
+      "hash_match": true,
+      "bytes": 40891,
+      "lines": 966
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/godot/scene/3d/cpu_particles_3d.cpp",
+      "realpath": "E:/Git/ZirconEngine/dev/godot/scene/3d/cpu_particles_3d.cpp",
+      "source_sha256": "e0b78d6c997e5e938d5eb65709ac4d14697ab4d5f6580649678506dd08c122d1",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/godot/scene/3d/cpu_particles_3d.cpp",
+      "captured_sha256": "e0b78d6c997e5e938d5eb65709ac4d14697ab4d5f6580649678506dd08c122d1",
+      "hash_match": true,
+      "bytes": 73290,
+      "lines": 1870
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/godot/servers/rendering/renderer_rd/storage_rd/particles_storage.cpp",
+      "realpath": "E:/Git/ZirconEngine/dev/godot/servers/rendering/renderer_rd/storage_rd/particles_storage.cpp",
+      "source_sha256": "2e391c572841c9523ad54e5027dcf4b5c51498d8bf301d2c9c7cbbb09838fa2c",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/godot/servers/rendering/renderer_rd/storage_rd/particles_storage.cpp",
+      "captured_sha256": "2e391c572841c9523ad54e5027dcf4b5c51498d8bf301d2c9c7cbbb09838fa2c",
+      "hash_match": true,
+      "bytes": 84860,
+      "lines": 2077
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/godot/scene/resources/particle_process_material.cpp",
+      "realpath": "E:/Git/ZirconEngine/dev/godot/scene/resources/particle_process_material.cpp",
+      "source_sha256": "df6c6e07e7257aaae4e52dd6a7093311311cffb862f39f4b71b6f5a08aa9ef5e",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/godot/scene/resources/particle_process_material.cpp",
+      "captured_sha256": "df6c6e07e7257aaae4e52dd6a7093311311cffb862f39f4b71b6f5a08aa9ef5e",
+      "hash_match": true,
+      "bytes": 140284,
+      "lines": 2846
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/Graphics/Packages/com.unity.visualeffectgraph/Editor/Data/VFXDataParticle.cs",
+      "realpath": "E:/Git/ZirconEngine/dev/Graphics/Packages/com.unity.visualeffectgraph/Editor/Data/VFXDataParticle.cs",
+      "source_sha256": "28ef58060ffac60a8ffd2486252fc8d8cc3ef475ad8c7f4bc38372f9380f2ca6",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/Graphics/Packages/com.unity.visualeffectgraph/Editor/Data/VFXDataParticle.cs",
+      "captured_sha256": "28ef58060ffac60a8ffd2486252fc8d8cc3ef475ad8c7f4bc38372f9380f2ca6",
+      "hash_match": true,
+      "bytes": 85051,
+      "lines": 1818
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/Graphics/Packages/com.unity.visualeffectgraph/Editor/Compiler/VFXGraphCompiledData.cs",
+      "realpath": "E:/Git/ZirconEngine/dev/Graphics/Packages/com.unity.visualeffectgraph/Editor/Compiler/VFXGraphCompiledData.cs",
+      "source_sha256": "309053ee481f6653a2a9026e3673a6deebc9f2cf302fc7270bddc09a143ae997",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/Graphics/Packages/com.unity.visualeffectgraph/Editor/Compiler/VFXGraphCompiledData.cs",
+      "captured_sha256": "309053ee481f6653a2a9026e3673a6deebc9f2cf302fc7270bddc09a143ae997",
+      "hash_match": true,
+      "bytes": 72543,
+      "lines": 1506
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/Graphics/Packages/com.unity.visualeffectgraph/Editor/Compiler/VFXCodeGenerator.cs",
+      "realpath": "E:/Git/ZirconEngine/dev/Graphics/Packages/com.unity.visualeffectgraph/Editor/Compiler/VFXCodeGenerator.cs",
+      "source_sha256": "6dc3fe71758325487590e0954d8a83584cf12010ef1c58fdaf750ba511b1b718",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/Graphics/Packages/com.unity.visualeffectgraph/Editor/Compiler/VFXCodeGenerator.cs",
+      "captured_sha256": "6dc3fe71758325487590e0954d8a83584cf12010ef1c58fdaf750ba511b1b718",
+      "hash_match": true,
+      "bytes": 45253,
+      "lines": 958
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/Graphics/Packages/com.unity.visualeffectgraph/Shaders/VFXCommon.hlsl",
+      "realpath": "E:/Git/ZirconEngine/dev/Graphics/Packages/com.unity.visualeffectgraph/Shaders/VFXCommon.hlsl",
+      "source_sha256": "ad489a333a7120560ad32de95a175df8c6fb42174c35b192a9e6a84262322d4b",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/Graphics/Packages/com.unity.visualeffectgraph/Shaders/VFXCommon.hlsl",
+      "captured_sha256": "ad489a333a7120560ad32de95a175df8c6fb42174c35b192a9e6a84262322d4b",
+      "hash_match": true,
+      "bytes": 29384,
+      "lines": 960
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/Graphics/Packages/com.unity.visualeffectgraph/Runtime/Types/VFXTypes.cs",
+      "realpath": "E:/Git/ZirconEngine/dev/Graphics/Packages/com.unity.visualeffectgraph/Runtime/Types/VFXTypes.cs",
+      "source_sha256": "cbac90c862cf66cbadb2863145eb17e0c4d10736593b3197108ebdbcbe527a4a",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/Graphics/Packages/com.unity.visualeffectgraph/Runtime/Types/VFXTypes.cs",
+      "captured_sha256": "cbac90c862cf66cbadb2863145eb17e0c4d10736593b3197108ebdbcbe527a4a",
+      "hash_match": true,
+      "bytes": 1481,
+      "lines": 45
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/Graphics/Packages/com.unity.visualeffectgraph/Runtime/Utilities/VFXRuntimeResources.cs",
+      "realpath": "E:/Git/ZirconEngine/dev/Graphics/Packages/com.unity.visualeffectgraph/Runtime/Utilities/VFXRuntimeResources.cs",
+      "source_sha256": "0361e41b5696ece1c911958a8375ff8caa585b04480fc7452bf1f5d98c3af991",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/Graphics/Packages/com.unity.visualeffectgraph/Runtime/Utilities/VFXRuntimeResources.cs",
+      "captured_sha256": "0361e41b5696ece1c911958a8375ff8caa585b04480fc7452bf1f5d98c3af991",
+      "hash_match": true,
+      "bytes": 1237,
+      "lines": 62
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/bevy/crates/bevy_render/src/extract_component.rs",
+      "realpath": "E:/Git/ZirconEngine/dev/bevy/crates/bevy_render/src/extract_component.rs",
+      "source_sha256": "dd81e501fe9ac21a4caec8f91c628f174b0ff4bf51b0507bbb0347ad965b0a15",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/bevy/crates/bevy_render/src/extract_component.rs",
+      "captured_sha256": "dd81e501fe9ac21a4caec8f91c628f174b0ff4bf51b0507bbb0347ad965b0a15",
+      "hash_match": true,
+      "bytes": 5329,
+      "lines": 135
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/bevy/crates/bevy_render/src/render_asset.rs",
+      "realpath": "E:/Git/ZirconEngine/dev/bevy/crates/bevy_render/src/render_asset.rs",
+      "source_sha256": "fec69e4c27506056a55fc472e30fb113fdf316dc73647fb11794fb6c1ac77377",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/bevy/crates/bevy_render/src/render_asset.rs",
+      "captured_sha256": "fec69e4c27506056a55fc472e30fb113fdf316dc73647fb11794fb6c1ac77377",
+      "hash_match": true,
+      "bytes": 22170,
+      "lines": 569
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/bevy/crates/bevy_render/src/gpu_component_array_buffer.rs",
+      "realpath": "E:/Git/ZirconEngine/dev/bevy/crates/bevy_render/src/gpu_component_array_buffer.rs",
+      "source_sha256": "49fb853316ed88462a5581a75682345360a954a172f53c4d268c1b3dbf91b20d",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/bevy/crates/bevy_render/src/gpu_component_array_buffer.rs",
+      "captured_sha256": "49fb853316ed88462a5581a75682345360a954a172f53c4d268c1b3dbf91b20d",
+      "hash_match": true,
+      "bytes": 1953,
+      "lines": 59
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/bevy/crates/bevy_render/src/gpu_readback.rs",
+      "realpath": "E:/Git/ZirconEngine/dev/bevy/crates/bevy_render/src/gpu_readback.rs",
+      "source_sha256": "04190bced0abd329ccc21e085e8e7308a7dc3591710bd310c7759518b1332821",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/bevy/crates/bevy_render/src/gpu_readback.rs",
+      "captured_sha256": "04190bced0abd329ccc21e085e8e7308a7dc3591710bd310c7759518b1332821",
+      "hash_match": true,
+      "bytes": 16026,
+      "lines": 459
+    },
+    {
+      "kind": "references",
+      "repo_path": "dev/bevy/crates/bevy_render/src/batching/gpu_preprocessing.rs",
+      "realpath": "E:/Git/ZirconEngine/dev/bevy/crates/bevy_render/src/batching/gpu_preprocessing.rs",
+      "source_sha256": "d837223bbfd2193b27939d991f3428f41bf214a7b3ae3b3d2af25d59bdeb7aa1",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/references/dev/bevy/crates/bevy_render/src/batching/gpu_preprocessing.rs",
+      "captured_sha256": "d837223bbfd2193b27939d991f3428f41bf214a7b3ae3b3d2af25d59bdeb7aa1",
+      "hash_match": true,
+      "bytes": 116446,
+      "lines": 2893
+    },
+    {
+      "kind": "reports",
+      "repo_path": "docs/plans/optimize/zircon_runtime/26-particle-vfx-system-emitter-cpu-gpu-simulation-rendering-scalability-determinism-product-integration-review.md",
+      "realpath": "E:/Git/ZirconEngine/docs/plans/optimize/zircon_runtime/26-particle-vfx-system-emitter-cpu-gpu-simulation-rendering-scalability-determinism-product-integration-review.md",
+      "source_sha256": "1d55c81a11c7277d286a044ecca2fc71735661d5710022a185079cc8afa3995d",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/reports/docs/plans/optimize/zircon_runtime/26-particle-vfx-system-emitter-cpu-gpu-simulation-rendering-scalability-determinism-product-integration-review.md",
+      "captured_sha256": "1d55c81a11c7277d286a044ecca2fc71735661d5710022a185079cc8afa3995d",
+      "hash_match": true,
+      "bytes": 45720,
+      "lines": 411
+    },
+    {
+      "kind": "reports",
+      "repo_path": "docs/plans/optimize/zircon_runtime/99d-runtime-particle-vfx-system-emitter-cpu-gpu-simulation-rendering-scalability-determinism-product-integration-current-source-review.md",
+      "realpath": "E:/Git/ZirconEngine/docs/plans/optimize/zircon_runtime/99d-runtime-particle-vfx-system-emitter-cpu-gpu-simulation-rendering-scalability-determinism-product-integration-current-source-review.md",
+      "source_sha256": "c7b93dd04d0cba9f0f67bb69824c11d230b64e58a5f62a1f72ab06e2ff5a39ac",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/reports/docs/plans/optimize/zircon_runtime/99d-runtime-particle-vfx-system-emitter-cpu-gpu-simulation-rendering-scalability-determinism-product-integration-current-source-review.md",
+      "captured_sha256": "c7b93dd04d0cba9f0f67bb69824c11d230b64e58a5f62a1f72ab06e2ff5a39ac",
+      "hash_match": true,
+      "bytes": 37733,
+      "lines": 410
+    },
+    {
+      "kind": "reports",
+      "repo_path": "docs/plans/optimize/zircon_runtime/171-runtime-particle-vfx-current-working-tree-world-authority-gpu-graph-renderer-scalability-editor-boundary-review.md",
+      "realpath": "E:/Git/ZirconEngine/docs/plans/optimize/zircon_runtime/171-runtime-particle-vfx-current-working-tree-world-authority-gpu-graph-renderer-scalability-editor-boundary-review.md",
+      "source_sha256": "761f59f42e35883a50909d48be2da931a793792f47c17cf87cc7da5249675764",
+      "captured_path": "/mnt/c/Users/HeJiahui/.codex/visualizations/2026/09/30/01a0f033-ce80-77e2-86f0-eed5bfbb5926/P/w0/batch23/captured-current/reports/docs/plans/optimize/zircon_runtime/171-runtime-particle-vfx-current-working-tree-world-authority-gpu-graph-renderer-scalability-editor-boundary-review.md",
+      "captured_sha256": "761f59f42e35883a50909d48be2da931a793792f47c17cf87cc7da5249675764",
+      "hash_match": true,
+      "bytes": 22959,
+      "lines": 181
+    }
+  ],
+  "source_observations": [
+    {
+      "batch": 23,
+      "path": "zircon_plugins/particles/runtime/src/lib.rs",
+      "captured_sha256": "591523d2591e51da6e97162c178b3cfb0450273fe2181572efbd4474e72803fa",
+      "root_current_sha256": "591523d2591e51da6e97162c178b3cfb0450273fe2181572efbd4474e72803fa",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_plugins/particles/runtime/src/service.rs",
+      "captured_sha256": "c120026b4985fbc47cb7ced1e16b3605637554fbe14f11248fd30b0e40e99ed2",
+      "root_current_sha256": "c120026b4985fbc47cb7ced1e16b3605637554fbe14f11248fd30b0e40e99ed2",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_plugins/particles/runtime/src/component.rs",
+      "captured_sha256": "84c3993d85e891b204bbf7c19e59a7f2fcd0f4b3e9565e0141f47ace29b9414a",
+      "root_current_sha256": "84c3993d85e891b204bbf7c19e59a7f2fcd0f4b3e9565e0141f47ace29b9414a",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_plugins/particles/runtime/src/asset.rs",
+      "captured_sha256": "7a805ce195044d162aff66e02b7048e906c0c384b46e0fc461ed7f8f46ccb197",
+      "root_current_sha256": "7a805ce195044d162aff66e02b7048e906c0c384b46e0fc461ed7f8f46ccb197",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_plugins/particles/runtime/src/simulation/cpu.rs",
+      "captured_sha256": "a4c723b8122175fbead3ea6515b5caebb03b5b0eb0c5877d4fec5ab2e230761e",
+      "root_current_sha256": "a4c723b8122175fbead3ea6515b5caebb03b5b0eb0c5877d4fec5ab2e230761e",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_plugins/particles/runtime/src/simulation/pool.rs",
+      "captured_sha256": "5b45c06a413be8c16d54795f205aa09850d0a83c550d9cf7b90763e6580398f6",
+      "root_current_sha256": "5b45c06a413be8c16d54795f205aa09850d0a83c550d9cf7b90763e6580398f6",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_plugins/particles/runtime/src/render/extract.rs",
+      "captured_sha256": "566fc70aa07f3a40e8e6650418bda45db61cb830de306d083007275a7eb73f92",
+      "root_current_sha256": "566fc70aa07f3a40e8e6650418bda45db61cb830de306d083007275a7eb73f92",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_plugins/particles/runtime/src/render/feature.rs",
+      "captured_sha256": "b3c4a72ddb1b84d78f5a4cb07fa1ebd3bcee05a0d913352f4f54a56e9b22628d",
+      "root_current_sha256": "b3c4a72ddb1b84d78f5a4cb07fa1ebd3bcee05a0d913352f4f54a56e9b22628d",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_plugins/particles/runtime/src/render/runtime_prepare.rs",
+      "captured_sha256": "a02d6f10b1ff2a8600395fc1dbe7a89ccbb82a5081cbef23b7a5b3300a3f64cd",
+      "root_current_sha256": "a02d6f10b1ff2a8600395fc1dbe7a89ccbb82a5081cbef23b7a5b3300a3f64cd",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_plugins/particles/runtime/src/render/gpu/backend.rs",
+      "captured_sha256": "2e928978b6280f9afaf7bfb868d108a58aa5a7517cc034e7d04b567ad85b7436",
+      "root_current_sha256": "2e928978b6280f9afaf7bfb868d108a58aa5a7517cc034e7d04b567ad85b7436",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_plugins/particles/runtime/src/render/gpu/planner.rs",
+      "captured_sha256": "077d63751cf7ab4b170372a99ab0e707ba5335ba5d6182d0ab7100a3fcd0485b",
+      "root_current_sha256": "077d63751cf7ab4b170372a99ab0e707ba5335ba5d6182d0ab7100a3fcd0485b",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_plugins/particles/runtime/src/render/gpu/runtime_owner.rs",
+      "captured_sha256": "9c69651839b9562bfad4bb0da41261efbe45fc4260a1b9c8ea33958ad03dd66c",
+      "root_current_sha256": "9c69651839b9562bfad4bb0da41261efbe45fc4260a1b9c8ea33958ad03dd66c",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_plugins/particles/runtime/src/render/gpu/program.rs",
+      "captured_sha256": "5c022cd35fad0b33f2b5cacd4d876fb9a2bdf2967010d91d9bc7dc4667a4f26e",
+      "root_current_sha256": "5c022cd35fad0b33f2b5cacd4d876fb9a2bdf2967010d91d9bc7dc4667a4f26e",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_plugins/particles/runtime/src/render/gpu/neutral_buffers.rs",
+      "captured_sha256": "43b3faec1a8123ec29b1e78ddaf073a215e0accbf10ce4113bb355304cce0b92",
+      "root_current_sha256": "43b3faec1a8123ec29b1e78ddaf073a215e0accbf10ce4113bb355304cce0b92",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_plugins/particles/runtime/src/tests/mod.rs",
+      "captured_sha256": "f684dbaae4c0e03d1db59ec961f0ea8e57c44b2acb9a25c8d2626e606c81fd7d",
+      "root_current_sha256": "f684dbaae4c0e03d1db59ec961f0ea8e57c44b2acb9a25c8d2626e606c81fd7d",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_plugins/particles/runtime/src/render/gpu/backend/test_readback.rs",
+      "captured_sha256": "0aa9cf6dcbcb2fd917b13b7799cdd1525187552fda352bd8ecd002bceaef2620",
+      "root_current_sha256": "0aa9cf6dcbcb2fd917b13b7799cdd1525187552fda352bd8ecd002bceaef2620",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_plugins/particles/editor/src/tests.rs",
+      "captured_sha256": "d26973b0ce6b7ee34d66a018023e93d88ca069aa444feae60dbf700d7b874214",
+      "root_current_sha256": "d26973b0ce6b7ee34d66a018023e93d88ca069aa444feae60dbf700d7b874214",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_plugins/rendering/features/vfx_graph/runtime/src/lib.rs",
+      "captured_sha256": "ed244d10ffd2e39e66fdff6ebbce1dec6ef1b80fd5dca21f168a9069a9b4cb45",
+      "root_current_sha256": "ed244d10ffd2e39e66fdff6ebbce1dec6ef1b80fd5dca21f168a9069a9b4cb45",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_runtime/src/scene/world/render_particles.rs",
+      "captured_sha256": "3c6c91da77daf1c56958cec61a6b7189e3cb1c2af1111af21a81ace393434e9d",
+      "root_current_sha256": "3c6c91da77daf1c56958cec61a6b7189e3cb1c2af1111af21a81ace393434e9d",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_runtime/src/core/framework/render/frame_extract/particle.rs",
+      "captured_sha256": "31dfdab5e952976e5f208c253ea392a6359b1028667f9980a364f71e83b02eee",
+      "root_current_sha256": "31dfdab5e952976e5f208c253ea392a6359b1028667f9980a364f71e83b02eee",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_runtime/src/graphics/particle_runtime_provider/mod.rs",
+      "captured_sha256": "6773c85158adc700757f9503adcaafdf76895ccc2205efd13dbb5dffb7d68e54",
+      "root_current_sha256": "6773c85158adc700757f9503adcaafdf76895ccc2205efd13dbb5dffb7d68e54",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/particle/mod.rs",
+      "captured_sha256": "a79fd9ac6e0f27650cb31a2345d0b7d40e35ff063e262f64e0aff9bba4c31144",
+      "root_current_sha256": "a79fd9ac6e0f27650cb31a2345d0b7d40e35ff063e262f64e0aff9bba4c31144",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/particle.rs",
+      "captured_sha256": "74191b0a1d813133e9e04c6981f106c9502f0caa0144c4ccf0ffb11c24dfb11e",
+      "root_current_sha256": "74191b0a1d813133e9e04c6981f106c9502f0caa0144c4ccf0ffb11c24dfb11e",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_runtime/src/graphics/visibility/declarations/visibility_particle_upload_plan.rs",
+      "captured_sha256": "c7638b30514e76f31079585104863bc30de5083ba9f1475944475d42b28bab8b",
+      "root_current_sha256": "c7638b30514e76f31079585104863bc30de5083ba9f1475944475d42b28bab8b",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_runtime/src/graphics/visibility/planning/build_particle_upload_plan.rs",
+      "captured_sha256": "94d645c650c64d8b94dc0195197a3f17a0aaf19b4fed63b9a77955f0da1c866d",
+      "root_current_sha256": "94d645c650c64d8b94dc0195197a3f17a0aaf19b4fed63b9a77955f0da1c866d",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_runtime/src/script/vm/gameplay_host.rs",
+      "captured_sha256": "980b11f41c281febebdf831e6f7d5c8f76bd52e5f6283455135a380fdc28112c",
+      "root_current_sha256": "980b11f41c281febebdf831e6f7d5c8f76bd52e5f6283455135a380fdc28112c",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_runtime/src/script/vm/gameplay_host/lifecycle.rs",
+      "captured_sha256": "f000357cc4c987ec7a70121881701e3321f78b9fdef2ea2788dd9085a267003c",
+      "root_current_sha256": "f000357cc4c987ec7a70121881701e3321f78b9fdef2ea2788dd9085a267003c",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/render_asset_vfx.rs",
+      "captured_sha256": "b199aff46ad4dd4a94fffdbd042ac38940b3e59650e215c966f4a2deaee5f6c2",
+      "root_current_sha256": "b199aff46ad4dd4a94fffdbd042ac38940b3e59650e215c966f4a2deaee5f6c2",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_vfx_workspace.zui",
+      "captured_sha256": "4acc65c4d955f5c4b80ea2dd27335169ea89becccafed3ffd31d71e575f6bd37",
+      "root_current_sha256": "4acc65c4d955f5c4b80ea2dd27335169ea89becccafed3ffd31d71e575f6bd37",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_particle_library_workspace.zui",
+      "captured_sha256": "797fbfcceb75daf6cf4ed662b119850a427bfeb52e3fb6368b5c6ed04e0c4668",
+      "root_current_sha256": "797fbfcceb75daf6cf4ed662b119850a427bfeb52e3fb6368b5c6ed04e0c4668",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "examples/vampire/scripts/vampire_game/main.zr",
+      "captured_sha256": "ff796b4ec820d21b6f90ad631f35f4e00bc8540cf64fa995bda96127070641e3",
+      "root_current_sha256": "ff796b4ec820d21b6f90ad631f35f4e00bc8540cf64fa995bda96127070641e3",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    },
+    {
+      "batch": 23,
+      "path": "tests/acceptance/particles-gpu-readback-mailbox.md",
+      "captured_sha256": "47da66a42e2e2b29a09e0efa11fe907257b314ab1c67175a0ea2db76f198285c",
+      "root_current_sha256": "47da66a42e2e2b29a09e0efa11fe907257b314ab1c67175a0ea2db76f198285c",
+      "root_current_matches_capture": true,
+      "source_only": true,
+      "tests_run": 0
+    }
+  ],
+  "qualification": "capture and source observations only; no compiler/native/product/performance/Jenkins acceptance; old B23 seal raw bytes unavailable and not reconstructed",
+  "tests_run": 0,
+  "acceptance": "open"
+}

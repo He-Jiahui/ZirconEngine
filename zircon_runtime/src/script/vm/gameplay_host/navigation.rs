@@ -1,3 +1,4 @@
+//! 导航宿主调用把脚本目标转为场景代理请求，速度受代理策略约束；寻路服务通过当前 CoreHandle 解析并在世界锁内推进。
 use serde::Deserialize;
 
 use crate::core::framework::navigation::{
@@ -137,18 +138,5 @@ pub(super) fn navigation_next_point(
 }
 
 #[cfg(test)]
-mod performance_contract_tests {
-    use serde::Deserialize;
-
-    use super::NavMeshAgentDescriptor;
-
-    #[test]
-    fn borrowed_navigation_agent_deserialization_preserves_descriptor() {
-        let expected = NavMeshAgentDescriptor::default();
-        let value = serde_json::to_value(&expected).unwrap();
-
-        let actual = NavMeshAgentDescriptor::deserialize(&value).unwrap();
-
-        assert_eq!(serde_json::to_value(actual).unwrap(), value);
-    }
-}
+#[path = "tests/navigation_performance_contract_tests.rs"]
+mod performance_contract_tests;

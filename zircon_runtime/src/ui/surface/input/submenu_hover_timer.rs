@@ -6,6 +6,8 @@ use zircon_runtime_interface::ui::dispatch::{
 use super::super::surface::UiSurface;
 use super::{route_policy::annotate_route_policy, route_steps::annotate_result_route_steps};
 
+/// 消费输入管理器已到期的菜单悬停通知，再核对目标仍支持菜单交互。
+/// 本入口只发出语义组件事件，菜单模型负责实际打开对应子菜单。
 pub(super) fn dispatch_submenu_hover_timer_input(
     surface: &mut UiSurface,
     submenu_hover: UiSubmenuHoverTimerInputEvent,
@@ -71,5 +73,5 @@ fn with_submenu_hover_route_policy(
 }
 
 #[cfg(test)]
-#[path = "submenu_hover_timer/owned_event_tests.rs"]
+#[path = "submenu_hover_timer/tests/owned_event_tests.rs"]
 mod owned_event_tests;

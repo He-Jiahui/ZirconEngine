@@ -10,11 +10,11 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PRESET_PATH = REPO_ROOT / "zircon_runtime" / "runtime-feature-presets.toml"
-PRESET_TOOL = REPO_ROOT / "tools" / "runtime-profile-feature-presets.py"
+PRESET_TOOL = REPO_ROOT / "tools" / "validation" / "runtime-profile-feature-presets.py"
 RUNTIME_MANIFEST = REPO_ROOT / "zircon_runtime" / "Cargo.toml"
 APP_MANIFEST = REPO_ROOT / "zircon_app" / "Cargo.toml"
-DEV_FAST_BUILD = REPO_ROOT / "tools" / "dev-fast-build.ps1"
-PROFILE_MATRIX_RUNNER = REPO_ROOT / "tools" / "check-runtime-profile-features.ps1"
+DEV_FAST_BUILD = REPO_ROOT / "tools" / "dev" / "dev-fast-build.ps1"
+PROFILE_MATRIX_RUNNER = REPO_ROOT / "tools" / "validation" / "check-runtime-profile-features.ps1"
 CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci.yml"
 RUNTIME_PROFILE_MODULE = (
     REPO_ROOT / "zircon_runtime" / "src" / "plugin" / "runtime_profile" / "feature_presets.rs"
@@ -47,6 +47,7 @@ EXPECTED_BUILTIN_MODULES = (
     {"id": "input", "rust_variant": "Input"},
     {"id": "asset", "rust_variant": "Asset"},
     {"id": "scene", "rust_variant": "Scene"},
+    {"id": "text", "rust_variant": "Text", "required_feature": "text"},
     {"id": "graphics", "rust_variant": "Graphics", "required_feature": "graphics"},
     {"id": "script", "rust_variant": "Script", "required_feature": "script"},
 )
@@ -92,7 +93,7 @@ class Frameworks03ProfileFeaturePresetTests(unittest.TestCase):
             "asset",
             "scene",
         ]
-        client_modules = [*server_modules, "graphics", "script"]
+        client_modules = [*server_modules, "text", "graphics", "script"]
 
         self.assertEqual(
             profile_assembly(profiles["minimal"]),

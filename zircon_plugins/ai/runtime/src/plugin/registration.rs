@@ -3,8 +3,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::ai::{
-    AiAgentTickReport, AiBehaviorDebugFrame, AiBehaviorDebugSnapshot, AiHearingStimulusEvent,
-    AiPerceptionDebugSnapshot, BtNodeResultEvent,
+    AiAgentTickReport, AiBehaviorDebugFrame, AiBehaviorDebugSnapshot, AiBehaviorEffectReceipt,
+    AiGameplayEvent, AiHearingStimulusEvent, AiPerceptionDebugSnapshot, BtNodeResultEvent,
 };
 use zircon_runtime::core::framework::animation::AnimationEventRecord;
 use zircon_runtime::core::framework::physics::PhysicsQueryInterface;
@@ -114,8 +114,13 @@ impl PerceptionEventSubscriptions {
             .unread_count(world.events::<AiHearingStimulusEvent>());
         let hearing_limit = hearing_count.min(AI_HEARING_INGEST_EVENT_LIMIT);
         self.record_dropped_bus_events(hearing_count.saturating_sub(hearing_limit));
-        for event in self.read_hearing(world).take(hearing_limit) {
-            self.push_pending_bus_event(event.clone());
+        let hearing_events = self
+            .read_hearing(world)
+            .take(hearing_limit)
+            .cloned()
+            .collect::<Vec<_>>();
+        for event in hearing_events {
+            self.push_pending_bus_event(event);
         }
         let remaining_limit = AI_HEARING_INGEST_EVENT_LIMIT.saturating_sub(hearing_limit);
         let animation_count = self
@@ -123,10 +128,13 @@ impl PerceptionEventSubscriptions {
             .unread_count(world.events::<AnimationEventRecord>());
         let animation_limit = animation_count.min(remaining_limit);
         self.record_dropped_bus_events(animation_count.saturating_sub(animation_limit));
-        for event in self.read_animation(world).take(animation_limit) {
-            if let Some(event) = hearing_event_from_animation(world, event) {
-                self.push_pending_bus_event(event);
-            }
+        let animation_events = self
+            .read_animation(world)
+            .take(animation_limit)
+            .filter_map(|event| hearing_event_from_animation(world, event))
+            .collect::<Vec<_>>();
+        for event in animation_events {
+            self.push_pending_bus_event(event);
         }
     }
 
@@ -161,14 +169,14 @@ impl PerceptionEventSubscriptions {
     }
 
     pub(crate) fn read_hearing<'events>(
-        &mut self,
+        &'events mut self,
         world: &'events World,
     ) -> EventReadIter<'events, AiHearingStimulusEvent> {
         self.hearing.read(world.events::<AiHearingStimulusEvent>())
     }
 
     fn read_animation<'events>(
-        &mut self,
+        &'events mut self,
         world: &'events World,
     ) -> EventReadIter<'events, AnimationEventRecord> {
         self.animation.read(world.events::<AnimationEventRecord>())
@@ -238,6 +246,8 @@ pub(super) fn ai_event_catalog() -> PluginEventCatalogManifest {
             ai_tick_report_event(),
             bt_node_result_event(),
             ai_behavior_debug_snapshot_event(),
+            ai_gameplay_event(),
+            ai_behavior_effect_receipt_event(),
             hearing_stimulus_event(),
         ],
     }
@@ -275,6 +285,22 @@ fn ai_behavior_debug_snapshot_event() -> PluginEventManifest {
     }
 }
 
+fn ai_gameplay_event() -> PluginEventManifest {
+    PluginEventManifest {
+        id: "ai.events.gameplay".to_string(),
+        display_name: "AI Gameplay Event".to_string(),
+        payload_schema: "ai.events.gameplay.v1".to_string(),
+    }
+}
+
+fn ai_behavior_effect_receipt_event() -> PluginEventManifest {
+    PluginEventManifest {
+        id: "ai.events.behavior_effect_receipt".to_string(),
+        display_name: "AI Behavior Effect Receipt".to_string(),
+        payload_schema: "ai.events.behavior_effect_receipt.v1".to_string(),
+    }
+}
+
 pub(super) fn register_runtime_extensions(
     registry: &mut RuntimeExtensionRegistry,
     manager: Arc<DefaultAiManager>,
@@ -306,6 +332,8 @@ pub(super) fn register_runtime_extensions(
     module.event::<AiAgentTickReport>(ai_tick_report_event())?;
     module.event::<BtNodeResultEvent>(bt_node_result_event())?;
     module.event::<AiBehaviorDebugSnapshot>(ai_behavior_debug_snapshot_event())?;
+    module.event::<AiGameplayEvent>(ai_gameplay_event())?;
+    module.event::<AiBehaviorEffectReceipt>(ai_behavior_effect_receipt_event())?;
     module.event::<AiHearingStimulusEvent>(hearing_stimulus_event())?;
     let physics_query = module.import_interface::<dyn PhysicsQueryInterface>()?;
     let perception_manager = manager.clone();
@@ -318,6 +346,7 @@ pub(super) fn register_runtime_extensions(
                 let physics_query = physics_query.clone();
                 let perception_manager = Arc::clone(&perception_manager);
                 move |context| {
+                    let delta_seconds = context.tick().delta_seconds();
                     let world_handle = context.level.world_handle();
                     let now_seconds = context.core.real_time().elapsed_secs_f64();
                     let (sound_sequence, reset) = context.level.with_world_mut(|world| {
@@ -329,7 +358,7 @@ pub(super) fn register_runtime_extensions(
                             perception_activation_id,
                             context.core.real_time().frame_index(),
                         );
-                        subscriptions.advance_pending_bus_time(context.delta_seconds);
+                        subscriptions.advance_pending_bus_time(delta_seconds);
                         subscriptions.collect_bus_events(world);
                         let sound_sequence = subscriptions.sound_sequence();
                         world.insert_resource(subscriptions);
@@ -374,7 +403,7 @@ pub(super) fn register_runtime_extensions(
                         tick_perception(
                             world,
                             world_handle,
-                            context.delta_seconds,
+                            delta_seconds,
                             &mut budget,
                             &mut perceived,
                             &mut event_adapter,
@@ -414,6 +443,7 @@ pub(super) fn register_runtime_extensions(
                 let script_bridge = script_bridge.clone();
                 let mut debug_reports_by_entity = BTreeMap::new();
                 move |context| {
+                    let delta_seconds = context.tick().delta_seconds();
                     let world_handle = context.level.world_handle();
                     let active_entities_before_tick = manager.active_agent_entities(world_handle);
                     context.level.with_world_mut(|world| {
@@ -442,7 +472,7 @@ pub(super) fn register_runtime_extensions(
                         let reports = manager
                             .tick_active_agents_with_lod_and_integration_host(
                                 world_handle,
-                                context.delta_seconds,
+                                delta_seconds,
                                 context.core.real_time().frame_index(),
                                 |entity| lod_by_entity.get(&entity).copied().unwrap_or_default(),
                                 &mut integration_host,

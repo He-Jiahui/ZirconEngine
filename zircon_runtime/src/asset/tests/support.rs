@@ -1,3 +1,4 @@
+//! 跨资产测试复用的最小项目夹具；文件内容足以经过导入和序列化，但不模拟完整项目服务。
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -61,6 +62,7 @@ pub(crate) fn write_checker_png(path: PathBuf) {
     .unwrap();
 }
 
+/// 为 importer 测试显式注册首波插件夹具；生产默认注册集不应由这些测试推断。
 pub(crate) fn importer_with_first_wave_plugin_fixtures() -> AssetImporter {
     let mut importer = AssetImporter::default();
     importer
@@ -162,6 +164,7 @@ pub(crate) fn write_default_material(path: PathBuf) {
     write_project_material(&path, &material);
 }
 
+/// 从测试项目文件恢复材质，使用夹具的 path hint 映射；不验证真实项目索引的引用解析。
 pub(crate) fn read_project_material(path: &Path) -> MaterialAsset {
     let document = fs::read_to_string(path).unwrap();
     let material = ZMaterialDocument::from_project_toml_str(&document, |reference| {
@@ -185,6 +188,7 @@ pub(crate) fn write_project_material(path: &Path, material: &MaterialAsset) {
     fs::write(path, document).unwrap();
 }
 
+/// 为导入、热重载和资源修订测试提供相互引用的相机与网格场景。
 pub(crate) fn write_default_scene(path: PathBuf) {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).unwrap();
@@ -228,6 +232,7 @@ pub(crate) fn write_default_scene(path: PathBuf) {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                components: Vec::new(),
                 script_bindings: Vec::new(),
             },
             SceneEntityAsset {
@@ -272,6 +277,7 @@ pub(crate) fn write_default_scene(path: PathBuf) {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                components: Vec::new(),
                 script_bindings: Vec::new(),
             },
         ],
@@ -474,6 +480,7 @@ fn fixture_project_root(source_path: &Path) -> PathBuf {
         .to_path_buf()
 }
 
+// 夹具只把 res:// 路径映射到唯一资源根的持久化 hint；多根歧义必须显式失败。
 fn persisted_reference_for_fixture(
     project_root: &Path,
     source_path: &Path,

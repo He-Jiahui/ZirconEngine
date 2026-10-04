@@ -1,3 +1,4 @@
+# 核对响应式工具栏宽度通过保留式控件索引更新。
 import unittest
 from pathlib import Path
 

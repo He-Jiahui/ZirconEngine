@@ -4,24 +4,24 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PLUGIN_VALIDATE_FEATURE_PROVIDER = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider.py"
+    REPO_ROOT / "tools/export/plugin_validate_feature_provider.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_EXTENSION = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider_extension.py"
+    REPO_ROOT / "tools/export/plugin_validate_feature_provider_extension.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_EXTENSION_METADATA = (
     REPO_ROOT
-    / "tools/zircon_export/plugin_validate_feature_provider_extension_metadata.py"
+    / "tools/export/plugin_validate_feature_provider_extension_metadata.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_plugin_validate_feature_provider.py"
+    REPO_ROOT / "tools/export/tests/test_plugin_validate_feature_provider.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_EXTENSION_METADATA_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_plugin_validate_feature_provider_extension_metadata.py"
+    / "tools/export/tests/test_plugin_validate_feature_provider_extension_metadata.py"
 )
 
-
+# 验证校验特性提供者扩展元数据归属边界的职责切分：特性提供者扩展元数据位于元数据归属。
 class PluginValidateFeatureProviderExtensionMetadataOwnerBoundaryTests(
     unittest.TestCase
 ):

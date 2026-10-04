@@ -1,3 +1,5 @@
+//! 普通编辑器按钮的专用绘制边界，由 template_nodes 的 primary 链接管；图标按钮等独立家族交给后续绘制器。
+
 mod commands;
 mod content;
 mod geometry;
@@ -28,5 +30,5 @@ use style::button_opacity;
 use style::button_style;
 
 #[cfg(test)]
-#[path = "template_buttons_tests/mod.rs"]
+#[path = "template_buttons_tests/tests/mod.rs"]
 mod tests;

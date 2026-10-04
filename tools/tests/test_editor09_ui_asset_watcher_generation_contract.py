@@ -1,3 +1,4 @@
+# 核对观察器反向依赖、导入解析缓存与后台刷新作业共享代际边界。
 from __future__ import annotations
 
 import unittest

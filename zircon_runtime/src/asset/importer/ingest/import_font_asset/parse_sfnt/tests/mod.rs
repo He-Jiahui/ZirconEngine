@@ -3,11 +3,11 @@ mod fixtures;
 use std::hint::black_box;
 use std::time::Instant;
 
+use ttf2woff2::{encode, BrotliQuality};
 use ttf_parser::Face;
-use ttf2woff2::{BrotliQuality, encode};
 
 use super::*;
-use crate::asset::assets::{DecodedFontSource, FontSourceBudgetError, decode_font_source};
+use crate::asset::assets::{decode_font_source, DecodedFontSource, FontSourceBudgetError};
 
 use fixtures::{fira_regular, patch_os2_weight, ttc_from_fonts, variable_font};
 
@@ -98,11 +98,10 @@ fn text_font_parse_ttf_extracts_os2_name_metadata() {
 
     assert_eq!(metadata.source_format, FontAssetSourceFormat::Sfnt);
     assert_eq!(face.face_index, 0);
-    assert!(
-        face.family
-            .as_deref()
-            .is_some_and(|family| family.contains("Fira"))
-    );
+    assert!(face
+        .family
+        .as_deref()
+        .is_some_and(|family| family.contains("Fira")));
     assert_eq!(face.weight, 400);
     assert_eq!(face.width_class, 5);
     assert_eq!(face.style, FontAssetFaceStyle::Normal);
@@ -171,12 +170,10 @@ fn text_font_woff2_decodes_to_sfnt() {
     let metadata = parse_font_metadata(&source).unwrap();
     assert_eq!(metadata.source_format, FontAssetSourceFormat::Woff2);
     assert_eq!(metadata.face_count, 1);
-    assert!(
-        metadata.faces[0]
-            .family
-            .as_deref()
-            .is_some_and(|family| family.contains("Fira"))
-    );
+    assert!(metadata.faces[0]
+        .family
+        .as_deref()
+        .is_some_and(|family| family.contains("Fira")));
     assert!(Face::parse(source.bytes(), 0).is_ok());
 }
 
@@ -184,11 +181,9 @@ fn text_font_woff2_decodes_to_sfnt() {
 fn text_font_malformed_woff2_preserves_decode_failure() {
     let error = decode_font_source(b"wOF2invalid".to_vec()).unwrap_err();
 
-    assert!(
-        error
-            .to_string()
-            .contains("WOFF2 font source decode failed")
-    );
+    assert!(error
+        .to_string()
+        .contains("WOFF2 font source decode failed"));
     assert!(std::error::Error::source(&error).is_some());
 }
 
@@ -199,11 +194,9 @@ fn text_font_fvar_capacity_preserves_all_instances_and_coordinates() {
     let instances = parse_named_instances(Some(&fvar), BENCHMARK_AXIS_COUNT, |_| None);
 
     assert_eq!(instances.len(), BENCHMARK_INSTANCE_COUNT);
-    assert!(
-        instances
-            .iter()
-            .all(|instance| instance.coordinates.len() == BENCHMARK_AXIS_COUNT)
-    );
+    assert!(instances
+        .iter()
+        .all(|instance| instance.coordinates.len() == BENCHMARK_AXIS_COUNT));
     assert_eq!(instances[0].coordinates[0].tag, "AX00");
     assert_eq!(instances[63].coordinates[7].tag, "AX07");
 }

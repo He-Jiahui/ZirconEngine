@@ -1,3 +1,5 @@
+//! 高级光照入口汇聚各子特性的执行器注册、资源标识和工作量定义；帧内资源准备与 GPU 编码由对应子模块负责。
+
 pub(crate) mod froxel;
 pub(crate) mod irradiance_volume;
 pub(crate) mod light_cookie;
@@ -48,16 +50,16 @@ pub use froxel::{
 };
 
 pub use planar_filter::{
-    PLANAR_FILTER_EXECUTOR_ID, PLANAR_REFLECTION_TEXTURE_RESOURCE,
-    planar_reflection_filter_compute_workload,
+    planar_reflection_filter_compute_workload, PLANAR_FILTER_EXECUTOR_ID,
+    PLANAR_REFLECTION_TEXTURE_RESOURCE,
 };
 
-pub(in crate::graphics) use subsurface_pass::{
-    SSS_PARAMS_BUFFER_SIZE_BYTES, SSS_PROFILE_TABLE_BUFFER_SIZE_BYTES,
-};
 pub use subsurface_pass::{
-    SSS_RECOMBINE_EXECUTOR_ID, SSS_SCATTER_EXECUTOR_ID, SSS_SETUP_EXECUTOR_ID,
     render_feature_descriptor as subsurface_render_feature_descriptor,
     scatter_compute_workload as subsurface_scatter_compute_workload,
-    setup_compute_workload as subsurface_setup_compute_workload,
+    setup_compute_workload as subsurface_setup_compute_workload, SSS_RECOMBINE_EXECUTOR_ID,
+    SSS_SCATTER_EXECUTOR_ID, SSS_SETUP_EXECUTOR_ID,
+};
+pub(in crate::graphics) use subsurface_pass::{
+    SSS_PARAMS_BUFFER_SIZE_BYTES, SSS_PROFILE_TABLE_BUFFER_SIZE_BYTES,
 };

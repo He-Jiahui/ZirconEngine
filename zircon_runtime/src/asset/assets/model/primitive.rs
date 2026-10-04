@@ -1,3 +1,5 @@
+//! 模型原语保留 glTF 等来源的顶点、索引与材质身份；拆分网格子资产时应保留原语到标签 URI 的稳定映射。
+
 use serde::{Deserialize, Serialize};
 
 use crate::asset::{AssetReference, MeshSdfAsset, MeshVertex};
@@ -103,5 +105,5 @@ fn mesh_bounds_and_planarity(vertices: &[MeshVertex]) -> (RenderMeshBounds, bool
 }
 
 #[cfg(test)]
-#[path = "primitive/single_pass_descriptor_tests.rs"]
+#[path = "primitive/tests/single_pass_descriptor_tests.rs"]
 mod single_pass_descriptor_tests;

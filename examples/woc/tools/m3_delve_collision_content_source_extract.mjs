@@ -25,6 +25,7 @@ const toCatalogCollider = (collider) => collider.type === 'circle' ? ({
 });
 
 const moduleIds = Object.keys(delve.DELVE_MODULE_LAYOUTS);
+// 只读取固定模块的碰撞体与连接链；活动关卡的可变选择另行处理。
 const layouts = moduleIds.map((id) => ({
   id,
   span: delve.delveModuleSpan(id),

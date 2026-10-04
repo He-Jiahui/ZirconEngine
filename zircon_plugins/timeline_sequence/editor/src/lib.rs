@@ -179,4 +179,5 @@ pub fn validate_event_marker_payload(
 }
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

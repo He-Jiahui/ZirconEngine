@@ -1,10 +1,11 @@
-use std::any::{TypeId, type_name};
+use std::any::{type_name, TypeId};
 use std::collections::HashMap;
 use std::fmt;
 
-use super::Resource;
 use super::id::ResourceId;
+use super::Resource;
 
+/// Rust 资源或外部 native 资源在调度冲突图中的稳定描述。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ResourceDescriptor {
     pub id: ResourceId,
@@ -26,6 +27,7 @@ pub struct ResourceRegistry {
 }
 
 impl ResourceRegistry {
+    // Rust 类型和外部稳定 id 共用递增 ResourceId，但分别维护反向索引避免相互别名。
     pub fn resource_id<T>(&mut self) -> ResourceId
     where
         T: Resource,
@@ -85,31 +87,8 @@ impl ResourceRegistry {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    struct TypedResource;
-    impl Resource for TypedResource {}
-
-    #[test]
-    fn external_resource_ids_are_stable_and_do_not_alias_rust_resources() {
-        let mut registry = ResourceRegistry::default();
-        let typed = registry.resource_id::<TypedResource>();
-        let external = registry.external_resource_id("physics.solver");
-
-        assert_ne!(typed, external);
-        assert_eq!(registry.external_resource_id("physics.solver"), external);
-        assert_eq!(
-            registry.registered_external_resource_id("physics.solver"),
-            Some(external)
-        );
-        assert!(matches!(
-            &registry.descriptor(external).unwrap().source,
-            ResourceDescriptorSource::ExternalNative { stable_id }
-                if stable_id == "physics.solver"
-        ));
-    }
-}
+#[path = "tests/registry.rs"]
+mod tests;
 
 impl fmt::Debug for ResourceRegistry {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

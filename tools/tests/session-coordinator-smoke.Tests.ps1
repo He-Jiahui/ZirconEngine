@@ -14,32 +14,16 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $sourceRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")).Path
+$fixtureLifecycleModule = Join-Path $PSScriptRoot "session-coordinator-smoke\fixture_lifecycle.psm1"
+Import-Module -Name $fixtureLifecycleModule -Force -ErrorAction Stop
 $python = (Get-Command python -ErrorAction Stop).Source
+$CoordinatorReadinessTimeoutSeconds = 30
+$CoordinatorReadinessPollMilliseconds = 100
 
 function Assert-True {
     param([bool]$Condition, [string]$Message)
     if (-not $Condition) {
         throw $Message
-    }
-}
-
-function Remove-TestTreeWithRetry {
-    param([string]$Path)
-
-    for ($attempt = 0; $attempt -lt 50; $attempt++) {
-        if (-not (Test-Path -LiteralPath $Path)) {
-            return
-        }
-        try {
-            Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction Stop
-            return
-        }
-        catch {
-            if ($attempt -eq 49) {
-                throw
-            }
-            Start-Sleep -Milliseconds 100
-        }
     }
 }
 
@@ -56,11 +40,129 @@ function Invoke-PythonCoordinator {
     }
 }
 
+function Read-ReadinessDiagnosticFile {
+    param([string]$Path)
+
+    if ([string]::IsNullOrWhiteSpace($Path) -or -not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        return "<unavailable>"
+    }
+    try {
+        $text = Get-Content -Raw -LiteralPath $Path -ErrorAction Stop
+        if ([string]::IsNullOrWhiteSpace($text)) {
+            return "<empty>"
+        }
+        $text = $text.Trim()
+        if ($text.Length -gt 4000) {
+            return "..." + $text.Substring($text.Length - 3997)
+        }
+        return $text
+    }
+    catch {
+        return "<unreadable: $($_.Exception.Message)>"
+    }
+}
+
+function Wait-CoordinatorHealthy {
+    param(
+        [Parameter(Mandatory)] [System.Diagnostics.Process]$Process,
+        [Parameter(Mandatory)] [string]$RepoRoot,
+        [string]$StdoutPath = "",
+        [string]$StderrPath = "",
+        [int]$TimeoutSeconds = $CoordinatorReadinessTimeoutSeconds,
+        [int]$PollMilliseconds = $CoordinatorReadinessPollMilliseconds
+    )
+
+    if ($TimeoutSeconds -lt 1) {
+        throw "Coordinator readiness timeout must be at least one second."
+    }
+    $runtimePath = Join-Path $RepoRoot ".codex\state\session-coordinator\runtime.json"
+    $startupFailurePath = Join-Path $RepoRoot ".codex\state\session-coordinator\startup-failure.json"
+    $clock = [System.Diagnostics.Stopwatch]::StartNew()
+    $lastStatusExitCode = "not attempted"
+    $lastStatusOutput = "runtime descriptor unavailable"
+
+    while ($clock.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
+        $processExited = $false
+        try {
+            $Process.Refresh()
+            $processExited = $Process.HasExited
+        }
+        catch {
+            $processExited = $true
+            $lastStatusOutput = "process inspection failed: $($_.Exception.Message)"
+        }
+
+        if ($processExited) {
+            $exitCode = "unknown"
+            try {
+                $exitCode = $Process.ExitCode
+            }
+            catch {
+                $exitCode = "unavailable"
+            }
+            throw (
+                "Coordinator exited before becoming healthy (pid {0}, exit code {1}). " +
+                "startup-failure.json: {2}; stdout: {3}; stderr: {4}"
+            ) -f $Process.Id, $exitCode,
+                (Read-ReadinessDiagnosticFile -Path $startupFailurePath),
+                (Read-ReadinessDiagnosticFile -Path $StdoutPath),
+                (Read-ReadinessDiagnosticFile -Path $StderrPath)
+        }
+
+        # The status client retries for several seconds when no descriptor exists.
+        # Wait for the server-owned descriptor first so readiness remains bounded.
+        if (Test-Path -LiteralPath $runtimePath -PathType Leaf) {
+            try {
+                $status = Invoke-PythonCoordinator -RepoRoot $RepoRoot -CommandArguments @("status")
+                $lastStatusExitCode = $status.ExitCode
+                if ([string]::IsNullOrWhiteSpace($status.Output)) {
+                    $lastStatusOutput = "<empty>"
+                }
+                else {
+                    $lastStatusOutput = $status.Output.Trim()
+                }
+                if ($status.ExitCode -eq 0) {
+                    $clock.Stop()
+                    return [pscustomobject]@{
+                        ElapsedMilliseconds = [int][Math]::Round($clock.Elapsed.TotalMilliseconds)
+                        RuntimePath = $runtimePath
+                        StatusOutput = $lastStatusOutput
+                    }
+                }
+            }
+            catch {
+                $lastStatusExitCode = "exception"
+                $lastStatusOutput = "status invocation failed: $($_.Exception.Message)"
+            }
+        }
+
+        $remainingMilliseconds = [int][Math]::Floor((($TimeoutSeconds * 1000) - $clock.Elapsed.TotalMilliseconds))
+        if ($remainingMilliseconds -gt 0) {
+            Start-Sleep -Milliseconds ([Math]::Min([Math]::Max(1, $PollMilliseconds), $remainingMilliseconds))
+        }
+    }
+
+    $clock.Stop()
+    $Process.Refresh()
+    throw (
+        "Coordinator did not become healthy within {0} seconds (elapsed {1} ms; pid {2}; " +
+        "exited={3}; runtime descriptor={4}; last status exit={5}; last status output={6}; " +
+        "startup-failure.json={7}; stdout={8}; stderr={9})"
+    ) -f $TimeoutSeconds, [int][Math]::Round($clock.Elapsed.TotalMilliseconds), $Process.Id,
+        $Process.HasExited, (Test-Path -LiteralPath $runtimePath -PathType Leaf), $lastStatusExitCode,
+        $lastStatusOutput, (Read-ReadinessDiagnosticFile -Path $startupFailurePath),
+        (Read-ReadinessDiagnosticFile -Path $StdoutPath), (Read-ReadinessDiagnosticFile -Path $StderrPath)
+}
+
 function Test-Kernel {
     $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("zircon-coordinator-smoke-" + [guid]::NewGuid().ToString("N"))
     $repo = Join-Path $testRoot "repo"
     New-Item -ItemType Directory -Path $repo -Force | Out-Null
     $process = $null
+    $stdoutPath = Join-Path $testRoot "coordinator.stdout.log"
+    $stderrPath = Join-Path $testRoot "coordinator.stderr.log"
+    $primaryFailure = $null
+    $cleanupFailures = @()
     $oldMaintenanceToken = $env:ZIRCON_COORDINATOR_MAINTENANCE_TOKEN
     try {
         & git -C $repo init -q
@@ -76,20 +178,19 @@ function Test-Kernel {
         $env:ZIRCON_COORDINATOR_MAINTENANCE_TOKEN = [guid]::NewGuid().ToString("N")
         $env:PYTHONPATH = $sourceRoot
         $process = Start-Process -FilePath $python `
-            -ArgumentList @("-m", "tools.session_coordinator", "--repo-root", $repo, "serve") `
-            -WorkingDirectory $repo -WindowStyle Hidden -PassThru
+            -ArgumentList @("-m", "tools.session_coordinator", "--repo-root", $repo, "--port", "0", "serve") `
+            -WorkingDirectory $repo -WindowStyle Hidden `
+            -RedirectStandardOutput $stdoutPath `
+            -RedirectStandardError $stderrPath `
+            -PassThru
         $env:PYTHONPATH = $oldPythonPath
 
-        $healthy = $false
-        for ($attempt = 0; $attempt -lt 50; $attempt++) {
-            Start-Sleep -Milliseconds 100
-            $status = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @("status")
-            if ($status.ExitCode -eq 0) {
-                $healthy = $true
-                break
-            }
-        }
-        Assert-True $healthy "Coordinator did not become healthy."
+        $readiness = Wait-CoordinatorHealthy `
+            -Process $process `
+            -RepoRoot $repo `
+            -StdoutPath $stdoutPath `
+            -StderrPath $stderrPath
+        Assert-True ($null -ne $readiness) "Coordinator readiness did not return a receipt."
 
         $registered = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @(
             "session", "register", "--session-id", "smoke-session"
@@ -107,26 +208,77 @@ function Test-Kernel {
         Assert-True ($invalid.ExitCode -eq 2) "Invalid transition did not fail with exit code 2."
 
         $stopped = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @("stop")
-        Assert-True ($stopped.ExitCode -eq 0) "Coordinator stop failed: $($stopped.Output)"
-        $process.WaitForExit(5000) | Out-Null
-        Assert-True $process.HasExited "Coordinator process remained alive after stop."
-        Write-Host "PASS: coordinator kernel smoke"
+        Assert-True ($stopped.ExitCode -eq 2) `
+            "Unscoped coordinator stop was not rejected by the lifecycle admission guard: $($stopped.Output)"
+        Assert-True ($stopped.Output -match 'lifecycle_global_shutdown_disabled') `
+            "Unscoped coordinator stop returned the wrong lifecycle error: $($stopped.Output)"
+        # Keep the isolated server alive until finally so every path uses the
+        # same host-compatible process wait and test-tree cleanup sequence.
+    }
+    catch {
+        $primaryFailure = $_
     }
     finally {
-        $env:ZIRCON_COORDINATOR_MAINTENANCE_TOKEN = $oldMaintenanceToken
-        if ($null -ne $process -and -not $process.HasExited) {
-            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        try {
+            $env:ZIRCON_COORDINATOR_MAINTENANCE_TOKEN = $oldMaintenanceToken
         }
-        if (Test-Path -LiteralPath $testRoot) {
-            Remove-Item -LiteralPath $testRoot -Recurse -Force
+        catch {
+            $cleanupFailures += $_
+        }
+
+        try {
+            $teardown = Invoke-FixtureTeardown `
+                -Process $process `
+                -FixtureRepoRoot $repo `
+                -ExpectedExecutablePath $python `
+                -CaptureProcessOutputDiagnostics:($null -ne $primaryFailure) `
+                -StdoutPath $stdoutPath `
+                -StderrPath $stderrPath `
+                -Path $testRoot
+            foreach ($teardownFailure in $teardown.Errors) {
+                $cleanupFailures += $teardownFailure
+            }
+        }
+        catch {
+            $cleanupFailures += $_
         }
     }
+
+    if ($null -ne $primaryFailure) {
+        foreach ($cleanupFailure in $cleanupFailures) {
+            $cleanupMessage = $cleanupFailure.Exception.ToString()
+            try {
+                $primaryFailure.Exception.Data["FixtureCleanupError"] = $cleanupMessage
+            }
+            catch {
+                # Preserve the original failure if its exception cannot hold
+                # the additional cleanup diagnostic.
+            }
+            [Console]::Error.WriteLine("Additional fixture cleanup failure: {0}", $cleanupMessage)
+        }
+        throw $primaryFailure
+    }
+
+    if ($cleanupFailures.Count -gt 0) {
+        for ($failureIndex = 1; $failureIndex -lt $cleanupFailures.Count; $failureIndex++) {
+            [Console]::Error.WriteLine(
+                "Additional fixture cleanup failure: {0}",
+                $cleanupFailures[$failureIndex].Exception.ToString()
+            )
+        }
+        throw $cleanupFailures[0]
+    }
+
+    # The expected typed rejection leaves Python's process exit code at 2;
+    # clear it only after process-tree shutdown and fixture removal succeeded.
+    $global:LASTEXITCODE = 0
+    Write-Host "PASS: coordinator kernel smoke"
 }
 
 function Test-JsonClientOutput {
     $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("zircon-coordinator-json-client-" + [guid]::NewGuid().ToString("N"))
     $repo = Join-Path $testRoot "repo"
-    $launcher = Join-Path $sourceRoot "tools\zircon-session.ps1"
+    $launcher = Join-Path $sourceRoot "tools\dev\zircon-session.ps1"
     $started = $false
     $daemonPid = $null
     $oldDaemonLogRoot = $env:ZIRCON_COORDINATOR_DAEMON_LOG_ROOT
@@ -365,11 +517,7 @@ function Test-ValidatorDryRun {
                 -ExitCode 1 `
                 -StartAttempted:$false
 
-            Assert-True ($releaseCalls.Count -eq 1) "Dry-run cleanup did not issue exactly one coordinator command."
-            $release = $releaseCalls[0]
-            Assert-True ($release.RepoRoot -eq $sourceRoot) "Dry-run cleanup used the wrong repository root."
-            Assert-True (($release.Arguments -join " ") -eq "cargo release dry-run-job --session-id $sessionId") `
-                "Dry-run cleanup did not release its coordinator job: $($release.Arguments -join " ")"
+            Assert-True ($releaseCalls.Count -eq 0) "Dry-run cleanup unexpectedly contacted the coordinator."
 
             $releaseCalls.Clear()
             $preStartTarget = [pscustomobject]@{
@@ -471,6 +619,8 @@ function Test-LeaseAndPatch {
     $repo = Join-Path $testRoot "repo"
     New-Item -ItemType Directory -Path $repo -Force | Out-Null
     $process = $null
+    $stdoutPath = Join-Path $testRoot "coordinator.stdout.log"
+    $stderrPath = Join-Path $testRoot "coordinator.stderr.log"
     try {
         & git -C $repo init -q
         & git -C $repo config user.email "coordinator-smoke@example.invalid"
@@ -488,16 +638,19 @@ function Test-LeaseAndPatch {
         $oldPythonPath = $env:PYTHONPATH
         $env:PYTHONPATH = $sourceRoot
         $process = Start-Process -FilePath $python `
-            -ArgumentList @("-m", "tools.session_coordinator", "--repo-root", $repo, "serve") `
-            -WorkingDirectory $repo -WindowStyle Hidden -PassThru
+            -ArgumentList @("-m", "tools.session_coordinator", "--repo-root", $repo, "--port", "0", "serve") `
+            -WorkingDirectory $repo -WindowStyle Hidden `
+            -RedirectStandardOutput $stdoutPath `
+            -RedirectStandardError $stderrPath `
+            -PassThru
         $env:PYTHONPATH = $oldPythonPath
 
-        for ($attempt = 0; $attempt -lt 50; $attempt++) {
-            Start-Sleep -Milliseconds 100
-            $status = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @("status")
-            if ($status.ExitCode -eq 0) { break }
-        }
-        Assert-True ($status.ExitCode -eq 0) "Coordinator did not become healthy."
+        $readiness = Wait-CoordinatorHealthy `
+            -Process $process `
+            -RepoRoot $repo `
+            -StdoutPath $stdoutPath `
+            -StderrPath $stderrPath
+        Assert-True ($null -ne $readiness) "Coordinator readiness did not return a receipt."
 
         foreach ($sessionId in @("session-a", "session-b")) {
             $registered = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @(
@@ -547,9 +700,21 @@ diff --git a/README.md b/README.md
         Assert-True ((Get-Content -Raw -LiteralPath (Join-Path $repo "README.md")).Trim() -eq "patched") "Patch result was not written."
 
         $stopped = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @("stop")
-        Assert-True ($stopped.ExitCode -eq 0) "Coordinator stop failed."
+        Assert-True ($stopped.ExitCode -eq 2) `
+            "Unscoped coordinator stop was not rejected by the lifecycle admission guard: $($stopped.Output)"
+        Assert-True ($stopped.Output -match 'lifecycle_global_shutdown_disabled') `
+            "Unscoped coordinator stop returned the wrong lifecycle error: $($stopped.Output)"
+        # Keep the production admission guard intact; terminate only this
+        # disposable coordinator after asserting the typed rejection.
+        try {
+            $process.Kill($true)
+        }
+        catch {
+            Stop-Process -Id $process.Id -Force -ErrorAction Stop
+        }
         $process.WaitForExit(5000) | Out-Null
-        Assert-True $process.HasExited "Coordinator process remained alive after patch smoke."
+        Assert-True $process.HasExited "Isolated coordinator process remained alive after patch smoke cleanup."
+        $global:LASTEXITCODE = 0
         Write-Host "PASS: coordinator lease and delayed patch smoke"
     }
     finally {
@@ -575,7 +740,7 @@ function Test-CargoAndCleanup {
         $env:PYTHONPATH = $oldPythonPath
     }
 
-    $taskInstaller = Join-Path $sourceRoot "tools\install-session-coordinator-task.ps1"
+    $taskInstaller = Join-Path $sourceRoot "tools\setup\install-session-coordinator-task.ps1"
     $taskPlan = & $taskInstaller -Action Install -RepoRoot $sourceRoot -DryRun
     Assert-True ($LASTEXITCODE -eq 0) "Scheduled-task dry-run failed."
     Assert-True (($taskPlan -join "`n") -match "ONLOGON") "Daemon at-logon task was not planned."
@@ -610,9 +775,9 @@ function Test-CargoAndCleanup {
     Assert-True ($null -ne $matcherAst) "Legacy cleanup path matcher was not found."
     Invoke-Expression $matcherAst.Extent.Text
     $resolvedRepoRoot = [IO.Path]::GetFullPath($sourceRoot).TrimEnd('\', '/')
-    $cleanup = Join-Path $resolvedRepoRoot "tools\cleanup-stale-targets.ps1"
-    $exactLegacyAction = "cmd.exe /c cd /d `"$resolvedRepoRoot`" && powershell -File tools\cleanup-stale-targets.ps1"
-    $backupLegacyAction = "cmd.exe /c cd /d `"$resolvedRepoRoot-backup`" && powershell -File tools\cleanup-stale-targets.ps1"
+    $cleanup = Join-Path $resolvedRepoRoot "tools\maintenance\cleanup-stale-targets.ps1"
+    $exactLegacyAction = "cmd.exe /c cd /d `"$resolvedRepoRoot`" && powershell -File tools\maintenance\cleanup-stale-targets.ps1"
+    $backupLegacyAction = "cmd.exe /c cd /d `"$resolvedRepoRoot-backup`" && powershell -File tools\maintenance\cleanup-stale-targets.ps1"
     Assert-True (Test-LegacyCleanupActionForRepo -ActionText $exactLegacyAction) "Exact repository cleanup action was not matched."
     Assert-True (-not (Test-LegacyCleanupActionForRepo -ActionText $backupLegacyAction)) "Repository-prefix collision matched a foreign cleanup task."
 
@@ -653,6 +818,8 @@ function Test-FinalizeInTempRepo {
     $repo = Join-Path $testRoot "repo"
     New-Item -ItemType Directory -Path $repo -Force | Out-Null
     $process = $null
+    $stdoutPath = Join-Path $testRoot "coordinator.stdout.log"
+    $stderrPath = Join-Path $testRoot "coordinator.stderr.log"
     try {
         & git -C $repo init -q
         & git -C $repo config user.email "coordinator-smoke@example.invalid"
@@ -671,16 +838,19 @@ function Test-FinalizeInTempRepo {
         $oldPythonPath = $env:PYTHONPATH
         $env:PYTHONPATH = $sourceRoot
         $process = Start-Process -FilePath $python `
-            -ArgumentList @("-m", "tools.session_coordinator", "--repo-root", $repo, "serve") `
-            -WorkingDirectory $repo -WindowStyle Hidden -PassThru
+            -ArgumentList @("-m", "tools.session_coordinator", "--repo-root", $repo, "--port", "0", "serve") `
+            -WorkingDirectory $repo -WindowStyle Hidden `
+            -RedirectStandardOutput $stdoutPath `
+            -RedirectStandardError $stderrPath `
+            -PassThru
         $env:PYTHONPATH = $oldPythonPath
 
-        for ($attempt = 0; $attempt -lt 50; $attempt++) {
-            Start-Sleep -Milliseconds 100
-            $status = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @("status")
-            if ($status.ExitCode -eq 0) { break }
-        }
-        Assert-True ($status.ExitCode -eq 0) "Coordinator did not become healthy."
+        $readiness = Wait-CoordinatorHealthy `
+            -Process $process `
+            -RepoRoot $repo `
+            -StdoutPath $stdoutPath `
+            -StderrPath $stderrPath
+        Assert-True ($null -ne $readiness) "Coordinator readiness did not return a receipt."
         $registered = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @(
             "session", "register", "--session-id", "session-a"
         )
@@ -698,6 +868,9 @@ function Test-FinalizeInTempRepo {
             New-Item -ItemType Directory -Path (Split-Path -Parent $absolute) -Force | Out-Null
             [System.IO.File]::WriteAllText($absolute, "$path`n", [System.Text.UTF8Encoding]::new($false))
         }
+        $claimArguments = @("lease", "claim") + $paths + @("--session-id", "session-a")
+        $claimed = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments $claimArguments
+        Assert-True ($claimed.ExitCode -eq 0) "Finalize lease claim failed: $($claimed.Output)"
         $attributed = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @(
             "baseline", "attribute", $paths[0], $paths[1], $paths[2], $paths[3], "--session-id", "session-a"
         )
@@ -725,9 +898,19 @@ function Test-FinalizeInTempRepo {
         Assert-True ($subject -notmatch '\[zircon-session:') "Finalize introduced a forbidden Session tag."
 
         $stopped = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @("stop")
-        Assert-True ($stopped.ExitCode -eq 0) "Coordinator stop failed."
+        Assert-True ($stopped.ExitCode -eq 2) `
+            "Unscoped coordinator stop was not rejected by the lifecycle admission guard: $($stopped.Output)"
+        Assert-True ($stopped.Output -match 'lifecycle_global_shutdown_disabled') `
+            "Unscoped coordinator stop returned the wrong lifecycle error: $($stopped.Output)"
+        try {
+            $process.Kill($true)
+        }
+        catch {
+            Stop-Process -Id $process.Id -Force -ErrorAction Stop
+        }
         $process.WaitForExit(5000) | Out-Null
-        Assert-True $process.HasExited "Coordinator process remained alive after finalize smoke."
+        Assert-True $process.HasExited "Isolated coordinator process remained alive after finalize smoke cleanup."
+        $global:LASTEXITCODE = 0
         Write-Host "PASS: explicit finalize temporary-repository smoke"
     }
     finally {
@@ -745,6 +928,8 @@ function Test-LegacyRollout {
     $repo = Join-Path $testRoot "repo"
     New-Item -ItemType Directory -Path $repo -Force | Out-Null
     $process = $null
+    $stdoutPath = Join-Path $testRoot "coordinator.stdout.log"
+    $stderrPath = Join-Path $testRoot "coordinator.stderr.log"
     $oldMaintenanceToken = $env:ZIRCON_COORDINATOR_MAINTENANCE_TOKEN
     try {
         & git -C $repo init -q
@@ -771,15 +956,18 @@ function Test-LegacyRollout {
         $env:ZIRCON_COORDINATOR_MAINTENANCE_TOKEN = [guid]::NewGuid().ToString("N")
         $env:PYTHONPATH = $sourceRoot
         $process = Start-Process -FilePath $python `
-            -ArgumentList @("-m", "tools.session_coordinator", "--repo-root", $repo, "serve") `
-            -WorkingDirectory $repo -WindowStyle Hidden -PassThru
+            -ArgumentList @("-m", "tools.session_coordinator", "--repo-root", $repo, "--port", "0", "serve") `
+            -WorkingDirectory $repo -WindowStyle Hidden `
+            -RedirectStandardOutput $stdoutPath `
+            -RedirectStandardError $stderrPath `
+            -PassThru
         $env:PYTHONPATH = $oldPythonPath
-        for ($attempt = 0; $attempt -lt 100; $attempt++) {
-            Start-Sleep -Milliseconds 100
-            $status = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @("status")
-            if ($status.ExitCode -eq 0) { break }
-        }
-        Assert-True ($status.ExitCode -eq 0) "Legacy rollout service did not become healthy."
+        $readiness = Wait-CoordinatorHealthy `
+            -Process $process `
+            -RepoRoot $repo `
+            -StdoutPath $stdoutPath `
+            -StderrPath $stderrPath
+        Assert-True ($null -ne $readiness) "Coordinator readiness did not return a receipt."
         $baseline = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @("baseline", "init")
         Assert-True ($baseline.ExitCode -eq 0) "Legacy rollout baseline init failed."
 
@@ -792,7 +980,15 @@ function Test-LegacyRollout {
             "legacy", "report", "--report", $reportTwo
         )
         Assert-True ($first.ExitCode -eq 0 -and $second.ExitCode -eq 0) "Legacy report failed."
-        Assert-True ((Get-FileHash $reportOne).Hash -eq (Get-FileHash $reportTwo).Hash) "Legacy report was not repeatable."
+        $reportOneJson = Get-Content -Raw -LiteralPath $reportOne | ConvertFrom-Json
+        $reportTwoJson = Get-Content -Raw -LiteralPath $reportTwo | ConvertFrom-Json
+        $migrationOne = $reportOneJson.migration | ConvertTo-Json -Compress -Depth 20
+        $migrationTwo = $reportTwoJson.migration | ConvertTo-Json -Compress -Depth 20
+        Assert-True ($migrationOne -ceq $migrationTwo) "Legacy migration payload was not repeatable."
+        Assert-True (-not [string]::IsNullOrWhiteSpace([string]$reportOneJson.requestId)) `
+            "First legacy report omitted its request envelope identity."
+        Assert-True (-not [string]::IsNullOrWhiteSpace([string]$reportTwoJson.requestId)) `
+            "Second legacy report omitted its request envelope identity."
 
         $imported = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @(
             "legacy", "import", "--apply"
@@ -820,9 +1016,19 @@ function Test-LegacyRollout {
         Assert-True ($auditJson.audit.invalid_session_statuses.Count -eq 0) "Audit found a non-enum Session status."
 
         $stopped = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @("stop")
-        Assert-True ($stopped.ExitCode -eq 0) "Legacy rollout coordinator stop failed."
+        Assert-True ($stopped.ExitCode -eq 2) `
+            "Unscoped coordinator stop was not rejected by the lifecycle admission guard: $($stopped.Output)"
+        Assert-True ($stopped.Output -match 'lifecycle_global_shutdown_disabled') `
+            "Unscoped coordinator stop returned the wrong lifecycle error: $($stopped.Output)"
+        try {
+            $process.Kill($true)
+        }
+        catch {
+            Stop-Process -Id $process.Id -Force -ErrorAction Stop
+        }
         $process.WaitForExit(5000) | Out-Null
-        Assert-True $process.HasExited "Legacy rollout process remained alive."
+        Assert-True $process.HasExited "Isolated legacy rollout process remained alive after cleanup."
+        $global:LASTEXITCODE = 0
         Write-Host "PASS: legacy migration and rollout smoke"
     }
     finally {

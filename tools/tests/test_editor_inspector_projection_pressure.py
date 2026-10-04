@@ -1,3 +1,4 @@
+# 核对检查器压力模型的稳定帧、稀疏更新与缓存容量，并绑定生产及参考源码。
 import json
 import subprocess
 import sys
@@ -5,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.editor_inspector_projection_pressure import (
+from tools.analysis.performance.editor.editor_inspector_projection_pressure import (
     REFERENCE_SOURCE_PATHS,
     SOURCE_PATHS,
     build_source_binding,
@@ -16,7 +17,7 @@ from tools.editor_inspector_projection_pressure import (
 
 
 ROOT = Path(__file__).resolve().parents[2]
-TOOL = ROOT / "tools/editor_inspector_projection_pressure.py"
+TOOL = ROOT / "tools/analysis/performance/editor/editor_inspector_projection_pressure.py"
 
 
 class EditorInspectorProjectionPressureTests(unittest.TestCase):
@@ -159,7 +160,7 @@ class EditorInspectorProjectionPressureTests(unittest.TestCase):
             changed_fields_per_delta=1,
             cache_entry_limit=2,
         )
-        with tempfile.TemporaryDirectory(dir=Path("E:/zircon-profiles")) as directory:
+        with tempfile.TemporaryDirectory(dir=Path(tempfile.gettempdir())) as directory:
             output = Path(directory) / "pressure.json"
             write_result(output, result)
             self.assertEqual(json.loads(output.read_text(encoding="utf-8")), result)
@@ -212,7 +213,7 @@ class EditorInspectorProjectionPressureTests(unittest.TestCase):
         )
 
     def test_cli_returns_nonzero_when_source_binding_is_not_ready(self) -> None:
-        with tempfile.TemporaryDirectory(dir=Path("E:/zircon-profiles")) as directory:
+        with tempfile.TemporaryDirectory(dir=Path(tempfile.gettempdir())) as directory:
             root = Path(directory)
             output = root / "not-ready.json"
             completed = subprocess.run(

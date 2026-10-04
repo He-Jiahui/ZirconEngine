@@ -1,11 +1,13 @@
 use std::collections::{btree_map::Entry, BTreeMap};
 
+/// 为内容哈希分配首次出现的序号；重复内容返回同一序号，序号只对当前表实例有效。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ZrPackDedupTable {
     chunks: BTreeMap<[u8; 32], usize>,
 }
 
 impl ZrPackDedupTable {
+    /// 返回哈希以及已有 chunk 的索引；首次出现的内容在插入时占用当前长度。
     pub fn insert_or_get(&mut self, bytes: &[u8]) -> ([u8; 32], Option<usize>) {
         let hash = zrpack_content_hash(bytes);
         let index = self.chunks.len();
@@ -27,27 +29,15 @@ impl ZrPackDedupTable {
     }
 }
 
+/// pack 格式使用 BLAKE3 内容摘要作为 chunk 去重键。
 pub fn zrpack_content_hash(bytes: &[u8]) -> [u8; 32] {
     *blake3::hash(bytes).as_bytes()
 }
 
 #[cfg(test)]
-mod tests {
-    use super::zrpack_content_hash;
-
-    #[test]
-    fn zrpack_content_hash_matches_blake3_empty_input_vector() {
-        assert_eq!(
-            zrpack_content_hash(b""),
-            [
-                0xaf, 0x13, 0x49, 0xb9, 0xf5, 0xf9, 0xa1, 0xa6, 0xa0, 0x40, 0x4d, 0xea, 0x36, 0xdc,
-                0xc9, 0x49, 0x9b, 0xcb, 0x25, 0xc9, 0xad, 0xc1, 0x12, 0xb7, 0xcc, 0x9a, 0x93, 0xca,
-                0xe4, 0x1f, 0x32, 0x62,
-            ]
-        );
-    }
-}
+#[path = "tests/dedup.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "dedup/optimization_tests.rs"]
+#[path = "dedup/tests/optimization_tests.rs"]
 mod optimization_tests;

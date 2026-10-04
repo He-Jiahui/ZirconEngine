@@ -10,8 +10,8 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
-  CARGO_TARGET_DIR: D:\ZirconBuilds\cargo-target
-  MVP_EVIDENCE_ROOT: D:\ZirconBuilds\mvp-ci-results-${{ github.run_id }}-${{ github.run_attempt }}
+  CARGO_TARGET_DIR: D:\cargo-targets\mvp-ci-cargo-target
+  MVP_EVIDENCE_ROOT: D:\cargo-targets\mvp-ci-results-${{ github.run_id }}-${{ github.run_attempt }}
   MVP_POWERSHELL_VERSION: 7.4.19
   MVP_POWERSHELL_SHA256: CD62AD6D8174CC6FB85B335A0058444BC934FE27C39FA97FE342134286D28AF9
   MVP_PESTER_VERSION: 4.10.1
@@ -39,7 +39,7 @@ jobs:
       - name: Verify managed Cargo output root
         shell: pwsh
         run: |
-          $managedTargetRoot = 'D:\ZirconBuilds\cargo-target'
+          $managedTargetRoot = 'D:\cargo-targets\mvp-ci-cargo-target'
           if ($env:CARGO_TARGET_DIR -ne $managedTargetRoot) {
             throw "MVP Windows builds require CARGO_TARGET_DIR=$managedTargetRoot; got '$env:CARGO_TARGET_DIR'."
           }
@@ -51,8 +51,8 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($env:ImageOS) -or [string]::IsNullOrWhiteSpace($env:ImageVersion)) {
             throw 'GitHub hosted runner image identity is unavailable.'
           }
-          if ($env:MVP_EVIDENCE_ROOT -notmatch '^D:\\ZirconBuilds\\mvp-ci-results-[0-9]+-[0-9]+$') {
-            throw "MVP evidence root must be a run-bound D:\ZirconBuilds path; got '$env:MVP_EVIDENCE_ROOT'."
+          if ($env:MVP_EVIDENCE_ROOT -notmatch '^D:\\cargo-targets\\mvp-ci-results-[0-9]+-[0-9]+$') {
+            throw "MVP evidence root must be a run-bound D:\cargo-targets path; got '$env:MVP_EVIDENCE_ROOT'."
           }
           New-Item -ItemType Directory -Force -Path $env:MVP_EVIDENCE_ROOT | Out-Null
           @(
@@ -70,7 +70,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $runtimeRoot = Join-Path 'D:\ZirconBuilds' "mvp-tool-runtime-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          $runtimeRoot = Join-Path 'D:\cargo-targets' "mvp-tool-runtime-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
           $powerShellRoot = Join-Path $runtimeRoot "pwsh-$env:MVP_POWERSHELL_VERSION"
           $pesterModuleRoot = Join-Path $runtimeRoot 'psmodules'
           $archivePath = Join-Path $runtimeRoot "PowerShell-$env:MVP_POWERSHELL_VERSION-win-x64.zip"
@@ -195,7 +195,7 @@ jobs:
           Import-Module .\tools\mvp\MvpBuildGateRegistry.psm1 -Force -ErrorAction Stop
           Import-Module .\tools\mvp\MvpProductInputManifest.psm1 -Force -ErrorAction Stop
           $runIdentity = "$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
-          $binaryInputRoot = Join-Path 'D:\ZirconBuilds' "mvp-product-inputs-$runIdentity"
+          $binaryInputRoot = Join-Path 'D:\cargo-targets' "mvp-product-inputs-$runIdentity"
           & .\tools\mvp\Build-MvpProductInputs.ps1 -ArtifactOutputDirectory $binaryInputRoot
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $productInputManifest = Join-Path $binaryInputRoot 'mvp-product-inputs.json'
@@ -292,7 +292,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           Import-Module .\tools\mvp\MvpProductInputManifest.psm1 -Force -ErrorAction Stop
           $runIdentity = "$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
-          $binaryInputRoot = Join-Path 'D:\ZirconBuilds' "mvp-product-inputs-$runIdentity"
+          $binaryInputRoot = Join-Path 'D:\cargo-targets' "mvp-product-inputs-$runIdentity"
           $productInputManifest = Join-Path $binaryInputRoot 'mvp-product-inputs.json'
           $productInputs = Resolve-MvpProductInputManifest -Path $productInputManifest
           if ($null -eq $productInputs.build_set) {
@@ -312,13 +312,13 @@ jobs:
             -ReopenAutomationRequest (Join-Path $PWD 'tools\mvp\mvp-reopen-automation.json') `
             -CreateProject `
             -ProjectName 'ZirconMvpFixture' `
-            -StagingRoot 'D:\ZirconBuilds' `
+            -StagingRoot 'D:\cargo-targets' `
             -RepeatCount 2 `
             -TimeoutSeconds 90 `
             -Json
           $stage = $stageJson | ConvertFrom-Json
 
-          $evidenceRoot = Join-Path 'D:\ZirconBuilds' "mvp-f5-evidence-$runIdentity"
+          $evidenceRoot = Join-Path 'D:\cargo-targets' "mvp-f5-evidence-$runIdentity"
           $acceptanceJson = & .\tools\mvp\Invoke-MvpAcceptance.ps1 `
             -StagingRoot $stage.staging_root `
             -EvidenceRoot $evidenceRoot `

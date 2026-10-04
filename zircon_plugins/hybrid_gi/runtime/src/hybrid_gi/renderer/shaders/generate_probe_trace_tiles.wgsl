@@ -28,6 +28,7 @@ fn cs_main(
     let local_index = local_id.y * 8u + local_id.x;
     let record_index = global_id.z;
 
+    // 每个 z 工作组只由 lane 0 写一条记录；首组同时公布记录数和后续间接参数。
     if (local_index == 0u && record_index == 0u) {
         indirect_args[0] = params.record_count;
         indirect_args[1] = TRACE_THREADS_PER_GROUP;

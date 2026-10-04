@@ -1,3 +1,6 @@
+//! 资产缩略图井从实际节点框与宿主密度取得内框，类型化预览与普通占位使用不同留白。
+//! fallback 在画井和请求预览前使用这一有限尺寸门槛，退化框不再产生命令。
+
 use super::{
     is_typed_thumbnail_visual, FrameRect, TemplatePaneNodeData, WorkbenchAssetVisualMetrics,
     TYPED_THUMBNAIL_SURFACE_INSET_RATIO, VISUAL_SURFACE_INSET_RATIO,
@@ -64,41 +67,5 @@ fn thumbnail_surface_inset(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        has_paintable_thumbnail_extent, thumbnail_surface_rect, FrameRect, TemplatePaneNodeData,
-    };
-    use crate::ui::retained_host::host_contract::paint_theme::METRICS;
-
-    #[test]
-    fn thumbnail_geometry_rejects_collapsed_non_finite_and_overflowed_frames() {
-        let node = TemplatePaneNodeData::default();
-        let metrics = super::super::asset_visual_metrics_from_host(METRICS);
-        let valid = FrameRect {
-            x: 12.0,
-            y: 8.0,
-            width: 74.0,
-            height: 42.0,
-        };
-
-        assert!(has_paintable_thumbnail_extent(&valid));
-        assert!(thumbnail_surface_rect(&node, &valid, metrics).is_some());
-        assert!(!has_paintable_thumbnail_extent(&FrameRect {
-            width: 0.0,
-            ..valid.clone()
-        }));
-        assert!(thumbnail_surface_rect(
-            &node,
-            &FrameRect {
-                x: f32::NAN,
-                ..valid.clone()
-            },
-            metrics,
-        )
-        .is_none());
-        assert!(!has_paintable_thumbnail_extent(&FrameRect {
-            x: f32::MAX,
-            ..valid
-        }));
-    }
-}
+#[path = "tests/geometry.rs"]
+mod tests;

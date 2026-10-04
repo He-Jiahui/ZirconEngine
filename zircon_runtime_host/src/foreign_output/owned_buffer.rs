@@ -14,7 +14,25 @@ pub struct RuntimeOwnedOutputReleaser {
 }
 
 impl RuntimeOwnedOutputReleaser {
-    pub const fn new(
+    /// Binds a session handle to its runtime allocation-release function.
+    ///
+    /// ```compile_fail
+    /// use zircon_runtime_host::foreign_output::RuntimeOwnedOutputReleaser;
+    /// use zircon_runtime_interface::{ZrRuntimeReleaseAllocationFnV2, ZrRuntimeSessionHandle};
+    ///
+    /// fn construct(
+    ///     session: ZrRuntimeSessionHandle,
+    ///     release: ZrRuntimeReleaseAllocationFnV2,
+    /// ) {
+    ///     let _ = RuntimeOwnedOutputReleaser::new(session, release);
+    /// }
+    /// ```
+    ///
+    /// # Safety
+    ///
+    /// `release` must belong to the provider that owns `session`, and that provider and session
+    /// must remain live whenever this releaser is used.
+    pub const unsafe fn new(
         session: ZrRuntimeSessionHandle,
         release: ZrRuntimeReleaseAllocationFnV2,
     ) -> Self {
@@ -30,7 +48,14 @@ impl RuntimeOwnedOutputReleaser {
     }
 }
 
-pub fn release_owned_result(
+/// Releases a runtime-owned result through its originating session.
+///
+/// # Safety
+///
+/// `output` must have been returned by the same live provider and session bound to `releaser`.
+/// The caller must hold the unique authority to release its allocation exactly once. Any failure
+/// diagnostics returned by the release callback must remain synchronously readable.
+pub unsafe fn release_owned_result(
     output: ZrOwnedResultV2,
     releaser: RuntimeOwnedOutputReleaser,
     operation: &'static str,
@@ -43,34 +68,41 @@ pub fn release_owned_result(
             "{operation} returned runtime-owned storage without an allocation ID"
         )));
     }
-    match RuntimeForeignOutputError::from_status(releaser.release(output.allocation), operation) {
+    match unsafe {
+        RuntimeForeignOutputError::from_status(releaser.release(output.allocation), operation)
+    } {
         Some(error) => Err(error),
         None => Ok(()),
     }
 }
 
-pub fn release_owned_result_after_error<T>(
+/// # Safety
+///
+/// The safety requirements of [`release_owned_result`] apply.
+pub unsafe fn release_owned_result_after_error<T>(
     output: ZrOwnedResultV2,
     releaser: RuntimeOwnedOutputReleaser,
     error: RuntimeForeignOutputError,
     release_operation: &'static str,
 ) -> Result<T, RuntimeForeignOutputError> {
-    match release_owned_result(output, releaser, release_operation) {
+    match unsafe { release_owned_result(output, releaser, release_operation) } {
         Ok(()) => Err(error),
         Err(release_error) => Err(error.with_cleanup_failure(&release_error)),
     }
 }
 
-pub fn release_owned_result_after_result<T>(
+/// # Safety
+///
+/// The safety requirements of [`release_owned_result`] apply.
+pub unsafe fn release_owned_result_after_result<T>(
     output: ZrOwnedResultV2,
     releaser: RuntimeOwnedOutputReleaser,
     result: Result<T, RuntimeForeignOutputError>,
     release_operation: &'static str,
 ) -> Result<T, RuntimeForeignOutputError> {
-    match (
-        result,
-        release_owned_result(output, releaser, release_operation),
-    ) {
+    match (result, unsafe {
+        release_owned_result(output, releaser, release_operation)
+    }) {
         (Ok(value), Ok(())) => Ok(value),
         (Err(error), Ok(())) => Err(error),
         (Ok(_), Err(release_error)) => Err(release_error),
@@ -116,7 +148,10 @@ pub fn validate_owned_result(
     Ok(len)
 }
 
-pub fn validate_owned_result_releasing_on_error(
+/// # Safety
+///
+/// If validation fails, the safety requirements of [`release_owned_result`] apply.
+pub unsafe fn validate_owned_result_releasing_on_error(
     output: ZrOwnedResultV2,
     releaser: RuntimeOwnedOutputReleaser,
     operation: &'static str,
@@ -124,6 +159,8 @@ pub fn validate_owned_result_releasing_on_error(
 ) -> Result<ZrOwnedResultV2, RuntimeForeignOutputError> {
     match validate_owned_result(&output, operation) {
         Ok(_) => Ok(output),
-        Err(error) => release_owned_result_after_error(output, releaser, error, release_operation),
+        Err(error) => unsafe {
+            release_owned_result_after_error(output, releaser, error, release_operation)
+        },
     }
 }

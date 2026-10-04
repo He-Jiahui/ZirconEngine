@@ -1,3 +1,8 @@
+//! ECS 查询公共入口：把数据访问约束、过滤器和迭代器组合成只读或可变查询。
+//!
+//! 缓存查询刷新 archetype 计划后使用稳定列位置，非缓存查询直接扫描世界实体；
+//! 借出的缓存迭代器同时借用 `QueryState`，阻止期间再次刷新计划而使列绑定过期。
+
 mod cached_query_iter;
 mod query_access;
 mod query_access_error;
@@ -32,12 +37,11 @@ pub use query_many_unique_mut_iter::QueryManyUniqueMutIter;
 pub use query_mut_iter::QueryMutIter;
 pub use query_single_error::QuerySingleError;
 pub use query_state::{
-    ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC, ECS_QUERY_ARCHETYPE_CACHE_MISSES_DIAGNOSTIC,
-    ECS_QUERY_ARCHETYPE_CACHE_REBUILDS_DIAGNOSTIC, ECS_QUERY_CANDIDATE_ENTITIES_DIAGNOSTIC,
-    ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC, ECS_QUERY_PLAN_COMPILATIONS_DIAGNOSTIC,
-    ECS_QUERY_PLAN_COMPONENT_MEMBERSHIP_CHECKS_DIAGNOSTIC,
+    QueryState, QueryStateCacheStats, ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC,
+    ECS_QUERY_ARCHETYPE_CACHE_MISSES_DIAGNOSTIC, ECS_QUERY_ARCHETYPE_CACHE_REBUILDS_DIAGNOSTIC,
+    ECS_QUERY_CANDIDATE_ENTITIES_DIAGNOSTIC, ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC,
+    ECS_QUERY_PLAN_COMPILATIONS_DIAGNOSTIC, ECS_QUERY_PLAN_COMPONENT_MEMBERSHIP_CHECKS_DIAGNOSTIC,
     ECS_QUERY_PLAN_SPARSE_BINDINGS_DIAGNOSTIC, ECS_QUERY_PLAN_TABLE_BINDINGS_DIAGNOSTIC,
-    QueryState, QueryStateCacheStats,
 };
 pub use unique_entities::UniqueEntityArray;
 

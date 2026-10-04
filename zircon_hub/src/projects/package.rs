@@ -4,9 +4,13 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 
 use crate::error::HubError;
-use crate::state::{DeliveryMessageId, HubMessage, HubMessageId};
+use crate::state::{
+    DeliveryMessageId, HubMessage, HubMessageId, TaskCancellationToken, TaskExecutionOutcome,
+};
 
-use super::local_paths::{cleanup_dir_on_error, create_owned_dir, reject_inside_root};
+use super::local_paths::{
+    cleanup_dir_on_error, create_owned_dir, reject_inside_root, remove_owned_dir,
+};
 use super::now_unix_ms;
 
 const PACKAGE_ROOT_DIR: &str = "packages";
@@ -27,6 +31,12 @@ pub struct ProjectPackageReport {
     pub package_dir: PathBuf,
     pub manifest_path: PathBuf,
     pub files_copied: usize,
+}
+
+impl ProjectPackageReport {
+    pub(crate) fn remove_owned_output(&self) -> Result<(), HubError> {
+        remove_owned_dir(&self.package_dir)
+    }
 }
 
 #[derive(Serialize)]
@@ -53,7 +63,13 @@ impl ProjectPackageRequest {
     }
 }
 
-pub fn package_project(request: &ProjectPackageRequest) -> Result<ProjectPackageReport, HubError> {
+pub fn package_project(
+    request: &ProjectPackageRequest,
+    cancellation: &TaskCancellationToken,
+) -> Result<TaskExecutionOutcome<ProjectPackageReport>, HubError> {
+    if cancellation.is_cancellation_requested() {
+        return Ok(TaskExecutionOutcome::Cancelled);
+    }
     if request.project_root.as_os_str().is_empty() || !request.project_root.is_dir() {
         return Err(HubError::status(
             HubMessage::new(HubMessageId::Delivery(
@@ -87,24 +103,41 @@ pub fn package_project(request: &ProjectPackageRequest) -> Result<ProjectPackage
         )
     })?;
 
-    cleanup_dir_on_error(&package_dir, fill_package_dir(request, &package_dir))
+    match fill_package_dir(request, &package_dir, cancellation) {
+        Ok(TaskExecutionOutcome::Completed(report)) => Ok(TaskExecutionOutcome::Completed(report)),
+        Ok(TaskExecutionOutcome::Cancelled) => {
+            remove_owned_dir(&package_dir)?;
+            Ok(TaskExecutionOutcome::Cancelled)
+        }
+        Err(error) => cleanup_dir_on_error(&package_dir, Err(error)),
+    }
 }
 
 fn fill_package_dir(
     request: &ProjectPackageRequest,
     package_dir: &Path,
-) -> Result<ProjectPackageReport, HubError> {
+    cancellation: &TaskCancellationToken,
+) -> Result<TaskExecutionOutcome<ProjectPackageReport>, HubError> {
+    if cancellation.is_cancellation_requested() {
+        return Ok(TaskExecutionOutcome::Cancelled);
+    }
     let project_dir = package_dir.join(PACKAGE_PROJECT_DIR);
     fs::create_dir(&project_dir)?;
-    let files_copied = copy_project_tree(&request.project_root, &project_dir)?;
+    let files_copied = match copy_project_tree(&request.project_root, &project_dir, cancellation)? {
+        TaskExecutionOutcome::Completed(files_copied) => files_copied,
+        TaskExecutionOutcome::Cancelled => return Ok(TaskExecutionOutcome::Cancelled),
+    };
+    if cancellation.is_cancellation_requested() {
+        return Ok(TaskExecutionOutcome::Cancelled);
+    }
     let manifest_path = package_dir.join(PACKAGE_MANIFEST_FILE);
     write_package_manifest(request, &manifest_path, files_copied)?;
 
-    Ok(ProjectPackageReport {
+    Ok(TaskExecutionOutcome::Completed(ProjectPackageReport {
         package_dir: package_dir.to_path_buf(),
         manifest_path,
         files_copied,
-    })
+    }))
 }
 
 fn reject_output_inside_project(project_root: &Path, output_root: &Path) -> Result<(), HubError> {
@@ -145,9 +178,16 @@ fn package_basename(project_name: &str) -> String {
     }
 }
 
-fn copy_project_tree(source: &Path, destination: &Path) -> Result<usize, HubError> {
+fn copy_project_tree(
+    source: &Path,
+    destination: &Path,
+    cancellation: &TaskCancellationToken,
+) -> Result<TaskExecutionOutcome<usize>, HubError> {
     let mut files_copied = 0;
     for entry in fs::read_dir(source)? {
+        if cancellation.is_cancellation_requested() {
+            return Ok(TaskExecutionOutcome::Cancelled);
+        }
         let entry = entry?;
         let source_path = entry.path();
         let target_path = destination.join(entry.file_name());
@@ -158,13 +198,16 @@ fn copy_project_tree(source: &Path, destination: &Path) -> Result<usize, HubErro
                 continue;
             }
             fs::create_dir_all(&target_path)?;
-            files_copied += copy_project_tree(&source_path, &target_path)?;
+            match copy_project_tree(&source_path, &target_path, cancellation)? {
+                TaskExecutionOutcome::Completed(copied) => files_copied += copied,
+                TaskExecutionOutcome::Cancelled => return Ok(TaskExecutionOutcome::Cancelled),
+            }
         } else if file_type.is_file() {
             fs::copy(&source_path, &target_path)?;
             files_copied += 1;
         }
     }
-    Ok(files_copied)
+    Ok(TaskExecutionOutcome::Completed(files_copied))
 }
 
 fn should_skip_directory(name: &str) -> bool {
@@ -190,119 +233,5 @@ fn write_package_manifest(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn package_project_copies_project_files_and_writes_manifest() {
-        let root = temp_dir("package-source");
-        let output = temp_dir("package-output");
-        fs::write(root.join("zircon-project.toml"), "name = \"Demo\"").unwrap();
-        fs::create_dir_all(root.join("Assets")).unwrap();
-        fs::write(root.join("Assets").join("mesh.txt"), "mesh").unwrap();
-        fs::create_dir_all(root.join("target")).unwrap();
-        fs::write(root.join("target").join("ignored.txt"), "ignored").unwrap();
-
-        let request = ProjectPackageRequest {
-            project_name: "Demo Project".to_string(),
-            project_root: root.clone(),
-            output_root: output.clone(),
-            created_unix_ms: 42,
-        };
-        let report = package_project(&request).unwrap();
-
-        assert!(report
-            .package_dir
-            .ends_with(Path::new("packages").join("demo-project-42")));
-        assert!(report
-            .package_dir
-            .join(PACKAGE_PROJECT_DIR)
-            .join("zircon-project.toml")
-            .is_file());
-        assert!(report
-            .package_dir
-            .join(PACKAGE_PROJECT_DIR)
-            .join("Assets")
-            .join("mesh.txt")
-            .is_file());
-        assert!(!report
-            .package_dir
-            .join(PACKAGE_PROJECT_DIR)
-            .join("target")
-            .exists());
-        assert_eq!(report.files_copied, 2);
-        assert!(fs::read_to_string(report.manifest_path)
-            .unwrap()
-            .contains("files_copied = 2"));
-
-        fs::remove_dir_all(root).unwrap();
-        fs::remove_dir_all(output).unwrap();
-    }
-
-    #[test]
-    fn package_project_rejects_output_inside_project() {
-        let root = temp_dir("package-source-inside");
-        let output = root.join("build-output");
-        let request = ProjectPackageRequest::new("Demo", root.clone(), output);
-
-        let error = package_project(&request).unwrap_err();
-        fs::remove_dir_all(root).unwrap();
-
-        assert!(error.to_string().contains("outside the project directory"));
-    }
-
-    #[test]
-    fn package_project_rejects_missing_output_inside_project_without_creating_directory() {
-        let root = temp_dir("package-source-inside-missing");
-        let output = root.join("build-output").join("nested");
-        let request = ProjectPackageRequest::new("Demo", root.clone(), output.clone());
-
-        let error = package_project(&request).unwrap_err();
-
-        assert!(error.to_string().contains("outside the project directory"));
-        assert!(
-            !output.exists(),
-            "rejected package output roots inside the project must not be created"
-        );
-
-        fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn package_project_rejects_preexisting_unique_package_dir_without_deleting_it() {
-        let root = temp_dir("package-source-existing-output");
-        let output = temp_dir("package-existing-output");
-        fs::write(root.join("zircon-project.toml"), "name = \"Demo\"").unwrap();
-        let request = ProjectPackageRequest {
-            project_name: "Demo Project".to_string(),
-            project_root: root.clone(),
-            output_root: output.clone(),
-            created_unix_ms: 42,
-        };
-        let package_dir = output.join(PACKAGE_ROOT_DIR).join("demo-project-42");
-        fs::create_dir_all(&package_dir).unwrap();
-        fs::write(package_dir.join("keep.txt"), "keep").unwrap();
-
-        let error = package_project(&request).unwrap_err();
-
-        assert!(error
-            .to_string()
-            .contains("Package directory already exists: "));
-        assert_eq!(
-            fs::read_to_string(package_dir.join("keep.txt")).unwrap(),
-            "keep"
-        );
-
-        fs::remove_dir_all(root).unwrap();
-        fs::remove_dir_all(output).unwrap();
-    }
-
-    fn temp_dir(label: &str) -> PathBuf {
-        let root = std::env::temp_dir().join(format!(
-            "zircon-hub-{label}-{}",
-            crate::projects::now_unix_ms()
-        ));
-        fs::create_dir_all(&root).unwrap();
-        root
-    }
-}
+#[path = "tests/package.rs"]
+mod tests;

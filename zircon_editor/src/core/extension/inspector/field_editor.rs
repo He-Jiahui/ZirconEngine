@@ -185,6 +185,7 @@ impl FieldEditorContainer {
         }
     }
 
+    /// 贡献登记与宿主构造共用的入口；内建别名只接受规范键，避免插件覆盖基础类型。
     pub fn register(
         &mut self,
         definition: FieldEditorDefinition,
@@ -215,6 +216,7 @@ impl FieldEditorContainer {
         Ok(container)
     }
 
+    /// 限定反射类型归贡献者独占；撤销后不能误选名字相近的内建编辑器。
     pub fn definition(&self, type_name: &str) -> Option<&FieldEditorDefinition> {
         if let Some(definition) = self.definitions.get(type_name) {
             return Some(definition);
@@ -227,6 +229,7 @@ impl FieldEditorContainer {
             .flatten()
     }
 
+    /// Inspector 自动布局的回退点；缺少定义时仍返回可展示字段的自动编辑器。
     pub fn resolve(&self, field: InspectorField) -> FieldEditorInstance {
         self.definition(field.type_name())
             .map(|definition| definition.make(field))
@@ -315,26 +318,5 @@ fn curve_placeholder_editor(_init: FieldEditorInit) -> FieldEditorInstance {
 }
 
 #[cfg(test)]
-mod performance_contract_tests {
-    use super::*;
-
-    #[test]
-    fn field_type_normalization_borrows_ascii_aliases_and_preserves_qualified_types() {
-        for (type_name, expected) in [
-            ("I64", "number"),
-            ("BoOlEaN", "bool"),
-            ("LinearCOLOR", "color"),
-            ("EditorENUM", "enum"),
-            ("TextureASSET", "asset_reference"),
-            ("GpuRESOURCE", "asset_reference"),
-            ("AnimationCURVE", "curve"),
-            ("OpaqueCustomRecord", "OpaqueCustomRecord"),
-        ] {
-            assert_eq!(normalize_field_type_name(type_name), expected);
-        }
-
-        let editors = FieldEditorContainer::builtin();
-        assert!(editors.definition("Plugin.TextureAsset").is_none());
-        assert!(editors.definition("plugin::LinearColor").is_none());
-    }
-}
+#[path = "tests/field_editor_performance_contract_tests.rs"]
+mod performance_contract_tests;

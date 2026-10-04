@@ -1,3 +1,5 @@
+
+from tools.tests.rust_test_files import read_rust_test_file
 import re
 import unittest
 from pathlib import Path
@@ -15,7 +17,7 @@ LAYOUT_MEASURE_TRAVERSAL = (
     REPO_ROOT / "zircon_runtime/src/ui/layout/pass/measure/traversal.rs"
 )
 LAYOUT_MEASURE_TESTS = (
-    REPO_ROOT / "zircon_runtime/src/ui/layout/pass/measure/tests.rs"
+    REPO_ROOT / "zircon_runtime/src/ui/layout/pass/measure/tests/cases.rs"
 )
 LAYOUT_ARRANGE = REPO_ROOT / "zircon_runtime/src/ui/layout/pass/arrange.rs"
 LAYOUT_ENGINE = REPO_ROOT / "zircon_runtime/src/ui/layout/pass/engine.rs"
@@ -23,13 +25,16 @@ TREE_NODES = REPO_ROOT / "zircon_runtime_interface/src/ui/tree/node/ui_tree.rs"
 TREE_LAYOUT = REPO_ROOT / "zircon_runtime/src/ui/tree/node/layout.rs"
 LAYOUT_CACHE = REPO_ROOT / "zircon_runtime_interface/src/ui/tree/node/layout_cache.rs"
 LAYOUT_ARRANGE_TESTS = (
-    REPO_ROOT / "zircon_runtime/src/ui/layout/pass/arrange/tests.rs"
+    REPO_ROOT / "zircon_runtime/src/ui/layout/pass/arrange/tests/cases.rs"
 )
 LAYOUT_TAFFY_ARRANGE = (
     REPO_ROOT / "zircon_runtime/src/ui/layout/pass/taffy_arrange.rs"
 )
 LAYOUT_TAFFY_BRIDGE_COMPUTE = (
     REPO_ROOT / "zircon_runtime/src/ui/layout/taffy_bridge/compute.rs"
+)
+LAYOUT_TAFFY_PRODUCT_CACHE = (
+    REPO_ROOT / "zircon_runtime/src/ui/layout/taffy_bridge/product_cache.rs"
 )
 LAYOUT_GRID_MASONRY_ARRANGE = (
     REPO_ROOT / "zircon_runtime/src/ui/layout/pass/arrange/grid_masonry.rs"
@@ -56,7 +61,7 @@ INTERFACE_DIAGNOSTICS = (
 EDITOR_PROJECTION = (
     REPO_ROOT / "zircon_editor/src/ui/layouts/views/view_projection/projection_cache.rs"
 )
-PROFILE_MANIFEST = REPO_ROOT / "tools/profile-capture-manifest.ps1"
+PROFILE_MANIFEST = REPO_ROOT / "tools/analysis/profiling/shared/profile-capture-manifest.ps1"
 
 
 def surface_rebuild_source() -> str:
@@ -184,23 +189,27 @@ class RuntimeIncrementalLayoutSnapshotPerformanceContract(unittest.TestCase):
 
     def test_taffy_bridge_reuses_backend_tree_and_depth_scoped_buffers(self) -> None:
         compute = LAYOUT_TAFFY_BRIDGE_COMPUTE.read_text(encoding="utf-8")
+        product_cache = LAYOUT_TAFFY_PRODUCT_CACHE.read_text(encoding="utf-8")
         taffy_arrange = LAYOUT_TAFFY_ARRANGE.read_text(encoding="utf-8")
         workspace = LAYOUT_WORKSPACE.read_text(encoding="utf-8")
         slot = LAYOUT_SLOT.read_text(encoding="utf-8")
         arrange_tests = LAYOUT_ARRANGE_TESTS.read_text(encoding="utf-8")
 
         self.assertIn("pub(crate) struct TaffyLayoutBridgeScratch", compute)
-        self.assertIn("taffy: TaffyTree<()>", compute)
         self.assertIn("child_node_ids: Vec<UiNodeId>", compute)
-        self.assertIn("taffy_children: Vec<NodeId>", compute)
         self.assertIn("child_frames: Vec<TaffyLayoutChildFrame>", compute)
         self.assertNotIn("Vec<TaffyPreparedChild>", compute)
         self.assertIn("begin_children", compute)
         self.assertIn("push_child", compute)
-        self.assertIn("self.taffy.clear()", compute)
-        self.assertNotIn(
-            "let mut taffy: TaffyTree<()> = TaffyTree::new()", compute
-        )
+        self.assertIn("taffy: TaffyTree<()>", product_cache)
+        self.assertIn("parent_node: NodeId", product_cache)
+        self.assertIn("child_index_by_id: BTreeMap<UiNodeId, usize>", product_cache)
+        self.assertIn("fn update_exact(", product_cache)
+        self.assertIn("fn update_full(", product_cache)
+        self.assertIn(".set_style(", product_cache)
+        self.assertIn(".set_children(", product_cache)
+        self.assertIn("let mut taffy = TaffyTree::new();", product_cache)
+        self.assertNotIn("self.taffy.clear()", product_cache)
         self.assertIn("pub(crate) struct UiTaffyArrangeScratch", workspace)
         self.assertIn(
             "static TAFFY_ARRANGE_SCRATCH_POOL: RefCell<Vec<UiTaffyArrangeScratch>>",
@@ -239,7 +248,7 @@ class RuntimeIncrementalLayoutSnapshotPerformanceContract(unittest.TestCase):
         self.assertNotIn(".collect()", axis)
         self.assertIn(
             "reusable_solver_workspace_matches_owned_results_and_preserves_capacity",
-            constraints,
+            read_rust_test_file("zircon_runtime/src/ui/layout/tests/constraints.rs"),
         )
         for oracle in (
             "reusable_solver_growth_respects_priority_and_max_saturation",
@@ -247,7 +256,7 @@ class RuntimeIncrementalLayoutSnapshotPerformanceContract(unittest.TestCase):
             "reusable_solver_shrink_respects_ascending_priority",
             "reusable_solver_exact_fit_and_minimum_floor_are_explicit",
         ):
-            self.assertIn(oracle, constraints)
+            self.assertIn(oracle, (read_rust_test_file("zircon_runtime/src/ui/layout/tests/constraints.rs") if oracle in {"reusable_solver_exact_fit_and_minimum_floor_are_explicit", "reusable_solver_growth_respects_priority_and_max_saturation", "reusable_solver_growth_with_zero_weights_shares_evenly", "reusable_solver_shrink_respects_ascending_priority"} else constraints))
         arrange_tests = LAYOUT_ARRANGE_TESTS.read_text(encoding="utf-8")
         self.assertIn(
             "linear_arrangement_solver_reuses_constraints_and_active_indices",
@@ -350,7 +359,7 @@ class RuntimeIncrementalLayoutSnapshotPerformanceContract(unittest.TestCase):
         tree_nodes_tests = TREE_NODES.read_text(encoding="utf-8")
         self.assertIn(
             "child_structure_changes_invalidate_the_parent_measurement_cache",
-            tree_nodes_tests,
+            read_rust_test_file("zircon_runtime_interface/src/ui/tree/node/tests/ui_tree.rs"),
         )
         self.assertIn(
             "incremental_measurement_reuses_valid_zero_frame_parent_without_forcing_clean_descendants",
@@ -410,11 +419,11 @@ class RuntimeIncrementalLayoutSnapshotPerformanceContract(unittest.TestCase):
             LAYOUT_MEASURE_TESTS.read_text(encoding="utf-8"),
         )
         self.assertIn(
-            "candidate_patch_tracks_same_cardinality_metadata_changes", responsive
+            "candidate_patch_tracks_same_cardinality_metadata_changes", read_rust_test_file("zircon_runtime/src/ui/layout/pass/tests/responsive_mui.rs")
         )
         self.assertIn(
             "unchanged_responsive_values_do_not_create_mutation_candidates",
-            responsive,
+            read_rust_test_file("zircon_runtime/src/ui/layout/pass/tests/responsive_mui.rs"),
         )
         grid_slots = responsive.split("fn apply_responsive_grid_slots", 1)[1]
         self.assertLess(
@@ -539,7 +548,7 @@ class RuntimeIncrementalLayoutSnapshotPerformanceContract(unittest.TestCase):
             REPO_ROOT / "zircon_editor/src/ui/retained_host/ui_perf.rs"
         ).read_text(encoding="utf-8")
         gate = (
-            REPO_ROOT / "tools/ui-profile-counter-evidence.ps1"
+            REPO_ROOT / "tools/analysis/profiling/ui/ui-profile-counter-evidence.ps1"
         ).read_text(encoding="utf-8")
 
         for field, variant in (

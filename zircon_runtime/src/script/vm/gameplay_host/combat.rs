@@ -1,4 +1,4 @@
-use crate::core::framework::animation::{AnimationParameterMap, AnimationParameterValue};
+use crate::core::framework::animation::{AnimationParameterSet, AnimationParameterValue};
 use crate::core::framework::script::{
     ScriptHostCallFrame, ScriptHostError, ScriptHostHotPathMetrics, ScriptHostValue,
 };
@@ -14,13 +14,12 @@ use super::values::{
 };
 
 fn set_animation_bool_parameter(
-    parameters: &mut AnimationParameterMap,
+    parameters: &mut AnimationParameterSet,
     parameter: &str,
     value: bool,
 ) -> bool {
     let next = AnimationParameterValue::Bool(value);
-    if let Some(current) = parameters.get_mut(parameter) {
-        *current = next;
+    if parameters.update_existing(parameter, next.clone()) {
         return false;
     }
     parameters.insert(parameter.to_owned(), next);
@@ -183,35 +182,5 @@ impl DamageReport {
 }
 
 #[cfg(test)]
-mod performance_contract_tests {
-    use crate::core::framework::animation::{AnimationParameterMap, AnimationParameterValue};
-
-    use super::set_animation_bool_parameter;
-
-    #[test]
-    fn animation_bool_parameter_only_copies_a_missing_key() {
-        let mut parameters = AnimationParameterMap::from([(
-            "moving".to_owned(),
-            AnimationParameterValue::Bool(false),
-        )]);
-
-        assert!(!set_animation_bool_parameter(
-            &mut parameters,
-            "moving",
-            true
-        ));
-        assert!(set_animation_bool_parameter(
-            &mut parameters,
-            "grounded",
-            true
-        ));
-        assert_eq!(
-            parameters.get("moving"),
-            Some(&AnimationParameterValue::Bool(true))
-        );
-        assert_eq!(
-            parameters.get("grounded"),
-            Some(&AnimationParameterValue::Bool(true))
-        );
-    }
-}
+#[path = "tests/combat_performance_contract_tests.rs"]
+mod performance_contract_tests;

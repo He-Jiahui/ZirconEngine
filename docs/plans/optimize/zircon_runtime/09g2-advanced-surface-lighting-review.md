@@ -24,7 +24,6 @@ related_code:
   - zircon_plugins/rendering/features/oit
   - zircon_plugins/rendering/features/planar_reflections
   - zircon_plugins/rendering/features/subsurface_scattering
-  - docs/tests/runtime/render
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_runtime/09a-rhi-render-graph-gpu-lifetime-review.md

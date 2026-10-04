@@ -9,7 +9,7 @@ MENU_PATH = RENDER_ROOT / "popup_menu.rs"
 OPTIONS_PATH = RENDER_ROOT / "popup_options.rs"
 ROWS_PATH = RENDER_ROOT / "popup_rows.rs"
 
-
+# 读取弹窗渲染实体化，小属性集借用输入，大属性集走索引，菜单状态不克隆属性 ID。
 class RuntimePopupRenderMaterializationPerformanceContractTests(unittest.TestCase):
     def test_transient_attribute_sets_borrow_small_inputs_and_index_large_inputs(self):
         rows = ROWS_PATH.read_text(encoding="utf-8")

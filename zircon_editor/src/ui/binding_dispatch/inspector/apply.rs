@@ -16,6 +16,21 @@ pub fn apply_inspector_binding(
     let batch = dispatch_inspector_binding(binding)?;
     let node_id = resolve_subject_path(state, &batch.subject_path)?;
     state.ensure_inspector_binding_can_begin()?;
+    for change in &batch.changes {
+        if change
+            .field_id
+            .rsplit_once('.')
+            .is_some_and(|(component, _)| {
+                crate::ui::workbench::snapshot::InspectorNativeFieldSnapshot::is_component_type(
+                    component,
+                )
+            })
+        {
+            return Err(EditorBindingDispatchError::UnsupportedInspectorField(
+                change.field_id.clone(),
+            ));
+        }
+    }
     if matches!(
         state.viewport_controller.selection().active_domain(),
         WorldDomain::Play(_)

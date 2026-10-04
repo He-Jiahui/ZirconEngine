@@ -1,3 +1,6 @@
+//! 以阴影为基础安排 tooltip 内部层级；正文紧随标题，箭头和 info 标记在气泡上方。
+//! 上游须为相对偏移预留 order 空间，不可把这些值当作独立绝对层级。
+
 const BUBBLE_OFFSET: i32 = 1;
 const TEXT_OFFSET: i32 = 2;
 const ARROW_OFFSET: i32 = 3;
@@ -27,17 +30,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn body_or
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn tooltip_layers_keep_shadow_bubble_text_arrow_icon_order() {
-        let shadow = 20;
-
-        assert!(shadow < bubble_order(shadow));
-        assert!(bubble_order(shadow) < text_order(shadow));
-        assert!(text_order(shadow) < arrow_order(shadow));
-        assert!(arrow_order(shadow) < icon_order(shadow));
-        assert!(text_order(shadow) < body_order(text_order(shadow)));
-    }
-}
+#[path = "tests/layers.rs"]
+mod tests;

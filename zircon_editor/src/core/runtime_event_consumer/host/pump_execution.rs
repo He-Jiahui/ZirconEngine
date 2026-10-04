@@ -186,13 +186,15 @@ impl EditorRuntimeEventConsumerHost {
                                 )
                                 .err();
                             report.record_dropped(discarded_tail);
-                            first_error.get_or_insert(cleanup_error.map_or(error, |cleanup| {
-                                EditorRuntimeEventConsumerError::with_cleanup(
+                            let combined = match cleanup_error {
+                                Some(cleanup) => EditorRuntimeEventConsumerError::with_cleanup(
                                     "quarantine runtime event consumer",
                                     error,
                                     cleanup,
-                                )
-                            }));
+                                ),
+                                None => error,
+                            };
+                            first_error.get_or_insert(combined);
                         } else {
                             first_error.get_or_insert(error);
                         }
@@ -227,13 +229,15 @@ impl EditorRuntimeEventConsumerHost {
                             )
                             .err();
                         report.record_dropped(1 + discarded_tail);
-                        first_error.get_or_insert(cleanup_error.map_or(error, |cleanup| {
-                            EditorRuntimeEventConsumerError::with_cleanup(
+                        let combined = match cleanup_error {
+                            Some(cleanup) => EditorRuntimeEventConsumerError::with_cleanup(
                                 "quarantine runtime event consumer",
                                 error,
                                 cleanup,
-                            )
-                        }));
+                            ),
+                            None => error,
+                        };
+                        first_error.get_or_insert(combined);
                         break;
                     }
                 }

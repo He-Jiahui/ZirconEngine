@@ -132,7 +132,7 @@ Target stable complexity:
 
 `C` may equal `S` only when all Surfaces genuinely expose eligible content at the same point. The canonical Editor fixture should normally keep `C` at one or two.
 
-`tools/runtime_ui_surface_input_publication_pressure.py` is a deterministic operation-count model, not product timing. With 64 Surfaces and 100,000 events in each pointer/focused/navigation/unrouted category, with two true pointer candidates per cell:
+`tools/analysis/performance/runtime/runtime_ui_surface_input_publication_pressure.py` is a deterministic operation-count model, not product timing. With 64 Surfaces and 100,000 events in each pointer/focused/navigation/unrouted category, with two true pointer candidates per cell:
 
 | Structural counter | Legacy all-event fanout | Current pointer/focus/navigation/raw cutover | Publication target |
 |---|---:|---:|---:|
@@ -283,7 +283,7 @@ Acceptance budgets:
 
 ## Implemented dynamic evidence gate
 
-`tools/runtime_ui_surface_input_evidence.py` now turns the routing and scaling
+`tools/analysis/performance/runtime/runtime_ui_surface_input_evidence.py` now turns the routing and scaling
 budgets into a fail-closed offline validator without changing the externally
 owned production path. A run must identify exactly one of four route classes:
 uncaptured pointer, captured pointer, focused input, or raw unrouted input.

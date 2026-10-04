@@ -1,7 +1,7 @@
 use super::super::font_assets::UiFontAssetCacheReport;
 use super::super::prepare_report::{
-    ScreenSpaceUiResolvedTextReport, ScreenSpaceUiTextBatchResidencyReport,
-    ScreenSpaceUiTextSdfGenerationReport, text_raster_upload_report,
+    text_raster_upload_report, ScreenSpaceUiResolvedTextReport,
+    ScreenSpaceUiTextBatchResidencyReport, ScreenSpaceUiTextSdfGenerationReport,
 };
 use super::super::resolved_batches::ResolvedScreenSpaceUiTextBatches;
 use super::super::*;
@@ -11,7 +11,7 @@ use crate::text::atlas::GlyphAtlasStorageFormat;
 use crate::text::sdf::SdfAtlasRect;
 
 use super::super::super::sdf_atlas::SdfAtlasDirtyPageReport;
-use super::super::super::sdf_upload::SdfAtlasUploadPageReport;
+use super::super::super::sdf_upload::{SdfAtlasUploadMode, SdfAtlasUploadPageReport};
 
 #[test]
 fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
@@ -92,11 +92,19 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
         vertex_count: 12,
         vertex_buffer_capacity_byte_len: 4 * 1024,
         vertex_buffer_create_count: 1,
+        vertex_buffer_write_count: 1,
         vertex_buffer_write_byte_len: 720,
+        material_buffer_create_count: 0,
+        material_buffer_write_count: 0,
+        material_buffer_write_byte_len: 0,
         cpu_plan_build_count: 1,
         cpu_plan_reuse_count: 0,
         vertex_plan_build_count: 1,
         vertex_plan_reuse_count: 0,
+        compiled_segment_visit_count: 2,
+        compiled_vertex_visit_count: 12,
+        compiled_material_visit_count: 2,
+        compiled_full_rebuild_count: 1,
         decoration_vertex_count: 0,
         material_count: 2,
         draw_count: 2,
@@ -396,6 +404,9 @@ fn text_prepare_report_exposes_all_outstanding_raster_work() {
             worker_pool_request_backpressured_total: 41,
             worker_pool_cancelled_total: 43,
             worker_failed_count: 9,
+            retry_queued_glyph_count: 0,
+            retry_queue_overflow_glyph_count: 0,
+            retry_rejected_source_count: 0,
             upload_command_count: 3,
             upload_copy_count: 3,
             upload_copy_byte_len: 0,
@@ -422,6 +433,30 @@ fn text_raster_upload_report_separates_offscreen_missing_images() {
 
     assert_eq!(report.missing_raster_image_count, 1);
     assert_eq!(report.visible_missing_raster_image_count, 0);
+}
+
+#[test]
+fn text_raster_upload_report_exposes_unsettled_retry_queue_work() {
+    let report = text_raster_upload_report(
+        &NativeBitmapAtlasPrepareReport {
+            retry_state: crate::text::atlas::GlyphAtlasBitmapRetryFrameStateReport {
+                queued_blocked_glyph_count: 7,
+                queue_overflow_blocked_glyph_count: 3,
+                ..Default::default()
+            },
+            retry_submission: crate::text::atlas::GlyphAtlasBitmapRetryFrameSubmissionReport {
+                rejected_retry_source_count: 2,
+                rejected_new_source_count: 5,
+                ..Default::default()
+            },
+            ..NativeBitmapAtlasPrepareReport::default()
+        },
+        &GlyphAtlasBitmapRendererPrepareReport::default(),
+    );
+
+    assert_eq!(report.retry_queued_glyph_count, 7);
+    assert_eq!(report.retry_queue_overflow_glyph_count, 3);
+    assert_eq!(report.retry_rejected_source_count, 7);
 }
 
 #[test]

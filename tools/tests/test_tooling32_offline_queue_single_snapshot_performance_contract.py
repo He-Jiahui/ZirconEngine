@@ -1,3 +1,4 @@
+# 核对离线请求重放在锁内只验证一次待处理队列快照。
 from __future__ import annotations
 
 import ast

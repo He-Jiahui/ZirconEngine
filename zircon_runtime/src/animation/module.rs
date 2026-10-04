@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
 use crate::core::framework::animation::AnimationManager;
+use crate::core::framework::foundation::FOUNDATION_MODULE_NAME;
 use crate::core::manager::RegisteredManagerService;
 use crate::core::runtime::ServiceObject;
 use crate::core::{
-    DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode,
+    DriverDescriptor, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor, ServiceKind,
+    StartupMode,
 };
 use crate::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 
@@ -26,6 +28,7 @@ pub fn module_descriptor() -> ModuleDescriptor {
         ANIMATION_MODULE_NAME,
         "Animation scheduling and clip playback",
     )
+    .with_module_dependency(ModuleDependencySpec::named(FOUNDATION_MODULE_NAME))
     .with_driver(DriverDescriptor::new(
         qualified_name(
             ANIMATION_MODULE_NAME,
@@ -43,7 +46,11 @@ pub fn module_descriptor() -> ModuleDescriptor {
             "DefaultAnimationManager",
         ),
         StartupMode::Immediate,
-        Vec::new(),
+        vec![dependency_on(
+            FOUNDATION_MODULE_NAME,
+            ServiceKind::Manager,
+            "ConfigManager",
+        )],
         factory(|core| {
             Ok(Arc::new(DefaultAnimationManager::new(core.upgrade().as_ref())) as ServiceObject)
         }),

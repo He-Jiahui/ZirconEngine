@@ -4,7 +4,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::{
-    surface::{UiSurface, input::TextInputRetainedGraphemeCount, text_input_constraints_for_node},
+    surface::{input::TextInputRetainedGraphemeCount, text_input_constraints_for_node, UiSurface},
     text::CommittedTextEditIntent,
 };
 

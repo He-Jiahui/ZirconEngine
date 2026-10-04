@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_plugins" / "plugin_sdk" / "src" / "native.rs"
 
-
+# 检查原生 SDK 的能力协商路径：先一次校验宿主条目，再扫描能力，避免每项重复验证。
 class PluginSdkNativeCapabilityNegotiationPerformanceContractTests(unittest.TestCase):
     def test_entry_negotiation_validates_the_host_once_before_capability_scans(self) -> None:
         source = SOURCE.read_text(encoding="utf-8")

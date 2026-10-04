@@ -1,3 +1,6 @@
+// 调用端：npm run generate:warrior-hit-table-contract (tools/package.json)；职责：固化战士招架和正面弧范围的命中表数值。
+// 输入边界：src/sim/combat/warrior_hit_table.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

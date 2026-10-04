@@ -7,15 +7,15 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::surface::{
-    UiSurface,
     input::{
-        UiEditableTextTransactionError, commit_editable_text_transaction,
-        editable_text_state_for_node,
+        commit_editable_text_transaction, editable_text_state_for_node,
+        UiEditableTextTransactionError,
     },
+    UiSurface,
 };
 use crate::ui::{
     dispatch::UiTextDocumentSession,
-    text::{CommittedTextEditIntent, clamp_grapheme_boundary},
+    text::{clamp_grapheme_boundary, CommittedTextEditIntent},
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

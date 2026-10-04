@@ -316,16 +316,14 @@ fn screen_space_ui_plan_keeps_split_paint_runs_out_of_wrapped_overlay_provenance
 
     assert!(plan.native_texts.is_empty());
     assert_eq!(plan.sdf_texts.len(), 2);
-    assert!(
-        plan.sdf_texts
-            .iter()
-            .all(|text| !text.is_source_isomorphic_layout_line)
-    );
-    assert!(
-        plan.sdf_texts
-            .iter()
-            .all(|text| matches!(text.wrap, UiTextWrap::None))
-    );
+    assert!(plan
+        .sdf_texts
+        .iter()
+        .all(|text| !text.is_source_isomorphic_layout_line));
+    assert!(plan
+        .sdf_texts
+        .iter()
+        .all(|text| matches!(text.wrap, UiTextWrap::None)));
 }
 
 fn text_extract(

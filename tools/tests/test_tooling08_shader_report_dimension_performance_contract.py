@@ -1,8 +1,9 @@
+# 核对着色器报告维度逐条读取预期字段并保持诊断次序。
 from __future__ import annotations
 
 import unittest
 
-from tools import zircon_build_shader_prewarm_report_contract as report_contract
+from tools.build import zircon_build_shader_prewarm_report_contract as report_contract
 
 
 class _CountingGroup(dict[str, object]):

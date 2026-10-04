@@ -102,7 +102,7 @@ profiling editor binary；此前受管 `zircon_editor --profile profiling` job �
 
 ### 采样设计与准入门
 
-Windows profiling run 必须使用 `tools/ui-profile-capture.ps1` 的 hierarchy fixture，输出仅放在
+Windows profiling run 必须使用 `tools/analysis/profiling/ui/ui-profile-capture.ps1` 的 hierarchy fixture，输出仅放在
 `E:` 或 `F:` managed target/profile root。每个场景采集 warm-up 后不少于 30 次：1k、5k、10k、
 100k rows；flat、depth 64、depth 5k；blank、zero-match、single deep match、all-match query；
 stable generation、rename/reparent generation、selection-only update。记录

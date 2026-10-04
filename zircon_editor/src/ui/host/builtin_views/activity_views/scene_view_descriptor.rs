@@ -12,8 +12,13 @@ pub(super) fn scene_view_descriptor() -> ViewDescriptor {
         "Scene",
     )
     .with_document_kind(DocumentKind::scene())
+    .with_multi_instance(true)
     .with_dock_policy(DockPolicy::DrawerOrDocument)
     .with_workbench_slot(WorkbenchSlot::DocumentCenter)
     .with_default_constraints(default_constraints_for_content(ViewContentKind::Scene))
     .with_icon_key("scene")
 }
+
+#[cfg(test)]
+#[path = "tests/scene_view_descriptor.rs"]
+mod tests;

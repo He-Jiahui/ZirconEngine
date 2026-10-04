@@ -2,7 +2,7 @@ import sys
 import unittest
 from pathlib import Path
 
-
+# 调用审计或模型实现验证ECS 内核数据：当前子节点守卫归属方闭合运行时 08 审计。
 class RuntimeEcsKernelDataAuditTests(unittest.TestCase):
     def setUp(self) -> None:
         self.repo_root = Path(__file__).resolve().parents[2]

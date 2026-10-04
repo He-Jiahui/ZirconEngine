@@ -1,8 +1,11 @@
+//! 接收世界预先抽出的权威样本，判断单次法术弹体是否命中；不拥有随机流生成或伤害提交。
 // Stateful M4 projection of the one-draw spell resist gate shared by player
 // casting and ranged pet spells. Hit rating changes only the threshold.
 var container = %import("zr.container");
 var rules = %import("combat/rules");
 
+/// 单次弹体命中判定的输入与观测结果；世界调用方先填入等级、命中评级和权威随机样本。
+/// 命中评级使用点数单位；已有概率加成需先转换，不能直接把概率填入该字段。
 pub class SpellResistState {
     pub var casterLevel: int;
     pub var targetLevel: int;
@@ -51,6 +54,8 @@ pub effectiveSpellHit(casterLevel: int, targetLevel: int, hitBonus: float): floa
     return result < 1.0 ? result : 1.0;
 }
 
+/// 在伤害范围和暴击抽样之前消费一次命中样本，使抵抗分支不会多推进权威随机流。
+/// 调用方必须预先提供可读取的样本；此处不会自行生成随机数，流耗尽会抛错。
 pub resolve(state: SpellResistState): bool {
     state.lastHitChance = effectiveSpellHit(
         state.casterLevel,

@@ -1,3 +1,5 @@
+// setup 只给当前帧存在次表面材质的 tile 分配间接工作组；
+// Rust 在提交此通道前清空计数并上传本帧 profile 位图。
 const SSS_SHADING_MODEL_ID: u32 = 16u;
 
 struct SubsurfaceParams {

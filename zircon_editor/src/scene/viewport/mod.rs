@@ -13,7 +13,9 @@ mod settings;
 
 pub use crate::core::editing::interactive_transform::PivotMode;
 pub(crate) use controller::{
-    SceneViewportController, SceneViewportControllerError, ViewportOverlayProviderError,
+    SceneViewportCameraSnapshot, SceneViewportController, SceneViewportControllerError,
+    SceneViewportSessionRegistry, SceneViewportWorkspaceSessionSnapshot,
+    ViewportOverlayProviderError,
 };
 pub(crate) use edit_mode_projection::{SceneEditModeProjection, SceneInspectorFieldValue};
 pub(crate) use handle_screen_line::HandleScreenLine;

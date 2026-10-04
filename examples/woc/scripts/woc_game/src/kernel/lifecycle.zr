@@ -1,6 +1,8 @@
+//! 独立复演 M3 生死、尸体与重生规则的场景样例，向 parity 提供规则合同与指标。
 var {Array} = %import("zr.container");
 var container = %import("zr.container");
 
+// 平行列以同一索引表示一只样例怪物；addMob 是各列唯一的初始追加入口。
 class MobTable {
     pub var ids: Array<uint>;
     pub var templates: Array<string>;
@@ -73,6 +75,7 @@ class PlayerTable {
     }
 }
 
+// 显式给出的 units 用于规则断言；空表时改从共享样例流取值并累计请求数。
 class RandomStream {
     pub var units: Array<float>;
     pub var index: int;
@@ -198,6 +201,7 @@ distance2d(ax: float, az: float, bx: float, bz: float): float {
     return math.sqrt(dx * dx + dz * dz);
 }
 
+// 这层统一两种取样来源，使规则测试与场景摘要使用同一抽样时序。
 takeRandomUnit(world: LifecycleWorld): float {
     var random = world.random;
     var units = random.units;
@@ -323,6 +327,7 @@ respawnMob(world: LifecycleWorld, index: int): void {
     wanderTimers[index] = 2.0 + takeRandomUnit(world) * 6.0;
 }
 
+// 尸体阶段先结算死亡爆炸，再判断可否重生；重生可能额外消耗一次游荡随机数。
 corpseTick(world: LifecycleWorld, id: uint): void {
     var index = mobIndex(world, id);
     var mobs = world.mobs;
@@ -358,6 +363,7 @@ discardDeathDraws(world: LifecycleWorld, count: int): void {
     }
 }
 
+// 固定顺序复演狼群狂暴、腐尸爆炸、野外重生和副本不重生，供场景向量提取。
 runScenario(): LifecycleScenario {
     var rng = %import("kernel/rng");
     rng.prepareSharedAfterConstruction(<uint>1015, 306, 5, 1, true);
@@ -465,6 +471,7 @@ scenarioVector(required: bool): container.Array<int> {
     return values;
 }
 
+/// 跨模块校验用稳定索引读取场景指标；每次调用重演场景并重置共享夹具流，须传 required 并使用 0..22。
 pub scenarioMetric(metric: int, required: bool): int {
     if (!required || metric < 0 || metric > 22) {
         throw "mob lifecycle scenario metric is invalid";

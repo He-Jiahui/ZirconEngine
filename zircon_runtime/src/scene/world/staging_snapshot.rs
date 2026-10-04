@@ -39,6 +39,8 @@ impl World {
         Ok(estimated_bytes)
     }
 
+    // 动态场景预检只复制持久化 World；调度器、事件和观察者等现场状态暂时取出后归还原 World。
+    // 常规 Result 成败都会在传播错误前归还已取出的现场容器；此顺序没有为 panic 提供回滚保护。
     pub(in crate::scene) fn clone_for_dynamic_scene_staging(
         &mut self,
         limit_bytes: usize,
@@ -139,39 +141,5 @@ impl Write for BoundedByteCounter {
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::scene::{DynamicSceneError, Resource, World};
-
-    #[derive(Debug, PartialEq, Eq)]
-    struct LiveOnlyResource(u32);
-
-    impl Resource for LiveOnlyResource {}
-
-    #[test]
-    fn dynamic_scene_staging_snapshot_restores_live_only_state_on_success_and_failure() {
-        let mut world = World::empty();
-        world.insert_resource(LiveOnlyResource(47));
-
-        let (snapshot, _) = world
-            .clone_for_dynamic_scene_staging(1024 * 1024)
-            .expect("bounded persistent world should clone");
-
-        assert_eq!(
-            world.get_resource::<LiveOnlyResource>(),
-            Some(&LiveOnlyResource(47))
-        );
-        assert_eq!(snapshot.get_resource::<LiveOnlyResource>(), None);
-
-        let error = world
-            .clone_for_dynamic_scene_staging(0)
-            .expect_err("zero bytes must reject the target snapshot");
-        assert!(matches!(
-            error,
-            DynamicSceneError::TargetSnapshotTooLarge { .. }
-        ));
-        assert_eq!(
-            world.get_resource::<LiveOnlyResource>(),
-            Some(&LiveOnlyResource(47))
-        );
-    }
-}
+#[path = "tests/staging_snapshot.rs"]
+mod tests;

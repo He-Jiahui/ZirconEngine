@@ -131,8 +131,9 @@ fn centered_text_x(card: &FrameRect, text: &str, font_size: f32) -> f32 {
     card.x + ((card.width - text_width) * 0.5).max(0.0)
 }
 
-fn fallback_state_label(pane: &PaneData) -> &str {
+pub(super) fn fallback_state_label(pane: &PaneData) -> &str {
     match pane.kind.as_str() {
+        "Scene" if !pane.show_empty => "Preparing scene viewport...",
         "Scene" => "No scene content",
         "Game" => "No game content",
         "Inspector" => "No selection",

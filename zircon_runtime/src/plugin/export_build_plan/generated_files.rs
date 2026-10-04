@@ -1,3 +1,4 @@
+//! 生成文件总装入口：NativeDynamic 可单独写加载清单，SourceTemplate 才生成 Cargo、注册代码、资产清单及平台宿主。
 use crate::asset::project::ProjectManifest;
 use crate::{
     core::framework::project::ExportPackagingStrategy, core::framework::project::ExportProfile,
@@ -13,9 +14,10 @@ use super::plugin_selection_template::plugin_selection_template;
 use super::{ExportGeneratedFile, ExportLinkedRuntimeCrate};
 
 #[cfg(test)]
-#[path = "generated_files/capacity_tests.rs"]
+#[path = "generated_files/tests/capacity_tests.rs"]
 mod capacity_tests;
 
+/// 由 from_project_manifest 在诊断和链接源准入后调用；顺序也是验证内容工件及落盘报告的顺序。
 pub(super) fn generated_files_for_profile(
     manifest: &ProjectManifest,
     profile: &ExportProfile,
@@ -75,6 +77,7 @@ fn generated_profile_file_capacity(
         .saturating_add(usize::from(has_native_dynamic_plugins))
 }
 
+/// 控制生成项目脚手架边界；只选 LibraryEmbed 或 NativeDynamic 时不额外生成 Cargo 工程。
 pub(super) fn source_template_enabled(strategies: &[ExportPackagingStrategy]) -> bool {
     strategies.contains(&ExportPackagingStrategy::SourceTemplate)
 }

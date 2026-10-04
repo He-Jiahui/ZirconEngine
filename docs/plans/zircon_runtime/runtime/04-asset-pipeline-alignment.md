@@ -43,7 +43,6 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
   - tools/tests/test_runtime_asset_pipeline_audit.py
   - tools/tests/test_frameworks_02_core_error_single_source.py
-  - tests/acceptance/runtime-asset-pipeline-audit-owner-sync.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_source_inventory.py
@@ -82,7 +81,7 @@ Runtime 04 remains `in_progress` because its broader managed acceptance is indep
 - **句柄已强类型（矫正，但语义有缺口）**：`asset/facade/handle.rs:12-52` 的 `Handle<TAsset: Asset>` 是 `Copy` 的类型化 ID 包装（内含 `ResourceId` + `PhantomData`，经 `TAsset::Marker` 携带 `ResourceKind`，可降级 `UntypedResourceHandle`）。**与 `bevy_asset/handle.rs` 的关键差异：无引用计数、无 strong/weak 之分**——句柄不管资产存活，存活由 `core::resource` 的记录与显式卸载管理。这是"裁决保留差异还是列债"的核心条目，不是"句柄是否强类型"。
 - **加载状态已显式（矫正）**：`asset/facade/load_state.rs` 已有 `AssetLoadState { NotLoaded, Loading, Loaded, Failed, Reloading }`（:7-13）+ `DependencyLoadState`（:69）+ `RecursiveDependencyLoadState`（:97）三级，Bevy 同形。状态是投影而非存储：`AssetLoadState::from_resource(record, runtime_state, has_payload)`（:32-64）从 `core::resource::{ResourceState（Pending/Ready/Error/Reloading）, RuntimeResourceState}` 映射——**真正的状态机在 `core/resource` 层**，转移合法性测试应打在那里。
 - **事件族已成型（矫正）**：`asset/facade/event.rs` 已有 `AssetEventKind { Added, Modified, Removed, Renamed, ReloadFailed }`（:42-48）与带 `revision: u64` 的类型化 `AssetEvent<TAsset>`（:52-）；`AssetEventReceiver` 自带 shutdown 通道（:14-17），由 `core::resource::ResourceEvent` 桥接。失败事件（ReloadFailed）已存在。
-- **worker pool 原始缺口基线（已由 M2/M11-M2.4 收束）**：2026-06-12 初始核验时 `asset/pipeline/worker_pool.rs:11-73` 仍为 `AssetWorkerPool::new(worker_count)`（调用方注入线程数，`.max(1)`），request/completion 均 `crossbeam_channel::unbounded`（:20-21，**无背压**），`request()` 直发**无去重**；失败传播已有（`CpuAssetPayload::Failure { request, message }` :79-89）；Drop 关闭发送端并 join（:65-73）。当前状态以本文件“状态与产出记录”M2.1-M2.3、Runtime 11 M2.4 与 `docs/zircon_runtime/asset/worker_pool.md` 为准。
+- **worker pool 原始缺口基线（已由 M2/M11-M2.4 收束）**：2026-06-12 初始核验时 `asset/pipeline/worker_pool.rs:11-73` 仍为 `AssetWorkerPool::new(worker_count)`（调用方注入线程数，`.max(1)`），request/completion 均 `crossbeam_channel::unbounded`（:20-21，**无背压**），`request()` 直发**无去重**；失败传播已有（`CpuAssetPayload::Failure { request, message }` :79-89）；Drop 关闭发送端并 join（:65-73）。当前状态以本文件“状态与产出记录”M2.1-M2.3、Runtime 11 M2.4 与 `docs/crates/zircon_runtime/asset/worker_pool.md` 为准。
 - **watcher 去抖已存在（矫正）**：`asset/watch/watch_loop.rs:11` `const WATCH_DEBOUNCE: Duration = Duration::from_millis(120)`。缺的是去抖行为测试（保存风暴 N 写 1 reload）与监视失败路径（目录删除、权限）测试。
 - 参考锚点（每点一行）：`bevy_asset` 分层 loader/handle/server/processor/meta — `dev/bevy/crates/bevy_asset/src/{loader.rs,handle.rs,server/,processor/,meta.rs}`；Fyrox 状态机/事件 — `dev/Fyrox/fyrox-resource/src/{manager.rs,loader.rs,state.rs,event.rs}`。
 - 既有计划承接：格式与 meta 层归 `.codex/plans/Bevy-Style Asset Stack Completion Plan.md` 与 `.zmeta` 计划；本计划只做架构对齐与缺口收束，不重复其条目。
@@ -127,7 +126,7 @@ Runtime 04 remains `in_progress` because its broader managed acceptance is indep
 
 #### 切片 0.1 五件对照表（预填已知行，执行时补全）
 
-- 目标文件：`docs/zircon_runtime/asset/facade.md`（已存在，扩展架构节；执行时核验：`ls docs/zircon_runtime/asset/`）。
+- 目标文件：`docs/crates/zircon_runtime/asset/facade.md`（已存在，扩展架构节；执行时核验：`ls docs/crates/zircon_runtime/asset/`）。
 - 改动形态：纯文档。按 bevy_asset 五件 + fyrox state/event 逐项对照，已核实行预填：
 
   | bevy/fyrox 锚点 | 本仓对应物 | 已知语义差异 | Runtime 04 裁决 |
@@ -152,7 +151,7 @@ Runtime 04 remains `in_progress` because its broader managed acceptance is indep
 
 #### 切片 1.1 句柄引用计数语义裁决
 
-- 目标文件：`asset/facade/handle.rs`（仅当裁决"列债并修"时改）；`docs/zircon_runtime/asset/facade.md`（裁决记录必写）。
+- 目标文件：`asset/facade/handle.rs`（仅当裁决"列债并修"时改）；`docs/crates/zircon_runtime/asset/facade.md`（裁决记录必写）。
 - 改动形态：二选一并记录理由——(a) **保留差异**：显式声明"句柄即 ID、存活归 resource 记录管理"为本引擎语义，文档化悬挂句柄行为（查询 `NotLoaded`/`Failed` 而非 panic）；(b) **列债**：引入强弱句柄（对照 `bevy_asset/handle.rs` 的 `Arc<StrongHandle>` 形态），作为独立后续里程碑排期，本计划不实现。倾向 (a)：cdylib 边界与 `Copy` 序列化友好是既有架构约束。
 - 调用方迁移：(a) 无；(b) 也无（裁决期）。
 - 验收：`dangling_handle_queries_report_not_loaded_instead_of_panicking`（归属 `zircon_runtime/src/asset/tests/`，挂既有测试树；断言对未注册 `ResourceId` 的 load_state 查询返回 `NotLoaded`）。
@@ -173,7 +172,7 @@ Runtime 04 remains `in_progress` because its broader managed acceptance is indep
 
 - 切片期：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipTest`
 - 里程碑末：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter load_state`；`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter resource`；`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter asset::`
-- 验收证据：转移表测试族 + 失败可观察性测试；文档 `docs/zircon_runtime/asset/management.md` 同步。
+- 验收证据：转移表测试族 + 失败可观察性测试；文档 `docs/crates/zircon_runtime/asset/management.md` 同步。
 
 ### M2 worker pool 背压与去重定稿
 
@@ -224,7 +223,7 @@ Runtime 04 remains `in_progress` because its broader managed acceptance is indep
 
 #### 切片 3.2 重载事件与状态机对齐
 
-- 目标文件：纯测试（`asset/tests/`）+ `docs/zircon_runtime/asset/importer.md`、`facade.md` 状态刷新。
+- 目标文件：纯测试（`asset/tests/`）+ `docs/crates/zircon_runtime/asset/importer.md`、`facade.md` 状态刷新。
 - 改动形态：断言重载链路 `Loaded→Reloading→Loaded/Failed` 经 M1 转移表合法；下游（render 资源、场景实例）经 `AssetEvent::Modified`/`ReloadFailed`（event.rs:42-48）级联而非轮询（轮询点盘点：Grep `try_recv|poll`，path `zircon_runtime/src/asset`，违规列清单归对应 owner）。
 - 调用方迁移：无（审计 + 测试）。
 - 验收：`hot_reload_transitions_through_reloading_state_and_emits_modified_event`、`reload_failure_emits_reload_failed_event_and_lands_failed_state`。

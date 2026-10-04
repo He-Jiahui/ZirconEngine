@@ -37,5 +37,5 @@ fn borrowed_app_bar_color(attributes: &BTreeMap<String, toml::Value>) -> &str {
 }
 
 #[cfg(test)]
-#[path = "text_tone/borrowed_app_bar_color_tests.rs"]
+#[path = "text_tone/tests/borrowed_app_bar_color_tests.rs"]
 mod borrowed_app_bar_color_tests;

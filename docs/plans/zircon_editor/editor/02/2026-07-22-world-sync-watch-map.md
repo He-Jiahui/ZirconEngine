@@ -17,7 +17,7 @@ tests:
 Plan: docs/plans/zircon_editor/editor/02-data-sync-and-messaging.md
 Milestone: M2
 Status: review_clean_validation_copy_rebuild_pending
-Files: ["docs/zircon_editor/core/world_sync.md", "tools/tests/test_editor02_world_sync_watch_map_contract.py", "zircon_editor/src/core/mod.rs", "zircon_editor/src/core/sync/mod.rs", "zircon_editor/src/core/sync/watch_map.rs", "zircon_editor/src/core/sync/watch_map/tests.rs", "zircon_editor/tests/editor_world_sync_watch_map.rs"]
+Files: ["docs/crates/zircon_editor/core/world_sync.md", "tools/tests/test_editor02_world_sync_watch_map_contract.py", "zircon_editor/src/core/mod.rs", "zircon_editor/src/core/sync/mod.rs", "zircon_editor/src/core/sync/watch_map.rs", "zircon_editor/src/core/sync/watch_map/tests.rs", "zircon_editor/tests/editor_world_sync_watch_map.rs"]
 
 本切片只完成 M2.1 的 editor `watch_map` 支持层。当前 gateway 文件仍属于 Editor01 的已归档 current-hash attribution，本切片没有吸收或改写这些文件，也不把 gateway、session owner、frame pump 或 hierarchy diff 写成完成。
 

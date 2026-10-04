@@ -3,7 +3,7 @@
 Plan: docs/plans/optimize/zircon_runtime/74-runtime-ui-template-component-binding-expression-model-event-command-hot-reload-product-integration-review.md
 Milestone: M4
 Status: validation_pending
-Files: ["docs/plans/optimize/zircon_runtime/74/2026-08-22-compiled-control-dense-slot.md","docs/zircon_runtime/ui/surface/binding_targets.md","zircon_runtime/src/ui/surface/binding_targets.rs","zircon_runtime/src/ui/surface/control_index.rs","zircon_runtime/src/ui/surface/surface.rs","zircon_runtime_interface/src/ui/template/asset/compiler/binding_program.rs"]
+Files: ["docs/plans/optimize/zircon_runtime/74/2026-08-22-compiled-control-dense-slot.md","docs/crates/zircon_runtime/ui/surface/binding_targets.md","zircon_runtime/src/ui/surface/binding_targets.rs","zircon_runtime/src/ui/surface/control_index.rs","zircon_runtime/src/ui/surface/surface.rs","zircon_runtime_interface/src/ui/template/asset/compiler/binding_program.rs"]
 
 - Date: 2026-08-22
 - Owner: `optimize-runtime74-param-ref-compile-r3-bee4c707-20260822`

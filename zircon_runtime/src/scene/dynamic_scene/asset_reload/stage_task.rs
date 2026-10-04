@@ -1,7 +1,7 @@
 use std::{
     sync::{
-        Arc, Mutex, MutexGuard,
         atomic::{AtomicBool, AtomicUsize, Ordering},
+        Arc, Mutex, MutexGuard,
     },
     time::{Duration, Instant},
 };

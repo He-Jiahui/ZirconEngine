@@ -6,9 +6,9 @@ Status: `implementation_in_progress_validation_deferred`
 
 Date: 2026-08-25
 
-Last updated: 2026-08-31
+Last updated: 2026-09-02
 
-Current gate: `C2 capture_replay_reflection_feedback_isolation_six_face_direct_light_grid_and_atomic_terminal_publication_implemented_static_validation_passed_managed_gpu_validation_pending; C3 typed_target_identity_and_ticket_owned_array_copy_implemented_validation_pending; C4 runtime_cache_writeback_implemented_editor_staging_validation_pending`
+Current gate: `C2 capture_replay_reflection_feedback_isolation_six_face_direct_light_grid_and_atomic_terminal_publication_implemented_static_validation_passed_managed_gpu_validation_pending; C3 typed_target_identity_and_ticket_owned_array_copy_implemented_validation_pending; C4 runtime_cache_writeback_implemented_editor_staging_validation_pending; P1-19 runtime_hydration_scheduler_capture_residency_reports_static_green_viewer_snapshot_consumer_pending; P1-11 deduplicated_resident_byte_environment_cubemap_staging_and_logical_destination_texture_budget_observation_static_green_byte_budget_retirement_managed_validation_current_source_visual_and_performance_evidence_pending`
 
 The explicit capture replay now builds one opaque command set, projects one
 capture-specific Forward receiver when the light grid is disabled, or six
@@ -5690,6 +5690,145 @@ topology keys/cache capacity, attempt and stale-completion tokens, retry
 semantics, and timing schema. Current status is
 `algorithm_defect_confirmed_structural_bootstrap_cut_pending_current_source_gpu_and_power_profile`.
 
+## 2026-09-01 P0-6 residency owner production-wiring recheck
+
+The earlier cold-probe call graph remains correct, but a complete resource-layer review
+found a lower boundary defect that changes the implementation direction. Replacing
+`load_texture_asset` with `load_texture_asset_snapshot` would not remove synchronous I/O:
+both call `ProjectAssetManager::ensure_resident`, and the latter only adds a
+revision-pinned `ResourceSnapshot` after the same blocking artifact read. A ready-only
+method built directly on `ResourceManager::snapshot` would avoid that read, but by itself
+would leave no owner that requests, budgets, retries, supersedes, uploads, or retires the
+missing resource.
+
+The repository already contains the intended common owner. `RenderAssetResidencyManager`
+supports `ResourceKind::Texture`, generation/device-epoch tickets, `QueuedIo -> Reading ->
+Decoding -> ReadyCpu -> QueuedUpload -> Uploading -> Resident` transitions, asynchronous
+manifest/semantic-block loads, explicit staging/destination/subresource admission,
+submission-bound GPU publication, last-good active artifacts, cancellation, failure,
+device recovery, and bounded retirement. However, a current-source call search finds no
+production construction or call to `apply_scene_reference_deltas`; every use is inside
+the residency module's tests. It is a validated but isolated subsystem, while production
+`RenderSceneResourceReferenceDelta` currently projects only primitive model, mesh,
+material, and skeleton dependencies. `EnvironmentExtract.probes[*].baked_cubemap` is
+therefore invisible to the residency owner, and probe prepare compensates with synchronous
+asset-manager loading and a private 64-slot upload lifecycle.
+
+This is the P0-6 structural cut. Do not add a probe-local async cache or a second ticket
+state machine. The dependency order is:
+
+1. Extend the persistent render-scene dependency projection with environment/probe texture
+   references and generation-stable acquire/release deltas; do not rescan every shaded
+   primitive or every pixel.
+2. Construct and drive one `RenderAssetResidencyManager` from the render-scene/resource
+   owner, feeding management/readiness generations and the device epoch once per journal
+   change. Dispatch its manifest/block work through the existing task graph and admit GPU
+   plans before staging bytes are appended.
+3. Expose an immutable resident texture artifact/snapshot query to
+   `SceneReflectionProbeResources`. Probe prepare may select an already resident revision,
+   retain its current last-good slot, or publish sky fallback; it must not call
+   `ProjectAssetManager::ensure_resident`, read/decode files, or clone a full PMREM payload.
+4. Converge the probe array slot generation with the residency ticket/submission. A slot is
+   visible only after terminal GPU completion; stale, cancelled, failed, or device-lost
+   tickets cannot replace last-good. Remove the private CPU-upload compatibility path in
+   the same cut rather than retaining two residency authorities.
+5. Only after that infrastructure is green may the P0-7 spatial assignment consume resident
+   probe indices. This keeps assignment `O(changed probes + changed cells)` and avoids
+   encoding missing-resource retry policy in the fragment list builder.
+
+Unreal's useful reference is the ownership boundary, not its legacy synchronous editor
+entry: `FReflectionEnvironmentSceneData` owns component-to-slot state and GPU cubemap-array
+remapping, `FindOrAllocateCubemapIndex` reuses stable slots, and filtered results copy into
+the scene array before render-state visibility changes. Its baked upload then discards the
+CPU capture data after final GPU upload to keep one payload copy. Zircon's existing ticketed
+residency manager is stricter and should remain the authority; copying Unreal's component
+queue beside it would reproduce the current split.
+
+No current product before binary was produced in this recheck, so no elapsed or power
+improvement is claimed. The managed before/after matrix must use unique project-backed
+PMREM assets at 1/8/32/64 probes and record: render/submit synchronous file-read and decode
+calls (target after: zero), first-ready and last-good latency p50/p95/p99, queued/decoded/
+staging/destination bytes, allocations and payload-copy bytes, upload submissions and
+retries, peak RSS/VRAM, device-loss/cancel/stale behavior, steady-frame work after all
+probes are resident (target after: zero I/O/decode/upload), and matched WPR/WPA CPU package
+plus GPU energy. The existing static payload bound remains 67,107,840 B for 64 filtered
+probe cubemaps; that capacity is not a measured peak. RenderDoc must confirm no duplicate
+probe upload/copy in the accepted steady frame. Status:
+`common_residency_owner_complete_but_unwired_probe_sync_io_hard_cut_planned_pending_exact_owner_and_managed_profile`.
+
+## 2026-09-01 P0-5 environment artifact residency and submission-path recheck
+
+The current frame payload sharing is not the principal defect. `RenderFrameExtract` owns its
+scene payload through `Arc`, every large scene domain is an independent `RenderSharedSceneDomain`,
+and `SourceCubemapMipChain` stores source and PMREM texels in `Arc` slices. Cloning a frame extract
+therefore does not copy environment texels. A hydration-cache hit does clone the
+`SourceCubemapEnvironment` value and the three upload-mip descriptor vectors, but their encoded
+byte rows remain shared `Arc<[u8]>`. That steady-hit work is a secondary small-allocation and
+reference-count cost; it is not an O(pixel payload) copy and must not drive the structural design.
+
+The primary defect is the hydration-cache miss inside `build_frame_submission_context`. That
+submission path calls `IblBakeArtifactCacheStore::read_runtime_cache`, which performs synchronous
+`fs::read`; blob decode validates and copies the full RGBA16F payload; artifact hydration allocates
+a new f32 PMREM; and `with_prepared_upload_artifact` then encodes source, PMREM, and irradiance rows
+before the renderer can decide which section changed. `SceneEnvironmentCubemap::ensure_uploaded`
+correctly uses the upload key to skip an unchanged source GPU upload, but the preceding source-row
+encoding and retained CPU artifact have already happened.
+
+For the canonical 1024-face source / 11 source mips / 128-face PMREM / 8 PMREM mips layout, source
+texels are shared rather than copied, but the unconditional prepared artifact still creates
+67,140,096 bytes of padded source upload rows. The runtime PMREM cache section is 1,048,560 bytes,
+its decoded f32 PMREM is 2,097,120 bytes, and its padded upload rows are 1,079,808 bytes. With a
+32-face irradiance cube, one prepared artifact contains 68,269,056 encoded bytes. These are exact
+layout calculations from current constants and row alignment, not observed RSS, traffic, elapsed
+time, or power. A four-entry hydration LRU can consequently retain up to 273,076,224 encoded bytes
+at that layout before allocator and object overhead, even though stable source uploads are skipped.
+
+The hard cut is an asynchronous environment-artifact residency boundary, not a larger LRU or a
+micro-optimization of `SourceCubemapEnvironment::clone`:
+
+1. Move runtime-cache read, checksum/decode, PMREM/SH9 hydration, and section upload encoding out of
+   submission-context construction. A generation-keyed request enters the existing task/residency
+   infrastructure and publishes ready, pending, failed, cancelled, stale, and last-good states.
+2. Keep source cubemap residency independent from derived PMREM/SH9 residency. A PMREM artifact
+   update must not rebuild source upload rows or replace the source GPU texture. Prepared upload
+   artifacts become sectioned immutable objects, so only changed source, specular, or irradiance
+   data is encoded and admitted against staging/destination budgets.
+3. Let the long-lived renderer/environment resource owner retain GPU views and terminal submission
+   generations. The frame extract carries authored identity; submission carries only a small shared
+   resident handle plus intensity/rotation. No file bytes, decoded texels, or upload-row vectors are
+   copied into `FrameSubmissionContext` or `ViewportRenderFrame`.
+4. Preserve last-good lighting while a newer artifact is pending or rejected. Only GPU-complete,
+   current-generation publication may change the sampled PMREM/SH9 handle; device loss invalidates
+   that generation through the same residency authority.
+5. Remove `EnvironmentIblHydrationCache` and the value-object override compatibility path in the
+   same cut. Retaining them beside the resident handle would leave two readiness authorities and
+   allow synchronous I/O to return through a fallback branch.
+
+cmftStudio supports this boundary by running radiance/IEM filtering in a background job and
+publishing the completed image/texture afterward. Unreal keeps sky capture, convolved targets,
+ready index, and reflection cubemap-array slots in persistent `FScene` render state; scene
+visibility changes only after capture/upload reaches the render owner. Neither reference carries
+decoded cubemap payloads through each frame-submission DTO or performs cache-file hydration there.
+
+No production optimization is authorized from the static byte bounds alone. The current-source
+before profile must use cold, warm, changed-PMREM, and stale/corrupt-cache runs at source faces
+256/512/1024 and record submission-thread file-read count/bytes, checksum/decode/hydration/row-
+encoding phase p50/p95/p99, section allocation count/bytes, staging bytes, GPU copy bytes and
+submissions, first-ready/last-good latency, peak RSS/VRAM, and WPR/WPA CPU-package plus GPU energy.
+The after gate requires zero submission-thread file reads/decodes, zero source-row encoding and
+source GPU upload for PMREM-only change, zero steady-frame upload work, bounded generation/cancel/
+device-loss behavior, and RenderDoc proof that only changed sections copy. Status:
+`submission_sync_io_and_68mb_full_artifact_encoding_confirmed_structural_residency_cut_planned_pending_current_source_profile_and_exact_owner_scope`.
+
+The profile provenance contract now binds the nine previously omitted submission, hydration,
+section-encoding, DTO, and GPU-publication owners. The new contract test first failed with 33/34
+passing, then the unchanged full Pester command passed 34/34 in 50.38 seconds. The superseding
+immutable source manifest is
+`E:\zircon-profiles\shader06-critical-source-manifest-p0-10c-20260901.json`: 176 paths, 176
+unique, zero missing, 25,866 bytes, with matching canonical/file SHA-256
+`30a576d7d1efbac758769272e7e5a0a6532703931b9a813403956ea831444707`. This is source-identity
+evidence only; it is not a managed compile, runtime profile, GPU timing, image, or power result.
+
 ## 2026-08-31 P1-2 dynamic-binding ownership recheck
 
 The current recorder no longer creates PMREM and SH9 bindings on every stable
@@ -5737,3 +5876,1694 @@ accept that baseline before extending the identity with a BRDF-LUT mode or a
 multiple-scattering mode. Clearcoat, sheen, anisotropy, and cross-lobe energy
 remain owned by 09G. Status is
 `base_single_scatter_mvp_recipe_present_brdf_lut_identity_and_multiscatter_contract_pending`.
+
+## 2026-09-01 P0-7 reflection-probe spatial assignment and lobe-reuse review
+
+The current probe path is not merely an inefficient loop. It has three coupled ownership
+defects. `SceneReflectionProbeResources::prepare` scans the complete extracted probe list every
+frame, keeps only camera-layer candidates, partitions at `MAX_REFLECTION_PROBES == 64` by distance
+from the camera to each influence, and only then resolves revisions, cubemap slots, and GPU rows.
+The published storage buffer is consequently a camera-nearest global subset rather than the set
+that can affect each shaded cluster. A large or screen-edge influence can be omitted even when it
+contains visible pixels. Distance also precedes priority in this CPU order, while the WGSL top-two
+selection orders positive weights before priority and index. The capacity policy can therefore
+change the selected reflection, not just reduce quality under pressure.
+
+`zr_environment_select_probes` then loops every published row for every environment lookup. It
+filters with one legacy 32-bit camera mask and computes the exact sphere/box weight before retaining
+two rows. Standard PBR invokes that path for the base lobe and invokes it again for clearcoat when
+planar reflection does not win. When screen-space transmission is unavailable, the transmission
+fallback invokes the same selection a third time. At 3840x2160 with 64 active probes, the current
+source therefore has static upper bounds of 530,841,600 candidate visits for one full-resolution
+lobe, 1,061,683,200 for base plus clearcoat, and 1,592,524,800 when the environment transmission
+fallback also executes. These are shader-structure bounds, not measured fragments, elapsed time,
+GPU occupancy, or power.
+
+Layer semantics are also incomplete. `RenderLayerSet` stores an unbounded vector of 64-bit blocks,
+but `GpuReflectionProbe::from_probe` truncates it through `to_scene_schema_v1_mask_lossy`, and the
+header explicitly substitutes the camera mask because no object reflection-mask input exists in
+the GPU Scene ABI. `GpuPrimitiveData` has two reserved u32 words within its existing 96-byte stride,
+so Forward can receive an interned layer-set handle without increasing primitive-buffer traffic.
+Deferred has no primitive or layer identity after GBuffer encoding. Its material alpha already
+uses all eight bits for shading-model and receive-shadow flags; normal alpha is consumed by the
+subsurface profile; emissive alpha carries the lightmap-presence bit. Reusing normal alpha as a
+general layer handle would silently break subsurface scattering.
+
+The existing Zircon light grid is a useful owner boundary but not a reusable probe algorithm as
+written. `build_light_grid` assigns global light-index bits into separate tile and z-bin masks on
+the CPU, rebuilds them for each frame, and `light_grid_stats` subsequently traverses every
+tile/bin/word combination. Its buffers and word budgets are coupled to `GpuLightData` count; adding
+probe bits would enlarge CPU construction, statistics, allocation, and upload work. The Forward and
+Deferred shaders already share the view-to-grid mapping and bindings, so P0-7 should extend one
+clustered-influence owner while replacing the data shape for probes.
+
+Unreal provides the matching split. `FReflectionEnvironmentSceneData` owns persistent capture
+identity and cubemap-array slots. Changed capture allocation or ordering marks affected scene state
+rather than rebuilding resource identity in each material lookup. `LightGridInjection.usf` tests
+reflection-capture bounds against view cells and writes per-cell compact capture data; both
+`ReflectionEnvironmentPixelShader.usf` and `ForwardLightingCommon.ush` read a
+`NumReflectionCaptures`/`DataStartIndex` range for the current screen/depth cell. The composite loop
+then performs exact shape and fade work only for that local range and can terminate after reflection
+weight is exhausted. The relevant lesson is the persistent-scene plus view-local-candidate boundary,
+not Unreal's particular linked-list compatibility mode.
+
+The required hard cut is:
+
+1. P0-6 common residency wiring is the prerequisite. P0-7 consumes terminal resident probe handles;
+   it must not own texture loading, retry, upload, slot eviction, or last-good policy.
+2. Keep three identities separate: stable scene probe ID, resident cubemap slot/generation, and
+   view-local candidate index. Remove camera-distance truncation as a shader-capacity policy. A
+   residency-budget rejection remains an explicit reported state and sky fallback, not a silently
+   dropped metadata row.
+3. Add a typed probe stream to the existing view-cluster owner. Conservatively project sphere and
+   oriented-box influences, count cell memberships, exclusive-scan cell counts, and fill compact
+   offset/count plus index buffers. Pre-size from the O(P) conservative membership bound and grow
+   amortized outside publication; fixed-K cell overflow and a global-scan fallback are forbidden.
+   Shader work becomes output-sensitive O(P + M + F*C), where M is generated cell membership and C
+   is the local overlap count, rather than O(F*P). A genuine all-overlap scene still costs O(F*P)
+   because every candidate can affect every pixel; the design does not hide that lower bound.
+4. Intern complete `RenderLayerSet` values in a generation-owned GPU table and compare object and
+   probe handles without the lossy 32-bit conversion. Forward reads the primitive handle from the
+   existing GPU Scene stride. Deferred must carry a compact view handle. Packing
+   `emissive.a = layer_handle * 2 + lightmapped` is exact only through 1024 handles in RGBA16F and
+   adds no bandwidth; a separate R16Uint view-handle target preserves 65,535 distinct sets but adds
+   exactly 16,588,800 bytes (15.8203125 MiB) of image storage at 4K and 33,177,600 bytes for one
+   write plus one read. The latter byte figures are layout bounds, not observed traffic. The zero-bandwidth
+   encoding is admissible only if 1024 distinct sets becomes an explicit product limit with overflow
+   rejection. Otherwise the integer target is the correctness baseline. Current-source GPU and
+   power evidence must decide the transport before implementation.
+5. Split selection from radiance sampling. World position and layer eligibility determine the same
+   top-two indices and weights for base, clearcoat, and transmission; direction and roughness only
+   affect projection and cubemap LOD after selection. Compute the selection once per shaded surface
+   and reuse it for every active lobe while retaining independent directions, roughness, Fresnel,
+   and energy terms.
+6. Publish the layer table, probe metadata, resident slots, cell headers, and candidate indices under
+   one generation. Partial or overflowed generations remain invisible. Delete the global 64-row
+   shader loop, camera-mask header field, lossy probe-mask payload, and duplicated lobe selection in
+   the same migration; no compatibility branch may preserve the old behavior.
+
+No production optimization is authorized from these static bounds. The before matrix must cover
+1/8/32/64 resident probes plus a greater-than-64 admission case, 1920x1080/2560x1440/3840x2160,
+Forward and Deferred, sphere and rotated-box influences, sparse/local/dense/all-overlap layouts,
+clearcoat off/on, and transmission scene-color present/absent. Record probe prepare/filter/sort,
+light-grid build and statistics CPU p50/p95/p99, allocation count/bytes, metadata and cluster upload
+bytes, active/dropped/unavailable counts, GPU pass timestamps, shaded fragments, candidate visits,
+selection calls, wave divergence/occupancy where available, cubemap samples, frame p50/p95/p99,
+RSS/VRAM, and matched WPR/WPA CPU-package plus GPU energy. RenderDoc must identify the candidate
+buffers and prove base/clearcoat reuse rather than infer it from elapsed time.
+
+The correctness suite must include a camera-nearest-64 counterexample, a screen-edge influence, a
+rotated box, stable weight/priority/ID ties, object/probe layer mismatch, a layer above bit 31, and
+publication/overflow/stale-generation cases. The after gate requires zero per-fragment global probe
+scans, one selection per shaded surface regardless of active lobe count, no unchanged probe metadata
+upload, exact top-two agreement with the CPU oracle over admitted resident probes, explicit residency
+budget rejection, and measured GPU/energy convergence against the before matrix. Status:
+`global_camera_subset_and_repeated_fragment_scan_confirmed_clustered_probe_cut_planned_pending_current_source_gpu_power_profile_and_exact_owner_scope`.
+
+The P0-7 provenance test first failed with 34/35 passing because the clustered-assignment and
+layer-identity owners were absent. After adding the eleven exact owners, the unchanged full Pester
+command passed 35/35 in 34.07 seconds. The superseding immutable source manifest is
+`E:\zircon-profiles\shader06-critical-source-manifest-p0-10d-20260901.json`: 187 paths, 187
+unique, zero missing, zero immediate drift, 27,520 bytes, with matching canonical/file SHA-256
+`daadf25751afe1a6da3238b3d03ee8e8500cf6f74b0670ce6b9d8cf386f97d23`. This is provenance and
+source-shape evidence only; it is not a managed compile, WGPU profile, RenderDoc capture, image,
+elapsed-performance result, or power result.
+
+## 2026-09-01 P0-8 capture admission identity and product-reachability review
+
+The completed recorder/filter/publication path is not yet a correct product boundary. The public
+`RenderSceneSnapshot` name is only an alias for `SceneViewportRenderPacket`; that packet contains
+flattened geometry, lights, environment, preview, overlays, and VG debug state, but no world or
+generation identity. `RenderFramework::request_environment_capture` accepts that packet by value
+next to an independently constructed `RenderEnvironmentCaptureRequest`. The reflection-probe
+adapter clones the packet before admission, while `ReflectionProbeCaptureRequest::render_request`
+copies one caller-controlled `source_revision` into `scene_revision`, `environment_revision`, and
+`output_generation`. `EnvironmentCaptureSceneBatch` then reconstructs a frame through
+`RenderWorldSnapshotHandle::new(0)`, explicitly discarding even the framework's existing
+`{ world, generation }` identity shape.
+
+This is observable correctness failure, not naming debt. Scheduler duplicate detection compares
+only `RenderEnvironmentCaptureRequest`; two equal recipes carrying different scene packets return
+the same live handle and silently discard the second scene. Stale-generation checks compare only
+`capture_id + output_generation`, and the runtime bake key hashes the three self-reported revision
+fields rather than identity derived from the scene it rasterizes. A caller can therefore label
+different scene bytes with one cache/publication identity, or relabel stale scene bytes as a newer
+generation. The current editor producer does not repair this: `render_snapshot()` returns the
+identity-free packet, while `render_frame_submission()` places `scene.world_generation()` in the
+`world` field of `RenderWorldSnapshotHandle::new(...)` and leaves the handle generation at zero.
+
+There is also no product reachability yet. `ReflectionProbeCaptureEditorTrigger` and its JSON
+command are defined and re-exported, but no production editor command, operation handler, or
+viewport workflow calls the trigger. The GPU path is consequently a callable library contract,
+not an editor MVP loop. Adding a screenshot-only harness around it would not close this gap.
+
+The reference engines reinforce the owner boundary. Unreal allocates and updates captures through
+the owning `FScene`; `FScene::AllocateReflectionCaptures`, `FindOrAllocateCubemapIndex(FScene*, ...)`,
+and `FScene::ReflectionSceneData` keep scene identity, component identity, slot residency, and
+capture work in one persistent render-scene owner. Each face renderer reads that scene rather than
+accepting an arbitrary preselected viewport packet. cmft/cmftStudio start from an explicit image
+payload and keep filtering/output identity separate from any live-scene capture identity; their
+offline image contract is useful after rasterization, but cannot justify synthesizing a scene
+generation from an artifact revision.
+
+The dependency-ordered hard cut is:
+
+1. Render03 first publishes the existing persistent `RenderScene` through an immutable shared read
+   view identified by the complete `RenderWorldSnapshotHandle { world, generation }`; environment
+   and lighting generations are carried by the same resolved read transaction.
+2. Replace the packet argument with a typed scene-capture source reference. Admission resolves the
+   exact world/scene/environment generation before enqueueing and derives the cache source identity
+   from that resolution. Use `{ world, stable capture id }` for supersession ownership so equal
+   capture strings in two worlds cannot collide.
+3. Keep output generation independent from scene generation, environment generation, and external
+   source-artifact revision/hash. Remove the one-argument `source_revision` fan-out and the legacy
+   identity-free packet overload in the same migration; no compatibility path may retain it.
+4. Queue an `Arc`-backed generation read view or stable handle, not cloned scene vectors.
+   `EnvironmentCaptureSceneBatch` consumes the shared persistent scene and performs the probe-origin
+   selection described by the earlier view-neutral LOD review once per capture. It must not call
+   `RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(0), ...)`.
+5. Register one real editor operation that acquires the current qualified scene source, submits,
+   polls, consumes optional source bytes, publishes through the existing project transaction, and
+   exposes typed failure/cancel/supersede state. The operation must never synchronously wait for GPU
+   completion on the UI thread.
+6. Fail closed before GPU target allocation when the source generation is absent, stale, belongs to
+   another world, or its environment/residency generation no longer matches. Publication retains
+   the existing physical-commit-before-terminal-success ordering.
+
+The current admission path performs one `O(S)` deep clone for packet payload size `S` before the
+scheduler can detect a duplicate; even a duplicate that reuses an existing handle has already paid
+that copy. The intended admission is `O(1)` shared-owner retention, followed at execution by the
+previously selected `O(M log L + K + 6)` probe-origin scene preparation. RED/GREEN must include:
+same recipe/same source returns one handle with pointer-equal shared source; same recipe/different
+scene generation does not alias; identical capture ids in different worlds do not supersede each
+other; stale and missing generations fail before allocation; output generation changes do not
+pretend the source scene changed; and repeated duplicate requests over a realistic large scene
+report zero scene-payload copies and bounded allocations/bytes. Managed before/after evidence must
+record request p50/p95/p99, allocations/bytes, queue occupancy, source-resolution visits, GPU
+timestamps, VRAM/RSS, and WPR/WPA energy. No modeled elapsed or power claim is authorized.
+
+The static provenance contract initially failed because all ten exact identity/publication owners
+were absent. After adding the editor scene producer, probe execute adapter, capture request, world
+handle, snapshot alias/packet, scheduler/control/completion, and scene-batch owners, the unchanged
+full Pester command passed 36/36 in 32.43 seconds. This is source-closure evidence only. Status is
+`architecture_review_complete_blocked_on_render03_generation_qualified_scene_owner_and_editor_operation_wiring`;
+Shader06 continues on independent non-validation work.
+
+The superseding immutable manifest is
+`E:\zircon-profiles\shader06-critical-source-manifest-p0-10e-20260901.json`: 197 paths, 197
+unique, zero missing, zero immediate drift, 29,034 bytes, and matching canonical/file SHA-256
+`8172e4bdffcc3eab842eb1f07e83e91bb41523ff4b799c653607dea90d022b0d`. P0-10d remains
+unchanged historical evidence. P0-10e does not constitute managed Cargo/WGPU, RenderDoc, visual,
+elapsed-performance, memory, or power acceptance.
+
+## 2026-09-01 SDR display mapping, quantization, and dither ownership review
+
+The clipped sky and highlight loss in historical Shader06 screenshots are not safely repairable by
+changing environment intensity. The current source preserves linear HDR scene color, but cameras
+without a post-process volume inherit `RenderTonemapOperator::None`. `apply_tonemap_and_lut` then
+leaves positive HDR values unbounded while the pass writes `TONEMAPPED_SDR_FORMAT == Rgba8Unorm`.
+Values above one are clipped and the remaining display-linear range is quantized to eight bits before
+the named output-transfer pass. That later WGSL pass only copies a texel and receives none of the
+declared `RenderOutputTransfer` variants.
+
+The dither owner is also on the wrong side of the conversion. `apply_grain_and_dither` runs before
+FXAA, tone mapping, LUT, and color grading, uses a per-pixel sine hash, and is subsequently reshaped by
+the display operators. Correct quantization noise belongs once at the terminal target boundary after
+all display mapping and spatial processing. Keeping a linear eight-bit intermediate before a later
+sRGB store also spends the code range in the wrong domain and cannot be made a sound HDR/SDR contract
+by increasing the current noise strength.
+
+Three historical artifacts quantify the symptom without claiming current-source acceptance. The
+2026-08-23 textured-metal image contains 519,155 of 1,228,800 pixels (42.249%) with at least one
+channel exactly 255, including 44,404 fully white pixels (3.614%) and 513,741 blue-clipped pixels.
+The 2026-07-15 interactive image contains 70,910 of 1,294,704 any-channel-clipped pixels (5.477%) and
+41,092 fully white pixels (3.174%). The 2026-07-29 environment-only image contains 35,559 of
+1,228,800 any-channel-clipped pixels (2.894%) and 22,203 fully white pixels (1.807%). These scans are
+historical evidence only; current-source PNG, linear-HDR readback, RenderDoc, GPU timing, and power
+remain open.
+
+A naive default-ACES edit would create a separate performance regression. The aggregate effect-stack
+enable bit would send every tone-only pixel through the shared effect branch. Even with DoF and SSR
+disabled, the current shader performs one depth read, six CoC reads, and one resolved-SSR read before
+the relevant functions discover neutral settings. The static lower bound is eight unrelated texture
+reads per pixel, or 16,588,800 at 1080p and 66,355,200 at 4K. This is a source-structure count, not a
+measured transaction, elapsed-time, occupancy, or energy result.
+
+Unreal's terminal owner combines pre-exposure reversal, resolved exposure, selected tone/output-device
+mapping, and final back-buffer quantization dither; the dither is applied after the final linear color
+has been mapped. cmftStudio likewise resolves luminance/adaptation and a selected tone curve before
+display grading, while its offline image-filter identity remains independent. Both references reject
+using destructive environment normalization as a substitute for display mapping.
+
+The required Render07 hard cut is recorded in
+`../../render/07/failure-2026-09-01-default-hdr-output-bypasses-tonemap-and-dither.md` with
+`plan_link_mode: child_record_only`. In dependency order it requires: a mandatory bounded SDR display
+mapping selected from camera/output target; float precision through tone mapping, terminal AA, and
+upscale until the single output quantization; an actually bound `RenderOutputTransfer`; terminal,
+bit-depth-aware deterministic/temporal dither without the sine hash; and per-effect flags or entry
+points so the default tone-only path performs no unrelated effect reads. HDR scene-color capture must
+remain pre-display-mapping and unchanged.
+
+Before implementation tuning, Render07 must capture current-source 1080p/4K RenderDoc/resource and
+GPU timestamp evidence, allocation/format bytes, pass/texture-read and bind-group-creation counts,
+RSS/VRAM, and WPR/WPA energy. The after gate additionally requires shoulder/detail and gradient image
+oracles, exact transfer selection, deterministic capture dither, HDR readback invariance, and no
+regression toward the static eight-read bound. Shader06 will not lower HDRI energy or add a viewer-only
+tone-map exception while that owner is open.
+
+The profile provenance contract initially failed 36/37 because all eleven display-mapping,
+quantization, and transfer owners were absent. After adding the exact contract/settings, format,
+pipeline, executor, and shader paths, the unchanged full Pester command passed 37/37 in 31.32 seconds.
+The superseding immutable manifest is
+`E:\zircon-profiles\shader06-critical-source-manifest-p0-10f-20260901.json`: 208 paths, 208
+unique, zero missing, zero immediate drift, 30,796 bytes, and matching canonical/file SHA-256
+`de01c9f91f05dac6e0b070ab6c3c075a93b43a40383d8581263f2c384715b290`. P0-10e remains
+unchanged historical evidence. This is source/provenance closure only. Status:
+`render07_display_mapping_failure_open_shader06_independent_work_continues`.
+
+## 2026-09-01 P1-6 realtime IBL bootstrap and procedural-lighting fallback review
+
+The cold-start fallback is an explicit current contract, not an omitted roughness multiplication.
+`zr_environment_sky_reflection_color` sends source cubemap and published realtime providers through
+the PMREM mip chain, but sends an ordinary procedural fallback through exactly one unfiltered sky
+evaluation at the perfect reflection direction. `zr_environment_diffuse_color_normalized` likewise
+evaluates the raw sky at the surface normal instead of a cosine-convolved hemisphere. Two source
+contract suites currently require that exact behavior and prohibit both a roughness-dependent
+reflection/normal mix and more than one procedural lookup. The tests therefore preserve the P1-6
+defect and must be replaced atomically with the implementation, not treated as acceptance evidence.
+
+The scheduler already has the correct update-side last-good policy: after one generation is
+published, later sky changes keep sampling the ready slot while the other slot is rebuilt. The defect
+exists at cold start and terminal failure, where `has_published_environment()` is false and the shader
+falls back to the raw analytic sky. A default generation takes 21 accepted frame batches: three
+two-face captures, seven source-mip operations, three two-face PMREM mip-zero batches, seven remaining
+PMREM mips, and one SH9 projection. Mechanically collapsing those batches still leaves approximately
+17 GPU passes and is not an algorithmic reduction. It would only exchange a bounded multi-frame build
+for an unmeasured first-frame spike.
+
+The reference boundary is consistent. Unreal enables SkyLight sampling only when a processed texture
+or a valid realtime-capture resource can be sampled, then obtains specular energy from a
+roughness-selected cubemap mip and diffuse energy from sky irradiance SH. cmft/cmftStudio consume a
+prefiltered radiance mip chain and a separate irradiance product. Neither reference fabricates a GGX
+lobe by mixing the reflection direction toward the normal or treats one raw environment lookup as a
+roughness convolution.
+
+The MVP hard cut is therefore resource-level bootstrap, in dependency order:
+
+1. Produce one immutable engine-owned PMREM+SH artifact for the canonical default procedural sky with
+   the same recipe and shared procedural-sky content identity as realtime generation. Hydrate it
+   through the environment artifact/residency owner; do not embed an unversioned texture or regenerate
+   it synchronously in the first render frame.
+2. Seed the scheduler's initial ready slot with that artifact and track its identity as `Bootstrap`,
+   distinct from requested, pending, and published generation identities. Custom sky background may
+   render immediately, but indirect lighting remains the explicitly reported bootstrap generation
+   until the requested generation publishes. Missing, corrupt, stale-recipe, or stale-shader bootstrap
+   data fails closed to zero indirect lighting while retaining the sky background.
+3. Use the already allocated double buffer. At the current 128-face, eight-mip RGBA16F layout, one cube
+   is 1,048,560 logical bytes and PMREM+SH bootstrap payload is 1,048,704 logical bytes. The existing
+   two slots allocate four such cubes plus two SH buffers, 4,194,528 logical bytes in total before
+   backend alignment. Seeding slot A needs no third persistent cube; an extra fallback allocation is
+   forbidden without measured residency evidence.
+4. Route bootstrap specular through the existing PMREM roughness-to-LOD function and bootstrap diffuse
+   through the existing SH9 evaluator. Once the requested generation publishes, swap PMREM and SH9
+   under the same generation boundary. Remove the raw procedural lighting branch and the source-string
+   tests that require it in the same change; keep the independent procedural sky-background path.
+5. Preserve the current attempt token, retry, failure, coalescing, and last-good publication semantics.
+   Scheduler batching may change only after the separately required GPU and power profile demonstrates
+   the bottleneck. The bootstrap correction does not authorize pass merging or sample-count reduction.
+
+Forbidden alternatives are per-pixel multi-sample convolution, reflected-to-normal interpolation,
+normal-direction diffuse lookup, silently labeling the default bootstrap as the requested generation,
+synchronous CPU/GPU baking during first-frame submission, a viewer-only fallback, and a permanent
+third PMREM cube. All either retain the wrong algorithm, move offline work into the fragment path, or
+break generation and performance accounting.
+
+RED/GREEN must prove: cold start and `FailedFallback` never call raw procedural sky for indirect
+lighting; bootstrap specular changes with PMREM LOD across roughness; bootstrap diffuse matches the SH9
+CPU oracle; bootstrap/requested/published keys remain distinct; corrupt or identity-stale bootstrap
+fails before sampling; first publication atomically replaces both PMREM and SH9; and later rebakes keep
+the pointer/slot-identical last-good generation. A current-source product test must compare roughness
+rows and diffuse orientations against the CPU artifact oracle rather than only searching WGSL text.
+
+Before implementation, capture the existing 21-batch cold start at 1080p and 4K with per-pass GPU
+timestamps, command/submission build p50/p95/p99, publication latency, bind-group and params-buffer
+creation counts, scheduled/completed workgroups, RSS/VRAM, and matched WPR/WPA CPU-package and GPU
+energy. The after matrix must add bootstrap upload bytes/time and demonstrate no first-frame spike, no
+third-cube residency, no per-pixel fallback convolution loop, and comparable steady-state frame cost.
+RenderDoc must identify the bootstrap PMREM/SH bindings and the atomic transition to the requested
+generation. Static logical bytes and pass counts above are not elapsed, resident-memory, or power
+claims.
+
+The provenance TDD first passed 37/38, with only the new bootstrap-owner case failing. Adding the three
+compiled-graph cache physical modules and realtime profile support to the critical source closure made
+the unchanged full Pester file pass 38/38 in 30.47 seconds. The first generated P0-10g file is retained
+as a rejected ordering sample: its 212-path content was complete, but culture-sorted file bytes did not
+match the coordinator's ordinal canonical SHA and it is not valid evidence. The superseding immutable
+manifest is `E:\zircon-profiles\shader06-critical-source-manifest-p0-10h-20260901.json`: 212 paths,
+212 unique, zero missing, zero immediate drift, 31,506 bytes, with matching canonical/file SHA-256
+`1ab7c062c637c3c1d15c1611e4b5e103910386bc898146a260d261732257c0d0`. Current shared-worktree
+modifications in the procedural-sky shader and cubemap sampling contract are included by their current
+hashes but were not edited by this review. Status:
+`p1_6_resource_bootstrap_cut_planned_pending_current_source_gpu_power_profile_and_exact_owner_recheck`.
+
+## 2026-09-01 P1-8 BRDF LUT and base-lobe recipe identity recheck
+
+The earlier finding that the 128 x 32 x 128 BRDF LUT domain and integrator were outside recipe
+identity is stale in current source. Commit `579805160` introduced a separate device-global
+`EnvironmentBrdfLutRecipe` containing algorithm version `2026_08_31_0001`, extent `[128, 32]`, 128
+samples, `GgxJointSmithSplitSum`, and `Rg16Float`. `EnvironmentPbrRecipe` composes that identity with
+the producer-specific IBL recipe and the explicit `SingleScatterSplitSum` base-lobe energy mode. Asset
+and runtime IBL identities remain distinct because their diffuse integrators differ, while both share
+the same device-global BRDF LUT identity.
+
+That separation is architecturally correct. The LUT is a material/BRDF integration product shared by
+all environments on one device generation; it must not be copied into every `.zribl` payload or force
+PMREM/SH rebakes when only the LUT algorithm changes. The composite identity is the end-to-end PBR
+contract, while the LUT payload and environment artifacts retain independent storage and lifetimes.
+This matches Unreal's `PreintegratedGF`: a 128 x 32 system texture whose axes are NoV and roughness,
+sampled once by `EnvBRDF`, independent from each reflection capture cubemap. Zircon's consumer uses the
+same UV domain and the same `F0 * A + saturate(50 * F0.g) * B` form.
+
+The runtime no longer integrates 524,288 samples during renderer creation. A checked-in 16,384-byte
+RG16F builtin with SHA-256
+`406956356b136bd079cdcce8dcb86f9e20d596681f7457ad38d91a7ee472674d` is embedded into the system
+texture generation owner. Source tests regenerate it through the canonical CPU oracle, require exact
+byte equality and SHA equality, and require the recipe-selected WGPU format. The system owner uploads
+it once in the shared system-texture batch; each scene renderer only clones the device-generation
+texture/view handles and cannot create or write a second LUT. The viewer already records builtin
+materialization/cache-wait and upload-submission durations, so no new timing path is required before
+current-source product capture.
+
+No production algorithm edit is justified for the single-scatter MVP. The remaining advanced question
+is whether a later base-lobe multiple-scattering compensation mode meets an approved error/energy and
+performance target. That mode must receive a new `EnvironmentPbrEnergyMode`, any changed LUT
+integrator/domain must increment its algorithm identity and regenerate the builtin hash, and the
+single-scatter mode remains an explicit supported baseline. It is not a reason to invalidate the
+current PMREM recipe or block the shader MVP.
+
+The profile provenance contract initially passed 38/39, with only the new BRDF LUT artifact-owner case
+failing. Adding the PBR recipe, builtin binary, system generation owner/payload/resource modules, and
+scene binding owner made the unchanged full Pester file pass 39/39 in 32.14 seconds. The superseding
+immutable source manifest is
+`E:\zircon-profiles\shader06-critical-source-manifest-p0-10i-20260901.json`: 218 paths, 218 unique,
+zero missing, zero immediate drift, 32,492 bytes, with matching ordinal canonical/file SHA-256
+`8adeea590b9c4904ec9e123987d43354665b464b1ec177dc7b8b36c60930e4ff`. This closes source identity,
+not managed Cargo/WGPU, current-source image error, RenderDoc binding inspection, GPU time, residency,
+or power evidence. Status:
+`p1_8_base_single_scatter_recipe_builtin_and_profile_identity_source_closed_dynamic_acceptance_pending`.
+
+## 2026-09-01 P1-19 environment runtime observation boundary review
+
+Current source has a useful but partial product query. `EnvironmentRuntimeSnapshot` shares the current
+`RenderFrameProfile` by `Arc`, rejects a frame/profile generation mismatch, and combines the latest
+scene-submission report, reflection-probe workload, and six-state realtime IBL status. The WGPU query
+finishes a pending submission, takes the operation guard and state lock once, and projects those values
+without calling several destructive drain APIs. Repeated projection is O(1) with respect to profile
+payload size.
+
+It is not yet a unified environment status surface. The hydration cache exposes no report or counters;
+it only stores up to four decoded environments and four pending bake requests. The capture scheduler
+already maintains O(1) cumulative telemetry plus pending/active/terminal counts, but that type is
+private and absent from the snapshot. No Editor or Workbench consumer calls the public environment
+snapshot query. As a result, tooling cannot correlate cache miss/hydration, capture queue/publication,
+probe admission, realtime generation, and the frame that sampled the result without reaching into
+separate APIs or reconstructing state.
+
+The lock architecture prevents a naive field addition. Renderer/frame state lives under the framework
+state mutex, hydration lives behind an `Arc<Mutex<_>>` that is deliberately cloned and mutated outside
+the state lock, and capture control-plane requests mutate a third mutex without taking the operation or
+state locks. Therefore no current global lock establishes one atomic observation instant across all
+three owners. Calling the existing snapshot "coherent" is valid only for the state-lock projection and
+the asynchronous reports' own source identities. Acquiring hydration or capture locks while holding
+state would add a new nested lock order and still would not stop independent capture-control changes.
+
+The required hard cut is an observational composite, not a second state machine:
+
+1. Each asynchronous owner publishes a small public report with its own monotonically changing
+   observation epoch and relevant content identities. Hydration reports resident/pending counts,
+   hit/miss/insert/evict/reservation-suppression totals, and current request identities. Capture reports
+   the existing telemetry plus optional active/pending handle, phase, progress, output identity, and
+   ready source-payload identity. No report owns or clones environment texels or scene packets.
+2. Keep the operation guard only around renderer completion/state projection. Clone the hydration owner
+   handle, release state, then snapshot hydration and capture independently in a documented fixed order
+   with no nested mutexes. The composite explicitly preserves each subreport epoch instead of claiming
+   one global frame generation.
+3. Preserve per-handle capture polling for detailed terminal diagnostics. The aggregate query is a
+   dashboard/profile summary and must not drain status, payload, GPU timing, or failure queues.
+4. Add one Editor-owned consumer after the render/runtime contract lands. It displays the typed reports
+   and identities; it must not infer `Ready`, cache hit, stale age, or capture success from counters.
+5. Instrument only existing O(1) transitions. Query-time queue scans, path strings, artifact reads,
+   payload hashing, deep clones, and lock-held formatting are forbidden.
+
+RED/GREEN must cover independent epoch advancement, state/profile mismatch rejection, no nested owner
+locks, no destructive drains, pointer-equal frame-profile reuse, hydration hit/miss/eviction and
+reservation-release transitions, capture active/pending/terminal/source-payload transitions, and
+concurrent control-plane changes yielding self-consistent per-owner reports rather than a false global
+generation. Performance acceptance records query p50/p95/p99, allocation count/bytes, lock wait/hold
+time by owner, and report sizes under empty, four-entry hydration, active capture, and 64 retained
+terminal statuses. A source scan or modeled elapsed count is insufficient.
+
+This slice is architecture-complete but not production-authorized while the coordinator is offline and
+the exact framework/core/editor owner set cannot be reconciled. Shader06 continues on independent
+resource-lifetime work. Status:
+`p1_19_partial_query_confirmed_per_owner_epoch_reports_and_editor_consumer_pending_exact_owner_scope`.
+
+## 2026-09-01 P1-19 hydration observation implementation slice
+
+The first production slice of this boundary is now implemented under the reconciled Shader06
+ownership set. `EnvironmentIblHydrationReport` is a fixed-size, copy-only DTO containing the cache
+observation epoch, resident/pending counts, hit/miss/insert/eviction and reservation transition
+counters, plus at most four resident and four pending `IblBakeArtifactRequest` identities. It never
+copies decoded texels, prepared upload rows, filesystem paths, or scene packets. The existing
+four-entry LRU remains the only storage policy; hits and misses are recorded at the existing O(1)
+lookup, publish and reservation transitions, and report construction is bounded by the same capacity.
+
+`EnvironmentRuntimeSnapshot` now carries the hydration report alongside the existing frame/profile,
+scene-completion, reflection-probe and realtime-IBL reports. The WGPU query clones the hydration
+`Arc` while holding the operation/state pair, exits that scope, then takes the hydration mutex and
+builds the report. This preserves pointer-equal frame-profile reuse and prevents a new framework
+state -> hydration nested lock. The snapshot comment explicitly retains per-owner epoch semantics;
+it does not claim a globally atomic observation instant. RED/GREEN tests cover empty non-destructive
+reports, pointer-preserving hits, miss/insert/eviction counts, reservation suppression/release, and
+the lock-scope ordering contract.
+
+Focused `rustfmt` and `git diff --check` are green. Two coordinator-managed Windows validation
+submissions used the `zircon_runtime` package, library tests, and `environment::` filter with targets
+under `E:\\cargo-targets`; both front-end waits timed out before a receipt, and no Cargo error or
+success output was returned. The worker was observed compiling `zircon_runtime` and is not treated as
+accepted evidence. Therefore this slice remains
+`implementation_complete_static_hydration_report_green_managed_rust_validation_pending`; capture
+report exposure, Editor consumer, current-source PNG/RenderDoc, GPU timing, RSS/VRAM and WPR/WPA
+power evidence remain open. No milestone commit or WeCom notification is authorized until the
+coordinator returns a validated candidate.
+
+## 2026-09-01 P1-11 environment CPU/upload residency and retirement review
+
+The current source avoids clone-time texel copies but retains too many complete representations for
+too long. `SourceCubemapMipChain` correctly shares source and PMREM `[f32; 4]` arrays through `Arc`, and
+the hydration-cache tests already prove pointer reuse on a hit. However, `SkyboxSettings` eagerly
+prepares an upload artifact, `SourceCubemapEnvironment` embeds that artifact, and the fixed four-entry
+`EnvironmentIblHydrationCache` retains the complete environment by entry count rather than by bytes.
+The production `discard_prepared_upload_artifact` operation has no caller. A current GPU residency hit
+therefore does not release the CPU float pyramids or the row-padded RGBA16F upload sections.
+
+The upload path adds two more complete host representations. `CubemapUploadStagingArena::encode`
+concatenates every source, PMREM, and irradiance mip into its reusable `Vec<u8>`, then
+`Arc::from(self.bytes.as_slice())` copies that aggregate into the immutable
+`WgpuBufferUploadBatch` payload retained for submission. The host vector keeps its high-water
+capacity. The GPU staging buffer grows to the next power of two and has no trim or budget policy, so
+one maximum source permanently raises this scene renderer's staging capacity to 128 MiB even after
+the upload completes.
+
+The exact structural byte accounting for the current maximum layout is:
+
+| Representation | One environment | Four cache entries |
+|---|---:|---:|
+| 1024-face, 11-mip source `[f32; 4]` chain, 8,388,606 texels | 134,217,696 B | 536,870,784 B |
+| 128-face, 8-mip PMREM `[f32; 4]` chain, 131,070 texels | 2,097,120 B | 8,388,480 B |
+| row-padded RGBA16F source upload sections | 67,140,096 B | 268,560,384 B |
+| row-padded RGBA16F PMREM upload sections | 1,079,808 B | 4,319,232 B |
+| row-padded 32-face irradiance upload section | 49,152 B | 196,608 B |
+| subtotal represented by the rows above | 204,583,872 B | 818,335,488 B |
+
+These are layout-derived byte counts, not RSS, VRAM, elapsed-time, allocation, or energy measurements.
+They are also a lower bound: they exclude the CPU irradiance cube, artifact payload loaded from disk,
+maps and allocation metadata, current extract/frame clones, destination GPU textures, and backend
+alignment. Hydrating a baked artifact transiently overlaps its RGBA16F payload with
+`decode_pmrem_texels()` expansion to RGBA32F and a new RGBA16F upload artifact. During a first maximum
+upload, the 68,269,056-byte aggregate host vector, an equal-size submission `Arc`, and the
+134,217,728-byte GPU staging allocation add 270,755,840 B (about 258.2 MiB) beyond the cache lower
+bound and destination textures.
+
+This is an ownership and admission-control defect, not a reason to reduce PMREM quality or optimize a
+byte-copy loop in isolation. Unreal's reflection-capture path places allocation, runtime budget,
+in-flight refresh, publication, and proxy destruction under explicit scene owners; its scratch copy is
+executed as a bounded render-graph operation. cmft similarly gives converted RGBA32F scratch images an
+explicit temporary owner, moves the completed result when possible, and calls `imageUnload` after
+conversion/filter stages. Neither reference treats all intermediate representations as permanent
+fields of every frame/environment value.
+
+The required hard cut is dependency ordered:
+
+1. Split environment identity/settings from heavyweight decoded and prepared-upload resources.
+   `SourceCubemapEnvironment` carries a content/resource handle; an artifact owner provides scoped
+   decode and rehydration leases. Per-frame extract clones identities and handles only.
+2. Give immutable prepared upload sections exact `resident_bytes` accounting and a publication state
+   keyed by `SourceCubemapUploadKey`: absent, pending submission, committed for device generation, or
+   failed/retryable. A current committed key produces zero per-frame upload bytes and allocations.
+3. Replace the hydration cache's count-only policy with a byte budget plus a secondary entry limit.
+   Admission and LRU eviction account decoded bytes, upload bytes, pinned/in-flight generations, and
+   last use. A failed replacement cannot evict or mutate the last-good committed environment.
+4. Acquire at most one upload lease on a residency miss. When a bake artifact already contains the
+   requested RGBA16F PMREM/IEM representation, upload those shared sections without
+   RGBA16F-to-RGBA32F-to-RGBA16F expansion. Source sections may be encoded once, outside frame
+   submission, when no storage-ready representation exists.
+5. Remove the aggregate host double copy. The RHI upload owner must accept moved storage or shared
+   immutable sections/ranges, while the scene batch records aligned copies without concatenating the
+   same bytes twice. Any segmented implementation must be selected from measured queue/write and
+   allocation evidence, not assumed faster from call count.
+6. Retire prepared upload bytes only after successful publication and the required submission or
+   queue-completion fence. Retry retains the lease; cancellation releases it; device loss invalidates
+   the GPU generation and rehydrates through artifact/source ownership. Dropping bytes immediately
+   after `ensure_uploaded` is forbidden because it breaks retry and conflates GPU loss with permanent
+   CPU backing retention.
+7. Put host and GPU staging high-water storage under the global upload budget, or trim it after a
+   measured inactivity window. A one-off maximum environment must not leave an unreported 128 MiB
+   per-renderer staging allocation indefinitely.
+
+RED/GREEN for the production cut must cover pointer-equal handle clones, four maximum requests staying
+within the byte budget, pinned/in-flight entries resisting eviction, last-good survival after failed
+replacement, zero upload bytes/allocations on a committed-key hit, retry retention and post-commit
+retirement, device-loss rehydration, no decode-expand-reencode for storage-ready RGBA16F PMREM/IEM,
+and exact cache/staging telemetry. The benchmark matrix is source size 128/512/1024, one/four/five
+identities, and cold/warm/device-loss/retry states. Before and after evidence must record allocation
+count/bytes, process RSS, decoded/prepared/cache bytes, staging host/GPU high water, destination VRAM,
+cache hit/miss/eviction/admission, upload bytes, queue completion, CPU/GPU timings, and WPR/WPA energy;
+RenderDoc verifies resource creation, formats, copies, and steady-state zero-upload frames. No modeled
+elapsed or power claim is accepted.
+
+The profile provenance contract first produced the intended RED at 39/40 because the cache root,
+cubemap staging arena, and RHI immutable upload payload owner were absent. Adding exactly those three
+paths made the unchanged full Pester file pass 40/40 in 44.04 seconds. P0-10j was valid and drift-free
+at generation, then five foreign mesh resolver-configuration telemetry owners changed in the shared
+worktree; it remains immutable historical evidence. The current superseding source manifest is
+`E:\zircon-profiles\shader06-critical-source-manifest-p0-10k-20260901.json`: 221 paths, 221 unique,
+zero missing, zero immediate drift, 32,983 bytes, with matching ordinal canonical/file SHA-256
+`c5148fe3ed242c779b665199188cb31b918c25d10b6587d9287510a29fc3c61e`. This closes P1-11
+architecture and source-provenance scope only; production ownership reconciliation and measured
+before/after acceptance remain open. Status:
+`p1_11_environment_payload_staging_residency_architecture_closed_production_and_measurement_pending`.
+
+## 2026-09-01 P1-10 IBL artifact sectioning and platform-read review
+
+The early P1-10 description is directionally correct but conflates two artifact systems. The generic
+asset artifact store already writes a versioned manifest and content-addressed 64 KiB compressed
+chunks. The IBL-specific `.zribl` asset-derived and runtime-cache stores do not use that manifest: both
+call `fs::read` for the complete file, and `IblBakeArtifactBlob::decode` then validates the complete
+payload checksum before constructing an owned `Vec<u8>` payload. `IblBakeArtifactPayload` is one
+contiguous little-endian RGBA16F PMREM section followed by fixed-size SH9 and optional IEM sections;
+the descriptor exposes ranges only after the full blob is resident. Consequently, a warm runtime-cache
+hit still opens and copies every section, even when the request needs only PMREM+SH9, and a source
+hydration miss can overlap file bytes, decoded PMREM floats, and prepared upload bytes.
+
+This is a boundary defect, not evidence that RGBA16F is intrinsically the wrong canonical format. The
+canonical artifact must remain deterministic and producer/recipe qualified; platform upload format,
+row alignment, compression, and residency are runtime-owner concerns. A platform-specific transcode
+must not silently alter the artifact identity or make a GPU-native cache look like a CPU-derived
+artifact. Conversely, keeping a monolithic raw blob solely because it is easy to checksum prevents
+section-level admission, range I/O, and byte-budget telemetry.
+
+The reference boundary supports explicit staged ownership. Unreal reflection captures retain a cooked
+capture resource/derived-data identity and stream or allocate render resources under scene/runtime
+owners; they do not make every view own the complete source encoding. cmft's offline pipeline uses a
+temporary working image, moves a completed result when possible, and unloads scratch images between
+conversion/filter stages. These references support a sectioned immutable artifact plus scoped decode
+leases, not a per-frame whole-file read.
+
+The required hard cut belongs to the Runtime09D artifact owner and must be adopted atomically:
+
+1. Add a versioned IBL section manifest containing descriptor identity, section names (PMREM, SH9,
+   IEM), byte ranges, raw/compressed lengths, per-section content hashes, canonical format, and
+   producer. Publish the manifest and section chunks transactionally with the existing source-bundle
+   publication barrier; a missing or mixed manifest rejects the entire candidate.
+2. Keep the canonical `.zribl` writer available for offline compatibility, but make runtime reads
+   manifest-first. Read only the sections required by `IblBakeArtifactRequest`; validate each section
+   hash and the descriptor before decoding. A PMREM+SH9 hit must not read or allocate an optional IEM
+   section. Full-blob checksum remains a writer/compatibility check, not a prerequisite for a range
+   read.
+3. Represent section bytes as immutable shared ranges owned by an artifact lease. Hydration and GPU
+   upload consume those ranges without copying the complete file; release follows cache admission and
+   submission-fence rules from P1-11. The lease retains storage identity and reopens ranges after GPU
+   loss rather than pinning every section indefinitely.
+4. Separate canonical storage format from platform upload format. A storage-ready RGBA16F section is
+   uploaded directly when the device accepts it; otherwise a versioned platform transcode produces a
+   bounded derived section keyed by source content, device format, and recipe. The transcode must be
+   counted separately and cannot mutate canonical source hashes.
+5. Bound section/chunk fan-out, manifest size, decompression scratch, and concurrent range reads. A
+   single request may not open unbounded file handles or create one allocation per tiny mip. Reuse the
+   existing 64 KiB chunking where it fits, but choose section boundaries around PMREM mip/layer ranges
+   only after queue/read amplification and allocation evidence.
+
+RED/GREEN must cover descriptor/section mismatch rejection, mixed-publication rejection, required-
+section-only reads, per-section checksum failure, canonical and sectioned writer parity, platform
+transcode identity separation, bounded decompression scratch, cache hit pointer/range reuse, device-loss
+rehydration, and last-good retention after a partial replacement. The profile matrix is source sizes
+128/512/1024, PMREM+SH9 versus PMREM+SH9+IEM, cold/warm/failing/retry/device-loss states, and one,
+four, and five identities. Before/after evidence must record bytes read from disk, sections read,
+allocation count/bytes, decompression scratch high water, hydration/upload bytes, cache hit/miss, CPU
+latency p50/p95/p99, RSS, VRAM, queue completion, and WPR/WPA energy. RenderDoc verifies that sectioned
+reads produce the same texture formats/mip contents and that steady-state hits issue no file read or
+upload. No modeled elapsed or power claim is accepted.
+
+The current source/provenance contract already includes the specialized IBL cache, blob, payload codec,
+source staging, and hydration owners; no production path was changed in this review because the exact
+Runtime09D artifact owner and managed validation ticket are not available to Shader06. Status:
+`p1_10_ibl_artifact_whole_blob_read_confirmed_sectioned_runtime_owner_handoff_pending`.
+
+## 2026-09-01 P1-12 reflection-probe and planar-residency capacity review
+
+`SceneReflectionProbeResources::new` allocates the full local-provider capacity before the scene has
+any reflection probe or planar-reflection consumer. The current constants are 64 resident probe slots
+plus one capture spare slot, six faces, 128 x 128 RGBA16F, and eight mips; the same owner also creates
+one 1024 x 1024 RGBA16F planar texture with eleven mips. The environment-only viewer path has a
+1-slot/1-pixel placeholder and upgrades only when a local provider is requested, proving that deferred
+materialization is compatible with the existing ABI. Normal scene construction does not use that
+placeholder and therefore pays the full allocation unconditionally.
+
+The layout-derived logical bytes are exact before backend alignment: one 128-face probe cubemap is
+`6 * ((128^2 + 64^2 + ... + 1) * 8) = 1,048,560 B`; 65 cubemap slots are 68,156,400 B. The planar
+chain is `((1024^2 + 512^2 + ... + 1) * 8) = 11,184,808 B`. The combined texture residency is
+79,341,208 B (about 75.7 MiB), excluding probe/header/parameter buffers, views, driver metadata, and
+in-flight upload payloads. This is a reservation lower bound, not measured VRAM or power. A scene with
+zero local probes still creates these textures, while the probe selection path may upload only a small
+active subset; capacity and usage are therefore not the same budget.
+
+This is a resource-class ownership problem rather than a license to lower quality globally. Unreal's
+reflection environment keeps capture allocation and runtime visibility under scene/render-resource
+owners, with explicit capture budget and release of inactive proxies. The current Zircon slot allocator
+already has reservation, pending, commit, cancel, prepare-epoch, and last-report concepts; the missing
+boundary is a budgeted backing-resource owner that can grow class capacity without invalidating live
+bind groups or publishing a smaller array behind the same generation.
+
+The required hard cut is dependency ordered:
+
+1. Publish a device/scene reflection-resource capability describing local probe count, cubemap face/mip
+   format, planar support, and capture spare requirement. Derive texture/buffer allocation from this
+   capability and a byte budget; do not duplicate capacity literals in shader, selection, and upload
+   code.
+2. Materialize the smallest ABI-compatible resource class at scene creation (the existing placeholder
+   is the lower bound), then grow through a generation-scoped resource replacement. The replacement
+   owns new textures, views, buffers, and bind-group publication as one transaction; old resources stay
+   alive until all frame submissions using the previous generation retire.
+3. Keep capture reservation and active-provider admission separate. A candidate rejected for capacity
+   must not allocate a new full array or evict a committed probe; a capture spare is reserved only for
+   an admitted transaction. Planar reflection is an independent capability and must not force local
+   cubemap capacity when unused.
+4. Make resident bytes, pending replacement bytes, upload bytes, and retired-generation bytes visible
+   in the shared graphics budget. Failed growth keeps the last-good generation and releases only the
+   uncommitted replacement after its fence/rollback path.
+5. Rebuild bind groups and shader resource declarations only at the generation boundary. Stable warm
+   frames must retain the same view handles and perform no texture creation, array resize, or full probe
+   buffer rewrite solely because an inactive candidate exists.
+
+RED/GREEN must cover zero-probe startup, first local-probe admission, capacity-full rejection,
+capture-spare reservation, planar-disabled and planar-enabled classes, generation replacement while a
+frame is in flight, failed growth rollback, device loss, and pointer-stable warm bindings. The profile
+matrix is 0/1/8/64 probes, planar off/on, environment-only/full scene, and cold/warm/replacement/device-
+loss states. Before/after evidence must record resource creation count/bytes, resident/pending/retired
+bytes, bind-group/view creation, upload bytes, admission/rejection, GPU texture memory, frame latency,
+RSS, and WPR/WPA energy; RenderDoc verifies array layer/mip extents, formats, and generation-bound
+bindings. No modeled elapsed or power claim is accepted.
+
+The existing environment probe capacity, slot allocator, upload, and shader-binding paths are already
+in the Shader06 provenance closure. No production edit is authorized in this session until the exact
+resource-budget owner and managed WGPU validation ticket are reconciled. Status:
+`p1_12_fixed_probe_and_planar_residency_lower_bound_confirmed_budgeted_generation_owner_pending`.
+
+## 2026-09-01 P1-13 reflection-probe format, quality, and platform-capability review
+
+The current probe path has one coherent canonical MVP representation, but its identity is incomplete.
+`probe_buffer/capacity.rs` centralizes the default local-provider capacity (64 probes plus one capture
+spare), six faces, 128 x 128 face size, and eight mip levels. `probe_buffer/resources.rs` creates the
+array and planar textures as `Rgba16Float`, while `probe_buffer/upload.rs` validates the same extent,
+face count, mip count, and RGBA16F PMREM payload before uploading shared ranges. `GpuReflectionProbe`
+stores the selected array slice and mip count for shader sampling, but no format, quality tier, page,
+or sampling contract is carried alongside that handle. A future platform format decision would
+therefore either be rejected by the current validator or silently rely on duplicated constants.
+
+This is not evidence that the MVP format should be changed now. RGBA16F is a valid deterministic
+reference representation for the current PBR/PMREM pipeline, and the constants are sufficiently
+centralized for one quality class. The structural defect is that quality and device capability are
+not typed resource identity. Artifact validation, upload layout, bind-group view creation, shader
+sampling, and resident-byte accounting cannot safely distinguish a 128/8 RGBA16F class from a
+future lower-resolution, alternate-format, or paged class. A platform transcode also cannot be
+introduced as an implementation detail without separating canonical content identity from the GPU
+resource generation.
+
+The required hard cut belongs to the reflection-resource owner and is dependency ordered:
+
+1. Define a `ReflectionProbeResourceCapability`/quality value at the resource boundary. It must
+   include canonical face size, mip count, face count, texture format, local-slot count, capture
+   spare, planar capability, and sampling/page metadata. Keep the current 64/128/8/RGBA16F class as
+   the explicit default, rather than spreading new literals through upload and shader code.
+2. Include that capability in probe artifact/upload keys, generation reports, byte-budget admission,
+   and bind-group publication. A request for an unsupported device format or quality class is a
+   typed rejection; it must not fall back to a resource with different dimensions or reinterpret
+   an RGBA16F payload.
+3. Preserve the canonical PMREM artifact independently of platform storage. If a device requires a
+   transcode, publish a bounded derived payload keyed by canonical content hash, device format,
+   quality, and recipe. The derived resource is retired by generation/fence rules and is charged
+   separately from canonical bytes.
+4. Keep shader sampling metadata generation-scoped. A view/page/array-layout change publishes a new
+   binding generation atomically; warm frames retain pointer-stable views and do not rebuild the
+   complete probe buffer for an inactive quality candidate.
+5. Defer atlas or array paging until the P1-12 budget owner has measured allocation, upload,
+   cache-hit, and sampling costs. The first implementation should support one canonical class and
+   prove capability rejection/upgrade semantics before adding more classes.
+
+RED/GREEN must cover explicit default-capability parity, unsupported-format rejection, quality and
+   generation-key separation, canonical-vs-derived artifact identity, payload dimension/format
+   mismatch rejection, page/slice sampling metadata, generation replacement while a frame is in
+   flight, device loss, and pointer-stable warm bindings. The profile matrix is 0/1/8/64 probes,
+   planar off/on, default versus one alternate capability, cold/warm/replacement/device-loss, and
+   supported versus rejected platform formats. Before/after evidence must record resource creation
+   count/bytes, resident/derived/pending/retired bytes, bind-group/view generations, upload bytes,
+   admission/rejection reason, shader sampling metadata, GPU texture memory, frame latency, RSS, and
+   WPR/WPA energy. RenderDoc verifies array/page extents, texture formats, mip contents, and the
+   generation-bound view used by the shader. No modeled elapsed or power claim is accepted.
+
+The capacity, GPU layout, resource, selection, and upload paths are already in the Shader06 profile
+provenance closure. No production edit is authorized in this session until the P1-12 budgeted
+resource owner and a managed WGPU validation ticket are reconciled. Status:
+`p1_13_canonical_probe_format_valid_mvp_typed_quality_and_platform_capability_pending`.
+
+## 2026-09-01 P1-14 probe-admission CPU work and stable-frame cache review
+
+The current admission path has a larger structural cost than its small maximum of 64 resident probes
+suggests. In `probe_buffer/resources.rs`, every enabled prepare filters the extracted probe list into
+a new `Vec<ReflectionProbeCandidate>`, computes influence distance for each eligible probe, and then
+uses `select_nth_unstable_by(MAX_REFLECTION_PROBES, ...)` when the list overflows. The selected side
+is sorted again, and the overflow side is sorted again if an upload failure leaves spare capacity.
+The registry revision pass then resolves every selected candidate and may resolve overflow candidates
+again. A fresh `gpu_probes` vector and a packed upload payload are rebuilt on every call, including a
+stable camera/scene frame where no probe identity or revision changed.
+
+The resulting work is approximately O(P) candidate construction and distance evaluation, plus
+O(P) partitioning and O(K log K + (P-K) log(P-K)) sorting in the overflow path, followed by O(K)
+revision lookups and payload packing (`P` = eligible probes, `K` = admitted probes). The current
+source has no scene/probe/view generation guard around this work. Reusing a vector capacity alone
+would reduce allocator churn but would not remove distance evaluation, ordering, registry reads,
+or buffer uploads; those are the dominant structural questions and must be measured separately.
+
+Unreal's reflection environment keeps capture/resource visibility under scene/render-resource owners
+and updates derived visibility when proxies or view state change; it does not sort a complete capture
+set from scratch for every warm frame. Zircon should retain deterministic tie ordering, layer-mask
+eligibility, revision/stale rejection, capture-pending semantics, and last-good slots while adding a
+generation-owned admission result. The cache must be invalidated by probe set/layer/transform/priority,
+camera position or selected-view layer changes, resource revision/capture completion, and capability
+generation changes. It must not be invalidated merely because a frame was submitted.
+
+The required hard cut is dependency ordered:
+
+1. Introduce a scene/view/probe admission generation and an owner-held result containing ordered
+   candidate identities, distances or a spatial-query result, registry revisions, and the admitted
+   slot handles. Keep the existing total-order tie breakers as the canonical deterministic key.
+2. Recompute only when an invalidation generation changes. A warm frame with identical view,
+   candidate, and resource generations must reuse the ordered identities and perform no distance
+   scan, sort, registry lookup, slot acquire, or full probe payload rewrite. A changed camera may
+   update distance/order without rereading unchanged asset revisions.
+3. Replace the full-list overflow sort with a bounded top-K selection or spatial index owned by the
+   visibility/runtime plan. Do not introduce a second probe culling policy in Shader06; the shared
+   view-to-grid/layer policy remains authoritative and the probe owner consumes terminal resident
+   handles.
+4. Separate candidate admission from upload publication. Only a newly admitted or changed revision
+   schedules PMREM texture writes; stable probe parameter uploads may use a generation/range diff and
+   must not rewrite the entire fixed buffer. Failed loads continue to permit later overflow candidates
+   without changing deterministic order or evicting committed slots.
+5. Expose counters for candidate scans, distance evaluations, partitions, sorts, registry lookups,
+   slot transitions, payload bytes, upload writes, and warm-cache hits. These counters are required
+   to prove that an apparent allocator improvement removed the actual bottleneck.
+
+RED/GREEN must cover deterministic ties, layer/camera invalidation, probe transform/priority changes,
+asset revision changes, capture-pending and failed-load overflow fallback, capacity-full rejection,
+stable warm-frame zero-work, device/resource-generation replacement, and pointer-stable bindings.
+The profile matrix is 0/1/8/32/64/128 eligible probes, 0/1/8/64 admitted probes, stationary versus
+moving camera, unchanged versus changed scene generation, warm/cold/revision/device-loss states, and
+success/failure/overflow mixes. Before/after evidence must record candidate and distance counts,
+partition/sort comparisons, registry lookups, allocations/bytes, packed payload/upload bytes,
+CPU p50/p95/p99, frame latency, RSS, VRAM, queue completion, and WPR/WPA energy. RenderDoc verifies
+that stable warm frames retain the same probe array/view and issue no redundant texture writes or
+full parameter-buffer rewrite. No modeled elapsed or power claim is accepted.
+
+The current selection/resource/slot/upload paths are already in the Shader06 provenance closure.
+No production edit is authorized in this session until the shared visibility owner (09B/Runtime09B)
+and P1-12 resource-budget owner reconcile generations and provide a managed profiling ticket. Status:
+`p1_14_per_frame_probe_admission_rebuild_confirmed_generation_cache_and_visibility_owner_pending`.
+
+## 2026-09-01 P1-16 capture visibility, LOD, and self-reflection boundary review
+
+The capture request now carries an explicit independent `capture_layer_mask`, and
+`environment_capture_scene_batch.rs` installs that mask on the initial descriptor and each of the
+six face cameras. That part of the contract is correct and is covered by focused tests. It does not,
+however, make the capture scene independent of the source viewport. The public
+`RenderFramework::request_environment_capture` API accepts a `SceneViewportRenderPacket`, and
+`World::build_viewport_render_packet` has already traversed meshes/lights using the viewport camera
+layer mask, position, visibility, and LOD policy before the request enters the scheduler. Replacing
+the camera mask after `RenderFrameExtract::from_snapshot` can further cull the retained mesh list,
+but it cannot restore an object omitted during viewport extraction or recover a higher LOD that was
+never placed in the packet.
+
+This creates a correctness hole for authored captures: a probe intended to include a layer hidden by
+the editor viewport, or to use a capture-specific LOD, silently bakes an incomplete scene. The same
+packet boundary also leaves self-reflection exclusion, sky/transparent/emissive policy, exposure,
+and direct-light receiver channels implicit. Reusing the viewport packet is efficient for one moved
+extract and the six-face batch, but it is not a view-neutral capture source.
+
+The required hard cut belongs to the visibility/runtime capture owner and is dependency ordered:
+
+1. Add a capture-specific scene extraction entry point that starts from the authoritative world
+   snapshot and an explicit capture view policy (layer mask, LOD bias, visibility state, probe/self
+   exclusion, sky/transparent/emissive policy, exposure, and direct-light receiver channel). It must
+   produce one capture-owned scene payload before the scheduler begins the six-face work item.
+2. Keep the current `SceneViewportRenderPacket` path only as an explicitly named fast path when the
+   request proves the viewport and capture policies are equivalent. The scheduler must record which
+   source kind was used in its request/output identity; no silent viewport fallback is allowed for an
+   authored capture.
+3. Apply the capture mask and exclusion policy before mesh/light extraction, then reuse that immutable
+   payload across all faces. The face camera may change projection and winding, but it must not change
+   the candidate scene set or per-object LOD after the payload is published.
+4. Make capture source identity include world/scene generation, capture policy, layer mask, LOD policy,
+   and excluded probe identity. A stale or mixed source must reject publication and retain the last-good
+   artifact. Capture output and runtime cache keys must use the same identity.
+5. Expose source extraction count, omitted-layer count, LOD distribution, excluded-object count,
+   per-face draw count, and policy digest in diagnostics so a product capture can prove what it baked.
+
+RED/GREEN must cover viewport-hidden layer inclusion, capture-layer exclusion, capture-specific LOD,
+probe self-exclusion, sky-only and emissive policy, exposure/direct-light policy, six-face scene-set
+pointer reuse, stale world generation, failed extraction, and last-good publication. The profile matrix
+is environment-only versus full scene, 0/1/8/64 capture layers, 0/1/8/64/128 meshes, two LOD biases,
+and cold/warm/retry/device-loss states. Before/after evidence must record source extraction time,
+mesh/light counts, omitted/restored candidates, LOD distribution, allocations/bytes, per-face draw
+count, capture/PMREM CPU/GPU timings, RSS, VRAM, queue completion, and WPR/WPA energy. RenderDoc
+verifies that all six faces use the same capture scene identity and that hidden viewport objects appear
+only when the capture policy admits them. No modeled elapsed or power claim is accepted.
+
+The request, scheduler, capture batch, projection, and source-payload paths are already in the
+Shader06 provenance closure. No production edit is authorized in this session until the shared
+visibility owner and managed capture validation ticket reconcile the independent extraction API.
+Status: `p1_16_request_mask_present_viewport_packet_still_not_view_neutral_capture_extract_pending`.
+
+## 2026-09-01 environment-only PBR consumer boundary and fallback review
+
+The environment-only shader specialization is intentionally a smaller ABI, not a generic PBR path
+with local providers disabled at runtime. `module_registry.rs` assembles it from `zr_environment_core`
+and `zr_environment_only_pbr.wgsl`; it does not include the probe/planar bindings from
+`zr_environment.wgsl`. `zr_shading_environment_only_pbr.wgsl` therefore evaluates only the global
+environment source/PMREM/SH9/BRDF-LUT contract and retains the separate scene ambient/lightmap path.
+This is consistent with the environment-only pipeline's purpose and avoids the per-pixel O(P) local
+probe scan in the global viewer.
+
+The boundary must remain explicit. The current implementation returns zero environment components
+when the global environment is disabled, even if a caller were to provide a planar or local-probe
+state; those providers are not part of this specialization's resource layout. Conversely, generic
+standard PBR uses `zr_environment.wgsl` and can combine planar, top-two local probes, and global sky
+fallback. Treating the two variants as interchangeable would create either a missing-binding failure
+or a silent lighting difference. The environment-only variant also intentionally passes no world
+position into its PBR helper because there is no parallax-projected local provider in its contract.
+
+The required hard cut is a product/pipeline contract, not a local formula change:
+
+1. Keep environment-only PBR named and keyed as a global-environment specialization. Its pipeline
+   readiness, bind-group layout, shader feature bit, and diagnostics must state that local probes and
+   planar reflections are unsupported in this variant.
+2. Gate selection at the renderer boundary. If a scene requests a local probe, planar reflection,
+   capture-source view, or any future provider outside the global ABI, promote to the generic standard
+   PBR variant before draw preparation. Do not bind a placeholder and hope the shader's zero fallback
+   is equivalent.
+3. Keep global source/PMREM/SH9/BRDF recipe identity shared with generic PBR. A variant switch must
+   not change roughness-to-mip mapping, environment intensity, exposure, or canonical artifact keys.
+4. Add diagnostics for variant promotion/rejection, pipeline creation/reuse, and warm-frame reuse. A
+   stable environment-only frame should keep its pipeline/bindings pointer-stable; a provider admission
+   should publish one new generic variant generation rather than oscillating per object or per frame.
+
+RED/GREEN must cover global-only source-cubemap, realtime IBL, procedural fallback, local-probe
+promotion, planar promotion, capture-source rejection/promotion, environment-disabled zero result,
+BRDF/SH parity between variants, and async pipeline readiness/failure behavior. The profile matrix
+is environment-only versus generic, global-only versus local/planar providers, cold/warm/provider-
+promotion/device-loss, and static versus realtime source. Before/after evidence must record variant
+selection, pipeline creation/reuse, bind-group generations, unsupported-provider counts, shader
+dispatch/draw counts, frame latency, RSS, VRAM, and WPR/WPA energy. RenderDoc verifies that the
+environment-only bind group contains only its declared global resources and that provider promotion
+binds the generic layout. No modeled elapsed or power claim is accepted.
+
+The environment module registry, specialization, core shader, generic shader, and pipeline cache are
+already in the Shader06 provenance closure. No production edit is authorized in this session until
+the renderer variant owner reconciles provider promotion with managed WGPU validation. Status:
+`environment_only_global_pbr_boundary_explicit_generic_provider_promotion_pending`.
+
+## 2026-09-01 P0-10 current-source manifest supersession note
+
+The previously current P0-10k manifest was drift-free when generated, but a foreign optimization
+slice subsequently changed `zircon_runtime/src/graphics/shader/template/module_registry.rs` (import
+ordering, traversal-capacity preallocation, and its optimization test registration). Shader06 did not
+edit or revert that file. P0-10k is therefore retained as immutable historical evidence and must not
+be used for a new validation ticket. The superseding E-drive manifest
+`E:\zircon-profiles\shader06-critical-source-manifest-p0-10l-20260901.json` still contains the
+same 221 unique paths and 32,983-byte serialized shape, but the five hydration files changed after
+that materialization. Its recorded file/canonical SHA-256
+`5ee20db3dc90742b9940affa9a1d3daa47e772049c5d513e52904db0a8fbc444` is therefore historical and
+must not be presented as current-source evidence. The coordinator must re-materialize a new manifest
+after the hydration slice is sealed; the exact current hydration hashes are recorded in the P1-19
+receipt below. This update changes no source ownership and does not make managed Cargo/WGPU,
+RenderDoc, visual, timing, RSS, energy, or power claims. Status:
+`p0_10l_manifest_stale_after_hydration_slice_coordinator_rematerialization_pending`.
+
+## 2026-09-01 P1-15 probe-bake timing policy execution review
+
+The stale `ProbeBakeTiming` snapshot policy has been removed from the current runtime and reflection-
+probe placement contracts. Production Rust now has no `ProbeBakeTiming` symbol; the remaining
+`bake_timing` references are negative assertions proving that core and plugin JSON reject the removed
+field. This is the correct hard cut because the scheduler, rather than a passive snapshot enum, owns
+request deduplication, supersession, cancellation, bounded work, failure/last-good publication, and
+generation identity.
+
+The product gap remains above the scheduler: scene/Editor authoring has not yet converted manual,
+on-load, or source-change events into explicit revisioned `RenderEnvironmentCaptureRequest` values
+and a displayed terminal status. Reintroducing timing labels or adding them to environment snapshots
+would create a second policy table with no execution owner. The next implementation must keep one
+scheduler authority and expose executable capture policy, quality, artifact identity, and terminal
+status through the authoring/lifecycle boundary.
+
+RED/GREEN must cover removed-field rejection, manual/on-load/source-change event conversion, request
+deduplication and supersession, cancellation, bounded queue behavior, stale-generation rejection,
+last-good retention, terminal failure status, and Editor/runtime roundtrip identity. The profile matrix
+is 0/1/8/64 probes, manual/on-load/source-change events, duplicate/stale/retry/failure/device-loss
+states, and scheduler capacity pressure. Before/after evidence must record event-to-request latency,
+queue depth, coalesced/superseded counts, capture work items, allocations/bytes, CPU/GPU timing, RSS,
+VRAM, and WPR/WPA energy. No modeled elapsed or power claim is accepted.
+
+The capture request, scheduler, reflection-probe plugin, and JSON contract paths are already in the
+Shader06 provenance closure. No production edit is authorized in this session until the scene/Editor
+lifecycle owner supplies the event consumer and a managed capture validation ticket. Status:
+`p1_15_probe_bake_timing_hard_cut_static_green_authoring_event_consumer_pending`.
+
+## 2026-09-01 Runtime02 shared ModelAsset ownership and manifest reconciliation
+
+Shader06 is the single lifecycle integration owner for the Runtime02 model-resource handoff. The
+Arc-based hard cut is already present in the current source: `load_model_asset` and its helper return
+`Option<Arc<ModelAsset>>`, a current prepared hit uses `Arc::clone(&prepared.asset)`, fallback loading
+wraps once, and `ensure_model` passes the Arc through to `PreparedModel` without rewrapping. The
+current source object hashes are:
+
+| Path | Current blob SHA-256 | Contract |
+|---|---|---|
+| `zircon_runtime/src/graphics/scene/resources/prepared/prepared_model.rs` | `c4134746be41b8aa433acd9c7ba64249e863d99cdeb2c24cf07de340384e98c7` | one shared `Arc<ModelAsset>` owner |
+| `zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_load_model_asset.rs` | `22b1a68eb2d9189fc12cb01645f42bd0915ca1b46eb3bdd2bc5a10132b944922` | current-revision pointer reuse and stale fallback |
+| `zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_model.rs` | `74805dd382f15a31ce1ca75c6fab09724ef569767b5684a8c2b7ae9fd16ad2de` | no compatibility deep-copy/re-wrap path |
+| `zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs` | `9d938cd8b168e6b11e5ff302aeb317e23a7a618708d6e4f61ebcbdc6ab9dd92c` | Arc-borrowing accessors |
+| `zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs` | `961d196f8e5008ec1b60bf7faa9990f5368420d525998721863f18e496708b32` | repeated instances borrow the shared Arc |
+
+The pointer-identity tests cover current-revision cache hits, repeated hits, stale-revision
+replacement, composite-geometry revision independence, and the ignored realistic-payload storage
+profile. The ignored profile reports allocation/byte and pointer evidence only; it does not model
+elapsed time or power. The Arc slice is an ancestor of the current checked-out HEAD (`579805160`),
+so it is not an uncommitted Shader06 candidate.
+
+The three mixed workspace manifests are not in Shader06's registered write scope, have no Shader06
+live lease, and are not entering this candidate. Coordinator ownership preview request
+`41b78bf426fa4a7ba00a2e8615cfa3a0` at baseline epoch `587` reports all three paths as already owned by
+`frameworks01-shader-invocation-hard-cut-r12-1b2684b4-20260825`; no transfer or content rewrite is
+authorized from this session. The exact current hashes observed in the shared checkout are:
+
+- `Cargo.toml`: `d1de7ecad881433a6a23762319c958316331f903e0372bab5f7976d751dfe3a9`
+- `Cargo.lock`: `a8afb0372de3dff29cf9567095cc7d37597707afa07b027cb982a4b250f48c22` (foreign dirty path)
+- `zircon_runtime/Cargo.toml`: `0b384afe78648aa65931b92f8d0012e7a1a83b3e19f7fb6628971a272d7b3c6a`
+
+The preview is ineligible only because the target already owns the blobs (and the changed lockfile
+also no longer matches its recorded source content hash). Frameworks01 can use the coordinator's
+current target ownership and fresh hashes; Shader06 must not claim, stage, or release these manifests.
+Status: `runtime02_arc_model_asset_integrated_shader06_owner_manifest_blobs_target_owned_no_shader_candidate`.
+
+## 2026-09-02 Runtime02 Arc ownership revalidation receipt
+
+The exact five-file dependency closure was revalidated in the shared checkout without an edit:
+Shader06 remains the single Render/Shader lifecycle integration owner. Current SHA-256 values are
+`prepared_model c4134746be41b8aa433acd9c7ba64249e863d99cdeb2c24cf07de340384e98c7`,
+`resource_streamer_load_model_asset 22b1a68eb2d9189fc12cb01645f42bd0915ca1b46eb3bdd2bc5a10132b944922`,
+`resource_streamer_ensure_model 74805dd382f15a31ce1ca75c6fab09724ef569767b5684a8c2b7ae9fd16ad2de`,
+`resource_streamer_accessors 9d938cd8b168e6b11e5ff302aeb317e23a7a618708d6e4f61ebcbdc6ab9dd92c`,
+and `extend_pending_draws_for_mesh_instance 961d196f8e5008ec1b60bf7faa9990f5368420d525998721863f18e496708b32`.
+All five blobs are clean and already descend from HEAD ancestor `579805160`; no compatibility
+deep-copy or second `Arc::new` path is retained. The pointer/revision RED/GREEN tests and the
+ignored realistic allocation/byte profile remain the behavioral evidence; no elapsed or power
+claim is inferred. This is the final ownership/hash receipt for Runtime02. The mixed workspace
+manifests remain Frameworks01-owned and are excluded from the Shader06 candidate.
+
+## 2026-09-02 P1-19 viewer snapshot consumption boundary review
+
+The runtime observation contract is now present through
+`RenderFramework::query_environment_runtime_snapshot`; the WGPU implementation projects
+frame/profile, scene submission, reflection-probe, realtime-IBL, hydration, capture, and
+environment-cubemap staging reports without payload traversal. The standalone viewer does not yet
+consume that composite. Its Ready-frame sidecar remains schema
+`zircon_shader_pbr_viewer_ready_frame_evidence_v17` and records the older `ibl_load_report`, shader
+variant, startup, and frame timing fields only. The current viewer slice advances that contract to
+`zircon_shader_pbr_viewer_ready_frame_evidence_v18` and adds the immutable environment snapshot
+fields. `PbrMirrorScene::render` holds the framework owner long enough to query the snapshot after
+synchronous frame capture, so this is a missing consumer
+boundary rather than a runtime API limitation.
+
+No viewer source was changed in this review. The three viewer files
+`zircon_app/src/bin/zircon_shader_pbr_viewer/app.rs`, `scene.rs`, and `frame_io.rs` have no current
+Shader06 lease in the reconciled scope, and extending the sidecar would require a schema/version
+update plus all frame-io fixtures and Python validators. The next authorized slice must acquire the
+exact viewer closure, decide whether the snapshot is a sidecar payload or a separate runtime-profile
+artifact, and add a fixed-size projection that preserves per-owner epochs and never serializes
+environment payloads. Until then, P1-19 is runtime-report static green but viewer-consumer pending;
+current-source image, GPU timing, RenderDoc, RSS/VRAM, and power evidence remain unclaimed.
+
+## 2026-09-01 anisotropic environment direction reference recheck
+
+The suspected anisotropic environment-normal defect was re-audited against the checked-in Bevy
+implementation before any shader edit. Zircon's `zr_pbr_anisotropic_environment_normal_normalized`
+uses the same KHR heuristic as Bevy's `bend_normal_for_anisotropy`: construct
+`normalize(cross(cross(B, V), B))`, compute `bendFactor = 1 - anisotropy * (1 - roughness)`, and
+normalize `mix(bent_normal, N, bendFactor^4)`. The current source therefore has matching strength,
+roughness, endpoint, and degenerate-frame semantics; it is not an accidental variant of the
+isotropic environment correction.
+
+Unreal's local `GetOffSpecularPeakReflectionDir` is a separate isotropic rough-lobe correction
+(`lerp(N, R, (1-a) * (sqrt(1-a) + a))`) and does not replace the KHR anisotropy bent-normal owner.
+Zircon already applies its own shared dominant-direction correction after provider admission, while
+the anisotropy helper supplies the specular normal before reflection construction. Substituting the
+Unreal helper here would double-apply or change the material model. No production shader change is
+authorized by this review. The direct anisotropic GGX frame rotation remains an independent
+performance candidate: moving it outside the clustered-light loop requires disassembly and GPU
+timing for representative light counts before implementation. Status:
+`anisotropic_environment_bend_reference_converged_no_source_change_direct_frame_profile_pending`.
+
+## 2026-09-01 transmission thickness reference recheck
+
+The scale-aware transmission frame was rechecked against the ratified Khronos
+`KHR_materials_volume` contract and the checked-in Bevy/official Sample-Viewer
+family before any further edit. Khronos defines `thicknessFactor` in mesh
+coordinates and explicitly requires node transforms to affect that value, while
+`attenuationDistance` remains a world-space material distance. The official
+attenuation test also varies only node scale and requires a rasterizer to adapt
+the mesh-space thickness before applying absorption. This rules out restoring the
+old direct `world_position + refracted * thickness` path.
+
+The Khronos Sample-Viewer helper (and the equivalent Three.js reference carried
+in the repository's external reference notes) computes the rotation-independent
+scale as the lengths of the three model-matrix basis columns, then returns
+`normalize(refractionVector) * thickness * modelScale`; Beer-Lambert consumes the
+length of that same ray. Zircon's `zr_pbr_transmission_frame_normalized` follows
+that exact approximation, reads the existing column-major `world_from_local`
+contract, and shares one ray between screen-space exit projection, environment
+fallback, and volume attenuation. The current component-wise scale is therefore
+intentional reference parity for TRS transforms, not an unreviewed optimization;
+general shear/exact ray-boundary intersection remains outside the raster MVP.
+
+Bevy's screen-space transmission shader uses the same single-ray approximation
+but receives a world-space thickness value in its material path, so its direct
+`T * thickness` expression is not evidence that Zircon should discard its
+mesh-to-world conversion. Unreal's local `TransmissionThickness.ush` likewise
+owns optical depth as travelled world distance but does not define a replacement
+for the mesh-volume ray transform.
+
+No production shader or ABI change is authorized by this review. The remaining
+performance candidate is still the repeated anisotropic frame rotation inside
+the clustered-light loop; it requires representative light-count disassembly
+and GPU timing before a once-per-pixel frame extraction can be accepted. Status:
+`transmission_mesh_space_scale_contract_converged_no_source_change_direct_aniso_profile_pending`.
+
+## 2026-09-01 P1-19 implementation receipt and validation state
+
+The bounded environment hydration observation slice is materialized in the current working tree under the
+Shader06 lease. The cache owns the counters and fixed-capacity request identities; the core snapshot owns
+the value report; the framework query clones the `Arc<Mutex<...>>` owner while holding the framework/state
+lock, then releases those locks before taking the hydration lock. The report path is therefore non-destructive,
+payload-free, and bounded by `ENVIRONMENT_IBL_HYDRATION_REPORT_CAPACITY = 4`.
+
+Current source SHA-256 values:
+
+| Path | Current blob SHA-256 |
+|---|---|
+| `zircon_runtime/src/core/framework/render/environment/runtime_snapshot.rs` | `7dfd9db4db78d76048cca58bc1095e036047cb9c5935632a5a2f219bf747a24f` |
+| `zircon_runtime/src/core/framework/render/environment/mod.rs` | `10ae7d901ac09cb23e5488d398ddaf0d5584d795b51bc053b987520c5bb99f70` |
+| `zircon_runtime/src/core/framework/render/mod.rs` | `ebe8c2b91b2d066f5bc3e5e7ba6a9f7f04651fef5d6e25023d07bde355e9e8e6` |
+| `zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/environment_ibl_hydration_cache.rs` | `5de28b710ccc54ca0caffdab60aee94b860950ed83d899e5ffc5165ed8e02870` |
+| `zircon_runtime/src/graphics/runtime/render_framework/query_environment_runtime_snapshot/query_environment_runtime_snapshot.rs` | `f4c92d60ea584d8136484227747ae534cc3c974c78fbd90536194ed4abedab9c` |
+
+Static verification is green: `rustfmt --edition 2021 --check` passes for all five Rust files,
+`git diff --check` reports no whitespace errors, and the cache/snapshot/query source-contract tests
+cover empty/non-destructive reporting, pointer-preserving hits, bounded eviction, reservation
+suppression/release, epoch accounting, and lock ordering. The PowerShell profile-contract suite remains
+40/40 green from the same source closure. A coordinator-managed Windows `zircon_runtime` test submission
+was launched under `E:\cargo-targets\zircon-engine`; the front-end wait expired while the worker was still
+compiling. The retained worker diagnostics then showed the workspace failed before the hydration tests could
+run because `zr_contracts` is not yet wired into the current manifests (`core/runtime/random/derivation.rs`
+and `core/framework/random/mod.rs`), alongside unrelated foreign unresolved imports in profiling, dynamic
+scene, and post-process/plugin paths. The job ended `orphaned` with `exit_code=null`, so it is not a
+validation receipt. A later editor build used the same pool and has since released it; no parallel Cargo
+invocation is authorized. Status:
+`p1_19_hydration_report_static_green_workspace_manifest_wiring_blocked_no_receipt`.
+
+No PNG/RenderDoc capture, GPU timing, RSS/VRAM, or WPR/WPA energy claim is made until a managed validation
+receipt and an executable viewer/capture owner are available. No milestone commit or WeCom publication is
+authorized before that acceptance gate.
+
+## 2026-09-01 P1-19 capture scheduler report slice
+
+The second P1-19 production slice now exposes the existing environment-capture scheduler through a
+bounded `RenderEnvironmentCaptureReport`. The scheduler precomputes each accepted request's
+`IblBakeKey` once, then reports pending/active phase, progress, output generation, terminal count,
+transition counters, and the optional ready source-payload handle without hashing request strings or
+copying scene snapshots, diagnostics, or source texels during a query. A monotonic scheduler-local
+observation epoch advances at queue admission/rejection, work-item transfer, progress publication,
+terminal settlement, cancellation, and source-payload take; the report therefore preserves per-owner
+observation semantics without pretending to be a globally atomic frame.
+
+`EnvironmentRuntimeSnapshot` now carries both hydration and capture reports. The WGPU query keeps the
+framework operation/state lock pair limited to renderer projection, releases it, reads hydration, and
+then reads the scheduler report through a scheduler-only mutex. The core `RenderFramework` contract
+also exposes a non-blocking capture-report query for neutral consumers. Source tests cover pending,
+active, filtering, terminal, ready-payload, precomputed-identity, and lock-order behavior; all report
+fields are fixed-size/copyable and no source payload API is drained by snapshot projection.
+
+Focused `rustfmt --check`, scoped `git diff --check`, and the four-test shader viewer source-closure
+Pester suite remain green. Managed Cargo/WGPU has not been rerun because current workspace manifests
+still do not wire `zr_contracts` and the last worker terminated before owned hydration tests; no
+current-source executable, PNG, RenderDoc replay, GPU/RSS/VRAM, or WPR/WPA energy evidence exists.
+The external P0-10l manifest is stale for the hydration/report files and must be rematerialized by the
+coordinator after the slice is sealed. Status:
+`p1_19_capture_report_static_green_manifest_rematerialization_and_managed_validation_pending`.
+
+Current source SHA-256 values:
+
+| Path | Current blob SHA-256 |
+|---|---|
+| `zircon_runtime/src/core/framework/render/environment_capture.rs` | `3aec84f19281ad452d13034d7703a3a57bad5fe92649020572ce2749e616443d` |
+| `zircon_runtime/src/core/framework/render/environment/mod.rs` | `10ae7d901ac09cb23e5488d398ddaf0d5584d795b51bc053b987520c5bb99f70` |
+| `zircon_runtime/src/core/framework/render/environment/runtime_snapshot.rs` | `7dfd9db4db78d76048cca58bc1095e036047cb9c5935632a5a2f219bf747a24f` |
+| `zircon_runtime/src/core/framework/render/framework.rs` | `50af3290243bafa0909c122e5499f43cec3d1c6bfd519731ca17f9f79f248515` |
+| `zircon_runtime/src/core/framework/render/mod.rs` | `ebe8c2b91b2d066f5bc3e5e7ba6a9f7f04651fef5d6e25023d07bde355e9e8e6` |
+| `zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler.rs` | `90e08c2851cdf7da365e7c92e109277a9516eba88f298d2169e053f7a4f67a4f` |
+| `zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler/control_plane.rs` | `b13a6995e314538a699213497fd37ef09b35beb96e1e3ceabf64af28719788f3` |
+| `zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler/completion.rs` | `362c24f8a1bbf2d69273e5ceead4ae322574867caf1e4cfaaf217f0eea9b10f8` |
+| `zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler/report.rs` | `018184e7c0c56ad3ee59307541505536cb62d76770d99ded3b322dc7de22ccc1` |
+| `zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework/wgpu_render_framework.rs` | `2622bf76c60c8249c04625acd838de3b2b71cbda22f7a652bbd521d3dbf86d41` |
+| `zircon_runtime/src/graphics/runtime/render_framework/render_framework_trait_binding/wgpu_framework.rs` | `49a71b801530d671c76706cdaeaf035e0296a0d1ac1f21c1a8e6cd65c8e93f15` |
+| `zircon_runtime/src/graphics/runtime/render_framework/query_environment_runtime_snapshot/query_environment_runtime_snapshot.rs` | `f4c92d60ea584d8136484227747ae534cc3c974c78fbd90536194ed4abedab9c` |
+| `zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/environment_ibl_hydration_cache.rs` | `b558861ccae2c805980fcccf06ab13015d31f8e9e9d3717ad2ff6b895017d1dc` |
+| `tools/analysis/profiling/shader_pbr/shader-pbr-profile-contract.ps1` | `1300a8d7337d5f0dcca82cfd759a13b159dc3300caf3a5636f71cabf5ccd9284` |
+| `tools/tests/zircon_profile_shader_pbr_viewer.Tests.ps1` | `968ad044c83bc8c004fca906bda8be03e21de02ae7b8fbf610f94863209cf48c` |
+
+## 2026-09-01 P1-11 deduplicated resident-byte observation slice
+
+The hydration report now exposes `resident_decoded_texel_bytes`,
+`resident_prepared_upload_bytes`, and their saturating `resident_payload_bytes` total. Decoded bytes
+cover source, PMREM, and optional irradiance texel allocations. Prepared bytes cover the immutable,
+row-aligned RGBA16F upload mip allocations. The counters deliberately exclude fixed metadata,
+allocator overhead, artifact-store blobs, destination textures, and the scene renderer's reusable
+host/GPU staging arena; those owners require separate counters before an RSS/VRAM total can be
+claimed.
+
+Accounting runs only after cache insert, replacement, or eviction. It scans the bounded four-entry
+cache and deduplicates exact backing slices by address and byte length, so cloned
+`SourceCubemapEnvironment` values do not double-charge shared `Arc` payloads. Cache hits and runtime
+snapshot queries read precomputed `u64` counters; they do not traverse texels or upload mips. The
+focused source contract uses 1x1 cubemaps to prove that two entries sharing one environment retain
+192 decoded bytes plus 4,608 prepared bytes, two distinct environments retain 384 plus 9,216 bytes,
+and replacing the final old owner with a clone converges back to 192 plus 4,608 bytes.
+
+This closes the first P1-11 observability prerequisite, not the structural optimization. The cache
+still admits by four-entry count rather than byte budget, prepared rows are not retired after a
+submission-safe publication fence, and staging retention policy still lacks a measured trim/budget
+decision. No Cargo/WGPU, RSS/VRAM, RenderDoc, elapsed, energy, or power claim is made. Status:
+`p1_11_deduplicated_resident_byte_observation_static_green_budget_admission_and_managed_validation_pending`.
+
+## 2026-09-02 P1-11 environment cubemap staging observation slice
+
+The scene environment cubemap upload owner has now been instrumented before any retention or copy-
+elimination optimization. This is distinct from the existing
+`RenderReflectionProbeWorkloadReport::scheduled_cubemap_upload_*` fields, which count reflection-
+probe slot uploads only. `SceneEnvironmentCubemap` owns source, PMREM, and irradiance destination
+textures plus one reusable `CubemapUploadStagingArena`; that arena concatenates row-aligned prepared
+mips into a host `Vec<u8>`, copies the complete byte range once into an immutable `Arc<[u8]>` frame-
+upload payload, and reuses a power-of-two GPU staging buffer. The current algorithm and its no-trim
+policy are unchanged by this slice.
+
+`EnvironmentCubemapUploadReport` exposes the committed and pending upload keys, last and peak
+scheduled bytes/copy counts, cumulative scheduled bytes/batch count, retained host/GPU staging
+capacity, and host/GPU capacity-growth batch counts. All counters saturate. Both regular scene
+submission and environment capture already call `discard_pending_upload` before optional upload;
+that boundary now starts an observation and clears only the latest sample. A steady frame or a
+current-key hit therefore reports zero latest bytes while preserving peak/cumulative history. Only
+an encode that reaches the caller-owned `WgpuBufferUploadBatch` records scheduled bytes. Querying
+the report is O(1), copies a fixed-size value while the existing renderer state lock is held, and
+does not iterate or clone source texels, prepared mip rows, staging bytes, or copy descriptors.
+
+Pure RED/GREEN state tests cover scheduled-to-steady reset, exact key projection, peak/cumulative
+preservation, one growth count per capacity-growing observation, and saturation at `u64::MAX`.
+Focused `rustfmt --edition 2021 --check` and scoped `git diff --check` pass. The complete shader-viewer
+profile contract suite passes 41/41 in 75.62 seconds and now binds the report facade into the current-
+source closure. This elapsed value describes the PowerShell static-contract suite only; it is not a
+renderer performance result.
+
+Current source SHA-256 values:
+
+| Path | Current blob SHA-256 |
+|---|---|
+| `zircon_runtime/src/core/framework/render/environment/runtime_snapshot.rs` | `7dfd9db4db78d76048cca58bc1095e036047cb9c5935632a5a2f219bf747a24f` |
+| `zircon_runtime/src/core/framework/render/environment/mod.rs` | `10ae7d901ac09cb23e5488d398ddaf0d5584d795b51bc053b987520c5bb99f70` |
+| `zircon_runtime/src/core/framework/render/mod.rs` | `ebe8c2b91b2d066f5bc3e5e7ba6a9f7f04651fef5d6e25023d07bde355e9e8e6` |
+| `zircon_runtime/src/graphics/runtime/render_framework/query_environment_runtime_snapshot/query_environment_runtime_snapshot.rs` | `f4c92d60ea584d8136484227747ae534cc3c974c78fbd90536194ed4abedab9c` |
+| `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_cubemap.rs` | `a6f19f2281c9f24020d8c550a2c1387757b83274bf22cd32b5d5d87739f7747e` |
+| `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_cubemap/upload_batch.rs` | `8ec060170945995ee5d096768fcc774520cd617f05eb78d387f949afd23f8f74` |
+| `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_texture_residency.rs` | `9103d7d68286c8d463aa2c9bc429b2d3f4ccb577fcc242c95d50d326c5eb3c85` |
+| `tools/analysis/profiling/shader_pbr/shader-pbr-profile-contract.ps1` | `1300a8d7337d5f0dcca82cfd759a13b159dc3300caf3a5636f71cabf5ccd9284` |
+| `tools/tests/zircon_profile_shader_pbr_viewer.Tests.ps1` | `6a388270d821ae45c1140e26dd27ec4f25cfa700fb7a1f8a0eedf8f4f23582bb` |
+
+The transfer fingerprint
+`49ce0f4952e4387fb2e2b871a3390573698ac02a224d67b7cf4a78500cfc2887`
+placed the three scene-renderer staging paths in Shader06's immutable scope; lease request
+`15895ac7398541c8bff0c94bfbea1489` acquired all three and attribution request
+`b6e3beec4b034e5eac413eeb3499f7e9` completed. Managed Cargo/WGPU, current-source executable,
+PNG/RenderDoc replay, GPU timing, RSS/VRAM, and WPR/WPA energy evidence remain pending. No byte-budget,
+prepared-row retirement, staging trim, or copy-path hard cut is authorized until those counters are
+captured on representative cold/warm/source-change/device-loss runs. Status:
+`p1_11_environment_cubemap_staging_and_destination_texture_budget_observation_static_green_managed_profile_and_policy_pending`.
+
+On 2026-09-02 the managed validator dry-run accepted the focused command shape for
+`staging_statistics_reset_last_sample_and_preserve_bounded_history` with target directory
+`E:\cargo-targets\shader06-p1-11-staging-20260902`, locked mode, `core-min`, and no default
+features. Dry-run intentionally performed no Cargo discovery, storage admission, compile, or test;
+therefore it is command-shape evidence only and does not change the managed-validation, current-
+source executable, screenshot, RenderDoc, GPU timing, RSS/VRAM, or WPR/WPA status.
+
+The same staging report now carries a logical destination-texture budget: source cubemap,
+specular PMREM cubemap, irradiance cubemap, and their saturating sum. The budget is computed when
+the destination resource dimensions change from face size, mip count, six faces, and the existing
+RGBA16F texel width; it excludes driver allocation padding, compression, views, and fallback
+generation-owned texture accounting. Report projection copies these precomputed values and does not
+walk texels or query the device. A focused pure test covers 1x1, 2x2 with two mips, and 4x4 with
+three mips. This is observation infrastructure only; no byte-budget admission, texture retirement,
+staging trim, or copy-path optimization is claimed. The current source hashes for the changed
+report owners are:
+
+| Path | Current blob SHA-256 |
+|---|---|
+| `zircon_runtime/src/core/framework/render/environment/runtime_snapshot.rs` | `2f00657c1d72fb531702d51e4fc51b5f4344efff9b08f37812f5f415997fa9d2` |
+| `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_cubemap.rs` | `9bd9e04d9e264c49ef20c41d649a219bcd363b6d633392bde6e1971d13e675c3` |
+| `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_cubemap/upload_batch.rs` | `65197c8655c0eb748066c1b251772739b6f2ac61602b8772eda7fdaf28aee142` |
+| `tools/tests/zircon_profile_shader_pbr_viewer.Tests.ps1` | `3e1c8f7fec4ce8a964adff9874fc2ebe655321402d0ea7cf8fc6c7e5c8b022c2` |
+
+The managed validator dry-run also accepted the focused command shape for
+`logical_texture_budget_counts_all_cube_faces_and_mips` with target directory
+`E:\cargo-targets\shader06-p1-11-texture-budget-20260902`, locked mode, `core-min`, and no default
+features. As with the preceding dry-run, Cargo discovery, storage admission, compilation, and
+test execution were intentionally skipped; this is command-shape evidence only.
+
+A 2026-09-02 second-pass accounting review found no source-level mismatch between the report and
+the current WGPU upload/resource descriptors. The complete production call set is the regular
+scene-uniform path plus environment capture; both call `discard_pending_upload` before any optional
+`ensure_uploaded` call, and successful submission is the only path that commits the pending upload
+key. `SourceCubemapMipChain` clamps source and PMREM mip counts to the legal full chain before the
+artifact or texture descriptors observe them. Prepared artifacts retain WGPU-aligned bytes per row
+for all six face layers, and `last_scheduled_upload_bytes` measures the concatenated staging range,
+including row and inter-mip alignment padding, while `last_scheduled_copy_count` measures encoded
+buffer-to-texture commands (one command per selected mip, with six array layers per command).
+
+The destination counters deliberately use the different, explicitly documented logical metric:
+`Rgba16Float` texel width multiplied by six faces and every resident mip extent. They match the
+texture descriptor's clamped dimensions and format but do not claim driver heap size, placement
+alignment, view/sampler allocation, transient command-buffer retention, or VRAM residency. The
+shared generation-owned fallback remains zero in this scene-local budget. Consequently these
+counters are fit to drive the required cold/warm/source-change/device-loss profile, but they are not
+yet evidence for a byte admission limit, staging trim threshold, elapsed-time improvement, power
+reduction, or allocator-level memory total. No production edit or new optimization was made during
+this review.
+
+## 2026-09-02 P1-19 completed-capture residency observation slice
+
+The P1-19 second-pass review found that `EnvironmentCaptureResidency` already maintains the exact
+bounded completed-output count, logical filtered-output GPU bytes, and eviction count, but
+`EnvironmentRuntimeSnapshot` did not project those precomputed values. That omission would force
+the required 1/8/32/64-probe capacity and VRAM analysis to infer completed-capture residency from
+scheduler success counts. It is now closed by a fixed-size `EnvironmentCaptureResidencyReport`
+containing `resident_count`, `resident_gpu_bytes`, and `eviction_count`.
+
+The query reads the three values inside the existing single `operation -> state` critical section,
+alongside renderer-owned realtime/cubemap reports, then releases both framework locks before it
+locks the hydration cache and capture scheduler. It does not iterate or clone the residency map or
+its WGPU resources. The reported bytes retain the existing owner's documented semantics: logical
+bytes for completed filtered capture outputs after source/depth scratch retirement, not driver heap
+placement, physical VRAM, transient command retention, or an allocation-total claim.
+
+Test-first evidence is explicit. The full shader-viewer Pester contract was RED at 42 total, 40
+passed, and 2 failed while the snapshot field and current-source owner were absent. After adding the
+report, query projection, public re-export, source-closure owner, and pure snapshot assertions, the
+same suite is GREEN at 42/42. The four standard-library Python shader evidence/identity modules are
+also GREEN at 42/42 in 12.147 seconds. Focused rustfmt and scoped `git diff --check` pass. These
+elapsed values describe static/test tooling only; no renderer timing, GPU, VRAM, RenderDoc, visual,
+energy, or power result is claimed.
+
+| Path | Current blob SHA-256 |
+|---|---|
+| `zircon_runtime/src/core/framework/render/environment/runtime_snapshot.rs` | `32406c15ad3c91b3164b60327d0d79b9005c8162c64e451fbb6ca040c8b505b4` |
+| `zircon_runtime/src/core/framework/render/environment/mod.rs` | `cf2967ebe96685bd83ade2f083fef9e47fa999a1ff8593440f8d97e01524927c` |
+| `zircon_runtime/src/core/framework/render/mod.rs` | `f6cad7fb0a6ade176badbd214f99d71a5d7c2f6cb7d8501a65d03b0b11b714cb` |
+| `zircon_runtime/src/graphics/runtime/render_framework/query_environment_runtime_snapshot/query_environment_runtime_snapshot.rs` | `0d4fa24c56749fbd580b011c4c4b084c3f28187b5d79bbfdba2f67807536b3d7` |
+| `zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/environment_capture_residency.rs` | `c75af45a0637515b60ae428229ae28519603814cbe27b266b6834a3b101b4e4c` |
+| `tools/analysis/profiling/shader_pbr/shader-pbr-profile-contract.ps1` | `2ce84fe154e9fb95710d6d126241fe32ff78ffdddf9f2ba8610bd305fc26a87e` |
+| `tools/tests/zircon_profile_shader_pbr_viewer.Tests.ps1` | `a7be9ec021aa9ddd825fcc58112354f4381a822ca6cd5abb3aab945ffa5c34dd` |
+
+Status:
+`p1_19_hydration_scheduler_and_completed_capture_residency_reports_static_green_viewer_consumer_managed_runtime_and_performance_evidence_pending`.
+
+The persistence mailbox now also exposes preaccounted source-payload traffic. A successful
+publication samples `source_rgba16f_bytes().len()` once before moving the non-cloneable payload into
+the scheduler's single ready slot. The scheduler retains current ready bytes and saturating publish
+count, peak ready bytes, and cumulative published bytes. The consuming `take_source_payload` path
+clears only current ready bytes; cancellation and supersession discard their completed payloads
+without incrementing publication traffic. `RenderEnvironmentCaptureReport::report` reads only the
+precomputed scalars and still neither scans nor clones the 64 MiB-class payload.
+
+The new static contract was RED at 43 total, 42 passed, and 1 failed before these counters existed;
+the same Pester suite is now GREEN at 43/43. Focused rustfmt and scoped `git diff --check` pass. The
+managed validator dry-run accepted the focused `zircon_runtime --no-default-features --features
+core-min --lib current_profile_shares_storage_and_delayed_completion_keeps_its_identity` shape with
+target `E:\cargo-targets\shader06-p1-19-capture-residency-20260902`. One non-dry submission then
+timed out before returning a request or job identity; its exact outcome cannot be reconciled from
+the explicit target path, which was not materialized, so it is recorded as unknown and was not
+retried. No compile/test success is inferred from that attempt.
+
+| Path | Current blob SHA-256 |
+|---|---|
+| `zircon_runtime/src/core/framework/render/environment_capture.rs` | `674e7c1b99bb98e9845c2552776baf2ab3f8f7d7e22713278951616c16a6acf7` |
+| `zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler.rs` | `75585a6ced9fc0aba97894d965b6697da6686effa49435b77027b1d9fc7edebd` |
+| `zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler/control_plane.rs` | `db62c61ac24f9618e5a577ae4200ced0d70af2a82691d5516407886f72c4f1d5` |
+| `zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler/completion.rs` | `aea051dd6dc4f58285078f577e3efd9ca81023ad2850d4d47b614368411668b3d` |
+| `zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler/report.rs` | `319f14f617f8a42169a879d98e8621326b3143757dd0e71897e533c21b31af4d` |
+| `tools/tests/zircon_profile_shader_pbr_viewer.Tests.ps1` | `6b11602e638961ffc3a9fd5ad4e857a3e6fe3aef09524f395310defd82406598` |
+
+Status:
+`p1_19_capture_residency_and_persistence_payload_byte_observation_static_green_managed_runtime_viewer_consumer_and_performance_evidence_pending`.
+
+## 2026-09-02 validation boundary and next-owner handoff
+
+The static contract suite was rerun after the P1-19/P1-11 telemetry additions:
+`tools/tests/zircon_profile_shader_pbr_viewer.Tests.ps1` passed 43/43 with zero
+failures. The Shader06-owned Rust source set also passed a scoped `rustfmt --check`
+and `git diff --check`; the full workspace was not used as a formatting acceptance
+signal because unrelated sessions have extensive concurrent changes.
+
+The managed validator accepted the following dry-run and rendered its exact locked
+command, but no compiler process was started by that dry-run:
+
+`cargo test -p zircon_runtime --no-default-features --features core-min --locked --lib environment_capture_report --target-dir E:\\cargo-targets\\shader06-static-contract-20260902`
+
+Two managed Python consumer test attempts (the five-module set and the four-module
+pure-consumer subset) each exceeded the local 124-second command bound without a
+result or request identity. Their exact test processes were cleaned up; the shared
+coordinator processes were left untouched. These attempts are therefore `unknown`,
+not failures or passes, and were not retried.
+
+No current-source WGPU executable, RenderDoc capture, screenshot under
+`docs/tests/runtime/shader`, GPU timing, physical VRAM, allocator, WPR/WPA energy,
+or power result exists yet. The probe-selection review remains a structural
+candidate only: the fragment path still scans up to 64 probes per shaded pixel,
+while the parent optimize plan owns the single future spatial-assignment product.
+No probe-selection, PMREM, PBR formula, or residency-lifecycle optimization is
+authorized until that owner supplies matched 1/8/32/64 current-source timings and
+RenderDoc resource/instruction evidence.
+
+Status:
+`p1_19_capture_residency_and_persistence_payload_byte_observation_static_green_pbr_path_review_probe_scan_structural_candidate_managed_runtime_viewer_consumer_and_performance_evidence_pending`.
+
+## 2026-09-02 Ready-frame environment snapshot consumer
+
+The viewer owner now consumes the existing `RenderFramework::query_environment_runtime_snapshot`
+facade once after a Ready frame render and carries that immutable composite into the screenshot
+metadata record. The sidecar schema is advanced to
+`zircon_shader_pbr_viewer_ready_frame_evidence_v18` and records hydration observation/payload
+bytes, completed-capture residency epoch/last-published identity/resident bytes/evictions, and
+cubemap-upload observation/texture bytes. This keeps the viewer as a read-only consumer: no second
+cache, no mutable environment state, and no renderer-local reconstruction of subsystem reports.
+
+Static RED/GREEN evidence:
+
+* The pre-change source contract reported `RED` with 7/7 unified-environment anchors absent.
+* After the scoped viewer edit it reports `GREEN` with 7/7 anchors present.
+* Scoped `rustfmt --edition 2021 --check` passes for the five touched viewer Rust files.
+* `python -m py_compile tools/analysis/profiling/shader_pbr/zircon_validate_shader_pbr_viewer_evidence.py` passes.
+* The focused Python regression run reached 63 tests; 2 assertions and 40 profile cases remain
+  blocked by the validator-owner v17 fixture/schema handoff. No runtime compile, WGPU executable,
+  PNG, RenderDoc capture, GPU timing, VRAM, power, or energy claim is made from this static slice.
+
+Current viewer source hashes:
+
+| Path | SHA-256 |
+| --- | --- |
+| `zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs` | `1c09a637278fab5302315fcfa72af35b5e9d849dd48da0834273ba133d03fc04` |
+| `zircon_app/src/bin/zircon_shader_pbr_viewer/app.rs` | `ce85b7736db6dc82d9dee6691ab2a09b8ac763a84ec633ea56d618db8e9886b8` |
+| `zircon_app/src/bin/zircon_shader_pbr_viewer/frame_io.rs` | `f662be705448ee0ea1eb72ef6a4017cb02a913b00079edcb123f7214a7e44013` |
+| `zircon_app/src/bin/zircon_shader_pbr_viewer/evidence_identity.rs` | `92cbbe1916c9e0d1c09e234638177559f9d826fce05be2caef4e91ff98118e70` |
+| `zircon_app/src/bin/zircon_shader_pbr_viewer/app_tests.rs` | `08040c2d8ee7939d8e5ea7a4d976e3a12cbc26ef61aa6787af66f64bc3d8ea9c` |
+
+Status:
+`p1_19_environment_runtime_snapshot_ready_frame_v18_static_green_validator_owner_handoff_and_managed_runtime_visual_performance_evidence_pending`.
+
+## 2026-09-02 Standard-PBR ABI and view-neutral capture recheck
+
+The Standard-PBR CPU/GPU ABI was re-audited before any formula or feature-census optimization.
+`GpuMaterialUniformResource` writes 64 floats into the 256-byte `data0..data15` material uniform,
+and `material_surface.rs` consumes the same lanes: base factors in `data0..data1`, five texture
+transforms in `data2..data6`, UV selection plus clearcoat-normal transform in `data7`, render-model
+metadata in `data8`, advanced lobe strengths in `data9..data10`, attenuation in `data11`, normal/F0/
+clearcoat-normal scale and rotation in `data12..data15`. Non-default IOR is represented by the
+precomputed dielectric F0 even when no transmission lobe needs the raw IOR. Default roughness,
+clearcoat roughness, IOR, dielectric F0, and no-attenuation sentinel agree across core, CPU packing,
+surface initialization, and WGSL. No offset, default, feature-bit, or environment-reflection formula
+change is justified by this review.
+
+The advanced-material census resolves each material ID once per frame and merges boolean feature
+usage for visible meshes. Repeated boolean merges per mesh are not accepted as a bottleneck without
+current timings; changing that loop before profile would be a detail optimization against the user's
+structural gate.
+
+The P1-16 capture-source defect remains structural and unchanged. The framework scheduler still owns
+a `SceneViewportRenderPacket`; `EnvironmentCaptureSceneBatch::from_work_item` moves that packet into
+one extract and varies only six face cameras. Because `World::build_viewport_render_packet` has
+already applied viewport visibility and LOD, later capture-layer filtering cannot restore omitted
+objects or higher LODs. The correct hard cut remains an authoritative world-snapshot plus explicit
+capture-policy extraction owned jointly with the visibility/runtime scene owner. Adding only a
+source-kind enum or another post-extract filter would make the incomplete packet look typed without
+fixing it, so no P1-16 production edit was made.
+
+The P0-5 asynchronous artifact-residency cut and P0-10 generation trace were also rechecked against
+09F1 sections 12.36-12.38. P0-5 still requires a current-source before profile before changing the
+68-MiB-class prepared-artifact path. The trace must span typed metadata probe, prepared project
+generation, durable commit/recovery outcome, and bounded diagnostics publication atomically; a
+renderer-local `VecDeque` would publish false terminal success and create a second truth. Those cuts
+remain pending their exact asset/project/visibility owners rather than being partially implemented.
+
+Status:
+`standard_pbr_abi_rechecked_no_mismatch_p1_16_viewport_packet_defect_confirmed_p0_5_profile_and_generation_trace_atomic_owners_pending`.
+
+## 2026-09-02 capture-residency observation epoch
+
+`EnvironmentCaptureResidency` now owns a saturating `observation_epoch` that advances exactly once
+at the start of each accepted complete-output publication. Replacement of an existing capture ID
+advances the epoch because it publishes a distinct last-good GPU output even when resident count and
+logical byte total remain unchanged. Rejected, cancelled, incomplete, or merely queried captures do
+not reach the residency publication boundary and therefore do not advance it.
+
+`EnvironmentCaptureResidencyReport` exposes the epoch, and
+`query_environment_runtime_snapshot` copies it under the existing renderer-state lock beside the
+resident count, logical GPU bytes, and eviction count. The query remains O(1): it neither iterates
+the resident map nor reads a GPU payload. The source contract also fixes publication ordering so the
+epoch advances before capture identity lookup/replacement.
+
+The complete `zircon_profile_shader_pbr_viewer.Tests.ps1` suite passes 43/43 with zero failures;
+Pester reports 77.02 seconds. Two preceding exact/wildcard `-TestName` attempts selected zero tests
+under this Pester version and are explicitly not counted as evidence. Scoped Rust formatting and
+`git diff --check` pass. The managed validator dry-run accepted the locked command:
+
+`cargo test -p zircon_runtime --no-default-features --features core-min --locked --lib current_profile_shares_storage_and_delayed_completion_keeps_its_identity --target-dir E:\cargo-targets\shader06-capture-residency-epoch-20260902`
+
+The dry-run performed no Cargo discovery, compilation, or test execution. Runtime behavior and ABI
+compilation therefore remain pending managed validation.
+
+| Path | Epoch-only intermediate blob SHA-256 (superseded by the correlation slice below) |
+|---|---|
+| `zircon_runtime/src/core/framework/render/environment/runtime_snapshot.rs` | `3e0eba9387c719b85eb4476ddf9ab98758f01cd0a989670982550d163d4c24be` |
+| `zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/environment_capture_residency.rs` | `4da178c79d11390ba745ae2582544c7abac4e287a0449ae1dae3baf58c3d07ec` |
+| `zircon_runtime/src/graphics/runtime/render_framework/query_environment_runtime_snapshot/query_environment_runtime_snapshot.rs` | `9fbf4ca31e1bd749701b8a6c162d262823d51add97a7a003e663cade9d714f2c` |
+| `tools/tests/zircon_profile_shader_pbr_viewer.Tests.ps1` | `5765fe8f3bbff8cb9b710e1bd71ce9c9c86716f04d0eca6e44ecf1215fe7339b` |
+
+Status:
+`p1_19_capture_residency_epoch_static_green_managed_rust_runtime_viewer_visual_and_performance_evidence_pending`.
+
+### Last resident-publication correlation
+
+The residency report now carries `last_published_handle` and
+`last_published_output_generation` beside its observation epoch. The consuming conversion from
+`EnvironmentCaptureSourceSubmission` retains its scheduler handle in
+`EnvironmentCaptureResidentOutput`; residency copies that handle and the existing output-identity
+generation when it accepts the complete output. The runtime snapshot projects only these two Copy
+scalars. It does not clone the output identity's capture `String`, layer set, persistence locator, or
+GPU payload, and it does not add a resident-map scan.
+
+The external source contract was first RED at 42/43 because neither public report field existed.
+After the four-layer source change it is GREEN at 43/43; the final strengthened Pester run reports
+57.17 seconds.
+The contract explicitly requires `handle: self.handle`, the resident handle accessor, both residency
+cache fields, and both snapshot projections. A redundant inline source-test refinement was not
+materialized because a follow-up atomic write to that file was rejected; its pre-existing broad
+same-name assertion is not counted as evidence. Scoped rustfmt and diff integrity pass.
+
+| Path | Current blob SHA-256 |
+|---|---|
+| `zircon_runtime/src/core/framework/render/environment/runtime_snapshot.rs` | `cc680cc3baf2436b27dad6f33114857e0f3183e9af13e03faec162abcfd452e8` |
+| `zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/environment_capture_residency.rs` | `6d2781d22ec6d390a3f8fcee13a9cf95c87d1e4ab6dc4b2cc81b66092b87d5cb` |
+| `zircon_runtime/src/graphics/runtime/render_framework/query_environment_runtime_snapshot/query_environment_runtime_snapshot.rs` | `74a310b66b79eb944404c802a7960623724f9ad63a377a6d8b3e0d07a32aa084` |
+| `zircon_runtime/src/graphics/scene/scene_renderer/environment/environment_capture_source_submission.rs` | `084fc0cc9602a16dc3554e44f1275c2b04ebd23deec7667d600879a887a64048` |
+| `tools/tests/zircon_profile_shader_pbr_viewer.Tests.ps1` | `c32aef2480f7b4c2f7e53d084344421f28c6ec1ea356a9c13a31eef8ec33c899` |
+
+Status:
+`p1_19_capture_residency_epoch_and_last_publication_identity_static_green_managed_rust_runtime_viewer_visual_and_performance_evidence_pending`.
+
+### Frameworks01 manifest handoff refresh
+
+At working-tree HEAD `9963f8eb72e2d725d2536eb50b393b30387a1ffa`, the three mixed manifests are
+dirty foreign blobs and are not part of the Shader06 candidate. Shader06 made no manifest edit and
+has no atomic dependency on their current contents. Their read-only current SHA-256 values are:
+
+| Path | Current foreign blob SHA-256 |
+|---|---|
+| `Cargo.toml` | `5ac114c791b9f7c428de7bf424981884d7bc46e2cbcf4a64afb08d94411114e2` |
+| `Cargo.lock` | `b8e94326392fd1318d788698f75d37cd0d8652e098678a70a8b6fa53efb37d40` |
+| `zircon_runtime/Cargo.toml` | `6b8d0492d74594ba48c0c20e612b8e574f3e0d030eb1fbd674addd9468655128` |
+
+Frameworks01 must request a fresh transfer preview against these current hashes/HEAD and must not
+reuse any earlier preview request. This record is a release/handoff statement only; Shader06 does
+not stage, commit, transfer, or rewrite the manifests directly.
+
+## 2026-09-02 persistence mailbox bake-key identity correction
+
+The first capture report implementation derived `ready_source_payload_bake_key` from the optional
+runtime-cache artifact request embedded in the output identity. That request exists only when the
+asset/editor owner supplied a persistence artifact request. A valid persistence capture carrying an
+output URI but no asset artifact request therefore retained a source payload with a deterministic
+capture `IblBakeKey` while incorrectly reporting the ready key as absent.
+
+The scheduler now stores the payload, already computed active bake key, and sampled byte length in
+one `ReadyEnvironmentCaptureSourcePayload` value behind the existing single `Option`. Successful
+publication constructs and installs that value under the scheduler mutex; a matching
+`take_source_payload` consumes the complete value and returns its payload. Cancellation,
+supersession, validation failure, and backpressure do not publish or overwrite that identity.
+Report construction copies the fixed key and byte scalar directly and no longer reaches through the
+payload or optional runtime-cache request, so the query remains O(1) and performs no hashing,
+payload traversal, or allocation. The single value also prevents key/bytes/payload state from
+drifting across future control-plane changes.
+
+The test was changed first to require the persistence request's capture key and key removal after
+take. Focused `rustfmt --edition 2021 --check` and scoped `git diff --check` pass. After the single-
+value convergence, the full `zircon_profile_shader_pbr_viewer.Tests.ps1` static contract passes
+43/43 with zero failures in 70.04 seconds; this elapsed value is PowerShell test time only.
+
+| Path | Current blob SHA-256 |
+|---|---|
+| `zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler.rs` | `e34d122adc05b6e44c42e7ded59d2be6e888e8a3357b2f5ee2d528ce4bde0a5d` (pre-convergence; superseded below) |
+| `zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler/completion.rs` | `644b8a091dbab6772d8f91b0b90b64062b6af342e3ada96bc5d79d3673788f2c` (pre-convergence; superseded below) |
+| `zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler/control_plane.rs` | `990beb9884f38dee0124b7eca4fa05fdf953a28154d6298285b4601d1e8fed5d` (pre-convergence; superseded below) |
+| `zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler/report.rs` | `154f9f940f2e13bd58845d6e2ba71f8f43638e0313be1fdf484c8906f09d1763` (pre-convergence; superseded below) |
+| `tools/tests/zircon_profile_shader_pbr_viewer.Tests.ps1` | `a01057ffa3607b3247eb8c835a7a456e7de955bfbbef72abf533bc2c949ace34` (pre-convergence; superseded below) |
+
+Post-convergence hashes:
+
+| Path | Current blob SHA-256 |
+|---|---|
+| `zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler.rs` | `6a10f8d1e98d04cc4a4f09948f9394a7379f3b0fcaf646ffaa4a9162c59a31b0` |
+| `zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler/completion.rs` | `94de69e88ad9a178c58bde4681a5ff1be5eb08187d08c20e54a558232ed67e06` |
+| `zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler/control_plane.rs` | `6a4fcb1fbb3fb0be3d0a03f82dddbe4c481c7c18f2150d58d85b50f919ad4c79` |
+| `zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler/report.rs` | `96f358a9d5ffbc13abb07082746d6f2b6a26cacfba1ac51e12ab236d554f7925` |
+| `tools/tests/zircon_profile_shader_pbr_viewer.Tests.ps1` | `a13059df0f4442faed56e805e1dce5b3f1f047c9aa27c025b54e1a81e130ecd4` |
+
+The managed validator dry-run accepted the focused test filter
+`report_tracks_pending_active_terminal_and_ready_payload_identities` with locked `core-min` library
+tests and target `E:\cargo-targets\shader06-capture-ready-key-20260902`. Dry-run performed no Cargo
+discovery, compile, or test, so it is command-shape evidence only.
+
+The P0-10l source manifest is not reusable for runtime evidence: 19 of its 221 paths now drift and
+none are missing. Neither standard managed target root contains a debug or release
+`zircon_shader_pbr_viewer.exe`. Historical PNG/RDC files remain regression references only; no
+RenderDoc launch or current-source screenshot was attempted with a stale binary.
+
+An in-memory current-source closure snapshot contained 224 unique paths, zero missing entries, and
+canonical SHA-256 `1e7ac3d40cb97f575ed7870e29e353d492e9e17aa85cad915c029626b16cdac8`. It was used
+only for this audit and was not persisted as a transfer manifest or ownership ticket.
+
+The capture residency owner now advances one saturating `observation_epoch` for each accepted,
+complete filtered-output publication, including replacement of an existing capture identity. The
+runtime snapshot copies that epoch with resident count, logical GPU bytes, and evictions under the
+existing renderer-state lock. This adds no payload traversal or allocation and lets consumers
+distinguish equal-sized residency states produced by different publications. Runtime behavior still
+requires managed current-source validation; it does not authorize the standalone-residency lifecycle
+hard cut described below.
+
+Status:
+`p1_19_persistence_mailbox_bake_key_identity_static_green_managed_runtime_viewer_and_visual_performance_evidence_pending`.
+
+## 2026-09-02 completed-capture standalone GPU residency structural review
+
+The current capture completion has two GPU publication owners. A reflection-probe request copies
+the filtered PMREM into its reserved probe cubemap-array slot and commits that slot only after the
+capture ticket succeeds. Independently, every accepted capture converts the same target into an
+`EnvironmentCaptureGpuOutput` and inserts it into the 64-entry `EnvironmentCaptureResidency` map.
+A current-source call search finds no production consumer of `EnvironmentCaptureResidency::get` or
+`EnvironmentCaptureResidentOutput::gpu_output`; outside construction/publication, the only live
+consumer is the new fixed-size residency report.
+
+This differs from the UE reference owner in `ReflectionEnvironmentCapture.cpp`: filtered scratch is
+copied into the scene reflection cubemap array by `CopyToSceneArray`, and that array slot is the
+long-lived shading product while the RDG scratch texture retires. Zircon's probe-array path already
+has the same destination owner, so retaining a second standalone filtered cube is not justified by
+the current probe consumer. Persistence requests separately move one source payload to the
+asset/editor owner, and runtime artifact writeback owns its own readback transaction; neither reads
+the standalone residency map.
+
+The source-level logical bound is exact but is not a measured VRAM result. The fixed PMREM plus SH9
+output is `1,048,704 B` per retained capture, so the 64-entry map can account for `67,117,056 B`
+before driver placement/padding. A 1024-face in-flight capture target is `72,351,856 B`, including
+source/depth scratch, before it is reduced to the filtered output. No timing, physical VRAM, RSS,
+energy, or power conclusion is inferred from these descriptor-derived numbers.
+
+Required decision gate before a hard cut:
+
+1. Current-source capture runs must show the new `capture_residency.resident_gpu_bytes` and probe-
+   array workload for 1/8/32/64 captures, plus RenderDoc resource lifetime and physical VRAM.
+2. If no named runtime environment/skylight binding consumes the standalone output, probe-target
+   and persistence-only completion must retire it after array/source/artifact publication; terminal
+   identity remains in the scheduler and must not be duplicated in a GPU map.
+3. If a non-probe runtime environment consumer is required, it must expose an explicit stable
+   resident handle and binding query, with one last-good output per authored consumer and byte-
+   budget admission. It must not preserve an unused generic 64-entry compatibility cache.
+4. After the hard cut, validate resident bytes, allocation count, capture latency p50/p95/p99,
+   RenderDoc resources, physical VRAM, and matched WPR/WPA energy against the same workload.
+
+Status:
+`completed_capture_standalone_gpu_residency_structural_candidate_profile_and_consumer_decision_pending_no_lifecycle_change`.
+
+## 2026-09-02 PBR environment path and probe-selection algorithm review
+
+The current-source shader review found that the environment-only, basic Standard-PBR,
+and advanced Standard-PBR paths share the canonical dielectric-F0, metallic diffuse-energy,
+split-sum LUT, PMREM roughness mapping, and environment-rotation contracts. The PMREM lookup
+mapping is not an independent shader approximation: the WGSL `mip_from_roughness` expression
+matches `CANONICAL_IBL_BAKE_RECIPE.pmrem_mip_from_roughness` (`roughest_mip_offset = 1.0`,
+`roughness_mip_scale = 1.2`) after the caller passes `mip_count - 1`. The CPU and shader contracts
+therefore do not justify a formula change without a current-source image/reference mismatch.
+
+One structural cost remains. `zr_environment_select_probes` performs a fragment-local linear scan
+over `min(probe_header.probe_count, arrayLength(&zr_env_probes))`, applies layer/intensity gates,
+computes influence distance, and keeps the best two candidates. CPU extraction already partitions
+and sorts candidates to the fixed `MAX_REFLECTION_PROBES = 64`, but that only bounds the storage
+and upload set; it does not remove the O(64) scan from every shaded pixel. The current source has
+no screen-tile, clustered, spatial-grid, or per-draw candidate list feeding this WGSL selection.
+This is a structural performance candidate, not an accepted optimization: changing it requires
+current-source GPU timings and RenderDoc instruction/resource evidence for 1/8/32/64 active probes,
+plus a correctness matrix covering box/sphere influence, priority tie-breaks, camera-layer masks,
+probe blending, planar fallback, and global-sky fallback. Any replacement must preserve the stable
+two-candidate ordering and avoid duplicating the cubemap-array ownership.
+
+The review also found no current-source correctness basis for changing the advanced PBR energy
+composition: clearcoat attenuation is applied to base diffuse/transmission/emissive terms, while
+the clearcoat lobe remains a retained reflection; direct base specular already receives its own
+clearcoat Fresnel complement. This must be validated with authored material permutations (metallic,
+clearcoat, diffuse/specular transmission, anisotropy, occlusion) before any formula refactor.
+
+Status:
+`p1_19_capture_residency_and_persistence_payload_byte_observation_static_green_pbr_path_review_probe_scan_structural_candidate_managed_runtime_viewer_consumer_and_performance_evidence_pending`.

@@ -1,3 +1,4 @@
+# WGPU 适配与原生资源归属停留在此后端 crate；上层通过中立 RHI 契约使用设备。
 [package]
 name = "zr_rhi_wgpu"
 version.workspace = true

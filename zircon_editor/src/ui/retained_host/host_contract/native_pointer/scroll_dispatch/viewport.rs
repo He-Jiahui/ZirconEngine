@@ -12,15 +12,18 @@ pub(super) fn dispatch_viewport_pointer_scroll(
     delta: f32,
 ) -> NativePointerDispatchResult {
     match target {
-        PanePointerTarget::SceneViewport(_) => pane_host.invoke_scene_viewport_pointer_event(
-            VIEWPORT_POINTER_SCROLL,
-            VIEWPORT_POINTER_BUTTON_NONE,
-            local_x,
-            local_y,
-            delta,
-            false,
-            false,
-        ),
+        PanePointerTarget::SceneViewport(surface_key) => {
+            pane_host.set_scene_viewport_surface_key(surface_key);
+            pane_host.invoke_scene_viewport_pointer_event(
+                VIEWPORT_POINTER_SCROLL,
+                VIEWPORT_POINTER_BUTTON_NONE,
+                local_x,
+                local_y,
+                delta,
+                false,
+                false,
+            )
+        }
         PanePointerTarget::GameViewport(_) => pane_host.invoke_game_viewport_pointer_event(
             VIEWPORT_POINTER_SCROLL,
             VIEWPORT_POINTER_BUTTON_NONE,

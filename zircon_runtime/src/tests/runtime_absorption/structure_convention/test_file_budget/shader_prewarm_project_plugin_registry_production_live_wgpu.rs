@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对着色器预热的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 const STATUS: &str = "render_plan08_project_plugin_registry_production_direct_wgpu_export_passed_product_renderdoc_deferred";
@@ -5,8 +6,8 @@ const STATUS: &str = "render_plan08_project_plugin_registry_production_direct_wg
 #[test]
 fn runtime_15_shader_prewarm_project_plugin_registry_production_live_wgpu_is_wired() {
     let run = read_repo("zircon_runtime/src/bin/zircon_shader_prewarm/run.rs");
-    let acceptance = read_repo("tools/zircon_build_shader_prewarm_acceptance.py");
-    let registry_helper = read_repo("tools/zircon_build_shader_resource_registry.py");
+    let acceptance = read_repo("tools/build/zircon_build_shader_prewarm_acceptance.py");
+    let registry_helper = read_repo("tools/build/zircon_build_shader_resource_registry.py");
     let plugin_meta = read_repo("zircon_plugins/native_dynamic_fixture/assets/shader.wgsl.zmeta");
     let plan_08 = read_repo(
         "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
@@ -62,11 +63,11 @@ fn runtime_15_shader_prewarm_project_plugin_registry_production_live_wgpu_is_wir
 
     for (path, source) in [
         (
-            "tools/zircon_build_shader_prewarm_acceptance.py",
+            "tools/build/zircon_build_shader_prewarm_acceptance.py",
             acceptance.as_str(),
         ),
         (
-            "tools/zircon_build_shader_resource_registry.py",
+            "tools/build/zircon_build_shader_resource_registry.py",
             registry_helper.as_str(),
         ),
         (

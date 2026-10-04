@@ -5,6 +5,8 @@
 var fallback = %import("world/delve_default_collision_router");
 var moduleSight = %import("world/delve_line_of_sight");
 
+/// 无活动探险场次时的默认布局视线投影；以起点确定一次模块上下文，整条射线使用该局部坐标，不跨模块重新选择。
+/// 当前由独立叶子测试消费，活动场次应通过其拥有者提供明确的模块原点和编号。
 pub isClear(
     fromX: float,
     fromZ: float,

@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, fmt::Write};
 
 use serde::{Deserialize, Serialize};
 use toml::{map::Map, Value as TomlValue};
@@ -108,20 +108,9 @@ impl UiValue {
             | Self::AssetRef(value)
             | Self::InstanceRef(value)
             | Self::Enum(value) => value.clone(),
-            Self::Vec2(value) => format!("{}, {}", trim_float(value[0]), trim_float(value[1])),
-            Self::Vec3(value) => format!(
-                "{}, {}, {}",
-                trim_float(value[0]),
-                trim_float(value[1]),
-                trim_float(value[2])
-            ),
-            Self::Vec4(value) => format!(
-                "{}, {}, {}, {}",
-                trim_float(value[0]),
-                trim_float(value[1]),
-                trim_float(value[2]),
-                trim_float(value[3])
-            ),
+            Self::Vec2(value) => vector_display_text(value),
+            Self::Vec3(value) => vector_display_text(value),
+            Self::Vec4(value) => vector_display_text(value),
             Self::Array(values) => format!("{} items", values.len()),
             Self::Map(values) => format!("{} entries", values.len()),
             Self::Flags(values) => values.join(", "),
@@ -230,15 +219,15 @@ fn fixed_float_array<const N: usize>(value: &TomlValue) -> Option<[f64; N]> {
         return None;
     }
 
-    let floats = values
-        .iter()
-        .map(|value| match value {
-            TomlValue::Integer(value) => Some(*value as f64),
-            TomlValue::Float(value) => Some(*value),
-            _ => None,
-        })
-        .collect::<Option<Vec<_>>>()?;
-    floats.try_into().ok()
+    let mut floats = [0.0; N];
+    for (index, value) in values.iter().enumerate() {
+        floats[index] = match value {
+            TomlValue::Integer(value) => *value as f64,
+            TomlValue::Float(value) => *value,
+            _ => return None,
+        };
+    }
+    Some(floats)
 }
 
 fn float_array_to_toml<const N: usize>(values: &[f64; N]) -> TomlValue {
@@ -246,17 +235,42 @@ fn float_array_to_toml<const N: usize>(values: &[f64; N]) -> TomlValue {
 }
 
 fn trim_float(value: f64) -> String {
+    let mut text = String::new();
+    write_trim_float(&mut text, value);
+    text
+}
+
+fn vector_display_text(values: &[f64]) -> String {
+    let mut text = String::with_capacity(values.len().saturating_mul(16));
+    for (index, value) in values.iter().copied().enumerate() {
+        if index != 0 {
+            text.push_str(", ");
+        }
+        write_trim_float(&mut text, value);
+    }
+    text
+}
+
+fn write_trim_float(text: &mut String, value: f64) {
     let rounded = value.round();
     if (value - rounded).abs() < f64::EPSILON {
-        format!("{rounded:.0}")
+        let _ = write!(text, "{rounded:.0}");
     } else {
-        let mut text = format!("{value:.3}");
-        while text.contains('.') && text.ends_with('0') {
+        let component_start = text.len();
+        let _ = write!(text, "{value:.3}");
+        while text.len() > component_start && text.ends_with('0') {
             text.pop();
         }
-        if text.ends_with('.') {
+        if text.len() > component_start && text.ends_with('.') {
             text.pop();
         }
-        text
     }
 }
+
+#[cfg(test)]
+#[path = "value/tests/display_text_performance_tests.rs"]
+mod display_text_performance_tests;
+
+#[cfg(test)]
+#[path = "value/tests/fixed_float_array_performance_tests.rs"]
+mod fixed_float_array_performance_tests;

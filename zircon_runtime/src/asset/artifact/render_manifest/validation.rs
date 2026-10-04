@@ -6,8 +6,8 @@ use thiserror::Error;
 use crate::core::resource::{ResourceKind, UntypedResourceHandle};
 
 use super::{
-    RENDER_ARTIFACT_MANIFEST_SCHEMA_VERSION, RenderArtifactBlockCodec, RenderArtifactLayout,
-    RenderArtifactManifest, RenderArtifactResidencyClass, RenderSubresourceId,
+    RenderArtifactBlockCodec, RenderArtifactLayout, RenderArtifactManifest,
+    RenderArtifactResidencyClass, RenderSubresourceId, RENDER_ARTIFACT_MANIFEST_SCHEMA_VERSION,
 };
 
 mod mesh;
@@ -167,6 +167,7 @@ pub enum RenderArtifactManifestError {
     CyclicBlockDependencies,
 }
 
+// manifest 校验按 schema、资源依赖、块序和布局分层执行，最后检查块依赖图；cook、store 和两个 loader 都依赖这一入口拒绝不可执行清单。
 pub(super) fn validate_render_artifact_manifest(
     manifest: &RenderArtifactManifest,
 ) -> Result<(), RenderArtifactManifestError> {
@@ -270,6 +271,7 @@ fn validate_blocks(manifest: &RenderArtifactManifest) -> Result<(), RenderArtifa
     Ok(())
 }
 
+// 依赖边先解析为块索引并计算入度，再用队列执行拓扑消费；访问数少于块数即表示存在环，bootstrap 依赖 streamable 也在入度构建时拒绝。
 fn validate_block_dependencies(
     manifest: &RenderArtifactManifest,
 ) -> Result<(), RenderArtifactManifestError> {

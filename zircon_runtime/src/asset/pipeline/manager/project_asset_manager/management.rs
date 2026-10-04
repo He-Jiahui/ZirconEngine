@@ -1,19 +1,27 @@
+use std::sync::Arc;
+
 use crate::asset::{
-    AssetManagementFamilyIssueBucket, AssetManagementFamilyIssueIndex,
+    AssetId, AssetManagementFamilyIssueBucket, AssetManagementFamilyIssueIndex,
     AssetManagementFamilyIssueView, AssetManagementFamilyStatus, AssetManagementFamilyStatusIndex,
     AssetManagementFamilyStatusView, AssetManagementFamilySummary, AssetManagementOverview,
-    AssetManagementRecordSets, MaterialAssetManagementRecord, MaterialAssetManagementRecordSet,
-    MeshAssetManagementRecord, MeshAssetManagementRecordSet, MeshValidationError,
-    ModelAssetManagementRecord, ModelAssetManagementRecordSet, SceneAssetManagementRecord,
+    AssetManagementRecordSets, ImportedAsset, MaterialAsset, MaterialAssetManagementRecord,
+    MaterialAssetManagementRecordSet, MeshAsset, MeshAssetManagementRecord,
+    MeshAssetManagementRecordSet, MeshValidationError, ModelAsset, ModelAssetManagementRecord,
+    ModelAssetManagementRecordSet, SceneAsset, SceneAssetManagementRecord,
     SceneAssetManagementRecordSet, SceneEntityManagementRecord, SceneEntityManagementRecordSet,
-    ShaderAssetManagementRecord, ShaderAssetManagementRecordSet, ShaderAssetReadinessSummary,
-    ShaderReadinessReport,
+    ShaderAsset, ShaderAssetManagementRecord, ShaderAssetManagementRecordSet,
+    ShaderAssetReadinessSummary, ShaderReadinessReport,
 };
 use crate::core::framework::render::RenderMaterialManagementRecordSet;
 #[cfg(feature = "profiling")]
 use crate::core::resource::ResourceManagementScan;
-use crate::core::resource::{ResourceId, ResourceKind, ResourceManagementQuery};
+use crate::core::resource::{
+    MaterialMarker, MeshMarker, ModelMarker, ResourceData, ResourceHandle, ResourceId,
+    ResourceKind, ResourceManagementGeneration, ResourceManagementQuery, ResourceMarker,
+    ResourceScheme, ResourceState, SceneMarker, ShaderMarker,
+};
 
+use super::super::builtins::builtin_resource;
 use super::management_generation::ProjectAssetManagementGeneration;
 use super::ProjectAssetManager;
 
@@ -38,7 +46,7 @@ fn resource_management_profile_scope(
 fn record_completed_resource_management_scan(scan: &ResourceManagementScan) {
     use crate::core::runtime::diagnostics::profiling::record_counter_batch;
 
-    let metrics = scan.profile_metrics();
+    let metrics = scan.diagnostics();
     record_counter_batch(
         PROFILE_STREAM,
         &[
@@ -49,15 +57,15 @@ fn record_completed_resource_management_scan(scan: &ResourceManagementScan) {
             ),
             (
                 "resource_management.scan.rows_emitted",
-                metrics.rows_emitted as f64,
+                metrics.rows_emitted() as f64,
             ),
             (
                 "resource_management.scan.shard_candidate_checks",
-                metrics.shard_candidate_checks as f64,
+                metrics.shard_candidate_checks() as f64,
             ),
             (
                 "resource_management.scan.filtered_rows_skipped",
-                metrics.filtered_rows_skipped as f64,
+                metrics.filtered_rows_skipped() as f64,
             ),
         ],
     );
@@ -72,17 +80,57 @@ struct AssetManagementKindIds {
 }
 
 impl ProjectAssetManager {
+    // Publication already holds the project-generation write fence. Reading a lazy asset through
+    // load_* here would try to acquire the same fence again in ensure_resident and deadlock.
+    fn published_management_asset<TMarker, TAsset>(
+        &self,
+        id: AssetId,
+        extract: impl FnOnce(ImportedAsset) -> Option<TAsset>,
+    ) -> Option<TAsset>
+    where
+        TMarker: ResourceMarker,
+        TAsset: ResourceData + Clone,
+    {
+        let resources = self.resource_manager();
+        if let Some(asset) = resources.get::<TMarker, TAsset>(ResourceHandle::new(id)) {
+            return Some(asset.as_ref().clone());
+        }
+        let metadata = resources.registry().get(id).cloned()?;
+        if metadata.state != ResourceState::Ready {
+            return None;
+        }
+        let imported = match metadata.primary_locator.scheme() {
+            ResourceScheme::Res | ResourceScheme::Library | ResourceScheme::Package => {
+                let prepared = self
+                    .project_read()
+                    .as_ref()?
+                    .prepare_artifact_read_by_id(id)
+                    .ok()?;
+                prepared.read().ok()?
+            }
+            ResourceScheme::Builtin => {
+                builtin_resource(&metadata.primary_locator, |locator, candidate| {
+                    locator.to_string() == candidate
+                })?
+            }
+            ResourceScheme::Memory => return None,
+        };
+        extract(imported)
+    }
+
     fn asset_ids_by_kind(&self, kind: ResourceKind) -> Vec<ResourceId> {
         self.current_asset_management_generation()
             .ids_by_kind(kind)
             .to_vec()
     }
 
-    fn asset_ids_for_management_record_sets(&self) -> AssetManagementKindIds {
+    fn asset_ids_for_management_record_sets(
+        &self,
+        generation: &Arc<ResourceManagementGeneration>,
+    ) -> AssetManagementKindIds {
         #[cfg(feature = "profiling")]
         let profile_scope =
             resource_management_profile_scope("project_asset_manager.record_sets_scan");
-        let generation = self.resource_manager().management_generation();
         let summary = generation.summary();
         let mut ids = AssetManagementKindIds {
             models: Vec::with_capacity(summary.kind(ResourceKind::Model).total_count),
@@ -133,7 +181,15 @@ impl ProjectAssetManager {
     ) -> Vec<ModelAssetManagementRecord> {
         model_ids
             .into_iter()
-            .filter_map(|model_id| self.model_asset_management_record(model_id))
+            .filter_map(|model_id| {
+                self.published_management_asset::<ModelMarker, ModelAsset>(model_id, |asset| {
+                    match asset {
+                        ImportedAsset::Model(model) => Some(model),
+                        _ => None,
+                    }
+                })
+                .map(|asset| asset.management_record(model_id))
+            })
             .collect()
     }
 
@@ -206,7 +262,15 @@ impl ProjectAssetManager {
     ) -> Vec<SceneAssetManagementRecord> {
         scene_ids
             .into_iter()
-            .filter_map(|scene_id| self.scene_asset_management_record(scene_id))
+            .filter_map(|scene_id| {
+                self.published_management_asset::<SceneMarker, SceneAsset>(scene_id, |asset| {
+                    match asset {
+                        ImportedAsset::Scene(scene) => Some(scene),
+                        _ => None,
+                    }
+                })
+                .map(|asset| asset.management_record(scene_id))
+            })
             .collect()
     }
 
@@ -249,7 +313,16 @@ impl ProjectAssetManager {
     ) -> Vec<MaterialAssetManagementRecord> {
         material_ids
             .into_iter()
-            .filter_map(|material_id| self.material_asset_management_record(material_id))
+            .filter_map(|material_id| {
+                self.published_management_asset::<MaterialMarker, MaterialAsset>(
+                    material_id,
+                    |asset| match asset {
+                        ImportedAsset::Material(material) => Some(material),
+                        _ => None,
+                    },
+                )
+                .map(|asset| asset.management_record(material_id))
+            })
             .collect()
     }
 
@@ -293,7 +366,36 @@ impl ProjectAssetManager {
     ) -> Vec<ShaderAssetManagementRecord> {
         shader_ids
             .into_iter()
-            .filter_map(|shader_id| self.shader_asset_management_record(shader_id))
+            .filter_map(|shader_id| {
+                self.published_management_asset::<ShaderMarker, ShaderAsset>(shader_id, |asset| {
+                    match asset {
+                        ImportedAsset::Shader(shader) => Some(shader),
+                        _ => None,
+                    }
+                })
+                .map(|asset| asset.readiness_report().management_record(shader_id))
+            })
+            .collect()
+    }
+
+    fn published_mesh_asset_management_record_results_for_ids(
+        &self,
+        mesh_ids: Vec<ResourceId>,
+    ) -> Vec<(
+        ResourceId,
+        Result<MeshAssetManagementRecord, MeshValidationError>,
+    )> {
+        mesh_ids
+            .into_iter()
+            .filter_map(|mesh_id| {
+                self.published_management_asset::<MeshMarker, MeshAsset>(mesh_id, |asset| {
+                    match asset {
+                        ImportedAsset::Mesh(mesh) => Some(mesh),
+                        _ => None,
+                    }
+                })
+                .map(|asset| (mesh_id, asset.management_record(mesh_id)))
+            })
             .collect()
     }
 
@@ -305,13 +407,14 @@ impl ProjectAssetManager {
 
     fn build_asset_management_record_sets(
         &self,
+        generation: &Arc<ResourceManagementGeneration>,
         materials: RenderMaterialManagementRecordSet,
     ) -> AssetManagementRecordSets {
         #[cfg(feature = "profiling")]
         let _profile_scope = resource_management_profile_scope("project_asset_manager.record_sets");
-        let ids = self.asset_ids_for_management_record_sets();
+        let ids = self.asset_ids_for_management_record_sets(generation);
         let model_records = self.model_asset_management_records_for_ids(ids.models);
-        let mesh_results = self.mesh_asset_management_record_results_for_ids(ids.meshes);
+        let mesh_results = self.published_mesh_asset_management_record_results_for_ids(ids.meshes);
         let scene_records = self.scene_asset_management_records_for_ids(ids.scenes);
         let material_records = self.material_asset_management_records_for_ids(ids.materials);
         let shader_records = self.shader_asset_management_records_for_ids(ids.shaders);
@@ -345,18 +448,21 @@ impl ProjectAssetManager {
             return;
         };
         let resource_generation = self.resource_manager().management_generation();
+        let resource_identity = resource_generation.identity();
         if self
             .asset_management_generation_snapshot()
-            .is_for_generations(project_generation, resource_generation.sequence())
+            .is_for_generations(project_generation, &resource_identity)
         {
             return;
         }
-        let records =
-            self.build_asset_management_record_sets(RenderMaterialManagementRecordSet::default());
+        let records = self.build_asset_management_record_sets(
+            &resource_generation,
+            RenderMaterialManagementRecordSet::default(),
+        );
         self.install_asset_management_generation(
             ProjectAssetManagementGeneration::from_record_sets(
                 Some(project_generation),
-                resource_generation.sequence(),
+                Some(resource_identity),
                 records.models,
                 records.meshes,
                 records.scenes,
@@ -381,212 +487,51 @@ impl ProjectAssetManager {
     }
 
     pub fn asset_management_overview(&self) -> AssetManagementOverview {
-        self.asset_management_record_sets().overview()
+        self.current_asset_management_generation()
+            .overview()
+            .clone()
     }
 
     pub fn asset_management_family_summaries(&self) -> Vec<AssetManagementFamilySummary> {
-        self.asset_management_record_sets().families
+        self.current_asset_management_generation()
+            .overview()
+            .families
+            .clone()
     }
 
     pub fn asset_management_family_status_index(&self) -> AssetManagementFamilyStatusIndex {
-        self.asset_management_record_sets().family_status_index
+        self.current_asset_management_generation()
+            .overview()
+            .family_status_index
+            .clone()
     }
 
     pub fn asset_management_family_status_view(
         &self,
         status: AssetManagementFamilyStatus,
     ) -> AssetManagementFamilyStatusView {
-        self.asset_management_record_sets()
+        self.current_asset_management_generation()
+            .overview()
             .family_status_view(status)
     }
 
     pub fn asset_management_family_issue_index(&self) -> AssetManagementFamilyIssueIndex {
-        self.asset_management_record_sets().family_issue_index
+        self.current_asset_management_generation()
+            .overview()
+            .family_issue_index
+            .clone()
     }
 
     pub fn asset_management_family_issue_view(
         &self,
         bucket: AssetManagementFamilyIssueBucket,
     ) -> AssetManagementFamilyIssueView {
-        self.asset_management_record_sets()
+        self.current_asset_management_generation()
+            .overview()
             .family_issue_view(bucket)
     }
 }
 
 #[cfg(test)]
-mod tests {
-    #[cfg(feature = "profiling")]
-    use crate::core::runtime::diagnostics::profiling::{
-        reset_capture, snapshot, start_capture, test_capture_lock, ProfileCaptureConfig,
-        ProfileFrameScope,
-    };
-
-    #[test]
-    fn asset_management_kind_lookup_reads_the_published_asset_generation() {
-        let source = include_str!("management.rs");
-        let kind_lookup = source
-            .split("fn asset_ids_by_kind")
-            .nth(1)
-            .and_then(|source| source.split("pub fn model_asset_management_record").next())
-            .expect("read asset management kind lookup");
-
-        assert!(kind_lookup.contains("current_asset_management_generation()"));
-        assert!(kind_lookup.contains("ids_by_kind(kind)"));
-        assert!(!kind_lookup.contains("management_generation()"));
-        assert!(!kind_lookup.contains("ResourceManagementQuery"));
-        assert!(!kind_lookup.contains("scan.next_row()"));
-        assert!(!kind_lookup.contains(".registry()"));
-        assert!(!kind_lookup.contains("list_resources("));
-        assert!(!kind_lookup.contains("ids.sort()"));
-        assert!(!kind_lookup.contains("sort_by("));
-        assert!(!kind_lookup.contains("sort_by_key("));
-        assert!(!kind_lookup.contains("sort_unstable"));
-    }
-
-    #[test]
-    fn asset_management_aggregate_derives_scene_entities_from_one_scene_projection() {
-        let source = include_str!("management.rs");
-        let aggregate = source
-            .split("fn build_asset_management_record_sets")
-            .nth(1)
-            .and_then(|source| {
-                source
-                    .split("pub(crate) fn refresh_asset_management_generation")
-                    .next()
-            })
-            .expect("read asset management aggregate implementation");
-
-        assert_eq!(
-            aggregate
-                .matches("self.scene_asset_management_records_for_ids(ids.scenes)")
-                .count(),
-            1
-        );
-        assert!(aggregate.contains("SceneAssetManagementRecord::entity_management_records"));
-        assert!(aggregate.contains("SceneAssetManagementRecordSet::from_records(scene_records)"));
-        assert!(aggregate.contains("SceneEntityManagementRecordSet::from_records(scene_entities)"));
-        assert_eq!(
-            aggregate
-                .matches("asset_ids_for_management_record_sets()")
-                .count(),
-            1
-        );
-        assert!(!aggregate.contains("self.model_asset_management_record_set()"));
-        assert!(!aggregate.contains("self.mesh_asset_management_record_set()"));
-        assert!(!aggregate.contains("self.material_asset_management_record_set()"));
-        assert!(!aggregate.contains("self.shader_asset_management_record_set()"));
-    }
-
-    #[test]
-    fn management_records_read_the_project_asset_generation_snapshot() {
-        let source = include_str!("management.rs");
-        let records = source
-            .split("impl ProjectAssetManager")
-            .nth(1)
-            .and_then(|source| source.split("fn build_asset_management_record_sets").next())
-            .expect("read management accessors");
-
-        for accessor in [
-            ".model_records()",
-            ".scene_records()",
-            ".scene_entity_records()",
-            ".material_records()",
-            ".shader_records()",
-        ] {
-            assert!(
-                records.contains(accessor),
-                "missing snapshot accessor {accessor}"
-            );
-        }
-        assert!(!records.contains("self.registry()"));
-        assert!(!records.contains("list_resources("));
-    }
-
-    #[test]
-    fn refresh_skips_unchanged_resource_generations() {
-        let source = include_str!("management.rs");
-        let refresh = source
-            .split("pub(crate) fn refresh_asset_management_generation")
-            .nth(1)
-            .and_then(|source| source.split("pub fn asset_management_record_sets").next())
-            .expect("read asset management refresh owner");
-
-        assert!(refresh.contains("is_for_generations"));
-        assert!(refresh.contains("return;"));
-        assert!(refresh.contains("management_generation()"));
-    }
-
-    #[test]
-    fn refresh_clears_the_asset_projection_when_no_project_is_active() {
-        let source = include_str!("management.rs");
-        let refresh = source
-            .split("pub(crate) fn refresh_asset_management_generation")
-            .nth(1)
-            .and_then(|source| source.split("pub fn asset_management_record_sets").next())
-            .expect("read asset management refresh owner");
-
-        let clear = refresh
-            .find("has_project_generation()")
-            .expect("refresh must inspect published project identity");
-        let empty = refresh
-            .find("ProjectAssetManagementGeneration::empty()")
-            .expect("refresh must install empty closed-project projection");
-        assert!(clear < empty);
-    }
-
-    #[cfg(feature = "profiling")]
-    #[test]
-    fn asset_management_record_sets_reuse_the_published_projection_in_the_active_frame() {
-        let _guard = test_capture_lock();
-        let mut config = ProfileCaptureConfig::default();
-        config.session_id = "asset-management-kind-query".to_owned();
-        config.max_frames = 4;
-        config.max_spans = 16;
-        config.max_counters = 32;
-        start_capture(config);
-
-        {
-            let _frame = ProfileFrameScope::enter("runtime", "asset_management");
-            let manager = super::ProjectAssetManager::default();
-            let _records = manager.asset_management_record_sets();
-        }
-
-        let profile = snapshot();
-        reset_capture();
-
-        assert!(profile
-            .counters
-            .iter()
-            .all(|counter| !counter.name.starts_with("resource_management.")));
-        assert!(profile
-            .spans
-            .iter()
-            .all(|span| span.category != "resource_management"));
-    }
-
-    #[cfg(feature = "profiling")]
-    #[test]
-    fn asset_management_record_sets_do_not_emit_without_an_active_profile_frame() {
-        let _guard = test_capture_lock();
-        let mut config = ProfileCaptureConfig::default();
-        config.session_id = "asset-management-no-frame".to_owned();
-        config.max_spans = 16;
-        config.max_counters = 32;
-        start_capture(config);
-
-        let manager = super::ProjectAssetManager::default();
-        let _records = manager.asset_management_record_sets();
-
-        let profile = snapshot();
-        reset_capture();
-
-        assert!(profile
-            .counters
-            .iter()
-            .all(|counter| !counter.name.starts_with("resource_management.")));
-        assert!(profile
-            .spans
-            .iter()
-            .all(|span| span.category != "resource_management"));
-    }
-}
+#[path = "tests/management.rs"]
+mod tests;

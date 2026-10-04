@@ -1,6 +1,7 @@
 mod format;
 
 #[cfg(test)]
+#[path = "metadata_validation/tests/cases.rs"]
 mod tests;
 
 use self::format::{
@@ -24,6 +25,8 @@ pub struct TextureMetadataDiagnostic {
     pub message: String,
 }
 
+/// 在导入和缓存回读边界检查内容策略与存储格式、采样方式是否相容。
+/// 调用方以 Error 阻止资产进入构建，以 Warning 保留可选择但可能不合适的配置。
 pub fn validate_texture_metadata(
     uri: &str,
     format: &str,

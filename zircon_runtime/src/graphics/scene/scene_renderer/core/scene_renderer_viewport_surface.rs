@@ -13,6 +13,7 @@ impl SceneRenderer {
         self.backend.create_viewport_surface(descriptor)
     }
 
+    /// 直达 surface 的呈现入口；scene receipt 已由渲染提交生成，呈现异常不得抹掉该提交。
     pub(crate) fn present_frame_direct(
         &mut self,
         frame: &ViewportRenderFrame,
@@ -50,20 +51,5 @@ impl SceneRenderer {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn direct_surface_errors_retain_the_scene_submission_receipt() {
-        let source = include_str!("scene_renderer_viewport_surface.rs")
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("direct surface test boundary");
-
-        assert!(source.contains("surface.acquire_frame_target()"));
-        assert!(source.contains("let poll_receipt = self.poll_frame_submission_completions()?"));
-        assert!(source.contains("self.render_frame_to_offscreen_target_after_poll("));
-        assert!(source.contains("surface.present_frame_target("));
-        assert!(source.contains("surface.discard_frame_target(surface_target, source)"));
-        assert!(source.contains("finalize_surface_presentation("));
-        assert!(!source.contains("surface.present_texture("));
-    }
-}
+#[path = "tests/scene_renderer_viewport_surface.rs"]
+mod tests;

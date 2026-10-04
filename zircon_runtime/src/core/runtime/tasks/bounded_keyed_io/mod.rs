@@ -21,4 +21,5 @@ pub use ticket::{
 };
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

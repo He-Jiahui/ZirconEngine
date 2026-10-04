@@ -136,6 +136,7 @@ impl RetainedByteLease {
     }
 }
 
+// 共享 lease 仅在最后一个 Arc 所有者释放时归还字节与名额；预算已销毁时 Weak 升级失败便结束。
 impl Drop for RetainedByteLeaseInner {
     fn drop(&mut self) {
         let Some(budget) = self.budget.upgrade() else {
@@ -154,4 +155,5 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
 }
 
 #[cfg(test)]
+#[path = "retained_byte_budget/tests/cases.rs"]
 mod tests;

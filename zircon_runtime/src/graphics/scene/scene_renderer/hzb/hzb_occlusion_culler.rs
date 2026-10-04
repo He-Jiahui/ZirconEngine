@@ -14,10 +14,10 @@ use crate::graphics::visibility::{
     HzbOcclusionCullReadbackStats, HzbOcclusionCullReport, HzbOcclusionIndirectArgsReadbackSummary,
 };
 
-use super::HzbSampledResourceIdentity;
 use super::bind_group_cache::HzbOcclusionBindGroupCache;
 use super::params_workspace::{HzbOcclusionParamsCommit, HzbOcclusionParamsWorkspace};
 use super::phase_dispatch::{HzbOcclusionPhaseDispatch, HzbOcclusionPhaseDispatchSummary};
+use super::HzbSampledResourceIdentity;
 use zr_rhi_wgpu::WgpuBufferUploadBatch;
 
 pub(crate) const HZB_OCCLUSION_CULL_PIPELINE_LABEL: &str = "zircon-hzb-occlusion-cull-pipeline";
@@ -689,4 +689,5 @@ fn hzb_occlusion_storage_buffer_binding_count() -> u32 {
 }
 
 #[cfg(test)]
+#[path = "hzb_occlusion_culler/tests/cases.rs"]
 mod tests;

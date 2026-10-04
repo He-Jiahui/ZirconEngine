@@ -1,10 +1,14 @@
 use std::hint::black_box;
 use std::time::{Duration, Instant};
 
-use crate::render_graph::{CompiledRenderGraphStats, PassFlags, QueueLane, RenderGraphBuilder};
+use crate::render_graph::{
+    CompiledRenderGraph, CompiledRenderGraphStats, PassFlags, QueueLane, RenderGraphBuilder,
+    RenderGraphResourceKind,
+};
 use crate::rhi::{TextureDesc, TextureFormat, TextureUsage};
 
 const SCALE_PASS_COUNTS: &[usize] = &[16, 64, 256, 1024];
+const SCALE_TEXTURE_WIDTHS: &[u32] = &[4, 8, 16];
 const SCALE_BENCHMARK_WARMUP_SAMPLES: usize = 3;
 const SCALE_BENCHMARK_MEASURED_SAMPLES: usize = 31;
 const COMPILE_PROJECTION_EVIDENCE_PASS_COUNT: usize = 10_000;
@@ -37,7 +41,7 @@ impl ScaleGraphShape {
 
     const fn resource_count(self, pass_count: usize) -> usize {
         match self {
-            Self::MultiWriter => 1,
+            Self::MultiWriter => SCALE_TEXTURE_WIDTHS.len(),
             Self::Chain | Self::FanOut | Self::PluginLabeledChain => pass_count,
         }
     }
@@ -48,43 +52,64 @@ fn render_graph_compile_work_scales_linearly_for_supported_topologies() {
     for shape in ScaleGraphShape::ALL {
         for pass_count in SCALE_PASS_COUNTS {
             let graph = build_scale_graph(shape, *pass_count).compile().unwrap();
+            assert!(
+                transient_texture_bucket_count(&graph) >= 2,
+                "shape={} pass_count={} must compile at least two transient texture buckets",
+                shape.label(),
+                pass_count
+            );
             assert_compile_work(shape, *pass_count, graph.stats());
         }
     }
 }
 
 #[test]
-#[ignore = "run through the managed Render01 scale-validation lane to record p50/p95"]
-fn render_graph_compile_scale_reports_p50_and_p95() {
+#[ignore = "run through the managed Render01 scale-validation lane to record p50/p95/p99"]
+fn render_graph_compile_scale_reports_p50_p95_and_p99() {
     for shape in ScaleGraphShape::ALL {
         for pass_count in SCALE_PASS_COUNTS {
-            let expected = build_scale_graph(shape, *pass_count)
-                .compile()
-                .unwrap()
-                .stats();
+            let expected_graph = build_scale_graph(shape, *pass_count).compile().unwrap();
+            let expected = expected_graph.stats();
+            let expected_texture_buckets = transient_texture_bucket_count(&expected_graph);
+            assert!(
+                expected_texture_buckets >= 2,
+                "shape={} pass_count={} must compile at least two transient texture buckets",
+                shape.label(),
+                pass_count
+            );
             assert_compile_work(shape, *pass_count, expected);
 
             for _ in 0..SCALE_BENCHMARK_WARMUP_SAMPLES {
-                let graph = build_scale_graph(shape, *pass_count).compile().unwrap();
+                let builder = build_scale_graph(shape, *pass_count);
+                let graph = builder.compile().unwrap();
                 assert_eq!(graph.stats(), expected);
             }
 
             let mut samples = Vec::with_capacity(SCALE_BENCHMARK_MEASURED_SAMPLES);
             for _ in 0..SCALE_BENCHMARK_MEASURED_SAMPLES {
+                // Keep fixture construction outside the timed interval so this lane measures compilation.
+                let builder = build_scale_graph(shape, *pass_count);
                 let started = Instant::now();
-                let graph = build_scale_graph(shape, *pass_count).compile().unwrap();
+                let graph = builder.compile().unwrap();
                 samples.push(started.elapsed());
                 assert_eq!(graph.stats(), expected);
+                assert_eq!(
+                    transient_texture_bucket_count(&graph),
+                    expected_texture_buckets
+                );
             }
             samples.sort_unstable();
 
             println!(
-                "render_graph_compile_scale shape={} passes={} resources={} p50_us={} p95_us={} access_visits={} execution_edges={} provenance_edges={} cull_edge_visits={}",
+                "render_graph_compile_scale shape={} passes={} resources={} texture_buckets={} samples={} p50_us={} p95_us={} p99_us={} access_visits={} execution_edges={} provenance_edges={} cull_edge_visits={}",
                 shape.label(),
                 pass_count,
                 shape.resource_count(*pass_count),
+                expected_texture_buckets,
+                samples.len(),
                 percentile(&samples, 50).as_micros(),
                 percentile(&samples, 95).as_micros(),
+                percentile(&samples, 99).as_micros(),
                 expected.compile_resource_access_visit_count,
                 expected.compile_execution_dependency_count,
                 expected.compile_provenance_dependency_count,
@@ -230,7 +255,7 @@ fn build_fan_out_graph(pass_count: usize) -> RenderGraphBuilder {
     let mut builder = RenderGraphBuilder::new("scale-fanout");
     let source = builder.create_texture(scale_texture_desc(0));
     let consumer_textures = (1..pass_count)
-        .map(|index| builder.create_texture(scale_texture_desc(index)))
+        .map(|index| builder.create_texture(scale_texture_desc(index + 1)))
         .collect::<Vec<_>>();
     let output = builder.import_present_external_resource("scale-output");
     let seed = builder.add_pass("fanout-seed", QueueLane::Graphics);
@@ -250,14 +275,20 @@ fn build_fan_out_graph(pass_count: usize) -> RenderGraphBuilder {
 
 fn build_multi_writer_graph(pass_count: usize) -> RenderGraphBuilder {
     let mut builder = RenderGraphBuilder::new("scale-multi-writer");
-    let color = builder.create_texture(scale_texture_desc(0));
+    let colors = (0..SCALE_TEXTURE_WIDTHS.len())
+        .map(|index| builder.create_texture(scale_texture_desc(index)))
+        .collect::<Vec<_>>();
     let output = builder.import_present_external_resource("scale-output");
 
     for index in 0..pass_count {
         let pass = builder.add_pass(format!("writer-{index}"), QueueLane::Graphics);
-        builder.write_texture(pass, color).unwrap();
+        builder
+            .write_texture(pass, colors[index % colors.len()])
+            .unwrap();
         if index + 1 == pass_count {
-            builder.read_texture(pass, color).unwrap();
+            for color in colors.iter().copied() {
+                builder.read_texture(pass, color).unwrap();
+            }
             builder.write_external(pass, output).unwrap();
         }
     }
@@ -266,25 +297,39 @@ fn build_multi_writer_graph(pass_count: usize) -> RenderGraphBuilder {
 }
 
 fn scale_texture_desc(index: usize) -> TextureDesc {
+    let width = SCALE_TEXTURE_WIDTHS[index % SCALE_TEXTURE_WIDTHS.len()];
     TextureDesc::new(
         format!("scale-color-{index}"),
-        4,
+        width,
         4,
         TextureFormat::Rgba8UnormSrgb,
         TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
     )
 }
 
+fn transient_texture_bucket_count(graph: &CompiledRenderGraph) -> usize {
+    let mut bucket_hashes = graph
+        .transient_allocation_plan()
+        .allocations
+        .iter()
+        .filter(|allocation| allocation.kind == RenderGraphResourceKind::TransientTexture)
+        .map(|allocation| allocation.bucket_key_hash)
+        .collect::<Vec<_>>();
+    bucket_hashes.sort_unstable();
+    bucket_hashes.dedup();
+    bucket_hashes.len()
+}
+
 fn assert_compile_work(shape: ScaleGraphShape, pass_count: usize, stats: CompiledRenderGraphStats) {
     let expected_access_visits = match shape {
-        ScaleGraphShape::MultiWriter => pass_count + 2,
+        ScaleGraphShape::MultiWriter => pass_count + SCALE_TEXTURE_WIDTHS.len() + 1,
         ScaleGraphShape::Chain | ScaleGraphShape::FanOut | ScaleGraphShape::PluginLabeledChain => {
             pass_count * 2
         }
     };
     let expected_execution_edges = pass_count - 1;
     let expected_provenance_edges = match shape {
-        ScaleGraphShape::MultiWriter => 0,
+        ScaleGraphShape::MultiWriter => SCALE_TEXTURE_WIDTHS.len() - 1,
         ScaleGraphShape::Chain | ScaleGraphShape::FanOut | ScaleGraphShape::PluginLabeledChain => {
             pass_count - 1
         }

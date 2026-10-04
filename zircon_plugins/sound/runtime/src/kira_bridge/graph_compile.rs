@@ -1,3 +1,4 @@
+//! 编译器把声明图变成 Kira 路由及差异计划；当前 M1 仅支持基本增益、层级和后效果发送。
 #[cfg(test)]
 use std::cell::Cell;
 use std::cell::OnceCell;
@@ -12,6 +13,7 @@ use zircon_runtime::core::framework::sound::{
 use super::graph_validation::validate_graph;
 
 #[cfg(test)]
+#[path = "graph_compile/tests/performance_tests.rs"]
 mod performance_tests;
 mod routes;
 

@@ -43,19 +43,18 @@ impl EditorConsoleHistory {
         if message.trim().is_empty() {
             return;
         }
-        let message = message_tail_with_max_lines(message, CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY);
+        let (message, message_line_count) =
+            message_tail_with_max_lines(message, CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY);
         if self.matches_last_message(message, level) {
             return;
         }
 
-        let entered_lines = message
-            .split('\n')
-            .map(|text| {
-                let source_id = self.next_source_id;
-                self.next_source_id = self.next_source_id.saturating_add(1);
-                ConsoleOutputLineSnapshot::new(source_id, Arc::from(text), level, None, None)
-            })
-            .collect::<Vec<_>>();
+        let mut entered_lines = Vec::with_capacity(message_line_count);
+        entered_lines.extend(message.split('\n').map(|text| {
+            let source_id = self.next_source_id;
+            self.next_source_id = self.next_source_id.saturating_add(1);
+            ConsoleOutputLineSnapshot::new(source_id, Arc::from(text), level, None, None)
+        }));
         let retained_entered_start = entered_lines
             .len()
             .saturating_sub(CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY);
@@ -133,16 +132,18 @@ impl EditorConsoleHistory {
         let (trimmed, expired) = previous_visible.trim_before_source_id(first_source_id);
         let filter = self.filter;
         let mut next_visible_slot_id = self.next_visible_slot_id;
-        let matching = retained_entered
-            .iter()
-            .filter(|line| message_filter_matches(filter, line.level()))
-            .cloned()
-            .map(|line| {
-                let slot_id = next_visible_slot_id;
-                next_visible_slot_id = next_visible_slot_id.saturating_add(1);
-                line.with_slot_id(slot_id)
-            })
-            .collect::<Vec<_>>();
+        let mut matching = Vec::with_capacity(retained_entered.len());
+        matching.extend(
+            retained_entered
+                .iter()
+                .filter(|line| message_filter_matches(filter, line.level()))
+                .cloned()
+                .map(|line| {
+                    let slot_id = next_visible_slot_id;
+                    next_visible_slot_id = next_visible_slot_id.saturating_add(1);
+                    line.with_slot_id(slot_id)
+                }),
+        );
         self.next_visible_slot_id = next_visible_slot_id;
         if expired == 0 && matching.is_empty() {
             self.output = ConsoleOutputSnapshot::from_line_generation(
@@ -184,14 +185,15 @@ impl EditorConsoleHistory {
             self.next_visible_slot_id = self.next_source_id;
             Arc::clone(&self.lines)
         } else {
-            let lines = self
-                .lines
-                .iter()
-                .filter(|line| message_filter_matches(filter, line.level()))
-                .cloned()
-                .enumerate()
-                .map(|(slot_id, line)| line.with_slot_id(slot_id as u64))
-                .collect::<Vec<_>>();
+            let mut lines = Vec::with_capacity(self.lines.len());
+            lines.extend(
+                self.lines
+                    .iter()
+                    .filter(|line| message_filter_matches(filter, line.level()))
+                    .cloned()
+                    .enumerate()
+                    .map(|(slot_id, line)| line.with_slot_id(slot_id as u64)),
+            );
             self.next_visible_slot_id = lines.len() as u64;
             Arc::new(ConsoleOutputLineGeneration::from_lines(lines))
         };
@@ -259,13 +261,16 @@ fn logical_line_count(message: &str) -> usize {
         + 1
 }
 
-fn message_tail_with_max_lines(message: &str, max_lines: usize) -> &str {
+fn message_tail_with_max_lines(message: &str, max_lines: usize) -> (&str, usize) {
     let line_count = logical_line_count(message);
     if line_count <= max_lines {
-        return message;
+        return (message, line_count);
     }
     let lines_to_drop = line_count - max_lines;
-    &message[byte_offset_after_logical_lines(message, lines_to_drop)..]
+    (
+        &message[byte_offset_after_logical_lines(message, lines_to_drop)..],
+        max_lines,
+    )
 }
 
 fn byte_offset_after_logical_lines(message: &str, line_count: usize) -> usize {
@@ -279,5 +284,5 @@ fn byte_offset_after_logical_lines(message: &str, line_count: usize) -> usize {
 }
 
 #[cfg(test)]
-#[path = "console_history/tests.rs"]
+#[path = "console_history/tests/cases.rs"]
 mod tests;

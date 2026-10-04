@@ -5,4 +5,5 @@ pub use builder::{PluginGroup, PluginGroupBuilder, PluginGroupError, ResolvedPlu
 pub use groups::{DefaultPlugins, DevPlugins, HeadlessPlugins, MinimalPlugins};
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

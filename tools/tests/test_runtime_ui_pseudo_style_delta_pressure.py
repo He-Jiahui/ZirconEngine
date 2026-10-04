@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from tools.runtime_ui_pseudo_style_delta_pressure import (
+from tools.analysis.performance.runtime.runtime_ui_pseudo_style_delta_pressure import (
     pressure_report,
     validate_output_path,
 )
@@ -21,7 +21,7 @@ UNREAL_INVALIDATION_ROOT = ROOT / (
     "SlateInvalidationRoot.cpp"
 )
 
-
+# 比较悬停、稀疏祖先依赖与稠密后代变更的样式成本，约束工作量只随实际受影响节点增长。
 class RuntimeUiPseudoStyleDeltaPressureTests(unittest.TestCase):
     def test_self_hover_counts_complete_map_reconstruction(self):
         report = pressure_report(1_000, 1, 1, 24, 8, 8, 4, 3)

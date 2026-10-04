@@ -1,3 +1,5 @@
+//! 实体资产将层级、变换与可选组件作为一条作者记录；World 加载时恢复父子关系，引用抽取则沿组件读取外部资源依赖。
+
 use crate::asset::PrefabInstanceAsset;
 use serde::{Deserialize, Serialize};
 
@@ -6,6 +8,7 @@ use super::animation::{
     SceneAnimationSkeletonAsset, SceneAnimationStateMachinePlayerAsset,
 };
 use super::camera::SceneCameraAsset;
+use super::component::SceneComponentAssetRecord;
 use super::defaults::{default_render_layer_mask, default_scene_active};
 use super::extensions::{SceneScriptBindingAsset, SceneTerrainAsset, SceneTileMapAsset};
 use super::lighting::{
@@ -32,6 +35,8 @@ pub struct SceneEntityAsset {
     pub mobility: SceneMobilityAsset,
     pub camera: Option<SceneCameraAsset>,
     pub mesh: Option<SceneMeshInstanceAsset>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub components: Vec<SceneComponentAssetRecord>,
     #[serde(default)]
     pub ambient_light: Option<SceneAmbientLightAsset>,
     pub directional_light: Option<SceneDirectionalLightAsset>,

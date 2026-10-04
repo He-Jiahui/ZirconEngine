@@ -39,13 +39,21 @@ impl DefaultNetManager {
     }
 
     pub fn with_http_backend(self, backend: Arc<dyn HttpRuntimeBackend>) -> Self {
-        *lock_recover(&self.state.http_backend) = Some(backend);
+        self.install_http_backend(backend);
         self
     }
 
     pub fn with_websocket_backend(self, backend: Arc<dyn WebSocketRuntimeBackend>) -> Self {
-        *lock_recover(&self.state.websocket_backend) = Some(backend);
+        self.install_websocket_backend(backend);
         self
+    }
+
+    pub fn install_http_backend(&self, backend: Arc<dyn HttpRuntimeBackend>) {
+        *lock_recover(&self.state.http_backend) = Some(backend);
+    }
+
+    pub fn install_websocket_backend(&self, backend: Arc<dyn WebSocketRuntimeBackend>) {
+        *lock_recover(&self.state.websocket_backend) = Some(backend);
     }
 
     pub(in crate::service_types) fn next_socket_id(&self) -> NetSocketId {

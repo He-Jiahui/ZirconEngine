@@ -1,11 +1,12 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0056] 蒙皮调色板与处理器回退测试的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_build_mesh_draws_skinning_tests_are_child_owner() {
     let root =
         read_runtime_src("graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs");
     let tests = read_runtime_src(
-        "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning/tests.rs",
+        "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning/tests/cases.rs",
     );
 
     let plan_02 = read_repo(
@@ -75,7 +76,7 @@ fn runtime_15_build_mesh_draws_skinning_tests_are_child_owner() {
 
     for (path, source) in [
         ("skinning.rs", root.as_str()),
-        ("skinning/tests.rs", tests.as_str()),
+        ("skinning/tests/cases.rs", tests.as_str()),
     ] {
         let line_count = source.lines().count();
         assert!(
@@ -98,7 +99,7 @@ fn runtime_15_build_mesh_draws_skinning_tests_are_child_owner() {
                 "build_mesh_draws skinning tests owner split",
                 "render_plan02_build_mesh_draws_skinning_tests_owner_split_static_passed_cargo_deferred_active_compile_lane",
                 "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs",
-                "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning/tests.rs",
+                "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning/tests/cases.rs",
                 "runtime_15_build_mesh_draws_skinning_tests_are_child_owner",
             ],
         );

@@ -53,7 +53,7 @@ impl RenderAssetCpuArtifactLease {
         self.blocks.blocks()
     }
 
-    pub(crate) const fn ticket(&self) -> RenderAssetResidencyTicket {
+    pub(crate) fn ticket(&self) -> RenderAssetResidencyTicket {
         self.blocks.ticket()
     }
 
@@ -87,6 +87,7 @@ enum RenderAssetSemanticLoadState {
     },
 }
 
+/// 固定 manifest 的资源、版本与平台后推进块加载；准入延后时保留已就绪 manifest，下一轮继续原请求。
 pub(crate) struct RenderAssetSemanticLoad {
     ticket: RenderAssetResidencyTicket,
     priority: RenderArtifactIoPriority,
@@ -233,7 +234,7 @@ impl RenderAssetSemanticLoad {
         block_loader: &crate::asset::artifact::RenderArtifactBlockLoader,
     ) -> Result<RenderAssetSemanticLoadAdvance, RenderAssetSemanticLoadError> {
         match RenderAssetSemanticBlockLoad::begin(
-            ticket,
+            ticket.clone(),
             manifest.as_ref(),
             block_loader,
             priority,

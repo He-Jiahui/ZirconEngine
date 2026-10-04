@@ -1,9 +1,12 @@
+//! 把持久化快捷键声明与窗口键盘事件映射到同一规范键；分派借用事件内容并以签名筛选候选，最后仍比较完整键与修饰键。
+
 use std::fmt;
 use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::ui::dispatch::{UiKeyboardInputEvent, UiKeyboardInputState};
 
+/// 配置与贡献声明使用的规范组合键；事件侧仅处理按下状态，文本提交与组合输入由各自输入链承担。
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct EditorKeyChord {
     key: String,
@@ -205,6 +208,7 @@ impl KeyboardInputKey<'_> {
     }
 }
 
+// TODO: [CR-EDITOR-EDITING-0002] 确认替代输入源是否允许逻辑键为字面空格且键码非32；先trim使字面空格分支不可达，当前生产适配器输出命名键；下一步补核平台输入构造及该组合的分派案例。
 fn keyboard_input_key(keyboard: &UiKeyboardInputEvent) -> Option<KeyboardInputKey<'_>> {
     let logical_key = keyboard.logical_key.trim();
     if logical_key.is_empty() {
@@ -434,39 +438,5 @@ fn normalize_key(value: impl AsRef<str>) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::str::FromStr;
-
-    use super::EditorKeyChord;
-
-    #[test]
-    fn chord_format_and_alias_normalization_preserve_canonical_text() {
-        assert_eq!(
-            EditorKeyChord::from_str("command+option+del")
-                .unwrap()
-                .to_string(),
-            "Alt+Meta+Delete"
-        );
-        assert_eq!(EditorKeyChord::new("escape").to_string(), "Escape");
-        assert_eq!(EditorKeyChord::new("f12").to_string(), "F12");
-    }
-
-    #[test]
-    fn chord_validity_requires_one_non_modifier_key() {
-        assert!(EditorKeyChord::from_str("Ctrl+S").unwrap().is_valid());
-        assert!(!EditorKeyChord::new("").is_valid());
-        assert!(!EditorKeyChord::new("Ctrl").is_valid());
-        assert!(!EditorKeyChord::new("DeadAcute").is_valid());
-        assert!(!EditorKeyChord::new("Unidentified").is_valid());
-    }
-
-    #[test]
-    fn hot_chord_normalization_and_display_do_not_build_temporary_lowercase_or_parts_lists() {
-        let source = include_str!("key_chord.rs");
-        let lowercase_temporary = ["to_ascii_lowercase()", ".as_str()"].concat();
-        let parts_list = ["let mut parts = ", "Vec::new()"].concat();
-
-        assert!(!source.contains(&lowercase_temporary));
-        assert!(!source.contains(&parts_list));
-    }
-}
+#[path = "tests/key_chord.rs"]
+mod tests;

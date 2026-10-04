@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码投影撬锁源码常量与索引查询表，生成可核对的 JSON 和 Zr 内容。
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -53,6 +54,7 @@ function renderIndexLookup(name, items, valueFor, error) {
   return lines;
 }
 
+// 将已验证的撬锁源码常量与索引查询表转换为确定性的 Zr 访问函数。
 function renderContent(content) {
   const lines = ['// Generated source-locked Delve lockpick content contract.', ''];
   lines.push(...renderIndexLookup('actionDelta', content.actions, (action) => action.delta, 'woc lockpick action is invalid'));

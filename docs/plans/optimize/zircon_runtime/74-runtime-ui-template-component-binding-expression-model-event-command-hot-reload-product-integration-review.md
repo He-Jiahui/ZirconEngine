@@ -403,3 +403,52 @@ Runtime74是本纵切面的review owner，不是现阶段production implementati
 当前状态：`review_complete / implementation_pending / source_recheck_required`。MVP总计划仍处于基础阻断期，本轮没有授权实现高级UI绑定系统。开始Runtime74-M0前必须重新检查：五项P0路径是否漂移、Runtime11A/73或Editor23是否已改变owner、两个compiler/router是否已有新production caller、产品ZUI语料是否新增target/param，以及开放failure是否出现新的跨计划移交。
 
 本报告只证明当前源码差距已形成可执行重构规格，不证明任何一项修复完成。
+
+### 2026-09-17 Runtime793 bounded hot-reload eviction follow-up
+
+在不改变 Runtime74 所有权、eviction order 或 hot-reload transaction 语义的
+前提下，`UiAssetHotReloadPlan::evict_compile_cache` 现以模板重建目标和已移除
+compiled asset 两个已物化向量的饱和长度和预留临时目标容量。下层回归覆盖空、
+普通及溢出长度，`RUNTIME793_HOT_RELOAD_EVICTION_CAPACITY_BENCH_V1` 进入共享
+managed Release lane；16,384-target deterministic model 将 geometric growth
+从 `13` 降为 `0`。这只是局部分配形状证据，不能关闭 Runtime74 的 typed
+binding/reload transaction、Cargo 或产品 hot-reload p50/p95/p99 门。
+详见 [`Runtime793 hot-reload eviction capacity`](74/2026-09-17-hot-reload-eviction-capacity.md)
+与 Astra [`Runtime793`](../../astra/features/runtime/793-hot-reload-eviction-capacity.md)。
+
+### 2026-09-17 Runtime794 bounded template-asset projection follow-up
+
+`template_assets_for_surface` 现在在按 surface 过滤 template-rebuild 与
+removed-compiled targets 前，预留两个已物化输入向量长度的饱和和；过滤器、
+surface-index ownership、目标顺序和返回值 ownership 均保持不变。下层空/普通/
+溢出回归与 `RUNTIME794_HOT_RELOAD_TEMPLATE_ASSETS_CAPACITY_BENCH_V1` 已进入
+共享 managed Release lane，16,384-target deterministic model 将 geometric
+growth 从 `13` 降为 `0`。这仍只是局部分配形状证据，不能关闭 Runtime74 的
+reload transaction、Cargo 或产品 hot-reload p50/p95/p99 门。
+详见 [`Runtime794 hot-reload template-assets capacity`](74/2026-09-17-hot-reload-template-assets-capacity.md)
+与 Astra [`Runtime794`](../../astra/features/runtime/794-hot-reload-template-assets-capacity.md)。
+
+### 2026-09-18 Runtime795/796 Runtime74 ownership-safe hot-path follow-up
+
+`ui_asset_references` 现在通过 borrowed visitor 将资源 URI 直接交给既有
+normalizer/deduplicator，移除临时 URI 指针向量；`UiAssetCompileCache::evict_assets`
+则仅在临时 membership 中使用 borrowed `HashSet<&str>`，保留 ordered cache/snapshot
+maps、驱逐顺序及报告语义。Runtime795/796 的源契约各通过 `3/3`，下层顺序/多资产
+语义回归与两个 Release marker 已接入异步批次。这些仍是局部分配/查找形状证据，
+不能关闭 Runtime74 的完整 reload transaction、Cargo 或产品 percentile 门。
+详见 [`Runtime795 resource-reference streaming`](74/2026-08-26-ui-resource-reference-streaming-visitor.md)、
+[`Runtime796 compile-cache hash eviction`](74/2026-08-26-compile-cache-borrowed-hash-eviction.md)
+及 Astra [`Runtime795`](../../astra/features/runtime/795-ui-resource-reference-streaming-visitor.md)、
+[`Runtime796`](../../astra/features/runtime/796-compile-cache-hash-eviction.md)。
+
+### 2026-09-18 Runtime797 compile-cache eviction-key capacity follow-up
+
+在 borrowed membership 之后，`UiAssetCompileCache::evict_assets` 为 entry-key 与
+snapshot-key 两个临时向量按唯一请求 asset 数量预留输入大小的下界。该边界不会按
+整个 cache 过度分配；多编译变体仍可按需增长，空输入仍在临时分配前返回。源契约
+通过 `3/3`，lower 双 collector 回归与 `RUNTIME797_COMPILE_CACHE_EVICTION_KEY_CAPACITY_BENCH_V1`
+已进入异步 Release 批次；65,536-request 模型将 common one-key-per-request 的
+geometric growth 从 `15` 降为 `0`。这仍是局部分配形状证据，不能关闭 Runtime74 的
+reload transaction、Cargo 或产品 hot-reload p50/p95/p99 门。
+详见 [`Runtime797 compile-cache eviction-key capacity`](74/2026-09-18-compile-cache-eviction-key-capacity.md)
+与 Astra [`Runtime797`](../../astra/features/runtime/797-compile-cache-eviction-key-capacity.md)。

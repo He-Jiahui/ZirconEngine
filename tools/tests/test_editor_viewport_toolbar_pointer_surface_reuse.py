@@ -2,7 +2,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from tools.editor_viewport_toolbar_pointer_surface_reuse_pressure import (
+from tools.analysis.performance.editor.editor_viewport_toolbar_pointer_surface_reuse_pressure import (
     SourceContractError,
     pressure_report,
     source_binding_report,
@@ -48,14 +48,14 @@ class EditorViewportToolbarPointerSurfaceReuseTests(unittest.TestCase):
             with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
                 pressure_report(**kwargs)
 
-    def test_current_source_has_retained_patch_and_typed_full_fallback(self) -> None:
+    def test_current_source_has_delta_classification_and_typed_full_fallback(self) -> None:
         binding = source_binding_report(ROOT)
 
         self.assertTrue(binding["ready"])
         self.assertEqual(len(binding["critical_sources"]), 4)
         self.assertRegex(binding["source_set_sha256"], r"^[0-9A-F]{64}$")
 
-    def test_retained_patch_validates_before_mutating_and_keeps_one_constructor(
+    def test_geometry_delta_mutates_after_classification_and_keeps_one_constructor(
         self,
     ) -> None:
         source = (
@@ -64,12 +64,15 @@ class EditorViewportToolbarPointerSurfaceReuseTests(unittest.TestCase):
             "rebuild_surface.rs"
         ).read_text(encoding="utf-8")
 
-        validation = source.index("if !self.retained_surface_topology_matches()")
-        patch = source.index("patch_retained_node_frame(", validation)
-        self.assertLess(validation, patch)
+        classification = source.index("match delta")
+        geometry = source.index("ViewportToolbarSurfaceDelta::Geometry", classification)
+        patch = source.index("patch_retained_node_frame(", geometry)
+        self.assertLess(classification, patch)
         self.assertEqual(source.count("UiSurface::new("), 1)
+        self.assertIn("fn apply_geometry_delta", source)
+        self.assertIn("UiAuthoredGeometryPublication::FullFallback", source)
         self.assertIn("fn rebuild_surface_from_scratch", source)
-        self.assertEqual(source.count("rebuild_authored_frames("), 2)
+        self.assertEqual(source.count("rebuild_authored_frames("), 1)
 
     def test_source_binding_fails_closed_when_patch_authority_changes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

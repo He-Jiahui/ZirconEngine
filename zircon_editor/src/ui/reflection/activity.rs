@@ -11,6 +11,7 @@ use super::state_flags::visible_enabled_flags;
 use super::value_type::infer_value_type;
 
 #[cfg(test)]
+#[path = "activity/tests/capacity_tests.rs"]
 mod capacity_tests;
 
 const ACTIVITY_CORE_PROPERTY_COUNT: usize = 3;

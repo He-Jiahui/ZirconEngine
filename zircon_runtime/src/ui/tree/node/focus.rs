@@ -5,6 +5,10 @@ use zircon_runtime_interface::ui::{
     widget::UiWidgetBehavior,
 };
 
+#[cfg(test)]
+#[path = "focus/tests/navigation_capacity_tests.rs"]
+mod navigation_capacity_tests;
+
 pub trait UiRuntimeTreeFocusExt {
     fn first_focusable_in_route(&self, route: &[UiNodeId])
         -> Result<Option<UiNodeId>, UiTreeError>;
@@ -61,7 +65,7 @@ impl UiRuntimeTreeFocusExt for UiTree {
     }
 
     fn focusable_nodes_in_navigation_order(&self) -> Result<Vec<UiNodeId>, UiTreeError> {
-        let mut focusable = Vec::new();
+        let mut focusable = Vec::with_capacity(self.nodes.len());
         for root_id in &self.roots {
             collect_focusable_nodes(self, *root_id, &mut focusable)?;
         }

@@ -9,7 +9,7 @@ impl RetainedEditorHost {
         width: f32,
         height: f32,
     ) {
-        self.active_scene_drag_payload = None;
+        self.retire_hierarchy_drag();
         self.active_object_drag_payload = None;
         self.use_committed_pointer_layout();
         self.focus_callback_source_window();

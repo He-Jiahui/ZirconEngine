@@ -8,6 +8,9 @@ pub use super::native_plugin_loader::{
     NativeBridgeMethodBinding, NativeBridgeMethodDescriptor, NativeBridgeMethodFn,
     NativeBridgeMethodManifestError, NativeHostApiV4RegistrationPolicy,
     NativeHostApiV4RegistrationScope, NativeHostBridgeCallScope, NativePluginAbiV3,
+    NativePluginArtifactAdmissionError, NativePluginArtifactAdmissionReceipt,
+    NativePluginArtifactAuthority, NativePluginArtifactDependency, NativePluginArtifactDigest,
+    NativePluginArtifactExpectation, NativePluginArtifactTarget, NativePluginArtifactTrust,
     NativePluginBehaviorCallReport, NativePluginBehaviorHealth, NativePluginBehaviorV4,
     NativePluginBehaviorValidationReport, NativePluginBridgeMethodCallV3,
     NativePluginBridgeMethodFnV3, NativePluginBridgeMethodTableV3, NativePluginBridgeMethodV3,
@@ -20,6 +23,9 @@ pub use super::native_plugin_loader::{
     NativePluginLiveHostOutcome, NativePluginLoadManifest, NativePluginLoadManifestAbiV3Contract,
     NativePluginLoadManifestEntry, NativePluginLoadProjection, NativePluginLoadReport,
     NativePluginOutputSinkV4, NativePluginOutputWriteFnV4, NativePluginOwnedByteBufferV3,
+    NativePluginProjectActivationCleanupReceipt, NativePluginProjectActivationRequest,
+    NativePluginProjectActivationResult, NativePluginProjectActivationSelection,
+    NativePluginProjectActivationSelectionResult, NativePluginProjectActivationSelectionStatus,
     NativePluginRuntimeBehaviorCall, NativePluginRuntimeBehaviorDescriptor,
     NativePluginRuntimeCommandDispatchReport, NativePluginRuntimeDeltaHotUpdateReport,
     NativePluginRuntimeDeltaHotUpdateRequest, NativePluginRuntimeHotUpdateReport,
@@ -33,4 +39,9 @@ pub use super::native_plugin_loader::{
     ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3, ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH,
     ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
     ZIRCON_NATIVE_PLUGIN_STATUS_OK, ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
+};
+pub use super::native_plugin_loader::{
+    verify_native_package_receipts, NativePackageDependencyArtifact, NativePackageKeyPolicy,
+    NativePackageModuleArtifact, NativePackageReceiptError, NativePackageReceiptPolicy,
+    NativePackageReceiptTrust, VerifiedNativePackageProof,
 };

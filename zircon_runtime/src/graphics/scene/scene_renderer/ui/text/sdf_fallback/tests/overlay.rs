@@ -4,10 +4,10 @@ use super::super::*;
 use super::text_batch;
 use crate::core::framework::text::TextLayoutError;
 use crate::graphics::scene::scene_renderer::ui::render::{
-    ScreenSpaceUiGlyphArtifactLine, ScreenSpaceUiShapedGlyph,
     text_decorations::ScreenSpaceUiTextDecorations,
     text_effects::{ScreenSpaceUiTextEffects, ScreenSpaceUiTextGlow, ScreenSpaceUiTextOutline},
     text_projection::ScreenSpaceUiTextClipTransform,
+    ScreenSpaceUiGlyphArtifactLine, ScreenSpaceUiShapedGlyph,
 };
 use crate::text::{ResolvedTextGlyphArtifact, ShapedGlyphRotation};
 use zircon_runtime_interface::ui::layout::UiFrame;

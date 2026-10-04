@@ -142,7 +142,7 @@ glyph outline(ttf-parser) → geometry preprocess(去重叠/定向) →
 ### SM-M3 离线预生成烘焙
 
 实施切片:
-1. `tools/zircon_build.py` 增 font-sdf bake target:离线烘焙字形集(可指定码点子集/全 cmap)→ `.zsdf`(图集图 + 元数据)。
+1. `tools/build/zircon_build.py` 增 font-sdf bake target:离线烘焙字形集(可指定码点子集/全 cmap)→ `.zsdf`(图集图 + 元数据)。
 2. 运行时装载 `.zsdf` 直灌 `04` atlas(`GlyphAtlasFormat::{Sdf,Msdf}` 预填),命中直取免烘焙;未预生成字形回退动态生成。
 3. 产物格式对齐 godot msdfgen 语义(pixel_range/size 元数据)。
 
@@ -190,7 +190,7 @@ glyph outline(ttf-parser) → geometry preprocess(去重叠/定向) →
 
 着色器 `zircon_runtime/src/text/shaders/zr_text_sdf.wgsl`(`zr_` 前缀,index §8 命名;替换旧 `sdf_text.wgsl`):统一 SDF/MSDF/MTSDF 解码 + AA + 效果分支(变体 define)。
 
-离线 bake:`tools/zircon_build.py` 增 `--targets font-sdf` 段;`tools/zircon_build_font_sdf.py`(对照既有 `zircon_build_shader_prewarm.py` 形态)+ `tools/tests/test_zircon_build_font_sdf.py`。
+离线 bake:`tools/build/zircon_build.py` 增 `--targets font-sdf` 段;`tools/build/zircon_build_font_sdf.py`(对照既有 `zircon_build_shader_prewarm.py` 形态)+ `tools/tests/test_zircon_build_font_sdf.py`。
 
 ### 核心类型与着色
 

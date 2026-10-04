@@ -1,3 +1,4 @@
+// 核查手工编写的 ZUI 资源图中的HUD 主题、桌面和触屏图、暂停界面及撬锁资源。
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
@@ -47,6 +48,7 @@ function expect(condition, message) {
   if (!condition) fail(message);
 }
 
+// 图结构与路由检查前，先用 Python tomllib 解析手工编写的 ZUI TOML。
 function parseAssets() {
   const result = spawnSync("python", ["-c", pythonLoader, ...assetPaths], {
     cwd: repoRoot,
@@ -132,6 +134,7 @@ function validateTheme(document) {
   return selectors.size;
 }
 
+// 遍历可达节点，拒绝悬空子节点、非法组件和意外事件路由。
 function validateGraph(document, expectedId = "res://ui/hud/in_world_hud.zui") {
   expect(document.asset?.kind === "view", `${expectedId} must be a view asset`);
   expect(document.asset?.id === expectedId, `${expectedId} id mismatch`);

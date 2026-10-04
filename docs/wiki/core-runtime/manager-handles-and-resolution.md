@@ -14,7 +14,7 @@ plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 tests:
-  - zircon_runtime/src/core/manager/tests.rs
+  - zircon_runtime/src/core/manager/tests/cases.rs
   - zircon_runtime/src/core/runtime/tests/resolution
 doc_type: module-detail
 status: current

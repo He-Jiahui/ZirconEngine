@@ -1,5 +1,6 @@
 // Effect-dispatch scalar outcomes. The public shape mirrors the stable content
 // metric boundary while Plugins 08 owns natural object/array effect dispatch.
+/// 独立效果标量契约，kind 的位置参数由 effects_test_main 固定样例定义；当前产品世界使用其专属战斗规则，不通过此入口执行真实效果。
 pub metric(
     kind: int,
     first: float,
@@ -42,6 +43,7 @@ pub metric(
 
 // Multi-class c4b dispatch order. Each effect-local random decision increments
 // the shared draw count at the exact point the reference switch draws it.
+/// 以固定标记统计六职业样例中的随机调用和效果顺序，只验证样例计数；不持有实体、光环或世界事件队列。
 pub scenarioContract(seed: int, marker: int): float {
     if (seed != 1018 || marker != 1) {
         throw "effect scenario contract marker is invalid";

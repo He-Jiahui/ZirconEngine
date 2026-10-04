@@ -18,12 +18,14 @@ pub(super) const FIXED_HOST_FUNCTIONS: &[(&str, &str)] = &[
     ("zr.zircon.math", "cos"),
     ("zr.zircon.math", "exp"),
     ("zr.zircon.math", "floor"),
+    ("zr.zircon.math", "round"),
     ("zr.zircon.math", "sin"),
     ("zr.zircon.math", "sqrt"),
     ("zr.zircon.math", "pow"),
     ("zr.zircon.gameplay", "delta_seconds"),
     ("zr.zircon.gameplay", "entity"),
     ("zr.zircon.gameplay", "key_pressed"),
+    ("zr.zircon.gameplay", "request_scene_transition"),
     ("zr.zircon.gameplay", "position_json"),
     ("zr.zircon.gameplay", "position_x"),
     ("zr.zircon.gameplay", "position_y"),
@@ -83,6 +85,7 @@ pub(super) const HOST_CAPABILITIES: &[&str] = &[
     "gameplay.input",
     "gameplay.entity",
     "gameplay.navigation",
+    "gameplay.scene_transition",
     "bridge.call",
 ];
 

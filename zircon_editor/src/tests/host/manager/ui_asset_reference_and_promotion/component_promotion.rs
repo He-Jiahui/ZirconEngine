@@ -134,7 +134,8 @@ fn editor_manager_promotes_selected_ui_asset_component_to_external_widget_asset(
 fn editor_manager_promotes_to_a_suffixed_widget_without_overwriting_the_existing_target() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_promote_widget_existing_target");
-    let project_root = unique_temp_dir("zircon_editor_asset_promote_widget_existing_target_project");
+    let project_root =
+        unique_temp_dir("zircon_editor_asset_promote_widget_existing_target_project");
     let runtime = editor_runtime_with_config_path(&path);
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)

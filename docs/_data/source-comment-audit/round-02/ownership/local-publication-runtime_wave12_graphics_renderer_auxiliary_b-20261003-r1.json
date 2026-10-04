@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "owner": "runtime_wave12_graphics_renderer_auxiliary_b",
+  "prepared_at_utc": "2026-10-03T08:21:20.511878+00:00",
+  "files": [
+    {
+      "path": "docs/_data/source-comment-audit/round-02/coverage/runtime_wave12_graphics_renderer_auxiliary_b.jsonl",
+      "before_exists": false,
+      "before_sha256": null,
+      "after_sha256": "bf9a89c80c6fcf223f72c0fe757171fae9851b6837102839cc0b1dbf8c5b29dd"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/issues/runtime_wave12_graphics_renderer_auxiliary_b.jsonl",
+      "before_exists": false,
+      "before_sha256": null,
+      "after_sha256": "503629c941899ed3a7cb93a79d29196bfb68adcaa440ba622ee99b24ef4e81f9"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/inventory.jsonl",
+      "before_exists": true,
+      "before_sha256": "a5acf36da82c2c19c697e5b884926dcbf7a63d04c04e4fa79cdec23d3ddcb51d",
+      "after_sha256": "c9443d3a69947e835a6fcb52e729373423f37d05376ccd1f703a94d1fef47961"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/batches.jsonl",
+      "before_exists": true,
+      "before_sha256": "845ade1ab5cf21c1191437a6b85153eac71e0c693faa98c982e6ff33ede252d9",
+      "after_sha256": "b3f36e04eadeae3245404294ceffcb4feed4146e44ab59765db8783ddfe8534c"
+    }
+  ],
+  "source_hashes": {
+    "zircon_runtime/src/graphics/scene/scene_renderer/attachment_ops.rs": "a02e98785f7e655ed0e60be663a9db6a7ccbaa6e3f3306438e2c1f95d04308eb",
+    "zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer.rs": "0be54f2cf7ce3aedc2e2bfb81a167602e7c52f11ede765acba3f746c16408a82",
+    "zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer/performance_tests.rs": "1b95fc57707807553b317e3b0519035d2f154df6fbcb5072a54783700bddab43",
+    "zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_grid_pass.rs": "b5cd36fde95b6b79202d82e60a0395f6fd1c448d17cbc4fec0134aa1e681360c",
+    "zircon_runtime/src/graphics/scene/scene_renderer/material/bindless_material_eligibility.rs": "b55177925fe7baa9ce560a65b585bf742b06e56df55b9a474e3f8d88d4cbe40c",
+    "zircon_runtime/src/graphics/scene/scene_renderer/material/bindless_material_payload_registry.rs": "40d9bba55cd8338c212a41168bc3556530a0ff9bc6aab19c8f341b2595a4a150",
+    "zircon_runtime/src/graphics/scene/scene_renderer/material/bindless_slab.rs": "f6bf3798e59e45b913ba8ec3b3789422dc02c11b4de1b8dc154557494f5ffbbd",
+    "zircon_runtime/src/graphics/scene/scene_renderer/material/mod.rs": "56b10aa9ebc26f40f0bb4199950a06dc2d2c326932ca00c0640287297193e7a5",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mip_gen/dispatch_plan.rs": "dc5575310ecc96d2c56d6f1e80b47c856abef56fe974d7daa4f171a09022dadb",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mip_gen/graph_insertion.rs": "dfe1c809c872d4862fd7a0eba0f16a0d8ad0cf1577308c64acb20ccd0dce5382",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mip_gen/mod.rs": "643adcb30addc15eb46d18e6f6b82840bee827370de08cc7de7745502713cfec",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mip_gen/runtime_pass.rs": "d7a5fa2e49a651f92616028cf2aedcc80fd8a3f57c21ab0316c84c110b2d1757",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mod.rs": "a0c35c7227e9aa7ea26701ecd28519ceb4e2ac52f66628d11496fa3a12734d54",
+    "zircon_runtime/src/graphics/scene/scene_renderer/prepass/constants/mod.rs": "a7952910a7be10cc3ad44ec76c0946c66069bd10995d2d48c4e7f9596a3526ca",
+    "zircon_runtime/src/graphics/scene/scene_renderer/prepass/constants/normal_format.rs": "6ae217afb4d6cf20c3c92407d6a25086a8468ac485dfbe9f5926760ad7c7bca1",
+    "zircon_runtime/src/graphics/scene/scene_renderer/prepass/mod.rs": "16b60dfb1eba912946c8521e8232154a6e9bcf58595c10322a53e4136558fca3",
+    "zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/mod.rs": "837f66e0fec158b99986f57bc0fadda6b8f40141685e52f3130617a76f9e245c",
+    "zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_color_uniform.rs": "380275c494dd1ae63bccde82ec8afeef6df9b2ff19226296e222c9b22efee8a3",
+    "zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_resources.rs": "c20b18f6005e9fbf42f4b399100097852af4ecd984719adf25588cf3793a7355",
+    "zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_shader.rs": "2878018c0cbe3941802d4609c1213e2dfa3f17982109e24077f279e124802d51",
+    "zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs": "d5e8d7d219fb4a1928d5214e4bf86fd8484840cb2126fb3526c9b15e40c66a10",
+    "zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/temporal_history_store.rs": "6a71deadd9f0422fbe06e9d665b24165ada25452596f79cae842c67d5a8fdb80",
+    "zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/execute_velocity_camera.rs": "162bbdac1df9ebf9516e010d7bd8fd028da8ee63da69234159eef976a80a6512",
+    "zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/execute_velocity_object.rs": "9d16c2776c1cafc57dcfbeee414776c3dae7216dce15a97617d4eccd7a43b213",
+    "zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/velocity_camera_params.rs": "f16f53dbebb321c47d1ff09b403f5d48690ec25d62d19567816e786a00cec8fc",
+    "zircon_runtime/src/graphics/scene/scene_renderer/transparency/half_res.rs": "3e0c9e8340ba869454eb1f76e9911bafa1d6cb13056d5c4619c600d6b3727c85",
+    "zircon_runtime/src/graphics/scene/scene_renderer/transparency/mod.rs": "de5fce45f2d1342e999294e9e05350283444cf05e03742ae3838f4786ea0a34e",
+    "zircon_runtime/src/graphics/scene/scene_renderer/transparent/mixed_submission.rs": "8e8b35e0a3c7186928dfe3080ccfb74c613528b3b45f7cc54ed951d346ead860",
+    "zircon_runtime/src/graphics/scene/scene_renderer/transparent/mod.rs": "13950f94d70c4cfdd53ff3ff50847b6eccbd8eb9788c0b996570c9bbc84ffc8b"
+  },
+  "installation": {
+    "path": "E:\\Git\\ZirconEngine\\docs\\cli-and-tooling\\source-comment-audit\\round-02\\ownership\\local-install-runtime_wave12_graphics_renderer_auxiliary_b-20261003-r1.json",
+    "sha256": "5228285b90e85a18029089ab362660477ab102170f7216a5349dce01c023eca0"
+  },
+  "root_semantic_proof": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_renderer_auxiliary_b-root-semantic-proof-20261003-r1.json",
+    "sha256": "b4bcd3452c449623c7bc23189e374be8687d42b21c4efc6bc749c12f7d4ee73a"
+  },
+  "coverage_records": 29,
+  "reviewed_current_records": 29,
+  "new_issues": 2,
+  "new_bug_issues": 0,
+  "new_todo_issues": 2,
+  "retained_historical_issues": 0,
+  "issue_anchors": 2,
+  "source_writes": 0,
+  "canonical_writes": 0,
+  "status": "matching_hash_coverage_published",
+  "completed_at_utc": "2026-10-03T08:21:31.509871+00:00",
+  "intent": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-publish-runtime_wave12_graphics_renderer_auxiliary_b-20261003-r1\\intent.json",
+    "sha256": "ee492909271d2534e2fe56a4ad9c5c6fff7879f6b1314cbcb87958bf45d3b265"
+  },
+  "inventory_reviewed_current_records": 4410,
+  "canonical_batch_records": 115,
+  "canonical_ledger_writes": 4,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "business_adoption": false,
+  "dynamic_acceptance": false,
+  "submission": "pending_index_ownership_resolution"
+}

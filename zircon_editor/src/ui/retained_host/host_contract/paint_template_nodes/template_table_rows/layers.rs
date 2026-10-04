@@ -1,3 +1,5 @@
+//! 表面、分隔线、单元格、操作槽和图标按局部层级排序；表格入口须提供可容纳偏移的基础层。
+
 const SEPARATOR_OFFSET: i32 = 1;
 const CELLS_OFFSET: i32 = 2;
 const ACTION_SLOT_OFFSET: i32 = 3;
@@ -20,17 +22,5 @@ pub(super) fn action_icon_order(slot_order: i32) -> i32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn table_row_layers_keep_surface_separator_cells_action_order() {
-        let surface = 18;
-        let action_slot = action_slot_order(surface);
-
-        assert!(surface < separator_order(surface));
-        assert!(separator_order(surface) < cells_order(surface));
-        assert!(cells_order(surface) < action_slot);
-        assert!(action_slot < action_icon_order(action_slot));
-    }
-}
+#[path = "tests/layers.rs"]
+mod tests;

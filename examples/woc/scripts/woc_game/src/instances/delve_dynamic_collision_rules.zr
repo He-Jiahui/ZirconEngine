@@ -33,6 +33,7 @@ pub objectSolidRadius(kind: string, objectHealth: int, required: bool): float {
     return 0.0;
 }
 
+/// 每次只处理一个动态物体；两个坐标查询应使用同一份原始位置，再由调用方按确定顺序与其他物体及模块碰撞合成。
 pub resolveObjectCoordinate(
     kind: string,
     objectOpen: bool,

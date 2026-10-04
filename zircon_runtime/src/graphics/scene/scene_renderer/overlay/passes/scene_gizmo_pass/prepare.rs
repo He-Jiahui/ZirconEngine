@@ -8,6 +8,8 @@ use zr_rhi_wgpu::WgpuTextureUploadBatch;
 use super::scene_gizmo_pass::SceneGizmoPass;
 
 impl SceneGizmoPass {
+    /// 用当前有效相机生成面向相机的图标，并把缓存未确认的上传加入同帧批次。
+    /// 缺失素材由辅助线生成器回退；返回的准备结果须与此帧相机和上传事务一起使用。
     pub(crate) fn prepare(
         &mut self,
         device: &wgpu::Device,
@@ -52,29 +54,5 @@ impl SceneGizmoPass {
 }
 
 #[cfg(test)]
-mod tests {
-    const SOURCE: &str = include_str!("prepare.rs");
-
-    #[test]
-    fn scene_gizmo_appends_pending_icon_uploads_once_after_icon_discovery() {
-        let production = SOURCE
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("scene gizmo prepare source should retain a test-module boundary");
-        let discovery = production
-            .find("for gizmo in &frame.overlays().scene_gizmos")
-            .expect("scene gizmo icon discovery");
-        let append = production
-            .find(".append_pending_uploads(frame_texture_uploads)")
-            .expect("pending icon upload append");
-
-        assert!(discovery < append);
-        assert_eq!(
-            production
-                .matches(".append_pending_uploads(frame_texture_uploads)")
-                .count(),
-            1
-        );
-        assert!(!production.contains("wgpu::Queue"));
-    }
-}
+#[path = "tests/prepare.rs"]
+mod tests;

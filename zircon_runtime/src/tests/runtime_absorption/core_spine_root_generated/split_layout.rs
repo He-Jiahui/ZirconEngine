@@ -1,3 +1,4 @@
+//! 核心脊柱、根公开面和生成模板的结构清单需与审计证据同步。通过源码文本核对父子路由、状态镜像和文件预算。
 const PARENT_SOURCE: &str = include_str!("../core_spine_root_generated.rs");
 const INVENTORY_SOURCE: &str = include_str!("inventory.rs");
 const MIRROR_DOCS_SOURCE: &str = include_str!("mirror_docs.rs");
@@ -13,7 +14,7 @@ const STRUCTURE_CONVENTION_PLAN: &str =
 const REVIEW_FINDINGS_PLAN: &str =
     include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
 const MODULE_CONVENTION_DOC: &str =
-    include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
+    include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 const FRAMEWORKS_02_PLAN: &str =
     include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md");
 

@@ -6,7 +6,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 INDEX = REPO_ROOT / "zircon_runtime/src/text/document/index.rs"
 STORAGE = REPO_ROOT / "zircon_runtime/src/text/document/storage.rs"
-DOCUMENT_TESTS = REPO_ROOT / "zircon_runtime/src/text/document/tests.rs"
+DOCUMENT_TESTS = REPO_ROOT / "zircon_runtime/src/text/document/tests/cases.rs"
 PROFILE = REPO_ROOT / "zircon_runtime/src/text/document/index_profile.rs"
 
 
@@ -15,7 +15,7 @@ def owner_body(source: str, signature: str, end_marker: str) -> str:
     end = source.index(end_marker, start)
     return source[start:end]
 
-
+# 读取文本文档增量索引，确认片段预检不展平上下文并保持无分配路径。
 class RuntimeTextDocumentIncrementalIndexContract(unittest.TestCase):
     def test_incremental_admission_does_not_flatten_context(self) -> None:
         index = INDEX.read_text(encoding="utf-8")

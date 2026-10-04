@@ -3,7 +3,7 @@ use crate::virtual_geometry::VirtualGeometryPreparePage;
 use super::super::VirtualGeometryRuntimeState;
 
 #[cfg(test)]
-#[path = "evictable_pages/performance_tests.rs"]
+#[path = "evictable_pages/tests/performance_tests.rs"]
 mod performance_tests;
 
 pub(super) fn evictable_pages(

@@ -15,4 +15,5 @@ pub use resolution::{
 };
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

@@ -159,6 +159,7 @@ pub sourceFormAdmission(code: uint, activeForm: string, isFormToggle: bool): int
 // Return values: 1 admitted; -1 unknown; -2 wrong class; -3 passive;
 // -4 unavailable at this level/spec; -5 stealth required; -6 wrong form;
 // -7 action-locking form rejects the action.
+/// 世界命令入口使用当前完整目录、职业、等级、专精、潜行与形态快照做内容层准入；返回 1 只表示内容允许，目标、资源、冷却及施法状态仍须由世界后续检查。
 pub sourceAbilityAdmission(
     code: uint,
     playerClass: string,
@@ -241,6 +242,7 @@ pub sourceTalentGrantAbilityCodes(
 // This is the code-list portion of abilitiesKnownAt for a validated Talent V2
 // allocation. It deliberately ends before rank/effect/cost/cast modifier
 // resolution, which stays with the combat/progression owners.
+/// 进度系统按基础职业顺序和已验证天赋授予顺序重建技能栏代码；应在等级或天赋变化后用同一目录重算，再由世界处理槽位与具体施法。
 pub sourceKnownAbilityCodes(
     classIndex: int,
     level: int,

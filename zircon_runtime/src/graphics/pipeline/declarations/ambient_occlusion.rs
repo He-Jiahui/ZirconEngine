@@ -1,3 +1,4 @@
+//! AO 编译契约把相机投影、深度约定与输入来源资格绑定，供图编译和执行共同选择工作计划。
 use crate::core::framework::render::{
     AoQualityTier, AoSourceSettings, AoSourceSettingsKey, PostProcessGraphResourceNames,
     RenderPipelineHandle, RenderViewportRect,
@@ -657,4 +658,5 @@ impl AoHistoryKey {
 }
 
 #[cfg(test)]
+#[path = "ambient_occlusion/tests/cases.rs"]
 mod tests;

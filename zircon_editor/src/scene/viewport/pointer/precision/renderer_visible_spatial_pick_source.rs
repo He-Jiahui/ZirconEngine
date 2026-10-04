@@ -1,3 +1,5 @@
+//! 渲染空间命中映射回编辑器呈现 owner，索引在采用产品时建立；事件复用投影，只处理空间查询返回的实体。
+
 use std::{collections::HashMap, mem, sync::Arc};
 
 use zircon_runtime::core::framework::render::RenderVisibleSpatialQuerySnapshot;
@@ -54,6 +56,7 @@ impl RendererVisibleSpatialPickSource {
         source
     }
 
+    /// 复用 owner 索引只适用于同一份交互提取；来源所有者变更后必须重新构造索引。
     pub(in crate::scene::viewport::pointer) fn with_snapshot(
         &self,
         snapshot: RenderVisibleSpatialQuerySnapshot,
@@ -82,6 +85,7 @@ impl RendererVisibleSpatialPickSource {
                 .matches_camera_and_viewport(camera, viewport)
     }
 
+    /// 事件路径只查询采用时固定的空间快照与投影，避免重新扫描全部世界网格或借用实时场景。
     pub(in crate::scene::viewport::pointer) fn candidates_at(
         &self,
         point: UiPoint,
@@ -136,57 +140,5 @@ impl RendererVisibleSpatialPickSource {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn renderer_visible_source_queries_only_returned_owners_at_event_time() {
-        let source = include_str!("renderer_visible_spatial_pick_source.rs")
-            .split_once("#[cfg(test)]")
-            .map_or(
-                include_str!("renderer_visible_spatial_pick_source.rs"),
-                |(production, _)| production,
-            );
-
-        assert!(source.contains(".query_ray("));
-        assert!(source.contains("renderables_by_owner.get(&owner)"));
-        assert!(!source.contains("render_meshes()"));
-        assert!(source.contains("Arc::clone(&self.renderables_by_owner)"));
-        assert!(source.contains("collections::HashMap"));
-        assert!(source.contains("Arc<HashMap<u64, ViewportRenderablePickCandidate>>"));
-        assert!(
-            !source.contains("BTreeMap"),
-            "renderer query output already defines deterministic owner order; the event-time index must not add logarithmic ordered-map work"
-        );
-        assert!(source.contains(
-            "profile_scope!(\"editor\", \"viewport.pointer\", \"visible_spatial_query\")"
-        ));
-        assert!(source.contains("visible_spatial_query_visited_node_count"));
-        assert!(source.contains("visible_spatial_query_candidate_count"));
-        assert!(source.contains("visible_spatial_query_hit_count"));
-        assert!(source.contains("visible_spatial_query_projected_candidate_count"));
-        assert!(source.contains("visible_spatial_owner_map_entry_count"));
-        assert!(source.contains("visible_spatial_owner_map_candidate_copy_payload_bytes"));
-        assert!(
-            !source.contains("visible_spatial_projection_context_build_count"),
-            "the refresh owner records zero-or-one generation construction for every sample"
-        );
-    }
-
-    #[test]
-    fn renderer_visible_source_builds_projection_only_when_adopting_a_generation() {
-        let source = include_str!("renderer_visible_spatial_pick_source.rs")
-            .split_once("#[cfg(test)]")
-            .map_or(
-                include_str!("renderer_visible_spatial_pick_source.rs"),
-                |(production, _)| production,
-            );
-        let (_, event_time_query) = source
-            .split_once("fn candidates_at")
-            .expect("renderer-visible source must expose the event-time query");
-
-        assert!(source.contains("projection: ViewportProjectionContext"));
-        assert!(
-            !event_time_query.contains("ViewportProjectionContext::new"),
-            "pointer events must reuse the projection captured with their generation"
-        );
-    }
-}
+#[path = "tests/renderer_visible_spatial_pick_source.rs"]
+mod tests;

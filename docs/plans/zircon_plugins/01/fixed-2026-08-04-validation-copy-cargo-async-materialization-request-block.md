@@ -9,12 +9,6 @@ origin_child_dir: docs/plans/zircon_plugins/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/workspace_copy.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/migrations.py
-  - tools/session_coordinator/tests/test_workspace_copy.py
-  - tools/session_coordinator/tests/test_server.py
-  - tools/session_coordinator/tests/test_database.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_workspace_copy tools.session_coordinator.tests.test_server tools.session_coordinator.tests.test_database
   - validation_copy.materialize_cargo bounded durable acknowledgement and restart recovery regression

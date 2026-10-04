@@ -1,3 +1,6 @@
+//! 动态 Runtime 请求的原生震动效果准入与生命周期。
+//! App 持有已启动效果；断连和产品退出主动停止，过期记录在轮询或请求排空时回收。
+
 #[cfg(feature = "gamepad-gilrs")]
 use std::collections::BTreeMap;
 #[cfg(feature = "gamepad-gilrs")]
@@ -17,6 +20,7 @@ use super::super::RuntimeEntryApp;
 use super::events::gamepad_id;
 
 #[cfg(feature = "gamepad-gilrs")]
+/// 已成功启动的效果及宿主回收时限；句柄由 App 保留以供 Stop、断连与退出清理。
 pub(in crate::entry::runtime_entry_app) struct RunningRumbleEffect {
     deadline: Instant,
     effect: Effect,
@@ -32,6 +36,7 @@ const RUMBLE_MS_MAX: u32 = 10_000;
 const RUMBLE_EFFECTS_MAX_PER_GAMEPAD: usize = 32;
 
 impl RuntimeEntryApp {
+    /// 在目标设备上准入 Add 或停止其全部效果；平台失败由 routing 转为诊断。
     #[cfg(feature = "gamepad-gilrs")]
     pub(in crate::entry::runtime_entry_app) fn apply_runtime_gamepad_rumble_request(
         &mut self,
@@ -227,6 +232,7 @@ pub(in crate::entry::runtime_entry_app) fn clear_gamepad_rumble_effects_for_game
 }
 
 #[cfg(feature = "gamepad-gilrs")]
+/// teardown 主动停止所有已保留的效果；停止失败告警后仍释放 App 持有的状态。
 pub(in crate::entry::runtime_entry_app) fn clear_gamepad_rumble_effects(
     gamepad_rumble_effects: &mut Option<RunningRumbleEffects>,
 ) {
@@ -248,50 +254,5 @@ pub(in crate::entry::runtime_entry_app) fn clear_gamepad_rumble_effects(
 }
 
 #[cfg(all(test, feature = "gamepad-gilrs"))]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn rumble_effect_admission_has_a_fixed_per_gamepad_limit() {
-        assert_eq!(RUMBLE_EFFECTS_MAX_PER_GAMEPAD, 32);
-        assert_eq!(
-            admit_rumble_effect(RUMBLE_EFFECTS_MAX_PER_GAMEPAD - 1),
-            Ok(())
-        );
-        assert_eq!(
-            admit_rumble_effect(RUMBLE_EFFECTS_MAX_PER_GAMEPAD),
-            Err("runtime_gamepad_rumble_effect_limit_reached")
-        );
-    }
-
-    #[test]
-    fn rumble_add_admits_before_backend_creation_and_publish() {
-        let source = include_str!("rumble.rs")
-            .split_once("\n#[cfg(all(test, feature = \"gamepad-gilrs\"))]")
-            .map(|(production, _)| production)
-            .expect("rumble production source precedes its test module");
-        let source = source
-            .chars()
-            .filter(|character| !character.is_whitespace())
-            .collect::<String>();
-
-        let admission = source
-            .find("admit_rumble_effect(active_effect_count)?;")
-            .expect("rumble Add checks the per-gamepad hard limit");
-        let finish = source
-            .find(".finish(gamepads)")
-            .expect("rumble Add creates a backend effect only after admission");
-        let play = source
-            .find("effect.play().map_err(rumble_force_feedback_error)?;")
-            .expect("rumble Add plays an admitted effect");
-        let publish = source
-            .find(".push(RunningRumbleEffect{")
-            .expect("rumble Add publishes the running effect after play succeeds");
-
-        assert!(admission < finish && finish < play && play < publish);
-        assert!(source
-            .contains("ZrRuntimeGamepadRumbleRequestKindV1::Stop=>{stop_gamepad_rumble_effects("));
-        assert!(source.contains("effects.retain(|effect|effect.deadline>now);"));
-        assert!(source.contains("for effect in effects.drain(..){"));
-    }
-}
+#[path = "tests/rumble.rs"]
+mod tests;

@@ -1,5 +1,6 @@
+# 以结点、替代盘和硬链接夹具验证 Windows 路径的物理身份解析。
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-$resolverModule = Join-Path $repoRoot 'tools\WindowsPathResolver.psm1'
+$resolverModule = Join-Path $repoRoot 'tools\maintenance\WindowsPathResolver.psm1'
 
 Import-Module $resolverModule -Force
 

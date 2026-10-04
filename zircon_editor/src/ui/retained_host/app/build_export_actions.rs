@@ -25,4 +25,5 @@ pub(super) use profiles::{
 };
 
 #[cfg(test)]
+#[path = "build_export_actions/tests/cases.rs"]
 mod tests;

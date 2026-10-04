@@ -63,4 +63,5 @@ fn json_escape(value: &str) -> String {
 }
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

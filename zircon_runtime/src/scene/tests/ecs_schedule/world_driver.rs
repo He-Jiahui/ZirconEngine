@@ -363,14 +363,10 @@ fn world_driver_runs_runtime_scene_systems_in_schedule_order() {
                         context.tick().delta_seconds()
                     ));
                 });
-                assert!(
-                    context
-                        .core
-                        .resolve_driver::<crate::scene::WorldDriver>(
-                            crate::scene::WORLD_DRIVER_NAME
-                        )
-                        .is_ok()
-                );
+                assert!(context
+                    .core
+                    .resolve_driver::<crate::scene::WorldDriver>(crate::scene::WORLD_DRIVER_NAME)
+                    .is_ok());
                 Ok(())
             },
         );
@@ -644,12 +640,10 @@ fn world_driver_keeps_event_removal_and_deferred_boundaries_while_virtual_time_i
             let entity = world
                 .spawn((PausedFrameMaintenanceComponent,))
                 .expect("paused maintenance component should spawn");
-            assert!(
-                world
-                    .remove::<PausedFrameMaintenanceComponent>(entity)
-                    .expect("paused maintenance component should remove")
-                    .is_some()
-            );
+            assert!(world
+                .remove::<PausedFrameMaintenanceComponent>(entity)
+                .expect("paused maintenance component should remove")
+                .is_some());
 
             world.commands().spawn_empty();
             world

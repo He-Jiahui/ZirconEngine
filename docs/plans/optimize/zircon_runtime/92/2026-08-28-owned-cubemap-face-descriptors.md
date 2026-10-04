@@ -69,8 +69,8 @@ Cargo behavior tests, payload interleave profiling, or product-scale cubemap imp
 - Ownership transfer apply: `ae5e7b260c914c82900ec2aa145c9a08`.
 - Evidence paths transfer apply: `c3b30c6c260c4f9d90b7d001597ff53a`.
 - Focused behavior tests share the `runtime92_owned_descriptors_recovery_batch_` filter with the
-  array-layer task. Public release model: `tools/runtime92_owned_cubemap_face_descriptors_model.rs`.
-- Managed batch script: `tools/zircon-validation-runtime92-owned-descriptors-recovery-batch.ps1`.
+  array-layer task. Public release model: `tools/analysis/performance/runtime/runtime92_owned_cubemap_face_descriptors_model.rs`.
+- Managed batch script: `tools/analysis/validation/zircon-validation-runtime92-owned-descriptors-recovery-batch.ps1`.
 - Coordinator ticket: `pending_submission`; terminal allocations, bytes, P50/P95, and checksum are
   authoritative before record closeout.
 

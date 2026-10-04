@@ -780,6 +780,22 @@ impl AssetContentPaintMetadata {
     }
 }
 
+fn reserve_visible_group_rows(
+    rows: &mut Vec<usize>,
+    groups: &[AssetContentRowGroup],
+    first: usize,
+    last: usize,
+) {
+    let first_visible = first.min(last).min(groups.len());
+    let last_visible = last.min(groups.len());
+    let additional_rows = groups[first_visible..last_visible]
+        .iter()
+        .fold(0usize, |total, group| {
+            total.saturating_add(group.node_rows.len())
+        });
+    rows.reserve(additional_rows);
+}
+
 fn append_visible_group_rows(
     rows: &mut Vec<usize>,
     groups: &[AssetContentRowGroup],
@@ -799,10 +815,12 @@ fn append_visible_group_rows(
     let visible_bottom = visible.bottom() - origin_y + scroll_px.max(0.0);
     let first = groups.partition_point(|group| group.bottom <= visible_top);
     let last = groups.partition_point(|group| group.top < visible_bottom);
-    for group in &groups[first.min(last)..last] {
+    let first_visible = first.min(last);
+    reserve_visible_group_rows(rows, groups, first_visible, last);
+    for group in &groups[first_visible..last] {
         rows.extend_from_slice(&group.node_rows);
     }
-    last.saturating_sub(first.min(last))
+    last.saturating_sub(first_visible)
 }
 
 pub(crate) fn asset_content_paint_metadata<'a, I>(
@@ -822,3 +840,7 @@ fn finite_content_extent(extent: f32) -> f32 {
         0.0
     }
 }
+
+#[cfg(test)]
+#[path = "paint_metadata/tests/capacity_tests.rs"]
+mod capacity_tests;

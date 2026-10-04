@@ -1,7 +1,8 @@
 use zircon_runtime_interface::ZrRuntimeViewportSizeV1;
 
-use crate::core::play::{PlayKind, PlayMode, PlayPreviewFrame};
+use crate::core::play::{PlayKind, PlayMode, PlayPreviewCaptureError, PlayPreviewFrame};
 use crate::ui::retained_host::host_contract::data::HostViewportOverlayImageData;
+use crate::ui::retained_host::PaneSurfaceHostContext;
 
 use super::*;
 
@@ -13,6 +14,9 @@ impl RetainedEditorHost {
             PlayMode::Playing {
                 kind: PlayKind::Play,
             } => {
+                static PLAY_POLL_ENTERED: std::sync::Once = std::sync::Once::new();
+                PLAY_POLL_ENTERED
+                    .call_once(|| eprintln!("mvp_play_boundary editor_play_preview_poll_entered"));
                 let simulate_cleared = self
                     .ui
                     .global::<PaneSurfaceHostContext>()
@@ -33,7 +37,16 @@ impl RetainedEditorHost {
                         .global::<PaneSurfaceHostContext>()
                         .clear_game_viewport_image()
                 } else {
-                    match self.runtime.play_sessions().capture_preview_frame(size) {
+                    static CAPTURE_ENTERED: std::sync::Once = std::sync::Once::new();
+                    static CAPTURE_RETURNED: std::sync::Once = std::sync::Once::new();
+                    CAPTURE_ENTERED.call_once(|| {
+                        eprintln!("mvp_play_boundary editor_first_preview_capture_entered")
+                    });
+                    let capture = self.capture_preview_frame_for_native_host(size);
+                    CAPTURE_RETURNED.call_once(|| {
+                        eprintln!("mvp_play_boundary editor_first_preview_capture_returned")
+                    });
+                    match capture {
                         Ok(Some(frame)) => self
                             .ui
                             .global::<PaneSurfaceHostContext>()
@@ -77,7 +90,7 @@ impl RetainedEditorHost {
                         .global::<PaneSurfaceHostContext>()
                         .clear_simulate_viewport_image()
                 } else {
-                    match self.runtime.play_sessions().capture_preview_frame(size) {
+                    match self.capture_preview_frame_for_native_host(size) {
                         Ok(Some(frame)) => self.set_simulate_viewport_frame_with_gizmo(frame),
                         Ok(None) => self
                             .ui
@@ -106,6 +119,42 @@ impl RetainedEditorHost {
             self.record_paint_only_invalidation(HostInvalidationMask::VIEWPORT_IMAGE);
             self.ui.request_redraw_region(frame);
         }
+    }
+
+    fn capture_preview_frame_for_native_host(
+        &self,
+        size: ZrRuntimeViewportSizeV1,
+    ) -> Result<Option<PlayPreviewFrame>, PlayPreviewCaptureError> {
+        static TRACE_ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+        let trace_enabled = *TRACE_ENABLED.get_or_init(|| {
+            std::env::var("ZIRCON_TRACE_PLAY_STOP")
+                .is_ok_and(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+        });
+        if !trace_enabled {
+            return self.runtime.play_sessions().capture_preview_frame(size);
+        }
+
+        static SEQUENCE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        let sequence = SEQUENCE.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+        let started = std::time::Instant::now();
+        eprintln!(
+            "mvp_play_trace component=editor_preview seq={sequence} stage=capture_enter size={}x{}",
+            size.width, size.height
+        );
+        let result = self.runtime.play_sessions().capture_preview_frame(size);
+        let elapsed_us = started.elapsed().as_micros();
+        match &result {
+            Ok(Some(_)) => eprintln!(
+                "mvp_play_trace component=editor_preview seq={sequence} stage=capture_return result=frame elapsed_us={elapsed_us}"
+            ),
+            Ok(None) => eprintln!(
+                "mvp_play_trace component=editor_preview seq={sequence} stage=capture_return result=empty elapsed_us={elapsed_us}"
+            ),
+            Err(_) => eprintln!(
+                "mvp_play_trace component=editor_preview seq={sequence} stage=capture_error elapsed_us={elapsed_us}"
+            ),
+        }
+        result
     }
 
     fn set_simulate_viewport_frame_with_gizmo(&mut self, frame: PlayPreviewFrame) -> bool {

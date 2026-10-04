@@ -5,7 +5,7 @@ import unittest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 OWNER_ROOT = REPO_ROOT / "zircon_runtime" / "src" / "scene" / "render_extract"
 
-
+# 验证场景渲染提取的职责切分：渲染提取根委托到生产者归属。
 class RuntimeSceneRenderExtractOwnerStructureTests(unittest.TestCase):
     def test_render_extract_root_delegates_to_the_producer_owner(self) -> None:
         root = (OWNER_ROOT / "mod.rs").read_text(encoding="utf-8")

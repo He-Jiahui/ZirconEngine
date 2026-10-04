@@ -1,3 +1,6 @@
+// 为后处理提供方向光的屏幕 tile 颜色响应，每个输出元素是 RGB 与强度。
+// 这是屏幕空间的近似调色贡献；调用者必须区分此 vec4 网格与几何着色使用的光源索引列表。
+// CPU 限制上传光源数并按 cluster 尺寸 dispatch；输出存储至少覆盖全部 tile。
 struct ClusterParams {
     viewport_and_clusters: vec4<u32>,
     counts: vec4<u32>,
@@ -22,6 +25,7 @@ fn cs_main(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
 
     let cluster_index = invocation_id.y * cluster_dims.x + invocation_id.x;
     let light_count = params.counts.x;
+    // 没有光源仍要写零，避免重用目标时把上一帧的方向光响应带入当前画面。
     if (light_count == 0u) {
         cluster_buffer[cluster_index] = vec4<f32>(0.0, 0.0, 0.0, 0.0);
         return;

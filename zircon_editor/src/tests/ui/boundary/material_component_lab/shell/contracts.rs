@@ -1,3 +1,5 @@
+//! 验证Material 实验室外壳样式及可打开的配置捕获场景。
+
 use std::fs;
 
 use zircon_runtime::ui::v2::UiZuiAssetLoader;
@@ -124,7 +126,7 @@ fn material_component_lab_shell_keeps_material_style_contract() {
 
 #[test]
 fn material_component_lab_profile_capture_scenarios_open_the_lab_window() {
-    let script_path = workspace_root().join("tools/ui-profile-capture.ps1");
+    let script_path = workspace_root().join("tools/analysis/profiling/ui/ui-profile-capture.ps1");
     let source = fs::read_to_string(&script_path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", script_path.display()));
 

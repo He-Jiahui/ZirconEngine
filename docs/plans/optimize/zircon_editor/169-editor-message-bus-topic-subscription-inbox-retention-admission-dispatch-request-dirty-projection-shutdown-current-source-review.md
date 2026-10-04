@@ -36,7 +36,7 @@ related_code:
 tests:
   - zircon_editor/src/tests/editor_message
 plan_sources:
-  - docs/zircon_editor/core/editor_message.md
+  - docs/crates/zircon_editor/core/editor_message.md
   - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md
   - docs/plans/zircon_editor/editor/02-data-sync-and-messaging.md
   - docs/plans/zircon_editor/editor/02/2026-07-22-message-inbox-backpressure-and-fanout.md

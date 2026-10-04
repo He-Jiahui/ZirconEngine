@@ -196,6 +196,8 @@ pub fn stage_environment_ibl_source(
     prepare_environment_ibl_source(context, cache_root)?.commit()
 }
 
+// TODO: [CR-ASSET-IMPORT-0002] 确认冷缓存但已有可复用 .zcube 时是否应先判定 SourceOnly 再解码原图；串行和并行 prepare 都在此判定前完整解码 RGBA32F。
+// 项目导入使用 prepare 出口收集待写文件，最终由项目 generation 事务统一发布。
 pub(crate) fn prepare_environment_ibl_source(
     context: &AssetImportContext,
     cache_root: impl AsRef<Path>,
@@ -383,6 +385,8 @@ where
     )
 }
 
+// 串行、并行和调用方已解码入口共用这条路径，统一请求标识、缓存命中和待提交 bundle 的形成；
+// 传入的构建器仅决定执行方式，不能改变缓存键或项目导入的发布所有权。
 fn prepare_environment_ibl_source_with_builder(
     context: &AssetImportContext,
     cache_root: impl AsRef<Path>,
@@ -427,6 +431,7 @@ fn prepare_environment_ibl_source_with_builder(
         let _phase = EnvironmentIblStagingPhase::SourceIdentity.enter();
         environment_ibl_request_for_source_image(context, source_image)?
     };
+    // BUG: [CR-ASSET-IMPORT-0001] warm probe 已计入一次请求标识耗时，冷路径在此覆盖而非累加，导致报告及 profiling 低报该阶段总耗时。
     timing.source_identity = identity_started.elapsed();
     let Some(request) = request else {
         return Ok(PreparedEnvironmentIblSourceStaging {
@@ -723,4 +728,5 @@ fn lerp(a: f32, b: f32, t: f32) -> f32 {
 }
 
 #[cfg(test)]
+#[path = "environment_ibl/tests/cases.rs"]
 mod tests;

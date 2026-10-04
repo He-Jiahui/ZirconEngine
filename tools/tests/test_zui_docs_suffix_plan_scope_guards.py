@@ -1,3 +1,4 @@
+# 核对工作台、资产与样式计划明确当前资源格式范围。
 import unittest
 from pathlib import Path
 

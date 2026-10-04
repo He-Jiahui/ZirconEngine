@@ -1,3 +1,4 @@
+# 核对构建、烹制与插件清单的产物摘要使用有界流式读取。
 from __future__ import annotations
 
 import gc
@@ -11,15 +12,15 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SHADER_DIGEST_SOURCE = (
-    REPO_ROOT / "tools/zircon_build_plugin_shader_descriptor_support.py"
+    REPO_ROOT / "tools/build/zircon_build_plugin_shader_descriptor_support.py"
 )
-COOK_REPORT_SOURCE = REPO_ROOT / "tools/zircon_export/pipeline_report_cook_assets.py"
-PLUGIN_SIGNATURE_SOURCE = REPO_ROOT / "tools/zircon_export/plugin_build_signature.py"
+COOK_REPORT_SOURCE = REPO_ROOT / "tools/export/pipeline_report_cook_assets.py"
+PLUGIN_SIGNATURE_SOURCE = REPO_ROOT / "tools/export/plugin_build_signature.py"
 
 
 class StreamingArtifactDigestPerformanceContractTests(unittest.TestCase):
     def test_streaming_digest_matches_sha256_and_reports_byte_length(self) -> None:
-        digest_module = import_module("tools.zircon_export.file_digest")
+        digest_module = import_module("tools.export.file_digest")
         payload = (b"zircon-streaming-digest\0" * 8193) + b"tail"
         with tempfile.TemporaryDirectory() as temp_dir:
             source = Path(temp_dir) / "artifact.bin"
@@ -33,7 +34,7 @@ class StreamingArtifactDigestPerformanceContractTests(unittest.TestCase):
         self.assertEqual(digest_only, digest)
 
     def test_streaming_digest_peak_memory_is_independent_of_file_size(self) -> None:
-        digest_module = import_module("tools.zircon_export.file_digest")
+        digest_module = import_module("tools.export.file_digest")
         file_size = 8 * 1024 * 1024
         with tempfile.TemporaryDirectory() as temp_dir:
             source = Path(temp_dir) / "large-artifact.bin"

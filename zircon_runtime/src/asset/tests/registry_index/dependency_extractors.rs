@@ -3,6 +3,7 @@ use std::path::Path;
 use crate::asset::registry::dependency_extractors::append_handwritten_dependencies;
 use crate::asset::{
     AssetImportOutcome, AssetReference, ImportedAsset, MaterialAsset, ModelAsset, SceneAsset,
+    UiV2ViewAsset,
 };
 
 use super::uri;
@@ -44,4 +45,47 @@ fn handwritten_scene_material_and_model_extractors_emit_direct_dependencies() {
             "{path} should expose direct dependency metadata"
         );
     }
+}
+
+#[test]
+fn handwritten_ui_document_extractor_emits_import_and_resource_dependencies() {
+    let view = UiV2ViewAsset::from_toml_str(
+        r#"
+[asset]
+kind = "view"
+id = "runtime.ui.dependency_test"
+version = 2
+
+[imports]
+widgets = ["res://ui/common/button.zui#ToolbarButton"]
+styles = ["res://ui/theme/editor.zui"]
+resources = [
+  { kind = "font", uri = "res://fonts/inter.font.toml", fallback = { mode = "placeholder", uri = "res://fonts/system.ttf" } },
+]
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "Text"
+"#,
+    )
+    .expect("valid UI document fixture");
+
+    let mut outcome = AssetImportOutcome::new(
+        uri("res://ui/dependency_test.zui"),
+        ImportedAsset::UiV2View(view),
+    );
+    append_handwritten_dependencies(&mut outcome);
+
+    let dependencies = &outcome.entries[0].dependencies;
+    assert_eq!(
+        dependencies,
+        &vec![
+            uri("res://ui/common/button.zui"),
+            uri("res://ui/theme/editor.zui"),
+            uri("res://fonts/inter.font.toml"),
+            uri("res://fonts/system.ttf"),
+        ]
+    );
 }

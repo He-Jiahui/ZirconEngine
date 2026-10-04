@@ -1,3 +1,6 @@
+//! 富文本在这里将有版本的标记源转换为可共享的编译产物；布局、绘制、链接命中和语义读取共用同一解析结果。
+//! 解析器负责准入与中立的内嵌对象描述，UI 绑定和资源加载由后续消费端决定。
+
 mod admission;
 mod artifact_handle;
 mod bbcode;
@@ -26,6 +29,7 @@ pub use parser_registry::RichTextParser;
 pub(super) const INLINE_OBJECT_REPLACEMENT: &str = "\u{fffc}";
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 #[cfg(test)]

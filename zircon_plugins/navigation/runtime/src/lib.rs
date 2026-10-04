@@ -1,5 +1,8 @@
 use std::sync::Arc;
 
+use zircon_runtime::asset::{
+    project_asset_manager_handle, ProjectAssetManagerAccess, ASSET_MODULE_NAME,
+};
 use zircon_runtime::core::framework::navigation::NavigationManager;
 use zircon_runtime::core::manager::RegisteredManagerService;
 use zircon_runtime::core::runtime::{ServiceObject, TASKS_MODULE_NAME};
@@ -23,6 +26,7 @@ mod settings_hash;
 mod settings_validation;
 
 #[cfg(test)]
+#[path = "tests/test_support.rs"]
 mod test_support;
 
 pub use capability::{
@@ -57,6 +61,7 @@ pub fn module_descriptor() -> ModuleDescriptor {
         "Navigation path query, bake, and agent runtime plugin",
     )
     .with_module_dependency(ModuleDependencySpec::named(TASKS_MODULE_NAME))
+    .with_module_dependency(ModuleDependencySpec::named(ASSET_MODULE_NAME))
     .with_driver(DriverDescriptor::new(
         qualified_name(
             NAVIGATION_MODULE_NAME,
@@ -64,11 +69,18 @@ pub fn module_descriptor() -> ModuleDescriptor {
             "DefaultNavigationRuntime",
         ),
         StartupMode::Lazy,
-        Vec::new(),
+        vec![dependency_on(
+            ASSET_MODULE_NAME,
+            ServiceKind::Manager,
+            "ProjectAssetManager",
+        )],
         factory(|core| {
             let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
+            let project_assets =
+                ProjectAssetManagerAccess::new(core.clone(), project_asset_manager_handle(&core)?);
             Ok(Arc::new(DefaultNavigationManager::new(
                 core.task_graph().worker_pool().clone(),
+                project_assets,
             )) as ServiceObject)
         }),
     ))

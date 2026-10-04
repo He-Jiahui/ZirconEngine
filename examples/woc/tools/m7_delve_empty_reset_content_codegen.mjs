@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码投影空置地下探索实例的占用采样与超时，生成可核对的 JSON 和 Zr 内容。
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

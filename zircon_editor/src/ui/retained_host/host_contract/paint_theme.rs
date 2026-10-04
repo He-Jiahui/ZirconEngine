@@ -130,6 +130,29 @@ fn host_metrics_for_read() -> metrics::HostControlMetrics {
         .unwrap_or_else(|| host_paint_theme_authority().load().metrics)
 }
 
+pub(crate) fn current_host_paint_scale_factor() -> f32 {
+    ACTIVE_HOST_PAINT_THEME
+        .with(|active| {
+            active
+                .borrow()
+                .as_ref()
+                .map(|snapshot| snapshot.scale_factor)
+        })
+        .unwrap_or_else(|| host_paint_theme_authority().load().scale_factor)
+}
+
+#[cfg(test)]
+pub(crate) fn host_paint_theme_snapshot_at_scale_for_test(
+    scale_factor: f32,
+) -> Arc<HostPaintThemeSnapshot> {
+    let snapshot =
+        host_paint_theme_snapshot_from_tokens_for_test(&EditorDesignTokens::workbench_dark());
+    let mut snapshot = (*snapshot).clone();
+    snapshot.scale_factor = scale_factor;
+    snapshot.metrics = snapshot.base_metrics.at_scale(scale_factor);
+    Arc::new(snapshot)
+}
+
 pub(crate) fn apply_host_paint_scale_factor(scale_factor: f32) {
     let scale_factor = if scale_factor.is_finite() && scale_factor > 0.0 {
         scale_factor
@@ -186,7 +209,9 @@ fn host_paint_theme_authority() -> &'static ArcSwap<HostPaintThemeSnapshot> {
 pub(crate) use metrics::apply_host_metrics_from_tokens;
 // Pointer hit testing consumes the same retained-host density metrics as the
 // painter so themed row geometry stays aligned with its interactive surface.
-pub(in crate::ui::retained_host) use metrics::{current_host_metrics, HostControlMetrics, METRICS};
+pub(in crate::ui::retained_host::host_contract) use metrics::logical_font_size_to_physical;
+pub(in crate::ui::retained_host) use metrics::METRICS;
+pub(crate) use metrics::{current_host_metrics, HostControlMetrics};
 pub(in crate::ui::retained_host::host_contract) use model::HostMaterialPalette;
 pub(crate) use palette_projection::apply_host_palette_from_tokens;
 pub(in crate::ui::retained_host::host_contract) use palette_projection::current_host_palette;

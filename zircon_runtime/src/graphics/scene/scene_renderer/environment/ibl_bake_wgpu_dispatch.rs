@@ -28,6 +28,8 @@ pub(in crate::graphics::scene::scene_renderer) struct IblBakeWgpuEncodedDispatch
     pub dispatch_groups: [u32; 3],
 }
 
+/// 图执行入口：调用方已物化图资源并提供同设备管线缓存，通道名与执行器须成对匹配。
+/// 输出按图声明的 mip/缓冲区窗口绑定；此处只编码，提交与读回由帧 owner 负责。
 pub(in crate::graphics::scene::scene_renderer) fn record_ibl_bake_wgpu_pass_for_request(
     context: &mut RenderPassExecutionContext<'_>,
     request: &IblBakeArtifactRequest,
@@ -72,6 +74,7 @@ pub(in crate::graphics::scene::scene_renderer) fn create_ibl_bake_wgpu_compute_p
     )
 }
 
+/// 直接编码预先配套的命令、管线和绑定；零工作组在创建通道前拒绝。
 pub(in crate::graphics::scene::scene_renderer) fn encode_ibl_bake_wgpu_compute_dispatch(
     encoder: &mut wgpu::CommandEncoder,
     command: &IblBakeWgpuCommandPlan,
@@ -283,5 +286,5 @@ fn resolve_output_binding<'a>(
 }
 
 #[cfg(test)]
-#[path = "ibl_bake_wgpu_dispatch/tests.rs"]
+#[path = "ibl_bake_wgpu_dispatch/tests/cases.rs"]
 mod tests;

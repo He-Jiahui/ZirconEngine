@@ -1,0 +1,115 @@
+use super::*;
+use crate::core::framework::render::{
+    RenderHybridGiPreparedFrame, RenderHybridGiPreparedProbe, RenderHybridGiReadbackOutputs,
+    RenderParticleGpuReadbackOutputs, RenderVirtualGeometryNodeClusterCullReadbackOutputs,
+    RenderVirtualGeometryReadbackOutputs,
+};
+
+#[test]
+fn prepared_submission_carries_plugin_renderer_output_sideband() {
+    let prepared = PreparedRuntimeSubmission::new(
+        vec![5],
+        Some(RenderHybridGiPreparedFrame {
+            resident_probes: vec![RenderHybridGiPreparedProbe {
+                probe_id: 9,
+                slot: 1,
+                stable_instance_key: 0,
+                source_mask: crate::core::framework::render::HYBRID_GI_SOURCE_FULL_DYNAMIC,
+                dynamic_weight_q8: u8::MAX,
+                ray_budget: 64,
+                irradiance_rgb: [1, 2, 3],
+            }],
+            ..RenderHybridGiPreparedFrame::default()
+        }),
+        vec![9],
+        RenderPluginRendererOutputs {
+            hybrid_gi: RenderHybridGiReadbackOutputs {
+                completed_probe_ids: vec![11],
+                ..RenderHybridGiReadbackOutputs::default()
+            },
+            virtual_geometry: RenderVirtualGeometryReadbackOutputs {
+                node_cluster_cull: RenderVirtualGeometryNodeClusterCullReadbackOutputs {
+                    page_request_ids: vec![300],
+                    ..RenderVirtualGeometryNodeClusterCullReadbackOutputs::default()
+                },
+                ..RenderVirtualGeometryReadbackOutputs::default()
+            },
+            particles: RenderParticleGpuReadbackOutputs {
+                alive_count: 4,
+                indirect_draw_args: [6, 4, 0, 0],
+                ..RenderParticleGpuReadbackOutputs::default()
+            },
+            ..RenderPluginRendererOutputs::default()
+        },
+    );
+
+    let sidebands = prepared.into_prepared_runtime_sidebands();
+
+    assert_eq!(
+        sidebands.hybrid_gi_readback_outputs().completed_probe_ids,
+        vec![11]
+    );
+    assert_eq!(
+        sidebands
+            .virtual_geometry_readback_outputs()
+            .node_cluster_cull
+            .page_request_ids,
+        vec![300]
+    );
+    assert_eq!(sidebands.particle_readback_outputs().alive_count, 4);
+    assert_eq!(sidebands.hybrid_gi_evictable_probe_ids(), &[5]);
+    assert_eq!(
+        sidebands
+            .hybrid_gi_prepared_frame()
+            .unwrap()
+            .resident_probes[0]
+            .probe_id,
+        9
+    );
+    assert_eq!(sidebands.virtual_geometry_evictable_page_ids(), &[9]);
+}
+
+#[test]
+fn prepared_submission_projects_neutral_runtime_sidebands() {
+    let prepared = PreparedRuntimeSubmission::new(
+        vec![5],
+        None,
+        vec![9],
+        RenderPluginRendererOutputs {
+            hybrid_gi: RenderHybridGiReadbackOutputs {
+                completed_probe_ids: vec![11],
+                ..RenderHybridGiReadbackOutputs::default()
+            },
+            virtual_geometry: RenderVirtualGeometryReadbackOutputs {
+                node_cluster_cull: RenderVirtualGeometryNodeClusterCullReadbackOutputs {
+                    page_request_ids: vec![300],
+                    ..RenderVirtualGeometryNodeClusterCullReadbackOutputs::default()
+                },
+                ..RenderVirtualGeometryReadbackOutputs::default()
+            },
+            particles: RenderParticleGpuReadbackOutputs {
+                alive_count: 6,
+                indirect_draw_args: [6, 6, 0, 0],
+                ..RenderParticleGpuReadbackOutputs::default()
+            },
+            ..RenderPluginRendererOutputs::default()
+        },
+    );
+
+    let sidebands = prepared.into_prepared_runtime_sidebands();
+
+    assert_eq!(
+        sidebands.hybrid_gi_readback_outputs().completed_probe_ids,
+        vec![11]
+    );
+    assert_eq!(
+        sidebands
+            .virtual_geometry_readback_outputs()
+            .node_cluster_cull
+            .page_request_ids,
+        vec![300]
+    );
+    assert_eq!(sidebands.hybrid_gi_evictable_probe_ids(), &[5]);
+    assert_eq!(sidebands.virtual_geometry_evictable_page_ids(), &[9]);
+    assert_eq!(sidebands.particle_readback_outputs().alive_count, 6);
+}

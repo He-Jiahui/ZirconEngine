@@ -1,3 +1,6 @@
+// 调用端：npm run generate:talent-selection-catalog (tools/package.json)；职责：把固定版本的职业专精与天赋行归一化为 JSON、Zr、Rust 选择目录。
+// 输入边界：src/sim/content/talents.ts, src/sim/content/talent_rows.ts, src/sim/content/talents_warrior.ts, src/sim/content/talents_classic.ts；--check 比较生成结果，不改写目标文件。
+
 import { spawnSync, execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -34,6 +37,7 @@ const ROW_LEVELS = [5, 8, 11, 14, 17, 20];
 
 main();
 
+// 求值固定版本的职业与专精行，关联已知技能，并在输出三种语言前核对固定层级。
 function main() {
   const sourceBlobs = Object.fromEntries(SOURCE_PATHS.map((path) => [path, sourceBlob(path)]));
   const extracted = extract();
@@ -143,6 +147,7 @@ function extract() {
   return JSON.parse(child.stdout);
 }
 
+// 按规范化 ID 生成行与选项查询表，使运行时选择逻辑无需导入参考 TypeScript。
 function renderZr(document) {
   const specs = document.classes.flatMap((playerClass) =>
     playerClass.specs.map((spec) => ({ ...spec, class_id: playerClass.id })));
@@ -178,6 +183,7 @@ function renderZr(document) {
     '\n    return <uint>0;\n}\n';
 }
 
+// 为本地目录使用方投影相同的选择 ID。
 function renderRust(document) {
   const specs = document.classes.flatMap((playerClass) =>
     playerClass.specs.map((spec) => ({ ...spec, class_id: playerClass.id })));

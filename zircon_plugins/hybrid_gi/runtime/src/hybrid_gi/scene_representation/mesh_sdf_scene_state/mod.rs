@@ -8,4 +8,5 @@ pub(in crate::hybrid_gi) use declarations::{
 };
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

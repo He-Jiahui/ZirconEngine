@@ -8,8 +8,12 @@ mod merge;
 mod promotion;
 
 #[cfg(test)]
-#[path = "theme_authoring/refactor_label_cache_tests.rs"]
+#[path = "theme_authoring/tests/refactor_label_cache_tests.rs"]
 mod refactor_label_cache_tests;
+
+#[cfg(test)]
+#[path = "theme_authoring/tests/optimization_batch_je_editor644_tests.rs"]
+mod optimization_batch_je_editor644_tests;
 
 pub(crate) use promotion::{
     can_promote_local_theme_to_external_style_asset, default_external_style_draft,
@@ -551,18 +555,7 @@ pub(crate) fn adopt_imported_theme_compare_diffs(
     };
 
     let local_rule_blocks = local_rule_blocks(document);
-    let mut adopted = 0usize;
-    for (token_name, imported_value) in &imported_style_document.tokens {
-        if document.tokens.get(token_name) == Some(imported_value) {
-            continue;
-        }
-        adopted += usize::from(adopt_imported_theme_token(
-            document,
-            imported_styles,
-            reference,
-            token_name,
-        ));
-    }
+    let mut adopted = adopt_imported_theme_tokens(document, imported_styles, reference);
     for stylesheet in &imported_style_document.stylesheets {
         let stylesheet_id = stylesheet_label(stylesheet);
         for rule in &stylesheet.rules {

@@ -7,6 +7,7 @@ import type {
   HubProjectTemplate,
   HubSourceEngineSummary,
 } from "../../types/hub";
+import { admittedSourceEngineId } from "../../projections/sourceEngineChoices";
 import { HubButton, HubComboBox, HubTextField } from "../inputs";
 import { HubDialog } from "./HubDialog";
 
@@ -36,7 +37,7 @@ export function CreateProjectDialog({
   const [projectName, setProjectName] = useState("");
   const [projectLocation, setProjectLocation] = useState(defaultProjectDir);
   const [template, setTemplate] = useState("renderable-empty");
-  const [engineId, setEngineId] = useState(activeSourceEngineId ?? sourceEngines[0]?.id ?? "");
+  const [engineId, setEngineId] = useState(() => admittedSourceEngineId(sourceEngines, activeSourceEngineId) ?? "");
 
   useEffect(() => {
     setProjectLocation(defaultProjectDir);
@@ -47,7 +48,7 @@ export function CreateProjectDialog({
       if (sourceEngines.some((engine) => engine.id === currentEngineId)) {
         return currentEngineId;
       }
-      return activeSourceEngineId ?? sourceEngines[0]?.id ?? "";
+      return admittedSourceEngineId(sourceEngines, activeSourceEngineId) ?? "";
     });
   }, [activeSourceEngineId, sourceEngines]);
 
@@ -62,7 +63,7 @@ export function CreateProjectDialog({
   }, [templates, template]);
 
   const selectedTemplate = templates.find((projectTemplate) => projectTemplate.id === template);
-  const createDisabled = projectName.trim().length === 0 || projectLocation.trim().length === 0 || !selectedTemplate?.enabled;
+  const createDisabled = projectName.trim().length === 0 || projectLocation.trim().length === 0 || !selectedTemplate?.enabled || !engineId;
 
   const createProject = () => {
     if (createDisabled) {
@@ -95,6 +96,7 @@ export function CreateProjectDialog({
         <HubTextField label={text.location} value={projectLocation} onChange={(event) => setProjectLocation(event.target.value)} />
         <HubComboBox
           value={engineId}
+          label={text.sourceEngine}
           minWidth={0}
           placeholder={text.sourceEngine}
           options={sourceEngines.map((engine) => ({
@@ -106,6 +108,7 @@ export function CreateProjectDialog({
         />
         <HubComboBox
           value={template}
+          label={text.template}
           minWidth={0}
           placeholder={text.template}
           options={templates.map((projectTemplate) => ({

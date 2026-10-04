@@ -7,6 +7,7 @@ origin_plan: docs/plans/zircon_editor/editor/03-command-transaction-and-undo.md
 fixing_plan: docs/plans/zircon_plugins/05-navigation.md
 origin_child_dir: docs/plans/zircon_editor/editor/03
 fixing_child_dir: docs/plans/zircon_plugins/05
+plan_link_mode: child_record_only
 related_code:
   - zircon_plugins/navigation/editor/bake.zui
   - zircon_plugins/navigation/editor/src/operation_command/factory.rs
@@ -81,3 +82,43 @@ editor tests at the foreign lower-layer error
 Navigation editor source. This is forward validation evidence only; the focused
 Plugins05 test must execute successfully after the RuntimeHost owner repairs that
 mixed blob, so this failure remains `open` and no fixed return is claimed.
+
+## 2026-09-11 lifecycle scope correction
+
+The original handoff omitted the required `plan_link_mode: child_record_only`
+frontmatter field. The coordinator therefore imported an empty `related_code`
+projection even though the handoff listed the four affected source paths. This
+metadata-only correction restores the canonical child-record lifecycle scope and
+does not change production source, acceptance criteria, or the historical
+validation result. The source repair and static contract evidence remain
+historical; managed Windows Cargo validation is still blocked by the foreign
+RuntimeHost `WorldQueryResult::TransformSnapshot` exhaustiveness error above.
+
+## 2026-09-11 local validation continuation
+
+The exact selected-surface static reproduction completed with
+`navigation selected-surface route projection: PASS` (`surface_entity` and
+`force_full_rebuild` projections present). The repository
+`validate-matrix.ps1 -Package zircon_plugin_navigation_editor -SkipBuild
+-VerboseOutput` then produced no additional output for a bounded multi-minute
+window and was interrupted with wrapper exit code 1. This is recorded as a
+local timeout/interruption only, not as managed validation evidence; the open
+failure and its required Windows Cargo gate remain unchanged.
+
+## 2026-09-25 successor current-source reconciliation
+
+- Coordinator successor `failure-roll-01a084c8-plugins05-navigation-bake-selection-r3` replaced the stale Plugins05 operation-status primary only after its zero-lease lifecycle was archived. A malformed intermediate registration was cancelled before any lease or source mutation; no unrelated operation-status receipt was absorbed.
+- Current-source probe passed `EDITOR05_NAV_BAKE_CURRENT_SOURCE_PASS=6/6`: both selected-surface routes carry `surface_entity` from `selected_row_identity`, the bake route carries `force_full_rebuild`, the panel owns stable row/entity selection and disables selected actions without a row, the operation factory rejects missing `surface_entity`, the retained regression tests cover A/B/no-selection/refresh behavior, and the generic retained dispatcher has no Navigation route special case. The route-only reproduction passed `NAVIGATION_SELECTED_SURFACE_ROUTE_PROJECTION_PASS=6/6`.
+- Existing repository contract `python -X utf8 -m unittest tools.tests.test_navigation_editor_contract -v` passed `Ran 1 test ... OK`. This is static/Python evidence only; no Cargo result is inferred. `rustfmt --edition 2021 --check` over the claimed Rust files exited 0. Scoped `git diff --check` exited 0 with only normal LF-to-CRLF warnings.
+- Current seven-path manifest SHA-256 values are: `docs/plans/zircon_plugins/05-navigation.md=53ec3dc3b482e074216148376fd528a41be1194110a6efd27775a90f12247abf`; `zircon_plugins/navigation/editor/src/operation_command/factory.rs=c1bdd2277f028c68cec3874245852ab97000d6b46f2b7f9514647d99c804f796`; `zircon_plugins/navigation/editor/src/bake_panel.rs=247b3de5ea37140e4762d6ee68f73c5e35f8dcc73c20261bf75476775ab084c0`; `zircon_editor/src/ui/retained_host/callback_dispatch/common/dispatch.rs=4a011f05fa865ada7b8da518b3c749233abe6335e237d72307520a46219e8f66`; and `zircon_plugins/navigation/editor/src/tests/bake_panel_retained.rs=ddb879d93e22b9cd4bcbff57a037eaef6018614be858b2d0add3aec428bab0ce`. The claimed `bake.zui` is a pre-existing dirty owner overlay (`cde2954aa86316f64b3bea0166ac0b8e96d249ef284b012d522f9a2fa2bbab3c`); `zircon_plugins/navigation/editor/src/tests/operation_command.rs` is a separate stale-owner dirty path and is intentionally not absorbed by this lifecycle. This reconciliation made no source edits.
+- Dynamic acceptance remains pending: the exact selected-surface route test, Navigation editor package gate, and upward Editor03/Plugins05 gates must execute under Windows managed Cargo with `--locked` and coordinator-assigned target. The previous package job stopped in foreign RuntimeHost `WorldQueryResult::TransformSnapshot` exhaustiveness before Navigation tests; external dirty `E:/Git/zr_vm` remains a blocker. Independent C/I/M review, canonical `fixed-*` return, and closeout remain open.
+
+## 2026-09-25 static validation ticket receipt
+
+- Coordinator accepted static source-contract ticket `4451db8601b54fe9a9ad57729f048537` (request `6f6fedf18aa34f7bb7786274311affe1`) against the seven-path manifest sealed by snapshot `3862`. The inline command emits `EDITOR05_NAV_BAKE_CURRENT_SOURCE_PASS=6/6` and `NAVIGATION_SELECTED_SURFACE_ROUTE_PROJECTION_PASS=6/6`; `coverage.fullCoverage=false`, `staticParseOnly=true`, and Cargo/Rust are disabled.
+- Admission returned `status=queued` with `executionKind=pending`; no Navigation Cargo package, exact filter, or test body has run. Dependency admission reports the open Editor05 overlay wiring and downstream Plugins05/Editor gates. This receipt is queue evidence only and does not satisfy dynamic acceptance.
+
+## 2026-09-25 independent static review
+
+- Reviewer `review-editor03-gizmo-private` re-read authoritative snapshot `3862`, the seven-path manifest and the static ticket receipt. It confirmed both 6/6 markers, the Navigation editor contract test (`1/1`), rustfmt exit 0, scoped diff-check exit 0, the dirty `bake.zui` provenance, and the intentional exclusion of the stale operation-status test owner.
+- Independent review result: `Critical=0`, `Important=0`, `Moderate=0`. This is static handoff approval only; exact Windows managed Cargo, Navigation package/upward gates, external dependency cleanup, canonical `fixed-*` return, and closeout remain pending.

@@ -66,5 +66,5 @@ impl DesktopExportWizardSessions {
 }
 
 #[cfg(test)]
-#[path = "session_state/hash_index_tests.rs"]
+#[path = "session_state/tests/hash_index_tests.rs"]
 mod hash_index_tests;

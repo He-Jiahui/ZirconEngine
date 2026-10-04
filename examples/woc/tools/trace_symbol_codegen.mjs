@@ -1,3 +1,6 @@
+// 调用端：npm run generate (tools/package.json)；职责：为 golden 轨迹字符串分配确定性的线协议 ID，供 JSON、Zr 和 Rust 对齐使用。
+// 当前版本的 54 条 golden 轨迹决定从 1 开始的字典 ID 和共享线格式指纹。
+
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -23,6 +26,7 @@ const NON_FINITE_SENTINELS = new Set(['Infinity', '-Infinity', 'NaN']);
 
 main();
 
+// 对 golden 的唯一字符串排序后，分配从 1 开始的 ID 和共享的低 60 位线格式指纹。
 function main() {
   const files = readdirSync(goldenRoot).filter((name) => name.endsWith('.json')).sort();
   invariant(files.length === 54, `expected 54 current-head golden traces, found ${files.length}`);
@@ -70,6 +74,7 @@ function main() {
   );
 }
 
+// 字典只收对象键和非哨兵字符串；摘要字符串仍保留原始字段值。
 function collect(value, symbols) {
   if (Array.isArray(value)) {
     for (const item of value) collect(item, symbols);
@@ -93,6 +98,7 @@ function addSymbol(symbols, text, kind) {
   symbols.set(text, kinds);
 }
 
+// 稳定的哈希后缀避免规范化后外观相同的名称发生标识符冲突。
 function symbolName(text, kinds, ordinal) {
   const hash = createHash('sha256').update(text, 'utf8').digest('hex').slice(0, 8);
   if (text.length > 64 || /[^A-Za-z0-9_]/u.test(text)) return `Text_${hash}`;

@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 
 use crate::core::framework::render::{
-    SHADER_IMPORT_PROJECT_NAMESPACE_SETTING, shader_project_namespace_from_name,
+    shader_project_namespace_from_name, SHADER_IMPORT_PROJECT_NAMESPACE_SETTING,
 };
 use crate::core::resource::{
     ResourceDiagnostic, ResourceRecord, ResourceRegistryAssemblyExt, ResourceRegistryStaging,
@@ -13,8 +13,8 @@ use crate::asset::importer::{
     prepare_source_cubemap_texture,
 };
 use crate::asset::project::manager::durable_transaction::{
-    PreparedFileWrite, ProjectFileCommitOutcome, ProjectTransactionFault, commit_prepared_files,
-    journal_directory,
+    commit_prepared_files, journal_directory, PreparedFileWrite, ProjectFileCommitOutcome,
+    ProjectTransactionFault,
 };
 use crate::asset::project::{ProjectPaths, ResolvedProjectPathIdentity};
 use crate::asset::watch::AssetChangeKind;
@@ -94,6 +94,7 @@ pub(super) fn stage_project_resource(
 
 impl ProjectManager {
     pub fn scan_and_import(&mut self) -> Result<Vec<ResourceRecord>, AssetImportError> {
+        let _generation = crate::asset::project::lock_project_generation(self.paths().root())?;
         let mut candidate = self.clone();
         let (imported, prepared) = candidate.prepare_full_generation(None)?;
         let outcome = prepared.commit()?;
@@ -106,6 +107,7 @@ impl ProjectManager {
         &mut self,
         changes: &[crate::asset::watch::AssetChange],
     ) -> Result<Vec<ResourceRecord>, AssetImportError> {
+        let _generation = crate::asset::project::lock_project_generation(self.paths().root())?;
         let mut candidate = self.clone();
         let use_incremental = Self::watch_changes_use_incremental_path(changes);
         let (updated_records, prepared) =
@@ -389,25 +391,5 @@ fn append_shader_import_path_conflict_diagnostics(
 }
 
 #[cfg(test)]
-mod tests {
-    const SOURCE: &str = include_str!("scan_and_import.rs");
-
-    #[test]
-    fn project_import_collects_ibl_writes_without_calling_a_stage_entry_point() {
-        let preparation = SOURCE
-            .split("fn prepare_environment_ibl_import(")
-            .nth(1)
-            .and_then(|source| {
-                source
-                    .split("fn append_shader_import_path_conflict_diagnostics(")
-                    .next()
-            })
-            .expect("project IBL preparation helper must exist");
-
-        assert!(preparation.contains("prepare_environment_ibl_source"));
-        assert!(preparation.contains("prepare_source_cubemap_texture"));
-        assert!(preparation.contains("into_file_writes"));
-        assert!(!preparation.contains("stage_environment_ibl_source("));
-        assert!(!preparation.contains("stage_source_cubemap_texture("));
-    }
-}
+#[path = "tests/scan_and_import.rs"]
+mod tests;

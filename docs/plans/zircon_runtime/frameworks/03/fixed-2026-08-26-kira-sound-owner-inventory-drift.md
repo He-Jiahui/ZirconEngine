@@ -11,7 +11,7 @@ plan_link_mode: child_record_only
 related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_boundary.py
-  - docs/engine-architecture/runtime-tech-stack.md
+  - docs/architecture/runtime-tech-stack.md
   - zircon_plugins/sound/runtime/Cargo.toml
 tests:
   - python -B -m unittest tools.tests.test_runtime01_kira_sound_owner_boundary -v
@@ -36,7 +36,7 @@ resolved_at: 2026-08-26
 - `tech_stack_source_inventory.py` 的 `NON_DEPENDENCIES` 仍包含 `kira`；
 - 当前受跟踪 `zircon_plugins/sound/runtime/Cargo.toml` 已合法固定 `kira = "0.12.2"`；
 - Sound runtime 的生产 `kira_bridge`、播放、设备、mixer graph 与 lifecycle owners 已实际消费 Kira，Plugins02 记录也明确这是从旧 CPAL/软件 mixer 到 Kira 0.12.2 的 hard cut；
-- `docs/engine-architecture/runtime-tech-stack.md` 仍声称 Kira 未引入且 Sound 使用旧 CPAL/custom mixer，形成第二份陈旧真相。
+- `docs/architecture/runtime-tech-stack.md` 仍声称 Kira 未引入且 Sound 使用旧 CPAL/custom mixer，形成第二份陈旧真相。
 
 第三项完整套件失败来自 Runtime06 plugin public-surface 审计，独立归 Runtime06，不属于本节点。
 

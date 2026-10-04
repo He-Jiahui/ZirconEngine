@@ -103,4 +103,5 @@ pub(super) fn projected_popup_frame(
 }
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

@@ -135,11 +135,9 @@ fn optimization_batch_20260826bp_compute_pipeline_mru_hash_bypass_p95() {
         use_counter,
     );
     let use_counter = cache.next_use_counter();
-    assert!(
-        cache
-            .matching_mru_entry(&source, "cs_main", &bindings, use_counter)
-            .is_some()
-    );
+    assert!(cache
+        .matching_mru_entry(&source, "cs_main", &bindings, use_counter)
+        .is_some());
 
     let mut hashed_samples = Vec::with_capacity(SAMPLE_COUNT);
     let mut mru_samples = Vec::with_capacity(SAMPLE_COUNT);

@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use zircon_runtime::asset::{validate_sprite_atlas_asset, SpriteAtlasAsset};
 
 #[cfg(test)]
-#[path = "cache/hash_index_tests.rs"]
+#[path = "cache/tests/hash_index_tests.rs"]
 mod hash_index_tests;
 
 const MAX_ATLAS_MANIFEST_CACHE_ENTRIES: usize = 64;
@@ -16,32 +16,49 @@ struct AtlasCacheKey {
     path: PathBuf,
 }
 
+#[derive(Default)]
+pub(super) struct AtlasManifestCache {
+    entries: Mutex<HashMap<AtlasCacheKey, Option<Arc<SpriteAtlasAsset>>>>,
+}
+
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn load_atlas_manifest(
     path: &Path,
-) -> Option<SpriteAtlasAsset> {
-    let key = AtlasCacheKey::from_path(path);
-    let cache = ATLAS_MANIFEST_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-    if let Some(cached) = cache
-        .lock()
-        .unwrap_or_else(|poison| poison.into_inner())
-        .get(&key)
-    {
-        return cached.clone();
-    }
+) -> Option<Arc<SpriteAtlasAsset>> {
+    ATLAS_MANIFEST_CACHE
+        .get_or_init(AtlasManifestCache::default)
+        .load(path)
+}
 
-    let atlas = fs::read_to_string(path)
-        .ok()
-        .and_then(|document| toml::from_str::<SpriteAtlasAsset>(&document).ok())
-        .filter(|atlas| validate_sprite_atlas_asset(atlas).is_ok());
-    let mut cache = cache.lock().unwrap_or_else(|poison| poison.into_inner());
-    insert_cached_manifest(&mut cache, key, atlas.clone());
-    atlas
+impl AtlasManifestCache {
+    pub(super) fn load(&self, path: &Path) -> Option<Arc<SpriteAtlasAsset>> {
+        let key = AtlasCacheKey::from_path(path);
+        if let Some(cached) = self
+            .entries
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner())
+            .get(&key)
+        {
+            return cached.clone();
+        }
+
+        let atlas = fs::read_to_string(path)
+            .ok()
+            .and_then(|document| toml::from_str::<SpriteAtlasAsset>(&document).ok())
+            .filter(|atlas| validate_sprite_atlas_asset(atlas).is_ok())
+            .map(Arc::new);
+        let mut cache = self
+            .entries
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner());
+        insert_cached_manifest(&mut cache, key, atlas.clone());
+        atlas
+    }
 }
 
 fn insert_cached_manifest(
-    cache: &mut HashMap<AtlasCacheKey, Option<SpriteAtlasAsset>>,
+    cache: &mut HashMap<AtlasCacheKey, Option<Arc<SpriteAtlasAsset>>>,
     key: AtlasCacheKey,
-    atlas: Option<SpriteAtlasAsset>,
+    atlas: Option<Arc<SpriteAtlasAsset>>,
 ) {
     if !cache.contains_key(&key) && cache.len() >= MAX_ATLAS_MANIFEST_CACHE_ENTRIES {
         if let Some(evicted_key) = cache.keys().min().cloned() {
@@ -55,6 +72,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn clear_a
 ) {
     if let Some(cache) = ATLAS_MANIFEST_CACHE.get() {
         cache
+            .entries
             .lock()
             .unwrap_or_else(|poison| poison.into_inner())
             .clear();
@@ -69,5 +87,4 @@ impl AtlasCacheKey {
     }
 }
 
-static ATLAS_MANIFEST_CACHE: OnceLock<Mutex<HashMap<AtlasCacheKey, Option<SpriteAtlasAsset>>>> =
-    OnceLock::new();
+static ATLAS_MANIFEST_CACHE: OnceLock<AtlasManifestCache> = OnceLock::new();

@@ -7,6 +7,7 @@ use super::{
 };
 
 /// Diagnostics snapshot for an already-sorted render phase queue.
+/// 计数面向具体阶段，跨度面向共享队列优先级；诊断端不可把跨度当成单阶段范围。/// Diagnostics snapshot for an already-sorted render phase queue.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RenderPhaseQueueSummary {
     pub item_count: usize,
@@ -225,23 +226,9 @@ fn phase_diagnostic_name(phases: &[RenderPhase]) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn summary_updates_phase_and_order_rows_without_per_item_linear_search() {
-        let source = include_str!("phase_queue_summary.rs");
-
-        assert!(source.contains(concat!("phase_count_index", "(item.phase)")));
-        assert!(source.contains(concat!("usize::from(item.phase.", "queue_order())")));
-        assert!(!source.contains(concat!(".find(|count| count.phase", " == item.phase)")));
-        assert!(!source.contains(concat!(
-            ".find(|span| span.phase_order",
-            " == item.phase.queue_order())"
-        )));
-        assert!(!source.contains(concat!(".collect::<Vec<_>>()", ".join(\"+\")")));
-        assert!(source.contains(concat!("String::with_", "capacity(capacity)")));
-    }
-}
+#[path = "tests/phase_queue_summary.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "phase_queue_summary/ordered_span_build_tests.rs"]
+#[path = "phase_queue_summary/tests/ordered_span_build_tests.rs"]
 mod ordered_span_build_tests;

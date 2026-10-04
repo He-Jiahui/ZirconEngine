@@ -47,5 +47,5 @@ pub(super) fn normalized_asset_relative_path(source: &str) -> PathBuf {
 }
 
 #[cfg(test)]
-#[path = "paths/borrowed_normalization_tests.rs"]
+#[path = "paths/tests/borrowed_normalization_tests.rs"]
 mod borrowed_normalization_tests;

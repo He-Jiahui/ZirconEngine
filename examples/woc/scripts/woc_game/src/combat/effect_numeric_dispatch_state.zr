@@ -58,6 +58,7 @@ class NumericEntity {
     }
 }
 
+/// 世界可加载的一次性数值效果投影，预置随机流与目标光环列须和当前权威实体一致；输出伤害、治疗和周期应用请求须由世界逐项消费，重复读取会重复效果。
 class NumericDispatchState {
     pub var source: NumericEntity;
     pub var target: NumericEntity;
@@ -137,6 +138,7 @@ class NumericDispatchState {
 // A pure periodic-damage spell snapshots the selected source power when its
 // effect actually applies. WOS84 persists this compact profile beside its
 // generic DoT row, so restore validation never reuses a later gear value.
+/// 记录纯周期伤害在应用时采用的能力、强度与总额解析结果；恢复校验必须与当时存档的快照强度比较，不能改用后来装备的数值。
 class PureDotProfile {
     pub var valid: bool;
     pub var snapshotPower: int;
@@ -283,6 +285,7 @@ scalingPower(state: NumericDispatchState, abilityIndex: int, school: string): fl
     );
 }
 
+/// 世界给出本次已解析的总伤害与能力来源强度后计算可持久化周期档案；不合法的目录、rank或周期返回无效档案，调用方必须先检查 valid。
 pub dotProfileFromResolvedTotal(
     abilityIndex: int,
     rank: int,
@@ -727,6 +730,7 @@ pub dispatchNumericEffect(
     return true;
 }
 
+/// 在同一能力的效果序列中保留数值效果的随机消耗和目标死亡边界；世界目前只在特定治疗与审判路径消费其结果，其余能力不能假设已走通用派发。
 pub dispatchNumericAbility(
     state: NumericDispatchState,
     abilityIndex: int,

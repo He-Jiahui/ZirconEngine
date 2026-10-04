@@ -6,6 +6,7 @@ use super::identity::ChartKind;
 
 const MUI_X_CHART_INSET: f32 = 8.0;
 
+/// 组件外框与绘图区先由此入口定界；部分图种再以缓存位图叠加，避免通用回退重复绘制。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_chart(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
@@ -75,29 +76,5 @@ fn chart_surface_color_from_host(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
-
-    #[test]
-    fn mui_x_chart_surface_colors_project_from_host_palette() {
-        let mut palette = PALETTE;
-        palette.surface = [10, 11, 12, 255];
-        palette.surface_inset = [20, 21, 22, 255];
-        palette.warning_container = [30, 31, 32, 255];
-
-        let normal_node = TemplatePaneNodeData::default();
-        let mut loading_node = TemplatePaneNodeData::default();
-        loading_node.component_variant = "mui-chart-loading".into();
-
-        assert_eq!(chart_plot_color_from_host(palette), [10, 11, 12, 255]);
-        assert_eq!(
-            chart_surface_color_from_host(&normal_node, palette),
-            [20, 21, 22, 255]
-        );
-        assert_eq!(
-            chart_surface_color_from_host(&loading_node, palette),
-            [30, 31, 32, 255]
-        );
-    }
-}
+#[path = "tests/surface.rs"]
+mod tests;

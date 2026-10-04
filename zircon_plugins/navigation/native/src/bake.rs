@@ -145,6 +145,7 @@ impl RecastBackend {
         ))
     }
 
+    /// 在传入原生层前校验三角形索引与有限坐标；结果转换后总是释放原生输出数组。
     pub fn bake_triangle_mesh(
         &self,
         input: RecastBakeMeshInput,
@@ -197,6 +198,7 @@ impl RecastBackend {
 
         let ffi_settings = RecastBakeSettings::default().to_ffi();
         let mut ffi_result = ZrNavRecastBakeResult::default();
+        // SAFETY: 顶点和索引数组在调用期间存活，长度与传入计数一致，输出指向可写结果。
         unsafe {
             ffi::zr_nav_recast_bake_triangle_mesh(
                 flat_vertices.as_ptr(),
@@ -211,6 +213,7 @@ impl RecastBackend {
         }
 
         let result = native_bake_result_to_asset(input.agent_type, &mut ffi_result);
+        // SAFETY: 转换已复制所需数据，结果由本次原生烘焙初始化并只在此处释放一次。
         unsafe {
             ffi::zr_nav_recast_free_bake_result(&mut ffi_result);
         }
@@ -284,6 +287,7 @@ impl RecastBackend {
             bounds_max: tile.bounds_max,
         };
         let mut ffi_result = ZrNavRecastBakeResult::default();
+        // SAFETY: 分块计划的数组在调用期间存活，计数对应原始输入，输出结果可写。
         unsafe {
             ffi::zr_nav_recast_bake_tile(
                 plan.flat_vertices.as_ptr(),
@@ -298,6 +302,7 @@ impl RecastBackend {
             );
         }
         let result = native_bake_result_to_asset(input.agent_type.clone(), &mut ffi_result);
+        // SAFETY: 分块结果已被复制，原生分配仍归本次结果所有且仅释放一次。
         unsafe {
             ffi::zr_nav_recast_free_bake_result(&mut ffi_result);
         }
@@ -487,6 +492,7 @@ fn native_bake_result_to_asset(
     let vertex_values = if result.vertex_count == 0 {
         &[][..]
     } else {
+        // SAFETY: 非零顶点计数对应原生结果持有的连续三坐标数组，释放前先复制。
         unsafe { slice::from_raw_parts(result.vertices, result.vertex_count as usize * 3) }
     };
     let vertices = vertex_values
@@ -496,11 +502,13 @@ fn native_bake_result_to_asset(
     let indices = if result.index_count == 0 {
         Vec::new()
     } else {
+        // SAFETY: 非零索引计数对应原生结果持有的连续索引数组，释放前先复制。
         unsafe { slice::from_raw_parts(result.indices, result.index_count as usize) }.to_vec()
     };
     let polygon_values = if result.polygon_count == 0 {
         &[][..]
     } else {
+        // SAFETY: 非零多边形计数对应原生结果持有的有效数组，释放前先复制。
         unsafe { slice::from_raw_parts(result.polygons, result.polygon_count as usize) }
     };
     let polygons = polygon_values
@@ -515,6 +523,7 @@ fn native_bake_result_to_asset(
     let tile_values = if result.tile_count == 0 {
         &[][..]
     } else {
+        // SAFETY: 非零瓦片计数对应原生结果持有的有效数组，释放前先复制。
         unsafe { slice::from_raw_parts(result.tiles, result.tile_count as usize) }
     };
     let tiles = tile_values
@@ -550,6 +559,7 @@ fn native_bake_result_to_asset(
 }
 
 fn native_bake_message(result: &ZrNavRecastBakeResult) -> String {
+    // SAFETY: 固定长度消息缓冲区由默认零值初始化，原生写入保留 NUL 终止符。
     unsafe { CStr::from_ptr(result.message.as_ptr()) }
         .to_string_lossy()
         .trim()
@@ -557,30 +567,5 @@ fn native_bake_message(result: &ZrNavRecastBakeResult) -> String {
 }
 
 #[cfg(test)]
-mod plan_tests {
-    use std::sync::Arc;
-
-    use super::*;
-
-    #[test]
-    fn tiled_plan_clones_share_prepared_mesh_buffers() {
-        let plan = RecastBackend::default()
-            .prepare_tiled_bake(RecastTiledBakeInput {
-                mesh: RecastBakeMeshInput {
-                    agent_type: "humanoid".to_string(),
-                    vertices: vec![[-2.0, 0.0, -1.0], [2.0, 0.0, -1.0], [0.0, 0.0, 1.0]],
-                    indices: vec![0, 1, 2],
-                    triangle_areas: Vec::new(),
-                    default_area: 1,
-                },
-                tile_size: 1.0,
-            })
-            .unwrap();
-        let cloned = plan.clone();
-
-        assert!(Arc::ptr_eq(&plan.mesh, &cloned.mesh));
-        assert!(Arc::ptr_eq(&plan.flat_vertices, &cloned.flat_vertices));
-        assert!(Arc::ptr_eq(&plan.triangle_areas, &cloned.triangle_areas));
-        assert!(Arc::ptr_eq(&plan.tiles, &cloned.tiles));
-    }
-}
+#[path = "tests/bake_plan_tests.rs"]
+mod plan_tests;

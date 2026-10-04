@@ -9,7 +9,6 @@ origin_child_dir: docs/plans/zircon_runtime/shader/06
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/workflows/milestones.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_workflow_commit.WorkflowCommitTests.test_reconcile_accepted_milestone_copies_immutable_evidence_between_equal_topologies -v
 resolved_at: 2026-07-16

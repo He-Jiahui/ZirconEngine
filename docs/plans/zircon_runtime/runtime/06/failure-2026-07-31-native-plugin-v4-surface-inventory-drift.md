@@ -95,6 +95,31 @@ Runtime06 的审计清单仍冻结在 native namespace 68 个导出和 7 个 App
 
 Open state: `hard_cut_guard_red_production_scope_pending`; no fixed return or Runtime06 completion is claimed.
 
+### 2026-09-02 current-source namespace and owner sync
+
+- Current source has 70 flat `plugin::native` re-exports after discovery commands and
+  stable host handles moved behind their explicit `discovery` and `host` submodules.
+  The lifecycle inventory has 20 source files and two remaining `zircon_app`
+  `NativePlugin*` call-site files under `entry/product_composition`.
+- `NativePluginEditorCommandBinding` and
+  `NativePluginEditorCommandBindingError` retain the live native-library generation
+  snapshot used to invoke editor commands. They are now explicitly classified under
+  `native-live-host-runtime-public-debt`; they are not absorbed by the host-API adapter
+  or exposed from the broader `zircon_runtime::plugin` root.
+- The focused Python contract first reproduced two failures (`74 != 70`) plus the
+  unclassified-symbol risk. This sync updates the current-source expectations to
+  `20/70/6/2`, preserves the zero-unclassified and `risks = []` gates, and adds direct
+  assertions for both binding symbols.
+- This is a static audit repair only. The Rust mirror, managed native/plugin Cargo
+  validation, independent review, fixed return, and managed SHA remain pending, so
+  this failure stays open.
+- Static verification is GREEN for the owned boundary: focused inventory `17/17`,
+  the Runtime06-specific tech-stack upward case `1/1`, Python `py_compile`, and
+  scoped `git diff --check`. The full tech-stack suite is `6/8`; its two failures
+  are outside Runtime06 and report Runtime01 `wgpu`/`naga` version anchors plus
+  Runtime UI text/behavior document anchors. They are not hidden or absorbed by
+  this repair.
+
 ## 禁止临时方案
 
 - 不得把预期值退回 68/7、忽略新增 App 测试文件、放宽 `risks` 或允许 unclassified symbol。

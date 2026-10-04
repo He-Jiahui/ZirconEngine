@@ -1,3 +1,5 @@
+//! 为已按展示顺序排列的掩码文本建立仅含 display text 的字形工件。
+
 use std::sync::Arc;
 
 use zircon_runtime_interface::ui::surface::{
@@ -7,7 +9,7 @@ use zircon_runtime_interface::ui::surface::{
 use crate::core::framework::text::{TextDirection, TextLayoutError};
 use crate::text::font::FontCollectionSnapshot;
 use crate::text::shaping::{TextLayoutOutcome, TextShapingOutcome};
-use crate::text::{SharedTextLayoutSession, TextRange, text_style};
+use crate::text::{text_style, SharedTextLayoutSession, TextRange};
 
 use super::projection::{artifact_local_profile_metrics_enabled, project_shaped_run_for_artifact};
 use super::visual_projection::presentation_glyphs_for_line;
@@ -56,6 +58,7 @@ pub(crate) fn build_resolved_text_presentation_glyph_artifact(
             layout_line: line.clone(),
         }));
     }
+    // 字体集合在整批行之间必须保持同一代，否则句柄可能对应不同字体快照。
     if lines.is_empty()
         || !lines.iter().any(Option::is_some)
         || provider.font_collection_revision() != font_revision

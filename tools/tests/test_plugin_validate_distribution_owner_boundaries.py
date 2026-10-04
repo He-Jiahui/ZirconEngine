@@ -55,7 +55,7 @@ DISTRIBUTION_BOUNDARY_METHODS = (
     "test_distribution_dist_form_constant_does_not_borrow_build_owner",
 )
 
-
+# 验证校验分发归属边界的职责切分：分发边界移出通用归属文件，并分发契约位于分发契约归属。
 class PluginValidateDistributionOwnerBoundaryTests(unittest.TestCase):
     def test_distribution_boundaries_leave_general_owner_file(self):
         general_owner_text = PLUGIN_VALIDATE_OWNER_BOUNDARIES_TEST.read_text(

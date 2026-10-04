@@ -31,7 +31,7 @@ def function_header(source: str, signature: str) -> str:
     start = source.index(signature)
     return source[start : source.index("{", start)]
 
-
+# 读取实现源码约束借用 ZRVM 导出参数：导出调用不克隆持有宿主参数，并导出调用转换每个借用参数直接。
 class BorrowedZrVmExportArgumentsPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

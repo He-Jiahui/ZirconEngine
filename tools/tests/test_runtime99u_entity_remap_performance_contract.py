@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+# 实体重映射复用后继探测并压缩走过的链，已占用 ID 的后继结果留在缓存；行为与发布基准分别绑定事务入口。
 import unittest
 from pathlib import Path
 

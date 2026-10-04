@@ -1,7 +1,9 @@
+//! 创建从粗粒度运动矢量瓦片读取邻域最大值的片元管线，输出固定的 RGBA16Float 运动纹理。
 const MOTION_VECTOR_NEIGHBOR_MAX_SHADER: &str =
     include_str!("../../../shaders/motion_vector_neighbor_max.wgsl");
 const MOTION_VECTOR_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
 
+/// 将邻域最大值着色器绑定到单纹理布局，供运动模糊和后续后处理阶段消费。
 pub(super) fn motion_vector_neighbor_max_pipeline(
     device: &wgpu::Device,
     motion_vector_neighbor_max_bind_group_layout: &wgpu::BindGroupLayout,
@@ -44,39 +46,5 @@ pub(super) fn motion_vector_neighbor_max_pipeline(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::MOTION_VECTOR_NEIGHBOR_MAX_SHADER;
-
-    fn validate_shader_source(name: &str, shader_source: &str) {
-        let module = naga::front::wgsl::parse_str(shader_source)
-            .unwrap_or_else(|error| panic!("{name}: {}", error.emit_to_string(shader_source)));
-        let mut validator = naga::valid::Validator::new(
-            naga::valid::ValidationFlags::all(),
-            naga::valid::Capabilities::all(),
-        );
-        validator
-            .validate(&module)
-            .unwrap_or_else(|error| panic!("{name}: {error}"));
-    }
-
-    #[test]
-    fn motion_vector_neighbor_max_shader_parses_and_selects_dominant_neighbor() {
-        validate_shader_source(
-            "motion_vector_neighbor_max.wgsl",
-            MOTION_VECTOR_NEIGHBOR_MAX_SHADER,
-        );
-        assert!(
-            MOTION_VECTOR_NEIGHBOR_MAX_SHADER
-                .contains("@group(0) @binding(0) var motion_vector_tile_max_coarse_tex")
-        );
-        assert!(MOTION_VECTOR_NEIGHBOR_MAX_SHADER.contains("textureDimensions"));
-        assert!(MOTION_VECTOR_NEIGHBOR_MAX_SHADER.contains("fn choose_motion_vector_neighbor_max"));
-        assert!(MOTION_VECTOR_NEIGHBOR_MAX_SHADER.contains("fn motion_vector_neighbor_max"));
-        assert!(
-            MOTION_VECTOR_NEIGHBOR_MAX_SHADER
-                .contains("textureLoad(motion_vector_tile_max_coarse_tex")
-        );
-        assert!(MOTION_VECTOR_NEIGHBOR_MAX_SHADER.contains("full_res_coord / vec2<u32>(4u, 4u)"));
-        assert!(MOTION_VECTOR_NEIGHBOR_MAX_SHADER.contains("coord_i32 + vec2<i32>(1, 1)"));
-    }
-}
+#[path = "tests/motion_vector_neighbor_max_pipeline.rs"]
+mod tests;

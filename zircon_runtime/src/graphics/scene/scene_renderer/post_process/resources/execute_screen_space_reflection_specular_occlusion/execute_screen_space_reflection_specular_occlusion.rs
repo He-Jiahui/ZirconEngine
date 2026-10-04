@@ -11,6 +11,8 @@ use super::super::execute_post_process::{
 };
 
 impl ScenePostProcessResources {
+    /// 为 SSR 解析预先生成高光遮挡权重，图执行器提供深度及可用的几何/历史辅助资源。
+    /// 当前写入遮挡附件使用中性采样占位，避免反馈读写；默认曝光和其他占位使此阶段不承担显示变换。
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn execute_screen_space_reflection_specular_occlusion(
         &self,
@@ -112,17 +114,5 @@ impl ScenePostProcessResources {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn specular_occlusion_params_are_returned_as_pre_submit_uploads() {
-        let source = include_str!("execute_screen_space_reflection_specular_occlusion.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("specular-occlusion source");
-
-        assert!(!production.contains("queue.write_buffer"));
-        assert!(!production.contains("create_post_process_params_buffer"));
-        assert!(production.contains("post_process_params_upload("));
-    }
-}
+#[path = "tests/execute_screen_space_reflection_specular_occlusion.rs"]
+mod tests;

@@ -1,3 +1,4 @@
+# 动画编辑器扩展 crate 的依赖边界；作者界面经编辑器支持包注册，运行时能力另由 runtime crate 提供。
 [package]
 name = "zircon_plugin_animation_editor"
 version.workspace = true

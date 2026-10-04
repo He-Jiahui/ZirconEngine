@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 ARRANGED = ROOT / "zircon_runtime/src/ui/surface/arranged.rs"
 
-
+# 读取排列输入补丁实现，确认局部修改不重建整棵树，后代只按受影响集合更新。
 class RuntimeArrangedInputPatchPerformanceContractTests(unittest.TestCase):
     def test_input_patch_does_not_rebuild_or_replace_complete_arranged_nodes(self) -> None:
         source = ARRANGED.read_text(encoding="utf-8")

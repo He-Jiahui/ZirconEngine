@@ -2,44 +2,9 @@
 related_code:
   - .github/workflows/ci.yml
   - Cargo.toml
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/client.py
-  - tools/session_coordinator/config.py
-  - tools/session_coordinator/database.py
-  - tools/session_coordinator/migrations.py
-  - tools/session_coordinator/leases.py
-  - tools/session_coordinator/validation_tickets.py
-  - tools/session_coordinator/validation_ticket_worker.py
-  - tools/session_coordinator/validation_copies.py
-  - tools/session_coordinator/workspace_copy.py
-  - tools/session_coordinator/workspace_copy_terminal.py
-  - tools/session_coordinator/git_finalize.py
-  - tools/session_coordinator/git_index_lock.py
-  - tools/session_coordinator/integration_candidates.py
-  - tools/session_coordinator/artifact_governance.py
-  - tools/session_coordinator/control_plane/artifact_downloads.py
-  - tools/session_coordinator/offline_queue.py
-  - tools/session_coordinator/control_plane/http.py
-  - tools/session_coordinator/control_plane/router.py
-  - tools/session_coordinator/control_plane/actions/service.py
-  - tools/session_coordinator/control_plane/actions/executor.py
-  - tools/session_coordinator/control_plane/snapshot.py
-  - tools/session_coordinator/codex_sync/hook.py
-  - tools/session_coordinator/codex_sync/spool.py
-  - tools/session_coordinator/codex_sync/worker.py
-  - tools/session_coordinator/supervision/runtime_descriptor.py
-  - tools/session_coordinator/supervision/service.py
-  - tools/session_coordinator/web/package.json
-  - tools/session_coordinator/web/src/api/contracts.ts
-  - tools/session_coordinator/web/src/api/validation.ts
-  - tools/session_tray/Cargo.toml
-  - tools/session_tray/src/coordinator_client.rs
-  - tools/session_tray/src/runtime_descriptor.rs
-  - tools/session_tray/src/recovery.rs
-  - tools/session_tray/src/lifecycle.rs
-  - tools/install-codex-session-hook.ps1
-  - tools/install-session-coordinator-task.ps1
-  - tools/zircon-session.ps1
+  - tools/setup/install-codex-session-hook.ps1
+  - tools/setup/install-session-coordinator-task.ps1
+  - tools/dev/zircon-session.ps1
 tests:
   - tools/session_coordinator/tests/test_control_http.py
   - tools/session_coordinator/tests/test_control_snapshot.py
@@ -376,7 +341,7 @@ install/update仅在当前文件与managed object完全相等时视为configured
 
 ### TOOL-COORD-P1-045 · Scheduled Task运行mutable repo脚本和PATH Python
 
-任务动作指向工作树内 `tools/zircon-session.ps1 start -Automatic`，后续checkout可在未审核升级/部分更新状态执行；Python解析又依赖机器PATH。发布签名/versioned coordinator bundle，任务只启动稳定shim；升级采用staged install、health check和rollback。
+任务动作指向工作树内 `tools/dev/zircon-session.ps1 start -Automatic`，后续checkout可在未审核升级/部分更新状态执行；Python解析又依赖机器PATH。发布签名/versioned coordinator bundle，任务只启动稳定shim；升级采用staged install、health check和rollback。
 
 ### TOOL-COORD-P1-046 · Tray手写HTTP/1.0并无响应大小上限
 

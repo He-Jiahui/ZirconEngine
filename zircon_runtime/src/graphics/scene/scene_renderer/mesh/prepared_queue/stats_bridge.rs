@@ -69,6 +69,8 @@ impl PreparedMeshQueueStats {
         self.cache_invalidated_transform_count = command_stats.cache_invalidated_transform_count;
         self.cache_invalidated_geometry_count = command_stats.cache_invalidated_geometry_count;
         self.cache_invalidated_material_count = command_stats.cache_invalidated_material_count;
+        self.cache_invalidated_resolver_configuration_count =
+            command_stats.cache_invalidated_resolver_configuration_count;
         self.indirect_batch_count = command_stats.indirect_batch_count;
         self.indirect_batched_draw_count = command_stats.indirect_batched_draw_count;
         self.indirect_fallback_draw_count = command_stats.indirect_fallback_draw_count;

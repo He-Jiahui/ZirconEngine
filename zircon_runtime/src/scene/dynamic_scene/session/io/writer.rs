@@ -12,8 +12,8 @@ use crate::core::runtime::{
 use crate::core::{CoreHandle, CoreWeak};
 
 use super::super::{
-    MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES, RuntimeSessionArchiveArtifact,
-    RuntimeSessionArchiveError,
+    RuntimeSessionArchiveArtifact, RuntimeSessionArchiveError,
+    MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES,
 };
 use super::atomic::{
     admit_archive_path_write, reserve_archive_path_write, save_artifact_to_prepared_path_atomically,
@@ -84,7 +84,9 @@ enum RuntimeSessionArchiveWriterOwner {
 
 impl RuntimeSessionArchiveWriter {
     pub fn with_runtime(limits: RuntimeSessionArchiveWriterLimits, runtime: &CoreHandle) -> Self {
-        let scheduler = JobScheduler::from_pool(runtime.task_graph().worker_pool().clone());
+        let scheduler = runtime
+            .task_graph()
+            .scheduler(crate::core::TaskPoolKind::Compute);
         Self::with_owner(
             limits,
             scheduler,
@@ -211,4 +213,5 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
 }
 
 #[cfg(test)]
+#[path = "writer/tests/cases.rs"]
 mod tests;

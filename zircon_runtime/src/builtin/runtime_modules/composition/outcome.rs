@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::error::Error;
-use std::fmt;
+use std::fmt::{self, Write as _};
 use std::sync::Arc;
 
 use crate::core::runtime::FrozenModuleGraph;
@@ -72,17 +72,20 @@ impl RuntimeModuleCompositionRejection {
     }
 
     pub fn required_missing_summary(&self) -> String {
-        self.required_missing()
-            .iter()
-            .map(|entry| {
-                format!(
-                    "required runtime plugin {} is unavailable: {}",
-                    entry.runtime_id.label(),
-                    entry.reason
-                )
-            })
-            .collect::<Vec<_>>()
-            .join("; ")
+        let mut summary = String::new();
+        for (index, entry) in self.required_missing().iter().enumerate() {
+            if index > 0 {
+                summary.push_str("; ");
+            }
+            write!(
+                &mut summary,
+                "required runtime plugin {} is unavailable: {}",
+                entry.runtime_id.label(),
+                entry.reason
+            )
+            .expect("writing to a String cannot fail");
+        }
+        summary
     }
 
     pub fn fatal_messages(&self) -> Vec<String> {
@@ -158,3 +161,7 @@ fn reject(report: RuntimeModuleLoadReport) -> RuntimeModuleCompositionRejection 
         diagnostics: report.diagnostics,
     }
 }
+
+#[cfg(test)]
+#[path = "outcome/tests/required_missing_summary_tests.rs"]
+mod required_missing_summary_tests;

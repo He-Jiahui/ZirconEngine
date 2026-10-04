@@ -15,7 +15,6 @@ related_code:
   - zircon_runtime/src/core/runtime/lifecycle.rs
   - zircon_runtime/src/core/runtime/time.rs
   - zircon_runtime/src/core/runtime/descriptors/service_object.rs
-  - zircon_runtime/src/core/framework/state
   - zircon_runtime/src/core/runtime/tasks
   - zircon_runtime/src/core/runtime/modules
   - zircon_runtime/src/core/runtime/diagnostics
@@ -26,15 +25,15 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/generated_code_guard.rs
   - zircon_runtime/src/tests/runtime_absorption/core_spine_root_generated.rs
   - tools/tests/test_frameworks_02_core_error_single_source.py
-  - docs/zircon_runtime/core/root_surface.md
-  - docs/engine-architecture/generated-code-boundary.md
+  - docs/crates/zircon_runtime/core/root_surface.md
+  - docs/architecture/generated-code-boundary.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/core_spine_root_generated_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/core_spine_root_generated_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/generated_code_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/generated_code_markdown.py
-  - docs/zircon_app/export-bootstrap.md
+  - docs/crates/zircon_app/export-bootstrap.md
   - zircon_app/src/entry/export_bootstrap.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs
   - zircon_app/src/entry/tests/export_bootstrap.rs
@@ -117,7 +116,7 @@ last_refined: 2026-08-01
 
 #### 切片 1.1 归属矩阵定稿
 
-- 目标文件：本计划"状态与产出记录"节（矩阵落本文件）；`docs/engine-architecture/core-runtime-service-registry.md`（同步归属口径一节）。
+- 目标文件：本计划"状态与产出记录"节（矩阵落本文件）；`docs/architecture/core-runtime-service-registry.md`（同步归属口径一节）。
 - 改动形态：纯文档。逐件归属矩阵（候选口径，与 `20260604-1232` 会话对齐后定稿）：
 
   | 散件 | 调用面（实测文件数） | 候选归属 | 理由 |
@@ -160,7 +159,7 @@ last_refined: 2026-08-01
 
 #### 切片 1.2 foundation 重叠裁决
 
-- 目标文件：本计划状态节；`docs/zircon_runtime/`（foundation 镜像文档，执行时核验确切路径：`ls docs/zircon_runtime/`）。
+- 目标文件：本计划状态节；`docs/crates/zircon_runtime/`（foundation 镜像文档，执行时核验确切路径：`ls docs/crates/zircon_runtime/`）。
 - 改动形态：审计 `foundation/runtime/{config_manager.rs,event_manager.rs}` 是否含应属 core 原语的行为（超出"包装 ConfigStore/EventBus 为可注册 module"的部分），列清单逐条裁决单一 owner。`FoundationModule`/Driver 命名与注册角色保持。
 - 2026-06-12 定稿判词：
   - `foundation/runtime/config_manager.rs` 只负责磁盘路径、JSON 文件读写与 `CoreHandle::{store_config_value,load_config_value,snapshot_config_values}` 转接；底层配置存储仍归 `core::runtime::config_store`。
@@ -231,7 +230,7 @@ last_refined: 2026-08-01
 - `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_app`
 - `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipTest`（双下游回归，实测各 ≥10 文件引用 `zircon_runtime::core`）
 - 验收证据：`core/` 根目录列表与定稿口径一致；全量 lib 测试无回归。
-- 文档：`docs/zircon_runtime/core/**` 按源码镜像同步；`docs/engine-architecture/core-runtime-service-registry.md` 路径引用刷新。
+- 文档：`docs/crates/zircon_runtime/core/**` 按源码镜像同步；`docs/architecture/core-runtime-service-registry.md` 路径引用刷新。
 
 ### M3 lib.rs 别名块清理（结构已落地，受管验证待闭合）
 
@@ -259,7 +258,7 @@ last_refined: 2026-08-01
 
 #### 切片 4.1 标记规范定稿与分类裁决
 
-- 目标文件：`docs/engine-architecture/`（generated 边界文档，执行时核验既有文件名：`ls docs/engine-architecture/ | grep -i generat`，有则增量无则新建 `generated-code-boundary.md`）；本计划状态节（42 文件裁决清单）。
+- 目标文件：`docs/architecture/`（generated 边界文档，执行时核验既有文件名：`ls docs/architecture/ | grep -i generat`，有则增量无则新建 `generated-code-boundary.md`）；本计划状态节（42 文件裁决清单）。
 - 改动形态：纯文档 + 裁决。规范定稿：真生成物文件首行必须 `// @generated <generator> - do not edit by hand`（当前真实文件头合规项为 0）。42 个词根命中文件三分类：真生成物（补标记）、领域词（白名单：`asset/assets/mesh/normals.rs` 法线生成、`core/runtime/diagnostics/profiling/*` hotspot 用语、测试夹具）、生成器模板源（`export_build_plan/generated_files.rs`、`export_generated_file.rs`、`native_plugin_load_manifest_template.rs` 等——是手写 owner，非生成物）。
 - 调用方迁移：无。
 - 验收：40 文件清单全部有判词，违规项（生成物含行为逻辑）单列迁移清单。
@@ -285,7 +284,7 @@ last_refined: 2026-08-01
 
 - `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -LibTests -TestFilter generated`
 - `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter export_build_plan`（生成器族无回归）
-- 验收证据：守卫进 CI 路径；`docs/engine-architecture/` generated 边界文档刷新（该文档在 `20260604-1232` 会话 touched 清单内，执行前对齐）。
+- 验收证据：守卫进 CI 路径；`docs/architecture/` generated 边界文档刷新（该文档在 `20260604-1232` 会话 touched 清单内，执行前对齐）。
 
 ## 状态与产出记录
 

@@ -18,17 +18,20 @@ mod failure;
 mod first_present;
 mod focus_observer;
 mod handle;
+mod hierarchy_pointer_route;
 mod lifecycle;
 mod metadata;
 mod presentation;
 mod redraw;
 #[cfg(test)]
+#[path = "window/tests/test_support.rs"]
 mod test_support;
 mod text_input;
 
 pub(crate) use first_present::FirstPresentNotificationError;
 pub(crate) use focus_observer::NativeWindowFocusObserverError;
 pub(crate) use handle::{HostWindowHandle, HostWindowSnapshot};
+pub(crate) use hierarchy_pointer_route::HierarchyPointerSource;
 
 pub(crate) fn primary_host_window_id() -> UiWindowId {
     UiWindowId::new(constants::NATIVE_HOST_WINDOW_ID)
@@ -36,6 +39,7 @@ pub(crate) fn primary_host_window_id() -> UiWindowId {
 
 #[derive(Clone)]
 pub(crate) struct UiHostWindow {
+    _font_assets: Rc<zircon_runtime::ui::surface::UiHostFontAssets>,
     state: Rc<RefCell<HostContractState>>,
     event_wake: event_wake::HostEventLoopWake,
     visual_asset_wake: event_wake::HostEventLoopWake,
@@ -110,6 +114,7 @@ impl Drop for ProfileArtifactJobOwner {
 }
 
 #[cfg(test)]
+#[path = "window/tests/profile_artifact_job_tests.rs"]
 mod profile_artifact_job_tests;
 #[cfg(test)]
 mod tests;

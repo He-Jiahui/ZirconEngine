@@ -1,16 +1,17 @@
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::hint::black_box;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::Arc;
 use std::time::Instant;
 
 use zircon_runtime::core::framework::render::{
-    AdvancedPbrMaterialFrameUsage, CameraRenderDescriptor, EnvironmentExtract, FallbackSkyboxKind,
-    PostProcessVolumeExtract, PreviewEnvironmentExtract, ProbeInfluenceShape, ReflectionProbeData,
-    RenderCameraOrderInput, RenderDirectionalLightSnapshot, RenderFrameExtract, RenderLayerSet,
-    RenderOverlayExtract, RenderParticlePreviousSpriteSnapshot, RenderParticleSpriteSnapshot,
-    RenderSceneGeometryExtract, RenderWorldSnapshotHandle, SceneViewportRenderPacket,
-    SourceCubemapEnvironment, SourceCubemapMipChain, SubsurfaceProfileData, sort_render_cameras,
+    sort_render_cameras, AdvancedPbrMaterialFrameUsage, CameraRenderDescriptor, EnvironmentExtract,
+    FallbackSkyboxKind, PostProcessVolumeExtract, PreviewEnvironmentExtract, ProbeInfluenceShape,
+    ReflectionProbeData, RenderCameraOrderInput, RenderDirectionalLightSnapshot,
+    RenderFrameExtract, RenderLayerSet, RenderOverlayExtract, RenderParticlePreviousSpriteSnapshot,
+    RenderParticleSpriteSnapshot, RenderSceneGeometryExtract, RenderWorldSnapshotHandle,
+    SceneViewportRenderPacket, SourceCubemapEnvironment, SourceCubemapMipChain,
+    SubsurfaceProfileData,
 };
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::math::{Quat, Vec3};
@@ -125,11 +126,8 @@ fn renderer_owned_environment_source_override_avoids_shared_environment_domain_c
     let hydrated_source = source_cubemap_environment();
     for probe_count in [1, MID_LIGHT_COUNT, LARGE_LIGHT_COUNT] {
         let extract = render_frame_extract_with_probes(probe_count);
-        let legacy = profile_legacy_shared_environment_write(
-            &extract,
-            hydrated_source.as_ref(),
-            probe_count,
-        );
+        let legacy =
+            profile_legacy_shared_environment_write(&extract, &hydrated_source, probe_count);
         let renderer_owned = profile_renderer_owned_environment_override(&hydrated_source);
         print_environment_profile("legacy_shared_environment_write", probe_count, legacy);
         print_environment_profile(
@@ -154,8 +152,12 @@ fn renderer_owned_environment_source_override_avoids_shared_environment_domain_c
 fn renderer_owned_particle_history_avoids_shared_particle_domain_cow() {
     for particle_count in [1, MID_LIGHT_COUNT, LARGE_LIGHT_COUNT] {
         let extract = render_frame_extract_with_particles(particle_count);
-        let previous_sprites =
-            vec![RenderParticlePreviousSpriteSnapshot::default(); particle_count];
+        let previous_sprites = extract
+            .particles
+            .sprites
+            .iter()
+            .map(RenderParticlePreviousSpriteSnapshot::from_current)
+            .collect::<Vec<_>>();
         let legacy = profile_legacy_shared_particle_history_write(
             &extract,
             &previous_sprites,
@@ -189,7 +191,7 @@ fn renderer_owned_particle_history_avoids_shared_particle_domain_cow() {
 fn renderer_owned_post_process_snapshot_avoids_camera_loop_source_clones() {
     for volume_count in [1, MID_LIGHT_COUNT, LARGE_LIGHT_COUNT] {
         let extract = render_frame_extract_with_post_process_volumes(volume_count);
-        let renderer_snapshot = Arc::new(extract.post_process.clone());
+        let renderer_snapshot = extract.post_process.clone();
         let legacy = profile_legacy_camera_loop_post_process_clones(&extract, volume_count);
         let renderer_owned = profile_renderer_owned_post_process_sharing(&renderer_snapshot);
         print_post_process_profile(
@@ -405,12 +407,10 @@ fn profile_legacy_camera_loop_post_process_clones(
     })
 }
 
-fn profile_renderer_owned_post_process_sharing(
-    snapshot: &Arc<zircon_runtime::core::framework::render::PostProcessExtract>,
-) -> ProfileSummary {
+fn profile_renderer_owned_post_process_sharing<T: Clone>(snapshot: &T) -> ProfileSummary {
     for _ in 0..WARMUP_COUNT {
         for _ in 0..CAMERA_SUBMISSION_COUNT {
-            black_box(Arc::clone(snapshot));
+            black_box(snapshot.clone());
         }
     }
 
@@ -418,7 +418,7 @@ fn profile_renderer_owned_post_process_sharing(
         begin_profile();
         let started = Instant::now();
         for _ in 0..CAMERA_SUBMISSION_COUNT {
-            black_box(Arc::clone(snapshot));
+            black_box(snapshot.clone());
         }
         let elapsed = started.elapsed().as_nanos() as u64;
         let allocations = finish_profile();

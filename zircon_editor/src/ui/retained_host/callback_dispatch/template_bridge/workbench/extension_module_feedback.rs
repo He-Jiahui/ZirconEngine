@@ -18,24 +18,38 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         &mut self,
         action_id: &str,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        let Some(feedback) = extension_module_feedback(action_id) else {
-            return Ok(());
-        };
-        let output_text = live_input_summary::for_command(self, action_id)
-            .unwrap_or_else(|| feedback.output_text.to_string());
+        let (output_control_id, status_text, output_text) =
+            if action_id == "workbench.extension.icon_library.find_usage.invoke" {
+                (
+                    "WorkbenchExtensionIconLibraryOutputRow",
+                    self.i18n
+                        .translate("workbench.extension.icon_library.find_usage.unavailable")
+                        .to_string(),
+                    self.i18n
+                        .translate("workbench.extension.icon_library.find_usage.no_scanner")
+                        .to_string(),
+                )
+            } else {
+                let Some(feedback) = extension_module_feedback(action_id) else {
+                    return Ok(());
+                };
+                let output_text = live_input_summary::for_command(self, action_id)
+                    .unwrap_or_else(|| feedback.output_text.to_string());
+                (
+                    feedback.output_control_id,
+                    feedback.status_text.to_string(),
+                    output_text,
+                )
+            };
 
-        self.mutate_control_property(
-            "WorkbenchStatusReady",
-            "text",
-            UiValue::String(feedback.status_text.to_string()),
-        )?;
+        self.mutate_control_property("WorkbenchStatusReady", "text", UiValue::String(status_text))?;
         self.mutate_control_property(
             "WorkbenchStatusMessages",
             "text",
             UiValue::String("1 Message".to_string()),
         )?;
         self.mutate_control_property(
-            feedback.output_control_id,
+            output_control_id,
             "value_text",
             UiValue::String(output_text),
         )?;
@@ -669,11 +683,6 @@ fn extension_module_feedback(action_id: &str) -> Option<ExtensionModuleFeedback>
             status_text: "Icon library opened",
             output_text: "Native extension workspace opened for icon-warning",
         },
-        "workbench.extension.icon_library.find_usage.invoke" => ExtensionModuleFeedback {
-            output_control_id: "WorkbenchExtensionIconLibraryOutputRow",
-            status_text: "Icon usage search queued",
-            output_text: "Usage search queued   icon-warning   14 references",
-        },
         "workbench.extension.icon_library.validate.invoke" => ExtensionModuleFeedback {
             output_control_id: "WorkbenchExtensionIconLibraryOutputRow",
             status_text: "Icon validation queued",
@@ -803,3 +812,7 @@ fn extension_module_feedback(action_id: &str) -> Option<ExtensionModuleFeedback>
     };
     Some(feedback)
 }
+
+#[cfg(test)]
+#[path = "tests/extension_module_feedback.rs"]
+mod tests;

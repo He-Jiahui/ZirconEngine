@@ -1,3 +1,4 @@
+//! 把物理描述符、项目身份、清单摘要及组合策略绑定为只读预检证据；引擎版本兼容只是准入的一项条件，调用端仍须核对信任、构建集合和项目租约。
 use std::path::Path;
 
 use zircon_runtime::asset::project::ResolvedProjectPath;
@@ -58,6 +59,19 @@ impl ProjectPreflightReceipt {
             manifest_migration,
             manifest_digest,
         })
+    }
+
+    pub(in crate::core::project) fn rebind_resolved_project_path(
+        self,
+        resolved_project_path: ResolvedProjectPath,
+    ) -> Result<Self, ProjectAuthorityError> {
+        Self::new(
+            resolved_project_path,
+            self.summary,
+            self.composition,
+            self.manifest_migration,
+            self.manifest_digest,
+        )
     }
 
     pub fn root(&self) -> &Path {

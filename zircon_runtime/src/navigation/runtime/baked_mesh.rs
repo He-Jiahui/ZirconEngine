@@ -305,11 +305,7 @@ impl BakedPolygon {
             .min(asset.indices.len());
         let index_set = &asset.indices[start.min(asset.indices.len())..end];
         let edge_keys = polygon_edge_keys(index_set);
-        let mut vertices = index_set
-            .iter()
-            .filter_map(|index| asset.vertices.get(*index as usize).copied())
-            .map(Vec3::from_array)
-            .collect::<Vec<_>>();
+        let mut vertices = polygon_vertices(asset, index_set);
         vertices.sort_by(|left, right| {
             left.x
                 .total_cmp(&right.x)
@@ -351,6 +347,17 @@ impl BakedPolygon {
         let y = self.center.y;
         Vec3::new(x, y, z)
     }
+}
+
+fn polygon_vertices(asset: &NavMeshAsset, index_set: &[u32]) -> Vec<Vec3> {
+    let mut vertices = Vec::with_capacity(index_set.len());
+    vertices.extend(
+        index_set
+            .iter()
+            .filter_map(|index| asset.vertices.get(*index as usize).copied())
+            .map(Vec3::from_array),
+    );
+    vertices
 }
 
 fn build_adjacency(polygons: &[BakedPolygon]) -> Vec<Vec<usize>> {
@@ -441,258 +448,16 @@ fn path_result(
     }
 }
 
-fn deduplicate_path_points(points: Vec<NavPathPoint>) -> Vec<NavPathPoint> {
-    let mut result = Vec::new();
-    for point in points {
-        let duplicate = result.last().is_some_and(|previous: &NavPathPoint| {
-            distance_xz(
-                Vec3::from_array(previous.position),
-                Vec3::from_array(point.position),
-            ) < 0.05
-        });
-        if !duplicate {
-            result.push(point);
-        }
-    }
-    result
+fn deduplicate_path_points(mut points: Vec<NavPathPoint>) -> Vec<NavPathPoint> {
+    points.dedup_by(|current, previous| {
+        distance_xz(
+            Vec3::from_array(previous.position),
+            Vec3::from_array(current.position),
+        ) < 0.05
+    });
+    points
 }
 
 #[cfg(test)]
-mod performance_contract_tests {
-    use super::*;
-
-    #[test]
-    fn adjacency_uses_the_shared_edge_index_not_rectangle_overlap() {
-        let shared_edge = polygon_edge_key(10, 11);
-        let adjacency = build_adjacency(&[
-            test_polygon(vec![shared_edge]),
-            test_polygon(vec![shared_edge]),
-            test_polygon(vec![polygon_edge_key(20, 21)]),
-        ]);
-
-        assert_eq!(adjacency, vec![vec![1], vec![0], Vec::new()]);
-    }
-
-    #[test]
-    fn triangle_indices_produce_canonical_undirected_edge_keys() {
-        assert_eq!(
-            polygon_edge_keys(&[7, 3, 5]),
-            vec![
-                polygon_edge_key(3, 5),
-                polygon_edge_key(3, 7),
-                polygon_edge_key(5, 7),
-            ]
-        );
-    }
-
-    #[test]
-    fn mesh_builder_connects_triangles_through_their_shared_edge() {
-        let mesh = BakedNavMesh::new(NavMeshAsset::from_triangle_mesh(
-            "fallback-test",
-            vec![
-                [0.0, 0.0, 0.0],
-                [1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0],
-                [1.0, 0.0, 1.0],
-            ],
-            vec![0, 1, 2, 2, 1, 3],
-            AREA_WALKABLE,
-        ));
-
-        assert_eq!(mesh.adjacency, vec![vec![1], vec![0]]);
-    }
-
-    #[test]
-    fn area_cost_lookup_is_precomputed_for_astar_edge_expansion() {
-        let source = include_str!("baked_mesh.rs")
-            .split_once("#[cfg(test)]")
-            .unwrap()
-            .0;
-
-        assert!(source.contains("area_costs: [Real; MAX_NAV_AREAS]"));
-        assert!(source.contains("self.area_costs[usize::from(area.min"));
-        assert!(!source.contains("\n    asset: NavMeshAsset,\n"));
-    }
-
-    #[test]
-    fn spatial_index_bounds_nearest_and_sample_polygon_candidates() {
-        let mesh = dense_grid_mesh(40);
-        let position = Vec3::new(17.25, 0.0, 13.25);
-
-        let mut nearest_work = MeshQueryWork::default();
-        let nearest = mesh.best_polygon_with_work(position, u64::MAX, &mut nearest_work);
-        assert!(nearest.is_some());
-        assert!(mesh.polygons[nearest.unwrap()].contains_xz(position));
-        assert!(
-            nearest_work.polygon_candidates < mesh.polygons.len() / 16,
-            "nearest query visited {} of {} polygons",
-            nearest_work.polygon_candidates,
-            mesh.polygons.len()
-        );
-
-        let mut sample_work = MeshQueryWork::default();
-        let sample = mesh.sample_position_with_work(position, 0.25, u64::MAX, &mut sample_work);
-        assert_eq!(sample.map(|hit| hit.position), Some(position.to_array()));
-        assert!(
-            sample_work.polygon_candidates < mesh.polygons.len() / 16,
-            "sample query visited {} of {} polygons",
-            sample_work.polygon_candidates,
-            mesh.polygons.len()
-        );
-    }
-
-    #[test]
-    fn spatial_index_work_stays_bounded_from_one_to_one_hundred_thousand_polygons() {
-        let cases = [
-            (single_triangle_mesh(), Vec3::new(0.25, 0.0, 0.25), 1..=1),
-            (
-                dense_grid_mesh(23),
-                Vec3::new(11.75, 0.0, 11.75),
-                1_000..=1_100,
-            ),
-            (
-                dense_grid_mesh(224),
-                Vec3::new(112.25, 0.0, 112.25),
-                100_000..=101_000,
-            ),
-        ];
-        for (mesh, position, expected_polygon_count) in cases {
-            assert!(expected_polygon_count.contains(&mesh.polygons.len()));
-
-            let mut nearest_work = MeshQueryWork::default();
-            let nearest = mesh.best_polygon_with_work(position, u64::MAX, &mut nearest_work);
-            assert!(
-                nearest.is_some(),
-                "{}-polygon mesh should resolve a nearest polygon",
-                mesh.polygons.len()
-            );
-            assert!(
-                nearest_work.polygon_candidates <= 64,
-                "nearest query visited {} candidates in a {}-polygon mesh",
-                nearest_work.polygon_candidates,
-                mesh.polygons.len()
-            );
-            assert!(
-                nearest_work.bvh_nodes <= 256,
-                "nearest query visited {} BVH nodes in a {}-polygon mesh",
-                nearest_work.bvh_nodes,
-                mesh.polygons.len()
-            );
-
-            let mut sample_work = MeshQueryWork::default();
-            let sample = mesh.sample_position_with_work(position, 0.25, u64::MAX, &mut sample_work);
-            assert!(
-                sample.is_some(),
-                "{}-polygon mesh should sample its containing polygon",
-                mesh.polygons.len()
-            );
-            assert!(
-                sample_work.polygon_candidates <= 64,
-                "sample query visited {} candidates in a {}-polygon mesh",
-                sample_work.polygon_candidates,
-                mesh.polygons.len()
-            );
-            assert!(
-                sample_work.bvh_nodes <= 256,
-                "sample query visited {} BVH nodes in a {}-polygon mesh",
-                sample_work.bvh_nodes,
-                mesh.polygons.len()
-            );
-        }
-    }
-
-    #[test]
-    fn query_scratch_uses_epochs_instead_of_clearing_every_polygon_slot() {
-        let source = include_str!("baked_mesh/query_scratch.rs");
-
-        assert!(source.contains("query_epoch"));
-        assert!(!source.contains("best_cost.fill("));
-        assert!(!source.contains("previous.fill("));
-        assert!(!source.contains("visited.fill("));
-    }
-
-    #[test]
-    fn path_queries_reuse_the_mesh_owned_bounded_scratch_slot() {
-        let mesh = dense_grid_mesh(8);
-        let first = mesh.find_path(grid_path_query());
-        assert_eq!(first.status, NavPathStatus::Complete);
-        let first_capacity = {
-            let scratch = mesh.query_scratch.lock().unwrap();
-            (
-                scratch.best_cost.capacity(),
-                scratch.previous.capacity(),
-                scratch.query_count,
-            )
-        };
-
-        let second = mesh.find_path(grid_path_query());
-        assert_eq!(second.status, NavPathStatus::Complete);
-        let scratch = mesh.query_scratch.lock().unwrap();
-        assert_eq!(scratch.best_cost.capacity(), first_capacity.0);
-        assert_eq!(scratch.previous.capacity(), first_capacity.1);
-        assert_eq!(scratch.query_count, first_capacity.2 + 1);
-    }
-
-    fn test_polygon(edge_keys: Vec<PolygonEdgeKey>) -> BakedPolygon {
-        BakedPolygon {
-            area: AREA_WALKABLE,
-            center: Vec3::ZERO,
-            min: Vec3::ZERO,
-            max: Vec3::ZERO,
-            edge_keys,
-        }
-    }
-
-    fn single_triangle_mesh() -> BakedNavMesh {
-        BakedNavMesh::new(NavMeshAsset::from_triangle_mesh(
-            "fallback-single-polygon",
-            vec![[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
-            vec![0, 1, 2],
-            AREA_WALKABLE,
-        ))
-    }
-
-    fn dense_grid_mesh(side: usize) -> BakedNavMesh {
-        let mut vertices = Vec::with_capacity((side + 1) * (side + 1));
-        for z in 0..=side {
-            for x in 0..=side {
-                vertices.push([x as Real, 0.0, z as Real]);
-            }
-        }
-
-        let mut indices = Vec::with_capacity(side * side * 6);
-        for z in 0..side {
-            for x in 0..side {
-                let row = side + 1;
-                let lower_left = (z * row + x) as u32;
-                let lower_right = lower_left + 1;
-                let upper_left = lower_left + row as u32;
-                let upper_right = upper_left + 1;
-                indices.extend_from_slice(&[
-                    lower_left,
-                    lower_right,
-                    upper_left,
-                    upper_left,
-                    lower_right,
-                    upper_right,
-                ]);
-            }
-        }
-        BakedNavMesh::new(NavMeshAsset::from_triangle_mesh(
-            "fallback-spatial-index",
-            vertices,
-            indices,
-            AREA_WALKABLE,
-        ))
-    }
-
-    fn grid_path_query() -> NavPathQuery {
-        NavPathQuery {
-            nav_mesh: None,
-            start: [0.1, 0.0, 0.1],
-            end: [7.5, 0.0, 7.5],
-            agent_type: "fallback-spatial-index".to_owned(),
-            area_mask: u64::MAX,
-        }
-    }
-}
+#[path = "tests/baked_mesh_performance_contract_tests.rs"]
+mod performance_contract_tests;

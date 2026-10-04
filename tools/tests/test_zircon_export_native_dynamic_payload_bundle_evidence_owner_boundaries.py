@@ -1,3 +1,4 @@
+# 核对平台包证据诊断从载荷模块分离。
 import unittest
 from pathlib import Path
 
@@ -5,11 +6,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PAYLOAD_PLATFORM_BUNDLE = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_payload_platform_bundle.py"
+    / "tools/export/pipeline_report_native_dynamic_payload_platform_bundle.py"
 )
 BUNDLE_EVIDENCE_OWNER = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_payload_bundle_evidence.py"
+    / "tools/export/pipeline_report_native_dynamic_payload_bundle_evidence.py"
 )
 
 

@@ -3,7 +3,7 @@ $builder = Join-Path $repoRoot 'tools\mvp\Build-MvpProductInputs.ps1'
 $manifestModule = Join-Path $repoRoot 'tools\mvp\MvpProductInputManifest.psm1'
 $productProfileRegistryModule = Join-Path $repoRoot 'tools\mvp\MvpProductProfileRegistry.psm1'
 $productProfileRegistryPath = Join-Path $repoRoot 'tools\mvp\mvp-product-profile-registry.json'
-$resolverModule = Join-Path $repoRoot 'tools\WindowsPathResolver.psm1'
+$resolverModule = Join-Path $repoRoot 'tools\maintenance\WindowsPathResolver.psm1'
 $originalTestMode = $env:MVP_PRODUCT_INPUTS_TEST_MODE
 
 Import-Module $resolverModule -Force -Global -ErrorAction Stop
@@ -28,7 +28,7 @@ Describe 'MVP product input build plan' {
 $ErrorActionPreference = 'Stop'
 $env:MVP_PRODUCT_INPUTS_TEST_MODE = '1'
 . '__BUILDER__'
-$target = Join-Path 'D:\ZirconBuilds' ('mvp-product-inputs-resolver-' + [guid]::NewGuid().ToString('N'))
+$target = Join-Path 'D:\cargo-targets' ('mvp-product-inputs-resolver-' + [guid]::NewGuid().ToString('N'))
 $resolved = Assert-MvpProductInputDirectory -Path $target
 if ([string]::IsNullOrWhiteSpace($resolved)) {
     throw 'Build product input resolver returned a blank operation path.'
@@ -242,14 +242,132 @@ if ([string]::IsNullOrWhiteSpace($resolved)) {
     It 'stages every product artifact before one atomic publication move' {
         $builderSource = Get-Content -LiteralPath $builder -Raw
 
-        $builderSource | Should Match '\$publicationDirectory = Join-ZirconWindowsPath -Path \$publicationParent -ChildPath \(\$publicationLeaf \+ "\.partial-" \+ \[guid\]::NewGuid\(\)\.ToString\("N"\)\)'
+        $builderSource | Should Match "'staging-acquire'"
+        $builderSource | Should Match "'--purpose', 'build-product-inputs'"
+        $builderSource | Should Match '\$publicationDirectory = \$stagingResolution\.OperationalPath'
+        $builderSource | Should Match 'mvp-product-inputs-build-product-inputs-\$productStagingLeaseId'
         $builderSource | Should Match '\$stagedGroupDirectory = Join-ZirconWindowsPath -Path \$publicationDirectory -ChildPath \$request\.OutputGroup'
         $builderSource | Should Match '"-ArtifactOutputDirectory", \$stagedGroupDirectory'
+        $builderSource | Should Match "'staging-begin-publish'"
         $builderSource | Should Match 'Publish-MvpProductInputPublicationRoot `'
         $builderSource | Should Match 'Move-ZirconWindowsPath -Source \$PublicationDirectory -Destination \$OutputDirectory -ApprovedRoot \$PublicationParent'
+        $builderSource | Should Match "'staging-complete-publish'"
+        $builderSource | Should Match "'staging-release'"
         $builderSource | Should Match 'Publish-MvpProductInputAbortReceipt'
         $builderSource | Should Not Match '\$publicationDirectory.+mvp-product-inputs-aborted\.json'
         $builderSource | Should Not Match '\[System\.IO\.Directory\]::CreateDirectory\(\$resolvedOutputDirectory\)'
+    }
+
+    It 'composes BuildSet children through the Windows path resolver' {
+        $builderSource = Get-Content -LiteralPath $builder -Raw
+
+        $builderSource | Should Match '\-RegistryPath \(Join-ZirconWindowsPath -Path \$buildSet\.snapshot_root -ChildPath ''tools\\mvp\\mvp-product-profile-registry\.json''\)'
+        $builderSource | Should Match '\$validator = \(Resolve-ZirconWindowsPath'
+        $builderSource | Should Match '\-Path \$buildSet\.snapshot_root'
+        $builderSource | Should Match '\)\.DisplayPath'
+        $builderSource | Should Not Match 'Join-Path \$buildSet\.snapshot_root'
+    }
+
+    Context 'coordinator-owned product publication' {
+        BeforeEach {
+            $fixtureName = 'mvp-product-inputs-fixture-' + [guid]::NewGuid().ToString('N')
+            $script:stagingFixtureOutput = (Resolve-ZirconWindowsPath -Path (Join-Path $TestDrive $fixtureName)).OperationalPath
+            $script:stagingFixtureParent = [IO.Path]::GetDirectoryName($script:stagingFixtureOutput)
+            $script:stagingFixtureLeaseId = 'a' * 32
+            $script:stagingFixturePath = Join-ZirconWindowsPath `
+                -Path $script:stagingFixtureParent `
+                -ChildPath "mvp-product-inputs-build-product-inputs-$script:stagingFixtureLeaseId"
+            $script:stagingFixtureCalls = [System.Collections.Generic.List[string]]::new()
+            $validator = Join-Path $TestDrive '.codex\skills\zircon-dev\scripts\validate-matrix.ps1'
+            [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($validator)) | Out-Null
+            [IO.File]::WriteAllText($validator, '', [Text.UTF8Encoding]::new($false))
+
+            Mock Assert-MvpProductInputDirectory { $script:stagingFixtureOutput }
+            Mock New-MvpProductBuildSet {
+                [pscustomobject]@{
+                    snapshot_root = $TestDrive
+                    manifest_path = (Join-Path $TestDrive 'build-set.json')
+                    build_set_id = 'A' * 64
+                    git_revision = 'b' * 40
+                    dirty_overlay_sha256 = 'C' * 64
+                }
+            }
+            Mock Get-MvpProductProfileRegistrySnapshot { [pscustomobject]@{ receipt = @{ sha256 = ('D' * 64) } } }
+            Mock Get-MvpProductBuildRequests { @() }
+            Mock Assert-MvpProductBuildSet { }
+            Mock Invoke-MvpProductStagingCoordinator {
+                $command = [string]$Arguments[0]
+                $script:stagingFixtureCalls.Add($command) | Out-Null
+                $status = switch ($command) {
+                    'staging-acquire' { 'active' }
+                    'staging-begin-publish' { 'publishing' }
+                    'staging-complete-publish' { 'published' }
+                    'staging-release' { 'released' }
+                    default { throw "Unexpected staging command: $command" }
+                }
+                [pscustomobject]@{
+                    lease = [pscustomobject]@{
+                        leaseId = $script:stagingFixtureLeaseId
+                        purpose = 'build-product-inputs'
+                        stagingPath = $script:stagingFixturePath
+                        finalPath = (Resolve-ZirconWindowsPath -Path $script:stagingFixtureOutput).DisplayPath
+                        ownerPid = $PID
+                        status = $status
+                    }
+                }
+            }
+        }
+
+        It 'publishes the leased tree before acknowledging the final product root' {
+            $summary = Invoke-MvpProductInputBuild -OutputDirectory $script:stagingFixtureOutput
+
+            @($script:stagingFixtureCalls) | Should Be @(
+                'staging-acquire', 'staging-begin-publish', 'staging-complete-publish')
+            [IO.Directory]::Exists($script:stagingFixturePath) | Should Be $false
+            [IO.File]::Exists((Join-ZirconWindowsPath -Path $script:stagingFixtureOutput -ChildPath 'mvp-product-inputs.json')) | Should Be $true
+            $summary.schema_version | Should Be 2
+        }
+
+        It 'removes the leased tree and releases its lease after a failed build' {
+            Mock Publish-MvpProductInputManifest { throw 'fixture manifest failure' }
+
+            { Invoke-MvpProductInputBuild -OutputDirectory $script:stagingFixtureOutput } |
+                Should Throw 'fixture manifest failure'
+
+            @($script:stagingFixtureCalls) | Should Be @('staging-acquire', 'staging-release')
+            [IO.Directory]::Exists($script:stagingFixturePath) | Should Be $false
+            [IO.Directory]::Exists($script:stagingFixtureOutput) | Should Be $false
+            $abortPath = $script:stagingFixtureOutput + '.aborted.json'
+            [IO.File]::Exists($abortPath) | Should Be $true
+            ([IO.File]::ReadAllText($abortPath) | ConvertFrom-Json).failure_kind | Should Be 'build_failed'
+        }
+
+        It 'does not remove a foreign empty output directory before a leased publication' {
+            Mock Publish-MvpProductInputManifest {
+                param([string]$Path)
+                [IO.Directory]::CreateDirectory($script:stagingFixtureOutput) | Out-Null
+                [IO.File]::WriteAllText($Path, '{}', [Text.UTF8Encoding]::new($false))
+            }
+
+            { Invoke-MvpProductInputBuild -OutputDirectory $script:stagingFixtureOutput } |
+                Should Throw 'publication target appeared after staging was acquired'
+
+            @($script:stagingFixtureCalls) | Should Be @('staging-acquire', 'staging-begin-publish')
+            [IO.Directory]::Exists($script:stagingFixtureOutput) | Should Be $true
+            [IO.Directory]::GetFileSystemEntries($script:stagingFixtureOutput).Count | Should Be 0
+            [IO.Directory]::Exists($script:stagingFixturePath) | Should Be $false
+        }
+
+        It 'preserves a pre-existing empty output directory without acquiring staging' {
+            [IO.Directory]::CreateDirectory($script:stagingFixtureOutput) | Out-Null
+
+            { Invoke-MvpProductInputBuild -OutputDirectory $script:stagingFixtureOutput } |
+                Should Throw 'publication target must not already exist'
+
+            @($script:stagingFixtureCalls).Count | Should Be 0
+            [IO.Directory]::Exists($script:stagingFixtureOutput) | Should Be $true
+            [IO.Directory]::GetFileSystemEntries($script:stagingFixtureOutput).Count | Should Be 0
+        }
     }
 
     It 'moves one completed staged publication root into an empty target' {
@@ -529,20 +647,20 @@ if ([string]::IsNullOrWhiteSpace($resolved)) {
     }
 
     It 'accepts only the dedicated physical MVP product-input root' {
-        $requestedPath = "D:\ZirconBuilds\mvp-product-inputs-contract-$([guid]::NewGuid().ToString('N'))"
+        $requestedPath = "D:\cargo-targets\mvp-product-inputs-contract-$([guid]::NewGuid().ToString('N'))"
 
         $resolved = Assert-MvpProductInputDirectory -Path $requestedPath
         $resolution = Resolve-ZirconWindowsPath -Path $requestedPath
 
         $resolved | Should Be $resolution.OperationalPath
-        $resolution.DisplayPath | Should Match '^D:\\ZirconBuilds\\mvp-product-inputs-'
+        $resolution.DisplayPath | Should Match '^D:\\cargo-targets\\mvp-product-inputs-'
     }
 
     It 'rejects output paths outside the dedicated physical MVP product-input root' {
         $messages = @(
             'C:\zircon-mvp-product-inputs',
-            'D:\ZirconBuilds\unscoped-product-inputs',
-            'E:\ZirconBuilds\mvp-product-inputs'
+            'D:\cargo-targets\unscoped-product-inputs',
+            'E:\ZirconBuilds\mvp-product-inputs-legacy'
         ) | ForEach-Object {
             try {
                 Assert-MvpProductInputDirectory -Path $_
@@ -572,11 +690,11 @@ if ([string]::IsNullOrWhiteSpace($resolved)) {
     }
 
     It 'keeps the resolver physical path for the dedicated product-input directory' {
-        $requestedPath = "D:\ZirconBuilds\mvp-product-inputs-physical-$([guid]::NewGuid().ToString('N'))"
+        $requestedPath = "D:\cargo-targets\mvp-product-inputs-physical-$([guid]::NewGuid().ToString('N'))"
         $resolvedPath = Assert-MvpProductInputDirectory -Path $requestedPath
         $resolution = Resolve-ZirconWindowsPath -Path $requestedPath
 
         $resolvedPath | Should Be $resolution.OperationalPath
-        $resolution.DisplayPath | Should Match '^D:\\ZirconBuilds\\mvp-product-inputs-physical-'
+        $resolution.DisplayPath | Should Match '^D:\\cargo-targets\\mvp-product-inputs-physical-'
     }
 }

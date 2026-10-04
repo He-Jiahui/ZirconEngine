@@ -438,8 +438,16 @@ impl DeleteNodeCommand {
         let root_id = self.root_id;
         let fallback = self.fallback_selection;
         let completion = execute_scene_write(context, |scene| {
+            let prepared = scene
+                .prepare_entity_subtrees([root_id])
+                .map_err(|error| scene_error("prepare scene subtree detach", error))?;
+            if prepared.affected_camera_count() >= prepared.world_camera_count() {
+                return Err(EditCommandError::InvariantViolation {
+                    invariant: "cannot delete the last remaining camera",
+                });
+            }
             let batch = scene
-                .remove_entity_recursive(root_id)
+                .remove_prepared_entity_subtrees(prepared)
                 .map_err(|error| scene_error("detach scene subtree", error))?;
             let active_camera = scene.active_camera();
             let mut items = before
@@ -935,31 +943,5 @@ fn reflect_error(message: String) -> EditCommandError {
 }
 
 #[cfg(test)]
-mod performance_source_guards {
-    #[test]
-    fn create_node_redo_clones_the_retained_record_only_once() {
-        let source = include_str!("command.rs");
-        let second_clone = ["insert_node_record", "(record.clone())"].concat();
-
-        assert!(!source.contains(&second_clone));
-    }
-
-    #[test]
-    fn delete_node_undo_keeps_only_the_move_only_runtime_inverse_delta() {
-        let source = include_str!("command.rs");
-        let start = source
-            .find("pub(crate) struct DeleteNodeCommand")
-            .expect("delete command declaration should remain available");
-        let end = source[start..]
-            .find("pub(crate) struct NodeEditState")
-            .map(|offset| start + offset)
-            .expect("delete command region should end before node edit state");
-        let delete_command = &source[start..end];
-
-        assert!(delete_command.contains("batch: Option<DetachedEntityBatch>"));
-        assert!(!delete_command.contains("records: Vec<NodeRecord>"));
-        assert!(!delete_command.contains("subtree_records("));
-        assert!(!delete_command.contains("insert_node_records("));
-        assert!(!delete_command.contains(".expect("));
-    }
-}
+#[path = "tests/command_performance_source_guards.rs"]
+mod performance_source_guards;

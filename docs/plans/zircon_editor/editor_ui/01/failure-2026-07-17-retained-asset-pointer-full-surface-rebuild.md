@@ -15,13 +15,11 @@ related_code:
   - zircon_editor/src/ui/retained_host/asset_pointer/content/layout.rs
   - zircon_editor/src/ui/retained_host/asset_pointer/reference/layout.rs
   - zircon_editor/src/ui/retained_host/asset_pointer/tree/layout.rs
-  - zircon_editor/src/ui/retained_host/hierarchy_pointer/rebuild_surface.rs
   - zircon_editor/src/ui/retained_host/hierarchy_pointer/handle_scroll.rs
   - zircon_editor/src/ui/retained_host/hierarchy_pointer/sync.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_handle_scroll.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/popup_layout.rs
-  - zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_rebuild_surface.rs
   - zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_handle_scroll.rs
   - zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_handle_move.rs
 reference_sources:

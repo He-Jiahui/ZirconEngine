@@ -10,10 +10,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/session_coordinator/codex_sync/durability.py
-  - tools/session_coordinator/codex_sync/spool.py
-  - tools/session_coordinator/tests/test_codex_durability.py
-  - tools/session_coordinator/tests/test_codex_spool.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_codex_durability -v
   - python -m unittest tools.session_coordinator.tests.test_codex_spool -v

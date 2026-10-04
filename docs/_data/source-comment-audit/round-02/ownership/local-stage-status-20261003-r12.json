@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "path": "E:\\Git\\ZirconEngine\\docs\\plans\\zircon_tooling\\source_comment_audit\\02\\2026-09-30-stage-status.md",
+  "before_sha256": "bcd6fc18576c55268da16d02b52eeccae56753232f1413433f3c0d6a74589bba",
+  "after_sha256": "f44cb355bd66935cbf9e9c5dc5d9f71597f48401f6b9f77a72b0c23e935eeb25",
+  "authority": [
+    "6265b29f5f07a4b0554122f696bd33199a55ffd09e291952fa5305131c87938c",
+    "54e47ece2fdc5eef266acf6148e243b9d8f0a8c7437227412a273531b58f553a"
+  ],
+  "verification": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-streamer-stage-20261003-r12\\verification.json",
+    "sha256": "aa21a9d03ac4fc71c75d7b0d118bd600838d0ee1d1bdd5bb2022b5cd408b3347"
+  },
+  "helper": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\update_streamer_stage_20261003_r12.py",
+    "sha256": "fc1a20e74f75cc325670bf4d467e385938ad837b4cc321aefb824773e83cca8c"
+  },
+  "links_checked": true,
+  "whitespace_checked": true,
+  "source_writes": 0,
+  "canonical_writes": 0,
+  "status": "coarse_stage_status_updated",
+  "completed_at_utc": "2026-10-03T02:21:39.856595+00:00",
+  "plan_status_writes": 1,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "goal_status_changed": false,
+  "full_repository_scan_complete": false
+}

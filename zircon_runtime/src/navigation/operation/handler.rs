@@ -1,12 +1,17 @@
+use std::any::Any;
+use std::sync::Arc;
+
 use crate::core::framework::navigation::{
-    NavMeshBakeRequest, NavigationClearBakeRequest, NavigationGeneratedBakeSnapshot,
+    NavMeshBakeRequest, NavigationClearBakeRequest, NavigationGeneratedBakeChange,
+    NavigationGeneratedBakeSnapshot,
 };
 use crate::operation::{
-    RuntimeOperationContext, RuntimeOperationHandler, RuntimeOperationHandlerError,
-    RuntimeOperationPrepared,
+    RuntimeOperationApply, RuntimeOperationContext, RuntimeOperationHandler,
+    RuntimeOperationHandlerError, RuntimeOperationPrepared, RuntimeOperationSnapshot,
 };
 use crate::scene::{
-    SceneNavigationRuntime, SceneNavigationRuntimeHandle, SCENE_NAVIGATION_RUNTIME_DRIVER_NAME,
+    SceneNavigationRuntime, SceneNavigationRuntimeHandle, WorldPublicationError,
+    WorldPublicationSource, SCENE_NAVIGATION_RUNTIME_DRIVER_NAME,
 };
 
 #[derive(Clone, Copy)]
@@ -27,6 +32,28 @@ struct NavigationSnapshotChange {
     after: NavigationGeneratedBakeSnapshot,
 }
 
+struct NavigationSnapshotOwnerState {
+    source: WorldPublicationSource,
+    runtime: Arc<SceneNavigationRuntimeHandle>,
+    before: NavigationGeneratedBakeSnapshot,
+    after: NavigationGeneratedBakeSnapshot,
+    generated_mutation_epoch: u64,
+}
+
+struct NavigationBakeOwnerState {
+    source: WorldPublicationSource,
+    runtime: Arc<SceneNavigationRuntimeHandle>,
+    before: NavigationGeneratedBakeSnapshot,
+    backend_snapshot: Box<dyn Any + Send>,
+}
+
+struct NavigationBakePreparedState {
+    source: WorldPublicationSource,
+    runtime: Arc<SceneNavigationRuntimeHandle>,
+    before: NavigationGeneratedBakeSnapshot,
+    backend_prepared: Box<dyn Any + Send>,
+}
+
 impl NavigationOperationHandler {
     pub(super) fn new(kind: NavigationOperationKind) -> Self {
         Self { kind }
@@ -39,6 +66,31 @@ impl NavigationOperationHandler {
             .core()
             .resolve_driver::<SceneNavigationRuntimeHandle>(SCENE_NAVIGATION_RUNTIME_DRIVER_NAME)
             .map_err(|error| RuntimeOperationHandlerError::new(error.to_string()))
+    }
+
+    fn operation_request(
+        &self,
+        payload: serde_json::Value,
+    ) -> Result<NavMeshBakeRequest, RuntimeOperationHandlerError> {
+        let mut request: NavMeshBakeRequest = decode_payload(
+            payload,
+            match self.kind {
+                NavigationOperationKind::BakeScene => "navigation scene bake",
+                NavigationOperationKind::BakeSurface => "navigation surface bake",
+                _ => "navigation bake",
+            },
+        )?;
+        if matches!(self.kind, NavigationOperationKind::BakeScene) {
+            request.surface_entity = None;
+        }
+        if matches!(self.kind, NavigationOperationKind::BakeSurface)
+            && request.surface_entity.is_none()
+        {
+            return Err(RuntimeOperationHandlerError::new(
+                "navigation surface bake requires surface_entity",
+            ));
+        }
+        Ok(request)
     }
 
     fn snapshot_clear(
@@ -58,12 +110,103 @@ impl NavigationOperationHandler {
         context: RuntimeOperationContext<'_>,
         snapshot: NavigationGeneratedBakeSnapshot,
     ) -> Result<serde_json::Value, RuntimeOperationHandlerError> {
+        Self::reject_null_restore_target(snapshot.surface_entity)?;
         let runtime = Self::resolve_runtime(&context)?;
         let before = runtime.generated_bake_snapshot(snapshot.surface_entity);
+        Self::reject_noncanonical_restore_target(snapshot.surface_entity, &before)?;
         encode_snapshot_change(NavigationSnapshotChange {
             before,
             after: snapshot,
         })
+    }
+
+    fn reject_noncanonical_restore_target(
+        requested_surface: Option<u64>,
+        before: &NavigationGeneratedBakeSnapshot,
+    ) -> Result<(), RuntimeOperationHandlerError> {
+        if requested_surface.is_none() {
+            return Err(RuntimeOperationHandlerError::new(
+                "navigation snapshot restore requires a non-null surface_entity",
+            ));
+        }
+        if before.surface_entity != requested_surface {
+            return Err(RuntimeOperationHandlerError::new(
+                "navigation snapshot restore target is not canonical",
+            ));
+        }
+        Ok(())
+    }
+
+    fn reject_null_restore_target(
+        requested_surface: Option<u64>,
+    ) -> Result<(), RuntimeOperationHandlerError> {
+        if requested_surface.is_none() {
+            return Err(RuntimeOperationHandlerError::new(
+                "navigation snapshot restore requires a non-null surface_entity",
+            ));
+        }
+        Ok(())
+    }
+
+    fn snapshot_change_owner(
+        context: &RuntimeOperationContext<'_>,
+        request: NavigationClearBakeRequest,
+        restore: Option<NavigationGeneratedBakeSnapshot>,
+    ) -> Result<RuntimeOperationSnapshot, RuntimeOperationHandlerError> {
+        if let Some(snapshot) = restore.as_ref() {
+            Self::reject_null_restore_target(snapshot.surface_entity)?;
+        }
+        let runtime = Self::resolve_runtime(context)?;
+        let source = context.level().capture();
+        let before = runtime.generated_bake_snapshot(
+            restore
+                .as_ref()
+                .map(|snapshot| snapshot.surface_entity)
+                .unwrap_or(request.surface_entity),
+        );
+        if let Some(snapshot) = restore.as_ref() {
+            Self::reject_noncanonical_restore_target(snapshot.surface_entity, &before)?;
+        }
+        let generated_mutation_epoch = runtime.generated_bake_mutation_epoch(before.surface_entity);
+        let after = restore.unwrap_or_else(|| {
+            NavigationGeneratedBakeSnapshot::empty(before.surface_entity.or(request.surface_entity))
+        });
+        let payload = encode_snapshot_change(NavigationSnapshotChange {
+            before: before.clone(),
+            after: after.clone(),
+        })?;
+        let owner_bytes = source_retained_bytes(&source)
+            .saturating_add(estimate_snapshot_bytes(&before))
+            .saturating_add(estimate_snapshot_bytes(&after));
+        Ok(RuntimeOperationSnapshot::with_owner_state(
+            payload,
+            Box::new(NavigationSnapshotOwnerState {
+                source,
+                runtime,
+                before,
+                after,
+                generated_mutation_epoch,
+            }),
+            owner_bytes,
+        ))
+    }
+
+    fn prepare_snapshot_owner(
+        owner: NavigationSnapshotOwnerState,
+    ) -> Result<RuntimeOperationPrepared, RuntimeOperationHandlerError> {
+        let (command, result) = encode_prepared_snapshot_values(NavigationSnapshotChange {
+            before: owner.before.clone(),
+            after: owner.after.clone(),
+        })?;
+        let owner_bytes = source_retained_bytes(&owner.source)
+            .saturating_add(estimate_snapshot_bytes(&owner.before))
+            .saturating_add(estimate_snapshot_bytes(&owner.after));
+        Ok(RuntimeOperationPrepared::with_owner_state(
+            command,
+            result,
+            Box::new(owner),
+            owner_bytes,
+        ))
     }
 
     fn prepare_snapshot_change(
@@ -75,22 +218,37 @@ impl NavigationOperationHandler {
         Ok(RuntimeOperationPrepared::new(command, result))
     }
 
-    fn apply_snapshot_change(
-        context: RuntimeOperationContext<'_>,
-        command: serde_json::Value,
-        operation: &str,
+    fn apply_snapshot_owner(
+        owner: NavigationSnapshotOwnerState,
     ) -> Result<(), RuntimeOperationHandlerError> {
-        let change: NavigationSnapshotChange = decode_payload(command, operation)?;
-        let runtime = Self::resolve_runtime(&context)?;
-        let current = runtime.generated_bake_snapshot(change.after.surface_entity);
-        if current != change.before {
-            return Err(RuntimeOperationHandlerError::new(
-                "navigation generated bake state changed after operation snapshot",
-            ));
-        }
-        runtime
-            .replace_generated_bake_snapshot(change.after)
-            .map_err(|error| RuntimeOperationHandlerError::new(error.to_string()))
+        let NavigationSnapshotOwnerState {
+            source,
+            runtime,
+            before,
+            after,
+            generated_mutation_epoch,
+        } = owner;
+        source
+            .publish(|_| {
+                if runtime.generated_bake_snapshot(before.surface_entity) != before {
+                    return Err(RuntimeOperationHandlerError::new(
+                        "navigation generated bake state changed before owner apply",
+                    ));
+                }
+                if runtime.generated_bake_mutation_epoch(before.surface_entity)
+                    != generated_mutation_epoch
+                {
+                    return Err(RuntimeOperationHandlerError::new(
+                        "navigation generated bake mutation epoch changed before owner apply",
+                    ));
+                }
+                runtime
+                    .replace_generated_bake_snapshot(after)
+                    .map_err(|error| RuntimeOperationHandlerError::new(error.to_string()))
+            })
+            .map_err(|error: WorldPublicationError| {
+                RuntimeOperationHandlerError::new(error.to_string())
+            })?
     }
 }
 
@@ -128,6 +286,44 @@ impl RuntimeOperationHandler for NavigationOperationHandler {
         }
     }
 
+    fn snapshot_owned(
+        &self,
+        context: RuntimeOperationContext<'_>,
+        payload: serde_json::Value,
+    ) -> Result<RuntimeOperationSnapshot, RuntimeOperationHandlerError> {
+        match self.kind {
+            NavigationOperationKind::BakeScene | NavigationOperationKind::BakeSurface => {
+                let request = self.operation_request(payload)?;
+                let runtime = Self::resolve_runtime(&context)?;
+                let source = context.level().capture();
+                let (backend_snapshot, owner_bytes, before) = runtime
+                    .capture_bake_operation(&source, request.clone())
+                    .map_err(|error| RuntimeOperationHandlerError::new(error.to_string()))?;
+                let source_bytes = source_retained_bytes(&source);
+                Ok(RuntimeOperationSnapshot::with_owner_state(
+                    encode_payload(request, "navigation bake")?,
+                    Box::new(NavigationBakeOwnerState {
+                        source,
+                        runtime,
+                        before,
+                        backend_snapshot,
+                    }),
+                    owner_bytes.saturating_add(source_bytes),
+                ))
+            }
+            NavigationOperationKind::ClearSurface => Self::snapshot_change_owner(
+                &context,
+                decode_payload(payload, "navigation surface clear")?,
+                None,
+            ),
+            NavigationOperationKind::RestoreSnapshot => Self::snapshot_change_owner(
+                &context,
+                NavigationClearBakeRequest::default(),
+                Some(decode_payload(payload, "navigation bake snapshot restore")?),
+            ),
+        }
+    }
+
     fn prepare(
         &self,
         snapshot: serde_json::Value,
@@ -148,6 +344,69 @@ impl RuntimeOperationHandler for NavigationOperationHandler {
         }
     }
 
+    fn prepare_owned(
+        &self,
+        snapshot: RuntimeOperationSnapshot,
+    ) -> Result<RuntimeOperationPrepared, RuntimeOperationHandlerError> {
+        let (_, owner, _) = snapshot.into_parts();
+        let owner = owner.ok_or_else(|| {
+            RuntimeOperationHandlerError::new("navigation operation lost its owner snapshot")
+        })?;
+        match self.kind {
+            NavigationOperationKind::BakeScene | NavigationOperationKind::BakeSurface => {
+                let owner = owner.downcast::<NavigationBakeOwnerState>().map_err(|_| {
+                    RuntimeOperationHandlerError::new(
+                        "navigation bake owner snapshot type mismatch",
+                    )
+                })?;
+                let NavigationBakeOwnerState {
+                    source,
+                    runtime,
+                    before,
+                    backend_snapshot,
+                } = *owner;
+                let (backend_prepared, report, after, owner_bytes) = runtime
+                    .prepare_bake_operation(backend_snapshot)
+                    .map_err(|error| RuntimeOperationHandlerError::new(error.to_string()))?;
+                let (command, _) = encode_prepared_snapshot_values(NavigationSnapshotChange {
+                    before: before.clone(),
+                    after: after.clone(),
+                })?;
+                let result = encode_payload(
+                    NavigationGeneratedBakeChange {
+                        before: before.clone(),
+                        after: after.clone(),
+                        report: Some(report),
+                    },
+                    "navigation bake result",
+                )?;
+                let owner_bytes = owner_bytes
+                    .saturating_add(source_retained_bytes(&source))
+                    .saturating_add(estimate_snapshot_bytes(&before))
+                    .saturating_add(estimate_snapshot_bytes(&after));
+                Ok(RuntimeOperationPrepared::with_owner_state(
+                    command,
+                    result,
+                    Box::new(NavigationBakePreparedState {
+                        source,
+                        runtime,
+                        before,
+                        backend_prepared,
+                    }),
+                    owner_bytes,
+                ))
+            }
+            NavigationOperationKind::ClearSurface | NavigationOperationKind::RestoreSnapshot => {
+                let owner = owner
+                    .downcast::<NavigationSnapshotOwnerState>()
+                    .map_err(|_| {
+                        RuntimeOperationHandlerError::new("navigation snapshot owner type mismatch")
+                    })?;
+                Self::prepare_snapshot_owner(*owner)
+            }
+        }
+    }
+
     fn apply(
         &self,
         context: RuntimeOperationContext<'_>,
@@ -160,11 +419,52 @@ impl RuntimeOperationHandler for NavigationOperationHandler {
                     "navigation bake cannot reach owner apply without a prepared command",
                 ))
             }
-            NavigationOperationKind::ClearSurface => {
-                Self::apply_snapshot_change(context, command, "navigation surface clear")
+            NavigationOperationKind::ClearSurface | NavigationOperationKind::RestoreSnapshot => {
+                let _ = (context, command);
+                Err(RuntimeOperationHandlerError::new(
+                    "navigation snapshot requires an owner publication source",
+                ))
             }
-            NavigationOperationKind::RestoreSnapshot => {
-                Self::apply_snapshot_change(context, command, "navigation bake snapshot restore")
+        }
+    }
+
+    fn apply_owned(
+        &self,
+        _context: RuntimeOperationContext<'_>,
+        apply: RuntimeOperationApply,
+    ) -> Result<(), RuntimeOperationHandlerError> {
+        let (_, owner) = apply.into_parts();
+        let owner = owner.ok_or_else(|| {
+            RuntimeOperationHandlerError::new("navigation operation lost its prepared owner state")
+        })?;
+        match self.kind {
+            NavigationOperationKind::BakeScene | NavigationOperationKind::BakeSurface => {
+                let owner = owner
+                    .downcast::<NavigationBakePreparedState>()
+                    .map_err(|_| {
+                        RuntimeOperationHandlerError::new(
+                            "navigation prepared bake owner type mismatch",
+                        )
+                    })?;
+                let NavigationBakePreparedState {
+                    source,
+                    runtime,
+                    before,
+                    backend_prepared,
+                } = *owner;
+                runtime
+                    .apply_bake_operation(&source, &before, backend_prepared)
+                    .map_err(|error| RuntimeOperationHandlerError::new(error.to_string()))
+            }
+            NavigationOperationKind::ClearSurface | NavigationOperationKind::RestoreSnapshot => {
+                let owner = owner
+                    .downcast::<NavigationSnapshotOwnerState>()
+                    .map_err(|_| {
+                        RuntimeOperationHandlerError::new(
+                            "navigation prepared snapshot owner type mismatch",
+                        )
+                    })?;
+                Self::apply_snapshot_owner(*owner)
             }
         }
     }
@@ -177,6 +477,14 @@ fn decode_payload<T: serde::de::DeserializeOwned>(
     serde_json::from_value(payload).map_err(|error| {
         RuntimeOperationHandlerError::new(format!("invalid {operation} payload: {error}"))
     })
+}
+
+fn estimate_snapshot_bytes(snapshot: &NavigationGeneratedBakeSnapshot) -> usize {
+    serde_json::to_vec(snapshot).map_or(0, |encoded| encoded.len())
+}
+
+fn source_retained_bytes(source: &WorldPublicationSource) -> usize {
+    source.snapshot().node_records().len().saturating_mul(256)
 }
 
 fn encode_prepared_snapshot_values(
@@ -213,161 +521,5 @@ fn encode_payload<T: serde::Serialize>(
 }
 
 #[cfg(test)]
-mod tests {
-    use std::hint::black_box;
-    use std::time::Instant;
-
-    use crate::core::framework::navigation::{
-        NavMeshAsset, NavigationGeneratedBakeChange, NavigationGeneratedBakeSnapshot,
-    };
-
-    use super::{encode_prepared_snapshot_values, NavigationSnapshotChange};
-
-    #[test]
-    fn optimization_batch_dx_navigation_snapshot_values_preserve_serialized_contracts() {
-        let change = navigation_change_fixture(8);
-        let expected_command = serde_json::to_value(&change).expect("legacy command value");
-        let expected_result = serde_json::to_value(NavigationGeneratedBakeChange {
-            before: change.before.clone(),
-            after: change.after.clone(),
-            report: None,
-        })
-        .expect("legacy result value");
-
-        let (command, result) =
-            encode_prepared_snapshot_values(change).expect("prepared snapshot values");
-
-        assert_eq!(command, expected_command);
-        assert_eq!(result, expected_result);
-    }
-
-    #[test]
-    fn optimization_batch_dx_navigation_snapshot_values_serialize_once() {
-        let production = include_str!("handler.rs")
-            .split("#[cfg(test)]")
-            .next()
-            .expect("navigation operation production source");
-        let encoder = production
-            .split("fn encode_prepared_snapshot_values")
-            .nth(1)
-            .expect("single serialization encoder");
-
-        assert!(encoder.contains("let command = encode_snapshot_change(change)?"));
-        assert!(encoder.contains("let mut result = command.clone()"));
-        assert!(!encoder.contains("change.before.clone()"));
-        assert!(!encoder.contains("change.after.clone()"));
-    }
-
-    #[test]
-    #[ignore = "release-only alternating p95 performance gate"]
-    fn optimization_batch_dx_single_navigation_snapshot_serialization_p95() {
-        const SAMPLE_PAIRS: usize = 17;
-        const PREPARATIONS_PER_SAMPLE: usize = 16;
-        const VERTEX_COUNT: usize = 8_192;
-
-        let prototype = navigation_change_fixture(VERTEX_COUNT);
-        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
-        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
-        for sample_index in 0..SAMPLE_PAIRS {
-            if sample_index % 2 == 0 {
-                legacy_samples.push(measure_snapshot_preparations(
-                    &prototype,
-                    PREPARATIONS_PER_SAMPLE,
-                    false,
-                ));
-                optimized_samples.push(measure_snapshot_preparations(
-                    &prototype,
-                    PREPARATIONS_PER_SAMPLE,
-                    true,
-                ));
-            } else {
-                optimized_samples.push(measure_snapshot_preparations(
-                    &prototype,
-                    PREPARATIONS_PER_SAMPLE,
-                    true,
-                ));
-                legacy_samples.push(measure_snapshot_preparations(
-                    &prototype,
-                    PREPARATIONS_PER_SAMPLE,
-                    false,
-                ));
-            }
-        }
-
-        let legacy_p95 = p95(&mut legacy_samples);
-        let optimized_p95 = p95(&mut optimized_samples);
-        println!(
-            "RUNTIME432_SINGLE_NAVIGATION_SNAPSHOT_SERIALIZATION_BENCH_V1 preparations_per_sample={PREPARATIONS_PER_SAMPLE} vertex_count={VERTEX_COUNT} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} ratio={:.4}",
-            optimized_p95 as f64 / legacy_p95.max(1) as f64
-        );
-        assert!(
-            optimized_p95.saturating_mul(100) <= legacy_p95.saturating_mul(70),
-            "single navigation snapshot serialization p95 {optimized_p95}ns exceeded 70% of legacy {legacy_p95}ns"
-        );
-    }
-
-    fn navigation_change_fixture(vertex_count: usize) -> NavigationSnapshotChange {
-        let mut before_asset = NavMeshAsset::default();
-        before_asset.agent_type = "navigation-agent-before".repeat(16);
-        before_asset.vertices = (0..vertex_count)
-            .map(|index| [index as f32, (index % 17) as f32, (index % 31) as f32])
-            .collect();
-        before_asset.indices = (0..vertex_count as u32).collect();
-        let mut after_asset = before_asset.clone();
-        after_asset.agent_type = "navigation-agent-after".repeat(16);
-
-        NavigationSnapshotChange {
-            before: NavigationGeneratedBakeSnapshot {
-                surface_entity: Some(17),
-                asset: Some(before_asset),
-                output_asset: Some("res://navigation/generated/before.navmesh".repeat(8)),
-            },
-            after: NavigationGeneratedBakeSnapshot {
-                surface_entity: Some(17),
-                asset: Some(after_asset),
-                output_asset: Some("res://navigation/generated/after.navmesh".repeat(8)),
-            },
-        }
-    }
-
-    fn measure_snapshot_preparations(
-        prototype: &NavigationSnapshotChange,
-        preparation_count: usize,
-        optimized: bool,
-    ) -> u128 {
-        let inputs = vec![prototype.clone(); preparation_count];
-        let started_at = Instant::now();
-        let mut checksum = 0_usize;
-        for change in inputs {
-            let values = if optimized {
-                encode_prepared_snapshot_values(change).expect("optimized snapshot values")
-            } else {
-                legacy_prepared_snapshot_values(change)
-            };
-            checksum = checksum
-                .wrapping_add(values.0.as_object().map_or(0, |value| value.len()))
-                .wrapping_add(values.1.as_object().map_or(0, |value| value.len()));
-            black_box(values);
-        }
-        black_box(checksum);
-        started_at.elapsed().as_nanos()
-    }
-
-    fn legacy_prepared_snapshot_values(
-        change: NavigationSnapshotChange,
-    ) -> (serde_json::Value, serde_json::Value) {
-        let result = serde_json::to_value(NavigationGeneratedBakeChange {
-            before: change.before.clone(),
-            after: change.after.clone(),
-            report: None,
-        })
-        .expect("legacy result value");
-        let command = serde_json::to_value(change).expect("legacy command value");
-        (command, result)
-    }
-
-    fn p95(samples: &mut [u128]) -> u128 {
-        samples.sort_unstable();
-        samples[(samples.len() * 95).div_ceil(100).saturating_sub(1)]
-    }
-}
+#[path = "tests/handler.rs"]
+mod tests;

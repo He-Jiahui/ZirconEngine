@@ -1,12 +1,16 @@
+use std::any::Any;
+
 use zircon_runtime_interface::reflect::{
     ReflectError, ReflectTypeRegistration, ReflectedValue, ZrReflect,
 };
 
+use crate::scene::components::{LocalTransform, Mobility};
 use crate::scene::ecs::Component;
-use crate::scene::{EntityId, World};
+use crate::scene::{EntityId, SceneError, World};
 
 use crate::scene::reflect::{ReflectComponent, RuntimeTypeRegistration};
 
+/// 为可克隆 ECS 组件注册读写及预检克隆适配器；调用者须在 World 发布前安装唯一的类型路径。
 pub fn derived_component_registration<T>() -> Result<RuntimeTypeRegistration, ReflectError>
 where
     T: Component + ZrReflect + Clone,
@@ -79,13 +83,16 @@ where
     T: Component + ZrReflect + Clone,
 {
     let value = component::<T>(source, entity, type_path)?.clone();
-    target
-        .insert(entity, value)
-        .map(|_| ())
-        .map_err(|error| ReflectError::UnsupportedConversion {
-            source: error.to_string(),
-            target: format!("{type_path} staged component clone"),
-        })
+    let result =
+        if (&value as &dyn Any).is::<LocalTransform>() || (&value as &dyn Any).is::<Mobility>() {
+            target.stage_prevalidated_authored_clone(entity, value)
+        } else {
+            target.insert(entity, value).map(|_| ())
+        };
+    result.map_err(|error| ReflectError::UnsupportedConversion {
+        source: error.to_string(),
+        target: format!("{type_path} staged component clone"),
+    })
 }
 
 fn read_field<T>(
@@ -114,13 +121,7 @@ where
     if !next.write_reflected_field(field_name, value)? {
         return Ok(false);
     }
-    match world.insert(entity, next) {
-        Ok(_) => Ok(true),
-        Err(error) => Err(ReflectError::UnsupportedConversion {
-            source: error.to_string(),
-            target: format!("{type_path}.{field_name}"),
-        }),
-    }
+    commit_component(world, entity, next, format!("{type_path}.{field_name}"))
 }
 
 fn read_field_by_slot<T>(
@@ -149,13 +150,7 @@ where
     if !next.write_reflected_field_by_slot(field_slot, value)? {
         return Ok(false);
     }
-    match world.insert(entity, next) {
-        Ok(_) => Ok(true),
-        Err(error) => Err(ReflectError::UnsupportedConversion {
-            source: error.to_string(),
-            target: format!("{type_path}.#{field_slot}"),
-        }),
-    }
+    commit_component(world, entity, next, format!("{type_path}.#{field_slot}"))
 }
 
 fn write_fields_by_slot<T>(
@@ -175,13 +170,44 @@ where
     if !changed {
         return Ok(false);
     }
-    world
-        .insert(entity, next)
-        .map(|_| true)
-        .map_err(|error| ReflectError::UnsupportedConversion {
+    commit_component(world, entity, next, format!("{type_path}.#batch"))
+}
+
+fn commit_component<T>(
+    world: &mut World,
+    entity: EntityId,
+    next: T,
+    target: String,
+) -> Result<bool, ReflectError>
+where
+    T: Component + ZrReflect + Clone,
+{
+    // Reflected authored values retain ZrReflect's field checks, then use Scene's checked writer.
+    if let Some(local) = (&next as &dyn Any).downcast_ref::<LocalTransform>() {
+        return match world.update_transform(entity, local.transform) {
+            Ok(changed) => Ok(changed),
+            Err(error) => Err(ReflectError::UnsupportedConversion {
+                source: error.to_string(),
+                target,
+            }),
+        };
+    }
+    if let Some(mobility) = (&next as &dyn Any).downcast_ref::<Mobility>() {
+        return match world.set_mobility(entity, *mobility) {
+            Ok(changed) => Ok(changed),
+            Err(error) => Err(ReflectError::UnsupportedConversion {
+                source: error.to_string(),
+                target,
+            }),
+        };
+    }
+    match world.insert(entity, next) {
+        Ok(_) => Ok(true),
+        Err(error) => Err(ReflectError::UnsupportedConversion {
             source: error.to_string(),
-            target: format!("{type_path}.#batch"),
-        })
+            target,
+        }),
+    }
 }
 
 fn remove<T>(world: &mut World, entity: EntityId, type_path: &str) -> Result<bool, ReflectError>
@@ -194,6 +220,12 @@ where
     }
     match world.remove::<T>(entity) {
         Ok(Some(_)) => Ok(true),
+        Err(SceneError::ProtectedDerivedComponentMutation { .. })
+        | Err(SceneError::ProtectedAuthoredComponentMutation { .. }) => {
+            Err(ReflectError::NonRemovableComponent {
+                type_path: type_path.to_string(),
+            })
+        }
         Ok(None) | Err(_) => Err(missing_component(entity, type_path)),
     }
 }

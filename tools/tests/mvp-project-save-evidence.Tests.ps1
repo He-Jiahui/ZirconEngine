@@ -1,3 +1,4 @@
+# 项目保存证据要求同一项目的 started 与 completed 事件有序成对；本组验证失败和重复字段拒绝，并检查诊断扫描及摘要编码边界。
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 

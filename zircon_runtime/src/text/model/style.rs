@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use super::shaped_run::OpenTypeFeature;
 
+/// 行内对齐策略；Start/End 随解析后的书写方向决定起止侧，Left/Right 保持物理侧语义。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TextAlign {
@@ -16,6 +17,7 @@ pub enum TextAlign {
     Justify,
 }
 
+/// 软折行策略；硬分隔符仍独立切分物理段落，WordSmart 再约束词尾标点的断行位置。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TextWrap {
@@ -26,6 +28,8 @@ pub enum TextWrap {
     Glyph,
 }
 
+/// 富文本解析与缓存身份中的版本化语法选择；格式版本是编译产物语义的一部分。
+/// 调用方须显式选择受支持的子集，不能把外部任意 HTML 或 Markdown 当成完整文档语法。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RichTextFormat {
@@ -39,6 +43,8 @@ pub enum RichTextFormat {
     HtmlSubsetV1,
 }
 
+/// UI 样式投影后供测量、整形和字形产物共同消费的中性文本样式。
+/// 可序列化字段不表示已经规范化；语言、字体选择、特性与几何约束在请求入口继续校验。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct TextStyle {
     pub font: Option<String>,
@@ -98,49 +104,5 @@ impl Default for TextStyle {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{RichTextFormat, TextStyle};
-
-    #[test]
-    fn rich_text_formats_use_versioned_artifact_identity() {
-        for (format, wire_value) in [
-            (RichTextFormat::Plain, "plain"),
-            (RichTextFormat::MarkdownInlineV1, "markdown_inline_v1"),
-            (RichTextFormat::BbCodeV1, "bbcode_v1"),
-            (RichTextFormat::HtmlSubsetV1, "html_subset_v1"),
-        ] {
-            let encoded = serde_json::to_string(&format).expect("format serializes");
-            assert_eq!(encoded, format!("\"{wire_value}\""));
-            assert_eq!(
-                serde_json::from_str::<RichTextFormat>(&encoded).expect("format round trips"),
-                format
-            );
-        }
-
-        for legacy_value in ["markdown", "bbcode", "html"] {
-            assert!(
-                serde_json::from_str::<RichTextFormat>(&format!("\"{legacy_value}\"")).is_err()
-            );
-        }
-    }
-
-    #[test]
-    fn legacy_text_style_defaults_new_shaping_identity_fields() {
-        let legacy = r#"{
-            "font": null,
-            "font_family": null,
-            "language": null,
-            "font_weight": 400,
-            "font_size": 16.0,
-            "line_height": 19.2,
-            "tab_size": 4.0,
-            "text_align": "left",
-            "wrap": "word"
-        }"#;
-
-        let style: TextStyle = serde_json::from_str(legacy).expect("legacy style remains readable");
-
-        assert!(!style.italic);
-        assert!(style.features.is_empty());
-    }
-}
+#[path = "tests/style.rs"]
+mod tests;

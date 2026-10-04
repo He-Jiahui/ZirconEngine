@@ -1,3 +1,5 @@
+//! 验证后处理从资产与 ECS 到提取契约的边界：基础设置归属选中的场景相机，体积混合由消费阶段按位置与独立层掩码求值。
+
 use crate::asset::{
     SceneAmbientOcclusionSettingsAsset, SceneAoQualityTierAsset, SceneAsset,
     SceneBloomSettingsAsset, SceneCameraAsset, SceneColorGradingSettingsAsset, SceneEntityAsset,
@@ -102,6 +104,7 @@ fn scene_asset_post_process_settings_feed_render_extract() {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                components: Vec::new(),
                 script_bindings: Vec::new(),
             },
             SceneEntityAsset {
@@ -159,6 +162,7 @@ fn scene_asset_post_process_settings_feed_render_extract() {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                components: Vec::new(),
                 script_bindings: Vec::new(),
             },
         ],
@@ -541,6 +545,7 @@ fn local_post_process_volume_without_collider_is_excluded() {
     );
 }
 
+// 使用消费方相同的相机位置与体积层求值，避免只检查已提取体积而遗漏最终可见影响。
 fn resolved_post_process_settings(
     extract: &RenderFrameExtract,
 ) -> RenderResolvedPostProcessSettings {
@@ -614,6 +619,7 @@ fn spawn_local_sphere_volume(
     )
 }
 
+// 移除默认网格，使该实体只充当体积；形状来自碰撞组件，本组测试刻意保留缺失或不支持形状的输入。
 fn spawn_local_volume(
     world: &mut World,
     layer_mask: u32,

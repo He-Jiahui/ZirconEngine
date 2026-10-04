@@ -12,4 +12,5 @@ use options::{export_wizard_default_host_executable, export_wizard_engine_repo_r
 pub(in crate::ui::retained_host::app) use session_state::DesktopExportWizardSessions;
 
 #[cfg(test)]
+#[path = "build_export_wizard_session/tests/cases.rs"]
 mod tests;

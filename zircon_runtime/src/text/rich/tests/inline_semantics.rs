@@ -66,11 +66,10 @@ fn text_rich_hyperlink_carries_typed_target_and_hit_range() {
         .find(|run| run.link.is_some())
         .expect("hyperlink run");
     assert_eq!(link.byte_range, (3, 7));
-    assert!(
-        link.link
-            .as_ref()
-            .is_some_and(|link| link.target.matches_display("res://docs/help"))
-    );
+    assert!(link
+        .link
+        .as_ref()
+        .is_some_and(|link| link.target.matches_display("res://docs/help")));
     assert_eq!(link.style.underline, Some(true));
     assert!(link.style.color.is_some());
 }
@@ -84,12 +83,10 @@ fn text_rich_bbcode_image_and_url_share_inline_contracts() {
 
     assert_eq!(parsed.text.as_ref(), "\u{fffc}help");
     assert!(parsed.runs[0].inline.is_some());
-    assert!(
-        parsed.runs[1]
-            .link
-            .as_ref()
-            .is_some_and(|link| link.target.matches_display("res://docs/help"))
-    );
+    assert!(parsed.runs[1]
+        .link
+        .as_ref()
+        .is_some_and(|link| link.target.matches_display("res://docs/help")));
 }
 
 #[test]
@@ -102,12 +99,10 @@ fn text_rich_inline_resources_reject_network_and_escape_paths() {
     assert_eq!(parsed.text.as_ref(), "plain");
     assert!(parsed.runs.iter().all(|run| run.inline.is_none()));
     assert!(parsed.runs.iter().all(|run| run.link.is_none()));
-    assert!(
-        parsed
-            .runs
-            .iter()
-            .all(|run| run.style.underline != Some(true))
-    );
+    assert!(parsed
+        .runs
+        .iter()
+        .all(|run| run.style.underline != Some(true)));
 }
 
 #[test]

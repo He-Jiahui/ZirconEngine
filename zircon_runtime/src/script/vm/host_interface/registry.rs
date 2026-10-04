@@ -1,3 +1,4 @@
+//! 扩展注册按插件槽位和代际暂存，协调器提交生命周期后才发布活动快照；回调符号索引跨代际稳定，调用时刷新活动代际。
 use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex, MutexGuard};
 
@@ -313,6 +314,7 @@ impl VmHostInterfaceRegistry {
         Arc::clone(&self.lock_state().active_snapshot)
     }
 
+    // 管理器在生命周期操作结束后统一发布；注册暂存与公开查询之间以此快照作为可见性边界。
     pub(crate) fn publish_active_slots(&self, active_slots: Vec<VmHostInterfaceActiveOwner>) {
         let mut state = self.lock_state();
         let mut active_generations = BTreeMap::new();
@@ -633,5 +635,5 @@ fn latest_active<T: Clone>(
 }
 
 #[cfg(test)]
-#[path = "registry/editor_operation_segments_tests.rs"]
+#[path = "registry/tests/editor_operation_segments_tests.rs"]
 mod editor_operation_segments_tests;

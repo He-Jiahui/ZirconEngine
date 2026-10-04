@@ -6,8 +6,10 @@ use super::{
     commands::{quad_command, text_command},
     metadata::tab_label,
     state::SegmentedRenderState,
-    style::{SegmentedVisual, selected_underline, tab_background, tab_text_color},
+    style::{selected_underline, tab_background, tab_text_color, SegmentedVisual},
 };
+
+const TAB_COMMAND_CAPACITY: usize = 3;
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn tab_commands(
@@ -20,7 +22,7 @@ pub(super) fn tab_commands(
     z: i32,
     opacity: f32,
 ) -> Vec<UiRenderCommand> {
-    let mut commands = Vec::new();
+    let mut commands = Vec::with_capacity(TAB_COMMAND_CAPACITY);
     if let Some(background) = tab_background(metadata, state, visual) {
         commands.push(quad_command(
             node_id,

@@ -12,7 +12,7 @@ use zircon_runtime::core::framework::render::{
 use zircon_runtime::core::math::view_matrix;
 
 #[cfg(test)]
-#[path = "child_decision/allocation_tests.rs"]
+#[path = "child_decision/tests/allocation_tests.rs"]
 mod allocation_tests;
 
 pub(super) struct VirtualGeometryNodeAndClusterCullChildDecisionOutput {
@@ -310,6 +310,7 @@ fn node_and_cluster_cull_hierarchy_node_range(
         .map(|node| (node.cluster_start, node.cluster_count))
 }
 
+// 缺页时沿父簇链寻找已驻留替身；强制 mip 禁止跨层回退，遍历次数受簇数约束。
 fn node_and_cluster_cull_resident_parent_cluster_array_index(
     child_cluster_array_index: u32,
     child_cluster: &RenderVirtualGeometryCluster,

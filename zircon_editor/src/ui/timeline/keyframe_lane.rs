@@ -18,5 +18,19 @@ impl<'a> TimelineKeyframeLane<'a> {
 }
 
 pub fn keyframes_in_range(keys: &[TimelineKey], range: TimelineRange) -> Vec<&TimelineKey> {
-    keys.iter().filter(|key| range.contains(key.time)).collect()
+    let mut visible = Vec::new();
+    for key in keys {
+        if !range.contains(key.time) {
+            continue;
+        }
+        if visible.is_empty() {
+            visible.reserve(keys.len());
+        }
+        visible.push(key);
+    }
+    visible
 }
+
+#[cfg(test)]
+#[path = "tests/keyframe_lane.rs"]
+mod tests;

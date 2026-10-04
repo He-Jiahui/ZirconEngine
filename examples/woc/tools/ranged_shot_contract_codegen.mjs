@@ -1,3 +1,6 @@
+// 调用端：npm run generate:ranged-shot-contract (tools/package.json)；职责：固化远程射击的目标选择和发射行为。
+// 输入边界：src/sim/combat/ranged_shot.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

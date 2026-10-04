@@ -97,6 +97,7 @@ impl RenderMaterialManagementSortOrder {
     }
 }
 
+// 主排序键相同时固定以名称和 ID 决胜，使分页边界在相同快照上可重复。
 fn compare_records_by_identity(
     left: &RenderMaterialManagementRecord,
     right: &RenderMaterialManagementRecord,
@@ -167,7 +168,7 @@ fn compare_material_name_text(left: &str, right: &str) -> Ordering {
 }
 
 #[cfg(test)]
-#[path = "sort_order/fast_case_tests.rs"]
+#[path = "sort_order/tests/fast_case_tests.rs"]
 mod fast_case_tests;
 
 fn status_rank(status: RenderMaterialReadinessStatus) -> u8 {

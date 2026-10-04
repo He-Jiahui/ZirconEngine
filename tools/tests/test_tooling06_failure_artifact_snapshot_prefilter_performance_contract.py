@@ -1,3 +1,4 @@
+# 核对失败产物快照只检查候选文档并流式计算摘要。
 import tempfile
 import unittest
 import hashlib

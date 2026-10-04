@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 读取 SDF 字形回退索引定义，确认类型显式为 usize 以防推断宽度漂移。
 class RuntimeSdfFallbackGlyphIndexTypeTests(unittest.TestCase):
     def test_sdf_fallback_glyph_index_has_explicit_usize_type(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]

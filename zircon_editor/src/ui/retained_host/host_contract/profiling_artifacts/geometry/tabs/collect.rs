@@ -33,5 +33,5 @@ pub(super) fn collect_tabs(
 }
 
 #[cfg(test)]
-#[path = "collect/capacity_tests.rs"]
+#[path = "collect/tests/capacity_tests.rs"]
 mod capacity_tests;

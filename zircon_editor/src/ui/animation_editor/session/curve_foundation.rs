@@ -76,14 +76,16 @@ fn project_track_curves(
         return Vec::new();
     };
 
-    layout
-        .component_names()
-        .iter()
-        .enumerate()
-        .filter_map(|(component_index, component_name)| {
+    let component_names = layout.component_names();
+    let mut curves = Vec::with_capacity(component_names.len());
+    for (component_index, component_name) in component_names.iter().enumerate() {
+        if let Some(curve) =
             project_component_curve(track_id, track, layout, component_index, component_name)
-        })
-        .collect()
+        {
+            curves.push(curve);
+        }
+    }
+    curves
 }
 
 fn project_component_curve(
@@ -93,31 +95,27 @@ fn project_component_curve(
     component_index: usize,
     component_name: &str,
 ) -> Option<CurveView<String>> {
-    let keys = track
-        .channel
-        .keys
-        .iter()
-        .map(|key| {
-            let value = layout.component_value(&key.value, component_index)?;
-            if !key.time_seconds.is_finite() || !value.is_finite() {
-                return None;
-            }
-            Some(
-                CurveKey::new(
-                    format!("{track_id}@{:08x}", key.time_seconds.to_bits()),
-                    CurvePoint::new(key.time_seconds, value),
-                )
-                .with_tangents(
-                    key.in_tangent
-                        .as_ref()
-                        .and_then(|tangent| layout.component_value(tangent, component_index)),
-                    key.out_tangent
-                        .as_ref()
-                        .and_then(|tangent| layout.component_value(tangent, component_index)),
-                ),
+    let mut keys = Vec::with_capacity(track.channel.keys.len());
+    for key in &track.channel.keys {
+        let value = layout.component_value(&key.value, component_index)?;
+        if !key.time_seconds.is_finite() || !value.is_finite() {
+            return None;
+        }
+        keys.push(
+            CurveKey::new(
+                format!("{track_id}@{:08x}", key.time_seconds.to_bits()),
+                CurvePoint::new(key.time_seconds, value),
             )
-        })
-        .collect::<Option<Vec<_>>>()?;
+            .with_tangents(
+                key.in_tangent
+                    .as_ref()
+                    .and_then(|tangent| layout.component_value(tangent, component_index)),
+                key.out_tangent
+                    .as_ref()
+                    .and_then(|tangent| layout.component_value(tangent, component_index)),
+            ),
+        );
+    }
     Some(CurveView {
         id: format!("{track_id}.{component_name}"),
         display_name: format!("{track_id} {}", component_name.to_ascii_uppercase()),
@@ -174,3 +172,7 @@ fn curve_interpolation(interpolation: AnimationInterpolationAsset) -> CurveInter
         AnimationInterpolationAsset::Hermite => CurveInterpolation::Hermite,
     }
 }
+
+#[cfg(test)]
+#[path = "tests/curve_foundation_optimization_tests.rs"]
+mod optimization_tests;

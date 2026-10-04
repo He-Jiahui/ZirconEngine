@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 约束插件系统注册的测试组织：插件系统注册测试应目录支撑。
 class RuntimePluginSystemRegistrationTestStructureTests(unittest.TestCase):
     def test_plugin_system_registration_tests_are_folder_backed(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
@@ -10,15 +10,14 @@ class RuntimePluginSystemRegistrationTestStructureTests(unittest.TestCase):
             / "zircon_runtime/src/plugin/extension_registry/register/system_registration.rs"
         )
         tests_path = (
-            repo_root
-            / "zircon_runtime/src/plugin/extension_registry/register/system_registration/tests.rs"
+            repo_root / "zircon_runtime/src/plugin/extension_registry/register/system_registration/tests/cases.rs"
         )
 
         owner = owner_path.read_text(encoding="utf-8")
         tests = tests_path.read_text(encoding="utf-8")
 
         self.assertLessEqual(len(owner.splitlines()), 800)
-        self.assertIn('#[path = "system_registration/tests.rs"]', owner)
+        self.assertIn("#[path = \"system_registration/tests/cases.rs\"]", owner)
         self.assertIn("mod tests;", owner)
         self.assertNotIn("mod tests {", owner)
         self.assertIn("fn retire(&mut self, world: &mut World)", owner)

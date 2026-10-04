@@ -2,9 +2,7 @@ use std::sync::Arc;
 
 use zircon_runtime_interface::ui::component::UiValue;
 
-use crate::ui::workbench::snapshot::{
-    InspectorPluginComponentPropertySnapshot, InspectorPluginComponentSnapshot,
-};
+use crate::ui::workbench::snapshot::InspectorPluginComponentPropertySnapshot;
 
 use super::{
     component_property_rows::component_property_item_keys,
@@ -71,22 +69,19 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     pub(super) fn set_inspector_filter_source(
         &mut self,
         has_selection: bool,
-        component: Option<&InspectorPluginComponentSnapshot>,
+        label: String,
+        properties: Vec<InspectorPluginComponentPropertySnapshot>,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         self.inspector_has_selection = has_selection;
-        self.inspector_has_component = component.is_some();
-        self.inspector_component_label = component
-            .map(|component| non_empty_label(&component.display_name, "Component"))
-            .unwrap_or_default();
-        self.inspector_source_properties = component
-            .map(|component| Arc::from(component.properties.clone()))
-            .unwrap_or_else(|| Arc::from([]));
-        self.component_customization_available = component
-            .map(|component| component.customization_available)
-            .unwrap_or(false);
+        self.inspector_has_component = !label.is_empty();
+        self.inspector_component_label = label;
+        self.inspector_source_properties = Arc::from(properties);
+        // Admission is resolved for each source component before rows are combined.
+        self.component_customization_available = true;
         self.apply_inspector_filter()
     }
 
+    // 过滤以当前检查器快照为源重建可见属性，再把稳定条目键交给虚拟行材质化。
     fn apply_inspector_filter(&mut self) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         let query = self
             .control_string(FILTER_CONTROL, "query")
@@ -178,24 +173,6 @@ fn contains_ascii_case_insensitive(haystack: &str, needle: &str) -> bool {
             .any(|candidate| candidate.eq_ignore_ascii_case(needle.as_bytes()))
 }
 
-fn non_empty_label(value: &str, fallback: &str) -> String {
-    let trimmed = value.trim();
-    if trimmed.is_empty() {
-        fallback.to_string()
-    } else {
-        trimmed.to_string()
-    }
-}
-
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn term_matching_is_ascii_case_insensitive_and_empty_queries_match() {
-        assert!(contains_ascii_case_insensitive("Mesh Renderer", "renderer"));
-        assert!(contains_ascii_case_insensitive("Render Layer", "LAYER"));
-        assert!(contains_ascii_case_insensitive("Transform", ""));
-        assert!(!contains_ascii_case_insensitive("Position", "material"));
-    }
-}
+#[path = "tests/inspector_filter.rs"]
+mod tests;

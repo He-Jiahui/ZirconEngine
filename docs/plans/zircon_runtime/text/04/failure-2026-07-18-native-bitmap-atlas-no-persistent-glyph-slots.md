@@ -64,3 +64,93 @@ retry selection对source×queued做nested find，再用Vec contains过滤并多�
 - source-cache pixels 使用共享 `Arc<[u8]>`；同 key 的 draw occurrence 只保留 screen placement，重复 occurrence 共用 slot。同帧重复 key 只上传一次，后续稳定帧命中不再产生 dirty rect 或 upload command；新 glyph 仅增量分配和上传。
 - page eviction、page-size change、generation mismatch 与 upload failure 会失效对应 slot/allocator/shadow，并通过 raster-key reverse index 前向失效 CPU source；bounded CPU/page pressure 不跨 generation 复用旧 slot。
 - focused source tests 已覆盖 stable-frame slot hit + zero upload、only-new-glyph upload、same-frame projection、duplicate-key single upload、page eviction/rebuild、retained shadow replay、mixed-storage 顺序与 submission counters。当前只声明实现和静态契约核验完成；300-frame/100/10k 规模执行、managed current-source Cargo、真实 WGPU/Softbuffer 像素与 RenderDoc texture lifetime 仍待 coordinator wakeup 后验收，未生成新截图。
+
+### 2026-09-08 Current Frame Fixture Repair
+
+Stable fixing Session `failure-roll-01a07160-text04`, baseline 601, retains
+this lifecycle. Registration request `69a9354974c24e6c9d358ed480781815` first
+returned an accepted timeout; its existing receipt subsequently completed.
+No duplicate registration was submitted.
+
+Managed Windows job `9e3f8ac2a6564bd48fbeab45874342e3` failed the text-only
+library-test compile with 22 errors and zero tests. Its exact input
+`runtime-graphics-text-sdf-test-support-3073-20260908`, under the approved
+benchmark root, has digest
+`ef03d95a2138382b1693cd35ab84a0cae4959fa3674fc5c689041e720fbbbc04`.
+Two diagnostics came from constructing `NativeBitmapAtlasFrame` without its
+private readiness receipt. The associated struct-update fixtures also crossed
+that private field boundary.
+
+Source `3091`, request `a1e848c73e1042c7b9264a60a433e073`, freezes six
+Text04 support files. The shared `native_bitmap_atlas/tests.rs` fixture now
+uses the production frame builder with empty work and a zero-capacity source
+cache, then supplies its existing submission/source/count inputs. Readiness
+remains initialized by its production owner. The frame-index, unsupported,
+missing-raster and pending-placeholder fixtures reuse that helper and mutate
+only their visible test fields; all assertions remain. No private field or
+constructor is exposed. The same snapshot explicitly imports canonical
+`TextDirection` in the context tests and repairs three byte comparisons in
+the atlas/Swash tests, as recorded in the sibling staging failure.
+
+Pre-edit snapshots `3086` and `3088` preserve exact provenance. The three
+native-frame test files matched HEAD. `context.rs` and the Swash test retained
+the exact archived `runtime-text04-20260831-r1` bytes; bitmap-run tests retained
+`root-runtime-editor-optimize-20260901-r6` bytes. Transfers
+`4d260401693b4376983c7fd585acbf72` and
+`233bda4ba3a84fc88075b841a8c0ee30` record the handover. No unattributed
+neighboring file was absorbed. Repository-edition formatting and scoped
+whitespace checks pass. Source `3091` still needs managed compilation,
+actual frame regressions and independent review. The original stable-frame,
+occurrence-scale and WGPU/Softbuffer/RenderDoc acceptance remains required.
+
+Managed Windows job `1f242fb1789e44ce87d7a5cacc569d5f` then compiled immutable
+input `runtime-text-owner-test-support-3095-20260908`, digest
+`4e5f800cd19e5748464ac759b4e1efbfae073ecf1c05d419327a6d6739cbe9e2`.
+The text-only static locked library gate reported three errors, previously 22
+under the same feature configuration. None remains in any of this input's
+14 newly overlaid paths, including all six Text04 files. Cargo 101 / wrapper 1,
+zero tests. Queue/sync/check times were 7.805/21.863/144.665 seconds; the full
+10,955-file manifest and 354 dependencies were reverified. The exact receipt
+and remaining diagnostics are in `results/text-library-recheck.json` and
+`results/graphics-library-compiler-diagnostics.json` under that input. Remaining
+errors are the Text03 vertical fixture, unproven dirty-upload bytes and the
+separately reviewed Text02 artifact fixture. This accepts compiler progress
+only; no frame or performance gate passed.
+
+### 2026-09-08 Native Layout Feature Admission
+
+The existing coordinator-efficiency review task returned C0 / I0 / M0 for all
+six source files in snapshot 3091. It rechecked exact current/ObjectStore hashes,
+archived provenance, the production empty-frame builder and unchanged assertions.
+The report is `.codex/tmp/text-3100-review-20260908-result.txt`; this completes the
+source review recorded as pending above, without accepting dynamic frame tests.
+
+Original graphics-library job `94560adfdb1a45daa7e2d5785ae6677c` also diagnosed
+`native_layout.rs` importing `crate::ui::surface::layout_text` when only the
+graphics feature was enabled. The UI module is correctly feature-gated; the
+product-test module admission was incomplete. Source snapshot 3113, request
+`ceec97c44cca462c8c483513c2259147`, adds `all(test, feature = "ui")` to both
+`native_layout` and its `cjk_layout_contract` consumer in
+`zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/product_framebuffer.rs`.
+Both modules still compile and retain their original tests under the UI feature.
+The atlas-only product proof remains available without UI. No producer, assertion,
+layout path or visibility changes.
+
+Pre-edit snapshot 3111 preserves the HEAD-clean parent and this record;
+transfer `a4e0728d8415412089659084cc72f2bc` establishes ownership. The repaired
+parent hash is `7eb64a778c8138ff5092d4e476eaa6216c90f214e5de5baab34307771cc5b7d7`.
+Scoped rustfmt and whitespace checks pass. Independent review in
+`.codex/tmp/text-foundation-3114-review-20260908-result.txt` returned C0 / I0 / M0
+for snapshot 3113, with exact hashes unchanged and no reviewer ownership conflict.
+Managed graphics-only job `76c956f0eebe4ea0bf184b7e1b9f2cfe` reached 30 remaining
+compiler errors, none from this parent or its native-layout fixture; it ran zero tests.
+UI product job `83453a2550a34f61808210e167d29be8` stopped at four UI/Text production
+compile errors before product tests. Both jobs used input
+`runtime-graphics-text-ui-support-3113-20260908`, digest
+`2a2096322809192c3da2dc6bab482a88efee8d4a1c54956c25c49c4de74062f3`.
+These are compiler results, not native-layout dynamic acceptance.
+
+Dirty-upload provenance and its borrowed-byte assertion are now preserved by source
+snapshot 3118 and the sibling canonical `failure-2026-07-18-bitmap-atlas-full-page-staging-and-dirty-union.md`.
+Its dynamic validation and review remain pending. The 300-frame/100/10k occurrence
+execution and WGPU/Softbuffer/RenderDoc acceptance remain required; this failure stays open.

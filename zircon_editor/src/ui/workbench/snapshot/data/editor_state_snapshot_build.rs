@@ -46,10 +46,25 @@ impl EditorState {
                 name: self.name_field.clone(),
                 parent: self.parent_field.clone(),
                 translation: self.transform_fields.clone(),
+                rotation_degrees: scene.local_transform(id).and_then(|transform| {
+                    InspectorSnapshot::rotation_degrees_from_quaternion(transform.rotation)
+                }),
                 scale: self.scale_fields.clone(),
                 render_layer_mask: scene
                     .render_layer_mask(id)
                     .unwrap_or_else(default_render_layer_mask),
+                native_fields: scene
+                    .inspection_fields_artifact(id)
+                    .map(|artifact| {
+                        let mut fields =
+                            super::inspector_snapshot::InspectorNativeFieldSnapshot::project(
+                                artifact.fields(),
+                            );
+                        self.asset_workspace
+                            .resolve_inspector_resource_labels(&mut fields);
+                        fields
+                    })
+                    .unwrap_or_default(),
                 plugin_components: inspector_plugin_components(
                     scene,
                     id,
@@ -119,7 +134,7 @@ fn inspector_plugin_components(
             let schema = scene.reflect_schema(&component_id).ok();
             let plugin_id = schema
                 .as_ref()
-                .and_then(|schema| schema.plugin_id.clone())
+                .and_then(|schema| schema.type_path.plugin_id().map(str::to_owned))
                 .or_else(|| {
                     component
                         .descriptor
@@ -436,7 +451,7 @@ fn json_value_kind(value: &Value) -> &'static str {
     }
 }
 
-fn reflected_value_label(value: &ReflectedValue) -> String {
+pub(super) fn reflected_value_label(value: &ReflectedValue) -> String {
     match value {
         ReflectedValue::Null => String::new(),
         ReflectedValue::Bool(value) => value.to_string(),

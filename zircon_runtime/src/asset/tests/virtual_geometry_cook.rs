@@ -171,12 +171,42 @@ fn runtime_importers_require_an_explicit_virtual_geometry_cook_request() {
         })
     );
 
-    for importer_source in [
-        include_str!("../importer/ingest/import_gltf.rs"),
-        include_str!("../importer/ingest/import_obj.rs"),
-        include_str!("../importer/ingest/import_model.rs"),
+    for (name, importer_source) in [
+        (
+            "runtime glTF",
+            include_str!("../importer/ingest/import_gltf.rs"),
+        ),
+        (
+            "runtime OBJ",
+            include_str!("../importer/ingest/import_obj.rs"),
+        ),
+        (
+            "runtime model",
+            include_str!("../importer/ingest/import_model.rs"),
+        ),
+        (
+            "plugin OBJ",
+            include_str!("../../../../zircon_plugins/obj_importer/runtime/src/lib.rs"),
+        ),
+        (
+            "plugin STL/PLY",
+            include_str!(
+                "../../../../zircon_plugins/asset_importers/model/runtime/src/mesh_importer.rs"
+            ),
+        ),
+        (
+            "plugin DXF",
+            include_str!("../../../../zircon_plugins/asset_importers/model/runtime/src/cad.rs"),
+        ),
     ] {
-        assert!(importer_source.contains("virtual_geometry_cook_request()?"));
+        assert!(
+            importer_source.contains("virtual_geometry_cook_request()?"),
+            "{name} must resolve the typed virtual-geometry request"
+        );
+        assert!(
+            !importer_source.contains("VirtualGeometryCookConfig"),
+            "{name} must not construct a cook config outside the typed request"
+        );
     }
     let primitive_source = include_str!("../importer/ingest/primitive_from_indexed_mesh.rs");
     assert_eq!(primitive_source.matches("cook_config_for(").count(), 2);

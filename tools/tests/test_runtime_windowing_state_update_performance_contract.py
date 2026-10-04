@@ -8,7 +8,7 @@ METADATA_BATCH = (
     ROOT / "zircon_runtime/src/ui/surface/property_mutation/metadata_batch.rs"
 )
 
-
+# 读取窗口状态更新路径，确认重复更新复用静态属性键，页窗口与可见范围无需无条件分配键。
 class RuntimeWindowingStateUpdatePerformanceContractTests(unittest.TestCase):
     def test_repeated_window_updates_reuse_static_property_keys(self) -> None:
         source = WINDOWING.read_text(encoding="utf-8")

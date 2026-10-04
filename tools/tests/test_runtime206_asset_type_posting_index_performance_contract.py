@@ -48,9 +48,10 @@ class Runtime206AssetTypePostingIndexPerformanceContractTests(unittest.TestCase)
     def test_type_filtered_query_reuses_the_same_candidate_posting(self) -> None:
         source = QUERY.read_text(encoding="utf-8")
         query = function_body(source, "pub fn get_assets(")
+        compact = "".join(query.split())
 
         self.assertIn("filter.type_marker", query)
-        self.assertIn("self.sorted_type_matches(type_marker", query)
+        self.assertIn("self.sorted_type_matches(type_marker", compact)
 
     def test_uniform_type_pressure_reduces_candidate_visits_by_32x(self) -> None:
         entry_count = 1_048_576

@@ -142,7 +142,7 @@ impl HubRecentProjectsStore {
         policy: HubRecentProjectsWritePolicy<'_>,
         update: impl FnOnce(&mut HubRecentProjectsV1) -> Result<(), HubRecentProjectsError>,
     ) -> Result<HubRecentProjectsMutation, HubRecentProjectsStoreError> {
-        self.update_at_revision(policy, None, update)
+        self.update_at_revision(policy, None, false, update)
     }
 
     /// Applies an update only when the projection still has the revision the caller inspected.
@@ -155,17 +155,37 @@ impl HubRecentProjectsStore {
         expected_revision: u64,
         update: impl FnOnce(&mut HubRecentProjectsV1) -> Result<(), HubRecentProjectsError>,
     ) -> Result<HubRecentProjectsMutation, HubRecentProjectsStoreError> {
-        self.update_at_revision(policy, Some(expected_revision), update)
+        self.update_at_revision(policy, Some(expected_revision), false, update)
     }
 
+    /// Applies a compare-and-update only to a clean projection read under the writer lease.
+    /// A rebuildable projection is left untouched, including its quarantine state, so callers
+    /// cannot mistake a corruption fallback at revision zero for an empty authoritative registry.
+    pub fn compare_and_update_if_clean(
+        &self,
+        policy: HubRecentProjectsWritePolicy<'_>,
+        expected_revision: u64,
+        update: impl FnOnce(&mut HubRecentProjectsV1) -> Result<(), HubRecentProjectsError>,
+    ) -> Result<HubRecentProjectsMutation, HubRecentProjectsStoreError> {
+        self.update_at_revision(policy, Some(expected_revision), true, update)
+    }
+
+    // 将跨进程互斥、读取/恢复、revision 比较、校验和原子写回放在同一临界区，避免两个 Hub 基于旧投影互相覆盖。
     fn update_at_revision(
         &self,
         policy: HubRecentProjectsWritePolicy<'_>,
         expected_revision: Option<u64>,
+        require_clean: bool,
         update: impl FnOnce(&mut HubRecentProjectsV1) -> Result<(), HubRecentProjectsError>,
     ) -> Result<HubRecentProjectsMutation, HubRecentProjectsStoreError> {
         let _lease = HubRecentProjectsWriteLease::acquire(&self.registry_path, &policy)?;
         let load = self.load_projection()?;
+        if require_clean && load.disposition() != HubRecentProjectsLoadDisposition::Clean {
+            return Err(HubRecentProjectsStoreError::ProjectionNotClean {
+                path: self.registry_path.clone(),
+                disposition: load.disposition(),
+            });
+        }
         let previous_revision = load.registry().revision();
         if let Some(expected_revision) = expected_revision {
             if expected_revision != previous_revision {
@@ -398,9 +418,23 @@ fn sync_parent_directory(_parent: &Path) -> io::Result<()> {
 #[derive(Debug)]
 struct HubRecentProjectsWriteLease {
     #[cfg(windows)]
-    handle: isize,
+    handle: WindowsMutexHandle,
     #[cfg(unix)]
     lock_file: File,
+}
+
+#[cfg(windows)]
+#[derive(Debug)]
+struct WindowsMutexHandle(isize);
+
+#[cfg(windows)]
+impl Drop for WindowsMutexHandle {
+    fn drop(&mut self) {
+        // SAFETY: this wrapper owns the non-null handle returned by `CreateMutexW`.
+        unsafe {
+            CloseHandle(self.0);
+        }
+    }
 }
 
 impl HubRecentProjectsWriteLease {
@@ -439,8 +473,7 @@ impl HubRecentProjectsWriteLease {
             .encode_utf16()
             .chain(Some(0))
             .collect::<Vec<_>>();
-        // SAFETY: the name buffer is NUL-terminated for this synchronous call and the returned
-        // handle is owned by the lease when non-zero.
+        // SAFETY: the name buffer is NUL-terminated for this synchronous call.
         let handle = unsafe { CreateMutexW(std::ptr::null(), 0, mutex_name.as_ptr()) };
         if handle == 0 {
             return Err(HubRecentProjectsStoreError::Io {
@@ -449,32 +482,24 @@ impl HubRecentProjectsWriteLease {
                 source: io::Error::last_os_error(),
             });
         }
+        let handle = WindowsMutexHandle(handle);
         loop {
             if policy.cancelled() {
-                unsafe {
-                    CloseHandle(handle);
-                }
                 return Err(HubRecentProjectsStoreError::LeaseCancelled {
                     path: registry_path.to_path_buf(),
                 });
             }
             if policy.nonblocking {
                 // SAFETY: `handle` is valid and a zero timeout never blocks the caller.
-                match unsafe { WaitForSingleObject(handle, 0) } {
+                match unsafe { WaitForSingleObject(handle.0, 0) } {
                     WAIT_OBJECT_0 | WAIT_ABANDONED => return Ok(Self { handle }),
                     WAIT_TIMEOUT => {
-                        unsafe {
-                            CloseHandle(handle);
-                        }
                         return Err(HubRecentProjectsStoreError::LeaseDeadlineExceeded {
                             path: registry_path.to_path_buf(),
                             waited: started.elapsed(),
                         });
                     }
                     _ => {
-                        unsafe {
-                            CloseHandle(handle);
-                        }
                         return Err(HubRecentProjectsStoreError::Io {
                             operation: "acquire shared recent-project writer lease",
                             path: registry_path.to_path_buf(),
@@ -486,13 +511,10 @@ impl HubRecentProjectsWriteLease {
             let remaining = deadline_remaining(registry_path, started, policy)?;
             let wait_millis = remaining.min(LEASE_POLL_INTERVAL).as_millis().max(1) as u32;
             // SAFETY: `handle` is valid and an abandoned mutex transfers ownership to this caller.
-            match unsafe { WaitForSingleObject(handle, wait_millis) } {
+            match unsafe { WaitForSingleObject(handle.0, wait_millis) } {
                 WAIT_OBJECT_0 | WAIT_ABANDONED => return Ok(Self { handle }),
                 WAIT_TIMEOUT => continue,
                 _ => {
-                    unsafe {
-                        CloseHandle(handle);
-                    }
                     return Err(HubRecentProjectsStoreError::Io {
                         operation: "acquire shared recent-project writer lease",
                         path: registry_path.to_path_buf(),
@@ -579,10 +601,10 @@ fn deadline_remaining(
 #[cfg(windows)]
 impl Drop for HubRecentProjectsWriteLease {
     fn drop(&mut self) {
-        // SAFETY: this lease owns the mutex after a successful wait.
+        // SAFETY: this lease owns the mutex after a successful wait. The handle wrapper closes
+        // the kernel handle after this destructor releases the mutex.
         unsafe {
-            ReleaseMutex(self.handle);
-            CloseHandle(self.handle);
+            ReleaseMutex(self.handle.0);
         }
     }
 }
@@ -647,6 +669,11 @@ pub enum HubRecentProjectsStoreError {
         expected_revision: u64,
         actual_revision: u64,
     },
+    #[error("shared recent-project registry `{path}` is not clean: {disposition:?}")]
+    ProjectionNotClean {
+        path: PathBuf,
+        disposition: HubRecentProjectsLoadDisposition,
+    },
     #[error("shared recent-project writer lease is unsupported for `{path}`")]
     PlatformUnsupported { path: PathBuf },
 }
@@ -672,6 +699,7 @@ impl HubRecentProjectsStoreError {
             | Self::LeaseDeadlineExceeded { .. }
             | Self::LeaseCancelled { .. }
             | Self::RevisionConflict { .. }
+            | Self::ProjectionNotClean { .. }
             | Self::PlatformUnsupported { .. } => {
                 unreachable!("only rebuildable registry errors reach this method")
             }
@@ -706,142 +734,5 @@ unsafe extern "C" {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::fs;
-    use std::time::SystemTime;
-
-    use crate::project::{ProjectManifestSummary, PROJECT_MANIFEST_FORMAT_VERSION};
-
-    use super::{
-        HubRecentProjectsLoadDisposition, HubRecentProjectsStore, HubRecentProjectsStoreError,
-        HubRecentProjectsWritePolicy, HUB_RECENT_PROJECTS_MAX_ENCODED_BYTES_V1,
-    };
-    use crate::hub_protocol::HubRecentProjectV1;
-
-    #[test]
-    fn corrupted_projection_is_quarantined_and_rebuilt_during_a_bounded_mutation() {
-        let root = temporary_root("corrupt");
-        let path = root.join("recent_projects.json");
-        fs::create_dir_all(&root).expect("create fixture root");
-        fs::write(&path, b"not-json").expect("write corrupt fixture");
-        let store = HubRecentProjectsStore::new(path.clone());
-
-        let result = store
-            .update(
-                HubRecentProjectsWritePolicy::with_timeout(std::time::Duration::from_millis(50)),
-                |registry| registry.record(project()),
-            )
-            .expect("rebuild corrupt recent projection");
-
-        assert_eq!(
-            result.load_disposition(),
-            HubRecentProjectsLoadDisposition::RebuildRequiredAfterCorruption
-        );
-        assert!(result.quarantined_path().is_some());
-        assert_eq!(result.registry().projects, vec![project()]);
-        assert_eq!(store.load_projection().unwrap().registry().revision(), 1);
-        fs::remove_dir_all(root).expect("remove fixture root");
-    }
-
-    #[test]
-    fn oversized_projection_is_nonblocking_and_reports_a_rebuild_requirement() {
-        let root = temporary_root("oversized");
-        let path = root.join("recent_projects.json");
-        fs::create_dir_all(&root).expect("create fixture root");
-        fs::write(
-            &path,
-            vec![b'x'; HUB_RECENT_PROJECTS_MAX_ENCODED_BYTES_V1 + 1],
-        )
-        .expect("write oversized fixture");
-        let store = HubRecentProjectsStore::new(path);
-
-        let projection = store.load_projection().expect("bounded projection result");
-
-        assert_eq!(
-            projection.disposition(),
-            HubRecentProjectsLoadDisposition::RebuildRequiredAfterOversize
-        );
-        assert!(projection.registry().projects.is_empty());
-        fs::remove_dir_all(root).expect("remove fixture root");
-    }
-
-    #[test]
-    fn cancelled_write_returns_a_typed_terminal_error_before_mutation() {
-        let root = temporary_root("cancelled");
-        let store = HubRecentProjectsStore::new(root.join("recent_projects.json"));
-        let cancelled = || true;
-
-        let error = store
-            .update(
-                HubRecentProjectsWritePolicy::with_timeout(std::time::Duration::from_secs(1))
-                    .with_cancellation(&cancelled),
-                |registry| registry.record(project()),
-            )
-            .expect_err("cancelled writer must not mutate history");
-
-        assert!(matches!(
-            error,
-            HubRecentProjectsStoreError::LeaseCancelled { .. }
-        ));
-        assert!(!store.path().exists());
-    }
-
-    #[test]
-    fn compare_and_update_rejects_a_stale_projection_revision() {
-        let root = temporary_root("stale-revision");
-        let store = HubRecentProjectsStore::new(root.join("recent_projects.json"));
-        let first = store
-            .update(
-                HubRecentProjectsWritePolicy::with_timeout(std::time::Duration::from_millis(50)),
-                |registry| registry.record(project()),
-            )
-            .expect("write initial projection");
-
-        let error = store
-            .compare_and_update(
-                HubRecentProjectsWritePolicy::with_timeout(std::time::Duration::from_millis(50)),
-                first.previous_revision(),
-                |registry| registry.remove("E:/Projects/Game"),
-            )
-            .expect_err("stale revision must not replace a newer projection");
-
-        assert!(matches!(
-            error,
-            HubRecentProjectsStoreError::RevisionConflict {
-                expected_revision: 0,
-                actual_revision: 1,
-                ..
-            }
-        ));
-        std::fs::remove_dir_all(root).expect("remove fixture root");
-    }
-
-    fn project() -> HubRecentProjectV1 {
-        HubRecentProjectV1::new(
-            ProjectManifestSummary {
-                name: "Game".to_string(),
-                engine_version_req: None,
-                default_scene: "res://scenes/main.scene.toml".to_string(),
-                format_version: PROJECT_MANIFEST_FORMAT_VERSION,
-            },
-            "E:/Projects/Game",
-            42,
-        )
-        .expect("fixture recent project")
-    }
-
-    fn temporary_root(label: &str) -> PathBuf {
-        let target_directory = std::env::var_os("CARGO_TARGET_DIR")
-            .expect("recent-project filesystem tests require coordinator-managed CARGO_TARGET_DIR");
-        PathBuf::from(target_directory).join(format!(
-            "zircon-recent-store-{label}-{}-{}",
-            std::process::id(),
-            SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .expect("current time")
-                .as_nanos(),
-        ))
-    }
-
-    use std::path::PathBuf;
-}
+#[path = "tests/store.rs"]
+mod tests;

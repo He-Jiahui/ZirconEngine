@@ -8,9 +8,14 @@ use crate::ui::{
 };
 
 mod compute;
+mod diff;
 mod focused_impact;
+#[cfg(test)]
+#[path = "ecs/tests/query_performance_tests.rs"]
+mod query_performance_tests;
 
 use compute::*;
+use diff::*;
 use focused_impact::*;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -46,6 +51,7 @@ impl UiEcsProjectionSnapshot {
         }
     }
 
+    /// 节点投影 Vec 无需调用方排序：先试二分命中，未命中时再线性兜底。
     pub fn node(&self, node_id: UiNodeId) -> Option<&UiEcsNodeProjection> {
         self.nodes
             .binary_search_by_key(&node_id, |node| node.node_id)
@@ -55,44 +61,7 @@ impl UiEcsProjectionSnapshot {
     }
 
     pub fn diff_from(&self, previous: &Self) -> UiEcsProjectionDelta {
-        let previous_nodes = projection_node_map(&previous.nodes);
-        let current_nodes = projection_node_map(&self.nodes);
-        let mut changes = Vec::new();
-
-        for (node_id, previous_node) in &previous_nodes {
-            if let Some(current_node) = current_nodes.get(node_id) {
-                let reasons = projection_node_change_reasons(previous_node, current_node);
-                if !reasons.is_empty() {
-                    changes.push(UiEcsProjectionNodeChange {
-                        node_id: *node_id,
-                        node_path: current_node.node_path.clone(),
-                        kind: UiEcsProjectionChangeKind::Updated,
-                        domains: projection_update_domains(previous_node, current_node, &reasons),
-                        reasons,
-                    });
-                }
-            } else {
-                changes.push(UiEcsProjectionNodeChange {
-                    node_id: *node_id,
-                    node_path: previous_node.node_path.clone(),
-                    kind: UiEcsProjectionChangeKind::Removed,
-                    domains: UiEcsDirtyDomains::structural_change().union(previous_node.dirty),
-                    reasons: vec![UiEcsProjectionChangeReason::Removed],
-                });
-            }
-        }
-
-        for (node_id, current_node) in &current_nodes {
-            if !previous_nodes.contains_key(node_id) {
-                changes.push(UiEcsProjectionNodeChange {
-                    node_id: *node_id,
-                    node_path: current_node.node_path.clone(),
-                    kind: UiEcsProjectionChangeKind::Added,
-                    domains: UiEcsDirtyDomains::structural_change().union(current_node.dirty),
-                    reasons: vec![UiEcsProjectionChangeReason::Added],
-                });
-            }
-        }
+        let changes = projection_changes(&previous.nodes, &self.nodes);
 
         let totals = UiEcsProjectionDeltaTotals::from_changes(&changes);
         let schedule_mask = projection_schedule_mask_from_changes(&changes);
@@ -230,6 +199,8 @@ pub struct UiEcsDirtyDomains {
 }
 
 impl UiEcsDirtyDomains {
+    /// 原始标志按派生依赖展开：hit/input/layout/visible_range 使 picking 失效；input/style/text/layout/visible_range 传播到 accessibility，
+    /// style/text/layout/visible_range 传播到 render。
     pub const fn from_dirty_flags(dirty: UiDirtyFlags) -> Self {
         Self {
             layout: dirty.layout,
@@ -450,6 +421,15 @@ impl UiEcsProjectionDelta {
     }
 
     pub fn change(&self, node_id: UiNodeId) -> Option<&UiEcsProjectionNodeChange> {
+        self.changes
+            .binary_search_by_key(&node_id, |change| change.node_id)
+            .ok()
+            .and_then(|index| self.changes.get(index))
+            .or_else(|| self.changes.iter().find(|change| change.node_id == node_id))
+    }
+
+    #[cfg(test)]
+    fn change_linear(&self, node_id: UiNodeId) -> Option<&UiEcsProjectionNodeChange> {
         self.changes.iter().find(|change| change.node_id == node_id)
     }
 
@@ -464,6 +444,14 @@ impl UiEcsProjectionDelta {
     }
 
     pub fn node_ids_by_change_kind(&self, kind: UiEcsProjectionChangeKind) -> Vec<UiNodeId> {
+        self.changes
+            .iter()
+            .filter_map(|change| (change.kind == kind).then_some(change.node_id))
+            .collect()
+    }
+
+    #[cfg(test)]
+    fn node_ids_by_change_kind_staged(&self, kind: UiEcsProjectionChangeKind) -> Vec<UiNodeId> {
         self.changes_by_kind(kind)
             .into_iter()
             .map(|change| change.node_id)
@@ -776,6 +764,8 @@ pub struct UiEcsProjectionScheduleMask {
 }
 
 impl UiEcsProjectionScheduleMask {
+    /// 此掩码展开 Runtime 阶段依赖：text/style/visible_range 会拉起 layout，layout 再带动 post-layout、picking、a11y 与 render，
+    /// render 继续要求 batch prepare。
     pub const fn from_dirty_domains(domains: UiEcsDirtyDomains) -> Self {
         let text_layout = domains.text;
         let layout = domains.layout || text_layout || domains.style || domains.visible_range;

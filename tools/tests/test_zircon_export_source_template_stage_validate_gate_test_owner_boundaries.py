@@ -8,10 +8,10 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 COMPILE_HOST_SOURCE_TEMPLATE_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_compile_host_source_template.py"
+    REPO_ROOT / "tools/export/tests/test_compile_host_source_template.py"
 )
 SOURCE_TEMPLATE_VALIDATE_GATES_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_source_template_stage_validate_gates.py"
+    REPO_ROOT / "tools/export/tests/test_source_template_stage_validate_gates.py"
 )
 
 VALIDATE_GATE_TEST_METHODS = (

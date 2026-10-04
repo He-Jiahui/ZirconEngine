@@ -9,4 +9,5 @@ pub(crate) use generation::{
 pub(crate) use generation::{static_content_cache_entry_count, STATIC_CONTENT_CACHE_CAPACITY};
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

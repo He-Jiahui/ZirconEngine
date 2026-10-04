@@ -336,5 +336,5 @@ fn sync_parent_directory(parent: Option<&Path>) {
 fn sync_parent_directory(_parent: Option<&Path>) {}
 
 #[cfg(test)]
-#[path = "preset/single_buffer_staging_name_tests.rs"]
+#[path = "preset/tests/single_buffer_staging_name_tests.rs"]
 mod single_buffer_staging_name_tests;

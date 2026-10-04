@@ -1,10 +1,10 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema import (
+from tools.audits.plugins.manifest_schema import (
     collect_manifest_schema_violations,
 )
 
-
+# 用插件清单夹具验证模块：接受模块描述符投影字段，并接受服务与拒绝退役服务端级别。
 class PluginStructureAuditManifestSchemaModulesTests(unittest.TestCase):
     def test_manifest_schema_accepts_module_descriptor_projection_fields(self):
         violations: list[str] = []

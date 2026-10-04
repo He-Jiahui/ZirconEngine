@@ -39,7 +39,7 @@ Status: `measurement-in-progress`。结构与依赖剖析已经完成；四个 H
 
 ### Current-source 依赖图探针
 
-- 2026-08-14 使用仓库审计器 `tools/runtime_domain_dependency_audit.py` 对 `zircon_runtime/src/**/*.rs` 做内存审计；审计前后均为 7,433 个 Rust 文件、1,110,882 行，输入清单 SHA-256 均为 `5a2116bbb0cbbd6bebc8884252afaca817107684e99294c0bd91fbcd072861f3`，因此该轮没有被并发源码修改污染。
+- 2026-08-14 使用仓库审计器 `tools/audits/runtime_domain_dependency_audit.py` 对 `zircon_runtime/src/**/*.rs` 做内存审计；审计前后均为 7,433 个 Rust 文件、1,110,882 行，输入清单 SHA-256 均为 `5a2116bbb0cbbd6bebc8884252afaca817107684e99294c0bd91fbcd072861f3`，因此该轮没有被并发源码修改污染。
 - 结果为 2,710 条 production cross-domain reference、72 条 domain edge；canonical in-memory JSON SHA-256 为 `ba62a277569e9f2e8f327f7a45f7026187b0b2e024b8438580c598bc7846c94f`。最大边仍为 `graphics -> core` 896、`asset -> core` 292、`scene -> core` 228、`plugin -> core` 211，证明 `core` 扇入是结构主问题。
 - 已完成 hard cut 的 `graphics -> scene`、`graphics -> ui`、`asset -> text`、`scene -> animation`、`rhi -> rhi_wgpu` 在本轮均为 0，未发现旧边回流。
 - 现有 `2026-07-30-runtime-domain-dependencies-production-only.json` 是 2,391 refs / 76 edges 的历史快照，文件 SHA-256 为 `cc3c01dce8aa4a5c200560984c056b30e9ee1b777bc0f37f7ba531b45af6deba`。本轮不覆盖该受管产物；须取得精确写所有权后，将上述 stable current-source 结果完整落盘并重新校验，才可把 M0 依赖图标为完成。

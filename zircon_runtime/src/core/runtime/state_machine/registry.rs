@@ -6,6 +6,7 @@ use super::{
     State, StateSpec, StateTransitionEvent,
 };
 
+/// 每个 TypeId 唯一对应一种 StateMachine；返回的 dispatch 由调用方在解锁后执行。
 #[derive(Default)]
 pub(crate) struct StateRegistry {
     machines: HashMap<TypeId, Box<dyn Any + Send + Sync>>,
@@ -99,8 +100,12 @@ impl StateRegistry {
     fn machine_or_insert_mut<T: StateSpec>(&mut self) -> &mut StateMachine<T> {
         self.machines
             .entry(TypeId::of::<T>())
-            .or_insert_with(|| Box::<StateMachine<T>>::default());
-        self.machine_mut::<T>()
+            .or_insert_with(|| Box::<StateMachine<T>>::default())
+            .downcast_mut::<StateMachine<T>>()
             .expect("state registry stored a machine under the wrong TypeId")
     }
 }
+
+#[cfg(test)]
+#[path = "registry/tests/optimization_batch_jn_runtime653_tests.rs"]
+mod optimization_batch_jn_runtime653_tests;

@@ -126,7 +126,7 @@ impl SceneLightmapResources {
         }
         if resource.descriptor.format != LIGHTMAP_RGBA16F_GPU_FORMAT
             || resource.descriptor.dimension != RenderImageDimension::D2
-            || resource.descriptor.array_layer_count != contract.atlas_descriptor.page_count
+            || resource.descriptor.depth_or_array_layers != contract.atlas_descriptor.page_count
         {
             return Err(GraphicsError::Asset(format!(
                 "lightmap atlas {} GPU descriptor does not match the consumption contract",
@@ -260,4 +260,5 @@ fn create_probe_grid_buffer(device: &wgpu::Device, words: &[[f32; 4]]) -> Arc<wg
 }
 
 #[cfg(test)]
+#[path = "lightmap_binding/tests/cases.rs"]
 mod tests;

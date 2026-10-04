@@ -1,14 +1,15 @@
+# 核对载荷最终化函数归属与物化模块规模。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-NATIVE_DYNAMIC_STAGE = REPO_ROOT / "tools/zircon_export/native_dynamic.py"
+NATIVE_DYNAMIC_STAGE = REPO_ROOT / "tools/export/native_dynamic.py"
 NATIVE_DYNAMIC_MATERIALIZE = (
-    REPO_ROOT / "tools/zircon_export/native_dynamic_materialize.py"
+    REPO_ROOT / "tools/export/native_dynamic_materialize.py"
 )
 NATIVE_DYNAMIC_STAGE_PAYLOAD_FINALIZE = (
-    REPO_ROOT / "tools/zircon_export/native_dynamic_stage_payload_finalize.py"
+    REPO_ROOT / "tools/export/native_dynamic_stage_payload_finalize.py"
 )
 
 

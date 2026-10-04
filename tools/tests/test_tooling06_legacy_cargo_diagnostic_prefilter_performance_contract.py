@@ -1,3 +1,4 @@
+# 核对旧构建诊断只筛选候选注记并流式计算文件摘要。
 import tempfile
 import unittest
 import hashlib

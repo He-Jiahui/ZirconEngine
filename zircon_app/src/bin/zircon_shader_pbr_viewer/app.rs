@@ -818,6 +818,9 @@ impl PbrMirrorViewerApp {
                             "environment-only-pbr-base"
                         };
                     let shader_variant_miss_report = scene.shader_variant_miss_report();
+                    let environment_runtime_snapshot = scene.environment_runtime_snapshot().expect(
+                        "Ready frames must retain the unified environment runtime snapshot",
+                    );
                     let startup_timing = scene.startup_timing();
                     let (hdri_path, requested_source_face_size, requested_pmrem_face_size) =
                         screenshot_input
@@ -927,6 +930,7 @@ impl PbrMirrorViewerApp {
                         ready_frame_render_extract: timing.render_extract(),
                         ready_frame_renderer_call: timing.renderer_frame_call(),
                         ready_frame_readback_and_completion: timing.readback_and_completion(),
+                        environment_runtime_snapshot,
                         shader_variant_miss_report,
                     })
                 } else {
@@ -1349,5 +1353,5 @@ fn ready_window_title(
 }
 
 #[cfg(test)]
-#[path = "app_tests.rs"]
+#[path = "tests/app_tests.rs"]
 mod tests;

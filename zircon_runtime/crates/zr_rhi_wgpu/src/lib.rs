@@ -1,3 +1,6 @@
+//! 此边界把中立设备、提交票据和诊断契约接到 WGPU；实际资源与完成时间线由生产设备持有。
+//! 测试用主机镜像只验证描述符与调用顺序，不能用其通过结果证明原生着色器或 GPU 同步正确。
+//!
 //! `wgpu` capability mapping and native UI presentation support.
 //!
 //! Current product scene/offscreen ownership remains in `graphics::backend` until the Runtime90
@@ -10,8 +13,10 @@
 mod bind_group_validation;
 mod capabilities;
 #[cfg(test)]
+#[path = "tests/command_validation.rs"]
 mod command_validation;
 #[cfg(test)]
+#[path = "tests/device.rs"]
 mod device;
 mod device_fault;
 mod device_profile;

@@ -1,4 +1,8 @@
-use super::*;
+use super::fixtures::{
+    PREVIEW_AND_BINDING_LAYOUT_ASSET_TOML, PREVIEW_DEEP_NESTED_LAYOUT_ASSET_TOML,
+};
+use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorSession};
+use zircon_runtime_interface::ui::{layout::UiSize, template::UiAssetKind};
 
 #[test]
 fn ui_asset_editor_session_projects_nested_binding_payload_schema_previews() {

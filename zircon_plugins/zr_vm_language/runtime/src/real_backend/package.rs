@@ -5,7 +5,7 @@ use zr_vm_rust_binding as zrvm;
 
 use super::errors::map_zr_error;
 use super::host_modules::register_host_modules;
-use super::instance::ZrVmPluginInstance;
+use super::instance::{ZrVmPluginInstance, ZrVmStateEncoding};
 use super::lock::acquire_zr_vm_lock;
 use super::runtime_owner::ZrVmRuntimeOwner;
 
@@ -53,13 +53,15 @@ pub fn load_project_package(
         module_name: None,
         program_args: Vec::new(),
     };
-    let session = workspace
+    let mut session = workspace
         .start_session(&mut runtime, &run_options)
         .map_err(map_zr_error)?;
+    let state_encoding = ZrVmStateEncoding::load(&mut session, &project.entry_module)?;
 
     Ok(Box::new(ZrVmPluginInstance::new(
         package.manifest.clone(),
         ZrVmRuntimeOwner::new(session, host_modules.registrations, runtime),
         project.entry_module.clone(),
+        state_encoding,
     )))
 }

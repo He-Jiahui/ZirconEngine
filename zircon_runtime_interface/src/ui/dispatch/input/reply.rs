@@ -4,7 +4,9 @@ use crate::ui::event_ui::UiNodeId;
 
 use super::UiDispatchEffect;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
+)]
 pub enum UiDispatchPhase {
     #[default]
     Preprocess,
@@ -153,6 +155,8 @@ impl UiDispatchReply {
                 step.reply.phase = Some(step.phase);
             }
 
+            // Unhandled 丢弃本步 effects；Passthrough 累积 effects 后继续，并由首个非 Unhandled 回复占据汇总 handler/phase；
+            // Handled/Blocked 累积本步 effects、覆盖汇总归属并终止路由。
             match step.reply.disposition {
                 UiDispatchDisposition::Unhandled => {
                     let ignored_effect_count = step.reply.effects.len();

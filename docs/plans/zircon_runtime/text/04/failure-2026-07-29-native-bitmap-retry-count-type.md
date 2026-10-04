@@ -63,3 +63,70 @@ counter's owner type. The contract is a collection cardinality and therefore mus
 - The retry-frame owner keeps stale-glyph selection, face invalidation, deduplicated source selection, per-frame source/byte caps, and retry reporting in the native bitmap atlas domain. No consumer-side cast, compatibility alias, or fallback bypass was added.
 - Current source inspection confirms the retry counter declaration and the native bitmap retry-frame test owner both use `usize`. This records the implemented type repair and static contract review only.
 - The focused Text04 and original Plugins09 upward commands remain coordinator-owned. Keep this failure `open` until fresh current-source receipts show both gates executed; do not treat the prior compile-stop as a pass.
+
+## 2026-09-11 failure rolling repair
+
+- Primary session `failure-roll-01a084c8-text04-native-bitmap-retry-r1` re-claimed the failure record and `retry_frame.rs`. Current source confirms `discarded_stale_retry_glyph_count` is explicitly `usize` at both selection and frame-report boundaries; edition-2021 rustfmt and scoped diff checks pass.
+- Snapshot 3422 freezes the exact owner source. Corrected request `text04-native-bitmap-retry-20260911-r2` submitted `cargo +1.94.1 test -p zircon_runtime --lib native_bitmap_atlas --locked --color never -- --nocapture --test-threads=1`; the earlier request containing coordinator-owned `--jobs 1` was rejected as an input error and is not evidence.
+- Admission returned `validation_ticket_external_worktree_dirty` for `E:\\Git\\zr_vm`; no ticket, Cargo execution, or dynamic pass exists. This lifecycle remains open and the session is `waiting_validation`; once the external owner supplies a clean revision, rerun this focused test and the declared Plugins09 upward command before return/closeout.
+
+## 2026-09-19 rolling successor formal source binding
+
+- Successor Session `failure-roll-01a084c8-text04-native-bitmap-retry-r2` reclaimed the
+  archived exact-path ownership through coordinator transfer fingerprint
+  `b9dbfe6808b6e86ab1397f5a627c2d445efcbca901ad36ebb6e7d6841e9de0f4` at baseline epoch
+  `611`; no source bytes were changed during attribution.
+- Formal non-Cargo source-contract ticket `6a2a81518c4a49f7aae4c0006ac7c2b2` was admitted
+  from request `failure-roll-01a084c8-text04-native-bitmap-retry-20260919-r1` and is
+  currently `queued`. Its sealed source-manifest hash is
+  `2e8c59bce8736c0b1dfb4385a631aad2d57eaaa50204f8c53cc506e50763381f`:
+
+  | path | SHA-256 |
+  | --- | --- |
+  | `docs/plans/zircon_runtime/text/04/failure-2026-07-29-native-bitmap-retry-count-type.md` | `f5edffcba9585e884eb259eda726fa22cd18e7347372ce54f3337feb9f9924fc` |
+  | `zircon_runtime/src/text/native_bitmap_atlas/retry_frame.rs` | `b2c92af78a5b1ddc6783055b1f25a1c48930b9ae0ee3e9230309ca2de977d921` |
+
+- The ticket executes a Windows PowerShell/rustfmt source-contract parse proving the owner
+  declaration and checked `usize` accumulation. It explicitly defers the focused Text04
+  Cargo test, original Plugins09 upward command, independent C/I/M review, canonical fixed
+  return and closeout. The prior Cargo admission blocker
+  `validation_ticket_external_worktree_dirty:E:\\Git\\zr_vm` remains retained and is not
+  converted into a test result.
+- Failure remains `open`; no fixed return, commit, or notification is claimed.
+
+### Formal source-contract ticket terminal result
+
+- Ticket `6a2a81518c4a49f7aae4c0006ac7c2b2` completed `passed` at
+  `2026-09-19T04:44:17.860313Z` (exit code 0) with immutable output
+  `TEXT04_NATIVE_BITMAP_RETRY_USIZE_SOURCE_CONTRACT_PARSE_PASS`. Sealed manifest hash:
+  `2e8c59bce8736c0b1dfb4385a631aad2d57eaaa50204f8c53cc506e50763381f`.
+- This is only the current-source static contract result. Focused Text04 Cargo, Plugins09
+  upward validation, independent C/I/M review, fixed return and closeout remain pending; the
+  external `E:\Git\zr_vm` dirty-worktree admission blocker is retained.
+
+## 2026-09-21 current-source review successor
+
+- Successor Session `failure-roll-01a084c8-text04-native-bitmap-retry-r3` reclaimed only this
+  record and `retry_frame.rs`. Snapshot `3713` binds the current source to
+  `b2c92af78a5b1ddc6783055b1f25a1c48930b9ae0ee3e9230309ca2de977d921`; no source bytes changed.
+- An initial local source checker expected two occurrences of the `: usize` owner spelling and
+  correctly failed because the two structure fields plus the local owner declaration make three.
+  The corrected checker separately requires the two fields, the one initialized local owner, the
+  two `saturating_add(1)` updates, the selection-to-frame report projection, and no counter cast.
+  It passed with marker `TEXT04_NATIVE_BITMAP_RETRY_USIZE_CURRENT_SOURCE_PASS`, including pinned
+  Rust 1.94.1 `rustfmt --check`.
+- Managed static-only ticket `b87e83f436d94d078775c34b566db97b`
+  (`...-20260921-static-r1`) passed against source-manifest
+  `0aa8b727f6230ea87a500cb7263d433ba208e601633fd6e41d1f1a92f648f99e`.
+  Coordinator job `681c92e707ea47df9c2a13386f1644bd` / run
+  `b87e83f436d94d078775c34b566db97b` exited 0 with
+  `TEXT04_NATIVE_BITMAP_RETRY_USIZE_CURRENT_SOURCE_PASS`. It is explicitly
+  `fullCoverage: false` / `staticParseOnly: true` and does not replace the focused Text04 Cargo or
+  Plugins09 upward gates.
+- Independent current-source review of snapshot `3713` found
+  `Critical=0 / Important=0 / Moderate=0`. It confirmed the explicit `usize` owner through
+  selection, retry frame, outer frame, and prepare report, the two saturating increments, direct
+  no-cast projection, and the existing stale/matching/duplicate-source behavior coverage. The
+  reviewer did not run Cargo and separately preserved both dynamic gates as pending.
+- The external `E:\Git\zr_vm` worktree still has 157 foreign changes. It was not modified; no
+  duplicate Cargo request, fixed return, closeout, commit, or notification is claimed.

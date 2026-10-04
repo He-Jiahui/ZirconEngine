@@ -59,6 +59,11 @@ fn artifact_chunk_residency_hot_reads_reuse_inventory_identity_arcs() {
         .nth(1)
         .and_then(|source| source.split("pub(super) fn diagnostics").next())
         .expect("artifact residency read path");
+    let publish = store
+        .split("fn publish_chunks(")
+        .nth(1)
+        .and_then(|source| source.split("fn existing_chunk_matches(").next())
+        .expect("artifact chunk publication path");
 
     assert!(source.contains("chunk_root: Arc<PathBuf>"));
     assert!(source.contains("content_hash: Arc<str>"));
@@ -66,9 +71,9 @@ fn artifact_chunk_residency_hot_reads_reuse_inventory_identity_arcs() {
     assert!(read.contains("Arc::clone(&descriptor.content_hash)"));
     assert!(!read.contains("inventory.chunk_root.clone()"));
     assert!(!read.contains("descriptor.content_hash.clone()"));
-    assert!(store.contains("let content_hash: Arc<str>"));
-    assert!(store.contains("ArtifactChunkDescriptor::new("));
-    assert!(!store.contains("to_hex().to_string()"));
+    assert!(publish.contains("let content_hash: Arc<str>"));
+    assert!(publish.contains("ArtifactChunkDescriptor::new("));
+    assert!(!publish.contains("to_hex().to_string()"));
 }
 
 #[test]

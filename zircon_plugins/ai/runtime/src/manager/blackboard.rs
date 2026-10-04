@@ -12,7 +12,7 @@ use crate::blackboard::BlackboardLayout;
 use crate::blackboard::{BlackboardLayoutError, BlackboardRuntimeError, BlackboardStore};
 
 #[cfg(test)]
-#[path = "blackboard/schema_clone_tests.rs"]
+#[path = "blackboard/tests/schema_clone_tests.rs"]
 mod schema_clone_tests;
 
 pub(super) fn register_schema(
@@ -69,6 +69,7 @@ pub(super) fn schemas(manager: &DefaultAiManager) -> Vec<AiBlackboardSchemaDescr
         .collect()
 }
 
+// 有活动 schema 时借用描述符完成验证并复用编译布局；schema 切换会重建代理密集存储。
 pub(super) fn set_entries(
     manager: &DefaultAiManager,
     world: WorldHandle,

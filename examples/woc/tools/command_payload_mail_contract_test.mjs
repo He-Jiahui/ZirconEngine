@@ -1,3 +1,6 @@
+// 调用端：npm run check:command-payload-mail-contract (tools/package.json)；职责：跨 JSON、生成协议、原生路由和输入意图检查邮件命令 ID 与载荷形状。
+// 此脚本断言源代码与协议约定，检查生成的形状和路由名称，不运行游戏。
+
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';

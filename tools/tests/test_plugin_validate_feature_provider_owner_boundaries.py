@@ -6,45 +6,45 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 PLUGIN_VALIDATE_OWNER_BOUNDARIES_TEST = (
     REPO_ROOT / "tools/tests/test_plugin_validate_owner_boundaries.py"
 )
-PLUGIN_VALIDATE = REPO_ROOT / "tools/zircon_export/plugin_validate.py"
-PLUGIN_BUILD = REPO_ROOT / "tools/zircon_export/plugin_build.py"
-PLUGIN_VALIDATE_COMMON = REPO_ROOT / "tools/zircon_export/plugin_validate_common.py"
+PLUGIN_VALIDATE = REPO_ROOT / "tools/export/plugin_validate.py"
+PLUGIN_BUILD = REPO_ROOT / "tools/export/plugin_build.py"
+PLUGIN_VALIDATE_COMMON = REPO_ROOT / "tools/export/plugin_validate_common.py"
 PLUGIN_VALIDATE_TARGET_DISCOVERY = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_target_discovery.py"
+    REPO_ROOT / "tools/export/plugin_validate_target_discovery.py"
 )
-PLUGIN_PACKAGE_IDENTITY = REPO_ROOT / "tools/zircon_export/plugin_package_identity.py"
-PLUGIN_PACKAGE_SOURCE = REPO_ROOT / "tools/zircon_export/plugin_package_source.py"
-PLUGIN_PACKAGE_TEMPLATE = REPO_ROOT / "tools/zircon_export/plugin_package_template.py"
+PLUGIN_PACKAGE_IDENTITY = REPO_ROOT / "tools/export/plugin_package_identity.py"
+PLUGIN_PACKAGE_SOURCE = REPO_ROOT / "tools/export/plugin_package_source.py"
+PLUGIN_PACKAGE_TEMPLATE = REPO_ROOT / "tools/export/plugin_package_template.py"
 PLUGIN_VALIDATE_FEATURE_PROVIDER = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider.py"
+    REPO_ROOT / "tools/export/plugin_validate_feature_provider.py"
 )
-PLUGIN_VALIDATE_FEATURE_PROVIDER_MANIFEST_SCHEMA = REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider_manifest_schema.py"
+PLUGIN_VALIDATE_FEATURE_PROVIDER_MANIFEST_SCHEMA = REPO_ROOT / "tools/export/plugin_validate_feature_provider_manifest_schema.py"
 PLUGIN_VALIDATE_FEATURE_PROVIDER_MANIFEST_PARSE = (
     REPO_ROOT
-    / "tools/zircon_export/plugin_validate_feature_provider_manifest_parse.py"
+    / "tools/export/plugin_validate_feature_provider_manifest_parse.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_PROJECTION_COMPARE = (
     REPO_ROOT
-    / "tools/zircon_export/plugin_validate_feature_provider_projection_compare.py"
+    / "tools/export/plugin_validate_feature_provider_projection_compare.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_PROJECTION_OPTIONAL = (
     REPO_ROOT
-    / "tools/zircon_export/plugin_validate_feature_provider_projection_optional.py"
+    / "tools/export/plugin_validate_feature_provider_projection_optional.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_DEPENDENCIES = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider_dependencies.py"
+    REPO_ROOT / "tools/export/plugin_validate_feature_provider_dependencies.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_CAPABILITIES = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider_capabilities.py"
+    REPO_ROOT / "tools/export/plugin_validate_feature_provider_capabilities.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_DISTRIBUTION = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider_distribution.py"
+    REPO_ROOT / "tools/export/plugin_validate_feature_provider_distribution.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_EXTENSION = (
-    REPO_ROOT / "tools/zircon_export/plugin_validate_feature_provider_extension.py"
+    REPO_ROOT / "tools/export/plugin_validate_feature_provider_extension.py"
 )
 PLUGIN_VALIDATE_FEATURE_PROVIDER_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_plugin_validate_feature_provider.py"
+    REPO_ROOT / "tools/export/tests/test_plugin_validate_feature_provider.py"
 )
 
 FEATURE_PROVIDER_BOUNDARY_METHODS = (
@@ -60,7 +60,7 @@ FEATURE_PROVIDER_BOUNDARY_METHODS = (
     "test_feature_provider_extension_lives_in_extension_owner",
 )
 
-
+# 验证校验特性提供者归属边界的职责切分：特性提供者边界移出通用归属文件，并特性提供者包 ID 位于标识归属。
 class PluginValidateFeatureProviderOwnerBoundaryTests(unittest.TestCase):
     def test_feature_provider_boundaries_leave_general_owner_file(self):
         general_owner_text = PLUGIN_VALIDATE_OWNER_BOUNDARIES_TEST.read_text(
@@ -269,12 +269,12 @@ class PluginValidateFeatureProviderOwnerBoundaryTests(unittest.TestCase):
             "generated package TOML parsing should stay in a focused leaf",
         )
         self.assertIn(
-            "from tools.zircon_export.plugin_validate_feature_provider import",
+            "from tools.export.plugin_validate_feature_provider import",
             feature_provider_test_text,
             "feature-provider tests must call the projection owner directly",
         )
         self.assertNotIn(
-            "from tools.zircon_export.plugin_validate import",
+            "from tools.export.plugin_validate import",
             feature_provider_test_text,
             "feature-provider tests must not borrow projection helpers from the validate entry owner",
         )

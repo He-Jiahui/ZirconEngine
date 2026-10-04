@@ -1,0 +1,11 @@
+{
+  "contract": "penpot-browser-canvas-mocked-backend",
+  "penpotBaseUrl": "https://design.penpot.app",
+  "semanticBoards": 8,
+  "totalShapes": 18,
+  "exportedFile": "penpot_roundtrip.zui",
+  "projectedEdits": 2,
+  "preservedRuntimeFields": true,
+  "screenshot": "docs/plans/designment/evidence/screenshots/a1-penpot-canvas-roundtrip.png",
+  "backendBoundary": "official Penpot frontend with repository Playwright RPC/WebSocket fixtures; no remote writes"
+}

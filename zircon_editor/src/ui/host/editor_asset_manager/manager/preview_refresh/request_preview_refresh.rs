@@ -230,9 +230,11 @@ fn complete_preview_refresh_job(
             updated_record.clone(),
             publish_epoch,
         );
-        debug_assert!(state
+        // Admission release must also run in builds that omit debug assertions.
+        let released = state
             .preview_scheduler
-            .complete_refresh(updated_record.asset_uuid, job.admission_token));
+            .complete_refresh(updated_record.asset_uuid, job.admission_token);
+        debug_assert!(released);
 
         EditorAssetChangeRecord {
             kind: EditorAssetChangeKind::PreviewChanged,
@@ -293,3 +295,7 @@ fn release_preview_admission_locked(
         locator: Some(job.record.locator.to_string()),
     })
 }
+
+#[cfg(test)]
+#[path = "tests/admission_tests.rs"]
+mod admission_tests;

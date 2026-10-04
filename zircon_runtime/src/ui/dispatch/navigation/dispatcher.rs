@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::ui::dispatch::visited_node_set::UiDispatchVisitedNodeSet;
@@ -19,7 +19,7 @@ type NavigationHandler = Arc<
 
 #[derive(Default)]
 pub struct UiNavigationDispatcher {
-    handlers: BTreeMap<(UiNodeId, UiNavigationEventKind), Vec<NavigationHandler>>,
+    handlers: HashMap<(UiNodeId, UiNavigationEventKind), Vec<NavigationHandler>>,
 }
 
 impl UiNavigationDispatcher {
@@ -51,7 +51,7 @@ impl UiNavigationDispatcher {
             return Ok(UiNavigationDispatchResult::new(route));
         }
         let mut visited = UiDispatchVisitedNodeSet::with_expected_len(candidates.len());
-        let mut invocations = Vec::new();
+        let mut invocations = Vec::with_capacity(candidates.len());
         let mut handled_by = None;
         let mut focus_changed_to = None;
 
@@ -100,3 +100,7 @@ impl UiNavigationDispatcher {
         Ok(result)
     }
 }
+
+#[cfg(test)]
+#[path = "tests/dispatcher_optimization_tests.rs"]
+mod optimization_tests;

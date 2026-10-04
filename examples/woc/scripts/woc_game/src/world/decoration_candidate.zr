@@ -1,5 +1,5 @@
 // Builtin generateDecorations candidate/filter projection from src/sim/world.ts.
-// It is pure and deliberately does not cache records or feed collision yet.
+// 纯查询按 seed 复演候选；collision_grid 已在安全点查询中消费，本模块不保存碰撞缓存。
 
 var math = %import("zr.zircon.math");
 var terrainContent = %import("world/terrain_content");
@@ -202,6 +202,7 @@ pub candidateKindCode(gridX: int, gridZ: int, seed: uint, required: bool): int {
     return kind;
 }
 
+// 与 collision_grid 的候选扫描相接：只有通过生物群系/道路/排除区过滤的树石才形成碰撞半径。
 pub candidateCollisionRadius(gridX: int, gridZ: int, seed: uint, required: bool): float {
     if (!required) {
         throw "woc decoration collider query is required";

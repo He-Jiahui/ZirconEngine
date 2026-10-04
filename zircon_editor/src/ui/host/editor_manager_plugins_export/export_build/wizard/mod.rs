@@ -67,22 +67,31 @@ pub use view_model::{
 };
 
 #[cfg(test)]
+#[path = "tests/cancellation_tests.rs"]
 mod cancellation_tests;
 #[cfg(test)]
+#[path = "tests/panel_host_projection_tests.rs"]
 mod panel_host_projection_tests;
 #[cfg(test)]
+#[path = "tests/panel_output_tests.rs"]
 mod panel_output_tests;
 #[cfg(test)]
+#[path = "tests/panel_report_body_tests.rs"]
 mod panel_report_body_tests;
 #[cfg(test)]
+#[path = "tests/pipeline_handoff_tests.rs"]
 mod pipeline_handoff_tests;
 #[cfg(test)]
+#[path = "tests/pipeline_launch_tests.rs"]
 mod pipeline_launch_tests;
 #[cfg(test)]
+#[path = "tests/pipeline_report_tests.rs"]
 mod pipeline_report_tests;
 #[cfg(test)]
+#[path = "tests/session_control_tests.rs"]
 mod session_control_tests;
 #[cfg(test)]
+#[path = "tests/streaming_output_tests.rs"]
 mod streaming_output_tests;
 #[cfg(test)]
 mod tests;

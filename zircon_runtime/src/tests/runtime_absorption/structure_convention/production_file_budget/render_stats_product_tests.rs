@@ -4,7 +4,7 @@ use super::{assert_contains_all, read_repo, read_runtime_src};
 fn runtime_15_render_stats_product_diagnostics_tests_are_child_owners() {
     let parent = read_runtime_src("core/runtime/diagnostics/render_stats_store/product.rs");
     let test_parent =
-        read_runtime_src("core/runtime/diagnostics/render_stats_store/product/tests.rs");
+        read_runtime_src("core/runtime/diagnostics/render_stats_store/product/tests/cases.rs");
     let camera_targets = read_runtime_src(
         "core/runtime/diagnostics/render_stats_store/product/tests/camera_targets.rs",
     );
@@ -80,7 +80,7 @@ fn runtime_15_render_stats_product_diagnostics_tests_are_child_owners() {
 
     for relative in [
         "core/runtime/diagnostics/render_stats_store/product.rs",
-        "core/runtime/diagnostics/render_stats_store/product/tests.rs",
+        "core/runtime/diagnostics/render_stats_store/product/tests/cases.rs",
         "core/runtime/diagnostics/render_stats_store/product/tests/camera_targets.rs",
         "core/runtime/diagnostics/render_stats_store/product/tests/visibility_hzb_light.rs",
         "core/runtime/diagnostics/render_stats_store/product/tests/mesh_gpu_scene.rs",

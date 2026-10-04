@@ -76,5 +76,5 @@ fn is_command_palette(component_role: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "options/label_only_tests.rs"]
+#[path = "options/tests/label_only_tests.rs"]
 mod label_only_tests;

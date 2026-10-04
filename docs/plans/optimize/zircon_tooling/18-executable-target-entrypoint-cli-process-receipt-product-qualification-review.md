@@ -23,9 +23,6 @@ related_code:
   - zircon_hub/src/process/editor_launch.rs
   - tools/cargo-zircon/Cargo.toml
   - tools/cargo-zircon/src/main.rs
-  - tools/session_tray/Cargo.toml
-  - tools/session_tray/src/main.rs
-  - tools/session_tray/src/lib.rs
   - tools/mvp/MvpProductInputManifest.psm1
   - examples/woc/native/Cargo.toml
   - examples/woc/native/apps/woc_bot/Cargo.toml

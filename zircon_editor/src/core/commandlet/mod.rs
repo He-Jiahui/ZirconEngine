@@ -10,4 +10,5 @@ pub use runner::{
 };
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

@@ -1,3 +1,4 @@
+//! Kira 经理独占后端、轨道、发送轨和播放句柄；上层只持有中立 ID，不应跨设备重建保留后端句柄。
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 
@@ -9,17 +10,24 @@ use kira::{
 };
 use zircon_runtime::core::framework::sound::{SoundMixerGraph, SoundPlaybackId, SoundTrackId};
 
+use super::cpal_owner::OwnerCpalBackend;
+
 mod graph;
 mod lifecycle;
 mod playback;
 
 const DEFAULT_LOGICAL_RESOURCE_CAPACITY: usize = 128;
 
-pub(crate) type DefaultKiraEngine = KiraEngine<kira::DefaultBackend>;
+pub(crate) type DefaultKiraEngine = KiraEngine<OwnerCpalBackend>;
 
 /// The only runtime owner of Kira managers, tracks, sends, and playback handles.
 pub(crate) struct KiraEngine<B: Backend> {
     pub(super) manager: Option<AudioManager<B>>,
+    // A provider retirement worker can outlive the callback fence. Keep the
+    // Kira manager so its pending owner and join authority remain retryable,
+    // while reporting the engine as inactive to consumer paths until that
+    // owner has completed.
+    pub(super) provider_retiring: bool,
     pub(super) tracks: HashMap<SoundTrackId, TrackHandle>,
     pub(super) send_tracks: HashMap<SoundTrackId, SendTrackHandle>,
     pub(super) playbacks: HashMap<SoundPlaybackId, StaticSoundHandle>,
@@ -48,6 +56,7 @@ impl<B: Backend> KiraEngine<B> {
     pub(crate) fn inactive() -> Self {
         Self {
             manager: None,
+            provider_retiring: false,
             tracks: HashMap::new(),
             send_tracks: HashMap::new(),
             playbacks: HashMap::new(),

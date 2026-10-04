@@ -1,17 +1,16 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use zircon_runtime_interface::ui::surface::{UiTextRenderMode, resolve_ui_text_render_mode};
+use zircon_runtime_interface::ui::surface::{resolve_ui_text_render_mode, UiTextRenderMode};
 
-use crate::asset::ProjectAssetManager;
 use crate::asset::assets::FontSourceBudgetError;
+use crate::asset::ProjectAssetManager;
 use crate::core::framework::asset::{ResourceCacheIdentity, ResourceManager as _};
-use crate::text::TextRenderState;
 use crate::text::font::{
-    FontDatabaseError, FontLoadError, FontLoadIoFailure, RuntimeFontAssetAdmissionError,
-    RuntimeFontAssetClaimScope, RuntimeFontAssetClaimUpdateReport,
-    prepare_runtime_font_asset_admission,
+    prepare_runtime_font_asset_admission, FontDatabaseError, FontLoadError, FontLoadIoFailure,
+    RuntimeFontAssetAdmissionError, RuntimeFontAssetClaimScope, RuntimeFontAssetClaimUpdateReport,
 };
+use crate::text::TextRenderState;
 
 #[derive(Clone, Debug, Default)]
 pub(super) struct LoadedUiFontAsset {
@@ -234,6 +233,8 @@ pub(super) fn effective_text_render_mode(
     )
 }
 
+/// 复用 identity 未变的字体缓存，为其余当前依赖准备 admission，并按 active 集合差分同步共享 claims。
+/// admission 结果写入 Ready/Missing/Error 后刷新字体集合；identity 变化本身不等于释放该资产的共享 claim。
 pub(super) fn refresh_font_asset_records(
     text_state: &mut TextRenderState,
     font_assets: &mut UiFontAssetCache,

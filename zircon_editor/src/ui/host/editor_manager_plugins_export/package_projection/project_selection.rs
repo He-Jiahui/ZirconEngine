@@ -43,5 +43,5 @@ const fn package_target_mode_bit(target_mode: RuntimeTargetMode) -> u8 {
 }
 
 #[cfg(test)]
-#[path = "project_selection/bitset_tests.rs"]
+#[path = "project_selection/tests/bitset_tests.rs"]
 mod bitset_tests;

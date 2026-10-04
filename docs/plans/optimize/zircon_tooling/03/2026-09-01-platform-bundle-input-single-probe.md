@@ -1,3 +1,7 @@
+---
+status: local_candidate
+---
+
 # PlatformBundle input single metadata probe
 
 ## Scope

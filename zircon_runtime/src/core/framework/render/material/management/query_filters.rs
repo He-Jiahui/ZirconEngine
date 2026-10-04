@@ -7,7 +7,7 @@ use super::{
 use crate::core::framework::render::material::readiness_report::RenderMaterialReadinessStatus;
 
 #[cfg(test)]
-#[path = "query_filters/capacity_tests.rs"]
+#[path = "query_filters/tests/capacity_tests.rs"]
 mod capacity_tests;
 
 const ACTIVE_QUERY_FILTER_MAX_COUNT: usize = 3;
@@ -73,6 +73,7 @@ impl RenderMaterialManagementQueryFilter {
 }
 
 impl RenderMaterialManagementQuery {
+    /// 每个移除操作保留其它筛选并回到第一页，供界面直接应用而不重建查询语义。
     pub fn active_filters(&self) -> Vec<RenderMaterialManagementQueryFilter> {
         let mut filters = Vec::with_capacity(ACTIVE_QUERY_FILTER_MAX_COUNT);
         if let Some(status) = self.status {

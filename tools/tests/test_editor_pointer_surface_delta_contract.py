@@ -1,3 +1,4 @@
+# 核对工具栏与覆盖层以类型化增量更新指针表面，未变提取提前退出。
 from pathlib import Path
 import unittest
 

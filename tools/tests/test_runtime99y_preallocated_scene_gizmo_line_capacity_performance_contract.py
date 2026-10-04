@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 场景 Gizmo 线条构造依据可见拓扑预留容量；追加模块导出的容量 helper 与真实输出数量一致。
 
 ROOT = Path(__file__).resolve().parents[2]
 SCENE_GIZMO = (

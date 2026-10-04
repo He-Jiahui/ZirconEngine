@@ -169,6 +169,7 @@ pub(crate) fn batch_indices_by_source_index(
         for &source_index in &batch.source_indices {
             if let Some(slot) = batch_indices.get_mut(source_index) {
                 if slot.is_none() {
+                    // 异常重复来源索引保留首次批次归属，避免后续条目改写快照映射。
                     *slot = Some(batch_index);
                 }
             }
@@ -176,3 +177,7 @@ pub(crate) fn batch_indices_by_source_index(
     }
     batch_indices
 }
+
+#[cfg(test)]
+#[path = "parity/tests/performance_tests.rs"]
+mod performance_tests;

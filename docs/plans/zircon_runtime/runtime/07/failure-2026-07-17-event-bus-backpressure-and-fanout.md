@@ -18,6 +18,11 @@ related_code:
   - zircon_runtime/src/core/runtime/events/subscriber.rs
   - zircon_runtime/src/core/runtime/events/topic.rs
   - zircon_runtime/src/core/runtime/tests/events/benchmark_evidence.rs
+  - zircon_runtime/src/core/runtime/handle/events.rs
+  - zircon_runtime/src/core/runtime/events/publish/single_disconnect_inline_tests.rs
+  - zircon_runtime/src/core/runtime/tests/events/structure/event_bus/publish.rs
+  - zircon_runtime/src/core/runtime/tests/events/structure/event_bus/subscribe.rs
+  - zircon_runtime/src/foundation/tests.rs
 tests:
   - cargo +1.94.1 test -p zircon_runtime --lib event_bus_runtime07_ --locked --jobs 1 -- --ignored --nocapture --test-threads=1 (run twice; pending)
   - cargo +1.94.1 test -p zircon_runtime --lib core::runtime::tests::events:: --locked --jobs 1 -- --nocapture --test-threads=1 (pending)
@@ -72,3 +77,120 @@ Open state: `实现完成，等待同一 source manifest 的 behavior/structure 
 - 生产 EventBus 模块静态扫描没有 `.lock().unwrap()` 或 `Condvar::wait(...).unwrap()`；四处裸 `unwrap` 只用于上述受控 poison 测试的持锁 panic。
 - Rust 1.94.1 `rustfmt --check` 和 scoped `git diff --check` 已通过。当前 source snapshot 为 `1127`，包含 17 个 EventBus DTO、生产模块和行为/结构/基准测试路径。
 - Text01 受管 test lane 正在运行时，本切片没有创建抢占 FIFO 的通用 Cargo reservation；本记录仍为 `open`，待 snapshot `1127` 的 behavior/structure gate 和两条受管 benchmark 终态后才可转为 fixed。
+
+## 2026-09-09 current-source regression repair
+
+Session `failure-roll-01a07160-runtime07` retains this lifecycle and acquired
+the archived-owner record through fingerprint
+`28d6a788f22f055b386d83db4b251ee95a86fb148327998bac4324c716ef6da4`.
+Preimage snapshot 3274 preserves all historical evidence at
+`20dfffbb3657dc6e455bcfb27e7f2b09de911645b0e6592aaa7386330ce8dd2a`;
+the current record was Git-clean before this continuation.
+
+All 22 current EventBus contract, owner, handle and test files match immutable
+input `runtime15-production-view-3271-20260909`, manifest
+`532caeb7e8cda84b9b5e5a05ad099875a958a8f9a87803aa55ff683a595712b7`.
+The producer already uses a read/write topic registry, per-topic delivery,
+shared immutable payloads, batch drain accounting and sampled diagnostics.
+The default timing interval is 64; explicit `Lossless` remains unbounded while
+`BoundedDropOldest` and `Latest` have their declared capacities. No complete
+lossless memory-budget solution is claimed by this historical policy repair.
+Foundation now publishes only its behavioral ConfigManager and no EventManager;
+its 16 current source/test files also match the input. The historical disconnected
+Foundation event fallback is retired, and must not be restored for this gate.
+
+Two Windows static/no-default/locked RED jobs executed actual tests:
+
+- `5942fe1eb71a4151a29230f2f9cd09d8`, filter `core::runtime::events::`:
+  14 passed, 1 failed, 8 ignored, 6827 filtered out. The single-disconnect
+  guard cuts `publish.rs` at its first `#[cfg(test)]` helper, before the
+  production `publish` implementation. Artifact:
+  `results/runtime07-eventbus-owner-support-3271.{json,log}`.
+- `31a47db2427c41f5bdec8a85e228ba7a`, original filter
+  `core::runtime::tests::events::`: 21 passed, 4 failed, 5 ignored,
+  6820 filtered out. All 19 behavior tests passed; four structure tests still
+  require the old allocation order, scalar drain body, inline modulo sampling
+  or exclusive `lock_topics` helper. Artifact:
+  `results/runtime07-eventbus-original-red-3271.{json,log}`.
+
+The two guard files and single-disconnect test were acquired from terminal
+owners through fingerprints
+`9257793bbe463a876847c58d079cad1f0338bb809f36bddde35eb7987e69064e`
+and `8d30c4fb7e53cb5d637f7fc3c7e0010fb2676025288134392cdab3d6ff66ad38`.
+Preimage snapshots 3275/3276 preserve their exact bytes. The single-disconnect
+preimage already contained an uncommitted trait import and a capacity-constructor
+guard update; those meanings are preserved. Both other guards were Git-clean.
+
+Source snapshot 3277 changes only these three test files:
+
+- `single_disconnect_inline_tests.rs` now executes the actual one-subscriber
+  ID collector, proving the first ID remains inline and additional storage
+  has zero length and zero capacity before and after insertion. The public
+  disconnect-cleanup behavior regression remains in the same batch.
+- `structure/event_bus/publish.rs` retains per-topic locking and shared-payload
+  assertions, including empty-subscriber checking before allocation. It follows
+  the current ID collector's removal call, verifies enqueue/dequeue/drain order
+  within each responsibility, batch drain accounting and both power-of-two and
+  arbitrary-interval sampling routes.
+- `structure/event_bus/subscribe.rs` follows the current `write_topics` admission
+  owner while retaining reservation, drop, policy and lifecycle assertions.
+
+Rustfmt and scoped whitespace checks pass. Production EventBus code, policies,
+metrics, performance thresholds and ignored benchmark definitions are unchanged.
+Fresh managed owner/original/Foundation gates and both required Runtime07
+benchmark runs, independent review, formal binding and canonical closeout
+remain pending. External zr_vm is skipped.
+
+## 2026-09-09 lower GREEN and execution-configuration handoff
+
+Input `runtime07-eventbus-guards-3277-20260909` freezes the three test changes
+over the unchanged producer, manifest
+`ef35355b6952453dac4d0f899a2d62843c17e63e394e0f6bf4748028ead278db`.
+Managed job `0c1cf55c6dde4b39b0dab91ba311b8b5` actually ran
+`core::runtime::events::`: 15 passed, 0 failed, 8 ignored, 6827 filtered out.
+This includes the repaired inline-ID regression and real disconnect cleanup.
+Artifacts: `results/runtime07-eventbus-owner-support-3277.{json,log}`.
+
+The caller's JSON recorded requested `RUST_TEST_THREADS=1`, but investigation
+proved that managed compiler environment cleanup removes all `rust`-prefixed
+ambient variables, including this setting and `RUST_TEST_NOCAPTURE`. The current
+validator has no equivalent explicit harness parameters. This result is valid
+functional evidence only; it does not establish serial execution. The original
+artifact is preserved. The source hashes, reproduction and required explicit
+argument repair are in the [Tooling01 handoff](../../../optimize/zircon_tooling/01/failure-2026-09-09-managed-test-harness-arguments-missing.md).
+
+Both Runtime07 performance runs remain unsubmitted until their required serial
+execution and visible raw output can be bound to the actual managed command.
+No ineffective configuration is retried, and no benchmark or full-lifecycle
+acceptance is inferred from the passing lower functional batch.
+
+Two further Windows static/no-default/locked functional jobs completed on
+input `runtime15-ui-upload-3282-20260909`, manifest
+`bd0a27003ded9b3acb85a59cf3ac28f7fd4251a710770c8b34ca8d2c34d05d77`.
+This input retains all three EventBus snapshot-3277 hashes and changes only the
+unrelated Runtime15 UI-upload guard relative to the earlier EventBus input.
+
+- `551501e1752d4719aa7aaabbc3006a0e`, `core::runtime::tests::events::`:
+  25 passed, 0 failed, 5 ignored, 6820 filtered out. All 19 behavior and six
+  current structure tests ran, including all four formerly failing guards.
+  Artifact: `results/runtime07-eventbus-original-functional-3282.{json,log}`.
+- `6c625797f2944b40bbad7eaa99ae3f71`, `foundation::tests::`:
+  7 passed, 0 failed, 0 ignored, 6843 filtered out. This verifies the current
+  Foundation configuration owner; it does not reinstate or accept a retired
+  Foundation EventManager. Artifact:
+  `results/runtime07-foundation-functional-3282.{json,log}`.
+
+Both receipts bind the input and real Cargo commands, without claiming a serial
+test harness. The remaining obligations are explicit-configuration reruns,
+two actual performance batches, independent review and formal lifecycle
+acceptance. The 15/25/7 passing functional counts are not performance evidence.
+
+The prepared bounded review was submitted once to the designated existing
+task `01a07063-6f03-7803-a12d-13ea015ca645` on 2026-09-09. Native resume
+failed before the review started with `thread-store conflict: thread ... already
+has an active writer` (JSON-RPC -32600, process exit 1). No new C0 report exists
+for the EventBus increment. The prompt remains at
+`.codex/tmp/runtime07-eventbus-3277-review-20260909.txt`; it includes all source
+hashes, 15/25/7 functional results and the explicit Tooling01 handoff. This item
+is suspended pending that task's availability, with no repeated resume, new
+review task, closeout attempt or WeCom send.

@@ -27,7 +27,7 @@ use crate::core::tools::{
     ToolResourceKey, ToolResourceKindDeclaration, ToolResourceKindId, ToolResourceSet, ToolScope,
     ToolScopeKind,
 };
-use crate::scene::modes::{SELECT_SCENE_MODE_ID, SceneModeActivation};
+use crate::scene::modes::{SceneModeActivation, SELECT_SCENE_MODE_ID};
 use zircon_runtime::core::framework::render::SceneGizmoOverlayExtract;
 use zircon_runtime::plugin::{PluginModuleManifest, PluginPackageManifest};
 use zircon_runtime_interface::resource::ResourceKind;
@@ -252,9 +252,10 @@ fn plugin_operation(plugin_id: &str, suffix: &str) -> EditorOperationPath {
 fn has_plugin_menu(runtime: &EventRuntimeHarness, plugin_id: &str) -> bool {
     let snapshot = runtime.runtime.shell().lock().contributions.snapshot();
     let capabilities = CapabilitySet::default();
-    snapshot
+    let found = snapshot
         .menu_items(&capabilities)
-        .any(|item| item.path() == format!("Tools/{plugin_id}/Run"))
+        .any(|item| item.path() == format!("Tools/{plugin_id}/Run"));
+    found
 }
 
 #[test]
@@ -311,12 +312,10 @@ fn ticketed_command_router_revoke_reprojects_every_executable_route() {
             None,
         )
         .expect("weather extension view should open");
-    assert!(
-        manager
-            .current_view_instances()
-            .iter()
-            .any(|instance| instance.instance_id == weather_instance)
-    );
+    assert!(manager
+        .current_view_instances()
+        .iter()
+        .any(|instance| instance.instance_id == weather_instance));
 
     {
         let commands = runtime.runtime.commands().lock();
@@ -325,30 +324,24 @@ fn ticketed_command_router_revoke_reprojects_every_executable_route() {
         assert!(commands.command(lighting_command).is_some());
         assert!(commands.operation_factory(&weather_factory).is_some());
         assert!(commands.operation_factory(&lighting_factory).is_some());
-        assert!(
-            commands
-                .command(&weather_asset_write)
-                .and_then(|command| command.asset_write_target())
-                .is_some()
-        );
-        assert!(
-            commands
-                .command(&lighting_asset_write)
-                .and_then(|command| command.asset_write_target())
-                .is_some()
-        );
+        assert!(commands
+            .command(&weather_asset_write)
+            .and_then(|command| command.asset_write_target())
+            .is_some());
+        assert!(commands
+            .command(&lighting_asset_write)
+            .and_then(|command| command.asset_write_target())
+            .is_some());
     }
     assert!(has_plugin_menu(&runtime, "weather"));
     assert!(has_plugin_menu(&runtime, "lighting"));
     let generation_before_revoke = runtime.runtime.commands().lock().generation();
     assert!(generation_before_revoke > builtin_generation);
 
-    assert!(
-        runtime
-            .runtime
-            .revoke_editor_plugin_contribution(&weather_handle)
-            .expect("weather contribution should revoke")
-    );
+    assert!(runtime
+        .runtime
+        .revoke_editor_plugin_contribution(&weather_handle)
+        .expect("weather contribution should revoke"));
 
     let active_generations_after_revoke = runtime
         .runtime
@@ -367,12 +360,10 @@ fn ticketed_command_router_revoke_reprojects_every_executable_route() {
     assert!(commands.operation_factory(&weather_factory).is_none());
     assert!(commands.operation_factory(&lighting_factory).is_some());
     assert!(commands.command(&weather_asset_write).is_none());
-    assert!(
-        commands
-            .command(&lighting_asset_write)
-            .and_then(|command| command.asset_write_target())
-            .is_some()
-    );
+    assert!(commands
+        .command(&lighting_asset_write)
+        .and_then(|command| command.asset_write_target())
+        .is_some());
     assert!(commands.command("file.documents.save_all").is_some());
     assert!(commands.generation() > generation_before_revoke);
     assert_eq!(
@@ -380,24 +371,18 @@ fn ticketed_command_router_revoke_reprojects_every_executable_route() {
         commands.generation()
     );
     drop(commands);
-    assert!(
-        manager
-            .current_view_instances()
-            .iter()
-            .all(|instance| instance.descriptor_id.0 != "plugin.weather.panel")
-    );
-    assert!(
-        manager
-            .descriptors()
-            .iter()
-            .all(|descriptor| descriptor.descriptor_id.0 != "plugin.weather.panel")
-    );
-    assert!(
-        manager
-            .descriptors()
-            .iter()
-            .any(|descriptor| descriptor.descriptor_id.0 == "plugin.lighting.panel")
-    );
+    assert!(manager
+        .current_view_instances()
+        .iter()
+        .all(|instance| instance.descriptor_id.0 != "plugin.weather.panel"));
+    assert!(manager
+        .descriptors()
+        .iter()
+        .all(|descriptor| descriptor.descriptor_id.0 != "plugin.weather.panel"));
+    assert!(manager
+        .descriptors()
+        .iter()
+        .any(|descriptor| descriptor.descriptor_id.0 == "plugin.lighting.panel"));
     assert!(!has_plugin_menu(&runtime, "weather"));
     assert!(has_plugin_menu(&runtime, "lighting"));
     runtime
@@ -448,11 +433,9 @@ fn ticketed_command_router_rejected_candidate_publishes_neither_generation() {
     let commands = runtime.runtime.commands().lock();
     assert_eq!(commands.generation(), command_generation);
     assert!(commands.command(command_id).is_some());
-    assert!(
-        commands
-            .command("view.plugin.weather.secondary_panel.open")
-            .is_none()
-    );
+    assert!(commands
+        .command("view.plugin.weather.secondary_panel.open")
+        .is_none());
     assert_eq!(runtime.runtime.context().tools().snapshot(), tool_snapshot);
 }
 
@@ -477,12 +460,10 @@ fn stale_contribution_handle_cannot_revoke_a_reloaded_plugin_generation() {
         .runtime
         .allocate_editor_tool_instance(&first_handle, &tool_definition)
         .expect("current contribution handle should allocate a tool instance");
-    assert!(
-        runtime
-            .runtime
-            .revoke_editor_plugin_contribution(&first_handle)
-            .expect("first weather contribution should revoke")
-    );
+    assert!(runtime
+        .runtime
+        .revoke_editor_plugin_contribution(&first_handle)
+        .expect("first weather contribution should revoke"));
 
     let second_handle = runtime
         .runtime
@@ -516,12 +497,10 @@ fn stale_contribution_handle_cannot_revoke_a_reloaded_plugin_generation() {
         second_instance.owner_generation()
     );
 
-    assert!(
-        !runtime
-            .runtime
-            .revoke_editor_plugin_contribution(&first_handle)
-            .expect("stale contribution handle should be an idempotent no-op")
-    );
+    assert!(!runtime
+        .runtime
+        .revoke_editor_plugin_contribution(&first_handle)
+        .expect("stale contribution handle should be an idempotent no-op"));
     assert_eq!(
         runtime.runtime.extension_projection_revision(),
         store_generation
@@ -531,21 +510,17 @@ fn stale_contribution_handle_cannot_revoke_a_reloaded_plugin_generation() {
         command_generation
     );
     assert_eq!(runtime.runtime.context().tools().snapshot(), tool_snapshot);
-    assert!(
-        runtime
-            .runtime
-            .commands()
-            .lock()
-            .command(command_id)
-            .is_some()
-    );
+    assert!(runtime
+        .runtime
+        .commands()
+        .lock()
+        .command(command_id)
+        .is_some());
 
-    assert!(
-        runtime
-            .runtime
-            .revoke_editor_plugin_contribution(&second_handle)
-            .expect("current contribution handle should revoke the reloaded plugin")
-    );
+    assert!(runtime
+        .runtime
+        .revoke_editor_plugin_contribution(&second_handle)
+        .expect("current contribution handle should revoke the reloaded plugin"));
 }
 
 #[test]
@@ -600,7 +575,7 @@ fn contributed_tool_resource_kind_is_bound_to_the_exact_owner_generation() {
     let resource = ToolResourceKey::new(
         kind.clone(),
         ToolScope::Viewport {
-            viewport_id: crate::ui::workbench::view::ViewInstanceId::new("editor.scene#weather"),
+            viewport_id: crate::core::editor_event::ViewInstanceId::new("editor.scene#weather"),
         },
         None,
     )
@@ -616,22 +591,18 @@ fn contributed_tool_resource_kind_is_bound_to_the_exact_owner_generation() {
         AcquireOutcome::Acquired { .. }
     ));
 
-    assert!(
-        runtime
-            .runtime
-            .revoke_editor_plugin_contribution(&handle)
-            .unwrap()
-    );
-    assert!(
-        runtime
-            .runtime
-            .context()
-            .tools()
-            .snapshot()
-            .resource_catalog()
-            .iter()
-            .all(|registration| registration.kind() != &kind)
-    );
+    assert!(runtime
+        .runtime
+        .revoke_editor_plugin_contribution(&handle)
+        .unwrap());
+    assert!(runtime
+        .runtime
+        .context()
+        .tools()
+        .snapshot()
+        .resource_catalog()
+        .iter()
+        .all(|registration| registration.kind() != &kind));
 }
 
 #[test]
@@ -722,7 +693,7 @@ fn ticketed_runtime_consumer_collision_publishes_no_store_or_router_generation()
 
 #[test]
 fn ticketed_revoke_removes_only_the_owned_viewport_overlay_provider() {
-    use crate::ui::binding::viewport::ViewportCommand;
+    use crate::ui::binding::ViewportCommand;
 
     const WEATHER_PROVIDER: &str = "plugin.weather.overlay";
     const LIGHTING_PROVIDER: &str = "plugin.lighting.overlay";
@@ -751,30 +722,38 @@ fn ticketed_revoke_removes_only_the_owned_viewport_overlay_provider() {
         .expect("lighting contribution should register");
     {
         let mut shell = runtime.runtime.shell().lock();
-        assert!(
+        shell
+            .state
+            .apply_viewport_command(&ViewportCommand::ToggleOverlayProvider {
+                provider_id: WEATHER_PROVIDER.to_string(),
+            })
+            .unwrap();
+        assert_eq!(
             shell
                 .state
-                .apply_viewport_command(&ViewportCommand::ToggleOverlayProvider {
-                    provider_id: WEATHER_PROVIDER.to_string(),
-                })
-                .unwrap()
+                .viewport_controller
+                .overlay_provider_enabled_for_test(WEATHER_PROVIDER),
+            Some(true)
         );
-        assert!(
+        shell
+            .state
+            .apply_viewport_command(&ViewportCommand::ToggleOverlayProvider {
+                provider_id: LIGHTING_PROVIDER.to_string(),
+            })
+            .unwrap();
+        assert_eq!(
             shell
                 .state
-                .apply_viewport_command(&ViewportCommand::ToggleOverlayProvider {
-                    provider_id: LIGHTING_PROVIDER.to_string(),
-                })
-                .unwrap()
+                .viewport_controller
+                .overlay_provider_enabled_for_test(LIGHTING_PROVIDER),
+            Some(true)
         );
     }
 
-    assert!(
-        runtime
-            .runtime
-            .revoke_editor_plugin_contribution(&weather_handle)
-            .expect("weather contribution should revoke")
-    );
+    assert!(runtime
+        .runtime
+        .revoke_editor_plugin_contribution(&weather_handle)
+        .expect("weather contribution should revoke"));
 
     let mut shell = runtime.runtime.shell().lock();
     let error = shell
@@ -793,19 +772,25 @@ fn ticketed_revoke_removes_only_the_owned_viewport_overlay_provider() {
             )
         ) if provider_id == WEATHER_PROVIDER
     ));
-    assert!(
-        !shell
+    shell
+        .state
+        .apply_viewport_command(&ViewportCommand::ToggleOverlayProvider {
+            provider_id: LIGHTING_PROVIDER.to_string(),
+        })
+        .expect("the remaining provider remains independently routable");
+    assert_eq!(
+        shell
             .state
-            .apply_viewport_command(&ViewportCommand::ToggleOverlayProvider {
-                provider_id: LIGHTING_PROVIDER.to_string(),
-            })
-            .expect("the remaining provider keeps its enabled state")
+            .viewport_controller
+            .overlay_provider_enabled_for_test(LIGHTING_PROVIDER),
+        Some(false),
+        "the surviving enabled overlay is toggled off after the other owner is revoked"
     );
 }
 
 #[test]
 fn ticketed_revoke_exits_an_active_scene_mode_before_removing_its_factory() {
-    use crate::ui::binding::viewport::ViewportCommand;
+    use crate::ui::binding::ViewportCommand;
 
     const WEATHER_MODE: &str = "plugin.weather.mode";
     const LIGHTING_MODE: &str = "plugin.lighting.mode";
@@ -844,12 +829,10 @@ fn ticketed_revoke_exits_an_active_scene_mode_before_removing_its_factory() {
             .unwrap();
     }
 
-    assert!(
-        runtime
-            .runtime
-            .revoke_editor_plugin_contribution(&weather_handle)
-            .expect("weather contribution should revoke")
-    );
+    assert!(runtime
+        .runtime
+        .revoke_editor_plugin_contribution(&weather_handle)
+        .expect("weather contribution should revoke"));
 
     let mut shell = runtime.runtime.shell().lock();
     assert_eq!(

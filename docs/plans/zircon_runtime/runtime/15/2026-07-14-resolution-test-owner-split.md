@@ -5,14 +5,14 @@ related_code:
   - zircon_runtime/src/core/runtime/tests/resolution/behavior/exact_dependency_resolution.rs
   - zircon_runtime/src/core/runtime/tests/resolution/behavior/factory_panics.rs
   - zircon_runtime/src/core/runtime/tests/resolution/structure.rs
-  - docs/engine-architecture/core-runtime-service-registry.md
+  - docs/architecture/core-runtime-service-registry.md
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
 tests:
   - rustfmt --edition 2021 zircon_runtime/src/core/runtime/tests/resolution/behavior.rs zircon_runtime/src/core/runtime/tests/resolution/behavior/dependency_cycles.rs
-  - git diff --check -- zircon_runtime/src/core/runtime/tests/resolution/behavior.rs zircon_runtime/src/core/runtime/tests/resolution/behavior/dependency_cycles.rs docs/engine-architecture/core-runtime-service-registry.md
+  - git diff --check -- zircon_runtime/src/core/runtime/tests/resolution/behavior.rs zircon_runtime/src/core/runtime/tests/resolution/behavior/dependency_cycles.rs docs/architecture/core-runtime-service-registry.md
   - current-source physical line and test-name inventory
   - runtime_15_no_oversized_test_files
   - runtime_15_render_pass_gpu_context_mesh_command_lists_are_child_owner

@@ -1,0 +1,439 @@
+[asset]
+kind = "view"
+version = 2
+id = "res://ui/shell/shell_theme.zui#review-host"
+display_name = "World of ClaudeCraft Shell Theme"
+
+[imports]
+widgets = []
+styles = [ "res://ui/shell/shell_theme.zui" ]
+
+[root]
+node = "review_theme_host"
+
+[nodes.review_theme_host]
+component = "Overlay"
+classes = [ "woc-shell" ]
+
+[nodes.review_theme_host.layout.container]
+kind = "Overlay"
+
+[nodes.review_theme_host.layout.width]
+stretch = "Stretch"
+
+[nodes.review_theme_host.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_theme_host.children]]
+node = "review_theme_title"
+
+[[nodes.review_theme_host.children]]
+node = "sample_0_label"
+
+[[nodes.review_theme_host.children]]
+node = "sample_0"
+
+[[nodes.review_theme_host.children]]
+node = "sample_1_label"
+
+[[nodes.review_theme_host.children]]
+node = "sample_1"
+
+[[nodes.review_theme_host.children]]
+node = "sample_2_label"
+
+[[nodes.review_theme_host.children]]
+node = "sample_2"
+
+[[nodes.review_theme_host.children]]
+node = "sample_3_label"
+
+[[nodes.review_theme_host.children]]
+node = "sample_3"
+
+[[nodes.review_theme_host.children]]
+node = "sample_4_label"
+
+[[nodes.review_theme_host.children]]
+node = "sample_4"
+
+[[nodes.review_theme_host.children]]
+node = "sample_5_label"
+
+[[nodes.review_theme_host.children]]
+node = "sample_5"
+
+[nodes.review_theme_title]
+component = "Label"
+classes = [ "woc-screen-title" ]
+
+[nodes.review_theme_title.props]
+text = "World of ClaudeCraft Shell Theme"
+
+[nodes.review_theme_title.layout.position]
+x = 32
+y = 24
+
+[nodes.review_theme_title.layout.width]
+preferred = 800
+stretch = "Fixed"
+
+[nodes.review_theme_title.layout.height]
+preferred = 40
+stretch = "Fixed"
+
+[nodes.sample_0_label]
+component = "Label"
+classes = [ "woc-section-title" ]
+
+[nodes.sample_0_label.props]
+text = "Primary action"
+
+[nodes.sample_0_label.layout.position]
+x = 32
+y = 104
+
+[nodes.sample_0_label.layout.width]
+preferred = 344
+stretch = "Fixed"
+
+[nodes.sample_0_label.layout.height]
+preferred = 24
+stretch = "Fixed"
+
+[nodes.sample_0]
+component = "Button"
+control_id = "AuthSubmit"
+classes = [ "woc-primary-action" ]
+
+[nodes.sample_0.props]
+text = "Log In"
+button_variant = "contained"
+dynamic_mode_owner = "auth_flow"
+
+[nodes.sample_0.layout.width]
+min = 280
+preferred = 280
+max = 280
+stretch = "Fixed"
+
+[nodes.sample_0.layout.height]
+min = 44
+preferred = 44
+max = 44
+stretch = "Fixed"
+
+[nodes.sample_0.layout.anchor]
+x = 0
+y = 0
+
+[nodes.sample_0.layout.pivot]
+x = 0
+y = 0
+
+[nodes.sample_0.layout.position]
+x = 32
+y = 140
+
+[[nodes.sample_0.events]]
+id = "WocAuth/Submit"
+event = "Click"
+route = "woc.shell.auth.submit"
+
+[nodes.sample_1_label]
+component = "Label"
+classes = [ "woc-section-title" ]
+
+[nodes.sample_1_label.props]
+text = "Secondary action"
+
+[nodes.sample_1_label.layout.position]
+x = 432
+y = 104
+
+[nodes.sample_1_label.layout.width]
+preferred = 344
+stretch = "Fixed"
+
+[nodes.sample_1_label.layout.height]
+preferred = 24
+stretch = "Fixed"
+
+[nodes.sample_1]
+component = "Button"
+control_id = "AuthBack"
+classes = [ "woc-secondary-action" ]
+
+[nodes.sample_1.props]
+text = "Back"
+button_variant = "outlined"
+
+[nodes.sample_1.layout.width]
+min = 280
+preferred = 280
+max = 280
+stretch = "Fixed"
+
+[nodes.sample_1.layout.height]
+min = 44
+preferred = 44
+max = 44
+stretch = "Fixed"
+
+[nodes.sample_1.layout.anchor]
+x = 0
+y = 0
+
+[nodes.sample_1.layout.pivot]
+x = 0
+y = 0
+
+[nodes.sample_1.layout.position]
+x = 432
+y = 140
+
+[[nodes.sample_1.events]]
+id = "WocAuth/Back"
+event = "Click"
+route = "woc.shell.auth.back"
+
+[nodes.sample_2_label]
+component = "Label"
+classes = [ "woc-section-title" ]
+
+[nodes.sample_2_label.props]
+text = "Text field"
+
+[nodes.sample_2_label.layout.position]
+x = 32
+y = 288
+
+[nodes.sample_2_label.layout.width]
+preferred = 344
+stretch = "Fixed"
+
+[nodes.sample_2_label.layout.height]
+preferred = 24
+stretch = "Fixed"
+
+[nodes.sample_2]
+component = "TextField"
+control_id = "AuthUsername"
+classes = [ "woc-input" ]
+
+[nodes.sample_2.props]
+value_text = ""
+label = ""
+placeholder = "Enter username"
+helper_text = ""
+variant = "outlined"
+max_length = 24
+autocomplete = "username"
+
+[nodes.sample_2.layout.width]
+min = 320
+preferred = 320
+max = 320
+stretch = "Fixed"
+
+[nodes.sample_2.layout.height]
+min = 44
+preferred = 44
+max = 44
+stretch = "Fixed"
+
+[nodes.sample_2.layout.anchor]
+x = 0
+y = 0
+
+[nodes.sample_2.layout.pivot]
+x = 0
+y = 0
+
+[nodes.sample_2.layout.position]
+x = 32
+y = 324
+
+[[nodes.sample_2.events]]
+id = "WocAuth/UsernameChanged"
+event = "Change"
+route = "woc.shell.auth.set_username"
+
+[[nodes.sample_2.events]]
+id = "WocAuth/UsernameSubmitted"
+event = "Submit"
+route = "woc.shell.auth.submit"
+
+[nodes.sample_3_label]
+component = "Label"
+classes = [ "woc-section-title" ]
+
+[nodes.sample_3_label.props]
+text = "Text action"
+
+[nodes.sample_3_label.layout.position]
+x = 432
+y = 288
+
+[nodes.sample_3_label.layout.width]
+preferred = 344
+stretch = "Fixed"
+
+[nodes.sample_3_label.layout.height]
+preferred = 24
+stretch = "Fixed"
+
+[nodes.sample_3]
+component = "Button"
+control_id = "AuthToggleMode"
+classes = [ "woc-auth-link" ]
+
+[nodes.sample_3.props]
+text = "Create Account"
+button_variant = "text"
+dynamic_mode_owner = "auth_flow"
+
+[nodes.sample_3.layout.width]
+min = 280
+preferred = 280
+max = 280
+stretch = "Fixed"
+
+[nodes.sample_3.layout.height]
+min = 40
+preferred = 40
+max = 40
+stretch = "Fixed"
+
+[nodes.sample_3.layout.anchor]
+x = 0
+y = 0
+
+[nodes.sample_3.layout.pivot]
+x = 0
+y = 0
+
+[nodes.sample_3.layout.position]
+x = 432
+y = 324
+
+[[nodes.sample_3.events]]
+id = "WocAuth/ToggleMode"
+event = "Click"
+route = "woc.shell.auth.toggle_mode"
+
+[nodes.sample_4_label]
+component = "Label"
+classes = [ "woc-section-title" ]
+
+[nodes.sample_4_label.props]
+text = "Class selection"
+
+[nodes.sample_4_label.layout.position]
+x = 32
+y = 472
+
+[nodes.sample_4_label.layout.width]
+preferred = 344
+stretch = "Fixed"
+
+[nodes.sample_4_label.layout.height]
+preferred = 24
+stretch = "Fixed"
+
+[nodes.sample_4]
+component = "ToggleButton"
+control_id = "OnlineCharacterCreateClassWarrior"
+classes = [ "woc-class-button", "class-warrior" ]
+
+[nodes.sample_4.props]
+text = "Warrior"
+checked = true
+selection_state = "exclusive"
+
+[nodes.sample_4.layout.width]
+min = 112
+preferred = 112
+max = 112
+stretch = "Fixed"
+
+[nodes.sample_4.layout.height]
+min = 56
+preferred = 56
+max = 56
+stretch = "Fixed"
+
+[nodes.sample_4.layout.anchor]
+x = 0
+y = 0
+
+[nodes.sample_4.layout.pivot]
+x = 0
+y = 0
+
+[nodes.sample_4.layout.position]
+x = 32
+y = 508
+
+[[nodes.sample_4.events]]
+id = "WocCharacterCreate/SelectClass/warrior"
+event = "Toggle"
+route = "woc.shell.characters.create.select_class.warrior"
+
+[nodes.sample_5_label]
+component = "Label"
+classes = [ "woc-section-title" ]
+
+[nodes.sample_5_label.props]
+text = "Appearance selection"
+
+[nodes.sample_5_label.layout.position]
+x = 432
+y = 472
+
+[nodes.sample_5_label.layout.width]
+preferred = 344
+stretch = "Fixed"
+
+[nodes.sample_5_label.layout.height]
+preferred = 24
+stretch = "Fixed"
+
+[nodes.sample_5]
+component = "ToggleButton"
+control_id = "OnlineCharacterCreateSkin1"
+classes = [ "woc-skin-swatch" ]
+
+[nodes.sample_5.props]
+text = "2"
+checked = false
+selection_state = "exclusive"
+
+[nodes.sample_5.layout.width]
+min = 56
+preferred = 56
+max = 56
+stretch = "Fixed"
+
+[nodes.sample_5.layout.height]
+min = 56
+preferred = 56
+max = 56
+stretch = "Fixed"
+
+[nodes.sample_5.layout.anchor]
+x = 0
+y = 0
+
+[nodes.sample_5.layout.pivot]
+x = 0
+y = 0
+
+[nodes.sample_5.layout.position]
+x = 432
+y = 508
+
+[[nodes.sample_5.events]]
+id = "WocCharacterCreate/SelectSkin/1"
+event = "Toggle"
+route = "woc.shell.characters.create.select_skin.1"

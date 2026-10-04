@@ -1,3 +1,5 @@
+//! 为内核合同样例提供 20 Hz 固定步时钟，供 world.contractTest 验证时间基准。
+/// 测试驱动的时钟快照；step 由调用方按固定步调用，不读取墙上时间。
 pub class FixedClock {
     pri var tickValue: uint = <uint>0;
     pri var timeValue: float = 0.0;
@@ -20,6 +22,7 @@ pub class FixedClock {
         this.timeValue = this.timeValue + 0.05;
     }
 
+    /// 返回独立快照，供 fixedStepTest 验证后续步进不会改写旧状态。
     pub copy(): FixedClock {
         var result = new FixedClock();
         result.tickValue = this.tickValue;

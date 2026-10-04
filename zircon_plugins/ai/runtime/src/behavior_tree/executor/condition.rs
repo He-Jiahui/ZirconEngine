@@ -1,3 +1,7 @@
+//! 黑板和感知条件共用判定入口，供装饰器执行与观察者抢占读取。
+
+use std::collections::BTreeMap;
+
 use zircon_runtime::core::framework::ai::{
     AiBehaviorNodeParameterValue, AiBlackboardEntry, AiBlackboardValue, AiPerceptionSnapshot,
     AiPerceptionStimulus,
@@ -15,7 +19,7 @@ use crate::manager::parameters::{
 use super::CompiledBehaviorNode;
 
 #[cfg(test)]
-#[path = "condition/allocation_tests.rs"]
+#[path = "condition/tests/allocation_tests.rs"]
 mod allocation_tests;
 
 pub(super) fn decorator_condition_passes(
@@ -23,8 +27,9 @@ pub(super) fn decorator_condition_passes(
     blackboard: &[AiBlackboardEntry],
     perception: Option<&AiPerceptionSnapshot>,
     dense_value: Option<Option<&AiBlackboardValue>>,
+    blackboard_overlay: &BTreeMap<String, AiBlackboardValue>,
 ) -> bool {
-    let passes = raw_blackboard_condition_passes(node, blackboard, dense_value)
+    let passes = raw_blackboard_condition_passes(node, blackboard, dense_value, blackboard_overlay)
         && raw_perception_condition_passes(node, perception);
     if parameter(node, BLACKBOARD_INVERT_PARAMETER_KEY)
         .and_then(AiBehaviorNodeParameterValue::as_bool)
@@ -40,18 +45,24 @@ fn raw_blackboard_condition_passes(
     node: &CompiledBehaviorNode,
     blackboard: &[AiBlackboardEntry],
     dense_value: Option<Option<&AiBlackboardValue>>,
+    blackboard_overlay: &BTreeMap<String, AiBlackboardValue>,
 ) -> bool {
     let Some(key) = parameter(node, BLACKBOARD_KEY_PARAMETER_KEY)
         .and_then(AiBehaviorNodeParameterValue::as_string)
     else {
         return true;
     };
-    let value = match dense_value {
-        Some(value) => value,
-        None => blackboard
-            .iter()
-            .find(|entry| entry.key == key)
-            .map(|entry| &entry.value),
+    // Some(None) 表示已绑定槽位当前无值；只有未绑定槽位才按键线性查找。
+    let value = if let Some(value) = blackboard_overlay.get(key) {
+        Some(value)
+    } else {
+        match dense_value {
+            Some(value) => value,
+            None => blackboard
+                .iter()
+                .find(|entry| entry.key == key)
+                .map(|entry| &entry.value),
+        }
     };
     if let Some(expected_exists) = parameter(node, BLACKBOARD_EXISTS_PARAMETER_KEY)
         .and_then(AiBehaviorNodeParameterValue::as_bool)
@@ -73,6 +84,7 @@ fn raw_perception_condition_passes(
     node: &CompiledBehaviorNode,
     perception: Option<&AiPerceptionSnapshot>,
 ) -> bool {
+    // 每次判定先解析过滤参数，再逐条扫描刺激，避免在刺激循环内重复读节点参数。
     let condition = PerceptionCondition::from_node(node);
     if !condition.configured {
         return true;
@@ -263,6 +275,7 @@ fn value_comparison_passes(node: &CompiledBehaviorNode, value: &AiBlackboardValu
         Scalar,
         |actual: &f32, expected: &f32| actual <= expected
     );
+    // 多个已配置的值比较采用合取；未配置比较时由存在性检查决定结果。
     !compared || passed
 }
 

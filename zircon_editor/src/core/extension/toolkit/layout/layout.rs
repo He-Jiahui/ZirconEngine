@@ -3,16 +3,18 @@ use std::sync::Arc;
 use super::{ToolkitArea, ToolkitAreaSlot, ToolkitLayoutError};
 
 #[cfg(test)]
-#[path = "layout/slot_bitset_tests.rs"]
+#[path = "layout/tests/slot_bitset_tests.rs"]
 mod slot_bitset_tests;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 工具包交给工作台的整体规划；各槽位唯一，区域顺序沿用声明顺序。
 pub struct ToolkitLayout {
     id: String,
     areas: Arc<[ToolkitArea]>,
 }
 
 impl ToolkitLayout {
+    /// 注册描述符前校验完整性；重复槽位直接报错，不交由宿主静默覆盖。
     pub fn new(
         id: impl Into<String>,
         areas: impl IntoIterator<Item = ToolkitArea>,

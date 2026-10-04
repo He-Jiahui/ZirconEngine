@@ -3,6 +3,7 @@ use crate::ui::asset_editor::tree::palette_drop::{
 };
 
 #[cfg(test)]
+#[path = "palette_target_chooser/tests/single_candidate_scan_tests.rs"]
 mod single_candidate_scan_tests;
 
 #[derive(Clone, Debug, PartialEq)]

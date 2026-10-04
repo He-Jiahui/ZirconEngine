@@ -10,6 +10,10 @@ use super::{
     UiTextWritingMode,
 };
 
+#[cfg(test)]
+#[path = "text_shape/tests/performance_tests.rs"]
+mod performance_tests;
+
 fn default_text_font_weight() -> u16 {
     UiResolvedStyle::DEFAULT_FONT_WEIGHT
 }
@@ -106,7 +110,9 @@ impl UiTextShapeArtifact {
 pub struct UiTextPaintRun {
     pub kind: UiTextRunKind,
     pub text: String,
+    /// 原始文本中的 UTF-8 字节区间，按逻辑来源定位。
     pub source_range: UiTextRange,
+    /// 解析后视觉文本中的 UTF-8 字节区间，用于字形几何投影。
     pub visual_range: UiTextRange,
     pub frame: UiFrame,
     pub color: Option<String>,
@@ -401,18 +407,31 @@ pub(crate) fn text_paint_runs_from_shaped(
     font_size: f32,
     line_height: f32,
 ) -> Vec<UiTextPaintRun> {
-    let mut runs = Vec::new();
+    let run_capacity = shaped.lines.iter().map(|line| line.clusters.len()).sum();
+    let mut runs = Vec::with_capacity(run_capacity);
     for line in &shaped.lines {
+        let metrics = (line.clusters.len() > 1).then(|| ShapedTextLineMetrics::from_line(line));
         for cluster in &line.clusters {
             if cluster.text.is_empty() {
                 continue;
             }
+            let frame = metrics
+                .as_ref()
+                .map(|metrics| {
+                    text_run_frame_with_metrics(
+                        shaped.writing_mode,
+                        line,
+                        cluster.visual_range,
+                        metrics,
+                    )
+                })
+                .unwrap_or_else(|| text_run_frame(shaped.writing_mode, line, cluster.visual_range));
             runs.push(UiTextPaintRun {
                 kind: cluster.kind,
                 text: cluster.text.clone(),
                 source_range: cluster.source_range,
                 visual_range: cluster.visual_range,
-                frame: text_run_frame(shaped.writing_mode, line, cluster.visual_range),
+                frame,
                 color: color.clone(),
                 font: font.clone(),
                 font_family: font_family.clone(),
@@ -435,10 +454,13 @@ pub(crate) fn text_paint_runs_from_resolved_layout(
     font_size: f32,
     line_height: f32,
 ) -> Vec<UiTextPaintRun> {
-    let mut runs = Vec::new();
+    let run_capacity = layout.lines.iter().map(|line| line.runs.len()).sum();
+    let mut runs = Vec::with_capacity(run_capacity);
+    // 非空 run 须连续覆盖 visual_range 且匹配文本切片；任一处不合契约就拒绝整批投影。
     for line in &layout.lines {
         let mut expected_visual_start = line.visual_range.start;
         let mut has_nonempty_run = false;
+        let mut metrics: Option<ResolvedTextLineMetrics> = None;
         for run in &line.runs {
             if run.text.is_empty() {
                 continue;
@@ -451,9 +473,25 @@ pub(crate) fn text_paint_runs_from_resolved_layout(
             }
             has_nonempty_run = true;
             expected_visual_start = run.visual_range.end;
-            let Some(frame) = resolved_text_run_frame(layout.writing_mode, line, run.visual_range)
-            else {
-                return Vec::new();
+            let frame = if line.runs.len() > 1 {
+                let metrics =
+                    metrics.get_or_insert_with(|| ResolvedTextLineMetrics::from_line(line));
+                if !metrics.valid {
+                    return Vec::new();
+                }
+                resolved_text_run_frame_with_metrics(
+                    layout.writing_mode,
+                    line,
+                    run.visual_range,
+                    metrics,
+                )
+            } else {
+                let Some(frame) =
+                    resolved_text_run_frame(layout.writing_mode, line, run.visual_range)
+                else {
+                    return Vec::new();
+                };
+                frame
             };
             runs.push(UiTextPaintRun {
                 kind: run.kind,
@@ -475,6 +513,203 @@ pub(crate) fn text_paint_runs_from_resolved_layout(
         }
     }
     runs
+}
+
+#[derive(Clone, Debug)]
+struct ShapedTextLineMetrics {
+    boundaries: Vec<usize>,
+    advances: Option<Vec<f32>>,
+}
+
+impl ShapedTextLineMetrics {
+    fn from_line(line: &UiShapedTextLine) -> Self {
+        let boundaries = grapheme_boundaries(line.text.as_str());
+        let advances = (line.glyphs.len() == boundaries.len().saturating_sub(1)).then(|| {
+            let mut prefix = Vec::with_capacity(boundaries.len());
+            prefix.push(0.0);
+            for glyph in &line.glyphs {
+                prefix.push(
+                    prefix.last().copied().unwrap_or_default() + sanitized_advance(glyph.advance),
+                );
+            }
+            prefix
+        });
+        Self {
+            boundaries,
+            advances,
+        }
+    }
+
+    fn frame(
+        &self,
+        writing_mode: UiTextWritingMode,
+        line: &UiShapedTextLine,
+        visual_range: UiTextRange,
+    ) -> UiFrame {
+        let start = self.floor_index(visual_range.start);
+        let end = self.ceil_index(visual_range.end);
+        let start_position = self.position(line, start, writing_mode);
+        let end_position = self.position(line, end, writing_mode);
+        if matches!(writing_mode, UiTextWritingMode::VerticalRl) {
+            UiFrame::new(
+                line.frame.x,
+                start_position.min(end_position),
+                line.frame.width,
+                (end_position - start_position).abs(),
+            )
+        } else {
+            UiFrame::new(
+                start_position.min(end_position),
+                line.frame.y,
+                (end_position - start_position).abs(),
+                line.frame.height,
+            )
+        }
+    }
+
+    fn floor_index(&self, offset: usize) -> usize {
+        let offset = offset.min(*self.boundaries.last().unwrap_or(&0));
+        self.boundaries
+            .partition_point(|boundary| *boundary <= offset)
+            .saturating_sub(1)
+    }
+
+    fn ceil_index(&self, offset: usize) -> usize {
+        let offset = offset.min(*self.boundaries.last().unwrap_or(&0));
+        self.boundaries
+            .partition_point(|boundary| *boundary < offset)
+    }
+
+    fn position(
+        &self,
+        line: &UiShapedTextLine,
+        index: usize,
+        writing_mode: UiTextWritingMode,
+    ) -> f32 {
+        let total = self.boundaries.len().saturating_sub(1).max(1);
+        let before = index.min(total);
+        let base = if matches!(writing_mode, UiTextWritingMode::VerticalRl) {
+            line.frame.y
+        } else {
+            line.frame.x
+        };
+        if let Some(prefix) = &self.advances {
+            return base + prefix[before];
+        }
+        let extent = if matches!(writing_mode, UiTextWritingMode::VerticalRl) {
+            line.frame.height.max(0.0)
+        } else {
+            line.frame.width.max(0.0)
+        };
+        base + extent * before as f32 / total as f32
+    }
+}
+
+#[derive(Clone, Debug)]
+struct ResolvedTextLineMetrics {
+    boundaries: Vec<usize>,
+    advances: Vec<f32>,
+    valid: bool,
+}
+
+impl ResolvedTextLineMetrics {
+    fn from_line(line: &super::UiResolvedTextLine) -> Self {
+        let boundaries = grapheme_boundaries(line.text.as_str());
+        let valid = line.glyph_advances.len() == boundaries.len().saturating_sub(1)
+            && line
+                .glyph_advances
+                .iter()
+                .all(|advance| advance.is_finite() && *advance >= 0.0);
+        let mut advances = Vec::with_capacity(line.glyph_advances.len() + 1);
+        advances.push(0.0);
+        for advance in &line.glyph_advances {
+            advances.push(advances.last().copied().unwrap_or_default() + *advance);
+        }
+        Self {
+            boundaries,
+            advances,
+            valid,
+        }
+    }
+
+    fn frame(
+        &self,
+        writing_mode: UiTextWritingMode,
+        line: &super::UiResolvedTextLine,
+        visual_range: UiTextRange,
+    ) -> Option<UiFrame> {
+        if visual_range.start > visual_range.end
+            || visual_range.end > line.text.len()
+            || !line.text.is_char_boundary(visual_range.start)
+            || !line.text.is_char_boundary(visual_range.end)
+        {
+            return None;
+        }
+        let start = self.floor_index(visual_range.start);
+        let end = self.ceil_index(visual_range.end);
+        if start >= end || !self.valid {
+            return None;
+        }
+        let leading = self.advances[start];
+        let advance = line.glyph_advances[start..end].iter().sum::<f32>();
+        if matches!(writing_mode, UiTextWritingMode::VerticalRl) {
+            Some(UiFrame::new(
+                line.frame.x,
+                line.frame.y + leading,
+                line.frame.width,
+                advance,
+            ))
+        } else {
+            Some(UiFrame::new(
+                line.frame.x + leading,
+                line.frame.y,
+                advance,
+                line.frame.height,
+            ))
+        }
+    }
+
+    fn floor_index(&self, offset: usize) -> usize {
+        let offset = offset.min(*self.boundaries.last().unwrap_or(&0));
+        self.boundaries
+            .partition_point(|boundary| *boundary <= offset)
+            .saturating_sub(1)
+    }
+
+    fn ceil_index(&self, offset: usize) -> usize {
+        let offset = offset.min(*self.boundaries.last().unwrap_or(&0));
+        self.boundaries
+            .partition_point(|boundary| *boundary < offset)
+    }
+}
+
+fn grapheme_boundaries(text: &str) -> Vec<usize> {
+    let mut boundaries = text
+        .grapheme_indices(true)
+        .map(|(start, _)| start)
+        .collect::<Vec<_>>();
+    boundaries.push(text.len());
+    boundaries
+}
+
+fn text_run_frame_with_metrics(
+    writing_mode: UiTextWritingMode,
+    line: &UiShapedTextLine,
+    visual_range: UiTextRange,
+    metrics: &ShapedTextLineMetrics,
+) -> UiFrame {
+    metrics.frame(writing_mode, line, visual_range)
+}
+
+fn resolved_text_run_frame_with_metrics(
+    writing_mode: UiTextWritingMode,
+    line: &super::UiResolvedTextLine,
+    visual_range: UiTextRange,
+    metrics: &ResolvedTextLineMetrics,
+) -> UiFrame {
+    metrics
+        .frame(writing_mode, line, visual_range)
+        .expect("validated resolved text line metrics")
 }
 
 /// Resolves paint-run bounds only from layout-provided advances. This path deliberately refuses
@@ -630,23 +865,13 @@ fn grapheme_ceil(text: &str, offset: usize) -> usize {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::sanitized_advance;
-
-    #[test]
-    fn sanitized_advance_rejects_negative_and_non_finite_geometry() {
-        assert_eq!(sanitized_advance(12.5), 12.5);
-        assert_eq!(sanitized_advance(-4.0), 0.0);
-        assert_eq!(sanitized_advance(f32::NAN), 0.0);
-        assert_eq!(sanitized_advance(f32::INFINITY), 0.0);
-        assert_eq!(sanitized_advance(f32::NEG_INFINITY), 0.0);
-    }
-}
+#[path = "tests/text_shape.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "text_shape/resolved_layout_tests.rs"]
+#[path = "text_shape/tests/resolved_layout_tests.rs"]
 mod resolved_layout_tests;
 
 #[cfg(all(test, windows))]
-#[path = "text_shape/projection_profile.rs"]
+#[path = "text_shape/tests/projection_profile.rs"]
 mod projection_profile;

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use super::{SettingValue, SettingsAuthority, SettingsScope, key};
+use super::{key, SettingValue, SettingsAuthority, SettingsScope};
 use crate::core::settings::EDITOR_AUTOSAVE_INTERVAL_SECS_KEY;
 
 #[test]

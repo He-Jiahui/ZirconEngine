@@ -12,6 +12,8 @@ closeEnough(value: float, expected: float): bool {
 
 var seed = <uint>20061;
 
+// 扁平化物品目录的首末项约束来源顺序；下方高度向量只验证
+// 地面放置，拾取权限、掉落与实体编号另由世界事务负责。
 if (placement.placementCount(true) != 55 || placement.itemId(0, true) != "supply_crate" ||
     placement.name(0, true) != "Stolen Supply Crate" ||
     placement.itemId(54, true) != "moongate_rubbing") {

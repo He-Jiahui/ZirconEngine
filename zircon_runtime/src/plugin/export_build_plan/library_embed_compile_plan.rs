@@ -1,3 +1,4 @@
+//! 把 LibraryEmbed 或 NativeDynamic 的编译宿主需求写成可审核的计划；Python CompileHost 消费命令与链接 crate 元数据。
 use serde::{Deserialize, Serialize};
 
 use crate::core::framework::platform::RuntimeTargetMode;
@@ -12,6 +13,7 @@ const TARGET_DIR: &str = "stages/compile_host/target";
 const BASE_COMMAND_ARGUMENT_COUNT: usize = 13;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// Validate 报告交付给 CompileHost 的声明；路径以该 stage 约定的工作目录解析。
 pub struct LibraryEmbedCompileHostPlan {
     pub package: String,
     pub binary: String,
@@ -27,6 +29,7 @@ pub struct LibraryEmbedCompileHostPlan {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 编译宿主需链接的 crate 与注册角色；外部特征 provider 身份随计划保留。
 pub struct LibraryEmbedLinkedRuntimeCrate {
     pub crate_name: String,
     pub path: String,
@@ -37,6 +40,7 @@ pub struct LibraryEmbedLinkedRuntimeCrate {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+/// 区分整包注册和特征注册，后续宿主生成不能把两种 provider 当成同一入口。
 pub enum LibraryEmbedCompileHostTarget {
     RuntimePlugin,
     RuntimeFeature,
@@ -52,10 +56,12 @@ impl ExportBuildPlan {
 }
 
 impl LibraryEmbedCompileHostPlan {
+    /// 提供与计划命令一致的宿主二进制选择，供导出工具核对目标模式。
     pub fn binary_for_target_mode(target_mode: RuntimeTargetMode) -> &'static str {
         target_for_mode(target_mode).binary
     }
 
+    /// 提供 Cargo 产物目录约定，供编译及打包阶段寻找相应构建模式的文件。
     pub fn cargo_profile_for_build_mode(build_mode: ExportBuildMode) -> &'static str {
         match build_mode {
             ExportBuildMode::Debug => "debug",
@@ -64,6 +70,7 @@ impl LibraryEmbedCompileHostPlan {
     }
 }
 
+/// 不执行 Cargo；仅为 CompileHost stage 提供与目标模式、构建模式一致的命令和预期插件集合。
 pub(super) fn library_embed_compile_host_plan(
     plan: &ExportBuildPlan,
     linked_runtime_crates: &[ExportLinkedRuntimeCrate],
@@ -184,33 +191,5 @@ fn target_for_mode(target_mode: RuntimeTargetMode) -> LibraryEmbedTarget {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{library_embed_command, target_for_mode, RuntimeTargetMode};
-
-    #[test]
-    fn preallocated_library_embed_command_preserves_contract() {
-        let target = target_for_mode(RuntimeTargetMode::ClientRuntime);
-        let manifest_path = "Cargo.toml".to_string();
-        let target_dir = "stages/compile_host/target".to_string();
-
-        assert_eq!(
-            library_embed_command(&target, manifest_path, target_dir, true),
-            vec![
-                "cargo".to_string(),
-                "build".to_string(),
-                "--manifest-path".to_string(),
-                "Cargo.toml".to_string(),
-                "-p".to_string(),
-                "zircon_app".to_string(),
-                "--bin".to_string(),
-                "zircon_runtime".to_string(),
-                "--no-default-features".to_string(),
-                "--features".to_string(),
-                "target-client".to_string(),
-                "--target-dir".to_string(),
-                "stages/compile_host/target".to_string(),
-                "--release".to_string(),
-            ]
-        );
-    }
-}
+#[path = "tests/library_embed_compile_plan.rs"]
+mod tests;

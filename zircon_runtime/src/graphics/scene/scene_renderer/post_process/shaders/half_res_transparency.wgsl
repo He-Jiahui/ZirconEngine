@@ -1,9 +1,12 @@
+// 半分辨率透明路径先把不透明深度保守降采样，绘制透明物体后再做深度感知合成。
+// 两个入口都按物理目标位置取样；调用方的全/半分辨率 viewport 必须保持对应关系。
 @group(0) @binding(0) var source_depth_tex: texture_depth_2d;
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
 };
 
+// 颜色目标在准备阶段清为透明，同时发布最靠近相机的标准设备深度，阻止透明物体穿过前景。
 struct DepthDownsampleOutput {
     @location(0) color: vec4<f32>,
     @builtin(frag_depth) depth: f32,
@@ -44,6 +47,8 @@ fn fs_depth_downsample(@builtin(position) position: vec4<f32>) -> DepthDownsampl
 @group(0) @binding(2) var half_depth_tex: texture_depth_2d;
 @group(0) @binding(3) var full_depth_tex: texture_depth_2d;
 
+// BUG: [CR-POST-SHADER-0001] vec3 的 16 字节对齐使本结构占 32 字节，CPU 却只分配并上传 16 字节；
+// 证据：half_res_transparency_params_buffer 使用 [f32;4]，composite 以整 buffer 绑定，绘制时绑定尺寸不足。
 struct HalfResolutionTransparencyParams {
     depth_sigma: f32,
     _pad0: vec3<f32>,
@@ -86,5 +91,6 @@ fn fs_composite(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32
     }
     let premultiplied = weighted_premultiplied / weight_sum;
     let alpha = weighted_alpha / weight_sum;
+    // 输入颜色按透明绘制后的预乘值累计；目标 pipeline 使用 ALPHA_BLENDING，返回前还原直通 RGB。
     return vec4<f32>(premultiplied / max(alpha, 0.0001), alpha);
 }

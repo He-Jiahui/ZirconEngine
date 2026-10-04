@@ -1,3 +1,4 @@
+// TODO: [CR-WOC-CW-2005] 确认此场景契约入口由哪个可执行项目接管；现有清单没有入口引用，缺少运行回执；下一步沿既有世界审查计划的 WORLD-P0-006 核对项目、产物与执行归属。
 var console = %import("zr.system.console");
 var lifecycle = %import("kernel/lifecycle");
 

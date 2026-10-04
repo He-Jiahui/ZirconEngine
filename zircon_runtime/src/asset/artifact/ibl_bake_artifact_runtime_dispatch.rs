@@ -6,9 +6,9 @@ use crate::core::framework::render::{
 };
 
 use super::{
-    IblBakeArtifactCacheError, IblBakeArtifactCacheRead, IblBakeArtifactCacheStore,
-    IblBakeArtifactRuntimeWritebackError, IblBakeArtifactRuntimeWritebackReport,
-    IblBakeArtifactRuntimeWritebackStatus, write_ibl_bake_artifact_runtime_readback,
+    write_ibl_bake_artifact_runtime_readback, IblBakeArtifactCacheError, IblBakeArtifactCacheRead,
+    IblBakeArtifactCacheStore, IblBakeArtifactRuntimeWritebackError,
+    IblBakeArtifactRuntimeWritebackReport, IblBakeArtifactRuntimeWritebackStatus,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -47,6 +47,7 @@ impl IblBakeArtifactRuntimeDispatchReport {
     }
 }
 
+/// 先读取与请求描述符绑定的运行时缓存，再把资产派生候选和缓存命中交给解析器；报告保留读取结果，供渲染调用方区分命中、拒绝和运行时计算。
 pub fn resolve_ibl_bake_artifact_runtime_dispatch(
     store: &IblBakeArtifactCacheStore,
     request: &IblBakeArtifactRequest,
@@ -100,6 +101,7 @@ impl IblBakeArtifactRuntimeDispatchReadbackReport {
     }
 }
 
+/// 只有解析结果声明需要运行时计算时才写回 readback；写回层仍会检查描述符是否为当前版本，并把跳过原因映射成可观察状态。
 pub fn write_ibl_bake_artifact_runtime_dispatch_readback(
     store: &IblBakeArtifactCacheStore,
     request: &IblBakeArtifactRequest,

@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 精灵批次从阶段索引流式写入最终二维批次存储；切片投影直接追加，避免阶段间向量。
 
 ROOT = Path(__file__).resolve().parents[2]
 VERTEX_SOURCE = (
@@ -62,8 +62,7 @@ class Runtime99EStreamingSpriteBatchProjectionContract(unittest.TestCase):
 
     def test_behavior_and_performance_evidence_are_recorded(self) -> None:
         tests = (
-            ROOT
-            / "zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices/tests.rs"
+            ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices/tests/cases.rs"
         ).read_text(encoding="utf-8")
         record = RECORD.read_text(encoding="utf-8")
 

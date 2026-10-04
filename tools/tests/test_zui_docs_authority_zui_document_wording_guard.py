@@ -1,3 +1,4 @@
+# 核对当前权威文档将界面资源描述为现行文档格式。
 import unittest
 from pathlib import Path
 
@@ -5,14 +6,14 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 AUTHORITY_DOC_WORDING_TARGETS = {
-    "docs/editor-and-tooling/zui-asset-governance.md": [
+    "docs/editor/zui-asset-governance.md": [
         "production suffix for UI v2 documents",
         "current UI v2 schema version",
     ],
 }
 
 AUTHORITY_DOC_REQUIRED_PHRASES = {
-    "docs/editor-and-tooling/zui-asset-governance.md": [
+    "docs/editor/zui-asset-governance.md": [
         "`.zui` is the production suffix for current UI documents.",
         "current `.zui` schema version",
         "UiV2 TOML schema structs in memory",

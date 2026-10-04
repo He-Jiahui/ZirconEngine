@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码中提取选定的物品、任务、怪物、NPC、天赋、商店与稳定物品编码，供 m5_content_codegen.mjs 消费。
 const [scopeJson] = process.argv.slice(2);
 if (!scopeJson) throw new Error('M5 content scope JSON is required');
 
@@ -34,6 +35,7 @@ const mechChromas = skins.MECH_CHROMAS.map((chroma, skinIndex) => ({
 }));
 const mechChromaItemIds = mechChromas.map((chroma) => chroma.item_id);
 
+// 序列化前沿任务、商人与商店依赖扩展选定的一致性范围。
 const quests = selectDefinitions(data.QUESTS, scope.quest_ids, 'quest');
 const mobs = selectDefinitions(data.MOBS, scope.mob_ids, 'mob');
 const questNpcIds = Object.values(quests).map((quest) => quest.giverNpcId);

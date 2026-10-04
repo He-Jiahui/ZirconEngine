@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/data/workbench_icon.zui"
+version = 2
+display_name = "Workbench Icon"
+
+[imports]
+widgets = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
+
+[components.WorkbenchIcon]
+root = "root"
+default_classes = ["workbench-icon", "workbench-primitive"]
+
+[nodes.root]
+component = "Icon"
+control_id = "WorkbenchIconRoot"
+classes = ["workbench-icon"]
+props = { icon = "zircon_editor_shell/controls/add.svg", label = "Icon", icon_size = "$editor.typography.title.size", layout_icon_size = "$editor.typography.title.size", icon_color = "$editor.text.secondary", foreground_color = "$editor.text.secondary", preserve_aspect = true }
+layout = { width = { min = "$editor.typography.title.size", preferred = "$editor.typography.title.size", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { min = "$editor.typography.title.size", preferred = "$editor.typography.title.size", max = "$editor.control.height.dense", stretch = "Fixed" } }

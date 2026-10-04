@@ -1,8 +1,8 @@
 import unittest
 
-from tools.plugins_rpc_routes_pressure import run
+from tools.analysis.performance.plugins.plugins_rpc_routes_pressure import run
 
-
+# 调用 RPC 路由压力模型，确认过期清扫无需 ID 缓冲区及第二次哈希遍历，同时保持报告计数。
 class PluginsRpcRoutesPressureTests(unittest.TestCase):
     def test_rpc_expiration_eliminates_id_buffer_and_second_hash_pass(self) -> None:
         rpc = run()["rpc_expiration"]

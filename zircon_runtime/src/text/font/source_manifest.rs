@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use crate::asset::project::AssetMetaDocument;
 use crate::asset::{
-    AssetUri, AssetUuid, FontAsset, FontBlobArtifact, ProjectAssetManager, runtime_asset_path,
+    runtime_asset_path, AssetUri, AssetUuid, FontAsset, FontBlobArtifact, ProjectAssetManager,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -231,4 +231,5 @@ fn resolve_manifest_source_path_with_allowed_root(
 }
 
 #[cfg(test)]
+#[path = "source_manifest/tests/cases.rs"]
 mod tests;

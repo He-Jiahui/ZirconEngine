@@ -1,3 +1,4 @@
+//! 汇集文件预算与职责迁移的源码守卫，并统一磁盘读取和换行处理；断言依赖当前检出源码及文档，不能据此证明产品运行效果。
 use super::{assert_contains_all, assert_contains_all_exact, repo_path, runtime_src_path};
 
 mod asset_artifact_store;
@@ -218,8 +219,8 @@ fn read_repo(relative: &str) -> String {
 fn read_zircon_build_sources() -> String {
     format!(
         "{}\n{}",
-        read_repo("tools/zircon_build.py"),
-        read_repo("tools/zircon_build_config.py")
+        read_repo("tools/build/zircon_build.py"),
+        read_repo("tools/build/zircon_build_config.py")
     )
 }
 

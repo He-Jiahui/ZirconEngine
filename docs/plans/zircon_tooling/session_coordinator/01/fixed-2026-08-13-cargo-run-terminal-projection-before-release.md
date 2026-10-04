@@ -11,15 +11,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 resolved_at: 2026-08-13
 related_code:
-  - tools/session_coordinator/cargo_jobs.py
-  - tools/session_coordinator/cargo_run_registration.py
-  - tools/session_coordinator/cargo_runner.py
-  - tools/session_coordinator/reserved_starts.py
-  - tools/session_coordinator/windows_job_process.py
-  - tools/session_coordinator/tests/test_cargo_jobs.py
-  - tools/session_coordinator/tests/test_cargo_runner.py
-  - tools/session_coordinator/tests/test_reserved_starts.py
-  - tools/session_coordinator/tests/test_windows_job_process.py
 tests:
   - python -W error::ResourceWarning -m unittest -v tools.session_coordinator.tests.test_cargo_jobs
   - python -W error::ResourceWarning -m unittest -v tools.session_coordinator.tests.test_reserved_starts

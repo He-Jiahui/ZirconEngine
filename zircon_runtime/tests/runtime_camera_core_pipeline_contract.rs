@@ -64,7 +64,9 @@ fn orthographic_extract(
     core_pipeline: CorePipelineKind,
 ) -> zircon_runtime::core::framework::render::RenderFrameExtract {
     let mut world = World::empty();
-    let camera = world.spawn_node(NodeKind::Camera);
+    let camera = world
+        .spawn_node(NodeKind::Camera)
+        .expect("spawn camera node");
     world
         .insert(
             camera,

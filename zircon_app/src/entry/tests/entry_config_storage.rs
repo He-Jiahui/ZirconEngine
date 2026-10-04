@@ -1,3 +1,6 @@
+//! 检查 EngineEntry 在模块激活前后都以可失败写入储存平台、渲染和窗口配置，禁止静默吞错。
+//! 该守卫约束源级接线，仍需结合被调用实现理解运行时契约。
+
 #[test]
 fn entry_config_storage_uses_fallible_writes_in_both_bootstrap_phases() {
     let source = include_str!("../engine_entry.rs").replace("\r\n", "\n");
@@ -23,7 +26,7 @@ fn entry_config_storage_uses_fallible_writes_in_both_bootstrap_phases() {
     assert!(store_body.contains("Ok(())"));
     assert_eq!(
         source
-            .match_indices("self.store_entry_config(&runtime)?;")
+            .match_indices("self.store_entry_config(runtime)?;")
             .count(),
         2,
         "entry config storage must fail closed before and after module activation"

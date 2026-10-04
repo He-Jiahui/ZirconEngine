@@ -10,8 +10,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 failure_scope: local
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/failures.py
-  - tools/session_coordinator/tests/test_failures.py
 tests:
   - python -B -m unittest tools.session_coordinator.tests.test_failures.FailureGraphTests.test_child_record_only_return_preserves_required_sections_after_result -v
   - python -B -m unittest tools.session_coordinator.tests.test_failures.FailureGraphTests.test_return_rejects_duplicate_real_result_sections -v

@@ -1,3 +1,4 @@
+# 通过受控子进程验证作业限额以及先绑定输出捕获再恢复运行的顺序。
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $jobModule = Join-Path $repoRoot 'tools\mvp\RenderExtractProcessJob.psm1'
 

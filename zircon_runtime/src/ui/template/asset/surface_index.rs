@@ -670,7 +670,13 @@ impl UiAssetSurfaceHotReloadTargets {
     }
 
     pub fn all_target_surfaces(&self) -> Vec<UiTreeId> {
-        let mut targets = Vec::new();
+        let total_capacity = self
+            .template_rebuild_surfaces
+            .len()
+            .saturating_add(self.removed_compiled_surfaces.len())
+            .saturating_add(self.theme_restyle_surfaces.len())
+            .saturating_add(self.resource_damage_surfaces.len());
+        let mut targets = Vec::with_capacity(total_capacity);
         let mut seen = BTreeSet::new();
         push_unique_surfaces(&mut targets, &mut seen, &self.template_rebuild_surfaces);
         push_unique_surfaces(&mut targets, &mut seen, &self.removed_compiled_surfaces);
@@ -689,7 +695,13 @@ impl UiAssetNodeHotReloadTargets {
     }
 
     pub fn all_target_nodes(&self) -> Vec<UiAssetNodeTarget> {
-        let mut targets = Vec::new();
+        let total_capacity = self
+            .template_rebuild_nodes
+            .len()
+            .saturating_add(self.removed_compiled_nodes.len())
+            .saturating_add(self.theme_restyle_nodes.len())
+            .saturating_add(self.resource_damage_nodes.len());
+        let mut targets = Vec::with_capacity(total_capacity);
         let mut seen = BTreeSet::new();
         push_unique_nodes(&mut targets, &mut seen, &self.template_rebuild_nodes);
         push_unique_nodes(&mut targets, &mut seen, &self.removed_compiled_nodes);

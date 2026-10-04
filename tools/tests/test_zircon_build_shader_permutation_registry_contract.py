@@ -1,3 +1,4 @@
+# 核对生成的着色器排列注册表只选择有效插件和模块。
 import json
 import subprocess
 import tempfile
@@ -5,8 +6,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tools import zircon_build
-from tools.zircon_build_shader_prewarm import (
+from tools.build import zircon_build
+from tools.build.zircon_build_shader_prewarm import (
     validate_shader_permutation_registry_export_contract,
 )
 

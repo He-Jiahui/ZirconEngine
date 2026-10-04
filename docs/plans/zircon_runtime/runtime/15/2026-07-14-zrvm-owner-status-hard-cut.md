@@ -1,15 +1,10 @@
 ---
 related_code:
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status/script_vm_recovery.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/foundation/lock_poison.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/foundation/lock_poison.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/support.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/core_runtime/scene_eventbus.rs
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/p0_robustness/lock_poison.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/lock_poison_rows.rs
-  - docs/zircon_runtime/script/vm/zr_vm_project_backend.md
-  - docs/zircon_runtime/structure/module-convention.md
+  - docs/crates/zircon_runtime/script/vm/zr_vm_project_backend.md
+  - docs/crates/zircon_runtime/structure/module-convention.md
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md

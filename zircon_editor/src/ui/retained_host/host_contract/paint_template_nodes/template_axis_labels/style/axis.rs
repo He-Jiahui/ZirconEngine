@@ -1,3 +1,6 @@
+//! 禁用态优先于节点声明标签色；其余先用声明色，再区分 Scale 轴和普通轴主题色。
+//! 声明 alpha=0 表示未提供该局部覆盖色。
+
 use super::super::super::super::data::TemplatePaneNodeData;
 use super::super::identity::is_transform_scale_axis_control_id;
 use super::super::palette::axis_label_palette;
@@ -31,30 +34,5 @@ fn is_scale_axis(node: &TemplatePaneNodeData) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::ui::retained_host::primitives::Color;
-
-    use super::*;
-
-    fn node(control_id: &str) -> TemplatePaneNodeData {
-        TemplatePaneNodeData {
-            control_id: control_id.into(),
-            role: "Label".into(),
-            ..TemplatePaneNodeData::default()
-        }
-    }
-
-    #[test]
-    fn declared_label_color_is_ignored_when_alpha_is_zero() {
-        let mut axis = node("WorkbenchTransformPositionAxisX");
-        axis.label_color = Color::from_argb_u8(0, 255, 255, 255);
-
-        assert_eq!(declared_label_color(&axis), None);
-    }
-
-    #[test]
-    fn scale_axis_matches_only_transform_scale_axis_prefix() {
-        assert!(is_scale_axis(&node("WorkbenchTransformScaleAxisX")));
-        assert!(!is_scale_axis(&node("WorkbenchTransformScaleLink")));
-    }
-}
+#[path = "tests/axis.rs"]
+mod tests;

@@ -1,6 +1,7 @@
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::render_commands::HostPaintCommand;
 
+mod agent_workflow;
 mod charts;
 mod chat;
 mod data_grid;
@@ -37,6 +38,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_mu
         }
         Some(MuiXKind::Chat(kind)) => {
             chat::push_chat(commands, node, rect, clip, order, opacity, kind)
+        }
+        Some(MuiXKind::AgentWorkflow(kind)) => {
+            agent_workflow::push_agent_workflow(commands, node, rect, clip, order, opacity, kind)
         }
         None => return false,
     }

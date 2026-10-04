@@ -1,22 +1,23 @@
+# 核对源模板构建交接诊断归属与模块规模。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SOURCE_TEMPLATE_REPORT = REPO_ROOT / "tools/zircon_export/pipeline_report_source_template.py"
+SOURCE_TEMPLATE_REPORT = REPO_ROOT / "tools/export/pipeline_report_source_template.py"
 SOURCE_TEMPLATE_BUILD_HANDOFF = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_source_template_build_handoff.py"
+    REPO_ROOT / "tools/export/pipeline_report_source_template_build_handoff.py"
 )
 SOURCE_TEMPLATE_BUILD_STATUS = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_source_template_build_status.py"
+    REPO_ROOT / "tools/export/pipeline_report_source_template_build_status.py"
 )
 SOURCE_TEMPLATE_BUILD_VALIDATION_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_pipeline_report_source_template_build_validation.py"
+    / "tools/export/tests/test_pipeline_report_source_template_build_validation.py"
 )
 SOURCE_TEMPLATE_BUILD_VALIDATION_STATUS_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_pipeline_report_source_template_build_validation_status.py"
+    / "tools/export/tests/test_pipeline_report_source_template_build_validation_status.py"
 )
 
 

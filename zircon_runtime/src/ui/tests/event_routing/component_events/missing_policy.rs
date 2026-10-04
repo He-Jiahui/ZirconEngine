@@ -134,7 +134,7 @@ fn optional_action_payload_missing_value_policy_omits_only_the_field() {
         .template_action
         .as_ref()
         .expect("optional missing payload should retain the route");
-    assert_eq!(action.route, "showcase.missing_payload");
+    assert_eq!(action.target_id(), "showcase.missing_payload");
     assert!(action.payload.is_empty());
 }
 

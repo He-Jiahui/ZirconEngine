@@ -2,7 +2,6 @@
 related_code:
   - zircon_runtime/src/core/runtime/tests
   - zircon_editor/src/tests
-  - tests
 implementation_files:
   - zircon_runtime/src
   - zircon_editor/src
@@ -12,7 +11,7 @@ plan_sources:
 tests:
   - zircon_runtime/src/core/runtime/tests
   - zircon_editor/src/tests
-  - tests
+  - tools/tests
 doc_type: reference-guide
 ---
 

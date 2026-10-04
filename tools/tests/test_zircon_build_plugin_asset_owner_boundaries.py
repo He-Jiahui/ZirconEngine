@@ -1,10 +1,11 @@
+# 核对插件资源根发现归属于插件资源模块。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-ZIRCON_BUILD = REPO_ROOT / "tools/zircon_build.py"
-ZIRCON_BUILD_PLUGIN_ASSETS = REPO_ROOT / "tools/zircon_build_plugin_assets.py"
+ZIRCON_BUILD = REPO_ROOT / "tools/build/zircon_build.py"
+ZIRCON_BUILD_PLUGIN_ASSETS = REPO_ROOT / "tools/build/zircon_build_plugin_assets.py"
 
 
 class ZirconBuildPluginAssetOwnerBoundaryTests(unittest.TestCase):
@@ -17,11 +18,11 @@ class ZirconBuildPluginAssetOwnerBoundaryTests(unittest.TestCase):
         asset_text = ZIRCON_BUILD_PLUGIN_ASSETS.read_text(encoding="utf-8")
 
         self.assertIn(
-            "from .zircon_build_plugin_assets import collect_plugin_asset_roots",
+            "from .build.zircon_build_plugin_assets import collect_plugin_asset_roots",
             build_text,
         )
         self.assertIn(
-            "from zircon_build_plugin_assets import collect_plugin_asset_roots",
+            "from .build.zircon_build_plugin_assets import collect_plugin_asset_roots",
             build_text,
         )
         for function_name in (

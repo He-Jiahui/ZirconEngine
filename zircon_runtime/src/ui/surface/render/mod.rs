@@ -1,6 +1,8 @@
+mod agent_chat;
 mod buttons;
 mod cache;
 mod chrome;
+mod clipping;
 mod collection_rows;
 mod command_palette;
 mod dialog;
@@ -22,6 +24,7 @@ mod progress;
 mod resolve;
 mod segmented_controls;
 mod selection_controls;
+mod semantic_components;
 mod skeleton;
 mod sliders;
 mod text_fields;

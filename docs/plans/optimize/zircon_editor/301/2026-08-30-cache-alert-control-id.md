@@ -39,3 +39,14 @@ Cargo, exact p95 evidence, review, commit, push, and WeCom remain coordinator-ow
 Corrected batch ticket `7484a74c23ec418d92154572353fc131` ended `failed`. The coordinator
 provided no valid Cargo, performance, or commit evidence; the external validation resource was
 left unchanged and no successful WeCom notification was sent.
+
+## Current-source test reachability repair (2026-09-19)
+
+The existing lower regression at
+`template_chips/identity/cached_control_id_tests.rs` was detached from
+`identity.rs`, so the result-parity tests and ignored Release marker were not
+part of the normal Editor Rust test tree. Editor823 adds the explicit
+test-only module path and records the RED/GREEN source contract in
+`docs/plans/optimize/zircon_editor/301/2026-09-19-cached-control-id-test-wiring-repair.md`.
+This repairs test reachability only; managed Cargo/Release and product
+percentile evidence remain pending.

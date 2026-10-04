@@ -4,8 +4,8 @@ use serde_json::Value;
 
 use super::{
     ExportStageProgressKind, ExportWizardControlState, ExportWizardJobStatus,
-    ExportWizardPanelViewModel, ExportWizardStageArtifactPath, ExportWizardStageViewRow,
-    DESKTOP_EXPORT_CANCEL_BUTTON, DESKTOP_EXPORT_GENERATE_PLAN_BUTTON, DESKTOP_EXPORT_START_BUTTON,
+    ExportWizardPanelViewModel, ExportWizardStageViewRow, DESKTOP_EXPORT_CANCEL_BUTTON,
+    DESKTOP_EXPORT_GENERATE_PLAN_BUTTON, DESKTOP_EXPORT_START_BUTTON,
 };
 
 pub const DESKTOP_EXPORT_MISSING_INPUTS_SLOT: &str = "DesktopExportMissingInputs";
@@ -251,11 +251,11 @@ fn terminal_output_entries(
 fn artifact_path_entries(rows: &[ExportWizardStageViewRow]) -> Vec<ExportWizardPanelSlotEntry> {
     let mut entries = Vec::new();
     for row in rows {
-        for artifact in merged_artifacts(row) {
+        for artifact in &row.artifact_paths {
             entries.push(ExportWizardPanelSlotEntry {
                 key: format!("artifact.{}.{}", row.stage_id, artifact.key),
                 label: format!("{} {}", row.label, artifact.key),
-                detail: artifact.path,
+                detail: artifact.path.clone(),
                 stage: Some(row.stage),
                 severity: ExportWizardPanelEntrySeverity::Neutral,
             });
@@ -292,7 +292,14 @@ fn report_body_entries(
         if let Some(pipeline_report) = pipeline_report_body_entry(report) {
             entries.push(pipeline_report);
         }
-        let parsed_report = parsed_report_from_stdout(&report.stdout_lines);
+        // Stdout is a live log, not a durable report artifact. Only project
+        // report payloads after the execution announced a report path.
+        let parsed_report = report
+            .artifact_paths
+            .iter()
+            .any(|artifact| artifact.key == "report" || artifact.key == "pipeline_report")
+            .then(|| parsed_report_from_stdout(&report.stdout_lines))
+            .flatten();
         entries.extend(report_export_plan_body_entries(
             report,
             parsed_report.as_ref(),
@@ -578,29 +585,11 @@ fn stage_row_detail(row: &ExportWizardStageViewRow) -> String {
     parts.join(" | ")
 }
 
-fn merged_artifacts(row: &ExportWizardStageViewRow) -> Vec<ExportWizardStageArtifactPath> {
-    let mut artifacts = row.planned_artifacts.clone();
-    for artifact in &row.artifact_paths {
-        if !artifacts
-            .iter()
-            .any(|existing| existing.key == artifact.key && existing.path == artifact.path)
-        {
-            artifacts.push(artifact.clone());
-        }
-    }
-    artifacts
-}
-
 fn artifact_path_for_key(row: &ExportWizardStageViewRow, key: &str) -> Option<String> {
     row.artifact_paths
         .iter()
         .rev()
         .find(|artifact| artifact.key == key)
-        .or_else(|| {
-            row.planned_artifacts
-                .iter()
-                .find(|artifact| artifact.key == key)
-        })
         .map(|artifact| artifact.path.clone())
 }
 
@@ -639,3 +628,7 @@ fn severity_for_status(
         ExportWizardJobStatus::Failed => ExportWizardPanelEntrySeverity::Danger,
     }
 }
+
+#[cfg(test)]
+#[path = "panel_projection/tests/astra_artifact_truth_tests.rs"]
+mod astra_artifact_truth_tests;

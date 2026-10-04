@@ -122,7 +122,7 @@ class UiAssetPaneProfileContractTests(unittest.TestCase):
             '"pane_presentation",);'
         )
         counter = "UiPerfCounter::AssetEditorPanePresentationBuildCount"
-        first_artifact = "let reflection = self.reflection_pane_presentation();"
+        first_artifact = "let mut reflection = self.reflection_pane_presentation();"
         profiling_prefix = body[: body.index(first_artifact)]
 
         self.assertIn(profile_scope, body)

@@ -55,7 +55,7 @@ No dynamic timing is accepted until the coordinator returns terminal evidence.
 - Current session: `root-runtime-interface03-activate-link-failure-20260831`.
 - Static/model ticket: `0b7e496729eb4581894c2ff6bbba09d0` (queued, 11 Python tests).
 - Release performance ticket: `c402a39dec7c4e4da725980397e9d442` (queued; exact ignored Rust benchmark).
-- Deterministic model: `tools/plugins14_tiled_plan_pressure.py`, source manifest `1CCD26AE31967E878B4363221F3632AF3C7EE4D7DB017A5E6EFE764D42911A64`.
+- Deterministic model: `tools/analysis/performance/plugins/plugins14_tiled_plan_pressure.py`, source manifest `1CCD26AE31967E878B4363221F3632AF3C7EE4D7DB017A5E6EFE764D42911A64`.
 - Current source hashes: `task_pool.rs` `D60A80C4FE8AFEF1BEF044D307187BF6BB3CB81E375691D2B26C73507B8180B0`; deterministic model `7E18830264D8E366274BC313FBEFEAC41A93F14A82F88C15A4A0755BD9ED482E`.
 
 The current-source model is structural evidence, not wall-clock timing. Across 200,000 plan clones per sample it changes Arc increment/decrement pairs `800,000 -> 200,000` and modeled atomic reference-count operations `1,600,000 -> 400,000`, both `-75%`, while retaining 200,000 payload observations and zero completed-plan copies. The queued 21-pair alternating release benchmark remains authoritative for P50/P95 and must satisfy candidate P95 `<= 80%` of legacy before integration or WeCom publication.

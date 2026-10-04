@@ -4,8 +4,8 @@ use crate::graphics::scene::scene_renderer::primitives::LineVertex;
 use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::line_geometry::{
-    ARROW_HEAD_VERTEX_CAPACITY, CROSS_VERTEX_CAPACITY, RING_VERTEX_CAPACITY, append_arrow_head,
-    append_cross, append_ring,
+    append_arrow_head, append_cross, append_ring, ARROW_HEAD_VERTEX_CAPACITY,
+    CROSS_VERTEX_CAPACITY, RING_VERTEX_CAPACITY,
 };
 
 const LINE_VERTEX_CAPACITY: usize = 2;
@@ -32,6 +32,7 @@ pub(crate) fn build_handle_vertices(frame: &ViewportRenderFrame) -> Vec<LineVert
         .map(handle_element_vertex_capacity)
         .fold(0usize, usize::saturating_add);
     let mut vertices = Vec::with_capacity(vertex_capacity);
+    // 缩放杆和中心锚点使用有效相机的屏幕基底；轴线与圆环仍沿提取出的世界空间方向。
     let camera = frame.effective_camera();
     for handle in &frame.overlays().handles {
         for element in &handle.elements {
@@ -87,47 +88,5 @@ pub(crate) fn build_handle_vertices(frame: &ViewportRenderFrame) -> Vec<LineVert
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::core::framework::render::{HandleElementExtract, OverlayAxis};
-    use crate::core::math::{Vec3, Vec4};
-
-    use super::handle_element_vertex_capacity;
-
-    #[test]
-    fn handle_capacity_matches_non_degenerate_element_topology() {
-        let elements = [
-            HandleElementExtract::AxisLine {
-                axis: OverlayAxis::X,
-                start: Vec3::ZERO,
-                end: Vec3::X,
-                color: Vec4::ONE,
-                pick_radius: 1.0,
-            },
-            HandleElementExtract::AxisRing {
-                axis: OverlayAxis::Y,
-                center: Vec3::ZERO,
-                normal: Vec3::Y,
-                radius: 1.0,
-                color: Vec4::ONE,
-                pick_radius: 1.0,
-            },
-            HandleElementExtract::AxisScale {
-                axis: OverlayAxis::Z,
-                start: Vec3::ZERO,
-                end: Vec3::Z,
-                color: Vec4::ONE,
-                pick_radius: 1.0,
-                handle_size: 1.0,
-            },
-            HandleElementExtract::CenterAnchor {
-                position: Vec3::ZERO,
-                size: 1.0,
-                color: Vec4::ONE,
-            },
-        ];
-
-        let capacities = elements.map(|element| handle_element_vertex_capacity(&element));
-
-        assert_eq!(capacities, [6, 96, 6, 4]);
-    }
-}
+#[path = "tests/build_handle_vertices.rs"]
+mod tests;

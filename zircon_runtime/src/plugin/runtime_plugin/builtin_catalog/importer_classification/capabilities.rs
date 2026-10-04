@@ -1,5 +1,6 @@
 const IMPORTER_CAPABILITY_PREFIX: &str = "runtime.asset.importer.";
 
+// 已发布的导入器能力使用固定标识；其余包名才走后缀剥离与下划线转换。
 pub(super) fn primary_importer_capability(package_id: &str) -> String {
     match package_id {
         "gltf_importer" => return "runtime.asset.importer.model.gltf".to_string(),
@@ -23,22 +24,5 @@ pub(super) fn primary_importer_capability(package_id: &str) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::primary_importer_capability;
-
-    #[test]
-    fn fallback_importer_capability_writes_slug_into_single_output() {
-        assert_eq!(
-            primary_importer_capability("custom_mesh_importer"),
-            "runtime.asset.importer.custom.mesh"
-        );
-        assert_eq!(
-            primary_importer_capability("procedural_cache"),
-            "runtime.asset.importer.procedural.cache"
-        );
-        assert_eq!(
-            primary_importer_capability("gltf_importer"),
-            "runtime.asset.importer.model.gltf"
-        );
-    }
-}
+#[path = "tests/capabilities.rs"]
+mod tests;

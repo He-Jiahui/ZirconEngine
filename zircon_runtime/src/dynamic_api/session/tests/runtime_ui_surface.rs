@@ -6,17 +6,62 @@ use zircon_runtime_interface::ui::accessibility::{
     UiAccessibilityAction, UiAccessibilityActionRequest,
 };
 use zircon_runtime_interface::{
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_TOUCH_PHASE_ENDED_V1,
-    ZR_RUNTIME_TOUCH_PHASE_STARTED_V1, ZrByteSlice, ZrRuntimeAccessibilityTreeRequestV1,
-    ZrRuntimeEventV1, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1, ZrRuntimeViewportHandle,
-    ZrRuntimeViewportSizeV1, ZrStatusCode,
+    ZrByteSlice, ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeEventV1,
+    ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1, ZrRuntimeViewportHandle,
+    ZrRuntimeViewportSizeV1, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZR_RUNTIME_TOUCH_PHASE_ENDED_V1, ZR_RUNTIME_TOUCH_PHASE_STARTED_V1,
 };
 
-use crate::asset::AssetUri;
 use crate::asset::project::{ProjectManifest, ProjectPaths};
+use crate::asset::AssetUri;
 use crate::dynamic_api::session::project::RuntimeProjectConfig;
 use crate::dynamic_api::session::{RuntimeDynamicSession, RuntimeDynamicSessionProfile};
-use zircon_runtime_interface::project::{ProjectTemplateId, render_project_template};
+use zircon_runtime_interface::project::{render_project_template, ProjectTemplateId};
+
+const PENPOT_ROUNDTRIP_VIEW: &str =
+    include_str!("../../../../tests/fixtures/ui/penpot_roundtrip.zui");
+
+const PENPOT_ROUNDTRIP_BUTTON_COMPONENT: &str = r#"
+[asset]
+kind = "component"
+id = "res://ui/components/button.zui"
+version = 2
+display_name = "Penpot Roundtrip Button"
+
+[imports]
+widgets = []
+styles = []
+
+[components.RoundtripButton]
+root = "root"
+
+[nodes.root]
+component = "Button"
+props = { text = "Button", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 40.0, max = 48.0, stretch = "Fixed" } }
+"#;
+
+const PENPOT_ROUNDTRIP_STYLE: &str = r##"
+[asset]
+kind = "style"
+id = "res://ui/theme/editor.zui"
+version = 2
+display_name = "Penpot Roundtrip Style"
+
+[imports]
+widgets = []
+styles = []
+
+[[stylesheets]]
+id = "penpot_roundtrip"
+
+[[stylesheets.rules]]
+selector = ".roundtrip"
+
+[stylesheets.rules.set.self]
+background_color = "#20242b"
+border_color = "#59616d"
+"##;
 
 const RUNTIME_UI_VIEW: &str = r#"
 [asset]
@@ -193,28 +238,22 @@ fn woc_project_ui_surface_runtime_round_trip() {
         .current_ui_submission()
         .expect("build declared project UI render extract")
         .expect("declared project UI root should produce a render extract");
-    assert!(
-        submission
-            .segments()
-            .iter()
-            .all(|segment| segment.route_tree_id().as_ref() == "zircon-runtime-project-ui")
-    );
-    assert!(
-        submission
-            .commands()
-            .any(|command| command.text.as_deref() == Some("Inventory"))
-    );
+    assert!(submission
+        .segments()
+        .iter()
+        .all(|segment| segment.route_tree_id().as_ref() == "zircon-runtime-project-ui"));
+    assert!(submission
+        .commands()
+        .any(|command| command.text.as_deref() == Some("Inventory")));
 
     let snapshot = session
         .capture_accessibility_tree(accessibility_request())
         .expect("declared project UI root should produce an accessibility tree");
     assert_eq!(snapshot.tree_id.0, "zircon-runtime-project-ui");
-    assert!(
-        snapshot
-            .nodes
-            .iter()
-            .any(|node| node.name.as_deref() == Some("Inventory"))
-    );
+    assert!(snapshot
+        .nodes
+        .iter()
+        .any(|node| node.name.as_deref() == Some("Inventory")));
 
     drop(session);
     fixture.assert_removable();
@@ -258,11 +297,9 @@ fn woc_project_ui_input_render_accessibility_share_surface() {
         .current_ui_submission()
         .expect("rebuild the acted-on project UI surface")
         .expect("the acted-on project surface should remain renderable");
-    assert!(
-        submission
-            .commands()
-            .any(|command| command.node_id == action_target)
-    );
+    assert!(submission
+        .commands()
+        .any(|command| command.node_id == action_target));
 
     drop(session);
     fixture.assert_removable();
@@ -278,16 +315,12 @@ fn project_runtime_ui_merges_multiple_manifest_roots_without_node_id_collisions(
         .current_ui_submission()
         .expect("build project UI roots")
         .expect("project UI roots should render");
-    assert!(
-        submission
-            .commands()
-            .any(|command| command.text.as_deref() == Some("Inventory"))
-    );
-    assert!(
-        submission
-            .commands()
-            .any(|command| command.text.as_deref() == Some("Overlay"))
-    );
+    assert!(submission
+        .commands()
+        .any(|command| command.text.as_deref() == Some("Inventory")));
+    assert!(submission
+        .commands()
+        .any(|command| command.text.as_deref() == Some("Overlay")));
 
     let snapshot = session
         .capture_accessibility_tree(accessibility_request())
@@ -303,13 +336,11 @@ fn project_runtime_ui_merges_multiple_manifest_roots_without_node_id_collisions(
         snapshot.nodes.len(),
         "each root must retain a distinct global node namespace"
     );
-    assert!(
-        snapshot
-            .nodes
-            .iter()
-            .filter_map(|node| node.node_path.as_ref())
-            .any(|path| path.0.starts_with("surface-1:"))
-    );
+    assert!(snapshot
+        .nodes
+        .iter()
+        .filter_map(|node| node.node_path.as_ref())
+        .any(|path| path.0.starts_with("surface-1:")));
 
     drop(session);
     fixture.assert_removable();
@@ -324,21 +355,120 @@ fn project_runtime_ui_expands_imported_component_assets_from_project_uris() {
         .current_ui_submission()
         .expect("build project UI with imported component")
         .expect("imported component root should render");
-    assert!(
-        submission
-            .commands()
-            .any(|command| command.text.as_deref() == Some("Inventory"))
-    );
+    assert!(submission
+        .commands()
+        .any(|command| command.text.as_deref() == Some("Inventory")));
 
     let snapshot = session
         .capture_accessibility_tree(accessibility_request())
         .expect("capture imported component accessibility tree");
+    assert!(snapshot
+        .nodes
+        .iter()
+        .any(|node| node.name.as_deref() == Some("Inventory")));
+
+    drop(session);
+    fixture.assert_removable();
+}
+
+#[test]
+fn project_runtime_ui_bootstraps_penpot_roundtrip_asset() {
+    let fixture = RuntimeUiFixture::create("penpot-roundtrip");
+    fixture.write_ui_asset("components/button.zui", PENPOT_ROUNDTRIP_BUTTON_COMPONENT);
+    fixture.write_ui_asset("theme/editor.zui", PENPOT_ROUNDTRIP_STYLE);
+    fixture.add_ui_view("penpot_roundtrip.zui", PENPOT_ROUNDTRIP_VIEW);
+    let mut session = runtime_session(&fixture);
+
+    let submission = session
+        .current_ui_submission()
+        .expect("build the Penpot-authored project UI")
+        .expect("the Penpot-authored root should produce a render submission");
+    for label in [
+        "Roundtrip title",
+        "Cancel",
+        "Apply",
+        "Virtual row prototype",
+    ] {
+        assert!(
+            submission
+                .commands()
+                .any(|command| command.text.as_deref() == Some(label)),
+            "the Penpot-authored render submission should include {label}"
+        );
+    }
     assert!(
+        submission
+            .commands()
+            .all(|command| command.text.as_deref() != Some("Detached template")),
+        "detached authoring metadata must not enter the live product surface"
+    );
+
+    let snapshot = session
+        .capture_accessibility_tree(accessibility_request())
+        .expect("capture the Penpot-authored accessibility tree");
+    let penpot_root = snapshot
+        .nodes
+        .iter()
+        .find(|node| snapshot.roots.get(1) == Some(&node.node_id))
+        .expect("the second manifest root should be the Penpot surface");
+    let root_bounds = penpot_root.bounds.expect("Penpot root layout bounds");
+    assert_eq!((root_bounds.x, root_bounds.y), (0.0, 0.0));
+    assert_eq!((root_bounds.width, root_bounds.height), (420.0, 320.0));
+
+    let node_named = |name: &str| {
         snapshot
             .nodes
             .iter()
-            .any(|node| node.name.as_deref() == Some("Inventory"))
-    );
+            .find(|node| node.name.as_deref() == Some(name))
+            .unwrap_or_else(|| panic!("Penpot surface should expose {name}"))
+    };
+    let title_bounds = node_named("Roundtrip title")
+        .bounds
+        .expect("title layout bounds");
+    let cancel = node_named("Cancel");
+    let cancel_bounds = cancel.bounds.expect("cancel layout bounds");
+    let apply_bounds = node_named("Apply").bounds.expect("apply layout bounds");
+    assert!(title_bounds.y + title_bounds.height <= cancel_bounds.y);
+    assert!(cancel_bounds.x + cancel_bounds.width <= apply_bounds.x);
+    assert!(snapshot
+        .nodes
+        .iter()
+        .all(|node| node.name.as_deref() != Some("Detached template")));
+
+    let action = UiAccessibilityActionRequest {
+        target: cancel.node_id,
+        action: UiAccessibilityAction::Activate,
+        ..UiAccessibilityActionRequest::default()
+    };
+    let bytes = serde_json::to_vec(&action).expect("serialize Penpot UI action");
+    let status = session.handle_event(ZrRuntimeEventV1::accessibility_action(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(1),
+        ZrByteSlice {
+            data: bytes.as_ptr(),
+            len: bytes.len(),
+        },
+    ));
+    assert_eq!(status.status_code(), ZrStatusCode::Ok);
+
+    let action_output = session
+        .prepare_host_request_output()
+        .expect("encode the Penpot-authored action request");
+    let action_batch: ZrRuntimeHostRequestBatchV1 =
+        serde_json::from_slice(&action_output).expect("decode the Penpot-authored action request");
+    let action = action_batch
+        .requests
+        .iter()
+        .find_map(|request| match request {
+            ZrRuntimeHostRequestV1::UiAction(request) => Some(request),
+            _ => None,
+        })
+        .expect("the Penpot-authored button should publish a typed UI action");
+    assert_eq!(action.target_surface, 1);
+    assert!(action.invocation.is_action());
+    assert_eq!(action.invocation.target_id(), "dialog.cancel");
+    assert!(action.secure_value.is_none());
+    session.commit_host_request_output();
 
     drop(session);
     fixture.assert_removable();
@@ -354,11 +484,9 @@ fn project_runtime_ui_ignores_unreferenced_assets_with_missing_imports() {
         .current_ui_submission()
         .expect("unreferenced invalid UI must not block a declared runtime root")
         .expect("declared runtime root should still render");
-    assert!(
-        submission
-            .commands()
-            .any(|command| command.text.as_deref() == Some("Inventory"))
-    );
+    assert!(submission
+        .commands()
+        .any(|command| command.text.as_deref() == Some("Inventory")));
 
     drop(session);
     fixture.assert_removable();

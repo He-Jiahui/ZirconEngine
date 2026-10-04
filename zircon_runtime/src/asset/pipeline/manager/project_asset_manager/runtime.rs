@@ -4,7 +4,8 @@ use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
-use std::sync::{MutexGuard, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{MutexGuard, RwLockReadGuard, RwLockWriteGuard, TryLockError};
+use std::time::Instant;
 
 use crate::asset::project::{ImportSourceWatchEcho, ProjectGenerationPhase};
 use crate::asset::{AssetImporterRegistry, AssetUri, ProjectManager};
@@ -110,7 +111,20 @@ impl ProjectWatcherActivation {
     }
 
     fn retire(&self) {
-        let mut state = self.lock_state();
+        Self::retire_locked(&mut self.lock_state());
+    }
+
+    fn try_retire(&self) -> bool {
+        let mut state = match self.state.try_lock() {
+            Ok(state) => state,
+            Err(TryLockError::Poisoned(poisoned)) => poisoned.into_inner(),
+            Err(TryLockError::WouldBlock) => return false,
+        };
+        Self::retire_locked(&mut state);
+        true
+    }
+
+    fn retire_locked(state: &mut ProjectWatcherActivationState) {
         state.lifecycle = ProjectWatcherLifecycle::Retired;
         state.changes.clear();
         state.coalescible_change_indices.clear();
@@ -494,6 +508,7 @@ impl ProjectAssetManager {
     pub(in crate::asset::pipeline::manager) fn activate_project_watchers(
         &self,
         prepared: PreparedProjectWatchers,
+        _publication: &super::watcher_lifecycle::ProjectWatcherPublication<'_>,
     ) -> (Vec<AssetWatcher>, std::sync::Arc<ProjectWatcherActivation>) {
         let mut active: MutexGuard<'_, Option<std::sync::Arc<ProjectWatcherActivation>>> =
             self.lock_watcher_activation();
@@ -522,13 +537,45 @@ impl ProjectAssetManager {
         activation.activate_dispatch(self);
     }
 
-    /// Stops project asset watchers before the owning runtime releases its services.
+    /// Stops and joins every watcher without discarding unfinished join authority.
     ///
-    /// Watch callbacks retain manager clones, so waiting for the manager's final drop would leave
-    /// the watcher join handles in a reference cycle on Windows.
-    pub fn shutdown_project_watchers(&self) {
-        let retired_watchers = self.deactivate_project_watchers();
-        drop(retired_watchers);
+    /// Closing admission is permanent. An in-flight project operation, including a synchronous
+    /// publication callback, returns pending so its owner can finish before a later retry.
+    pub fn shutdown_project_watchers_until(&self, deadline: Instant) -> bool {
+        if !self.watcher_admission.try_close() {
+            return false;
+        }
+        let mut active = match self.watcher_activation.try_lock() {
+            Ok(active) => active,
+            Err(TryLockError::Poisoned(poisoned)) => poisoned.into_inner(),
+            Err(TryLockError::WouldBlock) => return false,
+        };
+        let mut watchers = match self.watchers.try_lock() {
+            Ok(watchers) => watchers,
+            Err(TryLockError::Poisoned(poisoned)) => poisoned.into_inner(),
+            Err(TryLockError::WouldBlock) => return false,
+        };
+        if active
+            .as_ref()
+            .is_some_and(|activation| !activation.try_retire())
+        {
+            return false;
+        }
+        active.take();
+
+        // Keep join authority visible until completion; another reaper must not see an empty set.
+        while let Some(watcher) = watchers.last_mut() {
+            if !watcher.shutdown_until(deadline) {
+                return false;
+            }
+            watchers.pop();
+        }
+        true
+    }
+
+    #[cfg(test)]
+    pub(crate) fn install_project_watcher_for_test(&self, watcher: AssetWatcher) {
+        self.lock_watchers().push(watcher);
     }
 
     pub(in crate::asset::pipeline::manager) fn clear_project_source_paths(&self) {
@@ -558,6 +605,26 @@ impl ProjectAssetManager {
             return;
         }
 
+        let project_root = {
+            let _generation = self.project_generation_read();
+            let project = self.project_read();
+            let Some(project) = project.as_ref() else {
+                return;
+            };
+            project.paths().root().to_path_buf()
+        };
+        let project_generation = match crate::asset::project::lock_project_generation(&project_root)
+        {
+            Ok(generation) => generation,
+            Err(error) => {
+                self.record_asset_watch_failure();
+                self.broadcast_watch_error(AssetWatchError::from_message(
+                    project_root,
+                    error.to_string(),
+                ));
+                return;
+            }
+        };
         let use_incremental_sync = !requires_reconciliation
             && ProjectManager::watch_changes_use_incremental_path(&changes);
         let _watch_refresh = self.lock_watch_refresh();
@@ -576,6 +643,9 @@ impl ProjectAssetManager {
                 let Some(active_project) = project.as_ref() else {
                     return;
                 };
+                if active_project.paths().root() != project_root {
+                    return;
+                }
                 (
                     active_project.catalog_input_generation().sequence(),
                     self.current_project_preparation_epoch(),
@@ -717,6 +787,7 @@ impl ProjectAssetManager {
                 }
                 self.record_asset_watch_commit();
                 drop(_watch_refresh);
+                drop(project_generation);
                 let published_changes = changes
                     .into_iter()
                     .map(|change| AssetChange::new(change.kind, change.uri, change.previous_uri))
@@ -753,4 +824,9 @@ impl ProjectAssetManager {
 }
 
 #[cfg(test)]
+#[path = "runtime/tests/cases.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "runtime/tests/watcher_shutdown_tests.rs"]
+mod watcher_shutdown_tests;

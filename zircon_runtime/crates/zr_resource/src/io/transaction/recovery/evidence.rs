@@ -3,12 +3,13 @@ use std::path::{Path, PathBuf};
 
 use super::super::error::DurableTransactionError;
 use super::super::schema::{JournalDocument, JournalPhase, JournalState};
-use super::super::stage::{FilePresence, file_presence};
-use super::RecoveryPolicy;
+use super::super::stage::{file_presence, FilePresence};
+use super::{RecoveryMode, RecoveryPolicy};
 
 pub(super) fn validate_document_evidence(
     journal_path: &Path,
     phase: JournalPhase,
+    mode: RecoveryMode,
     document: &JournalDocument,
     policy: &mut impl RecoveryPolicy,
     evidence: &mut EvidenceCache,
@@ -37,7 +38,10 @@ pub(super) fn validate_document_evidence(
 
     let cleanup = matches!(
         phase,
-        JournalPhase::CleanupIntent | JournalPhase::Cleanup | JournalPhase::CleanupRollback
+        JournalPhase::CleanupIntent
+            | JournalPhase::CleanupActive
+            | JournalPhase::Cleanup
+            | JournalPhase::CleanupRollback
     );
     match phase {
         JournalPhase::Intent
@@ -47,7 +51,7 @@ pub(super) fn validate_document_evidence(
             require_original_target(journal_path, document, policy, evidence)?;
             require_retired_original(journal_path, document, policy, evidence)?;
         }
-        JournalPhase::Active => match document.state {
+        JournalPhase::Active | JournalPhase::CleanupActive => match document.state {
             JournalState::Prepared => {
                 require_original_target(journal_path, document, policy, evidence)?;
                 require_retired_original(journal_path, document, policy, evidence)?;
@@ -57,6 +61,7 @@ pub(super) fn validate_document_evidence(
                     journal_path,
                     document,
                     new_digest,
+                    mode,
                     policy,
                     evidence,
                 )?;
@@ -153,12 +158,22 @@ fn require_original_or_new_target(
     journal_path: &Path,
     document: &JournalDocument,
     new_digest: &str,
+    mode: RecoveryMode,
     policy: &mut impl RecoveryPolicy,
     evidence: &mut EvidenceCache,
 ) -> Result<(), DurableTransactionError> {
     if checked_file_presence(journal_path, &document.target)? == FilePresence::Missing {
-        // A replace may have moved the old target to its backup before an ambiguous failure.
-        // The mandatory backup digest check below decides whether rollback is still authoritative.
+        if mode == RecoveryMode::CleanupArtifacts {
+            if document.target_existed == Some(true) {
+                return Err(DurableTransactionError::invalid(
+                    journal_path,
+                    "cleanup cannot discard evidence for a missing existing live target",
+                ));
+            }
+            // An unpublished new target is safe only while every retired live origin remains.
+            require_retired_original(journal_path, document, policy, evidence)?;
+        }
+        // RestoreOriginal still accepts an absent target backed by validated original evidence.
         return Ok(());
     }
     let actual = file_evidence(journal_path, &document.target, policy, evidence)?;

@@ -36,14 +36,14 @@ if (!dispatch.includes("case 'selfBuff':") || !dispatch.includes("ability.id ===
 const generator = read('tools', 'm4_ability_codegen.mjs');
 const zrGenerator = read('tools', 'm4_ability_zr_codegen.mjs');
 if (!/hibernate',[\s\S]*?'dash'/.test(generator) ||
-    !generator.includes('EXPECTED_ABILITY_COUNT = 79') ||
-    !zrGenerator.includes('document.entries.length === 79')) {
+    !generator.includes('EXPECTED_ABILITY_COUNT = 117') ||
+    !zrGenerator.includes('document.entries.length === 117')) {
   throw new Error('M4 Dash projection scope is missing');
 }
 const entry = JSON.parse(read('contracts', 'm4_abilities.json')).entries.find(
   (value) => value.id === 'dash',
 );
-if (!entry || entry.index !== 72 || entry.definition.cost !== 0 ||
+if (!entry || entry.index !== 76 || entry.definition.cost !== 0 ||
     entry.definition.cooldown !== 60 || entry.definition.offGcd !== true ||
     entry.definition.requiresForm !== 'cat' ||
     entry.definition.effects?.[0]?.kind !== 'buff_speed' ||
@@ -58,7 +58,7 @@ requireText(world, /dashProfileIsValid[\s\S]*?offGcd[\s\S]*?buff_speed[\s\S]*?1\
   'Dash source profile is missing');
 requireText(world, /startOfflineDashCast[\s\S]*?entityCastingAbility[\s\S]*?abilityCooldownExpiresAt[\s\S]*?catalogAdmission[\s\S]*?setAbilityCooldownExpiration[\s\S]*?motionAuraKindCode\("buff_speed"\)/,
   'Dash Cat-only off-GCD reducer is missing');
-requireText(world, /ghostWolfMotionStateIsValid[\s\S]*?dashAbilityCode\(\)[\s\S]*?entityMotionAuraRemaining[\s\S]*?15\.0[\s\S]*?1\.5/,
+requireText(world, /retainedSpeedAuraProfileIsValid[\s\S]*?dashAbilityCode\(\)[\s\S]*?entityMotionAuraRemaining[\s\S]*?15\.0[\s\S]*?1\.5/,
   'Dash speed-aura state validation is missing');
 requireText(world, /applySupportedCastSlotCommand[\s\S]*?dashAbilityCode\(\)[\s\S]*?startOfflineDashCast/,
   'Dash action-slot routing is missing');

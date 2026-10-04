@@ -2,6 +2,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::core::framework::window::WindowRegistryId;
 
+// 0 标记身份永久耗尽；最后一个非零值发出后不再分配，避免新 driver 复用旧 registry 身份。
 static NEXT_WINDOW_REGISTRY_ID: AtomicU64 = AtomicU64::new(1);
 
 /// Allocates one process-unique platform-host identity without reusing a
@@ -27,20 +28,5 @@ fn allocate_from(next_window_registry_id: &AtomicU64) -> Option<WindowRegistryId
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::atomic::AtomicU64;
-
-    use super::allocate_from;
-
-    #[test]
-    fn allocator_issues_the_final_nonzero_identity_once_then_reports_exhaustion() {
-        let next_window_registry_id = AtomicU64::new(u64::MAX);
-
-        assert_eq!(
-            allocate_from(&next_window_registry_id).map(|identity| identity.raw()),
-            Some(u64::MAX)
-        );
-        assert_eq!(allocate_from(&next_window_registry_id), None);
-        assert_eq!(allocate_from(&next_window_registry_id), None);
-    }
-}
+#[path = "tests/registry_id_allocator.rs"]
+mod tests;

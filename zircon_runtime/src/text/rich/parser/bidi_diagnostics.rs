@@ -3,7 +3,7 @@ use crate::text::{
     RichTextAuthoringDiagnosticSeverity, RichTextAuthoringRecovery,
 };
 
-use super::{RichParseBuilder, RichTextContentTrust, RichTextParseError, markup_source_range};
+use super::{markup_source_range, RichParseBuilder, RichTextContentTrust, RichTextParseError};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum BidiControlKind {
@@ -58,6 +58,7 @@ impl BidiControlAdmission {
         }
     }
 
+    /// 不可信内容拒绝 legacy embedding/override 控制符；允许的控制序列仍须满足深度与平衡限制。
     pub(super) fn observe(
         &mut self,
         kind: BidiControlKind,
@@ -99,6 +100,7 @@ impl BidiControlAdmission {
                 else {
                     return Err(RichTextParseError::UnbalancedBidiControl { code, source_range });
                 };
+                // isolate pop 结束最近的 isolate，同时丢弃它内部尚未闭合的控制帧。
                 self.stack.truncate(isolate_index);
                 Ok(())
             }
@@ -143,6 +145,7 @@ pub(super) fn push_source_bidi_control_diagnostics(
     source_text: &str,
     source_start: usize,
 ) -> Result<(), RichTextParseError> {
+    // 源文本中的控制字符按原始字节偏移报告，实体解码路径另由 literal helper 处理。
     for (offset, character) in source_text.char_indices() {
         let Some(kind) = bidi_control_kind(character) else {
             continue;

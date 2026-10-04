@@ -16,7 +16,7 @@ implementation_files:
   - zircon_runtime/src/dynamic_api/session/ffi.rs
 plan_sources:
   - user: 2026-09-09 为 ZirconEngine 构建引擎说明书级 Wiki
-  - docs/zircon_runtime_interface/world_sync.md
+  - docs/crates/zircon_runtime_interface/world_sync.md
 tests:
   - zircon_runtime_interface/src/tests/world_sync_contracts.rs
   - zircon_runtime/src/dynamic_api/tests/session_entry_points.rs

@@ -1,0 +1,1152 @@
+{
+  "schema": 1,
+  "owner": "runtime_wave12_graphics_renderer_auxiliary_a",
+  "sid": "source-audit-20260930-01a0f168",
+  "prepared_at_utc": "2026-10-03T07:56:11.297756+00:00",
+  "files": [
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/construct.rs",
+      "before_sha256": "50ea51d191c0704489f01fd68af4842db69299833eb79545a686dc7142e9e3eb",
+      "after_sha256": "3093199f715f3ac0b8153ef68bc3e9bafc88be2fd9652047ea3e5b6feecfc8c8",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "W12-AUX-A-C001",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/construct.rs",
+          "job_index": 0,
+          "before_line": 77,
+          "exact_anchor_line": "        let fallback_resources_started = Instant::now();",
+          "comment_text": "// 完整光照所需的 shadow/volumetric 槽位保留占位资源；真实场景输入只在执行时按 Option 借用，\n// 不替换这些由 owner 保留的 fallback 句柄。",
+          "kind": "explanatory",
+          "issue_id": null,
+          "child_proposal_ordinal": 0,
+          "added_raw_base64": "ICAgICAgICAvLyDlrozmlbTlhYnnhafmiYDpnIDnmoQgc2hhZG93L3ZvbHVtZXRyaWMg5qe95L2N5L+d55WZ5Y2g5L2N6LWE5rqQ77yb55yf5a6e5Zy65pmv6L6T5YWl5Y+q5Zyo5omn6KGM5pe25oyJIE9wdGlvbiDlgJ/nlKjvvIwKICAgICAgICAvLyDkuI3mm7/mjaLov5nkupvnlLEgb3duZXIg5L+d55WZ55qEIGZhbGxiYWNrIOWPpeafhOOAggo=",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/construct.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/construct.rs",
+          "session_id": "shader06-m5-current-source-20260726",
+          "baseline_epoch": 227,
+          "content_hash": "0d2416e0fd6ba28aaa50d4c3ec81f9e14ea3540882b49abfe88e23323f584171",
+          "attributed_at": "2026-07-29T03:23:46.036084+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/deferred_scene_resources.rs",
+      "before_sha256": "04e27f303fdfb2989c4fbcad15cc126297cecfd6641ce902806519f68d239518",
+      "after_sha256": "04e27f303fdfb2989c4fbcad15cc126297cecfd6641ce902806519f68d239518",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/deferred_scene_resources.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/deferred_scene_resources.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "04e27f303fdfb2989c4fbcad15cc126297cecfd6641ce902806519f68d239518",
+          "attributed_at": "2026-09-27T10:02:27.504674+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/execute_lighting.rs",
+      "before_sha256": "e1d605553b0c309fda64554675ce6f1856ecc30360952bc36e46b18de4639445",
+      "after_sha256": "16503e7f9b3ea46180120e74cbd92b4413df9c6ca1fe9e8613dd56360ab13a11",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "W12-AUX-A-C002",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/execute_lighting.rs",
+          "job_index": 2,
+          "before_line": 79,
+          "exact_anchor_line": "        let execution_plan = DeferredLightingExecutionPlan::new(",
+          "comment_text": "// profile 同时决定绑定容量与 GPU-scene 组；使用完整绑定且两个 subsurface 目标都存在时才启用三路 MRT，\n// 资源绑定、颜色附件和缓存管线共用同一计划。",
+          "kind": "explanatory",
+          "issue_id": null,
+          "child_proposal_ordinal": 1,
+          "added_raw_base64": "ICAgICAgICAvLyBwcm9maWxlIOWQjOaXtuWGs+Wumue7keWumuWuuemHj+S4jiBHUFUtc2NlbmUg57uE77yb5L2/55So5a6M5pW057uR5a6a5LiU5Lik5LiqIHN1YnN1cmZhY2Ug55uu5qCH6YO95a2Y5Zyo5pe25omN5ZCv55So5LiJ6LevIE1SVO+8jAogICAgICAgIC8vIOi1hOa6kOe7keWumuOAgeminOiJsumZhOS7tuWSjOe8k+WtmOeuoee6v+WFseeUqOWQjOS4gOiuoeWIkuOAggo=",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/execute_lighting.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/execute_lighting.rs",
+          "session_id": "render18-af-m2-rebase-20260715",
+          "baseline_epoch": 85,
+          "content_hash": "09ec3981198f2078b1a88b5bd63bc54db2e0a5f4ee2a85924ca680f111e5fc64",
+          "attributed_at": "2026-07-15T01:31:52.969045+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/mod.rs",
+      "before_sha256": "32c706e7ce0020b7418e48f35199936c24924d84fa8c2c2f4e1ee0485e592e8e",
+      "after_sha256": "32c706e7ce0020b7418e48f35199936c24924d84fa8c2c2f4e1ee0485e592e8e",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/mod.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/mod.rs",
+          "session_id": "shader06-m5-current-source-20260726",
+          "baseline_epoch": 227,
+          "content_hash": "32c706e7ce0020b7418e48f35199936c24924d84fa8c2c2f4e1ee0485e592e8e",
+          "attributed_at": "2026-07-29T03:23:46.036084+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs",
+      "before_sha256": "d5986959d5e613f5a47b0f66750f1cb0b35549134898dad13c61b04a9bd19146",
+      "after_sha256": "d5986959d5e613f5a47b0f66750f1cb0b35549134898dad13c61b04a9bd19146",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs",
+          "session_id": "01a019a5-b15f-7461-a1b0-ce4b6aa8e710",
+          "baseline_epoch": 502,
+          "content_hash": "d5986959d5e613f5a47b0f66750f1cb0b35549134898dad13c61b04a9bd19146",
+          "attributed_at": "2026-08-27T02:22:19.184526+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_bind_group_layout/create.rs",
+      "before_sha256": "777d45ff71abf36b67b0bcef3ea8241952ca0ebe9c81304772d0a6feb886c433",
+      "after_sha256": "777d45ff71abf36b67b0bcef3ea8241952ca0ebe9c81304772d0a6feb886c433",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_bind_group_layout/create.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_bind_group_layout/create.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "777d45ff71abf36b67b0bcef3ea8241952ca0ebe9c81304772d0a6feb886c433",
+          "attributed_at": "2026-09-27T10:02:27.504674+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/create.rs",
+      "before_sha256": "c2895e79414d39ac4bc744815bc20a87bdfc359ca4bf625a33143a88e86ac124",
+      "after_sha256": "aa5ec5661c39ddddc0bd60ce81ffa7ce39fcb0edf65e8e85ecd461de2c43a078",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "CR-W12-RENDER-AUX-A-0004",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/create.rs",
+          "job_index": 6,
+          "before_line": 391,
+          "exact_anchor_line": "        assert!(cache.contains(\"OnceLock<wgpu::RenderPipeline>\"));",
+          "comment_text": "// BUG: [CR-W12-RENDER-AUX-A-0004] 此测试只截取 impl 到创建函数之间，遗漏 impl 之前的字段声明；\n// 当前截段中待查字段类型匹配数为零，因此该 assert 必失败，无法检查预热策略。",
+          "kind": "BUG",
+          "issue_id": "CR-W12-RENDER-AUX-A-0004",
+          "added_raw_base64": "ICAgICAgICAvLyBCVUc6IFtDUi1XMTItUkVOREVSLUFVWC1BLTAwMDRdIOatpOa1i+ivleWPquaIquWPliBpbXBsIOWIsOWIm+W7uuWHveaVsOS5i+mXtO+8jOmBl+a8jyBpbXBsIOS5i+WJjeeahOWtl+auteWjsOaYju+8mwogICAgICAgIC8vIOW9k+WJjeaIquauteS4reW+heafpeWtl+auteexu+Wei+WMuemFjeaVsOS4uumbtu+8jOWboOatpOivpSBhc3NlcnQg5b+F5aSx6LSl77yM5peg5rOV5qOA5p+l6aKE54Ot562W55Wl44CCCg==",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/create.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/create.rs",
+          "session_id": "shader06-m5-current-source-20260726",
+          "baseline_epoch": 227,
+          "content_hash": "d89d5f4584d784a8a6831a1ab2bd4b54f8dfa53014e826b22592b6aa2b3f2295",
+          "attributed_at": "2026-07-29T03:23:46.036084+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/mod.rs",
+      "before_sha256": "c7de2e8d8cca1d336604e3d51b1e3bf2db239c0cdd999b8ac315982084f81805",
+      "after_sha256": "c7de2e8d8cca1d336604e3d51b1e3bf2db239c0cdd999b8ac315982084f81805",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/mod.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/mod.rs",
+          "session_id": "shader06-m5-current-source-20260726",
+          "baseline_epoch": 227,
+          "content_hash": "c7de2e8d8cca1d336604e3d51b1e3bf2db239c0cdd999b8ac315982084f81805",
+          "attributed_at": "2026-07-29T03:23:46.036084+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/shader_source.rs",
+      "before_sha256": "e4a070c4c9485445b6b9cf7bd91ff357b4f22838f75bb70fc881d26167c4167f",
+      "after_sha256": "be008b79f83d63001d580da5acb5992708c0a7da720224b7b82a0a7f19477af1",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "W12-AUX-A-C003",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/shader_source.rs",
+          "job_index": 8,
+          "before_line": 232,
+          "exact_anchor_line": "pub(in crate::graphics::scene::scene_renderer::deferred) fn assemble_deferred_lighting_shader_source(",
+          "comment_text": "/// 按 profile 选择 WGSL 依赖闭包；任意非 FullScene profile 都拒绝非空描述列表。\n/// 项目 include 由 FullScene 调用方先导出，此处只装配已提供的源码。",
+          "kind": "explanatory",
+          "issue_id": null,
+          "child_proposal_ordinal": 2,
+          "added_raw_base64": "Ly8vIOaMiSBwcm9maWxlIOmAieaLqSBXR1NMIOS+nei1lumXreWMhe+8m+S7u+aEj+mdniBGdWxsU2NlbmUgcHJvZmlsZSDpg73mi5Lnu53pnZ7nqbrmj4/ov7DliJfooajjgIIKLy8vIOmhueebriBpbmNsdWRlIOeUsSBGdWxsU2NlbmUg6LCD55So5pa55YWI5a+85Ye677yM5q2k5aSE5Y+q6KOF6YWN5bey5o+Q5L6b55qE5rqQ56CB44CCCg==",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/shader_source.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/shader_source.rs",
+          "session_id": "01a019a5-b15f-7461-a1b0-ce4b6aa8e710",
+          "baseline_epoch": 539,
+          "content_hash": "febdf4cbd6ead9db07aba7ecfa2b2b95ecfbfb6c4172705ae43ec822088b55ab",
+          "attributed_at": "2026-08-28T16:37:15.998662+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs",
+      "before_sha256": "95ee6e762a0ab8e338e3960bfd1d376d04f1d7e36adb8b6d0bc8c6f9a8e923d2",
+      "after_sha256": "95ee6e762a0ab8e338e3960bfd1d376d04f1d7e36adb8b6d0bc8c6f9a8e923d2",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs",
+          "session_id": "failure-roll-01a07160-frameworks01",
+          "baseline_epoch": 601,
+          "content_hash": "9900a991784ab7ff166711681460f82bac2846039857974f22fb92b8044ee209",
+          "attributed_at": "2026-09-08T03:41:31.923509+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests/runtime_pipeline.rs",
+      "before_sha256": "0265ce65771a2a374d607b1cabf02c764a057397fbcf1870bb36bc87a4533b48",
+      "after_sha256": "ab13ed102e959c3fadf37482bafdd1854dbdfab9c45820e1368ac1fb0e666bd6",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "CR-W12-RENDER-AUX-A-0002",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests/runtime_pipeline.rs",
+          "job_index": 10,
+          "before_line": 93,
+          "exact_anchor_line": "    let _standard_pipeline = pipelines.pipeline(&backend.device, &lighting_layout, false);",
+          "comment_text": "// TODO: [CR-W12-RENDER-AUX-A-0002] 此 fixture 绕过生产注册且仅建 PSO，未覆盖 ID16 的 MRT 像素分派。\n// 通用 admission 未声明其 SSS 专属身份，同装 SSS 会拒重复 ID；需确认联合配置与身份约定，再验证 draw/readback。",
+          "kind": "TODO",
+          "issue_id": "CR-W12-RENDER-AUX-A-0002",
+          "added_raw_base64": "ICAgIC8vIFRPRE86IFtDUi1XMTItUkVOREVSLUFVWC1BLTAwMDJdIOatpCBmaXh0dXJlIOe7lei/h+eUn+S6p+azqOWGjOS4lOS7heW7uiBQU0/vvIzmnKropobnm5YgSUQxNiDnmoQgTVJUIOWDj+e0oOWIhua0vuOAggogICAgLy8g6YCa55SoIGFkbWlzc2lvbiDmnKrlo7DmmI7lhbYgU1NTIOS4k+Wxnui6q+S7ve+8jOWQjOijhSBTU1Mg5Lya5ouS6YeN5aSNIElE77yb6ZyA56Gu6K6k6IGU5ZCI6YWN572u5LiO6Lqr5Lu957qm5a6a77yM5YaN6aqM6K+BIGRyYXcvcmVhZGJhY2vjgIIK",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests/runtime_pipeline.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests/runtime_pipeline.rs",
+          "session_id": "frameworks01-m1-durable-file-transaction-hard-cut-r8-20260815",
+          "baseline_epoch": 313,
+          "content_hash": "0265ce65771a2a374d607b1cabf02c764a057397fbcf1870bb36bc87a4533b48",
+          "attributed_at": "2026-08-15T11:10:35.032226+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/history/domain_state.rs",
+      "before_sha256": "e3e2514edf0b2c441629e992873ac5e6fe8d10696d55d6eddcf35bf81d6e2cd7",
+      "after_sha256": "394cec7947ad285d375a2ddc5eda5426e404140a3840457379e7abebd7d10938",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "W12-AUX-A-C004",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/history/domain_state.rs",
+          "job_index": 11,
+          "before_line": 220,
+          "exact_anchor_line": "    pub(crate) fn commit(",
+          "comment_text": "// 成功写入优先于本帧失效；请求过但未写入的域变为 SourceUnavailable，\n// 未触及的域保持原状态，提交本事务不等于 GPU 已完成。",
+          "kind": "explanatory",
+          "issue_id": null,
+          "child_proposal_ordinal": 3,
+          "added_raw_base64": "ICAgIC8vIOaIkOWKn+WGmeWFpeS8mOWFiOS6juacrOW4p+WkseaViO+8m+ivt+axgui/h+S9huacquWGmeWFpeeahOWfn+WPmOS4uiBTb3VyY2VVbmF2YWlsYWJsZe+8jAogICAgLy8g5pyq6Kem5Y+K55qE5Z+f5L+d5oyB5Y6f54q25oCB77yM5o+Q5Lqk5pys5LqL5Yqh5LiN562J5LqOIEdQVSDlt7LlrozmiJDjgIIK",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/history/mod.rs",
+      "before_sha256": "f1808e808d57fb12db18a55f93a21b4ab33fc523074cf6a1f86aeb55a85bba83",
+      "after_sha256": "f1808e808d57fb12db18a55f93a21b4ab33fc523074cf6a1f86aeb55a85bba83",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/construct.rs",
+      "before_sha256": "bca78d0cd8f6af25f7eac1245a6c89754675c44d94322874b4ba03c5fc77da4c",
+      "after_sha256": "bca78d0cd8f6af25f7eac1245a6c89754675c44d94322874b4ba03c5fc77da4c",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/construct.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/construct.rs",
+          "session_id": "failure-roll-01a07160-frameworks01",
+          "baseline_epoch": 600,
+          "content_hash": "bca78d0cd8f6af25f7eac1245a6c89754675c44d94322874b4ba03c5fc77da4c",
+          "attributed_at": "2026-09-07T08:17:31.322332+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/exposure_history.rs",
+      "before_sha256": "895e06ab5f5d03acc60e24809a39c90eb5d6fa832265c19962f0eead3fa2bcbc",
+      "after_sha256": "895e06ab5f5d03acc60e24809a39c90eb5d6fa832265c19962f0eead3fa2bcbc",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/global_illumination_history.rs",
+      "before_sha256": "1882493d9fb162ca075ca2880b21cba560bada7eeeae66d0813e09c8ba18441a",
+      "after_sha256": "1882493d9fb162ca075ca2880b21cba560bada7eeeae66d0813e09c8ba18441a",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/global_illumination_history.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/global_illumination_history.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "1882493d9fb162ca075ca2880b21cba560bada7eeeae66d0813e09c8ba18441a",
+          "attributed_at": "2026-09-27T10:02:27.504674+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/hzb_history.rs",
+      "before_sha256": "41bfd947cf64eecb93244b949e3e3674a4ccc46669c4f0d48cff71f901434a64",
+      "after_sha256": "41bfd947cf64eecb93244b949e3e3674a4ccc46669c4f0d48cff71f901434a64",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/hzb_history.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/hzb_history.rs",
+          "session_id": "failure-roll-01a07160-frameworks01",
+          "baseline_epoch": 600,
+          "content_hash": "41bfd947cf64eecb93244b949e3e3674a4ccc46669c4f0d48cff71f901434a64",
+          "attributed_at": "2026-09-07T08:17:31.322332+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/mod.rs",
+      "before_sha256": "6bb617cc2a2bea0b233419ea4ea15fdcb2a7109af68144f5003054465a3bace0",
+      "after_sha256": "6bb617cc2a2bea0b233419ea4ea15fdcb2a7109af68144f5003054465a3bace0",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/requirements.rs",
+      "before_sha256": "b5205a34de2485615182b8a2d751033f5dd226ce5420548274b1dbe2a7f6fb48",
+      "after_sha256": "b5205a34de2485615182b8a2d751033f5dd226ce5420548274b1dbe2a7f6fb48",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/requirements.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/requirements.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "b5205a34de2485615182b8a2d751033f5dd226ce5420548274b1dbe2a7f6fb48",
+          "attributed_at": "2026-09-27T10:02:27.504674+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/scene_frame_history_textures.rs",
+      "before_sha256": "a9b43e08e45863d6fb3fee8026f5e94baa477c09f833f669d8198f2480cf27a5",
+      "after_sha256": "939e4ea1272711263d6312a9c97eedddb1b16ccebc610c1d1d29415ba7347e8a",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "W12-AUX-A-C006",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/scene_frame_history_textures.rs",
+          "job_index": 19,
+          "before_line": 249,
+          "exact_anchor_line": "    pub(crate) fn commit_history_frame(",
+          "comment_text": "// 调用者须先获得场景提交 ticket；只有事务的成功写入位才翻转 TAA/exposure 读写端，\n// 其余域由事务报告独立更新，不在这里等待 GPU 完成。",
+          "kind": "explanatory",
+          "issue_id": null,
+          "child_proposal_ordinal": 5,
+          "added_raw_base64": "ICAgIC8vIOiwg+eUqOiAhemhu+WFiOiOt+W+l+WcuuaZr+aPkOS6pCB0aWNrZXTvvJvlj6rmnInkuovliqHnmoTmiJDlip/lhpnlhaXkvY3miY3nv7vovawgVEFBL2V4cG9zdXJlIOivu+WGmeerr++8jAogICAgLy8g5YW25L2Z5Z+f55Sx5LqL5Yqh5oql5ZGK54us56uL5pu05paw77yM5LiN5Zyo6L+Z6YeM562J5b6FIEdQVSDlrozmiJDjgIIK",
+          "added_comment_lines": 2
+        },
+        {
+          "proposal_id": "CR-W12-RENDER-AUX-A-0001",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/scene_frame_history_textures.rs",
+          "job_index": 19,
+          "before_line": 436,
+          "exact_anchor_line": "        let scene_submit = submit",
+          "comment_text": "// BUG: [CR-W12-RENDER-AUX-A-0001] 执行到此查找时必取 None 并在 expect 中失败：\n// 旧提交方法在当前 submit 文件中匹配数为零；生产调用已改为携带 graph receipt 的提交入口。",
+          "kind": "BUG",
+          "issue_id": "CR-W12-RENDER-AUX-A-0001",
+          "added_raw_base64": "ICAgICAgICAvLyBCVUc6IFtDUi1XMTItUkVOREVSLUFVWC1BLTAwMDFdIOaJp+ihjOWIsOatpOafpeaJvuaXtuW/heWPliBOb25lIOW5tuWcqCBleHBlY3Qg5Lit5aSx6LSl77yaCiAgICAgICAgLy8g5pen5o+Q5Lqk5pa55rOV5Zyo5b2T5YmNIHN1Ym1pdCDmlofku7bkuK3ljLnphY3mlbDkuLrpm7bvvJvnlJ/kuqfosIPnlKjlt7LmlLnkuLrmkLrluKYgZ3JhcGggcmVjZWlwdCDnmoTmj5DkuqTlhaXlj6PjgIIK",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 2,
+      "added_comment_lines": 4,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/scene_frame_history_textures.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/scene_frame_history_textures.rs",
+          "session_id": "failure-roll-01a07160-frameworks01",
+          "baseline_epoch": 600,
+          "content_hash": "a9b43e08e45863d6fb3fee8026f5e94baa477c09f833f669d8198f2480cf27a5",
+          "attributed_at": "2026-09-07T08:17:31.322332+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/screen_space_reflection_history.rs",
+      "before_sha256": "fc351c6b4479abd2a1874f0a203b81ef1de3980f0d3ddd0d3c713f9ca4c412c8",
+      "after_sha256": "fc351c6b4479abd2a1874f0a203b81ef1de3980f0d3ddd0d3c713f9ca4c412c8",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/screen_space_reflection_history.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/screen_space_reflection_history.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "fc351c6b4479abd2a1874f0a203b81ef1de3980f0d3ddd0d3c713f9ca4c412c8",
+          "attributed_at": "2026-09-27T10:02:27.504674+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/volumetric_history.rs",
+      "before_sha256": "a39bad320c64ed077b9258e6086d2ffc7e14d7e65dcaa497e09252c48db83a9c",
+      "after_sha256": "a39bad320c64ed077b9258e6086d2ffc7e14d7e65dcaa497e09252c48db83a9c",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/volumetric_history.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/volumetric_history.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "a39bad320c64ed077b9258e6086d2ffc7e14d7e65dcaa497e09252c48db83a9c",
+          "attributed_at": "2026-09-27T10:02:32.087524+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/history/texture_extent/mod.rs",
+      "before_sha256": "0a7f5deeb33ac6db8f795826c693b2f5c8f1c0fc248fbf45dc28df207654e7d6",
+      "after_sha256": "0a7f5deeb33ac6db8f795826c693b2f5c8f1c0fc248fbf45dc28df207654e7d6",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/history/texture_extent/texture_extent.rs",
+      "before_sha256": "b52c40b52cfc6c974be3dcce8d36b276309922afd1aaab8488ebd8c76ab0df44",
+      "after_sha256": "b52c40b52cfc6c974be3dcce8d36b276309922afd1aaab8488ebd8c76ab0df44",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/buffers/build_icon_buffer.rs",
+      "before_sha256": "4d87a7750749dd20b0e2cb1ca330c480953b53dcab924600d0071250f0ab6872",
+      "after_sha256": "4d87a7750749dd20b0e2cb1ca330c480953b53dcab924600d0071250f0ab6872",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/buffers/build_icon_buffer.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/buffers/build_icon_buffer.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "4d87a7750749dd20b0e2cb1ca330c480953b53dcab924600d0071250f0ab6872",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/buffers/build_line_buffer.rs",
+      "before_sha256": "871937576128bff7a6705292bfd7b2ef1776fac3fd8da3d7ef531933722b1d84",
+      "after_sha256": "871937576128bff7a6705292bfd7b2ef1776fac3fd8da3d7ef531933722b1d84",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/buffers/build_line_buffer.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/buffers/build_line_buffer.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "871937576128bff7a6705292bfd7b2ef1776fac3fd8da3d7ef531933722b1d84",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/grid/build_grid_vertices.rs",
+      "before_sha256": "2cf1acadf7ccf23909cd830370e140e9cea86235e63c20ea6c8d6ef80fda69b7",
+      "after_sha256": "2cf1acadf7ccf23909cd830370e140e9cea86235e63c20ea6c8d6ef80fda69b7",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/grid/build_grid_vertices.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/grid/build_grid_vertices.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "2cf1acadf7ccf23909cd830370e140e9cea86235e63c20ea6c8d6ef80fda69b7",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/icon_vertex/icon_vertex.rs",
+      "before_sha256": "8d7240e53f12c2dc8257b31dc68087dea3de38d099963f38d464277655a71164",
+      "after_sha256": "8d7240e53f12c2dc8257b31dc68087dea3de38d099963f38d464277655a71164",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/icon_vertex/icon_vertex.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/icon_vertex/icon_vertex.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "8d7240e53f12c2dc8257b31dc68087dea3de38d099963f38d464277655a71164",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/icon_vertex/layout.rs",
+      "before_sha256": "94323ef6c95b6ff3a608b23102fbf4356ec0bb54401459bdfcf2b58c04c0cf78",
+      "after_sha256": "94323ef6c95b6ff3a608b23102fbf4356ec0bb54401459bdfcf2b58c04c0cf78",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/icon_vertex/layout.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/icon_vertex/layout.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "94323ef6c95b6ff3a608b23102fbf4356ec0bb54401459bdfcf2b58c04c0cf78",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/icons/build/build_icon_quad_vertices.rs",
+      "before_sha256": "b7830300a6b5f4cbd355889bdc620e8a4696476605f20c6065f8f378f238703a",
+      "after_sha256": "b7830300a6b5f4cbd355889bdc620e8a4696476605f20c6065f8f378f238703a",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/icons/build/build_icon_quad_vertices.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/icons/build/build_icon_quad_vertices.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "b7830300a6b5f4cbd355889bdc620e8a4696476605f20c6065f8f378f238703a",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/icons/size/icon_world_size.rs",
+      "before_sha256": "d26dbe35dc83f4384367e543842f24b5bf238db8319885a3e6de53c99b09d1a5",
+      "after_sha256": "e77120a91a74f43e7c8bf329fe765fc81fa9194048582120e656e39ef35c874e",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "CR-W12-RENDER-AUX-A-0003",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/icons/size/icon_world_size.rs",
+          "job_index": 30,
+          "before_line": 4,
+          "exact_anchor_line": "pub(in crate::graphics::scene::scene_renderer::primitives) fn icon_world_size(",
+          "comment_text": "// TODO: [CR-W12-RENDER-AUX-A-0003] 贴图沿 right/up 各偏半尺寸，方向光回退十字端点偏全尺寸；\n// 旧可视范围约定尚缺设计/截图证据，需在授权视觉验证中固定相机并切换素材可用性对照边界。",
+          "kind": "TODO",
+          "issue_id": "CR-W12-RENDER-AUX-A-0003",
+          "child_proposal_ordinal": 8,
+          "added_raw_base64": "Ly8gVE9ETzogW0NSLVcxMi1SRU5ERVItQVVYLUEtMDAwM10g6LS05Zu+5rK/IHJpZ2h0L3VwIOWQhOWBj+WNiuWwuuWvuO+8jOaWueWQkeWFieWbnumAgOWNgeWtl+err+eCueWBj+WFqOWwuuWvuO+8mw0KLy8g5pen5Y+v6KeG6IyD5Zu057qm5a6a5bCa57y66K6+6K6hL+aIquWbvuivgeaNru+8jOmcgOWcqOaOiOadg+inhuiniemqjOivgeS4reWbuuWumuebuOacuuW5tuWIh+aNoue0oOadkOWPr+eUqOaAp+WvueeFp+i+ueeVjOOAgg0K",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/icons/size/icon_world_size.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/icons/size/icon_world_size.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "d26dbe35dc83f4384367e543842f24b5bf238db8319885a3e6de53c99b09d1a5",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/line_geometry/append/append_bounding_box_vertices.rs",
+      "before_sha256": "be49c38b685240d1a93a3db2ec7084a7dfc313464fad883cb94ee98ebf6c8d90",
+      "after_sha256": "be49c38b685240d1a93a3db2ec7084a7dfc313464fad883cb94ee98ebf6c8d90",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/line_geometry/append/append_bounding_box_vertices.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/line_geometry/append/append_bounding_box_vertices.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "be49c38b685240d1a93a3db2ec7084a7dfc313464fad883cb94ee98ebf6c8d90",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/line_geometry/append/append_frustum.rs",
+      "before_sha256": "58c810e679a670eda8a9c4e918482597b2e4b00d0748b7369836080af3ed2ab6",
+      "after_sha256": "58c810e679a670eda8a9c4e918482597b2e4b00d0748b7369836080af3ed2ab6",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/line_geometry/append/append_frustum.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/line_geometry/append/append_frustum.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "58c810e679a670eda8a9c4e918482597b2e4b00d0748b7369836080af3ed2ab6",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/line_geometry/push_line/push_line.rs",
+      "before_sha256": "80ab1501ee109290fd43d865058ba7806837fb1a18bfd96294d6330890374680",
+      "after_sha256": "80ab1501ee109290fd43d865058ba7806837fb1a18bfd96294d6330890374680",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/line_geometry/push_line/push_line.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/line_geometry/push_line/push_line.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "80ab1501ee109290fd43d865058ba7806837fb1a18bfd96294d6330890374680",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/line_vertex/layout.rs",
+      "before_sha256": "2636f0b4424bd3c929fbf51d65fb1ed05c4bfe30fa2702be63b30aaef2ff1523",
+      "after_sha256": "2636f0b4424bd3c929fbf51d65fb1ed05c4bfe30fa2702be63b30aaef2ff1523",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/line_vertex/layout.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/line_vertex/layout.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "2636f0b4424bd3c929fbf51d65fb1ed05c4bfe30fa2702be63b30aaef2ff1523",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/line_vertex/line_vertex.rs",
+      "before_sha256": "c10d23b614f8da08fc2509bf21b7cf0c2e53f63587184aa19553caca2ae20c7e",
+      "after_sha256": "c10d23b614f8da08fc2509bf21b7cf0c2e53f63587184aa19553caca2ae20c7e",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/line_vertex/line_vertex.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/line_vertex/line_vertex.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "c10d23b614f8da08fc2509bf21b7cf0c2e53f63587184aa19553caca2ae20c7e",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/mod.rs",
+      "before_sha256": "a31f6126fdc1da2ff4cc07523e211ba5545f929607ed6b2149fe2b5a6959f5ad",
+      "after_sha256": "a31f6126fdc1da2ff4cc07523e211ba5545f929607ed6b2149fe2b5a6959f5ad",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/mod.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/mod.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "a31f6126fdc1da2ff4cc07523e211ba5545f929607ed6b2149fe2b5a6959f5ad",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_environment_sh9.rs",
+      "before_sha256": "67bd4ee4218330e3fd1ad60719999138efa3a5c91f2b113131d81658c464e732",
+      "after_sha256": "323aa7c1d12dc4c9eda4bb771bfd19721527a8ad5ad90c56773baeabe072dc14",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "W12-AUX-A-C008",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_environment_sh9.rs",
+          "job_index": 37,
+          "before_line": 8,
+          "exact_anchor_line": "pub(crate) struct SceneEnvironmentSh9 {",
+          "comment_text": "// 当前契约是场景 group 0 的 binding 6：scene_bind_group_layout_entries 与 WGSL 镜像使用同一槽位。",
+          "kind": "explanatory",
+          "issue_id": null,
+          "child_proposal_ordinal": 7,
+          "added_raw_base64": "Ly8g5b2T5YmN5aWR57qm5piv5Zy65pmvIGdyb3VwIDAg55qEIGJpbmRpbmcgNu+8mnNjZW5lX2JpbmRfZ3JvdXBfbGF5b3V0X2VudHJpZXMg5LiOIFdHU0wg6ZWc5YOP5L2/55So5ZCM5LiA5qe95L2N44CCCg==",
+          "added_comment_lines": 1
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 1,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_environment_sh9.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_environment_sh9.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "67bd4ee4218330e3fd1ad60719999138efa3a5c91f2b113131d81658c464e732",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_gizmo/append/append_camera_icon_fallback_lines.rs",
+      "before_sha256": "2cdf8d2b904fd5b75f0945e2e982713257593a5b4f89873cf4876f9ccecce65a",
+      "after_sha256": "2cdf8d2b904fd5b75f0945e2e982713257593a5b4f89873cf4876f9ccecce65a",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_gizmo/append/append_camera_icon_fallback_lines.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_gizmo/append/append_camera_icon_fallback_lines.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "2cdf8d2b904fd5b75f0945e2e982713257593a5b4f89873cf4876f9ccecce65a",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_gizmo/append/append_directional_light_icon_fallback_lines.rs",
+      "before_sha256": "6958937756e80c8d63edddd058077c673b88658ab3013c0eb570ac38c71514b8",
+      "after_sha256": "6958937756e80c8d63edddd058077c673b88658ab3013c0eb570ac38c71514b8",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_gizmo/append/append_directional_light_icon_fallback_lines.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_gizmo/append/append_directional_light_icon_fallback_lines.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "6958937756e80c8d63edddd058077c673b88658ab3013c0eb570ac38c71514b8",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_gizmo/append/append_icon_fallback_lines.rs",
+      "before_sha256": "a3442c233cbceb05e9bd2f35181a60888f759bf1b460181746aa1cdc7740e521",
+      "after_sha256": "a3442c233cbceb05e9bd2f35181a60888f759bf1b460181746aa1cdc7740e521",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_gizmo/append/append_icon_fallback_lines.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_gizmo/append/append_icon_fallback_lines.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "a3442c233cbceb05e9bd2f35181a60888f759bf1b460181746aa1cdc7740e521",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_gizmo/build/build_scene_gizmo_line_vertices.rs",
+      "before_sha256": "bf79172d660a57fc4a2a569b50f0a65570e2c6d47f5dad1d83fcef802280ed38",
+      "after_sha256": "bf79172d660a57fc4a2a569b50f0a65570e2c6d47f5dad1d83fcef802280ed38",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_gizmo/build/build_scene_gizmo_line_vertices.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_gizmo/build/build_scene_gizmo_line_vertices.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "bf79172d660a57fc4a2a569b50f0a65570e2c6d47f5dad1d83fcef802280ed38",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs",
+      "before_sha256": "b3bebfc7705a8101c25c9277ee06a3989e4840e5492bce6dfdadb6aaac2acfae",
+      "after_sha256": "e24080cef7665d77c4de299c397c07ae7904b631476b1ab0fe60cb6c7721f382",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "W12-AUX-A-C007",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs",
+          "job_index": 42,
+          "before_line": 30,
+          "exact_anchor_line": "        let environment_rotation = if authored_environment_rotation.is_finite() {",
+          "comment_text": "// 太阳方向与环境采样尾字段共用此有限旋转角；非有限作者值回退到零，\n// 避免两个使用方依据不同的角度生成本帧 uniform。",
+          "kind": "explanatory",
+          "issue_id": null,
+          "child_proposal_ordinal": 6,
+          "added_raw_base64": "ICAgICAgICAvLyDlpKrpmLPmlrnlkJHkuI7njq/looPph4fmoLflsL7lrZfmrrXlhbHnlKjmraTmnInpmZDml4vovazop5LvvJvpnZ7mnInpmZDkvZzogIXlgLzlm57pgIDliLDpm7bvvIwKICAgICAgICAvLyDpgb/lhY3kuKTkuKrkvb/nlKjmlrnkvp3mja7kuI3lkIznmoTop5LluqbnlJ/miJDmnKzluKcgdW5pZm9ybeOAggo=",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs",
+          "session_id": "root-runtime07-shared-extract-r1-20260831",
+          "baseline_epoch": 579,
+          "content_hash": "b3bebfc7705a8101c25c9277ee06a3989e4840e5492bce6dfdadb6aaac2acfae",
+          "attributed_at": "2026-08-31T05:00:28.307683+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/scene_uniform.rs",
+      "before_sha256": "fe6e18f0cef783b6910598487db18a606eeb148eb56b73cb6cdef059c73a5737",
+      "after_sha256": "fe6e18f0cef783b6910598487db18a606eeb148eb56b73cb6cdef059c73a5737",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/scene_uniform.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/scene_uniform.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "fe6e18f0cef783b6910598487db18a606eeb148eb56b73cb6cdef059c73a5737",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/selection/build_selection_vertices.rs",
+      "before_sha256": "f7d58091498d61d266f8ca8a745f472b73480f203dc502b2c247d470a392f8bb",
+      "after_sha256": "f7d58091498d61d266f8ca8a745f472b73480f203dc502b2c247d470a392f8bb",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/selection/build_selection_vertices.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/selection/build_selection_vertices.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "f7d58091498d61d266f8ca8a745f472b73480f203dc502b2c247d470a392f8bb",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/wireframe/build_wireframe_vertices.rs",
+      "before_sha256": "aafb8a74d0bd2406766f71430a5be717c99064032b34feec6c6f1ee19b2abd4f",
+      "after_sha256": "aafb8a74d0bd2406766f71430a5be717c99064032b34feec6c6f1ee19b2abd4f",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": [
+        {
+          "relation": "exact",
+          "path_key": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/wireframe/build_wireframe_vertices.rs",
+          "display_path": "zircon_runtime/src/graphics/scene/scene_renderer/primitives/wireframe/build_wireframe_vertices.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "aafb8a74d0bd2406766f71430a5be717c99064032b34feec6c6f1ee19b2abd4f",
+          "attributed_at": "2026-09-27T14:30:11.626228+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas and all later product postimages from audit source commits."
+    }
+  ],
+  "root_semantic_proof": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_renderer_auxiliary_a-root-semantic-proof-20261003-r3.json",
+    "sha256": "ba14f1a58f9fb324e50de38ba20fc980af3df8954a848297257568581d0a31ac"
+  },
+  "spec": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_renderer_auxiliary_a-root-insertions-20261003-r3.json",
+    "sha256": "76b06b6c143c1ae51eca06509ac9c19a042fba7bd6d371aca4be2aebc80ebee8"
+  },
+  "terminal_children": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_renderer_auxiliary_a-root-terminal-children-20261003-r1.json",
+    "sha256": "8d29cfc634d80fb4ee019a889c66b437cc7013bc5e9460d5c3acfaf41e733c50"
+  },
+  "verified_inputs": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_renderer_auxiliary_a-root-verified-inputs-20261003-r1.json",
+    "sha256": "112f30e9cf05beb5c0d1fc18ccfa5b4bec118f74cdf01cfc6ef7117d1ef92ca9"
+  },
+  "audit_only_diff": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave12-renderer-auxiliary-a-root-candidates-20261003-r3\\comment-only.diff",
+    "sha256": "73c423d8887092cd9b2dd0facc5bb65019b722f99f49d8222b9fea185e1233fb"
+  },
+  "support_comment_lineage": [],
+  "source_manifest_files": 46,
+  "source_writes": 10,
+  "business_edits": 0,
+  "whole_file_business_adoption": false,
+  "product_consent": false,
+  "snapshot_scope": "exact added audit comment bytes only; original or unknown baseline authorship stays intact",
+  "status": "exact_comment_delta_installed",
+  "completed_at_utc": "2026-10-03T07:56:41.270780+00:00",
+  "intent": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-install-runtime_wave12_graphics_renderer_auxiliary_a-20261003-r1\\intent.json",
+    "sha256": "3d7b9f6d84bb961cedc08caa904cef8895e838f2055d15464c667b431407def6"
+  },
+  "comment_additions": 11,
+  "added_comment_lines": 21,
+  "new_source_labels": 4,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "existing_source_authorship_preserved": true,
+  "future_source_edit_pending": false,
+  "coverage_publication": "pending separate exact root publication"
+}

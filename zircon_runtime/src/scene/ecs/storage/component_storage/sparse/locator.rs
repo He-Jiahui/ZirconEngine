@@ -1,8 +1,9 @@
-use std::collections::{BTreeSet, HashMap, hash_map::Entry};
+use std::collections::{hash_map::Entry, BTreeSet, HashMap};
 use std::hash::{BuildHasherDefault, Hasher};
-#[cfg(test)]
 use std::mem::size_of;
 use std::num::NonZeroU64;
+
+use super::SparseLocatorDiagnostics;
 
 const SPARSE_LOCATOR_PAGE_BITS: u32 = 8;
 pub(super) const SPARSE_LOCATOR_PAGE_SLOTS: usize = 1 << SPARSE_LOCATOR_PAGE_BITS;
@@ -117,6 +118,8 @@ pub(super) struct SparseRowLocator {
     location_count: usize,
 }
 
+// locator 在稠密前缀、局部窗口和分页溢出三种表示间迁移；三者共享 location_count，
+// 每次插入/删除后都重新检查滞后阈值以避免保留过大的空洞。
 impl SparseRowLocator {
     #[inline(always)]
     pub(super) fn get(&self, index: u32) -> Option<SparseRowLocation> {
@@ -519,11 +522,14 @@ impl SparseRowLocator {
         self.flat_window_location_count = 0;
     }
 
-    #[cfg(test)]
-    pub(super) fn page_count(&self) -> usize {
-        self.flat_prefix.len() / SPARSE_LOCATOR_PAGE_SLOTS
-            + self.flat_window.len() / SPARSE_LOCATOR_PAGE_SLOTS
-            + self.sparse_pages.len()
+    pub(super) fn diagnostics(&self) -> SparseLocatorDiagnostics {
+        SparseLocatorDiagnostics {
+            entry_count: self.location_count,
+            page_count: self.flat_prefix.len() / SPARSE_LOCATOR_PAGE_SLOTS
+                + self.flat_window.len() / SPARSE_LOCATOR_PAGE_SLOTS
+                + self.sparse_pages.len(),
+            allocated_bytes: self.allocated_bytes(),
+        }
     }
 
     #[cfg(test)]
@@ -556,7 +562,6 @@ impl SparseRowLocator {
         self.sparse_pages.capacity() + self.sparse_page_keys.len()
     }
 
-    #[cfg(test)]
     pub(super) fn allocated_bytes(&self) -> usize {
         let prefix_bytes = self.flat_prefix.capacity() * size_of::<Option<SparseRowLocation>>();
         let window_bytes = self.flat_window.capacity() * size_of::<Option<SparseRowLocation>>();

@@ -4,6 +4,7 @@ use zircon_runtime::graphics::GraphicsError;
 
 use super::read_buffer_u32s::read_buffer_u32s;
 
+// 根据常驻槽位和新完成项确定有效页表前缀；被替换的常驻槽位不增加条目数。
 pub(in crate::virtual_geometry::renderer::gpu_readback) fn page_table_entries(
     page_table_bytes: &[u8],
     page_table_word_count: usize,
@@ -46,4 +47,5 @@ fn project_page_table_entries(
 }
 
 #[cfg(test)]
+#[path = "page_table_entries/tests/performance_tests.rs"]
 mod performance_tests;

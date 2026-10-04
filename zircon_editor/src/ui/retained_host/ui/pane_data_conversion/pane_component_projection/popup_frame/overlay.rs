@@ -29,5 +29,5 @@ fn borrowed_popup_placement(attributes: &BTreeMap<String, Value>) -> Option<&str
 }
 
 #[cfg(test)]
-#[path = "overlay/borrowed_placement_tests.rs"]
+#[path = "overlay/tests/borrowed_placement_tests.rs"]
 mod borrowed_placement_tests;

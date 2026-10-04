@@ -1,3 +1,4 @@
+# 核对中心最近项目可用性快照复用并在焦点刷新时重查路径。
 import re
 import unittest
 from pathlib import Path

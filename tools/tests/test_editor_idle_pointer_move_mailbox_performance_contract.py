@@ -1,7 +1,8 @@
+# 核对空闲指针移动采用有界最新值邮箱，并按捕获、等待和事件顺序保留终态。
 from pathlib import Path
 import unittest
 
-from tools.editor_idle_pointer_move_mailbox_pressure import run
+from tools.analysis.performance.editor.editor_idle_pointer_move_mailbox_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]

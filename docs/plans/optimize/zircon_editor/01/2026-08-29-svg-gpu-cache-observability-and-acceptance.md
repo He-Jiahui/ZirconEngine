@@ -17,19 +17,19 @@ related_code:
   - zircon_runtime/crates/zr_rhi/src/ui_surface.rs
   - zircon_runtime/src/graphics/runtime/render_framework/render_framework_trait_binding/wgpu_framework.rs
   - zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/viewport_product_registry.rs
-  - tools/editor_svg_gpu_residency_pressure.py
+  - tools/analysis/performance/editor/editor_svg_gpu_residency_pressure.py
   - tools/tests/test_editor_svg_gpu_residency_design_contract.py
   - tools/tests/test_editor_svg_gpu_residency_pressure.py
-  - tools/ui-profile-counter-evidence.ps1
-  - tools/ui_svg_cache_evidence.py
+  - tools/analysis/profiling/ui/ui-profile-counter-evidence.ps1
+  - tools/analysis/performance/ui/ui_svg_cache_evidence.py
   - tools/tests/test_ui_svg_cache_evidence.py
 source_binding:
-reviewed_head: 050d8e6c36cd1bf4f3ab0d8fc4df0864c1c29a3f
+reviewed_head: 9963f8eb72e2d725d2536eb50b393b30387a1ffa
   reviewed_dirty_path_count: 15241
-status: gpu_device_ledger_counter_and_fail_closed_evidence_gate_static_validated_managed_rust_and_product_pending
+status: gpu_device_ledger_and_provider_revision_fast_path_static_validated_managed_rust_and_product_pending
 latest_source_binding_artifact:
-  path: E:/zircon-profiles/editor-svg-gpu-residency-pressure-20260831-r16.json
-  sha256: DE6CDF732A3F9BDBD52644188C3447A0AB95B199203F38B0386828424A5EE276
+  path: E:/zircon-profiles/editor-svg-gpu-residency-20260901-r6.json
+  sha256: 314DB4512BE4AE8A6F9BCDA7AEB9AAEA7B80940737BC1F407B713C8A3B5E7A59
 ---
 
 # SVG CPU product and GPU residency acceptance
@@ -158,7 +158,7 @@ those owners or starting Cargo.
 
 ## Implemented fail-closed analyzer
 
-`tools/ui_svg_cache_evidence.py` now enforces the stable-interaction subset of
+`tools/analysis/performance/ui/ui_svg_cache_evidence.py` now enforces the stable-interaction subset of
 the matrix without changing the externally owned capture or production paths.
 It aggregates repeated samples for one scenario, requires all retained-hit and
 zero-work counters to be present, rejects non-integral or non-finite values,
@@ -260,7 +260,7 @@ publication checks one logical generation rather than scanning the cache.
 
 ### Source-bound pressure evidence
 
-`tools/editor_svg_gpu_residency_pressure.py` now binds nine current-source
+`tools/analysis/performance/editor/editor_svg_gpu_residency_pressure.py` now binds 20 current-source
 authorities and fails closed if their source-generation, async completion,
 refresh, SVG raster, atlas, shared-allocation, surface-reference, or Surface
 construction contracts change. It explicitly rejects a targeted/reconcile
@@ -268,8 +268,9 @@ function that advances the global clear epoch and an async loader that captures
 that epoch. The pressure tests cover the historical global-epoch amplification,
 the current source-generation authority, the no-event baseline, invalid inputs,
 current-source hashing, a changed-source guard, and multi-Surface allocation
-reachability (8/8). The design-contract and evidence suites bring the focused
-static total to 23/23.
+reachability (8/8). The current provider-revision contract is included in the
+20-file source manifest; its focused pressure, design, and runtime document-cache
+suites pass 19/19.
 
 Artifact:
 
@@ -352,6 +353,35 @@ to the device budget. Required product evidence adds unique allocation bytes,
 pinned-but-registry-evicted bytes, surface pin counts, eviction completion, and
 multi-window churn RSS/GPU percentiles. Reducing the numeric limit alone cannot
 repair this ownership gap.
+
+### Current-source external-provider revision fast path (2026-09-01)
+
+The same-device viewport provider previously remained a stable-frame hotspot even
+after GPU allocations were resident: every `WgpuUiImageCache::prepare` call
+resolved every image source through the provider and reacquired the registry lock.
+That path was `O(P * R)` for `P` stable presents and `R` retained image sources.
+
+The current candidate adds an optional `cache_revision()` contract to
+`WgpuUiSurfaceExternalImageProvider`. Providers that cannot prove revision
+stability return `None` and retain the conservative per-source resolution path.
+`WgpuViewportProductProvider` exposes the device registry's monotonic revision;
+publishing, removing, or clearing viewport products advances it. Once all source
+generations are resident and no staged CPU resources remain, the image cache
+retains the prepared allocation set and returns on the unchanged pair
+`(draw_list.generation(), provider_revision)` before the source loop. GPU texture,
+bind-group, surface-pin, and in-flight-pin ownership are unchanged.
+
+The updated deterministic artifact (`editor-svg-gpu-residency-20260901-r6.json`)
+models 10,000 stable presents and 16 retained image sources. It records 10,000
+revision checks, zero provider resolves and zero provider registry-lock
+acquisitions, avoiding 160,000 source resolves. This is operation-count evidence,
+not product timing; a provider revision change intentionally re-enters the full
+source path and revalidates residency.
+
+Static validation for this slice passes the editor SVG pressure suite (9/9), SVG
+GPU design contract suite (6/6), runtime SVG document-cache contract suite (4/4),
+Python bytecode compilation, scoped Rust formatting, and `git diff --check`.
+Managed Rust and Editor product profiling remain pending under the validation gate.
 
 The fail-closed stable-product analyzer now treats async stale discard as work,
 not as an optional diagnostic. Its source manifest also requires the visual
@@ -497,11 +527,11 @@ The deterministic default still reports:
   a conceptual upper bound retained for comparison with the removed
   reconstruction baseline, not the current WGPU prepare-loop count;
 - the product framework installs an external viewport-product provider on every
-  UI Surface. Because that provider has no readiness/product revision, the
-  generation fast path is disabled and the default 10,000-present, 16-source
-  scenario executes 160,000 provider resolves and 160,000 registry lock
-  acquisitions. This is retained dependency-query work, not repeated SVG file
-  loading, parsing, rasterization, or texture upload.
+  UI Surface. The provider now publishes a monotonic product revision, so the
+  default 10,000-present, 16-source scenario performs 10,000 revision checks,
+  zero provider resolves, and zero registry lock acquisitions after the first
+  resident prepare. This is retained dependency-query work, not repeated SVG
+  file loading, parsing, rasterization, or texture upload.
 
 The 20-file manifest includes the device submission owners plus the product
 provider construction and registry-resolution owners. A UI Surface now
@@ -513,10 +543,11 @@ the completed tickets. The Surface no longer owns a parallel
 same submission timeline as other GPU work and preserves the original
 device-ledger invariant after the owner migration.
 
-The remaining structural repair is not to bypass the provider. The provider
-must publish a monotonic revision for its complete immutable product snapshot;
-the image cache then retains the prepared allocation/bind set under
-`(draw-list generation, provider revision, device generation)`. An unchanged
+The provider revision repair is now present. It publishes a monotonic revision
+for its complete immutable product snapshot; the image cache retains the
+prepared allocation/bind set under
+`(draw-list generation, provider revision)` for the lifetime of the renderer's
+device. An unchanged
 tuple performs one O(1) revision check per present and returns before the source
 loop; a changed provider revision invalidates external dependencies and permits
 the existing CPU fallback/readiness behavior to run. In the default model this
@@ -526,9 +557,9 @@ the Unreal Slate boundary where stable resource proxies are owned and versioned
 by the resource manager rather than rediscovered by each draw operation.
 
 The focused fail-closed evidence, invalidation pressure, and device-ledger
-design suites pass 28/28, including the packet/submission/retirement ordering
-guards and the external-provider fast-path pressure contract. Python bytecode
-compilation also passes. This validates the static
+design suites remain source-bound static checks; the provider-revision pressure,
+design, and runtime SVG-cache suites pass 19/19, and Python bytecode compilation
+also passes. This validates the static
 ownership and evidence contracts only. Managed Rust tests, current-source
 stable-hover/resize traces, CPU/RSS/GPU percentiles, scenario-prefixed
 parse/raster counters, and multi-window eviction churn remain required;

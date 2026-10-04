@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f5_host_reflection_docs_cli_uses_typed_errors_before_cli_boundary() {
     let root = include_str!("../../../../../bin/zircon_host_reflection_docs.rs");
@@ -13,12 +14,15 @@ fn review_f5_host_reflection_docs_cli_uses_typed_errors_before_cli_boundary() {
         include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let convention =
         include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
-    let host_reflection =
-        include_str!("../../../../../../../docs/zircon_runtime/script/vm/zr_vm_host_reflection.md");
-    let function_ledger =
-        include_str!("../../../../../../../docs/zircon_runtime/script/vm/host/function_ledger.md");
-    let module_doc =
-        include_str!("../../../../../../../docs/zircon_runtime/structure/module-convention.md");
+    let host_reflection = include_str!(
+        "../../../../../../../docs/crates/zircon_runtime/script/vm/zr_vm_host_reflection.md"
+    );
+    let function_ledger = include_str!(
+        "../../../../../../../docs/crates/zircon_runtime/script/vm/host/function_ledger.md"
+    );
+    let module_doc = include_str!(
+        "../../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
+    );
 
     for required in ["mod args;", "mod error;", "mod run;", "run::run("] {
         assert!(

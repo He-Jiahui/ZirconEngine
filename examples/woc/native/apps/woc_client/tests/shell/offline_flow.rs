@@ -164,6 +164,50 @@ fn welcome_continue_is_one_shot_and_moves_to_loading() {
 }
 
 #[test]
+fn rejected_preparation_returns_to_picker_and_preserves_the_retry_draft() {
+    let mut shell = opened_picker();
+    shell
+        .set_class(OfflinePlayerClass::Mage)
+        .expect("picker class");
+    shell.set_name("Retry Mage").expect("picker name");
+    shell.submit_offline_picker().expect("valid submission");
+
+    shell
+        .reject_prepared_session()
+        .expect("host failure can be retried from Welcome");
+    assert_eq!(shell.state(), OfflineShellState::OfflinePicker);
+    assert_eq!(shell.prepared_launch(), None);
+    assert_eq!(shell.draft().player_class(), Some(OfflinePlayerClass::Mage));
+    assert_eq!(shell.draft().raw_name(), "Retry Mage");
+}
+
+#[test]
+fn rejected_loading_can_be_retried_but_rejection_is_not_valid_after_world_commit() {
+    let mut shell = opened_picker();
+    shell
+        .set_class(OfflinePlayerClass::Warrior)
+        .expect("picker class");
+    shell.set_name("Retry Warrior").expect("picker name");
+    shell.submit_offline_picker().expect("valid submission");
+    shell.continue_from_welcome().expect("welcome Continue");
+    shell
+        .reject_prepared_session()
+        .expect("host failure can be retried from Loading");
+    assert_eq!(shell.state(), OfflineShellState::OfflinePicker);
+    assert_eq!(shell.prepared_launch(), None);
+
+    assert_eq!(
+        shell
+            .reject_prepared_session()
+            .expect_err("picker has no prepared launch to reject"),
+        OfflineShellError::InvalidTransition {
+            action: OfflineShellAction::RejectPreparedSession,
+            state: OfflineShellState::OfflinePicker,
+        }
+    );
+}
+
+#[test]
 fn loading_completion_enters_world_once_and_retains_session_identity() {
     let mut shell = opened_picker();
     shell

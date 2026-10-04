@@ -7,34 +7,34 @@ use super::{EditorJobEventJournalGap, EditorJobEventJournalLimits, EditorJobEven
 use crate::core::jobs::{JobEvent, JobEventKind, JobId};
 
 #[derive(Clone, Debug)]
-pub(super) struct EditorJobEventJournal {
+pub(crate) struct EditorJobEventJournal {
     inner: Arc<Mutex<EditorJobEventJournalState>>,
 }
 
 impl EditorJobEventJournal {
-    pub(super) fn new(limits: EditorJobEventJournalLimits) -> Self {
+    pub(crate) fn new(limits: EditorJobEventJournalLimits) -> Self {
         Self {
             inner: Arc::new(Mutex::new(EditorJobEventJournalState::new(limits))),
         }
     }
 
-    pub(super) fn push(&self, event: JobEvent) {
+    pub(crate) fn push(&self, event: JobEvent) {
         self.lock().push(event, Instant::now());
     }
 
-    pub(super) fn pop(&self) -> Option<EditorJobEventJournalRecord> {
+    pub(crate) fn pop(&self) -> Option<EditorJobEventJournalRecord> {
         self.lock().pop(Instant::now())
     }
 
-    pub(super) fn restore_front(&self, record: EditorJobEventJournalRecord) {
+    pub(crate) fn restore_front(&self, record: EditorJobEventJournalRecord) {
         self.lock().restore_front(record);
     }
 
-    pub(super) fn snapshot(&self) -> EditorJobEventJournalSnapshot {
+    pub(crate) fn snapshot(&self) -> EditorJobEventJournalSnapshot {
         self.lock().snapshot(Instant::now())
     }
 
-    pub(super) fn limits(&self) -> EditorJobEventJournalLimits {
+    pub(crate) fn limits(&self) -> EditorJobEventJournalLimits {
         self.lock().limits
     }
 
@@ -52,7 +52,7 @@ impl Default for EditorJobEventJournal {
 }
 
 #[derive(Clone, Debug)]
-pub(super) enum EditorJobEventJournalRecord {
+pub(crate) enum EditorJobEventJournalRecord {
     Event {
         event: JobEvent,
         queued_at: Instant,
@@ -290,11 +290,11 @@ impl EditorJobEventJournalState {
             gap.merge(current);
         }
 
-        let covered_sequences = self
+        let covered_range = self
             .events
-            .range(gap.first_dropped_sequence()..=gap.last_dropped_sequence())
-            .map(|(sequence, _)| *sequence)
-            .collect::<Vec<_>>();
+            .range(gap.first_dropped_sequence()..=gap.last_dropped_sequence());
+        let mut covered_sequences = Vec::with_capacity(covered_range.size_hint().0);
+        covered_sequences.extend(covered_range.map(|(sequence, _)| *sequence));
         for sequence in covered_sequences {
             let Some(queued) = self.events.remove(&sequence) else {
                 continue;
@@ -332,108 +332,5 @@ impl EditorJobEventJournalState {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-
-    use super::super::gap::JOB_EVENT_JOURNAL_GAP_RETAINED_BYTES;
-    use super::{EditorJobEventJournal, EditorJobEventJournalRecord};
-    use crate::core::jobs::{
-        EditorJobEventJournalLimits, JobCategory, JobEvent, JobEventKind, JobId,
-    };
-
-    #[test]
-    fn newer_gap_does_not_overtake_an_older_retained_event() {
-        let retained = lifecycle_event(1, "retained");
-        let retained_bytes = retained.estimated_retained_bytes();
-        let max_retained_bytes = retained_bytes + JOB_EVENT_JOURNAL_GAP_RETAINED_BYTES;
-        let journal =
-            EditorJobEventJournal::new(EditorJobEventJournalLimits::new(8, max_retained_bytes));
-
-        journal.push(retained);
-        journal.push(lifecycle_event(2, &"x".repeat(max_retained_bytes + 1)));
-
-        assert!(matches!(
-            journal.pop(),
-            Some(EditorJobEventJournalRecord::Event { event, .. })
-                if event.journal_sequence() == 1
-        ));
-        assert!(matches!(
-            journal.pop(),
-            Some(EditorJobEventJournalRecord::Gap(gap))
-                if gap.first_dropped_sequence() == 2
-                    && gap.last_dropped_sequence() == 2
-        ));
-    }
-
-    #[test]
-    fn merged_gap_absorbs_retained_events_between_dropped_sequences() {
-        let retained = lifecycle_event(1, "retained");
-        let retained_bytes = retained.estimated_retained_bytes();
-        let max_retained_bytes = retained_bytes
-            .saturating_mul(2)
-            .saturating_add(JOB_EVENT_JOURNAL_GAP_RETAINED_BYTES);
-        let oversized = "x".repeat(max_retained_bytes + 1);
-        let journal =
-            EditorJobEventJournal::new(EditorJobEventJournalLimits::new(8, max_retained_bytes));
-
-        journal.push(retained);
-        journal.push(lifecycle_event(2, &oversized));
-        journal.push(lifecycle_event(3, "between-gaps"));
-        journal.push(lifecycle_event(4, &oversized));
-
-        assert!(matches!(
-            journal.pop(),
-            Some(EditorJobEventJournalRecord::Event { event, .. })
-                if event.journal_sequence() == 1
-        ));
-        assert!(matches!(
-            journal.pop(),
-            Some(EditorJobEventJournalRecord::Gap(gap))
-                if gap.dropped_lifecycle_events() == 3
-                    && gap.first_dropped_sequence() == 2
-                    && gap.last_dropped_sequence() == 4
-        ));
-        assert!(journal.pop().is_none());
-    }
-
-    #[test]
-    fn restoring_backpressured_progress_preserves_the_newer_coalescing_index() {
-        let journal = EditorJobEventJournal::default();
-        journal.push(progress_event("first"));
-        let backpressured = journal.pop().expect("first progress event");
-
-        journal.push(progress_event("second"));
-        journal.restore_front(backpressured);
-        journal.push(progress_event("third"));
-
-        assert!(matches!(
-            journal.pop(),
-            Some(EditorJobEventJournalRecord::Event { event, .. })
-                if matches!(event.kind(), JobEventKind::Progress { message, .. } if message == "third")
-        ));
-        assert!(journal.pop().is_none());
-        assert_eq!(journal.snapshot().coalesced_progress_events(), 2);
-    }
-
-    fn lifecycle_event(id: u64, label: &str) -> JobEvent {
-        JobEvent::new(
-            JobId::new(id),
-            Arc::<str>::from(label),
-            JobCategory::Misc,
-            JobEventKind::Started,
-        )
-    }
-
-    fn progress_event(message: &str) -> JobEvent {
-        JobEvent::new(
-            JobId::new(1),
-            Arc::<str>::from("progress"),
-            JobCategory::Misc,
-            JobEventKind::Progress {
-                completed: 1,
-                total: 3,
-                message: message.to_string(),
-            },
-        )
-    }
-}
+#[path = "tests/journal.rs"]
+mod tests;

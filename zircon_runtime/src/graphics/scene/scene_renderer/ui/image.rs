@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::ops::Range;
 use std::sync::{Arc, Weak};
-use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
+use zr_rhi_wgpu::WgpuBufferUploadBatch;
 
 use bytemuck::{Pod, Zeroable};
 use zircon_runtime_interface::ui::layout::UiFrame;
@@ -12,7 +12,17 @@ use crate::core::resource::{
 };
 use crate::graphics::scene::resources::{GpuTextureResource, ResourceStreamer};
 
-use super::render::{PlannedScreenSpaceUi, ScreenSpaceUiScissor};
+use super::render::{PlannedScreenSpaceUi, PreparedScreenSpaceUi, ScreenSpaceUiScissor};
+
+mod geometry;
+
+use geometry::{
+    binding_cache_entry_is_trimmable, binding_cache_epoch_is_recent, image_batch_scissor,
+    image_cpu_staging_should_reset, image_vertex_buffer_capacity,
+    image_vertex_buffer_requires_reallocation, image_vertex_buffer_write_required, image_vertices,
+    screen_space_ui_image_segment_plan_reused, screen_space_ui_image_texture_dependency_is_current,
+    write_screen_space_ui_image_vertex_buffer,
+};
 
 const SCREEN_SPACE_UI_IMAGE_SHADER: &str = include_str!("shaders/screen_space_ui_image.wgsl");
 const SCREEN_SPACE_UI_IMAGE_MIN_VERTEX_BUFFER_CAPACITY_BYTES: u64 = 4 * 1024;
@@ -33,6 +43,7 @@ pub(super) struct ScreenSpaceUiImageSystem {
     image_bindings: ScreenSpaceUiImageBindingCache,
     prepared_textures: ScreenSpaceUiImagePrepareTextureCache,
     image_segments: Vec<ScreenSpaceUiImageSegmentCache>,
+    frame_generation: Option<u64>,
 }
 
 pub(super) struct PreparedScreenSpaceUiImage {
@@ -55,11 +66,8 @@ struct ScreenSpaceUiImageTextureDependency {
     resolved_texture_id: Option<ResourceId>,
     resolution_is_current: bool,
     texture: Option<Arc<GpuTextureResource>>,
-    binding_handle: Option<ScreenSpaceUiImageBindingHandle>,
+    binding_product: Option<Arc<ScreenSpaceUiImageBindingProduct>>,
 }
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-struct ScreenSpaceUiImageBindingHandle(usize);
 
 struct ScreenSpaceUiImageBindingCache {
     next_prepare_epoch: u64,
@@ -67,16 +75,20 @@ struct ScreenSpaceUiImageBindingCache {
 }
 
 struct CachedScreenSpaceUiImageBinding {
-    texture: Arc<GpuTextureResource>,
-    bind_group: wgpu::BindGroup,
+    product: Arc<ScreenSpaceUiImageBindingProduct>,
     last_prepare_epoch: u64,
+}
+
+struct ScreenSpaceUiImageBindingProduct {
+    texture: Arc<GpuTextureResource>,
+    bind_group: Arc<wgpu::BindGroup>,
 }
 
 #[derive(Default)]
 struct ScreenSpaceUiImagePrepareTextureCache {
     management_generation: Option<ResourceManagementGenerationIdentity>,
     readiness_generation: Option<ResourceReadinessGenerationIdentity>,
-    frame_prepare_epoch: Option<u64>,
+    binding_product_generation: Option<u64>,
     resolved_texture_ids: HashMap<ResourceId, Option<ResourceId>>,
 }
 
@@ -114,22 +126,22 @@ impl ScreenSpaceUiImageBindingCache {
         self.next_prepare_epoch
     }
 
-    fn binding_handle_for(
+    fn binding_product_for(
         &mut self,
         device: &wgpu::Device,
         layout: &wgpu::BindGroupLayout,
         texture: &Arc<GpuTextureResource>,
         prepare_epoch: u64,
-    ) -> ScreenSpaceUiImageBindingHandle {
+    ) -> Arc<ScreenSpaceUiImageBindingProduct> {
         let key = Arc::as_ptr(texture) as usize;
         if let Some(cached) = self.bindings.get_mut(&key) {
-            if Arc::ptr_eq(&cached.texture, texture) {
+            if Arc::ptr_eq(&cached.product.texture, texture) {
                 cached.last_prepare_epoch = prepare_epoch;
-                return ScreenSpaceUiImageBindingHandle(key);
+                return Arc::clone(&cached.product);
             }
         }
 
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        let bind_group = Arc::new(device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-screen-space-ui-image-bind-group"),
             layout,
             entries: &[
@@ -142,34 +154,42 @@ impl ScreenSpaceUiImageBindingCache {
                     resource: wgpu::BindingResource::Sampler(texture.sampler()),
                 },
             ],
+        }));
+        let product = Arc::new(ScreenSpaceUiImageBindingProduct {
+            texture: Arc::clone(texture),
+            bind_group,
         });
         self.bindings.insert(
             key,
             CachedScreenSpaceUiImageBinding {
-                texture: Arc::clone(texture),
-                bind_group,
+                product: Arc::clone(&product),
                 last_prepare_epoch: prepare_epoch,
             },
         );
-        ScreenSpaceUiImageBindingHandle(key)
-    }
-
-    fn bind_group(&self, handle: ScreenSpaceUiImageBindingHandle) -> Option<&wgpu::BindGroup> {
-        self.bindings
-            .get(&handle.0)
-            .map(|binding| &binding.bind_group)
+        self.trim_unpinned_overflow(prepare_epoch);
+        product
     }
 
     fn retain_prepare_epoch(&mut self, prepare_epoch: u64) {
+        // Segment-held products stay pinned; only idle cache entries participate in age/size trim.
         self.bindings.retain(|_, binding| {
-            binding_cache_epoch_is_recent(prepare_epoch, binding.last_prepare_epoch)
+            Arc::strong_count(&binding.product) > 1
+                || binding_cache_epoch_is_recent(prepare_epoch, binding.last_prepare_epoch)
         });
+        self.trim_unpinned_overflow(prepare_epoch);
+    }
+
+    fn trim_unpinned_overflow(&mut self, prepare_epoch: u64) {
         while self.bindings.len() > SCREEN_SPACE_UI_IMAGE_BINDING_CACHE_MAX_ENTRIES {
             let Some(stale_key) = self
                 .bindings
                 .iter()
                 .filter(|(_, binding)| {
-                    binding_cache_entry_is_trimmable(prepare_epoch, binding.last_prepare_epoch)
+                    Arc::strong_count(&binding.product) == 1
+                        && binding_cache_entry_is_trimmable(
+                            prepare_epoch,
+                            binding.last_prepare_epoch,
+                        )
                 })
                 .min_by_key(|(_, binding)| binding.last_prepare_epoch)
                 .map(|(key, _)| *key)
@@ -187,29 +207,40 @@ impl ScreenSpaceUiImageBindingCache {
 }
 
 impl ScreenSpaceUiImagePrepareTextureCache {
+    fn generation_matches(
+        &self,
+        management_generation: Option<&ResourceManagementGenerationIdentity>,
+        readiness_generation: Option<&ResourceReadinessGenerationIdentity>,
+        binding_product_generation: Option<u64>,
+    ) -> bool {
+        self.management_generation.as_ref() == management_generation
+            && self.readiness_generation.as_ref() == readiness_generation
+            && self.binding_product_generation == binding_product_generation
+    }
+
     fn begin_prepare(
         &mut self,
         management_generation: Option<ResourceManagementGenerationIdentity>,
         readiness_generation: Option<ResourceReadinessGenerationIdentity>,
-        frame_prepare_epoch: Option<u64>,
+        binding_product_generation: Option<u64>,
     ) -> bool {
         if self.management_generation == management_generation
             && self.readiness_generation == readiness_generation
-            && self.frame_prepare_epoch == frame_prepare_epoch
+            && self.binding_product_generation == binding_product_generation
         {
             return false;
         }
         self.resolved_texture_ids.clear();
         self.management_generation = management_generation;
         self.readiness_generation = readiness_generation;
-        self.frame_prepare_epoch = frame_prepare_epoch;
+        self.binding_product_generation = binding_product_generation;
         true
     }
 
     fn reset(&mut self) {
         self.management_generation = None;
         self.readiness_generation = None;
-        self.frame_prepare_epoch = None;
+        self.binding_product_generation = None;
         self.resolved_texture_ids = HashMap::new();
     }
 
@@ -309,6 +340,7 @@ impl ScreenSpaceUiImageSystem {
             },
             prepared_textures: ScreenSpaceUiImagePrepareTextureCache::default(),
             image_segments: Vec::new(),
+            frame_generation: None,
         }
     }
 
@@ -316,6 +348,7 @@ impl ScreenSpaceUiImageSystem {
         let prepare_epoch = self.image_bindings.begin_prepare();
         self.image_bindings.retain_prepare_epoch(prepare_epoch);
         self.prepared_textures.reset();
+        self.frame_generation = None;
         for segment in &mut self.image_segments {
             segment.plan = None;
             segment.images.clear();
@@ -328,7 +361,7 @@ impl ScreenSpaceUiImageSystem {
         &mut self,
         device: &wgpu::Device,
         viewport_size: UVec2,
-        render_segments: &[Arc<PlannedScreenSpaceUi>],
+        prepared: &Arc<PreparedScreenSpaceUi>,
         streamer: Option<&ResourceStreamer>,
         uploads: &mut WgpuBufferUploadBatch,
         force_full_upload: bool,
@@ -337,26 +370,10 @@ impl ScreenSpaceUiImageSystem {
             self.clear_frame_state();
             return;
         };
-        let prepare_epoch = self.image_bindings.begin_prepare();
-        let viewport = UiFrame::new(
-            0.0,
-            0.0,
-            viewport_size.x.max(1) as f32,
-            viewport_size.y.max(1) as f32,
-        );
-        let bind_group_layout = &self.bind_group_layout;
-        let image_bindings = &mut self.image_bindings;
-        let prepared_textures = &mut self.prepared_textures;
-        let image_segments = &mut self.image_segments;
+        let render_segments = prepared.render_segments();
         let texture_prepare_generation = streamer
             .last_ui_texture_prepare_receipt()
-            .map(|receipt| {
-                (
-                    Some(receipt.management_generation().clone()),
-                    Some(receipt.readiness_generation().clone()),
-                    Some(receipt.frame_prepare_epoch()),
-                )
-            })
+            .map(|receipt| (None, None, Some(receipt.binding_product_generation())))
             .or_else(|| {
                 streamer.asset_manager().ok().map(|manager| {
                     let projection = manager.resource_manager().projection_snapshot();
@@ -368,6 +385,28 @@ impl ScreenSpaceUiImageSystem {
                 })
             })
             .unwrap_or((None, None, None));
+        let frame_generation_matches = self.frame_generation == Some(prepared.generation());
+        let texture_generation_matches = self.prepared_textures.generation_matches(
+            texture_prepare_generation.0.as_ref(),
+            texture_prepare_generation.1.as_ref(),
+            texture_prepare_generation.2,
+        );
+        if frame_generation_matches && !force_full_upload && texture_generation_matches {
+            return;
+        }
+
+        let prepare_epoch = self.image_bindings.begin_prepare();
+        self.image_bindings.retain_prepare_epoch(prepare_epoch);
+        let viewport = UiFrame::new(
+            0.0,
+            0.0,
+            viewport_size.x.max(1) as f32,
+            viewport_size.y.max(1) as f32,
+        );
+        let bind_group_layout = &self.bind_group_layout;
+        let image_bindings = &mut self.image_bindings;
+        let prepared_textures = &mut self.prepared_textures;
+        let image_segments = &mut self.image_segments;
         let texture_resolution_generation_changed = prepared_textures.begin_prepare(
             texture_prepare_generation.0,
             texture_prepare_generation.1,
@@ -383,20 +422,14 @@ impl ScreenSpaceUiImageSystem {
         let mut segment_plan_reuse_count = 0_usize;
         let mut image_batch_visit_count = 0_usize;
         let mut texture_dependency_check_count = 0_usize;
-        for (plan, segment) in render_segments.iter().zip(image_segments.iter_mut()) {
-            if !force_full_upload
-                && screen_space_ui_image_segment_plan_reused(
-                    segment.plan.as_ref(),
-                    segment.viewport_size,
-                    plan,
-                    viewport_size,
-                )
-            {
-                segment_plan_reuse_count = segment_plan_reuse_count.saturating_add(1);
-            } else {
-                image_batch_visit_count =
-                    image_batch_visit_count.saturating_add(plan.image_batches().len());
-                Self::rebuild_segment_geometry(
+        let journal = prepared.change_journal();
+        let journal_applies =
+            !journal.is_full_rebuild() && journal.base_generation() == self.frame_generation;
+        let full_geometry_rebuild =
+            force_full_upload || (!frame_generation_matches && !journal_applies);
+        if full_geometry_rebuild || texture_resolution_generation_changed {
+            for (plan, segment) in render_segments.iter().zip(image_segments.iter_mut()) {
+                let (reused, dependency_checks) = Self::prepare_image_segment(
                     device,
                     viewport,
                     viewport_size,
@@ -404,22 +437,86 @@ impl ScreenSpaceUiImageSystem {
                     segment,
                     uploads,
                     force_full_upload,
-                );
-            }
-            texture_dependency_check_count =
-                texture_dependency_check_count.saturating_add(Self::refresh_segment_dependencies(
-                    device,
+                    full_geometry_rebuild,
                     bind_group_layout,
                     streamer,
                     prepare_epoch,
                     image_bindings,
                     prepared_textures,
                     texture_resolution_generation_changed,
+                );
+                if reused {
+                    segment_plan_reuse_count = segment_plan_reuse_count.saturating_add(1);
+                } else {
+                    image_batch_visit_count =
+                        image_batch_visit_count.saturating_add(plan.image_batches().len());
+                }
+                texture_dependency_check_count =
+                    texture_dependency_check_count.saturating_add(dependency_checks);
+            }
+        } else if journal_applies {
+            for &index in journal.changed_segment_indices() {
+                let Some(plan) = render_segments.get(index) else {
+                    continue;
+                };
+                let Some(segment) = image_segments.get_mut(index) else {
+                    continue;
+                };
+                let (reused, dependency_checks) = Self::prepare_image_segment(
+                    device,
+                    viewport,
+                    viewport_size,
+                    plan,
                     segment,
-                ));
+                    uploads,
+                    force_full_upload,
+                    true,
+                    bind_group_layout,
+                    streamer,
+                    prepare_epoch,
+                    image_bindings,
+                    prepared_textures,
+                    texture_resolution_generation_changed,
+                );
+                if reused {
+                    segment_plan_reuse_count = segment_plan_reuse_count.saturating_add(1);
+                } else {
+                    image_batch_visit_count =
+                        image_batch_visit_count.saturating_add(plan.image_batches().len());
+                }
+                texture_dependency_check_count =
+                    texture_dependency_check_count.saturating_add(dependency_checks);
+            }
+        } else {
+            for (plan, segment) in render_segments.iter().zip(image_segments.iter_mut()) {
+                let (reused, dependency_checks) = Self::prepare_image_segment(
+                    device,
+                    viewport,
+                    viewport_size,
+                    plan,
+                    segment,
+                    uploads,
+                    force_full_upload,
+                    true,
+                    bind_group_layout,
+                    streamer,
+                    prepare_epoch,
+                    image_bindings,
+                    prepared_textures,
+                    texture_resolution_generation_changed,
+                );
+                if reused {
+                    segment_plan_reuse_count = segment_plan_reuse_count.saturating_add(1);
+                } else {
+                    image_batch_visit_count =
+                        image_batch_visit_count.saturating_add(plan.image_batches().len());
+                }
+                texture_dependency_check_count =
+                    texture_dependency_check_count.saturating_add(dependency_checks);
+            }
         }
         image_segments.truncate(render_segments.len());
-        image_bindings.retain_prepare_epoch(prepare_epoch);
+        self.frame_generation = Some(prepared.generation());
         crate::core::diagnostics::profiling::record_counter_batch(
             "runtime",
             &[
@@ -437,6 +534,55 @@ impl ScreenSpaceUiImageSystem {
                 ),
             ],
         );
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn prepare_image_segment(
+        device: &wgpu::Device,
+        viewport: UiFrame,
+        viewport_size: UVec2,
+        plan: &Arc<PlannedScreenSpaceUi>,
+        segment: &mut ScreenSpaceUiImageSegmentCache,
+        uploads: &mut WgpuBufferUploadBatch,
+        force_full_upload: bool,
+        rebuild_geometry: bool,
+        bind_group_layout: &wgpu::BindGroupLayout,
+        streamer: &ResourceStreamer,
+        prepare_epoch: u64,
+        image_bindings: &mut ScreenSpaceUiImageBindingCache,
+        prepared_textures: &mut ScreenSpaceUiImagePrepareTextureCache,
+        texture_resolution_generation_changed: bool,
+    ) -> (bool, usize) {
+        let reused = !rebuild_geometry
+            && !force_full_upload
+            && screen_space_ui_image_segment_plan_reused(
+                segment.plan.as_ref(),
+                segment.viewport_size,
+                plan,
+                viewport_size,
+            );
+        if !reused {
+            Self::rebuild_segment_geometry(
+                device,
+                viewport,
+                viewport_size,
+                plan,
+                segment,
+                uploads,
+                force_full_upload,
+            );
+        }
+        let dependency_checks = Self::refresh_segment_dependencies(
+            device,
+            bind_group_layout,
+            streamer,
+            prepare_epoch,
+            image_bindings,
+            prepared_textures,
+            texture_resolution_generation_changed,
+            segment,
+        );
+        (reused, dependency_checks)
     }
 
     fn rebuild_segment_geometry(
@@ -496,7 +642,7 @@ impl ScreenSpaceUiImageSystem {
                 resolved_texture_id: None,
                 resolution_is_current: false,
                 texture: None,
-                binding_handle: None,
+                binding_product: None,
             });
             dependency_index
         });
@@ -527,7 +673,7 @@ impl ScreenSpaceUiImageSystem {
                 dependency.resolution_is_current = true;
             }
             let texture = streamer.ui_texture_ref(dependency.resolved_texture_id);
-            let binding_handle = image_bindings.binding_handle_for(
+            let binding_product = image_bindings.binding_product_for(
                 device,
                 bind_group_layout,
                 texture,
@@ -539,7 +685,7 @@ impl ScreenSpaceUiImageSystem {
             ) {
                 dependency.texture = Some(Arc::clone(texture));
             }
-            dependency.binding_handle = Some(binding_handle);
+            dependency.binding_product = Some(binding_product);
         }
         segment.dependencies.len()
     }
@@ -559,14 +705,11 @@ impl ScreenSpaceUiImageSystem {
             }
             pass.set_vertex_buffer(0, vertex_buffer.slice(..));
             for image in &segment.images {
-                let Some(binding_handle) = segment
+                let Some(binding_product) = segment
                     .dependencies
                     .get(image.dependency_index)
-                    .and_then(|dependency| dependency.binding_handle)
+                    .and_then(|dependency| dependency.binding_product.as_ref())
                 else {
-                    continue;
-                };
-                let Some(bind_group) = self.image_bindings.bind_group(binding_handle) else {
                     continue;
                 };
                 pass.set_scissor_rect(
@@ -575,166 +718,13 @@ impl ScreenSpaceUiImageSystem {
                     image.scissor.width,
                     image.scissor.height,
                 );
-                pass.set_bind_group(0, bind_group, &[]);
+                pass.set_bind_group(0, binding_product.bind_group.as_ref(), &[]);
                 pass.draw(image.vertex_range.clone(), 0..1);
             }
         }
     }
 }
 
-fn screen_space_ui_image_segment_plan_reused(
-    current: Option<&Weak<PlannedScreenSpaceUi>>,
-    current_viewport_size: UVec2,
-    next: &Arc<PlannedScreenSpaceUi>,
-    next_viewport_size: UVec2,
-) -> bool {
-    current_viewport_size == next_viewport_size
-        && current.is_some_and(|current| std::ptr::eq(current.as_ptr(), Arc::as_ptr(next)))
-}
-
-fn screen_space_ui_image_texture_dependency_is_current<T>(
-    current: Option<&Arc<T>>,
-    next: &Arc<T>,
-) -> bool {
-    current.is_some_and(|current| Arc::ptr_eq(current, next))
-}
-
-fn image_batch_scissor(
-    frame: UiFrame,
-    viewport: UiFrame,
-    clip_frame: Option<UiFrame>,
-) -> Option<ScreenSpaceUiScissor> {
-    super::render::clipped_scissor(
-        frame,
-        clip_frame,
-        viewport,
-        super::render::frame_to_scissor(viewport)?,
-    )
-}
-
-fn write_screen_space_ui_image_vertex_buffer(
-    device: &wgpu::Device,
-    image_vertices: &mut ScreenSpaceUiImageVertexBuffer,
-    uploads: &mut WgpuBufferUploadBatch,
-    force_full_upload: bool,
-) {
-    if image_vertices.vertices.is_empty() {
-        return;
-    }
-
-    let vertex_bytes = bytemuck::cast_slice(image_vertices.vertices.as_slice());
-    let required_byte_len = vertex_bytes.len();
-    let requires_reallocation = image_vertices.buffer.is_none()
-        || image_vertex_buffer_requires_reallocation(
-            image_vertices.capacity_bytes,
-            required_byte_len,
-        );
-    if requires_reallocation {
-        let capacity_bytes = image_vertex_buffer_capacity(required_byte_len);
-        image_vertices.buffer = Some(device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("zircon-screen-space-ui-image-vertices"),
-            size: capacity_bytes,
-            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        }));
-        image_vertices.capacity_bytes = capacity_bytes;
-    }
-    let payload_hash = *blake3::hash(vertex_bytes).as_bytes();
-    let write_required = image_vertex_buffer_write_required(
-        requires_reallocation || force_full_upload,
-        image_vertices.payload_hash,
-        payload_hash,
-    );
-    if write_required {
-        if let Some(vertex_buffer) = image_vertices.buffer.as_ref() {
-            uploads.push(WgpuBufferUpload::from_bytes(
-                vertex_buffer.clone(),
-                0,
-                vertex_bytes,
-            ));
-            image_vertices.payload_hash = Some(payload_hash);
-        }
-    }
-}
-
-const fn image_cpu_staging_should_reset(image_count: usize) -> bool {
-    image_count == 0
-}
-
-fn binding_cache_epoch_is_recent(current_epoch: u64, last_prepare_epoch: u64) -> bool {
-    current_epoch >= last_prepare_epoch
-        && current_epoch - last_prepare_epoch <= SCREEN_SPACE_UI_IMAGE_BINDING_CACHE_IDLE_EPOCHS
-}
-
-fn binding_cache_entry_is_trimmable(current_epoch: u64, last_prepare_epoch: u64) -> bool {
-    last_prepare_epoch != current_epoch
-}
-
-fn image_vertex_buffer_capacity(required_byte_len: usize) -> u64 {
-    let required_byte_len =
-        (required_byte_len as u64).max(SCREEN_SPACE_UI_IMAGE_MIN_VERTEX_BUFFER_CAPACITY_BYTES);
-    required_byte_len
-        .checked_next_power_of_two()
-        .unwrap_or(required_byte_len)
-}
-
-fn image_vertex_buffer_requires_reallocation(
-    capacity_bytes: u64,
-    required_byte_len: usize,
-) -> bool {
-    capacity_bytes < required_byte_len as u64
-}
-
-fn image_vertex_buffer_write_required(
-    requires_reallocation: bool,
-    current_payload_hash: Option<[u8; 32]>,
-    next_payload_hash: [u8; 32],
-) -> bool {
-    requires_reallocation || current_payload_hash != Some(next_payload_hash)
-}
-
-fn image_vertices(
-    frame: UiFrame,
-    viewport: UiFrame,
-    tint: [f32; 4],
-) -> [ScreenSpaceUiImageVertex; 6] {
-    let x0 = (frame.x / viewport.width.max(1.0)) * 2.0 - 1.0;
-    let x1 = (frame.right() / viewport.width.max(1.0)) * 2.0 - 1.0;
-    let y0 = 1.0 - (frame.y / viewport.height.max(1.0)) * 2.0;
-    let y1 = 1.0 - (frame.bottom() / viewport.height.max(1.0)) * 2.0;
-    [
-        ScreenSpaceUiImageVertex {
-            position: [x0, y0],
-            uv: [0.0, 0.0],
-            tint,
-        },
-        ScreenSpaceUiImageVertex {
-            position: [x1, y0],
-            uv: [1.0, 0.0],
-            tint,
-        },
-        ScreenSpaceUiImageVertex {
-            position: [x1, y1],
-            uv: [1.0, 1.0],
-            tint,
-        },
-        ScreenSpaceUiImageVertex {
-            position: [x0, y0],
-            uv: [0.0, 0.0],
-            tint,
-        },
-        ScreenSpaceUiImageVertex {
-            position: [x1, y1],
-            uv: [1.0, 1.0],
-            tint,
-        },
-        ScreenSpaceUiImageVertex {
-            position: [x0, y1],
-            uv: [0.0, 1.0],
-            tint,
-        },
-    ]
-}
-
 #[cfg(test)]
+#[path = "image/tests/cases.rs"]
 mod tests;

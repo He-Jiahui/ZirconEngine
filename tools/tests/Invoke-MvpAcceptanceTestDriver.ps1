@@ -1,3 +1,4 @@
+# 验收测试通过此驱动在隔离子进程调用生产验收入口；夹具改写 Stage 树后先重发清单，再把结构化失败和退出码统一返回给外层断言。
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]

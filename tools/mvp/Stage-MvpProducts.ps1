@@ -43,7 +43,7 @@ Import-Module (Join-Path $PSScriptRoot 'MvpProcessQualificationContext.psm1') -F
 Import-Module (Join-Path $PSScriptRoot 'MvpRunArtifactBudget.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'StagedProcessSupervisor.psm1') -Force -ErrorAction Stop
 $pathResolverRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-Import-Module (Join-Path $pathResolverRepoRoot 'tools\WindowsPathResolver.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $pathResolverRepoRoot 'tools\maintenance\WindowsPathResolver.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpArtifactStoragePolicy.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpProjectCopyPolicy.psm1') -Force -ErrorAction Stop
 
@@ -411,10 +411,25 @@ function Get-MvpPngCaptureEvidence {
     }
     if ($null -eq ('ZirconMvpPngEvidence' -as [type])) {
         Add-Type -AssemblyName System.Drawing -ErrorAction Stop
+        $platformDrawingReferences = foreach ($assemblyName in @(
+                'System.Private.Windows.GdiPlus'
+                'System.Private.Windows.Core'
+            )) {
+            try {
+                $assembly = [Reflection.Assembly]::Load($assemblyName)
+                if ($null -ne $assembly -and -not [string]::IsNullOrWhiteSpace($assembly.Location)) {
+                    $assembly.Location
+                }
+            }
+            catch [System.IO.FileNotFoundException] {
+                # Older Windows PowerShell hosts do not expose the split drawing assemblies.
+            }
+        }
         $pngEvidenceReferences = @(
             [Drawing.Bitmap].Assembly.Location
             [Drawing.Rectangle].Assembly.Location
             [Security.Cryptography.SHA256].Assembly.Location
+            $platformDrawingReferences
         ) | Select-Object -Unique
         Add-Type -TypeDefinition @'
 using System;

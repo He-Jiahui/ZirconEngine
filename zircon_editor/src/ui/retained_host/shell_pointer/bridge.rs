@@ -25,7 +25,9 @@ use crate::ui::retained_host::drawer_resize::HostResizeTargetGroup;
 #[cfg(test)]
 use crate::ui::retained_host::floating_window_projection::build_floating_window_projection_bundle_from_windows;
 use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
-use crate::ui::retained_host::route_intent::EditorRouteIntentMap;
+use crate::ui::retained_host::route_intent::{
+    EditorRouteIntent, EditorRouteIntentHandle, EditorRouteIntentMap,
+};
 use crate::ui::retained_host::tab_drag::HostDragTargetGroup;
 use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 use crate::ui::workbench::autolayout::ShellSizePx;
@@ -229,15 +231,35 @@ impl HostShellPointerBridge {
     }
 
     pub(crate) fn drag_target_at(&mut self, point: UiPoint) -> Option<HostDragTargetGroup> {
-        self.drag_route_at(point).and_then(|route| match route {
-            HostShellPointerRoute::DragTarget(group) => Some(group),
+        let handle = self.drag_route_handle_at(point)?;
+        match self.shell_route_for_handle(handle)? {
+            HostShellPointerRoute::DragTarget(group) => Some(*group),
             HostShellPointerRoute::DocumentEdge(_)
             | HostShellPointerRoute::FloatingWindow(_)
             | HostShellPointerRoute::FloatingWindowEdge { .. } => {
                 Some(HostDragTargetGroup::Document)
             }
             HostShellPointerRoute::Resize(_) => None,
-        })
+        }
+    }
+
+    pub(crate) fn drag_route_handle_at(
+        &mut self,
+        point: UiPoint,
+    ) -> Option<EditorRouteIntentHandle> {
+        let dispatch =
+            self.dispatch_drag_event(UiPointerEvent::new(UiPointerEventKind::Move, point))?;
+        shell_pointer_route_handle_from_input_result(&self.drag_route_intents, &dispatch)
+    }
+
+    pub(crate) fn shell_route_for_handle(
+        &self,
+        handle: EditorRouteIntentHandle,
+    ) -> Option<&HostShellPointerRoute> {
+        match self.drag_route_intents.resolve_handle(handle)? {
+            EditorRouteIntent::ShellPointer(route) => Some(route),
+            _ => None,
+        }
     }
 
     pub(crate) fn drag_route_at(&mut self, point: UiPoint) -> Option<HostShellPointerRoute> {
@@ -321,7 +343,18 @@ fn shell_pointer_route_from_input_result(
     intents: &EditorRouteIntentMap,
     result: &UiInputDispatchResult,
 ) -> Option<HostShellPointerRoute> {
-    shell_pointer_reply_effect_target(result)
+    let handle = shell_pointer_route_handle_from_input_result(intents, result)?;
+    match intents.resolve_handle(handle)? {
+        EditorRouteIntent::ShellPointer(route) => Some(route.clone()),
+        _ => None,
+    }
+}
+
+fn shell_pointer_route_handle_from_input_result(
+    intents: &EditorRouteIntentMap,
+    result: &UiInputDispatchResult,
+) -> Option<EditorRouteIntentHandle> {
+    let handle = shell_pointer_reply_effect_target(result)
         .or(result.reply.handler)
         .or_else(|| {
             result
@@ -329,7 +362,12 @@ fn shell_pointer_route_from_input_result(
                 .as_ref()
                 .and_then(|routing| routing.route_target)
         })
-        .and_then(|node_id| intents.shell_pointer_route_for_node(node_id))
+        .and_then(|node_id| intents.handle_for_node(node_id))?;
+    matches!(
+        intents.resolve_handle(handle),
+        Some(EditorRouteIntent::ShellPointer(_))
+    )
+    .then_some(handle)
 }
 
 fn shell_pointer_reply_effect_target(result: &UiInputDispatchResult) -> Option<UiNodeId> {

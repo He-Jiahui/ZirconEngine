@@ -2,7 +2,6 @@
 related_code:
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/graphics/backend/render_backend/request_device.rs
-  - zircon_runtime/src/rhi_wgpu/capabilities.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_texture.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
   - dev/bevy/crates/bevy_render/src/material_bind_groups.rs

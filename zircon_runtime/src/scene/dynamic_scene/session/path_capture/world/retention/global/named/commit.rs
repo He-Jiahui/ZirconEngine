@@ -3,11 +3,12 @@ use std::path::Path;
 use crate::scene::World;
 
 use super::super::super::super::super::super::{
-    RuntimeSessionArchive, RuntimeSessionArchiveCaptureRetentionReport, RuntimeSessionArchiveError,
-    RuntimeSessionArchiveRetentionPolicy, RuntimeSessionMetadata, io,
+    io, RuntimeSessionArchive, RuntimeSessionArchiveCaptureRetentionReport,
+    RuntimeSessionArchiveError, RuntimeSessionArchiveRetentionPolicy, RuntimeSessionMetadata,
 };
 
 impl RuntimeSessionArchive {
+    /// 从路径加载档案后，捕获指定槽位并计算全档案保留结果，再通过原子保存发布完整档案。
     pub fn capture_world_slot_with_retention_to_path_atomically(
         path: impl AsRef<Path>,
         slot_id: impl Into<String>,

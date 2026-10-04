@@ -84,13 +84,16 @@ impl SessionGateway {
                 &mut frame,
             )
         };
-        let output = capture_owned_output(
-            self.foreign_output.clone(),
-            status,
-            frame.rgba,
-            self.output_releaser,
-            "capture runtime frame",
-        )?;
+        // The frame output was produced above by this gateway's retained runtime provider.
+        let output = unsafe {
+            capture_owned_output(
+                self.foreign_output.clone(),
+                status,
+                frame.rgba,
+                self.output_releaser,
+                "capture runtime frame",
+            )?
+        };
         let validation = ensure_output_abi(
             frame.abi_version,
             ZIRCON_RUNTIME_ABI_VERSION_V2,

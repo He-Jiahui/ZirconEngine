@@ -18,6 +18,7 @@ mod background;
 mod color;
 mod geometry;
 mod glyph_artifact;
+mod icons;
 mod paint_projection;
 mod plan_cache;
 mod record;
@@ -33,9 +34,9 @@ pub(in crate::graphics::scene::scene_renderer::ui) mod text_projection;
 mod text_provenance;
 mod text_route_identity;
 
-pub(super) use plan_cache::ScreenSpaceUiPlanCache;
+pub(super) use plan_cache::{ScreenSpaceUiFrameChangeJournal, ScreenSpaceUiPlanCache};
 pub(crate) use resolved_layout::ScreenSpaceUiResolvedGlyphArtifactRouteReport;
-pub(super) use text_batches::{ScreenSpaceUiTextBatch, ScreenSpaceUiTextRouteContext};
+pub(super) use text_batches::ScreenSpaceUiTextBatch;
 
 use background::{ScreenSpaceUiBackgroundEffect, ScreenSpaceUiBackgroundTracker};
 use color::parse_color;
@@ -47,14 +48,32 @@ use geometry::{
 pub(in crate::graphics::scene::scene_renderer::ui) use glyph_artifact::{
     ScreenSpaceUiGlyphArtifactCacheIdentity, ScreenSpaceUiGlyphArtifactLine,
 };
+use icons::{icon_frame_for_slot, push_builtin_icon};
 use paint_projection::{project_transient_paint_elements, ScreenSpaceUiTextPaintProjectionReport};
 pub(super) use text_advances::ScreenSpaceUiShapedGlyph;
+use text_batches::ScreenSpaceUiTextRouteContext;
 use text_batches::{push_text_batches, TextPlanOutcome};
 pub(in crate::graphics::scene::scene_renderer::ui) use text_route_identity::ScreenSpaceUiTextRouteIdentity;
 
 pub(super) struct PreparedScreenSpaceUi {
     render_segments: Arc<[Arc<PlannedScreenSpaceUi>]>,
     resolved_glyph_artifact_routes: ScreenSpaceUiResolvedGlyphArtifactRouteReport,
+    generation: u64,
+    change_journal: ScreenSpaceUiFrameChangeJournal,
+}
+
+impl PreparedScreenSpaceUi {
+    pub(super) fn generation(&self) -> u64 {
+        self.generation
+    }
+
+    pub(super) fn change_journal(&self) -> &ScreenSpaceUiFrameChangeJournal {
+        &self.change_journal
+    }
+
+    pub(super) fn render_segments(&self) -> &[Arc<PlannedScreenSpaceUi>] {
+        &self.render_segments
+    }
 }
 
 #[derive(Clone)]
@@ -95,6 +114,12 @@ impl PlannedScreenSpaceUi {
             .chain(&self.sdf_texts)
     }
 
+    pub(super) fn text_preparation_inputs_match(&self, next: &Self) -> bool {
+        text_batch_slices_match(&self.auto_texts, &next.auto_texts)
+            && text_batch_slices_match(&self.native_texts, &next.native_texts)
+            && text_batch_slices_match(&self.sdf_texts, &next.sdf_texts)
+    }
+
     pub(super) fn image_batches(&self) -> &[ScreenSpaceUiImageBatch] {
         &self.images
     }
@@ -113,6 +138,17 @@ impl PlannedScreenSpaceUi {
         self.resolved_glyph_artifact_routes
             .merge(segment.resolved_glyph_artifact_routes);
     }
+}
+
+fn text_batch_slices_match(
+    current: &[ScreenSpaceUiTextBatch],
+    next: &[ScreenSpaceUiTextBatch],
+) -> bool {
+    current.len() == next.len()
+        && current
+            .iter()
+            .zip(next)
+            .all(|(current, next)| current.preparation_inputs_match(next))
 }
 
 fn plan_screen_space_ui_batches(
@@ -269,6 +305,8 @@ fn append_screen_space_ui_extract_batches(
     );
 }
 
+/// 按命令顺序规划裁剪、paint 和背景观察，将文字装饰分别记入文字前后的绘制列表。
+/// 文字路由拒绝时只撤回本次文字前装饰，并省略文字后装饰；先前已规划的背景、边框和图像保留。
 pub(super) fn append_screen_space_ui_command_batches<'a>(
     commands: impl IntoIterator<Item = &'a UiRenderCommand>,
     raster_scale: f32,
@@ -478,32 +516,36 @@ fn plan_command_batches(
         }
     }
 
-    if let Some(zircon_runtime_interface::ui::surface::UiVisualAssetRef::Image(source)) =
-        command.image.as_ref()
-    {
-        if let Some(texture) = ui_image_resource_id(source) {
-            plan.images.push(ScreenSpaceUiImageBatch {
-                texture,
-                frame: command.frame,
-                clip_frame: command.clip_frame,
-                tint: [1.0, 1.0, 1.0, command.opacity.clamp(0.0, 1.0)],
-            });
-        }
-    } else if command.image.is_some() || matches!(command.kind, UiRenderCommandKind::Image) {
-        let extent = (frame.width.min(frame.height) * 0.68).max(8.0);
-        let icon = UiFrame::new(
-            frame.x + (frame.width - extent) * 0.5,
-            frame.y + (frame.height - extent) * 0.5,
-            extent,
-            extent,
-        );
-        let color = parse_color(
+    let image_color = || {
+        parse_color(
             command.style.foreground_color.as_deref(),
             [0.76, 0.88, 0.98, 1.0],
             command.opacity,
         )
-        .unwrap_or([0.76, 0.88, 0.98, command.opacity]);
-        push_rect(&mut plan.vertices, icon, color, viewport);
+        .unwrap_or([0.76, 0.88, 0.98, command.opacity])
+    };
+    match command.image.as_ref() {
+        Some(zircon_runtime_interface::ui::surface::UiVisualAssetRef::Image(source)) => {
+            if let Some(texture) = ui_image_resource_id(source) {
+                plan.images.push(ScreenSpaceUiImageBatch {
+                    texture,
+                    frame: command.frame,
+                    clip_frame: command.clip_frame,
+                    tint: [1.0, 1.0, 1.0, command.opacity.clamp(0.0, 1.0)],
+                });
+            }
+        }
+        Some(zircon_runtime_interface::ui::surface::UiVisualAssetRef::Icon(icon)) => {
+            if !push_builtin_icon(&mut plan.vertices, icon, frame, image_color(), viewport) {
+                let fallback = icon_frame_for_slot(None, frame);
+                push_rect(&mut plan.vertices, fallback, image_color(), viewport);
+            }
+        }
+        None if matches!(command.kind, UiRenderCommandKind::Image) => {
+            let fallback = icon_frame_for_slot(None, frame);
+            push_rect(&mut plan.vertices, fallback, image_color(), viewport);
+        }
+        None => {}
     }
 
     if command.text.as_ref().is_some_and(|text| !text.is_empty()) {
@@ -544,4 +586,5 @@ fn plan_command_batches(
 }
 
 #[cfg(all(test, feature = "ui"))]
+#[path = "render/tests/cases.rs"]
 mod tests;

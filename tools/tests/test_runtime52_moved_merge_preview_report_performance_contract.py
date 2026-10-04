@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 合并预览从计划中消费现成报告，避免克隆；本组查阅 accessor 与 Rust 用例，防止报告所有权再次分叉。
 
 ROOT = Path(__file__).resolve().parents[2]
 PLAN = ROOT / "zircon_runtime/src/scene/dynamic_scene/session/merge/algorithm/plan.rs"

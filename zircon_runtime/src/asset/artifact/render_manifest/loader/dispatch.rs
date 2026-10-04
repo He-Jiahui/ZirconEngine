@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use std::sync::atomic::Ordering;
+use std::sync::Arc;
 use std::time::Instant;
 
 use crate::core::runtime::{TaskDescriptor, TaskId, TaskPoolKind};
@@ -13,6 +13,7 @@ use super::registry::take_task_id;
 use super::worker::run_io_task;
 
 impl RenderArtifactBlockLoaderInner {
+    // 任务数与编码字节预算共同限制本次调度；最高优先级块放不下时恢复该项并结束，留待调用方再次调度。
     pub(super) fn dispatch_io(
         self: &Arc<Self>,
         budget: RenderArtifactBlockIoDispatchBudget,

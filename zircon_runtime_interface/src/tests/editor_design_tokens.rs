@@ -7,51 +7,53 @@ use toml::Value;
 
 #[test]
 fn editor_design_tokens_encode_workbench_style_notes_palette_and_density() {
+    // The authored baseline is zircon_editor/assets/ui/editor/theme/editor_tokens.zui.
+    // Its rounded logical-pixel sizes allow a small f32 conversion tolerance.
     let tokens = EditorDesignTokens::workbench_dark();
 
     assert_eq!(tokens.id, EDITOR_WORKBENCH_TOKENS_ID);
     assert_eq!(
         tokens.palette.surface,
         [
-            UiRgbaColor::from_u8(9, 15, 18, 255),
-            UiRgbaColor::from_u8(15, 23, 27, 255),
-            UiRgbaColor::from_u8(16, 24, 28, 255),
-            UiRgbaColor::from_u8(20, 29, 34, 255),
+            UiRgbaColor::from_u8(21, 21, 21, 255),
+            UiRgbaColor::from_u8(36, 36, 36, 255),
+            UiRgbaColor::from_u8(47, 47, 47, 255),
+            UiRgbaColor::from_u8(56, 56, 56, 255),
         ]
     );
     assert_eq!(
         tokens.palette.accent,
-        UiRgbaColor::from_u8(53, 199, 208, 255)
+        UiRgbaColor::from_u8(0, 112, 224, 255)
     );
     assert_eq!(
         tokens.palette.surface_recessed,
-        UiRgbaColor::from_u8(8, 16, 20, 255)
+        UiRgbaColor::from_u8(26, 26, 26, 255)
     );
     assert_eq!(
         tokens.palette.surface_hover,
-        UiRgbaColor::from_u8(26, 37, 43, 255)
+        UiRgbaColor::from_u8(87, 87, 87, 255)
     );
     assert_eq!(
         tokens.palette.surface_selected,
-        UiRgbaColor::from_u8(22, 67, 73, 255)
+        UiRgbaColor::from_u8(0, 112, 224, 255)
     );
     assert_eq!(
         tokens.palette.separator_strong,
-        UiRgbaColor::from_u8(34, 48, 55, 255)
+        UiRgbaColor::from_u8(87, 87, 87, 255)
     );
     assert_eq!(
         tokens.palette.separator_soft,
-        UiRgbaColor::from_u8(27, 36, 40, 255)
+        UiRgbaColor::from_u8(56, 56, 56, 255)
     );
-    assert_eq!(tokens.palette.popup, UiRgbaColor::from_u8(20, 29, 34, 255));
+    assert_eq!(tokens.palette.popup, UiRgbaColor::from_u8(56, 56, 56, 255));
     assert_eq!(tokens.controls.border_width, 1.0);
     assert_eq!(tokens.controls.large_height, 48.0);
-    assert_eq!(tokens.controls.compact_height, 30.0);
+    assert_eq!(tokens.controls.compact_height, 32.0);
     assert_eq!(tokens.controls.dense_height, 28.0);
-    assert_eq!(tokens.controls.small_radius, 6.0);
-    assert_eq!(tokens.controls.control_radius, 8.0);
-    assert_eq!(tokens.controls.large_radius, 10.0);
-    assert_eq!(tokens.controls.panel_radius, 12.0);
+    assert_eq!(tokens.controls.small_radius, 4.0);
+    assert_eq!(tokens.controls.control_radius, 4.0);
+    assert_eq!(tokens.controls.large_radius, 8.0);
+    assert_eq!(tokens.controls.panel_radius, 0.0);
     assert_eq!(tokens.controls.pill_radius, 999.0);
     assert_eq!(tokens.chrome.top_bar_height, 25.0);
     assert_eq!(tokens.chrome.status_bar_height, 24.0);
@@ -59,17 +61,16 @@ fn editor_design_tokens_encode_workbench_style_notes_palette_and_density() {
     assert_eq!(tokens.chrome.splitter_hit_size, 8.0);
     assert_eq!(tokens.density.toolbar_action_width, 76.0);
     assert_eq!(tokens.density.toolbar_wide_action_width, 96.0);
-    assert_eq!(tokens.typography.ui_family, "system-ui");
-    assert_eq!(tokens.typography.code_family, "monospace");
+    assert_eq!(tokens.typography.ui_family, "Roboto");
+    assert_eq!(tokens.typography.code_family, "Droid Sans Mono");
     assert_eq!(
         tokens.typography.utility_tab_text_role,
         EditorUtilityTabTextRole::Ui
     );
-    let slate_points_to_logical_pixels = 96.0 / 72.0;
-    assert!((tokens.typography.body_size - 10.0 * slate_points_to_logical_pixels).abs() < 0.001);
-    assert!((tokens.typography.caption_size - 8.0 * slate_points_to_logical_pixels).abs() < 0.001);
-    assert!((tokens.typography.overlay_size - 9.0 * slate_points_to_logical_pixels).abs() < 0.001);
-    assert!((tokens.typography.title_size - 14.0 * slate_points_to_logical_pixels).abs() < 0.001);
+    assert!((tokens.typography.body_size - 13.333333).abs() < 0.00001);
+    assert!((tokens.typography.caption_size - 10.666667).abs() < 0.00001);
+    assert_eq!(tokens.typography.overlay_size, 12.0);
+    assert!((tokens.typography.title_size - 18.666667).abs() < 0.00001);
     assert_eq!(tokens.typography.medium_weight, 500);
     assert_eq!(tokens.typography.emphasis_weight, 700);
     assert_eq!(
@@ -77,16 +78,16 @@ fn editor_design_tokens_encode_workbench_style_notes_palette_and_density() {
         EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO
     );
     assert_eq!(tokens.density.gap_xsmall, 2.0);
-    assert_eq!(tokens.density.gap_tight, 3.0);
+    assert_eq!(tokens.density.gap_tight, 4.0);
     assert_eq!(tokens.density.gap_small, 4.0);
-    assert_eq!(tokens.density.gap_regular, 6.0);
+    assert_eq!(tokens.density.gap_regular, 8.0);
     assert_eq!(tokens.density.drawer_padding, 12.0);
-    assert_eq!(tokens.density.caption_min_height, 18.0);
-    assert_eq!(tokens.density.caption_preferred_height, 20.0);
-    assert_eq!(tokens.density.caption_max_height, 22.0);
-    assert_eq!(tokens.density.label_min_height, 20.0);
-    assert_eq!(tokens.density.label_preferred_height, 22.0);
-    assert_eq!(tokens.density.label_max_height, 28.0);
+    assert_eq!(tokens.density.caption_min_height, 20.0);
+    assert_eq!(tokens.density.caption_preferred_height, 22.0);
+    assert_eq!(tokens.density.caption_max_height, 24.0);
+    assert_eq!(tokens.density.label_min_height, 22.0);
+    assert_eq!(tokens.density.label_preferred_height, 24.0);
+    assert_eq!(tokens.density.label_max_height, 32.0);
     assert_eq!(tokens.density.chip_min_width, 40.0);
     assert_eq!(tokens.density.chip_preferred_width, 80.0);
     assert_eq!(tokens.density.chip_max_width, 160.0);
@@ -122,6 +123,7 @@ fn editor_design_tokens_default_new_chrome_tokens_for_older_payloads() {
     let expected_axis_value_field_preferred_width =
         defaults.density.axis_value_field_preferred_width;
     let expected_axis_value_field_max_width = defaults.density.axis_value_field_max_width;
+    // 移除后来加入的 token 字段，模拟旧配置载荷并检查缺省值回填。
     let mut serialized = serde_json::to_value(defaults).unwrap();
     serialized.as_object_mut().unwrap().remove("chrome");
     serialized["controls"]
@@ -447,7 +449,7 @@ fn editor_design_tokens_register_canonical_and_css_custom_property_values() {
 
     assert_eq!(
         registry.get("editor.surface.1"),
-        Some(&Value::String("#171a1d".to_string()))
+        Some(&Value::String("#242424".to_string()))
     );
     assert_eq!(
         registry.get("--editor-surface-1"),
@@ -612,7 +614,8 @@ fn editor_design_tokens_register_canonical_and_css_custom_property_values() {
         .keys()
         .filter(|name| !name.starts_with("--"))
         .count();
-    assert_eq!(canonical_token_count, 155);
+    // Input fill, tab hover and active tab text each have their own authored theme token.
+    assert_eq!(canonical_token_count, 164);
     assert_eq!(registry.len(), canonical_token_count * 2 + 26);
 
     for token_name in registry.keys().filter(|name| !name.starts_with("--")) {
@@ -669,7 +672,7 @@ fn editor_design_tokens_project_into_theme_document_without_losing_contract_valu
     assert_eq!(theme.palette.accent, tokens.palette.accent);
     assert_eq!(theme.palette.separator, tokens.palette.border);
     assert_eq!(theme.control_sizes.default_height, 32.0);
-    assert_eq!(theme.control_sizes.compact_height, 30.0);
+    assert_eq!(theme.control_sizes.compact_height, 32.0);
     assert_eq!(theme.control_sizes.dense_height, 28.0);
     assert_eq!(
         theme.spacing,
@@ -683,17 +686,18 @@ fn editor_design_tokens_project_into_theme_document_without_losing_contract_valu
             tokens.density.gap_large,
             tokens.density.drawer_padding,
             tokens.density.panel_padding,
+            tokens.density.gap_group,
         ]
     );
     assert_eq!(theme.shape.radius_panel, tokens.controls.panel_radius);
     assert!(theme
         .typography
         .iter()
-        .any(|variant| variant.variant == "body" && variant.family == "system-ui"));
+        .any(|variant| variant.variant == "body" && variant.family == "Roboto"));
     assert!(theme
         .typography
         .iter()
-        .any(|variant| variant.variant == "code" && variant.family == "monospace"));
+        .any(|variant| variant.variant == "code" && variant.family == "Droid Sans Mono"));
     assert!(theme.typography.iter().any(|variant| {
         variant.variant == "overlay"
             && variant.size == tokens.typography.overlay_size

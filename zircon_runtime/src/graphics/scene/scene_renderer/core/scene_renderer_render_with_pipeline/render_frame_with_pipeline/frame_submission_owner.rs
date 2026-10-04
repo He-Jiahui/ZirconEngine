@@ -1,8 +1,8 @@
-use crate::core::TaskPool;
 use crate::core::framework::render::{
     PostProcessGraphResourceNames, RenderCapabilitySummary, RenderFrameHistoryInput,
     RenderFrameSubmissionReceipt, RenderFrameSubmissionTransaction, RenderPipelinePhase,
 };
+use crate::core::TaskPool;
 use crate::graphics::backend::{GpuPassTimer, ViewportSurface};
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 use crate::graphics::{CompiledRenderPipeline, EnvironmentIblBakeReservation};
@@ -20,7 +20,7 @@ use super::super::super::scene_renderer_target::{
     ensure_offscreen_target, require_offscreen_target_mut,
 };
 use super::super::super::target_extent::viewport_size;
-use super::super::{AsyncViewportCaptureRequest, capture_request_was_admitted};
+use super::super::{capture_request_was_admitted, AsyncViewportCaptureRequest};
 use super::render_gpu_timing_status;
 
 impl SceneRenderer {
@@ -58,6 +58,23 @@ impl SceneRenderer {
         self.core
             .mesh_pipelines
             .drain_pipeline_creation_diagnostics();
+        if let Err(source) = self.admit_render_scene_frame(frame.extract.as_ref(), frame_generation)
+        {
+            return Err(settle_failed_frame_submissions(
+                &self.backend,
+                &mut self.streamer,
+                submission_transaction,
+                source,
+            ));
+        }
+        if let Err(source) = self.stage_pending_gpu_scene_membership() {
+            return Err(settle_failed_frame_submissions(
+                &self.backend,
+                &mut self.streamer,
+                submission_transaction,
+                source,
+            ));
+        }
         if let Err(source) = self.streamer.ensure_scene_resources(
             &self.backend,
             &self.backend.device,
@@ -282,12 +299,22 @@ impl SceneRenderer {
                 },
             ));
         }
+        if let Err(source) = self.commit_pending_gpu_scene_journals() {
+            return Err(settle_failed_frame_submissions(
+                &self.backend,
+                &mut self.streamer,
+                submission_transaction,
+                GraphicsError::FrameFailedAfterSceneSubmission {
+                    scene_submission,
+                    source: Box::new(source),
+                },
+            ));
+        }
         let mut submission_receipt = submission_transaction.finish(scene_submission)?;
+        let logical_packet_count = submission_receipt.logical_packet_count();
         submission_receipt = submission_receipt.with_submission_metrics(
-            self.backend.frame_submission_metrics_since(
-                submission_metrics_baseline,
-                submission_receipt.logical_packet_count(),
-            ),
+            self.backend
+                .frame_submission_metrics_since(submission_metrics_baseline, logical_packet_count),
         );
         self.scene_submission_completion_journal
             .track(frame_generation, scene_submission);
@@ -338,56 +365,5 @@ fn pipeline_writes_screen_space_reflection_history(pipeline: &CompiledRenderPipe
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn compiled_frame_tracks_scene_submission_after_finishing_the_receipt() {
-        let source = include_str!("frame_submission_owner.rs");
-        let production = source
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("compiled frame owner must retain a test boundary");
-        let finish = production
-            .find("submission_transaction.finish(scene_submission)")
-            .expect("compiled frame must finish its submission receipt");
-        let track = production
-            .find(".track(frame_generation, scene_submission)")
-            .expect("compiled frame must track scene completion");
-
-        assert!(finish < track);
-        assert_eq!(
-            production
-                .matches("self.poll_frame_submission_completions()?")
-                .count(),
-            1
-        );
-        assert!(production.contains("drain_pipeline_creation_diagnostics();"));
-        assert!(!production.contains("drain_pipeline_creation_diagnostics(&self.backend.device)"));
-    }
-
-    #[test]
-    fn pre_submit_failure_discards_history_whose_clear_never_reached_the_scene_packet() {
-        let source = include_str!("frame_submission_owner.rs");
-        let production = source
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("frame submission owner test boundary");
-        let prepared = production
-            .find("history_initialization_command_buffer.is_some()")
-            .expect("history clear preparation receipt");
-        let render = production
-            .find("core.render_compiled_scene(")
-            .expect("compiled scene boundary");
-        let failure = production
-            .find("if history_initialization_needs_abort_cleanup")
-            .expect("pre-submit history cleanup");
-        let remove = production[failure..]
-            .find("self.history_targets.remove(&handle)")
-            .map(|offset| failure + offset)
-            .expect("unsubmitted history must be removed");
-
-        assert!(prepared < render);
-        assert!(render < failure);
-        assert!(failure < remove);
-        assert!(production.contains("GraphicsError::FrameFailedAfterSceneSubmission"));
-    }
-}
+#[path = "tests/frame_submission_owner.rs"]
+mod tests;

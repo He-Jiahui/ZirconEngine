@@ -231,6 +231,13 @@ Completed:
 - Replaced pre-MeshDraw per-draw phase, projected-command and deferred cache-store `Vec` staging
   with fixed three-slot arrays. Full-hit and visibility-pruned extraction no longer allocate those
   temporary collections; this is a structural result only, not a measured frame-time claim.
+- Added `MeshPipelineResolverConfigurationEpoch` as the typed invalidation dimension for mutable
+  resolver policies. The registry advances it only on an actual policy transition; the static
+  command cache synchronizes once at the serial, parallel, and pre-MeshDraw build boundaries,
+  clears stale payloads and variant pins, and exports a dedicated invalidation count through
+  `MeshPassCommandBufferStats` -> `PreparedMeshQueueStats` -> `RenderStats`. The existing
+  environment-only-to-generic provider transition now changes the epoch instead of directly
+  clearing the cache, leaving one invalidation owner and no per-hit resolver hash lookup.
 - Passed scoped `rustfmt --check` and `git diff --check` for the source slice. These are static
   gates only and do not count as managed compile or runtime acceptance.
 
@@ -240,10 +247,7 @@ Pending:
 - Write successful projections directly into the generation-owned phase arena and evaluate a
   stable arena handle for cached payloads so the remaining command move and hit-path `Arc`
   reference-count clone can be removed without weakening cache-entry lifetime safety.
-- Research and implement a general static-cache resolver-configuration epoch without reintroducing
-  per-hit pass processing. The known one-way environment-profile transition now clears the cache,
-  but future mutable resolver policies still need a typed epoch and invalidation diagnostic; the
-  registry/cache owner files contain unrelated active changes and were deliberately not modified
-  for that general contract.
+- Expand the typed epoch publisher to any future mutable resolver policy owners while retaining the
+  single owner rule; do not put view-local data into the epoch or cache key.
 - Run managed current-source compile/focused/product validation, then collect genuine profile,
   RenderDoc and PNG evidence.

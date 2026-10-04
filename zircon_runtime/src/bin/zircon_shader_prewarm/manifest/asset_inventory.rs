@@ -220,5 +220,5 @@ impl ShaderPrewarmAssetInventory {
 }
 
 #[cfg(test)]
-#[path = "asset_inventory/tests.rs"]
+#[path = "asset_inventory/tests/cases.rs"]
 mod tests;

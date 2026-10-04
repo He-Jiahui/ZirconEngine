@@ -8,6 +8,11 @@ pub(super) fn route_side_activity_rails(
     x: f32,
     y: f32,
 ) -> Option<ChromePointerRoute> {
+    if crate::ui::retained_host::host_contract::componentized_workbench_regions::owns_ordinary_panes(
+        presentation,
+    ) {
+        return None;
+    }
     let scene = &presentation.host_scene_data;
     route_activity_rail(
         &scene.left_dock.region_frame,

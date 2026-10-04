@@ -19,6 +19,7 @@ mod plugin;
 mod provider;
 mod render_pass_executors;
 #[cfg(test)]
+#[path = "test_support/tests/mod.rs"]
 pub(crate) mod test_support;
 
 pub use capability::{
@@ -59,6 +60,8 @@ pub fn module_descriptor() -> zircon_runtime::core::ModuleDescriptor {
     )
 }
 
+// 图依赖按 scene-prepare、trace-schedule、resolve 顺序传递中间缓冲；
+// resolve 读取上一帧持久历史，并写入本帧 GI 光照及时间元数据。
 pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
     RenderFeatureDescriptor::new(
         HYBRID_GI_FEATURE_NAME,
@@ -173,4 +176,5 @@ pub fn hybrid_gi_runtime_provider_registration(
 }
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

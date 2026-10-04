@@ -9,11 +9,10 @@ origin_child_dir: docs/plans/woc/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/zircon-session.ps1
-  - tools/session_coordinator
+  - tools/dev/zircon-session.ps1
 tests:
-  - powershell -NoProfile -Command "& .\tools\zircon-session.ps1 -Json -Command status"
-  - powershell -NoProfile -Command "& .\tools\zircon-session.ps1 -Json -Command lease -Arguments @('claim','--session-id','<session>','<path>')"
+  - powershell -NoProfile -Command "& .\tools\dev\zircon-session.ps1 -Json -Command status"
+  - powershell -NoProfile -Command "& .\tools\dev\zircon-session.ps1 -Json -Command lease -Arguments @('claim','--session-id','<session>','<path>')"
 resolved_at: 2026-08-04
 ---
 
@@ -26,7 +25,7 @@ resolved_at: 2026-08-04
 - 来源执行切片：M7 source-first Delve admission contract / shared-file lease.
 - 修复责任计划：`docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
 - 交接原因：最低共享原因位于所有 Zircon sessions 共用的
-  `tools/zircon-session.ps1` 参数转发与终端结果契约，不属于 WOC 源码。
+  `tools/dev/zircon-session.ps1` 参数转发与终端结果契约，不属于 WOC 源码。
 
 ## 失败现象与复现证据
 
@@ -34,7 +33,7 @@ resolved_at: 2026-08-04
 报告 `status=ok`：
 
 ```powershell
-& .\tools\zircon-session.ps1 -Json -Command status
+& .\tools\dev\zircon-session.ps1 -Json -Command status
 ```
 
 终端结果：
@@ -50,7 +49,7 @@ JSON；重试同一精确 claim 后才可能返回 `{"lease":{"acquired":true,..
 
 ## 最低共享层根因
 
-`tools/zircon-session.ps1` 无条件将 `$Arguments` 拼接到 Python module argv。未传递剩余参数时，该值仍以空 CLI token
+`tools/dev/zircon-session.ps1` 无条件将 `$Arguments` 拼接到 Python module argv。未传递剩余参数时，该值仍以空 CLI token
 到达 coordinator parser；此外 wrapper 对启动前缀与实际命令 terminal envelope 没有单一可观察结果契约。WOC 不得依据
 `ready` 推断 lease 已获得，也不得以未确认写绕过 coordinator。
 

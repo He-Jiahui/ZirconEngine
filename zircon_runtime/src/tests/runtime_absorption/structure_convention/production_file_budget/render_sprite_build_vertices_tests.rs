@@ -1,10 +1,12 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0079] 精灵顶点构建的私有回归测试的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_sprite_build_vertices_tests_are_child_owner_split() {
     let parent = read_runtime_src("graphics/scene/scene_renderer/sprite/build_sprite_vertices.rs");
-    let tests =
-        read_runtime_src("graphics/scene/scene_renderer/sprite/build_sprite_vertices/tests.rs");
+    let tests = read_runtime_src(
+        "graphics/scene/scene_renderer/sprite/build_sprite_vertices/tests/cases.rs",
+    );
 
     let plan_14 =
         read_repo("docs/plans/zircon_runtime/render/14/2026-07-09-2d-stack-output-records.md");
@@ -67,7 +69,7 @@ fn runtime_15_sprite_build_vertices_tests_are_child_owner_split() {
             parent.as_str(),
         ),
         (
-            "scene_renderer/sprite/build_sprite_vertices/tests.rs",
+            "scene_renderer/sprite/build_sprite_vertices/tests/cases.rs",
             tests.as_str(),
         ),
     ] {
@@ -93,7 +95,7 @@ fn runtime_15_sprite_build_vertices_tests_are_child_owner_split() {
                 "Sprite build vertices test owner split",
                 "render_plan14_sprite_build_vertices_test_owner_split_static_passed_cargo_deferred_active_compile_lane",
                 "graphics/scene/scene_renderer/sprite/build_sprite_vertices.rs",
-                "graphics/scene/scene_renderer/sprite/build_sprite_vertices/tests.rs",
+                "graphics/scene/scene_renderer/sprite/build_sprite_vertices/tests/cases.rs",
                 "runtime_15_sprite_build_vertices_tests_are_child_owner_split",
             ],
         );

@@ -8,7 +8,7 @@ use zircon_runtime::asset::AssetUri;
 use crate::core::jobs::test_job_system;
 
 use super::super::{
-    NewProjectDraft, NewProjectTemplate, ProjectAuthority, SceneCreateRequest, SceneOpenRequest,
+    NewProjectDraft, ProjectAuthority, ProjectTemplateId, SceneCreateRequest, SceneOpenRequest,
 };
 use super::temp_root;
 
@@ -18,11 +18,19 @@ fn project_authority_opens_a_project_owned_scene_by_canonical_uri() {
     let draft = NewProjectDraft {
         project_name: "Scene Open".to_string(),
         location: location.to_string_lossy().into_owned(),
-        template: NewProjectTemplate::RenderableEmpty,
+        template: ProjectTemplateId::RenderableEmpty,
     };
-    let created = ProjectAuthority::default().create_project(&draft).unwrap();
+    let created = ProjectAuthority::default()
+        .create_project(
+            &draft,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
+        .unwrap();
     let root = created.root.clone();
-    let mut project = created.into_project();
+    let mut project = ProjectAuthority::default()
+        .open_resolved_project(created.identity())
+        .unwrap()
+        .into_project();
     project.scan_and_import().unwrap();
     let scene_uri = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
 
@@ -51,10 +59,18 @@ fn project_authority_scene_open_job_returns_the_typed_document() {
     let draft = NewProjectDraft {
         project_name: "Scene Open Job".to_string(),
         location: location.to_string_lossy().into_owned(),
-        template: NewProjectTemplate::RenderableEmpty,
+        template: ProjectTemplateId::RenderableEmpty,
     };
-    let created = ProjectAuthority::default().create_project(&draft).unwrap();
-    let mut project = created.into_project();
+    let created = ProjectAuthority::default()
+        .create_project(
+            &draft,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
+        .unwrap();
+    let mut project = ProjectAuthority::default()
+        .open_resolved_project(created.identity())
+        .unwrap()
+        .into_project();
     project.scan_and_import().unwrap();
     let scene_uri = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
     let jobs = test_job_system();
@@ -82,10 +98,18 @@ fn project_authority_creates_a_new_scene_without_overwriting_an_existing_target(
     let draft = NewProjectDraft {
         project_name: "Scene Create".to_string(),
         location: location.to_string_lossy().into_owned(),
-        template: NewProjectTemplate::RenderableEmpty,
+        template: ProjectTemplateId::RenderableEmpty,
     };
-    let created = ProjectAuthority::default().create_project(&draft).unwrap();
-    let mut project = created.into_project();
+    let created = ProjectAuthority::default()
+        .create_project(
+            &draft,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
+        .unwrap();
+    let mut project = ProjectAuthority::default()
+        .open_resolved_project(created.identity())
+        .unwrap()
+        .into_project();
     let scene_uri = AssetUri::parse("res://scenes/secondary.scene.toml").unwrap();
     let request = SceneCreateRequest::new(scene_uri.clone());
 
@@ -139,11 +163,19 @@ fn scene_creation_rejects_a_missing_parent_without_creating_it() {
     let draft = NewProjectDraft {
         project_name: "Scene Missing Parent".to_string(),
         location: location.to_string_lossy().into_owned(),
-        template: NewProjectTemplate::RenderableEmpty,
+        template: ProjectTemplateId::RenderableEmpty,
     };
-    let created = ProjectAuthority::default().create_project(&draft).unwrap();
+    let created = ProjectAuthority::default()
+        .create_project(
+            &draft,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
+        .unwrap();
     let root = created.root.clone();
-    let mut project = created.into_project();
+    let mut project = ProjectAuthority::default()
+        .open_resolved_project(created.identity())
+        .unwrap()
+        .into_project();
 
     let error = ProjectAuthority::default()
         .create_scene(
@@ -165,10 +197,18 @@ fn project_authority_rejects_a_non_scene_asset_before_loading_it() {
     let draft = NewProjectDraft {
         project_name: "Scene Kind".to_string(),
         location: location.to_string_lossy().into_owned(),
-        template: NewProjectTemplate::RenderableEmpty,
+        template: ProjectTemplateId::RenderableEmpty,
     };
-    let created = ProjectAuthority::default().create_project(&draft).unwrap();
-    let project = created.into_project();
+    let created = ProjectAuthority::default()
+        .create_project(
+            &draft,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
+        .unwrap();
+    let project = ProjectAuthority::default()
+        .open_resolved_project(created.identity())
+        .unwrap()
+        .into_project();
 
     let error = ProjectAuthority::default()
         .open_scene(

@@ -1,3 +1,4 @@
+//! 导入完整图先准备新声明及声源注册表；活动输出时更新 Kira 图并重绑声源，后续失败尝试恢复旧绑定；停机只更新服务声明。
 use std::collections::HashMap;
 
 use kira::backend::Backend;
@@ -30,6 +31,7 @@ impl DefaultSoundManager {
             };
 
             let mut state = lock_recover(&self.state);
+            state.kira.ensure_provider_not_retiring()?;
             if state.graph_revision != snapshot.revision
                 || state.kira.is_active() != snapshot.kira_active
             {

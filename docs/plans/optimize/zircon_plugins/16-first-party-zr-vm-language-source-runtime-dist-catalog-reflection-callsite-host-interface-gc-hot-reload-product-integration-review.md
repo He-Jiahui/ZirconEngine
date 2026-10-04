@@ -35,7 +35,7 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation/capabilities.rs
   - zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs
   - zircon_runtime/src/platform/tests/app_feature_manifest.rs
-  - docs/zircon_runtime/script/vm
+  - docs/crates/zircon_runtime/script/vm
   - examples/vampire/zircon-project.toml
   - examples/vampire/scripts/vampire_game/plugin.toml
   - examples/vampire/scripts/vampire_game/plugin.zrp

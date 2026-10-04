@@ -120,7 +120,7 @@ requireText(
 );
 requireText(
   world,
-  /writer\.u16\(<uint>67, 1, 1\)[\s\S]*?offlineProjectileAbilityCodes[\s\S]*?offlineProjectileRanks[\s\S]*?offlineProjectileCastTimes[\s\S]*?schemaVersion != <uint>56[\s\S]*?schemaVersion >= <uint>56[\s\S]*?reader\.u16[\s\S]*?offlineProjectileAbilityCodes\.add\(<uint>0\)/,
+  /writer\.u16\(schemaVersion, 1, 1\)[\s\S]*?offlineProjectileAbilityCodes[\s\S]*?offlineProjectileRanks[\s\S]*?offlineProjectileCastTimes[\s\S]*?schemaVersion != <uint>56[\s\S]*?schemaVersion >= <uint>56[\s\S]*?reader\.u16[\s\S]*?offlineProjectileAbilityCodes\.add\(<uint>0\)/,
   "WOS56 Frostbolt projectile closure codec or legacy migration is missing",
 );
 requireText(

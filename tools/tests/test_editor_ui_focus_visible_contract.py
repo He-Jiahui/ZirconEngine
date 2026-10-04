@@ -1,3 +1,4 @@
+# 核对键盘焦点可见性与选中、按压及语义强调使用各自的界面令牌。
 import unittest
 from pathlib import Path
 

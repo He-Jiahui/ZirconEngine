@@ -3,12 +3,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tools.plugin_structure_audits.manifest_schema import (
+from tools.audits.plugins.manifest_schema import (
     PLUGIN_DECLARATION_GENERATED_MANIFEST_HEADER,
     audit_plugin_manifest_schema,
 )
 
-
+# 用临时原生清单与头文件夹具确认新声明头被纳入生成清单，退役 SDK 头会被拒绝。
 class PluginStructureAuditManifestSchemaGeneratedHeadersTests(unittest.TestCase):
     def test_plugin_declaration_header_counts_as_generated_manifest(self):
         audit = audit_single_native_manifest(
@@ -79,7 +79,7 @@ def audit_single_native_manifest(header: str):
             encoding="utf-8",
         )
         with patch(
-            "tools.plugin_structure_audits.manifest_schema.expected_plugin_manifest_roots",
+            "tools.audits.plugins.manifest_schema.expected_plugin_manifest_roots",
             return_value=["native_dynamic_fixture"],
         ):
             return audit_plugin_manifest_schema(repo_root)

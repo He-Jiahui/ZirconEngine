@@ -1,11 +1,12 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::text::layout::{
-    CanonicalPhysicalLineFragment, TextLineMetrics,
-    shape_horizontal_physical_line_fragment_with_provider,
+    shape_horizontal_physical_line_fragment_with_provider, CanonicalPhysicalLineFragment,
+    TextLineMetrics,
 };
+use crate::text::layout_geometry::{finite_f32_or_geometry, finite_sum, FiniteGeometryAccumulator};
 use crate::text::shaping::{BidiLineOrder, TextLayoutOutcome, TextShapingOutcome};
-use crate::text::{EphemeralCacheHash, SharedTextLayoutSession, TextRange, text_style};
+use crate::text::{text_style, EphemeralCacheHash, SharedTextLayoutSession, TextRange};
 use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextDirection};
 
 use super::candidate_line::CandidateLine;
@@ -261,89 +262,47 @@ fn hash_text(text: &str) -> EphemeralCacheHash {
 }
 
 pub(super) fn visible_line_capacity(metrics: &[TextLineMetrics], frame_height: f32) -> usize {
-    let frame_height = frame_height.max(0.0);
-    let mut occupied_height = 0.0_f32;
+    let frame_height = if frame_height.is_nan() {
+        0.0
+    } else {
+        frame_height.max(0.0)
+    };
+    let mut occupied_height = FiniteGeometryAccumulator::default();
     let mut count = 0_usize;
     for metrics in metrics {
-        let line_height = metrics.line_height.max(0.0);
-        if count > 0 && occupied_height + line_height > frame_height {
+        let line_height = if metrics.line_height.is_finite() {
+            metrics.line_height.max(0.0)
+        } else {
+            0.0
+        };
+        let next_height = finite_sum([occupied_height.value(), line_height]);
+        if count > 0 && next_height > frame_height {
             break;
         }
-        occupied_height += line_height;
+        occupied_height.add(line_height);
         count = count.saturating_add(1);
     }
     count.max(1)
 }
 
 pub(super) fn maximum_line_height(metrics: &[TextLineMetrics], fallback_line_height: f32) -> f32 {
-    metrics
-        .iter()
-        .map(|metrics| metrics.line_height)
-        .fold(fallback_line_height, f32::max)
+    let fallback = finite_f32_or_geometry(
+        fallback_line_height.max(0.0),
+        f64::from(fallback_line_height).max(0.0),
+    );
+    metrics.iter().fold(fallback, |maximum, metrics| {
+        let line_height = finite_f32_or_geometry(
+            metrics.line_height.max(0.0),
+            f64::from(metrics.line_height).max(0.0),
+        );
+        maximum.max(line_height)
+    })
 }
 
 pub(super) fn total_line_height(metrics: &[TextLineMetrics]) -> f32 {
-    metrics.iter().map(|metrics| metrics.line_height).sum()
+    finite_sum(metrics.iter().map(|metrics| metrics.line_height.max(0.0)))
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::text::TextRange;
-    use zircon_runtime_interface::ui::surface::{UiTextRange, UiTextRunKind};
-
-    use super::super::candidate_line::append_segment;
-    use super::{
-        CandidateLine, fragment_input, raw_fragment_advances_are_layout_safe,
-        source_congruent_range,
-    };
-
-    #[test]
-    fn source_congruent_candidate_preserves_the_absolute_shaper_range() {
-        let mut line = CandidateLine::empty();
-        append_segment(
-            &mut line,
-            UiTextRunKind::Plain,
-            "world",
-            UiTextRange { start: 0, end: 5 },
-        );
-
-        assert_eq!(
-            source_congruent_range(&line, "world", 11),
-            Some(TextRange { start: 11, end: 16 })
-        );
-    }
-
-    #[test]
-    fn tab_containing_source_congruent_candidate_retains_a_metric_fragment_input() {
-        let mut line = CandidateLine::empty();
-        append_segment(
-            &mut line,
-            UiTextRunKind::Plain,
-            "alpha\tbeta",
-            UiTextRange { start: 0, end: 10 },
-        );
-
-        let input = fragment_input(&line, "alpha\tbeta", 0)
-            .expect("tab placement does not invalidate source-congruent font metrics");
-
-        assert_eq!(input.source_range, TextRange { start: 0, end: 10 });
-        assert_eq!(input.text, "alpha\tbeta");
-        assert!(
-            !raw_fragment_advances_are_layout_safe(&line),
-            "tab stop placement must keep owning the final x advances"
-        );
-    }
-
-    #[test]
-    fn source_congruent_range_rejects_an_unrepresentable_absolute_offset() {
-        let mut line = CandidateLine::empty();
-        append_segment(
-            &mut line,
-            UiTextRunKind::Plain,
-            "word",
-            UiTextRange { start: 0, end: 4 },
-        );
-
-        assert_eq!(source_congruent_range(&line, "word", usize::MAX), None);
-    }
-}
+#[path = "tests/physical_line_metrics_unit.rs"]
+mod tests;

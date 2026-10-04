@@ -11,6 +11,8 @@ use super::super::execute_post_process::{
 };
 
 impl ScenePostProcessResources {
+    /// coarse 图节点在整个 mip 循环前准备共享视图参数；同一循环各层只改变输入/输出视图。
+    /// 返回上传批次必须随该节点提交，循环内部不得为同一 uniform 制造逐层的提交前覆盖。
     pub(crate) fn prepare_screen_space_reflection_reflection_pyramid_coarse_params(
         &self,
         cluster_dimensions: UVec2,
@@ -47,6 +49,8 @@ impl ScenePostProcessResources {
         )
     }
 
+    /// 记录一层父 mip 的反射颜色归约；调用方按 mip 顺序提供单层源与目标视图。
+    /// 本方法消费节点已准备的参数，不重新上传；图别名策略决定首层附件操作，后续层独立存储。
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn execute_screen_space_reflection_reflection_pyramid_coarse(
         &self,
@@ -124,26 +128,5 @@ impl ScenePostProcessResources {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn coarse_pyramid_params_have_one_producer_outside_the_mip_loop() {
-        let source = include_str!(
-            "../../../graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection.rs"
-        );
-        let method = source
-            .split("fn record_screen_space_reflection_reflection_pyramid_coarse_to_resource")
-            .nth(1)
-            .expect("coarse-pyramid graph method")
-            .split("fn record_screen_space_reflection_reflection_pyramid_to_resource")
-            .next()
-            .expect("coarse-pyramid graph method end");
-
-        assert_eq!(
-            method
-                .matches("prepare_screen_space_reflection_reflection_pyramid_coarse_params(")
-                .count(),
-            1
-        );
-        assert!(method.contains("self.append_pre_submit_buffer_uploads("));
-    }
-}
+#[path = "tests/execute_screen_space_reflection_reflection_pyramid_coarse.rs"]
+mod tests;

@@ -45,5 +45,5 @@ impl DesktopExportJobQueue {
 }
 
 #[cfg(test)]
-#[path = "queries/capacity_tests.rs"]
+#[path = "queries/tests/capacity_tests.rs"]
 mod capacity_tests;

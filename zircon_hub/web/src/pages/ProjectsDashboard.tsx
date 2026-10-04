@@ -4,7 +4,7 @@ import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import SearchOffIcon from "@mui/icons-material/SearchOff";
 import { Box, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
-import { EmptyStateBlock, HubPanel, ProjectCard, ProjectCardRail, ProjectTable, QuickActions } from "../components/data";
+import { EmptyStateBlock, HubPanel, PageHeader, ProjectCard, ProjectCardRail, ProjectTable, QuickActions } from "../components/data";
 import { CreateProjectDialog, HubMenu, type HubMenuItem } from "../components/overlays";
 import { HubStatusBanner } from "../components/feedback";
 import { HubButton, ProjectsToolbar } from "../components/inputs";
@@ -25,18 +25,22 @@ export interface ProjectsDashboardProps {
 export function ProjectsDashboard({ state, onAction }: ProjectsDashboardProps) {
   const text = state.ui.projects;
   const actionText = state.ui.actions;
+  const projectRowMenuId = "hub-project-row-menu";
+  const projectBrowserRowMenuTriggerPrefix = "hub-project-browser-row-menu-trigger";
+  const recentProjectRowMenuTriggerPrefix = "hub-recent-project-row-menu-trigger";
   const tableLabels = {
     name: text.tableName,
     engineVersion: text.tableEngineVersion,
     lastModified: text.tableLastModified,
     location: text.tableLocation,
     openDetails: text.openProjectDetailsLabel,
+    menuLabel: text.projectManagement,
   };
   const [search, setSearch] = useState(state.searchQuery);
   const [filter, setFilter] = useState(state.projectFilter);
   const [sort, setSort] = useState(state.projectSort);
   const [viewMode, setViewMode] = useState(state.projectViewMode);
-  const [rowMenu, setRowMenu] = useState<{ anchor: HTMLElement; project: HubRecentProject } | null>(null);
+  const [rowMenu, setRowMenu] = useState<{ anchor: HTMLElement; project: HubRecentProject; triggerId: string } | null>(null);
   const dispatchProjectSearch = useDebouncedProjectSearch((query) => {
     void onAction(HUB_ACTION.searchProjects, undefined, { query });
   });
@@ -115,25 +119,21 @@ export function ProjectsDashboard({ state, onAction }: ProjectsDashboardProps) {
           },
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, mb: 2.3 }}>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="h4">{text.title}</Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mt: 0.9 }}>
-              {state.pageSubtitle}
-            </Typography>
-          </Box>
-          <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        <PageHeader title={text.title} subtitle={state.pageSubtitle} actions={<>
             <HubButton startIcon={<DownloadIcon />} sx={{ minWidth: 172 }} onClick={() => void onAction(HUB_ACTION.importProject)}>
               {actionText.importProject}
             </HubButton>
             <HubButton tone="primary" startIcon={<AddIcon />} sx={{ minWidth: 208 }} onClick={() => void onAction(HUB_ACTION.newProject)}>
               {actionText.newProject}
             </HubButton>
-          </Box>
-        </Box>
+          </>} />
 
         <Box sx={{ mb: 1.4 }}>
-          <HubStatusBanner task={state.taskSummary} />
+          <HubStatusBanner
+            task={state.taskSummary}
+            cancelLabel={state.ui.common.cancelTask}
+            onCancel={() => void onAction(HUB_ACTION.cancelBackgroundTask, String(state.taskSummary.taskId))}
+          />
         </Box>
 
         <ProjectsToolbar
@@ -177,7 +177,10 @@ export function ProjectsDashboard({ state, onAction }: ProjectsDashboardProps) {
                 labels={tableLabels}
                 onSelect={(project) => void onAction(HUB_ACTION.selectProject, project.id)}
                 onOpenDetail={(project) => void onAction(HUB_ACTION.openProjectDetail, project.id)}
-                onRowMenu={(project, anchor) => setRowMenu({ anchor, project })}
+                onRowMenu={(project, anchor, triggerId) => setRowMenu({ anchor, project, triggerId })}
+                menuId={projectRowMenuId}
+                menuTriggerPrefix={projectBrowserRowMenuTriggerPrefix}
+                menuOpenTriggerId={rowMenu?.triggerId || null}
               />
             </HubPanel>
           </Box>
@@ -230,7 +233,10 @@ export function ProjectsDashboard({ state, onAction }: ProjectsDashboardProps) {
               labels={tableLabels}
               onSelect={(project) => void onAction(HUB_ACTION.selectProject, project.id)}
               onOpenDetail={(project) => void onAction(HUB_ACTION.openProjectDetail, project.id)}
-              onRowMenu={(project, anchor) => setRowMenu({ anchor, project })}
+              onRowMenu={(project, anchor, triggerId) => setRowMenu({ anchor, project, triggerId })}
+              menuId={projectRowMenuId}
+              menuTriggerPrefix={recentProjectRowMenuTriggerPrefix}
+              menuOpenTriggerId={rowMenu?.triggerId || null}
             />
           </HubPanel>
 
@@ -255,6 +261,8 @@ export function ProjectsDashboard({ state, onAction }: ProjectsDashboardProps) {
         <HubMenu
           anchorEl={rowMenu.anchor}
           open
+          id={projectRowMenuId}
+          ariaLabel={`${text.projectManagement}: ${rowMenu.project.name}`}
           items={rowMenuItems(rowMenu.project)}
           onClose={() => setRowMenu(null)}
           onSelect={(itemId) => handleRowMenuSelect(rowMenu.project, itemId)}

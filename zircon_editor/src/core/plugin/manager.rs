@@ -285,6 +285,8 @@ impl EditorPluginManager {
     }
 
     /// Changes the desired activation state without rebuilding descriptor data.
+    /// 调整期望启用状态；需要时同步执行管理器保留的生命周期阶段，并在状态或目录变化时发布配对的目录/活动扩展视图。
+    /// 插件回调运行中再次变更返回 MutationInProgress，调用方不能假定请求排队。
     pub fn set_enabled(
         &self,
         package_id: &str,
@@ -375,6 +377,7 @@ impl EditorPluginManager {
     ///
     /// Activation stages remain manager-owned; every other stage observes the same immutable
     /// active set, so a failing callback cannot prevent later active plugins from receiving it.
+    /// 向本次快照的 Active 集合逐个投递外部事件；单个回调失败只故障化自身，随后统一发布新代。
     pub fn dispatch_lifecycle_event_to_active(
         &self,
         event: EditorPluginLifecycleEvent,
@@ -422,6 +425,7 @@ impl EditorPluginManager {
         Ok(report)
     }
 
+    // 生命周期互斥锁保护的发布点；必要时先发布新目录，再把管理器条目和同代活动扩展一次性换入读模型。
     fn publish_manager_snapshot(
         &self,
         previous: &EditorPluginManagerSnapshot,
@@ -453,4 +457,5 @@ impl EditorPluginManager {
     }
 }
 #[cfg(test)]
+#[path = "manager/tests/cases.rs"]
 mod tests;

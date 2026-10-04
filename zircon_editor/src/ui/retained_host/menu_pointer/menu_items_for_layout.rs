@@ -4,7 +4,7 @@ use super::host_menu_pointer_layout::HostMenuPointerLayout;
 use super::menu_item_spec::MenuItemSpec;
 
 #[cfg(test)]
-#[path = "menu_items_for_layout/preset_capacity_tests.rs"]
+#[path = "menu_items_for_layout/tests/preset_capacity_tests.rs"]
 mod preset_capacity_tests;
 
 pub(in crate::ui::retained_host::menu_pointer) fn menu_items_for_layout<'a>(
@@ -57,7 +57,7 @@ pub(in crate::ui::retained_host::menu_pointer) fn menu_items_for_layout<'a>(
             items.push(menu_action(
                 format!(
                     "workbench.layout.preset.save.{}",
-                    layout.resolved_preset_name
+                    layout.resolved_preset_name.as_ref()
                 ),
                 true,
             ));

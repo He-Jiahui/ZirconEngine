@@ -1,3 +1,4 @@
+from tools.tests.rust_test_files import read_rust_test_file
 import unittest
 from pathlib import Path
 
@@ -32,7 +33,7 @@ class PlaySessionControllerContractTests(unittest.TestCase):
     def test_controller_owns_edit_building_playing_transitions(self) -> None:
         mode = self.source("core/play/mode.rs")
         controller = self.source("core/play/controller.rs")
-        tests = self.source("core/play/tests.rs")
+        tests = self.source("core/play/tests/cases.rs")
 
         for variant in ("Edit", "Building", "Playing"):
             self.assertIn(variant, mode)
@@ -92,7 +93,7 @@ class PlaySessionControllerContractTests(unittest.TestCase):
         shutdown = self.source(
             "ui/host/editor_host_event_controller/runtime_shutdown.rs"
         )
-        core_controller = self.source("core/play/controller.rs")
+        core_controller = self.source("core/play/controller/runtime_ownership.rs")
         host_controller = self.source("ui/host/editor_host_event_controller.rs")
         menu = self.source("ui/host/editor_event_execution/menu_action.rs")
 
@@ -100,7 +101,7 @@ class PlaySessionControllerContractTests(unittest.TestCase):
         self.assertIn("fn detach_terminal_play_gateway", core_controller)
         self.assertIn("if mode.has_active_runtime()", core_controller)
         self.assertIn("detach_matching_identity", core_controller)
-        self.assertIn("detach_terminal_play_gateway", host_controller)
+        self.assertIn("detach_terminal_play_gateway", read_rust_test_file("zircon_editor/src/ui/host/tests/editor_host_event_controller_lifecycle_contract_tests.rs"))
         self.assertGreaterEqual(menu.count("detach_terminal_play_gateway"), 2)
 
 

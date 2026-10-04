@@ -1,3 +1,5 @@
+//! 布局组件把响应式值和过渡状态映射成样式选择器类名；同一约定也用于 Collapse 的包装 slot。
+
 use std::collections::BTreeMap;
 
 use toml::Value;
@@ -7,6 +9,7 @@ use super::{append_class, bool_attribute, bool_attribute_any, int_attribute_any,
 
 const BREAKPOINTS: &[&str] = &["xs", "sm", "md", "lg", "xl"];
 
+/// 样式应用入口先尝试布局组件分发；返回已处理会停止后续组件族分发；通用类的抑制由独立查询决定。
 pub(super) fn append_layout_component_classes(
     node: &mut UiTemplateNode,
     component: &str,
@@ -51,6 +54,7 @@ pub(super) fn append_layout_component_classes(
     }
 }
 
+/// 用父 Collapse 的方向为 wrapper slot 添加类名；调用时子节点尚未进入自己的选择器匹配。
 pub(super) fn append_layout_slot_classes(
     child: &mut UiTemplateNode,
     owner_component: &str,
@@ -278,6 +282,7 @@ fn scalar_attribute_present(node: &UiTemplateNode, names: &[&str]) -> bool {
     })
 }
 
+// 隐藏类仅用于退出且收缩到零的 Collapse；默认大小视作零是现有布局样式测试确认的契约。
 fn collapse_size_is_zero(attributes: &BTreeMap<String, Value>) -> bool {
     borrowed_collapse_attribute_from_attributes(attributes, &["collapsedSize", "collapsed_size"])
         .map(|value| matches!(value, "0" | "0px" | "0.0" | "0.0px"))
@@ -301,6 +306,7 @@ fn borrowed_collapse_attribute_from_attributes<'a>(
     })
 }
 
+// 不同布局属性复用同一断点展开流程，但对 false 和非正数的可接受性不同。
 #[derive(Clone, Copy, Default)]
 struct ResponsiveClassOptions {
     skip_false: bool,
@@ -324,7 +330,7 @@ impl ResponsiveClassOptions {
 }
 
 #[cfg(test)]
-#[path = "mui_layout_classes/borrowed_collapse_tests.rs"]
+#[path = "mui_layout_classes/tests/borrowed_collapse_tests.rs"]
 mod borrowed_collapse_tests;
 
 fn append_responsive_value_classes(

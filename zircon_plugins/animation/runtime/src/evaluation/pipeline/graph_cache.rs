@@ -1,3 +1,4 @@
+//! 图编译缓存以图和骨架修订失效，帧内参数求值缓存按参数内容复用；所有采样都依赖资源快照。
 use std::sync::Arc;
 
 use zircon_runtime::asset::{AssetId, ProjectAssetManager};
@@ -26,6 +27,7 @@ pub(super) struct CachedCompiledGraph {
 }
 
 impl AnimationEvaluationPipeline {
+    /// 仅在已开始的当前评估帧内共享参数结果；帧开始时必须清空临时求值缓存。
     pub(super) fn evaluate_graph(
         &mut self,
         assets: &ProjectAssetManager,
@@ -114,35 +116,5 @@ fn load_skeleton_snapshot(
 }
 
 #[cfg(test)]
-mod optimization_tests {
-    #[test]
-    fn optimization_batch_20260830cg_graph_cache_checks_resident_snapshots_first() {
-        let source = include_str!("graph_cache.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("production source");
-
-        for (start, end, loader) in [
-            (
-                "fn load_graph_snapshot(",
-                "fn load_skeleton_snapshot(",
-                "load_animation_graph_asset",
-            ),
-            (
-                "fn load_skeleton_snapshot(",
-                "#[cfg(test)]",
-                "load_animation_skeleton_asset",
-            ),
-        ] {
-            let start = source.find(start).expect("snapshot helper");
-            let helper = production.get(start..).unwrap_or(&source[start..]);
-            let helper = helper.split(end).next().expect("snapshot helper boundary");
-            assert!(
-                helper.find("resources.snapshot").expect("resident lookup")
-                    < helper.find(loader).expect("loader fallback")
-            );
-            assert!(helper.contains(".or_else(||"));
-        }
-    }
-}
+#[path = "tests/graph_cache_optimization_tests.rs"]
+mod optimization_tests;

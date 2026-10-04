@@ -1,3 +1,4 @@
+# 核对设置注册表、快照及权威状态的模块归属与原有公共入口的边界。
 from pathlib import Path
 import unittest
 

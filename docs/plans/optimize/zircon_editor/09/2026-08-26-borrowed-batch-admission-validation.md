@@ -17,10 +17,10 @@ ledger when a prepared reservation batch is validated. It does not change admiss
 reservation identity, request ownership, validation order, age or byte accounting, error types,
 atomic commit and rollback behavior, public APIs, or the existing slice-based forwarding contract.
 
-The adjacent `pending.rs` forwarding path already has unrelated active work and is deliberately not
-part of this candidate. That path still materializes one request-reference vector before the first
-preflight. This slice reduces the full reservation call from two temporary reference-vector
-allocations to one without editing or depending on that active file.
+The adjacent `pending.rs` forwarding path was deliberately left outside the original candidate
+because it had unrelated active work. Follow-up record Editor931 now converges that forwarding
+path and its state caller on the same borrowed iterator, removing the remaining first-preflight
+reference-vector allocation as a separate source-stable extension.
 
 ## Change
 
@@ -28,6 +28,8 @@ allocations to one without editing or depending on that active file.
 - A private cloned exact-size iterator helper preserves the existing two-pass age and byte checks.
 - The existing `&[&EditorJobAdmissionRequest]` method delegates through `iter().copied()`, so callers
   and the dirty forwarding layer retain the same signature and behavior.
+- Editor931 adds the `pending.rs` forwarding iterator and changes `state.rs` to pass `requests.iter()`
+  directly, preserving this slice contract while removing the caller-side temporary vector.
 - Existing Rust tests remain the behavior oracle for atomic rejection, held capacity, Drop release,
   and shutdown release. A Python source contract prevents the ledger-local collector from returning.
 
@@ -66,5 +68,5 @@ The managed gate requires exact allocation counts of 65,536 and 0, an identical 
 
 Editor09 still owns bounded lifecycle history, retry and persistence policy, dependency failure
 semantics, plugin lifecycle, product shutdown barriers, resource-vector admission, async observer
-fan-out, and long-session stress qualification. The adjacent first-preflight reference
-materialization remains available for its current owner to remove after that active file converges.
+fan-out, and long-session stress qualification. Editor931's follow-up remains pending the same
+managed Cargo and Release performance gates as this original slice.

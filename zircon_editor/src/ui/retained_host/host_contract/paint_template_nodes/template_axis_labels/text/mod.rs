@@ -1,3 +1,6 @@
+//! 轴标签优先显示节点声明文本，空文本才回退到 ID 所代表的 X/Y/Z；创建单行文字命令后抑制普通标签回退。
+//! text rect 与祖先 clip 必须对应当前节点槽。
+
 mod geometry;
 mod style;
 
@@ -53,30 +56,5 @@ fn axis_label_text<'a>(node: &'a TemplatePaneNodeData, axis: &'a str) -> &'a str
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn text_node(control_id: &str, text: &str) -> TemplatePaneNodeData {
-        TemplatePaneNodeData {
-            control_id: control_id.into(),
-            role: "Label".into(),
-            text: text.into(),
-            ..TemplatePaneNodeData::default()
-        }
-    }
-
-    #[test]
-    fn axis_label_text_uses_trimmed_declared_text_or_axis_fallback() {
-        assert_eq!(
-            axis_label_text(
-                &text_node("WorkbenchTransformPositionAxisX", "  Position X  "),
-                "X",
-            ),
-            "Position X"
-        );
-        assert_eq!(
-            axis_label_text(&text_node("WorkbenchTransformRotationAxisY", "   "), "Y"),
-            "Y"
-        );
-    }
-}
+#[path = "tests/cases.rs"]
+mod tests;

@@ -92,18 +92,18 @@ class Editor07TimelineGenerationContractTests(unittest.TestCase):
         self.assertIn("tick.label()", text)
 
     def test_behavior_suite_covers_static_dynamic_and_visual_budget_boundaries(self) -> None:
-        tests = source("zircon_editor/src/ui/timeline_strip/tests.rs")
+        tests = source("zircon_editor/src/ui/timeline_strip/tests/cases.rs")
 
         for test_name in [
-            "ticks_are_preformatted_once_per_visual_budget",
-            "scrub_changes_only_dynamic_generation",
-            "reprojection_reuses_static_content_for_scrub",
-            "track_or_tick_changes_update_static_generation",
-            "key_geometry_changes_static_and_selection_changes_dynamic",
-            "visual_budget_is_bounded_and_preserves_endpoints",
-            "visual_budget_clamps_to_the_hard_cap",
-            "visual_budget_cache_is_bounded",
-            "invalid_input_is_normalized",
+            "optimization_wave_20260824tu_editor75_ticks_are_preformatted_once_per_visual_budget",
+            "optimization_wave_20260824tu_editor75_scrub_changes_only_dynamic_generation",
+            "optimization_wave_20260824tu_editor75_reprojection_reuses_static_content_for_scrub",
+            "optimization_wave_20260824tu_editor75_track_or_tick_changes_update_static_generation",
+            "optimization_wave_20260824tu_editor75_key_geometry_changes_static_and_selection_changes_dynamic",
+            "optimization_wave_20260824tu_editor75_visual_budget_is_bounded_and_preserves_endpoints",
+            "optimization_wave_20260824tu_editor75_visual_budget_clamps_to_the_hard_cap",
+            "optimization_wave_20260824tu_editor75_visual_budget_cache_is_bounded",
+            "optimization_wave_20260824tu_editor75_invalid_input_is_normalized",
         ]:
             self.assertIn(f"fn {test_name}", tests)
 

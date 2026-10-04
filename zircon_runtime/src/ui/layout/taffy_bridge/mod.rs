@@ -1,4 +1,5 @@
 mod compute;
+mod product_cache;
 
 use taffy::style::{Display, Style};
 use zircon_runtime_interface::ui::layout::{
@@ -11,11 +12,18 @@ pub(crate) use compute::{
     taffy_supports_slot_alignment, taffy_supports_slot_layout_values, taffy_supports_slot_padding,
     TaffyChildLayoutInput, TaffyLayoutBridgeScratch,
 };
+pub(crate) use product_cache::{TaffyParentProductCache, TaffyParentProductUpdate};
 
 use super::style_mapping::{
     taffy_display_for_family as mapped_taffy_display_for_family, taffy_style_from_ui_layout_style,
     ui_layout_style_from_container,
 };
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum UiTaffyChildContractScope {
+    Full,
+    Exact,
+}
 
 /// Converts the subset of Zircon layout contracts that can be solved by Taffy.
 /// Overlay, Canvas, Popup, Scroll, and VirtualList stay outside this bridge by design.

@@ -51,7 +51,7 @@ pub fn run_retained_host_automation(
     runtime_gateway: SharedEditorRuntimeGateway,
     config: EditorHostRunConfig,
     bindings: &[EditorUiBinding],
-) -> Result<RetainedHostAutomationResult, Box<dyn Error>> {
+) -> Result<RetainedHostAutomationResult, Box<dyn Error + Send + Sync>> {
     let play_backend = config.play_backend();
     let (startup_request, _, editor_plugin_registrations, project_runtime_build_set, hub_handshake) =
         config.into_parts();
@@ -101,11 +101,11 @@ pub fn run_retained_host_automation(
     retained_host.sync_plugin_template_documents_if_changed()?;
 
     let host = std::rc::Rc::new(std::cell::RefCell::new(retained_host));
-    wire_callbacks(&ui, &host);
+    wire_callbacks(&ui, &host, None);
     host.borrow_mut().self_handle = Some(std::rc::Rc::downgrade(&host));
     host.borrow_mut().refresh_ui();
 
-    let result: Result<RetainedHostAutomationResult, Box<dyn Error>> =
+    let result: Result<RetainedHostAutomationResult, Box<dyn Error + Send + Sync>> =
         if let Some(error) = ui.take_fatal_failure() {
             Err(format!("retained-host automation initialization failed: {error}").into())
         } else {
@@ -155,7 +155,7 @@ fn invoke_automation_callbacks(
     ui: &UiHostWindow,
     host: &std::rc::Rc<std::cell::RefCell<RetainedEditorHost>>,
     bindings: &[EditorUiBinding],
-) -> Result<RetainedHostAutomationResult, Box<dyn Error>> {
+) -> Result<RetainedHostAutomationResult, Box<dyn Error + Send + Sync>> {
     let pane_surface_host = ui.global::<PaneSurfaceHostContext>();
     let mut records = Vec::new();
     for (index, binding) in bindings.iter().enumerate() {
@@ -193,15 +193,7 @@ fn invoke_automation_callbacks(
 
     let host = host.borrow();
     let editor_snapshot = host.runtime.editor_snapshot();
-    let project_info = host
-        .startup_session
-        .project
-        .as_ref()
-        .ok_or_else(|| {
-            "retained-host automation completed without an authoritative project".to_string()
-        })?
-        .project_info
-        .clone();
+    let project_info = authoritative_project_info(&host)?;
     let project_scene = host
         .runtime
         .project_scene_snapshot()
@@ -234,33 +226,21 @@ fn invoke_automation_callbacks(
     })
 }
 
-#[cfg(test)]
-mod hub_handshake_tests {
-    use std::str::FromStr;
-
-    use zircon_runtime_interface::hub_protocol::HubSessionToken;
-
-    use super::reject_automation_hub_handshake;
-
-    #[test]
-    fn automation_rejects_a_hub_handshake_instead_of_dropping_its_terminal_outcome() {
-        let handshake = super::super::HubEditorHandshake::new(
-            "E:/Projects/Automation",
-            HubSessionToken::from_str("0d9a5890-0e44-4e2a-b77e-3e5d4fdf1e52")
-                .expect("valid Hub session token"),
-        );
-
-        let error = reject_automation_hub_handshake(Some(handshake))
-            .expect_err("automation cannot report the interactive Hub ready outcome");
-
-        assert!(error.to_string().contains("cannot acknowledge"));
-    }
-
-    #[test]
-    fn automation_allows_a_regular_non_hub_config() {
-        assert!(reject_automation_hub_handshake(None).is_ok());
-    }
+pub(in crate::ui::retained_host::app) fn authoritative_project_info(
+    host: &RetainedEditorHost,
+) -> Result<ProjectInfo, Box<dyn Error + Send + Sync>> {
+    // Startup transfers its project document into the live host state before callbacks run.
+    let asset_manager = host.asset_runtime_access.asset_manager()?;
+    asset_manager.current_project().ok_or_else(|| {
+        "retained-host automation completed without an authoritative project"
+            .to_string()
+            .into()
+    })
 }
+
+#[cfg(test)]
+#[path = "tests/automation_hub_handshake_tests.rs"]
+mod hub_handshake_tests;
 
 pub(super) fn normalize_cli_action_records(
     index: usize,
@@ -366,9 +346,8 @@ fn hierarchy_pointer_coordinates(
 ) -> Result<(f32, f32, f32, f32), String> {
     let mut host = host.borrow_mut();
     host.refresh_ui();
-    let width = host.hierarchy_pointer_size.width;
-    let height = host.hierarchy_pointer_size.height;
-    let rows = host.prepare_hierarchy_pointer_target(width, height, false);
+    let cached_size = host.hierarchy_pointer_size;
+    let rows = host.prepare_hierarchy_pointer_target(cached_size.width, cached_size.height, false);
     let index = rows
         .iter()
         .position(|row| row.entity == node_id)
@@ -382,6 +361,23 @@ fn hierarchy_pointer_coordinates(
         index,
         host.hierarchy_pointer_state.scroll_offset,
     ) + metrics.row_height * 0.5;
+    let mut width = host.hierarchy_pointer_size.width;
+    let mut height = host.hierarchy_pointer_size.height;
+    if width <= 0.0 || height <= 0.0 {
+        // Commandlets do not show a native window, so its callback surface may be unmeasured.
+        // Give the real hierarchy pointer route enough virtual space for the requested row.
+        if width <= 0.0 {
+            width = metrics.row_x + metrics.row_width_inset + metrics.row_height;
+        }
+        if height <= 0.0 {
+            height = crate::ui::retained_host::hierarchy_pointer::hierarchy_content_height(
+                rows.len(),
+                metrics,
+            )
+            .max(y + 1.0);
+        }
+        host.prepare_hierarchy_pointer_target(width, height, false);
+    }
     if width <= 0.0 || height <= 0.0 || x >= width || y < 0.0 || y >= height {
         return Err(format!(
             "requested scene node {node_id} resolved to hierarchy row {index}, but that retained surface row is outside its current callback bounds {width}x{height}"

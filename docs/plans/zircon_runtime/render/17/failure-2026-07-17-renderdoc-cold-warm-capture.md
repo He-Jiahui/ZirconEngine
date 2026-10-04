@@ -63,3 +63,87 @@ regressions pass 3/3 and cover both unavailable cases plus measured ordering and
 total duration. This removes one evidence-integrity defect but does not provide
 the missing current-source cold/settled-warm captures or replay metrics, so the
 failure remains `open`.
+
+### 2026-09-19 rolling validation admission
+
+Successor Session `failure-roll-01a084c8-render17-renderdoc-cold-warm-r1` claimed
+the failure record, audit script, and audit regression under the coordinator at
+baseline epoch `611`. The exact current-source hashes are:
+
+- `docs/plans/zircon_runtime/render/17/failure-2026-07-17-renderdoc-cold-warm-capture.md`:
+  `877b40a2e150fee597ed99135e4d529aff04acca7c2e813cc417216bca53d0ac`;
+- `docs/plans/performance/01/renderdoc_capture_audit.py`:
+  `76dbb6bce9e383553ebc5a9b085502f944905363e4e468f79241e15187a3e1a8`;
+- `tools/tests/test_renderdoc_capture_audit.py`:
+  `aa6e589231d25edb280e637f44783c307d881b6c04afda31523bd2e5e662f03c`.
+
+`python -B -m py_compile docs/plans/performance/01/renderdoc_capture_audit.py`
+passed, and the exact regression command
+`python -B -m unittest tools.tests.test_renderdoc_capture_audit -v` executed
+all `3/3` tests with exit `0`. A source-contract probe also confirmed that both
+unavailable GPU-duration states retain `total_ms: null` and the measured state
+remains explicit. This is lower audit evidence only: no current-source Cargo
+run, PNG/RDC pair, RenderDoc replay, draw/dispatch/copy report, upload-byte
+measurement, or GPU timing result was produced. The lifecycle therefore remains
+`open` and is not eligible for fixed return or closeout.
+
+The coordinator accepted static audit ticket `15773b0d10864c398a11f1f8473f8b6c`
+for this exact three-file manifest (`source_manifest_hash`
+`8f613e77d60f3177beb3db973862c63bfdb728bba50a4b8de1aa6d6d0dbf6e94`). Its
+command runs the three-test audit regression and `py_compile` on Windows; the
+ticket deliberately declares `upwardAcceptance: false` and defers all current
+source Cargo/WGPU and RenderDoc capture/replay evidence. It is queued for the
+coordinator worker and cannot be reused as a product acceptance result.
+
+The static audit ticket completed on managed job/run
+`f28436a1784d4189b15ee85e63616736` with exit code 0. Ticket
+`15773b0d10864c398a11f1f8473f8b6c` emitted the three-test receipt (including
+the measured and unavailable GPU-duration cases) and cleanup completed. This
+does not provide a PNG/RDC pair, RenderDoc replay, WGPU/Cargo run or GPU timing
+evidence; those gates, independent review, fixed return and closeout remain
+pending.
+
+### 2026-09-19 duplicate static audit receipt
+
+The same fixing Session `failure-roll-01a084c8-render17-renderdoc-cold-warm-r1`
+also retained ticket `f639349d70b14eeab4bd2783fdc55ce1` as an independent
+coordinator run. Managed copy job
+`6b040e6d0ca34e2b9e50a33d6e3a4298` and run
+`f639349d70b14eeab4bd2783fdc55ce1` exited 0; the three audit regressions
+(`test_gpu_duration_reports_counter_not_exposed`,
+`test_gpu_duration_reports_exposed_counter_without_samples`, and
+`test_gpu_duration_reports_measured_samples`) all passed. This is a duplicate
+static audit receipt, not product acceptance: current-source Cargo/WGPU,
+cold/history-transition/settled-warm PNG and RDC capture, replay metrics,
+independent zero-finding review, canonical `failure return`, and closeout
+remain pending.
+
+### 2026-09-20 independent source review r1
+
+Reviewer session `review-render17-renderdoc-cold-warm-r1` completed a read-only
+review of the current audit implementation with `Critical=0 / Important=0 /
+Moderate=0`. The review checked the recursive action-tree walk and event map,
+copy-source/destination attribution, draw/dispatch/copy/clear/present counts,
+counter enumeration, and the explicit GPU-duration states
+`unavailable_counter_not_exposed`, `unavailable_no_samples`, and `available`.
+Unavailable states preserve `sample_count=0`, `top_25=[]`, and
+`gpu_duration_total_ms=null`; measured samples are sorted by duration and
+aggregated without converting missing values into a fabricated zero. The
+current exact commands also passed:
+
+```text
+python -B -m py_compile docs/plans/performance/01/renderdoc_capture_audit.py
+python -B -m unittest tools.tests.test_renderdoc_capture_audit -v   # 3/3
+```
+
+The reviewed source hashes were:
+
+```text
+docs/plans/performance/01/renderdoc_capture_audit.py  76dbb6bce9e383553ebc5a9b085502f944905363e4e468f79241e15187a3e1a8
+tools/tests/test_renderdoc_capture_audit.py            aa6e589231d25edb280e637f44783c307d881b6c04afda31523bd2e5e662f03c
+```
+
+This receipt is limited to the audit layer. It does not claim a current-source
+RenderDoc cold/history-transition/settled-warm capture, PNG/RDC pair, replay
+metrics, Cargo/WGPU result, or performance threshold; those gates, canonical
+`fixed-*` return, and closeout remain pending.

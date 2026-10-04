@@ -1,3 +1,4 @@
+# 核对调试反射器验证所选节点并借用文本行，避免建立完整节点索引。
 from pathlib import Path
 import unittest
 

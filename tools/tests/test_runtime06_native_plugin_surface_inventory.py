@@ -34,14 +34,9 @@ EXPECTED_NATIVE_SYMBOL_GROUPS = {
     "native-loader-discovery-public-debt",
 }
 EXPECTED_APP_NATIVE_PLUGIN_FILES = [
-    "zircon_app/src/entry/entry_runner/bootstrap.rs",
-    "zircon_app/src/entry/entry_runner/editor/tests/gui_startup.rs",
-    "zircon_app/src/entry/entry_runner/mod.rs",
     "zircon_app/src/entry/export_bootstrap.rs",
-    "zircon_app/src/entry/mod.rs",
-    "zircon_app/src/entry/tests/profile_bootstrap.rs",
-    "zircon_app/src/lib.rs",
-    "zircon_app/src/prelude.rs",
+    "zircon_app/src/entry/product_composition/composition.rs",
+    "zircon_app/src/entry/product_composition/request.rs",
 ]
 
 
@@ -50,7 +45,7 @@ class Runtime06NativePluginSurfaceInventoryTests(unittest.TestCase):
         report = native_plugin_public_surface_audit(REPO_ROOT)
 
         self.assertEqual(0, report["root_reexport_count"])
-        self.assertEqual(74, report["native_namespace_reexport_count"])
+        self.assertEqual(86, report["native_namespace_reexport_count"])
         self.assertEqual([], report["unclassified_native_namespace_symbols"])
         self.assertEqual(
             EXPECTED_NATIVE_SYMBOL_GROUPS,
@@ -62,6 +57,11 @@ class Runtime06NativePluginSurfaceInventoryTests(unittest.TestCase):
         self.assertNotIn("NativeHostApiV3RegistrationScope", host_api_symbols)
         self.assertIn("NativeHostApiV4RegistrationPolicy", host_api_symbols)
         self.assertIn("NativeHostApiV4RegistrationScope", host_api_symbols)
+        live_host_symbols = report["native_namespace_symbol_decision_groups"][
+            "native-live-host-runtime-public-debt"
+        ]
+        self.assertIn("NativePluginEditorCommandBinding", live_host_symbols)
+        self.assertIn("NativePluginEditorCommandBindingError", live_host_symbols)
         self.assertEqual([], report["risks"])
 
     def test_v2_descriptor_entry_dtos_aliases_and_fixture_feature_are_hard_cut(self) -> None:
@@ -90,16 +90,37 @@ class Runtime06NativePluginSurfaceInventoryTests(unittest.TestCase):
     def test_runtime06_lifecycle_inventory_tracks_all_current_app_call_sites(self) -> None:
         report = plugin_surface_lifecycle_boundary_audit(REPO_ROOT)
 
-        self.assertEqual(74, report["native_namespace_reexport_count"])
-        self.assertEqual(74, report["expected_native_namespace_reexport_count"])
-        self.assertEqual(17, len(report["source_files"]))
-        self.assertEqual(17, report["expected_source_file_count"])
+        self.assertEqual(86, report["native_namespace_reexport_count"])
+        self.assertEqual(86, report["expected_native_namespace_reexport_count"])
+        self.assertEqual(20, len(report["source_files"]))
+        self.assertEqual(20, report["expected_source_file_count"])
         self.assertEqual(6, report["expected_native_namespace_symbol_group_count"])
         self.assertEqual(6, report["native_namespace_symbol_group_count"])
         self.assertEqual(EXPECTED_APP_NATIVE_PLUGIN_FILES, report["app_native_plugin_files"])
-        self.assertEqual(8, report["app_native_plugin_file_count"])
-        self.assertEqual(8, report["expected_app_native_plugin_file_count"])
+        self.assertEqual(3, report["app_native_plugin_file_count"])
+        self.assertEqual(3, report["expected_app_native_plugin_file_count"])
         self.assertEqual([], report["risks"])
+
+    def test_native_namespace_inventory_counts_all_reexport_blocks(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            plugin_root = root / "zircon_runtime/src/plugin"
+            plugin_root.mkdir(parents=True)
+            (plugin_root / "mod.rs").write_text("pub mod native;\n", encoding="utf-8")
+            (plugin_root / "native.rs").write_text(
+                "pub use super::native_plugin_loader::{NativePluginLoader};\n"
+                "pub use super::native_plugin_loader::{NativePluginArtifactAuthority};\n",
+                encoding="utf-8",
+            )
+
+            report = native_plugin_public_surface_audit(root)
+
+            self.assertEqual(
+                ["NativePluginArtifactAuthority", "NativePluginLoader"],
+                report["native_namespace_symbols"],
+            )
+            self.assertEqual(2, report["native_namespace_reexport_count"])
+            self.assertEqual([], report["unclassified_native_namespace_symbols"])
 
     def test_root_hard_cut_detects_alternate_native_reexport_syntax(self) -> None:
         variants = (

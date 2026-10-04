@@ -1,0 +1,41 @@
+penpot_original_source = "[asset]\r\nkind = \"view\"\r\nid = \"navigation.navmesh_modifier.drawer\"\r\nversion = 2\r\ndisplay_name = \"NavMeshModifier\"\r\n\r\n[imports]\r\nstyles = [\"res://ui/theme/editor_base.zui\"]\r\n\r\n[root]\r\nnode = \"navigation_navmesh_modifier_drawer_root\"\r\n\r\n[nodes.navigation_navmesh_modifier_fields]\r\ncomponent = \"Space\"\r\ncontrol_id = \"NavigationNavMeshModifierFields\"\r\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\n\r\n[nodes.navigation_navmesh_modifier_drawer_root]\r\ncomponent = \"VerticalGroup\"\r\ncontrol_id = \"NavigationNavMeshModifierDrawerRoot\"\r\nclasses = [\"editor-shell\"]\r\nlayout = { container = { kind = \"VerticalBox\", gap = 4.0 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\nchildren = [{ node = \"navigation_navmesh_modifier_fields\" }]\r\n"
+
+[asset]
+kind = "view"
+id = "navigation.navmesh_modifier.drawer"
+version = 2
+display_name = "NavMeshModifier"
+
+[imports]
+styles = [ "res://ui/theme/editor_base.zui" ]
+
+[root]
+node = "navigation_navmesh_modifier_drawer_root"
+
+[nodes.navigation_navmesh_modifier_fields]
+component = "Space"
+control_id = "NavigationNavMeshModifierFields"
+
+[nodes.navigation_navmesh_modifier_fields.layout.width]
+stretch = "Stretch"
+
+[nodes.navigation_navmesh_modifier_fields.layout.height]
+stretch = "Stretch"
+
+[nodes.navigation_navmesh_modifier_drawer_root]
+component = "VerticalGroup"
+control_id = "NavigationNavMeshModifierDrawerRoot"
+classes = [ "editor-shell" ]
+
+[nodes.navigation_navmesh_modifier_drawer_root.layout.container]
+kind = "VerticalBox"
+gap = 4
+
+[nodes.navigation_navmesh_modifier_drawer_root.layout.width]
+stretch = "Stretch"
+
+[nodes.navigation_navmesh_modifier_drawer_root.layout.height]
+stretch = "Stretch"
+
+[[nodes.navigation_navmesh_modifier_drawer_root.children]]
+node = "navigation_navmesh_modifier_fields"

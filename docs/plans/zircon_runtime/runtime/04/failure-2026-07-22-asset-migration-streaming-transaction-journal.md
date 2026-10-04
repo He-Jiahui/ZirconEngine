@@ -10,9 +10,6 @@ fixing_child_dir: docs/plans/zircon_runtime/runtime/04
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/asset/migration/transaction.rs
-  - zircon_runtime/src/asset/migration/transaction/journal.rs
-  - zircon_runtime/src/asset/migration/transaction/stage.rs
-  - zircon_runtime/src/asset/migration/transaction/commit.rs
   - zircon_runtime/src/asset/migration/transaction/recovery.rs
 tests:
   - cargo test -p zircon_runtime --lib asset::tests::migration::project_commandlet::transaction_recovery --locked --jobs 1 -- --nocapture --test-threads=1

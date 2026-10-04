@@ -1,7 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::core::framework::platform::RuntimeTargetMode;
-use crate::core::framework::project::ProjectPluginSelection;
 use crate::plugin::PluginFeatureBundleManifest;
 
 use super::derived_projection::RuntimePluginCatalogProjection;
@@ -31,8 +30,8 @@ pub(super) fn resolve_pending_feature_dependencies<'a>(
     pending: Vec<PendingFeatureSelection<'a>>,
     projection: &RuntimePluginCatalogProjection,
     target: RuntimeTargetMode,
-    plugin_selections: &HashMap<&str, &ProjectPluginSelection>,
-    enabled_plugins: &HashSet<String>,
+    selected_plugin_ids: &HashSet<String>,
+    canonical_enabled_plugins: &HashSet<String>,
     available_capabilities: &mut HashSet<String>,
     report: &mut RuntimePluginFeatureDependencyReport,
 ) -> FeatureResolutionStats {
@@ -65,8 +64,8 @@ pub(super) fn resolve_pending_feature_dependencies<'a>(
             active.active.feature,
             provider_registration_present,
             target,
-            plugin_selections,
-            enabled_plugins,
+            selected_plugin_ids,
+            canonical_enabled_plugins,
             available_capabilities,
         );
         stats.feature_status_evaluations += 1;
@@ -196,24 +195,5 @@ fn publish_available_feature<'a>(
 }
 
 #[cfg(test)]
-mod performance_contract_tests {
-    use super::collect_present_with_capacity;
-
-    #[test]
-    fn preallocated_present_collection_preserves_order_and_omits_empty_slots() {
-        let present =
-            collect_present_with_capacity(vec![Some(7), None, Some(3), None, Some(11)], 3);
-
-        assert_eq!(present, vec![7, 3, 11]);
-        assert!(present.capacity() >= 3);
-    }
-
-    #[test]
-    fn capability_wait_index_reserves_one_bucket_per_pending_feature() {
-        let pending_count = 8;
-        let waiting_by_capability =
-            std::collections::HashMap::<String, Vec<usize>>::with_capacity(pending_count);
-
-        assert!(waiting_by_capability.capacity() >= pending_count);
-    }
-}
+#[path = "tests/feature_resolution_performance_contract_tests.rs"]
+mod performance_contract_tests;

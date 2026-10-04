@@ -8,7 +8,9 @@ use super::support::test_state;
 #[test]
 fn imported_mesh_can_be_undone() {
     let mut state = test_state();
-    let initial_count = state.world.snapshot().node_records().len();
+    let initial_count = state
+        .world
+        .expect_with_world(|scene| scene.node_records().len());
 
     assert!(state
         .import_mesh_asset(
@@ -21,8 +23,7 @@ fn imported_mesh_can_be_undone() {
             "res://models/test.obj",
         )
         .unwrap());
-    let imported = state.world.snapshot();
-    let imported_nodes = imported.node_records();
+    let imported_nodes = state.world.expect_with_world(|scene| scene.node_records());
     assert_eq!(imported_nodes.len(), initial_count + 1);
     assert!(matches!(
         imported_nodes.last().map(|node| &node.kind),
@@ -30,5 +31,10 @@ fn imported_mesh_can_be_undone() {
     ));
 
     assert!(state.apply_intent(EditorIntent::Undo).unwrap());
-    assert_eq!(state.world.snapshot().node_records().len(), initial_count);
+    assert_eq!(
+        state
+            .world
+            .expect_with_world(|scene| scene.node_records().len()),
+        initial_count
+    );
 }

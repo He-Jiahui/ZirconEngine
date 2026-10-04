@@ -1,3 +1,6 @@
+// 调用端：npm run generate:masterwork-contract (tools/package.json)；职责：固化专业精工的概率及等级规则。
+// 输入边界：src/sim/professions/masterwork.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

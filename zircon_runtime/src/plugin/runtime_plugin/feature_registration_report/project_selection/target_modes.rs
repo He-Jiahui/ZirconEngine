@@ -1,6 +1,7 @@
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::plugin::PluginFeatureBundleManifest;
 
+// 按模块声明目标的首次出现顺序去重，避免重复目标改变项目默认列表。
 pub(super) fn feature_project_selection_target_modes(
     feature: &PluginFeatureBundleManifest,
 ) -> Vec<RuntimeTargetMode> {
@@ -29,5 +30,5 @@ const fn feature_target_mode_bit(target_mode: RuntimeTargetMode) -> u8 {
 }
 
 #[cfg(test)]
-#[path = "target_modes/bitset_tests.rs"]
+#[path = "target_modes/tests/bitset_tests.rs"]
 mod bitset_tests;

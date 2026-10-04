@@ -12,8 +12,6 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_plugins/zr_vm_language/runtime/Cargo.toml
   - zircon_editor/Cargo.toml
-  - tools/session_coordinator/validation_copies.py
-  - tools/session_coordinator/workspace_copy.py
 tests:
   - validation-copy materialize-cargo with a pinned zr_vm external source descriptor
   - managed Cargo test runs from the resulting immutable source copy

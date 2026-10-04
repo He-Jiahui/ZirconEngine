@@ -9,9 +9,11 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Import-Module (Join-Path $repoRoot 'tools\mvp\RenderExtractBaselineEvidence.psm1') -Force -DisableNameChecking -ErrorAction Stop
 Import-Module (Join-Path $repoRoot 'tools\mvp\RenderExtractBaselineMetrics.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $repoRoot 'tools\mvp\RenderExtractMeshCommandMetrics.psm1') -Force -DisableNameChecking -ErrorAction Stop
 Import-Module (Join-Path $repoRoot 'tools\mvp\RenderExtractMachineEvidence.psm1') -Force -DisableNameChecking -ErrorAction Stop
 Import-Module (Join-Path $repoRoot 'tools\mvp\RenderExtractPerformanceScenario.psm1') -Force -DisableNameChecking -ErrorAction Stop
-Import-Module (Join-Path $repoRoot 'tools\WindowsPathResolver.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $repoRoot 'tools\mvp\RenderExtractSystemTraceEvidence.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $repoRoot 'tools\maintenance\WindowsPathResolver.psm1') -Force -ErrorAction Stop
 
 $script:RenderExtractRequiredScenarios = @(Get-RenderExtractPerformanceScenarioDefinitions)
 
@@ -78,6 +80,8 @@ function ConvertTo-RenderExtractBaselineReportMarkdown {
     $lines.Add("- Lock wait: $($Report.measurement_coverage.lock_wait.status)")
     $lines.Add("- Queue and backpressure: $($Report.measurement_coverage.queue_backpressure.status)")
     $lines.Add("- Worker submission occupancy: $($Report.measurement_coverage.worker_utilization.status)")
+    $lines.Add("- Mesh command preparation: $($Report.measurement_coverage.mesh_command_preparation.status)")
+    $lines.Add("- Mesh command parallel dispatch: $($Report.measurement_coverage.mesh_command_parallel_dispatch.status)")
     $lines.Add("- Scene extract ownership: $($Report.measurement_coverage.scene_extract.status)")
     $lines.Add("- App frame cadence: $($Report.measurement_coverage.app_cadence.status)")
     $lines.Add("- Surface presentation and capture: $($Report.measurement_coverage.surface_presentation.status)")
@@ -85,6 +89,8 @@ function ConvertTo-RenderExtractBaselineReportMarkdown {
     $lines.Add("- Asset-management generation pages: $($Report.measurement_coverage.asset_management_page.status)")
     $lines.Add("- Product-process CPU time: $($Report.measurement_coverage.process_cpu.status)")
     $lines.Add("- CPU scheduling from WPR: $($Report.measurement_coverage.cpu_scheduling.status)")
+    $lines.Add("- Product CPU sampled stacks: $($Report.measurement_coverage.cpu_sampling.status)")
+    $lines.Add("- Product Heap allocation stacks: $($Report.measurement_coverage.heap_allocations.status)")
     $lines.Add("- GPU timing: $($Report.measurement_coverage.gpu_timing.status)")
     $lines.Add("- System power: $($Report.measurement_coverage.system_power.status)")
     $lines.Add("- Working set: $($Report.measurement_coverage.working_set.status)")
@@ -224,6 +230,7 @@ function Write-RenderExtractBaselineReport {
     $rawEvidence = [System.Collections.Generic.List[object]]::new()
     $frameCaptureEvidence = [System.Collections.Generic.List[object]]::new()
     $systemTraceEvidence = [System.Collections.Generic.List[object]]::new()
+    $systemTraceCoverage = [System.Collections.Generic.List[object]]::new()
     $scenarioRecords = [System.Collections.Generic.List[object]]::new()
     $expectedProfilingInputs = @{}
     foreach ($run in $runs) {
@@ -356,25 +363,17 @@ function Write-RenderExtractBaselineReport {
             throw "Baseline run '$logicalId' attempt $attempt frame_capture_png does not match its deterministic session id."
         }
         $frameCaptureEvidence.Add((Get-RenderExtractFileEvidence -Path $frameCapture.OperationalPath -Kind 'frame_capture_png' -LogicalId $logicalId -Attempt $attempt)) | Out-Null
-        $systemTraceProperty = $run.PSObject.Properties['system_trace_etl']
-        if ($null -ne $systemTraceProperty -and -not [string]::IsNullOrWhiteSpace([string]$systemTraceProperty.Value)) {
-            $invocationTracesRoot = Join-ZirconWindowsPath -Path $tracesRoot -ChildPath $invocationId
-            $systemTrace = Resolve-ZirconWindowsPath -Path ([string]$systemTraceProperty.Value)
-            if (-not (Test-RenderExtractPathWithinDirectory -CandidatePath $systemTrace.OperationalPath -RootPath $invocationTracesRoot)) {
-                throw "Baseline run '$logicalId' attempt $attempt system trace is outside this evidence session."
-            }
-            $expectedSystemTrace = Join-ZirconWindowsPath -Path $invocationTracesRoot -ChildPath "$logicalId-$attempt.etl"
-            if (-not $systemTrace.OperationalPath.Equals($expectedSystemTrace, [StringComparison]::OrdinalIgnoreCase)) {
-                throw "Baseline run '$logicalId' attempt $attempt system trace does not match its deterministic session id."
-            }
-            $systemTraceArtifact = Get-RenderExtractFileEvidence `
-                -Path $systemTrace.OperationalPath `
-                -Kind 'system_trace_etl' `
-                -LogicalId $logicalId `
-                -Attempt $attempt
-            $systemTraceArtifact['process_id'] = $processId
-            $systemTraceEvidence.Add($systemTraceArtifact) | Out-Null
+        $systemTraceResult = Get-RenderExtractSystemTraceEvidenceForRun `
+            -Run $run `
+            -LogicalId $logicalId `
+            -Attempt $attempt `
+            -ProcessId $processId `
+            -InvocationId $invocationId `
+            -TracesRoot $tracesRoot
+        foreach ($artifact in @($systemTraceResult.artifacts)) {
+            $systemTraceEvidence.Add($artifact) | Out-Null
         }
+        $systemTraceCoverage.Add($systemTraceResult) | Out-Null
 
         $timeline = $timelineSnapshot.json
         $timelineSession = [string](Get-RenderExtractReportProperty -Value $timeline -Name 'session_id' -Label "Timeline '$logicalId-$attempt'")
@@ -449,6 +448,7 @@ function Write-RenderExtractBaselineReport {
         $spanRecords = [System.Collections.Generic.List[object]]::new()
         $counterRecords = [System.Collections.Generic.List[object]]::new()
         $workerUtilizationAttempts = [System.Collections.Generic.List[object]]::new()
+        $meshCommandCoverageAttempts = [System.Collections.Generic.List[object]]::new()
         foreach ($record in $attemptRecords) {
             $workerOccupancy = Get-RenderExtractSchedulerWorkerOccupancyAttempt `
                 -Counters @($record.counters) `
@@ -462,6 +462,8 @@ function Write-RenderExtractBaselineReport {
                     busy_duration_us = $workerOccupancy.busy_duration_us
                     occupancy_ratio = $workerOccupancy.occupancy_ratio
                 }) | Out-Null
+            $meshAttemptCoverage = Get-RenderExtractMeshCommandAttemptCoverage -Attempt $record.attempt -Spans @($record.spans) -Counters @($record.counters)
+            $meshCommandCoverageAttempts.Add($meshAttemptCoverage) | Out-Null
             foreach ($frame in $record.frames) {
                 $frameRecords.Add([pscustomobject]@{
                         duration_us = [double](Get-RenderExtractReportProperty -Value $frame -Name 'duration_us' -Label 'Frame sample')
@@ -532,6 +534,7 @@ function Write-RenderExtractBaselineReport {
                 $null
             }
         }
+        $meshCommandScenarioCoverage = Get-RenderExtractMeshCommandScenarioCoverage -Attempts @($meshCommandCoverageAttempts) -Spans $spanAggregates -Counters $counterAggregates
         [pscustomobject][ordered]@{
             logical_id = $scenarioGroup.Name
             scenario_id = $attemptRecords[0].scenario_id
@@ -582,6 +585,8 @@ function Write-RenderExtractBaselineReport {
                 -SpanNames @('wait_previous_submission', 'wait_worker_start', 'wait_pending_submission') `
                 -CounterNames @('render_framework.scheduler.pending_depth')
             worker_utilization = $workerUtilization
+            mesh_command_preparation = $meshCommandScenarioCoverage.preparation
+            mesh_command_parallel_dispatch = $meshCommandScenarioCoverage.parallel_dispatch
             scene_extract = Get-RenderExtractInstrumentationCoverage `
                 -Spans $spanAggregates `
                 -Counters $counterAggregates `
@@ -692,13 +697,15 @@ function Write-RenderExtractBaselineReport {
             system_trace_artifacts = @($systemTraceEvidence)
         }
         measurement_coverage = [ordered]@{
-            cpu_timeline = [ordered]@{ status = 'measured'; source = 'timeline.zrtrace.json frame and span samples' }
+            cpu_timeline = Get-RenderExtractCpuTimelineCoverage -SystemTraceRecords @($systemTraceCoverage)
             gpu_timing = [ordered]@{ status = 'not_measured'; reason = 'The native timeline export has no calibrated GPU timestamp samples.' }
             system_power = [ordered]@{ status = 'not_measured'; reason = 'This baseline capture does not collect a power trace.' }
             working_set = [ordered]@{ status = 'measured'; source = 'Windows product-process PeakWorkingSet64 per attempt; excludes child processes and GPU memory' }
             process_cpu = [ordered]@{ status = 'measured'; source = 'Windows product-process TotalProcessorTime per attempt; excludes child processes' }
             disk_io = [ordered]@{ status = 'not_measured'; reason = 'This JSON report does not parse a disk I/O trace.' }
             cpu_scheduling = [ordered]@{ status = 'not_measured'; reason = 'WPR ETL files are retained as raw evidence but are not parsed by this JSON report.' }
+            cpu_sampling = Get-RenderExtractSystemTraceMeasurementCoverage -Records @($systemTraceCoverage) -Profile 'cpu'
+            heap_allocations = Get-RenderExtractSystemTraceMeasurementCoverage -Records @($systemTraceCoverage) -Profile 'heap'
         }
         scenarios = @($scenarios)
     }
@@ -729,6 +736,7 @@ function Write-RenderExtractBaselineReport {
         }
         source = '0/1 scheduler worker occupancy timeline counter; measures renderer submission occupancy, not CPU utilization'
     }
+    Add-RenderExtractMeshCommandMeasurementCoverage -Report $report
     $report.measurement_coverage.scene_extract = [ordered]@{
         status = if (@($report.scenarios | Where-Object { $_.scene_extract.status -eq 'measured' }).Count -gt 0) { 'measured' } else { 'not_emitted' }
         source = 'generation-bound scene extract scopes and DTO payload proxy counters'

@@ -4,6 +4,8 @@ use crate::core::framework::render::{
 };
 
 #[derive(Clone, Debug, Default, PartialEq)]
+/// 自动提取的一次性结果；几何、CPU 参考实例、BVH 可视化与驻留页必须来自同一批网格资产。
+/// 框架在构建帧上下文时消费全部字段，避免只更新提取内容而丢失随附资源。
 pub struct VirtualGeometryRuntimeExtractOutput {
     extract: RenderVirtualGeometryExtract,
     cpu_reference_instances: Vec<RenderVirtualGeometryCpuReferenceInstance>,
@@ -60,17 +62,5 @@ impl VirtualGeometryRuntimeExtractOutput {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::VirtualGeometryRuntimeExtractOutput;
-
-    #[test]
-    fn runtime_extract_output_moves_all_parts_without_clone_projection() {
-        let (extract, cpu_references, bvh_instances, resident_payloads) =
-            VirtualGeometryRuntimeExtractOutput::default().into_parts();
-
-        assert_eq!(extract, Default::default());
-        assert!(cpu_references.is_empty());
-        assert!(bvh_instances.is_empty());
-        assert!(resident_payloads.is_empty());
-    }
-}
+#[path = "tests/extract_output.rs"]
+mod tests;

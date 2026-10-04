@@ -11,7 +11,7 @@ use super::super::owner::PluginModuleId;
 use super::super::RuntimeExtensionRegistry;
 
 #[cfg(test)]
-#[path = "resource_registration/poison_recovery_tests.rs"]
+#[path = "resource_registration/tests/poison_recovery_tests.rs"]
 mod poison_recovery_tests;
 
 type ResourceApplyFn = Arc<dyn Fn(&mut World) -> Result<(), ResourceApplyError> + Send + Sync>;
@@ -62,6 +62,7 @@ impl fmt::Debug for SharedResourceApply {
     }
 }
 
+/// 可复制到多个 World 安装计划的资源工厂句柄；每次应用都生成独立资源值。
 #[derive(Clone, Debug)]
 pub struct ResourceRegistration {
     type_id: TypeId,
@@ -104,6 +105,7 @@ impl ResourceRegistration {
     }
 }
 
+// BUG: [CR-PLUGIN-BOUNDARY-0102] 工厂以析构时 panic 的自定义 payload 触发 panic 时，本函数返回前丢弃 payload 又会 panic，`apply_to_world` 不再返回资源错误；证据：`catch_unwind` 的 Err 经 factory_panic 到此处。
 fn panic_payload_message(payload: Box<dyn std::any::Any + Send>) -> String {
     if let Some(message) = payload.downcast_ref::<&str>() {
         (*message).to_owned()
@@ -129,6 +131,7 @@ impl RuntimeExtensionRegistry {
         self.register_resource_registration(owner, registration)
     }
 
+    // 目录合并时重新绑定来源 owner，并强制资源只由明确的运行时模块持有。
     pub(crate) fn register_resource_registration(
         &mut self,
         owner: PluginModuleId,

@@ -1,5 +1,6 @@
 use zircon_runtime_interface::ui::binding::{UiBindingValue, UiEventKind};
 
+use crate::core::editor_event::ViewInstanceId;
 use crate::scene::viewport::PivotMode;
 
 use crate::ui::host::EditorHostEventController;
@@ -18,6 +19,7 @@ pub(crate) fn dispatch_viewport_toolbar_pointer_route(
     runtime: &EditorHostEventController,
     bridge: &BuiltinViewportToolbarTemplateBridge,
     route: &ViewportToolbarPointerRoute,
+    view_id: &ViewInstanceId,
 ) -> Result<UiHostEventEffects, String> {
     let (control_id, event_kind, arguments) = match route {
         ViewportToolbarPointerRoute::ActivateSceneMode { mode, .. } => (
@@ -31,7 +33,9 @@ pub(crate) fn dispatch_viewport_toolbar_pointer_route(
             vec![UiBindingValue::string(space)],
         ),
         ViewportToolbarPointerRoute::CyclePivotMode { .. } => {
-            let settings = runtime.scene_viewport_settings();
+            let settings = runtime
+                .scene_viewport_settings_for_view(view_id)
+                .ok_or_else(|| format!("Stale Scene viewport target {view_id:?}"))?;
             let next = match settings.pivot_mode {
                 PivotMode::Primary => "Centroid",
                 PivotMode::Centroid => "Primary",
@@ -53,7 +57,9 @@ pub(crate) fn dispatch_viewport_toolbar_pointer_route(
             vec![UiBindingValue::string(orientation)],
         ),
         ViewportToolbarPointerRoute::CycleDisplayMode { .. } => {
-            let settings = runtime.scene_viewport_settings();
+            let settings = runtime
+                .scene_viewport_settings_for_view(view_id)
+                .ok_or_else(|| format!("Stale Scene viewport target {view_id:?}"))?;
             (
                 "SetDisplayMode",
                 UiEventKind::Change,
@@ -63,7 +69,9 @@ pub(crate) fn dispatch_viewport_toolbar_pointer_route(
             )
         }
         ViewportToolbarPointerRoute::CycleGridMode { .. } => {
-            let settings = runtime.scene_viewport_settings();
+            let settings = runtime
+                .scene_viewport_settings_for_view(view_id)
+                .ok_or_else(|| format!("Stale Scene viewport target {view_id:?}"))?;
             (
                 "SetGridMode",
                 UiEventKind::Change,
@@ -73,7 +81,9 @@ pub(crate) fn dispatch_viewport_toolbar_pointer_route(
             )
         }
         ViewportToolbarPointerRoute::CycleTranslateSnap { .. } => {
-            let settings = runtime.scene_viewport_settings();
+            let settings = runtime
+                .scene_viewport_settings_for_view(view_id)
+                .ok_or_else(|| format!("Stale Scene viewport target {view_id:?}"))?;
             (
                 "SetTranslateSnap",
                 UiEventKind::Change,
@@ -83,7 +93,9 @@ pub(crate) fn dispatch_viewport_toolbar_pointer_route(
             )
         }
         ViewportToolbarPointerRoute::CycleRotateSnapDegrees { .. } => {
-            let settings = runtime.scene_viewport_settings();
+            let settings = runtime
+                .scene_viewport_settings_for_view(view_id)
+                .ok_or_else(|| format!("Stale Scene viewport target {view_id:?}"))?;
             (
                 "SetRotateSnapDegrees",
                 UiEventKind::Change,
@@ -93,7 +105,9 @@ pub(crate) fn dispatch_viewport_toolbar_pointer_route(
             )
         }
         ViewportToolbarPointerRoute::CycleScaleSnap { .. } => {
-            let settings = runtime.scene_viewport_settings();
+            let settings = runtime
+                .scene_viewport_settings_for_view(view_id)
+                .ok_or_else(|| format!("Stale Scene viewport target {view_id:?}"))?;
             (
                 "SetScaleSnap",
                 UiEventKind::Change,
@@ -103,7 +117,9 @@ pub(crate) fn dispatch_viewport_toolbar_pointer_route(
             )
         }
         ViewportToolbarPointerRoute::TogglePreviewLighting { .. } => {
-            let settings = runtime.scene_viewport_settings();
+            let settings = runtime
+                .scene_viewport_settings_for_view(view_id)
+                .ok_or_else(|| format!("Stale Scene viewport target {view_id:?}"))?;
             (
                 "SetPreviewLighting",
                 UiEventKind::Change,
@@ -111,7 +127,9 @@ pub(crate) fn dispatch_viewport_toolbar_pointer_route(
             )
         }
         ViewportToolbarPointerRoute::TogglePreviewSkybox { .. } => {
-            let settings = runtime.scene_viewport_settings();
+            let settings = runtime
+                .scene_viewport_settings_for_view(view_id)
+                .ok_or_else(|| format!("Stale Scene viewport target {view_id:?}"))?;
             (
                 "SetPreviewSkybox",
                 UiEventKind::Change,
@@ -119,7 +137,9 @@ pub(crate) fn dispatch_viewport_toolbar_pointer_route(
             )
         }
         ViewportToolbarPointerRoute::ToggleGizmosEnabled { .. } => {
-            let settings = runtime.scene_viewport_settings();
+            let settings = runtime
+                .scene_viewport_settings_for_view(view_id)
+                .ok_or_else(|| format!("Stale Scene viewport target {view_id:?}"))?;
             (
                 "SetGizmosEnabled",
                 UiEventKind::Change,
@@ -137,8 +157,13 @@ pub(crate) fn dispatch_viewport_toolbar_pointer_route(
         }
     };
 
+    let target = match route {
+        ViewportToolbarPointerRoute::EnterPlayMode { .. }
+        | ViewportToolbarPointerRoute::ExitPlayMode { .. } => None,
+        _ => Some(view_id),
+    };
     let Some(result) = dispatch_builtin_viewport_toolbar_control(
-        runtime, bridge, control_id, event_kind, arguments,
+        runtime, bridge, control_id, event_kind, arguments, target,
     ) else {
         return Err(format!("Unknown viewport toolbar control {control_id}"));
     };

@@ -1,17 +1,17 @@
-use crate::core::TaskPool;
 use crate::core::framework::render::{
     FrameHistoryHandle, RenderCapabilitySummary, RenderCaptureReport, RenderCaptureSource,
     RenderFrameHistoryInput, RenderGpuTimingStatus, RenderReflectionProbeWorkloadReport,
     ShaderVariantMissReport,
 };
+use crate::core::TaskPool;
 #[cfg(test)]
 use crate::core::{math::UVec2, resource::ResourceId};
 
 #[cfg(test)]
 use crate::graphics::backend::read_texture_rgba;
 use crate::graphics::backend::{
-    DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES, DEFAULT_GPU_TIMER_MAX_PASSES, GpuPassTimer,
-    GpuPipelineStatisticsTimer,
+    GpuPassTimer, GpuPipelineStatisticsTimer, DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES,
+    DEFAULT_GPU_TIMER_MAX_PASSES,
 };
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphLightGridReport;
 use crate::graphics::scene::scene_renderer::mesh::PreparedMeshQueueStats;
@@ -33,7 +33,7 @@ mod gpu_timing_status;
 mod readback;
 mod surface_presentation;
 #[cfg(test)]
-#[path = "render_frame_with_pipeline/tests.rs"]
+#[path = "render_frame_with_pipeline/tests/cases.rs"]
 mod tests;
 
 pub(in crate::graphics::scene::scene_renderer::core) use gpu_timing_status::render_gpu_timing_status;
@@ -225,6 +225,7 @@ impl SceneRenderer {
             route_frame_submission_completion_consumers(
                 backend,
                 &mut self.core,
+                &mut self.streamer,
                 &mut self.scene_submission_completion_journal,
                 &mut self.gpu_pass_timer,
                 &mut self.gpu_pipeline_statistics_timer,

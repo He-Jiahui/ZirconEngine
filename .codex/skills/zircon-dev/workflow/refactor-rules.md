@@ -11,5 +11,5 @@
 - Group similar modules into folders. Avoid wide flat file lists once a subsystem has multiple related parts, and avoid catch-all files such as `util.rs`, `helpers.rs`, or `common.rs` unless the scope is genuinely cohesive.
 - Before introducing a new module or folder layout, inspect the closest matching source tree in `dev/UnrealEngine`, `dev/godot`, `dev/bevy`, `dev/Fyrox`, or `dev/Graphics` and align naming and ownership with the nearest mature precedent.
 - Favor shapes that survive future Unreal-scale complexity. Do not accept a flat "good enough for now" layout for a subsystem that is likely to keep expanding.
-- Do not wait for 1000 lines if responsibilities have already diverged. Treat roughly 1000 lines as an emergency ceiling, not as permission to keep stacking logic.
+- Do not wait for 1000 lines if responsibilities have already diverged. Treat roughly 1000 lines as a responsibility warning. A bounded fix does not automatically require reorganizing unrelated code.
 - Update tests and documentation to match the current behavior only. Remove expectations that exist solely to preserve an old design.

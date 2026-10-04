@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from tools import frameworks_01_resource_hard_cut_patch as patch_owner
+from tools.maintenance.resource_migration import frameworks_01_resource_hard_cut_patch as patch_owner
 
 
 BASE = """[workspace]
@@ -14,7 +14,7 @@ members = [
 zr_math = { path = "zircon_runtime/crates/zr_math", default-features = false }
 """
 
-
+# 验证资源迁移预应用路径只接受完整且精确的工作区接线，同时保留 CRLF 与已应用状态。
 class Frameworks01ResourceHardCutPreappliedTests(unittest.TestCase):
     def test_accepts_only_complete_exact_workspace_wiring(self) -> None:
         wired = patch_owner._patch_workspace_manifest(BASE)

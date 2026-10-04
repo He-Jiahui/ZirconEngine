@@ -1,3 +1,4 @@
+# 验收快照投影需记录源与自有文件的类型、摘要和目录归属，再拒绝未登记项；本组结合隔离目录行为与源码形态约束，防止验收时遗漏文件或缓存整树。
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 

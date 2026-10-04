@@ -1,3 +1,5 @@
+//! 负责根与输入模式的有界代际状态、任务调度和最后成功快照；文件发现规则由权威收集器决定。
+//! 同键最多保留一个运行代际和一个合并后的后继代际，票据终态与快照发布须作为耦合状态迁移。
 use std::cell::Cell;
 use std::collections::BTreeMap;
 use std::fmt;
@@ -18,7 +20,7 @@ use super::ticket::{NativePluginDiscoveryRefreshTerminal, NativePluginDiscoveryR
 use super::work::NativePluginDiscoveryRefreshWork;
 
 #[cfg(test)]
-#[path = "service/pending_work_move_tests.rs"]
+#[path = "service/tests/pending_work_move_tests.rs"]
 mod pending_work_move_tests;
 
 thread_local! {
@@ -95,6 +97,8 @@ impl NativePluginDiscoveryRefreshKey {
 }
 
 #[derive(Default)]
+// 运行任务退休前仍占据 active；票据取消或被取代并不表示任务已经退出。
+// 后继从提交时的不可变基准收集；旧代际结果只有通过最新代际和终态竞争检查才可发布。
 struct RootRefreshState {
     newest_generation: u64,
     active: Option<ActiveRefresh>,
@@ -122,6 +126,7 @@ struct PendingRefresh {
     base_snapshot: Option<Arc<NativePluginDiscoverySnapshot>>,
 }
 
+// 首次建立后继时转移通知批次的所有权，避免复制大量路径；后续通知只合并到已有后继。
 fn take_active_refresh_work(
     work: &mut Option<NativePluginDiscoveryRefreshWork>,
 ) -> NativePluginDiscoveryRefreshWork {
@@ -184,6 +189,8 @@ impl NativePluginDiscoveryRefreshService {
     }
 
     /// Admits one latest-wins root generation without performing collector I/O on the caller.
+    /// 提交根扫描并立即返回票据；返回票据也可能已经被预算、关闭状态或无效期限拒绝。
+    /// 该入口不等待文件工作，消费者通过终态观察者或快照查询接收结果。
     pub fn submit(&self, root: NativePluginDiscoveryRoot) -> NativePluginDiscoveryRefreshTicket {
         self.submit_with_input(root, NativePluginDiscoveryRefreshInput::root_scan())
     }
@@ -296,6 +303,7 @@ impl NativePluginDiscoveryRefreshService {
             }
         };
 
+        // 终态观察者可能回入查询或提交；释放服务锁后才交付，避免持锁执行外部回调。
         for (ticket, terminal) in terminals {
             ticket.finish(terminal);
         }
@@ -313,6 +321,8 @@ impl NativePluginDiscoveryRefreshService {
         ticket
     }
 
+    /// 返回根扫描模式最后成功发布的共享快照；不触发刷新，冷根没有快照时返回空。
+    /// 发布后的快照可跨刷新继续持有，失败不会使它失效。
     pub fn snapshot(
         &self,
         root: &NativePluginDiscoveryRoot,
@@ -332,6 +342,7 @@ impl NativePluginDiscoveryRefreshService {
             .and_then(|state| state.published.clone())
     }
 
+    /// 取得根扫描模式的最近失败；它可与最后成功快照同时存在，下一次成功发布才清除。
     pub fn last_failure(
         &self,
         root: &NativePluginDiscoveryRoot,
@@ -387,6 +398,7 @@ impl NativePluginDiscoveryRefreshService {
         self.lock_state().shutting_down
     }
 
+    /// 计数单位是根与输入模式的组合；已完成的组合仍保留快照和失败状态，占用准入预算。
     pub fn root_count(&self) -> usize {
         self.lock_state().roots.len()
     }
@@ -413,6 +425,7 @@ impl NativePluginDiscoveryRefreshService {
     }
 }
 
+// 调度正常完成和调度器终态回调共同保证运行槽最终退休；回调交付期间仍保持 I/O 重入标记。
 fn launch_generation(
     shared: Arc<RefreshShared>,
     root: NativePluginDiscoveryRoot,
@@ -489,6 +502,7 @@ fn launch_generation(
     });
 }
 
+// 收集完成后再次检查取消与期限，再构造候选快照；构造成功仍须经过服务锁内的发布竞争。
 fn collect_generation(
     shared: &RefreshShared,
     root: NativePluginDiscoveryRoot,
@@ -539,6 +553,8 @@ fn collect_generation(
     Ok(Arc::new(snapshot))
 }
 
+// 先在服务锁内判定最新代际并预留唯一终态，再提交快照/失败状态；观察者在锁外交付。
+// 预留失败表示取消等终态已胜出，不能继续写入该代际的发布结果。
 fn complete_generation(
     shared: &Arc<RefreshShared>,
     root: NativePluginDiscoveryRoot,

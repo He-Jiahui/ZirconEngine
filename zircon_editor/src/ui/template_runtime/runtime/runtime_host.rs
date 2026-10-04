@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex, OnceLock};
 
 use crate::ui::binding::EditorUiBinding;
@@ -13,7 +13,8 @@ use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime::ui::template::{UiTemplateBuildError, UiTemplateInstance};
 use zircon_runtime::ui::theme::UiThemeRegistry;
 use zircon_runtime::ui::v2::{
-    UiV2CompiledDocument, UiV2PrototypeStoreFileCache, UiV2SurfaceBuilder,
+    UiV2CompiledDocument, UiV2PrototypeStoreFileCache, UiV2SourceFileReceipt, UiV2SurfaceBuilder,
+    UiV2UnresolvedSourceImport,
 };
 use zircon_runtime_interface::ui::{
     component::UiComponentAdapterResult,
@@ -128,6 +129,8 @@ pub struct EditorUiHostRuntime {
     pub(super) template_adapter: EditorTemplateAdapter,
     pub(super) template_service: EditorTemplateRuntimeService,
     pub(super) v2_documents: BTreeMap<String, EditorUiHostV2Document>,
+    v2_source_receipts: BTreeMap<String, Vec<UiV2SourceFileReceipt>>,
+    v2_source_unresolved_imports: BTreeMap<String, Vec<UiV2UnresolvedSourceImport>>,
     pub(super) plugin_v2_documents: Mutex<BTreeMap<String, EditorUiHostPluginV2Document>>,
     pub(super) plugin_v2_generations: Mutex<BTreeMap<String, u64>>,
     template_action_registry: Mutex<TemplateActionRegistry>,
@@ -233,6 +236,21 @@ impl EditorUiHostRuntime {
             .register_binding(binding_id, binding)
             .map_err(EditorUiHostRuntimeError::from)?;
         self.invalidate_projection_cache();
+        Ok(())
+    }
+
+    /// Reconcile the built-in binding registry after a review host has been
+    /// assembled.  Review projections can be created from a fresh V2 file
+    /// store while the host document cache is warm; keeping this operation
+    /// idempotent guarantees that authored product events remain resolvable.
+    pub(crate) fn ensure_builtin_host_bindings(&mut self) -> Result<(), EditorUiHostRuntimeError> {
+        for (binding_id, binding) in
+            crate::ui::template_runtime::builtin::builtin_template_bindings()
+        {
+            if !self.template_adapter.contains_binding(binding_id) {
+                self.register_binding(binding_id.as_str(), binding.clone())?;
+            }
+        }
         Ok(())
     }
 
@@ -438,7 +456,13 @@ impl EditorUiHostRuntime {
         surface: &UiSurface,
     ) -> Result<RetainedUiHostProjection, EditorUiHostRuntimeError> {
         let host_model = self.build_host_model_with_surface(projection, surface)?;
-        Ok(RetainedUiHostAdapter::build_projection(&host_model))
+        let mut projection = RetainedUiHostAdapter::build_projection(&host_model);
+        let frame = surface.surface_frame();
+        for node in &mut projection.nodes {
+            node.source_surface_frame = Some(Arc::clone(&frame));
+        }
+        projection.source_surface_frame = Some(frame);
+        Ok(projection)
     }
 
     pub(crate) fn build_retained_host_nodes_with_surface(
@@ -464,15 +488,77 @@ impl EditorUiHostRuntime {
             .nodes
             .iter()
             .filter_map(|node| {
-                node_ids_by_path
-                    .remove(&node.node_id)
-                    .map(|node_id| (node_id, RetainedUiHostAdapter::build_node(node)))
+                node_ids_by_path.remove(&node.node_id).map(|node_id| {
+                    let mut projected = RetainedUiHostAdapter::build_node(node);
+                    projected.source_surface_frame = Some(surface.surface_frame());
+                    (node_id, projected)
+                })
             })
             .collect())
     }
 }
 
 impl EditorUiHostRuntime {
+    pub(crate) fn loaded_v2_source_receipts_for_documents(
+        &self,
+        document_ids: &[&str],
+    ) -> Result<Vec<UiV2SourceFileReceipt>, String> {
+        let mut receipts_by_path = BTreeMap::<std::path::PathBuf, UiV2SourceFileReceipt>::new();
+        for document_id in document_ids {
+            if !self.v2_documents.contains_key(*document_id) {
+                return Err(format!(
+                    "V2 source receipt requested for unloaded document {document_id}"
+                ));
+            }
+            let document_receipts = self
+                .v2_source_receipts
+                .get(*document_id)
+                .ok_or_else(|| format!("V2 source receipts missing for document {document_id}"))?;
+            if document_receipts.is_empty() {
+                return Err(format!(
+                    "V2 source receipt closure is empty for document {document_id}"
+                ));
+            }
+            for receipt in document_receipts {
+                match receipts_by_path.get(&receipt.physical_path) {
+                    Some(existing) if existing != receipt => {
+                        return Err(format!(
+                            "conflicting V2 source receipts for {}",
+                            receipt.physical_path.display()
+                        ));
+                    }
+                    Some(_) => {}
+                    None => {
+                        receipts_by_path.insert(receipt.physical_path.clone(), receipt.clone());
+                    }
+                }
+            }
+        }
+        Ok(receipts_by_path.into_values().collect())
+    }
+
+    pub(crate) fn loaded_v2_unresolved_imports_for_documents(
+        &self,
+        document_ids: &[&str],
+    ) -> Result<Vec<UiV2UnresolvedSourceImport>, String> {
+        let mut unresolved = BTreeSet::new();
+        for document_id in document_ids {
+            if !self.v2_documents.contains_key(*document_id) {
+                return Err(format!(
+                    "unresolved-import audit requested for unloaded document {document_id}"
+                ));
+            }
+            let document_imports = self
+                .v2_source_unresolved_imports
+                .get(*document_id)
+                .ok_or_else(|| {
+                    format!("V2 unresolved-import audit missing for document {document_id}")
+                })?;
+            unresolved.extend(document_imports.iter().cloned());
+        }
+        Ok(unresolved.into_iter().collect())
+    }
+
     fn register_v2_document_file(
         &mut self,
         document_id: impl Into<String>,
@@ -496,6 +582,10 @@ impl EditorUiHostRuntime {
             .lock()
             .expect("v2 template file cache mutex should not be poisoned")
             .load_store(paths)?;
+        self.v2_source_receipts
+            .insert(document_id.clone(), outcome.source_receipts.clone());
+        self.v2_source_unresolved_imports
+            .insert(document_id.clone(), outcome.unresolved_imports.clone());
         self.v2_documents.insert(
             document_id,
             EditorUiHostV2Document {
@@ -546,166 +636,5 @@ fn is_v2_backed_document_path(path: &std::path::Path) -> bool {
 }
 
 #[cfg(test)]
-mod pane_control_state_tests {
-    use std::collections::BTreeMap;
-
-    use toml::Value;
-    use zircon_runtime::ui::surface::UiSurface;
-    use zircon_runtime_interface::ui::{
-        component::UiValue,
-        event_ui::{UiNodeId, UiNodePath, UiTreeId},
-        layout::UiFrame,
-        template::UiActionRef,
-        tree::{UiTemplateNodeMetadata, UiTreeNode},
-    };
-
-    use super::*;
-    use crate::ui::template_runtime::RetainedUiHostNodeProjection;
-
-    #[test]
-    fn pane_control_state_projects_rows_selection_and_disabled_to_native_and_retained_models() {
-        let node_id = UiNodeId::new(1);
-        let mut surface = UiSurface::new(UiTreeId::new("editor.template.v2.pane-state"));
-        surface.tree.insert_root(
-            UiTreeNode::new(node_id, UiNodePath::new("root/RowList")).with_template_metadata(
-                UiTemplateNodeMetadata {
-                    component: "Table".to_string(),
-                    control_id: Some("RowList".to_string()),
-                    ..Default::default()
-                },
-            ),
-        );
-        let rows = Value::Array(vec![Value::Table(toml::map::Map::from_iter([(
-            "surface_entity".to_string(),
-            Value::Integer(73),
-        )]))]);
-        let control_attributes = BTreeMap::from([(
-            "RowList".to_string(),
-            BTreeMap::from([
-                ("rows".to_string(), rows.clone()),
-                ("selected_row_identity".to_string(), Value::Integer(73)),
-                ("disabled".to_string(), Value::Boolean(true)),
-                ("enabled".to_string(), Value::Boolean(true)),
-            ]),
-        )]);
-        let mut host_model = RetainedUiHostModel {
-            document_id: "plugin.rows.panel".to_string(),
-            nodes: vec![RetainedUiHostNodeProjection {
-                node_id: "root/RowList".to_string(),
-                surface_node_id: None,
-                has_workbench_icon_tooltip: false,
-                parent_id: None,
-                component: "Table".to_string(),
-                control_id: Some("RowList".to_string()),
-                frame: UiFrame::default(),
-                clip_frame: None,
-                z_index: 0,
-                attributes: BTreeMap::new(),
-                style_overrides: BTreeMap::new(),
-                style_tokens: BTreeMap::new(),
-                bindings: Vec::new(),
-            }],
-        };
-
-        dynamic_control_state::apply_template_control_attributes_to_host_model(
-            &host_model.document_id.clone(),
-            &mut host_model,
-            &control_attributes,
-        )
-        .expect("retained host should receive the current pane control state");
-        dynamic_control_state::apply_template_control_attributes_to_surface(
-            &host_model.document_id,
-            &mut surface,
-            &control_attributes,
-        )
-        .expect("native surface should receive the current pane control state");
-
-        assert_eq!(
-            host_model
-                .node_by_control_id("RowList")
-                .and_then(|node| node.attributes.get("rows")),
-            Some(&rows)
-        );
-        assert_eq!(
-            host_model
-                .node_by_control_id("RowList")
-                .and_then(|node| node.attributes.get("selected_row_identity")),
-            Some(&Value::Integer(73))
-        );
-        assert_eq!(
-            surface
-                .component_state(node_id)
-                .and_then(|state| state.value("selected_row_identity")),
-            Some(&UiValue::Int(73))
-        );
-        assert_eq!(
-            surface
-                .tree
-                .node(node_id)
-                .and_then(|node| node.template_metadata.as_ref())
-                .and_then(|metadata| metadata.attributes.get("rows")),
-            Some(&rows)
-        );
-        assert!(
-            !surface
-                .tree
-                .node(node_id)
-                .expect("native control should remain in the surface")
-                .state_flags
-                .enabled
-        );
-    }
-
-    #[test]
-    fn plugin_document_replacement_evicts_same_id_action_slots_before_pane_rebuild() {
-        let runtime = EditorUiHostRuntime::default();
-        let source_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("assets/ui/host/workbench_shell.zui");
-        let source = |document_id| {
-            super::super::plugin_documents::EditorPluginV2DocumentSource::new(
-                document_id,
-                "plugins://fixture.plugin/workbench_shell.zui",
-                [source_path.clone()],
-            )
-            .expect("fixture plugin document source should be valid")
-        };
-        let first =
-            super::super::plugin_documents::EditorPluginV2DocumentOwner::new("fixture.plugin", 1)
-                .expect("first plugin generation should be valid");
-        let second =
-            super::super::plugin_documents::EditorPluginV2DocumentOwner::new("fixture.plugin", 2)
-                .expect("replacement plugin generation should be valid");
-        runtime
-            .replace_plugin_v2_documents(first.clone(), [source("fixture.plugin.panel")])
-            .expect("first plugin generation should load");
-        let token = runtime
-            .template_action_registry
-            .lock()
-            .expect("template action registry mutex should not be poisoned")
-            .bind(
-                "fixture.plugin.pane",
-                "fixture.plugin.panel",
-                "Bake/Click",
-                Some(first),
-                BTreeMap::new(),
-                UiActionRef {
-                    route: Some("fixture.operation".to_string()),
-                    action: None,
-                    payload: BTreeMap::new(),
-                    payload_missing_policy: Default::default(),
-                },
-                BTreeMap::new(),
-            );
-
-        let update = runtime
-            .replace_plugin_v2_documents(second, [source("fixture.plugin.panel")])
-            .expect("same-id replacement should load the next generation");
-
-        assert!(update.retired_document_ids().is_empty());
-        assert!(!runtime
-            .template_action_registry
-            .lock()
-            .expect("template action registry mutex should not be poisoned")
-            .contains_token(&token));
-    }
-}
+#[path = "tests/runtime_host_pane_control_state_tests.rs"]
+mod pane_control_state_tests;

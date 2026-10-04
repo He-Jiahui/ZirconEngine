@@ -58,7 +58,7 @@ fn world_reflection_routes_component_and_resource_addresses() {
             .reflect_schema("ProbeResource")
             .expect("short type path should resolve")
             .type_path
-            .type_path,
+            .type_path(),
         "plugin_a::ProbeResource"
     );
 

@@ -204,10 +204,10 @@ impl Drop for ConfigPersistenceWorker {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .take();
-        if worker_exited {
-            if let Some(thread) = thread {
-                let _ = thread.join();
-            }
+        if let Some(thread) = thread {
+            // Dropping a JoinHandle detaches the worker. That is never safe for
+            // a runtime library that may be unloaded after its services drop.
+            let _ = thread.join();
         }
     }
 }

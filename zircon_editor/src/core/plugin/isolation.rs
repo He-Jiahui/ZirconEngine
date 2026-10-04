@@ -5,6 +5,7 @@ use std::fmt;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+/// 插件边界失败的宿主诊断，记录包和操作以便隔离故障；捕获 panic 不保证插件此前副作用回滚。
 pub struct EditorPluginBoundaryFailure {
     package_id: String,
     operation: String,
@@ -67,33 +68,5 @@ fn panic_payload_message(payload: Box<dyn Any + Send>) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::run_editor_plugin_boundary;
-
-    #[test]
-    fn callback_error_stays_a_plugin_diagnostic() {
-        let failure = run_editor_plugin_boundary("plugin.sample", "register", || {
-            Err::<(), _>("invalid contribution".to_string())
-        })
-        .expect_err("plugin rejection should not escape the host boundary");
-
-        assert_eq!(
-            failure.to_string(),
-            "editor plugin `plugin.sample` register failed: invalid contribution"
-        );
-    }
-
-    #[test]
-    fn callback_panic_stays_a_plugin_diagnostic() {
-        let failure =
-            run_editor_plugin_boundary("plugin.sample", "register", || -> Result<(), String> {
-                panic!("fixture panic")
-            })
-            .expect_err("plugin panic should not escape the host boundary");
-
-        assert_eq!(
-            failure.to_string(),
-            "editor plugin `plugin.sample` register failed: panic: fixture panic"
-        );
-    }
-}
+#[path = "tests/isolation.rs"]
+mod tests;

@@ -5,8 +5,17 @@ edition.workspace = true
 license.workspace = true
 description = "WOC client role bootstrap."
 
+[features]
+default = ["engine-host"]
+engine-host = ["woc_runtime/engine-host"]
+
+[[bin]]
+name = "woc_client"
+path = "src/main.rs"
+required-features = ["engine-host"]
+
 [dependencies]
 serde_json = { workspace = true, features = ["arbitrary_precision", "preserve_order"] }
 woc_protocol.workspace = true
-woc_runtime.workspace = true
+woc_runtime = { workspace = true, features = ["engine-host"] }
 zircon_runtime = { path = "../../../../../zircon_runtime", default-features = false }

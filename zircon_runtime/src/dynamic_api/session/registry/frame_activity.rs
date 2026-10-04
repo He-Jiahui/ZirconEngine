@@ -1,4 +1,5 @@
 use std::sync::{Mutex, MutexGuard};
+use std::time::Duration;
 
 use super::frame_demand::FrameDemandAccumulator;
 use super::{RuntimeFrameDemand, RuntimeWakeRegistration};
@@ -37,8 +38,11 @@ impl RuntimeFrameActivity {
         self.wake.disable_new_entries();
     }
 
-    pub(in crate::dynamic_api::session) fn wait_for_wake_callbacks(&self) {
-        self.wake.wait_for_callbacks();
+    pub(in crate::dynamic_api::session) fn wait_for_wake_callbacks(
+        &self,
+        timeout: Duration,
+    ) -> bool {
+        self.wake.wait_for_callbacks(timeout)
     }
 
     pub(in crate::dynamic_api::session) fn wake_callback_active_on_current_thread(&self) -> bool {

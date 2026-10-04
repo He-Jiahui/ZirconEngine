@@ -1,3 +1,4 @@
+//! 只识别约定的内联标签与属性；异常标记向解析器回报可恢复诊断，资源引用仅形成受限定位符。
 //! Tokenizer and projection helpers for the deliberately bounded HTML V1 subset.
 
 use std::{borrow::Cow, sync::Arc};
@@ -65,6 +66,7 @@ pub(super) struct HtmlAttributeApplicationIssues {
     pub(super) unsupported_style_property: bool,
 }
 
+/// HTML 主扫描器按单标记预算取得候选标签及异常信息；是否丢弃或保留原文由解析器统一决定。
 pub(super) fn token_at(
     input: &str,
     tokenizer_budget: RichTokenizerBudget,
@@ -186,6 +188,7 @@ pub(super) fn link(
     })
 }
 
+/// HTML 图片仅形成中立的内嵌对象与受控资源定位；纹理解析和实际绘制由 UI/图形消费端完成。
 pub(super) fn inline_image(
     attributes: &[HtmlAttribute],
     issues: &mut HtmlAttributeApplicationIssues,
@@ -658,7 +661,7 @@ fn apply_text_decoration(value: &str, style: &mut StyleOverride) -> bool {
 }
 
 #[cfg(test)]
-#[path = "html_subset/allocation_free_keyword_tests.rs"]
+#[path = "html_subset/tests/allocation_free_keyword_tests.rs"]
 mod allocation_free_keyword_tests;
 
 fn decode_entity(entity: &str) -> Option<char> {

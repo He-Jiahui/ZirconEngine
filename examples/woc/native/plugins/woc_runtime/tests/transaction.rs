@@ -1,7 +1,10 @@
+use std::cell::Cell;
+use std::rc::Rc;
+
 use woc_protocol::{
     event_stream_digest, fnv1a_bytes, Command, EntityRef, FixedTickInput, FixedTickInputRef,
     MovementFrame, MovementInputFlags, OfflineSessionBootstrap, OfflineWeaponSkinAccount,
-    WorldSnapshot, OFFLINE_SESSION_BOOTSTRAP_VERSION, STANDARD_OFFLINE_WORLD_SEED,
+    WorldSnapshot, FNV1A_OFFSET, OFFLINE_SESSION_BOOTSTRAP_VERSION, STANDARD_OFFLINE_WORLD_SEED,
 };
 use woc_runtime::{
     BudgetKind, RuntimeRole, RuntimeStatus, TickBudgets, TickUsage, VmTickError, VmTickResult,
@@ -17,9 +20,137 @@ enum Behavior {
     Reject,
 }
 
+#[derive(Clone, Copy)]
+enum RetainedFailure {
+    Output,
+    Budget,
+    Trap,
+}
+
+struct RetainedVm {
+    state: u64,
+    fail_next: Option<RetainedFailure>,
+    fail_install_once: bool,
+    fail_rollback: bool,
+    fail_rollback_after: Option<usize>,
+    rollback_attempts: usize,
+    live_checkpoints: Rc<Cell<usize>>,
+}
+
+struct RetainedCheckpoint {
+    state: u64,
+    live: Rc<Cell<usize>>,
+}
+
+impl Drop for RetainedCheckpoint {
+    fn drop(&mut self) {
+        self.live.set(self.live.get() - 1);
+    }
+}
+
+impl RetainedVm {
+    fn new(fail_next: Option<RetainedFailure>) -> Self {
+        Self {
+            state: 0,
+            fail_next,
+            fail_install_once: false,
+            fail_rollback: false,
+            fail_rollback_after: None,
+            rollback_attempts: 0,
+            live_checkpoints: Rc::new(Cell::new(0)),
+        }
+    }
+
+    fn decode_state(bytes: &[u8]) -> Result<u64, VmTickError> {
+        if bytes.is_empty() {
+            return Ok(0);
+        }
+        let bytes: [u8; 8] = bytes
+            .try_into()
+            .map_err(|_| VmTickError::Transport("invalid retained state".to_string()))?;
+        Ok(u64::from_le_bytes(bytes))
+    }
+}
+
+impl WocProjectVm for RetainedVm {
+    type Checkpoint = RetainedCheckpoint;
+
+    fn checkpoint(&mut self) -> Result<Self::Checkpoint, VmTickError> {
+        self.live_checkpoints.set(self.live_checkpoints.get() + 1);
+        Ok(RetainedCheckpoint {
+            state: self.state,
+            live: Rc::clone(&self.live_checkpoints),
+        })
+    }
+
+    fn rollback(&mut self, checkpoint: &Self::Checkpoint) -> Result<(), VmTickError> {
+        self.rollback_attempts += 1;
+        let delayed_failure = match self.fail_rollback_after {
+            Some(successful_attempts) => self.rollback_attempts > successful_attempts,
+            None => false,
+        };
+        if self.fail_rollback || delayed_failure {
+            return Err(VmTickError::Trap("injected rollback failure".to_string()));
+        }
+        self.state = checkpoint.state;
+        Ok(())
+    }
+
+    fn install_full_snapshot(
+        &mut self,
+        snapshot: &woc_runtime::CommittedSnapshot,
+    ) -> Result<(), VmTickError> {
+        self.state = Self::decode_state(&snapshot.state)?;
+        if self.fail_install_once {
+            self.fail_install_once = false;
+            self.state = u64::MAX;
+            return Err(VmTickError::Trap(
+                "injected snapshot install failure".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    fn fixed_tick(
+        &mut self,
+        input_payload: &[u8],
+        _budgets: TickBudgets,
+    ) -> Result<VmTickResult, VmTickError> {
+        let input = FixedTickInput::decode_payload(input_payload).expect("fixed input");
+        self.state = self.state.saturating_add(1);
+        match self.fail_next.take() {
+            Some(RetainedFailure::Trap) => {
+                Err(VmTickError::Trap("injected retained trap".to_string()))
+            }
+            Some(RetainedFailure::Output) => Ok(VmTickResult {
+                output_payload: vec![0xff],
+                presentation_payload: b"presentation".to_vec(),
+                usage: TickUsage::default(),
+            }),
+            failure => {
+                let state = self.state.to_le_bytes();
+                successful_result(
+                    &input,
+                    &state,
+                    if matches!(failure, Some(RetainedFailure::Budget)) {
+                        TickUsage {
+                            host_calls: u64::MAX,
+                            ..TickUsage::default()
+                        }
+                    } else {
+                        TickUsage::default()
+                    },
+                )
+            }
+        }
+    }
+}
+
 struct ScriptedVm {
     behavior: Behavior,
     observed_inputs: Vec<FixedTickInput>,
+    retained_state: Vec<u8>,
+    calls: usize,
 }
 
 impl ScriptedVm {
@@ -27,19 +158,45 @@ impl ScriptedVm {
         Self {
             behavior,
             observed_inputs: Vec::new(),
+            retained_state: Vec::new(),
+            calls: 0,
         }
     }
 }
 
 impl WocProjectVm for ScriptedVm {
+    type Checkpoint = Vec<u8>;
+
+    fn checkpoint(&mut self) -> Result<Vec<u8>, VmTickError> {
+        self.calls += 1;
+        Ok(self.retained_state.clone())
+    }
+
+    fn rollback(&mut self, checkpoint: &Self::Checkpoint) -> Result<(), VmTickError> {
+        self.calls += 1;
+        self.retained_state = checkpoint.to_vec();
+        Ok(())
+    }
+
+    fn install_full_snapshot(
+        &mut self,
+        snapshot: &woc_runtime::CommittedSnapshot,
+    ) -> Result<(), VmTickError> {
+        self.calls += 1;
+        self.retained_state = snapshot.state.clone();
+        Ok(())
+    }
+
     fn fixed_tick(
         &mut self,
         input_payload: &[u8],
         _budgets: TickBudgets,
     ) -> Result<VmTickResult, VmTickError> {
+        self.calls += 1;
         let input = FixedTickInput::decode_payload(input_payload)
             .expect("runtime must send a valid fixed tick payload");
         self.observed_inputs.push(input.clone());
+        self.retained_state = input.tick.to_le_bytes().to_vec();
         match &self.behavior {
             Behavior::Trap => Err(VmTickError::Trap("injected trap".to_string())),
             Behavior::Reject => Err(VmTickError::RejectedCommand {
@@ -85,6 +242,133 @@ fn successful_tick_commits_one_candidate_and_passes_the_committed_base_to_vm() {
 
     runtime.tick(vec![]).expect("second tick must commit");
     assert_eq!(runtime.vm().observed_inputs[1].committed_state, b"next");
+}
+
+#[test]
+fn tick_exhaustion_rejects_before_vm_entry_and_preserves_the_terminal_snapshot() {
+    for role in [
+        RuntimeRole::Offline,
+        RuntimeRole::Server,
+        RuntimeRole::Client,
+    ] {
+        let mut runtime = WocTransactionalRuntime::new(
+            role,
+            ScriptedVm::new(Behavior::Success(b"last-state".to_vec())),
+            TickBudgets::default(),
+        );
+        let snapshot = woc_runtime::CommittedSnapshot {
+            generation: 7,
+            tick: u64::MAX - 1,
+            state: b"base".to_vec(),
+            state_digest: fnv1a_bytes(b"base"),
+            event_digest: FNV1A_OFFSET,
+            presentation_payload: b"old-presentation".to_vec(),
+            presentation_digest: fnv1a_bytes(b"old-presentation"),
+        };
+        runtime
+            .install_full_snapshot(snapshot)
+            .expect("install final base");
+        runtime
+            .tick(vec![])
+            .expect("the last representable tick must commit");
+        assert_eq!(runtime.committed().tick, u64::MAX);
+        assert_eq!(runtime.vm().observed_inputs.len(), 1);
+        assert_eq!(runtime.vm().observed_inputs[0].tick, u64::MAX);
+        let before = runtime.committed().clone();
+        let retained_state = runtime.vm().retained_state.clone();
+        let vm_calls = runtime.vm().calls;
+        let fault = runtime
+            .tick(vec![])
+            .expect_err("a terminal tick has no successor");
+        assert_eq!(fault.attempted_tick, u64::MAX);
+        assert!(matches!(fault.kind, WocTickFaultKind::TickExhausted));
+        assert!(fault.rollback_error.is_none());
+        assert_eq!(runtime.committed(), &before);
+        assert_eq!(runtime.vm().retained_state, retained_state);
+        assert_eq!(
+            runtime.vm().calls,
+            vm_calls,
+            "do not checkpoint or enter the VM"
+        );
+        assert_eq!(runtime.vm().observed_inputs.len(), 1);
+        match (role, runtime.status()) {
+            (RuntimeRole::Offline, RuntimeStatus::Paused(stored))
+            | (RuntimeRole::Server, RuntimeStatus::Faulted(stored))
+            | (RuntimeRole::Client, RuntimeStatus::Recovering(stored)) => {
+                assert_eq!(stored, &fault);
+            }
+            _ => panic!("exhaustion must follow the role's terminal policy"),
+        }
+        let terminal = runtime.status().clone();
+        let retry = runtime
+            .tick(vec![])
+            .expect_err("a repeated tick stays stopped");
+        assert!(matches!(retry.kind, WocTickFaultKind::SessionNotRunning));
+        assert_eq!(runtime.status(), &terminal);
+        assert_eq!(runtime.committed(), &before);
+        assert_eq!(runtime.vm().calls, vm_calls);
+    }
+}
+
+#[test]
+fn exhausted_projected_tick_never_invokes_the_projection_consumer() {
+    let mut runtime = WocTransactionalRuntime::new(
+        RuntimeRole::Client,
+        ScriptedVm::new(Behavior::Success(b"next".to_vec())),
+        TickBudgets::default(),
+    );
+    let snapshot = woc_runtime::CommittedSnapshot {
+        tick: u64::MAX,
+        ..woc_runtime::CommittedSnapshot::default()
+    };
+    runtime
+        .install_full_snapshot(snapshot)
+        .expect("install terminal snapshot");
+    let before = runtime.committed().clone();
+    let calls = runtime.vm().calls;
+    let decoded = Cell::new(false);
+    let fault = runtime
+        .tick_with_projection_and_movement(vec![], vec![], |_| {
+            decoded.set(true);
+            Ok(())
+        })
+        .expect_err("projection must not receive another terminal-tick candidate");
+    assert!(matches!(fault.kind, WocTickFaultKind::TickExhausted));
+    assert!(!decoded.get());
+    assert_eq!(runtime.committed(), &before);
+    assert_eq!(runtime.vm().calls, calls);
+}
+
+#[test]
+fn direct_invalid_input_rejection_preserves_server_transaction() {
+    let mut runtime = WocTransactionalRuntime::new(
+        RuntimeRole::Server,
+        ScriptedVm::new(Behavior::Success(b"next".to_vec())),
+        TickBudgets::default(),
+    );
+    let before = runtime.committed().clone();
+    let fault = runtime
+        .tick(vec![Command {
+            command_id: u16::MAX,
+            actor: EntityRef {
+                id: 1,
+                generation: 0,
+            },
+            sequence: 0,
+            payload: Vec::new(),
+        }])
+        .expect_err("an unknown direct command must be rejected before VM entry");
+
+    assert_eq!(fault.attempted_tick, 1);
+    assert!(matches!(fault.kind, WocTickFaultKind::EncodeInput(_)));
+    assert!(fault.rollback_error.is_none());
+    assert_eq!(runtime.status(), &RuntimeStatus::Running);
+    assert_eq!(runtime.committed(), &before);
+    assert_eq!(runtime.vm().calls, 0, "rejected input must not call the VM");
+    assert!(runtime.vm().observed_inputs.is_empty());
+
+    runtime.tick(vec![]).expect("server remains able to commit");
+    assert_eq!(runtime.committed().tick, 1);
 }
 
 #[test]
@@ -297,6 +581,161 @@ fn every_post_execution_budget_is_checked_before_commit() {
 }
 
 #[test]
+fn opaque_checkpoints_drop_after_commit_abort_install_and_outer_rollback() {
+    for failure in [
+        None,
+        Some(RetainedFailure::Trap),
+        Some(RetainedFailure::Output),
+    ] {
+        let mut runtime = WocTransactionalRuntime::new(
+            RuntimeRole::Offline,
+            RetainedVm::new(failure),
+            TickBudgets::default(),
+        );
+        let live = Rc::clone(&runtime.vm().live_checkpoints);
+        let outer = runtime.checkpoint().expect("outer checkpoint");
+        assert_eq!(live.get(), 1);
+        let _ = runtime.tick(vec![]);
+        assert_eq!(
+            live.get(),
+            1,
+            "candidate checkpoint must drop on every outcome"
+        );
+        runtime.rollback_checkpoint(outer).expect("outer rollback");
+        assert_eq!(live.get(), 0);
+        assert_eq!(runtime.vm().state, 0);
+        runtime
+            .install_full_snapshot(runtime.committed().clone())
+            .expect("install");
+        assert_eq!(live.get(), 0);
+    }
+}
+
+#[test]
+fn rejected_tick_paths_restore_retained_vm_state_and_replay_the_same_next_tick() {
+    for failure in [
+        RetainedFailure::Output,
+        RetainedFailure::Budget,
+        RetainedFailure::Trap,
+    ] {
+        let mut runtime = WocTransactionalRuntime::new(
+            RuntimeRole::Offline,
+            RetainedVm::new(Some(failure)),
+            TickBudgets::default(),
+        );
+        let before = runtime.committed().clone();
+        runtime.tick(vec![]).expect_err("injected tick must fail");
+        assert_eq!(runtime.vm().state, 0);
+        runtime
+            .install_full_snapshot(before)
+            .expect("the committed snapshot recovers the paused transaction");
+        runtime.tick(vec![]).expect("replayed tick must commit");
+
+        let mut clean = WocTransactionalRuntime::new(
+            RuntimeRole::Offline,
+            RetainedVm::new(None),
+            TickBudgets::default(),
+        );
+        clean.tick(vec![]).expect("clean tick must commit");
+        assert_eq!(runtime.committed(), clean.committed());
+        assert_eq!(runtime.vm().state, clean.vm().state);
+    }
+
+    let mut projected = WocTransactionalRuntime::new(
+        RuntimeRole::Offline,
+        RetainedVm::new(None),
+        TickBudgets::default(),
+    );
+    let before = projected.committed().clone();
+    projected
+        .tick_with_projection(vec![], |_| -> Result<(), String> {
+            Err("injected projection failure".to_string())
+        })
+        .expect_err("projection must reject the candidate");
+    assert_eq!(projected.vm().state, 0);
+    projected
+        .install_full_snapshot(before)
+        .expect("snapshot recovers projection failure");
+    projected.tick(vec![]).expect("next tick must commit");
+    assert_eq!(projected.committed().tick, 1);
+    assert_eq!(projected.vm().state, 1);
+}
+
+#[test]
+fn failed_full_snapshot_install_restores_vm_and_preserves_the_original_fault() {
+    let mut vm = RetainedVm::new(None);
+    vm.fail_install_once = true;
+    let mut runtime =
+        WocTransactionalRuntime::new(RuntimeRole::Offline, vm, TickBudgets::default());
+    runtime.tick(vec![]).expect("baseline tick");
+    let before = runtime.committed().clone();
+    let target_state = 7_u64.to_le_bytes().to_vec();
+    let fault = runtime
+        .install_full_snapshot(woc_runtime::CommittedSnapshot {
+            generation: 3,
+            tick: 9,
+            state_digest: fnv1a_bytes(&target_state),
+            state: target_state,
+            event_digest: FNV1A_OFFSET,
+            presentation_digest: FNV1A_OFFSET,
+            presentation_payload: Vec::new(),
+        })
+        .expect_err("snapshot adapter failure must reject the install");
+    assert!(matches!(
+        fault.kind,
+        WocTickFaultKind::Vm(VmTickError::Trap(_))
+    ));
+    assert!(fault.rollback_error.is_none());
+    assert_eq!(runtime.committed(), &before);
+    assert_eq!(runtime.vm().state, 1);
+    assert!(matches!(runtime.status(), RuntimeStatus::Paused(_)));
+
+    runtime
+        .install_full_snapshot(before.clone())
+        .expect("restoring the committed snapshot must recover the runtime");
+    runtime.tick(vec![]).expect("next tick after recovery");
+    assert_eq!(runtime.vm().state, 2);
+}
+
+#[test]
+fn rollback_failure_keeps_the_original_tick_fault_and_never_reports_running() {
+    let mut vm = RetainedVm::new(Some(RetainedFailure::Trap));
+    vm.fail_rollback = true;
+    let mut runtime = WocTransactionalRuntime::new(RuntimeRole::Client, vm, TickBudgets::default());
+
+    let fault = runtime
+        .tick(vec![])
+        .expect_err("tick and rollback must fail");
+    assert!(
+        matches!(fault.kind, WocTickFaultKind::Vm(VmTickError::Trap(ref reason)) if reason == "injected retained trap")
+    );
+    assert!(
+        matches!(fault.rollback_error, Some(VmTickError::Trap(ref reason)) if reason == "injected rollback failure")
+    );
+    assert!(matches!(runtime.status(), RuntimeStatus::Recovering(_)));
+}
+
+#[test]
+fn failed_external_checkpoint_restore_transitions_client_out_of_running() {
+    let mut vm = RetainedVm::new(None);
+    vm.fail_rollback = true;
+    let mut runtime = WocTransactionalRuntime::new(RuntimeRole::Client, vm, TickBudgets::default());
+    let checkpoint = runtime.checkpoint().expect("capture client checkpoint");
+    runtime
+        .tick(vec![])
+        .expect("advance the VM through a real transaction");
+    let before = runtime.committed().clone();
+
+    assert!(matches!(
+        runtime.rollback_checkpoint(checkpoint),
+        Err(VmTickError::Trap(ref reason)) if reason == "injected rollback failure"
+    ));
+    assert!(matches!(runtime.status(), RuntimeStatus::Recovering(_)));
+    assert_eq!(runtime.committed(), &before);
+    assert_eq!(runtime.vm().state, 1);
+}
+
+#[test]
 fn command_rejection_is_structured_and_deterministic_runs_match() {
     let mut rejected = WocTransactionalRuntime::new(
         RuntimeRole::Server,
@@ -460,4 +899,206 @@ fn successful_result(
         presentation_payload: b"presentation".to_vec(),
         usage,
     })
+}
+
+#[test]
+fn outer_checkpoint_rollback_preserves_role_terminal_fault_until_explicit_recovery() {
+    for role in [
+        RuntimeRole::Offline,
+        RuntimeRole::Server,
+        RuntimeRole::Client,
+    ] {
+        let mut runtime = WocTransactionalRuntime::new(
+            role,
+            RetainedVm::new(Some(RetainedFailure::Trap)),
+            TickBudgets::default(),
+        );
+        let before = runtime.committed().clone();
+        let outer = runtime.checkpoint().expect("outer owner checkpoint");
+        let fault = runtime.tick(vec![]).expect_err("inner retained trap");
+        let terminal = runtime.status().clone();
+        assert_ne!(terminal, RuntimeStatus::Running);
+
+        runtime
+            .rollback_checkpoint(outer)
+            .expect("outer VM restore");
+        assert_eq!(runtime.committed(), &before);
+        assert_eq!(runtime.vm().state, 0);
+        assert_eq!(runtime.vm().live_checkpoints.get(), 0);
+        assert_eq!(runtime.status(), &terminal);
+        match (role, runtime.status()) {
+            (RuntimeRole::Offline, RuntimeStatus::Paused(retained))
+            | (RuntimeRole::Server, RuntimeStatus::Faulted(retained))
+            | (RuntimeRole::Client, RuntimeStatus::Recovering(retained)) => {
+                assert_eq!(retained, &fault);
+            }
+            _ => panic!("outer restore lost the original role terminal fault"),
+        }
+        let rejected = runtime.tick(vec![]).expect_err("terminal admission");
+        assert!(matches!(rejected.kind, WocTickFaultKind::SessionNotRunning));
+        assert_eq!(runtime.status(), &terminal);
+        assert_eq!(runtime.vm().state, 0);
+
+        runtime
+            .install_full_snapshot(before)
+            .expect("explicit recovery");
+        assert_eq!(runtime.status(), &RuntimeStatus::Running);
+        runtime
+            .tick(vec![])
+            .expect("replayed next tick after recovery");
+        assert_eq!(runtime.committed().tick, 1);
+        assert_eq!(runtime.vm().state, 1);
+    }
+}
+
+#[test]
+fn outer_checkpoint_restore_failure_keeps_original_fault_and_attaches_restore_error() {
+    for role in [
+        RuntimeRole::Offline,
+        RuntimeRole::Server,
+        RuntimeRole::Client,
+    ] {
+        let mut vm = RetainedVm::new(Some(RetainedFailure::Trap));
+        vm.fail_rollback = true;
+        let mut runtime = WocTransactionalRuntime::new(role, vm, TickBudgets::default());
+        let before = runtime.committed().clone();
+        let outer = runtime.checkpoint().expect("outer owner checkpoint");
+        let fault = runtime
+            .tick(vec![])
+            .expect_err("inner trap and restore failure");
+        let terminal = runtime.status().clone();
+        assert!(
+            matches!(fault.kind, WocTickFaultKind::Vm(VmTickError::Trap(ref reason))
+            if reason == "injected retained trap")
+        );
+        assert!(
+            matches!(fault.rollback_error, Some(VmTickError::Trap(ref reason))
+            if reason == "injected rollback failure")
+        );
+
+        let restore_error = runtime
+            .rollback_checkpoint(outer)
+            .expect_err("outer restore failure");
+        assert!(matches!(restore_error, VmTickError::Trap(ref reason)
+            if reason == "injected rollback failure"));
+        assert_eq!(runtime.status(), &terminal);
+        assert_eq!(runtime.committed(), &before);
+        assert_eq!(runtime.vm().state, 1);
+        assert_eq!(runtime.vm().live_checkpoints.get(), 0);
+        let rejected = runtime
+            .tick(vec![])
+            .expect_err("fault retains terminal admission");
+        assert!(matches!(rejected.kind, WocTickFaultKind::SessionNotRunning));
+        assert_eq!(runtime.status(), &terminal);
+    }
+}
+
+#[test]
+fn outer_checkpoint_restore_after_tick_exhaustion_keeps_the_original_terminal_fault() {
+    for role in [
+        RuntimeRole::Offline,
+        RuntimeRole::Server,
+        RuntimeRole::Client,
+    ] {
+        let mut runtime = WocTransactionalRuntime::new(
+            role,
+            ScriptedVm::new(Behavior::Success(b"unused".to_vec())),
+            TickBudgets::default(),
+        );
+        let state = b"terminal".to_vec();
+        let snapshot = woc_runtime::CommittedSnapshot {
+            generation: 7,
+            tick: u64::MAX,
+            state_digest: fnv1a_bytes(&state),
+            event_digest: event_stream_digest(&[]),
+            presentation_digest: fnv1a_bytes(&[]),
+            state,
+            presentation_payload: vec![],
+        };
+        runtime
+            .install_full_snapshot(snapshot.clone())
+            .expect("terminal snapshot");
+        let outer = runtime.checkpoint().expect("outer owner checkpoint");
+        let calls_before_exhaustion = runtime.vm().calls;
+        let fault = runtime.tick(vec![]).expect_err("no successor");
+        assert_eq!(runtime.vm().calls, calls_before_exhaustion);
+        assert!(matches!(fault.kind, WocTickFaultKind::TickExhausted));
+        let terminal = runtime.status().clone();
+        runtime
+            .rollback_checkpoint(outer)
+            .expect("outer VM restore");
+        assert_eq!(runtime.status(), &terminal);
+        assert_eq!(runtime.committed(), &snapshot);
+        assert_eq!(runtime.vm().calls, calls_before_exhaustion + 1);
+        let calls_before_retry = runtime.vm().calls;
+        let repeated = runtime.tick(vec![]).expect_err("terminal admission");
+        assert!(matches!(repeated.kind, WocTickFaultKind::SessionNotRunning));
+        assert_eq!(runtime.status(), &terminal);
+        assert_eq!(runtime.vm().calls, calls_before_retry);
+    }
+}
+
+#[test]
+fn successful_outer_checkpoint_restore_rewinds_a_running_transaction() {
+    let mut runtime = WocTransactionalRuntime::new(
+        RuntimeRole::Client,
+        RetainedVm::new(None),
+        TickBudgets::default(),
+    );
+    let before = runtime.committed().clone();
+    let outer = runtime.checkpoint().expect("running owner checkpoint");
+    runtime.tick(vec![]).expect("committed tick");
+    assert_eq!(runtime.vm().state, 1);
+    runtime
+        .rollback_checkpoint(outer)
+        .expect("running owner restore");
+    assert_eq!(runtime.status(), &RuntimeStatus::Running);
+    assert_eq!(runtime.committed(), &before);
+    assert_eq!(runtime.vm().state, 0);
+    runtime.tick(vec![]).expect("same tick replay");
+    assert_eq!(runtime.committed().tick, 1);
+}
+
+#[test]
+fn failed_outer_restore_records_its_error_after_a_successful_inner_rollback() {
+    for role in [
+        RuntimeRole::Offline,
+        RuntimeRole::Server,
+        RuntimeRole::Client,
+    ] {
+        let mut vm = RetainedVm::new(Some(RetainedFailure::Trap));
+        vm.fail_rollback_after = Some(1);
+        let mut runtime = WocTransactionalRuntime::new(role, vm, TickBudgets::default());
+        let before = runtime.committed().clone();
+        let outer = runtime.checkpoint().expect("outer owner checkpoint");
+        let fault = runtime.tick(vec![]).expect_err("inner trap");
+        assert!(
+            fault.rollback_error.is_none(),
+            "the inner restore succeeded"
+        );
+        assert_eq!(runtime.vm().state, 0);
+        assert_eq!(runtime.vm().rollback_attempts, 1);
+
+        let restore_error = runtime
+            .rollback_checkpoint(outer)
+            .expect_err("outer restore fails");
+        assert!(matches!(restore_error, VmTickError::Trap(ref reason)
+            if reason == "injected rollback failure"));
+        let retained = match (role, runtime.status()) {
+            (RuntimeRole::Offline, RuntimeStatus::Paused(retained))
+            | (RuntimeRole::Server, RuntimeStatus::Faulted(retained))
+            | (RuntimeRole::Client, RuntimeStatus::Recovering(retained)) => retained,
+            _ => panic!("failed restore must retain role terminal admission"),
+        };
+        assert_eq!(retained.kind, fault.kind);
+        assert_eq!(retained.attempted_tick, fault.attempted_tick);
+        assert!(
+            matches!(retained.rollback_error, Some(VmTickError::Trap(ref reason))
+            if reason == "injected rollback failure")
+        );
+        assert_eq!(runtime.committed(), &before);
+        assert_eq!(runtime.vm().state, 0);
+        assert_eq!(runtime.vm().rollback_attempts, 2);
+        assert_eq!(runtime.vm().live_checkpoints.get(), 0);
+    }
 }

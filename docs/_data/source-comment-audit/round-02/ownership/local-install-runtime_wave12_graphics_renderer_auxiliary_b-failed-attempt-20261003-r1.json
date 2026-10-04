@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "owner": "runtime_wave12_graphics_renderer_auxiliary_b",
+  "sid": "source-audit-20260930-01a0f168",
+  "status": "failed_before_first_source_write",
+  "at_utc": "2026-10-03T08:20:57.301366+00:00",
+  "intent": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-install-runtime_wave12_graphics_renderer_auxiliary_b-20261003-r1\\intent.json",
+    "sha256": "e3442a264f8428c130a660b970bbb7d2547fe1bf40b0b0f415f801b46e5f4fe5"
+  },
+  "exact_source_observation": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave12-renderer-auxiliary-root-read-20261003-r1\\b\\install-failure-current-exact-20261003-r1.json",
+    "sha256": "0e6c6f6eb78fb087653bc618d935673f35cb4512f9854e8a0333ad96fa92c5a7"
+  },
+  "failure": "Python pathlib.write_bytes on first changed light_buffer.rs raised OSError [Errno 22] Invalid argument. All 29 actual files afterward and now equal exact preimages.",
+  "error_raw_location": "Existing actual exec tool transcript; no fabricated independent raw stream or PID",
+  "source_writes": 0,
+  "canonical_coverage_writes": 0,
+  "business_edits": 0,
+  "foreign_changes": 0,
+  "native_calls": 0,
+  "git_writes": 0,
+  "active_claim_reconciliation": "close only this same root local comment_delta claim after exact zero-write proof; no Session/lease/owner transfer",
+  "next_action": "one bounded same-intent install retry; no parser rerun or process operation",
+  "helper": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\root_aux_b_install_failure_close_20261003_r1.py",
+    "sha256": "bbc2a087f6bd117e0bfc47a1be7f57f480681e437dc72cbfcfa1152228bff347"
+  }
+}

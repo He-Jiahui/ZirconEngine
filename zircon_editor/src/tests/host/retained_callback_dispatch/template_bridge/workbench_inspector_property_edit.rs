@@ -1,3 +1,4 @@
+// 从工作台检查器控件编辑属性，约束预览同步、禁用规则及滚动行复用。
 use super::super::support::*;
 use super::support::*;
 use crate::core::extension::FieldEditorInstance;
@@ -400,12 +401,14 @@ fn componentized_workbench_module_field_edit_updates_value_preview() {
 
 fn inspector_with_component_properties() -> InspectorSnapshot {
     InspectorSnapshot {
+        rotation_degrees: None,
         id: 2,
         name: "GameplayRoot".to_string(),
         parent: "World".to_string(),
         translation: ["12.0".to_string(), "3.5".to_string(), "-8.0".to_string()],
         scale: ["1.25".to_string(), "2.50".to_string(), "0.75".to_string()],
         render_layer_mask: 1,
+        native_fields: Vec::new(),
         plugin_components: vec![InspectorPluginComponentSnapshot {
             component_id: "zircon.transform".to_string(),
             display_name: "Transform Component".to_string(),

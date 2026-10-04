@@ -1,3 +1,6 @@
+//! 为常规迁移和原型文件缓存提供平面源节点表的两个出口。
+//! 作者树会展开节点关系；原型出口保留稳定句柄，并在根和组件入口检查可达引用。
+
 use std::collections::BTreeMap;
 
 use serde::Deserialize;
@@ -17,8 +20,10 @@ use zircon_runtime_interface::ui::template::{
 use zircon_runtime_interface::ui::widget::UiWidgetContract;
 
 #[cfg(test)]
+#[path = "flat_nodes/tests/performance_tests.rs"]
 mod performance_tests;
 
+/// 仅供已经完成源版本接纳的迁移器调用；输出还须由迁移器验证树权威性。
 pub(super) fn migrate_flat_value(value: Value) -> Result<UiAssetDocument, UiAssetError> {
     let flat: FlatUiAssetDocument = value
         .try_into()
@@ -26,6 +31,8 @@ pub(super) fn migrate_flat_value(value: Value) -> Result<UiAssetDocument, UiAsse
     flat.into_tree_document()
 }
 
+// TODO: [CR-UI-TEMPLATE-RSC-0002] 确认原型直载是否也应遵守源版本接纳窗口；文件缓存走此入口而未走迁移器；下一步以窗口外版本核对原型加载与存储的预期错误。
+/// 为原型文件缓存保留句柄关系和原始头部，不执行常规树迁移。
 pub(crate) fn load_flat_prototype_toml_str(
     input: &str,
 ) -> Result<UiRawAssetPrototype, UiAssetError> {
@@ -35,6 +42,7 @@ pub(crate) fn load_flat_prototype_toml_str(
 }
 
 impl FlatUiAssetDocument {
+    // 每个声明根分别展开；跨根重复节点的作者树限制由迁移器的树校验统一检查。
     fn into_tree_document(self) -> Result<UiAssetDocument, UiAssetError> {
         let root = self
             .root
@@ -72,6 +80,7 @@ impl FlatUiAssetDocument {
         })
     }
 
+    // 根与组件入口先经可达性检查，之后才允许以句柄表索引它们。
     fn into_raw_prototype(self) -> Result<UiRawAssetPrototype, UiAssetError> {
         let node_handles = prototype_node_handles(&self.asset.id, &self.nodes)?;
         validate_reachable_prototype_root(
@@ -133,6 +142,7 @@ impl FlatUiAssetDocument {
     }
 }
 
+// 句柄表必须来自同一节点集合；其索引对应输出槽位，移动字段避免大文档的深拷贝。
 fn materialize_prototype_nodes(
     asset_id: &str,
     flat_nodes: BTreeMap<String, FlatUiNodeDefinition>,
@@ -146,6 +156,7 @@ fn materialize_prototype_nodes(
     Ok(nodes)
 }
 
+// 采用节点名称的稳定顺序分配紧密句柄；句柄只在本次原型节点表内有效。
 fn prototype_node_handles(
     asset_id: &str,
     nodes: &BTreeMap<String, FlatUiNodeDefinition>,
@@ -164,6 +175,7 @@ fn prototype_node_handles(
         .collect())
 }
 
+// 从指定根检查可达环和缺失边；退出帧区分祖先中的环与已经完成的共享子图。
 fn validate_reachable_prototype_root<'a>(
     asset_id: &str,
     nodes: &'a BTreeMap<String, FlatUiNodeDefinition>,
@@ -228,6 +240,7 @@ fn validate_reachable_prototype_root<'a>(
     Ok(())
 }
 
+// 显式退出事件保留深度优先的祖先生命周期，避免用递归调用栈承载大原型。
 enum PrototypeVisitFrame<'a> {
     Enter(&'a str),
     Exit(UiPrototypeNodeHandle),
@@ -240,6 +253,8 @@ enum PrototypeVisitState {
     Visited,
 }
 
+// TODO: [CR-UI-TEMPLATE-RSC-0004] 确认旧平面源向树迁移的最大层数；这里递归展开而原型直载已用显式栈；下一步以深链夹具检验普通 loader 的栈界限。
+// 树出口必须复制每次挂载的节点；祖先链负责环检查，最终重复身份由树权威性校验裁决。
 fn build_tree_node(
     asset_id: &str,
     nodes: &BTreeMap<String, FlatUiNodeDefinition>,
@@ -349,6 +364,7 @@ impl FlatUiNodeDefinition {
     }
 }
 
+// 这些反序列化类型只描述平面源格式；不能代替编译后的节点或运行时 UI 树。
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 struct FlatUiAssetDocument {
     pub asset: UiAssetHeader,

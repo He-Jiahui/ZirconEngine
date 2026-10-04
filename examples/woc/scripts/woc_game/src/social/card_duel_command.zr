@@ -18,6 +18,8 @@ pub validatePayload(id: uint, payload: container.Array<uint>): int {
     return -1;
 }
 
+// 命令路由在进入对局规则前解出有符号的传输值；此处只承担线格式，
+// 手牌归属与牌值有效性由路由和对局状态继续判定。
 pub decodePlayCardValue(payload: container.Array<uint>): int {
     if (validatePayload(contract.playCardCommandId(true), payload) != 1) {
         throw "card duel play_card payload is invalid";

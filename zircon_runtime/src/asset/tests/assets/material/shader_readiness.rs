@@ -4,6 +4,8 @@ use crate::asset::ShaderDependencyAsset;
 use crate::core::framework::render::RenderMaterialFallbackReason;
 use crate::core::resource::ResourceKind;
 
+// 图形资源流加载材质时还会取得 shader 契约并解析依赖；这些测试隔离契约、载荷与引用缺失的诊断来源。
+// 依赖解析器固定为成功，让断言只衡量材质与 shader schema 的不匹配；资源流另负责实际解析。
 #[test]
 fn material_asset_reports_shader_contract_diagnostics_without_blocking_import() {
     let material = MaterialAsset::from_toml_str(

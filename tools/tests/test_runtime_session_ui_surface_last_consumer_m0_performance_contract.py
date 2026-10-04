@@ -3,7 +3,7 @@ import unittest
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-SOURCE = ROOT / "zircon_runtime/src/dynamic_api/session/runtime_ui.rs"
+SOURCE = ROOT / "zircon_runtime/src/dynamic_api/session/runtime_ui/input_routing.rs"
 
 
 def function_source(source: str, start_anchor: str, end_anchor: str) -> str:
@@ -17,8 +17,8 @@ class RuntimeSessionUiSurfaceLastConsumerM0PerformanceContract(unittest.TestCase
         source = SOURCE.read_text(encoding="utf-8")
         dispatch = function_source(
             source,
-            "    pub(super) fn dispatch_input(",
-            "\n    pub(super) fn dispatch_pointer(",
+            "    pub(in crate::dynamic_api::session) fn dispatch_input(",
+            "\n    pub(in crate::dynamic_api::session) fn dispatch_pointer(",
         )
 
         self.assertIn("let mut event = Some(event);", dispatch)
@@ -47,7 +47,7 @@ class RuntimeSessionUiSurfaceLastConsumerM0PerformanceContract(unittest.TestCase
         helper = function_source(
             source,
             "fn input_event_for_surface(",
-            "\nfn split_global_node_id(",
+            "\nfn input_requires_focus_owner(",
         )
 
         last_surface = helper.index("if last_surface")

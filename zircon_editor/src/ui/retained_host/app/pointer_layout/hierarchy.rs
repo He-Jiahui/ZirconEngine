@@ -21,6 +21,8 @@ impl RetainedEditorHost {
             },
             self.hierarchy_pointer_state,
         );
+        // Publish the same clamped state that native hit testing now consumes.
+        self.hierarchy_pointer_state = self.hierarchy_pointer_bridge.committed_state();
         self.apply_hierarchy_pointer_state_to_ui();
     }
 

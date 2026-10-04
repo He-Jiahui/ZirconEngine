@@ -22,7 +22,12 @@ impl SceneViewportController {
         }
         let overlays = self.handle_overlays_for_transform(selected, camera);
         let projection = ViewportProjectionContext::new(camera, viewport);
-        let mut lines = Vec::new();
+        let line_capacity = overlays
+            .iter()
+            .flat_map(|overlay| &overlay.elements)
+            .map(max_screen_lines_for_element)
+            .sum();
+        let mut lines = Vec::with_capacity(line_capacity);
         for element in overlays.iter().flat_map(|overlay| &overlay.elements) {
             append_element_lines(
                 &mut lines,
@@ -34,6 +39,14 @@ impl SceneViewportController {
         }
         lines.retain(|line| line.is_finite());
         lines
+    }
+}
+
+fn max_screen_lines_for_element(element: &HandleElementExtract) -> usize {
+    match element {
+        HandleElementExtract::AxisRing { .. } => 48,
+        HandleElementExtract::AxisLine { .. } | HandleElementExtract::AxisScale { .. } => 3,
+        HandleElementExtract::CenterAnchor { .. } => 2,
     }
 }
 

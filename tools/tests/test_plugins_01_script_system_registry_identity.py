@@ -11,7 +11,7 @@ SCRIPT_SYSTEMS_PATH = (
 )
 SCRIPT_SCENE_SYSTEM_PATH = REPO_ROOT / "zircon_runtime/src/script/vm/scene_system.rs"
 
-
+# 检查脚本域借用链接插件注册表，注册标识由统一驻留表提供而非在脚本域重建。
 class Plugins01ScriptSystemRegistryIdentityTests(unittest.TestCase):
     def test_script_domain_does_not_own_plugin_registry_registration(self) -> None:
         source = SCRIPT_SCENE_SYSTEM_PATH.read_text(encoding="utf-8")

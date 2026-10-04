@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f5_native_plugin_descriptor_abi_uses_typed_error() {
     let native_plugin_abi =
@@ -6,9 +7,8 @@ fn review_f5_native_plugin_descriptor_abi_uses_typed_error() {
         include_str!("../../../../../../../plugin/native_plugin_loader/plugin_load_error.rs");
     let load_discovered =
         include_str!("../../../../../../../plugin/native_plugin_loader/load_discovered.rs");
-    let native_boundary = include_str!(
-        "../../../../../../../../../docs/engine-architecture/native-plugin-boundary.md"
-    );
+    let native_boundary =
+        include_str!("../../../../../../../../../docs/architecture/native-plugin-boundary.md");
 
     for required in [
         "pub enum PluginLoadStage",

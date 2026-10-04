@@ -1,11 +1,12 @@
+# 核对平台包参数与路径辅助函数归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PLATFORM_BUNDLE = REPO_ROOT / "tools/zircon_export/platform_bundle.py"
+PLATFORM_BUNDLE = REPO_ROOT / "tools/export/platform_bundle.py"
 PLATFORM_BUNDLE_ARGUMENTS = (
-    REPO_ROOT / "tools/zircon_export/platform_bundle_arguments.py"
+    REPO_ROOT / "tools/export/platform_bundle_arguments.py"
 )
 
 

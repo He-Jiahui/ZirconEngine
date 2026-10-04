@@ -9,3 +9,6 @@ description = "Wavefront OBJ asset importer runtime plugin package for Zircon."
 tobj = "4.0.3"
 zircon_plugin_sdk = { workspace = true, features = ["runtime"] }
 zircon_runtime = { workspace = true }
+
+[dev-dependencies]
+toml = { workspace = true }

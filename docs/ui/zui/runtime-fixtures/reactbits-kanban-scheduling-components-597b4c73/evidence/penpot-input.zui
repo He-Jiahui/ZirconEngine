@@ -1,0 +1,2715 @@
+penpot_dependency_sources = []
+penpot_original_source = "[asset]\nkind = \"view\"\nid = \"res://ui/tests/reactbits_kanban_scheduling_components.zui\"\nversion = 2\ndisplay_name = \"ReactBits Kanban And Scheduling Components\"\n\n[tokens]\n\"surface.canvas\" = \"#0f1117\"\n\"surface.panel\" = \"#171b24\"\n\"surface.elevated\" = \"#1d2330\"\n\"surface.inset\" = \"#11151d\"\n\"border.default\" = \"#2a3342\"\n\"border.strong\" = \"#3a4658\"\n\"text.primary\" = \"#f4f7fb\"\n\"text.secondary\" = \"#a9b4c5\"\n\"text.muted\" = \"#718096\"\n\"accent.primary\" = \"#8b7cff\"\n\"accent.info\" = \"#5da9ff\"\n\"status.success\" = \"#55d6a0\"\n\"status.warning\" = \"#f4bd62\"\n\"status.error\" = \"#ff7d8a\"\n\n[root]\nnode = \"root\"\n\n[nodes.root]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ReactBitsKanbanSchedulingRoot\"\nclasses = [\"rb-kanban-scheduling-fixture\"]\nprops = {\n  background_color = \"$surface.canvas\",\n  foreground_color = \"$text.primary\",\n  fixture_data_only = true,\n  reference_primary = \"https://pro.reactbits.dev/docs/app-ui/kanban/kanban-5\",\n  reference_supporting = [\n    \"https://pro.reactbits.dev/docs/app-ui/kanban/kanban-1\",\n    \"https://pro.reactbits.dev/docs/app-ui/scheduling/scheduling-1\",\n    \"https://pro.reactbits.dev/docs/app-ui/scheduling/scheduling-7\",\n  ],\n  responsive_wide = \"the sprint board and booking agenda share a balanced two-panel flow\",\n  responsive_compact = \"columns wrap before card text becomes unreadable and the agenda keeps time values end-aligned\",\n  responsive_mobile = \"one vertical scroll owner exposes board columns before the day agenda and keeps primary actions reachable\",\n  layout_modes = [\"wip-board\", \"capacity-meter\", \"drag-state-card\", \"month-day-strip\", \"time-slot-agenda\", \"windowed-collections\"],\n  accessibility_label = \"Kanban board and scheduling reference surface\",\n}\nlayout = {\n  clip = true,\n  input_policy = \"Receive\",\n  width = { min = 360, preferred = 1160, max = 1440, stretch = \"Stretch\" },\n  height = { min = 520, preferred = 820, max = 1040, stretch = \"Stretch\" },\n  container = { kind = \"VerticalBox\", gap = 10 },\n  padding = { left = 14, right = 14, top = 14, bottom = 14 },\n}\nchildren = [{ node = \"header\" }, { node = \"body\" }]\n\n[nodes.header]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"ReactBitsKanbanSchedulingHeader\"\nprops = { background_color = \"$surface.panel\", border_color = \"$border.default\", border_width = 1, corner_radius = 8 }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 54, preferred = 54, max = 54, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 8 }, padding = { left = 12, right = 12, top = 8, bottom = 8 } }\nchildren = [{ node = \"header_title\" }, { node = \"header_range\" }, { node = \"header_add\" }]\n\n[nodes.header_title]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ReactBitsKanbanSchedulingHeaderTitle\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, container = { kind = \"VerticalBox\", gap = 2 } }\nchildren = [{ node = \"title\" }, { node = \"subtitle\" }]\n\n[nodes.title]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanSchedulingTitle\"\nprops = { text = \"Release operations\", text_key = \"fixture.kanban.title\", foreground_color = \"$text.primary\", font_size = 15, font_weight = 650, text_overflow = \"elide\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 20, preferred = 20, max = 22, stretch = \"Fixed\" } }\n\n[nodes.subtitle]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanSchedulingSubtitle\"\nprops = { text = \"Sprint capacity and deployment windows\", text_key = \"fixture.kanban.subtitle\", foreground_color = \"$text.secondary\", font_size = 10, text_overflow = \"elide\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 16, preferred = 16, max = 18, stretch = \"Fixed\" } }\n\n[nodes.header_range]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsKanbanSchedulingRange\"\nprops = { text = \"Sprint 24 · Sep 16–27\", text_key = \"fixture.kanban.header.range\", icon = \"chevron-down\", icon_size = \"s\", button_variant = \"outlined\", foreground_color = \"$text.secondary\", border_color = \"$border.strong\", border_width = 1, corner_radius = 6, text_align = \"right\", input_interactive = true, input_focusable = true, accessibility_label = \"Choose sprint range\" }\nlayout = { width = { min = 154, preferred = 184, max = 214, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" }, padding = { left = 8, right = 8, top = 5, bottom = 5 } }\n\n[nodes.header_add]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsKanbanSchedulingAdd\"\nprops = { text = \"New item\", text_key = \"fixture.kanban.header.add\", icon = \"plus\", icon_size = \"s\", button_variant = \"contained\", background_color = \"$accent.primary\", foreground_color = \"$text.primary\", corner_radius = 6, text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"Create a board item\" }\nlayout = { width = { min = 92, preferred = 112, max = 132, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.body]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"ReactBitsKanbanSchedulingBody\"\nprops = { background_color = \"$surface.inset\", border_color = \"$border.default\", border_width = 1, corner_radius = 8, scroll_owner = \"kanban-scheduling-body\", accessibility_label = \"Board and schedule content\" }\nlayout = { clip = true, width = { stretch = \"Stretch\" }, height = { min = 0, stretch = \"Stretch\" }, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = 10, scrollbar_visibility = \"Auto\" }, padding = { left = 12, right = 12, top = 12, bottom = 12 } }\nchildren = [{ node = \"panels\" }]\n\n[nodes.panels]\ncomponent = \"FlowBox\"\ncontrol_id = \"ReactBitsKanbanSchedulingPanels\"\nprops = { direction = \"row\", wrap = true, spacing = 10, accessibility_label = \"Board and schedule panels\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 600, preferred = 660, max = 820, stretch = \"Stretch\" }, container = { kind = \"FlowBox\", gap = 10 } }\nchildren = [\n  { node = \"board_panel\", slot = { layout = { width = { min = 272, preferred = 650, weight = 1, stretch = \"Stretch\" } } } },\n  { node = \"schedule_panel\", slot = { layout = { width = { min = 272, preferred = 390, weight = 1, stretch = \"Stretch\" } } } },\n]\n\n[nodes.board_panel]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ReactBitsKanbanBoardPanel\"\nclasses = [\"rb-kanban-board\"]\nprops = { background_color = \"$surface.panel\", border_color = \"$border.default\", border_width = 1, corner_radius = 9, accessibility_label = \"Sprint kanban board\" }\nlayout = { width = { min = 272, stretch = \"Stretch\" }, height = { min = 600, preferred = 660, max = 820, stretch = \"Stretch\" }, container = { kind = \"VerticalBox\", gap = 8 }, padding = { left = 10, right = 10, top = 10, bottom = 10 } }\nchildren = [{ node = \"board_toolbar\" }, { node = \"board_summary\" }, { node = \"columns\" }]\n\n[nodes.board_toolbar]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"ReactBitsKanbanBoardToolbar\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 34, preferred = 36, max = 40, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 6 } }\nchildren = [{ node = \"board_label\" }, { node = \"board_filter\" }]\n\n[nodes.board_label]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanBoardLabel\"\nprops = { text = \"Sprint board\", text_key = \"fixture.kanban.board.label\", foreground_color = \"$text.primary\", font_size = 12, font_weight = 650, text_align = \"left\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.board_filter]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsKanbanBoardFilter\"\nprops = { text = \"Filter\", text_key = \"fixture.kanban.board.filter\", icon = \"info\", icon_size = \"s\", button_variant = \"text\", foreground_color = \"$accent.info\", text_align = \"right\", input_interactive = true, input_focusable = true, accessibility_label = \"Filter sprint items\" }\nlayout = { width = { min = 72, preferred = 84, max = 96, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.board_summary]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"ReactBitsKanbanBoardSummary\"\nprops = { background_color = \"$surface.elevated\", border_color = \"$border.default\", border_width = 1, corner_radius = 7 }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 46, preferred = 50, max = 56, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 8 }, padding = { left = 8, right = 8, top = 6, bottom = 6 } }\nchildren = [{ node = \"points\" }, { node = \"capacity\" }, { node = \"burn_down\" }]\n\n[nodes.points]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ReactBitsKanbanPoints\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, container = { kind = \"VerticalBox\", gap = 1 } }\nchildren = [{ node = \"points_label\" }, { node = \"points_value\" }]\n\n[nodes.points_label]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanPointsLabel\"\nprops = { text = \"Points\", text_key = \"fixture.kanban.summary.points.label\", foreground_color = \"$text.muted\", font_size = 9 }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.points_value]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanPointsValue\"\nprops = { text = \"34 / 48\", text_key = \"fixture.kanban.summary.points.value\", foreground_color = \"$text.primary\", font_size = 13, font_weight = 650, text_align = \"right\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.capacity]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ReactBitsKanbanCapacity\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, container = { kind = \"VerticalBox\", gap = 1 } }\nchildren = [{ node = \"capacity_label\" }, { node = \"capacity_value\" }]\n\n[nodes.capacity_label]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanCapacityLabel\"\nprops = { text = \"Capacity\", text_key = \"fixture.kanban.summary.capacity.label\", foreground_color = \"$text.muted\", font_size = 9 }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.capacity_value]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanCapacityValue\"\nprops = { text = \"71%\", text_key = \"fixture.kanban.summary.capacity.value\", foreground_color = \"$status.success\", font_size = 13, font_weight = 650, text_align = \"right\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.burn_down]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ReactBitsKanbanBurnDown\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, container = { kind = \"VerticalBox\", gap = 1 } }\nchildren = [{ node = \"burn_down_label\" }, { node = \"burn_down_value\" }]\n\n[nodes.burn_down_label]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanBurnDownLabel\"\nprops = { text = \"Burn-down\", text_key = \"fixture.kanban.summary.burn_down.label\", foreground_color = \"$text.muted\", font_size = 9 }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.burn_down_value]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanBurnDownValue\"\nprops = { text = \"On track\", text_key = \"fixture.kanban.summary.burn_down.value\", foreground_color = \"$accent.info\", font_size = 11, font_weight = 650, text_align = \"right\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.columns]\ncomponent = \"FlowBox\"\ncontrol_id = \"ReactBitsKanbanColumns\"\nprops = { direction = \"row\", wrap = true, spacing = 8, collection_role = \"kanban-columns\", accessibility_label = \"Sprint status columns\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 472, stretch = \"Stretch\" }, container = { kind = \"FlowBox\", gap = 8 } }\nchildren = [\n  { node = \"column_todo\", slot = { layout = { width = { min = 148, preferred = 196, weight = 1, stretch = \"Stretch\" } } } },\n  { node = \"column_building\", slot = { layout = { width = { min = 148, preferred = 196, weight = 1, stretch = \"Stretch\" } } } },\n  { node = \"column_review\", slot = { layout = { width = { min = 148, preferred = 196, weight = 1, stretch = \"Stretch\" } } } },\n]\n\n[nodes.column_todo]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ReactBitsKanbanColumnTodo\"\nprops = { background_color = \"$surface.inset\", border_color = \"$border.default\", border_width = 1, corner_radius = 7, collection_virtualization = \"windowed\", visible_limit = 3, collection_test_cases = [\"empty\", \"one\", \"normal\", \"overflow\", \"narrow\", \"long-locale\"], long_locale_fixture_label = \"A deliberately long localized backlog item label for overflow coverage\", column_id = \"todo\", accessibility_label = \"Todo column\" }\nlayout = { width = { min = 148, stretch = \"Stretch\" }, height = { min = 472, stretch = \"Stretch\" }, container = { kind = \"VerticalBox\", gap = 6 }, padding = { left = 7, right = 7, top = 7, bottom = 7 } }\nchildren = [{ node = \"todo_heading\" }, { node = \"todo_card_1\" }, { node = \"todo_card_2\" }, { node = \"todo_add\" }]\n\n[nodes.todo_heading]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"ReactBitsKanbanTodoHeading\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28, preferred = 30, max = 34, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 4 } }\nchildren = [{ node = \"todo_title\" }, { node = \"todo_count\" }]\n\n[nodes.todo_title]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanTodoTitle\"\nprops = { text = \"Todo\", text_key = \"fixture.kanban.column.todo.title\", foreground_color = \"$text.primary\", font_size = 10, font_weight = 650 }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.todo_count]\ncomponent = \"Chip\"\ncontrol_id = \"ReactBitsKanbanTodoCount\"\nprops = { text = \"3\", text_key = \"fixture.kanban.column.todo.count\", foreground_color = \"$text.muted\", background_color = \"$surface.elevated\", text_align = \"right\", accessibility_label = \"Three todo items\" }\nlayout = { width = { min = 24, preferred = 28, max = 32, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.todo_card_1]\ncomponent = \"Paper\"\ncontrol_id = \"ReactBitsKanbanTodoCardOne\"\nprops = { background_color = \"$surface.elevated\", border_color = \"$border.default\", border_width = 1, corner_radius = 6, card_state = \"normal\", item_id = \"layout-audit\", collection_item = \"normal|Layout audit|8 pts|Mina\", accessibility_label = \"Layout audit todo card\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 82, preferred = 92, max = 108, stretch = \"Fixed\" }, container = { kind = \"VerticalBox\", gap = 4 }, padding = { left = 8, right = 8, top = 7, bottom = 7 } }\nchildren = [{ node = \"todo_card_1_title\" }, { node = \"todo_card_1_meta\" }, { node = \"todo_card_1_owner\" }]\n\n[nodes.todo_card_1_title]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanTodoCardOneTitle\"\nprops = { text = \"Audit retained layout\", text_key = \"fixture.kanban.card.layout.title\", foreground_color = \"$text.primary\", font_size = 10, font_weight = 600, wrap = \"word\", text_overflow = \"clip\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 26, preferred = 30, max = 36, stretch = \"Fixed\" } }\n\n[nodes.todo_card_1_meta]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanTodoCardOneMeta\"\nprops = { text = \"8 pts\", text_key = \"fixture.kanban.card.layout.points\", foreground_color = \"$accent.info\", font_size = 9, text_align = \"right\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 14, preferred = 16, max = 18, stretch = \"Fixed\" } }\n\n[nodes.todo_card_1_owner]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanTodoCardOneOwner\"\nprops = { text = \"Mina\", text_key = \"fixture.kanban.card.layout.owner\", foreground_color = \"$text.muted\", font_size = 9, text_overflow = \"elide\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 14, preferred = 16, max = 18, stretch = \"Fixed\" } }\n\n[nodes.todo_card_2]\ncomponent = \"Paper\"\ncontrol_id = \"ReactBitsKanbanTodoCardTwo\"\nprops = { background_color = \"$surface.elevated\", border_color = \"$border.default\", border_width = 1, corner_radius = 6, card_state = \"blocked\", item_id = \"font-review\", collection_item = \"warning|Font review|5 pts|Ravi\", accessibility_label = \"Font review blocked card\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 82, preferred = 92, max = 108, stretch = \"Fixed\" }, container = { kind = \"VerticalBox\", gap = 4 }, padding = { left = 8, right = 8, top = 7, bottom = 7 } }\nchildren = [{ node = \"todo_card_2_title\" }, { node = \"todo_card_2_meta\" }, { node = \"todo_card_2_owner\" }]\n\n[nodes.todo_card_2_title]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanTodoCardTwoTitle\"\nprops = { text = \"Resolve font fallback\", text_key = \"fixture.kanban.card.font.title\", foreground_color = \"$text.primary\", font_size = 10, font_weight = 600, wrap = \"word\", text_overflow = \"clip\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 26, preferred = 30, max = 36, stretch = \"Fixed\" } }\n\n[nodes.todo_card_2_meta]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanTodoCardTwoMeta\"\nprops = { text = \"Blocked · 5 pts\", text_key = \"fixture.kanban.card.font.points\", foreground_color = \"$status.warning\", font_size = 9, text_align = \"right\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 14, preferred = 16, max = 18, stretch = \"Fixed\" } }\n\n[nodes.todo_card_2_owner]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanTodoCardTwoOwner\"\nprops = { text = \"Ravi\", text_key = \"fixture.kanban.card.font.owner\", foreground_color = \"$text.muted\", font_size = 9, text_overflow = \"elide\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 14, preferred = 16, max = 18, stretch = \"Fixed\" } }\n\n[nodes.todo_add]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsKanbanTodoAdd\"\nprops = { text = \"Add card\", text_key = \"fixture.kanban.column.todo.add\", icon = \"plus\", icon_size = \"s\", button_variant = \"text\", foreground_color = \"$text.muted\", text_align = \"left\", input_interactive = true, input_focusable = true, accessibility_label = \"Add todo card\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28, preferred = 30, max = 34, stretch = \"Fixed\" } }\n\n[nodes.column_building]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ReactBitsKanbanColumnBuilding\"\nprops = { background_color = \"$surface.inset\", border_color = \"$border.default\", border_width = 1, corner_radius = 7, collection_virtualization = \"windowed\", visible_limit = 3, collection_test_cases = [\"empty\", \"one\", \"normal\", \"overflow\", \"narrow\", \"long-locale\"], long_locale_fixture_label = \"A deliberately long localized in-progress item label for overflow coverage\", column_id = \"building\", accessibility_label = \"In progress column\" }\nlayout = { width = { min = 148, stretch = \"Stretch\" }, height = { min = 472, stretch = \"Stretch\" }, container = { kind = \"VerticalBox\", gap = 6 }, padding = { left = 7, right = 7, top = 7, bottom = 7 } }\nchildren = [{ node = \"building_heading\" }, { node = \"building_card_1\" }, { node = \"building_card_2\" }, { node = \"building_add\" }]\n\n[nodes.building_heading]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"ReactBitsKanbanBuildingHeading\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28, preferred = 30, max = 34, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 4 } }\nchildren = [{ node = \"building_title\" }, { node = \"building_count\" }]\n\n[nodes.building_title]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanBuildingTitle\"\nprops = { text = \"Building\", text_key = \"fixture.kanban.column.building.title\", foreground_color = \"$text.primary\", font_size = 10, font_weight = 650 }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.building_count]\ncomponent = \"Chip\"\ncontrol_id = \"ReactBitsKanbanBuildingCount\"\nprops = { text = \"2\", text_key = \"fixture.kanban.column.building.count\", foreground_color = \"$text.muted\", background_color = \"$surface.elevated\", text_align = \"right\", accessibility_label = \"Two in-progress items\" }\nlayout = { width = { min = 24, preferred = 28, max = 32, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.building_card_1]\ncomponent = \"Paper\"\ncontrol_id = \"ReactBitsKanbanBuildingCardOne\"\nprops = { background_color = \"$surface.elevated\", border_color = \"$accent.primary\", border_width = 1, corner_radius = 6, card_state = \"active\", item_id = \"penpot-capture\", collection_item = \"selected|Penpot capture|13 pts|Yuki\", accessibility_label = \"Penpot capture active card\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 82, preferred = 92, max = 108, stretch = \"Fixed\" }, container = { kind = \"VerticalBox\", gap = 4 }, padding = { left = 8, right = 8, top = 7, bottom = 7 } }\nchildren = [{ node = \"building_card_1_title\" }, { node = \"building_card_1_meta\" }, { node = \"building_card_1_owner\" }]\n\n[nodes.building_card_1_title]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanBuildingCardOneTitle\"\nprops = { text = \"Capture Penpot states\", text_key = \"fixture.kanban.card.capture.title\", foreground_color = \"$text.primary\", font_size = 10, font_weight = 600, wrap = \"word\", text_overflow = \"clip\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 26, preferred = 30, max = 36, stretch = \"Fixed\" } }\n\n[nodes.building_card_1_meta]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanBuildingCardOneMeta\"\nprops = { text = \"13 pts\", text_key = \"fixture.kanban.card.capture.points\", foreground_color = \"$accent.info\", font_size = 9, text_align = \"right\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 14, preferred = 16, max = 18, stretch = \"Fixed\" } }\n\n[nodes.building_card_1_owner]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanBuildingCardOneOwner\"\nprops = { text = \"Yuki\", text_key = \"fixture.kanban.card.capture.owner\", foreground_color = \"$text.muted\", font_size = 9, text_overflow = \"elide\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 14, preferred = 16, max = 18, stretch = \"Fixed\" } }\n\n[nodes.building_card_2]\ncomponent = \"Paper\"\ncontrol_id = \"ReactBitsKanbanBuildingCardTwo\"\nprops = { background_color = \"$surface.elevated\", border_color = \"$border.default\", border_width = 1, corner_radius = 6, card_state = \"normal\", item_id = \"icon-tier\", collection_item = \"normal|Converge icon tiers|3 pts|Noah\", accessibility_label = \"Icon tier card\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 82, preferred = 92, max = 108, stretch = \"Fixed\" }, container = { kind = \"VerticalBox\", gap = 4 }, padding = { left = 8, right = 8, top = 7, bottom = 7 } }\nchildren = [{ node = \"building_card_2_title\" }, { node = \"building_card_2_meta\" }, { node = \"building_card_2_owner\" }]\n\n[nodes.building_card_2_title]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanBuildingCardTwoTitle\"\nprops = { text = \"Converge icon tiers\", text_key = \"fixture.kanban.card.icons.title\", foreground_color = \"$text.primary\", font_size = 10, font_weight = 600, wrap = \"word\", text_overflow = \"clip\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 26, preferred = 30, max = 36, stretch = \"Fixed\" } }\n\n[nodes.building_card_2_meta]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanBuildingCardTwoMeta\"\nprops = { text = \"3 pts\", text_key = \"fixture.kanban.card.icons.points\", foreground_color = \"$accent.info\", font_size = 9, text_align = \"right\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 14, preferred = 16, max = 18, stretch = \"Fixed\" } }\n\n[nodes.building_card_2_owner]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanBuildingCardTwoOwner\"\nprops = { text = \"Noah\", text_key = \"fixture.kanban.card.icons.owner\", foreground_color = \"$text.muted\", font_size = 9, text_overflow = \"elide\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 14, preferred = 16, max = 18, stretch = \"Fixed\" } }\n\n[nodes.building_add]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsKanbanBuildingAdd\"\nprops = { text = \"Add card\", text_key = \"fixture.kanban.column.building.add\", icon = \"plus\", icon_size = \"s\", button_variant = \"text\", foreground_color = \"$text.muted\", text_align = \"left\", input_interactive = true, input_focusable = true, accessibility_label = \"Add in-progress card\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28, preferred = 30, max = 34, stretch = \"Fixed\" } }\n\n[nodes.column_review]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ReactBitsKanbanColumnReview\"\nprops = { background_color = \"$surface.inset\", border_color = \"$border.default\", border_width = 1, corner_radius = 7, collection_virtualization = \"windowed\", visible_limit = 3, collection_test_cases = [\"empty\", \"one\", \"normal\", \"overflow\", \"narrow\", \"long-locale\"], long_locale_fixture_label = \"A deliberately long localized review item label for overflow coverage\", column_id = \"review\", accessibility_label = \"Review column\" }\nlayout = { width = { min = 148, stretch = \"Stretch\" }, height = { min = 472, stretch = \"Stretch\" }, container = { kind = \"VerticalBox\", gap = 6 }, padding = { left = 7, right = 7, top = 7, bottom = 7 } }\nchildren = [{ node = \"review_heading\" }, { node = \"review_card_1\" }, { node = \"review_card_2\" }, { node = \"review_add\" }]\n\n[nodes.review_heading]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"ReactBitsKanbanReviewHeading\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28, preferred = 30, max = 34, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 4 } }\nchildren = [{ node = \"review_title\" }, { node = \"review_count\" }]\n\n[nodes.review_title]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanReviewTitle\"\nprops = { text = \"Review\", text_key = \"fixture.kanban.column.review.title\", foreground_color = \"$text.primary\", font_size = 10, font_weight = 650 }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.review_count]\ncomponent = \"Chip\"\ncontrol_id = \"ReactBitsKanbanReviewCount\"\nprops = { text = \"2\", text_key = \"fixture.kanban.column.review.count\", foreground_color = \"$text.muted\", background_color = \"$surface.elevated\", text_align = \"right\", accessibility_label = \"Two review items\" }\nlayout = { width = { min = 24, preferred = 28, max = 32, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.review_card_1]\ncomponent = \"Paper\"\ncontrol_id = \"ReactBitsKanbanReviewCardOne\"\nprops = { background_color = \"$surface.elevated\", border_color = \"$border.default\", border_width = 1, corner_radius = 6, card_state = \"ready\", item_id = \"rich-text\", collection_item = \"success|Rich text audit|5 pts|Iris\", accessibility_label = \"Rich text audit ready card\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 82, preferred = 92, max = 108, stretch = \"Fixed\" }, container = { kind = \"VerticalBox\", gap = 4 }, padding = { left = 8, right = 8, top = 7, bottom = 7 } }\nchildren = [{ node = \"review_card_1_title\" }, { node = \"review_card_1_meta\" }, { node = \"review_card_1_owner\" }]\n\n[nodes.review_card_1_title]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanReviewCardOneTitle\"\nprops = { text = \"Verify **rich-text** runs\", text_key = \"fixture.kanban.card.rich.title\", rich_text_format = \"markdown_inline_v1\", foreground_color = \"$text.primary\", font_size = 10, font_weight = 600, wrap = \"word\", text_overflow = \"clip\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 26, preferred = 30, max = 36, stretch = \"Fixed\" } }\n\n[nodes.review_card_1_meta]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanReviewCardOneMeta\"\nprops = { text = \"5 pts\", text_key = \"fixture.kanban.card.rich.points\", foreground_color = \"$accent.info\", font_size = 9, text_align = \"right\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 14, preferred = 16, max = 18, stretch = \"Fixed\" } }\n\n[nodes.review_card_1_owner]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanReviewCardOneOwner\"\nprops = { text = \"Iris\", text_key = \"fixture.kanban.card.rich.owner\", foreground_color = \"$text.muted\", font_size = 9, text_overflow = \"elide\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 14, preferred = 16, max = 18, stretch = \"Fixed\" } }\n\n[nodes.review_card_2]\ncomponent = \"Paper\"\ncontrol_id = \"ReactBitsKanbanReviewCardTwo\"\nprops = { background_color = \"$surface.elevated\", border_color = \"$status.warning\", border_width = 1, corner_radius = 6, card_state = \"waiting\", item_id = \"native-gate\", collection_item = \"warning|Native gate pending|8 pts|Mara\", accessibility_label = \"Native gate pending card\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 82, preferred = 92, max = 108, stretch = \"Fixed\" }, container = { kind = \"VerticalBox\", gap = 4 }, padding = { left = 8, right = 8, top = 7, bottom = 7 } }\nchildren = [{ node = \"review_card_2_title\" }, { node = \"review_card_2_meta\" }, { node = \"review_card_2_owner\" }]\n\n[nodes.review_card_2_title]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanReviewCardTwoTitle\"\nprops = { text = \"Clear native validation gate\", text_key = \"fixture.kanban.card.native.title\", foreground_color = \"$text.primary\", font_size = 10, font_weight = 600, wrap = \"word\", text_overflow = \"clip\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 26, preferred = 30, max = 36, stretch = \"Fixed\" } }\n\n[nodes.review_card_2_meta]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanReviewCardTwoMeta\"\nprops = { text = \"Waiting · 8 pts\", text_key = \"fixture.kanban.card.native.points\", foreground_color = \"$status.warning\", font_size = 9, text_align = \"right\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 14, preferred = 16, max = 18, stretch = \"Fixed\" } }\n\n[nodes.review_card_2_owner]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsKanbanReviewCardTwoOwner\"\nprops = { text = \"Mara\", text_key = \"fixture.kanban.card.native.owner\", foreground_color = \"$text.muted\", font_size = 9, text_overflow = \"elide\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 14, preferred = 16, max = 18, stretch = \"Fixed\" } }\n\n[nodes.review_add]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsKanbanReviewAdd\"\nprops = { text = \"Add card\", text_key = \"fixture.kanban.column.review.add\", icon = \"plus\", icon_size = \"s\", button_variant = \"text\", foreground_color = \"$text.muted\", text_align = \"left\", input_interactive = true, input_focusable = true, accessibility_label = \"Add review card\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28, preferred = 30, max = 34, stretch = \"Fixed\" } }\n\n[nodes.schedule_panel]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ReactBitsSchedulingPanel\"\nclasses = [\"rb-scheduling-panel\"]\nprops = { background_color = \"$surface.panel\", border_color = \"$border.default\", border_width = 1, corner_radius = 9, accessibility_label = \"Deployment scheduling panel\" }\nlayout = { width = { min = 272, stretch = \"Stretch\" }, height = { min = 600, preferred = 660, max = 820, stretch = \"Stretch\" }, container = { kind = \"VerticalBox\", gap = 8 }, padding = { left = 10, right = 10, top = 10, bottom = 10 } }\nchildren = [{ node = \"schedule_heading\" }, { node = \"day_strip\" }, { node = \"calendar\" }, { node = \"agenda\" }, { node = \"booking_summary\" }]\n\n[nodes.schedule_heading]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"ReactBitsSchedulingHeading\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 34, preferred = 36, max = 40, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 6 } }\nchildren = [{ node = \"schedule_title\" }, { node = \"schedule_timezone\" }]\n\n[nodes.schedule_title]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsSchedulingTitle\"\nprops = { text = \"Deployment windows\", text_key = \"fixture.scheduling.title\", foreground_color = \"$text.primary\", font_size = 12, font_weight = 650 }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.schedule_timezone]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsSchedulingTimezone\"\nprops = { text = \"UTC−07:00\", text_key = \"fixture.scheduling.timezone\", foreground_color = \"$text.muted\", font_size = 9, text_align = \"right\", text_overflow = \"elide\" }\nlayout = { width = { min = 72, preferred = 86, max = 104, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.day_strip]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"ReactBitsSchedulingDayStrip\"\nprops = { collection_role = \"date-strip\", accessibility_label = \"Choose deployment day\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 48, preferred = 52, max = 58, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 4 } }\nchildren = [{ node = \"day_mon\" }, { node = \"day_tue\" }, { node = \"day_wed\" }, { node = \"day_thu\" }, { node = \"day_fri\" }]\n\n[nodes.day_mon]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingDayMon\"\nprops = { text = \"16\\nMON\", text_key = \"fixture.scheduling.day.mon\", button_variant = \"text\", foreground_color = \"$text.secondary\", text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"Monday September 16\" }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.day_tue]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingDayTue\"\nprops = { text = \"17\\nTUE\", text_key = \"fixture.scheduling.day.tue\", button_variant = \"text\", foreground_color = \"$text.secondary\", text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"Tuesday September 17\" }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.day_wed]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingDayWed\"\nprops = { text = \"18\\nWED\", text_key = \"fixture.scheduling.day.wed\", button_variant = \"text\", selected = true, background_color = \"$surface.elevated\", foreground_color = \"$text.primary\", border_color = \"$accent.primary\", border_width = 1, corner_radius = 6, text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"Wednesday September 18 selected\" }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.day_thu]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingDayThu\"\nprops = { text = \"19\\nTHU\", text_key = \"fixture.scheduling.day.thu\", button_variant = \"text\", foreground_color = \"$text.secondary\", text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"Thursday September 19\" }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.day_fri]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingDayFri\"\nprops = { text = \"20\\nFRI\", text_key = \"fixture.scheduling.day.fri\", button_variant = \"text\", foreground_color = \"$text.secondary\", text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"Friday September 20\" }\nlayout = { width = { min = 0, weight = 1, stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.calendar]\ncomponent = \"FlowBox\"\ncontrol_id = \"ReactBitsSchedulingCalendar\"\nprops = { direction = \"row\", wrap = true, spacing = 4, collection_role = \"month-calendar\", collection_virtualization = \"windowed\", viewport_start = 0, visible_limit = 21, collection_test_cases = [\"empty\", \"one\", \"normal\", \"overflow\", \"narrow\", \"long-locale\"], long_locale_fixture_label = \"A deliberately long localized calendar event label for overflow coverage\", accessibility_label = \"September month calendar\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 146, preferred = 156, max = 172, stretch = \"Fixed\" }, container = { kind = \"FlowBox\", gap = 4 }, padding = { left = 4, right = 4, top = 4, bottom = 4 } }\nchildren = [{ node = \"date_16\" }, { node = \"date_17\" }, { node = \"date_18\" }, { node = \"date_19\" }, { node = \"date_20\" }, { node = \"date_21\" }, { node = \"date_22\" }, { node = \"date_23\" }, { node = \"date_24\" }, { node = \"date_25\" }, { node = \"date_26\" }, { node = \"date_27\" }, { node = \"date_28\" }, { node = \"date_29\" }, { node = \"date_30\" }]\n\n[nodes.date_16]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingDate16\"\nprops = { text = \"16\", text_key = \"fixture.scheduling.date.16\", button_variant = \"text\", foreground_color = \"$text.muted\", text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"September 16\" }\nlayout = { width = { min = 32, preferred = 36, max = 44, stretch = \"Stretch\" }, height = { min = 26, preferred = 28, max = 32, stretch = \"Fixed\" } }\n\n[nodes.date_17]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingDate17\"\nprops = { text = \"17\", text_key = \"fixture.scheduling.date.17\", button_variant = \"text\", foreground_color = \"$text.muted\", text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"September 17\" }\nlayout = { width = { min = 32, preferred = 36, max = 44, stretch = \"Stretch\" }, height = { min = 26, preferred = 28, max = 32, stretch = \"Fixed\" } }\n\n[nodes.date_18]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingDate18\"\nprops = { text = \"18\", text_key = \"fixture.scheduling.date.18\", button_variant = \"text\", selected = true, background_color = \"$accent.primary\", foreground_color = \"$text.primary\", corner_radius = 5, text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"September 18 selected\" }\nlayout = { width = { min = 32, preferred = 36, max = 44, stretch = \"Stretch\" }, height = { min = 26, preferred = 28, max = 32, stretch = \"Fixed\" } }\n\n[nodes.date_19]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingDate19\"\nprops = { text = \"19\", text_key = \"fixture.scheduling.date.19\", button_variant = \"text\", foreground_color = \"$text.muted\", text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"September 19\" }\nlayout = { width = { min = 32, preferred = 36, max = 44, stretch = \"Stretch\" }, height = { min = 26, preferred = 28, max = 32, stretch = \"Fixed\" } }\n\n[nodes.date_20]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingDate20\"\nprops = { text = \"20\", text_key = \"fixture.scheduling.date.20\", button_variant = \"text\", foreground_color = \"$text.muted\", text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"September 20\" }\nlayout = { width = { min = 32, preferred = 36, max = 44, stretch = \"Stretch\" }, height = { min = 26, preferred = 28, max = 32, stretch = \"Fixed\" } }\n\n[nodes.date_21]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingDate21\"\nprops = { text = \"21\", text_key = \"fixture.scheduling.date.21\", button_variant = \"text\", foreground_color = \"$text.muted\", text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"September 21\" }\nlayout = { width = { min = 32, preferred = 36, max = 44, stretch = \"Stretch\" }, height = { min = 26, preferred = 28, max = 32, stretch = \"Fixed\" } }\n\n[nodes.date_22]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingDate22\"\nprops = { text = \"22\", text_key = \"fixture.scheduling.date.22\", button_variant = \"text\", foreground_color = \"$text.muted\", text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"September 22\" }\nlayout = { width = { min = 32, preferred = 36, max = 44, stretch = \"Stretch\" }, height = { min = 26, preferred = 28, max = 32, stretch = \"Fixed\" } }\n\n[nodes.date_23]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingDate23\"\nprops = { text = \"23\", text_key = \"fixture.scheduling.date.23\", button_variant = \"text\", foreground_color = \"$text.muted\", text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"September 23\" }\nlayout = { width = { min = 32, preferred = 36, max = 44, stretch = \"Stretch\" }, height = { min = 26, preferred = 28, max = 32, stretch = \"Fixed\" } }\n\n[nodes.date_24]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingDate24\"\nprops = { text = \"24\", text_key = \"fixture.scheduling.date.24\", button_variant = \"text\", foreground_color = \"$text.muted\", text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"September 24\" }\nlayout = { width = { min = 32, preferred = 36, max = 44, stretch = \"Stretch\" }, height = { min = 26, preferred = 28, max = 32, stretch = \"Fixed\" } }\n\n[nodes.date_25]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingDate25\"\nprops = { text = \"25\", text_key = \"fixture.scheduling.date.25\", button_variant = \"text\", foreground_color = \"$text.muted\", text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"September 25\" }\nlayout = { width = { min = 32, preferred = 36, max = 44, stretch = \"Stretch\" }, height = { min = 26, preferred = 28, max = 32, stretch = \"Fixed\" } }\n\n[nodes.date_26]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingDate26\"\nprops = { text = \"26\", text_key = \"fixture.scheduling.date.26\", button_variant = \"text\", foreground_color = \"$text.muted\", text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"September 26\" }\nlayout = { width = { min = 32, preferred = 36, max = 44, stretch = \"Stretch\" }, height = { min = 26, preferred = 28, max = 32, stretch = \"Fixed\" } }\n\n[nodes.date_27]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingDate27\"\nprops = { text = \"27\", text_key = \"fixture.scheduling.date.27\", button_variant = \"text\", foreground_color = \"$text.muted\", text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"September 27\" }\nlayout = { width = { min = 32, preferred = 36, max = 44, stretch = \"Stretch\" }, height = { min = 26, preferred = 28, max = 32, stretch = \"Fixed\" } }\n\n[nodes.date_28]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingDate28\"\nprops = { text = \"28\", text_key = \"fixture.scheduling.date.28\", button_variant = \"text\", foreground_color = \"$text.muted\", text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"September 28\" }\nlayout = { width = { min = 32, preferred = 36, max = 44, stretch = \"Stretch\" }, height = { min = 26, preferred = 28, max = 32, stretch = \"Fixed\" } }\n\n[nodes.date_29]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingDate29\"\nprops = { text = \"29\", text_key = \"fixture.scheduling.date.29\", button_variant = \"text\", foreground_color = \"$text.muted\", text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"September 29\" }\nlayout = { width = { min = 32, preferred = 36, max = 44, stretch = \"Stretch\" }, height = { min = 26, preferred = 28, max = 32, stretch = \"Fixed\" } }\n\n[nodes.date_30]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingDate30\"\nprops = { text = \"30\", text_key = \"fixture.scheduling.date.30\", button_variant = \"text\", foreground_color = \"$text.muted\", text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"September 30\" }\nlayout = { width = { min = 32, preferred = 36, max = 44, stretch = \"Stretch\" }, height = { min = 26, preferred = 28, max = 32, stretch = \"Fixed\" } }\n\n[nodes.agenda]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"ReactBitsSchedulingAgenda\"\nprops = { collection_virtualization = \"windowed\", viewport_start = 0, visible_limit = 3, collection_test_cases = [\"empty\", \"one\", \"normal\", \"overflow\", \"narrow\", \"long-locale\"], long_locale_fixture_label = \"A deliberately long localized deployment agenda label for overflow coverage\", collection_items = [\"selected|09:00|Penpot visual capture|Yuki\", \"normal|11:30|Native validation gate|Mara\", \"warning|14:00|Release rehearsal|Ravi\", \"normal|16:30|Review handoff|Iris\"], selected_item_id = \"visual-capture\", empty_text = \"No deployment windows\", empty_text_key = \"fixture.scheduling.agenda.empty\", scroll_owner = \"deployment-agenda\", background_color = \"$surface.inset\", border_color = \"$border.default\", border_width = 1, corner_radius = 7, accessibility_label = \"Deployment day agenda\" }\nlayout = { clip = true, width = { stretch = \"Stretch\" }, height = { min = 132, preferred = 148, max = 168, stretch = \"Stretch\" }, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = 4, scrollbar_visibility = \"Auto\" }, padding = { left = 7, right = 7, top = 6, bottom = 6 } }\nchildren = [{ node = \"agenda_heading\" }, { node = \"agenda_capture\" }, { node = \"agenda_gate\" }, { node = \"agenda_rehearsal\" }]\n\n[nodes.agenda_heading]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsSchedulingAgendaHeading\"\nprops = { text = \"Wednesday · September 18\", text_key = \"fixture.scheduling.agenda.heading\", foreground_color = \"$text.muted\", font_size = 9, font_weight = 700 }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 16, preferred = 18, max = 20, stretch = \"Fixed\" } }\n\n[nodes.agenda_capture]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingAgendaCapture\"\nprops = { text = \"09:00  Penpot visual capture\", text_key = \"fixture.scheduling.agenda.capture\", value_text = \"09:00\", value_key = \"fixture.scheduling.agenda.capture.time\", button_variant = \"text\", selected = true, background_color = \"$surface.elevated\", foreground_color = \"$text.primary\", corner_radius = 5, text_align = \"left\", input_interactive = true, input_focusable = true, accessibility_label = \"Penpot visual capture at 9 AM\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28, preferred = 30, max = 34, stretch = \"Fixed\" } }\n\n[nodes.agenda_gate]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingAgendaGate\"\nprops = { text = \"11:30  Native validation gate\", text_key = \"fixture.scheduling.agenda.gate\", value_text = \"11:30\", value_key = \"fixture.scheduling.agenda.gate.time\", button_variant = \"text\", foreground_color = \"$text.secondary\", text_align = \"left\", input_interactive = true, input_focusable = true, accessibility_label = \"Native validation gate at 11:30 AM\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28, preferred = 30, max = 34, stretch = \"Fixed\" } }\n\n[nodes.agenda_rehearsal]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingAgendaRehearsal\"\nprops = { text = \"14:00  Release rehearsal\", text_key = \"fixture.scheduling.agenda.rehearsal\", value_text = \"14:00\", value_key = \"fixture.scheduling.agenda.rehearsal.time\", button_variant = \"text\", foreground_color = \"$status.warning\", text_align = \"left\", input_interactive = true, input_focusable = true, accessibility_label = \"Release rehearsal at 2 PM\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28, preferred = 30, max = 34, stretch = \"Fixed\" } }\n\n[nodes.booking_summary]\ncomponent = \"Paper\"\ncontrol_id = \"ReactBitsSchedulingBookingSummary\"\nprops = { background_color = \"$surface.elevated\", border_color = \"$border.default\", border_width = 1, corner_radius = 7, accessibility_label = \"Selected deployment window summary\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 76, preferred = 84, max = 96, stretch = \"Fixed\" }, container = { kind = \"VerticalBox\", gap = 4 }, padding = { left = 8, right = 8, top = 7, bottom = 7 } }\nchildren = [{ node = \"booking_title\" }, { node = \"booking_detail\" }, { node = \"booking_action\" }]\n\n[nodes.booking_title]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsSchedulingBookingTitle\"\nprops = { text = \"Selected window\", text_key = \"fixture.scheduling.booking.title\", foreground_color = \"$text.primary\", font_size = 10, font_weight = 650 }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 16, preferred = 18, max = 20, stretch = \"Fixed\" } }\n\n[nodes.booking_detail]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsSchedulingBookingDetail\"\nprops = { text = \"09:00–10:00 · **Visual review**\", text_key = \"fixture.scheduling.booking.detail\", rich_text_format = \"markdown_inline_v1\", foreground_color = \"$text.secondary\", font_size = 9, text_align = \"right\", text_overflow = \"elide\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 16, preferred = 18, max = 22, stretch = \"Fixed\" } }\n\n[nodes.booking_action]\ncomponent = \"Button\"\ncontrol_id = \"ReactBitsSchedulingBookingAction\"\nprops = { text = \"Reserve window\", text_key = \"fixture.scheduling.booking.action\", button_variant = \"contained\", background_color = \"$accent.primary\", foreground_color = \"$text.primary\", corner_radius = 5, text_align = \"center\", input_interactive = true, input_focusable = true, accessibility_label = \"Reserve selected deployment window\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28, preferred = 30, max = 34, stretch = \"Fixed\" } }\n\n[nodes.root.zircon_extension]\nowner = \"reactbits-reference-slice\"\nreference_profile = \"reactbits-kanban-scheduling-components-v1\"\nsource_of_truth = \"zui\"\npenpot_visual_check = \"required\"\n\n[[stylesheets]]\nid = \"reactbits-ui-typography\"\n\n[[stylesheets.rules]]\nselector = \"*\"\nset = { self = { font = { asset = \"res://fonts/editor-ui.font.toml\", family = \"Fira Sans\" } } }\n"
+
+[asset]
+kind = "view"
+id = "res://ui/tests/reactbits_kanban_scheduling_components.zui"
+version = 2
+display_name = "ReactBits Kanban And Scheduling Components"
+
+[tokens]
+"surface.canvas" = "#0f1117"
+"surface.panel" = "#171b24"
+"surface.elevated" = "#1d2330"
+"surface.inset" = "#11151d"
+"border.default" = "#2a3342"
+"border.strong" = "#3a4658"
+"text.primary" = "#f4f7fb"
+"text.secondary" = "#a9b4c5"
+"text.muted" = "#718096"
+"accent.primary" = "#8b7cff"
+"accent.info" = "#5da9ff"
+"status.success" = "#55d6a0"
+"status.warning" = "#f4bd62"
+"status.error" = "#ff7d8a"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalBox"
+control_id = "ReactBitsKanbanSchedulingRoot"
+classes = [ "rb-kanban-scheduling-fixture" ]
+
+[nodes.root.props]
+background_color = "$surface.canvas"
+foreground_color = "$text.primary"
+fixture_data_only = true
+reference_primary = "https://pro.reactbits.dev/docs/app-ui/kanban/kanban-5"
+reference_supporting = [ "https://pro.reactbits.dev/docs/app-ui/kanban/kanban-1", "https://pro.reactbits.dev/docs/app-ui/scheduling/scheduling-1", "https://pro.reactbits.dev/docs/app-ui/scheduling/scheduling-7" ]
+responsive_wide = "the sprint board and booking agenda share a balanced two-panel flow"
+responsive_compact = "columns wrap before card text becomes unreadable and the agenda keeps time values end-aligned"
+responsive_mobile = "one vertical scroll owner exposes board columns before the day agenda and keeps primary actions reachable"
+layout_modes = [ "wip-board", "capacity-meter", "drag-state-card", "month-day-strip", "time-slot-agenda", "windowed-collections" ]
+accessibility_label = "Kanban board and scheduling reference surface"
+
+[nodes.root.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.root.layout.width]
+min = 360
+preferred = 1160
+max = 1440
+stretch = "Stretch"
+
+[nodes.root.layout.height]
+min = 520
+preferred = 820
+max = 1040
+stretch = "Stretch"
+
+[nodes.root.layout.container]
+kind = "VerticalBox"
+gap = 10
+
+[nodes.root.layout.padding]
+left = 14
+right = 14
+top = 14
+bottom = 14
+
+[[nodes.root.children]]
+node = "header"
+
+[[nodes.root.children]]
+node = "body"
+
+[nodes.root.zircon_extension]
+owner = "reactbits-reference-slice"
+reference_profile = "reactbits-kanban-scheduling-components-v1"
+source_of_truth = "zui"
+penpot_visual_check = "required"
+
+[nodes.header]
+component = "HorizontalBox"
+control_id = "ReactBitsKanbanSchedulingHeader"
+
+[nodes.header.props]
+background_color = "$surface.panel"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 8
+
+[nodes.header.layout.width]
+stretch = "Stretch"
+
+[nodes.header.layout.height]
+min = 54
+preferred = 54
+max = 54
+stretch = "Fixed"
+
+[nodes.header.layout.container]
+kind = "HorizontalBox"
+gap = 8
+
+[nodes.header.layout.padding]
+left = 12
+right = 12
+top = 8
+bottom = 8
+
+[[nodes.header.children]]
+node = "header_title"
+
+[[nodes.header.children]]
+node = "header_range"
+
+[[nodes.header.children]]
+node = "header_add"
+
+[nodes.header_title]
+component = "VerticalBox"
+control_id = "ReactBitsKanbanSchedulingHeaderTitle"
+
+[nodes.header_title.layout.width]
+stretch = "Stretch"
+
+[nodes.header_title.layout.height]
+stretch = "Stretch"
+
+[nodes.header_title.layout.container]
+kind = "VerticalBox"
+gap = 2
+
+[[nodes.header_title.children]]
+node = "title"
+
+[[nodes.header_title.children]]
+node = "subtitle"
+
+[nodes.title]
+component = "Label"
+control_id = "ReactBitsKanbanSchedulingTitle"
+
+[nodes.title.props]
+text = "Release operations"
+text_key = "fixture.kanban.title"
+foreground_color = "$text.primary"
+font_size = 15
+font_weight = 650
+text_overflow = "elide"
+
+[nodes.title.layout.width]
+stretch = "Stretch"
+
+[nodes.title.layout.height]
+min = 20
+preferred = 20
+max = 22
+stretch = "Fixed"
+
+[nodes.subtitle]
+component = "Label"
+control_id = "ReactBitsKanbanSchedulingSubtitle"
+
+[nodes.subtitle.props]
+text = "Sprint capacity and deployment windows"
+text_key = "fixture.kanban.subtitle"
+foreground_color = "$text.secondary"
+font_size = 10
+text_overflow = "elide"
+
+[nodes.subtitle.layout.width]
+stretch = "Stretch"
+
+[nodes.subtitle.layout.height]
+min = 16
+preferred = 16
+max = 18
+stretch = "Fixed"
+
+[nodes.header_range]
+component = "Button"
+control_id = "ReactBitsKanbanSchedulingRange"
+
+[nodes.header_range.props]
+text = "Sprint 24 · Sep 16–27"
+text_key = "fixture.kanban.header.range"
+icon = "chevron-down"
+icon_size = "s"
+button_variant = "outlined"
+foreground_color = "$text.secondary"
+border_color = "$border.strong"
+border_width = 1
+corner_radius = 6
+text_align = "right"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Choose sprint range"
+
+[nodes.header_range.layout.width]
+min = 154
+preferred = 184
+max = 214
+stretch = "Fixed"
+
+[nodes.header_range.layout.height]
+stretch = "Stretch"
+
+[nodes.header_range.layout.padding]
+left = 8
+right = 8
+top = 5
+bottom = 5
+
+[nodes.header_add]
+component = "Button"
+control_id = "ReactBitsKanbanSchedulingAdd"
+
+[nodes.header_add.props]
+text = "New item"
+text_key = "fixture.kanban.header.add"
+icon = "plus"
+icon_size = "s"
+button_variant = "contained"
+background_color = "$accent.primary"
+foreground_color = "$text.primary"
+corner_radius = 6
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Create a board item"
+
+[nodes.header_add.layout.width]
+min = 92
+preferred = 112
+max = 132
+stretch = "Fixed"
+
+[nodes.header_add.layout.height]
+stretch = "Stretch"
+
+[nodes.body]
+component = "ScrollableBox"
+control_id = "ReactBitsKanbanSchedulingBody"
+
+[nodes.body.props]
+background_color = "$surface.inset"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 8
+scroll_owner = "kanban-scheduling-body"
+accessibility_label = "Board and schedule content"
+
+[nodes.body.layout]
+clip = true
+
+[nodes.body.layout.width]
+stretch = "Stretch"
+
+[nodes.body.layout.height]
+min = 0
+stretch = "Stretch"
+
+[nodes.body.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = 10
+scrollbar_visibility = "Auto"
+
+[nodes.body.layout.padding]
+left = 12
+right = 12
+top = 12
+bottom = 12
+
+[[nodes.body.children]]
+node = "panels"
+
+[nodes.panels]
+component = "FlowBox"
+control_id = "ReactBitsKanbanSchedulingPanels"
+
+[nodes.panels.props]
+direction = "row"
+wrap = true
+spacing = 10
+accessibility_label = "Board and schedule panels"
+
+[nodes.panels.layout.width]
+stretch = "Stretch"
+
+[nodes.panels.layout.height]
+min = 600
+preferred = 660
+max = 820
+stretch = "Stretch"
+
+[nodes.panels.layout.container]
+kind = "FlowBox"
+gap = 10
+
+[[nodes.panels.children]]
+node = "board_panel"
+
+[nodes.panels.children.slot.layout.width]
+min = 272
+preferred = 650
+weight = 1
+stretch = "Stretch"
+
+[[nodes.panels.children]]
+node = "schedule_panel"
+
+[nodes.panels.children.slot.layout.width]
+min = 272
+preferred = 390
+weight = 1
+stretch = "Stretch"
+
+[nodes.board_panel]
+component = "VerticalBox"
+control_id = "ReactBitsKanbanBoardPanel"
+classes = [ "rb-kanban-board" ]
+
+[nodes.board_panel.props]
+background_color = "$surface.panel"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 9
+accessibility_label = "Sprint kanban board"
+
+[nodes.board_panel.layout.width]
+min = 272
+stretch = "Stretch"
+preferred = 650
+weight = 1
+
+[nodes.board_panel.layout.height]
+min = 600
+preferred = 660
+max = 820
+stretch = "Stretch"
+
+[nodes.board_panel.layout.container]
+kind = "VerticalBox"
+gap = 8
+
+[nodes.board_panel.layout.padding]
+left = 10
+right = 10
+top = 10
+bottom = 10
+
+[[nodes.board_panel.children]]
+node = "board_toolbar"
+
+[[nodes.board_panel.children]]
+node = "board_summary"
+
+[[nodes.board_panel.children]]
+node = "columns"
+
+[nodes.board_toolbar]
+component = "HorizontalBox"
+control_id = "ReactBitsKanbanBoardToolbar"
+
+[nodes.board_toolbar.layout.width]
+stretch = "Stretch"
+
+[nodes.board_toolbar.layout.height]
+min = 34
+preferred = 36
+max = 40
+stretch = "Fixed"
+
+[nodes.board_toolbar.layout.container]
+kind = "HorizontalBox"
+gap = 6
+
+[[nodes.board_toolbar.children]]
+node = "board_label"
+
+[[nodes.board_toolbar.children]]
+node = "board_filter"
+
+[nodes.board_label]
+component = "Label"
+control_id = "ReactBitsKanbanBoardLabel"
+
+[nodes.board_label.props]
+text = "Sprint board"
+text_key = "fixture.kanban.board.label"
+foreground_color = "$text.primary"
+font_size = 12
+font_weight = 650
+text_align = "left"
+
+[nodes.board_label.layout.width]
+stretch = "Stretch"
+
+[nodes.board_label.layout.height]
+stretch = "Stretch"
+
+[nodes.board_filter]
+component = "Button"
+control_id = "ReactBitsKanbanBoardFilter"
+
+[nodes.board_filter.props]
+text = "Filter"
+text_key = "fixture.kanban.board.filter"
+icon = "info"
+icon_size = "s"
+button_variant = "text"
+foreground_color = "$accent.info"
+text_align = "right"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Filter sprint items"
+
+[nodes.board_filter.layout.width]
+min = 72
+preferred = 84
+max = 96
+stretch = "Fixed"
+
+[nodes.board_filter.layout.height]
+stretch = "Stretch"
+
+[nodes.board_summary]
+component = "HorizontalBox"
+control_id = "ReactBitsKanbanBoardSummary"
+
+[nodes.board_summary.props]
+background_color = "$surface.elevated"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 7
+
+[nodes.board_summary.layout.width]
+stretch = "Stretch"
+
+[nodes.board_summary.layout.height]
+min = 46
+preferred = 50
+max = 56
+stretch = "Fixed"
+
+[nodes.board_summary.layout.container]
+kind = "HorizontalBox"
+gap = 8
+
+[nodes.board_summary.layout.padding]
+left = 8
+right = 8
+top = 6
+bottom = 6
+
+[[nodes.board_summary.children]]
+node = "points"
+
+[[nodes.board_summary.children]]
+node = "capacity"
+
+[[nodes.board_summary.children]]
+node = "burn_down"
+
+[nodes.points]
+component = "VerticalBox"
+control_id = "ReactBitsKanbanPoints"
+
+[nodes.points.layout.width]
+stretch = "Stretch"
+
+[nodes.points.layout.height]
+stretch = "Stretch"
+
+[nodes.points.layout.container]
+kind = "VerticalBox"
+gap = 1
+
+[[nodes.points.children]]
+node = "points_label"
+
+[[nodes.points.children]]
+node = "points_value"
+
+[nodes.points_label]
+component = "Label"
+control_id = "ReactBitsKanbanPointsLabel"
+
+[nodes.points_label.props]
+text = "Points"
+text_key = "fixture.kanban.summary.points.label"
+foreground_color = "$text.muted"
+font_size = 9
+
+[nodes.points_label.layout.width]
+stretch = "Stretch"
+
+[nodes.points_label.layout.height]
+stretch = "Stretch"
+
+[nodes.points_value]
+component = "Label"
+control_id = "ReactBitsKanbanPointsValue"
+
+[nodes.points_value.props]
+text = "34 / 48"
+text_key = "fixture.kanban.summary.points.value"
+foreground_color = "$text.primary"
+font_size = 13
+font_weight = 650
+text_align = "right"
+
+[nodes.points_value.layout.width]
+stretch = "Stretch"
+
+[nodes.points_value.layout.height]
+stretch = "Stretch"
+
+[nodes.capacity]
+component = "VerticalBox"
+control_id = "ReactBitsKanbanCapacity"
+
+[nodes.capacity.layout.width]
+stretch = "Stretch"
+
+[nodes.capacity.layout.height]
+stretch = "Stretch"
+
+[nodes.capacity.layout.container]
+kind = "VerticalBox"
+gap = 1
+
+[[nodes.capacity.children]]
+node = "capacity_label"
+
+[[nodes.capacity.children]]
+node = "capacity_value"
+
+[nodes.capacity_label]
+component = "Label"
+control_id = "ReactBitsKanbanCapacityLabel"
+
+[nodes.capacity_label.props]
+text = "Capacity"
+text_key = "fixture.kanban.summary.capacity.label"
+foreground_color = "$text.muted"
+font_size = 9
+
+[nodes.capacity_label.layout.width]
+stretch = "Stretch"
+
+[nodes.capacity_label.layout.height]
+stretch = "Stretch"
+
+[nodes.capacity_value]
+component = "Label"
+control_id = "ReactBitsKanbanCapacityValue"
+
+[nodes.capacity_value.props]
+text = "71%"
+text_key = "fixture.kanban.summary.capacity.value"
+foreground_color = "$status.success"
+font_size = 13
+font_weight = 650
+text_align = "right"
+
+[nodes.capacity_value.layout.width]
+stretch = "Stretch"
+
+[nodes.capacity_value.layout.height]
+stretch = "Stretch"
+
+[nodes.burn_down]
+component = "VerticalBox"
+control_id = "ReactBitsKanbanBurnDown"
+
+[nodes.burn_down.layout.width]
+stretch = "Stretch"
+
+[nodes.burn_down.layout.height]
+stretch = "Stretch"
+
+[nodes.burn_down.layout.container]
+kind = "VerticalBox"
+gap = 1
+
+[[nodes.burn_down.children]]
+node = "burn_down_label"
+
+[[nodes.burn_down.children]]
+node = "burn_down_value"
+
+[nodes.burn_down_label]
+component = "Label"
+control_id = "ReactBitsKanbanBurnDownLabel"
+
+[nodes.burn_down_label.props]
+text = "Burn-down"
+text_key = "fixture.kanban.summary.burn_down.label"
+foreground_color = "$text.muted"
+font_size = 9
+
+[nodes.burn_down_label.layout.width]
+stretch = "Stretch"
+
+[nodes.burn_down_label.layout.height]
+stretch = "Stretch"
+
+[nodes.burn_down_value]
+component = "Label"
+control_id = "ReactBitsKanbanBurnDownValue"
+
+[nodes.burn_down_value.props]
+text = "On track"
+text_key = "fixture.kanban.summary.burn_down.value"
+foreground_color = "$accent.info"
+font_size = 11
+font_weight = 650
+text_align = "right"
+
+[nodes.burn_down_value.layout.width]
+stretch = "Stretch"
+
+[nodes.burn_down_value.layout.height]
+stretch = "Stretch"
+
+[nodes.columns]
+component = "FlowBox"
+control_id = "ReactBitsKanbanColumns"
+
+[nodes.columns.props]
+direction = "row"
+wrap = true
+spacing = 8
+collection_role = "kanban-columns"
+accessibility_label = "Sprint status columns"
+
+[nodes.columns.layout.width]
+stretch = "Stretch"
+
+[nodes.columns.layout.height]
+min = 472
+stretch = "Stretch"
+
+[nodes.columns.layout.container]
+kind = "FlowBox"
+gap = 8
+
+[[nodes.columns.children]]
+node = "column_todo"
+
+[nodes.columns.children.slot.layout.width]
+min = 148
+preferred = 196
+weight = 1
+stretch = "Stretch"
+
+[[nodes.columns.children]]
+node = "column_building"
+
+[nodes.columns.children.slot.layout.width]
+min = 148
+preferred = 196
+weight = 1
+stretch = "Stretch"
+
+[[nodes.columns.children]]
+node = "column_review"
+
+[nodes.columns.children.slot.layout.width]
+min = 148
+preferred = 196
+weight = 1
+stretch = "Stretch"
+
+[nodes.column_todo]
+component = "VerticalBox"
+control_id = "ReactBitsKanbanColumnTodo"
+
+[nodes.column_todo.props]
+background_color = "$surface.inset"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 7
+collection_virtualization = "windowed"
+visible_limit = 3
+collection_test_cases = [ "empty", "one", "normal", "overflow", "narrow", "long-locale" ]
+long_locale_fixture_label = "A deliberately long localized backlog item label for overflow coverage"
+column_id = "todo"
+accessibility_label = "Todo column"
+
+[nodes.column_todo.layout.width]
+min = 148
+stretch = "Stretch"
+preferred = 196
+weight = 1
+
+[nodes.column_todo.layout.height]
+min = 472
+stretch = "Stretch"
+
+[nodes.column_todo.layout.container]
+kind = "VerticalBox"
+gap = 6
+
+[nodes.column_todo.layout.padding]
+left = 7
+right = 7
+top = 7
+bottom = 7
+
+[[nodes.column_todo.children]]
+node = "todo_heading"
+
+[[nodes.column_todo.children]]
+node = "todo_card_1"
+
+[[nodes.column_todo.children]]
+node = "todo_card_2"
+
+[[nodes.column_todo.children]]
+node = "todo_add"
+
+[nodes.todo_heading]
+component = "HorizontalBox"
+control_id = "ReactBitsKanbanTodoHeading"
+
+[nodes.todo_heading.layout.width]
+stretch = "Stretch"
+
+[nodes.todo_heading.layout.height]
+min = 28
+preferred = 30
+max = 34
+stretch = "Fixed"
+
+[nodes.todo_heading.layout.container]
+kind = "HorizontalBox"
+gap = 4
+
+[[nodes.todo_heading.children]]
+node = "todo_title"
+
+[[nodes.todo_heading.children]]
+node = "todo_count"
+
+[nodes.todo_title]
+component = "Label"
+control_id = "ReactBitsKanbanTodoTitle"
+
+[nodes.todo_title.props]
+text = "Todo"
+text_key = "fixture.kanban.column.todo.title"
+foreground_color = "$text.primary"
+font_size = 10
+font_weight = 650
+
+[nodes.todo_title.layout.width]
+stretch = "Stretch"
+
+[nodes.todo_title.layout.height]
+stretch = "Stretch"
+
+[nodes.todo_count]
+component = "Chip"
+control_id = "ReactBitsKanbanTodoCount"
+
+[nodes.todo_count.props]
+text = "3"
+text_key = "fixture.kanban.column.todo.count"
+foreground_color = "$text.muted"
+background_color = "$surface.elevated"
+text_align = "right"
+accessibility_label = "Three todo items"
+
+[nodes.todo_count.layout.width]
+min = 24
+preferred = 28
+max = 32
+stretch = "Fixed"
+
+[nodes.todo_count.layout.height]
+stretch = "Stretch"
+
+[nodes.todo_card_1]
+component = "Paper"
+control_id = "ReactBitsKanbanTodoCardOne"
+
+[nodes.todo_card_1.props]
+background_color = "$surface.elevated"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 6
+card_state = "normal"
+item_id = "layout-audit"
+collection_item = "normal|Layout audit|8 pts|Mina"
+accessibility_label = "Layout audit todo card"
+
+[nodes.todo_card_1.layout.width]
+stretch = "Stretch"
+
+[nodes.todo_card_1.layout.height]
+min = 82
+preferred = 92
+max = 108
+stretch = "Fixed"
+
+[nodes.todo_card_1.layout.container]
+kind = "VerticalBox"
+gap = 4
+
+[nodes.todo_card_1.layout.padding]
+left = 8
+right = 8
+top = 7
+bottom = 7
+
+[[nodes.todo_card_1.children]]
+node = "todo_card_1_title"
+
+[[nodes.todo_card_1.children]]
+node = "todo_card_1_meta"
+
+[[nodes.todo_card_1.children]]
+node = "todo_card_1_owner"
+
+[nodes.todo_card_1_title]
+component = "Label"
+control_id = "ReactBitsKanbanTodoCardOneTitle"
+
+[nodes.todo_card_1_title.props]
+text = "Audit retained layout"
+text_key = "fixture.kanban.card.layout.title"
+foreground_color = "$text.primary"
+font_size = 10
+font_weight = 600
+wrap = "word"
+text_overflow = "clip"
+
+[nodes.todo_card_1_title.layout.width]
+stretch = "Stretch"
+
+[nodes.todo_card_1_title.layout.height]
+min = 26
+preferred = 30
+max = 36
+stretch = "Fixed"
+
+[nodes.todo_card_1_meta]
+component = "Label"
+control_id = "ReactBitsKanbanTodoCardOneMeta"
+
+[nodes.todo_card_1_meta.props]
+text = "8 pts"
+text_key = "fixture.kanban.card.layout.points"
+foreground_color = "$accent.info"
+font_size = 9
+text_align = "right"
+
+[nodes.todo_card_1_meta.layout.width]
+stretch = "Stretch"
+
+[nodes.todo_card_1_meta.layout.height]
+min = 14
+preferred = 16
+max = 18
+stretch = "Fixed"
+
+[nodes.todo_card_1_owner]
+component = "Label"
+control_id = "ReactBitsKanbanTodoCardOneOwner"
+
+[nodes.todo_card_1_owner.props]
+text = "Mina"
+text_key = "fixture.kanban.card.layout.owner"
+foreground_color = "$text.muted"
+font_size = 9
+text_overflow = "elide"
+
+[nodes.todo_card_1_owner.layout.width]
+stretch = "Stretch"
+
+[nodes.todo_card_1_owner.layout.height]
+min = 14
+preferred = 16
+max = 18
+stretch = "Fixed"
+
+[nodes.todo_card_2]
+component = "Paper"
+control_id = "ReactBitsKanbanTodoCardTwo"
+
+[nodes.todo_card_2.props]
+background_color = "$surface.elevated"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 6
+card_state = "blocked"
+item_id = "font-review"
+collection_item = "warning|Font review|5 pts|Ravi"
+accessibility_label = "Font review blocked card"
+
+[nodes.todo_card_2.layout.width]
+stretch = "Stretch"
+
+[nodes.todo_card_2.layout.height]
+min = 82
+preferred = 92
+max = 108
+stretch = "Fixed"
+
+[nodes.todo_card_2.layout.container]
+kind = "VerticalBox"
+gap = 4
+
+[nodes.todo_card_2.layout.padding]
+left = 8
+right = 8
+top = 7
+bottom = 7
+
+[[nodes.todo_card_2.children]]
+node = "todo_card_2_title"
+
+[[nodes.todo_card_2.children]]
+node = "todo_card_2_meta"
+
+[[nodes.todo_card_2.children]]
+node = "todo_card_2_owner"
+
+[nodes.todo_card_2_title]
+component = "Label"
+control_id = "ReactBitsKanbanTodoCardTwoTitle"
+
+[nodes.todo_card_2_title.props]
+text = "Resolve font fallback"
+text_key = "fixture.kanban.card.font.title"
+foreground_color = "$text.primary"
+font_size = 10
+font_weight = 600
+wrap = "word"
+text_overflow = "clip"
+
+[nodes.todo_card_2_title.layout.width]
+stretch = "Stretch"
+
+[nodes.todo_card_2_title.layout.height]
+min = 26
+preferred = 30
+max = 36
+stretch = "Fixed"
+
+[nodes.todo_card_2_meta]
+component = "Label"
+control_id = "ReactBitsKanbanTodoCardTwoMeta"
+
+[nodes.todo_card_2_meta.props]
+text = "Blocked · 5 pts"
+text_key = "fixture.kanban.card.font.points"
+foreground_color = "$status.warning"
+font_size = 9
+text_align = "right"
+
+[nodes.todo_card_2_meta.layout.width]
+stretch = "Stretch"
+
+[nodes.todo_card_2_meta.layout.height]
+min = 14
+preferred = 16
+max = 18
+stretch = "Fixed"
+
+[nodes.todo_card_2_owner]
+component = "Label"
+control_id = "ReactBitsKanbanTodoCardTwoOwner"
+
+[nodes.todo_card_2_owner.props]
+text = "Ravi"
+text_key = "fixture.kanban.card.font.owner"
+foreground_color = "$text.muted"
+font_size = 9
+text_overflow = "elide"
+
+[nodes.todo_card_2_owner.layout.width]
+stretch = "Stretch"
+
+[nodes.todo_card_2_owner.layout.height]
+min = 14
+preferred = 16
+max = 18
+stretch = "Fixed"
+
+[nodes.todo_add]
+component = "Button"
+control_id = "ReactBitsKanbanTodoAdd"
+
+[nodes.todo_add.props]
+text = "Add card"
+text_key = "fixture.kanban.column.todo.add"
+icon = "plus"
+icon_size = "s"
+button_variant = "text"
+foreground_color = "$text.muted"
+text_align = "left"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Add todo card"
+
+[nodes.todo_add.layout.width]
+stretch = "Stretch"
+
+[nodes.todo_add.layout.height]
+min = 28
+preferred = 30
+max = 34
+stretch = "Fixed"
+
+[nodes.column_building]
+component = "VerticalBox"
+control_id = "ReactBitsKanbanColumnBuilding"
+
+[nodes.column_building.props]
+background_color = "$surface.inset"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 7
+collection_virtualization = "windowed"
+visible_limit = 3
+collection_test_cases = [ "empty", "one", "normal", "overflow", "narrow", "long-locale" ]
+long_locale_fixture_label = "A deliberately long localized in-progress item label for overflow coverage"
+column_id = "building"
+accessibility_label = "In progress column"
+
+[nodes.column_building.layout.width]
+min = 148
+stretch = "Stretch"
+preferred = 196
+weight = 1
+
+[nodes.column_building.layout.height]
+min = 472
+stretch = "Stretch"
+
+[nodes.column_building.layout.container]
+kind = "VerticalBox"
+gap = 6
+
+[nodes.column_building.layout.padding]
+left = 7
+right = 7
+top = 7
+bottom = 7
+
+[[nodes.column_building.children]]
+node = "building_heading"
+
+[[nodes.column_building.children]]
+node = "building_card_1"
+
+[[nodes.column_building.children]]
+node = "building_card_2"
+
+[[nodes.column_building.children]]
+node = "building_add"
+
+[nodes.building_heading]
+component = "HorizontalBox"
+control_id = "ReactBitsKanbanBuildingHeading"
+
+[nodes.building_heading.layout.width]
+stretch = "Stretch"
+
+[nodes.building_heading.layout.height]
+min = 28
+preferred = 30
+max = 34
+stretch = "Fixed"
+
+[nodes.building_heading.layout.container]
+kind = "HorizontalBox"
+gap = 4
+
+[[nodes.building_heading.children]]
+node = "building_title"
+
+[[nodes.building_heading.children]]
+node = "building_count"
+
+[nodes.building_title]
+component = "Label"
+control_id = "ReactBitsKanbanBuildingTitle"
+
+[nodes.building_title.props]
+text = "Building"
+text_key = "fixture.kanban.column.building.title"
+foreground_color = "$text.primary"
+font_size = 10
+font_weight = 650
+
+[nodes.building_title.layout.width]
+stretch = "Stretch"
+
+[nodes.building_title.layout.height]
+stretch = "Stretch"
+
+[nodes.building_count]
+component = "Chip"
+control_id = "ReactBitsKanbanBuildingCount"
+
+[nodes.building_count.props]
+text = "2"
+text_key = "fixture.kanban.column.building.count"
+foreground_color = "$text.muted"
+background_color = "$surface.elevated"
+text_align = "right"
+accessibility_label = "Two in-progress items"
+
+[nodes.building_count.layout.width]
+min = 24
+preferred = 28
+max = 32
+stretch = "Fixed"
+
+[nodes.building_count.layout.height]
+stretch = "Stretch"
+
+[nodes.building_card_1]
+component = "Paper"
+control_id = "ReactBitsKanbanBuildingCardOne"
+
+[nodes.building_card_1.props]
+background_color = "$surface.elevated"
+border_color = "$accent.primary"
+border_width = 1
+corner_radius = 6
+card_state = "active"
+item_id = "penpot-capture"
+collection_item = "selected|Penpot capture|13 pts|Yuki"
+accessibility_label = "Penpot capture active card"
+
+[nodes.building_card_1.layout.width]
+stretch = "Stretch"
+
+[nodes.building_card_1.layout.height]
+min = 82
+preferred = 92
+max = 108
+stretch = "Fixed"
+
+[nodes.building_card_1.layout.container]
+kind = "VerticalBox"
+gap = 4
+
+[nodes.building_card_1.layout.padding]
+left = 8
+right = 8
+top = 7
+bottom = 7
+
+[[nodes.building_card_1.children]]
+node = "building_card_1_title"
+
+[[nodes.building_card_1.children]]
+node = "building_card_1_meta"
+
+[[nodes.building_card_1.children]]
+node = "building_card_1_owner"
+
+[nodes.building_card_1_title]
+component = "Label"
+control_id = "ReactBitsKanbanBuildingCardOneTitle"
+
+[nodes.building_card_1_title.props]
+text = "Capture Penpot states"
+text_key = "fixture.kanban.card.capture.title"
+foreground_color = "$text.primary"
+font_size = 10
+font_weight = 600
+wrap = "word"
+text_overflow = "clip"
+
+[nodes.building_card_1_title.layout.width]
+stretch = "Stretch"
+
+[nodes.building_card_1_title.layout.height]
+min = 26
+preferred = 30
+max = 36
+stretch = "Fixed"
+
+[nodes.building_card_1_meta]
+component = "Label"
+control_id = "ReactBitsKanbanBuildingCardOneMeta"
+
+[nodes.building_card_1_meta.props]
+text = "13 pts"
+text_key = "fixture.kanban.card.capture.points"
+foreground_color = "$accent.info"
+font_size = 9
+text_align = "right"
+
+[nodes.building_card_1_meta.layout.width]
+stretch = "Stretch"
+
+[nodes.building_card_1_meta.layout.height]
+min = 14
+preferred = 16
+max = 18
+stretch = "Fixed"
+
+[nodes.building_card_1_owner]
+component = "Label"
+control_id = "ReactBitsKanbanBuildingCardOneOwner"
+
+[nodes.building_card_1_owner.props]
+text = "Yuki"
+text_key = "fixture.kanban.card.capture.owner"
+foreground_color = "$text.muted"
+font_size = 9
+text_overflow = "elide"
+
+[nodes.building_card_1_owner.layout.width]
+stretch = "Stretch"
+
+[nodes.building_card_1_owner.layout.height]
+min = 14
+preferred = 16
+max = 18
+stretch = "Fixed"
+
+[nodes.building_card_2]
+component = "Paper"
+control_id = "ReactBitsKanbanBuildingCardTwo"
+
+[nodes.building_card_2.props]
+background_color = "$surface.elevated"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 6
+card_state = "normal"
+item_id = "icon-tier"
+collection_item = "normal|Converge icon tiers|3 pts|Noah"
+accessibility_label = "Icon tier card"
+
+[nodes.building_card_2.layout.width]
+stretch = "Stretch"
+
+[nodes.building_card_2.layout.height]
+min = 82
+preferred = 92
+max = 108
+stretch = "Fixed"
+
+[nodes.building_card_2.layout.container]
+kind = "VerticalBox"
+gap = 4
+
+[nodes.building_card_2.layout.padding]
+left = 8
+right = 8
+top = 7
+bottom = 7
+
+[[nodes.building_card_2.children]]
+node = "building_card_2_title"
+
+[[nodes.building_card_2.children]]
+node = "building_card_2_meta"
+
+[[nodes.building_card_2.children]]
+node = "building_card_2_owner"
+
+[nodes.building_card_2_title]
+component = "Label"
+control_id = "ReactBitsKanbanBuildingCardTwoTitle"
+
+[nodes.building_card_2_title.props]
+text = "Converge icon tiers"
+text_key = "fixture.kanban.card.icons.title"
+foreground_color = "$text.primary"
+font_size = 10
+font_weight = 600
+wrap = "word"
+text_overflow = "clip"
+
+[nodes.building_card_2_title.layout.width]
+stretch = "Stretch"
+
+[nodes.building_card_2_title.layout.height]
+min = 26
+preferred = 30
+max = 36
+stretch = "Fixed"
+
+[nodes.building_card_2_meta]
+component = "Label"
+control_id = "ReactBitsKanbanBuildingCardTwoMeta"
+
+[nodes.building_card_2_meta.props]
+text = "3 pts"
+text_key = "fixture.kanban.card.icons.points"
+foreground_color = "$accent.info"
+font_size = 9
+text_align = "right"
+
+[nodes.building_card_2_meta.layout.width]
+stretch = "Stretch"
+
+[nodes.building_card_2_meta.layout.height]
+min = 14
+preferred = 16
+max = 18
+stretch = "Fixed"
+
+[nodes.building_card_2_owner]
+component = "Label"
+control_id = "ReactBitsKanbanBuildingCardTwoOwner"
+
+[nodes.building_card_2_owner.props]
+text = "Noah"
+text_key = "fixture.kanban.card.icons.owner"
+foreground_color = "$text.muted"
+font_size = 9
+text_overflow = "elide"
+
+[nodes.building_card_2_owner.layout.width]
+stretch = "Stretch"
+
+[nodes.building_card_2_owner.layout.height]
+min = 14
+preferred = 16
+max = 18
+stretch = "Fixed"
+
+[nodes.building_add]
+component = "Button"
+control_id = "ReactBitsKanbanBuildingAdd"
+
+[nodes.building_add.props]
+text = "Add card"
+text_key = "fixture.kanban.column.building.add"
+icon = "plus"
+icon_size = "s"
+button_variant = "text"
+foreground_color = "$text.muted"
+text_align = "left"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Add in-progress card"
+
+[nodes.building_add.layout.width]
+stretch = "Stretch"
+
+[nodes.building_add.layout.height]
+min = 28
+preferred = 30
+max = 34
+stretch = "Fixed"
+
+[nodes.column_review]
+component = "VerticalBox"
+control_id = "ReactBitsKanbanColumnReview"
+
+[nodes.column_review.props]
+background_color = "$surface.inset"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 7
+collection_virtualization = "windowed"
+visible_limit = 3
+collection_test_cases = [ "empty", "one", "normal", "overflow", "narrow", "long-locale" ]
+long_locale_fixture_label = "A deliberately long localized review item label for overflow coverage"
+column_id = "review"
+accessibility_label = "Review column"
+
+[nodes.column_review.layout.width]
+min = 148
+stretch = "Stretch"
+preferred = 196
+weight = 1
+
+[nodes.column_review.layout.height]
+min = 472
+stretch = "Stretch"
+
+[nodes.column_review.layout.container]
+kind = "VerticalBox"
+gap = 6
+
+[nodes.column_review.layout.padding]
+left = 7
+right = 7
+top = 7
+bottom = 7
+
+[[nodes.column_review.children]]
+node = "review_heading"
+
+[[nodes.column_review.children]]
+node = "review_card_1"
+
+[[nodes.column_review.children]]
+node = "review_card_2"
+
+[[nodes.column_review.children]]
+node = "review_add"
+
+[nodes.review_heading]
+component = "HorizontalBox"
+control_id = "ReactBitsKanbanReviewHeading"
+
+[nodes.review_heading.layout.width]
+stretch = "Stretch"
+
+[nodes.review_heading.layout.height]
+min = 28
+preferred = 30
+max = 34
+stretch = "Fixed"
+
+[nodes.review_heading.layout.container]
+kind = "HorizontalBox"
+gap = 4
+
+[[nodes.review_heading.children]]
+node = "review_title"
+
+[[nodes.review_heading.children]]
+node = "review_count"
+
+[nodes.review_title]
+component = "Label"
+control_id = "ReactBitsKanbanReviewTitle"
+
+[nodes.review_title.props]
+text = "Review"
+text_key = "fixture.kanban.column.review.title"
+foreground_color = "$text.primary"
+font_size = 10
+font_weight = 650
+
+[nodes.review_title.layout.width]
+stretch = "Stretch"
+
+[nodes.review_title.layout.height]
+stretch = "Stretch"
+
+[nodes.review_count]
+component = "Chip"
+control_id = "ReactBitsKanbanReviewCount"
+
+[nodes.review_count.props]
+text = "2"
+text_key = "fixture.kanban.column.review.count"
+foreground_color = "$text.muted"
+background_color = "$surface.elevated"
+text_align = "right"
+accessibility_label = "Two review items"
+
+[nodes.review_count.layout.width]
+min = 24
+preferred = 28
+max = 32
+stretch = "Fixed"
+
+[nodes.review_count.layout.height]
+stretch = "Stretch"
+
+[nodes.review_card_1]
+component = "Paper"
+control_id = "ReactBitsKanbanReviewCardOne"
+
+[nodes.review_card_1.props]
+background_color = "$surface.elevated"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 6
+card_state = "ready"
+item_id = "rich-text"
+collection_item = "success|Rich text audit|5 pts|Iris"
+accessibility_label = "Rich text audit ready card"
+
+[nodes.review_card_1.layout.width]
+stretch = "Stretch"
+
+[nodes.review_card_1.layout.height]
+min = 82
+preferred = 92
+max = 108
+stretch = "Fixed"
+
+[nodes.review_card_1.layout.container]
+kind = "VerticalBox"
+gap = 4
+
+[nodes.review_card_1.layout.padding]
+left = 8
+right = 8
+top = 7
+bottom = 7
+
+[[nodes.review_card_1.children]]
+node = "review_card_1_title"
+
+[[nodes.review_card_1.children]]
+node = "review_card_1_meta"
+
+[[nodes.review_card_1.children]]
+node = "review_card_1_owner"
+
+[nodes.review_card_1_title]
+component = "Label"
+control_id = "ReactBitsKanbanReviewCardOneTitle"
+
+[nodes.review_card_1_title.props]
+text = "Verify **rich-text** runs"
+text_key = "fixture.kanban.card.rich.title"
+rich_text_format = "markdown_inline_v1"
+foreground_color = "$text.primary"
+font_size = 10
+font_weight = 600
+wrap = "word"
+text_overflow = "clip"
+
+[nodes.review_card_1_title.layout.width]
+stretch = "Stretch"
+
+[nodes.review_card_1_title.layout.height]
+min = 26
+preferred = 30
+max = 36
+stretch = "Fixed"
+
+[nodes.review_card_1_meta]
+component = "Label"
+control_id = "ReactBitsKanbanReviewCardOneMeta"
+
+[nodes.review_card_1_meta.props]
+text = "5 pts"
+text_key = "fixture.kanban.card.rich.points"
+foreground_color = "$accent.info"
+font_size = 9
+text_align = "right"
+
+[nodes.review_card_1_meta.layout.width]
+stretch = "Stretch"
+
+[nodes.review_card_1_meta.layout.height]
+min = 14
+preferred = 16
+max = 18
+stretch = "Fixed"
+
+[nodes.review_card_1_owner]
+component = "Label"
+control_id = "ReactBitsKanbanReviewCardOneOwner"
+
+[nodes.review_card_1_owner.props]
+text = "Iris"
+text_key = "fixture.kanban.card.rich.owner"
+foreground_color = "$text.muted"
+font_size = 9
+text_overflow = "elide"
+
+[nodes.review_card_1_owner.layout.width]
+stretch = "Stretch"
+
+[nodes.review_card_1_owner.layout.height]
+min = 14
+preferred = 16
+max = 18
+stretch = "Fixed"
+
+[nodes.review_card_2]
+component = "Paper"
+control_id = "ReactBitsKanbanReviewCardTwo"
+
+[nodes.review_card_2.props]
+background_color = "$surface.elevated"
+border_color = "$status.warning"
+border_width = 1
+corner_radius = 6
+card_state = "waiting"
+item_id = "native-gate"
+collection_item = "warning|Native gate pending|8 pts|Mara"
+accessibility_label = "Native gate pending card"
+
+[nodes.review_card_2.layout.width]
+stretch = "Stretch"
+
+[nodes.review_card_2.layout.height]
+min = 82
+preferred = 92
+max = 108
+stretch = "Fixed"
+
+[nodes.review_card_2.layout.container]
+kind = "VerticalBox"
+gap = 4
+
+[nodes.review_card_2.layout.padding]
+left = 8
+right = 8
+top = 7
+bottom = 7
+
+[[nodes.review_card_2.children]]
+node = "review_card_2_title"
+
+[[nodes.review_card_2.children]]
+node = "review_card_2_meta"
+
+[[nodes.review_card_2.children]]
+node = "review_card_2_owner"
+
+[nodes.review_card_2_title]
+component = "Label"
+control_id = "ReactBitsKanbanReviewCardTwoTitle"
+
+[nodes.review_card_2_title.props]
+text = "Clear native validation gate"
+text_key = "fixture.kanban.card.native.title"
+foreground_color = "$text.primary"
+font_size = 10
+font_weight = 600
+wrap = "word"
+text_overflow = "clip"
+
+[nodes.review_card_2_title.layout.width]
+stretch = "Stretch"
+
+[nodes.review_card_2_title.layout.height]
+min = 26
+preferred = 30
+max = 36
+stretch = "Fixed"
+
+[nodes.review_card_2_meta]
+component = "Label"
+control_id = "ReactBitsKanbanReviewCardTwoMeta"
+
+[nodes.review_card_2_meta.props]
+text = "Waiting · 8 pts"
+text_key = "fixture.kanban.card.native.points"
+foreground_color = "$status.warning"
+font_size = 9
+text_align = "right"
+
+[nodes.review_card_2_meta.layout.width]
+stretch = "Stretch"
+
+[nodes.review_card_2_meta.layout.height]
+min = 14
+preferred = 16
+max = 18
+stretch = "Fixed"
+
+[nodes.review_card_2_owner]
+component = "Label"
+control_id = "ReactBitsKanbanReviewCardTwoOwner"
+
+[nodes.review_card_2_owner.props]
+text = "Mara"
+text_key = "fixture.kanban.card.native.owner"
+foreground_color = "$text.muted"
+font_size = 9
+text_overflow = "elide"
+
+[nodes.review_card_2_owner.layout.width]
+stretch = "Stretch"
+
+[nodes.review_card_2_owner.layout.height]
+min = 14
+preferred = 16
+max = 18
+stretch = "Fixed"
+
+[nodes.review_add]
+component = "Button"
+control_id = "ReactBitsKanbanReviewAdd"
+
+[nodes.review_add.props]
+text = "Add card"
+text_key = "fixture.kanban.column.review.add"
+icon = "plus"
+icon_size = "s"
+button_variant = "text"
+foreground_color = "$text.muted"
+text_align = "left"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Add review card"
+
+[nodes.review_add.layout.width]
+stretch = "Stretch"
+
+[nodes.review_add.layout.height]
+min = 28
+preferred = 30
+max = 34
+stretch = "Fixed"
+
+[nodes.schedule_panel]
+component = "VerticalBox"
+control_id = "ReactBitsSchedulingPanel"
+classes = [ "rb-scheduling-panel" ]
+
+[nodes.schedule_panel.props]
+background_color = "$surface.panel"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 9
+accessibility_label = "Deployment scheduling panel"
+
+[nodes.schedule_panel.layout.width]
+min = 272
+stretch = "Stretch"
+preferred = 390
+weight = 1
+
+[nodes.schedule_panel.layout.height]
+min = 600
+preferred = 660
+max = 820
+stretch = "Stretch"
+
+[nodes.schedule_panel.layout.container]
+kind = "VerticalBox"
+gap = 8
+
+[nodes.schedule_panel.layout.padding]
+left = 10
+right = 10
+top = 10
+bottom = 10
+
+[[nodes.schedule_panel.children]]
+node = "schedule_heading"
+
+[[nodes.schedule_panel.children]]
+node = "day_strip"
+
+[[nodes.schedule_panel.children]]
+node = "calendar"
+
+[[nodes.schedule_panel.children]]
+node = "agenda"
+
+[[nodes.schedule_panel.children]]
+node = "booking_summary"
+
+[nodes.schedule_heading]
+component = "HorizontalBox"
+control_id = "ReactBitsSchedulingHeading"
+
+[nodes.schedule_heading.layout.width]
+stretch = "Stretch"
+
+[nodes.schedule_heading.layout.height]
+min = 34
+preferred = 36
+max = 40
+stretch = "Fixed"
+
+[nodes.schedule_heading.layout.container]
+kind = "HorizontalBox"
+gap = 6
+
+[[nodes.schedule_heading.children]]
+node = "schedule_title"
+
+[[nodes.schedule_heading.children]]
+node = "schedule_timezone"
+
+[nodes.schedule_title]
+component = "Label"
+control_id = "ReactBitsSchedulingTitle"
+
+[nodes.schedule_title.props]
+text = "Deployment windows"
+text_key = "fixture.scheduling.title"
+foreground_color = "$text.primary"
+font_size = 12
+font_weight = 650
+
+[nodes.schedule_title.layout.width]
+stretch = "Stretch"
+
+[nodes.schedule_title.layout.height]
+stretch = "Stretch"
+
+[nodes.schedule_timezone]
+component = "Label"
+control_id = "ReactBitsSchedulingTimezone"
+
+[nodes.schedule_timezone.props]
+text = "UTC−07:00"
+text_key = "fixture.scheduling.timezone"
+foreground_color = "$text.muted"
+font_size = 9
+text_align = "right"
+text_overflow = "elide"
+
+[nodes.schedule_timezone.layout.width]
+min = 72
+preferred = 86
+max = 104
+stretch = "Fixed"
+
+[nodes.schedule_timezone.layout.height]
+stretch = "Stretch"
+
+[nodes.day_strip]
+component = "HorizontalBox"
+control_id = "ReactBitsSchedulingDayStrip"
+
+[nodes.day_strip.props]
+collection_role = "date-strip"
+accessibility_label = "Choose deployment day"
+
+[nodes.day_strip.layout.width]
+stretch = "Stretch"
+
+[nodes.day_strip.layout.height]
+min = 48
+preferred = 52
+max = 58
+stretch = "Fixed"
+
+[nodes.day_strip.layout.container]
+kind = "HorizontalBox"
+gap = 4
+
+[[nodes.day_strip.children]]
+node = "day_mon"
+
+[[nodes.day_strip.children]]
+node = "day_tue"
+
+[[nodes.day_strip.children]]
+node = "day_wed"
+
+[[nodes.day_strip.children]]
+node = "day_thu"
+
+[[nodes.day_strip.children]]
+node = "day_fri"
+
+[nodes.day_mon]
+component = "Button"
+control_id = "ReactBitsSchedulingDayMon"
+
+[nodes.day_mon.props]
+text = "16\nMON"
+text_key = "fixture.scheduling.day.mon"
+button_variant = "text"
+foreground_color = "$text.secondary"
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Monday September 16"
+
+[nodes.day_mon.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.day_mon.layout.height]
+stretch = "Stretch"
+
+[nodes.day_tue]
+component = "Button"
+control_id = "ReactBitsSchedulingDayTue"
+
+[nodes.day_tue.props]
+text = "17\nTUE"
+text_key = "fixture.scheduling.day.tue"
+button_variant = "text"
+foreground_color = "$text.secondary"
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Tuesday September 17"
+
+[nodes.day_tue.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.day_tue.layout.height]
+stretch = "Stretch"
+
+[nodes.day_wed]
+component = "Button"
+control_id = "ReactBitsSchedulingDayWed"
+
+[nodes.day_wed.props]
+text = "18\nWED"
+text_key = "fixture.scheduling.day.wed"
+button_variant = "text"
+selected = true
+background_color = "$surface.elevated"
+foreground_color = "$text.primary"
+border_color = "$accent.primary"
+border_width = 1
+corner_radius = 6
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Wednesday September 18 selected"
+
+[nodes.day_wed.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.day_wed.layout.height]
+stretch = "Stretch"
+
+[nodes.day_thu]
+component = "Button"
+control_id = "ReactBitsSchedulingDayThu"
+
+[nodes.day_thu.props]
+text = "19\nTHU"
+text_key = "fixture.scheduling.day.thu"
+button_variant = "text"
+foreground_color = "$text.secondary"
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Thursday September 19"
+
+[nodes.day_thu.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.day_thu.layout.height]
+stretch = "Stretch"
+
+[nodes.day_fri]
+component = "Button"
+control_id = "ReactBitsSchedulingDayFri"
+
+[nodes.day_fri.props]
+text = "20\nFRI"
+text_key = "fixture.scheduling.day.fri"
+button_variant = "text"
+foreground_color = "$text.secondary"
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Friday September 20"
+
+[nodes.day_fri.layout.width]
+min = 0
+weight = 1
+stretch = "Stretch"
+
+[nodes.day_fri.layout.height]
+stretch = "Stretch"
+
+[nodes.calendar]
+component = "FlowBox"
+control_id = "ReactBitsSchedulingCalendar"
+
+[nodes.calendar.props]
+direction = "row"
+wrap = true
+spacing = 4
+collection_role = "month-calendar"
+collection_virtualization = "windowed"
+viewport_start = 0
+visible_limit = 21
+collection_test_cases = [ "empty", "one", "normal", "overflow", "narrow", "long-locale" ]
+long_locale_fixture_label = "A deliberately long localized calendar event label for overflow coverage"
+accessibility_label = "September month calendar"
+
+[nodes.calendar.layout.width]
+stretch = "Stretch"
+
+[nodes.calendar.layout.height]
+min = 146
+preferred = 156
+max = 172
+stretch = "Fixed"
+
+[nodes.calendar.layout.container]
+kind = "FlowBox"
+gap = 4
+
+[nodes.calendar.layout.padding]
+left = 4
+right = 4
+top = 4
+bottom = 4
+
+[[nodes.calendar.children]]
+node = "date_16"
+
+[[nodes.calendar.children]]
+node = "date_17"
+
+[[nodes.calendar.children]]
+node = "date_18"
+
+[[nodes.calendar.children]]
+node = "date_19"
+
+[[nodes.calendar.children]]
+node = "date_20"
+
+[[nodes.calendar.children]]
+node = "date_21"
+
+[[nodes.calendar.children]]
+node = "date_22"
+
+[[nodes.calendar.children]]
+node = "date_23"
+
+[[nodes.calendar.children]]
+node = "date_24"
+
+[[nodes.calendar.children]]
+node = "date_25"
+
+[[nodes.calendar.children]]
+node = "date_26"
+
+[[nodes.calendar.children]]
+node = "date_27"
+
+[[nodes.calendar.children]]
+node = "date_28"
+
+[[nodes.calendar.children]]
+node = "date_29"
+
+[[nodes.calendar.children]]
+node = "date_30"
+
+[nodes.date_16]
+component = "Button"
+control_id = "ReactBitsSchedulingDate16"
+
+[nodes.date_16.props]
+text = "16"
+text_key = "fixture.scheduling.date.16"
+button_variant = "text"
+foreground_color = "$text.muted"
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "September 16"
+
+[nodes.date_16.layout.width]
+min = 32
+preferred = 36
+max = 44
+stretch = "Stretch"
+
+[nodes.date_16.layout.height]
+min = 26
+preferred = 28
+max = 32
+stretch = "Fixed"
+
+[nodes.date_17]
+component = "Button"
+control_id = "ReactBitsSchedulingDate17"
+
+[nodes.date_17.props]
+text = "17"
+text_key = "fixture.scheduling.date.17"
+button_variant = "text"
+foreground_color = "$text.muted"
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "September 17"
+
+[nodes.date_17.layout.width]
+min = 32
+preferred = 36
+max = 44
+stretch = "Stretch"
+
+[nodes.date_17.layout.height]
+min = 26
+preferred = 28
+max = 32
+stretch = "Fixed"
+
+[nodes.date_18]
+component = "Button"
+control_id = "ReactBitsSchedulingDate18"
+
+[nodes.date_18.props]
+text = "18"
+text_key = "fixture.scheduling.date.18"
+button_variant = "text"
+selected = true
+background_color = "$accent.primary"
+foreground_color = "$text.primary"
+corner_radius = 5
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "September 18 selected"
+
+[nodes.date_18.layout.width]
+min = 32
+preferred = 36
+max = 44
+stretch = "Stretch"
+
+[nodes.date_18.layout.height]
+min = 26
+preferred = 28
+max = 32
+stretch = "Fixed"
+
+[nodes.date_19]
+component = "Button"
+control_id = "ReactBitsSchedulingDate19"
+
+[nodes.date_19.props]
+text = "19"
+text_key = "fixture.scheduling.date.19"
+button_variant = "text"
+foreground_color = "$text.muted"
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "September 19"
+
+[nodes.date_19.layout.width]
+min = 32
+preferred = 36
+max = 44
+stretch = "Stretch"
+
+[nodes.date_19.layout.height]
+min = 26
+preferred = 28
+max = 32
+stretch = "Fixed"
+
+[nodes.date_20]
+component = "Button"
+control_id = "ReactBitsSchedulingDate20"
+
+[nodes.date_20.props]
+text = "20"
+text_key = "fixture.scheduling.date.20"
+button_variant = "text"
+foreground_color = "$text.muted"
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "September 20"
+
+[nodes.date_20.layout.width]
+min = 32
+preferred = 36
+max = 44
+stretch = "Stretch"
+
+[nodes.date_20.layout.height]
+min = 26
+preferred = 28
+max = 32
+stretch = "Fixed"
+
+[nodes.date_21]
+component = "Button"
+control_id = "ReactBitsSchedulingDate21"
+
+[nodes.date_21.props]
+text = "21"
+text_key = "fixture.scheduling.date.21"
+button_variant = "text"
+foreground_color = "$text.muted"
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "September 21"
+
+[nodes.date_21.layout.width]
+min = 32
+preferred = 36
+max = 44
+stretch = "Stretch"
+
+[nodes.date_21.layout.height]
+min = 26
+preferred = 28
+max = 32
+stretch = "Fixed"
+
+[nodes.date_22]
+component = "Button"
+control_id = "ReactBitsSchedulingDate22"
+
+[nodes.date_22.props]
+text = "22"
+text_key = "fixture.scheduling.date.22"
+button_variant = "text"
+foreground_color = "$text.muted"
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "September 22"
+
+[nodes.date_22.layout.width]
+min = 32
+preferred = 36
+max = 44
+stretch = "Stretch"
+
+[nodes.date_22.layout.height]
+min = 26
+preferred = 28
+max = 32
+stretch = "Fixed"
+
+[nodes.date_23]
+component = "Button"
+control_id = "ReactBitsSchedulingDate23"
+
+[nodes.date_23.props]
+text = "23"
+text_key = "fixture.scheduling.date.23"
+button_variant = "text"
+foreground_color = "$text.muted"
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "September 23"
+
+[nodes.date_23.layout.width]
+min = 32
+preferred = 36
+max = 44
+stretch = "Stretch"
+
+[nodes.date_23.layout.height]
+min = 26
+preferred = 28
+max = 32
+stretch = "Fixed"
+
+[nodes.date_24]
+component = "Button"
+control_id = "ReactBitsSchedulingDate24"
+
+[nodes.date_24.props]
+text = "24"
+text_key = "fixture.scheduling.date.24"
+button_variant = "text"
+foreground_color = "$text.muted"
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "September 24"
+
+[nodes.date_24.layout.width]
+min = 32
+preferred = 36
+max = 44
+stretch = "Stretch"
+
+[nodes.date_24.layout.height]
+min = 26
+preferred = 28
+max = 32
+stretch = "Fixed"
+
+[nodes.date_25]
+component = "Button"
+control_id = "ReactBitsSchedulingDate25"
+
+[nodes.date_25.props]
+text = "25"
+text_key = "fixture.scheduling.date.25"
+button_variant = "text"
+foreground_color = "$text.muted"
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "September 25"
+
+[nodes.date_25.layout.width]
+min = 32
+preferred = 36
+max = 44
+stretch = "Stretch"
+
+[nodes.date_25.layout.height]
+min = 26
+preferred = 28
+max = 32
+stretch = "Fixed"
+
+[nodes.date_26]
+component = "Button"
+control_id = "ReactBitsSchedulingDate26"
+
+[nodes.date_26.props]
+text = "26"
+text_key = "fixture.scheduling.date.26"
+button_variant = "text"
+foreground_color = "$text.muted"
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "September 26"
+
+[nodes.date_26.layout.width]
+min = 32
+preferred = 36
+max = 44
+stretch = "Stretch"
+
+[nodes.date_26.layout.height]
+min = 26
+preferred = 28
+max = 32
+stretch = "Fixed"
+
+[nodes.date_27]
+component = "Button"
+control_id = "ReactBitsSchedulingDate27"
+
+[nodes.date_27.props]
+text = "27"
+text_key = "fixture.scheduling.date.27"
+button_variant = "text"
+foreground_color = "$text.muted"
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "September 27"
+
+[nodes.date_27.layout.width]
+min = 32
+preferred = 36
+max = 44
+stretch = "Stretch"
+
+[nodes.date_27.layout.height]
+min = 26
+preferred = 28
+max = 32
+stretch = "Fixed"
+
+[nodes.date_28]
+component = "Button"
+control_id = "ReactBitsSchedulingDate28"
+
+[nodes.date_28.props]
+text = "28"
+text_key = "fixture.scheduling.date.28"
+button_variant = "text"
+foreground_color = "$text.muted"
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "September 28"
+
+[nodes.date_28.layout.width]
+min = 32
+preferred = 36
+max = 44
+stretch = "Stretch"
+
+[nodes.date_28.layout.height]
+min = 26
+preferred = 28
+max = 32
+stretch = "Fixed"
+
+[nodes.date_29]
+component = "Button"
+control_id = "ReactBitsSchedulingDate29"
+
+[nodes.date_29.props]
+text = "29"
+text_key = "fixture.scheduling.date.29"
+button_variant = "text"
+foreground_color = "$text.muted"
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "September 29"
+
+[nodes.date_29.layout.width]
+min = 32
+preferred = 36
+max = 44
+stretch = "Stretch"
+
+[nodes.date_29.layout.height]
+min = 26
+preferred = 28
+max = 32
+stretch = "Fixed"
+
+[nodes.date_30]
+component = "Button"
+control_id = "ReactBitsSchedulingDate30"
+
+[nodes.date_30.props]
+text = "30"
+text_key = "fixture.scheduling.date.30"
+button_variant = "text"
+foreground_color = "$text.muted"
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "September 30"
+
+[nodes.date_30.layout.width]
+min = 32
+preferred = 36
+max = 44
+stretch = "Stretch"
+
+[nodes.date_30.layout.height]
+min = 26
+preferred = 28
+max = 32
+stretch = "Fixed"
+
+[nodes.agenda]
+component = "ScrollableBox"
+control_id = "ReactBitsSchedulingAgenda"
+
+[nodes.agenda.props]
+collection_virtualization = "windowed"
+viewport_start = 0
+visible_limit = 3
+collection_test_cases = [ "empty", "one", "normal", "overflow", "narrow", "long-locale" ]
+long_locale_fixture_label = "A deliberately long localized deployment agenda label for overflow coverage"
+collection_items = [ "selected|09:00|Penpot visual capture|Yuki", "normal|11:30|Native validation gate|Mara", "warning|14:00|Release rehearsal|Ravi", "normal|16:30|Review handoff|Iris" ]
+selected_item_id = "visual-capture"
+empty_text = "No deployment windows"
+empty_text_key = "fixture.scheduling.agenda.empty"
+scroll_owner = "deployment-agenda"
+background_color = "$surface.inset"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 7
+accessibility_label = "Deployment day agenda"
+
+[nodes.agenda.layout]
+clip = true
+
+[nodes.agenda.layout.width]
+stretch = "Stretch"
+
+[nodes.agenda.layout.height]
+min = 132
+preferred = 148
+max = 168
+stretch = "Stretch"
+
+[nodes.agenda.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = 4
+scrollbar_visibility = "Auto"
+
+[nodes.agenda.layout.padding]
+left = 7
+right = 7
+top = 6
+bottom = 6
+
+[[nodes.agenda.children]]
+node = "agenda_heading"
+
+[[nodes.agenda.children]]
+node = "agenda_capture"
+
+[[nodes.agenda.children]]
+node = "agenda_gate"
+
+[[nodes.agenda.children]]
+node = "agenda_rehearsal"
+
+[nodes.agenda_heading]
+component = "Label"
+control_id = "ReactBitsSchedulingAgendaHeading"
+
+[nodes.agenda_heading.props]
+text = "Wednesday · September 18"
+text_key = "fixture.scheduling.agenda.heading"
+foreground_color = "$text.muted"
+font_size = 9
+font_weight = 700
+
+[nodes.agenda_heading.layout.width]
+stretch = "Stretch"
+
+[nodes.agenda_heading.layout.height]
+min = 16
+preferred = 18
+max = 20
+stretch = "Fixed"
+
+[nodes.agenda_capture]
+component = "Button"
+control_id = "ReactBitsSchedulingAgendaCapture"
+
+[nodes.agenda_capture.props]
+text = "09:00  Penpot visual capture"
+text_key = "fixture.scheduling.agenda.capture"
+value_text = "09:00"
+value_key = "fixture.scheduling.agenda.capture.time"
+button_variant = "text"
+selected = true
+background_color = "$surface.elevated"
+foreground_color = "$text.primary"
+corner_radius = 5
+text_align = "left"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Penpot visual capture at 9 AM"
+
+[nodes.agenda_capture.layout.width]
+stretch = "Stretch"
+
+[nodes.agenda_capture.layout.height]
+min = 28
+preferred = 30
+max = 34
+stretch = "Fixed"
+
+[nodes.agenda_gate]
+component = "Button"
+control_id = "ReactBitsSchedulingAgendaGate"
+
+[nodes.agenda_gate.props]
+text = "11:30  Native validation gate"
+text_key = "fixture.scheduling.agenda.gate"
+value_text = "11:30"
+value_key = "fixture.scheduling.agenda.gate.time"
+button_variant = "text"
+foreground_color = "$text.secondary"
+text_align = "left"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Native validation gate at 11:30 AM"
+
+[nodes.agenda_gate.layout.width]
+stretch = "Stretch"
+
+[nodes.agenda_gate.layout.height]
+min = 28
+preferred = 30
+max = 34
+stretch = "Fixed"
+
+[nodes.agenda_rehearsal]
+component = "Button"
+control_id = "ReactBitsSchedulingAgendaRehearsal"
+
+[nodes.agenda_rehearsal.props]
+text = "14:00  Release rehearsal"
+text_key = "fixture.scheduling.agenda.rehearsal"
+value_text = "14:00"
+value_key = "fixture.scheduling.agenda.rehearsal.time"
+button_variant = "text"
+foreground_color = "$status.warning"
+text_align = "left"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Release rehearsal at 2 PM"
+
+[nodes.agenda_rehearsal.layout.width]
+stretch = "Stretch"
+
+[nodes.agenda_rehearsal.layout.height]
+min = 28
+preferred = 30
+max = 34
+stretch = "Fixed"
+
+[nodes.booking_summary]
+component = "Paper"
+control_id = "ReactBitsSchedulingBookingSummary"
+
+[nodes.booking_summary.props]
+background_color = "$surface.elevated"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 7
+accessibility_label = "Selected deployment window summary"
+
+[nodes.booking_summary.layout.width]
+stretch = "Stretch"
+
+[nodes.booking_summary.layout.height]
+min = 76
+preferred = 84
+max = 96
+stretch = "Fixed"
+
+[nodes.booking_summary.layout.container]
+kind = "VerticalBox"
+gap = 4
+
+[nodes.booking_summary.layout.padding]
+left = 8
+right = 8
+top = 7
+bottom = 7
+
+[[nodes.booking_summary.children]]
+node = "booking_title"
+
+[[nodes.booking_summary.children]]
+node = "booking_detail"
+
+[[nodes.booking_summary.children]]
+node = "booking_action"
+
+[nodes.booking_title]
+component = "Label"
+control_id = "ReactBitsSchedulingBookingTitle"
+
+[nodes.booking_title.props]
+text = "Selected window"
+text_key = "fixture.scheduling.booking.title"
+foreground_color = "$text.primary"
+font_size = 10
+font_weight = 650
+
+[nodes.booking_title.layout.width]
+stretch = "Stretch"
+
+[nodes.booking_title.layout.height]
+min = 16
+preferred = 18
+max = 20
+stretch = "Fixed"
+
+[nodes.booking_detail]
+component = "Label"
+control_id = "ReactBitsSchedulingBookingDetail"
+
+[nodes.booking_detail.props]
+text = "09:00–10:00 · **Visual review**"
+text_key = "fixture.scheduling.booking.detail"
+rich_text_format = "markdown_inline_v1"
+foreground_color = "$text.secondary"
+font_size = 9
+text_align = "right"
+text_overflow = "elide"
+
+[nodes.booking_detail.layout.width]
+stretch = "Stretch"
+
+[nodes.booking_detail.layout.height]
+min = 16
+preferred = 18
+max = 22
+stretch = "Fixed"
+
+[nodes.booking_action]
+component = "Button"
+control_id = "ReactBitsSchedulingBookingAction"
+
+[nodes.booking_action.props]
+text = "Reserve window"
+text_key = "fixture.scheduling.booking.action"
+button_variant = "contained"
+background_color = "$accent.primary"
+foreground_color = "$text.primary"
+corner_radius = 5
+text_align = "center"
+input_interactive = true
+input_focusable = true
+accessibility_label = "Reserve selected deployment window"
+
+[nodes.booking_action.layout.width]
+stretch = "Stretch"
+
+[nodes.booking_action.layout.height]
+min = 28
+preferred = 30
+max = 34
+stretch = "Fixed"
+
+[[stylesheets]]
+id = "reactbits-ui-typography"
+
+[[stylesheets.rules]]
+selector = "*"
+
+[stylesheets.rules.set.self.font]
+asset = "res://fonts/editor-ui.font.toml"
+family = "Fira Sans"
+
+[penpot_original_imports]
+[imports]
+widgets = []
+styles = []

@@ -1,7 +1,9 @@
+//! Bundle 预检失败不得公布部分实体或组件；生命周期观察者只能看到提交后的最终原型签名。
+
 use super::*;
 
 #[test]
-fn bundle_preflight_rejects_a_later_component_without_publishing_earlier_components() {
+fn bundle_preflight_rejects_a_later_protected_component_without_publishing_earlier_components() {
     let mut world = World::new();
     let entity = world
         .spawn_node(crate::scene::NodeKind::Mesh)
@@ -11,23 +13,20 @@ fn bundle_preflight_rejects_a_later_component_without_publishing_earlier_compone
         .expect("mesh nodes must have a local transform")
         .transform;
     let generation_before = world.world_generation();
-    let mut invalid_transform = original_transform;
-    invalid_transform.scale.z = 0.0;
-
     assert!(matches!(
         world.insert_bundle(
             entity,
             (
                 Health(42),
                 LocalTransform {
-                    transform: invalid_transform,
+                    transform: original_transform,
                 },
             ),
         ),
-        Err(SceneError::ZeroScaleTransform {
-            entity: error_entity,
-            axis: "z",
-        }) if error_entity == entity
+        Err(SceneError::ProtectedAuthoredComponentMutation {
+            component: "LocalTransform",
+            operation: "insert",
+        })
     ));
 
     assert!(!world.contains_component::<Health>(entity));
@@ -42,28 +41,45 @@ fn bundle_preflight_rejects_a_later_component_without_publishing_earlier_compone
 }
 
 #[test]
-fn bundle_spawn_preflight_does_not_publish_a_default_entity_on_failure() {
+fn protected_bundle_spawn_preflight_does_not_publish_a_default_entity() {
     let mut world = World::empty();
     let generation_before = world.world_generation();
-    let mut invalid_transform = Transform::default();
-    invalid_transform.scale.z = 0.0;
-
     assert!(matches!(
         world.spawn((
             Health(42),
             LocalTransform {
-                transform: invalid_transform,
+                transform: Transform::default(),
             },
         )),
-        Err(SceneError::ZeroScaleTransform {
-            entity: 1,
-            axis: "z",
+        Err(SceneError::ProtectedAuthoredComponentMutation {
+            component: "LocalTransform",
+            operation: "insert",
         })
     ));
 
     assert!(world.node_record(1).is_none());
     assert!(!world.contains_component::<Health>(1));
     assert_eq!(world.registered_component_id::<Health>(), None);
+    assert_eq!(world.world_generation(), generation_before);
+}
+
+#[test]
+fn node_record_transform_preflight_rejects_zero_scale_without_publication() {
+    let mut world = World::empty();
+    let entity = world.spawn(()).expect("fixture node must spawn");
+    let mut record = world.node_record(entity).expect("fixture must project");
+    world
+        .remove_entity(entity)
+        .expect("fixture node must detach");
+    let generation_before = world.world_generation();
+    record.transform.scale.z = 0.0;
+
+    assert_eq!(
+        world.insert_node_record(record),
+        Err(SceneError::ZeroScaleTransform { entity, axis: "z" })
+    );
+    assert!(!world.contains_entity(entity));
+    assert!(world.node_record(entity).is_none());
     assert_eq!(world.world_generation(), generation_before);
 }
 

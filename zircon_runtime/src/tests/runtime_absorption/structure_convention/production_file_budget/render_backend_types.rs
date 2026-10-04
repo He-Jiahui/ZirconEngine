@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0041] 渲染后端中性句柄、报告和设置类型的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_render_backend_types_are_child_owners() {
     let parent = read_runtime_src("core/framework/render/backend_types.rs");
@@ -11,7 +12,7 @@ fn runtime_15_render_backend_types_are_child_owners() {
     let capability = read_runtime_src("core/framework/render/backend_types/capability.rs");
     let command = read_runtime_src("core/framework/render/backend_types/command.rs");
     let quality = read_runtime_src("core/framework/render/backend_types/quality.rs");
-    let tests = read_runtime_src("core/framework/render/backend_types/tests.rs");
+    let tests = read_runtime_src("core/framework/render/backend_types/tests/cases.rs");
     let render_index =
         read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
@@ -184,7 +185,7 @@ fn runtime_15_render_backend_types_are_child_owners() {
             quality.as_str(),
         ),
         (
-            "core/framework/render/backend_types/tests.rs",
+            "core/framework/render/backend_types/tests/cases.rs",
             tests.as_str(),
         ),
     ] {

@@ -11,7 +11,10 @@ use super::native_plugin_abi::{
 use super::plugin_load_error::{
     PluginLoadError, PluginLoadResult, PluginLoadStage, ABI_CONTRACT_HINT,
 };
-use super::{LoadedNativePlugin, NativePluginLoadReport, NativePluginLoader};
+use super::{
+    LoadedNativePlugin, NativePluginArtifactAuthority, NativePluginCandidate,
+    NativePluginLoadReport, NativePluginLoader,
+};
 use crate::{plugin::PluginModuleKind, plugin::PluginPackageManifest};
 
 #[derive(Clone, Copy)]
@@ -41,28 +44,72 @@ impl RequestedModuleKinds {
 }
 
 impl NativePluginLoader {
-    pub fn load_discovered_all(&self, root: impl AsRef<Path>) -> NativePluginLoadReport {
+    /// Checks discovered package metadata and expected native artifact paths without opening a
+    /// candidate DLL. Export assembly uses this before product launch; in-process execution
+    /// remains owned by the authority-aware load methods below.
+    pub fn validate_discovered_runtime(&self, root: impl AsRef<Path>) -> NativePluginLoadReport {
         let report = self.discover(root);
-        self.load_all_candidates(report)
+        self.validate_candidates_for_module_kinds(report, &[PluginModuleKind::Runtime])
+    }
+
+    /// Checks discovered editor package metadata and expected native artifact paths without
+    /// admitting or executing a candidate DLL.
+    pub fn validate_discovered_editor(&self, root: impl AsRef<Path>) -> NativePluginLoadReport {
+        let report = self.discover(root);
+        self.validate_candidates_for_module_kinds(report, &[PluginModuleKind::Editor])
+    }
+
+    pub fn load_discovered_all(&self, root: impl AsRef<Path>) -> NativePluginLoadReport {
+        self.load_discovered_all_with_authority(root, &NativePluginArtifactAuthority::deny_all())
+    }
+
+    pub fn load_discovered_all_with_authority(
+        &self,
+        root: impl AsRef<Path>,
+        authority: &NativePluginArtifactAuthority,
+    ) -> NativePluginLoadReport {
+        let report = self.discover(root);
+        self.load_all_candidates(report, authority)
     }
 
     pub fn load_discovered_runtime(&self, root: impl AsRef<Path>) -> NativePluginLoadReport {
+        self.load_discovered_runtime_with_authority(
+            root,
+            &NativePluginArtifactAuthority::deny_all(),
+        )
+    }
+
+    pub fn load_discovered_runtime_with_authority(
+        &self,
+        root: impl AsRef<Path>,
+        authority: &NativePluginArtifactAuthority,
+    ) -> NativePluginLoadReport {
         let report = self.discover(root);
-        self.load_candidates_for_module_kinds(report, &[PluginModuleKind::Runtime])
+        self.load_candidates_for_module_kinds(report, &[PluginModuleKind::Runtime], authority)
     }
 
     pub fn load_discovered_editor(&self, root: impl AsRef<Path>) -> NativePluginLoadReport {
+        self.load_discovered_editor_with_authority(root, &NativePluginArtifactAuthority::deny_all())
+    }
+
+    pub fn load_discovered_editor_with_authority(
+        &self,
+        root: impl AsRef<Path>,
+        authority: &NativePluginArtifactAuthority,
+    ) -> NativePluginLoadReport {
         let report = self.discover(root);
-        self.load_candidates_for_module_kinds(report, &[PluginModuleKind::Editor])
+        self.load_candidates_for_module_kinds(report, &[PluginModuleKind::Editor], authority)
     }
 
     pub(super) fn load_all_candidates(
         &self,
         report: NativePluginLoadReport,
+        authority: &NativePluginArtifactAuthority,
     ) -> NativePluginLoadReport {
         self.load_candidates_for_module_kinds(
             report,
             &[PluginModuleKind::Runtime, PluginModuleKind::Editor],
+            authority,
         )
     }
 
@@ -70,6 +117,7 @@ impl NativePluginLoader {
         &self,
         mut report: NativePluginLoadReport,
         module_kinds: &[PluginModuleKind],
+        authority: &NativePluginArtifactAuthority,
     ) -> NativePluginLoadReport {
         let discovered = report.take_discovered();
         let requested_module_kinds = RequestedModuleKinds::from_slice(module_kinds);
@@ -89,10 +137,46 @@ impl NativePluginLoader {
             {
                 load_candidate_library(
                     &mut report,
-                    &candidate.plugin_id,
+                    candidate,
                     library_path,
                     &library_module_kinds,
+                    authority,
                 );
+            }
+        }
+        report.restore_discovered(discovered);
+        report
+    }
+
+    pub(super) fn validate_candidates_for_module_kinds(
+        &self,
+        mut report: NativePluginLoadReport,
+        module_kinds: &[PluginModuleKind],
+    ) -> NativePluginLoadReport {
+        let discovered = report.take_discovered();
+        let requested_module_kinds = RequestedModuleKinds::from_slice(module_kinds);
+        for candidate in &discovered {
+            if !package_matches_module_kinds(&candidate.package_manifest, requested_module_kinds) {
+                continue;
+            }
+            if let Some(diagnostic) = native_distribution_compatibility_diagnostic(
+                &candidate.plugin_id,
+                &candidate.package_manifest,
+            ) {
+                report.push_diagnostic(diagnostic);
+                continue;
+            }
+            for (library_path, _) in native_library_paths_for_candidate(candidate, module_kinds) {
+                if !library_path.exists() {
+                    report.push_diagnostic(
+                        PluginLoadError::missing_artifact(
+                            &candidate.plugin_id,
+                            &library_path,
+                            "native dist library",
+                        )
+                        .to_string(),
+                    );
+                }
             }
         }
         report.restore_discovered(discovered);
@@ -102,10 +186,12 @@ impl NativePluginLoader {
 
 fn load_candidate_library(
     report: &mut NativePluginLoadReport,
-    plugin_id: &str,
+    candidate: &NativePluginCandidate,
     library_path: std::path::PathBuf,
     module_kinds: &[PluginModuleKind],
+    authority: &NativePluginArtifactAuthority,
 ) {
+    let plugin_id = &candidate.plugin_id;
     if !library_path.exists() {
         report.push_diagnostic(
             PluginLoadError::missing_artifact(plugin_id, &library_path, "native dist library")
@@ -113,7 +199,14 @@ fn load_candidate_library(
         );
         return;
     }
-    match unsafe { Library::new(&library_path) } {
+    let admission_receipt = match authority.admit(candidate, &library_path, module_kinds) {
+        Ok(receipt) => receipt,
+        Err(error) => {
+            report.push_diagnostic(error.to_string());
+            return;
+        }
+    };
+    match unsafe { load_admitted_library(&admission_receipt) } {
         Ok(library) => {
             let descriptor =
                 match unsafe { probe_native_plugin_descriptor(&library, &library_path, plugin_id) }
@@ -152,12 +245,32 @@ fn load_candidate_library(
                 descriptor: Some(descriptor),
                 runtime_entry_report,
                 editor_entry_report,
-                library: LoadedNativePlugin::stable_library(library),
+                library: LoadedNativePlugin::admitted_library(library, admission_receipt),
             });
         }
         Err(error) => report.push_diagnostic(
             PluginLoadError::library_open(plugin_id, &library_path, error).to_string(),
         ),
+    }
+}
+
+unsafe fn load_admitted_library(
+    receipt: &super::NativePluginArtifactAdmissionReceipt,
+) -> Result<Library, libloading::Error> {
+    #[cfg(windows)]
+    {
+        use libloading::os::windows::Library as WindowsLibrary;
+        const LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR: u32 = 0x0000_0100;
+        const LOAD_LIBRARY_SEARCH_SYSTEM32: u32 = 0x0000_0800;
+        let library = WindowsLibrary::load_with_flags(
+            receipt.admitted_library_path(),
+            LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32,
+        )?;
+        return Ok(library.into());
+    }
+    #[cfg(not(windows))]
+    {
+        Library::new(receipt.admitted_library_path())
     }
 }
 
@@ -230,135 +343,5 @@ fn package_matches_module_kinds(
 }
 
 #[cfg(test)]
-mod tests {
-    use std::path::{Path, PathBuf};
-
-    use super::*;
-    use crate::plugin::{PluginDistributionManifest, PluginModuleManifest, PluginPackageManifest};
-
-    #[test]
-    fn native_loader_skips_distribution_with_incompatible_engine_range_before_library_probe() {
-        let package_manifest = PluginPackageManifest::new("future_native", "Future Native")
-            .with_runtime_module(PluginModuleManifest::runtime(
-                "future_native.runtime",
-                "zircon_plugin_future_native_runtime",
-            ))
-            .with_distribution(PluginDistributionManifest {
-                forms: vec!["dist".to_string()],
-                abi_version: Some(super::super::ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3),
-                engine_compat: ">=99.0, <100.0".to_string(),
-                dist_crate: "zircon_plugin_future_native_runtime".to_string(),
-                ..PluginDistributionManifest::default()
-            });
-        let report =
-            NativePluginLoadReport::from_discovered(vec![super::super::NativePluginCandidate {
-                plugin_id: "future_native".to_string(),
-                package_manifest,
-                manifest_path: PathBuf::from("future_native/plugin.toml"),
-                library_path: PathBuf::from("future_native/native/future_native.dll"),
-            }]);
-
-        let report = NativePluginLoader
-            .load_candidates_for_module_kinds(report, &[PluginModuleKind::Runtime]);
-
-        assert!(report.loaded().is_empty());
-        assert!(report
-            .diagnostics()
-            .iter()
-            .any(|diagnostic| diagnostic.contains("engine_compat")));
-        assert!(!report
-            .diagnostics()
-            .iter()
-            .any(|diagnostic| diagnostic.contains("library is missing")));
-    }
-
-    #[test]
-    fn entry_failure_preserves_successful_sibling_result() {
-        let mut report = NativePluginLoadReport::default();
-
-        let runtime_entry = retain_requested_entry(&mut report, Ok(Some("runtime entry")));
-        let editor_entry: Option<&str> = retain_requested_entry(
-            &mut report,
-            Err(PluginLoadError::missing_artifact(
-                "partial-entry-plugin",
-                Path::new("partial-entry-plugin.dll"),
-                "editor entry",
-            )),
-        );
-
-        assert_eq!(runtime_entry, Some("runtime entry"));
-        assert_eq!(editor_entry, None);
-        assert!(report.diagnostics().iter().any(|diagnostic| {
-            diagnostic.contains("partial-entry-plugin") && diagnostic.contains("editor entry")
-        }));
-
-        let source = include_str!("load_discovered.rs");
-        let runtime_entry = source
-            .find("let runtime_entry_report = retain_requested_entry")
-            .expect("runtime result should be retained");
-        let editor_entry = source
-            .find("let editor_entry_report = retain_requested_entry")
-            .expect("editor result should be retained");
-        let loaded = source
-            .find("report.push_loaded(LoadedNativePlugin")
-            .expect("both entry results should be retained in the load report");
-        assert!(runtime_entry < editor_entry && editor_entry < loaded);
-    }
-
-    #[test]
-    fn candidate_loading_preserves_discovery_without_cloning_the_report() {
-        let source = include_str!("load_discovered.rs");
-        let deep_clone = ["report.discovered", ".clone()"].concat();
-
-        assert!(!source.contains(&deep_clone));
-        assert!(source.contains("report.take_discovered()"));
-    }
-
-    #[test]
-    fn optimization_batch_20260830ep_requested_module_kind_bits_cover_all_variants() {
-        let requested = RequestedModuleKinds::from_slice(&[
-            PluginModuleKind::Runtime,
-            PluginModuleKind::Editor,
-            PluginModuleKind::Native,
-            PluginModuleKind::Vm,
-        ]);
-
-        assert!(requested.contains(PluginModuleKind::Runtime));
-        assert!(requested.contains(PluginModuleKind::Editor));
-        assert!(requested.contains(PluginModuleKind::Native));
-        assert!(requested.contains(PluginModuleKind::Vm));
-        assert!(!RequestedModuleKinds::from_slice(&[]).contains(PluginModuleKind::Runtime));
-    }
-
-    #[test]
-    fn optimization_batch_20260830ep_native_loader_uses_requested_kind_bits() {
-        let source = include_str!("load_discovered.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("native loader production source");
-
-        assert!(production.contains("RequestedModuleKinds::from_slice(module_kinds)"));
-        assert!(!production.contains("module_kinds.contains(&module.kind)"));
-    }
-
-    #[test]
-    #[ignore = "release-only candidate module-kind membership evidence"]
-    fn optimization_batch_20260830ep_candidate_module_kind_membership_evidence() {
-        const CANDIDATE_COUNT: usize = 65_536;
-        const LEGACY_COMPARISONS_PER_CANDIDATE: usize = 2;
-        const OPTIMIZED_BIT_TESTS_PER_CANDIDATE: usize = 1;
-        let legacy_membership_comparisons = CANDIDATE_COUNT * LEGACY_COMPARISONS_PER_CANDIDATE;
-        let optimized_membership_bit_tests = CANDIDATE_COUNT * OPTIMIZED_BIT_TESTS_PER_CANDIDATE;
-
-        assert_eq!(
-            legacy_membership_comparisons,
-            optimized_membership_bit_tests * 2
-        );
-        println!(
-            "RUNTIME546_NATIVE_CANDIDATE_KIND_BITSET_BENCH_V1 candidates={CANDIDATE_COUNT} \
-             legacy_membership_comparisons={legacy_membership_comparisons} \
-             optimized_membership_bit_tests={optimized_membership_bit_tests} reduction_pct=50"
-        );
-    }
-}
+#[path = "tests/load_discovered.rs"]
+mod tests;

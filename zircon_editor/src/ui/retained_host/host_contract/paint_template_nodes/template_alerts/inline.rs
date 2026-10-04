@@ -1,3 +1,6 @@
+//! 行内提示采用声明级别的共享样式；显式图标占位与文字内容带一起参与尺寸预算。
+//! 较高内容带请求宿主 WordWrap，短提示请求单行策略；缺少可容纳空间时保留底面。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::{select_workbench_alert_style, WorkbenchAlertTone as AlertTone};
@@ -90,14 +93,5 @@ fn alert_surface_radius(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn inline_alert_prefers_the_projected_panel_radius() {
-        let mut node = TemplatePaneNodeData::default();
-        node.corner_radius = 14.0;
-
-        assert_eq!(alert_surface_radius(&node, alert_metrics()), 14.0);
-    }
-}
+#[path = "tests/inline.rs"]
+mod tests;

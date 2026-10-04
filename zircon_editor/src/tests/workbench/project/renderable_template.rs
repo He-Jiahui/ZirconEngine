@@ -5,7 +5,7 @@ use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::resource::{AssetUuid, ResourceId};
 
-use crate::core::project::{NewProjectDraft, NewProjectTemplate, ProjectAuthority};
+use crate::core::project::{NewProjectDraft, ProjectAuthority, ProjectTemplateId};
 use crate::ui::workbench::project::EditorProjectDocument;
 
 #[test]
@@ -19,11 +19,14 @@ fn project_authority_scaffolds_directory_project_defaults() {
     let draft = NewProjectDraft {
         project_name: "WelcomeProject".to_string(),
         location: location.to_string_lossy().into_owned(),
-        template: NewProjectTemplate::RenderableEmpty,
+        template: ProjectTemplateId::RenderableEmpty,
     };
 
     let created_root = ProjectAuthority::default()
-        .create_project(&draft)
+        .create_project(
+            &draft,
+            &crate::tests::support::test_project_creation_provenance(),
+        )
         .unwrap()
         .root;
     let paths = ProjectPaths::from_root(&created_root).unwrap();

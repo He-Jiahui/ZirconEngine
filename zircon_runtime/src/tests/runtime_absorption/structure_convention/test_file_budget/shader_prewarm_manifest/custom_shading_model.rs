@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对着色器预热的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 #[test]
@@ -7,9 +8,9 @@ fn runtime_15_shader_prewarm_custom_shading_model_id_is_wired() {
     let manifest = read_runtime_src("bin/zircon_shader_prewarm/manifest.rs");
     let material_sources =
         read_runtime_src("bin/zircon_shader_prewarm/manifest/material_sources.rs");
-    let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests.rs");
+    let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/cases.rs");
     let build_tool = read_zircon_build_sources();
-    let build_prewarm = read_repo("tools/zircon_build_shader_prewarm.py");
+    let build_prewarm = read_repo("tools/build/zircon_build_shader_prewarm.py");
     let plan_08 = read_repo(
         "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
     );
@@ -97,7 +98,7 @@ fn runtime_15_shader_prewarm_custom_shading_model_id_is_wired() {
                 "render_plan08_asset_root_custom_shading_model_id_prewarm_static_passed_cargo_deferred_implementation_cadence",
                 "bin/zircon_shader_prewarm/args.rs",
                 "bin/zircon_shader_prewarm/manifest.rs",
-                "tools/zircon_build.py",
+                "tools/build/zircon_build.py",
                 "shader_prewarm_asset_root_manifest_maps_custom_shading_model_plugin_ids",
                 "runtime_15_shader_prewarm_custom_shading_model_id_is_wired",
             ],

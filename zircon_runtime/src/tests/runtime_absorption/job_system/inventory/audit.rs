@@ -28,7 +28,7 @@ pub(crate) const FORBIDDEN_SCHEDULE_EXECUTOR_RAYON_ANCHORS: &[&str] = &[
 pub(crate) const MIRROR_DOC_ANCHORS: &[&str] = &[
     "job_system_boundary",
     "expected_module_count = 22",
-    "behavior_test_anchor_count = 73",
+    "behavior_test_anchor_count = 77",
     "tasks/task_graph/",
     "tasks/bounded_stream_io/",
     "tasks/retained_byte_budget.rs",

@@ -32,6 +32,7 @@ impl UiResourceUvRect {
     }
 }
 
+/// 所有字段共同参与资源键比较；相同 id 的版本、图集页、UV 或回退不同仍是不同身份。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiRenderResourceKey {
     pub kind: UiRenderResourceKind,
@@ -206,6 +207,7 @@ impl UiBrushPayload {
     }
 
     pub fn with_fallback_resource(mut self, fallback: UiRenderResourceKey) -> Self {
+        // 图像与矢量同时更新键和状态快照；材质的 atlas、UV 与回退来自该状态快照。
         match &mut self {
             Self::Image(payload) | Self::Box(payload) => {
                 payload.resource.fallback = Some(Box::new(fallback.clone()));
@@ -303,11 +305,7 @@ pub struct UiMaterialBrushPayload {
 
 impl UiMaterialBrushPayload {
     pub fn resource_key(&self) -> UiRenderResourceKey {
-        let id = self
-            .variant
-            .as_ref()
-            .map(|variant| format!("{}#{variant}", self.material_id))
-            .unwrap_or_else(|| self.material_id.clone());
+        let id = material_resource_id(&self.material_id, self.variant.as_deref());
         let mut key = UiRenderResourceKey::new(UiRenderResourceKind::Material, id);
         key.revision = self.revision;
         key.atlas_page = self.resource_state.atlas_page;
@@ -316,3 +314,19 @@ impl UiMaterialBrushPayload {
         key
     }
 }
+
+fn material_resource_id(material_id: &str, variant: Option<&str>) -> String {
+    let Some(variant) = variant else {
+        return material_id.to_string();
+    };
+
+    let mut id = String::with_capacity(material_id.len() + 1 + variant.len());
+    id.push_str(material_id);
+    id.push('#');
+    id.push_str(variant);
+    id
+}
+
+#[cfg(test)]
+#[path = "brush/tests/material_key_performance_tests.rs"]
+mod material_key_performance_tests;

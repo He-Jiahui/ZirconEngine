@@ -1,5 +1,5 @@
-// Two-phase set-proc plan. WOS calls shouldDraw before consuming one RNG value,
-// then calls buildSuccess only after that value passes the authored chance.
+// 两阶段套装触发投影：调用方先检查 shouldDraw，再消耗一个随机值；
+// 只有该值通过配置概率后，才调用 buildSuccess 构造生效计划。
 var contract = %import("generated/set_procs_contract");
 
 pub class SetProcSpec {

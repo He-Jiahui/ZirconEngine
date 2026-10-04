@@ -14,4 +14,5 @@ pub use plugin::{
 };
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

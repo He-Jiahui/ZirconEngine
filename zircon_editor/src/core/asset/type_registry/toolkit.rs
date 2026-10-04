@@ -1,3 +1,4 @@
+//! 描述资产类型应打开的视图、操作和能力要求；扩展注册完成后由宿主按该路由建立会话，目录数据本身不实例化编辑器。
 use serde::{Deserialize, Serialize};
 
 use crate::core::editor_operation::EditorOperationPath;
@@ -48,5 +49,5 @@ impl AssetToolkitDescriptor {
 }
 
 #[cfg(test)]
-#[path = "toolkit/optimization_tests.rs"]
+#[path = "toolkit/tests/optimization_tests.rs"]
 mod optimization_tests;

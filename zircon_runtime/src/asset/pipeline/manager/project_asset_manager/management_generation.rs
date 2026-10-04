@@ -1,19 +1,22 @@
 use std::sync::Arc;
 
 use crate::asset::{
-    MaterialAssetManagementRecordSet, MeshAssetManagementRecordSet, ModelAssetManagementRecordSet,
-    SceneAssetManagementRecordSet, SceneEntityManagementRecordSet, ShaderAssetManagementRecordSet,
+    AssetManagementOverview, AssetManagementRecordSetSummary, MaterialAssetManagementRecordSet,
+    MeshAssetManagementRecordSet, ModelAssetManagementRecordSet, SceneAssetManagementRecordSet,
+    SceneEntityManagementRecordSet, ShaderAssetManagementRecordSet,
 };
-use crate::core::resource::{ResourceId, ResourceKind};
+use crate::core::resource::{ResourceId, ResourceKind, ResourceManagementGenerationIdentity};
 
 /// Immutable asset-owned management rows published with a project generation.
 ///
 /// Renderer-prepared material rows intentionally do not live here. Graphics consumers compose
 /// those rows with this asset-only projection when they need a renderer-facing payload.
+/// Cache validity uses the resource publication identity; diagnostic counters are not identities.
 #[derive(Clone, Debug)]
 pub struct ProjectAssetManagementGeneration {
     project_generation: Option<u64>,
-    resource_generation: u64,
+    resource_generation: Option<ResourceManagementGenerationIdentity>,
+    overview: AssetManagementOverview,
     models: ModelAssetManagementRecordSet,
     meshes: MeshAssetManagementRecordSet,
     scenes: SceneAssetManagementRecordSet,
@@ -31,7 +34,7 @@ impl ProjectAssetManagementGeneration {
     pub(in crate::asset::pipeline::manager) fn empty() -> Self {
         Self::from_record_sets(
             None,
-            0,
+            None,
             ModelAssetManagementRecordSet::from_records(Vec::new()),
             MeshAssetManagementRecordSet::from_results(Vec::new()),
             SceneAssetManagementRecordSet::from_records(Vec::new()),
@@ -43,7 +46,7 @@ impl ProjectAssetManagementGeneration {
 
     pub(in crate::asset::pipeline::manager) fn from_record_sets(
         project_generation: Option<u64>,
-        resource_generation: u64,
+        resource_generation: Option<ResourceManagementGenerationIdentity>,
         models: ModelAssetManagementRecordSet,
         meshes: MeshAssetManagementRecordSet,
         scenes: SceneAssetManagementRecordSet,
@@ -51,6 +54,16 @@ impl ProjectAssetManagementGeneration {
         material_assets: MaterialAssetManagementRecordSet,
         shaders: ShaderAssetManagementRecordSet,
     ) -> Self {
+        let overview = AssetManagementOverview::from_summary(
+            AssetManagementRecordSetSummary::from_asset_record_sets(
+                &models,
+                &meshes,
+                &scenes,
+                &scene_entities,
+                &material_assets,
+                &shaders,
+            ),
+        );
         let model_ids: Arc<[ResourceId]> = Arc::from(
             models
                 .records
@@ -90,6 +103,7 @@ impl ProjectAssetManagementGeneration {
         Self {
             project_generation,
             resource_generation,
+            overview,
             models,
             meshes,
             scenes,
@@ -104,17 +118,21 @@ impl ProjectAssetManagementGeneration {
         }
     }
 
-    pub fn resource_generation(&self) -> u64 {
-        self.resource_generation
+    pub fn resource_generation_identity(&self) -> Option<&ResourceManagementGenerationIdentity> {
+        self.resource_generation.as_ref()
+    }
+
+    pub(crate) fn overview(&self) -> &AssetManagementOverview {
+        &self.overview
     }
 
     pub(crate) fn is_for_generations(
         &self,
         project_generation: u64,
-        resource_generation: u64,
+        resource_generation: &ResourceManagementGenerationIdentity,
     ) -> bool {
         self.project_generation == Some(project_generation)
-            && self.resource_generation == resource_generation
+            && self.resource_generation.as_ref() == Some(resource_generation)
     }
 
     pub(crate) fn has_project_generation(&self) -> bool {
@@ -188,56 +206,5 @@ impl ProjectAssetManagementGeneration {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::ProjectAssetManagementGeneration;
-    use crate::asset::{
-        MaterialAssetManagementRecordSet, MeshAssetManagementRecordSet,
-        ModelAssetManagementRecordSet, SceneAssetManagementRecordSet,
-        SceneEntityManagementRecordSet, ShaderAssetManagementRecordSet,
-    };
-    use crate::core::resource::ResourceKind;
-
-    #[test]
-    fn empty_generation_has_asset_only_identity_and_indexes() {
-        let generation = ProjectAssetManagementGeneration::empty();
-
-        assert_eq!(generation.resource_generation(), 0);
-        assert!(!generation.is_for_generations(0, 0));
-        for kind in [
-            ResourceKind::Model,
-            ResourceKind::Mesh,
-            ResourceKind::Scene,
-            ResourceKind::Material,
-            ResourceKind::Shader,
-            ResourceKind::Texture,
-        ] {
-            assert!(generation.ids_by_kind(kind).is_empty());
-        }
-        assert!(generation.model_record_set().records.is_empty());
-    }
-
-    #[test]
-    fn asset_generation_remains_renderer_detail_free() {
-        let generation = ProjectAssetManagementGeneration::empty();
-        assert!(generation.material_record_set().records.is_empty());
-        assert_eq!(generation.resource_generation(), 0);
-    }
-
-    #[test]
-    fn empty_active_project_generation_is_distinct_from_closed_projection() {
-        let generation = ProjectAssetManagementGeneration::from_record_sets(
-            Some(7),
-            0,
-            ModelAssetManagementRecordSet::from_records(Vec::new()),
-            MeshAssetManagementRecordSet::from_results(Vec::new()),
-            SceneAssetManagementRecordSet::from_records(Vec::new()),
-            SceneEntityManagementRecordSet::from_records(Vec::new()),
-            MaterialAssetManagementRecordSet::from_records(Vec::new()),
-            ShaderAssetManagementRecordSet::from_records(Vec::new()),
-        );
-
-        assert!(generation.is_empty());
-        assert!(generation.has_project_generation());
-        assert!(!ProjectAssetManagementGeneration::empty().has_project_generation());
-    }
-}
+#[path = "tests/management_generation.rs"]
+mod tests;

@@ -4,8 +4,10 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::hub_protocol::hub_recent_project_path_key;
 
+/// 以跨进程一致的项目路径键索引 Hub 私有展示元数据，不承载项目清单本身。
 pub type ProjectMetadataMap = BTreeMap<String, ProjectMetadata>;
 
+/// 项目列表附加状态；引擎 ID 可随源码登记迁移，空记录可安全清理。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProjectMetadata {
     #[serde(default)]
@@ -22,10 +24,12 @@ impl ProjectMetadata {
     }
 }
 
+/// 使用共享近期项目协议的词法路径键，保证 Hub 设置与共享登记能按同一项目查找。
 pub fn project_metadata_key(path: impl AsRef<Path>) -> String {
     hub_recent_project_path_key(path)
 }
 
+/// 对现存文件先解析真实路径，用于目录去重和源码引擎 ID；不存在时退回词法身份。
 pub fn project_filesystem_path_key(path: impl AsRef<Path>) -> String {
     let resolved = path
         .as_ref()
@@ -34,6 +38,7 @@ pub fn project_filesystem_path_key(path: impl AsRef<Path>) -> String {
     project_metadata_key(resolved)
 }
 
+/// 为项目启动和 Editor 租约提供可显示的规范根路径，Windows 下去除扩展长度前缀。
 pub fn normalize_project_root(path: impl AsRef<Path>) -> PathBuf {
     let path = path.as_ref();
     let resolved = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
@@ -62,6 +67,7 @@ pub fn metadata_for_path<'a>(
     metadata.get(&project_metadata_key(path))
 }
 
+/// 更新项目附加状态时创建缺席条目；持久化前可清理未设置任何字段的记录。
 pub fn metadata_for_path_mut<'a>(
     metadata: &'a mut ProjectMetadataMap,
     path: impl AsRef<Path>,
@@ -75,88 +81,5 @@ pub fn prune_empty_metadata(metadata: &mut ProjectMetadataMap) {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn metadata_key_normalizes_separators_and_trailing_slashes() {
-        let key = project_metadata_key("E:\\Projects\\Game\\");
-
-        assert_eq!(key, "e:/projects/game");
-    }
-
-    #[test]
-    fn project_paths_match_uses_metadata_key_normalization() {
-        assert!(project_paths_match(
-            "E:\\Projects\\Game\\",
-            "E:/Projects/Game"
-        ));
-        assert!(project_paths_match("E:/Projects/Game", "e:/projects/game/"));
-    }
-
-    #[test]
-    fn filesystem_path_key_canonicalizes_when_possible() {
-        let root = std::env::temp_dir().join(format!(
-            "zircon-hub-path-key-{}",
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
-        let project = root.join("Project");
-        std::fs::create_dir_all(&project).unwrap();
-
-        assert_eq!(
-            project_filesystem_path_key(project.join(".")),
-            project_filesystem_path_key(&project)
-        );
-
-        std::fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn normalize_project_root_resolves_dot_components_and_strips_extended_prefix() {
-        let root = std::env::temp_dir().join(format!(
-            "zircon-hub-normalize-root-{}",
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
-        let project = root.join("Project");
-        std::fs::create_dir_all(&project).unwrap();
-
-        assert_eq!(
-            normalize_project_root(project.join(".")),
-            strip_windows_extended_length_prefix(project.canonicalize().unwrap())
-        );
-        assert_eq!(
-            normalize_project_root(r"\\?\E:\Projects\Game"),
-            PathBuf::from(r"E:\Projects\Game")
-        );
-        assert_eq!(
-            normalize_project_root(r"\\?\UNC\server\share\Game"),
-            PathBuf::from(r"\\server\share\Game")
-        );
-
-        std::fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn empty_metadata_can_be_pruned() {
-        let mut metadata = ProjectMetadataMap::new();
-        metadata.insert("empty".to_string(), ProjectMetadata::default());
-        metadata.insert(
-            "pinned".to_string(),
-            ProjectMetadata {
-                pinned: true,
-                ..ProjectMetadata::default()
-            },
-        );
-
-        prune_empty_metadata(&mut metadata);
-
-        assert!(!metadata.contains_key("empty"));
-        assert!(metadata.contains_key("pinned"));
-    }
-}
+#[path = "tests/metadata.rs"]
+mod tests;

@@ -1,3 +1,6 @@
+// 调用端：npm run generate:spell-combat-contract (tools/package.json)；职责：固化法术战斗类别、枭兽增益和急速数值。
+// 输入边界：src/sim/combat/spell_combat.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

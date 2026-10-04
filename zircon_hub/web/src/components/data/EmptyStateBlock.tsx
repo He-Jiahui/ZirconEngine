@@ -2,12 +2,14 @@ import type { ReactNode } from "react";
 import { Box, Typography } from "@mui/material";
 import { hubTokens } from "../../theme/tokens";
 
+// 页面须先区分无结果、未选择等状态，再提供相应本地化说明；此契约不携带加载或恢复动作。
 export interface EmptyStateBlockProps {
   title: string;
   detail: string;
   icon?: ReactNode;
 }
 
+// 共用空状态占位保持页面信息层级，具体为空的原因由调用页决定，不能从图标推断业务状态。
 export function EmptyStateBlock({ title, detail, icon }: EmptyStateBlockProps) {
   return (
     <Box

@@ -1,3 +1,6 @@
+// 调用端：npm run generate:inventory-instance-contract (tools/package.json)；职责：从背包、类型与模拟代码提取背包实例身份和移动规则。
+// 输入边界：src/sim/bags.ts, src/sim/types.ts, src/sim/sim.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

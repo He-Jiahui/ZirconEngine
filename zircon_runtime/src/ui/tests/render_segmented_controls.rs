@@ -64,6 +64,14 @@ fn segmented_rendering_classifies_before_state_and_avoids_selected_lowercase_cop
 }
 
 #[test]
+fn tab_command_builder_reserves_its_fixed_upper_bound() {
+    let source = include_str!("../surface/render/segmented_controls/tabs.rs");
+
+    assert!(source.contains("const TAB_COMMAND_CAPACITY: usize = 3;"));
+    assert!(source.contains("let mut commands = Vec::with_capacity(TAB_COMMAND_CAPACITY);"));
+}
+
+#[test]
 fn render_extract_expands_tabs_and_segmented_control_primitives() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.segmented_controls"));
     surface.tree.insert_root(

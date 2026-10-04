@@ -19,7 +19,7 @@ CONTRACTS_RS = (
     / "ui_ecs_node_lookup_contracts.rs"
 )
 
-
+# 读取实现源码约束接口单次域影响：快照与增量查询仅指定域，并单次域聚合不构建全部域桶。
 def test_snapshot_and_delta_query_only_the_requested_domain() -> None:
     source = ECS_RS.read_text(encoding="utf-8")
     impact_bodies = source.split(

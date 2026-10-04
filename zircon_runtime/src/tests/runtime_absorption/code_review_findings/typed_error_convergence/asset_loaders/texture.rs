@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f5_texture_loader_uses_typed_error() {
     let texture_loader = include_str!("../../../../../asset/load/texture.rs");
@@ -12,7 +13,8 @@ fn review_f5_texture_loader_uses_typed_error() {
         include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let convention =
         include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
-    let worker_doc = include_str!("../../../../../../../docs/zircon_runtime/asset/worker_pool.md");
+    let worker_doc =
+        include_str!("../../../../../../../docs/crates/zircon_runtime/asset/worker_pool.md");
 
     for required in [
         "pub(crate) type TextureLoadResult<T> = std::result::Result<T, TextureLoadError>;",

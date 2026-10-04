@@ -21,8 +21,8 @@ if (!consecration || consecration.class !== "paladin" || consecration.learnLevel
 }
 
 const world = read("scripts", "woc_game", "src", "world", "state.zr");
-requireText(world, /writer\.u16\(<uint>78, 1, 1\)[\s\S]*?offlineGroundEffectStateIsValid[\s\S]*?offlineGroundEffectSourceIds[\s\S]*?offlineGroundEffectTickTimers/, "WOS61 must retain Consecration ground state in the current codec");
-requireText(world, /schemaVersion != <uint>60 &&[\s\S]*?schemaVersion != <uint>61[\s\S]*?schemaVersion >= <uint>61[\s\S]*?offlineGroundEffectSourceIds/, "WOS61 must decode ground state and default WOS2-WOS60");
+requireText(world, /if \(!offlineGroundEffectStateIsValid\(state\)\)[\s\S]*?writer\.u16\(<uint>state\.offlineGroundEffectSourceIds\.length, 1, 1\)[\s\S]*?writer\.u64\(<uint>state\.offlineGroundEffectSourceIds\[groundEffectIndex\][\s\S]*?writer\.fixed6\(<float>state\.offlineGroundEffectTickTimers\[groundEffectIndex\]/, "WOS61 must retain Consecration ground state in the current codec");
+requireText(world, /schemaVersion != <uint>60\s*&&[\s\S]*?schemaVersion != <uint>61[\s\S]*?schemaVersion >= <uint>61[\s\S]*?offlineGroundEffectSourceIds/, "WOS61 must decode ground state and default WOS2-WOS60");
 requireText(world, /consecrationAbilityCode\(\)[\s\S]*?knownAbilityCatalog\.abilityCode\("consecration"\)[\s\S]*?startOfflineConsecrationCast[\s\S]*?setAbilityCooldownExpiration[\s\S]*?resolveOfflineGroundAoEPulse[\s\S]*?appendOfflineConsecrationGroundEffect/, "Consecration must bill, cooldown, pulse, and persist its zone");
 requireText(world, /stepOfflineConsecrationGroundEffects[\s\S]*?index = state\.offlineGroundEffectSourceIds\.length - 1[\s\S]*?remaining[\s\S]*?timer[\s\S]*?resolveOfflineGroundAoEPulse[\s\S]*?fixedTick[\s\S]*?stepOfflineConsecrationGroundEffects\(state\)[\s\S]*?stepOfflineEastbrookProjectiles/, "Consecration must preserve source zone ordering and cadence");
 requireText(world, /consecrationPayloadAbilityIsExact[\s\S]*?startOfflineConsecrationCast/, "Consecration must route typed commands");
@@ -30,6 +30,6 @@ requireText(world, /consecrationCommandStateTest[\s\S]*?offlineGroundEffectSourc
 requireText(world, /if \(consecrationCommandStateTest\(\) != 1\) \{[\s\S]*?return -67;/, "world selfTest must execute Consecration");
 
 const main = read("scripts", "woc_game", "src", "main.zr");
-if ((main.match(/world_state[^\r\n]*WOS78/g) ?? []).length !== 2) throw new Error("main must publish WOS77");
+if ((main.match(/world_state[^\r\n]*WOS118/g) ?? []).length !== 2) throw new Error("main must publish WOS118");
 requireText(read("contracts", "world-state.md"), /WOS73 adds schema 61[\s\S]*?Consecration[\s\S]*?before projectiles/, "contract must document WOS73");
 process.stdout.write("WOS73 Consecration runtime static guards passed\n");

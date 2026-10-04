@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools import frameworks_01_resource_hard_cut_move_manifest as manifest_owner
+from tools.maintenance.resource_migration import frameworks_01_resource_hard_cut_move_manifest as manifest_owner
 
 
 def _test_temp_root() -> Path:
@@ -38,7 +38,7 @@ def _manifest_sha256(value: object) -> str:
     ).encode("utf-8")
     return _sha256(payload)
 
-
+# 按源所有者与目标角色建立移动清单，检查输入散列、消费者补丁和目标碰撞的封存边界。
 class Frameworks01ResourceHardCutMoveManifestTests(unittest.TestCase):
     def setUp(self) -> None:
         TEST_TEMP_ROOT.mkdir(parents=True, exist_ok=True)

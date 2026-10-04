@@ -15,6 +15,7 @@ mod pane_menu_projection;
 mod pane_option_projection;
 mod pane_ui_asset_conversion;
 #[cfg(test)]
+#[path = "tests/pane_ui_asset_conversion_tests.rs"]
 mod pane_ui_asset_conversion_tests;
 mod pane_value_conversion;
 mod performance_timeline;
@@ -22,6 +23,7 @@ mod runtime_diagnostics;
 mod template_node_projection;
 mod template_runtime_projection;
 mod ui_asset_detail_fields;
+pub(crate) mod zui_visual_acceptance;
 
 pub(crate) use self::animation_projection::{
     to_host_contract_animation_editor_pane_from_host_pane,
@@ -78,4 +80,5 @@ use self::template_runtime_projection::{
 };
 
 #[cfg(test)]
+#[path = "tests/inspector_pane_tests.rs"]
 mod inspector_pane_tests;

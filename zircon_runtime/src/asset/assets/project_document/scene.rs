@@ -1,3 +1,5 @@
+//! 场景项目文档负责作者场景与持久引用的往返；World 保存经 ProjectManager 校验引用身份，加载时把缺失引用转为诊断。
+
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::project::PersistedAssetReference;
 
@@ -20,6 +22,13 @@ struct SceneEntityDocument<R> {
     #[serde(default)]
     mesh: Option<SceneMeshDocument<R>>,
     #[serde(default)]
+    components: Vec<SceneComponentDocument<R>>,
+    /// Read-only migration inputs for the pre-registry two-field format.
+    #[serde(default, rename = "sprite_2d", skip_serializing_if = "Option::is_none")]
+    legacy_sprite_2d: Option<SceneSprite2dDocument<R>>,
+    #[serde(default, rename = "mesh_2d", skip_serializing_if = "Option::is_none")]
+    legacy_mesh_2d: Option<SceneMesh2dDocument<R>>,
+    #[serde(default)]
     collider: Option<SceneColliderDocument<R>>,
     #[serde(default)]
     animation_skeleton: Option<SceneSkeletonDocument<R>>,
@@ -37,6 +46,59 @@ struct SceneEntityDocument<R> {
     tilemap: Option<SceneTilemapDocument<R>>,
     #[serde(default)]
     prefab_instance: Option<ScenePrefabDocument<R>>,
+    #[serde(flatten)]
+    _rest: toml::Table,
+}
+
+/// Registry-owned component row.  Payload stays opaque while the reference table is
+/// remapped by the project resolver, so adding a provider does not require editing this DTO.
+#[derive(Deserialize, Serialize)]
+#[serde(bound(serialize = "R: Serialize", deserialize = "R: Deserialize<'de>"))]
+struct SceneComponentDocument<R> {
+    type_id: String,
+    schema_id: String,
+    schema_version: u32,
+    provider_id: String,
+    #[serde(with = "json_payload_as_string")]
+    payload: serde_json::Value,
+    #[serde(default)]
+    references: Vec<R>,
+}
+
+mod json_payload_as_string {
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub(super) fn serialize<S>(value: &serde_json::Value, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&serde_json::to_string(value).map_err(serde::ser::Error::custom)?)
+    }
+
+    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<serde_json::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let encoded = String::deserialize(deserializer)?;
+        serde_json::from_str(&encoded).map_err(serde::de::Error::custom)
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(bound(serialize = "R: Serialize", deserialize = "R: Deserialize<'de>"))]
+struct SceneSprite2dDocument<R> {
+    image: R,
+    #[serde(default)]
+    material: Option<R>,
+    #[serde(flatten)]
+    _rest: toml::Table,
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(bound(serialize = "R: Serialize", deserialize = "R: Deserialize<'de>"))]
+struct SceneMesh2dDocument<R> {
+    model: R,
+    material: R,
     #[serde(flatten)]
     _rest: toml::Table,
 }
@@ -193,19 +255,36 @@ pub(in crate::asset::assets) fn serialize_scene(
 fn map_scene_references<A, B>(
     document: SceneAuthoringDocument<A>,
     mut map: impl FnMut(A) -> Result<B, ReferenceResolutionError>,
-) -> Result<SceneAuthoringDocument<B>, ReferenceResolutionError> {
+) -> Result<SceneAuthoringDocument<B>, ReferenceResolutionError>
+where
+    B: Serialize,
+{
     let mut entities = Vec::with_capacity(document.entities.len());
     for entity in document.entities {
         let mesh = match entity.mesh {
             Some(mesh) => Some(map_scene_mesh(mesh, &mut map)?),
             None => None,
         };
+        let mut components = entity
+            .components
+            .into_iter()
+            .map(|component| map_scene_component(component, &mut map))
+            .collect::<Result<Vec<_>, ReferenceResolutionError>>()?;
+        if let Some(sprite) = entity.legacy_sprite_2d {
+            components.push(map_legacy_sprite2d(sprite, &mut map)?);
+        }
+        if let Some(mesh) = entity.legacy_mesh_2d {
+            components.push(map_legacy_mesh2d(mesh, &mut map)?);
+        }
         entities.push(SceneEntityDocument {
             camera: entity
                 .camera
                 .map(|camera| map_scene_camera(camera, &mut map))
                 .transpose()?,
             mesh,
+            components,
+            legacy_sprite_2d: None,
+            legacy_mesh_2d: None,
             collider: entity
                 .collider
                 .map(|collider| -> Result<_, ReferenceResolutionError> {
@@ -362,182 +441,109 @@ fn map_scene_mesh<A, B>(
     })
 }
 
-#[cfg(test)]
-mod tests {
-    use zircon_runtime_interface::project::{AssetRef, PersistedAssetReference, RelPath};
-    use zircon_runtime_interface::resource::ResourceScheme;
-
-    use super::*;
-    use crate::asset::assets::{
-        PrefabInstanceAsset, PrefabPropertyOverrideAsset, SceneEntityAsset, SceneMeshInstanceAsset,
-        SceneMobilityAsset, TransformAsset,
-    };
-    use crate::asset::{AssetUri, AssetUuid};
-
-    #[test]
-    fn formal_scene_writer_reader_round_trips_project_builtin_and_subasset_references() {
-        let model_guid: AssetUuid = "fa111111-2222-4333-8444-555555555555".parse().unwrap();
-        let mesh_guid: AssetUuid = "fb111111-2222-4333-8444-555555555555".parse().unwrap();
-        let model = AssetReference::new(
-            model_guid,
-            AssetUri::parse("res://models/hero.glb").unwrap(),
-        );
-        let mesh = AssetReference::new(
-            mesh_guid,
-            AssetUri::parse("res://models/hero.glb#Mesh0").unwrap(),
-        );
-        let material =
-            AssetReference::from_locator(AssetUri::parse("builtin://material/default").unwrap());
-        let scene = SceneAsset {
-            entities: vec![SceneEntityAsset {
-                entity: 1,
-                name: "Roundtrip".to_owned(),
-                parent: None,
-                transform: TransformAsset::default(),
-                active: true,
-                render_layer_mask: 1,
-                mobility: SceneMobilityAsset::Dynamic,
-                camera: None,
-                mesh: Some(SceneMeshInstanceAsset {
-                    model: model.clone(),
-                    mesh: Some(mesh.clone()),
-                    material: material.clone(),
-                    render_queue: 0,
-                    material_queue: 0,
-                    order_in_layer: 0,
-                    depth_bias: 0.0,
-                    morph_weights: Vec::new(),
-                    primitives: Vec::new(),
-                    lods: Vec::new(),
-                }),
-                ambient_light: None,
-                directional_light: None,
-                point_light: None,
-                rect_light: None,
-                spot_light: None,
-                post_process_volume: None,
-                rigid_body: None,
-                collider: None,
-                joint: None,
-                animation_skeleton: None,
-                animation_player: None,
-                animation_sequence_player: None,
-                animation_graph_player: None,
-                animation_state_machine_player: None,
-                terrain: None,
-                tilemap: None,
-                prefab_instance: None,
-                script_bindings: Vec::new(),
-            }],
-        };
-
-        let document = serialize_scene(&scene, |reference| {
-            if reference.locator.scheme() == ResourceScheme::Builtin {
-                return Ok(PersistedAssetReference::builtin(reference.locator.clone()));
-            }
-            Ok(PersistedAssetReference::project(
-                AssetRef::try_new(
-                    reference.uuid,
-                    RelPath::parse("models/hero.glb").unwrap(),
-                    reference.locator.label().map(str::to_owned),
-                )
-                .unwrap(),
-            ))
-        })
-        .unwrap();
-        let reloaded = deserialize_scene(&document, |reference| {
-            if let Some(locator) = reference.builtin_locator() {
-                return Ok(AssetReference::from_locator(locator.clone()));
-            }
-            let reference = reference.project_ref().expect("project reference");
-            let mut locator = format!("res://{}", reference.path_hint());
-            if let Some(sub) = reference.sub() {
-                locator.push('#');
-                locator.push_str(sub);
-            }
-            Ok(AssetReference::new(
-                reference.guid(),
-                AssetUri::parse(&locator).unwrap(),
-            ))
-        })
-        .unwrap();
-
-        assert_eq!(reloaded, scene);
-    }
-
-    #[test]
-    fn formal_scene_writer_reader_preserves_prefab_instance_metadata() {
-        let prefab_guid: AssetUuid = "fc111111-2222-4333-8444-555555555555".parse().unwrap();
-        let prefab = AssetReference::new(
-            prefab_guid,
-            AssetUri::parse("res://prefabs/hero.prefab.toml").unwrap(),
-        );
-        let scene = SceneAsset {
-            entities: vec![SceneEntityAsset {
-                entity: 7,
-                name: "HeroInstance".to_owned(),
-                parent: None,
-                transform: TransformAsset::default(),
-                active: true,
-                render_layer_mask: 1,
-                mobility: SceneMobilityAsset::Dynamic,
-                camera: None,
-                mesh: None,
-                ambient_light: None,
-                directional_light: None,
-                point_light: None,
-                rect_light: None,
-                spot_light: None,
-                post_process_volume: None,
-                rigid_body: None,
-                collider: None,
-                joint: None,
-                animation_skeleton: None,
-                animation_player: None,
-                animation_sequence_player: None,
-                animation_graph_player: None,
-                animation_state_machine_player: None,
-                terrain: None,
-                tilemap: None,
-                prefab_instance: Some(PrefabInstanceAsset {
-                    prefab: prefab.clone(),
-                    local_transform: TransformAsset {
-                        translation: [3.0, 2.0, 1.0],
-                        ..Default::default()
-                    },
-                    overrides: vec![PrefabPropertyOverrideAsset {
-                        entity_path: "Root/Weapon".to_owned(),
-                        property_path: "material.tint".to_owned(),
-                        value: serde_json::json!({
-                            "enabled": true,
-                            "color": [1.0, 0.5, 0.25, 1.0],
-                        }),
-                    }],
-                }),
-                script_bindings: Vec::new(),
-            }],
-        };
-
-        let document = serialize_scene(&scene, |reference| {
-            Ok(PersistedAssetReference::project(
-                AssetRef::try_new(
-                    reference.uuid,
-                    RelPath::parse("prefabs/hero.prefab.toml").unwrap(),
-                    reference.locator.label().map(str::to_owned),
-                )
-                .unwrap(),
-            ))
-        })
-        .unwrap();
-        let reloaded = deserialize_scene(&document, |reference| {
-            let reference = reference.project_ref().expect("project reference");
-            Ok(AssetReference::new(
-                reference.guid(),
-                AssetUri::parse(&format!("res://{}", reference.path_hint())).unwrap(),
-            ))
-        })
-        .unwrap();
-
-        assert_eq!(reloaded, scene);
-    }
+fn map_scene_component<A, B>(
+    component: SceneComponentDocument<A>,
+    map: &mut impl FnMut(A) -> Result<B, ReferenceResolutionError>,
+) -> Result<SceneComponentDocument<B>, ReferenceResolutionError> {
+    Ok(SceneComponentDocument {
+        type_id: component.type_id,
+        schema_id: component.schema_id,
+        schema_version: component.schema_version,
+        provider_id: component.provider_id,
+        payload: component.payload,
+        references: component
+            .references
+            .into_iter()
+            .map(&mut *map)
+            .collect::<Result<_, ReferenceResolutionError>>()?,
+    })
 }
+
+fn map_legacy_sprite2d<A, B>(
+    sprite: SceneSprite2dDocument<A>,
+    map: &mut impl FnMut(A) -> Result<B, ReferenceResolutionError>,
+) -> Result<SceneComponentDocument<B>, ReferenceResolutionError>
+where
+    B: Serialize,
+{
+    let image = map(sprite.image)?;
+    let material = sprite.material.map(&mut *map).transpose()?;
+    let mut payload = serde_json::to_value(SceneSprite2dDocument {
+        image: &image,
+        material: material.as_ref(),
+        _rest: sprite._rest,
+    })
+    .map_err(|error| ReferenceResolutionError::Registry {
+        message: format!("legacy sprite payload encoding failed: {error}"),
+    })?;
+    let object = payload
+        .as_object_mut()
+        .ok_or_else(|| ReferenceResolutionError::Registry {
+            message: "legacy sprite payload is not an object".to_owned(),
+        })?;
+    let mut references = vec![image];
+    object.insert(
+        "image".to_owned(),
+        serde_json::json!({"$zircon_scene_asset_reference": 0}),
+    );
+    if let Some(material) = material {
+        let index = references.len();
+        references.push(material);
+        object.insert(
+            "material".to_owned(),
+            serde_json::json!({"$zircon_scene_asset_reference": index}),
+        );
+    }
+    Ok(SceneComponentDocument {
+        type_id: "zircon.render2d.sprite".to_owned(),
+        schema_id: "zircon.render2d.sprite.v1".to_owned(),
+        schema_version: 1,
+        provider_id: "zircon.runtime.render2d".to_owned(),
+        payload,
+        references,
+    })
+}
+
+fn map_legacy_mesh2d<A, B>(
+    mesh: SceneMesh2dDocument<A>,
+    map: &mut impl FnMut(A) -> Result<B, ReferenceResolutionError>,
+) -> Result<SceneComponentDocument<B>, ReferenceResolutionError>
+where
+    B: Serialize,
+{
+    let model = map(mesh.model)?;
+    let material = map(mesh.material)?;
+    let mut payload = serde_json::to_value(SceneMesh2dDocument {
+        model: &model,
+        material: &material,
+        _rest: mesh._rest,
+    })
+    .map_err(|error| ReferenceResolutionError::Registry {
+        message: format!("legacy mesh payload encoding failed: {error}"),
+    })?;
+    let object = payload
+        .as_object_mut()
+        .ok_or_else(|| ReferenceResolutionError::Registry {
+            message: "legacy mesh payload is not an object".to_owned(),
+        })?;
+    object.insert(
+        "model".to_owned(),
+        serde_json::json!({"$zircon_scene_asset_reference": 0}),
+    );
+    object.insert(
+        "material".to_owned(),
+        serde_json::json!({"$zircon_scene_asset_reference": 1}),
+    );
+    Ok(SceneComponentDocument {
+        type_id: "zircon.render2d.mesh".to_owned(),
+        schema_id: "zircon.render2d.mesh.v1".to_owned(),
+        schema_version: 1,
+        provider_id: "zircon.runtime.render2d".to_owned(),
+        payload,
+        references: vec![model, material],
+    })
+}
+
+#[cfg(test)]
+#[path = "tests/scene.rs"]
+mod tests;

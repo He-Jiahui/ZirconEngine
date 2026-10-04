@@ -9,9 +9,9 @@ related_code:
   - zircon_editor/src/ui/workbench/autolayout/workbench_shell_geometry.rs
   - zircon_editor/src/ui/workbench/autolayout/axis_constraint_override.rs
 design_references:
-  - docs/ui-and-layout/editor-workbench-designs/main-tabs-layout-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/tool-drawers-layout-spec.png
-  - docs/ui-and-layout/ai-workbench-style/prototype/README.md
+  - docs/ui/editor-workbench-designs/main-tabs-layout-spec.png
+  - docs/ui/editor-workbench-designs/tool-drawers-layout-spec.png
+  - docs/ui/ai-workbench-style/prototype/README.md
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/01-design-tokens-and-language-contract.md
   - docs/plans/zircon_editor/editor_layout/16-relative-layout-and-resolution-adaptation.md

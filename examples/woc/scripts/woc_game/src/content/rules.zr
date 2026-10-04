@@ -1,3 +1,6 @@
+//! 供规则及基础场景测试读取源版本的标量常量；它不是运行时可修改的调参服务。
+
+/// 调用者使用固定字段编号与标记访问回归向量；未声明字段会抛错，不能按默认零解释。
 pub metric(kind: int, marker: int, a: int, b: int): float {
     if (marker != 1 || a != 2 || b != 3) {
         throw "WOC content rule metric marker is invalid";

@@ -1,3 +1,4 @@
+# 场景持久化证据比较保存前、保存后与重开的节点图，只允许请求的 Cube 变化；夹具覆盖深链、缺父节点、环与额外修改。
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 

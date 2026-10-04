@@ -31,6 +31,7 @@ pub(super) fn unsupported_role_action(
     )
 }
 
+// 统一回复和诊断状态，让宿主区分已执行、拒绝、能力缺失和过期目标；这里只投影结果，不补写状态。
 pub(super) fn finish_handled(
     mut result: UiInputDispatchResult,
     target: UiNodeId,
@@ -98,7 +99,7 @@ pub(super) fn action_note(
 }
 
 #[cfg(test)]
-#[path = "result/single_buffer_action_note_tests.rs"]
+#[path = "result/tests/single_buffer_action_note_tests.rs"]
 mod single_buffer_action_note_tests;
 
 fn status_label(status: UiAccessibilityActionStatus) -> &'static str {

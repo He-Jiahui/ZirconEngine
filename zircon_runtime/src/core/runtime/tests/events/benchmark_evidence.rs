@@ -46,18 +46,11 @@ fn event_bus_runtime07_publish_p95_evidence_matrix() {
             assert_eq!(report.delivery_lock_wait_samples, 0);
             assert_eq!(report.total_delivery_lock_wait_ms, 0.0);
             assert_eq!(report.max_delivery_lock_wait_ms, 0.0);
-            let arc_clones_before = subscriber_count;
-            let arc_clones_after = subscriber_count.saturating_sub(1);
-            let arc_clone_reduction_percent =
-                (1.0 - arc_clones_after as f64 / arc_clones_before as f64) * 100.0;
             println!(
-                "EVENTBUS_BENCH_V2 kind=publish mode=enabled subscribers={} payload_bytes={} samples={} payload_arc_clones_before={} payload_arc_clones_after={} payload_arc_clone_reduction_percent={:.4} p50_ns={} p95_ns={} p99_ns={} max_ns={} delivery_lock_wait_samples={} total_delivery_lock_wait_ms={:.3} max_delivery_lock_wait_ms={:.3}",
+                "EVENTBUS_BENCH_V2 kind=publish mode=enabled subscribers={} payload_bytes={} samples={} p50_ns={} p95_ns={} p99_ns={} max_ns={} delivery_lock_wait_samples={} total_delivery_lock_wait_ms={:.3} max_delivery_lock_wait_ms={:.3}",
                 subscriber_count,
                 payload_bytes,
                 measured_samples,
-                arc_clones_before,
-                arc_clones_after,
-                arc_clone_reduction_percent,
                 percentile_ns(&durations, 50),
                 percentile_ns(&durations, 95),
                 percentile_ns(&durations, 99),
@@ -160,12 +153,17 @@ fn event_bus_runtime07_paused_bounded_consumer_pressure_evidence() {
     const PHASE_TWO_PUBLISHES: usize = 8_192;
 
     let bus = EventBus::default();
-    let events = bus.subscribe(
-        "runtime.pressure",
-        EngineEventDeliveryPolicy::BoundedDropOldest {
-            capacity: NonZeroUsize::new(CAPACITY).unwrap(),
-        },
-    );
+    let events = bus
+        .subscribe(
+            "runtime.pressure",
+            EngineEventDeliveryPolicy::DropOldest {
+                limits: crate::core::framework::events::EventRetentionLimits {
+                    max_events: NonZeroUsize::new(CAPACITY).unwrap(),
+                    max_bytes: NonZeroUsize::new(8 * 1024 * 1024).unwrap(),
+                },
+            },
+        )
+        .expect("bounded subscription");
     let rss_before = current_process_rss_bytes();
     publish_pressure_events(&bus, 0, PHASE_ONE_PUBLISHES, PAYLOAD_BYTES);
     let phase_one = bus.diagnostic_report();
@@ -181,6 +179,8 @@ fn event_bus_runtime07_paused_bounded_consumer_pressure_evidence() {
         PAYLOAD_BYTES,
     );
     let before_drain = bus.diagnostic_report();
+    let retained_before_drain = bus.retention_snapshot();
+    assert!(retained_before_drain.retained_bytes <= 8 * 1024 * 1024);
     let total_publishes = PHASE_ONE_PUBLISHES + PHASE_TWO_PUBLISHES;
     assert_eq!(before_drain.published, total_publishes as u64);
     assert_eq!(before_drain.delivered, total_publishes as u64);
@@ -191,7 +191,7 @@ fn event_bus_runtime07_paused_bounded_consumer_pressure_evidence() {
 
     for expected in total_publishes - CAPACITY..total_publishes {
         assert_eq!(
-            events.recv().unwrap().payload["sequence"]
+            events.recv().unwrap().decode_payload().unwrap()["sequence"]
                 .as_u64()
                 .expect("pressure sequence must stay an integer") as usize,
             expected
@@ -214,13 +214,12 @@ fn event_bus_runtime07_paused_bounded_consumer_pressure_evidence() {
     let rss_after_drain = current_process_rss_bytes();
     let replacements = total_publishes - CAPACITY;
     println!(
-        "EVENTBUS_BENCH_V2 kind=pressure capacity={} payload_bytes={} publishes={} retained_bytes={} replacements={} replacement_depth_rmw_before={} replacement_depth_rmw_after=0 replacement_depth_rmw_reduction_percent=100.0000 rss_before={} rss_phase1={} rss_phase2={} rss_after_drain={} total_queue_age_ms={:.3} max_queue_age_ms={:.3}",
+        "EVENTBUS_BENCH_V2 kind=pressure capacity={} payload_bytes={} publishes={} retained_bytes={} replacements={} rss_before={} rss_phase1={} rss_phase2={} rss_after_drain={} total_queue_age_ms={:.3} max_queue_age_ms={:.3}",
         CAPACITY,
         PAYLOAD_BYTES,
         total_publishes,
-        CAPACITY * PAYLOAD_BYTES,
+        retained_before_drain.retained_bytes,
         replacements,
-        replacements * 2,
         rss_value(rss_before),
         rss_value(rss_phase_one),
         rss_value(rss_phase_two),
@@ -238,13 +237,26 @@ fn event_bus_runtime07_unsubscribe_teardown_evidence() {
 
     let mut teardown_samples = Vec::with_capacity(REPEATS);
     for _ in 0..REPEATS {
-        let bus = EventBus::new(EventBusDiagnosticsMode::Enabled);
-        let events = bus.subscribe("runtime.teardown", EngineEventDeliveryPolicy::Lossless);
+        let mut limits = crate::core::framework::events::EventBusLimits::default();
+        limits.topic.max_events = NonZeroUsize::new(QUEUED_EVENTS).unwrap();
+        let bus = EventBus::with_limits(EventBusDiagnosticsMode::Enabled, limits);
+        let events = bus
+            .subscribe(
+                "runtime.teardown",
+                EngineEventDeliveryPolicy::Reliable {
+                    limits: crate::core::framework::events::EventRetentionLimits {
+                        max_events: NonZeroUsize::new(QUEUED_EVENTS).unwrap(),
+                        ..Default::default()
+                    },
+                },
+            )
+            .expect("bounded subscription");
         for sequence in 0..QUEUED_EVENTS {
-            bus.publish(EngineEvent {
+            bus.try_publish(EngineEvent {
                 topic: "runtime.teardown".to_string(),
                 payload: serde_json::json!({ "sequence": sequence }),
-            });
+            })
+            .expect("event admission");
         }
         assert_eq!(bus.diagnostic_report().queued, QUEUED_EVENTS as u64);
 
@@ -286,16 +298,27 @@ fn event_bus_runtime07_receive_diagnostics_evidence() {
         let mut durations = Vec::with_capacity(REPEATS * MEASURED_SAMPLES);
         for _ in 0..REPEATS {
             let bus = EventBus::new(mode);
-            let events = bus.subscribe("runtime.receive", EngineEventDeliveryPolicy::Lossless);
+            let events = bus
+                .subscribe(
+                    "runtime.receive",
+                    EngineEventDeliveryPolicy::Reliable {
+                        limits: crate::core::framework::events::EventRetentionLimits::default(),
+                    },
+                )
+                .expect("bounded subscription");
             for sample in 0..WARMUP_SAMPLES + MEASURED_SAMPLES {
-                bus.publish(EngineEvent {
+                bus.try_publish(EngineEvent {
                     topic: "runtime.receive".to_string(),
                     payload: serde_json::json!({ "sample": sample }),
-                });
+                })
+                .expect("event admission");
                 let started = Instant::now();
                 let event = events.recv().expect("queued event must be received");
                 let elapsed = started.elapsed().as_nanos().min(u128::from(u64::MAX)) as u64;
-                assert_eq!(event.payload["sample"].as_u64(), Some(sample as u64));
+                assert_eq!(
+                    event.decode_payload().unwrap()["sample"].as_u64(),
+                    Some(sample as u64)
+                );
                 if sample >= WARMUP_SAMPLES {
                     durations.push(elapsed);
                 }
@@ -325,7 +348,15 @@ fn publish_samples(
 ) -> (Vec<u64>, EventBusDiagnosticsSnapshot) {
     let bus = EventBus::new(mode);
     let subscriptions = (0..subscriber_count)
-        .map(|_| bus.subscribe("runtime.benchmark", EngineEventDeliveryPolicy::Lossless))
+        .map(|_| {
+            bus.subscribe(
+                "runtime.benchmark",
+                EngineEventDeliveryPolicy::Reliable {
+                    limits: crate::core::framework::events::EventRetentionLimits::default(),
+                },
+            )
+            .expect("bounded subscription")
+        })
         .collect::<Vec<_>>();
     let mut durations = Vec::with_capacity(measured_samples);
     for sample in 0..WARMUP_SAMPLES + measured_samples {
@@ -334,16 +365,18 @@ fn publish_samples(
             payload: serde_json::json!({ "blob": "x".repeat(payload_bytes) }),
         };
         let started = Instant::now();
-        bus.publish(event);
+        bus.try_publish(event).expect("event admission");
         let elapsed = started.elapsed();
         let first = subscriptions[0].recv().unwrap();
         assert_eq!(
-            first.payload["blob"].as_str().map(str::len),
+            first.decode_payload().unwrap()["blob"]
+                .as_str()
+                .map(str::len),
             Some(payload_bytes),
             "delivered payload size must match the benchmark case",
         );
         for subscription in subscriptions.iter().skip(1) {
-            assert!(Arc::ptr_eq(&first, &subscription.recv().unwrap()));
+            assert!(first.shares_payload_with(&subscription.recv().unwrap()));
         }
         if sample >= WARMUP_SAMPLES {
             durations.push(elapsed.as_nanos().min(u128::from(u64::MAX)) as u64);
@@ -354,13 +387,14 @@ fn publish_samples(
 
 fn publish_pressure_events(bus: &EventBus, start: usize, count: usize, payload_bytes: usize) {
     for sequence in start..start + count {
-        bus.publish(EngineEvent {
+        bus.try_publish(EngineEvent {
             topic: "runtime.pressure".to_string(),
             payload: serde_json::json!({
                 "sequence": sequence,
                 "blob": "x".repeat(payload_bytes),
             }),
-        });
+        })
+        .expect("event admission");
     }
 }
 
@@ -459,3 +493,155 @@ fn current_process_rss_bytes() -> Option<u64> {
 fn rss_value(value: Option<u64>) -> String {
     value.map_or_else(|| "unavailable".to_string(), |value| value.to_string())
 }
+
+/// Same accepted/rejected contract and fixture for both diagnostics modes.
+/// Raw samples permit independent percentile recomputation; RSS is sampled
+/// outside timing windows and is not the frozen-buffer retention ledger.
+#[test]
+#[ignore = "managed Release EventBus V2 admission evidence"]
+fn runtime02_admission_v2_contract_performance_evidence() {
+    use crate::core::framework::events::{EngineEventPublishRejection, EventRetentionLimits};
+    const SAMPLES: usize = 64;
+    const PAYLOAD_BYTES: usize = 2_048;
+    for mode in [
+        EventBusDiagnosticsMode::Disabled,
+        EventBusDiagnosticsMode::Enabled,
+    ] {
+        for count in [0, 1, 5, 100] {
+            let bus = EventBus::new(mode);
+            let subscriptions = (0..count)
+                .map(|_| {
+                    bus.subscribe(
+                        "runtime.admission.fixture",
+                        EngineEventDeliveryPolicy::Reliable {
+                            limits: EventRetentionLimits::default(),
+                        },
+                    )
+                    .unwrap()
+                })
+                .collect::<Vec<_>>();
+            let rss_before = current_process_rss_bytes();
+            let mut publish_ns = Vec::with_capacity(SAMPLES);
+            let mut receive_ns = Vec::with_capacity(SAMPLES * count);
+            for sample in 0..WARMUP_SAMPLES + SAMPLES {
+                let input = EngineEvent {
+                    topic: "runtime.admission.fixture".to_string(),
+                    payload: serde_json::json!({"blob": "x".repeat(PAYLOAD_BYTES)}),
+                };
+                let started = Instant::now();
+                let result = bus.try_publish(input);
+                let elapsed = started.elapsed().as_nanos().min(u128::from(u64::MAX)) as u64;
+                if count == 0 {
+                    let rejected = result.unwrap_err();
+                    assert_eq!(rejected.reason, EngineEventPublishRejection::NoSubscribers);
+                    assert_eq!(bus.retention_snapshot().retained_bytes, 0);
+                } else {
+                    let receipt = result.unwrap();
+                    assert_eq!(receipt.subscribers, count);
+                    assert_eq!(receipt.replaced_events, 0);
+                    assert_eq!(
+                        bus.retention_snapshot().retained_bytes,
+                        receipt.admitted_bytes
+                    );
+                }
+                if sample >= WARMUP_SAMPLES {
+                    publish_ns.push(elapsed);
+                }
+                for subscription in &subscriptions {
+                    let started = Instant::now();
+                    let event = subscription.recv().unwrap();
+                    let elapsed = started.elapsed().as_nanos().min(u128::from(u64::MAX)) as u64;
+                    if sample >= WARMUP_SAMPLES {
+                        receive_ns.push(elapsed);
+                    }
+                    assert_eq!(
+                        event.decode_payload().unwrap()["blob"]
+                            .as_str()
+                            .unwrap()
+                            .len(),
+                        PAYLOAD_BYTES
+                    );
+                    drop(event);
+                }
+                assert_eq!(bus.retention_snapshot().retained_bytes, 0);
+            }
+            let rss_after = current_process_rss_bytes();
+            println!(
+                "EVENTBUS_ADMISSION_V2 {}",
+                serde_json::json!({
+                    "kind": "same_fixture", "mode": event_bus_diagnostics_mode_label(mode),
+                    "subscribers": count, "payload_bytes": PAYLOAD_BYTES,
+                    "publish_raw_ns": publish_ns, "receive_raw_ns": receive_ns,
+                    "publish_p50_ns": percentile_ns(&publish_ns, 50),
+                    "publish_p95_ns": percentile_ns(&publish_ns, 95),
+                    "publish_p99_ns": percentile_ns(&publish_ns, 99),
+                    "receive_p50_ns": (!receive_ns.is_empty()).then(|| percentile_ns(&receive_ns, 50)),
+                    "receive_p95_ns": (!receive_ns.is_empty()).then(|| percentile_ns(&receive_ns, 95)),
+                    "receive_p99_ns": (!receive_ns.is_empty()).then(|| percentile_ns(&receive_ns, 99)),
+                    "retention": {"peak_events": bus.retention_snapshot().peak_retained_events,
+                        "peak_bytes": bus.retention_snapshot().peak_retained_bytes,
+                        "final_bytes": bus.retention_snapshot().retained_bytes},
+                    "rss_before": rss_before, "rss_after": rss_after,
+                    "allocation_measurement": "pending_external_managed_profile"
+                })
+            );
+        }
+        let bus = EventBus::new(mode);
+        let subscription = bus
+            .subscribe(
+                "runtime.admission.held",
+                EngineEventDeliveryPolicy::Reliable {
+                    limits: crate::core::framework::events::EventRetentionLimits {
+                        max_events: NonZeroUsize::new(1).unwrap(),
+                        max_bytes: NonZeroUsize::new(4_096).unwrap(),
+                    },
+                },
+            )
+            .unwrap();
+        let rss_before = current_process_rss_bytes();
+        bus.try_publish(EngineEvent {
+            topic: "runtime.admission.held".into(),
+            payload: serde_json::json!({"blob": "x".repeat(PAYLOAD_BYTES)}),
+        })
+        .unwrap();
+        let queued = bus.retention_snapshot();
+        let event = subscription.recv().unwrap();
+        let clone = event.clone();
+        let received = bus.retention_snapshot();
+        drop(subscription);
+        let unsubscribed = bus.retention_snapshot();
+        drop(event);
+        let last_clone = bus.retention_snapshot();
+        let rss_held = current_process_rss_bytes();
+        assert_eq!(queued.retained_bytes, received.retained_bytes);
+        assert_eq!(queued.retained_bytes, unsubscribed.retained_bytes);
+        assert_eq!(queued.retained_bytes, last_clone.retained_bytes);
+        drop(clone);
+        let released = bus.retention_snapshot();
+        assert_eq!(released.retained_events, 0);
+        assert_eq!(released.retained_bytes, 0);
+        let rss_released = current_process_rss_bytes();
+        println!(
+            "EVENTBUS_ADMISSION_V2 {}",
+            serde_json::json!({
+                "kind": "paused_received_clone", "mode": event_bus_diagnostics_mode_label(mode),
+                "queued_bytes": queued.retained_bytes, "received_bytes": received.retained_bytes,
+                "unsubscribed_bytes": unsubscribed.retained_bytes, "last_clone_bytes": last_clone.retained_bytes,
+                "released_bytes": released.retained_bytes,
+                "rss_before": rss_before, "rss_held": rss_held, "rss_released": rss_released,
+                "allocation_measurement": "pending_external_managed_profile"
+            })
+        );
+        // No consumer means no serialization/preparation, even for an input
+        // that would exceed the accepted payload cap if a subscriber existed.
+        let rejected = bus.try_publish(EngineEvent {
+            topic: "runtime.admission.no-consumers".into(),
+            payload: serde_json::json!({"blob": "x".repeat(crate::core::framework::events::DEFAULT_EVENT_PAYLOAD_BYTES + 1)}),
+        }).unwrap_err();
+        assert_eq!(rejected.reason, EngineEventPublishRejection::NoSubscribers);
+        assert_eq!(bus.retention_snapshot().retained_bytes, 0);
+    }
+}
+
+#[path = "benchmark_evidence/admission_contention.rs"]
+mod admission_contention;

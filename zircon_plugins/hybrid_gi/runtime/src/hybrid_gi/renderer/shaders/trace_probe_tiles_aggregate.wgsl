@@ -95,6 +95,7 @@ fn tile_trace(
         let tile_sample_id = probe_trace_tiles[base + 2u];
         let ray_count = max(probe_trace_tiles[base + 3u], 1u);
         let weight = min(255u, 24u + min(ray_budget, 192u) / 2u + min(ray_count, 128u));
+        // 后备顺序固定为 Surface Cache、Global SDF、Voxel；全部缺失才使用中性环境色。
         var tile_sample = surface_cache_tile_sample(tile_sample_id, ray_count);
         texture_samples = texture_samples + tile_sample.texture_samples;
         if (tile_sample.valid == 0u) {

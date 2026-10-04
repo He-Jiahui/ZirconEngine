@@ -1,3 +1,4 @@
+//! EditorState保留UI选择，资产管理器提供不可变catalog/details/resource代次；同步不能代替资源加载。
 use crate::core::asset::AssetTypeId;
 use zircon_runtime::asset::AssetUri;
 use zircon_runtime::core::resource::ResourceManagementGeneration;
@@ -14,6 +15,7 @@ impl EditorState {
         self.asset_workspace.sync_catalog(catalog);
     }
 
+    /// 局部目录同步：差异UUID须覆盖该发布代次的全部影响，不能把未知全量变化伪装成空差异。
     pub fn sync_asset_catalog_changes(
         &mut self,
         catalog: Arc<EditorAssetCatalogGeneration>,
@@ -31,6 +33,7 @@ impl EditorState {
         self.asset_workspace.sync_resources(resources)
     }
 
+    /// 用受影响locator同步资源代次；返回值表示呈现变化，实际加载结果来自资源generation。
     pub fn sync_asset_resource_changes(
         &mut self,
         resources: Arc<ResourceManagementGeneration>,
@@ -46,6 +49,10 @@ impl EditorState {
 
     pub fn select_asset(&mut self, asset_uuid: Option<String>) -> bool {
         self.asset_workspace.select_asset(asset_uuid)
+    }
+
+    pub(crate) fn selected_asset_uuid(&self) -> Option<&str> {
+        self.asset_workspace.selected_asset_uuid()
     }
 
     pub fn navigate_to_asset(&mut self, asset_uuid: &str) -> bool {

@@ -13,8 +13,8 @@ implementation_files:
   - zircon_editor/src/core
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
-  - docs/engine-architecture/runtime-tech-stack.md
-  - docs/engine-architecture/workspace-root-rules-and-hard-cutover.md
+  - docs/architecture/runtime-tech-stack.md
+  - docs/architecture/workspace-root-rules-and-hard-cutover.md
 tests:
   - zircon_runtime/src/tests/runtime_absorption
   - zircon_runtime_interface/src/tests

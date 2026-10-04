@@ -1,16 +1,17 @@
 import unittest
 from pathlib import Path
 
-from tools.plugins06_editor_provider_pressure import run
+from tools.analysis.performance.plugins.plugins06_editor_provider_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
 CARGO_TOML = ROOT / "zircon_app/Cargo.toml"
 ENTRY_MOD = ROOT / "zircon_app/src/entry/mod.rs"
 PROVIDERS = ROOT / "zircon_app/src/entry/first_party_editor_plugins.rs"
-BATCH_VALIDATOR = ROOT / "tools/zircon-validation-plugins06-editor-provider-batch.ps1"
+PROVIDER_TESTS = PROVIDERS.parent / "tests/first_party_editor_plugins.rs"
+BATCH_VALIDATOR = ROOT / "tools/analysis/validation/zircon-validation-plugins06-editor-provider-batch.ps1"
 
-
+# 调用编辑器提供者压力模型，覆盖两个真实 provider 路径并移除神经网络专用回退。
 class Plugins06EditorProviderPressureTests(unittest.TestCase):
     def test_provider_composition_removes_neural_only_fallback(self) -> None:
         composition = run()["provider_composition"]
@@ -55,7 +56,7 @@ class Plugins06EditorProviderPressureTests(unittest.TestCase):
         self.assertIn("mod first_party_editor_plugins", entry_mod)
 
     def test_release_contract_keeps_two_provider_tests_and_budget(self) -> None:
-        source = PROVIDERS.read_text(encoding="utf-8")
+        source = PROVIDER_TESTS.read_text(encoding="utf-8")
 
         self.assertIn("app_composition_projects_selected_navigation_editor_provider", source)
         self.assertIn("app_composition_projects_selected_neural_editor_provider", source)

@@ -46,7 +46,13 @@ class AccessKitFocusMembershipPerformanceContract(unittest.TestCase):
         self.assertIn(".unwrap_or(root)", self.focus_body)
 
     def test_output_nodes_and_synthetic_root_are_preserved(self) -> None:
-        self.assertIn("let mut nodes = snapshot", self.body)
+        self.assertIn("let mut nodes =", self.body)
+        self.assertTrue(
+            "let mut nodes = snapshot" in self.body
+            or "Vec::with_capacity(snapshot.nodes.len().saturating_add(synthetic_root_capacity))"
+            in self.body.replace("\n", "")
+        )
+        self.assertIn("for node in &snapshot.nodes", self.body)
         self.assertIn("snapshot.roots.len() > 1", self.body)
         self.assertIn("nodes.push((SYNTHETIC_ROOT_NODE_ID", self.body)
         self.assertIn("Some(TreeUpdate", self.body)

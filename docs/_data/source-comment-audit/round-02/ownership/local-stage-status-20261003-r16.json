@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "path": "E:\\Git\\ZirconEngine\\docs\\plans\\zircon_tooling\\source_comment_audit\\02\\2026-09-30-stage-status.md",
+  "before_sha256": "6c074eaa8336ea6baa44396eb7d4182fb1d1c6125208b80feb3449e58f9e2561",
+  "after_sha256": "7514bda27045abcb35f3ede0a61357e2432f86cdcd2caca5dab733fce91b0d74",
+  "installation": {
+    "path": "E:\\Git\\ZirconEngine\\docs\\cli-and-tooling\\source-comment-audit\\round-02\\ownership\\local-install-runtime_wave12_graphics_renderer_auxiliary_b-20261003-r1.json",
+    "sha256": "5228285b90e85a18029089ab362660477ab102170f7216a5349dce01c023eca0"
+  },
+  "publication": {
+    "path": "E:\\Git\\ZirconEngine\\docs\\cli-and-tooling\\source-comment-audit\\round-02\\ownership\\local-publication-runtime_wave12_graphics_renderer_auxiliary_b-20261003-r1.json",
+    "sha256": "46b1e0f746f46806d55b0eef7a2f5e125b342bb98ae95da456b24ae619e764de"
+  },
+  "verification": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-renderer-aux-b-stage-20261003-r16\\verification.json",
+    "sha256": "f21854e54d2fe148b1f91b36d737af997e7b6be374a71c63cd693a441809c436"
+  },
+  "helper": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\update_renderer_aux_b_stage_20261003_r16.py",
+    "sha256": "0ac137a47d0ec3e1406acff0f31d7312eb8f96c6d70c3ad8e4ace45f88dc7454"
+  },
+  "links_checked": true,
+  "whitespace_checked": true,
+  "source_writes": 0,
+  "canonical_writes": 0,
+  "status": "coarse_stage_status_updated",
+  "completed_at_utc": "2026-10-03T08:23:27.739085+00:00",
+  "plan_status_writes": 1,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "goal_status_changed": false,
+  "full_repository_scan_complete": false
+}

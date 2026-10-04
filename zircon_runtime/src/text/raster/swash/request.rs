@@ -5,8 +5,11 @@ use crate::core::math::Vec2;
 use swash::scale::{Source as SwashSource, StrikeWith};
 use swash::zeno::{Angle, Format as SwashRenderFormat, Transform as SwashTransform};
 
+use crate::core::framework::text::{
+    TextGlyphRasterError, TextGlyphRasterHinting, TextGlyphRasterMode, TextGlyphRasterRequest,
+    TextGlyphRasterSmoothing,
+};
 use crate::text::VariationCoords;
-use crate::text::atlas::{GlyphHintingMode, GlyphRasterKey};
 
 const SWASH_RASTER_SOURCE_CAPACITY: usize = 3;
 const FAKE_ITALIC_SKEW_DEGREES: f32 = 14.0;
@@ -70,26 +73,26 @@ impl SwashRasterRequest {
         }
     }
 
-    /// Builds a worker request from the renderer-independent atlas key emitted by the text
-    /// pipeline. Color sources remain first so an emoji glyph can promote its eventual atlas
-    /// format without re-shaping the text run.
-    pub(crate) fn native_bitmap_atlas_glyph(
+    pub(crate) fn color_preferred(
         face_index: usize,
-        raster_key: GlyphRasterKey,
-    ) -> Option<Self> {
-        let glyph_id = u16::try_from(raster_key.glyph_id).ok()?;
-        Some(Self {
+        glyph_id: u16,
+        px_size: f32,
+        hint: bool,
+        subpixel_fallback: bool,
+    ) -> Self {
+        Self {
             face_index,
             font_identity: None,
             glyph_id,
-            px_size: raster_key.px_size_bucket.max(1) as f32,
-            hint: !matches!(raster_key.hinting, GlyphHintingMode::None),
-            offset: Vec2::new(
-                raster_key.subpixel_bin.min(2) as f32 / 3.0,
-                raster_key.vertical_subpixel_bin.min(3) as f32 / 4.0,
-            ),
-            render_format: SwashRenderFormat::Alpha,
-            fake_italic: raster_key.synthetic.oblique,
+            px_size,
+            hint,
+            offset: Vec2::ZERO,
+            render_format: if subpixel_fallback {
+                SwashRenderFormat::Subpixel
+            } else {
+                SwashRenderFormat::Alpha
+            },
+            fake_italic: false,
             variations: Arc::new(VariationCoords::default()),
             sources: [
                 SwashRasterSource::ColorOutline { palette_index: 0 },
@@ -97,7 +100,49 @@ impl SwashRasterRequest {
                 SwashRasterSource::AlphaOutline,
             ],
             source_count: 3,
-        })
+        }
+    }
+
+    /// Adapts the backend-neutral Runtime request for either synchronous or worker execution.
+    pub(crate) fn from_text_glyph_request(
+        face_index: usize,
+        request: TextGlyphRasterRequest,
+    ) -> Result<Self, TextGlyphRasterError> {
+        let glyph_id =
+            u16::try_from(request.glyph_id).map_err(|_| TextGlyphRasterError::InvalidGlyphId)?;
+        if request.physical_ppem == 0 {
+            return Err(TextGlyphRasterError::InvalidPhysicalPpem);
+        }
+        if request.horizontal_phase >= TextGlyphRasterRequest::HORIZONTAL_PHASE_COUNT
+            || request.vertical_phase >= TextGlyphRasterRequest::VERTICAL_PHASE_COUNT
+        {
+            return Err(TextGlyphRasterError::InvalidSubpixelPhase);
+        }
+        let hint = request.hinting != TextGlyphRasterHinting::None;
+        let subpixel = request.smoothing == TextGlyphRasterSmoothing::Subpixel;
+        let mut backend_request = match request.mode {
+            TextGlyphRasterMode::Outline if subpixel => {
+                Self::subpixel_outline(face_index, glyph_id, request.physical_ppem as f32, hint)
+            }
+            TextGlyphRasterMode::Outline => {
+                Self::alpha_outline(face_index, glyph_id, request.physical_ppem as f32, hint)
+            }
+            TextGlyphRasterMode::ColorPreferred => Self::color_preferred(
+                face_index,
+                glyph_id,
+                request.physical_ppem as f32,
+                hint,
+                subpixel,
+            ),
+        };
+        backend_request.offset = Vec2::new(
+            f32::from(request.horizontal_phase)
+                / f32::from(TextGlyphRasterRequest::HORIZONTAL_PHASE_COUNT),
+            f32::from(request.vertical_phase)
+                / f32::from(TextGlyphRasterRequest::VERTICAL_PHASE_COUNT),
+        );
+        backend_request.fake_italic = request.synthetic.oblique;
+        Ok(backend_request)
     }
 
     pub(crate) fn sources(&self) -> &[SwashRasterSource] {

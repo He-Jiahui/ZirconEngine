@@ -10,10 +10,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/session_coordinator/baselines.py
-  - tools/session_coordinator/git_finalize.py
-  - tools/session_coordinator/tests/test_baselines.py
-  - tools/session_coordinator/tests/test_git_finalize.py
 tests:
   - python -B -m unittest tools.session_coordinator.tests.test_baselines.BaselineTests.test_isolated_index_tree_survives_managed_process_temp_cleanup -v
   - python -B -m unittest tools.session_coordinator.tests.test_git_finalize.GitFinalizeTests.test_validation_command_uses_stable_coordinator_temp_environment -v

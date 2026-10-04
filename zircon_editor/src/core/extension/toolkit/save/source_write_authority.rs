@@ -15,6 +15,7 @@ pub(crate) struct DocumentSourceWriteAuthority {
 }
 
 #[derive(Debug)]
+/// 区分源已变化、未发布及已可见但持久化未确认；成功也仅给 best-effort 保证。
 pub(crate) enum DocumentSourceWriteOutcome {
     DurableBestEffort,
     PublishedNotDurable(io::Error),
@@ -80,6 +81,7 @@ impl DocumentSourceWriteReceipt {
 }
 
 impl DocumentSourceWriteAuthority {
+    /// 仅项目根内的规范化源路径可领租约；同源协作保存等待前一租约释放。
     pub(crate) fn acquire<'a>(
         &'a self,
         project_root: &Path,
@@ -147,6 +149,7 @@ pub(crate) struct DocumentSourceWriteLease<'a> {
 }
 
 impl DocumentSourceWriteLease<'_> {
+    /// 常规保存要求原字节仍匹配；外部非协作写方仍可能与写入竞态。
     pub(crate) fn commit_if_matches(
         &self,
         expected_source: &[u8],
@@ -184,6 +187,7 @@ impl DocumentSourceWriteLease<'_> {
         self.publish_after_admission(replacement, source_before_publication, publisher)
     }
 
+    /// 恢复或显式替换可创建缺失源，但仍受项目边界与权限检查约束。
     pub(crate) fn replace(&self, replacement: &[u8]) -> DocumentSourceWriteOutcome {
         self.replace_with_publisher(replacement, atomic_write)
     }
@@ -212,6 +216,7 @@ impl DocumentSourceWriteLease<'_> {
         self.publish_after_admission(replacement, source_before_publication, publisher)
     }
 
+    /// 写入报错后只有旧状态和磁盘新内容共同证明替换可见，才报告未确认持久化。
     fn publish_after_admission(
         &self,
         replacement: &[u8],
@@ -314,4 +319,5 @@ fn source_before_publication(path: &Path, replacement: &[u8]) -> SourceBeforePub
 }
 
 #[cfg(test)]
+#[path = "source_write_authority/tests/cases.rs"]
 mod tests;

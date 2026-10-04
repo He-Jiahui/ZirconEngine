@@ -63,12 +63,7 @@ pub fn validate_localization_report_against_catalog(
         .dependencies
         .iter()
         .filter_map(|dependency| {
-            validate_dependency(
-                locale,
-                dependency,
-                locale_tables,
-                &mut emitted_diagnostics,
-            )
+            validate_dependency(locale, dependency, locale_tables, &mut emitted_diagnostics)
         })
         .collect::<Vec<_>>();
     diagnostics.sort();
@@ -178,4 +173,5 @@ fn collect_locale_keys(path: &mut String, value: &Value, keys: &mut BTreeSet<Str
 }
 
 #[cfg(test)]
+#[path = "resolve/tests/performance_tests.rs"]
 mod performance_tests;

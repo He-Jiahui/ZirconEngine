@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对着色器预热的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 const STATUS: &str =
@@ -20,17 +21,17 @@ const SOURCE_LABEL_TRIM_STATUS: &str =
 
 #[test]
 fn runtime_15_shader_prewarm_cache_artifact_contract_is_wired() {
-    let build = read_repo("tools/zircon_build.py");
-    let acceptance_helper = read_repo("tools/zircon_build_shader_prewarm_acceptance.py");
+    let build = read_repo("tools/build/zircon_build.py");
+    let acceptance_helper = read_repo("tools/build/zircon_build_shader_prewarm_acceptance.py");
     let prewarm_report =
         read_repo("zircon_runtime/src/core/framework/render/shader/variant_prewarm.rs");
     let prewarm_write_path =
         read_repo("zircon_runtime/src/graphics/shader/variant_cache/prewarm/worker.rs");
     let prewarm_tests =
-        read_repo("zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests.rs");
-    let cache_contract = read_repo("tools/zircon_build_shader_prewarm_cache_artifacts.py");
+        read_repo("zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests/cases.rs");
+    let cache_contract = read_repo("tools/build/zircon_build_shader_prewarm_cache_artifacts.py");
     let written_variants_helper =
-        read_repo("tools/zircon_build_shader_prewarm_written_variants.py");
+        read_repo("tools/build/zircon_build_shader_prewarm_written_variants.py");
     let cache_contract_sources = format!("{cache_contract}\n{written_variants_helper}");
     let build_prewarm_tests = read_repo("tools/tests/test_zircon_build_shader_prewarm.py");
     let cache_contract_tests =
@@ -209,11 +210,11 @@ fn runtime_15_shader_prewarm_cache_artifact_contract_is_wired() {
 
     for (path, source) in [
         (
-            "tools/zircon_build_shader_prewarm_cache_artifacts.py",
+            "tools/build/zircon_build_shader_prewarm_cache_artifacts.py",
             cache_contract.as_str(),
         ),
         (
-            "tools/zircon_build_shader_prewarm_written_variants.py",
+            "tools/build/zircon_build_shader_prewarm_written_variants.py",
             written_variants_helper.as_str(),
         ),
         (
@@ -288,7 +289,7 @@ fn runtime_15_shader_prewarm_cache_artifact_contract_is_wired() {
                 "test_acceptance_contract_rejects_untrimmed_written_variant_source_label",
                 "test_validate_cache_artifact_contract_rejects_duplicate_written_variant_identity",
                 "test_acceptance_contract_rejects_duplicate_written_variant_identity",
-                "tools/zircon_build_shader_prewarm_written_variants.py",
+                "tools/build/zircon_build_shader_prewarm_written_variants.py",
                 "duplicate written cache variant identity",
                 "test_validate_cache_artifact_contract_requires_requested_custom_ids",
                 "test_validate_cache_artifact_contract_requires_requested_shading_ids",

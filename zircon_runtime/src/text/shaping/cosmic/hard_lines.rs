@@ -1,8 +1,9 @@
 use crate::text::{BackendShapeRequest, HardLine, ShapedHardLine, TextRange};
 
+use super::super::horizontal::position_glyphs;
 use super::resolved_line_height;
 use crate::text::shaping::bidi::BidiParagraph;
-use crate::text::shaping::itemize::{ItemizationError, virtual_hard_break_glyph};
+use crate::text::shaping::itemize::{virtual_hard_break_glyph, ItemizationError};
 use crate::text::shaping::script_segment::ParagraphTextAnalysis;
 
 pub(super) fn normalize_cosmic_hard_lines(
@@ -111,11 +112,7 @@ pub(super) fn normalize_cosmic_hard_lines(
         }
         line.glyphs
             .sort_by_key(|glyph| (glyph.source_range.start, glyph.source_range.end));
-        let mut cursor = 0.0_f32;
-        for glyph in &mut line.glyphs {
-            glyph.x = cursor;
-            cursor += glyph.advance.max(0.0);
-        }
+        let cursor = position_glyphs(&mut line.glyphs);
         line.measured_width = cursor;
     }
     Ok(lines)

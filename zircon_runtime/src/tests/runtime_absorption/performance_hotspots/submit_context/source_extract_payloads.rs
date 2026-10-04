@@ -9,6 +9,8 @@ pub(super) fn assert_source_extract_payloads_are_shared(sources: &SubmitContextS
     let submit_runtime_frame = sources.submit_runtime_frame;
     let viewport_render_frame = sources.viewport_render_frame;
     let viewport_render_frame_from_extract = sources.viewport_render_frame_from_extract;
+    let viewport_render_frame_from_snapshot =
+        include_str!("../../../../graphics/types/viewport_render_frame_from_snapshot.rs");
 
     assert!(
         context.contains("submission_extract: Arc<RenderFrameExtract>"),
@@ -17,6 +19,14 @@ pub(super) fn assert_source_extract_payloads_are_shared(sources: &SubmitContextS
     assert!(
         viewport_render_frame.contains("pub extract: Arc<RenderFrameExtract>"),
         "ViewportRenderFrame should store RenderFrameExtract as an Arc for shared submit sources"
+    );
+    assert!(
+        viewport_render_frame_from_snapshot.contains("Self::from_extract("),
+        "legacy snapshot construction should converge on the canonical extract constructor"
+    );
+    assert!(
+        !viewport_render_frame_from_snapshot.contains("scene.clone()"),
+        "legacy snapshot construction must move scene ownership instead of retaining a deep copy"
     );
 
     for forbidden_owned_payload in [

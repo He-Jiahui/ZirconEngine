@@ -133,7 +133,7 @@ The key requirement is independence from unrelated workspace slots.
 
 ## Pressure evidence
 
-`tools/runtime_ui_layout_slot_index_pressure.py` counts child/slot row visits for the exact
+`tools/analysis/performance/runtime/runtime_ui_layout_slot_index_pressure.py` counts child/slot row visits for the exact
 no-matching-slot worst case. It is not CPU timing. Tests bind the model to current Zircon sources
 and Unreal's parent-owned storage.
 
@@ -162,7 +162,7 @@ model/source contracts pass 7/7. Tool SHA-256 is
 
 ## Dynamic acceptance evidence
 
-`tools/runtime_ui_layout_edge_evidence.py` now turns the target authority into a source-bound,
+`tools/analysis/performance/runtime/runtime_ui_layout_edge_evidence.py` now turns the target authority into a source-bound,
 fail-closed gate instead of treating absent telemetry as zero. It accepts four explicit scenarios:
 one-time legacy migration, full parent-edge projection, an exact child dependency patch, and one
 parent order patch. Each measured run must publish operation/duration samples plus edge, journal,

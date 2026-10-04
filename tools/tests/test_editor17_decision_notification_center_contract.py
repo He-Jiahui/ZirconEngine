@@ -1,3 +1,4 @@
+# 核对决策通知中心的身份、容量、游标、回执与播放适配器生命周期边界。
 from pathlib import Path
 import unittest
 

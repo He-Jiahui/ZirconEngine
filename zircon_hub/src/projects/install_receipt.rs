@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 
 use crate::error::HubError;
+use crate::state::{TaskCancellationToken, TaskExecutionOutcome};
 
 const INSTALL_RECEIPT_FILE: &str = "install_receipt.json";
 
@@ -44,41 +45,65 @@ pub struct HubContentDownloadChunk {
 
 pub(super) fn write_install_receipt(
     install_dir: &Path,
-) -> Result<(PathBuf, DeviceInstallReceipt), HubError> {
-    let receipt = build_install_receipt(install_dir)?;
+    cancellation: &TaskCancellationToken,
+) -> Result<TaskExecutionOutcome<(PathBuf, DeviceInstallReceipt)>, HubError> {
+    let receipt = match build_install_receipt(install_dir, cancellation)? {
+        TaskExecutionOutcome::Completed(receipt) => receipt,
+        TaskExecutionOutcome::Cancelled => return Ok(TaskExecutionOutcome::Cancelled),
+    };
+    if cancellation.is_cancellation_requested() {
+        return Ok(TaskExecutionOutcome::Cancelled);
+    }
     let receipt_path = install_dir.join(INSTALL_RECEIPT_FILE);
     fs::write(&receipt_path, serde_json::to_string_pretty(&receipt)?)?;
-    Ok((receipt_path, receipt))
+    Ok(TaskExecutionOutcome::Completed((receipt_path, receipt)))
 }
 
-fn build_install_receipt(install_dir: &Path) -> Result<DeviceInstallReceipt, HubError> {
+fn build_install_receipt(
+    install_dir: &Path,
+    cancellation: &TaskCancellationToken,
+) -> Result<TaskExecutionOutcome<DeviceInstallReceipt>, HubError> {
     let mut files = Vec::new();
-    collect_install_files(install_dir, install_dir, &mut files)?;
+    if matches!(
+        collect_install_files(install_dir, install_dir, &mut files, cancellation)?,
+        TaskExecutionOutcome::Cancelled
+    ) {
+        return Ok(TaskExecutionOutcome::Cancelled);
+    }
     files.sort_by(|left, right| left.path.cmp(&right.path));
 
     let total_bytes = files.iter().map(|file| file.bytes).sum();
     let content_download_manifest = content_download_manifest_for_install(install_dir, &files);
 
-    Ok(DeviceInstallReceipt {
+    Ok(TaskExecutionOutcome::Completed(DeviceInstallReceipt {
         format_version: 1,
         install_dir: install_dir.to_string_lossy().into_owned(),
         files,
         total_bytes,
         content_download_manifest,
-    })
+    }))
 }
 
 fn collect_install_files(
     root: &Path,
     current: &Path,
     files: &mut Vec<DeviceInstallFileReceipt>,
-) -> Result<(), HubError> {
+    cancellation: &TaskCancellationToken,
+) -> Result<TaskExecutionOutcome<()>, HubError> {
     for entry in fs::read_dir(current)? {
+        if cancellation.is_cancellation_requested() {
+            return Ok(TaskExecutionOutcome::Cancelled);
+        }
         let entry = entry?;
         let path = entry.path();
         let file_type = entry.file_type()?;
         if file_type.is_dir() {
-            collect_install_files(root, &path, files)?;
+            if matches!(
+                collect_install_files(root, &path, files, cancellation)?,
+                TaskExecutionOutcome::Cancelled
+            ) {
+                return Ok(TaskExecutionOutcome::Cancelled);
+            }
         } else if file_type.is_file() {
             let bytes = fs::read(&path)?;
             let relative_path = install_relative_path(root, &path);
@@ -89,7 +114,7 @@ fn collect_install_files(
             });
         }
     }
-    Ok(())
+    Ok(TaskExecutionOutcome::Completed(()))
 }
 
 fn content_download_manifest_for_install(
@@ -251,18 +276,5 @@ fn sha256(bytes: &[u8]) -> [u8; 32] {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn sha256_hex_matches_known_vectors() {
-        assert_eq!(
-            sha256_hex(b""),
-            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        );
-        assert_eq!(
-            sha256_hex(b"abc"),
-            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
-        );
-    }
-}
+#[path = "tests/install_receipt.rs"]
+mod tests;

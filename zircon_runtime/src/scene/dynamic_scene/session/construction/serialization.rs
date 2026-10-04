@@ -2,7 +2,7 @@ use std::io::Write;
 
 use super::super::archive::RuntimeSessionArchiveWirePayload;
 use super::super::{
-    MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES, RuntimeSessionArchive, RuntimeSessionArchiveError,
+    RuntimeSessionArchive, RuntimeSessionArchiveError, MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES,
 };
 
 pub(in crate::scene::dynamic_scene::session) fn from_versioned_json(
@@ -50,19 +50,5 @@ where
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn runtime_session_archive_text_input_rejects_before_json_decode_when_oversized() {
-        let error = ensure_archive_input_limit(2, 1).unwrap_err();
-
-        assert!(matches!(
-            error,
-            RuntimeSessionArchiveError::ArtifactTooLarge {
-                estimated_bytes: 2,
-                limit_bytes: 1,
-            }
-        ));
-    }
-}
+#[path = "tests/serialization.rs"]
+mod tests;

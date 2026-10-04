@@ -8,6 +8,7 @@ use super::super::{RigidBodyComponent, RigidBodyType};
 
 const TYPE_PATH: &str = "zircon_runtime::scene::components::RigidBodyComponent";
 
+// 刚体反射字段使用持久化枚举名称；写入方需通过注册元数据校验，避免编辑器绕过场景类型约束。
 pub(in crate::scene::components::scene) fn read_body_type(
     component: &RigidBodyComponent,
 ) -> Result<ReflectedValue, ReflectError> {
@@ -183,7 +184,7 @@ fn normalized_enum_name_matches(value: &str, expected: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "rigid_body/borrowed_enum_tests.rs"]
+#[path = "rigid_body/tests/borrowed_enum_tests.rs"]
 mod borrowed_enum_tests;
 
 fn replace_if_changed<T>(current: &mut T, next: T) -> Result<bool, ReflectError>

@@ -163,6 +163,9 @@ impl UiSurface {
         for node_id in node_ids {
             self.drop_clipboard_transfers_for(*node_id);
             self.input.drop_text_document_epoch(*node_id);
+            self.input.clear_pointer_capture_for(*node_id);
+            self.input.clear_pointer_presses_for_owner(*node_id);
+            self.clear_retired_pointer_press_state(*node_id);
         }
         let focus_change = if self
             .focus
@@ -319,6 +322,18 @@ impl UiSurface {
     }
 
     fn clear_invalid_transient_input_owners(&mut self) {
+        let mut pointer_captures = std::mem::take(&mut self.input.pointer_captures);
+        pointer_captures.retain(|_, capture| is_valid_input_owner(self, capture.owner));
+        self.input.pointer_captures = pointer_captures;
+        let mut pointer_presses = std::mem::take(&mut self.input.pointer_presses);
+        pointer_presses.retain(|_, press| {
+            let valid = is_valid_input_owner(self, press.owner);
+            if !valid {
+                self.clear_retired_pointer_press_state(press.owner);
+            }
+            valid
+        });
+        self.input.pointer_presses = pointer_presses;
         if self
             .focus
             .captured
@@ -334,25 +349,17 @@ impl UiSurface {
             .pressed
             .is_some_and(|owner| !is_valid_input_owner(self, owner))
         {
+            if let Some(owner) = self.focus.pressed {
+                self.clear_retired_pointer_press_state(owner);
+            }
             self.focus.pressed = None;
         }
-        self.focus.hovered = self
-            .focus
-            .hovered
-            .iter()
-            .copied()
-            .filter(|owner| is_valid_input_owner(self, *owner))
-            .collect();
-        let invalid_pointer_drag_owners = self
-            .input
-            .pointer_drags
-            .keys()
-            .copied()
-            .filter(|owner| !is_valid_input_owner(self, *owner))
-            .collect::<Vec<_>>();
-        for owner in invalid_pointer_drag_owners {
-            self.input.clear_pointer_drag_for(owner);
-        }
+        let mut hovered = std::mem::take(&mut self.focus.hovered);
+        hovered.retain(|owner| is_valid_input_owner(self, *owner));
+        self.focus.hovered = hovered;
+        let mut pointer_drags = std::mem::take(&mut self.input.pointer_drags);
+        pointer_drags.retain(|owner, _| is_valid_input_owner(self, *owner));
+        self.input.pointer_drags = pointer_drags;
         if self
             .input
             .high_precision_owner
@@ -380,6 +387,17 @@ impl UiSurface {
                 .then_some(drag.source)
         }) {
             self.clear_drag_drop_session_for_source(source);
+        }
+    }
+
+    fn clear_retired_pointer_press_state(&mut self, owner: UiNodeId) {
+        let Some(node) = self.tree.nodes.get_mut(&owner) else {
+            return;
+        };
+        let tree_changed = std::mem::replace(&mut node.state_flags.pressed, false);
+        let component_changed = self.component_states.set_pressed(owner, false);
+        if tree_changed || component_changed {
+            let _ = self.mark_component_state_render_dirty(owner);
         }
     }
 
@@ -446,3 +464,7 @@ fn bool_attribute_any(
 ) -> bool {
     keys.iter().any(|key| bool_attribute(metadata, key))
 }
+
+#[cfg(test)]
+#[path = "tests/focus.rs"]
+mod tests;

@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from tools.editor_scene_hierarchy_generation_index_pressure import run
+from tools.analysis.performance.editor.editor_scene_hierarchy_generation_index_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -17,7 +17,7 @@ ROW_PATCH = ROOT / (
     "zircon_editor/src/ui/retained_host/app/host_lifecycle/"
     "scene_hierarchy_refresh/hierarchy_row_patch.rs"
 )
-PROFILE_MANIFEST = ROOT / "tools/profile-capture-manifest.ps1"
+PROFILE_MANIFEST = ROOT / "tools/analysis/profiling/shared/profile-capture-manifest.ps1"
 
 
 class EditorSceneHierarchyGenerationIndexPerformanceContractTests(unittest.TestCase):
@@ -48,6 +48,24 @@ class EditorSceneHierarchyGenerationIndexPerformanceContractTests(unittest.TestC
         )[0]
         self.assertNotIn("display_name", selection_patch)
         self.assertIn("logical_content_patch(row)", fragment)
+
+    def test_reflow_builds_bidirectional_control_indexes_in_one_reusable_pass(self) -> None:
+        source = PROJECTION.read_text(encoding="utf-8")
+        replace = source.split("pub(super) fn replace(", 1)[1].split(
+            "pub(super) const fn generation", 1
+        )[0]
+
+        self.assertIn("controls_by_entity: HashMap<EntityId, Arc<str>>", source)
+        self.assertIn("entities_by_control: HashMap<Arc<str>, EntityId>", source)
+        self.assertIn("self.rows_by_entity.clear();", replace)
+        self.assertIn("self.rows_by_entity.reserve(rows.len());", replace)
+        self.assertIn("self.controls_by_entity.clear();", replace)
+        self.assertIn("self.entities_by_control.clear();", replace)
+        self.assertIn("for (row_index, row) in rows.iter().enumerate()", replace)
+        self.assertIn(".insert(row.entity, SceneHierarchyRowState::from_row", replace)
+        self.assertIn("controls.get(row_index)", replace)
+        self.assertNotIn("rows.iter().zip(controls)", replace)
+        self.assertNotIn("collect::<BTreeMap", replace)
 
     def test_selection_only_publication_reuses_presented_row_content(self) -> None:
         source = ROW_PATCH.read_text(encoding="utf-8")

@@ -113,7 +113,7 @@ pub trait UiRuntimeTreeFocusExt {
 
 | 动作 | 文件 | 说明 |
 | --- | --- | --- |
-| 新增(契约) | `docs/ui-and-layout/focus-navigation-contract.md` | 可聚焦/Tab/方向/边界/作用域/焦点环 |
+| 新增(契约) | `docs/ui/focus-navigation-contract.md` | 可聚焦/Tab/方向/边界/作用域/焦点环 |
 | DTO | `zircon_runtime_interface/src/ui/focus.rs`、`ui/navigation.rs` | `UiFocusContract`/方向/`UiNavigationBoundary`/cause + `:focus(-within/-visible)` 态 |
 | 运行时 | `zircon_runtime/src/ui/tree/node/focus.rs` 与 `editor_ui/01` navigation dispatcher | 维护 Tab 链、方向几何求解和 modal scope；补齐焦点还原与编辑器接线 |
 

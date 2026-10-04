@@ -1,0 +1,105 @@
+penpot_original_source = "[asset]\nkind = \"view\"\nid = \"physics.ragdoll_profile\"\nversion = 2\ndisplay_name = \"Ragdoll Profile\"\n\n[imports]\nstyles = [\"res://ui/theme/editor_base.zui\"]\n\n[root]\nnode = \"ragdoll_profile_root\"\n\n[nodes.ragdoll_profile_toolbar]\ncomponent = \"Space\"\ncontrol_id = \"RagdollProfileToolbar\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = \"Fixed\" } }\n\n[nodes.ragdoll_skeleton_tree]\ncomponent = \"Space\"\ncontrol_id = \"RagdollSkeletonTree\"\nlayout = { width = { min = 200.0, preferred = 240.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.ragdoll_preview]\ncomponent = \"Space\"\ncontrol_id = \"RagdollProfilePreview\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.ragdoll_bone_properties]\ncomponent = \"Space\"\ncontrol_id = \"RagdollBoneProperties\"\nlayout = { width = { min = 240.0, preferred = 300.0, max = 320.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.ragdoll_profile_body]\ncomponent = \"HorizontalGroup\"\ncontrol_id = \"RagdollProfileBody\"\nlayout = { container = { kind = \"HorizontalBox\", gap = 8 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"ragdoll_skeleton_tree\" }, { node = \"ragdoll_preview\" }, { node = \"ragdoll_bone_properties\" }]\n\n[nodes.ragdoll_profile_root]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"RagdollProfileRoot\"\nclasses = [\"editor-shell\"]\nlayout = { container = { kind = \"VerticalBox\", gap = 8 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"ragdoll_profile_toolbar\" }, { node = \"ragdoll_profile_body\" }]\n"
+
+[asset]
+kind = "view"
+id = "physics.ragdoll_profile"
+version = 2
+display_name = "Ragdoll Profile"
+
+[imports]
+styles = [ "res://ui/theme/editor_base.zui" ]
+
+[root]
+node = "ragdoll_profile_root"
+
+[nodes.ragdoll_profile_toolbar]
+component = "Space"
+control_id = "RagdollProfileToolbar"
+
+[nodes.ragdoll_profile_toolbar.layout.width]
+stretch = "Stretch"
+
+[nodes.ragdoll_profile_toolbar.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.ragdoll_skeleton_tree]
+component = "Space"
+control_id = "RagdollSkeletonTree"
+
+[nodes.ragdoll_skeleton_tree.layout.width]
+min = 200
+preferred = 240
+stretch = "Fixed"
+
+[nodes.ragdoll_skeleton_tree.layout.height]
+stretch = "Stretch"
+
+[nodes.ragdoll_preview]
+component = "Space"
+control_id = "RagdollProfilePreview"
+
+[nodes.ragdoll_preview.layout.width]
+stretch = "Stretch"
+
+[nodes.ragdoll_preview.layout.height]
+stretch = "Stretch"
+
+[nodes.ragdoll_bone_properties]
+component = "Space"
+control_id = "RagdollBoneProperties"
+
+[nodes.ragdoll_bone_properties.layout.width]
+min = 240
+preferred = 300
+max = 320
+stretch = "Fixed"
+
+[nodes.ragdoll_bone_properties.layout.height]
+stretch = "Stretch"
+
+[nodes.ragdoll_profile_body]
+component = "HorizontalGroup"
+control_id = "RagdollProfileBody"
+
+[nodes.ragdoll_profile_body.layout.container]
+kind = "HorizontalBox"
+gap = 8
+
+[nodes.ragdoll_profile_body.layout.width]
+stretch = "Stretch"
+
+[nodes.ragdoll_profile_body.layout.height]
+stretch = "Stretch"
+
+[[nodes.ragdoll_profile_body.children]]
+node = "ragdoll_skeleton_tree"
+
+[[nodes.ragdoll_profile_body.children]]
+node = "ragdoll_preview"
+
+[[nodes.ragdoll_profile_body.children]]
+node = "ragdoll_bone_properties"
+
+[nodes.ragdoll_profile_root]
+component = "VerticalGroup"
+control_id = "RagdollProfileRoot"
+classes = [ "editor-shell" ]
+
+[nodes.ragdoll_profile_root.layout.container]
+kind = "VerticalBox"
+gap = 8
+
+[nodes.ragdoll_profile_root.layout.width]
+stretch = "Stretch"
+
+[nodes.ragdoll_profile_root.layout.height]
+stretch = "Stretch"
+
+[[nodes.ragdoll_profile_root.children]]
+node = "ragdoll_profile_toolbar"
+
+[[nodes.ragdoll_profile_root.children]]
+node = "ragdoll_profile_body"

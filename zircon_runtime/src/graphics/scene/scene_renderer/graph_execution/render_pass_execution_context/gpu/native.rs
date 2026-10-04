@@ -102,7 +102,7 @@ impl RenderPassGpuResourceFactory for wgpu::Device {
 /// this capability while encoding commands, but they cannot retain the parent context's resource
 /// table or output mailbox through public fields.
 pub struct RenderPassGpuNativeContext<'a, 'encoder> {
-    device: &'a wgpu::Device,
+    pub(super) device: &'a wgpu::Device,
     pub encoder: &'encoder mut wgpu::CommandEncoder,
     pub scene_bind_group: &'a wgpu::BindGroup,
     pub scene_bind_group_layout: &'a wgpu::BindGroupLayout,
@@ -152,7 +152,7 @@ impl RenderPassGpuResourceFactory for RenderPassGpuNativeContext<'_, '_> {
         descriptor: &wgpu::util::BufferInitDescriptor<'_>,
     ) -> wgpu::Buffer {
         self.record_create(RenderPassNativeResourceCreateMetrics::record_buffer);
-        self.device.create_buffer_init(descriptor)
+        DeviceExt::create_buffer_init(self.device, descriptor)
     }
 
     fn create_bind_group(&self, descriptor: &wgpu::BindGroupDescriptor<'_>) -> wgpu::BindGroup {

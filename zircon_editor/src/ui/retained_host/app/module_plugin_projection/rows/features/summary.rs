@@ -90,5 +90,5 @@ fn module_plugin_feature_summary_capacity(features: &[EditorPluginFeatureStatus]
 }
 
 #[cfg(test)]
-#[path = "summary/single_buffer_tests.rs"]
+#[path = "summary/tests/single_buffer_tests.rs"]
 mod single_buffer_tests;

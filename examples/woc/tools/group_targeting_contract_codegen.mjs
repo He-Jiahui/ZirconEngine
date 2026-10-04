@@ -1,3 +1,6 @@
+// 调用端：npm run generate:group-targeting-contract (tools/package.json)；职责：固化队伍目标选择及距离规则。
+// 输入边界：src/sim/combat/group_targeting.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

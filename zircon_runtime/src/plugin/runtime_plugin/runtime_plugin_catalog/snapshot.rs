@@ -22,6 +22,7 @@ impl RuntimePluginCatalogSnapshot {
         &self.catalog
     }
 
+    /// 候选保留此快照作为基线；准备不会改写已发布代，authority 仅在当前 Arc 仍是该基线时发布候选。
     /// Creates an unpublished mutable candidate rooted at this exact generation.
     pub fn stage_update(self: &Arc<Self>) -> RuntimePluginCatalogCandidate {
         RuntimePluginCatalogCandidate::from_snapshot(Arc::clone(self))
@@ -29,20 +30,5 @@ impl RuntimePluginCatalogSnapshot {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-
-    use super::{RuntimePluginCatalog, RuntimePluginCatalogSnapshot};
-
-    #[test]
-    fn snapshot_handle_shares_one_sealed_catalog_generation() {
-        let catalog = RuntimePluginCatalog::from_descriptors([]);
-        let generation = catalog.generation();
-        let snapshot = Arc::new(RuntimePluginCatalogSnapshot::from_catalog(catalog));
-        let cloned = Arc::clone(&snapshot);
-
-        assert_eq!(snapshot.generation(), generation);
-        assert!(Arc::ptr_eq(&snapshot, &cloned));
-        assert_eq!(Arc::strong_count(&snapshot), 2);
-    }
-}
+#[path = "tests/snapshot.rs"]
+mod tests;

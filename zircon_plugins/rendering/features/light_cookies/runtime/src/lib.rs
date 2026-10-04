@@ -1,3 +1,4 @@
+//! 灯光投影纹理的运行时公共契约；特性提供者将此处元数据提交到目录与图编译。
 use zircon_runtime::graphics::{
     RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassExecutorRegistration,
     RenderPassStage, LIGHT_COOKIE_ATLAS_BUILD_EXECUTOR_ID, LIGHT_COOKIE_ATLAS_RESOURCE,
@@ -17,6 +18,7 @@ pub const FEATURE_ID: &str = "rendering.light_cookies";
 pub const FEATURE_NAME: &str = "light_cookies";
 pub const ATLAS_BUILD_PASS: &str = "cookie.atlas_build";
 
+/// 将灯光投影图集建立与材质读取纳入同一图依赖；仅在本帧提取含投影纹理时启用。
 pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
     RenderFeatureDescriptor::new(
         FEATURE_NAME,
@@ -41,9 +43,12 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
     .with_pass_read_external_texture("deferred-lighting", LIGHT_COOKIE_ATLAS_RESOURCE)
 }
 
+/// 提供与特性图匹配的执行实现；宿主负责实际 GPU 资源与这些句柄的设备生命周期。
 pub fn render_pass_executor_registrations() -> Vec<RenderPassExecutorRegistration> {
     zircon_runtime::graphics::light_cookie_render_pass_executor_registrations()
 }
 
+// 此测试边界覆盖声明与注册约束；GPU 效果证据需由对应产品测试另行提供。
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

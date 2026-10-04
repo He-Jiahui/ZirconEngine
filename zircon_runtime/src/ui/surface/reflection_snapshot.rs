@@ -16,6 +16,8 @@ use super::UiSurface;
 type UiPropertyInvalidationReason =
     zircon_runtime_interface::ui::event_ui::UiPropertyInvalidationReason;
 
+/// 将当前保留树与已排布几何投影成反射器快照，供编辑器只读检查和属性编辑定位。
+/// 本函数不会触发重建；未排布节点使用树缓存几何，快照中仍保留折叠或不可见节点。
 pub fn reflector_snapshot(
     surface: &UiSurface,
     query: Option<UiHitTestQuery>,
@@ -293,6 +295,9 @@ fn render_dirty() -> UiDirtyFlags {
     }
 }
 
+// TODO: [CR-UI-SURFACE-0001] 确认反射器宣告的失效域应否与属性事务共用组件分类；
+// VirtualList 的 viewport_start 在这里仅报 render，而事务还报 layout/hit_test/input/visible_range。
+// 当前编辑器只读展示这些属性，缺少依赖该提示调度的契约测试；下一步对比各组件的反射提示与写入回执。
 fn metadata_attribute_dirty(property: &str, value_kind: UiValueKind) -> UiDirtyFlags {
     match property {
         "text" | "label" | "font_size" | "line_height" => UiDirtyFlags {
@@ -328,5 +333,5 @@ fn is_layout_metadata_attribute(property: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "reflection_snapshot/node_capacity_tests.rs"]
+#[path = "reflection_snapshot/tests/node_capacity_tests.rs"]
 mod node_capacity_tests;

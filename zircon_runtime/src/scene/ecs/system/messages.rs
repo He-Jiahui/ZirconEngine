@@ -1,13 +1,14 @@
 use std::marker::PhantomData;
 
-use crate::scene::World;
 use crate::scene::ecs::{
-    ChangeTickWindow, Message, MessageCursor, MessageId, MessageReadIter, MessageStore,
+    ChangeTickWindow, Message, MessageCursor, MessageId, MessageReadIter, MessageWriterGrant,
     SystemParam, SystemParamAccess, SystemParamError,
 };
+use crate::scene::World;
 
 pub struct MessageReaderParam<T>(PhantomData<fn() -> T>);
 
+/// 消息写入参数只借用当前 World 的类型通道，不保留跨帧队列所有权。
 pub struct MessageWriterParam<T>(PhantomData<fn() -> T>);
 
 pub struct MessageReader<'world, T>
@@ -22,8 +23,7 @@ pub struct MessageWriter<'world, T>
 where
     T: Message,
 {
-    store: &'world mut MessageStore,
-    _marker: PhantomData<fn() -> T>,
+    channel: MessageWriterGrant<'world, T>,
 }
 
 impl<'world, T> MessageReader<'world, T>
@@ -60,14 +60,14 @@ where
     T: Message,
 {
     pub fn write(&mut self, message: T) -> MessageId<T> {
-        self.store.write(message)
+        self.channel.write(message)
     }
 
     pub fn write_batch<I>(&mut self, messages: I) -> Vec<MessageId<T>>
     where
         I: IntoIterator<Item = T>,
     {
-        self.store.write_batch::<T, I>(messages)
+        self.channel.write_batch(messages)
     }
 }
 
@@ -91,10 +91,9 @@ where
         state: &'world mut Self::State,
         _ticks: ChangeTickWindow,
     ) -> Self::Item<'world> {
-        let world = &*world;
         MessageReader {
             cursor: state,
-            messages: world.messages::<T>(),
+            messages: unsafe { World::message_reader_grant::<T>(world) },
         }
     }
 }
@@ -107,10 +106,11 @@ where
     type Item<'world> = MessageWriter<'world, T>;
 
     fn init_state(
-        _world: &mut World,
+        world: &mut World,
         access: &mut SystemParamAccess,
     ) -> Result<Self::State, SystemParamError> {
         access.add_message_write::<T>()?;
+        world.message_store_mut().prepare_writer::<T>();
         Ok(())
     }
 
@@ -119,10 +119,8 @@ where
         _state: &'world mut Self::State,
         _ticks: ChangeTickWindow,
     ) -> Self::Item<'world> {
-        let world = &mut *world;
         MessageWriter {
-            store: world.message_store_mut(),
-            _marker: PhantomData,
+            channel: unsafe { World::message_writer_grant::<T>(world) },
         }
     }
 }

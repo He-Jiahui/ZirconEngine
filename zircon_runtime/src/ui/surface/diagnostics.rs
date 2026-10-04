@@ -5,17 +5,18 @@ use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::UiFrame,
     surface::{
-        UI_SURFACE_DEBUG_SCHEMA_VERSION, UiDebugOverlayPrimitive, UiDebugOverlayPrimitiveKind,
-        UiHitGridCellDebugRecord, UiHitGridDebugStats, UiHitTestQuery, UiInvalidationDebugReport,
-        UiMaterialBatchDebugStat, UiOverdrawCellDebugRecord, UiOverdrawDebugStats, UiRenderCommand,
+        UiDebugOverlayPrimitive, UiDebugOverlayPrimitiveKind, UiHitGridCellDebugRecord,
+        UiHitGridDebugStats, UiHitTestQuery, UiInvalidationDebugReport, UiMaterialBatchDebugStat,
+        UiOverdrawCellDebugRecord, UiOverdrawDebugStats, UiRenderCommand,
         UiRenderCommandDebugRecord, UiRenderCommandKind, UiRenderDebugSnapshot, UiRenderDebugStats,
         UiSurfaceDebugCaptureContext, UiSurfaceDebugOptions, UiSurfaceDebugSnapshot,
-        UiSurfaceFrame, UiWidgetReflectorNode,
+        UiSurfaceFrame, UiWidgetReflectorNode, UI_SURFACE_DEBUG_SCHEMA_VERSION,
     },
 };
 
 use super::debug_hit_test_surface_frame_with_query;
 
+/// 仅检查调用方已发布的帧，不触发布局重建；绘制调用与过绘统计为命令级估计。
 pub fn debug_surface_frame(surface_frame: &UiSurfaceFrame) -> UiSurfaceDebugSnapshot {
     debug_surface_frame_with_options(surface_frame, &UiSurfaceDebugOptions::default())
 }
@@ -478,6 +479,7 @@ fn command_visible_frame(command: &UiRenderCommand) -> Option<UiFrame> {
     let clipped = command
         .clip_frame
         .and_then(|clip| frame.intersection(clip))
+        // BUG: [CR-R02-runtime_wave5_surface_navigation_mutation-0002] 正面积原框与已有裁剪框不相交时，intersection 返回 None 后仍回退原框，使完全裁剪的命令贡献可见框、过绘和边界 overlay 诊断。
         .unwrap_or(frame);
     (clipped.width > 0.0 && clipped.height > 0.0).then_some(clipped)
 }

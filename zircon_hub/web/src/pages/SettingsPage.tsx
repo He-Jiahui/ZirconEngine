@@ -8,7 +8,7 @@ import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import UndoOutlinedIcon from "@mui/icons-material/UndoOutlined";
 import { Box, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
-import { MetricCard, metricToneFromStatus, SettingsSection } from "../components/data";
+import { MetricCard, metricToneFromStatus, PageHeader, SettingsSection } from "../components/data";
 import { HubStatusBanner } from "../components/feedback";
 import { HubButton, HubTabs } from "../components/inputs";
 import { useDebouncedSettingsDraft } from "../settings/debouncedSettingsDraft";
@@ -46,10 +46,8 @@ export function SettingsPage({ state, onAction }: SettingsPageProps) {
   const languageLabel = settingsOptionLabel(settingsText.languageOptions, draft.language);
   const draftJobsLabel = settingsJobCountLabel(settingsText, draft.jobs);
   const healthTone = metricToneFromStatus(draftSettings.health.tone);
-  const { scheduleDraftPublication, cancelPendingDraft } = useDebouncedSettingsDraft(
-    (nextDraft: SettingsDraft) => {
-      void onAction(HUB_ACTION.updateSettingsDraft, undefined, { settings: nextDraft });
-    },
+  const { scheduleDraftPublication, runSettingsBarrier } = useDebouncedSettingsDraft(
+    (nextDraft: SettingsDraft) => onAction(HUB_ACTION.updateSettingsDraft, undefined, { settings: nextDraft }),
   );
 
   useEffect(() => {
@@ -82,20 +80,16 @@ export function SettingsPage({ state, onAction }: SettingsPageProps) {
     scheduleDraftPublication(nextDraft);
   };
   const saveDraft = () => {
-    cancelPendingDraft();
-    void onAction(HUB_ACTION.saveSettings, undefined, { settings: draft });
+    void runSettingsBarrier(() => onAction(HUB_ACTION.saveSettings, undefined, { settings: draft }));
   };
   const browseFolder = (field: HubSettingsFolderField, initialDir: string) => {
-    cancelPendingDraft();
-    void onAction(HUB_ACTION.browseSettingsFolder, field, { field, initialDir, settings: draft });
+    void runSettingsBarrier(() => onAction(HUB_ACTION.browseSettingsFolder, field, { field, initialDir, settings: draft }));
   };
   const discardDraft = () => {
-    cancelPendingDraft();
-    void onAction(HUB_ACTION.discardSettingsDraft);
+    void runSettingsBarrier(() => onAction(HUB_ACTION.discardSettingsDraft));
   };
   const restoreDefaultSettings = () => {
-    cancelPendingDraft();
-    void onAction(HUB_ACTION.restoreDefaultSettings);
+    void runSettingsBarrier(() => onAction(HUB_ACTION.restoreDefaultSettings));
   };
 
   return (
@@ -112,14 +106,7 @@ export function SettingsPage({ state, onAction }: SettingsPageProps) {
         },
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, mb: 2.4 }}>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="h4">{settingsText.heading}</Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.9 }}>
-            {state.pageSubtitle}
-          </Typography>
-        </Box>
-        <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap", justifyContent: "flex-end" }}>
+      <PageHeader title={settingsText.heading} subtitle={state.pageSubtitle} actions={<>
           <HubButton startIcon={<FolderOutlinedIcon />} onClick={() => void onAction(HUB_ACTION.showPage, "projects")}>
             {settingsText.projectsButton}
           </HubButton>
@@ -132,11 +119,14 @@ export function SettingsPage({ state, onAction }: SettingsPageProps) {
           <HubButton tone="primary" startIcon={<SaveOutlinedIcon />} onClick={saveDraft}>
             {settingsText.saveButton}
           </HubButton>
-        </Box>
-      </Box>
+        </>} />
 
       <Box sx={{ mb: 1.4 }}>
-        <HubStatusBanner task={state.taskSummary} />
+        <HubStatusBanner
+          task={state.taskSummary}
+          cancelLabel={state.ui.common.cancelTask}
+          onCancel={() => void onAction(HUB_ACTION.cancelBackgroundTask, String(state.taskSummary.taskId))}
+        />
       </Box>
 
       <Box

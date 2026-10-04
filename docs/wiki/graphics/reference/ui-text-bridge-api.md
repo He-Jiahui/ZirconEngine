@@ -10,9 +10,9 @@ implementation_files:
 plan_sources:
   - docs/wiki/graphics/ui-rendering.md
 tests:
-  - zircon_runtime/crates/zr_rhi/src/ui_surface/tests.rs
+  - zircon_runtime/crates/zr_rhi/src/ui_surface/tests/cases.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests
-  - zircon_runtime/src/graphics/text_transport/tests.rs
+  - zircon_runtime/src/graphics/text_transport/tests/cases.rs
 doc_type: api-reference
 ---
 

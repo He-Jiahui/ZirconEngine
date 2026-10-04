@@ -1,20 +1,21 @@
 import unittest
 from pathlib import Path
 
-from tools.plugins_vm_virtual_geometry_pressure import run
+from tools.analysis.performance.plugins.plugins_vm_virtual_geometry_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
 CALL_TABLE = ROOT / (
     "zircon_plugins/zr_vm_language/runtime/src/call_site/script_call_table.rs"
 )
-CALL_TABLE_TESTS = ROOT / "zircon_plugins/zr_vm_language/runtime/src/call_site/tests.rs"
+CALL_TABLE_TESTS = ROOT / "zircon_plugins/zr_vm_language/runtime/src/call_site/tests/cases.rs"
 HOT_INHERITANCE = ROOT / (
     "zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/"
     "pending_completion/apply_gpu_page_table_entries.rs"
 )
+HOT_INHERITANCE_TESTS = HOT_INHERITANCE.parent / "tests/apply_gpu_page_table_entries.rs"
 
-
+# 调用 VM 与虚拟几何压力模型，核对代际限定令牌和稠密调用索引削减逐字段原子及哈希工作。
 class PluginsVmVirtualGeometryPressureTests(unittest.TestCase):
     def test_generation_qualified_tokens_remove_per_field_atomic_and_hash_work(self) -> None:
         tokens = run()["callsite_tokens"]
@@ -52,7 +53,7 @@ class PluginsVmVirtualGeometryPressureTests(unittest.TestCase):
         self.assertEqual(hot["candidate_indexed_hot_ancestor_count"], 4_096)
 
     def test_virtual_geometry_source_keeps_oracle_and_release_contract(self) -> None:
-        source = HOT_INHERITANCE.read_text(encoding="utf-8")
+        source = HOT_INHERITANCE_TESTS.read_text(encoding="utf-8")
 
         self.assertIn("indexed_hot_inheritance_release_benchmark", source)
         self.assertIn("VIRTUAL_GEOMETRY_HOT_INHERITANCE_BENCH_V1", source)

@@ -9,7 +9,6 @@ origin_child_dir: docs/plans/zircon_plugins/12
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/git_finalize.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_workflow_commit -v
 resolved_at: 2026-07-23

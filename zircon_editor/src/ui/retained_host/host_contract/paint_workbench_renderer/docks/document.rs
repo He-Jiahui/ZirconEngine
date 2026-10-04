@@ -39,13 +39,14 @@ pub(in crate::ui::retained_host::host_contract) fn draw_document_dock(
     );
     {
         zircon_runtime::profile_scope!("editor", "host_painter", "painter_document_dock_pane");
-        pane::draw_pane(
+        pane::draw_pane_for_surface(
             frame,
             &dock.pane,
             &content,
             interaction,
             viewport_images,
             text_input_focus,
+            Some(dock.surface_key.as_str()),
         );
     }
 }

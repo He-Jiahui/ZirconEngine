@@ -1,3 +1,6 @@
+// 调用端：npm run generate:item-score-contract (tools/package.json)；职责：从物品等级源模块固化物品评分权重与换算值。
+// 输入边界：src/sim/item_level.ts；--check 比较生成结果，不改写目标文件。
+
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

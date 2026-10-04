@@ -1,3 +1,4 @@
+# 验收测试调用快照、投影与发布模块，覆盖源树租约、清单一致性、重解析点、并发替换及失败清理；这些隔离树夹具验证的是复制边界与归属，不是产品启动。
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 

@@ -23,10 +23,11 @@ class Runtime85ProjectRootDedupPerformanceContractTests(unittest.TestCase):
             "    pub fn project_roots(",
         )
 
-        self.assertIn(
-            "use std::collections::{BTreeMap, HashSet, hash_map::RandomState};",
-            source,
+        collections_import = next(
+            line for line in source.splitlines() if line.startswith("use std::collections::")
         )
+        for collection in ("BTreeMap", "HashSet", "hash_map::RandomState"):
+            self.assertIn(collection, collections_import)
         self.assertIn("use std::hash::BuildHasher;", source)
         self.assertIn("let resolved_path_hasher = RandomState::new();", registration)
         self.assertIn(

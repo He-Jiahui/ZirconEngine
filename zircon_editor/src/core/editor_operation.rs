@@ -28,7 +28,7 @@ impl std::borrow::Borrow<str> for EditorOperationPath {
 
 impl fmt::Display for EditorOperationPath {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str(&self.0)
+        formatter.write_str(self.0.as_str())
     }
 }
 
@@ -43,7 +43,7 @@ impl<'de> Deserialize<'de> for EditorOperationPath {
 }
 
 #[cfg(test)]
-#[path = "editor_operation/single_scan_tests.rs"]
+#[path = "editor_operation/tests/single_scan_tests.rs"]
 mod single_scan_tests;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

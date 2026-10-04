@@ -28,11 +28,7 @@ impl HostViewportOverlayImageData {
         if resource_scope.is_empty() || source_size.x == 0 || source_size.y == 0 {
             return None;
         }
-        let clipped = lines
-            .iter()
-            .copied()
-            .filter_map(|line| RasterLine::clipped(line, source_size))
-            .collect::<Vec<_>>();
+        let clipped = clipped_raster_lines(lines, source_size);
         let bounds = RasterBounds::from_lines(&clipped, source_size)?;
         let byte_len = bounds
             .width()
@@ -80,6 +76,20 @@ impl HostViewportOverlayImageData {
                 .checked_add(self.height)
                 .is_some_and(|bottom| bottom <= base_height)
     }
+}
+
+fn clipped_raster_lines(lines: &[HandleScreenLine], source_size: UVec2) -> Vec<RasterLine> {
+    let mut clipped = Vec::new();
+    for line in lines.iter().copied() {
+        let Some(line) = RasterLine::clipped(line, source_size) else {
+            continue;
+        };
+        if clipped.is_empty() {
+            clipped.reserve(lines.len());
+        }
+        clipped.push(line);
+    }
+    clipped
 }
 
 #[derive(Clone, Copy)]
@@ -233,53 +243,9 @@ fn fnv1a(bytes: &[u8]) -> u64 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
+#[path = "overlay/tests/capacity_tests.rs"]
+mod capacity_tests;
 
-    #[test]
-    fn offscreen_line_is_clipped_before_overlay_allocation() {
-        let overlay = HostViewportOverlayImageData::from_screen_lines(
-            "clip-test",
-            UVec2::new(320, 180),
-            &[HandleScreenLine::new(
-                Vec2::new(-10_000.0, 90.0),
-                Vec2::new(20.0, 90.0),
-                Vec4::ONE,
-                2.0,
-                None,
-            )],
-        )
-        .expect("a partially visible line should rasterize");
-
-        assert_eq!(overlay.x, 0);
-        assert!(overlay.width < 32);
-        assert!(overlay.height < 16);
-    }
-
-    #[test]
-    fn disjoint_line_does_not_allocate_an_overlay() {
-        assert!(HostViewportOverlayImageData::from_screen_lines(
-            "clip-test",
-            UVec2::new(320, 180),
-            &[HandleScreenLine::new(
-                Vec2::new(-20.0, -20.0),
-                Vec2::new(-10.0, -10.0),
-                Vec4::ONE,
-                2.0,
-                None,
-            )],
-        )
-        .is_none());
-    }
-
-    #[test]
-    fn source_over_preserves_transparency_and_blends_coverage_in_linear_light() {
-        let mut transparent = [0, 0, 0, 0];
-        blend_source_over(&mut transparent, [255, 255, 255, 128], 1.0);
-        assert_eq!(transparent, [255, 255, 255, 128]);
-
-        let mut opaque_black = [0, 0, 0, 255];
-        blend_source_over(&mut opaque_black, [255, 255, 255, 255], 0.5);
-        assert_eq!(opaque_black, [188, 188, 188, 255]);
-    }
-}
+#[cfg(test)]
+#[path = "tests/overlay.rs"]
+mod tests;

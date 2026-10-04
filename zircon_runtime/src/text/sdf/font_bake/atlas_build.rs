@@ -22,6 +22,26 @@ impl SdfFontBakeCache {
             font_database,
             asset_manager,
             None,
+            None,
+            0,
+        )
+    }
+
+    pub(crate) fn build_atlas_from_slots_retained(
+        &mut self,
+        atlas_size: UVec2,
+        slots: &[SdfAtlasSlot],
+        retained_slot_product_generation: u64,
+        font_database: &mut FontDatabase,
+        asset_manager: &ProjectAssetManager,
+    ) -> SdfAtlasBake {
+        self.build_atlas_from_slots_internal(
+            atlas_size,
+            slots,
+            font_database,
+            asset_manager,
+            Some(retained_slot_product_generation),
+            None,
             0,
         )
     }
@@ -40,6 +60,28 @@ impl SdfFontBakeCache {
             slots,
             font_database,
             asset_manager,
+            None,
+            Some(scheduler),
+            frame_index,
+        )
+    }
+
+    pub(crate) fn build_atlas_from_slots_retained_scheduled(
+        &mut self,
+        atlas_size: UVec2,
+        slots: &[SdfAtlasSlot],
+        retained_slot_product_generation: u64,
+        font_database: &mut FontDatabase,
+        asset_manager: &ProjectAssetManager,
+        scheduler: &SdfGenerationScheduler,
+        frame_index: u64,
+    ) -> SdfAtlasBake {
+        self.build_atlas_from_slots_internal(
+            atlas_size,
+            slots,
+            font_database,
+            asset_manager,
+            Some(retained_slot_product_generation),
             Some(scheduler),
             frame_index,
         )
@@ -51,6 +93,7 @@ impl SdfFontBakeCache {
         slots: &[SdfAtlasSlot],
         font_database: &mut FontDatabase,
         asset_manager: &ProjectAssetManager,
+        retained_slot_product_generation: Option<u64>,
         scheduler: Option<&SdfGenerationScheduler>,
         frame_index: u64,
     ) -> SdfAtlasBake {
@@ -66,6 +109,7 @@ impl SdfFontBakeCache {
             if let Some(bake) = self.prepared_atlas.reuse(
                 atlas_size,
                 slots,
+                retained_slot_product_generation,
                 reuse_scheduler_report,
                 self.font_asset_faces.report(),
             ) {
@@ -224,7 +268,8 @@ impl SdfFontBakeCache {
             generation_failures: generation_failures.into(),
             report,
         };
-        self.prepared_atlas.replace(atlas_size, slots, &bake);
+        self.prepared_atlas
+            .replace(atlas_size, slots, retained_slot_product_generation, &bake);
         bake
     }
 }

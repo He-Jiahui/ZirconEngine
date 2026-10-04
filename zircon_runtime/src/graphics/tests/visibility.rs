@@ -1,7 +1,7 @@
 use crate::core::framework::render::{
-    RenderLayerSet, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
-    RenderVirtualGeometryInstance, RenderVirtualGeometryPage, VisibilityRenderableInput,
-    render_mesh_stable_instance_key,
+    render_mesh_stable_instance_key, RenderLayerSet, RenderVirtualGeometryCluster,
+    RenderVirtualGeometryExtract, RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
+    VisibilityRenderableInput,
 };
 use crate::core::math::{Transform, Vec3};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
@@ -223,18 +223,14 @@ fn visibility_context_without_history_marks_bvh_full_rebuild() {
         context.bvh_update_plan.inserted_stable_instance_keys,
         vec![stable_key(crate_entity), stable_key(tree_entity)]
     );
-    assert!(
-        context
-            .bvh_update_plan
-            .updated_stable_instance_keys
-            .is_empty()
-    );
-    assert!(
-        context
-            .bvh_update_plan
-            .removed_stable_instance_keys
-            .is_empty()
-    );
+    assert!(context
+        .bvh_update_plan
+        .updated_stable_instance_keys
+        .is_empty());
+    assert!(context
+        .bvh_update_plan
+        .removed_stable_instance_keys
+        .is_empty());
     assert_eq!(context.bvh_instances.len(), 2);
     assert_eq!(context.history_snapshot.instances.len(), 2);
     assert_eq!(

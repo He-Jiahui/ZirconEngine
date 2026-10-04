@@ -2,6 +2,7 @@ use crate::ui::retained_host::primitives::CloseRequestResponse;
 use crate::ui::workbench::layout::MainPageId;
 
 use super::close_prompt::ClosePromptTarget;
+use super::hierarchy_pointer::HierarchyTerminalReason;
 use super::*;
 
 mod floating_window;
@@ -9,11 +10,11 @@ mod prompt_actions;
 
 impl RetainedEditorHost {
     pub(super) fn native_main_window_close_requested(&mut self) -> CloseRequestResponse {
+        self.retire_hierarchy_drag_with_reason(HierarchyTerminalReason::WindowClose);
         if self.document_save_blocks_native_close() {
             return CloseRequestResponse::KeepWindowShown;
         }
         self.recompute_if_dirty();
-        let instances = self.runtime.current_view_instances();
         let dirty_documents = match self.editor_manager.dirty_document_toolkits() {
             Ok(documents) => documents,
             Err(error) => {
@@ -22,25 +23,22 @@ impl RetainedEditorHost {
             }
         };
         let dirty = close_prompt::all_dirty_close_views(&dirty_documents);
-        let dirty_project_scene_generation = match self.dirty_project_scene_generation() {
-            Ok(generation) => generation,
+        let dirty_project_scene_token = match self.dirty_project_scene_token() {
+            Ok(token) => token,
             Err(error) => {
                 self.set_status_line(error);
                 return CloseRequestResponse::KeepWindowShown;
             }
         };
-        if !dirty.is_empty() || dirty_project_scene_generation.is_some() {
-            let close_instances = instances
-                .into_iter()
-                .map(|instance| instance.instance_id)
-                .collect();
+        if !dirty.is_empty() || dirty_project_scene_token.is_some() {
+            let close_instances = self.runtime.current_view_instance_ids();
             let mut prompt = super::close_prompt::PendingClosePrompt::new(
                 ClosePromptTarget::MainWindow,
                 close_instances,
                 dirty,
             );
-            if let Some(generation) = dirty_project_scene_generation {
-                prompt = prompt.with_dirty_project_scene(generation);
+            if let Some(token) = dirty_project_scene_token {
+                prompt = prompt.with_dirty_project_scene(token);
             }
             self.begin_close_prompt_plan(prompt);
             return CloseRequestResponse::KeepWindowShown;
@@ -52,6 +50,10 @@ impl RetainedEditorHost {
         &mut self,
         window_id: &MainPageId,
     ) -> CloseRequestResponse {
+        self.cancel_hierarchy_drag_for_window(
+            &Some(window_id.clone()),
+            HierarchyTerminalReason::WindowClose,
+        );
         if self.document_save_blocks_native_close() {
             return CloseRequestResponse::KeepWindowShown;
         }
@@ -94,14 +96,5 @@ impl RetainedEditorHost {
 }
 
 #[cfg(test)]
-mod performance_tests {
-    #[test]
-    fn main_window_close_reuses_the_view_instance_snapshot() {
-        let source = include_str!("native_window_close.rs");
-        let production = source.split("#[cfg(test)]").next().expect("implementation");
-        let snapshot_call = ["current_view_", "instances()"].concat();
-
-        assert_eq!(production.matches(&snapshot_call).count(), 1);
-        assert!(production.contains("all_dirty_close_views(&dirty_documents)"));
-    }
-}
+#[path = "tests/native_window_close_performance_tests.rs"]
+mod performance_tests;

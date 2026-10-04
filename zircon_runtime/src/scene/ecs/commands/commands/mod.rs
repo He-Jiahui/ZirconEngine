@@ -1,3 +1,4 @@
+mod checked_reparent;
 mod entity_commands;
 mod facade;
 mod param;

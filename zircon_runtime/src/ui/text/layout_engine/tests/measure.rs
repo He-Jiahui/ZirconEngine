@@ -3,7 +3,8 @@ use zircon_runtime_interface::ui::{
     surface::{UiRichTextFormat, UiTextOverflow, UiTextWrap, UiTextWritingMode},
 };
 
-use super::super::{intrinsic_measurement_frame, measure_unwrapped_text_height};
+use super::super::measure_unwrapped_text_height;
+use super::super::measurement::intrinsic_measurement_frame_with_provider;
 use super::{layout_text, measure_text_size, test_style};
 
 #[test]
@@ -79,14 +80,19 @@ fn text_measurement_uses_rich_run_metrics_instead_of_flat_base_style() {
 fn intrinsic_measurement_frame_uses_unbounded_main_axis_without_byte_extent() {
     let mut rich_style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
     rich_style.rich_text_format = UiRichTextFormat::BbCodeV1;
-    let rich_frame = intrinsic_measurement_frame("[b]text[/b]", &rich_style);
+    let mut provider = crate::text::SharedTextLayoutSession::new();
+    let rich_frame =
+        intrinsic_measurement_frame_with_provider("[b]text[/b]", &rich_style, &mut provider)
+            .expect("default intrinsic rich-text frame is within the geometry budget");
 
     assert_eq!(rich_frame.width, f32::INFINITY);
     assert_eq!(rich_frame.height, f32::INFINITY);
 
     let mut vertical_style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
     vertical_style.text_writing_mode = UiTextWritingMode::VerticalRl;
-    let vertical_frame = intrinsic_measurement_frame("one\ntwo", &vertical_style);
+    let vertical_frame =
+        intrinsic_measurement_frame_with_provider("one\ntwo", &vertical_style, &mut provider)
+            .expect("default intrinsic vertical-text frame is within the geometry budget");
 
     assert_eq!(vertical_frame.height, f32::INFINITY);
     assert_eq!(vertical_frame.width, vertical_style.line_height * 2.0);

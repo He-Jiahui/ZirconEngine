@@ -42,5 +42,5 @@ pub(crate) fn collect_native_floating_window_targets(
 }
 
 #[cfg(test)]
-#[path = "target/preallocated_targets_tests.rs"]
+#[path = "target/tests/preallocated_targets_tests.rs"]
 mod preallocated_targets_tests;

@@ -19,8 +19,8 @@ plan_sources:
 tests:
   - zircon_hub/src/projects/create_project_request.rs
   - zircon_hub/src/projects/validation.rs
-  - zircon_hub/src/tauri_app/runtime_state/tests.rs
-  - zircon_hub/src/process/editor_handshake/tests.rs
+  - zircon_hub/src/tauri_app/runtime_state/tests/cases.rs
+  - zircon_hub/src/process/editor_handshake/tests/cases.rs
 doc_type: module-reference
 ---
 
@@ -60,7 +60,7 @@ assert_eq!(request.target_root(), "E:/Projects/MyGame".into());
 
 ### 引擎登记和构建
 
-`SourceEngineInstall` 保存源码根、显示名、稳定 id、staged 目录和最近的 `SourceBuildRecord`。`validate_source_engine` 至少要求根目录、根 `Cargo.toml`、`zircon_runtime` workspace member 与 `tools/zircon_build.py`。构建请求由 `BuildCommand::for_editor_runtime` 生成，`BuildExecutionReport` 汇总 exit code、日志摘要和恢复建议。
+`SourceEngineInstall` 保存源码根、显示名、稳定 id、staged 目录和最近的 `SourceBuildRecord`。`validate_source_engine` 至少要求根目录、根 `Cargo.toml`、`zircon_runtime` workspace member 与 `tools/build/zircon_build.py`。构建请求由 `BuildCommand::for_editor_runtime` 生成，`BuildExecutionReport` 汇总 exit code、日志摘要和恢复建议。
 
 ## 编辑器进程
 

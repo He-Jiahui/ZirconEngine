@@ -1,20 +1,20 @@
 ---
 related_code:
-  - tools/cargo-zircon/src/main.rs
-  - tools/cargo-zircon/src/lib.rs
-  - tools/cargo-zircon/src/plugin/scaffold/mod.rs
-  - tools/cargo-zircon/src/plugin/manifest_sync.rs
-  - tools/cargo-zircon/src/plugin/check.rs
-  - tools/cargo-zircon/src/product_receipt_cli/mod.rs
+  - tools/cargo/src/main.rs
+  - tools/cargo/src/lib.rs
+  - tools/cargo/src/plugin/scaffold/mod.rs
+  - tools/cargo/src/plugin/manifest_sync.rs
+  - tools/cargo/src/plugin/check.rs
+  - tools/cargo/src/product_receipt_cli/mod.rs
 implementation_files:
-  - tools/cargo-zircon/src
+  - tools/cargo/src
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
   - docs/plans/zircon_runtime/frameworks/04-plugin-dx-and-sdk-toolchain.md
 tests:
-  - tools/cargo-zircon/src/main.rs
-  - tools/cargo-zircon/src/plugin
-  - tools/cargo-zircon/src/build
+  - tools/cargo/src/main.rs
+  - tools/cargo/src/plugin
+  - tools/cargo/src/build
 doc_type: cli-reference
 ---
 

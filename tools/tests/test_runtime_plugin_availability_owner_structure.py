@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 验证插件可用性的职责切分：求值与清单选择应子节点持有，并归属拆分状态应为镜像。
 class RuntimePluginAvailabilityOwnerStructureTests(unittest.TestCase):
     STATUS = (
         "runtime_06_15_plugin_availability_evaluation_selection_owner_split_"

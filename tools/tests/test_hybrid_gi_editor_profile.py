@@ -1,3 +1,4 @@
+# 核对编辑器目标及预设的混合全局光照提供者目录。
 from __future__ import annotations
 
 import tomllib

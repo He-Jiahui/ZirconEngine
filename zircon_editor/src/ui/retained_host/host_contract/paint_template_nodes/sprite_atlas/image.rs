@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
 
 #[cfg(test)]
-#[path = "image/hash_index_tests.rs"]
+#[path = "image/tests/hash_index_tests.rs"]
 mod hash_index_tests;
 
 const MAX_ATLAS_RGBA_CACHE_ENTRIES: usize = 64;

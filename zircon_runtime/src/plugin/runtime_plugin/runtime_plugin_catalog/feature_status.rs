@@ -1,9 +1,9 @@
 mod dependencies;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use crate::core::framework::platform::RuntimeTargetMode;
-use crate::core::framework::project::{ProjectPluginFeatureSelection, ProjectPluginSelection};
+use crate::core::framework::project::ProjectPluginFeatureSelection;
 
 use super::feature_definitions::FeatureDefinition;
 use super::feature_status_record::FeatureStatus;
@@ -17,8 +17,8 @@ pub(super) fn feature_status(
     selection: &ProjectPluginFeatureSelection,
     provider_registration_present: bool,
     target: RuntimeTargetMode,
-    plugin_selections: &HashMap<&str, &ProjectPluginSelection>,
-    enabled_plugins: &HashSet<String>,
+    selected_plugin_ids: &HashSet<String>,
+    canonical_enabled_plugins: &HashSet<String>,
     available_capabilities: &HashSet<String>,
 ) -> FeatureStatus {
     let feature = &feature_definition.manifest;
@@ -29,14 +29,18 @@ pub(super) fn feature_status(
     if !owner_dependency_is_valid(feature) {
         status.mark_invalid_owner_dependency();
     }
-    if !plugin_is_enabled_for_target(&feature.owner_plugin_id, plugin_selections, enabled_plugins) {
+    if !plugin_is_enabled_for_target(
+        &feature.owner_plugin_id,
+        selected_plugin_ids,
+        canonical_enabled_plugins,
+    ) {
         status.add_missing_plugin(&feature.owner_plugin_id);
     }
     if feature_definition.provider_package_id != feature.owner_plugin_id
         && !plugin_is_enabled_for_target(
             &feature_definition.provider_package_id,
-            plugin_selections,
-            enabled_plugins,
+            selected_plugin_ids,
+            canonical_enabled_plugins,
         )
     {
         status.add_missing_plugin(&feature_definition.provider_package_id);
@@ -47,8 +51,8 @@ pub(super) fn feature_status(
     append_dependency_status(
         &mut status,
         feature,
-        plugin_selections,
-        enabled_plugins,
+        selected_plugin_ids,
+        canonical_enabled_plugins,
         available_capabilities,
     );
     status

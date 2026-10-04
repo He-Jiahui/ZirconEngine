@@ -1,11 +1,11 @@
 use std::io::Read;
 use std::mem;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex};
-use std::thread::{self, JoinHandle};
+use std::sync::{Arc, Condvar, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 use crossbeam_channel::{bounded, Receiver, Sender, TryRecvError, TrySendError};
+use zircon_runtime::core::runtime::tasks::{TaskPool, TaskPoolDescriptor};
 
 const PLAY_OUTPUT_QUEUE_CAPACITY: usize = 1_024;
 const PLAY_OUTPUT_QUEUE_BYTE_CAPACITY: usize = 4 * 1024 * 1024;
@@ -14,6 +14,10 @@ const PLAY_OUTPUT_DRAIN_LIMIT: usize = 64;
 const PLAY_OUTPUT_DRAIN_BYTE_LIMIT: usize = 256 * 1024;
 const PLAY_OUTPUT_DRAIN_TIME_BUDGET: Duration = Duration::from_millis(2);
 const PLAY_OUTPUT_READ_CHUNK_BYTES: usize = 8 * 1024;
+const PLAY_OUTPUT_BUDGET_DIAGNOSTIC_COUNT: usize = 5;
+const PLAY_OUTPUT_READER_COUNT: usize = 2;
+
+static PLAY_OUTPUT_TASK_POOL: OnceLock<Result<TaskPool, String>> = OnceLock::new();
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum PlayOutputStream {
@@ -162,7 +166,7 @@ fn truncate_to_byte_limit(value: &mut String, byte_limit: usize) -> usize {
 
 pub(super) struct PlayOutputPump {
     receiver: Receiver<PlayOutputLine>,
-    readers: Vec<JoinHandle<()>>,
+    reader_completion: Arc<ReaderCompletion>,
     deferred: Mutex<Option<PlayOutputLine>>,
     queue_bytes: Arc<OutputByteBudget>,
     counters: Arc<PlayOutputCounters>,
@@ -170,7 +174,6 @@ pub(super) struct PlayOutputPump {
 
 pub(super) struct PlayOutputCaptureError {
     message: String,
-    readers: Vec<JoinHandle<()>>,
 }
 
 impl std::fmt::Debug for PlayOutputCaptureError {
@@ -178,7 +181,7 @@ impl std::fmt::Debug for PlayOutputCaptureError {
         formatter
             .debug_struct("PlayOutputCaptureError")
             .field("message", &self.message)
-            .field("reader_count", &self.readers.len())
+            .field("reader_count", &0)
             .finish()
     }
 }
@@ -189,9 +192,6 @@ impl PlayOutputCaptureError {
     }
 
     pub(super) fn finish(self) -> String {
-        for reader in self.readers {
-            let _ = reader.join();
-        }
         self.message
     }
 }
@@ -201,35 +201,33 @@ impl PlayOutputPump {
         stdout: impl Read + Send + 'static,
         stderr: impl Read + Send + 'static,
     ) -> Result<Self, PlayOutputCaptureError> {
+        let task_pool = play_output_task_pool()
+            .map_err(|error| PlayOutputCaptureError::without_readers(error.to_string()))?;
         let (sender, receiver) = bounded(PLAY_OUTPUT_QUEUE_CAPACITY);
         let queue_bytes = Arc::new(OutputByteBudget::new(PLAY_OUTPUT_QUEUE_BYTE_CAPACITY));
         let counters = Arc::new(PlayOutputCounters::default());
-        let stdout_reader = spawn_reader(
+        let reader_completion = ReaderCompletion::new(PLAY_OUTPUT_READER_COUNT);
+        spawn_reader(
+            &task_pool,
             stdout,
             PlayOutputStream::Stdout,
             sender.clone(),
             Arc::clone(&queue_bytes),
             Arc::clone(&counters),
-        )
-        .map_err(PlayOutputCaptureError::without_readers)?;
-        let stderr_reader = match spawn_reader(
+            Arc::clone(&reader_completion),
+        );
+        spawn_reader(
+            &task_pool,
             stderr,
             PlayOutputStream::Stderr,
             sender,
             Arc::clone(&queue_bytes),
             Arc::clone(&counters),
-        ) {
-            Ok(reader) => reader,
-            Err(error) => {
-                return Err(PlayOutputCaptureError {
-                    message: error,
-                    readers: vec![stdout_reader],
-                });
-            }
-        };
+            Arc::clone(&reader_completion),
+        );
         Ok(Self {
             receiver,
-            readers: vec![stdout_reader, stderr_reader],
+            reader_completion,
             deferred: Mutex::new(None),
             queue_bytes,
             counters,
@@ -240,17 +238,15 @@ impl PlayOutputPump {
         self.drain_limited()
     }
 
-    pub(super) fn finish(mut self) -> Vec<String> {
-        let readers = mem::take(&mut self.readers);
-        for reader in readers {
-            let _ = reader.join();
-        }
+    pub(super) fn finish(self) -> Vec<String> {
+        self.reader_completion.wait();
         self.drain_all()
     }
 
     fn drain_limited(&self) -> Vec<String> {
         let deadline = Instant::now() + PLAY_OUTPUT_DRAIN_TIME_BUDGET;
-        let mut diagnostics = Vec::with_capacity(PLAY_OUTPUT_DRAIN_LIMIT + 4);
+        let mut diagnostics =
+            Vec::with_capacity(PLAY_OUTPUT_DRAIN_LIMIT + PLAY_OUTPUT_BUDGET_DIAGNOSTIC_COUNT);
         let mut drained_bytes = 0usize;
         let mut oldest_age_ms = 0;
 
@@ -275,12 +271,13 @@ impl PlayOutputPump {
     }
 
     fn drain_all(self) -> Vec<String> {
-        let mut diagnostics = Vec::new();
-        let mut oldest_age_ms = 0;
         let deferred = self
             .deferred
             .into_inner()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut diagnostics =
+            Vec::with_capacity(drain_all_capacity(self.receiver.len(), deferred.is_some()));
+        let mut oldest_age_ms = 0;
         if let Some(line) = deferred {
             oldest_age_ms = oldest_age_ms.max(elapsed_millis(line.captured_at));
             self.queue_bytes.release(line.queued_bytes);
@@ -325,65 +322,135 @@ impl PlayOutputPump {
     }
 }
 
+fn drain_all_capacity(queued_lines: usize, has_deferred_line: bool) -> usize {
+    let line_count = queued_lines.saturating_add(usize::from(has_deferred_line));
+    if line_count == 0 {
+        return 0;
+    }
+    line_count.saturating_add(PLAY_OUTPUT_BUDGET_DIAGNOSTIC_COUNT)
+}
+
 impl PlayOutputCaptureError {
     fn without_readers(message: String) -> Self {
-        Self {
-            message,
-            readers: Vec::new(),
-        }
+        Self { message }
     }
 }
 
 fn spawn_reader(
+    task_pool: &TaskPool,
     reader: impl Read + Send + 'static,
     stream: PlayOutputStream,
     sender: Sender<PlayOutputLine>,
     queue_bytes: Arc<OutputByteBudget>,
     counters: Arc<PlayOutputCounters>,
-) -> Result<JoinHandle<()>, String> {
-    thread::Builder::new()
-        .name(format!("zircon-play-{}", stream.label()))
-        .spawn(move || {
-            let mut reader = reader;
-            let mut decoder = BoundedLineDecoder::new(PLAY_OUTPUT_MAX_LINE_BYTES);
-            let mut buffer = [0_u8; PLAY_OUTPUT_READ_CHUNK_BYTES];
-            loop {
-                match reader.read(&mut buffer) {
-                    Ok(0) => {
-                        if let Some(line) = decoder.finish() {
-                            let _ = enqueue_line(&sender, stream, line, &queue_bytes, &counters);
-                        }
-                        break;
+    completion: Arc<ReaderCompletion>,
+) {
+    task_pool.spawn(move || {
+        let _completion = ReaderCompletionGuard::new(completion);
+        let mut reader = reader;
+        let mut decoder = BoundedLineDecoder::new(PLAY_OUTPUT_MAX_LINE_BYTES);
+        let mut buffer = [0_u8; PLAY_OUTPUT_READ_CHUNK_BYTES];
+        loop {
+            match reader.read(&mut buffer) {
+                Ok(0) => {
+                    if let Some(line) = decoder.finish() {
+                        let _ = enqueue_line(&sender, stream, line, &queue_bytes, &counters);
                     }
-                    Ok(read) => {
-                        if !decoder.push(&buffer[..read], |line| {
-                            enqueue_line(&sender, stream, line, &queue_bytes, &counters)
-                        }) {
+                    break;
+                }
+                Ok(read) => {
+                    if !decoder.push(&buffer[..read], |line| {
+                        enqueue_line(&sender, stream, line, &queue_bytes, &counters)
+                    }) {
+                        return;
+                    }
+                }
+                Err(error) => {
+                    if let Some(line) = decoder.finish() {
+                        if !enqueue_line(&sender, stream, line, &queue_bytes, &counters) {
                             return;
                         }
                     }
-                    Err(error) => {
-                        if let Some(line) = decoder.finish() {
-                            if !enqueue_line(&sender, stream, line, &queue_bytes, &counters) {
-                                return;
-                            }
-                        }
-                        let _ = enqueue_line(
-                            &sender,
-                            stream,
-                            DecodedOutputLine {
-                                text: format!("output read failed: {error}"),
-                                truncated_bytes: 0,
-                            },
-                            &queue_bytes,
-                            &counters,
-                        );
-                        break;
-                    }
+                    let _ = enqueue_line(
+                        &sender,
+                        stream,
+                        DecodedOutputLine {
+                            text: format!("output read failed: {error}"),
+                            truncated_bytes: 0,
+                        },
+                        &queue_bytes,
+                        &counters,
+                    );
+                    break;
                 }
             }
+        }
+    });
+}
+
+fn play_output_task_pool() -> Result<TaskPool, String> {
+    PLAY_OUTPUT_TASK_POOL
+        .get_or_init(|| {
+            TaskPool::try_new(
+                TaskPoolDescriptor::io()
+                    .with_worker_threads(PLAY_OUTPUT_READER_COUNT)
+                    .with_thread_name("zircon-play-output-task"),
+            )
+            .map_err(|error| error.to_string())
         })
-        .map_err(|error| format!("failed to spawn play {} reader: {error}", stream.label()))
+        .clone()
+}
+
+struct ReaderCompletion {
+    remaining: Mutex<usize>,
+    ready: Condvar,
+}
+
+impl ReaderCompletion {
+    fn new(reader_count: usize) -> Arc<Self> {
+        Arc::new(Self {
+            remaining: Mutex::new(reader_count),
+            ready: Condvar::new(),
+        })
+    }
+
+    fn complete(&self) {
+        let mut remaining = self
+            .remaining
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        *remaining = remaining.saturating_sub(1);
+        if *remaining == 0 {
+            self.ready.notify_all();
+        }
+    }
+
+    fn wait(&self) {
+        let remaining = self
+            .remaining
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let _remaining = self
+            .ready
+            .wait_while(remaining, |remaining| *remaining != 0)
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+    }
+}
+
+struct ReaderCompletionGuard {
+    completion: Arc<ReaderCompletion>,
+}
+
+impl ReaderCompletionGuard {
+    fn new(completion: Arc<ReaderCompletion>) -> Self {
+        Self { completion }
+    }
+}
+
+impl Drop for ReaderCompletionGuard {
+    fn drop(&mut self) {
+        self.completion.complete();
+    }
 }
 
 fn enqueue_line(
@@ -489,313 +556,9 @@ fn append_output_budget_diagnostics(
 }
 
 #[cfg(test)]
-mod performance_source_guards {
-    use std::hint::black_box;
-    use std::io::Cursor;
-    use std::mem;
-    use std::sync::{Arc, Mutex};
-    use std::time::Instant;
+#[path = "tests/output_performance_source_guards.rs"]
+mod performance_source_guards;
 
-    use crossbeam_channel::bounded;
-
-    use super::{
-        BoundedLineDecoder, OutputByteBudget, PlayOutputCounters, PlayOutputLine, PlayOutputPump,
-        PlayOutputStream, PLAY_OUTPUT_DRAIN_BYTE_LIMIT, PLAY_OUTPUT_MAX_LINE_BYTES,
-        PLAY_OUTPUT_QUEUE_BYTE_CAPACITY, PLAY_OUTPUT_READ_CHUNK_BYTES,
-    };
-
-    const STREAMING_DECODE_SAMPLE_PAIRS: usize = 17;
-
-    fn legacy_push(
-        decoder: &mut BoundedLineDecoder,
-        input: &[u8],
-    ) -> Vec<super::DecodedOutputLine> {
-        let mut lines = Vec::new();
-        for byte in input {
-            if *byte == b'\n' {
-                lines.push(decoder.finish_line());
-            } else if decoder.bytes.len() < decoder.max_bytes {
-                decoder.bytes.push(*byte);
-            } else {
-                decoder.truncated_bytes = decoder.truncated_bytes.saturating_add(1);
-            }
-        }
-        lines
-    }
-
-    fn elapsed_micros(run: impl FnOnce()) -> u128 {
-        let started = Instant::now();
-        run();
-        started.elapsed().as_micros()
-    }
-
-    fn nearest_rank_p95(samples: &mut [u128]) -> u128 {
-        samples.sort_unstable();
-        let rank = (samples.len() * 95).div_ceil(100);
-        samples[rank.saturating_sub(1)]
-    }
-
-    fn pump_with_queued_lines(lines: &[String]) -> (PlayOutputPump, Arc<OutputByteBudget>) {
-        let (sender, receiver) = bounded(lines.len());
-        let queue_bytes = Arc::new(OutputByteBudget::new(PLAY_OUTPUT_QUEUE_BYTE_CAPACITY));
-        for text in lines {
-            let queued_text = text.clone();
-            let queued_bytes = queued_text
-                .capacity()
-                .saturating_add(mem::size_of::<PlayOutputLine>());
-            assert!(queue_bytes.try_reserve(queued_bytes));
-            sender
-                .send(PlayOutputLine {
-                    stream: PlayOutputStream::Stdout,
-                    text: queued_text,
-                    truncated_bytes: 0,
-                    queued_bytes,
-                    captured_at: Instant::now(),
-                })
-                .expect("fixture queue should accept each line");
-        }
-        drop(sender);
-        (
-            PlayOutputPump {
-                receiver,
-                readers: Vec::new(),
-                deferred: Mutex::new(None),
-                queue_bytes: Arc::clone(&queue_bytes),
-                counters: Arc::new(PlayOutputCounters::default()),
-            },
-            queue_bytes,
-        )
-    }
-
-    #[test]
-    fn bounded_decoder_truncates_an_unterminated_line_without_retaining_its_tail() {
-        let mut decoder = BoundedLineDecoder::new(8);
-        assert!(decoder.push(b"0123456789", |_| true));
-
-        let line = decoder
-            .finish()
-            .expect("unterminated output must flush once");
-        assert_eq!(line.text, "01234567");
-        assert_eq!(line.truncated_bytes, 2);
-    }
-
-    #[test]
-    fn optimization_batch_20260826_editor07_play_output_streaming_decode_preserves_line_order() {
-        let mut decoder = BoundedLineDecoder::new(64);
-        let mut lines = Vec::new();
-
-        assert!(decoder.push(b"first\r\nsecond\nthird", |line| {
-            lines.push(line.text);
-            true
-        }));
-        lines.push(decoder.finish().unwrap().text);
-
-        assert_eq!(lines, ["first", "second", "third"]);
-    }
-
-    #[test]
-    fn optimization_batch_20260826_editor07_play_output_streaming_decode_stops_on_consumer_rejection(
-    ) {
-        let mut decoder = BoundedLineDecoder::new(64);
-        let mut lines = Vec::new();
-
-        assert!(!decoder.push(b"first\nsecond\nthird\n", |line| {
-            lines.push(line.text);
-            lines.len() < 2
-        }));
-
-        assert_eq!(lines, ["first", "second"]);
-    }
-
-    #[test]
-    fn optimization_batch_20260826_editor07_play_output_streaming_decode_has_no_per_chunk_line_vector(
-    ) {
-        let source = include_str!("output.rs");
-        let decoder = source
-            .split_once("impl BoundedLineDecoder")
-            .unwrap()
-            .1
-            .split_once("fn truncate_to_byte_limit")
-            .unwrap()
-            .0;
-
-        assert!(decoder.contains("mut emit: impl FnMut(DecodedOutputLine) -> bool"));
-        assert!(decoder.contains("if !emit(self.finish_line())"));
-        assert!(!decoder.contains("let mut lines = Vec::new()"));
-    }
-
-    #[test]
-    #[ignore = "release performance evidence for the managed validation coordinator"]
-    fn optimization_batch_20260826_editor07_play_output_streaming_decode_performance_evidence() {
-        let input = vec![b'\n'; PLAY_OUTPUT_READ_CHUNK_BYTES];
-        let expected_lines = input.len();
-
-        for _ in 0..4 {
-            let mut legacy = BoundedLineDecoder::new(PLAY_OUTPUT_MAX_LINE_BYTES);
-            black_box(legacy_push(&mut legacy, black_box(&input)));
-            let mut optimized = BoundedLineDecoder::new(PLAY_OUTPUT_MAX_LINE_BYTES);
-            assert!(optimized.push(black_box(&input), |line| {
-                black_box(line);
-                true
-            }));
-        }
-
-        let mut legacy_samples = Vec::with_capacity(STREAMING_DECODE_SAMPLE_PAIRS);
-        let mut optimized_samples = Vec::with_capacity(STREAMING_DECODE_SAMPLE_PAIRS);
-        for sample_index in 0..STREAMING_DECODE_SAMPLE_PAIRS {
-            let measure_legacy = || {
-                elapsed_micros(|| {
-                    let mut decoder = BoundedLineDecoder::new(PLAY_OUTPUT_MAX_LINE_BYTES);
-                    let lines = legacy_push(&mut decoder, black_box(&input));
-                    assert_eq!(black_box(lines.len()), expected_lines);
-                })
-            };
-            let measure_optimized = || {
-                elapsed_micros(|| {
-                    let mut decoder = BoundedLineDecoder::new(PLAY_OUTPUT_MAX_LINE_BYTES);
-                    let mut line_count = 0usize;
-                    assert!(decoder.push(black_box(&input), |line| {
-                        black_box(line);
-                        line_count = line_count.saturating_add(1);
-                        true
-                    }));
-                    assert_eq!(black_box(line_count), expected_lines);
-                })
-            };
-            if sample_index % 2 == 0 {
-                legacy_samples.push(measure_legacy());
-                optimized_samples.push(measure_optimized());
-            } else {
-                optimized_samples.push(measure_optimized());
-                legacy_samples.push(measure_legacy());
-            }
-        }
-
-        let legacy_p95 = nearest_rank_p95(&mut legacy_samples);
-        let optimized_p95 = nearest_rank_p95(&mut optimized_samples);
-        println!(
-            "EDITOR07_PLAY_OUTPUT_STREAMING_DECODE_BENCH_V1 sample_pairs={} chunk_bytes={} decoded_lines={} legacy_temporary_line_vectors_per_chunk=1 optimized_temporary_line_vectors_per_chunk=0 legacy_p95_us={} optimized_p95_us={} legacy_samples_us={:?} optimized_samples_us={:?}",
-            STREAMING_DECODE_SAMPLE_PAIRS,
-            PLAY_OUTPUT_READ_CHUNK_BYTES,
-            expected_lines,
-            legacy_p95,
-            optimized_p95,
-            legacy_samples,
-            optimized_samples,
-        );
-        assert!(
-            optimized_p95.saturating_mul(100) <= legacy_p95.saturating_mul(75),
-            "streaming decode p95 must be at least 25% below the temporary-vector path: legacy={legacy_p95}us optimized={optimized_p95}us"
-        );
-    }
-
-    #[test]
-    fn output_byte_budget_rejects_overflow_and_releases_consumed_bytes() {
-        let budget = OutputByteBudget::new(8);
-        assert!(budget.try_reserve(5));
-        assert!(!budget.try_reserve(4));
-        assert_eq!(budget.used(), 5);
-
-        budget.release(5);
-        assert_eq!(budget.used(), 0);
-        assert!(budget.try_reserve(8));
-    }
-
-    #[test]
-    fn captured_long_line_reports_truncation_with_bounded_rendered_output() {
-        let mut stdout = vec![b'x'; PLAY_OUTPUT_MAX_LINE_BYTES + 1];
-        stdout.push(b'\n');
-        let pump = PlayOutputPump::capture(Cursor::new(stdout), Cursor::new(Vec::<u8>::new()))
-            .expect("fixture readers should start");
-
-        let diagnostics = pump.finish();
-        let line = diagnostics
-            .iter()
-            .find(|diagnostic| diagnostic.starts_with("process.stdout: "))
-            .expect("stdout line should be preserved");
-        assert!(line.len() <= "process.stdout: ".len() + PLAY_OUTPUT_MAX_LINE_BYTES + 96);
-        assert!(diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.starts_with("process.output_truncated_lines=1")));
-    }
-
-    #[test]
-    fn live_drain_defers_a_line_that_exceeds_the_remaining_byte_budget() {
-        let line = "x".repeat(PLAY_OUTPUT_MAX_LINE_BYTES);
-        let (pump, queue_bytes) =
-            pump_with_queued_lines(&[line.clone(), line.clone(), line.clone(), line.clone()]);
-
-        let first_drain = pump.drain();
-        let first_output = first_drain
-            .iter()
-            .filter(|diagnostic| diagnostic.starts_with("process.stdout: "))
-            .map(String::as_str)
-            .collect::<Vec<_>>();
-        assert_eq!(first_output.len(), 3);
-        assert!(first_output
-            .iter()
-            .all(|diagnostic| diagnostic.ends_with(line.as_str())));
-        assert!(
-            queue_bytes.used() > 0,
-            "deferred line must keep its reservation"
-        );
-
-        let second_drain = pump.drain();
-        let expected = format!("process.stdout: {line}");
-        assert_eq!(
-            second_drain
-                .iter()
-                .filter(|diagnostic| diagnostic.starts_with("process.stdout: "))
-                .map(String::as_str)
-                .collect::<Vec<_>>(),
-            vec![expected.as_str()]
-        );
-        assert_eq!(queue_bytes.used(), 0);
-        assert!(PLAY_OUTPUT_DRAIN_BYTE_LIMIT < 4 * ("process.stdout: ".len() + line.len()));
-    }
-
-    #[test]
-    fn live_drain_enforces_the_line_budget_without_losing_the_next_line() {
-        let lines = (0..65)
-            .map(|index| format!("line-{index}"))
-            .collect::<Vec<_>>();
-        let (pump, queue_bytes) = pump_with_queued_lines(&lines);
-
-        let first_drain = pump.drain();
-        let first_output = first_drain
-            .iter()
-            .filter(|diagnostic| diagnostic.starts_with("process.stdout: "))
-            .map(String::as_str)
-            .collect::<Vec<_>>();
-        assert_eq!(first_output.len(), 64);
-        assert_eq!(
-            first_output.first().copied(),
-            Some("process.stdout: line-0")
-        );
-        assert_eq!(
-            first_output.last().copied(),
-            Some("process.stdout: line-63")
-        );
-        assert!(queue_bytes.used() > 0);
-
-        assert_eq!(
-            pump.drain()
-                .iter()
-                .filter(|diagnostic| diagnostic.starts_with("process.stdout: "))
-                .map(String::as_str)
-                .collect::<Vec<_>>(),
-            vec!["process.stdout: line-64"]
-        );
-        assert_eq!(queue_bytes.used(), 0);
-    }
-
-    #[test]
-    fn live_output_drain_has_a_per_poll_line_budget() {
-        let source = include_str!("output.rs");
-        let legacy_line_reader = ["read", "_until"].concat();
-        assert!(source.contains("PLAY_OUTPUT_DRAIN_LIMIT"));
-        assert!(source.contains("PLAY_OUTPUT_DRAIN_BYTE_LIMIT"));
-        assert!(source.contains("PLAY_OUTPUT_DRAIN_TIME_BUDGET"));
-        assert!(!source.contains(&legacy_line_reader));
-    }
-}
+#[cfg(test)]
+#[path = "output/tests/drain_all_capacity_tests.rs"]
+mod drain_all_capacity_tests;

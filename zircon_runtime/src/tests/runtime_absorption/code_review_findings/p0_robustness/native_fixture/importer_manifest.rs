@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_d13_native_fixture_importer_is_manifest_described() {
     let fixture = include_str!(
@@ -8,9 +9,9 @@ fn review_d13_native_fixture_importer_is_manifest_described() {
     let review_findings =
         include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
     let package_doc =
-        include_str!("../../../../../../../docs/zircon_runtime/plugin/package_manifest.md");
+        include_str!("../../../../../../../docs/crates/zircon_runtime/plugin/package_manifest.md");
     let native_doc = include_str!(
-        "../../../../../../../docs/zircon_runtime/plugin/native_plugin_loader/index.md"
+        "../../../../../../../docs/crates/zircon_runtime/plugin/native_plugin_loader/index.md"
     );
 
     for required in [

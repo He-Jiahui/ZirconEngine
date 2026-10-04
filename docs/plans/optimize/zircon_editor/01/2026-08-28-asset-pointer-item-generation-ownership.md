@@ -30,7 +30,7 @@ One detail needs an explicit API rather than inference: `shares_items_with` curr
 
 ## Complexity and deterministic pressure model
 
-`tools/editor_asset_pointer_generation_pressure.py` models 100,000 visible assets, 256 Activity folders, 1,000 stable two-surface layout publications, and 10,000 real item hits.
+`tools/analysis/performance/editor/editor_asset_pointer_generation_pressure.py` models 100,000 visible assets, 256 Activity folders, 1,000 stable two-surface layout publications, and 10,000 real item hits.
 
 Current item identity work:
 

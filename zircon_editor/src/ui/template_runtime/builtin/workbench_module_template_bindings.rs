@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 
 #[cfg(test)]
+#[path = "workbench_module_template_bindings/tests/assets_workspace_routes.rs"]
 mod assets_workspace_routes;
 
 pub(super) fn insert_workbench_module_bindings(bindings: &mut BTreeMap<String, EditorUiBinding>) {

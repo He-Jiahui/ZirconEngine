@@ -67,16 +67,14 @@ fn component_storage_sparse_iteration_never_exposes_dense_table_values() {
     let second = InternalEntity::new(1, 1);
     let mut storage = ComponentStorage::default();
 
-    assert!(
-        storage
-            .insert(
-                table_component,
-                StorageType::Table,
-                first,
-                TestComponent("table"),
-            )
-            .is_err()
-    );
+    assert!(storage
+        .insert(
+            table_component,
+            StorageType::Table,
+            first,
+            TestComponent("table"),
+        )
+        .is_err());
     storage
         .insert(
             sparse_component,
@@ -138,6 +136,7 @@ fn sparse_component_storage_removal_keeps_the_swapped_entity_addressable() {
 #[test]
 fn sparse_component_locator_rejects_a_reused_internal_slot_generation() {
     let source = include_str!("../../ecs/storage/component_storage/sparse.rs");
+    // BUG: [CR-R02-runtime_ecs_identity_storage-0001] 首个源码断言仍要求旧定位字段，实际入口已委托 locator 叶模块；断言必失败，后续槽代次行为检查不会执行。证据见 sparse.rs 与 sparse/locator.rs。
     assert!(source.contains("sparse_rows: Vec<Option<SparseRowLocation>>"));
     assert!(source.contains("generation: u32"));
     assert!(source.contains("dense_row: usize"));
@@ -199,25 +198,21 @@ fn component_storage_rejects_storage_and_type_mismatches_without_mutating_value(
         )
         .unwrap();
 
-    assert!(
-        storage
-            .insert(
-                component,
-                StorageType::Table,
-                entity,
-                TestComponent("moved")
-            )
-            .unwrap_err()
-            .to_string()
-            .contains("owned by its ArchetypeTable")
-    );
-    assert!(
-        storage
-            .insert(component, StorageType::SparseSet, entity, "wrong-type")
-            .unwrap_err()
-            .to_string()
-            .contains("different Rust type")
-    );
+    assert!(storage
+        .insert(
+            component,
+            StorageType::Table,
+            entity,
+            TestComponent("moved")
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("owned by its ArchetypeTable"));
+    assert!(storage
+        .insert(component, StorageType::SparseSet, entity, "wrong-type")
+        .unwrap_err()
+        .to_string()
+        .contains("different Rust type"));
     assert_eq!(
         storage.get::<TestComponent>(component, entity),
         Some(&TestComponent("typed"))

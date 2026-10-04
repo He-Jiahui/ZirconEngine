@@ -381,12 +381,10 @@ fn accessibility_dismiss_requires_popup_id() {
 
     assert_eq!(result.reply.disposition, UiDispatchDisposition::Unhandled);
     assert!(has_note(&result, "status=unsupported"));
-    assert!(
-        result
-            .diagnostics
-            .notes
-            .contains(&"accessibility dismiss requires popup id".to_string())
-    );
+    assert!(result
+        .diagnostics
+        .notes
+        .contains(&"accessibility dismiss requires popup id".to_string()));
 }
 
 #[test]
@@ -502,17 +500,21 @@ fn accessibility_set_value_updates_editable_text_property() {
     assert_eq!(metadata.attributes["selection_focus"].as_integer(), Some(9));
     assert_eq!(
         metadata.attributes["composition_start"].as_integer(),
-        Some(9)
+        Some(-1)
     );
-    assert_eq!(metadata.attributes["composition_end"].as_integer(), Some(9));
+    assert_eq!(
+        metadata.attributes["composition_end"].as_integer(),
+        Some(-1)
+    );
     assert_eq!(metadata.attributes["composition_text"].as_str(), Some(""));
     assert_eq!(
         metadata.attributes["composition_restore_text"].as_str(),
         Some("")
     );
+    let empty_clauses = Vec::<toml::Value>::new();
     assert_eq!(
         metadata.attributes["composition_clauses"].as_array(),
-        Some([].as_slice())
+        Some(&empty_clauses)
     );
     let snapshot = surface.accessibility_snapshot();
     let node = snapshot

@@ -1,3 +1,4 @@
+# 核对外框绘制片段编号、源身份与命令身份在记录和解析时一致。
 from pathlib import Path
 import unittest
 

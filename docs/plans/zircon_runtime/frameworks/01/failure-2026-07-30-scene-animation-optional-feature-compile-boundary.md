@@ -28,12 +28,11 @@ related_code:
   - zircon_plugins/animation/runtime/src/manager.rs
   - zircon_plugins/animation/runtime/src/tests.rs
   - zircon_plugins/animation/runtime/tests/animation_ik_contract.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/ik_postprocess.rs
   - zircon_runtime/src/animation/manager/mod.rs
-  - zircon_runtime/src/core/framework/animation/ik_command_error.rs
   - zircon_runtime/src/core/framework/animation/manager.rs
   - zircon_runtime/src/scene/tests/render_extract/level_source_guards.rs
   - zircon_runtime/src/scene/tests/level_system_frame_state.rs
+  - tools/tests/test_frameworks_01_scene_animation_boundary.py
 tests:
   - python -B -m unittest tools.tests.test_frameworks_01_scene_animation_boundary -v
   - cargo +1.94.1 test -p zircon_runtime --lib level_system_constructs_and_replaces_world_without_animation --no-default-features --locked --jobs 1 -- --nocapture --test-threads=1
@@ -42,10 +41,7 @@ tests:
   - cargo +1.94.1 test -p zircon_runtime --lib transactional_world_replacement_preserves_staged_lifecycle_callback_events --no-default-features --locked --jobs 1 -- --nocapture --test-threads=1
   - cargo +1.94.1 test -p zircon_plugin_animation_runtime --lib replacement_epoch_and_empty_mode_prepare_without_duplicate_resets --locked --jobs 1 -- --nocapture --test-threads=1
   - cargo +1.94.1 test -p zircon_plugin_animation_runtime --lib replacement_epoch_retires_pending_diagnostics_from_all_evaluators --locked --jobs 1 -- --nocapture --test-threads=1
-  - cargo +1.94.1 test -p zircon_plugin_animation_runtime --lib replacement_epoch_retires_deferred_ik_commands_and_rejects_late_old_epoch --locked --jobs 1 -- --nocapture --test-threads=1
-  - cargo +1.94.1 test -p zircon_runtime --lib replacement_epoch_retires_deferred_ik_commands_and_rejects_late_old_epoch --features animation --locked --jobs 1 -- --nocapture --test-threads=1
   - cargo +1.94.1 test -p zircon_plugin_animation_runtime --test animation_ik_contract --locked --jobs 1 -- --nocapture --test-threads=1
-  - cargo +1.94.1 test -p zircon_plugin_animation_runtime --test runtime_physics_animation_tick_contract queued_two_bone_ik_runs_after_base_animation_pose_and_before_publication --locked --jobs 1 -- --nocapture --test-threads=1
   - cargo +1.94.1 test -p zircon_plugin_animation_runtime --lib clip_player_time_is_deferred_until_event_batch_admission --locked --jobs 1 -- --nocapture --test-threads=1
   - cargo +1.94.1 test -p zircon_plugin_sdk --lib runtime_registration_builder_hides_module_owner_sequence --locked --jobs 1 -- --nocapture --test-threads=1
   - Runtime animation-enabled LevelSystem clip-event behavior remains covered without a scene-to-animation reverse dependency
@@ -475,3 +471,35 @@ product frame time, allocation after full plugin warmup, process energy, or Unre
 Failure remains `open` with state
 `parameter_owner_and_projection_hard_cut_source_implemented / static_and_proxy_green /
 managed_product_validation_pending`.
+
+## 2026-09-24 retired IK acceptance inventory
+
+The Plugins04 process-wide IK command inbox was hard-cut after the historical
+replacement-epoch work above. The former `core/framework/animation/ik_command_error.rs`
+and `runtime_physics_animation_tick_contract/ik_postprocess.rs` do not exist in
+the current source tree; the current Frameworks01 boundary guard lives in
+`tools/tests/test_frameworks_01_scene_animation_boundary.py`. Only the active
+`related_code` index was migrated; the history and its original findings remain.
+
+These three original test commands are retained here as *retired historical
+acceptance requirements*, not runnable current-source filters:
+
+```text
+cargo +1.94.1 test -p zircon_plugin_animation_runtime --lib replacement_epoch_retires_deferred_ik_commands_and_rejects_late_old_epoch --locked --jobs 1 -- --nocapture --test-threads=1
+cargo +1.94.1 test -p zircon_runtime --lib replacement_epoch_retires_deferred_ik_commands_and_rejects_late_old_epoch --features animation --locked --jobs 1 -- --nocapture --test-threads=1
+cargo +1.94.1 test -p zircon_plugin_animation_runtime --test runtime_physics_animation_tick_contract queued_two_bone_ik_runs_after_base_animation_pose_and_before_publication --locked --jobs 1 -- --nocapture --test-threads=1
+```
+
+Current source declares none of these three test names. Its
+`animation_ik_contract` target still checks the standalone TwoBone/LookAt
+solvers, but there is no current production graph-local skeletal-control IK
+test that could replace the old tick/queue acceptance. Plugins04 must provide
+that production test and actually execute it before any IK product acceptance;
+solver-only success or a zero-match exact filter cannot substitute. This
+Frameworks01 failure still requires its existing managed no-default Runtime,
+animation-enabled Runtime and Plugin SDK gates on matching source bytes.
+
+Read-only current-source diagnosis executed
+`python -B -m unittest tools.tests.test_frameworks_01_scene_animation_boundary -v`
+on 2026-09-24: 15 tests ran, 15 passed, exit 0. This is local static boundary
+evidence only, not managed Cargo, IK product acceptance or a fixed return.

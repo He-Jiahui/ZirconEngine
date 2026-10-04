@@ -87,6 +87,7 @@ impl RenderMaterialManagementQuery {
         )
     }
 
+    /// 对输入快照先筛选并排序，再统计整个命中集，最后截取页面；统计值不只覆盖当前页。
     pub fn apply_to_overview_records(
         &self,
         records: impl IntoIterator<Item = RenderMaterialManagementOverviewRecord>,
@@ -171,5 +172,5 @@ fn page_overview_records(
 }
 
 #[cfg(test)]
-#[path = "query/borrowed_filter_tests.rs"]
+#[path = "query/tests/borrowed_filter_tests.rs"]
 mod borrowed_filter_tests;

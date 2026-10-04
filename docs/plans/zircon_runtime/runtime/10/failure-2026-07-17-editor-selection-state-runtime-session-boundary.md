@@ -78,3 +78,61 @@ zircon_runtime/src/dynamic_api/session/events.rs: sync_orbit_target_from_selecti
 - 跨消费者复现：释放已知会失败且未绑定 job 的 Editor01 队首预约后，Frameworks05 受管 job `fb0000a6ee3b406a81f0917ef3d46f1d`、run `7ea84557bf824db08004d949e1d18c05` 同样在编译 `zircon_runtime` 时于 `render_frame_with_pipeline.rs:318` 得到 E0425，rustc 明确建议导入 `crate::render_graph::RenderGraphResourceAccessKind`，exit 101。该历史证据确认阻塞属于共享 Render01 current source，不是 Runtime10 test filter 或 Editor01 lifecycle 夹具；Render01 fixed return 不替代 Runtime10 自身仍待完成的上行重跑。
 
 Open state: `实现与聚焦门通过，上行跨 owner 失败待回传`; Runtime10 failure return and fixed promotion are not yet claimed.
+
+## 2026-09-25 rolling successor r2 current-source reconciliation
+
+The stable fixing Session `failure-roll-01a084c8-runtime10-selection-boundary-r2`
+was registered for the unchanged lifecycle key and claimed this failure record
+under request `1fdb3917027e487fbf23efad18f6a2dd`. Before editing, the five
+related source/test files were re-read. Current SHA-256 values are:
+
+```text
+zircon_runtime/src/dynamic_api/session/state.rs
+  356680001a44f8c60b2a0b2fbab6c4633cc523b646aa8a57b39c002870c8ac01
+zircon_runtime/src/dynamic_api/session/construction.rs
+  5613080ba3b58b72034e9c68559169ab266afd6a2ed4526dd8b532cd6aead4a1
+zircon_runtime/src/dynamic_api/session/events.rs
+  3290cc6039d7a30292e42378e1a0a8493ba51b973be1a061b424366396fdc343
+zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/event_split.rs
+  b70cbe66a509d3b0c117e6c4e8993168d86ec77108ea319988ec57ec993404bc
+zircon_runtime/src/tests/runtime_absorption/performance_hotspots/scene_project_splits/dynamic_session_event.rs
+  e464aedfce95f162e118419cc874d44f9ff5ff94282a0ba2d5de6bbe6242ab06
+```
+
+The three production session files are dirty foreign overlays; r2 did not edit
+or absorb `state.rs` or `events.rs`. The archived owner of
+`construction.rs` (`runtime-text04-20260831-r1`) was transferred through
+coordinator preview fingerprint
+`439690d8a015ec2c4e63e4480c26e310dd82064f2a69473fd061109c476a5a75` before the
+minimal naming repair below. Their current production sections contain no
+`selected_node`/selection-sync state, while the two structural tests retain
+those strings only as negative guards. Construction still derives one neutral
+cube orbit anchor and calls `camera_controller.set_orbit_target(orbit_target)`;
+the event module retains the ABI/event owner without selection synchronization.
+The exact intended filters are
+`tests::runtime_absorption::dynamic_api_session::event_split::runtime_10_dynamic_session_event_split_keeps_abi_owner_and_event_router`
+and
+`tests::runtime_absorption::performance_hotspots::scene_project_splits::dynamic_session_event::runtime_07_dynamic_session_event_split_keeps_abi_entry_and_event_owner`,
+each with `--exact --test-threads=1`; neither is claimed as newly executed in
+this reconciliation. The transient construction local was renamed from
+`selected_node` to `orbit_node` so the existing negative guard now matches the
+actual no-selection-state contract; behavior and selected mesh/resource
+projection are unchanged. A scoped static assertion confirmed all three
+production files contain none of the forbidden selection anchors and the
+neutral orbit anchors remain present. Historical Runtime10 focused 2/2 evidence and the
+previous 0/0/0 final review remain scoped to their original immutable sources;
+the failed/upstream `dynamic_api` and Render01/Runtime15 dependency evidence
+is not reused. Fresh managed Runtime10 and upward gates, independent review,
+canonical fixed return, and closeout remain pending.
+
+### r2 independent review receipt
+
+Reviewer Session `review-runtime10-selection-boundary-r2` re-read the five
+current paths after the naming repair. All hashes and foreign/transfer
+provenance match the manifest; `construction.rs` now contains only the
+transient `orbit_node`, while the two structural guards retain their negative
+anchor lists and are actual `#[test]` functions. The full `tests::`-prefixed
+exact filters resolve to those functions. Independent review result:
+**Critical=0 / Important=0 / Moderate=0**. This remains static/source evidence;
+managed Runtime10/upward Cargo, dependency re-runs, fixed return, and closeout
+remain pending.

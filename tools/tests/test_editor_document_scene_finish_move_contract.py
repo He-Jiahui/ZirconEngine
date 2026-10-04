@@ -1,3 +1,4 @@
+# 核对场景文档完成阶段移动预备场景而不克隆其内容。
 from pathlib import Path
 import unittest
 

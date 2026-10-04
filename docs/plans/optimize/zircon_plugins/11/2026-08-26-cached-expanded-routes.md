@@ -52,7 +52,7 @@ The other three runs produced P50 reductions of 42.49%, 40.77%, and 39.35%; P95 
 - Current session: `root-runtime-interface03-activate-link-failure-20260831`.
 - Shared static/model ticket: `dd4881f740a74ea1997f4e20faedb233` (queued, 17 Python tests).
 - Plugins11 Cargo behavior ticket: `644f86170262498bb03a6fe9853caa37` (queued; exact shared-cache behavior test).
-- Shared model: `tools/plugins_rpc_routes_pressure.py`, source manifest `C7976604E82B67CA2BC572A3AF78A8DF73B86DFA54D641C591F1D89B86EEF335`.
+- Shared model: `tools/analysis/performance/plugins/plugins_rpc_routes_pressure.py`, source manifest `C7976604E82B67CA2BC572A3AF78A8DF73B86DFA54D641C591F1D89B86EEF335`.
 - Current source hashes: `routes.rs` `2BC52F097A2B403237090205625A696EDE4EFC92DCCBC25C7EF6FB9AAFB8C33C`; shared model `2C63D72FE8BAFCE0C6885A639A27B1E2E66C1BC2AFBCECAF55FBBC40AF0603D8`.
 
 The current-source model is deterministic structural evidence, not wall-clock timing. For 2,048 source tracks sharing 256 downstream routes, it preserves 2,305 cache inserts and models route-row copies `1,050,880 -> 0`, shared-cache route clones `2,048 -> 0`, and gain-map reserve planning for 2,304 direct-send edges. Historical alternating release evidence remains the performance claim: P50 `48.6129 -> 28.6061 ms` (`-41.16%`), P95 `97.2023 -> 61.5532 ms` (`-36.67%`), allocations `22,550 -> 4,117` (`-81.742794%`), checksum `13349105238628374174`.

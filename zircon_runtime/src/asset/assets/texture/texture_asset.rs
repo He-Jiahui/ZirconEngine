@@ -97,7 +97,7 @@ impl TextureAsset {
         if descriptor.dimension != RenderImageDimension::D2 {
             return Err(TextureDescriptorError::ArrayLayoutRequires2d);
         }
-        if descriptor.depth_or_array_layers != 1 || descriptor.array_layer_count != 1 {
+        if descriptor.depth_or_array_layers != 1 {
             return Err(TextureDescriptorError::ArrayLayoutRequiresSingleLayer);
         }
         let layers = match array_layout {
@@ -129,9 +129,9 @@ impl TextureAsset {
             });
         }
 
+        // 上面已按原始整图校验 RGBA 字节数；这里把连续纵向行组解释为数组层，只缩小每层高度、不重排或复制像素。
         self.height /= layers;
         descriptor.depth_or_array_layers = layers;
-        descriptor.array_layer_count = layers;
         Ok(())
     }
 }

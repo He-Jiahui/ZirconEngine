@@ -1,13 +1,13 @@
 use super::types::{
     ModulePluginLiveHostBackend, ModulePluginLiveHostCommand, ModulePluginLiveHostOutcome,
-    ModulePluginLiveHostRequest,
+    ModulePluginLiveHostProject, ModulePluginLiveHostRequest,
 };
 
 pub(in crate::ui::retained_host::app::module_plugin_actions) fn dispatch_live_plugin_backend_action(
     backend: &dyn ModulePluginLiveHostBackend,
     plugin_id: &str,
     command: ModulePluginLiveHostCommand,
-    project_root: &std::path::Path,
+    project: &ModulePluginLiveHostProject,
 ) -> Result<ModulePluginLiveHostOutcome, String> {
     if plugin_id.trim().is_empty() {
         return Err("plugin id is empty".to_string());
@@ -15,7 +15,7 @@ pub(in crate::ui::retained_host::app::module_plugin_actions) fn dispatch_live_pl
     backend.execute(ModulePluginLiveHostRequest {
         plugin_id,
         command,
-        project_root,
+        project,
     })
 }
 
@@ -66,5 +66,5 @@ pub(in crate::ui::retained_host::app::module_plugin_actions) fn live_plugin_back
 }
 
 #[cfg(test)]
-#[path = "dispatch/single_allocation_success_message_tests.rs"]
+#[path = "dispatch/tests/single_allocation_success_message_tests.rs"]
 mod single_allocation_success_message_tests;

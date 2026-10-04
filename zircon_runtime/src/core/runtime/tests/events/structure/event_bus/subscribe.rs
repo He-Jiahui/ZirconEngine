@@ -1,5 +1,7 @@
 use super::fixture::{assert_absent, assert_contains, assert_ordered, EventBusSources};
 
+// EventBusSources 从生产文件快照核对公开边界：EventBus::subscribe 接收调用方策略，并返回框架订阅 trait object。
+// 主题注册与队列创建留在 EventBusState，旧 receiver/channel 形态不得出现在 facade。
 #[test]
 fn event_bus_subscribe_binds_an_explicit_delivery_policy_to_state() {
     let sources = EventBusSources::load();
@@ -9,12 +11,12 @@ fn event_bus_subscribe_binds_an_explicit_delivery_policy_to_state() {
         &[
             "use crate::core::framework::events::{",
             "EngineEventDeliveryPolicy,",
-            "EngineEventSubscription};",
+            "EngineEventSubscription",
             "impl EventBus",
             "pub fn subscribe(",
             "policy: EngineEventDeliveryPolicy",
             "Box<dyn EngineEventSubscription>",
-            "Box::new(self.state.subscribe(topic.into(), policy))",
+            ".subscribe(topic.into(), policy)",
         ],
     );
     assert_contains(sources.topic, "pub(super) fn subscribe(");
@@ -22,8 +24,10 @@ fn event_bus_subscribe_binds_an_explicit_delivery_policy_to_state() {
     assert_ordered(
         sources.topic,
         &[
+            // 先在主题注册表写锁内取得 topic 并增加 pending reservation，随后释放全局锁。
+            // 测试钩子可在 reservation 存活时与 prune 交错；添加 subscriber 后释放 reservation，Drop 负责扣回占位计数。
             "let (topic, reservation) = {",
-            "let mut topics = self.lock_topics();",
+            "let mut topics = self.write_topics();",
             "let reservation = topic.reserve_subscription();",
             "(topic, reservation)",
             "after_reservation();",

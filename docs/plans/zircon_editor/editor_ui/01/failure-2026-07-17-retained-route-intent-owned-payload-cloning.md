@@ -9,6 +9,7 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/01
 plan_link_mode: child_record_only
 related_code:
+  - zircon_editor/src/ui/retained_host/route_intent/mod.rs
   - zircon_editor/src/ui/retained_host/route_intent/map.rs
   - zircon_editor/src/ui/retained_host/activity_rail_pointer/host_activity_rail_pointer_route.rs
   - zircon_editor/src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_route.rs
@@ -17,13 +18,18 @@ related_code:
   - zircon_editor/src/ui/retained_host/hierarchy_pointer/hierarchy_pointer_route.rs
   - zircon_editor/src/ui/retained_host/host_page_pointer/host_page_pointer_route.rs
   - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/viewport_toolbar_pointer_route.rs
-  - zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_route_intent.rs
+  - zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_route.rs
+  - zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs
+  - zircon_editor/src/ui/retained_host/app/workspace_docking/drag_drop.rs
+  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_dispatch_event.rs
+  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/dispatch_event.rs
 reference_sources:
   - dev/bevy/crates/bevy_ui/src/layout/ui_surface.rs
   - dev/bevy/crates/bevy_ui/src/layout/debug.rs
 tests:
   - 1k move/click route payload clone-count regression
   - handled-by/target fallback and typed route parity matrix
+  - cargo test -p zircon_editor --lib repeated_route_handle_lookup_borrows_one_retained_payload --locked
 ---
 
 # EditorUI01：retained route intent 在每次指针分发深克隆 owned payload
@@ -61,3 +67,19 @@ EditorUI01 应让 pointer dispatch 返回稳定 route handle 或 generation-owne
 ## 修复结果与回传
 
 Open state: `待 EditorUI01 建立 generation-owned stable route handle/immutable payload 并回传 clone-count 与完整 route parity 证据`。
+
+
+## 2026-09-26 intake reconciliation
+
+The original frontmatter referenced `zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_route_intent.rs`, which no longer exists. The current path is `zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_route.rs`; the historical reference is preserved here. Direct shell, menu, and viewport-toolbar dispatch consumers are now linked in `related_code` for current-source acceptance. Session `failure-roll-01a0df1a-editorui01-route-clone-r1` owns this intake. No implementation, managed validation, return, or closeout is claimed by this correction.
+
+## 2026-09-26 partial repair and pending acceptance
+
+The route map now has generation-qualified Copy handles that resolve to borrowed payloads. The shell drag move and target-group path uses those handles, and the drop dispatch path materializes one owned route. The local map regression covers 1,000 borrowed lookups, handler/target priority, and stale handles after rebinding or map replacement. The module contract now describes this borrowed shell path.
+
+This is not the complete failure repair. Menu move and click still clone owned route fields, the 1,000-event clone/allocation acceptance and direct shell dispatch parity have not run, and capture/release invalidation remains to be demonstrated. The current menu implementation has unattributed changes belonging to the menu route scratch-reuse plan, so this Session will not overwrite or claim them without source-owner reconciliation. Managed Cargo acceptance is also blocked by the dirty external zr_vm worktree. A preparatory independent review found Important and Moderate gaps; no failure return, closeout review, commit, or WeCom success is claimed.
+
+The exact Cargo filter added to frontmatter names only the existing 1,000-lookup
+borrowed-map regression. Full pointer dispatch clone/allocation, menu click,
+capture/release, and route parity acceptance remain required. The filter has
+not run on a managed Cargo snapshot.

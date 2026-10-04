@@ -1,3 +1,4 @@
+//! 表面替换重置尺寸相关的历史与产品缓存；临时租约保证提交返回时归还槽位。
 use crate::core::math::UVec2;
 use crate::graphics::{backend::ViewportSurface, runtime::ViewportFrameHistory};
 
@@ -89,28 +90,5 @@ impl<T> Drop for SlotLease<'_, T> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::SlotLease;
-
-    #[test]
-    fn graphics_surface_slot_lease_restores_value_on_drop() {
-        let mut slot = Some(7);
-        {
-            let mut lease = SlotLease::take(&mut slot).expect("slot has value");
-            *lease.value_mut() = 11;
-        }
-
-        assert_eq!(slot, Some(11));
-    }
-
-    #[test]
-    fn graphics_surface_slot_lease_restores_value_on_explicit_restore() {
-        let mut slot = Some(3);
-        let mut lease = SlotLease::take(&mut slot).expect("slot has value");
-        *lease.value_mut() = 5;
-
-        lease.restore();
-
-        assert_eq!(slot, Some(5));
-    }
-}
+#[path = "tests/surface.rs"]
+mod tests;

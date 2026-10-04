@@ -1,4 +1,6 @@
-use crate::core::framework::events::{EngineEventDeliveryPolicy, EngineEventSubscription};
+use crate::core::framework::events::{
+    EngineEventDeliveryPolicy, EngineEventSubscribeError, EngineEventSubscription,
+};
 
 use super::EventBus;
 
@@ -9,8 +11,10 @@ impl EventBus {
         &self,
         topic: impl Into<String>,
         policy: EngineEventDeliveryPolicy,
-    ) -> Box<dyn EngineEventSubscription> {
-        Box::new(self.state.subscribe(topic.into(), policy))
+    ) -> Result<Box<dyn EngineEventSubscription>, EngineEventSubscribeError> {
+        self.state
+            .subscribe(topic.into(), policy)
+            .map(|subscription| Box::new(subscription) as Box<dyn EngineEventSubscription>)
     }
 
     #[cfg(test)]
@@ -19,12 +23,10 @@ impl EventBus {
         topic: impl Into<String>,
         policy: EngineEventDeliveryPolicy,
         after_reservation: impl FnOnce(),
-    ) -> Box<dyn EngineEventSubscription> {
-        Box::new(self.state.subscribe_after_reservation_for_test(
-            topic.into(),
-            policy,
-            after_reservation,
-        ))
+    ) -> Result<Box<dyn EngineEventSubscription>, EngineEventSubscribeError> {
+        self.state
+            .subscribe_after_reservation_for_test(topic.into(), policy, after_reservation)
+            .map(|subscription| Box::new(subscription) as Box<dyn EngineEventSubscription>)
     }
 
     #[cfg(test)]

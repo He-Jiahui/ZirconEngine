@@ -26,6 +26,8 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
 }
 "#;
 
+/// 输出目标写回的格式转换通道；ResourceStreamer 在场景提交事务中调用它，
+/// 让图输出经渲染通道写入线性 RGBA8 目标纹理而不暴露自有管线状态。
 pub(in crate::graphics::scene::resources) struct OutputTargetWritebackConverter {
     bind_group_layout: wgpu::BindGroupLayout,
     pipeline: wgpu::RenderPipeline,
@@ -87,6 +89,7 @@ impl OutputTargetWritebackConverter {
         }
     }
 
+    /// 把线性源像素转换为 RGBA8Unorm；使用逐像素读取，调用者须先确认源、目标与帧计划尺寸一致。
     pub(in crate::graphics::scene::resources) fn encode_linear_rgba_conversion(
         &self,
         device: &wgpu::Device,
@@ -126,13 +129,5 @@ impl OutputTargetWritebackConverter {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::OUTPUT_TARGET_LINEAR_CONVERSION_SHADER;
-
-    #[test]
-    fn output_target_linear_conversion_shader_loads_source_texel_without_sampler() {
-        assert!(OUTPUT_TARGET_LINEAR_CONVERSION_SHADER.contains("texture_2d<f32>"));
-        assert!(OUTPUT_TARGET_LINEAR_CONVERSION_SHADER.contains("textureLoad(source_tex"));
-        assert!(!OUTPUT_TARGET_LINEAR_CONVERSION_SHADER.contains("sampler"));
-    }
-}
+#[path = "tests/output_target_writeback_converter.rs"]
+mod tests;

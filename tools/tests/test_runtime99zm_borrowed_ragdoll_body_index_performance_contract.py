@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 布娃娃姿态反馈按关节数建立借用 body 索引，重复实体保留首项；父子和输出查找共用索引而不线性重扫。
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE = REPO_ROOT / "zircon_plugins/physics/runtime/src/skeletal/runtime.rs"

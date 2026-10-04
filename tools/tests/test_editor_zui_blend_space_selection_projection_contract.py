@@ -1,3 +1,4 @@
+# 核对混合空间资产选择统一驱动检索、指针、预览与命令反馈。
 import tomllib
 import unittest
 from pathlib import Path

@@ -1,9 +1,12 @@
+//! 组标签存在时为其单独留出顶部高度，主体再应用节点显示偏移；调用方负责 clip 相交判断。
+
 use super::super::super::super::{
     data::{FrameRect, TemplatePaneNodeData},
     paint_geometry::bounded_extent,
 };
 use super::super::metrics::{segment_group_label_gap, segment_group_label_height};
 
+/// 调用方先绘组标题再绘主体；非空 label_text 才占用顶部高度，布局偏移只作用于主体。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn segmented_body_rect(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
@@ -25,42 +28,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn segment
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn collapsed_segmented_body_has_no_drawable_extent() {
-        let body = segmented_body_rect(
-            &TemplatePaneNodeData::default(),
-            &FrameRect {
-                x: 12.0,
-                y: 8.0,
-                width: 0.0,
-                height: 0.0,
-            },
-        );
-
-        assert_eq!(body.width, 0.0);
-        assert_eq!(body.height, 0.0);
-    }
-
-    #[test]
-    fn labeled_segmented_body_stays_inside_a_short_parent_frame() {
-        let node = TemplatePaneNodeData {
-            label_text: "Render mode".to_string(),
-            ..TemplatePaneNodeData::default()
-        };
-        let body = segmented_body_rect(
-            &node,
-            &FrameRect {
-                x: 12.0,
-                y: 8.0,
-                width: 200.0,
-                height: 10.0,
-            },
-        );
-
-        assert_eq!((body.x, body.y), (12.0, 18.0));
-        assert_eq!((body.width, body.height), (200.0, 0.0));
-    }
-}
+#[path = "tests/body.rs"]
+mod tests;

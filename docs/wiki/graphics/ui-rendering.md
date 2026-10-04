@@ -11,11 +11,11 @@ implementation_files:
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
-  - docs/assets-and-rendering/runtime-ui-graphics-integration.md
-  - docs/assets-and-rendering/runtime-ui-slate-rendering-gap-audit.md
+  - docs/rendering/runtime-ui-graphics-integration.md
+  - docs/rendering/runtime-ui-slate-rendering-gap-audit.md
 tests:
   - zircon_runtime/src/graphics/tests/render_product_ui.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests/cases.rs
   - zircon_runtime/tests/runtime_ui_text_render_contract.rs
 doc_type: module-detail
 ---

@@ -1,3 +1,4 @@
+# 核对菜单指针遮罩按资源代际缓存，尺寸变化不逐帧重投影。
 from pathlib import Path
 import unittest
 

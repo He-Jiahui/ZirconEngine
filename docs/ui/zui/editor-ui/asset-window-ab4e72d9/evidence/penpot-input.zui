@@ -1,0 +1,4717 @@
+penpot_host_theme_source = "zircon_editor/assets/ui/editor/theme/editor_tokens.zui"
+stylesheets = []
+penpot_dependency_sources = [ "zircon_editor/assets/ui/editor/theme/editor_tokens.zui", "zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui", "zircon_editor/assets/ui/editor/windows/asset_window.zui", "zircon_editor/assets/ui/editor/host/hierarchy_body.zui", "zircon_editor/assets/ui/editor/assets_activity.zui", "zircon_editor/assets/ui/editor/host/asset_surface_controls.zui", "zircon_editor/assets/ui/editor/ui_asset_editor.zui", "zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui", "zircon_editor/assets/ui/editor/host/console_body.zui", "zircon_editor/assets/ui/editor/asset_browser.zui", "zircon_editor/assets/ui/theme/editor_workbench_strict.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_tree_row.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_label.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui", "zircon_editor/assets/ui/editor/components/workbench/composites/chrome/workbench_ui_asset_action_bar.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui", "zircon_editor/assets/icons/zircon_editor_shell/controls/search.svg", "zircon_editor/assets/icons/ionicons/close-outline.svg", "zircon_editor/assets/icons/zircon_editor_shell/controls/field-stepper.svg" ]
+penpot_original_source = "[asset]\nkind = \"view\"\nid = \"res://ui/editor/windows/asset_window.zui\"\nversion = 2\ndisplay_name = \"Asset Window\"\n\n[imports]\nwidgets = [\"res://ui/editor/components/workbench/shell/activity_drawer_window.zui#ActivityDrawerWindow\"]\n\n[root]\nnode = \"root\"\n\n[nodes.root]\ncomponent = \"ActivityDrawerWindow\"\ncontrol_id = \"AssetWindowRoot\"\nprops = { shell_preset = \"jetbrains_shell\", panel_preset = \"fyrox_panel\", window_model = \"unreal_window_model\" }\nchildren = [\n  { node = \"tree\", slot = { name = \"left_top_activity\" } },\n  { node = \"collections\", slot = { name = \"left_bottom_activity\" } },\n  { node = \"details\", slot = { name = \"right_top_activity\" } },\n  { node = \"preview\", slot = { name = \"right_bottom_activity\" } },\n  { node = \"import_log\", slot = { name = \"bottom_left_activity\" } },\n  { node = \"dependency\", slot = { name = \"bottom_right_activity\" } },\n  { node = \"browser\", slot = { name = \"content\" } },\n]\n\n[nodes.tree]\ncomponent = \"Container\"\ncontrol_id = \"AssetWindowTreeActivity\"\nlayout = { clip = true, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.collections]\ncomponent = \"Container\"\ncontrol_id = \"AssetWindowCollectionsActivity\"\nlayout = { clip = true, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.details]\ncomponent = \"Container\"\ncontrol_id = \"AssetWindowDetailsActivity\"\nlayout = { clip = true, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.preview]\ncomponent = \"Container\"\ncontrol_id = \"AssetWindowPreviewActivity\"\nlayout = { clip = true, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.import_log]\ncomponent = \"Container\"\ncontrol_id = \"AssetWindowImportLogActivity\"\nlayout = { clip = true, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.dependency]\ncomponent = \"Container\"\ncontrol_id = \"AssetWindowDependencyActivity\"\nlayout = { clip = true, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.browser]\ncomponent = \"Container\"\ncontrol_id = \"AssetWindowBrowserContent\"\nlayout = { clip = true, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n"
+
+[asset]
+kind = "view"
+id = "res://ui/editor/windows/asset_window.zui"
+version = 2
+display_name = "Asset Window"
+
+[imports]
+widgets = []
+styles = []
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalGroup"
+control_id = "AssetWindowRoot"
+pixel_snapping = "disabled"
+classes = [ "activity-drawer-window" ]
+events = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui#ActivityDrawerWindow"
+
+[nodes.root.layout]
+clip = true
+
+[nodes.root.layout.container]
+kind = "VerticalBox"
+gap = 0
+
+[nodes.root.layout.width]
+stretch = "Stretch"
+
+[nodes.root.layout.height]
+stretch = "Stretch"
+
+[[nodes.root.children]]
+node = "root__center_band"
+
+[[nodes.root.children]]
+node = "root__bottom_band"
+
+[nodes.root.props]
+shell_preset = "jetbrains_shell"
+panel_preset = "fyrox_panel"
+window_model = "unreal_window_model"
+
+[nodes.root.state]
+[nodes.root.style.self]
+[nodes.root.style.slot]
+[nodes.root.slots]
+[nodes.tree]
+component = "Container"
+control_id = "AssetWindowTreeActivity"
+
+[nodes.tree.layout]
+clip = true
+
+[nodes.tree.layout.width]
+stretch = "Stretch"
+
+[nodes.tree.layout.height]
+stretch = "Stretch"
+
+[nodes.collections]
+component = "Container"
+control_id = "AssetWindowCollectionsActivity"
+
+[nodes.collections.layout]
+clip = true
+
+[nodes.collections.layout.width]
+stretch = "Stretch"
+
+[nodes.collections.layout.height]
+stretch = "Stretch"
+
+[nodes.details]
+component = "Container"
+control_id = "AssetWindowDetailsActivity"
+
+[nodes.details.layout]
+clip = true
+
+[nodes.details.layout.width]
+stretch = "Stretch"
+
+[nodes.details.layout.height]
+stretch = "Stretch"
+
+[nodes.preview]
+component = "Container"
+control_id = "AssetWindowPreviewActivity"
+
+[nodes.preview.layout]
+clip = true
+
+[nodes.preview.layout.width]
+stretch = "Stretch"
+
+[nodes.preview.layout.height]
+stretch = "Stretch"
+
+[nodes.import_log]
+component = "Container"
+control_id = "AssetWindowImportLogActivity"
+
+[nodes.import_log.layout]
+clip = true
+
+[nodes.import_log.layout.width]
+stretch = "Stretch"
+
+[nodes.import_log.layout.height]
+stretch = "Stretch"
+
+[nodes.dependency]
+component = "Container"
+control_id = "AssetWindowDependencyActivity"
+
+[nodes.dependency.layout]
+clip = true
+
+[nodes.dependency.layout.width]
+stretch = "Stretch"
+
+[nodes.dependency.layout.height]
+stretch = "Stretch"
+
+[nodes.browser]
+component = "Container"
+control_id = "AssetWindowBrowserContent"
+
+[nodes.browser.layout]
+clip = true
+
+[nodes.browser.layout.width]
+stretch = "Stretch"
+
+[nodes.browser.layout.height]
+stretch = "Stretch"
+
+[nodes.root__center_band]
+component = "HorizontalGroup"
+control_id = "ActivityDrawerWindowCenterBand"
+
+[nodes.root__center_band.layout]
+clip = true
+
+[nodes.root__center_band.layout.container]
+kind = "HorizontalBox"
+gap = 0
+
+[nodes.root__center_band.layout.width]
+stretch = "Stretch"
+
+[nodes.root__center_band.layout.height]
+stretch = "Stretch"
+
+[[nodes.root__center_band.children]]
+node = "root__left_column"
+
+[[nodes.root__center_band.children]]
+node = "browser"
+
+[nodes.root__center_band.children.slot]
+name = "content"
+
+[nodes.root__center_band.children.slot.layout]
+clip = true
+
+[nodes.root__center_band.children.slot.layout.width]
+stretch = "Stretch"
+
+[nodes.root__center_band.children.slot.layout.height]
+stretch = "Stretch"
+
+[[nodes.root__center_band.children]]
+node = "root__right_column"
+
+[nodes.root__left_column]
+component = "VerticalGroup"
+control_id = "ActivityDrawerWindowLeftColumn"
+
+[nodes.root__left_column.props]
+responsive_min_tier = "narrow"
+
+[nodes.root__left_column.layout]
+clip = true
+
+[nodes.root__left_column.layout.container]
+kind = "VerticalBox"
+gap = 0
+
+[nodes.root__left_column.layout.width]
+min = "$editor.density.compact_side_min_width"
+preferred = "$editor.density.left_drawer_width"
+max = "$editor.density.left_drawer_width"
+stretch = "Fixed"
+
+[nodes.root__left_column.layout.height]
+stretch = "Stretch"
+
+[[nodes.root__left_column.children]]
+node = "tree"
+
+[nodes.root__left_column.children.slot]
+name = "left_top_activity"
+
+[nodes.root__left_column.children.slot.layout]
+clip = true
+
+[nodes.root__left_column.children.slot.layout.width]
+stretch = "Stretch"
+
+[nodes.root__left_column.children.slot.layout.height]
+stretch = "Stretch"
+
+[[nodes.root__left_column.children]]
+node = "collections"
+
+[nodes.root__left_column.children.slot]
+name = "left_bottom_activity"
+
+[nodes.root__left_column.children.slot.layout]
+clip = true
+
+[nodes.root__left_column.children.slot.layout.width]
+stretch = "Stretch"
+
+[nodes.root__left_column.children.slot.layout.height]
+stretch = "Stretch"
+
+[nodes.root__right_column]
+component = "VerticalGroup"
+control_id = "ActivityDrawerWindowRightColumn"
+
+[nodes.root__right_column.props]
+responsive_min_tier = "regular"
+
+[nodes.root__right_column.layout]
+clip = true
+
+[nodes.root__right_column.layout.container]
+kind = "VerticalBox"
+gap = 0
+
+[nodes.root__right_column.layout.width]
+min = "$editor.density.compact_side_min_width"
+preferred = "$editor.density.right_drawer_width"
+max = "$editor.density.right_drawer_width"
+stretch = "Fixed"
+
+[nodes.root__right_column.layout.height]
+stretch = "Stretch"
+
+[[nodes.root__right_column.children]]
+node = "details"
+
+[nodes.root__right_column.children.slot]
+name = "right_top_activity"
+
+[nodes.root__right_column.children.slot.layout]
+clip = true
+
+[nodes.root__right_column.children.slot.layout.width]
+stretch = "Stretch"
+
+[nodes.root__right_column.children.slot.layout.height]
+stretch = "Stretch"
+
+[[nodes.root__right_column.children]]
+node = "preview"
+
+[nodes.root__right_column.children.slot]
+name = "right_bottom_activity"
+
+[nodes.root__right_column.children.slot.layout]
+clip = true
+
+[nodes.root__right_column.children.slot.layout.width]
+stretch = "Stretch"
+
+[nodes.root__right_column.children.slot.layout.height]
+stretch = "Stretch"
+
+[nodes.root__bottom_band]
+component = "HorizontalGroup"
+control_id = "ActivityDrawerWindowBottomBand"
+
+[nodes.root__bottom_band.layout]
+clip = true
+
+[nodes.root__bottom_band.layout.container]
+kind = "HorizontalBox"
+gap = 0
+
+[nodes.root__bottom_band.layout.width]
+stretch = "Stretch"
+
+[nodes.root__bottom_band.layout.height]
+min = "$editor.density.ultra_compact_bottom_min_height"
+preferred = "$editor.density.bottom_output_height"
+max = "$editor.density.bottom_output_height"
+stretch = "Fixed"
+
+[[nodes.root__bottom_band.children]]
+node = "import_log"
+
+[nodes.root__bottom_band.children.slot]
+name = "bottom_left_activity"
+
+[nodes.root__bottom_band.children.slot.layout]
+clip = true
+
+[nodes.root__bottom_band.children.slot.layout.width]
+stretch = "Stretch"
+
+[nodes.root__bottom_band.children.slot.layout.height]
+stretch = "Stretch"
+
+[[nodes.root__bottom_band.children]]
+node = "dependency"
+
+[nodes.root__bottom_band.children.slot]
+name = "bottom_right_activity"
+
+[nodes.root__bottom_band.children.slot.layout]
+clip = true
+
+[nodes.root__bottom_band.children.slot.layout.width]
+stretch = "Stretch"
+
+[nodes.root__bottom_band.children.slot.layout.height]
+stretch = "Stretch"
+
+[penpot_host_colors]
+primary = "#60aeff"
+accent = "#60aeff"
+"material.primary" = "#60aeff"
+material_color_primary = "#60aeff"
+on_primary = "#151515"
+"material.on_primary" = "#151515"
+material_color_on_primary = "#151515"
+surface = "#2f2f2f"
+"material.surface" = "#2f2f2f"
+surface_inset = "#0f0f0f"
+"material.surface_inset" = "#0f0f0f"
+surface_hover = "#454545"
+"material.surface_hover" = "#454545"
+surface_pressed = "#383838"
+"material.surface_pressed" = "#383838"
+surface_selected = "#243f5a"
+"material.surface_selected" = "#243f5a"
+disabled = "#2b2b2b"
+"material.disabled" = "#2b2b2b"
+border = "#484848"
+outline = "#484848"
+"material.outline" = "#484848"
+focus = "#66b2ff"
+focus_ring = "#66b2ff"
+"material.focus_ring" = "#66b2ff"
+text = "#e8e8e8"
+on_surface = "#e8e8e8"
+"material.text" = "#e8e8e8"
+"material.on_surface" = "#e8e8e8"
+text_muted = "#b3b3b3"
+muted = "#b3b3b3"
+"material.text_muted" = "#b3b3b3"
+text_disabled = "#737373"
+"material.text_disabled" = "#737373"
+warning = "#dcac50"
+"material.warning" = "#dcac50"
+error = "#eb605c"
+danger = "#eb605c"
+"material.error" = "#eb605c"
+success = "#55be78"
+"material.success" = "#55be78"
+info = "#5faae6"
+"material.info" = "#5faae6"
+
+[penpot_host_palette]
+surface = [ "#151515", "#242424", "#2f2f2f", "#383838" ]
+surface_recessed = "#0f0f0f"
+surface_hover = "#454545"
+surface_selected = "#243f5a"
+surface_disabled = "#2b2b2b"
+accent = "#60aeff"
+accent_soft = "#253f59"
+border = "#484848"
+border_disabled = "#363636"
+separator_strong = "#565656"
+separator_soft = "#333333"
+text_primary = "#e8e8e8"
+text_secondary = "#b3b3b3"
+text_disabled = "#737373"
+success = "#55be78"
+success_container = "#1d472f"
+info = "#5faae6"
+info_container = "#18395b"
+warning = "#dcac50"
+warning_container = "#463112"
+error = "#eb605c"
+error_container = "#4c2427"
+popup = "#242424"
+track = "#3b3b3b"
+focus_ring = "#66b2ff"
+shadow = "#00000073"
+
+[tokens]
+"theme.palette.surface.0" = "#151515"
+"theme.palette.surface.1" = "#242424"
+"theme.palette.surface.2" = "#2f2f2f"
+"theme.palette.surface.3" = "#383838"
+"theme.palette.text.primary" = "#e8e8e8"
+"theme.palette.text.secondary" = "#b3b3b3"
+"theme.palette.text.disabled" = "#737373"
+"theme.palette.accent" = "#60aeff"
+"theme.palette.success" = "#55be78"
+"theme.palette.info" = "#5faae6"
+"theme.palette.warning" = "#dcac50"
+"theme.palette.error" = "#eb605c"
+"theme.palette.separator" = "#484848"
+"editor.surface.0" = "#151515"
+"editor.surface.1" = "#242424"
+"editor.surface.2" = "#2f2f2f"
+"editor.surface.3" = "#383838"
+"editor.surface.recessed" = "#0f0f0f"
+"editor.surface.hover" = "#454545"
+"editor.surface.selected" = "#243f5a"
+"editor.surface.disabled" = "#2b2b2b"
+"editor.accent" = "#60aeff"
+"editor.accent.soft" = "#253f59"
+"editor.border" = "#484848"
+"editor.border.disabled" = "#363636"
+"editor.separator.strong" = "#565656"
+"editor.separator.soft" = "#333333"
+"editor.text.primary" = "#e8e8e8"
+"editor.text.secondary" = "#b3b3b3"
+"editor.text.disabled" = "#737373"
+"editor.semantic.success" = "#55be78"
+"editor.semantic.success.container" = "#1d472f"
+"editor.semantic.info" = "#5faae6"
+"editor.semantic.info.container" = "#18395b"
+"editor.semantic.warning" = "#dcac50"
+"editor.semantic.warning.container" = "#463112"
+"editor.semantic.error" = "#eb605c"
+"editor.semantic.error.container" = "#4c2427"
+"editor.popup" = "#242424"
+"editor.track" = "#3b3b3b"
+"editor.focus.ring" = "#66b2ff"
+"editor.shadow" = "#00000073"
+"editor.typography.ui.family" = "Fira Sans"
+"editor.typography.ui.strong.family" = "Fira Sans"
+"editor.typography.code.family" = "Fira Mono"
+"editor.typography.utility_tab.text_role" = "ui"
+"editor.typography.font_smoothing" = "grayscale"
+"editor.typography.body.size" = 14
+"editor.typography.caption.size" = 12
+"editor.typography.overlay.size" = 12
+"editor.typography.heading.size" = 16
+"editor.typography.title.size" = 20
+"editor.typography.body.weight" = 400
+"editor.typography.medium.weight" = 500
+"editor.typography.strong.weight" = 600
+"editor.typography.emphasis.weight" = 700
+"editor.typography.code.weight" = 400
+"editor.typography.line_height" = 1.4
+"editor.control.height.large" = 48
+"editor.control.height.default" = 32
+"editor.control.height.compact" = 32
+"editor.control.height.dense" = 28
+"editor.control.radius.small" = 4
+"editor.control.radius.control" = 4
+"editor.control.radius.large" = 8
+"editor.control.radius.panel" = 0
+"editor.control.radius.pill" = 999
+"editor.control.border_width" = 1
+"editor.chrome.top_bar.height" = 25
+"editor.chrome.host_bar.height" = 32
+"editor.chrome.workbench_toolbar.height" = 66
+"editor.chrome.workbench_toolbar.command_row.height" = 34
+"editor.chrome.workbench_toolbar.popup.command_offset_y" = 29
+"editor.chrome.workbench_toolbar.popup.module_offset_y" = -6
+"editor.chrome.status_bar.height" = 24
+"editor.chrome.panel_header.height" = 30
+"editor.chrome.document_header.height" = 31
+"editor.chrome.viewport_toolbar.height" = 28
+"editor.chrome.activity_rail.width" = 34
+"editor.chrome.separator.thickness" = 1
+"editor.chrome.splitter.hit_size" = 8
+"editor.density.gap.xsmall" = 2
+"editor.density.gap.tight" = 4
+"editor.density.gap.small" = 4
+"editor.density.gap.regular" = 8
+"editor.density.gap.medium" = 8
+"editor.density.gap.large" = 12
+"editor.density.gap.group" = 24
+"editor.density.drawer_padding" = 12
+"editor.density.panel_padding" = 16
+"editor.density.toolbar_action_width" = 76
+"editor.density.toolbar_wide_action_width" = 96
+"editor.density.ui_asset_action.min_width" = 40
+"editor.density.ui_asset_action.preferred_width" = 52
+"editor.density.ui_asset_action.max_width" = 64
+"editor.density.ui_asset.side.min_width" = 128
+"editor.density.ui_asset.side.preferred_width" = 220
+"editor.density.ui_asset.center.min_width" = 256
+"editor.density.ui_asset.center.preferred_width" = 420
+"editor.density.ui_asset.header_kind.min_width" = 64
+"editor.density.ui_asset.header_kind.preferred_width" = 70
+"editor.density.ui_asset.header_kind.max_width" = 84
+"editor.density.ui_asset.tool.min_width" = 56
+"editor.density.ui_asset.tool.preferred_width" = 64
+"editor.density.ui_asset.tool.max_width" = 80
+"editor.density.command_palette.min_width" = 520
+"editor.density.command_palette.preferred_width" = 560
+"editor.density.command_palette.max_width" = 640
+"editor.density.command_palette.min_height" = 180
+"editor.density.command_palette.preferred_height" = 220
+"editor.density.command_palette.max_height" = 280
+"editor.density.dialog.min_width" = 420
+"editor.density.dialog.preferred_width" = 480
+"editor.density.dialog.max_width" = 560
+"editor.density.dialog.min_height" = 180
+"editor.density.dialog.preferred_height" = 220
+"editor.density.dialog.max_height" = 320
+"editor.density.confirm_dialog.preferred_width" = 460
+"editor.density.confirm_dialog.max_width" = 540
+"editor.density.confirm_dialog.min_height" = 174
+"editor.density.confirm_dialog.preferred_height" = 210
+"editor.density.confirm_dialog.max_height" = 300
+"editor.density.notification_panel.min_width" = 280
+"editor.density.notification_panel.preferred_width" = 320
+"editor.density.notification_panel.max_width" = 380
+"editor.density.notification_panel.min_height" = 160
+"editor.density.notification_panel.preferred_height" = 220
+"editor.density.notification_panel.max_height" = 320
+"editor.density.caption.min_height" = 20
+"editor.density.caption.preferred_height" = 22
+"editor.density.caption.max_height" = 24
+"editor.density.label.min_height" = 22
+"editor.density.label.preferred_height" = 24
+"editor.density.label.max_height" = 32
+"editor.density.chip.min_width" = 40
+"editor.density.chip.preferred_width" = 80
+"editor.density.chip.max_width" = 160
+"editor.density.axis_value_field.min_width" = 54
+"editor.density.axis_value_field.preferred_width" = 62
+"editor.density.axis_value_field.max_width" = 72
+"editor.density.row_height" = 28
+"editor.density.left_drawer_width" = 332
+"editor.density.right_drawer_width" = 404
+"editor.density.bottom_output_height" = 228
+"editor.density.breakpoint_ultra_width" = 480
+"editor.density.breakpoint_narrow_width" = 640
+"editor.density.breakpoint_wide_width" = 1260
+"editor.density.compact_side_width" = 1100
+"editor.density.ultra_compact_side_width" = 760
+"editor.density.compact_left_drawer_max_width" = 340
+"editor.density.compact_right_drawer_max_width" = 220
+"editor.density.compact_side_min_width" = 196
+"editor.density.minimum_document_width_fraction" = 0.5
+"editor.density.ultra_compact_left_drawer_max_width" = 220
+"editor.density.ultra_compact_right_drawer_max_width" = 160
+"editor.density.compact_bottom_available_height" = 900
+"editor.density.compact_bottom_max_height" = 148
+"editor.density.compact_bottom_max_available_fraction" = 0.23
+"editor.density.compact_bottom_min_height" = 120
+"editor.density.ultra_compact_bottom_available_height" = 420
+"editor.density.ultra_compact_bottom_max_height" = 96
+"editor.density.ultra_compact_bottom_max_available_fraction" = 0.2
+"editor.density.ultra_compact_bottom_min_height" = 80
+"editor.density.minimum_window_width" = 640
+"editor.density.minimum_window_height" = 420
+"editor.density.ultra_minimum_window_width" = 420
+"editor.density.ultra_minimum_window_height" = 360
+"editor.state.default" = "surface_1"
+"editor.state.hovered" = "surface_2"
+"editor.state.pressed" = "surface_3"
+"editor.state.selected" = "surface_selected"
+"editor.state.focused" = "surface_1"
+"editor.state.disabled" = "text_disabled"
+"editor.state.loading" = "accent"
+
+[penpot_original_imports]
+widgets = [ "res://ui/editor/components/workbench/shell/activity_drawer_window.zui#ActivityDrawerWindow" ]
+
+[penpot_review_host]
+penpot_host_theme_source = "zircon_editor/assets/ui/editor/theme/editor_tokens.zui"
+penpot_dependency_sources = [ "zircon_editor/assets/ui/editor/theme/editor_tokens.zui", "zircon_editor/assets/ui/theme/editor_workbench_strict.zui", "zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_tree_row.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_label.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui", "zircon_editor/assets/ui/editor/components/workbench/composites/chrome/workbench_ui_asset_action_bar.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui", "zircon_editor/assets/icons/zircon_editor_shell/controls/search.svg", "zircon_editor/assets/icons/ionicons/close-outline.svg", "zircon_editor/assets/icons/zircon_editor_shell/controls/field-stepper.svg" ]
+
+[penpot_review_host.asset]
+kind = "view"
+id = "res://ui/editor/windows/asset_window.zui#review-host"
+version = 2
+display_name = "Asset Window"
+
+[penpot_review_host.imports]
+widgets = []
+styles = []
+
+[penpot_review_host.root]
+node = "root"
+
+[penpot_review_host.nodes.root]
+component = "VerticalGroup"
+control_id = "AssetWindowRoot"
+pixel_snapping = "disabled"
+classes = [ "activity-drawer-window" ]
+events = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui#ActivityDrawerWindow"
+
+[penpot_review_host.nodes.root.layout]
+clip = true
+
+[penpot_review_host.nodes.root.layout.container]
+kind = "VerticalBox"
+gap = 0
+
+[penpot_review_host.nodes.root.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.root.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.root.children]]
+node = "root__center_band"
+
+[[penpot_review_host.nodes.root.children]]
+node = "root__bottom_band"
+
+[penpot_review_host.nodes.root.props]
+shell_preset = "jetbrains_shell"
+panel_preset = "fyrox_panel"
+window_model = "unreal_window_model"
+
+[penpot_review_host.nodes.root.state]
+[penpot_review_host.nodes.root.style.self]
+[penpot_review_host.nodes.root.style.slot]
+[penpot_review_host.nodes.root.slots]
+[penpot_review_host.nodes.tree]
+component = "Container"
+control_id = "AssetWindowTreeActivity"
+
+[penpot_review_host.nodes.tree.layout]
+clip = true
+
+[penpot_review_host.nodes.tree.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.tree.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.tree.children]]
+node = "review_tree__root"
+
+[penpot_review_host.nodes.collections]
+component = "Container"
+control_id = "AssetWindowCollectionsActivity"
+
+[penpot_review_host.nodes.collections.layout]
+clip = true
+
+[penpot_review_host.nodes.collections.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.collections.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.collections.children]]
+node = "review_collections__assets_activity_root"
+
+[penpot_review_host.nodes.details]
+component = "Container"
+control_id = "AssetWindowDetailsActivity"
+
+[penpot_review_host.nodes.details.layout]
+clip = true
+
+[penpot_review_host.nodes.details.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.details.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.details.children]]
+node = "review_details__root"
+
+[penpot_review_host.nodes.preview]
+component = "Container"
+control_id = "AssetWindowPreviewActivity"
+
+[penpot_review_host.nodes.preview.layout]
+clip = true
+
+[penpot_review_host.nodes.preview.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.preview.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.preview.children]]
+node = "review_preview__ui_asset_editor_root"
+
+[penpot_review_host.nodes.import_log]
+component = "Container"
+control_id = "AssetWindowImportLogActivity"
+
+[penpot_review_host.nodes.import_log.layout]
+clip = true
+
+[penpot_review_host.nodes.import_log.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.import_log.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.import_log.children]]
+node = "review_import_log__root"
+
+[penpot_review_host.nodes.dependency]
+component = "Container"
+control_id = "AssetWindowDependencyActivity"
+
+[penpot_review_host.nodes.dependency.layout]
+clip = true
+
+[penpot_review_host.nodes.dependency.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.dependency.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.dependency.children]]
+node = "review_dependency__root"
+
+[penpot_review_host.nodes.browser]
+component = "Container"
+control_id = "AssetWindowBrowserContent"
+
+[penpot_review_host.nodes.browser.layout]
+clip = true
+
+[penpot_review_host.nodes.browser.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.browser.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.browser.children]]
+node = "review_browser__asset_browser_root"
+
+[penpot_review_host.nodes.review_tree__root]
+pixel_snapping = "disabled"
+component = "VerticalGroup"
+control_id = "HierarchyPaneBodyRoot"
+classes = [ "editor-pane", "hierarchy-pane", "panel" ]
+
+[penpot_review_host.nodes.review_tree__root.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.small"
+
+[penpot_review_host.nodes.review_tree__root.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_tree__root.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_tree__root.children]]
+node = "review_tree__header"
+
+[penpot_review_host.nodes.review_tree__header]
+component = "HorizontalGroup"
+control_id = "HierarchyHeader"
+
+[penpot_review_host.nodes.review_tree__header.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[penpot_review_host.nodes.review_tree__header.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_tree__header.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[penpot_review_host.nodes.review_tree__header.children]]
+node = "review_tree__select_root"
+
+[penpot_review_host.nodes.review_tree__select_root]
+component = "IconButton"
+control_id = "SelectRoot"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Scene\"><path fill=\"#172033\" stroke=\"#cbd2dc\" stroke-linejoin=\"round\" stroke-width=\"1.4\" d=\"m12 4 7 4v8l-7 4-7-4V8z\"/><path fill=\"none\" stroke=\"#26d8d1\" stroke-linejoin=\"round\" stroke-width=\"1.2\" d=\"M5 8l7 4 7-4M12 12v8\"/><circle cx=\"12\" cy=\"12\" r=\"1.5\" fill=\"#26d8d1\"/></svg>\n"
+
+[penpot_review_host.nodes.review_tree__select_root.props]
+label = "Select Root"
+icon = "editor_pages/hierarchy/entity/scene.svg"
+icon_placement = "leading"
+
+[penpot_review_host.nodes.review_tree__select_root.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_tree__select_root.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_tree__select_root.events]]
+id = "HierarchyPaneBody/SelectRoot"
+event = "Click"
+route = "workbench.selection.select_scene_node"
+
+[penpot_review_host.nodes.review_collections__toolbar_title_text]
+component = "Label"
+control_id = "AssetsActivityTitleText"
+
+[penpot_review_host.nodes.review_collections__toolbar_title_text.props]
+text = "Assets"
+font_size = "$editor.typography.overlay.size"
+font_weight = "$editor.typography.emphasis.weight"
+
+[penpot_review_host.nodes.review_collections__toolbar_title_text.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_collections__toolbar_title_text.layout.height]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_collections__toolbar_open_browser_button]
+component = "IconButton"
+control_id = "OpenAssetBrowser"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+
+[penpot_review_host.nodes.review_collections__toolbar_open_browser_button.props]
+icon = "folder-open-outline"
+text = ""
+label = "Open Asset Browser"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+dispatch_kind = "asset"
+
+[penpot_review_host.nodes.review_collections__toolbar_open_browser_button.layout.width]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_collections__toolbar_open_browser_button.layout.height]
+min = "$editor.control.height.default"
+preferred = "$editor.control.height.default"
+max = "$editor.control.height.default"
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_collections__toolbar_open_browser_button.events]]
+id = "Workbench/AssetsActivityOpenBrowser"
+event = "Click"
+
+[penpot_review_host.nodes.review_collections__toolbar_open_browser_button.events.action]
+action = "view.asset_browser.open"
+
+[penpot_review_host.nodes.review_collections__toolbar_open_browser_button.state]
+[penpot_review_host.nodes.review_collections__toolbar_open_browser_button.style.self]
+[penpot_review_host.nodes.review_collections__toolbar_open_browser_button.style.slot]
+[penpot_review_host.nodes.review_collections__toolbar_open_browser_button.slots]
+[penpot_review_host.nodes.review_collections__toolbar_title_row]
+component = "HorizontalBox"
+control_id = "AssetsActivityToolbarTitleRow"
+
+[penpot_review_host.nodes.review_collections__toolbar_title_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[penpot_review_host.nodes.review_collections__toolbar_title_row.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_collections__toolbar_title_row.layout.height]
+min = 20
+preferred = 20
+max = 20
+stretch = "Fixed"
+
+[[penpot_review_host.nodes.review_collections__toolbar_title_row.children]]
+node = "review_collections__toolbar_title_text"
+
+[penpot_review_host.nodes.review_collections__toolbar_search_field]
+component = "SearchField"
+control_id = "SearchEdited"
+classes = [ "workbench-field", "workbench-search-input", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui#WorkbenchSearchInput"
+
+[penpot_review_host.nodes.review_collections__toolbar_search_field.props]
+query = ""
+placeholder = "Search"
+validation_level = "normal"
+focused = false
+hovered = false
+disabled = false
+editable_text = true
+has_clear_action = true
+background_color = "$editor.surface.recessed"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+focused_background_color = "$editor.surface.recessed"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.separator.soft"
+hover_border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+placeholder_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.control.height.dense"
+layout_padding_right = "$editor.density.gap.large"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+dispatch_kind = "asset"
+
+[penpot_review_host.nodes.review_collections__toolbar_search_field.widget]
+value_property = "query"
+
+[penpot_review_host.nodes.review_collections__toolbar_search_field.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_collections__toolbar_search_field.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.default"
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_collections__toolbar_search_field.events]]
+id = "Workbench/AssetsActivitySearchEdited"
+event = "Change"
+route = "workbench.assets_activity.search.edit"
+
+[penpot_review_host.nodes.review_collections__toolbar_search_field.state]
+[penpot_review_host.nodes.review_collections__toolbar_search_field.style.self]
+[penpot_review_host.nodes.review_collections__toolbar_search_field.style.slot]
+[penpot_review_host.nodes.review_collections__toolbar_search_field.slots]
+[penpot_review_host.nodes.review_collections__toolbar_view_mode_list_button]
+component = "IconButton"
+control_id = "AssetsActivityViewModeListButton"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+
+[penpot_review_host.nodes.review_collections__toolbar_view_mode_list_button.props]
+icon = "list-outline"
+text = ""
+label = "List view"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+dispatch_kind = "asset"
+action_id = "workbench.asset.view_mode.set"
+value = "list"
+
+[penpot_review_host.nodes.review_collections__toolbar_view_mode_list_button.layout.width]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_collections__toolbar_view_mode_list_button.layout.height]
+min = "$editor.control.height.default"
+preferred = "$editor.control.height.default"
+max = "$editor.control.height.default"
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_collections__toolbar_view_mode_list_button.events]]
+id = "Workbench/AssetsActivityViewModeList"
+event = "Change"
+route = "workbench.assets_activity.view_mode.list"
+
+[penpot_review_host.nodes.review_collections__toolbar_view_mode_list_button.state]
+[penpot_review_host.nodes.review_collections__toolbar_view_mode_list_button.style.self]
+[penpot_review_host.nodes.review_collections__toolbar_view_mode_list_button.style.slot]
+[penpot_review_host.nodes.review_collections__toolbar_view_mode_list_button.slots]
+[penpot_review_host.nodes.review_collections__toolbar_view_mode_thumb_button]
+component = "IconButton"
+control_id = "AssetsActivityViewModeThumbButton"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+
+[penpot_review_host.nodes.review_collections__toolbar_view_mode_thumb_button.props]
+icon = "grid-outline"
+text = ""
+label = "Thumbnail view"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+dispatch_kind = "asset"
+action_id = "workbench.asset.view_mode.set"
+value = "thumbnail"
+
+[penpot_review_host.nodes.review_collections__toolbar_view_mode_thumb_button.layout.width]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_collections__toolbar_view_mode_thumb_button.layout.height]
+min = "$editor.control.height.default"
+preferred = "$editor.control.height.default"
+max = "$editor.control.height.default"
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_collections__toolbar_view_mode_thumb_button.events]]
+id = "Workbench/AssetsActivityViewModeThumbnail"
+event = "Change"
+route = "workbench.assets_activity.view_mode.thumbnail"
+
+[penpot_review_host.nodes.review_collections__toolbar_view_mode_thumb_button.state]
+[penpot_review_host.nodes.review_collections__toolbar_view_mode_thumb_button.style.self]
+[penpot_review_host.nodes.review_collections__toolbar_view_mode_thumb_button.style.slot]
+[penpot_review_host.nodes.review_collections__toolbar_view_mode_thumb_button.slots]
+[penpot_review_host.nodes.review_collections__toolbar_search_row]
+component = "HorizontalBox"
+control_id = "AssetsActivityToolbarSearchRow"
+
+[penpot_review_host.nodes.review_collections__toolbar_search_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.medium"
+
+[penpot_review_host.nodes.review_collections__toolbar_search_row.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_collections__toolbar_search_row.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[[penpot_review_host.nodes.review_collections__toolbar_search_row.children]]
+node = "review_collections__toolbar_search_field"
+
+[[penpot_review_host.nodes.review_collections__toolbar_search_row.children]]
+node = "review_collections__toolbar_open_browser_button"
+
+[penpot_review_host.nodes.review_collections__toolbar_kind_filter_dropdown]
+component = "Dropdown"
+control_id = "AssetsActivityKindFilterDropdown"
+pixel_snapping = "disabled"
+classes = [ "workbench-field", "workbench-dropdown", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown"
+
+[penpot_review_host.nodes.review_collections__toolbar_kind_filter_dropdown.props]
+value = "All"
+value_text = "All Types"
+options = [ "All|label=All Types", "Texture|label=Textures", "Material|label=Materials", "Scene|label=Scenes", "Model|label=Models", "Mesh|label=Meshes", "Shader|label=Shaders", "PhysicsMaterial|label=Physics Materials", "AnimationSkeleton|label=Animation Skeletons", "AnimationClip|label=Animation Clips", "AnimationSequence|label=Animation Sequences", "AnimationGraph|label=Animation Graphs", "AnimationStateMachine|label=Animation State Machines", "UiLayout|label=UI Layouts", "UiWidget|label=UI Widgets", "UiStyle|label=UI Styles" ]
+multiple = false
+popup_open = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+selection_state = "single"
+validation_level = "normal"
+background_color = "$editor.surface.recessed"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+open_background_color = "$editor.accent.soft"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+label_color = "$editor.text.secondary"
+icon_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+horizontal_inset = "$editor.density.gap.medium"
+caret_size = "$editor.typography.overlay.size"
+caret_right_inset = "$editor.density.gap.large"
+caret_gap = "$editor.density.gap.small"
+label_top = "$editor.control.border_width"
+label_font_size = "$editor.typography.caption.size"
+label_line_height_ratio = "$editor.typography.line_height"
+value_bottom_inset = "$editor.control.border_width"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.control.border_width"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+dispatch_kind = "asset"
+
+[penpot_review_host.nodes.review_collections__toolbar_kind_filter_dropdown.layout.width]
+stretch = "Stretch"
+min = 148
+preferred = 220
+max = 300
+
+[penpot_review_host.nodes.review_collections__toolbar_kind_filter_dropdown.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.default"
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_collections__toolbar_kind_filter_dropdown.events]]
+id = "Workbench/AssetsActivityKindFilterChanged"
+event = "Change"
+route = "workbench.assets_activity.kind_filter.change"
+
+[penpot_review_host.nodes.review_collections__toolbar_kind_filter_dropdown.state]
+[penpot_review_host.nodes.review_collections__toolbar_kind_filter_dropdown.style.self]
+[penpot_review_host.nodes.review_collections__toolbar_kind_filter_dropdown.style.slot]
+[penpot_review_host.nodes.review_collections__toolbar_kind_filter_dropdown.slots]
+[penpot_review_host.nodes.review_collections__toolbar_filter_row]
+component = "HorizontalBox"
+control_id = "AssetsActivityToolbarFilterRow"
+
+[penpot_review_host.nodes.review_collections__toolbar_filter_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[penpot_review_host.nodes.review_collections__toolbar_filter_row.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_collections__toolbar_filter_row.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[[penpot_review_host.nodes.review_collections__toolbar_filter_row.children]]
+node = "review_collections__toolbar_kind_filter_dropdown"
+
+[[penpot_review_host.nodes.review_collections__toolbar_filter_row.children]]
+node = "review_collections__toolbar_view_mode_list_button"
+
+[[penpot_review_host.nodes.review_collections__toolbar_filter_row.children]]
+node = "review_collections__toolbar_view_mode_thumb_button"
+
+[penpot_review_host.nodes.review_collections__toolbar_panel]
+component = "VerticalBox"
+control_id = "AssetsActivityToolbarPanel"
+
+[penpot_review_host.nodes.review_collections__toolbar_panel.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.small"
+
+[penpot_review_host.nodes.review_collections__toolbar_panel.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_collections__toolbar_panel.layout.height]
+min = 112
+preferred = 112
+max = 112
+stretch = "Fixed"
+
+[[penpot_review_host.nodes.review_collections__toolbar_panel.children]]
+node = "review_collections__toolbar_title_row"
+
+[[penpot_review_host.nodes.review_collections__toolbar_panel.children]]
+node = "review_collections__toolbar_search_row"
+
+[[penpot_review_host.nodes.review_collections__toolbar_panel.children]]
+node = "review_collections__toolbar_filter_row"
+
+[penpot_review_host.nodes.review_collections__assets_activity_root]
+component = "VerticalBox"
+control_id = "AssetsActivityRoot"
+classes = [ "workbench-shell-root" ]
+pixel_snapping = "disabled"
+
+[penpot_review_host.nodes.review_collections__assets_activity_root.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[penpot_review_host.nodes.review_collections__assets_activity_root.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_collections__assets_activity_root.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_collections__assets_activity_root.children]]
+node = "review_collections__toolbar_panel"
+
+[penpot_review_host.nodes.review_details__root]
+pixel_snapping = "disabled"
+component = "VerticalGroup"
+control_id = "AssetSurfaceControls"
+classes = [ "editor-surface-controls", "asset-surface-controls" ]
+
+[penpot_review_host.nodes.review_details__root.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.small"
+
+[penpot_review_host.nodes.review_details__root.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_details__root.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_details__root.children]]
+node = "review_details__filter_row"
+
+[[penpot_review_host.nodes.review_details__root.children]]
+node = "review_details__display_row"
+
+[[penpot_review_host.nodes.review_details__root.children]]
+node = "review_details__navigation_row"
+
+[penpot_review_host.nodes.review_details__filter_row]
+component = "HorizontalGroup"
+control_id = "AssetFilterRow"
+
+[penpot_review_host.nodes.review_details__filter_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[penpot_review_host.nodes.review_details__filter_row.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_details__filter_row.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[penpot_review_host.nodes.review_details__filter_row.children]]
+node = "review_details__search"
+
+[[penpot_review_host.nodes.review_details__filter_row.children]]
+node = "review_details__kind_filter"
+
+[penpot_review_host.nodes.review_details__display_row]
+component = "HorizontalGroup"
+control_id = "AssetDisplayRow"
+
+[penpot_review_host.nodes.review_details__display_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[penpot_review_host.nodes.review_details__display_row.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_details__display_row.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[penpot_review_host.nodes.review_details__display_row.children]]
+node = "review_details__view_mode"
+
+[[penpot_review_host.nodes.review_details__display_row.children]]
+node = "review_details__utility_tab"
+
+[penpot_review_host.nodes.review_details__navigation_row]
+component = "HorizontalGroup"
+control_id = "AssetNavigationRow"
+
+[penpot_review_host.nodes.review_details__navigation_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[penpot_review_host.nodes.review_details__navigation_row.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_details__navigation_row.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[penpot_review_host.nodes.review_details__navigation_row.children]]
+node = "review_details__open_browser"
+
+[[penpot_review_host.nodes.review_details__navigation_row.children]]
+node = "review_details__locate_asset"
+
+[[penpot_review_host.nodes.review_details__navigation_row.children]]
+node = "review_details__import_model"
+
+[penpot_review_host.nodes.review_details__search]
+component = "InputField"
+control_id = "SearchEdited"
+
+[penpot_review_host.nodes.review_details__search.props]
+placeholder = "Search"
+value_text = ""
+surface_variant = "inset"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_min_height = "$editor.control.height.dense"
+input_focusable = true
+
+[penpot_review_host.nodes.review_details__search.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_details__search.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_details__search.events]]
+id = "AssetSurface/SearchEdited"
+event = "Change"
+route = "workbench.asset.set_search_query"
+
+[penpot_review_host.nodes.review_details__kind_filter]
+component = "ComboBox"
+control_id = "SetKindFilter"
+
+[penpot_review_host.nodes.review_details__kind_filter.props]
+label = "Kind"
+value = "All"
+value_text = "All Types"
+options = [ "All|label=All Types", "Texture|label=Textures", "Material|label=Materials", "Scene|label=Scenes", "Model|label=Models", "Mesh|label=Meshes", "Shader|label=Shaders", "PhysicsMaterial|label=Physics Materials", "AnimationSkeleton|label=Animation Skeletons", "AnimationClip|label=Animation Clips", "AnimationSequence|label=Animation Sequences", "AnimationGraph|label=Animation Graphs", "AnimationStateMachine|label=Animation State Machines", "UiLayout|label=UI Layouts", "UiWidget|label=UI Widgets", "UiStyle|label=UI Styles" ]
+surface_variant = "inset"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_min_height = "$editor.control.height.dense"
+input_focusable = true
+
+[penpot_review_host.nodes.review_details__kind_filter.layout.width]
+min = 124
+preferred = 168
+max = 220
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_details__kind_filter.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_details__kind_filter.events]]
+id = "AssetSurface/SetKindFilter"
+event = "Change"
+route = "workbench.asset.set_kind_filter"
+
+[penpot_review_host.nodes.review_details__view_mode]
+component = "IconButton"
+control_id = "SetViewMode"
+
+[penpot_review_host.nodes.review_details__view_mode.props]
+label = "View"
+icon = "list-outline"
+icon_placement = "leading"
+surface_variant = "inset"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_min_height = "$editor.control.height.dense"
+
+[penpot_review_host.nodes.review_details__view_mode.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_details__view_mode.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_details__view_mode.events]]
+id = "AssetSurface/SetViewMode"
+event = "Change"
+route = "workbench.asset.set_view_mode"
+
+[penpot_review_host.nodes.review_details__utility_tab]
+component = "IconButton"
+control_id = "SetUtilityTab"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Import settings\"><path fill=\"#172033\" stroke=\"#cbd2dc\" stroke-linejoin=\"round\" stroke-width=\"1.4\" d=\"M5 15v4h14v-4\"/><path fill=\"none\" stroke=\"#26d8d1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M9 5v7m0 0-2.5-2.5M9 12l2.5-2.5\"/><circle cx=\"16\" cy=\"8\" r=\"2.3\" fill=\"#172033\" stroke=\"#a78bfa\" stroke-width=\"1.3\"/><path fill=\"none\" stroke=\"#a78bfa\" stroke-linecap=\"round\" stroke-width=\"1.2\" d=\"M16 4.8v1M16 10.2v1M12.8 8h1M18.2 8h1\"/></svg>\n"
+
+[penpot_review_host.nodes.review_details__utility_tab.props]
+label = "Tools"
+icon = "editor_pages/asset_browser/import_pipeline/import-settings.svg"
+icon_placement = "leading"
+surface_variant = "inset"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_min_height = "$editor.control.height.dense"
+
+[penpot_review_host.nodes.review_details__utility_tab.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_details__utility_tab.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_details__utility_tab.events]]
+id = "AssetSurface/SetUtilityTab"
+event = "Change"
+route = "workbench.asset.set_utility_tab"
+
+[penpot_review_host.nodes.review_details__open_browser]
+component = "IconButton"
+control_id = "OpenAssetBrowser"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Folder\"><path fill=\"#172033\" stroke=\"#cbd2dc\" stroke-linejoin=\"round\" stroke-width=\"1.4\" d=\"M3.5 7h6l1.6 2H20a1 1 0 0 1 1 1v8.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5v-10A1.5 1.5 0 0 1 4.5 7z\"/><path fill=\"none\" stroke=\"#26d8d1\" stroke-linecap=\"round\" stroke-width=\"1.4\" d=\"M5 11h14\"/></svg>\n"
+
+[penpot_review_host.nodes.review_details__open_browser.props]
+label = "Browser"
+icon = "editor_pages/asset_browser/navigation/folder.svg"
+icon_placement = "leading"
+
+[penpot_review_host.nodes.review_details__open_browser.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_details__open_browser.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_details__open_browser.events]]
+id = "AssetSurface/OpenAssetBrowser"
+event = "Click"
+
+[penpot_review_host.nodes.review_details__open_browser.events.action]
+action = "view.asset_browser.open"
+
+[penpot_review_host.nodes.review_details__locate_asset]
+component = "IconButton"
+control_id = "LocateSelectedAsset"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Search\"><circle cx=\"10.5\" cy=\"10.5\" r=\"5.5\" fill=\"#172033\" stroke=\"#cbd2dc\" stroke-width=\"1.5\"/><path fill=\"none\" stroke=\"#26d8d1\" stroke-linecap=\"round\" stroke-width=\"1.7\" d=\"m14.5 14.5 4.5 4.5\"/><path fill=\"none\" stroke=\"#64748b\" stroke-linecap=\"round\" stroke-width=\"1.1\" d=\"M8.5 8.5h4\"/></svg>\n"
+
+[penpot_review_host.nodes.review_details__locate_asset.props]
+label = "Locate"
+icon = "editor_pages/asset_browser/navigation/search.svg"
+icon_placement = "leading"
+
+[penpot_review_host.nodes.review_details__locate_asset.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_details__locate_asset.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_details__locate_asset.events]]
+id = "AssetSurface/LocateSelectedAsset"
+event = "Click"
+route = "workbench.asset.locate_selected_asset"
+
+[penpot_review_host.nodes.review_details__import_model]
+component = "IconButton"
+control_id = "ImportModel"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Import\"><path fill=\"#172033\" stroke=\"#cbd2dc\" stroke-linejoin=\"round\" stroke-width=\"1.4\" d=\"M5 14.5V19h14v-4.5\"/><path fill=\"none\" stroke=\"#26d8d1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.6\" d=\"M12 4v10m0 0-4-4m4 4 4-4\"/></svg>\n"
+
+[penpot_review_host.nodes.review_details__import_model.props]
+label = "Import"
+icon = "editor_pages/asset_browser/import_pipeline/import.svg"
+icon_placement = "leading"
+
+[penpot_review_host.nodes.review_details__import_model.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_details__import_model.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_details__import_model.events]]
+id = "AssetSurface/ImportModel"
+event = "Click"
+route = "workbench.asset.import_model"
+
+[penpot_review_host.nodes.review_preview__ui_asset_editor_root]
+component = "VerticalGroup"
+control_id = "UiAssetEditorRoot"
+pixel_snapping = "disabled"
+classes = [ "ui-asset-shell" ]
+
+[penpot_review_host.nodes.review_preview__ui_asset_editor_root.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[penpot_review_host.nodes.review_preview__ui_asset_editor_root.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_preview__ui_asset_editor_root.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_preview__ui_asset_editor_root.children]]
+node = "review_preview__header_panel"
+
+[penpot_review_host.nodes.review_preview__header_panel]
+component = "VerticalGroup"
+control_id = "HeaderPanel"
+classes = [ "ui-asset-panel" ]
+
+[penpot_review_host.nodes.review_preview__header_panel.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.small"
+
+[penpot_review_host.nodes.review_preview__header_panel.layout.width]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_preview__header_panel.children]]
+node = "review_preview__header_asset_row"
+
+[penpot_review_host.nodes.review_preview__header_panel.children.slot.layout.padding]
+left = "$editor.density.panel_padding"
+right = "$editor.density.panel_padding"
+
+[[penpot_review_host.nodes.review_preview__header_panel.children]]
+node = "review_preview__header_status_row"
+
+[penpot_review_host.nodes.review_preview__header_panel.children.slot.layout.padding]
+left = "$editor.density.panel_padding"
+right = "$editor.density.panel_padding"
+
+[[penpot_review_host.nodes.review_preview__header_panel.children]]
+node = "review_preview__header_action_row"
+
+[penpot_review_host.nodes.review_preview__header_panel.children.slot.layout.padding]
+left = "$editor.density.panel_padding"
+right = "$editor.density.panel_padding"
+
+[penpot_review_host.nodes.review_preview__header_asset_row]
+component = "HorizontalGroup"
+control_id = "HeaderAssetRow"
+classes = [ "ui-asset-row" ]
+
+[penpot_review_host.nodes.review_preview__header_asset_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.regular"
+
+[penpot_review_host.nodes.review_preview__header_asset_row.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_preview__header_asset_row.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[penpot_review_host.nodes.review_preview__header_asset_row.children]]
+node = "review_preview__header_asset_title"
+
+[[penpot_review_host.nodes.review_preview__header_asset_row.children]]
+node = "review_preview__header_asset_kind"
+
+[penpot_review_host.nodes.review_preview__header_asset_title]
+component = "Label"
+control_id = "HeaderAssetTitle"
+classes = [ "workbench-label", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_label.zui#WorkbenchLabel"
+
+[penpot_review_host.nodes.review_preview__header_asset_title.props]
+text = "UI Asset"
+text_overflow = "ellipsis"
+font_size = "$editor.typography.body.size"
+font_weight = "$editor.typography.medium.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "primary"
+foreground_color = "$editor.text.primary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+
+[penpot_review_host.nodes.review_preview__header_asset_title.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_preview__header_asset_title.layout.height]
+min = "$editor.density.label.min_height"
+preferred = "$editor.density.label.preferred_height"
+max = "$editor.density.label.max_height"
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_preview__header_asset_title.state]
+[penpot_review_host.nodes.review_preview__header_asset_title.style.self]
+[penpot_review_host.nodes.review_preview__header_asset_title.style.slot]
+[penpot_review_host.nodes.review_preview__header_asset_title.slots]
+[penpot_review_host.nodes.review_preview__header_asset_kind]
+component = "Label"
+control_id = "HeaderAssetKind"
+classes = [ "workbench-caption", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[penpot_review_host.nodes.review_preview__header_asset_kind.props]
+text = "DESIGNER"
+text_overflow = "ellipsis"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "secondary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+
+[penpot_review_host.nodes.review_preview__header_asset_kind.layout.width]
+stretch = "Fixed"
+min = "$editor.density.ui_asset.header_kind.min_width"
+preferred = "$editor.density.ui_asset.header_kind.preferred_width"
+max = "$editor.density.ui_asset.header_kind.max_width"
+
+[penpot_review_host.nodes.review_preview__header_asset_kind.layout.height]
+min = "$editor.density.caption.min_height"
+preferred = "$editor.density.caption.preferred_height"
+max = "$editor.density.caption.max_height"
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_preview__header_asset_kind.state]
+[penpot_review_host.nodes.review_preview__header_asset_kind.style.self]
+[penpot_review_host.nodes.review_preview__header_asset_kind.style.slot]
+[penpot_review_host.nodes.review_preview__header_asset_kind.slots]
+[penpot_review_host.nodes.review_preview__header_status_row]
+component = "HorizontalGroup"
+control_id = "HeaderStatusRow"
+classes = [ "ui-asset-row", "ui-asset-muted" ]
+
+[penpot_review_host.nodes.review_preview__header_status_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.regular"
+
+[penpot_review_host.nodes.review_preview__header_status_row.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_preview__header_status_row.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[penpot_review_host.nodes.review_preview__header_status_row.children]]
+node = "review_preview__header_status_caption"
+
+[penpot_review_host.nodes.review_preview__header_status_caption]
+component = "Label"
+control_id = "HeaderStatusCaption"
+classes = [ "workbench-caption", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[penpot_review_host.nodes.review_preview__header_status_caption.props]
+text = "Prototype cache valid"
+text_overflow = "ellipsis"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "secondary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+
+[penpot_review_host.nodes.review_preview__header_status_caption.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_preview__header_status_caption.layout.height]
+min = "$editor.density.caption.min_height"
+preferred = "$editor.density.caption.preferred_height"
+max = "$editor.density.caption.max_height"
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_preview__header_status_caption.state]
+[penpot_review_host.nodes.review_preview__header_status_caption.style.self]
+[penpot_review_host.nodes.review_preview__header_status_caption.style.slot]
+[penpot_review_host.nodes.review_preview__header_status_caption.slots]
+[penpot_review_host.nodes.review_preview__header_action_row]
+component = "HorizontalGroup"
+control_id = "HeaderActionRow"
+classes = [ "ui-asset-row" ]
+
+[penpot_review_host.nodes.review_preview__header_action_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.regular"
+
+[penpot_review_host.nodes.review_preview__header_action_row.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_preview__header_action_row.layout.height]
+min = "$editor.control.height.default"
+preferred = "$editor.control.height.default"
+max = "$editor.control.height.default"
+stretch = "Fixed"
+
+[[penpot_review_host.nodes.review_preview__header_action_row.children]]
+node = "review_preview__header_save_button"
+
+[[penpot_review_host.nodes.review_preview__header_action_row.children]]
+node = "review_preview__header_undo_button"
+
+[[penpot_review_host.nodes.review_preview__header_action_row.children]]
+node = "review_preview__header_redo_button"
+
+[[penpot_review_host.nodes.review_preview__header_action_row.children]]
+node = "review_preview__header_action_fill"
+
+[penpot_review_host.nodes.review_preview__header_save_button]
+component = "IconButton"
+control_id = "HeaderSaveButton"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Save\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linejoin=\"round\" stroke-width=\"1.7\" d=\"M4.5 4.5h12.2l2.8 2.8v12.2h-15z\"/>\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M7.5 4.5v5h8v-5M8 19.5v-6h8v6\"/>\n</svg>\n"
+
+[penpot_review_host.nodes.review_preview__header_save_button.props]
+icon = "zircon_editor_shell/toolbar/save.svg"
+text = ""
+label = "Save"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+action_id = "save"
+
+[penpot_review_host.nodes.review_preview__header_save_button.layout.width]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.default"
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_preview__header_save_button.layout.height]
+min = "$editor.control.height.default"
+preferred = "$editor.control.height.default"
+max = "$editor.control.height.default"
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_preview__header_save_button.events]]
+id = "UiAssetEditor/HeaderSave"
+event = "Click"
+route = "save"
+
+[penpot_review_host.nodes.review_preview__header_save_button.state]
+[penpot_review_host.nodes.review_preview__header_save_button.style.self]
+[penpot_review_host.nodes.review_preview__header_save_button.style.slot]
+[penpot_review_host.nodes.review_preview__header_save_button.slots]
+[penpot_review_host.nodes.review_preview__header_undo_button]
+component = "IconButton"
+control_id = "HeaderUndoButton"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Undo\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\" d=\"M9 7 4.5 11.5 9 16\"/>\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-width=\"1.8\" d=\"M5 11.5h8.8a5.2 5.2 0 0 1 0 10.4H12\"/>\n</svg>\n"
+
+[penpot_review_host.nodes.review_preview__header_undo_button.props]
+icon = "zircon_editor_shell/toolbar/undo.svg"
+text = ""
+label = "Undo"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+action_id = "undo"
+
+[penpot_review_host.nodes.review_preview__header_undo_button.layout.width]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.default"
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_preview__header_undo_button.layout.height]
+min = "$editor.control.height.default"
+preferred = "$editor.control.height.default"
+max = "$editor.control.height.default"
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_preview__header_undo_button.events]]
+id = "UiAssetEditor/HeaderUndo"
+event = "Click"
+route = "undo"
+
+[penpot_review_host.nodes.review_preview__header_undo_button.state]
+[penpot_review_host.nodes.review_preview__header_undo_button.style.self]
+[penpot_review_host.nodes.review_preview__header_undo_button.style.slot]
+[penpot_review_host.nodes.review_preview__header_undo_button.slots]
+[penpot_review_host.nodes.review_preview__header_redo_button]
+component = "IconButton"
+control_id = "HeaderRedoButton"
+pixel_snapping = "disabled"
+classes = [ "workbench-icon-button", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Redo\">\n  <path fill=\"none\" stroke=\"#8f97a3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\" d=\"m15 7 4.5 4.5L15 16\"/>\n  <path fill=\"none\" stroke=\"#8f97a3\" stroke-linecap=\"round\" stroke-width=\"1.8\" d=\"M19 11.5h-8.8a5.2 5.2 0 0 0 0 10.4H12\"/>\n</svg>\n"
+
+[penpot_review_host.nodes.review_preview__header_redo_button.props]
+icon = "zircon_editor_shell/toolbar/redo.svg"
+text = ""
+label = "Redo"
+button_variant = "text"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+icon_placement = "icon_only"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "transparent"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "transparent"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.accent"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.default"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+action_id = "redo"
+
+[penpot_review_host.nodes.review_preview__header_redo_button.layout.width]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.default"
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_preview__header_redo_button.layout.height]
+min = "$editor.control.height.default"
+preferred = "$editor.control.height.default"
+max = "$editor.control.height.default"
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_preview__header_redo_button.events]]
+id = "UiAssetEditor/HeaderRedo"
+event = "Click"
+route = "redo"
+
+[penpot_review_host.nodes.review_preview__header_redo_button.state]
+[penpot_review_host.nodes.review_preview__header_redo_button.style.self]
+[penpot_review_host.nodes.review_preview__header_redo_button.style.slot]
+[penpot_review_host.nodes.review_preview__header_redo_button.slots]
+[penpot_review_host.nodes.review_preview__header_action_fill]
+component = "Space"
+control_id = "HeaderActionFill"
+
+[penpot_review_host.nodes.review_preview__header_action_fill.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_preview__header_action_fill.layout.height]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_import_log__root]
+pixel_snapping = "disabled"
+component = "VerticalGroup"
+control_id = "RuntimeDiagnosticsPaneBodyRoot"
+classes = [ "editor-pane", "diagnostics-pane" ]
+
+[penpot_review_host.nodes.review_import_log__root.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.small"
+
+[penpot_review_host.nodes.review_import_log__root.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_import_log__root.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_import_log__root.children]]
+node = "review_import_log__header"
+
+[penpot_review_host.nodes.review_import_log__header]
+component = "HorizontalGroup"
+control_id = "RuntimeDiagnosticsHeader"
+
+[penpot_review_host.nodes.review_import_log__header.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[penpot_review_host.nodes.review_import_log__header.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_import_log__header.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[[penpot_review_host.nodes.review_import_log__header.children]]
+node = "review_import_log__summary"
+
+[[penpot_review_host.nodes.review_import_log__header.children]]
+node = "review_import_log__focus"
+
+[penpot_review_host.nodes.review_import_log__focus]
+component = "IconButton"
+control_id = "FocusDiagnostics"
+penpot_icon_svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Watch\"><rect x=\"5\" y=\"6\" width=\"14\" height=\"12\" rx=\"2\" fill=\"#172033\" stroke=\"#cbd2dc\" stroke-width=\"1.4\"/><path fill=\"none\" stroke=\"#26d8d1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.4\" d=\"M7.5 12s1.8-3 4.5-3 4.5 3 4.5 3-1.8 3-4.5 3-4.5-3-4.5-3\"/><circle cx=\"12\" cy=\"12\" r=\"1.5\" fill=\"#f0b545\"/></svg>\n"
+
+[penpot_review_host.nodes.review_import_log__focus.props]
+label = "Focus Diagnostics"
+icon = "editor_pages/console_profiler/diagnostics/watch.svg"
+icon_placement = "icon_only"
+
+[penpot_review_host.nodes.review_import_log__focus.layout.width]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_import_log__focus.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_import_log__focus.events]]
+id = "RuntimeDiagnosticsPaneBody/FocusDiagnostics"
+event = "Click"
+route = "workbench.pane.runtime_diagnostics.focus"
+
+[penpot_review_host.nodes.review_import_log__summary]
+component = "Text"
+control_id = "RuntimeDiagnosticsSummary"
+
+[penpot_review_host.nodes.review_import_log__summary.props]
+text = "Runtime diagnostics"
+
+[penpot_review_host.nodes.review_import_log__summary.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_import_log__summary.layout.height]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_dependency__root]
+pixel_snapping = "disabled"
+component = "VerticalGroup"
+control_id = "ConsolePaneBodyRoot"
+classes = [ "editor-pane", "console-pane", "panel" ]
+
+[penpot_review_host.nodes.review_dependency__root.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.regular"
+
+[penpot_review_host.nodes.review_dependency__root.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_dependency__root.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_dependency__root.children]]
+node = "review_dependency__body"
+
+[[penpot_review_host.nodes.review_dependency__root.children]]
+node = "review_dependency__footer"
+
+[penpot_review_host.nodes.review_dependency__body]
+component = "VerticalGroup"
+control_id = "ConsoleBodySection"
+
+[penpot_review_host.nodes.review_dependency__body.layout]
+clip = true
+
+[penpot_review_host.nodes.review_dependency__body.layout.container]
+kind = "VerticalBox"
+gap = 0
+
+[penpot_review_host.nodes.review_dependency__body.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_dependency__body.layout.height]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_dependency__body.layout.scroll]
+vertical = true
+
+[[penpot_review_host.nodes.review_dependency__body.children]]
+node = "review_dependency__output_line_prototype"
+
+[penpot_review_host.nodes.review_dependency__body.children.slot.layout.padding]
+left = "$editor.density.gap.medium"
+right = "$editor.density.gap.large"
+
+[penpot_review_host.nodes.review_dependency__output_line_prototype]
+component = "Label"
+control_id = "ConsoleOutputLinePrototype"
+
+[penpot_review_host.nodes.review_dependency__output_line_prototype.props]
+text = "No output yet"
+component_variant = "code"
+font_size = "$editor.typography.caption.size"
+text_tone = "muted"
+overflow = "elide"
+
+[penpot_review_host.nodes.review_dependency__output_line_prototype.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_dependency__output_line_prototype.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_dependency__footer]
+component = "HorizontalGroup"
+control_id = "ConsoleFooter"
+
+[penpot_review_host.nodes.review_dependency__footer.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.regular"
+
+[penpot_review_host.nodes.review_dependency__footer.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_dependency__footer.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[[penpot_review_host.nodes.review_dependency__footer.children]]
+node = "review_dependency__footer_spacer"
+
+[[penpot_review_host.nodes.review_dependency__footer.children]]
+node = "review_dependency__clear"
+
+[penpot_review_host.nodes.review_dependency__footer_spacer]
+component = "Space"
+control_id = "ConsoleFooterSpacer"
+
+[penpot_review_host.nodes.review_dependency__footer_spacer.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_dependency__footer_spacer.layout.height]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_dependency__clear]
+component = "Button"
+control_id = "ClearConsole"
+classes = [ "workbench-control-button", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton"
+
+[penpot_review_host.nodes.review_dependency__clear.props]
+text = "Clear"
+text_overflow = "ellipsis"
+text_align = "center"
+button_variant = "outlined"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+validation_level = "normal"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font = "res://fonts/editor-ui.font.toml"
+font_family = "Fira Sans"
+font_weight = "$editor.typography.strong.weight"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.large"
+layout_padding_right = "$editor.density.gap.large"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.medium"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[penpot_review_host.nodes.review_dependency__clear.layout.width]
+stretch = "Fixed"
+min = 50
+preferred = 58
+max = 66
+
+[penpot_review_host.nodes.review_dependency__clear.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.default"
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_dependency__clear.events]]
+id = "ConsolePaneBody/ClearConsole"
+event = "Click"
+
+[penpot_review_host.nodes.review_dependency__clear.events.action]
+action = "view.console.clear"
+
+[penpot_review_host.nodes.review_dependency__clear.state]
+[penpot_review_host.nodes.review_dependency__clear.style.self]
+[penpot_review_host.nodes.review_dependency__clear.style.slot]
+[penpot_review_host.nodes.review_dependency__clear.slots]
+[penpot_review_host.nodes.review_browser__toolbar_title_text]
+component = "Label"
+control_id = "AssetBrowserTitleText"
+
+[penpot_review_host.nodes.review_browser__toolbar_title_text.props]
+text = "Asset Browser"
+font_weight = "$editor.typography.emphasis.weight"
+overflow = "elide"
+
+[penpot_review_host.nodes.review_browser__toolbar_title_text.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_browser__toolbar_title_text.layout.height]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_browser__toolbar_title_row]
+component = "HorizontalBox"
+control_id = "AssetBrowserToolbarTitleRow"
+
+[penpot_review_host.nodes.review_browser__toolbar_title_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.medium"
+
+[penpot_review_host.nodes.review_browser__toolbar_title_row.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_browser__toolbar_title_row.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[[penpot_review_host.nodes.review_browser__toolbar_title_row.children]]
+node = "review_browser__toolbar_title_text"
+
+[penpot_review_host.nodes.review_browser__toolbar_search_field]
+component = "SearchField"
+control_id = "SearchEdited"
+classes = [ "workbench-field", "workbench-search-input", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui#WorkbenchSearchInput"
+
+[penpot_review_host.nodes.review_browser__toolbar_search_field.props]
+query = ""
+placeholder = "Search"
+validation_level = "normal"
+focused = false
+hovered = false
+disabled = false
+editable_text = true
+has_clear_action = true
+background_color = "$editor.surface.recessed"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+focused_background_color = "$editor.surface.recessed"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.separator.soft"
+hover_border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+placeholder_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.control.height.dense"
+layout_padding_right = "$editor.density.gap.large"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+dispatch_kind = "asset:browser"
+
+[penpot_review_host.nodes.review_browser__toolbar_search_field.widget]
+value_property = "query"
+
+[penpot_review_host.nodes.review_browser__toolbar_search_field.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_browser__toolbar_search_field.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.default"
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_browser__toolbar_search_field.events]]
+id = "Workbench/AssetBrowserSearchEdited"
+event = "Change"
+route = "workbench.asset_browser.search.edit"
+
+[penpot_review_host.nodes.review_browser__toolbar_search_field.state]
+[penpot_review_host.nodes.review_browser__toolbar_search_field.style.self]
+[penpot_review_host.nodes.review_browser__toolbar_search_field.style.slot]
+[penpot_review_host.nodes.review_browser__toolbar_search_field.slots]
+[penpot_review_host.nodes.review_browser__toolbar_search_row]
+component = "HorizontalBox"
+control_id = "AssetBrowserToolbarSearchRow"
+
+[penpot_review_host.nodes.review_browser__toolbar_search_row.layout.container]
+kind = "HorizontalBox"
+gap = 0
+
+[penpot_review_host.nodes.review_browser__toolbar_search_row.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_browser__toolbar_search_row.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.dense"
+stretch = "Fixed"
+
+[[penpot_review_host.nodes.review_browser__toolbar_search_row.children]]
+node = "review_browser__toolbar_search_field"
+
+[penpot_review_host.nodes.review_browser__toolbar_panel]
+component = "VerticalBox"
+control_id = "AssetBrowserToolbarPanel"
+
+[penpot_review_host.nodes.review_browser__toolbar_panel.props]
+surface_variant = "frame_only"
+
+[penpot_review_host.nodes.review_browser__toolbar_panel.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.small"
+
+[penpot_review_host.nodes.review_browser__toolbar_panel.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_browser__toolbar_panel.layout.height]
+min = 112
+preferred = 112
+max = 112
+stretch = "Fixed"
+
+[[penpot_review_host.nodes.review_browser__toolbar_panel.children]]
+node = "review_browser__toolbar_title_row"
+
+[[penpot_review_host.nodes.review_browser__toolbar_panel.children]]
+node = "review_browser__toolbar_search_row"
+
+[penpot_review_host.nodes.review_browser__content_header_title_text]
+component = "Label"
+control_id = "AssetBrowserContentHeaderTitleText"
+
+[penpot_review_host.nodes.review_browser__content_header_title_text.props]
+text = "Content Browser"
+font_weight = "$editor.typography.emphasis.weight"
+overflow = "elide"
+
+[penpot_review_host.nodes.review_browser__content_header_title_text.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_browser__content_header_title_text.layout.height]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_browser__content_header_path_text]
+component = "Label"
+control_id = "AssetBrowserContentHeaderPathText"
+
+[penpot_review_host.nodes.review_browser__content_header_path_text.props]
+text = "All assets"
+text_tone = "muted"
+text_align = "right"
+overflow = "elide"
+responsive_min_tier = "wide"
+
+[penpot_review_host.nodes.review_browser__content_header_path_text.layout.width]
+min = 92
+preferred = 92
+max = 92
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_browser__content_header_path_text.layout.height]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_browser__content_header_row]
+component = "HorizontalBox"
+control_id = "AssetBrowserContentHeaderRow"
+
+[penpot_review_host.nodes.review_browser__content_header_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.medium"
+
+[penpot_review_host.nodes.review_browser__content_header_row.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_browser__content_header_row.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[[penpot_review_host.nodes.review_browser__content_header_row.children]]
+node = "review_browser__content_header_title_text"
+
+[[penpot_review_host.nodes.review_browser__content_header_row.children]]
+node = "review_browser__content_header_path_text"
+
+[penpot_review_host.nodes.review_browser__content_asset_table_header]
+component = "Table"
+control_id = "WorkbenchAssetBrowserTableHeader"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[penpot_review_host.nodes.review_browser__content_asset_table_header.props]
+text = "Name Type Size Rev"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Name", "Type", "Size", "Revision" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+surface_variant = "asset-table"
+
+[penpot_review_host.nodes.review_browser__content_asset_table_header.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_browser__content_asset_table_header.layout.height]
+min = "$editor.density.row_height"
+preferred = "$editor.density.row_height"
+max = "$editor.density.row_height"
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_browser__content_asset_table_header.state]
+[penpot_review_host.nodes.review_browser__content_asset_table_header.style.self]
+[penpot_review_host.nodes.review_browser__content_asset_table_header.style.slot]
+[penpot_review_host.nodes.review_browser__content_asset_table_header.slots]
+[penpot_review_host.nodes.review_browser__content_asset_row_01]
+component = "Table"
+control_id = "WorkbenchAssetBrowserAssetRow01"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[penpot_review_host.nodes.review_browser__content_asset_row_01.props]
+text = "Host UI 12K r42"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Host", "UI", "12 KB", "rev 42" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+surface_variant = "asset-table"
+
+[penpot_review_host.nodes.review_browser__content_asset_row_01.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_browser__content_asset_row_01.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_browser__content_asset_row_01.state]
+[penpot_review_host.nodes.review_browser__content_asset_row_01.style.self]
+[penpot_review_host.nodes.review_browser__content_asset_row_01.style.slot]
+[penpot_review_host.nodes.review_browser__content_asset_row_01.slots]
+[penpot_review_host.nodes.review_browser__content_asset_row_02]
+component = "Table"
+control_id = "WorkbenchAssetBrowserAssetRow02"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[penpot_review_host.nodes.review_browser__content_asset_row_02.props]
+text = "Base Style 8K r41"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Base", "Style", "8 KB", "rev 41" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+surface_variant = "asset-table"
+
+[penpot_review_host.nodes.review_browser__content_asset_row_02.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_browser__content_asset_row_02.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_browser__content_asset_row_02.state]
+[penpot_review_host.nodes.review_browser__content_asset_row_02.style.self]
+[penpot_review_host.nodes.review_browser__content_asset_row_02.style.slot]
+[penpot_review_host.nodes.review_browser__content_asset_row_02.slots]
+[penpot_review_host.nodes.review_browser__content_asset_row_03]
+component = "Table"
+control_id = "WorkbenchAssetBrowserAssetRow03"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[penpot_review_host.nodes.review_browser__content_asset_row_03.props]
+text = "Folder Tex 4K r40"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Folder", "Texture", "4 KB", "rev 40" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+surface_variant = "asset-table"
+
+[penpot_review_host.nodes.review_browser__content_asset_row_03.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_browser__content_asset_row_03.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_browser__content_asset_row_03.state]
+[penpot_review_host.nodes.review_browser__content_asset_row_03.style.self]
+[penpot_review_host.nodes.review_browser__content_asset_row_03.style.slot]
+[penpot_review_host.nodes.review_browser__content_asset_row_03.slots]
+[penpot_review_host.nodes.review_browser__content_asset_row_04]
+component = "Table"
+control_id = "WorkbenchAssetBrowserAssetRow04"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[penpot_review_host.nodes.review_browser__content_asset_row_04.props]
+text = "A11y Widget 16K r39"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "A11y", "Widget", "16 KB", "rev 39" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+surface_variant = "asset-table"
+
+[penpot_review_host.nodes.review_browser__content_asset_row_04.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_browser__content_asset_row_04.layout.height]
+min = "$editor.control.height.compact"
+preferred = "$editor.control.height.compact"
+max = "$editor.control.height.compact"
+stretch = "Fixed"
+
+[penpot_review_host.nodes.review_browser__content_asset_row_04.state]
+[penpot_review_host.nodes.review_browser__content_asset_row_04.style.self]
+[penpot_review_host.nodes.review_browser__content_asset_row_04.style.slot]
+[penpot_review_host.nodes.review_browser__content_asset_row_04.slots]
+[penpot_review_host.nodes.review_browser__content_asset_table]
+component = "VerticalBox"
+control_id = "AssetBrowserAssetTablePanel"
+
+[penpot_review_host.nodes.review_browser__content_asset_table.props]
+surface_variant = "asset-table"
+radius = "$editor.control.radius.control"
+border_width = "$editor.control.border_width"
+
+[penpot_review_host.nodes.review_browser__content_asset_table.layout.container]
+kind = "VerticalBox"
+gap = 0
+
+[penpot_review_host.nodes.review_browser__content_asset_table.layout.width]
+min = 360
+preferred = 640
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_browser__content_asset_table.layout.height]
+min = 156
+preferred = 156
+max = 156
+stretch = "Fixed"
+
+[[penpot_review_host.nodes.review_browser__content_asset_table.children]]
+node = "review_browser__content_asset_table_header"
+
+[[penpot_review_host.nodes.review_browser__content_asset_table.children]]
+node = "review_browser__content_asset_row_01"
+
+[[penpot_review_host.nodes.review_browser__content_asset_table.children]]
+node = "review_browser__content_asset_row_02"
+
+[[penpot_review_host.nodes.review_browser__content_asset_table.children]]
+node = "review_browser__content_asset_row_03"
+
+[[penpot_review_host.nodes.review_browser__content_asset_table.children]]
+node = "review_browser__content_asset_row_04"
+
+[penpot_review_host.nodes.review_browser__content_asset_table_scroll]
+component = "ScrollableBox"
+control_id = "AssetBrowserAssetTableScroll"
+
+[penpot_review_host.nodes.review_browser__content_asset_table_scroll.props]
+input_hoverable = true
+
+[penpot_review_host.nodes.review_browser__content_asset_table_scroll.layout]
+clip = true
+input_policy = "Receive"
+
+[penpot_review_host.nodes.review_browser__content_asset_table_scroll.layout.container]
+kind = "ScrollableBox"
+axis = "Horizontal"
+gap = 0
+scrollbar_visibility = "Auto"
+
+[penpot_review_host.nodes.review_browser__content_asset_table_scroll.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_browser__content_asset_table_scroll.layout.height]
+min = 156
+preferred = 156
+max = 156
+stretch = "Fixed"
+
+[[penpot_review_host.nodes.review_browser__content_asset_table_scroll.children]]
+node = "review_browser__content_asset_table"
+
+[penpot_review_host.nodes.review_browser__content_panel]
+component = "ScrollableBox"
+control_id = "AssetBrowserContentPanel"
+
+[penpot_review_host.nodes.review_browser__content_panel.props]
+surface_variant = "asset-content"
+radius = "$editor.control.radius.control"
+border_width = "$editor.control.border_width"
+
+[penpot_review_host.nodes.review_browser__content_panel.layout]
+clip = true
+input_policy = "Receive"
+
+[penpot_review_host.nodes.review_browser__content_panel.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = "$editor.density.gap.medium"
+scrollbar_visibility = "Auto"
+
+[penpot_review_host.nodes.review_browser__content_panel.layout.width]
+min = 0
+preferred = 0
+stretch = "Stretch"
+weight = 4
+
+[penpot_review_host.nodes.review_browser__content_panel.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_browser__content_panel.children]]
+node = "review_browser__content_header_row"
+
+[[penpot_review_host.nodes.review_browser__content_panel.children]]
+node = "review_browser__content_asset_table_scroll"
+
+[penpot_review_host.nodes.review_browser__main_panel]
+component = "HorizontalBox"
+control_id = "AssetBrowserMainPanel"
+
+[penpot_review_host.nodes.review_browser__main_panel.props]
+surface_variant = "frame_only"
+
+[penpot_review_host.nodes.review_browser__main_panel.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[penpot_review_host.nodes.review_browser__main_panel.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_browser__main_panel.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_browser__main_panel.children]]
+node = "review_browser__content_panel"
+
+[penpot_review_host.nodes.review_browser__main_panel.children.slot.layout.width]
+min = 0
+preferred = 0
+weight = 4
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_browser__asset_browser_root]
+component = "VerticalBox"
+control_id = "AssetBrowserRoot"
+classes = [ "workbench-shell-root" ]
+pixel_snapping = "disabled"
+
+[penpot_review_host.nodes.review_browser__asset_browser_root.props]
+surface_variant = "frame_only"
+
+[penpot_review_host.nodes.review_browser__asset_browser_root.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.small"
+
+[penpot_review_host.nodes.review_browser__asset_browser_root.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.review_browser__asset_browser_root.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.review_browser__asset_browser_root.children]]
+node = "review_browser__toolbar_panel"
+
+[[penpot_review_host.nodes.review_browser__asset_browser_root.children]]
+node = "review_browser__main_panel"
+
+[penpot_review_host.nodes.root__center_band]
+component = "HorizontalGroup"
+control_id = "ActivityDrawerWindowCenterBand"
+
+[penpot_review_host.nodes.root__center_band.layout]
+clip = true
+
+[penpot_review_host.nodes.root__center_band.layout.container]
+kind = "HorizontalBox"
+gap = 0
+
+[penpot_review_host.nodes.root__center_band.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.root__center_band.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.root__center_band.children]]
+node = "root__left_column"
+
+[[penpot_review_host.nodes.root__center_band.children]]
+node = "browser"
+
+[penpot_review_host.nodes.root__center_band.children.slot]
+name = "content"
+
+[penpot_review_host.nodes.root__center_band.children.slot.layout]
+clip = true
+
+[penpot_review_host.nodes.root__center_band.children.slot.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.root__center_band.children.slot.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.root__center_band.children]]
+node = "root__right_column"
+
+[penpot_review_host.nodes.root__left_column]
+component = "VerticalGroup"
+control_id = "ActivityDrawerWindowLeftColumn"
+
+[penpot_review_host.nodes.root__left_column.props]
+responsive_min_tier = "narrow"
+
+[penpot_review_host.nodes.root__left_column.layout]
+clip = true
+
+[penpot_review_host.nodes.root__left_column.layout.container]
+kind = "VerticalBox"
+gap = 0
+
+[penpot_review_host.nodes.root__left_column.layout.width]
+min = "$editor.density.compact_side_min_width"
+preferred = "$editor.density.left_drawer_width"
+max = "$editor.density.left_drawer_width"
+stretch = "Fixed"
+
+[penpot_review_host.nodes.root__left_column.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.root__left_column.children]]
+node = "tree"
+
+[penpot_review_host.nodes.root__left_column.children.slot]
+name = "left_top_activity"
+
+[penpot_review_host.nodes.root__left_column.children.slot.layout]
+clip = true
+
+[penpot_review_host.nodes.root__left_column.children.slot.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.root__left_column.children.slot.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.root__left_column.children]]
+node = "collections"
+
+[penpot_review_host.nodes.root__left_column.children.slot]
+name = "left_bottom_activity"
+
+[penpot_review_host.nodes.root__left_column.children.slot.layout]
+clip = true
+
+[penpot_review_host.nodes.root__left_column.children.slot.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.root__left_column.children.slot.layout.height]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.root__right_column]
+component = "VerticalGroup"
+control_id = "ActivityDrawerWindowRightColumn"
+
+[penpot_review_host.nodes.root__right_column.props]
+responsive_min_tier = "regular"
+
+[penpot_review_host.nodes.root__right_column.layout]
+clip = true
+
+[penpot_review_host.nodes.root__right_column.layout.container]
+kind = "VerticalBox"
+gap = 0
+
+[penpot_review_host.nodes.root__right_column.layout.width]
+min = "$editor.density.compact_side_min_width"
+preferred = "$editor.density.right_drawer_width"
+max = "$editor.density.right_drawer_width"
+stretch = "Fixed"
+
+[penpot_review_host.nodes.root__right_column.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.root__right_column.children]]
+node = "details"
+
+[penpot_review_host.nodes.root__right_column.children.slot]
+name = "right_top_activity"
+
+[penpot_review_host.nodes.root__right_column.children.slot.layout]
+clip = true
+
+[penpot_review_host.nodes.root__right_column.children.slot.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.root__right_column.children.slot.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.root__right_column.children]]
+node = "preview"
+
+[penpot_review_host.nodes.root__right_column.children.slot]
+name = "right_bottom_activity"
+
+[penpot_review_host.nodes.root__right_column.children.slot.layout]
+clip = true
+
+[penpot_review_host.nodes.root__right_column.children.slot.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.root__right_column.children.slot.layout.height]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.root__bottom_band]
+component = "HorizontalGroup"
+control_id = "ActivityDrawerWindowBottomBand"
+
+[penpot_review_host.nodes.root__bottom_band.layout]
+clip = true
+
+[penpot_review_host.nodes.root__bottom_band.layout.container]
+kind = "HorizontalBox"
+gap = 0
+
+[penpot_review_host.nodes.root__bottom_band.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.root__bottom_band.layout.height]
+min = "$editor.density.ultra_compact_bottom_min_height"
+preferred = "$editor.density.bottom_output_height"
+max = "$editor.density.bottom_output_height"
+stretch = "Fixed"
+
+[[penpot_review_host.nodes.root__bottom_band.children]]
+node = "import_log"
+
+[penpot_review_host.nodes.root__bottom_band.children.slot]
+name = "bottom_left_activity"
+
+[penpot_review_host.nodes.root__bottom_band.children.slot.layout]
+clip = true
+
+[penpot_review_host.nodes.root__bottom_band.children.slot.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.root__bottom_band.children.slot.layout.height]
+stretch = "Stretch"
+
+[[penpot_review_host.nodes.root__bottom_band.children]]
+node = "dependency"
+
+[penpot_review_host.nodes.root__bottom_band.children.slot]
+name = "bottom_right_activity"
+
+[penpot_review_host.nodes.root__bottom_band.children.slot.layout]
+clip = true
+
+[penpot_review_host.nodes.root__bottom_band.children.slot.layout.width]
+stretch = "Stretch"
+
+[penpot_review_host.nodes.root__bottom_band.children.slot.layout.height]
+stretch = "Stretch"
+
+[penpot_review_host.tokens]
+"theme.palette.surface.0" = "#151515"
+"theme.palette.surface.1" = "#242424"
+"theme.palette.surface.2" = "#2f2f2f"
+"theme.palette.surface.3" = "#383838"
+"theme.palette.text.primary" = "#e8e8e8"
+"theme.palette.text.secondary" = "#b3b3b3"
+"theme.palette.text.disabled" = "#737373"
+"theme.palette.accent" = "#60aeff"
+"theme.palette.success" = "#55be78"
+"theme.palette.info" = "#5faae6"
+"theme.palette.warning" = "#dcac50"
+"theme.palette.error" = "#eb605c"
+"theme.palette.separator" = "#484848"
+"editor.surface.0" = "#151515"
+"editor.surface.1" = "#242424"
+"editor.surface.2" = "#2f2f2f"
+"editor.surface.3" = "#383838"
+"editor.surface.recessed" = "#0f0f0f"
+"editor.surface.hover" = "#454545"
+"editor.surface.selected" = "#243f5a"
+"editor.surface.disabled" = "#2b2b2b"
+"editor.accent" = "#60aeff"
+"editor.accent.soft" = "#253f59"
+"editor.border" = "#484848"
+"editor.border.disabled" = "#363636"
+"editor.separator.strong" = "#565656"
+"editor.separator.soft" = "#333333"
+"editor.text.primary" = "#e8e8e8"
+"editor.text.secondary" = "#b3b3b3"
+"editor.text.disabled" = "#737373"
+"editor.semantic.success" = "#55be78"
+"editor.semantic.success.container" = "#1d472f"
+"editor.semantic.info" = "#5faae6"
+"editor.semantic.info.container" = "#18395b"
+"editor.semantic.warning" = "#dcac50"
+"editor.semantic.warning.container" = "#463112"
+"editor.semantic.error" = "#eb605c"
+"editor.semantic.error.container" = "#4c2427"
+"editor.popup" = "#242424"
+"editor.track" = "#3b3b3b"
+"editor.focus.ring" = "#66b2ff"
+"editor.shadow" = "#00000073"
+"editor.typography.ui.family" = "Fira Sans"
+"editor.typography.ui.strong.family" = "Fira Sans"
+"editor.typography.code.family" = "Fira Mono"
+"editor.typography.utility_tab.text_role" = "ui"
+"editor.typography.font_smoothing" = "grayscale"
+"editor.typography.body.size" = 14
+"editor.typography.caption.size" = 12
+"editor.typography.overlay.size" = 12
+"editor.typography.heading.size" = 16
+"editor.typography.title.size" = 20
+"editor.typography.body.weight" = 400
+"editor.typography.medium.weight" = 500
+"editor.typography.strong.weight" = 600
+"editor.typography.emphasis.weight" = 700
+"editor.typography.code.weight" = 400
+"editor.typography.line_height" = 1.4
+"editor.control.height.large" = 48
+"editor.control.height.default" = 32
+"editor.control.height.compact" = 32
+"editor.control.height.dense" = 28
+"editor.control.radius.small" = 4
+"editor.control.radius.control" = 4
+"editor.control.radius.large" = 8
+"editor.control.radius.panel" = 0
+"editor.control.radius.pill" = 999
+"editor.control.border_width" = 1
+"editor.chrome.top_bar.height" = 25
+"editor.chrome.host_bar.height" = 32
+"editor.chrome.workbench_toolbar.height" = 66
+"editor.chrome.workbench_toolbar.command_row.height" = 34
+"editor.chrome.workbench_toolbar.popup.command_offset_y" = 29
+"editor.chrome.workbench_toolbar.popup.module_offset_y" = -6
+"editor.chrome.status_bar.height" = 24
+"editor.chrome.panel_header.height" = 30
+"editor.chrome.document_header.height" = 31
+"editor.chrome.viewport_toolbar.height" = 28
+"editor.chrome.activity_rail.width" = 34
+"editor.chrome.separator.thickness" = 1
+"editor.chrome.splitter.hit_size" = 8
+"editor.density.gap.xsmall" = 2
+"editor.density.gap.tight" = 4
+"editor.density.gap.small" = 4
+"editor.density.gap.regular" = 8
+"editor.density.gap.medium" = 8
+"editor.density.gap.large" = 12
+"editor.density.gap.group" = 24
+"editor.density.drawer_padding" = 12
+"editor.density.panel_padding" = 16
+"editor.density.toolbar_action_width" = 76
+"editor.density.toolbar_wide_action_width" = 96
+"editor.density.ui_asset_action.min_width" = 40
+"editor.density.ui_asset_action.preferred_width" = 52
+"editor.density.ui_asset_action.max_width" = 64
+"editor.density.ui_asset.side.min_width" = 128
+"editor.density.ui_asset.side.preferred_width" = 220
+"editor.density.ui_asset.center.min_width" = 256
+"editor.density.ui_asset.center.preferred_width" = 420
+"editor.density.ui_asset.header_kind.min_width" = 64
+"editor.density.ui_asset.header_kind.preferred_width" = 70
+"editor.density.ui_asset.header_kind.max_width" = 84
+"editor.density.ui_asset.tool.min_width" = 56
+"editor.density.ui_asset.tool.preferred_width" = 64
+"editor.density.ui_asset.tool.max_width" = 80
+"editor.density.command_palette.min_width" = 520
+"editor.density.command_palette.preferred_width" = 560
+"editor.density.command_palette.max_width" = 640
+"editor.density.command_palette.min_height" = 180
+"editor.density.command_palette.preferred_height" = 220
+"editor.density.command_palette.max_height" = 280
+"editor.density.dialog.min_width" = 420
+"editor.density.dialog.preferred_width" = 480
+"editor.density.dialog.max_width" = 560
+"editor.density.dialog.min_height" = 180
+"editor.density.dialog.preferred_height" = 220
+"editor.density.dialog.max_height" = 320
+"editor.density.confirm_dialog.preferred_width" = 460
+"editor.density.confirm_dialog.max_width" = 540
+"editor.density.confirm_dialog.min_height" = 174
+"editor.density.confirm_dialog.preferred_height" = 210
+"editor.density.confirm_dialog.max_height" = 300
+"editor.density.notification_panel.min_width" = 280
+"editor.density.notification_panel.preferred_width" = 320
+"editor.density.notification_panel.max_width" = 380
+"editor.density.notification_panel.min_height" = 160
+"editor.density.notification_panel.preferred_height" = 220
+"editor.density.notification_panel.max_height" = 320
+"editor.density.caption.min_height" = 20
+"editor.density.caption.preferred_height" = 22
+"editor.density.caption.max_height" = 24
+"editor.density.label.min_height" = 22
+"editor.density.label.preferred_height" = 24
+"editor.density.label.max_height" = 32
+"editor.density.chip.min_width" = 40
+"editor.density.chip.preferred_width" = 80
+"editor.density.chip.max_width" = 160
+"editor.density.axis_value_field.min_width" = 54
+"editor.density.axis_value_field.preferred_width" = 62
+"editor.density.axis_value_field.max_width" = 72
+"editor.density.row_height" = 28
+"editor.density.left_drawer_width" = 332
+"editor.density.right_drawer_width" = 404
+"editor.density.bottom_output_height" = 228
+"editor.density.breakpoint_ultra_width" = 480
+"editor.density.breakpoint_narrow_width" = 640
+"editor.density.breakpoint_wide_width" = 1260
+"editor.density.compact_side_width" = 1100
+"editor.density.ultra_compact_side_width" = 760
+"editor.density.compact_left_drawer_max_width" = 340
+"editor.density.compact_right_drawer_max_width" = 220
+"editor.density.compact_side_min_width" = 196
+"editor.density.minimum_document_width_fraction" = 0.5
+"editor.density.ultra_compact_left_drawer_max_width" = 220
+"editor.density.ultra_compact_right_drawer_max_width" = 160
+"editor.density.compact_bottom_available_height" = 900
+"editor.density.compact_bottom_max_height" = 148
+"editor.density.compact_bottom_max_available_fraction" = 0.23
+"editor.density.compact_bottom_min_height" = 120
+"editor.density.ultra_compact_bottom_available_height" = 420
+"editor.density.ultra_compact_bottom_max_height" = 96
+"editor.density.ultra_compact_bottom_max_available_fraction" = 0.2
+"editor.density.ultra_compact_bottom_min_height" = 80
+"editor.density.minimum_window_width" = 640
+"editor.density.minimum_window_height" = 420
+"editor.density.ultra_minimum_window_width" = 420
+"editor.density.ultra_minimum_window_height" = 360
+"editor.state.default" = "surface_1"
+"editor.state.hovered" = "surface_2"
+"editor.state.pressed" = "surface_3"
+"editor.state.selected" = "surface_selected"
+"editor.state.focused" = "surface_1"
+"editor.state.disabled" = "text_disabled"
+"editor.state.loading" = "accent"
+workbench_shell = "$editor.surface.0"
+workbench_surface = "$editor.surface.1"
+workbench_panel = "$editor.surface.2"
+workbench_panel_raised = "$editor.surface.3"
+workbench_inset = "$editor.surface.recessed"
+workbench_hover = "$editor.surface.hover"
+workbench_active = "$editor.surface.selected"
+workbench_selected = "$editor.surface.selected"
+workbench_border = "$editor.border"
+workbench_border_soft = "$editor.separator.soft"
+workbench_accent = "$editor.accent"
+workbench_accent_2 = "$editor.accent"
+workbench_accent_soft = "$editor.accent.soft"
+workbench_accent_dim = "$editor.accent.soft"
+workbench_toast_surface = "$editor.popup"
+workbench_toast_text = "$editor.text.secondary"
+workbench_toast_border = "$editor.accent.soft"
+workbench_button_disabled = "$editor.surface.disabled"
+workbench_button_disabled_text = "$editor.text.disabled"
+workbench_button_disabled_border = "$editor.border.disabled"
+workbench_text = "$editor.text.primary"
+workbench_text_muted = "$editor.text.secondary"
+workbench_mesh_title_text = "$editor.text.secondary"
+workbench_text_dim = "$editor.text.disabled"
+workbench_status_right_text = "$editor.text.secondary"
+workbench_status_no_errors_fill = "$editor.semantic.success"
+workbench_table_header_text = "$editor.text.secondary"
+workbench_success = "$editor.semantic.success"
+workbench_warning = "$editor.semantic.warning"
+workbench_error = "$editor.semantic.error"
+workbench_info = "$editor.semantic.info"
+workbench_field = "$editor.surface.recessed"
+workbench_field_hot = "$editor.surface.2"
+workbench_progress_fill = "$editor.separator.strong"
+workbench_field_component = "$editor.surface.recessed"
+workbench_field_component_border = "$editor.border"
+workbench_field_component_focused = "$editor.surface.1"
+workbench_field_component_focused_text = "$editor.text.primary"
+workbench_field_component_focus_border = "$editor.focus.ring"
+workbench_field_component_disabled = "$editor.surface.disabled"
+workbench_field_component_disabled_text = "$editor.text.disabled"
+workbench_field_component_disabled_border = "$editor.border.disabled"
+workbench_segmented = "$editor.surface.2"
+workbench_selection_label = "$editor.text.secondary"
+workbench_selection_mark = "$editor.surface.1"
+workbench_selection_mark_border = "$editor.separator.strong"
+workbench_checkbox_checked = "$editor.surface.selected"
+workbench_radio_checked = "$editor.surface.selected"
+workbench_radio_checked_border = "$editor.accent"
+workbench_toggle_track = "$editor.track"
+workbench_toggle_track_border = "$editor.border"
+workbench_toggle_thumb = "$editor.text.secondary"
+workbench_toggle_checked_track = "$editor.surface.selected"
+workbench_toggle_checked_border = "$editor.accent"
+workbench_toggle_checked_thumb = "$editor.text.secondary"
+workbench_warning_surface = "$editor.semantic.warning.container"
+workbench_error_surface = "$editor.semantic.error.container"
+workbench_success_surface = "$editor.semantic.success.container"
+workbench_info_surface = "$editor.semantic.info.container"
+surface = "$editor.surface.0"
+panel = "$editor.surface.1"
+panel_inset = "$editor.surface.recessed"
+outline = "$editor.border"
+text = "$editor.text.primary"
+muted = "$editor.text.secondary"
+accent = "$editor.accent"
+
+[[penpot_review_host.stylesheets]]
+id = "editor_workbench_strict"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".editor-workbench"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_shell"
+foreground_color = "$workbench_text"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-shell-root"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_shell"
+foreground_color = "$workbench_text"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-window-root"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_shell"
+foreground_color = "$workbench_text"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-topbar"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_surface"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = 0
+radius = 0
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-strip"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_surface"
+border_color = "$workbench_border_soft"
+border_width = "$editor.control.border_width"
+radius = 0
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-divider"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_border"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-toolbar-group"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_surface"
+foreground_color = "$workbench_text"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-panel-header"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_panel_raised"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border_soft"
+border_width = 0
+radius = 0
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-icon-button"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-toolbar-button"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-icon-button:hovered"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-toolbar-button:hovered"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-rail"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_inset"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = 0
+radius = 0
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-rail-button"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_inset"
+foreground_color = "$workbench_text_muted"
+border_color = "$workbench_border_soft"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-rail-button:hovered"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-icon-button:selected"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-rail-button:selected"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-tab:hovered"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-field:hovered"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_field_hot"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-component-property-row"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_panel"
+border_width = 0
+radius = 0
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-component-property-row:hovered"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_hover"
+border_width = 0
+radius = 0
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-component-field:hovered"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_field_hot"
+foreground_color = "$workbench_text"
+border_color = "$workbench_field_component_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-dropdown:hovered"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_field_hot"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-slider:hovered"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_field_hot"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-tree-item:hovered"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-list-row:hovered"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-table-row:hovered"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-check:hovered"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-radio:hovered"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-toggle:hovered"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-segmented-control:hovered"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-control-button:hovered"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-icon-button:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-toolbar-button:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-rail-button:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-tab:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-tree-item:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-list-row:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-table-row:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-slider:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-check:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-radio:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-toggle:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-segmented-control:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-control-button:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-panel"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = 0
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-module-canvas"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_inset"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border_soft"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-component-sample-card"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.panel"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-left-panel"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-right-panel"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-tabs"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_surface"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-tab"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_surface"
+foreground_color = "$workbench_text_muted"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-tab:checked"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_text"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-tab:selected"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_text"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-field"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_field"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-component-field"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_field_component"
+foreground_color = "$workbench_text_muted"
+border_color = "$workbench_field_component_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-dropdown"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_field"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-muted"
+
+[penpot_review_host.stylesheets.rules.set.self]
+foreground_color = "$workbench_text_muted"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-tree-item:disabled"
+
+[penpot_review_host.stylesheets.rules.set.self]
+foreground_color = "$workbench_text_dim"
+background_color = "$workbench_inset"
+border_color = "$workbench_border_soft"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-component-field:disabled"
+
+[penpot_review_host.stylesheets.rules.set.self]
+foreground_color = "$workbench_field_component_disabled_text"
+background_color = "$workbench_field_component_disabled"
+border_color = "$workbench_field_component_disabled_border"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-tree-item:selected"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-list-row:selected"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-table-row:selected"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-check:checked"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_checkbox_checked"
+foreground_color = "$workbench_selection_label"
+border_color = "$workbench_checkbox_checked"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-radio:checked"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_radio_checked"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_radio_checked_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-toggle:checked"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_toggle_checked_track"
+foreground_color = "$workbench_toggle_checked_thumb"
+border_color = "$workbench_toggle_checked_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-segmented-control:selected"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-control-button:selected"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-dropdown:popup_open"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_field_hot"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-component-property-row:focus-visible"
+
+[penpot_review_host.stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-field:focus-visible"
+
+[penpot_review_host.stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-component-field:focus-visible"
+
+[penpot_review_host.stylesheets.rules.set.self]
+border_color = "$workbench_field_component_focus_border"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-dropdown:focus-visible"
+
+[penpot_review_host.stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-number-field:focus-visible"
+
+[penpot_review_host.stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-check:focus-visible"
+
+[penpot_review_host.stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-radio:focus-visible"
+
+[penpot_review_host.stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-toggle:focus-visible"
+
+[penpot_review_host.stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-slider:focus-visible"
+
+[penpot_review_host.stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-tree-item:focus-visible"
+
+[penpot_review_host.stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-list-row:focus-visible"
+
+[penpot_review_host.stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-table-row:focus-visible"
+
+[penpot_review_host.stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-control-button:focus-visible"
+
+[penpot_review_host.stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-toolbar-action"
+
+[penpot_review_host.stylesheets.rules.set.self]
+radius = "$editor.control.radius.large"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-toolbar-action:hovered"
+
+[penpot_review_host.stylesheets.rules.set.self]
+radius = "$editor.control.radius.large"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-toolbar-action:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self]
+radius = "$editor.control.radius.large"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-toolbar-action:selected"
+
+[penpot_review_host.stylesheets.rules.set.self]
+radius = "$editor.control.radius.large"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-toolbar-action:focus-visible"
+
+[penpot_review_host.stylesheets.rules.set.self]
+radius = "$editor.control.radius.large"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-quiet-action"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "transparent"
+border_color = "transparent"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-quiet-action:hovered"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "transparent"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-quiet-action:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "transparent"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-quiet-action:checked"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent_soft"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-quiet-action:selected"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent_soft"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-quiet-action:popup_open"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent_soft"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-quiet-action:disabled"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "transparent"
+foreground_color = "$workbench_button_disabled_text"
+border_color = "transparent"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-toolbar-tab"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "transparent"
+foreground_color = "$workbench_text_muted"
+border_color = "transparent"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.large"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-toolbar-tab:hovered"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_hover"
+foreground_color = "$workbench_text"
+border_color = "transparent"
+radius = "$editor.control.radius.large"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-toolbar-tab:pressed"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_active"
+foreground_color = "$workbench_accent"
+border_color = "transparent"
+radius = "$editor.control.radius.large"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-toolbar-tab:checked"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent_soft"
+radius = "$editor.control.radius.large"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-toolbar-tab:selected"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_selected"
+foreground_color = "$workbench_accent"
+border_color = "$workbench_accent_soft"
+radius = "$editor.control.radius.large"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-toolbar-tab:focus-visible"
+
+[penpot_review_host.stylesheets.rules.set.self]
+radius = "$editor.control.radius.large"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-toolbar-tab:disabled"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "transparent"
+foreground_color = "$workbench_button_disabled_text"
+border_color = "transparent"
+radius = "$editor.control.radius.large"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-icon-button:focus-visible"
+
+[penpot_review_host.stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-rail-button:focus-visible"
+
+[penpot_review_host.stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-tab:focus-visible"
+
+[penpot_review_host.stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-segmented-control:focus-visible"
+
+[penpot_review_host.stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-table-header"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_inset"
+foreground_color = "$workbench_table_header_text"
+border_color = "$workbench_border_soft"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+layout_content_offset_x = -1
+layout_content_offset_y = 3
+layout_padding_top = 2
+layout_padding_bottom = 0
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-indent-1"
+
+[penpot_review_host.stylesheets.rules.set.self]
+layout_padding_left = 22
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-indent-2"
+
+[penpot_review_host.stylesheets.rules.set.self]
+layout_padding_left = 40
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-tree-item"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border_soft"
+border_width = 0
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-list-row"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border_soft"
+border_width = 0
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-table-row"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border_soft"
+border_width = 0
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-section-title"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_panel_raised"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border_soft"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.small"
+font_size = "$editor.typography.body.size"
+font_weight = "$editor.typography.strong.weight"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-property-section"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = 0
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-property-row"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-chip"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_panel_raised"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-component-drawer"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_surface"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = 0
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-control-button"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_panel_raised"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-disabled-button"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_button_disabled"
+foreground_color = "$workbench_button_disabled_text"
+border_color = "$workbench_button_disabled_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-check"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_selection_mark"
+foreground_color = "$workbench_selection_label"
+border_color = "$workbench_selection_mark_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-radio"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_selection_mark"
+foreground_color = "$workbench_selection_label"
+border_color = "$workbench_selection_mark_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-toggle"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_toggle_track"
+foreground_color = "$workbench_toggle_thumb"
+border_color = "$workbench_toggle_track_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.pill"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-slider"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_field"
+foreground_color = "$workbench_text_muted"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-progress-bar"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_field"
+foreground_color = "$workbench_progress_fill"
+border_width = 0
+radius = "$editor.control.radius.small"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-segmented-control"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_segmented"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-popup-menu"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$editor.popup"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.panel"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-primary-button"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_accent_dim"
+foreground_color = "$workbench_text"
+border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-alert"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_panel_raised"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-toast"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_toast_surface"
+foreground_color = "$workbench_toast_text"
+border_color = "$workbench_toast_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.panel"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-info"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_info_surface"
+foreground_color = "$workbench_info"
+border_color = "$workbench_info"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-success"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_success_surface"
+foreground_color = "$workbench_success"
+border_color = "$workbench_success"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-warning"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_warning_surface"
+foreground_color = "$workbench_warning"
+border_color = "$workbench_warning"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-error"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_error_surface"
+foreground_color = "$workbench_error"
+border_color = "$workbench_error"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-danger"
+
+[penpot_review_host.stylesheets.rules.set.self]
+foreground_color = "$workbench_error"
+border_color = "$workbench_error"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-status"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_surface"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = 0
+radius = 0
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-status-item"
+
+[penpot_review_host.stylesheets.rules.set.self]
+foreground_color = "$workbench_text"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-status-right-control"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "transparent"
+foreground_color = "$workbench_status_right_text"
+border_color = "transparent"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-status-right-icon"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "transparent"
+border_color = "transparent"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.small"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-overlay-region"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = 0
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-primitive"
+
+[penpot_review_host.stylesheets.rules.set.self]
+foreground_color = "$workbench_text"
+
+[[penpot_review_host.stylesheets]]
+id = "workbench-tab-states"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-tab:selected, .workbench-tab:checked"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$editor.surface.selected"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".workbench-tab:focus, .workbench-tab:focus-visible"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$editor.accent.soft"
+hover_background_color = "$editor.accent.soft"
+foreground_color = "$editor.text.primary"
+
+[[penpot_review_host.stylesheets]]
+id = "ui_asset_editor_projection_workbench"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".ui-asset-shell"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$surface"
+foreground_color = "$text"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".ui-asset-panel"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$panel"
+border_color = "$outline"
+foreground_color = "$text"
+surface_variant = "panel"
+radius = "$editor.control.radius.panel"
+corner_radius = "$editor.control.radius.panel"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".ui-asset-inset"
+
+[penpot_review_host.stylesheets.rules.set.self]
+background_color = "$panel_inset"
+border_color = "$outline"
+foreground_color = "$text"
+surface_variant = "inset"
+radius = "$editor.control.radius.control"
+corner_radius = "$editor.control.radius.control"
+border_width = "$editor.control.border_width"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".ui-asset-row"
+
+[penpot_review_host.stylesheets.rules.set.self]
+foreground_color = "$text"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".ui-asset-section"
+
+[penpot_review_host.stylesheets.rules.set.self]
+foreground_color = "$text"
+
+[[penpot_review_host.stylesheets.rules]]
+selector = ".ui-asset-muted"
+
+[penpot_review_host.stylesheets.rules.set.self]
+foreground_color = "$muted"
+font_size = "$editor.typography.caption.size"
+
+[penpot_review_host.penpot_host_colors]
+primary = "#60aeff"
+accent = "#60aeff"
+"material.primary" = "#60aeff"
+material_color_primary = "#60aeff"
+on_primary = "#151515"
+"material.on_primary" = "#151515"
+material_color_on_primary = "#151515"
+surface = "#2f2f2f"
+"material.surface" = "#2f2f2f"
+surface_inset = "#0f0f0f"
+"material.surface_inset" = "#0f0f0f"
+surface_hover = "#454545"
+"material.surface_hover" = "#454545"
+surface_pressed = "#383838"
+"material.surface_pressed" = "#383838"
+surface_selected = "#243f5a"
+"material.surface_selected" = "#243f5a"
+disabled = "#2b2b2b"
+"material.disabled" = "#2b2b2b"
+border = "#484848"
+outline = "#484848"
+"material.outline" = "#484848"
+focus = "#66b2ff"
+focus_ring = "#66b2ff"
+"material.focus_ring" = "#66b2ff"
+text = "#e8e8e8"
+on_surface = "#e8e8e8"
+"material.text" = "#e8e8e8"
+"material.on_surface" = "#e8e8e8"
+text_muted = "#b3b3b3"
+muted = "#b3b3b3"
+"material.text_muted" = "#b3b3b3"
+text_disabled = "#737373"
+"material.text_disabled" = "#737373"
+warning = "#dcac50"
+"material.warning" = "#dcac50"
+error = "#eb605c"
+danger = "#eb605c"
+"material.error" = "#eb605c"
+success = "#55be78"
+"material.success" = "#55be78"
+info = "#5faae6"
+"material.info" = "#5faae6"
+
+[penpot_review_host.penpot_host_palette]
+surface = [ "#151515", "#242424", "#2f2f2f", "#383838" ]
+surface_recessed = "#0f0f0f"
+surface_hover = "#454545"
+surface_selected = "#243f5a"
+surface_disabled = "#2b2b2b"
+accent = "#60aeff"
+accent_soft = "#253f59"
+border = "#484848"
+border_disabled = "#363636"
+separator_strong = "#565656"
+separator_soft = "#333333"
+text_primary = "#e8e8e8"
+text_secondary = "#b3b3b3"
+text_disabled = "#737373"
+success = "#55be78"
+success_container = "#1d472f"
+info = "#5faae6"
+info_container = "#18395b"
+warning = "#dcac50"
+warning_container = "#463112"
+error = "#eb605c"
+error_container = "#4c2427"
+popup = "#242424"
+track = "#3b3b3b"
+focus_ring = "#66b2ff"
+shadow = "#00000073"
+
+[penpot_review_host.penpot_original_imports]
+widgets = [ "res://ui/editor/components/workbench/shell/activity_drawer_window.zui#ActivityDrawerWindow", "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown", "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton", "res://ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui#WorkbenchSearchInput", "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab", "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton", "res://ui/editor/components/workbench/primitives/data/workbench_tree_row.zui#WorkbenchTreeRow", "res://ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption", "res://ui/editor/components/workbench/primitives/data/workbench_label.zui#WorkbenchLabel", "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle", "res://ui/editor/components/workbench/composites/chrome/workbench_ui_asset_action_bar.zui#WorkbenchUiAssetActionBar", "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField", "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow" ]
+styles = [ "res://ui/theme/editor_workbench_strict.zui", "res://ui/editor/theme/editor_tokens.zui" ]
+
+[penpot_review_host.penpot_field_icons]
+search = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Search\">\n  <circle cx=\"10.5\" cy=\"10.5\" r=\"5.4\" fill=\"none\" stroke=\"#cbd2dc\" stroke-width=\"1.8\"/>\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-width=\"1.9\" d=\"m14.5 14.5 4.5 4.5\"/>\n</svg>\n"
+clear = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"512\" height=\"512\" viewBox=\"0 0 512 512\"><line x1=\"368\" y1=\"368\" x2=\"144\" y2=\"144\" style=\"fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px\"/><line x1=\"368\" y1=\"144\" x2=\"144\" y2=\"368\" style=\"fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px\"/></svg>"
+stepper = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Field stepper\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\" d=\"m7 9 5-5 5 5M7 15l5 5 5-5\"/>\n</svg>\n"

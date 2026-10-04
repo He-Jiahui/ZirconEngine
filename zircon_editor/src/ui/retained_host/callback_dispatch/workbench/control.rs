@@ -1,3 +1,4 @@
+use crate::core::editor_operation::EditorOperationSource;
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, SelectionCommand};
 use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::{apply_record_effects, UiHostEventEffects};

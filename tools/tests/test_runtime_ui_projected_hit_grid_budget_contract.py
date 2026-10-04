@@ -16,7 +16,7 @@ TREE_MOD = ROOT / "zircon_runtime/src/ui/tree/mod.rs"
 def function_body(source: str, signature: str, next_signature: str) -> str:
     return source.split(signature, 1)[1].split(next_signature, 1)[0]
 
-
+# 读取基础与投影命中网格实现，验证共用尺寸预算、有限数守卫和退化时仍有分区的单元映射。
 class ProjectedHitGridBudgetContractTests(unittest.TestCase):
     def test_projected_grid_reuses_the_base_grid_budget_authority(self) -> None:
         source = FRAME_HIT_TEST.read_text(encoding="utf-8")

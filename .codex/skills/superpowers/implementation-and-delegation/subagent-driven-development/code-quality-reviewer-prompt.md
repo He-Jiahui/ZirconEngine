@@ -1,26 +1,9 @@
-# Code Quality Reviewer Prompt Template
+# Quality Review Brief
 
-Use this template when dispatching a code quality reviewer subagent.
+Provide the objective, acceptance criteria, relevant code/context, owned paths or snapshot, dependencies, and existing verification results.
 
-**Purpose:** Verify implementation is well-built (clean, tested, maintainable)
+Assess correctness, relevant architecture, and maintainability of the exact owned change. Distinguish material findings from optional improvements.
 
-**Only dispatch after spec compliance review passes.**
+Resolve routine choices from the supplied context. Ask about consequential ambiguity while continuing independent work. Preserve others' changes and do not commit, publish, or send external messages without authorization. Follow the repository validation cadence and reuse evidence for unchanged scope.
 
-```
-Task tool (superpowers:code-reviewer):
-  Use template at requesting-code-review/code-reviewer.md
-
-  WHAT_WAS_IMPLEMENTED: [from implementer's report]
-  PLAN_OR_REQUIREMENTS: Task N from [plan-file]
-  BASE_SHA: [commit before task]
-  HEAD_SHA: [current commit]
-  DESCRIPTION: [task summary]
-```
-
-**In addition to standard code quality concerns, the reviewer should check:**
-- Does each file have one clear responsibility with a well-defined interface?
-- Are units decomposed so they can be understood and tested independently?
-- Is the implementation following the file structure from the plan?
-- Did this implementation create new files that are already large, or significantly grow existing files? (Don't flag pre-existing file sizes — focus on what this change contributed.)
-
-**Code reviewer returns:** Strengths, Issues (Critical/Important/Minor), Assessment
+See [model selection](../../../zircon-project-skills/cross-session-coordination/references/model-tier-policy.md). Use available agent capabilities; no particular tool name, model override, additional reviewer, or fresh-agent cycle is mandatory.

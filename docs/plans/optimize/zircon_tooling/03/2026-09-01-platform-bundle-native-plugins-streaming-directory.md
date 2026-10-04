@@ -1,3 +1,7 @@
+---
+status: local_candidate
+---
+
 # PlatformBundle native plugins streaming directory traversal
 
 ## Change

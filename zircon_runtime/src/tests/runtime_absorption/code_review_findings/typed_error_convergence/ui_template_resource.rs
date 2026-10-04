@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f5_ui_template_resource_resolver_uses_typed_lookup_errors_before_diagnostics_boundary() {
     let resolver = include_str!("../../../../ui/template/asset/resource_ref/resolver.rs");
@@ -12,9 +13,9 @@ fn review_f5_ui_template_resource_resolver_uses_typed_lookup_errors_before_diagn
     let convention =
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
     let module_doc =
-        include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md");
+        include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
     let resolver_doc = include_str!(
-        "../../../../../../docs/zircon_runtime/ui/template/asset/resource_ref/resolver.md"
+        "../../../../../../docs/crates/zircon_runtime/ui/template/asset/resource_ref/resolver.md"
     );
 
     for required in [

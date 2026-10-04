@@ -7,10 +7,11 @@ use crate::graphics::scene::scene_renderer::post_process::{
 use crate::render_graph::RenderGraphAttachmentOps;
 use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
 
-use super::taa_resolve_bind_group_cache::{TaaResolveBindGroupKey, create_bind_group};
+use super::taa_resolve_bind_group_cache::{create_bind_group, TaaResolveBindGroupKey};
 use super::taa_resolve_params::TaaResolveParams;
 
 impl ScenePostProcessResources {
+    /// 将场景颜色/深度/速度、上一帧历史和 reactive mask 绑定到一次 TAA 绘制，同时写出当前颜色与历史；参数通过返回的 pre-submit upload 交给帧事务提交。
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn execute_taa_resolve(
         &self,
@@ -173,17 +174,5 @@ impl ScenePostProcessResources {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn taa_params_are_returned_as_pre_submit_uploads() {
-        let source = include_str!("execute_taa_resolve.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("TAA resolve production source");
-
-        assert!(!production.contains("queue.write_buffer"));
-        assert!(production.contains("WgpuBufferUpload::from_bytes("));
-        assert!(production.contains("WgpuBufferUploadBatch"));
-    }
-}
+#[path = "tests/execute_taa_resolve.rs"]
+mod tests;

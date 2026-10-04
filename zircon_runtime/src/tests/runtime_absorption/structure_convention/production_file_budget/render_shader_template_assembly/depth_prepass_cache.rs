@@ -1,5 +1,6 @@
 use super::*;
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0074] 深度预通过变体缓存与图回放的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_depth_prepass_pipeline_template_cache_is_mesh_cache_owned() {
     let depth_processor = read_runtime_src(
@@ -16,7 +17,7 @@ fn runtime_15_depth_prepass_pipeline_template_cache_is_mesh_cache_owned() {
     let shader_source =
         read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs");
     let shader_source_tests = read_runtime_src(
-        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests.rs",
+        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/cases.rs",
     );
     let ensure_depth = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_depth_prepass_pipeline.rs",

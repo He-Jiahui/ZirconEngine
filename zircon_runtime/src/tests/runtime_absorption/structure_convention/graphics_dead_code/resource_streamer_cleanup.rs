@@ -126,6 +126,7 @@ fn runtime_15_material_runtime_capture_seed_cleanup() {
     }
 }
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0010] 资源流诊断访问器超过材质捕获拆分后的旧门槛；需先核对新增访问责任与被迁移的捕获逻辑，再决定继续拆分或修订预算。
 #[test]
 fn runtime_15_resource_streamer_diagnostics_accessor_cleanup() {
     let resource_streamer_accessors = read_runtime_src(
@@ -135,7 +136,7 @@ fn runtime_15_resource_streamer_diagnostics_accessor_cleanup() {
         "graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_capture.rs",
     );
     let material_diagnostics = read_runtime_src(
-        "graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_diagnostics.rs",
+        "graphics/scene/resources/resource_streamer/resource_streamer_accessors/tests/material_diagnostics.rs",
     );
     let resource_streamer_ensure = read_runtime_src(
         "graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs",
@@ -220,7 +221,7 @@ fn runtime_15_resource_streamer_diagnostics_accessor_cleanup() {
             material_capture.as_str(),
         ),
         (
-            "graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_diagnostics.rs",
+            "graphics/scene/resources/resource_streamer/resource_streamer_accessors/tests/material_diagnostics.rs",
             material_diagnostics.as_str(),
         ),
     ] {
@@ -271,6 +272,7 @@ fn runtime_15_resource_streamer_diagnostics_accessor_cleanup() {
     }
 }
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0011] 资源流纹理身份解析清理的旧阶段回执缺失；需沿当前标识解析调用核对迁移归属，并补归档映射或修订文本期待。
 #[test]
 fn runtime_15_resource_streamer_resolve_texture_id_cleanup() {
     let resolve_texture = read_runtime_src(

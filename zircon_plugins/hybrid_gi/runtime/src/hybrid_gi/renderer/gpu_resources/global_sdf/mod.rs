@@ -4,6 +4,7 @@ mod pending;
 mod resources;
 mod state;
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 mod trace_bindings;
 

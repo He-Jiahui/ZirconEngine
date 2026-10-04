@@ -1,3 +1,4 @@
+# 核对模板清单文件加载及模式的模块归属。
 import unittest
 from pathlib import Path
 
@@ -5,15 +6,15 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE_MANIFEST_SCHEMA = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_platform_bundle_template_manifest_schema.py"
+    / "tools/export/pipeline_report_platform_bundle_template_manifest_schema.py"
 )
 TEMPLATE_MANIFEST_FILES_SCHEMA = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_platform_bundle_template_manifest_files_schema.py"
+    / "tools/export/pipeline_report_platform_bundle_template_manifest_files_schema.py"
 )
 TEMPLATE_MANIFEST_LOADER = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_platform_bundle_template_manifest_loader.py"
+    / "tools/export/pipeline_report_platform_bundle_template_manifest_loader.py"
 )
 
 

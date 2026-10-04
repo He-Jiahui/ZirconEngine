@@ -4,6 +4,10 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_UI = ROOT / "zircon_runtime/src/dynamic_api/session/runtime_ui.rs"
+INPUT_ROUTING = (
+    ROOT
+    / "zircon_runtime/src/dynamic_api/session/runtime_ui/input_routing.rs"
+)
 INPUT_PUBLICATION = (
     ROOT
     / "zircon_runtime/src/dynamic_api/session/runtime_ui/input_publication.rs"
@@ -34,13 +38,23 @@ def function_source(source: str, start_anchor: str, end_anchor: str) -> str:
     return source[start:end]
 
 
+def runtime_ui_source() -> str:
+    """Combine the root declaration with the split input-routing implementation."""
+    return "\n".join(
+        (
+            RUNTIME_UI.read_text(encoding="utf-8"),
+            INPUT_ROUTING.read_text(encoding="utf-8"),
+        )
+    )
+
+
 class RuntimeUiSurfaceInputPublicationDesignContractTests(unittest.TestCase):
     def test_unrouted_mouse_motion_is_rejected_before_surface_fanout(self):
-        source = RUNTIME_UI.read_text(encoding="utf-8")
+        source = runtime_ui_source()
         generic = function_source(
             source,
-            "    pub(super) fn dispatch_input(",
-            "\n    pub(super) fn dispatch_pointer(",
+            "    pub(in crate::dynamic_api::session) fn dispatch_input(",
+            "\n    pub(in crate::dynamic_api::session) fn dispatch_pointer(",
         )
         fast_path = function_source(
             generic,
@@ -57,11 +71,11 @@ class RuntimeUiSurfaceInputPublicationDesignContractTests(unittest.TestCase):
         )
 
     def test_focused_input_uses_the_published_owner_before_surface_fanout(self):
-        source = RUNTIME_UI.read_text(encoding="utf-8")
+        source = runtime_ui_source()
         generic = function_source(
             source,
-            "    pub(super) fn dispatch_input(",
-            "\n    pub(super) fn dispatch_pointer(",
+            "    pub(in crate::dynamic_api::session) fn dispatch_input(",
+            "\n    pub(in crate::dynamic_api::session) fn dispatch_pointer(",
         )
         direct_route = function_source(
             generic,
@@ -82,11 +96,11 @@ class RuntimeUiSurfaceInputPublicationDesignContractTests(unittest.TestCase):
         self.assertIn("focus_before != focus_after", source)
 
     def test_navigation_and_analog_use_a_published_surface_owner(self):
-        source = RUNTIME_UI.read_text(encoding="utf-8")
+        source = runtime_ui_source()
         generic = function_source(
             source,
-            "    pub(super) fn dispatch_input(",
-            "\n    pub(super) fn dispatch_pointer(",
+            "    pub(in crate::dynamic_api::session) fn dispatch_input(",
+            "\n    pub(in crate::dynamic_api::session) fn dispatch_pointer(",
         )
         navigation_direct = function_source(
             generic,
@@ -106,11 +120,11 @@ class RuntimeUiSurfaceInputPublicationDesignContractTests(unittest.TestCase):
         )
 
     def test_current_source_evidence_captures_both_surface_fanout_paths(self):
-        source = RUNTIME_UI.read_text(encoding="utf-8")
+        source = runtime_ui_source()
         generic = function_source(
             source,
-            "    pub(super) fn dispatch_input(",
-            "\n    pub(super) fn dispatch_pointer(",
+            "    pub(in crate::dynamic_api::session) fn dispatch_input(",
+            "\n    pub(in crate::dynamic_api::session) fn dispatch_pointer(",
         )
         pointer = function_source(
             source,
@@ -120,7 +134,7 @@ class RuntimeUiSurfaceInputPublicationDesignContractTests(unittest.TestCase):
         pointer_target = function_source(
             source,
             "    fn dispatch_pointer_to_surface(",
-            "\n    pub(super) fn next_input_metadata(",
+            "\n    pub(in crate::dynamic_api::session) fn next_input_metadata(",
         )
 
         self.assertIn("for surface_index in (0..self.surfaces.len()).rev()", generic)
@@ -131,7 +145,7 @@ class RuntimeUiSurfaceInputPublicationDesignContractTests(unittest.TestCase):
         self.assertIn("input_event_for_surface(", pointer)
 
     def test_uncaptured_pointer_uses_incremental_publication_before_legacy_fanout(self):
-        runtime_ui = RUNTIME_UI.read_text(encoding="utf-8")
+        runtime_ui = runtime_ui_source()
         publication = INPUT_PUBLICATION.read_text(encoding="utf-8")
         pointer = function_source(
             runtime_ui,
@@ -176,7 +190,7 @@ class RuntimeUiSurfaceInputPublicationDesignContractTests(unittest.TestCase):
         self.assertNotIn("bounded_cells_for_frame", publication)
 
     def test_pointer_fallback_is_typed_and_invalid_input_never_fans_out(self):
-        runtime_ui = RUNTIME_UI.read_text(encoding="utf-8")
+        runtime_ui = runtime_ui_source()
         publication = INPUT_PUBLICATION.read_text(encoding="utf-8")
         pointer = function_source(
             runtime_ui,
@@ -203,11 +217,11 @@ class RuntimeUiSurfaceInputPublicationDesignContractTests(unittest.TestCase):
         )
 
     def test_direct_focus_and_published_pointer_paths_do_not_rebuild_in_event_chain(self):
-        source = RUNTIME_UI.read_text(encoding="utf-8")
+        source = runtime_ui_source()
         generic = function_source(
             source,
-            "    pub(super) fn dispatch_input(",
-            "\n    pub(super) fn dispatch_pointer(",
+            "    pub(in crate::dynamic_api::session) fn dispatch_input(",
+            "\n    pub(in crate::dynamic_api::session) fn dispatch_pointer(",
         )
         focus_direct = function_source(
             generic,
@@ -226,7 +240,7 @@ class RuntimeUiSurfaceInputPublicationDesignContractTests(unittest.TestCase):
 
     def test_resize_pointer_preserves_physical_point_and_forwards_virtual_query(self):
         publication = INPUT_PUBLICATION.read_text(encoding="utf-8")
-        runtime_ui = RUNTIME_UI.read_text(encoding="utf-8")
+        runtime_ui = runtime_ui_source()
         manager = INPUT_MANAGER.read_text(encoding="utf-8")
         dispatch = INPUT_DISPATCH.read_text(encoding="utf-8")
         pointer = POINTER_INPUT.read_text(encoding="utf-8")
@@ -253,7 +267,7 @@ class RuntimeUiSurfaceInputPublicationDesignContractTests(unittest.TestCase):
     def test_unrouted_mouse_motion_and_duplicate_sync_are_bound_to_the_record(self):
         events = EVENTS.read_text(encoding="utf-8")
         mouse_motion = MOUSE_MOTION.read_text(encoding="utf-8")
-        runtime_ui = RUNTIME_UI.read_text(encoding="utf-8")
+        runtime_ui = runtime_ui_source()
         input_manager = INPUT_MANAGER.read_text(encoding="utf-8")
 
         self.assertIn("UiInputEvent::MouseMotion", events)

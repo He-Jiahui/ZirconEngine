@@ -6,6 +6,7 @@ mod path_identity;
 mod service;
 
 #[cfg(test)]
+#[path = "watcher/tests/cases.rs"]
 mod tests;
 
 pub(super) use budget::UiAssetWatchPollAllowance;

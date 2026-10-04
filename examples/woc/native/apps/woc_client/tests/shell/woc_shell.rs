@@ -96,6 +96,31 @@ fn offline_picker_prepares_then_starts_one_fresh_session_through_loading() {
 }
 
 #[test]
+fn offline_host_failure_returns_to_picker_for_a_retry_without_losing_selection() {
+    let mut shell = WocShellController::new(true, CharacterSortMode::Level);
+    shell
+        .select_mode(ServerMode::Offline)
+        .expect("choose Offline");
+    shell.play().expect("offline Play");
+    shell
+        .set_offline_class(OfflinePlayerClass::Mage)
+        .expect("offline class");
+    shell.set_offline_name("Retry Vale").expect("offline name");
+    shell.submit_offline_picker().expect("prepare offline");
+
+    shell
+        .reject_offline_preparation()
+        .expect("host can reject preparation");
+    assert_eq!(shell.screen(), WocShellScreen::OfflinePicker);
+    assert_eq!(
+        shell.offline().draft().player_class(),
+        Some(OfflinePlayerClass::Mage)
+    );
+    assert_eq!(shell.offline().draft().raw_name(), "Retry Vale");
+    assert_eq!(shell.offline().prepared_launch(), None);
+}
+
+#[test]
 fn offline_picker_back_reactivates_the_mode_selector() {
     let mut shell = WocShellController::new(true, CharacterSortMode::Level);
     shell

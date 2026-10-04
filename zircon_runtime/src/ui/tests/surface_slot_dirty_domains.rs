@@ -284,12 +284,10 @@ fn overlay_surface() -> UiSurface {
         .unwrap();
     surface
         .tree
-        .slots
-        .push(UiSlot::new(root_id(), back_id(), UiSlotKind::Overlay).with_z_order(0));
+        .push_layout_slot(UiSlot::new(root_id(), back_id(), UiSlotKind::Overlay).with_z_order(0));
     surface
         .tree
-        .slots
-        .push(UiSlot::new(root_id(), front_id(), UiSlotKind::Overlay).with_z_order(10));
+        .push_layout_slot(UiSlot::new(root_id(), front_id(), UiSlotKind::Overlay).with_z_order(10));
 
     surface.compute_layout(root_size()).unwrap();
     surface.clear_dirty_flags();
@@ -313,12 +311,10 @@ fn canvas_surface() -> UiSurface {
         .unwrap();
     surface
         .tree
-        .slots
-        .push(UiSlot::new(root_id(), back_id(), UiSlotKind::Canvas).with_z_order(0));
+        .push_layout_slot(UiSlot::new(root_id(), back_id(), UiSlotKind::Canvas).with_z_order(0));
     surface
         .tree
-        .slots
-        .push(UiSlot::new(root_id(), front_id(), UiSlotKind::Canvas).with_z_order(10));
+        .push_layout_slot(UiSlot::new(root_id(), front_id(), UiSlotKind::Canvas).with_z_order(10));
 
     surface.compute_layout(root_size()).unwrap();
     surface.clear_dirty_flags();
@@ -488,7 +484,7 @@ fn hit_z(frame: &UiSurfaceFrame, node_id: UiNodeId) -> Option<i32> {
 fn slot_revision(surface: &UiSurface, child_id: UiNodeId, kind: UiSlotKind) -> Option<u64> {
     surface
         .tree
-        .slots
+        .layout_slots()
         .iter()
         .find(|slot| slot.parent_id == root_id() && slot.child_id == child_id && slot.kind == kind)
         .map(|slot| slot.dirty_revision)

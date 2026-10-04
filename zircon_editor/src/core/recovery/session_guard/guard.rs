@@ -5,10 +5,10 @@ use zircon_runtime::asset::project::ProjectPaths;
 use zircon_runtime_interface::project::session_lock::ProjectSessionAdmissionLifecycleV1;
 
 use super::{
-    ProjectSessionAdmissionRecordV1, SessionAdmissionRequest, SessionGuardError,
-    SessionLockDurability, SessionLockInspection, SessionOwnershipLease, create_lock, inspect_lock,
-    new_record, next_session_generation, read_lock, remove_lock, replace_lock, session_lock_path,
-    unix_millis,
+    create_lock, inspect_lock, new_record, next_session_generation, read_lock, remove_lock,
+    replace_lock, session_lock_path, unix_millis, ProjectSessionAdmissionRecordV1,
+    SessionAdmissionRequest, SessionGuardError, SessionLockDurability, SessionLockInspection,
+    SessionOwnershipLease,
 };
 
 /// Owns one project session lock until normal shutdown explicitly releases it.

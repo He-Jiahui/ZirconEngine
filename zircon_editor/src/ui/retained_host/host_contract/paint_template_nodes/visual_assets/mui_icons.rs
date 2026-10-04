@@ -5,6 +5,7 @@ mod rendering;
 mod svg_document;
 
 #[cfg(test)]
+#[path = "mui_icons/tests/cases.rs"]
 mod tests;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use candidates::{

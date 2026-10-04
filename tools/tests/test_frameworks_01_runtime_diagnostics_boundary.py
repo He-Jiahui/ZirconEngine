@@ -7,6 +7,47 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 class Frameworks01RuntimeDiagnosticsBoundaryTests(unittest.TestCase):
+    def test_diagnostics_physical_owner_respects_foundation_order_and_is_unique(self) -> None:
+        diagnostics_crate = REPO_ROOT / "zircon_runtime/crates/zr_diagnostics"
+        kernel_crate = REPO_ROOT / "zircon_runtime/crates/zr_kernel"
+        legacy_log_owner = REPO_ROOT / "zircon_runtime/src/diagnostic_log"
+        legacy_store_owner = REPO_ROOT / "zircon_runtime/src/core/runtime/diagnostics"
+
+        if not diagnostics_crate.exists():
+            self.assertTrue(legacy_log_owner.is_dir())
+            self.assertTrue(legacy_store_owner.is_dir())
+            return
+
+        self.assertTrue(
+            kernel_crate.is_dir(),
+            "zr_diagnostics must not precede the planned zr_kernel foundation owner",
+        )
+        self.assertFalse(
+            legacy_log_owner.exists(),
+            "zr_diagnostics and diagnostic_log must not survive as dual implementations",
+        )
+        self.assertFalse(
+            legacy_store_owner.exists(),
+            "zr_diagnostics and core/runtime/diagnostics must not survive as dual stores",
+        )
+
+    def test_products_and_internal_crates_use_the_curated_diagnostics_surface(self) -> None:
+        roots = (
+            REPO_ROOT / "zircon_app",
+            REPO_ROOT / "zircon_editor",
+            REPO_ROOT / "zircon_plugins",
+            REPO_ROOT / "zircon_runtime/crates",
+        )
+        violations = []
+        for root in roots:
+            if not root.is_dir():
+                continue
+            for path in sorted(root.rglob("*.rs")):
+                source = path.read_text(encoding="utf-8")
+                if "crate::runtime_diagnostics" in source:
+                    violations.append(path.relative_to(REPO_ROOT).as_posix())
+        self.assertEqual([], violations)
+
     def test_manager_resolving_collectors_are_facade_owned(self) -> None:
         core_diagnostics = REPO_ROOT / "zircon_runtime/src/core/runtime/diagnostics"
         facade = REPO_ROOT / "zircon_runtime/src/runtime_diagnostics"

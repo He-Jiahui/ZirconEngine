@@ -9,7 +9,7 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/ffi.rs
   - zircon_runtime/src/dynamic_api/session/operation.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
-  - docs/zircon_runtime/dynamic_api/session.md
+  - docs/crates/zircon_runtime/dynamic_api/session.md
   - docs/plans/zircon_editor/editor/03/fixed-2026-07-16-dynamic-runtime-v1-fallback-reintroduced.md
 implementation_files:
   - zircon_runtime_interface/src/runtime_api/abi/api_table.rs

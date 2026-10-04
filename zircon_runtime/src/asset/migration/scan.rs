@@ -42,6 +42,7 @@ struct MigrationInventoryStats {
     file_visits: usize,
 }
 
+/// 一次文件系统扫描形成的路径清单，同时服务引用解析、迁移计划和事务目标核查。
 pub(super) struct MigrationInventory {
     recognized_sources: Vec<RecognizedSource>,
     authoring_files: Vec<PathBuf>,
@@ -129,6 +130,24 @@ impl MigrationInventory {
             .ok()
             .map(|index| &self.physical_identities[index])
             .map(|identity| identity.physical_path.as_path())
+    }
+
+    /// Matches a published identity against a resolver root-relative projection key.
+    /// Uses this inventory generation and the same RelPath conversion as resolver_projections.
+    pub(super) fn has_root_relative_projection(&self, path: &Path, relative: &str) -> bool {
+        let Ok(index) = self
+            .physical_identities
+            .binary_search_by(|identity| identity.path.as_path().cmp(path))
+        else {
+            return false;
+        };
+        self.physical_identities[index]
+            .root_relative_identities
+            .iter()
+            .any(|identity| {
+                let relative_path = identity.relative.to_string_lossy().replace('\\', "/");
+                RelPath::parse(relative_path).is_ok_and(|projected| projected.as_str() == relative)
+            })
     }
 }
 
@@ -445,5 +464,5 @@ pub(crate) fn scan_migration_inventory_for_test(
 }
 
 #[cfg(test)]
-#[path = "scan/optimization_tests.rs"]
+#[path = "scan/tests/optimization_tests.rs"]
 mod optimization_tests;

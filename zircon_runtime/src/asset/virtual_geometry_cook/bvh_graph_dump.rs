@@ -7,6 +7,7 @@ use crate::asset::{
 
 const MAX_U32_DECIMAL_DIGITS: usize = 10;
 
+/// 导出稳定的 Graphviz 层级视图供检查；实际页依赖仍以资产中的依赖表为准。
 pub fn format_virtual_geometry_cook_bvh_graph_dump(asset: &VirtualGeometryAsset) -> String {
     let mut graph = String::new();
     let cluster_ids_by_node = cluster_ids_by_node(asset);
@@ -110,5 +111,5 @@ fn write_line(graph: &mut String, args: std::fmt::Arguments<'_>) {
 }
 
 #[cfg(test)]
-#[path = "bvh_graph_dump/capacity_tests.rs"]
+#[path = "bvh_graph_dump/tests/capacity_tests.rs"]
 mod capacity_tests;

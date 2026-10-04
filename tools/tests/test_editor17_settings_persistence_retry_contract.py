@@ -1,3 +1,4 @@
+# 核对设置持久化重试由变更协调器拥有，并经健康投影和界面动作传递。
 import unittest
 from pathlib import Path
 

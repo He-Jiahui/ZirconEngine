@@ -1,7 +1,8 @@
+# 验证规模项目和变更集在已核验来源、资源清单及输出根约束下生成。
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $generator = Join-Path $repoRoot 'tools\mvp\New-ResourceManagementScaleProject.ps1'
 $changeSet = Join-Path $repoRoot 'tools\mvp\Set-ResourceManagementScaleProjectChangeSet.ps1'
-$resolverModule = Join-Path $repoRoot 'tools\WindowsPathResolver.psm1'
+$resolverModule = Join-Path $repoRoot 'tools\maintenance\WindowsPathResolver.psm1'
 $manifestModule = Join-Path $repoRoot 'tools\mvp\MvpProductInputManifest.psm1'
 $artifactStorageModule = Join-Path $repoRoot 'tools\mvp\MvpArtifactStoragePolicy.psm1'
 $originalTestMode = $env:RESOURCE_MANAGEMENT_SCALE_PROJECT_TEST_MODE

@@ -622,33 +622,29 @@ fn menu_and_collection_composites_share_editor_tokens() {
 }
 
 #[test]
-fn popup_menu_anchor_tracks_the_compact_control_height_token() {
+fn popup_menu_leaves_anchor_geometry_to_its_owner() {
     let asset = workbench_asset!("primitives/feedback/workbench_popup_menu.zui");
 
     assert!(
-        asset.contains("popup_anchor_y = \"$editor.control.height.compact\""),
-        "popup-menu anchor must follow the compact control height token"
-    );
-    assert!(
-        !asset.contains("popup_anchor_y = 30.0"),
-        "popup-menu anchor must not retain the old fixed compact-height value"
+        !asset.contains("popup_anchor_"),
+        "popup-menu primitive must receive all anchor geometry from its trigger owner"
     );
 }
 
 #[test]
-fn dropdown_popup_anchor_tracks_shared_control_height_tokens() {
+fn dropdown_popup_defaults_to_an_owner_supplied_anchor() {
     let asset = workbench_asset!("primitives/feedback/workbench_dropdown_popup.zui");
 
     assert!(
-        asset.contains("popup_anchor_x = \"$editor.density.gap.large\"")
-            && asset.contains("popup_anchor_y = \"$editor.control.height.default\"")
+        asset.contains("popup_anchor_x = 0.0")
+            && asset.contains("popup_anchor_y = 0.0")
             && asset.contains("popup_anchor_height = \"$editor.control.height.compact\""),
-        "dropdown-popup anchor must follow the shared spacing and control height tokens"
+        "dropdown-popup must remain inert until its trigger owner supplies the anchor position"
     );
     assert!(
-        !asset.contains("popup_anchor_x = 12.0")
-            && !asset.contains("popup_anchor_y = 32.0")
+        !asset.contains("popup_anchor_x = \"$editor.density.gap.large\"")
+            && !asset.contains("popup_anchor_y = \"$editor.control.height.default\"")
             && !asset.contains("popup_anchor_height = 30.0"),
-        "dropdown-popup anchor must not retain old fixed spacing or control-height values"
+        "dropdown-popup must not restore an authored absolute trigger position"
     );
 }

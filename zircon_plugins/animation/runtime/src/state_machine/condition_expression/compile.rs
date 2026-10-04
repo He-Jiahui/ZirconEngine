@@ -3,6 +3,7 @@ use zircon_runtime::core::framework::animation::AnimationTransitionConditionAsse
 
 use super::compiled_condition_expression::{CompiledConditionExpression, CompiledConditionProgram};
 use super::instruction::ConditionInstruction;
+use super::parameter_table::ParameterSlot;
 use super::{ConditionExpression, ConditionExpressionCompileError, ParameterTableBuilder};
 
 const MAX_CONDITION_EXPRESSION_DEPTH: usize = 64;

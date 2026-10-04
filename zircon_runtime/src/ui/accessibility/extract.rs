@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::ui::surface::{UiSurface, editable_text_input_is_secure};
+use crate::ui::surface::{editable_text_input_is_secure, UiSurface};
 use zircon_runtime_interface::ui::{
     accessibility::{
         UiA11yRole, UiA11yState, UiAccessibilityAction, UiAccessibilityDiagnostic,
@@ -116,11 +116,22 @@ fn build_accessibility_snapshot(
     }
 
     budget.check_deadline()?;
-    resolve_names(surface, &mut nodes, budget)?;
-    resolve_descriptions(surface, &mut nodes, &mut diagnostics, budget)?;
+    // Name and description resolution each need a stable key snapshot while mutating the
+    // accessibility map. Reuse one key buffer across those passes so a large snapshot does not
+    // allocate a fresh `Vec<UiNodeId>` for every resolver.
+    let mut resolution_node_ids = Vec::with_capacity(nodes.len());
+    resolve_names(surface, &mut nodes, &mut resolution_node_ids, budget)?;
+    resolve_descriptions(
+        surface,
+        &mut nodes,
+        &mut resolution_node_ids,
+        &mut diagnostics,
+        budget,
+    )?;
     prune_hidden_relation_targets(surface, &mut nodes, &mut hidden_relation_targets);
     filter_children(surface, &mut nodes, &hidden_relation_targets, budget)?;
 
+    // 隐藏关系节点只提供朗读来源；名称与描述解析后清除动作和子项，避免作为独立交互分支发布。
     for hidden_target in &hidden_relation_targets {
         budget.check_deadline()?;
         if let Some(node) = nodes.get_mut(hidden_target) {
@@ -129,7 +140,7 @@ fn build_accessibility_snapshot(
         }
     }
 
-    let mut roots = Vec::new();
+    let mut roots = Vec::with_capacity(surface.tree.roots.len());
     for root in surface.tree.roots.iter().copied() {
         budget.check_deadline()?;
         if nodes.contains_key(&root) && !hidden_relation_targets.contains(&root) {
@@ -312,18 +323,20 @@ fn build_node(
 fn resolve_names(
     surface: &UiSurface,
     nodes: &mut BTreeMap<UiNodeId, UiAccessibilityNode>,
+    node_ids: &mut Vec<UiNodeId>,
     budget: &mut AccessibilityBuildBudget,
 ) -> Result<(), AccessibilitySnapshotBudgetError> {
-    resolution::resolve_names(surface, nodes, budget)
+    resolution::resolve_names(surface, nodes, node_ids, budget)
 }
 
 fn resolve_descriptions(
     surface: &UiSurface,
     nodes: &mut BTreeMap<UiNodeId, UiAccessibilityNode>,
+    node_ids: &mut Vec<UiNodeId>,
     diagnostics: &mut Vec<UiAccessibilityDiagnostic>,
     budget: &mut AccessibilityBuildBudget,
 ) -> Result<(), AccessibilitySnapshotBudgetError> {
-    resolution::resolve_descriptions(surface, nodes, diagnostics, budget)
+    resolution::resolve_descriptions(surface, nodes, node_ids, diagnostics, budget)
 }
 
 fn prune_hidden_relation_targets(
@@ -606,3 +619,7 @@ fn diagnostic(
         message: message.into(),
     }
 }
+
+#[cfg(test)]
+#[path = "extract/tests/root_capacity_tests.rs"]
+mod root_capacity_tests;

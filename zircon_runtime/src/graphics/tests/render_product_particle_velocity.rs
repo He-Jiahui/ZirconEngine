@@ -138,8 +138,8 @@ fn render_product_particle_velocity_writer_uses_renderer_owned_previous_state_on
 }
 
 #[test]
-fn render_product_particle_velocity_writer_matches_same_entity_renderer_owned_sprites_by_key_on_second_frame()
- {
+fn render_product_particle_velocity_writer_matches_same_entity_renderer_owned_sprites_by_key_on_second_frame(
+) {
     let framework = particle_velocity_framework();
     let viewport_size = UVec2::new(320, 240);
     let viewport = create_particle_velocity_viewport(&framework, viewport_size);
@@ -321,8 +321,8 @@ fn render_product_particle_velocity_reports_anonymous_key_multi_sprite_ambiguity
 }
 
 #[test]
-fn render_product_particle_velocity_rejects_anonymous_key_multi_sprite_previous_state_on_second_frame()
- {
+fn render_product_particle_velocity_rejects_anonymous_key_multi_sprite_previous_state_on_second_frame(
+) {
     let framework = particle_velocity_framework();
     let viewport_size = UVec2::new(320, 240);
     let viewport = create_particle_velocity_viewport(&framework, viewport_size);

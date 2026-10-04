@@ -1,0 +1,289 @@
+penpot_dependency_sources = []
+penpot_original_source = "[asset]\nkind = \"view\"\nid = \"res://ui/tests/reactbits_agent_native_components.zui\"\nversion = 2\ndisplay_name = \"ReactBits Agent Native Components\"\n\n[tokens]\n\"surface.canvas\" = \"#0f1117\"\n\"surface.panel\" = \"#171b24\"\n\"surface.elevated\" = \"#1d2330\"\n\"surface.inset\" = \"#11151d\"\n\"border.default\" = \"#2a3342\"\n\"border.strong\" = \"#3a4658\"\n\"text.primary\" = \"#f4f7fb\"\n\"text.secondary\" = \"#a9b4c5\"\n\"text.muted\" = \"#718096\"\n\"accent.primary\" = \"#8b7cff\"\n\"accent.info\" = \"#5da9ff\"\n\"status.success\" = \"#55d6a0\"\n\"status.error\" = \"#ff7d8a\"\n\n[root]\nnode = \"root\"\n\n[nodes.root]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ReactBitsNativeComponentsRoot\"\nclasses = [\"rb-native-component-fixture\"]\nprops = {\n  background_color = \"$surface.canvas\",\n  foreground_color = \"$text.primary\",\n  fixture_data_only = true,\n  reference_primary = \"https://pro.reactbits.dev/docs/app-ui/ai-chat/ai-chat-1\",\n  reference_supporting = [\n    \"https://pro.reactbits.dev/docs/app-ui/prompt-input/prompt-input-3\",\n    \"https://pro.reactbits.dev/docs/app-ui/agent-activity/agent-activity-1\",\n    \"https://pro.reactbits.dev/docs/app-ui/ai-chat/ai-chat-2\",\n    \"https://pro.reactbits.dev/docs/app-ui/ai-chat/ai-chat-5\",\n    \"https://pro.reactbits.dev/docs/app-ui/ai-chat/ai-chat-6\",\n    \"https://pro.reactbits.dev/docs/app-ui/ai-chat/ai-chat-7\",\n    \"https://pro.reactbits.dev/docs/app-ui/ai-chat/ai-chat-9\",\n  ],\n  responsive_wide = \"agent component card stays centered with full composer\",\n  responsive_mobile = \"message bubbles and composer remain primary; outer padding contracts\",\n}\nlayout = {\n  clip = true,\n  input_policy = \"Receive\",\n  width = { min = 320, preferred = 720, max = 960, stretch = \"Stretch\" },\n  height = { min = 300, preferred = 420, max = 560, stretch = \"Stretch\" },\n  container = { kind = \"VerticalBox\", gap = 12 },\n  padding = { left = 18, right = 18, top = 18, bottom = 18 },\n}\nchildren = [\n  { node = \"header\" },\n  { node = \"agent_chat\" },\n  { node = \"composer\" },\n  { node = \"state\" },\n]\n\n[nodes.header]\ncomponent = \"VerticalBox\"\ncontrol_id = \"ReactBitsNativeComponentsHeader\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 42, preferred = 42, max = 42, stretch = \"Fixed\" }, container = { kind = \"VerticalBox\", gap = 3 } }\nchildren = [{ node = \"title\" }, { node = \"subtitle\" }]\n\n[nodes.title]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsNativeComponentsTitle\"\nprops = { text = \"Native AgentChat primitives\", foreground_color = \"$text.primary\", font_size = 15, font_weight = 650 }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 20, preferred = 20, max = 20, stretch = \"Fixed\" } }\n\n[nodes.subtitle]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsNativeComponentsSubtitle\"\nprops = { text = \"Semantic messages, streaming state, and a real composer surface\", foreground_color = \"$text.secondary\", font_size = 10 }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 18, preferred = 18, max = 18, stretch = \"Fixed\" } }\n\n[nodes.agent_chat]\ncomponent = \"AgentChat\"\ncontrol_id = \"ReactBitsNativeAgentChat\"\nclasses = [\"MuiAgentChat-root\", \"MuiAgentChat-streaming\", \"MuiAgentChat-hasMessages\"]\nprops = {\n  messages = [\n    \"user|Review the selected asset and keep its context visible.\",\n    \"agent|The retained host is drawing this response from semantic ZUI data.\",\n    \"user|Can the tool result and cited file stay in the same thread?\",\n    \"agent|Yes — the full thread keeps each turn in source order while it streams.\",\n  ],\n  streaming = true,\n  error = false,\n  background_color = \"$surface.panel\",\n  foreground_color = \"$text.primary\",\n  border_color = \"$border.default\",\n  border_width = 1,\n  corner_radius = 10,\n  accessibility_label = \"Native agent conversation\",\n}\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 164, preferred = 208, max = 244, stretch = \"Fixed\" } }\n\n[nodes.composer]\ncomponent = \"ChatComposer\"\ncontrol_id = \"ReactBitsNativeChatComposer\"\nclasses = [\"MuiChatComposer-root\", \"MuiChatComposer-streaming\", \"MuiChatComposer-hasText\"]\nprops = {\n  composer_text = \"Continue the parity review…\",\n  send_icon = \"arrow-up\",\n  send_icon_size = \"s\",\n  streaming = true,\n  error = false,\n  background_color = \"$surface.inset\",\n  foreground_color = \"$text.primary\",\n  border_color = \"$accent.primary\",\n  border_width = 1,\n  corner_radius = 8,\n  input_interactive = true,\n  input_focusable = true,\n  accessibility_label = \"Native agent prompt\",\n}\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 48, preferred = 54, max = 64, stretch = \"Fixed\" } }\nevents = [{ id = \"ReactBitsNative/ComposerSubmit\", event = \"Submit\", route = \"agent.prompt.submit\" }]\n\n[nodes.state]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"ReactBitsNativeComponentsState\"\nprops = { background_color = \"$surface.elevated\", border_color = \"$border.default\", border_width = 1, corner_radius = 7 }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 34, preferred = 34, max = 34, stretch = \"Fixed\" }, container = { kind = \"HorizontalBox\", gap = 8 }, padding = { left = 10, right = 10, top = 7, bottom = 7 } }\nchildren = [{ node = \"state_label\" }, { node = \"state_value\" }]\n\n[nodes.state_label]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsNativeComponentsStateLabel\"\nprops = { text = \"STATE\", foreground_color = \"$text.muted\", font_size = 9, font_weight = 700, letter_spacing = 1 }\nlayout = { width = { min = 40, preferred = 40, max = 40, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.state_value]\ncomponent = \"Label\"\ncontrol_id = \"ReactBitsNativeComponentsStateValue\"\nprops = { text = \"messages projected · streaming · submit route retained\", foreground_color = \"$status.success\", font_size = 10, text_overflow = \"elide\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.root.zircon_extension]\nowner = \"reactbits-reference-slice\"\nreference_profile = \"reactbits-native-components-v1\"\nsource_of_truth = \"zui\"\npenpot_visual_check = \"required\"\n\n[[stylesheets]]\nid = \"reactbits-ui-typography\"\n\n[[stylesheets.rules]]\nselector = \"*\"\nset = { self = { font = { asset = \"res://fonts/editor-ui.font.toml\", family = \"Fira Sans\" } } }\n"
+
+[asset]
+kind = "view"
+id = "res://ui/tests/reactbits_agent_native_components.zui"
+version = 2
+display_name = "ReactBits Agent Native Components"
+
+[tokens]
+"surface.canvas" = "#0f1117"
+"surface.panel" = "#171b24"
+"surface.elevated" = "#1d2330"
+"surface.inset" = "#11151d"
+"border.default" = "#2a3342"
+"border.strong" = "#3a4658"
+"text.primary" = "#f4f7fb"
+"text.secondary" = "#a9b4c5"
+"text.muted" = "#718096"
+"accent.primary" = "#8b7cff"
+"accent.info" = "#5da9ff"
+"status.success" = "#55d6a0"
+"status.error" = "#ff7d8a"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalBox"
+control_id = "ReactBitsNativeComponentsRoot"
+classes = [ "rb-native-component-fixture" ]
+
+[nodes.root.props]
+background_color = "$surface.canvas"
+foreground_color = "$text.primary"
+fixture_data_only = true
+reference_primary = "https://pro.reactbits.dev/docs/app-ui/ai-chat/ai-chat-1"
+reference_supporting = [ "https://pro.reactbits.dev/docs/app-ui/prompt-input/prompt-input-3", "https://pro.reactbits.dev/docs/app-ui/agent-activity/agent-activity-1", "https://pro.reactbits.dev/docs/app-ui/ai-chat/ai-chat-2", "https://pro.reactbits.dev/docs/app-ui/ai-chat/ai-chat-5", "https://pro.reactbits.dev/docs/app-ui/ai-chat/ai-chat-6", "https://pro.reactbits.dev/docs/app-ui/ai-chat/ai-chat-7", "https://pro.reactbits.dev/docs/app-ui/ai-chat/ai-chat-9" ]
+responsive_wide = "agent component card stays centered with full composer"
+responsive_mobile = "message bubbles and composer remain primary; outer padding contracts"
+
+[nodes.root.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.root.layout.width]
+min = 320
+preferred = 720
+max = 960
+stretch = "Stretch"
+
+[nodes.root.layout.height]
+min = 300
+preferred = 420
+max = 560
+stretch = "Stretch"
+
+[nodes.root.layout.container]
+kind = "VerticalBox"
+gap = 12
+
+[nodes.root.layout.padding]
+left = 18
+right = 18
+top = 18
+bottom = 18
+
+[[nodes.root.children]]
+node = "header"
+
+[[nodes.root.children]]
+node = "agent_chat"
+
+[[nodes.root.children]]
+node = "composer"
+
+[[nodes.root.children]]
+node = "state"
+
+[nodes.root.zircon_extension]
+owner = "reactbits-reference-slice"
+reference_profile = "reactbits-native-components-v1"
+source_of_truth = "zui"
+penpot_visual_check = "required"
+
+[nodes.header]
+component = "VerticalBox"
+control_id = "ReactBitsNativeComponentsHeader"
+
+[nodes.header.layout.width]
+stretch = "Stretch"
+
+[nodes.header.layout.height]
+min = 42
+preferred = 42
+max = 42
+stretch = "Fixed"
+
+[nodes.header.layout.container]
+kind = "VerticalBox"
+gap = 3
+
+[[nodes.header.children]]
+node = "title"
+
+[[nodes.header.children]]
+node = "subtitle"
+
+[nodes.title]
+component = "Label"
+control_id = "ReactBitsNativeComponentsTitle"
+
+[nodes.title.props]
+text = "Native AgentChat primitives"
+foreground_color = "$text.primary"
+font_size = 15
+font_weight = 650
+
+[nodes.title.layout.width]
+stretch = "Stretch"
+
+[nodes.title.layout.height]
+min = 20
+preferred = 20
+max = 20
+stretch = "Fixed"
+
+[nodes.subtitle]
+component = "Label"
+control_id = "ReactBitsNativeComponentsSubtitle"
+
+[nodes.subtitle.props]
+text = "Semantic messages, streaming state, and a real composer surface"
+foreground_color = "$text.secondary"
+font_size = 10
+
+[nodes.subtitle.layout.width]
+stretch = "Stretch"
+
+[nodes.subtitle.layout.height]
+min = 18
+preferred = 18
+max = 18
+stretch = "Fixed"
+
+[nodes.agent_chat]
+component = "AgentChat"
+control_id = "ReactBitsNativeAgentChat"
+classes = [ "MuiAgentChat-root", "MuiAgentChat-streaming", "MuiAgentChat-hasMessages" ]
+
+[nodes.agent_chat.props]
+messages = [ "user|Review the selected asset and keep its context visible.", "agent|The retained host is drawing this response from semantic ZUI data.", "user|Can the tool result and cited file stay in the same thread?", "agent|Yes — the full thread keeps each turn in source order while it streams." ]
+streaming = true
+error = false
+background_color = "$surface.panel"
+foreground_color = "$text.primary"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 10
+accessibility_label = "Native agent conversation"
+
+[nodes.agent_chat.layout.width]
+stretch = "Stretch"
+
+[nodes.agent_chat.layout.height]
+min = 164
+preferred = 208
+max = 244
+stretch = "Fixed"
+
+[nodes.composer]
+component = "ChatComposer"
+control_id = "ReactBitsNativeChatComposer"
+classes = [ "MuiChatComposer-root", "MuiChatComposer-streaming", "MuiChatComposer-hasText" ]
+
+[nodes.composer.props]
+composer_text = "Continue the parity review…"
+send_icon = "arrow-up"
+send_icon_size = "s"
+streaming = true
+error = false
+background_color = "$surface.inset"
+foreground_color = "$text.primary"
+border_color = "$accent.primary"
+border_width = 1
+corner_radius = 8
+input_interactive = true
+input_focusable = true
+accessibility_label = "Native agent prompt"
+
+[nodes.composer.layout.width]
+stretch = "Stretch"
+
+[nodes.composer.layout.height]
+min = 48
+preferred = 54
+max = 64
+stretch = "Fixed"
+
+[[nodes.composer.events]]
+id = "ReactBitsNative/ComposerSubmit"
+event = "Submit"
+route = "agent.prompt.submit"
+
+[nodes.state]
+component = "HorizontalBox"
+control_id = "ReactBitsNativeComponentsState"
+
+[nodes.state.props]
+background_color = "$surface.elevated"
+border_color = "$border.default"
+border_width = 1
+corner_radius = 7
+
+[nodes.state.layout.width]
+stretch = "Stretch"
+
+[nodes.state.layout.height]
+min = 34
+preferred = 34
+max = 34
+stretch = "Fixed"
+
+[nodes.state.layout.container]
+kind = "HorizontalBox"
+gap = 8
+
+[nodes.state.layout.padding]
+left = 10
+right = 10
+top = 7
+bottom = 7
+
+[[nodes.state.children]]
+node = "state_label"
+
+[[nodes.state.children]]
+node = "state_value"
+
+[nodes.state_label]
+component = "Label"
+control_id = "ReactBitsNativeComponentsStateLabel"
+
+[nodes.state_label.props]
+text = "STATE"
+foreground_color = "$text.muted"
+font_size = 9
+font_weight = 700
+letter_spacing = 1
+
+[nodes.state_label.layout.width]
+min = 40
+preferred = 40
+max = 40
+stretch = "Fixed"
+
+[nodes.state_label.layout.height]
+stretch = "Stretch"
+
+[nodes.state_value]
+component = "Label"
+control_id = "ReactBitsNativeComponentsStateValue"
+
+[nodes.state_value.props]
+text = "messages projected · streaming · submit route retained"
+foreground_color = "$status.success"
+font_size = 10
+text_overflow = "elide"
+
+[nodes.state_value.layout.width]
+stretch = "Stretch"
+
+[nodes.state_value.layout.height]
+stretch = "Stretch"
+
+[[stylesheets]]
+id = "reactbits-ui-typography"
+
+[[stylesheets.rules]]
+selector = "*"
+
+[stylesheets.rules.set.self.font]
+asset = "res://fonts/editor-ui.font.toml"
+family = "Fira Sans"
+
+[penpot_original_imports]
+[imports]
+widgets = []
+styles = []

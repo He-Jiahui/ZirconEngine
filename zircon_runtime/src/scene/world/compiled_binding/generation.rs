@@ -5,6 +5,7 @@ use crate::scene::EntityId;
 use super::property_path::{ComponentFieldId, PathId};
 
 #[derive(Clone, Debug)]
+// 层级根与字段路径的失效代数；重命名、重挂载和 World 替换后使已编译动画绑定可检测过期。
 pub(in crate::scene::world) struct SceneBindingGenerations {
     next: u64,
     catalog_generation: u64,
@@ -120,5 +121,5 @@ impl PartialEq for SceneBindingGenerations {
 }
 
 #[cfg(test)]
-#[path = "generation/allocation_free_root_advance_tests.rs"]
+#[path = "generation/tests/allocation_free_root_advance_tests.rs"]
 mod allocation_free_root_advance_tests;

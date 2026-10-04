@@ -7,7 +7,7 @@ related_code:
   - zircon_runtime/src/script/vm/host_interface/registry.rs
   - zircon_runtime/src/text/cache/shaped_cache.rs
   - zircon_runtime/src/text/parallel/shape_pool.rs
-  - docs/zircon_runtime/structure/module-convention.md
+  - docs/crates/zircon_runtime/structure/module-convention.md
 implementation_files:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_naming_boundary.py
 plan_sources:
@@ -17,7 +17,7 @@ plan_sources:
 tests:
   - python -m unittest tools.tests.test_runtime_init_level_naming -v
   - python .Codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json
-  - git diff --check -- .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_naming_boundary.py tools/tests/test_runtime_init_level_naming.py docs/plans/zircon_runtime/runtime/15/2026-07-16-runtime-editor-naming-owner-classification.md docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md docs/zircon_runtime/structure/module-convention.md
+  - git diff --check -- .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_naming_boundary.py tools/tests/test_runtime_init_level_naming.py docs/plans/zircon_runtime/runtime/15/2026-07-16-runtime-editor-naming-owner-classification.md docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md docs/crates/zircon_runtime/structure/module-convention.md
 doc_type: milestone-detail
 status_anchor: runtime_15_runtime_editor_naming_owner_classification_unclassified_zero_render_debt_pending
 ---

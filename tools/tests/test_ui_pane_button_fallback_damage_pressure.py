@@ -1,9 +1,10 @@
+# 核对面板按钮回退损伤的保守范围、类型化目标和无效几何拒绝。
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
-import tools.ui_pane_button_fallback_damage_pressure as pressure
+import tools.analysis.performance.ui.ui_pane_button_fallback_damage_pressure as pressure
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

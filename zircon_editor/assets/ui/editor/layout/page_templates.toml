@@ -8,7 +8,7 @@ display_name = "Workbench Page Layout Templates"
 page = "scene"
 default_preset = "authoring"
 center_split = "single_document"
-drawer_modes = { left_top = "pinned", left_bottom = "pinned", right_top = "pinned", right_bottom = "pinned", bottom = "pinned" }
+drawer_modes = { left_top = "collapsed", left_bottom = "collapsed", right_top = "pinned", right_bottom = "pinned", bottom = "collapsed" }
 left_top = "res://ui/editor/host/asset_surface_controls.zui"
 left_bottom = "res://ui/editor/asset_browser.zui"
 center = "res://ui/editor/host/editor_main_frame.zui"
@@ -32,7 +32,7 @@ bottom = "res://ui/editor/host/console_body.zui"
 page = "material"
 default_preset = "authoring"
 center_split = "horizontal_2"
-drawer_modes = { left_top = "pinned", left_bottom = "pinned", right_top = "pinned", right_bottom = "pinned", bottom = "pinned" }
+drawer_modes = { left_top = "pinned", left_bottom = "pinned", right_top = "pinned", right_bottom = "pinned", bottom = "collapsed" }
 left_top = "res://ui/editor/host/asset_surface_controls.zui"
 left_bottom = "res://ui/editor/asset_browser.zui"
 center = "res://ui/editor/components/workbench/modules/core/rendering/workbench_material_workspace.zui"
@@ -56,7 +56,7 @@ bottom = "res://ui/editor/host/console_body.zui"
 page = "inspector"
 default_preset = "review"
 center_split = "single_document"
-drawer_modes = { left_top = "pinned", left_bottom = "pinned", right_top = "pinned", right_bottom = "pinned", bottom = "pinned" }
+drawer_modes = { left_top = "collapsed", left_bottom = "collapsed", right_top = "pinned", right_bottom = "pinned", bottom = "collapsed" }
 center = "res://ui/editor/host/inspector_body.zui"
 right_top = "res://ui/editor/host/hierarchy_body.zui"
 right_bottom = "res://ui/editor/host/inspector_body.zui"
@@ -65,7 +65,7 @@ right_bottom = "res://ui/editor/host/inspector_body.zui"
 page = "prefab"
 default_preset = "authoring"
 center_split = "single_document"
-drawer_modes = { left_top = "pinned", left_bottom = "pinned", right_top = "pinned", right_bottom = "pinned", bottom = "pinned" }
+drawer_modes = { left_top = "pinned", left_bottom = "pinned", right_top = "pinned", right_bottom = "pinned", bottom = "collapsed" }
 left_top = "res://ui/editor/host/asset_surface_controls.zui"
 left_bottom = "res://ui/editor/asset_browser.zui"
 center = "res://ui/editor/components/workbench/modules/extensions/world/workbench_extension_prefab_editor_workspace.zui"
@@ -77,7 +77,7 @@ bottom = "res://ui/editor/host/console_body.zui"
 page = "ui_designer"
 default_preset = "authoring"
 center_split = "horizontal_2"
-drawer_modes = { left_top = "pinned", left_bottom = "pinned", right_top = "pinned", right_bottom = "pinned", bottom = "pinned" }
+drawer_modes = { left_top = "pinned", left_bottom = "pinned", right_top = "pinned", right_bottom = "pinned", bottom = "collapsed" }
 left_top = "res://ui/editor/host/asset_surface_controls.zui"
 left_bottom = "res://ui/editor/asset_browser.zui"
 center = "res://ui/editor/components/workbench/modules/core/ui/workbench_hud_workspace.zui"

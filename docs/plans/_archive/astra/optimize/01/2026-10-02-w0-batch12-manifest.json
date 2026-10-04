@@ -1,0 +1,92 @@
+{
+  "all_original_acceptance_gates": "open",
+  "batch": "w0-batch12",
+  "crosswalk_metadata_rows": 19,
+  "current_context_count": 20,
+  "manifest_self_hash": "Omitted. Final artifact hashes including this manifest are sealed by the external preparation receipt.",
+  "original_qualified_manifest": {
+    "bytes": 9448,
+    "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch12-root-qualified-r1\\manifest.json",
+    "sha256": "2a147555b9cfed0a945f904b01d0de4de804e1c747414b86a9c3578f138d9837"
+  },
+  "owner_correction_inputs": {
+    "w0/batch11-12-root-qualified-r2-correction/correction-receipt.json": "1cb3e5bcaac0b2c3e84b3c21bffd853f9f50a0766577395bbe79cc5f34c31285",
+    "w0/batch11-12-root-qualified-r2-correction/freeze-receipt.json": "956e86fbe1515c01d9146d5c4fd72f72dd2da3eb078189935f1a5fc72a6c18ea",
+    "w0/batch11-12-root-qualified-r2-correction/owner-correction.jsonl": "3fac86b114187293c2d676d7084f653a46ccbe9b4f03e8a652d9870abd1b0b49",
+    "w0/batch11-12-root-qualified-r2-correction/verification-receipt.json": "465c5b802122179bdcf3acd9f3065d84d46a91ce378c4fa2ecc894413c7a50d2",
+    "w0/batch11-12-root-qualified-r3-correction.json": "6f4584e7eca1f0163d22a4856a01ea6311aa3c0f50ca0788a7fe3cbc1fac3104",
+    "w0/batch11-root-qualified-r1-correction.json": "e89c5424714ca992efc3283a8809599e0c8bd6ca8d3e919c5b527d161067459c"
+  },
+  "prior_counts": [
+    172,
+    168,
+    136
+  ],
+  "publication_qualification": {
+    "acceptance": "open",
+    "coordinator_boundary": "Retired. User authorizes sealed independent local evidence; historical records and original acceptance gates remain intact.",
+    "coordinator_retired_at_utc": "2026-10-02T07:19:48.379193+00:00",
+    "foreign_source_consent": "not inferred",
+    "generation": "root-publication-candidate-r2",
+    "historical_relative_capture_paths_resolve_against": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch12-root-qualified-r1",
+    "normalized_current_capture_manifest": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\root-publication-candidate-r2\\batch12\\rawcaptures\\manifest.json",
+      "sha256": "27c724244dd34a130d5f85a42ea8555ddc0396685a6cc8c9361cbc3458f8cd1c"
+    },
+    "original_qualified_artifacts": {
+      "crosswalk": {
+        "bytes": 14538,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch12-root-qualified-r1\\crosswalk.jsonl",
+        "sha256": "10529a768a0a86e0f2a086841175d58bbe9a3306bd6eb7c959540819932b54a1"
+      },
+      "manifest": {
+        "bytes": 9448,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch12-root-qualified-r1\\manifest.json",
+        "sha256": "2a147555b9cfed0a945f904b01d0de4de804e1c747414b86a9c3578f138d9837"
+      },
+      "review": {
+        "bytes": 117632,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch12-root-qualified-r1\\review.jsonl",
+        "sha256": "df4e26685abca67b7783b0b47633831dc077d89b326a7062b83895b0b38ce893"
+      },
+      "summary": {
+        "bytes": 3364,
+        "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch12-root-qualified-r1\\summary.json",
+        "sha256": "2f0ff9cb2d681e6ea285292d36bd44eddedf42d8a2922dbdcef67b8d8f6f98a7"
+      }
+    },
+    "original_qualified_generation": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch12-root-qualified-r1",
+    "qualified_at_utc": "2026-10-02T09:27:45.157749+00:00",
+    "raw_evidence_root": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\root-publication-candidate-r2\\batch12",
+    "root_normal_claim_denial_observed_at_utc": "2026-10-02T07:35Z",
+    "tests_run": 0
+  },
+  "qualified_artifacts": {
+    "crosswalk": {
+      "bytes": 59074,
+      "path": "2026-10-02-w0-batch12-crosswalk.jsonl",
+      "sha256": "4ec0818d122a44ee27ad68d51d8c35f8acc5ae62bb891fbb0ccecc9dc594bd43"
+    },
+    "review": {
+      "bytes": 185909,
+      "path": "2026-10-02-w0-batch12-review.jsonl",
+      "sha256": "39363242f17fc9581abaf4866e32339f15301fbcd70fb4aa2fe6b12381756d95"
+    },
+    "summary": {
+      "bytes": 7083,
+      "path": "2026-10-02-w0-batch12-summary.json",
+      "sha256": "a1110bd666fb9b27dc70d38aaf1d852b23496feebc3601fb5cd72e7df67c3beb"
+    }
+  },
+  "raw_capture_manifest_sha256": "27c724244dd34a130d5f85a42ea8555ddc0396685a6cc8c9361cbc3458f8cd1c",
+  "record_type": "root_normalized_bounded_w0_publication_manifest",
+  "rows": 12,
+  "source_context_scope": "Current source/report/caller/test definitions in the exact captured manifests and owner corrections; no whole report completion or execution inference.",
+  "source_unit_count": 18,
+  "tests_run": 0,
+  "whole_report_inventory": [
+    576,
+    61,
+    515
+  ]
+}

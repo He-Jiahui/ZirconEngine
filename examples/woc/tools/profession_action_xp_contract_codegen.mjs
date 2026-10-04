@@ -1,3 +1,6 @@
+// 调用端：npm run generate:profession-action-xp-contract (tools/package.json)；职责：固化专业动作经验分段、上限和零等级差行为。
+// 输入边界：src/sim/professions/profession_xp.ts, src/sim/types.ts；--check 比较生成结果，不改写目标文件。
+
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

@@ -2,11 +2,13 @@ import { Box } from "@mui/material";
 import { brandMark, coverById } from "../../data/hubData";
 import { hubTokens } from "../../theme/tokens";
 
+// 封面标识来自项目投影并映射到随应用发布的图片；父级仍须以项目名称提供可访问身份。
 export interface ProjectCoverProps {
   coverId: string;
   size?: "card" | "thumb";
 }
 
+// 卡片模式填充父级给定的尺寸，缩略图模式服务表格行；未知标识使用统一装饰封面，不作为文件加载地址。
 export function ProjectCover({ coverId, size = "card" }: ProjectCoverProps) {
   const coverUrl = coverById[coverId] ?? coverById.elysium;
   const thumb = size === "thumb";

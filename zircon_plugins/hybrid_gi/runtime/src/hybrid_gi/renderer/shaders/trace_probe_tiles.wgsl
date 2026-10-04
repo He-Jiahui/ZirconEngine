@@ -578,6 +578,7 @@ fn surface_cache_directional_ray_sample(
                 break;
             }
 
+            // 只在该层级深度范围不相交时跨越整个块；相交路径必须降至 mip 0 核对样本。
             ray_distance = ray_distance + (1u << mip_level);
             break;
         }

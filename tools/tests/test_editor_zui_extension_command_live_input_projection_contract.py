@@ -1,3 +1,4 @@
+# 核对扩展命令只读取可达工作区的实时输入字段。
 import tomllib
 import unittest
 from pathlib import Path

@@ -26,6 +26,7 @@ roundNonNegative(value: float): int {
     return <int>(value + 0.5);
 }
 
+/// 供规格回归查询严格模板索引；营地放置借用同一私有查找约束，缺失目录项会抛错。
 pub templateIndex(id: string, required: bool): int {
     return templateIndexFor(id, required);
 }
@@ -35,6 +36,7 @@ pub spawnLevelIsValid(id: string, level: int, required: bool): bool {
 }
 
 // Kind: 1 maxHp, 2 weapon minimum, 3 weapon maximum, 4 armor, 5 move speed.
+/// 供规格回归对照模板的等级初始值；目前不参与实体创建，越界等级会被拒绝。
 pub spawnMetric(id: string, level: int, kind: int, required: bool): float {
     var index = templateIndexFor(id, required);
     if (!levelIsValid(index, level)) {

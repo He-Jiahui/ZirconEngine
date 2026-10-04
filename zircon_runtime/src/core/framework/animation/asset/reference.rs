@@ -40,6 +40,8 @@ impl TryFrom<AnimationAssetReferenceBinary> for AssetReference {
     }
 }
 
+// 资产依赖提取只报告直接引用；收集时去重并保留首次出现顺序，
+// 递归解析交给资源注册表，避免 schema 层承担加载生命周期。
 pub(super) struct DirectReferenceCollector<'a> {
     seen: HashSet<&'a AssetReference>,
     references: Vec<AssetReference>,
@@ -65,5 +67,5 @@ impl<'a> DirectReferenceCollector<'a> {
 }
 
 #[cfg(test)]
-#[path = "reference/borrowed_dedup_tests.rs"]
+#[path = "reference/tests/borrowed_dedup_tests.rs"]
 mod borrowed_dedup_tests;

@@ -1,0 +1,86 @@
+penpot_original_source = "[asset]\nkind = \"view\"\nid = \"res://ui/editor/host/editor_main_frame.zui\"\nversion = 2\ndisplay_name = \"editor main frame\"\n\n[root]\nnode = \"root\"\n\n[nodes.root]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"EditorMainFrameRoot\"\npixel_snapping = \"disabled\"\nclasses = [\"editor-main-frame\"]\nlayout = { clip = true, container = { kind = \"VerticalBox\", gap = 0.0 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [\n  { node = \"task_bar_slot\" },\n  { node = \"window_tab_strip_slot\" },\n  { node = \"active_window_host_slot\" },\n]\n\n[nodes.task_bar_slot]\ncomponent = \"Slot\"\ncontrol_id = \"EditorMainFrameTaskBarSlot\"\nprops = { name = \"task_bar\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = \"Fixed\" } }\n\n[nodes.window_tab_strip_slot]\ncomponent = \"Slot\"\ncontrol_id = \"EditorMainFrameWindowTabStripSlot\"\nprops = { name = \"window_tab_strip\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = \"Fixed\" } }\n\n[nodes.active_window_host_slot]\ncomponent = \"Slot\"\ncontrol_id = \"EditorMainFrameActiveWindowHostSlot\"\nprops = { name = \"active_window_host\" }\nlayout = { clip = true, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n"
+
+[asset]
+kind = "view"
+id = "res://ui/editor/host/editor_main_frame.zui"
+version = 2
+display_name = "editor main frame"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalGroup"
+control_id = "EditorMainFrameRoot"
+pixel_snapping = "disabled"
+classes = [ "editor-main-frame" ]
+
+[nodes.root.layout]
+clip = true
+
+[nodes.root.layout.container]
+kind = "VerticalBox"
+gap = 0
+
+[nodes.root.layout.width]
+stretch = "Stretch"
+
+[nodes.root.layout.height]
+stretch = "Stretch"
+
+[[nodes.root.children]]
+node = "task_bar_slot"
+
+[[nodes.root.children]]
+node = "window_tab_strip_slot"
+
+[[nodes.root.children]]
+node = "active_window_host_slot"
+
+[nodes.task_bar_slot]
+component = "Slot"
+control_id = "EditorMainFrameTaskBarSlot"
+
+[nodes.task_bar_slot.props]
+name = "task_bar"
+
+[nodes.task_bar_slot.layout.width]
+stretch = "Stretch"
+
+[nodes.task_bar_slot.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.window_tab_strip_slot]
+component = "Slot"
+control_id = "EditorMainFrameWindowTabStripSlot"
+
+[nodes.window_tab_strip_slot.props]
+name = "window_tab_strip"
+
+[nodes.window_tab_strip_slot.layout.width]
+stretch = "Stretch"
+
+[nodes.window_tab_strip_slot.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[nodes.active_window_host_slot]
+component = "Slot"
+control_id = "EditorMainFrameActiveWindowHostSlot"
+
+[nodes.active_window_host_slot.props]
+name = "active_window_host"
+
+[nodes.active_window_host_slot.layout]
+clip = true
+
+[nodes.active_window_host_slot.layout.width]
+stretch = "Stretch"
+
+[nodes.active_window_host_slot.layout.height]
+stretch = "Stretch"

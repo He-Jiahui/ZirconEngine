@@ -1,6 +1,6 @@
 use std::sync::{
-    Arc,
     atomic::{AtomicUsize, Ordering},
+    Arc,
 };
 use std::time::Duration;
 use std::{hint::black_box, time::Instant};
@@ -9,8 +9,8 @@ use crate::core::framework::scene::SCENE_MODULE_NAME;
 use crate::core::{ClockDiscontinuity, CoreError, CoreRuntime, TimePolicyTransaction};
 use crate::plugin::RuntimeExtensionRegistry;
 use crate::scene::{
-    LevelTickError, SystemStage, World, WorldTimeAdvanceError, WorldTimeControlError,
-    create_default_level, module_descriptor,
+    create_default_level, module_descriptor, LevelTickError, SystemStage, World,
+    WorldTimeAdvanceError, WorldTimeControlError,
 };
 
 #[test]

@@ -1,26 +1,26 @@
 ---
 related_code:
-  - tools/zircon_export/__main__.py
-  - tools/zircon_export/cli.py
-  - tools/zircon_export/cli_arguments.py
-  - tools/zircon_export/preset_contract.py
-  - tools/zircon_export/pipeline_stages.py
-  - tools/zircon_export/stage_handoff.py
-  - tools/zircon_export/compile_host.py
-  - tools/zircon_export/cook_assets.py
-  - tools/zircon_export/cook_assets_manifest.py
-  - tools/zircon_export/cook_assets_project_fallback.py
-  - tools/zircon_export/pack_stage.py
-  - tools/zircon_export/platform_bundle.py
-  - tools/zircon_export/export_template.py
-  - tools/zircon_export/source_template.py
-  - tools/zircon_export/source_template_generated_project.py
-  - tools/zircon_export/source_template_plan_command.py
-  - tools/zircon_export/pipeline_report.py
-  - tools/zircon_export/pipeline_report_compile_host.py
-  - tools/zircon_export/pipeline_report_compile_host_stage_schema.py
-  - tools/zircon_export/export-templates/windows-x86_64-library_embed-debug/template.toml
-  - tools/zircon_build.py
+  - tools/export/__main__.py
+  - tools/export/cli.py
+  - tools/export/cli_arguments.py
+  - tools/export/preset_contract.py
+  - tools/export/pipeline_stages.py
+  - tools/export/stage_handoff.py
+  - tools/export/compile_host.py
+  - tools/export/cook_assets.py
+  - tools/export/cook_assets_manifest.py
+  - tools/export/cook_assets_project_fallback.py
+  - tools/export/pack_stage.py
+  - tools/export/platform_bundle.py
+  - tools/export/export_template.py
+  - tools/export/source_template.py
+  - tools/export/source_template_generated_project.py
+  - tools/export/source_template_plan_command.py
+  - tools/export/pipeline_report.py
+  - tools/export/pipeline_report_compile_host.py
+  - tools/export/pipeline_report_compile_host_stage_schema.py
+  - tools/export/export-templates/windows-x86_64-library_embed-debug/template.toml
+  - tools/build/zircon_build.py
   - zircon_runtime/src/asset/pack/writer.rs
   - zircon_runtime/src/asset/pack/reader.rs
   - zircon_runtime/src/asset/pack/delta.rs
@@ -35,7 +35,7 @@ related_code:
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
   - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/options.rs
 tests:
-  - tools/zircon_export/tests
+  - tools/export/tests
   - zircon_runtime/src/asset/tests/pack.rs
   - zircon_editor/src/core/export/tests.rs
 plan_sources:
@@ -73,13 +73,13 @@ source_recheck_required: true
 
 当前导出目录不是空壳。Python 侧已经有 Validate、SourceTemplate、NativeDynamic、CompileHost、CookAssets、Pack、PlatformBundle、Report 八阶段，Rust 侧有版本化 Validate report、确定性 zrpack、内容哈希、全资产去重、依赖闭包和 delta apply verification，Editor 侧还有进程树取消、bounded output、preset/artifact fingerprint 与阶段进度。这些底座应保留。
 
-但是当前链路不能被称为可发布游戏产品流水线，原因不是平台数量少，而是同名阶段没有形成一致的产品语义。`.zpreset` 中 target mode、entry scenes、keep/exclude、plugin subset、cook compression/binary assets 和 customized files 在解析后没有 consumer；CLI 的 CompileHost 仍执行 Validate 计划中的直接 Cargo 命令，而生产 Report schema 明确只接受 `tools/zircon_build.py`，所以 CLI 编译成功后最终报告必然 fatal。Editor 又走第三条语义：client export 构建 `hub,editor,runtime` 整套引擎分发，并把 `zircon_hub.exe` 当 launcher，而不是构建 Validate 已解析的项目 runtime/plugin linkage。
+但是当前链路不能被称为可发布游戏产品流水线，原因不是平台数量少，而是同名阶段没有形成一致的产品语义。`.zpreset` 中 target mode、entry scenes、keep/exclude、plugin subset、cook compression/binary assets 和 customized files 在解析后没有 consumer；CLI 的 CompileHost 仍执行 Validate 计划中的直接 Cargo 命令，而生产 Report schema 明确只接受 `tools/build/zircon_build.py`，所以 CLI 编译成功后最终报告必然 fatal。Editor 又走第三条语义：client export 构建 `hub,editor,runtime` 整套引擎分发，并把 `zircon_hub.exe` 当 launcher，而不是构建 Validate 已解析的项目 runtime/plugin linkage。
 
 产品真实性还有更直接的阻断。生成的 desktop `main()` bootstrap 后立即返回并 drop runtime owner；移动端和浏览器 lifecycle/input/viewport/resource C ABI 大多只返回 `true`。仓内三个 export template 均把 host 声明为 `placeholder`，而 PlatformBundle 把该值列为合法状态。真实动态复现表明，一个内容仅为 `not-a-zircon-pack` 的文件加 Windows 文本占位 host 会得到 `exit_code=0`、`fatal=false`、空 diagnostics，并被复制为成功 bundle。
 
 CookAssets 当前只是规范化 JSON manifest，或用正则从 UTF-8 文件寻找 `res://` 字符串；Pack 随后把原始 source bytes 整文件读入内存，一资产一 chunk 原样拼接。它没有调用 importer、shader/material compiler、平台纹理/音频/mesh 转码、DDC 或平台 cook writer，也没有兑现 preset 中的 zstd/lz4。把这一产物称为 cooked/shipping 会让后续工程在错误抽象上继续堆叠。
 
-测试规模也不能证明成熟度。完整 `tools/zircon_export/tests` 实际运行 1,642 项、耗时 373.192 秒，结果为 667 failures。大量 NativeDynamic 负向测试因共享 Validate fixture 缺少当前 `schema_version=2` 而先把 Validate 判 fatal，SourceTemplate 也有诊断合同漂移。当前没有可作为 pre-merge 基线的 export suite。
+测试规模也不能证明成熟度。完整 `tools/export/tests` 实际运行 1,642 项、耗时 373.192 秒，结果为 667 failures。大量 NativeDynamic 负向测试因共享 Validate fixture 缺少当前 `schema_version=2` 而先把 Validate 判 fatal，SourceTemplate 也有诊断合同漂移。当前没有可作为 pre-merge 基线的 export suite。
 
 本轮记录 8 个 P0、46 个 P1 和 8 个 P2。没有修改 Python、Rust、Editor、template、preset、pack 格式或 CI；只新增本审查记录和索引。
 
@@ -89,7 +89,7 @@ CookAssets 当前只是规范化 JSON manifest，或用正则从 UTF-8 文件寻
 
 | 子域 | 文件/规模 | 本轮状态 |
 |---|---:|---|
-| `tools/zircon_export` production | 246 Python 文件 / 42,172 行 | E3：八阶段入口、preset、handoff、template、native/sign、全部 report schema owner 按域逐文件读取 |
+| `tools/export` production | 246 Python 文件 / 42,172 行 | E3：八阶段入口、preset、handoff、template、native/sign、全部 report schema owner 按域逐文件读取 |
 | Python export tests | 201 文件 / 71,091 行 / 1,568 个源码 `test_` method | E2-E3：测试结构逐域盘点，并完整运行发现 1,642 个展开后 test case |
 | Rust build plan | 40 文件 / 5,930 行 | E3：profile、strategy、generated project、desktop/mobile/browser host 与 compile plan |
 | zrpack/export bins | pack/reader/delta 与两个 bin owner | E3：格式、内存模型、写入、delta、报告和校验链 |
@@ -103,7 +103,7 @@ CookAssets 当前只是规范化 JSON manifest，或用正则从 UTF-8 文件寻
 完整 Python suite：
 
 ```powershell
-python -m unittest discover -s tools/zircon_export/tests -p 'test_*.py'
+python -m unittest discover -s tools/export/tests -p 'test_*.py'
 ```
 
 结果：
@@ -122,7 +122,7 @@ diagnostic_count=4
 compile_host report unknown field link_plan
 compile_host report unknown field validate_report
 compile_host report staged_engine_root must be a string
-compile_host report command must run tools/zircon_build.py through Python
+compile_host report command must run tools/build/zircon_build.py through Python
 ```
 
 这四项直接来自 `compile_host.py` 与 `pipeline_report_compile_host_stage_schema.py` 的当前生产合同，不依赖测试 fixture。
@@ -157,7 +157,7 @@ diagnostics=[]
 
 ### TOOL-EXPORT-P0-002 · CLI CompileHost 与最终 Report 是互斥的生产协议
 
-`compile_host.py` 消费 Validate 的 direct Cargo command，并输出 `validate_report`、`link_plan`，不输出 `staged_engine_root`。`pipeline_report_compile_host_stage_schema.py` 反而把前两项视为未知字段，要求 `staged_engine_root`，且命令必须通过 Python 运行 `tools/zircon_build.py`；`pipeline_report_compile_host.py` 还把 `-p/--package/--bin/--features/--target-dir/--release` 定义为 removed Cargo options。
+`compile_host.py` 消费 Validate 的 direct Cargo command，并输出 `validate_report`、`link_plan`，不输出 `staged_engine_root`。`pipeline_report_compile_host_stage_schema.py` 反而把前两项视为未知字段，要求 `staged_engine_root`，且命令必须通过 Python 运行 `tools/build/zircon_build.py`；`pipeline_report_compile_host.py` 还把 `-p/--package/--bin/--features/--target-dir/--release` 定义为 removed Cargo options。
 
 这不是 legacy 文件未删除，因为 `cli.py` 主流水线仍真实 dispatch `run_compile_host(args)`。必须先选择唯一 CompileHost 产品合同，再删除另一条 authority；修复门必须运行 production CLI 从 Validate 到 Report，不能继续用彼此独立的 stage fixture 证明正确。
 

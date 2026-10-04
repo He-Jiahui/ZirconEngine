@@ -24,7 +24,7 @@ PLUGIN_VALIDATE_FEATURE_PROVIDER_SCHEMA_TEST = (
     "test_plugin_validate_feature_provider_capability_dependency_schema.py"
 )
 
-
+# 验证校验特性提供者能力依赖模式归属边界的职责切分：特性提供者能力依赖模式留在叶归属方。
 class PluginValidateFeatureProviderCapabilityDependencySchemaOwnerBoundaryTests(
     unittest.TestCase
 ):

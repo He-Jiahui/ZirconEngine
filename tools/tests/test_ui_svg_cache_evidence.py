@@ -1,3 +1,4 @@
+# 核对矢量缓存证据同时约束解析、光栅、设备驻留及静默阶段回收。
 from __future__ import annotations
 
 import importlib.util
@@ -7,7 +8,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-TOOL = ROOT / "tools/ui_svg_cache_evidence.py"
+TOOL = ROOT / "tools/analysis/performance/ui/ui_svg_cache_evidence.py"
 REQUIRED_SOURCE_PATHS = (
     "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/svg/cache.rs",
     "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/svg/pixels.rs",
@@ -22,7 +23,7 @@ REQUIRED_SOURCE_PATHS = (
     "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/presentation.rs",
     "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/shared_image_registry.rs",
     "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/shared_image_registry/allocation_ledger.rs",
-    "tools/ui-profile-counter-evidence.ps1",
+    "tools/analysis/profiling/ui/ui-profile-counter-evidence.ps1",
 )
 DEVICE_IMAGE_BUDGET_BYTES = 64 * 1024 * 1024
 

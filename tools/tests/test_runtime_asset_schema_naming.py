@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 读取 DDS 立方体贴图字段定义，确认协议命名已替代退役标签。
 class RuntimeAssetSchemaNamingTests(unittest.TestCase):
     def test_dds_cubemap_flags_use_protocol_names_not_legacy_labels(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]

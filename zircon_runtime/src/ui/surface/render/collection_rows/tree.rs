@@ -4,8 +4,8 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::shared::{
-    CollectionRowVisual, RowRenderState, icon_command, number_attribute, quad_command, row_label,
-    string_attribute, text_command,
+    icon_command, number_attribute, quad_command, row_label, string_attribute, text_command,
+    CollectionRowVisual, RowRenderState,
 };
 
 const MAX_TREE_ROW_BASE_COMMANDS: usize = 6;
@@ -264,5 +264,5 @@ fn contains_ascii_case(value: &str, needle: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "tree/capacity_tests.rs"]
+#[path = "tree/tests/capacity_tests.rs"]
 mod capacity_tests;

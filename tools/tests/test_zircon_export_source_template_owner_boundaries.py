@@ -1,14 +1,15 @@
+# 核对源模板生成文件与路径语义的实现归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SOURCE_TEMPLATE_REPORT = REPO_ROOT / "tools/zircon_export/pipeline_report_source_template.py"
+SOURCE_TEMPLATE_REPORT = REPO_ROOT / "tools/export/pipeline_report_source_template.py"
 SOURCE_TEMPLATE_GENERATED_FILES = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_source_template_generated_files.py"
+    REPO_ROOT / "tools/export/pipeline_report_source_template_generated_files.py"
 )
 SOURCE_TEMPLATE_PATH_SEMANTICS = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_source_template_path_semantics.py"
+    REPO_ROOT / "tools/export/pipeline_report_source_template_path_semantics.py"
 )
 
 

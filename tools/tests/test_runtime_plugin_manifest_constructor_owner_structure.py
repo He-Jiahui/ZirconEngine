@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 验证插件清单构造器的职责切分：模块与包构造器应子节点持有，并构造器归属状态应为镜像。
 class RuntimePluginManifestConstructorOwnerStructureTests(unittest.TestCase):
     STATUS = (
         "runtime_06_15_plugin_manifest_constructor_owner_split_"

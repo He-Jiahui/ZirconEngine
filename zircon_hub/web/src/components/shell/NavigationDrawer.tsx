@@ -9,9 +9,10 @@ import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrow
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import WebAssetOutlinedIcon from "@mui/icons-material/WebAssetOutlined";
-import { Box, ButtonBase, Drawer, List, ListItemButton, ListItemIcon, Tooltip, Typography } from "@mui/material";
+import { Box, ButtonBase, Drawer, List, ListItemButton, ListItemIcon, Tooltip, Typography, useMediaQuery } from "@mui/material";
 import { useState } from "react";
 import { hubTokens } from "../../theme/tokens";
+import { admittedSourceEngineId } from "../../projections/sourceEngineChoices";
 import type { HubActionHandler, HubPageId, HubShellText, HubSourceEngineSummary } from "../../types/hub";
 import { HUB_ACTION } from "../../types/hub";
 
@@ -45,17 +46,20 @@ export function NavigationDrawer({
   onAction,
 }: NavigationDrawerProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const drawerWidth = collapsed ? hubTokens.window.sidebarCollapsedWidth : hubTokens.window.sidebarWidth;
-  const collapseLabel = collapsed ? text.expand : text.collapse;
-  const CollapseIcon = collapsed ? KeyboardDoubleArrowRightIcon : KeyboardDoubleArrowLeftIcon;
-  const activeEngine =
-    sourceEngines.find((engine) => engine.id === activeSourceEngineId) ?? sourceEngines.find((engine) => engine.active);
+  const compactViewport = useMediaQuery("(max-width:980px)");
+  const effectiveCollapsed = collapsed || compactViewport;
+  const drawerWidth = effectiveCollapsed ? hubTokens.window.sidebarCollapsedWidth : hubTokens.window.sidebarWidth;
+  const collapseLabel = effectiveCollapsed ? text.expand : text.collapse;
+  const CollapseIcon = effectiveCollapsed ? KeyboardDoubleArrowRightIcon : KeyboardDoubleArrowLeftIcon;
+  const activeEngineId = admittedSourceEngineId(sourceEngines, activeSourceEngineId);
+  const activeEngine = sourceEngines.find((engine) => engine.id === activeEngineId);
   const statusColor = activeEngine ? hubTokens.colors.success : hubTokens.colors.warning;
   const statusLabel = activeEngine?.status ?? text.noSourceEngineRegistered;
   const engineLabel = activeEngine?.name ?? engineVersion;
 
   return (
     <Drawer
+      data-testid="hub-navigation-drawer"
       variant="permanent"
       sx={{
         width: drawerWidth,
@@ -70,55 +74,60 @@ export function NavigationDrawer({
           borderRight: `1px solid ${hubTokens.colors.line}`,
           overflow: "hidden",
           transition: "width 160ms ease",
-          "@media (max-width: 980px)": {
-            width: hubTokens.window.sidebarCollapsedWidth,
-          },
         },
       }}
     >
       <Box sx={{ display: "flex", flexDirection: "column", height: "100%", p: 2, gap: 2 }}>
-        <List sx={{ display: "grid", gap: 0.8, p: 0 }}>
-          {text.navItems.map(({ id, label }) => {
-            const Icon = navIcons[id];
-            const selected = activePage === id;
-            return (
-              <ListItemButton
-                key={id}
-                selected={selected}
-                onClick={() => void onAction(HUB_ACTION.showPage, id)}
-                sx={{
-                  height: 49,
-                  borderRadius: `${hubTokens.radius.panel}px`,
-                  color: selected ? hubTokens.colors.text : hubTokens.colors.textSoft,
-                  border: `1px solid ${selected ? "rgba(45,212,207,0.34)" : "transparent"}`,
-                  backgroundColor: selected ? "rgba(15,99,96,0.56)" : "transparent",
-                  justifyContent: collapsed ? "center" : "flex-start",
-                  px: collapsed ? 0 : 1.6,
-                  "&.Mui-selected, &.Mui-selected:hover": {
-                    backgroundColor: "rgba(15,99,96,0.64)",
-                  },
-                  "&:hover": {
-                    backgroundColor: "rgba(255,255,255,0.045)",
-                  },
-                }}
-              >
-                <ListItemIcon sx={{ minWidth: collapsed ? 0 : 40, color: "inherit", justifyContent: "center" }}>
-                  <Icon />
-                </ListItemIcon>
-                <Typography
-                  variant="body2"
+        <Box component="nav" aria-label={text.workspaceProfile}>
+          <List id="hub-navigation-items" sx={{ display: "grid", gap: 0.8, p: 0 }}>
+            {text.navItems.map(({ id, label }) => {
+              const Icon = navIcons[id];
+              const selected = activePage === id;
+              const button = (
+                <ListItemButton
+                  key={id}
+                  aria-label={effectiveCollapsed ? label : undefined}
+                  aria-current={selected ? "page" : undefined}
+                  selected={selected}
+                  onClick={() => void onAction(HUB_ACTION.showPage, id)}
                   sx={{
-                    display: collapsed ? "none" : "block",
-                    fontWeight: selected ? 700 : 500,
-                    "@media (max-width: 980px)": { display: "none" },
+                    height: 49,
+                    borderRadius: `${hubTokens.radius.panel}px`,
+                    color: selected ? hubTokens.colors.text : hubTokens.colors.textSoft,
+                    border: `1px solid ${selected ? "rgba(45,212,207,0.34)" : "transparent"}`,
+                    backgroundColor: selected ? "rgba(15,99,96,0.56)" : "transparent",
+                    justifyContent: effectiveCollapsed ? "center" : "flex-start",
+                    px: effectiveCollapsed ? 0 : 1.6,
+                    "&.Mui-selected, &.Mui-selected:hover": {
+                      backgroundColor: "rgba(15,99,96,0.64)",
+                    },
+                    "&:hover": {
+                      backgroundColor: "rgba(255,255,255,0.045)",
+                    },
                   }}
                 >
-                  {label}
-                </Typography>
-              </ListItemButton>
-            );
-          })}
-        </List>
+                  <ListItemIcon sx={{ minWidth: effectiveCollapsed ? 0 : 40, color: "inherit", justifyContent: "center" }}>
+                    <Icon />
+                  </ListItemIcon>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      display: effectiveCollapsed ? "none" : "block",
+                      fontWeight: selected ? 700 : 500,
+                    }}
+                  >
+                    {label}
+                  </Typography>
+                </ListItemButton>
+              );
+              return effectiveCollapsed ? (
+                <Tooltip key={id} title={label} placement="right">
+                  {button}
+                </Tooltip>
+              ) : button;
+            })}
+          </List>
+        </Box>
 
         <Box sx={{ flex: "1 1 auto" }} />
 
@@ -128,8 +137,7 @@ export function NavigationDrawer({
             borderRadius: `${hubTokens.radius.panel}px`,
             border: `1px solid ${hubTokens.colors.lineStrong}`,
             backgroundColor: "rgba(32,32,32,0.62)",
-            display: collapsed ? "none" : "block",
-            "@media (max-width: 980px)": { display: "none" },
+            display: effectiveCollapsed ? "none" : "block",
           }}
         >
           <Typography variant="caption" sx={{ color: hubTokens.colors.text, display: "flex", gap: 0.8, alignItems: "center" }}>
@@ -169,18 +177,21 @@ export function NavigationDrawer({
 
         <ButtonBase
           aria-label={collapseLabel}
+          aria-controls="hub-navigation-items"
+          aria-expanded={!effectiveCollapsed}
           onClick={() => setCollapsed((current) => !current)}
           sx={{
             height: 42,
-            justifyContent: collapsed ? "center" : "flex-start",
+          justifyContent: effectiveCollapsed ? "center" : "flex-start",
             gap: 1,
-            px: collapsed ? 0 : 1,
-            color: hubTokens.colors.textSoft,
-            borderTop: `1px solid ${hubTokens.colors.line}`,
+          px: effectiveCollapsed ? 0 : 1,
+          color: hubTokens.colors.textSoft,
+          borderTop: `1px solid ${hubTokens.colors.line}`,
+          display: compactViewport ? "none" : "flex",
           }}
         >
           <CollapseIcon fontSize="small" />
-          <Typography variant="body2" sx={{ display: collapsed ? "none" : "block", "@media (max-width: 980px)": { display: "none" } }}>
+          <Typography variant="body2" sx={{ display: effectiveCollapsed ? "none" : "block" }}>
             {collapseLabel}
           </Typography>
         </ButtonBase>

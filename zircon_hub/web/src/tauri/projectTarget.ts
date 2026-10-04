@@ -12,8 +12,8 @@ export function projectTargetPayload(project?: HubProjectDetail | null): Project
 }
 
 export function workflowProjectTargetPayload(state: HubShellState): ProjectTargetPayload | undefined {
-  const target = workflowTargetProject(state);
-  if (!target) {
+  const target = state.selectedProject;
+  if (!target?.exists) {
     return undefined;
   }
 
@@ -24,7 +24,7 @@ export function workflowProjectTargetPayload(state: HubShellState): ProjectTarge
 }
 
 export function workflowTargetProject(state: HubShellState): HubProjectDetail | HubRecentProject | undefined {
-  return state.selectedProject ?? state.recentProjects[0];
+  return state.selectedProject ?? undefined;
 }
 
 export function workflowProjectPath(target: HubProjectDetail | HubRecentProject): string {

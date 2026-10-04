@@ -7,6 +7,7 @@ const DEFAULT_SHADOW_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 0.5];
 const DEFAULT_GLOW_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
+/// 已归一化的 SDF 文字材质效果；颜色合并 UI 命令透明度，供字形材质而非 UI 几何使用。
 pub(in crate::graphics::scene::scene_renderer::ui) struct ScreenSpaceUiTextEffects {
     pub(in crate::graphics::scene::scene_renderer::ui) outline: Option<ScreenSpaceUiTextOutline>,
     pub(in crate::graphics::scene::scene_renderer::ui) shadow: Option<ScreenSpaceUiTextShadow>,
@@ -62,31 +63,5 @@ fn resolved_effect_color(value: &str, fallback: [f32; 4], opacity: f32) -> [f32;
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use zircon_runtime_interface::ui::surface::{UiTextOutlineEffect, UiTextShadowEffect};
-
-    #[test]
-    fn text_effect_material_projection_resolves_colors_and_opacity() {
-        let resolved = resolve_text_effects(
-            &UiTextDistanceFieldEffects {
-                outline: Some(UiTextOutlineEffect {
-                    width_px: 2.0,
-                    color: "#ff000080".to_string(),
-                }),
-                shadow: Some(UiTextShadowEffect {
-                    offset_x_px: 3.0,
-                    offset_y_px: -2.0,
-                    color: "invalid".to_string(),
-                }),
-                ..Default::default()
-            },
-            0.5,
-        );
-
-        assert_eq!(resolved.outline.unwrap().color[0..3], [1.0, 0.0, 0.0]);
-        assert!((resolved.outline.unwrap().color[3] - (128.0 / 255.0) * 0.5).abs() < 0.0001);
-        assert_eq!(resolved.shadow.unwrap().offset_px, [3.0, -2.0]);
-        assert_eq!(resolved.shadow.unwrap().color, [0.0, 0.0, 0.0, 0.25]);
-    }
-}
+#[path = "tests/text_effects.rs"]
+mod tests;

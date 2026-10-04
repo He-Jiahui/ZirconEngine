@@ -4,6 +4,7 @@ use super::handles::RenderPipelineHandle;
 pub const DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA: u16 = 96;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 视口希望启用的特性集合；执行前须经过设备能力、图资源和编译契约筛选。
 pub struct RenderFeatureQualitySettings {
     pub clustered_lighting: bool,
     pub screen_space_ambient_occlusion: bool,
@@ -45,6 +46,7 @@ impl Default for RenderFeatureQualitySettings {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 视口级质量配置；提交服务据此选图形管线，不修改场景资产。
 pub struct RenderQualityProfile {
     pub name: String,
     pub pipeline_override: Option<RenderPipelineHandle>,
@@ -201,22 +203,5 @@ pub(crate) const fn normalize_texture_max_anisotropy(max_anisotropy: u8) -> u8 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{RenderFeatureQualitySettings, RenderQualityProfile};
-
-    #[test]
-    fn ssao_is_fail_closed_until_the_quality_profile_explicitly_enables_it() {
-        assert!(!RenderFeatureQualitySettings::default().screen_space_ambient_occlusion);
-        assert!(
-            !RenderQualityProfile::new("default")
-                .features
-                .screen_space_ambient_occlusion
-        );
-        assert!(
-            RenderQualityProfile::new("explicit-ssao")
-                .with_screen_space_ambient_occlusion(true)
-                .features
-                .screen_space_ambient_occlusion
-        );
-    }
-}
+#[path = "tests/quality.rs"]
+mod tests;

@@ -9,8 +9,6 @@ origin_child_dir: docs/plans/zircon_editor/editor/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/validation_copies.py
-  - tools/session_coordinator/tests/test_validation_copies.py
   - zircon_runtime_interface/src/project/template_pack/embedded.rs
 tests:
   - python -m unittest tools.session_coordinator.tests.test_validation_copies.ValidationCopySourceTests.test_cargo_metadata_closure_includes_local_packages_and_requires_external_descriptor tools.session_coordinator.tests.test_validation_copies.ValidationCopySourceTests.test_cargo_closure_includes_compile_time_resources_outside_package_root

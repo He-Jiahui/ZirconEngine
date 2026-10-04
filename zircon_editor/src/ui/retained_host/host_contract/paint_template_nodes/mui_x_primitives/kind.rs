@@ -1,5 +1,5 @@
 use super::super::super::data::TemplatePaneNodeData;
-use super::{charts, chat, data_grid, pickers, tree_view};
+use super::{agent_workflow, charts, chat, data_grid, pickers, tree_view};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) enum MuiXKind {
     TreeView,
@@ -7,6 +7,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) enum MuiXK
     DateTimePickers,
     Chart(charts::ChartKind),
     Chat(chat::ChatKind),
+    AgentWorkflow(agent_workflow::AgentWorkflowKind),
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn mui_x_kind(
@@ -22,7 +23,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn mui_x_k
         Some(MuiXKind::DateTimePickers)
     } else if let Some(kind) = charts::chart_kind(component_role, role) {
         Some(MuiXKind::Chart(kind))
+    } else if let Some(kind) = chat::chat_kind(component_role, role) {
+        Some(MuiXKind::Chat(kind))
     } else {
-        chat::chat_kind(component_role, role).map(MuiXKind::Chat)
+        agent_workflow::agent_workflow_kind(component_role, role).map(MuiXKind::AgentWorkflow)
     }
 }

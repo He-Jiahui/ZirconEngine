@@ -1,4 +1,5 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::cmp::Ordering;
+use std::collections::BTreeMap;
 
 use thiserror::Error;
 
@@ -30,6 +31,10 @@ pub enum SettingsError {
     #[error("{0:?} settings are session-only and cannot be persisted")]
     NonPersistentScope(SettingsScope),
 }
+
+#[cfg(test)]
+#[path = "registry/tests/optimization_batch_hz_editor609_tests.rs"]
+mod optimization_batch_hz_editor609_tests;
 
 #[derive(Clone, Default)]
 struct SettingsLayers {
@@ -240,12 +245,7 @@ impl SettingsRegistry {
         }
 
         let previous = self.persistent_values(scope)?;
-        let changed_keys: BTreeSet<_> = previous
-            .keys()
-            .chain(values.keys())
-            .filter(|key| previous.get(*key) != values.get(*key))
-            .cloned()
-            .collect();
+        let changed_keys = changed_layer_keys(previous, &values);
         if changed_keys.is_empty() {
             return Ok(Vec::new());
         }
@@ -274,4 +274,46 @@ impl SettingsRegistry {
         self.definition(key)
             .ok_or_else(|| SettingsError::UnknownKey(key.as_str().to_string()))
     }
+}
+
+fn changed_layer_keys(
+    previous: &BTreeMap<SettingsKey, SettingValue>,
+    values: &BTreeMap<SettingsKey, SettingValue>,
+) -> Vec<SettingsKey> {
+    let mut changed = Vec::new();
+    let mut previous_entries = previous.iter().peekable();
+    let mut value_entries = values.iter().peekable();
+    loop {
+        match (previous_entries.peek(), value_entries.peek()) {
+            (Some((previous_key, previous_value)), Some((value_key, value))) => {
+                match previous_key.cmp(value_key) {
+                    Ordering::Less => {
+                        changed.push((*previous_key).clone());
+                        previous_entries.next();
+                    }
+                    Ordering::Greater => {
+                        changed.push((*value_key).clone());
+                        value_entries.next();
+                    }
+                    Ordering::Equal => {
+                        if previous_value != value {
+                            changed.push((*previous_key).clone());
+                        }
+                        previous_entries.next();
+                        value_entries.next();
+                    }
+                }
+            }
+            (Some((previous_key, _)), None) => {
+                changed.push((*previous_key).clone());
+                previous_entries.next();
+            }
+            (None, Some((value_key, _))) => {
+                changed.push((*value_key).clone());
+                value_entries.next();
+            }
+            (None, None) => break,
+        }
+    }
+    changed
 }

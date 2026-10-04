@@ -1,0 +1,918 @@
+{
+  "schema": 1,
+  "owner": "runtime_wave13_graphics_postprocess_resources",
+  "sid": "source-audit-20260930-01a0f168",
+  "prepared_at_utc": "2026-10-03T21:57:10.828972+00:00",
+  "files": [
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/clear_render_target/clear.rs",
+      "before_sha256": "c1471fe1f46306a63e2e5304d3420e4a258939e9206fafb0f2c51d3479e20a70",
+      "after_sha256": "c1471fe1f46306a63e2e5304d3420e4a258939e9206fafb0f2c51d3479e20a70",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/clear_render_target/mod.rs",
+      "before_sha256": "6d7f69832882338915987dae8e05111198ea0a13805808cb7bfbf1f9c5c818f1",
+      "after_sha256": "6d7f69832882338915987dae8e05111198ea0a13805808cb7bfbf1f9c5c818f1",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/cluster_dimensions/cluster_buffer_bytes_for_size.rs",
+      "before_sha256": "79f132d8ac8b39fa0bbb7198c8de66eaf74ec36235e73ff9c324270612508a11",
+      "after_sha256": "79f132d8ac8b39fa0bbb7198c8de66eaf74ec36235e73ff9c324270612508a11",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/cluster_dimensions/cluster_dimensions_for_size.rs",
+      "before_sha256": "715d9e1867288e35ee240885fa67bc8acac4f814c887e25f8523a6fa4e102e42",
+      "after_sha256": "715d9e1867288e35ee240885fa67bc8acac4f814c887e25f8523a6fa4e102e42",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/constants/cluster.rs",
+      "before_sha256": "bdc0355edc0fa9504ee27e72ee51b0c90cf82ec82bb905995509a873b2a30cba",
+      "after_sha256": "bdc0355edc0fa9504ee27e72ee51b0c90cf82ec82bb905995509a873b2a30cba",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/constants/resource_limits.rs",
+      "before_sha256": "b097e31c5d8707420f3e4e35e4f759594d98e40a108aa930985cd1ffc2e1eb43",
+      "after_sha256": "b097e31c5d8707420f3e4e35e4f759594d98e40a108aa930985cd1ffc2e1eb43",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/gpu_data/clustered_directional_light.rs",
+      "before_sha256": "9e8ff133480a4333b4826771adcc8b01e7b147de977c62768dd72bd5d6ba18b6",
+      "after_sha256": "9e8ff133480a4333b4826771adcc8b01e7b147de977c62768dd72bd5d6ba18b6",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/gpu_data/hybrid_gi_probe_gpu.rs",
+      "before_sha256": "bed002cbd4b933212aa50bf9dd759fc0d73da1c2c4a6963ae468e4c7eef06bfb",
+      "after_sha256": "b073e2b2db24e6188918e9c00daac19e6c2caa90317da210cef367ddcc6dd3c8",
+      "changed": true,
+      "additions": [
+        {
+          "private_origin": "PP-COMMENT-GI-PROBE-SLOTS",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/gpu_data/hybrid_gi_probe_gpu.rs",
+          "before_line": 12,
+          "added_utf8": "    /// 依次承载历史签名、场景可信度、来源位掩码和动态权重，着色器会读取全部四项。\n",
+          "added_sha256": "4b6c0781a82daa0a4b2ae21d61b2d0e76f07b94aca6fbd8cc46303f028341a62",
+          "added_raw_base64": "ICAgIC8vLyDkvp3mrKHmib/ovb3ljoblj7Lnrb7lkI3jgIHlnLrmma/lj6/kv6HluqbjgIHmnaXmupDkvY3mjqnnoIHlkozliqjmgIHmnYPph43vvIznnYDoibLlmajkvJror7vlj5blhajpg6jlm5vpobnjgIIK",
+          "original_proposal": {
+            "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_graphics_postprocess_resources\\comment-proposals-r2.json",
+            "sha256": "c0a89853b8b68dcd277c8b45c9cd5292a567f6f8d6db391896ffe737621451a3",
+            "proposal_id": "PP-COMMENT-GI-PROBE-SLOTS"
+          },
+          "original_proposal_comment_lines": [
+            "    /// 依次承载历史签名、场景可信度、来源位掩码和动态权重，着色器会读取全部四项。"
+          ],
+          "root_disposition": "accept_exact_purpose_and_constraints",
+          "issue_id": null,
+          "original_line": "    pub(in crate::graphics::scene::scene_renderer::post_process) hierarchy_rt_lighting_rgb_and_weight:"
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 1,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/gpu_data/hybrid_gi_trace_region_gpu.rs",
+      "before_sha256": "fa8eabc34d69215200b88b76938b789a5d6df49c6b52a41c8f86c63a7804f524",
+      "after_sha256": "fa8eabc34d69215200b88b76938b789a5d6df49c6b52a41c8f86c63a7804f524",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/gpu_data/reflection_probe_gpu.rs",
+      "before_sha256": "168ac65a4252cb31586f07f037ca2adfafe25daf719db0726999884b1610ee73",
+      "after_sha256": "168ac65a4252cb31586f07f037ca2adfafe25daf719db0726999884b1610ee73",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/mod.rs",
+      "before_sha256": "0f4be1f4b64aafa394ac22623eed230bfda269afee1ade0eb18c313ce7e7c7f5",
+      "after_sha256": "0fa08456b52b20f14823ad2bf35977e40554a8abf881febc5a5e938a3624d514",
+      "changed": true,
+      "additions": [
+        {
+          "private_origin": "PPRES-ROOT-BOUNDARY",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/mod.rs",
+          "before_line": 1,
+          "added_utf8": "//! 后处理集中提供场景资源、节点执行记录与计算调度尺度，资源构造和 GPU 编码由子模块分别实现。\n",
+          "added_sha256": "cdcaae0ca548ab3adf7968fad1de52f7bf4864482c7639a5a6254b084eb50cc8",
+          "added_raw_base64": "Ly8hIOWQjuWkhOeQhumbhuS4reaPkOS+m+WcuuaZr+i1hOa6kOOAgeiKgueCueaJp+ihjOiusOW9leS4juiuoeeul+iwg+W6puWwuuW6pu+8jOi1hOa6kOaehOmAoOWSjCBHUFUg57yW56CB55Sx5a2Q5qih5Z2X5YiG5Yir5a6e546w44CCCg==",
+          "original_proposal": {
+            "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_graphics_postprocess_resources\\comment-proposals-r2.json",
+            "sha256": "c0a89853b8b68dcd277c8b45c9cd5292a567f6f8d6db391896ffe737621451a3",
+            "proposal_id": "PPRES-ROOT-BOUNDARY"
+          },
+          "original_proposal_comment_lines": [
+            "//! 后处理集中提供场景资源、节点执行记录与计算调度尺度，资源构造和 GPU 编码由子模块分别实现。"
+          ],
+          "root_disposition": "accept_exact_purpose_and_constraints",
+          "issue_id": null,
+          "original_line": "mod clear_render_target;"
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 1,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/bloom_params.rs",
+      "before_sha256": "6d2e94162407fc526bd87a8d7f1ea5cdc5d6de1ee55c4c30d44e9cdfbb8cc96e",
+      "after_sha256": "6d2e94162407fc526bd87a8d7f1ea5cdc5d6de1ee55c4c30d44e9cdfbb8cc96e",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/cluster_params.rs",
+      "before_sha256": "e6f975897fe504b9ae6b16e5ed7fe39bbb4267215832e29ee18c02d006634be3",
+      "after_sha256": "e6f975897fe504b9ae6b16e5ed7fe39bbb4267215832e29ee18c02d006634be3",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/color_lut_bake_params.rs",
+      "before_sha256": "601e82a95bc229626c0e66591e355b534d843204e2753c325029fd4f463b370c",
+      "after_sha256": "601e82a95bc229626c0e66591e355b534d843204e2753c325029fd4f463b370c",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/depth_of_field_prepare_params.rs",
+      "before_sha256": "ed8325abb3ad6361727e80b686b05b8a9832c82e53699eea78f92c70420c6409",
+      "after_sha256": "ed8325abb3ad6361727e80b686b05b8a9832c82e53699eea78f92c70420c6409",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/hzb_params.rs",
+      "before_sha256": "9788dc1d4c0fb1ddd86509dce57e84dd0b4496ac32a000a8b531b219ee203bae",
+      "after_sha256": "9788dc1d4c0fb1ddd86509dce57e84dd0b4496ac32a000a8b531b219ee203bae",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/post_process_params.rs",
+      "before_sha256": "f0921be304de711eac95ca5a286ca077e36a3f9aac663f62a9559542485ebe05",
+      "after_sha256": "740a41858a913a6c682eb54145bf81ea4ef118d39df020fd20df0da2e2cda5c4",
+      "changed": true,
+      "additions": [
+        {
+          "private_origin": "PP-COMMENT-ORIGINS-1",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/post_process_params.rs",
+          "before_line": 8,
+          "added_utf8": "    /// xy 为本阶段局部尺寸，zw 为场景几何和历史纹理的物理视口原点。\n",
+          "added_sha256": "3a5cbb0fce2144b39fdf9a66cf4f71c40c9d69bf1a4d1f1d100ff81dd3052c2d",
+          "added_raw_base64": "ICAgIC8vLyB4eSDkuLrmnKzpmLbmrrXlsYDpg6jlsLrlr7jvvIx6dyDkuLrlnLrmma/lh6DkvZXlkozljoblj7LnurnnkIbnmoTniannkIbop4blj6Pljp/ngrnjgIIK",
+          "original_proposal": {
+            "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_graphics_postprocess_resources\\comment-proposals-r2.json",
+            "sha256": "c0a89853b8b68dcd277c8b45c9cd5292a567f6f8d6db391896ffe737621451a3",
+            "proposal_id": "PP-COMMENT-ORIGINS"
+          },
+          "original_proposal_comment_lines": [
+            "    /// xy 为本阶段局部尺寸，zw 为场景几何和历史纹理的物理视口原点。",
+            "    /// xy 为二维聚合网格，zw 为当前颜色输入原点；颜色已是局部目标时可与物理原点不同。"
+          ],
+          "root_disposition": "accept_exact_purpose_and_constraints",
+          "issue_id": null,
+          "original_line": "    pub(in crate::graphics::scene::scene_renderer::post_process) viewport_and_clusters: [u32; 4],"
+        },
+        {
+          "private_origin": "PP-COMMENT-ORIGINS-2",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/post_process_params.rs",
+          "before_line": 9,
+          "added_utf8": "    /// xy 为二维聚合网格，zw 为当前颜色输入原点；颜色已是局部目标时可与物理原点不同。\n",
+          "added_sha256": "678d4b1fe01f057e0c3bb253eac84f40ca4330edbf3130df2b69f82538d9c11a",
+          "added_raw_base64": "ICAgIC8vLyB4eSDkuLrkuoznu7TogZrlkIjnvZHmoLzvvIx6dyDkuLrlvZPliY3popzoibLovpPlhaXljp/ngrnvvJvpopzoibLlt7LmmK/lsYDpg6jnm67moIfml7blj6/kuI7niannkIbljp/ngrnkuI3lkIzjgIIK",
+          "original_proposal": {
+            "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_graphics_postprocess_resources\\comment-proposals-r2.json",
+            "sha256": "c0a89853b8b68dcd277c8b45c9cd5292a567f6f8d6db391896ffe737621451a3",
+            "proposal_id": "PP-COMMENT-ORIGINS"
+          },
+          "original_proposal_comment_lines": [
+            "    /// xy 为本阶段局部尺寸，zw 为场景几何和历史纹理的物理视口原点。",
+            "    /// xy 为二维聚合网格，zw 为当前颜色输入原点；颜色已是局部目标时可与物理原点不同。"
+          ],
+          "root_disposition": "accept_exact_purpose_and_constraints",
+          "issue_id": null,
+          "original_line": "    pub(in crate::graphics::scene::scene_renderer::post_process) cluster_dimensions: [u32; 4],"
+        }
+      ],
+      "comment_additions": 2,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/upscale_params.rs",
+      "before_sha256": "0cc644f0e38dad2d719efc80e410c74f47e36982f4daf75fc0813c690b7265da",
+      "after_sha256": "0cc644f0e38dad2d719efc80e410c74f47e36982f4daf75fc0813c690b7265da",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/execute.rs",
+      "before_sha256": "570cb253a36d043be5fee672fc849e37233714086342fe87557d707ff6c2fdb9",
+      "after_sha256": "4f5315da5a142e4a8661008e74690b8a4063b9fda8e083ee5ff20c1c39c8c810",
+      "changed": true,
+      "additions": [
+        {
+          "private_origin": "PPRES-PASS-REPORT",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/execute.rs",
+          "before_line": 7,
+          "added_utf8": "/// 将已执行的 GPU executor 汇总为后处理节点记录；没有执行记录时按已绑定资源推导可用节点。\n/// 此入口只更新执行报告，节点按图的既有顺序登记，GPU 命令由各效果执行入口录制。\n",
+          "added_sha256": "0bb770c23d73f94149279298dce1c74129de35930433ed1e4fe1ebe83310a2a7",
+          "added_raw_base64": "Ly8vIOWwhuW3suaJp+ihjOeahCBHUFUgZXhlY3V0b3Ig5rGH5oC75Li65ZCO5aSE55CG6IqC54K56K6w5b2V77yb5rKh5pyJ5omn6KGM6K6w5b2V5pe25oyJ5bey57uR5a6a6LWE5rqQ5o6o5a+85Y+v55So6IqC54K544CCCi8vLyDmraTlhaXlj6Plj6rmm7TmlrDmiafooYzmiqXlkYrvvIzoioLngrnmjInlm77nmoTml6LmnInpobrluo/nmbvorrDvvIxHUFUg5ZG95Luk55Sx5ZCE5pWI5p6c5omn6KGM5YWl5Y+j5b2V5Yi244CCCg==",
+          "original_proposal": {
+            "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_graphics_postprocess_resources\\comment-proposals-r2.json",
+            "sha256": "c0a89853b8b68dcd277c8b45c9cd5292a567f6f8d6db391896ffe737621451a3",
+            "proposal_id": "PPRES-PASS-REPORT"
+          },
+          "original_proposal_comment_lines": [
+            "/// 将已执行的 GPU executor 汇总为后处理节点记录；没有执行记录时按已绑定资源推导可用节点。",
+            "/// 此入口只更新执行报告，节点按图的既有顺序登记，GPU 命令由各效果执行入口录制。"
+          ],
+          "root_disposition": "accept_exact_purpose_and_constraints",
+          "issue_id": null,
+          "original_line": "pub(crate) fn execute_post_process_pass_graph("
+        },
+        {
+          "private_origin": "PPRES-PASS-AVAILABLE",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/execute.rs",
+          "before_line": 35,
+          "added_utf8": "    // 图内产出的输入须等待前置节点登记，只有已绑定的图外输入可以作为起始可用资源。\n",
+          "added_sha256": "2f69b89f613ad179ee303df7cd93609f25020bd702de6bd48f8b032a48fad5b4",
+          "added_raw_base64": "ICAgIC8vIOWbvuWGheS6p+WHuueahOi+k+WFpemhu+etieW+heWJjee9ruiKgueCueeZu+iusO+8jOWPquacieW3sue7keWumueahOWbvuWklui+k+WFpeWPr+S7peS9nOS4uui1t+Wni+WPr+eUqOi1hOa6kOOAggo=",
+          "original_proposal": {
+            "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_graphics_postprocess_resources\\comment-proposals-r2.json",
+            "sha256": "c0a89853b8b68dcd277c8b45c9cd5292a567f6f8d6db391896ffe737621451a3",
+            "proposal_id": "PPRES-PASS-AVAILABLE"
+          },
+          "original_proposal_comment_lines": [
+            "    // 图内产出的输入须等待前置节点登记，只有已绑定的图外输入可以作为起始可用资源。"
+          ],
+          "root_disposition": "accept_exact_purpose_and_constraints",
+          "issue_id": null,
+          "original_line": "    let mut available_resources: HashSet<&str> = HashSet::with_capacity(resource_reference_count);"
+        },
+        {
+          "private_origin": "PPRES-PASS-GUARD",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/execute.rs",
+          "before_line": 148,
+          "added_utf8": "        // TODO: [CR-W13-PPRES-0003] 将热路径截取界限限定到生产部分；当前分段标记仅命中测试文本，未验证资源回退前的真实范围。\n",
+          "added_sha256": "0d2033adc922ceb6439a2d20d985c6640bd4aa053a48d0e3b01674410298f72e",
+          "added_raw_base64": "ICAgICAgICAvLyBUT0RPOiBbQ1ItVzEzLVBQUkVTLTAwMDNdIOWwhueDrei3r+W+hOaIquWPlueVjOmZkOmZkOWumuWIsOeUn+S6p+mDqOWIhu+8m+W9k+WJjeWIhuauteagh+iusOS7heWRveS4rea1i+ivleaWh+acrO+8jOacqumqjOivgei1hOa6kOWbnumAgOWJjeeahOecn+WunuiMg+WbtOOAggo=",
+          "original_proposal": {
+            "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_graphics_postprocess_resources\\comment-proposals-r2.json",
+            "sha256": "c0a89853b8b68dcd277c8b45c9cd5292a567f6f8d6db391896ffe737621451a3",
+            "proposal_id": "PPRES-PASS-GUARD"
+          },
+          "original_proposal_comment_lines": [
+            "        // TODO: [CR-W13-PPRES-0003] 将热路径截取界限限定到生产部分；当前分段标记仅命中测试文本，未验证资源回退前的真实范围。"
+          ],
+          "root_disposition": "accept_exact_purpose_and_constraints",
+          "issue_id": "CR-W13-PPRES-0003",
+          "original_line": "        let hot_path = source"
+        },
+        {
+          "private_origin": "PPRES-PASS-MASK-TEST",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/execute.rs",
+          "before_line": 231,
+          "added_utf8": "        // BUG: [CR-W13-PPRES-0002] 此表去重后覆盖十九个效果位，但末尾断言期望十八位；该断言会报告数量不符。\n",
+          "added_sha256": "aa575350b75214497216fb07ace5bd5af9c012233c11da32bbccc8fb4c458194",
+          "added_raw_base64": "ICAgICAgICAvLyBCVUc6IFtDUi1XMTMtUFBSRVMtMDAwMl0g5q2k6KGo5Y676YeN5ZCO6KaG55uW5Y2B5Lmd5Liq5pWI5p6c5L2N77yM5L2G5pyr5bC+5pat6KiA5pyf5pyb5Y2B5YWr5L2N77yb6K+l5pat6KiA5Lya5oql5ZGK5pWw6YeP5LiN56ym44CCCg==",
+          "original_proposal": {
+            "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_graphics_postprocess_resources\\comment-proposals-r2.json",
+            "sha256": "c0a89853b8b68dcd277c8b45c9cd5292a567f6f8d6db391896ffe737621451a3",
+            "proposal_id": "PPRES-PASS-MASK-TEST"
+          },
+          "original_proposal_comment_lines": [
+            "        // BUG: [CR-W13-PPRES-0002] 此表去重后覆盖十九个效果位，但末尾断言期望十八位；该断言会报告数量不符。"
+          ],
+          "root_disposition": "accept_exact_purpose_and_constraints",
+          "issue_id": "CR-W13-PPRES-0002",
+          "original_line": "        assert_eq!(seen_effect_bits.count_ones(), 18);"
+        }
+      ],
+      "comment_additions": 4,
+      "added_comment_lines": 5,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/mod.rs",
+      "before_sha256": "ffc353600bbc1c797883c057b8a97ee2daefdb22a6fca318a7b0a593101e7c19",
+      "after_sha256": "ffc353600bbc1c797883c057b8a97ee2daefdb22a6fca318a7b0a593101e7c19",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/color_lut_bake.rs",
+      "before_sha256": "da3ef72d9770e39d29dfc0aa6a83f439804066e5ead80eb71bdbfc5e21e55d09",
+      "after_sha256": "da3ef72d9770e39d29dfc0aa6a83f439804066e5ead80eb71bdbfc5e21e55d09",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/depth_of_field_prepare.rs",
+      "before_sha256": "e8ea5421763e5f1d37c7caed67f0c78097f0493585205dab3b6c7fd277da88ff",
+      "after_sha256": "e8ea5421763e5f1d37c7caed67f0c78097f0493585205dab3b6c7fd277da88ff",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/hzb.rs",
+      "before_sha256": "1f7e986593315b29118e3d9d6628ad450eab906504e5bebce1efbe610da242ca",
+      "after_sha256": "a2d91a8097b7c9577f2ef48e47d0598e021122161b6bc698f106c8b71b65eb3d",
+      "changed": true,
+      "additions": [
+        {
+          "private_origin": "PPRES-HZB-LAYOUT",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/hzb.rs",
+          "before_line": 20,
+          "added_utf8": "    // 布局由命名资源计划分配槽位；仅深度输入切换多重采样，父级金字塔输入始终单采样。\n",
+          "added_sha256": "5da1601d5e2d4316d8187ae8b1e349bb7a22b174d7e9d3df13516ed9a1e2fada",
+          "added_raw_base64": "ICAgIC8vIOW4g+WxgOeUseWRveWQjei1hOa6kOiuoeWIkuWIhumFjeanveS9je+8m+S7hea3seW6pui+k+WFpeWIh+aNouWkmumHjemHh+agt++8jOeItue6p+mHkeWtl+WhlOi+k+WFpeWni+e7iOWNlemHh+agt+OAggo=",
+          "original_proposal": {
+            "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_graphics_postprocess_resources\\comment-proposals-r2.json",
+            "sha256": "c0a89853b8b68dcd277c8b45c9cd5292a567f6f8d6db391896ffe737621451a3",
+            "proposal_id": "PPRES-HZB-LAYOUT"
+          },
+          "original_proposal_comment_lines": [
+            "    // 布局由命名资源计划分配槽位；仅深度输入切换多重采样，父级金字塔输入始终单采样。"
+          ],
+          "root_disposition": "accept_exact_purpose_and_constraints",
+          "issue_id": null,
+          "original_line": "    let plan = if multisampled {"
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 1,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/motion_vector_tile_max.rs",
+      "before_sha256": "b8f186d8a696b37bd2ce533abb2101617e2ecec6f08b6c4aea569a95658be7e8",
+      "after_sha256": "b8f186d8a696b37bd2ce533abb2101617e2ecec6f08b6c4aea569a95658be7e8",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/taa_resolve.rs",
+      "before_sha256": "81a35f8d0030bbb3c2787d338762c4a4303b443a16e2875f11b35f7244333118",
+      "after_sha256": "81a35f8d0030bbb3c2787d338762c4a4303b443a16e2875f11b35f7244333118",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/upscale.rs",
+      "before_sha256": "d7eed0caad4ff32c7567035fd1e65c64724fe8e725f286799f09574234bcadf1",
+      "after_sha256": "d7eed0caad4ff32c7567035fd1e65c64724fe8e725f286799f09574234bcadf1",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/velocity_camera.rs",
+      "before_sha256": "ffd9bd438cddf3cc62986b1f86d130a6349fe944d7158349a47ab01406fd4fd0",
+      "after_sha256": "ffd9bd438cddf3cc62986b1f86d130a6349fe944d7158349a47ab01406fd4fd0",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/buffer_bundle/buffer_bundle.rs",
+      "before_sha256": "1508cc7b1f5991b070dd3bffea970881bc0ae187efdcf7e12f3353ffa742c16d",
+      "after_sha256": "1508cc7b1f5991b070dd3bffea970881bc0ae187efdcf7e12f3353ffa742c16d",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_buffer_bundle/create.rs",
+      "before_sha256": "9d96f2b7643631b1c98f29648e9cf3b41f4dd5adc760b28eceeb257399229539",
+      "after_sha256": "9d96f2b7643631b1c98f29648e9cf3b41f4dd5adc760b28eceeb257399229539",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_buffer_bundle/default_exposure_buffer.rs",
+      "before_sha256": "141c85c42110e08b90642be5c6a96153016c85291a1551c02f1b2a6ee040eaea",
+      "after_sha256": "141c85c42110e08b90642be5c6a96153016c85291a1551c02f1b2a6ee040eaea",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_buffer_bundle/default_exposure_histogram_buffer.rs",
+      "before_sha256": "efa29060f6c42c77d5c5c4962e09fded2ee4df8047b643b6846f30bb2be447ce",
+      "after_sha256": "efa29060f6c42c77d5c5c4962e09fded2ee4df8047b643b6846f30bb2be447ce",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_fallback_texture_views/create.rs",
+      "before_sha256": "ee255e925237ba529950d2e98a57b7beb6c5e00e32418a45f33b88d3c1bd7c17",
+      "after_sha256": "ee255e925237ba529950d2e98a57b7beb6c5e00e32418a45f33b88d3c1bd7c17",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/hzb_pipeline.rs",
+      "before_sha256": "e63649db684033e0d1a3c7a51071c6a75c6bf5a6056869e638083460f3ca0ec3",
+      "after_sha256": "e63649db684033e0d1a3c7a51071c6a75c6bf5a6056869e638083460f3ca0ec3",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/motion_vector_tile_max_pipeline.rs",
+      "before_sha256": "260cc28c18d27065a0a7ef3321df1794436877b5eb1ef8d061914c377c9e793c",
+      "after_sha256": "9c6d264ba2e11f9f8f35047a821ceaa6f6ac8a844b4cb042b5b40d97b1da6d3e",
+      "changed": true,
+      "additions": [
+        {
+          "private_origin": "PPRES-MOTION-ABI",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/motion_vector_tile_max_pipeline.rs",
+          "before_line": 23,
+          "added_utf8": "        // 资源和参数分别沿用全屏 ABI 的第一、第二组；保留第零组空位，防止布局压缩后组号偏移。\n",
+          "added_sha256": "d53774d8a04e9a380f42ee0555f11c18effc47311e78b4348dfb4a4f57705881",
+          "added_raw_base64": "ICAgICAgICAvLyDotYTmupDlkozlj4LmlbDliIbliKvmsr/nlKjlhajlsY8gQUJJIOeahOesrOS4gOOAgeesrOS6jOe7hO+8m+S/neeVmeesrOmbtue7hOepuuS9je+8jOmYsuatouW4g+WxgOWOi+e8qeWQjue7hOWPt+WBj+enu+OAggo=",
+          "original_proposal": {
+            "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_graphics_postprocess_resources\\comment-proposals-r2.json",
+            "sha256": "c0a89853b8b68dcd277c8b45c9cd5292a567f6f8d6db391896ffe737621451a3",
+            "proposal_id": "PPRES-MOTION-ABI"
+          },
+          "original_proposal_comment_lines": [
+            "        // 资源和参数分别沿用全屏 ABI 的第一、第二组；保留第零组空位，防止布局压缩后组号偏移。"
+          ],
+          "root_disposition": "accept_exact_purpose_and_constraints",
+          "issue_id": null,
+          "original_line": "        bind_group_layouts: &["
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 1,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/output_transfer_pipeline.rs",
+      "before_sha256": "367bc7969d56f7f62fa3615b4c2c35c7ba69031c5160a2c8e65c77003c898ad3",
+      "after_sha256": "367bc7969d56f7f62fa3615b4c2c35c7ba69031c5160a2c8e65c77003c898ad3",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs",
+      "before_sha256": "2f60fa7819b39788adea8f4dba9cc8660c4177b90af235640fd9f38064530174",
+      "after_sha256": "6031d5b4263fd3bcf1fcb44ba337acca20431c0f7a4352c0f4f66d8e89f32e31",
+      "changed": true,
+      "additions": [
+        {
+          "private_origin": "PPRES-UBER-TARGETS",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs",
+          "before_line": 4,
+          "added_utf8": "/// 为显示映射颜色与全局光照辅助结果构造双附件管线；第二附件格式由调用方传入。\n/// 共享着色器和布局已由管线包准备，此入口选择组合入口并声明附件格式。\n",
+          "added_sha256": "1fade6f54c17187f026bfcfd8d76e7062b6910ec981934e954918849b1566f1f",
+          "added_raw_base64": "Ly8vIOS4uuaYvuekuuaYoOWwhOminOiJsuS4juWFqOWxgOWFieeFp+i+heWKqee7k+aenOaehOmAoOWPjOmZhOS7tueuoee6v++8m+esrOS6jOmZhOS7tuagvOW8j+eUseiwg+eUqOaWueS8oOWFpeOAggovLy8g5YWx5Lqr552A6Imy5Zmo5ZKM5biD5bGA5bey55Sx566h57q/5YyF5YeG5aSH77yM5q2k5YWl5Y+j6YCJ5oup57uE5ZCI5YWl5Y+j5bm25aOw5piO6ZmE5Lu25qC85byP44CCCg==",
+          "original_proposal": {
+            "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_graphics_postprocess_resources\\comment-proposals-r2.json",
+            "sha256": "c0a89853b8b68dcd277c8b45c9cd5292a567f6f8d6db391896ffe737621451a3",
+            "proposal_id": "PPRES-UBER-TARGETS"
+          },
+          "original_proposal_comment_lines": [
+            "/// 为显示映射颜色与全局光照辅助结果构造双附件管线；第二附件格式由调用方传入。",
+            "/// 共享着色器和布局已由管线包准备，此入口选择组合入口并声明附件格式。"
+          ],
+          "root_disposition": "accept_exact_purpose_and_constraints",
+          "issue_id": null,
+          "original_line": "pub(super) fn post_process_pipeline("
+        },
+        {
+          "private_origin": "PPRES-UBER-SSR-TEST",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs",
+          "before_line": 335,
+          "added_utf8": "        // BUG: [CR-W13-PPRES-0004] 此断言要求两行赋值，但当前组合源码使用单行；文本格式失配会使该测试失败。\n",
+          "added_sha256": "18f9b7291413414b8e852eb09d258e401536de4ae959b6d2b9e1335cad97d2ea",
+          "added_raw_base64": "ICAgICAgICAvLyBCVUc6IFtDUi1XMTMtUFBSRVMtMDAwNF0g5q2k5pat6KiA6KaB5rGC5Lik6KGM6LWL5YC877yM5L2G5b2T5YmN57uE5ZCI5rqQ56CB5L2/55So5Y2V6KGM77yb5paH5pys5qC85byP5aSx6YWN5Lya5L2/6K+l5rWL6K+V5aSx6LSl44CCCg==",
+          "original_proposal": {
+            "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_graphics_postprocess_resources\\comment-proposals-r2.json",
+            "sha256": "c0a89853b8b68dcd277c8b45c9cd5292a567f6f8d6db391896ffe737621451a3",
+            "proposal_id": "PPRES-UBER-SSR-TEST"
+          },
+          "original_proposal_comment_lines": [
+            "        // BUG: [CR-W13-PPRES-0004] 此断言要求两行赋值，但当前组合源码使用单行；文本格式失配会使该测试失败。"
+          ],
+          "root_disposition": "accept_exact_purpose_and_constraints",
+          "issue_id": "CR-W13-PPRES-0004",
+          "original_line": "        assert!("
+        }
+      ],
+      "comment_additions": 2,
+      "added_comment_lines": 3,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/smaa_pipeline.rs",
+      "before_sha256": "3c0fdc39d42af3429829d29115e95f6b6fb1d2ffde945408b9189e82e87ffb71",
+      "after_sha256": "3c0fdc39d42af3429829d29115e95f6b6fb1d2ffde945408b9189e82e87ffb71",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/upscale_pipeline.rs",
+      "before_sha256": "758f15087a2fb05905bdd65779af86b69097cc7377b63d89fb25a8b5767bbd04",
+      "after_sha256": "758f15087a2fb05905bdd65779af86b69097cc7377b63d89fb25a8b5767bbd04",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/fallback_texture_views/fallback_texture_views.rs",
+      "before_sha256": "4932909ead464046aa38e601831655af53d9853627b6eb9790c723c2f15fb2ed",
+      "after_sha256": "4932909ead464046aa38e601831655af53d9853627b6eb9790c723c2f15fb2ed",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/pipeline_bundle/pipeline_bundle.rs",
+      "before_sha256": "ff2c4e9e4461ab5ed7f974d9dbff9776c9b483328674258ec9c78f6634679adc",
+      "after_sha256": "ff2c4e9e4461ab5ed7f974d9dbff9776c9b483328674258ec9c78f6634679adc",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/depth_sampling_mode.rs",
+      "before_sha256": "18841227bbc65a2d9a621e0aa6ba7058788394ba55a328cc270cedf0655806a6",
+      "after_sha256": "be4d61b5495b76aa0221f5876929db68422dcc8f960762182b5f4b84721ce720",
+      "changed": true,
+      "additions": [
+        {
+          "private_origin": "PPRES-DEPTH-BOUNDARY",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/depth_sampling_mode.rs",
+          "before_line": 1,
+          "added_utf8": "//! 按后端选择深度绑定类型，并以固定片段生成 WGSL 变体；视口回退按纵坐标近似深度。\n//! 修改深度声明或加载表达式时须同步维护替换片段，并分别确认各变体的作用域。\n",
+          "added_sha256": "d2551b1037f413d083839aa250ab0395f9979ec2a009d55eb2689551322715b3",
+          "added_raw_base64": "Ly8hIOaMieWQjuerr+mAieaLqea3seW6pue7keWumuexu+Wei++8jOW5tuS7peWbuuWumueJh+auteeUn+aIkCBXR1NMIOWPmOS9k++8m+inhuWPo+WbnumAgOaMiee6teWdkOagh+i/keS8vOa3seW6puOAggovLyEg5L+u5pS55rex5bqm5aOw5piO5oiW5Yqg6L296KGo6L6+5byP5pe26aG75ZCM5q2l57u05oqk5pu/5o2i54mH5q6177yM5bm25YiG5Yir56Gu6K6k5ZCE5Y+Y5L2T55qE5L2c55So5Z+f44CCCg==",
+          "original_proposal": {
+            "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_graphics_postprocess_resources\\comment-proposals-r2.json",
+            "sha256": "c0a89853b8b68dcd277c8b45c9cd5292a567f6f8d6db391896ffe737621451a3",
+            "proposal_id": "PPRES-DEPTH-BOUNDARY"
+          },
+          "original_proposal_comment_lines": [
+            "//! 后端深度降级保持绑定类型、源码声明和执行视图一致，回退值按视口纵坐标近似深度。",
+            "//! WGSL 变体通过固定文本片段替换生成，修改深度声明或加载表达式时须同步维护这些片段。"
+          ],
+          "root_disposition": "narrow_to_binding_and_replacement_contract_with_each_variant_scope_obligation",
+          "issue_id": null,
+          "original_line": "use std::borrow::Cow;"
+        },
+        {
+          "private_origin": "PPRES-DEPTH-TAA-BUG",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/depth_sampling_mode.rs",
+          "before_line": 36,
+          "added_utf8": "// BUG: [CR-W13-PPRES-0001] TAA 回退表达式引用 size.y，但深度读取函数未定义 size；GL/ANGLE 完整资源构造会引入未声明标识符。\n",
+          "added_sha256": "f23360781b713668a04fbe0506232b4d8a1322be87de1b30618a93e3c73cf95d",
+          "added_raw_base64": "Ly8gQlVHOiBbQ1ItVzEzLVBQUkVTLTAwMDFdIFRBQSDlm57pgIDooajovr7lvI/lvJXnlKggc2l6ZS5577yM5L2G5rex5bqm6K+75Y+W5Ye95pWw5pyq5a6a5LmJIHNpemXvvJtHTC9BTkdMRSDlrozmlbTotYTmupDmnoTpgKDkvJrlvJXlhaXmnKrlo7DmmI7moIfor4bnrKbjgIIK",
+          "original_proposal": {
+            "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_graphics_postprocess_resources\\comment-proposals-r2.json",
+            "sha256": "c0a89853b8b68dcd277c8b45c9cd5292a567f6f8d6db391896ffe737621451a3",
+            "proposal_id": "PPRES-DEPTH-TAA-BUG"
+          },
+          "original_proposal_comment_lines": [
+            "// BUG: [CR-W13-PPRES-0001] TAA 回退表达式引用 size.y，但深度读取函数未定义 size；GL/ANGLE 完整资源构造会引入未声明标识符。"
+          ],
+          "root_disposition": "accept_exact_purpose_and_constraints",
+          "issue_id": "CR-W13-PPRES-0001",
+          "original_line": "const TAA_RESOLVE_FALLBACK_DEPTH_LOAD_RETURN: &str ="
+        }
+      ],
+      "comment_additions": 2,
+      "added_comment_lines": 3,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/mod.rs",
+      "before_sha256": "b22fcf372842815fd7c692b836d21a0541620c9aff569a898cc89fcc812f4cc9",
+      "after_sha256": "b22fcf372842815fd7c692b836d21a0541620c9aff569a898cc89fcc812f4cc9",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/post_process_pass_parameter_buffers.rs",
+      "before_sha256": "1d9ff955a425769cc9f6bd5ce41aed82adc8d2a9229e4f1343da7335f89be037",
+      "after_sha256": "1d9ff955a425769cc9f6bd5ce41aed82adc8d2a9229e4f1343da7335f89be037",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/render_region.rs",
+      "before_sha256": "c1cc1dffa68745a67d50608eb0343fdedf73c1d7ba3215c59d9decdc5993d543",
+      "after_sha256": "c1cc1dffa68745a67d50608eb0343fdedf73c1d7ba3215c59d9decdc5993d543",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/terminal_resource_cache.rs",
+      "before_sha256": "6c6c6f8772b03e5a4443d9d1c64e132c0acb37073b38c192d8560d101070a13b",
+      "after_sha256": "6c6c6f8772b03e5a4443d9d1c64e132c0acb37073b38c192d8560d101070a13b",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/full_scene_post_process_resources.rs",
+      "before_sha256": "26cb7cf6a152f5213ea6873d732fb8f6c260b7f82efba367608497bf7810d450",
+      "after_sha256": "26cb7cf6a152f5213ea6873d732fb8f6c260b7f82efba367608497bf7810d450",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/scene_output_transfer_resources.rs",
+      "before_sha256": "ca5c3e4dce2241a91e74b674f8f25acde059ef8bc7deb8ca2a49ba46fe8c8f38",
+      "after_sha256": "ca5c3e4dce2241a91e74b674f8f25acde059ef8bc7deb8ca2a49ba46fe8c8f38",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_runtime_feature_flags/mod.rs",
+      "before_sha256": "cad868a6613589c2dcdacdf2a7d87ec22f404c34acf8f1e605773d9459dcfd27",
+      "after_sha256": "cad868a6613589c2dcdacdf2a7d87ec22f404c34acf8f1e605773d9459dcfd27",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_runtime_feature_flags/scene_runtime_feature_flags.rs",
+      "before_sha256": "19bdd8b9d997f069af67f8bf414915d4a28d112c45cb52809b8aa39498b97ebc",
+      "after_sha256": "19bdd8b9d997f069af67f8bf414915d4a28d112c45cb52809b8aa39498b97ebc",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    }
+  ],
+  "root_semantic_proof": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave13_graphics_postprocess_resources-root-semantic-proof-20261003-r1.json",
+    "sha256": "658993b76da392c950168bc6ddd9fe21e0426840e9353feeecce5df09691d925"
+  },
+  "spec": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave13_graphics_postprocess_resources-root-insertions-20261003-r1.json",
+    "sha256": "ff73133697580ab71417c045b374f6aa354231c96a68e730c8271e6010fd0eaf"
+  },
+  "terminal_children": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave13_graphics_postprocess_resources-root-terminal-children-20261003-r1.json",
+    "sha256": "bb41bf68795dcd7477afa5e92f8dd34b0d4805d0ec2ba37831bd442a3b1f0d10"
+  },
+  "verified_inputs": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave13_graphics_postprocess_resources-root-verified-inputs-20261003-r1.json",
+    "sha256": "d267038d9dea4f5bfe10dbd92ec2ef27819d573c640ab876b67fbd2822449038"
+  },
+  "audit_only_diff": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave13-postprocess-resources-root-candidates-20261003-r1\\owned.diff",
+    "sha256": "36e330b6d03c021714ab5c6bbac0b34c2c13698d61f8085e24c1aedb86b968e0"
+  },
+  "support_comment_lineage": [],
+  "source_manifest_files": 49,
+  "source_writes": 8,
+  "business_edits": 0,
+  "whole_file_business_adoption": false,
+  "product_consent": false,
+  "snapshot_scope": "exact added audit comment bytes only; original or unknown baseline authorship stays intact",
+  "status": "exact_comment_delta_installed",
+  "completed_at_utc": "2026-10-03T21:58:32.431611+00:00",
+  "intent": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-install-runtime_wave13_graphics_postprocess_resources-20261003-r1\\intent.json",
+    "sha256": "31d1a7286626d86389011593cf1e644bdf92d963e916b48bbbc97b192ed41d02"
+  },
+  "comment_additions": 14,
+  "added_comment_lines": 17,
+  "new_source_labels": 4,
+  "new_source_label_occurrences": 4,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "existing_source_authorship_preserved": true,
+  "future_source_edit_pending": false,
+  "coverage_publication": "pending separate exact root publication"
+}

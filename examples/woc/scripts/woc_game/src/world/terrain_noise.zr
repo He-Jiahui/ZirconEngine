@@ -36,6 +36,7 @@ closeEnough(value: float, expected: float): bool {
     return delta < 0.000000001;
 }
 
+// 噪声查询先取整数格点，再按 JS 位运算将有符号坐标折成 u32；负坐标与正坐标共用确定性种子合同。
 pub hash2(x: int, y: int, seed: uint, required: bool): float {
     if (!required) {
         throw "woc terrain hash is required";

@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 虚拟几何执行投影复用首匹配查找索引并稳定排序簇 ID；本组阻止生产路径退回嵌套线性查找，关联 Rust 与发布性能门禁。
 
 ROOT = Path(__file__).resolve().parents[2]
 EXECUTION = (

@@ -1,5 +1,6 @@
 mod column_budget;
 #[cfg(test)]
+#[path = "compact_layout/tests/optimization_tests.rs"]
 mod optimization_tests;
 mod source_panel_layout;
 mod utility_layout;
@@ -9,7 +10,9 @@ use crate::ui::workbench::snapshot::AssetViewMode;
 use zircon_runtime_interface::ui::design_tokens::EditorTypographyTokens;
 use zircon_runtime_interface::ui::layout::UiSize;
 
-use self::column_budget::{resolve_compact_column_budget, CompactColumnBudget};
+use self::column_budget::{
+    resolve_compact_column_budget, CompactColumnBudget, NARROW_BREAKPOINT_WIDTH,
+};
 pub(super) use self::source_panel_layout::apply_asset_browser_sources_layout;
 use self::source_panel_layout::apply_compact_sources_panel_layout;
 use self::utility_layout::{
@@ -134,8 +137,12 @@ pub(super) fn apply_asset_browser_compact_layout(
     );
 
     let main_y = finite_coordinate(toolbar_main_y.unwrap_or(main.y)).min(viewport_height);
-    let (main_height, utility_y, compact_utility_height) =
-        compact_asset_browser_vertical_budget(viewport_height, main_y, COMPACT_PANEL_GAP);
+    let (main_height, utility_y, compact_utility_height) = compact_asset_browser_vertical_budget(
+        viewport_width,
+        viewport_height,
+        main_y,
+        COMPACT_PANEL_GAP,
+    );
     let utility_delta_y = utility_y - finite_coordinate(utility.y);
 
     shift_asset_browser_utility_nodes(nodes, utility_delta_y);
@@ -855,73 +862,8 @@ fn finite_coordinate(value: f32) -> f32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn collapsed_vertical_budget_never_expands_a_short_viewport() {
-        let (main_height, utility_y, utility_height) =
-            compact_asset_browser_vertical_budget(120.0, 96.0, 8.0);
-
-        assert_eq!(main_height, 0.0);
-        assert_eq!(utility_y, 96.0);
-        assert_eq!(utility_height, 24.0);
-    }
-
-    #[test]
-    fn invalid_viewport_values_collapse_to_zero_geometry() {
-        assert_eq!(
-            compact_asset_browser_utility_height_for_viewport(f32::NAN),
-            0.0
-        );
-        assert_eq!(finite_non_negative(f32::INFINITY), 0.0);
-        assert_eq!(finite_coordinate(f32::NEG_INFINITY), 0.0);
-    }
-
-    #[test]
-    fn compact_text_line_is_clipped_to_the_remaining_parent_height() {
-        assert_eq!(compact_line_height(18.0, 12.0, 10.0), 6.0);
-        assert_eq!(compact_line_height(8.0, 12.0, 10.0), 0.0);
-    }
-
-    #[test]
-    fn compact_details_keep_complete_typography_lines_or_hide_them() {
-        assert_eq!(
-            details_line_height(
-                DETAILS_CAPTION_LINE_HEIGHT + DETAILS_TEXT_TOP,
-                DETAILS_TEXT_TOP,
-                DETAILS_CAPTION_LINE_HEIGHT,
-            ),
-            DETAILS_CAPTION_LINE_HEIGHT
-        );
-        assert_eq!(
-            details_line_height(
-                DETAILS_CAPTION_LINE_HEIGHT + DETAILS_TEXT_TOP - 0.5,
-                DETAILS_TEXT_TOP,
-                DETAILS_CAPTION_LINE_HEIGHT,
-            ),
-            0.0
-        );
-    }
-
-    #[test]
-    fn compact_content_header_keeps_complete_typography_lines_or_hides_them() {
-        assert_eq!(
-            complete_text_line_height(
-                COMPACT_CONTENT_TITLE_LINE_HEIGHT,
-                COMPACT_CONTENT_TITLE_LINE_HEIGHT,
-            ),
-            COMPACT_CONTENT_TITLE_LINE_HEIGHT
-        );
-        assert_eq!(
-            complete_text_line_height(
-                COMPACT_CONTENT_PATH_LINE_HEIGHT - 0.5,
-                COMPACT_CONTENT_PATH_LINE_HEIGHT,
-            ),
-            0.0
-        );
-    }
-}
+#[path = "tests/compact_layout.rs"]
+mod tests;
 
 fn collapse_duplicate_compact_container_nodes(
     nodes: &mut [ViewTemplateNodeData],

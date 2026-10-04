@@ -1,3 +1,4 @@
+# 验证分阶段进程日志只读取有界尾部，并在诊断文件超预算时拒绝汇总。
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $supervisorModule = Join-Path $repoRoot 'tools\mvp\StagedProcessSupervisor.psm1'
 

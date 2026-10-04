@@ -94,3 +94,16 @@ Godot export 的 `FileExportCache` 持久保存 source modified time、MD5 与 s
 Partial implementation（2026-07-18）：Editor15 已新增 generation-scoped `ExportGenerationInventory`，canonical file node 在同一 executor run 内最多读取/哈希一次，重叠 root/child artifact 的目录 digest 改由有序 Merkle projection 组合；CompileHost inputs、输出、PlatformBundle 重叠输出与 resume 磁盘验证已统一使用该 owner，旧 stage-local recursive digest helper 已删除。重建前同时失效 staged subtree 与 cached ancestors，避免 reuse 检查缓存污染重建后的 parent digest。静态 TDD 合同 2/2、精确 rustfmt 与 scoped diff check 通过；Rust overlap/invalidation 行为测试已写但受共享 Cargo/source-bound 顺序门影响尚未运行。详见 [子计划记录](2026-07-18-export-generation-inventory.md)。
 
 Open state: `单 generation inventory、重叠 digest、强identity持久cache、toolchain generation identity、native staging delta和日志/event/pane有界化已实现；2026-07-22 cache-miss hash进一步改64KiB streaming并让pipeline failure report零深clone。仍待stable directory walk/stat/canonicalize收敛、Drop同步cache clone/pretty encode/write/fsync迁显式Runtime11 ticket，以及current-source Cargo、warm p95/规模和独立复审；failure保持open。`。
+
+2026-09-26 current-source successor handoff (`failure-roll-01a084c8-editor15-export-overlapping-digests-r2`)：
+
+- 本 successor 仅接管本 failure 文档；ownership transfer fingerprint 为
+  `16aa442489a4aa9edee773d41bf94dab59daae21c40d58267e3e1cb0dce43b5d`。Editor15 生产路径当前仍由 foreign/dirty worktree 变更覆盖，本 Session 未 claim 或吸收任何源码编辑，也未吸收同计划的 `export-output-tail` / `export-pack-byte-clone` failure。
+- 本轮受管文档边界冻结在预审 snapshot `3901`，manifest hash 为
+  `653fee5f93acfec3dfb04909d7ca3cddb2ce63ebfbd40d410c727d114685d9f6`；该 snapshot 是本次独立审查的权威输入，审查后措辞变更须在新 post-review snapshot 中重新封存。
+- 本次审查后边界已封存为 post-review snapshot `3902`，manifest hash 为
+  `1310c65504cb757a84f6daefd0b4489f2dd55a6a06d58c0b860c48f8ba5abfee`；该快照绑定审查回执所核对的文档内容，后续若写入回传结果仍须另建最终 snapshot。
+- 相关 25 个当前源码文件（inventory、pipeline/stages、native staging、wizard、retained export projection）按相对路径与单文件 SHA-256 组成的 current-source manifest 为
+  `57b6bb0ce1bab99b248567cb4b33eeecd0a4e8264d4310e433f021b143e13260`；该 manifest 仅用于动态验收前的边界索引，不构成本 Session 的生产提交范围。
+- 静态结果仍与既有记录一致：generation inventory/Merkle projection、64 KiB streaming cache-miss hash、bounded output/event/panel projection 已存在；stable directory walk/stat/canonicalize、Drop 同步 cache clone/encode/write/fsync 迁移、current-source Cargo、warm p95/规模与 changed/deleted/tampered parity 尚无当前受管动态证据。
+- 历史 Editor15 Cargo 终态（含 `f5cd31cd719042ce88cb133cde113cef` exit 101）均不匹配本 current-source manifest，不复用为验收；failure 继续 `open`，固定回传、独立审查与 closeout 待完成。

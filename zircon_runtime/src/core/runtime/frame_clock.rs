@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 
 use super::clock_source::{ClockSource, FrameClockSource};
 
+/// rebase 后的首个 tick 仍测量新基线到该帧的间隔，不合成零增量。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FrameClockFirstTickPolicy {
     MeasureFromRebase,
@@ -28,6 +29,7 @@ pub enum ClockDiscontinuity {
     WindowSurfaceRecreated,
 }
 
+/// 记录重置采样基线的原因，供下游区分会话切换与宿主时钟断点。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FrameClockRebaseCause {
     Manual,
@@ -118,7 +120,7 @@ impl FrameClock {
     }
 
     pub(crate) fn rebase_for(&mut self, cause: FrameClockRebaseCause) -> FrameClockRebaseReceipt {
-        self.last_tick = self.source.monotonic_now();
+        let _ = self.advance_baseline_to(self.source.monotonic_now());
         self.rebase_generation = self.rebase_generation.saturating_add(1);
         let receipt = FrameClockRebaseReceipt {
             generation: self.rebase_generation,
@@ -131,58 +133,21 @@ impl FrameClock {
 
     pub(crate) fn tick(&mut self) -> FrameClockTick {
         let now = self.source.monotonic_now();
-        let delta = now.saturating_duration_since(self.last_tick);
-        self.last_tick = now;
+        let delta = self.advance_baseline_to(now).unwrap_or(Duration::ZERO);
         FrameClockTick {
             delta,
             rebase: self.pending_rebase.take(),
         }
     }
+
+    fn advance_baseline_to(&mut self, now: Instant) -> Option<Duration> {
+        // 采样早于基线时保留最后有效基线，让后续有效样本继续从此处计时。
+        let delta = now.checked_duration_since(self.last_tick)?;
+        self.last_tick = now;
+        Some(delta)
+    }
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-    use std::time::{Duration, Instant};
-
-    use super::super::clock_source::ManualClockSource;
-    use super::{FrameClock, FrameClockFirstTickPolicy, FrameClockRebaseCause};
-
-    #[test]
-    fn rebase_issues_a_monotonic_baseline_receipt() {
-        let mut clock = FrameClock::default();
-
-        let first = clock.rebase();
-        let second = clock.rebase();
-
-        assert_eq!(first.generation(), 1);
-        assert_eq!(second.generation(), 2);
-        assert_eq!(
-            second.first_tick_policy(),
-            FrameClockFirstTickPolicy::MeasureFromRebase
-        );
-        assert_eq!(second.cause(), FrameClockRebaseCause::Manual);
-        assert_eq!(clock.tick().rebase(), Some(second));
-        assert_eq!(clock.tick().rebase(), None);
-    }
-
-    #[test]
-    fn injected_clock_source_drives_tick_and_rebase_without_sleeping() {
-        let source = Arc::new(ManualClockSource::with_origin(Instant::now()));
-        let mut clock = FrameClock::with_clock_source(source.clone());
-
-        source
-            .try_advance_by(Duration::from_millis(16))
-            .expect("manual source should advance");
-        assert_eq!(clock.tick().delta(), Duration::from_millis(16));
-
-        let receipt = clock.rebase();
-        source
-            .try_advance_by(Duration::from_millis(8))
-            .expect("manual source should advance after rebase");
-        let rebased = clock.tick();
-
-        assert_eq!(rebased.delta(), Duration::from_millis(8));
-        assert_eq!(rebased.rebase(), Some(receipt));
-    }
-}
+#[path = "tests/frame_clock.rs"]
+mod tests;

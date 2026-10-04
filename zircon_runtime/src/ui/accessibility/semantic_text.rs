@@ -3,8 +3,8 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::{
-    text::{RichSemanticProjection, resolve_rich_semantic_projection},
-    ui::surface::{UiSurface, resolve_rich_text_format},
+    text::{resolve_rich_semantic_projection, RichSemanticProjection},
+    ui::surface::{resolve_rich_text_format, UiSurface},
 };
 
 use super::name;

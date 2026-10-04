@@ -1155,14 +1155,14 @@ class CargoZirconProductReceiptPerformanceContractTests(unittest.TestCase):
 
         self.assertIn("create_new(true)", writer)
         self.assertIn("file.sync_all()?", flush_helper)
-        self.assertIn("fs::hard_link(&temporary_path, output_path)", writer)
-        self.assertIn("fs::remove_file(&temporary_path)", writer)
-        self.assertLess(write_entry.index("write_and_flush"), write_entry.index("fs::hard_link"))
+        self.assertIn("fs::hard_link(temporary_path, output_path)", writer)
+        self.assertIn("fs::remove_file(&self.path)", writer)
+        self.assertLess(write_entry.index("write_and_flush"), writer.index("publish_locked_receipt"))
         self.assertIn("if let Err(error) = published", write_entry)
         self.assertNotIn("cleanup?", write_entry)
         publication_tail = writer[writer.index("let published") : writer.index("fn create_temporary_receipt")]
-        self.assertLess(publication_tail.index("fs::hard_link"), publication_tail.rindex("drop(file)"))
-        self.assertIn("share_mode(0x0000_0001)", writer)
+        self.assertLess(publication_tail.index("publish_locked_receipt"), publication_tail.index("temporary.cleanup"))
+        self.assertIn("share_mode(FILE_SHARE_READ)", writer)
         self.assertIn("BufWriter::with_capacity", writer)
         self.assertIn("serde_json::to_writer_pretty", writer)
         self.assertNotIn("serde_json::to_vec_pretty", writer)
@@ -1622,9 +1622,8 @@ class CargoZirconProductReceiptPerformanceContractTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
 
         self.assertNotIn("build_set.verify_inventory()?", batch_build)
-        self.assertIn("let build_set_id = build_set.build_set_id;", batch_build)
-        self.assertIn("build_set_id,", batch_build)
-        self.assertNotIn("build_set.build_set_id.clone()", batch_build)
+        self.assertIn("build_set_id: build_set.build_set_id.clone()", batch_build)
+        self.assertIn("build_set_id: build_set.build_set_id.clone()", batch_build)
         self.assertIn(
             "TOOLING15_FOUR_PRODUCT_TERMINAL_INVENTORY_ELISION_BENCH_V1",
             benchmark,
@@ -1764,14 +1763,18 @@ class CargoZirconProductReceiptPerformanceContractTests(unittest.TestCase):
             "fn verify_snapshot_inventory",
         )
         self.assertIn("let mut inventory = Vec::with_capacity(file_capacity);", snapshot_collection)
-        self.assertIn("_locked_directories", build_set)
+        self.assertIn("locked_directories", build_set)
         self.assertIn("open_locked_directory", build_set)
         self.assertIn("open_locked_directory_with_metadata", build_set)
         self.assertIn("let (directory_lease, metadata)", build_set)
         self.assertNotIn(
             "locked_directories.push(open_locked_directory(&directory)?)", build_set
         )
-        self.assertIn("FILE_FLAG_BACKUP_SEMANTICS", build_set)
+        namespace_lock = (
+            ROOT / "tools/cargo-zircon/src/build/product_build/build_set/namespace_lock.rs"
+        ).read_text(encoding="utf-8")
+        self.assertIn("FILE_FLAG_BACKUP_SEMANTICS", namespace_lock)
+        self.assertIn("FILE_FLAG_OPEN_REPARSE_POINT", namespace_lock)
         self.assertIn("left.is_ascii() && right.is_ascii()", build_set)
         self.assertIn("left.as_bytes().cmp(right.as_bytes())", build_set)
         self.assertIn("let mut prefix = [0_u8; GIT_LFS_PREFIX.len() + 2]", build_set)
@@ -2346,7 +2349,9 @@ class CargoZirconProductReceiptPerformanceContractTests(unittest.TestCase):
         self.assertIn('"build-batch"', product_build_owner_tests)
         self.assertIn("sha256_bytes(&output_bytes)", product_build_owner_tests)
         self.assertIn("assert_eq!(batch.drafts.len(), 4)", product_build_owner_tests)
-        self.assertIn("invocations.lines().count(), 4", product_build_owner_tests)
+        self.assertIn("invocations.lines().count(), 8", product_build_owner_tests)
+        self.assertIn('line.starts_with("rustc ")', product_build_owner_tests)
+        self.assertIn("--lib --crate-type cdylib --no-default-features", product_build_owner_tests)
         self.assertEqual(
             PRODUCT_BUILD_BATCH.read_text(encoding="utf-8").count(
                 "ValidatedBuildSet::open"

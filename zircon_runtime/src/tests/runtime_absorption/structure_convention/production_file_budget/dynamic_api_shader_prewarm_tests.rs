@@ -3,7 +3,7 @@ use super::{assert_contains_all, assert_contains_all_exact, read_repo, read_runt
 #[test]
 fn runtime_15_dynamic_api_shader_prewarm_tests_are_child_owner() {
     let parent = read_runtime_src("dynamic_api/shader_prewarm.rs");
-    let tests = read_runtime_src("dynamic_api/shader_prewarm/tests.rs");
+    let tests = read_runtime_src("dynamic_api/shader_prewarm/tests/cases.rs");
     let wgpu_validation = read_runtime_src("dynamic_api/shader_prewarm/wgpu_validation.rs");
     let current_anchor_owner = read_repo(
         "docs/plans/zircon_runtime/runtime/15/2026-07-19-dynamic-api-filter-plan-anchor-current-owner.md",
@@ -63,7 +63,7 @@ fn runtime_15_dynamic_api_shader_prewarm_tests_are_child_owner() {
     );
     for (path, source) in [
         ("dynamic_api/shader_prewarm.rs", parent.as_str()),
-        ("dynamic_api/shader_prewarm/tests.rs", tests.as_str()),
+        ("dynamic_api/shader_prewarm/tests/cases.rs", tests.as_str()),
         (
             "dynamic_api/shader_prewarm/wgpu_validation.rs",
             wgpu_validation.as_str(),
@@ -83,7 +83,7 @@ fn runtime_15_dynamic_api_shader_prewarm_tests_are_child_owner() {
             "Runtime 15 M4 dynamic API shader prewarm tests owner split",
             "runtime_15_dynamic_api_shader_prewarm_tests_owner_split_static_passed_cargo_deferred",
             "dynamic_api/shader_prewarm.rs",
-            "dynamic_api/shader_prewarm/tests.rs",
+            "dynamic_api/shader_prewarm/tests/cases.rs",
             "runtime_15_dynamic_api_shader_prewarm_tests_are_child_owner",
         ],
     );

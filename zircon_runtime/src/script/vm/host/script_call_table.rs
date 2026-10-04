@@ -1,3 +1,4 @@
+//! 调用表把导出注册代际的模块和函数预解析为稠密调用位点；位点 ID 只在生成它的快照内有效，执行时仍校验实参和能力。
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
@@ -12,6 +13,7 @@ use super::super::{CapabilitySet, VmError};
 use super::host_export_registry::HostExportCallback;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// 位点编号只标识所属调用表内的条目，跨注册代际或不同注册表不能复用。
 pub struct ScriptCallSiteId(u32);
 
 impl ScriptCallSiteId {
@@ -243,33 +245,5 @@ fn validate_call_capabilities(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::framework::script::ScriptHostValueKind;
-
-    fn test_site(id: u32, module_name: &str, function_name: &str) -> ScriptCallSite {
-        let callback: HostExportCallback = Arc::new(|_| Ok(ScriptHostValue::Null));
-        ScriptCallSite::new(
-            ScriptCallSiteId(id),
-            Arc::from(module_name),
-            ScriptHostFunctionDescriptor::new(function_name, 0, 0, ScriptHostValueKind::Null),
-            callback,
-        )
-    }
-
-    #[test]
-    fn from_entries_preserves_non_contiguous_module_groups() {
-        let table = ScriptCallTable::from_entries(
-            7,
-            vec![
-                test_site(0, "runtime.time", "now"),
-                test_site(1, "runtime.input", "poll"),
-                test_site(2, "runtime.time", "delta"),
-            ],
-        );
-
-        assert!(table.resolve("runtime.time", "now").is_some());
-        assert!(table.resolve("runtime.input", "poll").is_some());
-        assert!(table.resolve("runtime.time", "delta").is_some());
-    }
-}
+#[path = "tests/script_call_table.rs"]
+mod tests;

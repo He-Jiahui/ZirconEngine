@@ -42,6 +42,7 @@ pub primaryStatBudget(level: int, quality: string, slot: string): int {
 
 // Largest-remainder allocation in the source PRIMARY_STATS order: str, agi,
 // sta, int, spi. Strict comparison preserves that order for equal fractions.
+/// 按来源主属性比例分配新增预算；平余数使用固定属性顺序破同分，使生成实例的属性在重放时稳定。
 pub redistributePrimaryStats(
     sourceStr: int,
     sourceAgi: int,
@@ -103,6 +104,7 @@ pub redistributePrimaryStats(
     return result;
 }
 
+/// 制作夹具仅在成功且产生名匠实例时使用此增量属性；返回未出现记录表示无可提升品质、无可分配预算或无主属性，而非可持久化的空装备。
 pub masterworkBonusStats(
     level: int,
     quality: string,

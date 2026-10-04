@@ -8,7 +8,7 @@ use super::resolution::{
 };
 
 #[cfg(test)]
-#[path = "flow_slots/capacity_tests.rs"]
+#[path = "flow_slots/tests/capacity_tests.rs"]
 mod capacity_tests;
 
 const FLOW_SLOT_TARGET_COUNT: usize = 6;

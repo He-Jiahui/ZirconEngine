@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node wos81_emberkin_chase_runtime_static_guard.mjs；缺少源码契约时脚本抛错退出。
+// 将锁定的远程宠物追击及空旷地形移动同世界直线追击路径对应核对，并检查移动先于冷却递减及文档限制。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -34,6 +38,7 @@ for (const expected of [
   'pub emberkinChaseStateTest(): int',
 ]) requireText(world, expected, 'WOS81 reducer');
 
+// 追击移动须位于未开火时的冷却递减之前。
 const chase = world.indexOf('stepOfflineEmberkinStraightChase(state, petIndex, targetIndex);');
 const cooldown = world.indexOf('emberkinRanged.cooldownAfterNoTarget(', chase);
 if (chase < 0 || cooldown < chase) throw new Error('WOS81 movement must precede no-fire cooldown decay');

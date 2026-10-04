@@ -1,3 +1,4 @@
+//! 获取的表面帧由目标对象保管；同一设备录制、带票据提交和最终呈现形成完整生命周期。
 use std::sync::Arc;
 
 use zr_rhi::{
@@ -23,6 +24,7 @@ impl WgpuNativeSurfaceFrameTarget {
             .frame()
     }
 
+    /// 调用者只能借用获取帧的目标视图，且必须使用持有该租约的同一设备实例。
     pub fn record<E>(
         &self,
         owner: &WgpuRenderDevice,
@@ -56,6 +58,7 @@ impl WgpuNativeSurfaceFrameTarget {
         })
     }
 
+    /// 呈现成功后才消耗租约；失败时仍可由显式丢弃或析构回收。
     pub fn present(
         &mut self,
         submission: SubmissionTicket,
@@ -139,22 +142,5 @@ impl WgpuRenderDevice {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn prepared_surface_target_discards_unpresented_leases() {
-        let source = include_str!("native_surface_recording.rs");
-        let source = source.split("mod tests {").next().unwrap();
-
-        assert!(source.contains("pub struct WgpuNativeSurfaceFrameTarget"));
-        assert!(source.contains("impl Drop for WgpuNativeSurfaceFrameTarget"));
-        assert!(source.contains("std::ptr::eq(Arc::as_ptr(&self.owner), owner)"));
-        assert!(source.contains("self.validate_owner(owner).map_err(E::from)?"));
-        assert!(source.contains("record(&owner.device, &self.target_view, encoder)"));
-        assert!(!source.contains("pub fn target_view"));
-        assert!(source.contains("self.owner.discard_surface_frame(frame)"));
-        assert!(source.contains("self.owner.present_surface_frame(frame, submission)?"));
-        assert!(source.contains("self.owner.discard_surface_frame(frame)?"));
-        assert!(source.contains("self.frame.take();"));
-        assert!(source.contains("RhiError::SurfaceFrameCleanupFailed"));
-    }
-}
+#[path = "tests/native_surface_recording.rs"]
+mod tests;

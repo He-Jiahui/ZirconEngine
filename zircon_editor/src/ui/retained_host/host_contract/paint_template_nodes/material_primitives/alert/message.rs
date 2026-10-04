@@ -5,6 +5,7 @@ use super::geometry::alert_message_frame;
 use super::style::alert_text_color;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
+// 命令序列在表面与操作之间绘制正文；取首个非空文本候选，并采用运行时换行策略。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_alert_message(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
@@ -45,35 +46,9 @@ fn alert_message(node: &TemplatePaneNodeData) -> &str {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ui::retained_host::host_contract::paint_text::HostTextLayoutPolicy;
-
-    #[test]
-    fn tall_alert_message_uses_runtime_word_wrap() {
-        let node = TemplatePaneNodeData {
-            text: "Asset import needs validation before opening the selected project.".into(),
-            ..TemplatePaneNodeData::default()
-        };
-        let rect = FrameRect {
-            x: 10.0,
-            y: 20.0,
-            width: 260.0,
-            height: 88.0,
-        };
-        let mut commands = Vec::new();
-
-        push_alert_message(&mut commands, &node, &rect, 28.0, 254.0, &rect, 2, 1.0);
-
-        assert_eq!(commands.len(), 1);
-        assert_eq!(
-            commands[0].text_layout_policy,
-            HostTextLayoutPolicy::WordWrap
-        );
-        assert!(commands[0].frame.height > commands[0].line_height);
-    }
-}
+#[path = "tests/message.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "message/capacity_tests.rs"]
+#[path = "message/tests/capacity_tests.rs"]
 mod capacity_tests;

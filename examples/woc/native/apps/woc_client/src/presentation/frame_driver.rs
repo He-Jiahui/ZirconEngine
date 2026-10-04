@@ -8,7 +8,8 @@ use woc_runtime::{
 use super::{
     ClientAuthority, ClientCommandQueueError, ClientFrameAdvance, ClientFrameDriverError,
     ClientFrameDriverInitError, ClientMovementInputError, ClientMovementStream,
-    ClientPresentedFrame, ClientTickInput, TransactionalClientAuthority, MAX_PENDING_COMMANDS,
+    ClientPresentedFrame, ClientTickInput, TransactionalClientAuthority, MAX_FRAME_DELTA_NS,
+    MAX_PENDING_COMMANDS,
 };
 
 pub struct ClientFrameDriver<A, P> {
@@ -32,17 +33,39 @@ where
         movement_actor: EntityRef,
         next_movement_sequence: u32,
     ) -> Result<Self, ClientFrameDriverInitError> {
+        Self::new_with_authority_recovery(
+            authority,
+            cadence,
+            max_catch_up_ticks,
+            movement_actor,
+            next_movement_sequence,
+        )
+        .map_err(|(error, _)| error)
+    }
+
+    /// Variant used by product hosts that must retain authority ownership when
+    /// construction rejects a cadence or movement identity.
+    pub fn new_with_authority_recovery(
+        authority: A,
+        cadence: PresentationCadence,
+        max_catch_up_ticks: u32,
+        movement_actor: EntityRef,
+        next_movement_sequence: u32,
+    ) -> Result<Self, (ClientFrameDriverInitError, A)> {
         if max_catch_up_ticks == 0 {
-            return Err(ClientFrameDriverInitError::ZeroCatchUpBudget);
+            return Err((ClientFrameDriverInitError::ZeroCatchUpBudget, authority));
         }
+        let movement = match ClientMovementStream::new(movement_actor, next_movement_sequence) {
+            Ok(movement) => movement,
+            Err(error) => return Err((ClientFrameDriverInitError::Movement(error), authority)),
+        };
         Ok(Self {
             authority,
             timeline: PresentationTimeline::new(cadence),
             accumulator_ns: 0,
             presentation_time_ns: 0,
             pending_commands: Vec::with_capacity(MAX_PENDING_COMMANDS),
-            movement: ClientMovementStream::new(movement_actor, next_movement_sequence)
-                .map_err(ClientFrameDriverInitError::Movement)?,
+            movement,
             max_catch_up_ticks,
         })
     }
@@ -57,12 +80,16 @@ where
         Ok(result)
     }
 
+    /// Rejects malformed protocol commands without changing the pending tick input.
     pub fn queue_command(&mut self, command: Command) -> Result<(), ClientCommandQueueError> {
         if self.pending_commands.len() >= MAX_PENDING_COMMANDS {
             return Err(ClientCommandQueueError::Full {
                 maximum: MAX_PENDING_COMMANDS,
             });
         }
+        command
+            .validate()
+            .map_err(ClientCommandQueueError::Command)?;
         self.pending_commands.push(command);
         Ok(())
     }
@@ -81,6 +108,12 @@ where
         &mut self,
         elapsed_ns: u64,
     ) -> Result<ClientFrameAdvance, ClientFrameDriverError<A::Error>> {
+        if elapsed_ns > MAX_FRAME_DELTA_NS {
+            return Err(ClientFrameDriverError::ElapsedTooLarge {
+                elapsed_ns,
+                maximum_ns: MAX_FRAME_DELTA_NS,
+            });
+        }
         self.presentation_time_ns = self.presentation_time_ns.saturating_add(elapsed_ns);
         self.accumulator_ns = self.accumulator_ns.saturating_add(elapsed_ns);
         let step_ns = self.timeline.cadence().simulation_step_ns();
@@ -96,18 +129,50 @@ where
                 .frame()
                 .map_err(ClientFrameDriverError::Movement)?;
             let input = ClientTickInput::new(&self.pending_commands, movement);
-            let mut snapshot = self
+            let authority_checkpoint = self
                 .authority
-                .fixed_step(input, scheduled_at_ns)
+                .checkpoint()
                 .map_err(ClientFrameDriverError::Authority)?;
+            let mut snapshot = match self.authority.fixed_step(input, scheduled_at_ns) {
+                Ok(snapshot) => snapshot,
+                Err(error) => {
+                    if let Err(rollback_error) = self.authority.rollback(authority_checkpoint) {
+                        return Err(ClientFrameDriverError::AuthorityRollback {
+                            source: error,
+                            rollback: rollback_error,
+                        });
+                    }
+                    return Err(ClientFrameDriverError::Authority(error));
+                }
+            };
             snapshot.received_at_ns = scheduled_at_ns;
 
-            let push_result = self.timeline.push(snapshot);
+            if let Err(error) = self.timeline.validate(&snapshot) {
+                let rollback = self.authority.rollback(authority_checkpoint);
+                if let Err(rollback_error) = rollback {
+                    return Err(ClientFrameDriverError::TimelineRollback {
+                        timeline: error,
+                        rollback: rollback_error,
+                    });
+                }
+                return Err(ClientFrameDriverError::Timeline(error));
+            }
+            let push_result = match self.timeline.push(snapshot) {
+                Ok(result) => result,
+                Err(timeline) => {
+                    if let Err(rollback) = self.authority.rollback(authority_checkpoint) {
+                        return Err(ClientFrameDriverError::TimelineRollback {
+                            timeline,
+                            rollback,
+                        });
+                    }
+                    return Err(ClientFrameDriverError::Timeline(timeline));
+                }
+            };
             self.accumulator_ns -= step_ns;
             self.pending_commands.clear();
             self.movement.commit();
             committed_ticks += 1;
-            push_result.map_err(ClientFrameDriverError::Timeline)?;
         }
 
         Ok(ClientFrameAdvance {
@@ -126,6 +191,12 @@ where
 
     pub fn authority_mut(&mut self) -> &mut A {
         &mut self.authority
+    }
+
+    /// Transfers authority ownership to the product host after the frame
+    /// loop has stopped, allowing explicit VM teardown without hidden drops.
+    pub fn into_authority(self) -> A {
+        self.authority
     }
 
     pub fn pending_command_count(&self) -> usize {

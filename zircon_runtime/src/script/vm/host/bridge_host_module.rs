@@ -1,3 +1,4 @@
+//! 桥接导出把脚本调用映射到已解析的引擎插件接口槽；调用时重查槽可用性和能力，防止脚本越过扩展生命周期边界。
 use std::sync::Arc;
 
 use crate::core::framework::bridge::{BridgeInterfaceStatus, BridgeInvocationTable, InterfaceSlot};
@@ -197,5 +198,5 @@ where
 }
 
 #[cfg(test)]
-#[path = "bridge_host_module/capability_insert_tests.rs"]
+#[path = "bridge_host_module/tests/capability_insert_tests.rs"]
 mod capability_insert_tests;

@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码投影按营地顺序排列的怪物模板、训练假人与战斗字段，生成可核对的 JSON 和 Zr 内容。
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -99,6 +100,7 @@ function gitShow(sourcePath) {
   });
 }
 
+// 将已验证的按营地顺序排列的怪物模板、训练假人与战斗字段转换为确定性的 Zr 访问函数。
 function renderZr(catalog) {
   const { mobs } = catalog;
   const lines = [

@@ -3,7 +3,7 @@ use std::io;
 use std::path::Path;
 
 use super::platform;
-use super::{AtomicWriteFault, PathEntry, path_entry};
+use super::{path_entry, AtomicWriteFault, PathEntry};
 
 pub(super) fn create_and_sync_parent_directories(
     parent: &Path,

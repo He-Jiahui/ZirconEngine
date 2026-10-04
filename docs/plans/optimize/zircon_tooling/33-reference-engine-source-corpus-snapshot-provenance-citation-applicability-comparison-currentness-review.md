@@ -1,7 +1,7 @@
 ---
 related_code:
   - .gitignore
-  - tools/check_conventions.py
+  - tools/audits/check_conventions.py
   - .codex/skills/zircon-project-skills/zr-reference-engine-routing/SKILL.md
   - .codex/skills/zircon-project-skills/zr-reference-engine-routing/references/reference-engine-map.md
 tests:

@@ -10,6 +10,8 @@ use super::declaration::ViewportIconAtlas;
 use super::decode_icon_rgba::decode_icon_rgba;
 
 impl ViewportIconAtlas {
+    /// 按需取得本帧绘制候选；首次创建会保留上传债务，解码失败则保持可重试状态。
+    /// 返回绑定后，调用方仍须把缓存债务加入帧上传批次，不能单独提交绘制。
     pub(crate) fn ensure(
         &mut self,
         id: ViewportIconId,
@@ -43,32 +45,5 @@ impl ViewportIconAtlas {
 }
 
 #[cfg(test)]
-mod tests {
-    const SOURCE: &str = include_str!("ensure.rs");
-
-    fn production_source() -> &'static str {
-        SOURCE
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("viewport icon ensure source should retain a test-module boundary")
-    }
-
-    #[test]
-    fn viewport_icon_cache_publishes_pending_before_returning_the_candidate_binding() {
-        let source = production_source();
-        let prepare = source
-            .find("let prepared = prepare_sprite(")
-            .expect("viewport icon prepare stage");
-        let pending = source
-            .find("self.entries[slot] = IconEntry::Pending")
-            .expect("viewport icon pending publication");
-        let return_binding = source
-            .find("Ok(Some(bind_group))")
-            .expect("viewport icon candidate binding return");
-
-        assert!(prepare < pending);
-        assert!(pending < return_binding);
-        assert!(!source.contains("wgpu::Queue"));
-        assert!(!source.contains("IconEntry::Ready(sprite.clone())"));
-    }
-}
+#[path = "tests/ensure.rs"]
+mod tests;

@@ -1,3 +1,4 @@
+//! 目录外伪施法的有界身份与法术系别契约；当前只由专用测试入口调用，不能据此推断产品世界已经接入打断。
 // Source-owned exception table for pseudo-casts that have no ability catalog
 // entry but must still participate in school-based interruption.
 
@@ -19,6 +20,7 @@ pub nythraxisSpiritMendingCastCode(required: bool): uint {
     return <uint>1;
 }
 
+/// 将唯一受支持的伪施法编码为有界值，未知身份映射为缺席哨兵而非目录能力。
 pub scriptedCastCode(castId: string, required: bool): uint {
     if (!required) {
         throw "woc scripted cast code lookup is required";
@@ -37,6 +39,7 @@ pub scriptedCastId(code: uint, required: bool): string {
 
 // Empty is the scalar equivalent of the source map's missing entry. Consumers
 // must only use a non-empty return after normal ability resolution failed.
+/// 仅在普通能力目录解析失败后供打断逻辑查询伪施法系别；空串表示无可打断扩展项。
 pub scriptedInterruptibleChannelSchool(castId: string, required: bool): string {
     if (!required) {
         throw "woc scripted interruptible channel lookup is required";

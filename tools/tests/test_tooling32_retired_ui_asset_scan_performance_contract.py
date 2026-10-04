@@ -1,3 +1,4 @@
+# 核对退役界面资源按名称先筛选再构造路径。
 from __future__ import annotations
 
 import unittest

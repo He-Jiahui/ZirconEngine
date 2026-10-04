@@ -16,18 +16,14 @@ impl NativePluginLiveHost {
         &self,
         request: NativePluginRuntimeDeltaHotUpdateRequest,
     ) -> Result<NativePluginRuntimeDeltaHotUpdateReport, String> {
-        let pack_install = ZrPackDeltaInstaller::rebuild_to_staging(
+        let (pack_install, pack_promotion) = ZrPackDeltaInstaller::install_delta(
             &request.base_pack,
             &request.delta_pack,
-            &request.staged_pack,
-        )
-        .map_err(|error| format!("zrpack delta staging failed before hot update: {error}"))?;
-        let pack_promotion = ZrPackDeltaInstaller::promote_staged_pack(
             &request.staged_pack,
             &request.installed_pack,
             request.backup_pack.as_ref(),
         )
-        .map_err(|error| format!("zrpack delta promotion failed before hot update: {error}"))?;
+        .map_err(|error| format!("zrpack delta install failed before hot update: {error}"))?;
         let pack_install_receipt = match request.receipt_path.as_ref() {
             Some(path) => Some(
                 ZrPackDeltaInstaller::write_install_receipt(path, &pack_install, &pack_promotion)
@@ -80,9 +76,11 @@ impl NativePluginLiveHost {
             let plugin_id = candidate.plugin_id.clone();
             runtime_plugin_ids.push(plugin_id.clone());
             let candidate_report = NativePluginLoadReport::from_discovered(vec![candidate]);
-            let load_report = self
-                .loader
-                .load_candidates_for_module_kinds(candidate_report, &[PluginModuleKind::Runtime]);
+            let load_report = self.loader.load_candidates_for_module_kinds(
+                candidate_report,
+                &[PluginModuleKind::Runtime],
+                &self.artifact_authority,
+            );
             match self.hot_reload_reported_plugin(
                 load_report,
                 export_root,
@@ -146,13 +144,5 @@ fn native_candidate_has_module_kind(
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn hot_update_moves_owned_candidates_into_the_single_plugin_load_report() {
-        let source = include_str!("hot_update_application.rs");
-        let deep_clone = ["discovered: vec![candidate", ".clone()]"].concat();
-
-        assert!(!source.contains(&deep_clone));
-        assert!(source.contains("NativePluginLoadReport::from_discovered(vec![candidate])"));
-    }
-}
+#[path = "tests/hot_update_application_unit.rs"]
+mod tests;

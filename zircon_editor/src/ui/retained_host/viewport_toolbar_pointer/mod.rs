@@ -1,5 +1,6 @@
 mod base_state;
 #[cfg(test)]
+#[path = "tests/build_viewport_toolbar_pointer_layout.rs"]
 mod build_viewport_toolbar_pointer_layout;
 mod build_viewport_toolbar_pointer_layout_with_size;
 mod constants;

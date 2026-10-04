@@ -1,3 +1,4 @@
+# 核对搜索、危险与警示色调分类在借用字符窗口上保留大小写语义。
 import re
 import unittest
 from pathlib import Path

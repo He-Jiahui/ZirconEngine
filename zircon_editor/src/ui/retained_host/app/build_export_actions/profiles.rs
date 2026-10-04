@@ -116,5 +116,5 @@ pub(in crate::ui::retained_host::app) fn default_desktop_export_output_root(
 }
 
 #[cfg(test)]
-#[path = "profiles/direct_lookup_tests.rs"]
+#[path = "profiles/tests/direct_lookup_tests.rs"]
 mod direct_lookup_tests;

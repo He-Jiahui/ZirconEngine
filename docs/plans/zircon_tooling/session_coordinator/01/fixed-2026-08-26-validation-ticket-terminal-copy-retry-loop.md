@@ -11,8 +11,6 @@ origin_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/workspace_copy.py
-  - tools/session_coordinator/tests/test_workspace_copy.py
 tests:
   - python -B -m unittest tools.session_coordinator.tests.test_workspace_copy.WorkspaceCopyTests.test_removed_failed_cargo_copy_projects_materialization_kind tools.session_coordinator.tests.test_workspace_copy.WorkspaceCopyTests.test_ticket_worker_terminalizes_removed_failed_cargo_copy_without_retry -v
 ---

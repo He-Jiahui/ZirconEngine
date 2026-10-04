@@ -7,17 +7,16 @@ related_code:
   - zircon_app/Cargo.toml
   - zircon_app/src/plugins/groups.rs
   - examples/vampire/README.md
-  - docs/superpowers/plans/2026-06-09-vampire-dark-content-upgrade.md
   - zircon_runtime/src/core/framework/mod.rs
   - zircon_plugins/first_party_runtime_catalog/Cargo.toml
-  - tools/check-runtime-domain-features.ps1
+  - tools/analysis/validation/check-runtime-domain-features.ps1
   - tools/tests/test_frameworks_03_domain_feature_matrix.py
   - tools/tests/test_frameworks_03_server_feature_boundary.py
   - tools/tests/test_runtime_tech_stack_boundary.py
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/index.md
   - docs/runtime-plugins/profile-selection.md
-  - docs/engine-architecture/plugin-optional-feature-bundles.md
+  - docs/architecture/plugin-optional-feature-bundles.md
 reference_engines:
   - dev/bevy/Cargo.toml
   - dev/bevy/crates/bevy_internal
@@ -169,7 +168,7 @@ current-main 默认 feature Runtime 全量 lib suite 仍 RED/pending，M1 未 ac
   `allow_externalized_required_plugins` 一致；保留 `RuntimeProfileDescriptor::for_id` /
   `builtin_profiles` 的公开签名和稳定顺序，不增加消费者兼容层；
 - `.github/workflows/ci.yml` 增加守卫组合矩阵 job（§3.3 清单，check-only，控制时长）；
-- `tools/dev-fast-build.ps1` 的 profile 映射改为读同一张表的导出（或至少加断言测试防漂移）。
+- `tools/dev/dev-fast-build.ps1` 的 profile 映射改为读同一张表的导出（或至少加断言测试防漂移）。
 
 测试阶段：
 - Python/source guard 覆盖 schema v2 全字段、生成器 fail-fast 负例、旧 `defaults.rs`/`mod defaults`

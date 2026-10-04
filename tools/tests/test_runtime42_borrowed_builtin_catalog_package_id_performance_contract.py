@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 内建目录的静态 package ID 沿目录到分发阶段借用传递；检查 Rust 目录预期是否覆盖所有分发输出，避免每次创建新字符串。
 
 ROOT = Path(__file__).resolve().parents[2]
 CATALOG_ROOT = ROOT / "zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs"

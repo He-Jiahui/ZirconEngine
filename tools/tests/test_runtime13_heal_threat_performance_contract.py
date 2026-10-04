@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+# 治疗仇恨分配在唯一感知目标时直接提交，多目标时仍均分；行为夹具与工作量模型分别验证结果和快路径收益。
 import re
 import unittest
 from pathlib import Path

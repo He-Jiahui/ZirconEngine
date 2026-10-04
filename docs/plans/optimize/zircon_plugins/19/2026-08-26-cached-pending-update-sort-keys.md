@@ -51,7 +51,7 @@ The other three runs produced P50 reductions of 95.1057%, 95.4647%, and 95.2740%
 - Current session: `root-runtime-interface03-activate-link-failure-20260831`.
 - Shared static/model ticket: `4c6aa5481e1440819e427ac1568979ab` (queued, 20 Python tests).
 - Plugins19 Cargo behavior ticket: `bca76f8bab654428bd5d2a0c0faf3f76` (queued; exact priority-order test).
-- Shared model: `tools/plugins_projection_sort_discovery_pressure.py`, source manifest `ECAB605B9EC8C342B696C4CEB59AE2FB270F75976140B7086BFDD497CC18CC05`.
+- Shared model: `tools/analysis/performance/plugins/plugins_projection_sort_discovery_pressure.py`, source manifest `ECAB605B9EC8C342B696C4CEB59AE2FB270F75976140B7086BFDD497CC18CC05`.
 - Current source hashes: `collect_pending_updates.rs` `1895DC44A0A11E45AE98E625FF80100F7AA65A059EEE4E9550692008AE0129F1`; shared model `2F51A8F953D139FE68E7DB1AB87653DFCC769DA01571BC6CC429040974D34323`.
 
 The current-source model is deterministic structural evidence, not wall-clock timing. With 1,024 updates and an explicit 10,240-comparison workload, cached evaluation changes modeled priority-key evaluations `20,480 -> 1,024` (`-95%`) and expensive graph queries `81,920 -> 4,096`, while preserving all six tuple dimensions. Historical alternating release evidence remains the performance claim: P50 `77.7146 -> 3.6246 ms` (`-95.3360%`), P95 `165.3016 -> 6.0630 ms` (`-96.3322%`), allocations `329,884 -> 15,974` (`-95.157692%`), checksum `1123984918402528105`.

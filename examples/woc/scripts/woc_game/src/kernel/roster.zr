@@ -1,3 +1,4 @@
+//! 复演实体名册、延迟重生事件和灵魂医者的 M3 夹具，向 parity 输出定长指标。
 var {Array} = %import("zr.container");
 var container = %import("zr.container");
 
@@ -35,6 +36,7 @@ class SpiritState {
     }
 }
 
+// 名册平行列按 entityIds 对齐；gridIds 是活跃空间投影，停用行仍留在样例表中。
 class RosterState {
     pub var entityIds: Array<uint>;
     pub var entityKinds: Array<string>;
@@ -170,6 +172,7 @@ dropEntity(state: RosterState, id: uint): void {
     }
 }
 
+// 每个固定步先收集退役实体，再移除空间投影、处理到期事件及复活虚弱计时。
 tickRoster(state: RosterState): void {
     state.time = state.time + 0.05;
     var ids = state.entityIds;
@@ -268,6 +271,7 @@ resurrectAtSpiritHealer(state: RosterState, healerInRange: bool): void {
     state.emittedRespawns = state.emittedRespawns + 1;
 }
 
+// 构造实体 churn 与灵魂释放两段样例；随机游标和延迟事件数是 trace 的观察点。
 runScenario(): RosterScenario {
     var state = new RosterState();
     addEntity(state, <uint>408, "player", "warrior");
@@ -392,6 +396,7 @@ scenarioVector(required: bool): container.Array<int> {
     return values;
 }
 
+/// 按索引读取名册场景的定长指标；每次读取重演并重置共享夹具流，调用方须核对索引合同。
 pub scenarioMetric(metric: int, required: bool): int {
     if (!required || metric < 0 || metric > 28) {
         throw "entity roster scenario metric is invalid";

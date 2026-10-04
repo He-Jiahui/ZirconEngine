@@ -1,8 +1,10 @@
+//! 绑定视图ID与描述符ID有不同用途；未知扩展视图以实例ID隔离路由。
 use crate::ui::EditorActivityReflection;
 
 use crate::ui::workbench::layout::ActivityDrawerSlot;
 use crate::ui::workbench::snapshot::ViewContentKind;
 
+/// 内建视图沿用宿主绑定ID；扩展视图以实例身份隔离多个活动。
 pub(super) fn binding_view_id(activity: &EditorActivityReflection) -> String {
     match activity.descriptor_id.as_str() {
         "editor.project" => "ProjectView".to_string(),
@@ -33,6 +35,7 @@ pub(super) fn drawer_slot_name(slot: ActivityDrawerSlot) -> &'static str {
     }
 }
 
+/// 维持既有ASCII菜单ID规则，使反射菜单与原命令路径兼容。
 pub(super) fn menu_id(label: &str) -> String {
     let mut menu_id = String::with_capacity(label.len());
     menu_id.extend(label.chars().map(|character| {
@@ -71,5 +74,5 @@ pub(super) fn content_kind_name(kind: ViewContentKind) -> &'static str {
 }
 
 #[cfg(test)]
-#[path = "name_mapping/single_pass_tests.rs"]
+#[path = "name_mapping/tests/single_pass_tests.rs"]
 mod single_pass_tests;

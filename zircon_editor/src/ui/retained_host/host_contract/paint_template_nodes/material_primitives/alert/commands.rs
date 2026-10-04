@@ -9,6 +9,7 @@ use super::surface::push_alert_surface;
 
 const MAX_ALERT_COMMANDS: usize = 15;
 
+// 分发器凭返回值决定是否继续通用回退；Alert 子槽由根节点统一绘制，命中子槽也应返回 true。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_alert_primitive_commands(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
@@ -59,5 +60,5 @@ fn reserve_alert_command_capacity(commands: &mut Vec<HostPaintCommand>) {
 }
 
 #[cfg(test)]
-#[path = "commands/reserve_capacity_tests.rs"]
+#[path = "commands/tests/reserve_capacity_tests.rs"]
 mod reserve_capacity_tests;

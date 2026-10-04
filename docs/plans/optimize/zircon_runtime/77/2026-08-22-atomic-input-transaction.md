@@ -3,7 +3,7 @@
 Plan: docs/plans/optimize/zircon_runtime/77-runtime-ui-input-dispatch-routing-focus-navigation-pointer-capture-gesture-drag-drop-ime-window-lifecycle-product-integration-review.md
 Milestone: M0
 Status: validation_pending
-Files: ["docs/plans/optimize/zircon_runtime/77/2026-08-22-atomic-input-transaction.md","docs/zircon_runtime/ui/surface/input.md","zircon_runtime/src/ui/surface/input/effect.rs","zircon_runtime/src/ui/surface/input/effect/transaction.rs","zircon_runtime/src/ui/tests/runtime_input_ownership.rs","zircon_runtime/src/ui/tests/runtime_input_ownership/transaction.rs"]
+Files: ["docs/plans/optimize/zircon_runtime/77/2026-08-22-atomic-input-transaction.md","docs/crates/zircon_runtime/ui/surface/input.md","zircon_runtime/src/ui/surface/input/effect.rs","zircon_runtime/src/ui/surface/input/effect/transaction.rs","zircon_runtime/src/ui/tests/runtime_input_ownership.rs","zircon_runtime/src/ui/tests/runtime_input_ownership/transaction.rs"]
 
 - Date: 2026-08-22
 - Owner: `optimize-runtime77-atomic-input-review-fix-r2-bee4c707-20260822`

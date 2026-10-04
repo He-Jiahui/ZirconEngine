@@ -217,4 +217,5 @@ fn decode_epsilon(bytes: &[u8]) -> Result<f32, NnOpAttrsError> {
 }
 
 #[cfg(test)]
+#[path = "attrs/tests/performance_tests.rs"]
 mod performance_tests;

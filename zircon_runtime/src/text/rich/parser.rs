@@ -4,7 +4,7 @@ use crate::text::{
 };
 
 use super::admission::checked_artifact_index;
-use super::bbcode::{BbCodeToken, literal_tag_text, token_at};
+use super::bbcode::{literal_tag_text, token_at, BbCodeToken};
 use super::bbcode_blocks::{BbCodeBlockState, BlockClose, BlockOpen};
 use super::bbcode_table::BbCodeTableState;
 use super::decorator::{DecoratorRegistry, RichTextDecoration};
@@ -20,7 +20,7 @@ mod html_diagnostics;
 mod markdown;
 mod run_alignment;
 
-use active_tags::{ActiveTag, ActiveTagClose, ActiveTagStack, current_link, current_style};
+use active_tags::{current_link, current_style, ActiveTag, ActiveTagClose, ActiveTagStack};
 use bidi_diagnostics::{
     push_literal_bidi_control_diagnostic, push_source_bidi_control_diagnostics,
 };
@@ -352,9 +352,9 @@ fn parse_bbcode(
     });
     result.paragraphs.sort_by(|left, right| {
         left.0
-            .0
-            .cmp(&right.0.0)
-            .then_with(|| right.0.1.cmp(&left.0.1))
+             .0
+            .cmp(&right.0 .0)
+            .then_with(|| right.0 .1.cmp(&left.0 .1))
     });
     result.finish()
 }
@@ -555,4 +555,5 @@ fn next_char_len(input: &str) -> usize {
 }
 
 #[cfg(test)]
+#[path = "parser/tests/performance_tests.rs"]
 mod performance_tests;

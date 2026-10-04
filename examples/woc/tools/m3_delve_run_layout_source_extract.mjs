@@ -44,6 +44,7 @@ for (const definition of definitions) {
 
 process.stdout.write(JSON.stringify({ delves, selection_vectors: selectionVectors }));
 
+// 复现固定源码对非终章模块的选择；生成器同时锁定被复现的源码哈希。
 function pickDelveModules(delve, seed, tierId) {
   const rng = new rngModule.Rng(seed);
   const pool = delve.modules.filter((id) => id !== delve.finaleModuleId);

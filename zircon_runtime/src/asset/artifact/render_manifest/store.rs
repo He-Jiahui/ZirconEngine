@@ -6,8 +6,8 @@ use std::sync::Arc;
 use bincode::Options;
 use thiserror::Error;
 
-use crate::core::resource::UntypedResourceHandle;
 use crate::core::resource::io::atomic_write_new;
+use crate::core::resource::UntypedResourceHandle;
 
 use super::{
     RenderArtifactBlockDescriptor, RenderArtifactContentId, RenderArtifactManifest,
@@ -24,8 +24,8 @@ const RENDER_ARTIFACT_MANIFEST_MAGIC: &[u8] = b"ZRRMAN01";
 mod cook_publication;
 
 pub use cook_publication::{
-    RenderArtifactCookPublicationError, RenderArtifactCookPublicationReport,
-    publish_render_artifact_cook_output,
+    publish_render_artifact_cook_output, RenderArtifactCookPublicationError,
+    RenderArtifactCookPublicationReport,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -108,6 +108,7 @@ impl RenderArtifactStore {
         }
     }
 
+    /// 发布块前验证编码大小和内容哈希；同一 content id 已存在时重新读取并校验后报告 Reused，避免把错误字节当作可复用缓存。
     pub fn publish_block(
         &self,
         descriptor: &RenderArtifactBlockDescriptor,
@@ -174,6 +175,7 @@ impl RenderArtifactStore {
         self.block_path(content_id).is_file()
     }
 
+    /// 清单发布先验证自身和每个已声明块均可读，再通过原子写入固定 resource/revision/platform 路径；已有相同清单可复用，不同内容报告冲突。
     pub fn publish_manifest(
         &self,
         manifest: &RenderArtifactManifest,
@@ -228,6 +230,7 @@ impl RenderArtifactStore {
         }
     }
 
+    /// 读取清单时先检查 magic、bincode 限制和无尾随字节，再核对清单身份与请求 key，防止路径命中但载荷属于另一 revision 或平台。
     pub fn read_manifest(
         &self,
         resource: UntypedResourceHandle,
@@ -372,5 +375,5 @@ fn content_id_hex(content_id: RenderArtifactContentId) -> String {
 }
 
 #[cfg(test)]
-#[path = "store/tests.rs"]
+#[path = "store/tests/cases.rs"]
 mod tests;

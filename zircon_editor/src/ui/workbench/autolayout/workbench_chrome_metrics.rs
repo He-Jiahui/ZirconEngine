@@ -5,6 +5,7 @@ use zircon_runtime_interface::ui::design_tokens::EditorChromeTokens;
 /// The shell solves with these values in logical units. Render assembly applies
 /// DPI conversion once, so callers must not pre-scale individual fields.
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 壳chrome的logical度量快照；默认沿共享editor令牌，所有解算阶段共用后统一物理缩放。
 pub struct WorkbenchChromeMetrics {
     pub top_bar_height: f32,
     pub host_bar_height: f32,
@@ -40,29 +41,5 @@ impl From<EditorChromeTokens> for WorkbenchChromeMetrics {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::WorkbenchChromeMetrics;
-    use zircon_runtime_interface::ui::design_tokens::EditorChromeTokens;
-
-    #[test]
-    fn default_metrics_follow_shared_workbench_chrome_tokens() {
-        let metrics = WorkbenchChromeMetrics::default();
-        let tokens = EditorChromeTokens::workbench_dense();
-
-        assert_eq!(metrics.top_bar_height, tokens.top_bar_height);
-        assert_eq!(metrics.host_bar_height, tokens.host_bar_height);
-        assert_eq!(metrics.status_bar_height, tokens.status_bar_height);
-        assert_eq!(metrics.panel_header_height, tokens.panel_header_height);
-        assert_eq!(
-            metrics.document_header_height,
-            tokens.document_header_height
-        );
-        assert_eq!(
-            metrics.viewport_toolbar_height,
-            tokens.viewport_toolbar_height
-        );
-        assert_eq!(metrics.rail_width, tokens.activity_rail_width);
-        assert_eq!(metrics.separator_thickness, tokens.separator_thickness);
-        assert_eq!(metrics.splitter_hit_size, tokens.splitter_hit_size);
-    }
-}
+#[path = "tests/workbench_chrome_metrics.rs"]
+mod tests;

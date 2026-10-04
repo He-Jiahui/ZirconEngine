@@ -18,7 +18,6 @@ related_code:
   - zircon_plugins/rendering/features/volumetric_fog/editor
   - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_post_process_workspace.zui
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - docs/tests/runtime/render
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_runtime/09a-rhi-render-graph-gpu-lifetime-review.md

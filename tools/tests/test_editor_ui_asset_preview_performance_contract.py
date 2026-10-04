@@ -1,3 +1,4 @@
+# 核对资产预览的控件索引、建议动作与模拟状态投影避免重复解析和物化。
 from pathlib import Path
 import unittest
 

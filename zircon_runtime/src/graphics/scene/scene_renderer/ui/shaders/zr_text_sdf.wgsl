@@ -2,6 +2,7 @@
 @group(0) @binding(1) var distance_field_sampler: sampler;
 @group(0) @binding(2) var msdf_atlas: texture_2d_array<f32>;
 
+// native 位图以外的 UI 文字统一消费此距离场材质；SDF 与 MSDF 分图集，效果按画家顺序合成。
 struct SdfTextMaterial {
     fill_color: vec4<f32>,
     outline_color: vec4<f32>,

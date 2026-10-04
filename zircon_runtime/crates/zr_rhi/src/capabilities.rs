@@ -150,11 +150,25 @@ pub struct RenderAdapterInfo {
 
 /// Actual limits negotiated for the render device, rather than requested limits.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// Missing compute fields in legacy payloads decode to zero; admission must fail closed.
 pub struct RenderDeviceLimits {
     pub max_bind_groups: u32,
     pub max_texture_dimension_2d: u32,
     pub max_texture_array_layers: u32,
     pub max_sampled_textures_per_shader_stage: u32,
+    /// Maximum compute workgroup size for each shader dimension.
+    #[serde(default)]
+    pub max_compute_workgroup_size_x: u32,
+    #[serde(default)]
+    pub max_compute_workgroup_size_y: u32,
+    #[serde(default)]
+    pub max_compute_workgroup_size_z: u32,
+    /// Maximum invocations in one compute workgroup.
+    #[serde(default)]
+    pub max_compute_invocations_per_workgroup: u32,
+    /// Maximum dispatch workgroups in any x, y, or z dimension.
+    #[serde(default)]
+    pub max_compute_workgroups_per_dimension: u32,
     #[serde(default)]
     pub max_binding_array_elements_per_shader_stage: u32,
     #[serde(default)]
@@ -476,54 +490,5 @@ impl RenderDebugInstrumentationStatus {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{RenderBackendCaps, RenderOperation, RenderOperationSupport};
-
-    #[test]
-    fn render_backend_caps_deserialize_literal_pre_device_diagnostics_payload() {
-        let legacy = r#"{
-            "backend_name": "wgpu(vulkan)",
-            "queue_classes": ["Graphics"],
-            "supports_surface": true,
-            "supports_offscreen": true,
-            "supports_async_compute": false,
-            "supports_async_copy": true,
-            "supports_pipeline_cache": true,
-            "supports_storage_buffers": true,
-            "supports_indirect_draw": true,
-            "supports_multi_draw_indirect": false,
-            "supports_indirect_first_instance": false,
-            "supports_buffer_readback": true,
-            "supports_buffer_binding_array": false,
-            "supports_texture_binding_array": false,
-            "supports_non_uniform_resource_indexing": false,
-            "supports_partially_bound_binding_array": false,
-            "supports_neural_compute": false,
-            "supports_sparse_texture": false,
-            "supports_debug_markers": true,
-            "supports_debug_groups": true,
-            "supports_graphics_debugger_capture": false,
-            "acceleration_structures": {
-                "supported": false,
-                "inline_ray_query": false,
-                "ray_tracing_pipeline": false,
-                "max_instance_count": null
-            }
-        }"#;
-
-        let decoded: RenderBackendCaps =
-            serde_json::from_str(legacy).expect("deserialize literal legacy backend caps");
-
-        assert_eq!(decoded.backend_name, "wgpu(vulkan)");
-        assert!(decoded.adapter.is_none());
-        assert!(decoded.device_limits.is_none());
-        assert!(decoded.supports_storage_buffers);
-        assert!(decoded.supports_buffer_readback);
-        assert!(!decoded.supports_subgroup);
-        assert!(!decoded.supports_pipeline_statistics_query);
-        assert_eq!(
-            decoded.operation_support(RenderOperation::DirectDraw),
-            RenderOperationSupport::Unsupported
-        );
-    }
-}
+#[path = "tests/capabilities_unit.rs"]
+mod tests;

@@ -82,3 +82,72 @@ runtime V2 consumer 收口，不是通用 Editor asset registry。
 ## 修复结果与回传
 
 - 状态：`open / 待修复`；先分别跑 UI Asset 与 Asset Browser 组，再向上重跑 Editor M1。
+
+## 2026-09-21 current-source dual-model diagnostic receipt
+
+- Successor Session `failure-roll-01a084c8-editorui05-r2` froze the plan and
+  failure record in source manifest
+  `3bbfc3c037b866f437af877a2f86a1734a0a86e52829e7ce2b6011b7da2cfcea`.
+  The diagnostic manifest intentionally contains only the owned plan and
+  failure record; the production files below remain attributed to their
+  existing owners and were not absorbed.
+- The first wrapper attempt, ticket
+  `74317dba6b4b44adbfddc60fa4fe94ee` (job
+  `a24eaba11595498f851c3498f1a6a26d`, run equal to the ticket), exited 1
+  before reading sources because the PowerShell wrapper assigned the reserved
+  `$host` variable. It is retained as a coordinator-level failed attempt and
+  is not reused.
+- Corrected diagnostic ticket `f7aaffa0093d44848053f836d803d68f` (job
+  `79f0849add594b3381016acfa784dd35`, run equal to the ticket) exited 0 with
+  stdout markers
+  `EDITORUI05_UI_ASSET_DUAL_MODEL_CURRENT_SOURCE_RED`,
+  `FOREIGN_OWNER_OVERLAY_RETAINED=true`, and
+  `ROOT_FAILURE_REMAINS_OPEN=true`.
+  The probe confirms that current `asset_editor_sessions/mod.rs` still carries
+  `legacy_asset_kind_for_v2`/`UiAssetDocument`, imports retain parallel
+  `UiAssetDocument` and V2 maps, and the authoring session still names the
+  legacy document. This is diagnostic evidence of the unresolved root, not a
+  source or Cargo acceptance pass.
+- Current production hashes observed during the audit are:
+  `asset_editor_sessions/mod.rs`
+  `0b25e3dceb1dfff41d8f956359504e5d8421110d36ba0d4a12da697ac329eea7`,
+  `asset_editor_sessions/imports/documents.rs`
+  `7a4f00858c1d1f71f6baf403920aeb0befe0385aecc03b9085be7b4424b7d68b`, and
+  `asset_editor/session/ui_asset_editor_session.rs`
+  `302cab252c30a29367e4280249853e11f332557e288ebd43d15376bb122b9372`.
+  Their existing attribution belongs to Editor07/Editor09/runtime optimization
+  sessions; a hard-cut edit requires an audited ownership transfer or a clean
+  successor snapshot. The external Cargo blocker
+  `validation_ticket_external_worktree_dirty:E:/Git/zr_vm` remains active.
+- Focused UI Asset/Asset Browser Cargo, upward Editor M1, independent C/I/M
+  review, canonical fixed return, and closeout remain pending. The lifecycle
+  stays `open`; no `fixed-*` record is justified.
+
+## 2026-09-21 independent current-source review
+
+- Reviewer Session `review-editorui05-ui-asset-r2` completed a read-only audit
+  with `Critical=0`, `Important=2`, and `Moderate=1`. This is a failing review
+  receipt, not approval for return or closeout.
+- `Important 1`: the canonical `.zui`/V2 route still enters the legacy model
+  and retains parallel truth. `asset_editor_sessions/mod.rs` maps V2 through
+  `legacy_asset_kind_for_v2`; `ui_asset_editor_session.rs` keeps both
+  `last_valid_document` and `last_valid_v2_document`; the lifecycle immediately
+  calls `v2_document_to_legacy_projection_document`, and save reverses through
+  `serialize_v2_projection_document`. The bidirectional bridge remains in
+  `session/lifecycle/v2_projection.rs`, directly violating the required hard
+  cut to one V2 owner.
+- `Important 2`: the reverse projection is lossy. The current bridge drops V2
+  `repeat` and `slots`, preserves state/pixel fields only when prior identifiers
+  match, and clears focus, navigation, picking, accessibility, and widget data
+  on V2-to-legacy conversion. Editing or saving a canonical `.zui` can therefore
+  erase semantics; ownership repair must add preservation regressions rather
+  than only changing assertions.
+- `Moderate 1`: `zircon_editor/src/tests/ui/ui_asset_editor/reflection.rs`
+  still expects `editor.ui_asset_editor.projection.v2`, while the contract and
+  canonical asset use `res://ui/editor/ui_asset_editor.zui`.
+- The minimum repair remains an audited ownership transfer from the foreign
+  Editor07/related owners, an end-to-end V2 hard cut, the exact identity and
+  preservation tests, then managed Windows UI Asset and Asset Browser filters
+  plus the full Editor M1/upward gate. The external
+  `validation_ticket_external_worktree_dirty:E:/Git/zr_vm` blocker is unchanged.
+  Until those findings are zero, this failure remains `open`.

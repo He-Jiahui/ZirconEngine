@@ -1,3 +1,6 @@
+// 调用端：npm run generate:master-loot-contract (tools/package.json)；职责：固化团长分配的角色和掉落分配规则。
+// 输入边界：src/sim/loot_master.ts；--check 比较生成结果，不改写目标文件。
+
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

@@ -10,7 +10,7 @@ use crate::core::math::Real;
 use crate::core::resource::AssetReference;
 
 #[cfg(test)]
-#[path = "clip/borrowed_encoding_tests.rs"]
+#[path = "clip/tests/borrowed_encoding_tests.rs"]
 mod borrowed_encoding_tests;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -34,6 +34,8 @@ pub struct AnimationEventTrackAsset {
     pub payload: Option<String>,
 }
 
+/// 引用骨架的片段资源；导入器负责解码，播放端再加载骨架并采样姿态与事件。
+/// `target_id` 可为重定向提供稳定目标，旧资源仍可按骨骼名称解析。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AnimationClipAsset {
     pub name: Option<String>,
@@ -181,6 +183,7 @@ impl AnimationClipAsset {
         )
     }
 
+    /// 返回导入依赖图必须先解析的骨架引用；轨道目标和事件文本不是资源依赖。
     pub fn direct_references(&self) -> Vec<AssetReference> {
         vec![self.skeleton.clone()]
     }

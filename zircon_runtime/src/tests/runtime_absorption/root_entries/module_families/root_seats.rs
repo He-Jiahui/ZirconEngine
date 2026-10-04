@@ -1,3 +1,4 @@
+//! 运行时根入口只公开选定模块，模块家族和历史别名由各自子模块判定。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn runtime_14_module_family_root_seats_match_documented_judgements() {
     let crate_root = include_str!("../../../../lib.rs");
@@ -35,28 +36,29 @@ fn runtime_14_module_family_root_seats_match_documented_judgements() {
         );
     }
 
-    let animation_doc = include_str!("../../../../../../docs/zircon_runtime/animation/runtime.md");
+    let animation_doc =
+        include_str!("../../../../../../docs/crates/zircon_runtime/animation/runtime.md");
     assert!(
         animation_doc.contains("should keep its crate-root seat"),
         "animation runtime doc should keep the crate-root seat judgement"
     );
 
     let navigation_doc =
-        include_str!("../../../../../../docs/zircon_runtime/navigation/runtime.md");
+        include_str!("../../../../../../docs/crates/zircon_runtime/navigation/runtime.md");
     assert!(
         navigation_doc.contains("built-in fallback implementation"),
         "navigation runtime doc should keep the fallback root-seat judgement"
     );
 
     let diagnostic_log_doc =
-        include_str!("../../../../../../docs/zircon_runtime/diagnostic_log/mod.md");
+        include_str!("../../../../../../docs/crates/zircon_runtime/diagnostic_log/mod.md");
     assert!(
         diagnostic_log_doc.contains("Keep `diagnostic_log` at crate root."),
         "diagnostic_log doc should keep the crate-root process diagnostics judgement"
     );
 
     let engine_module_doc =
-        include_str!("../../../../../../docs/zircon_runtime/engine_module/relationship.md");
+        include_str!("../../../../../../docs/crates/zircon_runtime/engine_module/relationship.md");
     assert!(
         engine_module_doc.contains("Keep `engine_module` as a crate-root declaration family."),
         "engine_module relationship doc should keep the declared-layering root-seat judgement"

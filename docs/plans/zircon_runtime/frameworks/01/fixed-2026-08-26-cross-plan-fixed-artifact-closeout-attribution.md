@@ -10,18 +10,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 failure_scope: cross_plan
 related_code:
-  - tools/session_coordinator/failure_return_delegations.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/ownership_transfers.py
-  - tools/session_coordinator/git_finalize.py
-  - tools/session_coordinator/migrations.py
-  - tools/session_coordinator/workflows/failure_closeouts.py
-  - tools/session_coordinator/tests/test_database.py
-  - tools/session_coordinator/tests/test_server.py
-  - tools/session_coordinator/tests/test_ownership_transfers.py
-  - tools/session_coordinator/tests/test_failure_closeout.py
-  - tools/session_coordinator/tests/test_failure_return_delegations.py
-  - tools/session_coordinator/tests/test_migrations.py
 tests:
   - python -B -m unittest tools.session_coordinator.tests.test_failure_return_delegations tools.session_coordinator.tests.test_migrations tools.session_coordinator.tests.test_ownership_transfers -v
   - python -B -m unittest tools.session_coordinator.tests.test_database.DatabaseTests.test_latest_schema_persists_delegated_failure_return_proofs tools.session_coordinator.tests.test_server.ServerTests.test_failure_return_seals_origin_destination_authorization tools.session_coordinator.tests.test_failure_closeout.FailureCloseoutWorkflowTests.test_active_origin_owner_delegation_commits_exact_fixed_artifact tools.session_coordinator.tests.test_failure_closeout.FailureCloseoutWorkflowTests.test_origin_owned_fixed_artifact_without_authorization_stays_rejected tools.session_coordinator.tests.test_failure_closeout.FailureCloseoutWorkflowTests.test_commit_is_exact_notifies_and_keeps_resolving_failure_open -v

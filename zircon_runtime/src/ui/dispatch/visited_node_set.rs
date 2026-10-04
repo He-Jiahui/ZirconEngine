@@ -4,6 +4,8 @@ use zircon_runtime_interface::ui::event_ui::UiNodeId;
 
 pub(super) const UI_DISPATCH_INLINE_VISITED_NODE_CAPACITY: usize = 16;
 
+// 各路由阶段共用去重集合，确保同一节点不会因 preview/bubble 路径相交而重复调用；浅路由不分配堆空间。
+// expected_len 只是深路由升格后的容量提示，不是合法节点数上限。
 pub(super) struct UiDispatchVisitedNodeSet {
     inline: [UiNodeId; UI_DISPATCH_INLINE_VISITED_NODE_CAPACITY],
     inline_len: usize,
@@ -51,32 +53,5 @@ impl UiDispatchVisitedNodeSet {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn runtime200_typical_ui_route_stays_inline_and_deduplicates() {
-        let mut visited = UiDispatchVisitedNodeSet::with_expected_len(10);
-
-        for value in 1..=10 {
-            assert!(visited.insert(UiNodeId::new(value)));
-        }
-        assert!(!visited.insert(UiNodeId::new(4)));
-        assert!(!visited.uses_heap_storage());
-    }
-
-    #[test]
-    fn runtime200_deep_route_promotes_once_and_preserves_membership() {
-        let mut visited = UiDispatchVisitedNodeSet::with_expected_len(100);
-
-        for value in 1..=UI_DISPATCH_INLINE_VISITED_NODE_CAPACITY as u64 {
-            assert!(visited.insert(UiNodeId::new(value)));
-        }
-        assert!(!visited.uses_heap_storage());
-        assert!(visited.insert(UiNodeId::new(17)));
-        assert!(visited.uses_heap_storage());
-        assert!(!visited.insert(UiNodeId::new(4)));
-        assert!(!visited.insert(UiNodeId::new(17)));
-        assert!(visited.insert(UiNodeId::new(18)));
-    }
-}
+#[path = "tests/visited_node_set.rs"]
+mod tests;

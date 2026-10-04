@@ -26,7 +26,7 @@ pub(crate) enum SettingsUiMutationError {
     NotChord(SettingsKey),
     #[error("invalid key chord for setting `{key}`: {message}")]
     InvalidChord { key: SettingsKey, message: String },
-    #[error("setting `{0}` is not an enum setting or `{value}` is not a declared variant")]
+    #[error("setting `{key}` is not an enum setting or `{value}` is not a declared variant")]
     InvalidEnumVariant { key: SettingsKey, value: String },
     #[error("invalid persistent settings scope `{0}`")]
     InvalidPersistenceScope(String),
@@ -220,7 +220,7 @@ impl EditorHostEventController {
             _ => {
                 return Err(SettingsUiMutationError::InvalidPersistenceScope(
                     scope.to_owned(),
-                ))
+                ));
             }
         };
         self.context()

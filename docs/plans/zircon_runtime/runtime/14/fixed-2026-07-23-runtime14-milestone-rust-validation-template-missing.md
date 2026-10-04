@@ -9,12 +9,6 @@ origin_child_dir: docs/plans/zircon_runtime/runtime/14
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/cli.py
-  - tools/session_coordinator/control_plane/actions/models.py
-  - tools/session_coordinator/control_plane/actions/executor.py
-  - tools/session_coordinator/workflows/milestones.py
-  - tools/session_coordinator/tests/test_action_execution.py
-  - tools/session_coordinator/tests/test_milestone_cli.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_action_execution
   - python -m unittest tools.session_coordinator.tests.test_milestone_cli

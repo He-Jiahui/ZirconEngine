@@ -15,7 +15,7 @@ plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
   - docs/plans/mvp/index.md
 tests:
-  - zircon_runtime/src/diagnostic_log/level/borrowed_parse_tests.rs
+  - zircon_runtime/src/diagnostic_log/level/tests/borrowed_parse_tests.rs
   - zircon_runtime/src/diagnostic_log/diagnostics/tests
   - zircon_runtime/src/diagnostic_log/sink/tests
 doc_type: module-detail

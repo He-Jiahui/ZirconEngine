@@ -1,6 +1,5 @@
 ---
 related_code:
-  - docs/superpowers/specs/2026-05-08-reflection-type-registry-design.md
   - zircon_runtime/src/scene/reflect/builtin_reflection/registration.rs
   - zircon_runtime/src/scene/reflect/builtin_reflection/hierarchy.rs
   - zircon_runtime/src/scene/reflect/builtin_reflection/active_in_hierarchy.rs
@@ -15,13 +14,12 @@ related_code:
   - zircon_runtime/src/scene/components/scene/lighting.rs
   - zircon_runtime/src/scene/components/scene/physics.rs
 implementation_files:
-  - docs/superpowers/specs/2026-05-08-reflection-type-registry-design.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - python tools/check_conventions.py --only docs --json
+  - python tools/audits/check_conventions.py --only docs --json
   - git diff --check -- docs/superpowers/specs/2026-05-08-reflection-type-registry-design.md docs/plans/zircon_runtime/frameworks/06/2026-07-19-g7-reflection-design-owner-hardcut-batch31.md
 ---
 

@@ -1,5 +1,9 @@
+//! 命令面板显示内容的 fallback 边界；查询保持上游原始值，trim 只用于判定是否显示占位文字。
+
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
+// TODO: [CR-EDITOR-PAINT-OVERLAY-0002] 空态和搜索占位文字目前由本地英文常量生成；
+// 确认它们应走哪条宿主本地化投影，避免上游已切换语言而 painter 仍显示英文。
 const EMPTY_MESSAGE: &str = "No commands found";
 const SEARCH_ICON: &str = "search";
 const SEARCH_PLACEHOLDER: &str = "Search commands";
@@ -36,17 +40,5 @@ pub(super) fn command_palette_search_text(query: &str) -> CommandPaletteSearchTe
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn command_palette_search_text_uses_placeholder_only_for_empty_queries() {
-        let empty = command_palette_search_text("   ");
-        assert_eq!(empty.value, SEARCH_PLACEHOLDER);
-        assert!(empty.placeholder);
-
-        let query = command_palette_search_text("lights");
-        assert_eq!(query.value, "lights");
-        assert!(!query.placeholder);
-    }
-}
+#[path = "tests/text.rs"]
+mod tests;

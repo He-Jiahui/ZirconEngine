@@ -12,5 +12,5 @@ pub(in crate::ui::retained_host::host_contract) use family::TemplateComponentFam
 pub(in crate::ui::retained_host::host_contract) use visual_language::uses_workbench_visual_language;
 
 #[cfg(test)]
-#[path = "template_component_family_tests.rs"]
+#[path = "tests/template_component_family_tests.rs"]
 mod tests;

@@ -21,8 +21,7 @@ class InPlaceAnimationBoolParameterPerformanceContractTests(unittest.TestCase):
         )[1].split("pub(super) fn damage_entity", maxsplit=1)[0]
 
     def test_existing_animation_parameter_is_replaced_in_place(self) -> None:
-        self.assertIn("parameters.get_mut(parameter)", self.helper)
-        self.assertIn("*current = next;", self.helper)
+        self.assertIn("parameters.update_existing(parameter, next.clone())", self.helper)
         self.assertIn("return false;", self.helper)
 
     def test_parameter_key_is_copied_only_for_first_insert(self) -> None:

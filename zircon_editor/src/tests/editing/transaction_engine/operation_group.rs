@@ -9,6 +9,7 @@ use crate::core::editing::engine::{
     HistoryContextId, MergeMode, TransactionEvent, TransactionEventDelivery, TransactionEventKind,
     TransactionEventSink,
 };
+use crate::core::play::{PlayInstanceId, WorldDomain};
 
 use super::fixture::{finalized_counter, DeltaCommand, FixtureContext};
 
@@ -171,6 +172,39 @@ fn operation_group_switch_commits_previous_and_undo_flushes_current() {
     let history = engine.history_status(HistoryContextId::Global).unwrap();
     assert_eq!(history.len, 2);
     assert!(history.can_redo);
+}
+
+#[test]
+fn operation_group_uses_the_play_history_route() {
+    let engine = EditorTransactionEngine::new(FixtureContext::default());
+    let instance = PlayInstanceId::for_test(29);
+    let history = HistoryContextId::PlaySession(instance);
+
+    let transaction = engine
+        .execute_operation(
+            "play grouped edit",
+            history,
+            Some("fixture.play-group"),
+            MergeMode::Disable,
+            Box::new(DeltaCommand::new(
+                "play grouped edit",
+                1,
+                1,
+                finalized_counter(),
+            )),
+        )
+        .unwrap();
+
+    assert_eq!(
+        engine
+            .with_context::<FixtureContext, _>(|context| context.world_domain)
+            .unwrap(),
+        Some(WorldDomain::Play(instance))
+    );
+    assert_eq!(
+        engine.flush_operation_group().unwrap(),
+        Some(transaction.transaction_id)
+    );
 }
 
 #[test]

@@ -40,6 +40,14 @@ One combined managed Windows release command must run all six Runtime177/Runtime
 shared filter. The coordinator owns exact P50/P95 backfill, commit, push to `origin/main`, and the
 one-shot WeCom report after a pushed SHA exists.
 
+## Follow-up capacity slice
+
+Runtime820 adds a lazy lower-bound reservation to the same one-pass collector. The first
+host-request-bearing result reserves the remaining result count (or its larger request count),
+while request-free batches stay zero-capacity. See
+`2026-09-19-dispatch-host-request-capacity.md` and the linked Astra feature record; the
+single-pass traversal and Runtime177 redraw/request semantics remain the authoritative baseline.
+
 After shared HEAD advanced, current hashes were re-attested under lease request
 `afb668dd6f084a3b9389229ea6085fc6`. Current-source batch ticket
 `dd6072a2666c4943bbf2a496d941079c` was queued from snapshot `2510` by request

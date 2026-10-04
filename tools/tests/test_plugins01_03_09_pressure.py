@@ -1,19 +1,19 @@
 import unittest
 from pathlib import Path
 
-from tools.plugins01_03_09_pressure import run
+from tools.analysis.performance.plugins.plugins01_03_09_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
 NATIVE = ROOT / "zircon_plugins/plugin_sdk/src/native.rs"
-NATIVE_TESTS = ROOT / "zircon_plugins/plugin_sdk/src/native/tests.rs"
+NATIVE_TESTS = ROOT / "zircon_plugins/plugin_sdk/src/native/tests/cases.rs"
 WINDOW_PLUGIN = ROOT / "zircon_plugins/native_window_hosting/editor/src/plugin.rs"
-WINDOW_TESTS = ROOT / "zircon_plugins/native_window_hosting/editor/src/tests.rs"
+WINDOW_TESTS = ROOT / "zircon_plugins/native_window_hosting/editor/src/tests/cases.rs"
 PARTICLE_SERVICE = ROOT / "zircon_plugins/particles/runtime/src/service.rs"
 PARTICLE_TESTS = ROOT / "zircon_plugins/particles/runtime/src/tests/snapshot.rs"
-BATCH_VALIDATOR = ROOT / "tools/zircon-validation-plugins01-03-09-batch.ps1"
+BATCH_VALIDATOR = ROOT / "tools/analysis/validation/zircon-validation-plugins01-03-09-batch.ps1"
 
-
+# 调用插件压力模型核对原生静态路径的零额外工作量，并验证虚构的编辑器创作负载已消除。
 class Plugins010309PressureTests(unittest.TestCase):
     def test_sealed_native_static_keeps_zero_cost_contract(self) -> None:
         native = run()["sealed_native_static"]

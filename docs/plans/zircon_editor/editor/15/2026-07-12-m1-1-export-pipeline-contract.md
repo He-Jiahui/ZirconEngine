@@ -19,7 +19,7 @@ updated_at: 2026-07-12 18:10 +08:00
   全部直接依赖 interface `ExportStage`。
 - 删除 runtime `ExportPipelineStage` 定义与 re-export、pack binary 私有 `ExportStage`、editor
   `wizard/stage.rs` 及解析/命名/全阶段转发 helpers；无旧类型 alias 或兼容 re-export。
-- 新增并同步模块文档：`docs/zircon_editor/core/export/pipeline.md`；更新 runtime export build
+- 新增并同步模块文档：`docs/crates/zircon_editor/core/export/pipeline.md`；更新 runtime export build
   plan 文档的契约 owner。
 
 ## 验证证据

@@ -5,15 +5,19 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PAYLOAD_SCHEMA_HELPERS = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_payload_schema_helpers.py"
+    / "tools/export/pipeline_report_native_dynamic_payload_schema_helpers.py"
 )
 PAYLOAD_STRING_ARRAY_HELPERS = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_payload_string_array_schema_helpers.py"
+    / "tools/export/pipeline_report_native_dynamic_payload_string_array_schema_helpers.py"
+)
+LOADABLE_ARTIFACT_HELPERS = (
+    REPO_ROOT
+    / "tools/export/pipeline_report_native_dynamic_payload_loadable_artifacts_schema.py"
 )
 MATERIALIZED_PACKAGES_SCHEMA = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_payload_materialized_packages_schema.py"
+    / "tools/export/pipeline_report_native_dynamic_payload_materialized_packages_schema.py"
 )
 
 
@@ -30,7 +34,6 @@ class ZirconExportNativeDynamicPayloadStringArrayHelperOwnerBoundaryTests(
         materialized_text = MATERIALIZED_PACKAGES_SCHEMA.read_text(encoding="utf-8")
 
         moved_functions = (
-            "object_array_loadable_artifacts_schema_diagnostics",
             "object_array_string_array_no_blank_entries_schema_diagnostics",
             "object_array_string_array_trimmed_non_empty_entries_schema_diagnostics",
             "object_array_string_array_safe_relative_path_schema_diagnostics",
@@ -68,6 +71,31 @@ class ZirconExportNativeDynamicPayloadStringArrayHelperOwnerBoundaryTests(
             "string-array helper owner must not import the parent helper owner",
         )
 
+        self.assertTrue(
+            LOADABLE_ARTIFACT_HELPERS.exists(),
+            "NativeDynamic loadable-artifact schema diagnostics need a dedicated owner",
+        )
+        loadable_artifact_text = LOADABLE_ARTIFACT_HELPERS.read_text(encoding="utf-8")
+        self.assertNotIn(
+            "def object_array_loadable_artifacts_schema_diagnostics(",
+            string_array_text,
+            "loadable-artifact row diagnostics belong in their dedicated owner",
+        )
+        self.assertIn(
+            "def object_array_loadable_artifacts_schema_diagnostics(",
+            loadable_artifact_text,
+        )
+        self.assertIn(
+            "from .pipeline_report_native_dynamic_payload_loadable_artifacts_schema import",
+            string_array_text,
+            "string-array summary diagnostics should consume the loadable-artifact owner",
+        )
+        self.assertNotIn(
+            "pipeline_report_native_dynamic_payload_string_array_schema_helpers",
+            loadable_artifact_text,
+            "loadable-artifact owner must not import its string-array consumer",
+        )
+
     def test_payload_helper_owners_stay_under_line_budgets(self):
         parent_line_count = len(
             PAYLOAD_SCHEMA_HELPERS.read_text(encoding="utf-8").splitlines()
@@ -84,6 +112,14 @@ class ZirconExportNativeDynamicPayloadStringArrayHelperOwnerBoundaryTests(
             string_array_line_count,
             260,
             "NativeDynamic payload string-array helper owner should stay below 260 lines",
+        )
+        loadable_artifact_line_count = len(
+            LOADABLE_ARTIFACT_HELPERS.read_text(encoding="utf-8").splitlines()
+        )
+        self.assertLess(
+            loadable_artifact_line_count,
+            80,
+            "NativeDynamic loadable-artifact helper owner should stay focused",
         )
 
 

@@ -32,6 +32,7 @@ pub defaultModuleOriginCoordinate(
         originZ + cursorZ;
 }
 
+// 调用方必须传当前 run 的 moduleIndex 与世界原点，不能用 default chain 代替活跃模块状态。
 pub resolveActiveModuleWorldCoordinate(
     worldX: float,
     worldZ: float,

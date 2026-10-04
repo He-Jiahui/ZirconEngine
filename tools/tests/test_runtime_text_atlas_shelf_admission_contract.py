@@ -5,7 +5,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SHELF = REPO_ROOT / "zircon_runtime/src/text/atlas/shelf_allocator.rs"
 
-
+# 读取文本图集 shelf 准入，确认坐标采用受检算术且纵向溢出由 Rust 回归锚定。
 class RuntimeTextAtlasShelfAdmissionContractTests(unittest.TestCase):
     def test_shelf_bounds_use_checked_coordinate_arithmetic(self) -> None:
         source = SHELF.read_text(encoding="utf-8")

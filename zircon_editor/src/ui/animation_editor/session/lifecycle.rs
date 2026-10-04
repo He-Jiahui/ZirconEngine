@@ -20,11 +20,11 @@ impl AnimationEditorSession {
         let asset_path = path.to_string_lossy();
         let lowered = asset_path.to_ascii_lowercase();
         let document_kind = if lowered.ends_with(".sequence.zranim") {
-            AnimationEditorDocumentKind::Sequence
+            AnimationAuthoringDocumentKind::Sequence
         } else if lowered.ends_with(".graph.zranim") {
-            AnimationEditorDocumentKind::Graph
+            AnimationAuthoringDocumentKind::Graph
         } else if lowered.ends_with(".state_machine.zranim") {
-            AnimationEditorDocumentKind::StateMachine
+            AnimationAuthoringDocumentKind::StateMachine
         } else {
             return Err(AnimationEditorSessionError::new(format!(
                 "unsupported animation editor asset {}",

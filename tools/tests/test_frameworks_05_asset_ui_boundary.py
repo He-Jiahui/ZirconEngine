@@ -27,10 +27,20 @@ class Frameworks05AssetUiBoundaryTests(unittest.TestCase):
     def test_asset_production_has_no_ui_domain_references(self) -> None:
         offenders: list[str] = []
         for path in production_rust_sources(ASSET_ROOT):
-            for line_number, line in enumerate(
-                path.read_text(encoding="utf-8").splitlines(), start=1
-            ):
+            lines = path.read_text(encoding="utf-8").splitlines()
+            for line_number, line in enumerate(lines, start=1):
                 if "crate::ui::" in line:
+                    # Unit-only importer fixtures may use the UI parser to exercise a
+                    # provider without making the production asset layer depend on UI.
+                    previous = line_number - 2
+                    while previous >= 0 and not lines[previous].strip():
+                        previous -= 1
+                    if (
+                        previous >= 0
+                        and lines[previous].strip().startswith("#[cfg(")
+                        and "test" in lines[previous]
+                    ):
+                        continue
                     offenders.append(
                         f"{path.relative_to(REPO_ROOT).as_posix()}:{line_number}: {line.strip()}"
                     )
@@ -138,7 +148,7 @@ class Frameworks05AssetUiBoundaryTests(unittest.TestCase):
             "pub(super) fn effective_project_plugin_manifest", app_selection
         )
         self.assertEqual(
-            3,
+            2,
             app_selection.count(
                 "let effective_manifest = effective_project_plugin_manifest(config);"
             ),
@@ -147,7 +157,10 @@ class Frameworks05AssetUiBoundaryTests(unittest.TestCase):
             "pub(super) fn builtin_modules_for_config(",
             app_selection,
         )
-        self.assertIn("Some(&effective_manifest)", app_selection)
+        self.assertIn(
+            "compiled_project_plan(effective_manifest, config.target_mode())",
+            app_selection,
+        )
         self.assertIn("manifest_with_mode_baseline", app_selection)
         self.assertIn(
             "pub(super) fn render_profile_runtime_plugin_overlay", app_selection
@@ -160,16 +173,16 @@ class Frameworks05AssetUiBoundaryTests(unittest.TestCase):
             app_entry,
         )
         self.assertEqual(
-            1,
+            2,
             app_entry.count(
                 "let effective_manifest = effective_project_plugin_manifest(config);"
             ),
         )
         self.assertIn(
-            "first_party_runtime_plugin_registrations_for_manifest(", app_entry
+            "first_party_runtime_catalog_for_manifest(", app_entry
         )
         self.assertIn(
-            "builtin_modules_for_config_with_effective_manifest_and_runtime_plugin_registrations(",
+            "builtin_modules_for_config_with_effective_manifest_and_runtime_plugin_and_feature_registrations(",
             app_entry,
         )
         self.assertGreaterEqual(app_entry.count("&effective_manifest"), 2)

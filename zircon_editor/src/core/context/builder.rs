@@ -172,8 +172,9 @@ fn report_user_layer_load(load: &SettingsUserLayerLoad) {
 }
 
 #[cfg(test)]
-#[path = "builder/quota_startup_tests.rs"]
+#[path = "builder/tests/quota_startup_tests.rs"]
 mod quota_startup_tests;
 
 #[cfg(test)]
+#[path = "builder/tests/cases.rs"]
 mod tests;

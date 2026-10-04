@@ -1,10 +1,10 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema import (
+from tools.audits.plugins.manifest_schema import (
     collect_manifest_schema_violations,
 )
 
-
+# 用插件清单夹具验证接口：拒绝格式错误提供接口行，并拒绝重复提供接口成员。
 class PluginStructureAuditManifestSchemaInterfacesTests(unittest.TestCase):
     def test_manifest_schema_rejects_malformed_provided_interface_row(self):
         violations: list[str] = []

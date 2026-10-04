@@ -1,3 +1,5 @@
+mod toast_timer_queue;
+
 use std::time::Duration;
 
 use zircon_runtime_interface::ui::{
@@ -35,6 +37,7 @@ use super::{
     timers::UiInputTimerState,
 };
 use crate::core::framework::input::ImeHostRequest;
+use toast_timer_queue::toast_timer_from_queue_value;
 
 pub struct UiInputManager {
     pointer: UiPointerDispatcher,
@@ -454,7 +457,7 @@ impl UiInputManager {
             {
                 if let Some((toast_id, timeout_ms)) = toast_timer_from_queue_value(value) {
                     self.timers
-                        .arm_toast_expiration(target, toast_id, timestamp, timeout_ms);
+                        .arm_toast_expiration_ref(target, toast_id, timestamp, timeout_ms);
                     return;
                 }
                 self.arm_toast_timer_from_surface_state(surface, timestamp, target);
@@ -489,12 +492,13 @@ impl UiInputManager {
         timestamp: UiInputTimestamp,
         target: UiNodeId,
     ) {
-        let Some((toast_id, timeout_ms)) = surface.toast_timer_for_component_node(target) else {
+        let Some((toast_id, timeout_ms)) = surface.toast_timer_for_component_node_ref(target)
+        else {
             self.timers.clear_toast_expiration(target);
             return;
         };
         self.timers
-            .arm_toast_expiration(target, toast_id, timestamp, timeout_ms);
+            .arm_toast_expiration_ref(target, toast_id, timestamp, timeout_ms);
     }
 
     fn clear_tooltip_for_activity(&mut self, surface: &mut UiSurface, event: &UiInputEvent) {
@@ -620,12 +624,7 @@ impl UiInputManager {
         if let Some(entry) = self.pointers.entry(pointer_id) {
             return entry.is_primary;
         }
-        !source.is_touch_like()
-            || !self
-                .pointers
-                .entries()
-                .iter()
-                .any(|entry| entry.source == source && entry.is_primary)
+        !source.is_touch_like() || !self.pointers.has_primary_for_source(source)
     }
 }
 
@@ -731,85 +730,8 @@ fn clear_tooltip_candidate_for_owner(surface: &mut UiSurface, target: UiNodeId) 
     surface.input.clear_tooltip(tooltip_id.as_str());
 }
 
-fn toast_timer_from_queue_value(value: &UiValue) -> Option<(String, u64)> {
-    match value {
-        UiValue::Array(values) => values.iter().find_map(toast_timer_from_queue_value),
-        UiValue::Map(values) => {
-            let toast_id =
-                first_string_value(values, &["id", "toast_id", "toastId", "value", "key"])?;
-            let timeout_ms = first_u64_value(
-                values,
-                &[
-                    "duration",
-                    "duration_ms",
-                    "auto_hide_duration_ms",
-                    "autoHideDuration",
-                ],
-            )?;
-            (timeout_ms > 0).then_some((toast_id, timeout_ms))
-        }
-        UiValue::String(value) | UiValue::Enum(value) => toast_timer_from_queue_string(value),
-        _ => None,
-    }
-}
-
-fn toast_timer_from_queue_string(value: &str) -> Option<(String, u64)> {
-    let mut parts = value.split('|');
-    let toast_id = parts.next()?.trim().to_string();
-    if toast_id.is_empty() {
-        return None;
-    }
-
-    for part in parts {
-        let Some((key, value)) = part.split_once('=') else {
-            continue;
-        };
-        if matches!(
-            key.trim(),
-            "duration" | "duration_ms" | "auto_hide_duration_ms" | "autoHideDuration"
-        ) {
-            let timeout_ms = value.trim().parse::<u64>().ok()?;
-            return (timeout_ms > 0).then_some((toast_id, timeout_ms));
-        }
-    }
-    None
-}
-
-fn first_string_value(
-    values: &std::collections::BTreeMap<String, UiValue>,
-    keys: &[&str],
-) -> Option<String> {
-    keys.iter()
-        .filter_map(|key| values.get(*key).and_then(string_value))
-        .find(|value| !value.is_empty())
-}
-
-fn first_u64_value(
-    values: &std::collections::BTreeMap<String, UiValue>,
-    keys: &[&str],
-) -> Option<u64> {
-    keys.iter()
-        .find_map(|key| values.get(*key).and_then(u64_value))
-        .filter(|value| *value > 0)
-}
-
-fn string_value(value: &UiValue) -> Option<String> {
-    match value {
-        UiValue::String(value) | UiValue::Enum(value) => Some(value.clone()),
-        _ => None,
-    }
-}
-
-fn u64_value(value: &UiValue) -> Option<u64> {
-    match value {
-        UiValue::Int(value) => Some((*value).max(0) as u64),
-        UiValue::Float(value) => Some((*value).round().max(0.0) as u64),
-        UiValue::String(value) | UiValue::Enum(value) => value.parse::<u64>().ok(),
-        _ => None,
-    }
-}
-
 #[cfg(test)]
+#[path = "manager/tests/cases.rs"]
 mod tests;
 
 fn input_event_timestamp(event: &UiInputEvent) -> UiInputTimestamp {

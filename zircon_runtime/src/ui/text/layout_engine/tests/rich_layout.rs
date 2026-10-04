@@ -1,10 +1,13 @@
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::{
     layout::UiFrame,
-    surface::{UiRichTextFormat, UiTextDirection, UiTextOverflow, UiTextWrap, UiTextWritingMode},
+    surface::{
+        UiRichTextFormat, UiTextDirection, UiTextOverflow, UiTextRange, UiTextWrap,
+        UiTextWritingMode,
+    },
 };
 
-use super::{layout_text, test_style};
+use super::{layout_text, measure_text_size, test_style};
 
 #[test]
 fn styled_rich_layout_without_inline_object_uses_rich_run_metrics() {
@@ -57,21 +60,17 @@ fn styled_vertical_rich_layout_without_inline_object_uses_rich_run_metrics() {
         .expect("styled VerticalRl layout keeps a composite artifact");
     let artifact = crate::text::resolve_resolved_text_glyph_artifact(handle)
         .expect("styled VerticalRl layout keeps canonical glyphs");
-    assert!(
-        artifact.lines[0]
-            .as_ref()
-            .is_some_and(|line| !line.glyphs.is_empty())
-    );
+    assert!(artifact.lines[0]
+        .as_ref()
+        .is_some_and(|line| !line.glyphs.is_empty()));
     let run = &rich.lines[0].runs[0];
-    assert!(
-        crate::text::resolve_rich_text_glyph_run_artifact(
-            handle,
-            0,
-            run.source_range,
-            run.visual_range,
-        )
-        .is_some()
-    );
+    assert!(crate::text::resolve_rich_text_glyph_run_artifact(
+        handle,
+        0,
+        run.source_range,
+        run.visual_range,
+    )
+    .is_some());
 }
 
 #[test]
@@ -159,13 +158,11 @@ fn html_inline_only_line_publishes_an_empty_text_slice() {
         .expect("inline-only layout keeps a composite artifact");
     let artifact = crate::text::resolve_resolved_text_glyph_artifact(handle)
         .expect("inline-only layout keeps an empty text artifact");
-    assert!(
-        artifact.lines[0]
-            .as_ref()
-            .expect("external line remains an accepted artifact line")
-            .glyphs
-            .is_empty()
-    );
+    assert!(artifact.lines[0]
+        .as_ref()
+        .expect("external line remains an accepted artifact line")
+        .glyphs
+        .is_empty());
     let run = &line.runs[0];
     let inline_slice = crate::text::resolve_rich_text_glyph_run_artifact(
         handle,
@@ -243,11 +240,10 @@ fn html_text_only_ellipsis_publishes_a_virtual_glyph_artifact() {
     let line = &layout.lines[0];
     assert!(line.ellipsized);
     assert!(line.text.ends_with('…'));
-    assert!(
-        line.runs
-            .iter()
-            .any(|run| { run.text == "…" && run.source_range.start == run.source_range.end })
-    );
+    assert!(line
+        .runs
+        .iter()
+        .any(|run| { run.text == "…" && run.source_range.start == run.source_range.end }));
     let ellipsis_run = line
         .runs
         .iter()
@@ -477,11 +473,10 @@ fn html_inline_image_follows_shared_mixed_visual_order() {
         .position(|grapheme| grapheme == "\u{fffc}")
         .expect("mixed visual inline grapheme index");
     assert!((line.glyph_advances[inline_index] - 18.0).abs() < 0.01);
-    assert!(
-        line.runs
-            .iter()
-            .any(|run| run.text == "ב" && run.direction == UiTextDirection::RightToLeft)
-    );
+    assert!(line
+        .runs
+        .iter()
+        .any(|run| run.text == "ב" && run.direction == UiTextDirection::RightToLeft));
 }
 
 #[test]
@@ -503,11 +498,10 @@ fn html_inline_image_follows_shared_rtl_visual_order() {
         .expect("rtl visual inline grapheme index");
     assert!((line.glyph_advances[inline_index] - 18.0).abs() < 0.01);
     assert_eq!(line.glyph_advances.len(), line.text.graphemes(true).count());
-    assert!(
-        line.runs
-            .iter()
-            .any(|run| run.text == "\u{fffc}" && run.source_range.start < run.source_range.end)
-    );
+    assert!(line
+        .runs
+        .iter()
+        .any(|run| run.text == "\u{fffc}" && run.source_range.start < run.source_range.end));
 }
 
 #[test]
@@ -612,12 +606,10 @@ fn bbcode_inline_image_vertical_rl_composes_first_column_indent_and_continuation
     assert!((layout.lines[1].frame.y - frame.y).abs() < 0.01);
     assert!(layout.lines[0].frame.x > layout.lines[1].frame.x);
     assert!((layout.lines[1].glyph_advances[0] - 16.0).abs() < 0.01);
-    assert!(
-        layout.lines[1]
-            .runs
-            .iter()
-            .any(|run| run.text == "\u{fffc}")
-    );
+    assert!(layout.lines[1]
+        .runs
+        .iter()
+        .any(|run| run.text == "\u{fffc}"));
     assert!(layout.lines[1].measured_width <= frame.height + 0.01);
 }
 

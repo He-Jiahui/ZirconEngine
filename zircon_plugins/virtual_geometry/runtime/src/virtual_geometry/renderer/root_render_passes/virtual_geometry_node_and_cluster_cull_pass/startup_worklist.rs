@@ -72,6 +72,7 @@ pub(super) fn build_node_and_cluster_cull_global_state(
     }
 }
 
+// 将参考视口阈值按实际视口高度和相机投影缩放，再钳到可接受范围。
 fn node_and_cluster_cull_child_split_screen_space_error_threshold(
     camera: &ViewportCameraSnapshot,
     viewport_height: u32,
@@ -260,4 +261,5 @@ fn build_node_and_cluster_cull_cluster_work_items_from_clusters(
 }
 
 #[cfg(test)]
+#[path = "startup_worklist/tests/allocation_tests.rs"]
 mod allocation_tests;

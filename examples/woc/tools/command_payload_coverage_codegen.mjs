@@ -1,3 +1,6 @@
+// 调用端：npm run generate:command-payload-coverage (tools/package.json)；职责：对齐命令名、已观察到的客户端发送点和类型化载荷覆盖目录。
+// 输入边界：固定版本的源提交和已编写目录；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -14,6 +17,7 @@ const checkOnly = process.argv.includes('--check');
 
 main();
 
+// 报告完整、仅源形状或仅派发覆盖前，先对齐类型化约定与已登记的客户端发送点。
 function main() {
   const commandCatalog = readJson(commandCatalogPath);
   const sourcePayloadCatalog = readJson(sourcePayloadCatalogPath);
@@ -96,6 +100,7 @@ function validateInputs(commandCatalog, sourcePayloadCatalog, contracts) {
   }
 }
 
+// 若覆盖状态声称客户端命令已类型化，却缺少对应线协议约定，则必须拒绝。
 function validateCoverage(document, contracts) {
   invariant(document.totals.commands === 165, 'coverage command count drifted');
   invariant(document.totals.typed_contract_commands === contracts.length, 'typed coverage count drifted');

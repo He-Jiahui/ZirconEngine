@@ -1,3 +1,7 @@
+// 后处理的共享基础模块；Rust 将它与 SSR 模块拼接，再为各拆分 pass 选择入口。
+// 场景线性效果与最终显示映射分开调度；参数/绑定会按当前入口裁剪效果，避免同一效果重复施加。
+// 与 CPU PostProcessParams 同序的固定 ABI，许多字段由拆分 pass 的参数准备选择性启用。
+// viewport 原点用于场景几何/历史，scene-color 原点独立，因为颜色可能已是局部中间目标。
 struct PostProcessParams {
     viewport_and_clusters: vec4<u32>,
     cluster_dimensions: vec4<u32>,
@@ -28,11 +32,13 @@ struct PostProcessParams {
     effect_motion_blur: vec4<f32>,
 };
 
+// CPU 将反射探针投影为屏幕区域并上传颜色贡献；这不是环境 cubemap 的逐方向采样。
 struct ReflectionProbe {
     screen_uv_and_radius: vec4<f32>,
     color_and_intensity: vec4<f32>,
 };
 
+// CPU 编码 GI 来源、层级支持与历史签名，供屏幕贡献混合；来源权重用于避免 baked/full-dynamic 重复计入。
 struct HybridGiProbe {
     screen_uv_and_radius: vec4<f32>,
     irradiance_and_intensity: vec4<f32>,
@@ -41,6 +47,7 @@ struct HybridGiProbe {
     temporal_signature_and_padding: vec4<f32>,
 };
 
+// 当前 trace 的屏幕支持范围与 RT lighting 证据，用于增强相邻 probe 的贡献与置信度。
 struct HybridGiTraceRegion {
     screen_uv_and_radius: vec4<f32>,
     boost_and_coverage: vec4<f32>,
@@ -81,6 +88,7 @@ struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
 };
 
+// 最终颜色与 GI 历史分开输出；GI 的 alpha 保存来源签名，不能当作颜色透明度。
 struct FragmentOutput {
     @location(0) final_color: vec4<f32>,
     @location(1) global_illumination: vec4<f32>,
@@ -136,6 +144,7 @@ fn color_luminance(color: vec3<f32>) -> f32 {
     return dot(color, vec3<f32>(0.299, 0.587, 0.114));
 }
 
+// 只接受完整动态来源，或包含动态增量的混合来源；baked baseline 单独合成。
 fn hybrid_gi_probe_source_is_valid(source_mask: u32) -> bool {
     let has_full_dynamic = (source_mask & HYBRID_GI_SOURCE_FULL_DYNAMIC) != 0u;
     let has_baked_baseline = (source_mask & HYBRID_GI_SOURCE_BAKED_BASELINE) != 0u;
@@ -144,6 +153,8 @@ fn hybrid_gi_probe_source_is_valid(source_mask: u32) -> bool {
         || (!has_full_dynamic && has_dynamic_delta);
 }
 
+// 本文件的片元入口写局部目标，builtin position 已是局部坐标；
+// 读取几何与旧历史时另加 viewport 原点，读取当前颜色时另加 scene-color 原点。
 fn viewport_size() -> vec2<u32> {
     return max(params.viewport_and_clusters.xy, vec2<u32>(1u, 1u));
 }
@@ -183,6 +194,7 @@ fn load_scene_rgb(coord: vec2<i32>, viewport_size: vec2<u32>) -> vec3<f32> {
     return load_scene_color(coord, viewport_size).rgb;
 }
 
+// SSR 的数据依赖循环复用这个深度入口；GL/ANGLE 降级在 Rust 中替换固定 return 片段。
 fn load_scene_depth(coord: vec2<i32>, viewport_size: vec2<u32>) -> f32 {
     let max_coord = vec2<i32>(viewport_size - vec2<u32>(1u, 1u));
     let clamped = clamp(coord, vec2<i32>(0, 0), max_coord);
@@ -191,6 +203,7 @@ fn load_scene_depth(coord: vec2<i32>, viewport_size: vec2<u32>) -> f32 {
     return clamp(textureLoad(scene_depth_tex, physical_coord, 0), 0.0, 1.0);
 }
 
+// 把标准设备深度转换成相机视距，供景深、雾和 SSR 共用；正交投影采用线性分布。
 fn linearize_scene_depth(raw_depth: f32) -> f32 {
     let near_plane = max(params.effect_depth.x, 0.001);
     let far_plane = max(params.effect_depth.y, near_plane + 0.001);
@@ -209,6 +222,7 @@ fn load_scene_view_depth(coord: vec2<i32>, viewport_size: vec2<u32>) -> f32 {
     return linearize_scene_depth(load_scene_depth(coord, viewport_size));
 }
 
+// 保留共享基础路径的局部边缘过滤；当前独立终端 FXAA pass 在显示映射后执行，CPU 须避免重复开启。
 fn apply_fxaa(coord: vec2<u32>, viewport_size: vec2<u32>, color: vec3<f32>) -> vec3<f32> {
     let coord_i32 = vec2<i32>(coord);
     let north = load_scene_rgb(coord_i32 + vec2<i32>(0, -1), viewport_size);
@@ -264,6 +278,7 @@ fn depth_of_field_coc_radius(prepared_coc: vec2<f32>) -> f32 {
     return normalized_radius * max(params.effect_blur_dof.w, 0.0);
 }
 
+// 邻域失焦支持用于扩展模糊覆盖，减轻近景散景在原始轮廓处被截断。
 fn dilated_depth_of_field_coc(coord: vec2<i32>, viewport_size: vec2<u32>) -> vec2<f32> {
     let center_coc = load_depth_of_field_coc(coord, viewport_size);
     let north_coc = load_depth_of_field_coc(coord + vec2<i32>(0, -1), viewport_size);
@@ -283,6 +298,7 @@ fn load_depth_of_field_bokeh_seed(coord: vec2<i32>, viewport_size: vec2<u32>) ->
     return textureLoad(depth_of_field_bokeh_tex, clamped, 0);
 }
 
+// 镜头叶片数与旋转共同决定取样形状，供两个 bokeh 路径保持相同的镜头外观。
 fn bokeh_aperture_radius(angle: f32) -> f32 {
     let blade_count = clamp(round(params.effect_dof_lens.z), 3.0, 12.0);
     let sector = TAU / blade_count;
@@ -303,6 +319,7 @@ fn dof_bokeh_sample_offset(sample_index: u32, radius: f32) -> vec2<i32> {
     return vec2<i32>(round(offset));
 }
 
+// 远景取样要求中心与样本同时失焦；近景可覆盖背景，因此不能对两层使用同一权重。
 fn depth_of_field_bokeh_layer_weight(center_coc: vec2<f32>, sample_coc: vec2<f32>) -> f32 {
     let far_layer = min(center_coc.x, sample_coc.x);
     let near_layer = sample_coc.y;
@@ -368,6 +385,8 @@ fn sample_prepared_depth_of_field_bokeh(
     );
 }
 
+// 景深与普通 blur 共用取样族；CPU 拆分执行时只启用当前效果的参数。
+// 预备 CoC/seed 与直接场景取样混合，关闭或缺少预备数据时仍有可用的退化路径。
 fn apply_effect_blur_family(coord: vec2<u32>, viewport_size: vec2<u32>, color: vec3<f32>) -> vec3<f32> {
     let coord_i32 = vec2<i32>(coord);
     let scene_depth = load_scene_view_depth(coord_i32, viewport_size);
@@ -401,6 +420,7 @@ fn apply_effect_blur_family(coord: vec2<u32>, viewport_size: vec2<u32>, color: v
     return mix(color, bokeh, clamp(clamped_radius / DOF_MAX_FINAL_PASS_RADIUS, 0.0, 1.0));
 }
 
+// 输入来自 tile/neighbor 重建，是归一化屏幕位移；运动模糊和 SSR 按各自视口尺寸转换为像素。
 fn load_motion_vector_neighbor_max(coord: vec2<i32>, viewport_size: vec2<u32>) -> vec2<f32> {
     let max_coord = vec2<i32>(viewport_size) - vec2<i32>(1, 1);
     let clamped = clamp(coord, vec2<i32>(0, 0), max_coord);
@@ -421,11 +441,13 @@ fn motion_blur_sample_weight(center_motion: vec2<f32>, sample_motion: vec2<f32>)
     return clamp(abs(dot(center_motion, sample_motion) / (center_length * sample_length)), 0.0, 1.0);
 }
 
+// 减少更靠近相机的样本被拉入背景轨迹；这是跨物体取样的可见性约束。
 fn motion_blur_depth_visibility(center_depth: f32, sample_depth: f32) -> f32 {
     let foreground_gap = (center_depth - sample_depth) / max(center_depth, params.effect_depth.x);
     return 1.0 - smoothstep(0.01, 0.05, foreground_gap);
 }
 
+// 以快门比例缩放重建速度，仅在轨迹仍落在当前 viewport 且方向/深度支持时借用颜色。
 fn apply_motion_blur_vector_gather(coord: vec2<u32>, viewport_size: vec2<u32>, color: vec3<f32>) -> vec3<f32> {
     let shutter_fraction = max(params.effect_motion_blur.x, 0.0);
     if (shutter_fraction <= 0.001) {
@@ -482,6 +504,7 @@ fn apply_motion_blur_vector_gather(coord: vec2<u32>, viewport_size: vec2<u32>, c
     return accumulated / max(weight_total, 0.001);
 }
 
+// 红蓝通道从当前 pass 的颜色输入取样，绿色沿效果链保留；CPU 应把该效果放在需要取样的阶段。
 fn apply_chromatic_aberration(coord: vec2<u32>, viewport_size: vec2<u32>, color: vec3<f32>) -> vec3<f32> {
     let intensity = params.effect_chromatic_fog.x;
     if (intensity <= 0.001) {
@@ -495,6 +518,7 @@ fn apply_chromatic_aberration(coord: vec2<u32>, viewport_size: vec2<u32>, color:
     return vec3<f32>(red_sample.r, color.g, blue_sample.b);
 }
 
+// 此处是按屏幕高度与视距施加的风格雾，不依赖世界体积积分。
 fn apply_effect_fog(uv: vec2<f32>, coord: vec2<u32>, viewport_size: vec2<u32>, color: vec3<f32>) -> vec3<f32> {
     let density = params.effect_chromatic_fog.z;
     if (density <= 0.001) {
@@ -525,6 +549,7 @@ fn effect_noise(coord: vec2<u32>, seed: f32) -> f32 {
     return fract(sin(dot(p, vec3<f32>(12.9898, 78.233, 37.719))) * 43758.5453);
 }
 
+// 颗粒与量化扰动属于最终风格处理，顺序在场景合成之后、显示变换之前。
 fn apply_grain_and_dither(coord: vec2<u32>, color: vec3<f32>) -> vec3<f32> {
     let grain = params.effect_vignette_grain.w * max(params.effect_fog_color.w, 0.0);
     let dither = params.effect_dither_ssr.x / max(params.effect_dither_ssr.y, 1.0);
@@ -541,6 +566,7 @@ fn lut_axis_index(value: f32, size: u32) -> u32 {
     return u32(round(clamp(value, 0.0, 1.0) * f32(max_index)));
 }
 
+// 未烘焙 LUT 模式由 CPU 选择：普通二维为逐通道曲线，strip 为横排蓝轴切片，三维为颜色格点。
 fn sample_effect_lut_1d_channel(value: f32) -> f32 {
     let dims = textureDimensions(effect_lut_tex);
     let x = i32(lut_axis_index(value, dims.x));
@@ -584,7 +610,10 @@ fn sample_effect_lut(color: vec3<f32>, binding_mode: u32) -> vec3<f32> {
     return sample_effect_lut_1d(color);
 }
 
+// 内部烘焙 LUT 已包含曝光、tonemap 与 grading，mode 4 必须直接采样并跳过再次 grading。
 fn apply_tonemap_and_lut(color: vec3<f32>) -> vec3<f32> {
+    // TODO: [CR-POST-SHADER-0004] 确认内部烘焙 LUT 的 HDR 输入域；烘焙只覆盖 [0,1]，
+    // 这里直接调用归一化颜色采样，HDR 值 1 与 2 映到相同格点，缺少与解析 tonemap 等价的高亮验证。
     if (params.effect_flags.y == 4u) {
         return sample_effect_lut_3d(color);
     }
@@ -619,6 +648,7 @@ fn load_resolved_screen_space_reflection(coord: vec2<i32>, viewport_size: vec2<u
     return vec4<f32>(resolved.rgb, clamp(resolved.a, 0.0, 1.0));
 }
 
+// SSR resolve 已把效果强度放入 alpha；这里仅按其权重合成一次，然后施加风格雾。
 fn apply_scene_composite(uv: vec2<f32>, coord: vec2<u32>, viewport_size: vec2<u32>, color: vec3<f32>) -> vec3<f32> {
     let coord_i32 = vec2<i32>(coord);
     let resolved_reflection =
@@ -677,6 +707,7 @@ fn fs_screen_space_reflection_resolve(@builtin(position) position: vec4<f32>) ->
     return resolve_screen_space_reflection_history(coord, viewport_size);
 }
 
+// Uber 入口写显示颜色与 GI 历史；已拆分执行的景深、运动模糊与场景合成须由 CPU 关闭重复路径。
 @fragment
 fn fs_main(@builtin(position) position: vec4<f32>) -> FragmentOutput {
     let viewport_size = viewport_size();
@@ -724,6 +755,7 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> FragmentOutput {
         }
     }
 
+    // GI 先根据当前 probe/trace 来源形成动态贡献，再决定是否借用历史；baked baseline 在后面独立合成。
     var global_illumination_history = vec3<f32>(0.0);
     var indirect_light = vec3<f32>(0.0);
     var indirect_light_history_support = 0.0;
@@ -822,6 +854,7 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> FragmentOutput {
             (gi_light / probe_count)
             * params.hybrid_gi_color_and_intensity.w
             * dynamic_source_weight;
+        // 绑定槽可能承载本帧已解析 lighting，也可能承载上帧 GI；w 标志决定读取坐标与复用策略。
         if (params.hybrid_gi_counts.w != 0u) {
             let current_frame_lighting_sample =
                 textureLoad(history_global_illumination_tex, coord_i32, 0);
@@ -849,6 +882,7 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> FragmentOutput {
                     0.0,
                     1.0,
                 );
+            // 签名来自 CPU 的来源代际；不匹配的旧 GI 不能延续到新的 probe/lighting 真值上。
             let current_signature_bucket =
                 round(clamp(indirect_light_history_signature, 0.0, 1.0) * HYBRID_GI_HISTORY_SIGNATURE_SCALE);
             let history_signature_bucket =
@@ -878,6 +912,7 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> FragmentOutput {
         color = color + params.baked_color_and_intensity.rgb * params.baked_color_and_intensity.w;
     }
 
+    // 此最终风格链只用于尚未拆分处理的效果；调用者必须与图中实际执行状态保持一致。
     if (params.effect_flags.w != 0u) {
         color = apply_effect_blur_family(coord, viewport_size, color);
         color = apply_motion_blur_vector_gather(coord, viewport_size, color);

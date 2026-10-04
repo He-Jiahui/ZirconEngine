@@ -13,6 +13,7 @@ use crate::core::{
     CoreResult, LifecycleState, ModuleContext, ModuleLifecycle, ServiceKind, StartupMode,
 };
 
+mod closure_atomicity;
 mod contention;
 
 // 同时暴露首次构建、重复构建与清理的观察点，用于检验并发生命周期命令共用一次事务。
@@ -80,7 +81,10 @@ impl ModuleLifecycle for ReentrantActivationLifecycle {
             .upgrade()
             .expect("module callback must retain a live runtime handle");
         let error = core
-            .activate_module(context.module_name.as_str())
+            .activate_module_with_ready_timeout(
+                context.module_name.as_str(),
+                Duration::from_millis(50),
+            )
             .expect_err("same-module callback activation must not reenter build");
         assert!(matches!(
             error,
@@ -143,8 +147,12 @@ fn concurrent_activation_shares_one_build_transaction() {
         .expect("first activation should enter build before the competing command starts");
 
     let second_runtime = runtime.clone();
-    let second_activation =
-        thread::spawn(move || second_runtime.activate_module("ConcurrentActivationModule"));
+    let second_activation = thread::spawn(move || {
+        second_runtime.activate_module_with_ready_timeout(
+            "ConcurrentActivationModule",
+            Duration::from_secs(1),
+        )
+    });
     let duplicate_build_started = second_build_started
         .recv_timeout(Duration::from_millis(100))
         .is_ok();
@@ -165,6 +173,214 @@ fn concurrent_activation_shares_one_build_transaction() {
         .get("ConcurrentActivationModule")
         .expect("activated module should remain registered");
     assert_eq!(module.lifecycle, LifecycleState::Running);
+}
+
+#[test]
+fn competing_activation_rejects_an_expired_transition_budget_without_releasing_owner() {
+    let runtime = CoreRuntime::new();
+    let build_calls = Arc::new(AtomicUsize::new(0));
+    let cleanup_calls = Arc::new(AtomicUsize::new(0));
+    let (lifecycle, first_build_started, _second_build_started, _cleanup_started, release_build) =
+        activation_transition_gate(Arc::clone(&build_calls), cleanup_calls);
+    runtime
+        .register_module(
+            ModuleDescriptor::new("ExpiredTransitionBudgetModule", "transition deadline")
+                .with_lifecycle(lifecycle),
+        )
+        .unwrap();
+
+    let owner_runtime = runtime.clone();
+    let owner =
+        thread::spawn(move || owner_runtime.activate_module("ExpiredTransitionBudgetModule"));
+    first_build_started
+        .recv_timeout(Duration::from_secs(1))
+        .expect("owner activation should hold the transition before the waiter starts");
+
+    let waiter_runtime = runtime.clone();
+    let waiter = thread::spawn(move || {
+        waiter_runtime
+            .activate_module_with_ready_timeout("ExpiredTransitionBudgetModule", Duration::ZERO)
+    });
+    let waiter_error = waiter.join().unwrap().expect_err(
+        "a joined activation with an expired ready deadline must be rejected before waiting",
+    );
+    assert!(matches!(
+        waiter_error,
+        CoreError::ModuleReadyTimeout { module, budget }
+            if module == "ExpiredTransitionBudgetModule" && budget == Duration::ZERO
+    ));
+
+    release_build.send(()).unwrap();
+    owner.join().unwrap().unwrap();
+    assert_eq!(build_calls.load(Ordering::SeqCst), 1);
+}
+
+#[test]
+fn competing_activation_times_out_at_a_positive_transition_deadline_without_releasing_owner() {
+    let runtime = CoreRuntime::new();
+    let build_calls = Arc::new(AtomicUsize::new(0));
+    let cleanup_calls = Arc::new(AtomicUsize::new(0));
+    let (lifecycle, first_build_started, _second_build_started, _cleanup_started, release_build) =
+        activation_transition_gate(Arc::clone(&build_calls), cleanup_calls);
+    runtime
+        .register_module(
+            ModuleDescriptor::new(
+                "PositiveTransitionBudgetModule",
+                "positive transition deadline",
+            )
+            .with_lifecycle(lifecycle),
+        )
+        .unwrap();
+
+    let owner_runtime = runtime.clone();
+    let owner =
+        thread::spawn(move || owner_runtime.activate_module("PositiveTransitionBudgetModule"));
+    first_build_started
+        .recv_timeout(Duration::from_secs(1))
+        .expect("owner activation should hold the transition before the positive waiter starts");
+
+    let waiter_runtime = runtime.clone();
+    let waiter = thread::spawn(move || {
+        waiter_runtime.activate_module_with_ready_timeout(
+            "PositiveTransitionBudgetModule",
+            Duration::from_millis(20),
+        )
+    });
+    let waiter_error = waiter
+        .join()
+        .unwrap()
+        .expect_err("a joined activation must honor a positive transition deadline");
+    assert!(matches!(
+        waiter_error,
+        CoreError::ModuleReadyTimeout { module, .. }
+            if module == "PositiveTransitionBudgetModule"
+    ));
+
+    release_build.send(()).unwrap();
+    owner.join().unwrap().unwrap();
+    assert_eq!(build_calls.load(Ordering::SeqCst), 1);
+    let handle = runtime.handle();
+    let modules = handle.inner.modules.lock().unwrap();
+    assert_eq!(
+        modules
+            .get("PositiveTransitionBudgetModule")
+            .expect("owner must retain the module census")
+            .lifecycle,
+        LifecycleState::Running
+    );
+}
+
+#[test]
+fn positive_transition_deadline_expires_before_owner_admission_without_invoking_build() {
+    let runtime = CoreRuntime::new();
+    let build_calls = Arc::new(AtomicUsize::new(0));
+    let cleanup_calls = Arc::new(AtomicUsize::new(0));
+    let (lifecycle, _first_build_started, _second_build_started, _cleanup_started, release_build) =
+        activation_transition_gate(Arc::clone(&build_calls), cleanup_calls);
+    runtime
+        .register_module(
+            ModuleDescriptor::new(
+                "ExpiredOwnerAdmissionModule",
+                "deadline expires before coordinator admission",
+            )
+            .with_lifecycle(lifecycle),
+        )
+        .unwrap();
+
+    let handle = runtime.handle();
+    let coordinator_guard = handle.inner.lifecycle_coordinator.lock().unwrap();
+    // Capture the absolute budget before scheduling: a late worker must not get
+    // a fresh relative timeout after the coordinator lock is released.
+    let deadline = Instant::now() + Duration::from_millis(20);
+    let operation_calls = Arc::new(AtomicUsize::new(0));
+    let activation_handle = handle.clone();
+    let activation_operation_calls = Arc::clone(&operation_calls);
+    let (started_sender, started) = mpsc::sync_channel(1);
+    let (completed_sender, completed) = mpsc::sync_channel(1);
+    let activation = thread::spawn(move || {
+        started_sender.send(()).unwrap();
+        let result = activation_handle.run_module_lifecycle_transition_until(
+            "ExpiredOwnerAdmissionModule",
+            ModuleLifecycleCommand::Activate,
+            Some(deadline),
+            || {
+                activation_operation_calls.fetch_add(1, Ordering::SeqCst);
+                Ok(())
+            },
+        );
+        completed_sender.send(result).unwrap();
+    });
+    let started_result = started.recv_timeout(Duration::from_secs(2));
+    thread::sleep(deadline.saturating_duration_since(Instant::now()));
+    drop(coordinator_guard);
+
+    let result = completed
+        .recv_timeout(Duration::from_secs(2))
+        .expect("expired transition admission must finish without a blocking build callback");
+    activation.join().unwrap();
+    started_result.expect("the transition worker must start within the bounded fixture budget");
+    let error = result.expect_err("an expired owner admission must not invoke build");
+    assert!(matches!(
+        error,
+        CoreError::ModuleReadyTimeout { module, budget }
+            if module == "ExpiredOwnerAdmissionModule" && budget == Duration::ZERO
+    ));
+    assert_eq!(operation_calls.load(Ordering::SeqCst), 0);
+    assert_eq!(build_calls.load(Ordering::SeqCst), 0);
+
+    {
+        let modules = handle.inner.modules.lock().unwrap();
+        assert_eq!(
+            modules
+                .get("ExpiredOwnerAdmissionModule")
+                .expect("expired admission keeps the registered module census")
+                .lifecycle,
+            LifecycleState::Registered
+        );
+    }
+    // Prove the rejected provisional owner did not retain the transition. Queue
+    // the gate release before the ordinary activation so a regression fails
+    // assertions rather than waiting forever inside this fixture's build.
+    release_build.send(()).unwrap();
+    runtime
+        .activate_module("ExpiredOwnerAdmissionModule")
+        .unwrap();
+    assert_eq!(build_calls.load(Ordering::SeqCst), 1);
+}
+
+#[test]
+fn expired_deactivation_deadline_does_not_displace_an_activation_owner() {
+    let runtime = CoreRuntime::new();
+    let build_calls = Arc::new(AtomicUsize::new(0));
+    let (lifecycle, first_build_started, _second_build_started, _cleanup_started, release_build) =
+        activation_transition_gate(Arc::clone(&build_calls), Arc::new(AtomicUsize::new(0)));
+    runtime
+        .register_module(
+            ModuleDescriptor::new("ExpiredDeactivationBudgetModule", "transition deadline")
+                .with_lifecycle(lifecycle),
+        )
+        .unwrap();
+
+    let owner_runtime = runtime.clone();
+    let owner =
+        thread::spawn(move || owner_runtime.activate_module("ExpiredDeactivationBudgetModule"));
+    first_build_started
+        .recv_timeout(Duration::from_secs(1))
+        .expect("owner activation should hold the transition before the deadline probe");
+
+    let error = runtime
+        .handle()
+        .deactivate_module_until("ExpiredDeactivationBudgetModule", Instant::now())
+        .expect_err("expired deactivation must be rejected before joining the owner");
+    assert!(matches!(
+        error,
+        CoreError::ModuleCleanupTimeout { module, budget, .. }
+            if module == "ExpiredDeactivationBudgetModule" && budget == Duration::ZERO
+    ));
+
+    release_build.send(()).unwrap();
+    owner.join().unwrap().unwrap();
+    assert_eq!(build_calls.load(Ordering::SeqCst), 1);
 }
 
 #[test]
@@ -193,7 +409,10 @@ fn deactivation_does_not_cleanup_while_activation_build_is_in_flight() {
 
     let deactivation_runtime = runtime.clone();
     let deactivation = thread::spawn(move || {
-        deactivation_runtime.deactivate_module("ActivationDeactivationModule")
+        deactivation_runtime.deactivate_module_with_drain_timeout(
+            "ActivationDeactivationModule",
+            Duration::from_secs(1),
+        )
     });
     let cleanup_started_before_activation_committed = cleanup_started
         .recv_timeout(Duration::from_millis(100))

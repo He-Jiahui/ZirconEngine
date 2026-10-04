@@ -15,6 +15,7 @@ const ALERT_MESSAGE_MIN_WIDTH: f32 = 1.0;
 const ALERT_MESSAGE_VERTICAL_CENTER_RATIO: f32 = 0.5;
 pub(super) const ALERT_MESSAGE_VERTICAL_INSET: f32 = 8.0;
 
+// 几何模块把节点字号投影到 Alert 正文；无效字号退回组件默认值，供文本框与命令共用。
 pub(super) fn alert_font_size(node: &TemplatePaneNodeData) -> f32 {
     if node.font_size.is_finite() && node.font_size > 0.0 {
         node.font_size
@@ -41,51 +42,5 @@ pub(super) fn alert_message_content_height(rect: &FrameRect, line_height: f32) -
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn node(font_size: f32) -> TemplatePaneNodeData {
-        TemplatePaneNodeData {
-            font_size,
-            ..TemplatePaneNodeData::default()
-        }
-    }
-
-    #[test]
-    fn alert_message_metrics_project_font_line_height_and_y() {
-        let rect = FrameRect {
-            x: 0.0,
-            y: 4.0,
-            width: 200.0,
-            height: 48.0,
-        };
-        let line_height = alert_message_line_height(alert_font_size(&node(13.0)));
-
-        assert!((line_height - 18.85).abs() <= 0.01);
-        assert!((alert_message_y(&rect, line_height) - 18.575).abs() <= 0.01);
-    }
-
-    #[test]
-    fn alert_message_width_uses_available_space_with_a_minimum() {
-        assert!((alert_message_width(44.0) - 44.0).abs() <= 0.01);
-        assert!((alert_message_width(0.0) - 1.0).abs() <= 0.01);
-    }
-
-    #[test]
-    fn alert_message_content_height_requires_room_for_two_lines() {
-        let line_height = 18.0;
-        let compact = FrameRect {
-            x: 0.0,
-            y: 0.0,
-            width: 200.0,
-            height: 48.0,
-        };
-        let tall = FrameRect {
-            height: 64.0,
-            ..compact.clone()
-        };
-
-        assert_eq!(alert_message_content_height(&compact, line_height), None);
-        assert_eq!(alert_message_content_height(&tall, line_height), Some(48.0));
-    }
-}
+#[path = "tests/metrics.rs"]
+mod tests;

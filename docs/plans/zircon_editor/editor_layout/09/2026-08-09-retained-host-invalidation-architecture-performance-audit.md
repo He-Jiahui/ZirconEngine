@@ -165,7 +165,7 @@ must be captured together before either number is used for acceptance.
 
 Windows Performance Recorder (`wpr.exe`), Windows Performance Analyzer, and
 `xperf.exe` are available on this workstation. Existing
-`tools/ui-profile-capture.ps1` now defaults to `E:\zircon-profiles` and resolves
+`tools/analysis/profiling/ui/ui-profile-capture.ps1` now defaults to `E:\zircon-profiles` and resolves
 only paths beneath that root. Each future run must use an
 `E:\zircon-profiles\<source-bound-session>` output root. The script
 now requires an absolute coordinator-managed Windows `CARGO_TARGET_DIR` and a
@@ -283,7 +283,7 @@ call the old unscoped dirty-marking methods.
 
 | Item | State | Evidence |
 | --- | --- | --- |
-| M0 output-root discipline | Complete | `tools/ui-profile-capture.ps1` defaults to `E:\zircon-profiles`; its AST/path resolver contract passes. |
+| M0 output-root discipline | Complete | `tools/analysis/profiling/ui/ui-profile-capture.ps1` defaults to `E:\zircon-profiles`; its AST/path resolver contract passes. |
 | M0 source-bound performance capture | Capture infrastructure implemented / runtime evidence pending | `source_manifest.json` now binds repository revision, dirty-tree digest, critical-source hashes, binary hashes, scenario, and options before launch. Missing Git revision/status, source hashes, or binary hashes fail closed before the session directory is created; no fresh matched E: trace exists yet. |
 | M1 typed transaction | Complete foundation | `HostInvalidationTransaction` merges `All` and `View(ViewInstanceId)` masks; unit contracts cover merge and legacy-global behavior. |
 | M1 UI Asset action routing | Complete foundation | Current-session actions are scoped; save, asset creation, and cross-view routes remain global by explicit contract. |
@@ -331,7 +331,7 @@ trace, so the review is not acceptance evidence.
    runtime text, and wgpu UI files; include executable SHA and scenario input.
 2. Capture startup, UI Asset Editor property edit, hierarchy rename, viewport image,
    button click, and a 24-step resize storm using WPR plus
-   `tools/ui-profile-capture.ps1` with an `E:` output root.
+   `tools/analysis/profiling/ui/ui-profile-capture.ps1` with an `E:` output root.
 3. Record per-stage count, visited nodes, generated command ranges, damage bounds,
    GPU upload bytes, retained-copy bytes, and fallback reason. A zero counter is
    valid only when the relevant scenario actually exercised the stage.

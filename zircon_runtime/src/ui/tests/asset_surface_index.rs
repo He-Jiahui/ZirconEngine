@@ -1,3 +1,5 @@
+//! 集中核对资产到表面、节点与绑定程序的索引，脏标记夹具从已完成布局的干净状态开始。
+//! 性能门槛位于被忽略的子测试中；普通索引断言不表示性能验收通过。
 use std::collections::BTreeMap;
 
 use crate::asset::watch::{AssetChange, AssetChangeKind};
@@ -38,6 +40,7 @@ mod binding_ownership_performance;
 mod dirty_targets;
 mod node_resources;
 mod surface_edges;
+mod target_capacity;
 
 fn asset_ref(value: &str) -> AssetReference {
     AssetReference::from_locator(uri(value))

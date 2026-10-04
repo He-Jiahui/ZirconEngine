@@ -3,7 +3,7 @@ import subprocess
 import unittest
 from pathlib import Path
 
-from tools.runtime_domain_dependency_audit import _rust_code_view, _rust_use_paths
+from tools.audits.runtime_domain_dependency_audit import _rust_code_view, _rust_use_paths
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -456,6 +456,52 @@ def product_rust_candidate_sources() -> dict[str, str]:
 
 
 class Frameworks01RandomContractKernelBoundaryTests(unittest.TestCase):
+    def test_product_consumers_do_not_bypass_runtime_contract_facade(self) -> None:
+        violations = []
+        for root_name in ("zircon_app", "zircon_editor", "zircon_plugins"):
+            root = REPO_ROOT / root_name
+            if not root.is_dir():
+                continue
+            for path in sorted(root.rglob("*.rs")):
+                source = _rust_code_view(path.read_text(encoding="utf-8"))
+                if re.search(r"(?:use\s+)?zr_contracts\s*::", source):
+                    violations.append(path.relative_to(REPO_ROOT).as_posix())
+        self.assertEqual([], violations)
+
+    def test_contract_crate_stays_low_dependency_and_facade_independent(self) -> None:
+        manifest = (CONTRACT_CRATE_ROOT / "Cargo.toml").read_text(encoding="utf-8")
+        sources = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in sorted((CONTRACT_CRATE_ROOT / "src").rglob("*.rs"))
+        )
+        self.assertIn("serde.workspace = true", manifest)
+        self.assertIn("thiserror.workspace = true", manifest)
+        for dependency in (
+            "zircon_runtime",
+            "zircon_runtime_interface",
+            "zr_math",
+            "zr_resource",
+            "zr_rhi",
+            "wgpu",
+        ):
+            self.assertNotRegex(manifest, rf"(?m)^{re.escape(dependency)}(?:\.|\s*=)")
+            self.assertNotIn(f"{dependency}::", sources)
+
+    def test_hidden_random_assembly_is_kernel_owned(self) -> None:
+        allowed_root = KERNEL_ROOT.resolve()
+        violations = []
+        for root_name in PRODUCT_SOURCE_ROOTS:
+            root = REPO_ROOT / root_name
+            if not root.is_dir():
+                continue
+            for path in sorted(root.rglob("*.rs")):
+                source = _rust_code_view(path.read_text(encoding="utf-8"))
+                if "zr_contracts::random::assembly" not in source:
+                    continue
+                if allowed_root not in path.resolve().parents:
+                    violations.append(path.relative_to(REPO_ROOT).as_posix())
+        self.assertEqual([], violations)
+
     def test_random_contract_and_kernel_have_disjoint_physical_owners(self) -> None:
         contract_manifest = (CONTRACT_CRATE_ROOT / "Cargo.toml").read_text(
             encoding="utf-8"
@@ -489,6 +535,10 @@ class Frameworks01RandomContractKernelBoundaryTests(unittest.TestCase):
             r"(?m)^zr_contracts\s*=\s*\{[^\n]*"
             r'path\s*=\s*"zircon_runtime/crates/zr_contracts"',
         )
+        self.assertRegex(
+            workspace_manifest,
+            r"(?m)^zr_contracts\s*=\s*\{[^\n]*default-features\s*=\s*false[^\n]*\}$",
+        )
         self.assertRegex(runtime_manifest, r"(?m)^zr_contracts\.workspace\s*=\s*true$")
 
         runtime_mod = (REPO_ROOT / "zircon_runtime/src/core/runtime/mod.rs").read_text(
@@ -504,6 +554,7 @@ class Frameworks01RandomContractKernelBoundaryTests(unittest.TestCase):
         self.assertEqual({"mod.rs"}, facade_files)
         facade = (FACADE_ROOT / "mod.rs").read_text(encoding="utf-8")
         self.assertIn("pub use zr_contracts::random::{", facade)
+        self.assertNotIn("pub use zr_contracts::random::*;", facade)
         self.assertNotIn("assembly", facade)
         for retired_module in ("algorithm", "key", "service_state", "state", "tests"):
             self.assertNotRegex(
@@ -518,7 +569,6 @@ class Frameworks01RandomContractKernelBoundaryTests(unittest.TestCase):
         direct_kernel_consumers = (
             KERNEL_ROOT / "service.rs",
             KERNEL_ROOT / "stream.rs",
-            KERNEL_ROOT / "tests.rs",
             REPO_ROOT / "zircon_runtime/src/core/runtime/handle/random.rs",
             REPO_ROOT / "zircon_runtime/src/core/runtime/runtime.rs",
         )
@@ -526,6 +576,10 @@ class Frameworks01RandomContractKernelBoundaryTests(unittest.TestCase):
             source = path.read_text(encoding="utf-8")
             self.assertNotIn("crate::core::framework::random", source)
             self.assertIn("zr_contracts::random", source)
+
+        for path in sorted((KERNEL_ROOT / "tests").glob("*.rs")):
+            source = path.read_text(encoding="utf-8")
+            self.assertNotIn("crate::core::framework::random", source)
 
     def test_contract_owner_contains_no_random_execution_implementation(self) -> None:
         violations = []
@@ -595,6 +649,46 @@ class Frameworks01RandomContractKernelBoundaryTests(unittest.TestCase):
         self.assertIn(
             "random_state_with_progress(self.state, next_state, next_draw_index)",
             stream,
+        )
+
+    def test_checkpoint_restore_has_no_unvalidated_registry_bypass(self) -> None:
+        authority_path = KERNEL_ROOT / "authority.rs"
+        registry_path = KERNEL_ROOT / "registry.rs"
+        service_path = KERNEL_ROOT / "service.rs"
+        production_calls = []
+
+        for path in sorted(KERNEL_ROOT.rglob("*.rs")):
+            if "tests" in path.parts or path.name.endswith("_tests.rs"):
+                continue
+            source = _rust_code_view(path.read_text(encoding="utf-8"))
+            for call in re.finditer(r"\bRandomStreamRegistry\s*::\s*from_checkpoints\s*\(", source):
+                production_calls.append(
+                    (
+                        path.relative_to(REPO_ROOT).as_posix(),
+                        source.count("\n", 0, call.start()) + 1,
+                    )
+                )
+
+        authority = authority_path.read_text(encoding="utf-8")
+        registry = registry_path.read_text(encoding="utf-8")
+        service = service_path.read_text(encoding="utf-8")
+        self.assertEqual(
+            [("zircon_runtime/src/core/runtime/random/authority.rs", 57)],
+            production_calls,
+        )
+        self.assertIn("pub(crate) fn from_checkpoints(", registry)
+        self.assertNotIn("pub fn from_checkpoints(", registry)
+        self.assertRegex(
+            authority,
+            r"(?s)pub\(crate\) fn from_checkpoint\(.*?"
+            r"registry: RandomStreamRegistry::from_checkpoints\(limits, streams\)\?",
+        )
+        self.assertRegex(
+            service,
+            r"(?s)pub fn from_checkpoint_with_limits\(\s*"
+            r"checkpoint: RandomServiceCheckpoint,.*?"
+            r"let \(state, streams\) = checkpoint\.into_parts\(\);.*?"
+            r"RandomAuthority::from_checkpoint\(state, limits, streams\)",
         )
 
     def test_random_stream_forbids_implicit_copy_and_borrows_state_accessors(self) -> None:

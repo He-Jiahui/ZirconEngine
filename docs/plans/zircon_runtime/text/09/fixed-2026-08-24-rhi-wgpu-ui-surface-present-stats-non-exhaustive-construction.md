@@ -10,7 +10,6 @@ origin_child_dir: docs/plans/zircon_runtime/text/09
 fixing_child_dir: docs/plans/zircon_runtime/text/09
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/presentation.rs;zircon_runtime/crates/zr_rhi/src/ui_surface.rs
 resolved_at: 2026-08-24
 ---
 

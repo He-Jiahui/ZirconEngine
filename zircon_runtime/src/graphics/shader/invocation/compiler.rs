@@ -15,6 +15,7 @@ pub const COMPUTE_SHADER_PARAMS_BINDING: ShaderAbiBinding = ShaderAbiBinding {
 pub const COMPUTE_SHADER_RESOURCE_GROUP: u32 = 0;
 pub const COMPUTE_SHADER_FIRST_RESOURCE_BINDING: u32 = 1;
 
+/// 供 render feature 与管线布局共用的组号和槽位，必须与实际 WGSL 声明一致。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ShaderAbiBinding {
     pub group: u32,
@@ -58,6 +59,7 @@ pub enum ShaderParameterValue {
     Vec4 { value: [f32; 4] },
 }
 
+/// 调度大小的逻辑来源；Fixed 是已解析组数，其余值由 render graph 按帧资源求值。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ShaderDispatchExtent {
@@ -92,6 +94,8 @@ pub struct ShaderNamedResourceBinding {
     pub abi: ShaderAbiBinding,
 }
 
+/// 完成入口、资源访问和 ABI 校验后的计算通道计划，交由 render feature 与 render graph 消费。
+/// 构造时须提供 shader 声明和调度来源；参数值本身不属于管线缓存身份。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ComputeDispatchPlan {
     pub kernel: ComputeKernelRef,
@@ -145,6 +149,8 @@ pub enum ShaderDispatchBuildDiagnostic {
     },
 }
 
+/// 为调用方收集具名参数和资源，build 时才用 shader 元数据验证入口、访问权限及绑定顺序。
+/// 资源槽位按声明顺序分配，不能用调用方 bind 的顺序推断 WGSL ABI。
 #[derive(Clone, Debug, PartialEq)]
 pub struct ComputeDispatchBuilder {
     kernel: ComputeKernelRef,
@@ -288,6 +294,7 @@ impl ComputeDispatchBuilder {
         self.dispatch_extent(ShaderDispatchExtent::Fixed(groups))
     }
 
+    /// 在发布计算计划前完成元数据校验；诊断聚合返回，调用方不可把失败计划提交到 render graph。
     pub fn build(
         self,
         shader_kind: ShaderAssetKind,
@@ -404,6 +411,7 @@ pub(super) fn validate_shader_entry_point(
     }
 }
 
+// 两类 pass 共用此资源入口：以 shader 声明顺序固定 ABI，并拒绝缺失、额外或访问不符的资源。
 pub(super) fn validate_named_resource_bindings(
     diagnostics: &mut Vec<ShaderDispatchBuildDiagnostic>,
     requested_bindings: &BTreeMap<String, ShaderResourceBindingRequest>,
@@ -504,185 +512,9 @@ fn resource_access_satisfies(actual: ShaderResourceAccess, expected: ShaderResou
 }
 
 #[cfg(test)]
-mod tests {
-    use zircon_runtime_interface::resource::{AssetReference, ResourceLocator};
-
-    use super::*;
-
-    fn shader_ref() -> AssetReference {
-        AssetReference::from_locator(
-            ResourceLocator::parse("builtin://shaders/compute/particles").unwrap(),
-        )
-    }
-
-    fn entry(name: &str, stage: RenderShaderStage) -> RenderShaderEntryPointDescriptor {
-        RenderShaderEntryPointDescriptor {
-            name: name.to_string(),
-            stage,
-        }
-    }
-
-    fn resource(
-        name: &str,
-        kind: ShaderResourceKind,
-        access: ShaderResourceAccess,
-    ) -> ShaderResourceDescriptor {
-        ShaderResourceDescriptor {
-            name: name.to_string(),
-            kind,
-            access: Some(access),
-        }
-    }
-
-    #[test]
-    fn render_compute_dispatch_builder_emits_kernel_resource_abi_and_cache_key() {
-        let kernel = ComputeKernelRef::new(shader_ref(), "cs_main");
-        let builder = ComputeDispatchBuilder::new(kernel.clone())
-            .with_workgroup_size([64, 0, 1])
-            .with_option_bits(0x3)
-            .with_content_hash(0x55aa)
-            .set_f32("delta_time", 1.0 / 60.0)
-            .bind_storage("particles")
-            .bind_storage_read("alive_list")
-            .dispatch_groups([32, 1, 1]);
-
-        let plan = builder
-            .build(
-                ShaderAssetKind::Compute,
-                &[entry("cs_main", RenderShaderStage::Compute)],
-                &[
-                    resource(
-                        "particles",
-                        ShaderResourceKind::StorageBuffer,
-                        ShaderResourceAccess::ReadWrite,
-                    ),
-                    resource(
-                        "alive_list",
-                        ShaderResourceKind::StorageBuffer,
-                        ShaderResourceAccess::Read,
-                    ),
-                ],
-            )
-            .unwrap();
-
-        assert_eq!(plan.kernel, kernel);
-        assert_eq!(plan.workgroup_size, [64, 1, 1]);
-        assert_eq!(
-            plan.dispatch_extent,
-            ShaderDispatchExtent::Fixed([32, 1, 1])
-        );
-        assert_eq!(
-            plan.parameters.get("delta_time"),
-            Some(&ShaderParameterValue::F32 { value: 1.0 / 60.0 })
-        );
-        assert_eq!(plan.resources.len(), 2);
-        assert_eq!(plan.resources[0].name, "particles");
-        assert_eq!(
-            plan.resources[0].abi,
-            ShaderAbiBinding {
-                group: 0,
-                binding: 1
-            }
-        );
-        assert_eq!(plan.resources[1].name, "alive_list");
-        assert_eq!(
-            plan.resources[1].abi,
-            ShaderAbiBinding {
-                group: 0,
-                binding: 2
-            }
-        );
-        assert_eq!(COMPUTE_SHADER_PARAMS_BINDING.group, 0);
-        assert_eq!(COMPUTE_SHADER_PARAMS_BINDING.binding, 0);
-        assert_eq!(
-            plan.pipeline_key.canonical_string(),
-            format!(
-                "shader_compute_pipeline_v1|shader={}|kernel=cs_main|options=0x00000003|content=0x00000000000055aa",
-                shader_ref()
-            )
-        );
-        assert_eq!(plan.pipeline_label, plan.pipeline_key.canonical_string());
-    }
-
-    #[test]
-    fn render_compute_dispatch_builder_reports_named_binding_diagnostics() {
-        let builder = ComputeDispatchBuilder::new(ComputeKernelRef::new(shader_ref(), "main"))
-            .bind_texture("particles")
-            .bind_storage_read("unknown")
-            .dispatch_groups([1, 1, 1]);
-
-        let diagnostics = builder
-            .build(
-                ShaderAssetKind::Surface,
-                &[entry("main", RenderShaderStage::Fragment)],
-                &[
-                    resource(
-                        "particles",
-                        ShaderResourceKind::StorageBuffer,
-                        ShaderResourceAccess::Write,
-                    ),
-                    resource(
-                        "params",
-                        ShaderResourceKind::UniformBuffer,
-                        ShaderResourceAccess::Read,
-                    ),
-                ],
-            )
-            .unwrap_err();
-
-        assert!(
-            diagnostics.contains(&ShaderDispatchBuildDiagnostic::InvalidShaderKind {
-                expected: ShaderAssetKind::Compute,
-                actual: ShaderAssetKind::Surface,
-            })
-        );
-        assert!(
-            diagnostics.contains(&ShaderDispatchBuildDiagnostic::InvalidEntryPointStage {
-                entry_point: "main".to_string(),
-                stage: RenderShaderStage::Fragment,
-                expected_stage: RenderShaderStage::Compute,
-            })
-        );
-        assert!(
-            diagnostics.contains(&ShaderDispatchBuildDiagnostic::ResourceKindMismatch {
-                name: "particles".to_string(),
-                expected: ShaderResourceKind::StorageBuffer,
-                actual: ShaderResourceKind::Texture,
-            })
-        );
-        assert!(
-            diagnostics.contains(&ShaderDispatchBuildDiagnostic::MissingResource {
-                name: "params".to_string(),
-            })
-        );
-        assert!(
-            diagnostics.contains(&ShaderDispatchBuildDiagnostic::UnknownResource {
-                name: "unknown".to_string(),
-            })
-        );
-    }
-
-    #[test]
-    fn render_compute_dispatch_builder_requires_dispatch_groups() {
-        let builder = ComputeDispatchBuilder::new(ComputeKernelRef::new(shader_ref(), "cs_main"));
-
-        let diagnostics = builder
-            .build(
-                ShaderAssetKind::Compute,
-                &[entry("cs_main", RenderShaderStage::Compute)],
-                &[],
-            )
-            .unwrap_err();
-
-        assert_eq!(
-            diagnostics,
-            vec![ShaderDispatchBuildDiagnostic::MissingDispatchGroups {
-                kernel: "cs_main".to_string(),
-            }]
-        );
-    }
-}
+#[path = "tests/compiler.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "compute_dispatch/resource_capacity_tests.rs"]
+#[path = "compute_dispatch/tests/resource_capacity_tests.rs"]
 mod resource_capacity_tests;

@@ -8,7 +8,10 @@ use crate::asset::{AssetUri, FontAsset};
 use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiTextRouteIdentity;
 use zircon_runtime_interface::project::RelPath;
 use zircon_runtime_interface::ui::event_ui::UiNodeId;
-use zircon_runtime_interface::ui::surface::UiTextWritingMode;
+use zircon_runtime_interface::ui::layout::UiFrame;
+use zircon_runtime_interface::ui::surface::{
+    UiTextAlign, UiTextDirection, UiTextWrap, UiTextWritingMode,
+};
 
 const TEXT_FONT_PROJECT_WORK_DIRECTORY: &str = ".runtime_text_font_project_work";
 
@@ -230,7 +233,7 @@ impl Drop for RuntimeFontAssetGuard {
 mod tests {
     use std::path::Path;
 
-    use super::{TEXT_FONT_PROJECT_WORK_DIRECTORY, TextFontProject};
+    use super::{TextFontProject, TEXT_FONT_PROJECT_WORK_DIRECTORY};
 
     #[test]
     fn text_font_project_uses_workspace_local_artifact_root() {
@@ -239,15 +242,13 @@ mod tests {
             .parent()
             .expect("zircon_runtime manifest must have a workspace parent");
 
-        assert!(
-            project.root.starts_with(
-                workspace_root
-                    .join("docs")
-                    .join("tests")
-                    .join("runtime")
-                    .join("text")
-                    .join(TEXT_FONT_PROJECT_WORK_DIRECTORY)
-            )
-        );
+        assert!(project.root.starts_with(
+            workspace_root
+                .join("docs")
+                .join("tests")
+                .join("runtime")
+                .join("text")
+                .join(TEXT_FONT_PROJECT_WORK_DIRECTORY)
+        ));
     }
 }

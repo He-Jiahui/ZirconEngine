@@ -1,3 +1,4 @@
+# 核对通知条目的默认标题、管道解析与色调归一化避免多余分配。
 from pathlib import Path
 import unittest
 

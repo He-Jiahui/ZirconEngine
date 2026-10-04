@@ -1,3 +1,4 @@
+//! 查询测试核对路径统计、摘要、差异、保留预览和选择器；更新时间索引查询单独验证不触发序列化，路径查询核对磁盘载荷保持不变。
 use std::fs;
 
 use crate::scene::{
@@ -158,10 +159,11 @@ fn runtime_session_archive_diffs_slot_from_path_without_mutating_target() {
     source
         .rename_node(saved_entity, "Saved Mesh")
         .expect("source entity should be named");
-    let archive = RuntimeSessionArchive::from_slots(vec![
-        RuntimeSessionSlot::from_world("manual", &source).expect("manual slot should capture"),
-    ])
-    .expect("archive should validate");
+    let archive =
+        RuntimeSessionArchive::from_slots(vec![
+            RuntimeSessionSlot::from_world("manual", &source).expect("manual slot should capture")
+        ])
+        .expect("archive should validate");
     let root = unique_temp_root("runtime_session_path_diff");
     let path = root.join("sessions").join("archive.zrsession.json");
     archive

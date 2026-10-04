@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use super::super::super::super::super::super::{
-    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveManifest,
-    RuntimeSessionMetadata, RuntimeSessionSlotSelector, io,
+    io, RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveManifest,
+    RuntimeSessionMetadata, RuntimeSessionSlotSelector,
 };
 
 pub(in crate::scene::dynamic_scene::session) fn import_selected_slot_from_archive_with_metadata_at_path_atomically(

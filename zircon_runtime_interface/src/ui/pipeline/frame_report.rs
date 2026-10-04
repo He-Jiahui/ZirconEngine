@@ -2,6 +2,10 @@ use serde::{Deserialize, Serialize};
 
 use super::{UiPipelineStage, UiPipelineStageCounters, UiPipelineStageReport};
 
+#[cfg(test)]
+#[path = "frame_report/tests/performance_tests.rs"]
+mod performance_tests;
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiPipelineFrameReport {
@@ -36,6 +40,19 @@ impl UiPipelineFrameReport {
     }
 
     pub fn stage_report(&self, stage: UiPipelineStage) -> Option<&UiPipelineStageReport> {
+        if let Some(index) = stage.runtime_index() {
+            if let Some(report) = self
+                .stages
+                .get(index)
+                .filter(|report| report.stage == stage)
+            {
+                return Some(report);
+            }
+        }
+        self.stage_report_linear(stage)
+    }
+
+    fn stage_report_linear(&self, stage: UiPipelineStage) -> Option<&UiPipelineStageReport> {
         self.stages.iter().find(|report| report.stage == stage)
     }
 
@@ -44,10 +61,25 @@ impl UiPipelineFrameReport {
     }
 
     pub fn missing_required_stages(&self) -> Vec<UiPipelineStage> {
+        let mut present = [false; UiPipelineStage::ORDER.len()];
+        for report in &self.stages {
+            if let Some(index) = report.stage.runtime_index() {
+                present[index] = true;
+            }
+        }
         UiPipelineStage::ordered()
             .iter()
             .copied()
-            .filter(|stage| self.stage_report(*stage).is_none())
+            .enumerate()
+            .filter_map(|(index, stage)| (!present[index]).then_some(stage))
+            .collect()
+    }
+
+    fn missing_required_stages_linear(&self) -> Vec<UiPipelineStage> {
+        UiPipelineStage::ordered()
+            .iter()
+            .copied()
+            .filter(|stage| self.stage_report_linear(*stage).is_none())
             .collect()
     }
 

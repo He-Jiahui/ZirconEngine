@@ -1,8 +1,11 @@
+// 在场景线性颜色上建立本帧曝光直方图，随后由独立 resolve pass 求曝光。
+// 全局 histogram 由 Rust 在 dispatch 前清零；统计尺寸、dispatch 与 resolve 的像素总数须一致。
 const EXPOSURE_BIN_COUNT: u32 = 64u;
 const EXPOSURE_LOCAL_THREAD_COUNT: u32 = 256u;
 const LUMINANCE_EPSILON: f32 = 0.0001;
 const RGB_TO_LUMINANCE: vec3<f32> = vec3<f32>(0.2126, 0.7152, 0.0722);
 
+// 与 ExposureParams::new 和 resolve shader 共享布局；纹理输入须从计量区域的零原点开始。
 struct ExposureParams {
     viewport_and_mode: vec4<u32>,
     range_and_filter: vec4<f32>,
@@ -16,6 +19,7 @@ struct ExposureParams {
 
 var<workgroup> local_histogram: array<atomic<u32>, 64>;
 
+// 零号 bin 保留暗像素，其余 bin 覆盖配置的对数亮度范围；resolve 使用同一分桶契约。
 fn luminance_to_bin(luminance: f32) -> u32 {
     if (luminance <= LUMINANCE_EPSILON) {
         return 0u;
@@ -38,6 +42,8 @@ fn cs_main(
     }
     workgroupBarrier();
 
+    // 尾部 invocation 只跳过计量，仍参与两次 barrier；不能改成提前退出。
+    // 每个 workgroup 先汇总局部 bin，再写全局原子计数，减少同一亮度区域的写入竞争。
     let viewport_size = params.viewport_and_mode.xy;
     if (all(global_id.xy < viewport_size)) {
         let color = max(textureLoad(scene_color_tex, vec2<i32>(global_id.xy), 0).rgb, vec3<f32>(0.0));

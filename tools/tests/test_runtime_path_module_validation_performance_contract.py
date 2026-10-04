@@ -22,7 +22,7 @@ def rust_block(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated Rust block: {signature}")
 
-
+# 读取实体路径模块校验，确认预分配不引入第二次扫描且段所有权与裁剪过滤语义保持。
 class RuntimePathModuleValidationPerformanceContractTests(unittest.TestCase):
     def test_entity_path_preallocates_without_a_second_input_scan(self) -> None:
         source = ENTITY_PATH.read_text(encoding="utf-8")

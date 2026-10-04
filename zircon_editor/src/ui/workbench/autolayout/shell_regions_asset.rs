@@ -5,7 +5,7 @@ use super::workbench_skeleton::WorkbenchSkeleton;
 use super::{EditorRegion, EditorRegionRole, RegionBinding, WorkbenchConstraintTokenName};
 
 #[cfg(test)]
-#[path = "shell_regions_asset/region_bitset_tests.rs"]
+#[path = "shell_regions_asset/tests/region_bitset_tests.rs"]
 mod region_bitset_tests;
 
 pub const WORKBENCH_SHELL_REGIONS_ASSET_KIND: &str = "layout_regions";
@@ -13,12 +13,14 @@ pub const WORKBENCH_SHELL_REGIONS_ASSET_ID: &str = "zircon.editor.workbench.shel
 pub const WORKBENCH_SHELL_REGIONS_ASSET_VERSION: u32 = 2;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 作者区域绑定声明；TOML解析入口校验头部、角色和完整集合，直接构造或修改公开字段须由调用方保持这些不变量。
 pub struct WorkbenchShellRegionsAsset {
     pub header: WorkbenchShellRegionsAssetHeader,
     pub regions: Vec<RegionBinding>,
 }
 
 impl WorkbenchShellRegionsAsset {
+    /// 外部TOML的验证边界；先头部，再逐绑定职责，最后检测重复与缺失。
     pub fn from_toml_str(source: &str) -> Result<Self, WorkbenchShellRegionsAssetError> {
         let raw: RawWorkbenchShellRegionsAsset = toml::from_str(source)?;
         validate_header(&raw.asset)?;
@@ -41,6 +43,7 @@ impl WorkbenchShellRegionsAsset {
 }
 
 impl WorkbenchSkeleton {
+    /// 通过作者资产验证后创建skeleton；只替换区域绑定，chrome资源及默认模式沿内建基线。
     pub fn from_shell_regions_asset_str(
         source: &str,
     ) -> Result<Self, WorkbenchShellRegionsAssetError> {
@@ -49,6 +52,7 @@ impl WorkbenchSkeleton {
         ))
     }
 
+    /// 直接消费作者绑定，不重复验证；调用方须先保证头部、角色与区域完整性，只替换内建骨架的regions。
     pub fn from_shell_regions_asset(asset: WorkbenchShellRegionsAsset) -> Self {
         let mut skeleton = Self::jetbrains_default();
         skeleton.regions = asset.into_regions();
@@ -57,6 +61,7 @@ impl WorkbenchSkeleton {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
+/// 资产种类、稳定ID与格式版本协议；解析入口拒绝不兼容值，直接构造须由调用方核验。
 pub struct WorkbenchShellRegionsAssetHeader {
     pub kind: String,
     pub id: String,
@@ -65,6 +70,7 @@ pub struct WorkbenchShellRegionsAssetHeader {
 }
 
 #[derive(Debug, Error)]
+/// 作者配置诊断；头部、集合和角色错误保留具体不匹配身份。
 pub enum WorkbenchShellRegionsAssetError {
     #[error("failed to parse workbench shell regions TOML asset: {0}")]
     ParseToml(#[from] toml::de::Error),
@@ -135,6 +141,7 @@ fn validate_header(
     Ok(())
 }
 
+/// 保证闭合的六区域恰好各一次；先报重复，再按固定集合顺序报缺失。
 fn validate_complete_region_set(
     regions: &[RegionBinding],
 ) -> Result<(), WorkbenchShellRegionsAssetError> {

@@ -1,7 +1,8 @@
+# 核对虚拟行协调只物化有界槽位，滚动更新仅重绑变化行。
 from pathlib import Path
 import unittest
 
-from tools.editor_virtual_row_reconcile_pressure import run
+from tools.analysis.performance.editor.editor_virtual_row_reconcile_pressure import run
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -9,6 +10,7 @@ VIRTUAL_ROWS = REPO_ROOT / (
     "zircon_editor/src/ui/retained_host/callback_dispatch/"
     "template_bridge/virtual_rows.rs"
 )
+VIRTUAL_ROWS_TESTS = VIRTUAL_ROWS.parent / "tests/virtual_rows_performance_tests.rs"
 COMPONENT_ROWS = REPO_ROOT / (
     "zircon_editor/src/ui/retained_host/callback_dispatch/"
     "template_bridge/workbench/component_property_rows.rs"
@@ -34,7 +36,7 @@ INSPECTOR_ASSET = REPO_ROOT / (
     "zircon_editor/assets/ui/editor/components/workbench/shell/"
     "workbench_inspector_panel.zui"
 )
-PROFILE_MANIFEST = REPO_ROOT / "tools/profile-capture-manifest.ps1"
+PROFILE_MANIFEST = REPO_ROOT / "tools/analysis/profiling/shared/profile-capture-manifest.ps1"
 
 
 class EditorVirtualRowReconcilePerformanceContract(unittest.TestCase):
@@ -64,7 +66,7 @@ class EditorVirtualRowReconcilePerformanceContract(unittest.TestCase):
     def test_rust_regression_guards_runtime_materialization_authority(self) -> None:
         self.assertIn(
             "virtual_row_reconcile_uses_runtime_materialization_authority",
-            self.source,
+            VIRTUAL_ROWS_TESTS.read_text(encoding="utf-8"),
         )
 
     def test_inspector_product_path_uses_one_virtualized_prototype(self) -> None:

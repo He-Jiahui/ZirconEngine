@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对着色器预热的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 const STATUS: &str =
@@ -11,9 +12,9 @@ const SOURCE_LABEL_TRIM_STATUS: &str =
 
 #[test]
 fn runtime_15_shader_prewarm_source_provenance_report_contract_is_wired() {
-    let build = read_repo("tools/zircon_build.py");
-    let acceptance_helper = read_repo("tools/zircon_build_shader_prewarm_acceptance.py");
-    let report_contract = read_repo("tools/zircon_build_shader_prewarm_report_contract.py");
+    let build = read_repo("tools/build/zircon_build.py");
+    let acceptance_helper = read_repo("tools/build/zircon_build_shader_prewarm_acceptance.py");
+    let report_contract = read_repo("tools/build/zircon_build_shader_prewarm_report_contract.py");
     let build_prewarm_tests = read_repo("tools/tests/test_zircon_build_shader_prewarm.py");
     let source_provenance_tests =
         read_repo("tools/tests/test_zircon_build_shader_prewarm_source_provenance_contract.py");
@@ -77,7 +78,7 @@ fn runtime_15_shader_prewarm_source_provenance_report_contract_is_wired() {
 
     for (path, source) in [
         (
-            "tools/zircon_build_shader_prewarm_report_contract.py",
+            "tools/build/zircon_build_shader_prewarm_report_contract.py",
             report_contract.as_str(),
         ),
         (

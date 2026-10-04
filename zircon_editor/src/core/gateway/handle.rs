@@ -97,6 +97,16 @@ impl GatewayLease {
         self.origin.gateway()
     }
 
+    pub(crate) fn capabilities(&self) -> Arc<RuntimeCapabilities> {
+        self.origin.generation.capabilities.clone()
+    }
+
+    pub(crate) fn module_composition_receipt(
+        &self,
+    ) -> Option<Arc<ZrRuntimeModuleCompositionReceiptV1>> {
+        self.origin.generation.module_composition_receipt.clone()
+    }
+
     pub(crate) fn tick_frame(&self) -> Result<EditorRuntimeFrameDemand, GatewayError> {
         self.gateway().tick_frame()
     }
@@ -185,10 +195,7 @@ impl EditorRuntimeGatewayHandle {
     }
 
     pub fn module_composition_receipt(&self) -> Option<Arc<ZrRuntimeModuleCompositionReceiptV1>> {
-        self.current_lease()
-            .generation
-            .module_composition_receipt
-            .clone()
+        self.current_lease().module_composition_receipt()
     }
 
     pub(crate) fn current_lease(&self) -> GatewayLease {
@@ -215,7 +222,7 @@ fn next_generation(current: u64) -> Result<u64, GatewayError> {
 
 impl EditorRuntimeGatewayHandle {
     pub fn capabilities(&self) -> Arc<RuntimeCapabilities> {
-        self.current_lease().generation.capabilities.clone()
+        self.current_lease().capabilities()
     }
 
     pub fn session_handle(&self) -> ZrRuntimeSessionHandle {
@@ -574,14 +581,5 @@ impl EditorRuntimeGateway for EditorRuntimeGatewayHandle {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{next_generation, GatewayError};
-
-    #[test]
-    fn next_gateway_generation_returns_typed_error_at_u64_max() {
-        assert_eq!(
-            next_generation(u64::MAX),
-            Err(GatewayError::GenerationExhausted)
-        );
-    }
-}
+#[path = "tests/handle.rs"]
+mod tests;

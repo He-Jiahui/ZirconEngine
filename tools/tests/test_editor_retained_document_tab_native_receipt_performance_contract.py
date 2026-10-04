@@ -1,3 +1,4 @@
+# 核对文档标签的原生命中回执区分主体与关闭动作，并借用类型化目标。
 import re
 import unittest
 from pathlib import Path

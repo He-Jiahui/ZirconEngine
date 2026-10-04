@@ -1,3 +1,4 @@
+# 核对资产工作区的菜单触发、锚定覆盖层与扩展动作身份。
 import re
 import tomllib
 import unittest

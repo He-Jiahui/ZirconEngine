@@ -3,7 +3,7 @@
 Plan: docs/plans/optimize/zircon_runtime/74-runtime-ui-template-component-binding-expression-model-event-command-hot-reload-product-integration-review.md
 Milestone: P2 cleanup
 Status: validation_pending
-Files: [".codex/state/session-coordinator/cargo-runs/zircon-validation-runtime74-p0-p1-endpoint-superbatch.ps1",".codex/state/session-coordinator/cargo-runs/zircon-validation-runtime74-p2-schema-cleanup.ps1","docs/plans/optimize/zircon_runtime/74/2026-08-22-editor-showcase-catalog-executor-split.md","docs/zircon_runtime/ui/architecture.md","zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_component_catalog_editor_showcase.rs","zircon_runtime/src/ui/component/catalog/editor_showcase.rs","zircon_runtime/src/ui/component/catalog/editor_showcase/descriptors.rs"]
+Files: [".codex/state/session-coordinator/cargo-runs/zircon-validation-runtime74-p0-p1-endpoint-superbatch.ps1",".codex/state/session-coordinator/cargo-runs/zircon-validation-runtime74-p2-schema-cleanup.ps1","docs/plans/optimize/zircon_runtime/74/2026-08-22-editor-showcase-catalog-executor-split.md","docs/crates/zircon_runtime/ui/architecture.md","zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_component_catalog_editor_showcase.rs","zircon_runtime/src/ui/component/catalog/editor_showcase.rs","zircon_runtime/src/ui/component/catalog/editor_showcase/descriptors.rs"]
 
 - Date: 2026-08-22
 - Owner: `optimize-runtime74-param-ref-compile-r3-bee4c707-20260822`

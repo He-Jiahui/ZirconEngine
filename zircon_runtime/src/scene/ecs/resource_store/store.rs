@@ -1,6 +1,6 @@
-use std::any::{TypeId, type_name};
-use std::collections::HashMap;
+use std::any::{type_name, TypeId};
 use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 use std::fmt;
 
 use crate::scene::ecs::{ChangeTick, ComponentTicks};
@@ -8,6 +8,7 @@ use crate::scene::ecs::{ChangeTick, ComponentTicks};
 use super::stored_resource::{StoredResource, TransferredResourceRow};
 
 #[derive(Default)]
+/// 按 Rust TypeId 拥有运行时资源值与变更刻度；World 的资源写入口负责登记类型并记录写入。
 pub struct ResourceStore {
     resources: HashMap<TypeId, StoredResource>,
 }
@@ -49,6 +50,7 @@ impl ResourceStore {
         stored.value.downcast_ref::<T>()
     }
 
+    /// 借出值本身，不标记变更；需要检测写入时应使用 World 的资源写入口，或通过带 ticks 的借用自行记录。
     pub fn get_mut<T: 'static + Send + Sync>(&mut self) -> Option<&mut T> {
         let stored = self.resources.get_mut(&TypeId::of::<T>())?;
         stored.value.downcast_mut::<T>()
@@ -157,12 +159,14 @@ impl fmt::Debug for ResourceStore {
     }
 }
 
+// World::clone 调用此实现隔离运行时资源；返回空存储，不复制资源值或变更刻度。
 impl Clone for ResourceStore {
     fn clone(&self) -> Self {
         Self::default()
     }
 }
 
+// 此比较忽略资源值与刻度，因此 World 的派生比较也不能证明资源内容相同。
 impl PartialEq for ResourceStore {
     fn eq(&self, _other: &Self) -> bool {
         true
@@ -170,31 +174,5 @@ impl PartialEq for ResourceStore {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[derive(Debug, PartialEq, Eq)]
-    struct ResourceValue(u32);
-
-    #[test]
-    fn transferred_resource_rows_rebase_change_ticks_at_target_commit() {
-        let source_tick = ChangeTick::new(13);
-        let target_tick = ChangeTick::new(41);
-        let mut source = ResourceStore::default();
-        source.insert_at_tick(ResourceValue(7), source_tick);
-
-        let rows = source.take_transferred_rows();
-        assert!(source.is_empty());
-        assert_eq!(rows.len(), 1);
-        assert_eq!(rows[0].source_ticks(), ComponentTicks::new(source_tick));
-
-        let mut target = ResourceStore::default();
-        target.insert_transferred_rows(rows, target_tick);
-
-        assert_eq!(target.get::<ResourceValue>(), Some(&ResourceValue(7)));
-        assert_eq!(
-            target.ticks::<ResourceValue>(),
-            Some(ComponentTicks::new(target_tick))
-        );
-    }
-}
+#[path = "tests/store.rs"]
+mod tests;

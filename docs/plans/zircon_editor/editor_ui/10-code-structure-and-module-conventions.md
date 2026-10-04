@@ -58,14 +58,12 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/tests/child_window_tabs.rs
   - zircon_editor/src/ui/retained_host/ui/tests/mod.rs
   - zircon_editor/src/ui/retained_host/ui/tests/support.rs
-  - zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection.rs
   - zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection/assertions.rs
   - zircon_editor/src/ui/retained_host/ui/tests/apply_presentation_shell.rs
   - zircon_editor/src/ui/retained_host/ui/tests/workbench_layout_frames.rs
   - zircon_editor/src/ui/retained_host/ui/tests/welcome_presentation.rs
   - zircon_editor/src/ui/retained_host/ui/tests/scene_document_pane.rs
   - zircon_editor/src/ui/retained_host/ui/tests/floating_windows.rs
-  - zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/
   - zircon_editor/src/tests/host/template_runtime/mod.rs
   - zircon_editor/src/tests/host/template_runtime/scene_viewport_toolbar_runtime_projection.rs
@@ -77,14 +75,13 @@ related_code:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/activity_rail.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/dock_header.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/status_bar.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/tests.rs
   - zircon_editor/src/ui/retained_host/ui/apply_presentation/pane_conversion.rs
   - zircon_editor/src/ui/retained_host/ui/apply_presentation/scene_conversion.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
-  - docs/engine-architecture/large-file-ownership-m1.md
+  - docs/architecture/large-file-ownership-m1.md
 implementation_files:
-  - docs/zircon_editor/structure/module-convention.md
+  - docs/crates/zircon_editor/structure/module-convention.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/editor_structure_audits/module_convention_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_editor_structure.py
   - zircon_editor/src/tests/structure_convention/mod.rs

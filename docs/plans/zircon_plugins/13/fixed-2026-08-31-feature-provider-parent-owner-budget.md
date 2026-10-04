@@ -10,11 +10,11 @@ fixing_child_dir: docs/plans/zircon_plugins/13
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/zircon_export/plugin_validate_feature_provider.py
-  - tools/zircon_export/plugin_validate_feature_provider_manifest_parse.py
+  - tools/export/plugin_validate_feature_provider.py
+  - tools/export/plugin_validate_feature_provider_manifest_parse.py
 tests:
   - tools/tests/test_plugin_validate_feature_provider_owner_boundaries.py
-  - tools/zircon_export/tests/test_plugin_validate_feature_provider.py
+  - tools/export/tests/test_plugin_validate_feature_provider.py
 resolved_at: 2026-08-31
 ---
 

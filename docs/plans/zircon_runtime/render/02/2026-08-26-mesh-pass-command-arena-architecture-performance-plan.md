@@ -3,10 +3,19 @@
 ## Status
 
 - Research and current-source review: complete on 2026-08-26.
-- Baseline profiling: pending; no frame-time, allocation, power, or scale claim is accepted.
+- Non-validation CPU/Heap capture and fail-closed report infrastructure: complete on 2026-09-01.
+- Old-path product instrumentation: source-ready on 2026-09-01. Profiling builds publish final and
+  producer arena growth, partition/merge/finalize/sort costs, bucket lengths, accepted plus aborted
+  cache-payload clone/build cost, zero reuse baseline, and distinct extract/materialize/finalize/
+  indirect/replay timing stages. Ordinary builds compile out the statistics fields and hot-loop
+  capacity checks. Managed Rust validation remains pending.
+- Baseline profiling: pending; no frame-time, allocation, power, or scale claim is accepted. The
+  first managed default-feature build/test request (`44fd401668874dd690e34a83a8eeb9d8`) was
+  terminally rejected because compatible pool job `5ce97a748a48486fa20bb72b1ba3dd3f` was busy;
+  no raw Cargo retry or alternate target was launched.
 - Production ABI migration: not started. The current validation lane is unavailable, so this
   report is deliberately completed before changing the central command-buffer ownership model.
-- Source binding: repository HEAD `8e56165c4c789416c328898d3d8937d934b52efa` with a shared dirty
+- Source binding re-reviewed at repository HEAD `9963f8eb72e2d725d2536eb50b393b30387a1ffa` with a shared dirty
   worktree. All paths below describe the reviewed working tree, not a clean-HEAD reconstruction.
 
 ## Decision
@@ -161,11 +170,19 @@ Required matched scenarios after the runnable renderer lane is restored:
 | mixed prebuilt/residual | 50/50 at 10k | expose current double finalization and merge cost |
 | camera-only change and unchanged camera | 10k and 100k | separate current-view sort from reusable generation work |
 
-Protocol: 30 warm-up frames followed by 120 settled frames, at least five runs per scenario, fixed
-resolution/present mode/power profile, and p50/p95/p99 reporting. Capture CPU sampling, heap
-allocation stacks, context switches/ready time, GPU timestamps, VRAM, and energy when the platform
-provider exposes it. RenderDoc validates pass/event/resource/submission behavior and final pixels;
-it does not prove CPU allocation or power improvement.
+Protocol: 120 warm-up frames followed by 600 settled frames, at least five runs per scenario, fixed
+resolution/present mode/power profile, and p50/p95/p99 reporting. CPU sampling and Heap allocation
+tracking are separate matched product invocations: `Capture-RenderExtractBaseline.ps1 -UseWpr`
+records PID/lifetime-filtered sampled stacks, while `-UseWprHeap` records PID/lifetime-filtered
+allocation stacks sorted by total allocation. The switches are mutually exclusive so Heap tracking
+overhead cannot contaminate CPU timing. Each route publishes an ETL, xperf export, and JSON receipt
+whose profile/PID/lifetime/path/hash binding is fail-closed in the report. The xperf range uses the
+product's absolute UTC `StartTime`/`ExitTime`; it does not approximate the ETL start with the WPR
+command invocation timestamp. Heap runs retain the internal timeline only for correlation and mark
+it `instrumented_not_baseline`. Also capture context
+switches/ready time, GPU timestamps, VRAM, and energy when the platform provider exposes it.
+RenderDoc validates pass/event/resource/submission behavior and final pixels; it does not prove CPU
+allocation or power improvement.
 
 Add product counters before the migration so old and new paths report the same schema:
 
@@ -208,5 +225,16 @@ Add product counters before the migration so old and new paths report the same s
 - No production arena migration is implemented by this report.
 - No WPR/xperf/RenderDoc run, genuine PNG, GPU timestamp, power sample, or scale benchmark has been
   collected because the runnable validation/artifact lane is currently unavailable.
+- The separate CPU/Heap capture and report-integrity infrastructure is implemented and covered by
+  synthetic tests; this does not substitute for a current-source product trace.
+- The old-path product recorder and report schema are source-bound by 26 structural counter names.
+  Coverage is fail-closed per attempt, requires the common CPU stages and `render` stream, and
+  cannot combine incomplete attempts into a measured scenario. Preparation coverage also requires
+  the processor spans for the direct-serial, dispatch-fallback, or parallel branch actually taken.
+  Mixed dispatch-enabled/fallback attempts require the union of both processor branches, including
+  when the decision is represented as aggregate `statistics.min/max`. The focused report suite is 18/18;
+  PowerShell parsing, scoped rustfmt, and diff checks pass. These are implementation checks only:
+  managed Rust compilation and a current product trace are still required before collecting or
+  comparing a baseline.
 - No claim is made that the fixed three-slot pre-MeshDraw staging or the payload split improves
   frame time until the matched baseline is complete.

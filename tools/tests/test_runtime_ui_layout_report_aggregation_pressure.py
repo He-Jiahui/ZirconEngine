@@ -1,9 +1,9 @@
 import unittest
 from pathlib import Path
 
-from tools.runtime_ui_layout_report_aggregation_pressure import run, validate_output_path
+from tools.analysis.performance.runtime.runtime_ui_layout_report_aggregation_pressure import run, validate_output_path
 
-
+# 用报告聚合模型验证原因条目复用容量、发布至多一个叶段，并限制产物位于批准的盘根。
 class RuntimeUiLayoutReportAggregationPressureTests(unittest.TestCase):
     def test_default_model_shifts_reason_entry_allocations_to_retained_capacity(self):
         result = run()

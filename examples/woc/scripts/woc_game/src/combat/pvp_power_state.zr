@@ -31,6 +31,7 @@ clampPvpFraction(value: float, cap: float): float {
     return normalized > cap ? cap : normalized;
 }
 
+// 输入是评级已换算的比例；调用方先确认双方是不同的敌对玩家，再用于吸收前伤害。
 pub pvpDamageMultiplier(offense: float, defense: float): float {
     var normalizedOffense = clampPvpFraction(offense, contract.offenseCap());
     var normalizedDefense = clampPvpFraction(defense, contract.defenseCap());

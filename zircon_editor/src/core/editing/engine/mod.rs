@@ -22,15 +22,16 @@ pub use history::{
 pub use journal::{
     CommandJournalPayload, CommandJournalUnavailable, DurableJournal, DurableJournalEntry,
     DurableJournalError, EditCommandCodec, EditCommandCodecRegistry, JournalCodecDecodeError,
-    JournalCodecError, JournalCompactionReport, JournalDocumentKey, JournalDocumentKeyError,
-    JournalReadReport, JournalRecordPreparationError, JournalReplayError, JournalTailFault,
-    JournalWriter, PreparedJournalRecord, TransactionJournal, TransactionJournalError,
+    JournalCodecError, JournalCompactionReport, JournalDiscoveryEntry, JournalDiscoveryIssue,
+    JournalDiscoveryReport, JournalDocumentKey, JournalDocumentKeyError, JournalReadReport,
+    JournalRecordPreparationError, JournalReplayError, JournalTailFault, JournalWriter,
+    PreparedJournalRecord, TransactionJournal, TransactionJournalError,
     TransactionJournalReadError, TransactionJournalReplayer, TransactionJournalValidationError,
 };
 pub use routing::resolve_history_context;
 pub(crate) use transaction::ExclusiveTransition;
 pub use transaction::{
-    EditorTransactionEngine, HistoryDirtyBatch, HistoryDirtyBatchKind, HistoryDirtyCursor,
-    HistoryDirtyState, MergeMode, OperationTransactionResult, TransactionScope,
+    EditorTransactionEngine, HistoryDecisionToken, HistoryDirtyBatch, HistoryDirtyBatchKind,
+    HistoryDirtyCursor, HistoryDirtyState, MergeMode, OperationTransactionResult, TransactionScope,
     MAX_HISTORY_DETAIL_PAGE_SIZE,
 };

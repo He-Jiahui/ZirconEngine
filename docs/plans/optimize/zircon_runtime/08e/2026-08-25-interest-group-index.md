@@ -52,7 +52,7 @@ nanoseconds. Exact elapsed time is accepted only from coordinator terminal evide
 
 ## Documentation Decision
 
-`docs/engine-architecture/runtime-network-extension.md` describes group-filtering semantics but
+`docs/architecture/runtime-network-extension.md` describes group-filtering semantics but
 does not expose or promise mutable `Vec` storage, so it remains truthful and requires no change.
 
 ## Remaining Parent-plan Work

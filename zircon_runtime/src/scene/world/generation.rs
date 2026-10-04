@@ -76,7 +76,17 @@ impl World {
     }
 
     pub(super) fn advance_world_generation(&mut self) {
-        self.world_generation.advance();
+        // The ordinary entry owns the generation field exclusively.
+        unsafe { Self::advance_world_generation_unchecked(self) }
+    }
+
+    /// # Safety
+    /// The caller must hold exclusive access to the generation leaf. Live query
+    /// items may retain row/sink leaves, but must not retain this field or its parents.
+    pub(super) unsafe fn advance_world_generation_unchecked(world: *mut Self) {
+        unsafe {
+            (&mut *std::ptr::addr_of_mut!((*world).world_generation)).advance();
+        }
     }
 
     pub(super) fn bump_lifecycle_visibility_revision(&mut self) {
@@ -134,4 +144,5 @@ impl World {
 }
 
 #[cfg(test)]
+#[path = "generation/tests/cases.rs"]
 mod tests;

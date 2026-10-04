@@ -1,3 +1,4 @@
+# 核对渲染通道及平台状态由运行时拥有，编译反馈读取当前选择。
 import tomllib
 import unittest
 from pathlib import Path

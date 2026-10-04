@@ -84,6 +84,8 @@ impl LightmapInstanceSlot {
     }
 }
 
+/// 烘焙输出导入后供渲染器按稳定实例 ID 查找 atlas 槽位的消费契约。
+/// 替换光照集时必须连同 `light_set_generation` 更新，场景提取才可与探针网格配对。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct LightmapConsumeContract {
     pub contract_version: u32,
@@ -282,6 +284,8 @@ impl LightmapAtlasBudget {
     }
 }
 
+/// 外部烘焙器的输入边界，绑定场景修订、静态实例集合和 atlas/探针预算。
+/// 输出必须通过 `validate_against` 对照此请求，避免过期结果进入消费契约。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct LightmapBakeRequest {
     pub contract_version: u32,
@@ -336,6 +340,8 @@ pub struct LightmapAtlasPage {
     pub texels_rgba16f_le: Vec<u8>,
 }
 
+/// 烘焙器返回的原始 atlas 与探针数据；先校验请求身份和页面/槽位，再导入纹理资产。
+/// `into_consume_contract` 只做输出自身校验，已有请求的调用方还应先执行 `validate_against`。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct LightmapBakeOutput {
     pub contract_version: u32,
@@ -589,4 +595,5 @@ fn probe_grid_index(
 }
 
 #[cfg(test)]
+#[path = "lightmap/tests/cases.rs"]
 mod tests;

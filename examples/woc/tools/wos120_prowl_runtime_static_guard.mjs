@@ -52,14 +52,14 @@ requireText(locomotion, /a\.kind === 'stealth'[\s\S]*?stealthDetectionRadius\(mo
 const generator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
 if (!/demoralizing_roar',[\s\S]*?'prowl'/.test(generator) ||
-    !generator.includes("EXPECTED_ABILITY_COUNT = 79") ||
-    !zrGenerator.includes("document.entries.length === 79")) {
+    !generator.includes("EXPECTED_ABILITY_COUNT = 117") ||
+    !zrGenerator.includes("document.entries.length === 117")) {
   throw new Error("M4 Prowl projection scope is missing");
 }
 const entry = JSON.parse(read("contracts", "m4_abilities.json")).entries.find(
   (value) => value.id === "prowl",
 );
-if (!entry || entry.index !== 60 || entry.definition.class !== "druid" ||
+if (!entry || entry.index !== 64 || entry.definition.class !== "druid" ||
     entry.definition.learnLevel !== 5 || entry.definition.cost !== 0 ||
     entry.definition.castTime !== 0 || entry.definition.cooldown !== 0 ||
     entry.definition.range !== 0 || entry.definition.school !== "physical" ||
@@ -76,7 +76,7 @@ const world = read("scripts", "woc_game", "src", "world", "state.zr");
 const motionState = read("scripts", "woc_game", "src", "world", "motion_aura_state.zr");
 const main = read("scripts", "woc_game", "src", "main.zr");
 const protocol = read("native", "crates", "woc_protocol", "src", "lib.rs");
-requireText(world, /writer\.u16\(<uint>78, 1, 1\)/,
+requireText(world, /writer\.u16\(schemaVersion, 1, 1\)/,
   "current encoder schema is missing");
 requireText(world, /schemaVersion != <uint>67 &&\s*schemaVersion != <uint>68 &&\s*schemaVersion != <uint>69/,
   "current decoder admission is missing");
@@ -108,9 +108,9 @@ requireText(world, /if \(prowlCommandStateTest\(\) != 1\) \{[\s\S]*?return -114;
   "world selfTest must execute Prowl");
 requireText(motionState, /movementMultiplierWithStealth[\s\S]*?stealthMultiplier[\s\S]*?slow = stealthMultiplier/,
   "motion state must fold Prowl into the source slow-before-speed order");
-if (!main.includes('\\"world_state\\":\\"WOS78\\"') ||
-    !protocol.includes('WORLD_STATE_FORMAT: &str = "WOS78"') ||
-    !protocol.includes('WORLD_STATE_SCHEMA_VERSION: u16 = 78')) {
+if (!main.includes('\\"world_state\\":\\"WOS118\\"') ||
+    !protocol.includes('WORLD_STATE_FORMAT: &str = "WOS118"') ||
+    !protocol.includes('WORLD_STATE_SCHEMA_VERSION: u16 = 118')) {
   throw new Error("WOC package metadata still advertises the prior WOS schema");
 }
 

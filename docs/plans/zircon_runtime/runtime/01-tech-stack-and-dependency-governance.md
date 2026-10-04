@@ -33,7 +33,7 @@ last_refined: 2026-08-01
 - 2026-06-12 历史基线中 cosmic-text、kira、zip/tar、rfd、arboard 均为 0 命中；该基线已被后续 hard cut 部分取代，不能作为当前事实。当前 Kira 0.12.2 只允许 `zircon_plugins/sound/runtime/Cargo.toml` 单一结构化 dependency declaration，zip 只允许 archive materializer owner；其余 non-dependencies 继续全产品树拒绝。
 - 2026-07-31 Runtime01 reopen：Python/权威文档的 Kira Sound owner合同已实现；唯一 pin 只接受 package/target 的普通 runtime dependencies，dev/build/workspace 表只参与泄漏检测，任一产品 manifest 扫描错误都 fail closed。Runtime Rust dependency/mirror guards仍待 source-safe hard cut，完整 managed gate与fixed return未完成。因此本计划保持 `in_progress`，旧 completion记录只描述当时五门快照，不覆盖当前 open failure。
 - 文本栈三库并存且口径未定：glyphon `0.11.0`（`zircon_runtime/Cargo.toml:77`）、fontsdf `0.5.3`（L78）、unicode-segmentation `1.13.2`（L95）；fontdue `0.9.3` 仅在 editor（`zircon_editor/Cargo.toml:11`）。自研 text shaper / hit-testing 在 `zircon_runtime/src/ui/text/`（mod.rs、shaper.rs、hit_test.rs、layout_engine.rs 约 25.8KB、edit_state.rs、grapheme.rs、rich_text.rs）。
-- glyphon 口径矫正（2026-08-01 重核）：渲染侧仍由 glyphon 承担 native text submission，shaping/layout 已统一到 `UiSharedTextShaper`。`UiTextShaperStack` 现在只持有该服务适配器；旧 `UiTextBackendIntent`、回退理由和伪布局路由已经硬切删除。`text_shaper_stack_uses_shared_text_service_for_font_backends` 锁定 Native/SDF render mode 通过同一共享文本服务获得 layout metrics。
+- glyphon 口径矫正（2026-08-01 重核）：渲染侧仍由 glyphon 承担 native text submission，shaping/layout 已统一到 `UiSharedTextShaper`。原一成员 `UiTextShaperStack` wrapper、旧 `UiTextBackendIntent`、回退理由和伪布局路由已经硬切删除；`UiSharedTextShaper` 直接使用共享文本布局服务。`text_shaper_stack_uses_shared_text_service_for_font_backends` 锁定 Native/SDF render mode 通过同一共享文本服务获得 layout metrics。
 - 公共面注意（2026-06-12 重核）：`ui/text` 对外仅 `pub use shaper::layout_text`（`layout_text(text, style, frame, clip_frame) -> UiResolvedTextLayout`，shaper.rs:196-203）；`UiTextShaper` trait（shaper.rs:34-37）、`hit_test_text_layout`、`UiTextHitTest` 等均 `pub(crate)`。文档示例不得引用不出 crate 的类型。
 - 版本风险：winit `0.31.0-beta.2`（根 `Cargo.toml:37`，default-features = false）、notify `9.0.0-rc.3`（L27）。同文件 wgpu `29.0.1`（L36）、naga `29.0.1`（L26）、glam `0.32.1`（L23）。
 - `zr_vm_rust_binding` / `zr_vm_rust_binding_sys` 是指向仓库外 `../../zr_vm/...` 的路径依赖（`zircon_runtime/Cargo.toml`，optional），由 feature `backend-zr-vm` 门控。2026-06-12 的 plugin lifecycle 修复已在 `../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding/src/lib.rs` 落地空参数导出调用 marshalling 防御，当前 `backend-zr-vm` 验证必须与这份本地 binding 修复配对。
@@ -77,7 +77,7 @@ last_refined: 2026-08-01
 1. 活动会话对齐：列出 `.codex/sessions/` 最新条目（细化时点最近为 `20260612-0222-runtime-plan-engineering-refinement.md`），确认无并发会话占用文本栈 / 物理 / 选型文档同一路径。
 2. worktree 脏文件检查（应全部无输出，或差异与本计划无关）：
    - `git status --porcelain -- Cargo.toml zircon_runtime/Cargo.toml zircon_editor/Cargo.toml zircon_runtime_interface/Cargo.toml`
-   - `git status --porcelain -- docs/engine-architecture/ docs/zircon_runtime/ui/text.md docs/zircon_plugins/`
+   - `git status --porcelain -- docs/architecture/ docs/crates/zircon_runtime/ui/text.md docs/crates/zircon_plugins/`
    - `git status --porcelain -- zircon_runtime/src/tests/ zircon_runtime/src/ui/text/`
 3. 行号/事实重核（行号漂移则以重核结果为准并回写本计划）：
    - `grep -n "winit\|notify\|wgpu\|naga\|glam" Cargo.toml`（核 L37/L27/L36/L26/L23）
@@ -95,15 +95,15 @@ last_refined: 2026-08-01
 
 #### 切片 1.1 权威技术选型文档
 
-- 目标文件：`docs/engine-architecture/runtime-tech-stack.md`（新建；2026-06-12 已核验该目录现有 21 个文档，无 tech-stack/选型类重名）；`docs/engine-architecture/index.md`（挂接一行链接）。
+- 目标文件：`docs/architecture/runtime-tech-stack.md`（新建；2026-06-12 已核验该目录现有 21 个文档，无 tech-stack/选型类重名）；`docs/architecture/index.md`（挂接一行链接）。
 - 改动形态：本条保留 2026-06-12 建档历史；当前权威矩阵已前向更新为 Kira 0.12.2 由 Sound runtime 唯一拥有、zip 由 archive materializer 唯一拥有，cosmic-text/rfd/arboard/tar 继续是 non-dependencies。任何旧“kira 全仓不存在”判词均被当前 owner合同取代。
-- 调用方迁移：无代码调用方；文档入口在 `docs/engine-architecture/index.md` 增链接。
+- 调用方迁移：无代码调用方；文档入口在 `docs/architecture/index.md` 增链接。
 - 验收：`runtime_tech_stack_doc_exists_and_is_linked_from_architecture_index`（归属切片 1.4 新建的 `zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs`）——断言新文档文件存在、`index.md` 文本含 `runtime-tech-stack`。
-- DoD：`test -f docs/engine-architecture/runtime-tech-stack.md && grep -q runtime-tech-stack docs/engine-architecture/index.md` 均真。
+- DoD：`test -f docs/architecture/runtime-tech-stack.md && grep -q runtime-tech-stack docs/architecture/index.md` 均真。
 
 #### 切片 1.2 winit / notify 预发布版本锁定策略
 
-- 目标文件：`docs/engine-architecture/runtime-tech-stack.md`（"预发布版本治理"章节）；根 `Cargo.toml` 只读核验（L37/L27），本切片不 bump 版本。
+- 目标文件：`docs/architecture/runtime-tech-stack.md`（"预发布版本治理"章节）；根 `Cargo.toml` 只读核验（L37/L27），本切片不 bump 版本。
 - 改动形态：决策记录——winit 锁定 `0.31.0-beta.2`，升级 gate = 0.31 final 发布 + `ApplicationHandler` API 无破坏性变更确认；notify 锁定 `9.0.0-rc.3`，gate = 9.0 final。升级窗口到来时必须独立成里程碑（见"风险与协调"）。
 - 调用方迁移：无。
 - 验收：`runtime_manifest_keeps_pinned_prerelease_versions_until_upgrade_gate`（tech_stack_dependency_guard.rs）——断言根 `Cargo.toml` 含 `0.31.0-beta.2` 与 `9.0.0-rc.3` 字面，使任何 silent bump 必须连同守卫与决策文档一起改。
@@ -111,7 +111,7 @@ last_refined: 2026-08-01
 
 #### 切片 1.3 zr_vm 仓外路径依赖治理决策
 
-- 目标文件：`docs/engine-architecture/runtime-tech-stack.md`（"仓外路径依赖"章节）。
+- 目标文件：`docs/architecture/runtime-tech-stack.md`（"仓外路径依赖"章节）。
 - 改动形态：决策记录三选一并给成本表——A 保持 `../../zr_vm` 外部 checkout（文档化目录布局与 clone-即建说明；optional + `backend-zr-vm` 门控已缓解）；B 迁入 `zircon_plugins` workspace；C git submodule。本里程碑只记录决策，不动 `zircon_runtime/Cargo.toml`。
 - 调用方迁移：无。
 - 验收：`zr_vm_path_dependency_gate_is_documented_with_version_pairing`（tech_stack_dependency_guard.rs）——断言 `zircon_runtime/Cargo.toml` 中 `zr_vm_rust_binding` 仍是 optional 外部路径依赖，且 `[features]` 含 `backend-zr-vm`；文档同步记录空参数导出调用的 binding 版本配对 gate。
@@ -146,13 +146,13 @@ fn zr_vm_path_dependency_gate_is_documented_with_version_pairing() { /* 断言 o
 - 里程碑末：
   - `cargo test -p zircon_runtime --lib tech_stack --locked -- --nocapture`
   - `cargo test -p zircon_runtime --lib extensions --locked`（extensions 守卫树无回归）
-- 验收证据：守卫通过；选型文档与 §1.1 核对表逐项一致；`docs/engine-architecture/index.md` 挂接完成。
+- 验收证据：守卫通过；选型文档与 §1.1 核对表逐项一致；`docs/architecture/index.md` 挂接完成。
 
 ### M2 文本栈职责定稿
 
 #### 切片 2.1 三层职责矩阵
 
-- 目标文件：`docs/zircon_runtime/ui/text.md`（更新；2026-06-12 核验该文档已存在且含 `UiTextShaper` boundary 章节——原计划"写入"按既有文件增量章节执行，非新建）。
+- 目标文件：`docs/crates/zircon_runtime/ui/text.md`（更新；2026-06-12 核验该文档已存在且含 `UiTextShaper` boundary 章节——原计划"写入"按既有文件增量章节执行，非新建）。
 - 改动形态：新增"后端职责矩阵"章节，三层各列输入/输出/owner 模块：
   - 层 1 shaping/分段：自研 shaper + unicode-segmentation `1.13.2`；owner `zircon_runtime/src/ui/text/{shaper.rs,grapheme.rs,layout_engine.rs}`；公共入口仅 `layout_text`（其余 `pub(crate)`）。
   - 层 2 光栅/SDF：fontsdf `0.5.3`（runtime）对 fontdue `0.9.3`（editor-only，softbuffer 自绘栈）。
@@ -163,7 +163,7 @@ fn zr_vm_path_dependency_gate_is_documented_with_version_pairing() { /* 断言 o
 
 #### 切片 2.2 cosmic-text（及 parley/swash/harfbuzz）评估决策
 
-- 目标文件：`docs/engine-architecture/runtime-tech-stack.md`（文本栈章节）；`docs/zircon_runtime/ui/text.md`（交叉引用一行）。
+- 目标文件：`docs/architecture/runtime-tech-stack.md`（文本栈章节）；`docs/crates/zircon_runtime/ui/text.md`（交叉引用一行）。
 - 改动形态：决策记录——默认"不引入"；引入触发条件 = BiDi/连字/复杂文种成为真实需求；替换面固定 = 以 `UiTextShaper` trait（shaper.rs:34-37，`shape_text`/`measure_text` 两操作）实现替换 shaper 层，不替 glyphon GPU 提交。注意：`text.md` 既有口径写的是 Parley/Swash/HarfBuzz 候选，本切片把候选清单（含 cosmic-text）统一收口到选型文档，消除两处口径分叉。对照：`dev/bevy/crates/bevy_text/src/lib.rs`（cosmic-text 方案）。
 - 调用方迁移：无。
 - 验收：决策记录含"不引入"判词、触发条件、替换面三要素；`text.md` 不再保留与选型文档冲突的候选口径。
@@ -171,7 +171,7 @@ fn zr_vm_path_dependency_gate_is_documented_with_version_pairing() { /* 断言 o
 
 #### 切片 2.3 fontdue 留任裁决
 
-- 目标文件：`docs/engine-architecture/runtime-tech-stack.md`；若裁决"待移除"则 backlog 条目落 `docs/editor-and-tooling/index.md`（执行时核验挂接位置：`grep -n -i backlog docs/editor-and-tooling/index.md`，无既有 backlog 段则新增段落）。
+- 目标文件：`docs/architecture/runtime-tech-stack.md`；若裁决"待移除"则 backlog 条目落 `docs/editor/index.md`（执行时核验挂接位置：`grep -n -i backlog docs/editor/index.md`，无既有 backlog 段则新增段落）。
 - 改动形态：决策记录——若 editor 文本最终走 runtime UI 链路（glyphon/SDF）渲染，fontdue `0.9.3`（`zircon_editor/Cargo.toml:11`）标记为待移除项并入 editor 计划；本计划不动任何 manifest。连带记录同一决策面：editor 的 winit 直依（L23）与 softbuffer（L19）自绘栈整体归属。
 - 调用方迁移：无（fontdue 调用方枚举归 editor 计划执行期：Grep 模式 `fontdue::`，path `zircon_editor/src`）。
 - 验收：M1 守卫 `fontdue_and_text_raster_stack_stay_out_of_runtime_manifest` 持续通过——防止裁决落地前 fontdue 被误迁入 runtime。
@@ -189,9 +189,9 @@ fn zr_vm_path_dependency_gate_is_documented_with_version_pairing() { /* 断言 o
 
 #### 切片 3.1 物理选型 spike（基线修正版）
 
-- 当前落地补记（2026-07-10）：选型已从 spike 进入 Plugins 03 M1-T3 实现；本节后续条目保留为历史设计输入，当前事实以 `docs/zircon_plugins/physics-plugin-options.md` 和 Runtime 01 编号产出记录为准。
+- 当前落地补记（2026-07-10）：选型已从 spike 进入 Plugins 03 M1-T3 实现；本节后续条目保留为历史设计输入，当前事实以 `docs/crates/zircon_plugins/physics-plugin-options.md` 和 Runtime 01 编号产出记录为准。
 
-- 目标文件：`docs/zircon_plugins/physics-plugin-options.md`（新建，格式对齐 `docs/zircon_plugins/rendering-plugin-options.md`）；`docs/zircon_plugins/physics/runtime.md`（交叉引用更新）。
+- 目标文件：`docs/crates/zircon_plugins/physics-plugin-options.md`（新建，格式对齐 `docs/crates/zircon_plugins/rendering-plugin-options.md`）；`docs/crates/zircon_plugins/physics/runtime.md`（交叉引用更新）。
 - 基线矫正（2026-06-12 重核）：spike 出发点是"已有自研最小刚体/查询雏形"，不是"从零"——`zircon_plugins/physics` 现有 37 文件 / 4353 行（manager 7 文件 859 行、query_contact raycast/overlap/contact/filter/geometry、trigger、scene_hook、1707 行契约测试）。
 - 改动形态：决策记录三方案对比表（方案/理由/参考引擎对照/接入边界/回退条件）：A jolt-rust 绑定填入既有 jolt 槽位（`backend.rs:5-10`：`JOLT_ENABLED = cfg!(feature = "jolt")`、`JOLT_BACKEND_AVAILABLE = false`）；B rapier；C 扩展自研 builtin_step。接入边界固定不变：`core::framework::physics` 契约 + `zircon_plugins/physics` 实现，runtime 不直依物理库（既有守卫 `physics_domain_keeps_framework_contract_and_plugin_owns_runtime_behavior` 已断言 runtime manifest 不含插件 crate）。决策输出必须裁决两处 `jolt = []` 空 feature 去留（`zircon_runtime/Cargo.toml:18`、`zircon_plugins/physics/runtime/Cargo.toml:10`）：若弃 jolt 方案则两处删除——硬切换，不留 alias feature；删除落地归实现计划。
 - 参考对照（一行一点）：Fyrox = rapier 外挂（`dev/Fyrox/fyrox-impl/Cargo.toml:30-31`）；Godot = 自研 + Jolt 双后端（`dev/godot/modules/{godot_physics_3d,jolt_physics}`）；Bevy = 核心无物理、生态 rapier/avian 外挂（`dev/bevy/crates` 无 physics crate）。
@@ -201,7 +201,7 @@ fn zr_vm_path_dependency_gate_is_documented_with_version_pairing() { /* 断言 o
 
 #### 切片 3.2 导出归档决策
 
-- 目标文件：`docs/engine-architecture/runtime-editor-pluginized-export.md`（更新，2026-06-12 核验存在）或 `runtime-tech-stack.md` 归档章节——执行时定稿单一落点，禁止双写。
+- 目标文件：`docs/architecture/runtime-editor-pluginized-export.md`（更新，2026-06-12 核验存在）或 `runtime-tech-stack.md` 归档章节——执行时定稿单一落点，禁止双写。
 - 改动形态：决策记录——`ExportPackagingStrategy`（`export_profile.rs:115-121` 三变体）的归档实现三选一：zip crate / tar + 既有 zstd `0.13.3` / 自定容器；评估列含格式兼容、压缩率、流式读取、跨平台路径语义。决策不改变枚举形状与 `default_export_strategies()` 默认值（L188-193，`[SourceTemplate, LibraryEmbed]`）；落地实现归 export_build_plan owner（`zircon_runtime/src/plugin/export_build_plan/`）。
 - 调用方迁移：`ExportPackagingStrategy` 全仓引用 76 个代码文件 / 386 处（>10）：代表路径 `zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs`、`zircon_runtime/src/plugin/runtime_plugin/descriptor.rs`、`zircon_editor/src/ui/host/editor_manager_plugins_export/status/native.rs`；枚举命令：Grep 模式 `ExportPackagingStrategy`，glob `**/*.rs`。本切片决策零迁移；若未来新增变体归 owner 实现计划。
 - 验收：决策记录含三方案对比表 + 与默认策略集的兼容声明 + owner 计划落地条目链接；ZIP materialization 落地后由 `export_archive_policy_allows_zip_only_for_archive_materializer` 断言 `zip` 只允许 runtime archive materializer 使用，且 `tar` 仍未进入 manifests。
@@ -209,7 +209,7 @@ fn zr_vm_path_dependency_gate_is_documented_with_version_pairing() { /* 断言 o
 
 #### 切片 3.3 rfd / arboard 归属裁决
 
-- 目标文件：`docs/engine-architecture/runtime-tech-stack.md`（"明确不在 runtime 栈"清单）；`docs/editor-and-tooling/index.md` 或独立 backlog 文档（执行时定稿，与切片 2.3 的 backlog 落点保持同处）。
+- 目标文件：`docs/architecture/runtime-tech-stack.md`（"明确不在 runtime 栈"清单）；`docs/editor/index.md` 或独立 backlog 文档（执行时定稿，与切片 2.3 的 backlog 落点保持同处）。
 - 改动形态：决策记录——rfd（文件对话框）/arboard（剪贴板）确认为 `zircon_editor` 需求，移出 runtime 声称栈；editor backlog 条目含需求场景、候选版本、预期接入位置（`zircon_editor/src/ui/host` 一带，执行时核验：`ls zircon_editor/src/ui/host`）。
 - 调用方迁移：无（两库全仓 0 命中，grep 已证）。
 - 验收：`runtime-tech-stack.md` 含"editor-only 候选"清单且明确 runtime 不引入两库。
@@ -219,7 +219,7 @@ fn zr_vm_path_dependency_gate_is_documented_with_version_pairing() { /* 断言 o
 
 - 本里程碑以决策记录为产物，无新代码。切片期与里程碑末：`git status --porcelain` 确认仅 `docs/` 变更；`cargo check -p zircon_runtime --lib --locked` 确认无意外代码漂移。
 - 既有物理契约锚点回归确认（可选）：`cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_runtime --locked`
-- 验收证据：三份决策记录（方案、理由、参考引擎对照、接入边界、回退条件）齐备；`docs/zircon_plugins/physics-plugin-options.md` 与 `rendering-plugin-options.md` 同格式。
+- 验收证据：三份决策记录（方案、理由、参考引擎对照、接入边界、回退条件）齐备；`docs/crates/zircon_plugins/physics-plugin-options.md` 与 `rendering-plugin-options.md` 同格式。
 
 ## 状态与产出记录
 

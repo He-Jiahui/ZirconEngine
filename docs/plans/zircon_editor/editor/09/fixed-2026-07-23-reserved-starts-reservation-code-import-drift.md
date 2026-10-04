@@ -9,9 +9,6 @@ origin_child_dir: docs/plans/zircon_editor/editor/09
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/reserved_starts.py
-  - tools/session_coordinator/cargo_jobs.py
-  - tools/session_coordinator/cargo_reservations.py
 tests:
   - python -m tools.session_coordinator.cli --json status
 resolved_at: 2026-07-23

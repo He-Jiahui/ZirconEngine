@@ -1,3 +1,6 @@
+//! 动态分发候选的加载前兼容门；加载和只验证路径共用此判断。
+//! 逗号分隔的比较子句须同时成立，语法与构建时 plugin validate 对照。
+
 use crate::plugin::PluginPackageManifest;
 
 use super::ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3;
@@ -50,6 +53,7 @@ impl std::fmt::Display for NativeDistributionCompatibilityError {
     }
 }
 
+/// 开库前检查 dist 形态、ABI 与当前引擎版本；有诊断时调用方跳过候选。
 pub(super) fn native_distribution_compatibility_diagnostic(
     plugin_id: &str,
     package_manifest: &PluginPackageManifest,
@@ -94,6 +98,7 @@ pub(super) fn native_distribution_compatibility_diagnostic(
     }
 }
 
+/// 按范围子句判断当前引擎是否可加载该插件；第一个不匹配即停止。
 fn engine_compat_matches(
     range: &str,
     current: &str,
@@ -112,6 +117,8 @@ fn engine_compat_matches(
             VersionComparator::LessThan => current < version,
             VersionComparator::LessThanOrEqual => current <= version,
         };
+        // TODO: [CR-PLUGIN-NATIVE-0603] 确认短路后是否仍须校验尾部子句语法；
+        // 当前前段不匹配时，后段畸形会被报告为版本不匹配而非无效范围。
         if !matches {
             return Ok(false);
         }
@@ -138,6 +145,7 @@ fn parse_comparator(
     Ok((comparator, parse_engine_version(version.trim())?))
 }
 
+/// 只比较数值 release 的 major/minor/patch；预发布及构建后缀不参与排序。
 fn parse_engine_version(version: &str) -> NativeDistributionCompatibilityResult<EngineVersion> {
     let release = version
         .split(|ch| ch == '-' || ch == '+')
@@ -183,60 +191,9 @@ fn parse_version_component(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::plugin::{PluginDistributionManifest, PluginPackageManifest};
-
-    #[test]
-    fn engine_compat_accepts_current_minor_range() {
-        assert!(engine_compat_matches(">=0.1, <0.2", "0.1.0").unwrap());
-    }
-
-    #[test]
-    fn engine_compat_reports_empty_comparator_with_typed_error() {
-        let error = engine_compat_matches(">=0.1, , <0.2", "0.1.0")
-            .expect_err("empty comparator should be rejected");
-
-        assert_eq!(error, NativeDistributionCompatibilityError::EmptyComparator);
-        assert_eq!(error.to_string(), "empty comparator");
-    }
-
-    #[test]
-    fn engine_compat_reports_invalid_version_component_with_typed_error() {
-        let error = engine_compat_matches(">=0.x", "0.1.0")
-            .expect_err("invalid version component should be rejected");
-
-        assert_eq!(
-            error,
-            NativeDistributionCompatibilityError::NonNumericVersionComponent {
-                version: "0.x".to_string(),
-                component: "x".to_string(),
-            }
-        );
-        assert_eq!(
-            error.to_string(),
-            "version \"0.x\" contains non-numeric component \"x\""
-        );
-    }
-
-    #[test]
-    fn distribution_diagnostic_rejects_unsupported_abi_version() {
-        let manifest = PluginPackageManifest::new("future_native", "Future Native")
-            .with_distribution(PluginDistributionManifest {
-                forms: vec!["dist".to_string()],
-                abi_version: Some(ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3 + 1),
-                engine_compat: ">=0.1, <0.2".to_string(),
-                ..PluginDistributionManifest::default()
-            });
-
-        let diagnostic = native_distribution_compatibility_diagnostic("future_native", &manifest)
-            .expect("unsupported ABI should produce a diagnostic");
-
-        assert!(diagnostic.contains("abi_version"));
-        assert!(diagnostic.contains("incompatible with loader ABI"));
-    }
-}
+#[path = "tests/compatibility.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "compatibility/version_streaming_tests.rs"]
+#[path = "compatibility/tests/version_streaming_tests.rs"]
 mod version_streaming_tests;

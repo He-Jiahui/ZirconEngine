@@ -1,3 +1,4 @@
+//! 输出描述在停机重配前验证格式与后端限制，提前拒绝 Kira 目前不能驱动的多声道设备。
 use zircon_runtime::core::framework::sound::{SoundError, SoundOutputDeviceDescriptor};
 
 use crate::kira_bridge::KIRA_CPAL_BACKEND;
@@ -68,6 +69,11 @@ pub(crate) fn validate_output_device_descriptor(
     if descriptor.block_size_frames == 0 {
         return Err(SoundError::InvalidParameter(
             "output block size must be non-zero".to_string(),
+        ));
+    }
+    if descriptor.block_size_frames > u32::MAX as usize {
+        return Err(SoundError::InvalidParameter(
+            "output block size exceeds CPAL's u32 frame limit".to_string(),
         ));
     }
     if descriptor.latency_blocks == 0 {

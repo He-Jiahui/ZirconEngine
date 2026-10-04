@@ -18,14 +18,12 @@ fn surface_dirty_render_reuses_unchanged_commands_without_damage() {
     assert_eq!(report.render_command_reused_count, command_count);
     assert_eq!(report.render_command_rebuilt_count, 0);
     assert_eq!(report.render_damage_rect_count, 0);
-    assert!(
-        surface
-            .render_extract
-            .list
-            .to_paint_elements()
-            .iter()
-            .all(|element| element.cache_generation.is_some())
-    );
+    assert!(surface
+        .render_extract
+        .list
+        .to_paint_elements()
+        .iter()
+        .all(|element| element.cache_generation.is_some()));
     assert_dirty_cleared(&surface);
 }
 
@@ -130,12 +128,10 @@ composition_text = ""
         .unwrap();
 
     assert_eq!(mutation.status, UiPropertyMutationStatus::Rejected);
-    assert!(
-        mutation
-            .message
-            .as_deref()
-            .is_some_and(|message| message.contains("editable text transaction"))
-    );
+    assert!(mutation
+        .message
+        .as_deref()
+        .is_some_and(|message| message.contains("editable text transaction")));
     assert_eq!(mutation.invalidation.dirty, UiDirtyFlags::default());
     assert_eq!(mutation.binding.rejected_count, 1);
     assert_eq!(
@@ -208,13 +204,14 @@ composition_clauses = [{ start_byte = 0, end_byte = 5, kind = "input" }]
     assert_eq!(attributes["caret_affinity"].as_str(), Some("downstream"));
     assert_eq!(attributes["selection_anchor"].as_integer(), Some(2));
     assert_eq!(attributes["selection_focus"].as_integer(), Some(2));
-    assert_eq!(attributes["composition_start"].as_integer(), Some(2));
-    assert_eq!(attributes["composition_end"].as_integer(), Some(2));
+    assert_eq!(attributes["composition_start"].as_integer(), Some(-1));
+    assert_eq!(attributes["composition_end"].as_integer(), Some(-1));
     assert_eq!(attributes["composition_text"].as_str(), Some(""));
     assert_eq!(attributes["composition_restore_text"].as_str(), Some(""));
+    let empty_clauses = Vec::<toml::Value>::new();
     assert_eq!(
         attributes["composition_clauses"].as_array(),
-        Some([].as_slice())
+        Some(&empty_clauses)
     );
 }
 

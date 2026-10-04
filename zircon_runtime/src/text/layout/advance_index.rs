@@ -1,10 +1,11 @@
 use crate::core::framework::text::TextDirection;
+use crate::text::layout_geometry::{finite_geometry, FiniteGeometryAccumulator};
 use crate::text::shaping::{TextLayoutOutcome, TextShapeRunProvider};
 use crate::text::{ShapedGlyphBreakSafety, TextStyle};
 use unicode_segmentation::UnicodeSegmentation;
 
 use super::line_break::corrected_index_advance_with_provider;
-use super::{MeasuredClusterCaretPolicy, MeasuredGlyphCluster, measure_line_with_provider};
+use super::{measure_line_with_provider, MeasuredClusterCaretPolicy, MeasuredGlyphCluster};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct GraphemeAdvanceMetric {
@@ -37,7 +38,7 @@ impl BoundaryBreakSafetyCounts {
 #[derive(Clone, Debug, Default)]
 pub(crate) struct GraphemeAdvanceIndex {
     metrics: Vec<GraphemeAdvanceMetric>,
-    prefix_advances: Vec<f32>,
+    prefix_advances: Vec<FiniteGeometryAccumulator>,
     glyph_clusters: Vec<MeasuredGlyphCluster>,
 }
 
@@ -93,10 +94,11 @@ impl GraphemeAdvanceIndex {
         glyph_clusters
             .sort_by_key(|cluster| (cluster.source_range.start, cluster.source_range.end));
         let mut prefix_advances = Vec::with_capacity(metrics.len().saturating_add(1));
-        prefix_advances.push(0.0);
+        let mut prefix = FiniteGeometryAccumulator::default();
+        prefix_advances.push(prefix);
         for metric in &metrics {
-            let next = prefix_advances.last().copied().unwrap_or_default() + metric.advance;
-            prefix_advances.push(next);
+            prefix.add(finite_non_negative(metric.advance));
+            prefix_advances.push(prefix);
         }
         Self {
             metrics,
@@ -118,7 +120,9 @@ impl GraphemeAdvanceIndex {
         let Some(after_last_prefix) = self.prefix_advances.get(after_last) else {
             return 0.0;
         };
-        finite_non_negative(after_last_prefix - first_prefix)
+        finite_non_negative(finite_geometry(
+            after_last_prefix.exact() - first_prefix.exact(),
+        ))
     }
 
     pub(crate) fn corrected_advance_with_provider<P>(
@@ -195,7 +199,12 @@ impl GraphemeAdvanceIndex {
                 true,
             ));
         }
-        if visual_advance >= self.prefix_advances.last().copied().unwrap_or_default() {
+        if visual_advance
+            >= self
+                .prefix_advances
+                .last()
+                .map_or(0.0, |prefix| prefix.value())
+        {
             return Some((
                 crate::text::TextRange {
                     start: last_metric.source_start,
@@ -206,7 +215,7 @@ impl GraphemeAdvanceIndex {
         }
         let metric_index = self
             .prefix_advances
-            .partition_point(|prefix| *prefix <= visual_advance)
+            .partition_point(|prefix| prefix.value() <= visual_advance)
             .saturating_sub(1)
             .min(self.metrics.len().saturating_sub(1));
         let metric = self.metrics.get(metric_index)?;
@@ -476,6 +485,7 @@ impl GraphemeAdvanceIndex {
     }
 
     fn metric_range(&self, start: usize, end: usize) -> (usize, usize) {
+        // metrics 按逻辑源偏移排列；这里的二分范围不能按视觉重排后的 glyph 顺序解释。
         if start >= end {
             let index = self
                 .metrics
@@ -518,4 +528,5 @@ fn finite_non_negative(value: f32) -> f32 {
 }
 
 #[cfg(test)]
+#[path = "advance_index/tests/cases.rs"]
 mod tests;

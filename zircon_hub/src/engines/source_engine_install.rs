@@ -8,6 +8,7 @@ const BUILD_HISTORY_LIMIT: usize = 8;
 
 // Stored per source checkout so Hub can show recent source-build attempts without
 // scanning target directories or build logs during normal UI rendering.
+/// 保存在 Hub 配置中的一次源码构建摘要，供历史视图诊断，不能代替产物资格验证。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SourceBuildRecord {
     pub finished_unix_ms: u64,
@@ -23,6 +24,7 @@ pub struct SourceBuildRecord {
     pub command_line: Vec<String>,
 }
 
+/// 一个源码检出与其发布输出根的稳定登记项；项目绑定引用 `id`，构建历史随登记项持久化。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SourceEngineInstall {
     pub id: String,
@@ -36,10 +38,12 @@ pub struct SourceEngineInstall {
 }
 
 impl SourceEngineInstall {
+    /// 返回已发布引擎所在位置；启动 Editor 前仍须验证对应的分阶段构建产物。
     pub fn staged_engine_dir(&self) -> PathBuf {
         self.output_dir.join("ZirconEngine")
     }
 
+    /// 构建终结时追加有限历史；失败记录不覆盖最近一次成功构建时间。
     pub fn record_build(&mut self, record: SourceBuildRecord) {
         if record.status == "success" {
             self.last_build_unix_ms = Some(record.finished_unix_ms);
@@ -50,29 +54,5 @@ impl SourceEngineInstall {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn record_build_keeps_newest_history_and_last_success() {
-        let mut engine = SourceEngineInstall::default();
-
-        for index in 0..10 {
-            engine.record_build(SourceBuildRecord {
-                finished_unix_ms: index,
-                status: if index == 9 { "success" } else { "failed" }.to_string(),
-                profile: "debug".to_string(),
-                jobs: Some(1),
-                output_dir: PathBuf::from("E:/out"),
-                detail: HubMessage::raw_text(format!("run {index}")),
-                log_excerpt: HubMessage::raw_text(format!("log {index}")),
-                command_line: vec!["python".to_string(), "tools/zircon_build.py".to_string()],
-            });
-        }
-
-        assert_eq!(engine.last_build_unix_ms, Some(9));
-        assert_eq!(engine.build_history.len(), BUILD_HISTORY_LIMIT);
-        assert_eq!(engine.build_history[0].detail, "run 9");
-        assert_eq!(engine.build_history[7].detail, "run 2");
-    }
-}
+#[path = "tests/source_engine_install.rs"]
+mod tests;

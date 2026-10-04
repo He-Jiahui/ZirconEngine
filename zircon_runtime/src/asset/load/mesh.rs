@@ -96,5 +96,5 @@ pub(crate) fn generate_cube_mesh() -> CpuMeshPayload {
 }
 
 #[cfg(test)]
-#[path = "mesh/extension_dispatch_tests.rs"]
+#[path = "mesh/tests/extension_dispatch_tests.rs"]
 mod extension_dispatch_tests;

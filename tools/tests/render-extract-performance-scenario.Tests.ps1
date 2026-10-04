@@ -1,3 +1,4 @@
+# 验证渲染提取场景定义和运行参数绑定，并检查采集与报告的来源一致性。
 $script:ScenarioModule = Join-Path $PSScriptRoot '..\mvp\RenderExtractPerformanceScenario.psm1'
 
 Describe 'render-extract performance scenario contract' {

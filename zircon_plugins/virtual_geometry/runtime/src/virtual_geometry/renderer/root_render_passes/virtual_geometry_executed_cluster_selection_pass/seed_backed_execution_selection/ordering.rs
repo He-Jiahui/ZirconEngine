@@ -91,6 +91,7 @@ pub(super) fn seed_backed_cluster_ordering_from_cluster_work_items(
     finalize_seed_backed_cluster_ordering(clusters_by_entity)
 }
 
+// 对每个实体按 cluster_id 排序并去重，使簇序号与总数不依赖 extract 的原始排列。
 fn finalize_seed_backed_cluster_ordering(
     clusters_by_entity: HashMap<u64, Vec<RenderVirtualGeometryCluster>>,
 ) -> HashMap<(u64, u32), SeedBackedClusterOrdering> {
@@ -118,4 +119,5 @@ fn finalize_seed_backed_cluster_ordering(
 }
 
 #[cfg(test)]
+#[path = "ordering/tests/allocation_tests.rs"]
 mod allocation_tests;

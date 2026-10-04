@@ -1,3 +1,5 @@
+// 布局与场景光缓冲及 Rust 的体积散射上传参数保持一致；
+// 光类型按位编码，阴影字段使用整数标志；时间抖动与历史混合权重使用浮点值。
 struct ZrGpuLightData {
     position_range: vec4<f32>,
     color_intensity: vec4<f32>,

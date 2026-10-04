@@ -1,3 +1,5 @@
+// GPUScene 的共享 WGSL 读取契约：CPU 按同一布局写入 primitive、instance 与可见实例重映射。
+// 模板着色器与回退源码都读取此片段；改字段或 binding 时须同步主机端 ABI。
 struct ZrGpuPrimitiveData {
     local_bounds_center: vec3<f32>,
     local_bounds_radius: f32,
@@ -117,6 +119,8 @@ fn zr_previous_skinned_joint_matrix(instance_index: u32, joint_index: u32) -> ma
     return zr_previous_skinned_joint_palette[base + joint_index];
 }
 
+// 间接压缩后 instance_index 指向紧缩槽位；普通绘制仍用原索引。
+// 调用端须设置与当前 pass 绑定组一致的 remap 开关与实例表。
 fn zr_gpu_scene_resolve_instance_index(instance_index: u32) -> u32 {
     if (zr_visible_instance_remap_params.values.x != 0u) {
         return zr_visible_instance_remap[instance_index];

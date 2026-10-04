@@ -1,6 +1,7 @@
+# 核对嵌套绑定载荷的投影模型避免递归值克隆并处理空集合。
 import unittest
 
-from tools.editor_binding_payload_projection_pressure import model_pressure
+from tools.analysis.performance.editor.editor_binding_payload_projection_pressure import model_pressure
 
 
 class EditorBindingPayloadProjectionPressureTests(unittest.TestCase):

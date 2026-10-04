@@ -1,3 +1,4 @@
+//! 性能热点的结构守卫核对拥有者、文件预算和证据文档。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn runtime_07_artifact_cache_payload_owner_split_keeps_wire_types_folder_backed() {
     let cache_root = include_str!("../../../../asset/artifact/cache_payload.rs");
@@ -16,9 +17,11 @@ fn runtime_07_artifact_cache_payload_owner_split_keeps_wire_types_folder_backed(
     );
     let runtime_index =
         include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let hotspot_doc =
-        include_str!("../../../../../../docs/zircon_runtime/performance/hotspot_inventory.md");
-    let artifact_doc = include_str!("../../../../../../docs/zircon_runtime/asset/artifact.md");
+    let hotspot_doc = include_str!(
+        "../../../../../../docs/crates/zircon_runtime/performance/hotspot_inventory.md"
+    );
+    let artifact_doc =
+        include_str!("../../../../../../docs/crates/zircon_runtime/asset/artifact.md");
 
     for root_anchor in [
         "mod json_value;",

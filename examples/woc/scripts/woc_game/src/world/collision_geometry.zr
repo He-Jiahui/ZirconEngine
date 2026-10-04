@@ -40,6 +40,7 @@ worldZ(localXValue: float, localZValue: float, centerZ: float, rotation: float):
     return centerZ - localXValue * math.sin(rotation) + localZValue * math.cos(rotation);
 }
 
+// X/Z 两个访问器必须用相同输入点分别取完整 pushOut 结果；上层 resolver 先缓存两轴再推进。
 pub circleResolvedX(
     x: float,
     z: float,

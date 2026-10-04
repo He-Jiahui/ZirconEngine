@@ -10,7 +10,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from tools.zircon_export import plugin_validate
+from tools.export import (
+    plugin_validate,
+    plugin_validate_global_identities,
+)
 
 
 class PluginGlobalIdentitySingleScanPerformanceContractTests(unittest.TestCase):
@@ -36,7 +39,11 @@ class PluginGlobalIdentitySingleScanPerformanceContractTests(unittest.TestCase):
                 }
 
             diagnostics: list[str] = []
-            with mock.patch.object(plugin_validate, "read_toml", read_manifest):
+            with mock.patch.object(
+                plugin_validate_global_identities,
+                "read_toml",
+                read_manifest,
+            ):
                 plugin_validate.validate_plugin_global_identities(root, diagnostics)
 
             self.assertEqual(len(manifests), reads)

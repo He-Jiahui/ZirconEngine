@@ -1,5 +1,5 @@
-// This module is deliberately scalar-only until the Plugins 08 container ABI
-// can carry a complete decoded movement batch into the authoritative world.
+//! 保存移动协议的标量回归规则；实际字节批次由协议解码器导入世界，输入保持与过期由世界状态管理。
+/// 供标量协议回归比较保持输入的过期界限；步号来自模拟时钟，不使用墙钟或呈现帧。
 pub staleAfterTicks(required: bool): uint {
     if (!required) {
         throw "woc movement stale threshold is required";
@@ -7,6 +7,8 @@ pub staleAfterTicks(required: bool): uint {
     return <uint>15;
 }
 
+// TODO: [CR-WOC-BASE-0001] 确认未携带朝向时标量验证是否应要求零值；实际帧解码器会拒绝非零朝向，但此处直接接受；下一步补对照向量并明确两者的使用边界。
+/// 供标量测试检查身份及可选朝向的范围，不验证实体代际、批次排序或序列是否已被世界接收。
 pub frameIsValid(
     actorId: uint,
     sequence: uint,
@@ -28,6 +30,7 @@ pub frameIsValid(
     return facing >= -1000.0 && facing <= 1000.0;
 }
 
+/// 仅在调用方已确认步号单调时使用；恰好到达界限仍保留输入，下一个模拟步才视为过期。
 pub isStale(
     acceptedTick: uint,
     currentTick: uint,

@@ -5,7 +5,7 @@ use zircon_runtime_interface::ui::{
 use super::host_menu_pointer_bridge::HostMenuPointerBridge;
 use super::host_menu_pointer_dispatch::HostMenuPointerDispatch;
 use super::host_menu_pointer_route_intent::HostMenuPointerRouteIntent;
-use super::menu_item_tree::parent_path;
+use super::menu_item_tree::reuse_parent_path;
 use super::route_conversion::to_public_route;
 
 impl HostMenuPointerBridge {
@@ -49,9 +49,9 @@ impl HostMenuPointerBridge {
                 item_path,
                 ..
             }) => {
-                let parent = parent_path(item_path);
-                if self.state.open_submenu_path != parent {
-                    self.state.open_submenu_path = parent;
+                let parent_len = item_path.len().saturating_sub(1);
+                if self.state.open_submenu_path.as_slice() != &item_path[..parent_len] {
+                    reuse_parent_path(&mut self.state.open_submenu_path, item_path);
                     rebuild = true;
                 }
                 self.state.hovered_menu_index = Some(*menu_index);

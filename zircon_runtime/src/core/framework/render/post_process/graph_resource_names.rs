@@ -1,11 +1,14 @@
 use super::super::RenderPipelinePhase;
 
+/// 图编译、资源分配与 GPU 执行共用的符号资源命名空间。
+/// 新增视图尺寸相关资源时需补齐阶段归属，否则分配尺寸可能与执行视口分离。
 pub struct PostProcessGraphResourceNames;
 
 impl PostProcessGraphResourceNames {
     pub const SCENE_COLOR: &'static str = "scene-color";
     pub const TRANSMISSION_SCENE_COLOR: &'static str = "transmission.scene-color";
     pub const SCENE_DEPTH: &'static str = "scene-depth";
+    pub const VIEWPORT_OVERLAY_DEPTH: &'static str = "viewport.overlay-depth";
     pub const HALF_RES_TRANSPARENCY_COLOR: &'static str = "transparency.half-res.color";
     pub const HALF_RES_TRANSPARENCY_DEPTH: &'static str = "transparency.half-res.depth";
     pub const SHADOW_ATLAS: &'static str = "shadow-atlas";
@@ -151,7 +154,9 @@ impl PostProcessGraphResourceNames {
             Self::PRIMARY_UPSCALED => Some(RenderPipelinePhase::PrimarySpatialUpscale),
             Self::SECONDARY_UPSCALED => Some(RenderPipelinePhase::SecondarySpatialUpscale),
             Self::FINAL_COLOR => Some(RenderPipelinePhase::OutputTransform),
-            Self::VIEWPORT_OUTPUT => Some(RenderPipelinePhase::Present),
+            Self::VIEWPORT_OUTPUT | Self::VIEWPORT_OVERLAY_DEPTH => {
+                Some(RenderPipelinePhase::Present)
+            }
             Self::COLOR_LUT
             | Self::VOLUMETRIC_MEDIA
             | Self::VOLUMETRIC_SCATTERING

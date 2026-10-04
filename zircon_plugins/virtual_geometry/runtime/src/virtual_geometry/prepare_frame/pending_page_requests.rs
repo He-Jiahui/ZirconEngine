@@ -6,7 +6,7 @@ use super::super::{VirtualGeometryPageRequest, VirtualGeometryRuntimeState};
 use super::available_slots::available_slots;
 
 #[cfg(test)]
-#[path = "pending_page_requests/allocation_tests.rs"]
+#[path = "pending_page_requests/tests/allocation_tests.rs"]
 mod allocation_tests;
 
 #[derive(Clone, Copy)]
@@ -15,6 +15,7 @@ struct AssignedSlotPlan {
     recycled_page_id: Option<u32>,
 }
 
+/// 抑制已有待上传祖先的后代请求，再按请求名次和子页价值规划槽位。
 pub(super) fn pending_page_requests(
     state: &VirtualGeometryRuntimeState,
 ) -> Vec<VirtualGeometryPrepareRequest> {
@@ -120,6 +121,7 @@ fn preferred_recycled_page_id(state: &VirtualGeometryRuntimeState, page_id: u32)
     state.preferred_evictable_page_for_target(page_id, state.evictable_page_ids())
 }
 
+// BUG: [CR-VIRTUAL-GEOMETRY-0003] cooked 页依赖若含 3→1→2→1 环且仅页 3 待上传，父链遍历永不终止，prepare_frame 卡住；见 extract_registration.rs:76-107。
 fn has_pending_ancestor_request(state: &VirtualGeometryRuntimeState, page_id: u32) -> bool {
     let mut current_page_id = page_id;
 

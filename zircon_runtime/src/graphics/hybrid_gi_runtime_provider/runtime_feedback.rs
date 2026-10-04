@@ -1,5 +1,5 @@
-use crate::graphics::VisibilityHybridGiFeedback;
 use crate::graphics::runtime_provider::RuntimeProviderFeedback;
+use crate::graphics::VisibilityHybridGiFeedback;
 
 use super::HybridGiGpuCompletion;
 

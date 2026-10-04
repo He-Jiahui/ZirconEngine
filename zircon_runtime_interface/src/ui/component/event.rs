@@ -43,6 +43,7 @@ pub enum UiComponentEventKind {
 }
 
 impl UiComponentEventKind {
+    /// 动态组件事件以 PascalCase 名称作为 schema token；Runtime 解码依赖 ALL、schema_name 与 from_schema_name 保持闭合往返。
     pub const ALL: [Self; 35] = [
         Self::ValueChanged,
         Self::Commit,
@@ -122,9 +123,44 @@ impl UiComponentEventKind {
     }
 
     pub fn from_schema_name(value: &str) -> Option<Self> {
-        Self::ALL
-            .into_iter()
-            .find(|kind| kind.schema_name() == value)
+        match value {
+            "ValueChanged" => Some(Self::ValueChanged),
+            "Commit" => Some(Self::Commit),
+            "KeyboardAction" => Some(Self::KeyboardAction),
+            "KeyboardText" => Some(Self::KeyboardText),
+            "TypeaheadExpired" => Some(Self::TypeaheadExpired),
+            "Focus" => Some(Self::Focus),
+            "Hover" => Some(Self::Hover),
+            "Press" => Some(Self::Press),
+            "BeginDrag" => Some(Self::BeginDrag),
+            "DragDelta" => Some(Self::DragDelta),
+            "LargeDragDelta" => Some(Self::LargeDragDelta),
+            "EndDrag" => Some(Self::EndDrag),
+            "DropHover" => Some(Self::DropHover),
+            "ActiveDragTarget" => Some(Self::ActiveDragTarget),
+            "OpenPopup" => Some(Self::OpenPopup),
+            "OpenPopupAt" => Some(Self::OpenPopupAt),
+            "ClosePopup" => Some(Self::ClosePopup),
+            "SelectOption" => Some(Self::SelectOption),
+            "ToggleExpanded" => Some(Self::ToggleExpanded),
+            "AddElement" => Some(Self::AddElement),
+            "SetElement" => Some(Self::SetElement),
+            "RemoveElement" => Some(Self::RemoveElement),
+            "MoveElement" => Some(Self::MoveElement),
+            "AddMapEntry" => Some(Self::AddMapEntry),
+            "SetMapEntry" => Some(Self::SetMapEntry),
+            "RenameMapKey" => Some(Self::RenameMapKey),
+            "RemoveMapEntry" => Some(Self::RemoveMapEntry),
+            "DropReference" => Some(Self::DropReference),
+            "ClearReference" => Some(Self::ClearReference),
+            "LocateReference" => Some(Self::LocateReference),
+            "OpenReference" => Some(Self::OpenReference),
+            "SetVisibleRange" => Some(Self::SetVisibleRange),
+            "SetPage" => Some(Self::SetPage),
+            "SetWorldTransform" => Some(Self::SetWorldTransform),
+            "SetWorldSurface" => Some(Self::SetWorldSurface),
+            _ => None,
+        }
     }
 }
 
@@ -287,6 +323,7 @@ pub enum UiComponentEvent {
 }
 
 impl UiComponentEvent {
+    /// 安全文本变体映射为通用事件种类供能力推断与路由使用；Secure 变体仍保留引用载荷，不复制明文。
     pub fn kind(&self) -> UiComponentEventKind {
         match self {
             Self::ValueChanged { .. } | Self::SecureValueChanged { .. } => {
@@ -373,3 +410,7 @@ pub enum UiComponentEventError {
     #[error("invalid complex component value {property}={value}")]
     InvalidComplexValue { property: String, value: String },
 }
+
+#[cfg(test)]
+#[path = "tests/event.rs"]
+mod tests;

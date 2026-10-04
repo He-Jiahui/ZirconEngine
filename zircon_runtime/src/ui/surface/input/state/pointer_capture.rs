@@ -1,17 +1,66 @@
 use serde::{Deserialize, Serialize};
-use zircon_runtime_interface::ui::{dispatch::UiPointerId, event_ui::UiNodeId};
+use zircon_runtime_interface::ui::{
+    dispatch::UiPointerId, event_ui::UiNodeId, surface::UiPointerButton,
+};
 
 use super::UiSurfaceInputState;
 
+/// 单个 pointer 的捕获 owner；surface 路由临时选择一个 owner，但各 pointer 的权限独立保留。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiSurfacePointerCaptureState {
     pub owner: UiNodeId,
+    /// None preserves capture acquired without a pointer-button event.
+    #[serde(default)]
+    pub(crate) button: Option<UiPointerButton>,
 }
 
 impl UiSurfaceInputState {
-    pub fn set_pointer_capture_for_id(&mut self, pointer_id: UiPointerId, owner: UiNodeId) {
+    pub(crate) fn can_capture_pointer_for_button(
+        &self,
+        pointer_id: UiPointerId,
+        owner: UiNodeId,
+        button: Option<UiPointerButton>,
+    ) -> bool {
         self.pointer_captures
-            .insert(pointer_id, UiSurfacePointerCaptureState { owner });
+            .get(&pointer_id)
+            .is_none_or(|capture| {
+                capture.owner == owner || capture.button.is_none() || capture.button == button
+            })
+    }
+
+    pub fn set_pointer_capture_for_id(&mut self, pointer_id: UiPointerId, owner: UiNodeId) {
+        self.set_pointer_capture_for_button(pointer_id, owner, None);
+    }
+
+    pub(crate) fn set_pointer_capture_for_button(
+        &mut self,
+        pointer_id: UiPointerId,
+        owner: UiNodeId,
+        button: Option<UiPointerButton>,
+    ) {
+        match self.pointer_captures.get_mut(&pointer_id) {
+            Some(capture) if capture.owner == owner => {
+                if capture.button.is_none() {
+                    capture.button = button;
+                }
+            }
+            _ => {
+                self.pointer_captures
+                    .insert(pointer_id, UiSurfacePointerCaptureState { owner, button });
+            }
+        }
+    }
+
+    pub(crate) fn pointer_capture_matches(
+        &self,
+        pointer_id: UiPointerId,
+        owner: UiNodeId,
+        button: Option<UiPointerButton>,
+    ) -> bool {
+        self.pointer_captures
+            .get(&pointer_id)
+            .filter(|capture| capture.owner == owner)
+            .is_none_or(|capture| capture.button.is_none() || capture.button == button)
     }
 
     pub fn pointer_capture_owner(&self, pointer_id: UiPointerId) -> Option<UiNodeId> {
@@ -42,6 +91,7 @@ impl UiSurfaceInputState {
             .map(|(_pointer_id, owner)| owner)
     }
 
+    /// 仅释放匹配的 pointer/owner；该 owner 最后一份捕获释放时同时关闭高精度模式。
     pub fn clear_pointer_capture_id_for_owner(
         &mut self,
         pointer_id: UiPointerId,

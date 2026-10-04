@@ -1,3 +1,4 @@
+# 用提交结果和时间线证据验证空闲悬停绘制门禁的有界损伤要求。
 $ErrorActionPreference = 'Stop'
 
 Describe 'UI profile idle-hover paint submission gate' {
@@ -16,8 +17,8 @@ Describe 'UI profile idle-hover paint submission gate' {
             ).Sum
         }
 
-        . (Join-Path $repoRoot 'tools\ui-profile-counter-evidence.ps1')
-        $captureSource = Get-Content -LiteralPath (Join-Path $repoRoot 'tools\ui-profile-capture.ps1') -Raw
+        . (Join-Path $repoRoot 'tools\analysis\profiling\ui\ui-profile-counter-evidence.ps1')
+        $captureSource = Get-Content -LiteralPath (Join-Path $repoRoot 'tools\analysis\profiling\ui\ui-profile-capture.ps1') -Raw
     }
 
     It 'is part of the measured capture acceptance chain' {

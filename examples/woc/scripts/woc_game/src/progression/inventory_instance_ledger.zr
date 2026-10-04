@@ -57,6 +57,7 @@ pub class InventoryInstanceSlot {
     }
 }
 
+/// 物品实例的签名、随机属性和充能只存在于单件槽；可叠放数量与实例槽并存时，调用方必须明确允许消耗哪一种。
 pub class InventoryInstanceLedger {
     pub var slots: container.Array<InventoryInstanceSlot>;
     pub var stackItemIds: container.Array<string>;
@@ -159,6 +160,7 @@ pub slotHasInstance(state: InventoryInstanceLedger, index: int): bool {
     return index >= 0 && index < state.slots.length && slotAt(state, index).hasInstance;
 }
 
+/// 返回深拷贝；调用方若修改充能或附魔，应经所属账本的明确写入路径，修改此返回值不会更新槽内实例。
 pub slotInstance(state: InventoryInstanceLedger, index: int): ItemInstanceData {
     if (index < 0 || index >= state.slots.length || !slotAt(state, index).hasInstance) {
         return new ItemInstanceData();
@@ -287,6 +289,7 @@ pub removeStacked(state: InventoryInstanceLedger, itemId: string, count: int): i
 
 // Market/escrow-style operations must not consume signed, rolled, enchanted,
 // or character-bound copies merely because a same-id plain stack exists.
+/// 市场和托管扣除只能使用普通可叠放槽；不能用总数量 countItem 代替 countFungibleItem 的可交易数量。
 pub removeFungible(state: InventoryInstanceLedger, itemId: string, count: int): int {
     state.lastRemovedInstances = 0;
     if (count <= 0) return 0;

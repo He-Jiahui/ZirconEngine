@@ -1,0 +1,417 @@
+{
+  "record_type": "root_qualified_w0_batch7_manifest",
+  "batch": "w0-batch7",
+  "freeze_status": "frozen_once_after_validation",
+  "reviewed_at_utc": "2026-10-02T02:24:40Z",
+  "acceptance_state": "open; source-only bounded review; tests_run=0",
+  "tests_run": 0,
+  "artifacts": {
+    "review": {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch7-review.jsonl",
+      "sha256": "ec3c9b5feb2eebdd4192b4aec98730466a7ed3d4f7efab56cb0c8d9f098449e2",
+      "rows": 12
+    },
+    "crosswalk": {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch7-crosswalk.jsonl",
+      "sha256": "5bf38c9bfb4007f021e617bb51568d9b8ab6f97096ac2d6fe0c6e65e48a5d488",
+      "rows": 4
+    },
+    "summary": {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch7-summary.json",
+      "sha256": "21ea1e7bb1eb9179730bf8b8b97080858635aa0dee77c49b4b42fd82102cdfd5",
+      "rows": 12
+    }
+  },
+  "original_reports": [
+    {
+      "report_id": "Runtime213",
+      "path": "docs/plans/optimize/zircon_runtime/213-runtime-visibility-gpu-scene-culling-batching-instancing-hzb-virtual-geometry-current-working-tree-review.md",
+      "sha256": "4fb17e3f5195ec9a9a5db81b7408851485a9a4a851ce18889db6b89d33467139",
+      "bytes": 31058,
+      "finding_ids": [
+        "RT213-P1-001",
+        "RT213-P1-002",
+        "RT213-P1-003",
+        "RT213-P1-004",
+        "RT213-P1-005",
+        "RT213-P1-006"
+      ]
+    },
+    {
+      "report_id": "Runtime225",
+      "path": "docs/plans/optimize/zircon_runtime/225-runtime-material-shader-artifact-variant-pipeline-pso-publication-current-working-tree-recheck.md",
+      "sha256": "5164fe9b88de6945d8a399afa136383d0713cee8f312faca33f5b9dfd31517bd",
+      "bytes": 30310,
+      "finding_ids": [
+        "MSP4-P1-025",
+        "MSP4-P1-026",
+        "MSP4-P1-027",
+        "MSP4-P1-005",
+        "MSP4-P1-019",
+        "MSP4-P1-033"
+      ]
+    }
+  ],
+  "canonical_review_inputs": [
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-batch3-review.jsonl",
+      "sha256": "4b4137f6ef0feeb0fc4ef6f55664a80f3c8a14473c0f94ab4361d85728a68fbe",
+      "bytes": 61460,
+      "records": 15
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-w0-second-wave-review.jsonl",
+      "sha256": "dccceb090592eea01f48f885ef84e53d202e6470c647b4481c44a4c23ec673d1",
+      "bytes": 652094,
+      "records": 30
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch4-review.jsonl",
+      "sha256": "9ca9bc4ea5b83865c219c8fb9b3c7ac73d7d078460bf8b92c6cded896996fb2c",
+      "bytes": 116983,
+      "records": 24
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-01-w0-batch5-review.jsonl",
+      "sha256": "4bd6dcae8255f6d770f06cb471a1ead80b64be2c2038ed5705f256dff6a1b7cc",
+      "bytes": 105131,
+      "records": 24
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-30-source-review-wave.jsonl",
+      "sha256": "8d6d68c499d52c354a992a76bc05ffb3ed41ff4ccb9abc21b1f487d3954aefc5",
+      "bytes": 594805,
+      "records": 37
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-02-w0-batch6-review.jsonl",
+      "sha256": "e0a4798dea7a20c842e177f4ae2007858fbd487278fd87220f2b1e3c61ec0eb3",
+      "bytes": 159783,
+      "records": 18
+    }
+  ],
+  "prior_collision_check": {
+    "prior_review_objects": 148,
+    "prior_literal_finding_ids": 112,
+    "prior_report_qualified_keys": 144,
+    "target_prior_overlap": [],
+    "batch6_published_rows": 18,
+    "batch6_new_rows": 14,
+    "batch6_refresh_rows": 4,
+    "collision_refs": [],
+    "normalization": "original_report or report_path plus literal original_finding_id"
+  },
+  "report_inventory": {
+    "reports_total": 576,
+    "source_checked_report_paths": 61,
+    "unreviewed_report_paths": 515,
+    "batch7_source_path_units": 27
+  },
+  "source_evidence_hashes": {
+    "zircon_runtime/src/graphics/scene/render_scene/scene.rs": "47ecd8eb8b6c78494b480c3bb5950cdfaf12d1a28da52923cc156cc31d532bd6",
+    "zircon_runtime/src/graphics/scene/render_scene/registry.rs": "022e18e060f770cf98b4649615be6f51ea295b622b25bc224cf82d3a0c7dec6b",
+    "zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_scene.rs": "e870b0ad5739350f730d2c3f0aff2f22bf45e5842fa7eaca8ddf67a1912fd84e",
+    "zircon_runtime/src/graphics/scene/render_scene/tests.rs": "ea060ac9499bcc4cb2d590970a0fbaed05afd98c337d858166923032950f4a73",
+    "zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs": "a17035a96fc562ea6a426a3942b00e8832de221c5b0065662fd9621b33b07506",
+    "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs": "831a28c5bacf0c8ff7d821ea714d6d26b26f0ef56216f0260aa38ef227a0e41c",
+    "zircon_runtime/src/graphics/visibility/view_context/mod.rs": "8635095cd89fd7601755c77206d969f39e219ea7d47687ff48c6c9c9dda01c6c",
+    "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs": "644a5105f763f8812b6910d586daa794ac0624ad7237b2fb9110c8cf543cd234",
+    "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs": "b3838b3769750058e85a6bab1b4cfd0cf6d4b9276640d369c17acaf6b611608a",
+    "zircon_runtime/src/graphics/visibility/context/from_extract_with_history/collect_gpu_instancing_candidates.rs": "b840e6dc1c4b836cc8c15e7c696bd468c7087e76707db9101ed46194bf833a9a",
+    "zircon_runtime/src/graphics/visibility/planning/build_instance_upload_plan.rs": "26e3bc4e36a96a779bf4e13ac5366eabc542b92565aeb48078d1939868707c9d",
+    "zircon_runtime/src/graphics/visibility/planning/build_particle_upload_plan.rs": "94d645c650c64d8b94dc0195197a3f17a0aaf19b4fed63b9a77955f0da1c866d",
+    "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/hybrid_gi_stats.rs": "7b7301334629a2410d3d9a32bb27ae8e989af5a1d1e217712e2a0d9002a70ea1",
+    "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/prepare.rs": "8c196440fed7c07aa1334e2a1a546c64fe6b52f845191f01591374e5af3114f2",
+    "zircon_runtime/src/asset/assets/material/validation.rs": "110a9379729dc3171ab1b5c7d79771751a2ae5e8720dceec8ffda2498d2118a3",
+    "zircon_runtime/src/asset/importer/ingest/import_shader_package.rs": "81434a97fcfa9ae655665b067c5e439e0117848fec8e225b083bfa0f39467606",
+    "zircon_runtime/src/asset/tests/project/zmeta/shader_diagnostics_fixture.rs": "f78ad9dc447f1f73a2b93522d65b6583050e79acac06b4d212c81c08402864f5",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_shader_source.rs": "a2045ce61ff0675255e80278b3cd258a974ef865294aedf16a38c55a06cb138b",
+    "zircon_runtime/src/asset/assets/shader/shader_asset.rs": "a08e1a75a10e8c54a2307785abbbba7847741b7ccccd5e4c55a544679c1c3a79",
+    "zircon_runtime/src/graphics/scene/resources/prepared/prepared_shader.rs": "42ebf538f8f5c9ff442bee89b0f357892c64c11896fc62148ae09e2ef758e36a",
+    "zircon_runtime/src/graphics/shader/template/assemble.rs": "8466251a61be0f51a72ec3810feeb55fc42d72572aab4b140599fc33efb9b790",
+    "zircon_runtime/src/asset/assets/shader/readiness.rs": "9787b1e0dc293275cb0f6b5573d417566a3e8df34140a8344bf89a8876fd331a",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs": "0084c993d8fb20dcfbfa370be0cb964ab698e2ff515ac94240b0d0775d3c5c31",
+    "zircon_runtime/src/graphics/shader/variant_cache/disk.rs": "1d4048454182c94414f747b04dd0aaa8e6ed4138e2bd16fe735c2f582e69aa59",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/material_pipeline_publication.rs": "b30afecedad7231a81ed192dd0abaf680909301b3f5deb20f32192169e542a54",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source_validation_admission.rs": "13b3351595ca8d31b55474b2193caad3d7b0942831b5b5c946ef85f9150f2f97",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/material_pipeline_requirements.rs": "858ed1e9b044611ff972b90582807838c06bc8f91a6ac0c52bded877f766cfcd"
+  },
+  "coverage": {
+    "rows": 12,
+    "all_target_ids_exact": true,
+    "literal_report_rows_exact": true,
+    "unread_scope": "All non-target report rows, unreviewed source/callers/tests, and all product/performance validation remain unread or unexecuted."
+  },
+  "assertions": {
+    "all_keys_derived_from_literal": true,
+    "one_normal_original_key_per_row": true,
+    "source_spans_valid": true,
+    "source_hashes_current": true,
+    "crosswalk_identity_merge_false": true,
+    "crosswalk_id_merge_false": true,
+    "missing_targets_marked": true,
+    "tests_run_zero": true,
+    "acceptance_open": true
+  },
+  "limitations": [
+    "No Cargo/build/test/compiler/probe/device/benchmark/visual/soak command.",
+    "No source/docs/coordinator/lease/session/route/load/commit/push/WeCom action.",
+    "Source and owner hashes are evidence only; they are not lease or source consent."
+  ],
+  "parser_checks": {
+    "review_row_count": 12,
+    "crosswalk_row_count": 4,
+    "summary_row_count": 12,
+    "all_keys_derived_from_literal": true,
+    "valid_source_spans": true,
+    "current_source_hashes": true,
+    "collision_refs": [],
+    "batch_source_path_units": 27
+  },
+  "root_qualified_at_utc": "2026-10-02T04:01:48.402301+00:00",
+  "author_original_artifacts": {
+    "review": "59fabd5bc570e9263e52f7b2a9264e1e6df8800d04bec9c15d32bb32f005e215",
+    "crosswalk": "26e7c0e010660fc04e5d28f6faa383d9d77f834970ac827c776e0435be8742cb",
+    "summary": "b7272b1a8b128c581463027423e2711ff1014cf1856144374627e53356156d14",
+    "manifest": "7d40b533d06c5f7fea3fd2d7feb85352b2e49e518d784c3dfa1fc991cccd659c"
+  },
+  "root_structural_receipt": {
+    "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch7-root-verification-r1\\root-verification.json",
+    "sha256": "9d765e5effcca35659b0fd4972837a127824a688b9845cc54ea17799d0ab0ed3"
+  },
+  "source_snapshot_files": [
+    {
+      "path": "zircon_runtime/src/asset/assets/material/validation.rs",
+      "sha256": "110a9379729dc3171ab1b5c7d79771751a2ae5e8720dceec8ffda2498d2118a3",
+      "bytes": 15884
+    },
+    {
+      "path": "zircon_runtime/src/asset/assets/shader/readiness.rs",
+      "sha256": "9787b1e0dc293275cb0f6b5573d417566a3e8df34140a8344bf89a8876fd331a",
+      "bytes": 18789
+    },
+    {
+      "path": "zircon_runtime/src/asset/assets/shader/shader_asset.rs",
+      "sha256": "a08e1a75a10e8c54a2307785abbbba7847741b7ccccd5e4c55a544679c1c3a79",
+      "bytes": 5207
+    },
+    {
+      "path": "zircon_runtime/src/asset/importer/ingest/import_shader_package.rs",
+      "sha256": "81434a97fcfa9ae655665b067c5e439e0117848fec8e225b083bfa0f39467606",
+      "bytes": 35997
+    },
+    {
+      "path": "zircon_runtime/src/asset/tests/project/zmeta/shader_diagnostics_fixture.rs",
+      "sha256": "f78ad9dc447f1f73a2b93522d65b6583050e79acac06b4d212c81c08402864f5",
+      "bytes": 9386
+    },
+    {
+      "path": "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs",
+      "sha256": "831a28c5bacf0c8ff7d821ea714d6d26b26f0ef56216f0260aa38ef227a0e41c",
+      "bytes": 22782
+    },
+    {
+      "path": "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs",
+      "sha256": "644a5105f763f8812b6910d586daa794ac0624ad7237b2fb9110c8cf543cd234",
+      "bytes": 22485
+    },
+    {
+      "path": "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/prepare.rs",
+      "sha256": "8c196440fed7c07aa1334e2a1a546c64fe6b52f845191f01591374e5af3114f2",
+      "bytes": 11659
+    },
+    {
+      "path": "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs",
+      "sha256": "b3838b3769750058e85a6bab1b4cfd0cf6d4b9276640d369c17acaf6b611608a",
+      "bytes": 22427
+    },
+    {
+      "path": "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/hybrid_gi_stats.rs",
+      "sha256": "7b7301334629a2410d3d9a32bb27ae8e989af5a1d1e217712e2a0d9002a70ea1",
+      "bytes": 12223
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/render_scene/registry.rs",
+      "sha256": "022e18e060f770cf98b4649615be6f51ea295b622b25bc224cf82d3a0c7dec6b",
+      "bytes": 3936
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/render_scene/scene.rs",
+      "sha256": "47ecd8eb8b6c78494b480c3bb5950cdfaf12d1a28da52923cc156cc31d532bd6",
+      "bytes": 17291
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/render_scene/tests.rs",
+      "sha256": "ea060ac9499bcc4cb2d590970a0fbaed05afd98c337d858166923032950f4a73",
+      "bytes": 25187
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/prepared/prepared_shader.rs",
+      "sha256": "42ebf538f8f5c9ff442bee89b0f357892c64c11896fc62148ae09e2ef758e36a",
+      "bytes": 554
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs",
+      "sha256": "c57e57e8ee946174eaf6dff8472cd2f8ffb0bdcb63935711da562e8bb17e6fcc",
+      "bytes": 40378
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_shader_source.rs",
+      "sha256": "a2045ce61ff0675255e80278b3cd258a974ef865294aedf16a38c55a06cb138b",
+      "bytes": 19479
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_scene.rs",
+      "sha256": "e870b0ad5739350f730d2c3f0aff2f22bf45e5842fa7eaca8ddf67a1912fd84e",
+      "bytes": 10229
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline/frame_submission_owner.rs",
+      "sha256": "d2c274cdeeb8f28ee0c6e1aec7d8991f8a3690704efbb72cc307eb1f92eab042",
+      "bytes": 17686
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/material_context_admission.rs",
+      "sha256": "396b289c1ad3518ba4bbfb8f92c2ac08ab6ea33d56d435322218a1ede1e67ea4",
+      "bytes": 16764
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/material_pipeline_requirements.rs",
+      "sha256": "858ed1e9b044611ff972b90582807838c06bc8f91a6ac0c52bded877f766cfcd",
+      "bytes": 29669
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/material_pipeline_requirements/tests.rs",
+      "sha256": "bac54eadcb299b61c2edaf40e7f1a77d353a8961ee15e0e79685b8bac479f0e0",
+      "bytes": 15003
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/material_pipeline_publication.rs",
+      "sha256": "b30afecedad7231a81ed192dd0abaf680909301b3f5deb20f32192169e542a54",
+      "bytes": 29667
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs",
+      "sha256": "e8dccfecaf89b064d3beca0d00487d990eb9746ea0b1260754ff4c0a89a8ba80",
+      "bytes": 32546
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs",
+      "sha256": "0084c993d8fb20dcfbfa370be0cb964ab698e2ff515ac94240b0d0775d3c5c31",
+      "bytes": 32027
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs",
+      "sha256": "97ab14a5ebcc2cb06adc5b97aa9f40a20c8136cc79cb3aa09a1ad37db6cc648d",
+      "bytes": 30600
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source_validation_admission.rs",
+      "sha256": "13b3351595ca8d31b55474b2193caad3d7b0942831b5b5c946ef85f9150f2f97",
+      "bytes": 23083
+    },
+    {
+      "path": "zircon_runtime/src/graphics/shader/template/assemble.rs",
+      "sha256": "8466251a61be0f51a72ec3810feeb55fc42d72572aab4b140599fc33efb9b790",
+      "bytes": 24146
+    },
+    {
+      "path": "zircon_runtime/src/graphics/shader/variant_cache/disk.rs",
+      "sha256": "1d4048454182c94414f747b04dd0aaa8e6ed4138e2bd16fe735c2f582e69aa59",
+      "bytes": 23362
+    },
+    {
+      "path": "zircon_runtime/src/graphics/shader/variant_cache/prewarm/worker.rs",
+      "sha256": "d232d8533b48f003ac13566a79d0b228544289fcb49730227462f38a9b17b057",
+      "bytes": 9673
+    },
+    {
+      "path": "zircon_runtime/src/graphics/tests/visibility.rs",
+      "sha256": "de3e39ca352145099c051ad162f7a8dd1d35224f2934bed15bd3db35fa8f42bf",
+      "bytes": 22881
+    },
+    {
+      "path": "zircon_runtime/src/graphics/visibility/context/from_extract_with_history/collect_gpu_instancing_candidates.rs",
+      "sha256": "b840e6dc1c4b836cc8c15e7c696bd468c7087e76707db9101ed46194bf833a9a",
+      "bytes": 2809
+    },
+    {
+      "path": "zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs",
+      "sha256": "a17035a96fc562ea6a426a3942b00e8832de221c5b0065662fd9621b33b07506",
+      "bytes": 14777
+    },
+    {
+      "path": "zircon_runtime/src/graphics/visibility/planning/build_instance_upload_plan.rs",
+      "sha256": "26e3bc4e36a96a779bf4e13ac5366eabc542b92565aeb48078d1939868707c9d",
+      "bytes": 7750
+    },
+    {
+      "path": "zircon_runtime/src/graphics/visibility/planning/build_particle_upload_plan.rs",
+      "sha256": "94d645c650c64d8b94dc0195197a3f17a0aaf19b4fed63b9a77955f0da1c866d",
+      "bytes": 6728
+    },
+    {
+      "path": "zircon_runtime/src/graphics/visibility/view_context/build_views.rs",
+      "sha256": "bb4990d77ff79010cddd80a07ea4f5dc2515fd54a4668fe7a53efc0a246a6273",
+      "bytes": 15539
+    },
+    {
+      "path": "zircon_runtime/src/graphics/visibility/view_context/mod.rs",
+      "sha256": "8635095cd89fd7601755c77206d969f39e219ea7d47687ff48c6c9c9dda01c6c",
+      "bytes": 8379
+    }
+  ],
+  "extra_test_source_files": [],
+  "root_extra_context_paths": [
+    "zircon_runtime/src/graphics/visibility/view_context/build_views.rs",
+    "zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline/frame_submission_owner.rs",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/material_context_admission.rs",
+    "zircon_runtime/src/graphics/shader/variant_cache/prewarm/worker.rs",
+    "zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs",
+    "zircon_runtime/src/graphics/tests/visibility.rs"
+  ],
+  "root_qualified_counts": {
+    "prior_observations": 148,
+    "prior_unique_keys": 144,
+    "batch_observations": 12,
+    "new_keys": 12,
+    "refresh_keys": 0,
+    "projected_observations": 160,
+    "projected_unique_keys": 156,
+    "canonical_publication": "pending distinct normal own-SID admission/publication/attribution"
+  },
+  "source_states": {
+    "narrowed_open": 1,
+    "confirmed_open": 11
+  },
+  "historical_bounded_source_evidence_union": {
+    "prior_paths": 176,
+    "batch_source_evidence_paths": 27,
+    "overlap": 0,
+    "new_paths": 27,
+    "union": 203,
+    "meaning": "bounded historical source observations only; not current whole-tree coverage"
+  },
+  "root_exact_capture_counts": {
+    "source_and_test_files": 36,
+    "report_files": 6,
+    "all_files": 42,
+    "original_author_source_evidence_paths": 27,
+    "additional_normal_source_and_test_paths": 8
+  },
+  "timestamp_limit": "This author label is retained as submitted; root did not witness the author historical per-file captures or final freeze at that time. Root capture time above is independent and concrete.",
+  "test_evidence_limit": "Actual named function definitions pinned per row. Original author production-only test-labeled spans and all original bytes remain in provenance; all tests are unrun.",
+  "canonical_publication": "Prepared exact record bytes; actual byte publication and terminal attribution are separate receipts. All finding acceptance remains open.",
+  "publication_preparation": {
+    "prepared_at_utc": "2026-10-02T04:03:55.845184+00:00",
+    "owner_session": "astra-goal-20260929-01a0f033",
+    "parent_qualified_manifest": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch7-root-qualified-r1\\2026-10-02-w0-batch7-manifest.json",
+      "sha256": "3f3d7a9b8cd3dc6c30b08877908cd82125987c37fbfa2de24e4e14cf8cc88736"
+    },
+    "new_session_or_failure": false,
+    "foreign_owner_or_status_changed": false
+  }
+}

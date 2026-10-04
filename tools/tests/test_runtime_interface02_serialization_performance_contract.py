@@ -40,7 +40,7 @@ def function_body(source: str, function_name: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated body for {function_name}")
 
-
+# 读取实现源码约束接口序列化：规范 objects 复用输入映射，并二进制 object decode 使用一个条目查找。
 class SerializationPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

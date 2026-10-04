@@ -22,7 +22,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束延迟 crate 诊断上下文：crate 诊断遍历延迟上下文格式化，并crate validators 借用格式参数。
 class DeferredCrateDiagnosticContextPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

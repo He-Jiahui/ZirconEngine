@@ -1,10 +1,11 @@
 use std::path::Path;
 
 use super::super::{
-    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionSlotExportPreviewReport,
-    RuntimeSessionSlotSelector, target_path,
+    target_path, RuntimeSessionArchive, RuntimeSessionArchiveError,
+    RuntimeSessionSlotExportPreviewReport, RuntimeSessionSlotSelector,
 };
 
+// 预览先验证整个源档案，再报告实际槽位的规范元数据和负载数量；成功不代表已生成独立导出档案。
 pub(in crate::scene::dynamic_scene::session) fn preview_single_slot_archive(
     archive: &RuntimeSessionArchive,
     slot_id: &str,
@@ -35,6 +36,7 @@ pub(in crate::scene::dynamic_scene::session) fn preview_selected_single_slot_arc
     preview_single_slot_archive(archive, &report.selected_slot_id)
 }
 
+// 目标状态只是当次文件系统观察；预览不创建目录或预留写入，保存仍须重新检查并处理错误。
 pub(in crate::scene::dynamic_scene::session) fn preview_single_slot_archive_to_path(
     archive: &RuntimeSessionArchive,
     slot_id: &str,

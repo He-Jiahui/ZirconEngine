@@ -7,12 +7,13 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::super::frame_hit_test::UiProjectedHitTestIndex;
-use super::{UiSurfaceNavigationIndex, is_navigation_geometry_authority, navigation_geometry};
+use super::{is_navigation_geometry_authority, navigation_geometry, UiSurfaceNavigationIndex};
 
 impl UiSurfaceNavigationIndex {
     /// Updates frame-only candidate movement in place. Membership, z, and paint-order changes
     /// affect sorted/modal structures and deliberately fall back to a complete rebuild.
     #[allow(clippy::too_many_arguments)]
+    // 错误可能在部分 frame 已更新后返回；调用方必须完整重建或走 fallback，不能把 Err 当作未修改缓存。
     pub(super) fn patch_changed_geometry(
         &mut self,
         tree: &UiTree,

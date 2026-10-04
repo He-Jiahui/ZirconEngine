@@ -15,7 +15,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 编辑器详细 Wiki
   - .codex/plans/Runtime_Editor 插件注册与 EditorOperation 设计计划.md
-  - docs/editor-and-tooling/editor-command-workflow.md
+  - docs/editor/editor-command-workflow.md
 tests:
   - zircon_editor/src/core/editing/engine
   - zircon_editor/src/core/commands

@@ -6,6 +6,7 @@ mod service;
 mod toast;
 
 #[cfg(test)]
+#[path = "tests/presentation_tests.rs"]
 mod presentation_tests;
 
 pub use decision::{
@@ -13,21 +14,21 @@ pub use decision::{
     DecisionNotificationCenter, DecisionNotificationError, DecisionNotificationSnapshot,
     DecisionOption, DecisionOptionId, DecisionReceipt, DecisionReceiptBatch, DecisionReceiptCursor,
     DecisionReceiptSequence, DecisionResolveReport, DecisionTicket,
-    MAX_DECISION_DISPLAY_SUBJECT_BYTES, MAX_DECISION_OPTION_ID_BYTES, MAX_DECISION_OPTIONS,
+    MAX_DECISION_DISPLAY_SUBJECT_BYTES, MAX_DECISION_OPTIONS, MAX_DECISION_OPTION_ID_BYTES,
     MAX_LOCALIZATION_KEY_BYTES,
 };
 pub use identity::{
-    MAX_NOTIFICATION_ID_BYTES, MAX_NOTIFICATION_SOURCE_ID_BYTES, NotificationId,
-    NotificationIdentityError, NotificationSource, NotificationSourceKind,
+    NotificationId, NotificationIdentityError, NotificationSource, NotificationSourceKind,
+    MAX_NOTIFICATION_ID_BYTES, MAX_NOTIFICATION_SOURCE_ID_BYTES,
 };
 pub use presentation::{
-    LocalizedDecisionNotification, LocalizedDecisionOption, LocalizedProgressNotification,
-    LocalizedToastNotification, present_decision, present_progress, present_toast,
+    present_decision, present_progress, present_toast, LocalizedDecisionNotification,
+    LocalizedDecisionOption, LocalizedProgressNotification, LocalizedToastNotification,
 };
 pub(crate) use progress::AUTOMATIC_PROGRESS_SOURCE_ID;
 pub use progress::{
-    MAX_PROGRESS_NOTIFICATIONS, ProgressNotification, ProgressNotificationCenter,
-    ProgressNotificationError, ProgressNotificationSnapshot,
+    ProgressNotification, ProgressNotificationCenter, ProgressNotificationError,
+    ProgressNotificationSnapshot, MAX_PROGRESS_NOTIFICATIONS,
 };
 pub use service::EditorNotificationService;
 pub use toast::{

@@ -1,3 +1,6 @@
+// 调用端：npm run generate:hunter-trap-contract (tools/package.json)；职责：固化陷阱扫描余量、闪烁节拍与范围，以及布设和首次接触门槛。
+// 输入边界：src/sim/combat/hunter_trap.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto'; import { execFileSync } from 'node:child_process'; import { existsSync, readFileSync, writeFileSync } from 'node:fs'; import { dirname, join, resolve } from 'node:path'; import { fileURLToPath } from 'node:url';
 const C='5ef9f7cb21cd8875b6d2c49701015dfcd78de35a', P='src/sim/combat/hunter_trap.ts', d=dirname(fileURLToPath(import.meta.url)), r=resolve(d,'..'), s=resolve(r,'..','..','dev','world-of-claudecraft'), j=join(r,'reference','current-head','hunter_trap_contract.json'), z=join(r,'scripts','woc_game','src','generated','hunter_trap_contract.zr'), check=process.argv.includes('--check');
 const b=execFileSync('git',['-C',s,'show',`${C}:${P}`],{encoding:'buffer'}), t=b.toString('utf8');

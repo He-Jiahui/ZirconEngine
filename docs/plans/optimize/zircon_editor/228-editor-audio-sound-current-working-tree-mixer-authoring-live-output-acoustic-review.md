@@ -13,7 +13,6 @@ supersedes_currentness_of:
   - docs/plans/optimize/zircon_editor/17-sound-audio-clip-mixer-routing-effect-spatial-acoustic-timeline-authoring-review.md
 related_code:
   - zircon_plugins/sound/editor
-  - zircon_plugins/sound/features/*/editor
   - zircon_editor/src/core/editor_extension
   - zircon_editor/src/scene/viewport
   - zircon_runtime/src/core/framework/sound

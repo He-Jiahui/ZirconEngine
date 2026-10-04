@@ -18,6 +18,7 @@ struct EditorWorkspaceDocumentRef<'workspace> {
     editor_workspace: &'workspace ProjectEditorWorkspace,
 }
 
+/// 借用当前workspace编码为版本壳，避免为辅助保存复制整棵布局。
 pub(super) fn encode_editor_workspace_document(
     workspace: &ProjectEditorWorkspace,
 ) -> Result<String, WriteError> {
@@ -26,6 +27,7 @@ pub(super) fn encode_editor_workspace_document(
     })
 }
 
+/// 只解版本协议；视图注册与身份冲突仍须由恢复入口验证。
 pub(super) fn decode_editor_workspace_document(
     source: &[u8],
 ) -> Result<ProjectEditorWorkspace, LoadError> {
@@ -38,11 +40,13 @@ pub(super) fn decode_editor_workspace_document(
 
 impl VersionedSchema for EditorWorkspaceDocument {
     const SCHEMA: SchemaId = SchemaId::new("zircon.editor.workbench.project-workspace");
-    const VERSION: u32 = 1;
+    const VERSION: u32 = 2;
 
     fn migrations() -> &'static MigrationChain<Self> {
-        static MIGRATIONS: MigrationChain<EditorWorkspaceDocument> =
-            MigrationChain::new(&[MigrationStep::new(0, reject_legacy_workspace_document)]);
+        static MIGRATIONS: MigrationChain<EditorWorkspaceDocument> = MigrationChain::new(&[
+            MigrationStep::new(0, reject_legacy_workspace_document),
+            MigrationStep::new(1, add_scene_viewport_sessions),
+        ]);
         &MIGRATIONS
     }
 }
@@ -53,11 +57,31 @@ impl<'workspace> VersionedSchema for EditorWorkspaceDocumentRef<'workspace> {
 
     fn migrations() -> &'static MigrationChain<Self> {
         static MIGRATIONS: MigrationChain<EditorWorkspaceDocumentRef<'static>> =
-            MigrationChain::new(&[MigrationStep::new(0, reject_legacy_workspace_document)]);
+            MigrationChain::new(&[
+                MigrationStep::new(0, reject_legacy_workspace_document),
+                MigrationStep::new(1, add_scene_viewport_sessions),
+            ]);
         &MIGRATIONS
     }
 }
 
+fn add_scene_viewport_sessions(mut value: Value) -> Result<Value, MigrateError> {
+    let workspace = value
+        .as_object_mut()
+        .and_then(|document| document.get_mut("editor_workspace"))
+        .and_then(Value::as_object_mut)
+        .ok_or_else(|| {
+            MigrateError::invalid_payload(
+                "version-one editor workspace payload must contain an editor_workspace object",
+            )
+        })?;
+    workspace
+        .entry("scene_viewport_sessions")
+        .or_insert_with(|| Value::Object(serde_json::Map::new()));
+    Ok(value)
+}
+
+/// 明确拒绝未版本化的旧载荷，不能自动把不明旧布局当作当前协议。
 fn reject_legacy_workspace_document(_value: Value) -> Result<Value, MigrateError> {
     Err(MigrateError::invalid_payload(
         "unversioned editor workspace documents are retired",
@@ -65,42 +89,5 @@ fn reject_legacy_workspace_document(_value: Value) -> Result<Value, MigrateError
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ui::workbench::layout::WorkbenchLayout;
-
-    fn workspace() -> ProjectEditorWorkspace {
-        ProjectEditorWorkspace {
-            workbench: WorkbenchLayout::default(),
-            open_view_instances: Vec::new(),
-            focused_view: None,
-            active_drawers: Vec::new(),
-        }
-    }
-
-    #[test]
-    fn project_workspace_uses_the_current_version_shell_and_roundtrips() {
-        let workspace = workspace();
-
-        let encoded = encode_editor_workspace_document(&workspace).unwrap();
-
-        assert!(encoded.contains(EditorWorkspaceDocument::SCHEMA.as_str()));
-        assert_eq!(
-            decode_editor_workspace_document(encoded.as_bytes()).unwrap(),
-            workspace
-        );
-    }
-
-    #[test]
-    fn unversioned_project_workspace_is_rejected() {
-        let legacy = serde_json::to_vec(&EditorWorkspaceDocument {
-            editor_workspace: workspace(),
-        })
-        .unwrap();
-
-        assert!(matches!(
-            decode_editor_workspace_document(&legacy),
-            Err(LoadError::MissingTextEnvelope { .. })
-        ));
-    }
-}
+#[path = "tests/editor_workspace_document.rs"]
+mod tests;

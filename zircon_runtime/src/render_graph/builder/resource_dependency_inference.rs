@@ -95,8 +95,19 @@ impl RenderGraphBuilder {
                 let access_identity = resource_access_identities
                     .get(&access.resource)
                     .copied()
-                    .ok_or_else(|| RenderGraphError::ResourceDeclarationMissing {
-                        resource: resource_name(resource_names, access.resource),
+                    .ok_or_else(|| {
+                        if std::env::var_os("ZR_TRACE_RENDER_GRAPH").is_some() {
+                            eprintln!(
+                                "ZR_TRACE dependency-access-identity-missing pass={} access={} resource={:?} known={:?}",
+                                pass.name,
+                                access_index,
+                                access.resource,
+                                resource_access_identities.keys().collect::<Vec<_>>()
+                            );
+                        }
+                        RenderGraphError::ResourceDeclarationMissing {
+                            resource: resource_name(resource_names, access.resource),
+                        }
                     })?;
                 let scope = resource_accesses.prepare_scope(
                     access_identity,
@@ -177,7 +188,7 @@ impl RenderGraphBuilder {
                             latest_version_ordinal,
                         ));
                         resource_accesses.mutate_histories(&scope, |history| {
-                            history.readers_since_last_write.push(pass.id);
+                            history.record_reader_pass(pass.id);
                         })?;
                     }
                     ResourceAccessKind::Write => {
@@ -352,7 +363,7 @@ impl RenderGraphBuilder {
         }
     }
 
-    fn resource_access_identities(
+    pub(super) fn resource_access_identities(
         &self,
     ) -> Result<HashMap<RenderGraphResource, usize>, RenderGraphError> {
         let mut identities = HashMap::with_capacity(self.resources.len());

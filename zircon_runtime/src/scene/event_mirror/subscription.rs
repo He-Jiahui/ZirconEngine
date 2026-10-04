@@ -7,8 +7,8 @@ use std::time::{Duration, Instant};
 use serde::Serialize;
 use zircon_runtime_interface::ZR_RUNTIME_PLUGIN_EVENT_OUTPUT_LIMIT_V1;
 
-use crate::scene::World;
 use crate::scene::ecs::{Event, EventObserverHandle};
+use crate::scene::World;
 
 use super::{RuntimeEventMirrorDescriptor, RuntimeEventMirrorError};
 
@@ -22,7 +22,7 @@ trait ErasedRuntimeEventMirrorSubscription: Send + Sync {
     fn connect(&mut self, world: &mut World) -> bool;
     fn disconnect(&mut self, world: &mut World) -> bool;
     fn drain_payloads(&self)
-    -> Result<RuntimeEventMirrorDrainPage, RuntimeEventMirrorQueueFailure>;
+        -> Result<RuntimeEventMirrorDrainPage, RuntimeEventMirrorQueueFailure>;
     fn drain_payloads_up_to(
         &self,
         max_deliveries: usize,
@@ -140,6 +140,7 @@ impl RuntimeEventMirrorQueue {
         true
     }
 
+    // 先交付并清除首个生产端错误，保留已接受的积压；下一次取页可继续按原顺序排空。
     fn drain_page(
         &mut self,
         max_deliveries: usize,
@@ -613,6 +614,7 @@ impl RuntimeEventMirrorSubscriptionRecord {
     }
 }
 
+/// 属于创建它的 World；Drop 仅登记回收意图，实际断连由该 World 的回收或停机流程完成。
 pub struct RuntimeEventMirrorSubscription {
     descriptor: RuntimeEventMirrorDescriptor,
     handle: Option<RuntimeEventMirrorSubscriptionHandle>,
@@ -678,94 +680,9 @@ pub(crate) fn lock_runtime_event_mirror_reclaim_queue(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn drain_page_reports_remaining_deliveries_and_oldest_pending_age() {
-        let payload = vec![b'x'; RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES];
-        let observed_at = Instant::now();
-        let mut queue = RuntimeEventMirrorQueue {
-            pending: VecDeque::from([
-                QueuedRuntimeEventPayload {
-                    payload: payload.clone(),
-                    enqueued_at: observed_at
-                        .checked_sub(Duration::from_millis(12))
-                        .expect("test instant supports a recent offset"),
-                },
-                QueuedRuntimeEventPayload {
-                    payload,
-                    enqueued_at: observed_at
-                        .checked_sub(Duration::from_millis(7))
-                        .expect("test instant supports a recent offset"),
-                },
-            ]),
-            pending_payload_bytes: RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES * 2,
-            failure: None,
-        };
-
-        let page = queue
-            .drain_page(RUNTIME_EVENT_MIRROR_PAGE_MAX_EVENTS)
-            .expect("queue drain page");
-
-        assert_eq!(page.payloads.len(), 1);
-        assert_eq!(page.remaining_deliveries, 1);
-        assert!(page.oldest_pending_age_millis >= 7);
-    }
-
-    #[test]
-    fn drain_page_limit_leaves_unconsumed_payloads_in_subscription_authority() {
-        let mut queue = RuntimeEventMirrorQueue {
-            pending: VecDeque::from([
-                QueuedRuntimeEventPayload {
-                    payload: b"first".to_vec(),
-                    enqueued_at: Instant::now(),
-                },
-                QueuedRuntimeEventPayload {
-                    payload: b"second".to_vec(),
-                    enqueued_at: Instant::now(),
-                },
-            ]),
-            pending_payload_bytes: b"first".len() + b"second".len(),
-            failure: None,
-        };
-
-        let first = queue.drain_page(1).expect("limited first queue page");
-        assert_eq!(first.payloads.len(), 1);
-        assert_eq!(first.remaining_deliveries, 1);
-
-        let deferred = queue.drain_page(0).expect("zero-limit queue page");
-        assert!(deferred.payloads.is_empty());
-        assert_eq!(deferred.remaining_deliveries, 1);
-
-        let second = queue.drain_page(1).expect("limited second queue page");
-        assert_eq!(second.payloads.len(), 1);
-        assert_eq!(second.remaining_deliveries, 0);
-    }
-
-    #[test]
-    fn writer_stops_serialization_at_the_payload_byte_budget() {
-        let oversized = "x".repeat(RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES * 2);
-        let mut writer = BoundedRuntimeEventPayloadWriter::new(
-            RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES,
-            ZR_RUNTIME_PLUGIN_EVENT_OUTPUT_LIMIT_V1.max_nesting_depth,
-            u64::MAX,
-        );
-
-        let result = serde_json::to_writer(&mut writer, &oversized);
-        let failure = writer
-            .finish(result)
-            .expect_err("oversized event payload must stop at the writer boundary");
-        assert!(matches!(
-            failure,
-            RuntimeEventMirrorQueueFailure::PayloadTooLarge {
-                max_payload_bytes: RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES,
-                ..
-            }
-        ));
-    }
-}
+#[path = "tests/subscription.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "subscription/reclaim_queue_tests.rs"]
+#[path = "subscription/tests/reclaim_queue_tests.rs"]
 mod reclaim_queue_tests;

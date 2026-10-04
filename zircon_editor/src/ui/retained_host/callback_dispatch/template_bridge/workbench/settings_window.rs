@@ -742,12 +742,21 @@ fn map_value<const N: usize>(entries: [(&str, UiValue); N]) -> UiValue {
 }
 
 fn joined(values: &[Arc<str>]) -> String {
-    values
-        .iter()
-        .map(|value| value.as_ref())
-        .collect::<Vec<_>>()
-        .join("/")
+    let value_length = values.iter().map(|value| value.len()).sum::<usize>();
+    let separator_count = values.len().saturating_sub(1);
+    let mut output = String::with_capacity(value_length.saturating_add(separator_count));
+    for (index, value) in values.iter().enumerate() {
+        if index > 0 {
+            output.push('/');
+        }
+        output.push_str(value.as_ref());
+    }
+    output
 }
+
+#[cfg(test)]
+#[path = "settings_window/tests/path_single_buffer_tests.rs"]
+mod path_single_buffer_tests;
 
 const fn settings_scope_name(scope: SettingsScope) -> &'static str {
     match scope {

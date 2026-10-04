@@ -44,12 +44,14 @@ pub(in crate::ui::retained_host::host_contract) struct UiHostWindowEventLoop {
     pending_surface_present_retry_deadline: Option<Instant>,
     surface_present_retry_attempt: u8,
     pending_presenter_resize: Option<(u32, u32)>,
+    native_minimum_surface_size: Option<(u32, u32)>,
     runtime_presenter_upgrade_attempted: bool,
     runtime_presenter_upgrade_poll_deadline: Option<Instant>,
     ime_allowed: bool,
     current_modifiers: ModifiersState,
     next_input_sequence: u64,
     profile_artifact_capture_requested: bool,
+    profile_capture_sequence: u64,
     #[cfg(feature = "profiling")]
     input_outcomes: UiInputOutcomeTracker,
     #[cfg(feature = "profiling")]
@@ -75,12 +77,14 @@ impl UiHostWindowEventLoop {
             pending_surface_present_retry_deadline: None,
             surface_present_retry_attempt: 0,
             pending_presenter_resize: None,
+            native_minimum_surface_size: None,
             runtime_presenter_upgrade_attempted: false,
             runtime_presenter_upgrade_poll_deadline: None,
             ime_allowed: false,
             current_modifiers: ModifiersState::empty(),
             next_input_sequence: 1,
             profile_artifact_capture_requested: false,
+            profile_capture_sequence: 0,
             #[cfg(feature = "profiling")]
             input_outcomes: UiInputOutcomeTracker::default(),
             #[cfg(feature = "profiling")]

@@ -1,10 +1,11 @@
+# 核对着色器预热验收要求报告、缓存与注册表来源一致。
 import json
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tools.zircon_build_shader_prewarm_acceptance import (
+from tools.build.zircon_build_shader_prewarm_acceptance import (
     validate_staged_shader_prewarm_acceptance_contract,
 )
 
@@ -91,17 +92,17 @@ class ZirconBuildShaderPrewarmAcceptanceContractTests(unittest.TestCase):
             )
 
         with patch(
-            "tools.zircon_build_shader_prewarm_acceptance."
+            "tools.build.zircon_build_shader_prewarm_acceptance."
             "validate_shader_prewarm_report_contract",
             side_effect=fake_validate_report,
         ):
             with patch(
-                "tools.zircon_build_shader_prewarm_acceptance."
+                "tools.build.zircon_build_shader_prewarm_acceptance."
                 "validate_shader_prewarm_cache_artifact_contract",
                 side_effect=fake_validate_cache,
             ):
                 with patch(
-                    "tools.zircon_build_shader_prewarm_acceptance."
+                    "tools.build.zircon_build_shader_prewarm_acceptance."
                     "validate_shader_resource_registry_export_contract",
                     side_effect=fake_validate_registry,
                 ):
@@ -168,16 +169,16 @@ class ZirconBuildShaderPrewarmAcceptanceContractTests(unittest.TestCase):
             )
 
         with patch(
-            "tools.zircon_build_shader_prewarm_acceptance."
+            "tools.build.zircon_build_shader_prewarm_acceptance."
             "validate_shader_prewarm_report_contract",
             side_effect=fake_validate_report,
         ):
             with patch(
-                "tools.zircon_build_shader_prewarm_acceptance."
+                "tools.build.zircon_build_shader_prewarm_acceptance."
                 "validate_shader_prewarm_cache_artifact_contract",
             ):
                 with patch(
-                    "tools.zircon_build_shader_prewarm_acceptance."
+                    "tools.build.zircon_build_shader_prewarm_acceptance."
                     "validate_shader_resource_registry_export_contract",
                 ):
                     validate_staged_shader_prewarm_acceptance_contract(config)
@@ -211,17 +212,17 @@ class ZirconBuildShaderPrewarmAcceptanceContractTests(unittest.TestCase):
             )
 
         with patch(
-            "tools.zircon_build_shader_prewarm_acceptance."
+            "tools.build.zircon_build_shader_prewarm_acceptance."
             "validate_shader_prewarm_report_contract",
             side_effect=lambda *args, **kwargs: events.append("report"),
         ):
             with patch(
-                "tools.zircon_build_shader_prewarm_acceptance."
+                "tools.build.zircon_build_shader_prewarm_acceptance."
                 "validate_shader_prewarm_cache_artifact_contract",
                 side_effect=lambda *args, **kwargs: events.append("cache"),
             ):
                 with patch(
-                    "tools.zircon_build_shader_prewarm_acceptance."
+                    "tools.build.zircon_build_shader_prewarm_acceptance."
                     "validate_shader_resource_registry_export_contract",
                     side_effect=fake_validate_registry,
                 ):
@@ -264,11 +265,11 @@ class ZirconBuildShaderPrewarmAcceptanceContractTests(unittest.TestCase):
         )
 
         with patch(
-            "tools.zircon_build_shader_prewarm_acceptance."
+            "tools.build.zircon_build_shader_prewarm_acceptance."
             "validate_shader_prewarm_report_contract",
         ):
             with patch(
-                "tools.zircon_build_shader_prewarm_acceptance."
+                "tools.build.zircon_build_shader_prewarm_acceptance."
                 "validate_shader_prewarm_cache_artifact_contract",
             ):
                 with self.assertRaisesRegex(
@@ -306,11 +307,11 @@ class ZirconBuildShaderPrewarmAcceptanceContractTests(unittest.TestCase):
         )
 
         with patch(
-            "tools.zircon_build_shader_prewarm_acceptance."
+            "tools.build.zircon_build_shader_prewarm_acceptance."
             "validate_shader_prewarm_report_contract",
         ):
             with patch(
-                "tools.zircon_build_shader_prewarm_acceptance."
+                "tools.build.zircon_build_shader_prewarm_acceptance."
                 "validate_shader_prewarm_cache_artifact_contract",
             ):
                 with self.assertRaisesRegex(
@@ -344,17 +345,17 @@ class ZirconBuildShaderPrewarmAcceptanceContractTests(unittest.TestCase):
         events: list[str] = []
 
         with patch(
-            "tools.zircon_build_shader_prewarm_acceptance."
+            "tools.build.zircon_build_shader_prewarm_acceptance."
             "validate_shader_prewarm_report_contract",
             side_effect=lambda *args, **kwargs: events.append("report"),
         ):
             with patch(
-                "tools.zircon_build_shader_prewarm_acceptance."
+                "tools.build.zircon_build_shader_prewarm_acceptance."
                 "validate_shader_prewarm_cache_artifact_contract",
                 side_effect=lambda *args, **kwargs: events.append("cache"),
             ):
                 with patch(
-                    "tools.zircon_build_shader_prewarm_acceptance."
+                    "tools.build.zircon_build_shader_prewarm_acceptance."
                     "validate_shader_resource_registry_export_contract",
                     side_effect=lambda *args, **kwargs: events.append("registry"),
                 ):
@@ -475,15 +476,15 @@ class ZirconBuildShaderPrewarmAcceptanceContractTests(unittest.TestCase):
         )
 
         with patch(
-            "tools.zircon_build_shader_prewarm_acceptance."
+            "tools.build.zircon_build_shader_prewarm_acceptance."
             "validate_shader_prewarm_report_contract",
         ):
             with patch(
-                "tools.zircon_build_shader_prewarm_acceptance."
+                "tools.build.zircon_build_shader_prewarm_acceptance."
                 "validate_shader_prewarm_cache_artifact_contract",
             ):
                 with patch(
-                    "tools.zircon_build_shader_prewarm_acceptance."
+                    "tools.build.zircon_build_shader_prewarm_acceptance."
                     "validate_shader_resource_registry_export_contract",
                 ):
                     with self.assertRaisesRegex(
@@ -508,15 +509,15 @@ class ZirconBuildShaderPrewarmAcceptanceContractTests(unittest.TestCase):
         )
 
         with patch(
-            "tools.zircon_build_shader_prewarm_acceptance."
+            "tools.build.zircon_build_shader_prewarm_acceptance."
             "validate_shader_prewarm_report_contract",
         ):
             with patch(
-                "tools.zircon_build_shader_prewarm_acceptance."
+                "tools.build.zircon_build_shader_prewarm_acceptance."
                 "validate_shader_prewarm_cache_artifact_contract",
             ):
                 with patch(
-                    "tools.zircon_build_shader_prewarm_acceptance."
+                    "tools.build.zircon_build_shader_prewarm_acceptance."
                     "validate_shader_resource_registry_export_contract",
                 ):
                     with self.assertRaisesRegex(
@@ -540,15 +541,15 @@ class ZirconBuildShaderPrewarmAcceptanceContractTests(unittest.TestCase):
         )
 
         with patch(
-            "tools.zircon_build_shader_prewarm_acceptance."
+            "tools.build.zircon_build_shader_prewarm_acceptance."
             "validate_shader_prewarm_report_contract",
         ):
             with patch(
-                "tools.zircon_build_shader_prewarm_acceptance."
+                "tools.build.zircon_build_shader_prewarm_acceptance."
                 "validate_shader_prewarm_cache_artifact_contract",
             ):
                 with patch(
-                    "tools.zircon_build_shader_prewarm_acceptance."
+                    "tools.build.zircon_build_shader_prewarm_acceptance."
                     "validate_shader_resource_registry_export_contract",
                 ):
                     with self.assertRaisesRegex(
@@ -573,15 +574,15 @@ class ZirconBuildShaderPrewarmAcceptanceContractTests(unittest.TestCase):
         )
 
         with patch(
-            "tools.zircon_build_shader_prewarm_acceptance."
+            "tools.build.zircon_build_shader_prewarm_acceptance."
             "validate_shader_prewarm_report_contract",
         ):
             with patch(
-                "tools.zircon_build_shader_prewarm_acceptance."
+                "tools.build.zircon_build_shader_prewarm_acceptance."
                 "validate_shader_prewarm_cache_artifact_contract",
             ):
                 with patch(
-                    "tools.zircon_build_shader_prewarm_acceptance."
+                    "tools.build.zircon_build_shader_prewarm_acceptance."
                     "validate_shader_resource_registry_export_contract",
                 ):
                     with self.assertRaisesRegex(

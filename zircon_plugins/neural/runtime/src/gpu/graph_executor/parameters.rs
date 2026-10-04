@@ -1,3 +1,4 @@
+// 固定字节布局对应 shader_templates.rs 中的 WGSL uniform 字段顺序，保留字节保持为零。
 const GEMM_PARAMETER_BYTES: usize = 32;
 const ELEMENTWISE_PARAMETER_BYTES: usize = 16;
 
@@ -18,4 +19,5 @@ pub(super) fn elementwise_parameters(elements: u32) -> Vec<u8> {
 }
 
 #[cfg(test)]
+#[path = "parameters/tests/performance_tests.rs"]
 mod performance_tests;

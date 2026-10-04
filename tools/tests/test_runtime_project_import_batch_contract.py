@@ -18,7 +18,8 @@ class RuntimeProjectImportBatchContractTests(unittest.TestCase):
         self.assertIn("registry_write: PreparedFileWrite", source)
         self.assertIn("self.registry_write = registry_write", source)
         self.assertIn("writes.push(self.registry_write)", source)
-        self.assertIn(".sort_by_key", source)
+        self.assertIn("affected.sort_by(", source)
+        self.assertIn("left.primary_locator.cmp(&right.primary_locator)", source)
         self.assertIn("lock_meta_document_paths(&self.meta_paths)", source)
         self.assertIn("append_prepared_file_writes", source)
 

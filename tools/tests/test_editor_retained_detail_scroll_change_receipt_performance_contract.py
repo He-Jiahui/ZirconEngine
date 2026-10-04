@@ -1,3 +1,4 @@
+# 核对详情滚动桥只保存标量状态，以变更回执直接发布有效偏移。
 import re
 import unittest
 from pathlib import Path

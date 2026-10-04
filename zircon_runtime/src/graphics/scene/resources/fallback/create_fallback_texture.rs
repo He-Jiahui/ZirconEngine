@@ -220,7 +220,6 @@ fn fallback_descriptor(
         usage: vec![RenderImageUsage::Sampled],
         asset_usage: Vec::new(),
         mip_count: 1,
-        array_layer_count: 1,
         fallback,
     }
 }

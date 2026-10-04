@@ -48,7 +48,7 @@ class EditorRetainedMenuPointerSurfaceGenerationPerformanceContractTests(
             "fn apply_menu_pointer_state_to_ui",
         )
 
-        self.assertIn("let next_layout = build_host_menu_pointer_layout(", sync)
+        self.assertIn("build_host_menu_pointer_layout(", sync)
         self.assertIn("self.menu_pointer_layout.as_ref() != &next_layout", sync)
         self.assertIn("Arc::clone(&self.menu_pointer_layout)", sync)
         self.assertIn("&self.menu_pointer_state", sync)

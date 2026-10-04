@@ -67,7 +67,7 @@ fn zui_pixel_snapping_policy_survives_component_expansion_package_and_render_ext
     let compiled = UiV2DocumentCompiler::compile_with_prototype_store(&view, &store)
         .expect("compile policy view");
     let serialized = serde_json::to_vec(&compiled).expect("serialize compiled policy package");
-    let compiled =
+    let compiled: zircon_runtime::ui::v2::UiV2CompiledDocument =
         serde_json::from_slice(&serialized).expect("deserialize compiled policy package");
     let compiled_policies = compiled
         .arena

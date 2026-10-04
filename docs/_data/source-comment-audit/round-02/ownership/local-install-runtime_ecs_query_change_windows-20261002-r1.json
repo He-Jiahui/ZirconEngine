@@ -1,0 +1,942 @@
+{
+  "schema": 1,
+  "owner": "runtime_ecs_query_change_windows",
+  "sid": "source-audit-20260930-01a0f168",
+  "prepared_at_utc": "2026-10-02T08:09:59.711764+00:00",
+  "files": [
+    {
+      "path": "zircon_runtime/src/scene/ecs/change_detection/change_tick.rs",
+      "before_sha256": "9cd60bce75868e7e520da4f36273eca78c822cfa35b81084182112d86435d7e8",
+      "after_sha256": "9cd60bce75868e7e520da4f36273eca78c822cfa35b81084182112d86435d7e8",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/ecs/change_detection/change_tick.rs",
+          "display_path": "zircon_runtime/src/scene/ecs/change_detection/change_tick.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "9cd60bce75868e7e520da4f36273eca78c822cfa35b81084182112d86435d7e8",
+          "attributed_at": "2026-09-27T02:07:33.556863+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/ecs/change_detection/change_tick_window.rs",
+      "before_sha256": "366ccc8edb67944ef7a0d545a7af602a1bcc648a66521134b09d3ef7deed984e",
+      "after_sha256": "366ccc8edb67944ef7a0d545a7af602a1bcc648a66521134b09d3ef7deed984e",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/ecs/change_detection/change_tick_window.rs",
+          "display_path": "zircon_runtime/src/scene/ecs/change_detection/change_tick_window.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "366ccc8edb67944ef7a0d545a7af602a1bcc648a66521134b09d3ef7deed984e",
+          "attributed_at": "2026-09-27T02:07:33.556863+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/ecs/change_detection/component_ticks.rs",
+      "before_sha256": "1646f1cf3649d97ae9b7d56c007fb130baaf8708358fe6cc4d4d70e822781e98",
+      "after_sha256": "1646f1cf3649d97ae9b7d56c007fb130baaf8708358fe6cc4d4d70e822781e98",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/ecs/change_detection/component_ticks.rs",
+          "display_path": "zircon_runtime/src/scene/ecs/change_detection/component_ticks.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "1646f1cf3649d97ae9b7d56c007fb130baaf8708358fe6cc4d4d70e822781e98",
+          "attributed_at": "2026-09-27T02:07:33.556863+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/ecs/change_detection/stats.rs",
+      "before_sha256": "f05f745578919f7825070e33d7096e5f628c4f796b7c8f25ae6a377f0fdf067a",
+      "after_sha256": "66ea902d1f9878031dab16fd8ae854a07f3d7de1f55151e0c7a573969cfdebbc",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor_preimage_line": 13,
+          "insert_before": "pub struct ChangeDetectionScanStats {",
+          "added_raw_base64": "Ly8vIOe0r+iuoeiusOW9lee7hOS7tuaXtumSn+ajgOafpeS4juWRveS4reasoeaVsO+8m+ezu+e7n+iviuaWreiwg+eUqOaWueebuOWvueS4iuasoeS4iuaKpeWfuue6v+WPlumlseWSjOWinumHj+OAgg0K",
+          "text": "/// 累计记录组件时钟检查与命中次数；系统诊断调用方相对上次上报基线取饱和增量。"
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/ecs/change_detection/stats.rs",
+          "display_path": "zircon_runtime/src/scene/ecs/change_detection/stats.rs",
+          "session_id": "root-runtime-editor-optimize-20260901-r6",
+          "baseline_epoch": 586,
+          "content_hash": "f05f745578919f7825070e33d7096e5f628c4f796b7c8f25ae6a377f0fdf067a",
+          "attributed_at": "2026-09-01T05:58:19.422949+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/ecs/change_detection/wrappers.rs",
+      "before_sha256": "cd131df0aad54b15357b31cb418ca038e70236b01dbc7770b590657051914a50",
+      "after_sha256": "cd131df0aad54b15357b31cb418ca038e70236b01dbc7770b590657051914a50",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/ecs/change_detection/wrappers.rs",
+          "display_path": "zircon_runtime/src/scene/ecs/change_detection/wrappers.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "cd131df0aad54b15357b31cb418ca038e70236b01dbc7770b590657051914a50",
+          "attributed_at": "2026-09-27T02:07:33.556863+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/ecs/query/cached_query_iter.rs",
+      "before_sha256": "572747b234c3b0ba112008b620259aa32dfbbbb1fcaef9f3ca17c8352178ef9a",
+      "after_sha256": "cefbfbc40f3b7a6b89ded16461fefd79272279f536010c93684c9b9090d74c20",
+      "changed": true,
+      "added_comment_lines": 3,
+      "additions": [
+        {
+          "anchor_preimage_line": 11,
+          "insert_before": "pub trait CachedQueryData: QueryDataAccess {",
+          "added_raw_base64": "Ly8vIOaMieacrOihjOW3sue8luivkeS9jee9ruaPkOWPluafpeivoumhue+8m+WGhee9rueahCBgJm11dCBUYCDkuI4gYE11dDxUPmAg5o+P6L+w5Zyo5q2k5YiG5Yir5oqV5b2x5Li6IGAmVGAg5LiOIGBSZWY8VD5g44CCCg==",
+          "text": "/// 按本行已编译位置提取查询项；内置的 `&mut T` 与 `Mut<T>` 描述在此分别投影为 `&T` 与 `Ref<T>`。"
+        },
+        {
+          "anchor_preimage_line": 23,
+          "insert_before": "pub trait CachedQueryFilter: QueryFilter {",
+          "added_raw_base64": "Ly8vIOe8k+WtmOi/h+a7pOWFpeWPo++8m+WGhee9riBXaXRoL1dpdGhvdXQg5L6d6LWW5Y6f5Z6L6K6h5YiS5bey5a6M5oiQ55qE5a2Y5Zyo5oCn562b6YCJ77yMQWRkZWQvQ2hhbmdlZCDlho3mo4Dmn6XlvZPliY3lrp7kvZPml7bpkp/jgIIK",
+          "text": "/// 缓存过滤入口；内置 With/Without 依赖原型计划已完成的存在性筛选，Added/Changed 再检查当前实体时钟。"
+        },
+        {
+          "anchor_preimage_line": 120,
+          "insert_before": "            let plan = self.plans.get(self.plan_index)?;",
+          "added_raw_base64": "ICAgICAgICAgICAgLy8gVE9ETzogW0NSLVIwMi1ydW50aW1lX2Vjc19xdWVyeV9jaGFuZ2Vfd2luZG93cy0wMDAyXSDlvoXnoa7orqTnm7TmjqXnvJPlrZjmn6Xor6LmmK/lkKbpobvkv53mjIHmma7pgJrmn6Xor6LnmoTnqLPlrprpobrluo/vvJvmraTlpITmjInljp/lnovniannkIbooYzmiavmj4/vvIzmma7pgJrov63ku6PmjInpgLvovpHpobrluo/lkIjlubbvvJvnvLrlsJHliKDpmaQv6L+B56e75ZCO55qE6aG65bqP5a+554Wn77yM5LiL5LiA5q2l6KGl55So5L6L5bm25qC45a+56LCD55So5pa557qm5p2f44CCCg==",
+          "text": "            // TODO: [CR-R02-runtime_ecs_query_change_windows-0002] 待确认直接缓存查询是否须保持普通查询的稳定顺序；此处按原型物理行扫描，普通迭代按逻辑顺序合并；缺少删除/迁移后的顺序对照，下一步补用例并核对调用方约束。"
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/ecs/query/cached_query_iter.rs",
+          "display_path": "zircon_runtime/src/scene/ecs/query/cached_query_iter.rs",
+          "session_id": "runtime08-ecs-current-source-compile-recovery-r2-20260815",
+          "baseline_epoch": 294,
+          "content_hash": "572747b234c3b0ba112008b620259aa32dfbbbb1fcaef9f3ca17c8352178ef9a",
+          "attributed_at": "2026-08-15T01:37:01.668853+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/ecs/query/query_access.rs",
+      "before_sha256": "d394bc79a85a5bb6f1086ca8c6cc373fedb0b482fb165bd5e6b42e9bb932f58a",
+      "after_sha256": "d394bc79a85a5bb6f1086ca8c6cc373fedb0b482fb165bd5e6b42e9bb932f58a",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/ecs/query/query_access.rs",
+          "display_path": "zircon_runtime/src/scene/ecs/query/query_access.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 628,
+          "content_hash": "d394bc79a85a5bb6f1086ca8c6cc373fedb0b482fb165bd5e6b42e9bb932f58a",
+          "attributed_at": "2026-09-27T10:16:47.675668+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/ecs/query/query_access_error.rs",
+      "before_sha256": "3b5a76c0f54668ca85bea3cddb624957fec373a118cfa9d4dca1e3ecd87f8113",
+      "after_sha256": "3b5a76c0f54668ca85bea3cddb624957fec373a118cfa9d4dca1e3ecd87f8113",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/ecs/query/query_access_error.rs",
+          "display_path": "zircon_runtime/src/scene/ecs/query/query_access_error.rs",
+          "session_id": "astra-optimize-20260926-batch-a",
+          "baseline_epoch": 628,
+          "content_hash": "3b5a76c0f54668ca85bea3cddb624957fec373a118cfa9d4dca1e3ecd87f8113",
+          "attributed_at": "2026-09-28T16:18:48.331553+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/ecs/query/query_combinations_mut_iter.rs",
+      "before_sha256": "736e23aff9ef963d5b75564d0f75b13b18776254be6702fc434236048251f8b9",
+      "after_sha256": "736e23aff9ef963d5b75564d0f75b13b18776254be6702fc434236048251f8b9",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/ecs/query/query_combinations_mut_iter.rs",
+          "display_path": "zircon_runtime/src/scene/ecs/query/query_combinations_mut_iter.rs",
+          "session_id": "runtime08-ecs-current-source-compile-recovery-r2-20260815",
+          "baseline_epoch": 294,
+          "content_hash": "736e23aff9ef963d5b75564d0f75b13b18776254be6702fc434236048251f8b9",
+          "attributed_at": "2026-08-15T01:37:01.722433+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/ecs/query/query_data.rs",
+      "before_sha256": "b8561f8c9dde5351f813b9b79b88e4f4b7b6278e15be2fa562e14169a31a2a39",
+      "after_sha256": "b8561f8c9dde5351f813b9b79b88e4f4b7b6278e15be2fa562e14169a31a2a39",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/ecs/query/query_data.rs",
+          "display_path": "zircon_runtime/src/scene/ecs/query/query_data.rs",
+          "session_id": "astra-optimize-20260926-batch-a",
+          "baseline_epoch": 628,
+          "content_hash": "b8561f8c9dde5351f813b9b79b88e4f4b7b6278e15be2fa562e14169a31a2a39",
+          "attributed_at": "2026-09-28T16:18:48.331553+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/ecs/query/query_filter.rs",
+      "before_sha256": "937c120db435083b97cf706e3d73a650b34bc19b9e9445a78863c3504a54156d",
+      "after_sha256": "937c120db435083b97cf706e3d73a650b34bc19b9e9445a78863c3504a54156d",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/ecs/query/query_filter.rs",
+          "display_path": "zircon_runtime/src/scene/ecs/query/query_filter.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "937c120db435083b97cf706e3d73a650b34bc19b9e9445a78863c3504a54156d",
+          "attributed_at": "2026-09-27T02:07:33.556863+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/ecs/query/query_mut_iter.rs",
+      "before_sha256": "08b5ffb265c71dd14e2c96a6323568834b7d3be91c4f6c11613b6d2e93ccea9b",
+      "after_sha256": "08b5ffb265c71dd14e2c96a6323568834b7d3be91c4f6c11613b6d2e93ccea9b",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/ecs/query/query_mut_iter.rs",
+          "display_path": "zircon_runtime/src/scene/ecs/query/query_mut_iter.rs",
+          "session_id": "runtime08-ecs-current-source-compile-recovery-r2-20260815",
+          "baseline_epoch": 294,
+          "content_hash": "08b5ffb265c71dd14e2c96a6323568834b7d3be91c4f6c11613b6d2e93ccea9b",
+          "attributed_at": "2026-08-15T01:37:01.843688+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/ecs/query/query_state/archetype_plan.rs",
+      "before_sha256": "3acb7d3ed4c45adf0ea54b2e98f2d2d3b08ab9e0afc20091a4127e284684387a",
+      "after_sha256": "31c5cae16c568bbfea097b55a44c7ace56d39661c2dcb6ea722630e424fcc080",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor_preimage_line": 28,
+          "insert_before": "pub(crate) struct CachedArchetypePlan {",
+          "added_raw_base64": "Ly8vIOS4uuWQjOS4gOWOn+Wei+mihOe7keWumue7hOS7tuexu+Wei+S4juWtmOWCqOanve+8m+WunuS9k+W9k+WJjeihjOWcqOavj+asoeaKleW9seaXtuihpeWFpe+8jOS4jeaMgeS5hee8k+WtmOWunuS9k+S9jee9ruOAggo=",
+          "text": "/// 为同一原型预绑定组件类型与存储槽；实体当前行在每次投影时补入，不持久缓存实体位置。"
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/ecs/query/query_state/archetype_plan.rs",
+          "display_path": "zircon_runtime/src/scene/ecs/query/query_state/archetype_plan.rs",
+          "session_id": "runtime08-ecs-bundle-width-current-compile-r1-20260808",
+          "baseline_epoch": 266,
+          "content_hash": "3acb7d3ed4c45adf0ea54b2e98f2d2d3b08ab9e0afc20091a4127e284684387a",
+          "attributed_at": "2026-08-10T14:12:24.958321+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/ecs/query/query_state/cache.rs",
+      "before_sha256": "7b102c8552e859ed4068a9196098a307ba0216ef31beaa792c4c2621f966c384",
+      "after_sha256": "b664c4ca7f98ebd1ec0f3ac06c1440ff1385ec4062eb312aeb505a088d15434c",
+      "changed": true,
+      "added_comment_lines": 2,
+      "additions": [
+        {
+          "anchor_preimage_line": 162,
+          "insert_before": "    fn refresh_plan_memberships(&mut self, world: &World) {",
+          "added_raw_base64": "ICAgIC8vIOS/neeVmeW3sue8luivkee7hOS7tue7keWumu+8jOmAkOiuoeWIkuiusOW9leW9k+WJjeaIkOWRmOS7o+mZheW5tumHjeeul+aVsOmHj++8m+WQjOS7o+mZheWRveS4rei3r+W+hOS5n+S8muaJp+ihjOatpOWIt+aWsOOAggo=",
+          "text": "    // 保留已编译组件绑定，逐计划记录当前成员代际并重算数量；同代际命中路径也会执行此刷新。"
+        },
+        {
+          "anchor_preimage_line": 15,
+          "insert_before": "        if self.cached_archetype_generation == archetype_generation {",
+          "added_raw_base64": "ICAgICAgICAvLyBUT0RPOiBbQ1ItUjAyLXJ1bnRpbWVfZWNzX3F1ZXJ5X2NoYW5nZV93aW5kb3dzLTAwMDFdIOW+heehruiupOi3qCBXb3JsZCDlpI3nlKjnmoTmi5Lnu53miJbph43nu5HlpZHnuqbvvJvmraTlpITliIbmlK/lj6rmr5TovoPku6PpmYXlubbkv53nlZnljp/nsbvlnosv5qe957uR5a6a77yM57y65bCR6Lqr5Lu95qOA5p+l5LiO6LeoIFdvcmxkIOeUqOS+i++8m+S4i+S4gOatpeeUqOazqOWGjOmhuuW6j+S4jeWQjOS4lOS7o+mZheebuOWQjOeahOS4pOS4qiBXb3JsZCDpqozor4HjgIIK",
+          "text": "        // TODO: [CR-R02-runtime_ecs_query_change_windows-0001] 待确认跨 World 复用的拒绝或重绑契约；此处分支只比较代际并保留原类型/槽绑定，缺少身份检查与跨 World 用例；下一步用注册顺序不同且代际相同的两个 World 验证。"
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/ecs/query/query_state/cache.rs",
+          "display_path": "zircon_runtime/src/scene/ecs/query/query_state/cache.rs",
+          "session_id": "runtime08-ecs-bundle-width-current-compile-r1-20260808",
+          "baseline_epoch": 266,
+          "content_hash": "a8f66b4d50ae9fa0aa2a3da817ab970a7adaec84c91143a007005017ab6edd4f",
+          "attributed_at": "2026-08-10T14:12:24.958321+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/ecs/query/query_state/state.rs",
+      "before_sha256": "cd102e6f5bbcec10fad9a3c4848db7d85a2f07cbf8dd5f900b23fdb705368eb3",
+      "after_sha256": "1f7cd013c7009d48c16ca53e37d7d416a14712e09ae7bcace57edbc8bce1fefc",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor_preimage_line": 12,
+          "insert_before": "pub struct QueryState<D, F = ()> {",
+          "added_raw_base64": "Ly8vIOS/neWtmOWIm+W7uiBXb3JsZCDnmoTnu4Tku7borr/pl67mkZjopoHjgIHljp/lnovnu5HlrprorqHliJLlkoznu5/orqHvvJvkvb/nlKjml7bpnIDkv53mjIEgV29ybGQg6YWN5a+577yM5Y6f5Z6L5Luj6ZmF5pys6Lqr5LiN5qCh6aqM6Lqr5Lu944CCCg==",
+          "text": "/// 保存创建 World 的组件访问摘要、原型绑定计划和统计；使用时需保持 World 配对，原型代际本身不校验身份。"
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/ecs/query/query_state/state.rs",
+          "display_path": "zircon_runtime/src/scene/ecs/query/query_state/state.rs",
+          "session_id": "astra-optimize-20260926-batch-a",
+          "baseline_epoch": 628,
+          "content_hash": "cd102e6f5bbcec10fad9a3c4848db7d85a2f07cbf8dd5f900b23fdb705368eb3",
+          "attributed_at": "2026-09-28T16:18:48.331553+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/ecs/query/query_state/stats.rs",
+      "before_sha256": "43f25f4e3003093ff0255eb933da0ab08c05704bef13ecceda4719f55a3eb375",
+      "after_sha256": "2e049a502473311a665e9aa845f5523b462b06f0b0040ce128a02982d02e5859",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor_preimage_line": 79,
+          "insert_before": "    pub fn saturating_delta_since(self, baseline: Self) -> Self {",
+          "added_raw_base64": "ICAgIC8vIOe0r+iuoeiuoeaVsOWPlumlseWSjOWinumHj++8m+Wbm+S4quaVsOmHj+W/q+eFp+S7heWcqOacieafpeivoua0u+WKqOaXtuaQuuW4pu+8jOS7o+mZheWAvOS7jeS/neeVmeW9k+WJjeWAvOOAgg0K",
+          "text": "    // 累计计数取饱和增量；四个数量快照仅在有查询活动时携带，代际值仍保留当前值。"
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/ecs/query/query_state/stats.rs",
+          "display_path": "zircon_runtime/src/scene/ecs/query/query_state/stats.rs",
+          "session_id": "root-runtime-editor-optimize-20260901-r6",
+          "baseline_epoch": 586,
+          "content_hash": "43f25f4e3003093ff0255eb933da0ab08c05704bef13ecceda4719f55a3eb375",
+          "attributed_at": "2026-09-01T05:58:19.422949+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/ecs/query/unique_entities.rs",
+      "before_sha256": "843c7c2c0be37e94394a403148c9c21af5c00a9ff1db8cb480883c26ba3446cb",
+      "after_sha256": "843c7c2c0be37e94394a403148c9c21af5c00a9ff1db8cb480883c26ba3446cb",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/ecs/query/unique_entities.rs",
+          "display_path": "zircon_runtime/src/scene/ecs/query/unique_entities.rs",
+          "session_id": "optimize-runtime-full-post-main-integration-r3-01a00797-20260821",
+          "baseline_epoch": 336,
+          "content_hash": "6315c2db8015f9a6419509849a8eee077f0151ece4031b5dad6d59d9ccf7a505",
+          "attributed_at": "2026-08-21T17:02:37.571960+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_cached_query_iter_structure.rs",
+      "before_sha256": "9667ba9a20f8fbdeccf2795394e59fa8131c8837e87c1c01db7abe105cf9b251",
+      "after_sha256": "9667ba9a20f8fbdeccf2795394e59fa8131c8837e87c1c01db7abe105cf9b251",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/tests/ecs_cached_query_iter_structure.rs",
+          "display_path": "zircon_runtime/src/scene/tests/ecs_cached_query_iter_structure.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "9667ba9a20f8fbdeccf2795394e59fa8131c8837e87c1c01db7abe105cf9b251",
+          "attributed_at": "2026-09-27T02:51:56.651014+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_change_detection.rs",
+      "before_sha256": "209081f4abf9b221c28e7551e69d78f6a2ab18353ab90a5faea518534bca81db",
+      "after_sha256": "209081f4abf9b221c28e7551e69d78f6a2ab18353ab90a5faea518534bca81db",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/tests/ecs_change_detection.rs",
+          "display_path": "zircon_runtime/src/scene/tests/ecs_change_detection.rs",
+          "session_id": "performance01-picking-validation-aggregate-r7-20260805",
+          "baseline_epoch": 263,
+          "content_hash": "0f498d690ad7ed3ac2f07458ea5724f33dab652189113e6f754fd659ca92b7a9",
+          "attributed_at": "2026-08-05T01:42:34.256872+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_query.rs",
+      "before_sha256": "a8bb700195fae9365a652638c1285a675411d6b283aac5d16d2794af80aba83c",
+      "after_sha256": "a8bb700195fae9365a652638c1285a675411d6b283aac5d16d2794af80aba83c",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/tests/ecs_query.rs",
+          "display_path": "zircon_runtime/src/scene/tests/ecs_query.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "a8bb700195fae9365a652638c1285a675411d6b283aac5d16d2794af80aba83c",
+          "attributed_at": "2026-09-27T02:51:56.651014+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_query/cached_queries.rs",
+      "before_sha256": "77d87e707b72ea5d8cd5eac825ec5d8b9a51a01395ab4735df5c11df38ba8fd5",
+      "after_sha256": "77d87e707b72ea5d8cd5eac825ec5d8b9a51a01395ab4735df5c11df38ba8fd5",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/tests/ecs_query/cached_queries.rs",
+          "display_path": "zircon_runtime/src/scene/tests/ecs_query/cached_queries.rs",
+          "session_id": "optimize-runtime-full-post-main-integration-r3-01a00797-20260821",
+          "baseline_epoch": 336,
+          "content_hash": "eccddc11f7e5a3c2be6ae7fc392c6ed579e112304092b703881d101ce2b7062e",
+          "attributed_at": "2026-08-21T17:02:37.571960+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_query/fixed_ticks.rs",
+      "before_sha256": "27936ec2836a3bba3cf60f57e7fe5b9fb8a1c58b687bcc62a71e3edb785fe8d4",
+      "after_sha256": "27936ec2836a3bba3cf60f57e7fe5b9fb8a1c58b687bcc62a71e3edb785fe8d4",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_query/iter_many.rs",
+      "before_sha256": "82b9f19804dad564419c1d90bd7670eb25a19531858bd2ed3e52044364146b6b",
+      "after_sha256": "82b9f19804dad564419c1d90bd7670eb25a19531858bd2ed3e52044364146b6b",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/tests/ecs_query/iter_many.rs",
+          "display_path": "zircon_runtime/src/scene/tests/ecs_query/iter_many.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "82b9f19804dad564419c1d90bd7670eb25a19531858bd2ed3e52044364146b6b",
+          "attributed_at": "2026-09-27T02:51:56.651014+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_query/mutation_access.rs",
+      "before_sha256": "056c604150522deabb89ad4d6faca31b0c6b28a30345b68cd41ab527d57d84c9",
+      "after_sha256": "056c604150522deabb89ad4d6faca31b0c6b28a30345b68cd41ab527d57d84c9",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/tests/ecs_query/mutation_access.rs",
+          "display_path": "zircon_runtime/src/scene/tests/ecs_query/mutation_access.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "056c604150522deabb89ad4d6faca31b0c6b28a30345b68cd41ab527d57d84c9",
+          "attributed_at": "2026-09-27T02:51:56.651014+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_query/read_items.rs",
+      "before_sha256": "d602fe5791fcd5ba9431238d1bc48ee949bbd5207408516bc67239ff7503ae47",
+      "after_sha256": "d602fe5791fcd5ba9431238d1bc48ee949bbd5207408516bc67239ff7503ae47",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/tests/ecs_query/read_items.rs",
+          "display_path": "zircon_runtime/src/scene/tests/ecs_query/read_items.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "d602fe5791fcd5ba9431238d1bc48ee949bbd5207408516bc67239ff7503ae47",
+          "attributed_at": "2026-09-27T02:51:56.651014+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_query_combinations.rs",
+      "before_sha256": "4c1094db52bdffe0032282bec86d9bb4fe965d2cda62fa2936369dfeb79f3835",
+      "after_sha256": "1795a94ab1ea4f20bb832b9dedd5c42c7917a60553f72c2e563298548e016be7",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor_preimage_line": 212,
+          "insert_before": "    assert!(constructor.contains(\"for entity in entities.iter().copied()\"));",
+          "added_raw_base64": "ICAgIC8vIEJVRzogW0NSLVIwMi1ydW50aW1lX2Vjc19xdWVyeV9jaGFuZ2Vfd2luZG93cy0wMDAzXSDmraTmma7pgJrmtYvor5XmiafooYzliLDmnKzmlq3oqIDlv4XlpLHotKXvvJvmnoTpgKDlmajlt7LpgY3ljoYgV29ybGQg55qE56iz5a6a5a6e5L2T6L+t5Luj5Zmo77yM5pen5YiH54mH6YGN5Y6G5paH5pys5LiN5a2Y5Zyo44CC6K+B5o2u77yacXVlcnlfY29tYmluYXRpb25zX2l0ZXIucnMg55qEIG5ldyDlrozmlbTniYfmrrXjgIIK",
+          "text": "    // BUG: [CR-R02-runtime_ecs_query_change_windows-0003] 此普通测试执行到本断言必失败；构造器已遍历 World 的稳定实体迭代器，旧切片遍历文本不存在。证据：query_combinations_iter.rs 的 new 完整片段。"
+        }
+      ],
+      "frozen_attribution_provenance": [],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_query_data_structure.rs",
+      "before_sha256": "7458af8795c3a17b20433e125591d11bb46acac8d31bbd96ce13454cd4e1097e",
+      "after_sha256": "7458af8795c3a17b20433e125591d11bb46acac8d31bbd96ce13454cd4e1097e",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/tests/ecs_query_data_structure.rs",
+          "display_path": "zircon_runtime/src/scene/tests/ecs_query_data_structure.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "7458af8795c3a17b20433e125591d11bb46acac8d31bbd96ce13454cd4e1097e",
+          "attributed_at": "2026-09-27T02:51:56.651014+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_query_filter_structure.rs",
+      "before_sha256": "929648cd82d62260c9f13f6629f75d40b5dfbf93ae2207ffcc5f69a4fa563d9b",
+      "after_sha256": "929648cd82d62260c9f13f6629f75d40b5dfbf93ae2207ffcc5f69a4fa563d9b",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/tests/ecs_query_filter_structure.rs",
+          "display_path": "zircon_runtime/src/scene/tests/ecs_query_filter_structure.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "929648cd82d62260c9f13f6629f75d40b5dfbf93ae2207ffcc5f69a4fa563d9b",
+          "attributed_at": "2026-09-27T02:51:56.651014+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_query_many.rs",
+      "before_sha256": "a7a8add1240bfef08c764db0440ef932b51ed0796f9adfa5a19e36d2c04388e8",
+      "after_sha256": "a7a8add1240bfef08c764db0440ef932b51ed0796f9adfa5a19e36d2c04388e8",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_query_single.rs",
+      "before_sha256": "72ba7e33c44cd84c4b757a56aa46c92ea9d80598bee75937e0657ac306b66098",
+      "after_sha256": "72ba7e33c44cd84c4b757a56aa46c92ea9d80598bee75937e0657ac306b66098",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_query_state_structure.rs",
+      "before_sha256": "bb08243a7f86b2a0e970649f1d38cf55970de79d139353f662cd4570874c08ce",
+      "after_sha256": "bb08243a7f86b2a0e970649f1d38cf55970de79d139353f662cd4570874c08ce",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/tests/ecs_query_state_structure.rs",
+          "display_path": "zircon_runtime/src/scene/tests/ecs_query_state_structure.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "bb08243a7f86b2a0e970649f1d38cf55970de79d139353f662cd4570874c08ce",
+          "attributed_at": "2026-09-27T02:51:56.651014+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_query_structure.rs",
+      "before_sha256": "79282128d3719c904d8a0ff55f13c1fd47f3cd4d0b40b8b985804a62358b79b9",
+      "after_sha256": "79282128d3719c904d8a0ff55f13c1fd47f3cd4d0b40b8b985804a62358b79b9",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/tests/ecs_query_structure.rs",
+          "display_path": "zircon_runtime/src/scene/tests/ecs_query_structure.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "79282128d3719c904d8a0ff55f13c1fd47f3cd4d0b40b8b985804a62358b79b9",
+          "attributed_at": "2026-09-27T02:51:56.651014+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_query_structure/archetype_access.rs",
+      "before_sha256": "9d11774044d9b53327f151946f280793edaf2cace640d872bd3ea1483c95039c",
+      "after_sha256": "9d11774044d9b53327f151946f280793edaf2cace640d872bd3ea1483c95039c",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/tests/ecs_query_structure/archetype_access.rs",
+          "display_path": "zircon_runtime/src/scene/tests/ecs_query_structure/archetype_access.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "9d11774044d9b53327f151946f280793edaf2cace640d872bd3ea1483c95039c",
+          "attributed_at": "2026-09-27T02:51:56.651014+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_query_structure/cache_rebuild.rs",
+      "before_sha256": "4da9895dffe6c119f5685767eb7d518f050fb9e1802df2b3d7995f3959d38040",
+      "after_sha256": "4da9895dffe6c119f5685767eb7d518f050fb9e1802df2b3d7995f3959d38040",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/tests/ecs_query_structure/cache_rebuild.rs",
+          "display_path": "zircon_runtime/src/scene/tests/ecs_query_structure/cache_rebuild.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "4da9895dffe6c119f5685767eb7d518f050fb9e1802df2b3d7995f3959d38040",
+          "attributed_at": "2026-09-27T02:51:56.651014+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_query_structure/cached_iterators.rs",
+      "before_sha256": "90c3321cfdece22aa2c1014e56dff9171f48338094d6eb13da1db99060d9d173",
+      "after_sha256": "90c3321cfdece22aa2c1014e56dff9171f48338094d6eb13da1db99060d9d173",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/tests/ecs_query_structure/cached_iterators.rs",
+          "display_path": "zircon_runtime/src/scene/tests/ecs_query_structure/cached_iterators.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "90c3321cfdece22aa2c1014e56dff9171f48338094d6eb13da1db99060d9d173",
+          "attributed_at": "2026-09-27T02:51:56.651014+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_query_structure/combinations.rs",
+      "before_sha256": "8dc9075e8d42c81b50a45b939f8d11e1eddad91b334c111613a81d931d56c54a",
+      "after_sha256": "8dc9075e8d42c81b50a45b939f8d11e1eddad91b334c111613a81d931d56c54a",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/tests/ecs_query_structure/combinations.rs",
+          "display_path": "zircon_runtime/src/scene/tests/ecs_query_structure/combinations.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "8dc9075e8d42c81b50a45b939f8d11e1eddad91b334c111613a81d931d56c54a",
+          "attributed_at": "2026-09-27T02:51:56.651014+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_query_structure/mutable_iterators.rs",
+      "before_sha256": "b773327ba9a0a3752b58deaf72b62d6290926beec4d448bb5ab95d5f4479b891",
+      "after_sha256": "b773327ba9a0a3752b58deaf72b62d6290926beec4d448bb5ab95d5f4479b891",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/tests/ecs_query_structure/mutable_iterators.rs",
+          "display_path": "zircon_runtime/src/scene/tests/ecs_query_structure/mutable_iterators.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "b773327ba9a0a3752b58deaf72b62d6290926beec4d448bb5ab95d5f4479b891",
+          "attributed_at": "2026-09-27T02:51:56.651014+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/tests/ecs_query_structure/query_state_layout.rs",
+      "before_sha256": "4fc157f9131773df0987bc7a2fddc9d76feccaaf1347cde3288c6325a8d40d67",
+      "after_sha256": "4fc157f9131773df0987bc7a2fddc9d76feccaaf1347cde3288c6325a8d40d67",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/tests/ecs_query_structure/query_state_layout.rs",
+          "display_path": "zircon_runtime/src/scene/tests/ecs_query_structure/query_state_layout.rs",
+          "session_id": "1d9a143c-c6a1-4da3-a702-eeeff3e26b8f",
+          "baseline_epoch": 627,
+          "content_hash": "4fc157f9131773df0987bc7a2fddc9d76feccaaf1347cde3288c6325a8d40d67",
+          "attributed_at": "2026-09-27T02:51:56.651014+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/change_detection.rs",
+      "before_sha256": "a0a2d5f0cf6b4ad963ca1053a8fc8eb606e10c1916e0f0816bb2a5ef7a3e1dc1",
+      "after_sha256": "a0a2d5f0cf6b4ad963ca1053a8fc8eb606e10c1916e0f0816bb2a5ef7a3e1dc1",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/world/change_detection.rs",
+          "display_path": "zircon_runtime/src/scene/world/change_detection.rs",
+          "session_id": "astra-optimize-20260926-batch-a",
+          "baseline_epoch": 628,
+          "content_hash": "a0a2d5f0cf6b4ad963ca1053a8fc8eb606e10c1916e0f0816bb2a5ef7a3e1dc1",
+          "attributed_at": "2026-09-28T16:18:52.796027+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/query.rs",
+      "before_sha256": "d46d8a788577de71c8ab0cd65d7b55130e640a12f5e9c2fecf2ae18b515dc794",
+      "after_sha256": "d46d8a788577de71c8ab0cd65d7b55130e640a12f5e9c2fecf2ae18b515dc794",
+      "changed": false,
+      "added_comment_lines": 0,
+      "additions": [],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/world/query.rs",
+          "display_path": "zircon_runtime/src/scene/world/query.rs",
+          "session_id": "astra-optimize-20260926-batch-a",
+          "baseline_epoch": 628,
+          "content_hash": "d46d8a788577de71c8ab0cd65d7b55130e640a12f5e9c2fecf2ae18b515dc794",
+          "attributed_at": "2026-09-28T16:18:52.796027+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/query_order.rs",
+      "before_sha256": "05e2837b1210f46533da68d2333e0196f566e00fe84809e0823d248b41811c62",
+      "after_sha256": "1686f3459e7311368c770beb7df2e88e1593377544ad04fee02e9967a2742847",
+      "changed": true,
+      "added_comment_lines": 1,
+      "additions": [
+        {
+          "anchor_preimage_line": 85,
+          "insert_before": "impl PartialEq for StableQueryOrderIndex {",
+          "added_raw_base64": "Ly8g6K+l5rS+55Sf57Si5byV5LiA5b6L6KeG5L2c55u4562J77yM5Zug5q2kIFdvcmxkIOeahOa0vueUn+avlOi+g+S4jeS8muavlOi+g+WFtuWGhemDqOmhuuW6j+e7tOaKpOeKtuaAgeOAggo=",
+          "text": "// 该派生索引一律视作相等，因此 World 的派生比较不会比较其内部顺序维护状态。"
+        }
+      ],
+      "frozen_attribution_provenance": [
+        {
+          "path_key": "zircon_runtime/src/scene/world/query_order.rs",
+          "display_path": "zircon_runtime/src/scene/world/query_order.rs",
+          "session_id": "runtime08-ecs-bundle-width-current-compile-r1-20260808",
+          "baseline_epoch": 266,
+          "content_hash": "a5a9b1621251d28313c1957143a0ac455aaf050d58dce60ccf9afb3388f0af02",
+          "attributed_at": "2026-08-10T05:32:11.889615+00:00"
+        }
+      ],
+      "original_source_commit_boundary": "Exclude all preexisting dirty/untracked deltas; no whole-file adoption or later product postimage may be included as audit authorship.",
+      "existing_bytes_adopted_or_reauthored": false
+    }
+  ],
+  "root_review_inputs": {
+    "jobs/runtime_ecs_query_change_windows.json": {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\jobs\\runtime_ecs_query_change_windows.json",
+      "sha256": "b0f8eafacd86e7c0776068203afc85dc00e365e7b51f46c0db5c55c2f3003ced"
+    },
+    "runtime_ecs_query_change_windows-root-insertions-20261002-r2.json": {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_ecs_query_change_windows-root-insertions-20261002-r2.json",
+      "sha256": "2206ab42d1817d4efd4aa0bf64c3be3f2ed4e9d6327f4a699251385466aa2637"
+    },
+    "runtime_ecs_query_change_windows-root-semantic-proof-20261002-r2.json": {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_ecs_query_change_windows-root-semantic-proof-20261002-r2.json",
+      "sha256": "ed2df7843b81f276d078fdc8fc868b0f638d2baf1f3285368957f1fc26816b1d"
+    },
+    "runtime_ecs_query_change_windows-root-issue-decisions-20261002-r2.json": {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_ecs_query_change_windows-root-issue-decisions-20261002-r2.json",
+      "sha256": "d31aca40e588e3e26a0327e86d22dc5ae935fa9a054a65a06b73317481e792b0"
+    },
+    "wave6-query-private-candidates-root-check-20261002-r1.json": {
+      "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\wave6-query-private-candidates-root-check-20261002-r1.json",
+      "sha256": "ba82545b6f2be042a04a278fd4c2c7e25fffe269c9a7a6ccef8e0b84e15047bb"
+    }
+  },
+  "private_package_intent": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave6-query-local-package-20261002-r1\\intent.json",
+    "sha256": "c3d3deabfb696ed46916b76a5c31ded8953e1626130648bae88b9fa9e8c2f1f1"
+  },
+  "private_package_seal": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave6-query-local-package-20261002-r1\\terminal-seal.json",
+    "sha256": "27046295c04117cab688ecf9d5cc61477daaa129ae6a263f32ced6c345a003b8"
+  },
+  "support_comment_lineage": [
+    {
+      "path": "zircon_runtime/src/scene/world/identity.rs",
+      "frozen_support_sha256": "71de1aae3b50596c9d4b7c9d4576ceff6da175fb8b2c92210f1df394b0ba9b7d",
+      "current_sha256": "a199852c4c1a982acc0a77dfbb5c745d5b0b2a0a313a6973ce6c77a63cd7b4ab",
+      "exact_comment_only_reconstruction": true,
+      "installation": {
+        "path": "E:\\Git\\ZirconEngine\\docs\\cli-and-tooling\\source-comment-audit\\round-02\\ownership\\local-install-runtime_ecs_identity_storage-20261002-r1.json",
+        "sha256": "aa2d24ec991ac2f541b5fcf76b471de02f6a527bbdb3fbe34880f3599a64e66f"
+      },
+      "new_semantic_evidence_or_business_authorship": false
+    }
+  ],
+  "audit_only_diff": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-install-runtime_ecs_query_change_windows-20261002-r1\\audit-only.diff",
+    "sha256": "f84bd16b1b738820a99e38c711f6f262a219623ea8f30cc72a1b9c4b81e03bc2"
+  },
+  "parser_receipts": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave6-query-local-package-20261002-r1\\parser-receipts.json",
+    "sha256": "cda20edeb09d907f2b7a27709d4d6d59a56112106dbc458bdab11a3c4e772982"
+  },
+  "all_child_writers_terminal": true,
+  "authority": {
+    "user_update": "目前协调器已经弃用，暂时自行维护",
+    "scope": "Exact local comment bytes only",
+    "native_lease_or_ticket_claim": false
+  },
+  "whole_file_business_adoption": false,
+  "product_consent": false,
+  "source_writes": 8,
+  "canonical_writes": 0,
+  "completed_at_utc": "2026-10-02T08:12:31.445534+00:00",
+  "status": "exact_comment_delta_installed",
+  "intent": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-install-runtime_ecs_query_change_windows-20261002-r1\\intent.json",
+    "sha256": "dca647036b200467c834dc0a1fecd87b53404f3ea8798ce1fd7f550e40b113a2"
+  },
+  "all_removals_restore_exact_preimage": true,
+  "added_comment_lines": 11,
+  "business_edits": 0,
+  "existing_source_authorship_preserved": true,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "future_source_edit_pending": false,
+  "coverage_publication": "pending_separate_root_publication"
+}

@@ -15,8 +15,9 @@ pub(super) fn create_native_window_or_exit(
     event_loop: &dyn ActiveEventLoop,
     host: &UiHostWindow,
     size: PhysicalSize,
+    minimum_size: WinitPhysicalSize<u32>,
 ) -> Option<Arc<dyn Window>> {
-    let window_attributes = native_window_attributes(&size);
+    let window_attributes = native_window_attributes(&size, minimum_size);
     match event_loop.create_window(window_attributes) {
         Ok(window) => Some(Arc::from(window)),
         Err(error) => {
@@ -32,18 +33,25 @@ pub(super) fn create_native_window_or_exit(
     }
 }
 
-fn native_window_attributes(size: &PhysicalSize) -> WindowAttributes {
+fn native_window_attributes(
+    size: &PhysicalSize,
+    minimum_size: WinitPhysicalSize<u32>,
+) -> WindowAttributes {
     let size = profile_initial_client_size().unwrap_or_else(|| size.clone());
-    native_window_attributes_for_size(&size)
+    native_window_attributes_for_size(&size, minimum_size)
 }
 
-fn native_window_attributes_for_size(size: &PhysicalSize) -> WindowAttributes {
+fn native_window_attributes_for_size(
+    size: &PhysicalSize,
+    minimum_size: WinitPhysicalSize<u32>,
+) -> WindowAttributes {
     WindowAttributes::default()
         .with_title("Zircon Editor")
         .with_surface_size(Size::Physical(WinitPhysicalSize::new(
             size.width,
             size.height,
         )))
+        .with_min_surface_size(Size::Physical(minimum_size))
 }
 
 fn profile_initial_client_size() -> Option<PhysicalSize> {
@@ -69,33 +77,5 @@ fn parse_profile_initial_client_size(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn requested_host_window_size_stays_in_physical_pixels() {
-        let attributes = native_window_attributes_for_size(&PhysicalSize::new(1672, 941));
-
-        assert_eq!(
-            attributes.surface_size,
-            Some(Size::Physical(WinitPhysicalSize::new(1672, 941)))
-        );
-    }
-
-    #[test]
-    fn profile_capture_initial_client_size_is_an_exact_physical_extent() {
-        assert_eq!(
-            parse_profile_initial_client_size(Some("1672"), Some("941")),
-            Some(PhysicalSize::new(1672, 941))
-        );
-        assert_eq!(
-            parse_profile_initial_client_size(Some("0"), Some("941")),
-            None
-        );
-        assert_eq!(parse_profile_initial_client_size(Some("640"), None), None);
-        assert_eq!(
-            parse_profile_initial_client_size(Some("logical"), Some("520")),
-            None
-        );
-    }
-}
+#[path = "tests/native_window.rs"]
+mod tests;

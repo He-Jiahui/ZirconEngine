@@ -73,3 +73,31 @@ Open state: `待修复`; no pass is claimed.
   watcher command; queued status is not a pass.
 
 Open state: `实现完成，受管验证待回执`; accepted closeout remains deferred.
+
+### 2026-09-09 watcher regression contract correction
+
+The first current-source watcher batch was accepted as job
+`439b066dc73645c39ec0fb06a3cf8796` and ran 9 tests: 5 passed and 4 failed.
+The failures were test-side drift, not a production watcher regression:
+the source guard still named the retired direct fold call, the burst fixture
+allowed a scheduler race around the quiet window, and the storm/pending
+overflow fixtures treated reconciliation timing as deterministic data
+delivery. The production `watch_loop` and bounded ingress implementation were
+unchanged.
+
+Snapshot `3310` updates only `zircon_runtime/src/asset/tests/watcher.rs`
+(hash `697043df1e719bc71afdb23680e36e99c882ca0b73edbdafcfd26a689d78e5d5`).
+The source guard now checks `try_fold_bounded` and the bounded `fold_event`
+call; the burst fixture uses a wider quiet window, the storm fixture sends a
+controlled continuous stream, and the pending-overflow fixture gives both
+events one deterministic batch window. Single-file Rust 2021 rustfmt and
+whitespace checks pass.
+
+On immutable input
+`E:/cargo-targets/zircon-engine/cache/build-benchmarks/runtime04-watcher-tests-3310-20260909`
+with manifest
+`401104c847cca6353e0b7aeb4f7c645801080a1ae5aaff3e7666ef7ddd96b2f8`, managed
+job `ebe83c9948fa4d018622a63dc14268b9` ran all 9 watcher tests: 9 passed, 0
+failed, 0 ignored. This closes the focused watcher behavior evidence; the
+large-scale 1/1k/1M performance probes, independent review, canonical return,
+and coordinator closeout remain pending.

@@ -1,7 +1,8 @@
+# 核对界面外框命令流复用提取后的存储，并把损伤裁剪与资源压缩归入同一路径。
 from pathlib import Path
 import unittest
 
-from tools.editor_chrome_command_stream_allocation_pressure import run
+from tools.analysis.performance.editor.editor_chrome_command_stream_allocation_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]

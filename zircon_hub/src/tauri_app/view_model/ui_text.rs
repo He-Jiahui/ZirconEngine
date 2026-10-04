@@ -98,6 +98,8 @@ pub(crate) struct HubProjectsText {
     pub browser_title: String,
     pub detail_title: String,
     pub search_placeholder: String,
+    pub filter_label: String,
+    pub sort_label: String,
     pub filter_all: String,
     pub filter_existing: String,
     pub filter_missing: String,
@@ -186,6 +188,7 @@ pub(crate) struct HubCommonText {
     pub operation: String,
     pub detail: String,
     pub status: String,
+    pub cancel_task: String,
     pub none: String,
     pub no_project_selected: String,
     pub no_selected_project: String,
@@ -467,6 +470,8 @@ pub(crate) fn ui_text(language: HubLanguage) -> HubUiText {
             browser_title: text.pair("Project Browser", "项目浏览器").to_string(),
             detail_title: text.pair("Project Detail", "项目详情").to_string(),
             search_placeholder: text.pair("Search projects...", "搜索项目...").to_string(),
+            filter_label: text.pair("Filter projects", "筛选项目").to_string(),
+            sort_label: text.pair("Sort projects", "排序项目").to_string(),
             filter_all: text.pair("All Projects", "全部项目").to_string(),
             filter_existing: text.pair("Existing", "存在").to_string(),
             filter_missing: text.pair("Missing", "缺失").to_string(),
@@ -586,6 +591,7 @@ fn common_text(text: HubTextBundle) -> HubCommonText {
         operation: text.pair("Operation", "操作").to_string(),
         detail: text.pair("Detail", "详情").to_string(),
         status: text.pair("Status", "状态").to_string(),
+        cancel_task: text.pair("Cancel task", "取消任务").to_string(),
         none: text.pair("None", "无").to_string(),
         no_project_selected: text.pair("No project selected", "未选择项目").to_string(),
         no_selected_project: text.pair("No selected project", "没有已选项目").to_string(),
@@ -900,70 +906,5 @@ fn nav_items(language: HubLanguage) -> Vec<HubNavItemText> {
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::settings::HubLanguage;
-
-    #[test]
-    fn ui_text_defaults_to_chinese_shell_and_project_copy() {
-        let text = super::ui_text(HubLanguage::Chinese);
-
-        assert_eq!(text.shell.action_failed, "操作失败");
-        assert_eq!(text.shell.nav_items[0].label, "项目");
-        assert_eq!(text.actions.new_project, "新建项目");
-        assert_eq!(text.actions.open_resource, "打开资源");
-        assert_eq!(text.editor.plugin_coming_soon_panel, "预留插件操作");
-        assert_eq!(text.shell.active_engine, "当前引擎");
-        assert_eq!(text.shell.no_source_engine_registered, "未注册源码引擎");
-        assert_eq!(text.shell.user_account, "我的账户");
-        assert_eq!(text.shell.workspace_profile, "Zircon Hub 工作区");
-        assert_eq!(text.shell.up_to_date, "本地版本");
-        assert_eq!(text.shell.check_for_updates, "更新检查预留");
-        assert_eq!(
-            text.shell.check_for_updates_detail,
-            "本地 v1 不启用远程更新服务。"
-        );
-        assert_eq!(text.shell.expand, "展开");
-        assert_eq!(text.shell.demo_mode_badge, "演示数据");
-        assert_eq!(text.projects.search_placeholder, "搜索项目...");
-        assert_eq!(text.catalog.search_placeholder_prefix, "搜索");
-        assert_eq!(text.catalog.search_placeholder_separator, "");
-        assert_eq!(text.catalog.search_placeholder_suffix, "...");
-    }
-
-    #[test]
-    fn ui_text_strings_are_non_empty_except_explicit_separator() {
-        for language in [HubLanguage::English, HubLanguage::Chinese] {
-            let value =
-                serde_json::to_value(super::ui_text(language)).expect("ui text should serialize");
-
-            assert_non_empty_strings(&value, "");
-        }
-    }
-
-    fn assert_non_empty_strings(value: &serde_json::Value, path: &str) {
-        match value {
-            serde_json::Value::String(text) => {
-                if path == "catalog.searchPlaceholderSeparator" {
-                    return;
-                }
-                assert!(!text.trim().is_empty(), "empty UI text at {path}");
-            }
-            serde_json::Value::Array(values) => {
-                for (index, child) in values.iter().enumerate() {
-                    assert_non_empty_strings(child, &format!("{path}[{index}]"));
-                }
-            }
-            serde_json::Value::Object(fields) => {
-                for (key, child) in fields {
-                    let next_path = if path.is_empty() {
-                        key.to_string()
-                    } else {
-                        format!("{path}.{key}")
-                    };
-                    assert_non_empty_strings(child, &next_path);
-                }
-            }
-            _ => {}
-        }
-    }
-}
+#[path = "tests/ui_text.rs"]
+mod tests;

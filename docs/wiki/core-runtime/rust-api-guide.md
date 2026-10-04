@@ -14,9 +14,9 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
 tests:
-  - zircon_runtime/src/core/runtime/tests.rs
-  - zircon_runtime/src/engine_module/tests.rs
-  - zircon_runtime/src/core/manager/tests.rs
+  - zircon_runtime/src/core/runtime/tests/cases.rs
+  - zircon_runtime/src/engine_module/tests/cases.rs
+  - zircon_runtime/src/core/manager/tests/cases.rs
   - zircon_app/src/tests/prelude.rs
 doc_type: workflow-detail
 status: current

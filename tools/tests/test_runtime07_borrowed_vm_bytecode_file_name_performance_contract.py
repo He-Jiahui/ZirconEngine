@@ -7,7 +7,7 @@ SOURCE = (
     ROOT / "zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery.rs"
 )
 
-
+# 读取实现源码约束借用 VM 字节码文件名称：字节码文件名称借用自定义或默认值，并载荷解析不克隆临时文件名称。
 class BorrowedVmBytecodeFileNamePerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

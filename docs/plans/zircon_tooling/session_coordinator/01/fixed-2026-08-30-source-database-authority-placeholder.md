@@ -11,8 +11,6 @@ plan_link_mode: child_record_only
 failure_scope: local
 related_code:
   - .gitignore
-  - tools/session_coordinator/session_coordinator.db
-  - tools/session_coordinator/tests/test_database_authority.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_database_authority -v
 resolved_at: 2026-08-30

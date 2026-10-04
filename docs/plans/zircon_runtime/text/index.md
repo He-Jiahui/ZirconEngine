@@ -7,6 +7,7 @@ related_code:
   - zircon_runtime/src/ui/surface/text_shape.rs
   - zircon_runtime/src/ui/text/layout_engine.rs
   - zircon_runtime/src/ui/text/layout_engine/rich_table/layout.rs
+  - zircon_runtime/src/ui/text/layout_engine/secure_presentation.rs
   - zircon_runtime/src/ui/text/layout_engine/candidate_line.rs
   - zircon_runtime/src/ui/text/layout_engine/direction.rs
   - zircon_runtime/src/ui/text/layout_engine/ellipsis.rs
@@ -145,7 +146,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/layout_placement.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/prepare_report.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
-  - docs/zircon_runtime/graphics/text.md
+  - docs/crates/zircon_runtime/graphics/text.md
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime_interface/src/ui/surface/render/mod.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
@@ -182,10 +183,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/metrics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/raster/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs
   - zircon_runtime/src/ui/tests/text_layout/mod.rs
   - zircon_runtime/src/ui/tests/text_layout/alignment.rs
@@ -582,7 +579,7 @@ Text 总索引中 2026-07 的 editor retained-host、runtime text cache、native
 - 里程碑测试:`cargo test -p zircon_runtime text --locked` + UI 文本全量回归(`ui/tests/{text_shaper,text_layout,text_hit_testing,render_text_fields,widget_text_input_pointer,surface_dirty_mui,boundary}`)。
 - 产物对拍:`render_product_text_*`(中英混排/CJK/阿拉伯 RTL/竖排/SDF/MSDF/emoji)+ `ZR_RENDERDOC_CAPTURE_NEXT=1` 抓帧对照 UE/godot 同串。
 - 多语料黄金集:维护 `text_corpus`(拉丁/CJK/阿拉伯/希伯来/天城文/泰文/emoji/混排)驱动度量与换行对照表,期望值以参考引擎或 Unicode 标准用例标定。
-- 文档镜像:每里程碑后更新 `docs/zircon_runtime/ui/text*`、`docs/zircon_runtime/asset/assets/font.md` 镜像,并回填本目录状态表。
+- 文档镜像:每里程碑后更新 `docs/crates/zircon_runtime/ui/text*`、`docs/crates/zircon_runtime/asset/assets/font.md` 镜像,并回填本目录状态表。
 
 ## 9. 风险与回退
 
@@ -1076,5 +1073,89 @@ single_snapshot_and_exact_revision_binding_static_implemented /
 distinct_dependency_owner_invariant_static_implemented /
 managed_validation_and_profile_pending`。详见
 [`07/2026-08-30-rich-inline-resource-outcome-owner-review.md`](07/2026-08-30-rich-inline-resource-outcome-owner-review.md)。
+
+2026-09-02 Text03 MVP 几何基础设施继续收敛：glyph artifact、source-map input、measure projection、
+advance prefix、wrapping/greedy decision、boundary correction、ellipsis retained width、rich span/
+legacy materialize、plain line cursor 与 line-height aggregate 统一复用 `layout_geometry` 的有限
+累积 owner；`f32::MAX` 多 cluster、caret/selection、VerticalRl、极值行高与 signed shaping delta
+回归均已写入。相关 production owner 均低于 800 行，Runtime Text infrastructure contract `60/60`，
+目标 Rust owner rustfmt/scoped diff-check 通过。宽口径 `test_runtime_text*.py` 为 `129` 项、`127` 项
+通过，唯二失败仍属于未授权 `scene_renderer/ui/image.rs` 的返回类型契约与 829 行预算。状态：
+`RRT-P0-003_finite_geometry_mvp_static_implemented /
+RRT-P0-003_extreme_layout_regressions_written /
+RRT-P0-003_managed_cargo_wgpu_png_profile_pending`。尚未执行 Cargo/WGPU/PNG、31 样本性能/功耗，
+不创建截图、不提交 milestone commit、不发送未经受管验证的量化结论。详细 terminal hash 与分层
+记录见 [`03-line-breaking-measure-and-layout.md`](03-line-breaking-measure-and-layout.md)。
+
+2026-09-02 Text03 复审补齐物理行高发布边界：`maximum_line_height` 统一复用有限几何 owner，
+对 fallback、`NaN`、正无穷与负行高进行有限非负发布，并写入对应回归测试；目标静态 contract
+仍为 `60/60`，目标 owner rustfmt/scoped diff-check 通过。当前状态：
+`RRT-P0-003_finite_geometry_mvp_static_implemented /
+RRT-P0-003_physical_line_height_finite_publication_static_implemented /
+RRT-P0-003_managed_cargo_wgpu_png_profile_pending`。Cargo、真实 WGPU/PNG、31 样本性能/功耗、
+截图、milestone commit 与企微同步仍待受管验收。
+
+2026-09-02 Text03 复审补齐 line-box 对齐坐标有限发布：Center/Right/End/RTL Start 共享
+`f64` 精确候选与 `finite_f32_or_geometry` 发布，极值 frame 不再产生 `inf` 行原点；新增
+对齐极值回归，目标静态 contract 仍为 `60/60`。当前状态：
+`RRT-P0-003_finite_geometry_mvp_static_implemented /
+RRT-P0-003_line_box_alignment_coordinate_finite_publication_static_implemented /
+RRT-P0-003_managed_cargo_wgpu_png_profile_pending`。Cargo、真实 WGPU/PNG、31 样本性能/功耗、
+截图、milestone commit 与企微同步仍待受管验收。
+
+2026-09-02 Text03 复审补齐 inline widget 可见几何有限发布：widget 起点累计复用
+`FiniteGeometryAccumulator`，非有限 advance fail closed，Horizontal/VerticalRl frame 坐标统一
+经有限发布 owner；新增极值累计、非有限 advance 与极值 frame 回归。Runtime Text infrastructure
+contract 当前为 `61/61`，目标 owner rustfmt/scoped diff-check 通过。当前状态：
+`RRT-P0-003_inline_widget_geometry_finite_publication_static_implemented /
+RRT-P0-003_managed_cargo_wgpu_png_profile_pending`。Cargo、真实 WGPU/PNG、31 样本性能/功耗、
+截图、milestone commit 与企微同步仍待受管验收。
+
+2026-09-02 Text03 当前静态验证快照：专门 infrastructure contract `66/66`；宽口径
+`test_runtime_text*.py` 为 `135` 项、`133` 项通过。两个失败均位于未授权
+`scene_renderer/ui/image.rs`（返回类型契约、`829 > 800` owner 预算），本目标保持不触碰。
+此前 `60/60`、`129/127` 为对应切片的历史结果，当前状态以本条为准。Runtime81 shaping
+结构性优化已完成 TaskGraph owner/typed defer 的架构与性能门禁报告，代码实现必须等待受管
+基线 profile；详见
+[`../../optimize/zircon_runtime/81/2026-09-02-shaping-task-owner-and-defer-gate.md`](../../optimize/zircon_runtime/81/2026-09-02-shaping-task-owner-and-defer-gate.md)。
+
+同一快照新增 ordinary/rich VerticalRl placement、rich horizontal line y/height、paragraph LTR
+inset 及 rich-table physical frame/cell translation 的有限发布守卫。table 仍由既有 geometry
+budget 在最终发布前拒绝超预算坐标；本切片只消除有限输入中间溢出，不改变准入策略或复杂度。
+
+优先结构约定复核已把增长到 1923 行的 Runtime Text infrastructure 静态合同硬拆为 22 行
+canonical loader 与 4 个 folder-backed owner（237/609/670/490 行），所有 owner 回到 800 行
+预算内。随后新增 secure/password bidi 极值投影和 failure-layout budget 准入合同（生产 owner
+322/104 行），再补 resolved-layout artifact 前统一几何准入，共 66 个测试方法，专门入口
+`66/66`，宽口径仍为 `135/133` 和同一组两个
+外部 `image.rs` 失败。状态：
+`runtime_text_static_contract_folder_backed_owner_split_complete /
+method_cardinality_66 / secure_projection_finite_publication_static_implemented /
+failure_layout_finite_budget_publication_static_implemented /
+resolved_layout_pre_artifact_geometry_admission_static_implemented /
+managed_structure_cargo_wgpu_png_profile_pending`。结构门禁入口在
+执行检查前被协调器 maintenance hold 拒绝；按当前目标不实时跟踪协调器，未重试。
+
+同日完成当前 Rust 2024 格式与产品截图入口复核：16 个本目标 layout-engine owner 的
+`rustfmt --check`、scoped diff-check 通过；专门静态合同去除 import 顺序耦合后当时为 `65/65`。
+真实产品 framebuffer proof 静态合同 `3/3`，harness 明确调用 `WgpuRenderFramework`、
+`capture_frame` 和像素断言，输出固定到 `docs/tests/runtime/text` 且拒绝 target/C 盘工作目录。
+当前目标 PNG 尚不存在，状态为
+`real_product_framebuffer_harness_static_ready / managed_wgpu_png_pending`；不以策略文本截图替代，
+也不声称已完成真实渲染验收。
+
+Text03 同日确认一个仍开放的 LB-M3 结构缺口：计划声明的 `max_lines` 与 plain
+`first_line_indent` 尚未进入 public resolved style、cache key、surface parser 或 layout owner。
+Unreal 对照后已固定为 typed block constraint -> parser/cache identity -> line-view 生成 ->
+resolved artifact 单链硬切，禁止只在 Runtime 私有 style 中补字段或由 renderer 二次截断。当前状态为
+`LB-M3_max_lines_and_plain_first_line_indent_architecture_review_complete /
+cross_owner_typed_constraint_cutover_pending`，不误报为已实现。
+
+同一 Runtime owner 随后补上 artifact 前统一几何准入：plain/rich resolved DTO 在任何 glyph
+artifact 构建前一次验证 metrics、frames、baseline、advances 与 boxes，失败发布 typed
+`ResolvedLayoutPublication` 回执并走有限 failure layout。正常路径只新增一次
+O(lines + advances + boxes) 只读预检，不改变 shaping/cache/renderer 语义。静态状态为
+`resolved_layout_pre_artifact_geometry_admission_static_implemented / managed_cargo_wgpu_png_pending`；
+当前专门合同 `66/66`，宽口径 `135/133`，两个失败仍来自未授权 `image.rs`。
 
 - 迁入记录：[`../../_archive/zircon_runtime/text/09/2026-07-09-index-output-records.md`](../../_archive/zircon_runtime/text/09/2026-07-09-index-output-records.md)

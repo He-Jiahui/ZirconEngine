@@ -158,7 +158,10 @@ fn artifact_store_regenerates_shader_material_artifact_from_cache_schema() {
     assert!(artifact_uri.to_string().contains("shaders/"));
     assert!(artifact_uri.to_string().ends_with(".zasset"));
     assert_binary_artifact_payload(&paths, &artifact_uri);
-    assert_eq!(loaded, ImportedAsset::Shader(shader));
+    let ImportedAsset::Shader(loaded_shader) = &loaded else {
+        panic!("shader artifact must decode as a shader");
+    };
+    assert_eq!(loaded_shader, &shader);
 
     let mut stale_cached_module = shader.clone();
     stale_cached_module.uri = AssetUri::parse("res://shaders/raw-module.wgsl").unwrap();
@@ -233,7 +236,7 @@ fn artifact_store_rejects_text_artifact_cache_artifacts() {
     paths
         .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
         .unwrap();
-    let artifact_uri = AssetUri::parse("lib://materials/stale.json").unwrap();
+    let artifact_uri = AssetUri::parse("lib://materials/stale.zasset").unwrap();
     let artifact_path = paths.asset_artifact_root().join(artifact_uri.path());
     fs::create_dir_all(artifact_path.parent().unwrap()).unwrap();
     fs::write(&artifact_path, br#"{"Material":{"name":"Stale"}}"#).unwrap();
@@ -242,7 +245,49 @@ fn artifact_store_rejects_text_artifact_cache_artifacts() {
         .read(&paths, &artifact_uri)
         .unwrap_err();
 
-    assert!(format!("{error:?}").contains("expected .zasset"));
+    assert!(matches!(
+        error,
+        AssetImportError::Parse(message) if message.contains("expected versioned chunk manifest")
+    ));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn artifact_store_rejects_current_manifest_with_a_non_artifact_extension() {
+    let root = unique_temp_project_root("artifact_store_extension_reject");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
+    let source_uri = AssetUri::parse("res://data/value.json").unwrap();
+    let asset = ImportedAsset::Data(DataAsset {
+        uri: source_uri.clone(),
+        format: DataAssetFormat::Json,
+        text: "42".to_string(),
+        canonical_json: serde_json::json!(42),
+    });
+    let store = ArtifactStore::default();
+    let artifact_uri = store
+        .write(
+            &paths,
+            &ResourceRecord::new(AssetId::new(), AssetKind::Data, source_uri),
+            &asset,
+        )
+        .unwrap();
+    let invalid_uri = AssetUri::parse("lib://data/current.json").unwrap();
+    fs::copy(
+        paths.asset_artifact_root().join(artifact_uri.path()),
+        paths.asset_artifact_root().join(invalid_uri.path()),
+    )
+    .unwrap();
+
+    let error = store.read(&paths, &invalid_uri).unwrap_err();
+    assert!(matches!(
+        error,
+        AssetImportError::Parse(message) if message.contains("expected .zasset")
+    ));
+    assert_eq!(store.read(&paths, &artifact_uri).unwrap(), asset);
 
     let _ = fs::remove_dir_all(root);
 }

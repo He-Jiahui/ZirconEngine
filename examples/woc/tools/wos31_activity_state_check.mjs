@@ -38,14 +38,14 @@ for (const field of [
 for (const needle of [
   'appendDefaultActivityStateColumns(this);',
   'appendDefaultActivityStateColumns(state);',
-  'writer.u16(<uint>38, 1, 1);', 'schemaVersion != <uint>31', 'schemaVersion != <uint>32',
+  'writer.u16(schemaVersion, 1, 1);', 'schemaVersion != <uint>31', 'schemaVersion != <uint>32',
   'schemaVersion != <uint>33',
   'if (schemaVersion >= <uint>31) {',
   'm8FreshPlayerStats.activityStateAiState',
   'm8EastbrookEncounter.activityStateSitting',
   'entityState.entityAiStates[0] = <uint>4;',
 ]) invariant(state.includes(needle), `WOS31 activity-state projection omitted: ${needle}`);
-invariant(main.includes('\\"world_state\\":\\"WOS38\\",'), 'package stateSchema must expose WOS38');
+invariant(main.includes('\\"world_state\\":\\"WOS118\\",'), 'package stateSchema must expose WOS118');
 
 process.stdout.write(`checked WOS31 activity-state source projection: ${SOURCE_COMMIT.slice(0, 15)}\n`);
 

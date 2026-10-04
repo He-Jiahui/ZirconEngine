@@ -1,7 +1,7 @@
 use crate::asset::TextureAsset;
 use crate::core::framework::render::{
-    RenderMaterialAlphaMode, RenderMaterialLightingModel, SHADING_MODEL_ID_STANDARD_PBR,
-    ShadingModelId,
+    RenderMaterialAlphaMode, RenderMaterialLightingModel, ShadingModelId,
+    SHADING_MODEL_ID_STANDARD_PBR,
 };
 use crate::core::math::{Vec3, Vec4};
 use crate::core::resource::ResourceId;
@@ -10,6 +10,8 @@ use super::super::super::MaterialCaptureSeed;
 use super::super::ResourceStreamer;
 
 impl ResourceStreamer {
+    /// 优先捕获已发布代际的 runtime 与纹理采样；缓存已存在但尚未发布时返回 None，避免混入冷资产内容。
+    /// 只有完全没有 prepared 状态时才按资产快照解析冷材质。
     pub(crate) fn material_capture_seed(&self, id: &ResourceId) -> Option<MaterialCaptureSeed> {
         if let Some(seed) = self.published_material_draw_proxy(id).capture_seed() {
             crate::profile_counter!("render", "material_capture_published_proxy", 1);
@@ -195,36 +197,5 @@ fn wrap01(value: f32) -> f32 {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn capture_reads_only_published_runtime_state_before_cold_asset_fallback() {
-        let production = include_str!("material_capture.rs")
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("material capture test boundary");
-        let published = production
-            .find("published_material_draw_proxy(id)")
-            .expect("published draw proxy lookup");
-        let cold_fallback = production
-            .find("load_effective_material_asset")
-            .expect("canonical cold material fallback");
-
-        assert!(published < cold_fallback);
-        assert!(production.contains("self.materials.contains_key(id)"));
-        assert!(!production.contains("self.material(id)"));
-        assert!(production.contains("material_capture_published_proxy"));
-        assert!(production.contains("material_capture_generation_bound_texture_samples"));
-    }
-
-    #[test]
-    fn cold_texture_capture_uses_one_generation_bound_snapshot() {
-        let production = include_str!("material_capture.rs")
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("material capture test boundary");
-
-        assert!(production.contains("load_texture_asset_snapshot(id)"));
-        assert!(production.contains("Some(texture.revision())"));
-        assert!(!production.contains("let Ok(revision) = self.resource_revision(id)"));
-    }
-}
+#[path = "tests/material_capture.rs"]
+mod tests;

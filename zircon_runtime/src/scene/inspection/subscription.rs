@@ -10,10 +10,11 @@ use zircon_runtime_interface::world_sync::{
 use crate::scene::{EntityId, World};
 
 #[cfg(test)]
+#[path = "subscription/tests/cases.rs"]
 mod tests;
 
 #[cfg(test)]
-#[path = "subscription/hash_index_tests.rs"]
+#[path = "subscription/tests/hash_index_tests.rs"]
 mod hash_index_tests;
 
 const DEFAULT_MAX_PENDING_FACTS: usize = 4_096;

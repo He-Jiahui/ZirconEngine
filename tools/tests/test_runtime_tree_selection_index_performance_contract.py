@@ -9,7 +9,7 @@ SUPPORT = (
     / "zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_support.rs"
 )
 
-
+# 读取组件与表面树实现，验证子节点顺序借用 ID、范围选择只建一次禁用集合，以及两种树共用线性访问约束。
 class RuntimeTreeSelectionIndexPerformanceContractTests(unittest.TestCase):
     def test_component_tree_order_uses_borrowed_ids_and_hash_deduplication(self) -> None:
         source = REDUCER.read_text(encoding="utf-8")

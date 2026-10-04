@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::core::editor_message::DocumentId;
+
 use super::{
     ActivityDrawerMode, ActivityDrawerSlot, MainPageId, SplitAxis, SplitPlacement,
     TabInsertionAnchor, ViewHost, ViewInstanceId, WorkspaceTarget,
@@ -13,6 +15,10 @@ pub enum LayoutCommand {
     },
     CloseView {
         instance_id: ViewInstanceId,
+    },
+    CloseViews {
+        window_id: MainPageId,
+        instance_ids: Vec<ViewInstanceId>,
     },
     FocusView {
         instance_id: ViewInstanceId,
@@ -68,4 +74,13 @@ pub enum LayoutCommand {
         name: String,
     },
     ResetToDefault,
+}
+
+/// Every mutable authoring authority participating in a document close decision.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DocumentCloseRevision {
+    pub external_generation: u64,
+    pub edit_generation: u64,
+    pub history_generation: u64,
+    pub source_revision: Option<u64>,
 }

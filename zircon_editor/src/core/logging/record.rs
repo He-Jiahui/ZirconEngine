@@ -1,6 +1,7 @@
 use super::LogEntry;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 权威存储分配序号后的日志记录；UI 跳转和磁盘文件都以此序号定位。
 pub struct LogRecord {
     sequence: u64,
     entry: LogEntry,
@@ -19,6 +20,7 @@ impl LogRecord {
         &self.entry
     }
 
+    /// 滚动文件每条记录只占一行，正文中的换行须转义以保留记录边界。
     pub(super) fn format_line(&self) -> String {
         let source = escape_line(&self.entry.source().to_string());
         let message = escape_line(self.entry.message());
@@ -59,5 +61,5 @@ fn escape_line(value: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "record/single_pass_escape_tests.rs"]
+#[path = "record/tests/single_pass_escape_tests.rs"]
 mod single_pass_escape_tests;

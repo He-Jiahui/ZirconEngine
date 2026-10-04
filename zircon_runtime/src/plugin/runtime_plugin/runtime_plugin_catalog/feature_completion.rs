@@ -5,12 +5,13 @@ use crate::core::framework::project::ProjectPluginManifest;
 mod owner_selection;
 
 #[cfg(test)]
-#[path = "feature_completion/capacity_tests.rs"]
+#[path = "feature_completion/tests/capacity_tests.rs"]
 mod capacity_tests;
 
 use super::derived_projection::RuntimePluginCatalogProjection;
 use owner_selection::{complete_external_provider_selection, complete_owner_feature_selection};
 
+// 先填充已选包的缺失特性字段，再为外部提供者补占位包；显式启用状态留给项目。
 pub(super) fn complete_project_feature_selections(
     projection: &RuntimePluginCatalogProjection,
     completed: &mut ProjectPluginManifest,

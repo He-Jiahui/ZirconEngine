@@ -16,6 +16,8 @@ impl TemporalHistoryKey {
     }
 }
 
+/// TAA 场景色的双缓冲所有者；只在场景帧成功提交后交换读写角色。
+/// 尺寸或格式变化时须用新 key 重建，不能复用旧物理身份。
 pub(crate) struct TemporalHistoryStore {
     key: TemporalHistoryKey,
     textures: [TemporalHistoryTexture; 2],
@@ -105,18 +107,5 @@ impl TemporalHistoryState {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::TemporalHistoryState;
-
-    #[test]
-    fn temporal_history_state_starts_invalid_and_flips_read_write_slots() {
-        let mut state = TemporalHistoryState::default();
-
-        assert_eq!(state.read_index, 0);
-        assert_eq!(state.write_index(), 1);
-        state.flip_after_success();
-
-        assert_eq!(state.read_index, 1);
-        assert_eq!(state.write_index(), 0);
-    }
-}
+#[path = "tests/temporal_history_store.rs"]
+mod tests;

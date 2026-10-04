@@ -1,11 +1,11 @@
 use crate::graphics::pipeline::PipelineAdmission;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
-use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawCommandReplayer, MeshDrawCommandStream, MeshDrawReplayStats, MeshPassPipelineKind,
     MeshSceneDataBindHandle,
 };
+use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::types::ViewportRenderRegion;
 use crate::render_graph::RenderGraphAttachmentOps;
 
@@ -152,12 +152,5 @@ impl DeferredSceneResources {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn deferred_gbuffer_binds_forward_shadow_receiver_layout_slot() {
-        let source = include_str!("record_gbuffer_geometry.rs");
-
-        assert!(source.contains("create_forward_shadow_receiver_bind_group"));
-        assert!(source.contains("bind_forward_shadow_receiver_if_needed"));
-    }
-}
+#[path = "tests/record_gbuffer_geometry.rs"]
+mod tests;

@@ -1,10 +1,9 @@
-use crate::core::TaskPool;
 use crate::core::framework::render::RenderPipelinePhase;
-use crate::graphics::CompiledRenderPipeline;
+use crate::core::TaskPool;
 use crate::graphics::backend::{OffscreenTarget, ViewportSurface};
 use crate::graphics::debug_markers::{
-    RENDERDOC_MARKER_HISTORY_COPY, RENDERDOC_MARKER_POST_PROCESS, RENDERDOC_MARKER_PREPASS,
-    insert_marker, pop_group, push_group,
+    insert_marker, pop_group, push_group, RENDERDOC_MARKER_HISTORY_COPY,
+    RENDERDOC_MARKER_POST_PROCESS, RENDERDOC_MARKER_PREPASS,
 };
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::resources::ResourceStreamer;
@@ -19,10 +18,11 @@ use crate::graphics::scene::scene_renderer::overlay::PreparedOverlayBuffers;
 use crate::graphics::scene::scene_renderer::post_process::SceneRuntimeFeatureFlags;
 use crate::graphics::scene::scene_renderer::shadow::ShadowFramePlan;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
+use crate::graphics::CompiledRenderPipeline;
 
 use super::super::super::scene_renderer_core::SceneRendererCore;
+use super::execute_graph_stage::{execute_graph_stage, RenderGraphStageExecution};
 use super::RenderGraphPassFrameServices;
-use super::execute_graph_stage::{RenderGraphStageExecution, execute_graph_stage};
 
 pub(super) const EARLY_GRAPH_STAGES: &[RenderPassStage] =
     &[RenderPassStage::DepthPrepass, RenderPassStage::Shadow];
@@ -70,6 +70,7 @@ impl SceneRendererCore {
         &mut self,
         ctx: CompiledSceneGraphStageContext<'_, '_, '_>,
     ) -> Result<(), GraphicsError> {
+        let scene_bind_group = self.frame_scene_bind_group().clone();
         let CompiledSceneGraphStageContext {
             device,
             command_encoders,
@@ -141,7 +142,7 @@ impl SceneRendererCore {
                     scene_bind_group_layout: &self.scene_bind_group_layout,
                     target_format: self.scene_color_format,
                     depth_format: self.depth_format,
-                    scene_bind_group: &self.scene_bind_group,
+                    scene_bind_group: &scene_bind_group,
                     surface_frame: None,
                     screen_space_ui_renderer: None,
                     post_process_stack: Some(early_post_process_stack),
@@ -192,7 +193,7 @@ impl SceneRendererCore {
                         scene_bind_group_layout: &self.scene_bind_group_layout,
                         target_format: self.scene_color_format,
                         depth_format: self.depth_format,
-                        scene_bind_group: &self.scene_bind_group,
+                        scene_bind_group: &scene_bind_group,
                         surface_frame: None,
                         screen_space_ui_renderer: None,
                         post_process_stack: Some(early_post_process_stack),
@@ -252,7 +253,7 @@ impl SceneRendererCore {
                 scene_bind_group_layout: &self.scene_bind_group_layout,
                 target_format: self.scene_color_format,
                 depth_format: self.depth_format,
-                scene_bind_group: &self.scene_bind_group,
+                scene_bind_group: &scene_bind_group,
                 surface_frame: None,
                 screen_space_ui_renderer: None,
                 post_process_stack: Some(post_process_stack),
@@ -336,7 +337,7 @@ impl SceneRendererCore {
                     scene_bind_group_layout: &self.scene_bind_group_layout,
                     target_format: self.final_color_format,
                     depth_format: self.depth_format,
-                    scene_bind_group: &self.scene_bind_group,
+                    scene_bind_group: &scene_bind_group,
                     surface_frame: None,
                     screen_space_ui_renderer,
                     post_process_stack: None,
@@ -370,7 +371,7 @@ impl SceneRendererCore {
                     scene_bind_group_layout: &self.scene_bind_group_layout,
                     target_format: self.final_color_format,
                     depth_format: self.depth_format,
-                    scene_bind_group: &self.scene_bind_group,
+                    scene_bind_group: &scene_bind_group,
                     surface_frame,
                     screen_space_ui_renderer: None,
                     post_process_stack: None,
@@ -391,6 +392,12 @@ impl SceneRendererCore {
                 },
                 graph_execution,
             )?;
+        } else {
+            // The pipeline is shared with primary-surface frames, whose
+            // terminal pass is still live in the compiled graph.  An
+            // offscreen frame has no acquired surface target, so account for
+            // that terminal pass explicitly without invoking its GPU executor.
+            graph_execution.skip_unavailable_present_passes(pipeline)?;
         }
         graph_execution.validate_graph_execution(pipeline)?;
         Ok(())

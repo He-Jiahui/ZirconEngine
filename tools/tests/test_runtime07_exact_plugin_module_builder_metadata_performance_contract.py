@@ -19,7 +19,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束精确插件模块构建器元数据：拼接器预分配精确 combined 长度，并模块构造器使用精确拼接器。
 class ExactPluginModuleBuilderMetadataPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

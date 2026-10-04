@@ -4,8 +4,8 @@ use zircon_runtime_interface::ui::{
 
 use super::{
     commands::{icon_command, separator_command, surface_command, text_command},
-    metadata::{ChromeKind, chrome_icon, chrome_label},
-    metrics::{ChromeMetrics, icon_frame, separator_edge, separator_frame, text_frame},
+    metadata::{chrome_icon, chrome_label, ChromeKind},
+    metrics::{icon_frame, separator_edge, separator_frame, text_frame, ChromeMetrics},
     state::ChromeRenderState,
     style::{icon_color, text_color},
 };

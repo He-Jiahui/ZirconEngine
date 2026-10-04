@@ -5,7 +5,7 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 ROUTE_STEPS = ROOT / "zircon_runtime/src/ui/surface/input/route_steps.rs"
 
-
+# 读取路由步骤构造，确认已路由路径按上界预留容量，空路由路径保持零分配。
 class RuntimeRouteStepsCapacityPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

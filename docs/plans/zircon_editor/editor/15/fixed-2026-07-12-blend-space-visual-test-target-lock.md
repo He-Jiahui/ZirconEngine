@@ -8,7 +8,6 @@ fixing_plan: docs/plans/zircon_editor/editor_layout/15-component-standardization
 origin_child_dir: docs/plans/zircon_editor/editor/15
 fixing_child_dir: docs/plans/zircon_editor/editor_layout/15
 related_code:
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/blend_space_workspace.rs
 tests:
   - tests::host::retained_menu_pointer::visual_screenshot::blend_space_workspace::capture_blend_space_workspace_visual_artifacts
 resolved_at: 2026-07-12

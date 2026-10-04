@@ -118,6 +118,7 @@ restockFeasible(state: SupplyState, itemId: string, count: int): bool {
         canAddRestock(state, itemId, count);
 }
 
+/// 由库存行与金币快照派生补给状态和可补货判定；结果仅供界面/智能体观察，实际购买仍应经商人与背包事务重新验证。
 pub supplyStatus(state: SupplyState, output: SupplyStatus): void {
     output.foodCount = 0;
     output.drinkCount = 0;
@@ -163,6 +164,7 @@ appendCappedCount(observation: SupplyObservation, count: int): void {
         <float>supplyObservationCountCap());
 }
 
+/// 覆盖可复用输出对象为固定 15 通道向量；通道位置是调用端模型契约，必须与 supplyObservationWidth、上游 sim/supply.ts 和测试入口同步修改。
 pub encodeSupplyObservation(state: SupplyState, observation: SupplyObservation): void {
     var status = new SupplyStatus();
     supplyStatus(state, status);

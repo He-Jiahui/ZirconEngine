@@ -76,3 +76,28 @@ tree is already the canonical structured owner above. The retired leaf is theref
 removed from `related_code` rather than preserved as a compatibility anchor. Live
 presentation sources were not modified, and managed Rust validation is still pending,
 so the failure remains open.
+
+## 2026-09-21 independent source review receipt
+
+- Reviewer Session `review-editor07-pane-presentation-r1` inspected the twelve
+  current source paths in the successor manifest without editing them; all
+  current hashes match the sealed manifest
+  `e93ac716d54ac64871d3e9ad30bb8ef61a0a168d16991dacccb56013a540032a`.
+- The review re-ran `rustfmt +1.94.1 --edition 2021 --config
+  skip_children=true --check` across the complete scope and scoped
+  `git diff --check`; both passed with markers `EDITOR07_RUSTFMT_PASS` and
+  `EDITOR07_DIFF_CHECK_PASS`.
+- The independent source probe passed as
+  `EDITOR07_UI_ASSET_PANE_INDEPENDENT_SOURCE_REVIEW_PASS`. It verified the
+  retired `presentation_state.rs` path is absent, `session/mod.rs` exposes only
+  the folder-backed presentation root, all eight domain modules are declared,
+  pane assembly consumes typed reflection/preview/source/inspector/style/theme/
+  command artifacts, generation invalidation remains owned by lifecycle/session
+  code, and the pane contains no flattened selector/stylesheet producer or
+  compatibility path.
+- Independent review result: **Critical=0 / Important=0 / Moderate=0**. No
+  foreign Editor/UI source was absorbed.
+- This remains static/source-only evidence. Fresh managed `zircon_editor`
+  behavior Cargo and the full DTO/order/generation acceptance gates remain
+  pending because external `E:\Git\zr_vm` is dirty. Canonical `fixed-*` return,
+  closeout, and WeCom notification remain pending until those gates pass.

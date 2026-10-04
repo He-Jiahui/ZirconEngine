@@ -168,6 +168,7 @@ fn submit_camera_loop_frame_streams_selected_children_and_restores_source_fields
     let mut terminal_ui = Vec::new();
     let mut output_owners = Vec::new();
     let mut viewport_sizes = Vec::new();
+    let source_scene = frame.extract.shared_scene();
 
     stream_camera_loop_frame_submissions(frame, submissions, |frame, output_policy| {
         seen_cameras.push(frame.camera().entity);

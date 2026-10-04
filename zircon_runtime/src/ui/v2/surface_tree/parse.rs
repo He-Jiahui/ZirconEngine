@@ -1,3 +1,5 @@
+//! 树构建的布局字段解析共用资源身份和节点路径，便于把失败还原到作者的声明位置。
+
 use toml::Value;
 use zircon_runtime_interface::ui::v2::UiV2AssetError;
 
@@ -14,6 +16,7 @@ pub(super) fn layout_table<'a>(
         .ok_or_else(|| invalid_layout_contract(asset_id, path, format!("{field} must be a table")))
 }
 
+/// 点表允许省略单个轴并使用零值；类型错误的轴当前也视为缺省，调用方不要据此推断字段已严格校验。
 pub(super) fn parse_point(
     asset_id: &str,
     value: Option<&Value>,
@@ -42,6 +45,9 @@ pub(super) fn parse_f32(value: Option<&Value>) -> Option<f32> {
     })
 }
 
+// Layout order, z-index, and priority values use i32 in the surface tree. Values outside
+// the i32 range are clamped rather than silently truncating via `as i32`, which would flip
+// the sign at i32::MAX + 1 and corrupt sort order.
 pub(super) fn parse_i32(
     asset_id: &str,
     value: Option<&Value>,
@@ -53,13 +59,16 @@ pub(super) fn parse_i32(
     };
     value
         .as_integer()
-        .map(|value| value as i32)
+        .map(|value| {
+            i32::try_from(value).unwrap_or_else(|_| if value > 0 { i32::MAX } else { i32::MIN })
+        })
         .ok_or_else(|| {
             invalid_layout_contract(asset_id, path, format!("{field} must be an integer"))
         })
         .map(Some)
 }
 
+/// 对会决定轨道数量、跨度和缓冲区规模的资源整数施加共同上限；应在进入布局算法前失败。
 pub(super) fn parse_usize(
     asset_id: &str,
     value: Option<&Value>,
@@ -101,22 +110,5 @@ pub(super) fn invalid_layout_contract(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn v2_explicit_layout_usize_values_use_the_runtime_layout_bound() {
-        let maximum = Value::Integer(MAX_UI_LAYOUT_DISCRETE_VALUE as i64);
-        assert_eq!(
-            parse_usize("ui.test.bound", Some(&maximum), "root", "container.rows").unwrap(),
-            Some(MAX_UI_LAYOUT_DISCRETE_VALUE)
-        );
-
-        let oversized = Value::Integer((MAX_UI_LAYOUT_DISCRETE_VALUE + 1) as i64);
-        let error =
-            parse_usize("ui.test.bound", Some(&oversized), "root", "container.rows").unwrap_err();
-        assert!(error.to_string().contains(&format!(
-            "container.rows must not exceed {MAX_UI_LAYOUT_DISCRETE_VALUE}"
-        )));
-    }
-}
+#[path = "tests/parse.rs"]
+mod tests;

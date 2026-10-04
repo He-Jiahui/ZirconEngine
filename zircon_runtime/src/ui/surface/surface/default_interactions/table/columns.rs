@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, sync::Arc};
 
 use zircon_runtime_interface::ui::{component::UiValue, tree::UiTemplateNodeMetadata};
 
@@ -110,6 +110,40 @@ pub(super) fn table_column_width(metadata: &UiTemplateNodeMetadata, field: &str)
                     })
                 })
         })
+}
+
+pub(super) fn table_column_width_projection_is_current(
+    metadata: &UiTemplateNodeMetadata,
+    field: &str,
+    width: f64,
+) -> bool {
+    let Some(map_width) = metadata
+        .attributes
+        .get("column_widths")
+        .and_then(toml::Value::as_table)
+        .and_then(|widths| widths.get(field))
+        .and_then(toml_number)
+    else {
+        return false;
+    };
+    if map_width != width {
+        return false;
+    }
+
+    let Some(columns) = metadata
+        .attributes
+        .get("columns")
+        .and_then(toml::Value::as_array)
+    else {
+        return true;
+    };
+    let Some(column) = columns.iter().find_map(|column| {
+        let column = column.as_table()?;
+        toml_column_matches(column, field).then_some(column)
+    }) else {
+        return true;
+    };
+    column.get("width").and_then(toml_number) == Some(width)
 }
 
 pub(super) fn next_table_sort_direction(
@@ -228,7 +262,7 @@ pub(super) fn decode_table_column_resize_drag(value: &str) -> Option<UiTableColu
     let mut parts = rest.splitn(3, ':');
     let start_width = parts.next()?.parse::<f64>().ok()?;
     let min_width = parts.next()?.parse::<f64>().ok()?;
-    let field = parts.next()?.to_string();
+    let field = Arc::from(parts.next()?);
     Some(UiTableColumnResizeDragToken {
         field,
         start_width,

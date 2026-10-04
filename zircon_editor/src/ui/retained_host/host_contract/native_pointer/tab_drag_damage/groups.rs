@@ -7,6 +7,13 @@ pub(super) fn local_group_frame(
     group: &str,
 ) -> Option<FrameRect> {
     let scene = &presentation.host_scene_data;
+    if let Some(leaf) = scene
+        .document_leaves
+        .iter()
+        .find(|leaf| leaf.surface_key.as_str() == group)
+    {
+        return visible_frame(&leaf.region_frame).then(|| leaf.region_frame.clone());
+    }
     let frame = match group {
         "left" => scene.left_dock.region_frame.clone(),
         "document" => scene.document_dock.region_frame.clone(),

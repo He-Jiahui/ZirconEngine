@@ -4,6 +4,8 @@ use crate::graphics::types::ViewportRenderFrame;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
+/// 独立于 SceneUniform 的九项辐照度 SH 参数，绑定到场景组 6；无源环境时上传零系数。
+// 当前契约是场景 group 0 的 binding 6：scene_bind_group_layout_entries 与 WGSL 镜像使用同一槽位。
 pub(crate) struct SceneEnvironmentSh9 {
     coefficients: [[f32; 4]; 9],
 }
@@ -37,15 +39,5 @@ impl Default for SceneEnvironmentSh9 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::SceneEnvironmentSh9;
-
-    #[test]
-    fn scene_environment_sh9_matches_gpu_artifact_layout() {
-        assert_eq!(SceneEnvironmentSh9::byte_len(), 9 * 4 * 4);
-        assert_eq!(
-            SceneEnvironmentSh9::default().coefficients(),
-            &[[0.0; 4]; 9]
-        );
-    }
-}
+#[path = "tests/scene_environment_sh9.rs"]
+mod tests;

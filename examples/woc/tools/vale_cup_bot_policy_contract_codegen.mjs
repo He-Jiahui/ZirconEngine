@@ -1,3 +1,6 @@
+// 调用端：npm run generate:vale-cup-bot-policy-contract (tools/package.json)；职责：固化山谷杯机器人的策略数值和角色选择。
+// 输入边界：src/sim/social/vale_cup_bots.ts；--check 比较生成结果，不改写目标文件。
+
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

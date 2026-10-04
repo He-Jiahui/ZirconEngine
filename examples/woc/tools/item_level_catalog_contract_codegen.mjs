@@ -1,3 +1,6 @@
+// 调用端：npm run generate:item-level-catalog-contract (tools/package.json)；职责：执行固定版本的物品等级模块图并投影等级查找表。
+// 输入边界：src/sim/item_level.ts；--check 比较生成结果，不改写目标文件。
+
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

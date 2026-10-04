@@ -50,8 +50,76 @@ pub fn discover_native_plugins_from_load_manifest(
     NativePluginLoader.discover_from_load_manifest(export_root)
 }
 
+/// Validates an exported runtime native inventory without opening or executing any DLL.
+pub fn validate_native_runtime_from_load_manifest(
+    export_root: impl AsRef<Path>,
+) -> NativePluginLoadReport {
+    NativePluginLoader.validate_runtime_from_load_manifest(export_root)
+}
+
+/// Validates an exported editor native inventory without opening or executing any DLL.
+pub fn validate_native_editor_from_load_manifest(
+    export_root: impl AsRef<Path>,
+) -> NativePluginLoadReport {
+    NativePluginLoader.validate_editor_from_load_manifest(export_root)
+}
+
+/// Validates discovered runtime candidates without opening or executing any DLL.
+pub fn validate_discovered_native_runtime_plugins(
+    root: impl AsRef<Path>,
+) -> NativePluginLoadReport {
+    NativePluginLoader.validate_discovered_runtime(root)
+}
+
+/// Validates discovered editor candidates without opening or executing any DLL.
+pub fn validate_discovered_native_editor_plugins(root: impl AsRef<Path>) -> NativePluginLoadReport {
+    NativePluginLoader.validate_discovered_editor(root)
+}
+
 pub fn load_discovered_native_plugins(root: impl AsRef<Path>) -> NativePluginLoadReport {
     NativePluginLoader.load_discovered_all(root)
+}
+
+pub fn load_discovered_native_plugins_with_authority(
+    root: impl AsRef<Path>,
+    authority: &super::NativePluginArtifactAuthority,
+) -> NativePluginLoadReport {
+    NativePluginLoader.load_discovered_all_with_authority(root, authority)
+}
+
+pub fn load_discovered_native_runtime_plugins_with_authority(
+    root: impl AsRef<Path>,
+    authority: &super::NativePluginArtifactAuthority,
+) -> NativePluginLoadReport {
+    NativePluginLoader.load_discovered_runtime_with_authority(root, authority)
+}
+
+pub fn load_discovered_native_editor_plugins_with_authority(
+    root: impl AsRef<Path>,
+    authority: &super::NativePluginArtifactAuthority,
+) -> NativePluginLoadReport {
+    NativePluginLoader.load_discovered_editor_with_authority(root, authority)
+}
+
+pub fn load_native_plugins_from_load_manifest_with_authority(
+    root: impl AsRef<Path>,
+    authority: &super::NativePluginArtifactAuthority,
+) -> NativePluginLoadReport {
+    NativePluginLoader.load_all_from_load_manifest_with_authority(root, authority)
+}
+
+pub fn load_native_runtime_from_load_manifest_with_authority(
+    export_root: impl AsRef<Path>,
+    authority: &super::NativePluginArtifactAuthority,
+) -> NativePluginLoadReport {
+    NativePluginLoader.load_runtime_from_load_manifest_with_authority(export_root, authority)
+}
+
+pub fn load_native_editor_from_load_manifest_with_authority(
+    export_root: impl AsRef<Path>,
+    authority: &super::NativePluginArtifactAuthority,
+) -> NativePluginLoadReport {
+    NativePluginLoader.load_editor_from_load_manifest_with_authority(export_root, authority)
 }
 
 pub fn load_discovered_native_runtime_plugins(root: impl AsRef<Path>) -> NativePluginLoadReport {

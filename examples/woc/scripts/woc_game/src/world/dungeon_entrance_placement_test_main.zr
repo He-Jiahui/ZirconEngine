@@ -12,6 +12,8 @@ closeEnough(value: float, expected: float): bool {
 
 var seed = <uint>20061;
 
+// 所有副本都预留实例槽位，但只有目录标记的入口生成大世界门；
+// 总槽位数与门实体数量不能互换用于世界构造。
 if (placement.dungeonCount(true) != 6 || placement.instanceSlotCount(true) != 24 ||
     placement.totalPreallocatedInstanceSlots(true) != 144 ||
     placement.dungeonId(0, true) != "hollow_crypt" ||
@@ -21,6 +23,8 @@ if (placement.dungeonCount(true) != 6 || placement.instanceSlotCount(true) != 24
     throw "woc dungeon entrance catalog vector failed";
 }
 
+// 水平坐标来自入口目录，地面高度按固定世界种子计算；
+// 这些静态构造向量不负责实例分配或门的运行时状态。
 if (placement.finalCoordinate(0, 1, true) != 80.0 ||
     placement.finalCoordinate(0, 2, true) != 90.0 ||
     !closeEnough(placement.finalGroundY(seed, 0, true), 2.257091157527749)) {

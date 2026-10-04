@@ -11,6 +11,8 @@ use super::super::execute_post_process::{
 };
 
 impl ScenePostProcessResources {
+    /// 为 SSR 解析生成反射颜色金字塔的基础层；父 mip 由独立 coarse 节点继续归约。
+    /// 当前写入附件对应的采样绑定保持中性占位，避免同一子资源在单次 pass 中读写冲突；返回参数上传。
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn execute_screen_space_reflection_reflection_pyramid(
         &self,
@@ -112,17 +114,5 @@ impl ScenePostProcessResources {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn reflection_pyramid_params_are_returned_as_pre_submit_uploads() {
-        let source = include_str!("execute_screen_space_reflection_reflection_pyramid.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("reflection-pyramid source");
-
-        assert!(!production.contains("queue.write_buffer"));
-        assert!(!production.contains("create_post_process_params_buffer"));
-        assert!(production.contains("post_process_params_upload("));
-    }
-}
+#[path = "tests/execute_screen_space_reflection_reflection_pyramid.rs"]
+mod tests;

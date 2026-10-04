@@ -1,3 +1,4 @@
+# 核对流水线恢复流程测试的模块划分。
 from __future__ import annotations
 
 import unittest
@@ -6,11 +7,11 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RESUME_FLOW_ROOT = (
-    REPO_ROOT / "tools/zircon_export/tests/test_pipeline_resume_flow.py"
+    REPO_ROOT / "tools/export/tests/test_pipeline_resume_flow.py"
 )
 PLATFORM_BUNDLE_HANDOFF_OWNER = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_pipeline_resume_platform_bundle_handoff.py"
+    / "tools/export/tests/test_pipeline_resume_platform_bundle_handoff.py"
 )
 
 PLATFORM_BUNDLE_HANDOFF_METHODS = (

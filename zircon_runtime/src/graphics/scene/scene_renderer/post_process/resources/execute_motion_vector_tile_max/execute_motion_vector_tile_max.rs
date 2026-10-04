@@ -2,9 +2,9 @@ use crate::render_graph::RenderGraphAttachmentOps;
 
 use super::super::super::clear_render_target::clear_render_target;
 use super::super::super::scene_post_process_resources::ScenePostProcessResources;
-use crate::core::framework::render::{FULLSCREEN_PARAMS_BINDING, FULLSCREEN_PASS_INPUT_GROUP};
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
-use crate::graphics::shader::{MOTION_VECTOR_SOURCE_RESOURCE, motion_vector_tile_max_pass_plan};
+use crate::graphics::shader::invocation::{FULLSCREEN_PARAMS_BINDING, FULLSCREEN_PASS_INPUT_GROUP};
+use crate::graphics::shader::{motion_vector_tile_max_pass_plan, MOTION_VECTOR_SOURCE_RESOURCE};
 
 impl ScenePostProcessResources {
     pub(crate) fn execute_motion_vector_tile_max(

@@ -3,7 +3,7 @@ related_code:
   - zircon_runtime/src/graphics/shader/builtin_global_shader_contracts.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/hzb.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/compute_workload.rs
-  - tools/check_conventions.py
+  - tools/audits/check_conventions.py
 implementation_files:
   - docs/plans/zircon_editor/editor/02/fixed-2026-07-14-compute-fullscreen-descriptor-compile-regression.md
 plan_sources:
@@ -11,7 +11,7 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - python tools/check_conventions.py --only docs --json
+  - python tools/audits/check_conventions.py --only docs --json
   - git diff --check -- docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md docs/plans/zircon_runtime/frameworks/06/2026-07-18-g7-fullscreen-plan-owner-doc-hardcut-batch23.md docs/plans/zircon_editor/editor/02/fixed-2026-07-14-compute-fullscreen-descriptor-compile-regression.md
 ---
 
@@ -30,7 +30,7 @@ Session: `frameworks06-g7-fullscreen-plan-owner-doc-hardcut-batch23-20260718`
 ## Fresh Testing Evidence
 
 - 修改前 fresh G7：所选 fixed 记录有 `1` 个 missing-path violation。
-- 修改后 fresh `python tools/check_conventions.py --only docs --json`：所选 fixed 记录 `0` violations；共享 current-source 全局快照为 `471` violations / `122` documents / `66,953` checked paths，G7 继续保持 RED。
+- 修改后 fresh `python tools/audits/check_conventions.py --only docs --json`：所选 fixed 记录 `0` violations；共享 current-source 全局快照为 `471` violations / `122` documents / `66,953` checked paths，G7 继续保持 RED。
 - 所选记录 front matter 中退役 `feature_descriptors/fullscreen_pass.rs` 为 `0`；current `graphics/shader/builtin_global_shader_contracts.rs` owner 存在。
 - exact-scope `git diff --check` 通过；staged_total 为 `0`。
 

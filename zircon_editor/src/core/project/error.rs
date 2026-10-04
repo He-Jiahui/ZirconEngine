@@ -6,7 +6,9 @@ use zircon_runtime::asset::AssetImportError;
 use zircon_runtime::core::CoreError;
 use zircon_runtime::scene::world::SceneProjectError;
 use zircon_runtime_interface::project::{
-    CanonicalDescriptorIdentityError, ProjectNameError, ProjectTemplatePackError,
+    CanonicalDescriptorIdentityError, ProjectEngineCompatibilityDisposition,
+    ProjectEngineCompatibilityError, ProjectEngineVersionParseError, ProjectNameError,
+    ProjectTemplatePackError, ProjectTemplateReceiptError,
 };
 
 #[derive(Debug, Error)]
@@ -25,6 +27,26 @@ pub enum ProjectAuthorityError {
     },
     #[error("current project manifest preflight is missing its required project GUID")]
     CurrentManifestMissingProjectGuid,
+    #[error("project manifest requires an explicit migration decision before activation")]
+    ManifestMigrationRequired,
+    #[error("project engine version is invalid: {source}")]
+    EngineVersion {
+        #[from]
+        #[source]
+        source: ProjectEngineVersionParseError,
+    },
+    #[error("project engine requirement is invalid: {source}")]
+    EngineCompatibility {
+        #[from]
+        #[source]
+        source: ProjectEngineCompatibilityError,
+    },
+    #[error("project engine compatibility rejected activation: {disposition:?}")]
+    IncompatibleEngine {
+        disposition: ProjectEngineCompatibilityDisposition,
+    },
+    #[error("safe and recovery profiles can only open an existing project")]
+    UnsupportedCreationProfile,
     #[error("project location cannot be empty")]
     EmptyProjectLocation,
     #[error("project path cannot be empty or blank")]
@@ -44,6 +66,11 @@ pub enum ProjectAuthorityError {
         path = display_project_path(path)
     )]
     TargetNotEmpty { path: PathBuf },
+    #[error(
+        "another project creation operation already owns the target: {path}",
+        path = display_project_path(path)
+    )]
+    TargetCreationLeaseHeld { path: PathBuf },
     #[error(
         "project directory does not exist: {path}",
         path = display_project_path(path)
@@ -130,6 +157,22 @@ pub enum ProjectAuthorityError {
         #[source]
         source: ProjectTemplatePackError,
     },
+    #[error("project template provenance failed: {source}")]
+    TemplateReceipt {
+        #[from]
+        #[source]
+        source: ProjectTemplateReceiptError,
+    },
+    #[error("rendered project template is missing its generated project GUID")]
+    RenderedTemplateMissingProjectGuid,
+    #[error("project template composition changed between preflight and staged creation")]
+    CreationPreflightChanged,
+    #[error(
+        "project template provider {provider} must be enabled, required, and unique for editor_host; found {found}"
+    )]
+    TemplateProviderRequirement { provider: String, found: usize },
+    #[error("project template descriptor does not define an editor_host target requirement")]
+    TemplateEditorTargetMissing,
     #[error(
         "project filesystem operation {operation} failed for {path}: {source}",
         path = display_project_path(path)
@@ -153,26 +196,20 @@ pub enum ProjectAuthorityError {
         restore_source: std::io::Error,
     },
     #[error(
-        "post-commit project rollback failed moving {from_path} to {to_path}; preserved empty-target backup: {backup_path:?}: {source}",
-        from_path = display_project_path(from),
-        to_path = display_project_path(to),
-        backup_path = display_optional_project_path(backup)
+        "project was published at {target_path}, but its previous empty target remains at {backup_path}; preserve both paths for recovery: {source}",
+        target_path = display_project_path(target),
+        backup_path = display_project_path(backup)
     )]
-    PostCommitRollbackFailed {
-        from: PathBuf,
-        to: PathBuf,
-        backup: Option<PathBuf>,
+    PublishedProjectFinalizationFailed {
+        target: PathBuf,
+        backup: PathBuf,
         #[source]
-        source: std::io::Error,
+        source: Box<ProjectAuthorityError>,
     },
 }
 
 fn display_project_path(path: &Path) -> String {
     ProjectPaths::display_path(path).display().to_string()
-}
-
-fn display_optional_project_path(path: &Option<PathBuf>) -> Option<String> {
-    path.as_deref().map(display_project_path)
 }
 
 impl ProjectAuthorityError {
@@ -190,21 +227,5 @@ impl ProjectAuthorityError {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::path::PathBuf;
-
-    use super::ProjectAuthorityError;
-
-    #[cfg(windows)]
-    #[test]
-    fn project_authority_error_displays_windows_operation_paths_without_verbatim_prefixes() {
-        let error = ProjectAuthorityError::ManifestMissing {
-            path: PathBuf::from(r"\\?\C:\ZirconBuilds\stage\project\zircon-project.toml"),
-        };
-
-        assert_eq!(
-            error.to_string(),
-            r"project manifest is missing: C:\ZirconBuilds\stage\project\zircon-project.toml"
-        );
-    }
-}
+#[path = "tests/error.rs"]
+mod tests;

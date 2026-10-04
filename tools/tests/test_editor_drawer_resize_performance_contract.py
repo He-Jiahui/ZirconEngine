@@ -1,3 +1,4 @@
+# 核对抽屉范围变化复用已提交的工作台尺寸阶段。
 from pathlib import Path
 import unittest
 

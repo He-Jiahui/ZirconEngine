@@ -4,6 +4,8 @@ use zircon_runtime_interface::ui::event_ui::UiNodeId;
 
 const MAX_PENDING_TEXT_FOCUS_LOSS_OWNERS: usize = 1_024;
 
+/// 收集本轮派发失焦的文本 owner，供输入管理器结束模型回写并丢弃文档历史。
+/// 溢出时放弃部分清单并要求全量清理，避免未记录的 owner 继续保留旧编辑会话。
 #[derive(Clone, Debug, Default, PartialEq)]
 pub(super) struct UiPendingTextFocusLoss {
     owners: BTreeSet<UiNodeId>,
@@ -37,35 +39,5 @@ impl UiPendingTextFocusLoss {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn owners_are_deduplicated() {
-        let mut pending = UiPendingTextFocusLoss::default();
-        pending.record(UiNodeId::new(1));
-        pending.record(UiNodeId::new(1));
-
-        let taken = pending.take();
-
-        assert_eq!(taken.owners.len(), 1);
-        assert!(!taken.overflowed);
-    }
-
-    #[test]
-    fn overflow_discards_partial_owners_and_requests_fail_closed_clear() {
-        let mut pending = UiPendingTextFocusLoss::default();
-        for raw in 1..=MAX_PENDING_TEXT_FOCUS_LOSS_OWNERS as u64 {
-            pending.record(UiNodeId::new(raw));
-        }
-        pending.record(UiNodeId::new(MAX_PENDING_TEXT_FOCUS_LOSS_OWNERS as u64 + 1));
-
-        let taken = pending.take();
-
-        assert!(taken.owners.is_empty());
-        assert!(taken.overflowed);
-        let reset = pending.take();
-        assert!(reset.owners.is_empty());
-        assert!(!reset.overflowed);
-    }
-}
+#[path = "tests/focus_loss.rs"]
+mod tests;

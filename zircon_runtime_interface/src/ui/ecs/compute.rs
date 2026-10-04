@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use crate::ui::{
     event_ui::UiNodeId,
@@ -148,7 +148,7 @@ where
             stage,
             required: true,
             node_count: bucket.node_ids.len() as u64,
-            dirty_reasons: bucket.dirty_reasons.into_iter().collect(),
+            dirty_reasons: bucket.dirty_reasons.into_vec(),
             node_ids: bucket.node_ids,
         });
     }
@@ -165,19 +165,75 @@ pub(super) fn projection_stage_dirty_reasons(
         return Vec::new();
     }
 
-    let mut reasons = BTreeSet::new();
+    let mut reasons = ProjectionDirtyReasonMask::default();
     insert_projection_stage_dirty_reasons(&mut reasons, stage, domains);
-    reasons.into_iter().collect()
+    reasons.into_vec()
 }
 
 #[derive(Default)]
 struct ProjectionScheduleImpactBucket {
     node_ids: Vec<UiNodeId>,
-    dirty_reasons: BTreeSet<UiPipelineDirtyReason>,
+    dirty_reasons: ProjectionDirtyReasonMask,
+}
+
+#[derive(Clone, Copy, Default)]
+struct ProjectionDirtyReasonMask(u16);
+
+impl ProjectionDirtyReasonMask {
+    fn insert(&mut self, reason: UiPipelineDirtyReason) {
+        self.0 |= Self::bit(reason);
+    }
+
+    fn into_vec(self) -> Vec<UiPipelineDirtyReason> {
+        let ordered = [
+            UiPipelineDirtyReason::Input,
+            UiPipelineDirtyReason::Focus,
+            UiPipelineDirtyReason::WidgetBehavior,
+            UiPipelineDirtyReason::Text,
+            UiPipelineDirtyReason::Style,
+            UiPipelineDirtyReason::Layout,
+            UiPipelineDirtyReason::LayoutMetrics,
+            UiPipelineDirtyReason::Picking,
+            UiPipelineDirtyReason::HitGrid,
+            UiPipelineDirtyReason::A11y,
+            UiPipelineDirtyReason::Render,
+            UiPipelineDirtyReason::Template,
+            UiPipelineDirtyReason::Window,
+            UiPipelineDirtyReason::HostRequest,
+            UiPipelineDirtyReason::Diagnostics,
+        ];
+        let mut reasons = Vec::with_capacity(self.0.count_ones() as usize);
+        reasons.extend(ordered.into_iter().filter(|reason| self.contains(*reason)));
+        reasons
+    }
+
+    fn contains(self, reason: UiPipelineDirtyReason) -> bool {
+        self.0 & Self::bit(reason) != 0
+    }
+
+    fn bit(reason: UiPipelineDirtyReason) -> u16 {
+        1 << match reason {
+            UiPipelineDirtyReason::Input => 0,
+            UiPipelineDirtyReason::Focus => 1,
+            UiPipelineDirtyReason::WidgetBehavior => 2,
+            UiPipelineDirtyReason::Text => 3,
+            UiPipelineDirtyReason::Style => 4,
+            UiPipelineDirtyReason::Layout => 5,
+            UiPipelineDirtyReason::LayoutMetrics => 6,
+            UiPipelineDirtyReason::Picking => 7,
+            UiPipelineDirtyReason::HitGrid => 8,
+            UiPipelineDirtyReason::A11y => 9,
+            UiPipelineDirtyReason::Render => 10,
+            UiPipelineDirtyReason::Template => 11,
+            UiPipelineDirtyReason::Window => 12,
+            UiPipelineDirtyReason::HostRequest => 13,
+            UiPipelineDirtyReason::Diagnostics => 14,
+        }
+    }
 }
 
 fn insert_projection_stage_dirty_reasons(
-    reasons: &mut BTreeSet<UiPipelineDirtyReason>,
+    reasons: &mut ProjectionDirtyReasonMask,
     stage: UiPipelineStage,
     domains: UiEcsDirtyDomains,
 ) {
@@ -239,7 +295,7 @@ fn insert_projection_stage_dirty_reasons(
 }
 
 fn insert_layout_driver_reasons(
-    reasons: &mut BTreeSet<UiPipelineDirtyReason>,
+    reasons: &mut ProjectionDirtyReasonMask,
     domains: UiEcsDirtyDomains,
 ) {
     if domains.text {
@@ -331,81 +387,9 @@ pub(super) fn projection_update_domains(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
+#[path = "tests/compute.rs"]
+mod tests;
 
-    #[test]
-    fn projection_impact_buckets_preserve_canonical_order_and_deduplicate_nodes() {
-        let domains_by_node = [
-            (
-                UiNodeId::new(9),
-                UiEcsDirtyDomains {
-                    render: true,
-                    ..UiEcsDirtyDomains::default()
-                },
-            ),
-            (
-                UiNodeId::new(3),
-                UiEcsDirtyDomains {
-                    text: true,
-                    ..UiEcsDirtyDomains::default()
-                },
-            ),
-            (
-                UiNodeId::new(9),
-                UiEcsDirtyDomains {
-                    input: true,
-                    ..UiEcsDirtyDomains::default()
-                },
-            ),
-            (
-                UiNodeId::new(3),
-                UiEcsDirtyDomains {
-                    text: true,
-                    ..UiEcsDirtyDomains::default()
-                },
-            ),
-        ];
-
-        let schedule_impacts = projection_schedule_impacts_from_domains(domains_by_node);
-        assert_eq!(
-            schedule_impacts
-                .iter()
-                .map(|impact| impact.stage)
-                .collect::<Vec<_>>(),
-            UiPipelineStage::ordered().to_vec()
-        );
-        let render_extract = schedule_impacts
-            .iter()
-            .find(|impact| impact.stage == UiPipelineStage::RenderExtract)
-            .expect("render extract impact");
-        assert_eq!(
-            render_extract.node_ids,
-            vec![UiNodeId::new(3), UiNodeId::new(9)]
-        );
-        assert_eq!(
-            render_extract.dirty_reasons,
-            vec![
-                UiPipelineDirtyReason::Text,
-                UiPipelineDirtyReason::Layout,
-                UiPipelineDirtyReason::Render,
-            ]
-        );
-
-        let domain_impacts = projection_dirty_domain_impacts_from_domains(domains_by_node);
-        assert_eq!(
-            domain_impacts
-                .iter()
-                .map(|impact| impact.domain)
-                .collect::<Vec<_>>(),
-            vec![
-                UiEcsDirtyDomainKind::Text,
-                UiEcsDirtyDomainKind::Input,
-                UiEcsDirtyDomainKind::Render,
-            ]
-        );
-        assert_eq!(domain_impacts[0].node_ids, vec![UiNodeId::new(3)]);
-        assert_eq!(domain_impacts[1].node_ids, vec![UiNodeId::new(9)]);
-        assert_eq!(domain_impacts[2].node_ids, vec![UiNodeId::new(9)]);
-    }
-}
+#[cfg(test)]
+#[path = "compute/tests/dirty_reason_performance_tests.rs"]
+mod dirty_reason_performance_tests;

@@ -105,7 +105,7 @@ pub fn compute_style(node: &UiNode, sheet: &UiStyleSheet, inherited: &UiComputed
 
 | 动作 | 文件 | 说明 |
 | --- | --- | --- |
-| 新增(契约) | `docs/ui-and-layout/style-cascade-contract.md` | 选择器/specificity/级联/var/computed/继承/transition |
+| 新增(契约) | `docs/ui/style-cascade-contract.md` | 选择器/specificity/级联/var/computed/继承/transition |
 | 升级 | `zircon_runtime/src/ui/v2/style.rs` | resolver → 调统一级联引擎(伪状态 + 选择器 + var) |
 | 收编 | `style.rs` `UiPainterStyleSelector` | 作内置默认 stylesheet,走同一级联,不再硬编码折叠 |
 | 接入 | 01 token | token 暴露为自定义属性供 `var()` 引用 |

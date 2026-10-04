@@ -7,6 +7,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::text::font::{shared_font_collection_snapshot, FontCollectionSnapshot};
+use crate::text::layout_geometry::finite_geometry;
 use crate::text::{
     resolve_resolved_text_glyph_artifact, resolved_text_glyph_artifact_caret_advance,
     resolved_text_glyph_artifact_range_advance_spans,
@@ -207,7 +208,14 @@ fn visual_x(
     visual_offset: usize,
     resolved_advance: Option<f32>,
 ) -> f32 {
-    line.frame.x + resolved_visual_advance(source_map, visual_offset, resolved_advance)
+    finite_geometry(
+        f64::from(line.frame.x)
+            + f64::from(resolved_visual_advance(
+                source_map,
+                visual_offset,
+                resolved_advance,
+            )),
+    )
 }
 
 fn visual_y(
@@ -216,7 +224,14 @@ fn visual_y(
     visual_offset: usize,
     resolved_advance: Option<f32>,
 ) -> f32 {
-    line.frame.y + resolved_visual_advance(source_map, visual_offset, resolved_advance)
+    finite_geometry(
+        f64::from(line.frame.y)
+            + f64::from(resolved_visual_advance(
+                source_map,
+                visual_offset,
+                resolved_advance,
+            )),
+    )
 }
 
 fn resolved_visual_advance(
@@ -224,7 +239,9 @@ fn resolved_visual_advance(
     visual_offset: usize,
     resolved_advance: Option<f32>,
 ) -> f32 {
-    resolved_advance.unwrap_or_else(|| source_map.advance_to_visual_offset(visual_offset))
+    finite_geometry(f64::from(
+        resolved_advance.unwrap_or_else(|| source_map.advance_to_visual_offset(visual_offset)),
+    ))
 }
 
 fn range_frame(
@@ -233,18 +250,22 @@ fn range_frame(
     start: f32,
     end: f32,
 ) -> UiFrame {
+    let start = finite_geometry(f64::from(start));
+    let end = finite_geometry(f64::from(end));
+    let leading = start.min(end);
+    let extent = finite_geometry((f64::from(end) - f64::from(start)).abs()).max(TEXT_CARET_WIDTH);
     if is_vertical_rl(layout) {
         return UiFrame::new(
             line.frame.x,
-            line.frame.y + start.min(end),
+            finite_geometry(f64::from(line.frame.y) + f64::from(leading)),
             line.frame.width.max(TEXT_CARET_WIDTH),
-            (end - start).abs().max(TEXT_CARET_WIDTH),
+            extent,
         );
     }
     UiFrame::new(
-        line.frame.x + start.min(end),
+        finite_geometry(f64::from(line.frame.x) + f64::from(leading)),
         line.frame.y,
-        (end - start).abs().max(TEXT_CARET_WIDTH),
+        extent,
         line.frame.height.max(TEXT_CARET_WIDTH),
     )
 }
@@ -298,5 +319,5 @@ fn caret_line<'a>(
 mod mixed_bidi_tests;
 
 #[cfg(test)]
-#[path = "geometry/tests.rs"]
+#[path = "geometry/tests/cases.rs"]
 mod tests;

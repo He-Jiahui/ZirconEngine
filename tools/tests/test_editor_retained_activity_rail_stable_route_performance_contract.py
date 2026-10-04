@@ -1,3 +1,4 @@
+# 核对保留式活动栏以可复制槽位索引传路由，点击仅分发一次。
 import unittest
 import re
 from pathlib import Path

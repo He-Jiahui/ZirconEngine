@@ -38,9 +38,9 @@ class GcFrameReportingPerformanceContractTests(unittest.TestCase):
         cls.from_slots_compact = " ".join(cls.from_slots.split())
 
     def test_gc_step_preallocates_reports_from_pending_slot_count(self) -> None:
-        self.assertIn("pending.extend(due_slots);", self.gc_step_compact)
+        self.assertIn("for slot in due_slots { pending.push_back(slot); }", self.gc_step_compact)
         self.assertIn("let report_capacity = {", self.gc_step_compact)
-        self.assertIn("pending.len()", self.gc_step_compact)
+        self.assertIn("pending.queue.len()", self.gc_step_compact)
         self.assertIn("Vec::with_capacity(report_capacity)", self.gc_step_compact)
         self.assertNotIn("let mut slot_reports = Vec::new();", self.gc_step)
 

@@ -68,6 +68,12 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         let scale_factor = normalized_scale_factor(self.presentation_scale_factor);
         let logical_shell_width = (self.mount_frame.width / scale_factor).max(1.0);
         let logical_shell_height = (self.mount_frame.height / scale_factor).max(1.0);
+        if self.apply_compiled_asset_creation_menu_extent(
+            menu_control_id,
+            UiSize::new(logical_shell_width, logical_shell_height),
+        )? {
+            return Ok(());
+        }
         let menu_items = self.control_string_array(menu_control_id, "menu_items");
         let metrics = current_host_metrics();
         let trailing_adornment_reserve =

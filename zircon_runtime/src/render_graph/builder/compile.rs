@@ -1,10 +1,11 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
-use crate::rhi::{BufferDesc, BufferUsage, TextureUsage};
+use crate::rhi::{BufferDesc, BufferUsage, TextureDimension, TextureUsage};
 
 use super::super::error::RenderGraphError;
 use super::super::graph::{
-    CompiledRenderGraph, CompiledRenderGraphCompileWork, CompiledRenderPass,
+    CompiledRenderGraph, CompiledRenderGraphCompileWork, CompiledRenderGraphResourceStatePlan,
+    CompiledRenderGraphResourceStateTransition, CompiledRenderPass, RenderGraphResourceState,
 };
 use super::super::types::{
     ComputeBindingKind, RenderGraphComputeDispatchExtent, RenderGraphComputeShaderSource,
@@ -12,22 +13,58 @@ use super::super::types::{
     RenderGraphResourceAccessKind, RenderGraphResourceDeclaration, RenderGraphResourceDesc,
     RenderGraphResourceLifetime, RenderPassId,
 };
+use super::access_scope_tracker::{AccessScopeTracker, LatestAccessState};
+use super::resource_dependency_inference::resource_name;
 use super::{access_validation, RenderGraphBuilder, ResourceAccessKind, ResourceNode};
 
 impl RenderGraphBuilder {
-    pub fn compile(self) -> Result<CompiledRenderGraph, RenderGraphError> {
+    #[cfg(test)]
+    pub(crate) fn compile_with_whole_map_coalescing_for_test(
+        self,
+    ) -> Result<CompiledRenderGraph, RenderGraphError> {
+        super::access_scope_tracker::with_whole_map_coalescing(|| self.compile())
+    }
+
+    pub fn compile(mut self) -> Result<CompiledRenderGraph, RenderGraphError> {
+        if std::env::var_os("ZR_TRACE_RENDER_GRAPH").is_some() {
+            eprintln!(
+                "ZR_TRACE compile-start name={} generation={} resources={:?}",
+                self.name,
+                self.generation,
+                self.resources
+                    .iter()
+                    .map(|resource| (resource.resource, resource.name.as_str()))
+                    .collect::<Vec<_>>()
+            );
+            eprintln!(
+                "ZR_TRACE compile-passes {:?}",
+                self.passes
+                    .iter()
+                    .map(|pass| {
+                        (
+                            pass.id,
+                            pass.name.as_str(),
+                            pass.resources
+                                .iter()
+                                .map(|access| (access.resource, access.kind))
+                                .collect::<Vec<_>>(),
+                        )
+                    })
+                    .collect::<Vec<_>>()
+            );
+        }
         self.validate_unique_pass_names()?;
         self.validate_unique_resource_names()?;
         self.validate_resource_admission()?;
         self.validate_compute_dispatch_resources()?;
         self.validate_compute_pass_metadata()?;
-        let resource_names = self.resource_names();
-        access_validation::validate_resource_access_ranges(&self, &resource_names)?;
         let mut manual_dependencies = self
             .passes
-            .iter()
-            .map(|pass| pass.dependencies.clone())
+            .iter_mut()
+            .map(|pass| std::mem::take(&mut pass.dependencies))
             .collect::<Vec<_>>();
+        let resource_names = self.resource_names();
+        access_validation::validate_resource_access_ranges(&self, &resource_names)?;
         self.add_explicit_version_dependencies(&mut manual_dependencies)?;
         let manual_order = self.topological_order(&manual_dependencies)?;
         let inferred_dependencies =
@@ -109,6 +146,12 @@ impl RenderGraphBuilder {
             .iter()
             .map(|id| inferred_dependencies.resource_access_metadata[id.0].clone())
             .collect();
+        let resource_state_plan = self.build_resource_state_plan(
+            &ordered,
+            &culling.culled,
+            &inferred_dependencies,
+            &resource_names,
+        )?;
 
         CompiledRenderGraph::new(
             self.name,
@@ -118,8 +161,114 @@ impl RenderGraphBuilder {
             pass_resource_versions,
             pass_resource_input_versions,
             pass_resource_access_metadata,
+            resource_state_plan,
             compile_work,
         )
+    }
+
+    fn build_resource_state_plan(
+        &self,
+        ordered: &[RenderPassId],
+        culled: &HashSet<RenderPassId>,
+        inferred_dependencies: &super::resource_dependency_inference::InferredResourceDependencies,
+        resource_names: &HashMap<RenderGraphResource, &str>,
+    ) -> Result<CompiledRenderGraphResourceStatePlan, RenderGraphError> {
+        let identities = self.resource_access_identities()?;
+        let physical_resources = self
+            .resources
+            .iter()
+            .filter_map(|resource| {
+                identities
+                    .get(&resource.resource)
+                    .copied()
+                    .map(|identity| (identity, resource.resource))
+            })
+            .fold(
+                HashMap::new(),
+                |mut physical_resources, (identity, resource)| {
+                    physical_resources.entry(identity).or_insert(resource);
+                    physical_resources
+                },
+            );
+        let mut scopes = AccessScopeTracker::new(&self.resources);
+        let mut plan = CompiledRenderGraphResourceStatePlan::default();
+
+        for pass_id in ordered {
+            if culled.contains(pass_id) {
+                continue;
+            }
+            let pass = &self.passes[pass_id.0];
+            for (access_index, access) in pass.resources.iter().enumerate() {
+                let identity = identities.get(&access.resource).copied().ok_or_else(|| {
+                    if std::env::var_os("ZR_TRACE_RENDER_GRAPH").is_some() {
+                        eprintln!(
+                            "ZR_TRACE state-access-identity-missing pass={} access={} resource={:?} known={:?}",
+                            pass.name,
+                            access_index,
+                            access.resource,
+                            identities.keys().collect::<Vec<_>>()
+                        );
+                    }
+                    RenderGraphError::ResourceDeclarationMissing {
+                        resource: resource_name(resource_names, access.resource),
+                    }
+                })?;
+                // Dependency inference stores the already-projected metadata so the
+                // compiled access index and backend bindings can address the physical
+                // parent scope of a texture-view alias.  The state tracker, however,
+                // owns its own scope history and must start from the authored access
+                // range; feeding it the projected alias range would apply the alias
+                // offset twice (for example mip 1 -> mip 2).
+                let metadata = access.metadata;
+                let work_before = scopes.work_receipt();
+                let scope = scopes.prepare_scope(identity, access.resource, metadata)?;
+                let predecessors = scopes.current_states_for(&scope)?;
+                let access_id =
+                    super::super::access::RenderGraphResourceAccessId::new(pass.id, access_index);
+                let state = RenderGraphResourceState::from(metadata.intent);
+                let resource = physical_resources
+                    .get(&identity)
+                    .copied()
+                    .ok_or(RenderGraphError::AccessScopeTrackerStateMismatch { identity })?;
+
+                for predecessor in predecessors {
+                    let Some(previous) = predecessor.latest else {
+                        continue;
+                    };
+                    let previous_state = RenderGraphResourceState::from(previous.intent);
+                    if previous_state != state || previous.queue != pass.queue {
+                        plan.push_transition(CompiledRenderGraphResourceStateTransition {
+                            resource,
+                            range: predecessor.range,
+                            from_access: previous.access,
+                            to_access: access_id,
+                            from_state: previous_state,
+                            to_state: state,
+                            from_queue: previous.queue,
+                            to_queue: pass.queue,
+                        });
+                    }
+                }
+                scopes.mutate_histories(&scope, |history| {
+                    history.latest_state = Some(LatestAccessState {
+                        access: access_id,
+                        intent: metadata.intent,
+                        queue: pass.queue,
+                    });
+                })?;
+                let work = scopes.work_receipt().delta_since(work_before);
+                plan.record_access_work(
+                    metadata.intent,
+                    work.lookup_visits,
+                    work.split_visits,
+                    work.read_visits,
+                    work.update_visits,
+                    work.merge_visits,
+                );
+            }
+        }
+
+        Ok(plan)
     }
 
     fn validate_unique_pass_names(&self) -> Result<(), RenderGraphError> {
@@ -182,6 +331,56 @@ impl RenderGraphBuilder {
             let Some(desc) = texture_desc else {
                 continue;
             };
+            if let Some(reason) = desc.shape_validation_error() {
+                return Err(RenderGraphError::TextureDescriptorInvalid {
+                    resource: resource.name.clone(),
+                    reason: reason.to_owned(),
+                });
+            }
+            if desc.sample_count == 0 {
+                return Err(RenderGraphError::TextureDescriptorInvalid {
+                    resource: resource.name.clone(),
+                    reason: "sample_count must be greater than zero".to_owned(),
+                });
+            }
+            if desc.mip_levels == 0 || !desc.mip_levels_fit_shape() {
+                return Err(RenderGraphError::TextureDescriptorInvalid {
+                    resource: resource.name.clone(),
+                    reason: "mip_levels must fit the texture extent".to_owned(),
+                });
+            }
+            if desc.sample_count > 1 && desc.dimension != TextureDimension::D2 {
+                return Err(RenderGraphError::TextureDescriptorInvalid {
+                    resource: resource.name.clone(),
+                    reason: "multisampling is only valid for 2D textures".to_owned(),
+                });
+            }
+            if desc.sample_count > 1 && desc.mip_levels > 1 {
+                return Err(RenderGraphError::TextureDescriptorInvalid {
+                    resource: resource.name.clone(),
+                    reason: "multisampled textures cannot declare mip levels".to_owned(),
+                });
+            }
+            if desc.view_formats.iter().any(|format| {
+                *format == desc.format || !desc.format.supports_alternate_view_format(*format)
+            }) {
+                return Err(RenderGraphError::TextureDescriptorInvalid {
+                    resource: resource.name.clone(),
+                    reason: "view_formats must contain distinct supported alternate formats"
+                        .to_owned(),
+                });
+            }
+            if desc
+                .view_formats
+                .iter()
+                .enumerate()
+                .any(|(index, format)| desc.view_formats[..index].contains(format))
+            {
+                return Err(RenderGraphError::TextureDescriptorInvalid {
+                    resource: resource.name.clone(),
+                    reason: "view_formats must not contain duplicates".to_owned(),
+                });
+            }
             if desc.is_sparse_reserved() {
                 return Err(RenderGraphError::SparseTextureUnsupported {
                     resource: resource.name.clone(),
@@ -514,21 +713,28 @@ impl RenderGraphBuilder {
             }
         }
 
-        let mut ready = VecDeque::new();
+        // Always choose the lowest authored pass index among currently-ready
+        // nodes.  A FIFO queue can let a later independent stage run before an
+        // earlier authored pass whose prerequisite just completed; that makes
+        // the resource tracker observe a read-before-write and manufacture a
+        // reversed WAR edge.  The ordered ready set preserves the authored
+        // stage tie-break while still honoring every explicit dependency.
+        let mut ready = BTreeSet::new();
         for pass in &self.passes {
             if indegree[pass.id.0] == 0 {
-                ready.push_back(pass.id);
+                ready.insert(pass.id.0);
             }
         }
 
         let mut ordered = Vec::with_capacity(self.passes.len());
-        while let Some(id) = ready.pop_front() {
+        while let Some(index) = ready.pop_first() {
+            let id = self.passes[index].id;
             ordered.push(id);
 
             for dependent in &dependents[id.0] {
                 indegree[dependent.0] -= 1;
                 if indegree[dependent.0] == 0 {
-                    ready.push_back(*dependent);
+                    ready.insert(dependent.0);
                 }
             }
         }
@@ -603,11 +809,10 @@ impl RenderGraphBuilder {
             let pass = &self.passes[pass_id.0];
             for access in &pass.resources {
                 extend_resource_lifetime_span(&mut spans, access.resource, pass_order);
-                if let Some(parent) = self
-                    .resources
-                    .iter()
-                    .find(|resource| resource.resource == access.resource)
-                    .and_then(|resource| resource.texture_view_alias)
+                if let Some(parent) = resource_declaration_indices
+                    .get(&access.resource)
+                    .and_then(|index| resource_declarations.get(*index))
+                    .and_then(|declaration| declaration.texture_view_alias)
                     .map(|alias| RenderGraphResource::TransientTexture(alias.parent))
                 {
                     // A texture view owns no physical slot, but each live view
@@ -619,12 +824,24 @@ impl RenderGraphBuilder {
 
         let mut lifetimes = Vec::with_capacity(spans.len());
         for (resource, (first_pass, last_pass)) in spans {
-            let declaration = resource_declaration_indices
+            let declaration = match resource_declaration_indices
                 .get(&resource)
                 .and_then(|index| resource_declarations.get(*index))
-                .ok_or_else(|| RenderGraphError::ResourceDeclarationMissing {
-                    resource: format!("{resource:?}"),
-                })?;
+            {
+                Some(declaration) => declaration,
+                None => {
+                    eprintln!(
+                        "ZR_TRACE lifetime-missing resource={resource:?} declarations={:?}",
+                        resource_declarations
+                            .iter()
+                            .map(|declaration| declaration.resource)
+                            .collect::<Vec<_>>()
+                    );
+                    return Err(RenderGraphError::ResourceDeclarationMissing {
+                        resource: format!("{resource:?}"),
+                    });
+                }
+            };
             let usage = declaration.usage;
             // Readback consumers run after graph recording, so their backing must
             // remain unique and live through the terminal compiled pass.
@@ -690,6 +907,10 @@ struct CullingResult {
     root_count: usize,
     dependency_visit_count: usize,
 }
+
+#[cfg(test)]
+#[path = "tests/compile_performance_tests.rs"]
+mod performance_tests;
 
 fn render_graph_resource_access_kind(kind: ResourceAccessKind) -> RenderGraphResourceAccessKind {
     match kind {

@@ -7,7 +7,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Mui
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn path_elements(
     source: &str,
 ) -> Vec<MuiIconPathElement> {
-    let mut elements = Vec::new();
+    let mut elements = Vec::with_capacity(source.matches("d: \"").count());
     let mut cursor = 0;
     while let Some(relative_index) = source[cursor..].find("d: \"") {
         let value_start = cursor + relative_index + 4;
@@ -81,5 +81,9 @@ fn unescaped_js_double_quoted_value(source: &str, start: usize) -> Option<(Strin
 }
 
 #[cfg(test)]
-#[path = "parser/fast_path_tests.rs"]
+#[path = "parser/tests/fast_path_tests.rs"]
 mod fast_path_tests;
+
+#[cfg(test)]
+#[path = "parser/tests/capacity_tests.rs"]
+mod capacity_tests;

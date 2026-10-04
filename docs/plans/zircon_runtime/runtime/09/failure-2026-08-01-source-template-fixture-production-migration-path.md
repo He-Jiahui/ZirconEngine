@@ -61,3 +61,22 @@ Open state：`implementation_complete / runtime_gate_blocked`。2026-08-01 已�
 - managed Windows interface gate `5ca7c0c6ff084cab909962000c1cf0c9`：`cargo test -p zircon_runtime_interface --locked --lib ui::template::asset::schema` 退出 `0`，作业已释放；interface crate 与筛选命令通过。
 - 同一 current-source 上的 runtime lib-test 编译作业 `38911e64b09e4cefa6b2e5d6069676f6`：退出 `1`（内部 Cargo `101`），15 个其他 owner 的编译错误、327 个 warning、目标测试执行 `0`，作业已释放。错误位于 Dynamic Scene/Asset、Runtime11、Plugins01 等边界，不触及本记录修改路径。
 - 因 loader rejection 行为测试尚未实际执行，本记录继续保持 `open`；不得用 interface gate 或静态检查代替 runtime 行为 GREEN，待 Runtime09 owner 在共享编译边界恢复后重跑首个 `tests` 命令并写 fixed return。
+
+## 2026-09-11 rolling repair continuation
+
+The stable Runtime09 fixing Session `failure-roll-01a090ae-runtime09-source-template-migration-r1`
+sealed the six schema/test owners and this failure record after re-attributing all
+seven current hashes at baseline epoch 608.  A Coordinator-managed static ticket
+`b365758dd45c4a4a8953f2655ef5b34c` verifies the hard cut in an immutable source
+copy: `migrator.rs` contains no `UiTemplateDocument` or source-template converter,
+the interface report has no retired source-template variant, the old module is
+absent, and the loader rejection fixture remains present.  The ticket is queued
+for execution; its result must be recorded before this evidence is promoted.
+
+The declared locked Cargo replay was submitted once with the exact same manifest
+and was rejected during admission, before ticket/Cargo creation, by durable
+`validation_ticket_external_worktree_dirty` for foreign repository
+`E:\\Git\\zr_vm`.  No runtime test ran in this attempt.  The canonical failure
+therefore remains `open`; after the external worktree is clean, rerun the loader
+rejection test, the schema migration tests, and the interface schema gate from a
+fresh current-source manifest before `failure return`.

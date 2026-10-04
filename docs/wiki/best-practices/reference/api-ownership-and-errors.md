@@ -10,7 +10,7 @@ plan_sources:
   - docs/wiki/best-practices/rust-handles-errors-and-ownership.md
 tests:
   - zircon_runtime/src/core/runtime/tests/resolution
-  - zircon_runtime/src/core/manager/tests.rs
+  - zircon_runtime/src/core/manager/tests/cases.rs
 doc_type: reference-guide
 ---
 

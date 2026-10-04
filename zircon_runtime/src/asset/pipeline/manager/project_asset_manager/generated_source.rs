@@ -3,8 +3,8 @@ use std::fs::File;
 use crate::asset::project::{ImportSourceWatchEcho, ProjectGenerationPhase};
 use crate::asset::watch::{AssetChange, AssetChangeKind};
 use crate::asset::{AssetStatusRecord, AssetUri};
-use crate::core::CoreError;
 use crate::core::resource::ResourceScheme;
+use crate::core::CoreError;
 
 use super::super::errors::{asset_error, asset_error_message};
 use super::super::records::build_status_record;
@@ -88,8 +88,7 @@ impl ProjectAssetManager {
             let source_path = active_project
                 .existing_or_primary_project_source_path_for_uri(&source_uri)
                 .map_err(asset_error)?;
-            let previous_source_hash =
-                hash_existing_source(&source_path).map_err(|error| asset_error(error.into()))?;
+            let previous_source_hash = hash_existing_source(&source_path).map_err(asset_error)?;
             (
                 active_project.catalog_input_generation().sequence(),
                 self.current_project_preparation_epoch(),
@@ -99,6 +98,9 @@ impl ProjectAssetManager {
                 active_project.source_resource_records(&source_uri),
             )
         };
+        let project_generation =
+            crate::asset::project::lock_project_generation(candidate.paths().root())
+                .map_err(asset_error)?;
         let source_watch_echo = ImportSourceWatchEcho::new(
             source_uri.clone(),
             source_uri.clone(),
@@ -148,6 +150,7 @@ impl ProjectAssetManager {
             },
         )?;
         self.register_transaction_watch_echoes([source_watch_echo]);
+        drop(project_generation);
         self.publish_project_generation(
             generation,
             status
@@ -189,19 +192,5 @@ fn hash_existing_source(path: &std::path::Path) -> std::io::Result<Option<blake3
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn generated_source_publication_uses_project_transaction_and_resource_owner() {
-        let source = include_str!("generated_source.rs");
-
-        assert!(source.contains("prepare_generated_source_generation("));
-        assert!(source.contains("prepare_targeted_project_resource_sync("));
-        assert!(source.contains("commit_targeted_project_resource_sync("));
-        assert!(source.contains("prepared_generation.commit()"));
-        assert!(source.contains("register_transaction_watch_echoes"));
-        assert!(source.contains("publish_project_generation("));
-        assert!(!source.contains("source_bytes.clone()"));
-        assert!(!source.contains("fs::write("));
-        assert!(!source.contains("fs::read("));
-    }
-}
+#[path = "tests/generated_source.rs"]
+mod tests;

@@ -127,6 +127,22 @@ impl UiRenderCommand {
         );
     }
 
+    pub(super) fn append_paint_elements(
+        &self,
+        first_paint_order: u64,
+        metrics: UiLayoutMetrics,
+        elements: &mut Vec<UiPaintElement>,
+    ) {
+        self.append_paint_elements_with_metrics(
+            first_paint_order,
+            metrics,
+            PaintElementMetadata::Cached {
+                generation: self.cache_generation(),
+            },
+            elements,
+        );
+    }
+
     fn build_paint_elements_with_metrics(
         &self,
         first_paint_order: u64,
@@ -145,8 +161,20 @@ impl UiRenderCommand {
         metadata: PaintElementMetadata,
         elements: &mut Vec<UiPaintElement>,
     ) {
-        let metrics = self.resolved_paint_metrics(metrics);
+        // fill 接口接管目标缓冲区内容；append 接口则保留旧元素并从当前长度续排。
         elements.clear();
+        self.append_paint_elements_with_metrics(first_paint_order, metrics, metadata, elements);
+    }
+
+    fn append_paint_elements_with_metrics(
+        &self,
+        first_paint_order: u64,
+        metrics: UiLayoutMetrics,
+        metadata: PaintElementMetadata,
+        elements: &mut Vec<UiPaintElement>,
+    ) {
+        let metrics = self.resolved_paint_metrics(metrics);
+        let first_element_index = elements.len();
         if self.uses_image_brush() {
             // Image-bearing controls can still own background and border styling.
             // Emit separate paint elements so icon/vector content does not replace
@@ -161,7 +189,7 @@ impl UiRenderCommand {
             .flatten()
             {
                 elements.push(self.base_paint_element(
-                    first_paint_order + elements.len() as u64,
+                    first_paint_order + (elements.len() - first_element_index) as u64,
                     payload,
                     metrics,
                     metadata,
@@ -178,7 +206,7 @@ impl UiRenderCommand {
             }
             if let Some(payload) = self.text_payload() {
                 elements.push(self.base_paint_element(
-                    first_paint_order + elements.len() as u64,
+                    first_paint_order + (elements.len() - first_element_index) as u64,
                     payload,
                     metrics,
                     metadata,
@@ -186,7 +214,7 @@ impl UiRenderCommand {
             }
         }
 
-        if elements.is_empty() {
+        if elements.len() == first_element_index {
             elements.push(self.base_paint_element(
                 first_paint_order,
                 UiPaintPayload::Empty,
@@ -204,9 +232,10 @@ impl UiRenderCommand {
         metadata: PaintElementMetadata,
     ) -> UiPaintElement {
         let (cache_generation, debug_label) = match metadata {
-            PaintElementMetadata::Cached { generation } => {
-                (Some(generation), Some(format!("{:?}", self.kind)))
-            }
+            PaintElementMetadata::Cached { generation } => (
+                Some(generation),
+                Some(render_command_debug_label(self.kind)),
+            ),
             PaintElementMetadata::Transient => (None, None),
         };
         UiPaintElement {
@@ -238,6 +267,11 @@ impl UiRenderCommand {
 
     pub fn cache_generation(&self) -> u64 {
         stable_json_generation(self)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn cache_generation_test_calls() -> usize {
+        CACHE_GENERATION_TEST_CALLS.with(std::cell::Cell::get)
     }
 
     fn paint_payload(&self, metrics: UiLayoutMetrics) -> UiPaintPayload {
@@ -378,16 +412,19 @@ impl UiRenderCommand {
             })
             .unwrap_or_default();
 
-        let mut decorations = self
-            .text_layout
-            .as_ref()
-            .map(|layout| text_box_background_decorations(&layout.boxes))
-            .unwrap_or_default();
+        let mut decorations = Vec::with_capacity(
+            self.text_layout
+                .as_ref()
+                .map_or(0, |layout| layout.boxes.len().saturating_mul(2)),
+        );
+        if let Some(layout) = self.text_layout.as_ref() {
+            append_text_box_background_decorations(&layout.boxes, &mut decorations);
+        }
         if let Some((layout, editable)) = self.text_layout.as_ref().zip(editable) {
             decorations.extend(editable_text_decorations(layout, editable));
         }
         if let Some(layout) = self.text_layout.as_ref() {
-            decorations.extend(text_box_border_decorations(&layout.boxes));
+            append_text_box_border_decorations(&layout.boxes, &mut decorations);
         }
 
         UiTextPaint {
@@ -419,6 +456,8 @@ fn stable_json_generation<T>(value: &T) -> u64
 where
     T: Serialize + ?Sized,
 {
+    #[cfg(test)]
+    CACHE_GENERATION_TEST_CALLS.with(|calls| calls.set(calls.get() + 1));
     let mut writer = StableHashWriter::default();
     if serde_json::to_writer(&mut writer, value).is_err() {
         return FNV_OFFSET;
@@ -426,40 +465,70 @@ where
     writer.finish()
 }
 
-fn text_box_background_decorations(boxes: &[UiResolvedTextBox]) -> Vec<UiTextPaintDecoration> {
-    boxes
-        .iter()
-        .filter_map(|text_box| {
-            text_box.background_color.map(|color| {
-                UiTextPaintDecoration::table_cell_background(
-                    text_box.range,
-                    text_box.frame,
-                    rgba_hex(color),
-                )
-            })
-        })
-        .collect()
+#[cfg(test)]
+thread_local! {
+    static CACHE_GENERATION_TEST_CALLS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
-fn text_box_border_decorations(boxes: &[UiResolvedTextBox]) -> Vec<UiTextPaintDecoration> {
-    boxes
-        .iter()
-        .filter_map(|text_box| {
-            text_box.border_color.map(|color| {
-                UiTextPaintDecoration::table_cell_border(
-                    text_box.range,
-                    text_box.frame,
-                    rgba_hex(color),
-                    text_box.border_width,
-                )
-            })
+fn append_text_box_background_decorations(
+    boxes: &[UiResolvedTextBox],
+    decorations: &mut Vec<UiTextPaintDecoration>,
+) {
+    decorations.extend(boxes.iter().filter_map(|text_box| {
+        text_box.background_color.map(|color| {
+            UiTextPaintDecoration::table_cell_background(
+                text_box.range,
+                text_box.frame,
+                rgba_hex(color),
+            )
         })
-        .collect()
+    }))
+}
+
+fn append_text_box_border_decorations(
+    boxes: &[UiResolvedTextBox],
+    decorations: &mut Vec<UiTextPaintDecoration>,
+) {
+    decorations.extend(boxes.iter().filter_map(|text_box| {
+        text_box.border_color.map(|color| {
+            UiTextPaintDecoration::table_cell_border(
+                text_box.range,
+                text_box.frame,
+                rgba_hex(color),
+                text_box.border_width,
+            )
+        })
+    }))
+}
+
+fn render_command_debug_label(kind: UiRenderCommandKind) -> String {
+    render_command_kind_name(kind).to_owned()
+}
+
+fn render_command_kind_name(kind: UiRenderCommandKind) -> &'static str {
+    match kind {
+        UiRenderCommandKind::Group => "Group",
+        UiRenderCommandKind::Quad => "Quad",
+        UiRenderCommandKind::Text => "Text",
+        UiRenderCommandKind::Image => "Image",
+    }
+}
+
+#[cfg(test)]
+fn render_command_debug_label_formatting(kind: UiRenderCommandKind) -> String {
+    format!("{kind:?}")
 }
 
 fn rgba_hex(color: crate::ui::style::UiRgbaColor) -> String {
-    let [red, green, blue, alpha] = color.to_u8();
-    format!("#{red:02X}{green:02X}{blue:02X}{alpha:02X}")
+    const RGBA_HEX_UPPER: &[u8; 16] = b"0123456789ABCDEF";
+
+    let mut encoded = String::with_capacity(9);
+    encoded.push('#');
+    for channel in color.to_u8() {
+        encoded.push(RGBA_HEX_UPPER[usize::from(channel >> 4)] as char);
+        encoded.push(RGBA_HEX_UPPER[usize::from(channel & 0x0f)] as char);
+    }
+    encoded
 }
 
 const FNV_OFFSET: u64 = 0xcbf29ce484222325;
@@ -495,59 +564,29 @@ impl Write for StableHashWriter {
 }
 
 #[cfg(test)]
-mod cache_generation_tests {
-    use serde::ser::SerializeStruct;
+#[path = "command/tests/rgba_hex_performance_tests.rs"]
+mod rgba_hex_performance_tests;
 
-    use super::{stable_json_generation, FNV_OFFSET};
+#[cfg(test)]
+#[path = "command/tests/text_box_decoration_performance_tests.rs"]
+mod text_box_decoration_performance_tests;
 
-    struct PartialThenFail;
+#[cfg(test)]
+#[path = "command/tests/debug_label_performance_tests.rs"]
+mod debug_label_performance_tests;
 
-    impl serde::Serialize for PartialThenFail {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer,
-        {
-            let mut state = serializer.serialize_struct("PartialThenFail", 2)?;
-            state.serialize_field("written", &1_u8)?;
-            Err(<S::Error as serde::ser::Error>::custom(
-                "expected serialization failure",
-            ))
-        }
-    }
+#[cfg(test)]
+#[path = "command/tests/clip_tests.rs"]
+mod clip_tests;
 
-    #[test]
-    fn ui_render_command_cache_generation_discards_partial_hash_on_serialize_error() {
-        assert_eq!(stable_json_generation(&PartialThenFail), FNV_OFFSET);
-    }
-
-    #[test]
-    fn transient_elements_omit_cache_and_debug_metadata() {
-        let command = super::UiRenderCommand {
-            node_id: super::UiNodeId::new(1),
-            kind: super::UiRenderCommandKind::Group,
-            frame: super::UiFrame::new(0.0, 0.0, 32.0, 16.0),
-            clip_frame: None,
-            z_index: 0,
-            style: super::UiResolvedStyle::default(),
-            text_layout: None,
-            text: None,
-            image: None,
-            opacity: 1.0,
-        };
-
-        let transient = command.to_transient_paint_elements(0);
-        assert!(transient
-            .iter()
-            .all(|element| element.cache_generation.is_none() && element.debug_label.is_none()));
-
-        let cached = command.to_paint_elements(0);
-        assert!(cached
-            .iter()
-            .all(|element| element.cache_generation.is_some() && element.debug_label.is_some()));
-    }
-}
+#[cfg(test)]
+#[path = "tests/command_cache_generation_tests.rs"]
+mod cache_generation_tests;
 
 fn render_clip_frame(frame: UiFrame, metrics: UiLayoutMetrics) -> UiFrame {
+    if frame.width <= 0.0 || frame.height <= 0.0 {
+        return frame;
+    }
     if metrics.pixel_snapping == UiPixelSnapping::Enabled {
         frame.pixel_snapped(metrics.dpi_scale)
     } else {

@@ -10,15 +10,10 @@ origin_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/artifact_governance.py
-  - tools/session_coordinator/windows_tree_delete.py
-  - tools/session_coordinator/migrations.py
-  - tools/session_coordinator/tests/test_artifact_governance.py
-  - tools/session_coordinator/tests/test_windows_tree_delete.py
 tests:
   - python -X dev -W error::ResourceWarning -m unittest tools.session_coordinator.tests.test_artifact_governance -v
   - python -X dev -W error::ResourceWarning -m unittest tools.session_coordinator.tests.test_windows_tree_delete -v
-  - powershell -File tools/zircon-session.ps1 artifact cleanup -Json
+  - powershell -File tools/dev/zircon-session.ps1 artifact cleanup -Json
 resolved_at: 2026-08-14
 ---
 

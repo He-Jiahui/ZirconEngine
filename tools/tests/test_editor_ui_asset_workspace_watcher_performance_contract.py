@@ -1,3 +1,4 @@
+# 核对工作区资源观察者直接分类路径并异步排队变更批次。
 from pathlib import Path
 import unittest
 

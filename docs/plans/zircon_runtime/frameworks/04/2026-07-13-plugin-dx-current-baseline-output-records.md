@@ -6,14 +6,14 @@ related_code:
   - zircon_plugins/native_dynamic_fixture/native/src
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
   - zircon_runtime/src/plugin/native_plugin_loader
-  - tools/audit_plugin_structure.py
+  - tools/audits/audit_plugin_structure.py
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/04-plugin-dx-and-sdk-toolchain.md
   - docs/plans/zircon_runtime/frameworks/development-conventions.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - python tools/audit_plugin_structure.py --json --repo-root E:\Git\ZirconEngine
+  - python tools/audits/audit_plugin_structure.py --json --repo-root E:\Git\ZirconEngine
 ---
 
 # Frameworks 04：Plugin DX 当前基线产出记录

@@ -1,3 +1,4 @@
+# 核对单一主题动作从已构造动作表移出而非复制。
 from pathlib import Path
 import unittest
 

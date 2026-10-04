@@ -21,15 +21,7 @@ pub(crate) fn resolve_linear_child_main_extents(
     slot_index: &UiLayoutSlotIndex,
     scratch: &mut UiLinearArrangeScratch,
 ) -> Result<(), UiTreeError> {
-    let layout_child_count = children
-        .iter()
-        .filter(|child_id| {
-            tree.node(**child_id)
-                .is_some_and(|node| node.effective_visibility().occupies_layout())
-        })
-        .count();
-    let gap_total = gap.max(0.0) * layout_child_count.saturating_sub(1) as f32;
-    let available_extent = (available_extent - gap_total).max(0.0);
+    let mut layout_child_count = 0usize;
     scratch.constraints.clear();
 
     for child_id in children {
@@ -40,6 +32,7 @@ pub(crate) fn resolve_linear_child_main_extents(
             scratch.constraints.push(collapsed_axis_constraint());
             continue;
         }
+        layout_child_count += 1;
         let slot = slot_for_container_child(
             tree,
             slot_index,
@@ -74,6 +67,9 @@ pub(crate) fn resolve_linear_child_main_extents(
             slot.and_then(|slot| slot.linear_sizing),
         ));
     }
+
+    let gap_total = gap.max(0.0) * layout_child_count.saturating_sub(1) as f32;
+    let available_extent = (available_extent - gap_total).max(0.0);
 
     let UiLinearArrangeScratch {
         constraints,
@@ -236,3 +232,7 @@ fn clamp_axis(value: f32, min: f32, max: Option<f32>) -> f32 {
     max.map(|max| value.clamp(min, max))
         .unwrap_or_else(|| value.max(min))
 }
+
+#[cfg(test)]
+#[path = "axis/tests/cases.rs"]
+mod tests;

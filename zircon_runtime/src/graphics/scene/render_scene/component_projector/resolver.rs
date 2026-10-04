@@ -1,6 +1,7 @@
 use std::fmt;
 
 use crate::core::framework::scene::EntityId;
+use crate::core::resource::UntypedResourceHandle;
 
 use super::super::{
     RenderSceneMeshSource, RenderScenePrimitiveLocalBounds, RenderScenePrimitiveRevisions,
@@ -58,6 +59,13 @@ impl RenderSceneResolvedGeometry {
 }
 
 pub(crate) trait RenderSceneGeometryResolver {
+    fn supplemental_geometry_dependencies(
+        &self,
+        _source: &RenderSceneMeshSource,
+    ) -> Vec<UntypedResourceHandle> {
+        Vec::new()
+    }
+
     fn resolve_geometry(
         &mut self,
         entity: EntityId,

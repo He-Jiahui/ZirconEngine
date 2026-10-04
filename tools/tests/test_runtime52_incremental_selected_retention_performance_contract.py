@@ -1,7 +1,7 @@
 from pathlib import Path
 import re
 import unittest
-
+# 选中保护增量维护两个有序保留分区，不重读历史档案重建报告；检查 Rust 回归中的顺序、空操作和唯一性断言。
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = (

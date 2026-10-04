@@ -61,10 +61,8 @@ fn native_bitmap_atlas_frame_supports_native_submission_only_with_alpha_source_c
         }
     );
 
-    let unsupported = NativeBitmapAtlasFrame {
-        unsupported_glyph_count: 1,
-        ..frame
-    };
+    let mut unsupported = frame;
+    unsupported.unsupported_glyph_count = 1;
     assert!(!unsupported.supports_native_submission());
 }
 
@@ -201,26 +199,14 @@ fn native_bitmap_atlas_prepare_report_carries_frame_index() {
         test_viewport_size(),
         test_clip_rect(),
     );
-    let frame = NativeBitmapAtlasFrame {
+    let mut frame = test_frame(
         submission,
-        source_images: vec![test_source_image(source, vec![255; 64])],
-        frame_index: 91,
-        viewport_size: test_viewport_size(),
-        clip_rect: test_clip_rect(),
-        visible_raster_glyph_count: 1,
-        missing_raster_image_count: 0,
-        visible_missing_raster_image_count: 0,
-        approximate_raster_image_count: 0,
-        unsupported_glyph_count: 0,
-        clipped_glyph_count: 0,
-        background_composite_glyph_count: 0,
-        missing_background_composite_glyph_count: 0,
-        source_cache: NativeBitmapAtlasSourceCacheFrameReport::default(),
-        retry_submission: GlyphAtlasBitmapRetryFrameSubmissionReport::default(),
-        retry_state: GlyphAtlasBitmapRetryFrameStateReport::default(),
-        discarded_stale_retry_glyph_count: 0,
-        face_epoch: 0,
-    };
+        vec![test_source_image(source, vec![255; 64])],
+        1,
+        0,
+        0,
+    );
+    frame.frame_index = 91;
 
     assert_eq!(frame.prepare_report().frame_index, 91);
 }

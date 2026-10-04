@@ -4,6 +4,8 @@
 // production byte bridge can carry authoritative social and entity state.
 var container = %import("zr.container");
 
+// 两人夹具把一次性邀请与倒计时/激活对局分开保存；
+// 其局内胜负统计不会自动写入世界角色档案。
 class DuelState {
     pub var tick: int;
     pub var positionA: float;
@@ -118,6 +120,8 @@ pub request(state: DuelState, actor: int, target: int): bool {
     return true;
 }
 
+// 接受邀请时先检查包含边界的到期时间，再清除一次性邀请；
+// 倒计时开始后，距离和死亡由固定步处理，不能在申请阶段预支胜负。
 pub accept(state: DuelState, player: int): bool {
     state.lastError = 0;
     if (!validPlayer(player) || state.inviteFrom == 0 || state.inviteTarget != player ||

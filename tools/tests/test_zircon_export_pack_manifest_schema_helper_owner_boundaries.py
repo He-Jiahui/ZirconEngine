@@ -8,27 +8,27 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PACK_MANIFEST_SCHEMA = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_pack_manifest_schema.py"
+    REPO_ROOT / "tools/export/pipeline_report_pack_manifest_schema.py"
 )
 PACK_MANIFEST_SCHEMA_HELPERS = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_pack_manifest_schema_helpers.py"
+    REPO_ROOT / "tools/export/pipeline_report_pack_manifest_schema_helpers.py"
 )
 PACK_MANIFEST_PATH_HASH_HELPERS = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_pack_manifest_path_hash_schema_helpers.py"
+    / "tools/export/pipeline_report_pack_manifest_path_hash_schema_helpers.py"
 )
 PACK_DELTA_SCHEMA = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_pack_delta_schema.py"
+    REPO_ROOT / "tools/export/pipeline_report_pack_delta_schema.py"
 )
 PACK_DELTA_SEMANTICS = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_pack_delta_semantics.py"
+    REPO_ROOT / "tools/export/pipeline_report_pack_delta_semantics.py"
 )
 PACK_DELTA_ASSET_SET_SEMANTICS = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_pack_delta_asset_set_semantics.py"
+    / "tools/export/pipeline_report_pack_delta_asset_set_semantics.py"
 )
 PACK_TRIM_SCHEMA = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_pack_trim_schema.py"
+    REPO_ROOT / "tools/export/pipeline_report_pack_trim_schema.py"
 )
 
 MOVED_CONSTANTS = (

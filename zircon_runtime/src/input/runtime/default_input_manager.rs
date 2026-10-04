@@ -3,10 +3,10 @@ use std::sync::{Mutex, MutexGuard};
 use crate::core::framework::input::InputManager as InputManagerFacade;
 
 use crate::input::{
-    CursorHostRequest, GamepadAxisSettings, GamepadAxisTransition, GamepadButtonAxisSettings,
-    GamepadButtonSettings, ImeEvent, ImeHostRequest, InputButton, InputEvent,
-    InputEventQueueStatus, InputEventRecord, InputEventRecordingConfig, InputEventRecordingStatus,
-    InputFrameSnapshot, InputSnapshot, MouseScrollUnit, MouseWheelEvent, TouchPhase, TouchPoint,
+    CursorHostRequest, GamepadAxisSettings, GamepadButtonAxisSettings, GamepadButtonSettings,
+    ImeEvent, ImeHostRequest, InputButton, InputEvent, InputEventQueueStatus, InputEventRecord,
+    InputEventRecordingConfig, InputEventRecordingStatus, InputFrameSnapshot, InputSnapshot,
+    MouseScrollUnit, MouseWheelEvent, TouchPhase, TouchPoint,
 };
 
 use super::InputState;
@@ -38,7 +38,7 @@ impl InputManagerFacade for DefaultInputManager {
         state.ime_commits.clear();
         state.ime_delete_surrounding.clear();
         state.ime_host_requests_frame_start = state.ime_host_requests.len();
-        state.gamepad_axis_transitions.clear();
+        state.clear_gamepad_axis_transitions();
         state.gamepad_rumble_requests_frame_start = state.gamepad_rumble_requests.len();
         state.window_status_events.clear();
         state.file_drag_drop_events.clear();
@@ -210,23 +210,12 @@ impl InputManagerFacade for DefaultInputManager {
                 {
                     let previous_value = previous_value.unwrap_or(0.0);
                     if previous_value != value {
-                        if let Some(transition) =
-                            state
-                                .gamepad_axis_transitions
-                                .iter_mut()
-                                .find(|transition| {
-                                    transition.gamepad == *gamepad && transition.axis == *axis
-                                })
-                        {
-                            transition.value = value;
-                        } else {
-                            state.gamepad_axis_transitions.push(GamepadAxisTransition {
-                                gamepad: *gamepad,
-                                axis: *axis,
-                                previous_value,
-                                value,
-                            });
-                        }
+                        state.record_gamepad_axis_transition(
+                            *gamepad,
+                            *axis,
+                            previous_value,
+                            value,
+                        );
                     }
                     state.gamepad_axes.insert((*gamepad, *axis), value);
                 }
@@ -346,4 +335,5 @@ fn button_should_release(value: f32, host_pressed: bool) -> bool {
 }
 
 #[cfg(test)]
+#[path = "default_input_manager/tests/cases.rs"]
 mod tests;

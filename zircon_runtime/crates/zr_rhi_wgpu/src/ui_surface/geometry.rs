@@ -1,3 +1,4 @@
+//! 几何投影与损伤筛选共同保留裁剪、解析抗锯齿覆盖和原始绘制顺序。
 use bytemuck::{Pod, Zeroable};
 use glyphon::TextBounds;
 
@@ -795,4 +796,5 @@ pub(super) fn text_bounds_from_rect(clip: UiSurfaceRect) -> TextBounds {
 }
 
 #[cfg(test)]
+#[path = "geometry/tests/cases.rs"]
 mod tests;

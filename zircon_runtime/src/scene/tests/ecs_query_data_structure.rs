@@ -1,3 +1,4 @@
+//! 查询数据的已编译位置路径须保留可选组件缺失语义，避免回退到逐实体注册表查询。
 fn section_between<'a>(source: &'a str, start: &str, end: &str) -> &'a str {
     source
         .split(start)
@@ -12,18 +13,20 @@ fn query_data_component_location_fetches_use_direct_tuple_branches() {
     let read_fetchers = section_between(
         source,
         "impl<'query, T> QueryData for &'query T",
-        "impl<'query, T> QueryDataAccess for Ref<'query, T>",
+        "unsafe impl<'query, T> QueryDataAccess for Ref<'query, T>",
     );
     let optional_fetcher = section_between(
         source,
         "impl<'query, T> QueryData for Option<&'query T>",
-        "impl QueryDataAccess for EntityId",
+        "unsafe impl QueryDataAccess for EntityId",
     );
 
+    let read_fetchers_compact: String = read_fetchers.split_whitespace().collect();
+    let optional_fetcher_compact: String = optional_fetcher.split_whitespace().collect();
     assert!(
-        read_fetchers
+        read_fetchers_compact
             .matches(
-                "let (value, _) = world.component_ref_with_ticks_at_location::<T>(*location)?;"
+                "let(value,_)=World::query_component_ref_with_ticks_at_location::<T>(world,*location)?;"
             )
             .count()
             == 2
@@ -31,8 +34,8 @@ fn query_data_component_location_fetches_use_direct_tuple_branches() {
         "read-only and mutable-query read projections must unwrap location values without tuple-map adapters"
     );
     assert!(
-        optional_fetcher.contains(
-            "let Some((value, _)) = world.component_ref_with_ticks_at_location::<T>(*location)"
+        optional_fetcher_compact.contains(
+            "letSome((value,_))=World::query_component_ref_with_ticks_at_location::<T>(world,*location)"
         ) && optional_fetcher.contains("return Some(None);")
             && optional_fetcher.contains("Some(Some(value))")
             && !optional_fetcher.contains(".map(|(value, _)| value)"),

@@ -1,3 +1,5 @@
+//! 布局阶段借用节点文字，命令生成时才复制为拥有所有权的载荷；同一修剪与回退协议用于测量和绘制。
+
 mod body;
 mod entry;
 mod title;
@@ -18,5 +20,5 @@ pub(super) fn tooltip_body(node: &super::super::super::data::TemplatePaneNodeDat
 }
 
 #[cfg(test)]
-#[path = "text/borrowed_text_tests.rs"]
+#[path = "text/tests/borrowed_text_tests.rs"]
 mod borrowed_text_tests;

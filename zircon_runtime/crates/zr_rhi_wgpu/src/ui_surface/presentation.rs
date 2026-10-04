@@ -1,3 +1,4 @@
+//! 损伤重绘依赖已提交的保留基线；共享设备完成轮询和图像退休仍由统一时间线负责。
 use crate::GpuPassTimer;
 use zr_rhi::{RenderDevice, RhiError, UiSurfaceDrawList, UiSurfacePresentOutcome, UiSurfaceRect};
 
@@ -21,11 +22,14 @@ impl WgpuUiSurfaceRenderer {
         &mut self,
         draw_list: &UiSurfaceDrawList,
     ) -> Result<WgpuUiSurfacePresentation, RhiError> {
+        // Clear published observations before a new attempt; failed acquire cannot expose stale metrics.
+        let previous_text_layout = self.text.layout_snapshot.take();
         self.poll_local_completion_timeline()?;
         self.resize_if_needed(draw_list.surface_size)?;
         let Some(surface_texture) = self.acquire_surface_texture()? else {
             return Ok(retryable_surface_presentation(draw_list.surface_size));
         };
+        self.text.layout_snapshot = previous_text_layout;
         self.present_index = self.present_index.saturating_add(1);
         let retained_cache_size = if draw_list.is_target_only_resize() {
             draw_list.projection_size()
@@ -143,6 +147,7 @@ impl WgpuUiSurfaceRenderer {
         Ok(())
     }
 
+    // 共享运行时由外部推进完成；仅独立设备在本地呈现前推进同一设备的票据和诊断回调。
     fn poll_local_completion_timeline(&mut self) -> Result<(), RhiError> {
         if !self.completion_owner.is_local() {
             return Ok(());
@@ -382,6 +387,7 @@ impl WgpuUiSurfaceRenderer {
             .flatten();
         let submission =
             Some(self.submit_present_command_buffer(encoder.finish(), image_allocation_pins)?);
+        // 缓存状态在呈现命令成功提交后才生效，失败帧不能成为下次损伤更新的基线。
         if let (Some(retained_cache), Some(commit)) =
             (&mut self.retained_cache, retained_cache_commit)
         {

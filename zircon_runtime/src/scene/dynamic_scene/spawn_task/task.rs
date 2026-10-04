@@ -3,8 +3,8 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use crate::core::{TaskDescriptor, TaskHandle, TaskStatus};
 
 use super::super::DynamicSceneError;
-use super::SpawnTaskResult;
 use super::prepared::PreparedDynamicSceneSpawn;
+use super::SpawnTaskResult;
 
 /// Background scene-load/preparation task; world mutation stays on the caller thread.
 #[derive(Debug)]
@@ -66,6 +66,7 @@ impl DynamicSceneSpawnTask {
         })
     }
 
+    /// 非终态返回 None；就绪结果槽只消费一次，空槽按取消标记返回取消错误或结果不可用错误。
     pub fn take_ready(&self) -> Option<Result<PreparedDynamicSceneSpawn, DynamicSceneError>> {
         if !self.is_ready() {
             return None;
@@ -110,25 +111,5 @@ pub(super) fn lock_spawn_result(
 }
 
 #[cfg(test)]
-mod tests {
-    use std::panic::{AssertUnwindSafe, catch_unwind};
-
-    use super::*;
-
-    #[test]
-    fn dynamic_scene_spawn_task_accessors_recover_poisoned_locks() {
-        let result = Arc::new(Mutex::new(Some(Err(DynamicSceneError::Parse {
-            reason: "decode failed".to_string(),
-        }))));
-
-        let _ = catch_unwind(AssertUnwindSafe(|| {
-            let _guard = result.lock().unwrap();
-            panic!("poison dynamic scene spawn task result lock");
-        }));
-
-        let recovered = lock_spawn_result(&result)
-            .take()
-            .expect("result should remain available after poison recovery");
-        assert!(matches!(recovered, Err(DynamicSceneError::Parse { .. })));
-    }
-}
+#[path = "tests/task.rs"]
+mod tests;

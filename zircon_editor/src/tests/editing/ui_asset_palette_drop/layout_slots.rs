@@ -1,4 +1,12 @@
-use super::*;
+use super::fixtures::{
+    EXTERNAL_WIDGET_SLOT_LAYOUT_ASSET_TOML, FLOW_DROP_LAYOUT_ASSET_TOML,
+    GRID_DROP_LAYOUT_ASSET_TOML, IMPORTED_TOOLBAR_SHELL_WIDGET_ASSET_TOML,
+    LOCAL_COMPONENT_SLOT_LAYOUT_ASSET_TOML, OVERLAY_DROP_LAYOUT_ASSET_TOML,
+};
+use super::support::{numeric_slot_value, preview_frame, select_palette_entry};
+use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorSession};
+use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use zircon_runtime_interface::ui::{layout::UiSize, template::UiAssetKind};
 
 #[test]
 fn ui_asset_editor_session_synthesizes_grid_slot_from_palette_drag_drop() {

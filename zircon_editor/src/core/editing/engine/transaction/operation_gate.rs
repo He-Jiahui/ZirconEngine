@@ -52,6 +52,13 @@ impl EditorTransactionEngine {
             })
     }
 
+    /// Restores client state while its owning reservation remains held.
+    pub(super) fn restore_operation_context(&self, context: Box<dyn EditContext>, faulted: bool) {
+        let mut state = self.lock_state();
+        state.context = Some(context);
+        state.faulted |= faulted;
+    }
+
     pub(super) fn finish_operation(&self, context: Box<dyn EditContext>, faulted: bool) {
         let mut state = self.lock_state();
         state.context = Some(context);

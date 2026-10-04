@@ -42,6 +42,7 @@ fn request_already_completed(page_id: u32, completed_count: u32) -> bool {
             break;
         }
 
+// TODO: [CR-VIRTUAL-GEOMETRY-0004] 完成记录每项写入三个字，这里按两个字扫描会错读页 ID；需先核实无显式槽位路径是否可达，再补对应回归。
         let output_index = completed_index * 2u + 1u;
         if (completed_pages[output_index] == page_id) {
             return true;
@@ -138,6 +139,7 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     }
 
     var remaining_available_slots = params.available_slot_count;
+// TODO: [CR-VIRTUAL-GEOMETRY-0008] 两项 u32 预算相加可能回绕；重新接线前需饱和合计并覆盖饱和回收量。
     var remaining_bytes = params.streaming_budget_bytes + params.reclaimable_bytes;
     var completed_count = 0u;
     var next_available_slot = 0u;

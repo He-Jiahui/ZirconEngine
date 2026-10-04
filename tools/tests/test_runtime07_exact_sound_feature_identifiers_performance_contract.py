@@ -8,7 +8,7 @@ SOURCE = (
     / "zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/sound_features/manifest.rs"
 )
 
-
+# 读取实现源码约束精确声音特性标识符：标识符连接预分配精确输出长度，并全部声音特性标识符使用精确连接。
 class ExactSoundFeatureIdentifiersPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

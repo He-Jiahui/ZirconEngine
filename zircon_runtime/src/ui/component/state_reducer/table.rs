@@ -19,13 +19,11 @@ pub(super) fn apply_value_event(
             let Some(column) = string_value(value) else {
                 return Ok(false);
             };
-            apply_sort_column(state, descriptor, &column);
+            apply_sort_column(state, descriptor, column);
             Ok(true)
         }
         "sort_direction" | "sortDirection" => {
-            let Some(direction) =
-                string_value(value).and_then(|value| normalize_sort_direction(&value))
-            else {
+            let Some(direction) = string_value(value).and_then(normalize_sort_direction) else {
                 return Ok(false);
             };
             let Some(column) = string_setting(state, "sort_column") else {
@@ -38,7 +36,7 @@ pub(super) fn apply_value_event(
             let Some((field, width)) = column_width_payload(value) else {
                 return Ok(false);
             };
-            apply_column_width(state, &field, width);
+            apply_column_width(state, field, width);
             Ok(true)
         }
         _ => Ok(false),
@@ -62,10 +60,10 @@ fn apply_sort_column(
         return;
     }
 
-    let current_column = string_setting(state, "sort_column");
+    let current_column = string_setting_ref(state, "sort_column");
     let current_direction =
-        string_setting(state, "sort_direction").and_then(|value| normalize_sort_direction(&value));
-    let next_direction = if current_column.as_deref() == Some(column) {
+        string_setting_ref(state, "sort_direction").and_then(normalize_sort_direction);
+    let next_direction = if current_column == Some(column) {
         match current_direction {
             Some("asc") => "desc",
             Some("desc") => "asc",
@@ -131,10 +129,7 @@ fn sort_model_entry(column: &str, direction: &str) -> BTreeMap<String, UiValue> 
 }
 
 fn table_uses_client_sorting(state: &UiComponentState) -> bool {
-    !matches!(
-        string_setting(state, "sortingMode").as_deref(),
-        Some("server")
-    )
+    !matches!(string_setting_ref(state, "sortingMode"), Some("server"))
 }
 
 fn sort_rows(state: &mut UiComponentState, column: &str, direction: &str) {
@@ -229,7 +224,7 @@ fn column_matches(column: &BTreeMap<String, UiValue>, field: &str) -> bool {
     })
 }
 
-fn column_width_payload(value: &UiValue) -> Option<(String, f64)> {
+fn column_width_payload(value: &UiValue) -> Option<(&str, f64)> {
     let UiValue::Map(payload) = value else {
         return None;
     };
@@ -243,12 +238,16 @@ fn column_width_payload(value: &UiValue) -> Option<(String, f64)> {
 }
 
 fn string_setting(state: &UiComponentState, property: &str) -> Option<String> {
+    string_setting_ref(state, property).map(str::to_owned)
+}
+
+fn string_setting_ref<'a>(state: &'a UiComponentState, property: &str) -> Option<&'a str> {
     state.values.get(property).and_then(string_value)
 }
 
-fn string_value(value: &UiValue) -> Option<String> {
+fn string_value(value: &UiValue) -> Option<&str> {
     match value {
-        UiValue::String(value) | UiValue::Enum(value) => Some(value.clone()),
+        UiValue::String(value) | UiValue::Enum(value) => Some(value.as_str()),
         _ => None,
     }
 }
@@ -263,5 +262,9 @@ fn normalize_sort_direction(value: &str) -> Option<&'static str> {
 }
 
 #[cfg(test)]
-#[path = "table/in_place_width_tests.rs"]
+#[path = "table/tests/in_place_width_tests.rs"]
 mod in_place_width_tests;
+
+#[cfg(test)]
+#[path = "table/tests/borrowed_sort_setting_tests.rs"]
+mod borrowed_sort_setting_tests;

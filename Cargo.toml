@@ -3,16 +3,19 @@ members = [
     "zircon_app",
     "zircon_reflect_derive",
     "zircon_runtime",
+    "zircon_runtime/crates/zr_contracts",
+    "zircon_runtime/crates/zr_dev_deps_dylib",
     "zircon_runtime/crates/zr_math",
     "zircon_runtime/crates/zr_resource",
     "zircon_runtime/crates/zr_rhi",
     "zircon_runtime/crates/zr_rhi_wgpu",
+    "zircon_runtime/crates/zr_runtime_dev_dylib",
     "zircon_runtime/reflection_macros",
     "zircon_editor",
     "zircon_runtime_host",
     "zircon_runtime_interface",
     "zircon_hub",
-    "tools/cargo-zircon",
+    "tools/cargo",
 ]
 resolver = "2"
 default-members = ["zircon_runtime"]
@@ -55,12 +58,65 @@ zircon_reflect_derive = { path = "zircon_reflect_derive" }
 zircon_runtime = { path = "zircon_runtime", default-features = false }
 zircon_runtime_host = { path = "zircon_runtime_host" }
 zircon_runtime_interface = { path = "zircon_runtime_interface" }
+zr_contracts = { path = "zircon_runtime/crates/zr_contracts", default-features = false }
+zr_dev_deps_dylib = { path = "zircon_runtime/crates/zr_dev_deps_dylib", default-features = false }
 zr_math = { path = "zircon_runtime/crates/zr_math", default-features = false }
 zr_resource = { path = "zircon_runtime/crates/zr_resource", default-features = false }
 zr_rhi = { path = "zircon_runtime/crates/zr_rhi", default-features = false }
 zr_rhi_wgpu = { path = "zircon_runtime/crates/zr_rhi_wgpu", default-features = false }
+zr_runtime_dev_dylib = { path = "zircon_runtime/crates/zr_runtime_dev_dylib", default-features = false }
+
+[profile.dev]
+debug = 0
+incremental = false
+
+[profile.dev.package.zircon_runtime]
+incremental = true
+
+[profile.dev.package.zircon_editor]
+incremental = true
+
+[profile.dev.package.zircon_app]
+incremental = true
+
+[profile.test]
+debug = 0
+incremental = false
+
+[profile.test.package.zircon_runtime]
+incremental = true
+
+[profile.test.package.zircon_editor]
+incremental = true
+
+[profile.test.package.zircon_app]
+incremental = true
 
 [profile.profiling]
 inherits = "release"
 debug = true
 strip = false
+
+# Product profiles are intentionally separate from the developer-facing
+# debug/release/profiling profiles.  The shipping profile is used only by the
+# build-only product descriptors under tools/export; project/runtime
+# RuntimeProfileId values are not changed by this setting.
+[profile.shipping]
+inherits = "release"
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+debug = false
+debug-assertions = false
+overflow-checks = false
+incremental = false
+rpath = false
+
+# Same code generation as shipping, but retain external symbols for the
+# separately published symbols package and post-link inspection.
+[profile.shipping-symbols]
+inherits = "shipping"
+strip = false
+debug = true

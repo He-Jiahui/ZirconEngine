@@ -1,3 +1,5 @@
+//! 选择器先探测高优先级反应式分支，再决定是否中止正在运行的低优先级分支。
+
 use zircon_runtime::core::framework::ai::{AiBehaviorAbortPolicy, AiDecisionStatus};
 
 use crate::behavior_tree::SelectorRecheckPolicy;
@@ -15,7 +17,7 @@ use super::{
 };
 
 #[cfg(test)]
-#[path = "selector/allocation_tests.rs"]
+#[path = "selector/tests/allocation_tests.rs"]
 mod allocation_tests;
 
 pub(super) fn evaluate_selector(
@@ -39,6 +41,7 @@ pub(super) fn evaluate_selector(
         if resume_child == Some(*child) {
             reached_resume = true;
         }
+        // 仅重查活跃子节点之前的分支；稳定失败分支可沿用上次终结缓存。
         let precedes_running_branch = !reached_resume;
         let requires_recheck = selector_branch_requires_recheck(*child, tree);
         let eligibility = (precedes_running_branch && requires_recheck)
@@ -102,6 +105,7 @@ pub(super) fn evaluate_selector(
     })
 }
 
+// 三态区分可无副作用确认的资格、已知失败和必须执行后才能确认的外部节点。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum SelectorBranchEligibility {
     Eligible,
@@ -380,6 +384,7 @@ fn selector_condition_passes(
         context.blackboard,
         context.perception,
         dense_value.as_ref().map(Option::as_ref),
+        context.effects.blackboard_overlay(),
     )
 }
 

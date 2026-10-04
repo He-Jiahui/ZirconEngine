@@ -48,6 +48,7 @@ pub(in crate::virtual_geometry::renderer::root_render_passes) fn execute_virtual
         cluster_selections,
         &executed_submission_keys,
     );
+    // 未提供选择输入时才从根种子回退；显式空切片表示调用方确认没有执行选择。
     let selection_collection = if selections.is_empty() && cluster_selections.is_none() {
         collect_execution_cluster_selection_collection_from_root_seeds(
             extract,
@@ -75,4 +76,5 @@ pub(in crate::virtual_geometry::renderer::root_render_passes) fn execute_virtual
 }
 
 #[cfg(test)]
+#[path = "execute/tests/allocation_tests.rs"]
 mod allocation_tests;

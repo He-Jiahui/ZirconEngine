@@ -1,3 +1,4 @@
+# 核对设置持久化健康状态的终态观测、陈旧结果拒绝与通知投影。
 import unittest
 from pathlib import Path
 
@@ -52,7 +53,8 @@ class Editor17SettingsPersistenceHealthContractTests(unittest.TestCase):
         self.assertIn("configure_persistence_health_subscriber", builder)
         self.assertIn("SettingsPersistenceHealthSubscriber", projection)
         self.assertIn("SettingsPersistenceHealthStatus::PendingAdmission", projection)
-        self.assertIn("BoundedKeyedIoTerminal::Failed", projection)
+        self.assertIn("SettingsPersistenceTerminal::Failed", projection)
+        self.assertIn("SettingsPersistenceTerminal::BlockedInvalid", projection)
         self.assertIn("publish_toast", projection)
         self.assertNotIn("diagnostics()", projection)
         self.assertIn("Arc<EditorNotificationService>", context)

@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码投影Raise Dead 引导常量与效果结构，生成可核对的 JSON 和 Zr 内容。
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -29,6 +30,7 @@ function main() {
 }
 function extract() { const child = spawnSync(process.execPath, [extractorPath], { encoding: 'utf8', env: { ...process.env, WOC_GIT_ROOT: sourceRoot, WOC_GIT_COMMIT: SOURCE_COMMIT } }); assert(child.status === 0, child.stderr || 'Raise Dead extractor failed'); return JSON.parse(child.stdout); }
 function gitShow(path) { return execFileSync('git', ['-C', sourceRoot, 'show', `${SOURCE_COMMIT}:${path}`], { encoding: 'utf8' }); }
+// 将已验证的Raise Dead 引导常量与效果结构转换为确定性的 Zr 访问函数。
 function render(content) {
   return [
     '// Generated Raise Dead channel contract from pinned source.',

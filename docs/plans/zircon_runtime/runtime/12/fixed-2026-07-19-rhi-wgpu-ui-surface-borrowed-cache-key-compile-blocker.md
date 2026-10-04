@@ -10,7 +10,6 @@ fixing_child_dir: docs/plans/zircon_runtime/render/17
 origin_workflow_node: M4
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/rhi_wgpu/ui_surface.rs
 tests:
   - cargo +1.94.1 check -p zircon_runtime --lib --locked --jobs 1
 resolved_at: 2026-07-19

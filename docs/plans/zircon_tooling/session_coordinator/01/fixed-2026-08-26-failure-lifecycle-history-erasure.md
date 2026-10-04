@@ -10,10 +10,6 @@ origin_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/failures.py
-  - tools/session_coordinator/migrations.py
-  - tools/session_coordinator/tests/test_failures.py
-  - tools/session_coordinator/tests/test_database.py
 tests:
   - python -B -m unittest tools.session_coordinator.tests.test_failures.FailureGraphTests.test_verified_fix_moves_back_and_updates_both_relative_links tools.session_coordinator.tests.test_database.DatabaseTests.test_schema_68_backfills_immutable_failure_lifecycle_history -v
   - python -B -m unittest tools.session_coordinator.tests.test_failures tools.session_coordinator.tests.test_database -v

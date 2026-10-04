@@ -42,7 +42,7 @@ EDITOR_UI_ASSET_EDITING_TEST_PATHS = [
     "zircon_editor/src/tests/editing/ui_asset",
     "zircon_editor/src/tests/editing/ui_asset_palette_drop",
     "zircon_editor/src/tests/editing/ui_asset_preview_binding_authoring",
-    "zircon_editor/src/tests/editing/ui_asset_replay.rs",
+    "zircon_editor/src/tests/editing/ui_asset_replay",
     "zircon_editor/src/tests/editing/ui_asset_theme_authoring",
 ]
 
@@ -85,7 +85,7 @@ EDITOR_EXTENSION_CONTRACT_TEST_FILES = [
 ]
 
 EDITOR_VIEW_PROJECTION_TEST_FILES = [
-    "zircon_editor/src/ui/layouts/views/view_projection/tests.rs",
+    "zircon_editor/src/ui/layouts/views/view_projection/tests/cases.rs",
 ]
 
 RUNTIME_EXTENSION_COMPONENT_TEST_FILES = [
@@ -97,9 +97,10 @@ RUNTIME_ASSET_UI_REFERENCE_TEST_FILES = [
     "zircon_runtime/src/asset/tests/assets/ui/references.rs",
 ]
 
-GLOBAL_MATERIAL_SURFACE_TEST_FILE = (
-    "zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs"
-)
+GLOBAL_MATERIAL_SURFACE_TEST_FILES = [
+    "zircon_editor/src/tests/ui/boundary/global_material_surface_assets/support.rs",
+    "zircon_editor/src/tests/ui/boundary/global_material_surface_assets/contracts.rs",
+]
 
 EDITOR_LAYOUT_METADATA_FILES = [
     "zircon_editor/assets/ui/editor/layout/page_templates.toml",
@@ -216,6 +217,10 @@ class ZuiStaticSuffixConvergenceTests(unittest.TestCase):
         for relative_root in EDITOR_UI_ASSET_EDITING_TEST_PATHS:
             path = REPO_ROOT / relative_root
             files = sorted(path.rglob("*.rs")) if path.is_dir() else [path]
+            self.assertTrue(
+                files and all(rust_file.is_file() for rust_file in files),
+                f"expected UI asset editing Rust sources under {relative_root}",
+            )
             for rust_file in files:
                 text = rust_file.read_text(encoding="utf-8")
                 for suffix in RETIRED_ACTIVE_SUFFIXES:
@@ -428,8 +433,9 @@ class ZuiStaticSuffixConvergenceTests(unittest.TestCase):
             )
 
     def test_global_material_surface_assets_collect_zui_view_surfaces(self):
-        source = (REPO_ROOT / GLOBAL_MATERIAL_SURFACE_TEST_FILE).read_text(
-            encoding="utf-8"
+        source = "\n".join(
+            (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+            for relative_path in GLOBAL_MATERIAL_SURFACE_TEST_FILES
         )
         stale_phrases = [
             'ends_with(".ui.toml")',

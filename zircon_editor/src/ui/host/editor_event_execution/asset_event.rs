@@ -139,7 +139,7 @@ pub(super) fn execute_asset_event(
                 .parse::<zircon_runtime::asset::AssetUuid>()
                 .map_err(|source| AssetEventExecutionError::InvalidAssetUuid {
                     asset_uuid: asset_uuid.clone(),
-                    source: source.to_string(),
+                    detail: source.to_string(),
                 })?;
             Ok(ExecutionOutcome {
                 changed: false,
@@ -154,7 +154,7 @@ pub(super) fn execute_asset_event(
                 .parse::<zircon_runtime::asset::AssetUuid>()
                 .map_err(|source| AssetEventExecutionError::InvalidAssetUuid {
                     asset_uuid: asset_uuid.clone(),
-                    source: source.to_string(),
+                    detail: source.to_string(),
                 })?;
             Ok(ExecutionOutcome {
                 changed: false,
@@ -171,7 +171,21 @@ pub(super) fn execute_asset_event(
             Ok(outcome)
         }
         EditorAssetEvent::LocateSelectedAsset => {
-            let mut outcome = open_view(shell, "editor.assets", "Opened assets")?;
+            let Some(asset_uuid) = shell.state.selected_asset_uuid().map(str::to_owned) else {
+                let status = controller
+                    .context()
+                    .i18n()
+                    .translate("asset.locate.selection_required");
+                shell.state.set_status_line(status.as_ref());
+                return Ok(asset_effects(false, false, false));
+            };
+
+            shell.state.navigate_to_asset(&asset_uuid);
+            let status = controller
+                .context()
+                .i18n()
+                .translate("asset.locate.success");
+            let mut outcome = open_view(shell, "editor.assets", status.as_ref())?;
             outcome
                 .effects
                 .push(EditorEventEffect::AssetPreviewRefreshRequested);

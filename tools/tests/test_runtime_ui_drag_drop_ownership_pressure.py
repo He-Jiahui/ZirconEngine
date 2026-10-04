@@ -1,6 +1,6 @@
 import unittest
 
-from tools.runtime_ui_drag_drop_ownership_pressure import pressure_report
+from tools.analysis.performance.runtime.runtime_ui_drag_drop_ownership_pressure import pressure_report
 
 
 DEFAULTS = {
@@ -14,7 +14,7 @@ DEFAULTS = {
     "surface_snapshot_entries": 50_000,
 }
 
-
+# 用拖放压力模型分开计数载荷深拷贝、表面快照及摘要路由字符串，并绑定实现和参考源码。
 class RuntimeUiDragDropOwnershipPressureTests(unittest.TestCase):
     def test_shared_payload_eliminates_deep_payload_copy_work(self) -> None:
         report = pressure_report(**DEFAULTS)

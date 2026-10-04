@@ -4,12 +4,40 @@ $script:ManagedCargoSccachePorts = @{
     "D:cargo-targets" = 42260
     "E:cargo-targets" = 42261
     "F:cargo-targets" = 42262
-    "D:targets"       = 42263
-    "E:targets"       = 42264
-    "F:targets"       = 42265
-    "D:zirconbuilds"  = 42266
-    "E:zirconbuilds"  = 42267
-    "F:zirconbuilds"  = 42268
+}
+
+function Set-ManagedProcessEnvironmentVariable {
+    param(
+        [Parameter(Mandatory)][string]$Name,
+        [AllowNull()][AllowEmptyString()][object]$Value
+    )
+
+    if ($null -eq $Value) {
+        # .NET leaves an empty key in the process environment when null is
+        # assigned. Cargo distinguishes that from an absent variable (for
+        # example, an empty CARGO_BUILD_BUILD_DIR is invalid), so remove the
+        # provider entry explicitly.
+        Remove-Item -LiteralPath ("Env:{0}" -f $Name) -ErrorAction SilentlyContinue
+    } else {
+        [Environment]::SetEnvironmentVariable($Name, $Value, "Process")
+    }
+}
+
+function ConvertTo-ManagedCargoToolPath {
+    param(
+        [Parameter(Mandatory)]
+        [psobject]$PathResolution
+    )
+
+    # Cargo forwards target/build paths to build scripts.  A verbatim prefix
+    # is required for genuinely long paths, but glob-based build tooling (for
+    # example Tauri's generated ACL manifests) treats that prefix as a distinct
+    # root and can fail to discover files on otherwise short paths.
+    $displayPath = [string]$PathResolution.DisplayPath
+    if ($displayPath.Length -lt 240) {
+        return $displayPath
+    }
+    return [string]$PathResolution.OperationalPath
 }
 
 function Resolve-ManagedCompilerCacheExecutable {
@@ -48,7 +76,7 @@ function Resolve-ManagedCargoStoragePaths {
     $target = Resolve-ManagedCargoTargetPath -TargetDirectory $TargetDirectory
     $rootMatch = [regex]::Match(
         $target.DisplayPath,
-        '^(?<root>[D-F]:\\(?:cargo-targets|targets|ZirconBuilds))(?:\\|$)',
+        '^(?<root>[D-F]:\\cargo-targets)(?:\\|$)',
         [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
     )
     if (-not $rootMatch.Success) {
@@ -59,6 +87,16 @@ function Resolve-ManagedCargoStoragePaths {
     $engineRoot = Resolve-ZirconWindowsPath -Path (
         Join-ZirconWindowsPath -Path $approvedRoot.OperationalPath -ChildPath "zircon-engine"
     )
+    # Match the formal managed_cargo_storage_root contract for explicit targets:
+    # the nearest zircon-engine ancestor owns its shared cache and scratch.
+    $candidate = $target.DisplayPath.TrimEnd('\', '/')
+    while ($candidate.Length -gt $approvedRoot.DisplayPath.Length) {
+        if ([System.IO.Path]::GetFileName($candidate) -ieq 'zircon-engine') {
+            $engineRoot = Resolve-ZirconWindowsPath -Path $candidate
+            break
+        }
+        $candidate = [System.IO.Path]::GetDirectoryName($candidate)
+    }
     $cacheRoot = Resolve-ZirconWindowsPath -Path (
         Join-ZirconWindowsPath -Path $engineRoot.OperationalPath -ChildPath "cache"
     )
@@ -80,7 +118,7 @@ function Resolve-ManagedCargoStoragePaths {
     return [pscustomobject]@{
         Target      = $target
         CargoHome   = Resolve-ZirconWindowsPath -Path (
-            Join-ZirconWindowsPath -Path $cacheRoot.OperationalPath -ChildPath "cargo-home"
+            Join-ZirconWindowsPath -Path $target.OperationalPath -ChildPath ".zircon-compile\cargo-home"
         )
         Sccache     = Resolve-ZirconWindowsPath -Path (
             Join-ZirconWindowsPath -Path $cacheRoot.OperationalPath -ChildPath "sccache"
@@ -371,7 +409,7 @@ function Initialize-ManagedCompilerCacheServer {
     }
     finally {
         foreach ($name in $environmentNames) {
-            [Environment]::SetEnvironmentVariable($name, $previousValues[$name], "Process")
+            Set-ManagedProcessEnvironmentVariable -Name $name -Value $previousValues[$name]
         }
         if ($mutexAcquired) {
             $mutex.ReleaseMutex()
@@ -413,6 +451,85 @@ function Remove-ManagedCargoScratch {
     }
 }
 
+function Invoke-ManagedCompilerCachePython {
+    param([string]$RepoRoot, [ValidateSet('prepare', 'verify')][string]$Operation, [object]$Payload)
+
+    # CoordinatorClient reconciles uncertain accepted requests; this bridge never
+    # retries a mutation or substitutes a new request identity.
+    $python = (Get-Command python -ErrorAction Stop).Source
+    $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($Payload | ConvertTo-Json -Depth 30 -Compress)))
+    $program = @'
+import base64,json,sys
+from pathlib import Path
+from tools.session_coordinator.client import CoordinatorClient,CoordinatorClientError
+from tools.session_coordinator.config import CoordinatorConfig
+from tools.session_coordinator.compiler_cache_preparation import verify_prepared_compiler_cache_binding
+repo=Path(sys.argv[1]);operation=sys.argv[2];payload=json.loads(base64.b64decode(sys.argv[3]))
+try:
+    if operation=='prepare':
+        result=CoordinatorClient.from_runtime(CoordinatorConfig.for_repo(repo)).command('cargo.compiler_cache_prepare',payload)
+    else:
+        result=verify_prepared_compiler_cache_binding(repo,payload['arguments'],payload['binding'],target_directory=payload['targetDirectory'])
+    print(json.dumps(result,separators=(',',':')))
+except CoordinatorClientError as error:
+    print(json.dumps({'error':{'code':error.code,'details':{k:v for k,v in error.details.items() if k in ('requestId','command','phase','submission')}}}))
+    sys.exit(1)
+'@
+    $raw = @(& $python -B -c $program $RepoRoot $Operation $encoded)
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -ne 0) {
+        $failure = [InvalidOperationException]::new("Managed compiler cache $Operation failed; an uncertain request must be reconciled, never resubmitted.")
+        if ($raw.Count -gt 0) {
+            try { $failure.Data['CoordinatorResponse'] = ($raw -join [Environment]::NewLine) | ConvertFrom-Json } catch { }
+        }
+        throw $failure
+    }
+    return ($raw -join [Environment]::NewLine) | ConvertFrom-Json
+}
+
+function Get-ManagedCompilerCacheSupervisorArguments {
+    param([string]$SessionId, [string]$JobId)
+    $process = [Diagnostics.Process]::GetCurrentProcess()
+    try {
+        return @{
+            session_id = $SessionId
+            job_id = $JobId
+            supervisor_pid = $PID
+            supervisor_creation_time = [string]$process.StartTime.ToUniversalTime().ToFileTimeUtc()
+        }
+    } finally { $process.Dispose() }
+}
+
+function Invoke-CoordinatorCompilerCachePrepare {
+    param([string]$RepoRoot, [object]$ResolvedTarget)
+    if ($ResolvedTarget.DryRun) { throw 'Compiler cache preparation requires an admitted live Cargo job.' }
+    $arguments = Get-ManagedCompilerCacheSupervisorArguments -SessionId $ResolvedTarget.OwnerId -JobId $ResolvedTarget.JobId
+    return Invoke-ManagedCompilerCachePython -RepoRoot $RepoRoot -Operation prepare -Payload $arguments
+}
+
+function Assert-ManagedPreparedCompilerCacheBinding {
+    param([string]$RepoRoot, [string]$SessionId, [string]$JobId, [string]$TargetDirectory,
+          [string]$CompilerCacheExecutable, [object]$Binding)
+    if ($null -eq $Binding -or [string]::IsNullOrWhiteSpace($RepoRoot) -or [string]::IsNullOrWhiteSpace($SessionId)) {
+        throw 'Reusable Cargo requires a formally prepared compiler cache binding and its Session owner.'
+    }
+    $arguments = Get-ManagedCompilerCacheSupervisorArguments -SessionId $SessionId -JobId $JobId
+    $verified = Invoke-ManagedCompilerCachePython -RepoRoot $RepoRoot -Operation verify -Payload @{
+        arguments = $arguments; binding = $Binding; targetDirectory = $TargetDirectory
+    }
+    $paths = Resolve-ManagedCargoStoragePaths -TargetDirectory $TargetDirectory -JobId $JobId
+    if ($verified.status -cne 'ready' -or [int]$verified.serverPort -ne $paths.SccacheServerPort -or
+        -not (Test-ManagedWindowsPathContractEqual -LeftPath $verified.cacheDirectory -RightPath $paths.Sccache.OperationalPath) -or
+        -not (Test-ManagedWindowsPathContractEqual -LeftPath $verified.temporaryDirectory -RightPath $paths.SccacheTemporary.OperationalPath) -or
+        -not (Test-ManagedWindowsPathContractEqual -LeftPath $verified.executable -RightPath $CompilerCacheExecutable)) {
+        throw 'Prepared compiler cache binding differs from the validator storage contract.'
+    }
+    return [pscustomobject]@{
+        ServerPort = $verified.serverPort; ServerProcessId = $verified.daemonPid
+        BindingMarkerPath = $verified.bindingMarkerPath
+    }
+}
+
 function Push-ManagedCargoEnvironment {
     param(
         [Parameter(Mandatory)]
@@ -422,7 +539,12 @@ function Push-ManagedCargoEnvironment {
         [ValidateSet("reuse", "compact", "diagnostic")]
         [string]$StorageMode = "reuse",
         [AllowEmptyString()]
-        [string]$CompilerCacheExecutable
+        [string]$CompilerCacheExecutable,
+        [string[]]$ClearEnvironment = @(),
+        [hashtable]$BuildEnvironment = @{},
+        [string]$RepoRoot,
+        [string]$SessionId,
+        [object]$PreparedCompilerCacheBinding
     )
 
     if ($StorageMode -ne "diagnostic" -and [string]::IsNullOrWhiteSpace($CompilerCacheExecutable)) {
@@ -432,25 +554,23 @@ function Push-ManagedCargoEnvironment {
     $paths = Resolve-ManagedCargoStoragePaths `
         -TargetDirectory $TargetDirectory `
         -JobId $JobId
+    $serverBinding = $null
+    if (-not [string]::IsNullOrWhiteSpace($CompilerCacheExecutable)) {
+        $serverBinding = Assert-ManagedPreparedCompilerCacheBinding -RepoRoot $RepoRoot -SessionId $SessionId `
+            -JobId $JobId -TargetDirectory $paths.Target.DisplayPath -CompilerCacheExecutable $CompilerCacheExecutable `
+            -Binding $PreparedCompilerCacheBinding
+    }
     if ([System.IO.Directory]::Exists($paths.Scratch.OperationalPath)) {
         throw "Refusing to reuse an existing managed Cargo scratch directory: $($paths.Scratch.DisplayPath)"
     }
 
     $scratchCreated = $false
-    $serverBinding = $null
     $previousValues = @{}
     try {
         [System.IO.Directory]::CreateDirectory($paths.Target.OperationalPath) | Out-Null
         [System.IO.Directory]::CreateDirectory($paths.CargoHome.OperationalPath) | Out-Null
         [System.IO.Directory]::CreateDirectory($paths.Sccache.OperationalPath) | Out-Null
         [System.IO.Directory]::CreateDirectory($paths.SccacheTemporary.OperationalPath) | Out-Null
-        if (-not [string]::IsNullOrWhiteSpace($CompilerCacheExecutable)) {
-            $serverBinding = Initialize-ManagedCompilerCacheServer `
-                -CompilerCacheExecutable $CompilerCacheExecutable `
-                -SccacheDirectory $paths.Sccache.OperationalPath `
-                -StableTemporaryDirectory $paths.SccacheTemporary.OperationalPath `
-                -ServerPort $paths.SccacheServerPort
-        }
         [System.IO.Directory]::CreateDirectory($paths.Temporary.OperationalPath) | Out-Null
         $scratchCreated = $true
         if ($StorageMode -eq "compact") {
@@ -458,8 +578,10 @@ function Push-ManagedCargoEnvironment {
         }
 
         $environment = [ordered]@{
-            CARGO_TARGET_DIR   = $paths.Target.OperationalPath
-            CARGO_HOME         = $paths.CargoHome.OperationalPath
+            CARGO_TARGET_DIR   = ConvertTo-ManagedCargoToolPath -PathResolution $paths.Target
+            # Cargo forwards registry paths to C/C++ build scripts. MSVC and
+            # clang-cl cannot resolve their include paths with the verbatim prefix.
+            CARGO_HOME         = $paths.CargoHome.DisplayPath
             SCCACHE_DIR        = $paths.Sccache.OperationalPath
             SCCACHE_CACHE_SIZE = $script:ManagedCargoSccacheSize
             SCCACHE_SERVER_PORT = if ($null -ne $serverBinding) {
@@ -479,23 +601,29 @@ function Push-ManagedCargoEnvironment {
         }
         if ($StorageMode -in @("reuse", "compact")) {
             $environment["CARGO_BUILD_BUILD_DIR"] = if ($StorageMode -eq "compact") {
-                $paths.Build.OperationalPath
+                ConvertTo-ManagedCargoToolPath -PathResolution $paths.Build
             } else {
                 $null
             }
-            $environment["CARGO_INCREMENTAL"] = "0"
+            $environment["CARGO_INCREMENTAL"] = if ($StorageMode -eq 'compact') { '0' } else { $null }
             $environment["CARGO_PROFILE_DEV_DEBUG"] = "0"
             $environment["CARGO_PROFILE_TEST_DEBUG"] = "0"
         }
 
+        $environment['ZIRCON_MANAGED_BUILD_POLICY'] = 'managed-build-v4'
+        foreach ($name in $ClearEnvironment) {
+            if (-not $environment.Contains($name)) { $environment[$name] = $null }
+        }
+        foreach ($name in $BuildEnvironment.Keys) { $environment[$name] = $BuildEnvironment[$name] }
         foreach ($name in $environment.Keys) {
             $previousValues[$name] = [Environment]::GetEnvironmentVariable($name, "Process")
-            [Environment]::SetEnvironmentVariable($name, [string]$environment[$name], "Process")
+            $value = $environment[$name]
+            Set-ManagedProcessEnvironmentVariable -Name $name -Value $(if ($null -eq $value) { $null } else { [string]$value })
         }
     }
     catch {
         foreach ($name in $previousValues.Keys) {
-            [Environment]::SetEnvironmentVariable($name, $previousValues[$name], "Process")
+            Set-ManagedProcessEnvironmentVariable -Name $name -Value $previousValues[$name]
         }
         if ($scratchCreated) {
             $failedLease = [pscustomobject]@{
@@ -542,7 +670,7 @@ function Pop-ManagedCargoEnvironment {
     $failure = $null
     try {
         foreach ($name in $Lease.PreviousValues.Keys) {
-            [Environment]::SetEnvironmentVariable($name, $Lease.PreviousValues[$name], "Process")
+            Set-ManagedProcessEnvironmentVariable -Name $name -Value $Lease.PreviousValues[$name]
         }
     }
     catch {

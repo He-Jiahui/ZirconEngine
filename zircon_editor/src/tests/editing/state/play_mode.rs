@@ -129,7 +129,9 @@ fn play_undo_redo_routes_only_to_the_active_play_world() {
     assert!(state
         .apply_intent(EditorIntent::RenameNode(cube, "Edited Cube".to_owned()))
         .unwrap());
-    let authoring_nodes = state.world.snapshot().node_records().len();
+    let authoring_nodes = state
+        .world
+        .expect_with_world(|scene| scene.node_records().len());
 
     assert!(state.enter_play_mode().unwrap());
     assert!(!state.snapshot().can_undo);
@@ -163,7 +165,12 @@ fn play_undo_redo_routes_only_to_the_active_play_world() {
         play_level.with_world(|scene| scene.nodes().len()),
         play_nodes
     );
-    assert_eq!(state.world.snapshot().node_records().len(), authoring_nodes);
+    assert_eq!(
+        state
+            .world
+            .expect_with_world(|scene| scene.node_records().len()),
+        authoring_nodes
+    );
     assert_eq!(
         state
             .world
@@ -177,7 +184,12 @@ fn play_undo_redo_routes_only_to_the_active_play_world() {
         play_level.with_world(|scene| scene.nodes().len()),
         play_nodes + 1
     );
-    assert_eq!(state.world.snapshot().node_records().len(), authoring_nodes);
+    assert_eq!(
+        state
+            .world
+            .expect_with_world(|scene| scene.node_records().len()),
+        authoring_nodes
+    );
 
     assert!(state.exit_play_mode().unwrap());
     assert!(state.snapshot().can_undo);
@@ -202,7 +214,7 @@ fn keep_play_changes_copies_serializable_properties_as_one_authoring_transaction
     let mut state = test_state();
     let (cube, camera) = cube_and_camera(&state);
     state.world.expect_with_world_mut(|scene| {
-        scene.set_parent(cube, Some(camera)).unwrap();
+        scene.set_parent_checked(cube, Some(camera)).unwrap();
     });
     let authoring_name = state
         .world
@@ -211,7 +223,7 @@ fn keep_play_changes_copies_serializable_properties_as_one_authoring_transaction
     let play_level = DefaultLevelManager::default().create_level(play_world, Default::default());
     play_level.with_world_mut(|scene| {
         scene.rename_node(cube, "Runtime Cube").unwrap();
-        scene.set_parent(cube, None).unwrap();
+        scene.set_parent_checked(cube, None).unwrap();
     });
 
     assert!(state.enter_play_mode().unwrap());
@@ -330,7 +342,9 @@ fn import_is_rejected_during_play_without_poisoning_edit_history() {
     assert!(state
         .apply_intent(EditorIntent::RenameNode(cube, "Edited Cube".to_string()))
         .unwrap());
-    let edit_node_count = state.world.snapshot().node_records().len();
+    let edit_node_count = state
+        .world
+        .expect_with_world(|scene| scene.node_records().len());
 
     assert!(state.enter_play_mode().unwrap());
     let error = state
@@ -348,7 +362,12 @@ fn import_is_rejected_during_play_without_poisoning_edit_history() {
         error,
         EditorStateOperationError::SceneEditingDisabledDuringPlay
     ));
-    assert_eq!(state.world.snapshot().node_records().len(), edit_node_count);
+    assert_eq!(
+        state
+            .world
+            .expect_with_world(|scene| scene.node_records().len()),
+        edit_node_count
+    );
 
     assert!(state.exit_play_mode().unwrap());
     assert!(state.apply_intent(EditorIntent::Undo).unwrap());

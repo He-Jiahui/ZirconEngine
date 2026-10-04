@@ -16,53 +16,81 @@ pub(in crate::ui::retained_host::host_contract) fn resolve_root_frames(
     let top_bar = presentation_top_bar_frame(width, height, presentation);
     let top_bar_height = top_bar.height;
     let fallback_status_height = 24.0_f32.min(height as f32 * 0.2);
-    let status_bar = frame_or(
-        &layout.status_bar_frame,
-        FrameRect {
-            x: 0.0,
-            y: (height as f32 - fallback_status_height).max(top_bar_height),
-            width: width as f32,
-            height: fallback_status_height,
-        },
-    );
-    let center_band = frame_or(
-        &layout.center_band_frame,
-        FrameRect {
-            x: 0.0,
-            y: top_bar_height,
-            width: width as f32,
-            height: (status_bar.y - top_bar_height).max(1.0),
-        },
-    );
-    let left_region = frame_or(
-        &layout.left_region_frame,
-        FrameRect {
-            x: 0.0,
-            y: center_band.y,
-            width: (width as f32 * 0.22).min(260.0),
-            height: center_band.height,
-        },
-    );
-    let right_region = frame_or(&layout.right_region_frame, FrameRect::default());
-    let bottom_region = frame_or(&layout.bottom_region_frame, FrameRect::default());
-    let document_region = frame_or(
-        &layout.document_region_frame,
-        FrameRect {
-            x: left_region.x + left_region.width,
-            y: center_band.y,
-            width: (width as f32 - left_region.width).max(1.0),
-            height: center_band.height,
-        },
-    );
-    let viewport_region = frame_or(
-        &layout.viewport_content_frame,
-        FrameRect {
-            x: document_region.x + 16.0,
-            y: document_region.y + 28.0,
-            width: (document_region.width - 32.0).max(1.0),
-            height: (document_region.height - 56.0).max(1.0),
-        },
-    );
+    let status_bar = if layout.authoritative {
+        layout.status_bar_frame.clone()
+    } else {
+        frame_or(
+            &layout.status_bar_frame,
+            FrameRect {
+                x: 0.0,
+                y: (height as f32 - fallback_status_height).max(top_bar_height),
+                width: width as f32,
+                height: fallback_status_height,
+            },
+        )
+    };
+    let center_band = if layout.authoritative {
+        layout.center_band_frame.clone()
+    } else {
+        frame_or(
+            &layout.center_band_frame,
+            FrameRect {
+                x: 0.0,
+                y: top_bar_height,
+                width: width as f32,
+                height: (status_bar.y - top_bar_height).max(1.0),
+            },
+        )
+    };
+    let left_region = if layout.authoritative {
+        layout.left_region_frame.clone()
+    } else {
+        frame_or(
+            &layout.left_region_frame,
+            FrameRect {
+                x: 0.0,
+                y: center_band.y,
+                width: (width as f32 * 0.22).min(260.0),
+                height: center_band.height,
+            },
+        )
+    };
+    let right_region = if layout.authoritative {
+        layout.right_region_frame.clone()
+    } else {
+        frame_or(&layout.right_region_frame, FrameRect::default())
+    };
+    let bottom_region = if layout.authoritative {
+        layout.bottom_region_frame.clone()
+    } else {
+        frame_or(&layout.bottom_region_frame, FrameRect::default())
+    };
+    let document_region = if layout.authoritative {
+        layout.document_region_frame.clone()
+    } else {
+        frame_or(
+            &layout.document_region_frame,
+            FrameRect {
+                x: left_region.x + left_region.width,
+                y: center_band.y,
+                width: (width as f32 - left_region.width).max(1.0),
+                height: center_band.height,
+            },
+        )
+    };
+    let viewport_region = if layout.authoritative {
+        layout.viewport_content_frame.clone()
+    } else {
+        frame_or(
+            &layout.viewport_content_frame,
+            FrameRect {
+                x: document_region.x + 16.0,
+                y: document_region.y + 28.0,
+                width: (document_region.width - 32.0).max(1.0),
+                height: (document_region.height - 56.0).max(1.0),
+            },
+        )
+    };
     RootFrames {
         top_bar,
         center_band,
@@ -74,3 +102,7 @@ pub(in crate::ui::retained_host::host_contract) fn resolve_root_frames(
         viewport_region,
     }
 }
+
+#[cfg(test)]
+#[path = "tests/root_frames.rs"]
+mod tests;

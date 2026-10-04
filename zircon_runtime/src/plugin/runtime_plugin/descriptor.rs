@@ -3,6 +3,7 @@ use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMo
 use crate::{
     core::framework::project::ExportPackagingStrategy, plugin::CapabilityStatusManifest,
     plugin::PluginFeatureBundleManifest, plugin::PluginInterfaceManifest, plugin::PluginMaturity,
+    plugin::PluginPackageRole,
 };
 
 mod access;
@@ -33,6 +34,7 @@ pub struct RuntimePluginDescriptor {
     maturity: PluginMaturity,
     optional_features: Vec<PluginFeatureBundleManifest>,
     default_packaging: Vec<ExportPackagingStrategy>,
+    package_role: PluginPackageRole,
 }
 
 impl PartialEq for RuntimePluginDescriptor {
@@ -54,6 +56,7 @@ impl PartialEq for RuntimePluginDescriptor {
             && self.maturity == other.maturity
             && self.optional_features == other.optional_features
             && self.default_packaging == other.default_packaging
+            && self.package_role == other.package_role
     }
 }
 

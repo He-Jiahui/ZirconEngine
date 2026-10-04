@@ -24,14 +24,18 @@ pub struct UiBatchKey {
 
 impl UiBatchKey {
     pub fn from_paint_element(element: &UiPaintElement) -> Self {
-        let mut clip_states = UiBatchClipStates::default();
-        Self::from_paint_element_with_clip_states(element, &mut clip_states)
+        Self::from_paint_element_with_clip(element, element.clip.clone())
     }
 
     pub(super) fn from_paint_element_with_clip_states(
         element: &UiPaintElement,
         clip_states: &mut UiBatchClipStates,
     ) -> Self {
+        let clip = element.clip.clone().map(|clip| clip_states.intern(clip));
+        Self::from_paint_element_with_clip(element, clip)
+    }
+
+    fn from_paint_element_with_clip(element: &UiPaintElement, clip: Option<UiClipState>) -> Self {
         let (primitive, shader, resource, text_backend) = match &element.payload {
             UiPaintPayload::Empty => (UiBatchPrimitive::Empty, UiBatchShader::None, None, None),
             UiPaintPayload::Text { text } => (
@@ -46,7 +50,7 @@ impl UiBatchKey {
         };
 
         Self {
-            clip: element.clip.clone().map(|clip| clip_states.intern(clip)),
+            clip,
             primitive,
             shader,
             resource,
@@ -154,3 +158,7 @@ impl UiOpacityClass {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "tests/key.rs"]
+mod tests;

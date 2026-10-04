@@ -11,7 +11,7 @@ impl RetainedEditorHost {
             .request(self.startup_session.draft.clone(), Instant::now());
     }
 
-    pub(super) fn clear_welcome_project_probe(&mut self) {
+    pub(in crate::ui::retained_host::app) fn clear_welcome_project_probe(&mut self) {
         self.welcome_project_probe.clear();
     }
 

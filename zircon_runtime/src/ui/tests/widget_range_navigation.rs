@@ -1,3 +1,5 @@
+//! 范围控件既接收键盘边界导航也接收指针拖动；事件回执应保留手势阶段与距离供宿主处理。
+
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
     surface::UiSurface,
@@ -107,6 +109,31 @@ fn range_pointer_drag_reports_phase_and_distance_metrics() {
                 UiComponentEvent::EndDrag { property } if property == "amount"
             )
     }));
+}
+
+#[test]
+fn pointer_button_ownership_range_drag_survives_foreign_release() {
+    let mut surface = range_surface();
+    press_primary(&mut surface, 68.0, 16.0);
+    for kind in [UiPointerEventKind::Down, UiPointerEventKind::Up] {
+        let foreign = surface
+            .dispatch_pointer_event(
+                &UiPointerDispatcher::default(),
+                UiPointerEvent::new(kind, UiPoint::new(68.0, 16.0))
+                    .with_button(UiPointerButton::Secondary),
+            )
+            .unwrap();
+        assert!(!foreign.diagnostics.capture_released);
+        assert_eq!(surface.focus.captured, Some(UiNodeId::new(2)));
+        assert!(surface.input.pointer_drags.contains_key(&UiNodeId::new(2)));
+    }
+    let moved = move_pointer(&mut surface, 220.0, 16.0);
+    assert_eq!(moved.handled_by, Some(UiNodeId::new(2)));
+    assert_range_value(&surface, 100.0);
+    let up = release_primary(&mut surface, 220.0, 16.0);
+    assert_eq!(up.released_capture, Some(UiNodeId::new(2)));
+    assert_eq!(surface.focus.captured, None);
+    assert!(!surface.input.pointer_drags.contains_key(&UiNodeId::new(2)));
 }
 
 fn assert_widget_binding_report(

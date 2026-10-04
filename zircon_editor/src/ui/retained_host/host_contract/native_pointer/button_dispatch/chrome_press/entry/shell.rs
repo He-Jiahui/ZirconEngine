@@ -1,4 +1,5 @@
 use crate::ui::retained_host::host_contract::window::UiHostWindow;
+use zircon_runtime_interface::ui::dispatch::UiPointerId;
 
 use super::super::super::super::routing::ChromePointerRoute;
 use super::super::{
@@ -8,6 +9,7 @@ use super::super::{
 
 pub(super) fn dispatch_chrome_shell_press(
     ui: &UiHostWindow,
+    pointer_id: UiPointerId,
     route: ChromePointerRoute,
     x: f32,
     y: f32,
@@ -22,7 +24,7 @@ pub(super) fn dispatch_chrome_shell_press(
         ChromePointerRoute::FloatingWindowHeader { .. } => {
             dispatch_floating_window_header_press(ui, x, y);
         }
-        ChromePointerRoute::Resize => dispatch_resize_press(ui, x, y),
+        ChromePointerRoute::Resize => dispatch_resize_press(ui, pointer_id, x, y),
         _ => {}
     }
 }

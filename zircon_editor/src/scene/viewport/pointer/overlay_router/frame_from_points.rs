@@ -1,3 +1,5 @@
+//! 精确形状先生成扩大后的粗筛矩形，输入点为空时不创建候选；扩大值的合法性由形状构建端保证。
+
 use zircon_runtime_interface::math::Vec2;
 use zircon_runtime_interface::ui::layout::UiFrame;
 
@@ -22,5 +24,5 @@ pub(in crate::scene::viewport::pointer) fn frame_from_points(
 }
 
 #[cfg(test)]
-#[path = "frame_from_points/vec2_bounds_tests.rs"]
+#[path = "frame_from_points/tests/vec2_bounds_tests.rs"]
 mod vec2_bounds_tests;

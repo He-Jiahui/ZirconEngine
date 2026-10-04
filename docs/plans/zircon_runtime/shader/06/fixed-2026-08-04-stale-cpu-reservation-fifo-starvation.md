@@ -9,13 +9,10 @@ origin_child_dir: docs/plans/zircon_runtime/shader/06
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/cargo_jobs.py
-  - tools/session_coordinator/reserved_starts.py
-  - tools/session_coordinator/command_requests.py
 tests:
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -RepoRoot E:\Git\ZirconEngine -Package zircon_runtime -LibTests -TestFilter light_grid_normalizes_surface_inputs_once_per_pixel -SkipBuild -VerboseOutput
-  - .\tools\zircon-session.ps1 session heartbeat --session-id shader06-m5-current-source-20260726 -Json
-  - .\tools\zircon-session.ps1 lease heartbeat --session-id shader06-m5-current-source-20260726 -Json
+  - .\tools\dev\zircon-session.ps1 session heartbeat --session-id shader06-m5-current-source-20260726 -Json
+  - .\tools\dev\zircon-session.ps1 lease heartbeat --session-id shader06-m5-current-source-20260726 -Json
 resolved_at: 2026-08-04
 ---
 

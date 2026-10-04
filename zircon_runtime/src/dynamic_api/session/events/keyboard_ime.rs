@@ -3,23 +3,24 @@ use zircon_runtime_interface::ui::dispatch::{
     UiKeyboardInputEvent, UiKeyboardInputState, UiTextByteRange, UiTextInputEvent,
 };
 use zircon_runtime_interface::{
-    ZR_RUNTIME_IME_STATE_COMMIT_V1, ZR_RUNTIME_IME_STATE_CURSOR_AREA_V1,
-    ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1, ZR_RUNTIME_IME_STATE_DISABLED_V1,
-    ZR_RUNTIME_IME_STATE_ENABLED_V1, ZR_RUNTIME_IME_STATE_PREEDIT_V1,
-    ZR_RUNTIME_IME_STATE_REQUEST_DISABLE_V1, ZR_RUNTIME_IME_STATE_REQUEST_ENABLE_V1,
-    ZR_RUNTIME_IME_STATE_SURROUNDING_TEXT_V1, ZR_RUNTIME_KEY_ACTION_PRESSED_V1,
-    ZR_RUNTIME_KEY_ACTION_RELEASED_V1, ZR_RUNTIME_KEY_ACTION_TEXT_V1, ZrRuntimeEventV1, ZrStatus,
+    ZrRuntimeEventV1, ZrStatus, ZR_RUNTIME_IME_STATE_COMMIT_V1,
+    ZR_RUNTIME_IME_STATE_CURSOR_AREA_V1, ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1,
+    ZR_RUNTIME_IME_STATE_DISABLED_V1, ZR_RUNTIME_IME_STATE_ENABLED_V1,
+    ZR_RUNTIME_IME_STATE_PREEDIT_V1, ZR_RUNTIME_IME_STATE_REQUEST_DISABLE_V1,
+    ZR_RUNTIME_IME_STATE_REQUEST_ENABLE_V1, ZR_RUNTIME_IME_STATE_SURROUNDING_TEXT_V1,
+    ZR_RUNTIME_KEY_ACTION_PRESSED_V1, ZR_RUNTIME_KEY_ACTION_RELEASED_V1,
+    ZR_RUNTIME_KEY_ACTION_TEXT_V1,
 };
 
 use crate::core::framework::input::{
     ImeDeleteSurrounding, ImeEvent, ImeHostRequest, ImePreedit, InputEvent,
 };
 
-use super::super::RuntimeDynamicSession;
 use super::super::input_events::{
     ime_cursor, ime_cursor_area, ime_surrounding_text, keyboard_logical_key,
 };
 use super::super::status::invalid_argument;
+use super::super::RuntimeDynamicSession;
 use super::event_payload;
 
 impl RuntimeDynamicSession {
@@ -33,6 +34,7 @@ impl RuntimeDynamicSession {
         } else {
             String::from_utf8(payload.to_vec()).ok()
         };
+        // 文本输入先交给聚焦 UI；只有未处理时才作为 gameplay 文本键提交。
         if event.button == ZR_RUNTIME_KEY_ACTION_TEXT_V1 {
             if let Some(text) = text {
                 match self.dispatch_runtime_ui_event(|metadata| {
@@ -156,6 +158,7 @@ impl RuntimeDynamicSession {
             }
             _ => return invalid_argument(b"unknown runtime ime state"),
         };
+        // Preedit、Commit 与 DeleteSurrounding 先投递给 UI；UI 接管时不再提交给 Runtime 输入。
         let ui_dispatch = match &input_event {
             InputEvent::Ime(ImeEvent::Preedit(preedit)) => {
                 self.dispatch_runtime_ui_event(|metadata| {

@@ -426,7 +426,7 @@ zircon_editor/src/core/
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -ManifestPath zircon_plugins/Cargo.toml -SkipBuild
-python tools/check_conventions.py
+python tools/audits/check_conventions.py
 ```
 
 ## 7. 风险

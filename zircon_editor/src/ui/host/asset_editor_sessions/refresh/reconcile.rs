@@ -3,8 +3,8 @@ use std::ops::Bound::{Excluded, Unbounded};
 
 use super::super::watcher::{UiAssetWatchPollAllowance, UiAssetWatchReconcileCursor};
 use super::super::UiAssetWorkspaceEntry;
+use super::normalize::insert_normalized_ui_asset_id;
 use crate::ui::host::editor_ui_host::EditorUiHost;
-use crate::ui::host::project_access::normalize_ui_asset_asset_id;
 use crate::ui::workbench::view::ViewInstanceId;
 
 impl EditorUiHost {
@@ -68,40 +68,11 @@ pub(in crate::ui::host::asset_editor_sessions) fn collect_ui_asset_reconcile_bat
             cursor.next_item_index = item_count;
             continue;
         };
-        let _ = asset_ids.insert(normalize_ui_asset_asset_id(asset_id).to_string());
+        let _ = insert_normalized_ui_asset_id(&mut asset_ids, asset_id);
         cursor.next_item_index += 1;
     }
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn optimization_batch_20260830en_reconcile_carries_selected_map_entry() {
-        let source = include_str!("reconcile.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("reconcile production source");
-
-        assert!(production.contains("sessions.get_key_value(instance_id)"));
-        assert!(!production.contains("sessions.contains_key(instance_id)"));
-        assert!(!production.contains("sessions.get(&instance_id)"));
-    }
-
-    #[test]
-    #[ignore = "release-only reconcile lookup evidence"]
-    fn optimization_batch_20260830en_reconcile_lookup_evidence() {
-        const SESSION_VISITS: usize = 65_536;
-        const LEGACY_TREE_LOOKUPS_PER_VISIT: usize = 2;
-        const OPTIMIZED_TREE_LOOKUPS_PER_VISIT: usize = 1;
-        let legacy_tree_lookups = SESSION_VISITS * LEGACY_TREE_LOOKUPS_PER_VISIT;
-        let optimized_tree_lookups = SESSION_VISITS * OPTIMIZED_TREE_LOOKUPS_PER_VISIT;
-
-        assert_eq!(legacy_tree_lookups, optimized_tree_lookups * 2);
-        println!(
-            "EDITOR543_RECONCILE_CARRIED_ENTRY_BENCH_V1 visits={SESSION_VISITS} \
-             legacy_tree_lookups={legacy_tree_lookups} optimized_tree_lookups={optimized_tree_lookups} \
-             reduction_pct=50"
-        );
-    }
-}
+#[path = "tests/reconcile.rs"]
+mod tests;

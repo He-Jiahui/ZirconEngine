@@ -1,3 +1,4 @@
+//! 性能热点的结构守卫核对拥有者、文件预算和证据文档。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn runtime_07_virtual_geometry_debug_snapshot_owner_split_keeps_contracts_folder_backed() {
     let root = include_str!("../../../../core/framework/render/virtual_geometry_debug_snapshot.rs");
@@ -26,10 +27,11 @@ fn runtime_07_virtual_geometry_debug_snapshot_owner_split_keeps_contracts_folder
         "../../../../core/framework/render/virtual_geometry_debug_snapshot/sources.rs"
     );
     let module_doc = include_str!(
-        "../../../../../../docs/zircon_runtime/core/framework/render/virtual_geometry_debug_snapshot.md"
+        "../../../../../../docs/crates/zircon_runtime/core/framework/render/virtual_geometry_debug_snapshot.md"
     );
-    let hotspot_doc =
-        include_str!("../../../../../../docs/zircon_runtime/performance/hotspot_inventory.md");
+    let hotspot_doc = include_str!(
+        "../../../../../../docs/crates/zircon_runtime/performance/hotspot_inventory.md"
+    );
 
     for root_anchor in [
         "mod bvh_visualization;",

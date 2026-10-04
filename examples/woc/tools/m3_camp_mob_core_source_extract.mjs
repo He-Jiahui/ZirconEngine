@@ -1,5 +1,7 @@
+// 从固定版本 WOC 源码中提取按营地顺序排列的怪物模板、训练假人与战斗字段，供 m3_camp_mob_core_codegen.mjs 消费。
 const data = await import('wocgit:///src/sim/data.ts');
 
+// 按营地首次出现的顺序去重怪物模板，保持生成索引稳定。
 const ids = [];
 const seen = new Set();
 for (const camp of data.BUILTIN_WORLD.camps) {

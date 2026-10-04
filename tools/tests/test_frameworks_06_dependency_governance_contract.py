@@ -46,7 +46,7 @@ PER_CRATE_MPL_EXCEPTIONS = {
     "triple_buffer",
 }
 
-
+# 解析依赖策略、锁文件和 CI 工作流，确认来源默认拒绝、许可证例外与多工作区检查一致。
 class Frameworks06DependencyGovernanceContractTests(unittest.TestCase):
     def test_dependency_policy_is_explicit_and_deny_by_default_for_sources(self) -> None:
         policy_path = REPO_ROOT / "deny.toml"

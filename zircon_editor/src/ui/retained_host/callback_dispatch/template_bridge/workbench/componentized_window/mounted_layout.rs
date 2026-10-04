@@ -30,19 +30,30 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         &mut self,
         mount_frame: UiFrame,
     ) -> UiSize {
-        self.prepare_layout_at_mount_with_scale(mount_frame, 1.0)
+        self.prepare_layout_at_mount_with_scale(mount_frame, 1.0).0
     }
 
     pub(in crate::ui::retained_host::callback_dispatch::template_bridge::workbench) fn prepare_layout_at_mount_with_scale(
         &mut self,
         mount_frame: UiFrame,
         scale_factor: f32,
-    ) -> UiSize {
-        self.mount_frame = super::normalized_mount_frame(mount_frame);
-        self.presentation_scale_factor = super::normalized_presentation_scale_factor(scale_factor);
-        UiSize::new(
-            self.mount_frame.width / self.presentation_scale_factor,
-            self.mount_frame.height / self.presentation_scale_factor,
+    ) -> (UiSize, bool) {
+        let mount_frame = super::normalized_mount_frame(mount_frame);
+        let scale_factor = super::normalized_presentation_scale_factor(scale_factor);
+        let changed =
+            self.mount_frame != mount_frame || self.presentation_scale_factor != scale_factor;
+        self.mount_frame = mount_frame;
+        self.presentation_scale_factor = scale_factor;
+        (
+            UiSize::new(
+                self.mount_frame.width / self.presentation_scale_factor,
+                self.mount_frame.height / self.presentation_scale_factor,
+            ),
+            changed,
         )
     }
 }
+
+#[cfg(test)]
+#[path = "tests/mounted_layout.rs"]
+mod tests;

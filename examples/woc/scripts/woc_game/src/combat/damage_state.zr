@@ -1,11 +1,11 @@
-// Stateful M4 projection of the ordinary post-mitigation damage route. PvP
-// terminal modes and full death-credit/progression teardown remain separate
-// owners; this module preserves the common path they enter before branching.
+// 普通伤害的独立契约投影；正式 WorldState 当前自行结算伤害，并未导入本模块。
+// 此处只覆盖共通减伤、吸收及死亡边沿；击杀归属和奖励由其他状态负责。
 var container = %import("zr.container");
 var pvpPower = %import("combat/pvp_power_state");
 var forms = %import("combat/forms_state");
 var formDerived = %import("combat/form_derived_stats");
 
+// 契约夹具的可变实体快照；光环六列必须保持同长同序，增删需经过统一方法。
 class Combatant {
     pub var id: uint;
     pub var kind: string;
@@ -148,6 +148,7 @@ class Combatant {
     }
 }
 
+// 调用方提供双方身份、命中类型和已结算标志；该标志只跳过施放方的部分加成。
 class DamageHit {
     pub var sourcePresent: bool;
     pub var amount: int;
@@ -182,6 +183,7 @@ class DamageHit {
     }
 }
 
+// 此处记录副作用顺序并消费注入的随机流；计数和顺序数组不代替世界事件派发。
 class DamageEvents {
     pub var damageEvents: int;
     pub var healEvents: int;
@@ -327,6 +329,7 @@ addContributor(target: Combatant, contributorId: uint): void {
     target.contributorIds.add(contributorId);
 }
 
+// 恐惧打断与狂乱共享调用方准备的顺序随机流，缺值必须显式失败。
 takeRandomUnit(events: DamageEvents): float {
     if (events.randomIndex < 0 || events.randomIndex >= events.randomUnits.length) {
         throw "damage random stream is exhausted";
@@ -349,6 +352,7 @@ breakStealth(entity: Combatant, events: DamageEvents): void {
     entity.stealthed = false;
 }
 
+// 这里只完成伤害投影的死亡尾部；完整保留光环、击杀归属和奖励不由此结算。
 handleNormalDeath(entity: Combatant, events: DamageEvents): void {
     entity.dead = true;
     entity.hp = 0;
@@ -392,6 +396,8 @@ maybeFrenzy(
     events.eventOrder.add(6);
 }
 
+// 原位更新实体与副作用投影；调用方须提供同序光环和足够的随机值。
+// 返回吸收后的结算伤害，可能超过当前生命值，不能直接当作真实生命损失。
 pub applyDamage(
     source: Combatant,
     target: Combatant,

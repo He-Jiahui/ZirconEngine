@@ -2,7 +2,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use zircon_runtime::asset::{ProjectAssetManager, ProjectAssetManagerAccess};
-use zircon_runtime::core::manager::{RegisteredManagerService, manager_service_handle};
+use zircon_runtime::core::manager::{manager_service_handle, RegisteredManagerService};
 use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{
     CoreRuntime, ManagerDescriptor, ModuleDescriptor, RegistryName, ServiceKind, StartupMode,
@@ -74,6 +74,11 @@ impl TestWgpuRenderFramework {
             framework,
             _asset_runtime: asset_runtime,
         }
+    }
+
+    /// Expose the renderer's immutable first-fault diagnostic to integration-test adapters.
+    pub fn first_device_fault(&self) -> Option<zr_rhi::DeviceFaultRecord> {
+        self.framework.first_device_fault()
     }
 }
 

@@ -1,8 +1,6 @@
 ---
 related_code:
-  - tools/session_coordinator/workspace_copy.py
 implementation_files:
-  - tools/session_coordinator/workspace_copy.py
 tests:
   - tools/session_coordinator/tests/test_workspace_copy.py
 doc_type: milestone-detail

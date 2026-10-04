@@ -12,6 +12,18 @@ use super::{
 
 mod menu;
 
+#[cfg(test)]
+#[path = "keyboard/tests/option_entry_streaming_tests.rs"]
+mod option_entry_streaming_tests;
+
+#[cfg(test)]
+#[path = "keyboard/tests/option_id_streaming_tests.rs"]
+mod option_id_streaming_tests;
+
+#[cfg(test)]
+#[path = "keyboard/tests/indexed_entry_streaming_tests.rs"]
+mod indexed_entry_streaming_tests;
+
 pub(super) fn apply_keyboard_action(
     state: &mut UiComponentState,
     descriptor: &UiComponentDescriptor,
@@ -357,6 +369,17 @@ fn current_index(
         .unwrap_or(0)
 }
 
+fn current_option_entry_index(
+    state: &UiComponentState,
+    descriptor: &UiComponentDescriptor,
+    options: &[OptionEntry],
+) -> i64 {
+    int_setting(state, descriptor, "focused_index")
+        .or_else(|| int_setting(state, descriptor, "selected_index"))
+        .or_else(|| current_option_entry_value_index(state, options))
+        .unwrap_or(0)
+}
+
 fn current_value_index(state: &UiComponentState, options: &[String]) -> Option<i64> {
     ["value", "value_text", "group_value"]
         .into_iter()
@@ -365,6 +388,21 @@ fn current_value_index(state: &UiComponentState, options: &[String]) -> Option<i
             options
                 .iter()
                 .position(|option| option == &value)
+                .map(|index| index as i64)
+        })
+}
+
+fn current_option_entry_value_index(
+    state: &UiComponentState,
+    options: &[OptionEntry],
+) -> Option<i64> {
+    ["value", "value_text", "group_value"]
+        .into_iter()
+        .filter_map(|property| state.values.get(property).and_then(string_value))
+        .find_map(|value| {
+            options
+                .iter()
+                .position(|option| option.id == value)
                 .map(|index| index as i64)
         })
 }
@@ -380,16 +418,21 @@ fn indexed_keyboard_entries(
     state: &UiComponentState,
     descriptor: &UiComponentDescriptor,
 ) -> Vec<String> {
-    indexed_entry_property_candidates(descriptor)
-        .iter()
-        .copied()
-        .filter_map(|property| state.values.get(property))
-        .flat_map(option_entry_list)
-        .map(|option| option.id)
-        .collect::<Vec<_>>()
-        .into_iter()
-        .filter(|option| !option.is_empty())
-        .collect()
+    let properties = indexed_entry_property_candidates(descriptor);
+    let mut entries = Vec::with_capacity(properties.len());
+    for property in properties {
+        let Some(value) = state.values.get(*property) else {
+            continue;
+        };
+        let options = option_entry_list(value);
+        entries.reserve(options.len());
+        for option in options {
+            if !option.id.is_empty() {
+                entries.push(option.id);
+            }
+        }
+    }
+    entries
 }
 
 fn indexed_entry_property_candidates(
@@ -427,13 +470,39 @@ fn option_entries(
 }
 
 fn option_entry_list(value: &UiValue) -> Vec<OptionEntry> {
+    let mut entries = Vec::with_capacity(option_entry_capacity_hint(value));
+    collect_option_entries(value, &mut entries);
+    entries
+}
+
+fn option_entry_capacity_hint(value: &UiValue) -> usize {
     match value {
-        UiValue::Array(values) => values.iter().flat_map(option_entry_list).collect(),
+        UiValue::Array(values) => values.len(),
+        UiValue::String(value) | UiValue::Enum(value) => {
+            if value.is_empty() {
+                0
+            } else {
+                1
+            }
+        }
+        UiValue::Map(_) => 1,
+        _ => 0,
+    }
+}
+
+fn collect_option_entries(value: &UiValue, entries: &mut Vec<OptionEntry>) {
+    match value {
+        UiValue::Array(values) => {
+            entries.reserve(values.len());
+            for value in values {
+                collect_option_entries(value, entries);
+            }
+        }
         UiValue::String(value) | UiValue::Enum(value) if !value.is_empty() => {
-            vec![OptionEntry {
+            entries.push(OptionEntry {
                 id: value.clone(),
                 text: value.clone(),
-            }]
+            });
         }
         UiValue::Map(values) => {
             let ids = values
@@ -447,15 +516,16 @@ fn option_entry_list(value: &UiValue) -> Vec<OptionEntry> {
                 .map(option_id_list)
                 .unwrap_or_default();
             let text = option_label_text(values);
-            ids.into_iter()
-                .filter(|id| !id.is_empty())
-                .map(|id| OptionEntry {
-                    text: text.clone().unwrap_or_else(|| id.clone()),
-                    id,
-                })
-                .collect()
+            for id in ids {
+                if !id.is_empty() {
+                    entries.push(OptionEntry {
+                        text: text.clone().unwrap_or_else(|| id.clone()),
+                        id,
+                    });
+                }
+            }
         }
-        _ => Vec::new(),
+        _ => {}
     }
 }
 
@@ -513,19 +583,43 @@ fn next_enabled_index(
 }
 
 fn option_id_list(value: &UiValue) -> Vec<String> {
+    let mut ids = Vec::with_capacity(option_id_capacity_hint(value));
+    let contains_array = collect_option_ids(value, &mut ids);
+    if contains_array {
+        ids.retain(|value| !value.is_empty());
+    }
+    ids
+}
+
+fn option_id_capacity_hint(value: &UiValue) -> usize {
     match value {
-        UiValue::Array(values) => values
-            .iter()
-            .flat_map(option_id_list)
-            .filter(|value| !value.is_empty())
-            .collect(),
-        UiValue::String(value) | UiValue::Enum(value) => vec![value.clone()],
-        UiValue::Map(values) => values
-            .get("id")
-            .or_else(|| values.get("value"))
-            .map(option_id_list)
-            .unwrap_or_default(),
-        _ => Vec::new(),
+        UiValue::Array(values) => values.len(),
+        UiValue::String(_) | UiValue::Enum(_) => 1,
+        UiValue::Map(_) => 1,
+        _ => 0,
+    }
+}
+
+fn collect_option_ids(value: &UiValue, ids: &mut Vec<String>) -> bool {
+    match value {
+        UiValue::Array(values) => {
+            ids.reserve(values.len());
+            for value in values {
+                collect_option_ids(value, ids);
+            }
+            true
+        }
+        UiValue::String(value) | UiValue::Enum(value) => {
+            ids.push(value.clone());
+            false
+        }
+        UiValue::Map(values) => {
+            if let Some(value) = values.get("id").or_else(|| values.get("value")) {
+                return collect_option_ids(value, ids);
+            }
+            false
+        }
+        _ => false,
     }
 }
 

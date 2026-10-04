@@ -1,6 +1,6 @@
 import pathlib
 import unittest
-
+# IBL 产物候选的选择只投影描述符，实际 blob 在确定来源后借用；本组约束运行时分发不复制全部候选数据。
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 RESOLUTION = REPO_ROOT / (

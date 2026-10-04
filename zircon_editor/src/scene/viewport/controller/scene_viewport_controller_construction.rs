@@ -1,3 +1,4 @@
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use zircon_runtime_interface::math::UVec2;
@@ -15,6 +16,8 @@ use super::{
     scene_viewport_controller::SceneToolIdentity, scene_viewport_state::SceneViewportState,
     SceneViewportController,
 };
+
+static NEXT_DETACHED_VIEW_CONTEXT_ID: AtomicU64 = AtomicU64::new(0);
 
 impl SceneViewportController {
     #[cfg(test)]
@@ -58,5 +61,38 @@ impl SceneViewportController {
             scene_tool_resources,
             scene_tool_lease: None,
         }
+    }
+
+    pub(crate) fn fork_for_view(&self, viewport_id: ViewInstanceId) -> Self {
+        let mut fork = Self::with_settings_and_tools(
+            self.state.viewport.size,
+            Arc::clone(&self.settings_mutations),
+            self.tool_scheduler.clone(),
+            viewport_id,
+        );
+        fork.state.settings = self.state.settings.clone();
+        fork.state.selection = self.state.selection.clone();
+        fork.state.pivot_mode = self.state.pivot_mode;
+        fork.state.viewport = self.state.viewport.clone();
+        fork.state.camera = self.state.camera.clone();
+        fork.state.orbit_target = self.state.orbit_target;
+        fork.state.orbit_controller = self.state.orbit_controller;
+        fork.state.scene_mode_registry = self.state.scene_mode_registry.clone();
+        fork.overlay_providers = self.overlay_providers.clone();
+        fork
+    }
+
+    pub(crate) fn detached_for_empty_retention(&self) -> Self {
+        let context_id = NEXT_DETACHED_VIEW_CONTEXT_ID.fetch_add(1, Ordering::Relaxed);
+        let mut detached = Self::with_settings_and_tools(
+            self.state.viewport.size,
+            Arc::clone(&self.settings_mutations),
+            self.tool_scheduler.clone(),
+            ViewInstanceId::new(format!("editor.scene#detached-state-{context_id}")),
+        );
+        detached.state.selection = self.state.selection.clone();
+        detached.state.scene_mode_registry = self.state.scene_mode_registry.clone();
+        detached.overlay_providers = self.overlay_providers.clone();
+        detached
     }
 }

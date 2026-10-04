@@ -1,21 +1,21 @@
 use std::{collections::BTreeSet, path::Path};
 
 use crate::core::diagnostics::profiling::{
-    PROFILE_HOTSPOTS_FILE, PROFILE_SUMMARY_FILE, PROFILE_TIMELINE_NATIVE_FILE,
-    PROFILE_TIMELINE_PERFETTO_FILE, ProfileCaptureConfig, export_report, reset_capture,
-    start_capture, stop_capture, test_capture_lock,
+    export_report, reset_capture, start_capture, stop_capture, test_capture_lock,
+    ProfileCaptureConfig, PROFILE_HOTSPOTS_FILE, PROFILE_SUMMARY_FILE,
+    PROFILE_TIMELINE_NATIVE_FILE, PROFILE_TIMELINE_PERFETTO_FILE,
 };
 use crate::text::cache::{DEFAULT_SHAPED_RUN_CACHE_CAPACITY, DEFAULT_TEXT_LAYOUT_CACHE_CAPACITY};
 use crate::ui::text::{UiTextLayoutRequest, UiTextMeasureCache};
 use zircon_runtime_interface::{
-    ProfileSnapshot,
     ui::{layout::UiFrame, surface::UiResolvedStyle},
+    ProfileSnapshot,
 };
 
 use super::support::managed_output_root;
 use super::{
-    LABEL_COUNTS, MAX_SAMPLES, MEASURED_FRAMES, REPETITIONS, WARMUP_FRAMES, assert_profile_file,
-    static_label_text_identity,
+    assert_profile_file, static_label_text_identity, LABEL_COUNTS, MAX_SAMPLES, MEASURED_FRAMES,
+    REPETITIONS, WARMUP_FRAMES,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

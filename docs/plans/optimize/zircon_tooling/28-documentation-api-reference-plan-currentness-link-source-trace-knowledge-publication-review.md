@@ -5,13 +5,13 @@ related_code:
   - tools/check_conventions.py
   - .codex/skills/zircon-project-skills/development-conventions.md
   - docs/plans/index.md
-  - docs/zircon_app/prelude.md
-  - docs/zircon_runtime/operation.md
-  - docs/zircon_runtime_interface/plugin_api.md
-  - docs/zircon_plugins/authoring-runtime-plugins.md
-  - docs/zircon_hub/index.md
-  - docs/engine-architecture/index.md
-  - docs/editor-and-tooling/index.md
+  - docs/crates/zircon_app/prelude.md
+  - docs/crates/zircon_runtime/operation.md
+  - docs/crates/zircon_runtime_interface/plugin_api.md
+  - docs/crates/zircon_plugins/authoring-runtime-plugins.md
+  - docs/crates/zircon_hub/index.md
+  - docs/architecture/index.md
+  - docs/editor/index.md
 tests:
   - tools/tests/test_check_conventions.py
 plan_sources:
@@ -122,7 +122,7 @@ CI执行`tools/check_conventions.py --json`，说明仓库已经接受“文档�
 
 ### 4.3 “结果”被写回长期文档
 
-例如`docs/zircon_app/prelude.md`同时含某时点的`Fresh`通过结果与后续blocked描述，却没有review generation、source fingerprint或机器可判的superseded relation。模块说明因此兼任规范和运行日志；源变更后，消费者只能凭自然语言猜哪一段仍有效。
+例如`docs/crates/zircon_app/prelude.md`同时含某时点的`Fresh`通过结果与后续blocked描述，却没有review generation、source fingerprint或机器可判的superseded relation。模块说明因此兼任规范和运行日志；源变更后，消费者只能凭自然语言猜哪一段仍有效。
 
 ### 4.4 Frontmatter与普通链接形成两张不一致的图
 

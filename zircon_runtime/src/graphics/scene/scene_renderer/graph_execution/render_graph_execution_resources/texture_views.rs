@@ -1,6 +1,25 @@
 use crate::render_graph::{RenderGraphTextureAspect, RenderGraphTextureSubresourceRange};
 use crate::rhi::{TextureDesc, TextureDimension};
 
+/// Returns whether an exact graph range can be represented by a producer's
+/// default texture view without creating a new subresource view.
+pub(super) fn texture_range_covers_full_view(
+    range: RenderGraphTextureSubresourceRange,
+    desc: &TextureDesc,
+) -> bool {
+    let covers_mips = range.base_mip_level == 0 && range.mip_level_count == Some(desc.mip_levels);
+    let array_layers = desc.array_layer_count();
+    let covers_layers =
+        range.base_array_layer == 0 && range.array_layer_count == Some(array_layers);
+    let covers_aspects = match range.aspect {
+        RenderGraphTextureAspect::All => true,
+        RenderGraphTextureAspect::Color => !desc.format.is_depth(),
+        RenderGraphTextureAspect::Depth => desc.format.is_depth() && !desc.format.has_stencil(),
+        RenderGraphTextureAspect::Stencil => false,
+    };
+    covers_mips && covers_layers && covers_aspects
+}
+
 pub(super) fn texture_mip_view_descriptor(mip_level: u32) -> wgpu::TextureViewDescriptor<'static> {
     wgpu::TextureViewDescriptor {
         base_mip_level: mip_level,
@@ -150,15 +169,20 @@ fn validate_owned_texture_view_array_range(
     view_desc: &wgpu::TextureViewDescriptor<'_>,
 ) -> Result<(), String> {
     let base = view_desc.base_array_layer;
+    let array_layers = texture_desc.array_layer_count();
     let count = view_desc
         .array_layer_count
-        .unwrap_or_else(|| texture_desc.depth.saturating_sub(base));
-    if count == 0 || base.saturating_add(count) > texture_desc.depth {
+        .unwrap_or_else(|| array_layers.saturating_sub(base));
+    if count == 0 || base.saturating_add(count) > array_layers {
         return Err(format!(
-            "render graph execution texture resource `{name}` view array range [{base}..{}) is outside depth/array_layers {}",
+            "render graph execution texture resource `{name}` view array range [{base}..{}) is outside addressable array layers {}",
             base.saturating_add(count),
-            texture_desc.depth
+            array_layers
         ));
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "tests/texture_views.rs"]
+mod tests;

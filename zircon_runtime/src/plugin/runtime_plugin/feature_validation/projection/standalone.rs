@@ -3,9 +3,11 @@ use std::collections::HashSet;
 use crate::plugin::PluginFeatureBundleManifest;
 
 #[cfg(test)]
-#[path = "standalone/capacity_tests.rs"]
+#[path = "standalone/tests/capacity_tests.rs"]
 mod capacity_tests;
 
+/// 独立注册时的重复位置快照；只标记第二次及以后的出现，保留诊断的清单行序。
+/// 输入字符串仅在构建过程中借用，结果可独立于清单的生命周期存在。
 #[derive(Default)]
 pub(super) struct StandaloneFeatureValidationProjection {
     duplicate_capabilities: HashSet<usize>,
@@ -35,6 +37,7 @@ impl StandaloneFeatureValidationProjection {
             }
         }
 
+        // 模块名在功能内唯一，能力名只在各自模块内唯一；两个作用域不可合并。
         let mut module_names = HashSet::with_capacity(feature.modules.len());
         for (module_index, module) in feature.modules.iter().enumerate() {
             if !module_names.insert(module.name.as_str()) {

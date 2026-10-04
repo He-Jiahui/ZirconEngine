@@ -8,7 +8,7 @@ TOOLS_DIR = Path(__file__).resolve().parents[1]
 if str(TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(TOOLS_DIR))
 
-from audit_plugin_structure import build_report, render_markdown  # noqa: E402
+from tools.audits.audit_plugin_structure import build_report, render_markdown  # noqa: E402
 
 
 class _AuditResult:
@@ -29,7 +29,7 @@ class AuditPluginStructureReportTests(unittest.TestCase):
             0,
             report["summary"]["registration_compatibility_shim_sites"],
         )
-        self.assertEqual(28, report["summary"]["runtime_plugin_descriptor_root_count"])
+        self.assertEqual(29, report["summary"]["runtime_plugin_descriptor_root_count"])
         self.assertEqual(
             0,
             report["summary"][
@@ -44,13 +44,61 @@ class AuditPluginStructureReportTests(unittest.TestCase):
         self.assertIn("- Global free-function registration sites: 0", markdown)
         self.assertIn("- Native crate-name collisions: 0", markdown)
         self.assertIn("- Registration compatibility shim sites: 0", markdown)
-        self.assertIn("- RuntimePlugin embedded descriptor roots: 28", markdown)
+        self.assertIn("- RuntimePlugin embedded descriptor roots: 29", markdown)
         self.assertIn("- RuntimePlugin embedded descriptor violations: 0", markdown)
         self.assertIn(
             "- Frameworks 02 descriptor gate status: "
             "`runtime-plugin-descriptor-single-source-clean`",
             markdown,
         )
+
+    def test_report_exposes_current_plugin_inventory_counts(self):
+        report = _build_report()
+
+        self.assertEqual(
+            39,
+            report["plugin_manifest_schema_uniform"]["expected_manifest_count"],
+        )
+        self.assertEqual(
+            39,
+            report["plugin_manifest_schema_uniform"]["manifest_count"],
+        )
+        self.assertEqual(
+            39,
+            report["plugin_manifest_schema_uniform"]["generated_manifest_count"],
+        )
+        self.assertEqual(
+            0,
+            report["plugin_manifest_schema_uniform"]["hand_written_native_manifest_count"],
+        )
+        self.assertEqual(
+            154,
+            report["skeleton_conformance"]["core_workspace_dependency_count"],
+        )
+        self.assertEqual(
+            41,
+            report["standalone_distribution_conformance"]["dist_capable_plugin_count"],
+        )
+        self.assertEqual(
+            41,
+            report["standalone_distribution_conformance"]["dist_build_matrix_count"],
+        )
+        self.assertEqual(
+            16,
+            report["capability_conformance"]["audited_runtime_root_count"],
+        )
+        self.assertEqual(
+            5,
+            report["capability_conformance"]["editor_runtime_mirror_root_count"],
+        )
+
+        markdown = render_markdown(report)
+        self.assertIn("- Expected plugin manifests: 39", markdown)
+        self.assertIn("- Present plugin manifests: 39", markdown)
+        self.assertIn("- Dist-capable plugins: 41", markdown)
+        self.assertIn("- Dist build matrix entries: 41", markdown)
+        self.assertIn("- Capability audited runtime roots: 16", markdown)
+        self.assertIn("- Editor-runtime mirror roots: 5", markdown)
 
     def test_report_exposes_feature_provider_package_projection_count(self):
         report = _build_report()
@@ -118,8 +166,10 @@ def _build_report():
 
 def _manifest_schema():
     return {
-        "expected_manifest_count": 37,
-        "manifest_count": 37,
+        "expected_manifest_count": 39,
+        "manifest_count": 39,
+        "generated_manifest_count": 39,
+        "hand_written_native_manifest_count": 0,
         "missing_plugin_toml": 0,
         "missing_plugin_toml_paths": [],
         "manifest_schema_violations": 0,
@@ -136,7 +186,7 @@ def _skeleton_conformance():
     return {
         "sample_conformance_status": "sample-clean",
         "core_workspace_dependency_status": "core-workspace-deps-clean",
-        "core_workspace_dependency_count": 117,
+        "core_workspace_dependency_count": 154,
         "core_workspace_dependency_violation_count": 0,
         "core_workspace_dependency_violations": [],
         "migration_debt_count": 0,
@@ -157,7 +207,7 @@ def _registration_conformance():
         "split_importer_free_function_registration_sites": 0,
         "split_importer_free_function_registration_site_details": [],
         "importer_free_function_registration_sites": 0,
-        "runtime_plugin_descriptor_root_count": 28,
+        "runtime_plugin_descriptor_root_count": 29,
         "runtime_plugin_descriptor_single_source_violation_count": 0,
         "runtime_plugin_descriptor_single_source_violations": [],
         "frameworks_02_runtime_plugin_descriptor_status": (
@@ -177,7 +227,7 @@ def _registration_conformance():
 
 def _capability_conformance():
     return {
-        "audited_runtime_root_count": 15,
+        "audited_runtime_root_count": 16,
         "capability_source_mismatches": 0,
         "capability_source_mismatch_details": [],
         "m4_runtime_capability_gate_status": (
@@ -186,7 +236,7 @@ def _capability_conformance():
         "sdk_builder_mirror_violations": 0,
         "sdk_builder_mirror_violation_details": [],
         "m4_t2_builder_mirror_gate_status": "sdk-builder-mirror-clean",
-        "editor_runtime_mirror_root_count": 4,
+        "editor_runtime_mirror_root_count": 5,
         "editor_runtime_mirror_violations": 0,
         "editor_runtime_mirror_violation_details": [],
         "d9_editor_runtime_mirror_gate_status": "editor-runtime-mirror-clean",
@@ -195,8 +245,8 @@ def _capability_conformance():
 
 def _dependency_boundary():
     return {
-        "dist_capable_plugin_count": 39,
-        "dist_build_matrix_count": 39,
+        "dist_capable_plugin_count": 41,
+        "dist_build_matrix_count": 41,
         "distribution_section_violations": 0,
         "distribution_section_violation_details": [],
         "dist_dependency_boundary_violations": 0,

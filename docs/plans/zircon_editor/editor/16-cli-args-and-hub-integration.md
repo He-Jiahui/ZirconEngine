@@ -59,7 +59,7 @@ status: planned
 
 ## 目标
 
-1. **`EditorLaunchArgs` 统一事实源**（`zircon_app/src/entry/cli/`）：诊断组、启动意图组、`--run` 无头 commandlet 组与 hub 握手组必须在一个类型化结构中完成路由，保持**零新依赖手工解析**（现风格延续，clap 引入需单独裁决记状态节）；诊断组先行初始化日志的既有时序保留（合一后仍是「先诊断后其余」两拍解析）；`EditorGuiStartupRequest` 从其派生，旧 `EditorCliOperationRequest` 命令行 parser、入口、帮助与测试全部删除。operation-control DTO 仅保留给非 CLI 的 typed control boundary，不能以旧 CLI 语法回流；commandlet JSON 输出沿用既有 stdout serde 口径；参数矩阵文档 `docs/zircon_app/cli.md`（含 runtime_preview 参数）。
+1. **`EditorLaunchArgs` 统一事实源**（`zircon_app/src/entry/cli/`）：诊断组、启动意图组、`--run` 无头 commandlet 组与 hub 握手组必须在一个类型化结构中完成路由，保持**零新依赖手工解析**（现风格延续，clap 引入需单独裁决记状态节）；诊断组先行初始化日志的既有时序保留（合一后仍是「先诊断后其余」两拍解析）；`EditorGuiStartupRequest` 从其派生，旧 `EditorCliOperationRequest` 命令行 parser、入口、帮助与测试全部删除。operation-control DTO 仅保留给非 CLI 的 typed control boundary，不能以旧 CLI 语法回流；commandlet JSON 输出沿用既有 stdout serde 口径；参数矩阵文档 `docs/crates/zircon_app/cli.md`（含 runtime_preview 参数）。
 2. **参数补全**：`--scene <AssetRef 文本>`（打开工程后聚焦场景）/ `--layout <preset-id>`（06 预设）/ `--safe-mode`（12：仅内建插件）/ `--diagnostics <path>`（既有诊断组归入）；runtime_preview 增 `--play-scene <path>` + `--play-report-pipe <name>`（04 M1 会签定名）。
 3. **Commandlet 框架**（硬切为唯一的 `--run <commandlet>` CLI 通道）：
    - `--run <commandlet>` 别名规范化（godot `--export-*` 的显名风格）：`--run export --preset <name> [--resume]`（15）/ `--run migrate-assets`（10）/ `--run build-scripts`（13）/ `--run audit-registry`（10）/ `--run plugin-list`（12）——均为 08 合一注册表中 `callable_from_remote=true` 的命令，`--run` 即其 CLI 投影，**不另建注册表**；
@@ -110,7 +110,7 @@ zircon_runtime_interface/src/hub_protocol/   # 信箱 JSON DTO（11 壳，双端
 
 ### M1 EditorLaunchArgs 收敛与参数补全
 
-- 切片 1.1：`entry/cli/` 落地；三段解析迁入合一（`entry_runner/editor.rs` 的 parse 链改为单次构造，旧散点删除）；参数矩阵文档 `docs/zircon_app/cli.md`。
+- 切片 1.1：`entry/cli/` 落地；三段解析迁入合一（`entry_runner/editor.rs` 的 parse 链改为单次构造，旧散点删除）；参数矩阵文档 `docs/crates/zircon_app/cli.md`。
 - 切片 1.2：`--scene/--layout/--safe-mode` 贯通消费点；runtime_preview play 组参数（与 04 M1 联合切片）；`subprocess_args` 透传。
 - 测试阶段：`cargo test -p zircon_app --locked`（解析矩阵：合法/非法/组合/顺序无关）+ `cargo test -p zircon_editor --lib --locked`；手验 `cargo run -p zircon_app --no-default-features --features target-editor-host --bin zircon_editor -- --project <夹具> --layout debug` 等组合记状态节。
 
@@ -155,4 +155,4 @@ zircon_runtime_interface/src/hub_protocol/   # 信箱 JSON DTO（11 壳，双端
 
 ### 设计优化建议
 
-- `core/commandlet/` 已落地（产出记录与 2026-07-30 性能复核均确认 `core/commandlet/** 3/3`、plugin-list 共享 canonical projection），说明 M2 Commandlet 框架的骨架已存在于 owner 目录；CLI 侧 `entry/cli/` 现为三文件，其中诊断解析器已成为 editor/runtime 共同入口。后续应在不破坏这一事实源的前提下裁决 `subprocess_args` 的 context API，并同步参数矩阵文档 `docs/zircon_app/cli.md`。
+- `core/commandlet/` 已落地（产出记录与 2026-07-30 性能复核均确认 `core/commandlet/** 3/3`、plugin-list 共享 canonical projection），说明 M2 Commandlet 框架的骨架已存在于 owner 目录；CLI 侧 `entry/cli/` 现为三文件，其中诊断解析器已成为 editor/runtime 共同入口。后续应在不破坏这一事实源的前提下裁决 `subprocess_args` 的 context API，并同步参数矩阵文档 `docs/crates/zircon_app/cli.md`。

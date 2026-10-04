@@ -4,8 +4,8 @@ use std::time::SystemTime;
 use zircon_runtime::asset::project::ProjectPaths;
 
 use super::{
-    ProjectSessionAdmissionRecordV1, SessionAdmissionRequest, SessionGuard, SessionGuardError,
-    SessionOwnershipLease, read_lock, session_lock_path,
+    read_lock, session_lock_path, ProjectSessionAdmissionRecordV1, SessionAdmissionRequest,
+    SessionGuard, SessionGuardError, SessionOwnershipLease,
 };
 
 /// The result of atomically claiming a project's session admission boundary.

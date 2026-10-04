@@ -198,5 +198,5 @@ fn hex_nibble(byte: u8) -> Option<u8> {
 }
 
 #[cfg(test)]
-#[path = "properties/hex_color_decode_tests.rs"]
+#[path = "properties/tests/hex_color_decode_tests.rs"]
 mod hex_color_decode_tests;

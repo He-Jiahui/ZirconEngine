@@ -6,14 +6,17 @@ use crate::plugin::{
 };
 
 use super::{
-    NativeBridgeMethodBinding, NativeHostBridgeCallScope, NativePluginBehaviorCallReport,
-    NativePluginCallbackDiagnostics, NativePluginLiveHost, NativePluginLiveHostBridgeReloadReport,
-    NativePluginLiveHostDiagnostics, NativePluginLiveHostLoadReport, NativePluginLiveHostOutcome,
-    NativePluginRuntimeBehaviorDescriptor, NativePluginRuntimeCommandDispatchReport,
-    NativePluginRuntimeDeltaHotUpdateReport, NativePluginRuntimeDeltaHotUpdateRequest,
-    NativePluginRuntimeHotUpdateReport, NativePluginRuntimePlayModeExitReport,
-    NativePluginRuntimePlayModeSnapshot, NativePluginRuntimeRegistrationReplayReport,
-    NativePluginRuntimeStateRestoreReport, NativePluginRuntimeStateSnapshot,
+    NativeBridgeMethodBinding, NativeHostBridgeCallScope, NativePluginArtifactAuthority,
+    NativePluginBehaviorCallReport, NativePluginCallbackDiagnostics, NativePluginLiveHost,
+    NativePluginLiveHostBridgeReloadReport, NativePluginLiveHostDiagnostics,
+    NativePluginLiveHostLoadReport, NativePluginLiveHostOutcome,
+    NativePluginProjectActivationCleanupReceipt, NativePluginProjectActivationRequest,
+    NativePluginProjectActivationResult, NativePluginRuntimeBehaviorDescriptor,
+    NativePluginRuntimeCommandDispatchReport, NativePluginRuntimeDeltaHotUpdateReport,
+    NativePluginRuntimeDeltaHotUpdateRequest, NativePluginRuntimeHotUpdateReport,
+    NativePluginRuntimePlayModeExitReport, NativePluginRuntimePlayModeSnapshot,
+    NativePluginRuntimeRegistrationReplayReport, NativePluginRuntimeStateRestoreReport,
+    NativePluginRuntimeStateSnapshot,
 };
 
 #[derive(Clone, Debug, Default)]
@@ -22,6 +25,18 @@ pub struct NativePluginHostHandle {
 }
 
 impl NativePluginHostHandle {
+    pub fn with_artifact_authority(artifact_authority: NativePluginArtifactAuthority) -> Self {
+        Self {
+            backend: Arc::new(NativePluginLiveHost::with_artifact_authority(
+                artifact_authority,
+            )),
+        }
+    }
+
+    pub fn artifact_authority(&self) -> &NativePluginArtifactAuthority {
+        self.backend.artifact_authority()
+    }
+
     pub fn downgrade(&self) -> NativePluginHostWeakHandle {
         NativePluginHostWeakHandle {
             backend: Arc::downgrade(&self.backend),
@@ -48,6 +63,28 @@ impl NativePluginHostHandle {
         self.backend.load_runtime_plugins_from_project_root(root)
     }
 
+    pub fn load_runtime_plugins_from_project_root_with_authority(
+        &self,
+        root: impl AsRef<Path>,
+        authority: &NativePluginArtifactAuthority,
+    ) -> Result<NativePluginLiveHostLoadReport, String> {
+        self.backend
+            .load_runtime_plugins_from_project_root_with_authority(root, authority)
+    }
+
+    pub fn activate_runtime_project_plugins(
+        &self,
+        request: NativePluginProjectActivationRequest<'_>,
+        authority: &NativePluginArtifactAuthority,
+    ) -> NativePluginProjectActivationResult {
+        self.backend
+            .activate_runtime_project_plugins(request, authority)
+    }
+
+    pub fn retry_project_activation_recovery(&self) -> NativePluginProjectActivationCleanupReceipt {
+        self.backend.retry_project_activation_recovery()
+    }
+
     pub fn load_runtime_plugins_from_export_root(
         &self,
         export_root: impl AsRef<Path>,
@@ -61,6 +98,15 @@ impl NativePluginHostHandle {
         root: impl AsRef<Path>,
     ) -> Result<NativePluginLiveHostLoadReport, String> {
         self.backend.load_editor_plugins_from_project_root(root)
+    }
+
+    pub fn load_editor_plugins_from_project_root_with_authority(
+        &self,
+        root: impl AsRef<Path>,
+        authority: &NativePluginArtifactAuthority,
+    ) -> Result<NativePluginLiveHostLoadReport, String> {
+        self.backend
+            .load_editor_plugins_from_project_root_with_authority(root, authority)
     }
 
     pub fn load_editor_plugins_from_export_root(
@@ -278,12 +324,32 @@ impl NativePluginHostHandle {
         self.backend.hot_reload_editor_plugin(root, plugin_id)
     }
 
+    pub fn hot_reload_editor_plugin_with_authority(
+        &self,
+        root: impl AsRef<Path>,
+        plugin_id: impl AsRef<str>,
+        authority: &NativePluginArtifactAuthority,
+    ) -> Result<NativePluginLiveHostOutcome, String> {
+        self.backend
+            .hot_reload_editor_plugin_with_authority(root, plugin_id, authority)
+    }
+
     pub fn hot_reload_runtime_plugin(
         &self,
         root: impl AsRef<Path>,
         plugin_id: impl AsRef<str>,
     ) -> Result<NativePluginLiveHostOutcome, String> {
         self.backend.hot_reload_runtime_plugin(root, plugin_id)
+    }
+
+    pub fn hot_reload_runtime_plugin_with_authority(
+        &self,
+        root: impl AsRef<Path>,
+        plugin_id: impl AsRef<str>,
+        authority: &NativePluginArtifactAuthority,
+    ) -> Result<NativePluginLiveHostOutcome, String> {
+        self.backend
+            .hot_reload_runtime_plugin_with_authority(root, plugin_id, authority)
     }
 
     pub fn unload_runtime_plugin(
@@ -315,17 +381,5 @@ impl NativePluginHostWeakHandle {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::NativePluginHostHandle;
-
-    #[test]
-    fn weak_host_handle_does_not_extend_backend_lifetime() {
-        let host = NativePluginHostHandle::default();
-        let weak = host.downgrade();
-
-        assert!(weak.upgrade().is_some());
-        drop(host);
-
-        assert!(weak.upgrade().is_none());
-    }
-}
+#[path = "tests/native_plugin_host_handle.rs"]
+mod tests;

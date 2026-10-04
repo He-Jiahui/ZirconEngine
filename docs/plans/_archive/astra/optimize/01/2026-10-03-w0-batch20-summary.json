@@ -1,0 +1,27 @@
+{
+  "batch": "w0-batch20",
+  "recorded_at_utc": "2026-10-03T04:32:50.739549+00:00",
+  "finding_observations": 127,
+  "original_gate_rows": 84,
+  "qualification_gate_rows": 0,
+  "refresh_rows": 211,
+  "prior_author_qualification": "hold_private_identity_rekey",
+  "root_original_identity_corrections": "Editor54 67 findings/36 original gates with original raw text, Editor127 nonnewrefresh",
+  "b17_four_p0_original_closing_contracts": null,
+  "raw_source_captures": 26,
+  "current_source_hash_drifts": [
+    {
+      "path": "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/drawer_layout.rs",
+      "authored_sha256": "1be734ca717b43c9f08b87fdb704da0429b86cb9ac31f67e1fa6464d18715c2e",
+      "current_sha256": "6b77db8b887b9aad30fb3b17b398f28ce9e0afe4362468ff4743e91ec75bcb46",
+      "current_match": false,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B20\\zircon_editor\\src\\ui\\retained_host\\callback_dispatch\\template_bridge\\workbench\\drawer_layout.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B20\\zircon_editor\\src\\ui\\retained_host\\callback_dispatch\\template_bridge\\workbench\\drawer_layout.rs"
+    }
+  ],
+  "source_review_scope": "bounded atom/source observations; original statuses/forward generation kept separately",
+  "tests_run": 0,
+  "source_ready": false,
+  "acceptance": "open"
+}

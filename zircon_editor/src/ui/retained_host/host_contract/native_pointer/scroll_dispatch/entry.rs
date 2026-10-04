@@ -50,6 +50,11 @@ pub(in crate::ui::retained_host::host_contract) fn dispatch_native_pointer_scrol
     if let Some(result) = dispatch_menu_pointer_scroll(ui, &generation, x, y, delta) {
         return result;
     }
+    let authored = generation.structure();
+    if crate::ui::retained_host::host_contract::componentized_workbench_regions::authored_panes(authored).iter().any(|pane| crate::ui::retained_host::host_contract::frame_geometry::contains_point(&pane.frame, x, y))
+        && !crate::ui::retained_host::host_contract::componentized_workbench_regions::authored_hierarchy(authored).is_some_and(|hierarchy| crate::ui::retained_host::host_contract::frame_geometry::contains_point(&hierarchy.viewport, x, y)) {
+        return NativePointerDispatchResult::idle();
+    }
     if let Some(result) = dispatch_pane_pointer_scroll(ui, &generation, x, y, delta) {
         return result;
     }

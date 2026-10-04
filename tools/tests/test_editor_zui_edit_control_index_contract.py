@@ -1,3 +1,4 @@
+# 核对检查器编辑通过保留式控件索引读取属性。
 import unittest
 from pathlib import Path
 

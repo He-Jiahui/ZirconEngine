@@ -21,6 +21,7 @@ use zircon_runtime_interface::ui::{
 
 mod basic_editing;
 mod clipboard_newline;
+mod edit_to_render_profile;
 mod retained_document_session;
 mod selection_navigation;
 mod text_ime;

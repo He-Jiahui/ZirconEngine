@@ -4,7 +4,8 @@ use crate::ui::layouts::windows::workbench_host_window::HostMenuChromeItemData;
 use crate::ui::retained_host::measure_runtime_text_width;
 use crate::ui::workbench::document_tabs::{
     document_tab_preferred_width_from_title_width, DOCUMENT_CLOSEABLE_TAB_MIN_WIDTH,
-    DOCUMENT_TAB_CLOSE_EXTENT, DOCUMENT_TAB_STRIP_X, DOCUMENT_TAB_TITLE_FONT_SIZE,
+    DOCUMENT_TAB_CLOSE_EXTENT, DOCUMENT_TAB_GAP, DOCUMENT_TAB_STRIP_X,
+    DOCUMENT_TAB_TITLE_FONT_SIZE,
 };
 use crate::ui::workbench::menu_bar::{
     workbench_menu_slot_width_from_label_width, WORKBENCH_MENU_SLOT_FONT_SIZE,
@@ -19,6 +20,7 @@ use zircon_runtime_interface::ui::design_tokens::{
 use zircon_runtime_interface::ui::layout::UiFrame;
 
 mod authored_projection;
+mod capacity;
 mod fallback_projection;
 
 fn assert_close(actual: f32, expected: f32) {

@@ -1,4 +1,5 @@
 import type { PropsWithChildren, ReactNode } from "react";
+import { useId } from "react";
 import { Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/material";
 import { hubTokens } from "../../theme/tokens";
 
@@ -10,10 +11,16 @@ export interface HubDialogProps extends PropsWithChildren {
 }
 
 export function HubDialog({ open, title, actions, onClose, children }: HubDialogProps) {
+  const idSuffix = useId().replace(/:/g, "");
+  const titleId = `hub-dialog-title-${idSuffix}`;
+  const descriptionId = `hub-dialog-description-${idSuffix}`;
+
   return (
     <Dialog
       open={open}
       onClose={onClose}
+      aria-labelledby={titleId}
+      aria-describedby={descriptionId}
       maxWidth="sm"
       fullWidth
       slotProps={{
@@ -26,8 +33,8 @@ export function HubDialog({ open, title, actions, onClose, children }: HubDialog
         },
       }}
     >
-      <DialogTitle>{title}</DialogTitle>
-      <DialogContent>{children}</DialogContent>
+      <DialogTitle id={titleId}>{title}</DialogTitle>
+      <DialogContent id={descriptionId}>{children}</DialogContent>
       {actions ? <DialogActions>{actions}</DialogActions> : null}
     </Dialog>
   );

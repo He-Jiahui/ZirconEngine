@@ -1,6 +1,9 @@
+// 曝光 resolve 在 histogram 完成后单次运行，产出本帧乘数与 EV 历史状态。
+// CPU 绑定上帧曝光或有效位为零的默认值；当前输出会被 LUT bake 与未烘焙 tonemap 读取。
 const EXPOSURE_BIN_COUNT: u32 = 64u;
 const EXPOSURE_MODE_HISTOGRAM: u32 = 1u;
 
+// 参数与 histogram 来自同一帧上传；百分位裁剪所用像素总数必须等于实际计量样本数。
 struct ExposureParams {
     viewport_and_mode: vec4<u32>,
     range_and_filter: vec4<f32>,
@@ -23,6 +26,7 @@ fn histogram_bin_to_ev100(bin: u32) -> f32 {
     return mix(min_ev100, max_ev100, clamp(normalized, 0.0, 1.0));
 }
 
+// 百分位裁剪用于排除极亮/极暗区域对全屏曝光的过度影响；没有可用样本时退回手动值。
 fn histogram_average_ev100() -> f32 {
     let low_percent = clamp(params.range_and_filter.z, 0.0, 1.0);
     let high_percent = clamp(params.range_and_filter.w, low_percent, 1.0);
@@ -53,6 +57,7 @@ fn histogram_average_ev100() -> f32 {
     return weighted_sum / f32(weighted_count);
 }
 
+// 首次历史直接接受目标，后续按真实时间适应；不能用模拟暂停或时间缩放后的步长。
 fn adapt_ev100(target_ev100: f32) -> f32 {
     let previous = previous_exposure[0];
     if (previous.w <= 0.5) {
@@ -86,5 +91,6 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     }
 
     let multiplier = exp2(default_ev100 - resolved_ev100 + compensation_ev);
+    // 输出协议为 multiplier、适应后的 EV、当前统计 EV、有效位；曝光历史只有本 pass 发布。
     current_exposure[0] = vec4<f32>(max(multiplier, 0.0), resolved_ev100, average_ev100, 1.0);
 }

@@ -10,11 +10,12 @@ use super::super::{
         ZrRuntimeViewportPickResultV1, ZrRuntimeViewportPickTicket,
     },
     session::{
-        ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeBindViewportSurfaceRequestV1,
-        ZrRuntimeDrainPluginEventsFnV2, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1,
-        ZrRuntimeFrameV2, ZrRuntimeHarvestOperationFnV2, ZrRuntimeHostFetchRequestV1,
-        ZrRuntimePollOperationFnV2, ZrRuntimeSessionConfigV3, ZrRuntimeSubmitOperationFnV1,
-        ZrRuntimeSubscribePluginEventFnV1, ZrRuntimeUnsubscribePluginEventFnV1,
+        ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeAppSessionConfigurationV2,
+        ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeDrainPluginEventsFnV2, ZrRuntimeEventV1,
+        ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2, ZrRuntimeHarvestOperationFnV2,
+        ZrRuntimeHostFetchRequestV1, ZrRuntimePollOperationFnV2, ZrRuntimeSessionConfigV3,
+        ZrRuntimeSubmitOperationFnV1, ZrRuntimeSubscribePluginEventFnV1,
+        ZrRuntimeUnsubscribePluginEventFnV1,
     },
 };
 
@@ -23,6 +24,9 @@ use super::super::{
 pub type ZrRuntimeGetApiFnV8 = unsafe extern "C" fn(*const ZrHostApiV1) -> *const ZrRuntimeApiV8;
 pub type ZrRuntimeCreateSessionFnV3 =
     unsafe extern "C" fn(ZrRuntimeSessionConfigV3, *mut ZrRuntimeSessionHandle) -> ZrStatus;
+/// Standalone AppSession V2 configuration operation; kept outside frozen V8.
+pub type ZrRuntimeConfigureAppSessionFnV2 =
+    unsafe extern "C" fn(ZrRuntimeSessionHandle, ZrRuntimeAppSessionConfigurationV2) -> ZrStatus;
 pub type ZrRuntimeDestroySessionFnV1 = unsafe extern "C" fn(ZrRuntimeSessionHandle) -> ZrStatus;
 pub type ZrRuntimeHandleEventFnV1 =
     unsafe extern "C" fn(ZrRuntimeSessionHandle, ZrRuntimeEventV1) -> ZrStatus;
@@ -202,84 +206,5 @@ const ZR_RUNTIME_API_V8_OPTIONAL_FIELD_NAMES: &[&str] = &[
 const ZR_HOST_API_V1_OPTIONAL_FIELD_NAMES: &[&str] = &["diagnostics_sink", "fetch_resource"];
 
 #[cfg(test)]
-mod tests {
-    use std::collections::BTreeSet;
-
-    use super::{
-        ZR_HOST_API_V1_OPTIONAL_FIELD_NAMES, ZR_RUNTIME_API_V8_OPTIONAL_FIELD_NAMES,
-        ZR_RUNTIME_API_V8_REQUIRED_FIELD_NAMES,
-    };
-
-    #[test]
-    fn interface_spec_slot_partitions_match_the_abi_table_fields() {
-        assert_eq!(
-            crate::runtime_build_set::ZR_RUNTIME_API_V8_REQUIRED_SLOT_NAMES,
-            ZR_RUNTIME_API_V8_REQUIRED_FIELD_NAMES,
-        );
-        assert_eq!(
-            crate::runtime_build_set::ZR_RUNTIME_API_V8_OPTIONAL_SLOT_NAMES,
-            ZR_RUNTIME_API_V8_OPTIONAL_FIELD_NAMES,
-        );
-        assert_eq!(
-            crate::runtime_build_set::ZR_HOST_API_V1_OPTIONAL_SLOT_NAMES,
-            ZR_HOST_API_V1_OPTIONAL_FIELD_NAMES,
-        );
-
-        let expected_runtime_slots =
-            crate::runtime_build_set::ZR_RUNTIME_API_V8_REQUIRED_SLOT_NAMES
-                .iter()
-                .chain(crate::runtime_build_set::ZR_RUNTIME_API_V8_OPTIONAL_SLOT_NAMES.iter())
-                .filter(|field| **field != "abi_version" && **field != "size_bytes")
-                .map(|field| (*field).to_owned())
-                .collect::<BTreeSet<_>>();
-        assert_eq!(
-            concrete_table_slot_names("ZrRuntimeApiV8"),
-            expected_runtime_slots,
-        );
-
-        let expected_host_slots = crate::runtime_build_set::ZR_HOST_API_V1_OPTIONAL_SLOT_NAMES
-            .iter()
-            .map(|field| (*field).to_owned())
-            .collect::<BTreeSet<_>>();
-        assert_eq!(
-            concrete_table_slot_names("ZrHostApiV1"),
-            expected_host_slots,
-        );
-    }
-
-    fn concrete_table_slot_names(table_name: &str) -> BTreeSet<String> {
-        let source = include_str!("api_table.rs");
-        let struct_needle = format!("pub struct {table_name} ");
-        let struct_index = source
-            .find(&struct_needle)
-            .unwrap_or_else(|| panic!("{table_name} must remain a concrete ABI table declaration"));
-        let body_start = source[struct_index..]
-            .find('{')
-            .map(|offset| struct_index + offset + 1)
-            .expect("concrete ABI table must have a field body");
-        let fields = source[body_start..]
-            .lines()
-            .map(str::trim)
-            .take_while(|line| *line != "}")
-            .filter_map(|line| line.strip_prefix("pub "))
-            .map(|field| {
-                field
-                    .split_once(':')
-                    .map(|(field, _)| field.trim().to_owned())
-                    .expect("concrete ABI table field must have a type")
-            })
-            .collect::<Vec<_>>();
-
-        assert_eq!(
-            fields.first().map(String::as_str),
-            Some("abi_version"),
-            "{table_name} must begin with the ABI version header"
-        );
-        assert_eq!(
-            fields.get(1).map(String::as_str),
-            Some("size_bytes"),
-            "{table_name} must retain the byte-size header after its ABI version"
-        );
-        fields.into_iter().skip(2).collect()
-    }
-}
+#[path = "tests/api_table.rs"]
+mod tests;

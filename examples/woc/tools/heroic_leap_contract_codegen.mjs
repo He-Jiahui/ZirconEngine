@@ -1,3 +1,6 @@
+// 调用端：npm run generate:heroic-leap-contract (tools/package.json)；职责：固化英勇飞跃的位移和目标限制。
+// 输入边界：src/sim/combat/heroic_leap.ts, src/sim/types.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

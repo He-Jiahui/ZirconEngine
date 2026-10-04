@@ -1,8 +1,8 @@
-use crate::scene::World;
 use crate::scene::ecs::{
     ChangeTickWindow, QueryDataAccess, QueryFilter, SystemParam, SystemParamAccess,
     SystemParamError,
 };
+use crate::scene::World;
 
 use super::QueryState;
 
@@ -11,6 +11,7 @@ where
     D: QueryDataAccess + 'static,
     F: QueryFilter,
 {
+    // 初始化阶段登记读取/写入冲突；每次执行再从同一 state 借出 Query facade。
     type State = QueryState<D, F>;
     type Item<'world> = crate::scene::ecs::Query<'world, D, F>;
 
@@ -28,7 +29,9 @@ where
         state: &'world mut Self::State,
         ticks: ChangeTickWindow,
     ) -> Self::Item<'world> {
-        crate::scene::ecs::Query::new(world, state, ticks)
+        // SAFETY: SystemParam's caller owns the run, registered access and
+        // state lifetime. Query preserves that raw grant without a new World loan.
+        unsafe { crate::scene::ecs::Query::new(world, state, ticks) }
     }
 
     fn record_performance_diagnostics(world: &mut World, state: &mut Self::State) {

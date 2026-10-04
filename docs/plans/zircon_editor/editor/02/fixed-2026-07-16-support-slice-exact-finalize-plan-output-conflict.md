@@ -9,19 +9,12 @@ fixing_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-c
 origin_child_dir: docs/plans/zircon_editor/editor/02
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 related_code:
-  - tools/session_coordinator/control_plane/actions/catalog.py
-  - tools/session_coordinator/git_finalize.py
-  - tools/session_coordinator/workflows/milestones.py
-  - tools/session_coordinator/workflows/gates.py
-  - tools/session_coordinator/control_plane/actions/models.py
-  - tools/session_coordinator/failures.py
-  - tools/session_coordinator/plans.py
   - docs/plans/zircon_editor/editor/02/2026-07-14-world-sync-m1-milestone-manifest.md
 tests:
   - python -m unittest tools.session_coordinator.tests.test_action_catalog.ActionCatalogTests.test_commit_lifecycle_accepts_slice_ids_without_widening_reconciliation -v
   - python -m unittest tools.session_coordinator.tests.test_workflow_commit.WorkflowCommitTests.test_slice_commit_succeeds_without_accepting_parent_milestone -v
-  - ./tools/zircon-session.ps1 -Json milestone validate --session-id editor02-m1-3-inspection-hardening-20260715 --run-id ac800d3e33174e38a77ba5da7a8250f2 --milestone M1.3 --template coordinator-actions
-  - ./tools/zircon-session.ps1 -Json finalize preview --session-id editor02-inspection-compile-sync-support-20260715 --message "fix(editor): sync inspection hierarchy compile contract" --path docs/plans/zircon_editor/editor/02/2026-07-14-world-sync-m1-output-records.md --path docs/zircon_runtime/scene/inspection.md --path zircon_runtime/src/scene/inspection/snapshot.rs --path zircon_runtime/src/scene/inspection/tests.rs
+  - ./tools/dev/zircon-session.ps1 -Json milestone validate --session-id editor02-m1-3-inspection-hardening-20260715 --run-id ac800d3e33174e38a77ba5da7a8250f2 --milestone M1.3 --template coordinator-actions
+  - ./tools/dev/zircon-session.ps1 -Json finalize preview --session-id editor02-inspection-compile-sync-support-20260715 --message "fix(editor): sync inspection hierarchy compile contract" --path docs/plans/zircon_editor/editor/02/2026-07-14-world-sync-m1-output-records.md --path docs/crates/zircon_runtime/scene/inspection.md --path zircon_runtime/src/scene/inspection/snapshot.rs --path zircon_runtime/src/scene/inspection/tests.rs
 resolved_at: 2026-07-16
 ---
 
@@ -57,7 +50,7 @@ Editor02 父 M1 的既有 `2026-07-14-world-sync-m1-milestone-manifest.md` 明�
 
 - `zircon_runtime/src/scene/inspection/snapshot.rs`；
 - `zircon_runtime/src/scene/inspection/tests.rs`；
-- `docs/zircon_runtime/scene/inspection.md`；
+- `docs/crates/zircon_runtime/scene/inspection.md`；
 - `docs/plans/zircon_editor/editor/02/2026-07-14-world-sync-m1-output-records.md`。
 
 当前协调器依次拒绝所有合法精确路径：

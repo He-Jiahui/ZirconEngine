@@ -8,15 +8,15 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 NATIVE_DYNAMIC_STAGE_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_native_dynamic_stage.py"
+    REPO_ROOT / "tools/export/tests/test_native_dynamic_stage.py"
 )
 NATIVE_DYNAMIC_STAGE_SOURCE_MANIFEST_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_native_dynamic_stage_source_manifest.py"
+    / "tools/export/tests/test_native_dynamic_stage_source_manifest.py"
 )
 NATIVE_DYNAMIC_STAGE_SELECTION_STRATEGY_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_native_dynamic_stage_selection_strategy.py"
+    / "tools/export/tests/test_native_dynamic_stage_selection_strategy.py"
 )
 
 SOURCE_MANIFEST_TEST_METHODS = (

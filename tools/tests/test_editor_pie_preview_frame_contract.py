@@ -1,4 +1,3 @@
-import re
 import unittest
 from pathlib import Path
 
@@ -13,11 +12,15 @@ class EditorPiePreviewFrameContractTests(unittest.TestCase):
     def test_play_core_captures_the_runtime_default_viewport_and_releases_output(self) -> None:
         preview = self.read("zircon_editor/src/core/play/preview_frame.rs")
         controller = self.read("zircon_editor/src/core/play/controller.rs")
+        preview_routing = self.read(
+            "zircon_editor/src/core/play/controller/preview_routing.rs"
+        )
 
-        self.assertIn("ZIRCON_RUNTIME_DEFAULT_VIEWPORT_HANDLE_V1", controller)
-        self.assertIn("pub fn capture_preview_frame", controller)
-        self.assertRegex(controller, r"play_gateway\s*\.capture_frame")
-        self.assertIn("PlayPreviewFrame::copy_and_release", controller)
+        self.assertIn("mod preview_routing;", controller)
+        self.assertIn("ZIRCON_RUNTIME_DEFAULT_VIEWPORT_HANDLE_V1", preview_routing)
+        self.assertIn("pub fn capture_preview_frame", preview_routing)
+        self.assertRegex(preview_routing, r"play_gateway\s*\.capture_frame_at_identity")
+        self.assertIn("PlayPreviewFrame::copy_and_release", preview_routing)
         self.assertIn("Arc::<[u8]>::from(frame.rgba())", preview)
         self.assertRegex(preview, r"frame\s*\.release\(\)")
 
@@ -36,11 +39,10 @@ class EditorPiePreviewFrameContractTests(unittest.TestCase):
         self.assertIn("scene: Option<Arc<HostViewportImageData>>", image)
         self.assertIn("game: Option<Arc<HostViewportImageData>>", image)
         self.assertIn("pub viewport_images: HostViewportImageSet", root)
-        self.assertRegex(
-            painter,
-            re.escape("viewport_images")
-            + r"\s*\.for_pane\(pane\.kind\.as_str\(\)\)",
+        self.assertIn(
+            '.for_surface(surface_key.unwrap_or(""), pane.kind.as_str())', painter
         )
+        self.assertNotIn(".for_pane(", painter)
         self.assertNotIn('matches!(pane.kind.as_str(), "Scene" | "Game")', painter)
 
     def test_retained_tick_captures_after_runtime_tick_and_clears_terminal_game_frame(self) -> None:
@@ -66,6 +68,10 @@ class EditorPiePreviewFrameContractTests(unittest.TestCase):
             "zircon_editor/src/ui/host/editor_event_execution/menu_action.rs"
         )
         host = self.read("zircon_editor/src/ui/host/editor_host_event_controller.rs")
+        runtime_consumers = self.read(
+            "zircon_editor/src/ui/host/editor_host_event_controller/"
+            "runtime_event_consumers.rs"
+        )
         enter = menu.split("MenuAction::EnterPlayMode =>", 1)[1].split(
             "MenuAction::ExitPlayMode =>", 1
         )[0]
@@ -74,7 +80,8 @@ class EditorPiePreviewFrameContractTests(unittest.TestCase):
         self.assertIn("play_preview_restore_view", shell_state)
         self.assertIn("focus_play_preview_view", enter)
         self.assertIn("restore_pre_play_view", exit_play)
-        self.assertIn("restore_pre_play_view", host)
+        self.assertIn("mod runtime_event_consumers;", host)
+        self.assertIn("restore_pre_play_view", runtime_consumers)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 use crate::core::resource::{ResourceScheme, ResourceState};
 use crate::core::CoreError;
 
-use super::super::super::builtins::builtin_resources;
+use super::super::super::builtins::builtin_resource;
 use super::super::super::errors::{asset_error, asset_error_message};
 use super::super::super::resource_sync::store_runtime_payload;
 use super::super::ProjectAssetManager;
@@ -51,18 +51,15 @@ impl ProjectAssetManager {
             (metadata, prepared_project_read, project_generation)
         };
         let imported = match metadata.primary_locator.scheme() {
-            ResourceScheme::Builtin => builtin_resources()
-                .into_iter()
-                .find_map(|(locator_text, asset)| {
-                    canonical_builtin_locator_matches(&metadata.primary_locator, locator_text)
-                        .then_some(asset)
-                })
-                .ok_or_else(|| {
-                    asset_error_message(format!(
-                        "missing builtin runtime payload for {}",
-                        metadata.primary_locator
-                    ))
-                })?,
+            ResourceScheme::Builtin => {
+                builtin_resource(&metadata.primary_locator, canonical_builtin_locator_matches)
+                    .ok_or_else(|| {
+                        asset_error_message(format!(
+                            "missing builtin runtime payload for {}",
+                            metadata.primary_locator
+                        ))
+                    })?
+            }
             ResourceScheme::Res | ResourceScheme::Library | ResourceScheme::Package => {
                 prepared_project_read
                     .ok_or_else(|| {
@@ -115,5 +112,5 @@ fn canonical_builtin_locator_matches(locator: &AssetUri, candidate: &str) -> boo
 }
 
 #[cfg(test)]
-#[path = "ensure_resident/canonical_builtin_locator_tests.rs"]
+#[path = "ensure_resident/tests/canonical_builtin_locator_tests.rs"]
 mod canonical_builtin_locator_tests;

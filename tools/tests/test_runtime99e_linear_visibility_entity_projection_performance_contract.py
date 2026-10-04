@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 可见实体投影单次访问渲染项，再对最终集合排序去重；本组阻止恢复有序树中间物化，并关联行为/性能证据。
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime/src/scene/world/render_visibility.rs"

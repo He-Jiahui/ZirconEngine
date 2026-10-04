@@ -214,12 +214,16 @@ impl ExampleBackend {
     def test_registration_policy_assembles_v4_scope_without_registry_mutation(self) -> None:
         root = ADAPTER_PATH.read_text(encoding="utf-8")
         source = (REGISTRATION_POLICY_ROOT / "mod.rs").read_text(encoding="utf-8")
+        policy = (REGISTRATION_POLICY_ROOT / "policy.rs").read_text(encoding="utf-8")
+        scope = (REGISTRATION_POLICY_ROOT / "scope.rs").read_text(encoding="utf-8")
 
         self.assertIn("mod registration_policy;", root)
         self.assertIn("pub use registration_policy::{", root)
-        self.assertIn("pub struct NativeHostApiV4RegistrationPolicy", source)
-        self.assertIn("pub struct NativeHostApiV4RegistrationScope", source)
-        self.assertIn("pub fn api(&self) -> ZrHostApiV4", source)
+        self.assertIn("pub use policy::NativeHostApiV4RegistrationPolicy;", source)
+        self.assertIn("pub use scope::NativeHostApiV4RegistrationScope;", source)
+        self.assertIn("pub struct NativeHostApiV4RegistrationPolicy", policy)
+        self.assertIn("pub struct NativeHostApiV4RegistrationScope", scope)
+        self.assertIn("pub fn api(&self) -> ZrHostApiV4", scope)
         for mutation in (
             ".register_external_native_system(",
             ".register_component(",
@@ -384,7 +388,17 @@ impl ExampleBackend {
             handle_code, "NativePluginHostHandle"
         )
         self.assertEqual(handle_methods - {"downgrade"}, backend_host_methods)
-        for method in backend_host_methods:
+        # The authority constructor necessarily calls the concrete backend's associated
+        # constructor; it is not an instance-method delegation. All other public backend
+        # capabilities must remain one-to-one projections on the typed handle.
+        self.assertRegex(
+            handle_code,
+            rf"{PUBLIC_FN_PREFIX}with_artifact_authority\b"
+            rf"(?:(?!\n\s*{PUBLIC_FN_PREFIX})[\s\S])*?"
+            rf"NativePluginLiveHost\s*::\s*with_artifact_authority\s*\(",
+            "typed host authority constructor must create the concrete backend",
+        )
+        for method in backend_host_methods - {"with_artifact_authority"}:
             self.assertRegex(
                 handle_code,
                 rf"{PUBLIC_FN_PREFIX}{re.escape(method)}\b"
@@ -402,12 +416,22 @@ impl ExampleBackend {
             "remove_discovered_path": "remove_discovered_native_plugin_path",
             "discovery_generation": "native_plugin_discovery_generation",
             "discover_from_load_manifest": "discover_native_plugins_from_load_manifest",
+            "validate_discovered_runtime": "validate_discovered_native_runtime_plugins",
+            "validate_discovered_editor": "validate_discovered_native_editor_plugins",
+            "validate_runtime_from_load_manifest": "validate_native_runtime_from_load_manifest",
+            "validate_editor_from_load_manifest": "validate_native_editor_from_load_manifest",
             "load_discovered_all": "load_discovered_native_plugins",
+            "load_discovered_all_with_authority": "load_discovered_native_plugins_with_authority",
             "load_discovered_runtime": "load_discovered_native_runtime_plugins",
+            "load_discovered_runtime_with_authority": "load_discovered_native_runtime_plugins_with_authority",
             "load_discovered_editor": "load_discovered_native_editor_plugins",
+            "load_discovered_editor_with_authority": "load_discovered_native_editor_plugins_with_authority",
             "load_all_from_load_manifest": "load_native_plugins_from_load_manifest",
+            "load_all_from_load_manifest_with_authority": "load_native_plugins_from_load_manifest_with_authority",
             "load_runtime_from_load_manifest": "load_native_runtime_from_load_manifest",
+            "load_runtime_from_load_manifest_with_authority": "load_native_runtime_from_load_manifest_with_authority",
             "load_editor_from_load_manifest": "load_native_editor_from_load_manifest",
+            "load_editor_from_load_manifest_with_authority": "load_native_editor_from_load_manifest_with_authority",
         }
         backend_loader_methods = _public_methods_in_impl(
             _production_rust_sources(ADAPTER_ROOT), "NativePluginLoader"

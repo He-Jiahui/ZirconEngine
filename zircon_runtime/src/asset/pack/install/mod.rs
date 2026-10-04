@@ -1,7 +1,11 @@
+//! pack 增量安装按 staging、promotion、恢复 journal 和 receipt 四个阶段组织；模块外只暴露事务门面及结果类型。
+
+mod delta_workflow;
 mod error;
 mod file_io;
 mod installer;
 mod promotion;
+mod promotion_journal;
 mod promotion_report;
 mod receipt;
 mod receipt_io;

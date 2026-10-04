@@ -1,3 +1,4 @@
+# 核对工作台呈现使用唯一强制缓存构造入口。
 from pathlib import Path
 import re
 import unittest

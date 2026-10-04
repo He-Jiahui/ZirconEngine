@@ -30,29 +30,28 @@ class EditorTextLayoutCachePerformanceContractTests(unittest.TestCase):
         self.assertIn("swap_remove_index(0)", source)
         self.assertIn("IndexMap<PaintTextLayoutCacheKey", source)
 
-    def test_cache_miss_moves_single_line_text_and_joins_without_a_temporary_vec(self) -> None:
+    def test_cache_miss_projects_one_runtime_artifact_without_host_relayout(self) -> None:
         source = LAYOUT.read_text(encoding="utf-8")
         uncached_start = source.index("fn layout_text_run_uncached(")
-        next_function = source.index("\nfn fontdue_glyph_layout(", uncached_start)
+        next_function = source.index("\nfn display_text_from_lines(", uncached_start)
         uncached = source[uncached_start:next_function]
-        compact = "".join(uncached.split())
 
-        self.assertIn("display_text_from_lines(lines)", uncached)
-        self.assertIn("let mut display_text = first.text;", uncached)
-        self.assertIn("lines.as_slice()", compact)
-        self.assertNotIn(".collect::<Vec<_>>()\n        .join(\"\\n\")", uncached)
+        self.assertIn("display_text_from_lines(&lines)", uncached)
+        self.assertIn("positioned_artifact_glyphs(", uncached)
+        self.assertIn("(Vec::new(), Vec::new())", uncached)
+        self.assertNotIn("fontdue", source.lower())
+        self.assertNotIn("shape_text_line", source)
 
-    def test_shaped_host_advance_validation_uses_constant_space(self) -> None:
+    def test_display_text_join_has_one_preallocated_output(self) -> None:
         source = LAYOUT.read_text(encoding="utf-8")
-        function_start = source.index("fn shaped_positions_match_host_advances(")
-        next_function = source.index("\nfn runtime_text_glyph_from_host_glyph(", function_start)
+        function_start = source.index("fn display_text_from_lines(")
+        next_function = source.index("\n#[cfg(test)]", function_start)
         function = source[function_start:next_function]
 
-        self.assertNotIn("collect::<Option<Vec<_>>>()", function)
-        self.assertNotIn("shaped_origins", function)
-        self.assertNotIn("host_origins", function)
-        self.assertIn("let mut shaped_origin", function)
-        self.assertIn("let mut host_origin", function)
+        self.assertIn("String::with_capacity", function)
+        self.assertIn("display_text.push_str", function)
+        self.assertNotIn(".join(", function)
+        self.assertNotIn("collect::<Vec", function)
 
 
 if __name__ == "__main__":

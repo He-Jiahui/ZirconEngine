@@ -187,28 +187,18 @@ Describe 'Render-extract baseline evidence' {
     }
 
     It 'rejects a report summary outside the plan-owned perf evidence root' {
-        $directory = Join-Path $TestDrive ("baseline-report-outside-root-" + [guid]::NewGuid().ToString('N'))
+        $directory = Join-Path 'E:\ZirconBuilds' ("baseline-report-outside-root-" + [guid]::NewGuid().ToString('N'))
+        $failure = $null
+
         try {
-            [IO.Directory]::CreateDirectory($directory) | Out-Null
-            $summaryPath = Join-Path $directory 'render-extract-baseline.json'
-            [IO.File]::WriteAllText($summaryPath, '{}', [Text.UTF8Encoding]::new($false))
-            $failure = $null
-
-            try {
-                & $assertEvidenceDirectoryContract -Path $directory | Out-Null
-            }
-            catch {
-                $failure = $_
-            }
-
-            $failure | Should Not BeNullOrEmpty
-            $failure.Exception.Message | Should Match 'approved.*storage roots'
+            & $assertEvidenceDirectoryContract -Path $directory | Out-Null
         }
-        finally {
-            if ([IO.Directory]::Exists($directory)) {
-                Remove-Item -LiteralPath $directory -Recurse -Force
-            }
+        catch {
+            $failure = $_
         }
+
+        $failure | Should Not BeNullOrEmpty
+        $failure.Exception.Message | Should Match 'outside the registered.*namespace'
     }
 }
 

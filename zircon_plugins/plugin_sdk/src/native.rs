@@ -1,5 +1,11 @@
+//! Native 插件 ABI 数据载体与序列化辅助函数。
+//! Native-only 包可直接依赖本模块；runtime loader 在独立边界读取并校验导出的 ABI 数据。
 use std::ffi::{c_char, c_void, CStr, CString};
 use std::panic::{catch_unwind, AssertUnwindSafe};
+
+mod owned_buffers;
+
+pub use owned_buffers::{NativePluginOwnedBytesError, NativePluginOwnedBytesErrorKind};
 
 use serde::{Deserialize, Serialize};
 pub use zircon_runtime_interface::{ZrByteBufferRef, ZrByteSlice, ZrStatus};
@@ -19,6 +25,7 @@ pub const ZIRCON_NATIVE_PLUGIN_STATUS_PANIC: u32 = 3;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
+/// Native 描述符入口返回的包身份、清单文本、运行时/编辑器入口名与请求能力。
 pub struct NativePluginAbiV3 {
     pub abi_version: u32,
     pub plugin_id: *const c_char,
@@ -30,6 +37,7 @@ pub struct NativePluginAbiV3 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
+/// 声明行为载体引用的状态、命令、事件与注册清单 schema 版本。
 pub struct NativePluginSchemaVersionsV3 {
     pub state_schema_version: u32,
     pub command_manifest_schema: *const c_char,
@@ -39,6 +47,7 @@ pub struct NativePluginSchemaVersionsV3 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
+/// 入口协商结果；Host 通过该结构读取诊断、能力结果及行为和桥接表指针。
 pub struct NativePluginEntryReportV3 {
     pub layout_epoch: u32,
     pub package_manifest_toml: *const c_char,
@@ -52,6 +61,7 @@ pub struct NativePluginEntryReportV3 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
+/// Host 在 Native 回调期间提供的 ABI 版本、句柄、能力集合与宿主回调。
 pub struct NativePluginHostFunctionTableV3 {
     pub abi_version: u32,
     pub host_handle: u64,
@@ -64,6 +74,7 @@ pub struct NativePluginHostFunctionTableV3 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
+/// 跨 ABI 传递的借用字节视图，由数据指针和长度组成。
 pub struct NativePluginByteSliceV3 {
     pub data: *const u8,
     pub len: usize,
@@ -71,6 +82,7 @@ pub struct NativePluginByteSliceV3 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
+/// 跨 ABI 交接的 SDK 所有字节缓冲区；owned_bytes 同时填入释放回调与所有权令牌。
 pub struct NativePluginOwnedByteBufferV3 {
     pub data: *mut u8,
     pub len: usize,
@@ -93,6 +105,7 @@ impl NativePluginOwnedByteBufferV3 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
+/// 回调返回码与指向静态诊断文本的 C 字符串指针。
 pub struct NativePluginCallbackStatusV3 {
     pub code: u32,
     pub diagnostics: *const c_char,
@@ -100,6 +113,7 @@ pub struct NativePluginCallbackStatusV3 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
+/// Host 在命令回调期间提供的有界输出写入上下文。
 pub struct NativePluginOutputSinkV4 {
     pub context: *mut c_void,
     pub max_output_bytes: usize,
@@ -140,6 +154,7 @@ impl NativePluginOutputSinkV4 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
+/// Native 行为回调表及其状态、命令、事件和注册清单 schema 声明。
 pub struct NativePluginBehaviorV4 {
     pub abi_version: u32,
     pub is_stateless: u32,
@@ -155,6 +170,7 @@ pub struct NativePluginBehaviorV4 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
+/// 桥接分发表头，描述 ABI 版本、连续方法数组和槽位数。
 pub struct NativePluginBridgeMethodTableV3 {
     pub abi_version: u32,
     pub methods: *const NativePluginBridgeMethodV3,
@@ -163,6 +179,7 @@ pub struct NativePluginBridgeMethodTableV3 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
+/// 单个桥接槽位的接口 ID、方法名、C 回调和不透明用户数据。
 pub struct NativePluginBridgeMethodV3 {
     pub interface_id: *const c_char,
     pub method_name: *const c_char,
@@ -172,6 +189,7 @@ pub struct NativePluginBridgeMethodV3 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
+/// 单次桥接调用使用的接口/方法槽位、输入输出缓冲区与不透明用户数据。
 pub struct NativePluginBridgeMethodCallV3 {
     pub interface_slot: u32,
     pub method_slot: u32,
@@ -180,6 +198,7 @@ pub struct NativePluginBridgeMethodCallV3 {
     pub user_data: u64,
 }
 
+// 以下函数指针别名固定缓冲区、命令、状态、桥接及 Host 回调的 C ABI 签名。
 pub type NativePluginFreeBytesFnV3 =
     unsafe extern "C" fn(NativePluginOwnedByteBufferV3) -> NativePluginCallbackStatusV3;
 pub type NativePluginOutputWriteFnV4 =
@@ -194,12 +213,6 @@ pub type NativePluginSaveStateFnV3 =
 pub type NativePluginRestoreStateFnV3 =
     unsafe extern "C" fn(NativePluginByteSliceV3) -> NativePluginCallbackStatusV3;
 pub type NativePluginUnloadFnV3 = unsafe extern "C" fn() -> NativePluginCallbackStatusV3;
-pub type NativePluginByteSliceV3 = NativePluginByteSliceV3;
-pub type NativePluginOwnedByteBufferV3 = NativePluginOwnedByteBufferV3;
-pub type NativePluginCallbackStatusV3 = NativePluginCallbackStatusV3;
-pub type NativePluginSaveStateFnV3 = NativePluginSaveStateFnV3;
-pub type NativePluginRestoreStateFnV3 = NativePluginRestoreStateFnV3;
-pub type NativePluginUnloadFnV3 = NativePluginUnloadFnV3;
 pub type NativePluginBridgeMethodFnV3 =
     unsafe extern "C" fn(NativePluginBridgeMethodCallV3) -> ZrStatus;
 pub type NativePluginHostHasCapabilityFnV3 =
@@ -231,7 +244,6 @@ pub const NATIVE_OUTPUT_SINK_LIMIT_EXCEEDED_DIAGNOSTICS_V4: &[u8] =
     b"native plugin command output exceeds the host-owned sink limit\0";
 pub const NATIVE_OUTPUT_SINK_MISSING_WRITER_DIAGNOSTICS_V4: &[u8] =
     b"native plugin command output sink is missing its host writer\0";
-const SDK_OWNER_TOKEN_SALT: u64 = 0x5a17_c0de_f11e_d00d;
 
 pub const NATIVE_COMMAND_MANIFEST_SCHEMA_V4_TEXT: &str = "zircon.native.command-manifest/4";
 pub const NATIVE_COMMAND_MAX_OUTPUT_BYTES_V4: usize = 256 * 1024 * 1024;
@@ -241,6 +253,7 @@ pub const NATIVE_SYSTEM_WORKER_SAFE_CAPABILITY_V3_TEXT: &str = "runtime.native.s
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+/// Native 命令接口的版本化 TOML 数据；当前校验器要求槽位连续且名称唯一。
 pub struct NativePluginCommandManifestV4 {
     pub schema: String,
     #[serde(default)]
@@ -249,6 +262,7 @@ pub struct NativePluginCommandManifestV4 {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+/// 一个命令槽位的名称、输入 schema 与 Host 允许的最大输出字节数。
 pub struct NativePluginCommandV4 {
     pub name: String,
     pub slot: u32,
@@ -257,6 +271,7 @@ pub struct NativePluginCommandV4 {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// 把模块、系统、资源、事件、扩展点及 capability 投影成 Native 可读取的声明清单。
 pub struct NativePluginRegistrationManifestV3 {
     pub schema: String,
     #[serde(default)]
@@ -274,12 +289,14 @@ pub struct NativePluginRegistrationManifestV3 {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// Native 注册清单中的模块名称及模块种类。
 pub struct NativePluginRegistrationModuleV3 {
     pub name: String,
     pub kind: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// 一个 Native runtime system 的调度、访问集、线程亲和性与可选桥接方法声明。
 pub struct NativePluginRegistrationSystemV3 {
     pub id: String,
     pub module: String,
@@ -304,6 +321,7 @@ pub struct NativePluginRegistrationSystemV3 {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+/// 描述 Native system 只能在主线程运行，还是可由 worker 执行。
 pub enum NativePluginRegistrationThreadAffinityV3 {
     #[default]
     MainThreadOnly,
@@ -311,6 +329,7 @@ pub enum NativePluginRegistrationThreadAffinityV3 {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// Native runtime 注册资源及其可选所属模块和 schema。
 pub struct NativePluginRegistrationResourceV3 {
     pub id: String,
     #[serde(default)]
@@ -320,6 +339,7 @@ pub struct NativePluginRegistrationResourceV3 {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// Native runtime 事件的命名空间、名称、稳定哈希与可选 schema。
 pub struct NativePluginRegistrationEventV3 {
     pub namespace: String,
     pub name: String,
@@ -330,6 +350,7 @@ pub struct NativePluginRegistrationEventV3 {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// 声明一个扩展点贡献及其可选贡献值和 schema。
 pub struct NativePluginRegistrationExtensionV3 {
     pub point: String,
     #[serde(default)]
@@ -383,6 +404,7 @@ impl<T> NativePluginStatic<T> {
     }
 }
 
+/// 按声明的能力条件选择成功或缺失宿主报告；成功时调用宿主就绪回调，无条件声明不校验宿主表兼容性。
 pub struct NativePluginEntryPointV3 {
     report: &'static NativePluginStatic<NativePluginEntryReportV3>,
     missing_host_report: &'static NativePluginStatic<NativePluginEntryReportV3>,
@@ -437,6 +459,7 @@ impl NativePluginEntryPointV3 {
     }
 }
 
+/// 将 SDK 状态码和静态诊断字节切片打包为 ABI 返回值。
 pub fn callback_status(code: u32, diagnostics: &'static [u8]) -> NativePluginCallbackStatusV3 {
     NativePluginCallbackStatusV3 {
         code,
@@ -444,33 +467,33 @@ pub fn callback_status(code: u32, diagnostics: &'static [u8]) -> NativePluginCal
     }
 }
 
-pub fn owned_bytes(mut bytes: Vec<u8>) -> NativePluginOwnedByteBufferV3 {
-    let data = bytes.as_mut_ptr();
-    let len = bytes.len();
-    let capacity = bytes.capacity();
-    let owner_token = owner_token(data, len, capacity);
-    std::mem::forget(bytes);
-    NativePluginOwnedByteBufferV3 {
-        data,
-        len,
-        capacity,
-        owner_token,
-        free: Some(free_owned_bytes_v3),
-    }
+/// 把 Vec 的分配所有权交给 ABI 描述符，供对应的 free 回调归还。
+///
+/// 登记成功后由当前 SDK image 保留真实 Vec，owner_token 是不复用的 opaque allocation ID。
+/// 登记失败返回仍拥有原始 Vec 的错误，可用 into_bytes 收回；Native 生产者须返回 error.status。
+/// 零容量空 Vec 返回 empty；有容量的空 Vec 仍须由同一 image 的 free 归还。
+/// 描述符及其释放函数不得跨越该 DLL image 的存活期，也不得与载荷读取并发释放。
+pub fn owned_bytes(
+    bytes: Vec<u8>,
+) -> Result<NativePluginOwnedByteBufferV3, NativePluginOwnedBytesError> {
+    owned_buffers::register(bytes)
 }
 
+/// 将 Native 命令清单编码为供动态库消费者读取的 TOML。
 pub fn command_manifest_v4_to_toml(
     manifest: &NativePluginCommandManifestV4,
 ) -> Result<String, toml::ser::Error> {
     toml::to_string(manifest)
 }
 
+/// 解析 Host 或插件提供的命令清单文本；schema/槽位语义由单独校验函数检查。
 pub fn command_manifest_v4_from_toml(
     text: &str,
 ) -> Result<NativePluginCommandManifestV4, toml::de::Error> {
     toml::from_str(text)
 }
 
+/// 检查 schema 版本、连续槽位、非空字段、输出上限与唯一命令名。
 pub fn command_manifest_v4_is_current_and_dense(manifest: &NativePluginCommandManifestV4) -> bool {
     if manifest.schema.trim() != NATIVE_COMMAND_MANIFEST_SCHEMA_V4_TEXT {
         return false;
@@ -489,57 +512,52 @@ pub fn command_manifest_v4_is_current_and_dense(manifest: &NativePluginCommandMa
         })
 }
 
+/// 将宏生成的 Native 注册声明编码为 ABI 约定的 TOML 文本。
 pub fn registration_manifest_v3_to_toml(
     manifest: &NativePluginRegistrationManifestV3,
 ) -> Result<String, toml::ser::Error> {
     toml::to_string(manifest)
 }
 
+/// 将 ABI TOML 文本解析为 Native 注册清单 DTO。
 pub fn registration_manifest_v3_from_toml(
     text: &str,
 ) -> Result<NativePluginRegistrationManifestV3, toml::de::Error> {
     toml::from_str(text)
 }
 
+/// 只判断注册清单 schema 标识是否属于当前 v3 版本。
 pub fn registration_manifest_v3_schema_is_current(
     manifest: &NativePluginRegistrationManifestV3,
 ) -> bool {
     manifest.schema.trim() == NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3_TEXT
 }
 
+/// 释放由 SDK 转移给宿主的字节缓冲区，并返回 ABI 状态码。
+///
+/// # Safety
+///
+/// 非空缓冲区必须来自一次尚未释放的 owned_bytes 调用，字段未经修改且只归还一次；
+/// 空缓冲区可使用 empty 构造。复制、伪造或重复归还非空缓冲区可能导致未定义行为。
+///
+/// SDK 登记表按 ID、地址、长度、容量核对并一次消费真实 Vec；不解引用来历不明的 data，
+/// 不以外部字段重建 Vec。错配或已消费描述符返回 ERROR，错配不会移除仍存活的所有者。
+/// 上述保守作者义务仍约束载荷读取与 image 生命周期；登记表不验证宿主读取的任意地址。
 pub unsafe extern "C" fn free_owned_bytes_v3(
     buffer: NativePluginOwnedByteBufferV3,
 ) -> NativePluginCallbackStatusV3 {
     // The descriptor can cross an FFI boundary. Validate its shape before constructing a Vec.
-    if buffer.data.is_null() {
-        return if buffer.len == 0 && buffer.capacity == 0 {
-            callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, NATIVE_EMPTY_CSTR)
-        } else {
-            callback_status(
-                ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
-                NATIVE_FREE_INVALID_BUFFER_DIAGNOSTICS,
-            )
-        };
-    }
-    if buffer.len > buffer.capacity {
-        return callback_status(
-            ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
-            NATIVE_FREE_INVALID_BUFFER_DIAGNOSTICS,
-        );
-    }
-    if buffer.capacity == 0 {
-        return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, NATIVE_EMPTY_CSTR);
-    }
-    if buffer.owner_token != owner_token(buffer.data, buffer.len, buffer.capacity) {
-        return callback_status(
-            ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
-            NATIVE_FREE_OWNER_MISMATCH_DIAGNOSTICS,
-        );
-    }
-    let _ = unsafe { Vec::from_raw_parts(buffer.data, buffer.len, buffer.capacity) };
-    callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, NATIVE_EMPTY_CSTR)
+    // Ownership stays in the registry; foreign metadata never constructs a Vec.
+    owned_buffers::release(buffer)
 }
 
+/// 将 ABI 借用切片视图转换为 Rust 字节切片；空指针或零长度返回空切片。
+///
+/// # Safety
+///
+/// 对非空且非零长度的输入，data 必须在返回切片的整个使用期内指向至少 len 个
+/// 连续且已初始化的可读字节，且 len 不超过 Rust 切片允许的长度。
+/// 这些字节须位于同一分配内，在返回切片的借用期内不被修改，地址范围不得溢出。
 pub unsafe fn bytes_from_slice<'a>(slice: NativePluginByteSliceV3) -> &'a [u8] {
     if slice.data.is_null() || slice.len == 0 {
         &[]
@@ -548,6 +566,7 @@ pub unsafe fn bytes_from_slice<'a>(slice: NativePluginByteSliceV3) -> &'a [u8] {
     }
 }
 
+/// 捕获 Native 回调中的 Rust panic，并将其转换为约定的 PANIC 状态。
 pub fn catch_native_callback_panic<F>(
     panic_diagnostics: &'static [u8],
     callback: F,
@@ -562,6 +581,7 @@ where
     }
 }
 
+/// 只有宿主 ABI 兼容且列表中的每项能力都获授时才返回 true；空列表为 true。
 pub fn host_supports_all_capabilities_v3(
     host_functions: *const NativePluginHostFunctionTableV3,
     capabilities: &[&str],
@@ -577,6 +597,7 @@ pub fn host_supports_all_capabilities_v3(
     })
 }
 
+/// 检查宿主是否授予列表中的至少一项能力；空列表返回 false。
 pub fn host_supports_any_capability_v3(
     host_functions: *const NativePluginHostFunctionTableV3,
     capabilities: &[&str],
@@ -589,6 +610,7 @@ pub fn host_supports_any_capability_v3(
     })
 }
 
+/// 检查一个能力是否由版本兼容的宿主授予。
 pub fn host_supports_capability_v3(
     host_functions: *const NativePluginHostFunctionTableV3,
     capability: &str,
@@ -597,6 +619,7 @@ pub fn host_supports_capability_v3(
         && host_supports_capability_with_compatible_host_v3(host_functions, capability)
 }
 
+// BUG: [CR-R02-public_sdk_reflect-0001] 安全公开入口会把原始宿主表指针传入此处；仅拒绝 null 后仍直接解引用，无效非空指针可由安全 Rust 调用触发未定义行为。
 fn host_functions_v3_are_compatible(
     host_functions: *const NativePluginHostFunctionTableV3,
 ) -> bool {
@@ -632,10 +655,12 @@ fn host_supports_capability_with_compatible_host_v3(
     capability_list_contains(host_functions.granted_capabilities, capability)
 }
 
+/// 在宿主提供的 NUL 终止能力串中查找以换行、逗号或分号分隔的能力名。
 pub fn capability_list_contains(capabilities: *const std::ffi::c_char, capability: &str) -> bool {
     if capabilities.is_null() {
         return false;
     }
+    // BUG: [CR-R02-public_sdk_reflect-0002] 此安全函数只过滤 null；非空悬空或未终止 C 字符串会令 from_ptr 越界读取。
     let Ok(capabilities) = unsafe { CStr::from_ptr(capabilities) }.to_str() else {
         return false;
     };
@@ -645,11 +670,8 @@ pub fn capability_list_contains(capabilities: *const std::ffi::c_char, capabilit
         .any(|entry| entry == capability)
 }
 
-fn owner_token(data: *mut u8, len: usize, capacity: usize) -> u64 {
-    SDK_OWNER_TOKEN_SALT ^ data as usize as u64 ^ ((len as u64) << 7) ^ ((capacity as u64) << 17)
-}
-
 #[macro_export]
+/// 导出固定的 v3 描述符符号，使 loader 能取得静态 Native ABI 描述符指针。
 macro_rules! export_native_plugin_descriptor_v3 {
     ($descriptor:expr) => {
         #[no_mangle]
@@ -660,19 +682,44 @@ macro_rules! export_native_plugin_descriptor_v3 {
     };
 }
 
+/// Internal implementation for downstream exported entry macros.
+/// Ordinary unwind panics produce the existing V3 null-entry failure.
+/// panic=abort, foreign faults and panicking payload destructors cannot be recovered.
+#[doc(hidden)]
+pub fn catch_native_entry_panic_v3<F>(entry: F) -> *const NativePluginEntryReportV3
+where
+    F: FnOnce() -> *const NativePluginEntryReportV3,
+{
+    match catch_unwind(AssertUnwindSafe(entry)) {
+        Ok(report) => report,
+        Err(payload) => {
+            // Arbitrary panic_any payload destructors can panic again. Dispose
+            // without allowing a second unwind across the extern-C boundary.
+            match catch_unwind(AssertUnwindSafe(|| drop(payload))) {
+                Ok(()) => std::ptr::null(),
+                Err(_secondary_payload) => std::process::abort(),
+            }
+        }
+    }
+}
+
 #[macro_export]
+/// 导出宿主入口函数，并将 Host function table 交给声明的 SDK entry point。
 macro_rules! export_native_plugin_entry_v3 {
     ($entry_fn:ident, $entry_point:expr) => {
         #[no_mangle]
         pub extern "C" fn $entry_fn(
             host_functions: *const $crate::native::NativePluginHostFunctionTableV3,
         ) -> *const $crate::native::NativePluginEntryReportV3 {
-            ($entry_point).entry_report(host_functions)
+            $crate::native::catch_native_entry_panic_v3(|| {
+                ($entry_point).entry_report(host_functions)
+            })
         }
     };
 }
 
 #[macro_export]
+/// 为无状态命令插件生成 descriptor、行为与入口报告静态值，并导出描述符和运行时入口。
 macro_rules! native_command_plugin_v3 {
     (
         plugin_id: $plugin_id:expr,
@@ -777,4 +824,5 @@ macro_rules! native_command_plugin_v3 {
 }
 
 #[cfg(test)]
+#[path = "native/tests/cases.rs"]
 mod tests;

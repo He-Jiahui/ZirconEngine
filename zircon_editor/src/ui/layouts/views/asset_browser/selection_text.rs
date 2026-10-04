@@ -4,6 +4,8 @@ use crate::ui::workbench::snapshot::{
     AssetFolderSnapshot, AssetItemSnapshot, AssetSelectionSnapshot, AssetWorkspaceSnapshot,
 };
 
+const SELECTION_METADATA_SUMMARY_CAPACITY: usize = 5;
+
 pub(super) fn selected_folder(snapshot: &AssetWorkspaceSnapshot) -> Option<&AssetFolderSnapshot> {
     let selected_folder_id = snapshot.selected_folder_id.as_deref()?;
     snapshot
@@ -151,7 +153,7 @@ pub(super) fn selection_diagnostics_text(
 }
 
 pub(super) fn selection_metadata_summary(selection: &AssetSelectionSnapshot) -> String {
-    let mut parts = Vec::new();
+    let mut parts = Vec::with_capacity(selection_metadata_summary_capacity(selection));
     parts.push(if selection.toolkit_view_id.is_empty() {
         "No toolkit".to_string()
     } else {
@@ -176,7 +178,7 @@ pub(super) fn selection_metadata_body(
     selection: &AssetSelectionSnapshot,
     diagnostics: &str,
 ) -> String {
-    let mut lines = Vec::new();
+    let mut lines = Vec::with_capacity(selection_metadata_body_capacity(selection));
     if selection.diagnostics.is_empty() {
         lines.push("No active diagnostics".to_string());
     } else {
@@ -209,83 +211,43 @@ pub(super) fn selection_metadata_body(
     lines.join("\n")
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn folder(
-        folder_id: &str,
-        parent_folder_id: Option<&str>,
-        display_name: &str,
-        asset_count: usize,
-    ) -> AssetFolderSnapshot {
-        AssetFolderSnapshot {
-            folder_id: folder_id.to_string(),
-            parent_folder_id: parent_folder_id.map(str::to_string),
-            display_name: display_name.to_string(),
-            recursive_asset_count: asset_count,
-            ..AssetFolderSnapshot::default()
-        }
+fn selection_metadata_summary_capacity(selection: &AssetSelectionSnapshot) -> usize {
+    let mut capacity = 1usize;
+    if !selection.asset_unit.is_empty() {
+        capacity = capacity.saturating_add(1);
     }
-
-    #[test]
-    fn selected_folder_breadcrumb_keeps_the_project_tree_and_asset_count() {
-        let snapshot = AssetWorkspaceSnapshot {
-            selected_folder_id: Some("res://models/props".to_string()),
-            folder_tree: vec![
-                folder("res://", None, "Content", 12),
-                folder("res://models", Some("res://"), "Models", 8),
-                folder("res://models/props", Some("res://models"), "Props", 5),
-            ],
-            ..AssetWorkspaceSnapshot::default()
-        };
-
-        assert_eq!(
-            selected_folder_breadcrumb(&snapshot).as_deref(),
-            Some("Content / Models / Props / 5 assets")
-        );
+    if selection.package_id.is_some() {
+        capacity = capacity.saturating_add(1);
     }
-
-    #[test]
-    fn selected_folder_breadcrumb_does_not_loop_on_a_cyclic_catalog() {
-        let snapshot = AssetWorkspaceSnapshot {
-            selected_folder_id: Some("res://loop-a".to_string()),
-            folder_tree: vec![
-                folder("res://loop-a", Some("res://loop-b"), "A", 1),
-                folder("res://loop-b", Some("res://loop-a"), "B", 2),
-            ],
-            ..AssetWorkspaceSnapshot::default()
-        };
-
-        let breadcrumb = selected_folder_breadcrumb(&snapshot).expect("selected folder path");
-        assert!(breadcrumb.ends_with(" / 1 assets"));
-        assert!(breadcrumb.len() < 64);
+    if !selection.included_files.is_empty() {
+        capacity = capacity.saturating_add(1);
     }
-
-    #[test]
-    fn selected_folder_breadcrumb_preserves_selection_and_parent_source_priority() {
-        let snapshot = AssetWorkspaceSnapshot {
-            selected_folder_id: Some("res://models/props".to_string()),
-            folder_tree: vec![
-                folder("res://", None, "Content", 12),
-                folder("res://models", Some("res://"), "Tree Models", 8),
-                folder("res://models/props", Some("res://models"), "Tree Props", 5),
-            ],
-            visible_folders: vec![
-                folder("res://models", Some("res://"), "Visible Models", 8),
-                folder(
-                    "res://models/props",
-                    Some("res://models"),
-                    "Visible Props",
-                    7,
-                ),
-            ],
-            ..AssetWorkspaceSnapshot::default()
-        };
-
-        assert_eq!(
-            selected_folder_breadcrumb(&snapshot).as_deref(),
-            Some("Content / Tree Models / Visible Props / 7 assets")
-        );
+    if !selection.subassets.is_empty() {
+        capacity = capacity.saturating_add(1);
     }
+    debug_assert!(capacity <= SELECTION_METADATA_SUMMARY_CAPACITY);
+    capacity
 }
+
+fn selection_metadata_body_capacity(selection: &AssetSelectionSnapshot) -> usize {
+    let mut capacity = 1usize;
+    if !selection.included_files.is_empty() {
+        capacity = capacity
+            .saturating_add(1)
+            .saturating_add(selection.included_files.len());
+    }
+    if !selection.subassets.is_empty() {
+        capacity = capacity
+            .saturating_add(1)
+            .saturating_add(selection.subassets.len());
+    }
+    capacity
+}
+
+#[cfg(test)]
+#[path = "selection_text/tests/capacity_tests.rs"]
+mod capacity_tests;
+
+#[cfg(test)]
+#[path = "tests/selection_text.rs"]
+mod tests;

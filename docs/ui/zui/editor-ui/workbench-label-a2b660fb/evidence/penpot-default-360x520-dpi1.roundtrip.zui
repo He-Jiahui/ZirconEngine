@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/data/workbench_label.zui"
+version = 2
+display_name = "Workbench Label"
+
+[imports]
+widgets = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
+
+[components.WorkbenchLabel]
+root = "root"
+default_classes = ["workbench-label", "workbench-primitive"]
+
+[nodes.root]
+component = "Label"
+control_id = "WorkbenchLabelRoot"
+classes = ["workbench-label"]
+props = { text = "Label", text_overflow = "ellipsis", font_size = "$editor.typography.body.size", font_weight = "$editor.typography.medium.weight", line_height_ratio = "$editor.typography.line_height", text_tone = "primary", foreground_color = "$editor.text.primary", layout_padding_top = "$editor.density.gap.xsmall", layout_padding_bottom = "$editor.density.gap.xsmall" }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.label.min_height", preferred = "$editor.density.label.preferred_height", max = "$editor.density.label.max_height", stretch = "Fixed" } }

@@ -1,4 +1,5 @@
 mod asset_importer;
+mod auxiliary_source;
 mod generate_normals;
 mod gltf_animation_subassets;
 mod gltf_decode;
@@ -23,6 +24,7 @@ mod import_shader;
 #[cfg(any(feature = "graphics", feature = "target-server"))]
 mod import_shader_package;
 #[cfg(test)]
+#[path = "tests/import_sound.rs"]
 mod import_sound;
 mod import_texture;
 mod import_ui_icon_asset;
@@ -34,8 +36,13 @@ mod primitive_from_indexed_mesh;
 mod validate_wgsl;
 
 pub use asset_importer::AssetImporter;
+pub(crate) use auxiliary_source::{open_admitted_file, AuxiliarySourceResolver};
+pub use gltf_animation_subassets::add_gltf_animation_and_skin_subassets;
+pub(crate) use gltf_decode::snapshot_external_gltf_sources;
+pub use gltf_decode::{decode_gltf_source_with_required_extensions, DecodedGltf};
+#[cfg(any(feature = "graphics", feature = "target-server"))]
+pub(crate) use import_shader_package::snapshot_external_shader_sources;
 pub use indexed_mesh_projection::{
-    IndexedMeshMissingNormalPolicy, IndexedMeshSource, backfill_mesh_sdf_for_model,
-    backfill_virtual_geometry_for_model, cook_mesh_asset_derived_data,
-    project_indexed_mesh_primitive,
+    backfill_mesh_sdf_for_model, backfill_virtual_geometry_for_model, cook_mesh_asset_derived_data,
+    project_indexed_mesh_primitive, IndexedMeshMissingNormalPolicy, IndexedMeshSource,
 };

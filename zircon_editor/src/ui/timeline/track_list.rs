@@ -39,14 +39,19 @@ pub fn project_track_list<TrackId>(
 where
     TrackId: Clone,
 {
-    tracks
-        .iter()
-        .map(|track| TimelineTrackRow {
+    let mut rows = Vec::with_capacity(tracks.len());
+    for track in tracks {
+        rows.push(TimelineTrackRow {
             track_id: track.id.clone(),
             display_name: track.display_name.clone(),
             lane_kind: lane_kind_for_value(&track.value_kind),
             key_count: track.keys.len(),
             section_count: track.sections.len(),
-        })
-        .collect()
+        });
+    }
+    rows
 }
+
+#[cfg(test)]
+#[path = "tests/track_list.rs"]
+mod tests;

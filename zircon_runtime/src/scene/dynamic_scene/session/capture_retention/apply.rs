@@ -2,10 +2,10 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use super::super::{
-    RuntimeSessionArchive, RuntimeSessionArchiveCaptureRetentionReport, RuntimeSessionArchiveError,
-    RuntimeSessionArchiveManifest, RuntimeSessionArchivePruneReport,
+    retention, slot_capture, RuntimeSessionArchive, RuntimeSessionArchiveCaptureRetentionReport,
+    RuntimeSessionArchiveError, RuntimeSessionArchiveManifest, RuntimeSessionArchivePruneReport,
     RuntimeSessionArchiveRetentionPolicy, RuntimeSessionSlot,
-    RuntimeSessionSlotCapturePreviewReport, retention, slot_capture,
+    RuntimeSessionSlotCapturePreviewReport,
 };
 
 #[derive(Debug)]
@@ -17,6 +17,7 @@ pub(super) struct RuntimeSessionArchiveCaptureRetentionPlan {
     prune: RuntimeSessionArchivePruneReport,
 }
 
+// 捕获槽位 ID 先加入保护集，再计算全档案或指定标签桶的裁剪结果；标签桶只统计实际带该标签的槽位。
 pub(super) fn prepare_capture_preview_with_retention(
     archive: &RuntimeSessionArchive,
     preview: slot_capture::RuntimeSessionSlotCapturePreview,
@@ -38,6 +39,7 @@ pub(super) fn prepare_capture_preview_with_retention(
 }
 
 impl RuntimeSessionArchiveCaptureRetentionPlan {
+    // 预览清单按保留集合投影出更新或插入后的状态，不改写原档案；报告与提交共享同一捕获快照。
     pub(super) fn report(
         &self,
         archive: &RuntimeSessionArchive,
@@ -49,6 +51,7 @@ impl RuntimeSessionArchiveCaptureRetentionPlan {
         }
     }
 
+    // 仅当准备时的档案代际和修订号仍匹配才允许提交；捕获槽的替换或插入与删除集合通过一次暂存提交共同生效。
     pub(super) fn commit(
         self,
         archive: &mut RuntimeSessionArchive,
@@ -104,5 +107,5 @@ fn retained_slot_id_index(retained_slot_ids: &[String]) -> HashSet<&str> {
 }
 
 #[cfg(test)]
-#[path = "apply/hash_membership_tests.rs"]
+#[path = "apply/tests/hash_membership_tests.rs"]
 mod hash_membership_tests;

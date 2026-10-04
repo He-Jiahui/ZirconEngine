@@ -4,7 +4,7 @@ mod category;
 mod context;
 mod error;
 mod event;
-mod event_journal;
+pub(super) mod event_journal;
 mod event_sink;
 mod id;
 mod job;
@@ -17,6 +17,7 @@ mod shutdown;
 mod spec;
 mod system;
 #[cfg(test)]
+#[path = "tests/test_support.rs"]
 mod test_support;
 mod ticket;
 

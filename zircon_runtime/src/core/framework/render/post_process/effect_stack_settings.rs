@@ -22,6 +22,8 @@ pub use style_settings::{
     RenderFogSettings, RenderVignetteSettings,
 };
 
+/// 体积求值和相机提取共享的创作参数集合；启用谓词决定后处理栈是否安排效果族。
+/// 资源是否已绑定由运行时状态报告，不能把此值对象当作 GPU 资源就绪证明。
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct RenderPostProcessEffectStackSettings {
     pub tonemap: RenderTonemapSettings,
@@ -65,31 +67,5 @@ impl RenderPostProcessEffectStackSettings {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        RenderDitherSettings, RenderPostProcessEffectStackSettings,
-        RenderScreenSpaceReflectionSettings, RenderTonemapOperator, RenderTonemapSettings,
-    };
-
-    #[test]
-    fn extended_effect_stack_settings_enable_product_node_without_retired_fields() {
-        let settings = RenderPostProcessEffectStackSettings {
-            tonemap: RenderTonemapSettings {
-                operator: RenderTonemapOperator::Aces,
-                ..Default::default()
-            },
-            dither: RenderDitherSettings {
-                intensity: 0.1,
-                ..Default::default()
-            },
-            screen_space_reflection: RenderScreenSpaceReflectionSettings {
-                intensity: 0.5,
-                max_steps: 32,
-                ..Default::default()
-            },
-            ..Default::default()
-        };
-
-        assert!(settings.is_enabled());
-    }
-}
+#[path = "tests/effect_stack_settings.rs"]
+mod tests;

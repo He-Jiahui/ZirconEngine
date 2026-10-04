@@ -13,7 +13,7 @@ const SNAPSHOT_METADATA_SUFFIX: &str = ".snapshot.json";
 
 /// The immutable commit marker for one recovery payload.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub(super) struct AutosaveSnapshotMetadata {
+pub(crate) struct AutosaveSnapshotMetadata {
     version: u32,
     document: AutosaveDocumentId,
     source_path: AutosaveSourcePath,
@@ -24,7 +24,7 @@ pub(super) struct AutosaveSnapshotMetadata {
 }
 
 impl AutosaveSnapshotMetadata {
-    pub(super) fn new(
+    pub(crate) fn new(
         document: AutosaveDocumentId,
         source_path: AutosaveSourcePath,
         extension: AutosaveExtension,
@@ -66,7 +66,7 @@ impl AutosaveSnapshotMetadata {
         &self.committed_checksum
     }
 
-    pub(super) fn encode(&self, path: &Path) -> Result<Vec<u8>, AutosaveError> {
+    pub(crate) fn encode(&self, path: &Path) -> Result<Vec<u8>, AutosaveError> {
         serde_json::to_vec(self).map_err(|error| AutosaveError::InvalidRecoveryMetadata {
             path: path.to_path_buf(),
             message: error.to_string(),
@@ -123,11 +123,11 @@ impl AutosaveSnapshotMetadata {
     }
 }
 
-pub(super) fn snapshot_metadata_path(directory: &Path, sequence: u64) -> PathBuf {
+pub(crate) fn snapshot_metadata_path(directory: &Path, sequence: u64) -> PathBuf {
     directory.join(format!("{sequence}{SNAPSHOT_METADATA_SUFFIX}"))
 }
 
-pub(super) fn snapshot_metadata_sequence(name: &str) -> Option<u64> {
+pub(crate) fn snapshot_metadata_sequence(name: &str) -> Option<u64> {
     name.strip_suffix(SNAPSHOT_METADATA_SUFFIX)
         .and_then(|sequence| sequence.parse::<u64>().ok())
         .filter(|sequence| *sequence != 0)

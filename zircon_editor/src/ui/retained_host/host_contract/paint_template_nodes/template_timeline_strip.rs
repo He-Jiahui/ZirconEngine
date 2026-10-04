@@ -1,3 +1,4 @@
+// timeline-strip 专用入口消费 typed generation，先按画布尺寸取得静态刻度缓存，再叠加文本与可变 playhead/key；已认领的无效画布阻止通用 fallback。
 mod geometry;
 mod identity;
 mod keys;
@@ -17,6 +18,7 @@ use palette::timeline_palette;
 use surface::push_timeline_surface;
 use text::push_timeline_text;
 
+/// 供 secondary specialized 链调用；只认领 canvas+timeline-strip。须由上游传已裁剪 node_clip，基础 order 为后续相对图层留空间。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_timeline_strip_commands(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
@@ -69,5 +71,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ti
 }
 
 #[cfg(test)]
-#[path = "template_timeline_strip_tests/mod.rs"]
+#[path = "template_timeline_strip_tests/tests/mod.rs"]
 mod tests;

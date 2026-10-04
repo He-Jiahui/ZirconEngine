@@ -22,7 +22,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束哈希包解析集合：解析状态使用哈希成员关系集合，并选中包顺序保留确定性。
 class HashPackageResolutionSetsPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

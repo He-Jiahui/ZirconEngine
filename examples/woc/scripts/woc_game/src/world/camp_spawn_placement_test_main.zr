@@ -11,6 +11,8 @@ closeEnough(value: float, expected: float): bool {
     return delta < 0.00000001;
 }
 
+// 同一源世界种子贯穿散布、避门、安全落点与地面采样；
+// 两个坐标轴须从同一原始输入查询，向量只验证最终构造位置。
 var seed = <uint>20061;
 
 if (!closeEnough(placement.finalSpawnCoordinate(seed, 10, 4, 1, true), 86.27845763346977) ||
@@ -25,6 +27,7 @@ if (!closeEnough(placement.finalSpawnCoordinate(seed, 12, 1, 1, true), 92.828143
     throw "woc camp dungeon-door construction vector failed";
 }
 
+// 训练假人走固定中心分支；此向量区别于会消耗构造随机数的普通营地。
 if (placement.finalSpawnCoordinate(seed, 36, 0, 1, true) != -40.0 ||
     placement.finalSpawnCoordinate(seed, 36, 0, 2, true) != 648.0 ||
     !closeEnough(placement.finalSpawnGroundY(seed, 36, 0, true), 17.596418813637257)) {

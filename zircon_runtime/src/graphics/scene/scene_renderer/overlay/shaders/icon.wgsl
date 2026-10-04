@@ -1,3 +1,4 @@
+// 场景辅助图标使用世界空间四边形和当前相机投影；纹理只提供遮罩，颜色来自实体实例。
 struct SceneUniform {
     view_proj: mat4x4<f32>,
 };

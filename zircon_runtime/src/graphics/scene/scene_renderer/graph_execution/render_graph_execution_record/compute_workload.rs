@@ -1,9 +1,14 @@
+//! 保存计算 pass 的实际 dispatch 与编译图计划之间的可观察差异。
+//! GPU 生成的间接组数不回读 CPU；审计必须保留“未知”而非伪造组数。
+
 use crate::render_graph::{
     RenderGraphComputeDispatchExtent, RenderGraphComputePipelineResolution,
     RenderGraphComputeWorkload, RenderGraphPassResourceAccess,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 一次实际编码的计算派发及其管线、资源和上传证据。
+/// generic-compute 与内建计算 pass 都向帧执行记录追加此项。
 pub struct RenderGraphComputeDispatchRecord {
     pub pass_name: String,
     pub executor_id: String,
@@ -76,6 +81,7 @@ impl RenderGraphComputeDispatchRecord {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 帧侧可知的网格与间接参数，用于核对编译 workload 的预期派发范围。
 pub struct RenderGraphComputeWorkloadDispatchContext {
     pub cluster_grid_size: [u32; 2],
     pub froxel_grid_size: [u32; 3],
@@ -299,4 +305,5 @@ impl RenderGraphComputeWorkloadAuditRecord {
 }
 
 #[cfg(test)]
+#[path = "compute_workload/tests/cases.rs"]
 mod tests;

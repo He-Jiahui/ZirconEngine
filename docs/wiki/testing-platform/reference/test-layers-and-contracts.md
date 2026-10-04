@@ -3,11 +3,11 @@ related_code:
   - zircon_runtime/tests
   - zircon_editor/tests
   - zircon_app/tests
-  - tools/validate_cargo_test_reachability.py
+  - tools/audits/validate_cargo_test_reachability.py
   - .github/workflows/ci.yml
 implementation_files:
   - tools/tests
-  - tools/check_conventions.py
+  - tools/audits/check_conventions.py
   - Cargo.toml
 plan_sources:
   - docs/plans/mvp/index.md
@@ -76,8 +76,8 @@ cargo +1.94.1 test -p zircon_app --test editor_mvp_authoring --no-default-featur
 CI 先运行 Python 测试，再运行：
 
 ```powershell
-python tools/validate_cargo_test_reachability.py --json
-python tools/validate_cargo_test_reachability.py --manifest-path zircon_plugins/Cargo.toml --json
+python tools/audits/validate_cargo_test_reachability.py --json
+python tools/audits/validate_cargo_test_reachability.py --manifest-path zircon_plugins/Cargo.toml --json
 ```
 
 预期 JSON 中每个 workspace target 都有可达测试目标。新增 `[[test]]`、`required-features` 或 feature gate 时，必须确认测试没有被静默排除。
@@ -87,7 +87,7 @@ python tools/validate_cargo_test_reachability.py --manifest-path zircon_plugins/
 ```powershell
 python -m unittest tools.tests.test_check_conventions tools.tests.test_frameworks_06_ci_toolchain_contract -v
 python -m unittest tools.tests.test_validate_cargo_test_reachability -v
-python tools/check_conventions.py --json
+python tools/audits/check_conventions.py --json
 cargo +1.94.1 fmt --all --check
 cargo +1.94.1 test --workspace --locked
 ```
@@ -202,7 +202,7 @@ cargo +1.94.1 test -p zircon_runtime --test runtime_profiling_recorder_performan
 
 ```powershell
 rg -n "\[\[test\]\]|required-features|autotests" zircon_runtime/Cargo.toml zircon_editor/Cargo.toml zircon_app/Cargo.toml
-python tools/validate_cargo_test_reachability.py --json
+python tools/audits/validate_cargo_test_reachability.py --json
 ```
 
 ## 18. 契约升级策略

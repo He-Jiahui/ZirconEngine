@@ -12,6 +12,7 @@ use super::{
 };
 
 const TREE_ROW_INDENT_STEP: f64 = 20.0;
+const SCENE_NODE_ID: &str = "scene_node_id";
 const SCENE_PARENT_ID: &str = "scene_parent_id";
 const SCENE_SUBTREE_HASH: &str = "scene_subtree_hash";
 
@@ -71,6 +72,10 @@ impl SceneHierarchyFragmentApply {
 }
 
 impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
+    pub(crate) fn set_scene_filter_query(&mut self, query: &str) {
+        self.scene_filter_query = query.to_string();
+    }
+
     pub(crate) fn invalidate_scene_hierarchy_projection(&mut self) {
         self.scene_hierarchy_projection = Default::default();
     }
@@ -149,6 +154,13 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                     &control_id,
                     row,
                     self.scene_hierarchy_projection.is_selected(row.entity),
+                    self.scene_expanded_by_entity
+                        .get(&row.entity)
+                        .copied()
+                        .unwrap_or(false)
+                        || self
+                            .scene_filter_forced_expanded_entities
+                            .contains(&row.entity),
                 )?;
                 changed_controls.insert(control_id);
             }
@@ -331,6 +343,70 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         Ok(())
     }
 
+    /// Synchronize a full product hierarchy snapshot and its entity-owned tree view state.
+    /// Search results reveal their matching ancestor path without changing saved disclosure
+    /// state; clearing the query restores the user's per-entity expansion choices.
+    pub(crate) fn sync_scene_view_state(
+        &mut self,
+        scene_entries: &SceneEntries,
+        filter_query: &str,
+        expanded_ids: &[EntityId],
+    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        let expanded_ids = expanded_ids.iter().copied().collect::<BTreeSet<_>>();
+        self.scene_expanded_by_entity = scene_entries
+            .iter()
+            .map(|row| {
+                (
+                    row.entity,
+                    row.has_children && expanded_ids.contains(&row.entity),
+                )
+            })
+            .collect();
+        self.sync_scene_query_view(scene_entries, filter_query, None, false)
+    }
+
+    /// Apply the current query to authoritative rows while preserving the surface's
+    /// entity-keyed disclosure state.
+    pub(crate) fn sync_scene_query_view(
+        &mut self,
+        scene_entries: &SceneEntries,
+        filter_query: &str,
+        selection_revision: Option<u64>,
+        remember_surface_state: bool,
+    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        if remember_surface_state {
+            self.remember_scene_expansion_by_entity();
+        }
+        let matching_entries = scene_entries.filtered_by_hierarchy_query(filter_query);
+        let forced_expanded = if filter_query.trim().is_empty() {
+            BTreeSet::new()
+        } else {
+            hierarchy_ancestor_entities(&matching_entries)
+        };
+        let rows = if filter_query.trim().is_empty() {
+            rows_visible_with_expansion(&matching_entries, &self.scene_expanded_by_entity)
+        } else {
+            matching_entries.hierarchy_rows_arc().to_vec()
+        };
+        let projected_entries = matching_entries.with_hierarchy_rows(rows);
+        self.sync_scene_entries_internal(
+            &projected_entries,
+            selection_revision,
+            filter_query,
+            forced_expanded,
+        )
+    }
+
+    pub(crate) fn effective_expanded_ids(&self, scene_entries: &SceneEntries) -> Vec<EntityId> {
+        scene_entries
+            .iter()
+            .filter(|row| {
+                row.has_children && self.scene_expanded_by_entity.get(&row.entity) == Some(&true)
+            })
+            .map(|row| row.entity)
+            .collect()
+    }
+
     /// Repairs only the editor-owned selection overlay after a Latest delivery gap.
     pub(crate) fn resync_scene_hierarchy_selection(
         &mut self,
@@ -390,6 +466,19 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         scene_entries: &SceneEntries,
         selection_revision: Option<u64>,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        let filter_query = self.scene_filter_query.clone();
+        self.sync_scene_query_view(scene_entries, &filter_query, selection_revision, true)
+    }
+
+    fn sync_scene_entries_internal(
+        &mut self,
+        scene_entries: &SceneEntries,
+        selection_revision: Option<u64>,
+        filter_query: &str,
+        forced_expanded: BTreeSet<EntityId>,
+    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        self.scene_filter_query = filter_query.to_string();
+        self.scene_filter_forced_expanded_entities = forced_expanded;
         self.reconcile_scene_tree_row_capacity(scene_entries.len())?;
         let controls = self.scene_tree_control_ids()?;
         for (index, control_id) in controls.iter().enumerate() {
@@ -398,8 +487,29 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 self.set_visible(control_id, false)?;
                 continue;
             };
-            self.sync_scene_row(control_id, row, scene_entries.is_selected(row.entity))?;
+            let expanded = self
+                .scene_expanded_by_entity
+                .get(&row.entity)
+                .copied()
+                .unwrap_or(false)
+                || self
+                    .scene_filter_forced_expanded_entities
+                    .contains(&row.entity);
+            self.scene_expanded_by_entity
+                .entry(row.entity)
+                .or_insert(false);
+            self.sync_scene_row(
+                control_id,
+                row,
+                scene_entries.is_selected(row.entity),
+                expanded,
+            )?;
         }
+        self.mutate_control_property(
+            "WorkbenchSceneSearchField",
+            "query",
+            UiValue::String(filter_query.to_string()),
+        )?;
         self.scene_hierarchy_projection.replace(
             scene_entries.inspection_generation(),
             selection_revision,
@@ -410,6 +520,53 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         Ok(())
     }
 
+    fn remember_scene_expansion_by_entity(&mut self) {
+        let Ok(controls) = self.scene_tree_control_ids() else {
+            return;
+        };
+        for control_id in controls {
+            let Some(entity) = self.scene_node_id_for_control(&control_id) else {
+                continue;
+            };
+            let expanded = self.scene_row_expanded(&control_id);
+            if self.scene_filter_forced_expanded_entities.contains(&entity) && expanded {
+                continue;
+            }
+            self.scene_expanded_by_entity.insert(entity, expanded);
+        }
+    }
+
+    fn scene_row_expanded(&self, control_id: &str) -> bool {
+        let Some(node_id) = self.control_node_id(control_id) else {
+            return false;
+        };
+        let node = self.template_surface.surface.tree.nodes.get(&node_id);
+        if let Some(value) = self
+            .template_surface
+            .surface
+            .component_states
+            .get(node_id)
+            .and_then(|state| state.value("expanded"))
+        {
+            if let UiValue::Bool(expanded) = value {
+                return *expanded;
+            }
+        }
+        if self
+            .template_surface
+            .surface
+            .component_states
+            .get(node_id)
+            .is_some_and(|state| state.flags.expanded)
+        {
+            return true;
+        }
+        node.and_then(|node| node.template_metadata.as_ref())
+            .and_then(|metadata| metadata.attributes.get("expanded"))
+            .and_then(toml::Value::as_bool)
+            .unwrap_or(false)
+    }
+
     fn patch_rows_match_current_projection(&self, rows: &[WorldInspectionHierarchyRow]) -> bool {
         rows.iter().all(|row| {
             self.scene_hierarchy_projection.row_identity_matches(row)
@@ -417,14 +574,26 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                     .scene_hierarchy_projection
                     .control_for(row.entity)
                     .is_none_or(|control_id| {
-                        self.control_integer(control_id, "scene_node_id")
-                            == Some(scene_node_id(row.entity))
+                        self.scene_node_id_for_control(control_id) == Some(row.entity)
                             && self.control_integer(control_id, "tree_depth")
                                 == Some(row.depth as i64)
                             && self.control_string(control_id, SCENE_PARENT_ID)
                                 == Some(scene_parent_id(row.parent))
                     })
         })
+    }
+
+    fn scene_node_id_for_control(&self, control_id: &str) -> Option<EntityId> {
+        let node_id = self.control_node_id(control_id)?;
+        self.template_surface
+            .surface
+            .tree
+            .nodes
+            .get(&node_id)
+            .and_then(|node| node.template_metadata.as_ref())
+            .and_then(|metadata| metadata.attributes.get(SCENE_NODE_ID))
+            .and_then(toml::Value::as_str)
+            .and_then(|id| id.parse().ok())
     }
 
     fn selection_entities_exist(
@@ -444,6 +613,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         control_id: &str,
         row: &WorldInspectionHierarchyRow,
         selected: bool,
+        expanded: bool,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         self.set_visible(control_id, true)?;
         self.mutate_control_property(
@@ -459,8 +629,8 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         )?;
         self.mutate_control_property(
             control_id,
-            "scene_node_id",
-            UiValue::Int(scene_node_id(row.entity)),
+            SCENE_NODE_ID,
+            UiValue::String(row.entity.to_string()),
         )?;
         self.mutate_control_property(
             control_id,
@@ -472,18 +642,37 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             SCENE_SUBTREE_HASH,
             UiValue::String(row.subtree_hash.to_string()),
         )?;
-        self.mutate_control_property(control_id, "expanded", UiValue::Bool(row.has_children))?;
+        self.mutate_control_property(control_id, "expanded", UiValue::Bool(expanded))?;
         self.set_selected(control_id, selected)?;
         Ok(())
     }
 }
 
-fn scene_node_id(entity: u64) -> i64 {
-    entity.min(i64::MAX as u64) as i64
-}
-
 fn scene_parent_id(parent: Option<u64>) -> String {
     parent.map_or_else(String::new, |entity| entity.to_string())
+}
+
+fn rows_visible_with_expansion(
+    rows: &[WorldInspectionHierarchyRow],
+    expanded_by_entity: &std::collections::BTreeMap<EntityId, bool>,
+) -> Vec<WorldInspectionHierarchyRow> {
+    let mut visible_entities = BTreeSet::new();
+    let mut visible_rows = Vec::with_capacity(rows.len());
+    for row in rows {
+        let visible = row.parent.is_none_or(|parent| {
+            visible_entities.contains(&parent)
+                && expanded_by_entity.get(&parent).copied().unwrap_or(false)
+        });
+        if visible {
+            visible_entities.insert(row.entity);
+            visible_rows.push(row.clone());
+        }
+    }
+    visible_rows
+}
+
+fn hierarchy_ancestor_entities(rows: &[WorldInspectionHierarchyRow]) -> BTreeSet<EntityId> {
+    rows.iter().filter_map(|row| row.parent).collect()
 }
 
 fn non_empty_label(value: &str, fallback: &str) -> String {
@@ -494,3 +683,7 @@ fn non_empty_label(value: &str, fallback: &str) -> String {
         trimmed.to_string()
     }
 }
+
+#[cfg(test)]
+#[path = "tests/scene_hierarchy_fragment.rs"]
+mod tests;

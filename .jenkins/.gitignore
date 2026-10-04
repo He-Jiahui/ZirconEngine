@@ -1,0 +1,8 @@
+/*
+!/.gitignore
+!/README.md
+!/deployment-spec.json
+!/workflow-spec.json
+!/plugins.lock
+!/plugin-checksums.json
+!/pipeline/

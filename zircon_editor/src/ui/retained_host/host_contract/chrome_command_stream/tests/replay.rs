@@ -9,6 +9,7 @@ use super::support::{
     ROOT_OVERLAY_FRAME_SIZE, ROOT_OVERLAY_IMAGE_HEIGHT, ROOT_OVERLAY_IMAGE_WIDTH,
     ROOT_OVERLAY_UPLOAD_BYTES,
 };
+use crate::scene::viewport::{RenderViewportHandle, RenderViewportProduct};
 use crate::ui::retained_host::host_contract::data::{FrameRect, HostClosePromptData};
 use crate::ui::retained_host::host_contract::paint_workbench::{
     paint_host_frame, repaint_host_frame_region,
@@ -135,6 +136,43 @@ fn full_command_stream_matches_legacy_painter_pixels() {
 }
 
 #[test]
+fn gpu_viewport_product_generation_reaches_the_chrome_image_command() {
+    let mut presentation = presentation_with_viewport_image();
+    let rgba_stream = build_chrome_command_stream(&presentation, (200, 200), None, true);
+    let rgba_image = rgba_stream
+        .commands()
+        .iter()
+        .find_map(|command| match &command.kind {
+            ChromeCommandKind::Image { payload }
+                if payload.resource_key == "viewport:test-initial" =>
+            {
+                Some(payload)
+            }
+            _ => None,
+        })
+        .expect("CPU viewport image command");
+    assert_eq!(rgba_image.resource_generation, 0);
+
+    let product = RenderViewportProduct::new(RenderViewportHandle::new(7), 2, 2, 13);
+    let image = super::super::super::data::HostViewportImageData::from_viewport_product(product)
+        .expect("GPU viewport product should become a host image");
+    assert!(presentation.viewport_images.replace_scene(image));
+    let gpu_stream = build_chrome_command_stream(&presentation, (200, 200), None, true);
+    let gpu_image = gpu_stream
+        .commands()
+        .iter()
+        .find_map(|command| match &command.kind {
+            ChromeCommandKind::Image { payload } if payload.resource_key == "viewport:7:13" => {
+                Some(payload)
+            }
+            _ => None,
+        })
+        .expect("GPU viewport image command");
+    assert_eq!(gpu_image.resource_generation, 13);
+    assert!(gpu_image.rgba.is_none());
+}
+
+#[test]
 fn full_command_stream_replays_root_overlay_image_pixels() {
     let presentation = presentation_with_root_overlay_image();
     let legacy = paint_host_frame(
@@ -186,6 +224,7 @@ fn patch_command_stream_matches_legacy_region_repaint_pixels() {
         .viewport_images
         .replace_scene(super::super::super::data::HostViewportImageData {
             resource_key: "viewport:test-patch".into(),
+            resource_generation: 0,
             width: 2,
             height: 2,
             rgba: Some(

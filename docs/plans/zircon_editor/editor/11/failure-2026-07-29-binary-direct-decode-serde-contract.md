@@ -71,3 +71,125 @@ Open state: `待修复`; Text09 remains active and continues its independently v
 - 2026-07-30 | `open / broader-current-source-green / text09-upward-pending` | 当前 exact32 源的 broader serialization job/run `be60c135d75d4b57a8ff09d10e9ef21d` / `e581979bac5f4bfd8633c393cfd7982e` 重新运行 63 项并得到 `62 passed / 0 failed / 1 ignored`；Binary direct bool/enum/current decode、malformed 和 typed error 合同均在该 GREEN 集内。完整 402 输入前后保持 `fa51e11fded0881cd4c641fb5c41a0250265fd04afcbe710844037ecfae0aeaf`，snapshot1313 interim review 为 `C0/I0/M0/Minor0`。Text09 原命令、最终 fresh exact32 review、fixed return 与受管提交仍未完成，failure 保持 open。
 - 2026-07-30 | `open / full-interface-green / text09-upward-pending` | Fresh full-package reservation/job/run `3b301ffebcb54fb881e02291fe40e2d4` / `ac76251fad174b18a80bc3dbaa1745a3` / `dd5e4239cf664f038f51934dc38292a4` passed unit `338/0/1`, integration `3/3`, and doc-tests `0`; complete 402-input pre/post fingerprint was `18a0b4f7ad2a3f6e0255e76a44f8080b9c067cb8e78d8bb189327cec732d962a`. The exact Text09 reproduction, final expanded-scope review, fixed return and managed commit remain required.
 - 2026-08-28 | `open / text09-upward-rerun-reached-foreign-rhi-compile-debt` | Fresh managed job `e91cafa704a644878089247129b8c8dd` ran the exact `text_cache_indexes_keep_hot_lookup_and_eviction_work_constant` reproduction and released normally with exit `1` and no live process PIDs. `zircon_runtime_interface` compiled without a direct-decode diagnostic, but the target test executed `0`: `zr_rhi_wgpu` stopped first with three external E0308 errors at `production/device/diagnostics.rs:665/722/771`, where untracked current-source callers still pass `u32` to `DiagnosticTextureReadbackLayout::new(u64, u32)`. The two RHI paths had no attribution, lease, or active Session scope at the observation boundary, so this owner did not absorb or modify them. The failure remains open pending the RHI lower-owner return and a fresh execution of the same managed command.
+
+### 2026-09-08 Exact Existing Repair And Current Gate
+
+Stable fixing Session `failure-roll-01a07160-editor11` preserves the existing decoder,
+module registration and binary contract tests, all unchanged from HEAD and archived
+snapshot 2091. Transfer `6a6001c4b6584e6ea47b863730648761` establishes the current
+ownership; source snapshot 3129 and pre-edit record snapshot 3130 retain the exact bytes.
+`deserialize_bool` accepts only a binary Bool, and enum discriminants are owned before
+the decoder is borrowed again. No new serializer implementation was introduced.
+
+Managed Windows job `61f0ee23ee454d509a19f5a075dcd57a` used
+`cargo test -p zircon_runtime_interface --no-default-features --locked --lib serialization::tests::`
+with static linking and coordinator reuse storage. Input
+`E:/cargo-targets/zircon-engine/cache/build-benchmarks/runtime25-project-paths-support-3095-20260908`
+has digest `32efa2999d8e8e6a86707ebecf8e10e53d6e68bf89287f60c2c02483b9f66870`;
+`results/editor11-serialization-contract.{json,log}` preserves the receipt and diagnostics.
+All serialization files match this input. The attempt stopped at 23 unrelated interface
+test-compilation errors and ran zero target tests. It is not a current serialization pass.
+
+The UI-contract subset is now repaired by Interface03 source snapshot 3128 under its
+separate owner; the linked
+[ActivateLink failure](../../../optimize/zircon_runtime_interface/03/2026-09-09-runtime-interface-ui-activate-link-field-mismatch-return.md)
+records that dependency. The remaining project and command-contract diagnostics retain
+their respective owners. Fresh serialization execution, the exact Text09 reproduction,
+independent review, formal closeout binding and fixed return remain pending.
+
+### 2026-09-08 Serialization Regressions Executed
+
+Managed Windows job `f95f64a6a06345d3940884140d9e3e50` used the exact derived input
+`E:/cargo-targets/zircon-engine/cache/build-benchmarks/interface-library-consumers-3137-20260908`,
+digest `484b58e5512bb5619941864b4906bbfaaeef0cff78f89267586fe6e4b00d2b63`.
+This input retains every serialization source byte and overlays Interface03, Editor08 and
+App07 test-compilation repairs under their own snapshot owners. The full locked/static,
+no-default-features interface library run compiled and executed 739 passing, 23 failing
+and 101 ignored tests. Its `serialization::tests::*` subset executed 72 passing tests,
+zero failures and one ignored 512 MiB streaming test. Direct Bool, enum variants,
+numeric object keys, current typed payload and malformed binary tests all passed.
+`results/interface-library-3137.{json,log}` retains names, commands and managed receipt.
+The 23 failures are outside this serialization subset; the whole library is not green.
+Text09 upward reproduction, independent source review and formal fixing-Session closeout
+binding remain required. This lifecycle stays open.
+
+The 2026-09-08 independent review of source 3129 and record 3145 returned
+Critical 0 / Important 0 / Moderate 0. The preserved result is
+`.codex/tmp/interface-app-editor-3137-review-20260908-result.txt`; it verified strict Bool
+decoding, owned enum discriminants, map-key/payload boundaries and the original binary
+regressions. Current/attribution/ObjectStore and immutable-input source hashes matched
+before and after review, with no reviewer ownership conflict. Source review is complete;
+Text09 upward reproduction, full-library failures and formal closeout binding remain pending.
+
+### 2026-09-19 Rolling successor formal source binding
+
+- Successor Session `failure-roll-01a084c8-editor11-binary-direct-decode-r1` reclaimed the
+  archived exact-path ownership through coordinator transfer fingerprint
+  `39b7feca8c2b84eebfdb09e02e09fae4336bd4ac5a86d3bac0a86aed375840bc` at baseline epoch
+  `611`; no source bytes were changed during attribution.
+- Formal non-Cargo source-contract ticket `77300940c68c460bb04b325bafbb8feb` was admitted
+  from request `failure-roll-01a084c8-editor11-binary-direct-decode-20260919-r1` and is
+  currently `queued`. Its sealed source-manifest hash is
+  `a301ca95516dce7cc53c1680c586812f7ea34879012d5b55552c52962ba382ae`:
+
+  | path | SHA-256 |
+  | --- | --- |
+  | `docs/plans/zircon_editor/editor/11/failure-2026-07-29-binary-direct-decode-serde-contract.md` | `b0b382eb870242002d1da6b29cb30655c6e7b977c4864a0ec430af7260686792` |
+  | `zircon_runtime_interface/src/serialization/binary/value/direct_decode.rs` | `671ffedb482c4af713c8081e4c251b86ff3fa1ca1185c3541a293c252f6e1592` |
+  | `zircon_runtime_interface/src/serialization/binary/value/mod.rs` | `3ee584707f2233ab607e135ced27c1b10640552a6a420a434773a04a98d5b41f` |
+  | `zircon_runtime_interface/src/serialization/tests/binary_contract.rs` | `0f318e61b34bbba9cdf535d45b069016f18b67f7ad83166d3ff6f0db2f68a7f5` |
+
+- The ticket executes a Windows PowerShell/rustfmt source-contract parse covering the full
+  `Deserializer` bool implementation, owned enum discriminant, module export and binary
+  regression anchors. It explicitly defers a fresh current-source interface Cargo gate, the
+  exact Text09 cache reproduction, upward Editor11 gates, independent C/I/M review, canonical
+  fixed return and closeout. Earlier serialization GREEN jobs remain supporting evidence only.
+- Failure remains `open`; no fixed return, commit, or notification is claimed. The external
+  `E:\Git\zr_vm` dirty-worktree blocker remains recorded for gates that require it.
+
+### Ticket correction after source-contract assertion failure
+
+- Prior ticket `77300940c68c460bb04b325bafbb8feb` reached its immutable command and failed only
+  because the source parser expected an obsolete `direct_decode::decode` re-export. The current
+  module exports `decode_binary_value_direct`; no source or behavior failure was observed.
+- Corrected request `failure-roll-01a084c8-editor11-binary-direct-decode-20260919-r2` admits
+  ticket `80b5c56a27e34c31be5820cb9895dd9f` with the actual export anchor. Its sealed manifest
+  hash is `6690105bf28b110c06f6af070f7d4d659b42df0914c2d776d5b669f08e5897f6` and status is
+  `queued`; the old ticket remains failed evidence and is not reused.
+
+### Corrected source-contract ticket terminal result
+
+- Ticket `77300940c68c460bb04b325bafbb8feb` remains failed evidence for the obsolete export
+  assertion; it did not identify a source or behavior failure.
+- Corrected ticket `80b5c56a27e34c31be5820cb9895dd9f` completed `passed` at
+  `2026-09-19T05:01:00.869553Z` (exit code 0), with immutable Windows output
+  `EDITOR11_BINARY_DIRECT_DECODE_SOURCE_CONTRACT_PARSE_PASS`. Its sealed manifest hash is
+  `6690105bf28b110c06f6af070f7d4d659b42df0914c2d776d5b669f08e5897f6`. The result is limited
+  to current-source parsing; interface Cargo, Text09/upward gates, independent C/I/M review,
+  fixed return and closeout remain pending.
+
+### 2026-09-21 Independent current-source review receipt
+
+- Reviewer Session `review-editor11-binary-direct-decode-r1` claimed this failure document
+  through coordinator request `bba3a57e0bcf41ce869ff88b87a62deb`; the three production/test
+  files remained clean relative to the shared checkout and matched the corrected ticket
+  manifest. The document is the only owned path with receipt drift.
+- Current immutable source hashes at review time were:
+  `direct_decode.rs` `671ffedb482c4af713c8081e4c251b86ff3fa1ca1185c3541a293c252f6e1592`,
+  `value/mod.rs` `3ee584707f2233ab607e135ced27c1b10640552a6a420a434773a04a98d5b41f`, and
+  `binary_contract.rs` `0f318e61b34bbba9cdf535d45b069016f18b67f7ad83166d3ff6f0db2f68a7f5`.
+- Read-only checks passed: `rustfmt +1.94.1 --edition 2021 --config skip_children=true
+  --check` over all three files; scoped `git diff --check`; and a source-contract probe
+  confirming the `Deserializer` implementation, strict `deserialize_bool`, owned enum
+  discriminant before the second decoder borrow, the current
+  `decode_binary_value_direct` export, no `serde_json::Value` materialization, and the
+  bool/enum, numeric-key, typed-current, wire-golden, and schema-error regression anchors.
+  Probe terminal marker: `EDITOR11_BINARY_DIRECT_DECODE_SOURCE_REVIEW_PASS`.
+- Independent findings: `Critical=0`, `Important=0`, `Moderate=0`. The review confirms the
+  shared decoder is the lowest repair layer and found no compatibility shim, relaxed type
+  acceptance, overlapping enum borrow, or stale module export in the current snapshot.
+- This is a source-only review receipt. Fresh managed `zircon_runtime_interface` Cargo,
+  exact Text09 cache reproduction, broader Editor11/upward gates, and the external
+  `E:\Git\zr_vm` blocker remain unresolved. Historical green jobs and supervisor-only
+  failures are not reused; canonical fixed return, review handoff, closeout, commit, and
+  notification remain pending.

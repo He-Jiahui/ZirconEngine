@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use crate::core::jobs::{
@@ -20,8 +21,7 @@ pub(super) struct ViewportState {
     pub(super) jobs: Option<EditorJobSystem>,
     pub(super) render_framework_cancel: Option<CancellationToken>,
     pub(super) render_framework_task: Option<JobTicket<ManagerServiceHandle<dyn RenderFramework>>>,
-    pub(super) viewport: Option<ActiveViewport>,
-    pub(super) latest_generation: Option<u64>,
+    pub(super) viewports: BTreeMap<String, ActiveViewport>,
     pub(super) last_error: Option<String>,
     pub(super) last_world_space_ui_surfaces: Vec<WorldSpaceUiSurfaceSubmission>,
     pub(super) world_space_ui_generation: u64,
@@ -64,6 +64,14 @@ impl ViewportState {
             return self.resolve_stored_render_framework();
         }
 
+        if self.render_framework_task.is_some()
+            && self.render_framework_cancel.is_some()
+            && !self.has_active_project()?
+        {
+            self.cancel_pending_render_framework_resolve();
+            return Ok(None);
+        }
+
         if self.render_framework_task.is_some() {
             let result = self
                 .render_framework_task
@@ -91,6 +99,12 @@ impl ViewportState {
             ));
         };
 
+        // The host can draw Welcome with its standalone presenter. Starting the scene renderer
+        // before project activation would build a pipeline cache without a project root.
+        if !self.has_active_project()? {
+            return Ok(None);
+        }
+
         let Some(jobs) = self.jobs.as_ref() else {
             return Err(RenderFrameworkError::Backend(
                 "editor jobs were not configured for viewport lazy resolve".to_string(),
@@ -112,6 +126,27 @@ impl ViewportState {
         );
         self.render_framework_cancel = Some(cancel);
         Ok(None)
+    }
+
+    fn has_active_project(&self) -> Result<bool, RenderFrameworkError> {
+        let Some(access) = &self.render_framework_access else {
+            return Err(RenderFrameworkError::Backend(
+                "render framework was not configured for the editor viewport".to_string(),
+            ));
+        };
+        access
+            .has_active_project()
+            .map_err(|error| RenderFrameworkError::Backend(error.to_string()))
+    }
+
+    fn cancel_pending_render_framework_resolve(&mut self) {
+        if let Some(cancel) = self.render_framework_cancel.take() {
+            cancel.cancel();
+        }
+        if let (Some(jobs), Some(task)) = (&self.jobs, &self.render_framework_task) {
+            jobs.cancel(task.id());
+        }
+        self.render_framework_task = None;
     }
 
     pub(super) fn resolve_stored_render_framework(
@@ -145,8 +180,7 @@ impl ViewportState {
             jobs: None,
             render_framework_cancel: None,
             render_framework_task: None,
-            viewport: None,
-            latest_generation: None,
+            viewports: BTreeMap::new(),
             last_error: None,
             last_world_space_ui_surfaces: Vec::new(),
             world_space_ui_generation: 0,

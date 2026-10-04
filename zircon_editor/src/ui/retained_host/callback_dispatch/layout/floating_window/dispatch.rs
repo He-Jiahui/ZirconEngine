@@ -3,20 +3,12 @@ use crate::ui::retained_host::event_bridge::UiHostEventEffects;
 use crate::ui::workbench::layout::{LayoutCommand, MainPageId};
 
 use super::super::dispatch_layout_command;
-use super::resolution::resolve_floating_window_focus_instance;
 
 pub(crate) fn dispatch_builtin_floating_window_focus(
     runtime: &EditorHostEventController,
     window_id: &MainPageId,
 ) -> Option<Result<UiHostEventEffects, String>> {
-    let chrome = runtime.chrome_snapshot();
-    let context = runtime.project_command_eval_snapshot(&chrome);
-    let model = runtime.build_workbench_view_model(&chrome, &context);
-    let window = model
-        .floating_windows
-        .iter()
-        .find(|window| &window.window_id == window_id)?;
-    let instance_id = resolve_floating_window_focus_instance(window)?;
+    let instance_id = runtime.floating_window_focus_target(window_id)?;
     Some(dispatch_layout_command(
         runtime,
         LayoutCommand::FocusView { instance_id },

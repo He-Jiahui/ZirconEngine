@@ -1,3 +1,4 @@
+// 按一致性场景选取进度与物品内容，生成固定的 M5 JSON 目录。
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -252,6 +253,7 @@ const checkOnly = process.argv.includes('--check');
 
 main();
 
+// 先确定一致性场景对应的源码标识，再对选中记录计算哈希并写入目录。
 function main() {
   execFileSync('git', ['-C', sourceRoot, 'cat-file', '-e', `${SOURCE_COMMIT}^{commit}`]);
   const parity = JSON.parse(readFileSync(parityCatalogPath, 'utf8'));

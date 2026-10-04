@@ -27,7 +27,7 @@ def function_header(source: str, signature: str) -> str:
     start = source.index(signature)
     return source[start : source.index("{", start)]
 
-
+# 读取实现源码约束借用 ZRVM 生命周期条目模块：生命周期调用不克隆条目模块，并可选导出辅助函数借用仅运行时归属。
 class BorrowedZrVmLifecycleEntryModulePerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

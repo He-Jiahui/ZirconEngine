@@ -69,16 +69,14 @@ fn rendering_reflection_probes_descriptor() -> RenderFeatureDescriptor {
             "post_process".to_string(),
         ],
         Vec::new(),
-        vec![
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::PostProcess,
-                "reflection-probe-composite",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("lighting.reflection-probes")
-            .read_texture("scene-color")
-            .write_texture("scene-color"),
-        ],
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "reflection-probe-composite",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("lighting.reflection-probes")
+        .read_texture("scene-color")
+        .write_texture("scene-color")],
     )
 }
 
@@ -87,16 +85,14 @@ fn rendering_baked_lighting_descriptor() -> RenderFeatureDescriptor {
         "baked_lighting",
         vec!["lighting".to_string(), "post_process".to_string()],
         Vec::new(),
-        vec![
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::PostProcess,
-                "baked-lighting-composite",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("lighting.baked-composite")
-            .read_texture("scene-color")
-            .write_texture("scene-color"),
-        ],
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "baked-lighting-composite",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("lighting.baked-composite")
+        .read_texture("scene-color")
+        .write_texture("scene-color")],
     )
 }
 

@@ -1,3 +1,4 @@
+use super::super::chrome_template_projection::dock_overflow_frame;
 use super::*;
 
 /// Rebuilds only geometry-bearing scene data from the last stable domain scene.
@@ -24,6 +25,20 @@ pub(crate) fn build_host_scene_geometry(
         .max(host_layout.bottom_region_frame.width)
         .max(0.0);
     let metrics = surface_metrics_from_chrome_assets(shell_width);
+    scene.document_leaves = super::document_leaves::build_document_leaves(
+        host_surface_data,
+        host_shell,
+        host_layout,
+        &metrics,
+        |leaf, _, _| {
+            current
+                .document_leaves
+                .iter()
+                .find(|dock| dock.surface_key.as_str() == format!("document:{}", leaf.node_id))
+                .map(|dock| dock.pane.clone())
+                .unwrap_or_else(|| leaf.pane.clone())
+        },
+    );
     let orchestration =
         surface_orchestration_data(host_surface_data, host_shell, host_layout, &metrics);
 
@@ -123,6 +138,7 @@ pub(crate) fn build_host_scene_geometry(
         surface_key: "document".into(),
         header_nodes: document_header_nodes.clone(),
         header_frame: dock_header_frame(&document_header_nodes),
+        overflow_frame: dock_overflow_frame(&document_header_nodes),
         subtitle_frame: dock_subtitle_frame(&document_header_nodes),
         content_frame: FrameRect {
             x: 0.0,
@@ -217,36 +233,5 @@ pub(crate) fn build_host_scene_geometry(
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn geometry_builder_does_not_invoke_semantic_pane_projection() {
-        let source = include_str!("geometry.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("geometry production source");
-        let function = production
-            .split("pub(crate) fn build_host_scene_geometry")
-            .nth(1)
-            .expect("geometry builder source");
-
-        assert!(function.contains("current.clone()"));
-        assert!(function.contains("rebuild_left_dock_geometry"));
-        for forbidden in [
-            "pane_with_host_owned_shell_layouts(",
-            "pane_with_ui_asset_nodes(",
-            "pane_with_hierarchy_projection(",
-            "pane_with_inspector_projection(",
-            "pane_with_assets_activity_projection(",
-            "pane_with_asset_browser_projection(",
-            "pane_with_project_overview_projection(",
-            "pane_with_animation_projection(",
-            "floating_windows_with_pane_shell_layouts(",
-        ] {
-            assert!(
-                !function.contains(forbidden),
-                "geometry builder must not invoke {forbidden}"
-            );
-        }
-    }
-}
+#[path = "tests/geometry.rs"]
+mod tests;

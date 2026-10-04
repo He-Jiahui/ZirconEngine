@@ -1,5 +1,6 @@
 ﻿use super::*;
 
+// zmaterial 往返要使类型化 PBR 字段与作者覆写保持一致，并保留纹理引用、变换和自定义属性。
 #[test]
 fn material_asset_zmaterial_roundtrip_maps_pbr_fields_to_shader_overrides() {
     let material = MaterialAsset {

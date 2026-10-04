@@ -14,6 +14,8 @@ use zircon_runtime::core::CoreHandle;
 use zircon_runtime::scene::components::AnimationStateMachinePlayerComponent;
 use zircon_runtime::scene::{EntityId, LevelSystem};
 
+use super::animation_evaluation_pipeline::PresentationPoseChange;
+use super::diagnostics::AnimationSceneFrameDiagnostics;
 use super::direct_clip_worker::sample_direct_clip_pose_requests;
 use super::events::{enqueue_clip_event_samples, publish_clip_events, publish_events};
 use super::graph_evaluate::resolve_graph_pose_requests;
@@ -25,18 +27,18 @@ use super::sequences::{apply_loaded_sequences, LoadedSequenceSample};
 use super::simulated_pose_blend::blend_simulated_pose_feed;
 use super::state_machine_layers::apply_state_machine_layers;
 use super::state_machine_step::resolve_state_machine_pose_requests;
-use super::{AnimationEvaluationPipeline, PresentationPoseChange};
+use super::AnimationEvaluationPipeline;
 pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta_seconds: Real) {
     let Ok(animation) =
         animation_manager_handle(core).and_then(|handle| resolve_manager_service(core, handle))
     else {
-        record_empty_animation_state(level);
+        record_empty_animation_state(core, level);
         return;
     };
 
     let playback_settings = animation.playback_settings();
     if !playback_settings.enabled {
-        record_empty_animation_state(level);
+        record_empty_animation_state(core, level);
         return;
     }
 
@@ -60,7 +62,7 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
             let pipeline = world.resource_mut::<AnimationEvaluationPipeline>();
             let _ = pipeline.begin_evaluation_frame(replacement_epoch);
             (
-                std::mem::take(&mut pipeline.projection),
+                pipeline.take_projection(),
                 pipeline.clip_event_admission_cursor(),
             )
         })
@@ -78,6 +80,7 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
         return;
     };
     let mut scan = transaction.scan;
+    let mut frame_diagnostics = AnimationSceneFrameDiagnostics::from_scan(&scan);
     let mut clip_player_updates = transaction.clip_player_updates;
     let mut sequence_player_updates = transaction.sequence_player_updates;
     let revision_stage = transaction.revision_stage;
@@ -105,7 +108,7 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
             level.with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
                 let pipeline = world.resource_mut::<AnimationEvaluationPipeline>();
                 projection.commit_revision_stage(revision_stage, &admission.deferred_entities);
-                pipeline.projection = projection;
+                pipeline.restore_projection(projection);
                 pipeline.set_clip_event_admission_cursor(admission.next_cursor);
                 let update =
                     pipeline.update_presentation_poses(&scan.pose_source_entities, BTreeMap::new());
@@ -124,11 +127,14 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
             &mut sequence_player_updates,
             &admission.deferred_entities,
         );
-        if !apply_sequence_player_updates(level, replacement_epoch, sequence_player_updates)
-            || !publish_events(level, replacement_epoch, admission.diagnostics)
-        {
+        if !apply_sequence_player_updates(level, replacement_epoch, sequence_player_updates) {
             return;
         }
+        let Some(published_events) =
+            publish_events(level, replacement_epoch, admission.diagnostics)
+        else {
+            return;
+        };
         if let Some(change) = pose_change {
             if !publish_skeletal_pose_targets(level, replacement_epoch, &pose_snapshot, &change) {
                 return;
@@ -145,6 +151,8 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
         ) {
             return;
         }
+        frame_diagnostics.published_events = published_events;
+        frame_diagnostics.record(core);
         return;
     };
 
@@ -173,15 +181,19 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
     else {
         return;
     };
-    if had_queued_clip_events && !publish_clip_events(asset_manager, level, replacement_epoch) {
-        return;
+    let mut published_events: usize = 0;
+    if had_queued_clip_events {
+        let Some(event_count) = publish_clip_events(asset_manager, level, replacement_epoch) else {
+            return;
+        };
+        published_events = published_events.saturating_add(event_count);
     }
     let state_machine_sample_entities = scan
         .state_machine_samples
         .iter()
         .map(|pending| pending.entity)
         .collect::<BTreeSet<_>>();
-    let (
+    let Some((
         mut animation_poses,
         graph_poses,
         graph_event_samples,
@@ -191,10 +203,10 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
         mut active_state_updates,
         mut transition_updates,
         state_machine_journal,
-    ) = level.with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
+    )) = level.with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
         let pipeline = world.resource_mut::<AnimationEvaluationPipeline>();
         pipeline.begin_state_machine_runtime_transaction(&state_machine_sample_entities);
-        pipeline.projection = projection;
+        pipeline.restore_projection(projection);
         pipeline
             .clip_evaluator_mut()
             .bind_resources(&asset_manager.resource_manager());
@@ -255,9 +267,7 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
     if level
         .with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
             let pipeline = world.resource_mut::<AnimationEvaluationPipeline>();
-            pipeline
-                .projection
-                .commit_revision_stage(revision_stage, &admission.deferred_entities);
+            pipeline.commit_projection_revision_stage(revision_stage, &admission.deferred_entities);
             pipeline.finish_clip_event_admission(
                 state_machine_journal,
                 &admission.deferred_entities,
@@ -297,18 +307,35 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
                 .drain_clip_evaluation_diagnostics_excluding(&admission.deferred_entities)
         })
         .unwrap_or_default();
-    if (!loaded_sequences.is_empty()
-        && !apply_loaded_sequences(level, replacement_epoch, &loaded_sequences))
-        || !apply_sequence_player_updates(level, replacement_epoch, sequence_player_updates)
-        || !publish_events(level, replacement_epoch, admission.diagnostics)
-        || (!had_queued_clip_events
-            && !publish_clip_events(asset_manager, level, replacement_epoch))
-        || !apply_clip_player_updates(level, replacement_epoch, clip_player_updates)
-        || !publish_events(level, replacement_epoch, layer_diagnostics)
-        || !publish_events(level, replacement_epoch, evaluation_diagnostics)
+    if !loaded_sequences.is_empty()
+        && !apply_loaded_sequences(level, replacement_epoch, &loaded_sequences)
     {
         return;
     }
+    if !apply_sequence_player_updates(level, replacement_epoch, sequence_player_updates) {
+        return;
+    }
+    let Some(event_count) = publish_events(level, replacement_epoch, admission.diagnostics) else {
+        return;
+    };
+    published_events = published_events.saturating_add(event_count);
+    if !had_queued_clip_events {
+        let Some(event_count) = publish_clip_events(asset_manager, level, replacement_epoch) else {
+            return;
+        };
+        published_events = published_events.saturating_add(event_count);
+    }
+    if !apply_clip_player_updates(level, replacement_epoch, clip_player_updates) {
+        return;
+    }
+    let Some(event_count) = publish_events(level, replacement_epoch, layer_diagnostics) else {
+        return;
+    };
+    published_events = published_events.saturating_add(event_count);
+    let Some(event_count) = publish_events(level, replacement_epoch, evaluation_diagnostics) else {
+        return;
+    };
+    published_events = published_events.saturating_add(event_count);
     if level
         .with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
             let pipeline = world.resource::<AnimationEvaluationPipeline>();
@@ -349,9 +376,13 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
         }
     }
 
-    if !apply_pose_transforms_to_scene_nodes(level, replacement_epoch, &animation_poses) {
+    frame_diagnostics.output_poses = animation_poses.len();
+    let Some(applied_transforms) =
+        apply_pose_transforms_to_scene_nodes(level, replacement_epoch, &animation_poses)
+    else {
         return;
-    }
+    };
+    frame_diagnostics.applied_transforms = applied_transforms;
     let Some((pose_snapshot, pose_change)) =
         level.with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
             let pipeline = world.resource_mut::<AnimationEvaluationPipeline>();
@@ -373,6 +404,8 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
     if !level.record_animation_pose_snapshot(replacement_epoch, pose_snapshot) {
         return;
     }
+    frame_diagnostics.published_events = published_events;
+    frame_diagnostics.state_transitions = transition_updates.len();
     if !level.record_animation_playback_times(
         replacement_epoch,
         scan.next_graph_times,
@@ -381,6 +414,7 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
     ) {
         return;
     }
+    frame_diagnostics.record(core);
 }
 
 fn retain_non_deferred_entity_map<T>(
@@ -474,7 +508,7 @@ fn skeletal_pose_targets(pose: &AnimationPoseOutput) -> Arc<[SkeletalPoseTarget]
     )
 }
 
-fn record_empty_animation_state(level: &LevelSystem) {
+fn record_empty_animation_state(core: &CoreHandle, level: &LevelSystem) {
     let replacement_epoch = level.capture_world_replacement_epoch();
     let empty_pose_snapshot = AnimationPoseSnapshot::default();
     if level
@@ -502,54 +536,9 @@ fn record_empty_animation_state(level: &LevelSystem) {
     ) {
         return;
     }
+    AnimationSceneFrameDiagnostics::default().record(core);
 }
 
 #[cfg(test)]
-mod tests {
-    use std::collections::BTreeMap;
-
-    use zircon_runtime::core::framework::animation::AnimationParameterValue;
-    use zircon_runtime::core::resource::{AnimationStateMachineMarker, ResourceHandle, ResourceId};
-    use zircon_runtime::scene::components::AnimationStateMachinePlayerComponent;
-
-    use super::apply_active_state_update;
-
-    #[test]
-    fn one_shot_trigger_commit_consumes_only_current_trigger_values() {
-        let mut player = AnimationStateMachinePlayerComponent {
-            state_machine: ResourceHandle::<AnimationStateMachineMarker>::new(
-                ResourceId::from_stable_label("one-shot trigger commit"),
-            ),
-            parameters: BTreeMap::from([
-                ("fire".into(), AnimationParameterValue::Trigger),
-                ("jump".into(), AnimationParameterValue::Trigger),
-                ("speed".into(), AnimationParameterValue::Scalar(2.0)),
-                ("grounded".into(), AnimationParameterValue::Bool(true)),
-            ])
-            .into(),
-            active_state: Some("Idle".into()),
-            playing: true,
-        };
-
-        apply_active_state_update(
-            &mut player,
-            Some("Run".into()),
-            &["fire".into(), "speed".into()],
-        );
-
-        assert_eq!(player.active_state.as_deref(), Some("Run"));
-        assert!(!player.parameters.contains_key("fire"));
-        assert_eq!(
-            player.parameters.get("jump"),
-            Some(&AnimationParameterValue::Trigger)
-        );
-        assert_eq!(
-            player.parameters.get("speed"),
-            Some(&AnimationParameterValue::Scalar(2.0))
-        );
-        assert_eq!(
-            player.parameters.get("grounded"),
-            Some(&AnimationParameterValue::Bool(true))
-        );
-    }
-}
+#[path = "tests/tick.rs"]
+mod tests;

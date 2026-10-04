@@ -6,14 +6,14 @@ use futures_util::StreamExt;
 use tokio::runtime::Runtime;
 use tokio::time::timeout;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
-use zircon_plugin_net_runtime::WebSocketRuntimeConnection;
+use zircon_plugin_net_runtime::{rustls_client_config_for_websocket, WebSocketRuntimeConnection};
 use zircon_runtime::core::framework::net::{
     NetConnectionId, NetError, NetEvent, NetWebSocketConnectDescriptor,
 };
 
 use super::connection::TungsteniteWebSocketConnection;
 use super::reader::spawn_reader;
-use super::security::validate_websocket_security_policy;
+use super::security::{validate_websocket_security_policy, websocket_url_host};
 
 pub(super) fn connect_websocket(
     runtime: &Runtime,
@@ -22,6 +22,20 @@ pub(super) fn connect_websocket(
     events: Arc<Mutex<VecDeque<NetEvent>>>,
 ) -> Result<Box<dyn WebSocketRuntimeConnection>, NetError> {
     validate_websocket_security_policy(&descriptor)?;
+    let tls_connector = if descriptor.url.starts_with("wss://")
+        && (descriptor.security.certificate_pinning || descriptor.security.has_certificate_roots())
+    {
+        let host = websocket_url_host(&descriptor.url).ok_or_else(|| {
+            NetError::SecurityPolicyViolation {
+                reason: "WebSocket TLS policy requires a valid request host".to_string(),
+            }
+        })?;
+        Some(tokio_tungstenite::Connector::Rustls(Arc::new(
+            rustls_client_config_for_websocket(&descriptor.security, host)?,
+        )))
+    } else {
+        None
+    };
     let mut request = descriptor
         .url
         .as_str()
@@ -47,7 +61,21 @@ pub(super) fn connect_websocket(
     let timeout_duration = Duration::from_millis(descriptor.timeout_ms);
     let (stream, _) = runtime
         .block_on(async {
-            timeout(timeout_duration, tokio_tungstenite::connect_async(request)).await
+            timeout(timeout_duration, async {
+                match tls_connector {
+                    Some(connector) => {
+                        tokio_tungstenite::connect_async_tls_with_config(
+                            request,
+                            None,
+                            false,
+                            Some(connector),
+                        )
+                        .await
+                    }
+                    None => tokio_tungstenite::connect_async(request).await,
+                }
+            })
+            .await
         })
         .map_err(|_| NetError::Io("websocket connect timed out".to_string()))?
         .map_err(|error| NetError::Io(error.to_string()))?;

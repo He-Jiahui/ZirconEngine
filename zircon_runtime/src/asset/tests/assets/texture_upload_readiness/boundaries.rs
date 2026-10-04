@@ -68,7 +68,6 @@ fn texture_upload_readiness_rejects_compressed_1d_and_etc2_3d_boundaries() {
         TextureAssetDescriptor::container("ktx2/vk-147/supercompression-0", 1, 1);
     etc2_3d_descriptor.dimension = RenderImageDimension::D3;
     etc2_3d_descriptor.depth_or_array_layers = 4;
-    etc2_3d_descriptor.array_layer_count = 1;
     let mut etc2_3d_bytes = ktx2_etc2_level_bytes();
     write_u32_le(&mut etc2_3d_bytes, 28, 4);
     let etc2_3d = TextureAsset::new_container(
@@ -203,7 +202,6 @@ fn texture_upload_readiness_rejects_container_header_extent_mismatches() {
         TextureAssetDescriptor::container("ktx2/vk-147/supercompression-0", 1, 1);
     ktx2_volume_descriptor.dimension = RenderImageDimension::D3;
     ktx2_volume_descriptor.depth_or_array_layers = 4;
-    ktx2_volume_descriptor.array_layer_count = 1;
     let mut mismatched_ktx2_depth = ktx2_etc2_level_bytes();
     write_u32_le(&mut mismatched_ktx2_depth, 28, 2);
     let ktx2 = TextureAsset::new_container(

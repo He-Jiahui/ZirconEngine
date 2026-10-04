@@ -1,10 +1,10 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema import (
+from tools.audits.plugins.manifest_schema import (
     collect_manifest_schema_violations,
 )
 
-
+# 用插件清单夹具验证布局坐标：拒绝不完整包坐标集合，并拒绝包坐标段漂移。
 class PluginStructureAuditManifestSchemaLayoutCoordinatesTests(unittest.TestCase):
     def test_manifest_schema_rejects_partial_package_coordinate_set(self):
         violations: list[str] = []

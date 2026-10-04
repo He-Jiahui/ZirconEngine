@@ -1,3 +1,4 @@
+// 提供窗格展示所需的布局、诊断、动画和编辑器快照夹具，固定各测试共享的输入形状。
 use std::collections::BTreeMap;
 
 use crate::ui::workbench::layout::MainPageId;
@@ -101,12 +102,14 @@ pub(super) fn editor_data_fixture() -> EditorDataSnapshot {
             [7],
         ),
         inspector: Some(InspectorSnapshot {
+            rotation_degrees: None,
             id: 7,
             name: "Root".to_string(),
             parent: "Scene".to_string(),
             translation: ["1.0".to_string(), "2.0".to_string(), "3.0".to_string()],
             scale: ["1.0".to_string(), "1.0".to_string(), "1.0".to_string()],
             render_layer_mask: 1,
+            native_fields: Vec::new(),
             plugin_components: Vec::new(),
         }),
         status_line: "Console ready".to_string(),

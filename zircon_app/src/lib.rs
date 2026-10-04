@@ -1,6 +1,12 @@
 //! Entry runners that bootstrap the core runtime and host editor/runtime shells.
 
+#[cfg(feature = "dev-dynamic-linking")]
+// EXEMPT(GEN-Q7): feature-gated dev dynamic linking keeps this intentionally unused crate import available.
+#[allow(unused_imports, clippy::single_component_path_imports)]
+use zr_runtime_dev_dylib as _;
+
 mod entry;
+pub use entry::{retry_product_cleanup_until, ProductCloseError, ProductCompositionFailure};
 pub mod plugins;
 pub mod prelude;
 #[cfg(feature = "platform-window")]
@@ -25,13 +31,19 @@ pub use entry::{
     ProductExitClass, ProductHostCapabilityPolicy, ProductHostConfigError,
     ProductHostConfigProvenance, ProductPlatformClass, ProductProcessExitCode,
     ProductRoleDescriptor, ProductRoleRequest, ProductRunnerKind, ProductRuntimeLinkage,
-    ProductShutdownPolicy, ResolvedProductHostConfig,
+    ProductShutdownPolicy, ProductTerminalOutcome, ProductTerminalPrimary, ProductTerminalReceipt,
+    ProductTerminalSecondary, ProductTerminalStatus, ResolvedProductHostConfig,
+    PRODUCT_TERMINAL_RECEIPT_SCHEMA_VERSION,
 };
 pub use entry::{EntryModuleSelection, EntryModuleSelectionReport, EntryRunMode};
+#[cfg(feature = "diagnostic-log")]
+pub use entry::{HeadlessController, HeadlessHostError, HeadlessRunReport, HeadlessStopReason};
 pub use plugins::{
     DefaultPlugins, DevPlugins, HeadlessPlugins, MinimalPlugins, PluginGroup, PluginGroupBuilder,
     PluginGroupError, ResolvedPluginGroup,
 };
+
+pub use entry::{retry_runtime_startup_cleanup, RuntimeSessionCreateFailure};
 
 #[cfg(test)]
 mod tests;

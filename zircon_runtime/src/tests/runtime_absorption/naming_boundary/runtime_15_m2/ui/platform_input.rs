@@ -1,3 +1,4 @@
+//! 命名策略扫描需区分生产源码、测试夹具和已分类的历史名称。以结果断言检查当前接口或源码快照对应的边界。
 use std::path::Path;
 
 use super::*;
@@ -56,8 +57,15 @@ fn runtime_15_platform_input_uses_dom_keycode_names() {
         &[
             "dom_key_code(&event.logical_key)",
             "const PIXEL_SCROLL_LINE_DELTA_SCALE",
-            "translate_winit_wheel_preserves_precise_delta_and_line_delta_scale",
         ],
+    );
+    assert_contains_all(
+        "platform input winit translation",
+        &read_text(
+            &manifest_root.join("src/ui/platform_input/tests/winit_translation.rs"),
+            "platform input winit translation should be readable",
+        ),
+        &["translate_winit_wheel_preserves_precise_delta_and_line_delta_scale"],
     );
     assert!(
         !winit_translation.contains("legacy_key_code")
@@ -120,7 +128,10 @@ fn runtime_15_platform_input_winit_tests_use_runtime_input_baseline_names() {
 
     assert_contains_all(
         "platform input winit translation runtime-input baseline tests",
-        &winit_translation,
+        &read_text(
+            &manifest_root.join("src/ui/platform_input/tests/winit_translation.rs"),
+            "platform input winit translation should be readable",
+        ),
         &[
             "translate_winit_keyboard_matrix_matches_runtime_input_baseline",
             "translate_winit_ime_preedit_commit_and_disable_match_runtime_input_baseline",

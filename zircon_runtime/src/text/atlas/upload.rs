@@ -1,3 +1,6 @@
+//! 生成后端无关的矩形上传描述，并验证整页来源缓冲区中的行跨度和边界。
+//! 位图暂存使用紧凑区域时，后续阶段会重写来源偏移和跨度；不能直接套用整页坐标。
+
 use crate::core::math::UVec2;
 
 use super::{GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasRect, GlyphAtlasSamplingSemantics};
@@ -23,6 +26,8 @@ pub(crate) struct GlyphAtlasUploadCommand {
     pub(crate) upload_byte_len: usize,
 }
 
+/// 来源长度应覆盖以整页行跨度寻址的目标区域；失败返回无命令，不产生部分写入。
+/// 调用者需携带页世代到实际提交处，以阻止规划后被复用的页接受旧像素。
 pub(crate) fn glyph_atlas_upload_command(
     page: &GlyphAtlasPageSpec,
     mode: GlyphAtlasUploadMode,
@@ -121,4 +126,5 @@ fn source_range_fits(
 }
 
 #[cfg(test)]
+#[path = "upload/tests/cases.rs"]
 mod tests;

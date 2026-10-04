@@ -1,3 +1,4 @@
+# 核对采样网格代际数据在界面生成、宿主转换和绘制层之间的归属。
 from pathlib import Path
 import re
 import unittest
@@ -73,7 +74,7 @@ class Editor07SampleGridGenerationContractTests(unittest.TestCase):
         self.assertIn("tick.label()", text)
 
     def test_behavior_suite_locks_generation_boundaries(self) -> None:
-        tests = source("zircon_editor/src/ui/sample_grid/tests.rs")
+        tests = source("zircon_editor/src/ui/sample_grid/tests/cases.rs")
 
         for test_name in [
             "ticks_are_preformatted_once_in_generation",

@@ -1,16 +1,17 @@
+//! 帧调度执行链与行为锚点保持由调度模块和文档共同约束。对照源文件与文档的当前锚点，记录尚待运行验证的结构约束。
 use super::runtime_anchors::assert_runtime_03_sources_and_anchors;
 
 const RUNTIME_03_PLAN: &str = include_str!(
     "../../../../../docs/plans/zircon_runtime/runtime/03-schedule-and-frame-loop-alignment.md"
 );
 const FRAME_SCHEDULE_DOC: &str =
-    include_str!("../../../../../docs/zircon_runtime/core/frame_schedule.md");
+    include_str!("../../../../../docs/crates/zircon_runtime/core/frame_schedule.md");
 const RUNTIME_INDEX: &str =
     include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
 const M0_REVIEW: &str =
-    include_str!("../../../../../docs/engine-architecture/runtime-architecture-review-m0.md");
+    include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md");
 const INTERFACE_CONVERGENCE: &str =
-    include_str!("../../../../../docs/engine-architecture/runtime-interface-convergence.md");
+    include_str!("../../../../../docs/architecture/runtime-interface-convergence.md");
 
 #[test]
 fn runtime_03_schedule_frame_loop_mirror_docs_match_structure_audit_counts() {

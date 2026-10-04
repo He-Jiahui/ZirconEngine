@@ -1,3 +1,4 @@
+# 核对视口捕获像素通过共享所有权传至原生绘制。
 from pathlib import Path
 import unittest
 

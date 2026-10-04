@@ -10,31 +10,7 @@ origin_child_dir: docs/plans/zircon_plugins/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - docs/cli-and-tooling/local-session-coordinator.md
-  - tools/session_coordinator/benchmark_validation_grants.py
-  - tools/session_coordinator/benchmark_validation_schema.py
-  - tools/session_coordinator/cli.py
-  - tools/session_coordinator/control_plane/actions/catalog.py
-  - tools/session_coordinator/control_plane/actions/models.py
-  - tools/session_coordinator/control_plane/actions/executor.py
-  - tools/session_coordinator/control_plane/actions/fingerprint.py
-  - tools/session_coordinator/migrations.py
-  - tools/session_coordinator/processes.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/tests/test_action_catalog.py
-  - tools/session_coordinator/tests/test_action_execution.py
-  - tools/session_coordinator/tests/test_action_fingerprint.py
-  - tools/session_coordinator/tests/test_benchmark_validation_grants.py
-  - tools/session_coordinator/tests/test_database.py
-  - tools/session_coordinator/tests/test_milestone_cli.py
-  - tools/session_coordinator/tests/test_processes.py
-  - tools/session_coordinator/tests/test_windows_job_process.py
-  - tools/session_coordinator/tests/test_workflow_commit.py
-  - tools/session_coordinator/tests/test_workspace_copy.py
-  - tools/session_coordinator/windows_job_process.py
-  - tools/session_coordinator/workspace_copy.py
-  - tools/session_coordinator/workspace_copy_terminal.py
-  - tools/session_coordinator/workflows/milestones.py
+  - docs/tooling/local-session-coordinator.md
 tests:
   - python -X dev -W error::ResourceWarning -m unittest tools.session_coordinator.tests.test_processes tools.session_coordinator.tests.test_windows_job_process tools.session_coordinator.tests.test_benchmark_validation_grants tools.session_coordinator.tests.test_workspace_copy -v
   - python -X dev -W error::ResourceWarning -m unittest tools.session_coordinator.tests.test_action_catalog tools.session_coordinator.tests.test_action_execution tools.session_coordinator.tests.test_action_fingerprint -v

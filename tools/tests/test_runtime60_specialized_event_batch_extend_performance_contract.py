@@ -1,7 +1,7 @@
 from pathlib import Path
 import re
 import unittest
-
+# 事件批量写入交给 Vec extend 的专用路径，省去手工逐项预留/推入；检查 Rust 回归对批次顺序和内容的声明。
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime/src/scene/ecs/events/queue.rs"

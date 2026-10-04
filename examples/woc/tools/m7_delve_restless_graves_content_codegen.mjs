@@ -1,3 +1,4 @@
+// 将 Restless Graves 的死亡钩子与生成计时约束投影为可核对的 JSON 和 Zr 内容。
 import {execFileSync,spawnSync} from 'node:child_process'; import {createHash} from 'node:crypto'; import {existsSync,readFileSync,writeFileSync} from 'node:fs'; import {dirname,join,resolve} from 'node:path'; import {fileURLToPath} from 'node:url';
 const C='5ef9f7cb21cd8875b6d2c49701015dfcd78de35a', D='6b4b18cd513e10f2cbcd7b5aab65e544b27c30944a0db744b37c5dc36c2dfcb4', R='374bf2a609668a5a0db62e7835bb76749ff85072509de2f96eb874fc05af65ff', E='cb65a2d89a575cbe20ea49c14797d081b513ec556365b13cfbfedc13227143b0';
 const d=dirname(fileURLToPath(import.meta.url)),p=resolve(d,'..'),r=resolve(p,'..','..','dev','world-of-claudecraft'),x=join(d,'m7_delve_restless_graves_content_source_extract.mjs'),j=join(p,'contracts','m7_delve_restless_graves_content.json'),z=join(p,'scripts','woc_game','src','instances','delve_restless_graves_content.zr'),check=process.argv.includes('--check');

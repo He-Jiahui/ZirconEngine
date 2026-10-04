@@ -1,7 +1,8 @@
+# 核对多次指针变更按帧合并刷新，压力模型绑定事件源码和参考行为。
 from pathlib import Path
 import unittest
 
-from tools.editor_pointer_frame_cadence_refresh_pressure import (
+from tools.analysis.performance.editor.editor_pointer_frame_cadence_refresh_pressure import (
     pressure_report,
     validate_output_path,
 )

@@ -253,7 +253,7 @@ fn aligned_axis_origin(
     aligned_start + offset
 }
 
-fn inset_frame(frame: UiFrame, padding: UiMargin) -> UiFrame {
+pub(crate) fn inset_frame(frame: UiFrame, padding: UiMargin) -> UiFrame {
     UiFrame::new(
         frame.x + padding.left,
         frame.y + padding.top,

@@ -15,10 +15,18 @@ pub(super) fn draw_pane_content_layers(
     interaction: &HostPaneInteractionStateData,
     viewport_images: &HostViewportImageSet,
     text_input_focus: Option<&HostTextInputFocusData>,
+    surface_key: Option<&str>,
 ) {
     let has_viewport_content = {
         zircon_runtime::profile_scope!("editor", "host_painter", "painter_pane_viewport_image");
-        native_panes::draw_viewport_image(frame, pane, body, clip, viewport_images)
+        native_panes::draw_viewport_image_for_surface(
+            frame,
+            pane,
+            body,
+            clip,
+            viewport_images,
+            surface_key,
+        )
     };
     let native_before_template = native_content_precedes_template_nodes(pane.kind.as_str());
     let has_native_content_before = if native_before_template {
@@ -38,6 +46,12 @@ pub(super) fn draw_pane_content_layers(
         zircon_runtime::profile_scope!("editor", "host_painter", "painter_pane_template_nodes");
         draw_pane_template_nodes(frame, pane, body, clip, interaction, text_input_focus)
     };
+    let has_native_foreground = if native_before_template {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_pane_native_foreground");
+        super::super::super::welcome::draw_welcome_native_foreground(frame, pane, body, clip)
+    } else {
+        false
+    };
     let has_native_content_after = if native_before_template {
         false
     } else {
@@ -51,7 +65,8 @@ pub(super) fn draw_pane_content_layers(
             text_input_focus,
         )
     };
-    let has_native_content = has_native_content_before || has_native_content_after;
+    let has_native_content =
+        has_native_content_before || has_native_content_after || has_native_foreground;
     let has_debug_overlay_content = {
         zircon_runtime::profile_scope!("editor", "host_painter", "painter_pane_debug_overlay");
         native_panes::draw_pane_debug_overlay(frame, pane, body, clip)
@@ -71,17 +86,5 @@ fn native_content_precedes_template_nodes(pane_kind: &str) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::native_content_precedes_template_nodes;
-
-    #[test]
-    fn welcome_native_foundation_precedes_shared_template_controls_only() {
-        assert!(native_content_precedes_template_nodes("Welcome"));
-        for pane_kind in ["Hierarchy", "Assets", "AssetBrowser", "Inspector"] {
-            assert!(
-                !native_content_precedes_template_nodes(pane_kind),
-                "{pane_kind} native overlays must remain after template content"
-            );
-        }
-    }
-}
+#[path = "tests/content.rs"]
+mod tests;

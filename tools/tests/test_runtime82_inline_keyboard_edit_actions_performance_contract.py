@@ -1,7 +1,7 @@
 import re
 import unittest
 from pathlib import Path
-
+# 文本键盘编辑动作使用固定内联序列，入口直接返回可迭代结果；检查 Rust 回归和拥有者路径是否避免重建动作向量。
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EDIT_ACTIONS = (

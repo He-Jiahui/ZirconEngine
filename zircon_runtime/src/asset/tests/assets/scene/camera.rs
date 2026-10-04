@@ -1,3 +1,5 @@
+//! 验证场景相机目标及视口参数的文档形状与旧文档默认值；运行时相机实例化据此选择管线和渲染目标。
+
 use super::*;
 
 #[test]
@@ -57,6 +59,7 @@ fn scene_camera_asset_roundtrip_preserves_bevy_style_camera_fields() {
             terrain: None,
             tilemap: None,
             prefab_instance: None,
+            components: Vec::new(),
             script_bindings: Vec::new(),
         }],
     };

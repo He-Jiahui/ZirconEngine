@@ -5,6 +5,8 @@ fn screen_space_ui_rich_inline_reuses_the_command_parse() {
     let source = include_str!("../rich_text.rs");
     let parse_call = ["parse_rich", "_text("].concat();
 
+    // BUG: [CR-W12-UI-TEXT-0005] 当前被包含的富文本规划源码已不含旧解析调用，字面量计数为 0；此处仍要求 1，执行到该断言必失败。
+    // 证据：规划入口改为消费已编译的 rich artifact，当前源码全文与此精确拼接 needle 不匹配。
     assert_eq!(source.matches(&parse_call).count(), 1);
 }
 
@@ -59,11 +61,10 @@ fn screen_space_ui_plan_places_html_inline_image_without_placeholder_glyph() {
     assert_eq!(plan.native_texts.len(), 2);
     assert_eq!(plan.native_texts[0].text, "before");
     assert_eq!(plan.native_texts[1].text, "after");
-    assert!(
-        plan.native_texts
-            .iter()
-            .all(|batch| !batch.text.contains('\u{fffc}'))
-    );
+    assert!(plan
+        .native_texts
+        .iter()
+        .all(|batch| !batch.text.contains('\u{fffc}')));
 }
 
 #[test]
@@ -109,11 +110,10 @@ fn screen_space_ui_plan_renders_bbcode_icon_as_asset_batch() {
     );
     assert!((plan.images[0].frame.width - 18.0).abs() < 0.01);
     assert!((plan.images[0].frame.height - 22.0).abs() < 0.01);
-    assert!(
-        plan.native_texts
-            .iter()
-            .all(|batch| !batch.text.contains('\u{fffc}'))
-    );
+    assert!(plan
+        .native_texts
+        .iter()
+        .all(|batch| !batch.text.contains('\u{fffc}')));
     assert!(plan.vertices.is_empty());
 }
 
@@ -155,26 +155,22 @@ fn screen_space_ui_rich_font_size_override_keeps_the_resolved_line_baseline() {
     );
 
     assert_eq!(plan.native_texts.len(), 2);
-    assert!(
-        plan.native_texts
-            .iter()
-            .any(|batch| batch.font_size == 26.0)
-    );
-    assert!(
-        plan.native_texts
-            .iter()
-            .any(|batch| batch.font_size == 10.0)
-    );
-    assert!(
-        plan.native_texts
-            .iter()
-            .all(|batch| batch.glyph_artifact_line.is_some())
-    );
-    assert!(
-        plan.native_texts
-            .iter()
-            .all(|batch| { batch.text_decoration_baseline == Some(expected_baseline) })
-    );
+    assert!(plan
+        .native_texts
+        .iter()
+        .any(|batch| batch.font_size == 26.0));
+    assert!(plan
+        .native_texts
+        .iter()
+        .any(|batch| batch.font_size == 10.0));
+    assert!(plan
+        .native_texts
+        .iter()
+        .all(|batch| batch.glyph_artifact_line.is_some()));
+    assert!(plan
+        .native_texts
+        .iter()
+        .all(|batch| { batch.text_decoration_baseline == Some(expected_baseline) }));
 }
 
 #[test]
@@ -218,11 +214,10 @@ fn screen_space_ui_plan_keeps_inline_image_retained_by_ellipsis() {
 
     assert_eq!(plan.images.len(), 1);
     assert!((plan.images[0].frame.width - 16.0).abs() < 0.01);
-    assert!(
-        plan.native_texts
-            .iter()
-            .all(|batch| !batch.text.contains('\u{fffc}'))
-    );
+    assert!(plan
+        .native_texts
+        .iter()
+        .all(|batch| !batch.text.contains('\u{fffc}')));
 }
 
 #[test]

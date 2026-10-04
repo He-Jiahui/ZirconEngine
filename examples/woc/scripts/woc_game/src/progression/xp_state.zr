@@ -124,6 +124,7 @@ pub xpUntilNextPrestige(lifetimeXp: int, prestigeRank: int): int {
     return remaining > 0 ? remaining : 0;
 }
 
+/// 场景设置等级会提高生涯经验下限，保留当前等级条余量；不能把此辅助入口当作完全重置角色的操作。
 pub setLevel(state: ProgressionState, requestedLevel: int): void {
     var level = requestedLevel;
     if (level < 1) { level = 1; }
@@ -133,6 +134,7 @@ pub setLevel(state: ProgressionState, requestedLevel: int): void {
     if (state.lifetimeXp < lifetimeFloor) { state.lifetimeXp = lifetimeFloor; }
 }
 
+/// 模拟每个五十毫秒帧至多调用一次；没有可变 delta 参数，展示帧或补帧重复调用会改变休息奖励。
 pub tickRested(state: ProgressionState, resting: bool, inCombat: bool): void {
     if (state.level >= catalog.maxLevel()) { return; }
     var levelXp = <float>catalog.xpForLevel(state.level);
@@ -148,6 +150,7 @@ pub tickRested(state: ProgressionState, resting: bool, inCombat: bool): void {
     state.restedXp = accrued < cap ? accrued : cap;
 }
 
+/// 这里统一更新角色等级、累计经验和奖励事件计数；击杀来源才消耗休息池。满级后仍累计生涯经验，但不推进普通等级条。
 pub grantXp(state: ProgressionState, requestedAmount: int, fromKill: bool): int {
     if (requestedAmount <= 0) { return 0; }
     var amount = requestedAmount;

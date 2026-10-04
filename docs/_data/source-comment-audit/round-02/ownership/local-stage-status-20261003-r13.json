@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "path": "E:\\Git\\ZirconEngine\\docs\\plans\\zircon_tooling\\source_comment_audit\\02\\2026-09-30-stage-status.md",
+  "before_sha256": "f44cb355bd66935cbf9e9c5dc5d9f71597f48401f6b9f77a72b0c23e935eeb25",
+  "after_sha256": "f675a2d9b24bc75ec75cc3d87f20f621e0da825a9fa7b7a1d846c910c53f6fed",
+  "installation": {
+    "path": "E:\\Git\\ZirconEngine\\docs\\cli-and-tooling\\source-comment-audit\\round-02\\ownership\\local-install-runtime_wave12_graphics_advanced_lighting-20261003-r1.json",
+    "sha256": "c64b1ef3f16cb6215ab63afe833ea2dd2e2ef978406f84c3643eeb72265aaa63"
+  },
+  "publication": {
+    "path": "E:\\Git\\ZirconEngine\\docs\\cli-and-tooling\\source-comment-audit\\round-02\\ownership\\local-publication-runtime_wave12_graphics_advanced_lighting-20261003-r1.json",
+    "sha256": "9de205cf007d1a4897a21f182eede53540cc02a8d156bceb5b2dcb518138ed46"
+  },
+  "verification": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-lighting-stage-20261003-r13\\verification.json",
+    "sha256": "19d04593efceffab286ebefbe0287536bf45cac0b520764e44ea5a6e01821609"
+  },
+  "helper": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\update_lighting_stage_20261003_r13.py",
+    "sha256": "3c264522b06e97a7431de88f4cae3093518447b574b03bb0612091e05485a954"
+  },
+  "links_checked": true,
+  "whitespace_checked": true,
+  "source_writes": 0,
+  "canonical_writes": 0,
+  "status": "coarse_stage_status_updated",
+  "completed_at_utc": "2026-10-03T03:51:15.960025+00:00",
+  "plan_status_writes": 1,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "goal_status_changed": false,
+  "full_repository_scan_complete": false
+}

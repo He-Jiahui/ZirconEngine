@@ -32,10 +32,10 @@ lookups of the same complete ID.
 | Prototype payload clones | 0 | 0 |
 | Alias or validation-policy changes | 0 | 0 |
 
-The ignored release gate runs 17 alternating sample pairs and emits
-`RUNTIME74_UI_PROTOTYPE_HASH_INDEX_BENCH_V1`. Acceptance requires HashMap lookup P95 to be at least
-30% below the legacy BTreeMap path. Exact Windows P50/P95 timings remain pending the coordinator
-run.
+The ignored Release probe now runs 101 alternating sample pairs and emits
+`RUNTIME74_UI_PROTOTYPE_HASH_INDEX_BENCH_V1` with raw nearest-rank P50/P95/P99 values and balanced
+51/50 first-order counts. Product acceptance still requires the complete prototype lookup caller
+under managed Windows validation and HashMap lookup P95 at least 30% below the legacy BTreeMap path.
 
 ## Acceptance
 
@@ -43,7 +43,7 @@ run.
   covers complete canonical/alias keys, Arc identity, and row count.
 - `optimization_batch_20260826bs_ui_prototype_hash_index_preserves_alias_replacement` covers
   replacement semantics without duplicate rows.
-- `optimization_batch_20260826bs_ui_prototype_hash_index_p95` reports paired release P50/P95
+- `optimization_batch_20260826bs_ui_prototype_hash_index_p95` reports paired release P50/P95/P99
   samples and enforces the 30% P95 reduction gate.
 
 ## Remaining Parent-plan Work

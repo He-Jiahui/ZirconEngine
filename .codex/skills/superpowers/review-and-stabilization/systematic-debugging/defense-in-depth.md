@@ -90,8 +90,8 @@ When you find a bug:
 
 1. **Trace the data flow** - Where does bad value originate? Where used?
 2. **Map all checkpoints** - List every point data passes through
-3. **Add validation at each layer** - Entry, business, environment, debug
-4. **Test each layer** - Try to bypass layer 1, verify layer 2 catches it
+3. **Validate relevant trust boundaries** - Select the entry, business, environment, or debug boundaries that independently need protection
+4. **Test the affected boundaries** - Verify independent enforcement where the threat or failure model requires it
 
 ## Example from Session
 
@@ -119,4 +119,4 @@ All four layers were necessary. During testing, each layer caught bugs the other
 - Edge cases on different platforms needed environment guards
 - Debug logging identified structural misuse
 
-**Don't stop at one validation point.** Add checks at every layer.
+Add checks where distinct trust boundaries or failure modes justify them. The four-layer example is not a mandatory checklist for every fix; reuse existing coverage and validate the affected scope.

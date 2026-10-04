@@ -257,5 +257,5 @@ fn focused_command_index(
 }
 
 #[cfg(test)]
-#[path = "command_palette_actions/borrowed_window_request_tests.rs"]
+#[path = "command_palette_actions/tests/borrowed_window_request_tests.rs"]
 mod borrowed_window_request_tests;

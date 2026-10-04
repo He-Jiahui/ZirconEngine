@@ -1,3 +1,4 @@
+# 核对模板文本在几何与裁剪通过后才物化标签。
 from pathlib import Path
 import unittest
 

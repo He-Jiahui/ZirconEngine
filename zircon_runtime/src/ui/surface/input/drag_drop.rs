@@ -14,6 +14,8 @@ use super::{
     route_steps::annotate_result_route_steps,
 };
 
+/// 丢弃与当前 pointer/session 不符的延迟拖拽事件，避免旧 End 结束新会话。
+/// 有效事件才根据命中/捕获目标生成 drag effect；诊断中的原捕获对象保留到 End 回执。
 pub(super) fn dispatch_drag_drop_input(
     surface: &mut UiSurface,
     drag_drop: UiDragDropInputEvent,
@@ -169,5 +171,5 @@ fn drag_drop_target(surface: &UiSurface, point: UiPoint) -> Option<UiNodeId> {
 }
 
 #[cfg(test)]
-#[path = "drag_drop/stale_owned_event_tests.rs"]
+#[path = "drag_drop/tests/stale_owned_event_tests.rs"]
 mod stale_owned_event_tests;

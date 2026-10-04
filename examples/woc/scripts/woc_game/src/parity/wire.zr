@@ -1,3 +1,4 @@
+//! WTR1 编码的逐阶段固定字节夹具；供 wire_test_main 检查协议字段与摘要。
 var container = %import("zr.container");
 
 class TraceWriter {
@@ -102,6 +103,7 @@ writeFramePrefix(writer: TraceWriter, stage: int): bool {
     return stage == 3;
 }
 
+// 分阶段截断同一条样例 trace，使测试能区分头、前缀、帧与完整载荷的边界。
 fixtureBytes(stage: int): container.Array<uint> {
     if (stage < 1 || stage > 5) {
         throw "trace wire fixture stage is invalid";

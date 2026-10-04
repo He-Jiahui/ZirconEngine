@@ -154,12 +154,34 @@ pub(super) fn validate_unique_control_ids(
     }
     Err(UiAssetError::InvalidDocument {
         asset_id: asset_id.to_string(),
-        detail: format!(
-            "compiled template contains duplicate control ids: {}",
-            duplicates.keys().cloned().collect::<Vec<_>>().join(", ")
-        ),
+        detail: duplicate_control_id_detail(&duplicates),
     })
 }
+
+fn duplicate_control_id_detail(duplicates: &BTreeMap<String, usize>) -> String {
+    const PREFIX: &str = "compiled template contains duplicate control ids: ";
+
+    let key_length = duplicates.keys().map(String::len).sum::<usize>();
+    let separator_count = duplicates.len().saturating_sub(1);
+    let mut detail = String::with_capacity(
+        PREFIX
+            .len()
+            .saturating_add(key_length)
+            .saturating_add(separator_count.saturating_mul(", ".len())),
+    );
+    detail.push_str(PREFIX);
+    for (index, control_id) in duplicates.keys().enumerate() {
+        if index > 0 {
+            detail.push_str(", ");
+        }
+        detail.push_str(control_id);
+    }
+    detail
+}
+
+#[cfg(test)]
+#[path = "control_scope/tests/duplicate_detail_single_buffer_tests.rs"]
+mod duplicate_detail_single_buffer_tests;
 
 fn probe_control_reference(
     asset_id: &str,

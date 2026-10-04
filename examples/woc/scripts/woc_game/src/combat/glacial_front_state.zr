@@ -1,3 +1,4 @@
+//! 冰川锋面蓄力阶段、展示距离和锥形判定的纯几何契约；世界与效果派发负责筛选目标并结算命中。
 // Pure current-head Glacial Front stage, presentation and cone geometry.
 var math = %import("zr.zircon.math");
 var contract = %import("generated/glacial_front_contract");
@@ -15,6 +16,7 @@ minimum(value: float, upper: float): float { return value < upper ? value : uppe
 maximum(value: float, lower: float): float { return value > lower ? value : lower; }
 absolute(value: float): float { return value < 0.0 ? -value : value; }
 
+/// 蓄力进度钳制后换算为一基阶段，展示距离和效果派发共享此阶段口径。
 pub empoweredStageForProgress(progress: float, stageCount: int): int {
     if (stageCount <= 1) return 1;
     var clamped = maximum(0.0, minimum(1.0, progress));
@@ -41,6 +43,7 @@ normalizeRadians(value: float): float {
 
 // Equivalent to the target's atan2(sin(raw), cos(raw)) cone check. At a zero
 // vector Math.atan2(0, 0) is zero, so normalize -facing explicitly.
+/// 只判断几何命中；世界与效果派发在调用前负责目标资格，并在命中后处理抽样和伤害。
 pub glacialFrontContains(origin: PointXZ, facing: float, point: PointXZ, range: float, angleDegrees: float): bool {
     var dx = point.x - origin.x;
     var dz = point.z - origin.z;

@@ -8,7 +8,7 @@ SOURCE = (
     / "zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution.rs"
 )
 
-
+# 读取实现源码约束预分配未解析特性集合：解析跟踪精确存在状态计数，并最终集合使用精确已跟踪容量。
 class PreallocatedUnresolvedFeatureCollectionPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

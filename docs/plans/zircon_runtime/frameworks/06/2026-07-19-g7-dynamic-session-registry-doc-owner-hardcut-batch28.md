@@ -1,17 +1,17 @@
 ---
 related_code:
-  - docs/zircon_runtime/dynamic_api/session.md
+  - docs/crates/zircon_runtime/dynamic_api/session.md
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/session/registry/mod.rs
 implementation_files:
-  - docs/zircon_runtime/dynamic_api/session.md
+  - docs/crates/zircon_runtime/dynamic_api/session.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - python tools/check_conventions.py --only docs --json
-  - git diff --check -- docs/zircon_runtime/dynamic_api/session.md docs/plans/zircon_runtime/frameworks/06/2026-07-19-g7-dynamic-session-registry-doc-owner-hardcut-batch28.md
+  - python tools/audits/check_conventions.py --only docs --json
+  - git diff --check -- docs/crates/zircon_runtime/dynamic_api/session.md docs/plans/zircon_runtime/frameworks/06/2026-07-19-g7-dynamic-session-registry-doc-owner-hardcut-batch28.md
 ---
 
 # Frameworks06 G7 Dynamic Session Registry 文档 Owner 硬切 Batch 28
@@ -19,7 +19,7 @@ tests:
 Plan: docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
 Milestone: M1
 Status: accepted
-Files: ["docs/zircon_runtime/dynamic_api/session.md"]
+Files: ["docs/crates/zircon_runtime/dynamic_api/session.md"]
 Date: 2026-07-19
 Session: `frameworks06-g7-dynamic-session-registry-doc-owner-hardcut-batch28-20260719`
 

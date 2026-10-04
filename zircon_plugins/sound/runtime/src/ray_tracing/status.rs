@@ -5,6 +5,17 @@ use zircon_runtime::core::framework::sound::{
     SoundRayTracingConvolutionStatus,
 };
 
+use crate::engine::SoundEngineState;
+
+pub(crate) fn refresh_ray_tracing_status_for_state(state: &mut SoundEngineState) {
+    let SoundEngineState {
+        ray_tracing,
+        ray_traced_impulse_responses,
+        ..
+    } = state;
+    refresh_ray_tracing_status(ray_tracing, ray_traced_impulse_responses);
+}
+
 pub(crate) fn refresh_ray_tracing_status(
     status: &mut SoundRayTracingConvolutionStatus,
     descriptors: &HashMap<SoundImpulseResponseId, SoundRayTracedImpulseResponseDescriptor>,

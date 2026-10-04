@@ -1,6 +1,7 @@
 [bindings]
 "editor.command.palette" = "Ctrl+Shift+P"
-"file.project.open" = "Ctrl+O"
+"file.scene.create" = "Ctrl+N"
+"file.scene.open" = "Ctrl+O"
 "file.project.save" = "Ctrl+S"
 "edit.history.undo" = "Ctrl+Z"
 "edit.history.redo" = "Ctrl+Shift+Z"

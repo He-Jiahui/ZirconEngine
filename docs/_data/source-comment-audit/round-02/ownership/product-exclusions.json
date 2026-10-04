@@ -1,0 +1,135 @@
+{
+  "schema": 1,
+  "paths": {
+    "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/asset_creation_menu.rs": {
+      "product_owner_session": "failure-roll-01a0df1a-editor06-menu-click-r3",
+      "original_transfer_postimage_sha256": "a306928a10742af42b48ee3990cb933ed02d3b610da852ca3fa32f296953f988",
+      "transfer_receipt": "E:/Git/ZirconEngine/.codex/tmp/failure-roll-20260930-editor06-transfer-apply.json",
+      "rule": "Preserve historical comment provenance; exclude future product postimages from comment-audit submissions; review changed business bytes anew without relabelling them as comment edits."
+    },
+    "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/popup_state.rs": {
+      "product_owner_session": "failure-roll-01a0df1a-editor06-menu-click-r3",
+      "original_transfer_postimage_sha256": "1267cc533c17a5f0f4788eed8f4ae8b83f4b1f51c466b738c9aed8dc7c2bde62",
+      "transfer_receipt": "E:/Git/ZirconEngine/.codex/tmp/failure-roll-20260930-editor06-transfer-apply.json",
+      "rule": "Preserve historical comment provenance; exclude future product postimages from comment-audit submissions; review changed business bytes anew without relabelling them as comment edits."
+    },
+    "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/window_menu_state.rs": {
+      "product_owner_session": "failure-roll-01a0df1a-editor06-menu-click-r3",
+      "original_transfer_postimage_sha256": "85910761cb945a3a1068dd178480109380e60ae904fc738a0637a400af3a7e30",
+      "transfer_receipt": "E:/Git/ZirconEngine/.codex/tmp/failure-roll-20260930-editor06-transfer-apply.json",
+      "rule": "Preserve historical comment provenance; exclude future product postimages from comment-audit submissions; review changed business bytes anew without relabelling them as comment edits."
+    },
+    "zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_window_menus/asset_creation.rs": {
+      "product_owner_session": "failure-roll-01a0df1a-editor06-menu-click-r3",
+      "original_transfer_postimage_sha256": "16629efe878bc20a16b522e81ac01c5e53acee0bca8787960e5425e5fd27b6b0",
+      "transfer_receipt": "E:/Git/ZirconEngine/.codex/tmp/failure-roll-20260930-editor06-transfer-apply.json",
+      "rule": "Preserve historical comment provenance; exclude future product postimages from comment-audit submissions; review changed business bytes anew without relabelling them as comment edits."
+    },
+    ".codex/skills/zircon-dev/scripts/validate-matrix-pipeline.Tests.ps1": {
+      "product_owner_session": "failure-roll-01a0df1a-tooling01-harness-r3",
+      "original_transfer_postimage_sha256": "3e12c63a1641c76dcb6aa6fa42fbeabd0f298988300bbd9e9e4c7e9f3b590bed",
+      "historical_owner_session": "failure-roll-01a07160-tooling01-r1",
+      "historical_object_sha256": "2a0aa2fe0f032bd24f6b35263f2aac0f3a43edebb36ebb3c55f307ca4e87756b",
+      "transfer_receipt": "E:/Git/ZirconEngine/.codex/tmp/failure-roll-20261001-tooling01-pipeline-adoption-apply.json",
+      "transfer_receipt_sha256": "c4c70c56a96ebd1502c9045dcfd7039add97b67d0810fcb4d0c1b5451f749842",
+      "preparation_receipt": "E:/Git/ZirconEngine/.codex/tmp/failure-roll-20261001-tooling01-pipeline-adoption-prepare.json",
+      "preparation_receipt_sha256": "058a25e990380b5c8f5229e6af6cfc1f9d31872e7b8ec96741e2d7156db5555c",
+      "apply_request_id": "0ce2a8fc11db431d8b8c88643ab7f5c5",
+      "exact_release_request_id": "e2c913cf66f6441ebaf8ee157cd43409",
+      "authority_basis": "User exact-path completed supported archived-owner transfer notice; target adopts existing candidate without original delta authorship. Exact release does not transfer ownership to audit.",
+      "comment_provenance": "Preserve all historical comments and new helper comment byte-for-byte; no new audit source edits or audit adoption at notice.",
+      "validation": "Static review in product transfer receipt only; no dynamic acceptance inferred.",
+      "rule": "Exclude this current product candidate and later product postimages from all comment-audit source candidate/commit manifests. Read-only coverage may record review evidence without relabelling product deltas as audit authorship."
+    }
+  },
+  "session_id": "source-audit-20260930-01a0f168",
+  "policy": "These exact product paths are excluded from audit candidate manifests. Preserve original comment bytes and historical coverage; a foreign business postimage hash is not new comment evidence.",
+  "natural_boundaries": {
+    "zircon_runtime/src/core/runtime/tasks/job_handle.rs": {
+      "audit_session": "source-audit-20260930-01a0f168",
+      "audit_start_sha256": "585d23e65c8cc650946488054c690af2d2b5f0dc63a66ef7fe6b5831b41465d2",
+      "terminal_audit_postimage_sha256": "aa5762847103a5f6f9c5f47104436883270c04b8d84e085e62ffe708237ae32f",
+      "audit_added_bytes": 146,
+      "review_terminal": true,
+      "writer_terminal": true,
+      "future_source_edit_pending": false,
+      "exact_lease_release_request_id": "3f857e361ba54cbba92afc99035cca29",
+      "boundary_receipt": "E:/Git/ZirconEngine/.codex/tmp/source-audit-20260930/runtime11-source-owner-natural-boundary.json",
+      "boundary_receipt_sha256": "214949f67d98d3b5c20794fadb1f1d0ecac630c9247a53acedf178bdf9d487dd",
+      "current_business_owner_or_adopter_established": false,
+      "product_admission_or_transfer_applied": false,
+      "product_consent": false,
+      "rule": "After a valid supported product ownership/admission boundary, exclude later product postimages of these paths from audit source commits. Preserve the frozen audit-start, final audit comment bytes, coverage and historical provenance; do not relabel product delta hashes as new audit comment evidence."
+    },
+    "zircon_runtime/src/core/runtime/tasks/job_handle/tests.rs": {
+      "audit_session": "source-audit-20260930-01a0f168",
+      "audit_start_sha256": "49bb372b66184354cf08d7825f521e96f242bbcf76a0758b4ad8b0b4826f2698",
+      "terminal_audit_postimage_sha256": "49bb372b66184354cf08d7825f521e96f242bbcf76a0758b4ad8b0b4826f2698",
+      "audit_added_bytes": 0,
+      "review_terminal": true,
+      "writer_terminal": true,
+      "future_source_edit_pending": false,
+      "exact_lease_release_request_id": "3f857e361ba54cbba92afc99035cca29",
+      "boundary_receipt": "E:/Git/ZirconEngine/.codex/tmp/source-audit-20260930/runtime11-source-owner-natural-boundary.json",
+      "boundary_receipt_sha256": "214949f67d98d3b5c20794fadb1f1d0ecac630c9247a53acedf178bdf9d487dd",
+      "current_business_owner_or_adopter_established": false,
+      "product_admission_or_transfer_applied": false,
+      "product_consent": false,
+      "rule": "After a valid supported product ownership/admission boundary, exclude later product postimages of these paths from audit source commits. Preserve the frozen audit-start, final audit comment bytes, coverage and historical provenance; do not relabel product delta hashes as new audit comment evidence."
+    },
+    "zircon_runtime/src/core/runtime/tasks/callback_dispatcher.rs": {
+      "audit_session": "source-audit-20260930-01a0f168",
+      "audit_start_sha256": "b0523d35a068cdfb78c4b877485360f6c62a8bcd7b348013c5e81ca262b29396",
+      "terminal_audit_postimage_sha256": "c2ecb0bb9c2ee7bede4fe45539ae27b91df170284615957e99197847972195e5",
+      "audit_added_bytes": 133,
+      "review_terminal": true,
+      "writer_terminal": true,
+      "future_source_edit_pending": false,
+      "exact_lease_release_request_id": "3f857e361ba54cbba92afc99035cca29",
+      "boundary_receipt": "E:/Git/ZirconEngine/.codex/tmp/source-audit-20260930/runtime11-source-owner-natural-boundary.json",
+      "boundary_receipt_sha256": "214949f67d98d3b5c20794fadb1f1d0ecac630c9247a53acedf178bdf9d487dd",
+      "current_business_owner_or_adopter_established": false,
+      "product_admission_or_transfer_applied": false,
+      "product_consent": false,
+      "rule": "After a valid supported product ownership/admission boundary, exclude later product postimages of these paths from audit source commits. Preserve the frozen audit-start, final audit comment bytes, coverage and historical provenance; do not relabel product delta hashes as new audit comment evidence."
+    },
+    "zircon_plugins/plugin_sdk/src/native.rs": {
+      "audit_session": "source-audit-20260930-01a0f168",
+      "audit_start_sha256": "1def13ffee21a260fa2878278d0c9c647c861896c9bf06beea12e67c31ec219a",
+      "terminal_audit_postimage_sha256": "4c17ad181dfd9e9ac076245d6d158b81dd89eb37fd3ea2c180c81aaf22cade28",
+      "audit_added_bytes": 4786,
+      "audit_added_lines": 56,
+      "review_terminal": true,
+      "writer_terminal": true,
+      "future_source_edit_pending": false,
+      "exact_lease_release_performed": false,
+      "exact_lease_release_reason": "Coordinator is retired by current user/repository instructions. Read-only retained-database rows are historical data, not live authority; no old API, lease/status/attribution mutation or foreign release was made.",
+      "retained_exact_lease_present": false,
+      "boundary_receipt": "E:/Git/ZirconEngine/.codex/tmp/source-audit-20260930/sdk-entry-source-owner-natural-boundary-20261002-r1.json",
+      "boundary_receipt_sha256": "882492217d1fa28d4806300c5bfdae6fb858ca3e3f5e40c58be0227a46d1b733",
+      "current_business_owner_or_adopter_established": false,
+      "product_admission_or_transfer_applied": false,
+      "product_consent": false,
+      "rule": "After a valid supported exact product ownership/admission boundary, exclude later product postimages from audit source candidates/commits. Preserve the frozen baseline, exact comment bytes, current coverage and historical authorship; never relabel future product hashes as new audit comment evidence. Current readiness/availability is not product consent or whole-file adoption."
+    },
+    "zircon_plugins/plugin_sdk/Cargo.toml": {
+      "audit_session": "source-audit-20260930-01a0f168",
+      "audit_start_sha256": "853518b0e04f0a33f27ca01a3f735984a9ec7a7889eae21ae20b51f34ec8c58f",
+      "terminal_audit_postimage_sha256": "853518b0e04f0a33f27ca01a3f735984a9ec7a7889eae21ae20b51f34ec8c58f",
+      "audit_added_bytes": 0,
+      "audit_added_lines": 0,
+      "review_terminal": true,
+      "writer_terminal": true,
+      "future_source_edit_pending": false,
+      "exact_lease_release_performed": false,
+      "exact_lease_release_reason": "Coordinator is retired by current user/repository instructions. Read-only retained-database rows are historical data, not live authority; no old API, lease/status/attribution mutation or foreign release was made.",
+      "retained_exact_lease_present": false,
+      "boundary_receipt": "E:/Git/ZirconEngine/.codex/tmp/source-audit-20260930/sdk-entry-source-owner-natural-boundary-20261002-r1.json",
+      "boundary_receipt_sha256": "882492217d1fa28d4806300c5bfdae6fb858ca3e3f5e40c58be0227a46d1b733",
+      "current_business_owner_or_adopter_established": false,
+      "product_admission_or_transfer_applied": false,
+      "product_consent": false,
+      "rule": "After a valid supported exact product ownership/admission boundary, exclude later product postimages from audit source candidates/commits. Preserve the frozen baseline, exact comment bytes, current coverage and historical authorship; never relabel future product hashes as new audit comment evidence. Current readiness/availability is not product consent or whole-file adoption."
+    }
+  }
+}

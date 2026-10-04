@@ -15,12 +15,23 @@ validation_status: managed_validation_queued
 This batch closes two independent pointer-hover costs without changing node order or hover
 semantics. The active pointer table now compares a borrowed node iterator before mutating its
 retained route buffer. Pointer hover diffing keeps the allocation-free nested scan for tiny paths
-and switches dense large paths to one membership table reused across the entered and left phases.
+and switches dense large paths to one membership table reused across the entered and left phases;
+Runtime748 additionally retains that table on the surface between events.
 
 The current shared source also projects `UiPointerRoutingReceipt::physical_bubble_route()` directly
 into the iterator setter. That projection lives in a larger input-manager text/IME/diagnostic
 lifecycle union and is intentionally not absorbed into this focused snapshot. Its integration and
 the product input-latency profile remain an explicit external acceptance dependency.
+
+## Production-route supersession (2026-09-14)
+
+The large-path membership-allocation row below is a historical snapshot of the
+pre-Runtime748 route. The compatibility `hover_diff` helper still retains that
+shape for its focused regression, but production pointer routing now calls
+`hover_diff_with_scratch` with a surface-owned, non-serialized membership table.
+That route reuses warm capacity and is recorded in
+[`2026-09-14-hover-diff-membership-scratch.md`](2026-09-14-hover-diff-membership-scratch.md);
+the historical table is not a current production allocation claim.
 
 ## Implementation
 
@@ -28,9 +39,11 @@ the product input-latency profile remain an explicit external acceptance depende
   allocation, pointer, length, and capacity untouched. Changed routes clear and extend the retained
   buffer, reusing capacity when the new route fits.
 - The slice adapter forwards `hovered.iter().copied()` without collecting or cloning a vector.
-- `hover_diff` returns immediately for equal paths. A comparison budget of 64 keeps normal tiny
-  paths on the allocation-free linear branch. Larger paths allocate one capacity-sized `HashSet`,
-  clear it between phases, and preserve current/previous source order in the output vectors.
+- The historical compatibility `hover_diff` helper returns immediately for equal paths. A
+  comparison budget of 64 keeps normal tiny paths on the allocation-free linear branch. Its
+  larger-path branch allocates one capacity-sized `HashSet`, clears it between phases, and
+  preserves current/previous source order in the output vectors; production routing now uses the
+  Runtime748 surface-owned scratch helper described above.
 
 ## Deterministic Performance Evidence
 

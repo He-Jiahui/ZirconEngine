@@ -11,6 +11,7 @@ pub const GPU_PIPELINE_STATISTICS_REQUIRED_FEATURES: wgpu::Features =
     wgpu::Features::PIPELINE_STATISTICS_QUERY;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 五类累计计数是一个查询结果的五个数据 lane，不是五个查询编号。
 pub struct GpuPipelineStatistics {
     pub vertex_shader_invocations: u64,
     pub clipper_invocations: u64,
@@ -51,6 +52,7 @@ impl GpuPipelineStatisticsTimer {
         })
     }
 
+    /// 借用生产所有者的同帧查询集和共享计划；scope 须在对应原生 pass 内成对开始/结束。
     pub fn begin_product_frame(
         &mut self,
         frame_generation: u64,
@@ -86,6 +88,7 @@ impl GpuPipelineStatisticsTimer {
         self.active_frame = None;
     }
 
+    /// 完成路由传原帧快照；只接受成功终态，物理 scope 的计数按逻辑 pass 聚合。
     pub fn accept_product_query_delivery(
         &mut self,
         frame_generation: u64,
@@ -142,6 +145,7 @@ impl GpuPipelineStatisticsTimer {
         );
     }
 
+    /// 调用者先推进唯一完成时间线，此处只消费已交付的 CPU 结果。
     pub fn try_collect(&mut self) -> Option<GpuPipelineStatisticsFrameResult> {
         let mut completed = self
             .completed_frames
@@ -151,6 +155,7 @@ impl GpuPipelineStatisticsTimer {
     }
 }
 
+/// 一个物理 pass 的查询范围；调用方须避免在同一 pass 中嵌套或重叠统计查询。
 #[derive(Clone, Debug)]
 pub struct GpuPipelineStatisticsScope {
     query_set: wgpu::QuerySet,
@@ -199,50 +204,5 @@ fn insert_completed_frame_in_order(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        gpu_pipeline_statistics_supported, insert_completed_frame_in_order,
-        GpuPipelineStatisticsFrameResult, GPU_PIPELINE_STATISTICS_REQUIRED_FEATURES,
-    };
-    use std::collections::VecDeque;
-
-    #[test]
-    fn pipeline_statistics_capability_requires_the_negotiated_wgpu_feature() {
-        assert!(gpu_pipeline_statistics_supported(
-            GPU_PIPELINE_STATISTICS_REQUIRED_FEATURES
-        ));
-        assert!(!gpu_pipeline_statistics_supported(wgpu::Features::empty()));
-    }
-
-    #[test]
-    fn completed_statistics_frames_are_drained_in_renderer_generation_order() {
-        let mut completed = VecDeque::new();
-        for frame_generation in [9, 7, 8] {
-            insert_completed_frame_in_order(
-                &mut completed,
-                GpuPipelineStatisticsFrameResult {
-                    frame_generation,
-                    pass_statistics: Vec::new(),
-                },
-            );
-        }
-
-        assert_eq!(completed.pop_front().unwrap().frame_generation, 7);
-        assert_eq!(completed.pop_front().unwrap().frame_generation, 8);
-        assert_eq!(completed.pop_front().unwrap().frame_generation, 9);
-    }
-
-    #[test]
-    fn pipeline_statistics_collector_only_drains_results_after_the_readback_owner_polls() {
-        let source = include_str!("gpu_pipeline_statistics.rs")
-            .split("\n#[cfg(test)]")
-            .next()
-            .unwrap_or_default();
-
-        assert!(source.contains("pub fn accept_product_query_delivery"));
-        assert!(source.contains("pub fn try_collect(&mut self)"));
-        assert!(!source.contains("GpuReadbackQueue"));
-        assert!(!source.contains("resolve_query_set"));
-        assert!(!source.contains("map_async"));
-    }
-}
+#[path = "tests/gpu_pipeline_statistics.rs"]
+mod tests;

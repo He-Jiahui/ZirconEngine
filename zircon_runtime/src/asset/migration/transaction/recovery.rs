@@ -7,8 +7,9 @@ use super::{journal_owner, map_transaction_error, recovery_io};
 use crate::asset::migration::AssetMigrationError;
 use crate::asset::project::ProjectPaths;
 use crate::core::resource::io::transaction::{
-    JournalDocument, RecoveryPolicy, detect_pending_transactions as detect_core_transactions,
-    recover_pending_transactions as recover_core_transactions,
+    detect_pending_transactions as detect_core_transactions,
+    recover_pending_transactions as recover_core_transactions, JournalDocument, RecoveryMode,
+    RecoveryPolicy,
 };
 
 const EVIDENCE_READ_BUFFER_BYTES: usize = 64 * 1024;
@@ -67,6 +68,10 @@ impl MigrationRecoveryPolicy {
 }
 
 impl RecoveryPolicy for MigrationRecoveryPolicy {
+    fn recovery_mode(&self) -> RecoveryMode {
+        RecoveryMode::CleanupArtifacts
+    }
+
     fn validate_document(
         &self,
         _journal_path: &Path,
@@ -148,7 +153,7 @@ fn normalize_windows_path_identity(mut identity: String) -> String {
 }
 
 #[cfg(all(test, windows))]
-#[path = "recovery/path_identity_tests.rs"]
+#[path = "recovery/tests/path_identity_tests.rs"]
 mod path_identity_tests;
 
 fn resolve_existing_or_parent(path: &Path) -> Option<PathBuf> {

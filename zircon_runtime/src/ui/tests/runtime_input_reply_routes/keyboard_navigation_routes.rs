@@ -1,3 +1,5 @@
+//! 键盘导航夹具覆盖普通焦点、标签页、树、菜单与计时器，比较语义动作和方向导航的优先级。
+
 use super::*;
 use crate::ui::dispatch::UiInputManager;
 

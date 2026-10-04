@@ -1,0 +1,92 @@
+penpot_original_source = "[asset]\r\nkind = \"view\"\r\nid = \"sound.audio_volume.drawer\"\r\nversion = 2\r\ndisplay_name = \"AudioVolume\"\r\n\r\n[imports]\r\nstyles = [\"res://ui/theme/editor_base.zui\"]\r\n\r\n[root]\r\nnode = \"sound_audio_volume_drawer_root\"\r\n\r\n[nodes.sound_volume_shape_priority_row]\r\ncomponent = \"Space\"\r\ncontrol_id = \"SoundVolumeShapePriorityRow\"\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 52.0, preferred = 52.0, max = 52.0, stretch = \"Fixed\" } }\r\n\r\n[nodes.sound_volume_gain_filter_row]\r\ncomponent = \"Space\"\r\ncontrol_id = \"SoundVolumeGainFilterRow\"\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 52.0, preferred = 52.0, max = 52.0, stretch = \"Fixed\" } }\r\n\r\n[nodes.sound_volume_reverb_convolution_row]\r\ncomponent = \"Space\"\r\ncontrol_id = \"SoundVolumeReverbConvolutionRow\"\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 52.0, preferred = 52.0, max = 52.0, stretch = \"Fixed\" } }\r\n\r\n[nodes.sound_volume_crossfade_row]\r\ncomponent = \"Space\"\r\ncontrol_id = \"SoundVolumeCrossfadeRow\"\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = \"Fixed\" } }\r\n\r\n[nodes.sound_audio_volume_drawer_root]\r\ncomponent = \"VerticalGroup\"\r\ncontrol_id = \"SoundAudioVolumeDrawerRoot\"\r\nclasses = [\"editor-shell\"]\r\nlayout = { container = { kind = \"VerticalBox\", gap = 4.0 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\nchildren = [{ node = \"sound_volume_shape_priority_row\" }, { node = \"sound_volume_gain_filter_row\" }, { node = \"sound_volume_reverb_convolution_row\" }, { node = \"sound_volume_crossfade_row\" }]\r\n"
+
+[asset]
+kind = "view"
+id = "sound.audio_volume.drawer"
+version = 2
+display_name = "AudioVolume"
+
+[imports]
+styles = [ "res://ui/theme/editor_base.zui" ]
+
+[root]
+node = "sound_audio_volume_drawer_root"
+
+[nodes.sound_volume_shape_priority_row]
+component = "Space"
+control_id = "SoundVolumeShapePriorityRow"
+
+[nodes.sound_volume_shape_priority_row.layout.width]
+stretch = "Stretch"
+
+[nodes.sound_volume_shape_priority_row.layout.height]
+min = 52
+preferred = 52
+max = 52
+stretch = "Fixed"
+
+[nodes.sound_volume_gain_filter_row]
+component = "Space"
+control_id = "SoundVolumeGainFilterRow"
+
+[nodes.sound_volume_gain_filter_row.layout.width]
+stretch = "Stretch"
+
+[nodes.sound_volume_gain_filter_row.layout.height]
+min = 52
+preferred = 52
+max = 52
+stretch = "Fixed"
+
+[nodes.sound_volume_reverb_convolution_row]
+component = "Space"
+control_id = "SoundVolumeReverbConvolutionRow"
+
+[nodes.sound_volume_reverb_convolution_row.layout.width]
+stretch = "Stretch"
+
+[nodes.sound_volume_reverb_convolution_row.layout.height]
+min = 52
+preferred = 52
+max = 52
+stretch = "Fixed"
+
+[nodes.sound_volume_crossfade_row]
+component = "Space"
+control_id = "SoundVolumeCrossfadeRow"
+
+[nodes.sound_volume_crossfade_row.layout.width]
+stretch = "Stretch"
+
+[nodes.sound_volume_crossfade_row.layout.height]
+min = 26
+preferred = 26
+max = 26
+stretch = "Fixed"
+
+[nodes.sound_audio_volume_drawer_root]
+component = "VerticalGroup"
+control_id = "SoundAudioVolumeDrawerRoot"
+classes = [ "editor-shell" ]
+
+[nodes.sound_audio_volume_drawer_root.layout.container]
+kind = "VerticalBox"
+gap = 4
+
+[nodes.sound_audio_volume_drawer_root.layout.width]
+stretch = "Stretch"
+
+[nodes.sound_audio_volume_drawer_root.layout.height]
+stretch = "Stretch"
+
+[[nodes.sound_audio_volume_drawer_root.children]]
+node = "sound_volume_shape_priority_row"
+
+[[nodes.sound_audio_volume_drawer_root.children]]
+node = "sound_volume_gain_filter_row"
+
+[[nodes.sound_audio_volume_drawer_root.children]]
+node = "sound_volume_reverb_convolution_row"
+
+[[nodes.sound_audio_volume_drawer_root.children]]
+node = "sound_volume_crossfade_row"

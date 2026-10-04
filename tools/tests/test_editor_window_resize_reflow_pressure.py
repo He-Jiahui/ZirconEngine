@@ -1,7 +1,8 @@
+# 核对窗口尺寸重排按帧提交最新几何，压力模型记录事件风暴与参考状态机。
 from pathlib import Path
 import unittest
 
-from tools.editor_window_resize_reflow_pressure import (
+from tools.analysis.performance.editor.editor_window_resize_reflow_pressure import (
     pressure_report,
     pressure_suite,
     validate_output_path,
@@ -27,8 +28,8 @@ SHELL_METRICS = ROOT / (
 PRESENT_REDRAW = ROOT / (
     "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw/present.rs"
 )
-PROFILE_CAPTURE = ROOT / "tools/ui-profile-capture.ps1"
-PROFILE_RESIZE = ROOT / "tools/ui-profile-native-resize.ps1"
+PROFILE_CAPTURE = ROOT / "tools/analysis/profiling/ui/ui-profile-capture.ps1"
+PROFILE_RESIZE = ROOT / "tools/analysis/profiling/ui/ui-profile-native-resize.ps1"
 UNREAL_SLATE_APPLICATION = ROOT / (
     "dev/UnrealEngine/Engine/Source/Runtime/Slate/Private/Framework/Application/"
     "SlateApplication.cpp"

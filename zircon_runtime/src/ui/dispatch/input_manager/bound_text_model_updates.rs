@@ -11,8 +11,9 @@ use zircon_runtime_interface::ui::{
 use crate::ui::{
     dispatch::UiTextDocumentSession,
     surface::{
-        UiPendingSecureTextModelUpdateStoreHandle, UiSurface, editable_text_input_is_secure,
+        editable_text_input_is_secure,
         input::{editable_text_state_for_node, editable_value_property, is_editable_text_input},
+        UiPendingSecureTextModelUpdateStoreHandle, UiSurface,
     },
 };
 
@@ -532,5 +533,5 @@ pub(super) fn apply_request(
 }
 
 #[cfg(test)]
-#[path = "bound_text_model_updates/tests.rs"]
+#[path = "bound_text_model_updates/tests/cases.rs"]
 mod tests;

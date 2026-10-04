@@ -3,12 +3,12 @@ use super::super::lighting_pipeline::DeferredLightingPipelineCache;
 use super::DeferredSceneResources;
 use crate::asset::ProjectAssetManager;
 use crate::core::framework::render::ShadingModelDescriptor;
-use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 use crate::graphics::scene::scene_renderer::advanced_lighting::froxel::VolumetricApplyFallbackResources;
 use crate::graphics::scene::scene_renderer::environment::{
     LightmapGpuBindings, ReflectionProbeGpuBindings,
 };
 use crate::graphics::scene::scene_renderer::shadow::slot::{GpuShadowGlobals, GpuShadowSlot};
+use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 use crate::graphics::types::GraphicsError;
 use std::time::{Duration, Instant};
 use wgpu::util::DeviceExt;
@@ -74,6 +74,8 @@ impl DeferredSceneResources {
         )?;
         let lighting_pipelines_elapsed = lighting_pipelines_started.elapsed();
 
+        // 完整光照所需的 shadow/volumetric 槽位保留占位资源；真实场景输入只在执行时按 Option 借用，
+        // 不替换这些由 owner 保留的 fallback 句柄。
         let fallback_resources_started = Instant::now();
         let shadow_compare_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("zircon-deferred-shadow-compare-sampler"),
@@ -145,52 +147,5 @@ fn create_shadow_atlas_fallback_view(device: &wgpu::Device) -> wgpu::TextureView
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn deferred_scene_resources_constructs_the_lighting_pipeline_cache() {
-        let source = include_str!("construct.rs");
-        let implementation = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("deferred scene resource implementation");
-
-        assert!(implementation.contains("DeferredLightingPipelineCache::new("));
-        assert!(!implementation.contains("create_lighting_pipelines("));
-    }
-
-    #[test]
-    fn deferred_scene_resources_reports_pipeline_and_fallback_startup_separately() {
-        let implementation = include_str!("construct.rs")
-            .split("#[cfg(test)]")
-            .next()
-            .expect("deferred scene resource implementation");
-
-        assert!(implementation.contains("DeferredSceneResourcesStartupReport"));
-        assert!(implementation.contains("lighting_pipelines_started"));
-        assert!(implementation.contains("fallback_resources_started"));
-        assert!(implementation.contains("lighting_pipelines: lighting_pipelines_elapsed"));
-        assert!(implementation.contains("fallback_resources: fallback_resources_elapsed"));
-    }
-
-    #[test]
-    fn deferred_scene_resources_preserves_deferred_lighting_startup_breakdown() {
-        let implementation = include_str!("construct.rs")
-            .split("#[cfg(test)]")
-            .next()
-            .expect("deferred scene resource implementation");
-
-        for expected in [
-            "lighting_shader_source_assembly",
-            "lighting_pipeline_foundation",
-            "lighting_standard_pipeline",
-            "lighting_pipeline_startup.shader_source_assembly()",
-            "lighting_pipeline_startup.pipeline_foundation()",
-            "lighting_pipeline_startup.standard_pipeline()",
-        ] {
-            assert!(
-                implementation.contains(expected),
-                "deferred scene startup report must retain `{expected}`"
-            );
-        }
-    }
-}
+#[path = "tests/construct.rs"]
+mod tests;

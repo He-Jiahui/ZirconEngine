@@ -3,9 +3,9 @@ use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{
-    AssetUri, MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT,
-    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0, MaterialAsset, MeshAsset,
-    MeshAttributeValues, MeshIndices, MeshMorphTargetAsset, MeshSkinAsset,
+    AssetUri, MaterialAsset, MeshAsset, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset,
+    MeshSkinAsset, MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT,
+    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0,
 };
 use crate::core::framework::animation::{
     AnimationPoseBone, AnimationPoseOutput, AnimationPoseSource,

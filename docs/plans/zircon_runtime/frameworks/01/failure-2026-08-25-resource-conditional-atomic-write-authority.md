@@ -339,7 +339,7 @@ same pre-Cargo stage because the loaded closure planner scanned the unrelated di
 `runtime_environment_wgpu_cubemap_sampling_contract.rs`, whose worktree source references deleted
 worktree path `core/framework/render/environment/skybox.rs` even though both exist consistently at
 HEAD. This is the already registered Coordinator01
-[`wrapped-cargo-package-closure-scope`](../../../zircon_tooling/session_coordinator/01/failure-2026-08-25-wrapped-cargo-package-closure-scope.md)
+[`wrapped-cargo-package-closure-scope`](../../../zircon_tooling/session_coordinator/01/fixed-2026-08-26-wrapped-cargo-package-closure-scope.md)
 failure, not a Resource/Editor compile diagnostic. Full explicit copy
 `405fc4d9c26347b4bd5c936cc01b5650` successfully materialized all 21 overlays with input manifest
 SHA-256 `350790704da044d45e689dc9d10331740d61ceb5a2c4dcc655fd84da9b303876`
@@ -839,3 +839,31 @@ error; fixed return, milestone commit, and coordinator-owned WeCom synchronizati
 current_source_managed_resource_library_green / editor_upward_blocked_by_foreign_current_source /
 fixed_return_pending`;
 this record makes no performance, power, milestone, or product-acceptance claim.
+
+## 2026-10-01 direct Resource producer admission; validation pending
+
+The existing stable Session `failure-roll-01a0df1a-frameworks01-atomic-authority-r1`
+resumed through normal heartbeat and adopted exactly four already-written producer postimages
+with supported ownership transfer `c6d6bc68cd96483ab57d0955ca7041b7`, fingerprint
+`77309272bdf0b11926de414d9c88c55de3b17c6c6824ab83d0fdf240618b1f33`.
+Source snapshot `5444` binds:
+
+- `zircon_runtime/crates/zr_resource/src/io/atomic_file/transaction.rs`: `dd8237bea05ca8aa05f99f5dab54d97eda52cc8898042ab02fa238405c4c3368`.
+- `zircon_runtime/crates/zr_resource/src/io/atomic_file/platform.rs`: `458bcdec51b1423c8cca7ee9fdb715310c6a13927977b76c710fd98cee0b102d`.
+- `zircon_runtime/crates/zr_resource/src/io/transaction/commit.rs`: `c5e65bfda6a06897bedc4a944d64e15481dbc0b50c93fa4991f90b2d4e62d648`.
+- `zircon_runtime/crates/zr_resource/src/io/transaction/journal/intent.rs`: `e52301932018c09b4c7ece7d1aad991b3555bcc4df175b4f930e6164fe9af9e8`.
+
+All four hashes matched their archived/cancelled owners before transfer; exact source bytes,
+existing comments and historical provenance were preserved. The two cancelled comment-owner
+objects were read and matched. The two archived Astra raw objects were unavailable; matching
+durable attribution hashes were retained as the evidence actually available. Resource source
+was not edited and historical owner statuses were not changed.
+
+These inputs are also referenced by the migrated Runtime04 crash-window test, separately owned
+and sealed in snapshot `5440`; Resource and the UI consumer keep their own owner boundaries.
+Snapshot 5444 is a four-file input seal, not the complete current Resource implementation/test
+closure. Historical job `dc58a408ca7143dba2d5fb606163e47e` has no source-copy manifest binding
+in its retained job row, so its reported 191 cases are not promoted to acceptance of this
+current generation. No new managed compile/test, process-kill matrix or performance result has
+been obtained. Complete lower, original and upward gates, independent review, return and
+closeout remain open.

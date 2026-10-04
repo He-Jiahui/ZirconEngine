@@ -12,8 +12,8 @@ related_code:
   - zircon_runtime_interface/src/runtime_api/abi/api_table.rs
   - zircon_runtime/src/scene/level_system.rs
   - zircon_editor/src/core/gateway/mod.rs
-  - zircon_editor/src/core/gateway/session.rs
-  - zircon_editor/src/tests/gateway/session.rs
+  - zircon_editor/src/core/gateway/session
+  - zircon_editor/src/tests/gateway/session
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_app/src/entry/entry_runner/editor/tests/runtime_loading.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
@@ -153,7 +153,7 @@ zircon_editor/src/core/
     mod.rs
     contract.rs         # trait + GatewayError + RuntimeCapabilities
     in_process.rs       # InProcessGateway（EditorRuntimeClient 迁入）
-    session.rs          # SessionGateway（函数表包装）
+    session/            # SessionGateway（函数表包装，folder-backed owner）
   editor_event/         # 瘦身：EditorEventService（journal/listeners/序号），不再持内核状态
 zircon_editor/src/ui/workbench/
   shell_state.rs        # 新增：WorkbenchShellState（state/transient/control_service/manager 四字段新家）
@@ -348,10 +348,10 @@ pub trait EditorRuntimeGateway: Send + Sync {
 
 ### M1 消息类型化与内核拆解
 
-- 切片 1.1：`shared.rs`（并发外壳 + request 两段式）+ `message/` folder-backed 四族载荷 + `topics.rs/ids/`；`EditorMessage::text/empty` 调用点全量迁移并删除构造器；`EditorMessageProtocol` 三值 × 四族的语义矩阵写进 `docs/zircon_editor/core/editor_message.md`。
+- 切片 1.1：`shared.rs`（并发外壳 + request 两段式）+ `message/` folder-backed 四族载荷 + `topics.rs/ids/`；`EditorMessage::text/empty` 调用点全量迁移并删除构造器；`EditorMessageProtocol` 三值 × 四族的语义矩阵写进 `docs/crates/zircon_editor/core/editor_message.md`。
 - 切片 1.2：`core/context/` 三文件落地；按四批时序拆解 `EditorEventRuntimeState`；`EditorEventRuntime` 更名 `EditorEventService`；`lock_inner` 归零；`EditorEventRuntimeState` 删除。
 - 切片 1.3：`EditorModule` 的 `EditorManager` 工厂改为构造并持有 `EditorContext`（`builder.rs` GUI 路径）；`ui/workbench/shell_state.rs` 接管 UI 批字段。
-- 测试阶段：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests`——`src/tests/editor_event/runtime/` 既有测试迁移后须过；新增：四族路由单测、request 重入回归（handler 内再 publish 不死锁）、journal 拆解前后等价断言（同事件序列 revision 一致）。调用点清点数记状态节；更新 `docs/zircon_editor/core/context.md`、`docs/zircon_editor/core/editor_event.md`。
+- 测试阶段：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests`——`src/tests/editor_event/runtime/` 既有测试迁移后须过；新增：四族路由单测、request 重入回归（handler 内再 publish 不死锁）、journal 拆解前后等价断言（同事件序列 revision 一致）。调用点清点数记状态节；更新 `docs/crates/zircon_editor/core/context.md`、`docs/crates/zircon_editor/core/editor_event.md`。
 
 ### M2 Gateway 双实现与 selected_node 迁出
 
@@ -361,7 +361,7 @@ pub trait EditorRuntimeGateway: Send + Sync {
 - 切片 2.4（部分完成）：`editor_event_cutover.rs` 已全量守卫 `core/` 不依赖 `crate::ui`，并守卫 legacy event owner/符号与 `core/play/bridge.rs` 不得恢复；`workbench_state_cutover.rs` 仅守卫 workbench construction/project transition 两个文件不出现 `LevelSystem`。`src/ui/**` 的全局 `LevelSystem/CoreHandle` 深路径守卫尚未存在，且 UI host、asset manager 与 retained viewport 当前仍有 `CoreHandle` 消费点；该部分继续 `in_progress`，不能记为守卫闭环。
 
   2026-08-14 owner routing 重审：不得把上述库存机械地全部改写为 `EditorRuntimeGateway`。gateway 的定型职责是 authoring/play world、session ABI、frame/viewport/overlay 数据面；它不具备也不应获得 `ProjectAssetManager`、render-framework service graph、module bootstrap 或 native host capability 注册权限。UE `UAssetEditorSubsystem::Initialize/Deinitialize` 也在 editor subsystem composition boundary 订阅 engine/asset services，而非让每个 asset toolkit自行取得 engine 全局入口。后续 hard cut 必须拆为两类并分别守卫：(a) UI 业务/工作台/scene presentation 不得持有 `LevelSystem`、`World` 或通过 `CoreHandle` 旁路 runtime scene，统一走 gateway；(b) `EditorModule`、`EditorUiHost` 的 composition root、`DefaultEditorAssetManager` 的 project asset access 与 retained viewport 的 render-framework resolver 仅可消费一个 UI-owned、typed runtime-service access，并在构造期注入具体 manager handle/weak provider，禁止任何 pane、workspace state、callback 或 picker 取得/传播裸 `CoreHandle`、`ManagerResolver`。在先建立该 typed access 和 source inventory 分类前，不增加“全 UI 禁止 CoreHandle”的错误守卫，也不把 asset/project 服务塞入 core gateway。
-- 测试阶段：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests` + `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests`（session 字段删除牵连）+ `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime_interface -SkipBuild -LibTests`；双实现契约测试矩阵全绿；守卫红→绿记录。更新 `docs/zircon_editor/core/gateway.md`。
+- 测试阶段：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests` + `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests`（session 字段删除牵连）+ `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime_interface -SkipBuild -LibTests`；双实现契约测试矩阵全绿；守卫红→绿记录。更新 `docs/crates/zircon_editor/core/gateway.md`。
 
 ## 风险与开放问题
 

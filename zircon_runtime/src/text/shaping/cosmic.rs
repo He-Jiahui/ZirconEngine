@@ -3,13 +3,14 @@ use std::time::Instant;
 use crate::core::framework::text::{TextDirection, TextLayoutError};
 use crate::text::{TextRange, TextStyle};
 use glyphon::{
-    Attrs, Buffer, Family, LayoutGlyph, Metrics, Shaping, Weight, Wrap,
     cosmic_text::{
         BidiParagraphs, FeatureTag, FontFeatures, LineEnding, LineIter, Style as CosmicStyle,
     },
+    Attrs, Buffer, Family, LayoutGlyph, Metrics, Shaping, Weight, Wrap,
 };
 
 use crate::text::font::{FontCollectionSnapshot, FontDatabase};
+use crate::text::layout_geometry::finite_sum;
 use crate::text::model::TextShapingRequestDiagnostics;
 use crate::text::{
     BackendShapeRequest, ShapedGlyph, ShapedGlyphClusterFlags, ShapedGlyphRotation, ShapedGlyphRun,
@@ -19,9 +20,9 @@ use crate::text::{
 use super::bidi::BidiParagraph;
 use super::direct_error::DirectShapeError;
 use super::failure_receipt::classify_direct_shape_failure;
-use super::horizontal::{HorizontalDirectShapeAttempt, shape_horizontal_request};
+use super::horizontal::{shape_horizontal_request, HorizontalDirectShapeAttempt};
 use super::line_break::{
-    ClusterLineBreakFlags, LineBreakOpportunityMap, contains_mandatory_break_control,
+    contains_mandatory_break_control, ClusterLineBreakFlags, LineBreakOpportunityMap,
 };
 use super::normalize::ShapingTextView;
 use super::script_segment::ParagraphTextAnalysis;
@@ -36,7 +37,7 @@ mod font_system_cache;
 mod hard_lines;
 mod horizontal_recovery;
 
-use super::{FallbackItemizationError, fallback_primary_face, fallback_text_spans_with_report};
+use super::{fallback_primary_face, fallback_text_spans_with_report, FallbackItemizationError};
 use font_system_cache::with_font_system;
 use hard_lines::normalize_cosmic_hard_lines;
 
@@ -252,7 +253,7 @@ fn shape_with_cosmic(
                 .iter()
                 .map(|line| line.measured_width)
                 .fold(0.0_f32, f32::max);
-            let measured_height = lines.iter().map(|line| line.line_height).sum::<f32>();
+            let measured_height = finite_sum(lines.iter().map(|line| line.line_height));
             let mut shaped = ShapedGlyphRun {
                 source_text: super::source_profile::materialize_source_text(request),
                 source_range: request.source_range,
@@ -709,4 +710,5 @@ fn absolute_range(
 }
 
 #[cfg(test)]
+#[path = "cosmic/tests/cases.rs"]
 mod tests;

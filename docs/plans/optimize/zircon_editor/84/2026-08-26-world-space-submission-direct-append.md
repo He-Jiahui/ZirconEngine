@@ -29,6 +29,14 @@ benchmark emits `EDITOR84_WORLD_SPACE_SUBMISSION_DIRECT_APPEND_BENCH_V1`, collec
 world-space nodes, records the reduction from 32 temporary vectors/local sorts to zero, and
 requires `optimized_p95_ns <= legacy_p95_ns * 0.70`.
 
+## 2026-09-21 capacity follow-up
+
+[Editor879](2026-09-21-world-space-submission-lazy-capacity.md) preserves this
+direct-append contract while lazily reserving each authored node-group upper
+bound at the first valid world-space submission. The follow-up removes dense
+destination growth without reintroducing temporary vectors or local sorts and
+keeps empty/screen-only groups allocation-free.
+
 ## Validation Ownership
 
 No direct Cargo validation was started. The validation coordinator owns the immutable Windows

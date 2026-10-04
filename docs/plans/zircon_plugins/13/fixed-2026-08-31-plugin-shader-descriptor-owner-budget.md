@@ -10,8 +10,8 @@ fixing_child_dir: docs/plans/zircon_plugins/13
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/zircon_build_plugin_shader_descriptors.py
-  - tools/zircon_build_plugin_shader_descriptor_support.py
+  - tools/build/zircon_build_plugin_shader_descriptors.py
+  - tools/build/zircon_build_plugin_shader_descriptor_support.py
 tests:
   - tools/tests/test_zircon_build_plugin_shader_descriptor_owner_boundaries.py
 resolved_at: 2026-08-31

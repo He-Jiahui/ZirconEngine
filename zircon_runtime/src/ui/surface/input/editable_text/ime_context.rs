@@ -3,9 +3,9 @@ use std::borrow::Cow;
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::{
     dispatch::{
-        UI_INPUT_METHOD_SURROUNDING_TEXT_BYTE_LIMIT, UiDispatchEffect, UiImeInputEventKind,
-        UiInputEvent, UiInputMethodRequest, UiInputMethodRequestKind, UiInputMethodSurroundingText,
-        UiTextByteRange,
+        UiDispatchEffect, UiImeInputEventKind, UiInputEvent, UiInputMethodRequest,
+        UiInputMethodRequestKind, UiInputMethodSurroundingText, UiTextByteRange,
+        UI_INPUT_METHOD_SURROUNDING_TEXT_BYTE_LIMIT,
     },
     event_ui::UiNodeId,
     layout::UiFrame,
@@ -385,7 +385,7 @@ fn clamp_utf8_boundary(text: &str, offset: usize) -> usize {
 }
 
 #[cfg(test)]
-#[path = "ime_context/tests.rs"]
+#[path = "ime_context/tests/cases.rs"]
 mod tests;
 
 fn committed_text_for_input_method(

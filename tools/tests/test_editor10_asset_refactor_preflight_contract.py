@@ -6,7 +6,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 REFACTOR = ROOT / "zircon_editor/src/core/asset/refactor/delete.rs"
-TESTS = ROOT / "zircon_editor/src/core/asset/refactor/tests.rs"
+TESTS = ROOT / "zircon_editor/src/core/asset/refactor/tests/cases.rs"
 API = ROOT / "zircon_editor/src/ui/host/editor_asset_manager/api.rs"
 MANAGER = (
     ROOT

@@ -4,6 +4,10 @@ use serde::{Deserialize, Serialize};
 
 use super::super::{UiClipMode, UiClipState};
 
+#[cfg(test)]
+#[path = "clip/tests/performance_tests.rs"]
+mod performance_tests;
+
 /// Canonical clip states referenced by one ordered batch plan.
 ///
 /// The interface keeps the structured state in `UiBatchKey` so consumers can
@@ -13,6 +17,7 @@ use super::super::{UiClipMode, UiClipState};
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub(super) struct UiBatchClipStates {
     states: Vec<UiClipState>,
+    // 该索引只用于加速查找，反序列化后可重建，因此不属于序列化字段。
     #[serde(skip)]
     indices: HashMap<UiClipStateIdentity, usize>,
 }
@@ -82,6 +87,7 @@ fn clip_mode_identity(mode: UiClipMode) -> u8 {
 }
 
 fn normalized_float_bits(value: f32) -> u32 {
+    // PartialEq 将正负零视为相等；哈希身份也必须合并这两种位模式。
     if value == 0.0 {
         0
     } else {
@@ -113,11 +119,23 @@ impl UiClipStack {
     }
 
     pub(super) fn resolve(&self, clip: &UiClipState) -> Option<&UiClipState> {
+        let identity = UiClipStateIdentity::from(clip);
+        if let Some(&index) = self.states.indices.get(&identity) {
+            if let Some(state) = self.states.states.get(index).filter(|state| *state == clip) {
+                return Some(state);
+            }
+        }
+        // 反序列化或索引缺项时仍以规范状态表兜底，索引只影响查找速度。
+        self.resolve_linear(clip)
+    }
+
+    fn resolve_linear(&self, clip: &UiClipState) -> Option<&UiClipState> {
         self.states.states.iter().find(|state| *state == clip)
     }
 }
 
 fn intersect_scissors(parent: &UiClipState, child: &UiClipState) -> Option<UiClipState> {
+    // 只有矩形 Scissor 可在这里求交；其他裁剪模式继续保留请求状态。
     if parent.mode != UiClipMode::Scissor || child.mode != UiClipMode::Scissor {
         return None;
     }

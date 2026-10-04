@@ -59,6 +59,7 @@ impl RenderMaterialManagementOverview {
         Self::from_records(records).sorted(sort_order)
     }
 
+    /// 将完整记录降为表格行，同时沿用同一记录集的汇总和索引，避免页面与详情口径不同。
     pub fn from_record_set(record_set: &RenderMaterialManagementRecordSet) -> Self {
         Self {
             summary: record_set.summary,
@@ -151,5 +152,5 @@ impl RenderMaterialManagementOverviewRecord {
 }
 
 #[cfg(test)]
-#[path = "overview/streaming_query_tests.rs"]
+#[path = "overview/tests/streaming_query_tests.rs"]
 mod streaming_query_tests;

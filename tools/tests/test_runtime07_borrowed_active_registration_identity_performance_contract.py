@@ -19,7 +19,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束借用活跃注册标识：选择映射借用注册标识，并选择循环不克隆注册 ID。
 class BorrowedActiveRegistrationIdentityPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

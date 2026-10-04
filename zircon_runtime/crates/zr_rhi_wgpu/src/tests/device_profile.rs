@@ -70,6 +70,11 @@ fn wgpu_device_limits_keep_actual_negotiated_values_for_the_neutral_profile() {
         max_texture_dimension_2d: 8_192,
         max_texture_array_layers: 512,
         max_sampled_textures_per_shader_stage: 16,
+        max_compute_workgroup_size_x: 32,
+        max_compute_workgroup_size_y: 16,
+        max_compute_workgroup_size_z: 8,
+        max_compute_invocations_per_workgroup: 128,
+        max_compute_workgroups_per_dimension: 2_048,
         max_binding_array_elements_per_shader_stage: 1_024,
         max_binding_array_sampler_elements_per_shader_stage: 256,
         max_storage_buffers_per_shader_stage: 8,
@@ -79,6 +84,11 @@ fn wgpu_device_limits_keep_actual_negotiated_values_for_the_neutral_profile() {
 
     assert_eq!(limits.max_bind_groups, 5);
     assert_eq!(limits.max_texture_dimension_2d, 8_192);
+    assert_eq!(limits.max_compute_workgroup_size_x, 32);
+    assert_eq!(limits.max_compute_workgroup_size_y, 16);
+    assert_eq!(limits.max_compute_workgroup_size_z, 8);
+    assert_eq!(limits.max_compute_invocations_per_workgroup, 128);
+    assert_eq!(limits.max_compute_workgroups_per_dimension, 2_048);
     assert_eq!(limits.max_binding_array_elements_per_shader_stage, 1_024);
     assert_eq!(
         limits.max_binding_array_sampler_elements_per_shader_stage,

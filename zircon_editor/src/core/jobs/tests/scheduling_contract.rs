@@ -426,6 +426,61 @@ fn join_runs_borrowing_tasks_through_the_runtime_scheduler() {
 }
 
 #[test]
+fn scheduler_join_escape_is_crate_private() {
+    let source = include_str!("../system/lifecycle.rs");
+    assert!(source.contains("pub(crate) fn join"));
+    assert!(!source.contains("pub fn join"));
+}
+
+#[test]
+fn promotion_reserves_dependency_capacity_for_mutex_tail() {
+    let source = include_str!("../system/scheduling.rs");
+    assert!(source.contains("Vec::with_capacity("));
+    assert!(source.contains("pending.spec.after.len()"));
+    assert!(source.contains("usize::from(pending.spec.mutex_group.is_some())"));
+    assert!(source.contains("dependencies.extend(pending.spec.after.iter().map"));
+}
+
+#[test]
+fn scheduling_dependency_projection_reserves_dependency_capacity() {
+    let source = include_str!("../system/state.rs");
+    assert!(source.contains("Vec::with_capacity("));
+    assert!(source
+        .contains("pending.spec.after.len() + usize::from(pending.spec.mutex_group.is_some())"));
+    assert!(source.contains("dependencies.extend(pending.spec.after.iter().map"));
+}
+
+#[test]
+#[ignore = "managed Editor09 performance evidence"]
+fn editor09_scheduling_dependency_capacity_evidence() {
+    const DEPENDENCY_COUNT: usize = 4_096;
+    let legacy_growths = geometric_growth_events(DEPENDENCY_COUNT, 0);
+    let optimized_growths = geometric_growth_events(DEPENDENCY_COUNT, DEPENDENCY_COUNT);
+
+    println!(
+        "EDITOR09_SCHEDULING_DEPENDENCY_CAPACITY_BENCH_V1 legacy_growths={} optimized_growths={} dependency_count={}",
+        legacy_growths, optimized_growths, DEPENDENCY_COUNT,
+    );
+    assert!(legacy_growths > 0);
+    assert_eq!(optimized_growths, 0);
+}
+
+fn geometric_growth_events(target_len: usize, initial_capacity: usize) -> usize {
+    let mut capacity = initial_capacity;
+    let mut growths = 0;
+    for len in 0..target_len {
+        if len == capacity {
+            capacity = match capacity {
+                0 => 4,
+                current => current.saturating_mul(2),
+            };
+            growths += 1;
+        }
+    }
+    growths
+}
+
+#[test]
 fn shutdown_after_all_jobs_finish_is_empty_idempotent_and_shared_by_clones() {
     let jobs = test_job_system();
     let clone = jobs.clone();

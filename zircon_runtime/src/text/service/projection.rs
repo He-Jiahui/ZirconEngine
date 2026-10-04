@@ -1,21 +1,24 @@
+//! 把 shaping 结果转换为公共文本 DTO；字体句柄注册和缺失句柄均在此收口。
+
 use std::sync::atomic::Ordering;
 
 use crate::core::framework::text::{
     TextDirection, TextGlyph, TextGlyphFlags, TextGlyphRotation, TextLayoutMetrics,
     TextShapeResult, TextShapeRun,
 };
-use crate::text::font::{FontCollectionSnapshot, register_font_handle_batch_for_collection};
+use crate::text::font::{register_font_handle_batch_for_collection, FontCollectionSnapshot};
 use crate::text::{ShapedGlyph, ShapedGlyphRotation, ShapedGlyphRun};
 
+use super::generation_retry_metrics;
 #[cfg(test)]
 use super::CURRENT_THREAD_NEUTRAL_PROJECTION_COUNT;
-use super::generation_retry_metrics;
 
 pub(super) fn project_shape_result(
     shaped: ShapedGlyphRun,
     resolved_direction: TextDirection,
     font_collection: &FontCollectionSnapshot,
 ) -> TextShapeResult {
+    // 按 shaping 的行/字形顺序批量登记，后续迭代以同一顺序配对句柄。
     record_neutral_projection(&shaped);
     let metrics = TextLayoutMetrics {
         width: shaped.measured_width,

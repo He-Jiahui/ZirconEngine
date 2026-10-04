@@ -1,5 +1,6 @@
 var container = %import("zr.container");
 var binary = %import("protocol/binary");
+var tickResult = %import("world/fixed_tick_result");
 var math = %import("zr.zircon.math");
 var playerMotion = %import("world/player_motion");
 var motionTransition = %import("world/player_motion_transition");
@@ -206,7 +207,7 @@ class OfflineBootstrap {
     }
 }
 
-class WorldState {
+pub class WorldState {
     pub var tick: uint;
     pub var timeMicros: uint;
     pub var nextEntityId: uint;
@@ -18493,6 +18494,7 @@ startOfflineEvasionCast(state: WorldState, casterIndex: int): void {
         effects.metric(abilityIndex, 1, 0, "value"),
         0.0
     );
+    applyOfflineGhostfootGambitCastCompleted(state, casterIndex);
 }
 
 startOfflineDeterrenceCast(state: WorldState, casterIndex: int): void {
@@ -21099,7 +21101,12 @@ startOfflineHemorrhageCast(state: WorldState, casterIndex: int, targetId: uint):
     var targetIndex = hemorrhageTargetIndex(state, casterIndex, targetId);
     var level = <int>state.entityLevels[casterIndex];
     var rank = m4AbilityCatalog.rankAtLevel(abilityIndex, level);
-    var cost = <int>m4AbilityCatalog.metric(abilityIndex, level, "cost");
+    var baseCost = <int>m4AbilityCatalog.metric(abilityIndex, level, "cost");
+    var cheapMultiplier = nextCastModifierValueForAbility(
+        state, casterIndex, nextCastModifiers.cheapCostKind(), abilityCode
+    );
+    var cost = cheapMultiplier > 0.0 && cheapMultiplier < 1.0 ?
+        terrainGradient.javascriptCeil(<float>baseCost * cheapMultiplier, true) : baseCost;
     var resolvedTotal = offlineTalentDotResolvedTotal(
         state, <uint>state.entityIds[casterIndex], abilityCode, <uint>rank
     );
@@ -21123,6 +21130,12 @@ startOfflineHemorrhageCast(state: WorldState, casterIndex: int, targetId: uint):
     state.entitySitting[casterIndex] = false;
     state.entityWeaponStowed[casterIndex] = false;
     spendOfflineAbilityResource(state, casterIndex, cost);
+    if (cheapMultiplier > 0.0 && cheapMultiplier < 1.0 &&
+        !consumeNextCastModifierForAbility(
+            state, casterIndex, nextCastModifiers.cheapCostKind(), abilityCode
+        )) {
+        throw "woc Hemorrhage cheap modifier changed before consumption";
+    }
     var actor = new autoAttackState.AutoActor();
     prepareOfflineAutoActor(state, casterIndex, targetIndex, actor);
     var target = new autoAttackState.AutoTarget();
@@ -34592,7 +34605,7 @@ decodeState(bytes: container.Array<uint>): WorldState {
         schemaVersion != <uint>111 && schemaVersion != <uint>112 &&
         schemaVersion != <uint>113 && schemaVersion != <uint>114 &&
         schemaVersion != <uint>115 && schemaVersion != <uint>116 &&
-        schemaVersion != <uint>117) {
+        schemaVersion != <uint>117 && schemaVersion != <uint>118) {
         throw "woc world state schema is unsupported";
     }
     var state = new WorldState();
@@ -37476,6 +37489,134 @@ offlineCappedResourceGain(
         <float>state.entityMaxResources[casterIndex]
     );
     state.entityResources[casterIndex] = precision.cappedAdd(exact, amount).current;
+}
+
+ghostfootGambitTalentProcIndex(): int {
+    var index = 0;
+    while (index < talentProcCatalog.procCount()) {
+        if (talentProcCatalog.procId(index) == "rog_improved_evasion") { return index; }
+        index = index + 1;
+    }
+    return -1;
+}
+
+// Evasion is an instant, successful cast boundary.  Rehydrate the generated
+// source proc here, then apply its declarative responses in source order:
+// capped energy first, followed by one canonical scoped cheap-cost modifier.
+// The proc has neither chance nor ICD, so this bridge must never draw RNG.
+applyOfflineGhostfootGambitCastCompleted(
+    state: WorldState, casterIndex: int
+): void {
+    if (!state.offlineSessionActive || casterIndex < 0 ||
+        casterIndex >= state.entityIds.length ||
+        casterIndex != offlineQuestPrimaryPlayerIndex(state) ||
+        <uint>state.entityKinds[casterIndex] != <uint>1 ||
+        <bool>state.entityDead[casterIndex] ||
+        state.entityTalentRowOptionCodes.length != state.entityIds.length * 6) {
+        return;
+    }
+    var rogue = knownAbilityCatalog.classIndex("rogue");
+    if (rogue < 0 || <uint>state.entityTemplates[casterIndex] != <uint>(rogue + 1)) {
+        return;
+    }
+    var procIndex = ghostfootGambitTalentProcIndex();
+    if (procIndex < 0 || !talentProcs.catalogEntryMatchesSelection(
+            procIndex, talentRowCodeAt(state, casterIndex, 4), false
+        )) {
+        return;
+    }
+    var abilityCode = evasionAbilityCode();
+    if (!knownAbilityPartitionContains(state, casterIndex, abilityCode)) { return; }
+    var definition = talentProcs.definitionFromCatalog(procIndex);
+    var ownerId = <uint>state.entityIds[casterIndex];
+    var runtime = new talentProcs.TalentProcRuntimeState();
+    runtime.ids.add(definition.id);
+    runtime.counters.add(0);
+    runtime.icdRemaining.add(0.0);
+    var decision = talentProcs.onCastCompleted(
+        runtime,
+        definition,
+        knownAbilityCatalog.abilityId(<int>abilityCode),
+        false,
+        0.0
+    );
+    if (!decision.matched || !decision.fired) { return; }
+    if (decision.consumesRandom) {
+        throw "woc Ghostfoot Gambit must not consume a random draw";
+    }
+    var responseIndex = 0;
+    while (responseIndex < talentProcCatalog.procResponseCount(procIndex)) {
+        var response = talentProcs.responseFromCatalog(procIndex, responseIndex);
+        var plan = talentProcs.planResponse(
+            definition,
+            response,
+            ownerId,
+            ownerId,
+            <int>state.entityMaxHp[casterIndex],
+            true,
+            false,
+            0.0
+        );
+        if (plan.applies && plan.resourceDelta > 0.0) {
+            offlineCappedResourceGain(state, casterIndex, plan.resourceDelta);
+        }
+        if (plan.applies && plan.auraKind == "next_cast_cheap" &&
+            plan.auraDuration == 8.0 && plan.auraValue == 0.5) {
+            if (plan.empowerAbilityIds.length == 0) {
+                throw "woc Ghostfoot Gambit cheap response is invalid";
+            }
+            var targetCodes = new container.Array<uint>();
+            var sourceIndex = 0;
+            while (sourceIndex < plan.empowerAbilityIds.length) {
+                var targetCode = <uint>knownAbilityCatalog.abilityCode(
+                    <string>plan.empowerAbilityIds[sourceIndex]
+                );
+                if (targetCode == <uint>0 ||
+                    !knownAbilityCatalog.abilityExists(<int>targetCode)) {
+                    throw "woc Ghostfoot Gambit target ability is invalid";
+                }
+                targetCodes.add(targetCode);
+                sourceIndex = sourceIndex + 1;
+            }
+            // The source list is authored by role, not numeric ability code;
+            // canonical next-cast storage requires ascending target codes.
+            var sortIndex = 0;
+            while (sortIndex < targetCodes.length) {
+                var minimumIndex = sortIndex;
+                var scanIndex = sortIndex + 1;
+                while (scanIndex < targetCodes.length) {
+                    if (<uint>targetCodes[scanIndex] < <uint>targetCodes[minimumIndex]) {
+                        minimumIndex = scanIndex;
+                    }
+                    scanIndex = scanIndex + 1;
+                }
+                if (minimumIndex != sortIndex) {
+                    var swapped = <uint>targetCodes[sortIndex];
+                    targetCodes[sortIndex] = <uint>targetCodes[minimumIndex];
+                    targetCodes[minimumIndex] = swapped;
+                }
+                sortIndex = sortIndex + 1;
+            }
+            var duplicateIndex = 1;
+            while (duplicateIndex < targetCodes.length) {
+                if (<uint>targetCodes[duplicateIndex] <=
+                    <uint>targetCodes[duplicateIndex - 1]) {
+                    throw "woc Ghostfoot Gambit target abilities are not canonical";
+                }
+                duplicateIndex = duplicateIndex + 1;
+            }
+            setNextCastModifier(
+                state,
+                casterIndex,
+                <uint>talentProcCatalog.procOriginCode(procIndex),
+                nextCastModifiers.cheapCostKind(),
+                plan.auraDuration,
+                plan.auraValue,
+                targetCodes
+            );
+        }
+        responseIndex = responseIndex + 1;
+    }
 }
 
 leanQuiverTalentProcIndex(): int {
@@ -46037,6 +46178,10 @@ clearDeadCasting(state: WorldState): void {
 
 pub fixedTick(inputBytes: container.Array<uint>): container.Array<uint> {
     var input = binary.decodeFixedTickInput(inputBytes);
+    return evaluateFixedTick(input).payload;
+}
+
+pub evaluateFixedTick(input: binary.TickInput): tickResult.FixedTickResult {
     if (stateDigest(input.committedState, 1) != input.committedStateDigest) {
         throw "woc committed state digest does not match bytes";
     }
@@ -46120,7 +46265,8 @@ pub fixedTick(inputBytes: container.Array<uint>): container.Array<uint> {
     clearExpiredResurrectionOffers(state);
     tickResurrectionSickness(state);
     var candidate = encodeState(state);
-    return binary.encodeWorldSnapshot(input, candidate, stateDigest(candidate, 1));
+    var payload = binary.encodeWorldSnapshot(input, candidate, stateDigest(candidate, 1));
+    return new tickResult.FixedTickResult(candidate, payload);
 }
 
 pub selfTest(): int {
@@ -55807,6 +55953,126 @@ pub improvedConcussiveRuntimeStateTest(): int {
         typed.rngDraws != <uint>2 ? -10 : 1;
 }
 
+pub ghostfootGambitRuntimeStateTest(): int {
+    var rogue = knownAbilityCatalog.classIndex("rogue");
+    var evasion = evasionAbilityCode();
+    var hemorrhage = hemorrhageAbilityCode();
+    var ghostfoot = talentSelectionCatalog.optionCode(
+        "rogue", 17, "rog_r17_improved_evasion"
+    );
+    var procIndex = ghostfootGambitTalentProcIndex();
+    var forestWolf = <uint>(campMobCore.indexOf("forest_wolf", true) + 1);
+    if (rogue < 0 || evasion == <uint>0 || hemorrhage == <uint>0 ||
+        ghostfoot != <uint>68 || procIndex < 0 || forestWolf == <uint>0 ||
+        talentProcCatalog.procId(procIndex) != "rog_improved_evasion" ||
+        talentProcCatalog.procNth(procIndex) != 1 ||
+        talentProcCatalog.procTriggerAbilityCount(procIndex) != 1 ||
+        talentProcCatalog.procTriggerAbilityId(procIndex, 0) != "evasion" ||
+        talentProcCatalog.responseAmount(procIndex, 0) != 30.0 ||
+        talentProcCatalog.responseAuraKind(procIndex, 1) != "next_cast_cheap" ||
+        talentProcCatalog.responseDuration(procIndex, 1) != 8.0 ||
+        talentProcCatalog.responseCostPct(procIndex, 1) != 0.5 ||
+        talentProcCatalog.responseAbilityCount(procIndex, 1) != 8) {
+        return -1;
+    }
+
+    var state = new WorldState();
+    state.offlineSessionActive = true;
+    state.offlinePlayerClass = <uint>rogue;
+    var playerId = state.spawnPlayer(
+        <uint>(rogue + 1), 17, 0.0, 1.5, 0.0, 100, 7.0, 1
+    );
+    var targetId = state.spawnMob(
+        forestWolf, 1, 0.0, 1.5, 3.0, 1000, 8.0
+    );
+    state.entityResources[0] = 70.0;
+    state.entityMaxResources[0] = 100.0;
+    state.entityHitBonus[0] = 100.0;
+    if (playerId == <uint>0 || targetId == <uint>0 ||
+        !replaceOfflineTalentAllocation(
+            state, 0, <uint>0, <uint>0, <uint>0, <uint>0,
+            ghostfoot, <uint>0, <uint>0
+        ) || !knownAbilityPartitionContains(state, 0, evasion) ||
+        !knownAbilityPartitionContains(state, 0, hemorrhage)) {
+        return -2;
+    }
+
+    var drawsBefore = <uint>state.rngDraws;
+    startOfflineEvasionCast(state, 0);
+    if (<int>state.entityResources[0] != 100 ||
+        !nextCastModifierActiveForAbility(
+            state, 0, nextCastModifiers.cheapCostKind(), hemorrhage
+        ) || !floatMatches(
+            nextCastModifierValueForAbility(
+                state, 0, nextCastModifiers.cheapCostKind(), hemorrhage
+            ), 0.5
+        ) || nextCastModifierActiveForAbility(
+            state, 0, nextCastModifiers.cheapCostKind(), evasion
+        ) || state.rngDraws != <uint>0 || <uint>state.rngDraws != drawsBefore ||
+        abilityCooldownExpiresAt(state, 0, evasion) != <uint>300000000) {
+        return -3;
+    }
+
+    // A target/range rejection happens before the bill and must retain the
+    // source one-shot modifier for the next eligible builder.
+    state.entityCastGcdRemaining[0] = 0.0;
+    state.entityZ[1] = 50.0;
+    startOfflineHemorrhageCast(state, 0, targetId);
+    if (<int>state.entityResources[0] != 100 ||
+        !nextCastModifierActiveForAbility(
+            state, 0, nextCastModifiers.cheapCostKind(), hemorrhage
+        )) {
+        return -4;
+    }
+
+    var restored = decodeState(encodeState(state));
+    if (!nextCastModifierStateIsValid(restored) ||
+        !nextCastModifierActiveForAbility(
+            restored, 0, nextCastModifiers.cheapCostKind(), hemorrhage
+        ) || !floatMatches(
+            nextCastModifierValueForAbility(
+                restored, 0, nextCastModifiers.cheapCostKind(), hemorrhage
+            ), 0.5
+        ) || <int>restored.entityResources[0] != 100) {
+        return -5;
+    }
+
+    // Eight seconds are 160 authoritative 50-ms ticks.  Expiry removes the
+    // modifier without changing the persisted resource balance.
+    ageOfflineNextCastModifiers(restored);
+    var tick = 1;
+    while (tick < 160) {
+        ageOfflineNextCastModifiers(restored);
+        tick = tick + 1;
+    }
+    if (nextCastModifierActiveForAbility(
+            restored, 0, nextCastModifiers.cheapCostKind(), hemorrhage
+        ) || <int>restored.entityResources[0] != 100) {
+        return -6;
+    }
+
+    // Restore the target and bill 35 * 0.5 with JavaScript ceil semantics:
+    // ceil(17.5) is 18.  Consumption occurs only after admission/spend.
+    state.entityZ[1] = 3.0;
+    state.entityCastGcdRemaining[0] = 0.0;
+    state.entityResources[0] = 36.0;
+    var hemorrhageDrawsBefore = <uint>state.rngDraws;
+    startOfflineHemorrhageCast(state, 0, targetId);
+    if (state.entityResources[0] != 18 ||
+        nextCastModifierActiveForAbility(
+            state, 0, nextCastModifiers.cheapCostKind(), hemorrhage
+        ) || <uint>state.rngDraws <= hemorrhageDrawsBefore) {
+        return -7;
+    }
+
+    // Cooldown admission blocks a second Evasion and therefore cannot issue a
+    // second refund or replace the already-consumed cheap modifier.
+    var resourceAfterHemorrhage = <float>state.entityResources[0];
+    startOfflineEvasionCast(state, 0);
+    return <float>state.entityResources[0] == resourceAfterHemorrhage &&
+        <uint>state.rngDraws > drawsBefore ? 1 : -8;
+}
+
 pub deathlessWillRuntimeStateTest(): int {
     var hunter = knownAbilityCatalog.classIndex("hunter");
     var forestWolf = <uint>(campMobCore.indexOf("forest_wolf", true) + 1);
@@ -55938,6 +56204,22 @@ pub deathlessWillRuntimeStateTest(): int {
         return -15;
     }
     return 1;
+}
+
+// Keep the authored state codec callable by the native host so WOS migration
+// and malformed-input behavior are exercised through the real VM boundary.
+pub worldStateCodecEncode(schemaVersion: int): container.Array<uint> {
+    return encodeStateVersion(new WorldState(), <uint>schemaVersion);
+}
+
+pub worldStateCodecRoundtrip(bytes: container.Array<uint>): container.Array<uint> {
+    return encodeState(decodeState(bytes));
+}
+
+// Client projection consumes a decoded immutable WOS snapshot rather than a
+// parallel mutable representation, preserving the committed-state authority.
+pub decodeClientPresentationState(bytes: container.Array<uint>): WorldState {
+    return decodeState(bytes);
 }
 
 pub redlineDrawRuntimeStateTest(): int {

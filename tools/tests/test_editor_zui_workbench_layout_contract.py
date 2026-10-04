@@ -139,10 +139,10 @@ class EditorZuiWorkbenchLayoutContractTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "min": "$editor.density.command_palette.min_width",
+                "min": 0,
                 "preferred": "$editor.density.command_palette.preferred_width",
                 "max": "$editor.density.command_palette.max_width",
-                "stretch": "Fixed",
+                "stretch": "Stretch",
             },
             palette["width"],
         )
@@ -253,10 +253,31 @@ class EditorZuiWorkbenchLayoutContractTests(unittest.TestCase):
         self.assertEqual("Receive", left_group["layout"]["input_policy"])
         self.assertTrue(left_group["props"]["input_hoverable"])
         self.assertEqual(14, len(left_group["children"]))
+        right_group = nodes["right_group"]
         self.assertEqual(
             ["set_projection_mode", "align_view"],
-            [child["node"] for child in nodes["right_group"]["children"]],
+            [child["node"] for child in right_group["children"]],
         )
+        self.assertEqual(
+            {
+                "min": 60.0,
+                "preferred": 60.0,
+                "max": 60.0,
+                "stretch": "Fixed",
+            },
+            right_group["layout"]["width"],
+        )
+        compact_button_width = {
+            "min": 28.0,
+            "preferred": 28.0,
+            "max": 28.0,
+            "stretch": "Fixed",
+        }
+        for node_id in ("set_projection_mode", "align_view"):
+            self.assertEqual(
+                compact_button_width,
+                nodes[node_id]["layout"]["width"],
+            )
 
     def test_workbench_entry_chrome_consumes_shared_height_tokens(self):
         fixed_heights = {
@@ -409,11 +430,11 @@ class EditorZuiWorkbenchLayoutContractTests(unittest.TestCase):
             values = nodes[f"{axis_name}_values"]
             self.assertEqual("WrapBox", values["component"])
             self.assertEqual("WrapBox", values["layout"]["container"]["kind"])
-            self.assertEqual(76.0, values["layout"]["container"]["item_min_width"])
+            self.assertEqual(96.0, values["layout"]["container"]["item_min_width"])
             for suffix in ("x", "y", "z"):
                 group = nodes[f"{axis_name}_value_{suffix}_group"]
                 self.assertEqual(
-                    {"min": 70.0, "preferred": 76.0, "max": 80.0, "stretch": "Fixed"},
+                    {"min": 96.0, "preferred": 120.0, "stretch": "Stretch"},
                     group["layout"]["width"],
                 )
 
@@ -429,7 +450,8 @@ class EditorZuiWorkbenchLayoutContractTests(unittest.TestCase):
             return int((width + horizontal_gap) // (item_min_width + horizontal_gap))
 
         self.assertEqual(2, columns_for(196.0))
-        self.assertEqual(3, columns_for(248.0))
+        self.assertEqual(2, columns_for(248.0))
+        self.assertEqual(3, columns_for(300.0))
 
     def test_viewport_toolbar_reveals_secondary_display_controls_by_width_tier(self):
         nodes = load_document(
@@ -500,7 +522,7 @@ class EditorZuiWorkbenchLayoutContractTests(unittest.TestCase):
 
         notification = nodes["notification_center"]["props"]
         self.assertFalse(notification["popup_open"])
-        self.assertEqual("visible", notification["visibility"])
+        self.assertEqual("collapsed", notification["visibility"])
         self.assertTrue(notification["keep_mounted"])
         for property_name in (
             "input_interactive",
@@ -533,17 +555,38 @@ class EditorZuiWorkbenchLayoutContractTests(unittest.TestCase):
         self.assertEqual("Receive", body["layout"]["input_policy"])
         self.assertTrue(body["props"]["input_hoverable"])
 
-        self.assertEqual("MasonryBox", top_row["component"])
+        self.assertEqual("WrapBox", top_row["component"])
         self.assertEqual(
             {
-                "kind": "MasonryBox",
-                "columns": 2,
-                "gap": "$editor.density.gap.medium",
+                "kind": "WrapBox",
+                "horizontal_gap": "$editor.density.gap.medium",
+                "vertical_gap": "$editor.density.gap.medium",
+                "item_min_width": 232.0,
             },
             top_row["layout"]["container"],
         )
         self.assertEqual("Fixed", top_row["layout"]["height"]["stretch"])
         self.assertFalse(top_row["layout"].get("clip", False))
+
+        columns = [
+            nodes[node_id]
+            for node_id in ("component_top_left_column", "component_top_right_column")
+        ]
+        self.assertEqual(
+            ["component_top_left_column", "component_top_right_column"],
+            [child["node"] for child in top_row["children"]],
+        )
+        for column in columns:
+            self.assertEqual("VerticalGroup", column["component"])
+            self.assertEqual(
+                {
+                    "min": 232.0,
+                    "preferred": 260.0,
+                    "stretch": "Stretch",
+                },
+                column["layout"]["width"],
+            )
+            self.assertFalse(column["layout"].get("clip", False))
 
         self.assertEqual("VerticalGroup", lower_row["component"])
         self.assertEqual("Fixed", lower_row["layout"]["height"]["stretch"])
@@ -561,11 +604,24 @@ class EditorZuiWorkbenchLayoutContractTests(unittest.TestCase):
             "component_labs",
             "component_list",
         ]
+        self.assertCountEqual(
+            top_cards,
+            [
+                child["node"]
+                for column in columns
+                for child in column["children"]
+            ],
+        )
         max_card_width = max(
             nodes[node_id]["layout"]["width"]["max"] for node_id in top_cards
         )
         max_card_min_width = max(
             nodes[node_id]["layout"]["width"]["min"] for node_id in top_cards
+        )
+        self.assertEqual(
+            max_card_min_width,
+            top_row["layout"]["container"]["item_min_width"],
+            "the wrap threshold must protect the widest card minimum",
         )
         gap = load_document(TOKENS)["density"]["gap_medium"]
         self.assertLessEqual(
@@ -579,18 +635,27 @@ class EditorZuiWorkbenchLayoutContractTests(unittest.TestCase):
         )
         tokens = load_document(TOKENS)
         component_table_width = nodes["component_table"]["layout"]["width"]
-        ultra_available = (
-            tokens["density"]["ultra_minimum_window_width"]
-            - tokens["chrome"]["activity_rail_width"]
+        two_column_minimum = 2.0 * top_row["layout"]["container"]["item_min_width"] + gap
+        self.assertGreater(
+            two_column_minimum,
+            tokens["density"]["ultra_minimum_window_width"],
+            "the gallery must wrap to one column when the full-width drawer is below 472px",
         )
-        self.assertLessEqual(2.0 * max_card_min_width + gap, ultra_available)
+        self.assertLessEqual(
+            two_column_minimum,
+            tokens["density"]["minimum_window_width"],
+            "the gallery must show two columns at the regular minimum window width",
+        )
         for node_id in top_cards:
             self.assertEqual(
                 "Stretch",
                 nodes[node_id]["layout"]["width"]["stretch"],
                 node_id,
             )
-        self.assertLessEqual(component_table_width["min"], ultra_available)
+        self.assertLessEqual(
+            component_table_width["min"],
+            tokens["density"]["ultra_minimum_window_width"],
+        )
         self.assertEqual("Stretch", component_table_width["stretch"])
 
         notification_width = {

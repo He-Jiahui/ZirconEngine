@@ -6,22 +6,22 @@ use zircon_runtime_interface::ui::surface::{
 
 use crate::core::framework::text::{TextDirection, TextGlyph, TextLayoutError};
 use crate::text::layout::{
-    LogicalVirtualFragmentRole, LogicalVirtualLineSequence, ResolvedRichTextSpan,
-    RichTextLayoutSource, resolved_text_spans,
+    resolved_text_spans, LogicalVirtualFragmentRole, LogicalVirtualLineSequence,
+    ResolvedRichTextSpan, RichTextLayoutSource,
 };
 use crate::text::shaping::{TextLayoutOutcome, TextShapeRunProvider, TextShapingOutcome};
 use crate::text::{
-    ResolvedRichTextGlyphRun, SharedTextLayoutSession, TextRange, TextStyle, VerticalMode,
-    text_style,
+    text_style, ResolvedRichTextGlyphRun, SharedTextLayoutSession, TextRange, TextStyle,
+    VerticalMode,
 };
 
 use super::projection::{artifact_local_profile_metrics_enabled, project_shaped_runs_for_artifact};
 use super::visual_projection::{source_cluster_range_for_glyph, visual_clusters_for_line};
 use super::{
-    ResolvedTextGlyphArtifact, ResolvedTextGlyphArtifactFontLease, ResolvedTextGlyphArtifactLine,
     artifact_line_source_ranges_are_owned_by_layout, artifact_line_source_ranges_are_sliceable,
     resolved_text_line_requires_visual_fallback, source_slice, source_text_origin,
-    visual_glyphs_for_line,
+    visual_glyphs_for_line, ResolvedTextGlyphArtifact, ResolvedTextGlyphArtifactFontLease,
+    ResolvedTextGlyphArtifactLine,
 };
 
 pub(crate) struct BuiltResolvedRichTextGlyphArtifact {
@@ -481,8 +481,10 @@ fn glyph_run_ranges(
                 .and_then(|ranges| ranges.get(visual_index))
                 .copied()
                 .flatten();
-            let style_source_range =
-                source_receipt.map(|receipt| UiTextRange::from(receipt.style_source_range));
+            let style_source_range = source_receipt.map(|receipt| UiTextRange {
+                start: receipt.style_source_range.start,
+                end: receipt.style_source_range.end,
+            });
             match (style_source_ranges[owner_index], style_source_range) {
                 (Some(existing), Some(current)) if existing != current => return None,
                 (None, Some(current)) => style_source_ranges[owner_index] = Some(current),
@@ -490,7 +492,10 @@ fn glyph_run_ranges(
             }
             let replaced_source_range = source_receipt
                 .and_then(|receipt| receipt.replaced_source_range)
-                .map(Into::into);
+                .map(|range| UiTextRange {
+                    start: range.start,
+                    end: range.end,
+                });
             match (replaced_source_ranges[owner_index], replaced_source_range) {
                 (Some(existing), Some(current)) if existing != current => return None,
                 (None, Some(current)) => replaced_source_ranges[owner_index] = Some(current),

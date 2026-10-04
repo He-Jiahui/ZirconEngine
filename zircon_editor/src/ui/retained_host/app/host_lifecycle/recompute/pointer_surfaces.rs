@@ -11,8 +11,19 @@ impl RetainedEditorHost {
         window_metrics_target: bool,
     ) {
         zircon_runtime::profile_scope!("editor", "retained_host", "recompute_pointer_surfaces");
-        self.sync_menu_pointer_layout(model, chrome, preset_names);
-        self.sync_welcome_recent_pointer_layout(chrome);
+        self.sync_menu_pointer_layout(model, chrome, preset_names, window_metrics_target);
+        if window_metrics_target {
+            if self.sync_welcome_recent_pointer_size() {
+                self.apply_welcome_recent_pointer_state_to_ui();
+            }
+            zircon_runtime::profile_counter!(
+                "editor",
+                "ui.window_metrics.welcome_recent_semantic_reuse_count",
+                1
+            );
+        } else {
+            self.sync_welcome_recent_pointer_layout(chrome);
+        }
         let filtered_hierarchy_entries = self.filtered_hierarchy_entries(&chrome.scene_entries);
         let hierarchy_entries = filtered_hierarchy_entries
             .as_ref()

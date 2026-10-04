@@ -15,6 +15,14 @@ use crate::asset::{
     AssetImportError, AssetImporterDescriptor, AssetImporterRegistry, AssetKind,
     DiagnosticOnlyAssetImporter, FunctionAssetImporter,
 };
+#[cfg(all(test, feature = "ui"))]
+use crate::asset::{
+    AssetImportOutcome, ImportedAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset,
+};
+#[cfg(all(test, feature = "ui"))]
+use crate::ui::v2::UiZuiAssetLoader;
+#[cfg(all(test, feature = "ui"))]
+use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
 const BUILTIN_IMPORTER_PLUGIN_ID: &str = "zircon.builtin.asset_importers";
 const PLUGIN_REQUIRED_IMPORTER_PLUGIN_ID: &str = "zircon.runtime.plugin_required_importers";
@@ -98,7 +106,7 @@ impl AssetImporter {
         )?;
         #[cfg(feature = "text")]
         self.register_function(
-            descriptor("zircon.builtin.toml.font", AssetKind::Font, 2)
+            descriptor("zircon.builtin.toml.font", AssetKind::Font, 3)
                 .with_full_suffixes([".font.toml"]),
             import_font_asset::import_font_asset,
         )?;
@@ -434,6 +442,19 @@ impl AssetImporter {
                 .with_required_capabilities(["runtime.asset.importer.texture.image"]),
                 import_texture::import_texture,
             ),
+            #[cfg(feature = "ui")]
+            FunctionAssetImporter::new(
+                plugin_fixture_descriptor_versioned(
+                    "ui_document_importer.zui_document",
+                    "ui_document_importer",
+                    AssetKind::UiWidget,
+                    2,
+                )
+                .with_full_suffixes([".zui"])
+                .with_additional_output_kinds([AssetKind::UiLayout, AssetKind::UiStyle])
+                .with_required_capabilities(["runtime.asset.importer.ui_document"]),
+                import_ui_zui_fixture,
+            ),
             #[cfg(feature = "graphics")]
             FunctionAssetImporter::new(
                 plugin_fixture_descriptor(
@@ -485,6 +506,29 @@ impl AssetImporter {
         }
         Ok(())
     }
+}
+
+#[cfg(all(test, feature = "ui"))]
+fn import_ui_zui_fixture(
+    context: &crate::asset::AssetImportContext,
+) -> Result<AssetImportOutcome, AssetImportError> {
+    let document = context.source_str()?;
+    let parsed = UiZuiAssetLoader::load_zui_str(document).map_err(|source| {
+        AssetImportError::UiV2Document {
+            context: "parse .zui ui asset",
+            source: source.into(),
+        }
+    })?;
+    let imported = match parsed.asset.kind {
+        UiV2AssetKind::View => ImportedAsset::UiV2View(UiV2ViewAsset { document: parsed }),
+        UiV2AssetKind::Style | UiV2AssetKind::ThemeTokens => {
+            ImportedAsset::UiV2Style(UiV2StyleAsset { document: parsed })
+        }
+        UiV2AssetKind::Component => {
+            ImportedAsset::UiV2Component(UiV2ComponentAsset { document: parsed })
+        }
+    };
+    Ok(AssetImportOutcome::new(context.uri.clone(), imported))
 }
 
 fn descriptor(

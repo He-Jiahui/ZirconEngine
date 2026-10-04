@@ -1,4 +1,5 @@
-$script:AuditScript = Join-Path $PSScriptRoot "..\ui-structural-hotspot-audit.ps1"
+# 以临时源码树验证生产热点筛选、确定性来源清单与输出盘约束。
+$script:AuditScript = Join-Path $PSScriptRoot "..\audits\ui-structural-hotspot-audit.ps1"
 if (Test-Path -LiteralPath $script:AuditScript) {
     . $script:AuditScript
 }

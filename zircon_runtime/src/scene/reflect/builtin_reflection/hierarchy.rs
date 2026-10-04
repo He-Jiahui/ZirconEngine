@@ -10,6 +10,7 @@ use super::component_support;
 
 const TYPE_PATH: &str = "zircon_runtime::scene::components::Hierarchy";
 
+// 父节点反射写入必须走 World::set_parent_checked，确保环检测与层级派生状态和普通编辑路径一致。
 pub(super) fn registration() -> Result<RuntimeTypeRegistration, ReflectError> {
     derived_component_registration_with_adapter::<Hierarchy>(
         ReflectComponent::new(TYPE_PATH, contains, read_field, write_field, remove)
@@ -128,5 +129,8 @@ fn write_fields_by_slot(
 }
 
 fn remove(world: &mut World, entity: EntityId, _type_path: &str) -> Result<bool, ReflectError> {
-    component_support::remove::<Hierarchy>(world, entity, TYPE_PATH)
+    component_support::get::<Hierarchy>(world, entity, TYPE_PATH)?;
+    Err(ReflectError::NonRemovableComponent {
+        type_path: TYPE_PATH.to_string(),
+    })
 }

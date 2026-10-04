@@ -14,6 +14,8 @@ pub(super) fn registrations() -> Vec<RenderPassExecutorRegistration> {
     )]
 }
 
+/// 图中的辐照度体积绑定边界。纹理选择与上传已在 compiled_scene_frame_foundation
+/// 准备帧资源时完成，执行器仅校验通道和 GPU 上下文，避免同帧重复准备。
 struct IrradianceVolumeBindExecutor;
 
 impl RenderPassExecutor for IrradianceVolumeBindExecutor {
@@ -30,18 +32,5 @@ impl RenderPassExecutor for IrradianceVolumeBindExecutor {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn irradiance_bind_executor_does_not_repeat_frame_preparation() {
-        let production = include_str!("executor.rs")
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("irradiance executor test boundary");
-
-        assert!(production.contains("context.require_gpu()?"));
-        assert!(!production.contains("select_irradiance_volume_for_view"));
-        assert!(!production.contains("irradiance_volume_texture"));
-        assert!(!production.contains(".prepare("));
-        assert!(!production.contains("gpu.queue"));
-    }
-}
+#[path = "tests/executor.rs"]
+mod tests;

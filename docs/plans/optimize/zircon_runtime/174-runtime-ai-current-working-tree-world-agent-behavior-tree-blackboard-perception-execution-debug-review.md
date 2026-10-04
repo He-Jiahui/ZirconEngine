@@ -145,7 +145,7 @@ reference_engines:
 | ID | 状态 | 当前差异 | 必须重构 |
 |---|---|---|---|
 | RT-AI-P1-014 | Open | Node context没有 World/command sink/typed task broker；descriptor无参数 schema、pins、side-effect、线程/确定性 metadata | 定义 versioned node schema：输入输出 pin、默认/范围、Blackboard read/write、resource/interface dependency、thread/latent/abort/restart/determinism/debug policy |
-| RT-AI-P1-015 | Open | SetBlackboard、EmitEvent、UpdateBlackboardDistance通过 `result`/`service_result` 读取结果，未产生承诺中的写入或事件副作用 | 节点只能通过 typed Blackboard transaction/event command sink产生 effect receipt；删除 result 参数绕过，service拥有 interval/phase/deactivate语义 |
+| RT-AI-P1-015 | Partial | SetBlackboard and EmitEvent now stage bounded typed commands, validate the whole Blackboard overlay, publish registered World gameplay events, and issue bounded per-effect receipts. UpdateBlackboardDistance still consumes service_result; cross-load exactly-once persistence is not implemented. | Keep the typed effect contract and add engine-facing cancellation/replay integration. Implement UpdateBlackboardDistance as an auxiliary service with explicit interval/phase/relevance/deactivation semantics and asset migration; add SaveGame-owned generation/ledger persistence before claiming cross-load exactly-once. |
 | RT-AI-P1-016 | Open | Wait可被静态 result绕过，缺 clock domain、pause/time scale、wake deadline | 使用 runtime clock ticket 与 wake queue；记录 pause/step/replay/save 语义和超时原因 |
 | RT-AI-P1-017 | Open | Parallel/selector abort 基础存在，但完成分支时没有统一 cancel/ack barrier，不能证明所有 sibling latent work 已停止 | 明确 parallel child lifecycle、completion threshold、background policy；terminal transition按确定顺序 abort/cancel并等待 bounded ack |
 | RT-AI-P1-018 | Open | MoveTo通过动态 JSON property、event store presence和 destination float equality 猜测请求；clear target写当前位置 | 使用 NavigationTaskBroker request/generation、acceptance radius、filter、repath、partial/no-path/stuck outcome；clear必须是真实 optional removal |
@@ -230,7 +230,7 @@ runtime trace、snapshot delta、cursor/resync、loss receipt、profiler和repla
 | RT-AI-G05 | manager 不以单 global lock 串行无关 World，single-flight agent tick 有证明 |
 | RT-AI-G06 | executor 有 depth/node/time/fuel/alloc budget，超限有 terminal receipt |
 | RT-AI-G07 | selector/parallel/abort 对每个 active latent task 都有 cancel/ack barrier |
-| RT-AI-G08 | SetBlackboard/EmitEvent/Service 产生真实 typed effect，不接受 result 伪成功 |
+| RT-AI-G08 | SetBlackboard/EmitEvent produce bounded typed World effects and receipts within one manager lifetime; UpdateBlackboardDistance service lifecycle, cross-load persistence, and full replay/cancel gate remain open. |
 | RT-AI-G09 | Wait/Navigation/Animation/Script 使用 clock/task broker，支持 timeout/cancel/reload |
 | RT-AI-G10 | Blackboard schema、slot、default、migration、writer/replication/save policy 可回放 |
 | RT-AI-G11 | Perception source/listener 增量注册，spatial candidate 与公平/最大延迟可量化 |

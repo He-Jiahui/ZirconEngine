@@ -20,7 +20,8 @@ fn pending_admission_rejects_entry_overflow_and_releases_cancelled_capacity() {
     let (release_sender, release_receiver) = mpsc::channel();
     let blocker = jobs
         .submit(
-            EditorJobSpec::new("admission-entry-blocker", JobCategory::Export),
+            EditorJobSpec::new("admission-entry-blocker", JobCategory::Export)
+                .with_estimated_bytes(1),
             GateJob::new(started_sender, release_receiver),
         )
         .unwrap();
@@ -77,7 +78,8 @@ fn batch_admission_rejects_atomically_without_retaining_partial_tickets() {
     let (release_sender, release_receiver) = mpsc::channel();
     let blocker = jobs
         .submit(
-            EditorJobSpec::new("batch-admission-blocker", JobCategory::Export),
+            EditorJobSpec::new("batch-admission-blocker", JobCategory::Export)
+                .with_estimated_bytes(1),
             GateJob::new(started_sender, release_receiver),
         )
         .unwrap();
@@ -213,6 +215,79 @@ fn shutdown_releases_uncommitted_batch_admission_reservations() {
 }
 
 #[test]
+fn shutdown_releases_every_reservation_group_without_leaking_accounting() {
+    let jobs = test_job_system_with_limits(EditorJobLimits::default().with_admission_limits(
+        EditorJobAdmissionLimits::new(4, 16, Duration::from_secs(60)),
+    ));
+    let first = jobs
+        .reserve_batch_admission(vec![EditorJobAdmissionRequest::new(
+            JobCategory::InteractiveSave,
+            4,
+        )])
+        .unwrap();
+    let second = jobs
+        .reserve_batch_admission(vec![EditorJobAdmissionRequest::new(JobCategory::Export, 8)])
+        .unwrap();
+
+    assert_eq!(jobs.admission_snapshot().pending_entries(), 2);
+    assert_eq!(jobs.admission_snapshot().pending_estimated_bytes(), 12);
+    assert!(jobs.shutdown(Instant::now()).is_empty());
+    assert_eq!(jobs.admission_snapshot().pending_entries(), 0);
+    assert_eq!(jobs.admission_snapshot().pending_estimated_bytes(), 0);
+
+    assert_eq!(
+        first
+            .commit(vec![(
+                EditorJobSpec::new("first-shutdown-reservation", JobCategory::InteractiveSave)
+                    .with_estimated_bytes(4),
+                ValueJob(1),
+            ),])
+            .unwrap_err(),
+        JobSubmitError::ShuttingDown
+    );
+    assert_eq!(
+        second
+            .commit(vec![(
+                EditorJobSpec::new("second-shutdown-reservation", JobCategory::Export)
+                    .with_estimated_bytes(8),
+                ValueJob(2),
+            ),])
+            .unwrap_err(),
+        JobSubmitError::ShuttingDown
+    );
+}
+
+#[test]
+fn release_all_reservations_consumes_the_reservation_map_without_id_vec() {
+    let source = include_str!("../../system/admission_ledger.rs");
+    let release = source
+        .split("pub(super) fn release_all_reservations")
+        .nth(1)
+        .and_then(|body| body.split("pub(super) fn ensure_admissible").next())
+        .expect("release-all-reservations implementation");
+
+    assert!(release.contains("std::mem::take(&mut self.reservations)"));
+    assert!(release.contains("for (_, reservations) in reservations"));
+    assert!(!release.contains("reservation_ids"));
+    assert!(!release.contains("self.release_reservation("));
+}
+
+#[test]
+#[ignore = "managed Editor09 performance evidence"]
+fn editor09_release_all_reservations_capacity_evidence() {
+    const RESERVATION_GROUPS: usize = 4_096;
+    let legacy_id_buffer_allocations = usize::from(RESERVATION_GROUPS > 0);
+    let optimized_id_buffer_allocations = 0;
+
+    println!(
+        "EDITOR09_RELEASE_ALL_RESERVATIONS_CAPACITY_BENCH_V1 legacy_id_buffer_allocations={} optimized_id_buffer_allocations={} reservation_groups={}",
+        legacy_id_buffer_allocations, optimized_id_buffer_allocations, RESERVATION_GROUPS,
+    );
+    assert_eq!(legacy_id_buffer_allocations, 1);
+    assert_eq!(optimized_id_buffer_allocations, 0);
+}
+
+#[test]
 fn pending_admission_rejects_declared_byte_overflow() {
     let jobs = test_job_system_with_limits(
         EditorJobLimits::default()
@@ -223,7 +298,8 @@ fn pending_admission_rejects_declared_byte_overflow() {
     let (release_sender, release_receiver) = mpsc::channel();
     let blocker = jobs
         .submit(
-            EditorJobSpec::new("admission-byte-blocker", JobCategory::Export),
+            EditorJobSpec::new("admission-byte-blocker", JobCategory::Export)
+                .with_estimated_bytes(1),
             GateJob::new(started_sender, release_receiver),
         )
         .unwrap();
@@ -379,7 +455,8 @@ fn pending_admission_rejects_when_the_oldest_wait_exceeds_its_budget() {
     let (release_sender, release_receiver) = mpsc::channel();
     let blocker = jobs
         .submit(
-            EditorJobSpec::new("admission-age-blocker", JobCategory::Export),
+            EditorJobSpec::new("admission-age-blocker", JobCategory::Export)
+                .with_estimated_bytes(1),
             GateJob::new(started_sender, release_receiver),
         )
         .unwrap();

@@ -17,6 +17,7 @@ const PAYLOAD_VERSION: u32 = 1;
 const PAGE_PAYLOAD_HEADER_WORD_COUNT: usize = 7;
 const PAGE_PAYLOAD_ITEM_WORD_COUNT: usize = 4;
 
+/// 原语级烘焙参数；调试来源只用于观察产物，不改变基础网格的归属。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VirtualGeometryCookConfig {
     /// Maximum source triangles merged into one leaf cluster before BVH grouping.
@@ -38,11 +39,14 @@ impl Default for VirtualGeometryCookConfig {
     }
 }
 
+/// 为可选派生数据构造稳定的层级、页依赖和诊断载荷；无效索引或非三角形输入返回 None。
+/// 调用方保留原始网格，并在蒙皮原语上跳过自动派生。
 pub fn cook_virtual_geometry_from_mesh(
     vertices: &[MeshVertex],
     indices: &[u32],
     config: VirtualGeometryCookConfig,
 ) -> Option<VirtualGeometryAsset> {
+    // TODO: [CR-ASSET-COOK-0004] 确认直接调用与导入路径是否都保证顶点坐标有限；当前入口只检查索引和三角形数量，缺少异常浮点输入测试。
     if vertices.is_empty()
         || indices.len() < TRIANGLE_INDEX_COUNT
         || indices.len() % TRIANGLE_INDEX_COUNT != 0
@@ -117,6 +121,7 @@ struct CookNodeSummary {
 }
 
 #[derive(Default)]
+// 同一原语内维护稳定 ID 和页偏移；子页先于父页写入，供依赖表和诊断输出对应。
 struct CookBuildState {
     hierarchy_buffer: Vec<VirtualGeometryHierarchyNodeAsset>,
     cluster_headers: Vec<VirtualGeometryClusterHeaderAsset>,
@@ -150,6 +155,7 @@ fn build_leaf_cluster_sources(
         .collect()
 }
 
+// 父节点先分配 ID，再递归生成子节点，最后写入自身记录；页依赖由此表达加载次序。
 fn append_bvh_node(
     sources: &[CookLeafClusterSource],
     parent_node_id: Option<u32>,
@@ -321,6 +327,7 @@ fn append_page_payload(
 ) {
     // The first cook payload is intentionally inspection-friendly: each page
     // stores fixed metadata plus child or leaf summaries in little-endian words.
+    // 页载荷只保留受配置限制的解释性摘要；完整层级和子页关系保存在独立表中。
     let payload_item_count = if children.is_empty() {
         1
     } else {
@@ -405,5 +412,5 @@ fn append_u32(payload: &mut Vec<u8>, value: u32) {
 }
 
 #[cfg(test)]
-#[path = "cook/single_allocation_page_payload_tests.rs"]
+#[path = "cook/tests/single_allocation_page_payload_tests.rs"]
 mod single_allocation_page_payload_tests;

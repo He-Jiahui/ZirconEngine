@@ -1,3 +1,5 @@
+//! 把遮罩的打开状态与可见性投影为一张父裁剪内的 scrim；不可见遮罩仍由上层交互系统处理。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_style_color::resolved_style_color;
@@ -37,6 +39,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ma
     ));
 }
 
+// 两个变体可同时存在；一轮解析保留组合语义，不能把它们当作互斥的 enum。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 struct MaterialBackdropVariants {
     open: bool,
@@ -55,7 +58,7 @@ fn material_backdrop_variants(component_variant: &str) -> MaterialBackdropVarian
 }
 
 #[cfg(test)]
-#[path = "backdrop/single_scan_variant_tests.rs"]
+#[path = "backdrop/tests/single_scan_variant_tests.rs"]
 mod single_scan_variant_tests;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_material_backdrop_node(

@@ -74,7 +74,7 @@ source_recheck_required: true
 - `src/plugin/export_build_plan/**`；
 - App `entry` 中 runtime catalog wrapper、product host resolution、builtin module composition、engine entry 与 target Cargo features。
 
-静态审计 `python tools/audit_plugin_structure.py --json --repo-root .` 当前通过既有 manifest/dist 结构门：39/39 manifest、29 个 runtime descriptor root、41/41 dist build matrix；但只投影 2 个 editor provider package，脚本没有 catalog coverage 或 profile closure 指标。对 39 个 `plugin.toml` 的声明扫描得到 runtime 30、editor 25；runtime catalog 当前路由 15 个，editor catalog 当前路由 2 个。该审计没有把“manifest 存在”当作“provider 可执行”。
+静态审计 `python tools/audits/audit_plugin_structure.py --json --repo-root .` 当前通过既有 manifest/dist 结构门：39/39 manifest、29 个 runtime descriptor root、41/41 dist build matrix；但只投影 2 个 editor provider package，脚本没有 catalog coverage 或 profile closure 指标。对 39 个 `plugin.toml` 的声明扫描得到 runtime 30、editor 25；runtime catalog 当前路由 15 个，editor catalog 当前路由 2 个。该审计没有把“manifest 存在”当作“provider 可执行”。
 
 ### 2.2 关键源码路径
 

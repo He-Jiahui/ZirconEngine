@@ -5,8 +5,12 @@ use super::ui_document_compiler::{CompilationArtifacts, ResolvedStyleSheet, UiDo
 use super::value_normalizer::compose_tokens;
 
 #[cfg(test)]
-#[path = "ui_style_resolver/capacity_tests.rs"]
+#[path = "ui_style_resolver/tests/capacity_tests.rs"]
 mod capacity_tests;
+
+#[cfg(test)]
+#[path = "ui_style_resolver/tests/import_capacity_tests.rs"]
+mod import_capacity_tests;
 
 #[derive(Default)]
 pub struct UiStyleResolver;
@@ -18,19 +22,14 @@ impl UiStyleResolver {
         root: &mut UiTemplateNode,
         artifacts: &CompilationArtifacts,
     ) -> Result<(), UiAssetError> {
-        let imported_styles = document
-            .imports
-            .styles
-            .iter()
-            .map(|reference| {
-                compiler
-                    .style_imports
-                    .get(reference)
-                    .ok_or_else(|| UiAssetError::UnknownImport {
-                        reference: reference.clone(),
-                    })
-            })
-            .collect::<Result<Vec<_>, _>>()?;
+        let mut imported_styles = Vec::with_capacity(document.imports.styles.len());
+        for reference in &document.imports.styles {
+            imported_styles.push(compiler.style_imports.get(reference).ok_or_else(|| {
+                UiAssetError::UnknownImport {
+                    reference: reference.clone(),
+                }
+            })?);
+        }
         let imported_stylesheet_count = imported_styles
             .iter()
             .map(|imported| imported.stylesheets.len())

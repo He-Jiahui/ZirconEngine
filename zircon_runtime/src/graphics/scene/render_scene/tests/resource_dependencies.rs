@@ -25,12 +25,10 @@ fn render_scene_resource_reference_delta_add_and_remove_are_inverse() {
         .expect("initial dependency add");
 
     assert_eq!(added.resource_reference_deltas().len(), 3);
-    assert!(
-        added
-            .resource_reference_deltas()
-            .iter()
-            .all(|delta| delta.acquired_count() == 1 && delta.released_count() == 0)
-    );
+    assert!(added
+        .resource_reference_deltas()
+        .iter()
+        .all(|delta| delta.acquired_count() == 1 && delta.released_count() == 0));
     assert_eq!(
         dependency_stats(&added),
         (1, 3, 3, 3),
@@ -42,12 +40,10 @@ fn render_scene_resource_reference_delta_add_and_remove_are_inverse() {
         .expect("dependency removal");
 
     assert_eq!(removed.resource_reference_deltas().len(), 3);
-    assert!(
-        removed
-            .resource_reference_deltas()
-            .iter()
-            .all(|delta| delta.acquired_count() == 0 && delta.released_count() == 1)
-    );
+    assert!(removed
+        .resource_reference_deltas()
+        .iter()
+        .all(|delta| delta.acquired_count() == 0 && delta.released_count() == 1));
     assert_eq!(
         resources(&added),
         resources(&removed),
@@ -75,11 +71,9 @@ fn render_scene_resource_reference_delta_cancels_unchanged_model_and_mesh() {
     let deltas = journal.resource_reference_deltas();
 
     assert_eq!(deltas.len(), 2);
-    assert!(
-        deltas
-            .iter()
-            .all(|delta| delta.resource().kind() == ResourceKind::Material)
-    );
+    assert!(deltas
+        .iter()
+        .all(|delta| delta.resource().kind() == ResourceKind::Material));
     assert_eq!(
         deltas
             .iter()
@@ -247,16 +241,12 @@ fn render_scene_resource_reference_delta_covers_complete_camera_neutral_source()
 
     assert_eq!(resources(&journal), expected);
     assert_eq!(deltas.len(), expected.len());
-    assert!(
-        deltas
-            .iter()
-            .all(|delta| delta.acquired_count() == 1 && delta.released_count() == 0)
-    );
-    assert!(
-        deltas
-            .windows(2)
-            .all(|pair| dependency_sort_key(&pair[0]) < dependency_sort_key(&pair[1]))
-    );
+    assert!(deltas
+        .iter()
+        .all(|delta| delta.acquired_count() == 1 && delta.released_count() == 0));
+    assert!(deltas
+        .windows(2)
+        .all(|pair| dependency_sort_key(&pair[0]) < dependency_sort_key(&pair[1])));
     assert_eq!(dependency_stats(&journal), (1, 10, 10, 10));
 }
 

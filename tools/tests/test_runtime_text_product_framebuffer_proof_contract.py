@@ -13,7 +13,7 @@ PRODUCT_RENDERER = (
     / "zircon_runtime/tests/runtime_text_multilingual_product_framebuffer/product_renderer.rs"
 )
 
-
+# 读取产品帧缓冲证明，确认测试通过真实 WGPU 回读与像素断言连接源码目标。
 class RuntimeTextProductFramebufferProofContractTests(unittest.TestCase):
     def test_current_proof_identity_targets_docs_and_not_cargo_output(self) -> None:
         source = PROOF_PATH.read_text(encoding="utf-8")

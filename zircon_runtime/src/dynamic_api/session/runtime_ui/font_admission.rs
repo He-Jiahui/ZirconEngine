@@ -1,4 +1,4 @@
-use std::{collections::BTreeSet, sync::Arc};
+use std::sync::Arc;
 
 use crate::asset::ProjectAssetManager;
 use crate::text::font::{prepare_runtime_font_asset_admission, RuntimeFontAssetClaimScope};
@@ -9,10 +9,12 @@ pub(super) fn admit_surface_font_dependencies<'a>(
     asset_manager: &ProjectAssetManager,
     font_claim_scope: &mut RuntimeFontAssetClaimScope,
 ) {
-    let font_dependencies = surfaces
+    let mut font_dependencies = surfaces
         .into_iter()
         .flat_map(UiSurface::text_font_asset_dependencies)
-        .collect::<BTreeSet<_>>();
+        .collect::<Vec<_>>();
+    font_dependencies.sort_unstable();
+    font_dependencies.dedup();
     let shared_dependencies = font_dependencies
         .iter()
         .map(|asset_ref| Arc::<str>::from(asset_ref.as_str()))
@@ -22,6 +24,7 @@ pub(super) fn admit_surface_font_dependencies<'a>(
         .cloned()
         .map(|asset_ref| prepare_runtime_font_asset_admission(asset_manager, asset_ref))
         .collect();
+    // 以本次完整依赖集合替换旧 claim，统一计算新增、释放和 admission 结果。
     let transition =
         font_claim_scope.replace_shared_claims_with_admissions(&shared_dependencies, admissions);
     let claim_report = transition.claims;
@@ -89,3 +92,7 @@ pub(super) fn admit_surface_font_dependencies<'a>(
         registered_face_count
     );
 }
+
+#[cfg(test)]
+#[path = "tests/font_admission.rs"]
+mod tests;

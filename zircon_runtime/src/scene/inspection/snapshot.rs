@@ -18,6 +18,10 @@ use crate::scene::{EntityId, World, WorldQueryBudgetError};
 
 use super::{WorldInspectionField, WorldInspectionHierarchyRow};
 
+#[cfg(test)]
+#[path = "snapshot/tests/component_projection_tests.rs"]
+mod component_projection_tests;
+
 impl World {
     /// Runs one deterministic reflected-component query against the current world generation.
     ///
@@ -40,13 +44,12 @@ impl World {
         match query {
             WorldQuery::Components(component_query) => {
                 let rows = self
-                    .node_records()
-                    .into_iter()
-                    .filter_map(|node| {
-                        let fields = build_inspection_fields(self, node.id);
+                    .entity_ids_for_query()
+                    .filter_map(|entity| {
+                        let fields = build_inspection_fields(self, entity);
                         query_matches_reflected_components(&fields, &component_query.filter).then(
                             || EntityRow {
-                                entity: node.id,
+                                entity,
                                 components: selected_reflected_components(&fields, component_query),
                             },
                         )

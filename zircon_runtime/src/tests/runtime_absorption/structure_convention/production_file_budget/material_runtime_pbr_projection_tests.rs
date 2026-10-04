@@ -1,11 +1,12 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0039] 材质纹理槽变换的行为测试归属的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_material_runtime_pbr_projection_tests_are_child_owner() {
     let parent =
-        read_runtime_src("graphics/scene/render_product_streamer_tests/material_runtime.rs");
+        read_runtime_src("graphics/scene/render_product_streamer_tests/tests/material_runtime.rs");
     let pbr_projection = read_runtime_src(
-        "graphics/scene/render_product_streamer_tests/material_runtime/pbr_projection.rs",
+        "graphics/scene/render_product_streamer_tests/material_runtime/tests/pbr_projection.rs",
     );
 
     let plan_08 = read_repo(
@@ -64,11 +65,11 @@ fn runtime_15_material_runtime_pbr_projection_tests_are_child_owner() {
 
     for (path, source) in [
         (
-            "graphics/scene/render_product_streamer_tests/material_runtime.rs",
+            "graphics/scene/render_product_streamer_tests/tests/material_runtime.rs",
             parent.as_str(),
         ),
         (
-            "graphics/scene/render_product_streamer_tests/material_runtime/pbr_projection.rs",
+            "graphics/scene/render_product_streamer_tests/material_runtime/tests/pbr_projection.rs",
             pbr_projection.as_str(),
         ),
     ] {

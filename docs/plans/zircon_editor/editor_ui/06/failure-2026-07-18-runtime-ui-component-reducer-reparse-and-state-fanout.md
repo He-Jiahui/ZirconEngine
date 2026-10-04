@@ -57,3 +57,8 @@ PERF-MVP-265：virtual range约15个alias、submenu 5、world surface 6个独立
 ## 修复结果与回传
 
 Open state: `等待EditorUI06回传atomic state patch、generation-owned command/menu index及规模证据`。
+
+## 2026-09-11 滚动修复记录
+
+- 源码快照 `3413` 已冻结：`UiComponentStatePatch`、generation-owned `CommandCatalog`/`TreeIndex`/`TableIndex`，以及 Editor showcase 的持久 `UiComponentStateModel` consumer 已落盘；定向 rustfmt/diff 检查通过。
+- 受管动态验证请求 `editorui06-state-model-runtime-20260911-r3` 未获 admission：协调器报告外部仓库 `E:\Git\zr_vm` 工作树脏（`validation_ticket_external_worktree_dirty`）。因此没有产生 Cargo ticket、没有执行测试，也不把本记录视为通过；待外部 owner 提交其变更后，以快照 `3413` 的精确 manifest 重新提交。

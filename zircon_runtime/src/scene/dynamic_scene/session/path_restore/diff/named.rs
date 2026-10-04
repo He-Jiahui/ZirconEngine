@@ -2,7 +2,7 @@ use std::path::Path;
 
 use crate::scene::{LevelSystem, World};
 
-use super::super::super::{RuntimeSessionArchiveError, RuntimeSessionSlotDiffReport, io};
+use super::super::super::{io, RuntimeSessionArchiveError, RuntimeSessionSlotDiffReport};
 
 pub(in crate::scene::dynamic_scene::session) fn diff_slot_from_path_with_world(
     path: impl AsRef<Path>,

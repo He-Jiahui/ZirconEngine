@@ -3,9 +3,10 @@ use super::{assert_contains_all, repo_path, runtime_src_path};
 
 const LOCK_UNWRAP_CALL: &str = concat!(".lock().", "unwrap()");
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0134] 渲染设备状态访问的锁中毒策略的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_rhi_wgpu_render_device_lock_poison_recovery_guard_covers_device_state() {
-    let wgpu_device = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/device.rs");
+    let wgpu_device = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/tests/device.rs");
     let structure_parent = read_runtime_src("tests/runtime_absorption/structure_convention.rs");
 
     assert_contains_all(

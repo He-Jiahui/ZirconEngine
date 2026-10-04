@@ -1,3 +1,4 @@
+//! Inspector 模板节点和原生字段行共同组成宿主数据；模板失败时仍用旧视图路径维持可编辑字段。
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::windows::workbench_host_window::{
     InspectorPaneViewData, InspectorPluginComponentPropertyViewData,
@@ -200,5 +201,5 @@ fn inspector_template_projection(
 }
 
 #[cfg(test)]
-#[path = "inspector_projection/owned_identity_tests.rs"]
+#[path = "inspector_projection/tests/owned_identity_tests.rs"]
 mod owned_identity_tests;

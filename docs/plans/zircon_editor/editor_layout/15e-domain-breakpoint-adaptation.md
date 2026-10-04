@@ -14,15 +14,14 @@ related_code:
   - zircon_editor/src/ui/workbench/autolayout/region_state.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/drawer_layout.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/dock_header/side.rs
-  - zircon_editor/src/tests/workbench/layout/editor_layout_contracts.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_drawer_breakpoints.rs
 design_references:
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Framework/Docking/STabDrawer.h
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Private/Framework/Docking/STabDrawer.cpp
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Private/Framework/Docking/STabSidebar.cpp
-  - docs/ui-and-layout/editor-workbench-designs/drawer-collapsed-state-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/compact-editor-state-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/split-editor-state-spec.png
+  - docs/ui/editor-workbench-designs/drawer-collapsed-state-spec.png
+  - docs/ui/editor-workbench-designs/compact-editor-state-spec.png
+  - docs/ui/editor-workbench-designs/split-editor-state-spec.png
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/zircon_editor/editor_layout/15a-page-tab-strip-overflow.md

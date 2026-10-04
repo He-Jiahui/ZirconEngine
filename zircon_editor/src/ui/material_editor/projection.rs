@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 
 use zircon_runtime::asset::{AssetReference, MaterialAsset, ShaderAsset};
 use zircon_runtime::core::framework::render::{
@@ -68,8 +68,13 @@ fn project_property_rows(
     material: &MaterialAsset,
     shader: Option<&ShaderAsset>,
 ) -> Vec<MaterialEditorPropertyRow> {
-    let mut rows = Vec::new();
-    let mut seen: BTreeSet<&str> = BTreeSet::new();
+    let mut rows = Vec::with_capacity(
+        shader
+            .map_or(0, |shader| shader.property_schema.len())
+            .saturating_add(material.property_overrides().len()),
+    );
+    let mut seen: HashSet<&str> =
+        HashSet::with_capacity(shader.map_or(0, |shader| shader.property_schema.len()));
 
     if let Some(shader) = shader {
         for property in &shader.property_schema {
@@ -109,8 +114,13 @@ fn project_texture_slot_rows(
     material: &MaterialAsset,
     shader: Option<&ShaderAsset>,
 ) -> Vec<MaterialEditorTextureSlotRow> {
-    let mut rows = Vec::new();
-    let mut seen: BTreeSet<&str> = BTreeSet::new();
+    let mut rows = Vec::with_capacity(
+        shader
+            .map_or(0, |shader| shader.texture_slots.len())
+            .saturating_add(material.texture_slots.len()),
+    );
+    let mut seen: HashSet<&str> =
+        HashSet::with_capacity(shader.map_or(0, |shader| shader.texture_slots.len()));
 
     if let Some(shader) = shader {
         for slot in &shader.texture_slots {
@@ -253,6 +263,17 @@ fn diagnostic_row_for_error(error: RenderMaterialValidationError) -> MaterialEdi
                 reference.locator
             ),
         },
+        RenderMaterialValidationError::UnsupportedTextureUvChannel {
+            slot,
+            channel,
+            supported_channel_count,
+        } => MaterialEditorDiagnosticRow {
+            source: Some(RenderMaterialDiagnosticSource::DependencyResolution),
+            path: format!("textures.{slot}.uv_channel"),
+            message: format!(
+                "texture slot `{slot}` requests UV channel {channel}, but only {supported_channel_count} channel(s) are supported"
+            ),
+        },
         RenderMaterialValidationError::InvalidLightingModel { path, value } => {
             MaterialEditorDiagnosticRow {
                 source: None,
@@ -376,32 +397,12 @@ fn diagnostic_row_for_error(error: RenderMaterialValidationError) -> MaterialEdi
 }
 
 #[cfg(test)]
-mod tests {
-    use zircon_runtime::asset::{AssetReference, AssetUri};
-    use zircon_runtime::core::framework::render::RenderMaterialTextureDimension;
+#[path = "projection/tests/optimization_batch_in_editor624_tests.rs"]
+mod optimization_batch_in_editor624_tests;
+#[cfg(test)]
+#[path = "projection/tests/row_capacity_tests.rs"]
+mod row_capacity_tests;
 
-    use super::*;
-
-    #[test]
-    fn texture_dimension_mismatch_projects_dependency_diagnostic() {
-        let reference = AssetReference::from_locator(
-            AssetUri::parse("res://textures/sky.ztexture").expect("texture uri"),
-        );
-
-        let row =
-            diagnostic_row_for_error(RenderMaterialValidationError::TextureDimensionMismatch {
-                slot: "environment".to_string(),
-                reference,
-                expected: RenderMaterialTextureDimension::Cube,
-                actual: RenderMaterialTextureDimension::D2,
-            });
-
-        assert_eq!(
-            row.source,
-            Some(RenderMaterialDiagnosticSource::DependencyResolution)
-        );
-        assert_eq!(row.path, "textures.environment");
-        assert!(row.message.contains("expected Cube"));
-        assert!(row.message.contains("resolved D2"));
-    }
-}
+#[cfg(test)]
+#[path = "tests/projection.rs"]
+mod tests;

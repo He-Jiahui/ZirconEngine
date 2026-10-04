@@ -1,3 +1,4 @@
+//! UI surface 渲染用的数据契约与后端无关的诊断视图导出入口；GPU 提交由 Runtime RHI 实现。
 mod batch;
 mod brush;
 mod cache;
@@ -54,11 +55,11 @@ pub use list::UiRenderList;
 pub use paint::{
     UiClipMode, UiClipState, UiDrawEffect, UiPaintEffects, UiPaintElement, UiPaintPayload,
 };
+pub(crate) use parity::batch_indices_by_source_index;
 pub use parity::{
     UiRendererParityBatchRow, UiRendererParityPaintRow, UiRendererParityPayloadKind,
     UiRendererParitySnapshot, UiRendererParityStats,
 };
-pub(crate) use parity::batch_indices_by_source_index;
 pub use resolved_style::UiResolvedStyle;
 pub use text_effects::{
     UiTextDecorations, UiTextDistanceFieldEffects, UiTextGlowEffect, UiTextOutlineEffect,

@@ -1,8 +1,11 @@
+//! 将行为树的导航、动画和脚本任务接到场景与脚本桥；错误转换为节点状态和诊断。
+
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 
 use zircon_runtime::core::framework::ai::{
-    AiBehaviorNodeParameter, AiBehaviorNodeParameterValue, AiDecisionStatus,
+    AiBehaviorEffectReceipt, AiBehaviorNodeParameter, AiBehaviorNodeParameterValue,
+    AiDecisionStatus, AiGameplayEvent,
 };
 use zircon_runtime::core::framework::animation::AnimationParameterValue;
 use zircon_runtime::core::framework::navigation::{
@@ -21,7 +24,7 @@ use crate::manager::parameters::{
 };
 
 #[cfg(test)]
-#[path = "integration/property_path_cache_tests.rs"]
+#[path = "integration/tests/property_path_cache_tests.rs"]
 mod property_path_cache_tests;
 
 static NAV_DESTINATION_PROPERTY_PATH: OnceLock<Result<ComponentPropertyPath, String>> =
@@ -95,7 +98,23 @@ impl IntegrationTaskResult {
     }
 }
 
+/// 执行器按节点语义调用宿主；活跃任务退出时通过 `abort` 请求清理。
 pub(crate) trait BehaviorIntegrationHost {
+    fn can_publish_behavior_effects(
+        &self,
+        _has_gameplay_events: bool,
+        _has_receipts: bool,
+    ) -> Result<(), String> {
+        Err("AI behavior effect sink is unavailable".to_string())
+    }
+
+    fn publish_behavior_effects(
+        &mut self,
+        _events: &[AiGameplayEvent],
+        _receipts: &[AiBehaviorEffectReceipt],
+    ) {
+    }
+
     fn move_to(&mut self, context: &BehaviorIntegrationTaskContext<'_>) -> IntegrationTaskResult;
 
     fn play_animation(
@@ -129,6 +148,7 @@ impl<'world> RuntimeBehaviorIntegrationHost<'world> {
         world: &'world mut World,
         script: Option<BridgeImport<dyn ScriptBehaviorBridge>>,
     ) -> Self {
+        // 构造宿主时按实体汇总导航反馈；同一实体多条报告以最后读到的结果为准。
         let navigation_events = world.events::<NavAgentTickReport>();
         let navigation_available = navigation_events.is_some();
         let mut navigation_feedback = BTreeMap::new();
@@ -196,6 +216,39 @@ impl<'world> RuntimeBehaviorIntegrationHost<'world> {
 }
 
 impl BehaviorIntegrationHost for RuntimeBehaviorIntegrationHost<'_> {
+    fn can_publish_behavior_effects(
+        &self,
+        has_gameplay_events: bool,
+        has_receipts: bool,
+    ) -> Result<(), String> {
+        if has_gameplay_events && self.world.event_type_id::<AiGameplayEvent>().is_none() {
+            return Err("AI gameplay event sink is unavailable".to_string());
+        }
+        if has_receipts
+            && self
+                .world
+                .event_type_id::<AiBehaviorEffectReceipt>()
+                .is_none()
+        {
+            return Err("AI behavior effect receipt sink is unavailable".to_string());
+        }
+        Ok(())
+    }
+
+    fn publish_behavior_effects(
+        &mut self,
+        events: &[AiGameplayEvent],
+        receipts: &[AiBehaviorEffectReceipt],
+    ) {
+        // Registered World channels queue each event; observer vetoes do not undo the queue.
+        for event in events {
+            self.world.send_event(event.clone());
+        }
+        for receipt in receipts {
+            self.world.send_event(receipt.clone());
+        }
+    }
+
     fn move_to(&mut self, context: &BehaviorIntegrationTaskContext<'_>) -> IntegrationTaskResult {
         if !self.navigation_available {
             return IntegrationTaskResult::blocked(format!(
@@ -216,6 +269,7 @@ impl BehaviorIntegrationHost for RuntimeBehaviorIntegrationHost<'_> {
             Ok(target) => target,
             Err(error) => return IntegrationTaskResult::failed(error),
         };
+        // 新任务先写目标并返回 Running，避免把先前任务的同目标反馈当作本轮结果。
         if context.started || current_target != Some(target) {
             if let Err(error) = self.write_nav_target(context.entity, Some(target)) {
                 return IntegrationTaskResult::failed(error);
@@ -325,6 +379,7 @@ impl BehaviorIntegrationHost for RuntimeBehaviorIntegrationHost<'_> {
             ))
             }
         };
+        // 桥返回的空值/true 表示完成，false 或不支持的值记为失败，字符串解析为节点状态。
         match invocation {
             Ok(None | Some(ScriptHostValue::Null)) => IntegrationTaskResult::succeeded(),
             Ok(Some(ScriptHostValue::Bool(true))) => IntegrationTaskResult::succeeded(),
@@ -349,6 +404,7 @@ impl BehaviorIntegrationHost for RuntimeBehaviorIntegrationHost<'_> {
         }
     }
 
+    // BUG: [CR-AI-BT-0001] ScriptTask 可携带未禁止的 target 并返回 Running；撤销时按参数名清除导航目标，即使它未启动 MoveTo；证据：validation/integration.rs、executor/abort.rs。
     fn abort(&mut self, context: &BehaviorIntegrationTaskContext<'_>) {
         if context.parameter(MOVE_TARGET_PARAMETER_KEY).is_some() {
             let _ = self.clear_nav_target(context.entity);
@@ -413,3 +469,7 @@ fn squared_distance(left: [f32; 3], right: [f32; 3]) -> f32 {
         .map(|(left, right)| (left - right).powi(2))
         .sum()
 }
+
+#[cfg(test)]
+#[path = "tests/integration_ai_effect_tests.rs"]
+mod ai_effect_tests;

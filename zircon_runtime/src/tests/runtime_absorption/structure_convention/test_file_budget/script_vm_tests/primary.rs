@@ -1,7 +1,8 @@
+//! 核对脚本虚拟机测试迁移后的父子分工与数量快照，并检查文件预算；出现次数来自源码文本，后续新增测试需按当前职责复核快照。
 use super::super::*;
 
 pub(super) fn assert_script_vm_tests_are_folder_backed() {
-    let parent = read_runtime_src("script/vm/tests.rs");
+    let parent = read_runtime_src("script/vm/tests/cases.rs");
     let bridge_host = read_runtime_src("script/vm/tests/bridge_host.rs");
     let host_exports = read_runtime_src("script/vm/tests/host_exports.rs");
     let host_interfaces = read_runtime_src("script/vm/tests/host_interfaces.rs");
@@ -138,7 +139,7 @@ pub(super) fn assert_script_vm_tests_are_folder_backed() {
     );
 
     for (path, source) in [
-        ("script/vm/tests.rs", parent.as_str()),
+        ("script/vm/tests/cases.rs", parent.as_str()),
         ("script/vm/tests/bridge_host.rs", bridge_host.as_str()),
         ("script/vm/tests/host_exports.rs", host_exports.as_str()),
         (

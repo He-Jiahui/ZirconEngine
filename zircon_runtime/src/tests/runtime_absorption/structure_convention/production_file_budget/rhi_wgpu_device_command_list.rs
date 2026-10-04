@@ -37,12 +37,16 @@ fn runtime_15_neutral_rhi_device_errors_are_child_owned() {
     }
 }
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0097] 确定性设备提交命令列表的旧入口签名未匹配；需追踪现行提交到记录器的委托链及状态断言，再更新结构守卫。
 #[test]
 fn runtime_15_rhi_wgpu_device_command_list_is_child_owner() {
-    let parent = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/device.rs");
-    let command_list = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/device/command_list.rs");
-    let construction = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/device/construction.rs");
-    let contract_caps = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/device/contract_caps.rs");
+    let parent = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/tests/device.rs");
+    let command_list =
+        read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/device/tests/command_list.rs");
+    let construction =
+        read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/device/tests/construction.rs");
+    let contract_caps =
+        read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/device/tests/contract_caps.rs");
     let rhi_wgpu_root = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/lib.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
@@ -149,12 +153,13 @@ fn runtime_15_rhi_wgpu_device_command_list_is_child_owner() {
     }
 }
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0098] 生产设备能力测试模块超过旧文件预算；需核对能力测试的新归属和共享夹具边界后决定拆分或修订门槛。
 #[test]
 fn runtime_15_rhi_wgpu_production_device_capabilities_are_child_owned() {
     let parent = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/production/device.rs");
     let capabilities =
         read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/production/device/capabilities.rs");
-    let tests = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/production/tests.rs");
+    let tests = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/production/tests/cases.rs");
     let capability_tests =
         read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/production/tests/capabilities.rs");
 
@@ -199,7 +204,7 @@ fn runtime_15_rhi_wgpu_production_device_capabilities_are_child_owned() {
     for (path, source) in [
         ("production/device.rs", parent.as_str()),
         ("production/device/capabilities.rs", capabilities.as_str()),
-        ("production/tests.rs", tests.as_str()),
+        ("production/tests/cases.rs", tests.as_str()),
         (
             "production/tests/capabilities.rs",
             capability_tests.as_str(),

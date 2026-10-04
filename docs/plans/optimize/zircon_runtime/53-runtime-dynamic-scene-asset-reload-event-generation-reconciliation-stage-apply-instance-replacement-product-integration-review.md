@@ -10,7 +10,6 @@ related_code:
   - zircon_runtime/src/scene/dynamic_scene/spawn_task
   - zircon_runtime/src/scene/dynamic_scene/scene/spawn
   - zircon_runtime/src/asset/facade/event.rs
-  - zircon_runtime/src/core/resource/event_stream.rs
   - zircon_runtime/src/dynamic_api/session
   - zircon_runtime/src/scene/inspection/subscription.rs
   - zircon_runtime_interface/src/world_sync/invalidation.rs

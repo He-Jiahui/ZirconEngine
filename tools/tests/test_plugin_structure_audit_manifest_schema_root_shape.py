@@ -1,11 +1,30 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema import (
+from tools.audits.plugins.manifest_schema import (
     collect_manifest_schema_violations,
 )
 
 
 class PluginStructureAuditManifestSchemaRootShapeTests(unittest.TestCase):
+    def test_manifest_schema_rejects_unknown_root_field(self):
+        violations: list[str] = []
+        manifest = plugin_manifest()
+        manifest["legacy_sidecar"] = True
+
+        collect_manifest_schema_violations(
+            "zircon_plugins/physics/plugin.toml",
+            manifest,
+            violations,
+        )
+
+        self.assertEqual(
+            [
+                "zircon_plugins/physics/plugin.toml: "
+                "legacy_sidecar is not a known manifest root field"
+            ],
+            violations,
+        )
+
     def test_manifest_schema_rejects_root_id_semantics(self):
         violations: list[str] = []
         manifest = plugin_manifest()

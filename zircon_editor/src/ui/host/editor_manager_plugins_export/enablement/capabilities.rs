@@ -43,14 +43,22 @@ impl EditorManager {
         let previous_capabilities = configuration.enabled_subsystems();
         let capabilities =
             project_editor_capabilities(&previous_capabilities, target_capabilities, enabled);
-        configuration.store_enabled_subsystems(&capabilities);
+        configuration
+            .store_enabled_subsystems(&capabilities)
+            .map_err(|error| error.to_string())?;
         match self
             .host
             .apply_capability_report(configuration.subsystem_report())
         {
             Ok(snapshot) => Ok((configuration, snapshot, previous_capabilities)),
             Err(error) => {
-                configuration.store_enabled_subsystems(&previous_capabilities);
+                if let Err(restore_error) =
+                    configuration.store_enabled_subsystems(&previous_capabilities)
+                {
+                    return Err(format!(
+                        "{error}; restoring editor capabilities failed: {restore_error}"
+                    ));
+                }
                 match self
                     .host
                     .apply_capability_report(configuration.subsystem_report())
@@ -69,7 +77,9 @@ impl EditorManager {
         configuration: &EditorCapabilityConfiguration,
         previous_capabilities: &[String],
     ) -> Result<(), String> {
-        configuration.store_enabled_subsystems(previous_capabilities);
+        configuration
+            .store_enabled_subsystems(previous_capabilities)
+            .map_err(|error| error.to_string())?;
         self.host
             .apply_capability_report(configuration.subsystem_report())
             .map(|_| ())
@@ -135,5 +145,5 @@ fn project_editor_capabilities(
 }
 
 #[cfg(test)]
-#[path = "capabilities/indexed_projection_tests.rs"]
+#[path = "capabilities/tests/indexed_projection_tests.rs"]
 mod indexed_projection_tests;

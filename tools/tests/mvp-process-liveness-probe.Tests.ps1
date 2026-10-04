@@ -1,3 +1,4 @@
+# 活性探针按场景注册的有序事件发布启动、首帧、保存及退出进度；本组结合行为夹具和源码扫描约束诊断预算、跨轮询标记与重复扫描成本。
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $modulePath = Join-Path $repoRoot 'tools\mvp\MvpProcessLivenessProbe.psm1'
 $registryModulePath = Join-Path $repoRoot 'tools\mvp\MvpScenarioRegistry.psm1'

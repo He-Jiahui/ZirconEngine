@@ -6,12 +6,12 @@ use crate::core::framework::render::ShaderAssetKind;
 use crate::core::resource::{ResourceId, ResourceKind, ResourceLocator, ResourceRecord};
 use crate::graphics::backend::RenderBackend;
 use crate::graphics::scene::gpu_scene::GpuScene;
-use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 use crate::graphics::scene::scene_renderer::environment::scene_bind_group_layout_entries;
+use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 
 use super::super::super::lighting_bind_group_layout::create_lighting_bind_group_layout;
 use super::super::DeferredLightingPipelineCache;
-use super::{CUSTOM_TOON_DEFERRED_INCLUDE, toon_shading_model_descriptor};
+use super::{toon_shading_model_descriptor, CUSTOM_TOON_DEFERRED_INCLUDE};
 
 const CUSTOM_TOON_FORWARD_INCLUDE: &str = r#"
 fn shade_forward(surface: ZrSurfaceOutput, ctx: ZrShadingContext) -> vec3<f32> {
@@ -90,6 +90,8 @@ fn custom_shading_model_deferred_lighting_pipelines_create_with_project_include_
         SceneRendererDeferredLightingProfile::FullScene,
     )
     .expect("custom deferred lighting pipeline should be created from project WGSL include source");
+    // TODO: [CR-W12-RENDER-AUX-A-0002] 此 fixture 绕过生产注册且仅建 PSO，未覆盖 ID16 的 MRT 像素分派。
+    // 通用 admission 未声明其 SSS 专属身份，同装 SSS 会拒重复 ID；需确认联合配置与身份约定，再验证 draw/readback。
     let _standard_pipeline = pipelines.pipeline(&backend.device, &lighting_layout, false);
     let _subsurface_pipeline = pipelines.pipeline(&backend.device, &lighting_layout, true);
     let error = pollster::block_on(error_scope.pop());
@@ -100,8 +102,8 @@ fn custom_shading_model_deferred_lighting_pipelines_create_with_project_include_
 }
 
 #[test]
-fn environment_only_pbr_pipeline_defers_startup_pso_and_creates_on_demand_without_direct_light_layout_entries()
- {
+fn environment_only_pbr_pipeline_defers_startup_pso_and_creates_on_demand_without_direct_light_layout_entries(
+) {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
     let asset_manager = ProjectAssetManager::default();
     let scene_layout = scene_bind_group_layout(&backend.device);

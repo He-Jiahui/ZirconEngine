@@ -15,10 +15,10 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 编辑器详细 Wiki
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
-  - docs/editor-and-tooling/editor-command-workflow.md
+  - docs/editor/editor-command-workflow.md
 tests:
-  - zircon_editor/src/scene/selection/tests.rs
-  - zircon_editor/src/scene/modes/tests.rs
+  - zircon_editor/src/scene/selection/tests/cases.rs
+  - zircon_editor/src/scene/modes/tests/cases.rs
   - zircon_editor/src/tests/editing
 doc_type: module-detail
 ---

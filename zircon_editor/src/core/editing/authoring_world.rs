@@ -87,6 +87,8 @@ pub(crate) enum AuthoringWorldAccessError {
         #[source]
         source: GatewayError,
     },
+    #[error("the authoring viewport {viewport} is already transitioning its surface")]
+    ViewportSurfaceTransitionInFlight { viewport: u64 },
 }
 
 impl From<GatewayError> for AuthoringWorldAccessError {
@@ -108,6 +110,9 @@ impl From<GatewayError> for AuthoringWorldAccessError {
             GatewayError::CapabilityMissing { .. } => Self::CapabilityUnavailable { source },
             GatewayError::Runtime { .. } => Self::RuntimeFault { source },
             GatewayError::Protocol { .. } => Self::ProtocolViolation { source },
+            GatewayError::ViewportSurfaceTransitionInFlight { viewport } => {
+                Self::ViewportSurfaceTransitionInFlight { viewport }
+            }
         }
     }
 }

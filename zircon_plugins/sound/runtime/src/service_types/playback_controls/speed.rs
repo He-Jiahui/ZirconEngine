@@ -11,6 +11,7 @@ impl DefaultSoundManager {
     ) -> Result<(), SoundError> {
         let speed = validate_playback_speed(speed)?;
         let mut state = lock_recover(&self.state);
+        state.kira.ensure_control_available()?;
         state.poll_kira_completions();
         if !state.playbacks.contains_key(&playback) {
             return Err(SoundError::UnknownPlayback { playback });

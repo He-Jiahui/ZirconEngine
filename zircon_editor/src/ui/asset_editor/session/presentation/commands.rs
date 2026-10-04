@@ -213,5 +213,5 @@ fn sibling_accepts_children(
 }
 
 #[cfg(test)]
-#[path = "commands/readonly_availability_tests.rs"]
+#[path = "commands/tests/readonly_availability_tests.rs"]
 mod readonly_availability_tests;

@@ -35,11 +35,11 @@ for (const player of freshPlayers.players) {
 for (const needle of [
   'pub var entityResourceKinds: container.Array<uint>;',
   'appendDefaultResourceKindColumns(this);', 'appendDefaultResourceKindColumns(state);',
-  'writer.u16(<uint>38, 1, 1);', 'schemaVersion != <uint>29',
+  'writer.u16(schemaVersion, 1, 1);', 'schemaVersion != <uint>29',
   'if (schemaVersion >= <uint>29) {', 'm8FreshPlayerStats.resourceKind',
-  'm8EastbrookEncounter.resourceKind', 'entityState.entityResourceKinds[0] = <uint>3;',
+  'm8EastbrookEncounter.resourceKind', 'entityState.entityResourceKinds[0] = <uint>1;',
 ]) invariant(state.includes(needle), `WOS29 resource-kind projection omitted: ${needle}`);
-invariant(main.includes('\\"world_state\\":\\"WOS38\\",'), 'package stateSchema must expose WOS38');
+invariant(main.includes('\\"world_state\\":\\"WOS118\\",'), 'package stateSchema must expose WOS118');
 
 process.stdout.write(`checked WOS29 resource-kind source projection: ${SOURCE_COMMIT.slice(0, 15)}\n`);
 

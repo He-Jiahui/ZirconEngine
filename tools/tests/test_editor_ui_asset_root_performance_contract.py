@@ -1,3 +1,4 @@
+# 核对界面资产根节点回放在无命令时跳过克隆，并延后文本所有权转换。
 from pathlib import Path
 import unittest
 

@@ -50,4 +50,5 @@ impl VirtualGeometryRuntimeState {
 }
 
 #[cfg(test)]
+#[path = "residency/tests/performance_tests.rs"]
 mod performance_tests;

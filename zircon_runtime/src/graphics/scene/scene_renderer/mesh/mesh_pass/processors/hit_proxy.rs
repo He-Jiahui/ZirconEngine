@@ -2,8 +2,8 @@ use crate::core::framework::render::RenderViewportPickPolicy;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::MeshPipelineVariantResolver;
 
 use super::super::{
-    MeshBatchRef, MeshDrawCommandList, MeshPassBuildContext, MeshPassProcessor,
-    hit_proxy_command_spec,
+    hit_proxy_command_spec, MeshBatchRef, MeshDrawCommandList, MeshPassBuildContext,
+    MeshPassProcessor,
 };
 
 pub(crate) struct HitProxyPassProcessor {
@@ -28,6 +28,7 @@ impl MeshPassProcessor for HitProxyPassProcessor {
         let Some(spec) = hit_proxy_command_spec(batch, self.policy) else {
             return;
         };
+        // 拾取策略只改写本次请求副本的 pipeline key，不改变共享批次的材质身份。
         let mut request_batch = batch.clone();
         if self.policy.includes_backfaces() {
             request_batch.pipeline_key.double_sided = true;

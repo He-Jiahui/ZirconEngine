@@ -71,6 +71,7 @@ pub cellOfIndices(
 
 // Mirrors moveStackToCell: preserve real holes, and exchange cells when the
 // requested destination is occupied. Invalid moves leave the ledger untouched.
+/// 移动仅更改手工格提示，不改变账本槽序或实例所有权；请求目标必须在可见容量内，占用目标会交换格位。
 pub moveStackToCell(
     state: ledger.InventoryInstanceLedger, from: int, to: int, capacity: int
 ): bool {

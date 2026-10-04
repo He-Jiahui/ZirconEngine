@@ -9,7 +9,7 @@ pub use error::{
     EditorRuntimeEventConsumerApplyError, EditorRuntimeEventConsumerCallbackPhase,
     EditorRuntimeEventConsumerDeliveryDisposition, EditorRuntimeEventConsumerError,
 };
-pub(super) use fault_receipt::EditorRuntimeEventConsumerFaultReceiptJournal;
+pub(crate) use fault_receipt::EditorRuntimeEventConsumerFaultReceiptJournal;
 pub use fault_receipt::{
     EditorRuntimeEventConsumerFaultReceipt, EditorRuntimeEventConsumerFaultReceiptBudget,
 };

@@ -1,7 +1,9 @@
 use toml::Value;
 
 use super::super::support::{editor_asset_root, load_zui_document};
-use super::{DRAG_OVERLAY_REQUIRED_PROPS, WORKBENCH_OVERLAY_PRIMITIVE_CONTRACTS};
+use super::overlay_contracts::{
+    DRAG_OVERLAY_REQUIRED_PROPS, WORKBENCH_OVERLAY_PRIMITIVE_CONTRACTS,
+};
 
 #[test]
 fn workbench_overlay_primitives_expose_popup_shell_contract() {

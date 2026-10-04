@@ -583,7 +583,7 @@ dual storage getter、component-storage sibling import、generational entity 与
 
 ## 16. 2026-08-28 RECS-P1-11 前向实施记录
 
-状态：`runtime_08_60_sparse_component_locator_algorithm_source_passed_diagnostics_cargo_product_profile_deferred`。
+状态：`runtime_08_60_sparse_component_locator_source_complete_cargo_product_profile_pending`。
 
 动工前完整复核 `SparseComponentStorage`、全部 `ComponentStorage` caller、entity allocator 与
 Runtime08 columnar failure，并将 Unreal `TChunkedArray`/`TSparseArray` 的 chunk + shrink 生命周期
@@ -601,7 +601,5 @@ index 只分配 2 KiB window；最后一个 location 删除释放空 locator。
 双 span 回退 4.3081%-16.1994%。原 HashMap 分支回退
 203.3120%-446.0091%，radix/open-row 也未过线，故采用 offset window；真正第三离散簇仍是
 memory-first、待产品 profile 证明为冷路径的 overflow。interactive P95 不冒充产品尾延迟。
-source/status contract 3/3 与真实 owner Rust harness 16/16 通过，其中包括双 span absorption、
-trim/rebase、跨表示删除 compaction、真正离散 demotion 与 20,000 mixed-operation reference model。生产 locator-byte diagnostics 尚未聚合到共享 `ComponentStorage` owner，且
-Cargo、百万 counters/RSS slope、真实产品 scene P95、WPR wakeups/CPU/power 仍 pending；因此
-`RECS-P1-11` 只完成分页算法，不关闭整项或 G06。
+此前 source/status contract 3/3 与真实 owner Rust harness 16/16 通过，其中包括双 span absorption、
+trim/rebase、跨表示删除 compaction、真正离散 demotion 与 20,000 mixed-operation reference model。本轮已将 locator entry/page/modeled-byte 冷快照聚合到共享 `ComponentStorage` owner，focused source contract 为 5/5；two-owner Rust regression 还要求 32 KiB modeled structural bound，等待 managed Cargo。Cargo、百万 counters/RSS slope、真实产品 scene P95、WPR wakeups/CPU/power 仍 pending；因此 source implementation 虽完成，仍不关闭 G06 或 managed milestone。

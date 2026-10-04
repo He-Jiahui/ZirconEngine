@@ -1,11 +1,11 @@
 use crate::asset::assets::{
-    DecodedFontSource, FontAssetCmapCoverage, FontAssetCodepointRange, FontAssetFaceMetrics,
-    FontAssetFaceStyle, FontAssetLineMetrics, FontAssetMetadata, FontAssetParsedFace,
-    FontAssetSourceFormat, FontAssetVariableInstance, FontAssetVariationAxis,
-    FontAssetVariationCoord, FontMetadataParseError, FontSourceBudgetError, font_cmap_range_budget,
-    validate_font_metadata_budget,
+    font_cmap_range_budget, validate_font_metadata_budget, DecodedFontSource,
+    FontAssetCmapCoverage, FontAssetCodepointRange, FontAssetFaceMetrics, FontAssetFaceStyle,
+    FontAssetLineMetrics, FontAssetMetadata, FontAssetParsedFace, FontAssetSourceFormat,
+    FontAssetVariableInstance, FontAssetVariationAxis, FontAssetVariationCoord,
+    FontMetadataParseError, FontSourceBudgetError,
 };
-use ttf_parser::{Face, Style, Tag, name_id};
+use ttf_parser::{name_id, Face, Style, Tag};
 
 const UNICODE_SCALAR_LIMIT: usize = 0x11_0000;
 const BITS_PER_COVERAGE_WORD: usize = u64::BITS as usize;

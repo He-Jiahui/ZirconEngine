@@ -10,11 +10,13 @@ fixing_child_dir: docs/plans/zircon_editor/editor/03
 plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/core/editing/command.rs
+  - zircon_editor/src/tests/editing/detached_entity_batch.rs
   - zircon_editor/src/tests/editing/state/viewport.rs
   - zircon_runtime/src/scene/world/transaction/detached_entity_batch.rs
 tests:
   - cargo test -p zircon_editor --lib editing --locked --jobs 1 -- --nocapture --test-threads=1
   - cargo test -p zircon_runtime --lib detached_batch --locked --jobs 1 -- --nocapture --test-threads=1
+  - cargo test -p zircon_editor --lib deleting_all_cameras_after_capture_managed_scale_fixture --locked --jobs 1 -- --ignored --nocapture --test-threads=1
 ---
 
 # Editor03：消费 move-only DetachedEntityBatch inverse delta
@@ -50,11 +52,15 @@ Editor command execution payload 和 cloneable/serializable journal metadata 尚
 
 ## 修复结果与回传
 
-Open state: `Runtime contract available / Editor inverse delta source hard cut complete / managed validation blocked by coordinator CPU reservation`; no Cargo pass is claimed.
+Open state: `Editor inverse delta and prepared camera guard source complete / managed behavior validation pending`; no Cargo pass is claimed. 下述 2026-08-23 证据保留，现行验证准入以本节 2026-09-06 更新为准。
 
 - Runtime08 已提供 move-only `DetachedEntityBatch`、完整 preflight、failed restore ownership return、stable/dense/hierarchy/camera indexed boundary 和精确诊断计数。
 - Runtime source-bound validation-copy 请求在 client timeout 前未返回 durable receipt；本 handoff 不声称 Runtime Cargo green。
 - Editor03 应在其现有 primary/owner policy 下前向迁移，不由 Runtime08 Session 吸收 Editor source。
+
+2026-09-06 当前修复：Session `failure-cleanup-editor03-reflection-20260905` 的 `DeleteNodeCommand::apply` 在 World 写回调中重新 prepare，以票据中的相机计数验证后消费同一票据。redo 走相同路径；拒绝不会保存 batch、修改选择或提交历史。新增 capture 后最后相机移入子树、redo 拒绝后重试两项常规回归，以及 2/128 cameras + 100k unrelated entities 的 ignored 用例，比较 World 内容、有效 generation、active camera、detach 生命周期计数、selection、history/dirty 状态。
+
+下层契约见 [Runtime08 相机子树 failure](../../../zircon_runtime/runtime/08/failure-2026-08-23-editor-delete-subtree-all-cameras-invariant.md)。Editor 源码快照 `2850`；Windows 格式票据 `344af289eb984e53b9491f4e6bbda762`，请求 `9bd3e1c7e6f9480b8dc98aeb21873405`，manifest `7a57784fbc24b7abbd39447e7977dd619613908976b63ce98b777bae5f8301a4`。该票据 `queued / validation_dependency_failed`、尚未执行。精确 Rust 2021 rustfmt 与现有 Python 合约 18/18 本地通过不替代 Cargo 行为、规模性能、上层验收或独立审查。完整验收前不 return、不 closeout、不发送完成企微；未实时轮询或重复提交 Cargo。
 
 ## 产出记录与时间
 

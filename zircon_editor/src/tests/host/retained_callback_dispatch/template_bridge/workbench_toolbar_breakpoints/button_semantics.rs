@@ -1,4 +1,5 @@
-use super::*;
+use super::super::super::support::{env_lock, BuiltinWorkbenchWindowTemplateSurfaceBridge, UiSize};
+use super::support::{workbench_window_node, FULL_WORKBENCH_HEIGHT, FULL_WORKBENCH_WIDTH};
 use zircon_runtime_interface::ui::style::{ButtonColor, UiStyleColor};
 
 const STARSHIP_SECONDARY_SURFACE: [u8; 4] = [29, 35, 40, 255];

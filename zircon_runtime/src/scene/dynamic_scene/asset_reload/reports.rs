@@ -19,12 +19,14 @@ use super::{
 };
 
 #[derive(Clone, Debug, Default, PartialEq)]
+/// 事件接纳阶段的单帧结果；跳过事件、取消请求和代际缺口不能与应用失败混为一谈。
 pub struct DynamicSceneAssetReloadDrainReport {
     pub events_drained: usize,
     pub raw_events_examined: usize,
     pub filtered_events: usize,
     pub event_bytes_drained: usize,
     pub scheduled: usize,
+    pub failed: Vec<DynamicSceneAssetReloadApplyFailure>,
     pub skipped: Vec<DynamicSceneAssetReloadSkippedEvent>,
     pub superseded_pending: Vec<DynamicSceneAssetReloadSupersededTask>,
     pub receiver_disconnected: bool,
@@ -80,6 +82,7 @@ impl DynamicSceneAssetReloadPendingReport {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+/// 目标世界应用阶段的单帧结果；失败与陈旧分开报告，延后结果仍由队列持有。
 pub struct DynamicSceneAssetReloadApplyReport {
     pub applied: Vec<DynamicSceneAssetReloadAppliedScene>,
     pub failed: Vec<DynamicSceneAssetReloadApplyFailure>,
@@ -248,6 +251,7 @@ fn finish_apply_report(
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+/// 串联事件接纳和目标应用的帧报告，供调用方展示同一 tick 的处理边界。
 pub struct DynamicSceneAssetReloadFrameApplyReport {
     pub drain: DynamicSceneAssetReloadDrainReport,
     pub apply: DynamicSceneAssetReloadApplyReport,
@@ -296,49 +300,5 @@ impl DynamicSceneAssetReloadFrameApplyReport {
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::{
-        asset::{AssetEvent, Handle, SceneAsset},
-        core::resource::ResourceId,
-        scene::{DynamicSceneError, World},
-    };
-
-    use super::super::result::DynamicSceneAssetReloadResult;
-    use super::DynamicSceneAssetReloadReadyReport;
-
-    fn failed_result(label: &str) -> DynamicSceneAssetReloadResult {
-        DynamicSceneAssetReloadResult::new(
-            AssetEvent::Modified {
-                handle: Handle::<SceneAsset>::new(ResourceId::from_stable_label(label)),
-                locator: None,
-                revision: 1,
-            },
-            Err(DynamicSceneError::Parse {
-                reason: "bounded apply fixture".to_string(),
-            }),
-        )
-    }
-
-    #[test]
-    fn dynamic_scene_asset_reload_apply_bytes_are_cumulative_within_one_tick() {
-        let first = failed_result("apply-budget-first");
-        let second = failed_result("apply-budget-second");
-        let one_result_budget = first.estimated_bytes();
-        let ready = DynamicSceneAssetReloadReadyReport {
-            ready: vec![first, second],
-            ..DynamicSceneAssetReloadReadyReport::default()
-        };
-
-        let (report, deferred) = ready.spawn_ready_into_budgeted(
-            &mut World::empty(),
-            usize::MAX,
-            one_result_budget,
-            std::time::Duration::MAX,
-        );
-
-        assert_eq!(report.failed_count(), 1);
-        assert_eq!(report.applied_bytes, one_result_budget);
-        assert_eq!(deferred.len(), 1);
-        assert!(report.apply_budget_exhausted);
-    }
-}
+#[path = "tests/reports.rs"]
+mod tests;

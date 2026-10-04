@@ -5,11 +5,11 @@ use std::hash::{BuildHasher, Hash, Hasher};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Instant;
 
-use crate::text::EphemeralCacheHash;
-use crate::text::RichTextFormat;
 use crate::text::rich::{
     CompiledRichText, RichTextContentTrust, RichTextParseError, RichTextParserGeneration,
 };
+use crate::text::EphemeralCacheHash;
+use crate::text::RichTextFormat;
 
 use super::{IndexedTextCache, IndexedTextCacheEntry};
 
@@ -387,6 +387,7 @@ impl CompiledRichTextCache {
         self.report.resident_entries = self.index.len();
     }
 
+    // 未完成的 OnceLock cell 不进入 completed 计数，预算不足时只淘汰已编译条目，保留同键并发请求的 single-flight cell。
     fn reserve_for(&mut self, additional_entries: usize, additional_bytes: usize) -> bool {
         if additional_entries > self.report.max_entries || additional_bytes > self.report.max_bytes
         {
@@ -553,5 +554,5 @@ impl CompiledRichTextCacheOwner {
 }
 
 #[cfg(test)]
-#[path = "rich_cache/tests.rs"]
+#[path = "rich_cache/tests/cases.rs"]
 mod tests;

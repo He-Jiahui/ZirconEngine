@@ -10,15 +10,22 @@ use zircon_runtime::asset::importer::{
     GltfTextureTransformProjection, GltfTextureUsage,
 };
 use zircon_runtime::asset::{
-    AlphaMode, AssetImportError, AssetImportOutcome, AssetReference, AssetUri, DataAsset,
-    DataAssetFormat, ImportedAsset, ImportedAssetEntry, MaterialAsset, MaterialTextureSlotValue,
-    MeshAsset, ModelAsset, ModelPrimitiveAsset, SceneAsset, SceneEntityAsset,
-    SceneMeshInstanceAsset, SceneMeshPrimitiveBindingAsset, SceneMobilityAsset, TransformAsset,
+    AlphaMode, AssetImportOutcome, AssetReference, AssetUri, ImportedAsset, ImportedAssetEntry,
+    MaterialAsset, MaterialTextureSlotValue, MeshAsset, ModelAsset, ModelPrimitiveAsset,
+    SceneEntityAsset, SceneMeshInstanceAsset, SceneMeshPrimitiveBindingAsset, SceneMobilityAsset,
+    TransformAsset,
 };
 use zircon_runtime::core::framework::render::{RenderMaterialTextureTransform, TextureUsageHint};
 
+mod scene_traversal;
 #[cfg(test)]
+#[path = "subassets/tests/scene_traversal_tests.rs"]
+mod scene_traversal_tests;
+#[cfg(test)]
+#[path = "subassets/tests/texture_variant_tests.rs"]
 mod texture_variant_tests;
+
+pub(crate) use scene_traversal::add_gltf_scene_subassets;
 
 #[derive(Clone)]
 pub(crate) struct GltfMeshSubasset {
@@ -133,143 +140,6 @@ pub(crate) fn add_gltf_mesh_subassets(
         }
     }
     outcome
-}
-
-pub(crate) fn add_gltf_scene_subassets(
-    mut outcome: AssetImportOutcome,
-    root_uri: &AssetUri,
-    document: &gltf::Document,
-) -> AssetImportOutcome {
-    for node in document.nodes() {
-        let uri = gltf_label_uri(root_uri, &format!("Node{}", node.index()));
-        let mut entity = scene_entity_from_gltf_node(root_uri, &node, None);
-        entity.parent = None;
-        let entry = scene_entry_with_node_dependencies(
-            root_uri,
-            uri,
-            SceneAsset {
-                entities: vec![entity],
-            },
-            std::iter::once(node),
-        );
-        outcome = with_root_dependency_and_entry(outcome, entry);
-    }
-
-    for scene in document.scenes() {
-        let uri = gltf_label_uri(root_uri, &format!("Scene{}", scene.index()));
-        let mut entities = Vec::new();
-        for node in scene.nodes() {
-            push_scene_node(root_uri, &node, None, &mut entities);
-        }
-        let entry = scene_entry_with_node_dependencies(
-            root_uri,
-            uri,
-            SceneAsset { entities },
-            scene.nodes(),
-        );
-        outcome = with_root_dependency_and_entry(outcome, entry);
-    }
-    outcome
-}
-
-pub(crate) fn add_gltf_animation_placeholders_and_skin_subassets(
-    mut outcome: AssetImportOutcome,
-    root_uri: &AssetUri,
-    document: &gltf::Document,
-    buffers: &[gltf::buffer::Data],
-) -> Result<AssetImportOutcome, AssetImportError> {
-    for animation in document.animations() {
-        let label = format!("Animation{}", animation.index());
-        let uri = gltf_label_uri(root_uri, &label);
-        outcome = with_root_dependency_and_entry(
-            outcome,
-            ImportedAssetEntry::new(
-                uri.clone(),
-                ImportedAsset::Data(gltf_placeholder_data_asset(
-                    uri,
-                    format!("{label}: glTF animation channel import is not implemented yet"),
-                )),
-            ),
-        );
-    }
-
-    for skin in document.skins() {
-        let label = format!("Skin{}", skin.index());
-        let uri = gltf_label_uri(root_uri, &label);
-        let inverse_bind_matrices = inverse_bind_matrices_for_skin(&skin, buffers)?;
-        let matrices_uri = inverse_bind_matrices
-            .as_ref()
-            .map(|_| gltf_label_uri(root_uri, &format!("{label}/InverseBindMatrices")));
-        let mut skin_entry = ImportedAssetEntry::new(
-            uri.clone(),
-            ImportedAsset::Data(gltf_skin_data_asset(
-                root_uri,
-                uri,
-                &label,
-                &skin,
-                matrices_uri.as_ref(),
-                inverse_bind_matrices
-                    .as_ref()
-                    .map_or(0, |matrices| matrices.len()),
-            )),
-        );
-        for joint in skin.joints() {
-            push_dependency_once(
-                &mut skin_entry,
-                gltf_label_uri(root_uri, &format!("Node{}", joint.index())),
-            );
-        }
-        if let Some(skeleton) = skin.skeleton() {
-            push_dependency_once(
-                &mut skin_entry,
-                gltf_label_uri(root_uri, &format!("Node{}", skeleton.index())),
-            );
-        }
-        if let Some(matrices_uri) = &matrices_uri {
-            push_dependency_once(&mut skin_entry, matrices_uri.clone());
-        }
-        outcome = with_root_dependency_and_entry(outcome, skin_entry);
-
-        if skin.inverse_bind_matrices().is_some() {
-            let matrices_label = format!("{label}/InverseBindMatrices");
-            let matrices_uri = matrices_uri.expect("matrix uri should exist when accessor exists");
-            let inverse_bind_matrices =
-                inverse_bind_matrices.expect("matrix payload should exist when accessor exists");
-            outcome = with_root_dependency_and_entry(
-                outcome,
-                ImportedAssetEntry::new(
-                    matrices_uri.clone(),
-                    ImportedAsset::Data(gltf_inverse_bind_matrices_data_asset(
-                        matrices_uri,
-                        &matrices_label,
-                        inverse_bind_matrices,
-                    )),
-                ),
-            );
-        }
-    }
-    Ok(outcome)
-}
-
-fn inverse_bind_matrices_for_skin(
-    skin: &gltf::Skin<'_>,
-    buffers: &[gltf::buffer::Data],
-) -> Result<Option<Vec<[[f32; 4]; 4]>>, AssetImportError> {
-    let Some(accessor) = skin.inverse_bind_matrices() else {
-        return Ok(None);
-    };
-    let matrices = skin
-        .reader(|buffer| Some(&buffers[buffer.index()].0))
-        .read_inverse_bind_matrices()
-        .ok_or_else(|| {
-            AssetImportError::Parse(format!(
-                "gltf Skin{} inverseBindMatrices accessor {} could not be read",
-                skin.index(),
-                accessor.index()
-            ))
-        })?
-        .collect();
-    Ok(Some(matrices))
 }
 
 fn material_asset_from_gltf_material(
@@ -559,65 +429,6 @@ fn gltf_alpha_mode(material: &gltf::Material<'_>) -> AlphaMode {
     }
 }
 
-fn scene_entry_with_node_dependencies<'a>(
-    root_uri: &AssetUri,
-    uri: AssetUri,
-    scene: SceneAsset,
-    roots: impl IntoIterator<Item = gltf::Node<'a>>,
-) -> ImportedAssetEntry {
-    let mut entry = ImportedAssetEntry::new(uri, ImportedAsset::Scene(scene));
-    for node in roots {
-        push_node_dependencies(root_uri, &node, &mut entry);
-    }
-    entry
-}
-
-fn push_node_dependencies(
-    root_uri: &AssetUri,
-    node: &gltf::Node<'_>,
-    entry: &mut ImportedAssetEntry,
-) {
-    push_dependency_once(
-        entry,
-        gltf_label_uri(root_uri, &format!("Node{}", node.index())),
-    );
-    if let Some(mesh) = node.mesh() {
-        push_dependency_once(
-            entry,
-            gltf_label_uri(root_uri, &format!("Mesh{}", mesh.index())),
-        );
-        for primitive in mesh.primitives() {
-            push_dependency_once(
-                entry,
-                gltf_label_uri(
-                    root_uri,
-                    &format!("Mesh{}/Primitive{}", mesh.index(), primitive.index()),
-                ),
-            );
-            push_dependency_once(
-                entry,
-                material_uri_for_index(root_uri, primitive.material().index()),
-            );
-        }
-    }
-    for child in node.children() {
-        push_node_dependencies(root_uri, &child, entry);
-    }
-}
-
-fn push_scene_node(
-    root_uri: &AssetUri,
-    node: &gltf::Node<'_>,
-    parent: Option<u64>,
-    entities: &mut Vec<SceneEntityAsset>,
-) {
-    let entity_id = node.index() as u64;
-    entities.push(scene_entity_from_gltf_node(root_uri, node, parent));
-    for child in node.children() {
-        push_scene_node(root_uri, &child, Some(entity_id), entities);
-    }
-}
-
 fn scene_entity_from_gltf_node(
     root_uri: &AssetUri,
     node: &gltf::Node<'_>,
@@ -636,6 +447,7 @@ fn scene_entity_from_gltf_node(
         mobility: SceneMobilityAsset::Dynamic,
         camera: None,
         mesh: mesh_instance_from_gltf_node(root_uri, node),
+        components: Vec::new(),
         ambient_light: None,
         directional_light: None,
         point_light: None,
@@ -709,81 +521,6 @@ fn transform_from_gltf_node(node: &gltf::Node<'_>) -> TransformAsset {
     }
 }
 
-fn gltf_placeholder_data_asset(uri: AssetUri, text: String) -> DataAsset {
-    DataAsset {
-        uri,
-        format: DataAssetFormat::Text,
-        text,
-        canonical_json: Default::default(),
-    }
-}
-
-fn gltf_skin_data_asset(
-    root_uri: &AssetUri,
-    uri: AssetUri,
-    label: &str,
-    skin: &gltf::Skin<'_>,
-    inverse_bind_matrices_uri: Option<&AssetUri>,
-    inverse_bind_matrix_count: usize,
-) -> DataAsset {
-    let joints = skin
-        .joints()
-        .map(|joint| {
-            serde_json::json!({
-                "node_index": joint.index(),
-                "node": gltf_label_uri(root_uri, &format!("Node{}", joint.index())).to_string(),
-                "name": joint.name(),
-            })
-        })
-        .collect::<Vec<_>>();
-    let joint_count = joints.len();
-    let skeleton = skin.skeleton().map(|node| {
-        serde_json::json!({
-            "node_index": node.index(),
-            "node": gltf_label_uri(root_uri, &format!("Node{}", node.index())).to_string(),
-            "name": node.name(),
-        })
-    });
-    let canonical_json = serde_json::json!({
-        "kind": "gltf_skin",
-        "label": label,
-        "skin_index": skin.index(),
-        "name": skin.name(),
-        "skeleton": skeleton,
-        "joints": joints,
-        "joint_count": joint_count,
-        "inverse_bind_matrices": inverse_bind_matrices_uri.map(ToString::to_string),
-        "inverse_bind_matrix_count": inverse_bind_matrix_count,
-    });
-    json_data_asset(uri, canonical_json)
-}
-
-fn gltf_inverse_bind_matrices_data_asset(
-    uri: AssetUri,
-    label: &str,
-    inverse_bind_matrices: Vec<[[f32; 4]; 4]>,
-) -> DataAsset {
-    json_data_asset(
-        uri,
-        serde_json::json!({
-            "kind": "gltf_inverse_bind_matrices",
-            "label": label,
-            "matrix_count": inverse_bind_matrices.len(),
-            "matrices": inverse_bind_matrices,
-        }),
-    )
-}
-
-fn json_data_asset(uri: AssetUri, canonical_json: serde_json::Value) -> DataAsset {
-    DataAsset {
-        uri,
-        format: DataAssetFormat::Json,
-        text: serde_json::to_string_pretty(&canonical_json)
-            .expect("generated gltf data JSON should serialize"),
-        canonical_json,
-    }
-}
-
 fn with_root_dependency_and_entry(
     outcome: AssetImportOutcome,
     entry: ImportedAssetEntry,
@@ -791,12 +528,6 @@ fn with_root_dependency_and_entry(
     outcome
         .with_dependency(entry.locator.clone())
         .with_entry(entry)
-}
-
-fn push_dependency_once(entry: &mut ImportedAssetEntry, locator: AssetUri) {
-    if !entry.dependencies.contains(&locator) {
-        entry.dependencies.push(locator);
-    }
 }
 
 fn texture_reference(

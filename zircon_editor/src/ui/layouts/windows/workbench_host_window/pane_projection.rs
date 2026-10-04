@@ -268,6 +268,16 @@ pub(super) fn pane_from_tab_with_template_v2_data(
         build_export,
         template_v2_data,
     );
+    let native_body = build_native_body(
+        kind,
+        chrome,
+        &info,
+        &pane_presentation,
+        module_plugins,
+        build_export,
+        ui_asset_pane,
+        animation_pane,
+    );
 
     PaneData {
         id: instance_id.into(),
@@ -276,7 +286,7 @@ pub(super) fn pane_from_tab_with_template_v2_data(
         title: title.into(),
         icon_key: icon_key.into(),
         subtitle: subtitle.into(),
-        info: info.clone().into(),
+        info: info.into(),
         show_empty: empty_state.is_some(),
         empty_title: SharedString::from(empty_title),
         empty_body: SharedString::from(empty_body),
@@ -287,16 +297,7 @@ pub(super) fn pane_from_tab_with_template_v2_data(
         secondary_hint: SharedString::from(secondary_hint),
         show_toolbar,
         viewport,
-        native_body: build_native_body(
-            kind,
-            chrome,
-            &info,
-            &pane_presentation,
-            module_plugins,
-            build_export,
-            ui_asset_pane,
-            animation_pane,
-        ),
+        native_body,
         pane_presentation,
     }
 }
@@ -436,6 +437,10 @@ pub(crate) fn blank_pane() -> PaneData {
         pane_presentation: None,
     }
 }
+
+#[cfg(test)]
+#[path = "pane_projection/tests/optimization_batch_hp_editor597_tests.rs"]
+mod optimization_batch_hp_editor597_tests;
 
 fn build_pane_presentation(
     title: &str,

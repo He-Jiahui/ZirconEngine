@@ -48,6 +48,7 @@ impl CoreHandle {
                 return Err(CoreError::DuplicateModule(module_name));
             }
         }
+        // 一到五项走定长准备路径；更大批次沿通用路径，最终都集中提交。
         if service_count == 1 {
             return self.register_single_service_module(module_name, descriptor);
         }
@@ -149,6 +150,7 @@ impl CoreHandle {
                 startup_service_names: Arc::default(),
                 shutdown_service_names: Arc::default(),
                 lifecycle: LifecycleState::Registered,
+                cleanup_completed: false,
             },
         );
         Ok(())

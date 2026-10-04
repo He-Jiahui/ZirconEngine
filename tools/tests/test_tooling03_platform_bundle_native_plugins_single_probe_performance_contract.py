@@ -1,3 +1,4 @@
+# 核对平台包原生插件根只探测一次，检查错误不混同缺失。
 from __future__ import annotations
 
 import tempfile
@@ -5,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_export.platform_bundle_native_plugins_materialize import (
+from tools.export.platform_bundle_native_plugins_materialize import (
     materialize_platform_bundle_native_plugins,
 )
 

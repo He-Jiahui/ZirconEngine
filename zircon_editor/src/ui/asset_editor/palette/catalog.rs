@@ -30,6 +30,11 @@ impl UiAssetPaletteCatalog {
                 },
             })
             .collect::<Vec<_>>();
+        let append_capacity = document
+            .components
+            .len()
+            .saturating_add(reference_imports.len());
+        entries.reserve_exact(append_capacity);
 
         for component_name in document.components.keys() {
             entries.push(UiAssetPaletteEntry {
@@ -66,6 +71,10 @@ impl UiAssetPaletteCatalog {
     }
 }
 
+#[cfg(test)]
+#[path = "catalog/tests/optimization_batch_jg_editor646_tests.rs"]
+mod optimization_batch_jg_editor646_tests;
+
 fn canonical_reference_imports(
     widget_imports: &BTreeMap<String, UiAssetDocument>,
 ) -> BTreeMap<String, UiAssetDocument> {
@@ -92,7 +101,7 @@ fn reference_palette_label(reference: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "catalog/reference_label_tests.rs"]
+#[path = "catalog/tests/reference_label_tests.rs"]
 mod reference_label_tests;
 
 fn reference_component_name(reference: &str) -> Option<&str> {

@@ -293,7 +293,7 @@ fn sdf_atlas_run_records_failure_reasons_per_glyph() {
     let oversized = glyph_key('C');
 
     let run = sdf_atlas_run_for_glyph_keys(
-        vec![
+        &[
             Some(allocated.clone()),
             None,
             Some(page_limited.clone()),

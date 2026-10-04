@@ -25,6 +25,8 @@ pub class ValeCupQueueUnit {
     }
 }
 
+// 计划保留入选预组的 ID 及每队对齐的玩家/角色数组；
+// 宿主据此创建比赛，不能拆散预组或重新按玩家排序后沿用角色下标。
 pub class ValeCupMatchPlan {
     pub var ready: bool;
     pub var bracket: int;
@@ -271,6 +273,8 @@ pub queuedMemberCount(state: ValeCupQueueState, bracket: int): int {
 // Mirrors matchmakeValeCup's selection only. It does not start a live match:
 // a future lifecycle owner must consume the plan, then perform the source
 // sport-kit, entity, event and score transitions.
+// 在各赛制中选最早凑齐的完整计划，且仅此处从队列移除入选
+// 预组单位；宿主须在同一事务中创建比赛，否则计划与队列会分离。
 pub takeOldestReady(state: ValeCupQueueState): ValeCupMatchPlan {
     var selected = new ValeCupMatchPlan();
     var found = false;

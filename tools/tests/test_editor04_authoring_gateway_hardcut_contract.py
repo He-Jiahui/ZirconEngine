@@ -1,3 +1,4 @@
+# 核对编辑上下文与界面事件控制器之间的编辑网关所有权边界。
 import pathlib
 import unittest
 

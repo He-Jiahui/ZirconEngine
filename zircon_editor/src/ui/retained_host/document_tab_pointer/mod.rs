@@ -9,6 +9,9 @@ mod host_document_tab_pointer_item;
 mod host_document_tab_pointer_layout;
 mod host_document_tab_pointer_route;
 mod host_document_tab_pointer_surface;
+#[cfg(test)]
+#[path = "tests/leaf_receipt_tests.rs"]
+mod leaf_receipt_tests;
 
 pub(crate) use build_host_document_tab_pointer_layout::build_host_document_tab_pointer_layout;
 pub(crate) use host_document_tab_pointer_bridge::HostDocumentTabPointerBridge;

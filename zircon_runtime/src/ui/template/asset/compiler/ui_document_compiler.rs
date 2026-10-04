@@ -13,6 +13,7 @@ use zircon_runtime_interface::ui::template::{
 
 use super::value_normalizer::compose_tokens;
 
+/// 宿主可重复实例化的编译结果，同时携带资源依赖和诊断；编译不会加载这些资源，也不创建运行时树。
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiCompiledDocument {
     pub asset: UiAssetHeader,
@@ -22,6 +23,7 @@ pub struct UiCompiledDocument {
 }
 
 impl UiCompiledDocument {
+    /// 将模板交给实例或包构建层；资源报告不随此转换保留，仍需它的宿主应先记录依赖或保留完整编译结果。
     pub fn into_template_instance(self) -> UiTemplateInstance {
         self.instance
     }
@@ -39,6 +41,7 @@ impl UiCompiledDocument {
     }
 }
 
+/// 宿主先注册已解析的导入，再在当前描述符契约下编译；默认借用展示组件注册表，定制组件应显式提供自己的注册表。
 pub struct UiDocumentCompiler {
     pub(super) widget_imports: BTreeMap<String, UiAssetDocument>,
     pub(super) style_imports: BTreeMap<String, UiAssetDocument>,
@@ -58,11 +61,13 @@ impl Default for UiDocumentCompiler {
 }
 
 impl UiDocumentCompiler {
+    /// 接管宿主构造的注册表快照；编译缓存会纳入其 revision，以免复用另一套默认值和组件约束。
     pub fn with_component_registry(mut self, registry: UiComponentDescriptorRegistry) -> Self {
         self.component_registry = Cow::Owned(registry);
         self
     }
 
+    /// 借用全进程有效的只读注册表，适合多个短寿命编译器共享同一契约；生命周期限制防止悬挂描述符。
     pub fn with_shared_component_registry(
         mut self,
         registry: &'static UiComponentDescriptorRegistry,
@@ -82,10 +87,12 @@ impl UiDocumentCompiler {
         self.component_registry.revision()
     }
 
+    /// 供绑定报告等调用方使用与实际编译相同的描述符契约，避免诊断与最终实例采用两套组件定义。
     pub fn component_registry(&self) -> &UiComponentDescriptorRegistry {
         self.component_registry.as_ref()
     }
 
+    // 仅为性能对照保留旧的拥有式默认构造；业务入口仍共享静态注册表，不能将计时基线接回普通编译。
     #[cfg(test)]
     pub(crate) fn legacy_owned_default_for_benchmark() -> Self {
         Self {
@@ -97,6 +104,7 @@ impl UiDocumentCompiler {
         }
     }
 
+    /// 宿主以文档中的完整组件引用注册布局/widget；同键再次注册替换旧快照，相关缓存键随内容改变而失效。
     pub fn register_widget_import(
         &mut self,
         reference: impl Into<String>,
@@ -117,6 +125,7 @@ impl UiDocumentCompiler {
         Ok(self)
     }
 
+    /// 只接受 style 资产；宿主负责解析引用并提供快照，编译器不会在应用样式时再访问文件系统。
     pub fn register_style_import(
         &mut self,
         reference: impl Into<String>,
@@ -135,6 +144,7 @@ impl UiDocumentCompiler {
     }
 }
 
+// 单次展开的旁路产物按资产首次出现顺序收集，样式解析在所有组件根展开完毕后统一执行。
 #[derive(Default)]
 pub(super) struct CompilationArtifacts {
     widget_styles: Vec<ResolvedStyleSheet>,
@@ -147,6 +157,7 @@ impl CompilationArtifacts {
         document: &UiAssetDocument,
         inherited: &BTreeMap<String, Value>,
     ) {
+        // TODO: [CR-UI-TEMPLATE-COMP-0002] 确认同一 widget 在不同继承 token 域下能否共享首份样式；当前只按资产 ID 去重并向全树应用；缺少不同父 token 的重复实例回归，下一步对照原型样式与实例隔离契约。
         if !self.seen_widget_assets.insert(document.asset.id.clone()) {
             return;
         }
@@ -159,12 +170,14 @@ impl CompilationArtifacts {
     }
 }
 
+// 样式必须随定义它的 token 域一起进入规则计划，避免应用阶段把导入样式误按布局自身的 token 解释。
 #[derive(Clone)]
 pub(super) struct ResolvedStyleSheet {
     pub(super) stylesheet: UiStyleSheet,
     pub(super) tokens: BTreeMap<String, Value>,
 }
 
+// 保持资产内样式顺序以维持同 specificity 的后写优先级；最后一张表接管 token，减少收集阶段的末次深拷贝。
 fn append_resolved_stylesheets(
     output: &mut Vec<ResolvedStyleSheet>,
     stylesheets: &[UiStyleSheet],
@@ -183,161 +196,7 @@ fn append_resolved_stylesheets(
     });
 }
 
+// 普通回归守住顺序和空输入；ignored 计时只衡量最终 token 所有权移交，不能代替多实例样式域的语义验证。
 #[cfg(test)]
-mod performance_tests {
-    use std::hint::black_box;
-    use std::time::Instant;
-
-    use super::*;
-
-    #[test]
-    fn optimization_batch_ee_widget_styles_keep_order_and_handle_empty_input() {
-        let tokens = token_fixture(4);
-        let stylesheets = [
-            UiStyleSheet {
-                id: "first".to_string(),
-                rules: Vec::new(),
-            },
-            UiStyleSheet {
-                id: "last".to_string(),
-                rules: Vec::new(),
-            },
-        ];
-        let mut output = Vec::new();
-
-        append_resolved_stylesheets(&mut output, &stylesheets, tokens.clone());
-
-        assert_eq!(
-            output
-                .iter()
-                .map(|sheet| sheet.stylesheet.id.as_str())
-                .collect::<Vec<_>>(),
-            ["first", "last"]
-        );
-        assert!(output.iter().all(|sheet| sheet.tokens == tokens));
-
-        append_resolved_stylesheets(&mut output, &[], token_fixture(4));
-        assert_eq!(output.len(), 2);
-    }
-
-    #[test]
-    fn optimization_batch_ee_last_widget_token_map_is_moved() {
-        let source = include_str!("ui_document_compiler.rs");
-        let production = source
-            .split("fn append_resolved_stylesheets")
-            .nth(1)
-            .expect("resolved stylesheet append implementation")
-            .split("#[cfg(test)]")
-            .next()
-            .expect("resolved stylesheet production implementation");
-
-        assert!(production.contains("stylesheets.split_last()"));
-        assert!(production.contains("tokens: tokens.clone()"));
-        assert!(production.contains("tokens,"));
-    }
-
-    #[test]
-    #[ignore = "release-only final widget token-map move benchmark"]
-    fn optimization_batch_ee_final_widget_token_map_move_release_benchmark_evidence() {
-        const SAMPLE_PAIRS: usize = 17;
-        const BUILDS_PER_SAMPLE: usize = 32;
-        const TOKEN_COUNT: usize = 512;
-
-        fn measure(
-            fixture: &BTreeMap<String, Value>,
-            append: fn(&mut Vec<ResolvedStyleSheet>, &[UiStyleSheet], BTreeMap<String, Value>),
-        ) -> u128 {
-            let stylesheet = UiStyleSheet {
-                id: "single-widget-sheet".to_string(),
-                rules: Vec::new(),
-            };
-            let started = Instant::now();
-            let mut checksum = 0usize;
-            for _ in 0..BUILDS_PER_SAMPLE {
-                let mut output = Vec::with_capacity(1);
-                append(
-                    &mut output,
-                    std::slice::from_ref(black_box(&stylesheet)),
-                    black_box(fixture.clone()),
-                );
-                checksum = checksum.wrapping_add(output[0].tokens.len());
-                black_box(output);
-            }
-            black_box(checksum);
-            started.elapsed().as_nanos().max(1)
-        }
-
-        fn legacy_append(
-            output: &mut Vec<ResolvedStyleSheet>,
-            stylesheets: &[UiStyleSheet],
-            tokens: BTreeMap<String, Value>,
-        ) {
-            for stylesheet in stylesheets {
-                output.push(ResolvedStyleSheet {
-                    stylesheet: stylesheet.clone(),
-                    tokens: tokens.clone(),
-                });
-            }
-        }
-
-        fn percentile(samples: &[u128], percentile: usize) -> u128 {
-            let mut sorted = samples.to_vec();
-            sorted.sort_unstable();
-            let rank = (sorted.len() * percentile).div_ceil(100);
-            sorted[rank.saturating_sub(1)]
-        }
-
-        fn raw(samples: &[u128]) -> String {
-            samples
-                .iter()
-                .map(u128::to_string)
-                .collect::<Vec<_>>()
-                .join(",")
-        }
-
-        let fixture = token_fixture(TOKEN_COUNT);
-        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
-        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
-        for sample in 0..SAMPLE_PAIRS {
-            if sample % 2 == 0 {
-                legacy_samples.push(measure(&fixture, legacy_append));
-                optimized_samples.push(measure(&fixture, append_resolved_stylesheets));
-            } else {
-                optimized_samples.push(measure(&fixture, append_resolved_stylesheets));
-                legacy_samples.push(measure(&fixture, legacy_append));
-            }
-        }
-
-        let legacy_p50_ns = percentile(&legacy_samples, 50);
-        let optimized_p50_ns = percentile(&optimized_samples, 50);
-        let legacy_p95_ns = percentile(&legacy_samples, 95);
-        let optimized_p95_ns = percentile(&optimized_samples, 95);
-        println!(
-            "RUNTIME439_FINAL_WIDGET_TOKEN_MAP_MOVE_BENCH_V1 sample_pairs={SAMPLE_PAIRS} \
-             builds_per_sample={BUILDS_PER_SAMPLE} token_count={TOKEN_COUNT} \
-             pair_order=alternating_legacy_even legacy_token_entry_clones_per_sample={} \
-             optimized_token_entry_clones_per_sample=0 legacy_p50_ns={legacy_p50_ns} \
-             optimized_p50_ns={optimized_p50_ns} legacy_p95_ns={legacy_p95_ns} \
-             optimized_p95_ns={optimized_p95_ns} legacy_raw_ns={} optimized_raw_ns={}",
-            BUILDS_PER_SAMPLE * TOKEN_COUNT,
-            raw(&legacy_samples),
-            raw(&optimized_samples),
-        );
-
-        assert!(
-            optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(70),
-            "moving the final widget token map must reduce P95 by at least 30%: legacy={legacy_p95_ns}ns optimized={optimized_p95_ns}ns"
-        );
-    }
-
-    fn token_fixture(count: usize) -> BTreeMap<String, Value> {
-        (0..count)
-            .map(|index| {
-                (
-                    format!("token.{index:04}"),
-                    Value::String(format!("value-{index:04}-{}", "payload".repeat(8))),
-                )
-            })
-            .collect()
-    }
-}
+#[path = "tests/ui_document_compiler_performance_tests.rs"]
+mod performance_tests;

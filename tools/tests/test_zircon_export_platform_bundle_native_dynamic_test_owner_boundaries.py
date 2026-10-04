@@ -8,14 +8,14 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PLATFORM_BUNDLE_NATIVE_DYNAMIC_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_platform_bundle_native_dynamic.py"
+    REPO_ROOT / "tools/export/tests/test_platform_bundle_native_dynamic.py"
 )
 PLATFORM_BUNDLE_NATIVE_DYNAMIC_PIPELINE_PAYLOAD_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_platform_bundle_native_dynamic_pipeline_payload.py"
+    / "tools/export/tests/test_platform_bundle_native_dynamic_pipeline_payload.py"
 )
 PLATFORM_BUNDLE_STRATEGY_VALIDATION_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_platform_bundle_strategy_validation.py"
+    REPO_ROOT / "tools/export/tests/test_platform_bundle_strategy_validation.py"
 )
 
 PIPELINE_PAYLOAD_TEST_METHODS = (

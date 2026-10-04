@@ -25,7 +25,7 @@ requireText(motion, /a\.kind === 'slow'[\s\S]*?Math\.min[\s\S]*?a\.kind === 'buf
 
 const generator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
-if (!/frostbrand_weapon',[\s\S]*?'ghost_wolf'/.test(generator) || !generator.includes("EXPECTED_ABILITY_COUNT = 79") || !zrGenerator.includes("document.entries.length === 79")) throw new Error("M4 Ghost Wolf scope is missing");
+if (!/frostbrand_weapon',[\s\S]*?'ghost_wolf'/.test(generator) || !generator.includes("EXPECTED_ABILITY_COUNT = 117") || !zrGenerator.includes("document.entries.length === 117")) throw new Error("M4 Ghost Wolf scope is missing");
 const m4 = JSON.parse(read("contracts", "m4_abilities.json"));
 const entry = m4.entries.find((value) => value.id === "ghost_wolf");
 if (!entry || entry.index !== 39 || entry.definition.school !== "nature" || entry.definition.requiresTarget || entry.definition.effects?.[0]?.type !== "selfBuff") throw new Error("M4 Ghost Wolf projection drifted");
@@ -40,7 +40,7 @@ const world = read("scripts", "woc_game", "src", "world", "state.zr");
 requireText(world, /ghostWolfAbilityCode\([\s\S]*?startOfflineGhostWolfCast[\s\S]*?completeOfflineGhostWolfCast/, "Ghost Wolf timed reducer is missing");
 requireText(world, /toggleOfflineGhostWolf[\s\S]*?removeMotionAuraAt[\s\S]*?motionAuraKindCode\("buff_speed"\)/, "Ghost Wolf toggle state is missing");
 requireText(world, /startOfflineGhostWolfCast[\s\S]*?armTimed[\s\S]*?completeOfflineGhostWolfCast[\s\S]*?entityResources/, "Ghost Wolf delayed cost path is missing");
-requireText(world, /ghostWolfMotionStateIsValid[\s\S]*?ghostWolfAbilityCode\(\)[\s\S]*?3600\.0[\s\S]*?1\.4/, "Ghost Wolf persisted row validation is missing");
+requireText(world, /retainedSpeedAuraProfileIsValid[\s\S]*?ghostWolfAbilityCode\(\)[\s\S]*?3600\.0[\s\S]*?1\.4/, "Ghost Wolf persisted row validation is missing");
 requireText(world, /applySupportedCastSlotCommand[\s\S]*?ghostWolfAbilityCode\(\)[\s\S]*?startOfflineGhostWolfCast[\s\S]*?applySupportedCastCommand[\s\S]*?ghostWolfPayloadAbilityIsExact/, "Ghost Wolf command routes are missing");
 requireText(world, /pub ghostWolfCommandStateTest\(\): int[\s\S]*?ghost_wolf[\s\S]*?entityMotionAura[\s\S]*?retainedPlayerMovementSpeedMultiplier[\s\S]*?appendTypedCastCommandForTest/, "Ghost Wolf state regression coverage is missing");
 process.stdout.write(`WOS99 Ghost Wolf static guards passed (${SOURCE_COMMIT.slice(0, 15)})\n`);

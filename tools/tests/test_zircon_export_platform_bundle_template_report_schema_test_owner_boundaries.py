@@ -9,19 +9,19 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE_REPORT_SCHEMA_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_report_schema.py"
+    / "tools/export/tests/test_pipeline_report_platform_bundle_template_report_schema.py"
 )
 TEMPLATE_REPORT_MANIFEST_FILE_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_manifest_files.py"
+    / "tools/export/tests/test_pipeline_report_platform_bundle_template_manifest_files.py"
 )
 TEMPLATE_REPORT_MANIFEST_IDENTITY_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_manifest_identity.py"
+    / "tools/export/tests/test_pipeline_report_platform_bundle_template_manifest_identity.py"
 )
 TEMPLATE_REPORT_SEMANTICS_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_report_semantics.py"
+    / "tools/export/tests/test_pipeline_report_platform_bundle_template_report_semantics.py"
 )
 
 MANIFEST_FILE_TEST_METHODS = (

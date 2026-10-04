@@ -38,6 +38,16 @@ fn drag_overlay_rendering_uses_central_tokens_and_validated_overrides() {
 }
 
 #[test]
+fn drag_overlay_command_builder_reserves_its_fixed_upper_bound() {
+    let source = include_str!("../surface/render/drag_overlay.rs");
+
+    assert!(source.contains("const DRAG_OVERLAY_COMMAND_CAPACITY: usize = 4;"));
+    assert!(
+        source.contains("let mut commands = Vec::with_capacity(DRAG_OVERLAY_COMMAND_CAPACITY);")
+    );
+}
+
+#[test]
 fn render_extract_drag_overlay_draws_preview_chip_and_drop_indicator() {
     let commands = commands_for_drag_overlay(
         UiFrame::new(0.0, 0.0, 360.0, 220.0),

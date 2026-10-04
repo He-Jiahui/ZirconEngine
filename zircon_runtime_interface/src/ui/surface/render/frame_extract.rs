@@ -5,7 +5,7 @@ use std::{
     sync::Arc,
 };
 
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize, Serializer};
 
 use crate::ui::{
     event_ui::{UiNodeId, UiTreeId},
@@ -13,6 +13,17 @@ use crate::ui::{
 };
 
 use super::{UiPaintElement, UiRenderCommand, UiRenderExtract};
+
+mod construction;
+#[cfg(test)]
+#[path = "frame_extract/tests/construction_performance_tests.rs"]
+mod construction_performance_tests;
+#[cfg(test)]
+#[path = "frame_extract/tests/direct_append_tests.rs"]
+mod direct_append_tests;
+#[cfg(test)]
+#[path = "frame_extract/tests/paint_element_capacity_tests.rs"]
+mod paint_element_capacity_tests;
 
 pub const UI_RENDER_FRAME_COMMAND_SEGMENT_SIZE: usize = 64;
 const UI_RENDER_FRAME_DIRECTORY_FANOUT: usize = 32;
@@ -51,6 +62,8 @@ impl UiRenderFrameExtract {
         }
     }
 
+    /// 按调用方给出的范围替换整段命令叶并复用其余叶；调用方须覆盖全部负载变化。
+    /// 这里只校验树、长度、范围及被替换段的 node_id，不扫描声明范围外的命令。
     pub fn patch_ranges_from_extract(
         &self,
         extract: &UiRenderExtract,
@@ -93,6 +106,7 @@ impl UiRenderFrameExtract {
         }
     }
 
+    /// 仅当该节点的命令在扁平帧中连续时返回区间；交错节点无法表示成单一范围。
     pub fn command_range(&self, node_id: UiNodeId) -> Option<Range<usize>> {
         self.list.commands.command_range(node_id)
     }
@@ -109,6 +123,7 @@ impl UiRenderFrameExtract {
         self.list.commands.segments()
     }
 
+    /// 按所属帧内该节点的连续命令区间解析相对索引；缺少区间或越界时返回 None。
     pub fn command_by_ref(&self, command_ref: UiRenderFrameCommandRef) -> Option<&UiRenderCommand> {
         let range = self.command_range(command_ref.node_id)?;
         let index = range
@@ -135,13 +150,27 @@ impl UiRenderFrameList {
     }
 
     pub fn to_paint_elements_with_metrics(&self, metrics: UiLayoutMetrics) -> Vec<UiPaintElement> {
+        let mut elements = Vec::with_capacity(self.commands.len());
+        let mut next_paint_order = 0;
+        for command in &self.commands {
+            let first_element_index = elements.len();
+            command.append_paint_elements(next_paint_order, metrics, &mut elements);
+            next_paint_order += (elements.len() - first_element_index) as u64;
+        }
+        elements
+    }
+
+    #[cfg(test)]
+    fn to_paint_elements_with_metrics_unreserved(
+        &self,
+        metrics: UiLayoutMetrics,
+    ) -> Vec<UiPaintElement> {
         let mut elements = Vec::new();
         let mut next_paint_order = 0;
         for command in &self.commands {
-            let mut command_elements =
-                command.to_paint_elements_with_metrics(next_paint_order, metrics);
-            next_paint_order += command_elements.len() as u64;
-            elements.append(&mut command_elements);
+            let first_element_index = elements.len();
+            command.append_paint_elements(next_paint_order, metrics, &mut elements);
+            next_paint_order += (elements.len() - first_element_index) as u64;
         }
         elements
     }
@@ -199,44 +228,6 @@ impl Default for UiRenderFrameCommands {
 }
 
 impl UiRenderFrameCommands {
-    pub fn from_slice(commands: &[UiRenderCommand]) -> Self {
-        if commands.is_empty() {
-            return Self::default();
-        }
-
-        let mut nodes = commands
-            .chunks(UI_RENDER_FRAME_COMMAND_SEGMENT_SIZE)
-            .map(|commands| Arc::new(UiRenderFrameCommandNode::Segment(commands.to_vec().into())))
-            .collect::<Vec<_>>();
-        let segment_count = nodes.len();
-        let mut directory_depth = 0_u8;
-        let mut directory_node_count = 0_usize;
-        loop {
-            nodes = nodes
-                .chunks(UI_RENDER_FRAME_DIRECTORY_FANOUT)
-                .map(|children| {
-                    directory_node_count += 1;
-                    Arc::new(UiRenderFrameCommandNode::Directory(
-                        children.to_vec().into(),
-                    ))
-                })
-                .collect();
-            directory_depth = directory_depth.saturating_add(1);
-            if nodes.len() == 1 {
-                break;
-            }
-        }
-
-        Self {
-            root: nodes.pop(),
-            len: commands.len(),
-            segment_count,
-            directory_depth,
-            directory_node_count,
-            command_ranges: build_command_ranges(commands),
-        }
-    }
-
     pub const fn len(&self) -> usize {
         self.len
     }
@@ -268,6 +259,7 @@ impl UiRenderFrameCommands {
         segment.get(segment_offset)
     }
 
+    /// 该索引只记录连续命令段，因此交错出现的同节点命令不会产生区间。
     pub fn command_range(&self, node_id: UiNodeId) -> Option<Range<usize>> {
         self.command_ranges.get(&node_id).cloned()
     }
@@ -304,6 +296,7 @@ impl UiRenderFrameCommands {
             return Some((self.clone(), UiRenderFramePatchStats::default()));
         }
 
+        // 变更区间提升到整段叶粒度；BTreeMap 合并重叠范围并保证每段只复制一次。
         let mut replacements = BTreeMap::new();
         for range in ranges {
             if range.start > range.end || range.end > self.len {
@@ -363,6 +356,7 @@ impl UiRenderFrameCommands {
         ))
     }
 
+    // command_ranges 可与旧帧共享的前提是每个替换叶的 node_id 序列逐项不变。
     fn patched_node_identity_is_stable(
         &self,
         source: &[UiRenderCommand],
@@ -405,9 +399,11 @@ struct UiRenderFrameCommandRangeBuildState {
     contiguous: bool,
 }
 
-fn build_command_ranges(commands: &[UiRenderCommand]) -> Arc<HashMap<UiNodeId, Range<usize>>> {
+fn build_command_ranges<'a>(
+    commands: impl IntoIterator<Item = &'a UiRenderCommand>,
+) -> Arc<HashMap<UiNodeId, Range<usize>>> {
     let mut states = HashMap::<UiNodeId, UiRenderFrameCommandRangeBuildState>::new();
-    for (index, command) in commands.iter().enumerate() {
+    for (index, command) in commands.into_iter().enumerate() {
         if let Some(state) = states.get_mut(&command.node_id) {
             if state.end != index {
                 state.contiguous = false;
@@ -445,22 +441,13 @@ impl Index<usize> for UiRenderFrameCommands {
     }
 }
 
+// 分段树只是内部存储；序列化仍输出旧版扁平命令序列以维持既有数据格式。
 impl Serialize for UiRenderFrameCommands {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         serializer.collect_seq(self.iter())
-    }
-}
-
-impl<'de> Deserialize<'de> for UiRenderFrameCommands {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        Vec::<UiRenderCommand>::deserialize(deserializer)
-            .map(|commands| Self::from_slice(&commands))
     }
 }
 
@@ -748,212 +735,5 @@ fn collect_segments<'a>(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ui::{
-        event_ui::UiNodeId,
-        layout::UiFrame,
-        surface::{UiRenderCommandKind, UiRenderList, UiResolvedStyle},
-    };
-
-    #[test]
-    fn local_patch_preserves_untouched_segments_and_flat_order() {
-        let extract = extract_with_commands(130);
-        let frame = UiRenderFrameExtract::from_extract(&extract);
-        let mut changed = extract.clone();
-        changed.list.commands[65].opacity = 0.25;
-
-        let (patched, stats) = frame
-            .patch_ranges_from_extract(&changed, &[65..66])
-            .expect("fixed-cardinality patch should preserve the frame directory");
-
-        assert_eq!(stats.cloned_command_count, 64);
-        assert_eq!(stats.cloned_segment_count, 1);
-        assert_eq!(stats.cloned_directory_node_count, 1);
-        assert_eq!(
-            frame
-                .list
-                .commands
-                .shared_segment_count(&patched.list.commands),
-            2
-        );
-        assert_eq!(patched.list.commands[65].opacity, 0.25);
-        assert_eq!(patched.to_extract(), changed);
-    }
-
-    #[test]
-    fn cross_segment_patch_clones_each_touched_leaf_once() {
-        let extract = extract_with_commands(130);
-        let frame = UiRenderFrameExtract::from_extract(&extract);
-        let mut changed = extract.clone();
-        changed.list.commands[63].opacity = 0.5;
-        changed.list.commands[64].opacity = 0.75;
-
-        let (patched, stats) = frame
-            .patch_ranges_from_extract(&changed, &[63..65, 64..65])
-            .expect("overlapping ranges should be coalesced by segment identity");
-
-        assert_eq!(stats.cloned_command_count, 128);
-        assert_eq!(stats.cloned_segment_count, 2);
-        assert_eq!(stats.cloned_directory_node_count, 1);
-        assert_eq!(
-            frame
-                .list
-                .commands
-                .shared_segment_count(&patched.list.commands),
-            1
-        );
-    }
-
-    #[test]
-    fn deep_directory_patch_clones_one_node_per_level() {
-        let command_count = UI_RENDER_FRAME_COMMAND_SEGMENT_SIZE * 32 + 1;
-        let extract = extract_with_commands(command_count);
-        let frame = UiRenderFrameExtract::from_extract(&extract);
-        let mut changed = extract.clone();
-        changed.list.commands[command_count - 1].opacity = 0.5;
-
-        let (patched, stats) = frame
-            .patch_ranges_from_extract(&changed, &[command_count - 1..command_count])
-            .expect("the last partial leaf should remain addressable through the directory");
-
-        assert_eq!(frame.list.commands.segment_count(), 33);
-        assert_eq!(frame.list.commands.directory_depth(), 2);
-        assert_eq!(stats.cloned_command_count, 1);
-        assert_eq!(stats.cloned_segment_count, 1);
-        assert_eq!(stats.cloned_directory_node_count, 2);
-        assert_eq!(
-            frame
-                .list
-                .commands
-                .shared_segment_count(&patched.list.commands),
-            32
-        );
-        assert_eq!(patched.to_extract(), changed);
-    }
-
-    #[test]
-    fn serialized_frame_extract_keeps_the_flat_command_schema() {
-        let extract = extract_with_commands(65);
-        let frame = UiRenderFrameExtract::from_extract(&extract);
-        let flat = serde_json::to_value(&extract).unwrap();
-        let segmented = serde_json::to_value(&frame).unwrap();
-
-        assert_eq!(segmented, flat);
-        assert_eq!(
-            serde_json::from_value::<UiRenderFrameExtract>(segmented).unwrap(),
-            frame
-        );
-    }
-
-    #[test]
-    fn sequential_iterator_keeps_exact_flat_order_without_heap_frontier() {
-        let extract = extract_with_commands(UI_RENDER_FRAME_COMMAND_SEGMENT_SIZE * 33 + 7);
-        let frame = UiRenderFrameExtract::from_extract(&extract);
-
-        assert_eq!(
-            frame
-                .list
-                .commands
-                .iter()
-                .map(|command| command.node_id)
-                .collect::<Vec<_>>(),
-            extract
-                .list
-                .commands
-                .iter()
-                .map(|command| command.node_id)
-                .collect::<Vec<_>>()
-        );
-    }
-
-    #[test]
-    fn published_node_ranges_are_shared_across_local_payload_patches() {
-        let mut extract = extract_with_commands(5);
-        for (command, node_id) in extract.list.commands.iter_mut().zip([7_u64, 7, 9, 9, 11]) {
-            command.node_id = UiNodeId::new(node_id);
-        }
-        let frame = UiRenderFrameExtract::from_extract(&extract);
-
-        assert_eq!(frame.command_range(UiNodeId::new(7)), Some(0..2));
-        assert_eq!(frame.command_range(UiNodeId::new(9)), Some(2..4));
-        assert_eq!(
-            frame
-                .commands_for_node(UiNodeId::new(9))
-                .expect("node commands")
-                .map(|command| command.node_id)
-                .collect::<Vec<_>>(),
-            vec![UiNodeId::new(9), UiNodeId::new(9)]
-        );
-
-        let mut changed = extract.clone();
-        changed.list.commands[2].opacity = 0.25;
-        let (patched, _) = frame
-            .patch_ranges_from_extract(&changed, &[2..3])
-            .expect("payload-only patch");
-
-        assert!(Arc::ptr_eq(
-            &frame.list.commands.command_ranges,
-            &patched.list.commands.command_ranges
-        ));
-    }
-
-    #[test]
-    fn frame_command_refs_resolve_only_inside_the_owner_range() {
-        let mut extract = extract_with_commands(4);
-        for (command, node_id) in extract.list.commands.iter_mut().zip([7_u64, 7, 9, 9]) {
-            command.node_id = UiNodeId::new(node_id);
-        }
-        let frame = UiRenderFrameExtract::from_extract(&extract);
-
-        let second = frame
-            .command_by_ref(UiRenderFrameCommandRef::new(UiNodeId::new(7), 1))
-            .expect("second command in node range");
-        assert_eq!(second.frame.x, 1.0);
-        assert!(frame
-            .command_by_ref(UiRenderFrameCommandRef::new(UiNodeId::new(7), 2))
-            .is_none());
-        assert!(frame
-            .command_by_ref(UiRenderFrameCommandRef::new(UiNodeId::new(11), 0))
-            .is_none());
-    }
-
-    #[test]
-    fn non_contiguous_owner_ranges_and_owner_changing_patches_fail_closed() {
-        let mut extract = extract_with_commands(3);
-        for (command, node_id) in extract.list.commands.iter_mut().zip([7_u64, 9, 7]) {
-            command.node_id = UiNodeId::new(node_id);
-        }
-        let frame = UiRenderFrameExtract::from_extract(&extract);
-        assert_eq!(frame.command_range(UiNodeId::new(7)), None);
-
-        let mut changed = extract.clone();
-        changed.list.commands[1].node_id = UiNodeId::new(11);
-        assert!(frame.patch_ranges_from_extract(&changed, &[0..1]).is_none());
-    }
-
-    fn extract_with_commands(command_count: usize) -> UiRenderExtract {
-        UiRenderExtract {
-            tree_id: UiTreeId::new("frame.segmented.render"),
-            list: UiRenderList {
-                commands: (0..command_count).map(command).collect(),
-            },
-            raster_scale: 1.0,
-        }
-    }
-
-    fn command(index: usize) -> UiRenderCommand {
-        UiRenderCommand {
-            node_id: UiNodeId::new(index as u64 + 1),
-            kind: UiRenderCommandKind::Quad,
-            frame: UiFrame::new(index as f32, 0.0, 1.0, 1.0),
-            clip_frame: None,
-            z_index: 0,
-            style: UiResolvedStyle::default(),
-            text_layout: None,
-            text: None,
-            image: None,
-            opacity: 1.0,
-        }
-    }
-}
+#[path = "tests/frame_extract.rs"]
+mod tests;

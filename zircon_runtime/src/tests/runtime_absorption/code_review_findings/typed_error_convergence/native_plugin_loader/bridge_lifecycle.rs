@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f5_native_live_host_bridge_lifecycle_uses_typed_error() {
     let bridge_lifecycle = include_str!(
@@ -5,10 +6,11 @@ fn review_f5_native_live_host_bridge_lifecycle_uses_typed_error() {
     );
     let live_host_root =
         include_str!("../../../../../plugin/native_plugin_loader/native_plugin_live_host.rs");
-    let live_host_tests =
-        include_str!("../../../../../plugin/native_plugin_loader/native_plugin_live_host/tests.rs");
+    let live_host_tests = include_str!(
+        "../../../../../plugin/native_plugin_loader/native_plugin_live_host/tests/cases.rs"
+    );
     let native_boundary =
-        include_str!("../../../../../../../docs/engine-architecture/native-plugin-boundary.md");
+        include_str!("../../../../../../../docs/architecture/native-plugin-boundary.md");
     let review_findings =
         include_str!("../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
     let runtime_15_plan = include_str!(
@@ -18,8 +20,9 @@ fn review_f5_native_live_host_bridge_lifecycle_uses_typed_error() {
         include_str!("../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md");
     let convention =
         include_str!("../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
-    let module_convention =
-        include_str!("../../../../../../../docs/zircon_runtime/structure/module-convention.md");
+    let module_convention = include_str!(
+        "../../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
+    );
 
     for required in [
         "type NativePluginBridgeLifecycleResult<T>",

@@ -1,0 +1,135 @@
+penpot_original_source = "[asset]\r\nkind = \"view\"\r\nid = \"sound.acoustic_debug\"\r\nversion = 2\r\ndisplay_name = \"Acoustic Debug\"\r\n\r\n[imports]\r\nstyles = [\"res://ui/theme/editor_base.zui\"]\r\n\r\n[root]\r\nnode = \"sound_acoustic_debug_root\"\r\n\r\n[nodes.sound_acoustic_toolbar]\r\ncomponent = \"Space\"\r\ncontrol_id = \"SoundAcousticDebugToolbar\"\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = \"Fixed\" } }\r\n\r\n[nodes.sound_listener_source_layer]\r\ncomponent = \"Space\"\r\ncontrol_id = \"SoundListenerSourceConeLayer\"\r\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\n\r\n[nodes.sound_volume_influence_panel]\r\ncomponent = \"Space\"\r\ncontrol_id = \"SoundVolumeInfluencePanel\"\r\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\n\r\n[nodes.sound_occlusion_ray_panel]\r\ncomponent = \"Space\"\r\ncontrol_id = \"SoundOcclusionRayPanel\"\r\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\n\r\n[nodes.sound_volume_occlusion_layer]\r\ncomponent = \"VerticalGroup\"\r\ncontrol_id = \"SoundVolumeOcclusionLayer\"\r\nlayout = { container = { kind = \"VerticalBox\", gap = 8 }, width = { min = 260, preferred = 320, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\r\nchildren = [{ node = \"sound_volume_influence_panel\" }, { node = \"sound_occlusion_ray_panel\" }]\r\n\r\n[nodes.sound_acoustic_layers]\r\ncomponent = \"HorizontalGroup\"\r\ncontrol_id = \"SoundAcousticDebugLayers\"\r\nlayout = { container = { kind = \"HorizontalBox\", gap = 8 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\nchildren = [{ node = \"sound_listener_source_layer\" }, { node = \"sound_volume_occlusion_layer\" }]\r\n\r\n[nodes.sound_ir_cache_panel]\r\ncomponent = \"Space\"\r\ncontrol_id = \"SoundImpulseResponseProbeCache\"\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 92.0, preferred = 92.0, max = 92.0, stretch = \"Fixed\" } }\r\n\r\n[nodes.sound_acoustic_debug_root]\r\ncomponent = \"VerticalGroup\"\r\ncontrol_id = \"SoundAcousticDebugRoot\"\r\nclasses = [\"editor-shell\"]\r\nlayout = { container = { kind = \"VerticalBox\", gap = 8 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\nchildren = [{ node = \"sound_acoustic_toolbar\" }, { node = \"sound_acoustic_layers\" }, { node = \"sound_ir_cache_panel\" }]\r\n"
+
+[asset]
+kind = "view"
+id = "sound.acoustic_debug"
+version = 2
+display_name = "Acoustic Debug"
+
+[imports]
+styles = [ "res://ui/theme/editor_base.zui" ]
+
+[root]
+node = "sound_acoustic_debug_root"
+
+[nodes.sound_acoustic_toolbar]
+component = "Space"
+control_id = "SoundAcousticDebugToolbar"
+
+[nodes.sound_acoustic_toolbar.layout.width]
+stretch = "Stretch"
+
+[nodes.sound_acoustic_toolbar.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.sound_listener_source_layer]
+component = "Space"
+control_id = "SoundListenerSourceConeLayer"
+
+[nodes.sound_listener_source_layer.layout.width]
+stretch = "Stretch"
+
+[nodes.sound_listener_source_layer.layout.height]
+stretch = "Stretch"
+
+[nodes.sound_volume_influence_panel]
+component = "Space"
+control_id = "SoundVolumeInfluencePanel"
+
+[nodes.sound_volume_influence_panel.layout.width]
+stretch = "Stretch"
+
+[nodes.sound_volume_influence_panel.layout.height]
+stretch = "Stretch"
+
+[nodes.sound_occlusion_ray_panel]
+component = "Space"
+control_id = "SoundOcclusionRayPanel"
+
+[nodes.sound_occlusion_ray_panel.layout.width]
+stretch = "Stretch"
+
+[nodes.sound_occlusion_ray_panel.layout.height]
+stretch = "Stretch"
+
+[nodes.sound_volume_occlusion_layer]
+component = "VerticalGroup"
+control_id = "SoundVolumeOcclusionLayer"
+
+[nodes.sound_volume_occlusion_layer.layout.container]
+kind = "VerticalBox"
+gap = 8
+
+[nodes.sound_volume_occlusion_layer.layout.width]
+min = 260
+preferred = 320
+stretch = "Fixed"
+
+[nodes.sound_volume_occlusion_layer.layout.height]
+stretch = "Stretch"
+
+[[nodes.sound_volume_occlusion_layer.children]]
+node = "sound_volume_influence_panel"
+
+[[nodes.sound_volume_occlusion_layer.children]]
+node = "sound_occlusion_ray_panel"
+
+[nodes.sound_acoustic_layers]
+component = "HorizontalGroup"
+control_id = "SoundAcousticDebugLayers"
+
+[nodes.sound_acoustic_layers.layout.container]
+kind = "HorizontalBox"
+gap = 8
+
+[nodes.sound_acoustic_layers.layout.width]
+stretch = "Stretch"
+
+[nodes.sound_acoustic_layers.layout.height]
+stretch = "Stretch"
+
+[[nodes.sound_acoustic_layers.children]]
+node = "sound_listener_source_layer"
+
+[[nodes.sound_acoustic_layers.children]]
+node = "sound_volume_occlusion_layer"
+
+[nodes.sound_ir_cache_panel]
+component = "Space"
+control_id = "SoundImpulseResponseProbeCache"
+
+[nodes.sound_ir_cache_panel.layout.width]
+stretch = "Stretch"
+
+[nodes.sound_ir_cache_panel.layout.height]
+min = 92
+preferred = 92
+max = 92
+stretch = "Fixed"
+
+[nodes.sound_acoustic_debug_root]
+component = "VerticalGroup"
+control_id = "SoundAcousticDebugRoot"
+classes = [ "editor-shell" ]
+
+[nodes.sound_acoustic_debug_root.layout.container]
+kind = "VerticalBox"
+gap = 8
+
+[nodes.sound_acoustic_debug_root.layout.width]
+stretch = "Stretch"
+
+[nodes.sound_acoustic_debug_root.layout.height]
+stretch = "Stretch"
+
+[[nodes.sound_acoustic_debug_root.children]]
+node = "sound_acoustic_toolbar"
+
+[[nodes.sound_acoustic_debug_root.children]]
+node = "sound_acoustic_layers"
+
+[[nodes.sound_acoustic_debug_root.children]]
+node = "sound_ir_cache_panel"

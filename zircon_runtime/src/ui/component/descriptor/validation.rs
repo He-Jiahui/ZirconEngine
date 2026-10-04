@@ -1,3 +1,5 @@
+//! 注册前检查组件声明的结构、默认值和能力一致性；编写时的声明错误在这里形成可定位的组件/字段诊断。
+
 use std::collections::HashSet;
 
 use thiserror::Error;
@@ -6,6 +8,7 @@ use zircon_runtime_interface::ui::component::{
     UiComponentDescriptor, UiHostCapability, UiPropSchema, UiRenderCapability, UiValue, UiValueKind,
 };
 
+/// 描述符准入失败的稳定分类；保留组件及字段身份供项目注册或编写工具定位声明来源。
 #[derive(Clone, Debug, Error, PartialEq)]
 pub enum UiComponentDescriptorError {
     #[error("component descriptor id must not be empty")]
@@ -54,6 +57,7 @@ pub enum UiComponentDescriptorError {
     MissingVirtualizedHostCapability { component_id: String },
 }
 
+/// 注册表写入前调用；检查声明自洽性。宿主/渲染端是否支持这些能力和实例输入是否合法仍需各自消费方确认。
 pub fn validate_component_descriptor(
     descriptor: &UiComponentDescriptor,
 ) -> Result<(), UiComponentDescriptorError> {
@@ -81,6 +85,7 @@ pub fn validate_component_descriptor(
     Ok(())
 }
 
+// 按声明顺序返回第一个重复身份，保留诊断可重复性；成员表的迭代次序不参与错误选择。
 fn validate_schema_names(
     descriptor: &UiComponentDescriptor,
     schema_kind: &'static str,
@@ -142,6 +147,8 @@ fn validate_schema_defaults(
             )?;
             validate_finite_value(descriptor, &schema.name, default_value)?;
         }
+        // BUG: [CR-UI-COMP-0004] 单边界未进入有限性检查；公开 schema 若只有 min=NaN 或 max=NaN 仍可注册，
+        // numeric 拖动随后沿 clamp_component_numeric_value 把该边界传给浮点区间钳制而 panic。应分别校验可选边界并补单边界回归。
         if let (Some(min), Some(max)) = (schema.min, schema.max) {
             if !min.is_finite() || !max.is_finite() || min > max {
                 return Err(UiComponentDescriptorError::InvalidRange {
@@ -282,4 +289,5 @@ fn validate_value_kind(
 }
 
 #[cfg(test)]
+#[path = "validation/tests/hash_membership_tests.rs"]
 mod hash_membership_tests;

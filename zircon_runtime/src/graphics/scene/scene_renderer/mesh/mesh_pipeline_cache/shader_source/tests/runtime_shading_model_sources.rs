@@ -5,18 +5,20 @@ use crate::asset::{
     AssetReference, ProjectAssetManager, ShaderAsset, ShaderEntryPointAsset, ShaderSourceLanguage,
 };
 use crate::core::framework::render::{
-    GBufferChannelMask, GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_PLUGIN_ID_START,
-    ShaderAssetKind, ShadingModelDescriptor, ShadingModelId, builtin_geometry_source_descriptor,
+    builtin_geometry_source_descriptor, GBufferChannelMask, ShaderAssetKind,
+    ShadingModelDescriptor, ShadingModelId, GEOMETRY_SOURCE_ID_STATIC_MESH,
+    SHADING_MODEL_PLUGIN_ID_START,
 };
 use crate::core::resource::{ResourceId, ResourceKind, ResourceLocator, ResourceRecord};
 use crate::graphics::backend::RenderBackend;
-use crate::graphics::scene::resources::{ResourceStreamer, default_pipeline_key};
+use crate::graphics::scene::resources::{default_pipeline_key, ResourceStreamer};
 
 use super::super::{
     mesh_pipeline_deferred_gbuffer_template_source_for_geometry_descriptor_with_streamer,
     mesh_pipeline_shader_source_for_geometry_descriptor,
 };
 
+// 三类 include 均注册到资源管理器，使 streamer 按完整插件描述符解析依赖；下方 GPU 验证覆盖 Forward 和 G-buffer。
 const CUSTOM_TOON_FORWARD_INCLUDE: &str = r#"
 const ZR_SHADING_TOON_DEBUG_ID: u32 = 16u;
 
@@ -113,11 +115,9 @@ fn runtime_custom_shading_model_sources_compile_as_wgpu_modules() {
     let forward_source =
         mesh_pipeline_shader_source_for_geometry_descriptor(&streamer, &key, &geometry_source)
             .expect("forward runtime custom shading model source");
-    assert!(
-        forward_source
-            .wgsl_source
-            .contains("ZR_SHADING_TOON_DEBUG_ID")
-    );
+    assert!(forward_source
+        .wgsl_source
+        .contains("ZR_SHADING_TOON_DEBUG_ID"));
     validate_wgpu_shader_module(
         &backend.device,
         "zircon-test-runtime-custom-shading-forward",
@@ -131,11 +131,9 @@ fn runtime_custom_shading_model_sources_compile_as_wgpu_modules() {
             &geometry_source,
         )
         .expect("gbuffer runtime custom shading model source");
-    assert!(
-        gbuffer_source
-            .wgsl_source
-            .contains("ZR_GBUFFER_TOON_DEBUG_ID")
-    );
+    assert!(gbuffer_source
+        .wgsl_source
+        .contains("ZR_GBUFFER_TOON_DEBUG_ID"));
     validate_wgpu_shader_module(
         &backend.device,
         "zircon-test-runtime-custom-shading-gbuffer",
@@ -169,21 +167,15 @@ fn builtin_fallback_shader_loaded_as_surface_still_uses_standard_material_templa
     let forward_source =
         mesh_pipeline_shader_source_for_geometry_descriptor(&streamer, &key, &geometry_source)
             .expect("fallback shader should assemble as standard forward template");
-    assert!(
-        forward_source
-            .wgsl_source
-            .contains("fn zr_material_surface(")
-    );
-    assert!(
-        forward_source
-            .wgsl_source
-            .contains("standard_material_properties.data8.z")
-    );
-    assert!(
-        !forward_source
-            .wgsl_source
-            .contains("struct MaterialPropertyUniform")
-    );
+    assert!(forward_source
+        .wgsl_source
+        .contains("fn zr_material_surface("));
+    assert!(forward_source
+        .wgsl_source
+        .contains("standard_material_properties.data8.z"));
+    assert!(!forward_source
+        .wgsl_source
+        .contains("struct MaterialPropertyUniform"));
     validate_wgpu_shader_module(
         &backend.device,
         "zircon-test-fallback-forward-standard-template",
@@ -197,21 +189,15 @@ fn builtin_fallback_shader_loaded_as_surface_still_uses_standard_material_templa
             &geometry_source,
         )
         .expect("fallback shader should assemble as standard GBuffer template");
-    assert!(
-        gbuffer_source
-            .wgsl_source
-            .contains("// include: zr_gbuffer_encode_standard_pbr.wgsl")
-    );
-    assert!(
-        gbuffer_source
-            .wgsl_source
-            .contains("standard_material_properties.data8.z")
-    );
-    assert!(
-        !gbuffer_source
-            .wgsl_source
-            .contains("struct MaterialPropertyUniform")
-    );
+    assert!(gbuffer_source
+        .wgsl_source
+        .contains("// include: zr_gbuffer_encode_standard_pbr.wgsl"));
+    assert!(gbuffer_source
+        .wgsl_source
+        .contains("standard_material_properties.data8.z"));
+    assert!(!gbuffer_source
+        .wgsl_source
+        .contains("struct MaterialPropertyUniform"));
     validate_wgpu_shader_module(
         &backend.device,
         "zircon-test-fallback-gbuffer-standard-template",

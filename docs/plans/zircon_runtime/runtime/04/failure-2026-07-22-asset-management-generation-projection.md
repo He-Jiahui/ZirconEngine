@@ -9,10 +9,11 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_runtime/runtime/04
 plan_link_mode: child_record_only
 related_code:
+  - zircon_runtime/src/asset/management/record_sets.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management_generation.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
   - zircon_runtime/src/asset/pipeline/manager/service_contracts/resource_manager_contract.rs
-  - zircon_runtime/src/asset/pipeline/manager/resource_streamer_accessors
   - zircon_runtime/src/asset/assets/scene/asset.rs
   - zircon_runtime/src/asset/assets/scene/management.rs
 tests:
@@ -211,3 +212,87 @@ Open state: `实现完成，受管验证待回执`; accepted closeout remains de
   shared validation lane is reserved. This keeps the handoff `open`: it repairs the current-source
   audit root only and does not implement or validate the required ProjectAssetManager immutable
   generation.
+
+### 2026-09-09 header projection repair
+
+Current source already publishes `ProjectAssetManagementGeneration`, but its
+overview, family summaries and status/issue queries still called the owned
+full-record aggregate and cloned all six asset record sets. Snapshot `3328`
+stores the compact overview at generation construction and redirects those six
+header queries to it. This preserves the public result shapes and renderer
+detail composition; copied family metadata is bounded independently of asset
+count. It does not claim that the full-record APIs are clone-free.
+
+The snapshot freezes `asset/management/record_sets.rs` at
+`1206152160d18620fd406743cd149454371d0df53f3bd62bc2a721590bfaeb4c`,
+`project_asset_manager/management_generation.rs` at
+`e0de9bce9ba19cb26b701a6f8e9d6f9a9c243523cb10af67f49aa396f65b26bf`,
+and `project_asset_manager/management.rs` at
+`9a4c66a1000e2677bdf15080cecbff4e5ce76e2ce27039213928df222211ae50`.
+The new publication regression compares all six headers with the complete
+aggregate, checks degraded mesh counts, publishes the empty generation, and
+verifies that the retained old overview is unchanged. Prior changes to captured
+resource publication identity remain intact and are not attributed as newly
+implemented behavior by this slice.
+
+Dynamic header/aggregate validation, the original pipeline filter, the declared
+assets/scenes/entities performance matrix and Editor09 consumption remain
+pending. This lifecycle stays open until its full acceptance, independent
+review and coordinator closeout are complete.
+
+Managed Windows job `52aa361caaac4bb4843ab0515cd54983` on immutable input
+`runtime04-migration-fixtures-3329-20260909` passed the lower
+`asset::tests::assets::management` test (1 passed, exit 0). Job
+`b2cd3eef7f0442f5a4c3896b830d6b1b` executed the manager filter on the same
+manifest `3d03d4e4fdb130c29e772a3fe2d08d29459a5e3737f0a24fa41ef932b42fe644`:
+9 passed, 2 failed, 0 ignored. The new six-header publication regression
+executed and passed; the batch is not accepted as a whole.
+
+The two failures are fixture-contract defects: the kind-lookup source guard
+matches the suffix of `current_asset_management_generation()` and also reads
+the next publication-time scanning helper; the captured-generation test
+incorrectly assumes `ProjectAssetManager::default()` contains no built-in
+models. Snapshot `3334` restricts the source guard to its intended function and
+exact resource getter, and compares the retained baseline model set against
+the next publication plus exactly the new ID. Production publication behavior
+is unchanged. `management.rs` is now
+`00a4a48c34875d43a7c249bae5bebf8cf554623947aac6c760a7b6b35b951c51`;
+the derived input `runtime04-management-guards-3334-20260909` has manifest
+`6a1d9fd6a79b668b6a71800afe593cb8d5b080710c152d012cc40174d1a8edcf`.
+The failed managed receipt and both exact test names remain in
+`results/runtime04-management-manager-3329-r1.json` and its sibling log.
+The repaired manager batch and full original acceptance remain pending.
+
+The repaired manager filter completed as managed Windows job
+`aa8a78e2517d48eda4476b398ae8238e`: 11 passed, 0 failed, 0 ignored, exit 0.
+The frozen input is `runtime04-migration-metrics-red-3340-20260909`, manifest
+`8c631afa4cec4191b00dceb04b454857011f5954f1c2ac74aa3b1cbb9ab304ae`;
+the `red` input label identifies its unrelated migration-counter regressions,
+which this manager filter does not select. The managed check/test both passed,
+and `results/runtime04-management-manager-3334-r2.json` plus its log retain
+the exact command and terminal receipt. At the 2026-09-09 receipt, all three
+management source hashes matched snapshots `3328`/`3334` and this tested input.
+
+Both original fixture failures and
+`asset_management_header_queries_follow_publication_and_preserve_retained_overview`
+actually executed and passed. This establishes the functional header fix and
+manager regression batch; it does not complete the assets/scenes/entities
+performance matrix, Editor09 acceptance, independent review or closeout.
+
+### 2026-09-24 current-path metadata reconciliation
+
+The retired `asset/pipeline/manager/resource_streamer_accessors` path is no longer
+present in the current source tree, so it was removed only from the active
+`related_code` index. The original diagnosis and dated validation receipts
+remain unchanged. The existing `ProjectAssetManager` management-generation and
+resource-contract paths remain indexed above. The performance matrix, Editor09
+acceptance, independent review and coordinator closeout remain pending; this
+metadata correction makes no new dynamic-pass or fixed claim.
+
+Current `project_asset_manager/management.rs` is
+`935c9320f10f092e75c84675addc0a96450cabe7f14718551a96087672ce769c`,
+which differs from the `00a4a48c...` source sealed in the historical 11-test
+receipt above. `record_sets.rs` and `management_generation.rs` still match
+their 2026-09-09 hashes. The old managed pass cannot be reused as dynamic
+acceptance for the current manager source; its affected regressions need a
+new managed run on an exact current-source snapshot before return or closeout.

@@ -31,7 +31,7 @@ class EditorContributionBuilderContractTests(unittest.TestCase):
         for method in (
             "pub fn view(",
             "pub fn drawer(",
-            "pub fn menu(",
+            "pub fn menu<",
             "pub fn command(",
             "pub fn asset_type(",
             "pub fn settings_page<",

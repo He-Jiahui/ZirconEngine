@@ -135,6 +135,7 @@ firstEmptyBarSlot(bar: container.Array<string>): int {
     return -1;
 }
 
+// 先剔除已失效、重复或被动技能，再只用专精和基础能力填空；未选中的天赋行不能凭迁移重新出现在动作栏。
 repairBar(
     classId: string,
     level: int,
@@ -174,6 +175,8 @@ repairBar(
     return repaired;
 }
 
+// TODO: [CR-WOC-IPS-P-0002] 确认迁移名称的二十四字符截断应由哪个可调用层执行；当前 Zr 投影保留原长名，缺少可用字符串切片契约；对照源 repairTalentLoadouts 与存档桥接补齐验证。
+/// 仅在旧内容修订执行一次；先修复职业/等级相关选择，再丢弃无效预设并重映射活动索引。调用方仍需按源存档契约处理名称长度。
 pub migrate(state: TalentLoadoutMigrationState): bool {
     if (state.contentRevision >= contract.contentRevision(true)) return false;
     state.spec = repairSpec(state.classId, state.level, state.spec);
@@ -181,6 +184,7 @@ pub migrate(state: TalentLoadoutMigrationState): bool {
     var repaired = new container.Array<TalentLoadout>();
     var active = -1;
     var index = 0;
+    // BUG: [CR-WOC-IPS-P-0004] 前十个原始预设含无效项时仍会接纳第十一个及以后条目；源 repairTalentLoadouts 先截取十个原始条目，本循环却限制修复后数量，导致保留项和活动索引不同。
     while (index < state.loadouts.length && repaired.length < contract.maxLoadouts(true)) {
         var raw = <TalentLoadout>state.loadouts[index];
         if (raw.valid) {

@@ -4,9 +4,15 @@ use super::pointer_hits::sorted_hits_by_pointer;
 use super::{HitRecord, HitTarget, PointerHits, PointerId, RayMap};
 
 #[cfg(test)]
+#[path = "report/tests/single_pass_tests.rs"]
 mod single_pass_tests;
 
+#[cfg(test)]
+#[path = "report/tests/optimization_batch_hv_runtime604_tests.rs"]
+mod optimization_batch_hv_runtime604_tests;
+
 #[derive(Clone, Debug, Default, PartialEq)]
+/// 一帧 picking 的统计汇总；逐指针行覆盖有射线或后端命中的指针，未命中射线也会保留。
 pub struct PickingPipelineReport {
     pub ray_count: usize,
     pub pointer_count: usize,
@@ -34,7 +40,7 @@ impl PickingPipelineReport {
     ) -> Self {
         let ray_count_by_pointer = ray_count_by_pointer(ray_map);
         let output_counts_by_pointer = output_counts_by_pointer(outputs);
-        let pointers = report_pointer_ids(ray_map, outputs)
+        let pointers = report_pointer_ids(&ray_count_by_pointer, &output_counts_by_pointer)
             .into_iter()
             .map(|pointer| {
                 let (backend_output_count, raw_hit_count) = output_counts_by_pointer
@@ -82,6 +88,7 @@ impl PickingPipelineReport {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+/// 单个指针的射线、后端输出和排序命中摘要；悬停统计在首个阻挡目标处停止。
 pub struct PickingPointerPipelineReport {
     pub pointer: PointerId,
     pub ray_count: usize,
@@ -154,11 +161,14 @@ fn output_counts_by_pointer(outputs: &[PointerHits]) -> BTreeMap<PointerId, (usi
     counts
 }
 
-fn report_pointer_ids(ray_map: &RayMap, outputs: &[PointerHits]) -> BTreeSet<PointerId> {
-    ray_map
-        .iter()
-        .map(|(ray_id, _)| ray_id.pointer)
-        .chain(outputs.iter().map(|output| output.pointer))
+fn report_pointer_ids(
+    ray_count_by_pointer: &BTreeMap<PointerId, usize>,
+    output_counts_by_pointer: &BTreeMap<PointerId, (usize, usize)>,
+) -> BTreeSet<PointerId> {
+    ray_count_by_pointer
+        .keys()
+        .chain(output_counts_by_pointer.keys())
+        .copied()
         .collect()
 }
 

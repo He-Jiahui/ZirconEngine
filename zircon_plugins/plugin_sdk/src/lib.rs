@@ -3,6 +3,7 @@
 //! Package declarations are runtime-independent SDK data. Runtime and native
 //! features project that declaration into their respective descriptor and ABI
 //! contracts without introducing another metadata authority.
+//! feature gate 让声明与 Native 消费者和运行时、编辑器辅助 API 保持边界清晰。
 
 #[cfg(feature = "declaration")]
 mod declaration;
@@ -30,7 +31,7 @@ pub mod test;
 #[cfg(feature = "declaration")]
 pub use declaration::{
     NativePluginEntryDeclaration, PluginCapabilityRole, PluginDeclaration, PluginMaturityLevel,
-    PluginPackaging, PluginPlatform, PluginTarget,
+    PluginPackageRole, PluginPackaging, PluginPlatform, PluginTarget,
 };
 #[cfg(feature = "editor")]
 pub use editor::EditorPluginDeclaration;

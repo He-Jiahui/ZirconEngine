@@ -1,11 +1,12 @@
-use crate::text::SharedTextLayoutSession;
 use crate::text::layout::{
-    GraphemeAdvanceIndex, corrected_glyph_ranges_with_provider, line_break_chunks_with_provider,
+    corrected_glyph_ranges_with_provider, line_break_chunks_with_provider,
     line_text_fits_with_provider as shared_line_text_fits_with_provider,
     should_wrap_before_accumulated, trim_leading_wrap_spaces,
-    word_smart_line_break_chunks_with_provider,
+    word_smart_line_break_chunks_with_provider, GraphemeAdvanceIndex,
 };
+use crate::text::layout_geometry::finite_sum;
 use crate::text::shaping::{TextLayoutOutcome, TextShapingOutcome};
+use crate::text::SharedTextLayoutSession;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiTextRange, UiTextRunKind, UiTextWrap,
 };
@@ -13,8 +14,8 @@ use zircon_runtime_interface::ui::surface::{
 use super::super::grapheme::leading_grapheme_continuation_len;
 use super::super::rich_text::UiTextSourceRun;
 use super::candidate_line::{
-    CandidateLine, PendingBreakSuffix, append_segment, push_current_line, push_wrapped_line,
-    trim_word_break_trailing_spaces,
+    append_segment, push_current_line, push_wrapped_line, trim_word_break_trailing_spaces,
+    CandidateLine, PendingBreakSuffix,
 };
 use super::direction::resolve_direction;
 use crate::text::text_style;
@@ -290,9 +291,12 @@ fn append_word_wrapped_segment(
         let continuation_len =
             append_leading_grapheme_continuation(current, kind, word_text, word_source_range);
         if continuation_len > 0 {
-            *current_advance += advance_index.advance(
-                continuation_start,
-                continuation_start.saturating_add(continuation_len),
+            accumulate_finite_advance(
+                current_advance,
+                advance_index.advance(
+                    continuation_start,
+                    continuation_start.saturating_add(continuation_len),
+                ),
             );
             word_text = &word_text[continuation_len..];
             word_source_range.start += continuation_len;
@@ -307,9 +311,10 @@ fn append_word_wrapped_segment(
         let break_suffix = chunk.break_suffix.map(|suffix| suffix.marker_text());
         let candidate_advance = match segment_line_start.map_or_else(
             || {
-                TextShapingOutcome::Ready(
-                    finite_non_negative(*current_advance) + finite_non_negative(word_advance),
-                )
+                TextShapingOutcome::Ready(finite_sum([
+                    finite_non_negative(*current_advance),
+                    finite_non_negative(word_advance),
+                ]))
             },
             |line_start| {
                 advance_index.corrected_advance_with_provider(
@@ -399,7 +404,10 @@ fn append_word_wrapped_segment(
         } else {
             append_segment(current, kind, word_text, word_source_range);
             *current_advance = line_advance.unwrap_or_else(|| {
-                finite_non_negative(*current_advance) + finite_non_negative(word_advance)
+                finite_sum([
+                    finite_non_negative(*current_advance),
+                    finite_non_negative(word_advance),
+                ])
             });
             current.pending_break_suffix = match chunk.break_suffix {
                 Some(decision) => {
@@ -425,6 +433,10 @@ fn finite_non_negative(value: f32) -> f32 {
     }
 }
 
+fn accumulate_finite_advance(current: &mut f32, addition: f32) {
+    *current = finite_sum([finite_non_negative(*current), finite_non_negative(addition)]);
+}
+
 fn append_glyph_wrapped_segment(
     lines: &mut Vec<CandidateLine>,
     current: &mut CandidateLine,
@@ -445,7 +457,7 @@ fn append_glyph_wrapped_segment(
             TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
         };
     let continuation_len = append_leading_grapheme_continuation(current, kind, text, range);
-    *current_advance += advance_index.advance(0, continuation_len);
+    accumulate_finite_advance(current_advance, advance_index.advance(0, continuation_len));
     if continuation_len == 0 {
         let first_line_max_width = current_line_width(lines, first_line_width, continuation_width);
         let first_max_width = if current.text.is_empty() {
@@ -537,7 +549,7 @@ fn append_glyph_wrapped_segment(
                 end: range.start + metric.source_end,
             },
         );
-        *current_advance += metric.advance;
+        accumulate_finite_advance(current_advance, metric.advance);
     }
     TextShapingOutcome::Ready(())
 }
@@ -574,7 +586,7 @@ fn append_corrected_glyph_ranges(
                 },
             );
         }
-        *current_advance += advance_index.advance(start, end);
+        accumulate_finite_advance(current_advance, advance_index.advance(start, end));
     }
     TextShapingOutcome::Ready(())
 }
@@ -624,4 +636,5 @@ pub(super) fn line_text_fits_with_provider(
 }
 
 #[cfg(test)]
+#[path = "wrapping/tests/cases.rs"]
 mod tests;

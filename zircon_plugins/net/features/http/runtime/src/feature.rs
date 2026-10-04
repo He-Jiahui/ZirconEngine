@@ -1,10 +1,9 @@
-use std::sync::Arc;
-
 use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{ManagerDescriptor, ModuleDescriptor, ServiceKind};
 use zircon_runtime::engine_module::{dependency_on, factory, qualified_name};
 
 use crate::http_runtime_backend;
+use zircon_plugin_net_runtime::{DefaultNetManager, DEFAULT_NET_MANAGER_NAME};
 
 pub const NET_HTTP_FEATURE_ID: &str = "net.http";
 pub const NET_HTTP_FEATURE_CAPABILITY: &str = "runtime.feature.net.http";
@@ -54,13 +53,17 @@ pub fn module_descriptor() -> ModuleDescriptor {
             ServiceKind::Manager,
             "NetHttpManager",
         ),
-        zircon_runtime::core::StartupMode::Lazy,
+        zircon_runtime::core::StartupMode::Immediate,
         vec![dependency_on(
             zircon_plugin_net_runtime::NET_MODULE_NAME,
             ServiceKind::Manager,
-            "NetManager",
+            "DefaultNetManager",
         )],
-        factory(|_| Ok(Arc::new(http_runtime_manager()) as ServiceObject)),
+        factory(|core| {
+            let manager = core.resolve_manager::<DefaultNetManager>(DEFAULT_NET_MANAGER_NAME)?;
+            manager.install_http_backend(http_runtime_backend());
+            Ok(manager as ServiceObject)
+        }),
     ))
 }
 

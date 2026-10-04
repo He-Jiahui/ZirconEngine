@@ -1,3 +1,5 @@
+//! 列表家族中的 Title 节点留给普通标题绘制；该排除必须先于行家族接管判定。
+
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::super::template_component_family::{
     is_component_family, TemplateComponentFamily,
@@ -13,5 +15,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_work
 }
 
 #[cfg(test)]
-#[path = "identity/early_title_exclusion_tests.rs"]
+#[path = "identity/tests/early_title_exclusion_tests.rs"]
 mod early_title_exclusion_tests;

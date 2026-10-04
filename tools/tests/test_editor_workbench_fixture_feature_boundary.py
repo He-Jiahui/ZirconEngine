@@ -1,3 +1,4 @@
+# 核对工作台测试夹具由特性门控，默认产品构建不包含测试支持结构。
 from pathlib import Path
 import unittest
 

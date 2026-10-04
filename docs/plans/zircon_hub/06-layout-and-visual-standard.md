@@ -31,7 +31,7 @@ related_code:
 plan_sources:
   - docs/plans/zircon_hub/index.md
   - docs/plans/zircon_hub/05-frontend-componentization-and-type-safety.md
-  - docs/zircon_hub/ui/responsive-component-system.md
+  - docs/crates/zircon_hub/ui/responsive-component-system.md
 status: in_progress
 ---
 
@@ -611,8 +611,8 @@ const engineReady = Boolean(activeEngine);
 | `zircon_hub/tests/ui_global_rules_contract.rs` | 修改 | 刷新 HubWindow→NavigationDrawer 调用行断言（328 行附近） |
 | `.codex/.../scripts/capture-hub-visual-state-matrix.ps1` | 修改 | 加 `-Language` 参数（默认 chinese）+ 双语 wait-text 候选 |
 | `.codex/.../scripts/run-hub-acceptance-matrix.ps1` | 新建 | 一键编排：构建 → 页面矩阵 → 状态矩阵（中/英）→ 参考对比 |
-| `docs/zircon_hub/ui/tauri-react-shell.md` | 修改 | Visual State Matrix 节登记编排脚本与中文默认态覆盖 |
-| `docs/zircon_hub/ui/responsive-component-system.md` | 修改 | design reference matrix 登记新产出路径 |
+| `docs/crates/zircon_hub/ui/tauri-react-shell.md` | 修改 | Visual State Matrix 节登记编排脚本与中文默认态覆盖 |
+| `docs/crates/zircon_hub/ui/responsive-component-system.md` | 修改 | design reference matrix 登记新产出路径 |
 
 > 落地状态终核（2026-06-12）：上表代码行已全部落地——`ProjectCardRail.tsx`（新建）、`data/index.ts`、`ProjectsDashboard.tsx`、`ProjectTable.tsx`、`types/hub.ts`、`NavigationDrawer.tsx`、`HubWindow.tsx`、`hubData.ts`（`taskStatus: []`；fallback 行数据已为空数组，无 `pinned: false` 可补）、`view_model.rs`（`pinned` + `header_statuses`，**单测未补**）。契约五行中仅 `ui_shell_header_contract.rs` 已刷新，其余四行（layout / visual standard / browser table / global rules）未动；两个脚本行与两个文档登记行未落地。
 

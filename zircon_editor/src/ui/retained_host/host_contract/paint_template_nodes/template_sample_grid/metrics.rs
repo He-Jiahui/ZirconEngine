@@ -1,4 +1,4 @@
-use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
+use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics, METRICS};
 use zircon_runtime_interface::ui::design_tokens::EditorTypographyTokens;
 
 const OUTER_RADIUS_SCALE: f32 = 0.5;
@@ -12,6 +12,9 @@ pub(super) struct SampleGridMetrics {
     pub grid_line_width: f32,
     pub selected_label_border_width: f32,
     pub selected_label_radius: f32,
+    pub point_radius: f32,
+    pub point_interior_radius: f32,
+    pub point_edge_inset: f32,
 }
 
 pub(super) fn sample_grid_metrics() -> SampleGridMetrics {
@@ -19,6 +22,12 @@ pub(super) fn sample_grid_metrics() -> SampleGridMetrics {
 }
 
 pub(super) fn sample_grid_metrics_from_host(host: HostControlMetrics) -> SampleGridMetrics {
+    let row_scale = host.row_height / METRICS.row_height;
+    let scale = if row_scale.is_finite() && row_scale > 0.0 {
+        row_scale
+    } else {
+        1.0
+    };
     SampleGridMetrics {
         outer_radius: host.radius_control * OUTER_RADIUS_SCALE,
         plot_radius: host.radius_control * PLOT_RADIUS_SCALE,
@@ -26,6 +35,9 @@ pub(super) fn sample_grid_metrics_from_host(host: HostControlMetrics) -> SampleG
         grid_line_width: host.border_width,
         selected_label_border_width: host.border_width,
         selected_label_radius: host.radius_control * OUTER_RADIUS_SCALE,
+        point_radius: POINT_RADIUS * scale,
+        point_interior_radius: POINT_INTERIOR_RADIUS * scale,
+        point_edge_inset: POINT_EDGE_INSET * scale,
     }
 }
 
@@ -45,9 +57,9 @@ pub(super) const TICK_LINE_HEIGHT: f32 = EditorTypographyTokens::WORKBENCH_CAPTI
 pub(super) const AXIS_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_BODY_SIZE;
 pub(super) const AXIS_LINE_HEIGHT: f32 = EditorTypographyTokens::WORKBENCH_BODY_SIZE
     * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO;
-pub(super) const POINT_RADIUS: i32 = 5;
-pub(super) const POINT_INTERIOR_RADIUS: i32 = 3;
-pub(super) const POINT_EDGE_INSET: f32 = POINT_RADIUS as f32 + 1.0;
+pub(super) const POINT_RADIUS: f32 = 5.0;
+pub(super) const POINT_INTERIOR_RADIUS: f32 = 3.0;
+pub(super) const POINT_EDGE_INSET: f32 = POINT_RADIUS + 1.0;
 pub(super) const SAMPLE_LABEL_HEIGHT: f32 = 18.0;
 pub(super) const SAMPLE_LABEL_MIN_WIDTH: f32 = 54.0;
 pub(super) const SAMPLE_LABEL_POINT_GAP: f32 = 4.0;

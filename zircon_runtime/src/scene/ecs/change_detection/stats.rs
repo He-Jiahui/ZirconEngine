@@ -10,6 +10,7 @@ pub const ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC: &str =
     "ecs.change_detection.changed_matches";
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 累计记录组件时钟检查与命中次数；系统诊断调用方相对上次上报基线取饱和增量。
 pub struct ChangeDetectionScanStats {
     pub scanned_marks: u64,
     pub added_matches: u64,
@@ -76,11 +77,11 @@ impl ChangeDetectionScanStats {
 }
 
 fn record_count(store: &mut DiagnosticStore, path: &'static str, frame_index: u64, value: f64) {
-    store.record(
+    store.record_static(
         path,
         frame_index,
         value,
         Some("count"),
-        ["ecs", "change_detection"],
+        &["ecs", "change_detection"],
     );
 }

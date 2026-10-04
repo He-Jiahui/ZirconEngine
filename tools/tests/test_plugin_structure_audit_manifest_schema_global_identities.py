@@ -1,10 +1,10 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema_global_identities import (
+from tools.audits.plugins.manifest_schema_global_identities import (
     collect_global_manifest_identity_violations,
 )
 
-
+# 用插件清单夹具验证全局标识：拒绝全局资源导入器 ID 重复，并拒绝全局选项键重复。
 class PluginStructureAuditManifestSchemaGlobalIdentitiesTests(unittest.TestCase):
     def test_manifest_schema_rejects_global_asset_importer_id_duplicates(self):
         violations: list[str] = []

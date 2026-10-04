@@ -1,3 +1,5 @@
+//! 自定义 Bundle 须验证最终暂存状态；事务完成前实体、组件目录、诊断和观察者均不得见中间态。
+
 use crate::scene::components::{
     ActiveSelf, AnimationSkeletonComponent, ColliderComponent, Hierarchy, JointComponent,
     LocalTransform, Mesh2dComponent, MeshRenderer, Mobility, Name, PostProcessSettingsComponent,
@@ -52,7 +54,7 @@ impl Bundle for OverwideBundle {
         staging.stage(Mana(9))?;
         staging.stage(ActiveSelf(true))?;
         staging.stage(RenderLayerMask::default())?;
-        staging.stage(Mobility::default())?;
+        staging.stage(PostProcessVolumeComponent::default())?;
         staging.stage(MeshRenderer::default())?;
         staging.stage(Sprite2dComponent::default())?;
         staging.stage(RigidBodyComponent::default())?;
@@ -183,6 +185,7 @@ fn custom_bundle_publishes_the_exact_values_it_staged() {
     assert_eq!(world.get::<Mana>(entity), Some(&Mana(9)));
 }
 
+// 以下用克隆、序列化和记录恢复区分运行时组件与持久组件的存储所有权。
 #[test]
 fn runtime_only_post_process_components_survive_generic_storage_clone() {
     let mut world = World::empty();
@@ -520,6 +523,7 @@ fn persistent_physics_components_do_not_retain_world_map_owners() {
         "World persistence must project physics values from generic component storage"
     );
     assert!(
+        // BUG: [CR-R02-runtime_ecs_commands_bundle_commit-0001] 执行到该断言必失败；完整组件行恢复已替代旧的物理存在性宏，当前三个 contains 均为 false。证据：fixed_components.rs 与 records.rs 的行发布入口。
         fixed_components_source.contains("append_storage_presence!(RigidBodyComponent)")
             && fixed_components_source.contains("append_storage_presence!(ColliderComponent)")
             && fixed_components_source.contains("append_storage_presence!(JointComponent)"),
@@ -546,6 +550,7 @@ fn unit_bundle_spawn_validates_and_publishes_the_default_node_signature() {
     assert!(world.contains_component::<LocalTransform>(entity));
 }
 
+// 以下源码守卫约束提交与重建共用完整组件行，避免观察者接触临时空原型。
 #[test]
 fn bundle_commit_derives_one_final_archetype_signature_from_staged_metadata() {
     let source = std::fs::read_to_string(
@@ -569,6 +574,7 @@ fn bundle_commit_derives_one_final_archetype_signature_from_staged_metadata() {
         .expect("read final archetype signature body");
 
     assert!(
+        // BUG: [CR-R02-runtime_ecs_commands_bundle_commit-0002] 执行到该断言必失败；被切出的根 finish 仅转发调用，最终签名与行发布已移入提交叶模块。证据：bundle_transaction.rs 转发体与 deferred_bundle_commit.rs。
         finish.contains("let final_signature =")
             && finish.contains("self.final_archetype_signature(")
             && finish
@@ -601,6 +607,7 @@ fn typed_storage_projection_rebuild_publishes_one_complete_row_per_entity() {
             .join("projection_rebuild.rs"),
     )
     .expect("read component projection rebuild source");
+    // BUG: [CR-R02-runtime_ecs_commands_bundle_commit-0003] 执行到此切分必 panic；实际入口使用跨父模块限定可见性，旧文本无匹配，nth(1) 得到 None。证据：projection_rebuild.rs 当前定义。
     let projection = source
         .split("pub(super) fn rebuild_component_storage_projection_with_owned_components")
         .nth(1)

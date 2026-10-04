@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "stage_path": "E:\\Git\\ZirconEngine\\docs\\plans\\zircon_tooling\\source_comment_audit\\02\\2026-09-30-stage-status.md",
+  "before_sha256": "c1a04babd20bf8db0dec59b96d7737c58e92fdb1726a15ff978ccff5b40d32ba",
+  "after_sha256": "4fa65b1e7d374697b56ab3c7c8c1c9c565d95205c07ca42713292c3032f000d2",
+  "verification": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-schedule-stage-20261002-r3\\verification.json",
+    "sha256": "8a643546d4ecd29aa8d468862d0bae28015128d8eab39615dd2062919706b008"
+  },
+  "source_writes": 0,
+  "canonical_writes": 0,
+  "links_checked": true,
+  "whitespace_checked": true,
+  "status": "coarse_stage_status_updated",
+  "completed_at_utc": "2026-10-02T10:31:48.161077+00:00",
+  "plan_status_writes": 1,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "goal_status_changed": false,
+  "full_repository_scan_complete": false
+}

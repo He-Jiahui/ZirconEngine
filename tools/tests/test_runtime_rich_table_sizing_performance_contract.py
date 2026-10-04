@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SIZING = ROOT / "zircon_runtime/src/ui/text/layout_engine/rich_table/sizing.rs"
 
-
+# 读取富文本表格宽度求解，确认收缩事务尊重最小约束并由同一求解器处理可用宽度。
 class RuntimeRichTableSizingPerformanceContractTests(unittest.TestCase):
     def test_shrink_solver_enforces_minimums_inside_the_budget_transaction(self) -> None:
         source = SIZING.read_text(encoding="utf-8")

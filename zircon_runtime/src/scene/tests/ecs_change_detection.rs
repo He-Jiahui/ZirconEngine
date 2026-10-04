@@ -2,9 +2,9 @@ use crate::core::diagnostics::{DiagnosticStore, DiagnosticStoreSnapshot};
 use crate::scene::components::Name;
 use crate::scene::ecs::{
     ChangeDetectionScanStats, ChangeTick, ChangeTickWindow, Changed, Component, ComponentTicks,
-    ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC, ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC,
-    ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC, Mut, QueryState, RemovedComponentsParam,
-    ResMutParam, ResParam, Resource, StorageType, SystemState,
+    Mut, QueryState, RemovedComponentsParam, ResMutParam, ResParam, Resource, StorageType,
+    SystemState, ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC,
+    ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC, ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC,
 };
 use crate::scene::{EntityId, World};
 
@@ -404,11 +404,9 @@ fn removed_components_tracks_recursive_despawn() {
 
     type RemovedHealth = RemovedComponentsParam<Health>;
     let mut system = SystemState::<RemovedHealth>::new(&mut world).unwrap();
-    assert!(
-        system
-            .run(&mut world, |mut removed| removed.read().collect::<Vec<_>>())
-            .is_empty()
-    );
+    assert!(system
+        .run(&mut world, |mut removed| removed.read().collect::<Vec<_>>())
+        .is_empty());
 
     let _batch = world.remove_entity_recursive(parent).unwrap();
 
@@ -425,11 +423,9 @@ fn component_removal_emits_removal_record_in_same_frame() {
 
     type RemovedHealth = RemovedComponentsParam<Health>;
     let mut system = SystemState::<RemovedHealth>::new(&mut world).unwrap();
-    assert!(
-        system
-            .run(&mut world, |mut removed| removed.read().collect::<Vec<_>>())
-            .is_empty()
-    );
+    assert!(system
+        .run(&mut world, |mut removed| removed.read().collect::<Vec<_>>())
+        .is_empty());
 
     assert_eq!(world.remove::<Health>(entity).unwrap(), Some(Health(5)));
 
@@ -520,10 +516,8 @@ fn resource_store_hot_paths_use_direct_branches() {
     assert!(!get_source.contains(".and_then(|stored| stored.value.downcast_ref::<T>())"));
     assert!(!get_mut_source.contains(".and_then(|stored| stored.value.downcast_mut::<T>())"));
     assert!(!ticked_get_mut_source.contains("set_changed"));
-    assert!(
-        !ticked_get_mut_source
-            .contains("stored.value.downcast_mut::<T>().map(|value| (value, ticks))")
-    );
+    assert!(!ticked_get_mut_source
+        .contains("stored.value.downcast_mut::<T>().map(|value| (value, ticks))"));
     assert!(!remove_source.contains(".and_then(|stored| stored.value.downcast::<T>().ok())"));
     assert!(!remove_source.contains(".map(|boxed| *boxed)"));
     assert!(!ticks_source.contains(".map(|stored| stored.ticks)"));

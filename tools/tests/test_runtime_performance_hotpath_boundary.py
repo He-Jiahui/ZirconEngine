@@ -16,7 +16,7 @@ from runtime_structure_audits.performance_hotpath_boundary import (  # noqa: E40
 )
 from runtime_structure_audits import performance_hotpath_boundary  # noqa: E402
 
-
+# 调用热路径边界审计器，核对现行后端命令与归档记录对应，测试计数由清单派生。
 class RuntimePerformanceHotpathBoundaryTests(unittest.TestCase):
     def test_numbered_archive_and_current_backend_command_supply_doc_evidence(self) -> None:
         report = performance_hotpath_boundary_audit(REPO_ROOT)

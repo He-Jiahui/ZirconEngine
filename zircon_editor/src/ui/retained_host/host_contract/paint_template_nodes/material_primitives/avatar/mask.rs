@@ -5,6 +5,7 @@ use std::sync::Arc;
 const AVATAR_MASK_SAMPLES_PER_AXIS: u32 = 8;
 const PIXEL_HALF_DIAGONAL: f32 = std::f32::consts::FRAC_1_SQRT_2;
 
+// 图像路径对头像像素施加与显示框一致的圆角；遮罩后须取消原图集身份并赋予像素资源键。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn apply_rounded_alpha_mask(
     image: &mut HostPaintImagePixels,
     corner_radius: f32,
@@ -32,6 +33,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn apply_r
         }
     }
     image.atlas = None;
+    // BUG: [CR-M18-AVATAR-0001] 资源键仅保留三位小数半径，但遮罩像素和缓存键使用完整 f32；不同遮罩可共享绘制资源键，录制流按同键同代去重后显示旧像素。
     image.resource_key = format!(
         "mui-avatar-mask:{}x{}:{:.3}:{}",
         image.width, image.height, mask_radius, image.resource_key
@@ -86,79 +88,5 @@ fn rounded_mask_signed_distance(px: f32, py: f32, width: u32, height: u32, radiu
 }
 
 #[cfg(test)]
-mod tests {
-    use super::apply_rounded_alpha_mask;
-    use crate::ui::retained_host::host_contract::data::FrameRect;
-    use crate::ui::retained_host::host_contract::paint_frame::{
-        HostPaintAtlasImage, HostPaintImageUvRect,
-    };
-    use crate::ui::retained_host::host_contract::paint_template_nodes::visual_assets::HostPaintImagePixels;
-
-    fn image(alpha: u8, atlas: Option<HostPaintAtlasImage>) -> HostPaintImagePixels {
-        let mut rgba = vec![255; 8 * 8 * 4];
-        for pixel in rgba.chunks_exact_mut(4) {
-            pixel[3] = alpha;
-        }
-        HostPaintImagePixels {
-            resource_key: "avatar-source".to_owned(),
-            width: 8,
-            height: 8,
-            rgba: rgba.into(),
-            atlas,
-        }
-    }
-
-    #[test]
-    fn rounded_avatar_mask_uses_fractional_coverage_and_preserves_source_alpha() {
-        let mut image = image(128, None);
-
-        apply_rounded_alpha_mask(
-            &mut image,
-            4.0,
-            &FrameRect {
-                x: 0.0,
-                y: 0.0,
-                width: 8.0,
-                height: 8.0,
-            },
-        );
-
-        let alpha = image
-            .rgba
-            .chunks_exact(4)
-            .map(|pixel| pixel[3])
-            .collect::<Vec<_>>();
-        assert!(alpha.contains(&0));
-        assert!(alpha.contains(&128));
-        assert!(alpha.iter().any(|value| *value > 0 && *value < 128));
-    }
-
-    #[test]
-    fn rounded_avatar_mask_invalidates_the_unmasked_atlas_fast_path() {
-        let atlas = HostPaintAtlasImage {
-            resource_key: "avatar-atlas".to_owned(),
-            resource_generation: 7,
-            width: 64,
-            height: 64,
-            rgba: None,
-            uv: HostPaintImageUvRect {
-                min: [0.0, 0.0],
-                max: [0.5, 0.5],
-            },
-        };
-        let mut image = image(255, Some(atlas));
-
-        apply_rounded_alpha_mask(
-            &mut image,
-            4.0,
-            &FrameRect {
-                x: 0.0,
-                y: 0.0,
-                width: 8.0,
-                height: 8.0,
-            },
-        );
-
-        assert!(image.atlas.is_none());
-    }
-}
+#[path = "tests/mask.rs"]
+mod tests;

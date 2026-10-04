@@ -1,3 +1,4 @@
+# 核对恢复流程的自动保存适配器与会话守卫测试归属及文件规模约束。
 from pathlib import Path
 import unittest
 

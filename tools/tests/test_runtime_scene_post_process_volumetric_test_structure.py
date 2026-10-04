@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 约束场景后 process 体积式的测试组织：体积式雾提取测试应子节点持有，并计划与模块 docs 记录体积式测试归属。
 class RuntimeScenePostProcessVolumetricTestStructureTests(unittest.TestCase):
     def test_volumetric_fog_extract_tests_are_child_owned(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
@@ -64,8 +64,8 @@ class RuntimeScenePostProcessVolumetricTestStructureTests(unittest.TestCase):
             self.assertIn(status, source, relative_path)
 
         for relative_path in (
-            "docs/zircon_runtime/scene/render_extract.md",
-            "docs/zircon_runtime/graphics/scene/scene_renderer/advanced_lighting/volumetric-media-inject.md",
+            "docs/crates/zircon_runtime/scene/render_extract.md",
+            "docs/crates/zircon_runtime/graphics/scene/scene_renderer/advanced_lighting/volumetric-media-inject.md",
         ):
             source = (repo_root / relative_path).read_text(encoding="utf-8")
             self.assertIn(child_path, source, relative_path)

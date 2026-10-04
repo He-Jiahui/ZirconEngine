@@ -1,3 +1,5 @@
+//! 一次性物化报告的清单、诊断和加载状态，避免多个编辑器视图重复扫描同一批插件。
+
 use std::collections::HashMap;
 
 use crate::plugin::native_plugin_loader::NativePluginCandidate;
@@ -11,9 +13,10 @@ use super::{
 use crate::plugin::PluginShaderModuleSource;
 
 #[cfg(test)]
-#[path = "projection/capacity_tests.rs"]
+#[path = "projection/tests/capacity_tests.rs"]
 mod capacity_tests;
 
+/// 报告当前代的只读索引；借用期间不能修改原报告，因而同一操作可共享一致的视图。
 pub struct NativePluginLoadProjection {
     package_manifests: Vec<PluginPackageManifest>,
     shader_module_candidates_by_plugin: HashMap<String, NativePluginCandidate>,
@@ -49,6 +52,7 @@ struct LoadedPluginState {
 }
 
 impl NativePluginLoadProjection {
+    /// 从同一份报告建立包、shader 候选和诊断索引；仅报告拥有者在首次读取时调用。
     pub(super) fn new(report: &NativePluginLoadReport) -> Self {
         let mut stats = ProjectionBuildStats {
             projection_builds: 1,
@@ -90,6 +94,7 @@ impl NativePluginLoadProjection {
             .unwrap_or_default()
     }
 
+    /// 注册报告按插件请求时才读取包内 shader；无对应发现候选时不产生源码或文件诊断。
     pub(crate) fn shader_module_sources_for_plugin(
         &self,
         plugin_id: &str,
@@ -122,6 +127,7 @@ impl NativePluginLoadProjection {
         &self.entry_diagnostics
     }
 
+    /// 编辑器状态只判断本次报告是否包含已加载实例，不依赖是否存在描述符。
     pub fn is_loaded(&self, plugin_id: &str) -> bool {
         self.loaded_plugins.contains_key(plugin_id)
     }
@@ -145,6 +151,8 @@ struct DiagnosticProjection {
     loaded_plugins: HashMap<String, LoadedPluginState>,
 }
 
+// 原始诊断先按文本中的插件 ID 分发，已加载实例再补齐描述符及入口诊断。
+// 最终去重排序使 live host 和编辑器读取同一稳定结果。
 fn project_diagnostics(
     report: &NativePluginLoadReport,
     stats: &mut ProjectionBuildStats,

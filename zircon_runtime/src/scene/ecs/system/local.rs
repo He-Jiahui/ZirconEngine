@@ -1,11 +1,12 @@
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
-use crate::scene::World;
 use crate::scene::ecs::{
     ChangeTickWindow, SystemParam, SystemParamAccess, SystemParamError, WorldlessSystemParam,
 };
+use crate::scene::World;
 
+/// 为每个系统保存独立的默认初始化值；跨次运行保留状态，不登记 World 访问。
 pub struct LocalParam<T>(PhantomData<fn() -> T>);
 
 pub struct Local<'world, T> {

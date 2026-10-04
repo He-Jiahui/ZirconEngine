@@ -5,10 +5,10 @@ use zircon_runtime::asset::project::ProjectManifest;
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::plugin::native::{
     discovery::{
-        discover_native_plugins, load_native_editor_from_load_manifest,
-        load_native_runtime_from_load_manifest,
+        discover_native_plugins, validate_native_editor_from_load_manifest,
+        validate_native_runtime_from_load_manifest,
     },
-    NativePluginLoadReport,
+    NativePluginLoadProjection, NativePluginLoadReport,
 };
 use zircon_runtime::plugin::ExportBuildPlan;
 
@@ -43,9 +43,10 @@ impl EditorManager {
         manifest: &ProjectManifest,
         profile_name: &str,
     ) -> Result<ExportBuildPlan, EditorExportBuildError> {
-        ExportBuildPlan::from_project_manifest(
-            &self.complete_native_aware_project_plugin_manifest(project_root, manifest),
+        ExportBuildPlan::from_project_manifest_with_plugin_root(
+            &self.complete_native_aware_project_plugin_manifest(project_root.as_ref(), manifest),
             profile_name,
+            self.plugin_directory(project_root.as_ref()),
         )
         .map_err(EditorExportBuildError::from)
     }
@@ -103,7 +104,8 @@ impl EditorManager {
             5,
             "Discovering native dynamic plugin packages",
         );
-        let native_report = discover_native_plugins(self.plugin_directory(project_root.as_ref()));
+        let plugin_root = self.plugin_directory(project_root.as_ref());
+        let native_report = discover_native_plugins(&plugin_root);
         let native_projection = native_report.projection();
         emit_export_progress(
             &mut progress,
@@ -111,12 +113,13 @@ impl EditorManager {
             12,
             format!("Resolving desktop export plan {profile_name}"),
         );
-        let plan = ExportBuildPlan::from_project_manifest(
+        let plan = ExportBuildPlan::from_project_manifest_with_plugin_root(
             &self.complete_project_plugin_manifest_with_native_projection(
                 manifest,
                 &native_projection,
             ),
             profile_name,
+            &plugin_root,
         )?;
         if plan.has_fatal_diagnostics() {
             return blocked_native_aware_export_build_report(
@@ -186,6 +189,9 @@ impl EditorManager {
             );
             None
         };
+        if cancel.is_cancelled() {
+            return Err(EditorExportBuildError::cancelled("export Cargo build"));
+        }
         let mut diagnostics = native_report.diagnostics().to_vec();
         diagnostics.extend(native_projection.descriptor_diagnostics().iter().cloned());
         diagnostics.extend(native_projection.entry_diagnostics().iter().cloned());
@@ -197,7 +203,7 @@ impl EditorManager {
             ));
         }
         diagnostics.extend(materialized.diagnostics);
-        let fatal_diagnostics = materialized.fatal_diagnostics;
+        let mut fatal_diagnostics = materialized.fatal_diagnostics;
         if should_probe_exported_native_manifest(&materialized.generated_files) {
             emit_export_progress(
                 &mut progress,
@@ -210,18 +216,11 @@ impl EditorManager {
                 plan.profile.target_mode,
             );
             let exported_native_projection = exported_native_report.projection();
-            diagnostics.extend(exported_native_report.diagnostics().iter().cloned());
-            diagnostics.extend(
-                exported_native_projection
-                    .descriptor_diagnostics()
-                    .iter()
-                    .cloned(),
-            );
-            diagnostics.extend(
-                exported_native_projection
-                    .entry_diagnostics()
-                    .iter()
-                    .cloned(),
+            append_exported_native_diagnostics(
+                &exported_native_report,
+                exported_native_projection,
+                &mut diagnostics,
+                &mut fatal_diagnostics,
             );
         }
         if let Some(cargo_invocation) = &cargo_invocation {
@@ -253,7 +252,7 @@ impl EditorManager {
             fatal_diagnostics,
         };
         drop(native_preparation);
-        Ok(report)
+        report.into_result()
     }
 
     pub fn execute_export_build(
@@ -281,7 +280,7 @@ impl EditorManager {
                 .unwrap_or_else(|| vec![skipped_export_cargo_build_diagnostic(&plan)]),
         );
         finalize_export_diagnostics(output_root, &mut diagnostics);
-        Ok(EditorExportBuildReport {
+        EditorExportBuildReport {
             plan,
             invoked_cargo: cargo_invocation.is_some(),
             cargo_invocation,
@@ -290,8 +289,27 @@ impl EditorManager {
             copied_packages: materialized.copied_packages,
             diagnostics,
             fatal_diagnostics,
-        })
+        }
+        .into_result()
     }
+}
+
+fn append_exported_native_diagnostics(
+    report: &NativePluginLoadReport,
+    projection: &NativePluginLoadProjection,
+    diagnostics: &mut Vec<String>,
+    fatal_diagnostics: &mut Vec<String>,
+) {
+    let mut exported = report.diagnostics().to_vec();
+    exported.extend(projection.descriptor_diagnostics().iter().cloned());
+    exported.extend(projection.entry_diagnostics().iter().cloned());
+    let has_failure = report.has_failures()
+        || !projection.descriptor_diagnostics().is_empty()
+        || !projection.entry_diagnostics().is_empty();
+    if has_failure {
+        fatal_diagnostics.extend(exported.iter().cloned());
+    }
+    diagnostics.extend(exported);
 }
 
 fn emit_export_progress(
@@ -309,9 +327,9 @@ fn exported_native_load_report_for_profile(
 ) -> NativePluginLoadReport {
     match target_mode {
         RuntimeTargetMode::ClientRuntime | RuntimeTargetMode::ServerRuntime => {
-            load_native_runtime_from_load_manifest(output_root)
+            validate_native_runtime_from_load_manifest(output_root)
         }
-        RuntimeTargetMode::EditorHost => load_native_editor_from_load_manifest(output_root),
+        RuntimeTargetMode::EditorHost => validate_native_editor_from_load_manifest(output_root),
     }
 }
 
@@ -346,7 +364,7 @@ fn blocked_native_aware_export_build_report(
         "Desktop export build finished with fatal diagnostics",
     );
 
-    Ok(EditorExportBuildReport {
+    EditorExportBuildReport {
         plan,
         invoked_cargo: false,
         cargo_invocation: None,
@@ -355,105 +373,14 @@ fn blocked_native_aware_export_build_report(
         copied_packages: materialized.copied_packages,
         diagnostics,
         fatal_diagnostics,
-    })
+    }
+    .into_result()
 }
 
 #[cfg(test)]
-mod tests {
-    use std::fs;
-    use std::path::PathBuf;
-    use std::time::{SystemTime, UNIX_EPOCH};
+#[path = "manager/tests/astra_outcome_tests.rs"]
+mod astra_outcome_tests;
 
-    use super::*;
-
-    #[test]
-    fn exported_native_probe_uses_target_mode_specific_loader() {
-        let root = temp_export_root("editor-export-native-target-mode-probe");
-        let package_root = root.join("plugins/split_tool");
-        fs::create_dir_all(&package_root).unwrap();
-        fs::write(
-            package_root.join("plugin.toml"),
-            split_native_plugin_manifest(),
-        )
-        .unwrap();
-        fs::write(
-            root.join("plugins/native_plugins.toml"),
-            r#"
-[[plugins]]
-id = "split_tool"
-path = "plugins/split_tool"
-manifest = "plugins/split_tool/plugin.toml"
-"#,
-        )
-        .unwrap();
-
-        let runtime_report =
-            exported_native_load_report_for_profile(&root, RuntimeTargetMode::ClientRuntime);
-        assert!(runtime_report.diagnostics().iter().any(|message| {
-            message.contains(&platform_library_file_name(
-                "zircon_plugin_split_tool_runtime",
-            ))
-        }));
-        assert!(!runtime_report.diagnostics().iter().any(|message| {
-            message.contains(&platform_library_file_name(
-                "zircon_plugin_split_tool_editor",
-            ))
-        }));
-
-        let editor_report =
-            exported_native_load_report_for_profile(&root, RuntimeTargetMode::EditorHost);
-        assert!(editor_report.diagnostics().iter().any(|message| {
-            message.contains(&platform_library_file_name(
-                "zircon_plugin_split_tool_editor",
-            ))
-        }));
-        assert!(!editor_report.diagnostics().iter().any(|message| {
-            message.contains(&platform_library_file_name(
-                "zircon_plugin_split_tool_runtime",
-            ))
-        }));
-
-        let _ = fs::remove_dir_all(root);
-    }
-
-    fn split_native_plugin_manifest() -> &'static str {
-        r#"
-id = "split_tool"
-version = "0.1.0"
-display_name = "Split Tool"
-
-[[modules]]
-name = "split_tool.runtime"
-kind = "runtime"
-crate_name = "zircon_plugin_split_tool_runtime"
-
-[[modules]]
-name = "split_tool.editor"
-kind = "editor"
-crate_name = "zircon_plugin_split_tool_editor"
-"#
-    }
-
-    fn temp_export_root(label: &str) -> PathBuf {
-        let stamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        std::env::temp_dir().join(format!("zircon-{label}-{stamp}"))
-    }
-
-    fn platform_library_file_name(crate_name: &str) -> String {
-        #[cfg(target_os = "windows")]
-        {
-            format!("{crate_name}.dll")
-        }
-        #[cfg(target_os = "macos")]
-        {
-            format!("lib{crate_name}.dylib")
-        }
-        #[cfg(all(unix, not(target_os = "macos")))]
-        {
-            format!("lib{crate_name}.so")
-        }
-    }
-}
+#[cfg(test)]
+#[path = "tests/manager.rs"]
+mod tests;

@@ -1,3 +1,5 @@
+//! 后处理常量与格式的受限重导出层。
+//! 调度尺寸由各子模块提供；格式既包含框架映射，也包含固定的内部格式，供资源、管线和渲染图共享。
 mod cluster;
 mod exposure;
 mod hzb;
@@ -15,9 +17,9 @@ pub(super) use resource_limits::{
 };
 pub(super) use ssao::SSAO_WORKGROUP_SIZE;
 pub(crate) use texture_formats::{
-    POST_PROCESS_COLOR_LUT_FORMAT, POST_PROCESS_INTERMEDIATE_HDR_FORMAT,
-    POST_PROCESS_TONEMAPPED_FORMAT, SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE_FORMAT,
+    wgpu_post_process_texture_format, POST_PROCESS_COLOR_LUT_FORMAT,
+    POST_PROCESS_INTERMEDIATE_HDR_FORMAT, POST_PROCESS_TONEMAPPED_FORMAT,
+    SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE_FORMAT,
     SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_FORMAT,
     SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION_FORMAT, SMAA_STAGE_FORMAT,
-    wgpu_post_process_texture_format,
 };

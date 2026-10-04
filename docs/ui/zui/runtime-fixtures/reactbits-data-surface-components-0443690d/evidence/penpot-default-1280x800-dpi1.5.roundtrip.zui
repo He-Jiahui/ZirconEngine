@@ -1,0 +1,282 @@
+[asset]
+kind = "view"
+id = "res://ui/tests/reactbits_data_surface_components.zui"
+version = 2
+display_name = "ReactBits Data Surface Components"
+
+[tokens]
+"surface.canvas" = "#0f1117"
+"surface.panel" = "#171b24"
+"surface.elevated" = "#1d2330"
+"surface.inset" = "#11151d"
+"border.default" = "#2a3342"
+"border.strong" = "#3a4658"
+"text.primary" = "#f4f7fb"
+"text.secondary" = "#a9b4c5"
+"text.muted" = "#718096"
+"accent.primary" = "#8b7cff"
+"accent.info" = "#5da9ff"
+"status.success" = "#55d6a0"
+"status.warning" = "#f4bd62"
+"status.error" = "#ff7d8a"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalBox"
+control_id = "ReactBitsDataSurfaceRoot"
+classes = ["rb-data-surface-fixture"]
+props = {
+  background_color = "$surface.canvas",
+  foreground_color = "$text.primary",
+  fixture_data_only = true,
+  reference_primary = "https://pro.reactbits.dev/docs/app-ui/data-table",
+  reference_supporting = [
+    "https://pro.reactbits.dev/docs/app-ui/filtering",
+    "https://pro.reactbits.dev/docs/app-ui/file-manager",
+    "https://pro.reactbits.dev/docs/app-ui/list",
+    "https://pro.reactbits.dev/docs/app-ui/empty-state",
+    "https://pro.reactbits.dev/docs/app-ui/dashboard",
+    "https://pro.reactbits.dev/docs/app-ui/card",
+    "https://pro.reactbits.dev/docs/app-ui/monitoring",
+  ],
+  responsive_wide = "filter toolbar, metric cards, folder tree, and data table share one workbench frame",
+  responsive_compact = "the table keeps its sticky header while the folder tree and filters preserve readable rows",
+  responsive_mobile = "cards stack, filters stay reachable, and empty feedback remains visible below the collection",
+  accessibility_label = "Data table and filtering reference surface",
+}
+layout = {
+  clip = true,
+  input_policy = "Receive",
+  width = { min = 560, preferred = 1160, max = 1440, stretch = "Stretch" },
+  height = { min = 520, preferred = 760, max = 900, stretch = "Stretch" },
+  container = { kind = "VerticalBox", gap = 8 },
+  padding = { left = 14, right = 14, top = 14, bottom = 14 },
+}
+children = [
+  { node = "header" },
+  { node = "toolbar" },
+  { node = "metrics" },
+  { node = "content_row" },
+  { node = "empty_notice" },
+]
+
+[nodes.header]
+component = "HorizontalBox"
+control_id = "ReactBitsDataSurfaceHeader"
+props = { background_color = "$surface.panel", border_color = "$border.default", border_width = 1, corner_radius = 8 }
+layout = { width = { stretch = "Stretch" }, height = { min = 42, preferred = 42, max = 42, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8 }, padding = { left = 10, right = 10, top = 7, bottom = 7 } }
+children = [{ node = "header_title" }, { node = "header_status" }]
+
+[nodes.header_title]
+component = "Label"
+control_id = "ReactBitsDataSurfaceTitle"
+props = { text = "Project assets", foreground_color = "$text.primary", font_size = 15, font_weight = 650, accessibility_label = "Project assets" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.header_status]
+component = "Label"
+control_id = "ReactBitsDataSurfaceStatus"
+props = { text = "DATA SURFACE", foreground_color = "$status.success", font_size = 9, font_weight = 700, letter_spacing = 0.8, text_align = "right" }
+layout = { width = { min = 104, preferred = 124, max = 140, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.toolbar]
+component = "HorizontalBox"
+control_id = "ReactBitsDataSurfaceToolbar"
+props = { background_color = "$surface.panel", border_color = "$border.default", border_width = 1, corner_radius = 8 }
+layout = { width = { stretch = "Stretch" }, height = { min = 48, preferred = 48, max = 48, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 6 }, padding = { left = 8, right = 8, top = 6, bottom = 6 } }
+children = [{ node = "filter_query" }, { node = "filter_kind" }, { node = "filter_status" }]
+
+[nodes.filter_query]
+component = "TextField"
+control_id = "ReactBitsDataSurfaceQuery"
+classes = ["rb-filter-query"]
+props = {
+  component_role = "search-field",
+  value_text = "mesh",
+  placeholder = "Filter assets",
+  text = "mesh",
+  input_interactive = true,
+  input_clickable = true,
+  input_hoverable = true,
+  input_focusable = true,
+  accessibility_label = "Filter project assets",
+}
+layout = { width = { min = 180, preferred = 420, max = 720, stretch = "Stretch" }, height = { stretch = "Stretch" }, padding = { left = 8, right = 8, top = 4, bottom = 4 } }
+events = [{ id = "ReactBitsDataSurface/QueryChange", event = "Change", route = "assets.filter.query" }]
+
+[nodes.filter_kind]
+component = "Chip"
+control_id = "ReactBitsDataSurfaceKindFilter"
+classes = ["rb-filter-chip", "rb-filter-chip-selected"]
+props = { component_role = "chip", text = "Mesh", value_text = "Mesh", selected = true, accessibility_label = "Filter by mesh assets" }
+layout = { width = { min = 72, preferred = 84, max = 96, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.filter_status]
+component = "Chip"
+control_id = "ReactBitsDataSurfaceStatusFilter"
+classes = ["rb-filter-chip"]
+props = { component_role = "chip", text = "Ready", value_text = "Ready", selected = false, accessibility_label = "Filter by ready status" }
+layout = { width = { min = 72, preferred = 84, max = 96, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.metrics]
+component = "HorizontalBox"
+control_id = "ReactBitsDataSurfaceMetrics"
+layout = { width = { stretch = "Stretch" }, height = { min = 72, preferred = 72, max = 80, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8 } }
+children = [{ node = "metric_assets" }, { node = "metric_size" }, { node = "metric_health" }]
+
+[nodes.metric_assets]
+component = "Paper"
+control_id = "ReactBitsDataSurfaceMetricAssets"
+classes = ["rb-metric-card"]
+props = { component_role = "paper", background_color = "$surface.elevated", border_color = "$border.default", border_width = 1, corner_radius = 8, accessibility_label = "Asset count metric" }
+layout = { width = { min = 96, stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 2 }, padding = { left = 9, right = 9, top = 8, bottom = 8 } }
+children = [{ node = "metric_assets_label" }, { node = "metric_assets_value" }]
+
+[nodes.metric_assets_label]
+component = "Label"
+control_id = "ReactBitsDataSurfaceMetricAssetsLabel"
+props = { text = "Assets", foreground_color = "$text.muted", font_size = 10, accessibility_label = "Assets" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.metric_assets_value]
+component = "Label"
+control_id = "ReactBitsDataSurfaceMetricAssetsValue"
+props = { text = "128", foreground_color = "$text.primary", font_size = 18, font_weight = 650 }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.metric_size]
+component = "Paper"
+control_id = "ReactBitsDataSurfaceMetricSize"
+classes = ["rb-metric-card"]
+props = { component_role = "paper", background_color = "$surface.elevated", border_color = "$border.default", border_width = 1, corner_radius = 8, accessibility_label = "Storage metric" }
+layout = { width = { min = 96, stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 2 }, padding = { left = 9, right = 9, top = 8, bottom = 8 } }
+children = [{ node = "metric_size_label" }, { node = "metric_size_value" }]
+
+[nodes.metric_size_label]
+component = "Label"
+control_id = "ReactBitsDataSurfaceMetricSizeLabel"
+props = { text = "Storage", foreground_color = "$text.muted", font_size = 10, accessibility_label = "Storage" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.metric_size_value]
+component = "Label"
+control_id = "ReactBitsDataSurfaceMetricSizeValue"
+props = { text = "2.4 GB", foreground_color = "$text.primary", font_size = 18, font_weight = 650 }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.metric_health]
+component = "Paper"
+control_id = "ReactBitsDataSurfaceMetricHealth"
+classes = ["rb-metric-card"]
+props = { component_role = "paper", background_color = "$surface.elevated", border_color = "$border.default", border_width = 1, corner_radius = 8, accessibility_label = "Validation health metric" }
+layout = { width = { min = 96, stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 2 }, padding = { left = 9, right = 9, top = 8, bottom = 8 } }
+children = [{ node = "metric_health_label" }, { node = "metric_health_value" }]
+
+[nodes.metric_health_label]
+component = "Label"
+control_id = "ReactBitsDataSurfaceMetricHealthLabel"
+props = { text = "Validation", foreground_color = "$text.muted", font_size = 10, accessibility_label = "Validation" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.metric_health_value]
+component = "Label"
+control_id = "ReactBitsDataSurfaceMetricHealthValue"
+props = { text = "98% healthy", foreground_color = "$status.success", font_size = 16, font_weight = 650 }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.content_row]
+component = "HorizontalBox"
+control_id = "ReactBitsDataSurfaceContent"
+layout = { width = { stretch = "Stretch" }, height = { min = 210, stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 8 } }
+children = [{ node = "tree" }, { node = "grid" }]
+
+[nodes.tree]
+component = "TreeView"
+control_id = "ReactBitsDataSurfaceTree"
+classes = ["MuiTreeView-root", "rb-file-tree"]
+props = {
+  component_role = "mui-x-tree-view",
+  collection_virtualization = "windowed",
+  viewport_start = 0,
+  visible_limit = 3,
+  text = "Folders",
+  collection_items = [
+    "expanded|0|Assets",
+    "selected|1|Meshes",
+    "normal|1|Materials",
+    "normal|0|Scenes",
+  ],
+  selected_id = "Meshes",
+  empty_text = "No folders",
+  value_text = "No folders",
+  background_color = "$surface.elevated",
+  foreground_color = "$text.primary",
+  border_color = "$border.default",
+  border_width = 1,
+  corner_radius = 8,
+  accessibility_label = "Project asset folders",
+}
+layout = { width = { min = 156, preferred = 238, max = 280, stretch = "Fixed" }, height = { stretch = "Stretch" }, clip = true, padding = { left = 8, right = 8, top = 8, bottom = 8 } }
+
+[nodes.grid]
+component = "DataGrid"
+control_id = "ReactBitsDataSurfaceGrid"
+classes = ["MuiDataGrid-root", "rb-asset-table"]
+props = {
+  component_role = "mui-x-data-grid",
+  collection_virtualization = "windowed",
+  viewport_start = 0,
+  visible_limit = 3,
+  text = "Assets",
+  options = ["Name", "Type", "Size", "Status"],
+  column_alignments = ["left", "left", "right", "center"],
+  collection_items = [
+    "selected|SM_Tree_Oak_01|Static Mesh|2.4 MB|Ready",
+    "normal|SM_Rock_Cliff|Static Mesh|3.1 MB|Ready",
+    "warning|M_Bark_Master|Material|512 KB|Review",
+    "success|T_Leaf_N|Texture|1.2 MB|Ready",
+  ],
+  selected_row_id = "SM_Tree_Oak_01",
+  empty_text = "No assets match the current filters",
+  value_text = "No assets match the current filters",
+  background_color = "$surface.elevated",
+  foreground_color = "$text.primary",
+  border_color = "$border.default",
+  border_width = 1,
+  corner_radius = 8,
+  accessibility_label = "Project asset data table",
+}
+layout = { width = { min = 360, stretch = "Stretch" }, height = { stretch = "Stretch" }, clip = true, padding = { left = 8, right = 8, top = 8, bottom = 8 } }
+
+[nodes.empty_notice]
+component = "Alert"
+control_id = "ReactBitsDataSurfaceEmptyNotice"
+classes = ["rb-empty-state", "rb-empty-state-info"]
+props = {
+  component_role = "alert",
+  text = "Collection feedback",
+  value_text = "No result state keeps the filter context and offers a clear recovery path.",
+  validation_level = "info",
+  background_color = "$surface.panel",
+  foreground_color = "$text.secondary",
+  border_color = "$border.default",
+  border_width = 1,
+  corner_radius = 8,
+  accessibility_label = "Empty state guidance",
+}
+layout = { width = { stretch = "Stretch" }, height = { min = 52, preferred = 56, max = 64, stretch = "Fixed" }, clip = true, padding = { left = 10, right = 10, top = 7, bottom = 7 } }
+
+[nodes.root.zircon_extension]
+owner = "reactbits-reference-slice"
+reference_profile = "reactbits-data-surface-components-v1"
+source_of_truth = "zui"
+penpot_visual_check = "required"
+
+[[stylesheets]]
+id = "reactbits-ui-typography"
+
+[[stylesheets.rules]]
+selector = "*"
+set = { self = { font = { asset = "res://fonts/editor-ui.font.toml", family = "Fira Sans" } } }

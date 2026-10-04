@@ -31,10 +31,13 @@ related_code:
   - zircon_runtime/src/text/layout/rich_advance_index/tests.rs
   - zircon_runtime/src/text/layout/rich_vertical.rs
   - zircon_runtime/src/text/layout/rich_vertical/tests.rs
+  - zircon_runtime/src/text/layout_geometry.rs
   - zircon_runtime/src/ui/text/layout_engine/wrapping/tests.rs
   - zircon_runtime/src/ui/text/layout_engine/rich_layout.rs
   - zircon_runtime/src/ui/text/layout_engine/rich_layout_vertical.rs
+  - zircon_runtime/src/ui/text/layout_engine/geometry_admission.rs
   - zircon_runtime/src/ui/text/layout_engine/rich_table/layout.rs
+  - zircon_runtime/src/ui/text/layout_engine/secure_presentation.rs
   - zircon_runtime/src/ui/text/layout_engine/tests/soft_hyphen.rs
   - zircon_runtime/src/text/layout/line_break/mod.rs
   - zircon_runtime/src/text/layout/line_break/boundary_correction.rs
@@ -65,15 +68,12 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/metrics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/font/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/divider/geometry/label_bounds/horizontal.rs
@@ -1464,3 +1464,434 @@ managed_validation_pending`。
 其文本必须等于 `line.text` 的精确 UTF-8-safe visual slice，最后一个 run 必须到达行视觉末端。合法空 metadata run
 继续忽略，grapheme 内 scalar-aligned 样式边界继续允许。该入口仍为单遍 `O(lines + runs)` admission，不增加第二
 份几何/样式缓存；两条 Rust 回归已写入但尚未通过 managed Cargo 执行，因此仅记静态实现完成。
+
+## 2026-09-01 glyph artifact 有限几何前缀所有者收敛
+
+复审 `ResolvedTextGlyphArtifact` 的 caret、physical hit 与 source-range selection 投影发现：共享
+`text_glyph_clusters` 已把单个 backend cluster 的 advance 收敛为有限值，但 artifact geometry 随后又以
+裸 `f32` 重建 visual 前缀。两个各为 `f32::MAX` 的合法有限 cluster 会令第二个 cluster 的 trailing caret
+与 selection end 重新溢出为 `inf`，使已经通过 layout 准入的 retained artifact 在输入阶段发布非法几何。
+
+现在 `glyph_artifact/geometry.rs` 的普通 glyph 路径、virtual line receipt、special marker、sequence glyph
+cluster 与 range span 共用 `layout_geometry::FiniteGeometryAccumulator`。每条路径仍是原有单遍 `O(C)`，不增加
+第二份 prefix 数组或逐 glyph lookup；前缀、midpoint、leading/trailing 和最终 range span 使用同一饱和有限
+语义。该边界继续对齐 Unreal `FShapedGlyphSequence::GetMeasuredWidth/GetGlyphAtOffset`：shaped sequence
+artifact 是 caret/hit/selection 几何的唯一事实来源，DTO fallback 不自行发明另一套累加规则。
+
+新增 `artifact_cluster_geometry_keeps_extreme_prefix_and_caret_geometry_finite` 与
+`virtual_replacement_geometry_keeps_extreme_receipt_prefixes_finite` Rust 回归，分别覆盖第二个 backend cluster
+及 virtual replacement receipt 的 interior caret、physical hit 与 selection span；旧实现的 caret/selection
+断言会得到 `inf`。
+进一步沿 retained artifact 生成路径反查发现，普通 visual projection、resolved source-order projection 与
+logical virtual projection 仍会将多个 visual cluster advance 以裸 `+=` 回填到同一 backend glyph。该处若
+先溢出为 `inf`，下游 cluster admission 会将非有限 glyph advance 降为零，导致整个 ligature/复合 cluster
+几何丢失。三条聚合入口现在使用同一 `finite_sum([current, value])`，不新增 prefix 数组或额外遍历，仍保持
+`O(G + C)` 与原内存规模。三个 Rust 回归分别覆盖 visual、source-order 和 logical virtual 的双极值 cluster
+归并；生产/根测试 owner 为 `486 / 781 / 154` 行，均未越过 800 行预算。
+
+本地受限验证结果：Runtime Text infrastructure 静态契约 `60/60`（`1.758s`）通过，Rust 2024 rustfmt 与
+scoped `git diff --check` 通过；宽口径 `test_runtime_text*.py` 为 `129` 项、`127` 项通过，唯二失败仍是未授权
+`scene_renderer/ui/image.rs` 的 `UiTextureDependencies` 返回类型契约和 `829 > 800` 行预算，不属于 Runtime
+Text owner。本切片 terminal SHA-256：`glyph_artifact/geometry.rs =
+201559A9E9D61B5995E73D1C27D52300206622F73FA75F7C5987A0F620DF44DB`，
+`glyph_artifact/tests/cluster_geometry.rs =
+59285B388DCBFC71626DC89C65EED7457559D5345D82C31A87CC7625E6286D8E`，
+`glyph_artifact/tests/virtual_replacement.rs =
+2D23453A3AF085367DF18508D240B0F89A3EF636392F389B97C9B746804BFC20`，
+`glyph_artifact/visual_projection.rs =
+201E7D7D697C8E99B2EA0B123E68A40BAF2618F404B7D46113DBE60EB5B221A9`，
+`glyph_artifact/tests/visual_projection_contract.rs =
+35BFFED7516340C0FF865640E27F8F660AB73DD6279FF83992DFEF57A87415F2`，
+`layout/logical_virtual_line.rs =
+C90C13DDD3861E297D71A39D4F3B181FA37EC9ED34986026D77925DAF37A69A3`，
+`layout/logical_virtual_line/glyph_projection.rs =
+ACD5CEB79F515F5A7D69F492D974491EED93500FD2913835072A2DC72D99A8D3`，静态契约文件为
+`97FBF14793D21581BC8DF3816E9E6C07515FD8632EF44B59569F7981DF8C3384`。
+
+当前状态：`glyph_artifact_finite_prefix_owner_static_implemented /
+glyph_projection_multicluster_sum_static_implemented /
+caret_hit_selection_extreme_geometry_regression_written / managed_cargo_wgpu_pending`。这是 MVP 正确性收敛，
+不是性能优化结论；未执行 Cargo、真实 WGPU/PNG、31 样本 timing/allocation/RSS 或功耗验收，因此不创建
+截图、不提交 milestone commit，也不发送企微量化结论。
+
+同日继续修复 artifact 缺失或代际失配时的 Surface 输入几何边界：`ui/text/hit_test.rs` 的横排/VerticalRl
+grapheme prefix、midpoint 与点到行 frame 的轴差值现在复用 `FiniteGeometryAccumulator`/`finite_sum`，
+`ui/text/geometry.rs` 的 caret、selection 起点与 extent 则在 `f64` 中完成 frame-origin + advance 后统一
+调用 `finite_geometry` 饱和。这样 source-map fallback 不会因两个极值 grapheme 或极值 frame origin 重新发布
+`inf`，也不会在非有限值上继续做 midpoint 比较；正常布局的 visual order、BiDi source map 和 VerticalRl
+方向保持不变。新增 `source_geometry_keeps_extreme_caret_and_selection_frames_finite`，覆盖横排及 VerticalRl
+caret/selection frame；实现仍为单遍 `O(G)`，不创建第二份 prefix 缓存。
+
+受限静态复核：Runtime Text infrastructure `60/60`（`11.864s`）通过，相关 owner rustfmt 与 scoped
+`git diff --check` 通过；`hit_test.rs`、`geometry.rs`、geometry tests 分别为 `300 / 323 / 575` 行，均低于
+800 行预算。terminal SHA-256：`ui/text/hit_test.rs =
+2D70CC24F58AE1F113E98BE100F515BEB949E21D3F0293D599D057A52AB49D87`，
+`ui/text/geometry.rs = DAEF08C9F7EF02F2FD56946681FDFD67B944ED51E2BC714FDB05389C3AAE25AF`，
+`ui/text/geometry/tests.rs = 8E067002391494C670F6D108BA0E1909438AFFC96AC73065A679B81E6BA31B7D`，
+静态契约文件最新为 `25601E141F7C66B0D2E2DFDE5DB0CF5ECA64B2D0946FCA139EC177B7392E3305`。
+
+当前状态追加：`surface_input_finite_prefix_and_frame_owner_static_implemented /
+extreme_caret_selection_frame_regression_written / managed_cargo_wgpu_pending`。Cargo、真实 WGPU/PNG、性能
+profile、功耗与 milestone 提交仍需受管流程，不把此静态状态当作渲染验收。
+
+## 2026-09-02 wrapping 与边界校正有限前缀收敛
+
+继续沿共享几何 owner 反查 wrapping 的真实数据流：`wrapping.rs` 在 word/glyph 两条路径中会把
+续接 grapheme、候选 word、校正后的 range 和逐 glyph fallback advance 回填到同一当前行。旧实现
+使用裸 `+=` 或 `f32` 相加，两个极值 glyph 会先产生 `inf`，再被后续 overflow 判断当成无限宽，
+造成错误换行或将合法行误判为需要 fallback。现在所有非负行 advance 统一经过
+`layout_geometry::finite_sum`；`accumulate_finite_advance` 是 wrapping 的唯一写入口，保持原有
+单遍 `O(G + boundaries)` 与内存规模。
+
+`GraphemeAdvanceIndex` 的 prefix 也从 `Vec<f32>` 收敛为 `Vec<FiniteGeometryAccumulator>`。二分命中
+仍读取有限发布值；任意 range advance 则使用 accumulator 的 `f64` exact history 后再饱和发布，
+避免“前缀已经饱和，子范围相减得到 0/NaN”的几何退化。新增极值 prefix/caret 回归覆盖双
+`f32::MAX` metric。
+
+边界 shaping 校正器的 raw line advance、leading/trailing context 和 signed shaping delta 同步使用
+有限累积器。这样长行校正仍只 reshape 两侧固定窗口，且修正项可正可负时不会重新触发 `f32`
+溢出。新增长行极值 raw advance 回归；没有扩大 context budget，也没有引入全行重塑。
+
+受限静态验证：相关 Rust 2024 rustfmt check、scoped `git diff --check` 与 Runtime Text infrastructure
+contract `60/60` 通过。wrapping、advance index、boundary correction 的极值回归均已写入，但尚未
+通过受管 Cargo 执行；宽口径 `test_runtime_text*.py` 的两个既有失败仍属于未授权
+`scene_renderer/ui/image.rs` owner。当前状态追加：
+`wrapping_finite_advance_owner_static_implemented /
+advance_index_exact_prefix_history_static_implemented /
+boundary_correction_signed_delta_finite_static_implemented /
+extreme_wrapping_prefix_regressions_written / managed_cargo_wgpu_pending`。
+这仍是 MVP 几何正确性收敛，不是性能、功耗或真实渲染验收结论；因此不生成截图、不提交 milestone
+commit，也不发送未受管验证的量化结论。
+
+## 2026-09-02 plain layout 行游标与总高度有限化
+
+最后一轮静态几何审计覆盖到 plain layout 的物化阶段：`plain_layout.rs` 原先使用
+`frame.y + line_index_offset * sample_line_height` 初始化行游标，并以 `y += line_height`
+推进长段落；virtualized 高度也直接使用 `usize as f32 * sample_line_height`。在输入已通过
+shape/layout 准入但行数或指标接近极限时，这些末端运算仍可能发布 `inf`，使 clip/intersection
+与后续 text batch admission 的几何事实不一致。
+
+现在行游标由 `FiniteGeometryAccumulator` 持有：frame origin、virtualized offset 和每行
+line height 都保留 exact history 后发布有限值；virtualized measured height 在 `f64` 中完成
+乘法并经 `finite_geometry` 饱和。`physical_line_metrics.rs` 的 visible capacity 使用同一
+有限 next-height 比较，total height 改用 `finite_sum`，非有限/负 line metric 继续按既有
+fail-closed 语义归零。所有路径仍为 `O(lines)`，未增加行缓存或二次布局遍历。
+
+新增 `total_line_height_keeps_extreme_metric_accumulation_finite` 回归，覆盖两个
+`f32::MAX` line height；plain layout 的 contract 断言确保不回退到裸 `y +=` 或未保护的
+virtualized 乘法。
+
+受限静态验证：目标 owner Rust 2024 rustfmt check、scoped `git diff --check` 与 Runtime Text
+infrastructure contract `60/60` 通过。当前状态追加：
+`plain_layout_line_cursor_finite_owner_static_implemented /
+physical_line_height_aggregate_finite_static_implemented /
+extreme_line_height_regression_written / managed_cargo_wgpu_pending`。
+Cargo、真实 WGPU/PNG、性能 profile、功耗与 milestone 提交仍需受管流程；本切片不生成截图，也不
+把静态通过误报为渲染验收。
+
+## 2026-09-02 legacy rich materialize 与 wrap decision 有限化
+
+架构复审继续沿旧 `text/layout/rich/materialize.rs` 入口向下追踪。该入口负责兼容 rich
+`LaidOutText` 物化，和新 UI layout engine 并存；其中 `cursor_x/cursor_y` 以及 line width/height
+仍是独立裸 `f32` 累积，若只修新入口会让同一文本在 legacy API 与 UI API 产生不同的有限几何。
+现已将两个游标改为 `FiniteGeometryAccumulator`，line ascent+descent 由 `finite_sum` 发布，
+保持 run/item 单遍 O(R) 和既有 item provenance。
+
+`line_break/greedy.rs` 的 wrap decision 也改用 `finite_sum` 比较 current+next 与 max+epsilon，
+避免 `f32::MAX + f32::MAX` 误变 `inf` 后与饱和布局预算不一致。`align.rs` 的 justification
+adjusted advance 与 assigned remainder 使用有限非负累积，最后一个机会的 signed remainder
+在 `f64` 中计算后再发布，保留原有“总额精确归还 extra”的语义。
+
+这些变更没有引入新的几何 helper；所有模块继续引用 `layout_geometry` 单一 owner。目标文件
+Rust 2024 rustfmt check、scoped diff-check 与 Runtime Text infrastructure contract `60/60`
+通过。当前状态追加：
+`legacy_rich_materialize_finite_cursor_static_implemented /
+greedy_wrap_decision_finite_static_implemented /
+justification_assignment_finite_static_implemented /
+managed_cargo_wgpu_pending`。
+这仍属于非验证类 MVP 几何基础设施，未执行 Cargo、真实 WGPU/PNG、profile 或功耗采样，因而
+不生成截图、不提交 milestone commit，也不发送未经受管流程确认的性能数据。
+
+## 2026-09-02 rich span 校正与兼容物化一致性
+
+复审发现 `RichAdvanceIndex::corrected_advance_with_provider` 仍以裸 `raw - span + corrected`
+累积 signed shaping delta。单个 span 的极值 raw advance 在减去原 metric 后再加回校正宽度时，
+可能经历 `inf`/`NaN`，即使最终结果会被 `finite_non_negative` 清洗，也会丢失真实的校正历史。
+现在 single-span 与 multi-span 分支都使用 `FiniteGeometryAccumulator`，按原顺序加入 raw、负的
+旧 span advance 与新的校正 advance，最后仅在发布边界做非负化；新增 signed extreme span 回归。
+
+这使 legacy rich materialize、RichAdvanceIndex 与新 wrapping/shared boundary correction 共同遵守
+同一有限几何规则：shaping correction 仍是固定边界窗口，未扩大请求或增加二次遍历。相关 owner
+rustfmt check（`rich_advance_index.rs` 使用 `skip_children=true`，隔离既有测试文件格式漂移）、
+scoped diff-check 与 Runtime Text infrastructure contract `60/60` 通过。
+
+当前状态追加：`rich_span_signed_delta_finite_owner_static_implemented /
+legacy_and_ui_text_geometry_policy_aligned /
+rich_span_extreme_regression_written / managed_cargo_wgpu_pending`。未执行 Cargo、真实 WGPU/PNG、
+profile、功耗或 milestone 提交；这不是渲染验收结论。
+
+## 2026-09-02 shaping-to-grapheme 投影有限聚合
+
+最终反查 `layout/measure.rs` 的 backend glyph cluster 到 grapheme advance 投影：同一个 grapheme
+可以接收多个显式 `cluster_start` backend cluster 的 overlap contribution，旧实现对
+`widths[index]` 使用裸 `+=`。两个合法有限的极值 cluster 会使 grapheme advance 重新成为
+`inf`，随后污染 advance index 与 wrap decision。现在该聚合改用共享 `finite_sum`，仍在原有
+cluster/grapheme overlap 循环中完成，不增加遍历或缓存。
+
+新增 `measured_grapheme_geometry_keeps_multicluster_overlap_finite`，构造同一 source grapheme 的
+两个显式 backend cluster，要求最终 advance 为有限 `f32::MAX`。这与已有 shared cluster 内部
+多 glyph 累积回归互补：前者覆盖多个 cluster 到一个 grapheme，后者覆盖一个 cluster 内多个
+glyph。
+
+目标 owner Rust 2024 rustfmt check、scoped diff-check 与 Runtime Text infrastructure contract
+`60/60` 通过；宽口径 `test_runtime_text*.py` 为 `129` 项、`127` 项通过，唯二失败仍是未授权
+`scene_renderer/ui/image.rs` 的返回类型契约和 `829 > 800` 行预算。当前状态追加：
+`grapheme_multicluster_projection_finite_static_implemented /
+extreme_multicluster_overlap_regression_written / managed_cargo_wgpu_pending`。
+Cargo、真实 WGPU/PNG、性能 profile、功耗、commit 与企微仍待受管验收，本切片不生成截图。
+
+本轮新增/修改 owner terminal SHA-256：`measure.rs = EB1FE650C9E59C98D9CED6151A1C6576DB513C1F7DAC9EC0DC77B579327B0B0A`，
+`measure/tests.rs = 380E8D26475E1DF4F9E33E63C50A5BCA3FFEE8C71E4445764264B976E196671F`，
+`advance_index.rs = CA03AF60DE85EBC7DC8AFB3858D0454FAD79285A4AAE98BD06F2A3B4EDDD8973`，
+`line_break/greedy.rs = 60213169B585A2F3C09F7196B2A170DF669F2FE8E56237BEACB8A5CED5409CB5`，
+`line_break/boundary_correction.rs = 07251F00549052DE6287C1C06CF55045FB7B0662276F2F5221520D7D27A4E2BD`，
+`align.rs = 31A230289DDC1776DDF84B73323FDE66CCBCD93453B3E63A93631E65EBED5E55`，
+`overflow.rs = 3397B593F6BF0D2ECDCF8A6F97EEAC6BCE03C81D675CFB93A8964FAB7DBA3CFF`，
+`rich/materialize.rs = C941EDA6230392ED08F231A3ED25072743317BF57873A8103FA777C10D125D41`，
+`rich_advance_index.rs = FCC64CCEA601C60941FF9D76722AD81A96DFD009EAD349B5F78FF66E7A529D4D`，
+`plain_layout.rs = 7FD2A7D1D5A68296C82B51B83F7CEBDD28F65ED8D509948A7D97F9B145D989C4`，
+`physical_line_metrics.rs = F8EBD658D86D0FBB562FD1E2EF8EAC2EF5CB245708B707888F9A101F0B668674`，
+静态 contract = `014642325DE99339729DFB49DA12ED6EE659B8E48632D17E98B0F86BC4B9F18C`。
+
+## 2026-09-02 ellipsis retained-width decision finite化
+
+ellipsis 的总宽检查已在前一轮改为 `finite_sum`，但 `overflow.rs` 的 prefix/suffix/middle 保留
+计数器仍以裸 `width + advance` 决定下一段是否可保留。对于已经通过 shaping 的极值 grapheme，
+该决策会先产生 `inf`，导致过早停止保留、错误插入省略号，或和上层 line-box 的有限宽度事实
+不一致。
+
+现在三种保留策略的 `retained_width`、prefix fallback 与正反向 fitting 都使用共享
+`layout_geometry::finite_sum`。该模块不处理无限宽 sentinel 的转换，`available` 仍由上层策略
+明确归一化；因此只修复有限输入累积，不改变 `+inf` 表示 unbounded 的既有语义。所有循环仍为
+单遍 O(G)，没有额外数组。
+
+目标 owner rustfmt check、scoped diff-check 与 Runtime Text infrastructure contract `60/60`
+通过。当前状态追加：`ellipsis_retained_width_finite_static_implemented /
+managed_cargo_wgpu_pending`。未执行 Cargo、真实 WGPU/PNG、profile 或功耗采样，不生成截图或提交
+milestone commit。
+
+## 2026-09-02 物理行高有限发布收敛
+
+复审发现 `maximum_line_height` 仍使用裸 `f32::max`，使 `NaN` 或正无穷行高可以绕过
+`visible_line_capacity` 的有限化并进入普通/VerticalRl 行放置。该结果是整批物理行的默认
+高度，属于布局基础设施边界，不能依赖上游 shaping 偶然保证。
+
+现在 fallback 与每个候选行高都经 `finite_f32_or_geometry` 统一发布：负值归零，`NaN` 归零，
+极值在 `f32` 范围内有界；常规有限输入仍保持原始 `f32` 结果。新增
+`maximum_line_height_publishes_only_finite_non_negative_geometry`，覆盖 `NaN`、正无穷及无
+有效 metrics 的 fallback。没有增加遍历，仍是 O(L) 单次 max 聚合。
+
+目标 owner rustfmt check、scoped diff-check 与 Runtime Text infrastructure contract `60/60`
+通过。当前状态追加：
+`physical_line_height_finite_publication_static_implemented /
+non_finite_line_height_regression_written / managed_cargo_wgpu_png_profile_pending`。
+未执行 Cargo、真实 WGPU/PNG、31 样本 profile、功耗或 milestone 提交；不生成截图或发送未经
+受管验证的量化结论。
+
+本轮 terminal SHA-256：`physical_line_metrics.rs = 92425A53237D20ECE46876AAEFDE7E176F60CDCDD1813735FE6269A29E0EFBF9`，
+`test_runtime_text_infrastructure_compile_contract.py = 1799249CABFDCA0176DF14044EC29A9D3A352537E74958779A21A5F871E39868`。
+
+## 2026-09-02 段落 override 缩进有限 sweep
+
+复审发现段落 override sweep 仍以裸 `first_indent +=/-=` 合并嵌套缩进，并以裸层级乘法
+计算 tab interval。两个合法极值 inset 会在进入嵌套范围时产生无穷，离开范围后也无法恢复
+外层精确值，最终污染可用内容框与对齐坐标。
+
+现在 sweep 使用 `FiniteGeometryAccumulator` 保存缩进增减历史，单次扫描仍按原有 active span
+与 owner heap 工作；`paragraph_insets` 的层级乘法和对齐/内容框组合统一走
+`finite_f32_or_geometry`/`finite_sum`。新增
+`paragraph_override_sweep_keeps_extreme_nested_indent_finite_and_reversible`，覆盖极值外层、
+内层及退出后的恢复。复杂度不变，未引入兼容路径或额外遍历。
+
+目标 owner rustfmt check、scoped diff-check 与 Runtime Text infrastructure contract `60/60`
+通过；生产 owner 642 行、folder-backed 测试 368 行，均低于结构预算。当前状态追加：
+`paragraph_override_indent_finite_sweep_static_implemented /
+extreme_nested_indent_regression_written / managed_cargo_wgpu_png_profile_pending`。
+未执行 Cargo、真实 WGPU/PNG、31 样本 profile、功耗或 milestone 提交；不生成截图或发送未经
+受管验证的量化结论。
+
+本轮 terminal SHA-256：`paragraph_layout.rs = FFB1F92D1D00148A2E5CDF1BA14F3A02F08AF9F2E50D90E4D2A3933F205CCEC8`，
+`paragraph_layout/tests.rs = BA9FEC6CAC200E4D9DF7960FFAE91A9EFC4F5A4DF91D34C5ADF60DE0B2A48E75`，
+`test_runtime_text_infrastructure_compile_contract.py = F5B27857C3090D02B8BE9200C6A93C2BD293D75EFDC032B791D241C60F20C342`。
+
+## 2026-09-02 inline widget 可见几何有限发布
+
+rich inline widget 的可见起点累计已从裸 `f32 += advance` 切换为
+`FiniteGeometryAccumulator`；非有限 advance 在 frame 计算前 fail closed，Horizontal/VerticalRl
+坐标统一经 `finite_f32_or_geometry`/`finite_sum` 发布。正常有限输入与单遍
+O(graphemes + runs) 复杂度不变，没有增加缓存或第二次 shape。
+
+新增极值累计、非有限 advance 与极值 frame 三项回归。目标 owner rustfmt/scoped diff-check
+通过，Runtime Text infrastructure contract 为 `61/61`。当前状态追加：
+`inline_widget_geometry_finite_publication_static_implemented /
+extreme_widget_geometry_regressions_written / managed_cargo_wgpu_png_profile_pending`。
+Cargo、真实 WGPU/PNG、31 样本 profile、功耗、milestone commit 与企微同步仍待受管验收。
+
+## 2026-09-02 line-box 对齐坐标有限发布
+
+普通与 rich 水平布局最终都通过 `line_box::aligned_x` 计算行框原点。复审发现 Center/Right/
+End 及 RTL Start 分支仍依赖 `UiFrame::right()` 的裸 `f32` 加减；合法极值 frame 在这里会
+先产生 `inf`，再进入 paint/hit 的 line frame，即使前面的 advance 已经有限化也无法挽回。
+
+现在 `aligned_x` 同时保留原始 `f32` 候选与 `f64` 精确表达，在单一发布点调用
+`finite_f32_or_geometry`。普通有限 frame 的像素结果保持不变，极值只在 `f32` 范围内有界；
+没有新增布局分支、缓存或遍历。新增 `aligned_x_keeps_extreme_line_box_coordinates_finite`
+覆盖 Center/Right/End。
+
+目标 owner rustfmt check、scoped diff-check 与 Runtime Text infrastructure contract `60/60`
+通过；line-box owner 410 行，仍低于结构预算。当前状态追加：
+`line_box_alignment_coordinate_finite_publication_static_implemented /
+extreme_alignment_coordinate_regression_written / managed_cargo_wgpu_png_profile_pending`。
+未执行 Cargo、真实 WGPU/PNG、31 样本 profile、功耗或 milestone 提交；不生成截图或发送未经
+受管验证的量化结论。
+
+本轮 terminal SHA-256：`line_box.rs = E5F5BAF172247C4FDB6A3C548B162388B63E389B80A2D2E33B16F25CB2C2782C`，
+`test_runtime_text_infrastructure_compile_contract.py = F5B27857C3090D02B8BE9200C6A93C2BD293D75EFDC032B791D241C60F20C342`。
+
+## 2026-09-02 当前静态验证快照
+
+前述 `60/60`、`129/127` 数字保留为对应切片写入时的历史结果；加入 inline widget、
+VerticalRl placement、paragraph/rich line、rich-table physical frame 与 secure bidi 投影守卫后，当前 Runtime
+Text infrastructure contract 为 `66/66`。宽口径 `test_runtime_text*.py` 当前为 `135` 项、
+`133` 项通过；唯二失败仍来自未授权的
+`zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs`：返回类型契约漂移，以及
+`829 > 800` 的 owner 行数预算。本目标未编辑、未纳入该 owner。
+
+当前 terminal SHA-256：
+`inline_widget.rs = 545883788B8362D3C35D954FCBF49D4FF45B4550E0DFFDBDBEBED19966C3AEE3`，
+`vertical.rs = 13D46C8B7A3A17C4A7BD4508C0FB8D73CFE832EAE0A0320E346D8BE980BE8B79`，
+`tests/vertical.rs = 3F5425A235FFCF642B92FED4804A6DEC7BB79B769B45132CB42535134C54ABE0`，
+`rich_layout_vertical.rs = BD502BA3C5C01E4AE3E4E8C9C4A8BBB971E6B17107FE0DCA934757C69FFA8112`，
+`rich_layout.rs = A535725781B9A31F5680B27C0F1EB486E47E035A1D31964E9B920FCFBA3198CC`，
+`paragraph_layout.rs = 43688955FFF00FE5F6A6FD525F80EC666C4B8027CEECC2A76B6383B469C5DB19`，
+`paragraph_layout/tests.rs = 82F44A7B2B2F57CCD61699835270C6147FA721BA41825C5554FDA6B9696AA25B`，
+`rich_table/axes.rs = 7253A4BD81D2E5F58441C6E4B9E4B6B81023BAB9790DEA6F00B94AEFE21E5958`，
+`rich_table/cell_layout.rs = EB535590F6958D9D5367EFFE4A4331D2560E2B8A45B66B76C00652EBFB333BD4`。
+状态仍为 `managed_cargo_wgpu_png_profile_pending`；这不是编译、真实渲染、截图、性能或功耗验收。
+
+普通与 rich VerticalRl placement 现在共享同一有限 y 发布函数；rich horizontal 的 line y、
+ascent+descent 与 unclipped height 复用有限累积。paragraph LTR inset、table logical-to-physical
+frame 以及 cell line/box translation 同样不再裸加绝对坐标。table 后续仍执行现有
+`TextLayoutGeometryBudget` 验证，超出业务预算的几何继续显式失败，不会被饱和发布绕过。
+
+优先结构约定复核同时发现静态合同 owner 已增长到 1923 行，超过测试 owner 800 行预算。现已
+保留 22 行 canonical `load_tests` 入口，并按职责拆为 folder-backed 的 cache/table geometry、
+rich parser/admission、context/geometry 与 semantic/structure 四个 owner，当前分别为
+237/609/670/490 行；`__init__.py` 为 2 行。拆分时的 63 个方法完整保留，新增 secure、
+failure-layout 与 resolved-publication 合同后恰好发现 66 个测试方法，无重复方法名；专门入口
+`66/66` 通过，宽口径 discovery 仍为 `135` 项、`133` 项通过和上述两个外部失败。
+scoped `git diff --check` 通过。结构门禁曾尝试一次，但在任何检查启动前被协调器
+`maintenance_hold_active` 拒绝；依用户要求不轮询、不重试，继续推进可落地非验收工作。
+
+当前静态合同 terminal SHA-256：
+`test_runtime_text_infrastructure_compile_contract.py = 57C25C6073B5644E4636C2E18F8245B6D153AF83A021166E96D2BA334B93B1E1`，
+`runtime_text_infrastructure_compile_contract/__init__.py = 92FBBC5DF430DEC6779220C9F2896A471305651EDB64DF0D4B5431948F73908F`，
+`cache_table_geometry.py = 16BD3AC33BE1ED47DB9B090807A3DC5E3824A954070F2FEB62044E1D5FC9E8B7`，
+`rich_parser_admission.py = 6CEFD77F2B6579E420DBAB8A309C5FF6D4FFD3DB415FE2C6186638D0C692F2D3`，
+`context_geometry.py = BAFA18CA9D7FE569EAB48BF74F92310B444D5A85F76E22237DA243E5F500883F`，
+`semantic_structure.py = 8FF477138C9DEA3E84C26EEA695558FFF84219A947C6E4167FDF86BCFA87E146`。
+当前状态追加：`runtime_text_static_contract_folder_backed_owner_split_complete /
+method_cardinality_66 / secure_projection_finite_publication_static_implemented /
+failure_layout_finite_budget_publication_static_implemented /
+resolved_layout_pre_artifact_geometry_admission_static_implemented /
+managed_structure_cargo_wgpu_png_profile_pending`。
+
+secure/password 文本的 source-owned bidi 重投影现在也在 `Start/End` 方向翻转时保留
+`f64` logical edge history，并经共享 `finite_f32_or_geometry` 单点发布；普通有限 frame
+候选保持原值，极值 frame 不再把正/负溢出坐标发布为无穷。新增
+`secure_direction_projection_keeps_extreme_logical_edges_finite` 回归；owner 322 行，
+仍在结构预算内。当前 terminal SHA-256：
+`secure_presentation.rs = 393D57F409DB6062656FFF7EB38D7C3E5EDCF406537874B6E42C8FA1E3D955E5`。
+
+shaping/layout 错误的唯一 safe-publication owner 也已补齐预算准入。`failure_layout.rs` 现在从
+`SharedTextLayoutSession` 读取同一 `TextLayoutGeometryBudget`，合法 font-size/line-height 原样
+保留，非有限、负值或超预算值回退到预算可容纳的最小字体/行高；空错误布局的 measured height
+只读取该已准入值。因此无 artifact 的错误结果不再以 `Infinity` 污染父布局或渲染准入。
+新增 `failure_layout_rejects_non_finite_and_over_budget_metrics`，owner 104 行，算法与状态均为
+O(1)。terminal SHA-256：
+`failure_layout.rs = 9D72C5E7FCEE53B8E2ED8FF21C86B3D683F6C39FFF30C72252CE5BAA33D73B54`。
+
+## 2026-09-02 当前格式与产品 framebuffer 验证入口复核
+
+本轮对当前目标的 16 个 layout-engine Rust owner 统一执行 Rust 2024 `rustfmt`。格式化只重排
+import；专门静态合同原先把三项有限几何符号的书写顺序当作契约，现已改为逐符号验证同一
+`layout_geometry` owner，不再耦合无语义的 import 顺序。该切片当时专门入口重新为 `65/65`，
+`rustfmt --check` 与 scoped `git diff --check` 通过。
+
+因此前文逐切片 hash 仅保留为当时记录；当前受格式化影响的 terminal SHA-256 为：
+`ellipsis.rs = B61E37751D9890A2ADCAD8C42410F208E2E041917A40254715AD98BB68DCA78A`，
+`line_box.rs = 4220AAABD537D7F92250E2ACCF0B3E7E09820AD92155176D3B2830CEBDA7AAB2`，
+`physical_line_metrics.rs = 58447125C6F40179975211FED9E46198623F9FDC593B5CE3E9D11C673D44AAB9`，
+`plain_layout.rs = 22BE949B5FF398788D6BBC132FE3338F4CAE242E90BDE5B85BF5B2740E283981`，
+`wrapping.rs = 22C249FBB517AA8211582893961F15CBA55E5FDCCD84458D35DF8B1F469AAD67`，
+`wrapping/tests.rs = 34C3091B61D9DA66877020193E1BC650A6E7D921C55C58E555DCE8AEF4FB476A`。
+未受格式化影响的当前 hash 继续以上一节为准。
+
+真实产品 framebuffer harness 的静态 proof contract 为 `3/3`。入口使用真实
+`WgpuRenderFramework`/`capture_frame` 与像素断言，最终路径固定为
+`docs/tests/runtime/text/runtime_text_mvp_foundation_product_framebuffer_20260831.png`，工作目录也在
+同一 E 盘文档树，并拒绝写入 Cargo target。当前该 PNG 不存在；因此状态是
+`real_product_framebuffer_harness_static_ready / managed_wgpu_png_pending`，不是截图验收完成，也没有
+用纯文本策略图替代产品渲染证据。harness/proof-path/static-contract SHA-256 分别为
+`CF37376D209287282796FF63E5855C51ACF2A8C018D33DCBABA15A16E225ECFF`、
+`B8FA1D4C2A30495962B0F0691FED02BDEF7E4C25AEE5106F9D477B86622290FC`、
+`6C8C80BEAA98BADEB521A4F5A383758E03E3B54590FB80A772C8CF1CCCFBC1B2`。
+
+## 2026-09-02 LB-M3 `max_lines` / plain first-line indent 结构复审
+
+当前源码全量符号扫描确认：Text03 §5/§6 已声明 `max_lines` 与 `first_line_indent`，但生产
+`UiResolvedStyle`、`UiTextStyleKey`、surface style parser 和 layout-engine 均没有这两个字段；
+唯一 `max_lines` 命中是 hard-line cache 的内部容量参数，不是产品布局契约。rich paragraph 的
+typed indent 已有独立 owner，但它不能冒充 plain style 的 first-line indent。因此这两项当前仍是
+`declared_not_implemented`，不得把 LB-M3 或完整文本布局计划误标为完成。
+
+对照 Unreal `FTextLayout` 当前源码，retained line models/views 持有断行后的行视图，margin、
+justification、wrapping width 属于布局 owner；裁剪策略不进入 glyph shaping。Zircon 的硬切顺序
+据此固定为：
+
+1. `zircon_runtime_interface` 定义 typed block constraint（`max_lines: Option<u32>`）和逻辑首行
+   inset，默认值分别为 unlimited/zero；禁止用 `0` sentinel 或仅在 Runtime 私有 style 中加字段。
+2. surface parser 做有限、非负、整数范围准入；`UiTextStyleKey` 纳入两个字段，避免不同约束共享
+   错误 layout cache。shared `TextStyle` 仍只承接 shaping identity，不复制 block policy。
+3. layout-engine 在 wrapping/paragraph line-view 生成后、glyph artifact 构建前一次应用约束；
+   HorizontalTb 将首行 inset 映射到 logical x/usable width，VerticalRl 映射到首列 y/usable height。
+   `max_lines` 与 frame capacity 取较小值，只有 ellipsis 策略才合并被裁行并重做最后可见行 artifact。
+4. hit/caret/selection/IME 和 renderer 只消费同一 resolved line/artifact，不重新解释 `max_lines` 或
+   indent；viewport path 必须把全局行号与裁剪后的 source range 保持一致。
+
+实现需要 RuntimeInterface owner 的合法生命周期和 managed Cargo/WGPU 验证；本目标当前没有
+编辑该外部 owner，也没有落 Runtime-only 兼容字段。状态：
+`LB-M3_max_lines_and_plain_first_line_indent_architecture_review_complete /
+cross_owner_typed_constraint_cutover_pending`。
+
+## 2026-09-02 resolved layout artifact 前统一几何准入
+
+普通和 rich 非 table 布局此前会在完整 resolved DTO 没有统一 geometry-budget 准入的情况下进入
+glyph artifact 构建；table/measurement 虽有局部检查，renderer 也有后置拒绝，但不能阻止无效
+layout 触发额外 artifact shaping。现在 `layout_parsed_text_with_provider_and_viewport_outcome` 在
+font-generation fence 通过后、plain/rich artifact 分支前调用唯一
+`admit_resolved_layout_publication`。该 owner 检查 layout metrics、line/placement frame、baseline、
+每个 glyph advance 与 text-box geometry，失败时发布 `ResolvedLayoutPublication` 诊断回执并返回
+`GeometryTooLarge`；外层继续走已收敛的有限 failure layout。
+
+正常路径不改变断行、对齐、字形或缓存语义，新增成本为 artifact 前一次
+O(lines + glyph advances + boxes) 只读预检，能够提前终止异常输入的后续 artifact 构建。新增
+`resolved_layout_publication_rejects_geometry_before_artifact_build` Rust 回归与 failing-first 静态
+顺序合同。当前专门静态入口 `66/66`，宽口径 `135/133`，唯二失败仍是未授权 `image.rs`；
+Rust 2024 rustfmt/scoped diff-check 通过。当前 terminal SHA-256：
+`layout_geometry.rs = 07380E94169743AE2E68C37D98DFFC0BB6473A63B8E4E2B20A46F6D2B08CCE27`，
+`layout_engine.rs = 818AE637EECC87D0C1DD82A17072E515A427218E797D0B4F34704C2D142C963A`，
+`geometry_admission.rs = 7E3B573662445AE9EFFF571748A2CC46AF1D305B67209900E6FA6CBEEB5FEBBC`，
+`context_geometry.py = BAFA18CA9D7FE569EAB48BF74F92310B444D5A85F76E22237DA243E5F500883F`。
+状态：`resolved_layout_pre_artifact_geometry_admission_static_implemented /
+managed_cargo_wgpu_png_pending`。

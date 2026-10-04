@@ -1,3 +1,4 @@
+//! 运行时根入口只公开选定模块，模块家族和历史别名由各自子模块判定。通过源码文本核对父子路由、状态镜像和文件预算。
 use super::{FRAMEWORKS_STATUS, GUARD, SLICE, STATUS};
 
 #[test]
@@ -138,7 +139,7 @@ fn assert_status_docs_mirror_split() {
         ),
         (
             "module convention",
-            include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md"),
+            include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"),
         ),
     ] {
         assert_contains_all(label, source, &[SLICE, STATUS, GUARD]);

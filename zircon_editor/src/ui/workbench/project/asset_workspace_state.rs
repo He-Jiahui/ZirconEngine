@@ -1,3 +1,5 @@
+mod inspector_resource_labels;
+
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -33,6 +35,21 @@ struct AssetWorkspaceItemProjectionInput {
     kind_filter: Option<ResourceKind>,
 }
 
+impl AssetWorkspaceItemProjectionInput {
+    fn matches_current(
+        &self,
+        projection_generation: u64,
+        selected_folder_id: &str,
+        search_query: &str,
+        kind_filter: Option<ResourceKind>,
+    ) -> bool {
+        self.projection_generation == projection_generation
+            && self.selected_folder_id.as_str() == selected_folder_id
+            && self.search_query.as_str() == search_query
+            && self.kind_filter == kind_filter
+    }
+}
+
 #[derive(Clone, Debug)]
 struct AssetWorkspaceItemProjectionCacheEntry {
     input: AssetWorkspaceItemProjectionInput,
@@ -50,6 +67,7 @@ pub(crate) struct AssetWorkspaceState {
     projection_generation: Cell<u64>,
     item_generation_cache: RefCell<Option<AssetWorkspaceItemProjectionCacheEntry>>,
     search_query: String,
+    normalized_search_query: String,
     kind_filter: Option<ResourceKind>,
     activity_view_mode: AssetViewMode,
     browser_view_mode: AssetViewMode,
@@ -69,6 +87,7 @@ impl Default for AssetWorkspaceState {
             projection_generation: Cell::new(0),
             item_generation_cache: RefCell::new(None),
             search_query: String::new(),
+            normalized_search_query: String::new(),
             kind_filter: None,
             activity_view_mode: AssetViewMode::List,
             browser_view_mode: AssetViewMode::Thumbnail,
@@ -80,9 +99,7 @@ impl Default for AssetWorkspaceState {
 
 impl AssetWorkspaceState {
     pub fn sync_catalog(&mut self, catalog: Arc<EditorAssetCatalogGeneration>) {
-        self.catalog = Some(catalog);
-
-        self.reconcile_catalog_selection();
+        self.replace_catalog_and_reconcile_selection(catalog);
     }
 
     pub fn sync_catalog_changes(
@@ -90,8 +107,7 @@ impl AssetWorkspaceState {
         catalog: Arc<EditorAssetCatalogGeneration>,
         changed_asset_uuids: &[String],
     ) {
-        self.catalog = Some(catalog);
-        self.reconcile_catalog_selection();
+        self.replace_catalog_and_reconcile_selection(catalog);
         let projection_generation = self
             .catalog
             .as_ref()
@@ -101,6 +117,40 @@ impl AssetWorkspaceState {
             self.patch_catalog_item_generation(cached, changed_asset_uuids, projection_generation?)
         });
         *self.item_generation_cache.borrow_mut() = patched;
+    }
+
+    fn replace_catalog_and_reconcile_selection(
+        &mut self,
+        catalog: Arc<EditorAssetCatalogGeneration>,
+    ) {
+        let selected_locator_change = self.selected_asset_uuid.as_deref().and_then(|uuid| {
+            let previous = self.catalog.as_ref()?.asset(uuid)?;
+            let current = catalog.asset(uuid)?;
+            if previous.locator == current.locator {
+                return None;
+            }
+            let previous_folder = parent_folder_id_for_locator(&previous.locator);
+            let moved_folder = if self.selected_folder_id != previous_folder
+                || locator_parent_matches_folder(&current.locator, &previous_folder)
+            {
+                None
+            } else {
+                let current_folder = parent_folder_id_for_locator(&current.locator);
+                catalog.folder(&current_folder).map(|_| current_folder)
+            };
+            Some(moved_folder)
+        });
+        self.catalog = Some(catalog);
+        if let Some(moved_folder) = selected_locator_change {
+            // Details can refer to the previous locator until the manager publishes a new
+            // generation. Never combine them with the selected asset's new catalog row.
+            self.selected_details = None;
+            if let Some(folder_id) = moved_folder {
+                // Catalog reconciliation preserves identity; it is not a user navigation action.
+                self.selected_folder_id = folder_id;
+            }
+        }
+        self.reconcile_catalog_selection();
     }
 
     fn reconcile_catalog_selection(&mut self) {
@@ -214,6 +264,7 @@ impl AssetWorkspaceState {
         if self.search_query == query {
             return false;
         }
+        self.normalized_search_query = query.to_ascii_lowercase();
         self.search_query = query;
         true
     }
@@ -263,8 +314,7 @@ impl AssetWorkspaceState {
         &self.selected_folder_id
     }
 
-    #[cfg(test)]
-    pub fn selected_asset_uuid(&self) -> Option<&str> {
+    pub(crate) fn selected_asset_uuid(&self) -> Option<&str> {
         self.selected_asset_uuid.as_deref()
     }
 
@@ -282,7 +332,7 @@ impl AssetWorkspaceState {
             };
         };
 
-        let normalized_search_query = self.search_query.to_ascii_lowercase();
+        let normalized_search_query = self.normalized_search_query.as_str();
         let folder_tree = build_folder_tree(catalog.folders.as_ref(), &self.selected_folder_id);
         let visible_folders = catalog
             .folders
@@ -290,7 +340,7 @@ impl AssetWorkspaceState {
             .filter(|folder| {
                 folder.parent_folder_id.as_deref() == Some(self.selected_folder_id.as_str())
             })
-            .filter(|folder| folder_matches_search(folder, &normalized_search_query))
+            .filter(|folder| folder_matches_search(folder, normalized_search_query))
             .map(|folder| AssetFolderSnapshot {
                 folder_id: folder.folder_id.clone(),
                 parent_folder_id: folder.parent_folder_id.clone(),
@@ -302,7 +352,7 @@ impl AssetWorkspaceState {
             .collect::<Vec<_>>();
         let catalog_revision = self.asset_workspace_projection_generation(catalog);
         let visible_assets =
-            self.visible_asset_generation(catalog, catalog_revision, &normalized_search_query);
+            self.visible_asset_generation(catalog, catalog_revision, normalized_search_query);
 
         AssetWorkspaceSnapshot {
             project_name: catalog.project_name.to_string(),
@@ -361,7 +411,7 @@ impl AssetWorkspaceState {
         let input = AssetWorkspaceProjectionInput {
             catalog_revision: catalog.catalog_revision,
             catalog_publish_epoch: catalog.publish_epoch,
-            resource_sequence: self.resources.sequence(),
+            resource_sequence: self.resources.diagnostics().publication_count,
         };
         if self.projection_input.get() == Some(input) {
             return self.projection_generation.get();
@@ -384,21 +434,31 @@ impl AssetWorkspaceState {
         projection_generation: u64,
         normalized_search_query: &str,
     ) -> AssetWorkspaceItemGeneration {
+        if let Some(items) = self
+            .item_generation_cache
+            .borrow()
+            .as_ref()
+            .and_then(|cached| {
+                cached
+                    .input
+                    .matches_current(
+                        projection_generation,
+                        &self.selected_folder_id,
+                        &self.search_query,
+                        self.kind_filter,
+                    )
+                    .then(|| cached.items.clone())
+            })
+        {
+            return items;
+        }
+
         let input = AssetWorkspaceItemProjectionInput {
             projection_generation,
             selected_folder_id: self.selected_folder_id.clone(),
             search_query: self.search_query.clone(),
             kind_filter: self.kind_filter,
         };
-        if let Some(items) = self
-            .item_generation_cache
-            .borrow()
-            .as_ref()
-            .and_then(|cached| (cached.input == input).then(|| cached.items.clone()))
-        {
-            return items;
-        }
-
         let items = catalog
             .assets
             .iter()
@@ -420,14 +480,14 @@ impl AssetWorkspaceState {
         projection_generation: u64,
     ) -> Option<AssetWorkspaceItemProjectionCacheEntry> {
         let catalog = self.catalog.as_ref()?;
-        let normalized_search_query = self.search_query.to_ascii_lowercase();
-        let mut replacements = Vec::new();
+        let normalized_search_query = self.normalized_search_query.as_str();
+        let mut replacements = Vec::with_capacity(changed_asset_uuids.len());
         for uuid in changed_asset_uuids {
             let current_index = cached.items.selected_index(uuid);
             let updated = catalog.asset(uuid);
             let remains_visible = updated.is_some_and(|asset| {
                 asset_belongs_to_folder(asset, &self.selected_folder_id)
-                    && asset_matches_filters(asset, &normalized_search_query, self.kind_filter)
+                    && asset_matches_filters(asset, normalized_search_query, self.kind_filter)
             });
             match (current_index, updated, remains_visible) {
                 (Some(_), Some(asset), true) => replacements.push(self.asset_item_snapshot(asset)),
@@ -447,7 +507,7 @@ impl AssetWorkspaceState {
         projection_generation: u64,
     ) -> Option<AssetWorkspaceItemProjectionCacheEntry> {
         let catalog = self.catalog.as_ref()?;
-        let mut replacements = Vec::new();
+        let mut replacements = Vec::with_capacity(changed_locators.len());
         for locator in changed_locators {
             let Some(index) = cached.items.locator_index(locator) else {
                 continue;
@@ -602,7 +662,8 @@ fn build_folder_tree(
     folders: &[EditorAssetFolderRecord],
     selected_folder_id: &str,
 ) -> Vec<AssetFolderSnapshot> {
-    let mut folders_by_parent = HashMap::<Option<&str>, Vec<&EditorAssetFolderRecord>>::new();
+    let mut folders_by_parent =
+        HashMap::<Option<&str>, Vec<&EditorAssetFolderRecord>>::with_capacity(folders.len());
     for folder in folders {
         folders_by_parent
             .entry(folder.parent_folder_id.as_deref())
@@ -613,7 +674,7 @@ fn build_folder_tree(
         children.sort_by(|left, right| left.display_name.cmp(&right.display_name));
     }
 
-    let mut tree = Vec::new();
+    let mut tree = Vec::with_capacity(folders.len());
     if let Some(root_folders) = folders_by_parent.get(&None) {
         append_folder_branch(
             &mut tree,
@@ -655,7 +716,22 @@ fn append_folder_branch(
 }
 
 fn asset_belongs_to_folder(asset: &EditorAssetCatalogRecord, folder_id: &str) -> bool {
-    parent_folder_id_for_locator(&asset.locator) == folder_id
+    locator_parent_matches_folder(&asset.locator, folder_id)
+}
+
+fn locator_parent_matches_folder(locator: &str, folder_id: &str) -> bool {
+    if let Some(package_path) = locator.strip_prefix("package://") {
+        return package_path
+            .rsplit_once('/')
+            .map(|(parent, _)| folder_id.strip_prefix("package://") == Some(parent))
+            .unwrap_or(locator == folder_id);
+    }
+
+    let locator_path = locator.strip_prefix("res://").unwrap_or(locator);
+    locator_path
+        .rsplit_once('/')
+        .map(|(parent, _)| folder_id.strip_prefix("res://") == Some(parent))
+        .unwrap_or(folder_id == "res://")
 }
 
 fn parent_folder_id_for_locator(locator: &str) -> String {
@@ -674,13 +750,7 @@ fn parent_folder_id_for_locator(locator: &str) -> String {
 }
 
 fn folder_matches_search(folder: &EditorAssetFolderRecord, normalized_search_query: &str) -> bool {
-    if normalized_search_query.is_empty() {
-        return true;
-    }
-    folder
-        .display_name
-        .to_ascii_lowercase()
-        .contains(normalized_search_query)
+    contains_ascii_case_insensitive(&folder.display_name, normalized_search_query)
 }
 
 fn asset_matches_filters(
@@ -688,24 +758,29 @@ fn asset_matches_filters(
     normalized_search_query: &str,
     kind_filter: Option<ResourceKind>,
 ) -> bool {
-    let search_matches = if normalized_search_query.is_empty() {
-        true
-    } else {
-        asset
-            .display_name
-            .to_ascii_lowercase()
-            .contains(normalized_search_query)
-            || asset
-                .file_name
-                .to_ascii_lowercase()
-                .contains(normalized_search_query)
-            || asset
-                .locator
-                .to_ascii_lowercase()
-                .contains(normalized_search_query)
-    };
+    let search_matches =
+        contains_ascii_case_insensitive(&asset.display_name, normalized_search_query)
+            || contains_ascii_case_insensitive(&asset.file_name, normalized_search_query)
+            || contains_ascii_case_insensitive(&asset.locator, normalized_search_query);
     let kind_matches = kind_filter.is_none_or(|kind| asset.kind == kind);
     search_matches && kind_matches
+}
+
+fn contains_ascii_case_insensitive(haystack: &str, needle: &str) -> bool {
+    if needle.is_empty() {
+        return true;
+    }
+
+    let needle_bytes = needle.as_bytes();
+    haystack
+        .as_bytes()
+        .windows(needle_bytes.len())
+        .enumerate()
+        .any(|(offset, candidate)| {
+            haystack.is_char_boundary(offset)
+                && haystack.is_char_boundary(offset + needle_bytes.len())
+                && candidate.eq_ignore_ascii_case(needle_bytes)
+        })
 }
 
 fn reference_snapshot(
@@ -722,4 +797,5 @@ fn reference_snapshot(
 }
 
 #[cfg(test)]
+#[path = "asset_workspace_state/tests/performance_tests.rs"]
 mod performance_tests;

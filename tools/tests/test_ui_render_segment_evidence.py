@@ -1,3 +1,4 @@
+# 核对稳定帧绘制片段证据要求零下游工作和完整源归属。
 from __future__ import annotations
 
 import importlib.util
@@ -7,7 +8,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-TOOL = ROOT / "tools/ui_render_segment_evidence.py"
+TOOL = ROOT / "tools/analysis/performance/ui/ui_render_segment_evidence.py"
 REQUIRED_SOURCE_PATHS = (
     "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs",
     "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/plan_cache.rs",

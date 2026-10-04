@@ -13,7 +13,7 @@ SOURCE_PATH = (
     / "reflection_host.rs"
 )
 
-
+# 读取实现源码约束借用反射宿主字符串：借用字符串辅助函数替换持有提取器，并反射调用 consume 借用字符串视图。
 class BorrowedReflectionHostStringsPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

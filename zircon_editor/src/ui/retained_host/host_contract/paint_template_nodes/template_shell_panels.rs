@@ -11,7 +11,7 @@ use identity::shell_panel_kind;
 use surface::push_shell_panel_surface;
 
 #[cfg(test)]
-#[path = "template_shell_panels_tests/mod.rs"]
+#[path = "template_shell_panels_tests/tests/mod.rs"]
 mod tests;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_shell_panel_commands(
@@ -25,14 +25,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sh
     let Some(kind) = shell_panel_kind(node) else {
         return false;
     };
-    let rect = separators::pixel_aligned_rect(rect);
-    if rect.width <= 0.0 || rect.height <= 0.0 {
-        return true;
-    }
-    let Some(clip) = intersect(&rect, clip) else {
+    let Some(clip) = intersect(rect, clip) else {
         return true;
     };
 
-    push_shell_panel_surface(commands, node, kind, &rect, &clip, order, opacity);
+    push_shell_panel_surface(commands, node, kind, rect, &clip, order, opacity);
     true
 }

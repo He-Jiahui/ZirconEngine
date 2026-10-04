@@ -9,7 +9,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::{
-    surface::{UiSurface, editable_text_input_is_secure, ui_surface_effective_disabled},
+    surface::{editable_text_input_is_secure, ui_surface_effective_disabled, UiSurface},
     text::clamp_grapheme_boundary,
 };
 

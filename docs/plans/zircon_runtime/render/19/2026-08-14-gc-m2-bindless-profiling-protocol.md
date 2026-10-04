@@ -8,7 +8,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge.rs
-  - tools/validate_render_measurement_evidence.py
+  - tools/analysis/validation/validate_render_measurement_evidence.py
 ---
 
 # GC-M2 Bindless Production Profiling Protocol
@@ -237,7 +237,7 @@ RenderDoc event count does not match the scoped counter; such a run is retained
 for diagnosis but excluded from a default-gate decision. A power field may be
 `power_unavailable` only with its telemetry probe result and sampling interval.
 
-The executable contract is `tools/validate_render_measurement_evidence.py`. It
+The executable contract is `tools/analysis/validation/validate_render_measurement_evidence.py`. It
 requires the top-level `schema` value
 `zircon_render_measurement_evidence_v1` and rejects unrecognized fields. JSON
 types are fixed as follows:

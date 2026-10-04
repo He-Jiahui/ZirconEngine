@@ -1,9 +1,9 @@
 ---
 related_code:
-  - docs/assets-and-rendering/runtime-physics-animation-assets.md
-  - docs/zircon_runtime/asset/scene.md
-  - docs/zircon_runtime/core/framework/render/camera.md
-  - docs/zircon_runtime/core/framework/render/core_pipeline.md
+  - docs/rendering/runtime-physics-animation-assets.md
+  - docs/crates/zircon_runtime/asset/scene.md
+  - docs/crates/zircon_runtime/core/framework/render/camera.md
+  - docs/crates/zircon_runtime/core/framework/render/core_pipeline.md
   - zircon_runtime/src/scene/components/scene/mod.rs
   - zircon_runtime/src/scene/components/scene/transform.rs
   - zircon_runtime/src/scene/components/scene/hierarchy.rs
@@ -15,18 +15,18 @@ related_code:
   - zircon_runtime/src/scene/components/scene/animation.rs
   - zircon_runtime/src/core/framework/scene/mobility.rs
 implementation_files:
-  - docs/assets-and-rendering/runtime-physics-animation-assets.md
-  - docs/zircon_runtime/asset/scene.md
-  - docs/zircon_runtime/core/framework/render/camera.md
-  - docs/zircon_runtime/core/framework/render/core_pipeline.md
+  - docs/rendering/runtime-physics-animation-assets.md
+  - docs/crates/zircon_runtime/asset/scene.md
+  - docs/crates/zircon_runtime/core/framework/render/camera.md
+  - docs/crates/zircon_runtime/core/framework/render/core_pipeline.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
   - docs/plans/zircon_runtime/frameworks/06/2026-07-19-scene-component-owner-hardcut.md
 tests:
-  - python tools/check_conventions.py --only docs --json
-  - git diff --check -- docs/assets-and-rendering/runtime-physics-animation-assets.md docs/zircon_runtime/asset/scene.md docs/zircon_runtime/core/framework/render/camera.md docs/zircon_runtime/core/framework/render/core_pipeline.md docs/plans/zircon_runtime/frameworks/06/2026-07-19-g7-runtime-scene-contract-doc-owner-hardcut-batch26.md
+  - python tools/audits/check_conventions.py --only docs --json
+  - git diff --check -- docs/rendering/runtime-physics-animation-assets.md docs/crates/zircon_runtime/asset/scene.md docs/crates/zircon_runtime/core/framework/render/camera.md docs/crates/zircon_runtime/core/framework/render/core_pipeline.md docs/plans/zircon_runtime/frameworks/06/2026-07-19-g7-runtime-scene-contract-doc-owner-hardcut-batch26.md
 ---
 
 # Frameworks06 G7 Runtime Scene Contract 文档 Owner 硬切 Batch 26
@@ -34,7 +34,7 @@ tests:
 Plan: docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
 Milestone: M2
 Status: accepted
-Files: ["docs/assets-and-rendering/runtime-physics-animation-assets.md", "docs/zircon_runtime/asset/scene.md", "docs/zircon_runtime/core/framework/render/camera.md", "docs/zircon_runtime/core/framework/render/core_pipeline.md"]
+Files: ["docs/rendering/runtime-physics-animation-assets.md", "docs/crates/zircon_runtime/asset/scene.md", "docs/crates/zircon_runtime/core/framework/render/camera.md", "docs/crates/zircon_runtime/core/framework/render/core_pipeline.md"]
 Date: 2026-07-19
 Session: `frameworks06-g7-runtime-scene-contract-doc-owner-hardcut-batch26-20260719`
 

@@ -1,8 +1,41 @@
+//! 核对视图脏集按视图分别合并失效掩码，共享总线借入批量更新后不丢失既有状态。
 use crate::core::editor_message::{
     EditorViewInvalidationMask, SharedEditorMessageBus, ViewDirtySet,
 };
 
 use super::fixture::view;
+
+#[test]
+fn invalidation_mask_serde_accepts_defined_bits_and_rejects_unknown_bits() {
+    let all_defined = EditorViewInvalidationMask::LAYOUT
+        .union(EditorViewInvalidationMask::TREE_STRUCTURE)
+        .union(EditorViewInvalidationMask::PRESENTATION_DATA)
+        .union(EditorViewInvalidationMask::PAINT_ONLY)
+        .union(EditorViewInvalidationMask::POINTER_HOVER)
+        .union(EditorViewInvalidationMask::VIEWPORT_IMAGE)
+        .union(EditorViewInvalidationMask::HIT_TEST)
+        .union(EditorViewInvalidationMask::WINDOW_METRICS)
+        .union(EditorViewInvalidationMask::RENDER);
+    let encoded = serde_json::to_value(all_defined).expect("defined mask serializes");
+    assert_eq!(encoded, serde_json::json!(all_defined.bits()));
+    assert_eq!(
+        serde_json::from_value::<EditorViewInvalidationMask>(encoded)
+            .expect("defined mask deserializes"),
+        all_defined
+    );
+
+    let unknown_bit = 1_u16 << 9;
+    assert!(
+        serde_json::from_value::<EditorViewInvalidationMask>(serde_json::json!(unknown_bit))
+            .is_err()
+    );
+    assert!(
+        serde_json::from_value::<EditorViewInvalidationMask>(serde_json::json!(
+            all_defined.bits() | unknown_bit
+        ))
+        .is_err()
+    );
+}
 
 #[test]
 fn dirty_set_merges_masks_per_view_and_keeps_views_separate() {

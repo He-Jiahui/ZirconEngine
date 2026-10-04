@@ -7,7 +7,12 @@ use zircon_runtime_interface::ui::template::{
 };
 
 #[cfg(test)]
+#[path = "compile_cache/tests/hash_eviction_tests.rs"]
 mod hash_eviction_tests;
+
+#[cfg(test)]
+#[path = "compile_cache/tests/eviction_capacity_tests.rs"]
+mod eviction_capacity_tests;
 
 #[derive(Clone, Debug, Default)]
 pub struct UiAssetCompileCache {
@@ -54,21 +59,19 @@ impl UiAssetCompileCache {
 
         // Entries are keyed by compile options, while snapshots are keyed by the
         // asset id slot used for invalidation reports. Eviction must clear both.
-        let entry_keys = self
-            .entries
-            .iter()
-            .filter_map(|(key, compiled)| {
-                asset_ids
-                    .contains(compiled.asset.id.as_str())
-                    .then_some(key.clone())
-            })
-            .collect::<Vec<_>>();
-        let snapshot_keys = self
-            .last_snapshots
-            .keys()
-            .filter(|slot| asset_ids.contains(snapshot_slot_asset_id(slot)))
-            .cloned()
-            .collect::<Vec<_>>();
+        let mut entry_keys = Vec::with_capacity(asset_ids.len());
+        entry_keys.extend(self.entries.iter().filter_map(|(key, compiled)| {
+            asset_ids
+                .contains(compiled.asset.id.as_str())
+                .then_some(key.clone())
+        }));
+        let mut snapshot_keys = Vec::with_capacity(asset_ids.len());
+        snapshot_keys.extend(
+            self.last_snapshots
+                .keys()
+                .filter(|slot| asset_ids.contains(snapshot_slot_asset_id(slot)))
+                .cloned(),
+        );
 
         let entries_removed = entry_keys.len();
         for key in entry_keys {
@@ -85,6 +88,7 @@ impl UiAssetCompileCache {
         }
     }
 
+    // 命中也更新最近快照，使随后未命中的原因相对最近一次使用的编译配置解释。
     pub fn get(&mut self, key: &UiCompileCacheKey) -> Option<UiCompiledDocument> {
         let compiled = self.entries.get(key).cloned()?;
         self.last_snapshots.insert(

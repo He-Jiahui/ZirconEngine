@@ -90,5 +90,5 @@ pub(super) fn variant_contains(component_variant: &str, expected: &str) -> bool 
 }
 
 #[cfg(test)]
-#[path = "shared/single_allocation_pascal_case_tests.rs"]
+#[path = "shared/tests/single_allocation_pascal_case_tests.rs"]
 mod single_allocation_pascal_case_tests;

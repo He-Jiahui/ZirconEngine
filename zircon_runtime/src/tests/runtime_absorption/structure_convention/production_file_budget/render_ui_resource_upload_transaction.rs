@@ -1,3 +1,4 @@
+use super::super::rust_source_view::{production_code_view, production_section};
 use super::{assert_contains_all, read_runtime_src};
 
 #[test]
@@ -19,31 +20,34 @@ fn runtime_90_ui_resource_writes_share_the_frame_upload_transaction() {
     let compiled = read_runtime_src(
         "graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs",
     );
+    let environment_frame = read_runtime_src(
+        "graphics/scene/scene_renderer/core/scene_renderer_core/environment_frame.rs",
+    );
+    let compiled_success = read_runtime_src(
+        "graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/commit_compiled_scene_frame_success.rs",
+    );
 
     let buffer_owners = [
-        record.as_str(),
-        image.as_str(),
-        atlas_instances.as_str(),
-        atlas_renderer.as_str(),
-        sdf_material.as_str(),
-        sdf_vertices.as_str(),
+        ("UI vertices", record.as_str(), 1),
+        ("image vertices", image.as_str(), 1),
+        ("atlas instances", atlas_instances.as_str(), 1),
+        ("atlas viewport", atlas_renderer.as_str(), 1),
+        ("SDF materials", sdf_material.as_str(), 1),
+        ("SDF full and range vertices", sdf_vertices.as_str(), 2),
     ];
-    assert_eq!(
-        buffer_owners
-            .iter()
-            .map(|source| source.matches("queue.write_buffer(").count())
-            .sum::<usize>(),
-        0,
-        "UI buffer owners must not bypass the frame upload transaction"
-    );
-    assert_eq!(
-        buffer_owners
-            .iter()
-            .map(|source| source.matches("WgpuBufferUpload::from_bytes(").count())
-            .sum::<usize>(),
-        6,
-        "the six UI dynamic buffer owners must each publish one neutral upload site"
-    );
+    for (label, source, upload_sites) in buffer_owners {
+        let production = production_code_view(source);
+        assert_eq!(
+            production.matches("queue.write_buffer(").count(),
+            0,
+            "{label} must not bypass the frame upload transaction"
+        );
+        assert_eq!(
+            production.matches("WgpuBufferUpload::from_bytes(").count(),
+            upload_sites,
+            "{label} must retain its neutral frame upload sites"
+        );
+    }
     assert_contains_all(
         "screen-space UI resource upload reservation and retry state",
         &transaction,
@@ -82,10 +86,7 @@ fn runtime_90_ui_resource_writes_share_the_frame_upload_transaction() {
         !text.contains("sdf_renderer_report.material_count > 0"),
         "the always-present default SDF material must not create empty-frame recovery debt"
     );
-    let text_production = text
-        .split("#[cfg(test)]")
-        .next()
-        .expect("screen-space text production source");
+    let text_production = production_section(&text);
     assert!(
         !text_production.contains(".expect("),
         "screen-space text transaction preparation must fail closed without production panics"
@@ -101,6 +102,8 @@ fn runtime_90_ui_resource_writes_share_the_frame_upload_transaction() {
         ],
     );
 
+    let direct = production_code_view(&direct);
+    let compiled = production_code_view(&compiled);
     let direct_attach = direct
         .find("&mut frame_texture_uploads,")
         .expect("direct UI upload attachment");
@@ -114,16 +117,25 @@ fn runtime_90_ui_resource_writes_share_the_frame_upload_transaction() {
         .find("submission_transaction.validate_scene_submission(scene_submission)")
         .expect("direct scene ticket validation");
     let direct_scene_submit = direct
-        .find("backend.submit_graphics_command_buffers_with_frame_diagnostics_and_surface(")
+        .find(".submit_graphics_command_buffers_with_frame_diagnostics_and_surface(")
         .expect("direct scene submission");
     let direct_pipeline_usage = direct[direct_scene_submit..]
         .find(".bind_recorded_pipeline_usage_to_submission(scene_submission)")
         .map(|offset| direct_scene_submit + offset)
         .expect("direct submitted pipeline usage settlement");
     let direct_cubemap_commit = direct[direct_scene_submit..]
-        .find("self.scene_environment_cubemap.commit_pending_upload()")
+        .find("self.commit_scene_environment_frame()")
         .map(|offset| direct_scene_submit + offset)
         .expect("direct submitted cubemap settlement");
+    assert_contains_all(
+        "scene environment frame commit owns cubemap settlement",
+        &production_code_view(&environment_frame),
+        &[
+            "fn commit_scene_environment_frame(",
+            "self.scene_environment_cubemap.commit_pending_upload()",
+            "self.pending_scene_environment_bindings.take()",
+        ],
+    );
     let direct_realtime_ibl_commit = direct[direct_scene_submit..]
         .find("self.realtime_ibl.complete_submission(submission, true)")
         .map(|offset| direct_scene_submit + offset)
@@ -145,8 +157,23 @@ fn runtime_90_ui_resource_writes_share_the_frame_upload_transaction() {
         .find(".enqueue_copy_resource_upload_batch(")
         .expect("compiled frame upload acceptance");
     let compiled_commit = compiled
-        .find("renderer.commit_prepared_upload(prepared)")
+        .find("self.commit_compiled_scene_frame_success(CompiledSceneFrameSuccessContext {")
         .expect("compiled UI upload commit");
+    assert!(
+        compiled[compiled_commit..].contains("screen_space_ui_upload_commits,"),
+        "compiled success handoff must retain the prepared UI uploads"
+    );
+    assert_contains_all(
+        "compiled success owner commits every prepared UI upload",
+        &production_code_view(&compiled_success),
+        &[
+            "fn commit_compiled_scene_frame_success(",
+            "self.screen_space_ui_renderer.as_mut()",
+            "for prepared in screen_space_ui_upload_commits",
+            "renderer.commit_prepared_upload(prepared)",
+            "debug_assert!(screen_space_ui_upload_commits.is_empty())",
+        ],
+    );
     let compiled_scene_validation = compiled
         .find("submission_transaction.validate_scene_submission(scene_submission)")
         .expect("compiled scene ticket validation");

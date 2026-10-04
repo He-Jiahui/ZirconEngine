@@ -1,11 +1,12 @@
+# 核对资源烘焙项目回退路径的实现归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-COOK_ASSETS = REPO_ROOT / "tools/zircon_export/cook_assets.py"
+COOK_ASSETS = REPO_ROOT / "tools/export/cook_assets.py"
 COOK_ASSETS_PROJECT_FALLBACK = (
-    REPO_ROOT / "tools/zircon_export/cook_assets_project_fallback.py"
+    REPO_ROOT / "tools/export/cook_assets_project_fallback.py"
 )
 
 

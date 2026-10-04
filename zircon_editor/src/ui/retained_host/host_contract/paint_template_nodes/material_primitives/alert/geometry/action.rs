@@ -5,6 +5,7 @@ use super::metrics::{
     alert_bounded_extent, ALERT_ACTION_EDGE, ALERT_ACTION_GAP, ALERT_ACTION_TRAILING,
 };
 
+// 命令序列和正文右边界共用操作预留宽度；操作令牌变化时两处须一致，以免正文压住标记。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_action_width(
     node: &TemplatePaneNodeData,
 ) -> f32 {
@@ -33,22 +34,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_a
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn alert_action_stays_inside_tight_alert_bounds() {
-        let alert = FrameRect {
-            x: 10.0,
-            y: 20.0,
-            width: 0.4,
-            height: 0.6,
-        };
-        let frame = alert_action_frame(&alert);
-
-        assert!(frame.x >= alert.x);
-        assert!(frame.y >= alert.y);
-        assert!(frame.right() <= alert.right());
-        assert!(frame.bottom() <= alert.bottom());
-    }
-}
+#[path = "tests/action.rs"]
+mod tests;

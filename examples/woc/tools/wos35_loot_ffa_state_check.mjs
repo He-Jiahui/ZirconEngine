@@ -32,14 +32,14 @@ for (const field of [
 for (const needle of [
   'appendDefaultLootFfaColumns(this);',
   'appendDefaultLootFfaColumns(state);',
-  'writer.u16(<uint>38, 1, 1);', 'schemaVersion != <uint>35',
+  'writer.u16(schemaVersion, 1, 1);', 'schemaVersion != <uint>35',
   'if (schemaVersion >= <uint>35) {',
   'm8FreshPlayerStats.lootFfaTimerPresent',
   'm8EastbrookEncounter.lootFfaTimerPresent',
   'entityState.entityLootFfaTimerPresent[0] = true;',
   'entityState.entityLootFfaTimers[0] = 60.0;',
 ]) invariant(state.includes(needle), `WOS35 loot-FFA projection omitted: ${needle}`);
-invariant(main.includes('\\"world_state\\":\\"WOS38\\",'), 'package stateSchema must expose WOS38');
+invariant(main.includes('\\"world_state\\":\\"WOS118\\",'), 'package stateSchema must expose WOS118');
 
 process.stdout.write(`checked WOS35 loot-FFA source projection: ${SOURCE_COMMIT.slice(0, 15)}\n`);
 

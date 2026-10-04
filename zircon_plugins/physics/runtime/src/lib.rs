@@ -1,4 +1,5 @@
 pub const PHYSICS_SETTINGS_CONFIG_KEY: &str = "physics.settings";
+pub const PHYSICS_EVENT_NAMESPACE: &str = "physics.events";
 
 mod backend;
 mod capability;
@@ -6,6 +7,7 @@ mod constraint;
 mod diagnostics;
 mod manager;
 mod module;
+mod overlay_frame;
 mod plugin;
 mod runtime_system;
 mod skeletal;
@@ -35,6 +37,10 @@ pub use module::{
     module_descriptor, PhysicsDriver, PhysicsModule, DEFAULT_PHYSICS_MANAGER_NAME,
     PHYSICS_DRIVER_NAME, PHYSICS_MODULE_NAME,
 };
+pub use overlay_frame::{
+    PhysicsDebugOverlayCapture, PhysicsOverlayFrame, PHYSICS_OVERLAY_FRAME_EVENT_ID,
+    PHYSICS_OVERLAY_FRAME_PAYLOAD_SCHEMA,
+};
 pub use plugin::{
     package_manifest, plugin_registration, runtime_capabilities, runtime_plugin,
     runtime_plugin_descriptor, runtime_selection, PhysicsRuntimePlugin, PHYSICS_DIST_CRATE_NAME,
@@ -54,5 +60,34 @@ pub use zircon_runtime::core::framework::physics::{
 };
 pub use zircon_runtime::core::manager::PHYSICS_MANAGER_NAME;
 
+pub fn physics_event_catalog() -> zircon_runtime::plugin::PluginEventCatalogManifest {
+    zircon_runtime::plugin::PluginEventCatalogManifest {
+        namespace: PHYSICS_EVENT_NAMESPACE.to_string(),
+        version: 1,
+        events: vec![
+            zircon_runtime::plugin::PluginEventManifest {
+                id: PHYSICS_CONTACT_EVENT_ID.to_string(),
+                display_name: "Physics Contact Event".to_string(),
+                payload_schema: PHYSICS_CONTACT_EVENT_SCHEMA.to_string(),
+            },
+            zircon_runtime::plugin::PluginEventManifest {
+                id: PHYSICS_TRIGGER_EVENT_ID.to_string(),
+                display_name: "Physics Trigger Event".to_string(),
+                payload_schema: PHYSICS_TRIGGER_EVENT_SCHEMA.to_string(),
+            },
+            zircon_runtime::plugin::PluginEventManifest {
+                id: PHYSICS_OVERLAY_FRAME_EVENT_ID.to_string(),
+                display_name: "Physics Overlay Frame".to_string(),
+                payload_schema: PHYSICS_OVERLAY_FRAME_PAYLOAD_SCHEMA.to_string(),
+            },
+        ],
+    }
+}
+
 #[cfg(test)]
+#[path = "tests/overlay_frame_tests.rs"]
+mod overlay_frame_tests;
+
+#[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

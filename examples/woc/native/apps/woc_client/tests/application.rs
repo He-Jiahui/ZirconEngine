@@ -7,7 +7,7 @@ use woc_client::{
     WocShellController, MAX_PENDING_COMMANDS,
 };
 use woc_client::{GamepadMoveFlags, MovementInputSources};
-use woc_protocol::{Command, EntityRef, MovementFrame, MovementInputFlags};
+use woc_protocol::{Command, EntityRef, MovementFrame, MovementInputFlags, SIMULATION_STEP_NS};
 use woc_runtime::{PresentationCadence, PresentationSnapshot};
 
 #[derive(Default)]
@@ -19,6 +19,16 @@ struct FakeAuthority {
 
 impl ClientAuthority<u64> for FakeAuthority {
     type Error = Infallible;
+    type Checkpoint = u64;
+
+    fn checkpoint(&mut self) -> Result<Self::Checkpoint, Self::Error> {
+        Ok(self.tick)
+    }
+
+    fn rollback(&mut self, checkpoint: Self::Checkpoint) -> Result<(), Self::Error> {
+        self.tick = checkpoint;
+        Ok(())
+    }
 
     fn fixed_step(
         &mut self,
@@ -90,7 +100,9 @@ fn maps_input_once_and_delivers_it_to_the_next_twenty_hz_commit() {
     let mapped = session.queue_input(input(true)).expect("map input");
     assert_eq!((mapped.command_id, mapped.sequence), (9, 1));
 
-    let advance = session.advance_frame(50_000_000).expect("fixed tick");
+    let advance = session
+        .advance_frame(SIMULATION_STEP_NS)
+        .expect("fixed tick");
     assert_eq!(advance.committed_ticks, 1);
     assert_eq!(
         session.frame_driver().authority().delivered_sequences,
@@ -147,7 +159,9 @@ fn queues_hud_authority_input_through_the_next_twenty_hz_commit() {
     );
     assert_eq!(session.command_mapper().next_sequence(), Some(2));
 
-    session.advance_frame(50_000_000).expect("fixed tick");
+    session
+        .advance_frame(SIMULATION_STEP_NS)
+        .expect("fixed tick");
     assert_eq!(
         session.frame_driver().authority().delivered_sequences,
         vec![vec![1]]
@@ -166,7 +180,9 @@ fn queues_touch_interact_through_the_next_twenty_hz_commit() {
     );
     assert_eq!(session.command_mapper().next_sequence(), Some(2));
 
-    session.advance_frame(50_000_000).expect("fixed tick");
+    session
+        .advance_frame(SIMULATION_STEP_NS)
+        .expect("fixed tick");
     assert_eq!(
         session.frame_driver().authority().delivered_sequences,
         vec![vec![1]]
@@ -187,7 +203,9 @@ fn movement_state_reaches_the_next_fixed_tick_without_consuming_a_command_sequen
         .expect("valid movement state");
     assert_eq!(session.command_mapper().next_sequence(), Some(1));
 
-    session.advance_frame(50_000_000).expect("fixed tick");
+    session
+        .advance_frame(SIMULATION_STEP_NS)
+        .expect("fixed tick");
     assert_eq!(
         session.frame_driver().authority().delivered_movement,
         vec![MovementFrame {
@@ -227,7 +245,9 @@ fn movement_sources_resolve_once_before_the_next_fixed_tick() {
         )
         .expect("host movement sources are valid");
 
-    session.advance_frame(50_000_000).expect("fixed tick");
+    session
+        .advance_frame(SIMULATION_STEP_NS)
+        .expect("fixed tick");
     assert_eq!(
         session.frame_driver().authority().delivered_movement,
         vec![MovementFrame {

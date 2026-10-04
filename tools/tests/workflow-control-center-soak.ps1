@@ -1,3 +1,4 @@
+# 直接转发控制中心长时采样参数，并把工作目录与结果限制在仓外。
 [CmdletBinding()]
 param(
     [ValidateRange(0.001, 168.0)]

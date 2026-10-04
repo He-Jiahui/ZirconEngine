@@ -1,3 +1,5 @@
+use std::fmt::Write as _;
+
 use super::*;
 
 pub(super) fn preview_mock_entries(
@@ -412,55 +414,50 @@ pub(super) fn preview_mock_literal(value: &Value) -> String {
     match value {
         Value::String(text) => text.clone(),
         Value::Boolean(value) => value.to_string(),
-        Value::Array(items) => format!(
-            "[{}]",
-            items
-                .iter()
-                .map(preview_mock_inline_literal)
-                .collect::<Vec<_>>()
-                .join(", ")
-        ),
-        Value::Table(table) => {
-            let mut entries = table.iter().collect::<Vec<_>>();
-            entries.sort_by(|left, right| left.0.cmp(right.0));
-            format!(
-                "{{ {} }}",
-                entries
-                    .into_iter()
-                    .map(|(key, value)| format!("{key} = {}", preview_mock_inline_literal(value)))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            )
-        }
+        Value::Array(_) | Value::Table(_) => preview_mock_inline_literal(value),
         _ => value.to_string(),
     }
 }
 
 pub(super) fn preview_mock_inline_literal(value: &Value) -> String {
+    let mut literal = String::new();
+    append_preview_mock_inline_literal(&mut literal, value);
+    literal
+}
+
+fn append_preview_mock_inline_literal(literal: &mut String, value: &Value) {
     match value {
-        Value::String(text) => Value::String(text.clone()).to_string(),
-        Value::Boolean(value) => value.to_string(),
-        Value::Array(items) => format!(
-            "[{}]",
-            items
-                .iter()
-                .map(preview_mock_inline_literal)
-                .collect::<Vec<_>>()
-                .join(", ")
-        ),
+        Value::String(text) => {
+            write!(literal, "{}", Value::String(text.clone()))
+                .expect("writing to a String cannot fail");
+        }
+        Value::Array(items) => {
+            literal.push('[');
+            for (index, item) in items.iter().enumerate() {
+                if index > 0 {
+                    literal.push_str(", ");
+                }
+                append_preview_mock_inline_literal(literal, item);
+            }
+            literal.push(']');
+        }
         Value::Table(table) => {
             let mut entries = table.iter().collect::<Vec<_>>();
             entries.sort_by(|left, right| left.0.cmp(right.0));
-            format!(
-                "{{ {} }}",
-                entries
-                    .into_iter()
-                    .map(|(key, value)| format!("{key} = {}", preview_mock_inline_literal(value)))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            )
+            literal.push_str("{ ");
+            for (index, (key, value)) in entries.into_iter().enumerate() {
+                if index > 0 {
+                    literal.push_str(", ");
+                }
+                literal.push_str(key);
+                literal.push_str(" = ");
+                append_preview_mock_inline_literal(literal, value);
+            }
+            literal.push_str(" }");
         }
-        _ => value.to_string(),
+        _ => {
+            write!(literal, "{value}").expect("writing to a String cannot fail");
+        }
     }
 }
 
@@ -674,3 +671,7 @@ pub(super) fn preview_nested_path_segments(
         _ => Err("preview mock property does not support nested entries".to_string()),
     }
 }
+
+#[cfg(test)]
+#[path = "entries/tests/literal_single_buffer_tests.rs"]
+mod literal_single_buffer_tests;

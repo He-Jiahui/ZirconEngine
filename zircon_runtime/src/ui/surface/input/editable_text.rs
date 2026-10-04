@@ -9,21 +9,21 @@ pub(in crate::ui) use document_transaction::{
     PreparedUiEditableTextDocumentTransaction, UiEditableTextDocumentTransactionReceipt,
 };
 pub(super) use mutation::{
-    TextComponentEventKind, apply_editable_text_state, cancel_number_field_edit_state,
-    step_number_field_keyboard_state, submit_editable_text_state,
-};
-pub(in crate::ui) use mutation::{
-    UiEditableTextTransactionError, commit_editable_text_transaction,
+    apply_editable_text_state, cancel_number_field_edit_state, step_number_field_keyboard_state,
+    submit_editable_text_state, TextComponentEventKind,
 };
 pub(in crate::ui::surface) use mutation::{
     cancel_editable_text_composition_for_input_method_loss, finish_editable_text_for_focus_loss,
 };
+pub(in crate::ui) use mutation::{
+    commit_editable_text_transaction, UiEditableTextTransactionError,
+};
 pub(in crate::ui) use property_transaction::{
+    commit_editable_text_properties, commit_editable_text_properties_with_value,
+    prepare_editable_text_properties_with_edit, prepare_editable_text_properties_with_value,
+    prepare_number_field_model_update_properties, prepare_number_field_properties,
     PreparedUiEditableTextPropertyTransaction, UiEditableTextPropertyTransactionError,
-    UiEditableTextPropertyTransactionReceipt, commit_editable_text_properties,
-    commit_editable_text_properties_with_value, prepare_editable_text_properties_with_edit,
-    prepare_editable_text_properties_with_value, prepare_number_field_model_update_properties,
-    prepare_number_field_properties,
+    UiEditableTextPropertyTransactionReceipt,
 };
 
 use zircon_runtime_interface::ui::{
@@ -45,10 +45,10 @@ use super::{
     is_valid_input_owner,
     keyboard_clipboard::dispatch_keyboard_clipboard,
     owner_route::owner_routed_result,
-    route_policy::annotate_route_policy,
+    route_policy::annotate_result_route_policy,
     route_steps::annotate_result_route_steps,
     text_constraints::{
-        TextInputConstraints, TextInputRetainedGraphemeCount, text_input_constraints_for_node,
+        text_input_constraints_for_node, TextInputConstraints, TextInputRetainedGraphemeCount,
     },
     text_keyboard::{
         keyboard_clipboard_action, keyboard_requests_newline, keyboard_text_edit_actions,
@@ -58,8 +58,8 @@ use super::{
 };
 
 use state_transition::{
-    TextInputStateTransition, committed_text_state, delete_surrounding_text_state,
-    preedit_text_state, retained_document_replaced_range,
+    committed_text_state, delete_surrounding_text_state, preedit_text_state,
+    retained_document_replaced_range, TextInputStateTransition,
 };
 
 pub(super) fn dispatch_keyboard_text_edit(
@@ -519,7 +519,7 @@ pub(in crate::ui) fn synchronize_text_document(
     let Some(source_epoch) = surface.input.text_document_epoch(target) else {
         return;
     };
-    text_documents.synchronize_source(&surface.tree.tree_id, target, source_epoch, &state.text);
+    text_documents.synchronize_editable_source(&surface.tree.tree_id, target, source_epoch, state);
     if editable_text_input_is_secure(surface, target) {
         text_documents.discard_history(&surface.tree.tree_id, target);
     }
@@ -556,8 +556,7 @@ fn with_editable_text_route_policy(
     surface: &UiSurface,
     mut result: UiInputDispatchResult,
 ) -> UiInputDispatchResult {
-    let event = result.event.clone();
-    annotate_route_policy(surface, &event, &mut result);
+    annotate_result_route_policy(surface, &mut result);
     annotate_result_route_steps(&mut result);
     result
 }

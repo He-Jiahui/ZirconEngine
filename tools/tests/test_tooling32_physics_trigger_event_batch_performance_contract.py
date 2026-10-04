@@ -1,3 +1,4 @@
+# 核对物理触发事件投影预留配对上界容量。
 from __future__ import annotations
 
 import unittest

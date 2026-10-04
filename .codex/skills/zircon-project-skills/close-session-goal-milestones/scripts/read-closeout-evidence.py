@@ -214,6 +214,9 @@ def read_evidence(repo_root: Path, session_id: str) -> dict[str, object]:
 
 
 def main() -> int:
+    from tools.session_coordinator.retirement import retired_main
+    return retired_main()
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo-root", required=True)
     parser.add_argument("--session-id", required=True)

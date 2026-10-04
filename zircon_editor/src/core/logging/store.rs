@@ -15,6 +15,14 @@ pub struct EditorLogDiagnostics {
     pub failed_event_resyncs: u64,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct LogTailIdentity {
+    window_limit: usize,
+    first_sequence: Option<u64>,
+    last_sequence: Option<u64>,
+    record_count: usize,
+}
+
 pub struct EditorLogStore {
     config: EditorLogConfig,
     state: Mutex<LogStoreState>,
@@ -80,18 +88,24 @@ impl EditorLogStore {
             return Vec::new();
         }
         let state = self.lock_state();
-        let mut records = Vec::with_capacity(max_records.min(state.records.len()));
-        records.extend(
-            state
-                .records
-                .iter()
-                .rev()
-                .filter(|record| filter.matches(record.entry()))
-                .take(max_records)
-                .cloned(),
-        );
-        records.reverse();
-        records
+        materialize_tail(&state.records, filter, max_records)
+    }
+
+    pub(crate) fn snapshot_tail_if_changed(
+        &self,
+        filter: &LogFilter,
+        max_records: usize,
+        known_identity: Option<LogTailIdentity>,
+    ) -> (LogTailIdentity, Option<Vec<LogRecord>>) {
+        let state = self.lock_state();
+        let identity = tail_identity(&state.records, filter, max_records);
+        if known_identity == Some(identity) {
+            return (identity, None);
+        }
+        (
+            identity,
+            Some(materialize_tail(&state.records, filter, max_records)),
+        )
     }
 
     pub fn record(&self, sequence: u64) -> Option<LogRecord> {
@@ -133,4 +147,65 @@ impl EditorLogStore {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
+}
+
+// Log records are immutable and their sequences are strictly increasing, so these
+// boundaries plus the count identify an unchanged bounded matching tail.
+fn tail_identity(
+    records: &VecDeque<LogRecord>,
+    filter: &LogFilter,
+    max_records: usize,
+) -> LogTailIdentity {
+    if max_records == 0 {
+        return LogTailIdentity::default();
+    }
+
+    let mut identity = LogTailIdentity {
+        window_limit: max_records,
+        ..LogTailIdentity::default()
+    };
+    if filter.is_unfiltered() {
+        let count = max_records.min(records.len());
+        identity.record_count = count;
+        identity.first_sequence = records
+            .get(records.len().saturating_sub(count))
+            .map(LogRecord::sequence);
+        identity.last_sequence = records.back().map(LogRecord::sequence);
+        return identity;
+    }
+
+    for record in records.iter().rev() {
+        if !filter.matches(record.entry()) {
+            continue;
+        }
+        identity.last_sequence.get_or_insert(record.sequence());
+        identity.first_sequence = Some(record.sequence());
+        identity.record_count += 1;
+        if identity.record_count == max_records {
+            break;
+        }
+    }
+    identity
+}
+
+fn materialize_tail(
+    records: &VecDeque<LogRecord>,
+    filter: &LogFilter,
+    max_records: usize,
+) -> Vec<LogRecord> {
+    if max_records == 0 {
+        return Vec::new();
+    }
+
+    let mut tail = Vec::with_capacity(max_records.min(records.len()));
+    tail.extend(
+        records
+            .iter()
+            .rev()
+            .filter(|record| filter.matches(record.entry()))
+            .take(max_records)
+            .cloned(),
+    );
+    tail.reverse();
+    tail
 }

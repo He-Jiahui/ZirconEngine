@@ -12,8 +12,8 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 完善 ZirconEngine 公开接口、机制案例、教程与最佳实践
 tests:
-  - zircon_editor/src/core/gateway/session/tests.rs
-  - zircon_editor/src/core/gateway/capabilities/optimization_tests.rs
+  - zircon_editor/src/core/gateway/session/tests/cases.rs
+  - zircon_editor/src/core/gateway/capabilities/tests/optimization_tests.rs
 doc_type: module-detail
 ---
 
@@ -167,7 +167,7 @@ Unreal editor 通常直接访问 PIE world；ZirconEngine 强制 gateway 隔离 
 - Gateway contract：[zircon_editor/src/core/gateway/contract.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_editor/src/core/gateway/contract.rs)
 - Session：[zircon_editor/src/core/gateway/session](https://github.com/He-Jiahui/ZirconEngine/tree/main/zircon_editor/src/core/gateway/session)
 - Runtime DTO：[zircon_runtime_interface/src/lib.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime_interface/src/lib.rs)
-- Session tests：[zircon_editor/src/core/gateway/session/tests.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_editor/src/core/gateway/session/tests.rs)
+- Session tests：[zircon_editor/src/core/gateway/session/tests/cases.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_editor/src/core/gateway/session/tests/cases.rs)
 
 ## Gateway trait 调用形状
 

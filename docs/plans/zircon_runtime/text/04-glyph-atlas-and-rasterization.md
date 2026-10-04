@@ -101,6 +101,13 @@ related_code:
   - zircon_runtime/src/text/raster/swash/request.rs
   - zircon_runtime/src/text/raster/swash/rasterizer.rs
   - zircon_runtime/src/text/raster/swash/tests.rs
+  - zircon_runtime/src/text/raster/service/mod.rs
+  - zircon_runtime/src/text/raster/service/face.rs
+  - zircon_runtime/src/text/raster/service/glyph_raster_service.rs
+  - zircon_runtime/src/core/framework/text/glyph_raster/mod.rs
+  - zircon_runtime/src/core/framework/text/glyph_raster/request.rs
+  - zircon_runtime/src/core/framework/text/glyph_raster/receipt.rs
+  - zircon_runtime/src/ui/surface/text_artifact.rs
   - zircon_runtime/Cargo.toml
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime/src/ui/text/measure_cache.rs
@@ -114,14 +121,10 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/metrics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/raster/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/font/tests.rs
 design_references:
@@ -137,7 +140,7 @@ plan_sources:
   - docs/plans/zircon_runtime/text/02-shaping-unicode-and-bidi.md
   - docs/plans/zircon_editor/editor_layout/17-text-rendering-and-typography.md
   - docs/plans/zircon_runtime/render/14-2d-stack.md
-status: in_progress
+status: runtime_context_owned_policy_exact_cache_vertical_capability_and_geometry_guards_source_implemented_managed_validation_pending
 ---
 
 # 04 字形栅格化 / 字形图集 / 分辨率精度
@@ -180,14 +183,14 @@ variation coordinates 后直接创建 Swash 请求。
 - `ui/sdf_atlas.rs`:自有 SDF cache 已从固定单页扩展到统一 `GlyphAtlasSet` 的 SDF page identity + shared shelf rect + page residency/LRU 数据面。2026-07-02 已让 `SdfAtlasPlan` 持有 `text/atlas::GlyphAtlasSet` 的 `Sdf` page identity,并用共享 shelf allocator、dirty-rect owner 与 page residency owner 生成 slot rect/cache report/upload report 数据面；`SdfAtlasSlot.page_key`、`SdfAtlasCacheReport.dirty_pages` 与 `SdfAtlasUploadReport.dirty_pages` 已补齐 page-keyed dirty/upload 数据面,同时保留 page[0] `dirty_rect` 兼容字段；`sdf_upload.rs`/`sdf_render.rs` 已完成 SDF dirty-rect `Queue::write_texture` partial upload,并让 renderer/texture owner 消费所有 page-keyed upload commands 到 `texture_2d_array` layer；`text/atlas/upload.rs` 首段已接管通用 upload command math；`text/atlas/page_residency.rs` 首段已接管每格式页上限、缺页分配、最旧未引用页逐出与全页受保护阻塞的 LRU 决策数据面；shelf overflow 现在不再放大单页 atlas,而是在固定 page size 内分配,溢出时通过 `GlyphAtlasSet::reserve_page_for_format(...)` 申请 page[1+] 并把 `SdfAtlasSlot.page_key` 指向真实页；evicted/rebuilt SDF page 现在通过 `SdfAtlasPlan.rebuilt_pages` 在 cache transition 中整页标脏；over-cap/oversized allocation failure 现在记录到 `SdfAtlasPlan.allocation_failures` 并汇总到 SDF prepare report,且 `SdfAtlasRun.glyph_failure_reasons` 按字符位置记录 page-limit/oversized 原因；fallback policy 已拆到 `ui/text/sdf_fallback.rs`,并能把连续同原因失败字形归并为 fallback spans/report span counts；Horizontal LTR/explicit RTL/no-wrap/non-justify 失败 span 已生成局部 native overlay,不支持的混合情形继续 whole-batch native fallback 且会记录 unsupported mixed overlay reason diagnostics。真实 alpha bitmap atlas 替换、glyphon atlas 迁移、持久化 glyph cache/residency 驱动的完整淘汰闭环、broader glyph-level mixed fallback(Vertical/Auto-Mixed/justify/wrapped)、independent oversized fallback、DPI/subpixel/hinting 仍未完成。
 - `text/raster/policy.rs`:已承接 `raster_path_for`/`GlyphRasterPolicy` 的 bitmap/SDF/MSDF/Color 选路数据面,并开始按请求格式与 outline/shadow/glow 效果强制距离场路径。
 - `text/raster/swash/`:已建立 swash 隔离层首段数据契约并按结构规范拆成 folder-backed owners:`bitmap.rs` 记录 `GlyphBitmap` size/bearing/px_size/data/channels/content 与 fallible validation,alpha/color/subpixel 位图可映射到 `GlyphAtlasFormat::{AlphaMask,Color,SubpixelMask}` 与 R8/RGBA storage；`atlas_source.rs` 将已验证 `GlyphBitmap` 投影为 `GlyphAtlasBitmapSource`,保留 atlas format、content size、screen rect、foreground/background color 与真实 `data.len()` source byte length,使 swash 输出可直接喂给 bitmap atlas run validation/allocation；`request.rs` 持有 `SwashRasterRequest`/`SwashRasterSource`/`SwashBitmapStrike` 与 swash source/render-format 选择；`rasterizer.rs` 持有真实 swash `ScaleContext`/`Scaler`/`Render` adapter,并把 swash `Image` 归一化为 `GlyphBitmap`；`color_strike.rs` 持有 COLR/CPAL 优先与 CBDT/sbix strike selection,选择 ≥目标尺寸最近 strike 下采样,否则最大较小 strike 作为显式 upscale fallback,并按比例换算 size/bearing/advance；`error.rs` 持有 `SwashRasterError`;`tests.rs` 保留 FiraSans 真实字体 alpha/subpixel outline、bitmap validation、atlas source bridge 与 emoji strike owner tests。Focused Cargo `text_raster_swash` 旧 11/11 证据仍适用旧单文件实现;最新 bridge 切片因外部 cargo/rustc lanes 活跃只声明 scoped rustfmt、diff check 与视觉证明。emoji RGBA fixture 实像素测试、生产 alpha bitmap atlas renderer 与 glyphon `TextAtlas` 切换仍未完成。
-- `text/raster/swash/request.rs` + `rasterizer.rs`:2026-07-07 的 glyphon `CacheKey` parity 说明为**历史基线**。当前 `SwashRasterRequest::native_bitmap_atlas_glyph(...)` 只接受文本所有的 `GlyphRasterKey`，保留 glyph id、物理 px size、x/y subpixel phase、hinting、synthetic italic 与 variation；color source fallback 顺序仍为 `[ColorOutline(0), ColorBitmap(BestFit), AlphaOutline]`。renderer 不再持有或转换 glyphon cache key。
+- `text/raster/swash/request.rs` + `rasterizer.rs`:2026-07-07 的 glyphon `CacheKey` parity 说明为**历史基线**。当前同步 Runtime service 与异步 native worker 都先生成同一后端无关 `TextGlyphRasterRequest`，再通过 `SwashRasterRequest::from_text_glyph_request(...)` 适配 glyph id、物理 ppem、3x4 x/y phase、hinting、smoothing、mode 与 synthetic italic；color source fallback 顺序仍为 `[ColorOutline(0), ColorBitmap(BestFit), AlphaOutline]`。renderer 不再持有或转换 glyphon cache key。
 - `text/atlas/bitmap_run/staged_upload.rs`:2026-07-07 在 page-generation upload guard 之后补上 stale upload requeue report。`GlyphAtlasBitmapTextureUploadRequestPlan` 现在显式携带 `requeued_uploads`、`stale_page_generation_count` 与 `face_invalidated_count`;带 live atlas/face-validity 输入的 request plan 遇到 missing page、page generation mismatch 或 face invalidated 时不产出 texture upload request,而是记录 `GlyphAtlasBitmapRequeuedUpload`。这关闭了 stale artifact / face invalidated artifact 被静默跳过的首段数据面;真实 async worker、global glyph slot invalidation 与完整 glyphon `TextAtlas` cutover 仍未完成。
 - `graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs`:2026-07-07 继续把 low-level requeue report 接到 renderer-local texture upload frame。`GlyphAtlasBitmapTextureUploadFrameReport` 现在按帧汇总 missing-page、page-generation mismatch、face invalidated 与总 requeued upload 计数；`glyph_atlas_bitmap_texture_upload_frame_plan_for_atlas_and_face_validity(...)` 在任何 requeue 存在时保持 `ready_to_write_texture=false`,不向 WGPU writer 交出可写 plan。该切片只收束 frame report handoff,真实 async worker、global glyph slot invalidation、完整 glyphon `TextAtlas` cutover 与 live editor-window typography QA 仍未完成。
 - `graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs`:2026-07-07 继续把 requeue frame report 推到 renderer prepare telemetry。生产 `prepare_submission(...)` / `prepare_storage_submissions(...)` 现在用 submission 自带的 live `GlyphAtlasSet` 调用 `glyph_atlas_bitmap_texture_upload_frame_plan_for_atlas(...)`,不再绕过 page-generation/missing-page guard；`GlyphAtlasBitmapRendererPrepareReport` 汇总 `upload_requeued_count`、`upload_missing_page_requeue_count`、`upload_page_generation_mismatch_requeue_count` 与 `upload_face_invalidated_count`,且 `upload_failure_count` 将 requeued uploads 计入失败口径。该切片关闭 renderer telemetry handoff 缺口,但 per-face artifact validity source、真实 async worker、global glyph slot invalidation、完整 glyphon `TextAtlas` cutover 与 live editor-window typography QA 仍未完成。
 - `text/atlas/bitmap_run.rs` + `render_submission/retry.rs` + `text/native_bitmap_atlas.rs`:2026-07-07 补上主 native bitmap atlas 路径的持久 atlas state 与 slot invalidation 数据面首段。bitmap run/render submission/retry driver 现在可接收上一帧 `GlyphAtlasSet`,在帧开始清除 page reference,需要重建未引用页时记录 `GlyphAtlasBitmapSlotInvalidation { page_key, page_generation }` 并把整页标脏；`ScreenSpaceUiTextBackend` 在非空 native bitmap frame 间保留主 submission atlas,字体 face invalidation 与空 native text frame 则清空该 atlas。该切片让 page-generation guard 有真实跨帧 page state 可比较,避免 atlas page 重建后旧 slot 继续静默可写；同日 follow-up 又把 storage partition/submission 逻辑拆到 `text/native_bitmap_atlas/storage.rs`,并让 per-storage submission 通过 `glyph_atlas_bitmap_render_submission_plan_with_atlas(...)` 继承主 frame 的 `self.submission.run.atlas.clone()`,关闭 mixed R8/RGBA storage split 中 per-storage default-atlas reset。真实 async worker、完整 glyph slot owner、focused Cargo green、完整 glyphon `TextAtlas` cutover 与 live editor-window typography QA 仍未完成。
 - `text/native_bitmap_atlas.rs` + `native_bitmap_atlas/handoff.rs`:2026-07-07 继续把 native bitmap atlas 的缺失 raster 图像从静默跳过改为可诊断 fail-closed。`source_cache.image(...)` 返回 `None` 时累计 `missing_raster_image_count`,prepare report 暴露该计数；handoff owner 新增 `MissingRasterImage` fallback reason,并确保只要缺图计数非 0,native atlas 不能替代 glyphon,即使 source image count 与 visible glyph count 看起来相等。该切片不完成真实 async raster worker 或首帧占位渲染,但关闭 atlas 输入不完整时仍接管 glyphon 的首帧降级风险。
 - `text/native_bitmap_atlas/source_cache.rs` + `text/parallel/raster_pool.rs`:2026-07-07 的 work id → glyphon `CacheKey` pending 映射为**历史基线**。当前 pending/cache/worker completion 均以 `GlyphRasterKey` 为 key；accepted `GlyphBitmap` 继续转为 `SwashContent`、bearing、尺寸与共享 bytes，failed/unknown/invalid/face-invalidated/pending worker 计数仍进入 `NativeBitmapAtlasSourceCacheFrameReport`。2026-07-17 owner hard cut 删除 worker 层伪 `page_generation=0` target；raster bitmap 在 atlas page 分配之前产生，只能由 face epoch 失效，真实 page generation 继续由 allocation/staging/upload request guard 校验。idle frame 与 face invalidation 会同步清空 pending worker key。
-- `scene_renderer/ui/text.rs` + `text/native_bitmap_atlas.rs` + `native_bitmap_atlas/source_cache.rs`:2026-07-07 的 miss scheduling 已在本轮收敛到 canonical glyph input。`ScreenSpaceUiTextBackend` 只向 native frame 传递 `NativeBitmapAtlasGlyphRun`; native frame 先按当前 face epoch drain completion，再让 miss 调用 `request_worker_image(...)`。source cache 用真实 face index/font bytes 和 `GlyphRasterKey` 生成 `SwashRasterRequest::native_bitmap_atlas_glyph(...)`，提交携 face epoch 的 `TextRasterWorkItem`，并用 `GlyphRasterKey` pending map 去重；source image 只从已完成 cache 读取，不在 native atlas miss 路径同步调用 glyphon `SwashCache`。
+- `scene_renderer/ui/text.rs` + `text/native_bitmap_atlas.rs` + `native_bitmap_atlas/source_cache.rs`:2026-07-07 的 miss scheduling 已在本轮收敛到 canonical glyph input。`ScreenSpaceUiTextBackend` 只向 native frame 传递 `NativeBitmapAtlasGlyphRun`; native frame 先按当前 face epoch drain completion，再让 miss 调用 `request_worker_image(...)`。source cache 用真实 face index/font bytes 将 `GlyphRasterKey` 投影为共享 `TextGlyphRasterRequest`，再交给唯一 Swash adapter，提交携 face epoch 的 `TextRasterWorkItem`，并用 `GlyphRasterKey` pending map 去重；source image 只从已完成 cache 读取，不在 native atlas miss 路径同步调用 glyphon `SwashCache`。
 - `text/native_bitmap_atlas/source_cache.rs` + `native_bitmap_atlas.rs` + `native_bitmap_atlas/handoff.rs`:2026-07-07 关闭 PF-M3 “已有近似桶”首帧替代切片。source cache 只在 font/glyph/size/weight/flags 完全相同且仅 subpixel bin 不同时返回近似图像,并记录 `approximate_hit_count`;native frame 仍为 exact key 排队 worker request,但当前帧可用近似 source image 继续 native bitmap atlas submission,不走透明占位;prepare report 记录 `approximate_raster_image_count`,first-frame degradation 记录 `ApproximateBucketReplacement`。该切片不替代 per-page upload merge、persistent glyph slot owner 或 full glyphon `TextAtlas` cutover。
 - `text/native_bitmap_atlas/source_cache.rs`:2026-07-08 的 glyphon `CacheKey.x_bin` 归一化为**历史基线**。当前相位完全由 `GlyphRasterKey` 的 `subpixel_bin` 与 `vertical_subpixel_bin` 表达；cache lookup、approximate lookup、worker request、pending check 与 insert 均使用这一文本所有 identity。纵向近似仍最多探测三个候选 bin，不进行全表扫描。
 - `scene_renderer/ui/text.rs` + `text/native_bitmap_atlas/source_cache.rs`:2026-07-10 追加 native raster/upload prepare-report 聚合层。`ScreenSpaceUiTextPrepareReport.raster_upload` 从 native bitmap atlas prepare report 读取 visible/source/missing/approx glyph、source-cache hit/miss/worker-request 与 submission upload bytes,再合并 bitmap renderer upload/requeue/failure/ready 状态,为 AT-M3/PF-M4 的 scroll raster/upload 计数断言提供单一入口。该切片只接入可观测 surface,不声明 per-page upload merge、真实 scroll increment assertion、live editor-window typography QA 或完整 glyphon `TextAtlas` cutover 完成。
@@ -486,3 +489,365 @@ Runtime/WGPU green，也没有生成 PNG。状态为
 `sdf_atlas_production_iterator_owner_converged_static /
 missing_test_only_slice_helper_compile_path_removed /
 managed_runtime_wgpu_pending`，Text04 继续为 `in_progress`。
+
+2026-09-01 Text04 Runtime/Editor raster authority convergence：本轮按 Unreal Slate
+`FSlateFontCache` 的单一字体缓存/栅格 authority 重新审查 retained Editor、Runtime artifact、native
+bitmap atlas、Swash worker 与字体代际生命周期。Runtime 已建立后端无关
+`TextGlyphRasterRequest`/`TextGlyphRasterReceipt`/类型化错误和 alpha/subpixel/color 格式合同；公共
+request 唯一拥有物理 ppem、3x4 phase、hinting、smoothing、mode 与 synthetic oblique。每个
+`FontCollectionService` 持有一个私有同步 `GlyphRasterService`，artifact face 在栅格前后校验精确
+collection/face/instance/generation/source/variation；真实 Fira Sans 服务回归覆盖 receipt identity、
+bearing、phase 与 bitmap 长度。native atlas 的 `GlyphRasterKey` 也已硬切为先投影同一公共 request，
+同步服务和异步 worker 共用唯一 `SwashRasterRequest::from_text_glyph_request(...)` 校验/适配器；既有
+worker batching、pending 去重、背压、completion byte budget、face epoch、source LRU 与 GPU atlas
+residency 算法保持不变。SDF/MSDF 与尚不支持的 synthetic bold 在此 bitmap bridge 明确 fail closed，
+不再静默丢失样式。
+
+retained Editor 已删除私有 system fontdb、Fontdue layout/metrics、Swash `ScaleContext`、无界 glyph
+`HashMap`、8-bin phase、font/artifact snapshot cache 和 direct `fontdb`/`fontdue`/`swash` 依赖；布局与
+绘制只消费完整 Runtime artifact/face/receipt，缺失时 fail closed，不保留第二成功路径。本轮源码范围
+量化为 1,566 insertions / 5,490 deletions，相关核心生产 owner 均低于 800 行。Editor 硬切静态合同
+7/7 通过；Runtime text 静态合同 114/116，通过项未回退，两项失败仍属于未修改的 UI texture owner：
+旧返回类型源码字符串与 829 行 `scene_renderer/ui/image.rs` 结构门。当前终态 Runtime 定向测试的托管
+D 盘验证副本 `d4da4a0a64424fbfa97845713680b0cf` 在 overlay ownership 阶段失败，Cargo
+未启动；刷新逐文件 claim 后，替代副本 `1e51cc39937545b2a729d7ff8bcbd37a` / request
+`8c9c4e7e59774579a4db9544fb067aee` 已受理但尚无 Cargo 结果。缓存算法优化、31-sample 性能/功耗、
+100/125/150/200% 当前源码 WGPU 产品帧、PNG 检查、milestone commit 与企微通知继续 pending；计划
+保持 `in_progress / source_converged / managed_validation_pending`，不得声明 Cargo、视觉、性能或功耗
+验收完成。
+
+同日结构复核又定位到 retained 稳定帧的算法缺口：layout cache 命中后，Editor 仍按 visible glyph
+逐个进入 collection-owned 同步 Swash mutex 并重新发布 bitmap，当前复杂度是
+`O(visible glyphs * raster)`，尚未达到 Unreal `FSlateFontCache` 风格的
+`O(distinct raster misses)`。本轮只新增默认 ignored 的 managed Windows release 基线
+`text_runtime_raster_authority_sync_service_repeated_request_profile`：31 组交错样本、每组 1,024 次，
+输出 cold、raster 与 shared-receipt clone 的 p50/p95/p99、p95 ratio 和 bitmap bytes。动态数据和
+sampled stack 回来前，不实施新的 LRU、single-flight、锁分片或异步策略，也不把既有 native source
+cache 的容量直接照搬到 retained service。状态仍为
+`measurement_harness_source_implemented / managed_release_profile_pending`。
+
+同步 service 的 Swash scaler id 同时修正为原样保留 font owner 已计算的 128-bit
+`BLAKE3(domain || TTC face_index || full bytes)` source identity；collection generation 继续只作为 artifact/
+receipt stale fence，不再 XOR 进 source identity 高 64 位。旧折叠可让不同 `(source,generation)` 形成同一
+backend id，并让相同 bytes 的安全 scaler cache 无谓失效；新回归锁定两个 64-bit lane 的逐位映射与不同
+source 不别名。该项是 identity correctness correction，不是基于猜测改变 residency 容量或并发算法。
+
+retained layout cache 同步删除只保存 `DefaultHasher<u64>` 的字体请求身份，改为精确比较
+`collection generation + HostTextFontRequest(face/family/weight)`；borrowed text/request lookup 保留，
+命中时不构造第二份 cache key。该修复阻止理论 hash collision 复用错误 generation/family/weight artifact，
+并遵守总规范的 exact identity 要求；cache 容量与逐出算法未改变。
+
+同日 Runtime201 M0 authority 第一段继续前向收敛：`TextModule.Manager.FontServices` 保留稳定 registry
+拼写以维持 Graphics 已声明依赖，但实际 manager 从只持 font collection 的 `TextRuntimeServices` 硬切为
+per-Core `TextRuntimeContext`。context 具有非零精确 identity，固定同一 `FontCollectionService` 与 compiled
+Unicode provider snapshot，并只从该 collection 创建 layout session；模块 cleanup 令 context
+`active -> draining -> closed`，即使外部仍保留旧 `Arc` 也不能再创建 session，重新激活会生成不同 context/
+collection。源码测试覆盖同 Core 稳定、跨 Core 隔离、font/Unicode 一致、关闭拒绝和重新激活替换。该项只
+建立后续 surface-owned parser/cache lifecycle、scheduler/residency/health 迁移所需的生命周期根，不宣称
+Runtime201 M0 已完成；process-global convenience、完整 session/request/artifact/frame identity 和
+in-flight drain 继续 open。
+
+当前精确 production/test/Cargo 源码范围为 67 文件、2,496 insertions / 6,069 deletions（含 17 个新文件，
+不含两份计划记录），生产 owner 仍全部低于 800 行。重复稳定 glyph 的 release profile 首次请求
+`452fd197875f43499206952d5dc46516` 因 validation overlay 未拥有新 performance source 而在 Cargo 前拒绝；
+逐文件 claim/attribution 后的替代调用在返回 receipt 前超时，按规则没有重试或轮询，因此仍没有可引用的
+性能、sampled stack、内存或功耗数据。retained layout cache 审查还登记了两个未优化热点：2,048-entry
+容器以 `swap_remove_index(0)` 做 FIFO-like 驱逐且 hit 不刷新 recency，key 又包含 absolute rect x/y，布局
+与屏幕 placement 尚未拆开；需先测 moved-text hit/miss/eviction，再决定相对布局 key 与 LRU 修正。当前保持
+`in_progress / runtime_editor_hard_cut_and_core_context_source_implemented /
+managed_validation_and_release_profile_pending`，failure、WGPU 产品帧、PNG、milestone commit 与企微通知均
+不得提前关闭。
+
+同日 Runtime201 M0 产品入口继续硬切：Dynamic Session 在模块激活后只解析一次
+`TextRuntimeContext`，project UI surface builder 与 fallback menu/HUD extract cache 均通过该 context 的
+admission gate 创建 `SharedTextLayoutSession`，并在 `UiTextMeasureCache` 保留精确
+`TextRuntimeContextId`。字体 asset claim 仍从同一 context 投影 collection，因而加载、布局、artifact 与
+栅格代际属于同一 lineage；Dynamic 产品构造链不再把 `font_collection_service_for_core` 当作顶层文本能力。
+`UiSurface` 不持有或序列化 process-local context，只接收 owner-aware builder 注入的 measure cache；Editor/
+standalone 公共构造仍暂时保留 process-owner compatibility。context 关闭后的新 cache/session 构造以类型化
+错误拒绝，相关 identity 与关闭态源码回归已补齐。59 项 focused 静态合同通过；托管 Cargo、WGPU、性能、
+功耗和当前源码 PNG 尚未形成 accepted 证据，因此状态为
+`runtime_ui_context_binding_source_implemented / managed_validation_pending`，Runtime201 M0 仍未完成。
+
+该 32-path context/product 源码快照已由托管验证副本
+`f83b46a6e8ac4be480abad954a32784a` / request
+`84dde68097f9408eb4df88201e369c53` 在 `D:/cargo-targets/verify` 受理，focused 命令为
+`zircon_runtime --lib runtime_text_context`。receipt 仍只是 `materializing`，不得视为 Cargo pass，也不因其
+pending 停止其它非验收工作。
+
+context 健康面第一段同时 source-implemented：不可变 `TextRuntimeContextHealthSnapshot` 关联 context、
+lifecycle、font collection/generation、Unicode snapshot、累计成功 layout-session admission 与 active family。
+每次 context admission 现在分配 per-context checked/nonzero
+`TextSessionId { context, sequence }`；显式 session/cache clone 共享 family ID 与 lease，但保持独立 parser/cache
+owner，standalone compatibility session 明确为 `None`。sequence/active/admission 耗尽均返回 typed error，不复用
+或 saturation。该健康快照仍不是完整 `TextHealthSnapshot`：surface、request/artifact/frame identity、cursor 和
+terminal receipt 尚未接入，因此不关闭 Runtime201 RT-TXT-P1-004/005。
+
+随后 clone 调用图复审发现一处实际越界：`UiSurfaceSessionIdentity::clone()` 已明确产生新 surface owner，
+但派生的 `SharedTextLayoutSession::clone()` 仍共享同一 `Arc<RichTextParser>`，使任一 clone 的 `clear()` 与
+resettable telemetry 能跨 surface 生效。现已改为显式 clone：font authority、shaped/hard-line cache snapshot、
+budget/report 与 context lease family 保持，parser/cache owner 重新创建。这样 context active-family 仍只计一项，
+两个 surface 的 parser clear/telemetry 则完全隔离；新增回归验证相同 markup 在两个 owner 独立编译、清理一个
+不影响另一个。focused 59 项非 Cargo 合同继续通过；全仓 fmt check 仅被外部 dirty Rust edition/格式差异
+阻断，本目标两项源码的 `git diff --check` 通过。
+
+健康快照加入后，变更后的 33-path 源码另以
+`92ea424e58844b4a8e5714b46c0a0545` / request
+`719cec96ac764c8f99e2d2443362c4ab` 受理到 D 盘托管验证副本；同样只处于 `materializing`，不轮询、不声明
+terminal Cargo 证据。
+
+builtin Graphics module host 也已改为先解析 `TextRuntimeContext`，再向 renderer 投影所需 collection；全仓
+扫描确认无产品调用后，旧 `font_collection_service_for_core` accessor 与 re-export 已删除。Dynamic UI 与
+Graphics 现在从同一 capability root 进入文本 authority，稳定 manager registry 拼写继续保留以兼容模块依赖
+声明。该项不把 context 反向塞进 Graphics，也不宣称 renderer transport 已拥有完整 context/frame lineage。
+
+Graphics hard-cut 后的当前 authoritative 34-path 源码已以
+`11fa5758d05b44a1a02d7da542fcf1b2` / request
+`d39a51d99f3d462ab8cd234e35c10c26` 受理；该 receipt 仍只是 `materializing`，之前两个 copy 只对应更早源码
+快照。后续 acceptance 必须使用当前 manifest 的 terminal ticket，本轮不查询状态。
+
+Context 边界复审同时固定为“能力共享、解析缓存不共享”：`TextRuntimeContext` 只提供 immutable
+font collection、Unicode snapshot 与 lifecycle lease；`RichTextParser` 的 decorator/emoji registry、
+compiled markup cache、single-flight 与 resettable telemetry 继续由每个
+`SharedTextLayoutSession` 持有。`UiTextMeasureCache::clear()` 必须只清理本 surface 的 parser，
+否则跨 surface 的失效与计数会互相污染。这与 Unreal 的 `FTextLayout`/marshaller 会话归属、
+font cache 作为共享 authority 的分层一致。后续优化不得把该 parser 提升到 Core context；只有在
+显式 snapshot/共享 owner 契约落地后，才可重新评估 session correlation，而不是借助全局缓存规避成本。
+
+结构规范复审发现本轮已触碰的 Dynamic Runtime UI root 为 1,352 行；其 401 行既有行为测试已原样迁到
+`dynamic_api/session/runtime_ui/tests.rs`，root 降至 947 行并继续只负责编排与运行时状态。该拆分不改变测试
+逻辑、输入路由或 surface 行为，仅闭合 `engine-code-structure-convention` 的 touched-owner 预算。
+
+同日 current-source 结构继续收敛：首次测试拆分后的 Runtime UI root 实际仍为 990 行，输入分发、focus/
+navigation owner、pointer capture、publication refresh 与 dispatch-output recording 已整体迁入
+`dynamic_api/session/runtime_ui/input_routing.rs`。root 现为 428 行，input-routing owner 为 574 行，
+11 项行为测试留在 439 行的 `runtime_ui/tests.rs`；只移动既有实现，不改变输入算法或 public contract。
+focused 59 项非 Cargo 静态合同与 scoped Rustfmt/diff-check 均通过。完整 Session 自有
+production/test/Cargo 源码统计纠正为 71 文件、3,558 insertions / 6,648 deletions、18 个新文件；旧 67
+文件统计漏记 `core/framework/text/mod.rs` 与两项 surface-artifact owner，不再作为当前权威数字。
+
+包含新 test/input-routing owner 的当前 36-path Runtime 源码已以 claim
+`021962ded48442d9b9240d476fddf209`、attribution
+`64fb653e8b9547978f7df80342a8b842` 封存，并由 D 盘托管副本
+`57b1960cb4c24b1f83e1ede711503bc0` / request
+`86a648d825f14f9bad4d270a418df493` 受理。receipt 仅为 `materializing`，不轮询、不声明 Cargo pass；
+前一 34-path copy 已被当前 manifest supersede。WGPU 产品帧、PNG、性能/功耗、milestone commit 与企微
+通知仍 pending，Text04 保持 `in_progress / source_converged / managed_validation_pending`。
+
+同日 context lifecycle 补齐第一段 active-session draining：每次 context admission 建立一个公开可读、不可伪造的
+context-qualified `TextSessionId` 与 logical session-family lease，`SharedTextLayoutSession`/measure-cache clone
+共享该 ID/lease，只有最后一个 clone Drop 才将 active-family 计数减一。context 进入 Draining 后拒绝新
+admission；若仍有 family，`close()` 保持 Draining，最后一个 family 释放时原子转 Closed。health snapshot 新增
+active-family count，state 与 active count 现打包进同一 atomic word，admit/close/release 在一个 CAS 上
+线性化，不再可能发布 `Closed + active>0` 的撕裂 health；release 下溢转 Faulted，不回绕、不 panic。
+ownership lease/ID 明确不参与 session 的语义 `PartialEq`。下一步继续接 surface/request/artifact/frame
+correlation，而不是把 family ID 误当作 parser 或 surface owner。
+
+纳入 `text/layout_session.rs` 与 parser-owner clone 回归时，自有源码 snapshot 为 72 文件、3,821
+insertions / 6,649 deletions、18 个新文件；随后六路径 identity/lifecycle slice 当前相对 HEAD 为 986
+insertions / 2 deletions（含三个 new owner），完整 manifest 总量在下一次 sealed snapshot 统一重算。前一
+37-path Runtime snapshot 的 claim
+`ea81d3e888724051b7cfbb73cec4f918` / attribution `5ce0b8902afa4019a93772faa17e1da8` 只覆盖
+clone 修复前的内容，不能作为当前验证 manifest；本次仅刷新变更的
+`text/layout_session.rs` 与 `text/layout_session/tests.rs`，lease claim 为
+`657a615de131431e8cb83f441fa9a572`、baseline attribution 为
+`f75867498d1a4b6680439166001f2497`。此前 D 盘 managed copy
+`71435eb9a80b4cb2a7b14c3e7466f08e` / request `f546baad8fc3473eaf0a8843e5f5df6b` 仍只对应旧
+37-path snapshot，receipt 仅为 `materializing`；focused 59 项非 Cargo 静态合同通过，不轮询、不声明
+Cargo/视觉/性能完成。当前六路径 source claim 为 `ebc502589c9142a69e1958d9c8f2b07e`，attribution 为
+`335996f7aef741f1b2ea900570eb85fe`；下一次 managed validation 必须提交完整当前 manifest。
+
+同日 Phase A 产品 constructor 边界新增静态架构合同：Dynamic session construction、fallback Runtime UI
+extract cache 与 builtin Graphics module host 必须从 Core 解析同一 `TextRuntimeContext`，正式构造段禁止重新调用
+`shared_font_collection_service()`、`UiTextMeasureCache::default()` 或
+`SharedTextLayoutSession::new()`。该 guard 只约束已完成 context 接线的产品根，不误扫 `#[cfg(test)]` 与已明确标注的
+Editor/standalone compatibility constructor。现有 WGPU/SceneRenderer 全局入口同时标记为统一
+`Runtime201 standalone compatibility`，静态合同只允许三个 owner 中四处相邻标记的 global call；新增或未标记
+调用会直接失败。因此 Runtime201 `RT-TXT-P2-010` 仅推进到 product-root guard + compatibility inventory
+source-implemented，不能据此关闭 `TXT-G02`。完整 feature gate、Editor preview/tool 迁移以及受管 Cargo 仍开放。
+focused 非 Cargo 合同集合以 `60/60`、`1.616s` 通过；最终 guard/WGPU/SceneRenderer/icon-startup SHA-256
+依次为 `6F9645DF3DD7C8EA1D9992DB9BAE814409256E133A656AB9040A80286D0489B4`、
+`8BAB2656938E7029B118954AB68429D8E21B7C39C03B94EB053F9D517581FD6D`、
+`8444731760941EFDD0BAD9AF1C507507662C187EBCAB17725DDB2B9B39D14258`、
+`51DD683BF5D3935CA464674EBECD97423CBD232B131AF4CA7417BDF78C72A6CA`，current attribution 依次为
+`d878544a9d4f44d1b5ed32059e7ed52f`、`cad18c060a3f448889465b9a4cd6cd69`、
+`35bc9b52016348979a9f404ec086cfd7`、`b62957cfc4a14316a7df14d7d7475179`。三个 Graphics owner 的
+whole-file Rustfmt check 暴露既有 import/test 格式差异，本切片未制造无关 formatter churn；精确 diff-check
+通过。该证据仅为源码合同，不代表 managed Cargo 或产品帧完成。
+
+同日系统字体事实源 ownership 继续收敛。模块依赖复核确认 builtin `GraphicsModule` 同时声明对
+`TextModule` 与 `TextModule.Manager.FontServices` 的依赖；Core 在 Text 停用前会拒绝仍有 running Graphics
+dependent 的 unload，正常关闭顺序已保证 renderer 先退出，因此没有为同一事实重复铺设贯穿 WGPU 的长期
+render lease。外部越过模块生命周期继续持有 manager `Arc` 属于通用 manager API 合同，不以裸
+`FontCollectionService` 投影为由扩张本切片。
+
+对照 Unreal `SlateRenderer.cpp` / `RenderingPolicy.cpp` 的 `FSlateFontServices` 注入，以及
+StandaloneRenderer D3D/OpenGL 在 renderer 创建前构造 font services 的 owner 关系，Zircon 已删除
+`ScreenSpaceUiTextSystem::new_with_font_collection` 中无条件
+`SystemFontPolicy::Discover` 的运行期 mutation。新增 public `TextSystemFontPolicy` 与 target-aware
+`TextModule::for_target(...)`：builtin ClientRuntime/EditorHost 显式选择 `DiscoverPlatform`，Server 与默认
+standalone context 为 `PackagedOnly`；策略在 `TextRuntimeContext` 创建 collection 的初始数据库时一次应用，
+初始 generation 保持 1，renderer 只捕获已确定的 snapshot。health snapshot 同时发布所选 policy 与实际
+discovered face count，防止策略决定与运行结果失联。该项把 Runtime201 `RT-TXT-P1-006` 推进到
+`context_owned_target_policy_source_implemented`，但 versioned project profile、allowlist、locale pack、
+shipping determinism/fingerprint/receipt 仍属于 `RT-TXT-P1-007` 开放项，不能标记完成。
+
+新增源码合同锁定 renderer 生产 owner 中 `apply_system_font_policy`/`SystemFontPolicy` 为 0，并要求 Context、
+FontCollectionService、TextModule、builtin target selection 与 health 字段同时存在。focused 非 Cargo 合同集
+以 `61/61`、`2.276s` 通过；六个非 renderer Rust owner 的 Rust 2024 `rustfmt --check` 与八路径
+`git diff --check` 通过。当前八路径 lease claim 为 `d53e6b049f844a9ca0b2c9d038805ee0`，attribution 为
+`7f29530b2ad941d5bac8686ae0e90af6`；Context/health/font collection/module/mod/renderer text/builtin modules/
+source guard SHA-256 依次为
+`59F24E1CA5694717E637D8E7B6D03FDD2A7CDFE23CD4F4534CEE61B2001CEE36`、
+`85CA1B303241A2BF8304CADC30E1E5DA2FD94753362CD7BC300515F03703DD7D`、
+`6A6158F7BEFF6749FC3BB8276E62A71EB377FA01FDEC28E8487F6C8ADA8B3FC7`、
+`B8AF88C7C284A1D5522E7310DBED79314B15C5AFADE792AA34D4FC12DE79D4E7`、
+`7F5DB47184F645423C3DC66CE61E39030D795770B3666B721BBFDDF6358EE113`、
+`A27E6DEA88EDE868991BD2157884D493869572C40C18B089631341F03A087B96`、
+`075E9560C354F81B234C597117B6A8134A81C2CA4E9EAA37199066986DBE9595`、
+`52FCAAE4E1E41F7D03C4F18E93DF54D60D01FD84A59C1B36A6F8C295934B256C`。本轮没有 Cargo、
+WGPU、PNG、性能或功耗证据，Text04 继续 `in_progress / managed_validation_pending`。
+
+同日 correctness 复核关闭 Runtime201 `RT-TXT-P2-002` 的一个具体缺口：shaped-cache 的
+direction-alias bucket fingerprint 原本包含 collection 与 Unicode snapshot，但在 fingerprint
+碰撞后的 exact candidate compare 中漏比较这两个 authority。现已补齐
+`font_collection` 与 `unicode_data_snapshot` 精确比较，并加入跨 collection/跨 Unicode generation
+回归；不会把不同 Context 或 Unicode 代际的 auto-direction run 当作同一结果。该修复未改变 cache
+容量、bucket 索引或 eviction 算法。新增合同后的 focused 非 Cargo 集合以 `62/62`、`2.324s` 通过，
+`shaped_cache.rs` 与 tests 的 Rust 2024 `rustfmt --check`、`git diff --check` 均通过。当前三路径
+claim/attribution request 为 `a6b15577c79840c0bbc02376f5eeb910`；最新 SHA-256 为
+`5DA7EAF1F3652D4A41D2B110F780C60CD29645B0DD8BA70D1CA8D1E7B5E61763`、
+`42A9E9D5BBD21E6D9FA750842F38DDEED892AF221C2F6CF91C5CBB4741ACE4E4`、
+`46D619421ABDD6DE73DC2661D7CC7E5DAC2E46B8D30E464B80A5E2A53D4ADE1B`。该 correctness slice 仍待
+managed Cargo 终态；不产生性能、功耗、WGPU 或 PNG 验收结论。
+
+同日继续关闭 Runtime201 `RT-TXT-P2-003` 的 capability-contract 缺口：`TextShapeRunProvider` 的默认
+vertical 方法不再静默委托 horizontal shaping，而是 fail-closed 返回
+`TextLayoutError::UnsupportedWritingMode`。Runtime 的 Direct、FontCollection 与 SharedSession provider
+均已有显式 vertical 实现；依赖旧默认行为的 rich-vertical 计数测试 provider 已改为显式转发 vertical
+请求。新增回归证明仅实现 horizontal 的 provider 不会伪造 vertical 成功，并加入源码合同防止默认实现
+再次调用 horizontal。focused 非 Cargo 集合以 `63/63`、`2.144s` 通过，三份 Rust owner 的 Rust 2024
+`rustfmt --check` 与四路径 `git diff --check` 通过。当前四路径 claim 为
+`fcaba3b5c1b7437ca4fdf71dfa410b6b`，attribution request 为
+`3aaa973cabca42df8d08ad6dd38223dd`；`shaping/mod.rs`、`shaping/tests.rs`、
+`layout/rich_vertical/tests.rs` 与最新 source guard SHA-256 依次为
+`BE51D717B05F90A18161AC2E2581165902DDDE6F73916491AA9BDF35689E439B`、
+`38A5F873F06AADBBBF68D4640880F3B6764E3417E3B75C1F5D6E5933E91432F8`、
+`5805033143010061D5B79A8DB4C1A64E853B2AEFED38EAFA0EBAE5962C611E74`、
+`0E5016EDBA405354F0EB9673386675F5E58E3935B277154ABDBC1D32B21D6015`（该 guard 随后又加入几何合同）。这只修复 capability
+边界与错误语义，不宣称 vertical shaping、性能或视觉验收完成；managed Cargo 终态仍待受管验证。
+
+随后针对 `VerticalRl` 列布局完成一项 MVP 几何安全修复：`layout_vertical_rl_columns` 的 frame-right、列 x
+坐标和测量宽度保留正常路径的原有 `f32` 舍入，仅在候选结果非有限时用未截断的 `f64` 精确中间值并收敛到有限范围，
+避免有限的 `f32` 输入因中间加法、乘法或列数累积产生 `inf` 几何，再泄漏到布局/绘制阶段。正常值的从右到左放置与单次 frame 遍历没有改变；新增边界回归覆盖
+`f32::MAX` frame、advance、column height 组合，并加入源码合同确保中间计算继续使用有限收敛。受限文本基础设施
+契约模块本次为 `60/60`、`1.889s`；`vertical_layout.rs`、`single_pass_frame_tests.rs`、
+`shaping/vertical.rs`、`shaping/vertical/direct.rs`、`shaping/vertical/tests.rs`、
+`shaping/vertical/orientation.rs` 的 Rust 2024 `rustfmt --check` 与所有本轮 owned-path `git diff --check` 均通过。
+当前几何 owner SHA-256 为
+`9453DCD7D1AFFF9CF96E1A4B26041D2EF000C6ED9C3EFE82ACCD0CA8757135BD`、
+`A07D750CA76AA9181C6AF96263BE3DC497AB552F3C66A8DC40920B6DAADD500B`、
+`1FEBD79D0B3D17D7E54DF39D24DCBD1E82CC90FFA9599225D2CBE6EA3FC59827`。该修复是几何正确性保护，未声明
+性能优化、功耗改善、Cargo/WGPU 构建或真实渲染截图验收；受管验证仍保持 pending。
+
+同一边界也在垂直 shaping owner 上收敛：`apply_vertical_layout` 对 cluster advance 与 cursor 使用并行
+`f32`/`f64` 累计，普通结果保持原有舍入，溢出候选改用有限 `f64` 几何；run measured width 同样受保护。
+极端 glyph advance 回归覆盖 glyph x/y/advance/offset、line width 与 run extents 全部 finite，并加入源码合同
+锁定该策略。`shaping/vertical.rs`、`shaping/vertical/direct.rs` 与 `shaping/vertical/tests.rs` 最新 SHA-256 为
+`B81546E27CF76E54923589106FD7E1B966ECC6C9EE7847864E1314AA557588A4`、
+`6CCB6BEE1CCBF7F0851E1A16C684F7F06823D17B0E54D3B2F6291B6BEB6AF295`、
+`79CA9E22273C2B18169955EAF542BC3B263FBC9A56C92AD0D7D3F00D3C5089A8`；上述 `60/60` 已包含该合同。
+Direct vertical positioning 现在复用公共 finite-geometry guard，覆盖 cluster advance、cursor、upright offset 和多列 measured width，
+避免 Direct 与 Cosmic 两条 provider 路径在极端有限输入上产生不同的非 finite 行为。
+这仍是数值正确性保护，不声明 shaping 性能、功耗、Cargo/WGPU 或 PNG 结果。
+
+进一步的 upright vertical glyph 复核发现 `(advance - horizontal_advance) * 0.5` 对不变量外的极端输入
+仍可能溢出；`vertical/orientation.rs` 现在保留普通 `f32` 结果，仅对非 finite offset 使用 `f64`
+精确差值并收敛，回归锁定极端水平 advance 仍得到有限 `-f32::MAX * 0.5`。该防御性 fallback 只在候选 offset
+真正非 finite 时触发；该 owner SHA-256 为
+`FAFF0CA26B648F66F8B6E8771EA1414AAC64017FC1A6C15EBE04A2F2C06343FE`；这是数值正确性保护，不声明
+性能、功耗或视觉验收。
+
+布局测量 owner 随后补齐同一有限几何语义：`measure_text_size_with_provider` 对多行高度保留普通
+`f32` 累加，并以并行 `f64` 总量仅在候选溢出时收敛到有限范围；两行 `f32::MAX` 行高回归确保
+`TextSize.height` 不发布 `inf`。该回归与 Direct/公共垂直 guard 一起纳入 `60/60` 源码合同；
+`layout/measure.rs`、`layout/measure/measured_line_contract_tests.rs` 与合同测试最新 SHA-256 为
+`5A600A1170CD6DA9D979888BEDF4A5B4AE1E294F37B4E7B400E633BEBC72190B`、
+`9FE53A5D0CB54791BD8FE5130861BB896D74AEBAC193871ADF87FEF0FCB41ACB`、
+`1FEBD79D0B3D17D7E54DF39D24DCBD1E82CC90FFA9599225D2CBE6EA3FC59827`。
+这是基础测量正确性保护，不声明性能、功耗、Cargo/WGPU 或真实渲染截图验收。
+
+随后横排 shaping owner 补齐同一有限几何语义：Direct、Cosmic hard-line 归一化与 partial
+composition 共用 `shaping/horizontal/mod.rs::position_glyphs`，对 glyph cursor 保留普通
+`f32` 累计，并仅在候选溢出时用 `f64` 精确累计收敛；run 的多行 `measured_height` 同样经
+`finite_sum` 保护。两个 `f32::MAX` advance 的回归同时锁定 glyph x、line width 与 height
+均为 finite；受限源码合同现为 `60/60`，`horizontal/mod.rs`、`horizontal/direct.rs`、
+`horizontal/composition.rs`、`cosmic.rs`、`cosmic/hard_lines.rs` 与回归测试最新 SHA-256 为
+`FC639ECD3D25F293A013BC49C649471514862F4C1B76E450D4EBBE78E86E8A69`、
+`82FF15212B3AD66035AB5228E6461DFAC176543E8C096AA46F5F14454773797C`、
+`56EAE5D246D8A74F363A17E8E6E11899C6D9B5EB35B46FE4D8BBF5DAD19E3DAC`、
+`C06FDBEF28A03816961192883183492EA680CDB757C751A3569132E78EFD4BB1`、
+`336047454307AA2F8929EEFE4FAC92AAC27467FD1E75B031C4942A07C2D4D992`、
+`71E8A97B6C44FC71746121FE92BBF25E8AE57589A11D3379FD0F2804D83735A5`；合同测试模块为
+`1FEBD79D0B3D17D7E54DF39D24DCBD1E82CC90FFA9599225D2CBE6EA3FC59827`。这是横排数值正确性
+保护，不声明 shaping 性能、功耗、Cargo/WGPU 或真实渲染截图验收；受管验证仍保持 pending。
+
+有限几何发布规则已完成单 owner 收敛：`text/layout_geometry.rs` 现在统一拥有 `finite_geometry`、
+`finite_f32_or_geometry` 与 `finite_sum`，测量、VerticalRl、水平 shaping、竖排 shaping 和 orientation
+只消费该 owner，源码合同逐文件禁止同名私有实现回流。中央 owner SHA-256 为
+`7E55F5AD5E35AB9C966393440A3058394B7CE62D6465A42E945AF4BE2E752180`。普通 `f32` 候选值仍原样发布，
+只有候选成为非有限值时才使用 `f64` 精确旁路并饱和到有限范围；共享 cluster 几何入口同样遵循该规则，
+其当前 SHA-256 为 `4253499C33B1670861E76246F652766536E540AB4C94512101C1F550B2903B7D`。tab 测量入口也已硬切到
+同一 owner：tab interval、cursor、无 tab 宽度 fallback 均保持有限，回归 owner SHA-256 为
+`1A7CA9018B82468245D96BBBADD921F418F32DF0AB79B6FACEFBCFAA213036C4`。这是基础几何一致性修复，不是未经 profile
+证明的性能优化。Cargo/WGPU、真实渲染 PNG、功耗和性能基线仍等待受管验证。
+
+本轮宽口径 `test_runtime_text*.py` 静态回归共运行 129 项，127 项通过；剩余两项均定位到未授权的
+foreign `zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs`（既有 `UiTextureDependencies`
+签名合同与 800 行 owner 预算），不属于本 Runtime 文本所有权范围，未修改、未纳入本轮修复。
+
+优化前置门已同步到 `04/2026-08-31-retained-raster-service-convergence-review.md`：在修改系统字体发现
+顺序、collection 指纹或 cache/index 算法前，必须先完成 managed Windows release 的 packaged/discovery、
+1/100/1k/10k-face、冷暖 shaping、LTR/RTL/VerticalRl 与 retained-cache cohort，记录 p50/p95/p99、
+allocation、RSS、fallback 顺序、身份、命中率和可用的 power/energy 数据，并与 Unreal Slate/FontServices
+生命周期对照。当前只完成结构调研与测量计划，不作性能或功耗结论，也不提前改变这些算法。
+
+## 2026-09-01 有限几何累加状态所有者修复
+
+状态：`current-source implementation complete / managed validation pending`。
+
+本轮在优化前重审中确认了一个基础算法错误：旧 `finite_sum` 虽在首次 `f32` 溢出时用 `f64`
+总量饱和发布，但下一次加法又以已饱和的 `f32` 值作为候选；因此
+`f32::MAX + f32::MAX - f32::MAX` 会错误发布 `0`，丢失溢出前的精确历史。该问题不是热点微调，
+而是布局几何状态所有权不完整。
+
+已完成项目：
+
+- `text/layout_geometry.rs` 新增唯一 `FiniteGeometryAccumulator` owner。普通路径继续发布原有
+  `f32` 顺序累加结果；一旦候选非有限，后续每次发布都从保留的 `f64` 历史恢复，直到抵消回到可表示范围。
+- `finite_sum`、共享 glyph cluster、水平 glyph cursor、Direct/Cosmic 竖排 cluster/cursor、
+  多行测量高度与 tab cursor 全部硬切到该 owner；源码扫描确认 `text` 模块内不再存在其它手写
+  `f32/f64` 累加对。
+- 新增回归锁定 `MAX + MAX - MAX == MAX`、继续抵消后回到 `0`，并更新源码合同锁定中央 owner
+  及所有消费者。聚焦静态合同 `60/60`，最终复跑耗时 `2.491s`；宽口径
+  `test_runtime_text*.py` 为 `129` 项、`127` 项通过，剩余两项仍仅属于 foreign
+  `graphics/scene/scene_renderer/ui/image.rs` 的签名与 829 行预算，未越权修改。
+- source-range glyph 宽度聚合也已从裸 `.sum()` 硬切到 `finite_sum`；两个 `f32::MAX` glyph 的
+  Rust 回归已写入，动态执行仍等待受管 Cargo。
+- 本轮 8 个 Rust owner 的 Rust 2024 `rustfmt --check` 与 11 路径 `git diff --check` 通过。
+
+终端 SHA-256：`layout_geometry.rs`
+`DAA0E5E9E8CCD949ECD89F1E01C8B985115F6EDDE7D00DA77EBB7526EFE79D8D`，
+`cluster_geometry.rs` `9F3F51BDF1347A280EBED32D5E1FAFF1F14A66D55C3D91B6A83AF7413D0EF7C1`，
+`layout/measure.rs` `5B63E8FC76B014C91C7839062BC566B3EC500A0BD613717B6CE613005CDC6F79`，
+`layout/measure/measured_line_contract_tests.rs`
+`B93534525855DACB65A92CC288B8D780F535C463E91BEDCAB3AE51DF9E102ED6`，
+`shaping/horizontal/mod.rs` `A83381B22E2C3C1C239D815FA624CD6D825B4BDE7A7CE736A21A9E4218ED1A11`，
+`shaping/vertical.rs` `531A4E995A359DEF78AFA5774F442CA74822A65AABA046D7F4A10033940E1BD2`，
+`shaping/vertical/direct.rs` `5E862D4BAF43380F184FBB68A4C94ABBE053342B74CA12A98F571F538EA88550`，
+`layout/tab.rs` `EB4F327B4F8A72EE67F168163A84ABD7925DB1EE68F4E28ECB662862A716256F`，
+源码合同 `1825B500D16EB15AFAE95E1497B3649DD6472DAB359820AD7873B553692425A3`。
+
+未完成边界：本项是 MVP 数值正确性和单 owner 收敛，不是性能优化结论。Cargo/WGPU、真实渲染 PNG、
+功耗、release profile 与对 Unreal 经验值的量化比较仍必须通过受管 Windows 验证；在这些证据到位前
+不提交里程碑、不发送企微完成通知，也不生成纯文本策略截图。

@@ -1,3 +1,4 @@
+// 与共享 SceneUniform 保持相同前缀偏移；当前/历史未抖动矩阵生成纹理 UV 空间速度，供时间效果消费。
 struct SceneUniform {
     view_proj: mat4x4<f32>,
     view_proj_unjittered: mat4x4<f32>,
@@ -23,6 +24,7 @@ struct VertexOutput {
 
 const EPSILON: f32 = 0.000001;
 
+// 速度目标与后处理采用左上为原点的 UV；w 接近零时避免除零，将位移限制在合法读回范围。
 fn clip_to_uv(clip_position: vec4<f32>) -> vec2<f32> {
     if (abs(clip_position.w) <= EPSILON) {
         return vec2<f32>(0.5, 0.5);

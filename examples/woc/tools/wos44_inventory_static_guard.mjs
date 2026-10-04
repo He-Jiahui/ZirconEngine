@@ -14,7 +14,7 @@ const main = read("scripts", "woc_game", "src", "main.zr");
 const protocol = read("native", "crates", "woc_protocol", "src", "lib.rs");
 const content = JSON.parse(read("contracts", "m5_content.json"));
 
-requireText(world, /writer\.u16\(<uint>67, 1, 1\)/, "WOS44 inventory is not retained by the current WOS envelope");
+requireText(world, /writer\.u16\(schemaVersion, 1, 1\)/, "WOS44 inventory is not retained by the current WOS envelope");
 requireText(
   world,
   /schemaVersion != <uint>44 &&\s*schemaVersion != <uint>45 &&\s*schemaVersion != <uint>46 &&\s*schemaVersion != <uint>47 &&\s*schemaVersion != <uint>48 &&\s*schemaVersion != <uint>49 &&\s*schemaVersion != <uint>50 &&\s*schemaVersion != <uint>51 &&\s*schemaVersion != <uint>52 &&\s*schemaVersion != <uint>53 &&\s*schemaVersion != <uint>54 &&\s*schemaVersion != <uint>55/,
@@ -29,8 +29,8 @@ requireText(rules, /BACKPACK_SLOTS: int = 16/, "source backpack capacity is miss
 requireText(rules, /BAG_SOCKETS: int = 4/, "source bag socket count is missing");
 requireText(rules, /DEFAULT_STACK_SIZE: int = 20/, "source default stack limit is missing");
 requireText(main, /m5InventoryRules\.contractTest\(\) != 1/, "lifecycle inventory rules contract is missing");
-requireText(protocol, /WORLD_STATE_FORMAT: &str = "WOS67"/, "native WOS64 format is missing");
-requireText(protocol, /WORLD_STATE_SCHEMA_VERSION: u16 = 67/, "native WOS64 version is missing");
+requireText(protocol, /WORLD_STATE_FORMAT: &str = "WOS118"/, "native WOS118 format is missing");
+requireText(protocol, /WORLD_STATE_SCHEMA_VERSION: u16 = 118/, "native WOS118 version is missing");
 
 const items = new Map(content.items.map((item) => [item.id, item.definition]));
 for (const [id, kind] of [["baked_bread", "food"], ["worn_sword", "weapon"], ["wolfhide_satchel", "bag"]]) {

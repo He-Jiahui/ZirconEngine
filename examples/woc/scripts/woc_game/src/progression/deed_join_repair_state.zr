@@ -7,6 +7,7 @@ var container = %import("zr.container");
 var MAX_LEVEL: int = 20;
 var MAX_CREDITABLE_MOB_LEVEL: int = 22;
 
+/// 入服修复只接收已验证的人物等级、制作技能、任务完成和已得事迹快照；持久化与发事件由上层负责，调用方须把新增 ID 写回权威状态。
 pub class DeedJoinRepairState {
     pub var playerLevel: int;
     pub var restedXp: int;

@@ -1,3 +1,6 @@
+//! Winit 物理键输入进入 Runtime ABI 的编号适配边界；当前回退不满足全部 Runtime/UI 命令键消费合同。
+//! 回退编号沿用现有 Debug 名哈希，不应作为跨依赖版本的持久化键标识。
+
 use std::fmt;
 
 use winit::event::ElementState;
@@ -13,6 +16,7 @@ pub(in crate::entry::runtime_entry_app) fn key_action(state: ElementState) -> Op
     }
 }
 
+// BUG: [CR-APP-ENTRY-0018] 编辑键、方向键及 C/V/X、Enter/Tab 走 Debug 哈希，动态会话只识别有限旧编号并把其余键转为无语义名称；UI 消费语义键或旧键码，导致这些编辑/剪贴板命令不被识别；证据：input_events::keyboard_logical_key、keyboard_ime 与 text_keyboard 消费链。
 pub(in crate::entry::runtime_entry_app) fn physical_key_code(key: &PhysicalKey) -> u32 {
     match key {
         PhysicalKey::Code(code) => match code {
@@ -64,6 +68,7 @@ impl fmt::Write for StableKeyCodeHasher {
     }
 }
 
+// 保持已有回退键码，与行为测试中的历史值一致；直接格式化到 hasher 避免输入热路径分配。
 fn stable_key_code(code: &KeyCode) -> u32 {
     let mut hasher = StableKeyCodeHasher::new();
     let result = fmt::write(&mut hasher, format_args!("{code:?}"));
@@ -72,64 +77,5 @@ fn stable_key_code(code: &KeyCode) -> u32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn key_states_map_to_runtime_constants() {
-        assert_eq!(
-            key_action(ElementState::Pressed),
-            Some(ZR_RUNTIME_KEY_ACTION_PRESSED_V1)
-        );
-        assert_eq!(
-            key_action(ElementState::Released),
-            Some(ZR_RUNTIME_KEY_ACTION_RELEASED_V1)
-        );
-    }
-
-    #[test]
-    fn physical_keys_map_to_runtime_values() {
-        assert_eq!(
-            physical_key_code(&PhysicalKey::Code(KeyCode::ShiftLeft)),
-            16
-        );
-        assert_eq!(
-            physical_key_code(&PhysicalKey::Code(KeyCode::ControlRight)),
-            17
-        );
-        assert_eq!(physical_key_code(&PhysicalKey::Code(KeyCode::AltLeft)), 18);
-        assert_eq!(physical_key_code(&PhysicalKey::Code(KeyCode::KeyW)), 87);
-        assert_eq!(physical_key_code(&PhysicalKey::Code(KeyCode::KeyA)), 65);
-        assert_eq!(physical_key_code(&PhysicalKey::Code(KeyCode::KeyS)), 83);
-        assert_eq!(physical_key_code(&PhysicalKey::Code(KeyCode::KeyD)), 68);
-        assert_eq!(
-            physical_key_code(&PhysicalKey::Unidentified(NativeKeyCode::Xkb(77))),
-            77
-        );
-    }
-
-    #[test]
-    fn fallback_key_codes_keep_the_previous_debug_fnv_values() {
-        for (code, expected) in [
-            (KeyCode::Escape, 3_082_514_982),
-            (KeyCode::F12, 3_736_956_062),
-            (KeyCode::ArrowUp, 154_847_355),
-            (KeyCode::Numpad9, 2_061_263_975),
-        ] {
-            assert_eq!(physical_key_code(&PhysicalKey::Code(code)), expected);
-        }
-    }
-
-    #[test]
-    fn production_key_fallback_formats_into_the_hash_without_allocating() {
-        let production = include_str!("keyboard.rs")
-            .split_once("\n#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("keyboard production source precedes its test module");
-
-        assert!(!production.contains("format!("));
-        assert!(!production.contains("to_string("));
-        assert!(production.contains("impl fmt::Write for StableKeyCodeHasher"));
-        assert!(production.contains("fmt::write(&mut hasher, format_args!(\"{code:?}\"))"));
-    }
-}
+#[path = "tests/keyboard.rs"]
+mod tests;

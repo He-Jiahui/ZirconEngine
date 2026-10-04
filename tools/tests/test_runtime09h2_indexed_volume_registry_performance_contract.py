@@ -1,7 +1,7 @@
 from pathlib import Path
 import re
 import unittest
-
+# Volume 注册表保留声明顺序，同时用静态 ID 索引查重和读取；顺序迭代仍由原描述符列表提供。
 
 ROOT = Path(__file__).resolve().parents[2]
 REGISTRY_RS = ROOT / (

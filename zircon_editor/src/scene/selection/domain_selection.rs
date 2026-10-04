@@ -95,5 +95,5 @@ impl DomainSelection {
 }
 
 #[cfg(test)]
-#[path = "domain_selection/optimization_tests.rs"]
+#[path = "domain_selection/tests/optimization_tests.rs"]
 mod optimization_tests;

@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node corpse_loot_rights_state_source_check.mjs；缺少源码契约时脚本抛错退出。
+// 对照参考实现的手动拾取、队伍自动拾取、首次伤害归属及自由拾取计时，与 Zr 尸体拾取状态中的入口逐项核对；缺项或将实体所有者误作拾取归属者时抛错。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 

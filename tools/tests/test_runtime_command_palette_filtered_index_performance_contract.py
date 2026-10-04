@@ -21,7 +21,7 @@ def function_body(source: str, name: str) -> str:
     next_functions = [boundary for boundary in boundaries if boundary >= 0]
     return source[start:] if not next_functions else source[start : min(next_functions)]
 
-
+# 读取命令面板过滤索引，确认每行借用命令索引且重复标签保留首个命令匹配。
 class RuntimeCommandPaletteFilteredIndexPerformanceContractTests(unittest.TestCase):
     def test_filtered_rows_use_one_borrowed_command_index(self) -> None:
         source = COMMAND_PALETTE.read_text(encoding="utf-8")

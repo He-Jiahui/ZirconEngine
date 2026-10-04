@@ -28,6 +28,8 @@ pub class YumiPackedTeams {
     }
 }
 
+// 预组队以一个原子单位进入宿主队列；这里只保存数值快照，
+// 角色在线资格、评分更新和成功配对后的退队由宿主事务管理。
 pub createYumiQueueUnit(rating: int): YumiQueueUnit {
     var unit = new YumiQueueUnit();
     unit.rating = rating;

@@ -5,9 +5,6 @@ completed_at: 2026-07-16
 milestone: M3
 plan: docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
 related_code:
-  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_plan_status_boundary.py
-  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_plan_status_sources.py
-  - tools/tests/test_runtime_plan_status_canonical_archive_sources.py
 tests:
   - python -m unittest tools.tests.test_runtime_plan_status_canonical_archive_sources -v
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json

@@ -46,7 +46,12 @@ impl RuntimeOperationService {
             "operation.completion_receiver_rows",
             receivers.len()
         );
-        let mut lost_batches = Vec::new();
+        let mut lost_batches = self
+            .lost_completion_batches
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .drain(..)
+            .collect::<Vec<_>>();
         let mut index = 0;
         while index < receivers.len() {
             crate::profile_counter!("runtime", "operation.completion_receiver_probe", 1);
@@ -68,6 +73,8 @@ impl RuntimeOperationService {
                 handle,
                 command,
                 result,
+                owner_state,
+                owner_bytes,
                 command_bytes,
                 result_bytes,
             } => {
@@ -80,7 +87,10 @@ impl RuntimeOperationService {
                 }) else {
                     return false;
                 };
-                let Some(prepared_bytes) = command_bytes.checked_add(result_bytes) else {
+                let Some(prepared_bytes) = command_bytes
+                    .checked_add(result_bytes)
+                    .and_then(|bytes| bytes.checked_add(owner_bytes))
+                else {
                     self.finish_failed_task(
                         &mut state,
                         handle,
@@ -122,8 +132,11 @@ impl RuntimeOperationService {
                     };
                     task.prepared_command = Some(command);
                     task.prepared_result = Some(result);
+                    task.prepared_owner_state = owner_state;
+                    task.snapshot_owner_bytes = 0;
                     task.prepared_command_bytes = command_bytes;
                     task.prepared_result_bytes = result_bytes;
+                    task.prepared_owner_bytes = owner_bytes;
                     task.retained_bytes = prepared_bytes;
                     task.phase = ZrRuntimeOperationPhase::ReadyToApply;
                     task.detail_kind = ZrRuntimeOperationDetailKindV2::None;
@@ -140,8 +153,14 @@ impl RuntimeOperationService {
                 if !Self::release_prepare_slot(&mut state, handle) {
                     return false;
                 }
-                self.finish_failed_task(&mut state, handle, error, detail_kind, 0);
-                true
+                let should_finish = state
+                    .tasks
+                    .get(&handle)
+                    .is_some_and(|task| task.phase == ZrRuntimeOperationPhase::Preparing);
+                if should_finish {
+                    self.finish_failed_task(&mut state, handle, error, detail_kind, 0);
+                }
+                should_finish
             }
         }
     }
@@ -150,42 +169,39 @@ impl RuntimeOperationService {
         state: &mut super::RuntimeOperationTaskState,
         handle: ZrRuntimeOperationHandle,
     ) -> bool {
-        let Some(task) = state.tasks.get_mut(&handle) else {
-            return false;
+        let released_bytes = {
+            let Some(task) = state.tasks.get_mut(&handle) else {
+                return false;
+            };
+            if !std::mem::replace(&mut task.prepare_in_flight, false) {
+                return false;
+            }
+            let released_bytes = std::mem::replace(&mut task.in_flight_owner_bytes, 0);
+            task.snapshot_owner_bytes = 0;
+            released_bytes
         };
-        if !std::mem::replace(&mut task.prepare_in_flight, false) {
-            return false;
-        }
         state.in_flight_prepares = state
             .in_flight_prepares
             .checked_sub(1)
             .expect("operation prepare completion must have an in-flight slot");
+        state.retained_bytes = state
+            .retained_bytes
+            .checked_sub(released_bytes)
+            .expect("worker input bytes must remain accounted until completion cleanup");
         true
     }
 
     fn fail_worker_completion_channel(&self, handles: &[ZrRuntimeOperationHandle]) -> bool {
         let mut state = self.lock_state();
-        let lost_prepare_count = handles
-            .iter()
-            .filter(|handle| {
-                state
-                    .tasks
-                    .get(handle)
-                    .is_some_and(|task| task.prepare_in_flight)
-            })
-            .count();
-        if lost_prepare_count == 0 {
-            return false;
-        }
-        state.in_flight_prepares = state
-            .in_flight_prepares
-            .checked_sub(lost_prepare_count)
-            .expect("lost worker prepares must retain their in-flight slots");
+        let mut terminal_transition = false;
         for handle in handles {
-            let should_fail = state.tasks.get_mut(handle).is_some_and(|task| {
-                let was_in_flight = std::mem::replace(&mut task.prepare_in_flight, false);
-                was_in_flight && task.phase == ZrRuntimeOperationPhase::Preparing
-            });
+            if !Self::release_prepare_slot(&mut state, *handle) {
+                continue;
+            }
+            let should_fail = state
+                .tasks
+                .get(handle)
+                .is_some_and(|task| task.phase == ZrRuntimeOperationPhase::Preparing);
             if should_fail {
                 self.finish_failed_task(
                     &mut state,
@@ -194,139 +210,13 @@ impl RuntimeOperationService {
                     ZrRuntimeOperationDetailKindV2::WorkerChannelLost,
                     0,
                 );
+                terminal_transition = true;
             }
         }
-        true
+        terminal_transition
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-
-    use zircon_runtime_interface::{
-        ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle, ZrRuntimeOperationPhase,
-    };
-
-    use super::super::super::task::RuntimeOperationTask;
-    use super::super::super::{
-        RuntimeOperationContext, RuntimeOperationHandler, RuntimeOperationHandlerError,
-        RuntimeOperationPrepared,
-    };
-    use super::RuntimeOperationService;
-
-    struct NoopHandler;
-
-    impl RuntimeOperationHandler for NoopHandler {
-        fn snapshot(
-            &self,
-            _context: RuntimeOperationContext<'_>,
-            _payload: serde_json::Value,
-        ) -> Result<serde_json::Value, RuntimeOperationHandlerError> {
-            unreachable!("the channel-loss fixture never snapshots")
-        }
-
-        fn prepare(
-            &self,
-            _snapshot: serde_json::Value,
-        ) -> Result<RuntimeOperationPrepared, RuntimeOperationHandlerError> {
-            unreachable!("the channel-loss fixture never prepares")
-        }
-
-        fn apply(
-            &self,
-            _context: RuntimeOperationContext<'_>,
-            _command: serde_json::Value,
-        ) -> Result<(), RuntimeOperationHandlerError> {
-            unreachable!("the channel-loss fixture never applies")
-        }
-    }
-
-    fn worker_task(
-        handle: ZrRuntimeOperationHandle,
-        phase: ZrRuntimeOperationPhase,
-        detail_kind: ZrRuntimeOperationDetailKindV2,
-        retained_bytes: usize,
-    ) -> RuntimeOperationTask {
-        RuntimeOperationTask {
-            handle,
-            operation_id: "test.worker-channel-loss".to_owned(),
-            phase,
-            detail_kind,
-            detail_value: 0,
-            handler: Arc::new(NoopHandler),
-            payload: None,
-            prepared_command: None,
-            prepared_result: None,
-            prepared_command_bytes: 0,
-            prepared_result_bytes: 0,
-            retained_bytes,
-            result: None,
-            deadline: None,
-            deadline_armed: true,
-            terminal_at: None,
-            harvest_in_flight: false,
-            snapshot_claimed: false,
-            prepare_in_flight: true,
-            apply_claimed: false,
-        }
-    }
-
-    #[test]
-    fn worker_channel_loss_fails_only_its_preparing_batch_and_releases_capacity() {
-        let service = RuntimeOperationService::new();
-        let preparing_handle = ZrRuntimeOperationHandle::new(1);
-        let cancelled_handle = ZrRuntimeOperationHandle::new(2);
-        {
-            let mut state = service.lock_state();
-            state.in_flight_prepares = 2;
-            state.retained_bytes = 8;
-            state.tasks.insert(
-                preparing_handle,
-                worker_task(
-                    preparing_handle,
-                    ZrRuntimeOperationPhase::Preparing,
-                    ZrRuntimeOperationDetailKindV2::None,
-                    8,
-                ),
-            );
-            state.tasks.insert(
-                cancelled_handle,
-                worker_task(
-                    cancelled_handle,
-                    ZrRuntimeOperationPhase::Cancelled,
-                    ZrRuntimeOperationDetailKindV2::Cancelled,
-                    0,
-                ),
-            );
-        }
-
-        let (sender, receiver) = std::sync::mpsc::sync_channel(2);
-        drop(sender);
-        service.lock_completion_receivers().push(
-            super::super::RuntimeOperationCompletionReceiver {
-                receiver,
-                handles: vec![preparing_handle, cancelled_handle],
-            },
-        );
-        service.drain_prepare_completions();
-
-        let status = service
-            .poll(preparing_handle)
-            .expect("lost worker task remains observable");
-        assert_eq!(status.phase(), Some(ZrRuntimeOperationPhase::Failed));
-        assert_eq!(
-            status.detail_kind(),
-            Some(ZrRuntimeOperationDetailKindV2::WorkerChannelLost)
-        );
-        let cancelled = service
-            .poll(cancelled_handle)
-            .expect("cancelled worker task remains observable");
-        assert_eq!(cancelled.phase(), Some(ZrRuntimeOperationPhase::Cancelled));
-        assert_eq!(
-            cancelled.detail_kind(),
-            Some(ZrRuntimeOperationDetailKindV2::Cancelled)
-        );
-        assert_eq!(service.lock_state().in_flight_prepares, 0);
-    }
-}
+#[path = "tests/completion.rs"]
+mod tests;

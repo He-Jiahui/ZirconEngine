@@ -3,8 +3,8 @@ use crate::core::resource::{
 };
 
 use super::{
-    PendingResidency, RenderAssetResidencyManager, release_active, release_pending,
-    resolve_ticket_seed,
+    release_active, release_pending, resolve_ticket_seed, PendingResidency,
+    RenderAssetResidencyManager,
 };
 use crate::graphics::scene::resources::render_asset_residency::{
     RenderAssetDemandGeneration, RenderAssetDeviceEpoch, RenderAssetResidencyAdmissionError,
@@ -87,7 +87,7 @@ impl RenderAssetDeviceRecoveryReport {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct PreparedDeviceRecovery {
     resource: UntypedResourceHandle,
     ticket: RenderAssetResidencyTicket,
@@ -145,8 +145,11 @@ impl RenderAssetResidencyManager {
                 return Err(RenderAssetDeviceRecoveryError::MissingResidencyEntry { resource });
             };
             for actual in [
-                entry.pending.map(|pending| pending.ticket.device()),
-                entry.active.map(|active| active.ticket.device()),
+                entry
+                    .pending
+                    .as_ref()
+                    .map(|pending| pending.ticket.device()),
+                entry.active.as_ref().map(|active| active.ticket.device()),
             ]
             .into_iter()
             .flatten()
@@ -218,7 +221,7 @@ impl RenderAssetResidencyManager {
                     abandoned_entry_bytes.saturating_add(artifact.allocation_bytes());
             }
             entry.pending = Some(PendingResidency {
-                ticket: recovery.ticket,
+                ticket: recovery.ticket.clone(),
                 state: RenderAssetResidencyState::QueuedIo,
                 submission: None,
             });

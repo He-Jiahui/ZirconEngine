@@ -16,8 +16,27 @@ use crate::{
 
 use super::unique_temp_project_root;
 use zircon_runtime_interface::project::{
-    ProjectManifestSummary, ProjectManifestSummaryError, RelPath,
+    ProjectManifestSummary, ProjectManifestSummaryError, RelPath, MAX_PROJECT_MANIFEST_BYTES,
 };
+
+#[test]
+fn project_manifest_bounded_file_read_rejects_oversized_document() {
+    let root = unique_temp_project_root("manifest_bounded_file_read");
+    fs::create_dir_all(&root).unwrap();
+    let path = root.join("zircon-project.toml");
+    fs::write(&path, vec![b' '; MAX_PROJECT_MANIFEST_BYTES + 1]).unwrap();
+
+    let error = ProjectManifest::load(&path).expect_err("oversized manifest must be rejected");
+
+    assert!(matches!(
+        error,
+        ProjectManifestError::Summary(ProjectManifestSummaryError::DocumentTooLarge {
+            max: MAX_PROJECT_MANIFEST_BYTES,
+            found,
+        }) if found == MAX_PROJECT_MANIFEST_BYTES + 1
+    ));
+    let _ = fs::remove_dir_all(root);
+}
 
 #[test]
 fn project_manifest_roundtrip_preserves_default_scene_and_paths() {

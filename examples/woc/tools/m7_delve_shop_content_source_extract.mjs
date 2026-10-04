@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码中提取地下探索商店库存、货币与解锁门槛，供 m7_delve_shop_content_codegen.mjs 消费。
 import { execFileSync } from 'node:child_process';
 import ts from 'typescript';
 
@@ -55,6 +56,7 @@ const property = (object, name) => {
   return entry.initializer;
 };
 
+// 逐项解析手工编写的商品与解锁门槛，再建立商店目录。
 const readOffers = (name) => {
   const array = initializerFor(name);
   if (!ts.isArrayLiteralExpression(array)) {

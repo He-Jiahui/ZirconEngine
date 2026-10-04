@@ -36,7 +36,7 @@ pub(super) const EXPECTED_RUNTIME_13_SOURCE_FILES: &[&str] = &[
 pub(super) const EXPECTED_RUNTIME_13_TEST_FILES: &[&str] = &[
     "src/tests/runtime_absorption/script_host_ledger.rs",
     "src/tests/runtime_absorption/script_binding.rs",
-    "src/script/vm/gameplay_host/tests.rs",
+    "src/script/vm/gameplay_host/tests/cases.rs",
 ];
 
 pub(super) const GAMEPLAY_HOST_OWNER_FILES: &[&str] = &[
@@ -72,9 +72,9 @@ pub(super) const SCRIPT_BINDING_MIRROR_DOC_ANCHORS: &[&str] = &[
     "expected_guard_file_count = 8",
     "missing_guard_files = []",
     "fixed_host_module_count = 6",
-    "fixed_host_function_count = 61",
+    "fixed_host_function_count = 63",
     "type_descriptor_count = 2",
-    "builtin_callback_count = 20",
+    "builtin_callback_count = 21",
     "gameplay_callback_count = 40",
     "macro_host_function_count = 2",
     "host_capability_count = 13",

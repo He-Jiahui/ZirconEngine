@@ -9,10 +9,6 @@ fixing_plan: docs/plans/mvp/00-current-source-baseline-recovery.md
 origin_child_dir: docs/plans/mvp/00
 fixing_child_dir: docs/plans/mvp/00
 related_code:
-  - tools/session_coordinator/validation_tickets.py
-  - tools/session_coordinator/validation_ticket_worker.py
-  - tools/session_coordinator/tests/test_validation_tickets.py
-  - tools/session_coordinator/tests/test_validation_ticket_deletions.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_validation_tickets tools.session_coordinator.tests.test_validation_ticket_deletions
 resolved_at: 2026-08-05

@@ -147,7 +147,8 @@ where
         if self.inverse_delta.is_some() {
             return Err(CommandExecutionError::unchanged(
                 EditCommandError::InvariantViolation {
-                    invariant: "graph delta command must be reverted before it can be applied again",
+                    invariant:
+                        "graph delta command must be reverted before it can be applied again",
                 },
             ));
         }

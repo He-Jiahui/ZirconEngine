@@ -1,3 +1,4 @@
+# 核对材质实验界面使用编辑器令牌，超窄宽度仍可滚动到内容。
 import tomllib
 import unittest
 from pathlib import Path

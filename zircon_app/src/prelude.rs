@@ -10,4 +10,5 @@ pub use crate::{
     ProductConfigSourceSet, ProductExitClass, ProductHostConfigError, ProductHostConfigProvenance,
     ProductProcessExitCode, ProductRoleRequest, ResolvedPluginGroup, ResolvedProductHostConfig,
 };
+pub use crate::{retry_product_cleanup_until, ProductCloseError, ProductCompositionFailure};
 pub use zircon_runtime::prelude::*;

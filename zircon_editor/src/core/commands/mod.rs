@@ -19,8 +19,8 @@ mod registry_handle;
 mod when;
 
 pub use asset_write_target::AssetWriteTargetDescriptor;
-pub use contribution::EditorCommandContributionSet;
 pub(crate) use contribution::project_command_registry_from_contributions;
+pub use contribution::EditorCommandContributionSet;
 pub use descriptor::{
     EditorCommandAction, EditorCommandCategory, EditorCommandDescriptor,
     EditorCommandMenuProjection,
@@ -31,9 +31,9 @@ pub use execution::{
     EditorCommandExecutionContract, EditorCommandExecutionReceipt, EditorCommandExecutorRegistry,
     EditorCommandExecutorRegistryError, EditorCommandResourceBudget,
     EditorCommandResourceBudgetError, EditorCommandResultCodecId, EditorCommandResultCodecIdError,
+    NativeCommandExecutorRegistration, NativePluginEditorCommandBinding,
     MAX_EDITOR_COMMAND_EXECUTION_TIME_MS, MAX_EDITOR_COMMAND_INPUT_BYTES,
-    MAX_EDITOR_COMMAND_OUTPUT_BYTES, NativeCommandExecutorRegistration,
-    NativePluginEditorCommandBinding,
+    MAX_EDITOR_COMMAND_OUTPUT_BYTES,
 };
 pub use key_chord::{EditorKeyChord, EditorKeyChordParseError};
 pub(crate) use key_chord::{EditorKeyChordSignature, EditorKeyboardChordInput};

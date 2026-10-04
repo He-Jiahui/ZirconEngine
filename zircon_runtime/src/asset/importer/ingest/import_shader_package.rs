@@ -1,20 +1,21 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use super::auxiliary_source::AuxiliarySourceResolver;
 use super::import_shader::shader_entry_points;
 use super::validate_wgsl::validate_wgsl;
 use crate::asset::assets::{
-    DataAsset, DataAssetFormat, ImportedAsset, ShaderAsset, ShaderEntryPointAsset,
-    ShaderImportRedirectAsset, ShaderOptionAsset, ShaderSourceFileAsset, ShaderSourceLanguage,
-    ZShaderDocumentV2, ZShaderV2Error, generate_material_artifact, validate_wgsl_captures,
+    generate_material_artifact, validate_wgsl_captures, DataAsset, DataAssetFormat, ImportedAsset,
+    ShaderAsset, ShaderEntryPointAsset, ShaderImportRedirectAsset, ShaderOptionAsset,
+    ShaderSourceFileAsset, ShaderSourceLanguage, ZShaderDocumentV2, ZShaderV2Error,
 };
 use crate::asset::{
     AssetImportContext, AssetImportError, AssetImportOutcome, AssetUri, ImportedAssetEntry,
 };
 use crate::core::framework::render::{
-    SHADER_IMPORT_PROJECT_NAMESPACE_SETTING, ShaderAssetKind, ShaderImportPathDerivation,
-    ShaderImportPathDerivationError, derive_shader_import_path, is_builtin_shader_module_token,
-    is_generated_shader_module_token, strip_wgsl_include_directives, wgsl_include_paths,
+    derive_shader_import_path, is_builtin_shader_module_token, is_generated_shader_module_token,
+    strip_wgsl_include_directives, wgsl_include_paths, ShaderAssetKind, ShaderImportPathDerivation,
+    ShaderImportPathDerivationError, SHADER_IMPORT_PROJECT_NAMESPACE_SETTING,
 };
 use crate::core::resource::{ResourceDiagnostic, ResourceDiagnosticSeverity, ResourceKind};
 
@@ -26,8 +27,25 @@ pub(crate) fn import_shader_package(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
     let package_dir = compound_dir_for_zmeta(&context.source_path)?;
-    let zshader_path = primary_zshader_path(&package_dir)?;
-    let zshader_source = fs::read_to_string(&zshader_path)?;
+    let zshader_path = primary_zshader_path(context, &package_dir)?;
+    let zshader_bytes = context
+        .source_file_snapshot(&zshader_path)
+        .map(<[u8]>::to_vec)
+        .map(Ok)
+        .unwrap_or_else(|| {
+            let resolver = AuxiliarySourceResolver::new(context, &package_dir)?;
+            let relative = zshader_path.strip_prefix(&package_dir).map_err(|_| {
+                AssetImportError::Parse("shader descriptor is outside package".into())
+            })?;
+            resolver
+                .read_path_snapshot(relative, super::gltf_decode::MAX_GLTF_AUXILIARY_BYTES)
+                .map(|(_, bytes, _)| bytes)
+        })?;
+    let zshader_source =
+        String::from_utf8(zshader_bytes).map_err(|source| AssetImportError::SourceTextDecode {
+            path: zshader_path.clone(),
+            source,
+        })?;
     let document = ZShaderDocumentV2::from_toml_str(&zshader_source)
         .map_err(|error| zshader_v2_import_error(&context.uri, &zshader_path, error))?;
     let derived_import_path = match derive_document_import_path(context, &zshader_path, &document) {
@@ -41,9 +59,9 @@ pub(crate) fn import_shader_package(
             ));
         }
     };
-    let wgsl_files = wgsl_files_for_document(&package_dir, &document)?;
+    let wgsl_files = wgsl_files_for_document(context, &package_dir, &document)?;
     let (wgsl_source, source_files, wgsl_data_sources) =
-        read_wgsl_sources(&package_dir, &context.uri, wgsl_files.as_slice())?;
+        read_wgsl_sources(context, &package_dir, wgsl_files.as_slice())?;
     let mut validation_diagnostics = Vec::new();
     let mut import_diagnostics = Vec::new();
     let import_path = document_import_path(&document, derived_import_path, &mut import_diagnostics)
@@ -264,7 +282,7 @@ fn validate_explicit_shader_import_path(
 
 fn shader_project_namespace(context: &AssetImportContext) -> String {
     context
-        .import_settings
+        .import_settings()
         .get(SHADER_IMPORT_PROJECT_NAMESPACE_SETTING)
         .and_then(toml::Value::as_str)
         .unwrap_or("project")
@@ -414,9 +432,27 @@ fn compound_dir_for_zmeta(zmeta_path: &Path) -> Result<PathBuf, AssetImportError
     Ok(zmeta_path.with_file_name(dir_name))
 }
 
-fn primary_zshader_path(package_dir: &Path) -> Result<PathBuf, AssetImportError> {
+fn primary_zshader_path(
+    context: &AssetImportContext,
+    package_dir: &Path,
+) -> Result<PathBuf, AssetImportError> {
     let mut zshader_files = Vec::new();
-    collect_files_with_extension(package_dir, "zshader", &mut zshader_files)?;
+    if context.has_source_file_snapshots() {
+        zshader_files.extend(
+            context
+                .source_file_snapshot_paths()
+                .filter(|path| {
+                    path.starts_with(package_dir)
+                        && path
+                            .extension()
+                            .and_then(|value| value.to_str())
+                            .is_some_and(|value| value.eq_ignore_ascii_case("zshader"))
+                })
+                .map(Path::to_path_buf),
+        );
+    } else {
+        collect_files_with_extension(package_dir, "zshader", &mut zshader_files)?;
+    }
     zshader_files.sort();
     zshader_files.into_iter().next().ok_or_else(|| {
         AssetImportError::Parse(format!(
@@ -427,6 +463,7 @@ fn primary_zshader_path(package_dir: &Path) -> Result<PathBuf, AssetImportError>
 }
 
 fn wgsl_files_for_document(
+    context: &AssetImportContext,
     package_dir: &Path,
     document: &ZShaderDocumentV2,
 ) -> Result<Vec<PathBuf>, AssetImportError> {
@@ -434,7 +471,19 @@ fn wgsl_files_for_document(
         return Ok(document.wgsl_files().iter().map(PathBuf::from).collect());
     }
     let mut wgsl_files = Vec::new();
-    collect_files_with_extension(package_dir, "wgsl", &mut wgsl_files)?;
+    if context.has_source_file_snapshots() {
+        for path in context.source_file_snapshot_paths().filter(|path| {
+            path.starts_with(package_dir)
+                && path
+                    .extension()
+                    .and_then(|value| value.to_str())
+                    .is_some_and(|value| value.eq_ignore_ascii_case("wgsl"))
+        }) {
+            wgsl_files.push(path.to_path_buf());
+        }
+    } else {
+        collect_files_with_extension(package_dir, "wgsl", &mut wgsl_files)?;
+    }
     wgsl_files.sort();
     wgsl_files
         .into_iter()
@@ -453,23 +502,45 @@ fn wgsl_files_for_document(
 }
 
 fn read_wgsl_sources(
+    context: &AssetImportContext,
     package_dir: &Path,
-    root_uri: &AssetUri,
     files: &[PathBuf],
 ) -> Result<(String, Vec<ShaderSourceFileAsset>, Vec<(PathBuf, String)>), AssetImportError> {
+    let resolver = AuxiliarySourceResolver::new(context, package_dir)?;
     let mut combined = String::new();
     let mut source_files = Vec::with_capacity(files.len());
     let mut data_sources = Vec::with_capacity(files.len());
     for file in files {
-        let source_path = package_dir.join(file);
-        let source = fs::read_to_string(&source_path)?;
+        let lexical_path = resolver.resolve_lexical_path(file)?;
+        let (source_path, bytes) = if let Some(bytes) = context.source_file_snapshot(&lexical_path)
+        {
+            (lexical_path, bytes.to_vec())
+        } else if context.has_source_file_snapshots() {
+            return Err(AssetImportError::Parse(format!(
+                "shader auxiliary snapshot does not contain {}",
+                lexical_path.display()
+            )));
+        } else {
+            let (source_path, bytes, _) =
+                resolver.read_path_snapshot(file, super::gltf_decode::MAX_GLTF_AUXILIARY_BYTES)?;
+            (source_path, bytes)
+        };
+        let source =
+            String::from_utf8(bytes).map_err(|source| AssetImportError::SourceTextDecode {
+                path: source_path.clone(),
+                source,
+            })?;
+        let root_relative = resolver.root_relative_path(&source_path)?;
+        let package_relative = source_path
+            .strip_prefix(package_dir)
+            .unwrap_or(root_relative);
         if !combined.is_empty() {
             combined.push('\n');
         }
         combined.push_str(&source);
         source_files.push(ShaderSourceFileAsset {
-            path: normalized_relative_path(file),
-            url: included_file_uri(root_uri, file)?,
+            path: normalized_relative_path(package_relative),
+            url: included_file_uri(&context.uri, root_relative)?,
         });
         data_sources.push((source_path, source));
     }
@@ -533,12 +604,12 @@ fn collect_files_with_extension(
 }
 
 fn included_file_uri(root_uri: &AssetUri, relative: &Path) -> Result<AssetUri, AssetImportError> {
-    AssetUri::new(
-        root_uri.scheme(),
-        format!("{}/{}", root_uri.path(), normalized_relative_path(relative)),
-        None,
-    )
-    .map_err(AssetImportError::from)
+    let relative = normalized_relative_path(relative);
+    let path = root_uri
+        .package_id()
+        .map(|package_id| format!("{package_id}/{relative}"))
+        .unwrap_or(relative);
+    AssetUri::new(root_uri.scheme(), path, None).map_err(AssetImportError::from)
 }
 
 fn normalized_relative_path(path: &Path) -> String {
@@ -552,210 +623,90 @@ fn normalized_relative_path(path: &Path) -> String {
     normalized
 }
 
-#[cfg(test)]
-mod tests {
-    use std::hint::black_box;
-    use std::path::{Path, PathBuf};
-    use std::time::Instant;
-
-    use super::{
-        ShaderImportPathDerivationError, ShaderImportRedirectAsset, ZShaderDocumentV2,
-        append_shader_module_diagnostics, document_import_path, normalized_relative_path,
+pub(crate) fn snapshot_external_shader_sources(
+    asset_root: &Path,
+    source_path: &Path,
+    source_uri: &AssetUri,
+    existing: &std::collections::BTreeMap<PathBuf, Vec<u8>>,
+    limit: u64,
+) -> Result<(std::collections::BTreeMap<PathBuf, Vec<u8>>, u64), AssetImportError> {
+    let package_dir = compound_dir_for_zmeta(source_path)?;
+    let mut zshader_paths = existing
+        .keys()
+        .filter(|path| {
+            path.starts_with(&package_dir)
+                && path
+                    .extension()
+                    .and_then(|value| value.to_str())
+                    .is_some_and(|value| value.eq_ignore_ascii_case("zshader"))
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    zshader_paths.sort();
+    let zshader_path = zshader_paths.into_iter().next().ok_or_else(|| {
+        AssetImportError::Parse(format!(
+            "shader snapshot for {} contains no .zshader descriptor",
+            package_dir.display()
+        ))
+    })?;
+    let zshader_bytes = existing.get(&zshader_path).ok_or_else(|| {
+        AssetImportError::Parse(format!(
+            "shader snapshot is missing descriptor {}",
+            zshader_path.display()
+        ))
+    })?;
+    let zshader_source = std::str::from_utf8(zshader_bytes).map_err(|error| {
+        AssetImportError::Parse(format!(
+            "shader descriptor {} is not valid UTF-8: {error}",
+            zshader_path.display()
+        ))
+    })?;
+    let document = ZShaderDocumentV2::from_toml_str(zshader_source)
+        .map_err(|error| zshader_v2_import_error(source_uri, &zshader_path, error))?;
+    let wgsl_files = if document.wgsl_files().is_empty() {
+        existing
+            .keys()
+            .filter(|path| {
+                path.starts_with(&package_dir)
+                    && path
+                        .extension()
+                        .and_then(|value| value.to_str())
+                        .is_some_and(|value| value.eq_ignore_ascii_case("wgsl"))
+            })
+            .filter_map(|path| path.strip_prefix(&package_dir).ok().map(Path::to_path_buf))
+            .collect::<Vec<_>>()
+    } else {
+        document.wgsl_files().iter().map(PathBuf::from).collect()
     };
-    use crate::asset::AssetUri;
-
-    #[test]
-    fn zshader_import_diagnostics_report_undeclared_wgsl_include() {
-        let document = ZShaderDocumentV2::from_toml_str(
-            r#"
-kind = "surface"
-version = 2
-shading_model = "standard_pbr"
-wgsl_files = ["surface.wgsl"]
-"#,
-        )
-        .expect("surface zshader should parse");
-        let mut diagnostics = Vec::new();
-
-        append_shader_module_diagnostics(
-            &mut diagnostics,
-            &document,
-            "#include <project::math>\nfn zr_material_surface() {}",
-            &[],
-        );
-
-        assert!(
-            diagnostics
-                .iter()
-                .any(|diagnostic| diagnostic.contains("project::math"))
-        );
+    let resolver = AuxiliarySourceResolver::for_asset_root(asset_root, &package_dir)?;
+    let mut snapshots = std::collections::BTreeMap::new();
+    let mut remaining = limit;
+    let mut latest_mtime_unix_ms = 0;
+    for file in wgsl_files {
+        let lexical = resolver.resolve_lexical_path(&file)?;
+        if existing.contains_key(&lexical) || snapshots.contains_key(&lexical) {
+            continue;
+        }
+        if existing.len().saturating_add(snapshots.len())
+            >= AuxiliarySourceResolver::MAX_SNAPSHOT_FILES
+        {
+            return Err(AssetImportError::Parse(format!(
+                "shader source snapshot exceeds the {}-file cumulative limit",
+                AuxiliarySourceResolver::MAX_SNAPSHOT_FILES
+            )));
+        }
+        let (_, bytes, mtime_unix_ms) = resolver.read_path_snapshot(&file, remaining)?;
+        remaining = remaining.checked_sub(bytes.len() as u64).ok_or_else(|| {
+            AssetImportError::Parse(format!(
+                "shader auxiliary sources exceed the {limit}-byte cumulative limit"
+            ))
+        })?;
+        latest_mtime_unix_ms = latest_mtime_unix_ms.max(mtime_unix_ms);
+        snapshots.insert(lexical, bytes);
     }
-
-    #[test]
-    fn zshader_package_entry_point_discovery_strips_include_directives() {
-        let mut diagnostics = Vec::new();
-        let entry_points = super::package_shader_entry_points(
-            &AssetUri::parse("res://shaders/include_surface").unwrap(),
-            r#"
-#include <project::math>
-#include <self::material>
-
-@fragment
-fn fs_main() -> @location(0) vec4f {
-    return vec4f(1.0);
+    Ok((snapshots, latest_mtime_unix_ms))
 }
-"#,
-            &mut diagnostics,
-        );
 
-        assert_eq!(entry_points.len(), 1);
-        assert_eq!(entry_points[0].name, "fs_main");
-        assert_eq!(entry_points[0].stage, "fragment");
-        assert!(
-            diagnostics.is_empty(),
-            "include directives should not block package entry point discovery: {diagnostics:?}"
-        );
-    }
-
-    #[test]
-    fn zshader_include_module_diagnostics_reject_entry_points_and_bindings() {
-        let document = ZShaderDocumentV2::from_toml_str(
-            r#"
-kind = "include"
-version = 2
-import_path = "project::bad"
-wgsl_files = ["bad.wgsl"]
-"#,
-        )
-        .expect("include zshader should parse");
-        let mut diagnostics = Vec::new();
-
-        append_shader_module_diagnostics(
-            &mut diagnostics,
-            &document,
-            "@group(2) @binding(0) var<uniform> bad: vec4<f32>;\n@fragment\nfn fs_main() {}",
-            &[] as &[ShaderImportRedirectAsset],
-        );
-
-        assert!(
-            diagnostics
-                .iter()
-                .any(|diagnostic| diagnostic.contains("@group binding"))
-        );
-        assert!(
-            diagnostics
-                .iter()
-                .any(|diagnostic| diagnostic.contains("entry point annotation"))
-        );
-    }
-
-    #[test]
-    fn zshader_import_path_validation_rejects_self_namespace_overrides() {
-        let document = ZShaderDocumentV2::from_toml_str(
-            r#"
-kind = "include"
-version = 2
-import_path = "self::material"
-"#,
-        )
-        .expect("include zshader should parse before import path validation");
-        let mut diagnostics = Vec::new();
-
-        let error = document_import_path(&document, None, &mut diagnostics)
-            .expect_err("self namespace must stay generated-local");
-
-        assert_eq!(
-            error,
-            ShaderImportPathDerivationError::ReservedNamespace {
-                namespace: "self".to_string()
-            }
-        );
-    }
-
-    const SAMPLE_PAIRS: usize = 21;
-    const PATHS_PER_SAMPLE: usize = 8_192;
-
-    #[test]
-    fn normalized_relative_path_preserves_component_order_and_forward_slashes() {
-        let path = PathBuf::from("shaders")
-            .join("lighting")
-            .join("surface.wgsl");
-
-        assert_eq!(
-            normalized_relative_path(&path),
-            "shaders/lighting/surface.wgsl"
-        );
-    }
-
-    #[test]
-    #[ignore = "release-only performance contract"]
-    fn benchmark_single_allocation_shader_relative_path_normalization() {
-        let path = benchmark_path();
-        let mut legacy_raw = Vec::with_capacity(SAMPLE_PAIRS);
-        let mut optimized_raw = Vec::with_capacity(SAMPLE_PAIRS);
-        for pair_index in 0..SAMPLE_PAIRS {
-            if pair_index % 2 == 0 {
-                legacy_raw.push(measure_paths(&path, legacy_normalized_relative_path));
-                optimized_raw.push(measure_paths(&path, normalized_relative_path));
-            } else {
-                optimized_raw.push(measure_paths(&path, normalized_relative_path));
-                legacy_raw.push(measure_paths(&path, legacy_normalized_relative_path));
-            }
-        }
-
-        let legacy_p95_ns = nearest_rank(&legacy_raw, 95);
-        let optimized_p95_ns = nearest_rank(&optimized_raw, 95);
-        let improvement_percent = legacy_p95_ns
-            .saturating_sub(optimized_p95_ns)
-            .saturating_mul(100)
-            / legacy_p95_ns.max(1);
-        assert!(
-            optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(85),
-            "single-allocation relative path normalization must improve P95 by at least 15%: legacy={legacy_p95_ns}ns optimized={optimized_p95_ns}ns"
-        );
-        println!(
-            "PERF_RESULT task=plugins07_single_allocation_shader_relative_path sample_pairs={SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank path_components=64 paths_per_sample={PATHS_PER_SAMPLE} legacy_allocations_per_path=2 optimized_allocations_per_path=1 legacy_component_vec_allocations_per_sample={PATHS_PER_SAMPLE} optimized_component_vec_allocations_per_sample=0 threshold_percent=15 legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} improvement_percent={improvement_percent} legacy_raw_ns={} optimized_raw_ns={}",
-            raw_samples(&legacy_raw),
-            raw_samples(&optimized_raw)
-        );
-    }
-
-    fn legacy_normalized_relative_path(path: &Path) -> String {
-        path.components()
-            .map(|component| component.as_os_str().to_string_lossy())
-            .collect::<Vec<_>>()
-            .join("/")
-    }
-
-    fn benchmark_path() -> PathBuf {
-        let mut path = PathBuf::new();
-        for index in 0..64 {
-            path.push(format!("shader_component_{index:02}"));
-        }
-        path
-    }
-
-    fn measure_paths(path: &Path, normalize: fn(&Path) -> String) -> u64 {
-        let started = Instant::now();
-        for _ in 0..PATHS_PER_SAMPLE {
-            black_box(normalize(black_box(path)));
-        }
-        u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX)
-    }
-
-    fn nearest_rank(samples: &[u64], percentile: usize) -> u64 {
-        let mut sorted = samples.to_vec();
-        sorted.sort_unstable();
-        let rank = sorted.len().saturating_mul(percentile).div_ceil(100);
-        sorted[rank.saturating_sub(1)]
-    }
-
-    fn raw_samples(samples: &[u64]) -> String {
-        let values = samples
-            .iter()
-            .map(u64::to_string)
-            .collect::<Vec<_>>()
-            .join(",");
-        format!("[{values}]")
-    }
-}
+#[cfg(test)]
+#[path = "tests/import_shader_package.rs"]
+mod tests;

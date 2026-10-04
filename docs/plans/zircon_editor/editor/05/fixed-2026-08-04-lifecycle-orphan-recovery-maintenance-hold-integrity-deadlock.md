@@ -9,12 +9,6 @@ fixing_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-c
 origin_child_dir: docs/plans/zircon_editor/editor/05
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 related_code:
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/cargo_jobs.py
-  - tools/session_coordinator/codex_sync/evidence.py
-  - tools/session_coordinator/supervision/lifecycle.py
-  - tools/session_coordinator/supervision/service.py
-  - tools/session_coordinator/tests/test_supervision_service.py
 tests:
   - python -m tools.session_coordinator --repo-root E:/Git/ZirconEngine serve
   - python -m unittest tools.session_coordinator.tests.test_supervision_service tools.session_coordinator.tests.test_supervision_actions

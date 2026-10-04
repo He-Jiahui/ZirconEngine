@@ -9,8 +9,8 @@ use zircon_runtime_interface::ui::surface::{UiEditableTextState, UiRenderCommand
 mod profile;
 #[cfg(feature = "profiling")]
 pub(super) use profile::{
-    TextFontHandleFrameProfile, record_compiled_rich_text_cache_profile,
-    record_text_extract_profile,
+    record_compiled_rich_text_cache_profile, record_text_extract_profile,
+    TextFontHandleFrameProfile,
 };
 const UI_TEXT_SHAPE_PREWARM_CHUNK_SIZE: usize = 8;
 pub(super) const UI_TEXT_OWNER_PREWARM_OVERLAP_MIN_REQUESTS: usize = 8;
@@ -242,5 +242,5 @@ pub(super) fn ui_text_shape_prewarm_pool() -> TaskPool {
 mod profile_test;
 
 #[cfg(test)]
-#[path = "text_prewarm/tests.rs"]
+#[path = "text_prewarm/tests/cases.rs"]
 mod tests;

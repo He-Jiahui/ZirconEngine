@@ -115,6 +115,7 @@ pub(in crate::hybrid_gi::renderer::gpu_resources::execute_prepare::execute) fn d
     }
 
     let resident_probe_count = inputs.resident_probe_inputs.len().min(u32::MAX as usize) as u32;
+    // 五个更新阶段按顺序编码到同一命令流；consume 必须在边框和 mip 完成后读取 atlas。
     if update_count > 0 {
         for update_stage in RADIANCE_CACHE_UPDATE_STAGES {
             buffer_uploads.write_buffer(
@@ -388,5 +389,5 @@ fn storage_layout_entry(binding: u32, read_only: bool) -> wgpu::BindGroupLayoutE
 }
 
 #[cfg(test)]
-#[path = "tests.rs"]
+#[path = "tests/cases.rs"]
 mod tests;

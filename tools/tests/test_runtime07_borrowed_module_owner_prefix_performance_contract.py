@@ -8,7 +8,7 @@ SOURCE = (
     / "zircon_runtime/src/plugin/runtime_plugin/module_validation/names/owner_prefix.rs"
 )
 
-
+# 读取实现源码约束借用模块归属前缀：成功路径借用现有名称与归属，并成功路径不分配归属前缀。
 class BorrowedModuleOwnerPrefixPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

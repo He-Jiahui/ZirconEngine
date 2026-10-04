@@ -1,3 +1,4 @@
+//! 面向调用者提供受限角度和权重的注视旋转作业；求解前要求有效方向、局部轴和当前旋转。
 use zircon_runtime::core::math::{Quat, Real, Vec3};
 
 use super::AnimationIkError;
@@ -30,6 +31,7 @@ impl LookAtJob {
         self
     }
 
+    /// 返回局部轴朝向目标的受限旋转；调用方先统一方向与旋转的坐标空间，并提供非零旋转。
     pub fn solve_rotation(self, current: Quat) -> Result<Quat, AnimationIkError> {
         validate(self, current)?;
         if self.weight == 0.0 {
@@ -73,5 +75,5 @@ fn validate(job: LookAtJob, current: Quat) -> Result<(), AnimationIkError> {
 }
 
 #[cfg(test)]
-#[path = "look_at/performance_tests.rs"]
+#[path = "look_at/tests/performance_tests.rs"]
 mod optimization_batch_20260830ct_tests;

@@ -3,9 +3,9 @@ use crate::render_graph::{
     RenderGraphComputePassMetadata, RenderGraphVersionedAccessKey,
 };
 
-use super::super::RenderPassGpuExecutionContext;
 use super::super::compute_pipeline_cache::ComputePipelineBindingLayout;
-use super::buffer_binding::{ResolvedComputeBuffer, resolve_compute_buffer};
+use super::super::RenderPassGpuExecutionContext;
+use super::buffer_binding::{resolve_compute_buffer, ResolvedComputeBuffer};
 use super::texture_view::{resolve_compute_texture_desc, resolve_compute_texture_view};
 
 pub(super) struct ResolvedComputeBinding {

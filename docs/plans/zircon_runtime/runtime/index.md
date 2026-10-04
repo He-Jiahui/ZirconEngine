@@ -35,7 +35,6 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_child_owners.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_child_owners.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure_assertions.rs
@@ -43,14 +42,14 @@ related_code:
   - zircon_runtime/src/asset/assets/font.rs
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_schema.rs
-  - docs/zircon_runtime/asset/assets/font.md
-  - docs/zircon_runtime/asset/assets/ui.md
+  - docs/crates/zircon_runtime/asset/assets/font.md
+  - docs/crates/zircon_runtime/asset/assets/ui.md
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/f12_dead_code.rs
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx.rs
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source.rs
   - zircon_plugins/plugin_sdk/src/manifest/importer_runtime.rs
   - zircon_plugins/plugin_sdk/src/manifest/feature_bundle_builder.rs
-  - tools/plugin_structure_audits/capability.py
+  - tools/audits/plugins/capability.py
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/mod.rs
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs
   - zircon_app/Cargo.toml
@@ -127,15 +126,6 @@ related_code:
   - dev/bevy/crates/bevy_asset/src
   - dev/Fyrox/fyrox-impl/src/plugin/mod.rs
   - dev/UnrealEngine/Engine/Source/Runtime
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/naming_guard_maps.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/direct_assertion_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/plugin_importer_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/status_support_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/typed_error_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/review_guard_maps.rs
 plan_sources:
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
@@ -144,11 +134,15 @@ plan_sources:
 ---
 # Zircon Runtime 架构完善与优化总体计划
 
-Current-source UI architecture mirror 2026-08-14: `ui_architecture_boundary` reports `expected_source_file_count = 52`, `expected_ui_entry_count = 20`, `expected_surface_entry_count = 26`, `legacy_full_hits = 70`, `expected_legacy_full_hits = 70`, `legacy_production_hits = 0`, `expected_legacy_production_hits = 0`, `legacy_production_file_count = 0`, `expected_legacy_production_file_count = 0`, `taffy_production_hits = 175`, `expected_taffy_production_hits = 175`, `taffy_production_file_count = 10`, `expected_taffy_production_file_count = 10`, `runtime_v2_anchor_count = 10`, `interface_v2_anchor_count = 9`, `guard_anchor_count = 19`, `cargo_gate_anchor_count = 7`, `doc_anchor_count = 61`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `mirror_docs_guard_present = true`, and `risks = []`. This current snapshot supersedes older dated counts without rewriting their history.
+Current-source UI architecture mirror 2026-09-01: `ui_architecture_boundary` reports `expected_source_file_count = 49`, `expected_ui_entry_count = 22`, `expected_surface_entry_count = 44`, `legacy_full_hits = 15`, `expected_legacy_full_hits = 15`, `legacy_production_hits = 0`, `expected_legacy_production_hits = 0`, `legacy_production_file_count = 0`, `expected_legacy_production_file_count = 0`, `taffy_production_hits = 242`, `expected_taffy_production_hits = 242`, `taffy_production_file_count = 16`, `expected_taffy_production_file_count = 16`, `runtime_v2_anchor_count = 10`, `interface_v2_anchor_count = 9`, `guard_anchor_count = 19`, `cargo_gate_anchor_count = 7`, `doc_anchor_count = 61`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `mirror_docs_guard_present = true`, and `risks = []`. The legacy metric is restricted to the declared unambiguous retired UI migration vocabulary; property benchmark comparator identifiers remain covered by owner-specific cutover tests and are not debt. This current snapshot supersedes older dated counts without rewriting their history.
+
+Current-source UI architecture mirror 2026-09-10 supersedes the dated 2026-09-01 snapshot: `ui_architecture_boundary` reports `expected_source_file_count = 49`, `expected_ui_entry_count = 23`, `expected_surface_entry_count = 45`, `legacy_full_hits = 15`, `expected_legacy_full_hits = 15`, `legacy_production_hits = 0`, `expected_legacy_production_hits = 0`, `legacy_production_file_count = 0`, `expected_legacy_production_file_count = 0`, `taffy_production_hits = 254`, `expected_taffy_production_hits = 254`, `taffy_production_file_count = 16`, `expected_taffy_production_file_count = 16`, `runtime_v2_anchor_count = 10`, `interface_v2_anchor_count = 9`, `guard_anchor_count = 19`, `cargo_gate_anchor_count = 7`, `doc_anchor_count = 61`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `mirror_docs_guard_present = true`, and `risks = []`. The current maps include the private `ui/module/` lifecycle/driver owner and `surface/host_font_assets.rs` as the host-font admission/resident-lifetime owner. The retained Taffy parent-product cache adds cache/contract identifiers while preserving the 16-file execution surface; the older dated snapshot remains historical evidence.
+
+Sealed-source correction 2026-09-30 (`source_applied`, `managed_tests_pending`): `surface_source_module_entry_count = 43`. The raw 45 paths include local `navigation/` and `pointer/` directories that contain no Rust source and are absent from the sealed source-backed map. This corrected metric is pending managed validation; the dated 2026-09-10 mirror above remains unchanged.
 
 Runtime 08 current hard-cut sync (2026-08-28): `ecs_kernel_data_boundary` now owns `expected_source_file_count = 76`; the inventory includes `component/registry/transferred.rs` as the transferred-descriptor transaction owner, retains the six-file archetype-table owner plus `typed_api/{component_row,projection_rebuild}.rs`, and keeps `expected_test_file_count = 10`. This supersedes earlier current-count paragraphs while preserving their dated historical evidence.
 
-Runtime13 scene-transition contract sync (2026-08-15, source-owner inventory updated 2026-08-29): `script_binding_boundary` reports `expected_source_file_count = 28`, `expected_test_file_count = 3`, `expected_guard_file_count = 8`, `fixed_host_function_count = 61`, `builtin_callback_count = 20`, `gameplay_callback_count = 40`, `host_capability_count = 13`, `missing_source_files = []`, `missing_guard_files = []`, and `risks = []`. `script.rs` remains the public facade for `argument_views`, `call_frame`, `descriptors`, `hot_path_metrics`, and `value_contracts`; `argument_views.rs` routes to four focused folder-backed owners without changing the public marshalling contract. `request_scene_transition` remains capability-gated and emits a `ReplaceActive` project request for deferred project ownership. The managed script Cargo gates remain pending.
+Runtime13 current source contract inventory: `script_binding_boundary` reports `expected_source_file_count = 28`, `expected_test_file_count = 3`, `expected_guard_file_count = 8`, `fixed_host_function_count = 63`, `builtin_callback_count = 21`, `gameplay_callback_count = 40`, `host_capability_count = 13`, `missing_source_files = []`, `missing_guard_files = []`, and `risks = []`. `script.rs` remains the public facade for `argument_views`, `call_frame`, `descriptors`, `hot_path_metrics`, and `value_contracts`; `argument_views.rs` routes to four focused folder-backed owners without changing the public marshalling contract. `request_scene_transition` remains capability-gated and emits a `ReplaceActive` project request for deferred project ownership. The managed script Cargo gates remain pending.
 
 2026-07-28 Runtime11 JobSystem 历史镜像：`tasks/timer.rs` 成为共享、有界的进程级 deadline owner，`job_system_boundary` 当时的 `expected_module_count = 10`；它替代 asset worker 的私有维护线程而不扩展公共任务 API。
 
@@ -168,7 +162,7 @@ The same 2026-08-27 source pass closes the remaining direct-Rayon consumer witho
 
 The offline Font SDF owner hard cut on 2026-08-27 removes the build library's last implicit `TaskPools::process_default()` route. `bake_font_sdf_artifact(...)` requires the caller's pool; the CLI owns one `EngineTaskGraph`, shuts it down with a bounded receipt before artifact publication, and integration tests retain a fixed two-worker graph. Static routes are implicit owner `1 -> 0` and worker sets `3 -> 1`; at 16 logical processors the configured worker total remains 16 while generation-visible parallelism changes `4 -> 16`. The JobSystem static audit is now 4/4. Product renderer text, small-batch overhead, elapsed time, RSS, wakeups and power remain unvalidated, so Runtime11 is still `in_progress`.
 
-Runtime 13 current child-owner sync (2026-07-10): `script_binding_boundary` reports `expected_source_file_count = 19`, `expected_test_file_count = 3`, `expected_guard_file_count = 9`, `missing_guard_files = []`, `fixed_host_module_count = 6`, `fixed_host_function_count = 52`, `type_descriptor_count = 2`, `builtin_callback_count = 11`, `gameplay_callback_count = 39`, `macro_host_function_count = 2`, `host_capability_count = 11`, `guard_anchor_count = 9`, `native_ecs_abi_references = []`, `oversized_test_files = []`, `mirror_docs_guard_present = true`, and `risks = []`. The nine guard owners include the two route parents plus ledger/capability/ECS-facade, gameplay-host/mirror, despawn behavior, and Runtime 13 Cargo children. `runtime_13_script_binding_mirror_docs_match_structure_audit_counts` keeps the plan, runtime index, function ledger, M0 review, and interface-convergence mirror aligned; script package gates remain pending.
+Historical Runtime13 source snapshot (2026-07-10): `script_binding_boundary` reports `expected_source_file_count = 19`, `expected_test_file_count = 3`, `expected_guard_file_count = 9`, `missing_guard_files = []`, `fixed_host_module_count = 6`, `fixed_host_function_count = 52`, `type_descriptor_count = 2`, `builtin_callback_count = 11`, `gameplay_callback_count = 39`, `macro_host_function_count = 2`, `host_capability_count = 11`, `guard_anchor_count = 9`, `native_ecs_abi_references = []`, `oversized_test_files = []`, `mirror_docs_guard_present = true`, and `risks = []`. The nine guard owners include the two route parents plus ledger/capability/ECS-facade, gameplay-host/mirror, despawn behavior, and Runtime 13 Cargo children. `runtime_13_script_binding_mirror_docs_match_structure_audit_counts` keeps the plan, runtime index, function ledger, M0 review, and interface-convergence mirror aligned; script package gates remain pending.
 
 Runtime 12 current child-owner sync (2026-07-10): input, action mapping, recording/replay, cursor host requests, and gamepad ABI each have explicit runtime/framework/test owners. The input module document, Runtime 12 plan, M0 review, and interface-convergence mirror remain aligned; package input/action/gamepad/app validation stays pending and production input behavior is unchanged. Detailed anchors and command evidence live in the Runtime 12 numbered archive.
 
@@ -176,14 +170,15 @@ Runtime 12 current child-owner sync (2026-07-10): input, action mapping, recordi
 
 2026-07-13 Runtime 05 closeout 已完成：`runtime_05_scene_1642_structure_1304_review_298_pmrem_parity_passed_closeout_acceptance_complete` 在同一 fresh Windows lib-test 程序通过 full `scene::` 1642/1642（5 ignored）、`structure_convention` 1304/1304、`code_review_findings` 298/298 与 PMREM parity 1/1；父计划和本索引只保存当前概述/路由，具体五列产出、命令与历史锚点由 Runtime 05 编号归档拥有。
 
-2026-08-27 Runtime11 current single-owner cut supersedes the retained three-domain
-snapshots above: `tasks/task_graph/EngineTaskGraph` now creates exactly one physical
-worker set under `EngineTaskGraphOptions`, `TaskGraphWorkerInventory` reports one
-set and its exact worker count, and Core no longer exposes work-kind pool selectors.
-The default scheduler and migrated runtime/app/editor consumers share that owner.
+2026-09-02 Runtime11 current owner cut supersedes the retained single-pool snapshot:
+`tasks/task_graph/EngineTaskGraph` owns the budgeted `Io`, `AsyncCompute`, and `Compute`
+physical domains under one lifecycle, and `TaskGraphWorkerInventory` reports exact
+per-domain worker and shutdown census. Descriptor-led direct submission and dependencies
+share the graph-owned scheduler/callback route; `TaskHandle::wait_all` is the canonical
+admitted-work synchronization point.
 Dynamic session shutdown drains its scope and modules before closing the TaskGraph.
 The current mirror is `expected_module_count = 22` and
-`behavior_test_anchor_count = 73`, including the canonical Runtime task
+`behavior_test_anchor_count = 76`, including the canonical Runtime task
 contracts and handle/fence lifecycle regressions, with `tasks/bounded_stream_io/` and
 `tasks/retained_byte_budget.rs` unchanged. Managed Cargo, affinity/priority/quota,
 keyed-I/O parallelism, process/private-owner convergence, and performance/power
@@ -388,7 +383,7 @@ Runtime 09 当前静态镜像由 `ui_architecture_boundary` 持有。2026-07-10 
 - 里程碑测试阶段:`cargo test -p zircon_runtime --lib --locked`（按子计划模块过滤词收窄）;涉及装配时加 `cargo test -p zircon_app --locked`。
 - 插件接缝:`cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --all-targets --locked`。
 - 结构守卫:各子计划列出的源断言/结构测试（如 app 不得直依插件实现 crate、interface 不得出现 wgpu）。
-- 文档:每个里程碑完成后按源码镜像路径更新 `docs/zircon_runtime/**`，并刷新本目录子计划状态标记。
+- 文档:每个里程碑完成后按源码镜像路径更新 `docs/crates/zircon_runtime/**`，并刷新本目录子计划状态标记。
 
 ## 6. 协调与活动会话避让
 
@@ -414,7 +409,7 @@ Runtime 09 当前静态镜像由 `ui_architecture_boundary` 持有。2026-07-10 
 
 具体 owner、状态锚与验证记录已迁入 [`../../_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md`](../../_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md)；本索引只保留当前子计划路由与全局约束。
 
-Current Runtime13 owner hard-cut sync 2026-07-14: `script_binding_boundary` reports `expected_source_file_count = 18`, `expected_test_file_count = 3`, `expected_guard_file_count = 9`, `missing_source_files = []`, `missing_guard_files = []`, `fixed_host_module_count = 6`, `fixed_host_function_count = 52`, `type_descriptor_count = 2`, `builtin_callback_count = 11`, `gameplay_callback_count = 39`, `macro_host_function_count = 2`, `host_capability_count = 11`, `guard_anchor_count = 9`, `native_ecs_abi_references = []`, `oversized_test_files = []`, `mirror_docs_guard_present = true`, and `risks = []`. The concrete ZrVM host-module source is owned and guarded by `zircon_plugin_zr_vm_language_runtime`, not by Runtime13.
+Historical Runtime13 source snapshot 2026-07-14: `script_binding_boundary` reports `expected_source_file_count = 18`, `expected_test_file_count = 3`, `expected_guard_file_count = 9`, `missing_source_files = []`, `missing_guard_files = []`, `fixed_host_module_count = 6`, `fixed_host_function_count = 52`, `type_descriptor_count = 2`, `builtin_callback_count = 11`, `gameplay_callback_count = 39`, `macro_host_function_count = 2`, `host_capability_count = 11`, `guard_anchor_count = 9`, `native_ecs_abi_references = []`, `oversized_test_files = []`, `mirror_docs_guard_present = true`, and `risks = []`. The concrete ZrVM host-module source is owned and guarded by `zircon_plugin_zr_vm_language_runtime`, not by Runtime13.
 2026-07-22 Runtime 06 native callback diagnostics public-surface mirror: the current tree retains the sole `plugin::native` public seat with `root_reexport_count = 0`, `native_namespace_reexport_count = 68`, native root re-export 0/0, native namespace re-export 68/68, M4 gate `classified-and-clear`, debt groups 0/0, native namespace symbol groups 5/5, unclassified native root symbols 0/0, unclassified native namespace symbols 0/0, root public native re-export locations 0/0, public native namespace re-export locations 1/1, app NativePlugin current call-site files: 7, native loader V1/V2 implementation files 0/0, `zircon_plugins` V1/V2 usage files 0/0, export_build_plan V1/V2 usage 0/0, unknown ABI rejection, hot reload failure injection, native loader test files 4/4, native test namespace import files 3/3, native test root import leaks 0/0, fallback lifecycle failure tests 4/4, `runtime_06_vm_lifecycle_fallback_failure_tests_are_folder_backed`, `runtime_06_native_loader_tests_use_isolated_plugin_native_namespace`, `mirror_docs_guard_present = true`, `risks = []`, and `runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts`. This mirror does not close Runtime 06 validation gates.
 
 2026-08-24 Runtime 06 M3.1 source hard cut: descriptor and entry remain V3, behavior remains V4, and byte transport is physical V3 only. The loader, SDK, native fixtures, editor-contribution fixture, and glTF importer retain no V2 descriptor/entry or transport symbol, V3-to-V2 alias, `abi_v2_only` fixture feature, or `NativeHostApiV3RegistrationScope`; V4 registration policy/scope is the sole public registration owner. The V3 descriptor `abi_unknown_version` fixture preserves explicit invalid-version rejection. This is static source evidence only: the existing public-surface classification/root-import drift and managed Cargo/native validation remain open.

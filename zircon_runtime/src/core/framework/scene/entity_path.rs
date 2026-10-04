@@ -3,6 +3,7 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
+/// 动画目标和世界属性访问共享的层级定位符；结构化段用于查找，文本用于外部引用。
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct EntityPath {
     raw: String,
@@ -10,6 +11,7 @@ pub struct EntityPath {
 }
 
 impl EntityPath {
+    // BUG: [CR-FRAMEWORK-SCENE-0001] 段中允许 '/'，但文本形式用 '/' 连接；带斜杠的节点名经 as_str/parse 回读会变成不同层级。
     pub fn new(segments: Vec<String>) -> Result<Self, PathParseError> {
         if segments.is_empty() {
             return Err(PathParseError::new(
@@ -50,7 +52,7 @@ impl EntityPath {
 }
 
 #[cfg(test)]
-#[path = "entity_path/single_scan_parse_tests.rs"]
+#[path = "entity_path/tests/single_scan_parse_tests.rs"]
 mod single_scan_parse_tests;
 
 impl fmt::Display for EntityPath {
@@ -59,6 +61,7 @@ impl fmt::Display for EntityPath {
     }
 }
 
+/// 属性绑定的结构化键；动态组件类型名可能包含点号，调用端须保留 component 与属性段。
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ComponentPropertyPath {
     raw: String,
@@ -86,6 +89,7 @@ impl ComponentPropertyPath {
         })
     }
 
+    // TODO: [CR-FRAMEWORK-SCENE-0002] 明确动态类型路径的文本回读约定：new 可接收带点号的组件名，parse 却将首个点号当分隔符。
     pub fn parse(path: &str) -> Result<Self, PathParseError> {
         let mut segments = path
             .split('.')

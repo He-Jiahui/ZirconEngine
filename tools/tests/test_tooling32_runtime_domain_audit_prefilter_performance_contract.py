@@ -1,3 +1,4 @@
+# 核对运行域审计先筛除无依赖候选，再词法分析与可达性遍历。
 from __future__ import annotations
 
 import unittest

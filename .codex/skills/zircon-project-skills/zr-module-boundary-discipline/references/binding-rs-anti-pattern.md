@@ -35,7 +35,7 @@ This is exactly the kind of module this skill exists to prevent.
 ## Required Boundary Corrections
 
 - `binding.rs` itself must become a thin wiring file.
-- Each top-level declaration gets its own file.
+- Independently meaningful declarations get focused files; tightly coupled private types may stay with their single owning responsibility.
 - Similar declarations live under a domain folder, not flat beside unrelated concerns.
 - Parsing, encoding, decoding, name mapping, and routing move out of declaration files once they stop being trivial.
 

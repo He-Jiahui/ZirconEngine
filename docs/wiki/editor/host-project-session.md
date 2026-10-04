@@ -20,7 +20,7 @@ plan_sources:
 tests:
   - zircon_editor/src/ui/retained_host/app/tests
   - zircon_editor/src/core/project/tests
-  - zircon_editor/src/core/document/scene_route_tests.rs
+  - zircon_editor/src/core/document/tests/scene_route_tests.rs
 doc_type: workflow-detail
 ---
 
@@ -91,7 +91,7 @@ run_editor_with_config(core, runtime_gateway, config)?;
 
 ### 创建项目
 
-`NewProjectDraft` 保存用户输入；`ProjectAuthority` 是文件系统创建/打开的作者态门面。创建不是“一次 mkdir”：实现会做 manifest 与目标目录预检、事务 staging、提交和失败回滚，最终返回 `CreatedProject`。
+`NewProjectDraft` 保存用户输入；`ProjectAuthority` 是文件系统创建/打开的作者态门面。创建先在 staging 目录验证模板和 manifest，再原子发布到目标目录。发布前的失败可恢复原本的空目标目录；发布后不再删除新项目，即使后续 session 激活失败。`CreatedProject` 只表示已经发布并完成创建收尾的项目；发布后的收尾失败会返回带目标路径的错误，保留产物供后续打开或恢复。
 
 `CreatedProject`/`OpenedProject` 保留规范化的 `ResolvedProjectPath` 与 manifest summary；调用者应优先使用 `identity()` 和 `summary()`，不要重新从显示路径推导项目身份。
 

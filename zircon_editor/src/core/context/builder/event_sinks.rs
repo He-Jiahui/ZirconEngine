@@ -4,7 +4,8 @@ use crate::core::editing::engine::{
     TransactionEvent, TransactionEventDelivery, TransactionEventKind, TransactionEventSink,
 };
 use crate::core::editor_message::{
-    EditorMessage, EditorMessagePayload, EditorTopic, SharedEditorMessageBus, TransactionMessage,
+    EditorMessage, EditorMessagePayload, EditorMessageSchemaId, EditorTopic,
+    SharedEditorMessageBus, TransactionMessage,
 };
 use crate::core::i18n::{EditorI18nEventSink, EditorLocale, LocaleChangeDelivery};
 use crate::core::logging::{EditorLogEventSink, LogEventDelivery, LogRecord};
@@ -18,6 +19,10 @@ pub(super) const LOG_RECORD_EVENT_SCHEMA: &str = "zircon.editor.log.recorded.v1"
 pub(super) const LOG_RESYNC_EVENT_SCHEMA: &str = "zircon.editor.log.resync.v1";
 pub(super) const I18N_LOCALE_CHANGED_EVENT_SCHEMA: &str = "zircon.editor.i18n.locale-changed.v1";
 pub(super) const I18N_LOCALE_RESYNC_EVENT_SCHEMA: &str = "zircon.editor.i18n.locale-resync.v1";
+
+fn schema_id(value: &str) -> EditorMessageSchemaId {
+    EditorMessageSchemaId::parse(value).expect("built-in editor schema id must remain valid")
+}
 
 pub(super) struct EditorMessageLogEventSink {
     bus: SharedEditorMessageBus,
@@ -38,7 +43,7 @@ impl EditorLogEventSink for EditorMessageLogEventSink {
         let report = self.bus.publish(
             self.topic.clone(),
             EditorMessage::custom(
-                LOG_RECORD_EVENT_SCHEMA,
+                schema_id(LOG_RECORD_EVENT_SCHEMA),
                 serde_json::json!({ "sequence": record.sequence() }),
             ),
         );
@@ -55,7 +60,7 @@ impl EditorLogEventSink for EditorMessageLogEventSink {
         let report = self.bus.publish(
             self.topic.clone(),
             EditorMessage::custom(
-                LOG_RESYNC_EVENT_SCHEMA,
+                schema_id(LOG_RESYNC_EVENT_SCHEMA),
                 serde_json::json!({
                     "through_sequence": through_sequence,
                 }),
@@ -94,7 +99,7 @@ impl EditorI18nEventSink for EditorMessageI18nEventSink {
         let report = self.bus.publish(
             self.topic.clone(),
             EditorMessage::custom(
-                I18N_LOCALE_CHANGED_EVENT_SCHEMA,
+                schema_id(I18N_LOCALE_CHANGED_EVENT_SCHEMA),
                 serde_json::json!({ "locale": locale.as_str() }),
             ),
         );
@@ -111,7 +116,7 @@ impl EditorI18nEventSink for EditorMessageI18nEventSink {
         let report = self.bus.publish(
             self.topic.clone(),
             EditorMessage::custom(
-                I18N_LOCALE_RESYNC_EVENT_SCHEMA,
+                schema_id(I18N_LOCALE_RESYNC_EVENT_SCHEMA),
                 serde_json::json!({ "locale": locale.as_str() }),
             ),
         );

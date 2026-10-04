@@ -10,8 +10,8 @@ from io import StringIO
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_shader_pbr_evidence_identity import normalize_evidence_path
-from tools.zircon_validate_shader_pbr_viewer_evidence import (
+from tools.analysis.profiling.shader_pbr.zircon_shader_pbr_evidence_identity import normalize_evidence_path
+from tools.analysis.profiling.shader_pbr.zircon_validate_shader_pbr_viewer_evidence import (
     _CURRENT_IBL_BAKE_ALGORITHM_VERSION,
     main,
     validate_ready_frame_evidence,
@@ -218,7 +218,7 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "duration hierarchy"):
                 validate_ready_frame_evidence(png_path)
 
-    def test_cli_requires_v17_schema_and_identity_binding_unless_legacy_read_is_explicit(
+    def test_cli_requires_v18_schema_and_identity_binding_unless_legacy_read_is_explicit(
         self,
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -249,7 +249,7 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
                 ):
                     self.assertEqual(1, main())
                 self.assertIn(
-                    "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v17",
+                    "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v18",
                     stderr.getvalue(),
                 )
 
@@ -290,7 +290,7 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
             ):
                 self.assertEqual(1, main())
             self.assertIn(
-                "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v17",
+                "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v18",
                 stderr.getvalue(),
             )
             with (
@@ -332,7 +332,7 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
             ):
                 self.assertEqual(1, main())
             self.assertIn(
-                "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v17",
+                "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v18",
                 stderr.getvalue(),
             )
             with (
@@ -366,7 +366,7 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
             ):
                 self.assertEqual(1, main())
             self.assertIn(
-                "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v17",
+                "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v18",
                 stderr.getvalue(),
             )
             with (
@@ -379,7 +379,7 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
 
             _write_sidecar(
                 png_path,
-                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v17",
+                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v18",
                 interactive_direct_present_enabled="false",
                 material_fixture="metal-mirror",
                 required_material_base_pipeline_kind="environment-only-pbr-base",
@@ -391,7 +391,7 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
                 **_v12_shader_pipeline_metrics(),
                 **_v17_brdf_lut_startup_metrics(),
                 **_v14_host_capability_fields(),
-                **_ready_frame_identity_fields(png_path),
+                **_ready_frame_identity_fields(png_path, policy_version=18),
             )
             stdout = StringIO()
             with (
@@ -459,7 +459,7 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
 
             _write_sidecar(
                 png_path,
-                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v17",
+                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v18",
                 interactive_direct_present_enabled="false",
                 material_fixture="metal-mirror",
                 required_material_base_pipeline_kind="environment-only-pbr-base",
@@ -472,7 +472,7 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
                 **_v12_shader_pipeline_metrics(),
                 **_v17_brdf_lut_startup_metrics(),
                 **_v14_host_capability_fields(),
-                **_ready_frame_identity_fields(png_path),
+                **_ready_frame_identity_fields(png_path, policy_version=18),
             )
             stderr = StringIO()
             with (
@@ -788,7 +788,7 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
             )
 
             with mock.patch(
-                "tools.zircon_pbr_visual_oracle._MAX_ENCODED_PNG_BYTES",
+                "tools.analysis.visual.zircon_pbr_visual_oracle._MAX_ENCODED_PNG_BYTES",
                 1,
             ):
                 with self.assertRaisesRegex(RuntimeError, "encoded evidence budget"):
@@ -805,7 +805,7 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
             )
 
             with mock.patch(
-                "tools.zircon_pbr_visual_oracle._MAX_PNG_CHUNKS",
+                "tools.analysis.visual.zircon_pbr_visual_oracle._MAX_PNG_CHUNKS",
                 2,
             ):
                 with self.assertRaisesRegex(RuntimeError, "chunk budget"):
@@ -936,6 +936,16 @@ def _write_sidecar(png_path: Path, **overrides: str) -> None:
         "one_shot_base_pipeline_wait_elapsed_ns": "75000000",
         "viewer_scene_load_elapsed_ns": "1250000000",
         "viewer_ready_elapsed_ns": "1350000000",
+        "environment_hydration_observation_epoch": "0",
+        "environment_hydration_resident_payload_bytes": "0",
+        "environment_capture_observation_epoch": "0",
+        "environment_capture_residency_observation_epoch": "0",
+        "environment_capture_residency_last_published_handle": "none",
+        "environment_capture_residency_last_published_output_generation": "0",
+        "environment_capture_residency_resident_gpu_bytes": "0",
+        "environment_capture_residency_eviction_count": "0",
+        "environment_cubemap_upload_observation_epoch": "0",
+        "environment_cubemap_upload_resident_texture_bytes": "0",
         "ready_frame_render_elapsed_ns": "16000000",
         "ready_frame_extract_ns": "2000000",
         "ready_frame_renderer_call_ns": "11000000",

@@ -104,16 +104,16 @@ impl TimelineStripGeneration {
         let current_time = normalized_current_time(input.current_time, duration);
         let tick_interval = normalized_tick_interval(input.tick_interval, duration);
         let track_label: Arc<str> = Arc::from(input.track_label);
-        let keys: Arc<[TimelineStripKey]> = input
-            .keys
-            .into_iter()
-            .filter(|key| key.time.is_finite())
-            .map(|key| TimelineStripKey {
-                time: key.time.clamp(0.0, duration),
-                ..key
-            })
-            .collect::<Vec<_>>()
-            .into();
+        let mut keys = Vec::with_capacity(input.keys.len());
+        for key in input.keys {
+            if key.time.is_finite() {
+                keys.push(TimelineStripKey {
+                    time: key.time.clamp(0.0, duration),
+                    ..key
+                });
+            }
+        }
+        let keys: Arc<[TimelineStripKey]> = keys.into();
         let static_generation = static_generation(duration, tick_interval, &track_label, &keys);
         let dynamic_generation = dynamic_generation(current_time, &keys);
 
@@ -297,11 +297,7 @@ impl TimelineStripStaticContent {
         visual_budget: usize,
     ) -> Self {
         let ticks: Arc<[TimelineStripTick]> =
-            timeline_tick_values(duration, tick_interval, visual_budget)
-                .into_iter()
-                .map(TimelineStripTick::from_value)
-                .collect::<Vec<_>>()
-                .into();
+            timeline_tick_projection(duration, tick_interval, visual_budget).into();
         let mut generation = GenerationHash::new();
         generation.add_u64(static_generation);
         generation.add_u64(visual_budget as u64);
@@ -359,7 +355,11 @@ fn visual_tick_budget(plot_width: f32) -> usize {
     columns.saturating_add(1).clamp(2, MAX_TIMELINE_TICKS)
 }
 
-fn timeline_tick_values(duration: f32, interval: f32, max_ticks: usize) -> Vec<f32> {
+fn timeline_tick_projection(
+    duration: f32,
+    interval: f32,
+    max_ticks: usize,
+) -> Vec<TimelineStripTick> {
     let max_ticks = max_ticks.clamp(2, MAX_TIMELINE_TICKS);
     let requested_segments = (duration / interval).ceil();
     let segment_budget = max_ticks - 1;
@@ -374,11 +374,11 @@ fn timeline_tick_values(duration: f32, interval: f32, max_ticks: usize) -> Vec<f
     } else {
         interval
     };
-    let mut ticks = Vec::with_capacity(segment_count + 1);
+    let mut ticks = Vec::with_capacity(segment_count.saturating_add(1));
     for index in 0..segment_count {
-        ticks.push(index as f32 * step);
+        ticks.push(TimelineStripTick::from_value(index as f32 * step));
     }
-    ticks.push(duration);
+    ticks.push(TimelineStripTick::from_value(duration));
     ticks
 }
 

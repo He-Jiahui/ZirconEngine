@@ -8,11 +8,8 @@ fixing_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-c
 origin_child_dir: docs/plans/zircon_editor/editor/02
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 related_code:
-  - tools/session_coordinator/cargo_jobs.py
-  - tools/session_coordinator/cli.py
-  - tools/session_coordinator/tests/test_cargo_jobs.py
 tests:
-  - .\tools\zircon-session.ps1 -Json cargo list
+  - .\tools\dev\zircon-session.ps1 -Json cargo list
   - cargo test -p zircon_runtime --lib scene:: --no-default-features --features core-min --locked
 resolved_at: 2026-07-14
 ---

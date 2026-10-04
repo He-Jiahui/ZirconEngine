@@ -19,4 +19,5 @@ pub(crate) use platform_window_command_error::PlatformWindowCommandError;
 pub(crate) use window_command_failure::WindowCommandFailure;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

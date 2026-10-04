@@ -46,7 +46,7 @@ impl ParallelPreparationMode {
     }
 }
 
-pub(super) fn should_prepare_batches_in_parallel(
+pub(in crate::graphics::scene::scene_renderer::mesh::mesh_pass::mesh_draw_command_list) fn should_prepare_batches_in_parallel(
     batches: &[MeshBatchRef],
     task_pool: &TaskPool,
 ) -> bool {

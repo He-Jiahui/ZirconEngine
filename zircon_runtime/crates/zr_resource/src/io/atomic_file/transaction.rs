@@ -7,7 +7,7 @@ use super::directory::{
 };
 use super::pathing::unique_sibling_path;
 use super::platform;
-use super::{AtomicWriteFault, PathEntry, path_entry};
+use super::{path_entry, AtomicWriteFault, PathEntry};
 
 pub(super) fn stage_atomic_write(path: &Path, bytes: &[u8]) -> io::Result<PendingAtomicWrite> {
     stage_atomic_write_with_fault(path, bytes, AtomicWriteFault::None)

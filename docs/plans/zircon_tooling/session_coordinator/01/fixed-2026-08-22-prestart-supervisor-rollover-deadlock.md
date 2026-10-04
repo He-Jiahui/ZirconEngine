@@ -12,12 +12,6 @@ plan_link_mode: child_record_only
 related_code:
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
   - .codex/skills/zircon-dev/scripts/validate-matrix.Tests.ps1
-  - tools/session_coordinator/cargo_jobs.py
-  - tools/session_coordinator/control_plane/actions/executor.py
-  - tools/session_coordinator/supervision/lifecycle.py
-  - tools/session_coordinator/supervision/service.py
-  - tools/session_coordinator/tests/test_cargo_jobs.py
-  - tools/session_coordinator/tests/test_supervision_actions.py
 resolved_at: 2026-08-22
 ---
 

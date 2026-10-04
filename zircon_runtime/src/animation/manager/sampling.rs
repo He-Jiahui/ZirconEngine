@@ -3,7 +3,7 @@ use crate::core::framework::animation::{AnimationError, AnimationParameterValue,
 use crate::core::math::{Quat, Real, Vec3};
 
 #[cfg(test)]
-#[path = "sampling/quaternion_property_tests.rs"]
+#[path = "sampling/tests/quaternion_property_tests.rs"]
 mod quaternion_property_tests;
 
 pub(super) const DEFAULT_GRAPH_CLIP_PLAYBACK_SPEED: Real = 1.0;
@@ -28,6 +28,7 @@ pub(super) fn animation_parameter_value_is_finite(value: &AnimationParameterValu
     }
 }
 
+// 片段姿态采样先收敛时间边界，避免异常时长把无效时间传给通道插值。
 pub(super) fn resolve_sample_time(
     duration_seconds: Real,
     time_seconds: Real,
@@ -78,9 +79,11 @@ pub(super) fn sample_vec3(value: &AnimationChannelValueAsset) -> AnimationResult
     }
 }
 
+// 骨骼轨道采样在写入姿态前验证类型和可归一化性，供管理器统一报告采样错误。
 pub(super) fn sample_quaternion(value: &AnimationChannelValueAsset) -> AnimationResult<Quat> {
     match value {
         AnimationChannelValueAsset::Quaternion(value) => {
+            // BUG: [CR-ANIMATION-0002] 分量有限但平方和溢出时仍被判为可归一化，随后归一化产生零四元数；证据：1e20f32 分量、quaternion_sample_properties 与 glam 0.32.1 Vec4::normalize。
             let (finite, normalizable) = quaternion_sample_properties(value);
             if finite && normalizable {
                 Ok(Quat::from_array(*value).normalize())

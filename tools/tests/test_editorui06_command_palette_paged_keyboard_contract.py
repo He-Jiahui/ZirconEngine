@@ -62,7 +62,7 @@ class CommandPalettePagedKeyboardContractTests(unittest.TestCase):
 
         self.assertIn("dispatch_workbench_command_palette_window_requested", actions)
         self.assertIn("catalog_generation", actions)
-        self.assertIn("query != request_query", actions)
+        self.assertIn("query.as_str() != request_query", actions)
         self.assertIn("WindowRequestFocus", actions)
         self.assertIn("commands.command_palette_catalog()", actions)
         self.assertIn("catalog.query_window_with_mru(", actions)

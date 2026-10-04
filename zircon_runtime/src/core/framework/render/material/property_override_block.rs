@@ -5,6 +5,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use super::RenderMaterialPropertyValue;
 
 #[derive(Clone, Debug, Default, PartialEq)]
+/// 单次绘制可叠加的具名属性覆盖；序列化为透明映射，材质资产与已发布 uniform 保持原样。
 pub struct MaterialPropertyOverrideBlock {
     values: BTreeMap<String, RenderMaterialPropertyValue>,
 }
@@ -60,23 +61,5 @@ impl MaterialPropertyOverrideBlock {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn material_property_override_block_keeps_transparent_value_map_shape() {
-        let block = MaterialPropertyOverrideBlock::new()
-            .with_value("gain", RenderMaterialPropertyValue::Float { value: 2.5 });
-
-        let encoded = serde_json::to_string(&block).expect("override block should serialize");
-        let decoded: MaterialPropertyOverrideBlock =
-            serde_json::from_str(&encoded).expect("override block should deserialize");
-
-        assert!(encoded.contains("gain"));
-        assert!(!encoded.contains("values"));
-        assert_eq!(decoded, block);
-        assert!(serde_json::from_str::<MaterialPropertyOverrideBlock>("{}")
-            .expect("empty override map should deserialize")
-            .is_empty());
-    }
-}
+#[path = "tests/property_override_block.rs"]
+mod tests;

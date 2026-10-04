@@ -1,3 +1,5 @@
+//! 用稳定的文档族标识连接命令谓词和视图声明；序列化与显式解析共用校验，避免本地化名称进入可持久化契约。
+
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -32,6 +34,7 @@ impl DocumentKind {
         Self::builtin("animation_graph")
     }
 
+    /// 接收来自声明或反序列化的规范标识；错误保留原输入，调用方应拒绝该声明而非回退为其他文档族。
     pub fn parse(value: impl Into<String>) -> Result<Self, DocumentKindError> {
         let value = value.into();
         let mut segment_has_value = false;
@@ -92,15 +95,9 @@ impl fmt::Display for DocumentKindError {
 impl std::error::Error for DocumentKindError {}
 
 #[cfg(test)]
-#[path = "document_kind/byte_scan_tests.rs"]
+#[path = "document_kind/tests/byte_scan_tests.rs"]
 mod byte_scan_tests;
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn document_kind_validation_streams_segments() {
-        let source = include_str!("document_kind.rs");
-        let collecting_shape = ["split('.')", ".collect::<Vec<_>>()"].concat();
-        assert!(!source.contains(&collecting_shape));
-    }
-}
+#[path = "tests/document_kind.rs"]
+mod tests;

@@ -8,11 +8,8 @@ fixing_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-c
 origin_child_dir: docs/plans/zircon_plugins/08
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 related_code:
-  - tools/session_coordinator/workspace_copy.py
-  - tools/session_coordinator/workflows/milestones.py
-  - tools/session_coordinator/control_plane/actions/executor.py
 tests:
-  - ".\\tools\\zircon-session.ps1 milestone validate --session-id plugins-08-zrvm-m1-20260714 --run-id 5a2cf030099a486bb61ce888630c2dd9 --milestone M1 --template coordinator-actions"
+  - ".\\tools\\dev\\zircon-session.ps1 milestone validate --session-id plugins-08-zrvm-m1-20260714 --run-id 5a2cf030099a486bb61ce888630c2dd9 --milestone M1 --template coordinator-actions"
 resolved_at: 2026-07-14
 ---
 

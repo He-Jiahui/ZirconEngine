@@ -49,6 +49,8 @@ mod renderer_data_references;
 mod renderer_data_required_lists;
 mod renderer_data_uniqueness;
 mod renderer_data_version;
+#[cfg(all(windows, feature = "ui", feature = "platform-winit"))]
+mod runtime_ui_edit_native_present_profile;
 mod scene_overlay;
 mod surface_targets;
 mod visibility;

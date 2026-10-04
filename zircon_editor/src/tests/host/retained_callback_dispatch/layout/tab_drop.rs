@@ -140,7 +140,7 @@ fn tab_drop_dispatch_preserves_auto_hide_drawer_mode() {
         harness
             .runtime
             .current_layout()
-            .drawers
+            .active_activity_window_drawers()
             .get(&ActivityDrawerSlot::RightTop)
             .map(|drawer| drawer.mode),
         Some(ActivityDrawerMode::AutoHide)

@@ -1,3 +1,4 @@
+# 核对检视器字段类型归一化采用借用式 ASCII 匹配并保留别名回归入口。
 import re
 import unittest
 from pathlib import Path

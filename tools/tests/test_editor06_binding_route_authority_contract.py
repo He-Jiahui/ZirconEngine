@@ -1,3 +1,4 @@
+# 核对界面绑定路由从运行时注册经反射层进入编辑器服务的权限边界。
 from pathlib import Path
 import unittest
 

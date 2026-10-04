@@ -14,8 +14,6 @@ related_code:
   - zircon_runtime/src/text/layout/rich_advance_index.rs
   - zircon_runtime/src/text/layout/rich_vertical.rs
   - zircon_runtime/src/ui/text/rich_text.rs
-  - zircon_runtime/src/ui/text/layout_engine/rich_inline.rs
-  - zircon_runtime/src/ui/text/layout_engine/rich_inline_vertical.rs
   - zircon_runtime/src/ui/text/layout_engine/rich_table
   - zircon_runtime/src/ui/surface/input/rich_link.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs

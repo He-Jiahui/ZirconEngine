@@ -58,6 +58,11 @@ pub(super) fn projected_workbench_value_text(
     component_role: &str,
     button_style_values: &BTreeMap<String, toml::Value>,
 ) -> String {
+    if matches!(component_role, "mui-x-chat-composer" | "ChatComposer") {
+        if let Some(composer_text) = first_string_property(&node.properties, &["composer_text"]) {
+            return composer_text;
+        }
+    }
     display_node_value_text(node, component_role)
         .or_else(|| projected_notification_center_value_text(component_role, button_style_values))
         .or_else(|| first_string_property(&node.properties, &["value_text"]))

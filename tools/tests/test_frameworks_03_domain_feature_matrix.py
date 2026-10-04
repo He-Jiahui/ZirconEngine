@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-MATRIX_SCRIPT = REPO_ROOT / "tools" / "check-runtime-domain-features.ps1"
+MATRIX_SCRIPT = REPO_ROOT / "tools" / "validation" / "check-runtime-domain-features.ps1"
 EXPECTED_DOMAIN_FEATURES = (
     "ai-contracts",
     "animation",
@@ -22,7 +22,7 @@ EXPECTED_DOMAIN_FEATURES = (
     "ui",
 )
 
-
+# 读取域特性矩阵脚本，确认逐域最小基线检查、失败传播和受管 Cargo 存储路径。
 class Frameworks03DomainFeatureMatrixTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

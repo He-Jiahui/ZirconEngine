@@ -31,10 +31,11 @@ fn native_host_painter_composites_latest_viewport_image_into_scene_body() {
         .window()
         .take_snapshot()
         .expect("pre-image scene snapshot should render");
-    ui.global::<PaneSurfaceHostContext>().set_scene_viewport_capture(
-        RenderViewportHandle::new(1),
-        solid_viewport_capture([201, 42, 33, 255]),
-    );
+    ui.global::<PaneSurfaceHostContext>()
+        .set_scene_viewport_capture(
+            RenderViewportHandle::new(1),
+            solid_viewport_capture([201, 42, 33, 255]),
+        );
     let after = ui
         .window()
         .take_snapshot()

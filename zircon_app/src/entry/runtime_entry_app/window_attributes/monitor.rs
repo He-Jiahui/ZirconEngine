@@ -1,15 +1,20 @@
+//! 一次启动窗口创建所需的最小显示器上下文。
+//! Current 留给后端，索引仅对本次枚举有效；两个请求方共享同一快照。
+
 use winit::event_loop::ActiveEventLoop;
 use winit::monitor::MonitorHandle;
 use zircon_runtime::core::framework::window::{WindowMode, WindowMonitorSelection, WindowPosition};
 
 const INDEXED_MONITOR_SELECTION_CAPACITY: usize = 2;
 
+/// 本次窗口创建使用的显示器快照；索引只对应当前事件循环的枚举次序。
 pub(super) struct WindowMonitorContext {
     primary_monitor: Option<MonitorHandle>,
     indexed_monitors: [Option<(usize, MonitorHandle)>; INDEXED_MONITOR_SELECTION_CAPACITY],
 }
 
 impl WindowMonitorContext {
+    /// 按位置与全屏请求获取最多两个索引，避免无需求时枚举所有显示器。
     pub(super) fn for_event_loop(
         event_loop: &dyn ActiveEventLoop,
         position: WindowPosition,
@@ -78,6 +83,7 @@ fn requested_monitor_indices(
     ]
 }
 
+/// 首窗没有 Current 上下文；返回 None 表示由 Winit 决定目标显示器。
 pub(super) fn selected_monitor(
     monitor_context: &WindowMonitorContext,
     selection: WindowMonitorSelection,
@@ -105,44 +111,5 @@ impl WindowMonitorContext {
 }
 
 #[cfg(test)]
-mod tests {
-    use zircon_runtime::core::framework::window::WindowVideoModeSelection;
-
-    use super::*;
-
-    #[test]
-    fn monitor_index_demand_keeps_two_distinct_descriptor_indices() {
-        assert_eq!(
-            requested_monitor_indices(
-                WindowPosition::CenteredOn(WindowMonitorSelection::Index(7)),
-                WindowMode::FullscreenOn {
-                    monitor: WindowMonitorSelection::Index(11),
-                    video_mode: WindowVideoModeSelection::Current,
-                },
-            ),
-            [Some(7), Some(11)]
-        );
-    }
-
-    #[test]
-    fn monitor_index_demand_deduplicates_and_ignores_non_index_selections() {
-        assert_eq!(
-            requested_monitor_indices(
-                WindowPosition::CenteredOn(WindowMonitorSelection::Index(4)),
-                WindowMode::BorderlessFullscreenOn(WindowMonitorSelection::Index(4)),
-            ),
-            [Some(4), None]
-        );
-        assert_eq!(
-            requested_monitor_indices(WindowPosition::Centered, WindowMode::Fullscreen),
-            [None, None]
-        );
-        assert_eq!(
-            requested_monitor_indices(
-                WindowPosition::CenteredOn(WindowMonitorSelection::Current),
-                WindowMode::BorderlessFullscreenOn(WindowMonitorSelection::Primary),
-            ),
-            [None, None]
-        );
-    }
-}
+#[path = "tests/monitor.rs"]
+mod tests;

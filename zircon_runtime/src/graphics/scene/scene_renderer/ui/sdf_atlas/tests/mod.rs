@@ -11,8 +11,8 @@ use crate::graphics::scene::scene_renderer::ui::render::{
     ScreenSpaceUiTextRouteIdentity,
 };
 use crate::text::atlas::{
-    GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT, GlyphAtlasFormat, GlyphAtlasPageKey,
-    GlyphAtlasPageSpec, GlyphAtlasSet, GlyphAtlasStorageFormat,
+    GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasSet,
+    GlyphAtlasStorageFormat, GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
 };
 use crate::text::sdf::{SdfBakeParams, SdfMode};
 use crate::text::{ResolvedTextGlyphArtifact, ResolvedTextGlyphArtifactLine, ShapedGlyphRotation};

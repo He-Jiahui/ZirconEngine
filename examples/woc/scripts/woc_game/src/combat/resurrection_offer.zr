@@ -1,8 +1,7 @@
-// Current-head source port of src/sim/combat/resurrection_offer.ts at
-// 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a. This is authoritative Sim
-// state: a recipient owns its pending offer, and only that recipient can
-// decide it. World events and the full revive side effects remain at the
-// future WOS reducer boundary.
+// 依据固定源版本 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a 的
+// src/sim/combat/resurrection_offer.ts 建立独立契约投影：提议由接收者持有并由其本人决定。
+// 正式 WorldState 已另设持久化列与完整复活事务，本模块只由专用测试入口消费。
+// 本文件保留独立复活契约投影；正式世界已自行维护提议列、过期和完整复活事务。
 var container = %import("zr.container");
 
 pub class ResurrectionOfferPlayer {
@@ -45,6 +44,7 @@ pub class ResurrectionOffer {
     }
 }
 
+// 提议以接收者标识唯一；模拟时刻由调用方推进，查询存在性不会主动清除到期项。
 pub class ResurrectionOfferState {
     pub var time: float;
     pub var players: container.Array<ResurrectionOfferPlayer>;
@@ -112,6 +112,7 @@ removeOfferAt(state: ResurrectionOfferState, index: int): void {
 
 // A new offer replaces any older offer for the same dead player, exactly as a
 // JavaScript Map set does in the source. It still emits a new offer event.
+// 上游先完成施法准入与生命比例校验；这里只管理死玩家的一条待定提议和施放位置快照。
 pub offerResurrection(
     state: ResurrectionOfferState,
     casterId: uint,
@@ -140,6 +141,7 @@ pub offerResurrection(
     return true;
 }
 
+// 调用方传入已认证的接收者标识；响应先取走本人提议，拒绝或恰好到期均不会保留。
 pub respondToResurrection(state: ResurrectionOfferState, accept: bool, pid: uint): void {
     var responderIndex = findPlayerIndex(state, pid);
     if (responderIndex < 0) return;

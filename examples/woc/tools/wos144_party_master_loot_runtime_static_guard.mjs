@@ -43,7 +43,7 @@ requireText(world, /applyPartyAcceptCommand[\s\S]*?entityPartyMasterLootEnabled[
   'party join must inherit master-loot settings');
 requireText(world, /partyClearMember[\s\S]*?entityPartyMasterLootEnabled[\s\S]*?entityPartyMasterLooterIds[\s\S]*?entityPartyMasterLootThresholdCodes/,
   'party removal must clear local master-loot columns');
-requireText(world, /writer\.u16\(<uint>78, 1, 1\)[\s\S]*?entityPartyMasterLootEnabled[\s\S]*?entityPartyMasterLooterIds[\s\S]*?entityPartyMasterLootThresholdCodes/,
+requireText(world, /writer\.u16\(schemaVersion, 1, 1\)[\s\S]*?entityPartyMasterLootEnabled[\s\S]*?entityPartyMasterLooterIds[\s\S]*?entityPartyMasterLootThresholdCodes/,
   'WOS72 master-loot tail is missing');
 requireText(world, /if \(schemaVersion >= <uint>69\)[\s\S]*?entityPartyMasterLootEnabled[\s\S]*?entityPartyMasterLooterIds[\s\S]*?entityPartyMasterLootThresholdCodes/,
   'WOS72 master-loot migration is missing');

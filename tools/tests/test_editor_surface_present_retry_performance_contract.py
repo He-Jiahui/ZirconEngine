@@ -1,3 +1,4 @@
+# 核对可重试绘制提交有界延期，真实重绘合并后消费等待状态。
 from pathlib import Path
 import unittest
 

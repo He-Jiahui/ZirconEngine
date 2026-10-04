@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "path": "E:\\Git\\ZirconEngine\\docs\\plans\\zircon_tooling\\source_comment_audit\\02\\2026-09-30-stage-status.md",
+  "before_sha256": "433b2ca970f5d76bdbc65fa2f6a945926539eb7d89b50100b8f7c742a77da4c7",
+  "after_sha256": "9058bd04fbec0b0cb9b600fae0a7434fa76f9a305dbaec7cec68a9079c5f97bd",
+  "freeze": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave13-runtime-root-partition-check-20261003-r1\\freeze-receipt.json",
+    "sha256": "de2918ee5c2475848cc64ca204f5e8bd0f754793b428791944bb84ef1edde147"
+  },
+  "verification": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-ui-input-stage-20261003-r18\\verification.json",
+    "sha256": "3f2e195fe4a569aa8bdab90449c79feeeb1c1b301ab925ca76e78891c3dbcca7"
+  },
+  "helper": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\update_ui_input_stage_20261003_r18.py",
+    "sha256": "7ab1467ebf9b99f9d8c00d370eb973e767dbe04cc5080766330110ef8c510cf9"
+  },
+  "links_checked": true,
+  "whitespace_checked": true,
+  "source_writes": 0,
+  "canonical_review_writes": 0,
+  "status": "coarse_stage_status_updated",
+  "completed_at_utc": "2026-10-03T14:22:59.558580+00:00",
+  "plan_status_writes": 1,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "goal_status_changed": false,
+  "full_repository_scan_complete": false
+}

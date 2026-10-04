@@ -13,6 +13,7 @@ pub upgradeCopper(rank: int): int {
     return canUpgrade(rank) ? content.upgradeCopper(rank + 1, true) : 0;
 }
 
+/// 余额足够不代表允许升级；不可升级的等级返回零费用，调用方须先通过等级门槛，再检查余额并执行一次性扣费。
 pub canAfford(rank: int, marks: int, copper: int): bool {
     return marks >= upgradeMarks(rank) && copper >= upgradeCopper(rank);
 }

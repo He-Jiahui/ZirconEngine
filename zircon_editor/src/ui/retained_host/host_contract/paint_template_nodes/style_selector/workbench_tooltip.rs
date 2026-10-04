@@ -5,6 +5,7 @@ mod selection;
 mod state;
 
 #[cfg(test)]
+#[path = "workbench_tooltip/tests/cases.rs"]
 mod tests;
 
 #[cfg(test)]

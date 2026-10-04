@@ -1,0 +1,218 @@
+{
+  "batch": "w0-batch5",
+  "created_at_utc": "2026-10-01",
+  "crosswalk_artifact": {
+    "path": "2026-10-01-w0-batch5-crosswalk.jsonl",
+    "rows": 21,
+    "sha256": "69a0205f8baa42ad5cd16dc6fee176c8fa2308b441b484647ef3bafe30d9cae0"
+  },
+  "errors_and_gates": [
+    "Cargo/build/tests: 0; no product, native, device, stress, Miri, editor or benchmark evidence.",
+    "Current-source evidence is not a pass and cannot promote any row to accepted.",
+    "Audio AUD-P1-001 and AUD-P1-002 are narrowed_open because current target feature lists include first-party runtime plugins; the remaining activation/editor-provider closure is still open.",
+    "Terrain report supersession target 99zq is absent from the current tree; crosswalk preserves it as missing_current_path without fabricating a source anchor."
+  ],
+  "limitations": [
+    "Source/report hashes are current working-tree captures; report paths remain inventory-unreviewed.",
+    "No Cargo/build/test command; no product, native, device, stress, Miri, editor or benchmark evidence.",
+    "Only bounded row and explicit report/related-axis relations are recorded; no semantic deduplication is asserted."
+  ],
+  "prior_collision_check": {
+    "all_prior_canonical_w0_id_candidates_checked": 154,
+    "collisions": [],
+    "prior_literal_finding_ids_checked": 78,
+    "prior_report_qualified_keys_checked": 106,
+    "prior_review_objects": 106,
+    "review_paths": [
+      "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-09-30-source-review-wave.jsonl",
+      "E:\\Git\\ZirconEngine\\docs\\plans\\astra\\optimize\\01\\2026-09-30-w0-second-wave-review.jsonl",
+      "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch3\\2026-09-30-w0-batch3-review.jsonl",
+      "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch4\\2026-10-01-w0-batch4-review.jsonl"
+    ],
+    "literal_ids_are_not_qualified_identities": true
+  },
+  "record_type": "w0_batch5_artifact_manifest",
+  "report_snapshots": [
+    {
+      "path": "docs/plans/optimize/zircon_runtime/171-runtime-particle-vfx-current-working-tree-world-authority-gpu-graph-renderer-scalability-editor-boundary-review.md",
+      "sha256_current_working_tree": "761f59f42e35883a50909d48be2da931a793792f47c17cf87cc7da5249675764"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/172-runtime-terrain-landscape-world-partition-current-working-tree-authority-render-physics-navigation-review.md",
+      "sha256_current_working_tree": "70cd8e7257aff0da3fdb593a653d5d2282850925f9de27b0e72f002301829d25"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/174-runtime-ai-current-working-tree-world-agent-behavior-tree-blackboard-perception-execution-debug-review.md",
+      "sha256_current_working_tree": "113e762934127c142e3f0b1d3f60113b2e2614286370c398d3264bef360aa21d"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/99zn-runtime-audio-sound-clip-streaming-device-mixer-bus-effect-spatial-occlusion-reverb-timeline-event-voice-chat-editor-product-integration-current-source-review.md",
+      "sha256_current_working_tree": "530ddcbb6cfe239fdbe512056850e7844b468963211bdbc7adcea765ccf4f122"
+    }
+  ],
+  "review_artifact": {
+    "path": "2026-10-01-w0-batch5-review.jsonl",
+    "rows": 24,
+    "sha256": "4bd6dcae8255f6d770f06cb471a1ead80b64be2c2038ed5705f256dff6a1b7cc"
+  },
+  "source_snapshots": [
+    {
+      "path": "zircon_app/Cargo.toml",
+      "sha256_current_working_tree": "a3d781761231b16dd86309c708a43623951487299eac63d5a5552a6b0d39fc39"
+    },
+    {
+      "path": "zircon_plugins/ai/dist/src/lib.rs",
+      "sha256_current_working_tree": "8475d4fbd5ae29aed0be1cd3ad4f02876e20648bf05a98a286203fbe82cab9b7"
+    },
+    {
+      "path": "zircon_plugins/ai/plugin.toml",
+      "sha256_current_working_tree": "b2aea6e615458a36266117d7268ab56979824716aae8a731000a2fd0917bc022"
+    },
+    {
+      "path": "zircon_plugins/ai/runtime/src/behavior_tree/compile.rs",
+      "sha256_current_working_tree": "8df3a362c8afa227996bf16e86f1ca6fb88e03a2b4895fdc70a5aeae2e961307"
+    },
+    {
+      "path": "zircon_plugins/ai/runtime/src/manager.rs",
+      "sha256_current_working_tree": "37e68bdd704e9b6ff02a7e688f48969b74461267a0df9fdaee2310928b2bb71e"
+    },
+    {
+      "path": "zircon_plugins/ai/runtime/src/manager/service.rs",
+      "sha256_current_working_tree": "86daa283c490740dddc815b4fc05f7e925b6b374d7fd27d3114831c12727a662"
+    },
+    {
+      "path": "zircon_plugins/ai/runtime/src/perception/components.rs",
+      "sha256_current_working_tree": "258e0e1b50dbab28f3e2b2fd367cdf88013720cb709d23cd9b2bf995cfa35a16"
+    },
+    {
+      "path": "zircon_plugins/ai/runtime/src/plugin.rs",
+      "sha256_current_working_tree": "af1912086251e0003e930e5f8b619cde1d5382c3290a2560e4c26adfe662ee83"
+    },
+    {
+      "path": "zircon_plugins/first_party_editor_catalog/src/catalog.rs",
+      "sha256_current_working_tree": "1408aef04b44a4851ae143680fb68b91c3e807e8e144baf9f453fdb662dc5dd1"
+    },
+    {
+      "path": "zircon_plugins/first_party_runtime_catalog/src/lib.rs",
+      "sha256_current_working_tree": "1ebd17543a1986972aee39e72f2712c523f8342f84a4f7e1492adf8b8e35a704"
+    },
+    {
+      "path": "zircon_plugins/navigation/runtime/src/manager/bake/geometry.rs",
+      "sha256_current_working_tree": "de451433affacaedde0c06e3de5275004b404b2b11c3c50f9a909bf23ef97bf5"
+    },
+    {
+      "path": "zircon_plugins/particles/runtime/src/component.rs",
+      "sha256_current_working_tree": "84c3993d85e891b204bbf7c19e59a7f2fcd0f4b3e9565e0141f47ace29b9414a"
+    },
+    {
+      "path": "zircon_plugins/particles/runtime/src/render/gpu/runtime_owner.rs",
+      "sha256_current_working_tree": "9c69651839b9562bfad4bb0da41261efbe45fc4260a1b9c8ea33958ad03dd66c"
+    },
+    {
+      "path": "zircon_plugins/particles/runtime/src/service.rs",
+      "sha256_current_working_tree": "c120026b4985fbc47cb7ced1e16b3605637554fbe14f11248fd30b0e40e99ed2"
+    },
+    {
+      "path": "zircon_plugins/physics/runtime/src/backend/jolt/conversion.rs",
+      "sha256_current_working_tree": "7dc2eb07efcb9fd82402482b10c2eed1673518179a089a937af575eaa8f67ce8"
+    },
+    {
+      "path": "zircon_plugins/sound/dist/src/lib.rs",
+      "sha256_current_working_tree": "c93dd13e27a6aaca6c64955d0737f6aef52e173fb14c20642d9b012a27a8dfe6"
+    },
+    {
+      "path": "zircon_plugins/sound/runtime/src/config.rs",
+      "sha256_current_working_tree": "36bc2f6725b53aa05bf926d722dfb53102a05d854ace470f8c6f66a26bd7bd77"
+    },
+    {
+      "path": "zircon_plugins/sound/runtime/src/service_types/manager_state.rs",
+      "sha256_current_working_tree": "81b9d9d4d9605b4b85bb2d85c0c5bf0a94230a2149d744f9f602c55f03ab23c7"
+    },
+    {
+      "path": "zircon_plugins/terrain/runtime/src/plugin.rs",
+      "sha256_current_working_tree": "ca1fb14fa0a85de3d6adcb43b98935e1b337c36841001e48715caf02cf68efff"
+    },
+    {
+      "path": "zircon_runtime/src/asset/assets/authoring.rs",
+      "sha256_current_working_tree": "f0367f64740f6e71ce8b3aa5be6921a5a43ea13f739ad447c08a58bd44e3982e"
+    },
+    {
+      "path": "zircon_runtime/src/asset/assets/scene/entity.rs",
+      "sha256_current_working_tree": "cb9c490089ffaed37854d557c6c816fbf47d83042f828c7842176b663347adcc"
+    },
+    {
+      "path": "zircon_runtime/src/asset/importer/ingest/asset_importer.rs",
+      "sha256_current_working_tree": "43d6d8e7e02afa84f315e27585ad879fdead7d955b2dcd731fdd22bf5c27215c"
+    },
+    {
+      "path": "zircon_runtime/src/graphics/feature/builtin_render_feature/advanced_slots.rs",
+      "sha256_current_working_tree": "ec66e2fc642638135e41941c44f586a81405db3f7b87411028bdfd5b47797d84"
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/project_io/scene_asset.rs",
+      "sha256_current_working_tree": "8d8d1e6c9155af293e5db7ca17291bb199204515fdc6a9b5f80ce3b00ddc4b6d"
+    },
+    {
+      "path": "zircon_runtime/src/scene/world/render_particles.rs",
+      "sha256_current_working_tree": "3c6c91da77daf1c56958cec61a6b7189e3cb1c2af1111af21a81ace393434e9d"
+    }
+  ],
+  "summary_artifact": {
+    "path": "2026-10-01-w0-batch5-summary.json",
+    "sha256": "4e24aac70b4d1d6dfea15969f7b17e89be04ef430273c8ccf0baffcbdbac8b72"
+  },
+  "parent_original_artifacts": [
+    {
+      "kind": "review",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch5\\2026-10-01-w0-batch5-review.jsonl",
+      "sha256": "4bd6dcae8255f6d770f06cb471a1ead80b64be2c2038ed5705f256dff6a1b7cc"
+    },
+    {
+      "kind": "crosswalk",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch5\\2026-10-01-w0-batch5-crosswalk.jsonl",
+      "sha256": "69a0205f8baa42ad5cd16dc6fee176c8fa2308b441b484647ef3bafe30d9cae0"
+    },
+    {
+      "kind": "summary",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch5\\2026-10-01-w0-batch5-summary.json",
+      "sha256": "ae5f441f831aed19cadfebe93a01ea7ee0bab671eeb70764eb8ebcb2e9304cb1"
+    },
+    {
+      "kind": "manifest",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch5\\2026-10-01-w0-batch5-manifest.json",
+      "sha256": "6421d70fcc7e36c612bdf6b668539339e8a877ef6f4eaff2f7dcdc8a3b02edfe"
+    }
+  ],
+  "revision": "r2: root verified identities and corrected inventory unit/count bookkeeping; review rows unchanged",
+  "root_verified_at_utc": "2026-10-01T22:00:10.929014+00:00",
+  "root_verification": {
+    "source_paths_current_hash_checked": 25,
+    "report_paths_current_hash_checked": 4,
+    "source_hash_drift": [],
+    "valid_source_spans": 43,
+    "prior_qualified_keys": 106,
+    "new_qualified_keys": 24,
+    "collisions": [],
+    "inventory_report_path_counts_preserved": {
+      "source_checked": 61,
+      "unreviewed": 515
+    },
+    "tests_run": 0,
+    "source_checked_report_promotion": false,
+    "accepted": false
+  },
+  "canonical_publication_preparation": {
+    "prepared_at_utc": "2026-10-01T22:22:27.046620+00:00",
+    "owner_session": "astra-goal-20260929-01a0f033",
+    "private_r2_manifest": {
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch5-r2\\2026-10-01-w0-batch5-manifest.json",
+      "sha256": "a0141d4fceea1a0382b00d157ab20dbd2532256a96cd6483ab6a458bb61e97e2"
+    },
+    "exact_path_preview_request": "9badcb0486d74e26bf525f4018b5b9d0",
+    "exact_path_apply_request": "5a318d80811647e9a4f0b882a25c0c40",
+    "fingerprint": "83d74f36a5bfc7e5626e6c772602bbab1e79029a8eeac595d8ce9579b0bf1ecc",
+    "state_at_preparation": "normal future-path scope extension completed; exact lease, byte publication and terminal attribution still required",
+    "new_foreign_owner_or_lease_changes": false,
+    "finding_acceptance": "open; record publication is not implementation or test acceptance"
+  }
+}

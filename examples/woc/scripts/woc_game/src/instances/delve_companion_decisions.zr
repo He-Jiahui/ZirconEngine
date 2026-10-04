@@ -42,6 +42,7 @@ pub shouldSelectOwnerRevive(
     return rank >= maxRank(true) && !reviveUsed && ownerDead;
 }
 
+/// 调用方先处理主人的复活，再按队伍顺序查找候选；命中后需消费一次性复活资格，谓词本身不改变该资格。
 pub shouldSelectPartyRevive(
     rank: int,
     reviveUsed: bool,
@@ -129,6 +130,7 @@ pub healPercent(rank: int, required: bool): float {
     return 0.1;
 }
 
+/// 返回本次治疗可实际填补的生命量；调用方须另行验证范围和治疗间隔，再负责生命写入与事件，计算本身不消费冷却。
 pub healedAmount(
     rank: int,
     targetHealth: int,

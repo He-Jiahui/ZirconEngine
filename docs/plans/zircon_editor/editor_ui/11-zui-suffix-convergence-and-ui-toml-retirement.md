@@ -10,12 +10,10 @@ related_code:
   - zircon_runtime/src/plugin/extension_registry/validation/component.rs
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
-  - zircon_editor/src/tests/ui/boundary/zui_asset_governance.rs
-  - zircon_editor/src/tests/ui/boundary/template_assets.rs
   - tools/tests/test_zui_docs_suffix_convergence.py
 governance:
-  - docs/editor-and-tooling/zui-asset-governance.md
-  - docs/editor-and-tooling/editor-template-compatibility-migration.md
+  - docs/editor/zui-asset-governance.md
+  - docs/editor/editor-template-compatibility-migration.md
 doc_type: plan
 ---
 
@@ -41,7 +39,7 @@ doc_type: plan
 
 迁移前关键事实：
 
-- **组件层已完成 `.zui` 收敛**：治理（`docs/editor-and-tooling/zui-asset-governance.md`）已规定组件文档必须 `.zui`，`.v2.ui.toml`/`.ui.toml` 不得承载 component。
+- **组件层已完成 `.zui` 收敛**：治理（`docs/editor/zui-asset-governance.md`）已规定组件文档必须 `.zui`，`.v2.ui.toml`/`.ui.toml` 不得承载 component。
 - **迁移起点的 view/style root 仍在 `.v2.ui.toml`**：含 editor host shell（`workbench_shell.zui`、`floating_window_source.zui`、`*_surface_controls.v2.ui.toml` 等 18 个 host 文档）、插件 editor UI（navigation 11、sound 5、editor_build_export_desktop 4、particles 3）、theme（4）、runtime fixtures（5）。
 - **迁移起点 plain v1 后缀只存在于测试 fixture**：生产代码不再加载 v1。
 - **`editor-template-compatibility-migration.md` 已完成勘误**：迁移起点时该文档仍把 host 文档写成旧后缀；当前已由 `editor_template_compatibility_migration_doc_zui_only_guard_passed` 收束为 `.zui` 文档路径，并由 docs suffix guard 锁定。
@@ -84,7 +82,7 @@ doc_type: plan
 
 - T1：`zui_asset_governance/support.rs` 资产扫描改为以 `.zui` 为统一入口，按 kind 决定走 view/style root 规则还是 component 规则；`.v2.ui.toml` 进废弃清单（仍校验但发 deprecation 诊断）。
 - T2：`zui_asset_governance.rs` 顶层身份/导入边界规则改为认 `.zui` view root（widget import 仍 `.zui#Component`，style import 仍 fragment-free `.zui`）。
-- T3：更新 `docs/editor-and-tooling/zui-asset-governance.md`：`.v2.ui.toml` 段落改为"已退役/迁移中"，view/style root 改述为 `.zui`。
+- T3：更新 `docs/editor/zui-asset-governance.md`：`.v2.ui.toml` 段落改为"已退役/迁移中"，view/style root 改述为 `.zui`。
 - 测试：`zui_asset_governance` 子套件全绿；新增 `view_style_roots_use_zui_suffix`。
 - 验收：`cargo test -p zircon_editor --lib zui_asset_governance --locked`。
 

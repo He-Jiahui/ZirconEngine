@@ -616,6 +616,7 @@ fn traced_contribution_rgb_with_resident_ancestors(
         resident_quaternary_ancestor_probe_id,
         resident_quaternary_ancestor_depth,
     );
+    // 当前探针允许场景准备贡献时才叠加卡页/体素辐射，避免权威延续路径重复打光。
     if (skip_scene_prepare_q == 0u) {
         let scene_prepare = scene_prepare_contribution_rgb(
             position_x_q,

@@ -1,0 +1,23 @@
+[package]
+name = "zr_dev_deps_dylib"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Development-only dynamic linkage for heavy Runtime dependencies."
+
+[lib]
+crate-type = ["dylib"]
+
+[features]
+default = []
+naga = ["dep:naga"]
+runtime-assets = ["dep:gltf", "dep:image", "dep:meshopt"]
+wgpu = ["dep:wgpu"]
+
+[dependencies]
+gltf = { workspace = true, optional = true }
+image = { workspace = true, optional = true }
+meshopt = { workspace = true, optional = true }
+naga = { workspace = true, optional = true }
+wgpu = { workspace = true, optional = true }

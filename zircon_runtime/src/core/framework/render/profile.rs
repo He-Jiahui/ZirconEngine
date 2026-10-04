@@ -8,7 +8,7 @@ use super::{
 pub const RENDER_PROFILE_CONFIG_KEY: &str = "zircon.render.profile_bundle";
 
 #[cfg(test)]
-#[path = "profile/capacity_tests.rs"]
+#[path = "profile/tests/capacity_tests.rs"]
 mod capacity_tests;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -43,6 +43,7 @@ pub enum RenderProductFeature {
     Solari,
 }
 
+/// profile bundle 是可序列化的能力声明，组合产品档位、包含项、特性和提交配置；运行时据此校验请求边界，不宣称某项 GPU 功能已经执行。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RenderProfileBundle {
     profile: RenderProductProfile,
@@ -210,26 +211,41 @@ impl RenderProfileBundle {
     }
 
     fn required_capabilities(&self) -> Vec<RenderCapabilityKind> {
-        let mut capabilities = Vec::new();
-        if self.has_feature(RenderProductFeature::VirtualGeometry) {
+        let virtual_geometry = self.has_feature(RenderProductFeature::VirtualGeometry);
+        let hybrid_global_illumination =
+            self.has_feature(RenderProductFeature::HybridGlobalIllumination);
+        let anti_alias = self.has_feature(RenderProductFeature::AntiAlias);
+        let solari = self.has_feature(RenderProductFeature::Solari);
+        let capability_capacity = usize::from(virtual_geometry)
+            * AdvancedRenderFeature::VirtualGeometry
+                .required_capabilities()
+                .len()
+            + usize::from(hybrid_global_illumination)
+                * AdvancedRenderFeature::HybridGlobalIllumination
+                    .required_capabilities()
+                    .len()
+            + usize::from(anti_alias)
+            + usize::from(solari) * SolariCapabilityRequirement::ALL.len();
+        let mut capabilities = Vec::with_capacity(capability_capacity);
+        if virtual_geometry {
             for capability in AdvancedRenderFeature::VirtualGeometry.required_capabilities() {
                 push_unique(&mut capabilities, *capability);
             }
         }
-        if self.has_feature(RenderProductFeature::HybridGlobalIllumination) {
+        if hybrid_global_illumination {
             for capability in
                 AdvancedRenderFeature::HybridGlobalIllumination.required_capabilities()
             {
                 push_unique(&mut capabilities, *capability);
             }
         }
-        if self.has_feature(RenderProductFeature::AntiAlias) {
+        if anti_alias {
             push_unique(
                 &mut capabilities,
                 RenderCapabilityKind::ScreenSpaceAntiAlias,
             );
         }
-        if self.has_feature(RenderProductFeature::Solari) {
+        if solari {
             for requirement in SolariCapabilityRequirement::ALL {
                 push_unique(&mut capabilities, requirement.capability_kind());
             }
@@ -383,112 +399,5 @@ fn push_unique<T: Copy + PartialEq>(values: &mut Vec<T>, value: T) {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{RenderProductFeature, RenderProfileBundle, RenderProfileValidationError};
-    use crate::core::framework::render::{
-        RenderCapabilityKind, RenderCapabilityMismatchDetail, RenderCapabilitySummary,
-        RenderSubmissionConfig,
-    };
-
-    #[test]
-    fn default_render_requires_screen_space_anti_alias_capability() {
-        let capabilities = RenderCapabilitySummary {
-            backend_name: "profile-aa-test".to_string(),
-            supports_offscreen: true,
-            supports_fxaa: false,
-            ..RenderCapabilitySummary::default()
-        };
-
-        let error = RenderProfileBundle::default_render()
-            .validate_capabilities(&capabilities)
-            .unwrap_err();
-
-        assert_eq!(
-            error,
-            RenderProfileValidationError::MissingBackendCapability {
-                profile: super::RenderProductProfile::DefaultRender,
-                detail: RenderCapabilityMismatchDetail::new(
-                    RenderCapabilityKind::ScreenSpaceAntiAlias,
-                ),
-            }
-        );
-    }
-
-    #[test]
-    fn default_render_accepts_auto_to_fxaa_capable_backend() {
-        let capabilities = RenderCapabilitySummary {
-            backend_name: "profile-aa-test".to_string(),
-            supports_offscreen: true,
-            supports_fxaa: true,
-            max_supported_msaa_samples: 1,
-            ..RenderCapabilitySummary::default()
-        };
-
-        let bundle = RenderProfileBundle::default_render();
-
-        assert!(bundle.has_feature(RenderProductFeature::AntiAlias));
-        bundle.validate_capabilities(&capabilities).unwrap();
-    }
-
-    #[test]
-    fn render_profile_bundle_exposes_explicit_pipelined_submission() {
-        let bundle = RenderProfileBundle::default_render()
-            .with_submission_config(RenderSubmissionConfig::pipelined());
-
-        assert_eq!(
-            bundle.submission_config(),
-            RenderSubmissionConfig::pipelined()
-        );
-    }
-
-    #[test]
-    fn legacy_profile_bundle_deserialization_defaults_to_synchronous_submission() {
-        let mut serialized = serde_json::to_value(RenderProfileBundle::default_render())
-            .expect("render profile bundle should serialize");
-        serialized
-            .as_object_mut()
-            .expect("render profile bundle should serialize as an object")
-            .remove("submission_config");
-
-        let restored: RenderProfileBundle = serde_json::from_value(serialized)
-            .expect("legacy render profile bundle should deserialize");
-
-        assert_eq!(
-            restored.submission_config(),
-            RenderSubmissionConfig::synchronous()
-        );
-    }
-
-    #[test]
-    fn solari_experimental_requires_bevy_solari_binding_array_caps() {
-        let capabilities = RenderCapabilitySummary {
-            backend_name: "profile-solari-test".to_string(),
-            supports_fxaa: true,
-            virtual_geometry_supported: true,
-            hybrid_global_illumination_supported: true,
-            supports_storage_buffers: true,
-            supports_indirect_draw: true,
-            supports_buffer_readback: true,
-            acceleration_structures_supported: true,
-            inline_ray_query: true,
-            supports_texture_binding_array: true,
-            supports_non_uniform_resource_indexing: true,
-            supports_partially_bound_binding_array: true,
-            ..RenderCapabilitySummary::default()
-        };
-
-        let error = RenderProfileBundle::solari_experimental()
-            .validate_capabilities(&capabilities)
-            .unwrap_err();
-
-        assert_eq!(
-            error,
-            RenderProfileValidationError::MissingBackendCapability {
-                profile: super::RenderProductProfile::SolariExperimental,
-                detail: RenderCapabilityMismatchDetail::new(
-                    RenderCapabilityKind::BufferBindingArray,
-                ),
-            }
-        );
-    }
-}
+#[path = "tests/profile.rs"]
+mod tests;

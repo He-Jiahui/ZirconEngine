@@ -1,8 +1,9 @@
+# 验证资源规模基线计划对工作负载清单、输入预算和来源身份的约束。
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $generator = Join-Path $repoRoot 'tools\mvp\New-ResourceManagementScaleProject.ps1'
 $changeSet = Join-Path $repoRoot 'tools\mvp\Set-ResourceManagementScaleProjectChangeSet.ps1'
 $baselinePlan = Join-Path $repoRoot 'tools\mvp\New-ResourceManagementBaselinePlan.ps1'
-$resolverModule = Join-Path $repoRoot 'tools\WindowsPathResolver.psm1'
+$resolverModule = Join-Path $repoRoot 'tools\maintenance\WindowsPathResolver.psm1'
 $manifestModule = Join-Path $repoRoot 'tools\mvp\MvpProductInputManifest.psm1'
 $artifactStorageModule = Join-Path $repoRoot 'tools\mvp\MvpArtifactStoragePolicy.psm1'
 $originalProjectTestMode = $env:RESOURCE_MANAGEMENT_SCALE_PROJECT_TEST_MODE

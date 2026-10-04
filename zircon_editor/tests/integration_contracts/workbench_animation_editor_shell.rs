@@ -15,13 +15,14 @@ fn sources(relatives: &[&str]) -> String {
 }
 
 #[test]
-fn animation_editor_shell_uses_template_nodes_and_toml_panels() {
+fn animation_editor_shell_uses_canonical_sequence_and_graph_templates() {
     let panes = sources(&[
         "src/ui/retained_host/host_contract/data/panes.rs",
         "src/ui/retained_host/host_contract/data/panes/pane.rs",
         "src/ui/retained_host/host_contract/data/panes/animation.rs",
     ]);
-    let asset = source("assets/ui/editor/animation_editor.zui");
+    let sequence_asset = source("assets/ui/editor/host/animation_sequence_body.zui");
+    let graph_asset = source("assets/ui/editor/host/animation_graph_body.zui");
 
     for required in [
         "pub(crate) struct AnimationEditorPaneData",
@@ -40,13 +41,22 @@ fn animation_editor_shell_uses_template_nodes_and_toml_panels() {
     }
     for required in [
         "AnimationEditorHeaderPanel",
-        "AnimationSequenceTimelineRow",
-        "AnimationGraphContentPanel",
-        "AnimationStateMachineTransitionsPanel",
+        "AnimationSequencePaneBodyRoot",
+        "animation_timeline_slot",
     ] {
         assert!(
-            asset.contains(required),
-            "animation editor TOML missing `{required}`"
+            sequence_asset.contains(required),
+            "animation sequence host template missing `{required}`"
+        );
+    }
+    for required in [
+        "AnimationEditorHeaderPanel",
+        "AnimationGraphPaneBodyRoot",
+        "animation_graph_canvas_slot",
+    ] {
+        assert!(
+            graph_asset.contains(required),
+            "animation graph host template missing `{required}`"
         );
     }
 }

@@ -1,3 +1,4 @@
+//! 提交、探测与恢复共用同一文件锁；锁文件保留在磁盘上，避免删除后新旧 inode 各自被锁而失去串行性。
 //! Cross-process serialization for one durable journal owner.
 
 use std::fs::{self, File, OpenOptions, TryLockError};
@@ -96,27 +97,5 @@ fn operation(phase: TransactionPhase, path: &Path, source: io::Error) -> Durable
 }
 
 #[cfg(test)]
-mod tests {
-    use std::fs;
-
-    use super::*;
-
-    #[test]
-    fn owner_lock_rejects_a_second_live_holder() {
-        let root = std::env::temp_dir().join(format!(
-            "zircon-durable-owner-lock-{}-{}",
-            std::process::id(),
-            crate::io::next_test_output_id()
-        ));
-        let journal = root.join("journal");
-        fs::create_dir_all(&journal).unwrap();
-        let first = TransactionOwnerLock::acquire(&journal, TransactionPhase::Stage).unwrap();
-
-        let error = TransactionOwnerLock::acquire(&journal, TransactionPhase::Stage).unwrap_err();
-
-        assert!(error.to_string().contains("another process owns"));
-        drop(first);
-        TransactionOwnerLock::acquire(&journal, TransactionPhase::Stage).unwrap();
-        fs::remove_dir_all(root).unwrap();
-    }
-}
+#[path = "tests/owner_lock.rs"]
+mod tests;

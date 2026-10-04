@@ -36,6 +36,10 @@ WGPU_IMAGE_ALLOCATION_LEDGER = ROOT / (
     "shared_image_registry/allocation_ledger.rs"
 )
 WGPU_UI_SURFACE = ROOT / "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs"
+VIEWPORT_PRODUCT_REGISTRY = ROOT / (
+    "zircon_runtime/src/graphics/runtime/render_framework/"
+    "render_framework_state/viewport_product_registry.rs"
+)
 WGPU_UI_PRESENTATION = ROOT / (
     "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/presentation.rs"
 )
@@ -60,6 +64,24 @@ EDITOR_UI_PERF_CATALOG = ROOT / (
 
 
 class EditorSvgGpuResidencyDesignContract(unittest.TestCase):
+    def test_external_provider_revision_is_optional_and_published_after_map_update(
+        self,
+    ) -> None:
+        surface = WGPU_UI_SURFACE.read_text(encoding="utf-8")
+        registry = VIEWPORT_PRODUCT_REGISTRY.read_text(encoding="utf-8")
+        trait = surface.split(
+            "pub trait WgpuUiSurfaceExternalImageProvider: Send + Sync", 1
+        )[1].split("pub struct WgpuUiSurfacePresenter", 1)[0]
+        publish = registry.split("fn publish(", 1)[1].split("fn poll_if_newer(", 1)[0]
+
+        self.assertIn("fn cache_revision(&self) -> Option<u64>", trait)
+        self.assertIn("None", trait)
+        self.assertIn("Some(self.products.cache_revision())", registry)
+        self.assertLess(
+            publish.index("products.by_resource_key.insert("),
+            publish.index("self.cache_revision.fetch_add(1, Ordering::AcqRel);"),
+        )
+
     def test_svg_identity_is_content_addressed_and_bucketed_before_lookup(self) -> None:
         keys = KEYS.read_text(encoding="utf-8")
         pixels = PIXELS.read_text(encoding="utf-8")

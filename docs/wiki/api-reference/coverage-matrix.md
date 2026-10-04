@@ -18,7 +18,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 API 公开接口覆盖审计
 tests:
-  - tools/wiki_site.py
+  - tools/docs/wiki_site.py
 doc_type: api-reference
 ---
 
@@ -111,13 +111,13 @@ doc_type: api-reference
 2. 对每个 crate 运行 `rg "^pub use|^pub mod|^pub (trait|struct|enum|type|const|fn)" <crate>/src`，收集 root 与模块公开项。
 3. 使用 `cargo rustdoc -p <package> --all-features` 检查 feature gate、链接和重复导出。
 4. 将新增路径加入相应 API 清单，并在本矩阵把状态从 `partial` 改为 `documented`。
-5. 运行 `tools/wiki_site.py validate --strict-metadata --json`，最后构建站点检查链接和 Mermaid。
+5. 运行 `tools/docs/wiki_site.py validate --strict-metadata --json`，最后构建站点检查链接和 Mermaid。
 
 ```powershell
 rg --no-heading --line-number "^pub use|^pub mod|^pub (trait|struct|enum|type|const|fn)" zircon_app/src zircon_runtime/src zircon_editor/src zircon_runtime_interface/src zircon_runtime_host/src zircon_hub/src zircon_plugins/plugin_sdk/src
 cargo rustdoc -p zircon_runtime_interface --all-features
 cargo rustdoc -p zircon_editor --all-features
-python tools/wiki_site.py validate --strict-metadata --json
+python tools/docs/wiki_site.py validate --strict-metadata --json
 ```
 
 矩阵不把 `pub` 关键字本身当作稳定性承诺；版本、feature、线程模型和释放责任必须与源码中的测试和实现一起审阅。

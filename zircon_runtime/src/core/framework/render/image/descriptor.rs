@@ -5,7 +5,9 @@ use super::{
     RenderImageUsage, RenderSamplerDescriptor, TextureMetadata,
 };
 
+/// 图像描述是可序列化资源 DTO；尺寸、维度、格式、用途和采样器共同构成创建契约，未知字段拒绝以避免静默改变资源含义。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RenderImageDescriptor {
     pub width: u32,
     pub height: u32,
@@ -23,7 +25,6 @@ pub struct RenderImageDescriptor {
     #[serde(default)]
     pub asset_usage: Vec<RenderImageAssetUsage>,
     pub mip_count: u32,
-    pub array_layer_count: u32,
     pub fallback: RenderImageFallbackKind,
 }
 

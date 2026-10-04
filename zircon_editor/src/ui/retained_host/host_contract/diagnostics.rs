@@ -11,5 +11,5 @@ pub(crate) use overlay::STARTUP_REFRESH_DIAGNOSTICS_OVERLAY;
 pub(crate) use refresh::HostRefreshDiagnostics;
 
 #[cfg(test)]
-#[path = "diagnostics_tests.rs"]
+#[path = "tests/diagnostics_tests.rs"]
 mod tests;

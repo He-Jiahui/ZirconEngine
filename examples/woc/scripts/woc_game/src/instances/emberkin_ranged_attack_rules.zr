@@ -1,7 +1,7 @@
 // Source-locked from src/sim/content/warlock_pets.ts and src/sim/pet/pet_ai.ts.
 // This leaf owns only Emberkin's scalar Firebolt profile and landing arithmetic.
 // The authoritative world retains entity lookup, projectile storage, combat state,
-// threat, and the source's still-missing path/target-selection integration.
+// 仇恨和实际路径；当前世界已接入标量选敌与开阔地跟随，完整寻路仍由外层承担。
 var math = %import("zr.zircon.math");
 
 pub fireboltRange(): float {
@@ -30,6 +30,7 @@ pub weaponMaximumForLevel(level: int): int {
     return <int>math.floor(damage * 1.25 + 0.5);
 }
 
+/// 落地调用先确认投射物携带的属性仍符合发射者等级模板；此校验不解析目标、阵营或投射物生命周期。
 pub projectileProfileIsValid(level: int, minimum: float, maximum: float, speed: float): bool {
     return level >= 1 && minimum == <float>weaponMinimumForLevel(level) &&
         maximum == <float>weaponMaximumForLevel(level) && speed == fireboltWeaponSpeed();
@@ -58,6 +59,7 @@ pub swingTimerAfterFire(weaponSpeed: float): float {
 
 // randomUnit is the second of the source Firebolt landing draws. The first
 // draw determines crit, so callers must preserve that order.
+/// 世界落地阶段先抽暴击，再提供伤害抽样值；这里只完成数值计算，调用方继续负责生命、仇恨与事件写入。
 pub resolveFireboltDamage(
     crit: bool,
     minimum: float,

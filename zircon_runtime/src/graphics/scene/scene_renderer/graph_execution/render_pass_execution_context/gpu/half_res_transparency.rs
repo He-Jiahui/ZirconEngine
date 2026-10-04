@@ -1,3 +1,6 @@
+//! 半分辨率透明路径先由场景深度准备低分辨率附件，再回合成场景颜色。
+//! 两步由图资源访问和附件操作约束，参数上传随本 pass 汇入提交前队列。
+
 use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::render_graph::{RenderGraphAttachmentOps, RenderGraphResourceAccessKind};
 
@@ -106,14 +109,5 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn half_resolution_transparency_context_uses_declared_graph_resources() {
-        let source = include_str!("half_res_transparency.rs");
-
-        assert!(source.contains("HALF_RES_TRANSPARENCY_COLOR"));
-        assert!(source.contains("HALF_RES_TRANSPARENCY_DEPTH"));
-        assert!(source.contains("RenderGraphResourceAccessKind::Write"));
-        assert!(source.contains("self.append_pre_submit_buffer_uploads("));
-    }
-}
+#[path = "tests/half_res_transparency.rs"]
+mod tests;

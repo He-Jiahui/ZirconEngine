@@ -25,6 +25,7 @@ pub struct SceneSystemTickPolicy {
 }
 
 impl SceneSystemTickPolicy {
+    // stage 默认值是调度器的单一时钟契约；执行前用 is_valid_for_stage 拒绝跨域组合。
     pub const fn for_stage(stage: SystemStage) -> Self {
         if stage.is_fixed_loop() {
             Self::fixed()
@@ -94,36 +95,5 @@ impl SceneSystemTickPolicy {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn stage_defaults_select_the_canonical_clock_domain_and_pause_contract() {
-        let update = SceneSystemTickPolicy::for_stage(SystemStage::Update);
-        let fixed = SceneSystemTickPolicy::for_stage(SystemStage::FixedUpdate);
-
-        assert_eq!(update.clock_domain(), SceneSystemClockDomain::Virtual);
-        assert_eq!(
-            update.pause_behavior(),
-            SceneSystemPauseBehavior::SkipWhenVirtualPaused
-        );
-        assert_eq!(fixed.clock_domain(), SceneSystemClockDomain::Fixed);
-        assert!(update.is_valid_for_stage(SystemStage::Update));
-        assert!(fixed.is_valid_for_stage(SystemStage::FixedUpdate));
-    }
-
-    #[test]
-    fn invalid_fixed_policy_combinations_are_rejected_before_schedule_execution() {
-        assert!(
-            !SceneSystemTickPolicy::monotonic_real().is_valid_for_stage(SystemStage::FixedUpdate)
-        );
-        assert!(!SceneSystemTickPolicy::fixed().is_valid_for_stage(SystemStage::Update));
-        assert!(
-            !SceneSystemTickPolicy::new(
-                SceneSystemClockDomain::Fixed,
-                SceneSystemPauseBehavior::RunWhenVirtualPaused,
-            )
-            .is_valid_for_stage(SystemStage::FixedUpdate)
-        );
-    }
-}
+#[path = "tests/tick_policy.rs"]
+mod tests;

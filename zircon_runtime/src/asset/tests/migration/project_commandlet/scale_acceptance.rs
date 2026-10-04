@@ -83,7 +83,7 @@ fn focused_dry_run_reports_production_work_counters() {
         report
             .changed_files()
             .iter()
-            .filter(|change| change.path() == material)
+            .filter(|change| change.path() == ProjectPaths::display_path(&material))
             .count(),
         1
     );

@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use std::time::Instant;
 
@@ -108,29 +108,43 @@ impl ImportFlight {
 }
 
 #[derive(Debug, Default)]
-pub(super) struct SharedImportReasons(Mutex<BTreeSet<EditorAssetImportReason>>);
+pub(super) struct SharedImportReasons(AtomicU8);
 
 impl SharedImportReasons {
     pub(super) fn add(&self, reason: EditorAssetImportReason) {
-        self.0
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .insert(reason);
+        self.0.fetch_or(reason_bit(reason), Ordering::Relaxed);
     }
 
     pub(super) fn snapshot(&self) -> Vec<EditorAssetImportReason> {
-        self.0
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .iter()
-            .copied()
-            .collect()
+        let bits = self.0.load(Ordering::Relaxed);
+        let mut reasons = Vec::with_capacity(bits.count_ones() as usize);
+        for reason in IMPORT_REASON_ORDER {
+            if bits & reason_bit(reason) != 0 {
+                reasons.push(reason);
+            }
+        }
+        reasons
     }
 
     pub(super) fn len(&self) -> usize {
-        self.0
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .len()
+        self.0.load(Ordering::Relaxed).count_ones() as usize
     }
 }
+
+const IMPORT_REASON_ORDER: [EditorAssetImportReason; 3] = [
+    EditorAssetImportReason::Watch,
+    EditorAssetImportReason::DigestMismatch,
+    EditorAssetImportReason::Manual,
+];
+
+const fn reason_bit(reason: EditorAssetImportReason) -> u8 {
+    match reason {
+        EditorAssetImportReason::Watch => 1 << 0,
+        EditorAssetImportReason::DigestMismatch => 1 << 1,
+        EditorAssetImportReason::Manual => 1 << 2,
+    }
+}
+
+#[cfg(test)]
+#[path = "tests/flight.rs"]
+mod tests;

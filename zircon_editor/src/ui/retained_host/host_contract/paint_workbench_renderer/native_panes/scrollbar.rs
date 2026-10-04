@@ -16,7 +16,7 @@ use super::super::super::paint_geometry::intersect;
 use asset::{asset_scrollbar_content_extent, asset_scrollbar_viewport};
 pub(in crate::ui::retained_host::host_contract::paint_workbench_renderer) use paint::draw_vertical_scrollbar;
 
-pub(super) fn draw_hierarchy_scrollbar(
+pub(in crate::ui::retained_host::host_contract) fn draw_hierarchy_scrollbar(
     frame: &mut HostRgbaFrame,
     pane: &PaneData,
     viewport: &FrameRect,
@@ -157,4 +157,5 @@ pub(crate) fn paint_scrollbar_component_for_test(width: u32, height: u32) -> Vec
 }
 
 #[cfg(test)]
+#[path = "scrollbar/tests/cases.rs"]
 mod tests;

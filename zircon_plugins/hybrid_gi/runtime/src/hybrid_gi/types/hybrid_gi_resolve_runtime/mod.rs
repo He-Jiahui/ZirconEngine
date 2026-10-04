@@ -4,6 +4,7 @@ mod resolve_runtime;
 mod scene_data_access;
 mod scene_truth_access;
 #[cfg(test)]
+#[path = "tests/test_builder.rs"]
 mod test_builder;
 mod topology;
 mod trace_region_scene_data;

@@ -120,4 +120,16 @@ impl AssetMutationDeletePreflight {
     pub fn referencers(&self) -> &[AssetMutationAsset] {
         &self.referencers
     }
+
+    /// Consumes the immutable preflight so a downstream policy projection can
+    /// retain its topology without cloning asset locators or referencer storage.
+    pub fn into_parts(
+        self,
+    ) -> (
+        AssetMutationDeleteDisposition,
+        Option<AssetMutationAsset>,
+        Vec<AssetMutationAsset>,
+    ) {
+        (self.disposition, self.target, self.referencers)
+    }
 }

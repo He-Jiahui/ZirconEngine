@@ -5,7 +5,7 @@ related_code:
   - tools/tests/test_runtime_input_stack_audit.py
   - zircon_runtime/src/tests/runtime_absorption/input_stack/inventory/mirror_docs.rs
   - zircon_runtime/src/tests/runtime_absorption/input_stack/action_mapping.rs
-  - docs/zircon_runtime/input/input_state.md
+  - docs/crates/zircon_runtime/input/input_state.md
   - docs/plans/zircon_runtime/runtime/12/2026-07-17-m5-input-event-bounds-current-source-closeout.md
 implementation_files:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_source_inventory.py
@@ -13,7 +13,7 @@ implementation_files:
   - tools/tests/test_runtime_input_stack_audit.py
   - zircon_runtime/src/tests/runtime_absorption/input_stack/inventory/mirror_docs.rs
   - zircon_runtime/src/tests/runtime_absorption/input_stack/action_mapping.rs
-  - docs/zircon_runtime/input/input_state.md
+  - docs/crates/zircon_runtime/input/input_state.md
   - docs/plans/zircon_runtime/runtime/12/2026-07-17-m5-input-event-bounds-current-source-closeout.md
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
@@ -45,7 +45,7 @@ Milestone: M4
 
 Status: waiting_prerequisite_owner_commits_and_re_review
 
-Files: [".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_source_inventory.py", ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_anchor_inventory.py", "tools/tests/test_runtime_input_stack_audit.py", "zircon_runtime/src/tests/runtime_absorption/input_stack/inventory/mirror_docs.rs", "zircon_runtime/src/tests/runtime_absorption/input_stack/action_mapping.rs", "docs/zircon_runtime/input/input_state.md", "docs/plans/zircon_runtime/runtime/12/2026-07-17-m5-input-event-bounds-current-source-closeout.md", "docs/plans/zircon_runtime/runtime/12/2026-07-17-m4-mirror-doc-guard-post-commit-fix.md"]
+Files: [".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_source_inventory.py", ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_anchor_inventory.py", "tools/tests/test_runtime_input_stack_audit.py", "zircon_runtime/src/tests/runtime_absorption/input_stack/inventory/mirror_docs.rs", "zircon_runtime/src/tests/runtime_absorption/input_stack/action_mapping.rs", "docs/crates/zircon_runtime/input/input_state.md", "docs/plans/zircon_runtime/runtime/12/2026-07-17-m5-input-event-bounds-current-source-closeout.md", "docs/plans/zircon_runtime/runtime/12/2026-07-17-m4-mirror-doc-guard-post-commit-fix.md"]
 
 Validated Source Manifest Files: current input behavior job `d064840b0a8f40dcb405bab74b493ba1` passed 39/39; plan-status job `586f1f84cf814180a1bc71c48a713a90` passed exactly 1/1; focused mirror reservation `14775513ea224778940f9955b57e352a` bound 57 paths at fingerprint `3c90bfb6e6e9dec5d7557da7c47b7e26f2c11a61609d2b7f33a3ac26b46dd2f5` and passed exactly 1/1; canonical check reservation `6dd22367dd5041b88ad27c024ceb07ec` bound 630 paths at fingerprint `42216a3cdd88bbed30369bcce67ad5698effc2dfccfca6f08722e22ce27b1e44` and released exit 0 with 630/630 post-run hashes matching. Action-guard reservation `5e36821bbf46414a8047ddfc3d0cfff9` bound 641 paths and passed exactly 1/1, but final exact-8 acceptance remains blocked until the uncommitted Frameworks05 module-identity inputs and Runtime12 evaluator prerequisite have immutable owner SHAs.
 
@@ -59,7 +59,7 @@ Runtime12 bounded input-event retention and indexed action evaluation is already
 
 The post-commit read-only review found that `runtime_12_input_stack_mirror_docs_match_structure_audit_counts` required the concise M4 closeout to duplicate every detailed audit anchor. That made the guard enforce a false mirror relationship: the module document is the detailed audit authority, while the M4 addendum is intentionally a concise accepted summary.
 
-The correction keeps the detailed exact-anchor and uniqueness checks on `docs/zircon_runtime/input/input_state.md`, limits the M4 addendum check to its title, milestone, `18/26/7`, behavior-anchor `21`, and empty-list acceptance summary, and states that the protected parent plan/runtime index are outside this bounded business manifest. The historical filename segment `m5` is documented as an execution-batch label, not a new protected-plan milestone. No compatibility shim, skipped guard, cfg gate, or threshold weakening was introduced.
+The correction keeps the detailed exact-anchor and uniqueness checks on `docs/crates/zircon_runtime/input/input_state.md`, limits the M4 addendum check to its title, milestone, `18/26/7`, behavior-anchor `21`, and empty-list acceptance summary, and states that the protected parent plan/runtime index are outside this bounded business manifest. The historical filename segment `m5` is documented as an execution-batch label, not a new protected-plan milestone. No compatibility shim, skipped guard, cfg gate, or threshold weakening was introduced.
 
 ## Fresh Testing Evidence
 

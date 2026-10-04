@@ -1,3 +1,5 @@
+//! 框选按投影候选与矩形相交收集稳定去重 owner，区别于点击的单目标排序；此近似查询不自动承诺遮挡可见性。
+
 use indexmap::IndexSet;
 use zircon_runtime_interface::math::Vec2;
 
@@ -10,6 +12,7 @@ use crate::scene::viewport::OverlayPickShape;
 use super::ViewportOverlayPointerRouter;
 
 impl ViewportOverlayPointerRouter {
+    // TODO: [CR-EDITOR-SP-0009] 明确框选是否允许选到遮挡目标；此路径扫描静态粗候选，未沿用点击所采用的渲染可见空间查询。
     pub(crate) fn selectable_owners_in_rect(&self, start: Vec2, end: Vec2) -> Vec<u64> {
         let min = start.min(end);
         let max = start.max(end);
@@ -143,40 +146,5 @@ fn segment_intersects_rect(start: Vec2, end: Vec2, min: Vec2, max: Vec2) -> bool
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn rectangle_query_includes_intersecting_candidate_bounds() {
-        assert!(circle_intersects_rect(
-            Vec2::new(12.0, 10.0),
-            3.0,
-            Vec2::new(0.0, 0.0),
-            Vec2::new(10.0, 10.0),
-        ));
-        assert!(!circle_intersects_rect(
-            Vec2::new(14.0, 10.0),
-            3.0,
-            Vec2::new(0.0, 0.0),
-            Vec2::new(10.0, 10.0),
-        ));
-    }
-
-    #[test]
-    fn segment_query_detects_crossing_and_rejects_separated_segments() {
-        let min = Vec2::new(0.0, 0.0);
-        let max = Vec2::new(10.0, 10.0);
-        assert!(segment_intersects_rect(
-            Vec2::new(-5.0, 5.0),
-            Vec2::new(15.0, 5.0),
-            min,
-            max,
-        ));
-        assert!(!segment_intersects_rect(
-            Vec2::new(-5.0, 15.0),
-            Vec2::new(15.0, 15.0),
-            min,
-            max,
-        ));
-    }
-}
+#[path = "tests/selectable_owners_in_rect.rs"]
+mod tests;

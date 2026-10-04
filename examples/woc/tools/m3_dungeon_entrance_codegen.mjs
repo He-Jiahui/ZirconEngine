@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码投影副本入口标识、门坐标与实例槽位数，生成可核对的 JSON 和 Zr 内容。
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -72,6 +73,7 @@ function extract() {
   return JSON.parse(child.stdout);
 }
 
+// 将已验证的副本入口标识、门坐标与实例槽位数转换为确定性的 Zr 访问函数。
 function render(document) {
   const entries = document.dungeons;
   const lines = [

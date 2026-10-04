@@ -1,3 +1,5 @@
+use std::fmt::Write as _;
+
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::{
     core::framework::project::ExportBuildMode, core::framework::project::ExportPackagingStrategy,
@@ -7,6 +9,11 @@ use crate::{
 };
 
 use super::{ExportLinkedRuntimeCrate, ExportRuntimeCrateRegistrationKind};
+use crate::plugin::PluginPackageRole;
+
+#[cfg(test)]
+#[path = "plugin_selection_template/tests/direct_string_vec_tests.rs"]
+mod direct_string_vec_tests;
 
 pub(super) fn plugin_selection_template(
     profile: &ExportProfile,
@@ -68,11 +75,41 @@ fn feature_registration_call(linked_crate: &ExportLinkedRuntimeCrate) -> String 
         "ExportRuntimePluginFeatureRegistrationProvider::new({}::plugin_feature_registration)",
         linked_crate.crate_name
     );
-    match linked_crate.provider_package_id.as_deref() {
+    let call = match linked_crate.provider_package_id.as_deref() {
         Some(provider_package_id) => {
             format!("{call}.with_provider_package_id({provider_package_id:?})")
         }
         None => call,
+    };
+    match linked_crate.provider_package_role {
+        Some(role) => format!(
+            "{call}.with_admitted_source_identity({:?}, {:?}, {:?}, {:?}, zircon_runtime::plugin::PluginPackageRole::{})",
+            linked_crate
+                .feature_id
+                .as_deref()
+                .expect("admitted runtime feature has an identity"),
+            linked_crate
+                .owner_plugin_id
+                .as_deref()
+                .expect("admitted runtime feature has an owner"),
+            linked_crate
+                .provider_package_id
+                .as_deref()
+                .or(linked_crate.owner_plugin_id.as_deref())
+                .expect("admitted runtime feature has a provider"),
+            linked_crate.crate_name,
+            package_role_variant(role)
+        ),
+        None => call,
+    }
+}
+
+fn package_role_variant(role: PluginPackageRole) -> &'static str {
+    match role {
+        PluginPackageRole::Production => "Production",
+        PluginPackageRole::DeveloperTool => "DeveloperTool",
+        PluginPackageRole::Sample => "Sample",
+        PluginPackageRole::TestFixture => "TestFixture",
     }
 }
 
@@ -176,11 +213,19 @@ fn option_string_expr(value: Option<&str>) -> String {
 }
 
 fn string_vec_expr(values: &[String]) -> String {
-    values
-        .iter()
-        .map(|value| format!("{value:?}.to_string()"))
-        .collect::<Vec<_>>()
-        .join(", ")
+    let capacity = values.iter().fold(0_usize, |size, value| {
+        size.saturating_add(value.len())
+            .saturating_add("\"\".to_string()".len())
+            .saturating_add(", ".len())
+    });
+    let mut result = String::with_capacity(capacity);
+    for (index, value) in values.iter().enumerate() {
+        if index > 0 {
+            result.push_str(", ");
+        }
+        write!(&mut result, "{value:?}.to_string()").expect("writing to String cannot fail");
+    }
+    result
 }
 
 fn feature_map_expr(profile: &ExportProfile) -> String {

@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime_interface::ui::binding::{
+use crate::ui::binding::{
     UiBindingAssetReference, UiBindingCollectionView, UiBindingEntityReference, UiBindingEnumValue,
     UiBindingMapKey, UiBindingValue, UiBindingValueBudget, UiBindingValueValidationError,
     UiEventBinding, UiEventKind, UiEventPath, UiModelProviderId, UiModelProviderKey,
@@ -101,8 +101,7 @@ fn binding_value_rich_contract_round_trips_serde_and_native_binding() {
 
     let binding = UiEventBinding::new(
         UiEventPath::new("AssetBrowser", "Rows", UiEventKind::Change),
-        zircon_runtime_interface::ui::binding::UiBindingCall::new("ApplySelection")
-            .with_argument(value),
+        crate::ui::binding::UiBindingCall::new("ApplySelection").with_argument(value),
     );
     let native = binding.native_binding();
     assert!(native.contains("record("));
@@ -134,11 +133,9 @@ fn binding_value_contract_rejects_every_owned_budget_and_identity_overflow() {
     );
     assert!(matches!(
         UiEventBinding::parse_native_binding(&oversized_native_array),
-        Err(
-            zircon_runtime_interface::ui::binding::UiBindingParseError::InvalidValue(
-                UiBindingValueValidationError::CollectionEntriesExceeded { .. }
-            )
-        )
+        Err(crate::ui::binding::UiBindingParseError::InvalidValue(
+            UiBindingValueValidationError::CollectionEntriesExceeded { .. }
+        ))
     ));
 
     let oversized_string =
@@ -148,6 +145,7 @@ fn binding_value_contract_rejects_every_owned_budget_and_identity_overflow() {
         Err(UiBindingValueValidationError::StringBudgetExceeded { .. })
     ));
 
+    // 同一棵嵌套值分别触发深度预算和节点预算，避免把两个限制误测成同一边界。
     let nested = UiBindingValue::Array(vec![UiBindingValue::Array(vec![UiBindingValue::Null])]);
     assert!(matches!(
         nested.validate_with_budget(UiBindingValueBudget::new(2, 32, 1_024, 16)),

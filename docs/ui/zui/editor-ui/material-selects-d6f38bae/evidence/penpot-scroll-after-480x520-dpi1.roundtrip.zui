@@ -1,0 +1,190 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/material_components/inputs/material_selects.zui"
+version = 2
+display_name = "Material Selects Prototype"
+
+[imports]
+widgets = ["res://ui/editor/components/workbench/primitives/data/workbench_label.zui#WorkbenchLabel", "res://ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"]
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
+
+[components.MaterialSelectsPrototype]
+root = "root"
+default_classes = ["material-lab-prototype", "material-surface"]
+
+[nodes.title]
+component = "WorkbenchLabel"
+control_id = "selects_Title"
+classes = ["material-lab-title"]
+props = { "text" = "Selects", "text_tone" = "primary", "font_size" = "$editor.typography.title.size", "font_weight" = "$editor.typography.strong.weight", "wrap" = "word", "text_overflow" = "clip" }
+layout = { "width" = { "stretch" = "Stretch" }, "height" = { "min" = 28, "preferred" = 28, "max" = 28, "stretch" = "Fixed" } }
+
+[nodes.meta]
+component = "GridBox"
+control_id = "selects_Meta"
+classes = ["material-lab-meta-strip", "material-lab-meta"]
+layout = { "width" = { "stretch" = "Stretch" }, "height" = { "min" = 52, "preferred" = 52, "max" = 52, "stretch" = "Fixed" }, "container" = { "kind" = "GridBox", "columns" = 2, "rows" = 2, "column_gap" = "$editor.density.gap.medium", "row_gap" = "$editor.density.gap.small" } }
+children = [
+  { node = "meta_group" },
+  { node = "meta_response" },
+  { node = "meta_variant" },
+  { node = "meta_layout" },
+]
+
+[nodes.meta_group]
+component = "WorkbenchCaption"
+control_id = "selects_MetaGroup"
+classes = ["material-lab-meta-chip", "material-lab-meta-group"]
+props = { "text" = "Inputs", "text_tone" = "secondary", "font_size" = "$editor.typography.caption.size", "surface_variant" = "frame_only", "corner_radius" = 0, "border_width" = 0, "font_weight" = "$editor.typography.body.weight", "text_align" = "left", "wrap" = "word", "text_overflow" = "clip" }
+layout = { "width" = { "stretch" = "Stretch" }, "height" = { "min" = 24, "preferred" = 24, "max" = 24, "stretch" = "Fixed" } }
+
+[nodes.meta_response]
+component = "WorkbenchCaption"
+control_id = "selects_MetaResponse"
+classes = ["material-lab-meta-chip", "material-lab-meta-response"]
+props = { "text" = "change / commit", "text_tone" = "success", "font_size" = "$editor.typography.caption.size", "surface_variant" = "frame_only", "response_mechanism" = "change / commit", "density" = "compact", "corner_radius" = 0, "border_width" = 0, "font_weight" = "$editor.typography.body.weight", "text_align" = "left", "wrap" = "word", "text_overflow" = "clip" }
+layout = { "width" = { "stretch" = "Stretch" }, "height" = { "min" = 24, "preferred" = 24, "max" = 24, "stretch" = "Fixed" } }
+[nodes.meta_variant]
+component = "WorkbenchCaption"
+control_id = "selects_MetaVariant"
+classes = ["material-lab-meta-chip", "material-lab-meta-variant"]
+props = { "text" = "outlined / menu", "text_tone" = "primary", "font_size" = "$editor.typography.caption.size", "surface_variant" = "frame_only", "variant" = "outlined / menu", "density" = "compact", "corner_radius" = 0, "border_width" = 0, "font_weight" = "$editor.typography.body.weight", "text_align" = "left", "wrap" = "word", "text_overflow" = "clip" }
+layout = { "width" = { "stretch" = "Stretch" }, "height" = { "min" = 24, "preferred" = 24, "max" = 24, "stretch" = "Fixed" } }
+
+[nodes.meta_layout]
+component = "WorkbenchCaption"
+control_id = "selects_MetaLayout"
+classes = ["material-lab-meta-chip", "material-lab-meta-layout"]
+props = { "text" = "inline controls", "text_tone" = "warning", "font_size" = "$editor.typography.caption.size", "surface_variant" = "frame_only", "layout_mode" = "inline controls", "density" = "compact", "corner_radius" = 0, "border_width" = 0, "font_weight" = "$editor.typography.body.weight", "text_align" = "left", "wrap" = "word", "text_overflow" = "clip" }
+layout = { "width" = { "stretch" = "Stretch" }, "height" = { "min" = 24, "preferred" = 24, "max" = 24, "stretch" = "Fixed" } }
+[nodes.sample]
+component = "HorizontalBox"
+control_id = "selects_Sample"
+classes = ["material-control", "material-lab-sample", "material-select-row"]
+props = { value = "primary", value_text = "Primary", selected_options = ["primary"], label = "Select", placeholder = "Choose option", helper_text = "Open menu and choose an option", options = ["primary", "secondary", "disabled"], disabled_options = ["disabled"], focused_options = ["secondary"], hovered_options = ["secondary"], pressed_options = [], variant = "outlined", multiple = false, display_empty = false, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 4, border_width = 1, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, clip = true, input_policy = "Receive", container = { kind = "ScrollableBox", axis = "Horizontal", gap = 4.0, scrollbar_visibility = "Auto" } }
+children = [
+  { node = "select_closed" },
+  { node = "select_open" },
+  { node = "select_selected" },
+  { node = "select_multi_chip" },
+  { node = "select_disabled" },
+]
+events = [
+  { id = "MaterialLab/Selects/Change", event = "Change", route = "material_lab.selects.change" },
+]
+
+[nodes.select_closed]
+component = "Select"
+control_id = "selects_Closed"
+classes = ["material-control", "material-select", "material-select-closed"]
+props = { value = "", value_text = "", selected_options = [], label = "Target", placeholder = "Choose", helper_text = "Closed", options = ["primary", "secondary", "disabled"], disabled_options = ["disabled"], focused_options = [], hovered_options = [], pressed_options = [], variant = "outlined", multiple = false, display_empty = true, surface_variant = "elevated", button_variant = "contained", text_tone = "secondary", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = false, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 4, border_width = 1, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.surface_inset" }, foreground = { color = "material.text_muted" }, border = { color = "material.outline", width = 1.0, radius = 10.0 } } }
+layout = { width = { min = 58.0, preferred = 66.0, max = 82.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.select_open]
+component = "Select"
+control_id = "selects_Open"
+classes = ["material-control", "material-select", "material-select-open"]
+props = { value = "secondary", value_text = "Secondary", selected_options = ["secondary"], label = "Mode", placeholder = "Choose", helper_text = "Popup open", options = ["primary", "secondary", "disabled"], disabled_options = ["disabled"], focused_options = ["secondary"], hovered_options = ["secondary"], pressed_options = [], variant = "outlined", multiple = false, display_empty = false, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = false, disabled = false, open = true, popup_open = true, corner_radius = 4, border_width = 2, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "$editor.surface.3" }, foreground = { color = "material.text" }, border = { color = "material.focus_ring", width = 2.0, radius = 10.0 } } }
+layout = { width = { min = 58.0, preferred = 66.0, max = 82.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.select_selected]
+component = "Select"
+control_id = "selects_Selected"
+classes = ["material-control", "material-select", "material-select-selected"]
+props = { value = "primary", value_text = "Primary", selected_options = ["primary"], label = "Status", placeholder = "Choose", helper_text = "Selected", options = ["primary", "secondary", "disabled"], disabled_options = ["disabled"], focused_options = [], hovered_options = [], pressed_options = [], variant = "filled", multiple = false, display_empty = false, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = true, checked = true, disabled = false, open = false, popup_open = false, corner_radius = 4, border_width = 1, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "$editor.accent.soft" }, foreground = { color = "material.text" }, border = { color = "$editor.accent", width = 1.0, radius = 10.0 } } }
+layout = { width = { min = 58.0, preferred = 66.0, max = 82.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.select_multi_chip]
+component = "Select"
+control_id = "selects_MultiChip"
+classes = ["material-control", "material-select", "material-select-multiple"]
+props = { value = "primary,secondary", value_text = "Primary, Secondary", selected_options = ["primary", "secondary"], label = "Tags", placeholder = "Choose", helper_text = "Multi-chip", options = ["primary", "secondary", "disabled"], disabled_options = ["disabled"], focused_options = [], hovered_options = [], pressed_options = [], variant = "outlined", multiple = true, display_empty = false, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = true, checked = true, disabled = false, open = false, popup_open = false, corner_radius = 999.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.surface_selected" }, foreground = { color = "material.text" }, border = { color = "material.focus_ring", width = 1.0, radius = 999.0 } } }
+layout = { width = { min = 72.0, preferred = 84.0, max = 100.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.select_disabled]
+component = "Select"
+control_id = "selects_Disabled"
+classes = ["material-control", "material-select", "material-select-disabled"]
+props = { value = "disabled", value_text = "Disabled", selected_options = ["disabled"], label = "Disabled", placeholder = "Choose", helper_text = "No action", options = ["primary", "secondary", "disabled"], disabled_options = ["disabled"], focused_options = [], hovered_options = [], pressed_options = [], variant = "standard", multiple = false, display_empty = false, surface_variant = "elevated", button_variant = "contained", text_tone = "disabled", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = false, checked = false, disabled = true, open = false, popup_open = false, corner_radius = 4, border_width = 1, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.disabled" }, foreground = { color = "material.text_disabled" }, border = { color = "material.outline", width = 1.0, radius = 10.0 }, opacity = 0.38 } }
+layout = { width = { min = 58.0, preferred = 66.0, max = 82.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.state_strip]
+component = "GridBox"
+control_id = "selects_StateStrip"
+classes = ["material-lab-state-strip"]
+layout = { "width" = { "stretch" = "Stretch" }, "height" = { "min" = 108, "preferred" = 108, "max" = 108, "stretch" = "Fixed" }, "container" = { "kind" = "GridBox", "columns" = 2, "rows" = 4, "column_gap" = "$editor.density.gap.medium", "row_gap" = "$editor.density.gap.small" } }
+children = [
+  { node = "state_default" },
+  { node = "state_hover" },
+  { node = "state_pressed" },
+  { node = "state_focus" },
+  { node = "state_disabled" },
+  { node = "state_selected" },
+  { node = "state_open" },
+  { node = "state_error" },
+]
+[nodes.state_default]
+component = "WorkbenchCaption"
+control_id = "selects_StateDefault"
+classes = ["material-lab-state-pill", "material-lab-state-default"]
+props = { "text" = "Default", "text_tone" = "secondary", "font_size" = "$editor.typography.caption.size", "surface_variant" = "frame_only", "button_variant" = "text", "validation_level" = "normal", "hovered" = false, "pressed" = false, "focused" = false, "selected" = false, "checked" = false, "disabled" = false, "open" = false, "popup_open" = false, "corner_radius" = 0, "border_width" = 0, "font_weight" = "$editor.typography.body.weight", "text_align" = "left", "wrap" = "word", "text_overflow" = "clip" }
+layout = { "width" = { "stretch" = "Stretch" }, "height" = { "min" = 24, "preferred" = 24, "max" = 24, "stretch" = "Fixed" } }
+[nodes.state_hover]
+component = "WorkbenchCaption"
+control_id = "selects_StateHover"
+classes = ["material-lab-state-pill", "material-lab-state-hover"]
+props = { "text" = "Hover", "text_tone" = "primary", "font_size" = "$editor.typography.caption.size", "surface_variant" = "frame_only", "button_variant" = "text", "validation_level" = "normal", "hovered" = true, "pressed" = false, "focused" = false, "selected" = false, "checked" = false, "disabled" = false, "open" = false, "popup_open" = false, "corner_radius" = 0, "border_width" = 0, "font_weight" = "$editor.typography.body.weight", "text_align" = "left", "wrap" = "word", "text_overflow" = "clip" }
+layout = { "width" = { "stretch" = "Stretch" }, "height" = { "min" = 24, "preferred" = 24, "max" = 24, "stretch" = "Fixed" } }
+[nodes.state_pressed]
+component = "WorkbenchCaption"
+control_id = "selects_StatePressed"
+classes = ["material-lab-state-pill", "material-lab-state-pressed"]
+props = { "text" = "Pressed", "text_tone" = "primary", "font_size" = "$editor.typography.caption.size", "surface_variant" = "frame_only", "button_variant" = "text", "validation_level" = "normal", "hovered" = true, "pressed" = true, "focused" = false, "selected" = false, "checked" = false, "disabled" = false, "open" = false, "popup_open" = false, "corner_radius" = 0, "border_width" = 0, "font_weight" = "$editor.typography.body.weight", "text_align" = "left", "wrap" = "word", "text_overflow" = "clip" }
+layout = { "width" = { "stretch" = "Stretch" }, "height" = { "min" = 24, "preferred" = 24, "max" = 24, "stretch" = "Fixed" } }
+[nodes.state_focus]
+component = "WorkbenchCaption"
+control_id = "selects_StateFocus"
+classes = ["material-lab-state-pill", "material-lab-state-focus"]
+props = { "text" = "Focus", "text_tone" = "primary", "font_size" = "$editor.typography.caption.size", "surface_variant" = "frame_only", "button_variant" = "text", "validation_level" = "normal", "hovered" = false, "pressed" = false, "focused" = true, "selected" = false, "checked" = false, "disabled" = false, "open" = false, "popup_open" = false, "corner_radius" = 0, "border_width" = 0, "font_weight" = "$editor.typography.body.weight", "text_align" = "left", "wrap" = "word", "text_overflow" = "clip" }
+layout = { "width" = { "stretch" = "Stretch" }, "height" = { "min" = 24, "preferred" = 24, "max" = 24, "stretch" = "Fixed" } }
+[nodes.state_disabled]
+component = "WorkbenchCaption"
+control_id = "selects_StateDisabled"
+classes = ["material-lab-state-pill", "material-lab-state-disabled"]
+props = { "text" = "Disabled", "text_tone" = "disabled", "font_size" = "$editor.typography.caption.size", "surface_variant" = "frame_only", "button_variant" = "text", "validation_level" = "normal", "hovered" = false, "pressed" = false, "focused" = false, "selected" = false, "checked" = false, "disabled" = true, "open" = false, "popup_open" = false, "corner_radius" = 0, "border_width" = 0, "font_weight" = "$editor.typography.body.weight", "text_align" = "left", "wrap" = "word", "text_overflow" = "clip" }
+layout = { "width" = { "stretch" = "Stretch" }, "height" = { "min" = 24, "preferred" = 24, "max" = 24, "stretch" = "Fixed" } }
+[nodes.state_selected]
+component = "WorkbenchCaption"
+control_id = "selects_StateSelected"
+classes = ["material-lab-state-pill", "material-lab-state-selected"]
+props = { "text" = "Selected", "text_tone" = "primary", "font_size" = "$editor.typography.caption.size", "surface_variant" = "frame_only", "button_variant" = "text", "validation_level" = "normal", "hovered" = false, "pressed" = false, "focused" = false, "selected" = true, "checked" = true, "disabled" = false, "open" = false, "popup_open" = false, "corner_radius" = 0, "border_width" = 0, "font_weight" = "$editor.typography.body.weight", "text_align" = "left", "wrap" = "word", "text_overflow" = "clip" }
+layout = { "width" = { "stretch" = "Stretch" }, "height" = { "min" = 24, "preferred" = 24, "max" = 24, "stretch" = "Fixed" } }
+[nodes.state_open]
+component = "WorkbenchCaption"
+control_id = "selects_StateOpen"
+classes = ["material-lab-state-pill", "material-lab-state-open"]
+props = { "text" = "Open", "text_tone" = "primary", "font_size" = "$editor.typography.caption.size", "surface_variant" = "frame_only", "button_variant" = "text", "validation_level" = "normal", "hovered" = false, "pressed" = false, "focused" = false, "selected" = true, "checked" = false, "disabled" = false, "open" = true, "popup_open" = true, "corner_radius" = 0, "border_width" = 0, "font_weight" = "$editor.typography.body.weight", "text_align" = "left", "wrap" = "word", "text_overflow" = "clip" }
+layout = { "width" = { "stretch" = "Stretch" }, "height" = { "min" = 24, "preferred" = 24, "max" = 24, "stretch" = "Fixed" } }
+[nodes.state_error]
+component = "WorkbenchCaption"
+control_id = "selects_StateError"
+classes = ["material-lab-state-pill", "material-lab-state-error"]
+props = { "text" = "Error", "text_tone" = "error", "font_size" = "$editor.typography.caption.size", "surface_variant" = "frame_only", "button_variant" = "text", "validation_level" = "error", "hovered" = false, "pressed" = false, "focused" = false, "selected" = false, "checked" = false, "disabled" = false, "open" = false, "popup_open" = false, "corner_radius" = 0, "border_width" = 0, "font_weight" = "$editor.typography.body.weight", "text_align" = "left", "wrap" = "word", "text_overflow" = "clip" }
+layout = { "width" = { "stretch" = "Stretch" }, "height" = { "min" = 24, "preferred" = 24, "max" = 24, "stretch" = "Fixed" } }
+[nodes.root]
+component = "VerticalBox"
+control_id = "selects_Root"
+classes = ["material-lab-card", "material-surface", "material-selects"]
+layout = { "width" = { "stretch" = "Stretch" }, "height" = { "min" = 258, "preferred" = 258, "max" = 258, "stretch" = "Fixed" }, "container" = { "kind" = "VerticalBox", "gap" = "$editor.density.gap.large" } }
+children = [
+  { node = "title" },
+  { node = "meta" },
+  { node = "sample" },
+  { node = "state_strip" },
+]

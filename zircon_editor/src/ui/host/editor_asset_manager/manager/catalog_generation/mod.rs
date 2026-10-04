@@ -5,6 +5,7 @@ mod record;
 mod update;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 pub(super) use build::build_catalog_generation;

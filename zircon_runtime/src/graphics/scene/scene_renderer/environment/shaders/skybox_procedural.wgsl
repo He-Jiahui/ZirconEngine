@@ -1,3 +1,5 @@
+// 作为天空背景消费场景 group0：显示源 cube 或程序天空，PMREM 与 SH9 留给材质照明。
+// CPU 的 SceneUniform 前缀布局须保持一致，透视/正交方向由相机契约选择。
 struct SceneUniform {
     view_proj: mat4x4<f32>,
     view_proj_unjittered: mat4x4<f32>,

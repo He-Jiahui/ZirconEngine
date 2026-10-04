@@ -1,14 +1,8 @@
 ---
 related_code:
-  - zircon_runtime/src/core/resource/error.rs
-  - zircon_runtime/src/core/resource/registry.rs
-  - zircon_runtime/src/core/resource/manager/registry_ops.rs
   - zircon_runtime/src/core/runtime/error.rs
 implementation_files:
-  - zircon_runtime/src/core/resource/error.rs
   - zircon_runtime/src/core/resource/mod.rs
-  - zircon_runtime/src/core/resource/registry.rs
-  - zircon_runtime/src/core/resource/manager/registry_ops.rs
   - zircon_runtime/src/core/runtime/error.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md

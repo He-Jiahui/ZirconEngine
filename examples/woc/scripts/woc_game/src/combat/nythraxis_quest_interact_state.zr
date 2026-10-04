@@ -1,3 +1,4 @@
+//! 尼斯拉克斯任务物交互的独立状态投影；只记录完成数、共享名单与事件请求，实体生成及任务日志持久化属于宿主。
 // Current-head projection of Nythraxis quest-object interaction. Entity spawn,
 // event delivery, and persistent quest logs stay at the plugin/WOS boundary;
 // this state retains the credit, resolved-count, and sharing decisions.
@@ -27,6 +28,7 @@ pub class NythraxisQuestParticipant {
     }
 }
 
+/// 调用方须先填入交互者、对象和小队快照；事件计数只表示待外部兑现的请求。
 pub class NythraxisQuestInteractState {
     pub var objectItemId: string;
     pub var objectiveMatchesObject: bool;
@@ -111,6 +113,7 @@ containsId(ids: container.Array<int>, id: int): bool {
     return false;
 }
 
+// 共享名单先按原始目标数与物件距离筛选，再由逐成员的 resolved required 决定是否实际加点。
 sharedParticipantIds(state: NythraxisQuestInteractState): container.Array<int> {
     var recipients = new container.Array<int>();
     var actor = actorParticipant(state);
@@ -130,6 +133,7 @@ sharedParticipantIds(state: NythraxisQuestInteractState): container.Array<int> {
         }
         index = index + 1;
     }
+    // BUG: [CR-WOC-COMBAT-0001] 交互者原始目标数已满而 resolved required 仍未满，且其他队员可共享时，此处把其他队员与交互者一同保留；锁定源实现此时仅返回交互者，导致额外进度与幻视接收者。
     if (!containsId(recipients, actor.id)) {
         recipients.add(actor.id);
     }
@@ -138,6 +142,7 @@ sharedParticipantIds(state: NythraxisQuestInteractState): container.Array<int> {
 
 // Returns handled after the target-object match. The source marks a matching
 // interaction handled even when an already-complete objective emits no credit.
+/// 匹配对象后即视为已处理；仪式可先请求重召守卫，目标已满时不再发放进度或幻视。
 pub interactQuestObject(state: NythraxisQuestInteractState): bool {
     state.handled = false;
     var actor = actorParticipant(state);

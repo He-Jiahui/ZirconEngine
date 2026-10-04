@@ -10,11 +10,11 @@ use zircon_runtime_interface::ui::{
     dispatch::{UiPointerComponentEvent, UiTemplateActionInvocation},
     event_ui::UiNodeId,
     template::{
+        UiBindingMissingValueResolution, UiCompiledActionPayloadValue, UiCompiledBinding,
+        UiCompiledBindingExpression, UiCompiledBindingHandle, UiCompiledBindingTarget,
+        UiCompiledBindingTargetKind, UiCompiledNodeId, UiPropertyId,
         UI_BINDING_EXPRESSION_INLINE_STACK_CAPACITY, UI_BINDING_EXPRESSION_MAX_DEPTH,
-        UI_BINDING_EXPRESSION_MAX_NODES, UiBindingMissingValueResolution,
-        UiCompiledActionPayloadValue, UiCompiledBinding, UiCompiledBindingExpression,
-        UiCompiledBindingHandle, UiCompiledBindingTarget, UiCompiledBindingTargetKind,
-        UiCompiledNodeId, UiPropertyId,
+        UI_BINDING_EXPRESSION_MAX_NODES,
     },
     tree::{UiDirtyFlags, UiTreeError},
 };

@@ -1,3 +1,4 @@
+# 声源组件检查器按注册的 URI 选择此布局；稳定 control_id 提供宿主插槽身份，资源本身不执行播放或参数写入。
 [asset]
 kind = "view"
 id = "sound.audio_source.drawer"

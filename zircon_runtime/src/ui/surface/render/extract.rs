@@ -2,8 +2,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::time::Instant;
 
 use crate::ui::surface::{
-    UiArrangedVisibilityIndex, UiSurfaceControlIndex, arranged_node_indexed, arranged_node_indices,
-    component_state::UiSurfaceComponentStateStore,
+    arranged_node_indexed, arranged_node_indices, component_state::UiSurfaceComponentStateStore,
+    UiArrangedVisibilityIndex, UiSurfaceControlIndex,
 };
 use zircon_runtime_interface::ui::surface::UiArrangedTree;
 use zircon_runtime_interface::ui::surface::{UiRenderCommand, UiRenderExtract, UiRenderList};
@@ -13,6 +13,7 @@ use zircon_runtime_interface::ui::{
     layout::{UiFrame, UiPoint},
 };
 
+use super::agent_chat::agent_chat_render_commands;
 use super::buttons::{button_render_commands, button_suppresses_owner_image};
 use super::chrome::{
     chrome_render_commands, chrome_suppresses_owner_image, chrome_suppresses_owner_surface,
@@ -53,20 +54,21 @@ use super::progress::{
 use super::resolve::resolve_command_kind;
 use super::segmented_controls::segmented_control_render_commands;
 use super::selection_controls::selection_control_render_commands;
+use super::semantic_components::semantic_component_render_commands;
 use super::skeleton::{
     skeleton_render_commands, skeleton_suppresses_owner_image, skeleton_suppresses_owner_surface,
 };
 use super::sliders::slider_render_commands;
 use super::text_fields::{text_field_render_commands, text_field_suppresses_owner_text};
 use super::text_prewarm::{
-    PendingOwnerTextLayouts, UI_TEXT_OWNER_PREWARM_OVERLAP_MIN_REQUESTS,
     prewarm_owner_text_requests, prewarm_render_command_text_after_owner_overlap,
     resolve_missing_render_command_text_layouts, ui_text_shape_prewarm_pool,
+    PendingOwnerTextLayouts, UI_TEXT_OWNER_PREWARM_OVERLAP_MIN_REQUESTS,
 };
 #[cfg(feature = "profiling")]
 use super::text_prewarm::{
-    TextFontHandleFrameProfile, record_compiled_rich_text_cache_profile,
-    record_text_extract_profile,
+    record_compiled_rich_text_cache_profile, record_text_extract_profile,
+    TextFontHandleFrameProfile,
 };
 use crate::text::TextDocumentKey;
 use crate::ui::text::{UiTextMeasureCache, UiTextViewport};
@@ -177,7 +179,7 @@ pub(crate) fn extract_ui_render_tree_from_arranged_indexed_with_component_states
         &mut UiTextMeasureCache,
     >| {
         crate::profile_scope!("runtime", "ui_text.extract", "render_command_collection");
-        let mut commands = Vec::new();
+        let mut commands = Vec::with_capacity(arranged_tree.draw_order.len());
         let mut pending_owner_text_layouts = PendingOwnerTextLayouts::default();
         for node_id in arranged_tree.draw_order.iter().copied() {
             let Some(node) = tree.nodes.get(&node_id) else {
@@ -294,6 +296,24 @@ pub(crate) fn extract_ui_render_tree_from_arranged_indexed_with_component_states
                     editable,
                 );
             }
+            commands.extend(agent_chat_render_commands(
+                node_id,
+                node.template_metadata.as_ref(),
+                arranged_node.frame,
+                Some(arranged_node.clip_frame),
+                arranged_node.z_index,
+                visual.opacity,
+                &visual.style,
+            ));
+            commands.extend(semantic_component_render_commands(
+                node_id,
+                node.template_metadata.as_ref(),
+                arranged_node.frame,
+                Some(arranged_node.clip_frame),
+                arranged_node.z_index,
+                visual.opacity,
+                &visual.style,
+            ));
             commands.extend(button_render_commands(
                 node_id,
                 node.template_metadata.as_ref(),

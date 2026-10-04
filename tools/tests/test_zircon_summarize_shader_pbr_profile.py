@@ -1,6 +1,8 @@
 import csv
 import hashlib
 import json
+import os
+import shutil
 import struct
 import subprocess
 import tempfile
@@ -9,13 +11,13 @@ import zlib
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_summarize_shader_pbr_profile import (
+from tools.analysis.profiling.shader_pbr.zircon_summarize_shader_pbr_profile import (
     _post_stage_hydration_elapsed_ns,
     _write_analysis_output,
     summarize_profile,
     validate_profile_completion_receipt,
 )
-from tools.zircon_validate_shader_pbr_viewer_evidence import (
+from tools.analysis.profiling.shader_pbr.zircon_validate_shader_pbr_viewer_evidence import (
     _CURRENT_IBL_BAKE_ALGORITHM_VERSION,
     ready_frame_evidence_summary,
     validate_current_ready_frame_evidence,
@@ -23,22 +25,22 @@ from tools.zircon_validate_shader_pbr_viewer_evidence import (
 
 
 _PROFILE_TOOL_PATHS = (
-    "tools/performance-machine-manifest.ps1",
-    "tools/profile-capture-manifest.ps1",
-    "tools/shader-pbr-profile-contract.ps1",
-    "tools/shader-pbr-profile-evidence-identity.ps1",
-    "tools/shader-pbr-profile-publication.ps1",
-    "tools/shader-pbr-profile-runtime-evidence.ps1",
-    "tools/shader-pbr-profile-toolchain.ps1",
-    "tools/write_zircon_shader_pbr_build_provenance.ps1",
-    "tools/zircon_pbr_visual_oracle.py",
-    "tools/zircon_profile_shader_pbr_viewer.ps1",
-    "tools/zircon_shader_pbr_evidence_identity.py",
-    "tools/zircon_shader_pbr_profile_tool_identity.py",
-    "tools/zircon_summarize_shader_pbr_profile.py",
-    "tools/zircon_validate_shader_pbr_gpu_timing_evidence.py",
-    "tools/zircon_validate_shader_pbr_renderdoc_replay.py",
-    "tools/zircon_validate_shader_pbr_viewer_evidence.py",
+    "tools/analysis/profiling/shared/performance-machine-manifest.ps1",
+    "tools/analysis/profiling/shared/profile-capture-manifest.ps1",
+    "tools/analysis/profiling/shader_pbr/shader-pbr-profile-contract.ps1",
+    "tools/analysis/profiling/shader_pbr/shader-pbr-profile-evidence-identity.ps1",
+    "tools/analysis/profiling/shader_pbr/shader-pbr-profile-publication.ps1",
+    "tools/analysis/profiling/shader_pbr/shader-pbr-profile-runtime-evidence.ps1",
+    "tools/analysis/profiling/shader_pbr/shader-pbr-profile-toolchain.ps1",
+    "tools/analysis/profiling/shader_pbr/write_zircon_shader_pbr_build_provenance.ps1",
+    "tools/analysis/visual/zircon_pbr_visual_oracle.py",
+    "tools/analysis/profiling/shader_pbr/zircon_profile_shader_pbr_viewer.ps1",
+    "tools/analysis/profiling/shader_pbr/zircon_shader_pbr_evidence_identity.py",
+    "tools/analysis/profiling/shader_pbr/zircon_shader_pbr_profile_tool_identity.py",
+    "tools/analysis/profiling/shader_pbr/zircon_summarize_shader_pbr_profile.py",
+    "tools/analysis/profiling/shader_pbr/zircon_validate_shader_pbr_gpu_timing_evidence.py",
+    "tools/analysis/profiling/shader_pbr/zircon_validate_shader_pbr_renderdoc_replay.py",
+    "tools/analysis/profiling/shader_pbr/zircon_validate_shader_pbr_viewer_evidence.py",
 )
 
 
@@ -71,7 +73,7 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
             summary_path = self._write_profile_summary(Path(temp_dir) / "profile")
 
             with mock.patch(
-                "tools.zircon_summarize_shader_pbr_profile.validate_current_ready_frame_evidence",
+                "tools.analysis.profiling.shader_pbr.zircon_summarize_shader_pbr_profile.validate_current_ready_frame_evidence",
                 wraps=validate_current_ready_frame_evidence,
             ) as validate_current:
                 summarize_profile(summary_path)
@@ -98,7 +100,7 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
                             reference_png.read_bytes()
                         ).hexdigest(),
                         "expected_metadata": {
-                            "schema": "zircon_shader_pbr_viewer_ready_frame_evidence_v17",
+                            "schema": "zircon_shader_pbr_viewer_ready_frame_evidence_v18",
                             "material_fixture": "metal-mirror",
                             "required_material_base_pipeline_kind": "environment-only-pbr-base",
                             "required_material_base_pipeline_ready_at_capture": "true",
@@ -1217,6 +1219,23 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
         return receipt_path
 
     @staticmethod
+    def _powershell_command() -> list[str]:
+        """Use a complete Windows PowerShell runtime for provider-backed fixtures."""
+        if os.name == "nt":
+            program_files = Path(os.environ.get("ProgramFiles", r"C:\Program Files"))
+            pwsh_dll = program_files / "PowerShell" / "7" / "pwsh.dll"
+            dotnet = shutil.which("dotnet")
+            if dotnet and pwsh_dll.is_file():
+                return [dotnet, str(pwsh_dll)]
+        pwsh = shutil.which("pwsh")
+        if pwsh:
+            return [pwsh]
+        powershell = shutil.which("powershell.exe")
+        if powershell:
+            return [powershell]
+        return ["pwsh"]
+
+    @staticmethod
     def _export_managed_profile_manifest(
         profile_root: Path,
         binary_path: Path,
@@ -1230,7 +1249,7 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
         )
         result = subprocess.run(
             [
-                "pwsh",
+                *ZirconSummarizeShaderPbrProfileTests._powershell_command(),
                 "-NoProfile",
                 "-NonInteractive",
                 "-ExecutionPolicy",
@@ -1303,7 +1322,7 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
         identity_payload = {
             "schema": "zircon_shader_pbr_viewer_evidence_identity_v1",
             "run_id": evidence_run_id,
-            "validation_policy": "zircon_shader_pbr_viewer_ready_frame_v17",
+            "validation_policy": "zircon_shader_pbr_viewer_ready_frame_v18",
             "source_manifest_sha256": source_manifest_sha256,
             "viewer_binary": evidence_identity_sources["binary"],
             "hdri": evidence_identity_sources["hdri"],
@@ -1314,12 +1333,12 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
             json.dumps(identity_payload, sort_keys=True).encode(),
         )
         sidecar_fields = {
-            "schema": "zircon_shader_pbr_viewer_ready_frame_evidence_v17",
+            "schema": "zircon_shader_pbr_viewer_ready_frame_evidence_v18",
             "screenshot_sha256": str(ready_png["sha256"]),
             "screenshot_byte_length": str(ready_png["byte_length"]),
             "evidence_identity_schema": "zircon_shader_pbr_viewer_evidence_identity_v1",
             "evidence_run_id": evidence_run_id,
-            "evidence_validation_policy": "zircon_shader_pbr_viewer_ready_frame_v17",
+            "evidence_validation_policy": "zircon_shader_pbr_viewer_ready_frame_v18",
             "evidence_identity_path": str(evidence_identity["path"]),
             "evidence_identity_sha256": str(evidence_identity["sha256"]),
             "evidence_identity_byte_length": str(evidence_identity["byte_length"]),
@@ -1390,6 +1409,15 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
             "one_shot_base_pipeline_wait_elapsed_ns": "0",
             "viewer_scene_load_elapsed_ns": str(renderer_ns + ibl_ns),
             "viewer_ready_elapsed_ns": str(renderer_ns + ibl_ns + 1),
+            "environment_hydration_observation_epoch": "0",
+            "environment_hydration_resident_payload_bytes": "0",
+            "environment_capture_observation_epoch": "0",
+            "environment_capture_residency_last_published_handle": "none",
+            "environment_capture_residency_last_published_output_generation": "0",
+            "environment_capture_residency_resident_gpu_bytes": "0",
+            "environment_capture_residency_eviction_count": "0",
+            "environment_cubemap_upload_observation_epoch": "0",
+            "environment_cubemap_upload_resident_texture_bytes": "0",
             "ibl_staging_source_decode_ns": "0",
             "ibl_staging_cubemap_build_ns": str(staging_elapsed_ns),
             "ibl_staging_equirect_projection_ns": "4" if staging_status == "Written" else "0",

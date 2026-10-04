@@ -18,7 +18,37 @@ use super::{
 };
 use crate::ui::dispatch::UiPointerDispatcher;
 
+/// 将 pointer ID 的捕获权投影给 surface 路由，合并组件、文本编辑与富链接结果。
+/// Up/Cancel 后仍需恢复其他 pointer 的捕获，单个全局 focus.captured 不能代替多指所有权。
 pub(super) fn dispatch_pointer_input(
+    surface: &mut UiSurface,
+    pointer_dispatcher: &UiPointerDispatcher,
+    pointer: UiPointerInputEvent,
+    pointer_query: Option<UiHitTestQuery>,
+    diagnostics_mode: UiInputDiagnosticsMode,
+) -> Result<UiInputDispatchResult, UiTreeError> {
+    let previous_route_id = surface.input.pointer_route_id;
+    surface.input.pointer_route_id = Some(pointer.metadata.pointer_id.unwrap_or_default());
+    let result = dispatch_routed_pointer_input(
+        surface,
+        pointer_dispatcher,
+        pointer,
+        pointer_query,
+        diagnostics_mode,
+    );
+    surface.input.pointer_route_id = previous_route_id;
+    surface.focus.captured = surface
+        .focus
+        .captured
+        .or_else(|| surface.input.activate_any_pointer_capture());
+    surface.focus.pressed = surface
+        .focus
+        .pressed
+        .or_else(|| surface.input.any_pointer_press_owner());
+    result
+}
+
+fn dispatch_routed_pointer_input(
     surface: &mut UiSurface,
     pointer_dispatcher: &UiPointerDispatcher,
     pointer: UiPointerInputEvent,
@@ -51,17 +81,10 @@ pub(super) fn dispatch_pointer_input(
             .released_capture
             .or(routed_result.route.captured)
         {
-            if let Some(pointer_id) = pointer_id {
-                surface
-                    .input
-                    .clear_pointer_capture_id_for_owner(pointer_id, owner);
-            } else {
-                surface.input.clear_pointer_capture_for(owner);
-            }
-        } else {
-            surface.input.clear_pointer_capture();
+            surface
+                .input
+                .clear_pointer_capture_id_for_owner(pointer_id.unwrap_or_default(), owner);
         }
-        surface.focus.captured = surface.input.activate_any_pointer_capture();
     }
     let component_handler = pointer_component_handler(&routed_result);
     let reply = pointer_reply(&routed_result, pointer_id.unwrap_or_default());
@@ -176,11 +199,13 @@ fn dispatch_pointer_event_for_metadata(
     event: zircon_runtime_interface::ui::dispatch::UiPointerEvent,
     pointer_query: Option<UiHitTestQuery>,
 ) -> Result<zircon_runtime_interface::ui::dispatch::UiPointerDispatchResult, UiTreeError> {
-    let incoming_capture = metadata
-        .pointer_id
-        .and_then(|pointer_id| surface.input.activate_pointer_capture_for_id(pointer_id));
-    if let Some(owner) = incoming_capture {
-        surface.focus.captured = Some(owner);
+    let pointer_id = metadata.pointer_id.unwrap_or_default();
+    let incoming_capture = surface.input.activate_pointer_capture_for_id(pointer_id);
+    if !surface.input.pointer_captures.is_empty() {
+        surface.focus.captured = incoming_capture;
+    }
+    if !surface.input.pointer_presses.is_empty() {
+        surface.focus.pressed = surface.input.pointer_press_owner(pointer_id);
     }
     let event_kind = event.kind;
     let previous_pointer_captures = matches!(
@@ -188,18 +213,6 @@ fn dispatch_pointer_event_for_metadata(
         UiPointerEventKind::Up | UiPointerEventKind::Cancel
     )
     .then(|| surface.input.pointer_captures.clone());
-    let bypass_captor = matches!(
-        event_kind,
-        UiPointerEventKind::Move | UiPointerEventKind::Up | UiPointerEventKind::Cancel
-    ) && metadata.pointer_id.is_some()
-        && incoming_capture.is_none()
-        && surface.input.active_pointer_capture().is_some();
-    let previous_capture = bypass_captor.then_some(surface.focus.captured).flatten();
-    let previous_pressed = bypass_captor.then_some(surface.focus.pressed).flatten();
-    if bypass_captor {
-        surface.focus.captured = None;
-        surface.focus.pressed = None;
-    }
     let result = if let Some(pointer_query) = pointer_query {
         surface.dispatch_pointer_event_with_query_and_modifiers(
             pointer_dispatcher,
@@ -210,21 +223,6 @@ fn dispatch_pointer_event_for_metadata(
     } else {
         surface.dispatch_pointer_event_with_modifiers(pointer_dispatcher, event, metadata.modifiers)
     };
-    let captured_by_incoming_pointer = result
-        .as_ref()
-        .ok()
-        .and_then(|result| result.captured_by)
-        .is_some();
-    if !captured_by_incoming_pointer {
-        if let Some(previous_capture) =
-            previous_capture.filter(|_| surface.focus.captured.is_none())
-        {
-            surface.focus.captured = Some(previous_capture);
-        }
-    }
-    if let Some(previous_pressed) = previous_pressed.filter(|_| surface.focus.pressed.is_none()) {
-        surface.focus.pressed = Some(previous_pressed);
-    }
     if matches!(
         event_kind,
         UiPointerEventKind::Up | UiPointerEventKind::Cancel

@@ -13,22 +13,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn bounded
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn paper_frame_stays_inside_tight_parent_bounds() {
-        let parent = FrameRect {
-            x: 10.4,
-            y: 20.8,
-            width: 0.4,
-            height: 0.6,
-        };
-        let frame = bounded_paper_rect(&parent);
-
-        assert!(frame.x >= parent.x);
-        assert!(frame.y >= parent.y);
-        assert!(frame.right() <= parent.right());
-        assert!(frame.bottom() <= parent.bottom());
-    }
-}
+#[path = "tests/geometry.rs"]
+mod tests;

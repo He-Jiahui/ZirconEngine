@@ -10,8 +10,8 @@ use super::{
     },
     state::SegmentedRenderState,
     style::{
-        SegmentedVisual, divider_color, group_label_color, option_text_color, segmented_background,
-        segmented_border, selected_surface, selected_underline,
+        divider_color, group_label_color, option_text_color, segmented_background,
+        segmented_border, selected_surface, selected_underline, SegmentedVisual,
     },
 };
 
@@ -184,6 +184,7 @@ fn segmented_body_frame(
     )
 }
 
+// 最后一段使用剩余宽度，吸收等分累积的浮点误差以对齐组的右边缘。
 fn segment_frame(frame: UiFrame, index: usize, count: usize) -> UiFrame {
     let count = count.max(1);
     let width = frame.width / count as f32;

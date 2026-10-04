@@ -1,3 +1,4 @@
+# 核对场景树身份标题位于搜索和虚拟树内容之前，移除无效模式。
 import tomllib
 import unittest
 from pathlib import Path

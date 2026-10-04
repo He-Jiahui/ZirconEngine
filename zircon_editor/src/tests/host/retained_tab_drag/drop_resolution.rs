@@ -142,13 +142,14 @@ fn drop_host_for_tab_keeps_current_document_stack_when_dropping_within_document_
         .content_workspace_for_page_mut(&MainPageId::workbench())
         .expect("workbench page should resolve its activity-window content workspace") =
         DocumentNode::SplitNode {
+            node_id: Default::default(),
             axis: SplitAxis::Horizontal,
             ratio: 0.5,
-            first: Box::new(DocumentNode::Tabs(TabStackLayout {
+            first: Box::new(DocumentNode::tabs(TabStackLayout {
                 tabs: vec![ViewInstanceId::new("editor.scene#1")],
                 active_tab: Some(ViewInstanceId::new("editor.scene#1")),
             })),
-            second: Box::new(DocumentNode::Tabs(TabStackLayout {
+            second: Box::new(DocumentNode::tabs(TabStackLayout {
                 tabs: vec![
                     ViewInstanceId::new("editor.game#1"),
                     ViewInstanceId::new("editor.prefab#1"),

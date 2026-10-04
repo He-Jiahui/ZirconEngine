@@ -9,12 +9,6 @@ fixing_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-c
 origin_child_dir: docs/plans/zircon_editor/editor/07
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 related_code:
-  - tools/session_coordinator/cargo_reservations.py
-  - tools/session_coordinator/cargo_jobs.py
-  - tools/session_coordinator/migrations.py
-  - tools/session_coordinator/sessions.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/supervision/lifecycle.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_cargo_reservations tools.session_coordinator.tests.test_cargo_jobs tools.session_coordinator.tests.test_sessions
   - python -m unittest tools.session_coordinator.tests.test_database
@@ -43,7 +37,7 @@ resolved_at: 2026-07-16
 受管命令：
 
 ```powershell
-tools/zircon-session.ps1 cargo acquire test --session-id editor07-selection-consumer-hardcut-20260716
+tools/dev/zircon-session.ps1 cargo acquire test --session-id editor07-selection-consumer-hardcut-20260716
 ```
 
 稳定返回 `cargo_cpu_lane_reserved`，指定上述 Render18 reservation。只读状态

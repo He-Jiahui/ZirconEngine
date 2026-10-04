@@ -15,6 +15,8 @@ distance(x0: float, z0: float, x1: float, z1: float): float {
     return math.sqrt(dx * dx + dz * dz);
 }
 
+/// 在垂直过渡结束后修正贴墙位置；帧起点用于避免修正把原已离墙的玩家向输入反方向推回。
+/// 只允许位置结果参与提交，空中和游泳状态保持原位置，不能借此另行改写速度或坠落起点。
 pub coordinate(
     stepStartX: float,
     stepStartZ: float,

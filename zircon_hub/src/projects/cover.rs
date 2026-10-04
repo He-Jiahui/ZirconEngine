@@ -4,6 +4,9 @@ const COVER_BASENAMES: &[&str] = &["cover", "thumbnail", "project"];
 const COVER_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "webp", "svg"];
 const COVER_DIRECTORIES: &[&[&str]] = &[&[".zircon"], &[], &["Assets"], &["assets"]];
 
+// TODO: [CR-HUBCORE-0004] 确认项目封面路径是否应接入生产视图；目前只有本文件测试调用，view_model.rs 使用 project_cover_id 生成占位标识；下一步核对 Web 项目卡片的封面资源协议。
+/// 按约定优先级查找项目封面文件，优先使用项目元数据目录中的封面；不加载图片内容。
+/// 缺少目录或候选文件时返回空值，调用端可提供占位图。
 pub fn project_cover_path(project_root: impl AsRef<Path>) -> Option<PathBuf> {
     let project_root = project_root.as_ref();
     if project_root.as_os_str().is_empty() || !project_root.is_dir() {
@@ -33,57 +36,5 @@ fn cover_candidates(project_root: &Path) -> Vec<PathBuf> {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::fs;
-
-    use super::*;
-
-    #[test]
-    fn project_cover_prefers_zircon_metadata_cover() {
-        let root = temp_project_root("cover-priority");
-        let metadata_dir = root.join(".zircon");
-        fs::create_dir_all(&metadata_dir).unwrap();
-        fs::write(root.join("cover.png"), "root").unwrap();
-        let expected = metadata_dir.join("cover.png");
-        fs::write(&expected, "metadata").unwrap();
-
-        let cover = project_cover_path(&root);
-        fs::remove_dir_all(&root).unwrap();
-
-        assert_eq!(cover, Some(expected));
-    }
-
-    #[test]
-    fn project_cover_accepts_asset_thumbnail_when_root_cover_is_missing() {
-        let root = temp_project_root("cover-assets");
-        let assets_dir = root.join("Assets");
-        fs::create_dir_all(&assets_dir).unwrap();
-        let expected = assets_dir.join("thumbnail.jpg");
-        fs::write(&expected, "asset").unwrap();
-
-        let cover = project_cover_path(&root);
-        fs::remove_dir_all(&root).unwrap();
-
-        assert_eq!(cover, Some(expected));
-    }
-
-    #[test]
-    fn project_cover_ignores_missing_or_non_directory_roots() {
-        let root = std::env::temp_dir().join(format!(
-            "zircon-hub-cover-missing-{}",
-            crate::projects::now_unix_ms()
-        ));
-
-        assert_eq!(project_cover_path(&root), None);
-        assert_eq!(project_cover_path(""), None);
-    }
-
-    fn temp_project_root(label: &str) -> PathBuf {
-        let root = std::env::temp_dir().join(format!(
-            "zircon-hub-{label}-{}",
-            crate::projects::now_unix_ms()
-        ));
-        fs::create_dir_all(&root).unwrap();
-        root
-    }
-}
+#[path = "tests/cover.rs"]
+mod tests;

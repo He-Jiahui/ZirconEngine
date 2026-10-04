@@ -70,6 +70,7 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn order_runtime_p
     })
 }
 
+// 先展开符合目标的运行时模块并按模块依赖排序，再按首次出现的注册行去重；无匹配模块的注册行保留在尾部原顺序。
 fn order_runtime_plugin_registration_report_refs_with_module_filter(
     registrations: Vec<&RuntimePluginRegistrationReport>,
     module_filter: impl Fn(&PluginModuleManifest) -> bool,
@@ -119,11 +120,5 @@ fn order_runtime_plugin_registration_report_refs_with_module_filter(
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn registration_order_uses_constant_time_seen_membership() {
-        let source = include_str!("order.rs");
-        let linear_membership = ["ordered_registration_indices", ".contains("].concat();
-        assert!(!source.contains(&linear_membership));
-    }
-}
+#[path = "tests/order.rs"]
+mod tests;

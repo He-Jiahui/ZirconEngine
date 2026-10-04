@@ -1,9 +1,10 @@
+# 核对预热报告保留被选来源及裁剪数量。
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from tools.zircon_build_shader_prewarm_report_contract import (
+from tools.build.zircon_build_shader_prewarm_report_contract import (
     validate_shader_prewarm_report_contract,
 )
 

@@ -11,6 +11,8 @@ pub currentCampSpawnDrawsPerMob(required: bool): int {
     return 5;
 }
 
+/// 仅用于新世界引导后恢复构造阶段已推进的随机游标；加载既有存档不得再次调用，否则会重复推进随机流。
+/// 输入是全部非训练营地怪物数，而非离线切片留下的实体数；这里不记录运行期随机观察摘要。
 pub constructorCursorAfterCampSpawns(
     seed: uint,
     nonDummyCampMobs: int,

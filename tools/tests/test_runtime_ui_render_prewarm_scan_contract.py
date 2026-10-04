@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from tools.runtime_ui_render_prewarm_scan_pressure import run
+from tools.analysis.performance.runtime.runtime_ui_render_prewarm_scan_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -10,7 +10,7 @@ OWNER_TEXT_PREWARM = (
     ROOT / "zircon_runtime/src/ui/surface/render/extract/owner_text_prewarm.rs"
 )
 
-
+# 验证预热集合自己保存重叠准入状态，压力模型只扣除原先的重复扫描成本。
 class RuntimeUiRenderPrewarmScanContractTests(unittest.TestCase):
     def test_collection_owns_overlap_admission_state(self):
         owner = EXTRACT.read_text(encoding="utf-8")

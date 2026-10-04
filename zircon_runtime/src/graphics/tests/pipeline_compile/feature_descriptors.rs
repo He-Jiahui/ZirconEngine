@@ -220,6 +220,20 @@ fn feature_pass_descriptors_drive_executor_ids_and_resource_graph() {
         .find(|pass| pass.name == "opaque-mesh")
         .expect("default forward pipeline should include opaque mesh pass");
     assert_eq!(opaque_pass.executor_id.as_deref(), Some("mesh.opaque"));
+    let depth_reconstruction = compiled
+        .graph()
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "overlay-depth-reconstruct")
+        .expect("default forward pipeline should reconstruct output-sized overlay depth");
+    assert!(depth_reconstruction.resources.iter().any(|resource| {
+        resource.name == PostProcessGraphResourceNames::SCENE_DEPTH
+            && resource.access == RenderGraphResourceAccessKind::Read
+    }));
+    assert!(depth_reconstruction.resources.iter().any(|resource| {
+        resource.name == PostProcessGraphResourceNames::VIEWPORT_OVERLAY_DEPTH
+            && resource.access == RenderGraphResourceAccessKind::Write
+    }));
     let overlay_pass = compiled
         .graph()
         .passes()
@@ -228,10 +242,10 @@ fn feature_pass_descriptors_drive_executor_ids_and_resource_graph() {
         .expect("default forward pipeline should include overlay pass");
     assert!(
         overlay_pass.resources.iter().any(|resource| {
-            resource.name == PostProcessGraphResourceNames::SCENE_DEPTH
+            resource.name == PostProcessGraphResourceNames::VIEWPORT_OVERLAY_DEPTH
                 && resource.access == RenderGraphResourceAccessKind::Read
         }),
-        "overlay executor should declare its depth read instead of borrowing the target privately"
+        "overlay executor must read reconstructed output-sized depth"
     );
 
     let lifetimes = compiled.graph().resource_lifetimes();
@@ -295,7 +309,7 @@ fn compiled_pipeline_resources_use_extract_viewport_hdr_and_msaa_descriptors() {
         RenderGraphResourceDesc::Texture(desc)
             if desc.width == 1280
                 && desc.height == 720
-                && desc.format == TextureFormat::Rg11b10Ufloat
+                && desc.format == TextureFormat::Rgba16Float
                 && desc.sample_count == 4
     ));
 

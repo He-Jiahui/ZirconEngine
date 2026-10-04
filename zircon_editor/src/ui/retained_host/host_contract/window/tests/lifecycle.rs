@@ -1,0 +1,88 @@
+use super::super::UiHostWindow;
+use crate::ui::retained_host::host_contract::data::FrameRect;
+use crate::ui::retained_host::host_contract::diagnostics::HostInvalidationDiagnostics;
+use crate::ui::retained_host::primitives::CloseRequestResponse;
+use crate::ui::retained_host::ui_perf::UiPerfScenario;
+
+#[test]
+fn close_requested_callback_can_mutate_host_state_without_reentrant_borrow() {
+    let host = UiHostWindow::new().expect("host window should construct for state test");
+    let callback_host = host.clone_strong();
+    host.window().on_close_requested(move || {
+        callback_host.set_host_refresh_invalidation_diagnostics(HostInvalidationDiagnostics {
+            slow_path_rebuild_count: 1,
+            render_rebuild_count: 2,
+            paint_only_request_count: 3,
+        });
+        CloseRequestResponse::HideWindow
+    });
+
+    assert_eq!(
+        host.close_requested_response(),
+        CloseRequestResponse::HideWindow
+    );
+    let diagnostics = host.refresh_invalidation_diagnostics();
+    assert_eq!(diagnostics.slow_path_rebuild_count, 1);
+    assert_eq!(diagnostics.render_rebuild_count, 2);
+    assert_eq!(diagnostics.paint_only_request_count, 3);
+}
+
+#[test]
+fn frame_update_region_queues_external_redraw_with_frame_update() {
+    let host = UiHostWindow::new().expect("host window should construct for redraw test");
+    let frame = FrameRect {
+        x: 12.0,
+        y: 24.0,
+        width: 128.0,
+        height: 72.0,
+    };
+
+    host.request_frame_update_region(frame.clone());
+
+    let redraw = host.take_external_redraw();
+    assert!(redraw.request_redraw());
+    assert!(redraw.requires_frame_update());
+    assert_eq!(redraw.damage_region(), Some(&frame));
+}
+
+#[test]
+fn completed_frame_update_scenario_is_one_shot() {
+    let host = UiHostWindow::new().expect("host window should construct for redraw test");
+
+    assert_eq!(host.take_completed_frame_update_scenario(), None);
+
+    host.mark_completed_frame_update_scenario(UiPerfScenario::DrawerResize);
+
+    assert_eq!(
+        host.take_completed_frame_update_scenario(),
+        Some(UiPerfScenario::DrawerResize)
+    );
+    assert_eq!(host.take_completed_frame_update_scenario(), None);
+}
+
+#[test]
+fn first_presented_frame_exit_policy_defaults_off_and_can_be_enabled() {
+    let host = UiHostWindow::new().expect("host window should construct for policy test");
+
+    assert!(!host.exit_after_first_presented_frame());
+
+    host.set_exit_after_first_presented_frame(true);
+
+    assert!(host.exit_after_first_presented_frame());
+}
+
+#[test]
+fn window_scale_factor_defaults_to_one_and_filters_invalid_values() {
+    let host = UiHostWindow::new().expect("host window should construct for scale test");
+    let window = host.window();
+
+    assert_eq!(window.scale_factor(), 1.0);
+
+    window.set_scale_factor(1.5);
+
+    assert_eq!(window.scale_factor(), 1.5);
+
+    window.set_scale_factor(f32::NAN);
+
+    assert_eq!(window.scale_factor(), 1.0);
+}

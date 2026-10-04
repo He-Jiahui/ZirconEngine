@@ -1,7 +1,8 @@
-// Pure crowd-control predicates over WOS-provided active aura snapshots.
+// 独立契约中的控制光环快照谓词；当前只有叶子测试构造并消费 CcAuraState，产品世界使用 motion_aura_state 等世界持有的控制列。
 var container = %import("zr.container");
 var contract = %import("generated/cc_contract");
 
+/// 一项用于测试控制谓词的光环视图，kind/school/value 必须由调用者从同一有效快照提供；本对象不拥有世界光环生命周期。
 pub class CcAuraState {
     pub var kind: string;
     pub var school: string;
@@ -41,6 +42,7 @@ pub isRooted(auras: container.Array<CcAuraState>): bool {
     return false;
 }
 
+/// 为冻结类效果合并根、眩晕和减速判定；调用方若需要实际移动限制，应使用世界当前控制状态并区别减速与定身。
 pub isRootedOrChilled(auras: container.Array<CcAuraState>): bool {
     if (isRooted(auras)) return true;
     var i = 0;

@@ -7,6 +7,8 @@ pub(super) enum RuntimeOperationPrepareCompletion {
         handle: ZrRuntimeOperationHandle,
         command: serde_json::Value,
         result: serde_json::Value,
+        owner_state: Option<Box<dyn std::any::Any + Send>>,
+        owner_bytes: usize,
         command_bytes: usize,
         result_bytes: usize,
     },

@@ -1,6 +1,8 @@
 use crossbeam_channel::Sender;
 use std::thread::JoinHandle;
-use std::time::Duration;
+use std::time::{Duration, Instant};
+
+use crate::core::runtime::tasks::thread_is_join_ready;
 
 pub const ASSET_WATCH_DEFAULT_DEBOUNCE: Duration = Duration::from_millis(120);
 pub const ASSET_WATCH_DEFAULT_MAX_BATCH_LATENCY: Duration = Duration::from_millis(500);
@@ -36,4 +38,33 @@ impl Default for AssetWatcherOptions {
 pub struct AssetWatcher {
     pub(super) stop_tx: Sender<()>,
     pub(super) join: Option<JoinHandle<()>>,
+}
+
+impl AssetWatcher {
+    /// Requests stop and joins the watcher only when it reaches the caller's deadline.
+    pub fn shutdown_until(&mut self, deadline: Instant) -> bool {
+        let _ = self.stop_tx.try_send(());
+        let Some(join) = self.join.as_ref() else {
+            return true;
+        };
+        while !thread_is_join_ready(join) {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                return false;
+            }
+            std::thread::sleep(Duration::from_millis(1).min(remaining));
+        }
+        if let Some(join) = self.join.take() {
+            let _ = join.join();
+        }
+        true
+    }
+
+    #[cfg(test)]
+    pub(crate) fn from_test_worker(stop_tx: Sender<()>, join: JoinHandle<()>) -> Self {
+        Self {
+            stop_tx,
+            join: Some(join),
+        }
+    }
 }

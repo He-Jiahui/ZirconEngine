@@ -1,3 +1,4 @@
+# 核对扩展工作区输出保持被动显示，旧输出动作不注册。
 import tomllib
 import unittest
 from pathlib import Path

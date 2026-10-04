@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "owner": "runtime_wave12_graphics_ui_atlas_sdf",
+  "prepared_at_utc": "2026-10-02T22:47:01.925746+00:00",
+  "files": [
+    {
+      "path": "docs/_data/source-comment-audit/round-02/coverage/runtime_wave12_graphics_ui_atlas_sdf.jsonl",
+      "before_exists": false,
+      "before_sha256": null,
+      "after_sha256": "7a90d4137572c05d94419f5b8407600a396bda67ed54a86564c6b347eb4f069d"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/issues/runtime_wave12_graphics_ui_atlas_sdf.jsonl",
+      "before_exists": false,
+      "before_sha256": null,
+      "after_sha256": "b078376de35a52e9e1034304df5e007f9bf9b48a295faec56089d51a08dab28d"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/inventory.jsonl",
+      "before_exists": true,
+      "before_sha256": "85397951095079da14b05a5f2b0951f241cf1301f4d77622eb111a51dcbc90fa",
+      "after_sha256": "ecb5d26189dde401e0f98a43e1f270f19f2703685d58e7aa24fb05aba0d4fbb4"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/batches.jsonl",
+      "before_exists": true,
+      "before_sha256": "8fcf9886afa2956c4cf41b87ddea22ac35b9b7705bef864b949650a8ca679e29",
+      "after_sha256": "19a553e1b4de95e65d30fa14ba4f86dff9c9fba521155a2df181477411642c74"
+    }
+  ],
+  "source_hashes": {
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/instance.rs": "4e76d32755afb55e70c236d2b94e5ec4ea691826be42d353cefc6890aced979b",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/instance_buffer.rs": "ce236de59aba0f4cf6f008353031df5503ec61f93a0336a5e88e4ef10d16def9",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/mod.rs": "a39860bb34185c2af07f8e54e8b37821fdac0bf58eac08f5260b8fab6f571e4a",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/pipeline.rs": "161e0fbbc0dfbc47536dee52fe7379f326f67388942b098368739e8506ee49b5",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/product_framebuffer.rs": "cb8df0b890ec6eb7b039bebb354d9d8884ed82e1299a33a7c522b9c8e4981920",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs": "ac54a37ef316583bdf9ebd39476d3314bd2a9e44737ffe370c3337093a15e14f",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/resources.rs": "bbb8679399fd7f2c863b509097780640fdfd7e286b3be8fb2ca797e566c034ed",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/state.rs": "a4d9edbda6bde16db02a21a9528d1279e71a0cc42c6578001db84dd2fe5cd9dd",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs": "2a10b759a8b04dec52937f7c2fbdc1fa8236e1ea5bcaa7a25aab5afdd31eec74",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs": "aae23aaf313d093ce75aed78f21fe2213d12f48d7cdad455468adf2a85486926",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/binding.rs": "41cc3c99b86b03083007274fe22eb49985ebc0f7f54c5b7f47ffc74df1fc626f",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs": "39a92ade2a5ab57611fa77c13761f9c38ac60f973a26c536732a6d9bb6d796ac",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/resource.rs": "d4c3ac56a9416f982b2999272db67432926681d3db5dadd39445df9d3bfb6634",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/submission.rs": "f3a9cae92df2c6181c3da460d124097f678a0655866c7788e7bbae5634a48b2c",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs": "4b4561bf62de8967d606f925a438337686845cbb438e4e94a4a12c7d7586484d",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/write.rs": "79f83c9cd3066b7a0e1692fbda102957d6db718114258f6f4691e6a9f1f26465",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs": "5171f1184497bbc27866cc5a55347743f49c0805d53d3212f3fcea9eca79bdbb",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/generation_failures.rs": "80090b0bd07eba4bc0b23e5f6cb8c0f850ea7f629d8b7b75301f5bad065cfbd3",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/prepared_texts.rs": "9716fa8e82ed2c48276546fa37beeb0ca9793c27bcd3163d4cb298f688cb6b56",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/cache_report.rs": "6d9cc5c8ca3ccf50b04d2464570a8972de525d3c3a9726bea05071a8cd1d4ba5",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/mod.rs": "4f204aa4f02577ee59b36679e97dd5ef6c766fccaae0bb1f27cd365182a14fa2",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/plan.rs": "ea9e5bb0a08c8fd889b7155d3e24c8254f76854e523a5dd2d665197ac862d85e",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/text_keys.rs": "65370a03dda5a419e00cf3817dc9d5cda9b98b266d4a5bd57ea3e606d1c682f8",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs": "b23b406ee7230298222695b198a5dc4d83a2ba89b7cbcd0707435fac5c7ef912",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/artifact_vertices.rs": "d698d1f2574ffb459e797b0c0280406f7dd9550583648020a9c87beab8233090",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/atlas_resources.rs": "a2f309406c0f289e6ee963bd6b9f58f9c3c9ff7f321e9e5a82eda4d614965fb6",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/decorations.rs": "94a051a19f68aa55ca49b81d23c1b7a4ed68f4716b3d50234a9e8d49bb563724",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/material.rs": "80488463b70a93f4cb25b6c7bccebe14bc79d996ae1f67793cd0d324e46a4d7e",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/shaped_advances.rs": "0235aaf44a5d0bdd7e8aaa4fa81949e18ffe27508cfc0fbce39c7c65dbeb4d55",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/compiled_frame.rs": "2f34e3f3acb80645a1976e35f290a1a191dc38bc68adeb5c4c3827b87ad7cc83",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/decoration_geometry.rs": "35ab1fd785a21e3e008279411a5187a6dc471c0931f1f162bbbad01497c596f9",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/draw_plan.rs": "df2235f5cf0b469a76aa53bb72d030958c46d30a54728e95bd1efb1411609148",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/layout_placement.rs": "d93975bcdeb23129080e104314cf02561735938dee4c202e856660c2cdb7df29",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs": "3cc57b37ef18f894f254b911b751c329e0fc1de56b5ad09221410f31e4ef9e5e",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/prepare_report.rs": "ed848c4b3ec7d3a0ff6004e8acba29df4394f63632488d773f98acd40a65ef09",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/product_framebuffer/mod.rs": "a53d6e2761362f57439562f64af87df9c69d4e477feff54c808468b464631204",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/shader_contract.rs": "6e28f2145f02527e0c7743923a1bde830dc95c092b5deaa717fe0dfd74566ac1",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertices.rs": "cc5a2c807488917049d406f27f1841f2bedcf5ab5715a8b2b8ba52de80d4c407",
+    "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertices/text.rs": "6bb7157d1bde359e69b712c65f0525dd45b1108d7db44beadf33dbe5b2de4ad2"
+  },
+  "installation": {
+    "path": "E:\\Git\\ZirconEngine\\docs\\cli-and-tooling\\source-comment-audit\\round-02\\ownership\\local-install-runtime_wave12_graphics_ui_atlas_sdf-20261002-r1.json",
+    "sha256": "6286c7f1a6379c0b56fd7e1d6c99880fd572665d56e32c10aff7a0c6492ebac9"
+  },
+  "root_semantic_proof": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_ui_atlas_sdf-root-semantic-proof-20261002-r1.json",
+    "sha256": "c751aa25e753308259a2a7155a078448e5f34b47f9b5475255ef8c0b03d0c07a"
+  },
+  "coverage_records": 39,
+  "reviewed_current_records": 39,
+  "new_issues": 5,
+  "new_bug_issues": 3,
+  "new_todo_issues": 2,
+  "historical_issue_references": 1,
+  "source_writes": 0,
+  "canonical_writes": 0,
+  "status": "final_coverage_published",
+  "completed_at_utc": "2026-10-02T22:47:22.250983+00:00",
+  "intent": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-publish-runtime_wave12_graphics_ui_atlas_sdf-20261002-r1\\intent.json",
+    "sha256": "719a72c5980f2f79bbab443e0ba42ae1678dcca3043917834102dfc3110a1c10"
+  },
+  "inventory_reviewed_current_records": 4179,
+  "canonical_batch_records": 109,
+  "canonical_ledger_writes": 4,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "business_adoption": false,
+  "dynamic_acceptance": false,
+  "future_source_edit_pending_paths": [],
+  "submission": "pending_index_ownership_resolution"
+}

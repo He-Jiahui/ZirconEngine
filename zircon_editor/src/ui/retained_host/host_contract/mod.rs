@@ -1,10 +1,12 @@
 #[cfg(test)]
+#[path = "tests/asset_deletion_blocker_tests.rs"]
 mod asset_deletion_blocker_tests;
-mod chrome_command_stream;
+pub(crate) mod chrome_command_stream;
+pub(in crate::ui::retained_host) mod componentized_workbench_regions;
 pub(crate) mod data;
 mod diagnostics;
 mod frame_geometry;
-mod globals;
+pub(crate) mod globals;
 mod host_dock_overflow_menu;
 mod host_page_overflow_menu;
 mod menu_popup_metrics;
@@ -45,6 +47,8 @@ mod template_component_family;
 mod template_geometry;
 mod template_input_semantics;
 mod template_popup_layout;
+mod viewport_chrome_geometry;
+mod viewport_chrome_state;
 mod window;
 mod workbench_context_menu;
 
@@ -56,14 +60,21 @@ pub(crate) use diagnostics::{
 pub(crate) use globals::{HostAssetSurfaceInteractionState, PaneSurfaceHostContext, UiHostContext};
 pub(crate) use menu_popup_metrics::menu_popup_text_width;
 pub(crate) use native_pointer::{HostChromeTooltipTarget, WorkbenchTooltipPointerTarget};
-pub(crate) use paint_text::{measure_runtime_text_width, runtime_text_metrics_generation};
+pub(crate) use paint_text::TextPaintEvidenceScope;
+pub(crate) use paint_text::{
+    measure_runtime_text_width, measure_runtime_text_width_with_style,
+    runtime_text_metrics_generation,
+};
+pub(in crate::ui::retained_host) use paint_theme::METRICS;
 pub(crate) use paint_theme::{
     apply_host_appearance_from_tokens, apply_host_metrics_from_tokens,
     apply_host_paint_scale_factor, apply_host_palette_from_tokens, apply_host_text_preferences,
-    project_host_text_preferences,
+    current_host_paint_scale_factor, project_host_text_preferences,
 };
-pub(in crate::ui::retained_host) use paint_theme::{
-    current_host_metrics, HostControlMetrics, METRICS,
+pub(crate) use paint_theme::{current_host_metrics, HostControlMetrics};
+#[cfg(test)]
+pub(crate) use paint_theme::{
+    enter_host_paint_theme_scope, host_paint_theme_snapshot_at_scale_for_test,
 };
 pub(crate) use presenter::{
     runtime_factory_error, HostPresenterResult, RuntimeUiSurfacePresenterFactory,
@@ -79,11 +90,14 @@ pub(crate) fn paint_host_frame_for_test(
 ) -> Vec<u8> {
     paint_workbench::paint_host_frame(width, height, presentation).into_bytes()
 }
+pub(crate) use paint_template_nodes::paint_template_nodes_for_evidence_with_background;
+pub(crate) use paint_template_nodes::PaintEvidenceScope;
 #[cfg(test)]
 pub(crate) use paint_template_nodes::{
     paint_runtime_render_commands_for_test, paint_template_nodes_for_test,
     paint_template_nodes_for_test_with_background, template_node_command_summary_for_test,
 };
+pub(crate) use paint_workbench::paint_product_presentation_for_evidence;
 #[cfg(test)]
 pub(crate) use paint_workbench_renderer::paint_componentized_extension_workspace_for_test;
 #[cfg(test)]
@@ -91,4 +105,4 @@ pub(crate) use paint_workbench_renderer::paint_scrollbar_component_for_test;
 pub(crate) use surface_hit_test::{
     build_pane_template_surface_frame, rebuild_pane_template_hit_artifacts,
 };
-pub(crate) use window::{primary_host_window_id, UiHostWindow};
+pub(crate) use window::{primary_host_window_id, HierarchyPointerSource, UiHostWindow};

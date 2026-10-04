@@ -14,9 +14,9 @@ related_code:
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Widgets/SWidget.h
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Framework/Application/SlateApplication.h
 design_references:
-  - docs/ui-and-layout/ai-workbench-style/ai-workbench-web-framework.png
-  - docs/ui-and-layout/ai-workbench-style/component-prototype/index.html
-  - docs/ui-and-layout/editor-workbench-designs/STYLE-NOTES.md
+  - docs/ui/ai-workbench-style/ai-workbench-web-framework.png
+  - docs/ui/ai-workbench-style/component-prototype/index.html
+  - docs/ui/editor-workbench-designs/STYLE-NOTES.md
 plan_sources:
   - .codex/plans/ZirconEngine 宿主编辑器 UI 基础能力计划.md
   - .codex/plans/Shared Slate-Style UI Layout, Render, And Hit Framework.md
@@ -154,6 +154,7 @@ render(rhi/rhi_wgpu) —— UI pass 作为 graph 末端 executor 上屏;见 `doc
 | 09 编辑器模块与设计图对齐          | `09-editor-modules-and-design-parity.md`      | M1–M5   |
 | 10 代码结构与模块规范              | `10-code-structure-and-module-conventions.md` | M1–M4   |
 | 11 `.zui` 后缀统一与 `.ui.toml` 退役 | `11-zui-suffix-convergence-and-ui-toml-retirement.md` | M1–M5   |
+| 13 Penpot ↔ Zircon App `.zui` 原生一致性与 UE Slate 漏洞审计 | `13-penpot-zui-native-parity-and-ue-gap-audit.md` | M0–M6   |
 
 阶段划分（与「先等 runtime 大模块完成」的 gating 对应）：
 
@@ -239,7 +240,7 @@ render(rhi/rhi_wgpu) —— UI pass 作为 graph 末端 executor 上屏;见 `doc
 | **E0 壳可交互**       | editor 全壳由 runtime UI 承载，旧 painter 路径删除                    | 08.M3（≈ W11 完成）                       | 启动 editor：tabs 切换、drawer 开合改宽、activity rail、status bar、菜单快捷入口全部可点可聚焦                                            |
 | **E1 最小可用编辑器** | Unity 式场景编辑回路 + 资产环                                         | 09.M1 + 09.M2 + 08.M4（≈ W14）            | 新建工程→放置对象→树选中→Inspector 改 Transform→viewport 更新→Console 日志→Ctrl+Z 撤销；导入资产→浏览→双击打开→保存              |
 | **E2 资产编辑器可用** | Material + UI Asset 两编辑器真实可用                                  | 09.M3（+07.M4 时间轴，≈ W15）             | 改材质参数→viewport 反映；UI 资产编辑→热重载预览；时间轴加删 keyframe→即时回放                                                         |
-| **E3 完整编辑器**     | 工具诊断面板真实数据 + 浮窗/通知/布局恢复 + 结构对齐审查收敛 + 可分发 | 09.M4 + 09.M5 + 08.M5/M6 + 05.M5（≈ W16） | 浮窗拖出合回、重启恢复布局、toast/通知中心、诊断/性能/构建面板；逐模块对照设计图差异清单收敛；`python tools/zircon_build.py` 产物可运行 |
+| **E3 完整编辑器**     | 工具诊断面板真实数据 + 浮窗/通知/布局恢复 + 结构对齐审查收敛 + 可分发 | 09.M4 + 09.M5 + 08.M5/M6 + 05.M5（≈ W16） | 浮窗拖出合回、重启恢复布局、toast/通知中心、诊断/性能/构建面板；逐模块对照设计图差异清单收敛；`python tools/build/zircon_build.py` 产物可运行 |
 
 「工程目标 = 能够做出可用的完整 editor」即 E3；E1 是第一个对外可演示的「真编辑器」节点，优先保证其关键路径（W1→W4→W7→W8→W11→W13→W14）。
 
@@ -250,7 +251,7 @@ render(rhi/rhi_wgpu) —— UI pass 作为 graph 末端 executor 上屏;见 `doc
 1. 读本 index 的 §7 确认该切片所属里程碑的前置波次已完成；读对应子计划的「设计 + 接口草案 + 切片行」。
 2. 实施期：`cargo check -p <pkg> --lib --locked`（切片行标注的包）；遵守 §5 全局约束。
 3. 切片完成：跑切片行的验证命令；含「硬切换」列的，过下方 checklist。
-4. 里程碑末（最后一个切片合入）：跑子计划「完成定义」验收命令组；更新 `docs/zircon_runtime/ui/**` 或 `docs/zircon_editor/ui/**` 模块文档。
+4. 里程碑末（最后一个切片合入）：跑子计划「完成定义」验收命令组；更新 `docs/crates/zircon_runtime/ui/**` 或 `docs/crates/zircon_editor/ui/**` 模块文档。
 
 **硬切换 checklist（每个含删除义务的切片必过）**：
 

@@ -8,6 +8,7 @@ mod selection;
 mod states;
 mod tab_like;
 #[cfg(test)]
+#[path = "workbench_button/tests/cases.rs"]
 mod tests;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use component_variant::is_compact_icon_text_workbench_button;

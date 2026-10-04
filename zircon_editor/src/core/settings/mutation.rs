@@ -3,15 +3,15 @@ use std::path::Path;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use thiserror::Error;
-use zircon_runtime::core::runtime::tasks::{BoundedKeyedIoShutdownGuard, BoundedKeyedIoTerminal};
+use zircon_runtime::core::runtime::tasks::BoundedKeyedIoShutdownGuard;
 
 use crate::core::editor_operation::EditorOperationPath;
 
 use super::{
     SettingChange, SettingValue, SettingsAuthority, SettingsError, SettingsFileGeneration,
     SettingsKey, SettingsPersistenceRetryError, SettingsPersistenceService,
-    SettingsPersistenceShutdown, SettingsPersistenceSubmitError, SettingsPersistenceTicket,
-    SettingsProjectLayerLoad, SettingsScope, SettingsStore,
+    SettingsPersistenceShutdown, SettingsPersistenceSubmitError, SettingsPersistenceTerminal,
+    SettingsPersistenceTicket, SettingsProjectLayerLoad, SettingsScope, SettingsStore,
 };
 
 mod health;
@@ -88,7 +88,7 @@ pub enum SettingsPersistenceRetryDisposition {
     Superseded { successor: SettingsFileGeneration },
     PendingAdmission(SettingsPersistenceSubmitError),
     RetryRejected(SettingsPersistenceRetryError),
-    TerminalNotRetryable(BoundedKeyedIoTerminal),
+    TerminalNotRetryable(SettingsPersistenceTerminal),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -410,25 +410,25 @@ impl SettingsMutationCoordinator {
             },
             Some(PendingSettingsDocument::Ticket(ticket)) => {
                 let generation = ticket.file_generation();
-                match ticket.terminal() {
+                match ticket.persistence_terminal() {
                     None => (
                         Some(generation),
                         SettingsPersistenceRetryDisposition::AlreadyQueued,
                         Some(PendingSettingsDocument::Ticket(ticket)),
                     ),
-                    Some(BoundedKeyedIoTerminal::Succeeded) => (
+                    Some(SettingsPersistenceTerminal::Written) => (
                         Some(generation),
                         SettingsPersistenceRetryDisposition::Durable,
                         None,
                     ),
-                    Some(BoundedKeyedIoTerminal::Superseded { successor }) => (
+                    Some(SettingsPersistenceTerminal::Superseded { successor }) => (
                         Some(generation),
                         SettingsPersistenceRetryDisposition::Superseded {
                             successor: SettingsFileGeneration::from_raw(successor),
                         },
                         None,
                     ),
-                    Some(BoundedKeyedIoTerminal::Failed(_)) => {
+                    Some(SettingsPersistenceTerminal::Failed(_)) => {
                         match self.retry_persistence_ticket(document, &ticket) {
                             Ok(retry) => (
                                 Some(generation),

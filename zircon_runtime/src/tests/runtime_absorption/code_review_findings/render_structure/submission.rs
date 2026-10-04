@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 use super::{assert_contains_all, assert_not_contains};
 
 #[test]
@@ -9,11 +10,12 @@ fn runtime09a_frame_submission_metrics_keep_backend_mapping_and_receipt_owners_s
     let metrics = include_str!("../../../../core/framework/render/frame_submission_metrics.rs");
     let receipt = include_str!("../../../../core/framework/render/frame_submission_receipt.rs");
     let receipt_tests =
-        include_str!("../../../../core/framework/render/frame_submission_receipt/tests.rs");
+        include_str!("../../../../core/framework/render/frame_submission_receipt/tests/cases.rs");
     let transaction =
         include_str!("../../../../core/framework/render/frame_submission_transaction.rs");
-    let transaction_tests =
-        include_str!("../../../../core/framework/render/frame_submission_transaction/tests.rs");
+    let transaction_tests = include_str!(
+        "../../../../core/framework/render/frame_submission_transaction/tests/cases.rs"
+    );
     let backend =
         include_str!("../../../../graphics/backend/render_backend/render_backend_submission.rs");
     let direct_frame = include_str!(

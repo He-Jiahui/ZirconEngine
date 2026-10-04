@@ -1,3 +1,4 @@
+# 核对操作审计中阶段包字段的实现归属。
 import unittest
 from pathlib import Path
 
@@ -5,11 +6,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 OPERATION_AUDIT_SCHEMA = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_operation_audit_schema.py"
+    / "tools/export/pipeline_report_native_dynamic_operation_audit_schema.py"
 )
 STAGE_PACKAGES_SCHEMA = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_operation_audit_stage_packages_schema.py"
+    / "tools/export/pipeline_report_native_dynamic_operation_audit_stage_packages_schema.py"
 )
 
 

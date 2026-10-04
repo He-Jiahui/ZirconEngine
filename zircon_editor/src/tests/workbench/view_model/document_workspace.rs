@@ -90,7 +90,9 @@ fn default_preview_fixture_projects_drawers_and_document_workspace() {
 
     match &model.document {
         DocumentWorkspaceModel::Workbench { workspace, .. } => match workspace {
-            DocumentWorkspaceSnapshot::Tabs { tabs, active_tab } => {
+            DocumentWorkspaceSnapshot::Tabs {
+                tabs, active_tab, ..
+            } => {
                 assert!(tabs
                     .iter()
                     .any(|tab| tab.content_kind == ViewContentKind::Scene));
@@ -214,7 +216,7 @@ fn default_preview_fixture_exposes_hybrid_shell_tool_windows_and_empty_states() 
         Some("No output yet")
     );
 
-    assert_eq!(bottom.mode, ActivityDrawerMode::Pinned);
+    assert_eq!(bottom.mode, ActivityDrawerMode::Collapsed);
     let runtime_diagnostics_tab = bottom
         .tabs
         .iter()

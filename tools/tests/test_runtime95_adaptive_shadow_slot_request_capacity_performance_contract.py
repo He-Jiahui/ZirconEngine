@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 密集阴影槽请求按真正启用的投影精确预留容量，稀疏路径沿用原分支；两处计数共享同一启用条件。
 
 ROOT = Path(__file__).resolve().parents[2]
 PLAN = (
@@ -8,8 +8,7 @@ PLAN = (
     / "zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan.rs"
 )
 TESTS = (
-    ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan/tests.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan/tests/cases.rs"
 )
 
 

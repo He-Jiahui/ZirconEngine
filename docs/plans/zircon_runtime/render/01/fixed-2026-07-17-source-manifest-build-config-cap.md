@@ -9,7 +9,6 @@ origin_child_dir: docs/plans/zircon_runtime/render/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/cargo_jobs.py
 tests:
   - tools/session_coordinator/tests/test_cargo_reservations.py::CargoReservationTests::test_cpu_reservation_supports_first_class_large_source_manifest_and_rechecks_all_entries
 resolved_at: 2026-07-17

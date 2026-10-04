@@ -11,7 +11,9 @@ pub enum DirtyRegistryError {
     ExternalEffectRevisionExhausted,
     #[error("dirty document generation space is exhausted")]
     DocumentGenerationExhausted,
-    #[error("dirty snapshot for document {document:?} did not stabilize after {attempts} attempts")]
+    #[error(
+        "dirty snapshot for document {document:?} did not stabilize after {attempts} attempts"
+    )]
     SnapshotUnstable {
         document: DocumentId,
         attempts: usize,

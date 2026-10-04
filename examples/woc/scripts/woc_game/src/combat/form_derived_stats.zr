@@ -4,6 +4,7 @@
 var forms = %import("combat/forms_state");
 var statCore = %import("progression/stat_core_rules");
 
+/// 按来源重算顺序保存职业、装备、光环与天赋输入；调用方提供完整快照。
 pub class FormDerivedInput {
     pub var activeFormAbilityCode: uint;
     pub var classId: string;
@@ -119,6 +120,7 @@ pub class FormDerivedInput {
     }
 }
 
+/// 单次输入快照的派生值；由调用方写回权威状态。
 pub class FormDerivedOutput {
     pub var strength: int;
     pub var agility: int;
@@ -270,6 +272,7 @@ maxHpFromSourceStages(input: FormDerivedInput, stamina: int, code: uint): int {
     return result;
 }
 
+/// 从完整快照重算且不修改输入；非法输入抛出错误。
 pub derive(input: FormDerivedInput): FormDerivedOutput {
     if (!inputIsValid(input)) {
         throw "WOC form-derived input is invalid";

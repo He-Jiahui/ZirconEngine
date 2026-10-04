@@ -219,6 +219,7 @@ serviceAllowed(state: BankState): bool {
     return true;
 }
 
+/// 银行命令先确认服务可用、任务物品限制和目标完整容量，再移动整件实例或指定普通数量；失败保持两侧账本不变。
 pub deposit(state: BankState, slotIndex: int, requestedCount: int): int {
     state.lastError = 0;
     if (!serviceAllowed(state)) { return 0; }
@@ -243,6 +244,7 @@ pub deposit(state: BankState, slotIndex: int, requestedCount: int): int {
     return moved;
 }
 
+/// 从银行取回物品使用随身容量检查；调用方不能把返回零和 lastError 当作成功搬运。
 pub withdraw(state: BankState, slotIndex: int, requestedCount: int): int {
     state.lastError = 0;
     if (!serviceAllowed(state)) { return 0; }

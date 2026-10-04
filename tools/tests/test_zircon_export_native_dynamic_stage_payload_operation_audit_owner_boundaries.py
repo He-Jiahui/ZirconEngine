@@ -1,14 +1,15 @@
+# 核对阶段载荷操作审计产物归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 STAGE_PAYLOAD = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_native_dynamic_stage_payload.py"
+    REPO_ROOT / "tools/export/pipeline_report_native_dynamic_stage_payload.py"
 )
 STAGE_PAYLOAD_OPERATION_AUDIT = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_stage_payload_operation_audit.py"
+    / "tools/export/pipeline_report_native_dynamic_stage_payload_operation_audit.py"
 )
 
 

@@ -78,7 +78,6 @@ pub(super) fn astc_3d_container(
     let mut descriptor = TextureAssetDescriptor::container(format, 1, 1);
     descriptor.dimension = RenderImageDimension::D3;
     descriptor.depth_or_array_layers = depth.max(1);
-    descriptor.array_layer_count = 1;
     TextureAsset::new_container(
         AssetUri::parse(uri).unwrap(),
         width,

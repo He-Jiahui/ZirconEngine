@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
+    component::ArtifactCacheSceneComponentAsset,
     physics::{
         ArtifactCacheSceneColliderAsset, ArtifactCacheSceneJointAsset,
         ArtifactCacheSceneRigidBodyAsset,
@@ -10,6 +11,8 @@ use super::{
 };
 use crate::asset::AssetImportError;
 
+// 将场景实体的渲染、物理和脚本组件保持在同一个库工件记录中，
+// 以便 ArtifactCacheSceneAsset 在读回时恢复完整实体，而不是逐组件独立加载。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub(super) struct ArtifactCacheSceneEntityAsset {
     entity: u64,
@@ -21,6 +24,8 @@ pub(super) struct ArtifactCacheSceneEntityAsset {
     mobility: crate::asset::SceneMobilityAsset,
     camera: Option<ArtifactCacheSceneCameraAsset>,
     mesh: Option<ArtifactCacheSceneMeshInstanceAsset>,
+    #[serde(default)]
+    components: Vec<ArtifactCacheSceneComponentAsset>,
     ambient_light: Option<crate::asset::SceneAmbientLightAsset>,
     directional_light: Option<crate::asset::SceneDirectionalLightAsset>,
     point_light: Option<crate::asset::ScenePointLightAsset>,
@@ -82,6 +87,11 @@ impl From<&crate::asset::SceneEntityAsset> for ArtifactCacheSceneEntityAsset {
             terrain: asset.terrain.clone(),
             tilemap: asset.tilemap.clone(),
             prefab_instance: asset.prefab_instance.clone(),
+            components: asset
+                .components
+                .iter()
+                .map(ArtifactCacheSceneComponentAsset::from)
+                .collect(),
             script_bindings: asset
                 .script_bindings
                 .iter()
@@ -126,6 +136,11 @@ impl ArtifactCacheSceneEntityAsset {
             terrain: self.terrain,
             tilemap: self.tilemap,
             prefab_instance: self.prefab_instance,
+            components: self
+                .components
+                .into_iter()
+                .map(ArtifactCacheSceneComponentAsset::into_asset)
+                .collect::<Result<Vec<_>, _>>()?,
             script_bindings: self
                 .script_bindings
                 .into_iter()

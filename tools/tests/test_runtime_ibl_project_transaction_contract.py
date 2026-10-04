@@ -11,7 +11,7 @@ TARGETED = ROOT / "zircon_runtime/src/asset/project/manager/scan_and_import/targ
 IBL = ROOT / "zircon_runtime/src/asset/importer/environment_ibl.rs"
 DURABLE = ROOT / "zircon_runtime/src/asset/project/manager/durable_transaction.rs"
 
-
+# 读取 IBL 项目事务，确认准备与收集阶段无副作用，完整和定向代际都追加预备文件。
 class RuntimeIblProjectTransactionContractTests(unittest.TestCase):
     def test_project_helper_prepares_and_collects_without_stage_side_effects(self) -> None:
         source = SCAN.read_text(encoding="utf-8")

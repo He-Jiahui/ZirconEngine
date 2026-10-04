@@ -153,17 +153,7 @@ fn sync_filter_state(
         .map(|source| source.trim().to_lowercase())
         .filter(|source| !source.is_empty());
 
-    let filtered = entries
-        .iter()
-        .filter(|entry| command_matches_source(entry, source.as_deref()))
-        .filter(|entry| {
-            query
-                .as_deref()
-                .map(|query| entry.matches_query(query))
-                .unwrap_or(true)
-        })
-        .map(|entry| entry.id.clone())
-        .collect::<Vec<_>>();
+    let filtered = filtered_command_ids_for_entries(&entries, source.as_deref(), query.as_deref());
     let disabled = disabled_command_ids(state, &entries);
     let focus_index = next_focus_index(state, &filtered, &disabled);
 
@@ -183,6 +173,23 @@ fn sync_filter_state(
     );
     state.flags.focused = focus_index >= 0;
     CommandFilterProjection { filtered, disabled }
+}
+
+fn filtered_command_ids_for_entries(
+    entries: &[CommandEntry],
+    source: Option<&str>,
+    query: Option<&str>,
+) -> Vec<String> {
+    let mut filtered = Vec::with_capacity(entries.len());
+    for entry in entries {
+        if !command_matches_source(entry, source)
+            || query.is_some_and(|query| !entry.matches_query(query))
+        {
+            continue;
+        }
+        filtered.push(entry.id.clone());
+    }
+    filtered
 }
 
 fn navigate_filtered_commands(
@@ -527,13 +534,37 @@ fn command_entries(
 }
 
 fn command_entry_list(value: &UiValue) -> Vec<CommandEntry> {
+    let mut entries = Vec::with_capacity(command_entry_capacity_hint(value));
+    collect_command_entries(value, &mut entries);
+    entries
+}
+
+fn command_entry_capacity_hint(value: &UiValue) -> usize {
     match value {
-        UiValue::Array(values) => values.iter().flat_map(command_entry_list).collect(),
-        UiValue::String(value) | UiValue::Enum(value) => {
-            command_entry_from_string(value).into_iter().collect()
+        UiValue::Array(values) => values.len(),
+        UiValue::String(_) | UiValue::Enum(_) | UiValue::Map(_) => 1,
+        _ => 0,
+    }
+}
+
+fn collect_command_entries(value: &UiValue, entries: &mut Vec<CommandEntry>) {
+    match value {
+        UiValue::Array(values) => {
+            for value in values {
+                collect_command_entries(value, entries);
+            }
         }
-        UiValue::Map(values) => command_entry_from_map(values).into_iter().collect(),
-        _ => Vec::new(),
+        UiValue::String(value) | UiValue::Enum(value) => {
+            if let Some(entry) = command_entry_from_string(value) {
+                entries.push(entry);
+            }
+        }
+        UiValue::Map(values) => {
+            if let Some(entry) = command_entry_from_map(values) {
+                entries.push(entry);
+            }
+        }
+        _ => {}
     }
 }
 
@@ -748,3 +779,7 @@ fn int_value(value: Option<&UiValue>) -> Option<i64> {
         _ => None,
     }
 }
+
+#[cfg(test)]
+#[path = "tests/command_palette.rs"]
+mod tests;

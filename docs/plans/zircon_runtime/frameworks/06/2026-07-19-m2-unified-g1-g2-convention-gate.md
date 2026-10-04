@@ -1,12 +1,12 @@
 ---
 related_code:
-  - tools/check_conventions.py
-  - tools/check-conventions.ps1
+  - tools/audits/check_conventions.py
+  - tools/audits/check-conventions.ps1
   - tools/tests/test_check_conventions.py
   - .github/workflows/ci.yml
 implementation_files:
-  - tools/check_conventions.py
-  - tools/check-conventions.ps1
+  - tools/audits/check_conventions.py
+  - tools/audits/check-conventions.ps1
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/zircon_runtime/frameworks/development-conventions.md
@@ -14,7 +14,7 @@ plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
   - python -m unittest tools.tests.test_check_conventions -v
-  - python tools/check_conventions.py --only guards --json
+  - python tools/audits/check_conventions.py --only guards --json
   - python -m unittest tools.tests.test_frameworks_05_layer_direction -v
   - cargo +1.94.1 test -p zircon_runtime --lib structure_convention --locked --jobs 1
   - cargo +1.94.1 fmt --all --check
@@ -32,7 +32,7 @@ Session: `frameworks06-m2-unified-g1-g2-convention-gate-r2-20260727`
 
 ## 完成项目
 
-- 将 Frameworks05 production-only 层向审计、Runtime `structure_convention`、fmt 与首批 scoped clippy 收敛到 `tools/check_conventions.py` 唯一命令计划；PowerShell 和 CI 只转发，不复制参数或扫描规则。
+- 将 Frameworks05 production-only 层向审计、Runtime `structure_convention`、fmt 与首批 scoped clippy 收敛到 `tools/audits/check_conventions.py` 唯一命令计划；PowerShell 和 CI 只转发，不复制参数或扫描规则。
 - `guards` 对总纲规则表逐个表块、逐行验证，强制唯一 header 后立即出现唯一 separator，拒绝重复表标记、malformed/表外规则行、空规则正文、重复 rule ID、MUST 空守卫与任意级别的未知非空 guard；机器报告固定输出有序 `63` 条 rule / `49` 条 MUST ID 清单。
 - 表外候选只识别受管的 `GEN` / `RT` / `ED` / `PL` / `IF` / `WF` rule ID 家族；普通 `CI` / `G1` 汇总表不再被误判为规则行，新 rule ID 家族仍须与 runner 契约同批显式登记。
 - `--json` 捕获每个子门 stdout/stderr 到 `commands[]`，stdout 只保留一个 JSON 对象；子门真实退出码同时驱动 `commands[].exit_code`、顶层 `passed`、Python main 与 PowerShell 进程退出码，命令启动失败则以 `exit_code: null` 和结构化 `launch_error` 保持同一 JSON 失败面。
@@ -44,7 +44,7 @@ Session: `frameworks06-m2-unified-g1-g2-convention-gate-r2-20260727`
 - TDD RED：新增契约首先暴露缺失 `rule_ids/must_rule_ids`、未识别 malformed/unknown guard 与缺失 JSON capture API；2026-07-27 successor 又精确复现普通 `CI` / `G1` 表被报为表外规则行的误伤。独立复审随后暴露 SHOULD 未知 guard 被跳过、header 后缺 separator、空规则正文和命令启动失败逃逸四个缺口；下一轮又复现重复 header、前导双 separator 与 data-row 后 separator 被接受。新增 focused tests 均先 RED，再由显式表状态与结构化 launch error 修复。
 - 2026-07-28 toolchain/job 契约先将稳定命令计划 focused test 精确打成 RED，再由 runner 唯一 owner 修复；snapshot1175 复审又发现 CI/PowerShell 去重守卫只识别未固定 toolchain 的 Cargo 命令，synthetic fixture 对三个 `cargo +1.94.1` 分支精确 RED，随后由共享的可选 toolchain 前缀识别修复。snapshot1176 继续精确暴露 PowerShell 参数名不可重复的文档漂移，新增契约先 RED，再将多 gate 调用硬切为单数组 `-Only`。全量 runner `19/19`、guards `63/49/0`、layering `28/28`、py_compile 与 exact-scope diff-check GREEN，Python 重复 `--only` 与 PowerShell 单数组调用均只投影授权 gate。snapshot1208 独立复审 Critical/Important/Moderate/Minor=`0/0/0/0`、Ready；managed Cargo 仍待执行。
 - 2026-07-29 fresh 复验再次确认本切片自有 runner `19/19`、guards `63` rules / `49` MUST / `0` violations、py_compile 与 exact-scope diff-check GREEN。首次 Frameworks05 layer-direction 全集因守卫读取 Plugins04 已物理删除的 `animation/scene_hook/sequences.rs` 为 `27/28 + 1 FileNotFoundError`；守卫硬切到 `animation/sequence/apply.rs` 后曾得到 `28/28`，但 snapshot1220 独立复审发现其仍正向匹配无法解析的 `crate::sequence` production caller，因此拒绝该假阳性。契约加入当前 crate-root 正向断言和旧路径负向断言后先精确 RED；Plugins04 caller 最小 hard cut 后聚焦 `1/1` 与完整 `28/28` fresh GREEN。Frameworks05 open handoff 见 [`failure-2026-07-29-animation-scene-hook-guard-stale-path.md`](../05/failure-2026-07-29-animation-scene-hook-guard-stale-path.md)，其下级 Plugins04 受管编译仍待完成。
-- `python tools/check_conventions.py --only guards --json`：`63` rules / `49` MUST / `0` violations，exit `0`。
+- `python tools/audits/check_conventions.py --only guards --json`：`63` rules / `49` MUST / `0` violations，exit `0`。
 - PowerShell `-Only guards -Json` 可被 `ConvertFrom-Json` 直接解析，exit `0`；默认 `-DryRun -Json` 因真实 docs 债务保持 RED，不吞错。
 - `python -m unittest tools.tests.test_check_conventions -v`：`19/19` GREEN；其中新增契约固定 Python 重复 `--only` 与 PowerShell 单数组 `-Only` 的真实调用差异，拒绝重复 PowerShell 参数名的虚假文档契约。
 - `python -m unittest tools.tests.test_frameworks_05_layer_direction -v`：2026-07-28 历史 current-source 为 `28/28` GREEN；2026-07-29 仅修复 guard 读取路径后的 `28/28`（122.235 秒）已被 snapshot1220 判定为旧 caller 字符串假阳性，不是 acceptance。caller hard cut 后的当前 fresh 证据为 `28/28` GREEN（120.095 秒）。

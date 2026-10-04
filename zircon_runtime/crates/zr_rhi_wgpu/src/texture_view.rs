@@ -20,7 +20,7 @@ pub(crate) fn validate_texture_view_desc(
         "mip level",
     )?;
     let array_layer_count = selected_count(
-        texture_view_layer_count(texture),
+        texture.array_layer_count(),
         view.base_array_layer,
         view.array_layer_count,
         view,
@@ -221,13 +221,6 @@ fn require_single_array_layer(
         ));
     }
     Ok(())
-}
-
-const fn texture_view_layer_count(texture: &TextureDesc) -> u32 {
-    match texture.dimension {
-        TextureDimension::D1 | TextureDimension::D2 | TextureDimension::D3 => 1,
-        TextureDimension::D2Array | TextureDimension::Cube => texture.depth,
-    }
 }
 
 fn view_error(view: &TextureViewDesc, reason: &str) -> RhiError {

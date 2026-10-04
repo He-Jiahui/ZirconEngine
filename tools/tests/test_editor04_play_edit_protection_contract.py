@@ -1,3 +1,4 @@
+# 核对播放期间的编辑策略、待处理队列及控制器先保护后启动的源码链。
 from pathlib import Path
 import unittest
 
@@ -103,8 +104,8 @@ class PlayEditProtectionContractTests(unittest.TestCase):
     def test_behavior_tests_cover_lock_queue_apply_discard_and_start_guard(self) -> None:
         tests = "\n".join(
             (
-                self.source("edit_policy/tests.rs"),
-                self.source("pending_edits/tests.rs"),
+                self.source("edit_policy/tests/cases.rs"),
+                self.source("pending_edits/tests/cases.rs"),
             )
         )
         for case in (

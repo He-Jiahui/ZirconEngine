@@ -1,12 +1,12 @@
-use crate::text::InlineObjectRef;
 use crate::text::shaping::{TextLayoutOutcome, TextShapeRunProvider, TextShapingOutcome};
+use crate::text::InlineObjectRef;
 use crate::text::{TextStyle, TextWrap};
 
 use super::rich_advance_index::RichAdvanceIndex;
 use super::{
-    RichTextLayoutSource, checked_source_range, checked_source_range_to_u32,
-    line_break_chunks_with_provider, rich_forced_line_ranges, trim_leading_wrap_spaces,
-    word_smart_line_break_chunks_with_provider,
+    checked_source_range, checked_source_range_to_u32, line_break_chunks_with_provider,
+    rich_forced_line_ranges, trim_leading_wrap_spaces, word_smart_line_break_chunks_with_provider,
+    RichTextLayoutSource,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -343,4 +343,5 @@ fn finite_non_negative(value: f32) -> f32 {
 }
 
 #[cfg(test)]
+#[path = "rich_vertical/tests/cases.rs"]
 mod tests;

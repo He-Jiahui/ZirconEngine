@@ -3,17 +3,17 @@ related_code:
   - zircon_hub/src/projects/package.rs
   - zircon_hub/src/projects/device_install.rs
   - zircon_hub/src/projects/install_receipt.rs
-  - tools/cargo-zircon/src/product_receipt_cli
-  - tools/cargo-zircon/src/build/receipt
+  - tools/cargo/src/product_receipt_cli
+  - tools/cargo/src/build/receipt
 implementation_files:
   - zircon_hub/src/projects
-  - tools/cargo-zircon/src/build/receipt
+  - tools/cargo/src/build/receipt
 plan_sources:
   - docs/plans/optimize/zircon_tooling/15-mvp-build-staging-product-process-acceptance-evidence-resource-baseline-control-plane-review.md
 tests:
   - zircon_hub/src/projects/package.rs
   - zircon_hub/src/tauri_app/runtime_state/project_delivery_actions.rs
-  - tools/cargo-zircon/src/build/receipt
+  - tools/cargo/src/build/receipt
 doc_type: api-reference
 ---
 

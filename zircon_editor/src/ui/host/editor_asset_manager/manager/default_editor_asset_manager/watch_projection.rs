@@ -137,6 +137,11 @@ fn mark_catalog_record_dirty(
     let Some(asset) = catalog.asset_by_locator(&uri.to_string()) else {
         return;
     };
+    // A watcher batch may report the same asset more than once, including both rename sides.
+    // The first staged row already carries the final dirty state for this immutable generation.
+    if updates.contains_key(asset.uuid.as_str()) {
+        return;
+    }
     let Some(current) = catalog.catalog_record(&asset.uuid) else {
         return;
     };
@@ -149,22 +154,5 @@ fn mark_catalog_record_dirty(
 }
 
 #[cfg(test)]
-mod tests {
-    use zircon_runtime::asset::watch::{AssetChange, AssetChangeKind, AssetWatchEvent};
-    use zircon_runtime::asset::AssetUri;
-
-    use super::asset_watch_events;
-
-    #[test]
-    fn incomplete_runtime_rename_is_a_safe_added_event() {
-        let uri = AssetUri::parse("res://models/ship.glb").unwrap();
-        assert_eq!(
-            asset_watch_events(&[AssetChange::new(
-                AssetChangeKind::Renamed,
-                uri.clone(),
-                None
-            )]),
-            vec![AssetWatchEvent::Added(uri)]
-        );
-    }
-}
+#[path = "tests/watch_projection.rs"]
+mod tests;

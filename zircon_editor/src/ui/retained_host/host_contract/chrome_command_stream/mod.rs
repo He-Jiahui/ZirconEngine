@@ -67,7 +67,9 @@ pub(in crate::ui::retained_host::host_contract) fn build_chrome_command_stream_w
 }
 
 #[cfg(test)]
+#[path = "tests/atlas_tests.rs"]
 mod atlas_tests;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

@@ -17,6 +17,12 @@ pub(in super::super) fn template_pane_node_data(
     let ProjectedTemplateNodeParts {
         node_id,
         control_id,
+        source_path,
+        source_node_id,
+        instance_path,
+        parent_source_path,
+        parent_source_node_id,
+        parent_instance_path,
         role,
         component_role,
         text_layout,
@@ -37,6 +43,12 @@ pub(in super::super) fn template_pane_node_data(
 
     let mut node = host_contract::TemplatePaneNodeData::default();
     assign_identity_fields(&mut node, node_id, control_id, role, component_role);
+    node.source_path = source_path.into();
+    node.source_node_id = source_node_id.into();
+    node.instance_path = instance_path.into();
+    node.parent_source_path = parent_source_path.into();
+    node.parent_source_node_id = parent_source_node_id.into();
+    node.parent_instance_path = parent_instance_path.into();
     assign_content_fields(&mut node, text_layout, value_media);
     assign_options_collection_fields(&mut node, selection_options, collection);
     assign_sample_grid_fields(&mut node, sample_grid);

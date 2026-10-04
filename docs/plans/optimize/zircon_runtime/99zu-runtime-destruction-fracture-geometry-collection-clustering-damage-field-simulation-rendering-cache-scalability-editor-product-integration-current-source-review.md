@@ -20,7 +20,6 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh
   - zircon_runtime/src/graphics/visibility
   - zircon_plugins/physics/runtime/src
-  - zircon_plugins/physics/zircon_plugin.toml
   - zircon_plugins/first_party_runtime_catalog
   - zircon_app/src/entry
   - zircon_editor/src/core/asset/type_registry

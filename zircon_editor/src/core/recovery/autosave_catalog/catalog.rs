@@ -4,9 +4,9 @@ use std::path::{Path, PathBuf};
 
 use super::super::autosave::write_new_atomically;
 use super::{
-    AutosaveRecoveryCatalogDiagnostic, AutosaveRecoveryCatalogReport, AutosaveRecoveryMetadata,
-    AutosaveSnapshotMetadata, AutosaveSourcePath, RECOVERY_METADATA_FILE_NAME,
-    snapshot_metadata_path, snapshot_metadata_sequence,
+    snapshot_metadata_path, snapshot_metadata_sequence, AutosaveRecoveryCatalogDiagnostic,
+    AutosaveRecoveryCatalogReport, AutosaveRecoveryMetadata, AutosaveSnapshotMetadata,
+    AutosaveSourcePath, RECOVERY_METADATA_FILE_NAME,
 };
 use crate::core::recovery::{
     AutosaveContentDigest, AutosaveDocumentId, AutosaveError, AutosaveSourceDigest,

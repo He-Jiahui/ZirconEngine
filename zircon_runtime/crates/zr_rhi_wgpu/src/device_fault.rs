@@ -23,7 +23,10 @@ impl WgpuDeviceErrorSupervisor {
                 wgpu::Error::Validation { .. } => DeviceFaultKind::Validation,
                 wgpu::Error::Internal { .. } => DeviceFaultKind::Internal,
             };
-            uncaptured_error_gate.record_first(kind, error.to_string());
+            let message = error.to_string();
+            if uncaptured_error_gate.record_first(kind, message.clone()) {
+                eprintln!("[zircon_rhi_wgpu] first device fault ({kind:?}): {message}");
+            }
         }));
 
         let device_lost_gate = Arc::clone(&supervisor.fault_gate);
@@ -32,7 +35,9 @@ impl WgpuDeviceErrorSupervisor {
                 wgpu::DeviceLostReason::Unknown => DeviceFaultKind::DeviceLostUnknown,
                 wgpu::DeviceLostReason::Destroyed => DeviceFaultKind::DeviceDestroyed,
             };
-            device_lost_gate.record_first(kind, message);
+            if device_lost_gate.record_first(kind, message.clone()) {
+                eprintln!("[zircon_rhi_wgpu] first device fault ({kind:?}): {message}");
+            }
         });
 
         supervisor

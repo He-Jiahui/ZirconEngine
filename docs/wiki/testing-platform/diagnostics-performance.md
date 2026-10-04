@@ -3,20 +3,20 @@ related_code:
   - zircon_runtime/src/core/runtime/diagnostics
   - zircon_runtime/src/core/runtime/tasks
   - zircon_app/src/entry/runtime_entry_app/runtime_product_diagnostics.rs
-  - tools/cargo-zircon/src/build/product_build/capture.rs
-  - tools/cargo-zircon/src/build/receipt/file_digest.rs
+  - tools/cargo/src/build/product_build/capture.rs
+  - tools/cargo/src/build/receipt/file_digest.rs
 implementation_files:
   - zircon_runtime/src/core/runtime/diagnostics
   - zircon_runtime/src/core/runtime/tasks
   - zircon_app/src/entry/runtime_entry_app
-  - tools/cargo-zircon/src/build/product_build
+  - tools/cargo/src/build/product_build
 plan_sources:
   - docs/plans/milestone-validation-policy.md
   - docs/plans/performance
 tests:
   - zircon_runtime/src/core/runtime/diagnostics
   - zircon_runtime/src/core/runtime/tasks
-  - tools/cargo-zircon/src/build
+  - tools/cargo/src/build
 doc_type: diagnostics-reference
 ---
 

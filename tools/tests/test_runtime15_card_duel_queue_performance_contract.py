@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+# 卡牌对决队列以代际限定的侵入式槽维持 FIFO，离队先拒绝过期代际；快照与恢复按队列单次遍历。
 import re
 import unittest
 from pathlib import Path

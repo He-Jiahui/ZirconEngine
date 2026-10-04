@@ -6,9 +6,10 @@ use crate::core::resource::ResourceId;
 use super::{CameraRenderDescriptor, CameraRenderType, RenderCameraTarget};
 
 #[cfg(test)]
-#[path = "camera_ordering/hash_target_count_tests.rs"]
+#[path = "camera_ordering/tests/hash_target_count_tests.rs"]
 mod hash_target_count_tests;
 
+/// 场景世界提供的相机排序输入；实体 ID 只用于同序同目标时的稳定破同。
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderCameraOrderInput {
     pub entity: EntityId,
@@ -21,6 +22,7 @@ impl RenderCameraOrderInput {
     }
 }
 
+/// 帧抽取和渲染提交共用的相机顺序，歧义项供诊断使用。
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RenderCameraOrderReport {
     pub cameras: Vec<SortedRenderCamera>,
@@ -76,6 +78,8 @@ impl From<&RenderCameraTarget> for RenderCameraTargetOrderKey {
     }
 }
 
+/// 先排除停用相机，再按绘制顺序与目标分组；调用方应保留此报告，
+/// 避免可见性与实际渲染各自重新排序后产生不同的目标内索引。
 pub fn sort_render_cameras(
     cameras: impl IntoIterator<Item = RenderCameraOrderInput>,
 ) -> RenderCameraOrderReport {
@@ -135,17 +139,5 @@ pub fn sort_render_cameras(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn render_camera_order_report_carries_descriptor_render_type() {
-        let mut overlay = CameraRenderDescriptor::from_camera_payload(Some(7), Default::default());
-        overlay.render_type = CameraRenderType::Overlay;
-
-        let report = sort_render_cameras([RenderCameraOrderInput::from_descriptor(7, overlay)]);
-
-        assert_eq!(report.cameras.len(), 1);
-        assert_eq!(report.cameras[0].render_type, CameraRenderType::Overlay);
-    }
-}
+#[path = "tests/camera_ordering.rs"]
+mod tests;

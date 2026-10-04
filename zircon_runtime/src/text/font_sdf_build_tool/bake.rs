@@ -9,13 +9,13 @@ use ttf_parser::Face;
 use crate::asset::assets::{decode_font_source, standalone_sfnt_face};
 use crate::core::math::UVec2;
 use crate::core::runtime::tasks::TaskPool;
-use crate::text::VariationCoords;
 use crate::text::sdf::{
-    SdfBakeParams, SdfGenerationSourceContext, SdfGenerationSourceHandle, SdfMode,
-    SdfOfflineArtifact, SdfOfflineArtifactIdentity, sdf_offline_artifact_path,
+    sdf_offline_artifact_path, SdfBakeParams, SdfGenerationSourceContext,
+    SdfGenerationSourceHandle, SdfMode, SdfOfflineArtifact, SdfOfflineArtifactIdentity,
 };
+use crate::text::VariationCoords;
 
-use super::pack::{GeneratedGlyph, pack_generated_glyphs};
+use super::pack::{pack_generated_glyphs, GeneratedGlyph};
 use super::{FontSdfBakeError, FontSdfBakeMode, FontSdfBakeRequest, FontSdfGlyphSelection};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

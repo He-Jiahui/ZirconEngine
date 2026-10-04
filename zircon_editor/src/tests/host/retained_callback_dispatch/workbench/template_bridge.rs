@@ -3,7 +3,7 @@ use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::core::editing::engine::HistoryContextId;
-use crate::core::project::{NewProjectDraft, NewProjectTemplate, ProjectAuthority};
+use crate::core::project::{NewProjectDraft, ProjectAuthority, ProjectTemplateId};
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::EditorManager;
 
@@ -59,15 +59,18 @@ fn builtin_host_save_project_preserves_binding_provenance_and_save_generation() 
         .parent()
         .expect("temporary project root should have a parent");
     ProjectAuthority::default()
-        .create_project(&NewProjectDraft {
-            project_name: root
-                .file_name()
-                .expect("temporary project root should have a name")
-                .to_string_lossy()
-                .into_owned(),
-            location: location.to_string_lossy().into_owned(),
-            template: NewProjectTemplate::RenderableEmpty,
-        })
+        .create_project(
+            &NewProjectDraft {
+                project_name: root
+                    .file_name()
+                    .expect("temporary project root should have a name")
+                    .to_string_lossy()
+                    .into_owned(),
+                location: location.to_string_lossy().into_owned(),
+                template: ProjectTemplateId::RenderableEmpty,
+            },
+            &crate::tests::support::test_project_creation_provenance(),
+        )
         .expect("renderable template project should be created");
 
     {

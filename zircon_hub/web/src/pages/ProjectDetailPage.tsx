@@ -88,25 +88,21 @@ export function ProjectDetailPage({ state, onAction }: ProjectDetailPageProps) {
         },
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, mb: 2.3 }}>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="h4">{project?.name ?? text.detailTitle}</Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.9 }}>
-            {project?.path ?? state.pageSubtitle}
-          </Typography>
-        </Box>
-        <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap", justifyContent: "flex-end" }}>
+      <PageHeader title={project?.name ?? text.detailTitle} subtitle={project?.path ?? state.pageSubtitle} actions={<>
           <HubButton startIcon={<ArrowBackIcon />} onClick={() => void onAction(HUB_ACTION.viewAllProjects)}>
             {actionText.browser}
           </HubButton>
           <HubButton tone="primary" startIcon={<OpenInNewIcon />} onClick={() => void onAction(HUB_ACTION.openEditor, undefined, projectTarget)}>
             {actionText.openEditor}
           </HubButton>
-        </Box>
-      </Box>
+        </>} />
 
       <Box sx={{ mb: 1.4 }}>
-        <HubStatusBanner task={state.taskSummary} />
+        <HubStatusBanner
+          task={state.taskSummary}
+          cancelLabel={state.ui.common.cancelTask}
+          onCancel={() => void onAction(HUB_ACTION.cancelBackgroundTask, String(state.taskSummary.taskId))}
+        />
       </Box>
 
       {!project ? (
@@ -185,3 +181,4 @@ export function ProjectDetailPage({ state, onAction }: ProjectDetailPageProps) {
     </Box>
   );
 }
+import { PageHeader } from "../components/data/PageHeader";

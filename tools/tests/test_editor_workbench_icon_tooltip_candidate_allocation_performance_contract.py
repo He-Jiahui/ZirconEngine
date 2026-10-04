@@ -1,7 +1,8 @@
+# 核对工作台图标提示先比较借用候选，变化时才分配身份载荷。
 from pathlib import Path
 import unittest
 
-from tools.editor_workbench_icon_tooltip_candidate_pressure import run
+from tools.analysis.performance.editor.editor_workbench_icon_tooltip_candidate_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]

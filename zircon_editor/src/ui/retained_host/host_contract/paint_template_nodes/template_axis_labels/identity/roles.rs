@@ -1,3 +1,5 @@
+//! 变换轴视觉接受文字和图标形角色，明确排除可交互 Button；链接操作事件不由绘制身份推断。
+
 const AXIS_LABEL_ROLE: &str = "Label";
 const AXIS_ICON_ROLE: &str = "Icon";
 const AXIS_SVG_ICON_ROLE: &str = "SvgIcon";
@@ -7,14 +9,5 @@ pub(super) fn is_axis_label_role(role: &str) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn axis_label_roles_include_text_and_icon_shapes_only() {
-        assert!(is_axis_label_role("Label"));
-        assert!(is_axis_label_role("Icon"));
-        assert!(is_axis_label_role("SvgIcon"));
-        assert!(!is_axis_label_role("Button"));
-    }
-}
+#[path = "tests/roles.rs"]
+mod tests;

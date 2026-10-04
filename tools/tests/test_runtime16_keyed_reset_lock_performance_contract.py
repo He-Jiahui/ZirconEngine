@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+# 副本重置锁把并行数组收敛为行记录，按拥有者键二分定位并原位过期；行为与规模用例保留排序和更新语义。
 import re
 import unittest
 from pathlib import Path

@@ -47,6 +47,7 @@ where
             startup_service_names: module_service_lists.startup_service_names,
             shutdown_service_names: module_service_lists.shutdown_service_names,
             lifecycle: LifecycleState::Registered,
+            cleanup_completed: false,
         },
     );
     Ok(())

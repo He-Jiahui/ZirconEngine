@@ -1,0 +1,108 @@
+penpot_original_source = "[asset]\r\nkind = \"view\"\r\nid = \"particles.particle_system.drawer\"\r\nversion = 2\r\ndisplay_name = \"Particle System\"\r\n\r\n[imports]\r\nstyles = [\"res://ui/theme/editor_base.zui\"]\r\n\r\n[root]\r\nnode = \"particles_component_drawer_root\"\r\n\r\n[nodes.particles_component_asset_row]\r\ncomponent = \"Space\"\r\ncontrol_id = \"ParticlesComponentAssetRow\"\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = \"Fixed\" } }\r\n\r\n[nodes.particles_component_playback_row]\r\ncomponent = \"Space\"\r\ncontrol_id = \"ParticlesComponentPlaybackRow\"\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = \"Fixed\" } }\r\n\r\n[nodes.particles_component_backend_row]\r\ncomponent = \"Space\"\r\ncontrol_id = \"ParticlesComponentBackendRow\"\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = \"Fixed\" } }\r\n\r\n[nodes.particles_component_seed_row]\r\ncomponent = \"Space\"\r\ncontrol_id = \"ParticlesComponentSeedRow\"\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = \"Fixed\" } }\r\n\r\n[nodes.particles_component_diagnostics_row]\r\ncomponent = \"Space\"\r\ncontrol_id = \"ParticlesComponentDiagnosticsRow\"\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = \"Fixed\" } }\r\n\r\n[nodes.particles_component_drawer_root]\r\ncomponent = \"VerticalGroup\"\r\ncontrol_id = \"ParticlesComponentDrawerRoot\"\r\nclasses = [\"editor-shell\"]\r\nlayout = { container = { kind = \"VerticalBox\", gap = 4.0 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\nchildren = [{ node = \"particles_component_asset_row\" }, { node = \"particles_component_playback_row\" }, { node = \"particles_component_backend_row\" }, { node = \"particles_component_seed_row\" }, { node = \"particles_component_diagnostics_row\" }]\r\n"
+
+[asset]
+kind = "view"
+id = "particles.particle_system.drawer"
+version = 2
+display_name = "Particle System"
+
+[imports]
+styles = [ "res://ui/theme/editor_base.zui" ]
+
+[root]
+node = "particles_component_drawer_root"
+
+[nodes.particles_component_asset_row]
+component = "Space"
+control_id = "ParticlesComponentAssetRow"
+
+[nodes.particles_component_asset_row.layout.width]
+stretch = "Stretch"
+
+[nodes.particles_component_asset_row.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[nodes.particles_component_playback_row]
+component = "Space"
+control_id = "ParticlesComponentPlaybackRow"
+
+[nodes.particles_component_playback_row.layout.width]
+stretch = "Stretch"
+
+[nodes.particles_component_playback_row.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[nodes.particles_component_backend_row]
+component = "Space"
+control_id = "ParticlesComponentBackendRow"
+
+[nodes.particles_component_backend_row.layout.width]
+stretch = "Stretch"
+
+[nodes.particles_component_backend_row.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[nodes.particles_component_seed_row]
+component = "Space"
+control_id = "ParticlesComponentSeedRow"
+
+[nodes.particles_component_seed_row.layout.width]
+stretch = "Stretch"
+
+[nodes.particles_component_seed_row.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[nodes.particles_component_diagnostics_row]
+component = "Space"
+control_id = "ParticlesComponentDiagnosticsRow"
+
+[nodes.particles_component_diagnostics_row.layout.width]
+stretch = "Stretch"
+
+[nodes.particles_component_diagnostics_row.layout.height]
+min = 56
+preferred = 56
+max = 56
+stretch = "Fixed"
+
+[nodes.particles_component_drawer_root]
+component = "VerticalGroup"
+control_id = "ParticlesComponentDrawerRoot"
+classes = [ "editor-shell" ]
+
+[nodes.particles_component_drawer_root.layout.container]
+kind = "VerticalBox"
+gap = 4
+
+[nodes.particles_component_drawer_root.layout.width]
+stretch = "Stretch"
+
+[nodes.particles_component_drawer_root.layout.height]
+stretch = "Stretch"
+
+[[nodes.particles_component_drawer_root.children]]
+node = "particles_component_asset_row"
+
+[[nodes.particles_component_drawer_root.children]]
+node = "particles_component_playback_row"
+
+[[nodes.particles_component_drawer_root.children]]
+node = "particles_component_backend_row"
+
+[[nodes.particles_component_drawer_root.children]]
+node = "particles_component_seed_row"
+
+[[nodes.particles_component_drawer_root.children]]
+node = "particles_component_diagnostics_row"

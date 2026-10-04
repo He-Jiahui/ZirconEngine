@@ -2,11 +2,11 @@ import re
 import unittest
 from pathlib import Path
 
-from tools.plugin_structure_audits.dependency_boundary import (
+from tools.audits.plugins.dependency_boundary import (
     audit_plugin_dependency_boundary,
 )
 
-
+# 核对独立插件 CI 矩阵覆盖具备分发能力的插件，并按目标模式执行对应预检。
 class PluginStandaloneCiMatrixTests(unittest.TestCase):
     def test_plugin_standalone_dist_ci_matrix_covers_dist_capable_plugins(self):
         repo_root = Path(__file__).resolve().parents[2]
@@ -34,7 +34,7 @@ class PluginStandaloneCiMatrixTests(unittest.TestCase):
         self.assertIn("uses: actions/setup-python@v5", job_block)
         self.assertIn("python-version: '3.11'", job_block)
         self.assertIn(
-            "python -m tools.zircon_export plugin validate --all --repo-root . --json",
+            "python -m tools.export plugin validate --all --repo-root . --json",
             job_block,
         )
 

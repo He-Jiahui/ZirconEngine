@@ -1,5 +1,5 @@
+mod cloud_binding;
 mod cover;
-mod create_project;
 mod create_project_request;
 mod device_install;
 mod install_receipt;
@@ -11,11 +11,11 @@ mod recycle_bin;
 mod shared_recent_projects;
 mod validation;
 
+pub use cloud_binding::{CloudAccountScope, CloudBindingEnvironment, CloudProjectBinding};
 pub use cover::project_cover_path;
-pub use create_project::{create_project, CreateProjectError, CreateProjectReport};
 pub use create_project_request::{
-    project_template_catalog, CreateProjectRequest, CreateProjectRequestError, ProjectTemplate,
-    ProjectTemplateInfo,
+    enabled_project_template_id, project_template_catalog, CreateProjectRequest,
+    CreateProjectRequestError, ProjectTemplateInfo,
 };
 pub use device_install::{install_package_to_device, DeviceInstallReport, DeviceInstallRequest};
 pub use install_receipt::{
@@ -37,3 +37,4 @@ pub use shared_recent_projects::{
     SharedRecentProjectsSnapshot,
 };
 pub use validation::{validate_project_root, ProjectValidation};
+pub use zircon_runtime_interface::project::ProjectTemplateId;

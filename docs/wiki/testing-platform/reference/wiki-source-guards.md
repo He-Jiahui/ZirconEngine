@@ -1,17 +1,17 @@
 ---
 related_code:
-  - tools/wiki_site.py
-  - tools/check_conventions.py
+  - tools/docs/wiki_site.py
+  - tools/audits/check_conventions.py
   - docs/wiki
   - .github/workflows/wiki-pages.yml
 implementation_files:
-  - tools/wiki_site.py
+  - tools/docs/wiki_site.py
   - docs/wiki/navigation.yaml
   - docs/wiki/contributing-docs.md
 plan_sources:
   - docs/plans/milestone-validation-policy.md
 tests:
-  - tools/wiki_site.py
+  - tools/docs/wiki_site.py
   - .github/workflows/wiki-pages.yml
   - .github/workflows/wiki-pages.yml
 doc_type: documentation-validation-reference
@@ -19,7 +19,7 @@ doc_type: documentation-validation-reference
 
 # Wiki 与源码守卫
 
-Wiki 是可发布产品，不是任意 Markdown 的堆放目录。`tools/wiki_site.py` 检查页面 frontmatter、链接、导航覆盖和结构；`tools/check_conventions.py` 检查源码约定。两者分别保护文档可发布性与实现可维护性。
+Wiki 是可发布产品，不是任意 Markdown 的堆放目录。`tools/docs/wiki_site.py` 检查页面 frontmatter、链接、导航覆盖和结构；`tools/audits/check_conventions.py` 检查源码约定。两者分别保护文档可发布性与实现可维护性。
 
 ## 1. Wiki 页面契约
 
@@ -30,11 +30,11 @@ Wiki 是可发布产品，不是任意 Markdown 的堆放目录。`tools/wiki_si
 related_code:
   - zircon_runtime/src/lib.rs
 implementation_files:
-  - tools/wiki_site.py
+  - tools/docs/wiki_site.py
 plan_sources:
   - docs/plans/mvp/index.md
 tests:
-  - tools/wiki_site.py
+  - tools/docs/wiki_site.py
 doc_type: module-reference
 ---
 ```
@@ -42,9 +42,9 @@ doc_type: module-reference
 ## 2. 本地验证
 
 ```powershell
-python tools/wiki_site.py validate --json
-python tools/wiki_site.py validate --strict-metadata --json
-python tools/wiki_site.py build --strict-metadata --output site --json
+python tools/docs/wiki_site.py validate --json
+python tools/docs/wiki_site.py validate --strict-metadata --json
+python tools/docs/wiki_site.py build --strict-metadata --output site --json
 ```
 
 成功输出应报告 markdown 页面数与 navigation 页面数相等，`error_count` 和 `warning_count` 为 0；build 应生成每个页面的 HTML。strict metadata 是发布前门禁，不应只运行宽松模式。
@@ -80,13 +80,13 @@ overview 解释边界，module/API 解释公开契约，tutorial/recipe 解释�
 
 ## 6. Mermaid 与示例
 
-使用 ` ```mermaid ` 围栏描述状态、数据流或时序；图下必须有读图说明。Rust 示例应标明是“可编译片段”还是“调用形状/伪代码”，并给出真实模块路径。不存在的接口名称必须避免。
+使用 ` ```mermaid ` 围栏描述状态、数据流或时序；图下必须有读图说明。每条 Mermaid 语句必须单独占一行，状态图入口严格写作 `[*]`（不要写成 `[\*]`）。状态转移的第一个 `:` 是标签分隔符；为兼容 GitHub 使用的 Mermaid 11.17.2，标签内不要再写 Rust 路径中的 `::`，把完整类型名放在图下正文中（例如图中写 `resource ready`，正文再写 `ResourceState::Ready`）。Rust 示例应标明是“可编译片段”还是“调用形状/伪代码”，并给出真实模块路径。不存在的接口名称必须避免。
 
 ## 7. 链接检查与孤儿页
 
 ```powershell
-python tools/wiki_site.py validate --strict-metadata --json | ConvertFrom-Json | Format-List
-rg -n "docs/wiki|navigation" .github/workflows tools/wiki_site.py
+python tools/docs/wiki_site.py validate --strict-metadata --json | ConvertFrom-Json | Format-List
+rg -n "docs/wiki|navigation" .github/workflows tools/docs/wiki_site.py
 ```
 
 新增页面要同时加入所属目录 index、`docs/wiki/navigation.yaml` 和必要的首页入口。未被导航引用的页面即使 build 成功，也不算可发现。
@@ -95,7 +95,7 @@ rg -n "docs/wiki|navigation" .github/workflows tools/wiki_site.py
 
 ```powershell
 python -m unittest tools.tests.test_check_conventions tools.tests.test_frameworks_06_ci_toolchain_contract -v
-python tools/check_conventions.py --json
+python tools/audits/check_conventions.py --json
 ```
 
 该 guard 覆盖 layering、structure、fmt、clippy 及规则表。Wiki 不能通过复制旧规则来宣称源码门禁；规则 ID 和实际 command 必须来自 convention source。
@@ -125,7 +125,7 @@ python tools/check_conventions.py --json
 
 ## 12. 索引
 
-实现见 `tools/wiki_site.py`；页面规范见 `docs/wiki/contributing-docs.md`；导航见 `docs/wiki/navigation.yaml`；CI 见 `.github/workflows/wiki-pages.yml`。修改脚本时应同步更新 `tools/tests/test_wiki_site*.py`。
+实现见 `tools/docs/wiki_site.py`；页面规范见 `docs/wiki/contributing-docs.md`；导航见 `docs/wiki/navigation.yaml`；CI 见 `.github/workflows/wiki-pages.yml`。修改脚本时应同步更新 `tools/tests/test_wiki_site*.py`。
 
 ## 13. 新增页面实例
 

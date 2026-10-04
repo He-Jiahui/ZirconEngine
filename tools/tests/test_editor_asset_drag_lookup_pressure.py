@@ -1,6 +1,7 @@
+# 核对大规模可见资产的拖拽查找模型保持索引访问并拒绝无效输入。
 import unittest
 
-from tools.editor_asset_drag_lookup_pressure import pressure_report
+from tools.analysis.performance.editor.editor_asset_drag_lookup_pressure import pressure_report
 
 
 class EditorAssetDragLookupPressureTests(unittest.TestCase):

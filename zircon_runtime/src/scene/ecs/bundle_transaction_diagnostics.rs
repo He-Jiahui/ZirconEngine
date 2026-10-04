@@ -1,5 +1,5 @@
-use crate::core::CoreHandle;
 use crate::core::diagnostics::DiagnosticStore;
+use crate::core::CoreHandle;
 
 pub const ECS_BUNDLE_TRANSACTION_COUNT_DIAGNOSTIC: &str = "scene.ecs.bundle_transactions.committed";
 pub const ECS_BUNDLE_FINAL_ARCHETYPE_TRANSITIONS_DIAGNOSTIC: &str =
@@ -58,7 +58,7 @@ impl BundleTransactionDiagnostics {
 
     pub fn record_diagnostics(&self, store: &mut DiagnosticStore, frame_index: u64) {
         for (path, value) in self.diagnostic_values() {
-            store.record(path, frame_index, value, Some("count"), ["ecs", "bundle"]);
+            store.record_static(path, frame_index, value, Some("count"), &["ecs", "bundle"]);
         }
     }
 
@@ -99,17 +99,5 @@ impl BundleTransactionDiagnostics {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::BundleTransactionDiagnostics;
-
-    #[test]
-    fn transaction_diagnostics_derive_intermediate_signatures_from_actual_assignments() {
-        let mut diagnostics = BundleTransactionDiagnostics::default();
-
-        diagnostics.record_commit(true, 3, 0, 0, 0);
-
-        assert_eq!(diagnostics.committed_transactions, 1);
-        assert_eq!(diagnostics.final_archetype_transitions, 1);
-        assert_eq!(diagnostics.intermediate_signatures, 2);
-    }
-}
+#[path = "tests/bundle_transaction_diagnostics.rs"]
+mod tests;

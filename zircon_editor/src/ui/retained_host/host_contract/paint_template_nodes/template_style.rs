@@ -1,3 +1,6 @@
+//! 供通用表面与文字 fallback 消费的样式投影；专用控件可覆写自己的语义和几何。
+//! 状态解析复用共享选择器，颜色、边界尺寸与交互生命周期分开维护。
+
 mod colors;
 mod dimensions;
 mod elevation;
@@ -18,5 +21,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use overla
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use state::is_button_disabled;
 
 #[cfg(test)]
-#[path = "template_style_tests/mod.rs"]
+#[path = "template_style_tests/tests/mod.rs"]
 mod tests;

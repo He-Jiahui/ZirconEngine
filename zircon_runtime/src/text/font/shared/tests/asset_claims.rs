@@ -3,9 +3,9 @@ use std::sync::Arc;
 
 use super::super::*;
 use crate::asset::ProjectAssetManager;
-use crate::text::font::DEFAULT_UI_FONT_ASSET;
 use crate::text::font::prepare_runtime_font_asset_admission;
 use crate::text::font::test_font_fixtures::unique_font_fixture_path;
+use crate::text::font::DEFAULT_UI_FONT_ASSET;
 use crate::text::{CompositeFontDescriptor, FontFamilyName};
 
 #[test]
@@ -74,11 +74,9 @@ fn dropping_one_claim_scope_retires_all_unshared_owners_in_one_publication() {
     drop(scope);
     let released = collection.collection_snapshot();
     assert_eq!(released.generation(), admitted_generation + 1);
-    assert!(
-        !released
-            .database()
-            .has_font_asset_owner(DEFAULT_UI_FONT_ASSET)
-    );
+    assert!(!released
+        .database()
+        .has_font_asset_owner(DEFAULT_UI_FONT_ASSET));
     assert!(!released.database().has_font_asset_owner(custom_owner));
     assert_eq!(released.database().face_count(), runtime_face_count);
     assert_eq!(

@@ -1,6 +1,5 @@
 ---
 related_code:
-  - zircon_editor/src/core/project/authority.rs
   - zircon_editor/src/core/project/opened_project.rs
   - zircon_editor/src/core/project/project_probe.rs
   - zircon_editor/src/ui/host/project_access.rs

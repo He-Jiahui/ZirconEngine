@@ -12,6 +12,9 @@ HOST_CONVERSION = (
 RUNTIME_RENDERER = (
     ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs"
 )
+PAINT_PROJECTION = (
+    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/paint_projection.rs"
+)
 
 
 class EditorRuntimeRenderCommandTransientExtractionContractTests(unittest.TestCase):
@@ -34,13 +37,16 @@ class EditorRuntimeRenderCommandTransientExtractionContractTests(unittest.TestCa
 
     def test_runtime_gpu_planner_uses_transient_extraction(self) -> None:
         source = RUNTIME_RENDERER.read_text(encoding="utf-8")
+        projection = PAINT_PROJECTION.read_text(encoding="utf-8")
         function = source.split(
             "fn plan_screen_space_ui_batches_with_framebuffer_background", 1
         )[1]
         function = function.split("fn framebuffer_background_color", 1)[0]
 
-        self.assertIn("command.to_transient_paint_elements(0)", function)
+        self.assertIn("project_transient_paint_elements(", function)
         self.assertNotIn("command.to_paint_elements(0)", function)
+        self.assertIn("command.fill_transient_paint_elements", projection)
+        self.assertNotIn("command.to_paint_elements", projection)
 
 
 if __name__ == "__main__":

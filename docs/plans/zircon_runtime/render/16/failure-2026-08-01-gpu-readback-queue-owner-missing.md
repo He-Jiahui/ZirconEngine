@@ -11,8 +11,11 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_readback_queue/
   - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_pass_timer.rs
-  - zircon_runtime/src/graphics/backend/render_backend/gpu_readback_queue/mod.rs
-  - zircon_runtime/src/graphics/runtime_prepare_collector.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/production/diagnostics/readback/
+  - zircon_runtime/src/graphics/backend/render_backend/render_backend_diagnostics.rs
+  - zircon_runtime/src/graphics/backend/render_backend/product_diagnostic_delivery_router.rs
+  - zircon_runtime/src/graphics/runtime_prepare_collector/
+  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/capture_mailbox.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_gpu_timestamps.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/
@@ -20,7 +23,7 @@ related_code:
   - zircon_plugins/particles/runtime/src/render/runtime_prepare.rs
 tests:
   - readback_callback_fires_after_n_frame_delay
-  - readback_slot_reuse_blocks_until_map_complete
+  - readback_slot_reuse_is_refused_without_waiting_for_map_completion
   - readback_ring_grows_to_fit_frame_requests
   - readback_ring_shrink_delay_counts_global_frames_across_slot_reuse
   - readback_no_private_map_async_source_scan
@@ -64,12 +67,20 @@ Render16 CN-M1 切片 1.3 尚未实现。Render17 若只把 timer 的私有槽�
 
 ### 2026-08-01 当前实现
 
-- 已在 `rhi_wgpu/gpu_readback_queue/` 建立唯一 WGPU owner，并由计划指定的 `graphics/backend/render_backend/gpu_readback_queue` facade 暴露；`SceneRendererCore` 和 UI surface 分别持有与自身 device 对应的唯一实例，没有 timer/executor 私有 ring。
+- 已在 `rhi_wgpu/gpu_readback_queue/` 建立共享低层 owner，timer/UI 等选定消费者不再各自持有 ring。当前 scene/runtime production diagnostics 已进一步迁到同一 device 下的 `production/diagnostics/readback` service，并由 `RenderBackend` product-diagnostic router 统一 admission、copy/map 与 callback 派发；原文所列 `graphics/backend/render_backend/gpu_readback_queue` facade 已不存在，不能继续作为当前路径证据。
 - 三槽 staging、空帧零分配、256-byte 请求布局、2 的幂增长、240 个全局帧低利用率收缩、N+1..N+2 非阻塞 poll、N+3 槽复用背压、ticket/cancel、panic 隔离、abort 错误完成和统计回传均已实现。二次性能复核修正了每槽只加1导致实际约720帧才收缩的偏差，现按该槽两次复用间经过的全局帧数累计，80次N+3复用即240帧触发一次减半。
 - timer、realtime IBL timestamp、HZB stats/indirect args、mesh indirect args、Hybrid GI 与 particles 普通帧消费者已迁移；Virtual Geometry 的尚未接入生产的 GPU prepare 路径已改为只能通过 `RuntimePrepareCollectorContext::request_gpu_readback` enqueue，decoder 不再拥有 map 生命周期。
 - Hybrid GI/Virtual Geometry 直接从原 storage buffer 进入共享 staging，删除 9 个每次 prepare 的中间 readback buffer 分配和 9 次冗余 buffer-to-buffer copy；仅保留 WGPU texture-to-buffer 所需的行布局中转。
 - 二次审查发现并前向修复：容量布局失败会丢 callback、粒子实例归零后保留陈旧 future、迁移后死方法/死 helper、插件双重 copy，以及 staging 内部不变量依赖生产 `expect`/未检查 mapped slice。请求名现进入失败诊断，编码/映射/完成路径均以可恢复错误完成 callback；GPU 已提交后的 readback error 会先完成 transient pool、scene frame 状态或 UI surface present 再传播，不再留下半结束帧。
 - 最新静态二次审查结论为 C0/I0；scoped `rustfmt`、`git diff --check`、生产 panic/dead-code guard 与私有 `map_async`/阻塞等待 source scan 通过。
+
+### 2026-09-21 current-source reconciliation
+
+- 槽复用的现行语义是非阻塞拒绝并累计 `slot_reuse_rejection_count`；旧测试名和计划中“第 4 帧阻塞等待”与禁止 caller-thread wait 的验收相冲突，已纠正为 `readback_slot_reuse_is_refused_without_waiting_for_map_completion`。
+- `readback_no_private_map_async_source_scan` 当前覆盖列举的 ordinary production consumers，而不是对整个仓库做字符串白名单。显式 screenshot/headless、WGPU product-diagnostic service、IBL artifact persistence 与测试夹具拥有各自受约束的 map 生命周期；最终验收必须按角色核对这些例外，不能把窄扫描描述成全树唯一 owner 证明。
+- viewport fallback 使用 product-diagnostic service；其 latest-ready mailbox 的晚到淘汰代际曾可把完整 RGBA payload 永久留在 `completed`。当前 source 修复以有界 armed generation window + request-drop cancellation 封住该缺口，并加入 callback-before-register、trimmed late completion、重复 late completion、显式 cancel 与 request-drop 回归。精确五文件快照独立终审 `review-render16-readback-chain-r2` 为 C0/I0/M0；该修复仍待 managed Cargo。
+- 因此本记录仍为 `source_complete_dynamic_validation_pending`：低层 queue 的既有静态 ticket `e3df88f2a9f3455483cf45cddcfe3252` 只覆盖当前 `queue.rs` 等五个 blob，不覆盖本次 mailbox 变化，也不代替产品 WGPU/PNG/RDC、Render17 latency 或双中心 owner 角色审查。
+- mailbox focused ticket `b3ae4113607a44b6a86d3ad3354ee24e` 冻结的是 rustfmt 修正前的两个源码哈希，并已因 validation copy 内相对 validator 路径不可解析而在 Cargo/test 前以 coordinator exit 1 终态失败；它不是测试失败且不能作为现行源码验收。唯一 current-hash successor `2a5e5ccf50c941d088a937c140b60459` 已改用仓库绝对 validator 路径与 validation-copy `-RepoRoot`，当前 `queued`，预期精确执行 6 个 `capture_mailbox` tests。
 
 ### 仍待接受的证据
 

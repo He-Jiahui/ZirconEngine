@@ -37,6 +37,7 @@ pub tierForSkill(skill: int): int {
 // `hasRequirement` represents an absent comboRequirement. For a present
 // requirement, craftA/craftB/minTier are source recipe fields and skillA/B
 // refer to those crafts in the same order.
+/// 制作事务在扣材料前调用此纯判定；技能值必须按配方 craftA/craftB 的顺序提供，活动双专精组合则按无序对匹配。
 pub comboEligibility(
     hasRequirement: bool,
     craftA: string,

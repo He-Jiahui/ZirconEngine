@@ -2,7 +2,7 @@
 related_code:
   - Cargo.toml
   - .github/workflows/profile-feature-contract.yml
-  - tools/check-runtime-profile-features.ps1
+  - tools/validation/check-runtime-profile-features.ps1
   - zircon_runtime_interface/src/profiling.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/macros.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs
@@ -52,7 +52,7 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md
   - docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md
   - docs/plans/zircon_runtime/runtime/07/2026-07-11-runtime07-durable-performance-evidence-and-resource-gate.md
-  - docs/zircon_runtime/performance/hotspot_inventory.md
+  - docs/crates/zircon_runtime/performance/hotspot_inventory.md
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/02-unreal-aligned-engine-system-hard-cutover.md
   - docs/plans/optimize/zircon_runtime/05-scene-ecs-world-lifecycle-review.md

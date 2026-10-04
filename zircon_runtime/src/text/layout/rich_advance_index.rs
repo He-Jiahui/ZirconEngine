@@ -1,7 +1,8 @@
 use crate::core::framework::text::TextDirection;
 use crate::core::framework::text::TextLayoutError;
+use crate::text::layout_geometry::{finite_sum, FiniteGeometryAccumulator};
 use crate::text::shaping::{
-    TextLayoutOutcome, TextShapeRunProvider, TextShapingOutcome, resolve_bidi_base_direction,
+    resolve_bidi_base_direction, TextLayoutOutcome, TextShapeRunProvider, TextShapingOutcome,
 };
 use crate::text::{InlineObjectRef, TextStyle};
 use unicode_segmentation::UnicodeSegmentation;
@@ -9,9 +10,10 @@ use unicode_segmentation::UnicodeSegmentation;
 use super::advance_index::{GraphemeAdvanceIndex, GraphemeAdvanceMetric};
 use super::line_break::{corrected_index_advance_with_provider, corrected_metric_ranges};
 use super::measure::{
-    MeasuredClusterCaretPolicy, MeasuredGlyphCluster, measured_grapheme_geometry_with_provider,
+    project_shaped_geometry_to_source_ranges, shape_unconstrained_line_with_provider,
+    MeasuredClusterCaretPolicy, MeasuredGlyphCluster,
 };
-use super::{RichTextLayoutSource, resolve_rich_run_style};
+use super::{resolve_rich_run_style, RichTextLayoutSource};
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct RichAdvanceIndex {
@@ -35,7 +37,20 @@ impl RichAdvanceIndex {
             Ok(spans) => spans,
             Err(error) => return TextShapingOutcome::failed(error),
         };
-        let mut metrics = Vec::new();
+        let paragraph_grapheme_ranges = source
+            .text()
+            .grapheme_indices(true)
+            .map(|(start, grapheme)| (start, start.saturating_add(grapheme.len())))
+            .collect::<Vec<_>>();
+        let mut metrics = paragraph_grapheme_ranges
+            .iter()
+            .map(|&(source_start, source_end)| GraphemeAdvanceMetric {
+                source_start,
+                source_end,
+                advance: 0.0,
+                cross_extent: 0.0,
+            })
+            .collect::<Vec<_>>();
         let mut glyph_clusters = Vec::new();
         let mut text_spans = Vec::new();
         for span in spans {
@@ -46,6 +61,7 @@ impl RichAdvanceIndex {
                     source.text(),
                     span.start,
                     span.end,
+                    &paragraph_grapheme_ranges,
                     inline_metrics(inline, &span.style),
                 ) {
                     TextShapingOutcome::Ready(()) => {}
@@ -61,6 +77,7 @@ impl RichAdvanceIndex {
                     source.text(),
                     span.start,
                     span.end,
+                    &paragraph_grapheme_ranges,
                     &span.style,
                     provider,
                 ) {
@@ -136,41 +153,54 @@ impl RichAdvanceIndex {
             return self
                 .corrected_span_advance(source, span, span_start, span_end, break_suffix, provider)
                 .map(|corrected| {
-                    raw_advance - self.index.advance(span_start, span_end) + corrected
+                    let mut resolved = FiniteGeometryAccumulator::default();
+                    resolved.add(raw_advance);
+                    resolved.add(-self.index.advance(span_start, span_end));
+                    resolved.add(corrected);
+                    finite_non_negative(resolved.value())
                 });
         }
 
-        let mut corrected = raw_advance;
+        let mut corrected = FiniteGeometryAccumulator::default();
+        corrected.add(raw_advance);
         let first_span = &self.text_spans[first];
         if start > first_span.start {
             let span_end = end.min(first_span.end);
-            corrected -= self.index.advance(start, span_end);
-            corrected += match self
-                .corrected_span_advance(source, first_span, start, span_end, None, provider)
-            {
-                TextShapingOutcome::Ready(advance) => advance,
-                TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
-                TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
-            };
+            corrected.add(-self.index.advance(start, span_end));
+            corrected.add(
+                match self
+                    .corrected_span_advance(source, first_span, start, span_end, None, provider)
+                {
+                    TextShapingOutcome::Ready(advance) => advance,
+                    TextShapingOutcome::Deferred(error) => {
+                        return TextShapingOutcome::Deferred(error)
+                    }
+                    TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+                },
+            );
         }
         let last_span = &self.text_spans[last];
         if end < last_span.end || break_suffix.is_some() {
             let span_start = start.max(last_span.start);
-            corrected -= self.index.advance(span_start, end);
-            corrected += match self.corrected_span_advance(
-                source,
-                last_span,
-                span_start,
-                end,
-                break_suffix,
-                provider,
-            ) {
-                TextShapingOutcome::Ready(advance) => advance,
-                TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
-                TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
-            };
+            corrected.add(-self.index.advance(span_start, end));
+            corrected.add(
+                match self.corrected_span_advance(
+                    source,
+                    last_span,
+                    span_start,
+                    end,
+                    break_suffix,
+                    provider,
+                ) {
+                    TextShapingOutcome::Ready(advance) => advance,
+                    TextShapingOutcome::Deferred(error) => {
+                        return TextShapingOutcome::Deferred(error)
+                    }
+                    TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+                },
+            );
         }
-        TextShapingOutcome::Ready(finite_non_negative(corrected))
+        TextShapingOutcome::Ready(finite_non_negative(corrected.value()))
     }
 
     pub(crate) fn corrected_glyph_ranges_with_provider<P>(
@@ -352,6 +382,7 @@ fn append_text_metrics<P>(
     source: &str,
     start: usize,
     end: usize,
+    paragraph_graphemes: &[(usize, usize)],
     style: &TextStyle,
     provider: &mut P,
 ) -> TextLayoutOutcome<()>
@@ -366,12 +397,14 @@ where
         match append_shaped_segment(
             metrics,
             glyph_clusters,
+            source,
             text,
             start,
             line.content.start,
             line.content.end,
             cross_extent,
             style,
+            paragraph_graphemes,
             provider,
         ) {
             TextShapingOutcome::Ready(()) => {}
@@ -387,12 +420,13 @@ where
                 Some(value) => value,
                 None => return TextShapingOutcome::failed(TextLayoutError::LayoutFailed),
             };
-            metrics.push(GraphemeAdvanceMetric {
-                source_start: separator_start,
-                source_end: separator_end,
-                advance: 0.0,
+            accumulate_cross_extent(
+                metrics,
+                paragraph_graphemes,
+                separator_start,
+                separator_end,
                 cross_extent,
-            });
+            );
             glyph_clusters.push(MeasuredGlyphCluster {
                 source_range: crate::text::TextRange {
                     start: separator_start,
@@ -411,12 +445,14 @@ where
 fn append_shaped_segment<P>(
     metrics: &mut Vec<GraphemeAdvanceMetric>,
     glyph_clusters: &mut Vec<MeasuredGlyphCluster>,
+    source: &str,
     span_text: &str,
     span_source_start: usize,
     segment_start: usize,
     segment_end: usize,
     cross_extent: f32,
     style: &TextStyle,
+    paragraph_graphemes: &[(usize, usize)],
     provider: &mut P,
 ) -> TextLayoutOutcome<()>
 where
@@ -428,44 +464,37 @@ where
     if text.is_empty() {
         return TextShapingOutcome::Ready(());
     }
-    let geometry = match measured_grapheme_geometry_with_provider(text, style, provider) {
-        TextShapingOutcome::Ready(geometry) => geometry,
+    let shaped = match shape_unconstrained_line_with_provider(text, style, provider) {
+        TextShapingOutcome::Ready(shaped) => shaped,
         TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
         TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
     };
-    for (index, (offset, grapheme)) in text.grapheme_indices(true).enumerate() {
-        let Some(source_start) = span_source_start
-            .checked_add(segment_start)
-            .and_then(|value| value.checked_add(offset))
-        else {
-            return TextShapingOutcome::failed(TextLayoutError::LayoutFailed);
-        };
-        let Some(source_end) = source_start.checked_add(grapheme.len()) else {
-            return TextShapingOutcome::failed(TextLayoutError::LayoutFailed);
-        };
-        metrics.push(GraphemeAdvanceMetric {
-            source_start,
-            source_end,
-            advance: geometry
-                .advances
-                .get(index)
-                .copied()
-                .map_or(0.0, finite_non_negative),
-            cross_extent,
-        });
-    }
     let Some(source_offset) = span_source_start.checked_add(segment_start) else {
         return TextShapingOutcome::failed(TextLayoutError::LayoutFailed);
     };
-    for mut cluster in geometry.glyph_clusters {
-        let Some(source_start) = cluster.source_range.start.checked_add(source_offset) else {
-            return TextShapingOutcome::failed(TextLayoutError::LayoutFailed);
-        };
-        cluster.source_range.start = source_start;
-        let Some(source_end) = cluster.source_range.end.checked_add(source_offset) else {
-            return TextShapingOutcome::failed(TextLayoutError::LayoutFailed);
-        };
-        cluster.source_range.end = source_end;
+    let first = paragraph_graphemes.partition_point(|&(_, end)| end <= source_offset);
+    let after_last = paragraph_graphemes
+        .partition_point(|&(start, _)| start < source_offset.saturating_add(text.len()));
+    let geometry = match project_shaped_geometry_to_source_ranges(
+        shaped.as_ref(),
+        source,
+        0,
+        source_offset,
+        paragraph_graphemes
+            .get(first..after_last)
+            .unwrap_or_default(),
+        true,
+    ) {
+        Ok(geometry) => geometry,
+        Err(error) => return TextShapingOutcome::failed(error),
+    };
+    for (offset, geometry) in geometry.advances.into_iter().enumerate() {
+        if let Some(metric) = metrics.get_mut(first.saturating_add(offset)) {
+            metric.advance = finite_sum([metric.advance, finite_non_negative(geometry)]);
+            metric.cross_extent = metric.cross_extent.max(cross_extent);
+        }
+    }
+    for cluster in geometry.glyph_clusters {
         glyph_clusters.push(cluster);
     }
     TextShapingOutcome::Ready(())
@@ -477,6 +506,7 @@ fn append_inline_metrics(
     source: &str,
     start: usize,
     end: usize,
+    paragraph_graphemes: &[(usize, usize)],
     inline_metrics: (f32, f32),
 ) -> TextLayoutOutcome<()> {
     let Some(text) = source.get(start..end) else {
@@ -484,21 +514,16 @@ fn append_inline_metrics(
     };
     let advance = finite_non_negative(inline_metrics.0);
     let cross_extent = finite_non_negative(inline_metrics.1);
-    let mut grapheme_count = 0_usize;
-    for (index, (offset, grapheme)) in text.grapheme_indices(true).enumerate() {
-        grapheme_count = grapheme_count.saturating_add(1);
-        let Some(source_start) = start.checked_add(offset) else {
-            return TextShapingOutcome::failed(TextLayoutError::LayoutFailed);
-        };
-        let Some(source_end) = source_start.checked_add(grapheme.len()) else {
-            return TextShapingOutcome::failed(TextLayoutError::LayoutFailed);
-        };
-        metrics.push(GraphemeAdvanceMetric {
-            source_start,
-            source_end,
-            advance: if index == 0 { advance } else { 0.0 },
-            cross_extent,
-        });
+    let first = paragraph_graphemes.partition_point(|&(_, grapheme_end)| grapheme_end <= start);
+    let after_last =
+        paragraph_graphemes.partition_point(|&(grapheme_start, _)| grapheme_start < end);
+    let grapheme_count = after_last.saturating_sub(first);
+    for index in first..after_last {
+        if let Some(metric) = metrics.get_mut(index) {
+            metric.advance =
+                finite_sum([metric.advance, if index == first { advance } else { 0.0 }]);
+            metric.cross_extent = metric.cross_extent.max(cross_extent);
+        }
     }
     if grapheme_count > 0 {
         glyph_clusters.push(MeasuredGlyphCluster {
@@ -515,6 +540,23 @@ fn append_inline_metrics(
     TextShapingOutcome::Ready(())
 }
 
+fn accumulate_cross_extent(
+    metrics: &mut [GraphemeAdvanceMetric],
+    paragraph_graphemes: &[(usize, usize)],
+    start: usize,
+    end: usize,
+    cross_extent: f32,
+) {
+    let first = paragraph_graphemes.partition_point(|&(_, grapheme_end)| grapheme_end <= start);
+    let after_last =
+        paragraph_graphemes.partition_point(|&(grapheme_start, _)| grapheme_start < end);
+    for index in first..after_last {
+        if let Some(metric) = metrics.get_mut(index) {
+            metric.cross_extent = metric.cross_extent.max(cross_extent);
+        }
+    }
+}
+
 fn finite_non_negative(value: f32) -> f32 {
     if value.is_finite() {
         value.max(0.0)
@@ -524,4 +566,5 @@ fn finite_non_negative(value: f32) -> f32 {
 }
 
 #[cfg(test)]
+#[path = "rich_advance_index/tests/cases.rs"]
 mod tests;

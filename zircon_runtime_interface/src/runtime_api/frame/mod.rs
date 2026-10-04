@@ -19,4 +19,5 @@ pub use viewport_pick::{
 };
 
 #[cfg(test)]
+#[path = "tests/frame_shape_tests.rs"]
 mod frame_shape_tests;

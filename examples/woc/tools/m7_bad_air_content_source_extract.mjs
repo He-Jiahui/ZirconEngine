@@ -60,6 +60,7 @@ function numberConstant(name) {
   return numeric(declaration(name), name);
 }
 
+// 在固定版本的计时函数中定位 Bad Air 光环字面量，再读取其标量字段。
 function findAuraObject(root) {
   let found = null;
   const visit = (node) => {

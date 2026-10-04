@@ -1,13 +1,13 @@
 from pathlib import Path
 import unittest
 
-from tools.runtime_ui_render_cache_batch_reuse_pressure import run
+from tools.analysis.performance.runtime.runtime_ui_render_cache_batch_reuse_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
 CACHE_SOURCE = ROOT / "zircon_runtime_interface/src/ui/surface/render/cache.rs"
 
-
+# 检查渲染缓存批次复用无需临时 Vec；压力模型仅移除临时分配，不改变真实批次工作。
 class RuntimeUiRenderCacheBatchReuseContractTests(unittest.TestCase):
     def test_batch_reuse_checks_sources_without_collecting_a_temporary_vec(self) -> None:
         source = CACHE_SOURCE.read_text(encoding="utf-8")

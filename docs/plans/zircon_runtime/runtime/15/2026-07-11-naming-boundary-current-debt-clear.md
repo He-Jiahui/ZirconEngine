@@ -5,8 +5,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_advances.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_naming_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_convention_gate.py
-  - docs/zircon_runtime/structure/module-convention.md
-  - tests/acceptance/runtime-architecture-current-progress.md
+  - docs/crates/zircon_runtime/structure/module-convention.md
 implementation_files:
   - zircon_runtime/src/ui/surface/render/text_prewarm.rs
   - zircon_runtime/src/ui/text/geometry.rs

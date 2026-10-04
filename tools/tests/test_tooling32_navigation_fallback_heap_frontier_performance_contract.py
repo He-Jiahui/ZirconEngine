@@ -1,3 +1,4 @@
+# 核对导航回退路径使用堆前沿及稳定多边形平局顺序。
 from pathlib import Path
 
 

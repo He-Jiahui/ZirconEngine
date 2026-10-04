@@ -1,3 +1,6 @@
+// 调用端：npm run generate:equipment-routing-contract (tools/package.json)；职责：从装备规则和物品定义提取槽位及物品路由。
+// 输入边界：src/sim/equipment_rules.ts, src/sim/items.ts；--check 比较生成结果，不改写目标文件。
+
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

@@ -19,6 +19,7 @@ fn controller_submits_shared_ui_overlay_through_render_framework() {
 
     controller
         .submit_extract_with_ui(
+            "editor.viewport",
             test_extract(),
             Some(Arc::new(test_ui_extract("Viewport HUD"))),
             UVec2::new(300, 150),
@@ -61,6 +62,7 @@ fn controller_submits_world_space_ui_surfaces_through_render_framework_ui_extrac
 
     controller
         .submit_extract_with_ui(
+            "editor.viewport",
             test_extract(),
             Some(Arc::new(test_ui_extract("Viewport HUD"))),
             UVec2::new(320, 180),

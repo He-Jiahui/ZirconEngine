@@ -11,12 +11,12 @@ from uuid import uuid4
 
 class ZirconBuildHubManagedRootsTests(unittest.TestCase):
     def test_hub_environment_routes_npm_cache_to_the_managed_target(self) -> None:
-        from tools.zircon_build_hub import hub_cargo_environment
+        from tools.build.zircon_build_hub import hub_cargo_environment
 
         with (
             tempfile.TemporaryDirectory() as temporary_root,
             mock.patch(
-                "tools.zircon_build_cargo_environment."
+                "tools.build.zircon_build_cargo_environment."
                 "assert_managed_windows_build_root"
             ),
         ):
@@ -30,7 +30,7 @@ class ZirconBuildHubManagedRootsTests(unittest.TestCase):
 
     @unittest.skipUnless(os.name == "nt", "Windows staging roots are Windows-only")
     def test_staging_rejects_unmanaged_engine_root_before_copy(self) -> None:
-        from tools.zircon_build_hub_outputs import stage_hub_tauri_outputs
+        from tools.build.zircon_build_hub_outputs import stage_hub_tauri_outputs
 
         root = Path(r"C:\ZirconBuilds") / f"hub-must-not-be-created-{uuid4().hex}"
         config = types.SimpleNamespace(
@@ -38,13 +38,13 @@ class ZirconBuildHubManagedRootsTests(unittest.TestCase):
             profile_dir="debug",
             dry_run=False,
         )
-        target_dir = Path(r"D:\ZirconBuilds") / f"hub-target-{uuid4().hex}"
+        target_dir = Path(r"D:\cargo-targets") / f"hub-target-{uuid4().hex}"
 
         self.assertFalse(root.exists())
         with (
-            mock.patch("tools.zircon_build_hub_outputs._copy_artifact") as copy_artifact,
+            mock.patch("tools.build.zircon_build_hub_outputs._copy_artifact") as copy_artifact,
             mock.patch(
-                "tools.zircon_build_hub_outputs.stage_hub_tauri_installers"
+                "tools.build.zircon_build_hub_outputs.stage_hub_tauri_installers"
             ) as stage_installers,
             self.assertRaisesRegex(ValueError, "approved build root"),
         ):
@@ -56,7 +56,7 @@ class ZirconBuildHubManagedRootsTests(unittest.TestCase):
 
     @unittest.skipUnless(os.name == "nt", "Windows staging roots are Windows-only")
     def test_installer_staging_rejects_unmanaged_root_before_deletion(self) -> None:
-        from tools.zircon_build_hub_outputs import stage_hub_tauri_installers
+        from tools.build.zircon_build_hub_outputs import stage_hub_tauri_installers
 
         root = Path(r"C:\ZirconBuilds") / f"hub-must-not-be-created-{uuid4().hex}"
         config = types.SimpleNamespace(dry_run=False)
@@ -64,7 +64,7 @@ class ZirconBuildHubManagedRootsTests(unittest.TestCase):
         self.assertFalse(root.exists())
         with self.assertRaisesRegex(ValueError, "approved build root"):
             stage_hub_tauri_installers(
-                Path(r"D:\ZirconBuilds") / f"bundle-{uuid4().hex}",
+                Path(r"D:\cargo-targets") / f"bundle-{uuid4().hex}",
                 root / "installers",
                 config,
             )

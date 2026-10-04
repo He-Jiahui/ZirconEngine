@@ -2,6 +2,7 @@ use zircon_runtime::graphics::GraphicsError;
 
 use super::read_buffer_u32s::read_buffer_u32s;
 
+// 解码计数头及 page/slot/recycled 三字记录；MAX 回收页标记表示没有替换记录。
 pub(in crate::virtual_geometry::renderer::gpu_readback) fn completed_page_assignments(
     completed_bytes: &[u8],
     completed_word_count: usize,
@@ -37,4 +38,5 @@ fn project_completed_assignments(
 }
 
 #[cfg(test)]
+#[path = "completed_page_assignments/tests/performance_tests.rs"]
 mod performance_tests;

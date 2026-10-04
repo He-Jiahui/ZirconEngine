@@ -3,10 +3,13 @@ use std::sync::Arc;
 
 use super::super::super::super::*;
 use super::bundle::StartupTemplateBridges;
+use crate::core::i18n::EditorI18nService;
 
+// 启动时共享内建模板 Runtime，再按 shell 装载尺寸建立各表面桥；后续重算复用这些桥的已挂载状态。
 pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn create_startup_template_bridges(
     shell_size: ShellSizePx,
-) -> Result<StartupTemplateBridges, Box<dyn Error>> {
+    i18n: Arc<EditorI18nService>,
+) -> Result<StartupTemplateBridges, Box<dyn Error + Send + Sync>> {
     let builtin_template_runtime = {
         zircon_runtime::profile_scope!(
             "editor",
@@ -28,9 +31,10 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn create_startup
         let mount_frame = template_bridge
             .root_shell_frames()
             .componentized_workbench_mount_frame(template_size);
-        callback_dispatch::BuiltinWorkbenchWindowTemplateSurfaceBridge::new_mounted_with_runtime(
+        callback_dispatch::BuiltinWorkbenchWindowTemplateSurfaceBridge::new_mounted_with_runtime_and_i18n(
             builtin_template_runtime.clone(),
             mount_frame,
+            i18n,
         )?
     };
     let floating_window_source_bridge = {

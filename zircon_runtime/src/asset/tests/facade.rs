@@ -1,3 +1,4 @@
+//! 公共资产门面的测试夹具统一使用同一资源身份模型，便于核对加载状态、依赖和事件视图。
 use std::time::Duration;
 
 use crate::asset::{

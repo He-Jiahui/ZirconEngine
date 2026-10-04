@@ -1,3 +1,4 @@
+//! 事件先更新瞬态状态，再于发布边界叠加到反射节点，不回写布局或实体数据。
 use std::collections::BTreeSet;
 
 use serde::{Deserialize, Serialize};
@@ -10,6 +11,7 @@ use zircon_runtime_interface::ui::{
 use crate::core::editor_event::EditorEventTransient;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// 当前壳的短时交互状态；节点路径和实例身份来自已发布的工作台结构。
 pub(crate) struct EditorTransientUiState {
     hovered_node: Option<String>,
     focused_node: Option<String>,
@@ -80,6 +82,7 @@ impl EditorTransientUiState {
     }
 }
 
+/// 发布前叠加瞬态属性；调用方应先构造完整结构快照。
 pub(crate) fn apply_transient_projection(
     snapshot: &mut UiReflectionSnapshot,
     transient: &EditorTransientUiState,
@@ -123,15 +126,8 @@ fn upsert_property(node: &mut UiNodeDescriptor, name: &str, value: bool) {
 }
 
 #[cfg(test)]
-mod performance_tests {
-    #[test]
-    fn transient_projection_borrows_paths_and_reuses_properties() {
-        let source = include_str!("transient_ui_state.rs");
-        let implementation = source.split("#[cfg(test)]").next().expect("implementation");
-        assert!(!implementation.contains("node.node_path.0.clone()"));
-        assert!(implementation.contains("node.properties.get_mut(name)"));
-    }
-}
+#[path = "tests/transient_ui_state_performance_tests.rs"]
+mod performance_tests;
 
 fn drawer_id_from_path(node_path: &str) -> Option<&str> {
     let prefix = "editor/workbench/drawers/";

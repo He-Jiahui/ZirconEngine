@@ -1,3 +1,4 @@
+//! 保护项目中心运行态的子模块职责、检查入口与源码规模；这些约束读取检出文本，具体业务结果由被列出的行为测试另行验证。
 use super::{assert_contains_all, read_repo};
 
 const SLICE: &str = "Runtime 15 M3 support Hub runtime-state tests child-owner split";
@@ -6,7 +7,7 @@ const STATUS: &str =
 const DATE: &str = "2026-06-27";
 const GUARD: &str = "runtime_15_support_hub_runtime_state_tests_are_child_owner";
 const RUNTIME_STATE: &str = "zircon_hub/src/tauri_app/runtime_state.rs";
-const RUNTIME_STATE_TESTS: &str = "zircon_hub/src/tauri_app/runtime_state/tests.rs";
+const RUNTIME_STATE_TESTS: &str = "zircon_hub/src/tauri_app/runtime_state/tests/cases.rs";
 const PARENT_FILE_BUDGET: usize = 1000;
 const TEST_FILE_BUDGET: usize = 800;
 

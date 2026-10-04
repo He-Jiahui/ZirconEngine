@@ -1,5 +1,6 @@
 use super::SourceEngineInstall;
 
+/// 解析当前可用的源码引擎供构建和界面读取；无效选择回退到登记顺序中的首项。
 pub fn active_source_engine<'a>(
     engines: &'a [SourceEngineInstall],
     active_engine_id: Option<&str>,
@@ -9,6 +10,7 @@ pub fn active_source_engine<'a>(
         .or_else(|| engines.first())
 }
 
+/// 与只读解析保持相同回退规则，供更新当前引擎的配置或构建历史。
 pub fn active_source_engine_mut<'a>(
     engines: &'a mut [SourceEngineInstall],
     active_engine_id: Option<&str>,
@@ -21,6 +23,7 @@ pub fn active_source_engine_mut<'a>(
     engines.first_mut()
 }
 
+/// 在登记表变化后修复持久化的活动 ID；空表时清除选择，避免界面指向已删除引擎。
 pub fn ensure_active_source_engine(
     engines: &[SourceEngineInstall],
     active_engine_id: &mut Option<String>,
@@ -41,6 +44,7 @@ pub fn upsert_source_engine(engines: &mut Vec<SourceEngineInstall>, engine: Sour
     }
 }
 
+/// 在引擎删除或迁移后清除项目中的悬空绑定，同时保留钉选等独立元数据。
 pub fn prune_project_engine_bindings(
     metadata: &mut crate::projects::ProjectMetadataMap,
     engines: &[SourceEngineInstall],
@@ -58,6 +62,7 @@ pub fn prune_project_engine_bindings(
     pruned
 }
 
+/// 删除登记项后同步修复活动选择；调用方仍需持久化配置并刷新项目作用域视图。
 pub fn remove_source_engine(
     engines: &mut Vec<SourceEngineInstall>,
     active_engine_id: &mut Option<String>,
@@ -70,131 +75,5 @@ pub fn remove_source_engine(
 }
 
 #[cfg(test)]
-mod tests {
-    use std::path::PathBuf;
-
-    use super::*;
-
-    fn engine(id: &str) -> SourceEngineInstall {
-        SourceEngineInstall {
-            id: id.to_string(),
-            display_name: format!("{id} Engine"),
-            source_dir: PathBuf::from(format!("E:/{id}")),
-            output_dir: PathBuf::from(format!("E:/out/{id}")),
-            last_build_unix_ms: None,
-            build_history: Vec::new(),
-        }
-    }
-
-    #[test]
-    fn active_source_engine_falls_back_to_first_record() {
-        let engines = vec![engine("first"), engine("second")];
-
-        assert_eq!(
-            active_source_engine(&engines, Some("second")).map(|engine| engine.id.as_str()),
-            Some("second")
-        );
-        assert_eq!(
-            active_source_engine(&engines, Some("missing")).map(|engine| engine.id.as_str()),
-            Some("first")
-        );
-    }
-
-    #[test]
-    fn active_source_engine_mut_updates_selected_or_first_record() {
-        let mut engines = vec![engine("first"), engine("second")];
-
-        active_source_engine_mut(&mut engines, Some("second"))
-            .expect("selected engine should be mutable")
-            .display_name = "Selected".to_string();
-        active_source_engine_mut(&mut engines, Some("missing"))
-            .expect("missing selection should fallback to first engine")
-            .display_name = "Fallback".to_string();
-
-        assert_eq!(engines[0].display_name, "Fallback");
-        assert_eq!(engines[1].display_name, "Selected");
-    }
-
-    #[test]
-    fn upsert_source_engine_replaces_existing_record() {
-        let mut engines = vec![engine("local")];
-        let mut updated = engine("local");
-        updated.display_name = "Renamed".to_string();
-
-        upsert_source_engine(&mut engines, updated);
-
-        assert_eq!(engines.len(), 1);
-        assert_eq!(engines[0].display_name, "Renamed");
-    }
-
-    #[test]
-    fn remove_source_engine_repairs_active_selection() {
-        let mut engines = vec![engine("first"), engine("second")];
-        let mut active = Some("second".to_string());
-
-        let removed = remove_source_engine(&mut engines, &mut active, "second");
-
-        assert_eq!(removed.map(|engine| engine.id), Some("second".to_string()));
-        assert_eq!(active.as_deref(), Some("first"));
-        assert_eq!(engines.len(), 1);
-    }
-
-    #[test]
-    fn remove_source_engine_keeps_active_selection_when_removing_inactive_engine() {
-        let mut engines = vec![engine("first"), engine("second"), engine("third")];
-        let mut active = Some("second".to_string());
-
-        let removed = remove_source_engine(&mut engines, &mut active, "first");
-
-        assert_eq!(removed.map(|engine| engine.id), Some("first".to_string()));
-        assert_eq!(active.as_deref(), Some("second"));
-        assert_eq!(engines.len(), 2);
-    }
-
-    #[test]
-    fn remove_last_source_engine_clears_active_selection() {
-        let mut engines = vec![engine("only")];
-        let mut active = Some("only".to_string());
-
-        let removed = remove_source_engine(&mut engines, &mut active, "only");
-
-        assert_eq!(removed.map(|engine| engine.id), Some("only".to_string()));
-        assert!(active.is_none());
-        assert!(engines.is_empty());
-    }
-
-    #[test]
-    fn prune_project_engine_bindings_removes_stale_engine_ids() {
-        let mut metadata = crate::projects::ProjectMetadataMap::new();
-        metadata.insert(
-            "bound".to_string(),
-            crate::projects::ProjectMetadata {
-                engine_id: Some("first".to_string()),
-                ..crate::projects::ProjectMetadata::default()
-            },
-        );
-        metadata.insert(
-            "stale".to_string(),
-            crate::projects::ProjectMetadata {
-                engine_id: Some("missing".to_string()),
-                ..crate::projects::ProjectMetadata::default()
-            },
-        );
-        metadata.insert(
-            "pinned-stale".to_string(),
-            crate::projects::ProjectMetadata {
-                pinned: true,
-                engine_id: Some("missing".to_string()),
-                ..crate::projects::ProjectMetadata::default()
-            },
-        );
-
-        let pruned = prune_project_engine_bindings(&mut metadata, &[engine("first")]);
-
-        assert_eq!(pruned, 2);
-        assert_eq!(metadata["bound"].engine_id.as_deref(), Some("first"));
-        assert!(!metadata.contains_key("stale"));
-        assert!(metadata["pinned-stale"].pinned);
-        assert!(metadata["pinned-stale"].engine_id.is_none());
-    }
-}
+#[path = "tests/registry.rs"]
+mod tests;

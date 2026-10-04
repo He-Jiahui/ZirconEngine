@@ -1,4 +1,10 @@
+//! 调用方可在内部系统刷新前读取 World；读取投影须立即反映父链变化，
+//! 而已刷新的派生值仍以通用 ComponentStorage 为唯一存储所有者。
+
+use std::sync::Arc;
+
 use super::*;
+use crate::core::framework::render::RenderComponentValue;
 use crate::scene::components::{ActiveInHierarchy, WorldMatrix};
 
 #[test]
@@ -41,65 +47,247 @@ fn world_clone_rebuilds_derived_component_storage() {
 }
 
 #[test]
-fn derived_state_projected_reads_use_direct_parent_branches() {
-    let source = read_source(
-        &manifest_dir()
-            .join("src")
-            .join("scene")
-            .join("world")
-            .join("derived_state.rs"),
-    );
-    let world_matrix = source
-        .split("pub(super) fn project_world_matrix_for_read")
-        .nth(1)
-        .and_then(|text| text.split("fn parent_for_read").next())
-        .expect("read projected world matrix body");
-    let parent_for_read = source
-        .split("fn parent_for_read")
-        .nth(1)
-        .and_then(|text| text.split("fn active_self_chain_value").next())
-        .expect("read parent_for_read body");
-    let active_chain = source
-        .split("fn active_self_chain_value")
-        .nth(1)
-        .and_then(|text| text.split("fn rebuild_hierarchy_validity").next())
-        .expect("read active self chain body");
+fn dirty_projected_reads_match_flushed_reparent_values() {
+    let mut world = pending_reparented_world();
+    let child = world
+        .nodes()
+        .last()
+        .expect("reparented fixture must contain its child")
+        .id;
+    assert!(world.has_pending_scene_systems());
 
-    assert!(
-        world_matrix.contains("let mut lineage = Vec::new();")
-            && world_matrix.contains("let mut seen = HashSet::new();")
-            && world_matrix.contains("loop {")
-            && world_matrix.contains("let Some(parent) = self.parent_for_read(current) else")
-            && world_matrix.contains("for current in lineage.iter().rev().copied()")
-            && world_matrix.contains(
-                "world = world * transform_to_mat4(self.local_transform_value(current));"
+    let projected_matrix = world
+        .world_matrix(child)
+        .expect("dirty child must have a projected world matrix");
+    let projected_transform = world
+        .world_transform(child)
+        .expect("dirty child must have a projected world transform");
+    let projected_active = world
+        .active_in_hierarchy(child)
+        .expect("dirty child must have a projected active value");
+
+    assert_eq!(projected_transform.translation, Vec3::new(12.0, 0.0, 0.0));
+    assert!(!projected_active);
+    assert!(world.has_pending_scene_systems());
+
+    world.flush_pending_scene_systems();
+    assert_eq!(world.world_matrix(child), Some(projected_matrix));
+    assert_eq!(world.world_transform(child), Some(projected_transform));
+    assert_eq!(world.active_in_hierarchy(child), Some(projected_active));
+}
+
+#[test]
+fn equivalent_parent_reparent_preserves_derived_ticks_and_render_fields() {
+    let mut world = World::empty();
+    let first_parent = world
+        .spawn_node(NodeKind::Cube)
+        .expect("first parent should spawn");
+    let second_parent = world
+        .spawn_node(NodeKind::Cube)
+        .expect("second parent should spawn");
+    let child = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("renderable child should spawn");
+    let parent_transform = Transform::from_translation(Vec3::new(3.0, 0.0, 0.0));
+
+    world
+        .update_transform(first_parent, parent_transform)
+        .expect("first parent transform should update");
+    world
+        .update_transform(second_parent, parent_transform)
+        .expect("second parent transform should update");
+    world
+        .update_transform(child, Transform::from_translation(Vec3::new(2.0, 0.0, 0.0)))
+        .expect("child transform should update");
+    world
+        .set_parent_checked(child, Some(first_parent))
+        .expect("initial parent should attach");
+    world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+
+    let expected_world_matrix = *world
+        .get::<WorldMatrix>(child)
+        .expect("child world matrix should be materialized");
+    let expected_active = *world
+        .get::<ActiveInHierarchy>(child)
+        .expect("child active state should be materialized");
+    let world_matrix_ticks = world
+        .component_change_ticks::<WorldMatrix>(child)
+        .expect("child world matrix should have change ticks");
+    let active_ticks = world
+        .component_change_ticks::<ActiveInHierarchy>(child)
+        .expect("child active state should have change ticks");
+    let before = world
+        .render_component_change_artifact()
+        .expect("renderable child should have an initial render projection");
+    let before_child = before
+        .upserts()
+        .iter()
+        .find(|snapshot| snapshot.entity() == child)
+        .expect("initial render projection should include the child");
+    assert_eq!(
+        before_child.world_matrix(),
+        &RenderComponentValue::Present(expected_world_matrix.0)
+    );
+    assert_eq!(
+        before_child.active_in_hierarchy(),
+        &RenderComponentValue::Present(expected_active.0)
+    );
+    assert!(expected_active.0);
+
+    assert_eq!(
+        world.world_matrix(first_parent),
+        world.world_matrix(second_parent)
+    );
+    assert_eq!(world.active_in_hierarchy(first_parent), Some(true));
+    assert_eq!(world.active_in_hierarchy(second_parent), Some(true));
+    assert_eq!(
+        world.world_transform(child).unwrap().translation,
+        Vec3::new(5.0, 0.0, 0.0)
+    );
+    assert!(world
+        .set_parent_checked(child, Some(second_parent))
+        .expect("equivalent parent reparent should succeed"));
+    world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+
+    assert_eq!(
+        world.get::<WorldMatrix>(child),
+        Some(&expected_world_matrix)
+    );
+    assert_eq!(
+        world.get::<ActiveInHierarchy>(child),
+        Some(&expected_active)
+    );
+    assert_eq!(world.active_in_hierarchy(child), Some(true));
+    assert_eq!(
+        world.world_transform(child).unwrap().translation,
+        Vec3::new(5.0, 0.0, 0.0)
+    );
+    assert_eq!(
+        world.component_change_ticks::<WorldMatrix>(child),
+        Some(world_matrix_ticks)
+    );
+    assert_eq!(
+        world.component_change_ticks::<ActiveInHierarchy>(child),
+        Some(active_ticks)
+    );
+
+    let after = world
+        .render_component_change_artifact()
+        .expect("render component projection should remain available");
+    assert!(Arc::ptr_eq(&before, &after));
+    assert_eq!(after.journal_generation(), before.journal_generation());
+    let after_child = after
+        .upserts()
+        .iter()
+        .find(|snapshot| snapshot.entity() == child)
+        .expect("unchanged render artifact should retain the child fields");
+    assert_eq!(
+        after_child.world_matrix(),
+        &RenderComponentValue::Present(expected_world_matrix.0)
+    );
+    assert_eq!(
+        after_child.active_in_hierarchy(),
+        &RenderComponentValue::Present(expected_active.0)
+    );
+}
+
+#[test]
+fn dirty_projected_reads_stream_a_deep_chain_before_and_after_flush() {
+    const CHAIN_DEPTH: usize = 128;
+
+    let mut world = World::empty();
+    let mut records = Vec::with_capacity(CHAIN_DEPTH);
+    for index in 0..CHAIN_DEPTH {
+        let id = 100_000 + index as u64;
+        let mut record = detached_node_record(id, NodeKind::Empty);
+        record.parent = index.checked_sub(1).map(|parent| 100_000 + parent as u64);
+        record.transform = Transform::from_translation(Vec3::new(1.0, 0.0, 0.0));
+        record.active = index != 0;
+        records.push(record);
+    }
+    let leaf = records.last().expect("deep fixture must have a leaf").id;
+    world
+        .insert_node_records(&records)
+        .expect("deep fixture records should publish");
+    assert!(world.has_pending_scene_systems());
+
+    let projected_transform = world
+        .world_transform(leaf)
+        .expect("deep dirty leaf must have a projected transform");
+    let projected_active = world
+        .active_in_hierarchy(leaf)
+        .expect("deep dirty leaf must have a projected active value");
+    assert_eq!(
+        projected_transform.translation,
+        Vec3::new(CHAIN_DEPTH as f32, 0.0, 0.0)
+    );
+    assert!(!projected_active);
+    assert!(world.has_pending_scene_systems());
+
+    world.flush_pending_scene_systems();
+    assert_eq!(world.world_transform(leaf), Some(projected_transform));
+    assert_eq!(world.active_in_hierarchy(leaf), Some(projected_active));
+}
+
+#[test]
+fn dirty_projected_reads_stop_at_self_and_missing_parent_edges() {
+    for self_parent in [true, false] {
+        let mut world = World::empty();
+        let target = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
+        let other = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
+        world.flush_pending_scene_systems();
+
+        world
+            .update_transform(
+                target,
+                Transform::from_translation(Vec3::new(4.0, 0.0, 0.0)),
             )
-            && world_matrix.contains("Some(world)")
-            && !world_matrix.contains("project_world_matrix_for_read_inner")
-            && !world_matrix.contains(".map(|parent|")
-            && !world_matrix.contains(".unwrap_or(Some(local_matrix))"),
-        "projected world-matrix reads must compose the parent lineage iteratively without a recursive ancestor walk"
-    );
-    assert!(
-        parent_for_read.contains("let Some(hierarchy) = self.get::<Hierarchy>(entity) else")
-            && parent_for_read.contains("let Some(parent) = hierarchy.parent else")
-            && parent_for_read.contains("if parent == entity || !self.contains_entity(parent)")
-            && parent_for_read.contains("Some(parent)")
-            && !parent_for_read.contains(".and_then(|hierarchy| hierarchy.parent)")
-            && !parent_for_read.contains(".filter("),
-        "parent_for_read must resolve valid parents through direct Option branches"
-    );
-    assert!(
-        active_chain.contains("let mut seen = HashSet::new();")
-            && active_chain.contains("loop {")
-            && active_chain
-                .contains("if !seen.insert(current) || !self.active_self_value(current)")
-            && active_chain.contains("let Some(parent) = self.parent_for_read(current) else")
-            && active_chain.contains("return false;")
-            && !active_chain.contains(".map(|parent|")
-            && !active_chain.contains(".unwrap_or(true)"),
-        "active-chain reads must iterate optional parent state without recursive ancestry calls"
-    );
+            .expect("target transform should update");
+        world
+            .set_active_self(other, false)
+            .expect("other node should become inactive");
+        let parent = if self_parent { target } else { u64::MAX };
+        assert!(world.corrupt_hierarchy_parent_for_tests(target, Some(parent)));
+
+        assert_eq!(
+            world
+                .world_transform(target)
+                .map(|transform| transform.translation),
+            Some(Vec3::new(4.0, 0.0, 0.0))
+        );
+        assert_eq!(world.active_in_hierarchy(target), Some(true));
+    }
+}
+
+#[test]
+fn dirty_projected_reads_fail_closed_on_multi_node_parent_cycles() {
+    let mut world = World::empty();
+    let first = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let second = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let unrelated = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    world.flush_pending_scene_systems();
+
+    world
+        .update_transform(first, Transform::from_translation(Vec3::new(1.0, 0.0, 0.0)))
+        .expect("cycle member transform should update");
+    world
+        .set_active_self(unrelated, false)
+        .expect("unrelated node should become inactive");
+    assert!(world.corrupt_hierarchy_parent_for_tests(first, Some(second)));
+    assert!(world.corrupt_hierarchy_parent_for_tests(second, Some(first)));
+
+    assert_eq!(world.world_matrix(first), None);
+    assert_eq!(world.active_in_hierarchy(first), Some(false));
 }
 
 #[test]
@@ -157,17 +345,19 @@ fn derived_state_projected_value_reads_use_direct_branches() {
             && !world_transform.contains(".map(matrix_to_transform)"),
         "projected world-transform reads must branch directly for cached and dirty paths"
     );
+    let fixed_validation = fixed_owner
+        .split("pub(super) fn validate_fixed_component")
+        .nth(1)
+        .expect("read fixed component validation dispatch");
+
     assert!(
-        source.contains("self.replace_derived_component(entity, WorldMatrix(world));")
-            && source
-                .contains("self.replace_derived_component(entity, ActiveInHierarchy(active));")
-            && !source.contains("self.world_matrices")
+        !source.contains("self.world_matrices")
             && !world_owner.contains("world_matrices:")
             && !world_owner.contains("active_in_hierarchy:")
             && !fixed_owner.contains("world_matrices")
             && !fixed_owner.contains("active_in_hierarchy")
-            && !fixed_owner.contains("TypeId::of::<WorldMatrix>()")
-            && !fixed_owner.contains("TypeId::of::<ActiveInHierarchy>()"),
+            && !fixed_validation.contains("WorldMatrix")
+            && !fixed_validation.contains("ActiveInHierarchy"),
         "derived components must have ComponentStorage as their only body owner instead of restoring fixed-component maps or dispatch branches"
     );
 }
@@ -189,11 +379,6 @@ fn derived_state_default_component_reads_use_direct_branches() {
                 .next()
         })
         .expect("read project_node_for_read body");
-    let world_matrix = source
-        .split("pub(super) fn project_world_matrix_for_read")
-        .nth(1)
-        .and_then(|text| text.split("fn parent_for_read").next())
-        .expect("read project_world_matrix_for_read body");
     let propagate_world = source
         .split("fn propagate_world_matrix")
         .nth(1)
@@ -216,7 +401,6 @@ fn derived_state_default_component_reads_use_direct_branches() {
         .expect("read refresh_node_cache body");
     let targeted = [
         project_node,
-        world_matrix,
         propagate_world,
         local_value,
         active_value,
@@ -244,14 +428,9 @@ fn derived_state_default_component_reads_use_direct_branches() {
         "projected node reads must branch directly for name/kind and reuse local transform helper"
     );
     assert!(
-        world_matrix.contains("let mut lineage = Vec::new();")
-            && world_matrix.contains("for current in lineage.iter().rev().copied()")
-            && world_matrix.contains("self.local_transform_value(current)")
-            && propagate_world.contains("let local = self.local_transform_value(entity);")
-            && refresh.contains("let Some(name) = self.get::<Name>(entity) else")
-            && refresh.contains("name: name.0.clone()")
-            && refresh.contains("transform: self.local_transform_value(entity)"),
-        "world-matrix and node-cache rebuilds must reuse direct default/name branches"
+        propagate_world.contains("self.local_transform_value(")
+            && refresh.contains("self.project_node_for_read(entity)"),
+        "world-matrix propagation must reuse the local helper and node-cache refresh must reuse the node projector"
     );
     assert!(
         !targeted.contains(".unwrap_or_default()")
@@ -337,29 +516,55 @@ fn world_query_scalar_accessors_use_direct_lookup_branches() {
 }
 
 #[test]
-fn retained_node_cache_refresh_reuses_pre_sized_storage() {
-    let source = read_source(
-        &manifest_dir()
-            .join("src")
-            .join("scene")
-            .join("world")
-            .join("derived_state.rs"),
-    );
-    let refresh = source
-        .split("pub(super) fn refresh_node_cache")
-        .nth(1)
-        .and_then(|text| text.split("fn prepare_render_extract").next())
-        .expect("read refresh_node_cache body");
+fn retained_node_cache_refresh_updates_one_row_and_preserves_slice_pointer() {
+    let mut world = World::empty();
+    let first = world
+        .spawn_node(NodeKind::Empty)
+        .expect("first cache fixture node should spawn");
+    let second = world
+        .spawn_node(NodeKind::Empty)
+        .expect("second cache fixture node should spawn");
+    world.flush_pending_scene_systems();
 
-    assert!(
-        refresh.contains("self.node_cache.clear();")
-            && refresh.contains("self.node_cache.reserve(self.entities.len());")
-            && refresh.contains("for entity in self.stable_entity_ids()")
-            && refresh.contains("self.node_cache.push(SceneNode")
-            && refresh.contains("parent: self.parent_of(entity)")
-            && !refresh.contains("self.node_cache = self")
-            && !refresh.contains(".filter_map(")
-            && !refresh.contains(".collect()"),
-        "refresh_node_cache must reuse retained cache storage with direct pushes instead of assigning a freshly collected Vec"
+    let before = world.nodes();
+    assert_eq!(before.len(), 2);
+    let retained_buffer = before.as_ptr();
+    let unchanged_name = before
+        .iter()
+        .find(|node| node.id == first)
+        .expect("first node should be cached")
+        .name
+        .clone();
+
+    world.reset_ecs_frame_performance_diagnostics();
+    assert!(world
+        .rename_node(second, "Renamed Cache Row")
+        .expect("second node should rename"));
+    world.flush_pending_scene_systems();
+
+    let after = world.nodes();
+    assert_eq!(after.as_ptr(), retained_buffer);
+    assert_eq!(
+        after
+            .iter()
+            .find(|node| node.id == first)
+            .expect("first node should remain cached")
+            .name,
+        unchanged_name
+    );
+    assert_eq!(
+        after
+            .iter()
+            .find(|node| node.id == second)
+            .expect("second node should remain cached")
+            .name,
+        "Renamed Cache Row"
+    );
+    assert_eq!(
+        world
+            .ecs_frame_performance_diagnostics()
+            .derived_state
+            .node_cache_rebuilt_entities,
+        1
     );
 }

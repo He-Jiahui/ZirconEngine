@@ -16,8 +16,8 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/render/cache.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector
 design_references:
-  - docs/ui-and-layout/editor-workbench-designs/STYLE-NOTES.md
-  - docs/ui-and-layout/ai-workbench-style/ai-workbench-web-framework.png
+  - docs/ui/editor-workbench-designs/STYLE-NOTES.md
+  - docs/ui/ai-workbench-style/ai-workbench-web-framework.png
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/01-design-tokens-and-language-contract.md
   - docs/plans/zircon_editor/editor_layout/09-incremental-message-bus-and-refresh.md
@@ -161,7 +161,7 @@ pub fn extract_dirty_views(
 | --- | --- | --- |
 | 新增 | `zircon_runtime/src/ui/surface/render/editor_render_contract.rs` | chrome 渲染契约 guard(提取期校验) |
 | 修改 | `surface/render/extract.rs` | 暴露脏视图增量提取入口,接 09 `ViewDirtySet` |
-| 新增 | `docs/ui-and-layout/render-pipeline-contract.md` | 五段管线 + 渲染契约 + 验收指标文档 |
+| 新增 | `docs/ui/render-pipeline-contract.md` | 五段管线 + 渲染契约 + 验收指标文档 |
 | 修改 | `paint_template_nodes/style_selector` | 确认 token→画刷喂入,无裸色回退 |
 
 ## 6. 里程碑切片化

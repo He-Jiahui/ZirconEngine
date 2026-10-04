@@ -10,10 +10,10 @@ fixing_child_dir: docs/plans/zircon_plugins/13
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/zircon_export/tests/test_source_template_command_gate.py
+  - tools/export/tests/test_source_template_command_gate.py
 tests:
-  - tools/zircon_export/tests/test_source_template_command_gate.py
-  - tools/zircon_export/tests/test_source_template_build_plan_schema_gate.py
+  - tools/export/tests/test_source_template_command_gate.py
+  - tools/export/tests/test_source_template_build_plan_schema_gate.py
 resolved_at: 2026-08-31
 ---
 

@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 $projectSaveEvidenceRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-Import-Module (Join-Path $projectSaveEvidenceRepoRoot 'tools\WindowsPathResolver.psm1') -ErrorAction Stop
+Import-Module (Join-Path $projectSaveEvidenceRepoRoot 'tools\maintenance\WindowsPathResolver.psm1') -ErrorAction Stop
 
 $mvpProjectSaveDiagnosticTokenByByte = [string[]]::new(256)
 for ($byteValue = 0; $byteValue -lt $mvpProjectSaveDiagnosticTokenByByte.Length; $byteValue++) {

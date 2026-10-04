@@ -1,3 +1,4 @@
+# 核对工作台停靠面板先检查可见范围与损伤相交，再分发绘制。
 from pathlib import Path
 import unittest
 

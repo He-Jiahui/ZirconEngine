@@ -4,6 +4,7 @@ mod opaque_base;
 mod shadow;
 mod taa_reactive_mask;
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 mod transparent;
 mod velocity;

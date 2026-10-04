@@ -7,13 +7,13 @@ use crate::asset::ProjectAssetManagerAccess;
 use crate::core::framework::render::{
     RenderMaterialPropertyUniformPayload, ShadingModelDescriptor,
 };
-use crate::graphics::GraphicsError;
 use crate::graphics::backend::SystemTextureGenerationLease;
 use crate::graphics::material::{
-    ShadingModelRegistry, builtin_shading_model_registry,
-    shading_model_registry_with_plugin_descriptors,
+    builtin_shading_model_registry, shading_model_registry_with_plugin_descriptors,
+    ShadingModelRegistry,
 };
 use crate::graphics::scene::scene_renderer::mip_gen::RuntimeMipGenPass;
+use crate::graphics::GraphicsError;
 use crate::plugin::ShaderModuleSourceBinding;
 
 #[cfg(test)]
@@ -22,7 +22,8 @@ use super::super::fallback::{
     create_fallback_normal_texture_from_system, create_fallback_texture_from_system,
 };
 use super::super::{
-    GpuMaterialUniformResource, OutputTargetWritebackConverter, TextureSamplerCache,
+    GpuMaterialUniformResource, OutputTargetWritebackConverter, RenderAssetResidencyManager,
+    TextureSamplerCache,
 };
 use super::ResourceStreamer;
 
@@ -97,6 +98,7 @@ impl ResourceStreamer {
         shader_module_sources: BTreeMap<String, ShaderModuleSourceBinding>,
         fallback_source: ResourceStreamerFallbackSource<'_>,
     ) -> Self {
+        // 产品 fallback 复用系统纹理的 sampler；测试分支才通过 queue 创建 fallback，后续缓存仍共用同一接口。
         let texture_sampler_cache = match fallback_source {
             ResourceStreamerFallbackSource::System(system_textures) => {
                 Arc::new(TextureSamplerCache::new_with_linear_clamp_sampler(
@@ -147,6 +149,10 @@ impl ResourceStreamer {
             active_staged_material_ids: HashSet::new(),
             next_material_draw_generation: 1,
             textures: HashMap::new(),
+            render_asset_residency: RenderAssetResidencyManager::new(),
+            render_asset_residency_work_queue: Default::default(),
+            last_render_asset_gpu_maintenance: Default::default(),
+            geometry_replays: HashMap::new(),
             mip_streaming_states: HashMap::new(),
             mip_streaming_visible_instance_keys: HashSet::new(),
             mip_streaming_visibility: Vec::new(),
@@ -181,6 +187,7 @@ impl ResourceStreamer {
             last_post_process_lut_3d_request_count: 0,
             last_post_process_lut_unsupported_shape_count: 0,
             next_ui_texture_prepare_epoch: 1,
+            ui_texture_dependencies: Default::default(),
             last_ui_texture_prepare_receipt: None,
             last_output_target_frame_plan: Default::default(),
             last_output_target_graph_import_report: Default::default(),
@@ -271,28 +278,5 @@ fn shader_module_source_map(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::shader_module_source_map;
-    use crate::plugin::ShaderModuleSourceBinding;
-
-    #[test]
-    fn shader_module_source_map_reports_same_token_from_distinct_owners() {
-        let project = ShaderModuleSourceBinding::new(
-            "package:one",
-            "zircon_fixture::lighting",
-            "fn fixture_lighting() -> vec3f { return vec3f(0.5); }",
-            "fixture package one",
-        );
-        let duplicate = ShaderModuleSourceBinding::new(
-            "package:two",
-            "zircon_fixture::lighting",
-            project.source.clone(),
-            "fixture package two",
-        );
-
-        let error = shader_module_source_map([project, duplicate])
-            .expect_err("distinct shader-module owners must remain diagnosable");
-        assert!(error.to_string().contains("fixture package one"));
-        assert!(error.to_string().contains("fixture package two"));
-    }
-}
+#[path = "tests/resource_streamer_construction.rs"]
+mod tests;

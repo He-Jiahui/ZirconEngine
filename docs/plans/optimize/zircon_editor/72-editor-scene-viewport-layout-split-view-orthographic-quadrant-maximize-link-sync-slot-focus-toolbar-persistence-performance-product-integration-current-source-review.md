@@ -35,7 +35,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection/surface_frames/pane_frame.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/viewport/route_mapping.rs
   - zircon_editor/src/ui/retained_host/app/viewport/toolbar_pointer/chrome_projection.rs
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/set_projection_mode_route.rs
   - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/viewport_toolbar_pointer_route.rs
   - zircon_editor/src/ui/workbench/state/editor_state.rs
   - zircon_editor/src/ui/workbench/state/editor_state_render.rs

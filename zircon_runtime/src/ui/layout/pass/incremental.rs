@@ -10,7 +10,7 @@ use crate::ui::text::UiTextMeasureCache;
 
 use super::{
     arrange::{arrange_node, arrange_resized_root},
-    child_frame::free_child_frame,
+    child_frame::{free_child_frame, inset_frame},
     engine::UiLayoutPassEngineContext,
     inline_widgets::arrange_inline_widget_children,
     measure::measure_node_incremental,
@@ -91,6 +91,7 @@ pub(crate) fn compute_incremental_layout_tree_with_text_measure_cache(
     assert_layout_pass_stage(UiLayoutPassStage::ClipAndVirtualWindowPropagation, 5);
     let mut arrangement_roots = measurement_roots;
     if root_size_changed {
+        arrangement_roots.reserve(tree.roots.len());
         arrangement_roots.extend(tree.roots.iter().copied());
         arrangement_roots.sort_unstable();
         arrangement_roots.dedup();
@@ -188,7 +189,7 @@ fn incremental_layout_roots(
         .map(|node| propagated_layout_root(tree, node.node_id))
         .collect::<Result<BTreeSet<_>, _>>()?;
 
-    let mut roots = Vec::new();
+    let mut roots = Vec::with_capacity(candidates.len());
     for candidate in candidates.iter().copied() {
         if !has_ancestor_in(candidate, &candidates, tree)? {
             roots.push(candidate);
@@ -196,6 +197,10 @@ fn incremental_layout_roots(
     }
     Ok(roots)
 }
+
+#[cfg(test)]
+#[path = "tests/incremental_optimization_tests.rs"]
+mod optimization_tests;
 
 fn propagated_layout_root(tree: &UiTree, node_id: UiNodeId) -> Result<UiNodeId, UiTreeError> {
     let mut current = node_id;
@@ -275,7 +280,7 @@ fn arrange_layout_root(
     let parent = tree
         .node(parent_id)
         .ok_or(UiTreeError::MissingParent(parent_id))?;
-    let parent_frame = parent.layout_cache.frame;
+    let parent_frame = inset_frame(parent.layout_cache.frame, parent.layout_padding);
     let inherited_clip = parent.layout_cache.clip_frame;
     let parent_container = parent.container;
     let child_frame = free_child_frame(

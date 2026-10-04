@@ -1,10 +1,11 @@
+# 核对阶段交接去重通过哈希成员查询保持输入顺序。
 from __future__ import annotations
 
 import unittest
 from collections.abc import Callable
 
-from tools.zircon_export.stage_handoff import dedupe
-from tools.zircon_export.stage_handoff_strategy import _dedupe as dedupe_strategies
+from tools.export.stage_handoff import dedupe
+from tools.export.stage_handoff_strategy import _dedupe as dedupe_strategies
 
 
 class EqualityCountingString(str):

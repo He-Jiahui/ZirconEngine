@@ -19,7 +19,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束预分配脚本调用表格索引：外层模块索引使用组计数容量，并每个连续模块组预分配自身函数索引。
 class PreallocatedScriptCallTableIndexPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

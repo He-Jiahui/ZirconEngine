@@ -1,7 +1,10 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
+use super::super::super::template_icon_assets::push_icon_asset_pixels;
 use super::geometry::{chip_avatar_frame, chip_icon_frame};
 use super::style::{chip_avatar_background_color, chip_foreground_color};
+
+const CHIP_ADD_ICON: &str = "zircon_editor_shell/controls/add.svg";
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_chip_avatar(
     commands: &mut Vec<HostPaintCommand>,
@@ -37,40 +40,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
     opacity: f32,
 ) {
     let frame = chip_icon_frame(node, rect);
-    let stroke = frame.width.min(frame.height).min(2.0).max(0.0);
-    if stroke <= 0.0 {
-        return;
-    }
-    let center_y = frame.y + frame.height * 0.5;
     let color = chip_foreground_color(node);
-    commands.push(HostPaintCommand::quad(
-        FrameRect {
-            x: frame.x,
-            y: center_y - stroke * 0.5,
-            width: frame.width,
-            height: stroke,
-        },
-        Some(clip.clone()),
+    let _ = push_icon_asset_pixels(
+        commands,
+        CHIP_ADD_ICON,
+        &frame,
+        clip,
         order,
         Some(color),
-        None,
-        0.0,
-        stroke * 0.5,
         opacity,
-    ));
-    commands.push(HostPaintCommand::quad(
-        FrameRect {
-            x: frame.x + frame.width * 0.5 - stroke * 0.5,
-            y: frame.y,
-            width: stroke,
-            height: frame.height,
-        },
-        Some(clip.clone()),
-        order + 1,
-        Some(color),
-        None,
-        0.0,
-        stroke * 0.5,
-        opacity,
-    ));
+    );
 }

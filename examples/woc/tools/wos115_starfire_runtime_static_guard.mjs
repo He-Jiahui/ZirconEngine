@@ -42,14 +42,14 @@ requireText(
 const generator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
 if (!/healing_touch',[\s\S]*?'starfire'/.test(generator) ||
-    !generator.includes("EXPECTED_ABILITY_COUNT = 79") ||
-    !zrGenerator.includes("document.entries.length === 79")) {
+    !generator.includes("EXPECTED_ABILITY_COUNT = 117") ||
+    !zrGenerator.includes("document.entries.length === 117")) {
   throw new Error("M4 Starfire projection scope is missing");
 }
 const entry = JSON.parse(read("contracts", "m4_abilities.json")).entries.find(
   (value) => value.id === "starfire",
 );
-if (!entry || entry.index !== 55 || entry.definition.class !== "druid" ||
+if (!entry || entry.index !== 59 || entry.definition.class !== "druid" ||
     entry.definition.school !== "arcane" || entry.definition.learnLevel !== 14 ||
     entry.definition.cost !== 80 || entry.definition.castTime !== 3 ||
     entry.definition.cooldown !== 0 || entry.definition.range !== 30 ||

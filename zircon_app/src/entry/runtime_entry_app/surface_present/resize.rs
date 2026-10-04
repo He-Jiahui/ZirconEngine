@@ -1,3 +1,6 @@
+//! 窗口尺寸变化到 Runtime viewport 与实际 presenter 的同步。
+//! 零尺寸折成最小有效尺寸；判断函数与更新函数共享同一归一语义。
+
 use winit::dpi::PhysicalSize;
 use winit::event_loop::ActiveEventLoop;
 use zircon_runtime_interface::ZrRuntimeViewportSizeV1;
@@ -5,6 +8,7 @@ use zircon_runtime_interface::ZrRuntimeViewportSizeV1;
 use super::super::RuntimeEntryApp;
 
 impl RuntimeEntryApp {
+    /// 先更新 Runtime viewport，再更新已选中的原生或诊断 presenter。
     pub(in crate::entry::runtime_entry_app) fn resize_surface_presenter(
         &mut self,
         event_loop: &dyn ActiveEventLoop,
@@ -75,6 +79,7 @@ impl RuntimeEntryApp {
     }
 }
 
+/// 供窗口事件判断是否需同步尺寸；与正式 resize 使用相同的最小尺寸规则。
 pub(in crate::entry::runtime_entry_app) fn surface_resize_changes_viewport(
     viewport_size: ZrRuntimeViewportSizeV1,
     size: PhysicalSize<u32>,
@@ -83,23 +88,5 @@ pub(in crate::entry::runtime_entry_app) fn surface_resize_changes_viewport(
 }
 
 #[cfg(test)]
-mod tests {
-    use winit::dpi::PhysicalSize;
-    use zircon_runtime_interface::ZrRuntimeViewportSizeV1;
-
-    use super::surface_resize_changes_viewport;
-
-    #[test]
-    fn duplicate_surface_resize_is_a_no_op_after_minimum_size_normalization() {
-        let current = ZrRuntimeViewportSizeV1::new(1, 720);
-
-        assert!(!surface_resize_changes_viewport(
-            current,
-            PhysicalSize::new(0, 720),
-        ));
-        assert!(surface_resize_changes_viewport(
-            current,
-            PhysicalSize::new(2, 720),
-        ));
-    }
-}
+#[path = "tests/resize.rs"]
+mod tests;

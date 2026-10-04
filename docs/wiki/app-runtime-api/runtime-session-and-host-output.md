@@ -23,13 +23,13 @@ implementation_files:
   - zircon_runtime_host/src/foreign_output/owned_buffer.rs
 plan_sources:
   - user: 2026-09-09 为 ZirconEngine 构建引擎说明书级 Wiki
-  - docs/zircon_app/runtime-surface-present.md
-  - docs/zircon_runtime/dynamic_api/session.md
+  - docs/crates/zircon_app/runtime-surface-present.md
+  - docs/crates/zircon_runtime/dynamic_api/session.md
 tests:
   - zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs
   - zircon_runtime/src/dynamic_api/tests/session_profiles.rs
   - zircon_runtime/src/dynamic_api/tests/host_requests.rs
-  - zircon_runtime_host/src/foreign_output/tests.rs
+  - zircon_runtime_host/src/foreign_output/tests/cases.rs
 doc_type: workflow-detail
 ---
 

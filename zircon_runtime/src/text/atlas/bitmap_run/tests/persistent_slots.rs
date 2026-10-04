@@ -1,10 +1,10 @@
 use super::*;
-use crate::text::InstancedFaceId;
 use crate::text::atlas::{
-    GlyphAtlasRect, GlyphHintingMode, GlyphRasterKey, GlyphSmoothingMode, SyntheticGlyphStyle,
     glyph_atlas_bitmap_render_submission_plan,
-    glyph_atlas_bitmap_render_submission_plan_with_atlas,
+    glyph_atlas_bitmap_render_submission_plan_with_atlas, GlyphAtlasRect, GlyphHintingMode,
+    GlyphRasterKey, GlyphSmoothingMode, SyntheticGlyphStyle,
 };
+use crate::text::InstancedFaceId;
 
 #[test]
 fn render_perf_text_atlas_reuses_persistent_slot_without_upload() {

@@ -95,5 +95,5 @@ fn push_joined(output: &mut String, values: &[String], separator: &str) {
 }
 
 #[cfg(test)]
-#[path = "dependencies/capacity_tests.rs"]
+#[path = "dependencies/tests/capacity_tests.rs"]
 mod capacity_tests;

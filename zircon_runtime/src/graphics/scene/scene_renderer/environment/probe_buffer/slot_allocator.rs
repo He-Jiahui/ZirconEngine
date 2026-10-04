@@ -59,6 +59,7 @@ enum ProbeCubemapSlotUploadState {
 
 pub(super) struct ProbeCubemapSlotAllocator {
     capacity: usize,
+    physical_slot_count: usize,
     entries: HashMap<ResourceId, ProbeCubemapSlotEntry>,
     free_slots: Vec<u32>,
     capture_reservation: Option<ProbeCubemapSlotReservation>,
@@ -68,12 +69,22 @@ pub(super) struct ProbeCubemapSlotAllocator {
 
 impl ProbeCubemapSlotAllocator {
     pub(super) fn new(capacity: usize) -> Self {
-        let capacity = capacity.max(1).next_power_of_two();
-        let physical_slot_count = capacity
+        let logical_capacity = capacity.max(1).next_power_of_two();
+        let physical_slot_count = logical_capacity
             .checked_add(1)
             .expect("probe cubemap slot capacity must leave room for capture");
+        Self::new_with_physical_slot_count(logical_capacity, physical_slot_count)
+    }
+
+    pub(super) fn new_with_physical_slot_count(
+        capacity: usize,
+        physical_slot_count: usize,
+    ) -> Self {
+        let capacity = capacity.max(1).next_power_of_two();
+        let physical_slot_count = physical_slot_count.max(capacity);
         Self {
             capacity,
+            physical_slot_count,
             entries: HashMap::with_capacity(capacity),
             free_slots: (0..physical_slot_count as u32).rev().collect(),
             capture_reservation: None,
@@ -88,7 +99,7 @@ impl ProbeCubemapSlotAllocator {
 
     #[cfg(test)]
     pub(super) const fn physical_slot_count(&self) -> usize {
-        self.capacity + 1
+        self.physical_slot_count
     }
 
     pub(super) fn available(
@@ -192,10 +203,21 @@ impl ProbeCubemapSlotAllocator {
         if !replaces_existing && self.entries.len() >= self.capacity {
             return None;
         }
+        let slot = if replaces_existing {
+            // Prefer the spare slot when this allocator has one, preserving the
+            // old texels until the capture commits.  The resident production
+            // array is intentionally sized without a spare, so an in-place
+            // refresh is the portable fallback.
+            self.free_slots
+                .pop()
+                .or_else(|| self.entries.get(&cubemap).map(|entry| entry.slot))?
+        } else {
+            self.free_slots.pop()?
+        };
         let reservation = ProbeCubemapSlotReservation {
             cubemap,
             revision,
-            slot: self.free_slots.pop()?,
+            slot,
             prepare_epoch,
             replaces_existing,
         };
@@ -231,7 +253,9 @@ impl ProbeCubemapSlotAllocator {
                 entry.revision = reservation.revision;
                 entry.upload_state = ProbeCubemapSlotUploadState::Ready;
                 let entry = *entry;
-                self.free_slots.push(released_slot);
+                if released_slot != reservation.slot {
+                    self.free_slots.push(released_slot);
+                }
                 self.touch(cubemap, entry);
             } else {
                 debug_assert!(!reservation.replaces_existing);
@@ -258,7 +282,13 @@ impl ProbeCubemapSlotAllocator {
     pub(super) fn cancel(&mut self, reservation: ProbeCubemapSlotReservation) {
         if self.capture_reservation == Some(reservation) {
             self.capture_reservation = None;
-            self.free_slots.push(reservation.slot);
+            let same_slot = self
+                .entries
+                .get(&reservation.cubemap)
+                .is_some_and(|entry| entry.slot == reservation.slot);
+            if !same_slot {
+                self.free_slots.push(reservation.slot);
+            }
         }
     }
 

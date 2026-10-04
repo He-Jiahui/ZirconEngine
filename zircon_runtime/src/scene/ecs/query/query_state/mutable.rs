@@ -1,16 +1,16 @@
 use std::array;
 
-use crate::scene::EntityId;
-use crate::scene::World;
 use crate::scene::ecs::{
     ChangeTickWindow, ComponentStorageLocation, QueryCombinationMutIter, QueryEntityError,
     QueryEntityItem, QueryFilter, QueryManyMutIter, QueryManyUniqueMutIter, QueryMutData,
     QuerySingleError, UniqueEntityArray,
 };
+use crate::scene::EntityId;
+use crate::scene::World;
 
 use super::super::unique_entities::first_duplicate_entity;
 use super::many_item_array::collect_many_query_items;
-use super::{CachedArchetypePlan, QueryState, project_entity_from_plans};
+use super::{project_entity_from_plans, CachedArchetypePlan, QueryState};
 
 impl<D, F> QueryState<D, F>
 where
@@ -22,18 +22,24 @@ where
         world: &'world mut World,
         entity: EntityId,
     ) -> Result<D::Item<'world>, QueryEntityError> {
-        self.get_mut_with_ticks(
-            world,
-            entity,
-            ChangeTickWindow::all(world.read_change_tick()),
-        )
+        // SAFETY: the public World loan bounds every returned item/cursor; the
+        // access plan, storage and observation window remain fixed for that loan.
+        unsafe {
+            let ticks = ChangeTickWindow::all(world.read_change_tick());
+            self.get_mut_with_ticks(world as *mut World, entity, ticks)
+        }
     }
 
     pub fn single_mut<'world>(
         &mut self,
         world: &'world mut World,
     ) -> Result<D::Item<'world>, QuerySingleError> {
-        self.single_mut_with_ticks(world, ChangeTickWindow::all(world.read_change_tick()))
+        // SAFETY: the public World loan bounds every returned item/cursor; the
+        // access plan, storage and observation window remain fixed for that loan.
+        unsafe {
+            let ticks = ChangeTickWindow::all(world.read_change_tick());
+            self.single_mut_with_ticks(world as *mut World, ticks)
+        }
     }
 
     pub fn get_many_mut<'world, const N: usize>(
@@ -41,11 +47,12 @@ where
         world: &'world mut World,
         entities: [EntityId; N],
     ) -> Result<[D::Item<'world>; N], QueryEntityError> {
-        self.get_many_mut_with_ticks(
-            world,
-            entities,
-            ChangeTickWindow::all(world.read_change_tick()),
-        )
+        // SAFETY: the public World loan bounds every returned item/cursor; the
+        // access plan, storage and observation window remain fixed for that loan.
+        unsafe {
+            let ticks = ChangeTickWindow::all(world.read_change_tick());
+            self.get_many_mut_with_ticks(world as *mut World, entities, ticks)
+        }
     }
 
     pub fn get_many_unique_mut<'world, const N: usize>(
@@ -53,11 +60,12 @@ where
         world: &'world mut World,
         entities: UniqueEntityArray<N>,
     ) -> Result<[D::Item<'world>; N], QueryEntityError> {
-        self.get_many_unique_mut_with_ticks(
-            world,
-            entities,
-            ChangeTickWindow::all(world.read_change_tick()),
-        )
+        // SAFETY: the public World loan bounds every returned item/cursor; the
+        // access plan, storage and observation window remain fixed for that loan.
+        unsafe {
+            let ticks = ChangeTickWindow::all(world.read_change_tick());
+            self.get_many_unique_mut_with_ticks(world as *mut World, entities, ticks)
+        }
     }
 
     pub fn iter_many_mut<'world, 'state, EntityList>(
@@ -69,11 +77,12 @@ where
         EntityList: IntoIterator,
         EntityList::Item: QueryEntityItem,
     {
-        self.iter_many_mut_with_ticks(
-            world,
-            entities,
-            ChangeTickWindow::all(world.read_change_tick()),
-        )
+        // SAFETY: the public World loan bounds every returned item/cursor; the
+        // access plan, storage and observation window remain fixed for that loan.
+        unsafe {
+            let ticks = ChangeTickWindow::all(world.read_change_tick());
+            self.iter_many_mut_with_ticks(world as *mut World, entities, ticks)
+        }
     }
 
     pub fn iter_many_unique_mut<'world, 'state, const N: usize>(
@@ -81,110 +90,144 @@ where
         world: &'world mut World,
         entities: UniqueEntityArray<N>,
     ) -> QueryManyUniqueMutIter<'world, 'state, D, F, array::IntoIter<EntityId, N>> {
-        self.iter_many_unique_mut_with_ticks(
-            world,
-            entities,
-            ChangeTickWindow::all(world.read_change_tick()),
-        )
+        // SAFETY: the public World loan bounds every returned item/cursor; the
+        // access plan, storage and observation window remain fixed for that loan.
+        unsafe {
+            let ticks = ChangeTickWindow::all(world.read_change_tick());
+            self.iter_many_unique_mut_with_ticks(world as *mut World, entities, ticks)
+        }
     }
 
     pub fn iter_combinations_mut<'world, 'state, const K: usize>(
         &'state mut self,
         world: &'world mut World,
     ) -> QueryCombinationMutIter<'world, 'state, D, F, K> {
-        self.iter_combinations_mut_with_ticks(
-            world,
-            ChangeTickWindow::all(world.read_change_tick()),
-        )
+        // SAFETY: the public World loan bounds every returned item/cursor; the
+        // access plan, storage and observation window remain fixed for that loan.
+        unsafe {
+            let ticks = ChangeTickWindow::all(world.read_change_tick());
+            self.iter_combinations_mut_with_ticks(world as *mut World, ticks)
+        }
     }
 
     pub fn for_each_mut(&mut self, world: &mut World, f: impl FnMut(D::Item<'_>)) {
-        let ticks = ChangeTickWindow::all(world.read_change_tick());
-        self.for_each_mut_with_ticks(world, ticks, f);
+        // SAFETY: the public World loan bounds every returned item/cursor; the
+        // access plan, storage and observation window remain fixed for that loan.
+        unsafe {
+            let ticks = ChangeTickWindow::all(world.read_change_tick());
+            self.for_each_mut_with_ticks(world as *mut World, ticks, f);
+        }
     }
 
-    pub(crate) fn get_mut_with_ticks<'world>(
+    pub(crate) unsafe fn get_mut_with_ticks<'world>(
         &mut self,
-        world: &'world mut World,
+        world: *mut World,
         entity: EntityId,
         ticks: ChangeTickWindow,
     ) -> Result<D::Item<'world>, QueryEntityError> {
-        self.update_cache(world);
-        let mut component_locations = Vec::with_capacity(self.access.reads().len());
-        self.validate_entity_with_locations(world, entity, ticks, &mut component_locations)?;
-        D::fetch_mut_with_component_locations(world, entity, &component_locations, ticks)
+        unsafe {
+            self.update_cache(&*world);
+            let mut component_locations = Vec::with_capacity(self.access.reads().len());
+            self.validate_entity_with_locations(&*world, entity, ticks, &mut component_locations)?;
+            // SAFETY: this exclusive World loan bounds the item lifetime; validation
+            // checked this entity's current locations and declared data/filter access.
+            unsafe {
+                D::fetch_mut_with_component_locations(world, entity, &component_locations, ticks)
+            }
             .ok_or(QueryEntityError::QueryDoesNotMatch(entity))
+        }
     }
 
-    pub(crate) fn single_mut_with_ticks<'world>(
+    pub(crate) unsafe fn single_mut_with_ticks<'world>(
         &mut self,
-        world: &'world mut World,
+        world: *mut World,
         ticks: ChangeTickWindow,
     ) -> Result<D::Item<'world>, QuerySingleError> {
-        self.update_cache(world);
-        let mut component_locations = Vec::with_capacity(self.access.reads().len());
-        let mut matched = None;
-        for stable_location in world.stable_query_location_iter(
-            self.cached_archetype_plans
-                .iter()
-                .map(CachedArchetypePlan::archetype_id),
-        ) {
-            let entity = stable_location.stable_id;
-            if self
-                .validate_entity_with_locations(world, entity, ticks, &mut component_locations)
-                .is_ok()
-                && matched.replace(entity).is_some()
-            {
-                return Err(QuerySingleError::MultipleEntities);
+        unsafe {
+            self.update_cache(&*world);
+            let mut component_locations = Vec::with_capacity(self.access.reads().len());
+            let mut matched = None;
+            for stable_location in World::query_stable_location_iter(
+                world,
+                self.cached_archetype_plans
+                    .iter()
+                    .map(CachedArchetypePlan::archetype_id),
+            ) {
+                let entity = stable_location.stable_id;
+                if self
+                    .validate_entity_with_locations(
+                        &*world,
+                        entity,
+                        ticks,
+                        &mut component_locations,
+                    )
+                    .is_ok()
+                    && matched.replace(entity).is_some()
+                {
+                    return Err(QuerySingleError::MultipleEntities);
+                }
             }
-        }
 
-        let Some(entity) = matched else {
-            return Err(QuerySingleError::NoEntities);
-        };
-        component_locations.clear();
-        self.validate_entity_with_locations(world, entity, ticks, &mut component_locations)
-            .map_err(|_| QuerySingleError::NoEntities)?;
-        D::fetch_mut_with_component_locations(world, entity, &component_locations, ticks)
+            let Some(entity) = matched else {
+                return Err(QuerySingleError::NoEntities);
+            };
+            component_locations.clear();
+            self.validate_entity_with_locations(&*world, entity, ticks, &mut component_locations)
+                .map_err(|_| QuerySingleError::NoEntities)?;
+            // SAFETY: exactly one checked candidate is fetched under the original
+            // exclusive World loan, which bounds the returned item's lifetime.
+            unsafe {
+                D::fetch_mut_with_component_locations(world, entity, &component_locations, ticks)
+            }
             .ok_or(QuerySingleError::NoEntities)
+        }
     }
 
-    pub(crate) fn get_many_mut_with_ticks<'world, const N: usize>(
+    pub(crate) unsafe fn get_many_mut_with_ticks<'world, const N: usize>(
         &mut self,
-        world: &'world mut World,
+        world: *mut World,
         entities: [EntityId; N],
         ticks: ChangeTickWindow,
     ) -> Result<[D::Item<'world>; N], QueryEntityError> {
-        if let Some(entity) = first_duplicate_entity(&entities) {
-            return Err(QueryEntityError::AliasedMutability(entity));
-        }
-        self.update_cache(world);
-        let mut component_locations = Vec::with_capacity(self.access.reads().len());
-        for entity in entities.iter().copied() {
-            self.validate_entity_with_locations(world, entity, ticks, &mut component_locations)?;
-        }
+        unsafe {
+            if let Some(entity) = first_duplicate_entity(&entities) {
+                return Err(QueryEntityError::AliasedMutability(entity));
+            }
+            self.update_cache(&*world);
+            let mut component_locations = Vec::with_capacity(self.access.reads().len());
+            for entity in entities.iter().copied() {
+                self.validate_entity_with_locations(
+                    &*world,
+                    entity,
+                    ticks,
+                    &mut component_locations,
+                )?;
+            }
 
-        let world = world as *mut World;
-        let plans = &self.cached_archetype_plans;
-        collect_many_query_items(entities, |entity| {
-            // Duplicate IDs were rejected above, so each returned mutable item
-            // belongs to a distinct entity.
-            unsafe { fetch_mut_from_plans_unchecked::<D>(world, plans, entity, ticks) }
-        })
+            let plans = &self.cached_archetype_plans;
+            collect_many_query_items(entities, |entity| {
+                // Duplicate and full-batch validation finish before any fetch.
+                // QueryMutData's unsafe contract additionally requires compatible
+                // entity-local items and preserves already yielded items.
+                // CR-ECS-QUERY-MUT-DATA-0001 tracks this extension contract; the
+                // underlying raw World/container borrowing remains a separate proof.
+                unsafe { fetch_mut_from_plans_unchecked::<D>(world, plans, entity, ticks) }
+            })
+        }
     }
 
-    pub(crate) fn get_many_unique_mut_with_ticks<'world, const N: usize>(
+    pub(crate) unsafe fn get_many_unique_mut_with_ticks<'world, const N: usize>(
         &mut self,
-        world: &'world mut World,
+        world: *mut World,
         entities: UniqueEntityArray<N>,
         ticks: ChangeTickWindow,
     ) -> Result<[D::Item<'world>; N], QueryEntityError> {
-        self.get_many_mut_with_ticks(world, entities.into_inner(), ticks)
+        unsafe { self.get_many_mut_with_ticks(world, entities.into_inner(), ticks) }
     }
 
-    pub(crate) fn iter_many_mut_with_ticks<'world, 'state, EntityList>(
+    pub(crate) unsafe fn iter_many_mut_with_ticks<'world, 'state, EntityList>(
         &'state mut self,
-        world: &'world mut World,
+        world: *mut World,
         entities: EntityList,
         ticks: ChangeTickWindow,
     ) -> QueryManyMutIter<'world, 'state, D, F, EntityList::IntoIter>
@@ -192,74 +235,89 @@ where
         EntityList: IntoIterator,
         EntityList::Item: QueryEntityItem,
     {
-        self.update_cache(world);
-        QueryManyMutIter::new(world, &self.cached_archetype_plans, entities, ticks)
+        unsafe {
+            self.update_cache(&*world);
+            QueryManyMutIter::new(world, &self.cached_archetype_plans, entities, ticks)
+        }
     }
 
-    pub(crate) fn iter_many_unique_mut_with_ticks<'world, 'state, const N: usize>(
+    pub(crate) unsafe fn iter_many_unique_mut_with_ticks<'world, 'state, const N: usize>(
         &'state mut self,
-        world: &'world mut World,
+        world: *mut World,
         entities: UniqueEntityArray<N>,
         ticks: ChangeTickWindow,
     ) -> QueryManyUniqueMutIter<'world, 'state, D, F, array::IntoIter<EntityId, N>> {
-        self.update_cache(world);
-        QueryManyUniqueMutIter::new(world, &self.cached_archetype_plans, entities, ticks)
+        unsafe {
+            self.update_cache(&*world);
+            QueryManyUniqueMutIter::new(world, &self.cached_archetype_plans, entities, ticks)
+        }
     }
 
-    pub(crate) fn iter_combinations_mut_with_ticks<'world, 'state, const K: usize>(
+    pub(crate) unsafe fn iter_combinations_mut_with_ticks<'world, 'state, const K: usize>(
         &'state mut self,
-        world: &'world mut World,
+        world: *mut World,
         ticks: ChangeTickWindow,
     ) -> QueryCombinationMutIter<'world, 'state, D, F, K> {
-        self.update_cache(world);
-        QueryCombinationMutIter::new_from_cached_plans(world, &self.cached_archetype_plans, ticks)
+        unsafe {
+            self.update_cache(&*world);
+            QueryCombinationMutIter::new_from_cached_plans(
+                world,
+                &self.cached_archetype_plans,
+                ticks,
+            )
+        }
     }
 
-    pub(crate) fn for_each_mut_with_ticks(
+    pub(crate) unsafe fn for_each_mut_with_ticks(
         &mut self,
-        world: &mut World,
+        world: *mut World,
         ticks: ChangeTickWindow,
         mut f: impl FnMut(D::Item<'_>),
     ) {
-        self.update_cache(world);
-        let candidates = world
-            .stable_query_location_iter(
+        unsafe {
+            self.update_cache(&*world);
+            let candidates = World::query_stable_location_iter(
+                world,
                 self.cached_archetype_plans
                     .iter()
                     .map(CachedArchetypePlan::archetype_id),
             )
             .collect::<Vec<_>>();
-        let world = world as *mut World;
-        for stable_location in candidates {
-            let entity = stable_location.stable_id;
-            let mut component_locations = Vec::new();
-            let shared_world = unsafe { &*world };
-            if project_entity_from_plans(
-                &self.cached_archetype_plans,
-                shared_world,
-                entity,
-                &mut component_locations,
-            )
-            .is_none()
-                || !F::matches_component_locations(
-                    shared_world,
-                    entity,
-                    &component_locations,
-                    ticks,
-                )
-            {
-                continue;
-            }
-            let item = unsafe {
-                D::fetch_mut_with_component_locations(
-                    &mut *world,
-                    entity,
-                    &component_locations,
-                    ticks,
-                )
-            };
-            if let Some(item) = item {
-                f(item);
+            for stable_location in candidates {
+                let entity = stable_location.stable_id;
+                let mut component_locations = Vec::new();
+                let matches = {
+                    // SAFETY: only current structural projection and contracted
+                    // candidate-local matching use this scoped shared reference.
+                    let shared_world = unsafe { &*world };
+                    project_entity_from_plans(
+                        &self.cached_archetype_plans,
+                        shared_world,
+                        entity,
+                        &mut component_locations,
+                    )
+                    .is_some()
+                        && F::matches_component_locations(
+                            shared_world,
+                            entity,
+                            &component_locations,
+                            ticks,
+                        )
+                };
+                if !matches {
+                    continue;
+                }
+                let item = unsafe {
+                    D::fetch_mut_with_component_locations(
+                        world,
+                        entity,
+                        &component_locations,
+                        ticks,
+                    )
+                };
+                if let Some(item) = item {
+                    f(item);
+                }
             }
         }
     }
@@ -299,15 +357,17 @@ where
     D: QueryMutData,
 {
     let mut component_locations = Vec::new();
-    let shared_world = unsafe { &*world };
-    if project_entity_from_plans(plans, shared_world, entity, &mut component_locations).is_none() {
+    let projected = {
+        // SAFETY: the caller preserves the World loan/storage and permits this
+        // scoped structural projection without accessing earlier mutable values.
+        let shared_world = unsafe { &*world };
+        project_entity_from_plans(plans, shared_world, entity, &mut component_locations).is_some()
+    };
+    if !projected {
         return Err(QueryEntityError::QueryDoesNotMatch(entity));
     }
-    D::fetch_mut_with_component_locations(
-        unsafe { &mut *world },
-        entity,
-        &component_locations,
-        ticks,
-    )
-    .ok_or(QueryEntityError::QueryDoesNotMatch(entity))
+    // SAFETY: duplicate/full-batch validation and the caller's original World
+    // loan bound these coherent, contracted row items by the chosen 'world.
+    unsafe { D::fetch_mut_with_component_locations(world, entity, &component_locations, ticks) }
+        .ok_or(QueryEntityError::QueryDoesNotMatch(entity))
 }

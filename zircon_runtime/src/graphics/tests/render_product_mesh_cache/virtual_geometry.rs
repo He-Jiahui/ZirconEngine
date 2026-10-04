@@ -4,8 +4,8 @@ use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{
-    AssetUri, MaterialAsset, MeshVertex, ModelAsset, ModelPrimitiveAsset,
-    VirtualGeometryCookConfig, cook_virtual_geometry_from_mesh,
+    cook_virtual_geometry_from_mesh, AssetUri, MaterialAsset, MeshVertex, ModelAsset,
+    ModelPrimitiveAsset, VirtualGeometryCookConfig,
 };
 use crate::core::framework::render::{
     CameraRenderDescriptor, CapturedFrame, DisplayMode, GeometryExtract, ProjectionMode,

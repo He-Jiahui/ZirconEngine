@@ -16,7 +16,7 @@ const SCENE_MODULE: &str = "zr.zircon.scene";
 const RENDER_MODULE: &str = "zr.zircon.render";
 const MATH_MODULE: &str = "zr.zircon.math";
 const HOST_MODULE_VERSION: &str = "0.1.0";
-const MATH_MODULE_VERSION: &str = "0.2.0";
+const MATH_MODULE_VERSION: &str = "0.3.0";
 const MATH_SCALAR_CAPABILITY: &str = "math.scalar";
 const BUILTIN_HOST_MODULE_HANDLE_CAPACITY: usize = 6;
 
@@ -380,6 +380,11 @@ mod math {
                     "Round downward using libm. Non-finite input or result is rejected.",
                 ))
                 .with_function(scalar_descriptor(
+                    "round",
+                    &["value"],
+                    "Round to the nearest integer with ties toward positive infinity, preserving signed zero. Non-finite input or result is rejected.",
+                ))
+                .with_function(scalar_descriptor(
                     "sin",
                     &["value"],
                     "Return sine using libm. Non-finite input or result is rejected.",
@@ -416,6 +421,7 @@ mod math {
                 HostExportFunction::new("floor", |context| {
                     scalar_unary(context, "floor", libm::floor)
                 }),
+                HostExportFunction::new("round", scalar_round),
                 HostExportFunction::new("sin", |context| scalar_unary(context, "sin", libm::sin)),
                 HostExportFunction::new("sqrt", |context| {
                     scalar_unary(context, "sqrt", libm::sqrt)
@@ -453,6 +459,19 @@ mod math {
         operation: impl FnOnce(f64) -> f64,
     ) -> Result<ScriptHostValue, ScriptHostError> {
         scalar_result(name, operation(scalar_argument(context, name, 0)?))
+    }
+
+    fn scalar_round(context: &ScriptHostCallFrame<'_>) -> Result<ScriptHostValue, ScriptHostError> {
+        scalar_unary(context, "round", |value| {
+            // JavaScript ties round upward; adding 0.5 first can lose precision.
+            let lower = libm::floor(value);
+            let rounded = if value - lower < 0.5 {
+                lower
+            } else {
+                lower + 1.0
+            };
+            libm::copysign(rounded, value)
+        })
     }
 
     fn scalar_atan2(context: &ScriptHostCallFrame<'_>) -> Result<ScriptHostValue, ScriptHostError> {
@@ -557,22 +576,5 @@ pub fn builtin_host_capabilities() -> CapabilitySet {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        ASSET_MODULE, BUILTIN_HOST_MODULE_HANDLE_CAPACITY, FOUNDATION_MODULE, MATH_MODULE,
-        RENDER_MODULE, SCENE_MODULE,
-    };
-
-    #[test]
-    fn builtin_host_module_handle_capacity_covers_complete_install() {
-        let fixed_modules = [
-            FOUNDATION_MODULE,
-            ASSET_MODULE,
-            SCENE_MODULE,
-            RENDER_MODULE,
-            MATH_MODULE,
-        ];
-
-        assert_eq!(BUILTIN_HOST_MODULE_HANDLE_CAPACITY, fixed_modules.len() + 1);
-    }
-}
+#[path = "tests/builtin_host_modules.rs"]
+mod tests;

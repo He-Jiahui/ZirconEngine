@@ -2,6 +2,8 @@ use std::collections::BTreeMap;
 
 use zircon_runtime_interface::ui::event_ui::UiNodeId;
 
+/// 连接 surface 属性投影与宿主文档版本，防止准备好的旧编辑覆盖后续文本变化。
+/// u64 用尽后保持 None 并拒绝继续编辑，不回绕到旧 source 的版本。
 #[derive(Clone, Debug, Default, PartialEq)]
 pub(super) struct UiTextDocumentEpochs {
     revisions: BTreeMap<UiNodeId, Option<u64>>,
@@ -26,17 +28,5 @@ impl UiTextDocumentEpochs {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn exhausted_epoch_never_aliases_an_earlier_document_source() {
-        let owner = UiNodeId::new(7);
-        let mut epochs = UiTextDocumentEpochs::default();
-        epochs.revisions.insert(owner, Some(u64::MAX));
-
-        assert_eq!(epochs.advance(owner), None);
-        assert_eq!(epochs.current(owner), None);
-        assert_eq!(epochs.advance(owner), None);
-    }
-}
+#[path = "tests/text_document_epoch.rs"]
+mod tests;

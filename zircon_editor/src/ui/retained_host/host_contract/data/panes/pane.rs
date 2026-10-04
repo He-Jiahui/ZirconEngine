@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use crate::ui::retained_host::host_contract::surface_hit_test::HostPaneTemplateHitIndex;
-use crate::ui::retained_host::primitives::SharedString;
+use crate::ui::retained_host::primitives::{ModelRc, SharedString};
 use zircon_runtime_interface::ui::surface::UiSurfaceFrame;
 
-use super::super::{UiAssetEditorPaneData, WelcomePaneData};
+use super::super::{TemplatePaneNodeData, UiAssetEditorPaneData, WelcomePaneData};
 use super::{
     animation::AnimationEditorPaneData,
     basic::{
@@ -56,4 +56,30 @@ pub(crate) struct PaneData {
     pub generated_bottom: GeneratedBottomPaneData,
     pub ui_asset: UiAssetEditorPaneData,
     pub animation: AnimationEditorPaneData,
+}
+
+impl PaneData {
+    pub(crate) fn template_nodes(&self) -> Option<&ModelRc<TemplatePaneNodeData>> {
+        if self.template_v2.nodes.row_count() > 0 {
+            return Some(&self.template_v2.nodes);
+        }
+
+        match self.kind.as_str() {
+            "Hierarchy" => Some(&self.hierarchy.nodes),
+            "Inspector" => Some(&self.inspector.nodes),
+            "Console" => Some(&self.console.nodes),
+            "Assets" => Some(&self.assets_activity.nodes),
+            "AssetBrowser" => Some(&self.asset_browser.nodes),
+            "Welcome" => Some(&self.welcome.nodes),
+            "Project" | "UiComponentShowcase" => Some(&self.project_overview.nodes),
+            "RuntimeDiagnostics" => Some(&self.runtime_diagnostics.nodes),
+            "PerformanceTimeline" => Some(&self.performance_timeline.nodes),
+            "ModulePlugins" => Some(&self.module_plugins.nodes),
+            "BuildExport" => Some(&self.build_export.nodes),
+            "GeneratedBottom" => Some(&self.generated_bottom.nodes),
+            "UiAssetEditor" => Some(&self.ui_asset.nodes),
+            "AnimationSequenceEditor" | "AnimationGraphEditor" => Some(&self.animation.nodes),
+            _ => None,
+        }
+    }
 }

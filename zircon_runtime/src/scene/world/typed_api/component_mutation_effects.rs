@@ -4,12 +4,78 @@ use crate::scene::{EntityId, World};
 use super::HierarchyMutationMode;
 
 impl World {
-    pub(crate) fn mark_query_component_mutation<T>(&mut self, entity: EntityId)
+    /// Query 可变访问的副作用入口；普通引用借出前仍即时更新绑定、派生状态和渲染脏日志。
+    ///
+    /// # Safety
+    /// The caller must hold the World query loan, exclusive access to the affected
+    /// ordinary metadata leaves, and compatible reads of hierarchy/registry state.
+    /// Live items may retain row cells and the shared sink leaf, never their parents.
+    pub(crate) unsafe fn mark_query_component_mutation<T>(world: *mut Self, entity: EntityId)
     where
         T: Component,
     {
-        self.mark_component_mutation::<T>(entity, HierarchyMutationMode::Unchecked);
-        self.mark_scene_binding_component_get_mut::<T>(entity);
+        unsafe {
+            Self::mark_component_mutation_unchecked::<T>(
+                world,
+                entity,
+                HierarchyMutationMode::Unchecked,
+            );
+            Self::mark_scene_binding_component_get_mut_unchecked::<T>(world, entity);
+        }
+    }
+
+    /// Common eager owner for an exclusive World entry and a granted raw query fetch.
+    ///
+    /// # Safety
+    /// The caller must uniquely own all mutated clock/generation/frontier/binding
+    /// metadata and permit the scoped Hierarchy reads. No live reference may cover
+    /// those leaves or their World/dirty-state parents. A retained mutation recorder
+    /// covers only the shared sink leaf, which this function does not mutably borrow.
+    pub(super) unsafe fn mark_component_mutation_unchecked<T>(
+        world: *mut Self,
+        entity: EntityId,
+        hierarchy_mutation: HierarchyMutationMode,
+    ) where
+        T: Component,
+    {
+        let type_id = std::any::TypeId::of::<T>();
+        let hierarchy = type_id == std::any::TypeId::of::<crate::scene::components::Hierarchy>();
+        let active = type_id == std::any::TypeId::of::<crate::scene::components::ActiveSelf>();
+        unsafe {
+            Self::advance_world_generation_unchecked(world);
+            (&*std::ptr::addr_of!((*world).world_sync_subscriptions))
+                .invalidate_component_type(std::any::type_name::<T>());
+
+            // Collect owned ids before mutating cache/frontier leaves. The temporary
+            // shared World is not the origin of a returned row or recorder reference.
+            let subtree = if hierarchy || active {
+                Some((&*world).subtree_entity_ids(entity))
+            } else {
+                None
+            };
+            let inspection_hierarchy = (&*world).is_inspection_hierarchy_component_type(type_id);
+            let cache = &*std::ptr::addr_of!((*world).inspection_artifact_cache);
+            if let Some(subtree) = subtree {
+                for affected in subtree {
+                    cache.mark_fields_dirty(affected);
+                }
+            } else {
+                cache.mark_fields_dirty(entity);
+            }
+            if inspection_hierarchy {
+                if type_id == std::any::TypeId::of::<crate::scene::components::Name>() {
+                    cache.mark_hierarchy_name_dirty(entity);
+                } else {
+                    cache.mark_hierarchy_rows_dirty();
+                }
+            }
+            super::super::dirty_state::DerivedStateDirty::mark_component_at_unchecked(
+                std::ptr::addr_of_mut!((*world).derived_state_dirty),
+                entity,
+                type_id,
+                hierarchy && hierarchy_mutation == HierarchyMutationMode::Checked,
+            );
+        }
     }
 
     pub(in crate::scene::world) fn apply_deferred_component_mutation(
@@ -112,14 +178,27 @@ impl World {
     where
         T: Component,
     {
+        // Ordinary authored/prevalidated calls retain their exclusive World role.
+        unsafe { Self::mark_scene_binding_component_get_mut_unchecked::<T>(self, entity) }
+    }
+
+    /// # Safety
+    /// The caller must own the binding/index leaves exclusively and permit the
+    /// existing Hierarchy ancestor reads. Live items may not cover those owners.
+    unsafe fn mark_scene_binding_component_get_mut_unchecked<T>(world: *mut Self, entity: EntityId)
+    where
+        T: Component,
+    {
         let type_id = std::any::TypeId::of::<T>();
-        if type_id == std::any::TypeId::of::<crate::scene::components::Name>() {
-            self.advance_scene_binding_generation_for_name(entity);
-        } else if type_id == std::any::TypeId::of::<crate::scene::components::Hierarchy>() {
-            // The raw mutable reference does not reveal its eventual parent. Structured
-            // reparenting stays incremental; this escape hatch must remain correct.
-            self.mark_hierarchy_mutation_index_dirty();
-            self.invalidate_all_scene_binding_generations();
+        unsafe {
+            if type_id == std::any::TypeId::of::<crate::scene::components::Name>() {
+                Self::advance_scene_binding_generation_for_name_unchecked(world, entity);
+            } else if type_id == std::any::TypeId::of::<crate::scene::components::Hierarchy>() {
+                // The mutable reference does not reveal its eventual parent. Structured
+                // reparenting stays incremental; the exclusive escape hatch stays correct.
+                (&mut *std::ptr::addr_of_mut!((*world).hierarchy_mutation_index)).mark_dirty();
+                Self::invalidate_all_scene_binding_generations_unchecked(world);
+            }
         }
     }
 

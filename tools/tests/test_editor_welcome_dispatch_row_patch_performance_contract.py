@@ -1,3 +1,4 @@
+# 核对欢迎页分发仅修补已识别的变化行。
 from pathlib import Path
 import unittest
 

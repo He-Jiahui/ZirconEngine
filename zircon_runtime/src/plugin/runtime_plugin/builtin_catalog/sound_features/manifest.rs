@@ -19,6 +19,7 @@ fn join_string_parts(parts: &[&str]) -> String {
     joined
 }
 
+// 同一行同时描述运行时、编辑器和原生分发模块；原生分发另附 ABI 元数据。
 pub(super) fn sound_feature(row: &SoundFeatureRow) -> PluginFeatureBundleManifest {
     let feature_id = join_string_parts(&["sound.", row.id_suffix]);
     let mut manifest =
@@ -81,14 +82,5 @@ fn sound_feature_distribution_manifest(row: &SoundFeatureRow) -> PluginDistribut
 }
 
 #[cfg(test)]
-mod tests {
-    use super::join_string_parts;
-
-    #[test]
-    fn exact_sound_identifier_join_preserves_parts() {
-        assert_eq!(
-            join_string_parts(&["sound.", "timeline_animation_track", ".runtime"]),
-            "sound.timeline_animation_track.runtime"
-        );
-    }
-}
+#[path = "tests/manifest.rs"]
+mod tests;

@@ -13,6 +13,8 @@ related_code:
   - zircon_plugins/terrain/editor/src/plugin.rs
   - zircon_plugins/tilemap_2d/editor/src/plugin.rs
   - zircon_editor/src/scene/modes/scene_mode_registration.rs
+related_failures:
+  - docs/plans/zircon_editor/editor/05/failure-2026-07-31-scene-mode-input-ownership-hardcut.md
 tests:
   - Terrain sculpt executable scene-mode input and transaction tests
   - Tilemap paint executable scene-mode input and transaction tests
@@ -57,10 +59,29 @@ mutation, compatibility shim, or test-only factory.
 
 ## 修复结果与回传
 
-Open state: descriptor-only Terrain/Tilemap entries have been removed, but neither plugin has
-delivered a production factory, authoring transaction proof, capability-disable lifecycle, or
-focused Cargo GREEN. The toolbar projection must remain absent until those product contracts pass.
+Open state: `blocked_on_lower_editor05_contract / plugin factories and operations still open`.
+Descriptor-only Terrain/Tilemap entries have been removed, but neither plugin has delivered a
+production factory, authoring transaction proof, capability-disable lifecycle, or focused Cargo
+GREEN. The toolbar projection must remain absent until those product contracts pass.
+
+The 2026-09-21 current-source audit confirmed that this failure cannot be repaired honestly by
+adding plugin-local factory shells first. `SceneModeCtx` exposes selection, settings and overlay
+invalidation publicly, while its input-effect sink and the four built-in pointer/selection/transform
+effects remain crate-private. `ViewportFeedback` carries only the built-in transform request. A
+Terrain or Tilemap mode therefore has no supported way to own/release/cancel primary-pointer
+capture, query the immutable camera/viewport/pointer projection needed for a spatial brush, or
+route a commit request into the host operation/transaction authority. Terrain sculpt and Tilemap
+paint command descriptors also do not register an executable authoring operation factory, so
+emitting their current operation ids would end in `MissingFactory`, not an authoring result.
+
+The lower dependency is now explicitly tracked by
+[Editor05 scene-mode input ownership hard-cut](../../zircon_editor/editor/05/failure-2026-07-31-scene-mode-input-ownership-hardcut.md).
+Plugins10 remains responsible, after that contract lands, for the two production mode factories,
+their plugin-owned operation factories and inverse/undo data, spatial overlays, exact activation
+ids, and capability retirement tests. No `PassThrough` mode, in-memory-only success sink, direct
+world write, or toolbar re-addition is accepted as interim completion.
 
 | 日期 | 项目 | 状态 | 证据 |
 | --- | --- | --- | --- |
 | 2026-08-01 | descriptor-only Terrain/Tilemap mode removal | open | `EditorAuthoringContributionBatch` now accepts executable `scene_modes`; Terrain and Tilemap retain their commands/views but no longer publish false mode availability. Plugins10 owns both real factories and product behavior gates. |
+| 2026-09-21 | Editor05 authoring-effect dependency audit | `waiting_dependency` | Current public mode contract has no plugin-safe capture/query/operation effect path, and current sculpt/paint descriptors have no operation factories. Linked the existing lower Editor05 failure and preserved the absent toolbar; no placeholder source was added. |

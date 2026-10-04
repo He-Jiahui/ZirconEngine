@@ -76,8 +76,8 @@ impl HostWorkbenchHitIndex {
         let changed_cell_count = bucket_updates.len();
         let buckets = Arc::new(self.buckets.with_updates(bucket_updates));
 
-        let previous_paint_models = presentation_paint_node_models(previous);
-        let next_paint_models = presentation_paint_node_models(next);
+        let previous_paint_models = previous.paint_node_models();
+        let next_paint_models = next.paint_node_models();
         if !self.indexes_paint_models(&previous_paint_models)
             || previous_paint_models.len() != next_paint_models.len()
         {
@@ -121,6 +121,8 @@ impl HostWorkbenchHitIndex {
                 };
             }
         }
+        let componentized_ownership =
+            componentized_hit_ownership(next, Some(&next_origin), extension_workspace.as_ref());
         zircon_runtime::profile_counter!(
             "editor",
             "ui.window_resize.hit_index_geometry_patch_count",
@@ -150,6 +152,7 @@ impl HostWorkbenchHitIndex {
             popup_rows: Arc::clone(&self.popup_rows),
             parent_rows: Arc::clone(&self.parent_rows),
             extension_workspace,
+            componentized_ownership,
             #[cfg(test)]
             last_candidate_visit_count: Cell::new(0),
             #[cfg(test)]

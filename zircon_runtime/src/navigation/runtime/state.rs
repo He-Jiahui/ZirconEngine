@@ -18,6 +18,7 @@ pub(super) struct BuiltinNavigationState {
     pub(super) next_handle: u64,
     pub(super) loaded: HashMap<NavMeshHandle, Arc<BakedNavMesh>>,
     pub(super) generated: HashMap<Option<u64>, BuiltinGeneratedBakeState>,
+    pub(super) generated_mutation_epoch: u64,
     pub(super) settings: NavigationSettingsAsset,
     pub(super) stats: NavigationRuntimeStats,
     pub(super) navigation_projection: Option<NavigationWorldProjection>,
@@ -35,6 +36,7 @@ impl Default for BuiltinNavigationState {
             next_handle: 1,
             loaded: HashMap::new(),
             generated: HashMap::new(),
+            generated_mutation_epoch: 0,
             settings: NavigationSettingsAsset::default(),
             stats: NavigationRuntimeStats::default(),
             navigation_projection: None,
@@ -195,7 +197,19 @@ impl BuiltinNavigationState {
             .unwrap_or_else(|| NavigationGeneratedBakeSnapshot::empty(surface_entity))
     }
 
-    pub(super) fn replace_generated_snapshot(&mut self, snapshot: NavigationGeneratedBakeSnapshot) {
+    pub(super) fn replace_generated_snapshot(
+        &mut self,
+        snapshot: NavigationGeneratedBakeSnapshot,
+    ) -> Result<(), NavigationError> {
+        let next_mutation_epoch =
+            self.generated_mutation_epoch
+                .checked_add(1)
+                .ok_or_else(|| {
+                    NavigationError::new(
+                crate::core::framework::navigation::NavigationErrorKind::InvalidConfiguration,
+                "built-in navigation generated-state mutation epoch exhausted",
+            )
+                })?;
         let key = snapshot.surface_entity;
         if let Some(previous) = self.generated.remove(&key) {
             if let Some(handle) = previous.loaded_handle {
@@ -223,6 +237,12 @@ impl BuiltinNavigationState {
             );
         }
         self.stats.loaded_nav_meshes = self.loaded.len();
+        self.generated_mutation_epoch = next_mutation_epoch;
+        Ok(())
+    }
+
+    pub(super) fn generated_mutation_epoch(&self) -> u64 {
+        self.generated_mutation_epoch
     }
 
     pub(super) fn selected_mesh_snapshot(
@@ -248,5 +268,5 @@ struct RuntimeRepathRoute {
 }
 
 #[cfg(test)]
-#[path = "state/repath_entry_tests.rs"]
+#[path = "state/tests/repath_entry_tests.rs"]
 mod repath_entry_tests;

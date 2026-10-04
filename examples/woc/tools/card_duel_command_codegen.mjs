@@ -1,3 +1,6 @@
+// 调用端：npm run generate:card-duel-command-contract (tools/package.json)；职责：把卡牌决斗网络请求绑定到命令 ID 与类型化载荷布局。
+// 输入边界：src/net/online.ts, server/game.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

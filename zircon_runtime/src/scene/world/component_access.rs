@@ -1,11 +1,12 @@
+//! 提供物理、灯光与动画组件的具名访问入口；设置器跳过相等值，实际写入交给 World 的类型化变更路径。
 use super::{SceneError, SceneResult, World};
-use crate::scene::EntityId;
 use crate::scene::components::{
     AmbientLight, AnimationGraphPlayerComponent, AnimationPlayerComponent,
     AnimationSequencePlayerComponent, AnimationSkeletonComponent,
     AnimationStateMachinePlayerComponent, ColliderComponent, JointComponent, PointLight, RectLight,
     RigidBodyComponent, SpotLight,
 };
+use crate::scene::EntityId;
 
 impl World {
     pub fn rigid_body(&self, entity: EntityId) -> Option<&RigidBodyComponent> {

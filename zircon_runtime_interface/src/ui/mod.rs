@@ -8,6 +8,7 @@ pub mod dispatch;
 pub mod ecs;
 pub mod event_ui;
 pub mod focus;
+pub mod icon;
 pub mod layout;
 pub mod navigation;
 pub mod picking;

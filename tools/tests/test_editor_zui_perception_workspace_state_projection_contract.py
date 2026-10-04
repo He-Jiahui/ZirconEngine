@@ -1,3 +1,4 @@
+# 核对感知代理选择由运行时拥有，模拟反馈读取当前配置。
 import tomllib
 import unittest
 from pathlib import Path

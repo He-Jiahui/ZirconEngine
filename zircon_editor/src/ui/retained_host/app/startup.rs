@@ -4,7 +4,7 @@ pub(crate) fn build_startup_state(
     editor_manager: &EditorManager,
     session: &mut EditorStartupSessionDocument,
     viewport_size: UVec2,
-) -> Result<EditorState, Box<dyn Error>> {
+) -> Result<EditorState, Box<dyn Error + Send + Sync>> {
     let welcome = session.welcome_pane_snapshot(false);
     let project = session.project.take();
     if let Some(descriptor_id) = session.open_builtin_view.as_deref() {
@@ -25,6 +25,26 @@ pub(crate) fn build_startup_state(
 
     match (session.mode, project) {
         (EditorSessionMode::Project | EditorSessionMode::Playing, Some(document)) => {
+            let viewport_sessions = document
+                .editor_workspace
+                .as_ref()
+                .map(|workspace| {
+                    workspace
+                        .scene_viewport_sessions
+                        .iter()
+                        .map(|(view_id, snapshot)| {
+                            (
+                                crate::core::editor_event::ViewInstanceId::new(view_id.0.clone()),
+                                snapshot.clone(),
+                            )
+                        })
+                        .collect::<std::collections::BTreeMap<_, _>>()
+                })
+                .unwrap_or_default();
+            let focused_view = document
+                .editor_workspace
+                .as_ref()
+                .and_then(|workspace| workspace.focused_view.clone());
             editor_manager.apply_project_workspace(document.editor_workspace)?;
             let project_root = document.root_path.clone();
             let default_scene = document.manifest.default_scene.clone();
@@ -38,11 +58,27 @@ pub(crate) fn build_startup_state(
             let scene_document =
                 editor_manager.activate_startup_scene_document(&project_root, &default_scene)?;
             state.bind_scene_document(scene_document);
+            // The retained Workbench owns UI instance IDs while the viewport session
+            // registry is keyed by the core editor-event nominal type. Convert once at
+            // this owner boundary and keep manager focus/layout calls on the UI IDs.
+            let live_scene_views = editor_manager
+                .view_instance_ids_for_descriptor_key("editor.scene")
+                .into_iter()
+                .map(|view_id| crate::core::editor_event::ViewInstanceId::new(view_id.0))
+                .collect::<std::collections::BTreeSet<_>>();
+            let focused_view = focused_view
+                .map(|view_id| crate::core::editor_event::ViewInstanceId::new(view_id.0));
+            state.viewport_controller.restore_workspace_sessions(
+                &live_scene_views,
+                &viewport_sessions,
+                focused_view.as_ref(),
+            );
             state.set_welcome_snapshot(welcome);
             state.set_status_line(session.status_message.clone());
             Ok(state)
         }
         (EditorSessionMode::Welcome | EditorSessionMode::Playing, _) => {
+            editor_manager.show_welcome_page()?;
             let mut state = EditorState::welcome_with_context(
                 viewport_size,
                 welcome,

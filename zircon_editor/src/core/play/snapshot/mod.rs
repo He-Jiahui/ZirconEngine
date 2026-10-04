@@ -2,6 +2,7 @@ mod error;
 mod source;
 mod store;
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 pub use error::PlaySceneSourceError;

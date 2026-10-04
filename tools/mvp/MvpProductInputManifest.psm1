@@ -6,7 +6,7 @@ $script:MvpProductInputUpperHexDigits = [char[]]'0123456789ABCDEF'
 
 $moduleRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Import-Module (Join-Path $PSScriptRoot 'MvpProductProfileRegistry.psm1') -Force -ErrorAction Stop
-Import-Module (Join-Path $moduleRepoRoot 'tools\WindowsPathResolver.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $moduleRepoRoot 'tools\maintenance\WindowsPathResolver.psm1') -Force -ErrorAction Stop
 
 function Get-MvpProductInputSpecifications {
     param([AllowNull()]$RegistrySnapshot)

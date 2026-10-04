@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+# 声音图结构差异按需复用修改前后层级索引，父子查找一次建好；子树投影不得重做整图固定点扫描。
 import unittest
 from pathlib import Path
 

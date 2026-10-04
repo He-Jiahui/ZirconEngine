@@ -2,6 +2,7 @@ mod asset_deletion_blocker;
 mod close_prompt;
 mod snapshot;
 mod template_hover_state;
+mod template_press_state;
 
 use std::sync::Arc;
 
@@ -15,8 +16,9 @@ use zircon_runtime_interface::ui::layout::UiSize;
 use super::super::data::SceneViewportChromeData;
 use super::super::data::{
     FrameRect, HostDockPresentationPatch, HostMenuStateData, HostPaneInteractionStateData,
-    HostPresentationGeneration, HostWindowGeometryPresentationData, HostWindowLayoutData,
-    HostWindowPresentationData, HostWindowShellData, TemplatePaneNodeData,
+    HostPanePresentationPatch, HostPresentationGeneration, HostPresentationPatch,
+    HostWindowGeometryPresentationData, HostWindowLayoutData, HostWindowPresentationData,
+    HostWindowShellData, TemplatePaneNodeData,
 };
 use super::UiHostWindow;
 use crate::ui::retained_host::primitives::ModelRc;
@@ -84,18 +86,44 @@ impl UiHostWindow {
         state.update_host_presentation(update)
     }
 
-    pub(crate) fn update_host_presentation_if<R>(
+    pub(crate) fn set_native_floating_window_presentation(
         &self,
-        predicate: impl FnOnce(&HostWindowPresentationData) -> bool,
-        update: impl FnOnce(&mut HostWindowPresentationData) -> R,
+        window_id: &str,
+        surface_tree_id: &str,
+        title: &str,
+        bounds: &FrameRect,
+    ) -> bool {
+        self.state
+            .borrow_mut()
+            .replace_native_floating_window_presentation(window_id, surface_tree_id, title, bounds)
+    }
+
+    pub(crate) fn patch_host_presentation_panes<R>(
+        &self,
+        prepare: impl FnOnce(&HostWindowPresentationData) -> Option<(HostPanePresentationPatch, R)>,
     ) -> Option<R> {
         let mut state = self.state.borrow_mut();
-        if !predicate(state.host_presentation.as_ref()) {
+        let (patch, result) = prepare(state.host_presentation.as_ref())?;
+        if !state.patch_host_presentation_panes(patch) {
             return None;
         }
         state.presentation_rebuild_count = state.presentation_rebuild_count.saturating_add(1);
         record_current_ui_perf_counter(UiPerfCounter::PresentationRebuildCount, 1.0);
-        Some(state.update_host_presentation(update))
+        Some(result)
+    }
+
+    pub(crate) fn patch_host_presentation<R>(
+        &self,
+        prepare: impl FnOnce(&HostWindowPresentationData) -> Option<(HostPresentationPatch, R)>,
+    ) -> Option<R> {
+        let mut state = self.state.borrow_mut();
+        let (patch, result) = prepare(state.host_presentation.as_ref())?;
+        if !state.patch_host_presentation(patch) {
+            return None;
+        }
+        state.presentation_rebuild_count = state.presentation_rebuild_count.saturating_add(1);
+        record_current_ui_perf_counter(UiPerfCounter::PresentationRebuildCount, 1.0);
+        Some(result)
     }
 
     pub(crate) fn patch_workbench_window_nodes(

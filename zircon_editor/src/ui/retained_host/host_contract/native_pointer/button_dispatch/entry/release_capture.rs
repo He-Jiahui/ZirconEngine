@@ -1,5 +1,6 @@
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
 use crate::ui::retained_host::host_contract::window::UiHostWindow;
+use zircon_runtime_interface::ui::dispatch::UiPointerId;
 use zircon_runtime_interface::ui::surface::UiPointerButton;
 
 use super::super::super::NativePointerButtonState;
@@ -7,6 +8,7 @@ use super::super::release::finish_primary_capture;
 
 pub(super) fn finish_primary_capture_if_released(
     ui: &UiHostWindow,
+    pointer_id: UiPointerId,
     state: NativePointerButtonState,
     button: UiPointerButton,
     x: f32,
@@ -15,5 +17,5 @@ pub(super) fn finish_primary_capture_if_released(
     if state != NativePointerButtonState::Released || button != UiPointerButton::Primary {
         return None;
     }
-    finish_primary_capture(ui, x, y)
+    finish_primary_capture(ui, pointer_id, x, y)
 }

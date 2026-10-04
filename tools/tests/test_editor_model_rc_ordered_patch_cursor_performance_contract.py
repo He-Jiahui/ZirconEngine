@@ -1,3 +1,4 @@
+# 核对有序补丁游标以固定栈遍历叠加层，共享存储相等时提前退出。
 from pathlib import Path
 import re
 import unittest

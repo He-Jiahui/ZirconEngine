@@ -10,15 +10,8 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/session_coordinator/failure_dependency_graph.py
-  - tools/session_coordinator/failures.py
-  - tools/session_coordinator/migrations.py
-  - tools/session_coordinator/control_plane/snapshot.py
-  - tools/session_coordinator/tests/test_failures.py
-  - tools/session_coordinator/tests/test_database.py
-  - tools/session_coordinator/tests/test_control_snapshot.py
 tests:
-  - .\tools\zircon-session.ps1 failure audit
+  - .\tools\dev\zircon-session.ps1 failure audit
   - python -m unittest tools.session_coordinator.tests.test_failures -v
   - python -m unittest tools.session_coordinator.tests.test_database -v
   - python -m unittest tools.session_coordinator.tests.test_control_snapshot.ControlSnapshotTests.test_failure_diagnostics_project_structured_details -v

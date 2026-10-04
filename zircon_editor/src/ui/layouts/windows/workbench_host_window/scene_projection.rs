@@ -5,11 +5,11 @@ use crate::ui::retained_host::{
 };
 
 use super::chrome_template_projection::{
-    dock_header_frame, dock_subtitle_frame, dock_tab_frames, document_dock_header_nodes,
-    floating_window_header_nodes, menu_chrome_nodes, menu_control_frames, page_chrome_nodes,
-    page_overflow_frame, page_overflow_hidden_tab_indices, page_project_path_frame,
-    page_tab_frames, page_tab_row_frame, status_bar_nodes, surface_metrics_from_chrome_assets,
-    MENU_SLOT_COUNT,
+    dock_header_frame, dock_overflow_frame, dock_subtitle_frame, dock_tab_frames,
+    document_dock_header_nodes, floating_window_header_nodes, menu_chrome_nodes,
+    menu_control_frames, page_chrome_nodes, page_overflow_frame, page_overflow_hidden_tab_indices,
+    page_project_path_frame, page_tab_frames, page_tab_row_frame, status_bar_nodes,
+    surface_metrics_from_chrome_assets, MENU_SLOT_COUNT,
 };
 use super::*;
 use crate::core::commands::{MenuBarModel, MenuItemModel, MenuModel};
@@ -18,16 +18,17 @@ use crate::ui::asset_editor::{
 };
 use crate::ui::binding::EditorUiBindingPayload;
 use crate::ui::layouts::common::model_rc;
-use crate::ui::layouts::views::animation_editor_pane_nodes;
 use crate::ui::layouts::views::asset_browser_pane_data;
 use crate::ui::layouts::views::assets_activity_pane_data;
 use crate::ui::layouts::views::hierarchy_pane_nodes;
 use crate::ui::layouts::views::inspector_pane_nodes;
 use crate::ui::layouts::views::project_overview_pane_data;
+use crate::ui::layouts::views::{animation_graph_pane_nodes, animation_sequence_pane_nodes};
 use crate::ui::workbench::event::menu_item_binding;
 use zircon_runtime_interface::ui::layout::UiSize;
 
 mod dock_patch;
+mod document_leaves;
 mod geometry;
 
 use dock_patch::{
@@ -276,6 +277,21 @@ pub(crate) fn build_host_scene_data_with_cache(
     };
 
     HostWindowSceneData {
+        document_leaves: document_leaves::build_document_leaves(
+            host_surface_data,
+            host_shell,
+            host_layout,
+            &metrics,
+            |leaf, width, height| {
+                pane_with_host_owned_shell_layouts(
+                    leaf.pane.clone(),
+                    width,
+                    height,
+                    project_overview,
+                    chrome,
+                )
+            },
+        ),
         layout: host_layout.clone(),
         metrics,
         orchestration,
@@ -644,7 +660,11 @@ fn pane_with_animation_projection(mut pane: PaneData, width: f32, height: f32) -
 
     zircon_runtime::profile_scope!("editor", "retained_host", "scene_pane_animation");
     let size = UiSize::new(width.max(0.0), height.max(0.0));
-    pane.native_body.animation.nodes = animation_editor_pane_nodes(size);
+    pane.native_body.animation.nodes = match pane.kind.as_str() {
+        "AnimationSequenceEditor" => animation_sequence_pane_nodes(size),
+        "AnimationGraphEditor" => animation_graph_pane_nodes(size),
+        _ => return pane,
+    };
     pane
 }
 

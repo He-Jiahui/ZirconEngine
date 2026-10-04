@@ -319,6 +319,7 @@ bool copy_poly_mesh_to_result(
 
 } // namespace
 
+// FFI 边界把 Recast 分配与异常转换为结果状态，并通过专用释放入口交还输出缓冲区。
 void bake_triangle_mesh_internal(
     const float* vertices,
     std::uint32_t vertex_count,

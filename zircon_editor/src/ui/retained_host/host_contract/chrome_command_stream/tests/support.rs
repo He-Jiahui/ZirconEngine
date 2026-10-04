@@ -74,6 +74,7 @@ pub(in crate::ui::retained_host::host_contract) fn presentation_with_viewport_im
         .viewport_images
         .replace_scene(super::super::super::data::HostViewportImageData {
             resource_key: "viewport:test-initial".into(),
+            resource_generation: 0,
             width: 2,
             height: 2,
             rgba: Some(vec![255; 16].into()),
@@ -117,6 +118,7 @@ pub(in crate::ui::retained_host::host_contract) fn presentation_with_componentiz
 
 fn test_layout() -> HostWindowLayoutData {
     HostWindowLayoutData {
+        authoritative: true,
         center_band_frame: FrameRect {
             x: 0.0,
             y: 36.0,

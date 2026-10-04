@@ -1,3 +1,4 @@
+# 核对资产详情页由固定标题下的单一正文管理纵向滚动。
 import unittest
 from pathlib import Path
 

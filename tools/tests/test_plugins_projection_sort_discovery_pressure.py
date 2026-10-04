@@ -1,8 +1,8 @@
 import unittest
 
-from tools.plugins_projection_sort_discovery_pressure import run
+from tools.analysis.performance.plugins.plugins_projection_sort_discovery_pressure import run
 
-
+# 调用插件压力模型，核对世界同步四类输出的预定容量、嵌套载荷移动和排序键单次计算。
 class PluginsProjectionSortDiscoveryPressureTests(unittest.TestCase):
     def test_world_sync_presizes_four_outputs_and_moves_nested_payloads(self) -> None:
         projection = run()["world_sync_projection"]

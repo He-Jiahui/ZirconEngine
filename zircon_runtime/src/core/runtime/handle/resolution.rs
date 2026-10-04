@@ -19,13 +19,13 @@ const RESOLUTION_STACK_FRAME_CAPACITY: usize = 1;
 
 /// A generation-bound service reference. It cannot invoke the service until
 /// [`Self::enter`] acquires a call guard from the owning runtime slot.
-pub struct ServiceHandle<T> {
+pub struct ServiceHandle<T: ?Sized> {
     core: CoreWeak,
     identity: RegisteredServiceIdentity,
     service: Arc<T>,
 }
 
-impl<T> ServiceHandle<T> {
+impl<T: ?Sized> ServiceHandle<T> {
     fn new(core: CoreWeak, identity: RegisteredServiceIdentity, service: Arc<T>) -> Self {
         Self {
             core,
@@ -39,22 +39,65 @@ impl<T> ServiceHandle<T> {
         let core = self.core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
         core.begin_service_call(&self.identity)?;
         Ok(ServiceCallGuard {
-            core,
-            identity: self.identity.clone(),
+            admission: ServiceCallAdmission {
+                core,
+                identity: self.identity.clone(),
+            },
             service: Arc::clone(&self.service),
         })
     }
 }
 
+impl<T: ?Sized> Clone for ServiceHandle<T> {
+    fn clone(&self) -> Self {
+        Self::new(
+            self.core.clone(),
+            self.identity.clone(),
+            Arc::clone(&self.service),
+        )
+    }
+}
+
+impl<T: ?Sized> std::fmt::Debug for ServiceHandle<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ServiceHandle")
+            .field("identity", &self.identity)
+            .finish_non_exhaustive()
+    }
+}
+
 /// An admitted service invocation. Dropping the guard releases the slot's
 /// in-flight count and allows an in-progress shutdown to continue draining.
-pub struct ServiceCallGuard<T> {
-    core: CoreHandle,
-    identity: RegisteredServiceIdentity,
+pub struct ServiceCallGuard<T: ?Sized> {
+    admission: ServiceCallAdmission,
     service: Arc<T>,
 }
 
-impl<T> Deref for ServiceCallGuard<T> {
+struct ServiceCallAdmission {
+    core: CoreHandle,
+    identity: RegisteredServiceIdentity,
+}
+
+impl<T: ?Sized> ServiceCallGuard<T> {
+    /// Projects a registered wrapper while retaining exactly the same call admission.
+    pub(crate) fn map<U: ?Sized>(self, project: impl FnOnce(&T) -> Arc<U>) -> ServiceCallGuard<U> {
+        let service = project(&self.service);
+        ServiceCallGuard {
+            admission: self.admission,
+            service,
+        }
+    }
+}
+
+impl<T: ?Sized> std::fmt::Debug for ServiceCallGuard<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ServiceCallGuard")
+            .field("identity", &self.admission.identity)
+            .finish_non_exhaustive()
+    }
+}
+
+impl<T: ?Sized> Deref for ServiceCallGuard<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -62,14 +105,17 @@ impl<T> Deref for ServiceCallGuard<T> {
     }
 }
 
-impl<T> Drop for ServiceCallGuard<T> {
+impl Drop for ServiceCallAdmission {
     fn drop(&mut self) {
         self.core.release_service_call(&self.identity);
     }
 }
 
 enum NamedServiceResolution {
-    Resolved(ServiceObject),
+    Resolved {
+        instance: ServiceObject,
+        identity: RegisteredServiceIdentity,
+    },
     Pending(RegistryName),
 }
 
@@ -125,11 +171,12 @@ impl Drop for ServiceInitializationClaim<'_> {
 }
 
 impl CoreHandle {
-    // TODO: [CR-RUNTIME-HANDLE-0002] 确认直接返回 Arc 的三类解析入口的卸载约束；只有句柄守卫参与调用排空。
-    /// 返回驱动共享实例；需要卸载排空语义的调用应使用 [`Self::resolve_driver_handle`]。
-    pub fn resolve_driver<T: Any + Send + Sync>(&self, name: &str) -> Result<Arc<T>, CoreError> {
-        let service = self.resolve_named_service(name, Some(ServiceKind::Driver))?;
-        downcast_resolved_service(name, service)
+    /// Admits one driver call. Retain a handle, rather than this guard, between calls.
+    pub fn resolve_driver<T: Any + Send + Sync>(
+        &self,
+        name: &str,
+    ) -> Result<ServiceCallGuard<T>, CoreError> {
+        self.resolve_driver_handle(name)?.enter()
     }
 
     pub fn resolve_driver_handle<T: Any + Send + Sync>(
@@ -139,9 +186,11 @@ impl CoreHandle {
         self.resolve_service_handle(name, ServiceKind::Driver)
     }
 
-    pub fn resolve_manager<T: Any + Send + Sync>(&self, name: &str) -> Result<Arc<T>, CoreError> {
-        let service = self.resolve_named_service(name, Some(ServiceKind::Manager))?;
-        downcast_resolved_service(name, service)
+    pub fn resolve_manager<T: Any + Send + Sync>(
+        &self,
+        name: &str,
+    ) -> Result<ServiceCallGuard<T>, CoreError> {
+        self.resolve_manager_handle(name)?.enter()
     }
 
     pub fn resolve_manager_handle<T: Any + Send + Sync>(
@@ -186,25 +235,26 @@ impl CoreHandle {
     pub(crate) fn resolve_registered_manager<T: Any + Send + Sync>(
         &self,
         identity: &RegisteredServiceIdentity,
-    ) -> Result<Arc<T>, CoreError> {
-        let service = match self
-            .registered_service_resolution_for_identity(identity, ServiceKind::Manager)?
-        {
-            RegisteredServiceResolution::Resolved(instance) => instance,
-            RegisteredServiceResolution::Pending => {
-                let mut stack = Vec::with_capacity(RESOLUTION_STACK_FRAME_CAPACITY);
-                let instance =
+    ) -> Result<ServiceCallGuard<T>, CoreError> {
+        loop {
+            match self.registered_service_resolution_for_identity(identity, ServiceKind::Manager)? {
+                RegisteredServiceResolution::Resolved(instance) => {
+                    let service = downcast_resolved_service(identity.service().as_str(), instance)?;
+                    return ServiceHandle::new(self.downgrade(), identity.clone(), service).enter();
+                }
+                RegisteredServiceResolution::Pending => {
+                    let mut stack = Vec::with_capacity(RESOLUTION_STACK_FRAME_CAPACITY);
                     self.resolve_existing_service_inner(identity.service(), &mut stack)?;
-                self.validate_registered_service_identity(identity, ServiceKind::Manager)?;
-                instance
+                }
             }
-        };
-        downcast_resolved_service(identity.service().as_str(), service)
+        }
     }
 
-    pub fn resolve_plugin<T: Any + Send + Sync>(&self, name: &str) -> Result<Arc<T>, CoreError> {
-        let service = self.resolve_named_service(name, Some(ServiceKind::Plugin))?;
-        downcast_resolved_service(name, service)
+    pub fn resolve_plugin<T: Any + Send + Sync>(
+        &self,
+        name: &str,
+    ) -> Result<ServiceCallGuard<T>, CoreError> {
+        self.resolve_plugin_handle(name)?.enter()
     }
 
     pub fn resolve_plugin_handle<T: Any + Send + Sync>(
@@ -220,11 +270,18 @@ impl CoreHandle {
         service_name: &str,
         expected_kind: ServiceKind,
     ) -> Result<ServiceHandle<T>, CoreError> {
-        let service = self.resolve_named_service(service_name, Some(expected_kind))?;
-        let service = downcast_resolved_service(service_name, service)?;
-        // BUG: [CR-RUNTIME-HANDLE-0001] 实例与代次分两次读取；中间卸载并重激活后，旧 Arc 可绑定新代次并通过 enter。
-        let identity = self.registered_service_identity(service_name, expected_kind)?;
-        Ok(ServiceHandle::new(self.downgrade(), identity, service))
+        loop {
+            match self.named_service_resolution(service_name, Some(expected_kind))? {
+                NamedServiceResolution::Resolved { instance, identity } => {
+                    let service = downcast_resolved_service(service_name, instance)?;
+                    return Ok(ServiceHandle::new(self.downgrade(), identity, service));
+                }
+                NamedServiceResolution::Pending(service_key) => {
+                    let mut stack = Vec::with_capacity(RESOLUTION_STACK_FRAME_CAPACITY);
+                    self.resolve_existing_service_inner(&service_key, &mut stack)?;
+                }
+            }
+        }
     }
 
     fn begin_service_call(&self, identity: &RegisteredServiceIdentity) -> Result<(), CoreError> {
@@ -317,7 +374,7 @@ impl CoreHandle {
     ) -> Result<ServiceObject, CoreError> {
         crate::profile_scope!("runtime", "core", "resolve_named_service");
         match self.named_service_resolution(service_name, expected_kind)? {
-            NamedServiceResolution::Resolved(instance) => Ok(instance),
+            NamedServiceResolution::Resolved { instance, .. } => Ok(instance),
             NamedServiceResolution::Pending(service_key) => {
                 let mut stack = Vec::with_capacity(RESOLUTION_STACK_FRAME_CAPACITY);
                 self.resolve_existing_service_inner(&service_key, &mut stack)
@@ -361,7 +418,10 @@ impl CoreHandle {
         }
         ensure_service_resolution_available(name.as_str(), entry.lifecycle)?;
         if let Some(instance) = entry.instance.clone() {
-            return Ok(NamedServiceResolution::Resolved(instance));
+            // Instance and registration identity are copied under the same service lock.
+            let identity =
+                RegisteredServiceIdentity::new(entry.index, entry.generation, name.clone());
+            return Ok(NamedServiceResolution::Resolved { instance, identity });
         }
 
         Ok(NamedServiceResolution::Pending(name.clone()))
@@ -531,6 +591,7 @@ impl CoreHandle {
 
             let instance = self.invoke_service_factory(canonical_service_name, factory)?;
 
+            // 工厂在服务锁外运行；回写前核对槽位代次、所有者与状态，丢弃卸载期间返回的迟到实例。
             let committed = (|| {
                 let mut services = self.lock_services();
                 let Some(entry) = services.get_mut(service_key) else {

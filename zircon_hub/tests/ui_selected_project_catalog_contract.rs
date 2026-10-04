@@ -1,4 +1,5 @@
 //! Static contracts for React/MUI selected-project catalog scope.
+//! 检查目录发现的项目优先级、稳定范围键和页面筛选之间的一致性。
 
 use std::{fs, path::PathBuf};
 
@@ -13,6 +14,7 @@ fn repo_dir() -> PathBuf {
         .to_path_buf()
 }
 
+// 源码片段跨检出平台比较时统一换行；这里不会执行被检查的前端代码。
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
@@ -49,6 +51,7 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+// 选中项目或引擎变化应触发目录与团队视图重新发现。
 #[test]
 fn tauri_runtime_refreshes_catalogs_from_selected_project_and_source_engine_roots() {
     let runtime_state = read_crate_file("src/tauri_app/runtime_state.rs");
@@ -95,6 +98,7 @@ fn tauri_runtime_refreshes_catalogs_from_selected_project_and_source_engine_root
     );
 }
 
+// 目录发现按项目优先、引擎次之的范围顺序形成后端事实。
 #[test]
 fn discovery_modules_prioritize_selected_project_scope_before_engine_scope() {
     let assets = read_crate_file("src/assets/catalog.rs");
@@ -119,8 +123,12 @@ fn discovery_modules_prioritize_selected_project_scope_before_engine_scope() {
             "SELECTED_PROJECT_ASSET_SOURCE => 0",
             "PROJECT_ASSET_SOURCE => 1",
             "project_filesystem_path_key(root)",
-            "discover_asset_catalog_keeps_first_source_engine_root_before_fallback_limit",
         ],
+    );
+    assert_contains_all(
+        "assets/catalog.rs",
+        &read_crate_file("src/assets/tests/catalog.rs"),
+        &["discover_asset_catalog_keeps_first_source_engine_root_before_fallback_limit"],
     );
     assert_contains_all(
         "plugins/catalog.rs",
@@ -152,11 +160,16 @@ fn discovery_modules_prioritize_selected_project_scope_before_engine_scope() {
             "SELECTED_PROJECT_LEARN_SOURCE => 0",
             "SOURCE_ENGINE_LEARN_SOURCE => 1",
             "project_filesystem_path_key(&docs_root)",
-            "discover_learn_catalog_keeps_first_source_engine_root_before_fallback_limit",
         ],
+    );
+    assert_contains_all(
+        "learn/catalog.rs",
+        &read_crate_file("src/learn/tests/catalog.rs"),
+        &["discover_learn_catalog_keeps_first_source_engine_root_before_fallback_limit"],
     );
 }
 
+// 目录 DTO 把稳定键和本地化标签分离后供页面筛选。
 #[test]
 fn tauri_view_model_exposes_catalog_scope_dtos_to_react() {
     let view_model = read_crate_file("src/tauri_app/view_model.rs");
@@ -225,8 +238,12 @@ fn tauri_view_model_exposes_catalog_scope_dtos_to_react() {
             "path == target.as_str() || resource.title == target.as_str()",
             "LearnMessageId::ResourceNotInCatalog",
             "LearnMessageId::RefreshOrChooseLocalDocument",
-            "open_resource_payload_path_can_identify_catalog_entry_when_resource_id_is_stale",
         ],
+    );
+    assert_contains_all(
+        "runtime_state/learn_actions.rs",
+        &read_crate_file("src/tauri_app/runtime_state/tests/learn_actions.rs"),
+        &["open_resource_payload_path_can_identify_catalog_entry_when_resource_id_is_stale"],
     );
     assert_contains_all(
         "types/hub.ts",
@@ -255,6 +272,7 @@ fn tauri_view_model_exposes_catalog_scope_dtos_to_react() {
     );
 }
 
+// 编辑器插件列表只依赖稳定的作用域布尔字段。
 #[test]
 fn editor_plugin_page_filters_by_stable_scope_flags_not_localized_copy() {
     let plugin_catalog = read_crate_file("src/plugins/catalog.rs");
@@ -278,8 +296,12 @@ fn editor_plugin_page_filters_by_stable_scope_flags_not_localized_copy() {
             "editor_scoped,",
             "fn plugin_manifest_is_editor_scoped(manifest: &PluginManifest) -> bool",
             "editor_host",
-            "editor_scoped_manifest_does_not_depend_on_description_copy",
         ],
+    );
+    assert_contains_all(
+        "plugins/catalog.rs",
+        &read_crate_file("src/plugins/tests/catalog.rs"),
+        &["editor_scoped_manifest_does_not_depend_on_description_copy"],
     );
     assert_contains_all(
         "view_model/catalog.rs",
@@ -322,6 +344,8 @@ fn editor_plugin_page_filters_by_stable_scope_flags_not_localized_copy() {
     );
 }
 
+// 资产、插件和学习资源共享目录页，但模式与筛选保持独立。
+// BUG: [CR-HUBTESTB-0007] 目录筛选和选择已提取到专用模块，旧的页面内筛选片段断言必失败；证据：catalog_page_unifies_assets_plugins_learn_scope_copy_and_filters 读取 CatalogPage.tsx。
 #[test]
 fn catalog_page_unifies_assets_plugins_learn_scope_copy_and_filters() {
     let catalog = read_crate_file("web/src/pages/CatalogPage.tsx");
@@ -392,6 +416,7 @@ fn catalog_page_unifies_assets_plugins_learn_scope_copy_and_filters() {
     );
 }
 
+// 团队、云交付和构建页面共同消费已选择的项目上下文。
 #[test]
 fn team_cloud_and_build_pages_consume_selected_project_scope_data() {
     let team = read_crate_file("web/src/pages/TeamPage.tsx");
@@ -472,6 +497,7 @@ fn team_cloud_and_build_pages_consume_selected_project_scope_data() {
     );
 }
 
+// 文档固定目录范围和页面筛选的跨模块契约。
 #[test]
 fn selected_project_catalog_documentation_records_react_mui_contract_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -519,6 +545,7 @@ fn selected_project_catalog_documentation_records_react_mui_contract_cutover() {
     );
 }
 
+// 自检目录测试仍读取当前 Rust 发现器与 React 页面。
 #[test]
 fn selected_project_catalog_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/ui_selected_project_catalog_contract.rs");

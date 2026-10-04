@@ -2,6 +2,7 @@ var console = %import("zr.system.console");
 var party = %import("social/party_raid_state");
 
 console.printLine("m6-party-raid-state-test");
+// 独立 zrp 入口覆盖派对夹具及被世界固定步复用的过期扫描。
 var result = party.contractTest();
 console.printLine(result);
 return result == 1 ? 0 : result;

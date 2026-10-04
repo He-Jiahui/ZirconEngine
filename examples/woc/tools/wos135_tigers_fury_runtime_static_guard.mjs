@@ -42,8 +42,8 @@ const generator = read('tools', 'm4_ability_codegen.mjs');
 const zrGenerator = read('tools', 'm4_ability_zr_codegen.mjs');
 const ccGenerator = read('tools', 'cc_contract_codegen.mjs');
 if (!/insect_swarm',[\s\S]*?'tigers_fury'/.test(generator) ||
-    !generator.includes('EXPECTED_ABILITY_COUNT = 79') ||
-    !zrGenerator.includes('document.entries.length === 79')) {
+    !generator.includes('EXPECTED_ABILITY_COUNT = 117') ||
+    !zrGenerator.includes('document.entries.length === 117')) {
   throw new Error("M4 Tiger's Fury projection scope is missing");
 }
 if (!ccGenerator.includes("id: 'tigers_fury'") ||
@@ -53,7 +53,7 @@ if (!ccGenerator.includes("id: 'tigers_fury'") ||
 const entry = JSON.parse(read('contracts', 'm4_abilities.json')).entries.find(
   (value) => value.id === 'tigers_fury',
 );
-if (!entry || entry.index !== 75 || entry.definition.cost !== 30 ||
+if (!entry || entry.index !== 79 || entry.definition.cost !== 30 ||
     entry.definition.cooldown !== 30 || entry.definition.requiresForm !== 'cat' ||
     entry.definition.effects?.[0]?.type !== 'selfBuff' ||
     entry.definition.effects[0].kind !== 'buff_ap' ||
@@ -68,9 +68,9 @@ requireText(world, /tigersFuryProfileIsValid[\s\S]*?buff_ap[\s\S]*?40\.0[\s\S]*?
   "Tiger's Fury source profile is missing");
 requireText(world, /startOfflineTigersFuryCast[\s\S]*?entityCastGcdRemaining[\s\S]*?abilityCooldownExpiresAt[\s\S]*?forms\.formKindForAbilityCode[\s\S]*?setAbilityCooldownExpiration[\s\S]*?motionAuraKindCode\("buff_ap"\)/,
   "Tiger's Fury Cat-form aura reducer is missing");
-requireText(world, /tigersFuryAttackPowerBonus[\s\S]*?tigersFuryAbilityCode[\s\S]*?value != 40\.0/,
+requireText(world, /retainedAttackPowerAuraProfileIsValid[\s\S]*?tigersFuryAbilityCode\(\)[\s\S]*?value > 0\.0/,
   "Tiger's Fury effective attack-power profile is missing");
-requireText(world, /effectiveOfflineAttackPower[\s\S]*?tigersFuryAttackPowerBonus/,
+requireText(world, /effectiveOfflineAttackPower[\s\S]*?retainedAttackPowerAuraBonus/,
   "Tiger's Fury attack-power bonus is not connected to combat math");
 requireText(world, /prepareOfflineAutoActor[\s\S]*?effectiveOfflineAttackPower/,
   "Tiger's Fury bonus is not connected to retained auto attacks");

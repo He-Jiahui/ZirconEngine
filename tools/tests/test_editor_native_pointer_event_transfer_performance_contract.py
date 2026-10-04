@@ -1,3 +1,4 @@
+# 核对指针按钮与滚轮事件先复制必要字段，再移动平台事件所有权。
 import unittest
 from pathlib import Path
 

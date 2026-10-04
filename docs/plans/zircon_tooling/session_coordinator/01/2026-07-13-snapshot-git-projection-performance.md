@@ -23,4 +23,4 @@
 
 - `tools/session_coordinator/control_plane/snapshot.py`
 - `tools/session_coordinator/tests/test_control_snapshot.py`
-- `docs/cli-and-tooling/workflow-control-center.md`
+- `docs/tooling/workflow-control-center.md`

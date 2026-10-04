@@ -11,6 +11,7 @@ use crate::asset::assets::project_document::{
     ProjectDocumentArtifact,
 };
 
+use super::report::AssetMigrationMetrics;
 use super::resolver::{MigrationResolver, ResolutionFailure};
 use super::{AssetMigrationIssue, AssetMigrationIssueKind};
 
@@ -19,12 +20,6 @@ pub(super) struct PendingDocument {
     pub(super) bytes: Vec<u8>,
     pub(super) reference_count: usize,
     pub(super) retired_path: Option<PathBuf>,
-}
-
-/// Observations from one authoring document consumed by the migration generation.
-pub(super) struct DocumentMigrationResult {
-    pub(super) pending: Option<PendingDocument>,
-    pub(super) reference_visits: usize,
 }
 
 struct MigrationDocumentArtifact {
@@ -72,18 +67,20 @@ impl MigrationDocumentArtifact {
 pub(super) fn migrate_document(
     path: &Path,
     resolver: &MigrationResolver<'_>,
-) -> Result<DocumentMigrationResult, AssetMigrationIssue> {
+    metrics: &mut AssetMigrationMetrics,
+) -> Result<Option<PendingDocument>, AssetMigrationIssue> {
+    metrics.document_reads += 1;
     let source = fs::read_to_string(path).map_err(|error| invalid(path, error.to_string()))?;
+    metrics.document_parses += 1;
     let mut artifact = MigrationDocumentArtifact::parse(path, &source)?;
 
     let mut reference_count = 0;
-    let mut reference_visits = 0;
     let retired_changed = if is_material_document(path) {
         migrate_material_references(
             artifact.value_mut(),
             resolver,
             &mut reference_count,
-            &mut reference_visits,
+            &mut metrics.reference_visits,
         )
         .map_err(|error| migration_issue(path, error))?
     } else {
@@ -91,7 +88,7 @@ pub(super) fn migrate_document(
             artifact.value_mut(),
             resolver,
             &mut reference_count,
-            &mut reference_visits,
+            &mut metrics.reference_visits,
         )
         .map_err(|error| migration_issue(path, error))?
     };
@@ -100,7 +97,7 @@ pub(super) fn migrate_document(
         artifact.value_mut(),
         resolver,
         &mut reference_count,
-        &mut reference_visits,
+        &mut metrics.reference_visits,
     )
     .map_err(|error| {
         AssetMigrationIssue::new(error.kind, Some(path.to_path_buf()), error.message)
@@ -115,18 +112,15 @@ pub(super) fn migrate_document(
         path,
         artifact.into_project_document(),
         resolver,
-        &mut reference_visits,
+        &mut metrics.reference_visits,
     )?;
 
-    Ok(DocumentMigrationResult {
-        pending: bytes.map(|bytes| PendingDocument {
-            path: path.to_path_buf(),
-            bytes,
-            reference_count,
-            retired_path: None,
-        }),
-        reference_visits,
-    })
+    Ok(bytes.map(|bytes| PendingDocument {
+        path: path.to_path_buf(),
+        bytes,
+        reference_count,
+        retired_path: None,
+    }))
 }
 
 fn migrate_retired_references(
@@ -332,9 +326,9 @@ fn migrate_one_reference(
 ) -> Result<toml::Value, RetiredAssetRefMigrationError<ResolutionFailure>> {
     let value = serde_json::to_value(value).map_err(invalid_migration_shape)?;
     let migrated = migrate_retired_persisted_asset_reference_with(value, |reference| {
+        *reference_visits += 1;
         let resolved = resolver.resolve(reference)?;
         *reference_count += 1;
-        *reference_visits += 1;
         Ok(resolved)
     })?;
     persisted_reference_table(migrated)
@@ -432,5 +426,9 @@ fn invalid(path: &Path, message: String) -> AssetMigrationIssue {
 }
 
 #[cfg(test)]
-#[path = "document/single_pass_material_reference_tests.rs"]
+#[path = "document/tests/metrics_tests.rs"]
+mod metrics_tests;
+
+#[cfg(test)]
+#[path = "document/tests/single_pass_material_reference_tests.rs"]
 mod single_pass_material_reference_tests;

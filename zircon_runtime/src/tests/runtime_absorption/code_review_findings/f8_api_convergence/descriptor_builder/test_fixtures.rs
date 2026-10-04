@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f8_runtime_plugin_descriptor_test_fixtures_use_builder() {
     let fixture_sources = [
@@ -125,7 +126,7 @@ fn review_f8_runtime_plugin_descriptor_test_fixtures_use_builder() {
     let convention =
         include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
     let package_manifest_doc =
-        include_str!("../../../../../../../docs/zircon_runtime/plugin/package_manifest.md");
+        include_str!("../../../../../../../docs/crates/zircon_runtime/plugin/package_manifest.md");
 
     for doc_anchor in [
         "F8 RuntimePluginDescriptor test fixture builder migration",

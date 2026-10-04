@@ -7,7 +7,7 @@ from tools.tests.plugin_structure_audit_optional_feature_support import (
     plugin_manifest,
 )
 
-
+# 用插件清单夹具验证可选特性模块：拒绝可选特性模块缺失字段，并拒绝未知可选特性模块类型。
 class PluginStructureAuditManifestSchemaOptionalFeatureModulesTests(unittest.TestCase):
     def test_manifest_schema_rejects_optional_feature_module_missing_field(self):
         violations: list[str] = []

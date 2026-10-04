@@ -27,6 +27,14 @@ fn dropdown_rendering_resolves_the_owned_label_once() {
 }
 
 #[test]
+fn dropdown_command_builder_reserves_its_fixed_upper_bound() {
+    let source = include_str!("../surface/render/dropdowns.rs");
+
+    assert!(source.contains("const DROPDOWN_COMMAND_CAPACITY: usize = 5;"));
+    assert!(source.contains("let mut commands = Vec::with_capacity(DROPDOWN_COMMAND_CAPACITY);"));
+}
+
+#[test]
 fn render_extract_expands_dropdown_trigger_primitives() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.dropdowns"));
     surface.tree.insert_root(

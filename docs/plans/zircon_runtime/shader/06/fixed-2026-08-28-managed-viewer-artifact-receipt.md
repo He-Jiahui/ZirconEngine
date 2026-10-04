@@ -9,16 +9,12 @@ origin_child_dir: docs/plans/zircon_runtime/shader/06
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/artifact_receipts.py
-  - tools/session_coordinator/workspace_copy.py
-  - tools/session_coordinator/control_plane/actions/executor.py
-  - tools/session_coordinator/tests/test_artifact_receipts.py
-  - tools/write_zircon_shader_pbr_build_provenance.ps1
-  - tools/zircon_profile_shader_pbr_viewer.ps1
+  - tools/profiling/shader_pbr/write_zircon_shader_pbr_build_provenance.ps1
+  - tools/profiling/shader_pbr/zircon_profile_shader_pbr_viewer.ps1
 tests:
   - python -m unittest tools.session_coordinator.tests.test_artifact_receipts -v
   - Invoke-Pester -Script .\tools\tests\zircon_profile_shader_pbr_viewer.Tests.ps1 -PassThru
-  - Select-String -LiteralPath .\tools\write_zircon_shader_pbr_build_provenance.ps1 -Pattern 'last_write_utc'
+  - Select-String -LiteralPath .\tools\profiling\shader_pbr\write_zircon_shader_pbr_build_provenance.ps1 -Pattern 'last_write_utc'
 resolved_at: 2026-08-28
 ---
 
@@ -44,7 +40,7 @@ executable.
 Static reproduction boundary:
 
 ```powershell
-Select-String -LiteralPath .\tools\write_zircon_shader_pbr_build_provenance.ps1 -Pattern 'last_write_utc'
+Select-String -LiteralPath .\tools\profiling\shader_pbr\write_zircon_shader_pbr_build_provenance.ps1 -Pattern 'last_write_utc'
 ```
 
 The observed implementation accepts based on local binary SHA-256, byte length,

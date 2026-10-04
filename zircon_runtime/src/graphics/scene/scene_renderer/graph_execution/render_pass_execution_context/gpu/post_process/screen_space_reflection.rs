@@ -1,3 +1,6 @@
+//! 屏幕空间反射的金字塔、遮蔽与历史输出必须沿同一帧图资源链录制。
+//! 各 mip 视图保留父 backing 的身份；历史写入只在 resolve 编码后登记。
+
 use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::graphics::scene::scene_renderer::history::SceneHistoryDomain;
 use crate::render_graph::{RenderGraphAttachmentOps, RenderGraphResourceAccessKind};
@@ -11,6 +14,8 @@ struct SsrPyramidMipPass {
     attachment_ops: RenderGraphAttachmentOps,
 }
 
+// 图别名的附件操作只适用于第一个粗化目标；后续 mip 是独立写入区间，
+// 若沿用 load 操作可能读取未初始化的子资源内容。
 fn ssr_parent_pyramid_mip_passes(
     mip_level_count: u32,
     graph_alias_attachment_ops: RenderGraphAttachmentOps,
@@ -587,6 +592,8 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 )
             })
             .transpose()?;
+        // TODO: [CR-GRAPH-EXEC-0001] 确认 SSR 开启而 SSAO 关闭时 AO 输入已初始化为中性白值；
+        // 当前帧绑定会导入固定 AO 目标，却未找到无 AO 生产者的初始化证据，需验证该组合的 GPU 读回结果。
         let ambient_occlusion_view = Self::require_texture_view_by_name(
             resources,
             resource_resolver,
@@ -665,4 +672,5 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
 }
 
 #[cfg(test)]
+#[path = "screen_space_reflection/tests/cases.rs"]
 mod tests;

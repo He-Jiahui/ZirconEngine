@@ -1,3 +1,5 @@
+//! 提取内嵌图标的 SVG 根视口和 path 声明，供图集计划携带；这里不是完整 SVG 渲染器。
+
 use std::{
     collections::{HashMap, VecDeque},
     sync::{Mutex, OnceLock},
@@ -7,6 +9,7 @@ use thiserror::Error;
 
 const SVG_DOCUMENT_CACHE_CAPACITY: usize = 512;
 
+/// 保留原始路径数据和颜色声明的文档，不解析路径命令、变换、渐变或外部资源。
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiSvgIconDocument {
     pub viewport: UiSvgIconViewport,
@@ -45,6 +48,7 @@ pub enum UiSvgIconParseError {
     },
 }
 
+/// 解析受支持的内嵌文档子集；path 数据保持作者字符串，调用方不能把成功解析视为可渲染性证明。
 pub fn parse_ui_svg_icon(source: &str) -> Result<UiSvgIconDocument, UiSvgIconParseError> {
     let svg = find_svg_tag(source).ok_or(UiSvgIconParseError::MissingSvgRoot)?;
     let viewport = parse_viewport(svg)?;
@@ -55,6 +59,7 @@ pub fn parse_ui_svg_icon(source: &str) -> Result<UiSvgIconDocument, UiSvgIconPar
     Ok(UiSvgIconDocument { viewport, elements })
 }
 
+/// 图集批次之间按完整源码共享成功文档；失败不入缓存，返回值独立拥有数据，锁不跨解析工作。
 pub(crate) fn parse_ui_svg_icon_cached(
     source: &str,
 ) -> Result<UiSvgIconDocument, UiSvgIconParseError> {
@@ -171,17 +176,35 @@ fn parse_path_elements(source: &str) -> Vec<UiSvgIconElement> {
     elements
 }
 
+// Attribute lookup using word-boundary matching to prevent a prefix such as
+// `data-width` from shadowing a later `width` attribute.  A valid attribute
+// name is preceded by whitespace or the tag opening `<`, and is followed
+// immediately by `=` (after optional whitespace).
 fn attribute<'a>(tag: &'a str, name: &str) -> Option<&'a str> {
-    let start = tag.find(name)?;
-    let rest = tag[start + name.len()..].trim_start();
-    let rest = rest.strip_prefix('=')?.trim_start();
-    let quote = rest.chars().next()?;
-    if quote != '"' && quote != '\'' {
-        return None;
+    let mut search = tag;
+    loop {
+        let start = search.find(name)?;
+        // Reject a match whose preceding character is a word character (a-z A-Z 0-9 -).
+        let before_ok = start == 0 || {
+            let before = search[..start].chars().last().unwrap_or(' ');
+            !before.is_ascii_alphanumeric() && before != '-'
+        };
+        let rest_after_name = &search[start + name.len()..];
+        let rest_trimmed = rest_after_name.trim_start();
+        let follows_eq = rest_trimmed.starts_with('=');
+        if before_ok && follows_eq {
+            let rest = rest_trimmed.strip_prefix('=')?.trim_start();
+            let quote = rest.chars().next()?;
+            if quote != '"' && quote != '\'' {
+                return None;
+            }
+            let rest = &rest[quote.len_utf8()..];
+            let end = rest.find(quote)?;
+            return Some(&rest[..end]);
+        }
+        // Advance past this false match and keep looking.
+        search = &search[start + name.len()..];
     }
-    let rest = &rest[quote.len_utf8()..];
-    let end = rest.find(quote)?;
-    Some(&rest[..end])
 }
 
 fn parse_view_box(raw: &str) -> Option<(f32, f32, f32, f32)> {
@@ -218,5 +241,5 @@ fn parse_svg_number(attribute: &'static str, raw: &str) -> Result<f32, UiSvgIcon
 }
 
 #[cfg(test)]
-#[path = "svg/fixed_view_box_tests.rs"]
+#[path = "svg/tests/fixed_view_box_tests.rs"]
 mod fixed_view_box_tests;

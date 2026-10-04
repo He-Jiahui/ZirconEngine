@@ -1,0 +1,260 @@
+[asset]
+kind = "view"
+id = "res://ui/shell/character_create.zui"
+version = 2
+display_name = "World of ClaudeCraft Online Character Creation"
+
+[imports]
+widgets = []
+styles = ["res://ui/shell/shell_theme.zui"]
+resources = [
+  { kind = "image", uri = "res://m8/env/vale_backdrop.webp", fallback = { mode = "optional" } },
+]
+
+[root]
+node = "character_create_root"
+
+[nodes.stage_scrim]
+component = "Space"
+classes = ["woc-stage-scrim"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.title]
+component = "Label"
+control_id = "OnlineCharacterCreateTitle"
+classes = ["woc-screen-title"]
+props = { text = "Create a Character" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.name_label]
+component = "Label"
+classes = ["woc-section-title"]
+props = { text = "Name" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.name_field]
+component = "TextField"
+control_id = "OnlineCharacterCreateName"
+classes = ["woc-input"]
+props = { value_text = "", label = "", placeholder = "Character Name", helper_text = "", variant = "outlined", max_length = 16 }
+layout = { width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [
+  { id = "WocCharacterCreate/NameChanged", event = "Change", route = "woc.shell.characters.create.set_name" },
+  { id = "WocCharacterCreate/NameSubmitted", event = "Submit", route = "woc.shell.characters.create.submit" },
+]
+
+[nodes.error]
+component = "Label"
+control_id = "OnlineCharacterCreateError"
+classes = ["woc-error"]
+props = { text = "" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 48.0, stretch = "Fixed" } }
+
+[nodes.class_label]
+component = "Label"
+classes = ["woc-section-title"]
+props = { text = "Class" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.class_warrior]
+component = "ToggleButton"
+control_id = "OnlineCharacterCreateClassWarrior"
+classes = ["woc-class-button", "class-warrior"]
+props = { text = "Warrior", checked = true, selection_state = "exclusive" }
+layout = { width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacterCreate/SelectClass/warrior", event = "Toggle", route = "woc.shell.characters.create.select_class.warrior" }]
+
+[nodes.class_paladin]
+component = "ToggleButton"
+control_id = "OnlineCharacterCreateClassPaladin"
+classes = ["woc-class-button", "class-paladin"]
+props = { text = "Paladin", checked = false, selection_state = "exclusive" }
+layout = { width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacterCreate/SelectClass/paladin", event = "Toggle", route = "woc.shell.characters.create.select_class.paladin" }]
+
+[nodes.class_hunter]
+component = "ToggleButton"
+control_id = "OnlineCharacterCreateClassHunter"
+classes = ["woc-class-button", "class-hunter"]
+props = { text = "Hunter", checked = false, selection_state = "exclusive" }
+layout = { width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacterCreate/SelectClass/hunter", event = "Toggle", route = "woc.shell.characters.create.select_class.hunter" }]
+
+[nodes.class_rogue]
+component = "ToggleButton"
+control_id = "OnlineCharacterCreateClassRogue"
+classes = ["woc-class-button", "class-rogue"]
+props = { text = "Rogue", checked = false, selection_state = "exclusive" }
+layout = { width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacterCreate/SelectClass/rogue", event = "Toggle", route = "woc.shell.characters.create.select_class.rogue" }]
+
+[nodes.class_priest]
+component = "ToggleButton"
+control_id = "OnlineCharacterCreateClassPriest"
+classes = ["woc-class-button", "class-priest"]
+props = { text = "Priest", checked = false, selection_state = "exclusive" }
+layout = { width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacterCreate/SelectClass/priest", event = "Toggle", route = "woc.shell.characters.create.select_class.priest" }]
+
+[nodes.class_shaman]
+component = "ToggleButton"
+control_id = "OnlineCharacterCreateClassShaman"
+classes = ["woc-class-button", "class-shaman"]
+props = { text = "Shaman", checked = false, selection_state = "exclusive" }
+layout = { width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacterCreate/SelectClass/shaman", event = "Toggle", route = "woc.shell.characters.create.select_class.shaman" }]
+
+[nodes.class_mage]
+component = "ToggleButton"
+control_id = "OnlineCharacterCreateClassMage"
+classes = ["woc-class-button", "class-mage"]
+props = { text = "Mage", checked = false, selection_state = "exclusive" }
+layout = { width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacterCreate/SelectClass/mage", event = "Toggle", route = "woc.shell.characters.create.select_class.mage" }]
+
+[nodes.class_warlock]
+component = "ToggleButton"
+control_id = "OnlineCharacterCreateClassWarlock"
+classes = ["woc-class-button", "class-warlock"]
+props = { text = "Warlock", checked = false, selection_state = "exclusive" }
+layout = { width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacterCreate/SelectClass/warlock", event = "Toggle", route = "woc.shell.characters.create.select_class.warlock" }]
+
+[nodes.class_druid]
+component = "ToggleButton"
+control_id = "OnlineCharacterCreateClassDruid"
+classes = ["woc-class-button", "class-druid"]
+props = { text = "Druid", checked = false, selection_state = "exclusive" }
+layout = { width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacterCreate/SelectClass/druid", event = "Toggle", route = "woc.shell.characters.create.select_class.druid" }]
+
+[nodes.class_grid]
+component = "GridGroup"
+control_id = "OnlineCharacterCreateClassPicker"
+layout = { container = { kind = "GridBox", columns = 3, rows = 3, column_gap = 8.0, row_gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 184.0, preferred = 184.0, max = 184.0, stretch = "Fixed" } }
+children = [
+  { node = "class_warrior" },
+  { node = "class_paladin" },
+  { node = "class_hunter" },
+  { node = "class_rogue" },
+  { node = "class_priest" },
+  { node = "class_shaman" },
+  { node = "class_mage" },
+  { node = "class_warlock" },
+  { node = "class_druid" },
+]
+
+[nodes.skin_label]
+component = "Label"
+classes = ["woc-section-title"]
+props = { text = "Appearance" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.skin_0]
+component = "ToggleButton"
+control_id = "OnlineCharacterCreateSkin0"
+classes = ["woc-skin-swatch"]
+props = { text = "1", checked = true, selection_state = "exclusive" }
+layout = { width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacterCreate/SelectSkin/0", event = "Toggle", route = "woc.shell.characters.create.select_skin.0" }]
+
+[nodes.skin_1]
+component = "ToggleButton"
+control_id = "OnlineCharacterCreateSkin1"
+classes = ["woc-skin-swatch"]
+props = { text = "2", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacterCreate/SelectSkin/1", event = "Toggle", route = "woc.shell.characters.create.select_skin.1" }]
+
+[nodes.skin_2]
+component = "ToggleButton"
+control_id = "OnlineCharacterCreateSkin2"
+classes = ["woc-skin-swatch"]
+props = { text = "3", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacterCreate/SelectSkin/2", event = "Toggle", route = "woc.shell.characters.create.select_skin.2" }]
+
+[nodes.skin_3]
+component = "ToggleButton"
+control_id = "OnlineCharacterCreateSkin3"
+classes = ["woc-skin-swatch"]
+props = { text = "4", checked = false, selection_state = "exclusive" }
+layout = { width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacterCreate/SelectSkin/3", event = "Toggle", route = "woc.shell.characters.create.select_skin.3" }]
+
+[nodes.skin_row]
+component = "HorizontalBox"
+control_id = "OnlineCharacterCreateSkinPicker"
+props = { dynamic_visibility_owner = "class_catalog" }
+layout = { container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+children = [{ node = "skin_0" }, { node = "skin_1" }, { node = "skin_2" }, { node = "skin_3" }]
+
+[nodes.back]
+component = "Button"
+control_id = "OnlineCharacterCreateBack"
+classes = ["woc-secondary-action"]
+props = { text = "Back", button_variant = "outlined" }
+layout = { width = { min = 120.0, preferred = 160.0, max = 200.0, stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacterCreate/Back", event = "Click", route = "woc.shell.characters.create.back" }]
+
+[nodes.submit]
+component = "Button"
+control_id = "OnlineCharacterCreateSubmit"
+classes = ["woc-primary-action"]
+props = { text = "Create", button_variant = "contained", disabled = false }
+layout = { width = { min = 150.0, preferred = 220.0, max = 280.0, stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+events = [{ id = "WocCharacterCreate/Submit", event = "Click", route = "woc.shell.characters.create.submit" }]
+
+[nodes.actions]
+component = "HorizontalBox"
+control_id = "OnlineCharacterCreateActions"
+layout = { container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+children = [{ node = "back" }, { node = "submit" }]
+
+[nodes.form_panel]
+component = "ScrollBox"
+control_id = "OnlineCharacterCreateForm"
+classes = ["woc-panel-strong"]
+props = { scroll_axis = "vertical", scroll_x = false, scroll_y = true, show_scrollbars = true, clip_content = true }
+layout = { container = { kind = "VerticalBox", gap = 10.0 }, padding = { left = 18.0, right = 18.0, top = 18.0, bottom = 18.0 }, width = { min = 300.0, preferred = 560.0, max = 680.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "name_label" }, { node = "name_field" }, { node = "error" }, { node = "class_label" }, { node = "class_grid" }, { node = "skin_label" }, { node = "skin_row" }, { node = "actions" }]
+
+[nodes.preview_host]
+component = "Space"
+control_id = "OnlineCharacterCreatePreviewHost"
+classes = ["woc-preview-host"]
+layout = { width = { stretch = "Stretch" }, height = { min = 240.0, preferred = 300.0, max = 380.0, stretch = "Fixed" } }
+
+[nodes.class_details_host]
+component = "ScrollBox"
+control_id = "OnlineCharacterCreateClassDetailsHost"
+props = { scroll_axis = "vertical", scroll_x = false, scroll_y = true, show_scrollbars = true, clip_content = true }
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 180.0, preferred = 280.0, max = 480.0, stretch = "Stretch" } }
+
+[nodes.detail_panel]
+component = "VerticalBox"
+control_id = "OnlineCharacterCreateDetailPanel"
+classes = ["woc-panel-strong"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, padding = { left = 16.0, right = 16.0, top = 16.0, bottom = 16.0 }, width = { min = 280.0, preferred = 430.0, max = 520.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "preview_host" }, { node = "class_details_host" }]
+
+[nodes.body]
+component = "Stack"
+control_id = "OnlineCharacterCreateBody"
+props = { direction = { xs = "column", md = "row" } }
+layout = { container = { kind = "Stack", gap = 14.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "form_panel" }, { node = "detail_panel" }]
+
+[nodes.content]
+component = "VerticalBox"
+control_id = "OnlineCharacterCreateContent"
+layout = { container = { kind = "VerticalBox", gap = 14.0 }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, padding = { left = 18.0, right = 18.0, top = 18.0, bottom = 18.0 }, width = { min = 320.0, preferred = 1100.0, max = 1160.0, stretch = "Stretch" }, height = { min = 520.0, preferred = 720.0, max = 900.0, stretch = "Stretch" } }
+children = [{ node = "title" }, { node = "body" }]
+
+[nodes.character_create_root]
+component = "Overlay"
+control_id = "OnlineCharacterCreate"
+classes = ["woc-shell", "woc-character-create"]
+props = { background_image = "res://m8/env/vale_backdrop.webp" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "stage_scrim" }, { node = "content" }]

@@ -1,18 +1,21 @@
 use zircon_runtime::core::framework::physics::{
-    PhysicsContactEvent, PhysicsTriggerEvent, PhysicsWorldStepPlan, SimulatedPoseFeed,
-    SkeletalPoseTargets,
+    PhysicsContactEvent, PhysicsTriggerEvent, PhysicsWorldStepPlan, PhysicsWorldSyncState,
+    SimulatedPoseFeed, SkeletalPoseTargets,
 };
 use zircon_runtime::core::CoreError;
 use zircon_runtime::plugin::{PluginEventManifest, RuntimeExtensionRegistryError};
 use zircon_runtime::scene::ecs::RuntimeSceneSystemContext;
-use zircon_runtime::scene::SystemStage;
+use zircon_runtime::scene::{SystemStage, World};
 
 use crate::manager::apply_synchronized_bodies_to_scene;
 use crate::record_physics_step_diagnostic;
 use crate::skeletal::{
     drive_ragdoll_bodies_from_animation, write_simulated_pose_feed, RagdollRuntime,
 };
-use crate::{DefaultPhysicsManager, DEFAULT_PHYSICS_MANAGER_NAME};
+use crate::{
+    DefaultPhysicsManager, PhysicsDebugOverlayCapture, PhysicsOverlayFrame,
+    DEFAULT_PHYSICS_MANAGER_NAME,
+};
 
 #[derive(Clone, Debug, Default)]
 pub struct PhysicsRuntimeSystem;
@@ -55,6 +58,16 @@ pub fn register_runtime_systems(
         )
         .in_set(PHYSICS_SYSTEM_SET)
         .register()
+}
+
+pub(crate) fn physics_overlay_frame_if_enabled(
+    world: &World,
+    sync: &PhysicsWorldSyncState,
+) -> Option<PhysicsOverlayFrame> {
+    world
+        .get_resource::<PhysicsDebugOverlayCapture>()
+        .is_some_and(|capture| capture.enabled)
+        .then(|| PhysicsOverlayFrame::from_sync(world.world_generation(), sync))
 }
 
 fn run_physics_runtime_system(context: RuntimeSceneSystemContext<'_>) -> Result<(), CoreError> {
@@ -140,24 +153,32 @@ fn run_physics_sync_to_scene_system(
         .level
         .with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
             apply_synchronized_bodies_to_scene(world, &sync);
-            let Some(ragdolls) = world.get_resource::<RagdollRuntime>().cloned() else {
-                return;
-            };
-            let interpolation_alpha = context
-                .level
-                .last_physics_step_plan()
-                .map(|plan| {
-                    if plan.steps > 0 {
-                        1.0
-                    } else {
-                        plan.interpolation_alpha
-                    }
-                })
-                .unwrap_or(0.0);
-            let mut next_feed = SimulatedPoseFeed::default();
-            write_simulated_pose_feed(world, &sync, &ragdolls, interpolation_alpha, &mut next_feed);
-            if let Some(feed) = world.get_resource_mut::<SimulatedPoseFeed>() {
-                *feed = next_feed;
+            if let Some(ragdolls) = world.get_resource::<RagdollRuntime>().cloned() {
+                let interpolation_alpha = context
+                    .level
+                    .last_physics_step_plan()
+                    .map(|plan| {
+                        if plan.steps > 0 {
+                            1.0
+                        } else {
+                            plan.interpolation_alpha
+                        }
+                    })
+                    .unwrap_or(0.0);
+                let mut next_feed = SimulatedPoseFeed::default();
+                write_simulated_pose_feed(
+                    world,
+                    &sync,
+                    &ragdolls,
+                    interpolation_alpha,
+                    &mut next_feed,
+                );
+                if let Some(feed) = world.get_resource_mut::<SimulatedPoseFeed>() {
+                    *feed = next_feed;
+                }
+            }
+            if let Some(overlay_frame) = physics_overlay_frame_if_enabled(world, sync.as_ref()) {
+                world.send_event(overlay_frame);
             }
         });
     Ok(())

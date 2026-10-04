@@ -1,8 +1,9 @@
+//! 保护核心框架的子模块职责、检查入口与源码规模；这些约束读取检出文本，具体业务结果由被列出的行为测试另行验证。
 use super::*;
 
 #[test]
 fn runtime_15_core_framework_tests_are_folder_backed() {
-    let parent = read_runtime_src("core/framework/tests.rs");
+    let parent = read_runtime_src("core/framework/tests/cases.rs");
     let framework_surfaces = read_runtime_src("core/framework/tests/framework_surfaces.rs");
     let render_product_surface = read_runtime_src("core/framework/tests/render_product_surface.rs");
     let phase_queue_summary = read_runtime_src("core/framework/tests/phase_queue_summary.rs");
@@ -62,7 +63,7 @@ fn runtime_15_core_framework_tests_are_folder_backed() {
     );
 
     for (path, source) in [
-        ("core/framework/tests.rs", parent.as_str()),
+        ("core/framework/tests/cases.rs", parent.as_str()),
         (
             "core/framework/tests/framework_surfaces.rs",
             framework_surfaces.as_str(),

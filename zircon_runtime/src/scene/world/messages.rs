@@ -1,10 +1,12 @@
 use crate::scene::ecs::{
-    Message, MessageId, MessageRetention, MessageRetentionMetrics, MessageStore, Messages,
+    Message, MessageId, MessageRetention, MessageRetentionMetrics, MessageStore,
+    MessageWriterGrant, Messages,
 };
 
 use super::World;
 
 impl World {
+    /// 向 World 的消息通道追加一条可追踪消息；与事件不同，消费保留期由消息存储策略管理。
     pub fn send_message<T>(&mut self, message: T) -> MessageId<T>
     where
         T: Message,
@@ -50,5 +52,23 @@ impl World {
 
     pub(crate) fn message_store_mut(&mut self) -> &mut MessageStore {
         &mut self.messages
+    }
+
+    /// # Safety
+    /// The original World grant keeps the prepared message slots/registry and frame fixed for
+    /// the Item lifetime; access admission permits exclusive writes for T and no same-type reads.
+    pub(in crate::scene) unsafe fn message_writer_grant<'world, T: Message>(
+        world: *mut Self,
+    ) -> MessageWriterGrant<'world, T> {
+        unsafe { MessageStore::writer_grant(std::ptr::addr_of_mut!((*world).messages)) }
+    }
+
+    /// # Safety
+    /// The original World grant admits shared T reads, no same-channel writes, and no mutation of
+    /// the registry/Box owners while Items exist. Other typed payload grants may remain live.
+    pub(in crate::scene) unsafe fn message_reader_grant<'world, T: Message>(
+        world: *const Self,
+    ) -> Option<&'world Messages<T>> {
+        unsafe { MessageStore::reader_grant(std::ptr::addr_of!((*world).messages)) }
     }
 }

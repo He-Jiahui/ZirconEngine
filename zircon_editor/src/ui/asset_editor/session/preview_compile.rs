@@ -66,5 +66,5 @@ pub(super) fn current_preview_size(
 }
 
 #[cfg(test)]
-#[path = "preview_compile/streaming_import_tests.rs"]
+#[path = "preview_compile/tests/streaming_import_tests.rs"]
 mod streaming_import_tests;

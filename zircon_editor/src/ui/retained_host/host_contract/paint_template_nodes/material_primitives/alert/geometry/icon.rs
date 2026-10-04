@@ -4,6 +4,7 @@ use super::metrics::{
     alert_bounded_extent, ALERT_ICON_EDGE, ALERT_ICON_MARK_EDGE, ALERT_PADDING_X,
 };
 
+// 图标绘制消费此尺寸；图标及内部标记须受根框约束，避免极窄布局越界。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_icon_frame(
     rect: &FrameRect,
 ) -> FrameRect {
@@ -34,25 +35,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_i
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn alert_icon_and_mark_stay_inside_tight_alert_bounds() {
-        let alert = FrameRect {
-            x: 10.0,
-            y: 20.0,
-            width: 0.4,
-            height: 0.6,
-        };
-        let icon = alert_icon_frame(&alert);
-        let mark = alert_icon_mark_frame(&icon);
-
-        for frame in [icon, mark] {
-            assert!(frame.x >= alert.x);
-            assert!(frame.y >= alert.y);
-            assert!(frame.right() <= alert.right());
-            assert!(frame.bottom() <= alert.bottom());
-        }
-    }
-}
+#[path = "tests/icon.rs"]
+mod tests;

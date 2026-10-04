@@ -7,11 +7,12 @@ use super::render_command_conversion::runtime_render_commands_to_host;
 mod command;
 mod draw;
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use command::HostPaintCommand;
-#[cfg(test)]
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use command::HostPaintCommandKind;
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use command::{
+    HostPaintCommand, HostPaintCommandKind, PaintNodeIdentity,
+};
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use draw::draw_host_paint_commands;
 
+/// Runtime 命令先过宿主转换，再共用模板绘制器的排序和帧录制路径。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn draw_runtime_render_commands(
     frame: &mut HostRgbaFrame,
     commands: &[UiRenderCommand],

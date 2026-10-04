@@ -6,7 +6,7 @@ related_code:
 implementation_files:
   - zircon_runtime/crates/zr_rhi/src/device/render_device.rs
   - zircon_runtime/crates/zr_rhi/src/surface.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/device/construction.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/device/tests/construction.rs
 plan_sources:
   - docs/wiki/graphics/rhi-and-wgpu.md
 tests:

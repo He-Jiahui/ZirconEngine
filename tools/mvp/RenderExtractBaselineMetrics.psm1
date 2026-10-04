@@ -205,8 +205,12 @@ function Get-RenderExtractInstrumentationCoverage {
         [Parameter(Mandatory)][object[]]$Counters,
         [string[]]$SpanCategory = @(),
         [string[]]$SpanNames = @(),
+        [string[]]$RequiredSpanNames = @(),
         [string[]]$CounterNames = @(),
-        [switch]$RequireAllCounterNames
+        [string[]]$Streams = @(),
+        [switch]$RequireAllSpanNames,
+        [switch]$RequireAllCounterNames,
+        [ValidateRange(1, 256)][int]$SampleLimit = 20
     )
 
     $matchingSpans = @(if ($SpanCategory.Count -eq 0 -or $SpanNames.Count -eq 0) {
@@ -214,15 +218,25 @@ function Get-RenderExtractInstrumentationCoverage {
         }
         else {
             $Spans | Where-Object {
-                $SpanCategory -contains $_.category -and $SpanNames -contains $_.name
+                ($Streams.Count -eq 0 -or $Streams -contains $_.stream) -and
+                    $SpanCategory -contains $_.category -and $SpanNames -contains $_.name
             }
         })
     $matchingCounters = @(if ($CounterNames.Count -eq 0) {
             @()
         }
         else {
-            $Counters | Where-Object { $CounterNames -contains $_.name }
+            $Counters | Where-Object {
+                ($Streams.Count -eq 0 -or $Streams -contains $_.stream) -and
+                    $CounterNames -contains $_.name
+            }
         })
+    $missingSpanNames = @()
+    if ($RequireAllSpanNames) {
+        $matchedSpanNames = @($matchingSpans | ForEach-Object { [string]$_.name })
+        $requiredNames = if ($RequiredSpanNames.Count -gt 0) { $RequiredSpanNames } else { $SpanNames }
+        $missingSpanNames = @($requiredNames | Where-Object { $_ -notin $matchedSpanNames })
+    }
     $missingCounterNames = @()
     if ($RequireAllCounterNames) {
         $matchedCounterNames = @($matchingCounters | ForEach-Object { [string]$_.name })
@@ -233,14 +247,16 @@ function Get-RenderExtractInstrumentationCoverage {
         status = if (-not $hasSamples) {
             'not_emitted'
         }
-        elseif ($RequireAllCounterNames -and $missingCounterNames.Count -gt 0) {
+        elseif (($RequireAllSpanNames -and $missingSpanNames.Count -gt 0) -or
+            ($RequireAllCounterNames -and $missingCounterNames.Count -gt 0)) {
             'partial'
         }
         else {
             'measured'
         }
-        spans = @($matchingSpans | Select-Object -First 20)
-        counters = @($matchingCounters | Select-Object -First 20)
+        spans = @($matchingSpans | Select-Object -First $SampleLimit)
+        counters = @($matchingCounters | Select-Object -First $SampleLimit)
+        missing_span_names = $missingSpanNames
         missing_counter_names = $missingCounterNames
     }
 }

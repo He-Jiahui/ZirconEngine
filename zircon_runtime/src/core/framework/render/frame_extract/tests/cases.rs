@@ -1,0 +1,386 @@
+use super::*;
+use crate::core::framework::render::{
+    AntiAliasMode, AntiAliasSettings, CameraRenderDescriptor, FallbackSkyboxKind,
+    PreviewEnvironmentExtract, RenderCameraOrderReport, RenderCameraTarget, RenderLayerSet,
+    RenderMeshSnapshot, RenderMeshStaticState, RenderOverlayExtract, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderViewportRect, RendererCommon, ViewportCameraSnapshot,
+};
+use crate::core::framework::scene::Mobility;
+use crate::core::math::{Transform, UVec2, Vec4};
+use crate::core::resource::{
+    MaterialMarker, ModelMarker, ResourceHandle, ResourceId, TextureMarker,
+};
+use std::sync::Arc;
+
+#[test]
+fn render_frame_timing_defaults_to_no_invented_time_and_sanitizes_invalid_delta() {
+    let default = RenderFrameTiming::default();
+    let valid = RenderFrameTiming::new(7, 0.125);
+    let negative = RenderFrameTiming::new(8, -1.0);
+    let invalid = RenderFrameTiming::new(9, f32::NAN);
+
+    assert_eq!(default.outer_frame_index(), 0);
+    assert_eq!(default.raw_real_delta_seconds(), 0.0);
+    assert_eq!(valid.outer_frame_index(), 7);
+    assert_eq!(valid.raw_real_delta_seconds(), 0.125);
+    assert_eq!(negative.raw_real_delta_seconds(), 0.0);
+    assert_eq!(invalid.raw_real_delta_seconds(), 0.0);
+}
+
+#[test]
+fn frame_extract_snapshot_adapter_moves_owned_packet_payloads() {
+    let source = include_str!("../frame.rs");
+
+    for redundant_clone in [
+        "snapshot.scene.camera.clone()",
+        "snapshot.scene.meshes.clone()",
+        "snapshot.scene.directional_lights.clone()",
+        "snapshot.scene.point_lights.clone()",
+        "snapshot.scene.spot_lights.clone()",
+        "snapshot.scene.ambient_lights.clone()",
+        "snapshot.scene.rect_lights.clone()",
+        "snapshot.environment.clone()",
+        "snapshot.preview.clone()",
+    ] {
+        assert!(
+            !source.contains(redundant_clone),
+            "owned snapshot payload should be moved instead of cloned: {redundant_clone}"
+        );
+    }
+}
+
+#[test]
+fn render_view_size_queries_do_not_clone_the_selected_camera() {
+    let source = include_str!("../view.rs");
+
+    assert_eq!(
+        source
+            .matches("let camera = self.selected_effective_camera();")
+            .count(),
+        0,
+        "effective size queries should inspect the selected descriptor by reference"
+    );
+}
+
+#[test]
+fn render_mesh_snapshot_hard_cuts_legacy_layer_field_into_renderer_common() {
+    let source = include_str!("../../scene_extract/mesh/snapshot.rs");
+    let mesh_snapshot = source
+        .split_once("pub struct RenderMeshSnapshot {")
+        .expect("render mesh snapshot declaration")
+        .1
+        .split_once("\n}")
+        .expect("render mesh snapshot body")
+        .0;
+
+    assert!(mesh_snapshot.contains("pub common: RendererCommon"));
+    assert!(!mesh_snapshot.contains("pub render_layer_mask: RenderLayerSet"));
+}
+
+#[test]
+fn render_view_apply_target_size_preserves_descriptor_target_and_layers() {
+    let mut view = RenderViewExtract::from_camera(ViewportCameraSnapshot::default());
+    let mut descriptor =
+        CameraRenderDescriptor::from_camera_payload(Some(7), ViewportCameraSnapshot::default());
+    descriptor.target = RenderCameraTarget::Headless {
+        size: UVec2::new(320, 180),
+    };
+    descriptor.viewport_rect = Some(RenderViewportRect::new(UVec2::ZERO, UVec2::new(320, 160)));
+    descriptor.culling_mask = RenderLayerSet::layer(3);
+    descriptor.volume_mask = RenderLayerSet::layer(4);
+    view.scene_camera_entity = Some(7);
+    view.cameras = vec![descriptor];
+
+    view.apply_target_size(UVec2::new(1280, 720));
+
+    let selected = view
+        .selected_camera_descriptor()
+        .expect("selected scene camera descriptor should remain present");
+    assert!(matches!(
+        selected.target,
+        RenderCameraTarget::Headless {
+            size: UVec2 { x: 320, y: 180 }
+        }
+    ));
+    assert_eq!(
+        selected.culling_mask.to_scene_schema_v1_mask_lossy(),
+        1 << 3
+    );
+    assert_eq!(selected.volume_mask.to_scene_schema_v1_mask_lossy(), 1 << 4);
+    assert!((view.camera.aspect_ratio - 2.0).abs() < 1.0e-4);
+}
+
+#[test]
+fn render_view_select_camera_descriptor_preserves_explicit_anti_alias() {
+    let mut view = RenderViewExtract::from_camera(ViewportCameraSnapshot::default());
+    view.anti_alias = AntiAliasSettings::taa();
+    let mut descriptor =
+        CameraRenderDescriptor::from_camera_payload(Some(9), ViewportCameraSnapshot::default());
+    descriptor.camera.msaa_samples = 1;
+
+    view.select_camera_descriptor(descriptor);
+
+    assert_eq!(view.anti_alias.mode, AntiAliasMode::Taa);
+}
+
+#[test]
+fn render_frame_extract_selected_camera_descriptor_replaces_active_selection_only() {
+    let texture =
+        ResourceHandle::<TextureMarker>::new(ResourceId::from_stable_label("tests/camera-loop/rt"));
+    let mut extract = RenderFrameExtract::from_snapshot(
+        RenderWorldSnapshotHandle::new(10),
+        RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: false,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        },
+    );
+    let mut primary =
+        CameraRenderDescriptor::from_camera_payload(Some(1), ViewportCameraSnapshot::default());
+    primary.render_order = 0;
+    let mut target =
+        CameraRenderDescriptor::from_camera_payload(Some(2), ViewportCameraSnapshot::default());
+    target.render_order = 10;
+    target.target = RenderCameraTarget::Texture(texture);
+    target.culling_mask = RenderLayerSet::layer(4);
+    extract.view = extract.view.with_cameras(vec![primary, target.clone()]);
+
+    let selected = extract.with_selected_camera_descriptor(target.clone());
+
+    assert_eq!(selected.view.scene_camera_entity, Some(2));
+    assert_eq!(selected.view.cameras.len(), 1);
+    assert_eq!(selected.view.selected_camera_target(), &target.target);
+    assert_eq!(
+        selected
+            .view
+            .selected_camera_layers()
+            .to_scene_schema_v1_mask_lossy(),
+        1 << 4
+    );
+}
+
+#[test]
+fn camera_submission_projection_shares_scene_and_keeps_only_the_selected_camera() {
+    let mut extract = RenderFrameExtract::from_snapshot(
+        RenderWorldSnapshotHandle::new(101),
+        RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: false,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        },
+    );
+    let cameras = (0..128)
+        .map(|entity| {
+            CameraRenderDescriptor::from_camera_payload(
+                Some(entity),
+                ViewportCameraSnapshot::default(),
+            )
+        })
+        .collect::<Vec<_>>();
+    let selected = cameras[97].clone();
+    extract.view = extract.view.with_cameras(cameras);
+    let order_report = Arc::new(RenderCameraOrderReport::default());
+    extract.view.scene_camera_order_report = Some(Arc::clone(&order_report));
+
+    let submission = extract.for_camera_submission(selected);
+
+    assert!(submission.shares_scene_with(&extract));
+    assert_eq!(submission.view.cameras.len(), 1);
+    assert_eq!(submission.view.scene_camera_entity, Some(97));
+    assert_eq!(extract.view.cameras.len(), 128);
+    assert!(Arc::ptr_eq(
+        submission
+            .view
+            .scene_camera_order_report
+            .as_ref()
+            .expect("submission preserves the order report"),
+        &order_report,
+    ));
+}
+
+#[test]
+fn render_frame_extract_visibility_input_preserves_layers_above_legacy_mask_width() {
+    let high_layer_mask = RenderLayerSet::layer(40);
+    let extract = RenderFrameExtract::from_snapshot(
+        RenderWorldSnapshotHandle::new(11),
+        RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: vec![RenderMeshSnapshot {
+                    node_id: 42,
+                    stable_instance_key: 42,
+                    transform_revision: 0,
+                    transform: Transform::default(),
+                    model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
+                        "tests/visibility-input/model",
+                    )),
+                    mesh: None,
+                    material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+                        "tests/visibility-input/material",
+                    )),
+                    mesh_lod: None,
+                    morph_weights: Vec::new(),
+                    tint: Vec4::ONE,
+                    mobility: Mobility::Static,
+                    static_state: RenderMeshStaticState::default(),
+                    common: RendererCommon {
+                        layer_mask: high_layer_mask,
+                        is_static: true,
+                        ..RendererCommon::default()
+                    },
+                }],
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: false,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        },
+    );
+
+    let render_layer_mask = &extract.visibility.renderables[0].render_layer_mask;
+    assert!(render_layer_mask.contains(40));
+    assert_eq!(render_layer_mask.to_scene_schema_v1_mask_lossy(), 0);
+}
+
+#[test]
+fn frame_extract_clone_shares_scene_while_view_and_timing_remain_submission_local() {
+    let original = RenderFrameExtract::from_snapshot(
+        RenderWorldSnapshotHandle::new(12),
+        RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: false,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        },
+    );
+    let mut submission = original.clone();
+
+    submission.apply_viewport_size(UVec2::new(1920, 1080));
+    submission.set_timing(RenderFrameTiming::new(41, 1.0 / 60.0));
+
+    assert!(original.shares_scene_with(&submission));
+    assert_ne!(original.view.target_size, submission.view.target_size);
+    assert_eq!(original.timing, RenderFrameTiming::default());
+    assert_eq!(submission.timing.outer_frame_index(), 41);
+}
+
+#[test]
+fn deriving_one_scene_domain_keeps_every_unchanged_large_domain_shared() {
+    let original = RenderFrameExtract::from_snapshot(
+        RenderWorldSnapshotHandle::new(13),
+        RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: vec![RenderMeshSnapshot {
+                    node_id: 7,
+                    stable_instance_key: 7,
+                    transform_revision: 0,
+                    transform: Transform::default(),
+                    model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
+                        "tests/shared-scene/model",
+                    )),
+                    mesh: None,
+                    material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+                        "tests/shared-scene/material",
+                    )),
+                    mesh_lod: None,
+                    morph_weights: Vec::new(),
+                    tint: Vec4::ONE,
+                    mobility: Mobility::Dynamic,
+                    static_state: RenderMeshStaticState::default(),
+                    common: RendererCommon::default(),
+                }],
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: false,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        },
+    );
+    let mut derived = original.clone();
+    derived.geometry.meshes.clear();
+
+    let original_scene = original.shared_scene();
+    let derived_scene = derived.shared_scene();
+    assert!(!original_scene.geometry.ptr_eq(&derived_scene.geometry));
+    assert_eq!(original.geometry.meshes.len(), 1);
+    assert!(derived.geometry.meshes.is_empty());
+    assert!(original_scene
+        .animation_poses
+        .ptr_eq(&derived_scene.animation_poses));
+    assert!(original_scene.lighting.ptr_eq(&derived_scene.lighting));
+    assert!(original_scene
+        .environment
+        .ptr_eq(&derived_scene.environment));
+    assert!(original_scene
+        .post_process
+        .ptr_eq(&derived_scene.post_process));
+    assert!(original_scene.debug.ptr_eq(&derived_scene.debug));
+    assert!(original_scene.sprites.ptr_eq(&derived_scene.sprites));
+    assert!(original_scene.particles.ptr_eq(&derived_scene.particles));
+    assert!(original_scene.visibility.ptr_eq(&derived_scene.visibility));
+}

@@ -127,38 +127,38 @@ impl AssetWorkerPoolDiagnostics {
 
 impl AssetWorkerPoolFrameDiagnostics {
     pub fn record_diagnostics(&self, store: &mut DiagnosticStore, frame_index: u64) {
-        store.record(
+        store.record_static(
             ASSET_WORKER_IN_FLIGHT_DIAGNOSTIC,
             frame_index,
             self.in_flight as f64,
             Some("request"),
-            ["asset", "worker"],
+            &["asset", "worker"],
         );
-        store.record(
+        store.record_static(
             ASSET_WORKER_BUDGETED_THREADS_DIAGNOSTIC,
             frame_index,
             self.budgeted_threads as f64,
             Some("thread"),
-            [
+            &[
                 "asset",
                 "worker",
                 "budget",
                 self.thread_budget_source.as_str(),
             ],
         );
-        store.record(
+        store.record_static(
             ASSET_WORKER_FRAME_COMPLETED_DIAGNOSTIC,
             frame_index,
             self.completed_delta as f64,
             Some("request"),
-            ["asset", "worker", "frame"],
+            &["asset", "worker", "frame"],
         );
-        store.record(
+        store.record_static(
             ASSET_WORKER_FRAME_FAILED_DIAGNOSTIC,
             frame_index,
             self.failed_delta as f64,
             Some("request"),
-            ["asset", "worker", "frame"],
+            &["asset", "worker", "frame"],
         );
     }
 }
@@ -312,14 +312,14 @@ impl AssetWorkerPool {
                 "sample",
             ),
         ] {
-            store.record(path, frame_index, value, Some(unit), ["asset", "worker"]);
+            store.record_static(path, frame_index, value, Some(unit), &["asset", "worker"]);
         }
-        store.record(
+        store.record_static(
             ASSET_WORKER_BUDGETED_THREADS_DIAGNOSTIC,
             frame_index,
             diagnostics.budgeted_threads as f64,
             Some("thread"),
-            [
+            &[
                 "asset",
                 "worker",
                 "budget",
@@ -345,3 +345,7 @@ pub(super) fn record_duration_measurement(
 fn milliseconds(duration: Duration) -> f64 {
     duration.as_secs_f64() * 1_000.0
 }
+
+#[cfg(test)]
+#[path = "tests/diagnostics_optimization_batch_hs_runtime600_tests.rs"]
+mod optimization_batch_hs_runtime600_tests;

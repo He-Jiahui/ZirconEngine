@@ -1,3 +1,4 @@
+# 核对资产面包屑与当前选择通过代际索引取值并防止父链循环。
 from pathlib import Path
 import unittest
 

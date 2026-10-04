@@ -1,3 +1,6 @@
+//! 树行内部的面、缩进、展开符、对象、标题和操作槽共享基础层级，但必须保持局部先后。
+//! 调用方须留出所有偏移的 i32 余量；该模块不会验证上游层级边界。
+
 const INDENT_GUIDES_OFFSET: i32 = 1;
 const DISCLOSURE_OFFSET: i32 = 2;
 const OBJECT_ICON_OFFSET: i32 = 3;
@@ -40,23 +43,5 @@ pub(super) fn secondary_action_icon_order(action_order: i32) -> i32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn tree_row_orders_keep_content_above_surface() {
-        let surface = 20;
-        let action_slot = action_slot_order(surface);
-
-        assert!(surface < indent_guides_order(surface));
-        assert!(indent_guides_order(surface) < disclosure_order(surface));
-        assert!(disclosure_order(surface) < object_icon_order(surface));
-        assert!(object_icon_order(surface) < label_order(surface));
-        assert!(label_order(surface) < action_slot);
-        assert!(action_slot < primary_action_icon_order(action_slot));
-        assert!(primary_action_icon_order(action_slot) < secondary_action_slot_order(action_slot));
-        assert!(
-            secondary_action_slot_order(action_slot) < secondary_action_icon_order(action_slot)
-        );
-    }
-}
+#[path = "tests/layers.rs"]
+mod tests;

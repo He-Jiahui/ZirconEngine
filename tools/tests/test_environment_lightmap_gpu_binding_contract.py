@@ -1,3 +1,4 @@
+# 核对环境渲染器的光照贴图绑定在前向与延迟路径保持统一资源接口。
 from __future__ import annotations
 
 import unittest

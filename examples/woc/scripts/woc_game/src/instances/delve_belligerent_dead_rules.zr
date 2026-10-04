@@ -5,6 +5,7 @@ pub applies(active: bool, mobId: string): bool {
     return active && mobId == "grave_silt_bulwark";
 }
 
+/// 用于生成新敌人时计算词缀生命上限；输入应是未加成的模板值，重复对已加成上限调用会再次放大。
 pub adjustedMaxHp(baseMaxHp: int, active: bool, mobId: string): int {
     if (baseMaxHp < 0) {
         throw "woc Belligerent Dead base max HP is invalid";
@@ -16,6 +17,7 @@ pub adjustedMaxHp(baseMaxHp: int, active: bool, mobId: string): int {
     return <int>math.floor(<float>baseMaxHp * 1.1 + 0.5);
 }
 
+/// 生成调用方须在调整上限后同步当前生命；此判定不表示战斗途中可重新治疗受伤敌人。
 pub resetsCurrentHp(active: bool, mobId: string): bool {
     return applies(active, mobId);
 }

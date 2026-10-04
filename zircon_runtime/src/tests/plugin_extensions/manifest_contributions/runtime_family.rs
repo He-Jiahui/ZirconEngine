@@ -27,10 +27,10 @@ fn sound_plugin_manifest_matches_catalog_beta_partial_metadata() {
 
     assert_eq!(decoded, manifest);
     assert!(
-        manifest_source.contains(r#"sdk_api_version = "0.1.0""#),
+        manifest_source.contains(r#"sdk_api_version = "0.2.0""#),
         "sound plugin should explicitly declare SDK API version"
     );
-    assert_eq!(manifest.sdk_api_version, "0.1.0");
+    assert_eq!(manifest.sdk_api_version, "0.2.0");
     assert_eq!(manifest.category, "runtime");
     assert_eq!(manifest.maturity, crate::plugin::PluginMaturity::Beta);
     assert_eq!(manifest.supported_targets, expected_targets);
@@ -132,7 +132,7 @@ fn navigation_plugin_toml_matches_catalog_beta_partial_metadata() {
     ];
 
     assert_eq!(decoded, manifest);
-    assert_eq!(manifest.sdk_api_version, "0.1.0");
+    assert_eq!(manifest.sdk_api_version, "0.2.0");
     assert_eq!(manifest.category, "runtime");
     assert_eq!(manifest.maturity, crate::plugin::PluginMaturity::Beta);
     assert_eq!(manifest.supported_targets, expected_targets);
@@ -191,10 +191,10 @@ fn particles_plugin_toml_matches_catalog_optional_feature_metadata() {
 
     assert_eq!(decoded, manifest);
     assert!(
-        manifest_source.contains(r#"sdk_api_version = "0.1.0""#),
+        manifest_source.contains(r#"sdk_api_version = "0.2.0""#),
         "particles plugin should explicitly declare SDK API version"
     );
-    assert_eq!(manifest.sdk_api_version, "0.1.0");
+    assert_eq!(manifest.sdk_api_version, "0.2.0");
     assert_eq!(manifest.category, "runtime");
     assert_eq!(
         manifest.maturity,
@@ -262,10 +262,10 @@ fn texture_plugin_manifest_matches_catalog_stable_complete_metadata() {
 
     assert_eq!(decoded, manifest);
     assert!(
-        manifest_source.contains(r#"sdk_api_version = "0.1.0""#),
+        manifest_source.contains(r#"sdk_api_version = "0.2.0""#),
         "texture plugin should explicitly declare SDK API version"
     );
-    assert_eq!(manifest.sdk_api_version, "0.1.0");
+    assert_eq!(manifest.sdk_api_version, "0.2.0");
     assert_eq!(manifest.category, "runtime");
     assert_eq!(manifest.maturity, crate::plugin::PluginMaturity::Stable);
     assert_eq!(manifest.supported_targets, expected_targets);

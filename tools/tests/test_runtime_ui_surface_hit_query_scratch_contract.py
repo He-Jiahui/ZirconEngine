@@ -7,6 +7,7 @@ SURFACE = ROOT / "zircon_runtime/src/ui/surface/surface.rs"
 FRAME_HIT_TEST = ROOT / "zircon_runtime/src/ui/surface/frame_hit_test.rs"
 FRAME_PUBLICATION = ROOT / "zircon_runtime/src/ui/surface/surface/frame_publication.rs"
 HIT_TEST = ROOT / "zircon_runtime/src/ui/tree/hit_test.rs"
+QUERY_SCRATCH = ROOT / "zircon_runtime/src/ui/tree/hit_test/query_scratch.rs"
 RUST_TESTS = ROOT / "zircon_runtime/src/ui/tests/hit_grid.rs"
 
 
@@ -60,6 +61,15 @@ class RuntimeUiSurfaceHitQueryScratchContractTests(unittest.TestCase):
         self.assertIn("pub(crate) fn hit_test_owned_grid_arranged_with_query(", source)
         self.assertIn("&self.query_scratch", source)
         self.assertIn("let query_scratch = UiHitQueryScratchCell::default();", source)
+
+    def test_radius_fallback_reuses_the_retained_sort_buffer(self):
+        hit_test = HIT_TEST.read_text(encoding="utf-8")
+        scratch = QUERY_SCRATCH.read_text(encoding="utf-8")
+
+        self.assertIn("pub(super) radius_hits: Vec<UiHitRadiusHit>", scratch)
+        self.assertIn("self.radius_hits.clear();", scratch)
+        self.assertIn("&mut query_scratch.radius_hits", hit_test)
+        self.assertNotIn("let mut radius_hits = Vec::new();", hit_test)
 
     def test_lower_regression_exercises_the_surface_product_path(self):
         source = RUST_TESTS.read_text(encoding="utf-8")

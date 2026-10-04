@@ -177,6 +177,8 @@ pub(crate) fn texture_to_texture_copy_layouts(
     Ok((source_layout, destination_layout))
 }
 
+/// 为 mip 子区域计算线性字节布局的起始偏移、行/切片步长和末端位置；
+/// 越界或算术溢出时返回 None，缓冲拷贝所需的行对齐由调用路径另行验证。
 pub(crate) fn texture_copy_layout(
     desc: &TextureDesc,
     region: TextureCopyRegion,
@@ -266,10 +268,8 @@ fn texture_mip_level_offset(desc: &TextureDesc, mip_level: u32) -> Option<u64> {
 fn texture_mip_depth(desc: &TextureDesc, mip_level: u32) -> u32 {
     match desc.dimension {
         TextureDimension::D3 => mip_extent(desc.depth, mip_level),
-        TextureDimension::D1
-        | TextureDimension::D2
-        | TextureDimension::D2Array
-        | TextureDimension::Cube => desc.depth,
+        TextureDimension::D1 | TextureDimension::D2 => 1,
+        TextureDimension::D2Array | TextureDimension::Cube => desc.array_layers,
     }
 }
 

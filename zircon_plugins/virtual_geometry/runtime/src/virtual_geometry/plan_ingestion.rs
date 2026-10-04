@@ -3,6 +3,7 @@ use zircon_runtime::graphics::VisibilityVirtualGeometryPageUploadPlan;
 use super::{VirtualGeometryPageRequest, VirtualGeometryRuntimeState};
 
 impl VirtualGeometryRuntimeState {
+    // 每帧请求顺序由计划重建；已驻留或已 pending 的脏请求不重复进入上传队列。
     pub(crate) fn ingest_plan(
         &mut self,
         generation: u64,
@@ -73,4 +74,5 @@ fn resident_evictable_pages(state: &VirtualGeometryRuntimeState, candidates: &[u
 }
 
 #[cfg(test)]
+#[path = "plan_ingestion/tests/performance_tests.rs"]
 mod performance_tests;

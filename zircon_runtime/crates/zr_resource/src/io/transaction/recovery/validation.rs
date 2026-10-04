@@ -6,18 +6,19 @@ use std::path::{Path, PathBuf};
 use super::super::error::{DurableTransactionError, TransactionPhase};
 use super::super::owner_lock::owner_lock_path;
 use super::super::pathing::{
-    PathIdentity, journal_path as expected_journal_path, transaction_sibling, valid_tag,
-    valid_transaction_id,
+    journal_path as expected_journal_path, transaction_sibling, valid_tag, valid_transaction_id,
+    PathIdentity,
 };
 use super::super::schema::{FoldedTransactionJournal, JournalDocument, JournalPhase, JournalState};
 use super::super::stage::ensure_regular_or_missing;
-use super::RecoveryPolicy;
 use super::evidence::validate_document_evidence;
+use super::{RecoveryMode, RecoveryPolicy};
 
 pub(super) fn validate_journals(
     journals: &[(PathBuf, FoldedTransactionJournal, usize)],
     expected_tag: &str,
     policy: &mut impl RecoveryPolicy,
+    mode: RecoveryMode,
 ) -> Result<(), DurableTransactionError> {
     let mut identities = BTreeSet::new();
     for (journal_path, journal, _) in journals {
@@ -60,7 +61,7 @@ pub(super) fn validate_journals(
                 "journal filename does not match immutable intent",
             ));
         }
-        validate_phase(journal_path, journal)?;
+        validate_phase(journal_path, journal, mode)?;
         for document in &journal.documents {
             policy
                 .validate_document(journal_path, document)
@@ -85,6 +86,7 @@ pub(super) fn validate_journals(
             validate_document_evidence(
                 journal_path,
                 journal.phase,
+                mode,
                 document,
                 policy,
                 &mut evidence,
@@ -97,7 +99,14 @@ pub(super) fn validate_journals(
 fn validate_phase(
     path: &Path,
     journal: &FoldedTransactionJournal,
+    mode: RecoveryMode,
 ) -> Result<(), DurableTransactionError> {
+    if journal.phase == JournalPhase::CleanupActive && mode != RecoveryMode::CleanupArtifacts {
+        return Err(DurableTransactionError::invalid(
+            path,
+            "cleanup_active requires CleanupArtifacts recovery mode",
+        ));
+    }
     let valid = match journal.phase {
         JournalPhase::Intent | JournalPhase::CleanupIntent => {
             journal.documents.iter().all(|document| {
@@ -107,15 +116,17 @@ fn validate_phase(
                 )
             })
         }
-        JournalPhase::Active => journal.documents.iter().all(|document| {
-            matches!(
-                document.state,
-                JournalState::Prepared
-                    | JournalState::Committing
-                    | JournalState::Committed
-                    | JournalState::RollingBack
-            )
-        }),
+        JournalPhase::Active | JournalPhase::CleanupActive => {
+            journal.documents.iter().all(|document| {
+                matches!(
+                    document.state,
+                    JournalState::Prepared
+                        | JournalState::Committing
+                        | JournalState::Committed
+                        | JournalState::RollingBack
+                )
+            })
+        }
         JournalPhase::RollbackCompleted | JournalPhase::CleanupRollback => journal
             .documents
             .iter()

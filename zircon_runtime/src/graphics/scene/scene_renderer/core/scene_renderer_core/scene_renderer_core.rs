@@ -1,3 +1,4 @@
+use super::environment_frame::PendingSceneEnvironmentBindings;
 use crate::graphics::backend::RenderBackend;
 use crate::graphics::scene::gpu_scene::GpuScene;
 use crate::graphics::types::GraphicsError;
@@ -17,8 +18,8 @@ use super::super::super::overlay::ViewportOverlayRenderer;
 use super::super::super::particle::ParticleRenderer;
 use super::super::super::post_process::ScenePostProcessResources;
 use super::super::super::scene_clear::SceneRegionClearResources;
-use super::super::super::shadow::ShadowMapRenderer;
 use super::super::super::shadow::atlas::{ShadowAtlasAllocator, ShadowAtlasResources};
+use super::super::super::shadow::ShadowMapRenderer;
 use super::super::super::sprite::SpriteRenderer;
 use super::super::super::ui::ScreenSpaceUiRenderer;
 use super::super::SceneRendererDeferredLightingProfile;
@@ -40,11 +41,15 @@ pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererCore {
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::core) scene_uniform_buffer: wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::core) scene_environment_sh9_buffer: wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::core) scene_environment_sh9_staging_buffer:
+        Option<wgpu::Buffer>,
     pub(in crate::graphics::scene::scene_renderer::core) scene_environment_cubemap:
         SceneEnvironmentCubemap,
     pub(in crate::graphics::scene::scene_renderer::core) scene_environment_brdf_lut:
         SceneEnvironmentBrdfLut,
     pub(in crate::graphics::scene::scene_renderer::core) scene_bind_group: wgpu::BindGroup,
+    pub(in crate::graphics::scene::scene_renderer::core) pending_scene_environment_bindings:
+        Option<PendingSceneEnvironmentBindings>,
     pub(in crate::graphics::scene::scene_renderer::core) scene_color_format: wgpu::TextureFormat,
     pub(in crate::graphics::scene::scene_renderer::core) final_color_format: wgpu::TextureFormat,
     pub(in crate::graphics::scene::scene_renderer::core) depth_format: wgpu::TextureFormat,
@@ -120,41 +125,5 @@ impl SceneRendererCore {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::SceneRendererDeferredLightingProfile;
-
-    #[test]
-    fn renderer_core_imports_the_default_deferred_lighting_profile() {
-        assert_eq!(
-            SceneRendererDeferredLightingProfile::default(),
-            SceneRendererDeferredLightingProfile::FullScene
-        );
-    }
-
-    #[test]
-    fn renderer_core_guards_all_render_entrypoints_with_its_construction_epoch() {
-        let core = include_str!("scene_renderer_core.rs");
-        assert!(core.contains("device_id: DeviceId"));
-        assert!(core.contains("device_generation: DeviceGeneration"));
-        assert!(core.contains("GraphicsError::SceneRendererDeviceEpochMismatch"));
-
-        let direct = include_str!("../scene_renderer_core_render_scene/render_scene.rs");
-        let direct_guard = direct
-            .find("self.ensure_device_epoch(backend)?;")
-            .expect("direct render must admit the core device epoch");
-        let direct_device = direct
-            .find("let device = &backend.device;")
-            .expect("direct render device borrow");
-        assert!(direct_guard < direct_device);
-
-        let compiled =
-            include_str!("../scene_renderer_core_render_compiled_scene/render/render.rs");
-        let compiled_guard = compiled
-            .find("self.ensure_device_epoch(backend)?;")
-            .expect("compiled render must admit the core device epoch");
-        let compiled_device = compiled
-            .find("let device = &backend.device;")
-            .expect("compiled render device borrow");
-        assert!(compiled_guard < compiled_device);
-    }
-}
+#[path = "tests/scene_renderer_core.rs"]
+mod tests;

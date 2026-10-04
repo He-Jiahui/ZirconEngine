@@ -1,3 +1,4 @@
+//! 共享界面图像须按精确票据固定，GPU 回调或故障结算后才释放对应引用。
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard};
 
@@ -36,12 +37,13 @@ impl WgpuUiImageRetirementOwner {
         drop(retired);
     }
 
-    pub(super) fn terminalize_all(&self) {
-        let retired = {
-            let mut pending = self.lock_pending();
-            std::mem::take(&mut *pending)
-        };
-        drop(retired);
+    /// Detach under the caller's queue serialization; the caller destroys the
+    /// returned pins only after releasing its queue and state guards.
+    pub(super) fn take_terminal_retirements(
+        &self,
+    ) -> HashMap<SubmissionTicket, WgpuUiImageInFlightPins> {
+        let mut pending = self.lock_pending();
+        std::mem::take(&mut *pending)
     }
 
     fn lock_pending(&self) -> MutexGuard<'_, HashMap<SubmissionTicket, WgpuUiImageInFlightPins>> {

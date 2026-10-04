@@ -1,7 +1,7 @@
 use crate::serialization::Loaded;
 use serde::Deserialize;
 
-use crate::project::{validate_project_name, ProjectGuid, RelPath};
+use crate::project::{validate_project_name, ProjectGuid, ProjectTemplateReceipt, RelPath};
 
 use super::{
     load_project_manifest_value_from_toml_str, summary::ensure_document_size,
@@ -12,6 +12,7 @@ pub(super) fn parse_str(
     document: &str,
 ) -> Result<Loaded<ProjectManifestSummary>, ProjectManifestSummaryError> {
     ensure_document_size(document.len())?;
+    // 共享适配器先完成结构版本迁移；摘要保留其来源，以区分旧格式与当前准入要求。
     let loaded = load_project_manifest_value_from_toml_str(document)?;
     let parsed: SummaryDocument = serde_json::from_value(loaded.value)
         .map_err(|source| ProjectManifestSummaryError::InvalidShape { source })?;
@@ -27,6 +28,8 @@ struct SummaryDocument {
     name: String,
     #[serde(default)]
     engine_version_req: Option<String>,
+    #[serde(default)]
+    template_receipt: Option<ProjectTemplateReceipt>,
     default_scene: String,
     format_version: u32,
     #[serde(default)]
@@ -51,6 +54,22 @@ impl SummaryDocument {
             });
         }
         validate_engine_version_req(self.engine_version_req.as_deref())?;
+        // receipt 复述项目 GUID 和模板引擎范围；拒绝清单编辑后与创建来源脱节。
+        if let Some(receipt) = &self.template_receipt {
+            if self.project_guid != Some(receipt.project_guid()) {
+                return Err(ProjectManifestSummaryError::InvalidValue {
+                    message: "template receipt project_guid must match the project manifest"
+                        .to_string(),
+                });
+            }
+            if self.engine_version_req.as_deref() != receipt.descriptor().engine_version_req() {
+                return Err(ProjectManifestSummaryError::InvalidValue {
+                    message: "template receipt engine requirement must match the project manifest"
+                        .to_string(),
+                });
+            }
+        }
+        // 只有已迁移的旧格式允许缺少 GUID；当前格式必须有可持续追踪的项目身份。
         if requires_persisted_project_guid && self.project_guid.is_none() {
             return Err(ProjectManifestSummaryError::InvalidValue {
                 message: "project_guid is required by the current project manifest format"
@@ -63,6 +82,7 @@ impl SummaryDocument {
             });
         }
         validate_asset_roots(&self.asset_roots)?;
+        // 摘要省略 settings，但其值仍由 RelPath 校验；library_version 保留 u32 的结构校验。
         let _ = &self.settings;
         let _ = self.library_version;
         Ok(())
@@ -72,6 +92,7 @@ impl SummaryDocument {
         ProjectManifestSummary {
             name: self.name,
             engine_version_req: self.engine_version_req,
+            template_receipt: self.template_receipt,
             default_scene: self.default_scene,
             format_version: self.format_version,
             project_guid: self.project_guid,
@@ -87,6 +108,7 @@ fn validate_asset_roots(asset_roots: &[RelPath]) -> Result<(), ProjectManifestSu
         });
     }
 
+    // 按路径组件排序后只需比较相邻项，并保留 a 与 a-b 的边界语义。
     let mut ordered = asset_roots.iter().collect::<Vec<_>>();
     ordered.sort_unstable_by(|left, right| left.as_str().split('/').cmp(right.as_str().split('/')));
     for pair in ordered.windows(2) {

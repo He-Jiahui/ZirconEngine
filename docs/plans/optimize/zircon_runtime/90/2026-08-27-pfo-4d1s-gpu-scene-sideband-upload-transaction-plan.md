@@ -107,7 +107,7 @@ managed Windows validation lane is available.
    Scoped rustfmt check and diff check passed.
 7. The master PFO plan and Render03 contract were updated. The generated GPU Scene module document
    remains pending because an external process keeps
-   `docs/zircon_runtime/graphics/scene/gpu_scene/mod.md` write-locked; this does not block the next
+   `docs/crates/zircon_runtime/graphics/scene/gpu_scene/mod.md` write-locked; this does not block the next
    source slice and must be retried before milestone acceptance.
 8. Cargo, real WGPU execution, product PNG, RenderDoc, 1K/10K profile, VRAM, and power were not run,
    so this source slice makes no runtime performance or power claim.

@@ -87,7 +87,7 @@ fn ui_render_command_metrics_snap_paint_bounds_and_clip_only_for_render() {
 
 #[test]
 fn per_command_pixel_snapping_policy_overrides_surface_metrics_at_fractional_dpi() {
-    let cases = [(1.25, 10.6), (1.5, 8.166_667)];
+    let cases = [(1.25, 9.8), (1.5, 8.166_667)];
 
     for (dpi_scale, logical_x) in cases {
         let frame = UiFrame::new(logical_x, 4.0, 0.25 / dpi_scale, 12.0);

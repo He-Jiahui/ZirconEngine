@@ -24,7 +24,7 @@ fn net_plugin_toml_declares_content_download_http_dependency() {
     let expected_capabilities = vec!["runtime.plugin.net".to_string()];
 
     assert_eq!(decoded, manifest);
-    assert_eq!(manifest.sdk_api_version, "0.1.0");
+    assert_eq!(manifest.sdk_api_version, "0.2.0");
     assert_eq!(manifest.category, "runtime");
     assert_eq!(manifest.maturity, crate::plugin::PluginMaturity::Beta);
     assert_eq!(manifest.supported_targets, expected_targets);

@@ -1,6 +1,7 @@
 use super::*;
 
 #[test]
+#[cfg(feature = "graphics")]
 fn importer_validates_wgsl_and_reports_errors() {
     let root = unique_temp_project_root("shader_import");
     fs::create_dir_all(&root).unwrap();

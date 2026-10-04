@@ -36,6 +36,7 @@ fn local_feature_runtime_crate_path(owner_plugin_id: &str, feature_id: &str) -> 
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 项目插件下可独立选择的功能包；导出规划按目标模式、必需性和提供者归属决定是否纳入 BuildSet。
 pub struct ProjectPluginFeatureSelection {
     pub id: String,
     #[serde(default = "default_true")]
@@ -116,6 +117,7 @@ impl ProjectPluginFeatureSelection {
             .unwrap_or_else(|| default_feature_runtime_crate_name(&self.id))
     }
 
+    /// 外部提供者走独立包路径，本地功能走所属插件的 features 目录；路径约定需与包发现规则一致。
     pub fn runtime_crate_path(&self, owner_plugin_id: &str) -> String {
         if let Some(provider_package_id) = self.external_provider_package_id(owner_plugin_id) {
             return format!("{provider_package_id}/runtime");
@@ -155,5 +157,5 @@ fn sanitize_crate_path_character(character: char) -> char {
 }
 
 #[cfg(test)]
-#[path = "project_plugin_feature_selection/single_buffer_feature_paths_tests.rs"]
+#[path = "project_plugin_feature_selection/tests/single_buffer_feature_paths_tests.rs"]
 mod single_buffer_feature_paths_tests;

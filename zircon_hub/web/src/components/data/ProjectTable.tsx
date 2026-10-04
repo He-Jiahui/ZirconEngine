@@ -14,13 +14,27 @@ export interface ProjectTableProps {
     lastModified: string;
     location: string;
     openDetails: string;
+    menuLabel?: string;
   };
   onSelect?: (project: HubRecentProject) => void;
   onOpenDetail?: (project: HubRecentProject) => void;
-  onRowMenu?: (project: HubRecentProject, anchor: HTMLElement) => void;
+  onRowMenu?: (project: HubRecentProject, anchor: HTMLElement, triggerId: string) => void;
+  menuId?: string;
+  menuTriggerPrefix?: string;
+  menuOpenTriggerId?: string | null;
 }
 
-export function ProjectTable({ projects, selectedProjectId, labels, onSelect, onOpenDetail, onRowMenu }: ProjectTableProps) {
+export function ProjectTable({
+  projects,
+  selectedProjectId,
+  labels,
+  onSelect,
+  onOpenDetail,
+  onRowMenu,
+  menuId,
+  menuTriggerPrefix,
+  menuOpenTriggerId,
+}: ProjectTableProps) {
   return (
     <Box sx={{ overflowX: "auto", minWidth: 0 }}>
       <Table size="small" sx={{ tableLayout: "fixed", minWidth: 560 }}>
@@ -36,12 +50,24 @@ export function ProjectTable({ projects, selectedProjectId, labels, onSelect, on
         <TableBody>
           {projects.map((project) => {
             const selected = project.id === selectedProjectId;
+            const menuTriggerId = `${menuTriggerPrefix ?? "project-row-menu-trigger"}-${project.id}`;
             return (
               <TableRow
                 key={project.id}
                 hover
                 selected={selected}
+                tabIndex={onSelect ? 0 : -1}
+                aria-selected={selected}
                 onClick={() => onSelect?.(project)}
+                onKeyDown={(event) => {
+                  if (event.target !== event.currentTarget || !onSelect) {
+                    return;
+                  }
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onSelect(project);
+                  }
+                }}
                 sx={{
                   height: 36,
                   cursor: onSelect ? "pointer" : "default",
@@ -64,12 +90,16 @@ export function ProjectTable({ projects, selectedProjectId, labels, onSelect, on
                 <BodyCell>{project.location}</BodyCell>
                 <TableCell align="right" sx={{ py: 0.45 }}>
                   <IconButton
-                    aria-label={`${labels.openDetails}: ${project.name}`}
+                    id={onRowMenu ? menuTriggerId : undefined}
+                    aria-label={`${onRowMenu && labels.menuLabel ? labels.menuLabel : labels.openDetails}: ${project.name}`}
+                    aria-haspopup={onRowMenu ? "menu" : undefined}
+                    aria-expanded={onRowMenu ? menuOpenTriggerId === menuTriggerId : undefined}
+                    aria-controls={onRowMenu ? menuId : undefined}
                     size="small"
                     onClick={(event) => {
                       event.stopPropagation();
                       if (onRowMenu) {
-                        onRowMenu(project, event.currentTarget);
+                        onRowMenu(project, event.currentTarget, menuTriggerId);
                         return;
                       }
                       onOpenDetail?.(project);

@@ -1,4 +1,5 @@
 mod commands;
+mod content;
 mod identity;
 mod metrics;
 mod rows;

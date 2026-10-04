@@ -11,6 +11,25 @@ impl RetainedEditorHost {
         let document_viewport_toolbar_width = componentized_workbench_layout_frames
             .viewport_toolbar_frame
             .map(|frame| frame.width);
+        let command_context = self.runtime.command_eval_ctx_for_source(
+            &crate::core::editor_operation::EditorOperationSource::UiBinding,
+        );
+        let (enter, exit) = {
+            let commands = self.runtime.context().commands().lock();
+            (
+                commands
+                    .command("runtime.play_mode.enter")
+                    .is_some_and(|command| command.is_enabled(&command_context)),
+                commands
+                    .command("runtime.play_mode.exit")
+                    .is_some_and(|command| command.is_enabled(&command_context)),
+            )
+        };
+        self.viewport_toolbar_bridge.set_play_admission(
+            enter,
+            exit,
+            self.runtime.play_sessions().mode() == crate::core::play::PlayModeKind::Playing,
+        );
         attach_viewport_toolbar_surface_frames_to_ui(
             &self.ui,
             &mut self.viewport_toolbar_bridge,

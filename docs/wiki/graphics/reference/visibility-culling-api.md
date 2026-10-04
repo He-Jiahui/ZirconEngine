@@ -10,7 +10,7 @@ plan_sources:
   - docs/wiki/graphics/scene-renderer.md
 tests:
   - zircon_runtime/src/graphics/tests/visibility
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct/tests.rs
+  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct/tests/cases.rs
 doc_type: api-reference
 ---
 

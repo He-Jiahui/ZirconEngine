@@ -52,7 +52,7 @@ pub(super) fn assert_render_shader_template_assembly_production_owners_stay_belo
             module_registry.as_str(),
         ),
         (
-            "graphics/shader/template/module_registry/tests.rs",
+            "graphics/shader/template/module_registry/tests/cases.rs",
             module_registry_tests.as_str(),
         ),
         (
@@ -71,7 +71,7 @@ pub(super) fn assert_render_shader_template_assembly_production_owners_stay_belo
             "graphics/shader/template/validation.rs",
             validation.as_str(),
         ),
-        ("graphics/shader/template/tests.rs", tests.as_str()),
+        ("graphics/shader/template/tests/cases.rs", tests.as_str()),
         (
             "graphics/shader/template/tests/surface_modules.rs",
             template_surface_module_tests.as_str(),
@@ -89,7 +89,7 @@ pub(super) fn assert_render_shader_template_assembly_production_owners_stay_belo
             variant_cache_prewarm_worker.as_str(),
         ),
         (
-            "graphics/shader/variant_cache/prewarm/tests.rs",
+            "graphics/shader/variant_cache/prewarm/tests/cases.rs",
             variant_cache_prewarm_tests.as_str(),
         ),
         (
@@ -105,7 +105,7 @@ pub(super) fn assert_render_shader_template_assembly_production_owners_stay_belo
             mesh_cache_ensure.as_str(),
         ),
         (
-            "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline/tests.rs",
+            "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline/tests/cases.rs",
             mesh_cache_ensure_tests.as_str(),
         ),
         (
@@ -129,7 +129,7 @@ pub(super) fn assert_render_shader_template_assembly_production_owners_stay_belo
             mesh_cache_source.as_str(),
         ),
         (
-            "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests.rs",
+            "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/cases.rs",
             mesh_cache_source_tests.as_str(),
         ),
         (
@@ -137,7 +137,7 @@ pub(super) fn assert_render_shader_template_assembly_production_owners_stay_belo
             mesh_pipeline_mod.as_str(),
         ),
         (
-            "graphics/scene/scene_renderer/mesh/mesh_pipeline/test_support.rs",
+            "graphics/scene/scene_renderer/mesh/mesh_pipeline/tests/test_support.rs",
             mesh_pipeline_test_support.as_str(),
         ),
         (

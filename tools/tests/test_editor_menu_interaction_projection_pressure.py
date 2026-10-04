@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from tools.editor_menu_interaction_projection_pressure import (
+from tools.analysis.performance.editor.editor_menu_interaction_projection_pressure import (
     pressure_report,
     validate_output_path,
 )
@@ -95,7 +95,8 @@ class EditorMenuInteractionProjectionPressureTests(unittest.TestCase):
         self.assertIn("menu_item_route_indices(&self.popup_items)", popup_items)
         self.assertIn("HashMap<Vec<usize>, usize>", pointer_tree)
         self.assertIn("let mut surface = UiSurface::new", pointer_rebuild)
-        self.assertIn("surface.rebuild();", pointer_rebuild)
+        self.assertIn("surface.rebuild_authored_frames", pointer_rebuild)
+        self.assertIn("UiSize::new(", pointer_rebuild)
 
     def test_unreal_keeps_hover_on_the_row_and_defers_submenu_toggle(self):
         unreal = UNREAL_MENU_ENTRY.read_text(encoding="utf-8")

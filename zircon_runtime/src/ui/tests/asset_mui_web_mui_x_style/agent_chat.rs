@@ -96,13 +96,14 @@ fn mui_x_agent_chat_utility_classes_match_retained_targets() {
     );
     assert_eq!(
         str_attr(chat_composer, "validation_level"),
-        Some("chat-composer-active")
+        Some("chat-composer-error")
     );
     assert_classes(
         chat_composer,
         &[
             "MuiChatComposer-root",
             "MuiChatComposer-streaming",
+            "MuiChatComposer-error",
             "MuiChatComposer-hasText",
         ],
     );

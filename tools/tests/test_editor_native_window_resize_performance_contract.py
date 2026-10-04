@@ -1,3 +1,4 @@
+# 核对原生窗口重复尺寸与比例变化不触发多余帧排队或图形重配置。
 from pathlib import Path
 import unittest
 

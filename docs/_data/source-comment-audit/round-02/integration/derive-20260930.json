@@ -1,0 +1,162 @@
+{
+  "schema": 1,
+  "session_id": "source-audit-20260930-01a0f168",
+  "recorded_at_utc": "2026-09-30T18:55:29.971776+00:00",
+  "scope": "zircon_reflect_derive six unchanged source files and two owned review shards; no dirty SDK source included",
+  "source_manifest": {
+    "docs/_data/source-comment-audit/round-02/coverage/public_sdk_reflect.jsonl": "eb3737523d91b1a32c97dc4b99fae8d136399f53da7b7b87e4914a621d69b1b5",
+    "docs/_data/source-comment-audit/round-02/issues/public_sdk_reflect.jsonl": "7bd2da257b3a22ab009096de8d6788f28ad8d0d94b83845e3853222ab2f07342",
+    "zircon_reflect_derive/Cargo.toml": "3c3b964a4d6d40e3a9579b7367bff13b304067207404d3d2f779d55f5d0c571d",
+    "zircon_reflect_derive/src/attributes.rs": "575a2bfb2f2567ee1c16cb6dbb18c22421151e3ed7355340e31805aca3092453",
+    "zircon_reflect_derive/src/derive.rs": "4bb705ee58d2d776026636c25b0ff5ae29c7d28884298dfb399a23e2478cd1a0",
+    "zircon_reflect_derive/src/fields.rs": "058b377bdfe313fd0bf9f52c09d6111fd0d2f5356a29e69e5f8e39d77043b307",
+    "zircon_reflect_derive/src/lib.rs": "56d87f80afe7dd13acb9ee868088f0d32823793ffe56a1327967b6c7d2980d12",
+    "zircon_reflect_derive/src/tests.rs": "b5a8806033ba2de71cf4ecbf7929dde314af37a6c800e50c5c887eec76e9ea15"
+  },
+  "source_manifest_hash": "3042087b90cc255c2912ba9da692f7a39e6e2fb760e93b24fa67dd9fec568d2d",
+  "validation": {
+    "ticket_id": "9d19f18871144462ab53b52a35f3d49f",
+    "status": "passed",
+    "worker_exit_code": 0,
+    "stdout": "{\"cargo_build\": \"not_run\", \"matched_coverage_rows\": 6, \"matching_issue_labels\": 1, \"rust_parser_files\": 5, \"scope\": \"zircon_reflect_derive only\", \"source_files\": 6, \"toml_parse\": \"passed\"}\r\n",
+    "cargo_build": "not_run"
+  },
+  "candidate": {
+    "base_head": "bc02eefafead65dbf5050482110e8175250a5e77",
+    "candidate_id": "78ddc903a2274867bb0ae590b9f2579d",
+    "commit_sha": null,
+    "compile_ticket_id": "9d19f18871144462ab53b52a35f3d49f",
+    "lease_evidence": [
+      {
+        "acquiredAt": "2026-09-30T09:01:38.921516+00:00",
+        "baseHash": null,
+        "candidatePath": "docs/_data/source-comment-audit/round-02/coverage/public_sdk_reflect.jsonl",
+        "expiresAt": "2026-09-30T18:41:29.588122+00:00",
+        "leasePath": "docs/_data/source-comment-audit/round-02/coverage/public_sdk_reflect.jsonl"
+      },
+      {
+        "acquiredAt": "2026-09-30T09:01:38.921516+00:00",
+        "baseHash": null,
+        "candidatePath": "docs/_data/source-comment-audit/round-02/issues/public_sdk_reflect.jsonl",
+        "expiresAt": "2026-09-30T18:41:29.588122+00:00",
+        "leasePath": "docs/_data/source-comment-audit/round-02/issues/public_sdk_reflect.jsonl"
+      },
+      {
+        "acquiredAt": "2026-09-30T09:01:38.921516+00:00",
+        "baseHash": "3c3b964a4d6d40e3a9579b7367bff13b304067207404d3d2f779d55f5d0c571d",
+        "candidatePath": "zircon_reflect_derive/Cargo.toml",
+        "expiresAt": "2026-09-30T18:41:29.588122+00:00",
+        "leasePath": "zircon_reflect_derive/Cargo.toml"
+      },
+      {
+        "acquiredAt": "2026-09-30T09:01:38.921516+00:00",
+        "baseHash": "575a2bfb2f2567ee1c16cb6dbb18c22421151e3ed7355340e31805aca3092453",
+        "candidatePath": "zircon_reflect_derive/src/attributes.rs",
+        "expiresAt": "2026-09-30T18:41:29.588122+00:00",
+        "leasePath": "zircon_reflect_derive/src/attributes.rs"
+      },
+      {
+        "acquiredAt": "2026-09-30T09:01:38.921516+00:00",
+        "baseHash": "4bb705ee58d2d776026636c25b0ff5ae29c7d28884298dfb399a23e2478cd1a0",
+        "candidatePath": "zircon_reflect_derive/src/derive.rs",
+        "expiresAt": "2026-09-30T18:41:29.588122+00:00",
+        "leasePath": "zircon_reflect_derive/src/derive.rs"
+      },
+      {
+        "acquiredAt": "2026-09-30T09:01:38.921516+00:00",
+        "baseHash": "058b377bdfe313fd0bf9f52c09d6111fd0d2f5356a29e69e5f8e39d77043b307",
+        "candidatePath": "zircon_reflect_derive/src/fields.rs",
+        "expiresAt": "2026-09-30T18:41:29.588122+00:00",
+        "leasePath": "zircon_reflect_derive/src/fields.rs"
+      },
+      {
+        "acquiredAt": "2026-09-30T09:01:38.921516+00:00",
+        "baseHash": "56d87f80afe7dd13acb9ee868088f0d32823793ffe56a1327967b6c7d2980d12",
+        "candidatePath": "zircon_reflect_derive/src/lib.rs",
+        "expiresAt": "2026-09-30T18:41:29.588122+00:00",
+        "leasePath": "zircon_reflect_derive/src/lib.rs"
+      },
+      {
+        "acquiredAt": "2026-09-30T09:01:38.921516+00:00",
+        "baseHash": "b5a8806033ba2de71cf4ecbf7929dde314af37a6c800e50c5c887eec76e9ea15",
+        "candidatePath": "zircon_reflect_derive/src/tests.rs",
+        "expiresAt": "2026-09-30T18:41:29.588122+00:00",
+        "leasePath": "zircon_reflect_derive/src/tests.rs"
+      }
+    ],
+    "paths": [
+      {
+        "blob_oid": "95d155cfc2dd61a0d532db2bb315e0356513d8a9",
+        "path": "docs/_data/source-comment-audit/round-02/coverage/public_sdk_reflect.jsonl"
+      },
+      {
+        "blob_oid": "612302434ff620f5118265bb6b86593ed44067e5",
+        "path": "docs/_data/source-comment-audit/round-02/issues/public_sdk_reflect.jsonl"
+      },
+      {
+        "blob_oid": "64a9d6637a2ff29a1d1e229e8f063c08a2cbdc4c",
+        "path": "zircon_reflect_derive/Cargo.toml"
+      },
+      {
+        "blob_oid": "164f9b806895b2ad1b3964c9471eb8a928c8ca34",
+        "path": "zircon_reflect_derive/src/attributes.rs"
+      },
+      {
+        "blob_oid": "7c1ef8e0712063910ae0fe8adc80aeea51e2c025",
+        "path": "zircon_reflect_derive/src/derive.rs"
+      },
+      {
+        "blob_oid": "4693e19c0773436df849ee4cd6c8cdb54d1732af",
+        "path": "zircon_reflect_derive/src/fields.rs"
+      },
+      {
+        "blob_oid": "96de97f28610e5e8ce75678113517c3d0a7e7988",
+        "path": "zircon_reflect_derive/src/lib.rs"
+      },
+      {
+        "blob_oid": "6a9dac4cb5d82f8cc066e4a0cdf3701cfb08f323",
+        "path": "zircon_reflect_derive/src/tests.rs"
+      }
+    ],
+    "plan_path": "docs/plans/zircon_tooling/source_comment_audit/02-current-repository-source-comment-audit.md",
+    "request_id": "source-audit-derive-exact-candidate-20260930-01",
+    "session_id": "source-audit-20260930-01a0f168",
+    "status": "integration_ready"
+  },
+  "transport_request_id": "0df90f8cf5c641aeb3b2b60d37686db0",
+  "notification": {
+    "notification_attempt_id": "7dc432c17cff46238343aac605d9f5d8",
+    "status": "succeeded",
+    "attempted_at": "2026-09-30T18:37:07.127608+00:00",
+    "completed_at": "2026-09-30T18:37:09.687219+00:00",
+    "exit_code": 0,
+    "provider_errcode": "0",
+    "sanitized_error": null
+  },
+  "integration": {
+    "status": "pending_index_lock_resolution",
+    "git_commit_created": false,
+    "finalize_invoked": false
+  },
+  "index_lock_observation": {
+    "observed_at_utc": "2026-09-30T18:36:18.978613+00:00",
+    "request_id": "source-audit-derive-exact-candidate-20260930-01",
+    "exact_source_manifest": {
+      "docs/_data/source-comment-audit/round-02/coverage/public_sdk_reflect.jsonl": "eb3737523d91b1a32c97dc4b99fae8d136399f53da7b7b87e4914a621d69b1b5",
+      "docs/_data/source-comment-audit/round-02/issues/public_sdk_reflect.jsonl": "7bd2da257b3a22ab009096de8d6788f28ad8d0d94b83845e3853222ab2f07342",
+      "zircon_reflect_derive/Cargo.toml": "3c3b964a4d6d40e3a9579b7367bff13b304067207404d3d2f779d55f5d0c571d",
+      "zircon_reflect_derive/src/attributes.rs": "575a2bfb2f2567ee1c16cb6dbb18c22421151e3ed7355340e31805aca3092453",
+      "zircon_reflect_derive/src/derive.rs": "4bb705ee58d2d776026636c25b0ff5ae29c7d28884298dfb399a23e2478cd1a0",
+      "zircon_reflect_derive/src/fields.rs": "058b377bdfe313fd0bf9f52c09d6111fd0d2f5356a29e69e5f8e39d77043b307",
+      "zircon_reflect_derive/src/lib.rs": "56d87f80afe7dd13acb9ee868088f0d32823793ffe56a1327967b6c7d2980d12",
+      "zircon_reflect_derive/src/tests.rs": "b5a8806033ba2de71cf4ecbf7929dde314af37a6c800e50c5c887eec76e9ea15"
+    },
+    "managed_ticket_id": "9d19f18871144462ab53b52a35f3d49f",
+    "existing_candidate": null,
+    "index_lock_exists": true,
+    "index_lock_bytes": 1179648,
+    "index_lock_sha256": "4bb71aa9a88f1413a4d963720c55871d6eb28e4c917e6e74e05059c29491b19d",
+    "finalize_readiness": "deferred_preserve_nonempty_index_lock",
+    "no_finalize_or_index_mutation_performed": true
+  }
+}

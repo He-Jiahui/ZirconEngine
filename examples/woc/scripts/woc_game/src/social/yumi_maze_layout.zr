@@ -434,6 +434,8 @@ appendCellsAndSpawns(result: YumiMazeLayout): void {
     plazaCenter(result, 11, 12, 0, 1, false);
 }
 
+// 先生成可达网格，再做旋转对称、出生广场和死路编织，最后
+// 导出合并碰撞墙；阶段顺序决定随机取样与战场几何的重放一致性。
 pub buildYumiMaze(seed: uint): YumiMazeLayout {
     var result = new YumiMazeLayout();
     result.seed = seed;
@@ -462,6 +464,8 @@ var cachedLayout = new YumiMazeLayout();
 
 // Equivalent to source yumiMazeLayout(): the fixed map is cached by its only
 // production seed. Call buildYumiMaze for source-level custom-seed tests.
+// 返回模块共享的同一份布局；调用者只能读取墙、连通边与出生点。
+// 需修改的实验地图应自行构建，避免影响同模块内其他对局的传送选择。
 pub yumiMazeLayout(): YumiMazeLayout {
     if (!cachedInitialized) {
         cachedLayout = buildYumiMaze(yumiMazeSeed());
@@ -470,6 +474,8 @@ pub yumiMazeLayout(): YumiMazeLayout {
     return cachedLayout;
 }
 
+// 查询路径长度时沿已生成的连通边遍历，而非直线距离；
+// 对局的传送间距仍使用自身的几何距离规则，二者不能互换。
 pub mazeCorridorDistance(layout: YumiMazeLayout, ax: int, az: int, bx: int, bz: int): int {
     if (ax < 0 || az < 0 || bx < 0 || bz < 0 || ax >= layout.cols || bx >= layout.cols ||
         az >= layout.rows || bz >= layout.rows) { return -1; }

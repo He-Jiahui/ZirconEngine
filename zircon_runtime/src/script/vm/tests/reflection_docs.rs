@@ -376,7 +376,7 @@ fn host_reflection_docs_include_macro_generated_builtin_math_module() {
     assert!(markdown.contains("#### Function `vec3_length`"));
     assert!(markdown.contains("#### Function `vec3_dot`"));
     for name in [
-        "abs", "atan2", "ceil", "cos", "exp", "floor", "sin", "sqrt", "pow",
+        "abs", "atan2", "ceil", "cos", "exp", "floor", "round", "sin", "sqrt", "pow",
     ] {
         assert!(
             markdown.contains(&format!("#### Function `{name}`")),

@@ -1,14 +1,16 @@
+//! 从源码和约定文档核对着色器预热的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 const STATUS: &str = "render_plan08_live_resource_manager_shader_registry_export_focused_tests_passed_renderdoc_deferred";
 
 #[test]
 fn runtime_15_shader_prewarm_live_resource_manager_registry_export_is_wired() {
+    // BUG: [CR-RUNTIME-TESTS-BUDGET-0003] 此资源管理器旧目录已不存在，统一源码读取器会立即终止；现行资源职责迁移后需重新定位相关守卫目标。
     let manager_mod = read_runtime_src("core/resource/manager/mod.rs");
     let registry_export = read_runtime_src("core/resource/manager/registry_export.rs");
     let prewarm_registry =
         read_runtime_src("bin/zircon_shader_prewarm/manifest/resource_registry.rs");
-    let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests.rs");
+    let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/cases.rs");
     let manifest_registry_tests =
         read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/resource_registry.rs");
     let plan_08 = read_repo(
@@ -67,7 +69,7 @@ fn runtime_15_shader_prewarm_live_resource_manager_registry_export_is_wired() {
             prewarm_registry.as_str(),
         ),
         (
-            "bin/zircon_shader_prewarm/manifest/tests.rs",
+            "bin/zircon_shader_prewarm/manifest/tests/cases.rs",
             tests.as_str(),
         ),
         (

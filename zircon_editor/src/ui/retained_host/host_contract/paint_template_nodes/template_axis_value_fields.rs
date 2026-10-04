@@ -1,3 +1,6 @@
+//! secondary 分派中的变换轴输入接管入口：先验证身份，再裁剪字段整体，最后提交表面和值文字。
+//! 命中但无可见交集仍返回 handled，防止通用输入回退重新画出被裁剪的控件。
+
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::paint_geometry::intersect;
 use super::render_commands::HostPaintCommand;
@@ -10,7 +13,7 @@ mod surface;
 mod text;
 
 #[cfg(test)]
-#[path = "template_axis_value_fields_tests/mod.rs"]
+#[path = "template_axis_value_fields_tests/tests/mod.rs"]
 mod tests;
 
 use geometry::axis_field_rect;

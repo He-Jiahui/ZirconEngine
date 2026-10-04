@@ -3,13 +3,14 @@ use std::sync::Arc;
 use super::ObserverId;
 
 #[cfg(test)]
-#[path = "callback_registry/vector_bucket_tests.rs"]
+#[path = "callback_registry/tests/vector_bucket_tests.rs"]
 mod vector_bucket_tests;
 
 pub(super) trait IndexedObserver {
     fn observer_id(&self) -> ObserverId;
 }
 
+// 观察者派发取得 Arc 快照后，注册/注销以写时复制更新桶；既保持回调中的遍历稳定，也保持注册顺序。
 pub(super) fn insert_observer_into_bucket<T>(bucket: &mut Arc<Vec<T>>, id: ObserverId, observer: T)
 where
     T: Clone + IndexedObserver,

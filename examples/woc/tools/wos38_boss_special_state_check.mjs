@@ -54,14 +54,14 @@ for (const field of [
 for (const needle of [
   'appendDefaultBossSpecialColumns(this);',
   'appendDefaultBossSpecialColumns(state);',
-  'writer.u16(<uint>38, 1, 1);', 'schemaVersion != <uint>38',
+  'writer.u16(schemaVersion, 1, 1);', 'schemaVersion != <uint>38',
   'if (schemaVersion >= <uint>38) {',
   'm8FreshPlayerStats.bossDetonateTimerPresent',
   'm8EastbrookEncounter.bossDetonateTimerPresent',
   'entityState.entityBossDetonateTimerPresent[0] = true;',
   'entityState.entityBossHealedThisPull[0] = true;',
 ]) invariant(state.includes(needle), 'WOS38 boss special projection omitted: ' + needle);
-invariant(main.includes('\\"world_state\\":\\"WOS38\\",'), 'package stateSchema must expose WOS38');
+invariant(main.includes('\\"world_state\\":\\"WOS118\\",'), 'package stateSchema must expose WOS118');
 
 process.stdout.write('checked WOS38 boss special source projection: ' + SOURCE_COMMIT.slice(0, 15) + '\n');
 

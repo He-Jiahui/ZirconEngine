@@ -8,7 +8,7 @@ WATCH_LOOP = (
 )
 WATCHER_TESTS = ROOT / "zircon_runtime" / "src" / "asset" / "tests" / "watcher.rs"
 
-
+# 读取资源监听错误处理路径，确认提供者错误进入去抖协调窗口并保留错误契约。
 class AssetWatchErrorReconciliationPerformanceContractTests(unittest.TestCase):
     def test_provider_error_enters_the_debounced_reconciliation_window(self) -> None:
         source = WATCH_LOOP.read_text(encoding="utf-8")

@@ -1,3 +1,5 @@
+//! 约束惰性可变借用的成本：只读访问不应触发新发布，实际写入必须先刷新派生状态，再交给渲染消费。
+
 use super::*;
 
 #[test]
@@ -50,20 +52,16 @@ fn render_lazy_mut_query_records_only_entities_that_are_actually_changed() {
 }
 
 #[test]
-fn render_lazy_transform_query_drives_derived_state_before_publication() {
+fn render_transform_update_drives_derived_state_before_publication() {
     let mut world = World::new();
     let parent = world.spawn_node(NodeKind::Cube).unwrap();
     let child = world.spawn_node(NodeKind::Mesh).unwrap();
     world.set_parent_checked(child, Some(parent)).unwrap();
     publish_render_dirty_journal(&mut world);
 
-    let mut query = world.query::<Mut<'static, LocalTransform>>();
-    query
-        .get_mut(&mut world, parent)
-        .unwrap()
-        .transform
-        .translation
-        .x = 7.0;
+    let mut transform = world.get::<LocalTransform>(parent).unwrap().transform;
+    transform.translation.x = 7.0;
+    world.update_transform(parent, transform).unwrap();
     publish_render_dirty_journal(&mut world);
 
     assert_eq!(world.world_transform(child).unwrap().translation.x, 7.0);

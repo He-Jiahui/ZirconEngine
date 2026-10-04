@@ -128,7 +128,7 @@ fn native_template_painter_draws_mui_backdrop_scrim_and_invisible_variant() {
 
     let bytes = paint_template_nodes_for_test_with_background(72, 36, MID_BACKGROUND, nodes);
 
-    assert_eq!(pixel(&bytes, 72, 16, 16), MUI_BACKDROP_ON_MID_BACKGROUND);
+    assert_eq!(pixel(&bytes, 72, 16, 16), mui_backdrop_on_mid_background());
     assert_eq!(pixel(&bytes, 72, 52, 16), MID_BACKGROUND);
 }
 

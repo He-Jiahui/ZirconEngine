@@ -1,0 +1,13 @@
+{
+  "name": "Zircon ZUI Bridge",
+  "description": "Import, edit, and export ZirconEngine .zui assets",
+  "version": 2,
+  "code": "assets/plugin.js",
+  "permissions": [
+    "content:read",
+    "content:write",
+    "library:read",
+    "library:write",
+    "allow:downloads"
+  ]
+}

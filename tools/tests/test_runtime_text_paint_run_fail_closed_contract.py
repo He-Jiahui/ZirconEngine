@@ -5,8 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 TEXT_SHAPE = ROOT / "zircon_runtime_interface/src/ui/surface/render/text_shape.rs"
 TEXT_SHAPE_TESTS = (
-    ROOT
-    / "zircon_runtime_interface/src/ui/surface/render/text_shape/resolved_layout_tests.rs"
+    ROOT / "zircon_runtime_interface/src/ui/surface/render/text_shape/tests/resolved_layout_tests.rs"
 )
 RESOLVED_LAYOUT = (
     ROOT
@@ -28,13 +27,13 @@ RICH_PROJECTION_TESTS = (
     / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/rich_projection_admission.rs"
 )
 
-
+# 读取文本绘制运行投影，确认非空输入采用全有或全无结果，渲染器区分布局不匹配与缺失产物。
 class RuntimeTextPaintRunFailClosedContractTests(unittest.TestCase):
     def test_interface_projection_is_all_or_empty_for_nonempty_runs(self) -> None:
         source = TEXT_SHAPE.read_text(encoding="utf-8")
         tests = TEXT_SHAPE_TESTS.read_text(encoding="utf-8")
 
-        self.assertIn('path = "text_shape/resolved_layout_tests.rs"', source)
+        self.assertIn('path = "text_shape/tests/resolved_layout_tests.rs"', source)
         self.assertIn("mod resolved_layout_tests;", source)
         self.assertIn("return Vec::new();", source)
         self.assertIn("text.is_char_boundary(visual_range.start)", source)

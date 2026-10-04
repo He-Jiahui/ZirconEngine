@@ -1,3 +1,4 @@
+# 核对产物回执源清单逐哈希只折叠一次并规范大小写。
 from __future__ import annotations
 
 import hashlib

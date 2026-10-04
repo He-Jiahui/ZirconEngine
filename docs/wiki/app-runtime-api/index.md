@@ -21,7 +21,7 @@ tests:
   - zircon_app/src/entry/tests
   - zircon_runtime/src/dynamic_api/tests
   - zircon_runtime_interface/src/tests/abi_safety_contracts.rs
-  - zircon_runtime_host/src/foreign_output/tests.rs
+  - zircon_runtime_host/src/foreign_output/tests/cases.rs
 doc_type: category-index
 ---
 

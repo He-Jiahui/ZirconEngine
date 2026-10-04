@@ -1,9 +1,10 @@
+# 核对资源注册表记录、版本边界与来源定位信息。
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from tools.zircon_build_shader_prewarm import (
+from tools.build.zircon_build_shader_prewarm import (
     validate_shader_resource_registry_export_contract,
 )
 

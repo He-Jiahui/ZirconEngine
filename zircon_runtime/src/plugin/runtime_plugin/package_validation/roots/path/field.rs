@@ -14,5 +14,5 @@ pub(super) fn validate_runtime_plugin_package_root_field(
 }
 
 #[cfg(test)]
-#[path = "field/single_trim_tests.rs"]
+#[path = "field/tests/single_trim_tests.rs"]
 mod single_trim_tests;

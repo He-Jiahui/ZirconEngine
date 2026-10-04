@@ -67,7 +67,7 @@ impl SystemTickContext {
         self.delta
     }
 
-    /// Float projection for legacy system and script callbacks.
+    /// Float projection for system and script callbacks that consume seconds.
     ///
     /// New scheduling code should retain `Duration`; this conversion is kept
     /// at the typed tick boundary so callback consumers cannot choose a clock
@@ -110,6 +110,7 @@ impl SceneStageTickContexts {
     }
 
     pub(crate) const fn for_domain(self, domain: SceneSystemClockDomain) -> SystemTickContext {
+        // 上层只选择预先构造的上下文，不在系统调用期间重新计算时钟或 fixed step。
         match domain {
             SceneSystemClockDomain::Virtual => self.virtual_time,
             SceneSystemClockDomain::MonotonicReal => self.monotonic_real,
@@ -119,47 +120,5 @@ impl SceneStageTickContexts {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::framework::time::ClockDomainStamp;
-
-    fn context(domain: ClockDomainId) -> SystemTickContext {
-        SystemTickContext::new(
-            SystemStage::Update,
-            ClockDomainStamp::initial(domain),
-            7,
-            None,
-            Duration::from_millis(16),
-            Duration::from_millis(80),
-            3,
-        )
-    }
-
-    #[test]
-    fn stage_contexts_select_the_declared_clock_without_reconstructing_it() {
-        let contexts = SceneStageTickContexts::new(
-            context(ClockDomainId::WorldVirtual),
-            context(ClockDomainId::MonotonicReal),
-            context(ClockDomainId::WorldFixed),
-        );
-
-        assert_eq!(
-            contexts
-                .for_domain(SceneSystemClockDomain::Virtual)
-                .clock_domain(),
-            ClockDomainId::WorldVirtual
-        );
-        assert_eq!(
-            contexts
-                .for_domain(SceneSystemClockDomain::MonotonicReal)
-                .clock_domain(),
-            ClockDomainId::MonotonicReal
-        );
-        assert_eq!(
-            contexts
-                .for_domain(SceneSystemClockDomain::Fixed)
-                .clock_domain(),
-            ClockDomainId::WorldFixed
-        );
-    }
-}
+#[path = "tests/tick_context.rs"]
+mod tests;

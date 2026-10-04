@@ -1,3 +1,5 @@
+//! 连接命令贡献元数据与当前插件代次的可执行绑定；只有通过声明契约准入的原生命令能被宿主调用，元数据克隆不携带执行能力。
+
 //! Shared editor command execution metadata and native endpoint registrations.
 
 use std::collections::BTreeMap;
@@ -31,6 +33,7 @@ pub struct EditorCommandExecutorRegistry {
 }
 
 impl EditorCommandExecutorRegistry {
+    /// 在插件贡献准入时核对命令身份、输入协议和输出预算；撤销后旧注册项不得继续作为有效执行入口。
     pub fn register_native(
         &mut self,
         descriptor: &EditorCommandDescriptor,
@@ -148,6 +151,7 @@ impl NativeCommandExecutorRegistration {
         &self.contract
     }
 
+    /// 宿主同步调用的执行边界；返回收据供事件记录与结果解码，不能将返回成功等同于编辑事务已落盘。
     pub fn invoke(&self, payload: &[u8]) -> EditorCommandExecutionReceipt {
         if !self.admitted.load(Ordering::Acquire) {
             return EditorCommandExecutionReceipt::rejected(
@@ -169,6 +173,7 @@ impl NativeCommandExecutorRegistration {
             );
         }
 
+        // TODO: [CR-EDITOR-EDITING-0001] 确认时间预算是事后诊断还是响应时限；宿主持注册表锁同步执行插件，超时检查只能在回调返回后发生；下一步核对插件阻塞/重入契约及宿主调度测试。
         let started_at = Instant::now();
         let report = self.binding.invoke(payload);
         let mut receipt = EditorCommandExecutionReceipt::from_report(
@@ -376,72 +381,5 @@ impl std::fmt::Display for EditorCommandExecutorRegistryError {
 impl std::error::Error for EditorCommandExecutorRegistryError {}
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn execution_receipt_rejects_output_over_contract_budget() {
-        let command_id = EditorOperationPath::parse("test.command.receipt").unwrap();
-        let report = NativePluginBehaviorCallReport {
-            status_code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
-            diagnostics: vec!["callback completed".to_owned()],
-            payload: Some(vec![1, 2, 3, 4, 5]),
-        };
-
-        let receipt = EditorCommandExecutionReceipt::from_report(
-            command_id.clone(),
-            "fixture.plugin".to_owned(),
-            4,
-            report,
-        );
-
-        assert_eq!(receipt.command_id(), &command_id);
-        assert_eq!(receipt.plugin_id(), "fixture.plugin");
-        assert_eq!(receipt.status_code(), ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
-        assert_eq!(receipt.payload(), None);
-        assert!(receipt
-            .diagnostics()
-            .iter()
-            .any(|diagnostic| diagnostic.contains("output exceeds budget")));
-    }
-
-    #[test]
-    fn execution_receipt_preserves_bounded_success_payload_and_diagnostics() {
-        let report = NativePluginBehaviorCallReport {
-            status_code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
-            diagnostics: vec!["callback completed".to_owned()],
-            payload: Some(vec![1, 2, 3]),
-        };
-
-        let receipt = EditorCommandExecutionReceipt::from_report(
-            EditorOperationPath::parse("test.command.receipt_success").unwrap(),
-            "fixture.plugin".to_owned(),
-            3,
-            report,
-        );
-
-        assert_eq!(receipt.status_code(), ZIRCON_NATIVE_PLUGIN_STATUS_OK);
-        assert_eq!(receipt.payload(), Some([1, 2, 3].as_slice()));
-        assert_eq!(receipt.diagnostics().len(), 1);
-        assert_eq!(receipt.diagnostics()[0], "callback completed");
-    }
-
-    #[test]
-    fn zero_output_contract_normalizes_empty_callback_payload_to_no_result() {
-        let report = NativePluginBehaviorCallReport {
-            status_code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
-            diagnostics: Vec::new(),
-            payload: Some(Vec::new()),
-        };
-
-        let receipt = EditorCommandExecutionReceipt::from_report(
-            EditorOperationPath::parse("test.command.no_result").unwrap(),
-            "fixture.plugin".to_owned(),
-            0,
-            report,
-        );
-
-        assert_eq!(receipt.status_code(), ZIRCON_NATIVE_PLUGIN_STATUS_OK);
-        assert_eq!(receipt.payload(), None);
-    }
-}
+#[path = "tests/execution.rs"]
+mod tests;

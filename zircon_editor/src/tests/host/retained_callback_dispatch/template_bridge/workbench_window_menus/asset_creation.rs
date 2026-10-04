@@ -162,7 +162,9 @@ fn main_menu_shortcuts_follow_effective_keymap_without_rebuilding_stable_generat
         .unwrap();
     let default_items = control_string_array(&bridge, "WorkbenchToolbarMainMenu", "menu_items");
     assert!(default_items
-        .contains(&"Open Project|action=menu.item.open_project,icon=folder|Ctrl+O".to_string()));
+        .contains(&"Open Project|action=menu.item.open_project,icon=folder".to_string()));
+    assert!(default_items
+        .contains(&"Open Scene...|action=menu.item.open_scene,icon=folder|Ctrl+O".to_string()));
     assert!(default_items
         .contains(&"Save Project|action=menu.item.save_project,icon=save|Ctrl+S".to_string()));
     assert_eq!(bridge.asset_creation_menu_publish_count(), 2);
@@ -170,15 +172,23 @@ fn main_menu_shortcuts_follow_effective_keymap_without_rebuilding_stable_generat
 
 #[test]
 fn asset_creation_menu_keeps_a_compiled_generation_across_scale_matrix() {
-    const TEMPLATE_COUNT: usize = 10_000;
-    const RESIZE_COUNT: usize = 1_000;
-    const ACTION_LOOKUP_COUNT: usize = 1_000_000;
+    for (template_count, resize_count, action_dispatch_count) in
+        [(1, 1, 1), (100, 100, 100), (10_000, 1_000, 1_000_000)]
+    {
+        assert_asset_creation_menu_scale(template_count, resize_count, action_dispatch_count);
+    }
+}
 
+fn assert_asset_creation_menu_scale(
+    template_count: usize,
+    resize_count: usize,
+    action_dispatch_count: usize,
+) {
     let shell_size = UiSize::new(900.0, 620.0);
     let asset_type = AssetTypeId::from_resource_kind(ResourceKind::UiLayout);
     let create = EditorOperationPath::parse("ui_asset.layout.create").unwrap();
     let mut contribution = AssetTypeContribution::augment(asset_type.clone());
-    for ordinal in 0..TEMPLATE_COUNT {
+    for ordinal in 0..template_count {
         contribution = contribution.with_creation_template(AssetCreationTemplateDescriptor::new(
             display_colliding_template_id(ordinal),
             "Scale Asset",
@@ -191,7 +201,7 @@ fn asset_creation_menu_keeps_a_compiled_generation_across_scale_matrix() {
         .apply_contribution("test.asset.creation.scale", contribution)
         .unwrap();
     let generation = registry.creation_menu_generation();
-    assert_eq!(generation.entries().len(), TEMPLATE_COUNT);
+    assert_eq!(generation.entries().len(), template_count);
     assert_eq!(
         generation
             .entries()
@@ -205,7 +215,7 @@ fn asset_creation_menu_keeps_a_compiled_generation_across_scale_matrix() {
             })
             .collect::<BTreeSet<_>>()
             .len(),
-        TEMPLATE_COUNT,
+        template_count,
         "display-equivalent template identifiers must still receive unique menu labels"
     );
     assert!(Arc::ptr_eq(
@@ -222,33 +232,87 @@ fn asset_creation_menu_keeps_a_compiled_generation_across_scale_matrix() {
     );
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(shell_size)
         .expect("componentized workbench template should project");
-    for _ in 0..RESIZE_COUNT {
+    let menu_node_id = bridge
+        .surface()
+        .tree
+        .nodes
+        .values()
+        .find(|node| {
+            node.template_metadata
+                .as_ref()
+                .and_then(|metadata| metadata.control_id.as_deref())
+                == Some("WorkbenchToolbarMainMenu")
+        })
+        .expect("main menu should retain its compiled control node")
+        .node_id;
+    let resize_sizes = [
+        UiSize::new(1_024.0, 768.0),
+        UiSize::new(640.0, 480.0),
+        shell_size,
+    ];
+    for ordinal in 0..resize_count {
+        let resized_shell_size = resize_sizes[ordinal % resize_sizes.len()];
         bridge
             .recompute_layout_with_workbench_model(
-                shell_size,
+                resized_shell_size,
                 &model,
                 &WorkbenchChromeMetrics::default(),
             )
             .unwrap();
+        if ordinal == 0 {
+            bridge
+                .dispatch_control_state("WorkbenchToolbarMenu", UiEventKind::Click)
+                .expect("main menu should open for the resize contract")
+                .expect("main menu should expose a click binding");
+        }
+        let menu_frame = bridge
+            .control_frame("WorkbenchToolbarMainMenu")
+            .expect("compiled menu should retain its control frame after resizing");
+        assert!(menu_frame.width > 0.0 && menu_frame.width <= resized_shell_size.width);
+        assert!(menu_frame.height > 0.0 && menu_frame.height <= resized_shell_size.height);
+        let toolbar_bottom = bridge
+            .control_frame("WorkbenchWindowTopToolbarRegion")
+            .expect("toolbar should retain the menu anchor")
+            .bottom();
+        let expected_height =
+            crate::ui::retained_host::menu_popup_contract::menu_popup_content_height(
+                generation.entries().len() + 8,
+            )
+            .min((resized_shell_size.height - toolbar_bottom).max(1.0))
+            .max(1.0);
+        let menu_node = bridge
+            .surface()
+            .tree
+            .node(menu_node_id)
+            .expect("resize should preserve the compiled menu node");
+        let width = menu_node.constraints.width;
+        assert!(width.preferred > 0.0 && width.preferred <= resized_shell_size.width);
+        assert_eq!(width.min, width.preferred);
+        assert_eq!(width.max, width.preferred);
+        let height = menu_node.constraints.height;
+        assert_near("compiled menu height", height.preferred, expected_height);
+        assert_eq!(height.min, height.preferred);
+        assert_eq!(height.max, height.preferred);
     }
     assert_eq!(bridge.asset_creation_menu_publish_count(), 1);
 
-    let entry = &generation.entries()[TEMPLATE_COUNT / 2];
+    let entry = &generation.entries()[template_count / 2];
     let action_id = entry.action_id().to_owned();
-    for _ in 0..ACTION_LOOKUP_COUNT {
+    for _ in 0..action_dispatch_count {
         assert!(bridge.is_asset_creation_menu_action("WorkbenchToolbarMainMenu", &action_id));
+        let request = bridge
+            .asset_creation_menu_request(
+                &chrome.asset_browser,
+                "WorkbenchToolbarMainMenu",
+                &action_id,
+            )
+            .unwrap()
+            .unwrap();
+        assert_eq!(request.asset_type(), entry.asset_type());
+        assert_eq!(request.template_id(), entry.template_id());
+        assert_eq!(request.target_folder(), "res://scale");
     }
-    let request = bridge
-        .asset_creation_menu_request(
-            &chrome.asset_browser,
-            "WorkbenchToolbarMainMenu",
-            &action_id,
-        )
-        .unwrap()
-        .unwrap();
-    assert_eq!(request.asset_type(), entry.asset_type());
-    assert_eq!(request.template_id(), entry.template_id());
-    assert_eq!(request.target_folder(), "res://scale");
+    assert_eq!(bridge.asset_creation_menu_publish_count(), 1);
 }
 
 fn display_colliding_template_id(mut ordinal: usize) -> String {
@@ -308,6 +372,15 @@ fn workbench_main_menu_asset_creation_invokes_registered_operation() {
 
     let shell_size = UiSize::new(900.0, 620.0);
     let chrome = harness.runtime.chrome_snapshot();
+    let action_id = chrome
+        .asset_browser
+        .creation_menu
+        .entries()
+        .iter()
+        .find(|entry| entry.template_id() == "ui_asset.layout")
+        .expect("registered template should publish a compiled menu action")
+        .action_id()
+        .to_owned();
     let model = WorkbenchViewModel::build(
         &crate::core::commands::EditorCommandRegistry::default_workbench(),
         &chrome,
@@ -325,12 +398,13 @@ fn workbench_main_menu_asset_creation_invokes_registered_operation() {
         .dispatch_control_state("WorkbenchToolbarMenu", UiEventKind::Click)
         .expect("main menu should dispatch")
         .expect("main menu should expose a click binding");
+    assert!(bridge.is_asset_creation_menu_action("WorkbenchToolbarMainMenu", &action_id));
 
     let effects = dispatch_componentized_workbench_menu_item_selected(
         &harness.runtime,
         &mut bridge,
         "WorkbenchToolbarMainMenu",
-        "menu.item.create_u_i_layout",
+        &action_id,
     )
     .expect("asset creation menu item should be handled")
     .expect("asset creation menu item should dispatch");

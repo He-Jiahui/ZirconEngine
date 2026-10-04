@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use crate::core::runtime::TaskCancellationToken;
@@ -22,6 +22,7 @@ pub(super) struct RenderArtifactManifestLoaderMetrics {
     pub(super) io_worker_wall_ns: AtomicU64,
 }
 
+// 读取前后均检查任务取消；成功向共享 entry 发布同一个 Arc 清单，失败区分缺失、大小限制、无效清单与存储不可用。
 pub(super) fn run_manifest_io_task(
     entry: Arc<RenderArtifactManifestEntry>,
     store: RenderArtifactStore,

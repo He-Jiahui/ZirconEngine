@@ -350,7 +350,7 @@ fn animation_graph_rejects_declared_but_unimplemented_node_kinds() {
         write_graph_asset,
     );
 
-    let error = harness
+    harness
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,
@@ -358,8 +358,8 @@ fn animation_graph_rejects_declared_but_unimplemented_node_kinds() {
                 asset_locator: asset_locator.clone(),
             }),
         )
-        .unwrap();
-    harness
+        .expect("indexed animation graph should open before an unavailable node command");
+    let error = harness
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,

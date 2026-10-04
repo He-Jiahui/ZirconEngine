@@ -2,16 +2,19 @@ use std::sync::Arc;
 
 use super::{
     CapturedFrame, CapturedHdrFrame, EnvironmentRuntimeSnapshot, GraphicsDebuggerStatus,
-    RenderEnvironmentCaptureHandle, RenderEnvironmentCaptureRequest,
-    RenderEnvironmentCaptureSourcePayload, RenderEnvironmentCaptureStatus, RenderFrameExtract,
-    RenderFrameworkError, RenderPipelineHandle, RenderQualityProfile, RenderStats,
-    RenderSubmissionConfig, RenderViewportDescriptor, RenderViewportHandle,
-    RenderViewportPickRequest, RenderViewportPickResult, RenderViewportPickTicket,
-    RenderViewportProduct, RenderViewportSurfaceDescriptor, RenderVirtualGeometryDebugSnapshot,
-    RenderVisibleSpatialQuerySnapshot, SceneViewportRenderPacket, UiRenderSubmission,
+    RenderEnvironmentCaptureHandle, RenderEnvironmentCaptureReport,
+    RenderEnvironmentCaptureRequest, RenderEnvironmentCaptureSourcePayload,
+    RenderEnvironmentCaptureStatus, RenderFrameExtract, RenderFrameworkError, RenderPipelineHandle,
+    RenderQualityProfile, RenderStats, RenderSubmissionConfig, RenderViewportDescriptor,
+    RenderViewportHandle, RenderViewportPickRequest, RenderViewportPickResult,
+    RenderViewportPickTicket, RenderViewportProduct, RenderViewportSurfaceDescriptor,
+    RenderVirtualGeometryDebugSnapshot, RenderVisibleSpatialQuerySnapshot,
+    SceneViewportRenderPacket, UiRenderSubmission,
 };
 use zr_rhi::{UiSurfaceDescriptor, UiSurfacePresenter};
 
+/// `RenderFramework` 是图形后端与动态 API、插件、编辑器之间的对象安全边界；实现需保持 `Send + Sync`，后端通过各可选方法的返回值报告能力支持情况。
+/// 调用方只依赖这些 DTO 和句柄，不直接取得后端资源所有权。
 pub trait RenderFramework: Send + Sync {
     fn create_viewport(
         &self,
@@ -97,6 +100,14 @@ pub trait RenderFramework: Send + Sync {
     ) -> Result<EnvironmentRuntimeSnapshot, RenderFrameworkError> {
         Err(RenderFrameworkError::UnsupportedCapability {
             capability: "environment runtime snapshot".to_string(),
+        })
+    }
+
+    fn query_environment_capture_report(
+        &self,
+    ) -> Result<RenderEnvironmentCaptureReport, RenderFrameworkError> {
+        Err(RenderFrameworkError::UnsupportedCapability {
+            capability: "environment capture report".to_string(),
         })
     }
 
@@ -264,16 +275,5 @@ pub trait RenderFramework: Send + Sync {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn default_capture_poll_is_explicitly_nonblocking() {
-        let source = include_str!("framework.rs");
-        let poll_source = source
-            .split("fn poll_captured_frame_if_newer")
-            .nth(1)
-            .expect("render framework declares a capture polling contract");
-
-        assert!(poll_source.contains("Ok(None)"));
-        assert!(!poll_source.contains("capture_frame_if_newer"));
-    }
-}
+#[path = "tests/framework.rs"]
+mod tests;

@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::time::{Duration, Instant};
 
 use thiserror::Error;
-use zircon_runtime::scene::WorldInspectionHierarchyRow;
+use zircon_runtime::scene::{default_render_layer_mask, WorldInspectionHierarchyRow};
 use zircon_runtime_interface::reflect::ReflectedValue;
 use zircon_runtime_interface::world_sync::{WorldInspectionFieldRow, WorldQueryResult};
 use zircon_runtime_interface::GatewaySessionIdentity;
@@ -198,7 +198,21 @@ fn project_inspector(
         name,
         parent,
         translation,
+        rotation_degrees: field(fields, LOCAL_TRANSFORM_COMPONENT_TYPE_PATH, "rotation").and_then(
+            |field| match &field.value {
+                ReflectedValue::Vec4(value) | ReflectedValue::Quaternion(value) => {
+                    InspectorSnapshot::rotation_degrees_from_quaternion(
+                        zircon_runtime_interface::math::Quat::from_array(*value),
+                    )
+                }
+                _ => None,
+            },
+        ),
         scale,
+        render_layer_mask: default_render_layer_mask(),
+        native_fields: crate::ui::workbench::snapshot::InspectorNativeFieldSnapshot::project(
+            fields,
+        ),
         plugin_components: project_plugin_components(fields),
     }
 }
@@ -352,160 +366,5 @@ fn reflected_value_label(value: &ReflectedValue) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::time::{Duration, Instant};
-
-    use zircon_runtime_interface::reflect::ReflectedValue;
-    use zircon_runtime_interface::world_sync::{WorldInspectionFieldRow, WorldQueryResult};
-    use zircon_runtime_interface::{GatewaySessionIdentity, ZrRuntimeSessionHandle};
-
-    use super::{PlayInspectorProjection, PLAY_INSPECTOR_QUERY_INTERVAL};
-
-    fn identity(gateway_generation: u64) -> GatewaySessionIdentity {
-        GatewaySessionIdentity::new(3, ZrRuntimeSessionHandle::new(5), 7, Some(11))
-            .with_gateway_generation(gateway_generation)
-    }
-
-    fn field(
-        component_type_path: &str,
-        component_display_name: &str,
-        field_name: &str,
-        value: ReflectedValue,
-        plugin_owned: bool,
-    ) -> WorldInspectionFieldRow {
-        WorldInspectionFieldRow {
-            component_type_path: component_type_path.to_string(),
-            component_display_name: component_display_name.to_string(),
-            field_name: field_name.to_string(),
-            field_display_name: field_name.to_string(),
-            value_type_path: value.type_name().to_string(),
-            value,
-            writable: true,
-            serializable: true,
-            plugin_owned,
-        }
-    }
-
-    #[test]
-    fn focused_query_cadence_is_immediate_then_generation_qualified() {
-        let mut projection = PlayInspectorProjection::default();
-        let identity = identity(1);
-        let started = Instant::now();
-
-        assert_eq!(projection.begin_query(&identity, 7, started), Some(None));
-        projection
-            .apply(
-                identity.clone(),
-                7,
-                WorldQueryResult::InspectionFields {
-                    generation: 4,
-                    entity: 7,
-                    fields: Vec::new(),
-                },
-                None,
-            )
-            .expect("first focused projection should be valid");
-        assert_eq!(
-            projection.begin_query(
-                &identity,
-                7,
-                started + PLAY_INSPECTOR_QUERY_INTERVAL - Duration::from_millis(1)
-            ),
-            None
-        );
-        assert_eq!(
-            projection.begin_query(&identity, 7, started + PLAY_INSPECTOR_QUERY_INTERVAL),
-            Some(Some(4))
-        );
-    }
-
-    #[test]
-    fn play_snapshot_projects_runtime_values_and_writable_plugin_fields() {
-        let mut projection = PlayInspectorProjection::default();
-        let identity = identity(1);
-        let fields = vec![
-            field(
-                "zircon_runtime::scene::components::Name",
-                "Name",
-                "value",
-                ReflectedValue::String("Runtime Hero".to_string()),
-                false,
-            ),
-            field(
-                "zircon_runtime::scene::components::LocalTransform",
-                "Transform",
-                "translation",
-                ReflectedValue::Vec3([1.0, 2.0, 3.0]),
-                false,
-            ),
-            field(
-                "zircon_runtime::scene::components::LocalTransform",
-                "Transform",
-                "scale",
-                ReflectedValue::Vec3([4.0, 5.0, 6.0]),
-                false,
-            ),
-            field(
-                "weather.cloud_layer",
-                "Cloud Layer",
-                "coverage",
-                ReflectedValue::Scalar(0.75),
-                true,
-            ),
-        ];
-
-        assert!(projection
-            .apply(
-                identity.clone(),
-                7,
-                WorldQueryResult::InspectionFields {
-                    generation: 4,
-                    entity: 7,
-                    fields: fields.clone(),
-                },
-                None,
-            )
-            .expect("runtime Inspector fields should project"));
-        let snapshot = projection
-            .snapshot_for(&identity, 7)
-            .expect("matching identity/entity should expose the runtime Inspector");
-        assert_eq!(snapshot.name, "Runtime Hero");
-        assert_eq!(snapshot.translation, ["1.00", "2.00", "3.00"]);
-        assert_eq!(snapshot.scale, ["4.00", "5.00", "6.00"]);
-        assert_eq!(snapshot.plugin_components.len(), 1);
-        assert!(snapshot.plugin_components[0].properties[0].editable);
-        assert!(!projection
-            .apply(
-                identity,
-                7,
-                WorldQueryResult::InspectionFields {
-                    generation: 5,
-                    entity: 7,
-                    fields,
-                },
-                None,
-            )
-            .expect("an unchanged visible Inspector may still advance its generation"));
-    }
-
-    #[test]
-    fn stale_identity_snapshot_is_never_exposed_to_a_replacement_runtime() {
-        let mut projection = PlayInspectorProjection::default();
-        let original = identity(1);
-        projection
-            .apply(
-                original.clone(),
-                7,
-                WorldQueryResult::InspectionFields {
-                    generation: 4,
-                    entity: 7,
-                    fields: Vec::new(),
-                },
-                None,
-            )
-            .expect("base Inspector should project");
-
-        assert!(projection.snapshot_for(&identity(2), 7).is_none());
-        assert!(projection.snapshot_for(&original, 8).is_none());
-    }
-}
+#[path = "tests/play_inspector_projection.rs"]
+mod tests;

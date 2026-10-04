@@ -1,14 +1,17 @@
+//! 动态 Runtime 库的加载、ABI 验证及函数指针生存期边界。
+//! 预检是文件证据；LoadedRuntime 才拥有动态库句柄，所有返回的函数指针必须在它存活时使用。
+
 use std::path::{Path, PathBuf};
 use std::ptr::NonNull;
 
 use libloading::Library;
 use zircon_runtime_interface::runtime_api::ZrRuntimeProfileControlFnV2;
 use zircon_runtime_interface::runtime_api::{
-    ZrRuntimeCancelViewportPickFnV1, ZrRuntimeCaptureFrameFnV2, ZrRuntimeCreateSessionFnV3,
-    ZrRuntimeDestroySessionFnV1, ZrRuntimeDrainHostRequestsFnV2, ZrRuntimeDrainPluginEventsFnV2,
-    ZrRuntimeDrainWorldInvalidationsFnV2, ZrRuntimeHandleEventFnV1, ZrRuntimeHarvestOperationFnV2,
-    ZrRuntimePollOperationFnV2, ZrRuntimePollViewportPickFnV1, ZrRuntimeQueryWorldFnV2,
-    ZrRuntimeReleaseAllocationFnV2, ZrRuntimeRequestViewportPickFnV1,
+    ZrRuntimeCancelViewportPickFnV1, ZrRuntimeCaptureFrameFnV2, ZrRuntimeConfigureAppSessionFnV2,
+    ZrRuntimeCreateSessionFnV3, ZrRuntimeDestroySessionFnV1, ZrRuntimeDrainHostRequestsFnV2,
+    ZrRuntimeDrainPluginEventsFnV2, ZrRuntimeDrainWorldInvalidationsFnV2, ZrRuntimeHandleEventFnV1,
+    ZrRuntimeHarvestOperationFnV2, ZrRuntimePollOperationFnV2, ZrRuntimePollViewportPickFnV1,
+    ZrRuntimeQueryWorldFnV2, ZrRuntimeReleaseAllocationFnV2, ZrRuntimeRequestViewportPickFnV1,
     ZrRuntimeSubmitHighlightSetFnV1, ZrRuntimeSubmitOperationFnV1,
     ZrRuntimeSubscribePluginEventFnV1, ZrRuntimeTickFrameFnV2, ZrRuntimeUnsubscribePluginEventFnV1,
     ZrRuntimeUnwatchWorldFnV1, ZrRuntimeWatchWorldFnV1,
@@ -17,7 +20,8 @@ use zircon_runtime_interface::runtime_build_set::ZrRuntimeBuildSetId;
 use zircon_runtime_interface::{
     ZrHostApiV1, ZrRuntimeApiV8, ZrRuntimeBindViewportSurfaceFnV1, ZrRuntimeGetApiFnV8,
     ZrRuntimePresentViewportFnV1, ZrRuntimeUnbindViewportSurfaceFnV1,
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_API_VERSION_V8, ZR_RUNTIME_GET_API_SYMBOL_V8,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_API_VERSION_V8,
+    ZR_RUNTIME_CONFIGURE_APP_SESSION_SYMBOL_V2, ZR_RUNTIME_GET_API_SYMBOL_V8,
 };
 
 use super::{
@@ -25,6 +29,7 @@ use super::{
     RuntimeLibraryError, RuntimeLibraryPathError, RuntimeLibraryPathSelection,
 };
 
+/// 持有已验证的 V8 表及库句柄；RuntimeSession 和编辑器网关间接调用期间必须保持存活。
 pub(crate) struct LoadedRuntime {
     _library: Library,
     _artifact_manifest:
@@ -32,10 +37,12 @@ pub(crate) struct LoadedRuntime {
     api: NonNull<ZrRuntimeApiV8>,
     size_bytes: usize,
     required: RequiredRuntimeApiV8,
+    app_session_configuration: Option<ZrRuntimeConfigureAppSessionFnV2>,
 }
 
 /// A data-only validation receipt for the runtime artifact selected for a
 /// project startup. It deliberately retains no loaded library handle.
+/// 编辑器与无头入口在项目准备前获取；重新加载前必须复验同一 BuildSet。
 #[derive(Clone, Debug)]
 pub(crate) struct RuntimeLibraryPreflight {
     path: PathBuf,
@@ -44,6 +51,7 @@ pub(crate) struct RuntimeLibraryPreflight {
 }
 
 #[derive(Clone, Copy)]
+// 构造时确认所有必需入口存在，避免后续会话调用反复依赖可空 ABI 字段。
 struct RequiredRuntimeApiV8 {
     create_session: ZrRuntimeCreateSessionFnV3,
     destroy_session: ZrRuntimeDestroySessionFnV1,
@@ -144,6 +152,7 @@ impl LoadedRuntime {
         Self::load_dynamic_library(path, requested_path, Some(artifact_manifest))
     }
 
+    // 这是执行动态代码的边界；文件校验之后再解析唯一版本化符号并固定持有库句柄。
     fn load_dynamic_library(
         path: &Path,
         requested_path: String,
@@ -173,13 +182,27 @@ impl LoadedRuntime {
         // `library` remains owned by LoadedRuntime for every table access.
         let validated = unsafe { validate_v8_api(api) }
             .map_err(|error| runtime_library_startup_error_for_request(&requested_path, error))?;
+        // The standalone operation is optional at load time so older V8 runtimes can retain
+        // truthful V1 Winit fallback. The App records the typed pointer and reports an explicit
+        // missing-feature error if a native V2 configuration is requested.
+        let app_session_configuration = unsafe {
+            library
+                .get::<ZrRuntimeConfigureAppSessionFnV2>(ZR_RUNTIME_CONFIGURE_APP_SESSION_SYMBOL_V2)
+                .ok()
+                .map(|symbol| *symbol)
+        };
         Ok(Self {
             _library: library,
             _artifact_manifest: artifact_manifest,
             api,
             size_bytes: validated.size_bytes,
             required: validated.required,
+            app_session_configuration,
         })
+    }
+
+    pub(crate) fn configure_app_session(&self) -> Option<ZrRuntimeConfigureAppSessionFnV2> {
+        self.app_session_configuration
     }
 
     pub(crate) fn create_session(&self) -> ZrRuntimeCreateSessionFnV3 {
@@ -295,6 +318,7 @@ impl LoadedRuntime {
     }
 
     #[cfg(feature = "target-editor-host")]
+    /// 向编辑器 SessionGateway 授予会话内操作，不转交会话创建、销毁或宿主请求消费权。
     pub(crate) fn editor_gateway_api_table(&self) -> ZrRuntimeApiV8 {
         let mut api = ZrRuntimeApiV8::empty();
         api.release_allocation = Some(self.release_allocation());
@@ -334,6 +358,7 @@ impl RuntimeLibraryPreflight {
         self.build_set_id.clone()
     }
 
+    /// 编辑器和无头入口应在项目准备后调用；失败仍由产品启动层报告并清理其已创建的资源。
     /// Load the preflighted library only after validating its current sidecar
     /// and artifact digest again immediately before dynamic code can execute.
     pub(crate) fn load_after_preflight(&self) -> Result<LoadedRuntime, RuntimeLibraryError> {
@@ -358,6 +383,7 @@ impl RuntimeLibraryPreflight {
     }
 }
 
+// TODO: [CR-APP-ENTRY-0002] 确认启动错误是否需要保留原有分类；当前包装把清单的 ProtocolViolation 重建为 General，缺少生产调用方对 kind 的消费契约；下一步检查统一诊断和退出码映射。
 pub(super) fn runtime_library_startup_error_for_request(
     requested_path: impl std::fmt::Display,
     cause: impl std::fmt::Display,
@@ -653,6 +679,7 @@ pub(super) const fn runtime_api_field_available(
     }
 }
 
+// 仅检查必需尾字段是否可读；真正加载还要求完整 V8 表尺寸完全相等。
 pub(super) const fn runtime_api_required_layout_available(size_bytes: usize) -> bool {
     runtime_api_field_available(
         size_bytes,
@@ -686,30 +713,15 @@ pub(super) fn runtime_api_supports_viewport_surface_present(
         && present_viewport.is_some()
 }
 
+#[cfg(all(
+    test,
+    target_os = "windows",
+    feature = "dynamic-api",
+    not(feature = "gamepad-gilrs")
+))]
+#[path = "loaded_runtime/tests/surface_teardown_fixture.rs"]
+pub(in crate::entry) mod surface_teardown_fixture;
+
 #[cfg(test)]
-mod tests {
-    use super::LoadedRuntime;
-    use crate::entry::runtime_library::runtime_library_environment_override_request;
-
-    #[test]
-    fn environment_override_load_failure_keeps_the_override_request_provenance() {
-        let path = std::env::temp_dir().join(format!(
-            "zircon_missing_runtime_override_{}_{}.dll",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("system time after Unix epoch")
-                .as_nanos()
-        ));
-        let request = runtime_library_environment_override_request(&path);
-        let error = match LoadedRuntime::load_for_request(&path, request.clone()) {
-            Ok(_) => panic!("a nonexistent environment override must fail to load"),
-            Err(error) => error,
-        };
-        let diagnostic = error.to_string();
-
-        assert!(diagnostic.contains(&format!("requested_path={request}")));
-        assert!(diagnostic.contains("cause="));
-        assert!(diagnostic.contains("recovery=stage the runtime library"));
-    }
-}
+#[path = "tests/loaded_runtime.rs"]
+mod tests;

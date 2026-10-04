@@ -19,7 +19,7 @@ fn assert_mirror_docs_match_structure_audit() {
     let evidence_docs = [
         (
             "runtime tech-stack doc",
-            include_str!("../../../../../docs/engine-architecture/runtime-tech-stack.md"),
+            include_str!("../../../../../docs/architecture/runtime-tech-stack.md"),
         ),
         (
             "Runtime 01 output archive",
@@ -29,11 +29,11 @@ fn assert_mirror_docs_match_structure_audit() {
         ),
         (
             "M0 review",
-            include_str!("../../../../../docs/engine-architecture/runtime-architecture-review-m0.md"),
+            include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md"),
         ),
         (
             "interface convergence",
-            include_str!("../../../../../docs/engine-architecture/runtime-interface-convergence.md"),
+            include_str!("../../../../../docs/architecture/runtime-interface-convergence.md"),
         ),
     ];
 

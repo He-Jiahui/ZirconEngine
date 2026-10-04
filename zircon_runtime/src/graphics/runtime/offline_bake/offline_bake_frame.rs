@@ -1,3 +1,4 @@
+//! 离线烘焙走正常场景提交流程生成持久化产物，调用方需提供可烘焙探针与有效渲染上下文。
 use crate::core::framework::render::{
     ProbeInfluenceShape, ReflectionProbeData, RenderFrameExtract,
 };
@@ -6,6 +7,7 @@ use crate::core::math::{Quat, Vec3};
 use super::offline_bake_output::OfflineBakeOutput;
 use super::offline_bake_settings::OfflineBakeSettings;
 
+/// 通过正常帧提交流程烘焙环境数据；持久化前应等待提交结果。
 pub fn offline_bake_frame(
     extract: &RenderFrameExtract,
     settings: &OfflineBakeSettings,
@@ -72,16 +74,5 @@ fn eligible_reflection_probe_count(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::eligible_reflection_probe_count;
-
-    #[test]
-    fn eligible_probe_count_short_circuits_empty_and_clamps_budget() {
-        assert_eq!(eligible_reflection_probe_count(0, 4, 1.0), 0);
-        assert_eq!(eligible_reflection_probe_count(8, 0, 1.0), 0);
-        assert_eq!(eligible_reflection_probe_count(8, 4, 0.0), 0);
-        assert_eq!(eligible_reflection_probe_count(8, 4, f32::NAN), 0);
-        assert_eq!(eligible_reflection_probe_count(8, 4, 1.0), 4);
-        assert_eq!(eligible_reflection_probe_count(2, 4, 1.0), 2);
-    }
-}
+#[path = "tests/offline_bake_frame.rs"]
+mod tests;

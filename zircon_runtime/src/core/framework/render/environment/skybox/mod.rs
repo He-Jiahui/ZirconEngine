@@ -4,6 +4,7 @@ mod procedural_sky;
 mod settings;
 mod source_cubemap_environment;
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 pub use ibl_bake_key::IblBakeKey;

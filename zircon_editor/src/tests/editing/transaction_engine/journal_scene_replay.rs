@@ -67,7 +67,8 @@ fn scene_update_journal_replays_the_captured_node_state_into_a_matching_baseline
             })
             .unwrap()
             .unwrap()
-            .unwrap(),
+            .unwrap()
+            .expect("replay must restore the target node"),
         "Recovered Cube"
     );
 }
@@ -90,6 +91,7 @@ fn scene_delete_journal_replays_without_serializing_the_runtime_inverse_delta() 
         .with_context::<CoreEditContext, _>(|context| {
             context.with_scene(|scene| scene.contains_entity(target_cube))
         })
+        .unwrap()
         .unwrap()
         .unwrap());
 }
@@ -124,7 +126,8 @@ fn reflected_field_journal_replays_through_the_live_scene_reflection_gateway() {
             })
             .unwrap()
             .unwrap()
-            .unwrap(),
+            .unwrap()
+            .expect("replay must restore the reflected target node"),
         "Recovered Name"
     );
 }

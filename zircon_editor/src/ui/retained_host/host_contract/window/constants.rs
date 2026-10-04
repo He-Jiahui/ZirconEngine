@@ -3,3 +3,5 @@
 pub(in crate::ui::retained_host::host_contract) const DEFAULT_HOST_WINDOW_WIDTH: u32 = 1672;
 pub(in crate::ui::retained_host::host_contract) const DEFAULT_HOST_WINDOW_HEIGHT: u32 = 941;
 pub(in crate::ui::retained_host::host_contract) const NATIVE_HOST_WINDOW_ID: &str = "editor.main";
+pub(in crate::ui::retained_host::host_contract) const HOST_UI_FONT_ASSET: &str =
+    "res://fonts/editor-ui.font.toml";

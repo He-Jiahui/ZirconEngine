@@ -1,17 +1,21 @@
 use super::*;
-use crate::ui::retained_host::measure_runtime_text_width;
-use crate::ui::workbench::menu_bar::{
-    workbench_menu_slot_width_from_label_width, WORKBENCH_MENU_SLOT_FONT_SIZE,
+use crate::ui::retained_host::menu_pointer::{
+    current_menu_label_slot_metrics, menu_label_slot_width, MenuLabelSlotMetrics,
 };
+use crate::ui::retained_host::runtime_text_metrics_generation;
 
 #[derive(Clone)]
 struct MenuChromeCompositionGeneration {
     menus: ModelRc<super::super::HostMenuChromeMenuData>,
+    slot_metrics: MenuLabelSlotMetrics,
+    text_metrics_generation: [u64; 3],
 }
 
 impl PartialEq for MenuChromeCompositionGeneration {
     fn eq(&self, other: &Self) -> bool {
         self.menus.shares_values_with(&other.menus)
+            && self.slot_metrics == other.slot_metrics
+            && self.text_metrics_generation == other.text_metrics_generation
     }
 }
 
@@ -20,6 +24,16 @@ pub(super) fn menu_chrome_nodes(
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
+    menu_chrome_nodes_with_text_generation(menus, width, height, runtime_text_metrics_generation())
+}
+
+fn menu_chrome_nodes_with_text_generation(
+    menus: &ModelRc<super::super::HostMenuChromeMenuData>,
+    width: f32,
+    height: f32,
+    text_metrics_generation: [u64; 3],
+) -> ModelRc<ViewTemplateNodeData> {
+    let slot_metrics = current_menu_label_slot_metrics();
     let mut text_overrides = BTreeMap::new();
     for (row, menu) in menus.iter().enumerate() {
         text_overrides.insert(format!("{MENU_SLOT_PREFIX}{row}"), menu.label.to_string());
@@ -32,21 +46,23 @@ pub(super) fn menu_chrome_nodes(
         UiSize::new(width.max(0.0), height.max(0.0)),
         &text_overrides,
     ) else {
-        return fallback_menu_chrome_nodes(menus, width, height);
+        return fallback_menu_chrome_nodes_with_metrics(menus, width, height, slot_metrics);
     };
     let generation = MenuChromeCompositionGeneration {
         menus: menus.clone(),
+        slot_metrics,
+        text_metrics_generation,
     };
     let nodes = compose_view_template_node_model(
         "host.menu.chrome.composition",
         projection,
         &generation,
         |nodes| {
-            *nodes = expand_menu_chrome_slot_nodes(std::mem::take(nodes), menus);
+            *nodes = expand_menu_chrome_slot_nodes(std::mem::take(nodes), menus, slot_metrics);
         },
     );
     if nodes.row_count() == 0 || control_frame(&nodes, "MenuSlot0").width <= 0.0 {
-        return fallback_menu_chrome_nodes(menus, width, height);
+        return fallback_menu_chrome_nodes_with_metrics(menus, width, height, slot_metrics);
     }
     nodes
 }
@@ -58,10 +74,20 @@ pub(super) fn menu_control_frames(
     control_frames(nodes, MENU_SLOT_PREFIX, count)
 }
 
+#[cfg(test)]
 pub(super) fn fallback_menu_chrome_nodes(
     menus: &ModelRc<super::super::HostMenuChromeMenuData>,
     width: f32,
     height: f32,
+) -> ModelRc<ViewTemplateNodeData> {
+    fallback_menu_chrome_nodes_with_metrics(menus, width, height, current_menu_label_slot_metrics())
+}
+
+fn fallback_menu_chrome_nodes_with_metrics(
+    menus: &ModelRc<super::super::HostMenuChromeMenuData>,
+    width: f32,
+    height: f32,
+    slot_metrics: MenuLabelSlotMetrics,
 ) -> ModelRc<ViewTemplateNodeData> {
     let slot_count = menus.row_count().max(MENU_SLOT_COUNT);
     let mut nodes = Vec::with_capacity(slot_count + 1);
@@ -85,14 +111,14 @@ pub(super) fn fallback_menu_chrome_nodes(
             .get(row)
             .map(|menu| menu.label.clone())
             .unwrap_or_default();
-        let slot_width = menu_slot_width(label.as_str());
+        let slot_width = menu_label_slot_width(label.as_str(), slot_metrics);
         nodes.push(ViewTemplateNodeData {
             node_id: format!("FallbackMenuSlot{row}").into(),
             control_id: format!("{MENU_SLOT_PREFIX}{row}").into(),
             role: "Button".into(),
             text: label,
             text_tone: "default".into(),
-            font_size: WORKBENCH_MENU_SLOT_FONT_SIZE,
+            font_size: slot_metrics.logical_font_size,
             font_weight: 500,
             surface_variant: "transparent".into(),
             button_variant: "ghost".into(),
@@ -114,8 +140,10 @@ pub(super) fn fallback_menu_chrome_nodes(
 fn expand_menu_chrome_slot_nodes(
     raw_nodes: Vec<ViewTemplateNodeData>,
     menus: &ModelRc<super::super::HostMenuChromeMenuData>,
+    slot_metrics: MenuLabelSlotMetrics,
 ) -> Vec<ViewTemplateNodeData> {
-    let mut output_nodes = Vec::new();
+    let slot_count = menus.row_count().max(MENU_SLOT_COUNT);
+    let mut output_nodes = Vec::with_capacity(raw_nodes.len().saturating_add(slot_count));
     let mut slot_templates = BTreeMap::new();
 
     for node in raw_nodes {
@@ -129,7 +157,6 @@ fn expand_menu_chrome_slot_nodes(
         return output_nodes;
     }
 
-    let slot_count = menus.row_count().max(MENU_SLOT_COUNT);
     let gap = menu_slot_gap(&slot_templates).unwrap_or(2.0);
     let mut next_x = slot_templates
         .get(&0)
@@ -147,18 +174,13 @@ fn expand_menu_chrome_slot_nodes(
         node.node_id = format!("{MENU_SLOT_PREFIX}{row}").into();
         node.control_id = format!("{MENU_SLOT_PREFIX}{row}").into();
         node.text = label.clone().into();
-        node.font_size = WORKBENCH_MENU_SLOT_FONT_SIZE;
+        node.font_size = slot_metrics.logical_font_size;
         node.frame.x = next_x;
-        node.frame.width = menu_slot_width(&label);
+        node.frame.width = menu_label_slot_width(&label, slot_metrics);
         next_x = node.frame.x + node.frame.width + gap;
         output_nodes.push(node);
     }
     output_nodes
-}
-
-fn menu_slot_width(label: &str) -> f32 {
-    let label_width = measure_runtime_text_width(label, WORKBENCH_MENU_SLOT_FONT_SIZE);
-    workbench_menu_slot_width_from_label_width(label_width)
 }
 
 fn menu_slot_gap(templates: &BTreeMap<usize, ViewTemplateNodeData>) -> Option<f32> {
@@ -364,3 +386,11 @@ fn menu_label_icon_name(label: &str) -> &'static str {
         "ellipse-outline"
     }
 }
+
+#[cfg(test)]
+#[path = "tests/menu_chrome_optimization_tests.rs"]
+mod optimization_tests;
+
+#[cfg(test)]
+#[path = "tests/menu_chrome_slot_metrics_tests.rs"]
+mod slot_metrics_tests;

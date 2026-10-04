@@ -129,7 +129,7 @@ The cache holds at most eight pane entries and replaces an entry for the same pa
 
 ## 9. Pressure model
 
-Tool: `tools/editor_inspector_projection_pressure.py`
+Tool: `tools/analysis/performance/editor/editor_inspector_projection_pressure.py`
 
 Tests: `tools/tests/test_editor_inspector_projection_pressure.py`
 

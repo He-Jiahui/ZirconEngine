@@ -1,0 +1,50 @@
+[asset]
+kind = "view"
+version = 2
+id = "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#review-host"
+display_name = "Workbench Table Row"
+
+[imports]
+widgets = [ "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui" ]
+styles = []
+
+[root]
+node = "review_scroll"
+
+[nodes.review_scroll]
+component = "ScrollableBox"
+control_id = "WorkbenchTableRowReviewScroll"
+
+[nodes.review_scroll.props]
+input_hoverable = true
+
+[nodes.review_scroll.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.review_scroll.layout.container]
+kind = "ScrollableBox"
+axis = "Horizontal"
+gap = 0
+scrollbar_visibility = "Auto"
+
+[nodes.review_scroll.layout.width]
+stretch = "Stretch"
+
+[nodes.review_scroll.layout.height]
+stretch = "Stretch"
+
+[[nodes.review_scroll.children]]
+node = "review_component"
+
+[nodes.review_component]
+component = "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.review_component.layout.width]
+min = 360
+preferred = 360
+max = 360
+stretch = "Fixed"
+
+[nodes.review_component.layout.height]
+stretch = "Stretch"

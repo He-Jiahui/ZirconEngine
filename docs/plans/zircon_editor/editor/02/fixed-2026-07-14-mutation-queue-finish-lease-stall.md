@@ -8,11 +8,6 @@ fixing_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-c
 origin_child_dir: docs/plans/zircon_editor/editor/02
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 related_code:
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/cargo_jobs.py
-  - tools/session_coordinator/leases.py
-  - tools/session_coordinator/watch.py
-  - tools/session_coordinator/client.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_server tools.session_coordinator.tests.test_cargo_jobs tools.session_coordinator.tests.test_leases -v
   - python -m unittest discover -s tools/session_coordinator/tests -v
@@ -31,7 +26,7 @@ resolved_at: 2026-07-14
 
 ## 失败现象与复现证据
 
-2026-07-14 07:19–07:29（Asia/Shanghai），只读 `tools/zircon-session.ps1 --json status` 与 SQLite 只读审计持续可用，supervision 报 `healthy`；与此同时多个 mutation client 长时间无响应：
+2026-07-14 07:19–07:29（Asia/Shanghai），只读 `tools/dev/zircon-session.ps1 --json status` 与 SQLite 只读审计持续可用，supervision 报 `healthy`；与此同时多个 mutation client 长时间无响应：
 
 - Shader04 job `57672013572a4efbbecf7909f25441e0` 的 Cargo/rustc/测试进程实际 exit 0，随后 `cargo finish ... --exit-code 0` 自 07:19 起挂起；维护线程最终于 07:28:41 将该 job 记为 `orphaned`、`exit_code=null`，完成事实丢失且池未由正常 finish/release 路径关闭。
 - Editor02 的 `lease claim` 连续两次超过 60 秒未落库；同时间还能观察到其他 Session 的 `cargo finish`、heartbeat、session register 与 lease claim client 等待。

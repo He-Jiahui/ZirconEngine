@@ -53,7 +53,7 @@ Acceptance requires both Rust tests and all six source contracts to pass, fold p
 
 - Ownership transfer apply: `c4f23d73cf8a4ead8b66a7f65c4216a2`.
 - The two behavior tests now share the `runtime88_borrowed_event_fold_batch_` filter.
-- `tools/runtime88_borrowed_event_fold_model.rs` restores the 16,384-event, 31-pair release model
+- `tools/analysis/performance/runtime/runtime88_borrowed_event_fold_model.rs` restores the 16,384-event, 31-pair release model
   and allocation/P50/P95 gates described above.
-- Managed batch script: `tools/zircon-validation-runtime88-borrowed-event-fold-batch.ps1`.
+- Managed batch script: `tools/analysis/validation/zircon-validation-runtime88-borrowed-event-fold-batch.ps1`.
 - Coordinator ticket: `pending_submission`; terminal managed evidence remains authoritative.

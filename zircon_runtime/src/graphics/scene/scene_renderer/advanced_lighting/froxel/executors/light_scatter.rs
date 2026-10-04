@@ -11,11 +11,11 @@ use crate::graphics::scene::scene_renderer::history::SceneHistoryDomain;
 use crate::render_graph::RenderGraphResourceAccessKind;
 
 use super::super::{
-    FroxelLightScatterPipeline, FroxelLightScatterRequest, FroxelViewReconstruction,
-    GpuFroxelTemporalReprojection, VOLUMETRIC_LIGHT_SCATTER_PIPELINE_LABEL,
-    VOLUMETRIC_LIGHT_SCATTER_WORKGROUP_SIZE, volumetric_ambient_radiance,
+    volumetric_ambient_radiance, FroxelLightScatterPipeline, FroxelLightScatterRequest,
+    FroxelViewReconstruction, GpuFroxelTemporalReprojection,
+    VOLUMETRIC_LIGHT_SCATTER_PIPELINE_LABEL, VOLUMETRIC_LIGHT_SCATTER_WORKGROUP_SIZE,
 };
-use super::{VOLUMETRIC_LIGHT_SCATTER_EXECUTOR_ID, validate_compute_context};
+use super::{validate_compute_context, VOLUMETRIC_LIGHT_SCATTER_EXECUTOR_ID};
 
 #[derive(Default)]
 pub(super) struct VolumetricLightScatterExecutor {
@@ -80,12 +80,10 @@ impl RenderPassExecutor for VolumetricLightScatterExecutor {
                 RenderGraphResourceAccessKind::Write,
             )?
             .clone();
-        let light_buffer = gpu
-            .require_buffer(
-                PostProcessGraphResourceNames::SCENE_LIGHT_DATA,
-                RenderGraphResourceAccessKind::Read,
-            )?
-            .clone();
+        let light_buffer = gpu.require_buffer_binding(
+            PostProcessGraphResourceNames::SCENE_LIGHT_DATA,
+            RenderGraphResourceAccessKind::Read,
+        )?;
         let light_grid_params = gpu.require_buffer_binding(
             PostProcessGraphResourceNames::LIGHT_GRID_PARAMS,
             RenderGraphResourceAccessKind::Read,
@@ -132,7 +130,7 @@ impl RenderPassExecutor for VolumetricLightScatterExecutor {
                     media_view: &media,
                     history_view: history.as_ref().unwrap_or(&media),
                     temporal,
-                    light_buffer: &light_buffer,
+                    light_buffer,
                     light_count,
                     light_grid_params_buffer: light_grid_params,
                     light_zbins_buffer: light_zbins,

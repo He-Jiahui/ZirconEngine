@@ -1,9 +1,9 @@
 mod clip;
 mod draw;
 mod hover;
+mod press;
 mod transform;
 
-#[cfg(test)]
 mod test_support;
 
 pub(in crate::ui::retained_host::host_contract) use draw::{
@@ -11,11 +11,13 @@ pub(in crate::ui::retained_host::host_contract) use draw::{
 };
 pub(in crate::ui::retained_host::host_contract) use transform::TemplateNodePaintTransform;
 
+pub(crate) use test_support::paint_template_nodes_for_evidence_with_background;
+
 #[cfg(test)]
 pub(crate) use test_support::{
     paint_template_nodes_for_test, paint_template_nodes_for_test_with_background,
 };
 
 #[cfg(test)]
-#[path = "template_node_pipeline_tests/mod.rs"]
+#[path = "template_node_pipeline_tests/tests/mod.rs"]
 mod tests;

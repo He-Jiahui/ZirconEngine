@@ -1,6 +1,6 @@
 use super::HybridGiRuntimeProvider;
 use crate::graphics::runtime_provider::{
-    RuntimeProviderRegistration, define_runtime_provider_registration,
+    define_runtime_provider_registration, RuntimeProviderRegistration,
 };
 
 define_runtime_provider_registration! {

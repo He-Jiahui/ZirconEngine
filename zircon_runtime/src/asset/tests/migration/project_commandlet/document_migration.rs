@@ -220,7 +220,6 @@ fn changed_document_preserves_unrepaired_current_reference_fields_and_counts_onl
     let root = fixture_root("mixed-repaired-and-unchanged-current-references");
     write_manifest(&root, &["assets"]);
     let repaired_guid: AssetUuid = "71111111-2222-4333-8444-555555555555".parse().unwrap();
-    let stale_guid: AssetUuid = "81111111-2222-4333-8444-555555555555".parse().unwrap();
     const UNTOUCHED_GUID_TEXT: &str = "AA111111-2222-4333-8444-555555555555";
     let untouched_guid: AssetUuid = UNTOUCHED_GUID_TEXT.parse().unwrap();
     write_registered_source(
@@ -242,7 +241,7 @@ fn changed_document_preserves_unrepaired_current_reference_fields_and_counts_onl
     fs::write(
         &model,
         format!(
-            "uri = \"res://models/mixed.model.toml\"\n\n[[primitives]]\nvertices = []\nindices = []\n\n[primitives.mesh]\nkind = \"project\"\nguid = \"{stale_guid}\"\npath_hint = \"assets/textures/repaired.png\"\n\n[[primitives]]\nvertices = []\nindices = []\n\n[primitives.mesh]\nkind = \"project\"\nguid = \"{UNTOUCHED_GUID_TEXT}\"\npath_hint = \"assets/textures/untouched.png\"\n"
+            "uri = \"res://models/mixed.model.toml\"\n\n[[primitives]]\nvertices = []\nindices = []\n\n[primitives.mesh]\nkind = \"project\"\nguid = \"{repaired_guid}\"\npath_hint = \"assets/textures/moved.png\"\n\n[[primitives]]\nvertices = []\nindices = []\n\n[primitives.mesh]\nkind = \"project\"\nguid = \"{UNTOUCHED_GUID_TEXT}\"\npath_hint = \"assets/textures/untouched.png\"\n"
         ),
     )
     .unwrap();
@@ -255,10 +254,18 @@ fn changed_document_preserves_unrepaired_current_reference_fields_and_counts_onl
     let document_change = report
         .changed_files()
         .iter()
-        .find(|change| change.path() == model)
+        .find(|change| change.path() == ProjectPaths::display_path(&model))
         .expect("mixed document should be rewritten for the repaired reference");
     assert_eq!(document_change.reference_count(), 1);
     let migrated: toml::Value = toml::from_str(&fs::read_to_string(&model).unwrap()).unwrap();
+    assert_eq!(
+        migrated["primitives"][0]["mesh"]["guid"].as_str(),
+        Some(repaired_guid.to_string().as_str())
+    );
+    assert_eq!(
+        migrated["primitives"][0]["mesh"]["path_hint"].as_str(),
+        Some("assets/textures/repaired.png")
+    );
     assert_eq!(
         migrated["primitives"][1]["mesh"]["guid"].as_str(),
         Some(UNTOUCHED_GUID_TEXT)
@@ -312,13 +319,23 @@ fn malformed_current_reference_keeps_canonical_serde_issue_message() {
 fn missing_sidecars_are_minted_in_the_same_transaction_as_reference_rewrite() {
     let root = fixture_root("mint-missing-sidecars");
     write_manifest(&root, &["assets"]);
+    let registered_mesh: AssetUuid = "f1111111-2222-4333-8444-555555555555".parse().unwrap();
+    write_registered_source(
+        &root,
+        "assets",
+        "meshes/registered.zmesh",
+        registered_mesh,
+        AssetKind::Mesh,
+    );
     let model_source = root.join("assets/models/hero.glb");
     let document = root.join("assets/models/hero.model.toml");
     fs::create_dir_all(model_source.parent().unwrap()).unwrap();
     fs::write(&model_source, b"recognizable model source").unwrap();
     fs::write(
         &document,
-        "uri = \"res://models/hero.model.toml\"\n\n[[primitives]]\nvertices = []\nindices = []\n\n[primitives.mesh]\nuuid = \"f1111111-2222-4333-8444-555555555555\"\nurl = \"res://models/hero.glb\"\n",
+        format!(
+            "uri = \"res://models/hero.model.toml\"\n\n[[primitives]]\nvertices = []\nindices = []\n\n[primitives.mesh]\nuuid = \"{registered_mesh}\"\nurl = \"res://meshes/registered.zmesh\"\n"
+        ),
     )
     .unwrap();
 
@@ -337,11 +354,12 @@ fn missing_sidecars_are_minted_in_the_same_transaction_as_reference_rewrite() {
     assert!(applied.succeeded());
     let sidecar = fs::read_to_string(model_source.with_file_name("hero.glb.zmeta")).unwrap();
     let meta = crate::asset::project::AssetMetaDocument::from_toml_str(&sidecar).unwrap();
+    assert_ne!(meta.uuid, registered_mesh);
     let migrated = fs::read_to_string(&document).unwrap();
     let value: toml::Value = toml::from_str(&migrated).unwrap();
     assert_eq!(
         value["primitives"][0]["mesh"]["guid"].as_str(),
-        Some(meta.uuid.to_string().as_str())
+        Some(registered_mesh.to_string().as_str())
     );
     let sidecar_bytes = fs::read(model_source.with_file_name("hero.glb.zmeta")).unwrap();
     let document_bytes = fs::read(&document).unwrap();
@@ -633,7 +651,7 @@ fn retired_meta_toml_rejects_non_v6_versions_without_renaming() {
 }
 
 #[test]
-fn missing_guid_falls_back_to_path_and_multi_root_conflict_remains_typed() {
+fn missing_guid_with_occupied_path_and_multi_root_conflict_remain_typed() {
     let root = fixture_root("failures");
     write_manifest(&root, &["assets", "content"]);
     let registered: AssetUuid = "31111111-2222-4333-8444-555555555555".parse().unwrap();
@@ -655,10 +673,12 @@ fn missing_guid_falls_back_to_path_and_multi_root_conflict_remains_typed() {
     let report =
         migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
             .unwrap();
-    assert!(report.succeeded());
-    let repaired = fs::read_to_string(&model).unwrap();
-    assert!(repaired.contains(&registered.to_string()));
-    assert!(!repaired.contains(&stale.to_string()));
+    assert!(!report.succeeded());
+    assert!(report
+        .issues()
+        .iter()
+        .any(|issue| issue.kind() == AssetMigrationIssueKind::DanglingReference));
+    assert_eq!(fs::read_to_string(&model).unwrap(), original);
 
     write_registered_source(
         &root,
@@ -677,7 +697,7 @@ fn missing_guid_falls_back_to_path_and_multi_root_conflict_remains_typed() {
         issue.kind(),
         AssetMigrationIssueKind::RegistryConflict | AssetMigrationIssueKind::AmbiguousPath
     )));
-    assert_eq!(fs::read_to_string(&model).unwrap(), repaired);
+    assert_eq!(fs::read_to_string(&model).unwrap(), original);
     fs::remove_dir_all(root).unwrap();
 }
 

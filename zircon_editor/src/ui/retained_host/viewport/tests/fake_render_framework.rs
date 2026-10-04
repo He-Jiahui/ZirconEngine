@@ -30,6 +30,7 @@ pub(super) struct FakeRenderFrameworkState {
     pub(super) created_viewports: Vec<RenderViewportDescriptor>,
     pub(super) viewport_sizes: HashMap<RenderViewportHandle, UVec2>,
     pub(super) destroyed_viewports: Vec<RenderViewportHandle>,
+    pub(super) destroy_failures_remaining: usize,
     pub(super) submitted_viewports: Vec<RenderViewportHandle>,
     pub(super) submitted_aspect_ratios: Vec<f32>,
     pub(super) submitted_ui_command_counts: Vec<usize>,
@@ -44,6 +45,10 @@ pub(super) struct FakeRenderFrameworkState {
 }
 
 impl FakeRenderFramework {
+    pub(super) fn fail_next_destroy(&self) {
+        self.state.lock().unwrap().destroy_failures_remaining += 1;
+    }
+
     pub(super) fn block_next_submit(&self) -> (Receiver<()>, SyncSender<()>) {
         let (started_sender, started_receiver) = sync_channel(1);
         let (release_sender, release_receiver) = sync_channel(1);
@@ -98,6 +103,12 @@ impl RenderFramework for FakeRenderFramework {
             ));
         }
         let mut state = self.state.lock().unwrap();
+        if state.destroy_failures_remaining > 0 {
+            state.destroy_failures_remaining -= 1;
+            return Err(RenderFrameworkError::Backend(
+                "planned viewport destroy failure".to_string(),
+            ));
+        }
         state.destroyed_viewports.push(viewport);
         state.viewport_sizes.remove(&viewport);
         state.captures.remove(&viewport);

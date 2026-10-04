@@ -1,10 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::core::framework::render::{
+    is_generated_shader_module_token, strip_wgsl_include_directives, wgsl_include_paths,
+    GeometrySourceDescriptor, ShaderFeatureBits, ShadingModelDescriptor,
     GEOMETRY_SOURCE_WGSL_INCLUDE_MORPHED_MESH, GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MESH,
     GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MORPHED_MESH, GEOMETRY_SOURCE_WGSL_INCLUDE_STATIC_MESH,
-    GeometrySourceDescriptor, ShaderFeatureBits, ShadingModelDescriptor,
-    is_generated_shader_module_token, strip_wgsl_include_directives, wgsl_include_paths,
 };
 use crate::plugin::ShaderModuleSourceBinding;
 
@@ -264,8 +264,11 @@ impl ShaderModuleRegistry {
             .map(|include| (include.token.clone(), include))
             .collect::<HashMap<_, _>>();
         let mut pending = roots.into_iter().collect::<Vec<_>>();
-        let mut visited = HashSet::new();
-        let mut registry = Self::default();
+        let traversal_capacity = source_modules.len().saturating_add(pending.len());
+        let mut visited = HashSet::with_capacity(traversal_capacity);
+        let mut registry = Self {
+            modules: HashMap::with_capacity(traversal_capacity),
+        };
 
         while let Some(token) = pending.pop() {
             if !visited.insert(token.clone()) {
@@ -294,8 +297,9 @@ impl ShaderModuleRegistry {
         &self,
         roots: impl IntoIterator<Item = String>,
     ) -> Result<ResolvedShaderModuleSet, ShaderModuleResolutionError> {
-        let mut ordered_sources = Vec::new();
-        let mut visited = HashSet::new();
+        let module_capacity = self.modules.len();
+        let mut ordered_sources = Vec::with_capacity(module_capacity);
+        let mut visited = HashSet::with_capacity(module_capacity);
         let mut visiting = Vec::new();
         for root in roots {
             if is_generated_shader_module_token(&root) {
@@ -653,5 +657,9 @@ fn gbuffer_encode_include_for_token(token: &str) -> Option<ShaderTemplateInclude
 }
 
 #[cfg(test)]
-#[path = "module_registry/tests.rs"]
+#[path = "module_registry/tests/cases.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "module_registry/tests/optimization_batch_iq_runtime627_tests.rs"]
+mod optimization_batch_iq_runtime627_tests;

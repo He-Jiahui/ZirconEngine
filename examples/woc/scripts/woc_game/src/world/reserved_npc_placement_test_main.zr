@@ -12,6 +12,8 @@ closeEnough(value: float, expected: float): bool {
 
 var seed = <uint>20061;
 
+// 两名保留 NPC 使用独立的大编号，不能推动普通实体编号游标；
+// 此处验证身份与位置，Vale/PvP 行为仍由相应系统掌握。
 if (placement.reservedNpcCount(true) != 2 ||
     placement.npcId(0, true) != "groundskeeper_bram" ||
     placement.entityId(0, true) != 1000000000 ||

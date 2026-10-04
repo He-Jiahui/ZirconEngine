@@ -22,4 +22,5 @@ pub use stages::{
 };
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

@@ -29,6 +29,8 @@ doc_type: workflow-detail
 | 运行时装载动态库 | `native` | descriptor、host function table、entry report | 只想为同一 workspace 增加模块 |
 | 将清单和回调投影为动态库制品 | `dist` crate + native packaging | SDK 宏生成的 C ABI 导出 | 不需要 native 分发 |
 
+平台准入仍由产品导出策略决定，而不是由 SDK manifest 的默认值决定。当前 `ExportTargetPlatform` 只有 Windows 允许 `NativeDynamic`；Linux、macOS、移动端、浏览器和 Headless 目标会 fail-closed，必须改用 `SourceTemplate`、`LibraryEmbed` 或 VM 交付。若导出 profile 或插件选择仍请求 `NativeDynamic`，构建计划会产生 fatal diagnostic。
+
 不要把 `distribution.forms = ["dist"]` 理解为“业务逻辑都在 dist crate”。现有 SDK 模型中，dist crate 是声明、manifest 和回调的投影层；runtime/editor crate 仍是业务代码的自然所有者。详情见 [原生 ABI 与插件分发](../plugins/native-abi-and-distribution.md) 与 [Catalog 与 manifest](../plugins/catalogs-and-manifests.md)。
 
 ## 把能力协商当作准入门槛

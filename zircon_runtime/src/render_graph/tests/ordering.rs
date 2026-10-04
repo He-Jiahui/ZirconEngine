@@ -30,6 +30,38 @@ fn compile_orders_passes_by_declared_dependencies() {
 }
 
 #[test]
+fn compile_prefers_authored_ready_pass_before_later_independent_pass() {
+    let mut builder = RenderGraphBuilder::new("authored-ready-tie-break");
+    let first = builder.add_pass("first", QueueLane::Graphics);
+    let delayed = builder.add_pass("delayed", QueueLane::Graphics);
+    let independent = builder.add_pass("independent", QueueLane::Graphics);
+    builder.add_dependency(first, delayed).unwrap();
+    for pass in [first, delayed, independent] {
+        builder
+            .set_pass_flags(
+                pass,
+                PassFlags {
+                    has_side_effects: true,
+                    ..PassFlags::default()
+                },
+            )
+            .unwrap();
+    }
+
+    let graph = builder
+        .compile()
+        .expect("authored ready-set tie-break graph");
+    assert_eq!(
+        graph
+            .passes()
+            .iter()
+            .map(|pass| pass.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["first", "delayed", "independent"]
+    );
+}
+
+#[test]
 fn runtime89_compile_rejects_duplicate_pass_names_before_building_execution_indices() {
     let mut builder = RenderGraphBuilder::new("duplicate-pass-name");
     builder.add_pass("shared-pass", QueueLane::Graphics);

@@ -107,9 +107,9 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_runtime_staged_cache_hit.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mesh_pipeline_variant_cache_owner.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_report_dimension_contract.rs
-  - tools/zircon_build_shader_prewarm.py
-  - tools/zircon_build_shader_prewarm_cache_artifacts.py
-  - tools/zircon_build.py
+  - tools/build/zircon_build_shader_prewarm.py
+  - tools/build/zircon_build_shader_prewarm_cache_artifacts.py
+  - tools/build/zircon_build.py
   - tools/tests/test_zircon_build_shader_prewarm.py
   - tools/tests/test_zircon_build_shader_prewarm_dimension_contract.py
   - tools/tests/test_zircon_build_shader_prewarm_cache_contract.py
@@ -258,7 +258,7 @@ plan_sources:
 
 实施切片:
 1. `ShaderVariantKey` 定稿与 `mesh_pipeline_cache` 重构;磁盘缓存。
-2. `tools/zircon_build.py` 预热步骤;缺失变体诊断报告。
+2. `tools/build/zircon_build.py` 预热步骤;缺失变体诊断报告。
 
 测试阶段:
 - `cargo test -p zircon_runtime shader --locked`(键稳定性:同输入跨进程同键;缓存命中)
@@ -295,7 +295,7 @@ plan_sources:
 | `zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/{mesh_pipeline_cache,ensure_pipeline,ensure_motion_vector_pipeline,new}.rs` | 以 `pipeline_variant_id` 为键重构;删除 `HashMap<String, ShaderModule>` 与 `PipelineKey` 双轨;motion vector 管线并入 `ShaderPassType::Velocity` 变体 |
 | `zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs` | CPU `skin_model_primitive` 默认路径删除,收缩为能力回落档;palette 直传 storage 上传路径 |
 | `zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_shader_source.rs` | zshader 校验从"整段 WGSL"改为"surface 函数 + 声明清单";fallback 材质走同一模板路径 |
-| `tools/zircon_build.py` | 新增 `--prewarm-shaders` 步骤(见下) |
+| `tools/build/zircon_build.py` | 新增 `--prewarm-shaders` 步骤(见下) |
 | `zircon_plugins`(shader_graph 生成器、virtual_geometry 注册点) | MS-M1 同步改产 surface 函数;VG 几何源注册(切片内硬切换) |
 
 ### 核心类型与接口
@@ -441,7 +441,7 @@ fn shade_deferred(surface: ZrSurfaceOutput, ctx: ZrShadingContext) -> vec3<f32>;
 
 磁盘缓存:根目录默认 `<project>/.zircon-cache/shader_variants/`(`ZR_SHADER_CACHE_DIR` 覆写);布局 `<root>/v<schema_version>/<hash[0..2]>/<hash>.wgsl.zst` + 同名 `.meta`(键 canonical_string、模板修订号、naga/wgpu 版本、创建时间)。`hash = blake3(canonical_string + 全部参与 include 的内容哈希)`,宁可多失效不可错命中(与"风险与回退"口径一致)。并发写:临时文件 + 原子 rename,先到为准;读损坏视为 miss 并删除条目。
 
-prewarm 钩子:`tools/zircon_build.py --prewarm-shaders` 在 stage 完成后,扫描 staged 资产清单中显式 Surface 与材质引用,生成变体枚举清单(材质 × 适用几何源 × 启用 pass × 默认 quality),调用 runtime 的 headless 入口 `zircon_runtime::dynamic_api::prewarm_shader_variants(manifest, cache_dir)` 离线编译,产物放入 staged payload 的 `ZirconEngine/cache/shader_variants/`,运行时缓存查找链为"运行期目录 → staged 预热目录"。裸 WGSL 是 generic Module，不进入材质变体；材质解析到 Module 必须 fail-closed。
+prewarm 钩子:`tools/build/zircon_build.py --prewarm-shaders` 在 stage 完成后,扫描 staged 资产清单中显式 Surface 与材质引用,生成变体枚举清单(材质 × 适用几何源 × 启用 pass × 默认 quality),调用 runtime 的 headless 入口 `zircon_runtime::dynamic_api::prewarm_shader_variants(manifest, cache_dir)` 离线编译,产物放入 staged payload 的 `ZirconEngine/cache/shader_variants/`,运行时缓存查找链为"运行期目录 → staged 预热目录"。裸 WGSL 是 generic Module，不进入材质变体；材质解析到 Module 必须 fail-closed。
 
 ### 实施切片细化
 

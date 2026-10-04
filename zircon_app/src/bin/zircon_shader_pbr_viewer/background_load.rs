@@ -1,3 +1,6 @@
+//! 场景构造与 Winit 主循环之间的单任务交接。
+//! 取消是协作信号；结果已发送仍不等于工作线程已经完全退出。
+
 use std::any::Any;
 use std::io;
 use std::panic::{catch_unwind, AssertUnwindSafe};
@@ -11,11 +14,13 @@ use std::time::Duration;
 
 use zircon_runtime::core::runtime::tasks::spawn_named_thread;
 
+/// 主循环读取后台场景的状态；完成分支把任务错误和汇合错误统一交给加载失败路径。
 pub(crate) enum BackgroundTaskPoll<T> {
     Pending,
     Completed(Result<T, String>),
 }
 
+/// 场景构造阶段共用的协作取消令牌；请求取消不会强制停止当前阻塞工作。
 #[derive(Clone)]
 pub(crate) struct BackgroundTaskCancellation {
     cancelled: Arc<AtomicBool>,
@@ -27,6 +32,7 @@ impl BackgroundTaskCancellation {
     }
 }
 
+/// 供终态记录区分已汇合的取消、线程错误与仍未停止的工作。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum BackgroundTaskShutdown {
     CompletedAndJoined,
@@ -35,6 +41,7 @@ pub(crate) enum BackgroundTaskShutdown {
     JoinPanicked,
 }
 
+/// 主循环唯一持有的后台结果和线程所有权；取出结果或退出时负责汇合。
 pub(crate) struct BackgroundTask<T> {
     receiver: Receiver<Result<T, String>>,
     cancellation: BackgroundTaskCancellation,
@@ -42,6 +49,7 @@ pub(crate) struct BackgroundTask<T> {
 }
 
 impl<T: Send + 'static> BackgroundTask<T> {
+    /// 由事件循环宿主启动可取消的场景构造；唤醒回调必须尽快返回，避免结果接收后的汇合阻塞。
     pub(crate) fn spawn(
         thread_name: &str,
         job: impl FnOnce(BackgroundTaskCancellation) -> Result<T, String> + Send + 'static,
@@ -101,6 +109,8 @@ impl<T: Send + 'static> BackgroundTask<T> {
         }
     }
 
+    /// 退出时消费任务并等待结果；超时分支分离仍在运行的线程，由终态报告清理失败。
+    /// 等待期限只覆盖结果接收，收到结果后仍需等工作线程及唤醒回调退出。
     pub(crate) fn cancel_and_join(mut self, timeout: Duration) -> BackgroundTaskShutdown {
         match self.receiver.try_recv() {
             Ok(_) => return self.join_shutdown_outcome(),
@@ -135,6 +145,7 @@ impl<T: Send + 'static> BackgroundTask<T> {
         }
     }
 
+    // TODO: [CR-APP-VIEWER-0003] 确认退出等待是否需要覆盖结果已发送但唤醒尚未返回的阶段；缺少此竞争测试；下一步检查事件代理唤醒和最终汇合的阻塞上界。
     fn join_worker(&mut self) -> Result<(), String> {
         let Some(join_handle) = self.join_handle.take() else {
             return Ok(());
@@ -165,126 +176,5 @@ fn background_cancellation_message() -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::mpsc;
-    use std::time::Duration;
-
-    use super::{BackgroundTask, BackgroundTaskPoll, BackgroundTaskShutdown};
-
-    #[test]
-    fn completed_background_load_wakes_and_returns_value() {
-        let (wake_sender, wake_receiver) = mpsc::channel();
-        let mut task = BackgroundTask::spawn(
-            "viewer-background-load-success-test",
-            |_| Ok(42_u32),
-            move || {
-                let _ = wake_sender.send(());
-            },
-        )
-        .expect("background task should start");
-
-        wake_receiver
-            .recv_timeout(Duration::from_secs(2))
-            .expect("background task should wake the event loop");
-        match task.try_take() {
-            BackgroundTaskPoll::Completed(Ok(value)) => assert_eq!(value, 42),
-            _ => panic!("background task did not return its completed value"),
-        }
-    }
-
-    #[test]
-    fn panicking_background_load_wakes_and_returns_error() {
-        let (wake_sender, wake_receiver) = mpsc::channel();
-        let mut task = BackgroundTask::<u32>::spawn(
-            "viewer-background-load-panic-test",
-            |_| panic!("test panic"),
-            move || {
-                let _ = wake_sender.send(());
-            },
-        )
-        .expect("background task should start");
-
-        wake_receiver
-            .recv_timeout(Duration::from_secs(2))
-            .expect("panicking task should still wake the event loop");
-        match task.try_take() {
-            BackgroundTaskPoll::Completed(Err(message)) => {
-                assert!(message.contains("test panic"));
-            }
-            _ => panic!("background task panic was not returned as an error"),
-        }
-    }
-
-    #[test]
-    fn cancellation_signal_is_observed_and_the_loader_is_joined() {
-        let (started_sender, started_receiver) = mpsc::sync_channel(1);
-        let (wake_sender, wake_receiver) = mpsc::channel();
-        let task = BackgroundTask::spawn(
-            "viewer-background-load-cancellation-test",
-            move |cancellation| {
-                started_sender
-                    .send(())
-                    .expect("test should observe the task start");
-                while !cancellation.is_cancel_requested() {
-                    std::thread::yield_now();
-                }
-                Ok(42_u32)
-            },
-            move || {
-                let _ = wake_sender.send(());
-            },
-        )
-        .expect("background task should start");
-
-        started_receiver
-            .recv_timeout(Duration::from_secs(2))
-            .expect("background task should begin before cancellation");
-        assert!(task.request_cancel());
-        assert!(task.is_cancellation_requested());
-        assert_eq!(
-            task.cancel_and_join(Duration::from_secs(2)),
-            BackgroundTaskShutdown::CancelledAndJoined
-        );
-        wake_receiver
-            .recv_timeout(Duration::from_secs(2))
-            .expect("cancelled task should wake the event loop after joining");
-    }
-
-    #[test]
-    fn shutdown_timeout_is_distinct_from_a_joined_cancellation() {
-        let (started_sender, started_receiver) = mpsc::sync_channel(1);
-        let (release_sender, release_receiver) = mpsc::sync_channel(1);
-        let (wake_sender, wake_receiver) = mpsc::channel();
-        let task = BackgroundTask::spawn(
-            "viewer-background-load-timeout-test",
-            move |_| {
-                started_sender
-                    .send(())
-                    .expect("test should observe the task start");
-                release_receiver
-                    .recv()
-                    .expect("test should release the non-cooperative task");
-                Ok(())
-            },
-            move || {
-                let _ = wake_sender.send(());
-            },
-        )
-        .expect("background task should start");
-
-        started_receiver
-            .recv_timeout(Duration::from_secs(2))
-            .expect("background task should begin before cancellation");
-        assert!(task.request_cancel());
-        assert_eq!(
-            task.cancel_and_join(Duration::ZERO),
-            BackgroundTaskShutdown::TimedOut
-        );
-        release_sender
-            .send(())
-            .expect("test should release the timed-out task");
-        wake_receiver
-            .recv_timeout(Duration::from_secs(2))
-            .expect("timed-out task should eventually finish after release");
-    }
-}
+#[path = "tests/background_load.rs"]
+mod tests;

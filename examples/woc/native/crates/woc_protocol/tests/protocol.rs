@@ -7,8 +7,8 @@ use woc_protocol::{
     TownFocusAllocationEntry, TownFocusCommandPayload, WorldSnapshot, COMMAND_CATALOG,
     COMMAND_PAYLOAD_SCHEMA_SHA256, ENTER_DUNGEON_COMMAND_ID, FRAME_HEADER_BYTES,
     OFFLINE_SESSION_BOOTSTRAP_VERSION, OFFLINE_WEAPON_SKIN_COUNT, PROTOCOL_VERSION,
-    SCHEMA_FINGERPRINT_BYTES, STANDARD_OFFLINE_WORLD_SEED, WORLD_STATE_FORMAT,
-    WORLD_STATE_SCHEMA_VERSION,
+    SCHEMA_FINGERPRINT_BYTES, SIMULATION_HZ, SIMULATION_STEP_NS, STANDARD_OFFLINE_WORLD_SEED,
+    WORLD_STATE_FORMAT, WORLD_STATE_SCHEMA_VERSION,
 };
 
 #[test]
@@ -171,17 +171,25 @@ fn current_catalog_exposes_the_typed_talent_cosmetic_and_spec_payloads() {
 
 #[test]
 fn reference_identity_pins_the_opaque_world_state_compatibility_key() {
-    assert_eq!(WORLD_STATE_FORMAT, "WOS83");
-    assert_eq!(WORLD_STATE_SCHEMA_VERSION, 83);
-    assert_eq!(woc_protocol::REFERENCE_IDENTITY.world_state_format, "WOS83");
+    assert_eq!(WORLD_STATE_FORMAT, "WOS118");
+    assert_eq!(WORLD_STATE_SCHEMA_VERSION, 118);
+    assert_eq!(
+        woc_protocol::REFERENCE_IDENTITY.world_state_format,
+        "WOS118"
+    );
     assert_eq!(
         woc_protocol::REFERENCE_IDENTITY.world_state_schema_version,
-        83
+        118
     );
     assert_eq!(
         woc_protocol::REFERENCE_IDENTITY.command_payload_schema_sha256,
         COMMAND_PAYLOAD_SCHEMA_SHA256
     );
+}
+
+#[test]
+fn simulation_step_tracks_the_authoritative_protocol_frequency() {
+    assert_eq!(SIMULATION_STEP_NS * u64::from(SIMULATION_HZ), 1_000_000_000);
 }
 
 #[test]
@@ -203,13 +211,13 @@ fn fixed_tick_and_world_snapshot_payloads_round_trip_losslessly() {
     let input = FixedTickInput {
         tick: 42,
         commands: vec![Command {
-            command_id: 7,
+            command_id: 43,
             actor: EntityRef {
                 id: 0x0102_0304_0506_0708,
                 generation: 9,
             },
             sequence: 11,
-            payload: vec![0, 0xff, 0x80],
+            payload: vec![0, 0xff, 0x80, 0, 0, 0, 0, 0],
         }],
         wall_time_forbidden: true,
         committed_state: vec![0xaa, 0, 0xff],
@@ -406,7 +414,7 @@ fn offline_bootstrap_rejects_nonstandard_seed_name_and_class_skin_mismatches() {
     let invalid_name = OfflineSessionBootstrap {
         world_seed: STANDARD_OFFLINE_WORLD_SEED,
         player_name: "1Vale".to_string(),
-        ..bootstrap
+        ..bootstrap.clone()
     };
     assert!(matches!(
         invalid_name.encode_payload(),
@@ -418,7 +426,7 @@ fn offline_bootstrap_rejects_nonstandard_seed_name_and_class_skin_mismatches() {
         player_class: 3,
         player_name: "Vale".to_string(),
         skin_variant: 7,
-        ..bootstrap
+        ..bootstrap.clone()
     };
     assert!(last_paladin_skin.encode_payload().is_ok());
 
@@ -544,13 +552,13 @@ fn offline_bootstrap_v2_carries_the_maximum_weapon_skin_account() {
 #[test]
 fn standalone_command_event_save_and_network_payloads_round_trip() {
     let command = Command {
-        command_id: 42,
+        command_id: 43,
         actor: EntityRef {
             id: 99,
             generation: 4,
         },
         sequence: 12,
-        payload: vec![0, 0xff, 8],
+        payload: vec![0, 0xff, 8, 0, 0, 0, 0, 0],
     };
     assert_eq!(
         Command::decode_payload(&command.encode_payload().expect("command must encode"))

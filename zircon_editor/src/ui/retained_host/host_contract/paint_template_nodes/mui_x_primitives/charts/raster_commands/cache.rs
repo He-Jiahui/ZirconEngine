@@ -11,6 +11,7 @@ const MAX_CHART_RASTER_CACHE_ENTRIES: usize = 128;
 const MAX_CHART_RASTER_CACHE_BYTES: usize = 32 * 1024 * 1024;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+/// 缓存身份包含尺寸、动态状态和调色板颜色；图像资源键必须与像素内容的这些输入保持一致。
 pub(super) struct ChartRasterCacheKey {
     kind_name: &'static str,
     width: u32,
@@ -102,6 +103,7 @@ pub(super) struct CachedChartRaster {
     pub(super) rgba: Arc<[u8]>,
 }
 
+/// 命中时共享 RGBA 存储；调用方仍为每次绘制生成自己的图像命令与裁剪框。
 pub(super) fn cached_chart_raster(key: &ChartRasterCacheKey) -> Option<CachedChartRaster> {
     chart_raster_cache()
         .lock()
@@ -179,42 +181,9 @@ fn chart_raster_cache() -> &'static Mutex<ChartRasterCache> {
 static CHART_RASTER_CACHE: OnceLock<Mutex<ChartRasterCache>> = OnceLock::new();
 
 #[cfg(test)]
+#[path = "cache/tests/arc_pixels_tests.rs"]
 mod arc_pixels_tests;
 
 #[cfg(test)]
-mod tests {
-    use super::{ChartRasterCache, ChartRasterCacheKey, MAX_CHART_RASTER_CACHE_ENTRIES};
-    use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-    use crate::ui::retained_host::host_contract::paint_template_nodes::mui_x_primitives::charts::ChartKind;
-    use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
-
-    fn key(index: u32) -> ChartRasterCacheKey {
-        ChartRasterCacheKey::new(
-            &TemplatePaneNodeData::default(),
-            index,
-            1,
-            ChartKind::Line,
-            PALETTE,
-        )
-    }
-
-    #[test]
-    fn cache_evicts_the_least_recently_used_chart_raster() {
-        let mut cache = ChartRasterCache::default();
-        for index in 0..MAX_CHART_RASTER_CACHE_ENTRIES {
-            cache.insert(
-                key(index as u32),
-                format!("chart-{index:03}"),
-                vec![index as u8].into(),
-            );
-        }
-        assert!(cache.get(&key(0)).is_some());
-
-        cache.insert(key(u32::MAX), "chart-new".to_string(), vec![0].into());
-
-        assert_eq!(cache.entries.len(), MAX_CHART_RASTER_CACHE_ENTRIES);
-        assert!(cache.get(&key(0)).is_some());
-        assert!(cache.get(&key(1)).is_none());
-        assert!(cache.get(&key(u32::MAX)).is_some());
-    }
-}
+#[path = "tests/cache.rs"]
+mod tests;

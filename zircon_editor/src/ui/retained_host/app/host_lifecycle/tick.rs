@@ -3,20 +3,82 @@ use crate::ui::retained_host::host_contract::globals::UiHostContext;
 use crate::ui::retained_host::ui_perf::{
     enter_ui_perf_scenario, time_ui_perf_scenario, UiPerfScenario,
 };
-use std::time::Instant;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::OnceLock;
+use std::time::{Duration, Instant};
+
+const SLOW_TICK_TRACE_THRESHOLD: Duration = Duration::from_millis(100);
+const SLOW_TICK_TRACE_LOG_LIMIT: usize = 64;
+static SLOW_TICK_TRACE_ENABLED: OnceLock<bool> = OnceLock::new();
+static SLOW_TICK_TRACE_LOG_COUNT: AtomicUsize = AtomicUsize::new(0);
+static SLOW_COMMIT_TRACE_LOG_COUNT: AtomicUsize = AtomicUsize::new(0);
+
+fn slow_tick_trace_enabled() -> bool {
+    *SLOW_TICK_TRACE_ENABLED.get_or_init(|| {
+        matches!(
+            std::env::var("ZIRCON_EDITOR_TRACE_SLOW_TICK").as_deref(),
+            Ok("1")
+        )
+    })
+}
+
+fn trace_elapsed_ms(start: Instant, end: Instant) -> f64 {
+    end.duration_since(start).as_secs_f64() * 1_000.0
+}
+
+fn trace_slow_tick(
+    started: Option<Instant>,
+    refresh_started: Option<Instant>,
+    refresh_ended: Option<Instant>,
+    commit_ended: Option<Instant>,
+) {
+    let (Some(started), Some(refresh_started), Some(refresh_ended), Some(commit_ended)) =
+        (started, refresh_started, refresh_ended, commit_ended)
+    else {
+        return;
+    };
+    let ended = Instant::now();
+    if ended.duration_since(started) <= SLOW_TICK_TRACE_THRESHOLD
+        || SLOW_TICK_TRACE_LOG_COUNT
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |count| {
+                (count < SLOW_TICK_TRACE_LOG_LIMIT).then(|| count + 1)
+            })
+            .is_err()
+    {
+        return;
+    }
+    eprintln!(
+        "[zircon_editor] slow_tick elapsed_ms={:.2} before_refresh_ms={:.2} refresh_ms={:.2} commit_ms={:.2} after_commit_ms={:.2}",
+        trace_elapsed_ms(started, ended),
+        trace_elapsed_ms(started, refresh_started),
+        trace_elapsed_ms(refresh_started, refresh_ended),
+        trace_elapsed_ms(refresh_ended, commit_ended),
+        trace_elapsed_ms(commit_ended, ended),
+    );
+}
 
 impl RetainedEditorHost {
+    fn runtime_frame_owner_key(&self) -> Option<(crate::core::play::PlayInstanceId, u64)> {
+        if !self.runtime.runtime_event_consumer_session_active() {
+            return None;
+        }
+        let Some(crate::core::play::WorldDomain::Play(instance)) =
+            self.runtime.play_sessions().attached_world_domain()
+        else {
+            return None;
+        };
+        self.runtime
+            .play_sessions()
+            .play_gateway(instance)
+            .map(|gateway| (instance, gateway.generation()))
+    }
+
     pub(in crate::ui::retained_host::app) fn tick(&mut self) {
+        let slow_tick_started = slow_tick_trace_enabled().then(Instant::now);
         zircon_runtime::profile_frame!("editor", "retained_host_tick");
         zircon_runtime::profile_scope!("editor", "retained_host", "tick");
         self.pump_editor_job_events();
-        let (plugin_watch_diagnostics, plugin_watch_deadline) = self
-            .module_plugin_live_host_backend
-            .poll_development_watches()
-            .into_parts();
-        for diagnostic in plugin_watch_diagnostics {
-            self.set_status_line(diagnostic);
-        }
+        let plugin_watch_deadline = self.poll_module_plugin_development_watches();
         if let Err(error) = self.editor_manager.pump_runtime_task_diagnostics(0) {
             self.set_status_line(error.to_string());
         }
@@ -65,11 +127,16 @@ impl RetainedEditorHost {
         self.runtime.update_scene_modes();
         self.sync_play_preview_input_focus();
         self.sync_simulate_preview_camera();
-        match self.runtime.pump_runtime_event_consumers() {
-            Ok(frame_demand) => self
-                .ui
-                .apply_runtime_frame_demand(frame_demand, Instant::now()),
-            Err(error) => self.set_status_line(error.to_string()),
+        let frame_owner = self.runtime_frame_owner_key();
+        self.ui.set_runtime_frame_owner(frame_owner);
+        let frame_result = self.runtime.pump_runtime_event_consumers();
+        if let Err(error) = self.ui.complete_runtime_frame_tick(
+            frame_result,
+            frame_owner,
+            self.runtime_frame_owner_key(),
+            Instant::now(),
+        ) {
+            self.set_status_line(error.to_string());
         }
         self.runtime.sync_active_selection_world_domain();
         self.sync_active_hierarchy_world();
@@ -83,6 +150,7 @@ impl RetainedEditorHost {
         self.sync_settings_projections();
         self.tick_workbench_tooltip();
 
+        let refresh_started = slow_tick_started.map(|_| Instant::now());
         {
             let _ui_perf_scenario = enter_ui_perf_scenario(UiPerfScenario::AssetRefresh);
             let _ui_perf_timer = time_ui_perf_scenario(UiPerfScenario::AssetRefresh);
@@ -91,7 +159,9 @@ impl RetainedEditorHost {
             }
         }
 
+        let refresh_ended = slow_tick_started.map(|_| Instant::now());
         self.commit_pending_frame_update();
+        let commit_ended = slow_tick_started.map(|_| Instant::now());
 
         {
             let _ui_perf_scenario = enter_ui_perf_scenario(UiPerfScenario::ViewportImage);
@@ -102,6 +172,12 @@ impl RetainedEditorHost {
             self.set_status_line(error);
             self.recompute_if_dirty();
         }
+        trace_slow_tick(
+            slow_tick_started,
+            refresh_started,
+            refresh_ended,
+            commit_ended,
+        );
     }
 
     pub(in crate::ui::retained_host::app) fn commit_interactive_frame_update(&mut self) {
@@ -120,6 +196,7 @@ impl RetainedEditorHost {
     }
 
     fn commit_pending_frame_update(&mut self) {
+        let trace_started = slow_tick_trace_enabled().then(Instant::now);
         let frame_scenario = self.pending_ui_perf_scenario.take();
         let _frame_scenario_guard = frame_scenario.map(enter_ui_perf_scenario);
         if let Some(scenario) = frame_scenario {
@@ -127,8 +204,30 @@ impl RetainedEditorHost {
         }
 
         self.sync_shell_size();
+        let sync_ended = trace_started.map(|_| Instant::now());
         self.recompute_if_dirty();
+        let recompute_ended = trace_started.map(|_| Instant::now());
         self.submit_render_frame_if_dirty();
+        if let (Some(started), Some(sync_ended), Some(recompute_ended)) =
+            (trace_started, sync_ended, recompute_ended)
+        {
+            let ended = Instant::now();
+            if ended.duration_since(started) > SLOW_TICK_TRACE_THRESHOLD
+                && SLOW_COMMIT_TRACE_LOG_COUNT
+                    .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |count| {
+                        (count < SLOW_TICK_TRACE_LOG_LIMIT).then(|| count + 1)
+                    })
+                    .is_ok()
+            {
+                eprintln!(
+                    "[zircon_editor] slow_commit_frame elapsed_ms={:.2} sync_shell_ms={:.2} recompute_ms={:.2} render_submit_ms={:.2}",
+                    trace_elapsed_ms(started, ended),
+                    trace_elapsed_ms(started, sync_ended),
+                    trace_elapsed_ms(sync_ended, recompute_ended),
+                    trace_elapsed_ms(recompute_ended, ended),
+                );
+            }
+        }
     }
 
     fn sync_play_preview_input_focus(&mut self) {
@@ -162,181 +261,5 @@ impl RetainedEditorHost {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn retained_tick_owns_the_single_editor_job_event_pump_call() {
-        let source = include_str!("tick.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("tick source should contain its production section");
-        let pump_call = [".jobs()", ".pump_events()"].concat();
-        assert_eq!(production.matches(pump_call.as_str()).count(), 1);
-        let pump = production
-            .find("self.pump_editor_job_events();")
-            .expect("retained tick should pump editor job events");
-        let task_diagnostics = production
-            .find("self.editor_manager.pump_runtime_task_diagnostics(0)")
-            .expect("retained tick should project runtime task diagnostics");
-        let heartbeat = production
-            .find(".refresh_project_session_heartbeat_if_due(Instant::now())")
-            .expect("retained tick should refresh the active project session heartbeat");
-        let heartbeat_wake = production
-            .find("self.ui.set_lifecycle_frame_update(")
-            .expect("retained tick should schedule the active session heartbeat wake");
-        let prompted_close_save = production
-            .find("self.poll_prompted_close_save();")
-            .expect("retained tick should collect prompted close saves after job events");
-        let save_all = production
-            .find("self.poll_document_save_all();")
-            .expect("retained tick should collect Save All completions after prompted closes");
-        let export_poll = production
-            .find("self.poll_desktop_export_jobs();")
-            .expect("retained tick should poll export jobs");
-        let wizard_poll = production
-            .find("self.poll_desktop_export_wizard_sessions();")
-            .expect("retained tick should poll export wizard sessions");
-        let progress_sync = production
-            .find("self.sync_editor_job_progress();")
-            .expect("retained tick should project the unified job progress source");
-        let lifecycle_pump = production
-            .find("self.runtime.pump_plugin_lifecycle_messages()")
-            .expect("retained tick should pump plugin lifecycle message subscriptions");
-        assert!(pump < prompted_close_save);
-        assert!(pump < task_diagnostics);
-        assert!(task_diagnostics < heartbeat);
-        assert!(pump < heartbeat);
-        assert!(heartbeat < prompted_close_save);
-        assert!(heartbeat < heartbeat_wake);
-        assert!(heartbeat_wake < prompted_close_save);
-        assert!(prompted_close_save < save_all);
-        assert!(save_all < export_poll);
-        assert!(export_poll < wizard_poll);
-        assert!(wizard_poll < progress_sync);
-        assert!(progress_sync < lifecycle_pump);
-    }
-
-    #[test]
-    fn retained_tick_collects_recovery_worker_results_after_job_events_before_heartbeat_io() {
-        let source = include_str!("tick.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("tick source should contain its production section");
-        let job_events = production
-            .find("self.pump_editor_job_events();")
-            .expect("retained tick should pump job events first");
-        let task_diagnostics = production
-            .find("self.editor_manager.pump_runtime_task_diagnostics(0)")
-            .expect("retained tick should project runtime task diagnostics after job events");
-        let recovery = production
-            .find("self.editor_manager.pump_project_recovery_decisions()")
-            .expect("retained tick should collect recovery decisions and worker results");
-        let heartbeat = production
-            .find(".refresh_project_session_heartbeat_if_due(Instant::now())")
-            .expect("retained tick should refresh the active project session heartbeat");
-
-        assert!(job_events < recovery);
-        assert!(job_events < task_diagnostics);
-        assert!(task_diagnostics < recovery);
-        assert!(recovery < heartbeat);
-    }
-
-    #[test]
-    fn retained_tick_drives_project_autosave_after_recovery_and_session_heartbeat() {
-        let source = include_str!("tick.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("tick source should contain its production section");
-        let recovery = production
-            .find("self.editor_manager.pump_project_recovery_decisions()")
-            .expect("retained tick should process project recovery first");
-        let heartbeat = production
-            .find(".refresh_project_session_heartbeat_if_due(Instant::now())")
-            .expect("retained tick should refresh the active project session heartbeat");
-        let autosave = production
-            .find("self.poll_editor_autosave();")
-            .expect("retained tick should drive the context-owned autosave service");
-        let model_import = production
-            .find("self.poll_model_import();")
-            .expect("retained tick should continue normal tool polling after autosave");
-
-        assert!(recovery < heartbeat);
-        assert!(heartbeat < autosave);
-        assert!(autosave < model_import);
-    }
-
-    #[test]
-    fn retained_tick_projects_the_unified_notification_snapshot_after_backend_polling() {
-        let source = include_str!("tick.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("tick source should contain its production section");
-        let backend_poll = production
-            .find("self.runtime.pump_runtime_event_consumers()")
-            .expect("retained tick should poll the play backend");
-        let lifecycle_pump = production
-            .find("self.runtime.pump_plugin_lifecycle_messages()")
-            .expect("retained tick should pump plugin lifecycle message subscriptions before backend polling");
-        let template_sync = production
-            .find("self.sync_plugin_template_documents_if_changed()")
-            .expect("retained tick should synchronize plugin templates after backend polling");
-        let toast_sync = production
-            .find("self.sync_activity_notifications();")
-            .expect("retained tick should project the unified notification authority");
-        let settings_sync = production
-            .find("self.sync_settings_projections();")
-            .expect("retained tick should synchronize authority-owned settings projections");
-        let recompute = production
-            .find("self.recompute_if_dirty();")
-            .expect("retained tick should recompute invalidated presentation");
-        assert!(lifecycle_pump < backend_poll);
-        assert!(backend_poll < template_sync);
-        assert!(template_sync < toast_sync);
-        assert!(toast_sync < settings_sync);
-        assert!(settings_sync < recompute);
-    }
-
-    #[test]
-    fn retained_tick_selects_the_terminal_runtime_domain_before_hierarchy_sync() {
-        let source = include_str!("tick.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("tick source should contain its production section");
-        let runtime_consumers = production
-            .find("self.runtime.pump_runtime_event_consumers()")
-            .expect("retained tick should settle the play backend state");
-        let selection = production
-            .find("self.runtime.sync_active_selection_world_domain()")
-            .expect("retained tick should select the matching world selection domain");
-        let viewport_pick = production
-            .find("self.poll_play_viewport_pick_for_native_host()")
-            .expect("retained tick should consume renderer-owned Play viewport picks");
-        let hierarchy = production
-            .find("self.sync_active_hierarchy_world();")
-            .expect("retained tick should synchronize the selected hierarchy domain");
-        assert!(runtime_consumers < selection);
-        assert!(selection < hierarchy);
-        assert!(hierarchy < viewport_pick);
-    }
-
-    #[test]
-    fn retained_tick_consumes_resize_render_work_after_the_active_recompute() {
-        let source = include_str!("tick.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("tick source should contain its production section");
-        let recompute = production
-            .find("self.recompute_if_dirty();")
-            .expect("window metrics and viewport projection recompute");
-        let render = production
-            .find("self.submit_render_frame_if_dirty();")
-            .expect("render reason consumer");
-
-        assert!(recompute < render);
-    }
-}
+#[path = "tests/tick.rs"]
+mod tests;

@@ -1,14 +1,15 @@
+# 核对插件目录模型、选择与工作区组件的职责归属。
 import tempfile
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-ZIRCON_BUILD = REPO_ROOT / "tools/zircon_build.py"
-ZIRCON_BUILD_PLUGIN_PACKAGES = REPO_ROOT / "tools/zircon_build_plugin_packages.py"
-ZIRCON_BUILD_PLUGIN_SELECTION = REPO_ROOT / "tools/zircon_build_plugin_selection.py"
+ZIRCON_BUILD = REPO_ROOT / "tools/build/zircon_build.py"
+ZIRCON_BUILD_PLUGIN_PACKAGES = REPO_ROOT / "tools/build/zircon_build_plugin_packages.py"
+ZIRCON_BUILD_PLUGIN_SELECTION = REPO_ROOT / "tools/build/zircon_build_plugin_selection.py"
 ZIRCON_BUILD_PLUGIN_WORKSPACE_CRATES = (
-    REPO_ROOT / "tools/zircon_build_plugin_workspace_crates.py"
+    REPO_ROOT / "tools/build/zircon_build_plugin_workspace_crates.py"
 )
 
 
@@ -32,12 +33,12 @@ class ZirconBuildPluginCatalogOwnerBoundaryTests(unittest.TestCase):
         )
 
         for import_name in (
-            "from .zircon_build_plugin_packages import PluginPackage",
-            "from .zircon_build_plugin_selection import (",
-            "from .zircon_build_plugin_workspace_crates import discover_plugin_workspace_crates",
-            "from zircon_build_plugin_packages import PluginPackage",
-            "from zircon_build_plugin_selection import (",
-            "from zircon_build_plugin_workspace_crates import discover_plugin_workspace_crates",
+            "from .build.zircon_build_plugin_packages import PluginPackage",
+            "from .build.zircon_build_plugin_selection import (",
+            "from .build.zircon_build_plugin_workspace_crates import discover_plugin_workspace_crates",
+            "from build.zircon_build_plugin_packages import PluginPackage",
+            "from build.zircon_build_plugin_selection import (",
+            "from build.zircon_build_plugin_workspace_crates import discover_plugin_workspace_crates",
         ):
             self.assertIn(import_name, build_text)
 
@@ -86,16 +87,16 @@ class ZirconBuildPluginCatalogOwnerBoundaryTests(unittest.TestCase):
     def test_plugin_catalog_owners_preserve_package_workspace_and_selection_semantics(
         self,
     ):
-        from tools.zircon_build_plugin_manifest_contract import (
+        from tools.build.zircon_build_plugin_manifest_contract import (
             PLUGIN_DISTRIBUTION_FORM_DIST,
             PLUGIN_DISTRIBUTION_FORM_EMBED,
         )
-        from tools.zircon_build_plugin_packages import CargoPackage, PluginPackage
-        from tools.zircon_build_plugin_selection import (
+        from tools.build.zircon_build_plugin_packages import CargoPackage, PluginPackage
+        from tools.build.zircon_build_plugin_selection import (
             filter_plugins_by_carrier,
             select_plugins,
         )
-        from tools.zircon_build_plugin_workspace_crates import (
+        from tools.build.zircon_build_plugin_workspace_crates import (
             discover_plugin_workspace_crates,
         )
 

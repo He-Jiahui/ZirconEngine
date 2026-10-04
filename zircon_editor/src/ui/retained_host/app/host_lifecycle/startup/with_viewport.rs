@@ -3,6 +3,8 @@ use super::state::{construct_startup_host, StartupHostConstruction};
 use super::template_bridges::create_startup_template_bridges;
 use super::*;
 use crate::core::gui_startup_request::EditorGuiStartupRequest;
+use crate::core::play::NativePluginArtifactAuthorityResolver;
+use std::sync::Arc;
 use zircon_runtime_interface::hub_protocol::HubSessionToken;
 use zircon_runtime_interface::runtime_build_set::ZrRuntimeBuildSetId;
 
@@ -25,7 +27,7 @@ impl RetainedEditorHost {
         startup_request: Option<EditorGuiStartupRequest>,
         project_runtime_build_set: Option<ZrRuntimeBuildSetId>,
         hub_launch_session: Option<HubSessionToken>,
-    ) -> Result<Self, Box<dyn Error>> {
+    ) -> Result<Self, Box<dyn Error + Send + Sync>> {
         zircon_runtime::profile_scope!("editor", "retained_host", "new_with_viewport");
         #[cfg(not(feature = "profiling"))]
         let _ = &runtime_gateway;
@@ -41,6 +43,12 @@ impl RetainedEditorHost {
         startup_managers
             .editor_manager
             .configure_project_runtime_build_set(project_runtime_build_set);
+        let native_plugin_authority_resolver: NativePluginArtifactAuthorityResolver = {
+            let editor_manager = startup_managers.editor_manager.clone();
+            Arc::new(move |project_root| {
+                editor_manager.native_plugin_artifact_authority_for_project(project_root)
+            })
+        };
         let editor_jobs = startup_managers.editor_manager.context().jobs().clone();
         ui.bind_profile_artifact_jobs(editor_jobs.clone());
         ui.bind_visual_asset_jobs(editor_jobs, ui.background_visual_asset_wake_callback());
@@ -54,8 +62,10 @@ impl RetainedEditorHost {
         let (startup_session, runtime) = startup_session_state.into_parts();
         let shell_size = resolve_startup_shell_size(&ui);
         let shell_scale_factor = resolve_startup_shell_scale_factor(&ui);
-        let template_bridges = create_startup_template_bridges(shell_size)?;
-        let runtime_backend = create_startup_runtime_backend(runtime);
+        let template_bridges =
+            create_startup_template_bridges(shell_size, runtime.context().i18n_handle())?;
+        let runtime_backend =
+            create_startup_runtime_backend(runtime, native_plugin_authority_resolver);
 
         let mut host = construct_startup_host(StartupHostConstruction {
             ui,
@@ -65,6 +75,7 @@ impl RetainedEditorHost {
             runtime_gateway,
             runtime_lease,
             native_plugin_host: runtime_backend.native_plugin_host,
+            native_plugin_authority_resolver: runtime_backend.native_plugin_authority_resolver,
             viewport,
             startup_session,
             viewport_size,

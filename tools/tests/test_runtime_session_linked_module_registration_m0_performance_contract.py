@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime/src/dynamic_api/session/construction.rs"
 
-
+# 读取链接模块注册，确认借用组合描述符切片而不先深克隆到临时向量。
 class RuntimeSessionLinkedModuleRegistrationM0PerformanceContract(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

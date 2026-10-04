@@ -1,6 +1,7 @@
+# 用时间线夹具验证表面管线耗时和权威工作量，并保持未观察阶段为空。
 $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $script:SurfacePipelineMetrics =
-    Join-Path $script:RepoRoot "tools\ui-profile-surface-pipeline-metrics.ps1"
+    Join-Path $script:RepoRoot "tools\analysis\profiling\ui\ui-profile-surface-pipeline-metrics.ps1"
 
 if (Test-Path -LiteralPath $script:SurfacePipelineMetrics) {
     . $script:SurfacePipelineMetrics

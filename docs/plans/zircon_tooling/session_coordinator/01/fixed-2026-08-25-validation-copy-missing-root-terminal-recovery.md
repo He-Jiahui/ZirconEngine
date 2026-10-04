@@ -10,9 +10,6 @@ origin_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/tests/test_workspace_copy.py
-  - tools/session_coordinator/workspace_copy.py
-  - tools/session_coordinator/workspace_copy_terminal.py
 tests:
   - python -B -m unittest tools.session_coordinator.tests.test_workspace_copy.WorkspaceCopyTests.test_periodic_recovery_rechecks_root_absence_after_running_lock -v
   - python -B -m unittest tools.session_coordinator.tests.test_workspace_copy -v -k recovery

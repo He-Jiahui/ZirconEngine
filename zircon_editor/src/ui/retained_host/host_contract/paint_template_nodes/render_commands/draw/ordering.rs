@@ -1,15 +1,22 @@
 use super::super::super::super::paint_frame::HostRgbaFrame;
+use super::super::super::evidence::{record_box_shadow_command, record_drawn_command};
 use super::super::command::HostPaintCommand;
 use super::dispatch::draw_host_paint_command;
 use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 
+/// 已单调排列的命令直接绘制；乱序时稳定排序，保持同层模板节点的原提交顺序。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn draw_host_paint_commands(
     frame: &mut HostRgbaFrame,
     commands: &[HostPaintCommand],
 ) -> bool {
     if z_indices_are_ordered(commands.iter().map(|command| command.z_index)) {
         return commands.iter().fold(false, |drew_any, command| {
-            draw_host_paint_command(frame, command) || drew_any
+            record_box_shadow_command(command);
+            let drew = draw_host_paint_command(frame, command);
+            if drew {
+                record_drawn_command(command);
+            }
+            drew || drew_any
         });
     }
 
@@ -20,7 +27,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn draw_ho
     {
         zircon_runtime::profile_scope!("editor", "host_painter", "paint_commands_draw_ordered");
         for command in ordered {
-            drew_any |= draw_host_paint_command(frame, command);
+            record_box_shadow_command(command);
+            let drew = draw_host_paint_command(frame, command);
+            if drew {
+                record_drawn_command(command);
+            }
+            drew_any |= drew;
         }
     }
     drew_any
@@ -50,21 +62,9 @@ fn z_indices_are_ordered(mut indices: impl Iterator<Item = i32>) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::z_indices_are_ordered;
-
-    #[test]
-    fn ordered_and_equal_layers_stay_on_the_zero_sort_path() {
-        assert!(z_indices_are_ordered([0, 0, 2, 8].into_iter()));
-        assert!(z_indices_are_ordered([].into_iter()));
-    }
-
-    #[test]
-    fn descending_layer_requires_the_fallback_sort() {
-        assert!(!z_indices_are_ordered([0, 4, 3, 8].into_iter()));
-    }
-}
+#[path = "tests/ordering.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "ordering/stable_z_sort_tests.rs"]
+#[path = "ordering/tests/stable_z_sort_tests.rs"]
 mod stable_z_sort_tests;

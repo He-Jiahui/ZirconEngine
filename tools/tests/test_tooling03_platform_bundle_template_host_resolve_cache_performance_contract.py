@@ -1,3 +1,4 @@
+# 核对多个模板文件共享宿主路径解析，空列表跳过解析。
 from __future__ import annotations
 
 import tempfile
@@ -5,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_export.platform_bundle_template_files_materialize import (
+from tools.export.platform_bundle_template_files_materialize import (
     materialize_platform_bundle_template_files,
 )
 
@@ -39,7 +40,7 @@ class Tooling03PlatformBundleTemplateHostResolveCachePerformanceContractTests(
                 return original_resolve(path, *args, **kwargs)
 
             with mock.patch.object(Path, "resolve", new=observed_resolve), mock.patch(
-                "tools.zircon_export.platform_bundle_template_files_materialize.copy_platform_bundle_template_file",
+                "tools.export.platform_bundle_template_files_materialize.copy_platform_bundle_template_file",
                 return_value=True,
             ):
                 fatal, copied = materialize_platform_bundle_template_files(

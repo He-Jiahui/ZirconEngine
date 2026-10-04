@@ -3,13 +3,16 @@ use std::fmt;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use crate::core::settings::{SettingsAuthority, SettingsError};
+
 use super::request::{
     ScriptBuildCompletion, ScriptBuildOutcome, ScriptBuildRequest, ScriptBuildRequestId,
     ScriptBuildStepDispatch, ScriptBuildTrigger,
 };
+use super::settings::{
+    ScriptBuildBatchPolicy, DEFAULT_SCRIPT_WATCH_DEBOUNCE_MS, DEFAULT_SCRIPT_WATCH_MAX_LATENCY_MS,
+};
 
-pub const DEFAULT_SCRIPT_WATCH_DEBOUNCE_MS: u64 = 300;
-pub const DEFAULT_SCRIPT_WATCH_MAX_LATENCY_MS: u64 = 1_000;
 pub const MAX_INCREMENTAL_SCRIPT_WATCH_PATHS: usize = 20;
 pub const MAX_INCREMENTAL_SCRIPT_WATCH_PATH_BYTES: usize = 64 * 1024;
 
@@ -144,19 +147,20 @@ struct ActiveScriptBuild {
 }
 
 pub struct ScriptBuildOrchestrator {
-    debounce_ms: u64,
-    max_latency_ms: u64,
+    batch_policy: ScriptBuildBatchPolicy,
     next_request_id: u64,
     pending_watch_paths: BTreeSet<PathBuf>,
     pending_watch_path_bytes: usize,
     pending_watch_requires_full_rebuild: bool,
     watch_first_observed_at_ms: Option<u64>,
+    watch_last_observed_at_ms: Option<u64>,
     watch_deadline_ms: Option<u64>,
     queued_request: Option<ScriptBuildRequest>,
     active_request: Option<ActiveScriptBuild>,
     last_outcome: Option<Arc<ScriptBuildOutcome>>,
 }
 
+#[cfg(test)]
 impl Default for ScriptBuildOrchestrator {
     fn default() -> Self {
         Self::new(DEFAULT_SCRIPT_WATCH_DEBOUNCE_MS)
@@ -164,6 +168,35 @@ impl Default for ScriptBuildOrchestrator {
 }
 
 impl ScriptBuildOrchestrator {
+    /// Constructs the production state machine from the sole settings authority.
+    pub fn from_settings(settings: &SettingsAuthority) -> Result<Self, SettingsError> {
+        Ok(Self::with_batch_policy(
+            ScriptBuildBatchPolicy::from_settings(settings)?,
+        ))
+    }
+
+    pub const fn batch_policy(&self) -> ScriptBuildBatchPolicy {
+        self.batch_policy
+    }
+
+    /// Hot-applies the current resolved batch policy without changing admitted generations.
+    ///
+    /// A pending watch batch is recalculated from its original first and last observations. This
+    /// applies a shorter window immediately while preserving the hard first-event latency cap.
+    pub fn synchronize_settings(
+        &mut self,
+        settings: &SettingsAuthority,
+    ) -> Result<bool, SettingsError> {
+        let next = ScriptBuildBatchPolicy::from_settings(settings)?;
+        if next == self.batch_policy {
+            return Ok(false);
+        }
+        self.batch_policy = next;
+        self.recompute_watch_deadline();
+        Ok(true)
+    }
+
+    #[cfg(test)]
     pub fn new(debounce_ms: u64) -> Self {
         Self::with_debounce_limits(
             debounce_ms,
@@ -171,15 +204,23 @@ impl ScriptBuildOrchestrator {
         )
     }
 
+    #[cfg(test)]
     pub fn with_debounce_limits(debounce_ms: u64, max_latency_ms: u64) -> Self {
-        Self {
+        Self::with_batch_policy(ScriptBuildBatchPolicy::from_test_limits(
             debounce_ms,
-            max_latency_ms: max_latency_ms.max(debounce_ms),
+            max_latency_ms,
+        ))
+    }
+
+    fn with_batch_policy(batch_policy: ScriptBuildBatchPolicy) -> Self {
+        Self {
+            batch_policy,
             next_request_id: 1,
             pending_watch_paths: BTreeSet::new(),
             pending_watch_path_bytes: 0,
             pending_watch_requires_full_rebuild: false,
             watch_first_observed_at_ms: None,
+            watch_last_observed_at_ms: None,
             watch_deadline_ms: None,
             queued_request: None,
             active_request: None,
@@ -203,12 +244,11 @@ impl ScriptBuildOrchestrator {
             .watch_first_observed_at_ms
             .map_or(observed_at_ms, |first| first.min(observed_at_ms));
         self.watch_first_observed_at_ms = Some(first_observed_at_ms);
-        let hard_deadline_ms = first_observed_at_ms.saturating_add(self.max_latency_ms);
-        self.watch_deadline_ms = Some(
-            observed_at_ms
-                .saturating_add(self.debounce_ms)
-                .min(hard_deadline_ms),
+        self.watch_last_observed_at_ms = Some(
+            self.watch_last_observed_at_ms
+                .map_or(observed_at_ms, |last| last.max(observed_at_ms)),
         );
+        self.recompute_watch_deadline();
     }
 
     pub fn enqueue_command(&mut self) -> Result<ScriptBuildRequestId, ScriptBuildEnqueueError> {
@@ -286,6 +326,7 @@ impl ScriptBuildOrchestrator {
             self.pending_watch_path_bytes = 0;
             self.pending_watch_requires_full_rebuild = false;
             self.watch_first_observed_at_ms = None;
+            self.watch_last_observed_at_ms = None;
             self.watch_deadline_ms = None;
             self.last_outcome = Some(Arc::new(outcome.clone()));
             (dropped_queued_request_count, dropped_watch_path_count)
@@ -397,6 +438,7 @@ impl ScriptBuildOrchestrator {
 
     fn take_pending_watch_paths(&mut self) -> Vec<PathBuf> {
         self.watch_first_observed_at_ms = None;
+        self.watch_last_observed_at_ms = None;
         self.watch_deadline_ms = None;
         self.pending_watch_path_bytes = 0;
         if self.pending_watch_requires_full_rebuild {
@@ -410,6 +452,17 @@ impl ScriptBuildOrchestrator {
 
     fn has_pending_watch_changes(&self) -> bool {
         self.pending_watch_requires_full_rebuild || !self.pending_watch_paths.is_empty()
+    }
+
+    fn recompute_watch_deadline(&mut self) {
+        self.watch_deadline_ms = self
+            .watch_first_observed_at_ms
+            .zip(self.watch_last_observed_at_ms)
+            .map(|(first, last)| {
+                let hard_deadline_ms = first.saturating_add(self.batch_policy.max_latency_ms());
+                last.saturating_add(self.batch_policy.debounce_ms())
+                    .min(hard_deadline_ms)
+            });
     }
 
     fn pending_watch_path_count(&self) -> usize {

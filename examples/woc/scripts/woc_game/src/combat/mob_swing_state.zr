@@ -1,7 +1,7 @@
-// Stateful M4 projection of the base mobSwing shell. The landed result is
-// passed to mob_swing_affix_state; this module never re-rolls an affix proc.
+//! 基础怪物挥击的局部命中、伤害和 RNG 投影；产品世界读取结果结算玩家伤害，词缀级联仍是单独测试投影。
 var container = %import("zr.container");
 
+/// 世界调用方提供武器、防御与 RNG 游标，挥击后读取伤害和更新后的游标继续结算。
 pub class MobSwingState {
     pub var sourceLevel: int;
     pub var weaponMinimum: float;
@@ -78,6 +78,7 @@ pub class MobSwingState {
     }
 }
 
+// 测试样本优先；产品世界启用权威游标后，命中、武器区间和暴击依次推进同一流。
 takeRandomUnit(state: MobSwingState): float {
     if (state.randomIndex >= 0 && state.randomIndex < state.randomUnits.length) {
         var result = <float>state.randomUnits[state.randomIndex];
@@ -196,6 +197,7 @@ pub authoritativeRngDigest(state: MobSwingState, required: bool): uint {
     return state.rngDigest;
 }
 
+/// 按未命中、闪避、招架、格挡与伤害顺序结算局部结果；世界调用方再处理减伤、吸收和死亡。
 pub swing(state: MobSwingState): string {
     var dodgeChance = state.targetKind == "player" ?
         state.targetDodgeChance : 0.05;

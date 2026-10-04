@@ -32,6 +32,8 @@ pub hasDevTierIndex(index: int): bool {
 
 // Equivalent to devTierIndexForMergedPrs() on the verified integer input
 // domain. The explicit availability bit preserves the source null case.
+// 仅在宿主已核验 GitHub 合并 PR 数量后查询展示级别；
+// 无账号与零贡献通过 hasMergedPrs 区分，模块不自行访问外部账号。
 pub devTierIndexForMergedPrs(hasMergedPrs: bool, mergedPrs: int): int {
     if (!hasMergedPrs || mergedPrs < devTierThreshold(1)) { return 0; }
     var tier = 0;

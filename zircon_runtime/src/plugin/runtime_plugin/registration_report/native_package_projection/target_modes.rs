@@ -1,6 +1,7 @@
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::plugin::{PluginModuleKind, PluginPackageManifest};
 
+// 仅聚合 Runtime 模块，并按目标在清单中的首次出现顺序去重。
 pub(super) fn native_package_target_modes(
     package_manifest: &PluginPackageManifest,
 ) -> Vec<RuntimeTargetMode> {
@@ -30,5 +31,5 @@ const fn native_package_target_mode_bit(target_mode: RuntimeTargetMode) -> u8 {
 }
 
 #[cfg(test)]
-#[path = "target_modes/bitset_tests.rs"]
+#[path = "target_modes/tests/bitset_tests.rs"]
 mod bitset_tests;

@@ -72,9 +72,7 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
   - zircon_runtime/src/tests/runtime_absorption/ecs_kernel_data.rs
   - zircon_runtime/src/tests/runtime_absorption/ecs_kernel_data/inventory.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early/runtime_08.rs
   - tools/tests/test_runtime_ecs_kernel_data_audit.py
-  - tests/acceptance/runtime-ecs-kernel-data-audit-owner-sync.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_query_state_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_query_state_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_kernel_data_boundary.py
@@ -144,7 +142,7 @@ Runtime 08 current hard-cut sync (2026-08-28): `ecs_kernel_data_boundary` now ow
 
 #### 切片 0.1 五维对照表
 
-- 目标文件：`docs/zircon_runtime/scene/ecs.md`（执行时核验存在性：`ls docs/zircon_runtime/scene/`；有则扩展、无则新建并挂 `docs/zircon_runtime/` 索引）。
+- 目标文件：`docs/crates/zircon_runtime/scene/ecs.md`（执行时核验存在性：`ls docs/crates/zircon_runtime/scene/`；有则扩展、无则新建并挂 `docs/crates/zircon_runtime/` 索引）。
 - 改动形态：纯文档。五维逐项对照，已知行预填：
 
   | 维度 | bevy_ecs 锚点 | 本仓对应物 | 待裁决问题 |
@@ -233,7 +231,7 @@ Runtime 08 current hard-cut sync (2026-08-28): `ecs_kernel_data_boundary` now ow
 - `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter change_tick`
 - `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter messages`
 - `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter ecs`（收尾全族）
-- 验收证据：差距表全部行闭环；`docs/zircon_runtime/scene/ecs.md` 与代码一致。
+- 验收证据：差距表全部行闭环；`docs/crates/zircon_runtime/scene/ecs.md` 与代码一致。
 
 ## 状态与产出记录
 
@@ -327,9 +325,9 @@ anchor；相关 production 与 audit owner 正由其它改动占用，本切片�
 
 ## 2026-08-28 Sparse Component Locator Pages
 
-状态：`runtime_08_60_sparse_component_locator_algorithm_source_passed_diagnostics_cargo_product_profile_deferred`。
+状态：`runtime_08_60_sparse_component_locator_source_complete_cargo_product_profile_pending`。
 
-Runtime60 `RECS-P1-11` 的分页算法项已收敛，但整项保持 partial。`SparseComponentStorage` 不再把
+Runtime60 `RECS-P1-11` 的 source implementation 已收敛，但 managed qualification 仍 pending。`SparseComponentStorage` 不再把
 locator 连续 `Vec<Option<_>>` 扩到最高 entity index；独立 locator owner 使用 256-slot packed
 page、零起始 flat prefix 与一个 page-aligned 高位热点 window；两个 flat span 均以每个 live
 locator 最多 1,024 slots 的全局密度界提升。其它不相邻页进入私有 `u32` identity-hash 目录，
@@ -344,6 +342,7 @@ mixed 改善 6.4199%-15.0733%，hit-only 改善 7.2077%-13.7094%，双 span 回�
 4.3081%-16.1994%，均通过 30% 上限。原 sparse
 HashMap 高位聚簇路径回退 203.3120%-446.0091%，radix/open-row 候选也未过线，故改为有界
 offset window；真正第三离散簇仍是待产品 profile 证明为冷路径的 memory-first overflow。
-focused contract 3/3、真实 owner Rust harness 16/16（含跨表示删除后统一 compaction）、非测试编译壳与 checksum 通过。生产 locator-byte diagnostics 尚未
-聚合到共享 `ComponentStorage` owner；Cargo、百万 counters/RSS slope、真实 scene P95、WPR/
-CPU/power 与 G06 仍 pending，因此不关闭 `RECS-P1-11`、Runtime08 failure 或 managed milestone。
+此前 focused contract 3/3、真实 owner Rust harness 16/16（含跨表示删除后统一 compaction）、非测试编译壳与 checksum 通过。本轮将 locator 的 entry/page/modeled-byte 冷快照经 `SparseComponentStorage`
+聚合到共享 `ComponentStorage` owner，新的 focused contract 为 5/5；two-owner Rust regression 已挂载，并要求 32 KiB modeled structural bound，等待 managed Cargo。
+Cargo、百万 counters/RSS slope、真实 scene P95、WPR/CPU/power 与 G06 仍 pending，因此不关闭
+Runtime08 failure 或 managed milestone。

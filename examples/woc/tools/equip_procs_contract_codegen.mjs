@@ -1,3 +1,6 @@
+// 调用端：npm run generate:equip-procs-contract (tools/package.json)；职责：固化装备触发效果类别和随机数抽取顺序。
+// 输入边界：src/sim/combat/equip_procs.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

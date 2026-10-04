@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码投影地下探索模块选择向量与活动关卡布局坐标，生成可核对的 JSON 和 Zr 内容。
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -276,6 +277,7 @@ function renderContentContractTest(delves) {
   return lines.join('\n');
 }
 
+// 依据固定地下探索向量输出活动模块选择与占用几何。
 function renderLayoutZr(catalog) {
   const { delves, selection_vectors: vectors } = catalog;
   const maxPool = Math.max(...delves.map((delve) => delve.non_final_module_indices.length));

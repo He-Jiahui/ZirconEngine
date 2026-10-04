@@ -28,7 +28,7 @@ class EditorPluginCatalogStoreContractTests(unittest.TestCase):
 
         self.assertIn("packages_by_capability", snapshot)
         self.assertIn("pub fn packages_for_capability(&self, capability: &str) -> &[String]", snapshot)
-        self.assertIn("package_ids.sort()", snapshot)
+        self.assertIn("package_ids.sort_unstable()", snapshot)
         self.assertIn("package_ids.dedup()", snapshot)
 
     def test_projection_is_owned_by_the_catalog_snapshot_generation(self) -> None:
@@ -56,7 +56,7 @@ class EditorPluginCatalogStoreContractTests(unittest.TestCase):
         self.assertIn(
             "active_extensions: Arc<EditorExtensionCatalogReport>", manager_snapshot
         )
-        self.assertIn("fn build_active_extensions", manager)
+        self.assertIn("fn build_active_extensions", manager_snapshot)
         self.assertIn("EditorPluginState::Active", manager)
 
     def test_raw_registration_extensions_are_not_a_public_catalog_read_surface(self) -> None:
@@ -111,7 +111,7 @@ class EditorPluginCatalogStoreContractTests(unittest.TestCase):
         self.assertNotIn("EditorPluginManager::builtin_shared()", manager)
         self.assertNotIn("plugin_catalog: EditorPluginCatalogStore", manager)
         self.assertIn("Arc<EditorPluginCatalogSnapshot>", exports)
-        self.assertIn("self.plugin_manager.catalog_snapshot()", exports)
+        self.assertIn("self.plugin_manager().catalog_snapshot()", exports)
         self.assertNotIn("EditorPluginCatalog::builtin", exports)
         self.assertIn("editor_catalog.package_manifests()", status)
 

@@ -329,7 +329,7 @@ fn floating_window(
     crate::ui::workbench::layout::FloatingWindowLayout {
         window_id,
         title: title.to_string(),
-        workspace: DocumentNode::Tabs(TabStackLayout {
+        workspace: DocumentNode::tabs(TabStackLayout {
             tabs: vec![instance_id.clone()],
             active_tab: Some(instance_id.clone()),
         }),

@@ -1,6 +1,7 @@
+# 用时间线夹具验证界面绘制分位指标保留来源绑定且缺失证据不会被补零。
 $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $script:ChromePaintMetrics =
-    Join-Path $script:RepoRoot "tools\ui-profile-chrome-paint-metrics.ps1"
+    Join-Path $script:RepoRoot "tools\analysis\profiling\ui\ui-profile-chrome-paint-metrics.ps1"
 
 if (Test-Path -LiteralPath $script:ChromePaintMetrics) {
     . $script:ChromePaintMetrics
@@ -114,10 +115,10 @@ Describe "UI Chrome paint metrics contract" {
 
     It "is wired into the capture manifest export and required-evidence gate" {
         $captureSource = Get-Content `
-            -LiteralPath (Join-Path $script:RepoRoot "tools\ui-profile-capture.ps1") `
+            -LiteralPath (Join-Path $script:RepoRoot "tools\analysis\profiling\ui\ui-profile-capture.ps1") `
             -Raw
         $manifestSource = Get-Content `
-            -LiteralPath (Join-Path $script:RepoRoot "tools\profile-capture-manifest.ps1") `
+            -LiteralPath (Join-Path $script:RepoRoot "tools\analysis\profiling\shared\profile-capture-manifest.ps1") `
             -Raw
 
         $captureSource | Should Match 'ui-profile-chrome-paint-metrics\.ps1'

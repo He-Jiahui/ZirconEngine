@@ -56,3 +56,60 @@ Open state: `checked registration consumer 源码已迁移并通过静态复审�
 | 2026-07-22 | source frozen / static green / validation pending | exact3 中 8/8 `register_subscriber` 测试注册点均显式处理 typed `Result`；两个 Rust 文件经 rustfmt，scoped diff-check 通过。生产 jobs 实现未改，受管 Cargo 尚未运行；等待独立复审、source snapshot、focused/broad Cargo 与 fixed return。 |
 | 2026-07-22 | review clean / managed Cargo pending | 独立只读复审 `Critical/Important/Minor = 0/0/0`；确认 8 个 `.unwrap()` 全部位于测试 setup，注册失败会显式失败测试，不恢复生产 infallible wrapper 或 sentinel。归属仍为 Editor14 exact3，受管 Cargo 与 fixed return 尚待完成。 |
 | 2026-08-10 | source frozen / focused managed validation queued | exact3 已封存为 snapshot `1588`；合并当前 Editor14/17 jobs shared snapshots 的 focused `core::jobs::tests` 验证 receipt 为 `78b516ef40384038b373e64da58653ca`。 | receipt 状态为 `queued`，未轮询、不把提交 receipt 当作 Cargo 通过；failure 保持 `open`，等待 terminal evidence 与 return。 |
+
+## 2026-09-11 rolling repair continuation
+
+The stale closeout Session was replaced by the stable current Session
+`failure-roll-01a090ae-editor14-message-subscriber-r1` with an exact three-file
+scope. Current source inspection confirms the checked-registration migration is
+present: all eight jobs-test registration sites explicitly handle the typed
+`Result`, and `rustfmt --edition 2024 --check` passes for both owned consumer
+files. The current source hashes were sealed only after live leases and current
+attribution were established.
+
+A new managed Windows ticket was submitted with the exact current three-file
+manifest and `--locked` command, but coordinator admission rejected it before
+ticket creation with `External Git worktrees must be clean before immutable
+validation` because the foreign `E:\Git\zr_vm` worktree is dirty. No run,
+Cargo result, or fixed return exists for this attempt. The failure therefore
+remains `open`; the focused jobs Cargo gate and the required broader Editor14
+acceptance must be retried after that external condition changes.
+
+## 2026-09-19 successor intake (failure-roll-01a084c8-editor14-message-subscriber-r2)
+
+The stale Editor14 reservation was not reused. A fresh successor applied
+ownership-transfer fingerprint
+`87c0a30ca732601752c92a3918bd0dbe4c6347dd931f628ab501709484b9e24d` for this
+failure record and both consumer test files, then acquired the exact three-path
+lease and baseline attribution. Current source hashes were:
+
+- `zircon_editor/src/core/jobs/tests/background_storm_contract.rs`
+  `3a61c24510c8ec37f92f3356f610b22a9f25d994472b7258ae7ac50161e1dbcd`
+- `zircon_editor/src/core/jobs/tests/pump_contract.rs`
+  `f69e68ad369abd0cb464faa49d62c6c4bf91b2c1eb183e295d866fa94b9fcaf4`
+
+The eight checked-registration consumers remain test setup only; no production
+infallible wrapper or sentinel ID is present. The prior external-worktree
+admission rejection remains historical evidence, and a fresh managed Cargo
+ticket is still required after `E:\Git\zr_vm` becomes clean.
+
+## 2026-09-19 validation intake (failure-roll-01a084c8-editor14-message-subscriber-r2)
+
+After the previous lease expired, the same Session reclaimed the unchanged
+three-path scope and re-attributed its current bytes. The exact source
+manifest was sealed by coordinator ticket
+`87824ff58eb544c98a4f08e898138bef` from request
+`failure-roll-01a084c8-editor14-message-subscriber-20260919-r4`:
+
+- failure record: `3876f996f42a03051830eed4dc80a767247df91e003f16f4c2624b669d64b00b`
+- `background_storm_contract.rs`: `3a61c24510c8ec37f92f3356f610b22a9f25d994472b7258ae7ac50161e1dbcd`
+- `pump_contract.rs`: `f69e68ad369abd0cb464faa49d62c6c4bf91b2c1eb183e295d866fa94b9fcaf4`
+- canonical source-manifest hash: `d3c2b75ed2e7ace975acc2d77aaadc759f68922c925fd332a2128810489d2a5f`
+
+The Windows rustfmt/source-contract parse is queued (`status=queued`, no
+dynamic acceptance). Coordinator dependency blockers include the open
+Runtime11 Editor14 full-harness budget chain and downstream serialization,
+plugin, navigation, and runtime failures; the external `E:\Git\zr_vm` dirty
+worktree remains an immutable Cargo blocker. Focused Cargo execution,
+broader Editor14 acceptance, independent C/I/M review, fixed return, and
+closeout remain pending.

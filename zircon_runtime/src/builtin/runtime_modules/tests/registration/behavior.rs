@@ -314,17 +314,18 @@ fn target_native_dynamic_registration_report_preserves_availability_category() {
     let catalog =
         RuntimePluginCatalog::from_registration_reports([registration.clone()], std::iter::empty());
     let plan = catalog.compiled_project_plan(&manifest, RuntimeTargetMode::ClientRuntime);
-    let compiled_report = runtime_modules_for_compiled_project_plugin_plan(&plan)
-        .expect("compiled native dynamic provider should assemble");
+    let compiled_rejection = runtime_modules_for_compiled_project_plugin_plan(&plan)
+        .expect_err("compiled native dynamic provider must await authority admission");
 
-    assert!(compiled_report.runtime_plugin_availability().contains(
-        RuntimePluginAvailabilityCategory::NativeDynamic,
+    // A compiled plan carries packaging intent, but no authenticated native authority receipt.
+    // It must therefore fail closed until an authority-backed loader publishes the provider.
+    assert!(compiled_rejection.runtime_plugin_availability().contains(
+        RuntimePluginAvailabilityCategory::ExternalizedMissing,
         RuntimePluginId::VirtualGeometry
     ));
-    assert!(!compiled_report.runtime_plugin_availability().contains(
-        RuntimePluginAvailabilityCategory::Linked,
-        RuntimePluginId::VirtualGeometry
-    ));
+    assert!(compiled_rejection
+        .runtime_plugin_availability()
+        .has_missing_required());
 }
 
 #[test]

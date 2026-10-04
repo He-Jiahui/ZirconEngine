@@ -1,8 +1,8 @@
 from pathlib import Path
 import re
 import unittest
-
-from tools.runtime01_shared_registry_name_pressure import run
+# RegistryName 的共享不可变名称应避免构造与复制时重复分配；本组核对 Rust 存储路径、行为回归和验证脚本的分配模型。
+from tools.analysis.performance.runtime.runtime01_shared_registry_name_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -10,7 +10,7 @@ REGISTRY_NAME_RS = ROOT / (
     "zircon_runtime/src/core/runtime/descriptors/registry_name.rs"
 )
 BATCH_VALIDATOR = ROOT / (
-    "tools/zircon-validation-runtime01-shared-registry-name-batch.ps1"
+    "tools/analysis/validation/zircon-validation-runtime01-shared-registry-name-batch.ps1"
 )
 
 

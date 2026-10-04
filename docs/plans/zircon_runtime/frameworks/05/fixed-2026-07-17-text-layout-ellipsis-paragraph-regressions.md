@@ -11,9 +11,7 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/ui/text/layout_engine/ellipsis.rs
   - zircon_runtime/src/ui/text/layout_engine/paragraph_layout.rs
-  - zircon_runtime/src/ui/text/layout_engine/rich_inline.rs
   - zircon_runtime/src/ui/text/layout_engine/tests/overflow.rs
-  - zircon_runtime/src/ui/text/layout_engine/tests/rich_inline.rs
 tests:
   - cargo test -p zircon_runtime --lib ui::text::layout_engine::tests:: --locked
 resolved_at: 2026-07-17

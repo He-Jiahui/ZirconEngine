@@ -51,6 +51,7 @@ impl fmt::Display for ShaderImportPathDerivationError {
 
 impl std::error::Error for ShaderImportPathDerivationError {}
 
+/// include 解析只读取非注释行并返回逻辑路径；剥离指令后再交给 WGSL 编译，模块路径推导另行校验 shaders 根和保留命名空间。
 pub fn wgsl_include_paths(source: &str) -> Vec<String> {
     source
         .lines()
@@ -75,7 +76,7 @@ pub fn strip_wgsl_include_directives(source: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "module_import/include_strip_tests.rs"]
+#[path = "module_import/tests/include_strip_tests.rs"]
 mod include_strip_tests;
 
 pub fn is_generated_shader_module_token(token: &str) -> bool {
@@ -122,14 +123,24 @@ pub fn derive_shader_import_path(
 ) -> Result<ShaderImportPathDerivation, ShaderImportPathDerivationError> {
     let namespace = shader_import_namespace(project_namespace)?;
     let normalized_path = normalized_shader_asset_path(asset_path)?;
-    let module_segments = shader_module_path_segments(&normalized_path)?;
-    let mut segments = Vec::with_capacity(module_segments.len() + 1);
-    segments.push(namespace);
-    for segment in module_segments {
-        segments.push(shader_module_segment(&normalized_path, segment)?);
+    let (module_segments, strip_terminal_extension) =
+        shader_module_path_segments(&normalized_path)?;
+    let capacity = namespace.len()
+        + module_segments.iter().map(String::len).sum::<usize>()
+        + module_segments.len() * 3;
+    let mut import_path = String::with_capacity(capacity);
+    import_path.push_str(&namespace);
+    for (index, segment) in module_segments.iter().enumerate() {
+        import_path.push_str("::");
+        let segment = if strip_terminal_extension && index + 1 == module_segments.len() {
+            strip_shader_asset_extension(segment)
+        } else {
+            segment
+        };
+        shader_module_segment(&mut import_path, &normalized_path, segment)?;
     }
     Ok(ShaderImportPathDerivation {
-        import_path: segments.join("::"),
+        import_path,
         folded_terminal_directory: terminal_directory_was_folded(&normalized_path),
     })
 }
@@ -188,34 +199,28 @@ fn normalized_shader_asset_path(
 
 fn shader_module_path_segments(
     normalized_path: &[String],
-) -> Result<Vec<String>, ShaderImportPathDerivationError> {
+) -> Result<(&[String], bool), ShaderImportPathDerivationError> {
     let root_index = normalized_path
         .iter()
         .position(|segment| segment.eq_ignore_ascii_case("shaders"))
         .ok_or_else(|| ShaderImportPathDerivationError::MissingShaderRoot {
             path: normalized_path.join("/"),
         })?;
-    let mut module_segments = normalized_path[root_index + 1..].to_vec();
+    let module_segments = &normalized_path[root_index + 1..];
     if module_segments.is_empty() {
         return Err(ShaderImportPathDerivationError::EmptyModulePath {
             path: normalized_path.join("/"),
         });
     }
-    if let Some(last) = module_segments.last_mut() {
-        *last = strip_shader_asset_extension(last).to_string();
+    let folded = module_segments.len() >= 2
+        && module_segments[module_segments.len() - 2].eq_ignore_ascii_case(
+            strip_shader_asset_extension(&module_segments[module_segments.len() - 1]),
+        );
+    if folded {
+        Ok((&module_segments[..module_segments.len() - 1], false))
+    } else {
+        Ok((module_segments, true))
     }
-    if module_segments.len() >= 2
-        && module_segments[module_segments.len() - 2]
-            .eq_ignore_ascii_case(&module_segments[module_segments.len() - 1])
-    {
-        module_segments.pop();
-    }
-    if module_segments.is_empty() {
-        return Err(ShaderImportPathDerivationError::EmptyModulePath {
-            path: normalized_path.join("/"),
-        });
-    }
-    Ok(module_segments)
 }
 
 fn strip_shader_asset_extension(segment: &str) -> &str {
@@ -226,37 +231,38 @@ fn strip_shader_asset_extension(segment: &str) -> &str {
 }
 
 fn shader_module_segment(
+    output: &mut String,
     path_segments: &[String],
-    segment: String,
-) -> Result<String, ShaderImportPathDerivationError> {
-    let mut output = String::new();
+    segment: &str,
+) -> Result<(), ShaderImportPathDerivationError> {
+    let start = output.len();
     let mut previous_underscore = false;
     for character in segment.chars() {
         if character.is_ascii_alphanumeric() {
+            if output.len() == start && character.is_ascii_digit() {
+                output.push('_');
+            }
             output.push(character.to_ascii_lowercase());
             previous_underscore = false;
-        } else if !previous_underscore && !output.is_empty() {
+        } else if !previous_underscore && output.len() > start {
             output.push('_');
             previous_underscore = true;
         }
     }
-    while output.ends_with('_') {
+    while output.len() > start && output.ends_with('_') {
         output.pop();
     }
-    if output.is_empty() {
+    if output.len() == start {
         return Err(ShaderImportPathDerivationError::EmptyModuleSegment {
             path: path_segments.join("/"),
         });
     }
-    if output
-        .as_bytes()
-        .first()
-        .is_some_and(|first| first.is_ascii_digit())
-    {
-        output.insert(0, '_');
-    }
-    Ok(output)
+    Ok(())
 }
+
+#[cfg(test)]
+#[path = "module_import/tests/direct_path_tests.rs"]
+mod direct_path_tests;
 
 fn terminal_directory_was_folded(path_segments: &[String]) -> bool {
     let Some(last_segment) = path_segments.last() else {
@@ -271,77 +277,5 @@ fn terminal_directory_was_folded(path_segments: &[String]) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        derive_shader_import_path, is_builtin_shader_module_token,
-        shader_project_namespace_from_name, strip_wgsl_include_directives, wgsl_include_paths,
-        ShaderImportPathDerivationError, GENERATED_MATERIAL_MODULE_IMPORT_PATH,
-    };
-
-    #[test]
-    fn shader_module_imports_parse_line_directives_only() {
-        let source =
-            "// #include <ignored>\n#include <project::math>\nlet s = \"#include <ignored>\";";
-
-        assert_eq!(
-            wgsl_include_paths(source),
-            vec!["project::math".to_string()]
-        );
-    }
-
-    #[test]
-    fn shader_module_imports_strip_directives_without_touching_comments() {
-        let source = format!(
-            "// #include <ignored>\n#include <{}>\nfn surface() {{}}",
-            GENERATED_MATERIAL_MODULE_IMPORT_PATH
-        );
-
-        assert_eq!(
-            strip_wgsl_include_directives(&source),
-            "// #include <ignored>\nfn surface() {}"
-        );
-    }
-
-    #[test]
-    fn shader_module_imports_classify_builtin_tokens() {
-        assert!(is_builtin_shader_module_token("zr_surface_types.wgsl"));
-        assert!(is_builtin_shader_module_token("zr_shadow.wgsl"));
-        assert!(!is_builtin_shader_module_token("project::shadow"));
-    }
-
-    #[test]
-    fn render_shader_import_path_derivation_uses_project_namespace_and_asset_path() {
-        let derived =
-            derive_shader_import_path("My Shader Project", "res://shaders/cloth/common.zshader")
-                .expect("shader path should derive import path");
-
-        assert_eq!(derived.import_path, "my_shader_project::cloth::common");
-        assert!(!derived.folded_terminal_directory);
-        assert_eq!(
-            shader_project_namespace_from_name(" 12 My Shader Project! "),
-            "_12_my_shader_project"
-        );
-    }
-
-    #[test]
-    fn render_shader_import_path_derivation_folds_matching_directory_and_file_name() {
-        let derived = derive_shader_import_path("MyProj", "assets/shaders/noise/noise.zshader")
-            .expect("same terminal directory and file should fold");
-
-        assert_eq!(derived.import_path, "myproj::noise");
-        assert!(derived.folded_terminal_directory);
-    }
-
-    #[test]
-    fn render_shader_import_path_derivation_rejects_reserved_project_namespace() {
-        let error = derive_shader_import_path("self", "shaders/cloth/common.zshader")
-            .expect_err("self namespace is reserved");
-
-        assert_eq!(
-            error,
-            ShaderImportPathDerivationError::ReservedNamespace {
-                namespace: "self".to_string()
-            }
-        );
-    }
-}
+#[path = "tests/module_import.rs"]
+mod tests;

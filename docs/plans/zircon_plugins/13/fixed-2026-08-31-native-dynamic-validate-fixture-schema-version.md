@@ -10,13 +10,13 @@ fixing_child_dir: docs/plans/zircon_plugins/13
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/zircon_export/tests/export_test_support.py
+  - tools/export/tests/export_test_support.py
 tests:
-  - tools/zircon_export/tests/test_pipeline_report_validate_native_dynamic_schema.py
-  - tools/zircon_export/tests/test_pipeline_report_native_dynamic_operation_audit_identity_schema.py
-  - tools/zircon_export/tests/test_pipeline_report_native_dynamic_operation_audit_platform_schema.py
-  - tools/zircon_export/tests/test_pipeline_report_native_dynamic_operation_audit_schema.py
-  - tools/zircon_export/tests/test_pipeline_report_stage_location.py
+  - tools/export/tests/test_pipeline_report_validate_native_dynamic_schema.py
+  - tools/export/tests/test_pipeline_report_native_dynamic_operation_audit_identity_schema.py
+  - tools/export/tests/test_pipeline_report_native_dynamic_operation_audit_platform_schema.py
+  - tools/export/tests/test_pipeline_report_native_dynamic_operation_audit_schema.py
+  - tools/export/tests/test_pipeline_report_stage_location.py
 resolved_at: 2026-08-31
 ---
 
@@ -60,7 +60,7 @@ header.
 - 根因：The shared NativeDynamic Validate test writer predated schema v2 and
   emitted no version header.
 - 架构修复：Commit `11cac2d08` added the canonical `schema_version: 2` field
-  once in `tools/zircon_export/tests/export_test_support.py`; all consuming
+  once in `tools/export/tests/export_test_support.py`; all consuming
   fixtures inherit it without production semantic changes.
 - 验证：Managed ticket/run `8a8283d4d79e467b8d858f6c3ab14232`, validation
   copy `d599973a929d4bb0afef75f404df2a72`, and immutable input manifest

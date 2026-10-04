@@ -50,6 +50,7 @@ pub selectedOption(state: TalentRowSelectionState, level: int): string {
 // `clear` represents the target wire value optionId:null. Row and level are
 // checked before the shared in-combat/arena allocation lock, preserving source
 // rejection order for malformed remote input.
+/// 行选择先按职业、等级与选项核验，再进入战斗/竞技场锁；同一选择成功但不增加提交次数。wire 上清空选项须设置 clear。
 pub selectTalentRow(
     state: TalentRowSelectionState,
     level: int,

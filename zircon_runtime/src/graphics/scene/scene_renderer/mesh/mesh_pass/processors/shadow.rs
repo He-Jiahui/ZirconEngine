@@ -1,7 +1,7 @@
 use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::MeshPipelineVariantResolver;
 
 use super::super::{
-    MeshBatchRef, MeshDrawCommandList, MeshPassBuildContext, MeshPassProcessor, shadow_command_spec,
+    shadow_command_spec, MeshBatchRef, MeshDrawCommandList, MeshPassBuildContext, MeshPassProcessor,
 };
 
 pub(crate) struct ShadowPassProcessor;

@@ -1,16 +1,16 @@
-$script:ProfileCaptureScript = Join-Path $PSScriptRoot "..\ui-profile-capture.ps1"
-$script:ProfileCapturePaths = Join-Path $PSScriptRoot "..\profile-capture-paths.ps1"
-$script:ProfileProductDirectory = Join-Path $PSScriptRoot "..\ui-profile-product-directory.ps1"
-$script:ProfileCaptureManifest = Join-Path $PSScriptRoot "..\profile-capture-manifest.ps1"
-$script:ProfileCaptureScenarios = Join-Path $PSScriptRoot "..\ui-profile-scenarios.ps1"
-$script:ProfileNativeInteraction = Join-Path $PSScriptRoot "..\ui-profile-native-resize.ps1"
-$script:ProfileHierarchyFilterInput = Join-Path $PSScriptRoot "..\ui-profile-hierarchy-filter-input.ps1"
-$script:ProfileHierarchyFilterMetrics = Join-Path $PSScriptRoot "..\ui-profile-hierarchy-filter-metrics.ps1"
-$script:ProfileLatencyEvidence = Join-Path $PSScriptRoot "..\ui-profile-latency-evidence.ps1"
-$script:ProfileProcessEvidence = Join-Path $PSScriptRoot "..\ui-profile-process-evidence.ps1"
-$script:ProfileCounterEvidence = Join-Path $PSScriptRoot "..\ui-profile-counter-evidence.ps1"
-$script:ProfileWorkbenchPointerEvidence = Join-Path $PSScriptRoot "..\ui-profile-workbench-pointer-evidence.ps1"
-$script:ProfileScaleFixture = Join-Path $PSScriptRoot "..\ui-profile-scale-fixture.ps1"
+$script:ProfileCaptureScript = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-capture.ps1"
+$script:ProfileCapturePaths = Join-Path $PSScriptRoot "..\profiling\shared\profile-capture-paths.ps1"
+$script:ProfileProductDirectory = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-product-directory.ps1"
+$script:ProfileCaptureManifest = Join-Path $PSScriptRoot "..\profiling\shared\profile-capture-manifest.ps1"
+$script:ProfileCaptureScenarios = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-scenarios.ps1"
+$script:ProfileNativeInteraction = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-native-resize.ps1"
+$script:ProfileHierarchyFilterInput = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-hierarchy-filter-input.ps1"
+$script:ProfileHierarchyFilterMetrics = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-hierarchy-filter-metrics.ps1"
+$script:ProfileLatencyEvidence = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-latency-evidence.ps1"
+$script:ProfileProcessEvidence = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-process-evidence.ps1"
+$script:ProfileCounterEvidence = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-counter-evidence.ps1"
+$script:ProfileWorkbenchPointerEvidence = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-workbench-pointer-evidence.ps1"
+$script:ProfileScaleFixture = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-scale-fixture.ps1"
 $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $script:ProfileCounterEvidenceSource = @(
     if (Test-Path -LiteralPath $script:ProfileCounterEvidence) {
@@ -99,23 +99,23 @@ function New-ProfileManifestTestRepository {
         Set-Content -LiteralPath $path -Value $relativePath -Encoding ASCII
     }
     foreach ($relativePath in @(
-        'tools/ui-profile-capture.ps1',
-        'tools/ui-profile-scenarios.ps1',
-        'tools/ui-profile-latency-evidence.ps1',
-        'tools/ui-profile-process-evidence.ps1',
-        'tools/ui-profile-counter-evidence.ps1',
-        'tools/ui-profile-workbench-pointer-evidence.ps1',
-        'tools/ui-profile-native-resize.ps1',
-        'tools/ui-profile-hierarchy-filter-input.ps1',
-        'tools/ui-profile-hierarchy-filter-metrics.ps1',
-        'tools/ui-profile-scale-fixture.ps1',
-        'tools/ui-profile-surface-pipeline-metrics.ps1',
-        'tools/ui-profile-chrome-paint-metrics.ps1',
-        'tools/ui-profile-machine-manifest.ps1',
-        'tools/performance-machine-manifest.ps1',
-        'tools/profile-capture-paths.ps1',
-        'tools/ui-profile-product-directory.ps1',
-        'tools/profile-capture-manifest.ps1'
+        'tools/analysis/profiling/ui/ui-profile-capture.ps1',
+        'tools/analysis/profiling/ui/ui-profile-scenarios.ps1',
+        'tools/analysis/profiling/ui/ui-profile-latency-evidence.ps1',
+        'tools/analysis/profiling/ui/ui-profile-process-evidence.ps1',
+        'tools/analysis/profiling/ui/ui-profile-counter-evidence.ps1',
+        'tools/analysis/profiling/ui/ui-profile-workbench-pointer-evidence.ps1',
+        'tools/analysis/profiling/ui/ui-profile-native-resize.ps1',
+        'tools/analysis/profiling/ui/ui-profile-hierarchy-filter-input.ps1',
+        'tools/analysis/profiling/ui/ui-profile-hierarchy-filter-metrics.ps1',
+        'tools/analysis/profiling/ui/ui-profile-scale-fixture.ps1',
+        'tools/analysis/profiling/ui/ui-profile-surface-pipeline-metrics.ps1',
+        'tools/analysis/profiling/ui/ui-profile-chrome-paint-metrics.ps1',
+        'tools/analysis/profiling/ui/ui-profile-machine-manifest.ps1',
+        'tools/analysis/profiling/shared/performance-machine-manifest.ps1',
+        'tools/analysis/profiling/shared/profile-capture-paths.ps1',
+        'tools/analysis/profiling/ui/ui-profile-product-directory.ps1',
+        'tools/analysis/profiling/shared/profile-capture-manifest.ps1'
     )) {
         if ($relativePath -eq $OmitCaptureTool) {
             continue
@@ -2278,7 +2278,7 @@ Describe "ui-profile-capture output contract" {
         $repoRoot = New-ProfileManifestTestRepository `
             -Root (Join-Path $TestDrive 'source-bound-manifest-repository')
         $trackedSource = Join-Path $repoRoot 'zircon_editor\src\ui\retained_host\app\host_lifecycle\recompute.rs'
-        $nativeInteractionToolPath = Join-Path $repoRoot 'tools\ui-profile-native-resize.ps1'
+        $nativeInteractionToolPath = Join-Path $repoRoot 'tools\analysis\profiling\ui\ui-profile-native-resize.ps1'
         $editorExe = Join-Path $TestDrive 'editor.exe'
         $runtimeDll = Join-Path $TestDrive 'runtime.dll'
         Set-Content -LiteralPath $editorExe -Value 'editor binary' -Encoding ASCII
@@ -2305,29 +2305,29 @@ Describe "ui-profile-capture output contract" {
         $manifest.input_fixture | Should BeNullOrEmpty
         $manifest.capture.tool_files.Count | Should Be 17
         $captureToolPaths = @($manifest.capture.tool_files.relative_path)
-        ($captureToolPaths -contains 'tools/ui-profile-capture.ps1') | Should Be $true
-        ($captureToolPaths -contains 'tools/ui-profile-scenarios.ps1') | Should Be $true
-        ($captureToolPaths -contains 'tools/ui-profile-latency-evidence.ps1') | Should Be $true
-        ($captureToolPaths -contains 'tools/ui-profile-process-evidence.ps1') | Should Be $true
-        ($captureToolPaths -contains 'tools/ui-profile-counter-evidence.ps1') | Should Be $true
-        ($captureToolPaths -contains 'tools/ui-profile-workbench-pointer-evidence.ps1') | Should Be $true
-        ($captureToolPaths -contains 'tools/ui-profile-native-resize.ps1') | Should Be $true
-        ($captureToolPaths -contains 'tools/ui-profile-hierarchy-filter-input.ps1') | Should Be $true
-        ($captureToolPaths -contains 'tools/ui-profile-hierarchy-filter-metrics.ps1') | Should Be $true
-        ($captureToolPaths -contains 'tools/ui-profile-scale-fixture.ps1') | Should Be $true
-        ($captureToolPaths -contains 'tools/ui-profile-surface-pipeline-metrics.ps1') | Should Be $true
-        ($captureToolPaths -contains 'tools/ui-profile-chrome-paint-metrics.ps1') | Should Be $true
-        ($captureToolPaths -contains 'tools/profile-capture-paths.ps1') | Should Be $true
-        ($captureToolPaths -contains 'tools/ui-profile-product-directory.ps1') | Should Be $true
-        ($captureToolPaths -contains 'tools/profile-capture-manifest.ps1') | Should Be $true
-        ($captureToolPaths -contains 'tools/ui-profile-machine-manifest.ps1') | Should Be $true
-        ($captureToolPaths -contains 'tools/performance-machine-manifest.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/analysis/profiling/ui/ui-profile-capture.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/analysis/profiling/ui/ui-profile-scenarios.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/analysis/profiling/ui/ui-profile-latency-evidence.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/analysis/profiling/ui/ui-profile-process-evidence.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/analysis/profiling/ui/ui-profile-counter-evidence.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/analysis/profiling/ui/ui-profile-workbench-pointer-evidence.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/analysis/profiling/ui/ui-profile-native-resize.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/analysis/profiling/ui/ui-profile-hierarchy-filter-input.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/analysis/profiling/ui/ui-profile-hierarchy-filter-metrics.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/analysis/profiling/ui/ui-profile-scale-fixture.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/analysis/profiling/ui/ui-profile-surface-pipeline-metrics.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/analysis/profiling/ui/ui-profile-chrome-paint-metrics.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/analysis/profiling/shared/profile-capture-paths.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/analysis/profiling/ui/ui-profile-product-directory.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/analysis/profiling/shared/profile-capture-manifest.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/analysis/profiling/ui/ui-profile-machine-manifest.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/analysis/profiling/shared/performance-machine-manifest.ps1') | Should Be $true
         $nativeInteractionTool = $manifest.capture.tool_files |
-            Where-Object { $_.relative_path -eq 'tools/ui-profile-native-resize.ps1' } |
+            Where-Object { $_.relative_path -eq 'tools/analysis/profiling/ui/ui-profile-native-resize.ps1' } |
             Select-Object -First 1
         $nativeInteractionTool.sha256 |
             Should Be ((Get-FileHash -LiteralPath $nativeInteractionToolPath -Algorithm SHA256).Hash.ToLowerInvariant())
-        $manifest.repository.critical_source_files.Count | Should Be 276
+        $manifest.repository.critical_source_files.Count | Should Be 281
         $manifest.repository.critical_source_files[0].relative_path |
             Should Be 'zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute.rs'
         $criticalSourcePaths = @($manifest.repository.critical_source_files.relative_path)
@@ -2635,6 +2635,15 @@ Describe "ui-profile-capture output contract" {
         )) {
             ($criticalSourcePaths -contains $rhiDamageSource) | Should Be $true
         }
+        foreach ($roundedBoxSource in @(
+            'zircon_runtime/src/graphics/scene/scene_renderer/ui/render/geometry.rs',
+            'zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/screen_space_ui.wgsl',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_settings_window/commands.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_section_titles/commands.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_section_titles/geometry.rs'
+        )) {
+            ($criticalSourcePaths -contains $roundedBoxSource) | Should Be $true
+        }
         ($criticalSourcePaths -contains 'zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/presentation.rs') |
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw/present.rs') |
@@ -2772,7 +2781,7 @@ Describe "ui-profile-capture output contract" {
     }
 
     It "fails closed when a required capture tool is missing" {
-        $missingTool = 'tools/ui-profile-native-resize.ps1'
+        $missingTool = 'tools/analysis/profiling/ui/ui-profile-native-resize.ps1'
         $repoRoot = New-ProfileManifestTestRepository `
             -Root (Join-Path $TestDrive 'tool-failure-repository') `
             -OmitCaptureTool $missingTool

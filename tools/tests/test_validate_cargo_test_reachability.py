@@ -1,3 +1,4 @@
+# 核对构建测试可达性审计解析目标配置及内联、路径加载的测试。
 from __future__ import annotations
 
 import tempfile
@@ -7,11 +8,11 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from tools.validate_cargo_test_reachability import _cargo_metadata, audit_test_reachability
+from tools.audits.validate_cargo_test_reachability import _cargo_metadata, audit_test_reachability
 
 
 class CargoTestReachabilityTests(unittest.TestCase):
-    @patch("tools.validate_cargo_test_reachability.subprocess.run")
+    @patch("tools.audits.validate_cargo_test_reachability.subprocess.run")
     def test_cargo_metadata_decodes_cargo_output_as_utf8(self, run: object) -> None:
         run.return_value = SimpleNamespace(stdout='{"packages": []}')
 
@@ -20,7 +21,7 @@ class CargoTestReachabilityTests(unittest.TestCase):
         self.assertEqual(run.call_args.kwargs["encoding"], "utf-8")
         self.assertEqual(run.call_args.kwargs["errors"], "replace")
 
-    @patch("tools.validate_cargo_test_reachability.subprocess.run")
+    @patch("tools.audits.validate_cargo_test_reachability.subprocess.run")
     def test_cargo_metadata_reports_cargo_stderr(self, run: object) -> None:
         run.side_effect = subprocess.CalledProcessError(
             101,

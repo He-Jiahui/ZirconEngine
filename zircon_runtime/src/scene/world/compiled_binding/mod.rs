@@ -17,4 +17,5 @@ pub use property_path::{
 };
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

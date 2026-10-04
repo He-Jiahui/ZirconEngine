@@ -7,7 +7,7 @@ import unittest
 from functools import lru_cache
 from pathlib import Path
 
-from tools.runtime_domain_dependency_audit import (
+from tools.audits.runtime_domain_dependency_audit import (
     _canonical_rust_identifier,
     _cfg_test_item_spans,
     _rust_code_view,
@@ -556,7 +556,7 @@ class Frameworks05TextBoundaryTests(unittest.TestCase):
             "parallel prewarm must enter the same canonical TextLayoutService adapter as layout",
         )
         self.assertIn(
-            "shape_request_through_canonical_service",
+            "shape_request_with_generation_outcome_in_font_collection",
             shape_pool,
             "parallel prewarm must preserve canonical validation and typed fallback reporting",
         )
@@ -695,7 +695,7 @@ class Frameworks05TextBoundaryTests(unittest.TestCase):
 
         invalidate = prepare.index("self.invalidate_font_faces()")
         sdf_plan = prepare.index("self.sdf_atlas.prepare")
-        sdf_generation = prepare.index("generation_failures_for_plan")
+        sdf_generation = prepare.index("record_generation_failures")
         self.assertLess(
             invalidate,
             sdf_plan,

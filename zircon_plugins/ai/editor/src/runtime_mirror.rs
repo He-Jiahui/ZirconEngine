@@ -17,7 +17,7 @@ use crate::extension_ids::{
 };
 
 #[cfg(test)]
-#[path = "runtime_mirror/lookup_allocation_tests.rs"]
+#[path = "runtime_mirror/tests/lookup_allocation_tests.rs"]
 mod lookup_allocation_tests;
 
 pub use zircon_plugin_ai_runtime::{
@@ -44,6 +44,7 @@ pub enum AiPieMirrorError {
 }
 
 #[derive(Clone, Debug, Default)]
+/// 按会话、世界和实体保存调试帧；同一世界的新快照整体替换旧帧。
 pub struct AiPieMirror {
     play_session_id: Option<u64>,
     sequence: Option<u64>,
@@ -186,6 +187,7 @@ pub enum AiBtNodeResultMirrorError {
 }
 
 #[derive(Clone, Debug, Default)]
+/// 节点事件和调试快照各自维护序号，快照只保留仍活跃的节点结果。
 pub struct AiBtNodeResultMirror {
     play_session_id: Option<u64>,
     node_result_sequence: Option<u64>,
@@ -320,6 +322,7 @@ impl EditorRuntimeEventConsumerState for AiBtNodeResultMirror {
     }
 }
 
+// 与节点结果消费端共享同一镜像，由快照事件清理已退出的节点。
 struct AiBtNodeResultSnapshotPruner {
     node_results: Arc<Mutex<AiBtNodeResultMirror>>,
 }

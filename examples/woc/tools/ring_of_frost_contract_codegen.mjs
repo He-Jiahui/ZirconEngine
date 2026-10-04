@@ -1,3 +1,6 @@
+// 调用端：npm run generate:ring-of-frost-contract (tools/package.json)；职责：固化冰霜之环的计时与控制数值。
+// 输入边界：src/sim/combat/ring_of_frost.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

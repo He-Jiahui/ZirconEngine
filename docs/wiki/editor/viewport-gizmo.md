@@ -15,8 +15,8 @@ implementation_files:
   - zircon_editor/src/scene/viewport/pointer/runtime_picking_adapter.rs
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 编辑器详细 Wiki
-  - docs/editor-and-tooling/scene-viewport-gizmo-handle-overlays.md
-  - docs/editor-and-tooling/viewport-interaction-boundary-split.md
+  - docs/editor/scene-viewport-gizmo-handle-overlays.md
+  - docs/editor/viewport-interaction-boundary-split.md
 tests:
   - zircon_editor/src/scene/viewport
   - zircon_editor/src/ui/retained_host/viewport/tests

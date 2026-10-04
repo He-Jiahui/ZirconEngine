@@ -354,36 +354,6 @@ impl<'a> RenderPassExecutionContext<'a> {
             .any(|resource| resource.name == resource_name && resource.access == access)
     }
 
-    pub(in crate::graphics::scene::scene_renderer) fn require_texture_view_by_name(
-        &mut self,
-        resource_name: &str,
-        access: RenderGraphResourceAccessKind,
-    ) -> Result<&wgpu::TextureView, String> {
-        if let Some(resolver) = self
-            .resource_resolver
-            .filter(RgResourceResolver::has_physical_resources)
-        {
-            return resolver.texture_view_by_name(resource_name, access);
-        }
-        self.require_gpu()?
-            .resources
-            .require_texture_view(resource_name)
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn require_buffer_by_name(
-        &mut self,
-        resource_name: &str,
-        access: RenderGraphResourceAccessKind,
-    ) -> Result<&wgpu::Buffer, String> {
-        if let Some(resolver) = self
-            .resource_resolver
-            .filter(RgResourceResolver::has_physical_resources)
-        {
-            return resolver.buffer_by_name(resource_name, access);
-        }
-        self.require_gpu()?.resources.require_buffer(resource_name)
-    }
-
     pub fn gpu(&self) -> Option<&RenderPassGpuExecutionContext<'a>> {
         self.gpu.as_ref()
     }
@@ -518,5 +488,5 @@ fn render_region_covers_target(render_region: ViewportRenderRegion, target_size:
 }
 
 #[cfg(test)]
-#[path = "render_pass_execution_context_tests.rs"]
+#[path = "tests/render_pass_execution_context_tests.rs"]
 mod tests;

@@ -5,4 +5,5 @@ pub use reflection_host_error::ReflectionHostError;
 pub use reflection_host_module::ReflectionHostModule;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

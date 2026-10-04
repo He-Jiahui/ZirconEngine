@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 def source(relative: str) -> str:
     return (ROOT / relative).read_text(encoding="utf-8")
 
-
+# 读取宿主意图出箱事务，确认帧重置推进请求水位线而不清空出箱，快照仅投影新行。
 class RuntimeHostIntentOutboxTransactionPerformanceContract(unittest.TestCase):
     def test_frame_reset_advances_host_request_watermarks_without_clearing_outbox(self) -> None:
         state = source("zircon_runtime/src/input/runtime/input_state.rs")

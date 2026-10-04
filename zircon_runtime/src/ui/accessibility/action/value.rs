@@ -10,8 +10,8 @@ use zircon_runtime_interface::ui::{
 use crate::ui::{
     dispatch::UiTextDocumentSession,
     surface::{
-        UiPropertyMutationRequest, UiSurface,
         input::{editable_text_state_for_node, synchronize_text_document},
+        UiPropertyMutationRequest, UiSurface,
     },
 };
 

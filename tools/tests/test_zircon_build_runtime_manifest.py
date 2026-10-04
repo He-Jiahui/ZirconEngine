@@ -8,7 +8,7 @@ from pathlib import Path
 
 class ZirconBuildRuntimeManifestTests(unittest.TestCase):
     def test_runtime_manifest_binds_library_and_staged_host_artifacts_to_one_build_set(self):
-        from tools.zircon_build_runtime_manifest import (
+        from tools.build.zircon_build_runtime_manifest import (
             runtime_artifact_manifest_path,
             runtime_host_file_names,
             runtime_library_file_name,
@@ -56,6 +56,7 @@ class ZirconBuildRuntimeManifestTests(unittest.TestCase):
                 engine_root=engine_root,
                 mode="debug",
                 runtime_features=("target-client",),
+                trusted_host_build_set_id="a" * 64,
                 dry_run=False,
             )
 
@@ -110,9 +111,21 @@ class ZirconBuildRuntimeManifestTests(unittest.TestCase):
             self.assertEqual(
                 "zircon.runtime.internal", manifest["interface_spec"]["family"]
             )
+            self.assertEqual(
+                {"schema_version": 1, "source_build_set_id": "a" * 64},
+                manifest["trusted_host"],
+            )
+
+            # A leased private staging directory cannot rename its manifest into place.
+            manifest_path.unlink()
+            write_runtime_artifact_manifest(config, create_once=True)
+            created_bytes = manifest_path.read_bytes()
+            with self.assertRaises(FileExistsError):
+                write_runtime_artifact_manifest(config, create_once=True)
+            self.assertEqual(created_bytes, manifest_path.read_bytes())
 
     def test_runtime_manifest_refuses_a_staged_runtime_without_a_host_executable(self):
-        from tools.zircon_build_runtime_manifest import (
+        from tools.build.zircon_build_runtime_manifest import (
             runtime_library_file_name,
             write_runtime_artifact_manifest,
         )
@@ -132,6 +145,16 @@ class ZirconBuildRuntimeManifestTests(unittest.TestCase):
 
             with self.assertRaisesRegex(SystemExit, "host executable"):
                 write_runtime_artifact_manifest(config)
+
+    def test_runtime_manifest_rejects_tampered_trusted_source_identity(self):
+        from tools.build.zircon_build_runtime_manifest import _trusted_host_metadata
+
+        config = types.SimpleNamespace(trusted_host_build_set_id="A" * 64)
+        with self.assertRaisesRegex(SystemExit, "lowercase hexadecimal"):
+            _trusted_host_metadata(config, None, None)
+        config.trusted_host_build_set_id = "b" * 63
+        with self.assertRaisesRegex(SystemExit, "lowercase hexadecimal"):
+            _trusted_host_metadata(config, None, None)
 
     @staticmethod
     def _write(path: Path, contents: bytes) -> None:

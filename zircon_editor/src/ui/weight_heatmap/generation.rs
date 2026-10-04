@@ -459,4 +459,5 @@ impl GenerationHash {
 }
 
 #[cfg(test)]
+#[path = "generation/tests/hash_generation_tests.rs"]
 mod hash_generation_tests;

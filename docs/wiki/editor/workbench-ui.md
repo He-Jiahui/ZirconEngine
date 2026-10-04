@@ -19,7 +19,7 @@ plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 编辑器详细 Wiki
   - .codex/plans/布局系统.md
   - .codex/plans/Zircon Editor Workbench Shell V1.md
-  - docs/editor-and-tooling/editor-workbench-shell.md
+  - docs/editor/editor-workbench-shell.md
 tests:
   - zircon_editor/src/ui/workbench
   - zircon_editor/src/ui/retained_host/app/tests

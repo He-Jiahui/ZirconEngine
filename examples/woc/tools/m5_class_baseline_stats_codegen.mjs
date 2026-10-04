@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码投影各职业各等级的基础属性及初始装备贡献，生成可核对的 JSON 和 Zr 内容。
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -70,6 +71,7 @@ function main() {
   );
 }
 
+// 生成访问函数前核对逐级基础值与单独记录的装备贡献。
 function validateExtracted(extracted, bootstrapCatalog, freshPlayerCatalog) {
   invariant(extracted && typeof extracted === 'object', 'baseline extraction is not an object');
   invariant(extracted.max_level === LEVEL_CAP, `target level cap drifted: ${extracted.max_level}`);

@@ -206,8 +206,12 @@ fn write_dependency_cycle(
 }
 
 #[cfg(test)]
-#[path = "pipeline/dependency_cycle_format_tests.rs"]
+#[path = "pipeline/tests/dependency_cycle_format_tests.rs"]
 mod dependency_cycle_format_tests;
+
+#[cfg(test)]
+#[path = "pipeline/tests/optimization_batch_iv_editor633_tests.rs"]
+mod optimization_batch_iv_editor633_tests;
 
 impl Error for ExportPipelinePlanError {}
 
@@ -285,20 +289,24 @@ impl ExportPipelineFailurePhase {
 }
 
 fn reject_duplicate_stages(nodes: &[ExportStageNode]) -> Result<(), ExportPipelinePlanError> {
-    let mut seen = Vec::new();
+    let mut seen_mask = 0_u8;
     for node in nodes {
-        if seen.contains(&node.stage) {
+        let stage_bit = export_stage_bit(node.stage);
+        if seen_mask & stage_bit != 0 {
             return Err(ExportPipelinePlanError::DuplicateStage { stage: node.stage });
         }
-        seen.push(node.stage);
+        seen_mask |= stage_bit;
     }
     Ok(())
 }
 
 fn reject_missing_dependencies(nodes: &[ExportStageNode]) -> Result<(), ExportPipelinePlanError> {
+    let declared_mask = nodes
+        .iter()
+        .fold(0_u8, |mask, node| mask | export_stage_bit(node.stage));
     for node in nodes {
         for dependency in &node.dependencies {
-            if !nodes.iter().any(|candidate| candidate.stage == *dependency) {
+            if declared_mask & export_stage_bit(*dependency) == 0 {
                 return Err(ExportPipelinePlanError::MissingDependency {
                     stage: node.stage,
                     dependency: *dependency,
@@ -313,21 +321,35 @@ fn topological_order(
     mut remaining: Vec<ExportStageNode>,
 ) -> Result<Vec<ExportStageNode>, ExportPipelinePlanError> {
     let mut ordered = Vec::with_capacity(remaining.len());
+    let mut completed_mask = 0_u8;
     while !remaining.is_empty() {
         let Some(index) = remaining.iter().position(|node| {
-            node.dependencies.iter().all(|dependency| {
-                ordered
-                    .iter()
-                    .any(|done: &ExportStageNode| done.stage == *dependency)
-            })
+            node.dependencies
+                .iter()
+                .all(|dependency| completed_mask & export_stage_bit(*dependency) != 0)
         }) else {
             return Err(ExportPipelinePlanError::DependencyCycle {
                 stages: remaining.iter().map(|node| node.stage).collect(),
             });
         };
-        ordered.push(remaining.remove(index));
+        let node = remaining.remove(index);
+        completed_mask |= export_stage_bit(node.stage);
+        ordered.push(node);
     }
     Ok(ordered)
+}
+
+const fn export_stage_bit(stage: ExportStage) -> u8 {
+    match stage {
+        ExportStage::Validate => 1 << 0,
+        ExportStage::SourceTemplate => 1 << 1,
+        ExportStage::NativeDynamic => 1 << 2,
+        ExportStage::CompileHost => 1 << 3,
+        ExportStage::CookAssets => 1 << 4,
+        ExportStage::Pack => 1 << 5,
+        ExportStage::PlatformBundle => 1 << 6,
+        ExportStage::Report => 1 << 7,
+    }
 }
 
 fn reusable_record(

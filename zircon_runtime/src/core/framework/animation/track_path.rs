@@ -4,6 +4,8 @@ use crate::core::framework::scene::{ComponentPropertyPath, EntityPath};
 
 use super::AnimationTrackPathError;
 
+/// 连接场景实体与组件属性的规范化标识，供编辑器绑定、序列轨道和自动化共用。
+/// 构造时使用已解析路径；接收外部字符串时应通过 `parse` 归一化。
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct AnimationTrackPath {
     raw: String,
@@ -16,6 +18,7 @@ impl AnimationTrackPath {
         }
     }
 
+    /// 接受可归一化的旧式输入，并用共享场景路径解析器决定最终等价关系。
     pub fn parse(raw: &str) -> Result<Self, AnimationTrackPathError> {
         let (entity_path, property_path) = raw.split_once(':').ok_or(AnimationTrackPathError)?;
         if canonical_entity_path(entity_path) && canonical_component_property_path(property_path) {
@@ -82,5 +85,5 @@ impl std::fmt::Display for AnimationTrackPath {
 }
 
 #[cfg(test)]
-#[path = "track_path/canonical_parse_tests.rs"]
+#[path = "track_path/tests/canonical_parse_tests.rs"]
 mod canonical_parse_tests;

@@ -1,3 +1,5 @@
+//! 表面事件在视口节点汇合，组合静态叠加与渲染空间查询返回的候选；命中与调试报告来自同一次 Runtime 解析。
+
 use std::sync::{Arc, Mutex};
 
 use zircon_runtime::ui::dispatch::UiPointerDispatcher;

@@ -51,15 +51,17 @@ pub(super) fn preflight_node_text_sources(
 pub(super) fn resolve_names(
     surface: &UiSurface,
     nodes: &mut BTreeMap<UiNodeId, UiAccessibilityNode>,
+    node_ids: &mut Vec<UiNodeId>,
     budget: &mut AccessibilityBuildBudget,
 ) -> Result<(), AccessibilitySnapshotBudgetError> {
-    let ids: Vec<_> = nodes.keys().copied().collect();
-    for node_id in ids {
+    refresh_node_ids(nodes, node_ids);
+    for node_id in node_ids.iter().copied() {
         if nodes.get(&node_id).is_some_and(|node| node.name.is_some()) {
             continue;
         }
         let resolved = labelled_by_name(surface, nodes, node_id)
             .or_else(|| {
+                // BUG: [CR-RUNTIME-WAVE13-UI-A11Y-0001] Plain 安全输入缺少显式名称及可用标签时，此回退仍读取元数据 text/label/value；状态值虽已隐去，原文仍进入快照名称。
                 surface
                     .tree
                     .node(node_id)
@@ -83,17 +85,24 @@ pub(super) fn resolve_names(
 pub(super) fn resolve_descriptions(
     surface: &UiSurface,
     nodes: &mut BTreeMap<UiNodeId, UiAccessibilityNode>,
+    node_ids: &mut Vec<UiNodeId>,
     diagnostics: &mut Vec<UiAccessibilityDiagnostic>,
     budget: &mut AccessibilityBuildBudget,
 ) -> Result<(), AccessibilitySnapshotBudgetError> {
-    let ids: Vec<_> = nodes.keys().copied().collect();
-    for node_id in ids {
+    refresh_node_ids(nodes, node_ids);
+    for node_id in node_ids.iter().copied() {
         let Some(description) = nodes
             .get(&node_id)
-            .and_then(|node| node.description.clone())
+            .and_then(|node| node.description.as_deref())
         else {
             continue;
         };
+        // Ordinary descriptions are already final payloads. Probe them through a borrow and
+        // only materialize an owned copy for the reference form that may be replaced/cleared.
+        if !description.starts_with('#') {
+            continue;
+        }
+        let description = description.to_owned();
         let Some(reference) = description.strip_prefix('#') else {
             continue;
         };
@@ -143,15 +152,13 @@ pub(super) fn prune_hidden_relation_targets(
     nodes: &mut BTreeMap<UiNodeId, UiAccessibilityNode>,
     hidden_relation_targets: &mut BTreeSet<UiNodeId>,
 ) {
-    let unusable_targets: Vec<_> = hidden_relation_targets
-        .iter()
-        .copied()
-        .filter(|target| referenced_text(surface, nodes, *target).is_none())
-        .collect();
-    for target in unusable_targets {
-        hidden_relation_targets.remove(&target);
-        nodes.remove(&target);
-    }
+    hidden_relation_targets.retain(|target| {
+        let usable = referenced_text(surface, nodes, *target).is_some();
+        if !usable {
+            nodes.remove(target);
+        }
+        usable
+    });
 }
 
 pub(super) fn filter_children(
@@ -160,18 +167,17 @@ pub(super) fn filter_children(
     hidden_relation_targets: &BTreeSet<UiNodeId>,
     budget: &mut AccessibilityBuildBudget,
 ) -> Result<(), AccessibilitySnapshotBudgetError> {
-    let included: BTreeSet<_> = nodes.keys().copied().collect();
     let included_node_ids = nodes.keys().copied().collect::<Vec<_>>();
     for node_id in included_node_ids {
         let Some(node) = surface.tree.nodes.get(&node_id) else {
             continue;
         };
-        let mut filtered = Vec::new();
+        let mut filtered = Vec::with_capacity(node.children.len());
         for child in node.children.iter().copied() {
             collect_included_children(
                 surface,
                 child,
-                &included,
+                nodes,
                 hidden_relation_targets,
                 &mut filtered,
                 budget,
@@ -182,6 +188,11 @@ pub(super) fn filter_children(
         }
     }
     Ok(())
+}
+
+fn refresh_node_ids(nodes: &BTreeMap<UiNodeId, UiAccessibilityNode>, node_ids: &mut Vec<UiNodeId>) {
+    node_ids.clear();
+    node_ids.extend(nodes.keys().copied());
 }
 
 fn labelled_by_name(
@@ -231,6 +242,7 @@ fn referenced_text(
                 .a11y
                 .name
                 .clone()
+                // BUG: [CR-RUNTIME-WAVE13-UI-A11Y-0001] 引用缺少显式名称的 Plain 安全输入时，此回退仍读取元数据原文，可将其复制为引用方的名称或描述，绕过状态值遮蔽。
                 .or_else(|| semantic_text::own_text(surface, node))
                 .or_else(|| name::alt_text(Some(metadata)))
                 .or_else(|| metadata.a11y.tooltip.clone())
@@ -243,7 +255,7 @@ fn referenced_text(
 fn collect_included_children(
     surface: &UiSurface,
     node_id: UiNodeId,
-    included: &BTreeSet<UiNodeId>,
+    included: &BTreeMap<UiNodeId, UiAccessibilityNode>,
     hidden_relation_targets: &BTreeSet<UiNodeId>,
     children: &mut Vec<UiNodeId>,
     budget: &mut AccessibilityBuildBudget,
@@ -252,7 +264,7 @@ fn collect_included_children(
     if hidden_relation_targets.contains(&node_id) {
         return Ok(());
     }
-    if included.contains(&node_id) {
+    if included.contains_key(&node_id) {
         budget.observe_items(1)?;
         budget.observe_value(&node_id, 3)?;
         children.push(node_id);
@@ -276,3 +288,7 @@ fn collect_included_children(
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "tests/resolution.rs"]
+mod tests;

@@ -1,3 +1,4 @@
+//! 用户 keymap 从进程级设置根读取；测试必须持有环境锁覆盖设置读取与恢复。
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -14,7 +15,7 @@ use crate::ui::host::{module::EDITOR_KEYMAP_NAME, EditorKeymapService};
 
 #[test]
 fn host_and_manager_service_share_the_user_settings_keymap() {
-    let _guard = env_lock();
+    let _guard = env_lock().lock().unwrap();
     let root = temporary_settings_root("host-keymap-settings");
     write_user_keymap_override(&root);
 

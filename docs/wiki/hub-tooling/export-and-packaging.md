@@ -3,21 +3,21 @@ related_code:
   - zircon_hub/src/projects/package.rs
   - zircon_hub/src/projects/device_install.rs
   - zircon_hub/src/projects/install_receipt.rs
-  - tools/cargo-zircon/src/build/product_build.rs
-  - tools/cargo-zircon/src/build/receipt/mod.rs
-  - tools/cargo-zircon/src/build/receipt/product_receipt.rs
+  - tools/cargo/src/build/product_build.rs
+  - tools/cargo/src/build/receipt/mod.rs
+  - tools/cargo/src/build/receipt/product_receipt.rs
 implementation_files:
   - zircon_hub/src/projects/package.rs
   - zircon_hub/src/projects/device_install.rs
-  - tools/cargo-zircon/src/build/product_build
-  - tools/cargo-zircon/src/build/receipt
+  - tools/cargo/src/build/product_build
+  - tools/cargo/src/build/receipt
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
   - docs/plans/mvp/index.md
 tests:
   - zircon_hub/src/projects/package.rs
   - zircon_hub/src/projects/device_install.rs
-  - tools/cargo-zircon/src/build/receipt
+  - tools/cargo/src/build/receipt
 doc_type: workflow-reference
 ---
 

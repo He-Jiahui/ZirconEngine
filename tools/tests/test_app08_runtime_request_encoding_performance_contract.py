@@ -1,3 +1,4 @@
+# 核对运行请求编码的有界预分配、时钟检查和发布性能证据。
 from pathlib import Path
 import unittest
 
@@ -8,8 +9,7 @@ REQUEST_ENCODING = (
     / "zircon_app/src/entry/runtime_library/runtime_session/request_encoding.rs"
 )
 PERFORMANCE_TESTS = (
-    ROOT
-    / "zircon_app/src/entry/runtime_library/runtime_session/request_encoding/performance_tests.rs"
+    ROOT / "zircon_app/src/entry/runtime_library/runtime_session/request_encoding/tests/performance_tests.rs"
 )
 
 

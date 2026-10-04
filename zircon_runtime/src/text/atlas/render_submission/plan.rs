@@ -1,20 +1,21 @@
 use crate::core::math::UVec2;
 
-use super::super::render_batch::{GlyphAtlasDrawBatchPlan, glyph_atlas_draw_batch_plan};
-use super::super::render_gpu_plan::{GlyphAtlasGpuDrawPlan, glyph_atlas_gpu_draw_plan};
+use super::super::render_batch::{glyph_atlas_draw_batch_plan, GlyphAtlasDrawBatchPlan};
+use super::super::render_gpu_plan::{glyph_atlas_gpu_draw_plan, GlyphAtlasGpuDrawPlan};
 use super::super::render_plan::GlyphAtlasScreenRect;
 use super::super::{
-    GlyphAtlasBitmapPlaceholderGlyph, GlyphAtlasBitmapPreparedUploadPlan, GlyphAtlasBitmapRunPlan,
-    GlyphAtlasBitmapSource, GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasSet,
-    GlyphAtlasUploadCommand, glyph_atlas_bitmap_prepared_upload_plan,
+    glyph_atlas_bitmap_prepared_upload_plan,
     glyph_atlas_bitmap_prepared_upload_plan_with_full_shadow_replay,
     glyph_atlas_bitmap_run_plan_with_atlas, glyph_atlas_bitmap_run_plan_with_atlas_and_padding,
+    GlyphAtlasBitmapPlaceholderGlyph, GlyphAtlasBitmapPreparedUploadPlan, GlyphAtlasBitmapRunPlan,
+    GlyphAtlasBitmapSource, GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasSet,
+    GlyphAtlasUploadCommand,
 };
 use super::placeholder::{
-    GlyphAtlasBitmapPlaceholderDrawPlan, glyph_atlas_bitmap_placeholder_draw_plan,
+    glyph_atlas_bitmap_placeholder_draw_plan, GlyphAtlasBitmapPlaceholderDrawPlan,
 };
 use super::report::{
-    GlyphAtlasBitmapRenderSubmissionReport, glyph_atlas_bitmap_render_submission_report,
+    glyph_atlas_bitmap_render_submission_report, GlyphAtlasBitmapRenderSubmissionReport,
 };
 
 #[derive(Clone, Debug, PartialEq)]

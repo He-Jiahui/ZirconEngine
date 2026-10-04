@@ -159,7 +159,7 @@ fn taa_resolve_compiles_temporal_history_pass_when_taa_stack_is_effective() {
     assert!(matches!(
         &taa_output.desc,
         RenderGraphResourceDesc::Texture(desc)
-            if desc.format == TextureFormat::Rg11b10Ufloat && desc.sample_count == 1
+            if desc.format == TextureFormat::Rgba16Float && desc.sample_count == 1
     ));
     let reactive_mask =
         graph_resource_lifetime(&compiled, PostProcessGraphResourceNames::TAA_REACTIVE_MASK);

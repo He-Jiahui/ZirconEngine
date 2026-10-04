@@ -22,7 +22,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束流式热重载诊断：恢复错误显示流式处理诊断，并回滚诊断使用一个定长缓冲区。
 class StreamingHotReloadDiagnosticsPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

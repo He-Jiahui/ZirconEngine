@@ -285,12 +285,10 @@ fn deferred_final_row_segment_hides_insert_then_remove_lifecycle() {
 
     assert!(world.get::<Health>(entity).is_none());
     assert_eq!(world.get::<Marker>(entity), Some(&Marker));
-    assert!(
-        health_events
-            .lock()
-            .expect("health lifecycle events")
-            .is_empty()
-    );
+    assert!(health_events
+        .lock()
+        .expect("health lifecycle events")
+        .is_empty());
     assert_eq!(
         marker_events
             .lock()
@@ -402,7 +400,7 @@ fn deferred_structural_batch_aborts_all_targets_before_an_opaque_barrier() {
 }
 
 #[test]
-fn deferred_structural_batch_rejects_parent_links_to_a_pending_despawn() {
+fn deferred_structural_batch_rejects_generic_hierarchy_writes_without_publication() {
     let mut world = World::empty();
     let parent = world
         .spawn((Name("Pending despawn parent".to_string()),))
@@ -411,6 +409,7 @@ fn deferred_structural_batch_rejects_parent_links_to_a_pending_despawn() {
         .spawn((Name("Pending despawn child".to_string()),))
         .expect("child fixture must spawn");
     world.reset_ecs_frame_performance_diagnostics();
+    let generation_before = world.world_generation();
 
     {
         let mut commands = world.commands();
@@ -434,14 +433,34 @@ fn deferred_structural_batch_rejects_parent_links_to_a_pending_despawn() {
     );
     assert!(matches!(
         report.errors()[0].error(),
-        crate::scene::SceneError::MissingParent {
-            child: error_child,
-            parent: error_parent,
-        } if *error_child == child && *error_parent == parent
+        crate::scene::SceneError::ProtectedAuthoredComponentMutation {
+            component: "Hierarchy",
+            operation: "insert",
+        }
     ));
     assert!(world.contains_entity(parent));
     assert_eq!(world.parent_of(child), None);
+    assert_eq!(world.world_generation(), generation_before);
     assert_eq!(diagnostics.bundle_transactions.committed_transactions, 0);
+}
+
+#[test]
+fn checked_parent_write_rejects_a_removed_parent_without_mutating_the_child() {
+    let mut world = World::empty();
+    let parent = world.spawn(()).expect("parent fixture must spawn");
+    let child = world.spawn(()).expect("child fixture must spawn");
+    world
+        .remove_entity(parent)
+        .expect("parent fixture must detach");
+    let generation_before = world.world_generation();
+
+    assert_eq!(
+        world.set_parent_checked(child, Some(parent)),
+        Err(crate::scene::SceneError::MissingParent { child, parent })
+    );
+    assert!(world.contains_entity(child));
+    assert_eq!(world.parent_of(child), None);
+    assert_eq!(world.world_generation(), generation_before);
 }
 
 #[test]
@@ -480,12 +499,10 @@ fn deferred_final_row_segment_cancels_spawn_then_despawn_without_publication() {
 
     assert!(report.is_success());
     assert!(report.resolve(&spawned).is_none());
-    assert!(
-        marker_events
-            .lock()
-            .expect("marker lifecycle events")
-            .is_empty()
-    );
+    assert!(marker_events
+        .lock()
+        .expect("marker lifecycle events")
+        .is_empty());
     assert_eq!(diagnostics.bundle_transactions.committed_transactions, 0);
     assert_eq!(
         diagnostics.bundle_transactions.final_archetype_transitions,
@@ -551,12 +568,10 @@ fn deferred_final_row_segment_despawn_discards_pending_insert() {
 
     assert!(report.is_success());
     assert!(!world.contains_entity(entity));
-    assert!(
-        marker_events
-            .lock()
-            .expect("marker lifecycle events")
-            .is_empty()
-    );
+    assert!(marker_events
+        .lock()
+        .expect("marker lifecycle events")
+        .is_empty());
     assert_eq!(
         health_events
             .lock()
@@ -564,11 +579,9 @@ fn deferred_final_row_segment_despawn_discards_pending_insert() {
             .as_slice(),
         &[LifecycleEventKind::Remove, LifecycleEventKind::Despawn]
     );
-    assert!(
-        *observed_removed_entity
-            .lock()
-            .expect("removed entity observation")
-    );
+    assert!(*observed_removed_entity
+        .lock()
+        .expect("removed entity observation"));
     assert_eq!(diagnostics.bundle_transactions.committed_transactions, 0);
     assert_eq!(
         diagnostics.bundle_transactions.final_archetype_transitions,

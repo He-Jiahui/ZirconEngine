@@ -6,10 +6,12 @@ use zircon_runtime_interface::ui::surface::{
 };
 
 use super::layout::{CanonicalPhysicalLineFragment, LogicalVirtualLineSequence};
-use super::{SharedTextLayoutSession, TextRange, text_style};
+use super::{text_style, SharedTextLayoutSession, TextRange};
 use crate::core::framework::text::{TextGlyph, TextLayoutError};
+#[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+use crate::text::font::FontHandleRegistrationBatchReport;
 use crate::text::font::{
-    FontCollectionSnapshot, FontHandleResolverSnapshot, font_handle_resolver_snapshot,
+    font_handle_resolver_snapshot, FontCollectionSnapshot, FontHandleResolverSnapshot,
 };
 use crate::text::shaping::{TextLayoutOutcome, TextShapingOutcome};
 
@@ -36,13 +38,13 @@ pub(crate) use snapshot::{
     resolved_text_glyph_artifact_matches_layout_snapshot,
 };
 use visual_projection::{
-    ProjectedGlyph, apply_resolved_advances, source_cluster_range_for_glyph,
-    visual_clusters_for_line,
+    apply_resolved_advances, source_cluster_range_for_glyph, visual_clusters_for_line,
+    ProjectedGlyph,
 };
 
 pub(crate) use presentation::build_resolved_text_presentation_glyph_artifact;
 pub(crate) use rich::{
-    BuiltResolvedRichTextGlyphArtifact, build_resolved_rich_text_glyph_artifact,
+    build_resolved_rich_text_glyph_artifact, BuiltResolvedRichTextGlyphArtifact,
 };
 
 #[derive(Clone, Debug)]
@@ -598,4 +600,5 @@ pub(super) fn source_slice(
 }
 
 #[cfg(test)]
+#[path = "glyph_artifact/tests/cases.rs"]
 mod tests;

@@ -1,3 +1,4 @@
+# 核对模板解析失败语义的实现归属与模块规模。
 import unittest
 from pathlib import Path
 
@@ -5,15 +6,15 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RESOLUTION_SEMANTICS = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_platform_bundle_template_resolution_semantics.py"
+    / "tools/export/pipeline_report_platform_bundle_template_resolution_semantics.py"
 )
 FAILURE_SEMANTICS = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_platform_bundle_template_resolution_failure_semantics.py"
+    / "tools/export/pipeline_report_platform_bundle_template_resolution_failure_semantics.py"
 )
 RESOLUTION_SCHEMA = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_platform_bundle_template_resolution_schema.py"
+    / "tools/export/pipeline_report_platform_bundle_template_resolution_schema.py"
 )
 
 

@@ -72,7 +72,7 @@ Runtime11 and Frameworks04 must jointly introduce one Runtime-owned discovery re
 - Missing roots, malformed manifests, watcher errors, cancellation, deadline expiry, task panic, and shutdown preserve last-good data and each produce one terminal outcome with bounded diagnostics.
 - Frameworks04's native projection/load behavior remains covered by its focused tests; Runtime11 does not duplicate its parser, loader, or registration projection.
 - After the migration, Editor12 focused tests prove status, manifest completion, native registration, and native-aware enablement read only the published snapshot on their UI request paths.
-- Run the two Cargo commands declared in front matter through `tools/zircon-session.ps1` only after an immutable source snapshot and FIFO admission; add the burst/cancellation/shutdown fixture results to the fixing-plan output record.
+- Run the two Cargo commands declared in front matter through `tools/dev/zircon-session.ps1` only after an immutable source snapshot and FIFO admission; add the burst/cancellation/shutdown fixture results to the fixing-plan output record.
 
 ## 禁止临时方案
 

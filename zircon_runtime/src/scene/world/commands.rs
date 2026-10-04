@@ -1,12 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
+use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 
-use crate::scene::World;
 use crate::scene::ecs::{
     CommandQueue, CommandQueueMetrics, Commands, DeferredCommandError, DeferredCommandReport,
     DeferredCommandTarget, DeferredEntityRef, DeferredSpawnToken, DeferredSystemKey,
     WorkerCommandBuffer, WorkerCommandBufferMergeError,
 };
+use crate::scene::World;
 
 impl World {
     pub(crate) fn allocate_direct_system_deferred_key(&mut self) -> DeferredSystemKey {
@@ -27,6 +27,7 @@ impl World {
         )
     }
 
+    /// 提交当前命令窗口；回调新增命令留待下一窗口，捕获 panic 后恢复活动 tick 和队列，再继续展开。
     pub fn apply_deferred(&mut self) -> DeferredCommandReport {
         if self.command_queue.is_empty() {
             return DeferredCommandReport::default();
@@ -172,18 +173,5 @@ impl World {
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::scene::World;
-
-    #[test]
-    fn ecs_commands_deferred_metrics_observe_only_entered_apply_boundaries() {
-        let mut world = World::empty();
-
-        assert_eq!(world.apply_deferred().applied_count(), 0);
-        assert_eq!(world.deferred_command_metrics().world_apply_count(), 0);
-
-        world.commands().queue_fn(|_: &mut World| {});
-        assert_eq!(world.apply_deferred().applied_count(), 1);
-        assert_eq!(world.deferred_command_metrics().world_apply_count(), 1);
-    }
-}
+#[path = "tests/commands.rs"]
+mod tests;

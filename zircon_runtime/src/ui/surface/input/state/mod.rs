@@ -4,6 +4,7 @@ mod focus_loss;
 mod pointer_capture;
 mod pointer_drag;
 mod pointer_position;
+mod pointer_press;
 mod popup_tooltip;
 mod text_document_epoch;
 
@@ -23,8 +24,9 @@ pub use analog::{UiSurfaceAnalogControlState, UiSurfaceAnalogNavigationState};
 pub use drag_drop::UiSurfaceDragDropState;
 use focus_loss::{UiPendingTextFocusLoss, UiPendingTextFocusLossOwners};
 pub use pointer_capture::UiSurfacePointerCaptureState;
-pub use pointer_drag::UiSurfacePointerDragState;
+pub use pointer_drag::{UiSurfacePointerDragResizeState, UiSurfacePointerDragState};
 pub use pointer_position::UiSurfacePointerPositionState;
+use pointer_press::UiSurfacePointerPressState;
 pub use popup_tooltip::{UiSurfacePopupState, UiSurfaceTooltipState};
 use text_document_epoch::UiTextDocumentEpochs;
 
@@ -32,6 +34,9 @@ use text_document_epoch::UiTextDocumentEpochs;
 #[serde(default)]
 pub struct UiSurfaceInputState {
     pub pointer_captures: BTreeMap<UiPointerId, UiSurfacePointerCaptureState>,
+    pub(crate) pointer_presses: BTreeMap<UiPointerId, UiSurfacePointerPressState>,
+    #[serde(skip)]
+    pub(crate) pointer_route_id: Option<UiPointerId>,
     pub high_precision_owner: Option<UiNodeId>,
     pub pointer_lock_owner: Option<UiNodeId>,
     pub pointer_lock_policy: Option<UiPointerLockPolicy>,

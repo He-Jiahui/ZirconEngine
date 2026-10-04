@@ -1,3 +1,4 @@
+//! 经理服务持有这一份可变运行状态；图的声明快照、Kira 句柄和各类源/事件注册表在同一锁域内协调生命周期。
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 
@@ -61,6 +62,8 @@ pub(crate) struct SoundEngineState {
     pub(crate) pending_dynamic_events: Vec<SoundDynamicEventInvocation>,
     pub(crate) graph: Arc<SoundMixerGraph>,
     pub(crate) graph_revision: u64,
+    /// Monotonic owner generation fencing output prepare/commit against stop or reconfigure.
+    pub(crate) output_generation: u64,
     pub(crate) output_device: SoundOutputDeviceRuntimeState,
     pub(crate) meters: Vec<SoundTrackMeter>,
     pub(crate) latency_frames: usize,
@@ -100,6 +103,7 @@ impl SoundEngineState {
             pending_dynamic_events: Vec::new(),
             graph: Arc::new(graph),
             graph_revision: 0,
+            output_generation: 0,
             output_device: SoundOutputDeviceRuntimeState::new(config),
             meters: vec![SoundTrackMeter::silent(SoundTrackId::master())],
             latency_frames: 0,

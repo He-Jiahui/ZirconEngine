@@ -91,6 +91,7 @@ fn runtime_profile_feature_presets_expose_compilation_requirements() {
             "diagnostic-log",
             "platform-headless",
             "dep:naga",
+            "zr_dev_deps_dylib?/naga",
         ]
     );
     assert!(!server.runtime_features.contains(&"graphics"));

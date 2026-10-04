@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 验证原生系统访问的职责切分：权威与错误应子节点持有，并系统访问归属状态应为镜像。
 class RuntimeNativeSystemAccessOwnerStructureTests(unittest.TestCase):
     STATUS = (
         "runtime_06_15_native_system_access_owner_split_"

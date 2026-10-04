@@ -1,8 +1,8 @@
 import unittest
 
-from tools.runtime_ui_hit_grid_budget_pressure import MAX_CELL_COUNT, run
+from tools.analysis.performance.runtime.runtime_ui_hit_grid_budget_pressure import MAX_CELL_COUNT, run
 
-
+# 以极端与普通尺寸驱动命中网格模型，验证前者有界、后者仍保持空间分区。
 class RuntimeUiHitGridBudgetPressureTests(unittest.TestCase):
     def test_extreme_authored_extent_is_bounded(self):
         result = run(10_000, 1_000_000.0, 1_000_000.0)

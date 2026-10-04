@@ -1,3 +1,4 @@
+# 核对资源烹制阶段对重复资源路径只排序一次。
 from __future__ import annotations
 
 import unittest

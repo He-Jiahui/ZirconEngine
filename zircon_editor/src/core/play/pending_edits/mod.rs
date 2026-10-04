@@ -3,6 +3,7 @@ mod queue;
 mod resolution;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 pub use intent::{PendingEditId, PendingEditIntent};

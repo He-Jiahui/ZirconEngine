@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use super::super::super::super::{
-    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveManifest,
-    RuntimeSessionSlotSelector, io,
+    io, RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveManifest,
+    RuntimeSessionSlotSelector,
 };
 
 pub(in crate::scene::dynamic_scene::session) fn save_selected_single_slot_archive_to_path_atomically(
@@ -13,6 +13,7 @@ pub(in crate::scene::dynamic_scene::session) fn save_selected_single_slot_archiv
     let target_path = target_path.as_ref();
     let report =
         super::preview_save_selected_single_slot_archive_to_path(archive, selector, target_path)?;
+    // 复用预览解析出的槽 ID，使这次提交不再重新解析选择器。
     let exported_archive = archive.single_slot_archive(&report.source_slot_id)?;
     io::save_to_path_atomically(&exported_archive, target_path)?;
     exported_archive.manifest()

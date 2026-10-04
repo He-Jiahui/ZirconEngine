@@ -13,6 +13,8 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/render_submission.rs
   - zircon_runtime/src/scene/level_system.rs
   - zircon_runtime/src/core/framework/render/viewport_highlight_store.rs
+  - tools/tests/runtime10_highlight_store_standalone.py
+  - zircon_runtime/src/dynamic_api/session/tests/highlight_set.rs
   - zircon_runtime/src/dynamic_api/session/extract.rs
   - zircon_runtime/src/dynamic_api/session/extract_cache.rs
   - zircon_runtime/src/dynamic_api/session/state.rs
@@ -21,6 +23,9 @@ tests:
   - runtime dynamic-session highlight submission is present in the submitted RenderFrameExtract for the addressed viewport
   - equal selection generation with changed render attributes invalidates the runtime overlay projection
   - retained editor host and session renderer use an explicit runtime-to-renderer viewport binding
+  - python -X utf8 tools/tests/runtime10_highlight_store_standalone.py (managed std-only lower regression; 8 Rust tests (6 behavior and 2 source-contract guards), 2 performance tests ignored; no ABI or frame acceptance)
+  - cargo +1.94.1 test -p zircon_runtime --lib --locked -- core::framework::render::viewport_highlight_store:: --nocapture --test-threads=1
+  - cargo +1.94.1 test -p zircon_runtime --lib --locked -- dynamic_api::session::tests::highlight_set:: --nocapture --test-threads=1
 ---
 
 # Editor05 -> Runtime10: HighlightSet gateway 输入未进入实际帧生产
@@ -94,3 +99,76 @@ revision 与 viewport binding 生命周期，并取得本记录声明的受管 s
 |---|---|---|---|
 | 2026-08-19 | `open / Runtime10 frame-production bridge required` | 完成 Editor05 consumer、gateway store、dynamic-session extract cache、runtime bridge 与 retained-host render submit 的静态调用图复核；确认旧 `SelectionHighlightExtract`/`overlays.selection` 可硬切，但完整 M4.2 不能以双通道实现验收。 | 本次为结构缺口复核，未执行性能优化或声称性能数据。Runtime10 先完成单通道与 viewport 映射，再由 Editor05 删除临时 frame-local HighlightSet 投影并进行受管验证。 |
 | 2026-08-19 | `in_progress / Editor05 direct projection hard-cut` | 已删除 `EditorRuntimeHighlightSet -> RenderOverlayExtract.highlights` 的临时直写；`render_frame_submission` 现在只向 runtime gateway 提交一次，editor-built snapshot 明确保留 `highlights: None`。同步调整 editor 和 runtime 边界断言，防止该旁路回归。 | `rustfmt` 与受影响路径静态 token 搜索通过。受管离线 `cargo test -p zircon_editor --lib viewport --locked --offline --jobs 1 -- --test-threads=1` 在编译前因本机缓存缺少 `image` 依赖退出（101），不构成代码通过证据；M4.2 仍须等待 Runtime10 的单通道 frame-production bridge 后复验。 |
+
+## 2026-09-27 runtime-owned overlay revision lower slice
+
+Stable Runtime10 primary `failure-roll-01a084c8-runtime10-selection-boundary-r2`
+retains its older pointer/selection records and tickets. Audited transfer
+`7084ab68ab493a224a96c602d1d10bd086671b5a3fcfc91793f936ebe3175477`
+adds the clean store, mounted session test and this handoff to the same Session;
+it displaced no live lease or executable owner. Existing store values tracked
+only selection generation, so an accepted equal-generation tint, outline or
+entity change could not invalidate a renderer overlay cache. The lower store
+now exposes a per-viewport `overlay_revision`. It starts at one, advances only
+when the canonical render payload changes, and stays stable for duplicate or
+higher-generation identical payloads. Stale and non-finite payloads leave
+generation, revision and retained content untouched. Revision overflow is
+explicit instead of silently reusing a cache identity.
+
+Two mounted store behavior regressions cover entity, tint and outline changes,
+stable payloads, stale generations, invalid tint and viewport isolation. One
+mounted session ABI regression submits equal-generation changes through the
+real FFI entry and reads the retained revision through `LevelSystem`. They
+still require managed Windows Cargo execution; rustfmt and independent source
+review Critical 0 / Important 0 / Moderate 0 are not dynamic acceptance.
+
+This slice supplies a cache identity input but does not connect the store to
+`RenderFrameExtract`, establish runtime-to-renderer viewport binding, or
+remove the remaining retained-path dependency. Original session/retained
+renderer-visible, upward, return, review and closeout gates stay open.
+
+The standalone managed lower runner compiles the original HighlightSet/store
+modules and their mounted tests verbatim. It pins Rust 1.94.1 binary identity,
+all included source hashes and the EntityId alias from the unchanged Session
+baseline. It requires the coordinator target on D/E/F and fails if the expected
+eight Rust tests (six behavior and two source-contract guards) do not execute. The two ignored performance tests, session
+ABI, original renderer-visible reproduction and upward gates remain pending.
+At this source snapshot preparation, no dynamic result has been recorded.
+
+## 2026-09-27 lower runner managed receipts
+
+Snapshot 4456 sealed the two production/test changes, failure record and
+standalone runner. Ticket 66c982aece2f4a55afd556981a56f924 failed
+before command execution because the newly created owned runner was incorrectly
+listed as a Git-baseline dependency root; the fixed baseline cannot archive
+an untracked path. Ticket 408df205ccd6424a9c9ace09b0e64f3b corrected
+that closure and ran the runner, but it failed before Rust compilation on a
+source hash check: Windows Git archive exported baseline LF highlight_set.rs
+as CRLF. Its archived physical SHA-256 was
+aeaa4e95a3d953409f92bbd3e3a3d2a3e9f21e7e4442de52c7eeb7f7b4367c04,
+which normalizes exactly to the fixed Git blob SHA-256
+de48bb52b03d6428d714721710818f64374e57ca9f7c6d04f950f7ed60cf9556.
+The other two readonly baseline files have the same line-ending conversion;
+the owned store overlay remains byte-identical to snapshot 4456. The runner
+now pins both the physical archive bytes and normalized Git blob identities.
+Neither failed ticket proves a Rust test pass or original frame acceptance.
+
+## 2026-09-27 managed lower Rust result
+
+Reviewed source snapshot `4528` corrected the archive byte pins without changing
+the store or ABI test. Ticket `56bfee3b35074b7d930f7586b8801bb5`, job
+`1eaab245909a48308737da20acbf1276`, executed the frozen Python runner in the
+coordinator's D: target with pinned Rust 1.94.1. Rust actually compiled the
+production modules and reported `8 passed; 0 failed; 2 ignored; 0 filtered out`:
+six behavior tests and two source-contract guards. Both new store regressions
+executed. The two original performance tests remained ignored. The runner
+manifest hash is `2ac1f3f39d2db3c4a22918c985ac5a09bf5b5fe88c5afa07ee3def6976d37e44`;
+runner SHA is `14d25aa2743f3c22aa2a53d824d4ad65846ba22d9794b94e8cc0ff54d4193780`,
+store SHA is `2d480867e1f6d66528f514034abaf60e993686bd4897a5c33dc145ad7c742128`.
+Exit code was zero and cleanup completed. The prior failed tickets remain
+preserved. Independent source review was Critical 0 / Important 0 / Moderate 0.
+
+This passed lower slice does not execute the mounted session ABI regression or
+the original renderer-visible reproduction. Runtime-owned frame projection,
+viewport lifecycle, direct consumers, formal final review, return and closeout
+remain required; this lifecycle remains `open`.

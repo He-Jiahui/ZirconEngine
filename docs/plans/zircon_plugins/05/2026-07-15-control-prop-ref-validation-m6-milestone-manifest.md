@@ -28,7 +28,7 @@ doc_type: milestone-detail
 Plan: docs/plans/zircon_plugins/05-navigation.md
 Milestone: M7
 Status: completed
-Files: ["zircon_runtime_interface/src/ui/template/asset/binding/expression.rs", "zircon_runtime_interface/tests/ui_binding_control_prop_ref.rs", "zircon_runtime/src/ui/template/asset/binding/validation.rs", "zircon_runtime/src/ui/tests/asset_binding.rs", "zircon_runtime/tests/ui_binding_control_prop_ref.rs", "docs/zircon_runtime/ui/v2.md", "docs/plans/zircon_plugins/05/2026-07-15-control-prop-ref-validation-m6-milestone-manifest.md", "docs/plans/zircon_runtime/render/18/fixed-2026-07-15-control-prop-ref-validation-runtime-gate.md"]
+Files: ["zircon_runtime_interface/src/ui/template/asset/binding/expression.rs", "zircon_runtime_interface/tests/ui_binding_control_prop_ref.rs", "zircon_runtime/src/ui/template/asset/binding/validation.rs", "zircon_runtime/src/ui/tests/asset_binding.rs", "zircon_runtime/tests/ui_binding_control_prop_ref.rs", "docs/crates/zircon_runtime/ui/v2.md", "docs/plans/zircon_plugins/05/2026-07-15-control-prop-ref-validation-m6-milestone-manifest.md", "docs/plans/zircon_runtime/render/18/fixed-2026-07-15-control-prop-ref-validation-runtime-gate.md"]
 Date: 2026-07-15
 
 ## Scope Delivered

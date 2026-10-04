@@ -1,3 +1,5 @@
+//! 将 shaping 结果注册字体句柄并投影为渲染工件，同时守住字体代际和虚拟行映射。
+
 use std::sync::Arc;
 
 use zircon_runtime_interface::ui::surface::{
@@ -6,10 +8,10 @@ use zircon_runtime_interface::ui::surface::{
 
 use crate::core::framework::text::{TextDirection, TextGlyph, TextLayoutError};
 #[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
-use crate::text::font::FontHandleRegistrationBatchReport;
-#[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
 use crate::text::font::register_font_handle_batch_with_report_for_collection;
-use crate::text::font::{FontCollectionSnapshot, register_font_handle_batch_for_collection};
+#[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+use crate::text::font::FontHandleRegistrationBatchReport;
+use crate::text::font::{register_font_handle_batch_for_collection, FontCollectionSnapshot};
 use crate::text::layout::LogicalVirtualLineSequence;
 use crate::text::service::project_glyph;
 use crate::text::shaping::{TextLayoutOutcome, TextShapingOutcome};
@@ -34,6 +36,7 @@ pub(super) fn shape_line_for_artifact(
     font_collection: &FontCollectionSnapshot,
     collect_profile_metrics: bool,
 ) -> TextLayoutOutcome<Option<ArtifactShapedLine>> {
+    // 布局的绝对源范围需换算到当前切片；越界或 UTF-8 边界不合法时拒绝继续 shaping。
     let Some(source) = source_slice(source_text, source_text_origin, line.source_range) else {
         return TextShapingOutcome::failed(TextLayoutError::LayoutFailed);
     };
@@ -67,6 +70,7 @@ pub(super) fn shape_line_for_artifact(
     if font_collection.service().generation() != font_collection.generation() {
         return TextShapingOutcome::deferred(TextLayoutError::FontGenerationChanged);
     }
+    // shaping 完成后及句柄注册前后都复核字体代际，避免向调用者返回混合代际的 glyph 列表。
     let projected = match project_shaped_run_for_artifact(
         shaped.as_ref(),
         font_collection,
@@ -94,6 +98,7 @@ pub(super) fn shape_visual_line_for_artifact(
     if line.text.is_empty() || line.runs.is_empty() {
         return TextShapingOutcome::Ready(None);
     }
+    // visual line 的文本已是物理顺序；此处只重塑展示串，再由 visual_projection 恢复源区间。
     let shaped = match provider.shape_horizontal_range(
         &line.text,
         style,
@@ -147,6 +152,7 @@ pub(super) fn shape_logical_virtual_line_for_artifact(
     font_collection: &FontCollectionSnapshot,
     collect_profile_metrics: bool,
 ) -> TextLayoutOutcome<Option<ArtifactShapedLine>> {
+    // 虚拟行必须沿布局保存的 UAX#9 收据投影；禁用时保留 None 让渲染器走安全回退。
     if !sequence.artifact_projection_allowed() {
         return TextShapingOutcome::Ready(None);
     }
@@ -372,60 +378,5 @@ pub(super) fn artifact_local_profile_metrics_enabled() -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::core::framework::text::{TextGlyphFlags, TextGlyphRotation};
-
-    use super::{TextGlyph, apply_vertical_origin_offsets};
-
-    fn glyph(offset_y: f32) -> TextGlyph {
-        TextGlyph {
-            glyph_id: 7,
-            source_range: 0..1,
-            visual_range: 0..1,
-            advance: 4.0,
-            position: [0.0, 0.0],
-            offset: [0.25, offset_y],
-            font_face: None,
-            font_instance: None,
-            rotation: TextGlyphRotation::None,
-            bidi_level: 0,
-            flags: TextGlyphFlags::default(),
-            requires_rasterization: false,
-        }
-    }
-
-    #[test]
-    fn vertical_origin_offsets_adjust_only_artifact_glyph_offsets() {
-        let mut glyphs = vec![glyph(-1.0), glyph(2.0)];
-
-        assert!(apply_vertical_origin_offsets(
-            &mut glyphs,
-            Some(&[0.5, -1.25])
-        ));
-        assert_eq!(glyphs[0].offset, [0.25, -0.5]);
-        assert_eq!(glyphs[1].offset, [0.25, 0.75]);
-        assert_eq!(glyphs[0].position, [0.0, 0.0]);
-        assert_eq!(glyphs[1].position, [0.0, 0.0]);
-    }
-
-    #[test]
-    fn invalid_vertical_origin_sidecar_leaves_artifact_glyphs_unchanged() {
-        let mut glyphs = vec![glyph(-1.0), glyph(2.0)];
-        let original = glyphs.clone();
-
-        assert!(!apply_vertical_origin_offsets(&mut glyphs, Some(&[0.5])));
-        assert_eq!(glyphs, original);
-        assert!(!apply_vertical_origin_offsets(
-            &mut glyphs,
-            Some(&[0.5, f32::NAN])
-        ));
-        assert_eq!(glyphs, original);
-        let mut overflowing_glyphs = vec![glyph(f32::MAX), glyph(2.0)];
-        let overflowing_original = overflowing_glyphs.clone();
-        assert!(!apply_vertical_origin_offsets(
-            &mut overflowing_glyphs,
-            Some(&[f32::MAX, 0.0])
-        ));
-        assert_eq!(overflowing_glyphs, overflowing_original);
-    }
-}
+#[path = "tests/projection.rs"]
+mod tests;

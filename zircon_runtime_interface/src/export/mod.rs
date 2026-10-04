@@ -15,4 +15,5 @@ pub use report::{ExportPipelineReport, ExportStageRecord, ExportStageStatus};
 pub use stage::{ExportStage, ParseExportStageError};
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

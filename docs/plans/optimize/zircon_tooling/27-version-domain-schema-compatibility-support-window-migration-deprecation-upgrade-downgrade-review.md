@@ -46,10 +46,9 @@ related_code:
   - zircon_editor/src/ui/workbench/project/editor_workspace_persistence.rs
   - zircon_hub/src/projects/install_receipt.rs
   - zircon_hub/src/projects/recent_project.rs
-  - tools/cargo-zircon/src/plugin/scaffold/templates.rs
-  - tools/zircon_export/plugin_validate_engine_version.py
-  - tools/zircon_export/plugin_validate_distribution_engine_compat.py
-  - tools/session_coordinator/migrations.py
+  - tools/cargo/src/plugin/scaffold/templates.rs
+  - tools/export/plugin_validate_engine_version.py
+  - tools/export/plugin_validate_distribution_engine_compat.py
   - examples/woc/native/crates/woc_contract_codegen/src/contract.rs
   - examples/woc/native/crates/woc_protocol/src/contracts.rs
   - examples/woc/scripts/woc_game/src/progression/talent_loadout_migration.zr
@@ -60,7 +59,7 @@ tests:
   - zircon_runtime/src/asset/tests/migration/project_commandlet/transaction_recovery.rs
   - zircon_editor/src/core/commandlet/tests.rs
   - tools/session_coordinator/tests/test_migrations.py
-  - tools/cargo-zircon/tests/plugin_commands.rs
+  - tools/cargo/tests/plugin_commands.rs
   - examples/woc/native/crates/woc_contract_codegen/tests/contract_generation.rs
   - examples/woc/native/crates/woc_protocol/tests/protocol.rs
 plan_sources:

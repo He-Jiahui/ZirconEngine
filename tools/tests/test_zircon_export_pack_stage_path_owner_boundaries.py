@@ -1,3 +1,4 @@
+# 核对打包阶段路径与参数辅助函数归属。
 from __future__ import annotations
 
 import ast
@@ -6,8 +7,8 @@ import unittest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PACK_STAGE = REPO_ROOT / "tools/zircon_export/pack_stage.py"
-PACK_STAGE_PATHS = REPO_ROOT / "tools/zircon_export/pack_stage_paths.py"
+PACK_STAGE = REPO_ROOT / "tools/export/pack_stage.py"
+PACK_STAGE_PATHS = REPO_ROOT / "tools/export/pack_stage_paths.py"
 
 
 PATH_OWNER_FUNCTIONS = {

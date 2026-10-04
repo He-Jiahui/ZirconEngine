@@ -25,6 +25,7 @@ pub staticNpcFacing(index: int, required: bool): float {
     return catalog.facing(index, required);
 }
 
+// 静态 NPC 的坐标仅来自建造清单；动态 NPC 和实体生命周期由产品世界另行管理。
 pub finalStaticNpcCoordinate(seed: uint, index: int, axis: int, required: bool): float {
     if (!required || (axis != 1 && axis != 2)) {
         throw "woc final static NPC coordinate is invalid";

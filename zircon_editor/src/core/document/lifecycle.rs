@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::{
@@ -87,7 +87,7 @@ pub struct SceneDocumentActivation {
 /// another project/session transition until the route either installs the world and commits this
 /// reservation or returns without publishing it.
 #[derive(Debug)]
-pub(super) struct SceneDocumentActivationReservation {
+pub(crate) struct SceneDocumentActivationReservation {
     session: ProjectSessionId,
     key: SceneDocumentKey,
     document: DocumentId,
@@ -95,7 +95,7 @@ pub(super) struct SceneDocumentActivationReservation {
 }
 
 impl SceneDocumentActivationReservation {
-    pub(super) const fn document(&self) -> DocumentId {
+    pub(crate) const fn document(&self) -> DocumentId {
         self.document
     }
 }
@@ -215,6 +215,7 @@ pub struct DocumentLifecycleAuthority {
 struct DocumentLifecycleState {
     active_document: Option<DocumentId>,
     ids_by_root: BTreeMap<PathBuf, DocumentId>,
+    occupied_document_ids: HashSet<DocumentId>,
     active_scene_key: Option<SceneDocumentKey>,
     active_scene_activation_revision: Option<u64>,
     next_scene_activation_revision: u64,
@@ -458,6 +459,57 @@ impl DocumentLifecycleAuthority {
         active_scene_identity_from_state(&state, None)
     }
 
+    /// Rolls a routed scene back to its project document without ending the project session.
+    ///
+    /// Startup rollback uses this boundary when no scene was active before the attempted
+    /// transition. Keeping the project session alive lets the next startup attempt reuse its
+    /// admitted project while removing the failed scene identity and its journal ownership.
+    pub(crate) fn clear_active_scene_document(&self, project_root: &Path) -> Vec<DocumentMessage> {
+        let _route_guard = self.lock_scene_route_gate();
+        let mut state = self.lock_state();
+        let Some(session) = state.active_project_session.as_ref() else {
+            return Vec::new();
+        };
+        if session.root != project_root || state.active_scene_key.is_none() {
+            return Vec::new();
+        }
+
+        let project_document = document_id_for(&mut state, project_root);
+        let previous_document = state.active_document.replace(project_document);
+        state.active_scene_key = None;
+        state.active_scene_activation_revision = None;
+        state.trim_closed_roots();
+        state.trim_closed_scene_documents();
+        let mut messages = Vec::with_capacity(2);
+        if let Some(previous_document) = previous_document {
+            if previous_document != project_document {
+                messages.push(DocumentMessage::Closed {
+                    doc: previous_document,
+                });
+            }
+        }
+        if previous_document != Some(project_document) {
+            messages.push(DocumentMessage::Opened {
+                doc: project_document,
+            });
+        }
+        messages
+    }
+
+    pub(crate) fn active_scene_revision_for_session(&self) -> Option<(DocumentId, u64)> {
+        let _route_guard = self.lock_scene_route_gate();
+        let state = self.lock_state();
+        let session = state.active_project_session.as_ref()?;
+        let scene = state.active_scene_key.as_ref()?;
+        if scene.project_root != session.root {
+            return None;
+        }
+        Some((
+            state.active_document?,
+            state.active_scene_activation_revision?,
+        ))
+    }
+
     pub(super) fn active_scene_identity_while_routed(
         &self,
         root: &Path,
@@ -628,7 +680,10 @@ impl DocumentLifecycleState {
             let Some(root) = root else {
                 break;
             };
-            self.ids_by_root.remove(&root);
+            if let Some(document_id) = self.ids_by_root.remove(&root) {
+                let removed = self.occupied_document_ids.remove(&document_id);
+                debug_assert!(removed, "root document ID index must remain complete");
+            }
             self.probe_counters.record_root_eviction();
         }
     }
@@ -645,7 +700,10 @@ impl DocumentLifecycleState {
             let Some(key) = key else {
                 break;
             };
-            self.ids_by_scene_key.remove(&key);
+            if let Some(document_id) = self.ids_by_scene_key.remove(&key) {
+                let removed = self.occupied_document_ids.remove(&document_id);
+                debug_assert!(removed, "scene document ID index must remain complete");
+            }
             self.probe_counters.record_scene_eviction();
         }
     }
@@ -720,6 +778,7 @@ fn document_id_for(state: &mut DocumentLifecycleState, root: &Path) -> DocumentI
         document_id = DocumentId::new(document_id.value().wrapping_add(DOCUMENT_ID_COLLISION_STEP));
     }
     state.ids_by_root.insert(root.to_path_buf(), document_id);
+    state.occupied_document_ids.insert(document_id);
     document_id
 }
 
@@ -738,18 +797,13 @@ fn scene_document_id_for(state: &mut DocumentLifecycleState, key: &SceneDocument
         document_id = DocumentId::new(document_id.value().wrapping_add(DOCUMENT_ID_COLLISION_STEP));
     }
     state.ids_by_scene_key.insert(key.clone(), document_id);
+    state.occupied_document_ids.insert(document_id);
     document_id
 }
 
 fn document_id_is_occupied(state: &DocumentLifecycleState, candidate: DocumentId) -> bool {
-    state
-        .ids_by_root
-        .values()
-        .any(|document| *document == candidate)
-        || state
-            .ids_by_scene_key
-            .values()
-            .any(|document| *document == candidate)
+    let occupied_document_ids = &state.occupied_document_ids;
+    occupied_document_ids.contains(&candidate)
 }
 
 fn stable_document_id(root: &Path) -> DocumentId {
@@ -762,4 +816,5 @@ fn stable_document_id(root: &Path) -> DocumentId {
 }
 
 #[cfg(test)]
+#[path = "lifecycle/tests/cases.rs"]
 mod tests;

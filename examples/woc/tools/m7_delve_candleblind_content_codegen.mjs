@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码投影Candleblind 地下探索感知倍率，生成可核对的 JSON 和 Zr 内容。
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

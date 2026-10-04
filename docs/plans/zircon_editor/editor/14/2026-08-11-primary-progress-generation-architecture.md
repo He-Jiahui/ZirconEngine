@@ -156,7 +156,7 @@ after the initial synchronization. A changed primary and an empty transition
 must each acquire and update exactly once.
 
 Capture uses the coordinator-built Windows profiling editor through
-`tools/ui-profile-capture.ps1 -SkipBuild -UseWpr`, with `CARGO_TARGET_DIR`
+`tools/analysis/profiling/ui/ui-profile-capture.ps1 -SkipBuild -UseWpr`, with `CARGO_TARGET_DIR`
 under the approved `D:`, `E:` or `F:` managed roots and output under
 `E:\zircon-profiles` or another approved non-`C:` root. The source manifest,
 Perfetto timeline, hotspot counters and `system.etl` remain linked evidence.

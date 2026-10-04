@@ -42,6 +42,7 @@ pub use types::{
 };
 pub use workbench::{
     ActivityDrawerMode, ActivityDrawerSlot, ConsoleMessageFilter, ConsoleSourceFilter,
-    LayoutCommand, MainPageId, MenuAction, SplitAxis, SplitPlacement, TabInsertionAnchor,
-    TabInsertionSide, ViewDescriptorId, ViewHost, ViewInstanceId, WorkspaceTarget,
+    DocumentCloseRevision, LayoutCommand, MainPageId, MenuAction, SplitAxis, SplitPlacement,
+    TabInsertionAnchor, TabInsertionSide, ViewDescriptorId, ViewHost, ViewInstanceId,
+    WorkspaceTarget,
 };

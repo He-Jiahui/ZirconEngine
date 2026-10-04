@@ -56,7 +56,7 @@ styles = ["res://ui/theme/editor_workbench_spatial.zui"]
 [nodes.root]
 component = "Overlay"
 control_id = "WorkbenchWindowRoot"
-pixel_snapping = "snap_to_pixel"
+pixel_snapping = "disabled"
 classes = ["editor-workbench", "workbench-window-root"]
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [
@@ -84,7 +84,7 @@ children = [
 component = "VerticalGroup"
 control_id = "WorkbenchWindowContent"
 classes = ["editor-workbench", "workbench-window-content"]
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = 4}, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [
   { node = "top_toolbar", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
   { node = "main_band", slot = { layout = { linear_size = { rule = "Stretch", value = 4.0 } } } },
@@ -97,7 +97,7 @@ component = "WorkbenchPopupMenu"
 control_id = "WorkbenchToolbarMainMenu"
 classes = ["workbench-popup-menu", "workbench-toolbar-menu"]
 widget = { popup_anchor = { kind = "control", control_id = "WorkbenchToolbarMenu" }, open_property = "popup_open" }
-props = { value = "Menu", value_text = "Menu", menu_items = ["Asset Browser|action=menu.item.asset_browser,icon=folder", "Open Project|action=menu.item.open_project,icon=folder", "Save Project|action=menu.item.save_project,icon=save", "---", "Command Palette|action=menu.item.command_palette,icon=search"], popup_open = false, visibility = "collapsed", placement = "bottom-start", popup_offset_y = "$editor.chrome.workbench_toolbar.popup.command_offset_y", layout_offset_y = 0.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_height = "$editor.control.height.compact", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+props = { value = "Menu", value_text = "Menu", menu_items = ["Asset Browser|action=menu.item.asset_browser,icon=folder", "Open Project|action=menu.item.open_project,icon=folder", "New Scene...|action=menu.item.new_scene,icon=plus", "Open Scene...|action=menu.item.open_scene,icon=folder", "Save Project|action=menu.item.save_project,icon=save", "---", "Command Palette|action=menu.item.command_palette,icon=search"], popup_open = false, visibility = "collapsed", placement = "bottom-start", popup_offset_y = "$editor.chrome.workbench_toolbar.popup.command_offset_y", layout_offset_y = 0.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_height = "$editor.control.height.compact", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { min = 190.0, preferred = 190.0, max = 190.0, stretch = "Fixed" }, height = { min = 160.0, preferred = 160.0, max = 160.0, stretch = "Fixed" }, z_index = 200 }
 
 [nodes.toolbar_run_mode_menu]
@@ -188,7 +188,7 @@ component = "WorkbenchNotificationCenter"
 control_id = "WorkbenchNotificationCenter"
 classes = ["workbench-notification-center", "workbench-overlay-notification-center"]
 widget = { behavior = "popup", popup_anchor = { kind = "control", control_id = "WorkbenchWindowTopToolbarRegion" }, open_property = "popup_open" }
-props = { open = false, popup_open = false, focused = false, selected = false, visibility = "visible", title = "Notifications", notification_generation = 0, unread_count = 0, overflow_count = 0, notifications = [], selected_notification_id = "", focused_index = -1, visible_limit = 8, empty_text = "No notifications", placement = "bottom-end", anchor_origin_vertical = "top", anchor_origin_horizontal = "right", transform_origin_vertical = "top", transform_origin_horizontal = "right", popup_offset_x = 0.0, popup_offset_y = "$editor.density.gap.small", close_on_backdrop_click = true, keep_mounted = true, aria_modal = false, aria_labelledby = "Workbench notification center", aria_describedby = "Editor notifications", z_index = 1490, disable_portal = false, portal_layer = "notification-center", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+props = { open = false, popup_open = false, focused = false, selected = false, visibility = "collapsed", title = "Notifications", notification_generation = 0, unread_count = 0, overflow_count = 0, notifications = [], selected_notification_id = "", focused_index = -1, visible_limit = 8, empty_text = "No notifications", placement = "bottom-end", anchor_origin_vertical = "top", anchor_origin_horizontal = "right", transform_origin_vertical = "top", transform_origin_horizontal = "right", popup_offset_x = 0.0, popup_offset_y = "$editor.density.gap.small", close_on_backdrop_click = true, keep_mounted = true, aria_modal = false, aria_labelledby = "Workbench notification center", aria_describedby = "Editor notifications", z_index = 1490, disable_portal = false, portal_layer = "notification-center", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { min = 300.0, preferred = 340.0, max = 380.0, stretch = "Fixed" }, height = { min = 190.0, preferred = 246.0, max = 320.0, stretch = "Fixed" }, z_index = 255 }
 
 [nodes.toast_overlay]
@@ -234,6 +234,7 @@ layout = { width = { stretch = "Stretch" }, height = { priority = 100, weight = 
 component = "Container"
 control_id = "BottomDrawerShellRoot"
 classes = ["workbench-bottom-drawer-shell"]
+props = { visibility = "collapsed" }
 layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.chrome.panel_header.height", preferred = "$editor.density.bottom_output_height", max = "$editor.density.bottom_output_height", priority = 20, stretch = "Fixed" } }
 children = [{ node = "component_drawer" }]
 

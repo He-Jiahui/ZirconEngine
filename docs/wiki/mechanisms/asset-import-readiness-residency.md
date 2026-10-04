@@ -28,7 +28,7 @@ doc_type: mechanism-guide
 stateDiagram-v2
   [*] --> NotLoaded
   NotLoaded --> Loading: record discovered / request load
-  Loading --> Loaded: ResourceState::Ready + payload
+  Loading --> Loaded: resource ready + payload
   Loading --> Failed: importer/dependency error
   Loaded --> Reloading: watcher generation changed
   Reloading --> Loaded: new artifact committed

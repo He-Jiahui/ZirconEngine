@@ -2,15 +2,15 @@ use crate::core::framework::text::TextLayoutError;
 use crate::text::layout::{RichTextLayoutRun, RichTextLayoutSource};
 use crate::text::shaping::TextShapingOutcome;
 use crate::text::{
-    CompiledRichText, InlineObjectRef, LinkRef, ParagraphOverride, RichTable, RichTextFormat,
-    RichTextParseError, SharedTextLayoutSession, StyleOverride, StyledRun,
     build_resolved_rich_text_glyph_artifact, build_resolved_text_glyph_artifact,
     build_resolved_text_presentation_glyph_artifact, register_compiled_rich_text_artifact,
     register_resolved_rich_text_artifact_with_layout_runs, register_resolved_text_glyph_artifact,
     resolve_compiled_rich_text_artifact, resolve_resolved_text_glyph_artifact,
     resolve_rich_text_virtual_line_sequences_for_layout,
     resolved_rich_text_artifact_matches_layout_snapshot,
-    resolved_text_glyph_artifact_matches_layout_snapshot,
+    resolved_text_glyph_artifact_matches_layout_snapshot, CompiledRichText, InlineObjectRef,
+    LinkRef, ParagraphOverride, RichTable, RichTextFormat, RichTextParseError,
+    SharedTextLayoutSession, StyleOverride, StyledRun,
 };
 use std::{mem::size_of, sync::Arc};
 use zircon_runtime_interface::ui::surface::{
@@ -615,4 +615,5 @@ fn ui_run_kind(style: &StyleOverride, link: Option<&LinkRef>) -> UiTextRunKind {
 }
 
 #[cfg(test)]
+#[path = "rich_text/tests/cases.rs"]
 mod tests;

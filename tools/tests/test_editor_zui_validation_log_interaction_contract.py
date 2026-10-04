@@ -1,3 +1,4 @@
+# 核对校验日志控件具有唯一点击路由并共享导航反馈权威。
 import tomllib
 import unittest
 from pathlib import Path

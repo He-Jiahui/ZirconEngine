@@ -1,22 +1,6 @@
 ---
 related_code:
-  - tools/session_coordinator/web
-  - tools/session_coordinator/control_plane/assets.py
-  - tools/session_coordinator/control_plane/artifact_downloads.py
-  - tools/session_coordinator/control_plane/http.py
-  - tools/session_coordinator/control_plane/http_security.py
-  - tools/session_coordinator/control_plane/router.py
-  - tools/session_coordinator/workflows/projections.py
-  - tools/session_coordinator/server.py
 implementation_files:
-  - tools/session_coordinator/web
-  - tools/session_coordinator/control_plane/assets.py
-  - tools/session_coordinator/control_plane/artifact_downloads.py
-  - tools/session_coordinator/control_plane/http.py
-  - tools/session_coordinator/control_plane/http_security.py
-  - tools/session_coordinator/control_plane/router.py
-  - tools/session_coordinator/workflows/projections.py
-  - tools/session_coordinator/server.py
 plan_sources:
   - docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
 tests:

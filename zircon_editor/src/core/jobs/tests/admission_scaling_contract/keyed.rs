@@ -20,7 +20,8 @@ fn keyed_pending_admission_returns_merged_without_consuming_another_reservation(
     let (release_sender, release_receiver) = mpsc::channel();
     let blocker = jobs
         .submit(
-            EditorJobSpec::new("admission-key-blocker", JobCategory::Export),
+            EditorJobSpec::new("admission-key-blocker", JobCategory::Export)
+                .with_estimated_bytes(1),
             GateJob::new(started_sender, release_receiver),
         )
         .unwrap();
@@ -82,7 +83,8 @@ fn keyed_pending_merge_refreshes_the_cooperative_cancellation_token() {
     let (release_sender, release_receiver) = mpsc::channel();
     let blocker = jobs
         .submit(
-            EditorJobSpec::new("admission-cancel-blocker", JobCategory::Export),
+            EditorJobSpec::new("admission-cancel-blocker", JobCategory::Export)
+                .with_estimated_bytes(1),
             GateJob::new(started_sender, release_receiver),
         )
         .unwrap();
@@ -138,7 +140,8 @@ fn cancelling_a_started_merged_job_reaches_the_latest_cancellation_token() {
     let (release_blocker, release_blocker_receiver) = mpsc::channel();
     let blocker = jobs
         .submit(
-            EditorJobSpec::new("merged-running-cancel-blocker", JobCategory::Export),
+            EditorJobSpec::new("merged-running-cancel-blocker", JobCategory::Export)
+                .with_estimated_bytes(1),
             GateJob::new(blocker_started, release_blocker_receiver),
         )
         .unwrap();
@@ -208,7 +211,8 @@ fn keyed_admission_applies_the_request_wait_age_before_allocating_a_new_job() {
     let (release_sender, release_receiver) = mpsc::channel();
     let blocker = jobs
         .submit(
-            EditorJobSpec::new("admission-age-request-blocker", JobCategory::Export),
+            EditorJobSpec::new("admission-age-request-blocker", JobCategory::Export)
+                .with_estimated_bytes(1),
             GateJob::new(started_sender, release_receiver),
         )
         .unwrap();

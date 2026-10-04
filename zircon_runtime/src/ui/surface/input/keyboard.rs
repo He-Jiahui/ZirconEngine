@@ -9,23 +9,19 @@ use zircon_runtime_interface::ui::{
     tree::UiTreeError,
 };
 
-use crate::{
-    ui::dispatch::{UiNavigationDispatcher, UiTextDocumentSession},
-    ui::tree::UiRuntimeTreeRoutingExt,
-};
+use crate::ui::dispatch::{UiNavigationDispatcher, UiTextDocumentSession};
 
 use super::{
     super::surface::UiSurface,
     editable_text::dispatch_keyboard_text_edit,
-    is_valid_input_owner,
     keyboard_action::{
         keyboard_component_action, keyboard_component_text, keyboard_requests_default_activation,
         keyboard_requests_popup_dismissal, tree_view_keyboard_component_action,
     },
     keyboard_navigation::keyboard_navigation_kind,
-    owner_route::owner_routed_result,
     route_policy::annotate_route_policy,
     route_steps::annotate_result_route_steps,
+    validation::valid_input_owner_route,
 };
 
 pub(super) fn dispatch_keyboard_input(
@@ -47,16 +43,15 @@ pub(super) fn dispatch_keyboard_input(
     result.diagnostics.routed = target.is_some();
     result.diagnostics.route_target = target;
     if let Some(target) = target {
-        if !is_valid_input_owner(surface, target) {
-            let result = owner_routed_result(
-                surface,
-                UiInputEvent::Keyboard(keyboard),
-                Some(target),
-                "keyboard.focused",
-            );
+        let Some(route) = valid_input_owner_route(surface, target) else {
+            result.diagnostics.routed = false;
+            result.diagnostics.route_target = None;
+            result
+                .diagnostics
+                .notes
+                .push("owner route rejected".to_string());
             return Ok(with_keyboard_route_policy(surface, result));
-        }
-        let route = surface.tree.bubble_route(target)?;
+        };
         result
             .diagnostics
             .notes

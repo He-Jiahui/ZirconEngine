@@ -1,3 +1,6 @@
+//! 显式就绪投影采样：编排器隔离每种拓扑与测量范围，基线准备和报告 I/O 不计入测量。
+//! 当前 manager 范围包含权威形状输入的物化，evaluator 范围使用预备更新；结果需连同范围与源哈希解释。
+
 use std::any::TypeId;
 use std::collections::HashMap;
 use std::env;
@@ -65,6 +68,7 @@ impl ProfileOperation {
     }
 }
 
+// TODO: [CR-RESOURCE-AUDIT-0003] 确认 manager 范围名称是否应注明仅测输入物化加投影更新；当前不经过实际管理器提交、锁或事件发布，缺少完整提交边界的对照样本。
 #[derive(Clone, Copy, Debug)]
 enum ProfileMeasurementScope {
     ManagerEndToEnd,
@@ -663,7 +667,8 @@ fn write_profile_reports(
     let projection_source_blake3 = source_blake3(include_str!("../../readiness_projection.rs"));
     let generation_source_blake3 = source_blake3(include_str!("../../../readiness_generation.rs"));
     let profile_source_blake3 = source_blake3(include_str!("profile.rs"));
-    let allocation_profile_source_blake3 = source_blake3(include_str!("../../../test_profile.rs"));
+    let allocation_profile_source_blake3 =
+        source_blake3(include_str!("../../../tests/test_profile.rs"));
     let raw_path = directory.join("resource-readiness-current-raw-samples.csv");
     let summary_path = directory.join("resource-readiness-current-summary.csv");
     let metadata_path = directory.join("resource-readiness-current-metadata.txt");

@@ -73,6 +73,10 @@ impl BoundedKeyedIoTicket {
         self.generation
     }
 
+    pub(super) fn same_instance(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.state, &other.state)
+    }
+
     pub fn terminal(&self) -> Option<BoundedKeyedIoTerminal> {
         self.lock().terminal
     }
@@ -96,11 +100,12 @@ impl BoundedKeyedIoTicket {
         }
     }
 
+    /// 取消权威绑定票据状态的 Arc 身份而非可复用数值 id；started 或 fence pin 状态会拒绝绕过前置义务的取消。
     pub fn cancel_before_start(
         &self,
         authority: &BoundedKeyedIoCancelAuthority,
     ) -> Result<(), BoundedKeyedIoCancelError> {
-        if authority.ticket_id() != self.id {
+        if !authority.authorizes(self) {
             return Err(BoundedKeyedIoCancelError::WrongAuthority);
         }
         let mut state = self.lock();
@@ -178,3 +183,7 @@ pub enum BoundedKeyedIoCancelError {
     AlreadyStarted,
     FencePinned,
 }
+
+#[cfg(test)]
+#[path = "ticket/tests/astra_authority_tests.rs"]
+mod astra_authority_tests;

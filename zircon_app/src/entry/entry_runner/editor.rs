@@ -1,4 +1,6 @@
 #[cfg(feature = "target-editor-host")]
+use ownership::{close_deadline, finish_owned_editor_host};
+#[cfg(feature = "target-editor-host")]
 use std::env;
 use std::error::Error;
 #[cfg(feature = "target-editor-host")]
@@ -13,7 +15,6 @@ use zircon_editor::{
     core::{
         commandlet::run_commandlet_with_host,
         play::{EmbeddedPlayBackend, SharedPlayBackend},
-        project::{NewProjectDraft, NewProjectTemplate, ProjectAuthority},
     },
     run_editor_with_config,
     ui::host::EditorManager,
@@ -26,12 +27,20 @@ use zircon_runtime::asset::{
     AssetUri,
 };
 #[cfg(feature = "target-editor-host")]
+use zircon_runtime::builtin::RuntimePluginId;
+#[cfg(feature = "target-editor-host")]
+use zircon_runtime::core::framework::project::{
+    ProjectPluginFeatureSelection, ProjectPluginManifest, ProjectPluginSelection,
+};
+#[cfg(feature = "target-editor-host")]
 use zircon_runtime::plugin::RuntimePluginRegistrationReport;
 #[cfg(feature = "target-editor-host")]
 use zircon_runtime_interface::project::{
     ProjectActivationOperationIdGenerator, ProjectLaunchInstanceId, ProjectLaunchIntent,
     ProjectLaunchProfile, ProjectLaunchSource, ProjectLaunchTarget, ProjectTemplateId,
 };
+#[cfg(feature = "target-editor-host")]
+use zircon_runtime_interface::runtime_build_set::ZrRuntimeModuleCompositionTargetV1;
 
 #[cfg(feature = "target-editor-host")]
 use crate::entry::{
@@ -40,12 +49,16 @@ use crate::entry::{
     first_party_runtime_plugin_registrations_for_config, EntryConfig, EntryProfile,
     ResolvedProductHostConfig,
 };
+#[cfg(feature = "target-editor-host")]
+use zircon_editor::core::project::ProjectAuthority;
 
 #[cfg(feature = "target-editor-host")]
 use super::super::runtime_library::{LoadedRuntime, RuntimeSession};
 
 #[cfg(feature = "target-editor-host")]
 mod composition;
+#[cfg(feature = "target-editor-host")]
+mod ownership;
 #[cfg(feature = "target-editor-host")]
 mod play_session_factory;
 #[cfg(feature = "target-editor-host")]
@@ -59,6 +72,7 @@ pub use composition::EditorApplicationComposition;
 use super::EntryRunner;
 #[cfg(all(feature = "target-editor-host", test))]
 pub(crate) use crate::entry::cli::{editor_startup_argument_error, EditorGuiStartupRequestArgs};
+use crate::entry::product_shutdown::{ProductExitClass, ProductTerminalOutcome};
 #[cfg(feature = "target-editor-host")]
 use play_session_factory::AppPlaySessionFactory;
 #[cfg(feature = "target-editor-host")]
@@ -133,6 +147,17 @@ impl EntryRunner {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
+        Self::run_editor_with_args_terminal(args).map(|outcome| outcome.exit_code().code())
+    }
+
+    /// Preserve GUI/help versus commandlet origin even when both complete with code zero.
+    pub fn run_editor_with_args_terminal<I, S>(
+        args: I,
+    ) -> Result<ProductTerminalOutcome, Box<dyn Error>>
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
         #[cfg(not(feature = "target-editor-host"))]
         {
             let _ = args;
@@ -151,27 +176,31 @@ impl EntryRunner {
                 match launch_args.route()? {
                     EditorLaunchRoute::Help => {
                         println!("{EDITOR_STARTUP_HELP}");
-                        return Ok(0);
+                        return Ok(ProductTerminalOutcome::host(
+                            ProductExitClass::Success,
+                            "editor_help_completed",
+                        ));
                     }
                     EditorLaunchRoute::Commandlet(request) => {
                         let commandlet_host =
                             project_automation::EditorProjectAutomationCommandletHost;
                         let report = run_commandlet_with_host(request, &commandlet_host);
                         println!("{}", serde_json::to_string(&report)?);
-                        return Ok(report.exit_code().as_u8());
+                        return Ok(ProductTerminalOutcome::commandlet(
+                            report.exit_code().as_u8(),
+                        ));
                     }
                     EditorLaunchRoute::CommandletRejected(report) => {
                         println!("{}", serde_json::to_string(&report)?);
-                        return Ok(report.exit_code().as_u8());
+                        return Ok(ProductTerminalOutcome::commandlet(
+                            report.exit_code().as_u8(),
+                        ));
                     }
                     EditorLaunchRoute::Gui(intent) => intent.into_parts(),
                 };
+            configure_windows_editor_gpu_backend();
             let first_frame_capture_path = editor_first_frame_capture_path()?;
             let requested_startup = editor_host_startup_request(gui_startup_request.as_ref());
-            let starts_with_project = gui_startup_request
-                .as_ref()
-                .and_then(EditorGuiStartupRequest::project_intent)
-                .is_some();
             let runtime_preflight = LoadedRuntime::preflight_default().map_err(|error| {
                 editor_startup_diagnostic_error(
                     "runtime_build_set",
@@ -180,8 +209,7 @@ impl EntryRunner {
                     "stage a runtime library and sidecar manifest from the same BuildSet as zircon_editor before opening or creating a project",
                 )
             })?;
-            let project_runtime_build_set =
-                starts_with_project.then(|| runtime_preflight.build_set_id());
+            let project_runtime_build_set = Some(runtime_preflight.build_set_id());
             let prepared_startup = prepare_editor_gui_startup(gui_startup_request).map_err(
                 |error| {
                     editor_startup_diagnostic_error(
@@ -216,18 +244,8 @@ impl EntryRunner {
                             "launch Hub handshakes only with --project-launch-intent and verify the intent targets an existing project",
                         )
                     })?;
-                    let ProjectLaunchTarget::OpenExisting { requested_path } = intent.target()
-                    else {
-                        return Err(editor_startup_diagnostic_error(
-                            "hub_handshake",
-                            &editor_host_request,
-                            "Hub launch retained a create request after project creation"
-                                .to_string(),
-                            "create the project before creating the Hub handshake configuration",
-                        )
-                        .into());
-                    };
-                    let project_root = ProjectPaths::resolve_path(requested_path)
+                    let requested_project_root = hub_handshake_project_root(intent);
+                    let project_root = ProjectPaths::resolve_path(&requested_project_root)
                         .map_err(|error| {
                             editor_startup_diagnostic_error(
                                 "hub_handshake",
@@ -243,9 +261,9 @@ impl EntryRunner {
                 }
                 None => None,
             };
-            let product_composition = Self::compose_resolved_with_runtime_plugin_registrations(
+            let mut product_composition = Self::compose_resolved_with_runtime_plugin_registrations(
                 entry_config,
-                runtime_plugin_registrations,
+                runtime_plugin_registrations.iter().cloned(),
             )
             .map_err(|error| {
                 editor_startup_diagnostic_error(
@@ -255,17 +273,26 @@ impl EntryRunner {
                     "verify the selected profile and staged editor and runtime plugins",
                 )
             })?;
+            product_composition.retain_plugin_selection_outcomes(
+                runtime_plugin_registrations
+                    .outcomes()
+                    .iter()
+                    .chain(editor_plugin_registrations.outcomes().iter())
+                    .cloned(),
+            );
             let core = product_composition.core().clone();
-            let editor_manager = core
-                .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
-                .map_err(|error| {
-                    editor_startup_diagnostic_error(
-                        "editor_manager",
-                        &editor_host_request,
-                        format!("editor manager resolution failed: {error}"),
-                        "verify the editor manager registration and selected startup profile",
-                    )
-                })?;
+            let editor_manager = match core.resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME) {
+                Ok(manager) => manager,
+                Err(primary) => {
+                    drop(core);
+                    let failure = product_composition.fail_until(primary, close_deadline());
+                    return Err(Box::new(editor_startup_diagnostic_error(
+                        "editor_manager", &editor_host_request,
+                        format!("editor manager resolution failed: {failure}"),
+                        "verify the editor manager registration and selected startup profile; retry retained product cleanup before another admission",
+                    )));
+                }
+            };
             drop(editor_manager);
             let factory = std::sync::Arc::new(AppPlaySessionFactory::new(
                 runtime_preflight.clone(),
@@ -273,29 +300,37 @@ impl EntryRunner {
             ));
             let play_backend =
                 std::sync::Arc::new(EmbeddedPlayBackend::new(factory)) as SharedPlayBackend;
-            let runtime = runtime_preflight.load_after_preflight().map_err(|error| {
-                editor_startup_diagnostic_error(
-                    "runtime_library",
-                    &editor_host_request,
-                    format!("runtime library loading failed: {error}"),
-                    "stage a compatible runtime library beside zircon_editor or configure ZIRCON_RUNTIME_LIBRARY with a path relative to the product executable or an absolute path",
-                )
-            })?;
-            // The editor host owns project activation and its registry generation. The gateway
-            // session must stay projectless so it cannot open the same project a second time.
-            let runtime_session = std::sync::Arc::new(
-                RuntimeSession::create_with_profile(runtime, b"editor").map_err(|error| {
-                    editor_startup_diagnostic_error(
-                        "runtime_session",
-                        &editor_host_request,
-                        format!("runtime session creation failed: {error}"),
-                        "verify the runtime ABI, editor profile, and staged runtime dependencies",
-                    )
-                })?,
-            );
+            let runtime = match runtime_preflight.load_after_preflight() {
+                Ok(runtime) => runtime,
+                Err(primary) => {
+                    drop(core);
+                    let failure = product_composition.fail_until(primary, close_deadline());
+                    return Err(Box::new(editor_startup_diagnostic_error(
+                        "runtime_library", &editor_host_request,
+                        format!("runtime library loading failed: {failure}"),
+                        "stage a compatible runtime library beside zircon_editor; retry retained product cleanup before another admission",
+                    )));
+                }
+            };
+            // Editor owns project activation; the gateway session remains projectless.
+            let runtime_session = match RuntimeSession::create_with_profile(runtime, b"editor") {
+                Ok(session) => std::sync::Arc::new(session),
+                Err(error) => {
+                    drop(core);
+                    let diagnostic = error.diagnostic_with_recovery();
+                    let failure =
+                        product_composition.fail_with_runtime_until(error, close_deadline());
+                    return Err(Box::new(editor_startup_diagnostic_error(
+                        "runtime_session", &editor_host_request,
+                        format!("runtime session creation failed: {diagnostic}; {failure}"),
+                        "verify the runtime ABI and staged dependencies; retry_product_cleanup_until retries the exact retained packets on this host thread",
+                    )));
+                }
+            };
             let runtime_teardown_failure = runtime_session.teardown_failure_state();
             let product_failure_ledger = runtime_teardown_failure.failure_ledger();
-            let host_result: Result<_, Box<dyn Error>> = (|| {
+            let retained_play_backend = play_backend.clone();
+            let host_result: Result<_, Box<dyn Error + Send + Sync>> = (|| {
                 let runtime_gateway = runtime_session
                     .editor_gateway(runtime_capabilities.clone())
                     .map_err(|error| {
@@ -327,6 +362,9 @@ impl EntryRunner {
                 Ok(())
             })();
             record_editor_host_failure(&product_failure_ledger, &host_result);
+            if let Err(error) = &host_result {
+                eprintln!("[zircon_editor] editor host failed before runtime teardown: {error}");
+            }
             #[cfg(feature = "profiling")]
             if profile_capture.is_some() {
                 match zircon_runtime::core::diagnostics::profiling::stop_and_export_capture_from_env(
@@ -336,14 +374,36 @@ impl EntryRunner {
                     None => {}
                 }
             }
-            drop(product_composition);
-            drop(runtime_session);
-            let failure_report = product_failure_ledger.snapshot();
-            finish_editor_host(&editor_host_request, host_result, failure_report)?;
-            Ok(0)
+            finish_owned_editor_host(
+                &editor_host_request,
+                host_result,
+                product_composition,
+                runtime_session,
+                retained_play_backend,
+                &product_failure_ledger,
+                close_deadline(),
+            )?;
+            Ok(ProductTerminalOutcome::host(
+                ProductExitClass::Success,
+                "editor_completed",
+            ))
         }
     }
 }
+
+#[cfg(all(feature = "target-editor-host", windows))]
+fn configure_windows_editor_gpu_backend() {
+    // The editor and its loaded runtime each create a WGPU instance. Restrict the
+    // default to one backend so their shared presenter cannot select different APIs.
+    // An explicit user selection remains authoritative.
+    if env::var_os("WGPU_BACKEND").is_none() {
+        env::set_var("WGPU_BACKEND", "vulkan");
+        eprintln!("[zircon_editor] gpu_backend_default=vulkan");
+    }
+}
+
+#[cfg(all(feature = "target-editor-host", not(windows)))]
+fn configure_windows_editor_gpu_backend() {}
 
 #[cfg(feature = "target-editor-host")]
 fn editor_host_run_config_with_first_frame_exit(
@@ -420,8 +480,14 @@ fn editor_first_frame_capture_path_from_value(
 struct EditorStartupPreparation {
     entry_config: ResolvedProductHostConfig,
     startup_request: Option<EditorGuiStartupRequest>,
-    editor_plugin_registrations: Vec<EditorPluginRegistrationReport>,
-    runtime_plugin_registrations: Vec<RuntimePluginRegistrationReport>,
+    editor_plugin_registrations:
+        zircon_runtime::core::framework::project::PluginSelectionResolutionReport<
+            EditorPluginRegistrationReport,
+        >,
+    runtime_plugin_registrations:
+        zircon_runtime::core::framework::project::PluginSelectionResolutionReport<
+            RuntimePluginRegistrationReport,
+        >,
     runtime_capabilities: RuntimeCapabilities,
 }
 
@@ -445,36 +511,6 @@ fn prepare_editor_startup(
     startup_request: Option<EditorGuiStartupRequest>,
     include_editor_plugin_registrations: bool,
 ) -> Result<EditorStartupPreparation, Box<dyn Error>> {
-    let startup_request = match startup_request {
-        Some(EditorGuiStartupRequest::Project { intent }) => match intent.target() {
-            ProjectLaunchTarget::CreateProject {
-                project_name,
-                location,
-                template,
-            } => {
-                let template = match template {
-                    ProjectTemplateId::RenderableEmpty => NewProjectTemplate::RenderableEmpty,
-                };
-                let draft = NewProjectDraft {
-                    project_name: project_name.clone(),
-                    location: location.to_string_lossy().into_owned(),
-                    template,
-                };
-                let created = ProjectAuthority::default().create_project(&draft)?;
-                let request = EditorGuiStartupRequest::project(
-                    intent.retarget_open_existing_project(created.root.clone())?,
-                );
-                // App07 owns durable template creation. Its transient manager must not cross
-                // this boundary: Editor admission later materializes the created project.
-                drop(created);
-                Some(request)
-            }
-            ProjectLaunchTarget::OpenExisting { .. } => {
-                Some(EditorGuiStartupRequest::project(intent))
-            }
-        },
-        request => request,
-    };
     prepare_editor_startup_from_launch_intent(startup_request, include_editor_plugin_registrations)
 }
 
@@ -483,15 +519,41 @@ fn prepare_editor_startup_from_launch_intent(
     startup_request: Option<EditorGuiStartupRequest>,
     include_editor_plugin_registrations: bool,
 ) -> Result<EditorStartupPreparation, Box<dyn Error>> {
-    let entry_config = EntryConfig::new(EntryProfile::Editor).resolve()?;
+    let startup_request = startup_request
+        .map(|request| request.preflight_project(&ProjectAuthority::default()))
+        .transpose()?;
+    let mvp_runtime_plugins = editor_mvp_required_runtime_plugins()?;
+    let entry_config =
+        EntryConfig::new(EntryProfile::Editor).with_required_runtime_plugins(&mvp_runtime_plugins);
+    let mut project_plugins = startup_request
+        .as_ref()
+        .and_then(EditorGuiStartupRequest::project_preflight)
+        .map(|preflight| preflight.approved_project_plugins().clone())
+        .unwrap_or_default();
+    admit_builtin_editor_ui_selection(&mut project_plugins);
+    disable_unlinked_editor_render_features(&mut project_plugins);
+    let entry_config = entry_config
+        .with_project_plugins(project_plugins)
+        .resolve()?;
     let runtime_plugin_registrations =
-        first_party_runtime_plugin_registrations_for_config(&entry_config);
+        first_party_runtime_plugin_registrations_for_config(&entry_config)
+            .into_registrations_if_required_resolved_where(|selection| {
+                !selection.is_runtime_builtin_domain()
+            })
+            .map_err(|error| Box::new(error) as Box<dyn Error>)?;
     let runtime_capabilities = RuntimeCapabilities::from_runtime_plugin_registrations(
         SessionProfileKind::Editor,
         &runtime_plugin_registrations,
     );
     let editor_plugin_registrations = include_editor_plugin_registrations
-        .then(|| first_party_editor_plugin_registrations_for_config(&entry_config))
+        .then(|| {
+            first_party_editor_plugin_registrations_for_config(&entry_config)
+                .into_registrations_if_required_resolved_where(|selection| {
+                    selection.editor_crate.is_some()
+                })
+        })
+        .transpose()
+        .map_err(|error| Box::new(error) as Box<dyn Error>)?
         .unwrap_or_default();
 
     Ok(EditorStartupPreparation {
@@ -501,6 +563,92 @@ fn prepare_editor_startup_from_launch_intent(
         runtime_plugin_registrations,
         runtime_capabilities,
     })
+}
+
+#[cfg(feature = "target-editor-host")]
+fn admit_builtin_editor_ui_selection(manifest: &mut ProjectPluginManifest) {
+    if let Some(selection) = manifest
+        .selections
+        .iter_mut()
+        .find(|selection| selection.id == RuntimePluginId::Ui.key())
+    {
+        if selection.is_runtime_builtin_domain() {
+            selection.required = false;
+        }
+    } else {
+        // UI is a built-in runtime module; it has no first-party plugin report.
+        manifest
+            .selections
+            .push(ProjectPluginSelection::runtime_plugin(
+                RuntimePluginId::Ui,
+                true,
+                false,
+            ));
+    }
+}
+
+#[cfg(feature = "target-editor-host")]
+fn disable_unlinked_editor_render_features(manifest: &mut ProjectPluginManifest) {
+    let rendering_index = match manifest
+        .selections
+        .iter()
+        .position(|selection| selection.id == RuntimePluginId::Rendering.key())
+    {
+        Some(index) => index,
+        None => {
+            manifest
+                .selections
+                .push(ProjectPluginSelection::runtime_plugin(
+                    RuntimePluginId::Rendering,
+                    true,
+                    true,
+                ));
+            manifest.selections.len() - 1
+        }
+    };
+    let rendering = &mut manifest.selections[rendering_index];
+    // The editor bundle links the base renderer, but these optional providers are
+    // not linked into the MVP. An explicit project selection remains authoritative.
+    for feature_id in [
+        "rendering.post_process",
+        "rendering.reflection_probes",
+        "rendering.baked_lighting",
+    ] {
+        if !rendering
+            .features
+            .iter()
+            .any(|feature| feature.id == feature_id)
+        {
+            rendering
+                .features
+                .push(ProjectPluginFeatureSelection::new(feature_id).enabled(false));
+        }
+    }
+}
+
+#[cfg(feature = "target-editor-host")]
+fn editor_mvp_required_runtime_plugins() -> Result<Vec<RuntimePluginId>, Box<dyn Error>> {
+    let descriptor = ProjectTemplateId::RenderableEmpty.descriptor();
+    let requirement = descriptor
+        .target_requirements()
+        .iter()
+        .find(|requirement| requirement.target() == ZrRuntimeModuleCompositionTargetV1::EditorHost)
+        .ok_or_else(|| {
+            std::io::Error::other(
+                "renderable-empty template does not define an EditorHost composition requirement",
+            )
+        })?;
+    requirement
+        .required_runtime_providers()
+        .map(|provider| {
+            RuntimePluginId::parse_key(provider).ok_or_else(|| {
+                std::io::Error::other(format!(
+                    "renderable-empty template requires unknown runtime provider {provider}"
+                ))
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| Box::new(error) as Box<dyn Error>)
 }
 
 #[cfg(feature = "target-editor-host")]
@@ -542,7 +690,7 @@ fn editor_host_startup_request(request: Option<&EditorGuiStartupRequest>) -> Str
         Some(EditorGuiStartupRequest::OpenBuiltinView { descriptor_id }) => {
             format!("builtin_view:{descriptor_id}")
         }
-        Some(EditorGuiStartupRequest::Project { intent }) => match intent.target() {
+        Some(EditorGuiStartupRequest::Project { intent, .. }) => match intent.target() {
             ProjectLaunchTarget::OpenExisting { requested_path } => format!(
                 "project:{}",
                 ProjectPaths::display_path(requested_path).display()
@@ -550,6 +698,18 @@ fn editor_host_startup_request(request: Option<&EditorGuiStartupRequest>) -> Str
             ProjectLaunchTarget::CreateProject { .. } => "project:create".to_string(),
         },
         None => "workspace:welcome".to_string(),
+    }
+}
+
+#[cfg(feature = "target-editor-host")]
+fn hub_handshake_project_root(intent: &ProjectLaunchIntent) -> PathBuf {
+    match intent.target() {
+        ProjectLaunchTarget::OpenExisting { requested_path } => requested_path.clone(),
+        ProjectLaunchTarget::CreateProject {
+            project_name,
+            location,
+            ..
+        } => location.join(project_name),
     }
 }
 

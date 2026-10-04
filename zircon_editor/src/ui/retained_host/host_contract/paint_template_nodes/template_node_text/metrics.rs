@@ -1,5 +1,7 @@
 use super::super::super::data::TemplatePaneNodeData;
-use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
+use super::super::super::paint_theme::{
+    current_host_metrics, logical_font_size_to_physical, HostControlMetrics,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(super) struct TemplateNodeTextGeometryMetrics {
@@ -44,8 +46,10 @@ fn node_font_size_from_host(
     available_height: f32,
     metrics: HostControlMetrics,
 ) -> f32 {
+    // Authored node sizes are logical. Host role defaults have already been
+    // projected to physical pixels with the rest of HostControlMetrics.
     let requested = if node.font_size.is_finite() && node.font_size > 0.0 {
-        node.font_size
+        logical_font_size_to_physical(node.font_size, metrics.scale_factor)
     } else if node.role.as_str() == "Label"
         && matches!(node.text_tone.as_str(), "muted" | "subtle" | "secondary")
     {
@@ -78,64 +82,5 @@ fn template_node_text_geometry_metrics_from_host(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ui::retained_host::host_contract::paint_theme::METRICS;
-
-    #[test]
-    fn template_node_font_role_projects_caption_and_body_from_host_typography() {
-        let metrics = HostControlMetrics {
-            font_small: 11.0,
-            font_body: 15.0,
-            ..METRICS
-        };
-        let body = TemplatePaneNodeData::default();
-        let mut caption = TemplatePaneNodeData::default();
-        caption.role = "Label".into();
-        caption.text_tone = "muted".into();
-        let mut authored = caption.clone();
-        authored.font_size = 12.0;
-        let mut subtle = caption.clone();
-        subtle.text_tone = "subtle".into();
-        let mut secondary = caption.clone();
-        secondary.text_tone = "secondary".into();
-
-        assert_eq!(node_font_size_from_host(&body, 20.0, metrics), 15.0);
-        assert_eq!(node_font_size_from_host(&body, 10.0, metrics), 15.0);
-        assert_eq!(node_font_size_from_host(&body, 0.0, metrics), 0.0);
-        assert_eq!(node_font_size_from_host(&caption, 20.0, metrics), 11.0);
-        assert_eq!(node_font_size_from_host(&caption, 6.0, metrics), 11.0);
-        assert_eq!(node_font_size_from_host(&subtle, 20.0, metrics), 11.0);
-        assert_eq!(node_font_size_from_host(&secondary, 20.0, metrics), 11.0);
-        assert_eq!(node_font_size_from_host(&authored, 20.0, metrics), 12.0);
-        assert_eq!(node_font_size_from_host(&authored, 6.0, metrics), 12.0);
-    }
-
-    #[test]
-    fn template_node_text_geometry_projects_shared_gap_border_and_caption_line_height() {
-        let metrics = HostControlMetrics {
-            gap_s: 5.0,
-            border_width: 1.5,
-            font_small: 10.0,
-            line_height_ratio: 1.3,
-            ..METRICS
-        };
-
-        let geometry = template_node_text_geometry_metrics_from_host(metrics);
-
-        assert_eq!(geometry.horizontal_inset, 5.0);
-        assert_eq!(geometry.vertical_inset, 5.0);
-        assert_eq!(geometry.minimum_text_height, 13.0);
-        assert_eq!(geometry.edge_guard, 1.5);
-    }
-
-    #[test]
-    fn template_node_text_line_height_keeps_the_runtime_fractional_metric() {
-        let metrics = HostControlMetrics {
-            line_height_ratio: 1.35,
-            ..METRICS
-        };
-
-        assert!((template_node_text_line_height_from_host(11.0, metrics) - 14.85).abs() < 0.001);
-    }
-}
+#[path = "tests/metrics.rs"]
+mod tests;

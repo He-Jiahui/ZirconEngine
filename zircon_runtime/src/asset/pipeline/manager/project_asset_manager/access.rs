@@ -88,10 +88,22 @@ impl ProjectAssetManagerAccess {
     }
 
     pub fn resolve(&self) -> Result<Arc<ProjectAssetManager>, CoreError> {
+        self.resolve_with_core().map(|(_, manager)| manager)
+    }
+
+    /// Resolves the manager together with the Core owner that supplies its task graph.
+    ///
+    /// Runtime-owned subsystems use this pair when constructing generation-scoped workers. The
+    /// pair is resolved from one upgraded Core handle so a worker cannot accidentally attach to a
+    /// task graph belonging to a different runtime.
+    pub(crate) fn resolve_with_core(
+        &self,
+    ) -> Result<(CoreHandle, Arc<ProjectAssetManager>), CoreError> {
         let core = self
             .core
             .upgrade()
             .ok_or_else(|| CoreError::ServiceUnavailable(self.handle.service.to_string()))?;
-        resolve_manager_service(&core, self.handle.clone())
+        let manager = resolve_manager_service(&core, self.handle.clone())?;
+        Ok((core, manager))
     }
 }

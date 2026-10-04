@@ -10,14 +10,15 @@ use std::time::{Duration, Instant};
 use crate::core::{CoreError, CoreResult};
 
 use super::callback_dispatcher::TaskCallbackDispatcher;
-use super::spawn_named_thread;
+use super::{spawn_named_thread, thread_is_join_ready};
 
-const PROCESS_TIMER_CAPACITY: usize = 512;
+const DEFAULT_TIMER_CAPACITY: usize = 512;
 const PROCESS_TIMER_THREAD_NAME: &str = "zircon-runtime-timer";
+const TIMER_JOIN_POLL_INTERVAL: Duration = Duration::from_millis(1);
 
 static PROCESS_TIMER: OnceLock<Result<TaskTimer, String>> = OnceLock::new();
 
-/// A process-wide timer service for small lifecycle callbacks.
+/// A bounded timer service with either process-default or graph ownership.
 pub(crate) struct TaskTimer {
     inner: Arc<TaskTimerInner>,
     worker: Arc<TaskTimerWorker>,
@@ -39,6 +40,7 @@ struct TaskTimerInner {
 
 struct TaskTimerWorker {
     join_handle: Mutex<Option<JoinHandle<()>>>,
+    joined: AtomicBool,
 }
 
 struct TaskTimerState {
@@ -66,7 +68,7 @@ impl TaskTimer {
     /// Returns the single control-plane timer shared by all runtime instances.
     pub(crate) fn process_default() -> CoreResult<Self> {
         match PROCESS_TIMER
-            .get_or_init(|| Self::new(PROCESS_TIMER_CAPACITY).map_err(|error| error.to_string()))
+            .get_or_init(|| Self::new(DEFAULT_TIMER_CAPACITY).map_err(|error| error.to_string()))
         {
             Ok(timer) => Ok(timer.clone()),
             Err(error) => Err(CoreError::ThreadSpawn(error.clone())),
@@ -85,7 +87,9 @@ impl TaskTimer {
             ));
         }
         let now = Instant::now();
-        let deadline = now.checked_add(interval).unwrap_or(now);
+        let deadline = now
+            .checked_add(interval)
+            .ok_or(CoreError::DeadlineOutOfRange)?;
         self.schedule(TimerSchedule::Interval(interval), deadline, callback)
     }
 
@@ -98,6 +102,7 @@ impl TaskTimer {
         self.schedule(TimerSchedule::Once, deadline, callback)
     }
 
+    // 先做 closing 快速拒绝，再在状态锁内复核；容量、注册 id 与 deadline 一并登记后才唤醒 worker，避免关闭竞态留下孤儿注册。
     fn schedule(
         &self,
         schedule: TimerSchedule,
@@ -151,7 +156,11 @@ impl TaskTimer {
         Self::new_with_callback_dispatcher(capacity, TaskCallbackDispatcher::process_default())
     }
 
-    fn new_with_callback_dispatcher(
+    pub(super) fn new_owned(callback_dispatcher: TaskCallbackDispatcher) -> CoreResult<Self> {
+        Self::new_with_callback_dispatcher(DEFAULT_TIMER_CAPACITY, callback_dispatcher)
+    }
+
+    pub(super) fn new_with_callback_dispatcher(
         capacity: usize,
         callback_dispatcher: TaskCallbackDispatcher,
     ) -> CoreResult<Self> {
@@ -169,12 +178,63 @@ impl TaskTimer {
         });
         let worker = Arc::new(TaskTimerWorker {
             join_handle: Mutex::new(None),
+            joined: AtomicBool::new(false),
         });
         let timer = Self { inner, worker };
         let runner = Arc::downgrade(&timer.inner);
         let handle = spawn_named_thread(PROCESS_TIMER_THREAD_NAME, move || run_timer(runner))?;
         *lock_timer_worker(&timer.worker) = Some(handle);
         Ok(timer)
+    }
+
+    /// Stops admission while the enclosing graph's lifecycle lock is held.
+    pub(super) fn close_admission(&self) {
+        let state = lock_timer_state(&self.inner);
+        self.inner.closing.store(true, Ordering::Release);
+        drop(state);
+        self.inner.changed.notify_all();
+    }
+
+    /// Releases pending callback captures outside the enclosing graph lock.
+    fn clear_pending_registrations(&self) {
+        let mut state = lock_timer_state(&self.inner);
+        let pending = std::mem::take(&mut state.deadlines);
+        state.scheduled_deadlines.clear();
+        drop(state);
+        drop(pending);
+    }
+
+    /// Joins the control worker within the enclosing owner's absolute deadline.
+    /// A timeout retains the handle so the same owner can retry later.
+    pub(super) fn shutdown_until(&self, deadline: Instant) -> bool {
+        self.close_admission();
+        self.clear_pending_registrations();
+        loop {
+            let mut worker = lock_timer_worker(&self.worker);
+            let Some(handle) = worker.as_ref() else {
+                return self.worker.joined.load(Ordering::Acquire);
+            };
+            if handle.thread().id() == thread::current().id() {
+                return false;
+            }
+            if thread_is_join_ready(handle) {
+                let handle = worker.take().expect("ready timer worker handle exists");
+                drop(worker);
+                let joined = handle.join().is_ok();
+                self.worker.joined.store(joined, Ordering::Release);
+                return joined;
+            }
+            drop(worker);
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                return false;
+            }
+            thread::sleep(remaining.min(TIMER_JOIN_POLL_INTERVAL));
+        }
+    }
+
+    pub(super) fn is_joined(&self) -> bool {
+        self.worker.joined.load(Ordering::Acquire)
     }
 }
 
@@ -194,8 +254,8 @@ impl Drop for TaskTimer {
             return;
         }
 
-        self.inner.closing.store(true, Ordering::Release);
-        self.inner.changed.notify_all();
+        self.close_admission();
+        self.clear_pending_registrations();
         let handle = {
             let mut handle = lock_timer_worker(&self.worker);
             if handle
@@ -208,7 +268,9 @@ impl Drop for TaskTimer {
             }
         };
         if let Some(handle) = handle {
-            let _ = handle.join();
+            self.worker
+                .joined
+                .store(handle.join().is_ok(), Ordering::Release);
         }
     }
 }
@@ -280,6 +342,7 @@ fn run_timer(timer: Weak<TaskTimerInner>) {
     }
 }
 
+// 每轮只取最早到期 bucket；周期项从当前时刻重排，delivery_pending 把慢回调期间累积的重复 tick 合并。
 fn next_callbacks(timer: &TaskTimerInner) -> Option<Vec<Arc<TimerRegistration>>> {
     let mut state = lock_timer_state(timer);
     loop {
@@ -304,33 +367,34 @@ fn next_callbacks(timer: &TaskTimerInner) -> Option<Vec<Arc<TimerRegistration>>>
             continue;
         }
 
-        let registrations = state
+        let mut registrations = state
             .deadlines
             .remove(&deadline)
             .expect("timer deadline exists while selected");
         let next_deadline = Instant::now();
-        let mut callbacks = Vec::with_capacity(registrations.len());
-        for registration in registrations {
+        // The selected bucket already owns the callback buffer; filter it in place.
+        registrations.retain(|registration| {
             if state.scheduled_deadlines.remove(&registration.id).is_none()
                 || registration.cancelled.load(Ordering::Acquire)
             {
-                continue;
+                return false;
             }
             if let TimerSchedule::Interval(interval) = registration.schedule {
-                let deadline = next_deadline.checked_add(interval).unwrap_or(next_deadline);
+                let Some(deadline) = next_deadline.checked_add(interval) else {
+                    registration.cancelled.store(true, Ordering::Release);
+                    return false;
+                };
                 state
                     .deadlines
                     .entry(deadline)
                     .or_default()
-                    .push(Arc::clone(&registration));
+                    .push(Arc::clone(registration));
                 state.scheduled_deadlines.insert(registration.id, deadline);
             }
             // A slow periodic delivery coalesces later ticks instead of building a callback backlog.
-            if !registration.delivery_pending.swap(true, Ordering::AcqRel) {
-                callbacks.push(registration);
-            }
-        }
-        return Some(callbacks);
+            !registration.delivery_pending.swap(true, Ordering::AcqRel)
+        });
+        return Some(registrations);
     }
 }
 
@@ -367,5 +431,13 @@ fn lock_timer_worker(worker: &TaskTimerWorker) -> MutexGuard<'_, Option<JoinHand
 }
 
 #[cfg(test)]
-#[path = "timer/tests.rs"]
+#[path = "timer/tests/cases.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "timer/tests/astra_interval_tests.rs"]
+mod astra_interval_tests;
+
+#[cfg(test)]
+#[path = "timer/tests/ready_bucket_reuse_tests.rs"]
+mod ready_bucket_reuse_tests;

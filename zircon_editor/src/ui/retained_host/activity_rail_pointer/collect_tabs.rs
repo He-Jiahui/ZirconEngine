@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::ui::workbench::layout::ActivityDrawerSlot;
 use crate::ui::workbench::model::WorkbenchViewModel;
 
@@ -6,7 +8,7 @@ use super::host_activity_rail_pointer_item::HostActivityRailPointerItem;
 pub(super) fn collect_tabs(
     model: &WorkbenchViewModel,
     slots: &[ActivityDrawerSlot],
-) -> Vec<HostActivityRailPointerItem> {
+) -> Arc<[HostActivityRailPointerItem]> {
     let tabs = slots
         .iter()
         .filter_map(|slot| model.tool_windows.get(slot))
@@ -19,7 +21,8 @@ pub(super) fn collect_tabs(
                     instance_id: tab.instance_id.clone(),
                 })
         })
-        .collect::<Vec<_>>();
+        .collect::<Vec<_>>()
+        .into();
     zircon_runtime::profile_counter!("editor", "ui.activity_rail.projection_batch_count", 1);
     zircon_runtime::profile_counter!(
         "editor",

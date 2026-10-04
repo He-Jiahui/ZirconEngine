@@ -55,7 +55,7 @@ requireText(world, /clearDeadCasting[\s\S]*?clearPartyMarkerEntityRows/,
   'party-marker death cleanup is missing');
 requireText(world, /clearPartyMarkerEntityRows[\s\S]*?targetingMarkers\.clearEntityMarker/,
   'party-marker death bridge is missing');
-requireText(world, /writer\.u16\(<uint>78, 1, 1\)[\s\S]*?partyMarkerPartyIds[\s\S]*?partyMarkerEntityIds[\s\S]*?partyMarkerSymbols/,
+requireText(world, /writer\.u16\(schemaVersion, 1, 1\)[\s\S]*?partyMarkerPartyIds[\s\S]*?partyMarkerEntityIds[\s\S]*?partyMarkerSymbols/,
   'WOS72 marker tail is missing');
 requireText(world, /if \(schemaVersion >= <uint>69\)[\s\S]*?partyMarkerPartyIds[\s\S]*?partyMarkerEntityIds[\s\S]*?partyMarkerSymbols/,
   'WOS72 marker migration is missing');

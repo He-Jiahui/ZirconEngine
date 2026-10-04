@@ -2,7 +2,10 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $script:MvpBuildSetSchemaVersion = 1
+$script:MvpBuildSetAdditionsSchemaVersion = 2
 $script:MvpBuildSetKind = 'zircon_mvp_product_build_set'
+$script:MvpBuildSetTrackedPolicy = 'tracked_head_plus_tracked_dirty_overlay'
+$script:MvpBuildSetAdditionsPolicy = 'tracked_head_plus_tracked_dirty_overlay_plus_explicit_additions'
 $script:MvpBuildSetUtf8 = [Text.UTF8Encoding]::new($false)
 $script:MvpBuildSetLineSeparators = [string[]]@("`r`n", "`n")
 $script:MvpBuildSetNulSeparator = [char[]]@([char]0)
@@ -18,9 +21,27 @@ $script:MvpBuildSetManifestPropertyNames = [string[]] @(
     'dirty_overlay_sha256',
     'files'
 )
+$script:MvpBuildSetAdditionsManifestPropertyNames = [string[]] @(
+    'schema_version', 'files'
+)
+$script:MvpBuildSetSourceAdditionPropertyNames = [string[]] @(
+    'relative_path', 'sha256', 'byte_length'
+)
 $script:MvpBuildSetUnsafeRelativePathPattern = [Text.RegularExpressions.Regex]::new(
     '(?:^|/)\.{0,2}(?:/|$)',
     [Text.RegularExpressions.RegexOptions]::CultureInvariant)
+
+function ConvertTo-MvpBuildSetGitPath {
+    param([Parameter(Mandatory)][string]$Path)
+
+    if ($Path.StartsWith('\\?\UNC\', [StringComparison]::OrdinalIgnoreCase)) {
+        return '\\' + $Path.Substring(8)
+    }
+    if ($Path.StartsWith('\\?\', [StringComparison]::OrdinalIgnoreCase)) {
+        return $Path.Substring(4)
+    }
+    return $Path
+}
 
 function Invoke-MvpBuildSetGit {
     param(
@@ -32,7 +53,7 @@ function Invoke-MvpBuildSetGit {
 
     $quotedArguments = [string[]]::new($Arguments.Length)
     for ($index = 0; $index -lt $Arguments.Length; $index++) {
-        $argument = $Arguments[$index]
+        $argument = ConvertTo-MvpBuildSetGitPath -Path $Arguments[$index]
         if ($argument.Contains('"')) {
             throw 'MVP BuildSet Git arguments must not contain double quotes.'
         }
@@ -40,7 +61,7 @@ function Invoke-MvpBuildSetGit {
     }
     $startInfo = [Diagnostics.ProcessStartInfo]::new()
     $startInfo.FileName = $GitPath
-    $startInfo.WorkingDirectory = $RepositoryRoot
+    $startInfo.WorkingDirectory = ConvertTo-MvpBuildSetGitPath -Path $RepositoryRoot
     $startInfo.Arguments = [string]::Join(' ', $quotedArguments)
     $startInfo.UseShellExecute = $false
     $startInfo.CreateNoWindow = $true
@@ -84,7 +105,7 @@ function Invoke-MvpBuildSetGitBytes {
 
     $startInfo = [Diagnostics.ProcessStartInfo]::new()
     $startInfo.FileName = $GitPath
-    $startInfo.WorkingDirectory = $RepositoryRoot
+    $startInfo.WorkingDirectory = ConvertTo-MvpBuildSetGitPath -Path $RepositoryRoot
     $startInfo.Arguments = $Arguments
     $startInfo.UseShellExecute = $false
     $startInfo.CreateNoWindow = $true
@@ -185,6 +206,156 @@ function Assert-MvpBuildSetExactProperties {
     }
 }
 
+function Assert-MvpBuildSetSourceAdditions {
+    param(
+        [Parameter(Mandatory)]$Entries,
+        [Parameter(Mandatory)][string]$Label
+    )
+
+    if ($Entries -isnot [Array] -or $Entries.Count -eq 0) {
+        throw "$Label must contain a nonempty files array."
+    }
+    $previousPath = $null
+    foreach ($entry in $Entries) {
+        Assert-MvpBuildSetExactProperties `
+            -Value $entry `
+            -ExpectedNames $script:MvpBuildSetSourceAdditionPropertyNames `
+            -Label "$Label entry"
+        $relativePath = [string]$entry.relative_path
+        if ([string]::IsNullOrWhiteSpace($relativePath) -or
+            [IO.Path]::IsPathRooted($relativePath) -or
+            $relativePath.IndexOf([char]92) -ge 0 -or
+            $relativePath.IndexOf(':') -ge 0 -or
+            $script:MvpBuildSetUnsafeRelativePathPattern.IsMatch($relativePath) -or
+            $relativePath -eq '.git' -or $relativePath.StartsWith('.git/', [StringComparison]::OrdinalIgnoreCase)) {
+            throw "$Label contains an unsafe relative path '$relativePath'."
+        }
+        if ($null -ne $previousPath -and
+            [StringComparer]::Ordinal.Compare($previousPath, $relativePath) -ge 0) {
+            throw "$Label file paths must be unique and ordinally sorted."
+        }
+        $previousPath = $relativePath
+        if ([string]$entry.sha256 -cnotmatch '^[0-9A-F]{64}$' -or
+            ($entry.byte_length -isnot [int] -and $entry.byte_length -isnot [long]) -or
+            [int64]$entry.byte_length -lt 0) {
+            throw "$Label entry '$relativePath' has invalid content identity."
+        }
+    }
+}
+
+function Read-MvpBuildSetSourceAdditions {
+    param(
+        [Parameter(Mandatory)][string]$GitPath,
+        [Parameter(Mandatory)][string]$RepositoryRoot,
+        [Parameter(Mandatory)][string]$ManifestPath
+    )
+
+    $manifestItem = [IO.FileInfo]::new([IO.Path]::GetFullPath($ManifestPath))
+    if (-not $manifestItem.Exists -or
+        ($manifestItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -or
+        $manifestItem.Length -gt 64MB) {
+        throw "MVP BuildSet source additions manifest is unavailable or unsafe: $ManifestPath"
+    }
+    try {
+        $manifest = [IO.File]::ReadAllText($manifestItem.FullName, $script:MvpBuildSetUtf8) |
+            ConvertFrom-Json -ErrorAction Stop
+    }
+    catch {
+        throw "MVP BuildSet source additions manifest is malformed: $ManifestPath"
+    }
+    Assert-MvpBuildSetExactProperties `
+        -Value $manifest `
+        -ExpectedNames $script:MvpBuildSetAdditionsManifestPropertyNames `
+        -Label 'MVP BuildSet source additions manifest'
+    if (($manifest.schema_version -isnot [int] -and $manifest.schema_version -isnot [long]) -or
+        [int64]$manifest.schema_version -ne 1) {
+        throw 'MVP BuildSet source additions manifest has an unexpected schema.'
+    }
+    Assert-MvpBuildSetSourceAdditions -Entries $manifest.files -Label 'MVP BuildSet source additions'
+
+    $capture = Invoke-MvpBuildSetGitBytes `
+        -GitPath $GitPath `
+        -RepositoryRoot $RepositoryRoot `
+        -Arguments 'ls-files --others --exclude-standard -z'
+    $untracked = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $paths = $script:MvpBuildSetUtf8.GetString([byte[]]$capture.Item1, 0, $capture.Item2).Split(
+        $script:MvpBuildSetNulSeparator, [StringSplitOptions]::RemoveEmptyEntries)
+    foreach ($path in $paths) {
+        $null = $untracked.Add($path)
+    }
+    $root = [IO.Path]::GetFullPath($RepositoryRoot).TrimEnd(
+        [IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+    $rootPrefix = $root + [IO.Path]::DirectorySeparatorChar
+    foreach ($entry in $manifest.files) {
+        $relativePath = [string]$entry.relative_path
+        if (-not $untracked.Contains($relativePath)) {
+            throw "MVP BuildSet declared source addition is not an untracked, nonignored file: $relativePath"
+        }
+        $sourcePath = [IO.Path]::GetFullPath([IO.Path]::Combine(
+                $root, $relativePath.Replace('/', [IO.Path]::DirectorySeparatorChar)))
+        if (-not $sourcePath.StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "MVP BuildSet source addition escapes its repository root: $relativePath"
+        }
+        $item = [IO.FileInfo]::new($sourcePath)
+        if (-not $item.Exists -or
+            ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -or
+            [int64]$entry.byte_length -ne $item.Length) {
+            throw "MVP BuildSet source addition content differs from its declaration: $relativePath"
+        }
+        $directory = $item.Directory
+        while ($directory.FullName -ne $root) {
+            if (($directory.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+                throw "MVP BuildSet source addition crosses a reparse point: $relativePath"
+            }
+            $directory = $directory.Parent
+            if ($null -eq $directory) {
+                throw "MVP BuildSet source addition escapes its repository root: $relativePath"
+            }
+        }
+    }
+    return ,([object[]]$manifest.files)
+}
+
+function Copy-MvpBuildSetSourceAdditions {
+    param(
+        [Parameter(Mandatory)][string]$RepositoryRoot,
+        [Parameter(Mandatory)][string]$SnapshotRoot,
+        [Parameter(Mandatory)][object[]]$Entries
+    )
+
+    $hasher = [Security.Cryptography.SHA256]::Create()
+    try {
+        foreach ($entry in $Entries) {
+            $relativePath = [string]$entry.relative_path
+            $platformPath = $relativePath.Replace('/', [IO.Path]::DirectorySeparatorChar)
+            $source = [IO.Path]::Combine($RepositoryRoot, $platformPath)
+            $destination = [IO.Path]::Combine($SnapshotRoot, $platformPath)
+            if ([IO.File]::Exists($destination) -or [IO.Directory]::Exists($destination)) {
+                throw "MVP BuildSet source addition collides with tracked source: $relativePath"
+            }
+            $null = [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($destination))
+            [IO.File]::Copy($source, $destination, $false)
+            $item = [IO.FileInfo]::new($destination)
+            if ($item.Length -ne [int64]$entry.byte_length) {
+                throw "MVP BuildSet source addition content changed while copying: $relativePath"
+            }
+            $stream = $item.OpenRead()
+            try {
+                $actualHash = [BitConverter]::ToString($hasher.ComputeHash($stream)).Replace('-', '')
+            }
+            finally {
+                $stream.Dispose()
+            }
+            if ($actualHash -cne [string]$entry.sha256) {
+                throw "MVP BuildSet source addition content changed while copying: $relativePath"
+            }
+        }
+    }
+    finally {
+        $hasher.Dispose()
+    }
+}
+
 function Get-MvpBuildSetSnapshotFilesNoFollow {
     param([Parameter(Mandatory)][string]$SnapshotRoot)
 
@@ -228,7 +399,8 @@ function Get-MvpBuildSetSnapshotFilesNoFollow {
 function Get-MvpBuildSetTrackedFiles {
     param(
         [Parameter(Mandatory)][string]$GitPath,
-        [Parameter(Mandatory)][string]$SnapshotRoot
+        [Parameter(Mandatory)][string]$SnapshotRoot,
+        [object[]]$SourceAdditions = @()
     )
 
     $normalizedSnapshotRoot = [IO.Path]::GetFullPath($SnapshotRoot).TrimEnd(
@@ -248,7 +420,8 @@ function Get-MvpBuildSetTrackedFiles {
             [StringSplitOptions]::RemoveEmptyEntries)
     $pathBuffer = $null
     $pathCapture = $null
-    $paths = [Collections.Generic.List[string]]::new($entries.Length)
+    $paths = [Collections.Generic.List[string]]::new($entries.Length + $SourceAdditions.Count)
+    $trackedPaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     foreach ($entry in $entries) {
         $separator = $entry.IndexOf([char]9)
         if ($separator -le 0) {
@@ -266,8 +439,16 @@ function Get-MvpBuildSetTrackedFiles {
             throw "MVP BuildSet rejects symbolic link '$relativePath' because its source closure is not materialized."
         }
         $paths.Add($relativePath)
+        $null = $trackedPaths.Add($relativePath)
     }
     $entries = $null
+    foreach ($addition in $SourceAdditions) {
+        $relativePath = [string]$addition.relative_path
+        if ($trackedPaths.Contains($relativePath)) {
+            throw "MVP BuildSet source addition collides with tracked source: $relativePath"
+        }
+        $paths.Add($relativePath)
+    }
     $paths.Sort([StringComparer]::Ordinal)
 
     $files = [Collections.Generic.List[object]]::new($paths.Count)
@@ -339,7 +520,8 @@ function Get-MvpBuildSetId {
     param(
         [Parameter(Mandatory)][string]$GitRevision,
         [Parameter(Mandatory)][string]$DirtyOverlaySha256,
-        [Parameter(Mandatory)][AllowEmptyCollection()][Collections.Generic.IEnumerable[object]]$Files
+        [Parameter(Mandatory)][AllowEmptyCollection()][Collections.Generic.IEnumerable[object]]$Files,
+        [object[]]$SourceAdditions = @()
     )
 
     $encoding = $script:MvpBuildSetUtf8
@@ -353,14 +535,31 @@ function Get-MvpBuildSetId {
             [Security.Cryptography.CryptoStreamMode]::Write,
             $true)
         $writer = [IO.BinaryWriter]::new($cryptoStream, $encoding, $true)
-        $segments = [string[]]::new(3)
-        $segments[0] = 'zircon-mvp-build-set-v1'
+        $segments = [string[]]::new($(if ($SourceAdditions.Count -gt 0) { 4 } else { 3 }))
+        $segments[0] = if ($SourceAdditions.Count -gt 0) {
+            'zircon-mvp-build-set-v2'
+        } else {
+            'zircon-mvp-build-set-v1'
+        }
         $segments[1] = $GitRevision
         $segments[2] = $DirtyOverlaySha256
+        if ($SourceAdditions.Count -gt 0) {
+            $segments[3] = [string]$SourceAdditions.Count
+        }
         foreach ($segment in $segments) {
             [byte[]]$bytes = $encoding.GetBytes($segment)
             $writer.Write([int64]$bytes.LongLength)
             $writer.Write($bytes)
+        }
+        foreach ($addition in $SourceAdditions) {
+            foreach ($value in @(
+                    [string]$addition.relative_path,
+                    [string]$addition.sha256,
+                    [string][int64]$addition.byte_length)) {
+                [byte[]]$bytes = $encoding.GetBytes($value)
+                $writer.Write([int64]$bytes.LongLength)
+                $writer.Write($bytes)
+            }
         }
         foreach ($file in $Files) {
             [byte[]]$bytes = $encoding.GetBytes([string]$file.relative_path)
@@ -487,7 +686,8 @@ function Assert-MvpBuildSetInventory {
 function New-MvpProductBuildSet {
     param(
         [Parameter(Mandatory)][string]$RepositoryRoot,
-        [Parameter(Mandatory)][string]$BuildSetRoot
+        [Parameter(Mandatory)][string]$BuildSetRoot,
+        [string]$SourceAdditionsManifestPath
     )
 
     $git = Get-Command git -ErrorAction SilentlyContinue
@@ -520,6 +720,7 @@ function New-MvpProductBuildSet {
     $null = [IO.Directory]::CreateDirectory($parent)
     $null = [IO.Directory]::CreateDirectory($finalRoot)
     $snapshotRoot = $null
+    [object[]]$sourceAdditions = @()
     $worktreeAdded = $false
     $pendingManifestPath = $null
     try {
@@ -534,11 +735,17 @@ function New-MvpProductBuildSet {
         Assert-MvpBuildSetSourceIndexModePolicy `
             -GitPath $gitPath `
             -RepositoryRoot $repoRoot
+        if (-not [string]::IsNullOrWhiteSpace($SourceAdditionsManifestPath)) {
+            [object[]]$sourceAdditions = Read-MvpBuildSetSourceAdditions `
+                -GitPath $gitPath `
+                -RepositoryRoot $repoRoot `
+                -ManifestPath $SourceAdditionsManifestPath
+        }
         $snapshotRoot = [IO.Path]::Combine($finalRoot, 'source')
         Invoke-MvpBuildSetGit `
             -GitPath $gitPath `
             -RepositoryRoot $repoRoot `
-            -Arguments @('worktree', 'add', '--detach', $snapshotRoot, $revision) `
+            -Arguments @('-c', 'core.longpaths=true', 'worktree', 'add', '--detach', $snapshotRoot, $revision) `
             -DiscardOutput
         $worktreeAdded = $true
 
@@ -563,37 +770,60 @@ function New-MvpProductBuildSet {
             Invoke-MvpBuildSetGit `
                 -GitPath $gitPath `
                 -RepositoryRoot $snapshotRoot `
-                -Arguments @('apply', '--index', '--binary', '--whitespace=nowarn', $overlayPath) `
+                -Arguments @('-c', 'core.longpaths=true', 'apply', '--index', '--binary', '--whitespace=nowarn', $overlayPath) `
                 -DiscardOutput
         }
         # The private index preserves Git object modes. Re-indexing on Windows could reduce
         # a 120000 symbolic-link entry to ordinary text before the allowlist rejects it.
         Remove-Item -LiteralPath $overlayPath -Force -ErrorAction Stop
 
-        [Collections.Generic.List[object]]$files = Get-MvpBuildSetTrackedFiles -GitPath $gitPath -SnapshotRoot $snapshotRoot
+        if ($sourceAdditions.Count -gt 0) {
+            Copy-MvpBuildSetSourceAdditions `
+                -RepositoryRoot $repoRoot `
+                -SnapshotRoot $snapshotRoot `
+                -Entries $sourceAdditions
+        }
+        [Collections.Generic.List[object]]$files = Get-MvpBuildSetTrackedFiles `
+            -GitPath $gitPath `
+            -SnapshotRoot $snapshotRoot `
+            -SourceAdditions $sourceAdditions
         $buildSetId = Get-MvpBuildSetId `
             -GitRevision $revision `
             -DirtyOverlaySha256 $overlaySha256 `
-            -Files $files
+            -Files $files `
+            -SourceAdditions $sourceAdditions
         $manifestPath = [IO.Path]::Combine($finalRoot, 'build-set.json')
         $pendingManifestPath = [IO.Path]::Combine($finalRoot, 'build-set-pending.json')
         $manifest = [ordered]@{
-            schema_version = $script:MvpBuildSetSchemaVersion
+            schema_version = if ($sourceAdditions.Count -gt 0) {
+                $script:MvpBuildSetAdditionsSchemaVersion
+            } else {
+                $script:MvpBuildSetSchemaVersion
+            }
             build_set_kind = $script:MvpBuildSetKind
             status = 'completed'
             build_set_id = $buildSetId
             created_utc = [DateTime]::UtcNow.ToString('o')
             snapshot_relative_path = 'source'
-            source_policy = 'tracked_head_plus_tracked_dirty_overlay'
+            source_policy = if ($sourceAdditions.Count -gt 0) {
+                $script:MvpBuildSetAdditionsPolicy
+            } else {
+                $script:MvpBuildSetTrackedPolicy
+            }
             git_revision = $revision
             dirty_overlay_sha256 = $overlaySha256
             files = $files
+        }
+        if ($sourceAdditions.Count -gt 0) {
+            $manifest.source_additions = $sourceAdditions
         }
         # Validate a private candidate before the final, completed-name manifest becomes visible.
         Write-MvpBuildSetJson -Path $pendingManifestPath -Value $manifest
         $validated = Assert-MvpProductBuildSet -ManifestPath $pendingManifestPath
         [IO.File]::Move($pendingManifestPath, $manifestPath)
-        $validated.manifest_path = $manifestPath
+        # Suppress the property-assignment result so callers receive exactly one
+        # BuildSet object rather than a path string followed by the object.
+        $null = ($validated.manifest_path = $manifestPath)
         return $validated
     }
     catch {
@@ -610,7 +840,7 @@ function New-MvpProductBuildSet {
                 Invoke-MvpBuildSetGit `
                     -GitPath $gitPath `
                     -RepositoryRoot $repoRoot `
-                    -Arguments @('worktree', 'remove', '--force', $snapshotRoot) `
+                    -Arguments @('-c', 'core.longpaths=true', 'worktree', 'remove', '--force', $snapshotRoot) `
                     -DiscardOutput
             }
             catch {
@@ -635,12 +865,22 @@ function Assert-MvpProductBuildSet {
     catch {
         throw "MVP BuildSet manifest is malformed: $resolvedManifestPath"
     }
+    if (($manifest.schema_version -isnot [int] -and $manifest.schema_version -isnot [long]) -or
+        [Int64]$manifest.schema_version -notin @(
+            $script:MvpBuildSetSchemaVersion, $script:MvpBuildSetAdditionsSchemaVersion)) {
+        throw "MVP BuildSet manifest has an unexpected schema or status: $resolvedManifestPath"
+    }
+    $hasSourceAdditions = [int64]$manifest.schema_version -eq $script:MvpBuildSetAdditionsSchemaVersion
+    [string[]]$expectedProperties = if ($hasSourceAdditions) {
+        @($script:MvpBuildSetManifestPropertyNames) + 'source_additions'
+    } else {
+        $script:MvpBuildSetManifestPropertyNames
+    }
     Assert-MvpBuildSetExactProperties `
         -Value $manifest `
-        -ExpectedNames $script:MvpBuildSetManifestPropertyNames `
+        -ExpectedNames $expectedProperties `
         -Label 'MVP BuildSet manifest'
-    if (($manifest.schema_version -isnot [int] -and $manifest.schema_version -isnot [long]) -or
-        [Int64]$manifest.schema_version -ne $script:MvpBuildSetSchemaVersion -or
+    if (
         [string]$manifest.build_set_kind -cne $script:MvpBuildSetKind -or
         [string]$manifest.status -cne 'completed') {
         throw "MVP BuildSet manifest has an unexpected schema or status: $resolvedManifestPath"
@@ -648,7 +888,11 @@ function Assert-MvpProductBuildSet {
     if ([string]$manifest.build_set_id -notmatch '^[0-9A-F]{64}$' -or
         [string]$manifest.git_revision -notmatch '^[0-9a-f]{40}$' -or
         [string]$manifest.dirty_overlay_sha256 -notmatch '^[0-9A-F]{64}$' -or
-        [string]$manifest.source_policy -cne 'tracked_head_plus_tracked_dirty_overlay') {
+        [string]$manifest.source_policy -cne $(if ($hasSourceAdditions) {
+                $script:MvpBuildSetAdditionsPolicy
+            } else {
+                $script:MvpBuildSetTrackedPolicy
+            })) {
         throw 'MVP BuildSet manifest contains invalid source identity.'
     }
     $createdUtcValue = $manifest.created_utc
@@ -764,15 +1008,36 @@ function Assert-MvpProductBuildSet {
     Assert-MvpBuildSetInventory `
         -ActualFiles $actualFiles `
         -ExpectedFiles $manifestPaths
+    [object[]]$sourceAdditions = @()
+    if ($hasSourceAdditions) {
+        Assert-MvpBuildSetSourceAdditions `
+            -Entries $manifest.source_additions `
+            -Label 'MVP BuildSet source additions'
+        [object[]]$sourceAdditions = $manifest.source_additions
+        $fileByPath = [Collections.Generic.Dictionary[string, object]]::new([StringComparer]::Ordinal)
+        foreach ($file in $files) {
+            $fileByPath.Add([string]$file.relative_path, $file)
+        }
+        foreach ($addition in $sourceAdditions) {
+            $relativePath = [string]$addition.relative_path
+            $file = $null
+            if (-not $fileByPath.TryGetValue($relativePath, [ref]$file) -or
+                [string]$file.sha256 -cne [string]$addition.sha256 -or
+                [int64]$file.byte_length -ne [int64]$addition.byte_length) {
+                throw "MVP BuildSet source addition differs from its file inventory: $relativePath"
+            }
+        }
+    }
     $buildSetId = Get-MvpBuildSetId `
         -GitRevision ([string]$manifest.git_revision) `
         -DirtyOverlaySha256 ([string]$manifest.dirty_overlay_sha256) `
-        -Files $files
+        -Files $files `
+        -SourceAdditions $sourceAdditions
     if ([string]$manifest.build_set_id -ne $buildSetId) {
         throw 'MVP BuildSet manifest build_set_id does not match its source tree.'
     }
-    return [pscustomobject]@{
-        schema_version = $script:MvpBuildSetSchemaVersion
+    $validated = [pscustomobject]@{
+        schema_version = [int64]$manifest.schema_version
         build_set_kind = $script:MvpBuildSetKind
         build_set_id = $buildSetId
         snapshot_root = $snapshotRoot
@@ -781,6 +1046,10 @@ function Assert-MvpProductBuildSet {
         dirty_overlay_sha256 = [string]$manifest.dirty_overlay_sha256
         files = $files
     }
+    if ($hasSourceAdditions) {
+        $validated | Add-Member -NotePropertyName source_additions -NotePropertyValue $sourceAdditions
+    }
+    return $validated
 }
 
 Export-ModuleMember -Function @(

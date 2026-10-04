@@ -1,5 +1,7 @@
 use crate::plugin::PluginModuleManifest;
 
+// owner 已由清单身份规则另行校验；此谓词仅确认命名空间边界，不承担非空检查。
+// 直接借用既有 ID，避免每个模块都为同一 owner 分配临时前缀。
 fn has_module_owner_prefix(module_name: &str, owner_id: &str) -> bool {
     module_name
         .strip_prefix(owner_id)
@@ -22,14 +24,5 @@ pub(super) fn validate_runtime_plugin_module_name_owner_prefix(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::has_module_owner_prefix;
-
-    #[test]
-    fn borrowed_owner_prefix_preserves_boundary_semantics() {
-        assert!(has_module_owner_prefix("weather.runtime", "weather"));
-        assert!(!has_module_owner_prefix("weather2.runtime", "weather"));
-        assert!(!has_module_owner_prefix("weather", "weather"));
-        assert!(has_module_owner_prefix(".runtime", ""));
-    }
-}
+#[path = "tests/owner_prefix.rs"]
+mod tests;

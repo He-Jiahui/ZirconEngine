@@ -26,6 +26,8 @@ use super::NativePluginLiveHost;
 pub(super) type NativePluginBridgeMethodResult<T> =
     std::result::Result<T, NativePluginBridgeMethodError>;
 
+/// 安装后不可变的绑定权威：方法描述、名称到槽位以及动态库代次必须来自同一插件。
+/// 注册回放和桥接调用域共用它，避免热重载后混配旧函数指针与新清单。
 pub(super) struct ValidatedRuntimeBridgeMethodBindings {
     descriptors: Vec<crate::plugin::native::NativeBridgeMethodDescriptor>,
     method_slots: Arc<HashMap<String, HashMap<String, u32>>>,
@@ -45,6 +47,7 @@ impl ValidatedRuntimeBridgeMethodBindings {
         Self::from_manifest(manifest, plugin.library_generation_owner(), bindings)
     }
 
+    // 手工安装只接受宿主 Rust 方法；带原生 ABI 函数指针的绑定必须来自已装载代次。
     fn from_rust_plugin(
         plugin: &LoadedNativePlugin,
         bindings: Vec<NativeBridgeMethodBinding>,
@@ -313,6 +316,7 @@ impl NativePluginLiveHost {
         Ok(generation.bridge_call_scope.as_ref().clone())
     }
 
+    // 冻结桥接表、方法槽位和代次所有者后交给回放系统闭包共享；构建中不重新解析清单。
     pub(super) fn build_runtime_bridge_generation_result(
         &self,
         plugin_id: &str,
@@ -426,6 +430,7 @@ impl NativePluginLiveHost {
             )
     }
 
+    // 调用者持有 loaded 锁，保证绑定与即将发布或移除的插件代次同属一次状态迁移。
     pub(super) fn publish_runtime_bridge_method_bindings_under_loaded_lock_result(
         &self,
         _loaded: &MutexGuard<'_, NativePluginLiveRegistry<LoadedNativePlugin>>,
@@ -520,24 +525,5 @@ fn runtime_package_manifest(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn native_live_host_bridge_method_bindings_recover_poisoned_lock() {
-        let host = NativePluginLiveHost::default();
-        let poison = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            let _bindings = host.runtime_bridge_method_bindings.lock().unwrap();
-            panic!("poison native live-host bridge method bindings");
-        }));
-        assert!(poison.is_err());
-
-        assert!(!host
-            .clear_runtime_bridge_method_bindings("physics")
-            .expect("poisoned binding lock should recover for clear"));
-        assert!(matches!(
-            host.installed_runtime_bridge_method_binding_count("physics"),
-            Err(message) if message == "runtime plugin physics has no installed native bridge method bindings"
-        ));
-    }
-}
+#[path = "tests/bridge_methods.rs"]
+mod tests;

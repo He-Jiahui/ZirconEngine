@@ -80,4 +80,5 @@ pub use preset::SoundMixerPresetDescriptor;
 pub use status::{SoundBackendState, SoundBackendStatus};
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

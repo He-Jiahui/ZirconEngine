@@ -4,10 +4,34 @@ use zircon_runtime::scene::Scene;
 
 use crate::core::editing::authoring_world::AuthoringWorldSeed;
 use crate::core::editing::context::CoreEditContext;
-use crate::core::editing::engine::{EditCommandError, ExclusiveTransition};
+use crate::core::editing::engine::{
+    EditCommandError, EditorTransactionEngine, ExclusiveTransition, HistoryContextId,
+    HistoryDecisionToken,
+};
 use crate::ui::workbench::state::{EditorState, EditorStateOperationError};
 
 use super::{EditorSessionMode, WelcomePaneSnapshot};
+
+#[cfg(test)]
+#[path = "editor_state_project/tests/reload_tests.rs"]
+mod reload_tests;
+
+/// Limits a reload decision to the dirty history shown when its prompt was published.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct SceneReloadDiscardAuthorization {
+    decision: HistoryDecisionToken,
+}
+
+impl SceneReloadDiscardAuthorization {
+    pub(crate) fn capture(
+        transactions: &EditorTransactionEngine,
+        history_context: HistoryContextId,
+    ) -> Result<Option<Self>, EditCommandError> {
+        transactions
+            .dirty_history_decision_token(history_context)
+            .map(|decision| decision.map(|decision| Self { decision }))
+    }
+}
 
 impl EditorState {
     /// Refuses a route-driven world replacement while the current scene history is dirty.
@@ -74,35 +98,59 @@ impl EditorState {
         })
     }
 
-    /// Replaces the clean active scene while preserving its project and document identity.
+    /// Replaces a clean or explicitly authorized history under one exclusive operation.
     pub(crate) fn reload_active_scene_world(
         &mut self,
-        world: impl Into<AuthoringWorldSeed>,
+        world: &mut Option<AuthoringWorldSeed>,
+        discard: Option<SceneReloadDiscardAuthorization>,
     ) -> Result<(), EditorStateOperationError> {
+        if self.is_playing() {
+            return Err(EditorStateOperationError::SceneEditingDisabledDuringPlay);
+        }
         let history_context = self.scene_history_context()?;
-        self.with_exclusive_scene_transition(
-            "reload active editor scene",
-            move |state, transition| {
-                transition.clear_history_and_context::<CoreEditContext>(
-                    history_context,
-                    "CoreEditContext",
-                    |context| {
-                        context.clear_scene()?;
-                        state.world.replace(world).map_err(|error| {
-                            EditCommandError::ExternalEffect {
-                                source: Box::new(error),
-                            }
-                        })
-                    },
-                )?;
-                *state.viewport_controller.selection_mut() = Default::default();
-                state
-                    .world
-                    .with_world(|scene| state.viewport_controller.reset_from_scene(Some(scene)))?;
-                state.sync_selection_state();
-                Ok(())
+        if self.has_active_gizmo_interaction() {
+            return Err(EditorStateOperationError::SceneActionBlockedByActiveGizmo);
+        }
+        let context = self.context.clone();
+        let mut transition = context
+            .transactions()
+            .begin_history_transition::<CoreEditContext>(
+                "reload active editor scene",
+                history_context,
+                discard
+                    .as_ref()
+                    .map(|authorization| &authorization.decision),
+                "CoreEditContext",
+                CoreEditContext::preflight_clear_scene,
+            )
+            .map_err(|error| match error {
+                EditCommandError::HistoryDecisionChanged { .. } => {
+                    EditorStateOperationError::SceneTransitionDirty
+                }
+                error => EditorStateOperationError::from(error),
+            })?;
+        // A stale decision must leave a newer interactive edit and its selection intact.
+        self.cancel_interactive_transform()?;
+        let world = world
+            .take()
+            .expect("a prepared scene reload installs at most once");
+        transition.clear_history_and_context::<CoreEditContext>(
+            history_context,
+            "CoreEditContext",
+            |context| {
+                context.clear_scene()?;
+                self.world
+                    .replace(world)
+                    .map_err(|error| EditCommandError::ExternalEffect {
+                        source: Box::new(error),
+                    })
             },
-        )
+        )?;
+        *self.viewport_controller.selection_mut() = Default::default();
+        self.world
+            .with_world(|scene| self.viewport_controller.reset_from_scene(Some(scene)))?;
+        self.sync_selection_state();
+        Ok(())
     }
 
     pub fn clear_project(

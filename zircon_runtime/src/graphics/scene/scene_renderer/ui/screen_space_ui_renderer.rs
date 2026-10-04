@@ -10,6 +10,7 @@ pub(crate) struct ScreenSpaceUiRenderer {
     pub(super) pipeline: wgpu::RenderPipeline,
     pub(super) vertex_segments: Vec<ScreenSpaceUiVertexSegmentBuffer>,
     pub(super) vertex_buffer_plan: Option<Weak<PreparedScreenSpaceUi>>,
+    pub(super) vertex_buffer_generation: Option<u64>,
     pub(super) image_system: ScreenSpaceUiImageSystem,
     pub(super) plan_cache: ScreenSpaceUiPlanCache,
     pub(super) text_system: ScreenSpaceUiTextSystem,

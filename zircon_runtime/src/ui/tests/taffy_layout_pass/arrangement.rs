@@ -50,6 +50,25 @@ fn taffy_layout_pass_arranges_linear_wrap_and_grid_containers() {
 }
 
 #[test]
+fn taffy_layout_pass_applies_node_padding_to_content_bounds() {
+    let mut tree = UiTree::new(UiTreeId::new("taffy.layout.node-padding"));
+    tree.insert_root(
+        node(30)
+            .with_container(UiContainerKind::VerticalBox(UiLinearBoxConfig {
+                gap: 12.0,
+            }))
+            .with_layout_padding(UiMargin::new(18.0, 18.0, 18.0, 18.0)),
+    );
+    insert_child(&mut tree, 30, fixed_node(31, None, Some(20.0)));
+    insert_child(&mut tree, 30, fixed_node(32, None, Some(20.0)));
+
+    compute_layout_tree(&mut tree, UiSize::new(200.0, 100.0)).unwrap();
+
+    assert_eq!(frame(&tree, 31), UiFrame::new(18.0, 18.0, 164.0, 20.0));
+    assert_eq!(frame(&tree, 32), UiFrame::new(18.0, 50.0, 164.0, 20.0));
+}
+
+#[test]
 fn taffy_layout_pass_preserves_fractional_fixed_extents() {
     let mut tree = tree_with_root(
         40,

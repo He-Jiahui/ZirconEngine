@@ -33,7 +33,7 @@ No Cargo command was run outside the managed validation script. A previously acc
 
 ## Validation Infrastructure And Pool Status
 
-The default managed-script timeout first prevented submission. The observed tool contract drift is between `tools/zircon-session.ps1` and the running Session Coordinator:
+The default managed-script timeout first prevented submission. The observed tool contract drift is between `tools/dev/zircon-session.ps1` and the running Session Coordinator:
 
 1. `Test-CoordinatorHealthy` requests `/health` without an `Authorization: Bearer <runtime token>` header.
 2. The running coordinator rejects that request as unauthorized; its server contract requires the bearer token.

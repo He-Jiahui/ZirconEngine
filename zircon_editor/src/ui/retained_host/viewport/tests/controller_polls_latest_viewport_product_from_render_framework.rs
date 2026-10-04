@@ -40,6 +40,48 @@ fn controller_polls_each_gpu_viewport_product_once_without_cpu_capture() {
 }
 
 #[test]
+fn controller_polls_each_surface_product_without_cross_leaf_suppression() {
+    let framework = Arc::new(FakeRenderFramework::default());
+    let controller = RetainedViewportController::new_with_framework(framework.clone());
+
+    controller
+        .submit_extract_with_ui("document:left", test_extract(), None, UVec2::new(160, 90))
+        .unwrap();
+    controller
+        .submit_extract_with_ui("document:right", test_extract(), None, UVec2::new(90, 160))
+        .unwrap();
+    let mut state = framework.state.lock().unwrap();
+    state.products.insert(
+        crate::scene::viewport::RenderViewportHandle::new(1),
+        RenderViewportProduct::new(
+            crate::scene::viewport::RenderViewportHandle::new(1),
+            160,
+            90,
+            7,
+        ),
+    );
+    state.products.insert(
+        crate::scene::viewport::RenderViewportHandle::new(2),
+        RenderViewportProduct::new(
+            crate::scene::viewport::RenderViewportHandle::new(2),
+            90,
+            160,
+            7,
+        ),
+    );
+    drop(state);
+
+    let products = controller.poll_viewport_products();
+
+    assert_eq!(products.len(), 2);
+    assert_eq!(products[0].0, "document:left");
+    assert_eq!(products[0].1.resource_key(), "viewport:1:7");
+    assert_eq!(products[1].0, "document:right");
+    assert_eq!(products[1].1.resource_key(), "viewport:2:7");
+    assert!(controller.poll_viewport_products().is_empty());
+}
+
+#[test]
 fn product_poll_does_not_wait_for_a_viewport_submit_operation() {
     let framework = Arc::new(FakeRenderFramework::default());
     let controller = Arc::new(RetainedViewportController::new_with_framework(

@@ -5,9 +5,6 @@ created_at: 2026-07-19
 plan_source: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
 milestone: M6.8
 related_code:
-  - tools/session_coordinator/workspace_copy.py
-  - tools/session_coordinator/workspace_copy_terminal.py
-  - tools/session_coordinator/tests/test_workspace_copy.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_workspace_copy
   - python -m unittest tools.session_coordinator.tests.test_server.ServerTests.test_foreground_mutation_is_not_blocked_by_validation_copy_materialize tools.session_coordinator.tests.test_workflow_commit.WorkflowCommitTests.test_validation_copy_mutation_after_binding_is_rejected

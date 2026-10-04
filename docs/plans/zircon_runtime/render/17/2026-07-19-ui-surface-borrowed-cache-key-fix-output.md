@@ -7,7 +7,6 @@ milestone: M4
 slice: ui-surface-borrowed-cache-key-compile-fix
 source_manifest_fingerprint: 42216a3cdd88bbed30369bcce67ad5698effc2dfccfca6f08722e22ce27b1e44
 related_code:
-  - zircon_runtime/src/rhi_wgpu/ui_surface.rs
 tests:
   - cargo +1.94.1 check -p zircon_runtime --lib --locked --jobs 1
 ---

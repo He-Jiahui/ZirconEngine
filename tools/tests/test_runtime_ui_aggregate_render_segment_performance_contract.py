@@ -4,6 +4,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime/src/dynamic_api/session/runtime_ui.rs"
+TESTS = ROOT / "zircon_runtime/src/dynamic_api/session/runtime_ui/tests/cases.rs"
 
 
 class RuntimeUiAggregateRenderSegmentPerformanceContractTests(unittest.TestCase):
@@ -20,12 +21,13 @@ class RuntimeUiAggregateRenderSegmentPerformanceContractTests(unittest.TestCase)
 
     def test_aggregate_publishes_segment_handles_without_flattening(self):
         source = SOURCE.read_text(encoding="utf-8")
+        tests = TESTS.read_text(encoding="utf-8")
         self.assertNotIn(
             "frame.render_extract.list.commands.iter().cloned().map(",
             source,
         )
         self.assertIn("UiRenderSubmission::from_submission_segments(segments)", source)
-        self.assertIn("local_surface_change_reuses_unchanged_segment_allocation", source)
+        self.assertIn("local_surface_change_reuses_unchanged_segment_allocation", tests)
         self.assertNotIn("commands.extend", source)
         self.assertNotIn("segment.iter().cloned()", source)
 

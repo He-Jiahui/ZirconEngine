@@ -1,3 +1,4 @@
+# 验收树清单需经 Windows 操作路径读写，同时拒绝绝对或驱动器相对条目；本组在 Pester 隔离目录里调用真实清单入口验证路径边界。
 $modulePath = Join-Path $PSScriptRoot '..\mvp\MvpAcceptanceStagingTreeManifest.psm1'
 Import-Module $modulePath -Force -ErrorAction Stop
 

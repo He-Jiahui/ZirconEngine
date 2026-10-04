@@ -10,9 +10,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 failure_scope: cross_plan
 related_code:
-  - tools/session_coordinator/git_finalize.py
-  - tools/session_coordinator/maintenance_index.py
-  - tools/session_coordinator/tests/test_git_finalize.py
 tests:
   - python -u -B -m unittest tools.session_coordinator.tests.test_git_finalize.GitFinalizeTests.test_maintenance_finalize_uses_private_index_while_shared_index_is_locked -v
   - python -u -B -m unittest tools.session_coordinator.tests.test_git_finalize -v

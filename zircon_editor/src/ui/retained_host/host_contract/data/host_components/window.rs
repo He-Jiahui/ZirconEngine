@@ -34,6 +34,7 @@ pub(crate) struct HostWindowShellData {
 
 #[derive(Clone, Default)]
 pub(crate) struct HostWindowLayoutData {
+    pub authoritative: bool,
     pub center_band_frame: FrameRect,
     pub status_bar_frame: FrameRect,
     pub left_region_frame: FrameRect,

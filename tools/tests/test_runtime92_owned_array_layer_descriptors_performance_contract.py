@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 数组纹理组装消费已有层描述符，用 Option take 转移渲染描述而不克隆；首层校验仍先于后续层。
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE = REPO_ROOT / "zircon_runtime/src/asset/assets/texture/array_asset.rs"

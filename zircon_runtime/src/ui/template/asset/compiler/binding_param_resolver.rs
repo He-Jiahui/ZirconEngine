@@ -287,14 +287,7 @@ fn literal_source(value: &UiValue) -> Option<String> {
         UiValue::Vec2(values) => vector_source("vec2", values),
         UiValue::Vec3(values) => vector_source("vec3", values),
         UiValue::Vec4(values) => vector_source("vec4", values),
-        UiValue::Flags(values) => Some(format!(
-            "flags({})",
-            values
-                .iter()
-                .map(|value| string_source(value))
-                .collect::<Vec<_>>()
-                .join(", ")
-        )),
+        UiValue::Flags(values) => Some(flags_source(values)),
         UiValue::Null => Some("null".to_string()),
         UiValue::Array(_) | UiValue::Map(_) => None,
     }
@@ -322,19 +315,76 @@ fn payload_literal_value(
 }
 
 fn typed_string_source(constructor: &str, value: &str) -> String {
-    format!("{constructor}({})", string_source(value))
+    let mut source = String::with_capacity(
+        constructor
+            .len()
+            .saturating_add(escaped_string_source_len(value))
+            .saturating_add(2),
+    );
+    source.push_str(constructor);
+    source.push('(');
+    append_string_source(&mut source, value);
+    source.push(')');
+    source
+}
+
+fn flags_source(values: &[String]) -> String {
+    let capacity = values.iter().fold(
+        "flags()"
+            .len()
+            .saturating_add(values.len().saturating_sub(1).saturating_mul(", ".len())),
+        |capacity, value| capacity.saturating_add(escaped_string_source_len(value)),
+    );
+    let mut source = String::with_capacity(capacity);
+    source.push_str("flags(");
+    for (index, value) in values.iter().enumerate() {
+        if index > 0 {
+            source.push_str(", ");
+        }
+        append_string_source(&mut source, value);
+    }
+    source.push(')');
+    source
 }
 
 fn vector_source<const N: usize>(constructor: &str, values: &[f64; N]) -> Option<String> {
-    let values = values
-        .iter()
-        .map(|value| float_source(*value))
-        .collect::<Option<Vec<_>>>()?;
-    Some(format!("{constructor}({})", values.join(", ")))
+    let mut source = String::with_capacity(
+        constructor
+            .len()
+            .saturating_add(N.saturating_mul(24))
+            .saturating_add(2),
+    );
+    source.push_str(constructor);
+    source.push('(');
+    for (index, value) in values.iter().enumerate() {
+        if index > 0 {
+            source.push_str(", ");
+        }
+        if !append_float_source(&mut source, *value) {
+            return None;
+        }
+    }
+    source.push(')');
+    Some(source)
 }
 
 fn string_source(value: &str) -> String {
-    let mut source = String::with_capacity(value.len() + 2);
+    let mut source = String::with_capacity(escaped_string_source_len(value));
+    append_string_source(&mut source, value);
+    source
+}
+
+fn escaped_string_source_len(value: &str) -> usize {
+    value.chars().fold(2usize, |length, ch| {
+        length.saturating_add(match ch {
+            '"' | '\\' | '\n' | '\r' | '\t' | '\u{0008}' | '\u{000c}' => 2,
+            ch if ch.is_control() => 6,
+            ch => ch.len_utf8(),
+        })
+    })
+}
+
+fn append_string_source(source: &mut String, value: &str) {
     source.push('"');
     for ch in value.chars() {
         match ch {
@@ -346,26 +396,46 @@ fn string_source(value: &str) -> String {
             '\u{0008}' => source.push_str("\\b"),
             '\u{000c}' => source.push_str("\\f"),
             ch if ch.is_control() => {
-                write!(&mut source, "\\u{:04x}", ch as u32)
-                    .expect("writing to a String cannot fail");
+                write!(source, "\\u{:04x}", ch as u32).expect("writing to a String cannot fail");
             }
             ch => source.push(ch),
         }
     }
     source.push('"');
-    source
 }
 
 fn float_source(value: f64) -> Option<String> {
+    let mut source = String::new();
+    if append_float_source(&mut source, value) {
+        Some(source)
+    } else {
+        None
+    }
+}
+
+fn append_float_source(source: &mut String, value: f64) -> bool {
     if !value.is_finite() {
-        return None;
+        return false;
     }
-    let mut source = value.to_string();
-    if source.contains('e') || source.contains('E') {
-        return None;
+    let value_start = source.len();
+    write!(source, "{value}").expect("writing to a String cannot fail");
+    let (has_exponent, has_decimal) = {
+        let value_source = &source[value_start..];
+        (
+            value_source.contains('e') || value_source.contains('E'),
+            value_source.contains('.'),
+        )
+    };
+    if has_exponent {
+        source.truncate(value_start);
+        return false;
     }
-    if !source.contains('.') {
+    if !has_decimal {
         source.push_str(".0");
     }
-    Some(source)
+    true
 }
+
+#[cfg(test)]
+#[path = "binding_param_resolver/tests/single_buffer_tests.rs"]
+mod single_buffer_tests;

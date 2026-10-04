@@ -370,11 +370,9 @@ fn runtime_session_archive_writer_uses_the_shared_bounded_io_lane() {
         .take_outcome()
         .expect("terminal work must publish an outcome")
         .expect("archive write should succeed");
-    assert!(
-        RuntimeSessionArchive::load_from_path(&path)
-            .unwrap()
-            .contains_slot("lane")
-    );
+    assert!(RuntimeSessionArchive::load_from_path(&path)
+        .unwrap()
+        .contains_slot("lane"));
 
     drop(writer.shutdown());
     std::fs::remove_dir_all(root).unwrap();
@@ -430,11 +428,9 @@ fn runtime_session_archive_writer_orders_distinct_lineages_by_path_submission() 
         BoundedKeyedIoWaitResult::Terminal(BoundedKeyedIoTerminal::Succeeded)
     );
     assert!(matches!(second_submission.take_outcome(), Some(Ok(()))));
-    assert!(
-        RuntimeSessionArchive::load_from_path(&path)
-            .unwrap()
-            .contains_slot("second")
-    );
+    assert!(RuntimeSessionArchive::load_from_path(&path)
+        .unwrap()
+        .contains_slot("second"));
 
     drop(writer.shutdown());
     std::fs::remove_dir_all(root).unwrap();

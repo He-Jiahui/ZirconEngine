@@ -23,10 +23,10 @@ pub use store::{
     ContributionSource, ContributionStore, ContributionTicket, PluginContributionId, RevokeReport,
 };
 pub use toolkit::{
-    DocumentAutosavePayload, DocumentCloseLease, DocumentSaveReport, DocumentToolkit,
-    DocumentToolkitDescriptor, DocumentToolkitRegistry, DocumentToolkitSnapshot, SaveContextError,
-    SaveCtx, SaveError, SaveReason, ToolkitArea, ToolkitAreaSlot, ToolkitInstanceId,
-    ToolkitInstanceIdError, ToolkitLayout, ToolkitLayoutError, ToolkitRegistryError,
-    ToolkitSaveFailure,
+    DocumentAutosavePayload, DocumentCloseLease, DocumentEditLease, DocumentSaveReport,
+    DocumentToolkit, DocumentToolkitDescriptor, DocumentToolkitRegistry, DocumentToolkitSnapshot,
+    SaveContextError, SaveCtx, SaveError, SaveReason, ToolkitArea, ToolkitAreaSlot,
+    ToolkitInstanceId, ToolkitInstanceIdError, ToolkitLayout, ToolkitLayoutError,
+    ToolkitRegistryError, ToolkitSaveFailure,
 };
 pub(crate) use toolkit::{DocumentSourceWritePublication, DocumentSourceWriteReceipt};

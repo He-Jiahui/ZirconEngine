@@ -11,8 +11,8 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 扩充 ZirconEngine 公开接口教程、机制案例与最佳实践
 tests:
-  - zircon_runtime/src/animation/sequence/tests.rs
-  - zircon_runtime/src/navigation/runtime/tests.rs
+  - zircon_runtime/src/animation/sequence/tests/cases.rs
+  - zircon_runtime/src/navigation/runtime/tests/cases.rs
 doc_type: workflow-detail
 ---
 

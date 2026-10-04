@@ -1,3 +1,5 @@
+// 图执行器按 pass 顺序逐级编码此核，mip 级数决定过滤半径；输入为场景色或前一级结果。
+// 输出须是 rgba16float 的单层存储视图；结束当前 pass 后，后续 pass 再采样该层。
 struct PlanarFilterParams {
     input_dimensions: vec2<u32>,
     output_dimensions: vec2<u32>,

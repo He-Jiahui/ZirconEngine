@@ -4,8 +4,6 @@ related_code:
   - zircon_editor/src/core/context
   - zircon_editor/src/core/asset/dirty/save_job_adapter.rs
   - zircon_editor/src/core/asset/import_flow
-  - zircon_editor/src/core/recovery/autosave.rs
-  - zircon_editor/src/core/recovery/autosave_adapter.rs
   - zircon_editor/src/core/recovery/autosave_service.rs
   - zircon_editor/src/core/notifications/progress
   - zircon_editor/src/ui/host/editor_ui_host.rs

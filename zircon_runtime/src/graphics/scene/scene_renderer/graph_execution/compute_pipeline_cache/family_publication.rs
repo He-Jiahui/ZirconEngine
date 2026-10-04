@@ -1,3 +1,6 @@
+//! 保存已验证的计算管线 family，供同设备代际内的候选失败回退。
+//! key 包含入口、工作组大小和绑定 ABI，防止不同 shader 接口误用旧管线。
+
 use std::collections::HashMap;
 
 use crate::render_graph::RenderGraphComputePipelineFamily;
@@ -112,47 +115,5 @@ impl ComputePipelineFamilyPublicationCache {
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::render_graph::RenderGraphComputePipelineFamily;
-
-    use super::{ComputePipelineBindingLayout, ComputePipelineFamilyKey};
-
-    #[test]
-    fn family_key_isolates_interface_workgroup_and_binding_abi() {
-        let baseline = ComputePipelineFamilyKey::new(
-            RenderGraphComputePipelineFamily::new("ambient-occlusion.evaluate", 2),
-            "cs_main",
-            [8, 8, 1],
-            &[ComputePipelineBindingLayout::uniform_buffer(0)],
-        );
-        let same = ComputePipelineFamilyKey::new(
-            RenderGraphComputePipelineFamily::new("ambient-occlusion.evaluate", 2),
-            "cs_main",
-            [8, 8, 1],
-            &[ComputePipelineBindingLayout::uniform_buffer(0)],
-        );
-        let changed_interface = ComputePipelineFamilyKey::new(
-            RenderGraphComputePipelineFamily::new("ambient-occlusion.evaluate", 3),
-            "cs_main",
-            [8, 8, 1],
-            &[ComputePipelineBindingLayout::uniform_buffer(0)],
-        );
-        let changed_workgroup = ComputePipelineFamilyKey::new(
-            RenderGraphComputePipelineFamily::new("ambient-occlusion.evaluate", 2),
-            "cs_main",
-            [16, 8, 1],
-            &[ComputePipelineBindingLayout::uniform_buffer(0)],
-        );
-        let changed_binding = ComputePipelineFamilyKey::new(
-            RenderGraphComputePipelineFamily::new("ambient-occlusion.evaluate", 2),
-            "cs_main",
-            [8, 8, 1],
-            &[ComputePipelineBindingLayout::storage_buffer_read(0)],
-        );
-
-        assert_eq!(baseline, same);
-        assert_ne!(baseline, changed_interface);
-        assert_ne!(baseline, changed_workgroup);
-        assert_ne!(baseline, changed_binding);
-    }
-}
+#[path = "tests/family_publication.rs"]
+mod tests;

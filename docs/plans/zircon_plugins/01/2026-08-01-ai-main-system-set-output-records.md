@@ -16,7 +16,7 @@ Date: 2026-08-01
 
 - Rust 1.94.1、edition 2021 的 scoped `rustfmt --check`：通过。
 - 四文件限定范围 `git diff --check`：通过，仅有工作树既有行尾转换提示。
-- `python tools/audit_plugin_structure.py --json --repo-root E:\\Git\\ZirconEngine`：`manifest_schema_violations = 0`、`generated_manifest_header_violations = 0`、`runtime_plugin_descriptor_single_source_violation_count = 0`、`runtime_registration_builder_violation_count = 0`、`registration_compatibility_shim_sites = 0`。全局既有 `dist_abi_projection_violations = 37` 不归属本切片，本记录不把 broad audit 声明为全绿。
+- `python tools/audits/audit_plugin_structure.py --json --repo-root E:\\Git\\ZirconEngine`：`manifest_schema_violations = 0`、`generated_manifest_header_violations = 0`、`runtime_plugin_descriptor_single_source_violation_count = 0`、`runtime_registration_builder_violation_count = 0`、`registration_compatibility_shim_sites = 0`。全局既有 `dist_abi_projection_violations = 37` 不归属本切片，本记录不把 broad audit 声明为全绿。
 - 当前源码 SHA-256：`plugin.toml` = `9BBE9F639C155CD107CF9647ADF693DDE86C73A0450947FF954607F72DE80578`；`plugin.rs` = `C9A97F3CE5150C7BB16B6A3B76F5EA75F3E467DEAF7E9C76CEE85E06FB549EBB`；production registration = `ADB9556A6CA4077601B8BD36ECC86363939F14E1F07AA4F3532F359EC3235395`；registration tests = `6AB9B7C71CE961789A932BD8BD60C3153DE70D3B35616C1156F03B9AF48E5CBB`。
 - 独立只读复核：Critical 0 / Important 0 / Minor 0；未运行 Cargo、未编辑源码。
 

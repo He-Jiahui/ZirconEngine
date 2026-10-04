@@ -1,3 +1,4 @@
+# 核对字体码位范围先合并和拒绝代理项，再展开输出。
 from __future__ import annotations
 
 import time
@@ -5,7 +6,7 @@ import tracemalloc
 import unittest
 from pathlib import Path
 
-from tools.zircon_build_font_sdf import _codepoints
+from tools.build.zircon_build_font_sdf import _codepoints
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "zircon_build_font_sdf.py"

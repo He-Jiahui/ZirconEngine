@@ -1,3 +1,4 @@
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -38,6 +39,101 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
                 f"paint_template_nodes/{relative_path}"
             )
             self.assertIn("push_icon_asset_pixels", glyph, relative_path)
+
+        material_alert_close = source(
+            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "material_primitives/alert/action/close.rs"
+        )
+        self.assertIn(
+            "template_alert_glyphs::push_close_mark", material_alert_close
+        )
+        self.assertIn(
+            "push_close_mark(commands, frame, clip, order, color, opacity)",
+            material_alert_close,
+        )
+        self.assertNotIn("HostPaintCommand::quad", material_alert_close)
+        self.assertNotIn("alert_close_dot", material_alert_close)
+
+        material_chip_delete = source(
+            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "material_primitives/chip/delete/entry.rs"
+        )
+        self.assertIn(
+            "template_alert_glyphs::push_close_mark", material_chip_delete
+        )
+        self.assertIn(
+            "push_close_mark(commands, &frame, clip, order, color, opacity)",
+            material_chip_delete,
+        )
+        self.assertNotIn("HostPaintCommand::quad", material_chip_delete)
+        self.assertNotIn("chip_delete_dot", material_chip_delete)
+
+        material_alert_icon = source(
+            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "material_primitives/alert/icon.rs"
+        )
+        self.assertIn("template_alert_glyphs::push_alert_mark", material_alert_icon)
+        self.assertIn(
+            "push_alert_mark(commands, &frame, clip, order, tone, color, opacity)",
+            material_alert_icon,
+        )
+        self.assertNotIn("HostPaintCommand::quad", material_alert_icon)
+
+        material_chip_icon = source(
+            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "material_primitives/chip/leading.rs"
+        )
+        self.assertIn("push_icon_asset_pixels", material_chip_icon)
+        self.assertIn(
+            'zircon_editor_shell/controls/add.svg', material_chip_icon
+        )
+        self.assertIn("push_icon_asset_pixels(", material_chip_icon)
+        self.assertIn("CHIP_ADD_ICON", material_chip_icon)
+        material_chip_icon_body = material_chip_icon[
+            material_chip_icon.index("fn push_chip_icon") :
+        ]
+        self.assertNotIn("HostPaintCommand::quad", material_chip_icon_body)
+
+        scale_link = source(
+            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "template_axis_labels/scale_link/mod.rs"
+        )
+        scale_link_geometry = source(
+            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "template_axis_labels/scale_link/geometry.rs"
+        )
+        self.assertIn("push_icon_asset_pixels", scale_link)
+        self.assertIn(
+            'const SCALE_LINK_ICON: &str = "zircon_editor_shell/inspector/link.svg";',
+            scale_link,
+        )
+        self.assertIn("node.layout_icon_size", scale_link_geometry)
+        self.assertNotIn("HostPaintCommand::quad", scale_link)
+
+        material_avatar_glyph = source(
+            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "material_primitives/avatar/glyph.rs"
+        )
+        self.assertIn("push_icon_asset_pixels", material_avatar_glyph)
+        self.assertIn(
+            'const AVATAR_FALLBACK_ICON: &str = "zircon_editor_shell/controls/person.svg";',
+            material_avatar_glyph,
+        )
+        self.assertNotIn("HostPaintCommand::quad", material_avatar_glyph)
+        self.assertTrue(
+            (
+                REPO_ROOT
+                / "zircon_editor/assets/icons/zircon_editor_shell/controls/person.svg"
+            ).is_file()
+        )
+
+        removed_dot_modules = (
+            "material_primitives/alert/action/metrics.rs",
+            "material_primitives/chip/delete/dot.rs",
+            "material_primitives/chip/delete/metrics.rs",
+        )
+        for relative_path in removed_dot_modules:
+            self.assertFalse((glyph_root / relative_path).exists(), relative_path)
 
     def test_native_rhi_surface_uses_the_physical_window_extent(self):
         rhi = source("zircon_runtime/crates/zr_rhi/src/ui_surface.rs")
@@ -439,9 +535,15 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
         for field in ("radius_small", "radius_control", "radius_panel"):
             self.assertIn(f"pub {field}: f32", metrics)
             self.assertIn(f"{field}: scaled(self.{field})", metrics)
-        self.assertIn("radius_small: 6.0", metrics)
-        self.assertIn("radius_control: 8.0", metrics)
-        self.assertIn("radius_panel: 12.0", metrics)
+        token_path = REPO_ROOT / "zircon_editor/assets/ui/editor/theme/editor_tokens.zui"
+        with token_path.open("rb") as token_source:
+            controls = tomllib.load(token_source)["controls"]
+        for metric_field, token_field in (
+            ("radius_small", "small_radius"),
+            ("radius_control", "control_radius"),
+            ("radius_panel", "panel_radius"),
+        ):
+            self.assertIn(f"{metric_field}: {controls[token_field]:.1f}", metrics)
         self.assertIn("controls.small_radius", metrics)
         self.assertIn("controls.control_radius", metrics)
         self.assertIn("controls.panel_radius", metrics)
@@ -774,18 +876,17 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
         wgpu_pipeline = source(
             "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/pipeline.rs"
         )
-        text_draw = source(
+        text_layout_artifact = source(
             "zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/"
-            "glyphs.rs"
+            "layout/artifact.rs"
         )
-        text_raster = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_text/"
-            "raster.rs"
+        text_glyph_draw = source(
+            "zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs"
         )
-        text_raster_metrics = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_text/"
-            "raster/metrics.rs"
+        text_request = source(
+            "zircon_runtime/src/core/framework/text/glyph_raster/request.rs"
         )
+        text_swash_request = source("zircon_runtime/src/text/raster/swash/request.rs")
         self.assertIn(
             "const VECTOR_SMALL_ICON_SUPERSAMPLE_SCALE: u32 = 4;", vector_target
         )
@@ -809,18 +910,17 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
         self.assertIn("physical_pixel_size", image_conversion)
         self.assertIn("mag_filter: wgpu::FilterMode::Linear", wgpu_pipeline)
         self.assertIn("min_filter: wgpu::FilterMode::Linear", wgpu_pipeline)
-        self.assertIn("physical_raster_px_size(logical_px, surface_scale_factor)", text_raster)
-        self.assertIn("swash_hinting_for_physical_size", text_raster)
-        self.assertIn("sample_scale: NATIVE_RASTER_SAMPLE_SCALE", text_raster)
-        self.assertIn("raster.sample_scale", text_draw)
-        self.assertIn(
-            "pub(super) const NATIVE_RASTER_SAMPLE_SCALE: f32 = 1.0;",
-            text_raster_metrics,
-        )
-        self.assertIn(
-            "(logical_px * surface_scale_factor)", text_raster_metrics
-        )
-        self.assertNotIn("TEXT_RASTER_SUPERSAMPLE", text_draw)
+        self.assertIn("physical_ppem", text_layout_artifact)
+        self.assertIn("font_size.round().max(1.0)", text_layout_artifact)
+        self.assertIn("rasterize_glyph(request)", text_glyph_draw)
+        self.assertIn("pub const HORIZONTAL_PHASE_COUNT: u8 = 3;", text_request)
+        self.assertIn("pub const VERTICAL_PHASE_COUNT: u8 = 4;", text_request)
+        self.assertIn("with_subpixel_position", text_request)
+        self.assertIn("from_text_glyph_request", text_swash_request)
+        self.assertIn("request.physical_ppem as f32", text_swash_request)
+        self.assertIn("request.horizontal_phase", text_swash_request)
+        self.assertIn("request.vertical_phase", text_swash_request)
+        self.assertNotIn("TEXT_RASTER_SUPERSAMPLE", text_glyph_draw)
 
     def test_vector_cache_bucketing_cannot_change_non_square_aspect(self):
         vector_target = source(
@@ -908,12 +1008,103 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
         self.assertIn("DIAMOND_SAMPLES_PER_AXIS: u32 = 4", diamond)
         self.assertIn("diamond_sample_coverage", diamond)
         self.assertIn("CACHED_DIAMOND_RASTERS", diamond)
-        self.assertIn("let half_edge = edge as f32 * 0.5", diamond)
+        self.assertIn("let half_edge = target_edge * 0.5", diamond)
         self.assertIn("x: x - half_edge", diamond)
         self.assertIn("y: y - half_edge", diamond)
         for consumer in (sample_points, timeline_keys):
             self.assertIn("push_aa_diamond", consumer)
             self.assertNotIn("for offset in -radius..=radius", consumer)
+
+    def test_cached_diamonds_keep_fractional_physical_extent_and_native_source_resolution(self):
+        diamond = source(
+            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "template_diamond_glyph.rs"
+        )
+        timeline_metrics = source(
+            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "template_timeline_strip/metrics.rs"
+        )
+        sample_metrics = source(
+            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "template_sample_grid/metrics.rs"
+        )
+        sample_points = source(
+            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "template_sample_grid/points.rs"
+        )
+        sample_grid = source(
+            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "template_sample_grid.rs"
+        )
+        sample_geometry = source(
+            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "template_sample_grid/geometry.rs"
+        )
+
+        self.assertIn("radius: f32", diamond)
+        self.assertIn("let target_edge =", diamond)
+        self.assertIn("let source_edge = target_edge.ceil()", diamond)
+        self.assertIn("width: target_edge", diamond)
+        self.assertIn("height: target_edge", diamond)
+        self.assertNotIn("radius: i32", diamond)
+        self.assertIn("pub key_radius: f32", timeline_metrics)
+        self.assertNotIn("round().max(2.0) as i32", timeline_metrics)
+        self.assertIn("pub point_radius: f32", sample_metrics)
+        self.assertIn("pub point_interior_radius: f32", sample_metrics)
+        self.assertIn("pub point_edge_inset: f32", sample_metrics)
+        self.assertIn("metrics.point_radius", sample_points)
+        self.assertIn(
+            "SampleGridGeometry::from_frame(rect, metrics.point_edge_inset)", sample_grid
+        )
+        self.assertIn("point_edge_inset: f32", sample_geometry)
+
+    def test_circular_progress_keeps_fractional_target_geometry_and_native_source_resolution(self):
+        circular_root = (
+            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "template_material_feedback/circular_progress/"
+        )
+        entry = source(circular_root + "entry.rs")
+        cache = source(circular_root + "cache.rs")
+        key = source(circular_root + "key.rs")
+        pixels = source(circular_root + "pixels.rs")
+
+        self.assertIn("let target_size =", entry)
+        self.assertIn("raster_size_from_frame(target_size, target_size)", entry)
+        self.assertIn("CircularProgressRasterKey::with_target(", entry)
+        self.assertIn("circular_progress_pixels_for_target(", entry)
+        self.assertIn("circular_progress_image_key_for_target(", entry)
+        self.assertIn("target_size_bits: u32", cache)
+        self.assertIn("target_size.to_bits()", cache)
+        self.assertIn("target_size: f32", key)
+        self.assertIn("target_size.to_bits()", key)
+        self.assertIn("CIRCULAR_PROGRESS_SAMPLES_PER_AXIS: u32 = 4", pixels)
+        self.assertIn("source_to_target", pixels)
+        self.assertIn("target_size_bits: u32", pixels)
+
+    def test_asset_thumbnail_svg_keeps_fractional_target_and_ceils_local_raster_source(self):
+        thumbnail = source(
+            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "template_asset_placeholder_visuals.rs"
+        )
+        tests = source(
+            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_asset_placeholder_visuals/tests/cases.rs"
+        )
+
+        self.assertIn("fn thumbnail_icon_target_edge", thumbnail)
+        self.assertIn("fn typed_thumbnail_preview_icon_target_edge", thumbnail)
+        self.assertIn("fn thumbnail_icon_source_edge(target_edge: f32)", thumbnail)
+        self.assertIn("icon_min_edge: f32", thumbnail)
+        self.assertIn("typed_preview_icon_max_edge: f32", thumbnail)
+        self.assertIn("raster_size_from_frame(target_edge, target_edge)", thumbnail)
+        self.assertIn("let Some(source_edge) = thumbnail_icon_source_edge(target_edge)", thumbnail)
+        self.assertIn("thumbnail_icon_rect(node, rect, target_edge)", thumbnail)
+        self.assertNotIn("rect.width.min(rect.height).floor() as u32", thumbnail)
+        self.assertNotIn("THUMBNAIL_ICON_RATIO).round() as u32", thumbnail)
+        self.assertNotIn("fn metric_edge", thumbnail)
+        self.assertIn(
+            "asset_thumbnail_visual_preserves_fractional_target_and_ceils_svg_source",
+            tests,
+        )
 
     def test_cached_chart_bitmaps_resolve_local_samples_in_linear_light(self):
         raster_root = (
@@ -950,7 +1141,7 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
             "zircon_editor/src/ui/retained_host/host_contract/"
             "profiling_artifacts/schema/text.rs"
         )
-        oracle = source("tools/zircon_editor_ui_visual_oracle.py")
+        oracle = source("tools/visual/zircon_editor_ui_visual_oracle.py")
 
         self.assertEqual(export.count("build_chrome_command_stream("), 1)
         self.assertIn("UiProfileGeometry::from_presentation_with_stream", export)
@@ -984,7 +1175,7 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
             "zircon_editor/src/ui/retained_host/host_contract/"
             "profiling_artifacts/geometry/rounded_shapes.rs"
         )
-        oracle = source("tools/zircon_editor_ui_visual_oracle.py")
+        oracle = source("tools/visual/zircon_editor_ui_visual_oracle.py")
 
         self.assertIn("rounded_shapes: Vec<UiProfileRoundedShape>", geometry_schema)
         self.assertIn("collect_rounded_shapes(stream)", geometry)

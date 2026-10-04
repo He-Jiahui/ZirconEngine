@@ -10,8 +10,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/session_coordinator/failures.py
-  - tools/session_coordinator/tests/test_failures.py
 tests:
   - python -u -B -m unittest tools.session_coordinator.tests.test_failures.FailureGraphTests.test_return_rejects_source_schema_errors_without_moving_failure -v
   - python -u -B -m unittest tools.session_coordinator.tests.test_failures.FailureGraphTests.test_verified_fix_moves_back_and_updates_both_relative_links -v

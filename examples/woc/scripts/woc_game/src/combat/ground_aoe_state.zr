@@ -34,12 +34,13 @@ pub class GroundEffectSpec {
     }
 }
 
+/// 世界按一次范围效果构造的临时来源/目标/地面效果列和随机流，目标顺序由世界负责；效果输出仍须由世界写回生命、仇恨及事件。
 pub class GroundAoEState {
     pub var sourceIds: container.Array<uint>;
     pub var sourceAlive: container.Array<bool>;
     pub var sourceSpellMultipliers: container.Array<float>;
     pub var sourceThreatMultipliers: container.Array<float>;
-    // Targets retain the traversal order supplied by the spatial-grid projection.
+    // 目标列顺序由调用者提供；当前世界投影按权威实体列构造，不能推定空间索引遍历顺序。
     pub var targetIds: container.Array<uint>;
     pub var targetX: container.Array<float>;
     pub var targetZ: container.Array<float>;
@@ -207,6 +208,7 @@ targetQualifies(
         <bool>state.targetLineOfSight[targetIndex];
 }
 
+/// 世界先用同一投影估算下一次脉冲所需的权威随机数；若在计数和实际派发之间更改目标或来源快照，随机顺序可能错位。
 pub eligibleTargetCount(state: GroundAoEState, spec: GroundEffectSpec): int {
     validatePulseSpec(spec);
     var ownerIndex = sourceIndex(state, spec.sourceId);
@@ -355,6 +357,7 @@ pub castGroundAoE(state: GroundAoEState, spec: GroundEffectSpec): void {
 // Arcane Explosion style effects pulse at the supplied center and never enter
 // the persistent ground-effect queue. Their callers still use the shared target
 // predicate, damage arithmetic and deterministic draw order above.
+/// 为瞬发范围法术复用持久地面效果的目标与随机规则，但不加入地面队列；世界先预填恰好一次脉冲所需的随机值，再消费伤害请求。
 pub castInstantAoE(state: GroundAoEState, spec: GroundEffectSpec): void {
     validatePulseSpec(spec);
     pulseValues(
@@ -374,6 +377,7 @@ pub castInstantAoE(state: GroundAoEState, spec: GroundEffectSpec): void {
     );
 }
 
+/// 对已入列地面效果按 50 毫秒推进并反向移除，到期帧不会再脉冲；调用者要保持来源存活与目标列的当前快照，并提交产生的伤害与事件。
 pub fixedTick(state: GroundAoEState): void {
     var index = state.effectIds.length - 1;
     while (index >= 0) {

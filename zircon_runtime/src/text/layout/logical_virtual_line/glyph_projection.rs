@@ -1,4 +1,5 @@
 use crate::core::framework::text::TextGlyph;
+use crate::text::layout_geometry::finite_sum;
 use crate::text::TextRange;
 
 use super::LogicalVirtualLineSequence;
@@ -8,6 +9,7 @@ pub(super) fn project_logical_glyphs(
     mut glyphs: Vec<TextGlyph>,
     visual_advances: &[f32],
 ) -> Option<Vec<TextGlyph>> {
+    // 被 display-BiDi 拒绝的 sequence 禁止再作为可信视觉顺序投影；字体代际由上层 fragment 检查。
     if !sequence.artifact_projection_allowed()
         || sequence.clusters.is_empty()
         || visual_advances.len() != sequence.clusters.len()
@@ -138,7 +140,8 @@ pub(super) fn project_logical_glyphs(
         }
         let glyph_index = glyph_index?;
         if advance.is_finite() {
-            projected[glyph_index].glyph.advance += advance.max(0.0);
+            projected[glyph_index].glyph.advance =
+                finite_sum([projected[glyph_index].glyph.advance, advance.max(0.0)]);
         }
     }
     Some(projected.into_iter().map(|glyph| glyph.glyph).collect())

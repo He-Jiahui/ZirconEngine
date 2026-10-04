@@ -32,7 +32,7 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/plugin_surface_lifecycle/native_loader_namespace.rs
   - zircon_runtime/src/tests/runtime_absorption/plugin_surface_lifecycle/split_layout.rs
   - zircon_runtime/src/tests/runtime_absorption/plugin_surface_lifecycle/support.rs
-  - docs/engine-architecture/native-plugin-boundary.md
+  - docs/architecture/native-plugin-boundary.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/native_plugin_public_surface.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/plugin_surface_lifecycle_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/plugin_surface_lifecycle_markdown.py
@@ -52,7 +52,7 @@ last_refined: 2026-08-27
 
 ## 现状与证据（2026-06-12 重核）
 
-- **公开面实测**：`plugin/mod.rs:27-50` 把 native plugin loader 约 48 个类型/常量全量 `pub use` 到 `plugin` 根：三代 ABI 结构（`NativePluginAbiV1/V2/V3`）、Behavior/ByteSlice/CallbackStatus/EntryReport/HostFunctionTable/OwnedByteBuffer 的 V2/V3 双份、`NativePluginLiveHost` 全家（Command/LoadReport/Outcome）、Runtime 状态快照族（PlayModeSnapshot/StateSnapshot/StateRestoreReport 等）、4 个 STATUS 常量、4 个 ABI_VERSION 常量、4 个 DESCRIPTOR_SYMBOL 常量、2 个 PLAY_MODE 命令常量——与"native loader 退出 runtime 公共主路径"的既定决策（`docs/engine-architecture/native-plugin-boundary.md`，2026-06-12 实测存在）冲突。`plugin` 根的其余导出（manifest/catalog/profile/registration report/extension registry/scene hook/export 族，:17-26、:51-74）属"描述与报告"层，是目标公共面。
+- **公开面实测**：`plugin/mod.rs:27-50` 把 native plugin loader 约 48 个类型/常量全量 `pub use` 到 `plugin` 根：三代 ABI 结构（`NativePluginAbiV1/V2/V3`）、Behavior/ByteSlice/CallbackStatus/EntryReport/HostFunctionTable/OwnedByteBuffer 的 V2/V3 双份、`NativePluginLiveHost` 全家（Command/LoadReport/Outcome）、Runtime 状态快照族（PlayModeSnapshot/StateSnapshot/StateRestoreReport 等）、4 个 STATUS 常量、4 个 ABI_VERSION 常量、4 个 DESCRIPTOR_SYMBOL 常量、2 个 PLAY_MODE 命令常量——与"native loader 退出 runtime 公共主路径"的既定决策（`docs/architecture/native-plugin-boundary.md`，2026-06-12 实测存在）冲突。`plugin` 根的其余导出（manifest/catalog/profile/registration report/extension registry/scene hook/export 族，:17-26、:51-74）属"描述与报告"层，是目标公共面。
 - **M1.2/M2/M3 当前状态（2026-07-31）**：M1 fallback focused evidence 已存在但完整 gate pending；M2 root-to-`plugin::native` 源码硬切已落地但 managed acceptance pending；M3 的精确 ABI 矩阵、public-surface 数量和剩余旧类型债以紧随其后的 second-review correction 为唯一当前判词。
 - **2026-07-31 second-review ABI/public-surface correction（authoritative）**：上段 2026-07-31 简化成“entry/descriptor V3、behavior/host V4”的二分描述已被本条取代。精确矩阵是 descriptor/entry ABI V3、随 entry descriptor 交给插件的 `NativePluginHostFunctionTableV3` 仍为 first-party 当前合同、behavior callback table V4、runtime-interface host API 当前面为 `ZrHostApiV4`；`NativeHostApiV3RegistrationScope` 是待删除的旧 adapter public surface。V4 registration policy/scope 归独立 `native-host-api-adapter-public-debt` owner，不再误归 bridge-method。当前静态事实为 expected_source_file_count = 17、native root 0/0、native namespace 74/74、分类组 6/6、未分类 0/0、App 8/8、`risks = []`；root hard-cut scanner 已覆盖 direct loader、`native::{...}`、`self::native::*` 与 crate-qualified native re-export 语法。
 - **Native public-surface renderer split（2026-06-21）**：`native_plugin_public_surface_markdown.py` 已承接 `render_native_plugin_public_surface_markdown(...)`；`native_plugin_public_surface.py` 保持 400 行 native public-surface scan / symbol classification / M4 gate owner，Markdown owner 为 63 行。Direct probe 当前报告 root re-export 0、native namespace re-export 64、symbol decision groups 5、migration debt 0、unclassified root/namespace symbol counts 0/0、root/native public re-export locations 0/1、M4 gate `classified-and-clear`、risks 0、rendered output 12 lines。该切片不关闭 Runtime 06；script VM / native plugin / app / plugin workspace Cargo-native gates 仍 pending。
@@ -124,7 +124,7 @@ last_refined: 2026-08-27
 #### 切片 1.1 空参数 marshalling 修复
 
 - 目标文件：`zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs`（及其 `call_module_export` 下行的 sys 调用段，执行时核验确切文件：Grep `call_module_export`，path `zircon_plugins/zr_vm_language/runtime/src/real_backend`）。
-- 改动形态（方案草案，执行时按 ZrVM C ABI 约定定稿）：空参数数组改为传"合法非空指针 + len=0"或 ZrVM 约定的显式空参数协议；实现为绑定侧防御（空 slice 分支换静态空槽指针，签名草案执行时定稿）。若必须 ZrVM 侧修，先落绑定侧防御并在 `docs/zircon_runtime/dynamic_api/session.md` 记录上游 issue 与版本配对要求（回写子计划 01 的 zr_vm 治理条目）。
+- 改动形态（方案草案，执行时按 ZrVM C ABI 约定定稿）：空参数数组改为传"合法非空指针 + len=0"或 ZrVM 约定的显式空参数协议；实现为绑定侧防御（空 slice 分支换静态空槽指针，签名草案执行时定稿）。若必须 ZrVM 侧修，先落绑定侧防御并在 `docs/crates/zircon_runtime/dynamic_api/session.md` 记录上游 issue 与版本配对要求（回写子计划 01 的 zr_vm 治理条目）。
 - 调用方迁移：无公共面变化（`call_entry_lifecycle_export` 四个调用点 :83/:98/:104/:125 行为自动修复）。
 - 验收：`examples/vampire` 真实启动不再触发 `function.c:1394` 断言（或上游 issue + 绑定防御双证据）。
 - DoD：`cargo test -p zircon_runtime --lib vampire_project_session --features backend-zr-vm --locked -- --nocapture --test-threads=1` 不再因该断言失败。
@@ -146,7 +146,7 @@ last_refined: 2026-08-27
 - 目标文件：无新代码改动（验证 + 1.2 剩余测试分层补齐）。
 - 改动形态（按依赖序三步）：
   1. **fallback 层测试先行**：1.2 中不需 real backend 的失败路径测试（坏入口模块、坏符号、deactivate 幂等）先落地并跑绿——不受 real-backend 编译超时影响；
-2. **编译超时破解**：`--features backend-zr-vm` 组合曾实测 300s 编译超时（状态节证据）——用 `tools/dev-fast-build.ps1` 共享 `CARGO_TARGET_DIR` 预热 + 包内最小 feature 复跑；破解方法与 07 计划切片 0.2（profiling 构建超时）同源，结论双向回写；
+2. **编译超时破解**：`--features backend-zr-vm` 组合曾实测 300s 编译超时（状态节证据）——用 `tools/dev/dev-fast-build.ps1` 共享 `CARGO_TARGET_DIR` 预热 + 包内最小 feature 复跑；破解方法与 07 计划切片 0.2（profiling 构建超时）同源，结论双向回写；
   3. **real-backend 回归**：跑 M1 DoD 命令确认 `function.c:1394` 不再触发，同时确认 binding 侧 sentinel 修复（`../zr_vm/.../lib.rs`）与 runtime 侧行为一致。
 - 调用方迁移：无。
 - 验收：`vm_lifecycle_activate_with_empty_arguments_does_not_trip_native_assertion`（real-backend 门控）首次真实跑绿；fallback 层三测试绿。
@@ -158,7 +158,7 @@ last_refined: 2026-08-27
 - 里程碑末：
   - `cargo test -p zircon_runtime --lib script::vm --locked -- --nocapture`
 - 有真实 ZrVM 环境：`cargo test -p zircon_runtime --lib vampire_project_session --features backend-zr-vm --locked -- --nocapture --test-threads=1`
-- 验收证据：断言不再触发的运行记录；文档 `docs/zircon_runtime/dynamic_api/session.md` 刷新。
+- 验收证据：断言不再触发的运行记录；文档 `docs/crates/zircon_runtime/dynamic_api/session.md` 刷新。
 
 ### M2 native loader 公共面收窄（源码硬切已落地，验收待关闭）
 
@@ -175,7 +175,7 @@ last_refined: 2026-08-27
 
 #### 切片 2.2 测试与文档迁移
 
-- 目标文件：native loader 相关测试迁到隔离 namespace（执行时枚举：Grep `NativePluginAbi`，path `zircon_runtime/src/tests`）；`docs/engine-architecture/native-plugin-boundary.md` 口径刷新。
+- 目标文件：native loader 相关测试迁到隔离 namespace（执行时枚举：Grep `NativePluginAbi`，path `zircon_runtime/src/tests`）；`docs/architecture/native-plugin-boundary.md` 口径刷新。
 - 改动形态：测试 `use` 路径批量改新 namespace；文档把"目标态"改写为"现状"。
 - 调用方迁移：仅测试文件。
 - 验收：boundary 文档与代码一致；结构测试进常驻树。
@@ -215,7 +215,7 @@ last_refined: 2026-08-27
 - `cargo test --manifest-path zircon_plugins/Cargo.toml --workspace --locked`（夹具改造回归）
 - `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk native_panic_guard --locked -- --nocapture --test-threads=1` 与 Runtime `native_plugin_host_callback_panic_guard` focused gate，必须覆盖并发 callback、process-global hook sentinel 不变以及 panic status 映射。
 - 验收证据：ABI 支持矩阵文档（落 `native-plugin-boundary.md`）；回滚测试；被删旧版无残留引用。
-- 文档：`docs/zircon_plugins/first_party_runtime_catalog.md`、export 契约文档刷新。
+- 文档：`docs/crates/zircon_plugins/first_party_runtime_catalog.md`、export 契约文档刷新。
 
 ## 状态与产出记录
 

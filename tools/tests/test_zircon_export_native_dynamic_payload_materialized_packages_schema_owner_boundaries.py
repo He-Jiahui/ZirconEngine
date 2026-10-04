@@ -1,14 +1,15 @@
+# 核对已物化包模式辅助函数归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PAYLOAD_SCHEMA = (
-    REPO_ROOT / "tools/zircon_export/pipeline_report_native_dynamic_payload_schema.py"
+    REPO_ROOT / "tools/export/pipeline_report_native_dynamic_payload_schema.py"
 )
 MATERIALIZED_PACKAGES_SCHEMA = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_payload_materialized_packages_schema.py"
+    / "tools/export/pipeline_report_native_dynamic_payload_materialized_packages_schema.py"
 )
 
 

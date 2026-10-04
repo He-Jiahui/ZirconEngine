@@ -1,6 +1,7 @@
 #[cfg(test)]
 use std::cell::Cell;
 use std::collections::HashSet;
+use std::path::Path;
 use std::sync::Arc;
 
 use crate::asset::project::ProjectManifest;
@@ -48,12 +49,36 @@ use super::project_manifest_validation::{
     ProjectPluginManifestValidationProjection,
 };
 use super::source_template_build_plan::source_template_build_validation_plan;
-use super::{ExportBuildPlan, ExportBuildPlanError, ExportLinkedRuntimeCrate};
+use super::{
+    admit_linked_feature_sources, ExportBuildPlan, ExportBuildPlanError, ExportLinkedRuntimeCrate,
+    ExportRuntimeCrateRegistrationKind,
+};
 
 impl ExportBuildPlan {
     pub fn from_project_manifest(
         manifest: &ProjectManifest,
         profile_name: &str,
+    ) -> Result<Self, ExportBuildPlanError> {
+        Self::from_project_manifest_with_source_root(manifest, profile_name, None)
+    }
+
+    /// Plans linked feature registration only after admitting its source package manifest.
+    pub fn from_project_manifest_with_plugin_root(
+        manifest: &ProjectManifest,
+        profile_name: &str,
+        plugin_root: impl AsRef<Path>,
+    ) -> Result<Self, ExportBuildPlanError> {
+        Self::from_project_manifest_with_source_root(
+            manifest,
+            profile_name,
+            Some(plugin_root.as_ref()),
+        )
+    }
+
+    fn from_project_manifest_with_source_root(
+        manifest: &ProjectManifest,
+        profile_name: &str,
+        plugin_root: Option<&Path>,
     ) -> Result<Self, ExportBuildPlanError> {
         let mut profile = manifest
             .export_profiles
@@ -192,6 +217,8 @@ impl ExportBuildPlan {
                         crate_name,
                         feature.runtime_crate_path(&owner.id),
                         external_provider.then(|| provider_package_id.to_string()),
+                        feature.id.clone(),
+                        owner.id.clone(),
                     ),
                 );
             }
@@ -241,11 +268,25 @@ impl ExportBuildPlan {
                             crate_name,
                             feature.runtime_crate_path(&owner.id),
                             Some(provider_package_id.to_string()),
+                            feature.id.clone(),
+                            owner.id.clone(),
                         ),
                     );
                 }
             }
         }
+        let (linked_feature_sources, linked_feature_source_fatal_diagnostics) =
+            admit_linked_feature_sources(
+                &mut linked_runtime_crate_links,
+                plugin_root,
+                profile.target_mode,
+            );
+        let linked_feature_source_count = linked_runtime_crate_links
+            .iter()
+            .filter(|linked_crate| {
+                linked_crate.registration_kind == ExportRuntimeCrateRegistrationKind::RuntimeFeature
+            })
+            .count();
         let linked_runtime_crates = linked_runtime_crate_links
             .iter()
             .map(|linked_crate| linked_crate.crate_name.clone())
@@ -321,6 +362,7 @@ impl ExportBuildPlan {
         diagnostics.extend(profile_strategy_fatal_diagnostics.iter().cloned());
         diagnostics.extend(profile_selection_diagnostics.diagnostics);
         diagnostics.extend(feature_packaging_diagnostics);
+        diagnostics.extend(linked_feature_source_fatal_diagnostics.iter().cloned());
         fatal_diagnostics.extend(project_plugin_id_fatal_diagnostics);
         fatal_diagnostics.extend(project_feature_id_fatal_diagnostics);
         fatal_diagnostics.extend(project_duplicate_fatal_diagnostics);
@@ -334,6 +376,7 @@ impl ExportBuildPlan {
         fatal_diagnostics.extend(profile_strategy_fatal_diagnostics);
         fatal_diagnostics.extend(profile_selection_diagnostics.fatal_diagnostics);
         fatal_diagnostics.extend(feature_packaging_fatal_diagnostics);
+        fatal_diagnostics.extend(linked_feature_source_fatal_diagnostics);
         if profile.uses_strategy(ExportPackagingStrategy::LibraryEmbed)
             || profile.uses_strategy(ExportPackagingStrategy::SourceTemplate)
         {
@@ -419,6 +462,8 @@ impl ExportBuildPlan {
             profile,
             &enabled_plugins,
             linked_runtime_crates,
+            linked_feature_source_count,
+            linked_feature_sources,
             native_dynamic_packages,
             native_dynamic_package_exports,
             runtime_plugin_availability,
@@ -430,6 +475,7 @@ impl ExportBuildPlan {
         plan.set_library_embed_compile_host_plan(compile_host_plan);
         let source_template_build_plan = source_template_build_validation_plan(&plan);
         plan.set_source_template_build_validation_plan(source_template_build_plan);
+        plan.seal_admitted_plan();
         Ok(plan)
     }
 }
@@ -510,96 +556,5 @@ fn linked_runtime_plugin_projection(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::asset::AssetUri;
-    use crate::core::framework::platform::RuntimeTargetMode;
-    use crate::core::framework::project::{ExportProfile, ExportTargetPlatform, RuntimeProfileId};
-
-    #[test]
-    fn single_pass_linked_runtime_projection_preserves_contract() {
-        let profile = ExportProfile::new(
-            "client",
-            RuntimeTargetMode::ClientRuntime,
-            ExportTargetPlatform::Windows,
-            RuntimeProfileId::Client2d,
-        )
-        .with_strategy(ExportPackagingStrategy::SourceTemplate);
-        let first = ProjectPluginSelection::runtime_plugin("duplicate-runtime-a", true, false)
-            .with_runtime_crate("zircon_plugin_shared_runtime");
-        let second = ProjectPluginSelection::runtime_plugin("duplicate-runtime-b", true, false)
-            .with_runtime_crate("zircon_plugin_shared_runtime");
-        let projection = linked_runtime_plugin_projection(&[&first, &second], &profile);
-
-        assert_eq!(projection.crate_links.len(), 1);
-        assert_eq!(
-            projection.crate_links[0].crate_name,
-            "zircon_plugin_shared_runtime"
-        );
-        assert_eq!(projection.crate_links[0].path, "shared/runtime");
-        assert!(projection.package_ids.contains("duplicate-runtime-a"));
-        assert!(projection.package_ids.contains("duplicate-runtime-b"));
-    }
-
-    #[test]
-    fn export_generation_builds_each_manifest_validation_view_once() {
-        let source = include_str!("from_project_manifest.rs");
-        let descriptor_rebuild = ["RuntimePluginDescriptor", "::builtin_catalog"].concat();
-        let catalog_call = ["builtin_runtime_plugin_catalog", "();"].concat();
-        let direct_catalog_build = ["RuntimePluginCatalog", "::builtin"].concat();
-        let shared_catalog = ["RuntimePluginCatalog", "::builtin_shared()"].concat();
-        assert!(!source.contains(&descriptor_rebuild));
-        assert_eq!(source.matches(&catalog_call).count(), 1);
-        assert_eq!(source.matches(&direct_catalog_build).count(), 1);
-        assert!(source.contains(&shared_catalog));
-        reset_builtin_catalog_build_count();
-        begin_projection_build_observation();
-        let mut manifest = ProjectManifest::new(
-            "availability-projection",
-            AssetUri::parse("res://scenes/main.scene.toml").expect("fixture asset URI"),
-            1,
-        );
-        manifest.export_profiles = vec![ExportProfile::new(
-            "client",
-            RuntimeTargetMode::ClientRuntime,
-            ExportTargetPlatform::Windows,
-            RuntimeProfileId::Client2d,
-        )
-        .with_strategy(ExportPackagingStrategy::SourceTemplate)];
-
-        let _ = ExportBuildPlan::from_project_manifest(&manifest, "client")
-            .expect("export generation should succeed");
-
-        assert_eq!(builtin_catalog_build_count(), 1);
-        assert_eq!(observed_projection_builds(), 2);
-    }
-
-    #[test]
-    fn completed_plugin_manifest_is_reused_for_feature_resolution() {
-        let source = include_str!("from_project_manifest.rs");
-        let completing_api = ["feature_dependency_report", "(&completed_plugins"].concat();
-        let completed_api = ["feature_dependency_report_for_", "completed_manifest"].concat();
-
-        assert!(!source.contains(&completing_api));
-        assert!(source.contains(&completed_api));
-    }
-
-    #[test]
-    fn missing_profile_returns_typed_plan_error() {
-        let manifest = ProjectManifest::new(
-            "typed-error-contract",
-            AssetUri::parse("res://scenes/main.scene.toml").expect("fixture asset URI"),
-            1,
-        );
-
-        let error = ExportBuildPlan::from_project_manifest(&manifest, "missing-profile")
-            .expect_err("unknown profile must fail");
-
-        assert_eq!(
-            error,
-            ExportBuildPlanError::MissingProfile {
-                profile_name: "missing-profile".to_string(),
-            }
-        );
-    }
-}
+#[path = "tests/from_project_manifest.rs"]
+mod tests;

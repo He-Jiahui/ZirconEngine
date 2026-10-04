@@ -10,7 +10,7 @@ use crate::ui::asset_editor::palette::{UiAssetPaletteCatalog, UiAssetPaletteEntr
 use zircon_runtime_interface::ui::{template::UiAssetDocument, v2::UiV2AssetDocument};
 
 #[cfg(test)]
-#[path = "palette_catalog/selection_fast_path_tests.rs"]
+#[path = "palette_catalog/tests/selection_fast_path_tests.rs"]
 mod selection_fast_path_tests;
 
 pub(super) fn build_layout(

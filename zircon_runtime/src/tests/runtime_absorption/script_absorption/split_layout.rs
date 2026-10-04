@@ -1,3 +1,4 @@
+//! 脚本子系统归入运行时后，旧独立包的移除状态由此处约束。通过源码文本核对父子路由、状态镜像和文件预算。
 const PARENT_SOURCE: &str = include_str!("../script_absorption.rs");
 const LEGACY_CRATE_SOURCE: &str = include_str!("legacy_crate.rs");
 const SPLIT_LAYOUT_SOURCE: &str = include_str!("split_layout.rs");
@@ -14,7 +15,7 @@ const STRUCTURE_CONVENTION_PLAN: &str =
 const REVIEW_FINDINGS_PLAN: &str =
     include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md");
 const MODULE_CONVENTION_DOC: &str =
-    include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
+    include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 #[rustfmt::skip]
 const NUMBERED_STATUS_RECORDS: &str = concat!(
     include_str!("../../../../../docs/plans/zircon_runtime/runtime/13/2026-07-09-script-binding-and-reflection-output-records.md"),

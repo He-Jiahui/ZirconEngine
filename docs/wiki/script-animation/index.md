@@ -16,8 +16,8 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/13-script-binding-and-reflection.md
 tests:
   - zircon_runtime/src/script/vm/tests
-  - zircon_runtime/src/animation/sequence/tests.rs
-  - zircon_runtime/src/navigation/runtime/tests.rs
+  - zircon_runtime/src/animation/sequence/tests/cases.rs
+  - zircon_runtime/src/navigation/runtime/tests/cases.rs
   - zircon_runtime/src/dynamic_api/tests
 doc_type: category-index
 ---

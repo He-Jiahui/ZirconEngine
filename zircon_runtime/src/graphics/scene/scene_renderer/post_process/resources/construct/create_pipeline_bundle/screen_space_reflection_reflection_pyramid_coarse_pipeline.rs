@@ -1,5 +1,7 @@
+//! 创建屏幕空间反射粗粒度反射金字塔管线；输出格式必须与对应中间纹理分配一致。
 use crate::graphics::scene::scene_renderer::post_process::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE_FORMAT;
 
+/// 复用共享后处理 shader module 和 pipeline layout，生成粗粒度反射金字塔的渲染管线。
 pub(super) fn screen_space_reflection_reflection_pyramid_coarse_pipeline(
     device: &wgpu::Device,
     pipeline_layout: &wgpu::PipelineLayout,
@@ -33,21 +35,5 @@ pub(super) fn screen_space_reflection_reflection_pyramid_coarse_pipeline(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::super::super::super::shader_sources::POST_PROCESS_SHADER;
-
-    #[test]
-    fn post_process_shader_exposes_split_ssr_reflection_pyramid_coarse_entry_point() {
-        assert!(
-            POST_PROCESS_SHADER.contains("fn fs_screen_space_reflection_reflection_pyramid_coarse")
-        );
-        assert!(
-            POST_PROCESS_SHADER
-                .contains("resolve_screen_space_reflection_reflection_pyramid_coarse")
-        );
-        assert!(
-            POST_PROCESS_SHADER.contains("screen_space_reflection_reflection_pyramid_coarse_tex")
-        );
-        assert!(POST_PROCESS_SHADER.contains("@group(0) @binding(26)"));
-    }
-}
+#[path = "tests/screen_space_reflection_reflection_pyramid_coarse_pipeline.rs"]
+mod tests;

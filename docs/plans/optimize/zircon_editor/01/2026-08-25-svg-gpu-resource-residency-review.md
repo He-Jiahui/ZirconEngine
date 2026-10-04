@@ -280,7 +280,7 @@ Zircon 应保持当前 `(resource_key, generation)` 句柄化方向，但需要�
 
 因此 current-source 架构上已经具备“稳定产品不重复读盘、parse、raster 或上传”的闭环。若真实 Editor 仍观察到重复加载，首要嫌疑不再是缺少 cache，而是 source/target/tint key 抖动、容量驱逐、device recreation 或 watcher 失效风暴；必须从现有 miss/upload 计数和待补的 churn top-N 反向定位，不能再并列增加一套 cache。
 
-新增 `tools/editor_svg_gpu_residency_pressure.py` 将上述合同建模为确定性复杂度证据。默认场景为 10,000 次稳定 present、每次 2,048 个 image command、256 个 SVG source、每个 4 个 raster variant、16 个 256x256 atlas page，并包含一次单 SVG 内容变化：
+新增 `tools/analysis/performance/editor/editor_svg_gpu_residency_pressure.py` 将上述合同建模为确定性复杂度证据。默认场景为 10,000 次稳定 present、每次 2,048 个 image command、256 个 SVG source、每个 4 个 raster variant、16 个 256x256 atlas page，并包含一次单 SVG 内容变化：
 
 - 无驻留的逐 command 重建基线为 20,480,000 次 file read/parse/raster/upload；
 - retained 路径的冷启动加一次热更新为 257 次 file read/parse、1,028 次 raster 和 17 次 atlas page upload；

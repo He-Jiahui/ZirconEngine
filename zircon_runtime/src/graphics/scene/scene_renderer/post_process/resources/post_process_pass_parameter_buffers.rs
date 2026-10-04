@@ -1,5 +1,7 @@
 use super::super::params::post_process_params::PostProcessParams;
 
+/// 按后处理参数生产者持有独立的持久 uniform 槽，供同一提交中的拆分 pass 使用。
+/// 独立槽避免不同效果的提交前上传互相覆盖；字段与各执行入口选择的缓冲须一起维护。
 pub(in crate::graphics::scene::scene_renderer::post_process) struct PostProcessPassParameterBuffers
 {
     pub(in crate::graphics::scene::scene_renderer::post_process) blur: wgpu::Buffer,
@@ -54,21 +56,5 @@ fn create_parameter_buffer(device: &wgpu::Device, label: &'static str) -> wgpu::
 }
 
 #[cfg(test)]
-mod tests {
-    use super::PostProcessPassParameterBuffers;
-
-    #[test]
-    fn one_persistent_slot_exists_per_post_process_parameter_producer() {
-        let source = include_str!("post_process_pass_parameter_buffers.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("persistent post-process parameter slot source");
-
-        assert_eq!(production.matches("create_parameter_buffer(").count(), 10);
-        assert_eq!(
-            std::mem::size_of::<PostProcessPassParameterBuffers>(),
-            9 * std::mem::size_of::<wgpu::Buffer>()
-        );
-    }
-}
+#[path = "tests/post_process_pass_parameter_buffers.rs"]
+mod tests;

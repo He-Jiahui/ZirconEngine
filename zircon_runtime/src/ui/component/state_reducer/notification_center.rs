@@ -12,6 +12,10 @@ const SELECTED_NOTIFICATION_ID: &str = "selected_notification_id";
 const VISIBLE_LIMIT: &str = "visible_limit";
 const KEYBOARD_NAVIGATION: &str = "keyboard_navigation";
 
+#[cfg(test)]
+#[path = "tests/notification_static_key_tests.rs"]
+mod notification_static_key_tests;
+
 pub(super) fn sync_after_value_change(
     state: &mut UiComponentState,
     descriptor: &UiComponentDescriptor,
@@ -111,9 +115,9 @@ fn sync_notification_state(state: &mut UiComponentState, descriptor: &UiComponen
         .flatten();
 
     if selected_id.is_empty() || selected_entry.is_none() {
-        super::set_value(
+        set_notification_value(
             state,
-            SELECTED_NOTIFICATION_ID.to_string(),
+            SELECTED_NOTIFICATION_ID,
             UiValue::String(String::new()),
         );
         state.flags.selected = false;
@@ -122,7 +126,7 @@ fn sync_notification_state(state: &mut UiComponentState, descriptor: &UiComponen
     }
 
     let focus_index = normalized_focus_index(state, &entries, selected_entry);
-    super::set_value(state, FOCUSED_INDEX.to_string(), UiValue::Int(focus_index));
+    set_notification_value(state, FOCUSED_INDEX, UiValue::Int(focus_index));
     state.flags.focused = focus_index >= 0;
 }
 
@@ -161,53 +165,56 @@ fn navigate_notifications(
     action: UiComponentKeyboardAction,
 ) {
     let entries = visible_notification_entries(state, descriptor);
-    let enabled_entries = entries
-        .iter()
-        .filter(|entry| !entry.disabled)
-        .collect::<Vec<_>>();
-
-    if enabled_entries.is_empty() {
-        super::set_value(state, FOCUSED_INDEX.to_string(), UiValue::Int(-1));
+    if !entries.iter().any(|entry| !entry.disabled) {
+        set_notification_value(state, FOCUSED_INDEX, UiValue::Int(-1));
         state.flags.focused = false;
         write_unread_count(state, descriptor);
         return;
     }
 
     let current = current_focus_index(state, descriptor);
-    let next = match action {
-        UiComponentKeyboardAction::First => enabled_entries.first().copied(),
-        UiComponentKeyboardAction::Last => enabled_entries.last().copied(),
-        UiComponentKeyboardAction::Next if current < 0 => enabled_entries.first().copied(),
-        UiComponentKeyboardAction::Previous if current < 0 => enabled_entries.last().copied(),
-        UiComponentKeyboardAction::Next => enabled_entries
-            .iter()
-            .copied()
-            .find(|entry| entry.index > current)
-            .or_else(|| {
-                enabled_entries
-                    .iter()
-                    .copied()
-                    .find(|entry| entry.index == current)
-            }),
-        UiComponentKeyboardAction::Previous => enabled_entries
-            .iter()
-            .rev()
-            .copied()
-            .find(|entry| entry.index < current)
-            .or_else(|| {
-                enabled_entries
-                    .iter()
-                    .copied()
-                    .find(|entry| entry.index == current)
-            }),
-        _ => None,
-    };
+    let next = next_enabled_notification(&entries, action, current);
 
     if let Some(entry) = next {
-        super::set_value(state, FOCUSED_INDEX.to_string(), UiValue::Int(entry.index));
+        set_notification_value(state, FOCUSED_INDEX, UiValue::Int(entry.index));
         state.flags.focused = true;
     }
     write_unread_count(state, descriptor);
+}
+
+fn next_enabled_notification(
+    entries: &[NotificationEntry],
+    action: UiComponentKeyboardAction,
+    current: i64,
+) -> Option<&NotificationEntry> {
+    match action {
+        UiComponentKeyboardAction::First => entries.iter().find(|entry| !entry.disabled),
+        UiComponentKeyboardAction::Last => entries.iter().rev().find(|entry| !entry.disabled),
+        UiComponentKeyboardAction::Next if current < 0 => {
+            entries.iter().find(|entry| !entry.disabled)
+        }
+        UiComponentKeyboardAction::Previous if current < 0 => {
+            entries.iter().rev().find(|entry| !entry.disabled)
+        }
+        UiComponentKeyboardAction::Next => entries
+            .iter()
+            .find(|entry| !entry.disabled && entry.index > current)
+            .or_else(|| {
+                entries
+                    .iter()
+                    .find(|entry| !entry.disabled && entry.index == current)
+            }),
+        UiComponentKeyboardAction::Previous => entries
+            .iter()
+            .rev()
+            .find(|entry| !entry.disabled && entry.index < current)
+            .or_else(|| {
+                entries
+                    .iter()
+                    .find(|entry| !entry.disabled && entry.index == current)
+            }),
+        _ => None,
+    }
 }
 
 fn focused_notification_id(
@@ -246,14 +253,24 @@ fn write_selected_notification(
     notification_id: &str,
     focus_index: i64,
 ) {
-    super::set_value(
+    set_notification_value(
         state,
-        SELECTED_NOTIFICATION_ID.to_string(),
+        SELECTED_NOTIFICATION_ID,
         UiValue::String(notification_id.to_string()),
     );
-    super::set_value(state, FOCUSED_INDEX.to_string(), UiValue::Int(focus_index));
+    set_notification_value(state, FOCUSED_INDEX, UiValue::Int(focus_index));
 }
 
+fn set_notification_value(state: &mut UiComponentState, property: &'static str, value: UiValue) {
+    super::clear_reference_source(state, property);
+    if let Some(existing) = state.values.get_mut(property) {
+        *existing = value;
+    } else {
+        state.values.insert(property.to_owned(), value);
+    }
+}
+
+// 同步时优先聚焦合法的已选通知，再保留仍可用的旧焦点，最后回退首个可用条目；键盘导航另受 visible_limit 限制。
 fn normalized_focus_index(
     state: &UiComponentState,
     entries: &[NotificationEntry],
@@ -318,9 +335,9 @@ fn write_unread_count(state: &mut UiComponentState, descriptor: &UiComponentDesc
 }
 
 fn write_unread_count_from_entries(state: &mut UiComponentState, entries: &[NotificationEntry]) {
-    super::set_value(
+    set_notification_value(
         state,
-        UNREAD_COUNT.to_string(),
+        UNREAD_COUNT,
         UiValue::Int(entries.iter().filter(|entry| entry.unread).count() as i64),
     );
 }
@@ -369,7 +386,12 @@ fn collect_visible_notification_entries(
             for (offset, value) in values.iter().enumerate() {
                 collect_visible_notification_entries(
                     value,
-                    start_index + offset as i64,
+                    // For nested arrays each inner element's index is its position
+                    // within the flat enumeration, not its offset within the inner array.
+                    // Using start_index + offset counts sibling inner arrays as a block,
+                    // so a structure [[a, b], c] produces indices 0, 1, 2 rather than
+                    // 0, 1, 1 (which would make Activate find b instead of c).
+                    start_index + entries.len() as i64,
                     visible_limit,
                     entries,
                 );
@@ -547,31 +569,5 @@ fn string_bool(value: &str) -> Option<bool> {
 }
 
 #[cfg(test)]
-mod performance_tests {
-    use zircon_runtime_interface::ui::component::UiValue;
-
-    use super::collect_visible_notification_entries;
-
-    #[test]
-    fn visible_entries_skip_invalid_values_without_changing_logical_indexes() {
-        let notifications = UiValue::Array(vec![
-            UiValue::String(String::new()),
-            UiValue::String("first".to_string()),
-            UiValue::Array(vec![
-                UiValue::String("second".to_string()),
-                UiValue::String("third".to_string()),
-            ]),
-        ]);
-        let mut entries = Vec::new();
-
-        collect_visible_notification_entries(&notifications, 0, 2, &mut entries);
-
-        assert_eq!(
-            entries
-                .iter()
-                .map(|entry| (entry.id.as_str(), entry.index))
-                .collect::<Vec<_>>(),
-            vec![("first", 1), ("second", 2)]
-        );
-    }
-}
+#[path = "tests/notification_center_performance_tests.rs"]
+mod performance_tests;

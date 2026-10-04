@@ -2,10 +2,7 @@ use std::cmp::Ordering;
 
 use crate::core::resource::{ResourceId, ResourceKind, UntypedResourceHandle};
 
-use super::{
-    RenderSceneAddedPrimitive, RenderScenePrimitive, RenderScenePrimitiveDirtyFlags,
-    RenderSceneRemovedPrimitive, RenderSceneUpdatedPrimitive,
-};
+use super::{RenderScenePrimitive, RenderScenePrimitiveDirtyFlags};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct RenderSceneResourceReferenceDelta {
@@ -80,6 +77,26 @@ pub(super) struct RenderSceneResourceReferenceDeltaBuild {
     pub(super) stats: RenderSceneResourceReferenceDeltaStats,
 }
 
+pub(super) struct RenderSceneResourceReferenceUpdate<'primitive> {
+    dirty: RenderScenePrimitiveDirtyFlags,
+    previous: &'primitive RenderScenePrimitive,
+    current: &'primitive RenderScenePrimitive,
+}
+
+impl<'primitive> RenderSceneResourceReferenceUpdate<'primitive> {
+    pub(super) const fn new(
+        dirty: RenderScenePrimitiveDirtyFlags,
+        previous: &'primitive RenderScenePrimitive,
+        current: &'primitive RenderScenePrimitive,
+    ) -> Self {
+        Self {
+            dirty,
+            previous,
+            current,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum RenderSceneResourceDependencyKind {
     Model,
@@ -121,26 +138,26 @@ struct RenderSceneResourceReferenceObservation {
     acquired: bool,
 }
 
-pub(super) fn build_resource_reference_deltas(
-    removals: &[RenderSceneRemovedPrimitive],
-    updates: &[RenderSceneUpdatedPrimitive],
-    additions: &[RenderSceneAddedPrimitive],
+pub(super) fn build_resource_reference_deltas<'primitive>(
+    removals: impl IntoIterator<Item = &'primitive RenderScenePrimitive>,
+    updates: impl IntoIterator<Item = RenderSceneResourceReferenceUpdate<'primitive>>,
+    additions: impl IntoIterator<Item = &'primitive RenderScenePrimitive>,
 ) -> RenderSceneResourceReferenceDeltaBuild {
     let mut observations = Vec::<RenderSceneResourceReferenceObservation>::new();
     let mut previous_dependencies = Vec::new();
     let mut current_dependencies = Vec::new();
     let mut stats = RenderSceneResourceReferenceDeltaStats::default();
-    for removal in removals {
-        collect_resource_dependencies(removal.primitive(), &mut current_dependencies);
+    for primitive in removals {
+        collect_resource_dependencies(primitive, &mut current_dependencies);
         stats.record_projection(current_dependencies.len());
         record_dependencies(&mut observations, &current_dependencies, false);
     }
     for update in updates {
-        if !resource_dependencies_may_have_changed(update.dirty()) {
+        if !resource_dependencies_may_have_changed(update.dirty) {
             continue;
         }
-        collect_resource_dependencies(update.previous_primitive(), &mut previous_dependencies);
-        collect_resource_dependencies(update.primitive(), &mut current_dependencies);
+        collect_resource_dependencies(update.previous, &mut previous_dependencies);
+        collect_resource_dependencies(update.current, &mut current_dependencies);
         stats.record_projection(previous_dependencies.len());
         stats.record_projection(current_dependencies.len());
         record_dependency_difference(
@@ -149,8 +166,8 @@ pub(super) fn build_resource_reference_deltas(
             &current_dependencies,
         );
     }
-    for addition in additions {
-        collect_resource_dependencies(addition.primitive(), &mut current_dependencies);
+    for primitive in additions {
+        collect_resource_dependencies(primitive, &mut current_dependencies);
         stats.record_projection(current_dependencies.len());
         record_dependencies(&mut observations, &current_dependencies, true);
     }

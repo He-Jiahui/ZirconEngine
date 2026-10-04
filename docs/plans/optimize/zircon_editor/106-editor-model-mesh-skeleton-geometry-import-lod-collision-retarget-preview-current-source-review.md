@@ -128,7 +128,7 @@ LOD 只是 Scene instance distance-to-origin thresholds，Inspector 只读，没
 12. Collision Proxy/Retarget workbench 的按钮/文本最终只返回固定反馈或导航；没有 CollisionSetup/Retargeter/BoneMap/Solver asset、job、artifact、preview diff 或 runtime install。
 13. Model/Mesh/Skeleton 没有 dedicated toolkit、preview scene、orbit camera、wireframe/UV/normals/bounds/LOD/collision/bone/morph inspection；thumbnail 走 placeholder。
 14. Virtual Geometry Editor 声明的 `plugins://virtual_geometry/editor/authoring.zui` 在包中不存在；descriptor/command 测试不能证明模板可加载。
-15. Core glTF provider priority 10，split provider priority 120；availability 组合会改变 glTF schema、animation placeholder、skin/IBM 与材质/attribute结果，必须收敛成单一语义 authority。
+15. Core glTF provider priority 10，split provider priority 120；当前两者已共享 typed AnimationClip/Skeleton helper，但 availability 组合仍会改变 provider authority、skin/IBM artifact 与材质/attribute结果，必须收敛成单一语义 authority。
 
 ## 3. 参考引擎对照
 

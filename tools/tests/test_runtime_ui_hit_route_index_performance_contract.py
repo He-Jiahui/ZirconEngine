@@ -27,11 +27,29 @@ class RuntimeUiHitRouteIndexPerformanceContract(unittest.TestCase):
         source = ROUTE_INDEX.read_text(encoding="utf-8")
 
         self.assertIn("pub(super) fn build_route_nodes", source)
+        self.assertIn("Vec::with_capacity(arranged_tree.nodes.len())", source)
+        self.assertIn("route_publication_preallocates_node_table", source)
         self.assertIn("UiHitRouteNode::invalid", source)
         self.assertIn("while let Some", source)
         self.assertNotIn("fn resolve_route_node", source)
         self.assertIn("deep_chain_builds_without_recursion", source)
         self.assertIn("missing_parent_and_cycle_fail_closed", source)
+
+    def test_full_route_build_reuses_parent_index_from_validation_walk(self) -> None:
+        source = ROUTE_INDEX.read_text(encoding="utf-8")
+        build = source.split("pub(super) fn build_route_nodes", 1)[1].split(
+            "pub(super) fn patch_route_nodes", 1
+        )[0]
+        self.assertIn("let mut chain: Vec<(usize, Option<usize>)> = Vec::new();", build)
+        self.assertIn("chain.push((index, parent_index));", build)
+        self.assertRegex(
+            build,
+            r"compose_route_node\(\s*node,\s*node_indices,\s*&route_nodes,\s*None,\s*parent_index,?\s*\)",
+        )
+        self.assertNotRegex(
+            build,
+            r"compose_route_node\(\s*node,\s*node_indices,\s*&route_nodes,\s*None\s*\)",
+        )
 
     def test_full_build_does_not_repeat_ancestor_walk_helpers(self) -> None:
         source = HIT_TEST.read_text(encoding="utf-8")
@@ -42,6 +60,28 @@ class RuntimeUiHitRouteIndexPerformanceContract(unittest.TestCase):
         self.assertNotIn("arranged_effective_input_policy_indexed", build)
         self.assertNotIn("is_arranged_child_hit_path_visible_indexed", build)
 
+    def test_hit_grid_entry_projection_reserves_draw_order_upper_bound(self) -> None:
+        source_text = HIT_TEST.read_text(encoding="utf-8")
+        build = source_text.split("fn build_hit_grid", 1)[1].split(
+            "fn cell_bounds_for_query", 1
+        )[0]
+
+        self.assertIn(
+            "let mut entries = Vec::with_capacity(arranged_tree.draw_order.len());",
+            build,
+        )
+        self.assertIn("for node_id in arranged_tree.draw_order.iter().copied()", build)
+        self.assertIn("let Some(node_index) = node_indices.get(&node_id).copied()", build)
+        self.assertRegex(
+            build,
+            r"arranged_tree\s*\.\s*nodes\s*\.\s*get\(node_index\)",
+        )
+        self.assertNotIn(
+            "route_node_index_for_node(node_indices, node.node_id)",
+            build,
+        )
+        self.assertNotIn(".filter_map(|node_id|", build)
+
     def test_geometry_and_input_patches_have_separate_route_costs(self) -> None:
         source = HIT_TEST.read_text(encoding="utf-8")
         geometry = HIT_GEOMETRY_PATCH.read_text(encoding="utf-8")
@@ -49,8 +89,9 @@ class RuntimeUiHitRouteIndexPerformanceContract(unittest.TestCase):
             "fn entry_index_by_node_id", 1
         )[0]
 
-        self.assertNotIn("patch_route_nodes", geometry)
-        self.assertNotIn("arranged_bubble_route", geometry)
+        geometry_production = geometry.split("#[cfg(test)]", 1)[0]
+        self.assertNotIn("patch_route_nodes", geometry_production)
+        self.assertNotIn("arranged_bubble_route", geometry_production)
         self.assertIn("patch_route_nodes", input_patch)
         self.assertIn("geometry_patch_reuses_route_table", source)
         self.assertIn(

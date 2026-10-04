@@ -1,6 +1,6 @@
 import unittest
 from pathlib import Path
-
+# 世界失效队列分页大小探测借用待处理批次，确认命中后才拥有化页面；线缆顺序仍按尾队列保持。
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE = REPO_ROOT / "zircon_runtime/src/dynamic_api/session/world_sync.rs"

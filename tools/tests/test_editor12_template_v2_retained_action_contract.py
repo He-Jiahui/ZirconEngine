@@ -1,3 +1,4 @@
+# 核对模板 V2 动作从模型、投影、令牌注册到保留式界面分发的类型载荷与代际边界。
 from pathlib import Path
 
 
@@ -274,7 +275,7 @@ def test_v2_retained_actions_preserve_typed_payloads_and_generation_boundary() -
     )
 
     activation_tests = source(
-        "zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics_tests.rs"
+        "zircon_editor/src/ui/retained_host/host_contract/tests/template_activation_semantics_tests.rs"
     )
     require(
         activation_tests,

@@ -1,6 +1,6 @@
 //! Immutable, indexed read model for one editor-plugin catalog generation.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, HashSet};
 use std::sync::Arc;
 
 use zircon_runtime::plugin::PluginPackageManifest;
@@ -18,7 +18,7 @@ pub struct EditorPluginCatalogSnapshot {
     package_index: BTreeMap<String, usize>,
     registration_index: BTreeMap<String, usize>,
     projection: Arc<EditorPluginCatalogProjection>,
-    faulted_packages: BTreeSet<String>,
+    faulted_packages: HashSet<String>,
     capabilities: Vec<String>,
     capabilities_by_package: BTreeMap<String, Vec<String>>,
     packages_by_capability: BTreeMap<String, Vec<String>>,
@@ -42,12 +42,14 @@ impl EditorPluginCatalogSnapshot {
         let projection = Arc::new(EditorPluginCatalogProjection::from_registrations(
             catalog.registrations(),
         ));
-        let faulted_packages = catalog
-            .registrations()
-            .iter()
-            .filter(|registration| !registration.is_success())
-            .map(|registration| registration.package_manifest.id.clone())
-            .collect();
+        let mut faulted_packages = HashSet::with_capacity(catalog.registrations().len());
+        faulted_packages.extend(
+            catalog
+                .registrations()
+                .iter()
+                .filter(|registration| !registration.is_success())
+                .map(|registration| registration.package_manifest.id.clone()),
+        );
         let capabilities = catalog.capabilities();
         let mut capabilities_by_package = BTreeMap::new();
         let mut packages_by_capability = BTreeMap::<String, Vec<String>>::new();
@@ -158,5 +160,9 @@ impl EditorPluginCatalogSnapshot {
 }
 
 #[cfg(test)]
-#[path = "catalog_snapshot/optimization_tests.rs"]
+#[path = "catalog_snapshot/tests/optimization_tests.rs"]
 mod optimization_tests;
+
+#[cfg(test)]
+#[path = "catalog_snapshot/tests/optimization_batch_iq_editor627_tests.rs"]
+mod optimization_batch_iq_editor627_tests;

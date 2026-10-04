@@ -16,7 +16,7 @@ use crate::text::font::FontCollectionService;
 use super::super::super::super::deferred::DeferredSceneResources;
 use super::super::super::super::environment::realtime_ibl_capture_wgpu::RealtimeIblCaptureWgpuPipelines;
 use super::super::super::super::environment::{IblBakeWgpuPipelineCache, RealtimeIblRuntime};
-use super::super::super::super::hzb::{HzbOcclusionCuller, hzb_occlusion_supported_by_limits};
+use super::super::super::super::hzb::{hzb_occlusion_supported_by_limits, HzbOcclusionCuller};
 use super::super::super::super::mesh::skinning::{
     create_empty_skinned_joint_palette_arena_buffer, skinned_joint_palette_arena_min_binding_size,
 };
@@ -27,11 +27,11 @@ use super::super::super::super::overlay::{ViewportIconSource, ViewportOverlayRen
 use super::super::super::super::particle::ParticleRenderer;
 use super::super::super::super::post_process::ScenePostProcessResources;
 use super::super::super::super::scene_clear::SceneRegionClearResources;
-use super::super::super::super::shadow::ShadowMapRenderer;
 use super::super::super::super::shadow::atlas::{
-    SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT, ShadowAtlasAllocator, ShadowAtlasConfig,
-    ShadowAtlasResourceConfig, ShadowAtlasResources,
+    ShadowAtlasAllocator, ShadowAtlasConfig, ShadowAtlasResourceConfig, ShadowAtlasResources,
+    SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT,
 };
+use super::super::super::super::shadow::ShadowMapRenderer;
 use super::super::super::super::sprite::SpriteRenderer;
 use super::super::super::super::ui::ScreenSpaceUiRenderer;
 use super::super::super::constants::{DEPTH_FORMAT, SCENE_COLOR_HDR_FORMAT};
@@ -261,9 +261,11 @@ impl SceneRendererCore {
                 scene_bind_group_layout: scene_bind_group_bundle.layout,
                 scene_uniform_buffer: scene_bind_group_bundle.uniform_buffer,
                 scene_environment_sh9_buffer: scene_bind_group_bundle.environment_sh9_buffer,
+                scene_environment_sh9_staging_buffer: None,
                 scene_environment_cubemap: scene_bind_group_bundle.environment_cubemap,
                 scene_environment_brdf_lut: scene_bind_group_bundle.environment_brdf_lut,
                 scene_bind_group: scene_bind_group_bundle.bind_group,
+                pending_scene_environment_bindings: None,
                 scene_color_format,
                 final_color_format,
                 depth_format: DEPTH_FORMAT,

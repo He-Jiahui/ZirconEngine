@@ -1,3 +1,4 @@
+//! 提交上下文冻结相机目标、有效质量、图与 provider 输入，使锁外预处理和锁内提交共用决议。
 use std::sync::Arc;
 
 use crate::core::framework::render::{
@@ -594,4 +595,5 @@ impl UiSubmissionStats {
 }
 
 #[cfg(test)]
+#[path = "frame_submission_context/tests/cases.rs"]
 mod tests;

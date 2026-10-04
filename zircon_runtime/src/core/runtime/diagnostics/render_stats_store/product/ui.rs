@@ -1,6 +1,7 @@
 use crate::core::framework::render::RenderStats;
 
 use super::{record_count, DiagnosticStore};
+// worker_pending、retry_queued 等字段描述待处理队列状态，不是已完成 glyph 的数量。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_count(
@@ -100,6 +101,27 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         frame_index,
         stats.last_ui_text_raster_worker_failed_count,
         &["render", "ui", "text", "raster", "worker"],
+    );
+    record_count(
+        store,
+        "render.ui.text.raster.retry_queued_glyph_count",
+        frame_index,
+        stats.last_ui_text_raster_retry_queued_glyph_count,
+        &["render", "ui", "text", "raster", "retry"],
+    );
+    record_count(
+        store,
+        "render.ui.text.raster.retry_queue_overflow_glyph_count",
+        frame_index,
+        stats.last_ui_text_raster_retry_queue_overflow_glyph_count,
+        &["render", "ui", "text", "raster", "retry"],
+    );
+    record_count(
+        store,
+        "render.ui.text.raster.retry_rejected_source_count",
+        frame_index,
+        stats.last_ui_text_raster_retry_rejected_source_count,
+        &["render", "ui", "text", "raster", "retry"],
     );
     record_count(
         store,

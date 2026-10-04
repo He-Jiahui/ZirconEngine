@@ -1,9 +1,10 @@
-use crate::text::layout::{TextLineMetrics, line_metrics_with_provider};
+use crate::text::layout::{line_metrics_with_provider, TextLineMetrics};
 use crate::text::shaping::{TextLayoutOutcome, TextShapingOutcome};
 use crate::text::{
-    SharedTextLayoutSession, TextDocumentKey, build_resolved_rich_text_glyph_artifact,
+    build_resolved_rich_text_glyph_artifact,
     build_resolved_text_glyph_artifact_with_line_fragments, register_compiled_rich_text_artifact,
-    register_resolved_rich_text_artifact_with_layout_runs, text_style,
+    register_resolved_rich_text_artifact_with_layout_runs, text_style, SharedTextLayoutSession,
+    TextDocumentKey,
 };
 use std::sync::Arc;
 use zircon_runtime_interface::ui::layout::UiFrame;
@@ -12,7 +13,7 @@ use zircon_runtime_interface::ui::surface::{
     UiTextWritingMode,
 };
 
-use super::rich_text::{UiParsedText, parse_source_text_with_provider};
+use super::rich_text::{parse_source_text_with_provider, UiParsedText};
 
 mod artifact;
 mod candidate_line;
@@ -39,7 +40,7 @@ mod visual_order;
 mod wrapping;
 
 use super::resolved_layout::UiTextViewport;
-use artifact::{LayoutFontGenerationFence, attach_plain_text_glyph_artifact};
+use artifact::{attach_plain_text_glyph_artifact, LayoutFontGenerationFence};
 use ellipsis::{
     ellipsize_line_with_provider, is_ellipsis_overflow, line_overflows_horizontally_with_provider,
     merge_clipped_lines_for_tail_preserving_ellipsis,
@@ -47,8 +48,8 @@ use ellipsis::{
 pub(super) use failure_layout::text_layout_error_layout;
 use layout_result::LayoutWithoutArtifact;
 use line_box::{
-    MIN_TEXT_FONT_SIZE, aligned_x, available_wrap_extent,
-    materialize_arabic_tatweels_for_justified_line, resolve_line_widths_with_provider,
+    aligned_x, available_wrap_extent, materialize_arabic_tatweels_for_justified_line,
+    resolve_line_widths_with_provider, MIN_TEXT_FONT_SIZE,
 };
 use viewport::visible_plain_text_lines;
 use wrapping::wrap_source_runs_with_provider;
@@ -232,6 +233,12 @@ pub(super) fn layout_parsed_text_with_provider_and_viewport_outcome(
         TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
         TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
     };
+    if let Err(error) = geometry_admission::admit_resolved_layout_publication(
+        &layout_without_artifact.layout,
+        provider,
+    ) {
+        return TextShapingOutcome::failed(error);
+    }
     let mut layout = layout_without_artifact.layout;
     if !matches!(
         style.rich_text_format,
@@ -424,4 +431,5 @@ fn layout_parsed_text_without_tables_with_viewport(
 }
 
 #[cfg(test)]
+#[path = "layout_engine/tests/cases.rs"]
 mod tests;

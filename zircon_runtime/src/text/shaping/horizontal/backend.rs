@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use crate::core::framework::text::TextDirection;
 use rustybuzz::{
-    Direction, Feature, Language, Script, UnicodeBuffer, Variation, script, ttf_parser::Tag,
+    script, ttf_parser::Tag, Direction, Feature, Language, Script, UnicodeBuffer, Variation,
 };
 
 use crate::text::font::FontDatabase;

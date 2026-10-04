@@ -1,9 +1,10 @@
+# 用缩放时间线验证几何守恒、事务完整性和延迟预算。
 $ErrorActionPreference = 'Stop'
 
 Describe 'Window resize geometry evidence' {
     BeforeAll {
         $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-        . (Join-Path $repoRoot 'tools\ui-window-resize-geometry-evidence.ps1')
+        . (Join-Path $repoRoot 'tools\analysis\profiling\ui\ui-window-resize-geometry-evidence.ps1')
 
         function New-ResizeTimeline {
             param(

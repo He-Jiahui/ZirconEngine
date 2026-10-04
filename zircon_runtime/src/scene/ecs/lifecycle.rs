@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
-use crate::scene::{EntityId, ecs::ComponentId};
+use crate::scene::{ecs::ComponentId, EntityId};
 
+/// 组件结构变更在世界生命周期中的阶段。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum LifecycleEventKind {
     Add,

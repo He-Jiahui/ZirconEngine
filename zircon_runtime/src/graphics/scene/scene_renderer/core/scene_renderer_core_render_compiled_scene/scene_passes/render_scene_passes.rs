@@ -1,7 +1,6 @@
 use crate::core::TaskPool;
-use crate::graphics::CompiledRenderPipeline;
 use crate::graphics::debug_markers::{
-    RENDERDOC_MARKER_DEFERRED_LIGHTING, RENDERDOC_MARKER_MAIN_SCENE, pop_group, push_group,
+    pop_group, push_group, RENDERDOC_MARKER_DEFERRED_LIGHTING, RENDERDOC_MARKER_MAIN_SCENE,
 };
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::resources::ResourceStreamer;
@@ -15,6 +14,7 @@ use crate::graphics::scene::scene_renderer::history::{
 };
 use crate::graphics::scene::scene_renderer::hzb::HzbOcclusionCuller;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
+use crate::graphics::CompiledRenderPipeline;
 
 use super::super::super::super::deferred::DeferredSceneResources;
 use super::super::super::super::mesh::MeshPipelineCache;
@@ -23,8 +23,8 @@ use super::super::super::super::post_process::SceneRuntimeFeatureFlags;
 use super::super::super::super::shadow::atlas::ShadowAtlasResources;
 use super::super::super::super::sprite::SpriteRenderer;
 use super::super::super::scene_renderer_core::SceneRendererCore;
+use super::super::render::execute_graph_stage::{execute_graph_stage, RenderGraphStageExecution};
 use super::super::render::RenderGraphPassFrameServices;
-use super::super::render::execute_graph_stage::{RenderGraphStageExecution, execute_graph_stage};
 
 impl SceneRendererCore {
     #[allow(clippy::too_many_arguments)]
@@ -43,6 +43,7 @@ impl SceneRendererCore {
         history_availability: SceneHistoryAvailability,
         parallel_recording: Option<(&TaskPool, usize)>,
     ) -> Result<(), GraphicsError> {
+        let scene_bind_group = self.frame_scene_bind_group().clone();
         if runtime_features.deferred_lighting_enabled {
             execute_deferred_graph_stage(
                 &self.deferred,
@@ -51,7 +52,7 @@ impl SceneRendererCore {
                 mesh_draw_lists,
                 device,
                 command_encoders,
-                &self.scene_bind_group,
+                &scene_bind_group,
                 &self.scene_bind_group_layout,
                 self.scene_color_format,
                 self.depth_format,
@@ -73,7 +74,7 @@ impl SceneRendererCore {
                 mesh_draw_lists,
                 device,
                 command_encoders,
-                &self.scene_bind_group,
+                &scene_bind_group,
                 &self.scene_bind_group_layout,
                 self.scene_color_format,
                 self.depth_format,
@@ -98,7 +99,7 @@ impl SceneRendererCore {
                         &mut self.ibl_bake_pipeline_cache,
                         device,
                         command_encoders,
-                        &self.scene_bind_group,
+                        &scene_bind_group,
                         &self.scene_bind_group_layout,
                         self.scene_color_format,
                         self.depth_format,
@@ -131,7 +132,7 @@ impl SceneRendererCore {
                     scene_bind_group_layout: &self.scene_bind_group_layout,
                     target_format: self.scene_color_format,
                     depth_format: self.depth_format,
-                    scene_bind_group: &self.scene_bind_group,
+                    scene_bind_group: &scene_bind_group,
                     surface_frame: None,
                     screen_space_ui_renderer: None,
                     post_process_stack: Some(ambient_occlusion_post_process_stack),
@@ -159,7 +160,7 @@ impl SceneRendererCore {
                 mesh_draw_lists,
                 device,
                 command_encoders,
-                &self.scene_bind_group,
+                &scene_bind_group,
                 &self.scene_bind_group_layout,
                 self.scene_color_format,
                 self.depth_format,
@@ -184,7 +185,7 @@ impl SceneRendererCore {
                         &mut self.ibl_bake_pipeline_cache,
                         device,
                         command_encoders,
-                        &self.scene_bind_group,
+                        &scene_bind_group,
                         &self.scene_bind_group_layout,
                         self.scene_color_format,
                         self.depth_format,
@@ -204,7 +205,7 @@ impl SceneRendererCore {
                 mesh_draw_lists,
                 device,
                 command_encoders,
-                &self.scene_bind_group,
+                &scene_bind_group,
                 &self.scene_bind_group_layout,
                 self.scene_color_format,
                 self.depth_format,
@@ -229,7 +230,7 @@ impl SceneRendererCore {
                         &mut self.ibl_bake_pipeline_cache,
                         device,
                         command_encoders,
-                        &self.scene_bind_group,
+                        &scene_bind_group,
                         &self.scene_bind_group_layout,
                         self.scene_color_format,
                         self.depth_format,
@@ -249,7 +250,7 @@ impl SceneRendererCore {
                 mesh_draw_lists,
                 device,
                 command_encoders,
-                &self.scene_bind_group,
+                &scene_bind_group,
                 &self.scene_bind_group_layout,
                 self.scene_color_format,
                 self.depth_format,
@@ -274,7 +275,7 @@ impl SceneRendererCore {
                         &mut self.ibl_bake_pipeline_cache,
                         device,
                         command_encoders,
-                        &self.scene_bind_group,
+                        &scene_bind_group,
                         &self.scene_bind_group_layout,
                         self.scene_color_format,
                         self.depth_format,
@@ -309,7 +310,7 @@ impl SceneRendererCore {
                 mesh_draw_lists,
                 device,
                 command_encoders,
-                &self.scene_bind_group,
+                &scene_bind_group,
                 &self.scene_bind_group_layout,
                 self.scene_color_format,
                 self.depth_format,
@@ -333,7 +334,7 @@ impl SceneRendererCore {
                 mesh_draw_lists,
                 device,
                 command_encoders,
-                &self.scene_bind_group,
+                &scene_bind_group,
                 &self.scene_bind_group_layout,
                 self.scene_color_format,
                 self.depth_format,
@@ -358,7 +359,7 @@ impl SceneRendererCore {
                         &mut self.ibl_bake_pipeline_cache,
                         device,
                         command_encoders,
-                        &self.scene_bind_group,
+                        &scene_bind_group,
                         &self.scene_bind_group_layout,
                         self.scene_color_format,
                         self.depth_format,
@@ -379,7 +380,7 @@ impl SceneRendererCore {
                         &mut self.ibl_bake_pipeline_cache,
                         device,
                         command_encoders,
-                        &self.scene_bind_group,
+                        &scene_bind_group,
                         &self.scene_bind_group_layout,
                         self.scene_color_format,
                         self.depth_format,
@@ -588,31 +589,5 @@ fn execute_sprite_graph_stage(
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::graphics::pipeline::RenderPassStage;
-
-    #[test]
-    fn deferred_scene_executes_ambient_occlusion_between_gbuffer_and_lighting() {
-        let source = include_str!("render_scene_passes.rs");
-        let deferred = source
-            .find("RenderPassStage::Deferred,")
-            .expect("deferred GBuffer stage");
-        let ambient_occlusion = source[deferred..]
-            .find("RenderPassStage::AmbientOcclusion,")
-            .map(|offset| deferred + offset)
-            .expect("deferred ambient-occlusion stage");
-        let lighting = source[ambient_occlusion..]
-            .find("RenderPassStage::Lighting,")
-            .map(|offset| ambient_occlusion + offset)
-            .expect("deferred lighting stage");
-
-        assert!(deferred < ambient_occlusion);
-        assert!(ambient_occlusion < lighting);
-
-        let alpha_mask = source
-            .find("RenderPassStage::AlphaMask3d,")
-            .expect("deferred alpha-mask stage");
-        assert!(deferred < alpha_mask);
-        assert!(alpha_mask < ambient_occlusion);
-    }
-}
+#[path = "tests/render_scene_passes.rs"]
+mod tests;

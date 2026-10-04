@@ -1,3 +1,4 @@
+mod component;
 mod entity;
 mod physics;
 mod rendering;
@@ -8,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use self::entity::ArtifactCacheSceneEntityAsset;
 use crate::asset::{AssetImportError, SceneAsset};
 
+// Scene 与 Prefab 共用此实体树缓存边界；读回时每个实体组件都必须完成转换。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub(in crate::asset::artifact) struct ArtifactCacheSceneAsset {
     entities: Vec<ArtifactCacheSceneEntityAsset>,

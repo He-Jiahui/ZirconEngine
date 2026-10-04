@@ -1,3 +1,4 @@
+# 核对材质参数与图选择共享运行时投影，编译反馈读取当前材质状态。
 import tomllib
 import unittest
 from pathlib import Path

@@ -18,29 +18,39 @@ impl RetainedEditorHost {
             return;
         };
         let project_path = self.runtime.editor_snapshot().project_path;
-        let result = load_module_plugin_project_manifest(&project_path).and_then(|mut context| {
-            let outcome = match action {
-                ModulePluginAction::Unload { plugin_id } => self
-                    .dispatch_module_plugin_live_host_action(
+        let result = match action {
+            ModulePluginAction::Unload { plugin_id } => {
+                let project_root = crate::ui::workbench::project::project_root_path(&project_path)
+                    .map_err(|error| error.to_string());
+                project_root.and_then(|root| {
+                    self.dispatch_module_plugin_live_host_action(
                         plugin_id,
                         ModulePluginLiveHostCommand::Unload,
-                        &context.project_root,
-                    )?,
-                ModulePluginAction::HotReload { plugin_id } => self
-                    .dispatch_module_plugin_live_host_action(
+                        &root,
+                    )
+                })
+            }
+            ModulePluginAction::HotReload { plugin_id } => {
+                let project_root = crate::ui::workbench::project::project_root_path(&project_path)
+                    .map_err(|error| error.to_string());
+                project_root.and_then(|root| {
+                    self.dispatch_module_plugin_live_host_action(
                         plugin_id,
                         ModulePluginLiveHostCommand::HotReload,
-                        &context.project_root,
-                    )?,
-                action => self.dispatch_module_plugin_project_manifest_action(
+                        &root,
+                    )
+                })
+            }
+            action => load_module_plugin_project_manifest(&project_path).and_then(|mut context| {
+                let outcome = self.dispatch_module_plugin_project_manifest_action(
                     &context.project_root,
                     &mut context.manifest,
                     action,
-                )?,
-            };
-            context.save()?;
-            Ok(outcome)
-        });
+                )?;
+                context.save()?;
+                Ok(outcome)
+            }),
+        };
         match result {
             Ok(message) => {
                 self.set_status_line(message);

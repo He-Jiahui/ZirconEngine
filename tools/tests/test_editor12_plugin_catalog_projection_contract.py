@@ -49,12 +49,12 @@ class EditorPluginCatalogProjectionContractTests(unittest.TestCase):
 
     def test_plugin_list_retains_the_canonical_projection_arc_and_identity_regression(self) -> None:
         runner = self.source("commandlet/runner.rs")
-        tests = self.source("commandlet/tests.rs")
+        tests = self.source("commandlet/tests/cases.rs")
 
         self.assertIn("crate::core::plugin::{", runner)
         self.assertIn("Option<Arc<EditorPluginCatalogProjection>>", runner)
         self.assertIn("plugin_catalog_projection", runner)
-        self.assertIn("impl Serialize for CommandletReport", runner)
+        self.assertIn("impl<T> Serialize for CommandletReport<T>", runner)
         self.assertIn(
             "plugin_list_reuses_the_canonical_catalog_projection_without_rebuild",
             tests,

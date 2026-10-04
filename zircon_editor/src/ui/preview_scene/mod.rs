@@ -9,4 +9,5 @@ pub use preview_scene::{
 pub use preview_subject::PreviewSubject;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

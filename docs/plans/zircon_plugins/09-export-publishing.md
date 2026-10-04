@@ -16,7 +16,7 @@
 - **构建计划与物化** `zircon_runtime/src/plugin/export_build_plan/`：`export_build_plan.rs`、`export_profile_validation.rs`、`from_project_manifest/`（zircon-project.toml → 计划）、`project_manifest_validation/`、**`materialize.rs` + 模板族**（`cargo_manifest_template.rs`/`main_template.rs`/`asset_manifest_template.rs`/`plugin_selection_template.rs`/`native_plugin_load_manifest_template.rs`）——SourceTemplate 的工程生成已部分实现；`native_dynamic_package_plan.rs`、`platform_host_files/`、`export_generated_file.rs`/`export_materialize_report.rs`。
 - **编辑器插件** `zircon_plugins/editor_build_export_desktop/`（editor crate + plugin.toml）：导出面板、兼容性诊断、native-dynamic 报告。
 - **CI 契约**：`ZR_EXPORT_CONTRACT_PLATFORM` 平台策略契约测试。
-- **staged 构建** `tools/zircon_build.py`：targets（hub/editor/runtime/plugins）staged payload、native_dynamic crate 区分（`is_native_dynamic`/`rlib_static_crates`）。
+- **staged 构建** `tools/build/zircon_build.py`：targets（hub/editor/runtime/plugins）staged payload、native_dynamic crate 区分（`is_native_dynamic`/`rlib_static_crates`）。
 
 主要缺口：
 
@@ -25,7 +25,7 @@
 | E1 | 三路径仅 NativeDynamic 有 fixture 级闭环；LibraryEmbed 无 feature 链接矩阵与产物冒烟；SourceTemplate 物化产物未验证可编译 | `materialize.rs` 无 cargo build 验证环节 |
 | E2 | 无 zrpack 资产打包（内容寻址 chunk）与依赖闭包裁剪 | 无 pack 模块 |
 | E3 | 无平台模板包体系（预编译宿主 + 版本锁定 + Hub 分发） | — |
-| E4 | 无导出 CLI：导出逻辑散在编辑器插件与 zircon_build.py，CI 与本地路径不统一 | `tools/zircon_build.py` 仅 staged 布局 |
+| E4 | 无导出 CLI：导出逻辑散在编辑器插件与 zircon_build.py，CI 与本地路径不统一 | `tools/build/zircon_build.py` 仅 staged 布局 |
 | E5 | 非 Windows 平台未进矩阵；无确定性构建保证 | `platform_host_files/` |
 
 ## 3. 架构设计
@@ -69,9 +69,9 @@ zrpack 文件布局（小端）:
 - 裁剪：从场景/入口出发的资产依赖闭包（importer 输出的引用图）+ `asset_filter` 标签；未引用资产剔除并出报告（逐项列出被剔除路径，**禁止静默裁剪**）。
 - 确定性：同一输入（lockfile + 资产版本）产出 byte 相同 pack——归一化清单：资产按路径字典序写入、时间戳清零、绝对路径剥离、chunk 排序按 hash。双跑比对进 CI。
 
-### 3.4 导出执行器与 CLI（解决 E4，`tools/zircon_export/` [新增，python 包]）
+### 3.4 导出执行器与 CLI（解决 E4，`tools/export/` [新增，python 包]）
 
-- 导出在编辑器外进程执行：`tools/zircon_build.py` 演进为 `python -m tools.zircon_export --profile <name>`（编排 cargo + 资产管线），编辑器面板（editor_build_export_desktop）只是该 CLI 的 UI 壳——CI 与本地共用同一路径。
+- 导出在编辑器外进程执行：`tools/build/zircon_build.py` 演进为 `python -m tools.export --profile <name>`（编排 cargo + 资产管线），编辑器面板（editor_build_export_desktop）只是该 CLI 的 UI 壳——CI 与本地共用同一路径。
 - 阶段状态机：共享顺序为 `Validate → SourceTemplate → NativeDynamic → CompileHost → CookAssets → Pack → PlatformBundle → Report`；Validate 后按 profile strategy 裁剪 SourceTemplate/NativeDynamic/LibraryEmbed 闭包，每阶段产物落盘（`<out>/stages/<stage>/`）可恢复（`--resume-from <stage>`），失败给阶段级诊断；`export_materialize_report.rs` 现报告类型扩展为全阶段报告。
 
 ## 4. 模块文件树
@@ -84,10 +84,10 @@ zircon_runtime/src/plugin/
 zircon_runtime/src/asset/pack/
   {writer,reader,dedup,trim}.rs           [新增] zrpack 读写/去重/依赖闭包裁剪
 zircon_runtime/src/core/framework/net/download.rs  [07 计划共享 DTO，本计划消费]
-tools/zircon_export/                      [新增] CLI 包（阶段状态机/恢复/报告）
-tools/zircon_build.py                     [改造] staged 布局保留，导出编排迁出
+tools/export/                      [新增] CLI 包（阶段状态机/恢复/报告）
+tools/build/zircon_build.py                     [改造] staged 布局保留，导出编排迁出
 zircon_plugins/editor_build_export_desktop/editor/  [改造] 面板改为 CLI 壳 + 向导（M6）
-tools/zircon_export/export-templates/                         [新增 CI 产物仓] 每平台 template.toml + 宿主骨架
+tools/export/export-templates/                         [新增 CI 产物仓] 每平台 template.toml + 宿主骨架
 ```
 
 ## 状态与产出记录
@@ -108,7 +108,7 @@ tools/zircon_export/export-templates/                         [新增 CI 产物�
 |------|------|---------|------|---------|
 | M1-T1 | export_profiles 节解析（plugins/features/asset_filter） | from_project_manifest/ | 01-M3 | `profile_with_features_compiles_to_build_plan` |
 | M1-T2 | 计划期全验证 + 非法组合拒绝 | export_profile_validation.rs | M1-T1 | `invalid_plugin_combination_rejected_with_diagnostic` 矩阵 |
-| M1-T3 | CLI 骨架（Validate 阶段 + 报告） | tools/zircon_export | M1-T2 | CLI 冒烟（profile → 验证报告） |
+| M1-T3 | CLI 骨架（Validate 阶段 + 报告） | tools/export | M1-T2 | CLI 冒烟（profile → 验证报告） |
 
 ### M2 LibraryEmbed 闭环
 
@@ -123,7 +123,7 @@ tools/zircon_export/export-templates/                         [新增 CI 产物�
 
 | 任务 | 内容 | 改动文件 | 依赖 | 新增测试 |
 |------|------|---------|------|---------|
-| M3-T1 | export-template 包格式 + 版本锁定 | tools/zircon_export/export-templates/、CLI | M2 | `template_version_mismatch_rejected` |
+| M3-T1 | export-template 包格式 + 版本锁定 | tools/export/export-templates/、CLI | M2 | `template_version_mismatch_rejected` |
 | M3-T2 | linux/macos 模板（未签名可运行 bundle） | platform_host_files/、CI | M3-T1 | 三平台 CI 导出矩阵 |
 | M3-T3 | Hub 安装对接（content_download 协议） | zircon_hub Installs | 07-M6 | Hub 安装端到端测试 |
 
@@ -144,7 +144,7 @@ tools/zircon_export/export-templates/                         [新增 CI 产物�
 
 | 任务 | 内容 | 改动文件 | 依赖 | 新增测试 |
 |------|------|---------|------|---------|
-| M6-T1 | 导出向导（布局 `ai-build-export-layout.png`）+ 阶段进度（CLI 进程输出流式解析）+ 报告视图 | editor_build_export_desktop | M2、[10 规范](10-editor-integration.md) | editor 契约测试；`docs/zircon_plugins/editor-build-export-desktop.md` 更新 |
+| M6-T1 | 导出向导（布局 `ai-build-export-layout.png`）+ 阶段进度（CLI 进程输出流式解析）+ 报告视图 | editor_build_export_desktop | M2、[10 规范](10-editor-integration.md) | editor 契约测试；`docs/crates/zircon_plugins/editor-build-export-desktop.md` 更新 |
 
 ### MVP 性能收口（来自 performance/01）
 
@@ -159,15 +159,15 @@ tools/zircon_export/export-templates/                         [新增 CI 产物�
 
 ```bash
 ZR_EXPORT_CONTRACT_PLATFORM=windows cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --verbose
-python -m tools.zircon_export --profile windows-release --out E:/zircon-export
-python tools/zircon_build.py --targets hub,editor,runtime --out E:/zircon-build --mode debug
+python -m tools.export --profile windows-release --out E:/zircon-export
+python tools/build/zircon_build.py --targets hub,editor,runtime --out E:/zircon-build --mode debug
 cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_editor_build_export_desktop --locked
 ```
 
 ## 7. 风险
 
 - macOS 签名/公证与 Linux 打包格式各有平台债：M3 先交付“未签名可运行 bundle”，签名链路单列后续项。
-- 资产依赖闭包要求 importer 输出完整引用图；缺口由 asset 管线侧（`docs/zircon_runtime/asset/management.md` 体系）补齐，导出侧只消费——M2-T3 前需确认引用图覆盖（gltf 子资产/材质纹理引用为高风险点）。
+- 资产依赖闭包要求 importer 输出完整引用图；缺口由 asset 管线侧（`docs/crates/zircon_runtime/asset/management.md` 体系）补齐，导出侧只消费——M2-T3 前需确认引用图覆盖（gltf 子资产/材质纹理引用为高风险点）。
 - 确定性 pack 的双跑比对对压缩器版本敏感；压缩算法与版本锁进 `format_version`。
 
 ## 8. 附录 · dev 参考源码对位
@@ -179,6 +179,6 @@ cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_editor_bui
 | 导出 preset/平台导出器/模板注入（最重要） | `dev/godot/editor/export/`（`editor_export_platform.*`、`editor_export.cpp`、`codesign.*`） | per-platform preset 字段、模板版本匹配校验、pck 注入流程、签名链路的阶段划分——M1/M3 的判例 |
 | 各平台打包胶水（bundle 格式/图标/启动器） | `dev/godot/platform/`（windows/linuxbsd/macos 子目录的 export 部分） | 平台 bundle 目录布局、可执行重命名与资源嵌入方式 |
 | pck/资产包格式 | `dev/godot/core/io/`（pck_packer/file_access_pack 相关） | 索引+偏移的包布局、运行期挂载——zrpack 自有格式（内容寻址）但挂载形态可借鉴 |
-| 模块化目标/构建编排 | `dev/UnrealEngine/Engine/Source/Runtime/`（模块划分形态）+ 仓内 `tools/zircon_build.py` | target×platform 维度的构建矩阵组织 |
+| 模块化目标/构建编排 | `dev/UnrealEngine/Engine/Source/Runtime/`（模块划分形态）+ 仓内 `tools/build/zircon_build.py` | target×platform 维度的构建矩阵组织 |
 | 单次导出清单与增量custom artifact | `dev/godot/editor/export/editor_export_platform.cpp:1013-1056,1319-1744` | 唯一path set驱动一次export traversal；mtime fast path + MD5 fallback + saved-path cache。Zircon用typed generation/digest，不照搬文本cache |
 | 有界复制/发布吞吐 | `dev/UnrealEngine/Engine/Source/Programs/AutomationTool/AutomationUtils/CommandUtils.cs:1826-1840`、`Android/AndroidPlatform.Automation.cs:3829-3844` | 先冻结copy pair再限制并行度，并在部署时显式避免内存过载；Zircon并行度归Runtime11预算且report确定性commit |

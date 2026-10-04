@@ -1,7 +1,7 @@
-$script:ProductDirectoryScript = Join-Path $PSScriptRoot "..\ui-profile-product-directory.ps1"
-$script:CaptureScript = Join-Path $PSScriptRoot "..\ui-profile-capture.ps1"
-$script:CaptureManifest = Join-Path $PSScriptRoot "..\profile-capture-manifest.ps1"
-$script:ProfilePaths = Join-Path $PSScriptRoot "..\profile-capture-paths.ps1"
+$script:ProductDirectoryScript = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-product-directory.ps1"
+$script:CaptureScript = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-capture.ps1"
+$script:CaptureManifest = Join-Path $PSScriptRoot "..\profiling\shared\profile-capture-manifest.ps1"
+$script:ProfilePaths = Join-Path $PSScriptRoot "..\profiling\shared\profile-capture-paths.ps1"
 
 if (Test-Path -LiteralPath $script:ProfilePaths) {
     . $script:ProfilePaths
@@ -18,7 +18,7 @@ Describe "UI profile product directory" {
         Get-Command Resolve-ZirconUiProfileProductDirectory -ErrorAction SilentlyContinue |
             Should Not BeNullOrEmpty
 
-        $bundle = "E:\ZirconBuilds\editor-profile-$([guid]::NewGuid().ToString('N'))"
+        $bundle = "E:\cargo-targets\editor-profile-$([guid]::NewGuid().ToString('N'))"
         Resolve-ZirconUiProfileProductDirectory `
             -ProductDirectory $bundle `
             -CargoTargetDir "C:\unmanaged-target" |
@@ -34,9 +34,10 @@ Describe "UI profile product directory" {
     It "rejects unmanaged and root-only product directories" {
         foreach ($path in @(
                 "C:\zircon-editor-bundle",
-                "E:\ZirconBuilds",
-                "E:\ZirconBuilds-sibling\bundle",
-                "E:\ZirconBuilds\bundle\..\..\escape"
+                "E:\cargo-targets",
+                "E:\cargo-targets-sibling\bundle",
+                "E:\cargo-targets\bundle\..\..\escape",
+                "E:\ZirconBuilds\legacy-bundle"
             )) {
             {
                 Resolve-ZirconUiProfileProductDirectory -ProductDirectory $path
@@ -57,6 +58,6 @@ Describe "UI profile product directory" {
         $capture | Should Match 'Resolve-ZirconUiProfileProductDirectory'
 
         $toolPaths = @(Get-ZirconProfileCaptureToolPaths)
-        ($toolPaths -contains "tools/ui-profile-product-directory.ps1") | Should Be $true
+        ($toolPaths -contains "tools/analysis/profiling/ui/ui-profile-product-directory.ps1") | Should Be $true
     }
 }

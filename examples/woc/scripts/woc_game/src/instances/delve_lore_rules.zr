@@ -1,6 +1,7 @@
 // Pure projection of unlockNextDelveLore's ordered-set insertion behavior.
 var content = %import("instances/delve_lore_content");
 
+/// 计数必须对应已按目录顺序解锁的连续前缀；调用方成功插入后才能再次查询，耗尽时的空值不是新的可解锁标识。
 pub nextLoreId(unlockedCount: int): string {
     if (unlockedCount < 0) {
         throw "woc Delve lore unlock count is invalid";

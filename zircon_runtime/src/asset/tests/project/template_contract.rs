@@ -1,3 +1,5 @@
+//! 将运行时解析器用于界面层生成的空白可渲染模板，守护持久引用、默认场景和相机可见性约定。
+
 use crate::asset::assets::ProjectDocumentError;
 use crate::asset::{
     AssetReference, AssetUri, AssetUuid, ReferenceResolutionError, SceneAsset, SceneMobilityAsset,
@@ -118,6 +120,7 @@ fn renderable_empty_template_parses_through_runtime_scene_schema_with_project_re
 }
 
 #[test]
+// 以相机几何边界约束模板和后续编辑位置，不依赖 GPU 截图即可发现 Cube 离开默认视野。
 fn renderable_empty_camera_frames_the_baseline_and_authored_cube_positions() {
     const F2_CAPTURE_WIDTH: f32 = 640.0;
     const F2_CAPTURE_HEIGHT: f32 = 360.0;
@@ -179,7 +182,7 @@ fn renderable_empty_template_preserves_missing_material_reference_as_a_typed_err
 }
 
 #[test]
-fn renderable_empty_template_material_targets_the_persisted_project_shader() {
+fn renderable_empty_template_material_uses_builtin_pbr_while_retaining_project_shader_example() {
     let document = renderable_empty_template_entry("assets/materials/default.zmaterial");
     let document = std::str::from_utf8(&document).expect("F2 product material must be UTF-8");
     let persisted: toml::Value =
@@ -191,34 +194,36 @@ fn renderable_empty_template_material_targets_the_persisted_project_shader() {
 
     assert_eq!(
         shader.get("kind").and_then(toml::Value::as_str),
-        Some("project")
+        Some("builtin")
     );
     assert_eq!(
-        shader.get("guid").and_then(toml::Value::as_str),
-        Some("00000000-0000-0000-0000-000000000001")
+        shader.get("locator").and_then(toml::Value::as_str),
+        Some("builtin://shader/pbr.wgsl")
     );
-    assert_eq!(
-        shader.get("path_hint").and_then(toml::Value::as_str),
-        Some("assets/shaders/pbr_shader.zmeta")
-    );
+    assert_eq!(shader.len(), 2);
 
     let material = ZMaterialDocument::from_project_toml_str(document, |reference| {
-        Ok(resolve_template_project_reference(reference))
+        Ok(AssetReference::from_locator(
+            reference
+                .builtin_locator()
+                .expect("default material must use a builtin shader")
+                .clone(),
+        ))
     })
-    .expect("F2 product material must resolve its persisted shader reference");
+    .expect("F2 product material must resolve its builtin shader reference");
 
     assert_eq!(
         material.shader.locator,
-        AssetUri::parse("res://shaders/pbr_shader").expect("F2 project shader locator")
+        AssetUri::parse("builtin://shader/pbr.wgsl").expect("builtin PBR shader locator")
     );
     assert_eq!(
         material.shader.uuid,
-        "00000000-0000-0000-0000-000000000001"
-            .parse::<AssetUuid>()
-            .expect("F2 project shader UUID")
+        AssetReference::from_locator(AssetUri::parse("builtin://shader/pbr.wgsl").unwrap()).uuid
     );
+    assert!(!renderable_empty_template_entry("assets/shaders/pbr_shader.zmeta").is_empty());
 }
 
+// 通过解析器的引用解析回调制造单项缺失，保证缺失 GUID 保留为可识别的项目文档错误。
 fn assert_template_reference_failure(missing_path_hint: &str) {
     let document = renderable_empty_scene_document();
     let document = std::str::from_utf8(&document).expect("F2 product scene must be UTF-8");

@@ -123,3 +123,66 @@ source-token scan 已通过；fresh 编译后需重跑这两项及 broad gate。
 - Windows managed Cargo lane 仍由 `frameworks04-native-entry-fixture-r8-20260730` 占用。下一个
   当前源码证据将通过 coordinator validator 按 FIFO 运行 stable-snapshot 9 项与 performance baseline，
   之后才安排 bridge/plugin broad、独立复核和 fixed return；本 handoff 保持 `open`。
+
+### 2026-09-11 current-source queue re-admission
+
+- 会话 `failure-roll-01a084c8-plugins01-bridge-import` 在
+  `c37155ba304740b3762b20585f77fb53a6da47fb` 冻结十文件快照 `3399`，覆盖 BridgeImport、WeakBridge、
+  BridgeEntry publication、lifecycle consumer，以及 stable-snapshot、reload/disable 和性能基线回归。
+  这些精确路径工作树干净，`rustfmt --check --edition 2021` 与 scoped `git diff --check` 均通过。
+- 已按当前 manifest 提交一次 Windows 受管命令
+  `cargo +1.94.1 test -p zircon_runtime --lib --locked extension_registry_bridge -- --test-threads=1 --nocapture`。
+  Coordinator 在 Cargo 启动前返回 `validation_ticket_external_worktree_dirty`：外部
+  `E:\\Git\\zr_vm` 尚有未提交改动，因此没有 validation ticket、Cargo run 或动态 GREEN。
+  外部 owner 提交其改动后，才可对相同冻结范围重新准入；本 failure 保持 `open`，不创建重复请求。
+
+### 2026-09-25 current-source reconciliation (successor r2)
+
+Successor Session `failure-roll-01a084c8-plugins01-bridge-import-r2` owns only
+this failure record. Source snapshot `3810` freezes the nine current Rust
+inputs below; all paths are clean and every byte matches the snapshot. The
+older snapshot `3399` and the audited historical performance job remain
+diagnostic provenance only.
+
+| current source path | SHA256 |
+|---|---|
+| `zircon_runtime/src/plugin/bridge/import.rs` | `a7ec8456e8381cde7ee23e3283db09a8c01d70144f6bb67df7532cab2e541f20` |
+| `zircon_runtime/src/plugin/bridge/table.rs` | `278823b0d4883c1d8fd59430519d952bd70d2ac9d41377c72b62944487eaf10e` |
+| `zircon_runtime/src/plugin/bridge/weak.rs` | `2f46b0433ab82ba5259cb5877d3ce72e33647107f8b867cbf3801075342393ef` |
+| `zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle.rs` | `a17a24c1dfc5ec127fe552dbca2d70d43acca9639cb9d9827e08ff9ed25797c7` |
+| `zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge.rs` | `1da47e6decf8c413cb2be586e6af4b5649a3f8f532e644e76e860d830fa8b436` |
+| `zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge/lifecycle.rs` | `199a364e46f58e1fc54cef3d766153bc9728f63397f77cda97bdc3ef7b558240` |
+| `zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge/stable_snapshot.rs` | `0cdd77c5be7951f20c727a2416cfc3b6ff0955b9557aad3ff64efba3614b984e` |
+| `zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge_performance_baseline.rs` | `568224738b9f3659da1be39858bfb6bf0b03b2908245b8f42a8e7dd8431f4485` |
+| `zircon_runtime/src/tests/plugin_extensions/mod.rs` | `505fb3f5d339bc7210ac3b457f4e806ffb7448b49b4ab9dc5d0c9f6773642fe7` |
+
+Current static checks rerun against snapshot 3810:
+
+- `rustfmt +1.94.1 --edition 2021 --config skip_children=true --check` over all nine paths passed;
+- scoped `git diff --check` passed;
+- a source contract probe passed with `ArcSwapOption`/`ArcSwap` publication, `BridgeEntryState` generation/provider pairing, stable-path mutex token count `0`, reload/disable/unbind/poison regression anchors, and the one/sixteen-thread benchmark anchor. This is source-shape evidence only (`FOCUSED_DYNAMIC_TESTS_PENDING=true`).
+
+The next managed exact batch, after `validation_ticket_external_worktree_dirty:E:\\Git\\zr_vm` clears, must execute at least:
+
+- `tests::plugin_extensions::extension_registry_bridge::stable_snapshot::bridge_import_and_weak_cache_stable_paths_do_not_contain_mutexes`
+- `tests::plugin_extensions::extension_registry_bridge::stable_snapshot::stable_bridge_calls_scale_across_one_and_sixteen_threads`
+- `tests::plugin_extensions::extension_registry_bridge::stable_snapshot::concurrent_reload_and_disable_keep_provider_payload_within_the_generation_window`
+- `tests::plugin_extensions::extension_registry_bridge::stable_snapshot::unbind_does_not_revoke_an_in_flight_provider_arc`
+- `tests::plugin_extensions::extension_registry_bridge::stable_snapshot::callback_panic_cannot_poison_lock_free_bridge_snapshots`
+- `tests::plugin_extensions::extension_registry_bridge_performance_baseline::bridge_performance_baseline_weak_hot_path_uses_generation_matched_snapshot_before_slow_lookup`
+- `tests::plugin_extensions::extension_registry_bridge_performance_baseline::bridge_performance_baseline_pin_guard_records_single_resolution_for_batch_calls`
+
+Run them through the Windows managed `zircon_runtime --lib --locked --jobs 1`
+wrapper with `--exact --test-threads=1`, then run the 1M-call/1-thread and
+16-thread performance matrix, bridge/plugin broad gate, and upward Runtime06
+acceptance. No dynamic or performance result is reused here; fixed return,
+closeout SHA and WeCom receipt remain pending.
+
+Independent review receipt for snapshot 3810: all nine SHA256 values and clean
+paths match; ArcSwap/ArcSwapOption publication, atomic generation/enablement/
+provider pairing, and the seven pending filters resolve to concrete tests.
+Historical job `93f88e221e244b93b176afa90a07cdff` remains explicitly disqualified.
+Review result is `Critical=0, Important=0, Moderate=0`; no source or document
+edits were made by the reviewer. This is static evidence only and does not
+advance the external Cargo, performance, broad, upward, return, or closeout
+gates.

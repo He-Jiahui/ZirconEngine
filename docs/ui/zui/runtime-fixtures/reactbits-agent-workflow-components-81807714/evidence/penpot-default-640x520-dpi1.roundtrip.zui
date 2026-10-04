@@ -1,0 +1,195 @@
+[asset]
+kind = "view"
+id = "res://ui/tests/reactbits_agent_workflow_components.zui"
+version = 2
+display_name = "ReactBits Agent Workflow Components"
+
+[tokens]
+"surface.canvas" = "#0f1117"
+"surface.panel" = "#171b24"
+"surface.elevated" = "#1d2330"
+"surface.inset" = "#11151d"
+"border.default" = "#2a3342"
+"border.strong" = "#3a4658"
+"text.primary" = "#f4f7fb"
+"text.secondary" = "#a9b4c5"
+"text.muted" = "#718096"
+"accent.primary" = "#8b7cff"
+"accent.info" = "#5da9ff"
+"status.success" = "#55d6a0"
+"status.warning" = "#f4bd62"
+"status.error" = "#ff7d8a"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalBox"
+control_id = "ReactBitsAgentWorkflowRoot"
+classes = ["rb-agent-workflow-fixture"]
+props = {
+  background_color = "$surface.canvas",
+  foreground_color = "$text.primary",
+  fixture_data_only = true,
+  reference_primary = "https://pro.reactbits.dev/docs/app-ui/agent-plan",
+  reference_supporting = [
+    "https://pro.reactbits.dev/docs/app-ui/tool-calls",
+    "https://pro.reactbits.dev/docs/app-ui/agent-approval",
+    "https://pro.reactbits.dev/docs/app-ui/ai-usage",
+    "https://pro.reactbits.dev/docs/app-ui/agent-activity/agent-activity-3",
+  ],
+  responsive_wide = "plan and tool-call cards share the workflow row; approval and usage remain visible below",
+  responsive_compact = "workflow cards retain status markers and wrap their authored labels",
+  responsive_mobile = "cards stack while approval actions remain reachable and usage stays bounded",
+  accessibility_label = "Agent workflow component reference",
+}
+layout = {
+  clip = true,
+  input_policy = "Receive",
+  width = { min = 360, preferred = 1080, max = 1440, stretch = "Stretch" },
+  height = { min = 520, preferred = 720, max = 920, stretch = "Stretch" },
+  container = { kind = "VerticalBox", gap = 8 },
+  padding = { left = 14, right = 14, top = 14, bottom = 14 },
+}
+children = [
+  { node = "header" },
+  { node = "workflow_row" },
+  { node = "approval" },
+  { node = "usage" },
+]
+
+[nodes.header]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentWorkflowHeader"
+props = { background_color = "$surface.panel", border_color = "$border.default", border_width = 1, corner_radius = 8 }
+layout = { width = { stretch = "Stretch" }, height = { min = 42, preferred = 42, max = 42, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8 }, padding = { left = 10, right = 10, top = 7, bottom = 7 } }
+children = [{ node = "header_title" }, { node = "header_status" }]
+
+[nodes.header_title]
+component = "Label"
+control_id = "ReactBitsAgentWorkflowTitle"
+props = { text = "Agent workflow surfaces", foreground_color = "$text.primary", font_size = 15, font_weight = 650, accessibility_label = "Agent workflow surfaces" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.header_status]
+component = "Label"
+control_id = "ReactBitsAgentWorkflowStatus"
+props = { text = "SEMANTIC STATES", foreground_color = "$status.success", font_size = 9, font_weight = 700, letter_spacing = 0.8, text_align = "right" }
+layout = { width = { min = 110, preferred = 128, max = 146, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.workflow_row]
+component = "HorizontalBox"
+control_id = "ReactBitsAgentWorkflowCards"
+layout = { width = { stretch = "Stretch" }, height = { min = 156, preferred = 164, max = 176, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8 } }
+children = [{ node = "plan" }, { node = "tool_calls" }]
+
+[nodes.plan]
+component = "AgentPlan"
+control_id = "ReactBitsAgentPlan"
+classes = ["MuiAgentPlan-root", "MuiAgentPlan-running"]
+props = {
+  component_role = "mui-x-agent-plan",
+  collection_virtualization = "windowed",
+  viewport_start = 0,
+  visible_limit = 3,
+  text = "Agent plan · 2/4 complete",
+  collection_items = [
+    "done|Map ReactBits references",
+    "active|Build retained ZUI surface",
+    "next|Compare native screenshots",
+  ],
+  value = 0.5,
+  min = 0,
+  max = 1,
+  background_color = "$surface.elevated",
+  foreground_color = "$text.primary",
+  border_color = "$border.default",
+  border_width = 1,
+  corner_radius = 8,
+  accessibility_label = "Agent plan progress",
+}
+layout = { width = { min = 160, stretch = "Stretch" }, height = { stretch = "Stretch" }, clip = true }
+
+[nodes.tool_calls]
+component = "ToolCalls"
+control_id = "ReactBitsToolCalls"
+classes = ["MuiToolCalls-root", "MuiToolCalls-mixed"]
+props = {
+  component_role = "mui-x-tool-calls",
+  collection_virtualization = "windowed",
+  viewport_start = 0,
+  text = "Tool calls · 3",
+  collection_items = [
+    "success|read_file|layout.zui",
+    "pending|search_web|ReactBits",
+    "failure|apply_patch|blocked",
+  ],
+  visible_limit = 3,
+  background_color = "$surface.elevated",
+  foreground_color = "$text.primary",
+  border_color = "$border.default",
+  border_width = 1,
+  corner_radius = 8,
+  accessibility_label = "Tool call status list",
+}
+layout = { width = { min = 160, stretch = "Stretch" }, height = { stretch = "Stretch" }, clip = true }
+
+[nodes.approval]
+component = "AgentApproval"
+control_id = "ReactBitsAgentApproval"
+classes = ["MuiAgentApproval-root", "MuiAgentApproval-pending", "MuiAgentApproval-destructive"]
+props = {
+  component_role = "mui-x-agent-approval",
+  component_variant = "pending destructive",
+  text = "Approval required",
+  value_text = "The agent wants to write the generated layout into the project.",
+  label_text = "Scope: zircon_runtime/tests/fixtures/ui · reversible",
+  options = ["Deny", "Allow write"],
+  approval_state = "pending",
+  destructive = true,
+  background_color = "$surface.elevated",
+  foreground_color = "$text.primary",
+  border_color = "$status.warning",
+  border_width = 1,
+  corner_radius = 8,
+  accessibility_label = "Approval required before writing the layout",
+  input_interactive = true,
+  input_clickable = true,
+  input_focusable = true,
+}
+layout = { width = { stretch = "Stretch" }, height = { min = 136, preferred = 144, max = 156, stretch = "Fixed" }, clip = true, padding = { left = 8, right = 8, top = 6, bottom = 6 } }
+events = [{ id = "ReactBitsAgentWorkflow/ApprovalAllow", event = "Click", route = "agent.approval.allow" }, { id = "ReactBitsAgentWorkflow/ApprovalDeny", event = "Click", route = "agent.approval.deny" }]
+
+[nodes.usage]
+component = "AIUsage"
+control_id = "ReactBitsAIUsage"
+classes = ["MuiAIUsage-root", "MuiAIUsage-bounded"]
+props = {
+  component_role = "mui-x-ai-usage",
+  component_variant = "bounded",
+  text = "AI usage",
+  value_text = "12.4k used · 19.6k remaining · $0.08",
+  value = 0.39,
+  min = 0,
+  max = 1,
+  background_color = "$surface.elevated",
+  foreground_color = "$text.primary",
+  border_color = "$border.default",
+  border_width = 1,
+  corner_radius = 8,
+  accessibility_label = "AI usage budget",
+}
+layout = { width = { stretch = "Stretch" }, height = { min = 84, preferred = 92, max = 104, stretch = "Fixed" }, clip = true, padding = { left = 8, right = 8, top = 6, bottom = 6 } }
+
+[nodes.root.zircon_extension]
+owner = "reactbits-reference-slice"
+reference_profile = "reactbits-agent-workflow-components-v1"
+source_of_truth = "zui"
+penpot_visual_check = "required"
+
+[[stylesheets]]
+id = "reactbits-ui-typography"
+
+[[stylesheets.rules]]
+selector = "*"
+set = { self = { font = { asset = "res://fonts/editor-ui.font.toml", family = "Fira Sans" } } }

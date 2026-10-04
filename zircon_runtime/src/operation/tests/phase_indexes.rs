@@ -3,7 +3,40 @@ use std::hint::black_box;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
+use crate::core::framework::scene::WorldHandle;
+use crate::scene::{LevelMetadata, LevelSystem, World};
+
 use super::*;
+
+fn test_level() -> LevelSystem {
+    LevelSystem::new(
+        WorldHandle::new(1),
+        Arc::new(Mutex::new(World::empty())),
+        LevelMetadata::default(),
+    )
+}
+
+fn tick_until<F>(
+    service: &mut RuntimeOperationService,
+    runtime: &CoreRuntime,
+    level: &LevelSystem,
+    deadline: Instant,
+    mut ready: F,
+) where
+    F: FnMut(&RuntimeOperationService) -> bool,
+{
+    loop {
+        service.tick(&runtime.handle(), level);
+        if ready(service) {
+            return;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "operation phase did not reach its terminal condition before the monotonic deadline"
+        );
+        std::thread::yield_now();
+    }
+}
 
 struct SequencedHandler {
     snapshots: Arc<Mutex<Vec<u64>>>,
@@ -83,21 +116,23 @@ fn operation_service_dispatches_phase_work_in_submission_order() {
         })
         .collect();
     let runtime = CoreRuntime::new();
-    let mut world = World::empty();
+    let level = test_level();
 
-    for _ in 0..16_384 {
-        service.tick(&runtime.handle(), &mut world);
-        if handles.iter().all(|handle| {
-            service
-                .poll(*handle)
-                .unwrap()
-                .phase()
-                .is_some_and(ZrRuntimeOperationPhase::is_terminal)
-        }) {
-            break;
-        }
-        std::thread::yield_now();
-    }
+    tick_until(
+        &mut service,
+        &runtime,
+        &level,
+        Instant::now() + Duration::from_secs(5),
+        |service| {
+            handles.iter().all(|handle| {
+                service
+                    .poll(*handle)
+                    .unwrap()
+                    .phase()
+                    .is_some_and(ZrRuntimeOperationPhase::is_terminal)
+            })
+        },
+    );
 
     let expected: Vec<_> = (0..TASK_COUNT).collect();
     assert_eq!(
@@ -152,8 +187,8 @@ fn operation_service_does_not_bypass_an_unarmed_fifo_head() {
         .unwrap();
 
     let runtime = CoreRuntime::new();
-    let mut world = World::empty();
-    service.tick(&runtime.handle(), &mut world);
+    let level = test_level();
+    service.tick(&runtime.handle(), &level);
     assert!(
         snapshots
             .lock()
@@ -163,18 +198,19 @@ fn operation_service_does_not_bypass_an_unarmed_fifo_head() {
     );
 
     service.set_deadline_state_for_test(first, Some(deadline), true);
-    for _ in 0..1_024 {
-        service.tick(&runtime.handle(), &mut world);
-        if snapshots
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .len()
-            == 2
-        {
-            break;
-        }
-        std::thread::yield_now();
-    }
+    tick_until(
+        &mut service,
+        &runtime,
+        &level,
+        Instant::now() + Duration::from_secs(5),
+        |_| {
+            snapshots
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .len()
+                == 2
+        },
+    );
     assert_eq!(
         *snapshots
             .lock()

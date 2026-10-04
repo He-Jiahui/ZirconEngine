@@ -4,31 +4,61 @@
 //! first-party runtime plugins. `zircon_app` projects profiles and manifests,
 //! while this catalog maps selected runtime plugin ids to compiled providers.
 
-use std::collections::HashSet;
-
-use zircon_runtime::core::framework::project::ProjectPluginManifest;
-use zircon_runtime::plugin::RuntimePluginRegistrationReport;
+use zircon_runtime::core::framework::project::{
+    resolve_plugin_selections, PluginSelectionResolutionReport, ProjectPluginManifest,
+};
+use zircon_runtime::plugin::{
+    RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
+};
 use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
+
+#[derive(Clone, Debug)]
+pub struct FirstPartyRuntimeCatalogReport {
+    pub runtime_plugins: PluginSelectionResolutionReport<RuntimePluginRegistrationReport>,
+    pub runtime_plugin_features: Vec<RuntimePluginFeatureRegistrationReport>,
+}
+
+pub fn first_party_runtime_catalog_for_manifest(
+    target_mode: RuntimeTargetMode,
+    manifest: &ProjectPluginManifest,
+) -> FirstPartyRuntimeCatalogReport {
+    let runtime_plugins =
+        first_party_runtime_plugin_registrations_for_manifest(target_mode, manifest);
+    let runtime_plugin_features = if runtime_plugins
+        .iter()
+        .any(|registration| registration.package_manifest.id == RuntimePluginId::Net.key())
+    {
+        first_party_net_feature_registrations()
+    } else {
+        Vec::new()
+    };
+
+    FirstPartyRuntimeCatalogReport {
+        runtime_plugins,
+        runtime_plugin_features,
+    }
+}
+
+#[cfg(feature = "base-runtime-plugins")]
+fn first_party_net_feature_registrations() -> Vec<RuntimePluginFeatureRegistrationReport> {
+    vec![
+        zircon_plugin_net_http_runtime::plugin_feature_registration(),
+        zircon_plugin_net_websocket_runtime::plugin_feature_registration(),
+    ]
+}
+
+#[cfg(not(feature = "base-runtime-plugins"))]
+fn first_party_net_feature_registrations() -> Vec<RuntimePluginFeatureRegistrationReport> {
+    Vec::new()
+}
 
 pub fn first_party_runtime_plugin_registrations_for_manifest(
     target_mode: RuntimeTargetMode,
     manifest: &ProjectPluginManifest,
-) -> Vec<RuntimePluginRegistrationReport> {
-    let mut seen = HashSet::with_capacity(manifest.selections.len());
-    let mut registrations = Vec::with_capacity(manifest.selections.len());
-    for selection in manifest.enabled_for_target(target_mode) {
-        let Some(runtime_id) = RuntimePluginId::parse_key(&selection.id) else {
-            continue;
-        };
-        if !seen.insert(runtime_id.clone()) {
-            continue;
-        }
-        let Some(registration) = first_party_registration_for_runtime_plugin(runtime_id) else {
-            continue;
-        };
-        registrations.push(registration);
-    }
-    registrations
+) -> PluginSelectionResolutionReport<RuntimePluginRegistrationReport> {
+    resolve_plugin_selections(target_mode, manifest, |runtime_id| {
+        first_party_registration_for_runtime_plugin(runtime_id.clone())
+    })
 }
 
 pub fn first_party_registration_for_runtime_plugin(
@@ -38,6 +68,10 @@ pub fn first_party_registration_for_runtime_plugin(
     #[cfg(feature = "base-runtime-plugins")]
     if _id == RuntimePluginId::Ai {
         return Some(zircon_plugin_ai_runtime::plugin_registration());
+    }
+    #[cfg(feature = "base-runtime-plugins")]
+    if _id == RuntimePluginId::Physics {
+        return Some(zircon_plugin_physics_runtime::plugin_registration());
     }
     #[cfg(feature = "base-runtime-plugins")]
     if _id == RuntimePluginId::Sound {
@@ -71,6 +105,14 @@ pub fn first_party_registration_for_runtime_plugin(
     if _id == RuntimePluginId::GltfImporter {
         return Some(zircon_plugin_gltf_importer_runtime::plugin_registration());
     }
+    #[cfg(feature = "base-runtime-plugins")]
+    if _id == RuntimePluginId::ObjImporter {
+        return Some(zircon_plugin_obj_importer_runtime::plugin_registration());
+    }
+    #[cfg(feature = "base-runtime-plugins")]
+    if _id == RuntimePluginId::ShaderWgslImporter {
+        return Some(zircon_plugin_shader_wgsl_importer_runtime::plugin_registration());
+    }
     #[cfg(feature = "ui-document-importer")]
     if _id == RuntimePluginId::UiDocumentImporter {
         return Some(zircon_plugin_ui_document_importer_runtime::plugin_registration());
@@ -100,4 +142,5 @@ pub fn first_party_registration_for_runtime_plugin(
 }
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

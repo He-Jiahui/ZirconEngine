@@ -1,3 +1,5 @@
+//! 验证候选实体日志的身份与覆盖范围；日志保留已删除实体，供消费方撤销旧投影，而非仅枚举当前世界。
+
 use super::*;
 
 #[test]
@@ -49,11 +51,9 @@ fn render_transform_propagation_publishes_every_affected_descendant() {
     publish_render_dirty_journal(&mut world);
 
     world
-        .insert(
+        .update_transform(
             parent,
-            LocalTransform {
-                transform: Transform::from_translation(Vec3::new(3.0, 0.0, 0.0)),
-            },
+            Transform::from_translation(Vec3::new(3.0, 0.0, 0.0)),
         )
         .unwrap();
     publish_render_dirty_journal(&mut world);

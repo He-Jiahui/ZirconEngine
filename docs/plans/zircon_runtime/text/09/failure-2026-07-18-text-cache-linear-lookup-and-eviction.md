@@ -134,3 +134,52 @@ managed_validation_pending`.
   the global cache mutex, and failed admission cannot mutate healthy completed residency. The
   parser-generation key and exact markup collision check remain unchanged. No actionable P0/P1/P2
   remains in this repair; managed type/behavior/scale validation is still pending.
+
+### 2026-09-08 Rich Cache Admission Fixture Repair
+
+Stable fixing Session `failure-roll-01a07160-text09` retains this lifecycle.
+Managed job `94560adfdb1a45daa7e2d5785ae6677c` reported an extra argument in
+`oversized_completion_does_not_evict_a_healthy_compiled_entry`. The helper
+`compiled_cell_artifact_with_text` has no trust parameter; trust remains bound
+to the actual cache lookup and `record_compiled` calls.
+
+Pre-edit snapshot `3079` preserves the HEAD-identical hash
+`5d061560b78be0e4b6865c931fca8dff412806c28f3260f91a4d7f8e9c3bcdfa`.
+Transfer `5bfdeb6788f54161ae8a86465aab8033` binds this exact path to Text09.
+Source `3080`, request `e7f1f66ac9c74aefba026f3567f0af32`, freezes
+`zircon_runtime/src/text/cache/rich_cache/tests.rs` at hash
+`4241c1bc34366dad8355f425bf2e18b3ad0e9e7197972b8c11ac8ab21992a500`.
+The only edit removes the extra helper argument. Both real cache operations
+still use `UNTRUSTED`; retained-cell identity, eviction, resident-byte and
+admission-bypass assertions are unchanged. Scoped formatting and whitespace
+checks pass. This source was not in the preceding managed input and still
+needs dynamic validation and independent review. The full five-size cache
+matrix, collision/direction-alias regressions and original product traces
+remain required. This failure is open.
+
+### Review And Source 3092
+
+The existing task `优化协调器验证效率` reviewed source `3080` with Critical 0,
+Important 0, Moderate 0. Report:
+`.codex/tmp/text-framework-3080-review-20260908-result.txt`.
+Snapshot/ObjectStore/current attribution matched at both boundaries; real
+lookup and record calls retain `UNTRUSTED`, and Arc identity, eviction,
+residency and bypass assertions are unchanged.
+
+Source `3092`, request `e024afeda9f841d883dd7a590ca53763`, freezes
+`zircon_runtime/src/text/cache/shaped_cache/tests.rs` at
+`1a0d596f51fd2173b73a228650734d7a00882a6ee46dad634c63a56a7b1d8d72`.
+Pre-edit snapshot `3089` preserves the exact archived Text04 source at
+`42a9e9d5bbd21e6d9fa750842f38ddeed892af221c2f6cf91c5cbb4741ace4e4`;
+transfer `221691b9938f480d8281c11d18bfbd7d` records provenance. The change
+corrects the malformed `size_of::<HorizontalGlyphMetricSpan>()` call while
+retaining capacity floors and composition-receipt resident-byte accounting.
+
+Managed job `1f242fb1789e44ce87d7a5cacc569d5f` checked both sources in input
+`runtime-text-owner-test-support-3095-20260908`, digest
+`4e5f800cd19e5748464ac759b4e1efbfae073ecf1c05d419327a6d6739cbe9e2`.
+The same Text-only static/locked configuration fell from 22 compiler errors
+to three; no diagnostic names either cache file. Zero tests executed, with
+all source/dependency hashes verified. Source `3092` still needs independent
+review. Actual five-size/collision/admission tests and product traces remain
+required before this lifecycle can return or close.

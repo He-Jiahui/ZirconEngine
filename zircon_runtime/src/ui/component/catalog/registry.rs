@@ -1,3 +1,5 @@
+//! 模板编译和编辑器查询共享的组件声明目录；它保存描述符及其修订身份，实例交互状态由各节点的状态模型持有。
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use zircon_runtime_interface::ui::component::{
@@ -22,6 +24,7 @@ const COMPONENT_CATEGORIES: [UiComponentCategory; 8] = [
 type UiComponentCategoryIter =
     std::iter::Flatten<std::array::IntoIter<Option<UiComponentCategory>, 8>>;
 
+/// 按稳定组件 ID 保存可编写契约。更换声明时返回变更标记并推进修订号，供编译调用链识别目录变化。
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UiComponentDescriptorRegistry {
     descriptors: BTreeMap<String, UiComponentDescriptor>,
@@ -42,6 +45,7 @@ impl UiComponentDescriptorRegistry {
         self.try_register(descriptor)
     }
 
+    /// 与 register 使用同一校验入口；完全相同的声明是幂等操作，校验失败时保留已有目录及修订号。
     pub fn try_register(
         &mut self,
         descriptor: UiComponentDescriptor,
@@ -109,6 +113,7 @@ impl UiComponentDescriptorRegistry {
             .filter(move |descriptor| descriptor.category == category)
     }
 
+    /// 按宿主能力选择可用声明；返回值借用当前目录。渲染能力还须由后续渲染或编译消费方检查。
     pub fn descriptors_for_host(
         &self,
         host_capabilities: &UiHostCapabilitySet,
@@ -120,6 +125,7 @@ impl UiComponentDescriptorRegistry {
         descriptors
     }
 
+    /// 给编写器生成拥有字段的调色板投影；仅声明调色板元数据且满足宿主能力的组件会出现。
     pub fn palette_entries_for_host(
         &self,
         host_capabilities: &UiHostCapabilitySet,
@@ -127,6 +133,7 @@ impl UiComponentDescriptorRegistry {
         super::palette_view::palette_entries_for_host(self, host_capabilities)
     }
 
+    /// 缺少组件时返回 None，已知且能力足够时返回空集合，调用方可据此区分未知 ID 与宿主准入失败。
     pub fn missing_capabilities(
         &self,
         component_id: &str,
@@ -137,6 +144,7 @@ impl UiComponentDescriptorRegistry {
     }
 }
 
+// 分类目录遵循枚举契约次序，而组件目录遵循 ID 次序；这两个顺序各自用于稳定编写结果。
 fn unique_component_categories(
     categories: impl IntoIterator<Item = UiComponentCategory>,
 ) -> UiComponentCategoryIter {
@@ -161,110 +169,5 @@ const fn component_category_index(category: UiComponentCategory) -> usize {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{unique_component_categories, UiComponentCategory};
-
-    #[test]
-    fn allocation_free_categories_preserve_enum_order() {
-        let categories = unique_component_categories([
-            UiComponentCategory::Feedback,
-            UiComponentCategory::Numeric,
-            UiComponentCategory::Visual,
-        ])
-        .collect::<Vec<_>>();
-
-        assert_eq!(
-            categories,
-            [
-                UiComponentCategory::Visual,
-                UiComponentCategory::Numeric,
-                UiComponentCategory::Feedback,
-            ]
-        );
-    }
-
-    #[test]
-    fn allocation_free_categories_deduplicate_repeated_values() {
-        let categories = unique_component_categories([
-            UiComponentCategory::Input,
-            UiComponentCategory::Input,
-            UiComponentCategory::Selection,
-            UiComponentCategory::Input,
-        ])
-        .collect::<Vec<_>>();
-
-        assert_eq!(
-            categories,
-            [UiComponentCategory::Input, UiComponentCategory::Selection]
-        );
-    }
-
-    #[test]
-    fn allocation_free_categories_handle_empty_input() {
-        assert_eq!(unique_component_categories([]).next(), None);
-    }
-
-    #[test]
-    fn optimization_batch_20260830cy_host_descriptors_reserve_registry_bound() {
-        let source = include_str!("registry.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("component registry production source");
-
-        assert!(production.contains("Vec::with_capacity(self.descriptors.len())"));
-    }
-
-    #[test]
-    #[ignore = "release-only performance evidence"]
-    fn optimization_batch_20260830cy_host_descriptor_capacity_evidence() {
-        const BATCH_COUNT: usize = 32_768;
-        const DESCRIPTOR_COUNT: usize = 32;
-        const MATCHED_DESCRIPTOR_COUNT: usize = 24;
-        const MARKER: &str = "RUNTIME511_HOST_DESCRIPTOR_CAPACITY_BENCH_V1";
-
-        let legacy_growth_events = descriptor_growth_events(
-            BATCH_COUNT,
-            DESCRIPTOR_COUNT,
-            MATCHED_DESCRIPTOR_COUNT,
-            false,
-        );
-        let optimized_growth_events = descriptor_growth_events(
-            BATCH_COUNT,
-            DESCRIPTOR_COUNT,
-            MATCHED_DESCRIPTOR_COUNT,
-            true,
-        );
-
-        assert!(legacy_growth_events > 0);
-        assert_eq!(optimized_growth_events, 0);
-        println!(
-            "{MARKER} batches={BATCH_COUNT} descriptor_count={DESCRIPTOR_COUNT} \
-             matched_descriptor_count={MATCHED_DESCRIPTOR_COUNT} \
-             legacy_growth_events={legacy_growth_events} \
-             optimized_growth_events={optimized_growth_events} reduction_pct=100"
-        );
-    }
-
-    fn descriptor_growth_events(
-        batch_count: usize,
-        descriptor_count: usize,
-        matched_descriptor_count: usize,
-        reserve: bool,
-    ) -> usize {
-        let mut growth_events = 0;
-        for _ in 0..batch_count {
-            let mut descriptors = if reserve {
-                Vec::with_capacity(descriptor_count)
-            } else {
-                Vec::new()
-            };
-            for descriptor in 0..matched_descriptor_count {
-                let previous_capacity = descriptors.capacity();
-                descriptors.push(descriptor);
-                growth_events += usize::from(descriptors.capacity() != previous_capacity);
-            }
-        }
-        growth_events
-    }
-}
+#[path = "tests/registry.rs"]
+mod tests;

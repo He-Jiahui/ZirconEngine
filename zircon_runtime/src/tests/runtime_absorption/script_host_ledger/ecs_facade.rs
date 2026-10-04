@@ -1,3 +1,4 @@
+//! 脚本宿主函数的能力、注册表和文档账本需相互对应。以结果断言检查当前接口或源码快照对应的边界。
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -8,7 +9,7 @@ fn script_ecs_access_path_stays_on_gameplay_facade_not_native_ecs_abi() {
     let gameplay_source = include_str!("../../../script/vm/gameplay_host.rs");
     let runtime_context_source = include_str!("../../../script/vm/runtime_context.rs");
     let ledger =
-        include_str!("../../../../../docs/zircon_runtime/script/vm/host/function_ledger.md");
+        include_str!("../../../../../docs/crates/zircon_runtime/script/vm/host/function_ledger.md");
 
     for required_ledger_anchor in [
         "The current script gameplay ECS path is `zr.zircon.gameplay` through `ScriptRuntimeCallContext`",

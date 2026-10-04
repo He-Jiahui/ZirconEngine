@@ -7,10 +7,11 @@ use zircon_runtime_interface::ui::{
 
 use super::{
     super::painter_state::UiRenderPainterStateSource,
-    metadata::{ButtonKind, bool_attribute, button_kind, is_icon_button},
+    metadata::{bool_attribute, button_kind, is_icon_button, ButtonKind},
 };
 
 #[derive(Clone, Copy)]
+// 主绘制状态之外保留悬停与勾选标记，使焦点优先时仍能投影对应的背景。
 pub(super) struct ButtonRenderState {
     family: UiPainterFamily,
     kind: ButtonKind,

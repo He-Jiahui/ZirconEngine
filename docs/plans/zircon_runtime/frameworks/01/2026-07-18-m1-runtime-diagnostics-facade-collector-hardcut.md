@@ -10,7 +10,6 @@ implementation_files:
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/core/runtime/diagnostics/mod.rs
   - zircon_runtime/src/core/runtime/diagnostics/devtools.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store.rs
   - zircon_runtime/src/runtime_diagnostics/mod.rs
   - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/runtime_diagnostics/physics_collection_enabled.rs
@@ -70,6 +69,6 @@ duplicate collector survives.
 
 This closes the runtime-diagnostics-to-manager prerequisite edge only. It does not claim physical
 `zr_diagnostics` extraction, the other Frameworks01 M1 owner-DAG prerequisites, or package acceptance.
-The remaining stale collector path in `docs/zircon_runtime/core/framework/render/material.md` is
+The remaining stale collector path in `docs/crates/zircon_runtime/core/framework/render/material.md` is
 owned by active Session `shader06-current-source-closeout-audit-20260716`; this Session records the
 handoff and does not overwrite that foreign worktree change.

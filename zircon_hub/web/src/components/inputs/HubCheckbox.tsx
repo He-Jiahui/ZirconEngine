@@ -1,6 +1,7 @@
 import { Box, Checkbox, FormControlLabel, Typography } from "@mui/material";
 import { hubTokens } from "../../theme/tokens";
 
+// 勾选值由页面或设置草稿持有；省略变更回调用于只读状态展示，文案应说明被表示的条件。
 export interface HubCheckboxProps {
   checked: boolean;
   label: string;
@@ -9,6 +10,7 @@ export interface HubCheckboxProps {
   onChange?: (checked: boolean) => void;
 }
 
+// 设置编辑与只读状态复用同一标签行；提交的新值只交回调用方，组件不保存草稿或调用后端。
 export function HubCheckbox({ checked, label, detail, disabled = false, onChange }: HubCheckboxProps) {
   const isDisabled = disabled || !onChange;
 

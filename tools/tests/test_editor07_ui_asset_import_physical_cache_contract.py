@@ -1,3 +1,4 @@
+# 核对界面资源导入遍历使用按代际维护的物理缓存并通过刷新流程复用。
 from pathlib import Path
 import unittest
 
@@ -68,7 +69,7 @@ class Editor07UiAssetImportPhysicalCacheContractTests(unittest.TestCase):
         self.assertNotIn("fs::read_to_string(&source_path)", imports)
 
     def test_behavior_suite_locks_cache_alias_and_cycle_boundaries(self) -> None:
-        imports = source("zircon_editor/src/ui/host/asset_editor_sessions/imports/tests.rs")
+        imports = source("zircon_editor/src/ui/host/asset_editor_sessions/imports/tests/cases.rs")
 
         for test_name in [
             "physical_document_is_loaded_once_across_generation_traversals",

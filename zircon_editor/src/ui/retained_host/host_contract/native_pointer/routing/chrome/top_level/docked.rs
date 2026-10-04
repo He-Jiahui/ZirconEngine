@@ -9,24 +9,25 @@ pub(super) fn route_document_dock_tabs(
     y: f32,
 ) -> Option<ChromePointerRoute> {
     let scene = &presentation.host_scene_data;
-    if let Some(route) = route_dock_overflow(
-        scene.document_dock.surface_key.as_str(),
-        &scene.document_dock.region_frame,
-        &scene.document_dock.overflow_frame,
-        x,
-        y,
-    ) {
-        return Some(route);
+    for dock in scene.document_surfaces() {
+        if let Some(route) = route_dock_overflow(
+            dock.surface_key.as_str(),
+            &dock.region_frame,
+            &dock.overflow_frame,
+            x,
+            y,
+        ) {
+            return Some(route);
+        }
+        if let Some(route) = route_document_tabs(
+            dock.surface_key.as_str(),
+            &translated(&dock.header_frame, dock.region_frame.x, dock.region_frame.y),
+            &dock.tab_frames,
+            x,
+            y,
+        ) {
+            return Some(route);
+        }
     }
-    route_document_tabs(
-        "document",
-        &translated(
-            &scene.document_dock.header_frame,
-            scene.document_dock.region_frame.x,
-            scene.document_dock.region_frame.y,
-        ),
-        &scene.document_dock.tab_frames,
-        x,
-        y,
-    )
+    None
 }

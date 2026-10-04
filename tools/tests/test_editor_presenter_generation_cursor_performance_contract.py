@@ -1,3 +1,4 @@
+# 核对绘制提交的结构与游标来自同一代际，并经各图形后端传递。
 from pathlib import Path
 import unittest
 

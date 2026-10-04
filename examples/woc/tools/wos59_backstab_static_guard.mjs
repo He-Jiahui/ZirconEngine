@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node wos59_backstab_static_guard.mjs；缺少源码契约时脚本抛错退出。
+// 对照锁定的背刺匕首与背后条件及武器命中规则，检查 M4、M5 生成投影和世界准入、归约、命令与持久化路径。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -56,6 +60,7 @@ for (const needle of [
   }
 }
 
+// 先在生成器与生成后的查询中确认匕首标记，再检查世界施法准入。
 const m5Generator = read("tools", "m5_content_zr_codegen.mjs");
 const m5Equipment = read("scripts", "woc_game", "src", "progression", "m5_equipment_state.zr");
 if (!m5Generator.includes("weaponDagger: definition.weapon?.dagger === true")) {
@@ -65,6 +70,7 @@ if (!m5Equipment.includes("pub mainhandIsDagger")) {
   throw new Error("M5 mainhand dagger query is missing");
 }
 
+// M4 投影检查把保留的背刺条目与伤害倍率及背后目标标记绑定。
 const m4SourceGenerator = read("tools", "m4_ability_codegen.mjs");
 const m4ZrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
 const m4Contract = JSON.parse(read("contracts", "m4_abilities.json"));

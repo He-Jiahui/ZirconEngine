@@ -10,11 +10,11 @@ use super::{
 };
 
 #[cfg(test)]
-#[path = "support/weighted_random_tests.rs"]
+#[path = "support/tests/weighted_random_tests.rs"]
 mod weighted_random_tests;
 
 #[cfg(test)]
-#[path = "support/observer_binding_tests.rs"]
+#[path = "support/tests/observer_binding_tests.rs"]
 mod observer_binding_tests;
 
 pub(super) fn bind_reachable_observers(
@@ -42,7 +42,12 @@ pub(super) fn weighted_random_child(
     children: &[u32],
     tick: u64,
 ) -> u32 {
-    use std::hash::{Hash, Hasher};
+    if let Some(table) = node
+        .random_selector_weights()
+        .filter(|table| table.weights().len() == children.len())
+    {
+        return select_weighted_child(tree, node, children, tick, table.weights(), table.total());
+    }
 
     let weights = children
         .iter()
@@ -52,6 +57,19 @@ pub(super) fn weighted_random_child(
         })
         .collect::<Vec<_>>();
     let total = weights.iter().sum::<f32>();
+    select_weighted_child(tree, node, children, tick, &weights, total)
+}
+
+fn select_weighted_child(
+    tree: &CompiledBehaviorTree,
+    node: &CompiledBehaviorNode,
+    children: &[u32],
+    tick: u64,
+    weights: &[f32],
+    total: f32,
+) -> u32 {
+    use std::hash::{Hash, Hasher};
+
     if total <= f32::EPSILON {
         return children[0];
     }
@@ -61,10 +79,10 @@ pub(super) fn weighted_random_child(
     tick.hash(&mut hasher);
     let mut sample = (hasher.finish() as f64 / u64::MAX as f64) as f32 * total;
     for (child, weight) in children.iter().zip(weights) {
-        if sample < weight {
+        if sample < *weight {
             return *child;
         }
-        sample -= weight;
+        sample -= *weight;
     }
     children[children.len() - 1]
 }

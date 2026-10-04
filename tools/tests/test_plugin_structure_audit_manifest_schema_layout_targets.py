@@ -1,10 +1,10 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema import (
+from tools.audits.plugins.manifest_schema import (
     collect_manifest_schema_violations,
 )
 
-
+# 用插件清单夹具验证布局目标：拒绝重复支持目标。
 class PluginStructureAuditManifestSchemaLayoutTargetsTests(unittest.TestCase):
     def test_manifest_schema_rejects_duplicate_supported_targets(self):
         violations: list[str] = []

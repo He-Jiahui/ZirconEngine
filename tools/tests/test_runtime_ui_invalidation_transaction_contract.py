@@ -1,14 +1,14 @@
 from pathlib import Path
 import unittest
 
-from tools.runtime_ui_invalidation_transaction_pressure import run
+from tools.analysis.performance.runtime.runtime_ui_invalidation_transaction_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
 INVALIDATION = ROOT / "zircon_runtime/src/ui/surface/invalidation.rs"
 SURFACE = ROOT / "zircon_runtime/src/ui/surface/surface.rs"
 
-
+# 核对表面直接消费已校验的失效事务，压力模型只计事务自身持有的工作和空输入拒绝。
 class RuntimeUiInvalidationTransactionContractTests(unittest.TestCase):
     def test_surface_consumes_validated_transaction_without_clone_vector(self):
         invalidation = INVALIDATION.read_text(encoding="utf-8")

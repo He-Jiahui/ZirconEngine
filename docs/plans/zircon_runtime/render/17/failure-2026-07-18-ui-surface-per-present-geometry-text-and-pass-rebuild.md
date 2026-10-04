@@ -62,3 +62,23 @@ into the `zr_rhi_wgpu` crate. The seven `related_code` anchors above now name th
 existing post-cut files. This repair changes failure ownership metadata only: it does
 not modify the live renderer implementation or add Cargo, GPU, or capture acceptance
 evidence, so the failure remains open.
+
+### 2026-09-05 external image retry confirmation repair
+
+Coordinator candidate `cec68afb4fe94d04b5191ece550d364a` integrated the exact image-cache
+source as commit `d3174741300b272774c56a37465f043a03debd6c`
+(`fix(render17): preserve external image confirmations across retries`). Preparation now preserves
+pending external-source confirmations on a same-generation/provider-revision cache hit, so a
+failed submission followed by a retry can still confirm the resolved source. A revision change
+or provider removal invalidates that state through the existing slow path. The regression is
+`external_provider_cache_preserves_confirmations_until_revision_changes`.
+
+Exact-source rustfmt ticket `e7716cb059144465ad2aa2aa2aca572a` passed; independent review was
+C0/I0/M0. Coordinator commit notification succeeded with provider errcode 0. The correct-package
+managed retry was job `f5ae6a39bed045909aeb435c495dc65a`; it released with exit 1 before Cargo
+because compiler-input synchronization reported `compile_input_changed`. An immutable Cargo
+admission also rejected the separately dirty external `E:\Git\zr_vm` worktree. No runtime test
+pass is claimed for this new regression.
+
+The candidate remains `integrated_validation_pending`. This narrow confirmation repair does not
+close the compiled-presentation performance, native pixel, or RenderDoc acceptance above.

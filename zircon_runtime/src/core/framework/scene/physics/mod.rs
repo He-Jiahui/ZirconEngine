@@ -18,6 +18,7 @@ pub use skeleton_joint_binding::PhysicsSkeletonJointBinding;
 
 mod mass_properties;
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 pub use mass_properties::PhysicsMassProperties;
 pub use sleep_policy::PhysicsSleepPolicy;

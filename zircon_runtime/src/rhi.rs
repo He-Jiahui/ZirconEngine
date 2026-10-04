@@ -26,8 +26,16 @@ pub use zr_rhi::{
     UiSurfaceImagePayload, UiSurfaceImageResource, UiSurfaceImageResourceTable,
     UiSurfaceImageUvRect, UiSurfacePresentOutcome, UiSurfacePresentStats, UiSurfacePresenter,
     UiSurfaceRect, UiSurfaceResolvedCommandKind, UiSurfaceStyle, UiSurfaceStyleHandle,
-    UiSurfaceStyledPayload, UiSurfaceTextStyle, VertexAttributeDesc, VertexBufferLayoutDesc,
+    UiSurfaceStyledPayload, UiSurfaceTextFace, UiSurfaceTextLayoutRun, UiSurfaceTextLayoutSnapshot,
+    UiSurfaceTextLine, UiSurfaceTextStyle, VertexAttributeDesc, VertexBufferLayoutDesc,
     VertexFormat, VertexInputLayoutDesc, VertexStepMode,
+};
+
+pub use zr_rhi::{
+    RhiGraphAccessId, RhiGraphAccessRange, RhiGraphExecutionAccess, RhiGraphExecutionPass,
+    RhiGraphExecutionReceipt, RhiGraphExecutionTransition, RhiGraphPhysicalResourceLease,
+    RhiGraphQueueLane, RhiGraphResourceAccessKind, RhiGraphResourceBounds, RhiGraphResourceId,
+    RhiGraphResourceKind, RhiGraphResourceState,
 };
 
 // Submission-qualified diagnostic readback contracts.

@@ -1,3 +1,6 @@
+// SSR 辅助模块依赖基础后处理的参数、绑定与坐标函数，不能单独创建完整 shader module。
+// 图先准备共享 HZB、反射颜色金字塔与 specular occlusion，再 resolve 到独立反射历史供场景合成。
+// 历史颜色限制到当前场景邻域范围，降低运动重投影借入旧亮斑的机会。
 struct ColorNeighborhood {
     minimum: vec3<f32>,
     maximum: vec3<f32>,
@@ -6,6 +9,7 @@ struct ColorNeighborhood {
 const SSR_HIT_REFINE_STEPS: u32 = 4u;
 const ZR_STANDARD_MATERIAL_MIN_ROUGHNESS: f32 = 0.001;
 
+// 读取几何阶段编码的世界法线，再以 CPU 相机基转换为视空间；不能直接把世界法线用于视空间 ray。
 fn load_scene_normal(coord: vec2<i32>, viewport_size: vec2<u32>) -> vec3<f32> {
     let max_coord = vec2<i32>(viewport_size - vec2<u32>(1u, 1u));
     let clamped = clamp(coord, vec2<i32>(0, 0), max_coord);
@@ -70,6 +74,7 @@ fn screen_space_reflection_specular_occlusion_factors(
     return vec2<f32>(ambient_occlusion, occlusion_response);
 }
 
+// 预备 RG 分别记录 AO 与材料/深度响应；只让有 trace 支持的反射按该响应衰减。
 fn load_screen_space_reflection_specular_occlusion(
     coord: vec2<i32>,
     viewport_size: vec2<u32>,
@@ -122,6 +127,7 @@ fn screen_space_reflection_downsampled_size(source_size: vec2<u32>) -> vec2<u32>
     );
 }
 
+// 共享 HZB 的零级已经是场景半尺寸，因此场景像素到 mip 的缩放从二倍开始。
 fn screen_space_reflection_mip_coord(coord: vec2<i32>, mip_level: u32) -> vec2<u32> {
     let safe_coord = vec2<u32>(max(coord, vec2<i32>(0, 0)));
     let scale = 1u << min(mip_level + 1u, 30u);
@@ -142,6 +148,7 @@ fn load_screen_space_reflection_depth_pyramid_cell(
     return vec2<f32>(min(range.x, range.y), max(range.x, range.y));
 }
 
+// CPU 绑定完整 HZB mip chain 才能使用此路径；单级 fallback 的 mip 数只能为一。
 fn load_screen_space_reflection_depth_pyramid_cell_at_mip(
     pyramid_coord: vec2<u32>,
     mip_level: u32
@@ -156,6 +163,8 @@ fn load_screen_space_reflection_depth_pyramid_cell_at_mip(
         vec2<i32>(safe_coord),
         mip_level
     ).rg;
+    // BUG: [CR-POST-SHADER-0006] 当前图绑定共享 HZB 的标准设备深度，但这里仅排序 RG，未转换成视距；
+    // 后续把它与 ray_depth 比较，精确命中也会被错误降权。证据：HZB build 写 raw depth，GPU SSR executor 直接绑定该 view。
     return vec2<f32>(min(range.x, range.y), max(range.x, range.y));
 }
 
@@ -206,6 +215,7 @@ fn load_screen_space_reflection_depth_pyramid_coarse(
     return load_screen_space_reflection_depth_pyramid_mip(coord, 0u);
 }
 
+// 远距离或粗糙反射使用较粗深度范围；范围只是命中支持，最终颜色仍由细节深度与颜色确定。
 fn screen_space_reflection_depth_pyramid_trace_mip(
     roughness: f32,
     ray_distance: f32,
@@ -238,6 +248,7 @@ fn screen_space_reflection_depth_pyramid_visibility(
     );
 }
 
+// 保留的深度准备入口产出线性视距范围；当前共享 HZB 构建另有设备深度契约，不能混用单位。
 fn resolve_screen_space_reflection_depth_pyramid(
     pyramid_coord: vec2<u32>,
     viewport_size: vec2<u32>
@@ -379,6 +390,7 @@ fn screen_space_reflection_reflection_pyramid_rough_mip(roughness: f32) -> u32 {
     return min(selected, mip_count - 1u);
 }
 
+// 反射颜色金字塔保留场景线性颜色，粗糙表面从更粗 mip 借用颜色；此阶段不做 tonemap。
 fn resolve_screen_space_reflection_reflection_pyramid(
     pyramid_coord: vec2<u32>,
     viewport_size: vec2<u32>
@@ -420,6 +432,7 @@ fn screen_uv_to_ndc(uv: vec2<f32>) -> vec2<f32> {
     return vec2<f32>(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0);
 }
 
+// ray marching 使用相机前方为负 z 的视空间位置；CPU 分别提供透视焦距与正交半尺寸。
 fn reconstruct_view_position(coord: vec2<u32>, viewport_size: vec2<u32>, view_depth: f32) -> vec3<f32> {
     let ndc = screen_uv_to_ndc(coord_to_screen_uv(coord, viewport_size));
     let safe_depth = max(view_depth, params.effect_depth.x);
@@ -481,6 +494,8 @@ fn screen_space_reflection_hit_visibility(
             thickness_window * max(params.effect_ssr_limits.y, 2.0),
             abs(sample_depth - ray_depth)
         );
+    // BUG: [CR-POST-SHADER-0002] 朝相机的反射 ray 可命中更近表面，本筛选却要求 sample_depth 大于起点视距；
+    // 例如起点视距 10、反射方向 z=0.8、距离 2 的精确命中视距 8.4，也会被强制置为零可见度。
     let behind_origin = step(
         current_depth + thickness * 0.25,
         sample_depth
@@ -493,6 +508,7 @@ fn screen_space_reflection_hit_visibility(
         * screen_edge_fade(sample_position, viewport_size);
 }
 
+// 返回 xy 命中像素、z 深度误差与 w 置信度；w<0 是越出有效投影域，trace 以此结束。
 fn sample_screen_space_reflection_hit(
     ray_position: vec3<f32>,
     current_depth: f32,
@@ -548,6 +564,7 @@ fn sample_screen_space_reflection_hit(
     );
 }
 
+// 在粗步进首次得到支持后细化区间，保持采样处于投影边界内；候选越界不能被当作命中。
 fn refine_screen_space_reflection_hit(
     view_origin: vec3<f32>,
     ray_direction: vec3<f32>,
@@ -603,6 +620,7 @@ fn refine_screen_space_reflection_hit(
     return best_hit;
 }
 
+// 只从当前屏幕可见深度寻找命中，越界就停止；未命中输出零权重，由上层保留原场景颜色。
 fn trace_screen_space_reflection(
     coord: vec2<u32>,
     viewport_size: vec2<u32>,
@@ -706,6 +724,7 @@ fn reproject_ssr_history_coord(
     return vec2<f32>(coord) - motion_vector * vec2<f32>(viewport_size);
 }
 
+// 只有 CPU 确认历史可复用时才采样；速度把当前局部像素反投到上帧局部反射目标。
 fn sample_reprojected_ssr_history(
     coord: vec2<u32>,
     viewport_size: vec2<u32>,
@@ -740,6 +759,7 @@ fn sample_reprojected_ssr_history(
     );
 }
 
+// 历史必须同时有当前命中、旧反射与低运动支持；历史不能凭空补出没有 trace 证据的反射。
 fn ssr_temporal_blend_weight(
     motion_vector: vec2<f32>,
     traced_visibility: f32,
@@ -770,6 +790,8 @@ fn resolve_screen_space_reflection_history(
     let roughness = load_scene_material_roughness(coord_i32, viewport_size);
     let current_depth = load_scene_view_depth(coord_i32, viewport_size);
     let view_position = reconstruct_view_position(coord, viewport_size, current_depth);
+    // BUG: [CR-POST-SHADER-0003] 正交投影的入射视线应为固定方向，这里却始终归一化像素位置；
+    // CPU 已以 effect_depth.w=0 区分正交，离中心像素因 x/y 改变反射方向，平行表面的反射随屏幕位置偏移。
     let view_direction = normalize(view_position);
     let reflected_direction = reflect(view_direction, normal);
     let traced_reflection = trace_screen_space_reflection(
@@ -794,6 +816,7 @@ fn resolve_screen_space_reflection_history(
         viewport_size,
         traced_reflection.a
     );
+    // 这里把强度、命中、粗糙度与遮挡收敛为合成权重；后续合成不可再次乘效果强度。
     let reflection_visibility = clamp(
         intensity * traced_reflection.a * roughness_visibility * specular_occlusion * 0.18,
         0.0,
@@ -802,6 +825,9 @@ fn resolve_screen_space_reflection_history(
     return vec4<f32>(reflection_rgb, reflection_visibility);
 }
 
+// TODO: [CR-POST-SHADER-0007] 确认共享 HZB 接管后这组线性深度准备入口的保留意图；
+// 当前 Rust pipeline bundle 没有选择两个 depth-pyramid 入口，缺少仍需它们的调用证据。
+// 后续核对专用路径是否应继续存在，以及它与共享 HZB 的单位和布局边界。
 @fragment
 fn fs_screen_space_reflection_depth_pyramid(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
     let viewport_size = viewport_size();

@@ -1,6 +1,7 @@
+# 核对滚动条目标索引压力模型计入冷建成本及脏补丁候选。
 import unittest
 
-from tools.ui_scrollbar_target_index_pressure import run
+from tools.analysis.performance.ui.ui_scrollbar_target_index_pressure import run
 
 
 class UiScrollbarTargetIndexPressureTests(unittest.TestCase):

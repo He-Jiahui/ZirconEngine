@@ -1,7 +1,7 @@
 from pathlib import Path
 import re
 import unittest
-
+# 系统集合名称先借用查重，只有新值才转为拥有型；检查 Rust 用例对借用、拥有和非法输入的声明。
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime/src/scene/ecs/system_set.rs"

@@ -2,17 +2,19 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use crate::core::framework::render::GpuLightData;
+use crate::rhi::{BufferDesc, BufferUsage};
 use wgpu::util::DeviceExt;
 
 use super::binding::{
-    GpuSceneVisibleInstanceRemapParams, create_gpu_scene_bind_group,
-    create_gpu_scene_bind_group_layout,
+    create_gpu_scene_bind_group, create_gpu_scene_bind_group_layout,
+    GpuSceneVisibleInstanceRemapParams,
 };
 use super::id_allocator::GpuSceneIdAllocator;
+use super::journal_consumer::GpuSceneJournalApplyPlan;
 use super::layout::{
-    GPU_INSTANCE_DATA_STRIDE, GPU_PRIMITIVE_DATA_STRIDE, GpuInstanceData, GpuMorphDelta,
-    GpuMorphPayload, GpuMorphWeight, GpuPrimitiveData, GpuVirtualGeometryClusterWord,
-    GpuVirtualGeometryPage,
+    GpuInstanceData, GpuMorphDelta, GpuMorphPayload, GpuMorphWeight, GpuPrimitiveData,
+    GpuVirtualGeometryClusterWord, GpuVirtualGeometryPage, GPU_INSTANCE_DATA_STRIDE,
+    GPU_PRIMITIVE_DATA_STRIDE,
 };
 use super::prev_skinned_palette::GpuSceneSkinnedJointPaletteState;
 use super::prev_skinned_source::GpuSceneSkinnedGpuSourceState;
@@ -147,6 +149,7 @@ pub(crate) struct GpuScene {
     pub(super) force_full_instance_upload: bool,
     pub(super) force_full_light_upload: bool,
     pub(super) uploaded_scene_data_counts: Option<[u32; 3]>,
+    journal_membership_authoritative: bool,
 }
 
 impl GpuScene {
@@ -300,6 +303,7 @@ impl GpuScene {
             force_full_instance_upload: true,
             force_full_light_upload: true,
             uploaded_scene_data_counts: None,
+            journal_membership_authoritative: false,
         }
     }
 
@@ -396,6 +400,27 @@ impl GpuScene {
             .retain(|key, _| live_keys.contains(key));
         self.previous_morph_weights
             .retain(|key, _| live_keys.contains(key));
+    }
+
+    pub(crate) fn apply_journal_membership(
+        &mut self,
+        device: &wgpu::Device,
+        plan: &GpuSceneJournalApplyPlan<'_>,
+    ) {
+        for retirement in plan.retirements() {
+            self.unregister(retirement.stable_instance_key());
+        }
+        for write in plan.resident_writes() {
+            let stable_instance_key = write.primitive().stable_instance_key();
+            self.register(device, stable_instance_key, 1);
+        }
+        if plan.requires_apply() {
+            self.journal_membership_authoritative = true;
+        }
+    }
+
+    pub(crate) const fn journal_membership_authoritative(&self) -> bool {
+        self.journal_membership_authoritative
     }
 
     pub(crate) fn set_transform_revision(
@@ -502,6 +527,14 @@ impl GpuScene {
 
     pub(crate) fn light_buffer(&self) -> &wgpu::Buffer {
         &self.light_buffer
+    }
+
+    pub(crate) fn light_buffer_desc(&self) -> BufferDesc {
+        BufferDesc::new(
+            "zircon-gpu-scene-light-data",
+            self.light_buffer.size(),
+            BufferUsage::STORAGE | BufferUsage::COPY_DST | BufferUsage::COPY_SRC,
+        )
     }
 
     pub(crate) fn scene_bind_group_layout(&self) -> &wgpu::BindGroupLayout {
@@ -689,4 +722,5 @@ pub(super) fn grow_capacity(required: u32, minimum: u32) -> u32 {
 }
 
 #[cfg(test)]
+#[path = "gpu_scene/tests/cases.rs"]
 mod tests;

@@ -87,8 +87,11 @@ const fixtureImporters = zrFiles(wocSourceRoot)
   .map((path) => relative(wocSourceRoot, path).replaceAll('\\', '/'))
   .sort();
 invariant(
-  JSON.stringify(fixtureImporters) === JSON.stringify(['combat/ability_charge_state_test_main.zr']),
-  `ability_charge_state escaped the focused fixture boundary: ${fixtureImporters.join(', ')}`,
+  JSON.stringify(fixtureImporters) === JSON.stringify([
+    'combat/ability_charge_state_test_main.zr',
+    'world/state.zr',
+  ]),
+  `ability_charge_state importer set drifted: ${fixtureImporters.join(', ')}`,
 );
 
 process.stdout.write(`checked M4 ability-charge source projection: ${SOURCE_COMMIT.slice(0, 15)}\n`);

@@ -1,10 +1,287 @@
 use crate::render_graph::{
     PassFlags, QueueLane, RenderGraphAttachmentOps, RenderGraphBuilder, RenderGraphDump,
-    RenderGraphError, RenderGraphResource, RenderGraphResourceAccessIntent,
-    RenderGraphResourceAccessKind, RenderGraphResourceKind, RenderGraphShaderStages,
-    RenderGraphTextureSubresourceRange, RgTextureHandle,
+    RenderGraphError, RenderGraphExternalResourceBinding, RenderGraphResource,
+    RenderGraphResourceAccessIntent, RenderGraphResourceAccessKind, RenderGraphResourceKind,
+    RenderGraphShaderStages, RenderGraphTextureSubresourceRange, RgTextureHandle,
 };
-use crate::rhi::{BufferDesc, BufferUsage, TextureDesc, TextureFormat, TextureUsage};
+use crate::rhi::{
+    BufferDesc, BufferUsage, TextureDesc, TextureDimension, TextureFormat, TextureUsage,
+};
+
+#[test]
+fn builder_rejects_invalid_texture_view_format_declarations() {
+    let cases = [
+        TextureDesc::new(
+            "same",
+            8,
+            8,
+            TextureFormat::Rgba8Unorm,
+            TextureUsage::SAMPLED,
+        )
+        .with_view_formats([TextureFormat::Rgba8Unorm]),
+        TextureDesc::new(
+            "duplicate",
+            8,
+            8,
+            TextureFormat::Rgba8Unorm,
+            TextureUsage::SAMPLED,
+        )
+        .with_view_formats([TextureFormat::Rgba8UnormSrgb, TextureFormat::Rgba8UnormSrgb]),
+        TextureDesc::new(
+            "unsupported",
+            8,
+            8,
+            TextureFormat::Rgba16Float,
+            TextureUsage::SAMPLED,
+        )
+        .with_view_formats([TextureFormat::Rgba8UnormSrgb]),
+    ];
+
+    for descriptor in cases {
+        let mut builder = RenderGraphBuilder::new("invalid-view-format");
+        let texture = builder.create_texture(descriptor);
+        let pass = builder.add_pass("write", QueueLane::Graphics);
+        builder.write_texture(pass, texture).unwrap();
+        let error = builder
+            .compile()
+            .expect_err("invalid view format must fail at graph compile");
+        assert!(matches!(
+            error,
+            RenderGraphError::TextureDescriptorInvalid { .. }
+        ));
+    }
+}
+
+#[test]
+fn builder_rejects_texture_mip_levels_that_exceed_shape() {
+    let mut builder = RenderGraphBuilder::new("invalid-mip-levels");
+    let texture = builder.create_texture(
+        TextureDesc::new(
+            "texture",
+            8,
+            8,
+            TextureFormat::Rgba8Unorm,
+            TextureUsage::SAMPLED,
+        )
+        .with_mip_levels(5),
+    );
+    let pass = builder.add_pass("write", QueueLane::Graphics);
+    builder.write_texture(pass, texture).unwrap();
+
+    let error = builder
+        .compile()
+        .expect_err("mip chain must fit texture extent");
+    assert!(matches!(
+        error,
+        RenderGraphError::TextureDescriptorInvalid { .. }
+    ));
+}
+
+#[test]
+fn builder_rejects_invalid_texture_sample_count_contracts() {
+    let cases = [
+        (
+            TextureDesc::new(
+                "zero-samples",
+                4,
+                4,
+                TextureFormat::Rgba8Unorm,
+                TextureUsage::RENDER_ATTACHMENT,
+            )
+            .with_sample_count(0),
+            "sample_count must be greater than zero",
+        ),
+        (
+            TextureDesc::new(
+                "multisample-array",
+                4,
+                4,
+                TextureFormat::Rgba8Unorm,
+                TextureUsage::RENDER_ATTACHMENT,
+            )
+            .with_sample_count(4)
+            .with_dimension(TextureDimension::D2Array)
+            .with_array_layers(2),
+            "multisampling is only valid for 2D textures",
+        ),
+        (
+            TextureDesc::new(
+                "multisample-mips",
+                8,
+                8,
+                TextureFormat::Rgba8Unorm,
+                TextureUsage::RENDER_ATTACHMENT,
+            )
+            .with_sample_count(4)
+            .with_mip_levels(2),
+            "multisampled textures cannot declare mip levels",
+        ),
+    ];
+
+    for (descriptor, reason) in cases {
+        let mut builder = RenderGraphBuilder::new("invalid-texture-sample-count");
+        let texture = builder.create_texture(descriptor);
+        let pass = builder.add_pass("write", QueueLane::Graphics);
+        builder.write_texture(pass, texture).unwrap();
+        let error = builder
+            .compile()
+            .expect_err("invalid texture sample-count contract must fail admission");
+        assert!(matches!(
+            error,
+            RenderGraphError::TextureDescriptorInvalid { reason: actual, .. }
+                if actual == reason
+        ));
+    }
+}
+
+#[test]
+fn builder_rejects_invalid_external_texture_sample_count_contracts() {
+    let cases = [
+        (
+            TextureDesc::new(
+                "external-zero-samples",
+                4,
+                4,
+                TextureFormat::Rgba8Unorm,
+                TextureUsage::RENDER_ATTACHMENT,
+            )
+            .with_sample_count(0),
+            "sample_count must be greater than zero",
+        ),
+        (
+            TextureDesc::new(
+                "external-multisample-array",
+                4,
+                4,
+                TextureFormat::Rgba8Unorm,
+                TextureUsage::RENDER_ATTACHMENT,
+            )
+            .with_sample_count(4)
+            .with_dimension(TextureDimension::D2Array)
+            .with_array_layers(2),
+            "multisampling is only valid for 2D textures",
+        ),
+        (
+            TextureDesc::new(
+                "external-multisample-mips",
+                8,
+                8,
+                TextureFormat::Rgba8Unorm,
+                TextureUsage::RENDER_ATTACHMENT,
+            )
+            .with_sample_count(4)
+            .with_mip_levels(2),
+            "multisampled textures cannot declare mip levels",
+        ),
+    ];
+
+    for (descriptor, reason) in cases {
+        let mut builder = RenderGraphBuilder::new("invalid-external-texture-sample-count");
+        let texture = builder.import_present_external_texture_with_binding(
+            "external-output",
+            descriptor,
+            RenderGraphExternalResourceBinding::required_texture(),
+        );
+        let pass = builder.add_pass("write", QueueLane::Graphics);
+        builder.write_external(pass, texture).unwrap();
+        let error = builder
+            .compile()
+            .expect_err("invalid external texture sample-count contract must fail admission");
+        assert!(matches!(
+            error,
+            RenderGraphError::TextureDescriptorInvalid { reason: actual, .. }
+                if actual == reason
+        ));
+    }
+}
+
+#[test]
+fn builder_rejects_invalid_texture_shapes_before_scope_tracking() {
+    let cases = [
+        TextureDesc::new(
+            "zero-width",
+            0,
+            8,
+            TextureFormat::Rgba8Unorm,
+            TextureUsage::SAMPLED,
+        ),
+        TextureDesc::new(
+            "invalid-2d-array-field",
+            8,
+            8,
+            TextureFormat::Rgba8Unorm,
+            TextureUsage::SAMPLED,
+        )
+        .with_array_layers(2),
+        TextureDesc::new(
+            "invalid-cube-faces",
+            8,
+            8,
+            TextureFormat::Rgba8Unorm,
+            TextureUsage::SAMPLED,
+        )
+        .with_dimension(TextureDimension::Cube)
+        .with_array_layers(385),
+    ];
+
+    for descriptor in cases {
+        let mut builder = RenderGraphBuilder::new("invalid-texture-shape");
+        let texture = builder.create_texture(descriptor);
+        let pass = builder.add_pass("write", QueueLane::Graphics);
+        builder.write_texture(pass, texture).unwrap();
+        let error = builder
+            .compile()
+            .expect_err("invalid texture shape must fail before scope tracking");
+        assert!(matches!(
+            error,
+            RenderGraphError::TextureDescriptorInvalid { .. }
+        ));
+    }
+}
+
+#[test]
+fn builder_keeps_large_neutral_texture_shapes_legal() {
+    let descriptors = [
+        TextureDesc::new(
+            "large-array",
+            1,
+            1,
+            TextureFormat::Rgba8Unorm,
+            TextureUsage::STORAGE,
+        )
+        .with_dimension(TextureDimension::D2Array)
+        .with_array_layers(u32::MAX),
+        TextureDesc::new(
+            "deep-volume",
+            1,
+            1,
+            TextureFormat::Rgba8Unorm,
+            TextureUsage::STORAGE,
+        )
+        .with_dimension(TextureDimension::D3)
+        .with_depth(u32::MAX),
+    ];
+
+    for descriptor in descriptors {
+        let mut builder = RenderGraphBuilder::new("large-neutral-texture-shape");
+        let texture = builder.create_texture(descriptor);
+        let pass = builder.add_pass("write", QueueLane::AsyncCompute);
+        builder.write_texture(pass, texture).unwrap();
+        builder
+            .set_pass_flags(
+                pass,
+                PassFlags {
+                    has_side_effects: true,
+                    ..PassFlags::default()
+                },
+            )
+            .unwrap();
+
+        builder
+            .compile()
+            .expect("neutral graph compile must not impose one backend's texture limits");
+    }
+}
 
 #[test]
 fn builder_rejects_foreign_resource_handles_before_index_lookup() {
@@ -200,6 +477,40 @@ fn builder_rejects_overlapping_same_kind_access_scopes_in_one_pass() {
             ..
         } if pass == "overlap"
     ));
+}
+
+#[test]
+fn builder_allows_overlapping_read_scopes_for_parent_and_texture_view_alias() {
+    let mut builder = RenderGraphBuilder::new("overlapping-read-alias-scopes");
+    let pyramid = builder.create_texture(
+        TextureDesc::new(
+            "reflection-pyramid",
+            64,
+            32,
+            TextureFormat::Rgba16Float,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+        )
+        .with_mip_levels(3),
+    );
+    let coarse = builder
+        .create_texture_view_alias(
+            "reflection-pyramid-coarse",
+            pyramid,
+            RenderGraphTextureSubresourceRange::single_mip(1),
+        )
+        .expect("coarse view alias should be valid");
+    let output = builder.import_present_external_resource("viewport-output");
+    let producer = builder.add_pass("producer", QueueLane::Graphics);
+    let consumer = builder.add_pass("consumer", QueueLane::Graphics);
+
+    builder.write_texture(producer, pyramid).unwrap();
+    builder.read_texture(consumer, pyramid).unwrap();
+    builder.read_texture(consumer, coarse).unwrap();
+    builder.write_external(consumer, output).unwrap();
+
+    builder
+        .compile()
+        .expect("overlapping read-only views are legal in one pass");
 }
 
 #[test]

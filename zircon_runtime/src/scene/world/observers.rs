@@ -1,7 +1,7 @@
-use crate::scene::EntityId;
 use crate::scene::ecs::{
     Component, ComponentId, ComponentLifecycleEvent, LifecycleEventKind, ObserverId,
 };
+use crate::scene::EntityId;
 
 use super::{SceneResult, World};
 
@@ -61,6 +61,7 @@ impl World {
         if let Some(callbacks) = self.observers.event_callbacks::<E>() {
             callbacks.dispatch(self, &event);
         }
+        // 目标桶在全局回调执行后才取得快照；全局回调对目标注册表的修改会影响本次目标阶段。
         if let Some(callbacks) = self.observers.entity_event_callbacks::<E>(entity) {
             callbacks.dispatch(self, entity, &event);
         }

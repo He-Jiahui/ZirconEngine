@@ -1,5 +1,6 @@
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 
+/// 声明 vertical 优先；没有方向词元时才用帧纵横比推断，调用方据此选择整组线与标签布局。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn divider_is_vertical(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
@@ -22,5 +23,5 @@ fn divider_orientation_flags(component_variant: &str) -> (bool, bool) {
 }
 
 #[cfg(test)]
-#[path = "orientation/single_scan_variant_tests.rs"]
+#[path = "orientation/tests/single_scan_variant_tests.rs"]
 mod single_scan_variant_tests;

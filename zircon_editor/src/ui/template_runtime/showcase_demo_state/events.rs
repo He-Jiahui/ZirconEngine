@@ -544,5 +544,5 @@ fn value_property_for_action(action: &str) -> &'static str {
 }
 
 #[cfg(test)]
-#[path = "events/menu_action_label_tests.rs"]
+#[path = "events/tests/menu_action_label_tests.rs"]
 mod menu_action_label_tests;

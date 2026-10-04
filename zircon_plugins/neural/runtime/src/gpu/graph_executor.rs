@@ -71,6 +71,17 @@ pub enum NnGraphBuildError {
     },
     InvalidOpAttrs(NnOpCode),
     InvalidShape(NnOpCode),
+    DispatchDimensionOverflow {
+        code: NnOpCode,
+        batch: u32,
+        channels: u32,
+    },
+    DispatchDimensionLimitExceeded {
+        code: NnOpCode,
+        groups: [u32; 3],
+        limits: [u32; 3],
+    },
+    InvalidDispatchLimits([u32; 3]),
     UnsupportedViewOp(NnOpCode),
 }
 
@@ -86,6 +97,7 @@ impl std::error::Error for NnGraphBuildError {}
 pub struct NnGraphExecutor {
     stage: RenderPassStage,
     queue: QueueLane,
+    dispatch_limits: Option<[u32; 3]>,
 }
 
 impl Default for NnGraphExecutor {
@@ -93,11 +105,23 @@ impl Default for NnGraphExecutor {
         Self {
             stage: RenderPassStage::PostProcess,
             queue: QueueLane::AsyncCompute,
+            dispatch_limits: None,
         }
     }
 }
 
 impl NnGraphExecutor {
+    /// Applies device-provided per-axis workgroup limits during plan admission.
+    ///
+    /// The default executor leaves this check to the render-graph device path,
+    /// while a caller that already owns `wgpu::Limits` can fail before creating
+    /// any pass descriptors by supplying `max_compute_workgroups_per_dimension`
+    /// as `[limit; 3]`.
+    pub fn with_dispatch_limits(mut self, limits: [u32; 3]) -> Self {
+        self.dispatch_limits = Some(limits);
+        self
+    }
+
     pub fn build_passes(
         &self,
         model: &NnModelAsset,
@@ -112,6 +136,9 @@ impl NnGraphExecutor {
         model: &NnModelAsset,
         io: &NnGraphIo,
     ) -> Result<Vec<NnGraphPassPlan>, NnGraphBuildError> {
+        if let Some(limits) = self.dispatch_limits {
+            validate_dispatch_limit_values(limits)?;
+        }
         model
             .validate()
             .map_err(|error| NnGraphBuildError::InvalidModel(error.to_string()))?;
@@ -149,7 +176,7 @@ impl NnGraphExecutor {
                     ComputeBindingKind::StorageBufferRead,
                 );
                 if descriptor.kind == NnTensorKind::Weight {
-                    binding = binding.with_buffer_offset(descriptor.weight_offset);
+                    binding = binding.with_buffer_range(descriptor.weight_offset, None);
                 }
                 bindings.push(binding);
             }
@@ -162,6 +189,7 @@ impl NnGraphExecutor {
             ));
 
             let (workgroup_size, dispatch, parameter_bytes) = dispatch_and_parameters(model, op)?;
+            validate_dispatch_limits(op.code, &dispatch, self.dispatch_limits)?;
             let shader = shader_for(op.code).ok_or(NnGraphBuildError::UnsupportedOp(op.code))?;
             let pass_name = format!("nn.{}.{}", op_name(op.code), op_index);
             let transient_outputs = if output_descriptor.kind == NnTensorKind::Intermediate {
@@ -190,6 +218,38 @@ impl NnGraphExecutor {
     }
 }
 
+fn validate_dispatch_limit_values(limits: [u32; 3]) -> Result<(), NnGraphBuildError> {
+    if limits.contains(&0) {
+        return Err(NnGraphBuildError::InvalidDispatchLimits(limits));
+    }
+    Ok(())
+}
+
+fn validate_dispatch_limits(
+    code: NnOpCode,
+    dispatch: &RenderGraphComputeDispatchExtent,
+    limits: Option<[u32; 3]>,
+) -> Result<(), NnGraphBuildError> {
+    let Some(limits) = limits else {
+        return Ok(());
+    };
+    let RenderGraphComputeDispatchExtent::Fixed(groups) = dispatch else {
+        return Ok(());
+    };
+    if groups
+        .iter()
+        .zip(limits)
+        .any(|(groups, limit)| *groups > limit)
+    {
+        return Err(NnGraphBuildError::DispatchDimensionLimitExceeded {
+            code,
+            groups: *groups,
+            limits,
+        });
+    }
+    Ok(())
+}
+
 fn fold_reshape(
     op: &NnOp,
     aliases: &mut ResourceAliases,
@@ -204,8 +264,13 @@ fn fold_reshape(
         });
     }
     let source = op.inputs[0];
-    resource_for(source, model, aliases, io)?;
     let output = op.outputs[0];
+    let source_descriptor = tensor_descriptor(model, source)?;
+    let output_descriptor = tensor_descriptor(model, output)?;
+    if source_descriptor.element_count() != output_descriptor.element_count() {
+        return Err(NnGraphBuildError::InvalidShape(NnOpCode::Reshape));
+    }
+    resource_for(source, model, aliases, io)?;
     if !aliases.alias(output, source) {
         return Err(NnGraphBuildError::MissingTensor(output));
     }
@@ -431,7 +496,7 @@ fn pool_dispatch(
         RenderGraphComputeDispatchExtent::Fixed([
             output.shape[3].div_ceil(CONV_WORKGROUP_SIZE),
             output.shape[2].div_ceil(CONV_WORKGROUP_SIZE),
-            output.shape[0].saturating_mul(output.shape[1]),
+            dispatch_batch_channel(op.code, output.shape[0], output.shape[1])?,
         ]),
         parameters,
     ))
@@ -509,7 +574,7 @@ fn upsample_dispatch(
         RenderGraphComputeDispatchExtent::Fixed([
             output.shape[3].div_ceil(CONV_WORKGROUP_SIZE),
             output.shape[2].div_ceil(CONV_WORKGROUP_SIZE),
-            output.shape[0].saturating_mul(output.shape[1]),
+            dispatch_batch_channel(op.code, output.shape[0], output.shape[1])?,
         ]),
         parameters,
     ))
@@ -561,7 +626,7 @@ fn conv_dispatch(
     let groups = [
         output.shape[3].div_ceil(CONV_WORKGROUP_SIZE),
         output.shape[2].div_ceil(CONV_WORKGROUP_SIZE),
-        output.shape[0].saturating_mul(output.shape[1]),
+        dispatch_batch_channel(op.code, output.shape[0], output.shape[1])?,
     ];
     Ok((
         [CONV_WORKGROUP_SIZE, CONV_WORKGROUP_SIZE, 1],
@@ -614,6 +679,20 @@ fn validate_conv_shapes(
         return Err(NnGraphBuildError::InvalidShape(code));
     }
     Ok(())
+}
+
+fn dispatch_batch_channel(
+    code: NnOpCode,
+    batch: u32,
+    channels: u32,
+) -> Result<u32, NnGraphBuildError> {
+    batch
+        .checked_mul(channels)
+        .ok_or(NnGraphBuildError::DispatchDimensionOverflow {
+            code,
+            batch,
+            channels,
+        })
 }
 
 fn conv_output_dimension(

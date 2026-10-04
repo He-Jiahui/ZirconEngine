@@ -2,7 +2,7 @@ import sys
 import unittest
 from pathlib import Path
 
-
+# 调用审计或模型实现验证脚本绑定：当前子节点守卫归属方闭合运行时 13 审计。
 class RuntimeScriptBindingAuditTests(unittest.TestCase):
     def setUp(self) -> None:
         self.repo_root = Path(__file__).resolve().parents[2]

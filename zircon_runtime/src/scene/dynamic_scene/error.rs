@@ -7,6 +7,7 @@ use zircon_runtime_interface::serialization::{LoadError, WriteError};
 use crate::scene::{EntityId, SceneError};
 
 #[derive(Clone, Debug, Error)]
+/// 场景读取、编译、预检与发布共用的失败边界；调用方可据此区分无效文档、陈旧目标和适配器失败。
 pub enum DynamicSceneError {
     #[error("unsupported dynamic scene schema {actual}; expected {expected}")]
     UnsupportedSchema { expected: String, actual: String },
@@ -39,7 +40,11 @@ pub enum DynamicSceneError {
     #[error("dynamic scene spawn task `{label}` was cancelled")]
     SpawnTaskCancelled { label: String },
     #[error("dynamic scene spawn task `{label}` was not admitted: {reason}")]
-    SpawnTaskAdmission { label: String, reason: String },
+    SpawnTaskAdmission {
+        label: String,
+        #[source]
+        reason: crate::core::TaskGraphAdmissionError,
+    },
     #[error(
         "prepared dynamic scene requires {estimated_bytes} bytes, exceeding the {limit_bytes}-byte limit"
     )]

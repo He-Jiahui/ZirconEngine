@@ -301,3 +301,146 @@ fn workbench_window_minimums_allow_reference_capture_sizes() {
     assert!(regular.window_min_width <= 640.0);
     assert!(regular.window_min_height <= 420.0);
 }
+
+#[test]
+fn scene_window_minimum_reaches_ultra_floor_after_narrow_bridge_at_each_dpi() {
+    let fixture = default_preview_fixture();
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
+    let metrics = WorkbenchChromeMetrics::default();
+    let defaults = workbench_layout_defaults();
+
+    for scale in [1.0_f32, 1.25, 2.0] {
+        let narrow = compute_workbench_shell_geometry(
+            &model,
+            &chrome,
+            &fixture.layout,
+            &fixture.descriptors,
+            ShellSizePx::new(640.0 * scale, 620.0 * scale),
+            scale,
+            &metrics,
+            None,
+        );
+        let ultra = compute_workbench_shell_geometry(
+            &model,
+            &chrome,
+            &fixture.layout,
+            &fixture.descriptors,
+            ShellSizePx::new(480.0 * scale, 620.0 * scale),
+            scale,
+            &metrics,
+            None,
+        );
+
+        assert!(
+            (narrow.window_min_width - defaults.breakpoints.ultra_max_width * scale).abs() < 0.001,
+            "narrow minimum should bridge to the Ultra breakpoint at scale {scale}: {}",
+            narrow.window_min_width,
+        );
+        assert!(
+            (ultra.window_min_width - defaults.window_minimums.ultra_min_width * scale).abs()
+                < 0.001,
+            "Ultra minimum should reach the compact floor at scale {scale}: {}",
+            ultra.window_min_width,
+        );
+    }
+}
+
+#[test]
+fn persisted_extreme_drawer_extents_remain_finite_and_inside_the_host() {
+    let mut fixture = default_preview_fixture();
+    for drawer in fixture
+        .layout
+        .active_activity_window_mut()
+        .unwrap()
+        .activity_drawers
+        .values_mut()
+    {
+        drawer.extent = f32::MAX;
+    }
+    let encoded = crate::ui::workbench::layout_persistence_document::encode_default_layout_value(
+        fixture.layout.clone(),
+    )
+    .expect("extreme finite extents should serialize");
+    let restored =
+        crate::ui::workbench::layout_persistence_document::decode_default_layout_value(encoded)
+            .expect("extreme finite extents should deserialize");
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
+    let geometry = compute_workbench_shell_geometry(
+        &model,
+        &chrome,
+        &restored,
+        &fixture.descriptors,
+        ShellSizePx::new(640.0, 420.0),
+        1.0,
+        &WorkbenchChromeMetrics::default(),
+        None,
+    );
+
+    assert_geometry_is_contained(&geometry, ShellSizePx::new(640.0, 420.0));
+}
+
+#[test]
+fn tiny_shell_geometry_stays_contained_for_width_height_and_scale_matrix() {
+    let fixture = default_preview_fixture();
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
+    let metrics = WorkbenchChromeMetrics::default();
+    for width in [
+        0.0, 1.0, 7.0, 32.0, 120.0, 319.0, 320.0, 479.0, 480.0, 640.0,
+    ] {
+        for height in [0.0, 1.0, 7.0, 32.0, 120.0, 360.0, 420.0] {
+            for scale in [0.5, 1.0, 1.25, 2.0, f32::NAN, f32::INFINITY] {
+                let geometry = compute_workbench_shell_geometry(
+                    &model,
+                    &chrome,
+                    &fixture.layout,
+                    &fixture.descriptors,
+                    ShellSizePx::new(width, height),
+                    scale,
+                    &metrics,
+                    None,
+                );
+                assert_geometry_is_contained(&geometry, ShellSizePx::new(width, height));
+            }
+        }
+    }
+}
+
+fn assert_geometry_is_contained(
+    geometry: &crate::ui::workbench::autolayout::WorkbenchShellGeometry,
+    size: ShellSizePx,
+) {
+    let epsilon = 0.01;
+    let check = |frame: ShellFrame| {
+        assert!(frame.x.is_finite() && frame.y.is_finite());
+        assert!(frame.width.is_finite() && frame.height.is_finite());
+        assert!(frame.width >= -epsilon && frame.height >= -epsilon);
+        assert!(frame.x >= -epsilon && frame.y >= -epsilon);
+        assert!(frame.right() <= size.width + epsilon);
+        assert!(frame.bottom() <= size.height + epsilon);
+    };
+    check(geometry.center_band_frame);
+    check(geometry.status_bar_frame);
+    check(geometry.viewport_content_frame);
+    for frame in geometry
+        .region_frames
+        .values()
+        .chain(geometry.splitter_frames.values())
+    {
+        check(*frame);
+    }
+    for frame in geometry.floating_window_frames.values() {
+        check(*frame);
+    }
+}

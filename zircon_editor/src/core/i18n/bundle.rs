@@ -1,5 +1,5 @@
 use std::borrow::Borrow;
-use std::collections::BTreeMap;
+use std::collections::{btree_map::Entry, BTreeMap};
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
 
@@ -117,23 +117,32 @@ impl EditorLocalizationBundle {
         let mut locales = BTreeMap::new();
         for (locale, translations) in locale_maps {
             let locale = EditorLocale::parse(locale).map_err(|error| error.to_string())?;
-            if locales.contains_key(&locale) {
-                return Err(EditorI18nError::DuplicateLocale(locale.to_string()).to_string());
-            }
-            if translations.is_empty() {
-                return Err(format!(
-                    "editor localization bundle `{id}` locale `{locale}` must provide at least one translation"
-                ));
-            }
-            let mut validated = BTreeMap::new();
-            for (key, value) in translations {
-                let key = EditorLocalizationKey::parse(key)?;
-                if value.trim().is_empty() {
-                    return Err(EditorI18nError::EmptyTranslation(key.to_string()).to_string());
+            match locales.entry(locale) {
+                Entry::Occupied(entry) => {
+                    return Err(
+                        EditorI18nError::DuplicateLocale(entry.key().to_string()).to_string()
+                    );
                 }
-                validated.insert(key, Arc::from(value));
+                Entry::Vacant(entry) => {
+                    if translations.is_empty() {
+                        return Err(format!(
+                            "editor localization bundle `{id}` locale `{}` must provide at least one translation",
+                            entry.key()
+                        ));
+                    }
+                    let mut validated = BTreeMap::new();
+                    for (key, value) in translations {
+                        let key = EditorLocalizationKey::parse(key)?;
+                        if value.trim().is_empty() {
+                            return Err(
+                                EditorI18nError::EmptyTranslation(key.to_string()).to_string()
+                            );
+                        }
+                        validated.insert(key, Arc::from(value));
+                    }
+                    entry.insert(validated);
+                }
             }
-            locales.insert(locale, validated);
         }
         Ok(Self {
             id,
@@ -178,55 +187,5 @@ pub(super) fn validate_translation_key(key: &str) -> Result<(), EditorI18nError>
 }
 
 #[cfg(test)]
-mod tests {
-    use std::collections::BTreeMap;
-
-    use super::EditorLocalizationBundle;
-    use crate::core::i18n::EditorLocale;
-
-    #[test]
-    fn bundle_normalizes_locales_and_rejects_invalid_resources() {
-        let bundle = EditorLocalizationBundle::from_locale_maps(
-            "fixture.editor",
-            BTreeMap::from([(
-                "zh-cn".to_string(),
-                BTreeMap::from([("settings.fixture.label".to_string(), "示例".to_string())]),
-            )]),
-        )
-        .expect("valid plugin bundle should be accepted");
-
-        assert_eq!(
-            bundle
-                .translation(
-                    &EditorLocale::parse("zh-CN").unwrap(),
-                    "settings.fixture.label"
-                )
-                .as_deref(),
-            Some("示例")
-        );
-        assert!(
-            EditorLocalizationBundle::from_locale_maps(
-                "fixture.editor",
-                BTreeMap::from([("en".to_string(), BTreeMap::new())]),
-            )
-            .is_err()
-        );
-        assert!(
-            EditorLocalizationBundle::from_locale_maps(
-                "fixture.editor",
-                BTreeMap::from([
-                    (
-                        "zh-CN".to_string(),
-                        BTreeMap::from([("plugin.fixture.label".to_string(), "甲".to_string())]),
-                    ),
-                    (
-                        "zh-cn".to_string(),
-                        BTreeMap::from([("plugin.fixture.label".to_string(), "乙".to_string())]),
-                    ),
-                ]),
-            )
-            .is_err(),
-            "locale aliases that normalize to one identity must not overwrite each other"
-        );
-    }
-}
+#[path = "tests/bundle.rs"]
+mod tests;

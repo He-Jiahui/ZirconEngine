@@ -399,4 +399,33 @@ Authoring service先对所有目标解析path、检查共同schema/权限/依赖
 - Curve editor依赖Editor07共享curve/timeline基础；Asset picker依赖Editor04 authoritative catalog/reference；component topology依赖Editor03 scene command owner。
 - 实施前必须重读本轮隔离的dirty route/publication/adapter文件，并核对其他Session是否已改变payload或invalidation合同。
 
-本切片只完成静态review与重构设计，没有修改production代码，也没有声明Engine/Editor整体review完成。下一Editor切片继续审plugin UX/authoring与Play viewport/runtime bridge；Inspector实现应在用户后续授权进入代码修正阶段后，按M0-M5自底向上执行。
+本报告主体只完成静态review与重构设计，没有声明Engine/Editor整体review完成；
+2026-09-19的Editor805 follow-up仅修改空选择命令边界，且不关闭M0-M5中的
+Inspector authoring correctness工作。下一Editor切片继续审plugin UX/authoring与Play
+viewport/runtime bridge；Inspector实现仍应按M0-M5自底向上执行。
+
+### 2026-09-19 Editor805 follow-up
+
+在不触碰 Inspector M0 的 changed-property/per-target authority 之前，先收口一个
+独立的空输入热路：`delete_selected` 与 `apply_inspector_changes` 现在在拥有选择
+快照前检查 active selection 是否为空。空选择分别保留原有 `Nothing selected` 返回和
+`InspectorEditError::NoSelection` 错误；`apply_inspector_changes` 的既有准备步骤仍在
+该检查之前执行。非空选择仍走原有 owned ID vector 与事务路径。源合同/模型为 `4/4`
+GREEN；该切片只减少无效 collection path，不关闭本报告的 Inspector 数据正确性或
+schema/session 里程碑。详见 [`Editor805 empty-selection fast path`](05/2026-09-19-empty-selection-fast-path.md)
+与 Astra [`Editor805`](../../astra/features/editor/805-empty-selection-fast-path.md)。
+
+### 2026-09-18 Editor806 follow-up
+
+`apply_inspector_changes` now lazily reserves four command slots per selected
+node when the first effective command is admitted. The bound covers only the
+fixed Name/Parent/Translation/Scale updates; dynamic component updates still
+append through the original path, while no-op Apply performs no command-buffer
+reservation.
+The empty-selection guard remains before both target materialization and any
+reservation. The source/model contract is `4/4` with a deterministic
+1,024-target `4,096`-slot / zero-modeled-growth model. This is an allocation-
+shape slice and does not close M0-M5 changed-path, mixed-value, per-target, or
+Inspector session authority. See [`Editor806 Inspector command
+capacity`](05/2026-09-18-inspector-command-capacity.md) and Astra
+[`Editor806`](../../astra/features/editor/806-inspector-command-capacity.md).

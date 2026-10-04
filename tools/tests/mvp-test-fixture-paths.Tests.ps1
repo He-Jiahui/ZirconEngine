@@ -1,3 +1,4 @@
+# 托管测试夹具在准许的工件根下按进程隔离并由租约治理；此独立脚本验证创建、清理、兄弟夹具保留及 junction 外部目标不被误删。
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
@@ -50,8 +51,8 @@ try {
         ($fixturePathsSource -match 'zircon-session\.ps1' -and $fixturePathsSource -match 'fixture-release') `
         'MVP fixture paths must release its Coordinator-managed artifact fixture lease after physical cleanup.'
     Assert-True `
-        ($fixtureRoot -match '^[D-F]:\\ZirconBuilds\\mvp-test-fixtures-[1-9][0-9]*\\paths-contract-[0-9a-f]{32}$') `
-        "MVP fixture root '$fixtureRoot' is outside the approved D/E/F ZirconBuilds test root."
+        ($fixtureRoot -match '^[D-F]:\\cargo-targets\\mvp-test-fixtures-[1-9][0-9]*\\paths-contract-[0-9a-f]{32}$') `
+        "MVP fixture root '$fixtureRoot' is outside the approved D/E/F cargo-targets test root."
     Assert-True (Test-Path -LiteralPath $fixtureRoot -PathType Container) 'MVP fixture root was not created.'
     $activeAudit = ((@(& $coordinatorScript artifact audit -Json) -join "`n") | ConvertFrom-Json)
     $activeOverlap = @(

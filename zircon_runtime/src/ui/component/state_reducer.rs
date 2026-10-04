@@ -15,6 +15,7 @@ mod overlay;
 mod reference;
 mod selection;
 mod slider;
+mod state_model;
 mod table;
 mod text_input;
 mod text_search;
@@ -22,6 +23,11 @@ mod toast;
 mod tree_view;
 mod windowing;
 mod world;
+
+pub use state_model::{
+    CatalogNavigation, CommandCatalog, TableIndex, TableSortResult, TreeIndex, TreeRowDelta,
+    UiComponentStateChange, UiComponentStateModel, UiComponentStatePatch,
+};
 
 pub fn apply_component_event(
     state: &mut UiComponentState,

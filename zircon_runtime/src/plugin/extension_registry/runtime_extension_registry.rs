@@ -14,6 +14,7 @@ use crate::plugin::bridge::{FrozenBridgeTable, InterfaceExport, InterfaceImport}
 use crate::plugin::PluginShaderModuleSource;
 #[cfg(feature = "ui")]
 use crate::plugin::UiComponentDescriptor;
+use crate::scene::world::SceneComponentSerializer;
 use crate::{plugin::PluginEventCatalogManifest, plugin::PluginOptionManifest};
 use std::any::TypeId;
 
@@ -29,9 +30,10 @@ mod owner_revocation;
 use owner_revocation::OwnerRevocationListener;
 
 #[cfg(test)]
-#[path = "runtime_extension_registry/tests.rs"]
+#[path = "runtime_extension_registry/tests/cases.rs"]
 mod tests;
 
+/// 插件目录合并的可撤销贡献集合；冻结表供运行期读取，后续注册会开启新暂存阶段。
 #[derive(Clone, Debug, Default)]
 pub struct RuntimeExtensionRegistry {
     pub(super) plugin_modules: PluginModuleInterner,
@@ -67,6 +69,8 @@ pub struct RuntimeExtensionRegistry {
     pub(super) virtual_geometry_runtime_providers:
         TypedExtensionPoint<String, VirtualGeometryRuntimeProviderRegistration>,
     pub(super) components: TypedExtensionPoint<String, ComponentTypeDescriptor>,
+    /// Owner-qualified scene callbacks staged by plugin activation and applied at project open.
+    pub(super) scene_component_codecs: Vec<(PluginModuleId, SceneComponentSerializer)>,
     #[cfg(feature = "ui")]
     pub(super) ui_components: TypedExtensionPoint<String, UiComponentDescriptor>,
     pub(super) plugin_options: TypedExtensionPoint<String, PluginOptionManifest>,
@@ -74,6 +78,9 @@ pub struct RuntimeExtensionRegistry {
     pub(super) asset_importers: AssetImporterRegistry,
     pub(super) asset_importers_finalized: bool,
     owner_revocation_listeners: Vec<OwnerRevocationListener>,
+    /// Owners whose callback cleanup panicked. Their failed listeners stay retained so the
+    /// owner can be retried after external state has been repaired.
+    owner_revocation_failures: Vec<(PluginModuleId, usize)>,
 }
 
 impl RuntimeExtensionRegistry {
@@ -88,6 +95,47 @@ impl RuntimeExtensionRegistry {
     ) {
         self.owner_revocation_listeners
             .push(OwnerRevocationListener::new(owner, callback));
+    }
+
+    pub(in crate::plugin) fn project_owner_revocation_listeners_to(
+        &self,
+        source_owner: PluginModuleId,
+        target: &mut Self,
+        target_owner: PluginModuleId,
+    ) {
+        for listener in &self.owner_revocation_listeners {
+            if listener.owner() == source_owner {
+                let callback = listener.callback();
+                target
+                    .owner_revocation_listeners
+                    .push(OwnerRevocationListener::new(target_owner, move |_| {
+                        callback(source_owner)
+                    }));
+            }
+        }
+    }
+
+    pub(in crate::plugin) fn scene_component_codecs(
+        &self,
+    ) -> impl Iterator<Item = (PluginModuleId, SceneComponentSerializer)> + '_ {
+        self.scene_component_codecs.iter().copied()
+    }
+
+    pub(crate) fn scene_component_codec_owners(&self) -> impl Iterator<Item = PluginModuleId> + '_ {
+        self.scene_component_codecs.iter().map(|(owner, _)| *owner)
+    }
+
+    pub(in crate::plugin) fn owner_revocation_listener_owners(
+        &self,
+    ) -> impl Iterator<Item = PluginModuleId> + '_ {
+        self.owner_revocation_listeners
+            .iter()
+            .map(OwnerRevocationListener::owner)
+    }
+
+    /// Callback failures remain visible for deterministic cleanup/retry inspection.
+    pub fn owner_revocation_failures(&self) -> &[(PluginModuleId, usize)] {
+        &self.owner_revocation_failures
     }
 
     /// Finalizes every extension family after catalog validation and merge.
@@ -156,6 +204,7 @@ impl RuntimeExtensionRegistry {
         finalized
     }
 
+    /// 枚举此目录内某 owner 的贡献，供卸载前预览及跨家族一致性核对。
     pub fn ownership_for(&self, owner: PluginModuleId) -> ExtensionOwnership {
         let asset_importers = self
             .plugin_modules
@@ -216,6 +265,7 @@ impl RuntimeExtensionRegistry {
         }
     }
 
+    /// 在插件代码卸载前撤销贡献：先停用旧桥表并通知外部注册家族，再退役逻辑槽位。
     pub fn revoke_owner_registrations(&mut self, owner: PluginModuleId) -> ExtensionOwnership {
         let bridge_was_finalized = self.bridge_table.is_some();
         self.unbind_interface_imports_owned_by(owner);
@@ -223,11 +273,29 @@ impl RuntimeExtensionRegistry {
             table.deactivate_owner(owner);
         }
         self.invalidate_bridge_table();
-        for listener in &self.owner_revocation_listeners {
-            listener.notify(owner);
+        // TODO: [CR-PLUGIN-BOUNDARY-0106] 确认撤销回调的 panic 策略；任一插件回调 panic 会跳过后续监听器及全部注册行移除；下一步覆盖回调 panic 后的卸载状态与重试。
+        // Isolate callback panics from deterministic owner-row removal. Failed listeners are
+        // retained and counted so an explicit second revoke can retry external cleanup.
+        self.owner_revocation_failures
+            .retain(|(failed_owner, _)| *failed_owner != owner);
+        let mut failed_listener_count = 0;
+        self.owner_revocation_listeners.retain(|listener| {
+            if listener.owner() != owner {
+                return true;
+            }
+            if listener.notify_catching_panic(owner) {
+                false
+            } else {
+                failed_listener_count += 1;
+                true
+            }
+        });
+        if failed_listener_count != 0 {
+            self.owner_revocation_failures
+                .push((owner, failed_listener_count));
         }
-        self.owner_revocation_listeners
-            .retain(|listener| listener.owner() != owner);
+        self.scene_component_codecs
+            .retain(|(codec_owner, _)| *codec_owner != owner);
 
         let plugin_id = self
             .plugin_modules
@@ -285,21 +353,11 @@ impl RuntimeExtensionRegistry {
     }
 }
 
+// 资产导入器仍按包 ID 建索引；仅规范的运行时模块名能映射到包级撤销。
 fn plugin_id_from_module_name(module_name: &str) -> Option<&str> {
     module_name.strip_suffix(".runtime")
 }
 
 #[cfg(test)]
-mod plugin_id_tests {
-    use super::plugin_id_from_module_name;
-
-    #[test]
-    fn plugin_id_from_module_name_borrows_the_prefix() {
-        let module_name = String::from("weather.runtime");
-        let plugin_id = plugin_id_from_module_name(&module_name)
-            .expect("runtime module name should expose its plugin id");
-
-        assert_eq!(plugin_id, "weather");
-        assert_eq!(plugin_id.as_ptr(), module_name.as_ptr());
-    }
-}
+#[path = "tests/runtime_extension_registry_plugin_id_tests.rs"]
+mod plugin_id_tests;

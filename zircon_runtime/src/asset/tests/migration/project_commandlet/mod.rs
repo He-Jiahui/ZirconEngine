@@ -8,6 +8,8 @@ mod transaction_recovery;
 
 use std::fs;
 
+use crate::asset::project::ProjectPaths;
+
 use crate::asset::migration::{
     migrate_project_assets, migrate_project_assets_with_commit_fault,
     migrate_project_assets_with_commit_window_fault,

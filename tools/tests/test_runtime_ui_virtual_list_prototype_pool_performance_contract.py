@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SURFACE = ROOT / "zircon_runtime/src/ui/surface/surface.rs"
 PROTOTYPE_POOL = ROOT / "zircon_runtime/src/ui/surface/virtual_list_prototype_pool.rs"
 
-
+# 检查表面原型池不序列化且只按物理槽位容量实体化，同时保持蓝图子树拓扑。
 class RuntimeUiVirtualListPrototypePoolPerformanceContractTests(unittest.TestCase):
     def test_surface_owns_a_nonserialized_prototype_pool(self) -> None:
         surface = SURFACE.read_text(encoding="utf-8")

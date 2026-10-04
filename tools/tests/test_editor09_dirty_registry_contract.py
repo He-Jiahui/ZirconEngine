@@ -40,6 +40,19 @@ class Editor09DirtyRegistryContractTests(unittest.TestCase):
                 "DirtyExternalEffectRevision",
                 "DirtyRegistry",
                 "DirtyRegistryError",
+                "SaveDirtyViewCandidate",
+                "SaveDirtyViewCompletion",
+                "SaveDirtyViewExecutor",
+                "SaveDirtyViewFailure",
+                "SaveDirtyViewFailureKind",
+                "SaveDirtyViewIntent",
+                "SaveDirtyViewOutcomeStatus",
+                "SaveDirtyViewsAdmissionError",
+                "SaveDirtyViewsApplyError",
+                "SaveDirtyViewsJobAdapter",
+                "SaveDirtyViewsPreflightReport",
+                "SaveDirtyViewsRequest",
+                "SaveDirtyViewsResult",
             },
         )
 
@@ -68,7 +81,7 @@ class Editor09DirtyRegistryContractTests(unittest.TestCase):
         self.assertIn("DirtyRegistry", consumer)
 
     def test_owner_is_folder_backed_and_responsibility_split(self) -> None:
-        for name in ("mod.rs", "error.rs", "external_effect_id.rs", "registry.rs", "tests.rs"):
+        for name in ("mod.rs", "error.rs", "external_effect_id.rs", "registry.rs", "tests/cases.rs"):
             self.assertTrue((DIRTY_ROOT / name).is_file(), name)
         facade = read("zircon_editor/src/core/asset/dirty/mod.rs")
         self.assertIn("mod error;", facade)
@@ -137,7 +150,7 @@ class Editor09DirtyRegistryContractTests(unittest.TestCase):
         self.assertIn("require_document", registry)
 
     def test_rust_contract_covers_saved_top_external_effects_and_lifecycle(self) -> None:
-        tests = read("zircon_editor/src/core/asset/dirty/tests.rs")
+        tests = read("zircon_editor/src/core/asset/dirty/tests/cases.rs")
         for test_name in (
             "saved_top_is_queried_live_without_registry_dirty_mutations",
             "external_effects_are_typed_sorted_and_independently_clearable",

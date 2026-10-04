@@ -35,6 +35,7 @@ countValue(state: hand.CardHandState, value: uint): int {
     return count;
 }
 
+// 同时验证牌张守恒和槽位换代：后者保证重入队玩家不会被旧退队句柄移除。
 contractTest(): int {
     if (contract.deckSize(true) != 20 || contract.cardMaxValue(true) != 10 ||
         contract.startingHandSize(true) != 4 || contract.roundsToWin(true) != 2 ||

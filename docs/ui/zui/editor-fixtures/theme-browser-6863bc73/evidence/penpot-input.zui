@@ -1,0 +1,1054 @@
+penpot_dependency_sources = [ "zircon_editor/src/tests/fixtures/ui_zui/theme/editor_base.zui", "zircon_editor/src/tests/fixtures/ui_zui/theme/editor_material.zui", "zircon_editor/src/tests/fixtures/ui_zui/editor/editor_widgets.zui" ]
+penpot_original_source = "stylesheets = []\n\n[asset]\nkind = \"layout\"\nid = \"editor.theme_browser\"\nversion = 1\ndisplay_name = \"Theme Browser\"\n\n[imports]\nwidgets = [\n    \"res://ui/editor/editor_widgets.zui#EditorToolbar\",\n    \"res://ui/editor/editor_widgets.zui#EditorToolbarButton\",\n    \"res://ui/editor/editor_widgets.zui#EditorSectionCard\",\n]\nstyles = [\"res://ui/theme/editor_base.zui\"]\n\n[tokens]\n\n[root]\nnode_id = \"theme_browser_root\"\nkind = \"native\"\ntype = \"VerticalBox\"\ncontrol_id = \"ThemeBrowserRoot\"\nclasses = [\"editor-shell\"]\nbindings = []\n\n[root.params]\n\n[root.props]\n\n[root.layout.container]\ngap = 10.0\nkind = \"VerticalBox\"\n\n[root.layout.height]\nstretch = \"Stretch\"\n\n[root.layout.width]\nstretch = \"Stretch\"\n\n[root.style_overrides.self]\n\n[root.style_overrides.slot]\n\n[[root.children]]\n\n[root.children.slot]\n\n[root.children.node]\nnode_id = \"toolbar\"\nkind = \"reference\"\ncomponent_ref = \"res://ui/editor/editor_widgets.zui#EditorToolbar\"\ncontrol_id = \"ThemeBrowserToolbar\"\nclasses = []\nbindings = []\n\n[root.children.node.params]\n\n[root.children.node.props]\n\n[root.children.node.style_overrides.self]\n\n[root.children.node.style_overrides.slot]\n\n[[root.children.node.children]]\nmount = \"actions\"\n\n[root.children.node.children.slot]\n\n[root.children.node.children.node]\nnode_id = \"new_theme_button\"\nkind = \"reference\"\ncomponent_ref = \"res://ui/editor/editor_widgets.zui#EditorToolbarButton\"\ncontrol_id = \"CreateTheme\"\nclasses = [\"toolbar-primary\"]\nbindings = []\nchildren = []\n\n[root.children.node.children.node.params]\nicon = \"add-outline\"\nlabel = \"New Theme\"\n\n[root.children.node.children.node.props]\n\n[root.children.node.children.node.style_overrides.self]\n\n[root.children.node.children.node.style_overrides.slot]\n\n[[root.children.node.children]]\nmount = \"actions\"\n\n[root.children.node.children.slot]\n\n[root.children.node.children.node]\nnode_id = \"detach_theme_button\"\nkind = \"reference\"\ncomponent_ref = \"res://ui/editor/editor_widgets.zui#EditorToolbarButton\"\ncontrol_id = \"DetachTheme\"\nclasses = []\nbindings = []\nchildren = []\n\n[root.children.node.children.node.params]\nicon = \"git-branch-outline\"\nlabel = \"Detach Import\"\n\n[root.children.node.children.node.props]\n\n[root.children.node.children.node.style_overrides.self]\n\n[root.children.node.children.node.style_overrides.slot]\n\n[[root.children]]\n\n[root.children.slot]\n\n[root.children.node]\nnode_id = \"content\"\nkind = \"native\"\ntype = \"HorizontalBox\"\ncontrol_id = \"ThemeBrowserContent\"\nclasses = []\nbindings = []\n\n[root.children.node.params]\n\n[root.children.node.props]\n\n[root.children.node.layout]\nclip = true\ninput_policy = \"Receive\"\n\n[root.children.node.layout.container]\ngap = 10.0\nkind = \"ScrollableBox\"\naxis = \"Horizontal\"\nscrollbar_visibility = \"Auto\"\n\n[root.children.node.layout.height]\nstretch = \"Stretch\"\n\n[root.children.node.layout.width]\nmin = 0.0\nstretch = \"Stretch\"\n\n[root.children.node.style_overrides.self]\n\n[root.children.node.style_overrides.slot]\n\n[[root.children.node.children]]\n\n[root.children.node.children.slot.layout.width]\nmax = 320.0\nmin = 240.0\npreferred = 260.0\nstretch = \"Fixed\"\n\n[root.children.node.children.node]\nnode_id = \"theme_sources_panel\"\nkind = \"reference\"\ncomponent_ref = \"res://ui/editor/editor_widgets.zui#EditorSectionCard\"\ncontrol_id = \"ThemeSourcesPanel\"\nclasses = []\nbindings = []\n\n[root.children.node.children.node.params]\ntitle = \"Theme Sources\"\n\n[root.children.node.children.node.props]\n\n[root.children.node.children.node.style_overrides.self]\n\n[root.children.node.children.node.style_overrides.slot]\n\n[[root.children.node.children.node.children]]\nmount = \"content\"\n\n[root.children.node.children.node.children.slot]\n\n[root.children.node.children.node.children.node]\nnode_id = \"theme_sources_label\"\nkind = \"native\"\ntype = \"Label\"\ncontrol_id = \"ThemeSourcesLabel\"\nclasses = []\nbindings = []\nchildren = []\n\n[root.children.node.children.node.children.node.params]\n\n[root.children.node.children.node.children.node.props]\ntext = \"Local Theme, editor_base.zui, docking.zui\"\n\n[root.children.node.children.node.children.node.style_overrides.self]\n\n[root.children.node.children.node.children.node.style_overrides.slot]\n\n[[root.children.node.children]]\n\n[root.children.node.children.slot]\n\n[root.children.node.children.slot.layout.width]\nmax = 360.0\nmin = 180.0\npreferred = 320.0\nstretch = \"Fixed\"\n\n[root.children.node.children.node]\nnode_id = \"compare_panel\"\nkind = \"reference\"\ncomponent_ref = \"res://ui/editor/editor_widgets.zui#EditorSectionCard\"\ncontrol_id = \"ThemeComparePanel\"\nclasses = []\nbindings = []\n\n[root.children.node.children.node.params]\ntitle = \"Compare\"\n\n[root.children.node.children.node.props]\n\n[root.children.node.children.node.style_overrides.self]\n\n[root.children.node.children.node.style_overrides.slot]\n\n[[root.children.node.children.node.children]]\nmount = \"content\"\n\n[root.children.node.children.node.children.slot]\n\n[root.children.node.children.node.children.node]\nnode_id = \"compare_label\"\nkind = \"native\"\ntype = \"Label\"\ncontrol_id = \"ThemeCompareLabel\"\nclasses = []\nbindings = []\nchildren = []\n\n[root.children.node.children.node.children.node.params]\n\n[root.children.node.children.node.children.node.props]\ntext = \"Overrides, inherited tokens, rule diffs\"\n\n[root.children.node.children.node.children.node.style_overrides.self]\n\n[root.children.node.children.node.children.node.style_overrides.slot]\n\n[[root.children.node.children]]\n\n[root.children.node.children.slot.layout.width]\nmax = 360.0\nmin = 280.0\npreferred = 320.0\nstretch = \"Fixed\"\n\n[root.children.node.children.node]\nnode_id = \"merge_preview_panel\"\nkind = \"reference\"\ncomponent_ref = \"res://ui/editor/editor_widgets.zui#EditorSectionCard\"\ncontrol_id = \"ThemeMergePreviewPanel\"\nclasses = []\nbindings = []\n\n[root.children.node.children.node.params]\ntitle = \"Merge Preview\"\n\n[root.children.node.children.node.props]\n\n[root.children.node.children.node.style_overrides.self]\n\n[root.children.node.children.node.style_overrides.slot]\n\n[[root.children.node.children.node.children]]\nmount = \"content\"\n\n[root.children.node.children.node.children.slot]\n\n[root.children.node.children.node.children.node]\nnode_id = \"merge_preview_label\"\nkind = \"native\"\ntype = \"Label\"\ncontrol_id = \"ThemeMergePreviewLabel\"\nclasses = []\nbindings = []\nchildren = []\n\n[root.children.node.children.node.children.node.params]\n\n[root.children.node.children.node.children.node.props]\ntext = \"Detach / Clone imported themes into the local layer\"\n\n[root.children.node.children.node.children.node.style_overrides.self]\n\n[root.children.node.children.node.children.node.style_overrides.slot]\n\n[components]\n"
+
+[[stylesheets]]
+id = "editor_material"
+
+[[stylesheets.rules]]
+selector = ".showcase-shell"
+
+[stylesheets.rules.set.self.background]
+color = "$field_bg"
+
+[[stylesheets.rules]]
+selector = ".showcase-panel"
+
+[stylesheets.rules.set.self.background]
+color = "$panel_bg"
+
+[stylesheets.rules.set.self.border]
+color = "$border"
+width = "$material_border_width"
+radius = "$material_radius_surface"
+
+[[stylesheets.rules]]
+selector = ".showcase-field"
+
+[stylesheets.rules.set.self.background]
+color = "$panel_bg_soft"
+
+[stylesheets.rules.set.self.border]
+color = "$border"
+width = "$material_border_width"
+radius = "$material_radius_small"
+
+[[stylesheets.rules]]
+selector = ".showcase-title"
+
+[stylesheets.rules.set.self.foreground]
+color = "$text"
+
+[stylesheets.rules.set.self.font]
+size = "$material_font_size_title"
+
+[[stylesheets.rules]]
+selector = ".showcase-muted"
+
+[stylesheets.rules.set.self.foreground]
+color = "$muted"
+
+[stylesheets.rules.set.self.font]
+size = "$material_font_size_meta"
+
+[[stylesheets.rules]]
+selector = ".material-state-layer"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-control"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-button"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_hover"
+
+[[stylesheets.rules]]
+selector = ".material-button-primary"
+
+[stylesheets.rules.set.self.background]
+color = "$material_color_primary"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_color_on_primary"
+
+[stylesheets.rules.set.self.border]
+color = "$material_focus_ring"
+width = "$material_focus_ring_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-button-base"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-icon-button"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[[stylesheets.rules]]
+selector = ".material-checkbox-row"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[[stylesheets.rules]]
+selector = ".material-outlined-field"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-slider-field"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[[stylesheets.rules]]
+selector = ".material-ripple"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_hover"
+
+[stylesheets.rules.set.self.border]
+color = "$material_surface_hover"
+width = "$material_border_width_none"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-list-item"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-table-row"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-text-button"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_accent"
+
+[stylesheets.rules.set.self.border]
+color = "$material_surface"
+width = "$material_border_width_none"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-check-box"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-combo-box"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-popup-frame"
+
+[stylesheets.rules.set.self.background]
+color = "$material_popup"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-date-picker-popup"
+
+[stylesheets.rules.set.self.background]
+color = "$material_popup"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-time-picker-popup"
+
+[stylesheets.rules.set.self.background]
+color = "$material_popup"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-group-box"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-line-edit"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-menu-bar"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-menu-bar-item"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-menu-frame"
+
+[stylesheets.rules.set.self.background]
+color = "$material_popup"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-menu-item"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-progress-indicator"
+
+[stylesheets.rules.set.self.background]
+color = "$material_track"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_accent"
+
+[[stylesheets.rules]]
+selector = ".material-scroll-view"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-slider"
+
+[stylesheets.rules.set.self.background]
+color = "$material_track"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_accent"
+
+[[stylesheets.rules]]
+selector = ".material-spin-box"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-spinner"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_accent"
+
+[stylesheets.rules.set.self.border]
+color = "$material_surface"
+width = "$material_border_width_none"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-switch"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_accent"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_large"
+
+[[stylesheets.rules]]
+selector = ".material-standard-table-view"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-tab-widget"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-tab-widget-impl"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-tab-bar"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_control"
+
+[[stylesheets.rules]]
+selector = ".material-tab-bar-horizontal"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[[stylesheets.rules]]
+selector = ".material-tab-bar-vertical"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[[stylesheets.rules]]
+selector = ".material-tab-impl"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.border]
+color = "$material_surface_inset"
+width = "$material_border_width_none"
+radius = "$material_radius_none"
+
+[[stylesheets.rules]]
+selector = ".material-text-edit"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[[stylesheets.rules]]
+selector = ".material-runtime-dialog"
+
+[stylesheets.rules.set.self.background]
+color = "$material_popup"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_medium"
+
+[[stylesheets.rules]]
+selector = ".material-runtime-hud"
+
+[stylesheets.rules.set.self.background]
+color = "$material_surface_inset"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.border]
+color = "$material_border"
+width = "$material_border_width"
+radius = "$material_radius_surface"
+
+[[stylesheets.rules]]
+selector = ".material-runtime-backdrop"
+
+[stylesheets.rules.set.self.background]
+color = "$material_color_scrim"
+
+[[stylesheets.rules]]
+selector = ".material-title"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.font]
+size = "$material_font_size_title"
+
+[[stylesheets.rules]]
+selector = ".material-body"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text"
+
+[stylesheets.rules.set.self.font]
+size = "$material_font_size_body"
+
+[[stylesheets.rules]]
+selector = ".material-meta"
+
+[stylesheets.rules.set.self.foreground]
+color = "$material_text_muted"
+
+[stylesheets.rules.set.self.font]
+size = "$material_font_size_meta"
+
+[[stylesheets]]
+id = "editor_base"
+
+[[stylesheets.rules]]
+selector = ".editor-shell"
+
+[stylesheets.rules.set.self.background]
+color = "$shell_bg"
+
+[stylesheets.rules.set.slot]
+[[stylesheets.rules]]
+selector = ".panel"
+
+[stylesheets.rules.set.self.background]
+color = "$panel_bg"
+
+[stylesheets.rules.set.slot]
+[[stylesheets.rules]]
+selector = ".section-title"
+
+[stylesheets.rules.set.self]
+text = "$title"
+
+[stylesheets.rules.set.slot]
+[[stylesheets.rules]]
+selector = ".toolbar > Button.toolbar-primary"
+
+[stylesheets.rules.set.self.background]
+color = "$accent"
+
+[stylesheets.rules.set.slot]
+[[stylesheets.rules]]
+selector = "#DesignerLabel"
+
+[stylesheets.rules.set.self]
+text = "Canvas Preview"
+
+[stylesheets.rules.set.slot]
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+accent = "#4d89ff"
+panel_bg = "#20252d"
+panel_bg_soft = "#2f4650"
+field_bg = "#12181e"
+border = "#4b626d"
+text = "#e6f1f4"
+muted = "#8fa3ac"
+warning = "#f2b84b"
+error = "#ef7066"
+material_surface = "#202830"
+material_surface_inset = "#12181e"
+material_surface_hover = "#2f4650"
+material_surface_pressed = "#103c4a"
+material_surface_selected = "#0f6574"
+material_surface_disabled = "#191d22"
+material_accent = "#35c7d0"
+material_accent_soft = "#0f6574"
+material_border = "#4b626d"
+material_text = "#e6f1f4"
+material_text_muted = "#8fa3ac"
+material_text_disabled = "#58656c"
+material_warning = "#f2b84b"
+material_error = "#ef7066"
+material_success = "#5cbe7a"
+material_info = "#63b3ff"
+material_warning_container = "#463112"
+material_error_container = "#4c2427"
+material_success_container = "#1d472f"
+material_info_container = "#18395b"
+material_popup = "#0e1217"
+material_track = "#2a343c"
+material_focus_ring = "#80eaff"
+material_primary = "#35c7d0"
+material_on_primary = "#081416"
+material_surface_container = "#202830"
+material_surface_container_low = "#161e25"
+material_surface_container_high = "#2f4650"
+material_outline = "#4b626d"
+material_outline_variant = "#334852"
+material_on_error = "#fff0ee"
+material_on_success = "#07140c"
+material_on_info = "#07101a"
+material_shadow = "#00000066"
+material_shadow_soft = "#00000033"
+material_scrim = "#0b1020cc"
+material_inverse_surface = "#d2dceb"
+material_inverse_on_surface = "#171a20"
+material_color_primary = "$material_primary"
+material_color_on_primary = "$material_on_primary"
+material_color_surface = "$material_surface"
+material_color_surface_container = "$material_surface_container"
+material_color_surface_container_low = "$material_surface_container_low"
+material_color_surface_container_high = "$material_surface_container_high"
+material_color_on_surface = "$material_text"
+material_color_on_surface_variant = "$material_text_muted"
+material_color_outline = "$material_outline"
+material_color_outline_variant = "$material_outline_variant"
+material_color_error = "$material_error"
+material_color_on_error = "$material_on_error"
+material_color_success = "$material_success"
+material_color_on_success = "$material_on_success"
+material_color_info = "$material_info"
+material_color_on_info = "$material_on_info"
+material_color_shadow = "$material_shadow"
+material_color_scrim = "$material_scrim"
+material_state_layer_opacity_hover = 0.12
+material_state_layer_opacity_focus = 0.18
+material_state_layer_opacity_pressed = 0.16
+material_state_layer_opacity_disabled = 0.38
+material_state_layer_opacity_dragged = 0.2
+material_state_layer_opacity_press = "$material_state_layer_opacity_pressed"
+material_state_layer_opacity_drag = "$material_state_layer_opacity_dragged"
+material_disabled_opacity = 0.38
+material_focus_ring_width = 2
+material_focus_ring_offset = 1
+material_elevation_level0 = 0
+material_elevation_level1 = 1
+material_elevation_level2 = 3
+material_radius_none = 0
+material_radius_control = 10
+material_radius_surface = 12
+material_radius_small = 8
+material_radius_medium = 12
+material_radius_large = 18
+material_radius_pill = 999
+material_border_width = 1
+material_border_width_none = 0
+material_density_compact_height = 32
+material_density_default_height = 40
+material_density_prominent_height = 56
+material_density_compact_control_height = "$material_density_compact_height"
+material_density_default_control_height = "$material_density_default_height"
+material_density_field_control_height = "$material_density_prominent_height"
+material_density_list_item_height = "$material_density_default_height"
+material_spacing_button_content_x = 12
+material_spacing_button_content_y = 6
+material_spacing_button_gap = 6
+material_spacing_field_content_x = 10
+material_spacing_field_content_y = 4
+material_spacing_list_item_content_x = 10
+material_spacing_list_item_gap = 6
+material_icon_size_button = 16
+material_icon_size_standard = 18
+material_font_size_body = 12
+material_font_size_meta = 11
+material_font_size_title = 15
+shell_bg = "#171a20"
+title = "#eef3ff"
+
+[asset]
+kind = "view"
+id = "editor.theme_browser"
+version = 2
+display_name = "Theme Browser"
+
+[root]
+node = "theme_browser_root"
+
+[nodes.theme_browser_root]
+component = "VerticalBox"
+control_id = "ThemeBrowserRoot"
+classes = [ "editor-shell" ]
+legacy_kind = "native"
+legacy_type = "VerticalBox"
+
+[nodes.theme_browser_root.params]
+[nodes.theme_browser_root.props]
+[nodes.theme_browser_root.layout.container]
+gap = 10
+kind = "VerticalBox"
+
+[nodes.theme_browser_root.layout.height]
+stretch = "Stretch"
+
+[nodes.theme_browser_root.layout.width]
+stretch = "Stretch"
+
+[nodes.theme_browser_root.style.self]
+[nodes.theme_browser_root.style.slot]
+[[nodes.theme_browser_root.children]]
+node = "toolbar"
+
+[nodes.theme_browser_root.children.slot]
+[[nodes.theme_browser_root.children]]
+node = "content"
+
+[nodes.theme_browser_root.children.slot]
+[nodes.toolbar]
+component = "HorizontalBox"
+classes = [ "toolbar" ]
+legacy_kind = "reference"
+legacy_type = "HorizontalBox"
+control_id = "ThemeBrowserToolbar"
+legacy_component_ref = "res://ui/editor/editor_widgets.zui#EditorToolbar"
+events = []
+penpot_prefab_source = "zircon_editor/src/tests/fixtures/ui_zui/editor/editor_widgets.zui#EditorToolbar"
+
+[nodes.toolbar.props]
+[nodes.toolbar.layout.container]
+gap = 8
+kind = "HorizontalBox"
+
+[nodes.toolbar.layout.height]
+max = 40
+min = 40
+preferred = 40
+stretch = "Fixed"
+
+[nodes.toolbar.layout.width]
+stretch = "Stretch"
+
+[nodes.toolbar.style.self]
+[nodes.toolbar.style.slot]
+[[nodes.toolbar.children]]
+node = "new_theme_button"
+
+[nodes.toolbar.children.slot]
+name = "actions"
+
+[nodes.toolbar.children.slot.layout]
+[[nodes.toolbar.children]]
+node = "detach_theme_button"
+
+[nodes.toolbar.children.slot]
+name = "actions"
+
+[nodes.toolbar.children.slot.layout]
+[nodes.toolbar.state]
+[nodes.toolbar.slots]
+[nodes.new_theme_button]
+component = "Button"
+classes = [ "toolbar-button", "toolbar-primary" ]
+legacy_kind = "reference"
+legacy_type = "Button"
+control_id = "CreateTheme"
+legacy_component_ref = "res://ui/editor/editor_widgets.zui#EditorToolbarButton"
+legacy_mount = "actions"
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/src/tests/fixtures/ui_zui/editor/editor_widgets.zui#EditorToolbarButton"
+
+[nodes.new_theme_button.props]
+icon = "add-outline"
+text = "New Theme"
+
+[nodes.new_theme_button.layout.height]
+max = 30
+min = 30
+preferred = 30
+stretch = "Fixed"
+
+[nodes.new_theme_button.layout.width]
+max = 144
+min = 112
+preferred = 112
+stretch = "Fixed"
+
+[nodes.new_theme_button.style.self]
+[nodes.new_theme_button.style.slot]
+[nodes.new_theme_button.state]
+[nodes.new_theme_button.slots]
+[nodes.detach_theme_button]
+component = "Button"
+classes = [ "toolbar-button" ]
+legacy_kind = "reference"
+legacy_type = "Button"
+control_id = "DetachTheme"
+legacy_component_ref = "res://ui/editor/editor_widgets.zui#EditorToolbarButton"
+legacy_mount = "actions"
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/src/tests/fixtures/ui_zui/editor/editor_widgets.zui#EditorToolbarButton"
+
+[nodes.detach_theme_button.props]
+icon = "git-branch-outline"
+text = "Detach Import"
+
+[nodes.detach_theme_button.layout.height]
+max = 30
+min = 30
+preferred = 30
+stretch = "Fixed"
+
+[nodes.detach_theme_button.layout.width]
+max = 144
+min = 112
+preferred = 112
+stretch = "Fixed"
+
+[nodes.detach_theme_button.style.self]
+[nodes.detach_theme_button.style.slot]
+[nodes.detach_theme_button.state]
+[nodes.detach_theme_button.slots]
+[nodes.content]
+component = "HorizontalBox"
+control_id = "ThemeBrowserContent"
+classes = []
+legacy_kind = "native"
+legacy_type = "HorizontalBox"
+
+[nodes.content.params]
+[nodes.content.props]
+[nodes.content.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.content.layout.container]
+gap = 10
+kind = "ScrollableBox"
+axis = "Horizontal"
+scrollbar_visibility = "Auto"
+
+[nodes.content.layout.height]
+stretch = "Stretch"
+
+[nodes.content.layout.width]
+min = 0
+stretch = "Stretch"
+
+[nodes.content.style.self]
+[nodes.content.style.slot]
+[[nodes.content.children]]
+node = "theme_sources_panel"
+
+[nodes.content.children.slot.layout.width]
+max = 320
+min = 240
+preferred = 260
+stretch = "Fixed"
+
+[[nodes.content.children]]
+node = "compare_panel"
+
+[nodes.content.children.slot.layout.width]
+max = 360
+min = 180
+preferred = 320
+stretch = "Fixed"
+
+[[nodes.content.children]]
+node = "merge_preview_panel"
+
+[nodes.content.children.slot.layout.width]
+max = 360
+min = 280
+preferred = 320
+stretch = "Fixed"
+
+[nodes.theme_sources_panel]
+component = "VerticalBox"
+classes = [ "panel", "section-card" ]
+legacy_kind = "reference"
+legacy_type = "VerticalBox"
+control_id = "ThemeSourcesPanel"
+legacy_component_ref = "res://ui/editor/editor_widgets.zui#EditorSectionCard"
+events = []
+penpot_prefab_source = "zircon_editor/src/tests/fixtures/ui_zui/editor/editor_widgets.zui#EditorSectionCard"
+
+[nodes.theme_sources_panel.props]
+[nodes.theme_sources_panel.layout.container]
+gap = 8
+kind = "VerticalBox"
+
+[nodes.theme_sources_panel.layout.height]
+stretch = "Stretch"
+
+[nodes.theme_sources_panel.layout.width]
+stretch = "Fixed"
+max = 320
+min = 240
+preferred = 260
+
+[nodes.theme_sources_panel.style.self]
+[nodes.theme_sources_panel.style.slot]
+[[nodes.theme_sources_panel.children]]
+node = "theme_sources_panel__section_title"
+
+[nodes.theme_sources_panel.children.slot]
+[[nodes.theme_sources_panel.children]]
+node = "theme_sources_label"
+
+[nodes.theme_sources_panel.children.slot]
+name = "content"
+
+[nodes.theme_sources_panel.children.slot.layout]
+[nodes.theme_sources_panel.state]
+[nodes.theme_sources_panel.slots]
+[nodes.theme_sources_label]
+component = "Label"
+control_id = "ThemeSourcesLabel"
+classes = []
+legacy_kind = "native"
+legacy_type = "Label"
+legacy_mount = "content"
+
+[nodes.theme_sources_label.params]
+[nodes.theme_sources_label.props]
+text = "Local Theme, editor_base.zui, docking.zui"
+
+[nodes.theme_sources_label.style.self]
+[nodes.theme_sources_label.style.slot]
+[nodes.compare_panel]
+component = "VerticalBox"
+classes = [ "panel", "section-card" ]
+legacy_kind = "reference"
+legacy_type = "VerticalBox"
+control_id = "ThemeComparePanel"
+legacy_component_ref = "res://ui/editor/editor_widgets.zui#EditorSectionCard"
+events = []
+penpot_prefab_source = "zircon_editor/src/tests/fixtures/ui_zui/editor/editor_widgets.zui#EditorSectionCard"
+
+[nodes.compare_panel.props]
+[nodes.compare_panel.layout.container]
+gap = 8
+kind = "VerticalBox"
+
+[nodes.compare_panel.layout.height]
+stretch = "Stretch"
+
+[nodes.compare_panel.layout.width]
+stretch = "Fixed"
+max = 360
+min = 180
+preferred = 320
+
+[nodes.compare_panel.style.self]
+[nodes.compare_panel.style.slot]
+[[nodes.compare_panel.children]]
+node = "compare_panel__section_title"
+
+[nodes.compare_panel.children.slot]
+[[nodes.compare_panel.children]]
+node = "compare_label"
+
+[nodes.compare_panel.children.slot]
+name = "content"
+
+[nodes.compare_panel.children.slot.layout]
+[nodes.compare_panel.state]
+[nodes.compare_panel.slots]
+[nodes.compare_label]
+component = "Label"
+control_id = "ThemeCompareLabel"
+classes = []
+legacy_kind = "native"
+legacy_type = "Label"
+legacy_mount = "content"
+
+[nodes.compare_label.params]
+[nodes.compare_label.props]
+text = "Overrides, inherited tokens, rule diffs"
+
+[nodes.compare_label.style.self]
+[nodes.compare_label.style.slot]
+[nodes.merge_preview_panel]
+component = "VerticalBox"
+classes = [ "panel", "section-card" ]
+legacy_kind = "reference"
+legacy_type = "VerticalBox"
+control_id = "ThemeMergePreviewPanel"
+legacy_component_ref = "res://ui/editor/editor_widgets.zui#EditorSectionCard"
+events = []
+penpot_prefab_source = "zircon_editor/src/tests/fixtures/ui_zui/editor/editor_widgets.zui#EditorSectionCard"
+
+[nodes.merge_preview_panel.props]
+[nodes.merge_preview_panel.layout.container]
+gap = 8
+kind = "VerticalBox"
+
+[nodes.merge_preview_panel.layout.height]
+stretch = "Stretch"
+
+[nodes.merge_preview_panel.layout.width]
+stretch = "Fixed"
+max = 360
+min = 280
+preferred = 320
+
+[nodes.merge_preview_panel.style.self]
+[nodes.merge_preview_panel.style.slot]
+[[nodes.merge_preview_panel.children]]
+node = "merge_preview_panel__section_title"
+
+[nodes.merge_preview_panel.children.slot]
+[[nodes.merge_preview_panel.children]]
+node = "merge_preview_label"
+
+[nodes.merge_preview_panel.children.slot]
+name = "content"
+
+[nodes.merge_preview_panel.children.slot.layout]
+[nodes.merge_preview_panel.state]
+[nodes.merge_preview_panel.slots]
+[nodes.merge_preview_label]
+component = "Label"
+control_id = "ThemeMergePreviewLabel"
+classes = []
+legacy_kind = "native"
+legacy_type = "Label"
+legacy_mount = "content"
+
+[nodes.merge_preview_label.params]
+[nodes.merge_preview_label.props]
+text = "Detach / Clone imported themes into the local layer"
+
+[nodes.merge_preview_label.style.self]
+[nodes.merge_preview_label.style.slot]
+[nodes.theme_sources_panel__section_title]
+component = "Label"
+classes = [ "section-title" ]
+legacy_kind = "native"
+legacy_type = "Label"
+
+[nodes.theme_sources_panel__section_title.props]
+text = "Theme Sources"
+
+[nodes.theme_sources_panel__section_title.style.self]
+[nodes.theme_sources_panel__section_title.style.slot]
+[nodes.compare_panel__section_title]
+component = "Label"
+classes = [ "section-title" ]
+legacy_kind = "native"
+legacy_type = "Label"
+
+[nodes.compare_panel__section_title.props]
+text = "Compare"
+
+[nodes.compare_panel__section_title.style.self]
+[nodes.compare_panel__section_title.style.slot]
+[nodes.merge_preview_panel__section_title]
+component = "Label"
+classes = [ "section-title" ]
+legacy_kind = "native"
+legacy_type = "Label"
+
+[nodes.merge_preview_panel__section_title.props]
+text = "Merge Preview"
+
+[nodes.merge_preview_panel__section_title.style.self]
+[nodes.merge_preview_panel__section_title.style.slot]
+[legacy_migration]
+source_path = "zircon_editor/src/tests/fixtures/ui_zui/editor/theme_browser.zui"
+source_kind = "layout"
+source_version = 1
+source_component_ids = []
+
+[penpot_original_imports]
+widgets = [ "res://ui/editor/editor_widgets.zui#EditorToolbar", "res://ui/editor/editor_widgets.zui#EditorToolbarButton", "res://ui/editor/editor_widgets.zui#EditorSectionCard" ]
+styles = [ "res://ui/theme/editor_base.zui" ]

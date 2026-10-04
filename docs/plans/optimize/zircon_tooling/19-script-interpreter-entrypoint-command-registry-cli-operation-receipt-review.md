@@ -13,20 +13,16 @@ related_code:
   - tools/zircon_build.py
   - tools/zircon_export/__main__.py
   - tools/zircon_export/cli.py
-  - tools/session_coordinator/__main__.py
-  - tools/session_coordinator/cli.py
-  - tools/session_coordinator/soak.py
-  - tools/session_coordinator/run-control-validation.ps1
   - tools/zircon-session.ps1
   - tools/build-editor.ps1
   - tools/check-conventions.ps1
   - tools/check_conventions.py
-  - tools/runtime_domain_dependency_audit.py
-  - tools/runtime-profile-feature-presets.py
-  - tools/dev-fast-build.ps1
-  - tools/dev-fast-aliases.ps1
-  - tools/dev-module-interactive.ps1
-  - tools/cleanup-stale-targets.ps1
+  - tools/audits/runtime_domain_dependency_audit.py
+  - tools/validation/runtime-profile-feature-presets.py
+  - tools/dev/dev-fast-build.ps1
+  - tools/dev/dev-fast-aliases.ps1
+  - tools/dev/dev-module-interactive.ps1
+  - tools/maintenance/cleanup-stale-targets.ps1
   - tools/install-codex-session-hook.ps1
   - tools/install-session-coordinator-task.ps1
   - tools/install-session-tray-startup.ps1
@@ -34,25 +30,22 @@ related_code:
   - tools/mvp/Stage-MvpProducts.ps1
   - tools/mvp/Invoke-MvpAcceptance.ps1
   - tools/mvp/Capture-RenderExtractBaseline.ps1
-  - tools/profile-capture-manifest.ps1
-  - tools/ui-profile-capture.ps1
-  - tools/ui-profile-process-evidence.ps1
-  - tools/zircon_profile_shader_pbr_viewer.ps1
-  - tools/zircon_summarize_shader_pbr_profile.py
-  - tools/zircon_validate_shader_pbr_gpu_timing_evidence.py
-  - tools/zircon_validate_shader_pbr_renderdoc_replay.py
-  - tools/zircon_validate_shader_pbr_viewer_evidence.py
+  - tools/profiling/shared/profile-capture-manifest.ps1
+  - tools/profiling/ui/ui-profile-capture.ps1
+  - tools/profiling/ui/ui-profile-process-evidence.ps1
+  - tools/profiling/shader_pbr/zircon_profile_shader_pbr_viewer.ps1
+  - tools/profiling/shader_pbr/zircon_summarize_shader_pbr_profile.py
+  - tools/profiling/shader_pbr/zircon_validate_shader_pbr_gpu_timing_evidence.py
+  - tools/profiling/shader_pbr/zircon_validate_shader_pbr_renderdoc_replay.py
+  - tools/profiling/shader_pbr/zircon_validate_shader_pbr_viewer_evidence.py
   - examples/woc/tools/package.json
   - examples/woc/tools/package-lock.json
   - examples/woc/tools/reference_inventory.mjs
   - examples/woc/tools/command_codegen.mjs
   - tools/editor-workbench-preview/package.json
   - tools/editor-workbench-preview/package-lock.json
-  - tools/session_coordinator/web/package.json
-  - tools/session_coordinator/web/package-lock.json
   - zircon_hub/package.json
   - zircon_hub/package-lock.json
-  - docs/ui-and-layout/ai-workbench-style/component-prototype/package.json
 tests:
   - tools/tests/dev-fast-build.Tests.ps1
   - tools/tests/mvp_editor_windows_workflow.Tests.ps1

@@ -35,12 +35,10 @@ fn checkpoint_round_trip_preserves_version_authority_and_canonical_stream_order(
     assert_eq!(restored, checkpoint);
     assert_eq!(restored.format_version(), 2);
     assert_eq!(restored.service_state(), service);
-    assert!(
-        restored
-            .streams()
-            .iter()
-            .all(|stream| stream.master_seed_generation() == SERVICE_GENERATION)
-    );
+    assert!(restored
+        .streams()
+        .iter()
+        .all(|stream| stream.master_seed_generation() == SERVICE_GENERATION));
 }
 
 #[test]
@@ -97,4 +95,53 @@ fn checkpoint_deserialization_hard_cuts_version_one_and_unknown_versions() {
     let mut unknown = serde_json::to_value(checkpoint).expect("checkpoint should serialize");
     unknown["format_version"] = serde_json::Value::from(3);
     assert!(serde_json::from_value::<RandomServiceCheckpoint>(unknown).is_err());
+}
+
+#[test]
+fn checkpoint_accepts_the_exact_stream_count_budget() {
+    let service = RandomServiceState::new(RandomAlgorithmId::Pcg32XshRrV1, 17, SERVICE_GENERATION);
+    let streams = (0..RandomServiceCheckpoint::MAX_STREAMS)
+        .map(|id| stream(id as u64, id as u64))
+        .collect();
+    let checkpoint = RandomServiceCheckpoint::try_new(service, streams)
+        .expect("the exact stream count budget is valid");
+    let encoded = serde_json::to_string(&checkpoint).expect("checkpoint should serialize");
+    let restored: RandomServiceCheckpoint =
+        serde_json::from_str(&encoded).expect("exact-budget checkpoint should deserialize");
+
+    assert_eq!(restored, checkpoint);
+    assert_eq!(
+        restored.streams().len(),
+        RandomServiceCheckpoint::MAX_STREAMS
+    );
+}
+
+#[test]
+fn checkpoint_rejects_the_first_excess_stream_before_decoding_it() {
+    let service = RandomServiceState::new(RandomAlgorithmId::Pcg32XshRrV1, 17, SERVICE_GENERATION);
+    let above_limit = RandomServiceCheckpoint::MAX_STREAMS + 1;
+    let streams = (0..above_limit)
+        .map(|id| stream(id as u64, id as u64))
+        .collect();
+    assert!(matches!(
+        RandomServiceCheckpoint::try_new(service, streams),
+        Err(RandomServiceCheckpointError::TooManyStreams { max, actual })
+            if max == RandomServiceCheckpoint::MAX_STREAMS && actual == above_limit
+    ));
+
+    let checkpoint = RandomServiceCheckpoint::try_new(
+        service,
+        (0..RandomServiceCheckpoint::MAX_STREAMS)
+            .map(|id| stream(id as u64, id as u64))
+            .collect(),
+    )
+    .expect("the exact stream count budget is valid");
+    let mut encoded = serde_json::to_string(&checkpoint).expect("checkpoint should serialize");
+    let streams_end = encoded.rfind(']').expect("streams end");
+    encoded.insert_str(streams_end, ",{\"invalid_stream\":true}");
+    let error = serde_json::from_str::<RandomServiceCheckpoint>(&encoded)
+        .expect_err("the first excess stream must fail at the count boundary");
+    assert!(error
+        .to_string()
+        .contains("at least 65537 streams and exceeds the maximum of 65536 streams"));
 }

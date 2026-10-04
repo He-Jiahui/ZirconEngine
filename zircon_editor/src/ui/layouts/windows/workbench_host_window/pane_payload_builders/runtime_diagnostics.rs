@@ -160,7 +160,7 @@ fn animation_status(diagnostics: &RuntimeDiagnosticsSnapshot) -> String {
 }
 
 fn detail_items(diagnostics: &RuntimeDiagnosticsSnapshot) -> Vec<String> {
-    let mut items = Vec::new();
+    let mut items = Vec::with_capacity(detail_item_capacity(diagnostics));
     items.push(format!(
         "Virtual Geometry Debug: {}",
         if diagnostics.render.virtual_geometry_debug_available {
@@ -232,100 +232,29 @@ fn detail_items(diagnostics: &RuntimeDiagnosticsSnapshot) -> Vec<String> {
     items
 }
 
-#[cfg(test)]
-mod tests {
-    use zircon_runtime::core::diagnostics::{
-        RuntimeDiagnosticsSnapshot, RuntimePhysicsBackendDiagnostics, RuntimePhysicsDiagnostics,
-        RuntimeRenderDiagnostics,
-    };
-    use zircon_runtime::core::framework::render::{
-        RenderHybridGiFallbackReason, RenderHybridGiMode, RenderHybridGiProfile,
-        RenderHybridGiQuality, RenderHybridGiResolvedSettings, RenderStats,
-    };
-
-    use super::{detail_items, physics_state_display, physics_status};
-
-    #[test]
-    fn physics_state_display_normalizes_dynamic_backend_text_without_debug_quotes() {
-        for (state, expected) in [
-            (Some("ready"), "Ready"),
-            (Some("disabled"), "Disabled"),
-            (Some("unavailable"), "Unavailable"),
-            (Some("custom backend state"), "Custom backend state"),
-            (Some("   "), "Unknown"),
-            (None, "Unknown"),
-        ] {
-            assert_eq!(physics_state_display(state), expected);
-        }
+/// Detail projection emits one base line, a bounded render-stat block, up to one line per
+/// subsystem error, and two profiling lines. Count those predicates before formatting so the
+/// retained pane vector does not grow geometrically on a dense diagnostic snapshot.
+fn detail_item_capacity(diagnostics: &RuntimeDiagnosticsSnapshot) -> usize {
+    let mut capacity = 1usize;
+    if let Some(stats) = diagnostics.render.stats.as_ref() {
+        capacity = capacity.saturating_add(2);
+        capacity = capacity.saturating_add(if stats.last_hybrid_gi_resolved_settings.is_some() {
+            3
+        } else {
+            1
+        });
     }
-
-    #[test]
-    fn physics_status_projects_human_readable_dynamic_backend_state() {
-        for (state, expected) in [
-            (Some("ready"), "Physics: jolt (Ready, 120 Hz)"),
-            (Some("disabled"), "Physics: jolt (Disabled, 120 Hz)"),
-            (Some("unavailable"), "Physics: jolt (Unavailable, 120 Hz)"),
-            (None, "Physics: jolt (Unknown, 120 Hz)"),
-        ] {
-            let diagnostics = RuntimeDiagnosticsSnapshot {
-                physics: RuntimePhysicsDiagnostics {
-                    available: true,
-                    backend_name: Some("jolt".to_string()),
-                    backend_status: state.map(|state| RuntimePhysicsBackendDiagnostics {
-                        active_backend: Some("jolt".to_string()),
-                        state: state.to_string(),
-                        ..RuntimePhysicsBackendDiagnostics::default()
-                    }),
-                    fixed_hz: Some(120),
-                    error: None,
-                },
-                ..RuntimeDiagnosticsSnapshot::default()
-            };
-
-            assert_eq!(physics_status(&diagnostics), expected);
-        }
-
-        let unavailable = RuntimeDiagnosticsSnapshot {
-            physics: RuntimePhysicsDiagnostics::unavailable("backend feature gate disabled"),
-            ..RuntimeDiagnosticsSnapshot::default()
-        };
-        assert_eq!(
-            physics_status(&unavailable),
-            "Physics: unavailable (backend feature gate disabled)"
-        );
+    capacity = capacity
+        .saturating_add(usize::from(diagnostics.render.error.is_some()))
+        .saturating_add(usize::from(diagnostics.physics.error.is_some()))
+        .saturating_add(usize::from(diagnostics.animation.error.is_some()));
+    if diagnostics.profile.feature_enabled {
+        capacity = capacity.saturating_add(2);
     }
-
-    #[test]
-    fn hybrid_gi_details_show_effective_profile_budgets_and_structured_fallback() {
-        let diagnostics = RuntimeDiagnosticsSnapshot {
-            render: RuntimeRenderDiagnostics {
-                available: true,
-                stats: Some(RenderStats {
-                    last_hybrid_gi_active_probe_count: 4,
-                    last_hybrid_gi_resolved_settings: Some(RenderHybridGiResolvedSettings {
-                        mode: RenderHybridGiMode::DynamicOnly,
-                        profile: RenderHybridGiProfile::IndoorStatic,
-                        quality: RenderHybridGiQuality::High,
-                        trace_budget: 64,
-                        card_budget: 256,
-                        voxel_budget: 64,
-                        fallback_reason: Some(
-                            RenderHybridGiFallbackReason::BakedLightingUnavailable,
-                        ),
-                    }),
-                    ..RenderStats::default()
-                }),
-                ..RuntimeRenderDiagnostics::default()
-            },
-            ..RuntimeDiagnosticsSnapshot::default()
-        };
-
-        let items = detail_items(&diagnostics);
-        assert!(items.contains(
-            &"Hybrid GI effective: profile=indoor-static, mode=dynamic-only, quality=high"
-                .to_string()
-        ));
-        assert!(items.contains(&"Hybrid GI budgets: trace=64, cards=256, voxels=64".to_string()));
-        assert!(items.contains(&"Hybrid GI fallback: baked-lighting-unavailable".to_string()));
-    }
+    capacity
 }
+
+#[cfg(test)]
+#[path = "tests/runtime_diagnostics.rs"]
+mod tests;

@@ -2,6 +2,7 @@ use zircon_runtime_interface::ui::dispatch::{UiKeyboardInputEvent, UiKeyboardInp
 
 use crate::ui::dispatch::UiTextHistoryDirection;
 
+/// 识别文档历史命令，交给活动文档会话提交历史移动；这里只分类，不直接改变 surface 文本。
 pub(in crate::ui::surface::input) fn keyboard_text_history_direction(
     keyboard: &UiKeyboardInputEvent,
 ) -> Option<UiTextHistoryDirection> {
@@ -28,41 +29,5 @@ pub(in crate::ui::surface::input) fn keyboard_text_history_direction(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use zircon_runtime_interface::ui::dispatch::{
-        UiInputEventMetadata, UiInputSequence, UiInputTimestamp,
-    };
-
-    fn keyboard(logical_key: &str, shift: bool) -> UiKeyboardInputEvent {
-        let mut metadata =
-            UiInputEventMetadata::new(UiInputTimestamp::from_micros(1), UiInputSequence::new(1));
-        metadata.modifiers.control = true;
-        metadata.modifiers.shift = shift;
-        UiKeyboardInputEvent {
-            metadata,
-            state: UiKeyboardInputState::Pressed,
-            key_code: 0,
-            scan_code: None,
-            physical_key: logical_key.to_string(),
-            logical_key: logical_key.to_string(),
-            text: None,
-        }
-    }
-
-    #[test]
-    fn primary_modifier_z_and_y_map_to_document_history() {
-        assert_eq!(
-            keyboard_text_history_direction(&keyboard("z", false)),
-            Some(UiTextHistoryDirection::Undo)
-        );
-        assert_eq!(
-            keyboard_text_history_direction(&keyboard("Z", true)),
-            Some(UiTextHistoryDirection::Redo)
-        );
-        assert_eq!(
-            keyboard_text_history_direction(&keyboard("y", false)),
-            Some(UiTextHistoryDirection::Redo)
-        );
-    }
-}
+#[path = "tests/history.rs"]
+mod tests;

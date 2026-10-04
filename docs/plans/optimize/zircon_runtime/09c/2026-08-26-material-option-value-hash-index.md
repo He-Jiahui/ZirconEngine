@@ -47,7 +47,7 @@ coordinator run.
 - `runtime09c_batch_material_option_hash_index_p95` reports paired release P50/P95
   samples and enforces the 80% P95 reduction gate.
 - The managed `runtime09c_batch_` release gate covers this task, material-property schema rescan
-  elision, and shading-token hashing in one Cargo invocation: 3 source contracts, 9 Rust tests,
+  elision, and shading-token hashing in one Cargo invocation: 7 source contracts, 10 Rust tests,
   and 3 performance rows. Dynamic marker values, integration commit, and WeCom delivery remain
   coordinator-owned and pending.
 

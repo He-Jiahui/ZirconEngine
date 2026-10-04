@@ -1,3 +1,4 @@
+//! 核心脊柱、根公开面和生成模板的结构清单需与审计证据同步。集中保存路径、锚点或预期清单；消费方负责读取实际源码。
 pub(super) const EXPECTED_CORE_ROOT_ENTRIES: &[&str] = &[
     "framework",
     "manager",
@@ -124,18 +125,18 @@ pub(super) const MIRROR_DOCS: &[(&str, &str)] = &[
     ),
     (
         "root surface doc",
-        include_str!("../../../../../docs/zircon_runtime/core/root_surface.md"),
+        include_str!("../../../../../docs/crates/zircon_runtime/core/root_surface.md"),
     ),
     (
         "generated-code boundary",
-        include_str!("../../../../../docs/engine-architecture/generated-code-boundary.md"),
+        include_str!("../../../../../docs/architecture/generated-code-boundary.md"),
     ),
     (
         "interface convergence",
-        include_str!("../../../../../docs/engine-architecture/runtime-interface-convergence.md"),
+        include_str!("../../../../../docs/architecture/runtime-interface-convergence.md"),
     ),
     (
         "M0 review",
-        include_str!("../../../../../docs/engine-architecture/runtime-architecture-review-m0.md"),
+        include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md"),
     ),
 ];

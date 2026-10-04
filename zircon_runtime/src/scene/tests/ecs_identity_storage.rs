@@ -721,24 +721,16 @@ fn entity_registry_error_paths_use_direct_lookup_branches() {
         .and_then(|text| text.split("pub(crate) fn len(&self)").next())
         .expect("read EntityRegistry location_for_internal body");
 
-    assert!(
-        despawn
-            .contains("let Some(internal) = self.stable_to_internal.get(&stable_id).copied() else")
-    );
+    assert!(despawn
+        .contains("let Some(internal) = self.stable_to_internal.get(&stable_id).copied() else"));
     assert!(despawn.contains("return Err(EntityRegistryError::MissingStableId(stable_id));"));
-    assert!(
-        despawn.contains("let Some(slot) = self.slots.get_mut(internal.index() as usize) else")
-    );
+    assert!(despawn.contains("let Some(slot) = self.slots.get_mut(internal.index() as usize) else"));
     assert!(set_location.contains("let Some(internal) = self.internal_for_stable(stable_id) else"));
     assert!(set_location.contains("return Err(EntityRegistryError::MissingStableId(stable_id));"));
-    assert!(
-        set_location
-            .contains("let Some(slot) = self.slots.get_mut(internal.index() as usize) else")
-    );
-    assert!(
-        location_for_internal
-            .contains("let Some(slot) = self.slots.get(internal.index() as usize) else")
-    );
+    assert!(set_location
+        .contains("let Some(slot) = self.slots.get_mut(internal.index() as usize) else"));
+    assert!(location_for_internal
+        .contains("let Some(slot) = self.slots.get(internal.index() as usize) else"));
     assert!(location_for_internal.contains("let Some(stable_id) = slot.stable_id else"));
     assert!(location_for_internal.contains("let Some(location) = slot.location else"));
     assert!(!source.contains(".ok_or("));

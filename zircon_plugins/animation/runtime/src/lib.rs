@@ -1,3 +1,5 @@
+//! 动画运行时插件的公共 API：模块注册、采样契约、IK、蒙皮及状态机类型从此导出。
+//! 宿主通过插件清单激活帧系统，直接调用这些类型不会自动注册场景资源。
 mod capability;
 mod channel_sampling;
 mod evaluation;
@@ -66,4 +68,5 @@ pub use zircon_runtime::core::framework::animation::{
 pub use zircon_runtime::core::manager::ANIMATION_MANAGER_NAME;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

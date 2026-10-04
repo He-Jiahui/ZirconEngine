@@ -30,6 +30,7 @@ const content = {
 
 process.stdout.write(JSON.stringify(content));
 
+// 先在 TypeScript AST 中定位手工编写的房间常量，再投影标量。
 function declaration(name) {
   let found = null;
   for (const statement of sourceFile.statements) {

@@ -8,7 +8,13 @@ use super::super::super::workbench_notifications::{
 use super::super::super::scene_picker_session::ScenePickerMode;
 
 impl RetainedEditorHost {
+    // 命令分发只产生意图；真正的项目关闭、保存及资产操作在宿主阶段执行，并将失败反馈给状态栏。
     pub(super) fn apply_dispatch_side_effects(&mut self, effects: &UiHostEventEffects) {
+        for instance_id in &effects.opened_view_visibility_requests {
+            if let Err(error) = self.reveal_explicitly_opened_view(instance_id) {
+                self.set_status_line(error.to_string());
+            }
+        }
         let mut activity_toasts_published = false;
         if !effects.toast_notifications.is_empty() {
             activity_toasts_published |= self.enqueue_activity_toasts(&effects.toast_notifications);

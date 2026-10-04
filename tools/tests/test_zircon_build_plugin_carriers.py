@@ -1,9 +1,10 @@
+# 核对构建入口按插件分发形式、着色器贡献和资源根分类。
 import tempfile
 import unittest
 from pathlib import Path
 
-from tools import zircon_build
-from tools.zircon_build_zui_assets import validate_staged_engine_asset_suffix
+from tools.build import zircon_build
+from tools.build.zircon_build_zui_assets import validate_staged_engine_asset_suffix
 
 
 class ZirconBuildPluginCarrierTests(unittest.TestCase):

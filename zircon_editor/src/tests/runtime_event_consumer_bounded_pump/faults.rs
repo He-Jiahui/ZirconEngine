@@ -10,7 +10,7 @@ use crate::core::runtime_event_consumer::{
     EditorRuntimeEventPumpBudget,
 };
 
-use super::{
+use super::support::{
     budget, register_state, ConsumerError, FakeGateway, Payload, RecordingState, CAPABILITY,
 };
 

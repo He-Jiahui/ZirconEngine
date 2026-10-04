@@ -3,7 +3,7 @@ use std::collections::{BTreeSet, HashMap};
 mod build_views;
 
 #[cfg(test)]
-#[path = "hash_relevance_tests.rs"]
+#[path = "tests/hash_relevance_tests.rs"]
 mod hash_relevance_tests;
 
 use crate::core::framework::render::{PrimitiveRelevance, RenderLayerSet, ViewportCameraSnapshot};
@@ -11,6 +11,8 @@ use crate::core::framework::scene::EntityId;
 
 use super::declarations::{VisibilityBounds, VisibilityBvhInstance, VisibilityRelevanceEntry};
 
+/// 本帧所有视图共享的稳定 primitive 索引空间；entities、keys、bounds、layers 和 relevance 按索引对齐。
+/// 各 ViewVisibilityContext 只保存此空间的索引，不能脱离同一 FrameVisibility 独立复用。
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct FrameVisibility {
     /// Stable primitive index space for all per-view visible lists in this frame.
@@ -148,6 +150,7 @@ fn relevance_by_stable_instance_key(
         .collect::<HashMap<_, _>>()
 }
 
+/// 单个相机或阴影视图在共享帧索引空间内的可见集与剔除统计。
 #[derive(Clone, Debug, PartialEq)]
 pub struct ViewVisibilityContext {
     pub view: VisibilityViewKey,
@@ -212,6 +215,7 @@ impl Default for ViewVisibilityContext {
     }
 }
 
+/// 区分主相机、自定义目标与每盏灯的阴影视图，使同帧结果可按用途查询。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub enum VisibilityViewKey {
     #[default]
@@ -232,6 +236,7 @@ pub enum VisibilityViewKey {
     },
 }
 
+/// 单视图的 CPU 筛选分段计数；遮挡回读若异步完成，不能直接当作当前帧 CPU 计数。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct ViewCullingStats {
     pub input_count: usize,

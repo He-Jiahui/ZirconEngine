@@ -31,4 +31,5 @@ pub use plugin::{
 pub const NN_WEIGHT_ALIGNMENT: u64 = 256;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

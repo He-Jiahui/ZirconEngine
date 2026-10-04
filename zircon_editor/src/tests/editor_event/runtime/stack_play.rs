@@ -356,7 +356,8 @@ fn native_command_execution_is_an_observation_and_does_not_retain_result_payload
     );
     assert_eq!(record.before_revision, record.after_revision);
     assert_eq!(runtime.runtime.journal().records().len(), 1);
-    let journal_record = &runtime.runtime.journal().records()[0];
+    let journal = runtime.runtime.journal();
+    let journal_record = &journal.records()[0];
     assert_eq!(
         journal_record.before_revision,
         journal_record.after_revision

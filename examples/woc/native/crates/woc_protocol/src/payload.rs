@@ -141,7 +141,7 @@ impl FixedTickInputRef<'_> {
         let mut output = Vec::with_capacity(wire_length);
         push_u64(&mut output, self.tick);
         push_length(&mut output, "FixedTickInput.commands", self.commands.len())?;
-        for command in &self.commands {
+        for command in self.commands {
             command.encode_into(&mut output)?;
         }
         output.push(u8::from(self.wall_time_forbidden));
@@ -602,9 +602,21 @@ impl RlActionBatch {
 }
 
 impl Command {
+    /// Checks the typed wire contract; actor authorization remains the host's responsibility.
+    pub fn validate(&self) -> Result<(), ProtocolError> {
+        require_known_command(self.command_id)?;
+        check_bound(
+            "Command.payload",
+            self.payload.len(),
+            command_field_id::PAYLOAD_MAX_LENGTH,
+        )?;
+        crate::validate_command_payload(self.command_id, &self.payload)
+    }
+
     pub fn encode_payload(&self) -> Result<Vec<u8>, ProtocolError> {
+        self.validate()?;
         let mut output = Vec::with_capacity(COMMAND_BASE_BYTES.saturating_add(self.payload.len()));
-        self.encode_into(&mut output)?;
+        self.encode_validated_into(&mut output)?;
         Ok(output)
     }
 
@@ -616,12 +628,11 @@ impl Command {
     }
 
     fn encode_into(&self, output: &mut Vec<u8>) -> Result<(), ProtocolError> {
-        require_known_command(self.command_id)?;
-        check_bound(
-            "Command.payload",
-            self.payload.len(),
-            command_field_id::PAYLOAD_MAX_LENGTH,
-        )?;
+        self.validate()?;
+        self.encode_validated_into(output)
+    }
+
+    fn encode_validated_into(&self, output: &mut Vec<u8>) -> Result<(), ProtocolError> {
         push_u16(output, self.command_id);
         push_u64(output, self.actor.id);
         push_u32(output, self.actor.generation);
@@ -632,7 +643,7 @@ impl Command {
     fn decode_from(reader: &mut Reader<'_>) -> Result<Self, ProtocolError> {
         let command_id = reader.read_u16("Command.command_id")?;
         require_known_command(command_id)?;
-        Ok(Self {
+        let command = Self {
             command_id,
             actor: EntityRef {
                 id: reader.read_u64("Command.actor.id")?,
@@ -640,7 +651,9 @@ impl Command {
             },
             sequence: reader.read_u32("Command.sequence")?,
             payload: reader.read_bytes("Command.payload", command_field_id::PAYLOAD_MAX_LENGTH)?,
-        })
+        };
+        command.validate()?;
+        Ok(command)
     }
 }
 
@@ -971,23 +984,5 @@ fn push_f64(output: &mut Vec<u8>, value: f64) {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn aggregate_wire_length_rejects_limit_excess_and_saturating_overflow() {
-        assert_eq!(checked_wire_length("fixture", 4, [3, 2], 9), Ok(9));
-        assert_eq!(
-            checked_wire_length("fixture", 4, [3, 3], 9),
-            Err(ProtocolError::CollectionTooLarge {
-                context: "fixture",
-                actual: 10,
-                maximum: 9,
-            })
-        );
-        assert!(matches!(
-            checked_wire_length("fixture", usize::MAX, [1], u64::MAX),
-            Err(ProtocolError::CollectionTooLarge { actual, .. }) if actual == usize::MAX
-        ));
-    }
-}
+#[path = "tests/payload.rs"]
+mod tests;

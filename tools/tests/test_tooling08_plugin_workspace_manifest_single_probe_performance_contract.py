@@ -1,8 +1,9 @@
+# 核对工作区插件清单直接尝试打开，缺失成员与其他输入错误分流。
 import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools import zircon_build_plugin_workspace_crates as workspace_crates
+from tools.build import zircon_build_plugin_workspace_crates as workspace_crates
 
 
 class Tooling08PluginWorkspaceManifestSingleProbePerformanceContractTests(

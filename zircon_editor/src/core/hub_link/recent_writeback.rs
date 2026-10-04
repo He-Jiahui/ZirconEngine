@@ -2,8 +2,8 @@ use std::path::Path;
 
 use zircon_runtime::asset::project::ProjectPaths;
 use zircon_runtime_interface::hub_protocol::{
-    HubRecentProjectV1, HubRecentProjectsMutation, HubRecentProjectsStore, HubRecentProjectsV1,
-    HubRecentProjectsWritePolicy, hub_recent_projects_path,
+    hub_recent_projects_path, HubRecentProjectV1, HubRecentProjectsMutation,
+    HubRecentProjectsStore, HubRecentProjectsV1, HubRecentProjectsWritePolicy,
 };
 use zircon_runtime_interface::project::ProjectManifestSummary;
 

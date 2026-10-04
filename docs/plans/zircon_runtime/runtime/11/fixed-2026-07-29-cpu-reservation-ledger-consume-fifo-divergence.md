@@ -9,12 +9,6 @@ origin_child_dir: docs/plans/zircon_runtime/runtime/11
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/cargo_reservations.py
-  - tools/session_coordinator/cargo_jobs.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/supervision/service.py
-  - tools/session_coordinator/tests/test_cargo_reservations.py
-  - tools/session_coordinator/tests/test_supervision_actions.py
 tests:
   - one pending warm CPU reservation that is ledger FIFO head consumes into exactly one leased job
   - cargo +1.94.1 check -p zircon_runtime --lib --locked --jobs 1

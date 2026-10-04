@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 def source(relative: str) -> str:
     return (ROOT / relative).read_text(encoding="utf-8")
 
-
+# 读取提取诊断统计路径，确认单次写入存储且七类指标共用静态元数据。
 class RuntimeExtractDiagnosticsM0PerformanceContract(unittest.TestCase):
     def record_body(self) -> str:
         extract_stats = source(

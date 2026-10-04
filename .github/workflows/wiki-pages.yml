@@ -8,16 +8,16 @@ on:
       - docs/wiki/**
       - mkdocs.yml
       - requirements-docs.txt
-      - tools/wiki_site.py
-      - tools/wiki_mkdocs_hook.py
+      - tools/docs/wiki_site.py
+      - tools/docs/wiki_mkdocs_hook.py
       - .github/workflows/wiki-pages.yml
   pull_request:
     paths:
       - docs/wiki/**
       - mkdocs.yml
       - requirements-docs.txt
-      - tools/wiki_site.py
-      - tools/wiki_mkdocs_hook.py
+      - tools/docs/wiki_site.py
+      - tools/docs/wiki_mkdocs_hook.py
       - .github/workflows/wiki-pages.yml
   workflow_dispatch:
 
@@ -56,13 +56,13 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Validate Wiki source
-        run: python tools/wiki_site.py validate --json
+        run: python tools/docs/wiki_site.py validate --json
 
       - name: Build static site
         env:
           WIKI_SITE_URL: ${{ steps.pages.outputs.base_url }}
           WIKI_SOURCE_REVISION: ${{ github.sha }}
-        run: python tools/wiki_site.py build --output site --json
+        run: python tools/docs/wiki_site.py build --output site --json
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4

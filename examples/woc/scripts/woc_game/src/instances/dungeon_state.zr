@@ -3,6 +3,8 @@
 // tracking from 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a also runs at 20 Hz.
 var container = %import("zr.container");
 
+/// 固定最多5名玩家的M7实例夹具，player为1基槽位而非世界实体ID；partyMembers须与预分配的attuned/inside范围一致。
+/// 当前只专用测试及矩阵导入；sharedRandomDraws是预测计数，未持有或消耗世界随机流，lockoutNow也由场景单独提供。
 class DungeonState {
     pub var tick: int;
     pub var partyMembers: int;
@@ -56,6 +58,7 @@ class DungeonState {
 // Pure per-mob view of the ownership-aware cleanup performed when a player
 // leaves an instance. The live world owns the actual threat values and entity
 // lookup; this state retains only the ids needed to preserve removal ordering.
+/// 两个数组按同一索引保存威胁来源及其owner；使用add/scrub同步维护，不能独立删除一列。只保存身份以验证离开清理次序，不保存真实仇恨数值。
 class DungeonMobThreatState {
     pub var threatSourceIds: container.Array<int>;
     // Zero means that the source is a player or has no owning player.
@@ -175,6 +178,7 @@ claimHollowCrypt(state: DungeonState): void {
     recordEvent(state, 1);
 }
 
+/// 第一次进入创建夹具claim，后续成员复用同一claim并记录本轮参与；leave只改变当前inside，历史enteredBy保留到freeInstance供奖励配送判定。
 pub enterHollowCrypt(state: DungeonState, player: int): bool {
     state.lastError = 0;
     if (!validPlayer(state, player)) { state.lastError = -1; return false; }
@@ -218,6 +222,7 @@ freeInstance(state: DungeonState): void {
     recordEvent(state, 4);
 }
 
+/// 每次50ms一步，每20步检查一次当前占用；连续空置5分钟才释放claim并清参与集。lockoutNow不是这个tick的派生值，调用方按锁定时钟提供。
 pub tickOnce(state: DungeonState): void {
     state.tick = state.tick + 1;
     if (state.tick % 20 != 0 || !state.instanceClaimed) { return; }

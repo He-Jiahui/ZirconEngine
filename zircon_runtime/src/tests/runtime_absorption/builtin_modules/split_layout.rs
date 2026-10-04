@@ -1,3 +1,4 @@
+//! 运行时内置模块组合保持核心脊柱顺序，外部插件按必需性报告缺失。通过源码文本核对父子路由、状态镜像和文件预算。
 const PARENT_SOURCE: &str = include_str!("../builtin_modules.rs");
 const CORE_SPINE_SOURCE: &str = include_str!("core_spine.rs");
 const PLUGIN_SELECTION_SOURCE: &str = include_str!("plugin_selection.rs");
@@ -10,8 +11,9 @@ const RUNTIME_15_OUTPUT_RECORDS: &str = include_str!(
     "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
 );
 const MODULE_CONVENTION_DOC: &str =
-    include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
+    include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 
+// BUG: [CR-RUNTIME-TESTS-ABS-0002] 当前被读子文件已经超过此处明示的行数上限；该测试执行行数断言时会失败；证据：行数预算与原始源码快照。
 #[test]
 fn runtime_15_builtin_modules_route_owner_is_folder_backed() {
     assert_contains_all(

@@ -12,7 +12,8 @@ thread_local! {
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub(super) struct CircularProgressRasterKey {
-    size: u32,
+    source_size: u32,
+    target_size_bits: u32,
     progress_bits: u32,
     track: [u8; 4],
     fill: [u8; 4],
@@ -20,8 +21,19 @@ pub(super) struct CircularProgressRasterKey {
 
 impl CircularProgressRasterKey {
     pub(super) fn new(size: u32, progress: f32, track: [u8; 4], fill: [u8; 4]) -> Self {
+        Self::with_target(size, size as f32, progress, track, fill)
+    }
+
+    pub(super) fn with_target(
+        source_size: u32,
+        target_size: f32,
+        progress: f32,
+        track: [u8; 4],
+        fill: [u8; 4],
+    ) -> Self {
         Self {
-            size,
+            source_size,
+            target_size_bits: target_size.to_bits(),
             progress_bits: progress.to_bits(),
             track,
             fill,
@@ -137,45 +149,9 @@ pub(super) fn store_circular_progress_raster(
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-
-    use super::{
-        CircularProgressRasterCache, CircularProgressRasterKey,
-        MAX_CIRCULAR_PROGRESS_RASTER_CACHE_ENTRIES,
-    };
-
-    fn key(index: u32) -> CircularProgressRasterKey {
-        CircularProgressRasterKey::new(index, 0.5, [1; 4], [2; 4])
-    }
-
-    fn pixels(index: u32) -> Arc<[u8]> {
-        vec![index as u8].into()
-    }
-
-    #[test]
-    fn raster_cache_evicts_the_least_recently_used_variant() {
-        let mut cache = CircularProgressRasterCache::new();
-        for index in 0..MAX_CIRCULAR_PROGRESS_RASTER_CACHE_ENTRIES {
-            cache.insert(
-                key(index as u32),
-                format!("progress-{index}"),
-                pixels(index as u32),
-            );
-        }
-        assert!(cache.get(key(0)).is_some());
-
-        cache.insert(key(u32::MAX), "progress-new".to_string(), pixels(u32::MAX));
-
-        assert_eq!(
-            cache.entries.len(),
-            MAX_CIRCULAR_PROGRESS_RASTER_CACHE_ENTRIES
-        );
-        assert!(cache.get(key(0)).is_some());
-        assert!(!cache.entries.contains_key(&key(1)));
-        assert!(cache.get(key(u32::MAX)).is_some());
-    }
-}
+#[path = "tests/cache.rs"]
+mod tests;
 
 #[cfg(test)]
+#[path = "cache/tests/hash_arc_tests.rs"]
 mod hash_arc_tests;

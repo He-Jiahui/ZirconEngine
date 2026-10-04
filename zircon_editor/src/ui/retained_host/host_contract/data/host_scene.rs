@@ -7,6 +7,7 @@ use super::{
 
 #[derive(Clone, Default)]
 pub(crate) struct HostWindowSceneData {
+    pub document_leaves: Vec<HostDocumentDockSurfaceData>,
     pub layout: HostWindowLayoutData,
     pub metrics: HostWindowSurfaceMetricsData,
     pub orchestration: HostWindowSurfaceOrchestrationData,
@@ -20,4 +21,14 @@ pub(crate) struct HostWindowSceneData {
     pub right_dock: HostSideDockSurfaceData,
     pub bottom_dock: HostBottomDockSurfaceData,
     pub floating_layer: HostFloatingWindowLayerData,
+}
+
+impl HostWindowSceneData {
+    pub(crate) fn document_surfaces(&self) -> &[HostDocumentDockSurfaceData] {
+        if self.document_leaves.is_empty() {
+            std::slice::from_ref(&self.document_dock)
+        } else {
+            &self.document_leaves
+        }
+    }
 }

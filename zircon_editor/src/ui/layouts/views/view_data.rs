@@ -83,6 +83,9 @@ pub(crate) struct ViewTemplateNodeData {
     pub value_number: f32,
     pub value_percent: f32,
     pub options: ModelRc<SharedString>,
+    /// Source-owned collection payloads (for example AgentChat messages)
+    /// retained across the view projection into native painters.
+    pub collection_items: ModelRc<SharedString>,
     pub dispatch_kind: SharedString,
     pub action_id: SharedString,
     pub binding_id: SharedString,
@@ -139,6 +142,10 @@ impl fmt::Debug for ViewTemplateNodeData {
             .field("value_number", &self.value_number)
             .field("value_percent", &self.value_percent)
             .field("options", &shared_string_model_values(&self.options))
+            .field(
+                "collection_items",
+                &shared_string_model_values(&self.collection_items),
+            )
             .field("dispatch_kind", &self.dispatch_kind)
             .field("action_id", &self.action_id)
             .field("binding_id", &self.binding_id)
@@ -196,6 +203,7 @@ impl PartialEq for ViewTemplateNodeData {
             && self.value_number == other.value_number
             && self.value_percent == other.value_percent
             && shared_string_models_equal(&self.options, &other.options)
+            && shared_string_models_equal(&self.collection_items, &other.collection_items)
             && self.dispatch_kind == other.dispatch_kind
             && self.action_id == other.action_id
             && self.binding_id == other.binding_id
@@ -249,6 +257,7 @@ impl Default for ViewTemplateNodeData {
             value_number: 0.0,
             value_percent: 0.0,
             options: ModelRc::default(),
+            collection_items: ModelRc::default(),
             dispatch_kind: SharedString::default(),
             action_id: SharedString::default(),
             binding_id: SharedString::default(),

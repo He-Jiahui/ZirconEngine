@@ -1,3 +1,4 @@
+# 核对弹窗语义图标解析到打包矢量资源，叶子命令不声明空子菜单。
 import re
 import tomllib
 import unittest

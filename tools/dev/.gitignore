@@ -1,0 +1,2 @@
+# CMD launchers are source files, even when a repository rule ignores *.cmd.
+!/*.cmd

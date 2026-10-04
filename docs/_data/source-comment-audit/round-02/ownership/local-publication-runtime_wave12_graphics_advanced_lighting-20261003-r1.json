@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "owner": "runtime_wave12_graphics_advanced_lighting",
+  "prepared_at_utc": "2026-10-03T03:49:09.925199+00:00",
+  "files": [
+    {
+      "path": "docs/_data/source-comment-audit/round-02/coverage/runtime_wave12_graphics_advanced_lighting.jsonl",
+      "before_exists": false,
+      "before_sha256": null,
+      "after_sha256": "062e1094238faa22e395c71876c753ca235c22e4be6af81bef1c53e3f0996d01"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/issues/runtime_wave12_graphics_advanced_lighting.jsonl",
+      "before_exists": false,
+      "before_sha256": null,
+      "after_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/inventory.jsonl",
+      "before_exists": true,
+      "before_sha256": "d1e4331871ca4e940805fca8d348d24502b18f475b5d250864c84f7d41a7784c",
+      "after_sha256": "1f67e3df0f944ee9b52951ec6fde6b27ea330ec6fc65c09db553fc63b1ffd7e9"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/batches.jsonl",
+      "before_exists": true,
+      "before_sha256": "db3d81282bffca0dd266d671497cf73a16bb33d4739cc5c24a461060519d030a",
+      "after_sha256": "739e6efd5307c743359c9772b6a7250ab963062e48a289cebc5a9b2f584a2fe8"
+    }
+  ],
+  "source_hashes": {
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/apply_binding.rs": "7946530088ef71903df16debb54bffc9c95a38091c9bc0d54213c8693e581922",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/executors/integrate.rs": "e9478c6e7f6a15ae84542fd5f171bd679e742b6c8f82bf0469d4c2bf707db250",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/executors/light_scatter.rs": "6881a260f8849b4b671da9f41c3ee797fcbe91ca379f693ba1527e9f8c2d4c67",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/executors/media_inject.rs": "622cb986e75150a91dbf573f6deb204ed515e9aa36f73dc0c2a6ea660e057fc8",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/executors/mod.rs": "7f64195307d96ccc54d04245bc443bf8c1bbe234350bf85a3998c0e014b89215",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/integrate.rs": "2318cb4a890f4a3adf423a0ba1e50de3f6fde7e3c4541792ea86e40cd9044038",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/integrate/tests.rs": "15734ed5239d04f9f67038e2acf6a3afa0c00b8ce571453778e1750499792719",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/media_inject.rs": "1a1dc9d53d1284f34c174ca2ad52a0aec38ac5116103495cc11cff93dfcbc93c",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/media_inject/performance_tests.rs": "765dfbc527bd602031484cf331e9f2d6478c6eb3ddf2875e3fe0541fae62fe69",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/resolved_settings.rs": "33481b02c666594607dedf3ab482012c620a1a892b032e13b45d461986d9171d",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/view_reconstruction.rs": "9d7b5b66b88873ccbba52862991e26f46f3903c53cf92dca3d83a67c62c8f62f",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/irradiance_volume/executor.rs": "b86f7bb80ba5e45082aaad2bf768ea14660a36c9d3c6112685bc2b4ac738777c",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/irradiance_volume/mod.rs": "56840985aa6531ed8b2c5615ab713d499f7291f8ef35f20192bbfd4b9161e18d",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/irradiance_volume/resources.rs": "9eebd6b964a824c26bf2381a1de3a138467d1b137f844e8dd85ea0a67ce19083",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/blit_pipeline.rs": "1be6e68a3c730d5259d0ff9a76e3183fd6722628d7dbfcf909c7dcb92109475a",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/executor.rs": "ddf542d0fe240500205a1f6ffc99f8a1cc25ac5d7359711be282f0afe08cc804",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/frame_plan.rs": "cad03b38efdd9467683d2000739d702feba96056cc8ac092dfd13cf92a05fb4c",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/frame_plan/performance_tests.rs": "e296e149cea52688d1d0b922531309aba8e56886569fffad4a3cafd85b4e6e11",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/mod.rs": "533d93e6c1c165a24c06e2b5dc85db7e4c2f97f16f9d915a0eb9c9cd866b8eaf",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/profile.rs": "f880540ba0d59bddfd838087b5a2a2c5286397668ec17dc703ffa1a5253569a5",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/projection.rs": "5f5b3d0315dd1dc1c270d1859a53226693f77623b18087860ce11771ebd0ceca",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/resources.rs": "db53d526a7e0bfe209d4236e2e0985bb2745fa4a409264ea734880df8147ff7e",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/mod.rs": "fa7f57ad66e55975bf2780951d396ede71e56f04402d01f0e09ac644276a95c2",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/oit_buffers/fragment_store_pipeline.rs": "2792dd837d94a30ee7a5310ecd8551f296d899c2b967c87db5fbfa4b4b51b609",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/oit_buffers/resolve_pipeline.rs": "4548c2f528de4a5eace2bfc6655ea928b40b2dee6360b344289a01da9d53d7c9",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/planar_filter/executor.rs": "26f5c032eef7a02947cd7457cde05b54206cde57353b420c87c21cb4ab575790",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/planar_filter/mod.rs": "8e86e4fc5b89af6f75a26f76096dba118b8e1e01100852f90073facbec7e5c7d",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass/executors.rs": "9f40b8fcb9b8db2f89a3899be450c9b7ec63613dbef58f0fecafa76d783fa8a8",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass/mod.rs": "5f8b8fab161d0901abd39d4055fe3a4f0fab4247272ab452d92a362a8611844f",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass/pipelines.rs": "aaf127c3389a64c0d970371f46249a3769a7b2e7f502030fa5c2b80397c32a21",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/transmission/mod.rs": "8da25117ca979ea7bbf63404f07b2286c1cd5e725f51d63e1f76bc5773d3f09d",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/transmission/resources.rs": "ebe2a7a8590e2d3ea17a1d12507ec1354615dd95820e8e5d3aa2f0b4de30f8de",
+    "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/transmission/steps.rs": "4e37b66df8766ef9fe6a9fcd102e625c142489dc3d5e0e43aeb0467724c1680e"
+  },
+  "installation": {
+    "path": "E:\\Git\\ZirconEngine\\docs\\cli-and-tooling\\source-comment-audit\\round-02\\ownership\\local-install-runtime_wave12_graphics_advanced_lighting-20261003-r1.json",
+    "sha256": "c64b1ef3f16cb6215ab63afe833ea2dd2e2ef978406f84c3643eeb72265aaa63"
+  },
+  "root_semantic_proof": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_advanced_lighting-root-semantic-proof-20261003-r1.json",
+    "sha256": "91e59cccc0954a547b8466679a8602f93d52b019fa3f1fecfc0a2f5291619b33"
+  },
+  "coverage_records": 33,
+  "reviewed_current_records": 33,
+  "new_issues": 0,
+  "issue_anchors": 0,
+  "source_writes": 0,
+  "canonical_writes": 0,
+  "status": "matching_hash_coverage_published",
+  "completed_at_utc": "2026-10-03T03:49:39.367575+00:00",
+  "intent": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-publish-runtime_wave12_graphics_advanced_lighting-20261003-r1\\intent.json",
+    "sha256": "e79409ffd379a8868281729289dd1f80ba596e452ade2a859c9c82b9e23f8ce1"
+  },
+  "inventory_reviewed_current_records": 4293,
+  "canonical_batch_records": 112,
+  "canonical_ledger_writes": 4,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "business_adoption": false,
+  "dynamic_acceptance": false,
+  "submission": "pending_index_ownership_resolution"
+}

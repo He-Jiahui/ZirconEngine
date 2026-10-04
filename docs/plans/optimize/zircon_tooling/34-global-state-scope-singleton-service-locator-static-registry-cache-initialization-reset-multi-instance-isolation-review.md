@@ -11,7 +11,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/template_runtime_projection.rs
   - zircon_editor/src/ui/retained_host/viewport/editor_viewport_render_defaults.rs
   - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
-  - zircon_editor/src/ui/v2_design_tokens.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
   - zircon_runtime/src/core/runtime/tasks/pools.rs

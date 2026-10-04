@@ -1,25 +1,25 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::core::framework::render::{
-    PostProcessGraphResourceNames, RenderFrameExtract, RenderPhase,
-    resolve_subsurface_profile_table,
+    resolve_subsurface_profile_table, PostProcessGraphResourceNames, RenderFrameExtract,
+    RenderPhase,
 };
 use crate::render_graph::{QueueLane, RenderGraphAttachmentOps};
 
 use crate::graphics::extract::{FrameHistoryAccess, FrameHistoryBinding, FrameHistorySlot};
 use crate::graphics::feature::{
-    BuiltinRenderFeature, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
-    RenderFeatureResourceAccess, RenderFeatureResourceDescriptor, RenderFeatureResourceWriteMode,
-    configure_screen_space_ambient_occlusion_for_profile,
+    configure_screen_space_ambient_occlusion_for_profile, BuiltinRenderFeature,
+    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderFeatureResourceAccess,
+    RenderFeatureResourceDescriptor, RenderFeatureResourceWriteMode,
+};
+use crate::graphics::pipeline::declarations::{
+    transmission_mesh_pass_name, transmission_scene_copy_pass_name, AdvancedLightingCompileInputs,
+    CompiledAoProfile, CompiledRenderPipeline, CompiledRenderPipelineParts, RenderPassStage,
+    RenderPipelineAsset, RenderPipelineCompileOptions, ADVANCED_PBR_OPAQUE_EXECUTOR_ID,
+    ADVANCED_PBR_OPAQUE_PASS_NAME, TRANSMISSION_MESH_EXECUTOR_IDS,
+    TRANSMISSION_SCENE_COPY_EXECUTOR_IDS,
 };
 use crate::graphics::pipeline::RenderGraphCompileCameraTargetFingerprint;
-use crate::graphics::pipeline::declarations::{
-    ADVANCED_PBR_OPAQUE_EXECUTOR_ID, ADVANCED_PBR_OPAQUE_PASS_NAME, AdvancedLightingCompileInputs,
-    CompiledAoProfile, CompiledRenderPipeline, CompiledRenderPipelineParts, RenderPassStage,
-    RenderPipelineAsset, RenderPipelineCompileOptions, TRANSMISSION_MESH_EXECUTOR_IDS,
-    TRANSMISSION_SCENE_COPY_EXECUTOR_IDS, transmission_mesh_pass_name,
-    transmission_scene_copy_pass_name,
-};
 use crate::graphics::scene::HALF_RES_TRANSPARENCY_PARTICLE_EXECUTOR_ID;
 
 use super::super::validation::validate_renderer_asset;
@@ -607,16 +607,14 @@ fn maybe_insert_core_scene_particle_descriptor(
             "visibility".to_string(),
         ],
         Vec::new(),
-        vec![
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::Transparent3d,
-                CORE_SCENE_PARTICLE_PASS_NAME,
-                QueueLane::Graphics,
-            )
-            .with_executor_id(executor_id)
-            .read_texture(depth_resource)
-            .write_texture(color_resource),
-        ],
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::Transparent3d,
+            CORE_SCENE_PARTICLE_PASS_NAME,
+            QueueLane::Graphics,
+        )
+        .with_executor_id(executor_id)
+        .read_texture(depth_resource)
+        .write_texture(color_resource)],
     ));
 }
 

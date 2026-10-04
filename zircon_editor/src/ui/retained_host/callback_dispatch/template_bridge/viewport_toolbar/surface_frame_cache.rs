@@ -10,7 +10,7 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::template_runtime::RetainedUiHostProjection;
 
-const SURFACE_FRAME_CACHE_CAPACITY: usize = 64;
+pub(super) const SURFACE_FRAME_CACHE_CAPACITY: usize = 64;
 
 #[derive(Default)]
 pub(super) struct ViewportToolbarSurfaceFrameCache {
@@ -74,25 +74,22 @@ impl ViewportToolbarSurfaceFrameCache {
                 return Some(Arc::clone(&cached.frame));
             }
 
-            let mapped_hit_control_ids =
-                cached.signature.mapped_hit_control_ids(&mut hit_control_id);
-            record_hit_control_projection(mapped_hit_control_ids.len());
+            let (mapping_changed, mapping_visit_count) =
+                cached.signature.remap_hit_control_ids(&mut hit_control_id);
+            record_hit_control_projection(mapping_visit_count);
             #[cfg(test)]
             {
                 self.hit_control_projection_count = self
                     .hit_control_projection_count
-                    .saturating_add(mapped_hit_control_ids.len());
+                    .saturating_add(mapping_visit_count);
             }
-            if cached
-                .signature
-                .hit_control_ids_match(&mapped_hit_control_ids)
-            {
+            if !mapping_changed {
                 zircon_runtime::profile_counter!(
                     "editor",
                     "ui.viewport_toolbar.prelayout_surface_frame_cache_route_key_update_count",
                     1_u8
                 );
-                cached.hit_route_key = own_hit_route_key(hit_route_key);
+                update_hit_route_key(&mut cached.hit_route_key, hit_route_key);
                 cached.last_used_generation = access_generation;
                 zircon_runtime::profile_counter!(
                     "editor",
@@ -102,11 +99,8 @@ impl ViewportToolbarSurfaceFrameCache {
                 return Some(Arc::clone(&cached.frame));
             }
 
-            cached
-                .signature
-                .replace_hit_control_ids(mapped_hit_control_ids);
             let frame = build_surface_frame(surface_key, &cached.signature);
-            cached.hit_route_key = own_hit_route_key(hit_route_key);
+            update_hit_route_key(&mut cached.hit_route_key, hit_route_key);
             cached.frame = Arc::clone(&frame);
             cached.last_used_generation = access_generation;
             zircon_runtime::profile_counter!(
@@ -130,16 +124,15 @@ impl ViewportToolbarSurfaceFrameCache {
             );
             return None;
         };
-        let mapped_hit_control_ids = shared_layout.mapped_hit_control_ids(&mut hit_control_id);
-        record_hit_control_projection(mapped_hit_control_ids.len());
+        let mut signature = shared_layout;
+        let (_, mapping_visit_count) = signature.remap_hit_control_ids(&mut hit_control_id);
+        record_hit_control_projection(mapping_visit_count);
         #[cfg(test)]
         {
             self.hit_control_projection_count = self
                 .hit_control_projection_count
-                .saturating_add(mapped_hit_control_ids.len());
+                .saturating_add(mapping_visit_count);
         }
-        let mut signature = shared_layout;
-        signature.replace_hit_control_ids(mapped_hit_control_ids);
         let frame = build_surface_frame(surface_key, &signature);
         self.entries.insert(
             surface_key.to_string(),
@@ -183,7 +176,7 @@ impl ViewportToolbarSurfaceFrameCache {
 
         if let Some(cached) = self.entries.get_mut(surface_key) {
             if cached.signature == signature {
-                cached.hit_route_key = own_hit_route_key(hit_route_key);
+                update_hit_route_key(&mut cached.hit_route_key, hit_route_key);
                 cached.last_used_generation = access_generation;
                 zircon_runtime::profile_counter!(
                     "editor",
@@ -267,12 +260,39 @@ fn hit_route_keys_match(cached: Option<&[String]>, requested: Option<&[&str]>) -
 }
 
 fn own_hit_route_key(hit_route_key: Option<&[&str]>) -> Option<Vec<String>> {
-    hit_route_key.map(|hit_route_key| {
-        hit_route_key
-            .iter()
-            .map(|value| (*value).to_string())
-            .collect()
-    })
+    let mut owned = None;
+    update_hit_route_key(&mut owned, hit_route_key);
+    owned
+}
+
+#[cfg(test)]
+#[path = "tests/surface_frame_cache.rs"]
+mod tests;
+
+fn update_hit_route_key(target: &mut Option<Vec<String>>, requested: Option<&[&str]>) {
+    let Some(requested) = requested else {
+        *target = None;
+        return;
+    };
+    let cached = target.get_or_insert_with(|| Vec::with_capacity(requested.len()));
+    if cached.capacity() < requested.len() {
+        cached.reserve(requested.len().saturating_sub(cached.len()));
+    }
+    let cached_len = cached.len();
+    for (cached_value, requested_value) in cached.iter_mut().zip(requested.iter().copied()) {
+        let requested_len = requested_value.len();
+        let cached_value_len = cached_value.len();
+        if cached_value.capacity() < requested_len {
+            cached_value.reserve(requested_len.saturating_sub(cached_value_len));
+        }
+        cached_value.clear();
+        cached_value.push_str(requested_value);
+    }
+    if requested.len() < cached_len {
+        cached.truncate(requested.len());
+    } else if requested.len() > cached_len {
+        cached.extend(requested[cached_len..].iter().copied().map(str::to_owned));
+    }
 }
 
 impl SurfaceFrameSignature {
@@ -284,22 +304,19 @@ impl SurfaceFrameSignature {
     where
         F: FnMut(&str) -> Option<String>,
     {
-        let nodes = projection
-            .nodes
-            .iter()
-            .filter_map(|projection_node| {
-                let projection_control_id = projection_node.control_id.as_deref()?;
-                if projection_node.routes.is_empty() || projection_node.disabled {
-                    return None;
-                }
-                Some(SurfaceFrameNode {
-                    projection_control_id: projection_control_id.to_string(),
-                    hit_control_id: hit_control_id(projection_control_id),
-                    component: projection_node.component.clone(),
-                    frame: projection_node.frame,
-                })
+        let mut nodes = Vec::with_capacity(projection.nodes.len());
+        nodes.extend(projection.nodes.iter().filter_map(|projection_node| {
+            let projection_control_id = projection_node.control_id.as_deref()?;
+            if projection_node.routes.is_empty() || projection_node.disabled {
+                return None;
+            }
+            Some(SurfaceFrameNode {
+                projection_control_id: projection_control_id.to_string(),
+                hit_control_id: hit_control_id(projection_control_id),
+                component: projection_node.component.clone(),
+                frame: projection_node.frame,
             })
-            .collect();
+        }));
         Self {
             width_bits: surface_size.width.to_bits(),
             height_bits: surface_size.height.to_bits(),
@@ -319,27 +336,20 @@ impl SurfaceFrameSignature {
             && self.height_bits == surface_size.height.to_bits()
     }
 
-    fn mapped_hit_control_ids<F>(&self, hit_control_id: &mut F) -> Vec<Option<String>>
+    fn remap_hit_control_ids<F>(&mut self, hit_control_id: &mut F) -> (bool, usize)
     where
         F: FnMut(&str) -> Option<String>,
     {
-        self.nodes
-            .iter()
-            .map(|node| hit_control_id(&node.projection_control_id))
-            .collect()
-    }
-
-    fn hit_control_ids_match(&self, mapped_hit_control_ids: &[Option<String>]) -> bool {
-        self.nodes
-            .iter()
-            .zip(mapped_hit_control_ids)
-            .all(|(node, mapped)| node.hit_control_id.as_deref() == mapped.as_deref())
-    }
-
-    fn replace_hit_control_ids(&mut self, mapped_hit_control_ids: Vec<Option<String>>) {
-        for (node, mapped) in self.nodes.iter_mut().zip(mapped_hit_control_ids) {
-            node.hit_control_id = mapped;
+        let mut changed = false;
+        let visits = self.nodes.len();
+        for node in &mut self.nodes {
+            let mapped = hit_control_id(&node.projection_control_id);
+            if node.hit_control_id.as_deref() != mapped.as_deref() {
+                node.hit_control_id = mapped;
+                changed = true;
+            }
         }
+        (changed, visits)
     }
 }
 

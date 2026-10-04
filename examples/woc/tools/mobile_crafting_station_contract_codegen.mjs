@@ -1,3 +1,6 @@
+// 调用端：npm run generate:mobile-crafting-station-contract (tools/package.json)；职责：提取便携制造工作站的寿命和配方访问规则。
+// 输入边界：src/sim/professions/mobile_station.ts, src/sim/content/professions.ts；--check 比较生成结果，不改写目标文件。
+
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

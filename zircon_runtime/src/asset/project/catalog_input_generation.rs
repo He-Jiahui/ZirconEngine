@@ -225,10 +225,17 @@ impl ProjectCatalogInputGeneration {
         mut updated_sources: HashMap<AssetId, ProjectCatalogInputSource>,
         removed_ids: impl IntoIterator<Item = AssetId>,
     ) -> Arc<Self> {
+        let updated_records = updated_records.into_iter();
+        let (updated_lower_bound, updated_upper_bound) = updated_records.size_hint();
+        let updated_capacity = updated_upper_bound.unwrap_or(updated_lower_bound);
+        let removed_ids = removed_ids.into_iter();
+        let (removed_lower_bound, removed_upper_bound) = removed_ids.size_hint();
+        let removed_capacity = removed_upper_bound.unwrap_or(removed_lower_bound);
         let mut records = previous.records.clone();
         let mut records_changed = false;
-        let mut updated_ids = HashSet::new();
-        let mut touched_ids = HashSet::new();
+        let mut updated_ids = HashSet::with_capacity(updated_capacity);
+        let mut touched_ids =
+            HashSet::with_capacity(updated_capacity.saturating_add(removed_capacity));
 
         for id in removed_ids {
             touched_ids.insert(id);
@@ -552,24 +559,9 @@ fn advance_sequence(sequence: &AtomicU64) -> u64 {
 }
 
 #[cfg(test)]
-mod sequence_tests {
-    use std::sync::atomic::{AtomicU64, Ordering};
+#[path = "catalog_input_generation/tests/optimization_batch_iv_runtime632_tests.rs"]
+mod optimization_batch_iv_runtime632_tests;
 
-    use super::advance_sequence;
-
-    #[test]
-    fn final_catalog_input_sequence_is_published_once_without_wrapping() {
-        let sequence = AtomicU64::new(u64::MAX - 1);
-
-        assert_eq!(advance_sequence(&sequence), u64::MAX - 1);
-        assert_eq!(sequence.load(Ordering::Relaxed), u64::MAX);
-    }
-
-    #[test]
-    #[should_panic(expected = "project catalog input generation sequence exhausted")]
-    fn exhausted_catalog_input_sequence_never_reuses_an_old_generation() {
-        let sequence = AtomicU64::new(u64::MAX);
-
-        let _ = advance_sequence(&sequence);
-    }
-}
+#[cfg(test)]
+#[path = "tests/catalog_input_generation_sequence_tests.rs"]
+mod sequence_tests;

@@ -47,13 +47,11 @@ fn text_input_commit_timing_defers_validation_until_commit() {
         )
         .unwrap();
     assert_eq!(state.validation.level, UiValidationLevel::Error);
-    assert!(
-        state
-            .validation
-            .message
-            .as_deref()
-            .is_some_and(|message| message.contains("at least 3"))
-    );
+    assert!(state
+        .validation
+        .message
+        .as_deref()
+        .is_some_and(|message| message.contains("at least 3")));
     assert_eq!(
         state.value("validation_level"),
         Some(&UiValue::Enum("error".to_string()))
@@ -192,13 +190,11 @@ fn text_input_change_timing_validates_max_length_live() {
         )
         .unwrap();
     assert_eq!(state.validation.level, UiValidationLevel::Error);
-    assert!(
-        state
-            .validation
-            .message
-            .as_deref()
-            .is_some_and(|message| message.contains("at most 4"))
-    );
+    assert!(state
+        .validation
+        .message
+        .as_deref()
+        .is_some_and(|message| message.contains("at most 4")));
     assert_eq!(
         state.value("validation_level"),
         Some(&UiValue::Enum("error".to_string()))

@@ -1,3 +1,4 @@
+# 核对暂存清单对源文件、哈希和插件载荷的记录。
 import hashlib
 import json
 import tempfile
@@ -8,7 +9,7 @@ from pathlib import Path
 
 class ZirconBuildStagingManifestTests(unittest.TestCase):
     def test_manifest_binds_staged_files_to_sources_and_hashes(self):
-        from tools.zircon_build_staging_manifest import write_staging_manifest
+        from tools.build.zircon_build_staging_manifest import write_staging_manifest
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -88,7 +89,7 @@ class ZirconBuildStagingManifestTests(unittest.TestCase):
             )
 
     def test_manifest_rejects_staged_files_without_source_provenance(self):
-        from tools.zircon_build_staging_manifest import write_staging_manifest
+        from tools.build.zircon_build_staging_manifest import write_staging_manifest
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -110,7 +111,7 @@ class ZirconBuildStagingManifestTests(unittest.TestCase):
                 write_staging_manifest(config)
 
     def test_manifest_records_generated_plugin_load_manifest(self):
-        from tools.zircon_build_staging_manifest import write_staging_manifest
+        from tools.build.zircon_build_staging_manifest import write_staging_manifest
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -135,13 +136,13 @@ class ZirconBuildStagingManifestTests(unittest.TestCase):
             self.assertEqual(
                 {
                     "kind": "generated",
-                    "path": "tools/zircon_build.py",
+                    "path": "tools/build/zircon_build.py",
                 },
                 manifest["artifacts"][0]["source"],
             )
 
     def test_manifest_binds_native_plugin_payload_to_build_and_source_inputs(self):
-        from tools.zircon_build_staging_manifest import write_staging_manifest
+        from tools.build.zircon_build_staging_manifest import write_staging_manifest
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

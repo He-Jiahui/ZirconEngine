@@ -19,7 +19,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束流式实体化路径规范化：规范化预分配一个输出字符串，并规范化不收集组件。
 class StreamingMaterializedPathNormalizationPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

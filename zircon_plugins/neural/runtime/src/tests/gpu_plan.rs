@@ -1,6 +1,6 @@
 use crate::{
-    NnConv2dAttrs, NnDataType, NnGemmAttrs, NnGraphExecutor, NnGraphIo, NnModelAsset, NnOp,
-    NnOpAttrs, NnOpCode, NnPool2dAttrs, NnTensorDesc, NnTensorKind,
+    NnConv2dAttrs, NnDataType, NnGemmAttrs, NnGraphBuildError, NnGraphExecutor, NnGraphIo,
+    NnModelAsset, NnOp, NnOpAttrs, NnOpCode, NnPool2dAttrs, NnTensorDesc, NnTensorKind,
 };
 use zircon_runtime::graphics::ComputeShaderSource;
 use zircon_runtime::render_graph::ComputeBindingKind;
@@ -45,13 +45,43 @@ fn nn_graph_executor_emits_compute_descriptors_and_folds_view_ops() {
     );
     assert_eq!(passes[0].bindings[1].resource, "scene-tensor");
     assert_eq!(passes[0].bindings[2].resource, "nn.weights");
-    assert_eq!(passes[0].bindings[2].buffer_offset, Some(0));
+    assert_eq!(
+        passes[0].bindings[2]
+            .buffer_range
+            .map(|range| (range.offset, range.size)),
+        Some((0, None))
+    );
     assert_eq!(passes[1].bindings[1].resource, "nn.tensor.2");
     assert_eq!(passes[1].bindings[2].resource, "post-output");
     assert!(matches!(
         &passes[0].shader,
         ComputeShaderSource::InlineWgsl { label, .. } if label.contains("nn.gemm")
     ));
+}
+
+#[test]
+fn nn_graph_executor_rejects_reshape_that_changes_element_count() {
+    let model = NnModelAsset {
+        tensors: vec![
+            NnTensorDesc::new(NnDataType::F32, NnTensorKind::Input, 2, [1, 1, 2, 2]),
+            NnTensorDesc::new(NnDataType::F32, NnTensorKind::Output, 2, [1, 1, 2, 3]),
+        ],
+        ops: vec![NnOp::new(
+            NnOpCode::Reshape,
+            vec![0],
+            vec![1],
+            NnOpAttrs::None,
+        )],
+        weights: Vec::new(),
+    };
+    let io = NnGraphIo::new("nn.weights")
+        .with_input(0, "scene-tensor")
+        .with_output(1, "post-output");
+
+    assert_eq!(
+        NnGraphExecutor::default().build_plan(&model, &io),
+        Err(NnGraphBuildError::InvalidShape(NnOpCode::Reshape))
+    );
 }
 
 #[test]
@@ -82,7 +112,12 @@ fn nn_graph_executor_plans_nchw_conv2d_with_fixed_uniform_layout() {
     assert_eq!(plan[0].parameter_bytes.len(), 80);
     assert_eq!(plan[0].descriptor.workgroup_size, [8, 8, 1]);
     assert_eq!(plan[0].descriptor.bindings[2].resource, "nn.weights");
-    assert_eq!(plan[0].descriptor.bindings[2].buffer_offset, Some(0));
+    assert_eq!(
+        plan[0].descriptor.bindings[2]
+            .buffer_range
+            .map(|range| (range.offset, range.size)),
+        Some((0, None))
+    );
     assert!(matches!(
         &plan[0].descriptor.shader,
         ComputeShaderSource::InlineWgsl { label, source }
@@ -147,6 +182,133 @@ fn nn_graph_executor_plans_pool_and_integer_upsample_passes() {
             ComputeShaderSource::InlineWgsl { source, .. } if source.contains(shader_marker)
         ));
     }
+}
+
+#[test]
+fn nn_graph_executor_rejects_batch_channel_dispatch_overflow() {
+    const OVERFLOW_DIMENSION: u32 = 1 << 16;
+    let shape = [OVERFLOW_DIMENSION, OVERFLOW_DIMENSION, 1, 1];
+
+    let pool = NnModelAsset {
+        tensors: vec![
+            NnTensorDesc::new(NnDataType::F32, NnTensorKind::Input, 4, shape),
+            NnTensorDesc::new(NnDataType::F32, NnTensorKind::Output, 4, shape),
+        ],
+        ops: vec![NnOp::new(
+            NnOpCode::MaxPool2d,
+            vec![0],
+            vec![1],
+            NnOpAttrs::Pool2d(NnPool2dAttrs {
+                kernel: [1, 1],
+                stride: [1, 1],
+                padding: [0, 0, 0, 0],
+            }),
+        )],
+        weights: Vec::new(),
+    };
+    let io = NnGraphIo::new("nn.weights")
+        .with_input(0, "scene-tensor")
+        .with_output(1, "post-output");
+    assert_eq!(
+        NnGraphExecutor::default().build_plan(&pool, &io),
+        Err(NnGraphBuildError::DispatchDimensionOverflow {
+            code: NnOpCode::MaxPool2d,
+            batch: OVERFLOW_DIMENSION,
+            channels: OVERFLOW_DIMENSION,
+        })
+    );
+
+    let upsample = NnModelAsset {
+        tensors: vec![
+            NnTensorDesc::new(NnDataType::F32, NnTensorKind::Input, 4, shape),
+            NnTensorDesc::new(NnDataType::F32, NnTensorKind::Output, 4, shape),
+        ],
+        ops: vec![NnOp::new(
+            NnOpCode::Upsample2d,
+            vec![0],
+            vec![1],
+            NnOpAttrs::Upsample2d { scale: [1, 1] },
+        )],
+        weights: Vec::new(),
+    };
+    assert_eq!(
+        NnGraphExecutor::default().build_plan(&upsample, &io),
+        Err(NnGraphBuildError::DispatchDimensionOverflow {
+            code: NnOpCode::Upsample2d,
+            batch: OVERFLOW_DIMENSION,
+            channels: OVERFLOW_DIMENSION,
+        })
+    );
+
+    let conv = NnModelAsset {
+        tensors: vec![
+            NnTensorDesc::new(NnDataType::F32, NnTensorKind::Input, 4, shape),
+            NnTensorDesc::new(
+                NnDataType::F32,
+                NnTensorKind::Weight,
+                4,
+                [OVERFLOW_DIMENSION, 1, 1, 1],
+            )
+            .with_weight_offset(0),
+            NnTensorDesc::new(NnDataType::F32, NnTensorKind::Output, 4, shape),
+        ],
+        ops: vec![NnOp::new(
+            NnOpCode::Conv2d,
+            vec![0, 1],
+            vec![2],
+            NnOpAttrs::Conv2d(NnConv2dAttrs {
+                groups: OVERFLOW_DIMENSION,
+                ..NnConv2dAttrs::default()
+            }),
+        )],
+        weights: vec![0; (OVERFLOW_DIMENSION as usize) * 4],
+    };
+    let conv_io = NnGraphIo::new("nn.weights")
+        .with_input(0, "scene-tensor")
+        .with_output(2, "post-output");
+    assert_eq!(
+        NnGraphExecutor::default().build_plan(&conv, &conv_io),
+        Err(NnGraphBuildError::DispatchDimensionOverflow {
+            code: NnOpCode::Conv2d,
+            batch: OVERFLOW_DIMENSION,
+            channels: OVERFLOW_DIMENSION,
+        })
+    );
+}
+
+#[test]
+fn nn_graph_executor_rejects_dispatch_groups_above_device_limit() {
+    let model = NnModelAsset {
+        tensors: vec![
+            NnTensorDesc::new(NnDataType::F32, NnTensorKind::Input, 4, [1, 1, 33, 33]),
+            NnTensorDesc::new(NnDataType::F32, NnTensorKind::Output, 4, [1, 1, 32, 32]),
+        ],
+        ops: vec![NnOp::new(
+            NnOpCode::MaxPool2d,
+            vec![0],
+            vec![1],
+            NnOpAttrs::Pool2d(NnPool2dAttrs {
+                kernel: [2, 2],
+                stride: [1, 1],
+                padding: [0, 0, 0, 0],
+            }),
+        )],
+        weights: Vec::new(),
+    };
+    let io = NnGraphIo::new("nn.weights")
+        .with_input(0, "scene-tensor")
+        .with_output(1, "post-output");
+
+    assert_eq!(
+        NnGraphExecutor::default()
+            .with_dispatch_limits([3, 3, 3])
+            .build_plan(&model, &io),
+        Err(NnGraphBuildError::DispatchDimensionLimitExceeded {
+            code: NnOpCode::MaxPool2d,
+            groups: [4, 4, 1],
+            limits: [3, 3, 3],
+        })
+    );
 }
 
 #[test]

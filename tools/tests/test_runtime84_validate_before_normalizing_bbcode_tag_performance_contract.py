@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# BBCode 标签先借用验证再规范化拥有型名称；无效标签不分配小写副本，检查 Rust 用例对有效与无效路径的断言。
 
 ROOT = Path(__file__).resolve().parents[2]
 BBCODE = ROOT / "zircon_runtime/src/text/rich/bbcode.rs"

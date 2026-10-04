@@ -1,5 +1,6 @@
 mod hit;
 #[cfg(test)]
+#[path = "frame_geometry/tests/cases.rs"]
 mod tests;
 mod union;
 mod visibility;

@@ -9,8 +9,6 @@ origin_child_dir: docs/plans/optimize/zircon_app/01
 fixing_child_dir: docs/plans/zircon_editor/editor/14
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/core/recovery/autosave.rs
-  - zircon_editor/src/core/recovery/autosave_adapter.rs
 tests:
   - cargo build -p zircon_app --no-default-features --features target-editor-host --locked --bin zircon_editor
 resolved_at: 2026-08-16

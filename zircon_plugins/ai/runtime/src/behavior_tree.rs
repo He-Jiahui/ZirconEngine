@@ -2,6 +2,7 @@ mod catalog;
 mod compile;
 mod executor;
 mod nodes;
+mod random_selector_weights;
 
 pub(crate) const SUBTREE_TARGET_PARAMETER_KEY: &str = "behavior_tree";
 

@@ -1,8 +1,9 @@
 use std::{
     collections::HashSet,
-    sync::mpsc::Receiver,
     time::{Duration, Instant},
 };
+
+use crossbeam_channel::Receiver;
 
 use crate::core::jobs::JobError;
 use zircon_runtime_interface::export::ExportStage;
@@ -106,9 +107,10 @@ impl ExportWizardPanelViewModel {
         self.coalesced_output_events = self
             .coalesced_output_events
             .max(event.coalesced_output_events);
-        let mut snapshot = match event.output_delta {
+        let cancel_requested = self.snapshot.cancel_requested;
+        match event.output_delta {
             Some(output_delta) => {
-                let mut snapshot = self.snapshot.clone();
+                let snapshot = &mut self.snapshot;
                 snapshot.job_id = event.snapshot.job_id;
                 snapshot.profile = event.snapshot.profile;
                 snapshot.out = event.snapshot.out;
@@ -120,11 +122,11 @@ impl ExportWizardPanelViewModel {
                     output_delta.output,
                     output_delta.progress,
                 );
-                snapshot
             }
-            None => event.snapshot,
-        };
-        if self.snapshot.cancel_requested && !snapshot.cancel_requested && !snapshot.is_terminal() {
+            None => self.snapshot = event.snapshot,
+        }
+        let snapshot = &mut self.snapshot;
+        if cancel_requested && !snapshot.cancel_requested && !snapshot.is_terminal() {
             snapshot.cancel_requested = true;
             if matches!(
                 snapshot.status,
@@ -134,7 +136,6 @@ impl ExportWizardPanelViewModel {
             }
         }
         self.active_job = !snapshot.is_terminal();
-        self.snapshot = snapshot;
         self.event_count += 1;
     }
 
@@ -263,17 +264,13 @@ impl ExportWizardPanelViewModel {
                 let stage_execution = self.stage_execution(progress.stage);
                 let stage_output = self.stage_output(progress.stage);
                 let planned_artifacts = self.planned_artifacts(progress.stage);
-                let report_path = progress
-                    .report_path
-                    .clone()
-                    .or_else(|| report_path_from_artifacts(&planned_artifacts));
                 ExportWizardStageViewRow {
                     stage: progress.stage,
                     stage_id: progress.stage.cli_id(),
                     label: progress.stage.report_name(),
                     progress_kind: self.row_progress_kind(progress.stage, progress.kind),
                     is_current: self.snapshot.current_stage == Some(progress.stage),
-                    report_path,
+                    report_path: progress.report_path.clone(),
                     artifact_paths: progress.artifact_paths.clone(),
                     planned_artifacts,
                     diagnostics: stage_diagnostics(progress.diagnostics.clone(), stage_execution),
@@ -368,13 +365,6 @@ fn terminal_event_kind(status: ExportWizardJobStatus) -> Option<ExportWizardJobE
     }
 }
 
-fn report_path_from_artifacts(artifacts: &[ExportWizardStageArtifactPath]) -> Option<String> {
-    artifacts
-        .iter()
-        .find(|artifact| artifact.key == "report" || artifact.key == "pipeline_report")
-        .map(|artifact| artifact.path.clone())
-}
-
 fn stage_diagnostics(
     diagnostics: Vec<String>,
     execution: Option<&ExportWizardStageExecution>,
@@ -424,5 +414,9 @@ fn stage_stderr_lines(
 }
 
 #[cfg(test)]
-#[path = "view_model/stage_diagnostics_tests.rs"]
+#[path = "view_model/tests/stage_diagnostics_tests.rs"]
 mod stage_diagnostics_tests;
+
+#[cfg(test)]
+#[path = "view_model/tests/astra_output_projection_tests.rs"]
+mod astra_output_projection_tests;

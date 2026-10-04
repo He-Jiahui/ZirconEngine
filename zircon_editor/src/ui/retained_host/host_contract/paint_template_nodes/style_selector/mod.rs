@@ -20,6 +20,7 @@ mod workbench_tooltip;
 mod workbench_tree_row;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use exports::*;
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use state::focus_visible_for_node;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use workbench_status_control::{
     WORKBENCH_DIAGNOSTIC_SIGNAL_VARIANT, WorkbenchStatusSignalKind,
 };

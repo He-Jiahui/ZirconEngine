@@ -1,9 +1,7 @@
-# Enumerate Existing Skills
+# Enumerate existing skills
 
-- Use this file when a repo conversation starts and you need quick awareness of local skills.
-- Run the shallow tree script first and inspect only top-level entries under each skill folder.
-- Read the top-level `SKILL.md` frontmatter for each listed skill and capture `name` plus `description`.
-- In repository-local `.codex/skills`, when a directory groups child skills but has no parent `SKILL.md`, record it as missing structure and prefer fixing the index instead of normalizing the bare folder.
-- Do not apply that rule to support folders such as `agents/`, `assets/`, `references/`, `scripts/`, or similar non-skill internals.
-- Record or refresh the summaries in `catalog-existing-skills/current-project-skills.md`.
-- Open deeper files inside another skill only when the current task explicitly needs that skill.
+Discover `SKILL.md` paths and inspect frontmatter first. Read a body only when its scope is needed for the task or an audit explicitly covers it.
+
+Treat a folder's `index.md` as navigation and other Markdown as reference material. A category folder without a skill entry is valid. Do not create artificial parent skills just to fill the tree.
+
+Refresh [the generated catalog](catalog-existing-skills/current-project-skills.md) with the catalog helper after names, descriptions, or routes change. Codex entries are the discovery source; supporting guides are loaded through their owners.

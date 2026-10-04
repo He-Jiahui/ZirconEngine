@@ -1,3 +1,4 @@
+// 启动工作表按 Rust 的全局状态、调度头、实例种子顺序打包；本着色器按相同字数解包。
 const CULL_INPUT_FORCED_MIP_INDEX: u32 = 11u;
 const GLOBAL_STATE_WORD_COUNT: u32 = 56u;
 const DISPATCH_SETUP_WORD_COUNT: u32 = 7u;

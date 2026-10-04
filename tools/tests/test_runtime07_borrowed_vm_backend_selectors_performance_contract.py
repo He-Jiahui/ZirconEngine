@@ -12,8 +12,7 @@ ZR_VM_SOURCE = ROOT / "zircon_plugins/zr_vm_language/runtime/src/backend.rs"
 IMPLEMENTATION_SOURCES = (
     REGISTRY_SOURCE,
     BUILTIN_SOURCE,
-    ROOT
-    / "zircon_runtime/src/script/vm/backend/backend_registry/qualified_lookup_tests.rs",
+    ROOT / "zircon_runtime/src/script/vm/backend/backend_registry/tests/qualified_lookup_tests.rs",
     ROOT / "zircon_runtime/src/script/vm/tests/lifecycle_failures.rs",
     ROOT / "zircon_runtime/src/script/vm/tests/support.rs",
     ZR_VM_SOURCE,
@@ -34,7 +33,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束借用 VM 后端选择器：族契约访问借用选择器，并注册表收集直接进入结果向量。
 class BorrowedVmBackendSelectorsPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

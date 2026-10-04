@@ -1,15 +1,15 @@
-use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::mem::size_of;
-use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use crate::text::{InlineObjectRef, LinkRef, OpenTypeFeature, StyleOverride};
 
-use super::RichTextParseError;
 use super::bbcode::{apply_builtin_style, is_parser_reserved_tag, normalized_tag};
 use super::inline_decorators::{IconTextDecorator, WidgetTextDecorator};
+use super::RichTextParseError;
 
 /// Mutable neutral output supplied to a registered BBCode decorator.
 ///

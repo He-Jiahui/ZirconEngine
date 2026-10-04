@@ -1,8 +1,8 @@
 use std::fmt::Write as _;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::asset::assets::{
@@ -482,6 +482,7 @@ fn write_scene(path: PathBuf, material_uri: &str) {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                components: Vec::new(),
                 script_bindings: Vec::new(),
             },
             SceneEntityAsset {
@@ -526,6 +527,7 @@ fn write_scene(path: PathBuf, material_uri: &str) {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                components: Vec::new(),
                 script_bindings: Vec::new(),
             },
         ],
@@ -576,6 +578,7 @@ fn write_material_sphere_scene(path: PathBuf, material_uri: &str) {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                components: Vec::new(),
                 script_bindings: Vec::new(),
             },
             SceneEntityAsset {
@@ -620,6 +623,7 @@ fn write_material_sphere_scene(path: PathBuf, material_uri: &str) {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                components: Vec::new(),
                 script_bindings: Vec::new(),
             },
         ],
@@ -756,5 +760,9 @@ fn average_channel_in_region(
             count += 1.0;
         }
     }
-    if count <= 0.0 { 0.0 } else { total / count }
+    if count <= 0.0 {
+        0.0
+    } else {
+        total / count
+    }
 }

@@ -65,6 +65,26 @@ pub(super) fn bake_geometry_diagnostics(
             entity: surface_entity,
         });
     }
+    if geometry.unbound_render_nodes > 0 {
+        diagnostics.push(NavMeshBakeDiagnostic {
+            severity: NavMeshBakeDiagnosticSeverity::Warning,
+            message: format!(
+                "skipped {} cube/mesh node(s) without a bound MeshRenderer; no fallback geometry was fabricated",
+                geometry.unbound_render_nodes
+            ),
+            entity: surface_entity,
+        });
+    }
+    if geometry.render_lod_levels_not_selected > 0 {
+        diagnostics.push(NavMeshBakeDiagnostic {
+            severity: NavMeshBakeDiagnosticSeverity::Info,
+            message: format!(
+                "navigation bake used the renderer base source and did not select {} LOD level(s) because the bake request has no camera distance",
+                geometry.render_lod_levels_not_selected
+            ),
+            entity: surface_entity,
+        });
+    }
     diagnostics
 }
 

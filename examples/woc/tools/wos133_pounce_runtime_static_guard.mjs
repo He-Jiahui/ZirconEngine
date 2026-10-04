@@ -39,14 +39,14 @@ if (stunStart < 0 || stunEnd < stunStart || !dispatch.slice(stunStart, stunEnd).
 const generator = read('tools', 'm4_ability_codegen.mjs');
 const zrGenerator = read('tools', 'm4_ability_zr_codegen.mjs');
 if (!/dash',[\s\S]*?'pounce'/.test(generator) ||
-    !generator.includes('EXPECTED_ABILITY_COUNT = 79') ||
-    !zrGenerator.includes('document.entries.length === 79')) {
+    !generator.includes('EXPECTED_ABILITY_COUNT = 117') ||
+    !zrGenerator.includes('document.entries.length === 117')) {
   throw new Error('M4 Pounce projection scope is missing');
 }
 const entry = JSON.parse(read('contracts', 'm4_abilities.json')).entries.find(
   (value) => value.id === 'pounce',
 );
-if (!entry || entry.index !== 73 || entry.definition.cost !== 50 ||
+if (!entry || entry.index !== 77 || entry.definition.cost !== 50 ||
     entry.definition.awardsCombo !== 1 || entry.definition.requiresForm !== 'cat' ||
     entry.definition.requiresStealth !== true || entry.definition.effects?.[0]?.type !== 'stun' ||
     entry.definition.effects[0].duration !== 2) {

@@ -19,7 +19,7 @@ collectors fail closed.
 
 The original review was read-only. The 2026-08-31 follow-up adds a narrow product-directory bridge
 without absorbing the external scenario, WPR or counter work already present in
-`tools/profile-capture-manifest.ps1` and `tools/ui-profile-capture.ps1`.
+`tools/analysis/profiling/shared/profile-capture-manifest.ps1` and `tools/analysis/profiling/ui/ui-profile-capture.ps1`.
 
 ## Confirmed Coverage
 
@@ -99,7 +99,7 @@ files and reports exactly three current blockers: missing managed Editor binary,
 Runtime library, and missing WPR system-profile privilege. This is tooling/static evidence, not a
 product CPU or allocation result. A general heap/allocation collector remains absent.
 
-The managed build-to-capture directory gap is now closed statically. `tools/build-editor.ps1`
+The managed build-to-capture directory gap is now closed statically. `tools/build/build-editor.ps1`
 publishes `zircon_editor.exe` and `zircon_runtime.dll` directly beneath an approved
 `D:/ZirconBuilds`, `E:/ZirconBuilds` or `F:/ZirconBuilds` child directory. The capture launcher now
 accepts that exact directory through `-ProductDirectory`; when it is absent, the existing managed

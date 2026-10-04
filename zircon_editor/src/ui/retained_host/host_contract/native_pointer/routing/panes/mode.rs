@@ -11,10 +11,9 @@ impl PaneRouteMode {
     pub(super) fn allows_template_hit(self, pane: &PaneData) -> bool {
         match self {
             Self::Default => true,
-            Self::PointerMove => !matches!(
-                pane.kind.as_str(),
-                "Hierarchy" | "Welcome" | "Assets" | "AssetBrowser"
-            ),
+            Self::PointerMove => {
+                !matches!(pane.kind.as_str(), "Hierarchy" | "Assets" | "AssetBrowser")
+            }
             Self::PointerScroll => pane.kind.as_str() != "Console",
         }
     }

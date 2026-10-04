@@ -1,3 +1,4 @@
+// 依据手工场景契约及固定资源清单生成 Eastbrook 场景。
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
@@ -140,6 +141,7 @@ function accessorBounds(accessor) {
   };
 }
 
+// 摆放场景实体前合成父节点变换与可见网格的 POSITION 边界。
 function modelBounds(document, graph, preYaw, hiddenNodes = []) {
   const hidden = new Set(hiddenNodes);
   const worlds = new Map();
@@ -216,6 +218,7 @@ function resolvedYaw(placement) {
   throw new Error(`unknown yaw rule ${rule.kind}`);
 }
 
+// 按稳定顺序将手工围栏段展开为重复道具摆放。
 function expandFenceRuns(contract) {
   const placements = [];
   for (const run of contract.fence_runs) {
@@ -383,6 +386,7 @@ function generateGround(contract) {
   );
 }
 
+// 生成实体前，场景契约与资源清单必须指向同一源码提交。
 const contractBytes = await readFile(contractPath);
 const contract = JSON.parse(contractBytes.toString("utf8"));
 const assetManifest = JSON.parse(await readFile(assetManifestPath, "utf8"));

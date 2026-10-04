@@ -1,3 +1,6 @@
+// 调用端：npm run generate:talent-row-contract (tools/package.json)；职责：把天赋行选择命令绑定到各职业天赋行及成长限制。
+// 输入边界：src/net/online.ts, server/game.ts, src/sim/content/talent_rows.ts, src/sim/content/warrior_rows.ts；--check 比较生成结果，不改写目标文件。
+
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

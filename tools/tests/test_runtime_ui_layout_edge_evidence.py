@@ -7,7 +7,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-TOOL = ROOT / "tools/runtime_ui_layout_edge_evidence.py"
+TOOL = ROOT / "tools/analysis/performance/runtime/runtime_ui_layout_edge_evidence.py"
 SCHEMA = "zircon.runtime.ui_layout_edge_evidence.v1"
 REQUIRED_SOURCE_PATHS = (
     "zircon_runtime_interface/src/ui/tree/node/ui_tree.rs",
@@ -134,7 +134,7 @@ def _source_manifest(scenario: str) -> dict[str, object]:
         },
     }
 
-
+# 解析逐边采样与源码指纹，允许精确子节点或父顺序补丁，并拒绝缺失计时、无关边访问和回退修补。
 class RuntimeUiLayoutEdgeEvidenceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

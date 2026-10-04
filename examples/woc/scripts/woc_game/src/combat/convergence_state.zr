@@ -1,5 +1,10 @@
+//! 独立契约投影：记录火、冰交替施法的标记窗口与内置冷却；实战光环和伤害由世界侧提交。
 var contract=%import("generated/convergence_contract");
+/// 保存交替触发所需的学派、窗口与冷却；调用方须按时间推进后提交施法事件。
 pub class ConvergenceState{pub var markSchool:string;pub var markRemaining:float;pub var cooldownRemaining:float;pub @constructor(){this.markSchool="";this.markRemaining=0.0;this.cooldownRemaining=0.0;}}
+/// 仅在开关、学派及异学派窗口条件满足时报告触发。
+/// true 只表示调用方应处理效果；本投影不直接造成伤害。
 pub onCast(state:ConvergenceState,enabled:bool,school:string):bool{if(!enabled||(school!="fire"&&school!="frost"))return false;if(state.markRemaining>0.0&&state.markSchool!=school&&state.cooldownRemaining<=0.0){state.markSchool="";state.markRemaining=0.0;state.cooldownRemaining=contract.icd();return true;}state.markSchool=school;state.markRemaining=contract.window();return false;}
+/// 由调用方提供非负时间步长，推进标记窗口与内置冷却；投影自身没有时钟。
 pub tick(state:ConvergenceState,dt:float):void{state.markRemaining=state.markRemaining-dt;if(state.markRemaining<=0.0){state.markRemaining=0.0;state.markSchool="";}state.cooldownRemaining=state.cooldownRemaining-dt;if(state.cooldownRemaining<0.0)state.cooldownRemaining=0.0;}
 pub contractTest():int{var s=new ConvergenceState();if(onCast(s,true,"arcane")||onCast(s,false,"fire")||onCast(s,true,"frost")||s.markSchool!="frost"||!onCast(s,true,"fire")||s.cooldownRemaining!=contract.icd())return -1;tick(s,contract.icd());if(onCast(s,true,"frost")||!onCast(s,true,"fire"))return -2;return 1;}

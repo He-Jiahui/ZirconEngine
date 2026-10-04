@@ -4,7 +4,7 @@ pub const SHADOW_SLOT_NONE: u32 = u32::MAX;
 pub const GPU_LIGHT_DATA_STRIDE: usize = 128;
 
 #[repr(u32)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum GpuLightType {
     Directional = 0,
     Point = 1,
@@ -22,6 +22,7 @@ impl GpuLightType {
     }
 }
 
+/// 灯光上传 DTO 固定为 `repr(C, align(16))` 的 128 字节步长，与 WGSL/std430 缓冲布局对齐；类型位及阴影、cookie 槽位由打包器解释。
 #[repr(C, align(16))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Pod, Zeroable)]
 pub struct GpuLightData {
@@ -40,28 +41,5 @@ impl GpuLightData {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use std::mem::{offset_of, size_of};
-
-    #[test]
-    fn gpu_light_data_layout_matches_plan_05_std430_contract() {
-        assert_eq!(size_of::<GpuLightData>(), GPU_LIGHT_DATA_STRIDE);
-        assert_eq!(offset_of!(GpuLightData, position_range), 0);
-        assert_eq!(offset_of!(GpuLightData, color_intensity), 16);
-        assert_eq!(offset_of!(GpuLightData, direction_type), 32);
-        assert_eq!(offset_of!(GpuLightData, spot_angles_size), 48);
-        assert_eq!(offset_of!(GpuLightData, shadow_slot_layer), 64);
-        assert_eq!(offset_of!(GpuLightData, shadow_params), 80);
-        assert_eq!(offset_of!(GpuLightData, cookie_uv_rect), 96);
-        assert_eq!(offset_of!(GpuLightData, cookie_misc), 112);
-    }
-
-    #[test]
-    fn gpu_light_type_is_encoded_as_bits_for_wgsl_bitcast() {
-        assert_eq!(GpuLightType::Directional.as_f32_bits().to_bits(), 0);
-        assert_eq!(GpuLightType::Point.as_f32_bits().to_bits(), 1);
-        assert_eq!(GpuLightType::Spot.as_f32_bits().to_bits(), 2);
-        assert_eq!(GpuLightType::Rect.as_f32_bits().to_bits(), 3);
-    }
-}
+#[path = "tests/gpu_light.rs"]
+mod tests;

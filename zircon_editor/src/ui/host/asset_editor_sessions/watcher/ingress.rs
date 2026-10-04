@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
 #[cfg(test)]
-#[path = "ingress/path_admission_tests.rs"]
+#[path = "ingress/tests/path_admission_tests.rs"]
 mod path_admission_tests;
 
 #[derive(Debug)]

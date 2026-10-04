@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use zircon_runtime_interface::project::RelPath;
 
-use crate::asset::project::{ProjectManifest, ProjectPaths};
+use crate::asset::project::{lock_meta_document_paths, ProjectManifest, ProjectPaths};
 
 use super::document::migrate_document;
 use super::resolver::MigrationResolver;
@@ -15,6 +15,7 @@ use super::transaction::{
 use super::{
     AssetMigrationChange, AssetMigrationError, AssetMigrationIssue, AssetMigrationIssueKind,
     AssetMigrationMode, AssetMigrationOptions, AssetMigrationReport,
+    AssetMigrationTransactionPhase,
 };
 
 pub fn migrate_project_assets(
@@ -26,6 +27,14 @@ pub fn migrate_project_assets(
 fn migrate_project_assets_inner(
     options: AssetMigrationOptions,
     commit_fault: CommitFault,
+) -> Result<AssetMigrationReport, AssetMigrationError> {
+    migrate_project_assets_with_commit_hook(options, commit_fault, || {})
+}
+
+fn migrate_project_assets_with_commit_hook(
+    options: AssetMigrationOptions,
+    commit_fault: CommitFault,
+    before_commit: impl FnOnce(),
 ) -> Result<AssetMigrationReport, AssetMigrationError> {
     let paths = ProjectPaths::from_root(&options.project_root).map_err(|source| {
         AssetMigrationError::ProjectRoot {
@@ -49,6 +58,15 @@ fn migrate_project_assets_inner(
             source,
         })?;
     let recovery_targets = inventory.transaction_targets().to_vec();
+    // Candidate bytes must be read under the same authority as their publication.
+    // Locking only the final transaction would allow it to overwrite a newer CAS.
+    let mut meta_write_guards = lock_meta_document_paths(&recovery_targets).map_err(|source| {
+        AssetMigrationError::Transaction {
+            phase: AssetMigrationTransactionPhase::Recovery,
+            path: paths.root().to_path_buf(),
+            source,
+        }
+    })?;
     let pending_recovery =
         detect_pending_transactions(paths.root(), &root_paths, &recovery_targets)?;
     if options.mode == AssetMigrationMode::DryRun {
@@ -67,10 +85,21 @@ fn migrate_project_assets_inner(
     } else {
         // Recovery removes transaction artifacts. Publish a fresh inventory so preflight and
         // every resolver lookup use one post-recovery filesystem generation.
-        MigrationInventory::build(&roots).map_err(|source| AssetMigrationError::Scan {
-            path: paths.root().to_path_buf(),
-            source,
-        })?
+        drop(meta_write_guards);
+        let inventory =
+            MigrationInventory::build(&roots).map_err(|source| AssetMigrationError::Scan {
+                path: paths.root().to_path_buf(),
+                source,
+            })?;
+        meta_write_guards =
+            lock_meta_document_paths(inventory.transaction_targets()).map_err(|source| {
+                AssetMigrationError::Transaction {
+                    phase: AssetMigrationTransactionPhase::Stage,
+                    path: paths.root().to_path_buf(),
+                    source,
+                }
+            })?;
+        inventory
     };
     report.metrics.entry_visits = inventory.entry_visits();
     report.metrics.directory_reads = inventory.directory_reads();
@@ -108,20 +137,16 @@ fn migrate_project_assets_inner(
     // Publish sidecars before documents that can reference them across crash windows.
     pending.extend(sidecar_pending);
     for path in files {
-        report.metrics.document_reads += 1;
-        report.metrics.document_parses += 1;
-        match migrate_document(path, &resolver) {
-            Ok(result) => {
-                report.metrics.reference_visits += result.reference_visits;
-                if let Some(document) = result.pending {
-                    report.metrics.output_bytes += document.bytes.len();
-                    report.push_change(AssetMigrationChange::new(
-                        document.path.clone(),
-                        document.reference_count,
-                    ));
-                    pending.push(document);
-                }
+        match migrate_document(path, &resolver, &mut report.metrics) {
+            Ok(Some(document)) => {
+                report.metrics.output_bytes += document.bytes.len();
+                report.push_change(AssetMigrationChange::new(
+                    document.path.clone(),
+                    document.reference_count,
+                ));
+                pending.push(document);
             }
+            Ok(None) => {}
             Err(issue) => report.push_issue(issue),
         }
     }
@@ -129,7 +154,9 @@ fn migrate_project_assets_inner(
     if !report.succeeded() || options.mode == AssetMigrationMode::DryRun {
         return Ok(report);
     }
+    before_commit();
     apply_transaction(paths.root(), pending, commit_fault)?;
+    drop(meta_write_guards);
     report.mark_applied();
     Ok(report)
 }
@@ -222,8 +249,12 @@ pub(crate) fn migrate_project_assets_with_stage_fault(
 }
 
 #[cfg(test)]
-#[path = "run/optimization_tests.rs"]
+#[path = "run/tests/optimization_tests.rs"]
 mod optimization_tests;
+
+#[cfg(test)]
+#[path = "run/tests/meta_authority_tests.rs"]
+mod meta_authority_tests;
 
 #[cfg(test)]
 pub(crate) fn migrate_project_assets_with_commit_window_fault(

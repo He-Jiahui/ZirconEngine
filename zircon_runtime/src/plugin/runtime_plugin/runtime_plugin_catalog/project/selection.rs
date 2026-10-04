@@ -1,8 +1,12 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
+use crate::builtin::RuntimePluginId;
 use crate::core::framework::platform::RuntimeTargetMode;
-use crate::core::framework::project::{ExportPackagingStrategy, ProjectPluginManifest};
+use crate::core::framework::project::{
+    resolve_plugin_selections, ExportPackagingStrategy, PluginSelectionResolutionStatus,
+    ProjectPluginManifest,
+};
 use crate::core::ModuleDescriptor;
 
 use super::super::derived_projection::RuntimePluginCatalogProjection;
@@ -10,6 +14,7 @@ use super::super::feature_registration_match::{
     feature_registration_matches_project_selection, project_feature_provider_lookup,
 };
 use super::super::feature_report::RuntimePluginFeatureDependencyReport;
+use super::super::feature_support::plugin_ids_match;
 use super::super::registration::order::order_runtime_plugin_registration_report_refs_for_target;
 use super::super::runtime_module_target::runtime_module_names_for_target;
 use super::super::{RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport};
@@ -66,24 +71,20 @@ impl CompiledRuntimePluginBaseSelection {
         completed: &ProjectPluginManifest,
         target: RuntimeTargetMode,
     ) -> Self {
+        let fatal_diagnostic =
+            required_selection_admission_diagnostic(registrations, completed, target);
         let enabled_plugins = completed
             .enabled_for_target(target)
             .map(|selection| selection.id.clone())
             .collect::<HashSet<_>>();
-        let selected_registration_indices = registrations
-            .iter()
-            .enumerate()
-            .filter(|registration| {
-                registration.1.project_selection.enabled
-                    && registration.1.project_selection.supports_target(target)
-                    && enabled_plugins.contains(&registration.1.project_selection.id)
-            })
-            .map(|(index, _)| index)
-            .collect::<Vec<_>>();
-        let selected_plugin_ids = selected_registration_indices
-            .iter()
-            .map(|index| registrations[*index].project_selection.id.as_str())
-            .collect::<HashSet<_>>();
+        let selected_registration_indices =
+            selected_registration_indices(registrations, completed, target);
+        let selected_plugin_ids = selected_plugin_ids_for_effective_context(
+            registrations,
+            completed,
+            target,
+            &selected_registration_indices,
+        );
         let registered_plugin_ids = registrations
             .iter()
             .map(|registration| registration.project_selection.id.as_str())
@@ -104,17 +105,26 @@ impl CompiledRuntimePluginBaseSelection {
                 if feature.enabled
                     && feature.supports_target(target)
                     && concrete_feature_providers
-                        .contains(&(feature.id.as_str(), provider_package_id))
+                        .iter()
+                        .any(|(feature_id, registered_provider)| {
+                            *feature_id == feature.id
+                                && plugin_ids_match(registered_provider, provider_package_id)
+                        })
                 {
                     selected_feature_provider_ids.insert(provider_package_id);
                 }
             }
         }
+        // Keep the persisted spelling for feature-dependency lookups. Canonicalization is limited
+        // to choosing catalog registrations above; the feature context indexes selections by the
+        // source spelling stored in the project manifest.
         let mut effective_enabled_plugins = enabled_plugins;
         effective_enabled_plugins.retain(|plugin_id| {
             selected_plugin_ids.contains(plugin_id.as_str())
                 || (!registered_plugin_ids.contains(plugin_id.as_str())
-                    && selected_feature_provider_ids.contains(plugin_id.as_str()))
+                    && selected_feature_provider_ids
+                        .iter()
+                        .any(|provider| plugin_ids_match(provider, plugin_id)))
         });
         let available_capabilities = selected_registration_indices
             .iter()
@@ -175,7 +185,7 @@ impl CompiledRuntimePluginBaseSelection {
             ordered_plugin_registration_indices: ordered_plugin_registration_indices.into(),
             effective_enabled_plugins,
             available_capabilities,
-            fatal_diagnostic: None,
+            fatal_diagnostic,
         }
     }
 
@@ -251,6 +261,149 @@ impl CompiledRuntimePluginBaseSelection {
             fatal_diagnostic: None,
         }
     }
+}
+
+/// Required selections are part of the runtime readiness contract. Keep optional and unknown
+/// legacy selections on the existing best-effort path, but fail closed when a required row cannot
+/// produce a provider for the requested target.
+fn required_selection_admission_diagnostic(
+    registrations: &[RuntimePluginRegistrationReport],
+    completed: &ProjectPluginManifest,
+    target: RuntimeTargetMode,
+) -> Option<String> {
+    let selected_registration_indices =
+        selected_registration_indices(registrations, completed, target);
+    let selected_plugin_ids = selected_registration_indices
+        .iter()
+        .filter_map(|index| RuntimePluginId::parse_key(&registrations[*index].project_selection.id))
+        .collect::<HashSet<_>>();
+    let resolution = resolve_plugin_selections(target, completed, |id| {
+        selected_plugin_ids.contains(id).then_some(())
+    });
+    let diagnostic = resolution
+        .required_failures()
+        .next()
+        .map(|outcome| match outcome.status {
+            PluginSelectionResolutionStatus::Duplicate => format!(
+                "required runtime plugin selection `{}` is Duplicate",
+                outcome.selection.id
+            ),
+            PluginSelectionResolutionStatus::InvalidId => format!(
+                "required runtime plugin selection `{}` has no catalog registration",
+                outcome.selection.id
+            ),
+            PluginSelectionResolutionStatus::Unsupported => {
+                let has_catalog_registration = canonical_runtime_plugin_key(&outcome.selection.id)
+                    .is_some_and(|canonical_id| {
+                        registrations.iter().any(|registration| {
+                            canonical_runtime_plugin_key(&registration.project_selection.id)
+                                .is_some_and(|registration_id| registration_id == canonical_id)
+                        })
+                    });
+                if has_catalog_registration {
+                    format!(
+                        "required runtime plugin selection `{}` has no provider for target {:?}",
+                        outcome.selection.id, target
+                    )
+                } else {
+                    format!(
+                        "required runtime plugin selection `{}` has no catalog registration",
+                        outcome.selection.id
+                    )
+                }
+            }
+            status => format!(
+                "required runtime plugin selection `{}` is {status:?}",
+                outcome.selection.id
+            ),
+        });
+    diagnostic
+}
+
+fn canonical_runtime_plugin_key(raw: &str) -> Option<String> {
+    RuntimePluginId::parse_key(raw).map(|id| id.key().to_owned())
+}
+
+fn selected_plugin_ids_for_effective_context(
+    registrations: &[RuntimePluginRegistrationReport],
+    completed: &ProjectPluginManifest,
+    target: RuntimeTargetMode,
+    selected_registration_indices: &[usize],
+) -> HashSet<String> {
+    let selected_canonical_ids = selected_registration_indices
+        .iter()
+        .filter_map(|index| {
+            canonical_runtime_plugin_key(&registrations[*index].project_selection.id)
+        })
+        .collect::<HashSet<_>>();
+    completed
+        .enabled_for_target(target)
+        .filter_map(|selection| {
+            canonical_runtime_plugin_key(&selection.id)
+                .filter(|canonical_id| selected_canonical_ids.contains(canonical_id))
+                .map(|_| selection.id.clone())
+        })
+        .collect()
+}
+
+/// Select one eligible catalog registration for each canonical runtime plugin ID. Explicit aliases
+/// resolve to the matching registration when present, while duplicate alias rows cannot cause a
+/// second package to be re-enabled when the manifest explicitly disabled that row.
+fn selected_registration_indices(
+    registrations: &[RuntimePluginRegistrationReport],
+    completed: &ProjectPluginManifest,
+    target: RuntimeTargetMode,
+) -> Vec<usize> {
+    let mut enabled_selection_ids = HashMap::with_capacity(completed.selections.len());
+    for selection in completed.enabled_for_target(target) {
+        let Some(canonical_id) = canonical_runtime_plugin_key(&selection.id) else {
+            continue;
+        };
+        enabled_selection_ids
+            .entry(canonical_id)
+            .or_insert_with(|| selection.id.clone());
+    }
+    let mut selected_by_canonical_id = HashMap::<String, (u8, usize)>::new();
+    for (index, registration) in registrations.iter().enumerate() {
+        if !registration
+            .package_manifest
+            .package_role
+            .is_product_catalog_eligible()
+            || !registration.project_selection.enabled
+            || !registration.project_selection.supports_target(target)
+        {
+            continue;
+        }
+        let Some(canonical_id) = canonical_runtime_plugin_key(&registration.project_selection.id)
+        else {
+            continue;
+        };
+        let Some(selected_id) = enabled_selection_ids.get(&canonical_id) else {
+            continue;
+        };
+        let priority = if registration.project_selection.id == *selected_id {
+            0
+        } else if registration.project_selection.id == canonical_id {
+            1
+        } else {
+            2
+        };
+        let replace = selected_by_canonical_id
+            .get(&canonical_id)
+            .is_none_or(|(existing_priority, _)| priority < *existing_priority);
+        if replace {
+            selected_by_canonical_id.insert(canonical_id, (priority, index));
+        }
+    }
+    let selected_indices = selected_by_canonical_id
+        .into_values()
+        .map(|(_, index)| index)
+        .collect::<HashSet<_>>();
+    registrations
+        .iter()
+        .enumerate()
+        .filter_map(|(index, _)| selected_indices.contains(&index).then_some(index))
+        .collect()
 }
 
 impl CompiledRuntimePluginSelection {
@@ -341,3 +494,7 @@ fn module_proposals(
     });
     plugin_proposals.chain(feature_proposals).collect()
 }
+
+#[cfg(test)]
+#[path = "tests/selection.rs"]
+mod tests;

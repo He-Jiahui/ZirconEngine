@@ -177,3 +177,34 @@ fn pack_reader_rejects_manifest_trailing_bytes() {
 
     assert_eq!(error, ZrPackError::ManifestTrailingBytes);
 }
+
+#[test]
+fn runtime04_pack_reader_open_rejects_corruption_in_every_unique_chunk() {
+    let report = ZrPackWriter::write([
+        ZrPackInputAsset::new("a/shared.bin", vec![0x31; 16 * 1_024]),
+        ZrPackInputAsset::new("b/shared-alias.bin", vec![0x31; 16 * 1_024]),
+        ZrPackInputAsset::new("c/unique.bin", vec![0x72; 8 * 1_024]),
+    ])
+    .unwrap();
+    assert_eq!(report.manifest.pack.chunks.len(), 2);
+
+    for chunk in &report.manifest.pack.chunks {
+        let path = report
+            .manifest
+            .assets
+            .iter()
+            .find(|asset| asset.chunk_hash == chunk.hash)
+            .unwrap()
+            .path
+            .clone();
+        let mut corrupted = report.bytes.clone();
+        let offset = usize::try_from(chunk.offset).unwrap();
+        let size = usize::try_from(chunk.size).unwrap();
+        corrupted[offset + size / 2] ^= 0xff;
+
+        assert_eq!(
+            ZrPackReader::from_bytes(corrupted).unwrap_err(),
+            ZrPackError::ChunkHashMismatch(path)
+        );
+    }
+}

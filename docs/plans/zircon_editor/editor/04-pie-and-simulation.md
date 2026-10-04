@@ -265,7 +265,7 @@ PIE 视口拖 gizmo → 05 工具（play 域）→ TransactionScope(PlaySession)
 - 切片 1.1：`core/play/` 骨架 + 状态机 + 迁移表单测 + 现 backend 迁移改名（上表三行硬切换）。
 - 切片 1.2：`ProcessPlayBackend`：快照落盘/参数组装（16 M1 联合）/spawn/监控/stop/崩溃事件；日志回流（17 未落地前暂投 bus）。
 - 切片 1.3：编辑保护 + `pending_edits` + 退出决策提示。
-- 测试阶段：`cargo test -p zircon_editor --lib --locked`（迁移表逐格/参数组装/快照清理/pending 队列，spawn 用假可执行夹具；`plugin_activation` 既有 roundtrip 测试迁移后须过）；手验启停三轮无孤儿进程、快照目录无残留。更新 `docs/zircon_editor/core/play.md`。
+- 测试阶段：`cargo test -p zircon_editor --lib --locked`（迁移表逐格/参数组装/快照清理/pending 队列，spawn 用假可执行夹具；`plugin_activation` 既有 roundtrip 测试迁移后须过）；手验启停三轮无孤儿进程、快照目录无残留。更新 `docs/crates/zircon_editor/core/play.md`。
 
 ### M2 P2 进程内 PIE
 

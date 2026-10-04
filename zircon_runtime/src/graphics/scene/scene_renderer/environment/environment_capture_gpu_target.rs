@@ -11,6 +11,8 @@ const RGBA16_FLOAT_TEXEL_BYTES: u64 = 8;
 const DEPTH32_FLOAT_TEXEL_BYTES: u64 = 4;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 捕获任务分配前的 GPU 预算：源纹理和深度是作业暂存，PMREM 与 SH9 是发布产物。
+/// 源分辨率来自请求，滤波产物采用引擎固定布局，纹理预算不包含 SH9 缓冲区。
 pub(in crate::graphics) struct EnvironmentCaptureGpuTargetPlan {
     face_size: u32,
     source_mip_count: u32,
@@ -81,6 +83,8 @@ impl EnvironmentCaptureGpuTargetPlan {
     }
 }
 
+/// 一个捕获作业独占的六面源、滤波目标及深度暂存；各 mip 视图共享原纹理分配。
+/// 完成滤波后只把 PMREM 和 SH9 转交发布端，源和深度随该 owner 退出生命周期。
 pub(in crate::graphics) struct EnvironmentCaptureGpuTarget {
     plan: EnvironmentCaptureGpuTargetPlan,
     _color_texture: wgpu::Texture,
@@ -269,6 +273,7 @@ impl EnvironmentCaptureGpuTarget {
         &self.depth_view
     }
 
+    /// 调用方先完成捕获/滤波提交，再消费作业资源；返回值只承担后续探针采样和发布。
     pub(in crate::graphics) fn into_filtered_output(self) -> EnvironmentCaptureGpuOutput {
         let Self {
             plan,
@@ -369,64 +374,5 @@ fn storage_mip_view_descriptor(mip_level: u32) -> wgpu::TextureViewDescriptor<'s
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn target_plan_counts_full_rgba16f_cube_chain_and_one_depth_face() {
-        let request = RenderEnvironmentCaptureRequest::new("probe", [0.0; 3], 1)
-            .unwrap()
-            .with_face_size(128)
-            .unwrap();
-        let plan = EnvironmentCaptureGpuTargetPlan::from_request(&request);
-
-        assert_eq!(plan.face_size(), 128);
-        assert_eq!(plan.source_mip_count(), 8);
-        assert_eq!(plan.color_texture_bytes(), 1_048_560);
-        assert_eq!(plan.depth_texture_bytes(), 65_536);
-        assert_eq!(plan.pmrem_texture_bytes(), 1_048_560);
-        assert_eq!(
-            plan.sh9_buffer_bytes(),
-            IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES as u64
-        );
-        assert_eq!(plan.sh9_buffer_bytes(), 144);
-        assert_eq!(plan.total_texture_bytes(), 2_162_656);
-        assert_eq!(plan.total_gpu_bytes(), 2_162_800);
-    }
-
-    #[test]
-    fn maximum_request_exposes_bounded_admission_cost_before_allocation() {
-        let request = RenderEnvironmentCaptureRequest::new("probe", [0.0; 3], 1)
-            .unwrap()
-            .with_face_size(1024)
-            .unwrap();
-        let plan = EnvironmentCaptureGpuTargetPlan::from_request(&request);
-
-        assert_eq!(plan.source_mip_count(), 11);
-        assert_eq!(plan.color_texture_bytes(), 67_108_848);
-        assert_eq!(plan.depth_texture_bytes(), 4_194_304);
-        assert_eq!(plan.pmrem_texture_bytes(), 1_048_560);
-        assert_eq!(
-            plan.sh9_buffer_bytes(),
-            IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES as u64
-        );
-        assert_eq!(plan.sh9_buffer_bytes(), 144);
-        assert_eq!(plan.total_texture_bytes(), 72_351_712);
-        assert_eq!(plan.total_gpu_bytes(), 72_351_856);
-    }
-
-    #[test]
-    fn resident_output_budget_excludes_source_and_depth_scratch() {
-        let request = RenderEnvironmentCaptureRequest::new("probe", [0.0; 3], 1)
-            .unwrap()
-            .with_face_size(1024)
-            .unwrap();
-        let plan = EnvironmentCaptureGpuTargetPlan::from_request(&request);
-
-        assert_eq!(
-            plan.pmrem_texture_bytes() + plan.sh9_buffer_bytes(),
-            1_048_704
-        );
-        assert!(plan.total_gpu_bytes() > 72_000_000);
-    }
-}
+#[path = "tests/environment_capture_gpu_target.rs"]
+mod tests;

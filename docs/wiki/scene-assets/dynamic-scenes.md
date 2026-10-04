@@ -10,7 +10,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 动态场景与序列化说明
 tests:
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn/transaction/tests.rs
+  - zircon_runtime/src/scene/dynamic_scene/scene/spawn/transaction/tests/cases.rs
   - zircon_runtime/src/scene/dynamic_scene/session
 doc_type: module-detail
 ---

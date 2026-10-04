@@ -1,0 +1,1 @@
+{"schema_version":1,"trust_registry_kind":"zircon_product_receipt_trust_registry","issuers":[{"signer_id":"worker-old","algorithm":"ed25519-v1","public_key_hex":"EA4A6C63E29C520ABEF5507B132EC5F9954776AEBEBE7B92421EEA691446D22C","disabled":false}]}

@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+# 敌友目标轮换各做一次稳定后继选择，不为循环排序建临时集合；边界契约覆盖当前目标缺失、并列和环绕。
 import re
 import unittest
 from pathlib import Path

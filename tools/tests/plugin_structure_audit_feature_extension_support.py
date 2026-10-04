@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from tools.plugin_structure_audits.manifest_schema import (
+from tools.audits.plugins.manifest_schema import (
     collect_manifest_schema_violations,
 )
 
-
+# 构造特性扩展清单夹具，给结构审计测试提供共享的声音插件、运行时模块和 ABI 字段样本。
 def plugin_manifest(
     *,
     feature_extensions: list[object] | None = None,

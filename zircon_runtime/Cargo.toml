@@ -7,6 +7,7 @@ description = "Runtime absorption layer for high-level engine subsystems."
 
 [package.metadata.zircon.validation]
 test-dependency-roots = [
+    "../zircon_plugins",
     "../docs/assets-and-rendering",
     "../docs/cli-and-tooling",
     "../docs/editor-and-tooling",
@@ -24,7 +25,7 @@ test-dependency-roots = [
 ]
 
 [lib]
-crate-type = ["rlib", "cdylib"]
+crate-type = ["rlib"]
 
 [[test]]
 name = "runtime_text_multilingual_product_framebuffer"
@@ -64,9 +65,14 @@ name = "zircon_font_sdf_bake"
 path = "src/bin/zircon_font_sdf_bake/main.rs"
 required-features = ["font-sdf-build-tool"]
 
+[[bin]]
+name = "zircon_package_service"
+path = "src/bin/zircon_package_service.rs"
+
 [features]
 default = ["target-client"]
-test-support = []
+dev-dynamic-linking = ["dep:zr_dev_deps_dylib", "zr_dev_deps_dylib/runtime-assets"]
+test-support = ["zr_resource/test-support"]
 runtime-ui-integration-tests = []
 backend-jolt = []
 core-min = []
@@ -84,6 +90,37 @@ dynamic-api = [
     "script",
     "ui",
 ]
+# Build-only boundary aliases.  They are separate from the serialized
+# RuntimeProfileId/project feature vocabulary and can be narrowed in future
+# without changing existing development profiles.
+cooked-assets = ["core-min"]
+graphics-core = ["graphics"]
+runtime-api-core = ["dynamic-api"]
+shipping-runtime = [
+    "cooked-assets",
+    "diagnostic-log",
+    # The current script host-interface implementation references the network
+    # contract module. Keep this explicit until the runtime-api split removes
+    # that compile-time dependency.
+    "net-contracts",
+    "runtime-api-core",
+    "graphics-core",
+    "platform-winit",
+    "input-mouse",
+    "input-keyboard",
+]
+runtime-shipping = ["shipping-runtime"]
+shipping-editor = [
+    "shipping-runtime",
+    "ai-contracts",
+    "net-contracts",
+    "physics-contracts",
+    "sound-contracts",
+    "animation",
+    "navigation",
+    "script",
+]
+editor-shipping = ["shipping-editor"]
 graphics = [
     "text",
     "dep:pollster",
@@ -92,7 +129,7 @@ graphics = [
 ]
 font-sdf-build-tool = ["graphics"]
 navigation = []
-script = ["diagnostic-log"]
+script = ["diagnostic-log", "net-contracts"]
 text = [
     "dep:fdsm",
     "dep:fdsm-ttf-parser",
@@ -117,6 +154,8 @@ text = [
     "dep:unicode-vo",
     "dep:wgpu",
     "dep:woff2-patched",
+    "zr_dev_deps_dylib?/naga",
+    "zr_dev_deps_dylib?/wgpu",
 ]
 ui = ["graphics", "dep:taffy"]
 accessibility-accesskit = ["dep:accesskit"]
@@ -176,6 +215,7 @@ target-server = [
     "diagnostic-log",
     "platform-headless",
     "dep:naga",
+    "zr_dev_deps_dylib?/naga",
 ]
 target-editor-host = [
     "core-min",
@@ -197,11 +237,12 @@ target-editor-host = [
 [dependencies]
 accesskit = { version = "0.22.0", default-features = false, optional = true }
 arc-swap.workspace = true
+base64 = "0.22.1"
 bevy_mikktspace.workspace = true
 bincode.workspace = true
 blake3.workspace = true
 bytemuck.workspace = true
-chrono = { version = "0.4.44", default-features = false, features = ["clock"] }
+chrono = { version = "0.4.44", default-features = false, features = ["clock", "serde"] }
 crossbeam-channel.workspace = true
 crossbeam-utils = "0.8.21"
 fdsm = { version = "0.8.0", optional = true }
@@ -251,6 +292,9 @@ wgpu = { workspace = true, optional = true }
 winit = { workspace = true, default-features = false, optional = true }
 woff2-patched = { version = "0.4.0", optional = true }
 libloading = "0.9.0"
+ring = "0.17.14"
+goblin = { version = "0.10.7", default-features = false, features = ["std", "pe32", "pe64"] }
+windows-sys = { workspace = true, features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_Storage_FileSystem", "Win32_System_LibraryLoader", "Win32_System_SystemInformation", "Win32_System_Threading"] }
 libm = "0.2.16"
 zeroize = "1.8.2"
 zstd = "0.13.3"
@@ -259,11 +303,14 @@ zircon_runtime_interface = { path = "../zircon_runtime_interface" }
 zircon_reflect_derive.workspace = true
 zircon_runtime_reflection_macros = { path = "reflection_macros" }
 zr_math.workspace = true
+zr_contracts.workspace = true
+zr_dev_deps_dylib = { workspace = true, optional = true }
 zr_resource.workspace = true
 zr_rhi.workspace = true
 zr_rhi_wgpu = { workspace = true, optional = true }
 
 [build-dependencies]
+blake3.workspace = true
 serde.workspace = true
 toml.workspace = true
 

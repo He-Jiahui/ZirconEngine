@@ -83,4 +83,5 @@ pub use track_path::AnimationTrackPath;
 pub use track_path_error::AnimationTrackPathError;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

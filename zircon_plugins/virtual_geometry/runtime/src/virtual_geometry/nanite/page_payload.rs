@@ -2,7 +2,8 @@ use std::{collections::BTreeMap, mem::size_of};
 
 use zircon_runtime::asset::{MeshVertex, VirtualGeometryAsset};
 use zircon_runtime::core::framework::render::{
-    RenderVirtualGeometryPagePayload, RenderVirtualGeometryPagePayloadVertex,
+    RenderVirtualGeometryPagePayload, RenderVirtualGeometryPagePayloadClusterRange,
+    RenderVirtualGeometryPagePayloadVertex,
 };
 use zircon_runtime::core::math::{Vec3, Vec4};
 
@@ -13,7 +14,7 @@ const PAYLOAD_ITEM_WORD_COUNT: usize = 4;
 const TRIANGLE_INDEX_COUNT: usize = 3;
 
 #[cfg(test)]
-#[path = "page_payload/allocation_tests.rs"]
+#[path = "page_payload/tests/allocation_tests.rs"]
 mod allocation_tests;
 
 pub(super) fn render_page_payloads_for_asset(
@@ -21,6 +22,7 @@ pub(super) fn render_page_payloads_for_asset(
     vertices: &[MeshVertex],
     indices: &[u32],
     page_remap: &BTreeMap<u32, u32>,
+    cluster_remap: &BTreeMap<u32, u32>,
 ) -> Vec<RenderVirtualGeometryPagePayload> {
     asset
         .cluster_page_headers
@@ -29,8 +31,12 @@ pub(super) fn render_page_payloads_for_asset(
         .filter_map(|(page_index, header)| {
             let page_id = page_remap.get(&header.page_id).copied()?;
             let payload = asset.cluster_page_data.get(page_index)?;
-            let vertices = render_page_vertices(payload, vertices, indices);
-            (!vertices.is_empty()).then(|| RenderVirtualGeometryPagePayload::new(page_id, vertices))
+            let (vertices, cluster_ranges) =
+                render_page_vertices(payload, vertices, indices, cluster_remap);
+            (!vertices.is_empty()).then(|| {
+                RenderVirtualGeometryPagePayload::new(page_id, vertices)
+                    .with_cluster_ranges(cluster_ranges)
+            })
         })
         .collect()
 }
@@ -39,27 +45,48 @@ fn render_page_vertices(
     payload: &[u8],
     vertices: &[MeshVertex],
     indices: &[u32],
-) -> Vec<RenderVirtualGeometryPagePayloadVertex> {
+    cluster_remap: &BTreeMap<u32, u32>,
+) -> (
+    Vec<RenderVirtualGeometryPagePayloadVertex>,
+    Vec<RenderVirtualGeometryPagePayloadClusterRange>,
+) {
     let Some(item_count) = payload_item_count(payload) else {
-        return Vec::new();
+        return (Vec::new(), Vec::new());
     };
 
     let mut page_vertices =
         Vec::with_capacity(page_vertex_capacity(payload, item_count, vertices, indices));
+    let mut cluster_ranges = Vec::with_capacity(item_count);
     for item_index in 0..item_count {
         let Some((triangle_start, triangle_count)) = payload_triangle_range(payload, item_index)
         else {
             continue;
         };
-        append_triangle_range_vertices(
+        let vertex_start = page_vertices.len();
+        let vertex_count = append_triangle_range_vertices(
             triangle_start,
             triangle_count,
             vertices,
             indices,
             &mut page_vertices,
         );
+        if vertex_count > 0 {
+            let item_base = PAYLOAD_HEADER_WORD_COUNT
+                .saturating_add(item_index.saturating_mul(PAYLOAD_ITEM_WORD_COUNT));
+            let local_cluster_id =
+                payload_word(payload, item_base.saturating_add(1)).unwrap_or_default();
+            let cluster_id = cluster_remap
+                .get(&local_cluster_id)
+                .copied()
+                .unwrap_or(local_cluster_id);
+            cluster_ranges.push(RenderVirtualGeometryPagePayloadClusterRange {
+                cluster_id,
+                vertex_start: u32::try_from(vertex_start).unwrap_or(u32::MAX),
+                vertex_count: u32::try_from(vertex_count).unwrap_or(u32::MAX),
+            });
+        }
     }
-    page_vertices
+    (page_vertices, cluster_ranges)
 }
 
 fn payload_item_count(payload: &[u8]) -> Option<usize> {
@@ -115,14 +142,15 @@ fn append_triangle_range_vertices(
     vertices: &[MeshVertex],
     indices: &[u32],
     page_vertices: &mut Vec<RenderVirtualGeometryPagePayloadVertex>,
-) {
+) -> usize {
     let index_start = triangle_start.saturating_mul(TRIANGLE_INDEX_COUNT);
     let index_count = triangle_count.saturating_mul(TRIANGLE_INDEX_COUNT);
     let index_end = index_start.saturating_add(index_count);
     let Some(index_slice) = indices.get(index_start..index_end) else {
-        return;
+        return 0;
     };
 
+    let initial_len = page_vertices.len();
     for source_index in index_slice {
         let Some(vertex) = vertices.get(*source_index as usize).copied() else {
             continue;
@@ -133,51 +161,9 @@ fn append_triangle_range_vertices(
             tangent: Vec4::from_array(vertex.tangent),
         });
     }
+    page_vertices.len().saturating_sub(initial_len)
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use zircon_runtime::asset::{cook_virtual_geometry_from_mesh, VirtualGeometryCookConfig};
-    use zircon_runtime::core::math::Vec2;
-
-    #[test]
-    fn render_page_payloads_decode_cooked_triangle_vertices_with_global_page_ids() {
-        let vertices = vec![
-            MeshVertex::new(Vec3::new(1.0, 0.0, 0.0), Vec3::Y, Vec2::ZERO)
-                .with_tangent([1.0, 0.0, 0.0, 1.0]),
-            MeshVertex::new(Vec3::new(0.0, 2.0, 0.0), Vec3::Z, Vec2::ZERO)
-                .with_tangent([0.0, 1.0, 0.0, -1.0]),
-            MeshVertex::new(Vec3::new(0.0, 0.0, 3.0), Vec3::X, Vec2::ZERO)
-                .with_tangent([0.0, 0.0, 1.0, 1.0]),
-        ];
-        let indices = vec![2, 0, 1];
-        let asset = cook_virtual_geometry_from_mesh(
-            &vertices,
-            &indices,
-            VirtualGeometryCookConfig {
-                cluster_triangle_count: 1,
-                page_cluster_count: 1,
-                mesh_name: Some("payload-test".to_string()),
-                source_hint: Some("unit-test".to_string()),
-            },
-        )
-        .expect("single triangle should cook");
-        let local_page_id = asset.cluster_page_headers[0].page_id;
-        let page_remap = BTreeMap::from([(local_page_id, 77)]);
-
-        let payloads = render_page_payloads_for_asset(&asset, &vertices, &indices, &page_remap);
-
-        assert_eq!(payloads.len(), 1);
-        assert_eq!(payloads[0].page_id, 77);
-        assert_eq!(payloads[0].vertices.len(), 3);
-        assert_eq!(payloads[0].vertices[0].position, Vec3::new(0.0, 0.0, 3.0));
-        assert_eq!(payloads[0].vertices[1].position, Vec3::new(1.0, 0.0, 0.0));
-        assert_eq!(payloads[0].vertices[2].position, Vec3::new(0.0, 2.0, 0.0));
-        assert_eq!(payloads[0].vertices[2].normal, Vec3::Z);
-        assert_eq!(
-            payloads[0].vertices[1].tangent,
-            Vec4::new(1.0, 0.0, 0.0, 1.0)
-        );
-    }
-}
+#[path = "tests/page_payload.rs"]
+mod tests;

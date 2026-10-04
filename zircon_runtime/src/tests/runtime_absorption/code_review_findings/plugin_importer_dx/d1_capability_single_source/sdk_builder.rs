@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。保存同组守卫使用的局部数据或辅助变换。
 use super::support::assert_contains_all;
 
 pub(super) fn assert_sdk_builder_mirrors_capabilities() {
@@ -11,7 +12,7 @@ pub(super) fn assert_sdk_builder_mirrors_capabilities() {
         include_str!("../../../../../../../zircon_plugins/plugin_sdk/src/prelude.rs");
     let editor_sdk = include_str!("../../../../../../../zircon_plugins/plugin_sdk/src/editor.rs");
     let manifest_tests =
-        include_str!("../../../../../../../zircon_plugins/plugin_sdk/src/manifest/tests.rs");
+        include_str!("../../../../../../../zircon_plugins/plugin_sdk/src/manifest/tests/cases.rs");
 
     assert_contains_all(
         "SDK feature bundle builder mirrors capability declarations into feature and module manifests",

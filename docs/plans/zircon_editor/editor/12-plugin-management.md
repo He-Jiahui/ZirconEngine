@@ -159,7 +159,7 @@ Faulted → (用户重试/升级) Validated
 
 - 切片 1.1：`core/plugin/` 目录化迁移（editor_plugin.rs 拆入，catalog_gen 保留 build 机制）；`EditorPluginManager` 三源发现 + 状态机 + `LoadingPhase`；现 catalog 一次性加载改为按阶段（内建插件默认 Default）。
 - 切片 1.2：`ProjectPluginManifest`（10 manifest 既有字段）启停消费 + abi/engine 版本与能力校验 + 循环依赖拒载；生命周期 10 值点火接线清单（Loaded/Enabled/Disabled 由 manager 直发；EnteredPlayMode/ExitedPlayMode 订阅 04 `ModeMessage`；SceneChanged 订阅 01 `DocumentMessage`；AssetChanged 订阅 09 索引事件——各依赖计划未落地者记接线债）。
-- 测试阶段：`cargo test -p zircon_editor --lib --locked`（catalog 既有测试迁移后须过 + 状态机全迁移矩阵 + 阶段顺序断言 + 校验失败形状）。更新 `docs/zircon_editor/core/plugin.md`。
+- 测试阶段：`cargo test -p zircon_editor --lib --locked`（catalog 既有测试迁移后须过 + 状态机全迁移矩阵 + 阶段顺序断言 + 校验失败形状）。更新 `docs/crates/zircon_editor/core/plugin.md`。
 
 ### M2 cdylib 贡献通道与隔离
 

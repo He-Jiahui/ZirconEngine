@@ -1,9 +1,10 @@
 use crate::core::math::UVec2;
-use crate::text::atlas::GlyphAtlasStorageFormat;
 use crate::text::atlas::render_gpu_plan::{
-    GlyphAtlasGpuBindGroupLayout, GlyphAtlasGpuSamplerBindingType, GlyphAtlasGpuTextureSampleType,
-    GlyphAtlasGpuTextureViewDimension, glyph_atlas_gpu_bind_group_layout,
+    glyph_atlas_gpu_bind_group_layout, GlyphAtlasGpuBindGroupLayout,
+    GlyphAtlasGpuSamplerBindingType, GlyphAtlasGpuTextureSampleType,
+    GlyphAtlasGpuTextureViewDimension,
 };
+use crate::text::atlas::GlyphAtlasStorageFormat;
 
 use super::super::atlas_texture_upload::{
     create_glyph_atlas_texture_array_resources, glyph_atlas_texture_array_spec,

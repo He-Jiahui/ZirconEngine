@@ -1,11 +1,151 @@
+//! 模板包测试覆盖 descriptor 防伪、嵌入源完整性、清单身份和默认资源引用契约。
+
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use super::super::{
-    render_project_template, ProjectNameError, ProjectTemplateId, ProjectTemplatePackError,
+    project_template_descriptor, render_project_template, ProjectNameError,
+    ProjectTemplateCapability, ProjectTemplateId, ProjectTemplatePackError,
     PROJECT_MANIFEST_FORMAT_VERSION,
 };
 
+// 不同项目名只影响渲染后的清单身份，不能改变模板 qualified ID 或内容摘要。
+#[test]
+fn render_exposes_a_stable_qualified_template_descriptor() {
+    let first = render_project_template(ProjectTemplateId::RenderableEmpty, "First")
+        .expect("render first template");
+    let second = render_project_template(ProjectTemplateId::RenderableEmpty, "Second")
+        .expect("render second template");
+
+    assert_eq!(first.descriptor, second.descriptor);
+    assert_eq!(first.descriptor.qualified_id(), "zircon/renderable-empty@1");
+    assert_eq!(first.descriptor.version(), 1);
+    assert_eq!(first.descriptor.target_requirements().len(), 2);
+    let editor = &first.descriptor.target_requirements()[0];
+    assert_eq!(
+        editor.target(),
+        crate::runtime_build_set::ZrRuntimeModuleCompositionTargetV1::EditorHost
+    );
+    assert_eq!(
+        editor.module_profile(),
+        crate::runtime_build_set::ZrRuntimeModuleProfileV1::Editor
+    );
+    assert_eq!(
+        editor.required_capabilities(),
+        &[
+            ProjectTemplateCapability::Scene3d,
+            ProjectTemplateCapability::ObjModelImport,
+            ProjectTemplateCapability::PbrMaterialImport,
+            ProjectTemplateCapability::WgslShaderImport,
+            ProjectTemplateCapability::NativeWindow,
+        ]
+    );
+    assert_eq!(
+        editor.required_runtime_providers().collect::<Vec<_>>(),
+        vec!["rendering", "obj_importer", "shader_wgsl_importer"]
+    );
+    let client = &first.descriptor.target_requirements()[1];
+    assert_eq!(
+        client.target(),
+        crate::runtime_build_set::ZrRuntimeModuleCompositionTargetV1::ClientRuntime
+    );
+    assert_eq!(
+        client.module_profile(),
+        crate::runtime_build_set::ZrRuntimeModuleProfileV1::Client3d
+    );
+    assert_eq!(first.descriptor.entries().len(), 17);
+    assert!(first
+        .descriptor
+        .entries()
+        .iter()
+        .all(|entry| entry.byte_len() > 0));
+    assert_eq!(
+        first.descriptor.engine_version_req(),
+        Some(">=0.1.0, <0.2.0")
+    );
+    assert_eq!(
+        first.descriptor.content_digest().to_string(),
+        "05e89a48fdf1499bbf94aed42dba19dcf7923ca058294a10a0bc469dd838e21b"
+    );
+    assert_eq!(
+        project_template_descriptor(ProjectTemplateId::RenderableEmpty),
+        first.descriptor
+    );
+    assert_eq!(
+        ProjectTemplateId::RenderableEmpty.descriptor(),
+        first.descriptor
+    );
+
+    let compatible_engine = super::super::ProjectEngineVersion::parse("0.1.4").unwrap();
+    assert!(first
+        .descriptor
+        .assess_engine_compatibility(&compatible_engine)
+        .unwrap()
+        .is_compatible());
+    let older_required_engine = super::super::ProjectEngineVersion::parse("0.2.0").unwrap();
+    assert!(!first
+        .descriptor
+        .assess_engine_compatibility(&older_required_engine)
+        .unwrap()
+        .is_compatible());
+}
+
+#[test]
+fn template_descriptor_is_a_payload_free_registry_handle() {
+    assert_eq!(
+        std::mem::size_of::<super::super::ProjectTemplateDescriptor>(),
+        std::mem::size_of::<ProjectTemplateId>()
+    );
+}
+
+#[test]
+fn template_descriptor_round_trips_as_a_persistable_receipt_identity() {
+    let rendered = render_project_template(ProjectTemplateId::RenderableEmpty, "Receipt")
+        .expect("render template for descriptor receipt");
+    let encoded = serde_json::to_string(&rendered.descriptor).expect("serialize descriptor");
+    let decoded: super::super::ProjectTemplateDescriptor =
+        serde_json::from_str(&encoded).expect("deserialize descriptor");
+
+    assert_eq!(decoded, rendered.descriptor);
+}
+
+// descriptor 是注册表句柄而非可自由编辑 DTO；伪造字段必须回到 canonical 计算值。
+#[test]
+fn template_descriptor_rejects_forged_version_digest_and_capabilities() {
+    let descriptor = project_template_descriptor(ProjectTemplateId::RenderableEmpty);
+    let encoded = serde_json::to_value(descriptor).expect("serialize descriptor");
+
+    for (field, replacement) in [
+        ("version", serde_json::json!(2)),
+        (
+            "content_digest",
+            serde_json::json!("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"),
+        ),
+        ("target_requirements", serde_json::json!([])),
+        ("entries", serde_json::json!([])),
+    ] {
+        let mut forged = encoded.clone();
+        forged[field] = replacement;
+        assert!(
+            serde_json::from_value::<super::super::ProjectTemplateDescriptor>(forged).is_err(),
+            "accepted forged template descriptor field {field}"
+        );
+    }
+}
+
+#[test]
+fn template_descriptor_rejects_unknown_entry_fields() {
+    let descriptor = project_template_descriptor(ProjectTemplateId::RenderableEmpty);
+    let mut encoded = serde_json::to_value(descriptor).expect("serialize descriptor");
+    encoded["entries"][0]["unexpected"] = serde_json::json!(true);
+
+    assert!(
+        serde_json::from_value::<super::super::ProjectTemplateDescriptor>(encoded).is_err(),
+        "accepted an unknown field inside a template entry descriptor"
+    );
+}
+
+// 该集合比较把 include_bytes! 生成的包与版本控制模板树保持一一对应。
 #[test]
 fn embedded_pack_matches_every_versioned_template_file() {
     let rendered = render_project_template(ProjectTemplateId::RenderableEmpty, "Pack Audit")
@@ -21,6 +161,7 @@ fn embedded_pack_matches_every_versioned_template_file() {
     assert_eq!(actual, expected);
 }
 
+// 创建端随后把 receipt 写入同一 manifest；其余插件、导出和资源引用仍来自包原文。
 #[test]
 fn render_rewrites_only_manifest_identity_and_preserves_current_schema() {
     let rendered = render_project_template(ProjectTemplateId::RenderableEmpty, "My Game")
@@ -36,8 +177,22 @@ fn render_rewrites_only_manifest_identity_and_preserves_current_schema() {
         .value;
 
     assert_eq!(summary.name, "My Game");
+    assert_eq!(
+        summary.engine_version_req.as_deref(),
+        rendered.descriptor.engine_version_req()
+    );
     assert_eq!(summary.format_version, PROJECT_MANIFEST_FORMAT_VERSION);
     assert_eq!(rendered.summary, summary);
+    let manifest_value = toml::from_str::<toml::Value>(manifest).unwrap();
+    let plugin_selections = manifest_value
+        .get("plugins")
+        .and_then(|plugins| plugins.get("selections"))
+        .and_then(toml::Value::as_array)
+        .expect("template manifest must declare its runtime providers");
+    assert_eq!(plugin_selections.len(), 3);
+    assert!(plugin_selections.iter().all(|selection| {
+        selection.get("required").and_then(toml::Value::as_bool) == Some(true)
+    }));
     assert!(rendered
         .entries
         .iter()
@@ -260,13 +415,19 @@ fn renderable_empty_asset_metadata_matches_its_persisted_references() {
         Some("res://shaders/pbr_shader")
     );
     let default_material = template_toml(&rendered, "assets/materials/default.zmaterial");
-    assert_project_reference(
-        default_material
-            .get("shader")
-            .and_then(toml::Value::as_table),
-        "00000000-0000-0000-0000-000000000001",
-        "assets/shaders/pbr_shader.zmeta",
+    let default_shader = default_material
+        .get("shader")
+        .and_then(toml::Value::as_table)
+        .expect("default material shader reference");
+    assert_eq!(
+        default_shader.get("kind").and_then(toml::Value::as_str),
+        Some("builtin")
     );
+    assert_eq!(
+        default_shader.get("locator").and_then(toml::Value::as_str),
+        Some("builtin://shader/pbr.wgsl")
+    );
+    assert_eq!(default_shader.len(), 2);
 }
 
 fn template_toml(rendered: &super::super::RenderedProjectTemplate, path: &str) -> toml::Value {

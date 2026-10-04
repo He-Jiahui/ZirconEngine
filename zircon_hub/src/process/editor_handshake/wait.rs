@@ -1,48 +1,87 @@
 use std::path::Path;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use zircon_runtime_interface::hub_protocol::{HubEditorMailboxV1, HubSessionToken};
 
 use crate::error::HubError;
+use crate::process::SupervisedChild;
+use crate::state::{TaskCancellationToken, TaskExecutionOutcome};
 
 use super::mailbox_path::editor_handshake_mailbox_path;
 use super::read::read_editor_handshake;
 
 const HUB_HANDSHAKE_POLL_INTERVAL: Duration = Duration::from_millis(250);
-const HUB_HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(10);
 
-/// Waits for a terminal Editor mailbox response. Call this only from a Hub background task.
+/// Supervises the Editor until it publishes a terminal mailbox or the child actually exits.
+/// Call this only from a Hub background task.
 pub(crate) fn wait_for_editor_handshake(
     project_root: impl AsRef<Path>,
     session: HubSessionToken,
-) -> Result<HubEditorMailboxV1, HubError> {
+    child: &mut SupervisedChild,
+    cancellation: &TaskCancellationToken,
+) -> Result<TaskExecutionOutcome<HubEditorMailboxV1>, HubError> {
     let mailbox_path = editor_handshake_mailbox_path(project_root, session);
-    wait_for_editor_handshake_until(
-        Instant::now() + HUB_HANDSHAKE_TIMEOUT,
+    wait_for_editor_handshake_until_terminal(
         HUB_HANDSHAKE_POLL_INTERVAL,
         || read_editor_handshake(&mailbox_path, session),
+        || poll_supervised_child(child, cancellation),
     )
 }
 
-pub(super) fn wait_for_editor_handshake_until<F>(
-    deadline: Instant,
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) enum SupervisedChildState {
+    Running,
+    Exited(String),
+    CancellationRequested,
+}
+
+pub(super) fn wait_for_editor_handshake_until_terminal<F, S>(
     poll_interval: Duration,
     mut read: F,
-) -> Result<HubEditorMailboxV1, HubError>
+    mut child_terminal: S,
+) -> Result<TaskExecutionOutcome<HubEditorMailboxV1>, HubError>
 where
     F: FnMut() -> Result<Option<HubEditorMailboxV1>, HubError>,
+    S: FnMut() -> Result<SupervisedChildState, HubError>,
 {
-    while Instant::now() < deadline {
+    loop {
         if let Some(mailbox) = read()? {
-            return Ok(mailbox);
+            return Ok(TaskExecutionOutcome::Completed(mailbox));
         }
-
-        let remaining = deadline.saturating_duration_since(Instant::now());
-        if remaining.is_zero() {
-            break;
+        match child_terminal()? {
+            SupervisedChildState::Running => {}
+            SupervisedChildState::Exited(status) => {
+                // The Editor may atomically publish its terminal mailbox between the first read
+                // and `try_wait`. Re-read after observing exit so a completed handshake wins.
+                if let Some(mailbox) = read()? {
+                    return Ok(TaskExecutionOutcome::Completed(mailbox));
+                }
+                return Err(HubError::message(format!(
+                    "editor process exited before publishing its Hub terminal handshake: {status}"
+                )));
+            }
+            SupervisedChildState::CancellationRequested => {
+                // A terminal mailbox committed before termination is authoritative even when the
+                // cancellation request and process supervision observation raced.
+                if let Some(mailbox) = read()? {
+                    return Ok(TaskExecutionOutcome::Completed(mailbox));
+                }
+                return Ok(TaskExecutionOutcome::Cancelled);
+            }
         }
-        std::thread::sleep(poll_interval.min(remaining));
+        std::thread::sleep(poll_interval);
     }
+}
 
-    Err(HubError::message("editor Hub handshake timed out"))
+fn poll_supervised_child(
+    child: &mut SupervisedChild,
+    cancellation: &TaskCancellationToken,
+) -> Result<SupervisedChildState, HubError> {
+    if let Some(status) = child.try_wait()? {
+        return Ok(SupervisedChildState::Exited(status.to_string()));
+    }
+    if cancellation.is_cancellation_requested() {
+        return Ok(SupervisedChildState::CancellationRequested);
+    }
+    Ok(SupervisedChildState::Running)
 }

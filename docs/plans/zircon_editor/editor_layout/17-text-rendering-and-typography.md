@@ -6,7 +6,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
   - zircon_runtime/src/text/sdf/font_bake.rs

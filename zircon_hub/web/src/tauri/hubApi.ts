@@ -4,6 +4,7 @@ import type { UnlistenFn } from "@tauri-apps/api/event";
 import { fallbackShellState } from "../data/hubData";
 import type { HubActionId, HubActionPayload, HubShellState } from "../types/hub";
 import { assertHubShellState } from "./hubStateValidator";
+import { HubStateLoadError } from "./hubBootstrap";
 
 declare global {
   interface Window {
@@ -11,16 +12,24 @@ declare global {
   }
 }
 
+let fallbackStateRevision = 0n;
+
 export async function loadHubState(): Promise<HubShellState> {
   if (!isTauriRuntime()) {
     return fallbackShellState;
   }
 
+  let payload: unknown;
   try {
-    return assertHubShellState(await invoke<unknown>("hub_state"));
+    payload = await invoke<unknown>("hub_state");
   } catch (error) {
-    console.warn("Hub state validation failed; using fallback state.", error);
-    return fallbackShellState;
+    throw new HubStateLoadError("backend-unavailable", error);
+  }
+
+  try {
+    return assertHubShellState(payload);
+  } catch (error) {
+    throw new HubStateLoadError("protocol-mismatch", error);
   }
 }
 
@@ -30,7 +39,15 @@ export async function dispatchHubAction<TActionId extends HubActionId>(
   payload?: HubActionPayload<TActionId>,
 ): Promise<HubShellState> {
   if (!isTauriRuntime()) {
-    return fallbackShellState;
+    fallbackStateRevision += 1n;
+    const stateRevision = fallbackStateRevision.toString();
+    if (actionId === "show-page" && targetId) {
+      const page = fallbackShellState.ui.shell.navItems.find((item) => item.id === targetId);
+      if (page) {
+        return { ...fallbackShellState, activePage: targetId, pageTitle: page.label, stateRevision };
+      }
+    }
+    return { ...fallbackShellState, stateRevision };
   }
 
   return assertHubShellState(
@@ -40,20 +57,27 @@ export async function dispatchHubAction<TActionId extends HubActionId>(
   );
 }
 
-export async function subscribeHubStateChanged(onStateChanged: (state: HubShellState) => void): Promise<UnlistenFn> {
+export async function subscribeHubStateChanged(
+  onStateChanged: (state: HubShellState) => void,
+  onProtocolMismatch?: (error: unknown) => void,
+  isProvablyStaleEvent?: (payload: unknown) => boolean,
+): Promise<UnlistenFn> {
   if (!isTauriRuntime()) {
     return () => {};
   }
 
   return await listen<unknown>("hub-state-changed", (event) => {
     try {
+      if (isProvablyStaleEvent?.(event.payload)) {
+        return;
+      }
       onStateChanged(assertHubShellState(event.payload));
     } catch (error) {
-      console.warn("Ignored invalid hub-state-changed payload.", error);
+      onProtocolMismatch?.(error);
     }
   });
 }
 
-function isTauriRuntime() {
+export function isTauriRuntime() {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }

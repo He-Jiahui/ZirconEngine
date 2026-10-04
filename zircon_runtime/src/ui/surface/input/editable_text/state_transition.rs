@@ -8,9 +8,9 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::text::{
-    CommittedTextEditIntent, TextEditStateTransition, apply_text_edit_action,
-    apply_text_edit_action_with_intent, apply_text_edit_actions_with_intent,
-    clamp_grapheme_boundary, next_grapheme_boundary, previous_grapheme_boundary,
+    apply_text_edit_action, apply_text_edit_action_with_intent,
+    apply_text_edit_actions_with_intent, clamp_grapheme_boundary, next_grapheme_boundary,
+    previous_grapheme_boundary, CommittedTextEditIntent, TextEditStateTransition,
 };
 
 use super::super::text_constraints::{
@@ -42,6 +42,7 @@ impl TextInputStateTransition {
     }
 }
 
+// 提交文本时，活动 composition 先在其可见范围内替换并显式 Commit；无 composition 则按选择/插入点执行 Insert。两条路径都先经过保留文档 grapheme 数的约束清洗，并把约束回执与 committed intent 一并返回。
 pub(super) fn committed_text_state(
     editable: UiEditableTextState,
     text: String,
@@ -86,6 +87,7 @@ pub(super) fn committed_text_state(
     }
 }
 
+// IME preedit 不生成已提交的文档编辑意图；约束层修正文本、光标与 clause 范围，再把相对 composition 的光标偏移映射到可见文本。
 pub(super) fn preedit_text_state(
     editable: UiEditableTextState,
     preedit: &str,
@@ -183,6 +185,7 @@ pub(super) fn retained_document_replaced_range(editable: &UiEditableTextState) -
     }
 }
 
+// surrounding delete 不能直接按可见 preedit 删除：有 restore_text 时先重建被替换的已提交片段，再映射 caret、取消 composition 并按 grapheme 边界生成选择和 Delete。只读、零长度或空范围不变。
 pub(super) fn delete_surrounding_text_state(
     editable: UiEditableTextState,
     delete: UiImeDeleteSurrounding,
@@ -315,56 +318,5 @@ fn ceil_text_boundary(text: &str, offset: usize) -> usize {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{delete_surrounding_text_state, retained_document_replaced_range};
-    use zircon_runtime_interface::ui::{
-        dispatch::UiImeDeleteSurrounding,
-        surface::{UiEditableTextState, UiTextCaret, UiTextComposition, UiTextRange},
-    };
-
-    #[test]
-    fn delete_surrounding_uses_the_visible_paint_only_composition_text() {
-        let state = UiEditableTextState {
-            text: "aXb".to_owned(),
-            caret: UiTextCaret {
-                offset: 2,
-                ..Default::default()
-            },
-            composition: Some(UiTextComposition {
-                range: UiTextRange { start: 1, end: 2 },
-                preedit_clauses: Vec::new(),
-                text: "X".to_owned(),
-                restore_text: None,
-            }),
-            ..Default::default()
-        };
-
-        let next = delete_surrounding_text_state(state, UiImeDeleteSurrounding::new(1, 0))
-            .expect("visible text has a byte before the mapped caret");
-
-        assert_eq!(next.state.text, "Xb");
-        assert!(next.state.composition.is_none());
-        let intent = next.committed_edit.expect("surrounding delete intent");
-        assert_eq!(intent.old, 0..1);
-        assert_eq!(intent.new, 0..0);
-    }
-
-    #[test]
-    fn retained_document_range_uses_composition_restore_length_not_visible_preedit_length() {
-        let state = UiEditableTextState {
-            text: "aXYf".to_owned(),
-            composition: Some(UiTextComposition {
-                range: UiTextRange { start: 1, end: 3 },
-                preedit_clauses: Vec::new(),
-                text: "XY".to_owned(),
-                restore_text: Some("bcde".to_owned()),
-            }),
-            ..Default::default()
-        };
-
-        assert_eq!(
-            retained_document_replaced_range(&state),
-            UiTextRange { start: 1, end: 5 }
-        );
-    }
-}
+#[path = "tests/state_transition.rs"]
+mod tests;

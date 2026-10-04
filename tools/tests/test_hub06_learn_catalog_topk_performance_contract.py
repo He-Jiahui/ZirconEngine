@@ -1,3 +1,4 @@
+# 核对中心学习目录采用有界部分选择并由发布样本绑定真实辅助函数。
 from __future__ import annotations
 
 import re

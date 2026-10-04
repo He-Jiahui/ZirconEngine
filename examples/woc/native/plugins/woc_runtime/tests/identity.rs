@@ -40,10 +40,16 @@ fn every_host_role_reports_the_same_authoritative_project_identity() {
             identity.command_payload_schema_sha256,
             woc_protocol::COMMAND_PAYLOAD_SCHEMA_SHA256
         );
-        assert_eq!(identity.world_state_format, "WOS64");
-        assert_eq!(identity.world_state_schema_version, 64);
-        assert_eq!(identity.simulation_hz, 20);
-        assert_eq!(identity.presentation_hz, 60);
+        assert_eq!(
+            identity.world_state_format,
+            woc_protocol::WORLD_STATE_FORMAT
+        );
+        assert_eq!(
+            identity.world_state_schema_version,
+            woc_protocol::WORLD_STATE_SCHEMA_VERSION
+        );
+        assert_eq!(identity.simulation_hz, woc_protocol::SIMULATION_HZ);
+        assert_eq!(identity.presentation_hz, woc_protocol::PRESENTATION_HZ);
     }
     assert!(identities
         .windows(2)

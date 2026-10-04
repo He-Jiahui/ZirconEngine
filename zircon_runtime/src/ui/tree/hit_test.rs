@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+mod cell_membership_patch;
 mod geometry_patch;
 mod query_scratch;
 mod route_index;
@@ -8,13 +9,13 @@ use query_scratch::UiHitQueryScratchCell;
 pub(crate) use route_index::find_bubble_route_value;
 use route_index::{
     bubble_route_for_entry, build_route_nodes, patch_route_nodes, route_node_for_entry,
-    route_node_index_for_node,
 };
 
-use crate::ui::surface::{arranged_node_indexed, arranged_node_indices, build_arranged_tree};
+use crate::ui::surface::{arranged_node_indices, build_arranged_tree};
 use std::collections::{BTreeMap, BTreeSet};
 use zircon_runtime_interface::ui::surface::{
-    UiArrangedTree, UiHitPath, UiHitTestCell, UiHitTestEntry, UiHitTestGrid, UiHitTestQuery,
+    UiArrangedTree, UiHitPath, UiHitRouteNode, UiHitTestCell, UiHitTestEntry, UiHitTestGrid,
+    UiHitTestQuery,
 };
 use zircon_runtime_interface::ui::tree::{UiInputPolicy, UiTree};
 use zircon_runtime_interface::ui::{
@@ -62,6 +63,40 @@ impl PartialEq for UiHitTestIndex {
 }
 
 impl UiHitTestIndex {
+    pub(crate) fn patch_cell_memberships<K: Ord>(
+        cells: &mut zircon_runtime_interface::ui::surface::UiPersistentSequence<UiHitTestCell>,
+        patches: impl IntoIterator<Item = (usize, Vec<usize>, Vec<usize>)>,
+        sort_key: impl FnMut(usize) -> K,
+    ) -> Result<
+        (
+            zircon_runtime_interface::ui::surface::UiPersistentSequenceCowStats,
+            usize,
+            usize,
+            usize,
+            usize,
+            usize,
+            usize,
+            usize,
+        ),
+        (),
+    > {
+        let mut batch = cell_membership_patch::UiCellMembershipPatches::default();
+        for (entry_index, previous_cells, next_cells) in patches {
+            batch.stage(entry_index, &previous_cells, &next_cells, false);
+        }
+        let stats = batch.apply(cells, sort_key)?;
+        Ok((
+            stats.cell_cow_stats,
+            stats.staged_cell_count,
+            stats.published_cell_count,
+            stats.source_membership_count,
+            stats.staged_removal_count,
+            stats.staged_addition_count,
+            stats.materialized_membership_count,
+            stats.replacement_buffer_count,
+        ))
+    }
+
     pub fn from_grid(grid: UiHitTestGrid) -> Self {
         let mut index = Self {
             grid,
@@ -98,14 +133,20 @@ impl UiHitTestIndex {
         changed_node_ids: &BTreeSet<UiNodeId>,
         arranged_node_indices: &BTreeMap<UiNodeId, usize>,
     ) -> Result<bool, ()> {
+        let mut next_route_nodes = self.grid.route_nodes.clone();
         let route_changed = patch_route_nodes(
-            &mut self.grid.route_nodes,
+            &mut next_route_nodes,
             arranged_tree,
             changed_node_ids,
             arranged_node_indices,
         )?;
-        let entry_changed =
-            self.patch_arranged_geometry(arranged_tree, changed_node_ids, arranged_node_indices)?;
+        let entry_changed = self.patch_arranged_geometry_with_routes(
+            arranged_tree,
+            changed_node_ids,
+            arranged_node_indices,
+            next_route_nodes.as_slice(),
+        )?;
+        self.grid.route_nodes = next_route_nodes;
         Ok(route_changed || entry_changed)
     }
 
@@ -125,7 +166,6 @@ impl UiHitTestIndex {
     }
 
     fn reindex_entry_cells(&mut self) {
-        self.entry_cells.clear();
         self.entry_indices.clear();
         self.entry_indices.extend(
             self.grid
@@ -134,12 +174,18 @@ impl UiHitTestIndex {
                 .enumerate()
                 .map(|(index, entry)| (entry.node_id, index)),
         );
-        self.entry_cells.extend(
-            self.grid
-                .entries
-                .iter()
-                .map(|entry| (entry.node_id, Vec::new())),
-        );
+        let entry_indices = &self.entry_indices;
+        self.entry_cells.retain(|node_id, cells| {
+            if entry_indices.contains_key(node_id) {
+                cells.clear();
+                true
+            } else {
+                false
+            }
+        });
+        for entry in self.grid.entries.iter() {
+            self.entry_cells.entry(entry.node_id).or_default();
+        }
         for (cell_index, cell) in self.grid.cells.iter().enumerate() {
             for entry_index in &cell.entries {
                 if let Some(entry) = self.grid.entries.get(*entry_index) {
@@ -231,11 +277,11 @@ impl UiHitTestIndex {
         let point = query.hit_point();
         let cursor_radius = query.sanitized_cursor_radius();
         if cursor_radius <= 0.0 {
-            let mut stacked = Vec::new();
+            let cell =
+                cell_index_for_point(grid, point).and_then(|cell_index| grid.cells.get(cell_index));
+            let mut stacked = Vec::with_capacity(cell.map_or(0, |cell| cell.entries.len()));
             let mut top_entry_index = None;
-            if let Some(cell) =
-                cell_index_for_point(grid, point).and_then(|cell_index| grid.cells.get(cell_index))
-            {
+            if let Some(cell) = cell {
                 for entry_index in cell.entries.iter().rev() {
                     let Some(entry) = grid.entries.get(*entry_index) else {
                         continue;
@@ -260,12 +306,13 @@ impl UiHitTestIndex {
             return hit_result_from_stacked(grid, &query, stacked, top_entry_index);
         }
 
-        let query_scratch = query_scratch.collect(grid, point, cursor_radius);
-        let mut stacked = Vec::new();
+        let mut query_scratch = query_scratch.collect(grid, point, cursor_radius);
+        let query_scratch = &mut *query_scratch;
+        let (candidates, radius_hits) = (&query_scratch.candidates, &mut query_scratch.radius_hits);
+        let mut stacked = Vec::with_capacity(candidates.len());
         let mut top_entry_index = None;
-        let mut radius_hits = Vec::new();
 
-        for entry_index in query_scratch.candidates.iter().copied() {
+        for entry_index in candidates.iter().copied() {
             let Some(entry) = grid.entries.get(entry_index) else {
                 continue;
             };
@@ -298,8 +345,8 @@ impl UiHitTestIndex {
         }
         stacked.extend(
             radius_hits
-                .into_iter()
-                .map(|(_, node_id, _entry_index)| node_id),
+                .iter()
+                .map(|(_, node_id, _entry_index)| *node_id),
         );
         hit_result_from_stacked(grid, &query, stacked, top_entry_index)
     }
@@ -356,26 +403,30 @@ fn hit_result_from_stacked(
             path: UiHitPath::from_query(query),
         };
     };
-    let Some((top_entry_index, bubble_route)) = top_entry_index.and_then(|entry_index| {
+
+    // Try to build a full propagation path for the top hit.
+    if let Some((resolved_entry_index, bubble_route)) = top_entry_index.and_then(|entry_index| {
         let entry = grid.entries.get(entry_index)?;
         (entry.node_id == top_hit)
             .then(|| bubble_route_for_entry(grid, entry))
             .flatten()
             .map(|bubble_route| (entry_index, bubble_route))
-    }) else {
+    }) {
         return UiHitTestResult {
-            top_hit: None,
-            top_entry_index: None,
-            stacked: Vec::new(),
-            path: UiHitPath::from_query(query),
+            top_hit: Some(top_hit),
+            top_entry_index: Some(resolved_entry_index),
+            stacked,
+            path: UiHitPath::from_bubble_route(query, Some(top_hit), bubble_route),
         };
-    };
+    }
 
+    // No valid bubble route (stale route state or missing entry index); still
+    // report the hit with a flat path so pointer dispatch can reach the node.
     UiHitTestResult {
         top_hit: Some(top_hit),
-        top_entry_index: Some(top_entry_index),
+        top_entry_index,
         stacked,
-        path: UiHitPath::from_bubble_route(query, Some(top_hit), bubble_route),
+        path: UiHitPath::from_query(query),
     }
 }
 
@@ -392,15 +443,28 @@ fn build_hit_grid(
     node_indices: &BTreeMap<UiNodeId, usize>,
 ) -> UiHitTestGrid {
     let route_nodes = build_route_nodes(arranged_tree, node_indices);
-    let mut entries: Vec<_> = arranged_tree
-        .draw_order
-        .iter()
-        .filter_map(|node_id| arranged_node_indexed(arranged_tree, node_indices, *node_id).ok())
-        .filter_map(|node| {
-            let route_node_index = route_node_index_for_node(node_indices, node.node_id)?;
-            stable_geometry_entry(&route_nodes, node, route_node_index)
-        })
-        .collect();
+    let mut entries = Vec::with_capacity(arranged_tree.draw_order.len());
+    for node_id in arranged_tree.draw_order.iter().copied() {
+        let Some(node_index) = node_indices.get(&node_id).copied() else {
+            continue;
+        };
+        let Some(node) = arranged_tree
+            .nodes
+            .get(node_index)
+            .filter(|node| node.node_id == node_id)
+        else {
+            continue;
+        };
+        let Some(route_node_index) = u32::try_from(node_index)
+            .ok()
+            .filter(|index| *index != UiHitRouteNode::NO_PARENT_INDEX)
+        else {
+            continue;
+        };
+        if let Some(entry) = stable_geometry_entry(&route_nodes, node, route_node_index) {
+            entries.push(entry);
+        }
+    }
 
     entries.sort_by_key(|entry| (entry.z_index, entry.paint_order, entry.node_id));
     let bounds = union_entry_bounds(&entries)
@@ -555,20 +619,14 @@ pub(crate) fn bounded_cells_for_frame(
     rows: u32,
     cell_size: f32,
     frame: UiFrame,
-) -> Vec<usize> {
-    let Some((left, right, top, bottom)) =
-        cell_span_for_frame(bounds, columns, rows, cell_size, frame)
-    else {
-        return Vec::new();
-    };
-    let capacity = (right - left + 1) as usize * (bottom - top + 1) as usize;
-    let mut indices = Vec::with_capacity(capacity);
-    for row in top..=bottom {
-        for column in left..=right {
-            indices.push((row * columns + column) as usize);
-        }
-    }
-    indices
+) -> impl Iterator<Item = usize> {
+    let span = cell_span_for_frame(bounds, columns, rows, cell_size, frame);
+    span.into_iter()
+        .flat_map(move |(left, right, top, bottom)| {
+            (top..=bottom).flat_map(move |row| {
+                (left..=right).map(move |column| (row * columns + column) as usize)
+            })
+        })
 }
 
 fn cell_count_for_frame(
@@ -650,350 +708,8 @@ fn entry_sort_key(entry: &UiHitTestEntry) -> (i32, u64, UiNodeId) {
 }
 
 #[cfg(test)]
-mod incremental_patch_tests {
-    use super::*;
-    use zircon_runtime_interface::ui::{
-        event_ui::{UiNodePath, UiTreeId},
-        surface::UiArrangedNode,
-        tree::{UiPointerEvents, UiVisibility},
-    };
-
-    #[test]
-    fn missing_ephemeral_lookup_requires_explicit_reindex() {
-        let node_id = UiNodeId::new(1);
-        let arranged_tree = UiArrangedTree {
-            tree_id: UiTreeId::new("ui.hit.lookup-reindex"),
-            roots: vec![node_id].into(),
-            nodes: vec![pointer_node(node_id, 0, UiFrame::new(0.0, 0.0, 20.0, 20.0))].into(),
-            draw_order: vec![node_id].into(),
-            canvas_layers: Vec::new().into(),
-        };
-        let mut index = UiHitTestIndex::default();
-        index.rebuild_arranged(&arranged_tree);
-        index.entry_cells.clear();
-        index.entry_indices.clear();
-
-        assert!(index.entry_by_node_id(node_id).is_none());
-        index.ensure_entry_lookup();
-        assert_eq!(
-            index.entry_by_node_id(node_id).map(|entry| entry.node_id),
-            Some(node_id)
-        );
-    }
-
-    #[test]
-    fn moving_entry_across_cells_keeps_one_hit_index() {
-        let moving_id = UiNodeId::new(1);
-        let anchor_id = UiNodeId::new(2);
-        let mut arranged_tree = UiArrangedTree {
-            tree_id: UiTreeId::new("ui.hit.incremental.cross-cell"),
-            roots: vec![moving_id, anchor_id].into(),
-            nodes: vec![
-                pointer_node(moving_id, 0, UiFrame::new(0.0, 0.0, 20.0, 20.0)),
-                pointer_node(anchor_id, 1, UiFrame::new(100.0, 0.0, 20.0, 20.0)),
-            ]
-            .into(),
-            draw_order: vec![moving_id, anchor_id].into(),
-            canvas_layers: Vec::new().into(),
-        };
-        let node_indices = BTreeMap::from([(moving_id, 0), (anchor_id, 1)]);
-        let mut index = UiHitTestIndex::default();
-        index.rebuild_arranged(&arranged_tree);
-
-        arranged_tree.nodes[0].frame = UiFrame::new(70.0, 0.0, 20.0, 20.0);
-        arranged_tree.nodes[0].clip_frame = arranged_tree.nodes[0].frame;
-        assert_eq!(
-            index.patch_arranged_geometry(
-                &arranged_tree,
-                &BTreeSet::from([moving_id]),
-                &node_indices,
-            ),
-            Ok(true)
-        );
-
-        assert_eq!(
-            index
-                .hit_test_arranged(&arranged_tree, UiPoint::new(5.0, 5.0))
-                .top_hit,
-            None
-        );
-        let moved_hit = index.hit_test_arranged(&arranged_tree, UiPoint::new(75.0, 5.0));
-        assert_eq!(moved_hit.top_hit, Some(moving_id));
-        assert_eq!(moved_hit.stacked, vec![moving_id]);
-        let moving_entry_index = index.entry_indices[&moving_id];
-        assert_eq!(
-            index
-                .grid
-                .cells
-                .iter()
-                .flat_map(|cell| cell.entries.iter())
-                .filter(|entry_index| **entry_index == moving_entry_index)
-                .count(),
-            1
-        );
-    }
-
-    #[test]
-    fn geometry_patch_reuses_route_table() {
-        let node_id = UiNodeId::new(5);
-        let mut arranged_tree = UiArrangedTree {
-            tree_id: UiTreeId::new("ui.hit.geometry-route-reuse"),
-            roots: vec![node_id].into(),
-            nodes: vec![pointer_node(node_id, 0, UiFrame::new(0.0, 0.0, 20.0, 20.0))].into(),
-            draw_order: vec![node_id].into(),
-            canvas_layers: Vec::new().into(),
-        };
-        let node_indices = BTreeMap::from([(node_id, 0)]);
-        let mut index = UiHitTestIndex::default();
-        index.rebuild_arranged(&arranged_tree);
-        let route_nodes = index.grid.route_nodes.clone();
-
-        arranged_tree.nodes[0].frame = UiFrame::new(10.0, 0.0, 20.0, 20.0);
-        arranged_tree.nodes[0].clip_frame = arranged_tree.nodes[0].frame;
-        assert_eq!(
-            index.patch_arranged_geometry(
-                &arranged_tree,
-                &BTreeSet::from([node_id]),
-                &node_indices,
-            ),
-            Ok(true)
-        );
-        assert!(std::sync::Arc::ptr_eq(
-            &route_nodes,
-            &index.grid.route_nodes
-        ));
-    }
-
-    #[test]
-    fn malformed_parent_route_fails_closed() {
-        let parent_id = UiNodeId::new(6);
-        let child_id = UiNodeId::new(7);
-        let frame = UiFrame::new(0.0, 0.0, 20.0, 20.0);
-        let mut parent = pointer_node(parent_id, 0, frame);
-        parent.children.push(child_id);
-        let mut child = pointer_node(child_id, 1, frame);
-        child.parent = Some(parent_id);
-        let arranged_tree = UiArrangedTree {
-            tree_id: UiTreeId::new("ui.hit.malformed-parent-route"),
-            roots: vec![parent_id].into(),
-            nodes: vec![parent, child].into(),
-            draw_order: vec![parent_id, child_id].into(),
-            canvas_layers: Vec::new().into(),
-        };
-        let mut index = UiHitTestIndex::default();
-        index.rebuild_arranged(&arranged_tree);
-        let parent_route_index = index.grid.entries[0].route_node_index as usize;
-        std::sync::Arc::make_mut(&mut index.grid.route_nodes)[parent_route_index].route_valid =
-            false;
-
-        let hit = index.hit_test_arranged(&arranged_tree, UiPoint::new(5.0, 5.0));
-
-        assert_eq!(hit.top_hit, None);
-        assert_eq!(hit.top_entry_index, None);
-        assert!(hit.stacked.is_empty());
-        assert!(hit.path.has_consistent_route());
-    }
-
-    #[test]
-    fn self_none_excludes_the_node_but_keeps_pointer_children() {
-        let parent_id = UiNodeId::new(10);
-        let child_id = UiNodeId::new(11);
-        let frame = UiFrame::new(0.0, 0.0, 20.0, 20.0);
-        let mut parent = pointer_node(parent_id, 0, frame);
-        parent.children.push(child_id);
-        parent.pointer_events = UiPointerEvents::SelfNone;
-        let mut child = pointer_node(child_id, 1, frame);
-        child.parent = Some(parent_id);
-        let arranged_tree = UiArrangedTree {
-            tree_id: UiTreeId::new("ui.hit.pointer-events.self-none"),
-            roots: vec![parent_id].into(),
-            nodes: vec![parent, child].into(),
-            draw_order: vec![parent_id, child_id].into(),
-            canvas_layers: Vec::new().into(),
-        };
-
-        let mut index = UiHitTestIndex::default();
-        index.rebuild_arranged(&arranged_tree);
-
-        assert_eq!(
-            index
-                .grid
-                .entries
-                .iter()
-                .map(|entry| entry.node_id)
-                .collect::<Vec<_>>(),
-            vec![child_id]
-        );
-    }
-
-    #[test]
-    fn none_excludes_the_entire_pointer_subtree() {
-        let parent_id = UiNodeId::new(20);
-        let child_id = UiNodeId::new(21);
-        let frame = UiFrame::new(0.0, 0.0, 20.0, 20.0);
-        let mut parent = pointer_node(parent_id, 0, frame);
-        parent.children.push(child_id);
-        parent.pointer_events = UiPointerEvents::None;
-        let mut child = pointer_node(child_id, 1, frame);
-        child.parent = Some(parent_id);
-        let arranged_tree = UiArrangedTree {
-            tree_id: UiTreeId::new("ui.hit.pointer-events.none"),
-            roots: vec![parent_id].into(),
-            nodes: vec![parent, child].into(),
-            draw_order: vec![parent_id, child_id].into(),
-            canvas_layers: Vec::new().into(),
-        };
-
-        let mut index = UiHitTestIndex::default();
-        index.rebuild_arranged(&arranged_tree);
-
-        assert!(index.grid.entries.is_empty());
-    }
-
-    #[test]
-    fn hit_grid_bounds_geometry_and_cell_count_are_bounded() {
-        let valid_id = UiNodeId::new(30);
-        let invalid_id = UiNodeId::new(31);
-        let huge_id = UiNodeId::new(32);
-        let valid_frame = UiFrame::new(0.0, 0.0, 20.0, 20.0);
-        let huge_frame = UiFrame::new(0.0, 0.0, 1_000_000.0, 1_000_000.0);
-        let arranged_tree = UiArrangedTree {
-            tree_id: UiTreeId::new("ui.hit.bounded-grid"),
-            roots: vec![valid_id, invalid_id, huge_id].into(),
-            nodes: vec![
-                pointer_node(valid_id, 0, valid_frame),
-                pointer_node(invalid_id, 1, UiFrame::new(f32::NAN, 0.0, 20.0, 20.0)),
-                pointer_node(huge_id, 2, huge_frame),
-            ]
-            .into(),
-            draw_order: vec![valid_id, invalid_id, huge_id].into(),
-            canvas_layers: Vec::new().into(),
-        };
-        let node_indices = BTreeMap::from([(valid_id, 0), (invalid_id, 1), (huge_id, 2)]);
-        let mut index = UiHitTestIndex::default();
-        index.rebuild_arranged_indexed(&arranged_tree, &node_indices);
-
-        assert!(index.grid.columns > 0);
-        assert!(index.grid.rows > 0);
-        assert!(
-            (index.grid.columns as usize) * (index.grid.rows as usize) <= HIT_GRID_MAX_CELL_COUNT
-        );
-        assert_eq!(index.grid.columns, 1);
-        assert_eq!(index.grid.rows, 1);
-        assert!(index
-            .grid
-            .entries
-            .iter()
-            .all(|entry| entry.node_id != invalid_id));
-        assert_eq!(
-            index
-                .hit_test_arranged(&arranged_tree, UiPoint::new(10.0, 10.0))
-                .top_hit,
-            Some(huge_id)
-        );
-    }
-
-    #[test]
-    fn ordinary_bounds_keep_fine_grained_cell_partitioning() {
-        let first_id = UiNodeId::new(40);
-        let second_id = UiNodeId::new(41);
-        let arranged_tree = UiArrangedTree {
-            tree_id: UiTreeId::new("ui.hit.fine-grid"),
-            roots: vec![first_id, second_id].into(),
-            nodes: vec![
-                pointer_node(first_id, 0, UiFrame::new(0.0, 0.0, 20.0, 20.0)),
-                pointer_node(second_id, 1, UiFrame::new(128.0, 0.0, 20.0, 20.0)),
-            ]
-            .into(),
-            draw_order: vec![first_id, second_id].into(),
-            canvas_layers: Vec::new().into(),
-        };
-        let node_indices = BTreeMap::from([(first_id, 0), (second_id, 1)]);
-        let mut index = UiHitTestIndex::default();
-        index.rebuild_arranged_indexed(&arranged_tree, &node_indices);
-
-        assert!(index.grid.columns >= 2);
-        assert_eq!(
-            index
-                .hit_test_arranged(&arranged_tree, UiPoint::new(10.0, 10.0))
-                .top_hit,
-            Some(first_id)
-        );
-        assert_eq!(
-            index
-                .hit_test_arranged(&arranged_tree, UiPoint::new(138.0, 10.0))
-                .top_hit,
-            Some(second_id)
-        );
-    }
-
-    #[test]
-    fn capacity_envelope_absorbs_small_growth_and_regrids_only_at_geometric_boundaries() {
-        let root_id = UiNodeId::new(50);
-        let mut arranged_tree = UiArrangedTree {
-            tree_id: UiTreeId::new("ui.hit.capacity-envelope"),
-            roots: vec![root_id].into(),
-            nodes: vec![pointer_node(
-                root_id,
-                0,
-                UiFrame::new(0.0, 0.0, 120.0, 60.0),
-            )]
-            .into(),
-            draw_order: vec![root_id].into(),
-            canvas_layers: Vec::new().into(),
-        };
-        let node_indices = BTreeMap::from([(root_id, 0)]);
-        let mut index = UiHitTestIndex::default();
-        index.rebuild_arranged_indexed(&arranged_tree, &node_indices);
-
-        assert_eq!(index.grid.bounds, UiFrame::new(0.0, 0.0, 128.0, 64.0));
-        arranged_tree.nodes[0].frame = UiFrame::new(0.0, 0.0, 121.0, 60.0);
-        arranged_tree.nodes[0].clip_frame = arranged_tree.nodes[0].frame;
-        assert_eq!(
-            index.patch_arranged_geometry(
-                &arranged_tree,
-                &BTreeSet::from([root_id]),
-                &node_indices,
-            ),
-            Ok(true)
-        );
-        assert_eq!(index.grid.bounds, UiFrame::new(0.0, 0.0, 128.0, 64.0));
-
-        arranged_tree.nodes[0].frame = UiFrame::new(0.0, 0.0, 129.0, 60.0);
-        arranged_tree.nodes[0].clip_frame = arranged_tree.nodes[0].frame;
-        assert_eq!(
-            index.patch_arranged_geometry(
-                &arranged_tree,
-                &BTreeSet::from([root_id]),
-                &node_indices,
-            ),
-            Err(())
-        );
-    }
-
-    fn pointer_node(node_id: UiNodeId, paint_order: u64, frame: UiFrame) -> UiArrangedNode {
-        UiArrangedNode {
-            node_id,
-            node_path: UiNodePath::new(format!("root/{}", node_id.0)),
-            parent: None,
-            children: Vec::new(),
-            frame,
-            clip_frame: frame,
-            z_index: 0,
-            paint_order,
-            visibility: UiVisibility::Visible,
-            input_policy: UiInputPolicy::Receive,
-            pointer_events: Default::default(),
-            enabled: true,
-            clickable: true,
-            hoverable: true,
-            focusable: false,
-            clip_to_bounds: false,
-            control_id: None,
-            slot: None,
-        }
-    }
-}
+#[path = "tests/hit_test_incremental_patch_tests.rs"]
+mod incremental_patch_tests;
 
 fn distance_sq_to_frame(frame: UiFrame, point: UiPoint) -> f32 {
     if frame.width <= 0.0 || frame.height <= 0.0 {
@@ -1065,3 +781,7 @@ fn frame_is_contained(bounds: UiFrame, frame: UiFrame) -> bool {
         && frame.right() <= bounds.right()
         && frame.bottom() <= bounds.bottom()
 }
+
+#[cfg(test)]
+#[path = "tests/hit_test_output_capacity_tests.rs"]
+mod output_capacity_tests;

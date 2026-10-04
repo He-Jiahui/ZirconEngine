@@ -1,6 +1,6 @@
-use super::{
-    NativePluginLiveHostLoadingError, NativePluginRegistrationManifestError,
-    NativeSystemAccessAuthorityError, RuntimeExtensionRegistryError,
+use super::{NativePluginLiveHostLoadingError, RuntimeExtensionRegistryError};
+use crate::plugin::native_plugin_loader::registration_manifest::{
+    NativePluginRegistrationManifestError, NativeSystemAccessAuthorityError,
 };
 
 #[derive(Debug)]

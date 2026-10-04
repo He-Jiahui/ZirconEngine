@@ -11,7 +11,11 @@ pub(super) fn route_drawer_headers(
     scene: &HostWindowSceneData,
     x: f32,
     y: f32,
+    authored_sides: bool,
 ) -> Option<ChromePointerRoute> {
+    if authored_sides {
+        return route_bottom_drawer_header(&scene.bottom_dock, x, y);
+    }
     if let Some(route) = route_side_drawer_header("left", &scene.left_dock, x, y) {
         return Some(route);
     }

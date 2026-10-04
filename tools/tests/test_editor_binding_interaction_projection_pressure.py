@@ -1,6 +1,7 @@
+# 核对选中交互权威减少检查器全量投影的工作量模型。
 import unittest
 
-from tools.editor_binding_interaction_projection_pressure import model_pressure
+from tools.analysis.performance.editor.editor_binding_interaction_projection_pressure import model_pressure
 
 
 class EditorBindingInteractionProjectionPressureTests(unittest.TestCase):

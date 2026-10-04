@@ -5,13 +5,13 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from tools.zircon_export.pipeline_report_validate_profile_summary_schema import (
+from tools.export.pipeline_report_validate_profile_summary_schema import (
     validate_profile_summary_strategy_projection,
 )
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-OWNER = REPO_ROOT / "tools/zircon_export/pipeline_report_validate_profile_summary_schema.py"
+OWNER = REPO_ROOT / "tools/export/pipeline_report_validate_profile_summary_schema.py"
 
 
 class ValidateProfileSummaryStrategyProjectionPerformanceContractTests(unittest.TestCase):

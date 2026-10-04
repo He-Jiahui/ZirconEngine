@@ -8,8 +8,10 @@ impl SceneRenderer {
         &mut self,
         manifest: &ShaderVariantPrewarmManifest,
     ) -> RuntimeShaderPipelinePrewarmReport {
-        self.core
-            .mesh_pipelines
-            .prewarm_manifest(&self.backend.device, manifest)
+        self.core.mesh_pipelines.prewarm_manifest(
+            &self.backend.device,
+            &mut self.streamer,
+            manifest,
+        )
     }
 }

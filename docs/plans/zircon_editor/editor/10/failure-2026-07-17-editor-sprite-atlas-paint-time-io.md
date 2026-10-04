@@ -55,3 +55,30 @@ Project library/file watcher随asset generation一次构建immutable`source key 
 ## 修复结果与回传
 
 完成后在本目录写`fixed-*`或return记录并附current-source Windows Cargo、focused tests和规模counter；此前保持open。
+
+## 2026-09-28 current-source ownership boundary
+
+The current visual-asset loader can run image work in an Editor job, but its
+unbound fallback is synchronous. `resolve_editor_sprite_atlas_image` still
+discovers atlas manifests and decodes atlas pixels on a cache miss. The Runtime
+project watcher covers configured asset roots; atlas products are stored under
+the sibling `.zircon/cache/editor-sprite-atlases` directory, so the present
+watcher path does not establish product-change invalidation. Packaged Editor UI
+icons also have a source root separate from the active project catalog.
+
+Editor10 therefore owns a generation-fenced, immutable per-source-root atlas
+lookup published before paint. Paint must consume the published handle and UV
+without directory or image I/O. The decoded CPU image and GPU residency
+contract is tracked by the existing Render13
+[UI command payload failure](../../../zircon_runtime/render/13/failure-2026-07-17-editor-ui-command-payload-duplication.md).
+Its current Editor CPU cache can evict a generation while a paint record still
+refers to it; after GPU eviction, a later upload may then lack source bytes.
+Render13 must close that reupload/device-loss path while Editor10 supplies
+exact asset-generation invalidation. These are separate owner changes with
+their own validation and return records.
+
+Session `failure-roll-01a0df1a-editor10-sprite-atlas-r1` adopted the five exact
+current paths through coordinator transfer at baseline epoch 628 and froze
+pre-implementation snapshot 5230. This is ownership and root-cause evidence
+only. No Atlas index, Render13 resource repair, managed Cargo, scale trace,
+pixel-parity pass, failure return, closeout, or notification is claimed.

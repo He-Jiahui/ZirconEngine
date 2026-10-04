@@ -87,7 +87,7 @@ the fallback is counted and cannot silently become the normal hover path.
 
 ## Deterministic pressure model
 
-`tools/runtime_ui_pseudo_style_delta_pressure.py` counts node visits, rule checks,
+`tools/analysis/performance/runtime/runtime_ui_pseudo_style_delta_pressure.py` counts node visits, rule checks,
 and map-entry copies. It is not CPU or latency timing. The fixture uses 1,000 state
 changes, 24 baseline attributes, eight style overrides, eight token entries, four
 candidate-rule checks, and three changed properties.

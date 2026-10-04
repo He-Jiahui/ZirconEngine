@@ -74,3 +74,19 @@ fn viewport_toolbar_click_upserts_only_the_measured_control() {
     assert!(click.contains("if controls[control_index] == control"));
     assert!(click.contains("if self.sync_clicked_control(surface_key, control)"));
 }
+
+#[test]
+fn viewport_toolbar_stable_geometry_sync_skips_topology_key_pruning() {
+    let sync = source("src/ui/retained_host/viewport_toolbar_pointer/sync.rs");
+    let (stable_geometry_path, topology_path) = sync
+        .split_once("if topology_changed {")
+        .expect("toolbar sync must retain an explicit topology branch");
+
+    assert!(
+        !stable_geometry_path.contains("valid_surface_keys"),
+        "stable geometry sync must not build or scan a surface-key set"
+    );
+    assert!(topology_path.contains("let valid_surface_keys"));
+    assert!(topology_path.contains("self.controls_by_surface"));
+    assert!(topology_path.contains("self.applied_surface_frames"));
+}

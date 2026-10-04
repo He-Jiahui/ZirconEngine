@@ -401,7 +401,7 @@ fn runtime_prelude_exports_asset_scene_ui_and_graphics_contracts() {
         surface.tree.tree_id,
         UiTreeId::new("runtime.prelude.surface")
     );
-    assert!(!ui_config.enabled);
+    assert!(ui_config.enabled);
     assert_eq!(ui_module.module_name(), UI_MODULE_NAME);
     assert_eq!(graphics_module.module_name(), GRAPHICS_MODULE_NAME);
     assert!(!viewport_region.is_empty());

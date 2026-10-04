@@ -1,8 +1,8 @@
 import unittest
 
-from tools.runtime_ui_hit_query_scratch_pressure import run
+from tools.analysis.performance.runtime.runtime_ui_hit_query_scratch_pressure import run
 
-
+# 用查询模型验证保留命中索引后不再逐次分配临时存储，并拒绝非法查询形状。
 class RuntimeUiHitQueryScratchPressureTests(unittest.TestCase):
     def test_retained_index_removes_per_query_scratch_storage(self):
         result = run(

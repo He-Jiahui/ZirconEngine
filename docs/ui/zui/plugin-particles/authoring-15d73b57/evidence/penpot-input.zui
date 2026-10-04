@@ -1,0 +1,137 @@
+penpot_original_source = "[asset]\r\nkind = \"view\"\r\nid = \"particles.authoring\"\r\nversion = 2\r\ndisplay_name = \"Particles Authoring\"\r\n\r\n[imports]\r\nstyles = [\"res://ui/theme/editor_base.zui\"]\r\n\r\n[root]\r\nnode = \"particles_authoring_root\"\r\n\r\n[nodes.particles_authoring_toolbar]\r\ncomponent = \"Space\"\r\ncontrol_id = \"ParticlesAuthoringToolbar\"\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = \"Fixed\" } }\r\n\r\n[nodes.particles_emitter_list]\r\ncomponent = \"Space\"\r\ncontrol_id = \"ParticlesEmitterList\"\r\nlayout = { width = { min = 220.0, preferred = 260.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\r\n\r\n[nodes.particles_module_stack]\r\ncomponent = \"Space\"\r\ncontrol_id = \"ParticlesModuleStack\"\r\nlayout = { width = { min = 260.0, preferred = 320.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\r\n\r\n[nodes.particles_curve_editor]\r\ncomponent = \"Space\"\r\ncontrol_id = \"ParticlesCurveEditor\"\r\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\n\r\n[nodes.particles_diagnostics_panel]\r\ncomponent = \"Space\"\r\ncontrol_id = \"ParticlesDiagnosticsPanel\"\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 96.0, preferred = 96.0, max = 96.0, stretch = \"Fixed\" } }\r\n\r\n[nodes.particles_curve_editor_column]\r\ncomponent = \"VerticalGroup\"\r\ncontrol_id = \"ParticlesCurveEditorColumn\"\r\nlayout = { container = { kind = \"VerticalBox\", gap = 8 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\nchildren = [{ node = \"particles_curve_editor\" }, { node = \"particles_diagnostics_panel\" }]\r\n\r\n[nodes.particles_authoring_content]\r\ncomponent = \"HorizontalGroup\"\r\ncontrol_id = \"ParticlesAuthoringContent\"\r\nlayout = { container = { kind = \"HorizontalBox\", gap = 8 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\nchildren = [{ node = \"particles_emitter_list\" }, { node = \"particles_module_stack\" }, { node = \"particles_curve_editor_column\" }]\r\n\r\n[nodes.particles_authoring_root]\r\ncomponent = \"VerticalGroup\"\r\ncontrol_id = \"ParticlesAuthoringRoot\"\r\nclasses = [\"editor-shell\"]\r\nlayout = { container = { kind = \"VerticalBox\", gap = 8 }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\nchildren = [{ node = \"particles_authoring_toolbar\" }, { node = \"particles_authoring_content\" }]\r\n"
+
+[asset]
+kind = "view"
+id = "particles.authoring"
+version = 2
+display_name = "Particles Authoring"
+
+[imports]
+styles = [ "res://ui/theme/editor_base.zui" ]
+
+[root]
+node = "particles_authoring_root"
+
+[nodes.particles_authoring_toolbar]
+component = "Space"
+control_id = "ParticlesAuthoringToolbar"
+
+[nodes.particles_authoring_toolbar.layout.width]
+stretch = "Stretch"
+
+[nodes.particles_authoring_toolbar.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.particles_emitter_list]
+component = "Space"
+control_id = "ParticlesEmitterList"
+
+[nodes.particles_emitter_list.layout.width]
+min = 220
+preferred = 260
+stretch = "Fixed"
+
+[nodes.particles_emitter_list.layout.height]
+stretch = "Stretch"
+
+[nodes.particles_module_stack]
+component = "Space"
+control_id = "ParticlesModuleStack"
+
+[nodes.particles_module_stack.layout.width]
+min = 260
+preferred = 320
+stretch = "Fixed"
+
+[nodes.particles_module_stack.layout.height]
+stretch = "Stretch"
+
+[nodes.particles_curve_editor]
+component = "Space"
+control_id = "ParticlesCurveEditor"
+
+[nodes.particles_curve_editor.layout.width]
+stretch = "Stretch"
+
+[nodes.particles_curve_editor.layout.height]
+stretch = "Stretch"
+
+[nodes.particles_diagnostics_panel]
+component = "Space"
+control_id = "ParticlesDiagnosticsPanel"
+
+[nodes.particles_diagnostics_panel.layout.width]
+stretch = "Stretch"
+
+[nodes.particles_diagnostics_panel.layout.height]
+min = 96
+preferred = 96
+max = 96
+stretch = "Fixed"
+
+[nodes.particles_curve_editor_column]
+component = "VerticalGroup"
+control_id = "ParticlesCurveEditorColumn"
+
+[nodes.particles_curve_editor_column.layout.container]
+kind = "VerticalBox"
+gap = 8
+
+[nodes.particles_curve_editor_column.layout.width]
+stretch = "Stretch"
+
+[nodes.particles_curve_editor_column.layout.height]
+stretch = "Stretch"
+
+[[nodes.particles_curve_editor_column.children]]
+node = "particles_curve_editor"
+
+[[nodes.particles_curve_editor_column.children]]
+node = "particles_diagnostics_panel"
+
+[nodes.particles_authoring_content]
+component = "HorizontalGroup"
+control_id = "ParticlesAuthoringContent"
+
+[nodes.particles_authoring_content.layout.container]
+kind = "HorizontalBox"
+gap = 8
+
+[nodes.particles_authoring_content.layout.width]
+stretch = "Stretch"
+
+[nodes.particles_authoring_content.layout.height]
+stretch = "Stretch"
+
+[[nodes.particles_authoring_content.children]]
+node = "particles_emitter_list"
+
+[[nodes.particles_authoring_content.children]]
+node = "particles_module_stack"
+
+[[nodes.particles_authoring_content.children]]
+node = "particles_curve_editor_column"
+
+[nodes.particles_authoring_root]
+component = "VerticalGroup"
+control_id = "ParticlesAuthoringRoot"
+classes = [ "editor-shell" ]
+
+[nodes.particles_authoring_root.layout.container]
+kind = "VerticalBox"
+gap = 8
+
+[nodes.particles_authoring_root.layout.width]
+stretch = "Stretch"
+
+[nodes.particles_authoring_root.layout.height]
+stretch = "Stretch"
+
+[[nodes.particles_authoring_root.children]]
+node = "particles_authoring_toolbar"
+
+[[nodes.particles_authoring_root.children]]
+node = "particles_authoring_content"

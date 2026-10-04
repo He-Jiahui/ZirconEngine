@@ -1,8 +1,19 @@
+
+from tools.tests.rust_test_files import read_rust_test_file
 import pathlib
 import unittest
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
+HYBRID_GI_EXTRACT_ROOT = ROOT / "zircon_runtime/src/core/framework/render/scene_extract/hybrid_gi"
+
+
+def hybrid_gi_extract_source() -> str:
+    return "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in sorted(HYBRID_GI_EXTRACT_ROOT.glob("*.rs"))
+        if path.name != "tests.rs"
+    )
 
 
 class HybridGiM4ContractTests(unittest.TestCase):
@@ -18,20 +29,19 @@ class HybridGiM4ContractTests(unittest.TestCase):
 
     def test_project_fixture_uses_explicit_asset_roots_and_project_writers(self) -> None:
         fixture_root = (
-            ROOT
-            / "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_prepare_material_fixtures.rs"
+            ROOT / "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/tests/hybrid_gi_scene_prepare_material_fixtures.rs"
         )
         fixture = fixture_root.read_text(encoding="utf-8")
-        project_documents = fixture_root.with_name(
-            "hybrid_gi_scene_prepare_material_fixtures"
-        ) / "project_documents.rs"
+        project_documents = (
+            ROOT / "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_prepare_material_fixtures/tests/project_documents.rs"
+        )
         fixture_contract = fixture + project_documents.read_text(encoding="utf-8")
         manifest = (
             ROOT / "zircon_plugins/hybrid_gi/runtime/Cargo.toml"
         ).read_text(encoding="utf-8")
 
         self.assertIn(
-            '#[path = "hybrid_gi_scene_prepare_material_fixtures/project_documents.rs"]',
+            '#[path = "../hybrid_gi_scene_prepare_material_fixtures/tests/project_documents.rs"]',
             fixture,
         )
         self.assertIn("ensure_layout(&manifest.asset_roots)", fixture)
@@ -48,9 +58,7 @@ class HybridGiM4ContractTests(unittest.TestCase):
         self.assertIn("zircon_runtime_interface = { workspace = true }", manifest)
 
     def test_public_extract_exposes_serializable_mode_and_profile(self) -> None:
-        source = (ROOT / "zircon_runtime/src/core/framework/render/scene_extract.rs").read_text(
-            encoding="utf-8"
-        )
+        source = hybrid_gi_extract_source()
 
         self.assertIn("pub enum RenderHybridGiMode", source)
         self.assertIn("BakedStaticDynamic", source)
@@ -146,9 +154,7 @@ class HybridGiM4ContractTests(unittest.TestCase):
         self.assertIn("baked_light_set_generation", encoder)
 
     def test_four_profiles_resolve_real_budgets_and_structured_baked_fallback(self) -> None:
-        extract = (ROOT / "zircon_runtime/src/core/framework/render/scene_extract.rs").read_text(
-            encoding="utf-8"
-        )
+        extract = hybrid_gi_extract_source()
         representation = (
             ROOT
             / "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/representation.rs"
@@ -204,7 +210,7 @@ class HybridGiM4ContractTests(unittest.TestCase):
         )
         self.assertIn(
             "hybrid_gi_resolve_accepts_external_or_transient_scene_velocity",
-            source,
+            read_rust_test_file("zircon_plugins/hybrid_gi/runtime/src/tests/render_pass_executors.rs"),
         )
 
     def test_hybrid_gi_capability_preserves_the_scene_velocity_producer(self) -> None:
@@ -222,7 +228,7 @@ class HybridGiM4ContractTests(unittest.TestCase):
         )
         self.assertIn(
             "hybrid_gi_keeps_the_scene_velocity_producer_without_enabling_taa",
-            tests,
+            read_rust_test_file("zircon_runtime/src/graphics/runtime/render_framework/compile_options_for_profile/tests/compile_options_for_profile.rs"),
         )
 
 

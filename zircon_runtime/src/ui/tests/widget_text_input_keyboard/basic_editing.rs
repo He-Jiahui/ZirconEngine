@@ -103,13 +103,11 @@ fn text_input_keyboard_rejects_reserved_value_property_without_partial_state() {
     assert!(!metadata.attributes.contains_key("selection_focus"));
     assert!(result.component_events.is_empty());
     assert!(result.binding_reports.is_empty());
-    assert!(
-        result
-            .diagnostics
-            .notes
-            .iter()
-            .any(|note| note == "text_state_transaction_rejected:reserved_value_property")
-    );
+    assert!(result
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note == "text_state_transaction_rejected:reserved_value_property"));
 }
 
 #[test]

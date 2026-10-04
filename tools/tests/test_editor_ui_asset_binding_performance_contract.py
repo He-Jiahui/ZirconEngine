@@ -1,3 +1,4 @@
+# 核对界面资产绑定以选中权威和借用载荷投影，避免递归克隆与重复展平。
 from pathlib import Path
 import unittest
 

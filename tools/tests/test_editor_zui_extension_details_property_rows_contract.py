@@ -72,7 +72,19 @@ class EditorZuiExtensionDetailsPropertyRowsContractTests(unittest.TestCase):
                 self.assertEqual("WorkbenchPropertyEditorRow", wrapper["component"])
                 self.assertEqual(expected_label(node), wrapper["props"]["text"])
                 self.assertNotIn("events", wrapper)
-                self.assertEqual(node["layout"], wrapper["layout"])
+                value_layout = node["layout"]
+                row_layout = wrapper["layout"]
+                self.assertEqual(value_layout["width"], row_layout["width"])
+                for dimension in ("min", "preferred", "stretch"):
+                    with self.subTest(dimension=dimension):
+                        self.assertEqual(
+                            value_layout["height"][dimension],
+                            row_layout["height"][dimension],
+                        )
+                self.assertGreaterEqual(
+                    row_layout["height"]["max"],
+                    value_layout["height"]["max"],
+                )
                 self.assertEqual(
                     [{"node": node_name, "slot": {"name": "value"}}],
                     wrapper["children"],

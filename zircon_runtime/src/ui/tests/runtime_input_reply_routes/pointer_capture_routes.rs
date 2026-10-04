@@ -1,4 +1,269 @@
+//! 捕获后的取消与释放仍报告旧捕获路由；所有者不匹配拒绝释放，高精度及指针锁请求转交宿主。
+
 use super::*;
+
+mod ownership_lifecycle;
+
+fn owned_pointer_event(
+    pointer_id: u64,
+    button: UiPointerButton,
+    kind: UiPointerEventKind,
+    point: UiPoint,
+) -> UiInputEvent {
+    let mut event = pointer_event(kind, point);
+    if let UiInputEvent::Pointer(pointer) = &mut event {
+        pointer.metadata.pointer_id = Some(UiPointerId::new(pointer_id));
+        pointer.event.button = Some(button);
+    }
+    event
+}
+
+#[test]
+fn pointer_button_ownership_is_independent_for_two_pointers_capturing_one_node() {
+    let mut surface = route_surface();
+    let mut dispatcher = UiPointerDispatcher::default();
+    dispatcher.register(UiNodeId::new(2), UiPointerEventKind::Down, |_| {
+        UiPointerDispatchEffect::capture()
+    });
+    dispatcher.register(UiNodeId::new(2), UiPointerEventKind::Move, |_| {
+        UiPointerDispatchEffect::handled()
+    });
+    dispatcher.register(UiNodeId::new(2), UiPointerEventKind::Up, |_| {
+        UiPointerDispatchEffect::handled()
+    });
+    for (pointer_id, button) in [
+        (11, UiPointerButton::Secondary),
+        (12, UiPointerButton::Primary),
+    ] {
+        surface
+            .dispatch_input_event(
+                &dispatcher,
+                &UiNavigationDispatcher::default(),
+                owned_pointer_event(
+                    pointer_id,
+                    button,
+                    UiPointerEventKind::Down,
+                    UiPoint::new(20.0, 20.0),
+                ),
+            )
+            .unwrap();
+    }
+    surface
+        .dispatch_input_event(
+            &dispatcher,
+            &UiNavigationDispatcher::default(),
+            owned_pointer_event(
+                11,
+                UiPointerButton::Primary,
+                UiPointerEventKind::Up,
+                UiPoint::new(200.0, 200.0),
+            ),
+        )
+        .unwrap();
+    assert_pointer_capture(&surface, UiPointerId::new(11), UiNodeId::new(2));
+    assert_pointer_capture(&surface, UiPointerId::new(12), UiNodeId::new(2));
+    surface
+        .dispatch_input_event(
+            &dispatcher,
+            &UiNavigationDispatcher::default(),
+            owned_pointer_event(
+                12,
+                UiPointerButton::Primary,
+                UiPointerEventKind::Up,
+                UiPoint::new(200.0, 200.0),
+            ),
+        )
+        .unwrap();
+    assert_pointer_capture(&surface, UiPointerId::new(11), UiNodeId::new(2));
+    assert_eq!(
+        surface.input.pointer_capture_owner(UiPointerId::new(12)),
+        None
+    );
+    let moved = surface
+        .dispatch_input_event(
+            &dispatcher,
+            &UiNavigationDispatcher::default(),
+            owned_pointer_event(
+                11,
+                UiPointerButton::Secondary,
+                UiPointerEventKind::Move,
+                UiPoint::new(220.0, 220.0),
+            ),
+        )
+        .unwrap();
+    assert_eq!(moved.reply.handler, Some(UiNodeId::new(2)));
+    surface
+        .dispatch_input_event(
+            &dispatcher,
+            &UiNavigationDispatcher::default(),
+            owned_pointer_event(
+                11,
+                UiPointerButton::Secondary,
+                UiPointerEventKind::Cancel,
+                UiPoint::new(220.0, 220.0),
+            ),
+        )
+        .unwrap();
+    assert_no_pointer_capture(&surface);
+}
+
+#[test]
+fn pointer_button_ownership_qualifies_reply_capture_and_resets_after_explicit_release() {
+    let mut surface = route_surface();
+    let pointer_id = UiPointerId::new(7);
+    let capture = |button| {
+        owned_pointer_event(
+            7,
+            button,
+            UiPointerEventKind::Down,
+            UiPoint::new(20.0, 20.0),
+        )
+    };
+    let reply = || {
+        UiDispatchReply::handled().with_effect(UiDispatchEffect::CapturePointer {
+            target: UiNodeId::new(2),
+            pointer_id,
+            reason: UiPointerCaptureReason::Press,
+        })
+    };
+    assert!(surface
+        .apply_dispatch_reply(capture(UiPointerButton::Secondary), reply())
+        .rejected_effects
+        .is_empty());
+    surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            owned_pointer_event(
+                7,
+                UiPointerButton::Primary,
+                UiPointerEventKind::Up,
+                UiPoint::new(200.0, 200.0),
+            ),
+        )
+        .unwrap();
+    assert_pointer_capture(&surface, pointer_id, UiNodeId::new(2));
+    let released = surface.apply_dispatch_reply(
+        keyboard_event(),
+        UiDispatchReply::handled().with_effect(UiDispatchEffect::ReleasePointerCapture {
+            target: UiNodeId::new(2),
+            pointer_id,
+            reason: UiPointerCaptureReason::Cancel,
+        }),
+    );
+    assert!(released.rejected_effects.is_empty());
+    assert_no_pointer_capture(&surface);
+    assert!(surface
+        .apply_dispatch_reply(capture(UiPointerButton::Primary), reply())
+        .rejected_effects
+        .is_empty());
+    surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            owned_pointer_event(
+                7,
+                UiPointerButton::Secondary,
+                UiPointerEventKind::Up,
+                UiPoint::new(200.0, 200.0),
+            ),
+        )
+        .unwrap();
+    assert_pointer_capture(&surface, pointer_id, UiNodeId::new(2));
+    surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            owned_pointer_event(
+                7,
+                UiPointerButton::Primary,
+                UiPointerEventKind::Up,
+                UiPoint::new(200.0, 200.0),
+            ),
+        )
+        .unwrap();
+    assert_no_pointer_capture(&surface);
+}
+
+#[test]
+fn pointer_button_ownership_text_drag_survives_secondary_release_without_context_popup() {
+    let mut surface = editable_route_surface("drag selection across words", 0);
+    let offset = |surface: &UiSurface, property: &str| {
+        surface
+            .tree
+            .node(UiNodeId::new(2))
+            .unwrap()
+            .template_metadata
+            .as_ref()
+            .unwrap()
+            .attributes
+            .get(property)
+            .and_then(toml::Value::as_integer)
+            .unwrap()
+    };
+    let dispatch = |surface: &mut UiSurface, button, kind, point| {
+        surface
+            .dispatch_input_event(
+                &UiPointerDispatcher::default(),
+                &UiNavigationDispatcher::default(),
+                owned_pointer_event(7, button, kind, point),
+            )
+            .unwrap()
+    };
+    dispatch(
+        &mut surface,
+        UiPointerButton::Primary,
+        UiPointerEventKind::Down,
+        UiPoint::new(20.0, 20.0),
+    );
+    assert_pointer_capture(&surface, UiPointerId::new(7), UiNodeId::new(2));
+    let anchor = offset(&surface, "caret_offset");
+    dispatch(
+        &mut surface,
+        UiPointerButton::Secondary,
+        UiPointerEventKind::Down,
+        UiPoint::new(25.0, 20.0),
+    );
+    let foreign = dispatch(
+        &mut surface,
+        UiPointerButton::Secondary,
+        UiPointerEventKind::Up,
+        UiPoint::new(25.0, 20.0),
+    );
+    assert_pointer_capture(&surface, UiPointerId::new(7), UiNodeId::new(2));
+    assert!(surface.input.popup_stack.is_empty());
+    assert_eq!(offset(&surface, "caret_offset"), anchor);
+    assert!(!foreign
+        .reply
+        .effects
+        .iter()
+        .any(|effect| matches!(effect, UiDispatchEffect::ReleasePointerCapture { .. })));
+    let moved = dispatch(
+        &mut surface,
+        UiPointerButton::Primary,
+        UiPointerEventKind::Move,
+        UiPoint::new(140.0, 20.0),
+    );
+    assert_eq!(moved.reply.handler, Some(UiNodeId::new(2)));
+    assert!(surface.input.pointer_drags.contains_key(&UiNodeId::new(2)));
+    let focus = offset(&surface, "selection_focus");
+    assert_eq!(offset(&surface, "selection_anchor"), anchor);
+    assert_eq!(offset(&surface, "caret_offset"), focus);
+    assert!(
+        focus > anchor,
+        "outside movement must extend the real text selection"
+    );
+    dispatch(
+        &mut surface,
+        UiPointerButton::Primary,
+        UiPointerEventKind::Up,
+        UiPoint::new(140.0, 20.0),
+    );
+    assert_no_pointer_capture(&surface);
+    assert!(!surface.input.pointer_drags.contains_key(&UiNodeId::new(2)));
+    assert_eq!(offset(&surface, "selection_anchor"), anchor);
+    assert_eq!(offset(&surface, "selection_focus"), focus);
+}
 
 #[test]
 fn unified_pointer_cancel_routes_to_capture_and_releases_pointer_capture() {

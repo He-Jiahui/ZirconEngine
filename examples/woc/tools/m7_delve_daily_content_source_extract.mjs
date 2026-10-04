@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码中提取按 UTC 日期重置的地下探索每日状态，供 m7_delve_daily_content_codegen.mjs 消费。
 import { execFileSync } from 'node:child_process';
 import ts from 'typescript';
 
@@ -16,6 +17,7 @@ const refresh = source.statements.find(
 if (!refresh) {
   throw new Error('refreshDelveDaily missing from source');
 }
+// 确认 UTC 日期重置分支存在后，才输出三个每日状态标志。
 for (const marker of [
   'const today = ctx.utcDay;',
   'if (today && meta.delveDaily.date !== today) {',

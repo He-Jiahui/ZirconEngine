@@ -4,8 +4,8 @@ Status: completed
 Files: [
   "docs/plans/optimize/zircon_runtime_interface/01-runtime-dll-abi-ffi-version-handle-foreign-ownership-review.md",
   "docs/plans/optimize/zircon_runtime_interface/01/2026-08-17-runtime-byte-payload-budgets.md",
-  "docs/zircon_runtime/dynamic_api/session.md",
-  "docs/zircon_runtime_interface/runtime_api.md",
+  "docs/crates/zircon_runtime/dynamic_api/session.md",
+  "docs/crates/zircon_runtime_interface/runtime_api.md",
   "zircon_app/src/entry/runtime_library/runtime_session.rs",
   "zircon_app/src/entry/runtime_library/runtime_session/request_encoding.rs",
   "zircon_app/src/entry/runtime_library/runtime_session/tests.rs",

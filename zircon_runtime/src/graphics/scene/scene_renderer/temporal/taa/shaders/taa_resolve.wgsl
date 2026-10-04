@@ -1,3 +1,4 @@
+// 由 TaaResolveParams 写入的时间重建 ABI；history 写回必须在成功提交后成为下一帧 previous。
 struct TaaResolveParams {
     input_viewport: vec4<u32>,
     output_viewport: vec4<u32>,

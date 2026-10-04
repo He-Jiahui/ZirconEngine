@@ -19,7 +19,7 @@ plan_sources:
 tests:
   - zircon_runtime/src/core/runtime/tests/events
   - zircon_runtime/src/core/runtime/config_store
-  - zircon_runtime/src/foundation/runtime/config_manager_tests.rs
+  - zircon_runtime/src/foundation/runtime/tests/config_manager_tests.rs
   - zircon_runtime/src/tests/time.rs
 doc_type: module-detail
 status: current

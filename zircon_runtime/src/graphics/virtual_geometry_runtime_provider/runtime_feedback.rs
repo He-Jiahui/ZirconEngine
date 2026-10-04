@@ -1,5 +1,5 @@
-use crate::graphics::VisibilityVirtualGeometryFeedback;
 use crate::graphics::runtime_provider::RuntimeProviderFeedback;
+use crate::graphics::VisibilityVirtualGeometryFeedback;
 
 use super::VirtualGeometryGpuCompletion;
 

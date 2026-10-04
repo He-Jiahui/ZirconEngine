@@ -242,3 +242,21 @@ fn local_reextract_keeps_exact_owner_command_geometry_patchable() {
         .expect("local reextract should preserve later geometry patching");
     assert_eq!(retained_extract.list.commands[0].frame.x, 24.0);
 }
+
+#[test]
+fn render_cache_patch_staging_reserves_only_known_owner_bounds() {
+    let source = include_str!("../../cache.rs");
+    let (_, geometry_patch) = source
+        .split_once("    pub fn patch_geometry(")
+        .expect("the geometry patch entry point should remain source-owned");
+    let (geometry_patch, patch_nodes) = geometry_patch
+        .split_once("    pub fn patch_nodes(")
+        .expect("the local reextract patch entry point should follow geometry patching");
+
+    assert!(
+        geometry_patch.contains("let mut patches = Vec::with_capacity(changed_node_ids.len());")
+    );
+    assert!(geometry_patch.contains("let mut damage = HashSet::with_capacity(patches.len());"));
+    assert!(patch_nodes.contains("let mut patches = Vec::with_capacity(changed_node_ids.len());"));
+    assert!(patch_nodes.contains("let mut damage = HashSet::new();"));
+}

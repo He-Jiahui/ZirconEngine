@@ -145,6 +145,7 @@ pub(super) fn record_resolve_trace_handoff(
         lighting_sample_count,
     )?;
     drop(native);
+    // 只有双目标渲染通道成功编码后才发布下一帧可复用的 GI 历史。
     gpu.record_frame_history_write(FrameHistorySlot::GlobalIllumination);
     Ok(())
 }
@@ -373,4 +374,5 @@ fn wgpu_texture_format(format: TextureFormat) -> Result<wgpu::TextureFormat, Str
 }
 
 #[cfg(test)]
+#[path = "resolve_trace_handoff/tests/cases.rs"]
 mod tests;

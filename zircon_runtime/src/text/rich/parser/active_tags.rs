@@ -19,6 +19,7 @@ pub(super) enum ActiveTagClose {
 
 const ACTIVE_TAG_INDEX_THRESHOLD: usize = 32;
 
+// 浅层标签栈直接逆向扫描；超过阈值后建立名称到位置的索引，以避免错配闭合标签反复扫描。
 pub(super) struct ActiveTagStack {
     tags: Vec<ActiveTag>,
     positions: Option<HashMap<String, Vec<usize>>>,
@@ -56,6 +57,7 @@ impl ActiveTagStack {
         Ok(())
     }
 
+    /// 关闭最内层同名标签，并把其上方标签作为隐式关闭项一并移除。
     pub(super) fn close(&mut self, name: &str) -> ActiveTagClose {
         let position = if let Some(positions) = self.positions.as_ref() {
             positions
@@ -80,7 +82,8 @@ impl ActiveTagStack {
                 let name_positions = positions
                     .get_mut(&removed.name)
                     .expect("indexed active tag must have a position");
-                debug_assert_eq!(name_positions.pop(), Some(removed_position));
+                let _popped = name_positions.pop();
+                debug_assert_eq!(_popped, Some(removed_position));
                 name_positions.is_empty()
             };
             if remove_name {

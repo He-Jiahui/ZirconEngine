@@ -17,8 +17,8 @@ use super::manifest::{
 use super::shader_cache_test_roots;
 
 #[test]
-fn render_product_project_plugin_registry_material_passes_second_launch_use_staged_prewarm_without_compile_miss()
- {
+fn render_product_project_plugin_registry_material_passes_second_launch_use_staged_prewarm_without_compile_miss(
+) {
     let cache_roots = shader_cache_test_roots(
         "zircon_product_project_plugin_registry_material_passes_second_launch",
     );

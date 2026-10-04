@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from tools.runtime_ui_batch_plan_order_pressure import run
+from tools.analysis.performance.runtime.runtime_ui_batch_plan_order_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -15,7 +15,7 @@ PRODUCT_RENDER_SOURCE = (
     ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs"
 )
 
-
+# 约束批次计划先验证顺序再决定是否排序；压力模型与产品渲染路径共同检查有序提取的零排序路径。
 class RuntimeUiBatchPlanOrderContractTests(unittest.TestCase):
     def test_batch_plan_validates_order_before_sorting(self) -> None:
         source = BATCH_PLAN_SOURCE.read_text(encoding="utf-8")

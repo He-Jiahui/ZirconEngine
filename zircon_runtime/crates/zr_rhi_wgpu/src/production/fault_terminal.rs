@@ -1,3 +1,4 @@
+//! 设备故障在此统一折算为提交与诊断终态，避免同一故障给两个消费者不同结果。
 use zr_rhi::{DeviceAdmissionError, DeviceFaultKind, DiagnosticReadbackTerminal, SubmissionStatus};
 
 pub(crate) const fn diagnostic_terminal_status(
@@ -25,26 +26,5 @@ pub(crate) const fn submission_terminal_status(error: DeviceAdmissionError) -> S
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn terminal_status_distinguishes_device_loss_from_other_faults() {
-        assert_eq!(
-            submission_terminal_status(DeviceAdmissionError::Faulted {
-                kind: DeviceFaultKind::DeviceDestroyed,
-            }),
-            SubmissionStatus::DeviceLost
-        );
-        assert_eq!(
-            submission_terminal_status(DeviceAdmissionError::FaultRecording),
-            SubmissionStatus::Failed
-        );
-        assert_eq!(
-            diagnostic_terminal_status(DeviceAdmissionError::Faulted {
-                kind: DeviceFaultKind::DeviceDestroyed,
-            }),
-            DiagnosticReadbackTerminal::DeviceLost
-        );
-    }
-}
+#[path = "tests/fault_terminal.rs"]
+mod tests;

@@ -40,7 +40,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/24-stable-identity-handle-generation-owner-epoch-stale-reference-exhaustion-review.md
   - docs/plans/optimize/zircon_editor/09-background-jobs-admission-scheduling-cancellation-progress-shutdown-product-integration-review.md
   - docs/plans/zircon_runtime/runtime/11-job-system-task-model.md
-  - docs/zircon_runtime/core/job_system.md
+  - docs/crates/zircon_runtime/core/job_system.md
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md
   - .codex/plans/全系统重构方案.md

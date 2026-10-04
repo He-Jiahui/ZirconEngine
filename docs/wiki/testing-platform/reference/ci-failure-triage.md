@@ -3,12 +3,12 @@ related_code:
   - .github/workflows/ci.yml
   - .github/workflows/profile-feature-contract.yml
   - .github/workflows/mvp-editor-windows.yml
-  - tools/check_conventions.py
-  - tools/validate_cargo_test_reachability.py
+  - tools/audits/check_conventions.py
+  - tools/audits/validate_cargo_test_reachability.py
 implementation_files:
-  - tools/runtime-profile-feature-presets.py
-  - tools/zircon_export
-  - tools/cargo-zircon
+  - tools/analysis/validation/runtime-profile-feature-presets.py
+  - tools/export
+  - tools/cargo
   - tools/mvp
 plan_sources:
   - docs/plans/milestone-validation-policy.md
@@ -28,10 +28,10 @@ CI job 名称就是第一层分类。先保存 job、step、commit、runner、to
 | Job | 责任域 | 首个本地命令 |
 | --- | --- | --- |
 | dependency-governance | advisories/licenses/sources | `python -m unittest tools.tests.test_frameworks_06_dependency_governance_contract -v` |
-| runtime-profile-feature-matrix | profile 编译可达性 | `python tools/runtime-profile-feature-presets.py matrix` |
+| runtime-profile-feature-matrix | profile 编译可达性 | `python tools/analysis/validation/runtime-profile-feature-presets.py matrix` |
 | runtime-domain-feature-matrix | additive feature | `cargo check -p zircon_runtime --no-default-features ...` |
-| rust | workspace gate | `python tools/check_conventions.py --json` |
-| plugin-standalone-validate | manifest schema | `python -m tools.zircon_export plugin validate --all --repo-root . --json` |
+| rust | workspace gate | `python tools/audits/check_conventions.py --json` |
+| plugin-standalone-validate | manifest schema | `python -m tools.export plugin validate --all --repo-root . --json` |
 | export-platform-contract | target policy | 指定 `ZR_EXPORT_CONTRACT_PLATFORM` 的 cargo test |
 | mvp-editor-windows | 真实产品闭环 | F1/F2/F3/F4 exact gate |
 
@@ -56,8 +56,8 @@ flowchart TD
 ```powershell
 python -m unittest tools.tests.test_check_conventions tools.tests.test_frameworks_06_ci_toolchain_contract -v
 python -m unittest tools.tests.test_validate_cargo_test_reachability -v
-python tools/validate_cargo_test_reachability.py --json
-python tools/check_conventions.py --json
+python tools/audits/validate_cargo_test_reachability.py --json
+python tools/audits/check_conventions.py --json
 cargo +1.94.1 build --workspace --locked --verbose
 cargo +1.94.1 test --workspace --locked --verbose
 ```
@@ -67,7 +67,7 @@ cargo +1.94.1 test --workspace --locked --verbose
 ```powershell
 cargo +1.94.1 check --manifest-path zircon_plugins/Cargo.toml --workspace --locked --all-targets --verbose
 cargo +1.94.1 build --manifest-path zircon_plugins/Cargo.toml --workspace --locked
-python tools/validate_cargo_test_reachability.py --manifest-path zircon_plugins/Cargo.toml --json
+python tools/audits/validate_cargo_test_reachability.py --manifest-path zircon_plugins/Cargo.toml --json
 cargo +1.94.1 test --manifest-path zircon_plugins/Cargo.toml --workspace --locked
 ```
 
@@ -76,7 +76,7 @@ cargo +1.94.1 test --manifest-path zircon_plugins/Cargo.toml --workspace --locke
 先用脚本确认 feature：
 
 ```powershell
-python tools/runtime-profile-feature-presets.py feature server
+python tools/analysis/validation/runtime-profile-feature-presets.py feature server
 cargo +1.94.1 check -p zircon_app --lib --no-default-features --features target-server --locked --verbose
 ```
 
@@ -126,7 +126,7 @@ CI MVP 将日志放在 evidence root，并生成 environment、gate logs、PNG�
 
 ## 11. 源码索引
 
-job 定义见 `.github/workflows/ci.yml`、`profile-feature-contract.yml` 和 `mvp-editor-windows.yml`；脚本守卫见 `tools/check_conventions.py`、`validate_cargo_test_reachability.py`；MVP gate 注册与 receipt 逻辑见 `tools/mvp/`。
+job 定义见 `.github/workflows/ci.yml`、`profile-feature-contract.yml` 和 `mvp-editor-windows.yml`；脚本守卫见 `tools/audits/check_conventions.py`、`validate_cargo_test_reachability.py`；MVP gate 注册与 receipt 逻辑见 `tools/mvp/`。
 
 ## 12. 最小复现记录
 

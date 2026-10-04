@@ -1,6 +1,7 @@
 use super::{ActiveConsumerSnapshot, EditorRuntimeEventConsumerHost};
 
 impl EditorRuntimeEventConsumerHost {
+    /// 本轮因总预算结束时保存首个未访问者，下一次泵继续公平扫描。
     pub(super) fn advance_round_robin_start(
         &self,
         snapshots: &[ActiveConsumerSnapshot],
@@ -32,21 +33,16 @@ fn update_round_robin_cursor(cursor: &mut Option<String>, next: &str) {
 }
 
 fn next_start_index(snapshot_count: usize, visited_consumer_count: usize) -> Option<usize> {
-    (snapshot_count != 0 && visited_consumer_count != 0)
-        .then_some(visited_consumer_count % snapshot_count)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::next_start_index;
-
-    #[test]
-    fn global_budget_starts_next_pump_at_first_unvisited_consumer() {
-        assert_eq!(next_start_index(4, 3), Some(3));
-        assert_eq!(next_start_index(4, 4), Some(0));
+    if snapshot_count == 0 || visited_consumer_count == 0 {
+        return None;
     }
+    Some(visited_consumer_count % snapshot_count)
 }
 
 #[cfg(test)]
-#[path = "round_robin/reused_cursor_tests.rs"]
+#[path = "tests/round_robin.rs"]
+mod tests;
+
+#[cfg(test)]
+#[path = "round_robin/tests/reused_cursor_tests.rs"]
 mod reused_cursor_tests;

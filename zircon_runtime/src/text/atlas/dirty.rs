@@ -1,3 +1,6 @@
+//! 根据已有槽与可重放阴影决定脏区可以扩展到哪里。
+//! 合并上传是保留旧像素前提下的优化；没有完整阴影时，减少写入次数不能覆盖其他持久槽。
+
 use super::{GlyphAtlasPageKey, GlyphAtlasRect};
 
 const GLYPH_ATLAS_DIRTY_MAX_REGIONS_PER_PAGE: usize = 8;
@@ -27,6 +30,8 @@ impl GlyphAtlasDirtyPage {
         Self::new_with_retained_regions_inner(page_key, retained_regions, true, false)
     }
 
+    // 仅在调用者确实持有该页当前世代的完整阴影时使用。
+    // 此能力允许跨过驻留槽合并区域和升级为整页上传；后续暂存必须用同一阴影重放旧内容。
     pub(crate) fn new_with_replayable_shadow(
         page_key: GlyphAtlasPageKey,
         retained_regions: Vec<GlyphAtlasRect>,
@@ -311,6 +316,8 @@ fn rect_intersection_area(left: GlyphAtlasRect, right: GlyphAtlasRect) -> u64 {
 }
 
 #[cfg(test)]
+#[path = "dirty/tests/single_frontier_merge_tests.rs"]
 mod single_frontier_merge_tests;
 #[cfg(test)]
+#[path = "dirty/tests/cases.rs"]
 mod tests;

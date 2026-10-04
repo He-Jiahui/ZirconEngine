@@ -1,0 +1,6 @@
+{
+  "docs/plans/astra/features/runtime/1023-runtime62-unchanged-derived-component-publication-completion-list.md": "a36416bceecb3adc0d6aaf5ac19fa5636b0372dd5e2ca358b654fee958e26897",
+  "docs/plans/optimize/zircon_runtime/62/2026-09-28-runtime62-unchanged-derived-component-publication.md": "3da3842992bb0c9b151ab12f133f0d069df86c000709bc40d3cea641f17bd04c",
+  "zircon_runtime/src/scene/tests/derived_state/projected_reads.rs": "adcba07f82f6ee17d7171526cae3872d23d0695017c6cfa98724067db36df846",
+  "zircon_runtime/src/scene/world/derived_state.rs": "f86f2f04b7d6978a00eb2b1a53b5ee0ada083738ac5b99bbf2e101a3f57a4573"
+}

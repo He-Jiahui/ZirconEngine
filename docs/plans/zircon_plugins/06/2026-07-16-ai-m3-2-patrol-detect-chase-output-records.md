@@ -36,7 +36,7 @@ Plan: docs/plans/zircon_plugins/06-ai.md
 Milestone: M3.2
 Slice: M3.2 / M3-T4
 Status: completed
-Files: ["docs/plans/zircon_plugins/06/2026-07-16-ai-m3-2-patrol-detect-chase-output-records.md", "docs/zircon_plugins/ai/runtime.md"]
+Files: ["docs/plans/zircon_plugins/06/2026-07-16-ai-m3-2-patrol-detect-chase-output-records.md", "docs/crates/zircon_plugins/ai/runtime.md"]
 
 ## Scope delivered
 

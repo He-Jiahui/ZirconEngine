@@ -4,19 +4,22 @@ use super::{assert_contains_all, read_runtime_src};
 fn runtime_15_native_host_api_adapter_tests_are_child_owner() {
     let parent = read_runtime_src("plugin/native_plugin_loader/host_api_adapter.rs");
     let abi_decode_tests =
-        read_runtime_src("plugin/native_plugin_loader/host_api_adapter/abi_decode/tests.rs");
+        read_runtime_src("plugin/native_plugin_loader/host_api_adapter/abi_decode/tests/cases.rs");
     let bridge_scope =
         read_runtime_src("plugin/native_plugin_loader/host_api_adapter/bridge_scope/mod.rs");
-    let bridge_scope_tests =
-        read_runtime_src("plugin/native_plugin_loader/host_api_adapter/bridge_scope/tests.rs");
-    let context_handles_tests =
-        read_runtime_src("plugin/native_plugin_loader/host_api_adapter/context_handles/tests.rs");
+    let bridge_scope_tests = read_runtime_src(
+        "plugin/native_plugin_loader/host_api_adapter/bridge_scope/tests/cases.rs",
+    );
+    let context_handles_tests = read_runtime_src(
+        "plugin/native_plugin_loader/host_api_adapter/context_handles/tests/cases.rs",
+    );
     let ecs_registration =
         read_runtime_src("plugin/native_plugin_loader/host_api_adapter/ecs_registration/mod.rs");
-    let ecs_registration_tests =
-        read_runtime_src("plugin/native_plugin_loader/host_api_adapter/ecs_registration/tests.rs");
+    let ecs_registration_tests = read_runtime_src(
+        "plugin/native_plugin_loader/host_api_adapter/ecs_registration/tests/cases.rs",
+    );
     let registration_policy_tests = read_runtime_src(
-        "plugin/native_plugin_loader/host_api_adapter/registration_policy/tests.rs",
+        "plugin/native_plugin_loader/host_api_adapter/registration_policy/tests/cases.rs",
     );
 
     assert_contains_all(
@@ -51,10 +54,11 @@ fn runtime_15_native_host_api_adapter_tests_are_child_owner() {
         ],
     );
     for moved_test in [
-        "fn native_host_api_v3_registers_systems_and_components_into_runtime_registry",
+        "fn native_host_api_v4_registers_systems_and_components_into_runtime_registry",
+        "fn native_host_api_v4_system_enters_schedule_with_declared_access",
         "fn native_host_bridge_call_scope_dispatches_registered_method",
         "fn native_bridge_method_descriptors_use_package_manifest_metadata",
-        "fn native_host_api_v3_preserves_dotted_plugin_ids",
+        "fn native_host_api_v4_preserves_dotted_plugin_ids",
     ] {
         assert!(
             !parent.contains(moved_test),
@@ -70,11 +74,12 @@ fn runtime_15_native_host_api_adapter_tests_are_child_owner() {
         ],
     );
     assert_contains_all(
-        "native host API adapter registration owner preserves V3 coverage",
+        "native host API adapter registration owner preserves V4 coverage",
         &ecs_registration_tests,
         &[
-            "fn native_host_api_v3_registers_systems_and_components_into_runtime_registry",
-            "fn native_host_api_v3_preserves_dotted_plugin_ids",
+            "fn native_host_api_v4_registers_systems_and_components_into_runtime_registry",
+            "fn native_host_api_v4_system_enters_schedule_with_declared_access",
+            "fn native_host_api_v4_preserves_dotted_plugin_ids",
         ],
     );
     assert_contains_all(
@@ -119,23 +124,23 @@ fn runtime_15_native_host_api_adapter_tests_are_child_owner() {
             parent.as_str(),
         ),
         (
-            "plugin/native_plugin_loader/host_api_adapter/abi_decode/tests.rs",
+            "plugin/native_plugin_loader/host_api_adapter/abi_decode/tests/cases.rs",
             abi_decode_tests.as_str(),
         ),
         (
-            "plugin/native_plugin_loader/host_api_adapter/bridge_scope/tests.rs",
+            "plugin/native_plugin_loader/host_api_adapter/bridge_scope/tests/cases.rs",
             bridge_scope_tests.as_str(),
         ),
         (
-            "plugin/native_plugin_loader/host_api_adapter/context_handles/tests.rs",
+            "plugin/native_plugin_loader/host_api_adapter/context_handles/tests/cases.rs",
             context_handles_tests.as_str(),
         ),
         (
-            "plugin/native_plugin_loader/host_api_adapter/ecs_registration/tests.rs",
+            "plugin/native_plugin_loader/host_api_adapter/ecs_registration/tests/cases.rs",
             ecs_registration_tests.as_str(),
         ),
         (
-            "plugin/native_plugin_loader/host_api_adapter/registration_policy/tests.rs",
+            "plugin/native_plugin_loader/host_api_adapter/registration_policy/tests/cases.rs",
             registration_policy_tests.as_str(),
         ),
     ] {

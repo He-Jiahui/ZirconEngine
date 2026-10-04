@@ -1,7 +1,7 @@
 from pathlib import Path
 import re
 import unittest
-
+# Volume 提取优先转移层掩码所有权，只有需要双输出时复制；雾效消费所选掩码仍保持原调用语义。
 
 ROOT = Path(__file__).resolve().parents[2]
 WORLD_RS = ROOT / "zircon_runtime/src/scene/world/render_post_process.rs"

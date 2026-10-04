@@ -115,7 +115,7 @@ glTF source
   |                                  |
   |                                  +--> raw bincode v1 source assets
   |
-  +-- first-party glTF plugin ---> placeholder Clip + generic Skin/IBM Data
+  +-- first-party glTF plugin ---> typed Clip/Skeleton + generic Skin/IBM Data
 
 Runtime composition
   +-- zircon_runtime fallback AnimationModule/DefaultAnimationManager
@@ -160,7 +160,7 @@ Editor
 | AR-P1-003 | Open | Runtime compiler product在`product.rs:28`自称source-only artifact，只有Editor document消费 | compiler输出versioned dependency-closed runtime artifact、diagnostic和install receipt |
 | AR-P1-004 | Open | Skeleton只有name/parent/local TRS；Clip/Graph/State/Sequence继续携带String和raw key Vec | Skeleton/Rig/Clip/Graph/State/Sequence/SkinBinding分别source/cooked分型，stable ID与schema version闭合 |
 | AR-P1-005 | Open | binary envelope仍为version 1，却尝试多个历史Rust layout；decode允许同版本结构漂移 | 显式reader/writer matrix、migration、canonical hash、strict trailing policy和fuzz corpus |
-| AR-P1-006 | Open | builtin importer产出真实Clip/Skeleton，高优先级glTF plugin在`subassets.rs:514`仍产出placeholder | 单一import authority；placeholder禁止进入Ready，provider选择必须可观测 |
+| AR-P1-006 | Partial | builtin 与高优先级 glTF plugin 当前都经共享 helper 产出 typed Clip/Skeleton；priority 120/10 仍造成 provider authority 分叉，Skin/IBM 未形成同代 artifact | 单一import authority；generic Skin/IBM 禁止进入 Ready，provider 选择必须可观测 |
 | AR-P1-007 | Open | Skin/IBM仍是generic Data；Skeleton只收skin.joints且可丢失中间transform节点 | typed SkinBinding含joint target、IBM、mesh primitive/LOD remap、rig signature和dependency digest |
 | AR-P1-008 | Open | Graph插件palette含blend-space node，Runtime graph schema含additive/mask且pin合同不同 | 一个schema registry生成Editor palette、validator、compiler和runtime opcode |
 
@@ -207,7 +207,7 @@ Editor
 |---|---|---|
 | P1-1 duplicate core/plugin manager/module | Open | 同名module/driver/manager及独立实现仍在 |
 | P1-2 frame demand not driven | Open | production没有写true的caller |
-| P1-3 high-priority glTF plugin placeholder | Open | placeholder文本仍在 |
+| P1-3 high-priority glTF plugin placeholder | **Closed (source path)** | 历史 placeholder 文本已移除，plugin 与 builtin 共用 typed clip/skeleton helper；剩余 provider/skin artifact 缺口转入 AR-P1-006/007 |
 | P1-4 builtin wrong non-root target_id | **Closed** | canonical full parent path与异常拒绝已落地 |
 | P1-5 skeleton/skin/IBM/mesh/clip relation | Open | typed SkinBinding和versioned relation仍缺失 |
 | P1-6 raw String/AoS, no prepared compressed artifact | Open | source-only/raw assets仍是runtime输入 |
@@ -250,7 +250,7 @@ Editor
 | NANI-P1-011 | Open | source/native scenario parity仍无证据 |
 | NANI-P1-012 | Open | capability仍不表达真实支持矩阵 |
 | NANI-P1-013 | Open | 无Animation activation receipt |
-| NANI-P1-014 | Open | plugin glTF仍产placeholder |
+| NANI-P1-014 | **Partial** | 当前 plugin glTF 已产 typed clip/skeleton；generic Skin/IBM 与唯一 provider/artifact qualification 仍开放 |
 | NANI-P1-015 | Open | Skin/IBM仍非typed artifact |
 | NANI-P1-016 | Open | source/cook/runtime/editor artifact graph仍未建立 |
 | NANI-P1-017 | Open | legacy manager与compiled evaluator仍重复 |

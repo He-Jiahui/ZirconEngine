@@ -33,7 +33,7 @@ The regression compares retired and optimized visibility across five width limit
 unselected states, and a missing-node fallback case. A source contract rejects candidate cloning and
 the retired repeated stack-width helper.
 
-## Performance Contract
+## Historical Performance Contract (2026-08-25 checkpoint)
 
 | Evidence for six chips, none selected, all admitted | Retired path | Optimized gate |
 | --- | ---: | ---: |
@@ -45,6 +45,8 @@ the retired repeated stack-width helper.
 The benchmark places 64 unrelated template nodes before the six chip nodes and emits
 `EDITOR57_LINEAR_KIND_CHIP_SELECTION_BENCH_V1` with both P95 timings, reduction basis points,
 sample/iteration/prefix/chip counts, node searches, and candidate clones.
+
+The 2026-09-26 [single-scan follow-up](2026-09-26-kind-chip-state-single-scan.md) replaces the six per-chip searches with one node pass. The current source and this benchmark now report `32->1` for retired vector searches versus current projection; the table above describes this record's earlier six-search checkpoint. The follow-up adds a separate Release comparison against that immediate six-search baseline and remains pending validation.
 
 ## Validation
 

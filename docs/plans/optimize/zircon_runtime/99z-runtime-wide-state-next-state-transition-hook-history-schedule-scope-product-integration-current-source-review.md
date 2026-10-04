@@ -9,7 +9,6 @@ baseline_epoch: 375
 supersedes:
   - docs/plans/optimize/zircon_runtime/48-runtime-wide-state-next-state-transition-hook-history-schedule-scope-product-integration-review.md
 related_code:
-  - zircon_runtime/src/core/framework/state
   - zircon_runtime/src/core/runtime/handle/states.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
@@ -20,7 +19,7 @@ related_code:
   - zircon_runtime/src/tests/prelude.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/core_runtime/handle_accessors.rs
   - zircon_app/src/tests/prelude.rs
-  - docs/zircon_runtime/core/state.md
+  - docs/crates/zircon_runtime/core/state.md
 tests:
   - zircon_runtime/src/core/runtime/handle/states.rs::tests
   - zircon_runtime/src/tests/state.rs
@@ -100,7 +99,7 @@ fingerprint 算法与旧报告保持一致：仓库相对路径转 `/`、小写�
 ### 2.2 Currentness、HEAD drift 与工作树
 
 - Session 注册基线是 `6ce24f25e46d8f370aa5b5d4e8487f53103b43c0` / epoch 375；最终验证前共享主检出前进到 `f79dc502a1e8db5f7cbcc17fbeb297af1e193f7e`。只读 diff 证明这段 HEAD drift 没有触及 19 个 focused state 文件或 module doc；两级 optimize index 的既有并发改动被保留并在 lease 后做了局部更新。
-- 本轮读取到 `docs/zircon_runtime/core/state.md`、`runtime.rs`、`core_runtime_state.rs` 与 `src/tests/state.rs` 的其他会话/用户改动，并保留它们；本文不回退、不暂存、不改写这些路径。
+- 本轮读取到 `docs/crates/zircon_runtime/core/state.md`、`runtime.rs`、`core_runtime_state.rs` 与 `src/tests/state.rs` 的其他会话/用户改动，并保留它们；本文不回退、不暂存、不改写这些路径。
 - Runtime02 child 只完成 hook 哈希索引的静态实现，明确未改变 history retention，且 Cargo compile 被外域错误阻塞；本文只承认当前 source shape，不升级为 compile/performance acceptance。
 - Runtime03 九阶段 schedule 已完成，但全仓没有 state schedule edge；“已有 scheduler”只减少重构范围，不关闭 Runtime48 integration。
 - 参考 revision：Bevy `fb89a8649d9b359e53ffb6e5492ebb7c059ac8af`、Godot `8c7e6c5877a78e8e61ea4fd42673219a9091dca7`、Fyrox `8d815db36494f1badb347547dfc7094bf4fbbdf8`、Unity Graphics `a7e4c051d256a781ab362c64316b125a1e104694`；Unreal snapshot 位于 Zircon root tracking 下，以 per-file hash 和 observed root HEAD 冻结。

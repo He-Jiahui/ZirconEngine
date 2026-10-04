@@ -2,6 +2,8 @@ use crate::ui::retained_host::primitives::SharedString;
 
 use super::super::FrameRect;
 
+mod editing;
+
 #[derive(Clone, Default, PartialEq)]
 pub(crate) struct HostTextInputFocusData {
     pub control_id: SharedString,
@@ -10,6 +12,8 @@ pub(crate) struct HostTextInputFocusData {
     pub edit_action_id: SharedString,
     pub commit_action_id: SharedString,
     pub value_text: SharedString,
+    pub caret_scalar_offset: Option<usize>,
+    pub selection_anchor_scalar_offset: Option<usize>,
     pub edit_frame: FrameRect,
 }
 

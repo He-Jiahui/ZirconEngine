@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 递归收集本地化路径复用同一缓冲，目录校验每批只借用表映射一次；本组防止每层或每键重复分配。
 
 ROOT = Path(__file__).resolve().parents[2]
 LOCALIZATION_ROOT = ROOT / "zircon_runtime/src/ui/template/asset/localization"
@@ -28,7 +28,7 @@ class Runtime83LocalizationPathPerformanceContractTests(unittest.TestCase):
         self.assertNotIn("fn join_key(", source)
         self.assertNotIn("format!(\"{prefix}.{key}\")", source)
         performance = (
-            LOCALIZATION_ROOT / "resolve/performance_tests.rs"
+            LOCALIZATION_ROOT / "resolve/tests/performance_tests.rs"
         ).read_text(encoding="utf-8")
         self.assertIn("RUNTIME83_LOCALIZATION_RESOLVE_PERF", performance)
         self.assertIn("legacy_temporary_path_allocations, 10_100", performance)
@@ -49,7 +49,7 @@ class Runtime83LocalizationPathPerformanceContractTests(unittest.TestCase):
         self.assertNotIn("format!(\"{path}.", collector)
         self.assertNotIn("format!(\"{path}[", collector)
         performance = (
-            LOCALIZATION_ROOT / "collect/performance_tests.rs"
+            LOCALIZATION_ROOT / "collect/tests/performance_tests.rs"
         ).read_text(encoding="utf-8")
         self.assertIn("RUNTIME83_LOCALIZATION_COLLECT_PERF", performance)
         self.assertIn("legacy_temporary_path_allocations, 20_100", performance)

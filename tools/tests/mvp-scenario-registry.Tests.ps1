@@ -1,3 +1,4 @@
+# 场景注册表是 Stage 产品启动前的身份与执行策略来源；本组确认五个场景、自动化规格关联和超时派生，并拒绝重复或模糊声明。
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $registryModulePath = Join-Path $repoRoot 'tools\mvp\MvpScenarioRegistry.psm1'
 $automationModulePath = Join-Path $repoRoot 'tools\mvp\MvpAutomationScenarioSpec.psm1'

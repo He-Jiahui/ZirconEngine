@@ -10,7 +10,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/session_coordinator/tests/test_command_protocol.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_command_protocol.CommandProtocolTests.test_schema_49_upgrade_preserves_terminal_incident_rows -v
 resolved_at: 2026-08-04

@@ -17,7 +17,7 @@ related_code:
   - zircon_runtime/src/ui/v2/loader.rs
   - zircon_runtime/src/ui/v2/file_cache.rs
   - zircon_editor/assets/ui/editor/components
-  - tools/zircon_build.py
+  - tools/build/zircon_build.py
 plan_sources:
   - .codex/plans/Zircon UI .zui 组件资产与 Unreal 风格入口重构计划.md
   - .codex/plans/M16 UI Compiled Artifact And Package Validation Implementation Plan.md
@@ -47,7 +47,7 @@ status: in_progress
 | 源加载缓存 | `.../prototype_file_cache.rs` | `UiPrototypeStoreFileCache::load_flat_store/try_load_flat_store`（:18–:51）——**缓存的是源文件读入，非编译产物落盘** |
 | watcher 全模块 | `zircon_runtime/src/asset/watch/` | asset_watcher、fold_events（事件合并）、map_notify_event、is_meta_sidecar、watch_loop 共 17 文件 |
 | 字体/纹理样板 | `zircon_runtime/src/asset/assets/{font.rs, texture/}` + `importer/ingest/import_font_asset.rs` | 新类型注册可照此样板 |
-| staged build 资产合并 | `tools/zircon_build.py` | `stage_engine_assets`（:778）合并 `zircon_editor/assets` + `zircon_runtime/assets` → `ZirconEngine/assets`（:32–:33） |
+| staged build 资产合并 | `tools/build/zircon_build.py` | `stage_engine_assets`（:778）合并 `zircon_editor/assets` + `zircon_runtime/assets` → `ZirconEngine/assets`（:32–:33） |
 | 本地化表 | `.../localization/` | M14 已落地 |
 
 ### 2.2 真实缺口
@@ -74,7 +74,7 @@ status: in_progress
 ### 3.3 热重载与缓存
 
 - 热重载链定稿：watch 事件（fold_events 合并）→ `UiInvalidationGraph::classify` → 指纹级联失效 → 重编译 → theme 走 restyle（04 M6）/ 结构变更重建受影响 surface 子树 → damage。`.zui`、template、theme、icon、font 全类型支持；editor 实机改文件即时生效是验收硬指标。
-- persistent compile cache：`UiCompiledArtifactStore` 把编译产物 + 指纹落盘到工作区缓存目录；冷启动校验指纹（含 schema 版本 + 编译器版本）直接加载；`tools/zircon_build.py` 把 compiled artifact 打进 `ZirconEngine/assets`（衔接 M16 包验证）。
+- persistent compile cache：`UiCompiledArtifactStore` 把编译产物 + 指纹落盘到工作区缓存目录；冷启动校验指纹（含 schema 版本 + 编译器版本）直接加载；`tools/build/zircon_build.py` 把 compiled artifact 打进 `ZirconEngine/assets`（衔接 M16 包验证）。
 
 ### 3.4 与 runtime 大模块的 gating
 
@@ -152,7 +152,7 @@ impl UiCompiledArtifactStore {
 | `zircon_runtime/src/asset/watch/`（消费侧） | UI 资产事件 → dependency_index 级联 |
 | `zircon_runtime/src/ui/template/asset/{loader.rs, prototype_store.rs}` | 编译期填充 dependency_index |
 | `zircon_runtime/src/ui/v2/{loader.rs, file_cache.rs}` | 冷启动先查 UiCompiledArtifactStore |
-| `tools/zircon_build.py` | `stage_engine_assets`（:778）附带 compiled artifact 目录 |
+| `tools/build/zircon_build.py` | `stage_engine_assets`（:778）附带 compiled artifact 目录 |
 
 **删除（硬切换义务）**：node 脚本作为 `.zui` import 图「事实来源」的地位（脚本保留为 CI 把关，文档与流程更新指向 runtime 索引）；resolve 路径级与消费级职责重叠部分在 M3 收口（`UiResourcePathResolver` 保留为 resolver 内部组件）。
 
@@ -185,7 +185,7 @@ impl UiCompiledArtifactStore {
 | M4.S2 | 默认图标包 + 图标渲染对拍 + asset 测试 | editor assets/icons/ | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests` + 实机 | 模板内联 icon 路径切资产引用 |
 | M5.S1 | 收束现有 `UiCompiledArtifactStore` 落盘生命周期（指纹含 schema/编译器版本，失配即弃） | cache/persistent.rs | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter persistent_cache` | 无删除 |
 | M5.S2 | 冷启动接缓存：v2 loader 先查 store；冷启动时间对比基准记录 | v2/loader.rs、file_cache.rs | 同上 + 启动计时 | 无删除 |
-| M5.S3 | staged build 集成：compiled artifact 进 payload + M16 包验证通过 | tools/zircon_build.py | `python tools/zircon_build.py --targets editor --out <tmp> --mode debug` | 无删除 |
+| M5.S3 | staged build 集成：compiled artifact 进 payload + M16 包验证通过 | tools/build/zircon_build.py | `python tools/build/zircon_build.py --targets editor --out <tmp> --mode debug` | 无删除 |
 
 ## 8. 测试矩阵（代表性用例）
 
@@ -222,7 +222,7 @@ impl UiCompiledArtifactStore {
 - 六类 UI 资产全部经 asset facade 加载、可热重载（实机改文件即时生效）。
 - 依赖索引双向查询可用且与 CI 脚本一致；缺失引用产生占位 + 诊断。
 - 图标走资产通道渲染（对拍通过）；冷启动命中 persistent cache（时间对比有记录）。
-- `python tools/zircon_build.py` 产物含 compiled artifact 且包验证通过。
+- `python tools/build/zircon_build.py` 产物含 compiled artifact 且包验证通过。
 - 验收命令组：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter asset`、`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests`、staged build 实跑。
 
 ## 12. 边界约束
@@ -241,7 +241,7 @@ impl UiCompiledArtifactStore {
 | 资产 handle/事件/热重载架构 | `dev/bevy/crates/bevy_asset/src` | — | AssetServer 的 handle 生命周期、AssetEvent 分发、热重载与依赖加载（Bevy-Style Asset Stack 计划同源参照） |
 | UI 资产加载器形态 | `dev/Fyrox/fyrox-ui/src/loader.rs` | — | UI 专属资产（字体/纹理）经引擎资源管线加载的接口边界 |
 | atlas/纹理资源管理 | `dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Textures` | `dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Brushes` | Slate 的 atlas slot 分配与 brush 引用解析（UiResourceResolver 的消费级对照） |
-| 图标素材 | `dev/ionicons.designerpack` | `docs/ui-and-layout/ai-workbench-style/component-prototype`（内联 SVG 现状） | 默认图标包的素材来源与 SVG 子集范围评估 |
+| 图标素材 | `dev/ionicons.designerpack` | `docs/ui/ai-workbench-style/component-prototype`（内联 SVG 现状） | 默认图标包的素材来源与 SVG 子集范围评估 |
 
 ## 14. 状态与产出记录
 

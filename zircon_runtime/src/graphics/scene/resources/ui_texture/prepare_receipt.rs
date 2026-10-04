@@ -1,3 +1,4 @@
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use crate::asset::{ProjectAssetManager, TextureAsset};
@@ -10,7 +11,7 @@ use crate::core::resource::{
 use crate::graphics::backend::RenderBackend;
 use crate::graphics::scene::resources::{ResourceStreamer, TextureSnapshotFramePrepareError};
 
-use super::{UiTextureDependencies, is_ui_texture_descriptor};
+use super::{is_ui_texture_descriptor, UiTextureDependencies};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum UiTexturePrepareOutcome {
@@ -48,9 +49,13 @@ struct UiTexturePrepareSummary {
 #[derive(Clone, Debug)]
 pub(in crate::graphics::scene) struct UiTexturePrepareReceipt {
     frame_prepare_epoch: u64,
+    binding_product_generation: u64,
+    dependency_generation: u64,
     management_generation: ResourceManagementGenerationIdentity,
     readiness_generation: ResourceReadinessGenerationIdentity,
-    rows: Arc<[UiTexturePrepareRow]>,
+    rows: BTreeMap<ResourceId, UiTexturePrepareRow>,
+    frame_retry_ids: BTreeSet<ResourceId>,
+    readiness_retry_ids: BTreeSet<ResourceId>,
     summary: UiTexturePrepareSummary,
     work: UiTexturePrepareWork,
 }
@@ -61,6 +66,8 @@ struct UiTexturePrepareWork {
     snapshot_load_count: usize,
     prepared_reuse_count: usize,
     upload_attempt_count: usize,
+    dependency_prepare_visit_count: usize,
+    retained_row_count: usize,
 }
 
 impl UiTexturePrepareReceipt {
@@ -71,16 +78,24 @@ impl UiTexturePrepareReceipt {
         mut rows: Vec<UiTexturePrepareRow>,
     ) -> Self {
         rows.sort_unstable_by_key(|row| row.requested);
-        debug_assert!(
-            rows.windows(2)
-                .all(|pair| pair[0].requested != pair[1].requested)
-        );
-        let summary = UiTexturePrepareSummary::from_rows(&rows);
+        debug_assert!(rows
+            .windows(2)
+            .all(|pair| pair[0].requested != pair[1].requested));
+        let rows = rows
+            .into_iter()
+            .map(|row| (row.requested, row))
+            .collect::<BTreeMap<_, _>>();
+        let summary = UiTexturePrepareSummary::from_rows(rows.values());
+        let (frame_retry_ids, readiness_retry_ids) = retry_indexes(rows.values());
         Self {
             frame_prepare_epoch,
+            binding_product_generation: frame_prepare_epoch,
+            dependency_generation: 0,
             management_generation,
             readiness_generation,
-            rows: rows.into(),
+            rows,
+            frame_retry_ids,
+            readiness_retry_ids,
             summary,
             work: UiTexturePrepareWork::default(),
         }
@@ -93,6 +108,72 @@ impl UiTexturePrepareReceipt {
 
     pub(in crate::graphics::scene) const fn frame_prepare_epoch(&self) -> u64 {
         self.frame_prepare_epoch
+    }
+
+    pub(in crate::graphics::scene) const fn binding_product_generation(&self) -> u64 {
+        self.binding_product_generation
+    }
+
+    // 每帧准备 epoch 可推进，绑定产物代次仅在 row 改变时推进；完全相同的结果复用旧代次，避免触发无效绑定重建。
+    pub(super) fn reuse_equivalent_binding_product_generation(&mut self, previous: &Self) {
+        if self.rows == previous.rows {
+            self.binding_product_generation = previous.binding_product_generation;
+        }
+    }
+
+    fn with_dependency_generation(mut self, dependency_generation: u64) -> Self {
+        self.dependency_generation = dependency_generation;
+        self
+    }
+
+    fn begin_retained_frame(
+        &mut self,
+        frame_prepare_epoch: u64,
+        dependency_generation: u64,
+        management_generation: ResourceManagementGenerationIdentity,
+        readiness_generation: ResourceReadinessGenerationIdentity,
+    ) {
+        self.frame_prepare_epoch = frame_prepare_epoch;
+        self.dependency_generation = dependency_generation;
+        self.management_generation = management_generation;
+        self.readiness_generation = readiness_generation;
+        self.work = UiTexturePrepareWork::default();
+    }
+
+    fn remove_requested(&mut self, requested: ResourceId) -> bool {
+        let Some(previous) = self.rows.remove(&requested) else {
+            return false;
+        };
+        self.summary.remove_row(previous);
+        self.frame_retry_ids.remove(&requested);
+        self.readiness_retry_ids.remove(&requested);
+        true
+    }
+
+    fn upsert_row(&mut self, row: UiTexturePrepareRow) -> bool {
+        if self.rows.get(&row.requested) == Some(&row) {
+            return false;
+        }
+        if let Some(previous) = self.rows.insert(row.requested, row) {
+            self.summary.remove_row(previous);
+        }
+        self.summary.add_row(row);
+        self.frame_retry_ids.remove(&row.requested);
+        self.readiness_retry_ids.remove(&row.requested);
+        match retry_policy(row.outcome) {
+            UiTextureRetryPolicy::EveryFrame => {
+                self.frame_retry_ids.insert(row.requested);
+            }
+            UiTextureRetryPolicy::ReadinessGeneration => {
+                self.readiness_retry_ids.insert(row.requested);
+            }
+            UiTextureRetryPolicy::ManagementGeneration => {}
+        }
+        true
+    }
+
+    fn mark_binding_product_changed(&mut self) {
+        self.binding_product_generation = self.frame_prepare_epoch;
     }
 
     pub(in crate::graphics::scene) fn management_generation(
@@ -118,11 +199,7 @@ impl UiTexturePrepareReceipt {
         &self,
         requested: ResourceId,
     ) -> Option<(ResourceId, u64)> {
-        let row = self
-            .rows
-            .binary_search_by_key(&requested, |row| row.requested)
-            .ok()
-            .and_then(|index| self.rows.get(index))?;
+        let row = self.rows.get(&requested)?;
         if row.outcome != UiTexturePrepareOutcome::Ready {
             return None;
         }
@@ -187,37 +264,94 @@ impl UiTexturePrepareReceipt {
                     "ui.ui_texture_prepare.upload_attempt_count",
                     work.upload_attempt_count as f64,
                 ),
+                (
+                    "ui.ui_texture_prepare.dependency_prepare_visit_count",
+                    work.dependency_prepare_visit_count as f64,
+                ),
+                (
+                    "ui.ui_texture_prepare.retained_row_count",
+                    work.retained_row_count as f64,
+                ),
             ],
         );
     }
 }
 
 impl UiTexturePrepareSummary {
-    fn from_rows(rows: &[UiTexturePrepareRow]) -> Self {
-        let mut summary = Self {
-            requested_count: rows.len(),
-            ..Self::default()
-        };
+    fn from_rows<'a>(rows: impl IntoIterator<Item = &'a UiTexturePrepareRow>) -> Self {
+        let mut summary = Self::default();
         for row in rows {
-            match row.outcome {
-                UiTexturePrepareOutcome::UnresolvedIdentity => summary.unresolved_count += 1,
-                UiTexturePrepareOutcome::NotReady => summary.not_ready_count += 1,
-                UiTexturePrepareOutcome::LoadFailed => summary.load_failed_count += 1,
-                UiTexturePrepareOutcome::InvalidResourceKind => {
-                    summary.invalid_resource_kind_count += 1;
-                }
-                UiTexturePrepareOutcome::InvalidDescriptor => {
-                    summary.invalid_descriptor_count += 1;
-                }
-                UiTexturePrepareOutcome::GenerationChanged => {
-                    summary.generation_changed_count += 1;
-                }
-                UiTexturePrepareOutcome::UploadFailed => summary.upload_failed_count += 1,
-                UiTexturePrepareOutcome::Ready => summary.ready_count += 1,
-            }
+            summary.add_row(*row);
         }
         summary
     }
+
+    fn add_row(&mut self, row: UiTexturePrepareRow) {
+        self.requested_count = self.requested_count.saturating_add(1);
+        let outcome_count = self.outcome_count_mut(row.outcome);
+        *outcome_count = outcome_count.saturating_add(1);
+    }
+
+    fn remove_row(&mut self, row: UiTexturePrepareRow) {
+        self.requested_count = self.requested_count.saturating_sub(1);
+        let outcome_count = self.outcome_count_mut(row.outcome);
+        *outcome_count = outcome_count.saturating_sub(1);
+    }
+
+    fn outcome_count_mut(&mut self, outcome: UiTexturePrepareOutcome) -> &mut usize {
+        match outcome {
+            UiTexturePrepareOutcome::UnresolvedIdentity => &mut self.unresolved_count,
+            UiTexturePrepareOutcome::NotReady => &mut self.not_ready_count,
+            UiTexturePrepareOutcome::LoadFailed => &mut self.load_failed_count,
+            UiTexturePrepareOutcome::InvalidResourceKind => &mut self.invalid_resource_kind_count,
+            UiTexturePrepareOutcome::InvalidDescriptor => &mut self.invalid_descriptor_count,
+            UiTexturePrepareOutcome::GenerationChanged => &mut self.generation_changed_count,
+            UiTexturePrepareOutcome::UploadFailed => &mut self.upload_failed_count,
+            UiTexturePrepareOutcome::Ready => &mut self.ready_count,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum UiTextureRetryPolicy {
+    EveryFrame,
+    ReadinessGeneration,
+    ManagementGeneration,
+}
+
+// 上传失败与代际变化每帧重试；加载未就绪或失败等待 readiness 更新，身份及描述符结果随 management 更新重新判断。
+const fn retry_policy(outcome: UiTexturePrepareOutcome) -> UiTextureRetryPolicy {
+    match outcome {
+        UiTexturePrepareOutcome::UploadFailed | UiTexturePrepareOutcome::GenerationChanged => {
+            UiTextureRetryPolicy::EveryFrame
+        }
+        UiTexturePrepareOutcome::NotReady | UiTexturePrepareOutcome::LoadFailed => {
+            UiTextureRetryPolicy::ReadinessGeneration
+        }
+        UiTexturePrepareOutcome::UnresolvedIdentity
+        | UiTexturePrepareOutcome::InvalidResourceKind
+        | UiTexturePrepareOutcome::InvalidDescriptor
+        | UiTexturePrepareOutcome::Ready => UiTextureRetryPolicy::ManagementGeneration,
+    }
+}
+
+fn retry_indexes<'a>(
+    rows: impl IntoIterator<Item = &'a UiTexturePrepareRow>,
+) -> (BTreeSet<ResourceId>, BTreeSet<ResourceId>) {
+    let mut frame_retry_ids = BTreeSet::new();
+    let mut readiness_retry_ids = BTreeSet::new();
+    for row in rows {
+        match retry_policy(row.outcome) {
+            UiTextureRetryPolicy::EveryFrame => {
+                frame_retry_ids.insert(row.requested);
+            }
+            UiTextureRetryPolicy::ReadinessGeneration => {
+                readiness_retry_ids.insert(row.requested);
+            }
+            UiTextureRetryPolicy::ManagementGeneration => {}
+        }
+    }
+    (frame_retry_ids, readiness_retry_ids)
 }
 
 pub(super) fn resolve_ui_texture_candidate(
@@ -235,7 +369,7 @@ fn resolve_ui_texture_candidate_with_work(
     Option<ResourceId>,
     usize,
 ) {
-    let mut scan_row_visit_count = 0;
+    let mut scan_row_visit_count: usize = 0;
     let row = generation.row_by_id(requested).or_else(|| {
         let mut scan = generation.scan(ResourceManagementQuery::default());
         while let Some(row) = scan.next_row() {
@@ -276,28 +410,106 @@ impl ResourceStreamer {
     ) -> Result<(), crate::graphics::GraphicsError> {
         let asset_manager = self.asset_manager()?;
         let projection = asset_manager.resource_manager().projection_snapshot();
-        let requested_ids = requested_ids.as_slice();
-        let mut rows = Vec::with_capacity(requested_ids.len());
         let mut work = UiTexturePrepareWork::default();
-        for &requested in requested_ids {
-            rows.push(self.prepare_ui_texture_dependency(
-                backend,
-                texture_layout,
-                asset_manager.as_ref(),
-                projection.management(),
-                &projection.readiness_identity(),
-                requested,
-                submission_transaction,
-                &mut work,
-            )?);
-        }
-        let receipt = UiTexturePrepareReceipt::new(
-            self.next_ui_texture_prepare_epoch,
-            projection.management_identity(),
-            projection.readiness_identity(),
-            rows,
-        )
-        .with_work(work);
+        let frame_prepare_epoch = self.next_ui_texture_prepare_epoch;
+        let previous = self.last_ui_texture_prepare_receipt.take();
+        let exact_dependency_product = previous
+            .as_ref()
+            .is_some_and(|receipt| receipt.dependency_generation == requested_ids.generation());
+        let journal = requested_ids.change_journal();
+        let journal_applies = previous.as_ref().is_some_and(|receipt| {
+            !journal.is_full_rebuild()
+                && journal.base_generation() == Some(receipt.dependency_generation)
+        });
+
+        let receipt = if exact_dependency_product || journal_applies {
+            let mut receipt = previous
+                .expect("a retained UI texture dependency generation must retain its receipt");
+            let management_changed =
+                receipt.management_generation != projection.management_identity();
+            let readiness_changed = receipt.readiness_generation != projection.readiness_identity();
+            let mut dirty_ids = BTreeSet::new();
+            let mut rows_changed = false;
+            if journal_applies {
+                for &removed in journal.removed_ids() {
+                    rows_changed |= receipt.remove_requested(removed);
+                }
+                dirty_ids.extend(journal.added_ids().iter().copied());
+            }
+            if management_changed {
+                dirty_ids.extend(requested_ids.as_slice().iter().copied());
+            } else {
+                dirty_ids.extend(receipt.frame_retry_ids.iter().copied());
+                if readiness_changed {
+                    dirty_ids.extend(receipt.readiness_retry_ids.iter().copied());
+                }
+            }
+            receipt.begin_retained_frame(
+                frame_prepare_epoch,
+                requested_ids.generation(),
+                projection.management_identity(),
+                projection.readiness_identity(),
+            );
+            work.dependency_prepare_visit_count = dirty_ids.len();
+            let existing_dirty_row_count = dirty_ids
+                .iter()
+                .filter(|requested| receipt.rows.contains_key(requested))
+                .count();
+            work.retained_row_count = receipt.rows.len().saturating_sub(existing_dirty_row_count);
+            for requested in dirty_ids {
+                let row = match self.prepare_ui_texture_dependency(
+                    backend,
+                    texture_layout,
+                    asset_manager.as_ref(),
+                    projection.management(),
+                    &projection.readiness_identity(),
+                    requested,
+                    submission_transaction,
+                    &mut work,
+                ) {
+                    Ok(row) => row,
+                    Err(error) => {
+                        self.last_ui_texture_prepare_receipt = None;
+                        return Err(error);
+                    }
+                };
+                rows_changed |= receipt.upsert_row(row);
+            }
+            if rows_changed {
+                receipt.mark_binding_product_changed();
+            }
+            receipt.with_work(work)
+        } else {
+            let mut rows = Vec::with_capacity(requested_ids.as_slice().len());
+            work.dependency_prepare_visit_count = requested_ids.as_slice().len();
+            for &requested in requested_ids.as_slice() {
+                let row = match self.prepare_ui_texture_dependency(
+                    backend,
+                    texture_layout,
+                    asset_manager.as_ref(),
+                    projection.management(),
+                    &projection.readiness_identity(),
+                    requested,
+                    submission_transaction,
+                    &mut work,
+                ) {
+                    Ok(row) => row,
+                    Err(error) => {
+                        self.last_ui_texture_prepare_receipt = None;
+                        return Err(error);
+                    }
+                };
+                rows.push(row);
+            }
+            UiTexturePrepareReceipt::new(
+                frame_prepare_epoch,
+                projection.management_identity(),
+                projection.readiness_identity(),
+                rows,
+            )
+            .with_dependency_generation(requested_ids.generation())
+            .with_work(work)
+        };
         receipt.record_profile_counters();
         self.next_ui_texture_prepare_epoch =
             self.next_ui_texture_prepare_epoch.wrapping_add(1).max(1);
@@ -430,3 +642,7 @@ const fn prepare_row(
         prepared_revision,
     }
 }
+
+#[cfg(test)]
+#[path = "tests/prepare_receipt.rs"]
+mod tests;

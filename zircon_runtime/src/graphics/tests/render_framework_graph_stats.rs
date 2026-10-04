@@ -6,7 +6,7 @@ use crate::core::framework::render::{
     RenderViewportDescriptor, RenderViewportHandle, RenderWorldSnapshotHandle,
 };
 use crate::core::math::UVec2;
-use crate::graphics::{RenderPipelineAsset, debug_markers, runtime::WgpuRenderFramework};
+use crate::graphics::{debug_markers, runtime::WgpuRenderFramework, RenderPipelineAsset};
 use crate::scene::world::World;
 
 #[test]

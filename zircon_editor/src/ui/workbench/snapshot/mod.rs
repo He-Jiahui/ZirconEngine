@@ -15,10 +15,10 @@ pub use asset::{
 pub use data::{
     ConsoleOutputLevelCounts, ConsoleOutputSnapshot, EditorBridgeDiagnosticsSnapshot,
     EditorBridgeDiagnosticsSummarySnapshot, EditorBridgeInterfaceRowSnapshot, EditorChromeSnapshot,
-    EditorConsoleMessageLevel, EditorDataSnapshot, InspectorPluginComponentPropertySnapshot,
-    InspectorPluginComponentSnapshot, InspectorSnapshot, ProjectOverviewSnapshot, SceneEntries,
-    SceneEntry, StatusTaskProgressSnapshot, StatusTaskProgressTone, TransactionHistoryRowSnapshot,
-    TransactionHistorySnapshot,
+    EditorConsoleMessageLevel, EditorDataSnapshot, InspectorNativeFieldSnapshot,
+    InspectorPluginComponentPropertySnapshot, InspectorPluginComponentSnapshot, InspectorSnapshot,
+    ProjectOverviewSnapshot, SceneEntries, SceneEntry, StatusTaskProgressSnapshot,
+    StatusTaskProgressTone, TransactionHistoryRowSnapshot, TransactionHistorySnapshot,
 };
 pub(crate) use data::{
     ConsoleOutputLineDelta, ConsoleOutputLineGeneration, ConsoleOutputLineSnapshot,

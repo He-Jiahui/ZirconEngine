@@ -1,19 +1,20 @@
+# 核对文件清单规范化入口、路径与哈希辅助函数的归属。
 import ast
 import unittest
 from pathlib import Path
 
-from tools.zircon_export.native_dynamic_payload import (
+from tools.export.native_dynamic_payload import (
     normalized_file_manifest as facade_normalized_file_manifest,
 )
-from tools.zircon_export.native_dynamic_payload_file_manifest import (
+from tools.export.native_dynamic_payload_file_manifest import (
     normalized_file_manifest,
 )
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-NATIVE_DYNAMIC_PAYLOAD = REPO_ROOT / "tools/zircon_export/native_dynamic_payload.py"
+NATIVE_DYNAMIC_PAYLOAD = REPO_ROOT / "tools/export/native_dynamic_payload.py"
 NATIVE_DYNAMIC_PAYLOAD_FILE_MANIFEST = (
-    REPO_ROOT / "tools/zircon_export/native_dynamic_payload_file_manifest.py"
+    REPO_ROOT / "tools/export/native_dynamic_payload_file_manifest.py"
 )
 
 
@@ -78,11 +79,11 @@ class ZirconExportNativeDynamicPayloadFileManifestOwnerBoundaryTests(unittest.Te
             "def load():\n"
             "    from .native_dynamic_payload import normalized_file_manifest\n",
             "from .native_dynamic_payload_file_manifest import normalized_file_manifest\n"
-            "from tools.zircon_export.native_dynamic_payload import normalized_file_manifest\n",
+            "from tools.export.native_dynamic_payload import normalized_file_manifest\n",
             "from .native_dynamic_payload_file_manifest import normalized_file_manifest\n"
-            "from tools.zircon_export.native_dynamic_payload import *\n",
+            "from tools.export.native_dynamic_payload import *\n",
             "from .native_dynamic_payload_file_manifest import normalized_file_manifest\n"
-            "from tools.zircon_export import native_dynamic_payload as payload\n"
+            "from tools.export import native_dynamic_payload as payload\n"
             "payload.normalized_file_manifest([])\n",
         )
 
@@ -152,13 +153,13 @@ class ZirconExportNativeDynamicPayloadFileManifestOwnerBoundaryTests(unittest.Te
 
     def test_file_manifest_consumers_import_owner_directly(self):
         for relative_path in (
-            "tools/zircon_export/native_dynamic_materialize.py",
-            "tools/zircon_export/native_dynamic_templates.py",
-            "tools/zircon_export/pipeline_report_native_dynamic_payload_platform_bundle.py",
-            "tools/zircon_export/pipeline_report_native_dynamic_payload_package_report.py",
-            "tools/zircon_export/pipeline_report_native_dynamic_payload_stage_report.py",
-            "tools/zircon_export/pipeline_report_native_dynamic_stage_payload.py",
-            "tools/zircon_export/plugin_build_package.py",
+            "tools/export/native_dynamic_materialize.py",
+            "tools/export/native_dynamic_templates.py",
+            "tools/export/pipeline_report_native_dynamic_payload_platform_bundle.py",
+            "tools/export/pipeline_report_native_dynamic_payload_package_report.py",
+            "tools/export/pipeline_report_native_dynamic_payload_stage_report.py",
+            "tools/export/pipeline_report_native_dynamic_stage_payload.py",
+            "tools/export/plugin_build_package.py",
         ):
             text = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
             self.assertIn(
@@ -168,10 +169,10 @@ class ZirconExportNativeDynamicPayloadFileManifestOwnerBoundaryTests(unittest.Te
             )
 
         for relative_path in (
-            "tools/zircon_export/pipeline_report_native_dynamic_payload_platform_bundle.py",
-            "tools/zircon_export/pipeline_report_native_dynamic_payload_package_report.py",
-            "tools/zircon_export/pipeline_report_native_dynamic_payload_stage_report.py",
-            "tools/zircon_export/pipeline_report_native_dynamic_stage_payload.py",
+            "tools/export/pipeline_report_native_dynamic_payload_platform_bundle.py",
+            "tools/export/pipeline_report_native_dynamic_payload_package_report.py",
+            "tools/export/pipeline_report_native_dynamic_payload_stage_report.py",
+            "tools/export/pipeline_report_native_dynamic_stage_payload.py",
         ):
             self.assertEqual(
                 [],

@@ -9,6 +9,7 @@ use super::{
     route_steps::annotate_result_route_steps,
 };
 
+/// 先核对 Close/Dismissed 的 ID 与 owner 仍在弹层栈中，再写声明式或瞬态弹层状态。
 pub(super) fn dispatch_popup_input(
     surface: &mut UiSurface,
     popup: UiPopupInputEvent,
@@ -57,6 +58,8 @@ fn with_popup_route_policy(
     result
 }
 
+// TODO: [CR-UI-SURFACE-0004] 确认宿主是否保证同 ID、同 owner 弹层重开前已排空旧关闭事件；
+// 当前事件没有会话代次，旧 Dismissed 与新实例无法区分；需验证宿主事件顺序或引入代次契约。
 fn popup_matches_retained_state(surface: &UiSurface, popup: &UiPopupInputEvent) -> bool {
     match popup.kind {
         UiPopupInputEventKind::OpenRequested => true,
@@ -67,5 +70,5 @@ fn popup_matches_retained_state(surface: &UiSurface, popup: &UiPopupInputEvent) 
 }
 
 #[cfg(test)]
-#[path = "popup/stale_owned_event_tests.rs"]
+#[path = "popup/tests/stale_owned_event_tests.rs"]
 mod stale_owned_event_tests;

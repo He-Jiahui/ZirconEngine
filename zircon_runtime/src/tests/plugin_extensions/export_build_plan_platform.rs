@@ -36,11 +36,14 @@ fn generated_rust_function_body<'a>(source: &'a str, function_name: &str) -> Opt
 }
 
 #[test]
-fn mobile_and_web_targets_reject_native_dynamic_packaging() {
+fn non_windows_targets_reject_native_dynamic_packaging() {
+    assert!(!ExportTargetPlatform::Linux.supports_native_dynamic());
+    assert!(!ExportTargetPlatform::Macos.supports_native_dynamic());
     assert!(!ExportTargetPlatform::Android.supports_native_dynamic());
     assert!(!ExportTargetPlatform::Ios.supports_native_dynamic());
     assert!(!ExportTargetPlatform::WebGpu.supports_native_dynamic());
     assert!(!ExportTargetPlatform::Wasm.supports_native_dynamic());
+    assert!(!ExportTargetPlatform::Headless.supports_native_dynamic());
 
     let web_policy = ExportTargetPlatform::WebGpu.policy();
     assert_eq!(web_policy.host_kind, ExportPlatformHostKind::Browser);
@@ -54,13 +57,16 @@ fn mobile_and_web_targets_reject_native_dynamic_packaging() {
     );
 
     for platform in [
+        ExportTargetPlatform::Linux,
+        ExportTargetPlatform::Macos,
         ExportTargetPlatform::Android,
         ExportTargetPlatform::Ios,
         ExportTargetPlatform::WebGpu,
         ExportTargetPlatform::Wasm,
+        ExportTargetPlatform::Headless,
     ] {
         let mut manifest = ProjectManifest::new(
-            "Mobile Web Export Test",
+            "Non-Windows Export Test",
             AssetUri::parse("res://scenes/main.zscene").unwrap(),
             1,
         );
@@ -135,15 +141,15 @@ fn platform_target_policy_matches_host_resource_and_plugin_strategy() {
             ExportTargetPlatform::Linux,
             ExportPlatformHostKind::Desktop,
             ExportPlatformResourceStrategy::FilesystemBundle,
-            ExportPlatformPluginStrategy::NativeDynamicAllowed,
-            true,
+            ExportPlatformPluginStrategy::StaticSourceOrVmOnly,
+            false,
         ),
         (
             ExportTargetPlatform::Macos,
             ExportPlatformHostKind::Desktop,
             ExportPlatformResourceStrategy::FilesystemBundle,
-            ExportPlatformPluginStrategy::NativeDynamicAllowed,
-            true,
+            ExportPlatformPluginStrategy::StaticSourceOrVmOnly,
+            false,
         ),
         (
             ExportTargetPlatform::Android,
@@ -177,8 +183,8 @@ fn platform_target_policy_matches_host_resource_and_plugin_strategy() {
             ExportTargetPlatform::Headless,
             ExportPlatformHostKind::Headless,
             ExportPlatformResourceStrategy::FilesystemBundle,
-            ExportPlatformPluginStrategy::NativeDynamicAllowed,
-            true,
+            ExportPlatformPluginStrategy::StaticSourceOrVmOnly,
+            false,
         ),
     ];
     let requested_platform = std::env::var("ZR_EXPORT_CONTRACT_PLATFORM")
@@ -336,7 +342,13 @@ fn source_template_emits_mobile_and_browser_host_scaffolds() {
             );
         }
         assert!(generated_runtime_entry.contains("static ZIRCON_PRODUCT_COMPOSITION:"));
-        for state in ["Vacant", "Starting", "Running", "Stopping"] {
+        for state in [
+            "Vacant",
+            "Starting",
+            "Running",
+            "Stopping",
+            "CleanupPending",
+        ] {
             assert!(
                 generated_runtime_entry
                     .contains(&format!("ZirconProductCompositionState::{state}")),
@@ -346,6 +358,13 @@ fn source_template_emits_mobile_and_browser_host_scaffolds() {
         assert!(generated_runtime_entry
             .contains("*composition_state = ZirconProductCompositionState::Running(composition);"));
         assert!(!generated_runtime_entry.contains("let _composition ="));
+        assert!(generated_runtime_entry.contains("composition.close_until(deadline)"));
+        assert!(generated_runtime_entry.contains("failure.retry_cleanup_until(deadline)"));
+        let shutdown_body =
+            generated_rust_function_body(generated_runtime_entry, "zircon_export_shutdown")
+                .unwrap();
+        assert!(shutdown_body.contains("CleanupPending(failure)"));
+        assert!(!shutdown_body.contains("drop(composition)"));
         assert!(generated_runtime_entry.contains(platform.as_str()));
         assert!(!plan
             .generated_files
@@ -458,7 +477,7 @@ fn source_template_emits_package_manifests_for_mobile_and_browser_hosts() {
 
 #[test]
 fn generated_mobile_and_browser_hosts_translate_platform_callbacks_to_runtime_abi_events() {
-    let cases = [
+    let cases: [(ExportTargetPlatform, &str, &[&str]); 4] = [
         (
             ExportTargetPlatform::Android,
             "platform/android/app/src/main/java/dev/zircon/export/MainActivity.kt",
@@ -543,13 +562,13 @@ fn generated_mobile_and_browser_hosts_translate_platform_callbacks_to_runtime_ab
 
 #[test]
 fn generated_platform_hosts_include_repo_owned_binding_and_resource_glue() {
-    let cases = [
+    let cases: [(ExportTargetPlatform, [(&str, &[&str]); 2]); 2] = [
         (
             ExportTargetPlatform::Android,
             [
                 (
                     "platform/android/app/src/main/java/dev/zircon/export/ZirconRuntime.kt",
-                    [
+                    &[
                         "external fun start(): Boolean",
                         "external fun shutdown(): Boolean",
                         "external fun dispatchLifecycle(state: Int): Boolean",
@@ -560,7 +579,7 @@ fn generated_platform_hosts_include_repo_owned_binding_and_resource_glue() {
                 ),
                 (
                     "platform/android/app/src/main/assets/zircon-host-resource-map.json",
-                    [
+                    &[
                         "\"resourceStrategy\": \"mobile_asset_bundle\"",
                         "\"projectManifest\": \"zircon-project.toml\"",
                         "\"profile\": \"android-glue\"",
@@ -575,7 +594,7 @@ fn generated_platform_hosts_include_repo_owned_binding_and_resource_glue() {
             [
                 (
                     "platform/ios/ZirconRuntimeHost/Linking/zircon_runtime_native.h",
-                    [
+                    &[
                         "bool zircon_export_shutdown(void);",
                         "bool zircon_export_fetch_resource(const char *uri, uint32_t flags);",
                         "bool zircon_export_handle_viewport_metrics(uint32_t logical_width, uint32_t logical_height, float scale);",
@@ -586,7 +605,7 @@ fn generated_platform_hosts_include_repo_owned_binding_and_resource_glue() {
                 ),
                 (
                     "platform/ios/ZirconRuntimeHost/Resources/zircon-host-resource-map.json",
-                    [
+                    &[
                         "\"resourceStrategy\": \"mobile_asset_bundle\"",
                         "\"projectManifest\": \"zircon-project.toml\"",
                         "\"profile\": \"ios-glue\"",
@@ -618,7 +637,7 @@ fn generated_platform_hosts_include_repo_owned_binding_and_resource_glue() {
 
         for (path, expected_fragments) in expected_files {
             let generated = generated_file(&plan, path);
-            for expected_fragment in expected_fragments {
+            for &expected_fragment in expected_fragments {
                 assert!(
                     generated.contains(expected_fragment),
                     "{platform:?} generated `{path}` should contain `{expected_fragment}`"

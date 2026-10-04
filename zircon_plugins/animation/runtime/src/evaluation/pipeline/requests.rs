@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use zircon_runtime::asset::AssetId;
 use zircon_runtime::core::framework::animation::{
-    AnimationParameterMap, AnimationParameterRevision, AnimationParameterSet, AnimationPoseSource,
+    AnimationParameterRevision, AnimationParameterSet, AnimationPoseSource,
 };
 use zircon_runtime::core::math::Real;
 use zircon_runtime::scene::{AnimationStateTransitionRuntime, EntityId};
@@ -77,7 +77,7 @@ impl PendingStateMachinePoseSample {
     pub(super) fn parameter_projection(&self) -> StateMachineParameterProjection<'_> {
         StateMachineParameterProjection {
             revision: self.parameters.revision(),
-            values: self.parameters.as_map(),
+            values: &self.parameters,
         }
     }
 }
@@ -85,5 +85,5 @@ impl PendingStateMachinePoseSample {
 #[derive(Clone, Copy, Debug)]
 pub(super) struct StateMachineParameterProjection<'a> {
     pub(super) revision: AnimationParameterRevision,
-    pub(super) values: &'a AnimationParameterMap,
+    pub(super) values: &'a AnimationParameterSet,
 }

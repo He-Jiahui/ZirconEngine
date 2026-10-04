@@ -2,8 +2,8 @@ use zircon_runtime::asset::AssetReference;
 use zircon_runtime::core::framework::animation::AnimationParameterValue;
 use zircon_runtime::core::math::{Real, Vec2};
 
+use crate::state_machine::blend_space::{BlendSpace1D, BlendSpace2D};
 use crate::state_machine::condition_expression::ParameterSlot;
-use crate::{BlendSpace1D, BlendSpace2D};
 
 pub(crate) type CompiledGraphSamples<'a> = [Option<(&'a AssetReference, Real)>; 3];
 

@@ -106,6 +106,7 @@ fn voxel_fallback_tile_sample(
     if (tile_sample_id >= VOXEL_CLIPMAP_CELL_COUNT) {
         return invalid_trace_sample();
     }
+    // tile_probe_id 是 clipmap ID；只在其固定 64 格查表中寻找带辐射的占用格。
     let lookup_base = voxel_cell_lookup_base(tile_probe_id);
     if (lookup_base == VOXEL_CELL_LOOKUP_INVALID_DESCRIPTOR_INDEX) {
         return invalid_trace_sample();

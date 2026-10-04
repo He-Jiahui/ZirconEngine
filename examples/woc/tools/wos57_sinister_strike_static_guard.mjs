@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node wos57_sinister_strike_static_guard.mjs；缺少源码契约时脚本抛错退出。
+// 对照锁定的邪恶攻击定义、施法条件、武器命中和连击点计时，检查世界准入、归约、两种命令入口、过期处理及持久化自测。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";

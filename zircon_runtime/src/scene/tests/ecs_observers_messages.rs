@@ -2,8 +2,8 @@ use std::sync::{Arc, Mutex};
 
 use crate::scene::components::Name;
 use crate::scene::ecs::{
-    Component, LifecycleEventKind, Message, MessageId, MessageReaderParam, MessageWriterParam,
-    ObserverId, ObserverStore, SystemState,
+    Component, LifecycleEventKind, Message, MessageId, MessageReaderParam, MessageRetention,
+    MessageWriterParam, ObserverId, ObserverStore, SystemStage, SystemState,
 };
 use crate::scene::{SceneError, World};
 
@@ -396,16 +396,12 @@ fn observer_dispatch_uses_indexed_immutable_buckets() {
         observer_source.contains("HashMap<EntityEventObserverKey, Arc<Vec<EntityEventObserver>>>")
     );
     assert!(observer_source.contains("observer_locations: HashMap<ObserverId, ObserverBucket>"));
-    assert!(
-        observer_source
-            .contains("entity_event_types_by_entity: HashMap<EntityId, HashSet<TypeId>>")
-    );
+    assert!(observer_source
+        .contains("entity_event_types_by_entity: HashMap<EntityId, HashSet<TypeId>>"));
     assert!(observer_source.contains("pub(crate) struct LifecycleCallbackBucket"));
     assert!(observer_source.contains("pub(crate) struct EventCallbackBucket"));
     assert!(observer_source.contains("pub(crate) struct EntityEventCallbackBucket"));
-    assert!(
-        observer_source.contains("pub fn remove(&mut self, id: ObserverId) -> SceneResult<()>")
-    );
+    assert!(observer_source.contains("pub fn remove(&mut self, id: ObserverId) -> SceneResult<()>"));
     assert!(observer_source.contains("fn insert_observer_into_bucket<T>"));
     assert!(observer_source.contains("let observers = Arc::make_mut(bucket)"));
     assert!(observer_source.contains("observers.push(observer)"));
@@ -430,25 +426,53 @@ fn observer_dispatch_uses_indexed_immutable_buckets() {
 #[test]
 fn event_and_message_batch_writers_preallocate_from_size_hint() {
     let events_source = event_source();
-    assert!(events_source.contains("let events = events.into_iter();"));
-    assert!(events_source.contains("let (lower_bound, _) = events.size_hint();"));
-    assert!(events_source.contains("self.next.reserve(lower_bound);"));
+    let events_batch_source = include_str!("../ecs/events/queue.rs")
+        .split_once("pub fn send_batch<I>")
+        .expect("event queue batch method")
+        .1
+        .split_once("\n    pub fn update")
+        .expect("event queue batch method boundary")
+        .0;
+    assert!(events_batch_source.contains("self.next.extend(events);"));
+    assert!(events_batch_source.contains("let before = self.next.len();"));
+    assert!(events_batch_source.contains("let written = self.next.len() - before;"));
+    assert!(
+        events_batch_source.contains("if written > 0 {\n            self.record_next_queue_len();")
+    );
+    assert!(!events_batch_source.contains("self.send(event)"));
     assert!(events_source.contains("self.next.push(event);"));
-    assert!(!events_source.contains("for event in events {\n            self.send(event);"));
     assert!(events_source.contains("std::mem::take(&mut self.current)"));
     assert!(!events_source.contains("self.current.drain(..).collect()"));
 
-    let messages_source = message_source();
-    assert!(messages_source.contains("pub fn write_batch<I>(&mut self, messages: I)"));
-    assert!(messages_source.contains("let messages = messages.into_iter();"));
-    assert!(messages_source.contains("let (lower_bound, _) = messages.size_hint();"));
-    assert!(messages_source.contains("self.messages.reserve(lower_bound);"));
-    assert!(messages_source.contains("let mut ids = Vec::with_capacity(lower_bound);"));
-    assert!(messages_source.contains("ids.push(self.write(message));"));
-    assert!(messages_source.contains("pub fn write_batch<T, I>(&mut self, messages: I)"));
+    let messages_queue_source = include_str!("../ecs/messages/queue.rs");
+    assert!(messages_queue_source.contains("pub fn write_batch<I>(&mut self, messages: I)"));
+    let messages_batch_source = messages_queue_source
+        .split_once("pub(super) fn write_batch_at_frame<I>")
+        .expect("message queue frame-aware batch method")
+        .1
+        .split_once("\n    pub fn iter")
+        .expect("message queue batch method boundary")
+        .0;
+    assert!(messages_batch_source.contains("let messages = messages.into_iter();"));
+    assert!(messages_batch_source.contains("let (lower_bound, _) = messages.size_hint();"));
+    assert!(messages_batch_source.contains("let mut ids = Vec::with_capacity(lower_bound);"));
+    assert!(messages_batch_source.contains("ids.push(self.write_at_frame(message, frame));"));
+    let messages_store_batch_source = include_str!("../ecs/messages/store.rs")
+        .split_once("pub fn write_batch<T, I>")
+        .expect("message store batch method")
+        .1
+        .split_once("\n    pub fn clear")
+        .expect("message store batch method boundary")
+        .0;
+    assert!(messages_store_batch_source.contains("let frame = self.frame;"));
+    assert!(messages_store_batch_source.contains(".write_batch_at_frame(messages, frame)"));
 
     let system_messages_source = include_str!("../ecs/system/messages.rs");
-    assert!(system_messages_source.contains("self.store.write_batch::<T, I>(messages)"));
+    assert!(system_messages_source.contains("self.channel.write_batch(messages)"));
+    let message_grant_source = include_str!("../ecs/messages/store/writer_grant.rs");
+    assert!(
+        message_grant_source.contains("self.messages_mut().write_batch_at_frame(messages, frame)")
+    );
     assert!(!system_messages_source.contains(".map(|message| self.write(message))"));
 }
 
@@ -461,8 +485,10 @@ fn event_and_message_type_name_lists_preallocate_from_registered_type_count() {
     assert!(!events_source.contains("self.type_names.values().copied().collect::<Vec<_>>()"));
 
     let messages_source = message_source();
-    assert!(messages_source.contains("let mut names = Vec::with_capacity(self.type_names.len());"));
-    assert!(messages_source.contains("for name in self.type_names.values()"));
+    assert!(
+        messages_source.contains("let mut names = Vec::with_capacity(activity.type_names.len());")
+    );
+    assert!(messages_source.contains("for name in activity.type_names.values()"));
     assert!(messages_source.contains("names.push(*name);"));
     assert!(!messages_source.contains("self.type_names.values().copied().collect::<Vec<_>>()"));
 }
@@ -476,10 +502,8 @@ fn message_id_debug_uses_cached_type_name_tail_branch() {
         "message<DamageMessage>#7"
     );
     assert!(messages_source.contains("let message_type_name = type_name::<T>();"));
-    assert!(
-        messages_source
-            .contains("let message_type_label = match message_type_name.rsplit(\"::\").next()")
-    );
+    assert!(messages_source
+        .contains("let message_type_label = match message_type_name.rsplit(\"::\").next()"));
     assert!(messages_source.contains("Some(label) => label,"));
     assert!(messages_source.contains("None => message_type_name,"));
     assert!(!messages_source.contains(".unwrap_or(type_name::<T>())"));
@@ -517,7 +541,8 @@ fn event_and_message_cursors_use_direct_lookup_branches() {
         events_source.contains("pub fn events_by_id<T: Event>(&self, event_type_id: EventTypeId)")
     );
     assert!(events_source.contains("let channel = self.channel(event_type_id)?;"));
-    assert!(events_source.contains("channel.events.as_any().downcast_ref::<Events<T>>()"));
+    assert!(events_source.contains(".downcast_ref::<OwnedChannel<Events<T>>>()"));
+    assert!(events_source.contains(".map(OwnedChannel::get)"));
     assert!(
         !event_store_lookup_source.contains(".and_then(|store| store.downcast_ref::<Events<T>>())")
     );
@@ -551,11 +576,12 @@ fn event_and_message_cursors_use_direct_lookup_branches() {
     assert!(
         message_store_lookup_source.contains("let store = self.stores.get(&TypeId::of::<T>())?;")
     );
-    assert!(message_store_lookup_source.contains("store.downcast_ref::<Messages<T>>()"));
-    assert!(
-        !message_store_lookup_source
-            .contains(".and_then(|store| store.downcast_ref::<Messages<T>>())")
-    );
+    assert!(message_store_lookup_source
+        .contains(".downcast_ref::<OwnedChannel<Option<Messages<T>>>>()?"));
+    assert!(message_store_lookup_source.contains(".get()"));
+    assert!(message_store_lookup_source.contains(".as_ref()"));
+    assert!(!message_store_lookup_source
+        .contains(".and_then(|store| store.downcast_ref::<Messages<T>>())"));
 }
 
 #[test]
@@ -634,6 +660,69 @@ fn message_writer_batch_preserves_order_and_ids() {
             .collect::<Vec<_>>()
     });
     assert_eq!(observed, vec![(0, 1), (1, 2), (2, 3), (3, 4), (4, 5)]);
+
+    world.clear_messages::<DamageMessage>();
+    world.configure_message_retention::<DamageMessage>(MessageRetention::new(8, usize::MAX, 1));
+    world.run_internal_scene_systems_for_stage(SystemStage::First);
+    world.run_internal_scene_systems_for_stage(SystemStage::First);
+    assert_eq!(world.last_message_advance_channel_visits(), 0);
+
+    let retained_ids = writer.run(&mut world, |mut messages| {
+        messages.write_batch([DamageMessage(6), DamageMessage(7)])
+    });
+    assert_eq!(
+        retained_ids.iter().map(|id| id.id()).collect::<Vec<_>>(),
+        vec![5, 6]
+    );
+    let before_empty_batch = world.message_retention_metrics::<DamageMessage>().unwrap();
+    let empty_ids = writer.run(&mut world, |mut messages| {
+        messages.write_batch(std::iter::empty::<DamageMessage>())
+    });
+    assert!(empty_ids.is_empty());
+    assert_eq!(
+        world.message_retention_metrics::<DamageMessage>().unwrap(),
+        before_empty_batch
+    );
+
+    world.run_internal_scene_systems_for_stage(SystemStage::First);
+    assert_eq!(world.last_message_advance_channel_visits(), 1);
+    let at_age_limit = world.message_retention_metrics::<DamageMessage>().unwrap();
+    assert_eq!(at_age_limit.retained_entries, 2);
+    assert_eq!(
+        at_age_limit.retained_bytes,
+        2 * std::mem::size_of::<DamageMessage>()
+    );
+    assert_eq!(at_age_limit.age_dropped_entries, 0);
+    assert_eq!(
+        world
+            .messages::<DamageMessage>()
+            .unwrap()
+            .iter()
+            .map(|(id, message)| (id.id(), message.0))
+            .collect::<Vec<_>>(),
+        vec![(5, 6), (6, 7)]
+    );
+
+    world.run_internal_scene_systems_for_stage(SystemStage::First);
+    assert_eq!(world.last_message_advance_channel_visits(), 1);
+    let retired = world.message_retention_metrics::<DamageMessage>().unwrap();
+    assert_eq!(retired.retained_entries, 0);
+    assert_eq!(retired.retained_bytes, 0);
+    assert_eq!(retired.age_dropped_entries, 2);
+    assert_eq!(
+        retired.age_dropped_bytes,
+        (2 * std::mem::size_of::<DamageMessage>()) as u64
+    );
+    assert_eq!(retired.budget_dropped_entries, 0);
+    world.run_internal_scene_systems_for_stage(SystemStage::First);
+    assert_eq!(world.last_message_advance_channel_visits(), 0);
+    let next_ids = writer.run(&mut world, |mut messages| {
+        messages.write_batch([DamageMessage(8)])
+    });
+    assert_eq!(
+        next_ids.iter().map(|id| id.id()).collect::<Vec<_>>(),
+        vec![7]
+    );
 }
 
 #[test]

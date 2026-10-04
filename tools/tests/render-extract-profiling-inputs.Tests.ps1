@@ -1,6 +1,7 @@
+# 验证性能输入构建计划的产品配对、来源快照和原子发布边界。
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $builder = Join-Path $repoRoot 'tools\mvp\Build-RenderExtractProfilingInputs.ps1'
-$resolverModule = Join-Path $repoRoot 'tools\WindowsPathResolver.psm1'
+$resolverModule = Join-Path $repoRoot 'tools\maintenance\WindowsPathResolver.psm1'
 $originalTestMode = $env:RENDER_EXTRACT_PROFILING_INPUTS_TEST_MODE
 
 Import-Module $resolverModule -Force -Global -ErrorAction Stop

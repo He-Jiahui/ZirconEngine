@@ -42,6 +42,8 @@ pub struct GpuTimerFrameObservation {
     pub status: GpuTimerFrameStatus,
 }
 
+/// 场景路径借用生产诊断查询与完成交付；独立 UI 路径可拥有查询资源并借用外部读回队列。
+/// 两种模式均需成对记录 scope，由提交所有者推进完成；本适配器不会自行等待 GPU。
 pub struct GpuPassTimer {
     legacy_query_set: Option<wgpu::QuerySet>,
     legacy_resolve_buffer: Option<wgpu::Buffer>,
@@ -53,6 +55,7 @@ pub struct GpuPassTimer {
 }
 
 impl GpuPassTimer {
+    /// 独立 UI 的资源拥有模式；设备需启用查询与编码器时间戳两项能力，零容量则禁用。
     pub fn try_new(device: &wgpu::Device, queue: &wgpu::Queue, max_passes: u32) -> Option<Self> {
         if !gpu_timestamp_features_supported(device.features()) || max_passes == 0 {
             return None;
@@ -119,6 +122,7 @@ impl GpuPassTimer {
         self.last_frame_observation = None;
     }
 
+    /// 接入提交所有者分配的查询集和共享计划；必须来自同设备、同诊断帧且容量匹配。
     pub fn begin_product_frame(
         &mut self,
         frame_generation: u64,
@@ -147,6 +151,7 @@ impl GpuPassTimer {
         Some(scope)
     }
 
+    /// 预留一个物理 pass 的首尾查询；调用方负责在同一帧录制链中成对写入。
     pub fn reserve_pass(&mut self, pass_name: &str) -> Option<GpuPassTimestampScope> {
         let active = self.active_frame.as_mut()?;
         let end_query_index = active.query_count.checked_add(1)?;
@@ -183,6 +188,7 @@ impl GpuPassTimer {
         scope.end(encoder);
     }
 
+    /// 独立模式先记录 resolve，再申请已准备帧的读回；准入失败只使诊断延期，不取消渲染。
     pub fn resolve_and_request(
         &mut self,
         encoder: &mut wgpu::CommandEncoder,
@@ -269,6 +275,7 @@ impl GpuPassTimer {
         Some(observation)
     }
 
+    /// 场景完成路由传原提交的计划/名称和交付；禁止混用其他帧的索引表。
     pub fn accept_product_query_delivery(
         &mut self,
         frame_generation: u64,
@@ -342,6 +349,7 @@ impl GpuPassTimer {
         self.timestamp_period_ns
     }
 
+    /// 取已到达的最早帧结果；不轮询设备，也不保证更早但未完成的帧已经交付。
     pub fn try_collect(&mut self) -> Option<GpuTimerFrameResult> {
         let mut completed = self
             .completed_frames
@@ -368,6 +376,7 @@ fn take_oldest_completed_frame(
     completed_frames.pop_front()
 }
 
+/// 录制者显式持有的首尾查询范围；释放对象不会自动补写结束时间戳。
 #[derive(Clone, Debug)]
 pub struct GpuPassTimestampScope {
     query_set: wgpu::QuerySet,
@@ -505,110 +514,5 @@ fn timestamp_ticks_us(ticks: u64, timestamp_period_ns: f32) -> u64 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        decode_timestamp_pairs, gpu_timestamp_features_supported, insert_completed_frame_in_order,
-        take_oldest_completed_frame, timer_frame_status, timestamp_delta_us, GpuTimerFrameResult,
-        GpuTimerFrameStatus, GPU_TIMESTAMP_REQUIRED_FEATURES,
-    };
-    use std::collections::VecDeque;
-
-    #[test]
-    fn render_perf_gpu_timer_capability_gate() {
-        assert!(gpu_timestamp_features_supported(
-            GPU_TIMESTAMP_REQUIRED_FEATURES | wgpu::Features::TIMESTAMP_QUERY_INSIDE_PASSES
-        ));
-        assert!(!gpu_timestamp_features_supported(
-            wgpu::Features::TIMESTAMP_QUERY
-        ));
-        assert!(!gpu_timestamp_features_supported(
-            wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS
-        ));
-    }
-
-    #[test]
-    fn timestamp_pairs_decode_only_the_resolved_query_range() {
-        let mut bytes = Vec::new();
-        for timestamp in [10_u64, 20, 30, 50, 99, 100] {
-            bytes.extend_from_slice(&timestamp.to_le_bytes());
-        }
-
-        assert_eq!(
-            decode_timestamp_pairs(&bytes, 4),
-            Some(vec![[10, 20], [30, 50]])
-        );
-    }
-
-    #[test]
-    fn timestamp_delta_converts_queue_period_to_rounded_microseconds() {
-        assert_eq!(timestamp_delta_us(100, 132, 2.5), 0);
-        assert_eq!(timestamp_delta_us(100, 900, 2.5), 2);
-        assert_eq!(timestamp_delta_us(900, 100, 2.5), 0);
-    }
-
-    #[test]
-    fn completed_timer_frames_are_drained_oldest_first_without_dropping_ready_results() {
-        let mut completed_frames = VecDeque::new();
-        for frame_generation in [4, 2, 3] {
-            insert_completed_frame_in_order(
-                &mut completed_frames,
-                GpuTimerFrameResult {
-                    frame_generation,
-                    pass_timings: Vec::new(),
-                },
-            );
-        }
-
-        let drained_generations = std::iter::from_fn(|| {
-            take_oldest_completed_frame(&mut completed_frames).map(|frame| frame.frame_generation)
-        })
-        .collect::<Vec<_>>();
-
-        assert_eq!(drained_generations, vec![2, 3, 4]);
-        assert!(take_oldest_completed_frame(&mut completed_frames).is_none());
-    }
-
-    #[test]
-    fn timer_observation_distinguishes_deferred_and_capacity_limited_frames() {
-        assert_eq!(
-            timer_frame_status(0, false, true),
-            GpuTimerFrameStatus::NoPasses
-        );
-        assert_eq!(
-            timer_frame_status(2, false, false),
-            GpuTimerFrameStatus::Deferred
-        );
-        assert_eq!(
-            timer_frame_status(2, true, true),
-            GpuTimerFrameStatus::CapacityExhausted
-        );
-        assert_eq!(
-            timer_frame_status(2, false, true),
-            GpuTimerFrameStatus::Pending
-        );
-    }
-
-    #[test]
-    fn timer_collector_only_drains_results_after_the_readback_owner_polls() {
-        let source = include_str!("gpu_pass_timer.rs")
-            .split("\n#[cfg(test)]")
-            .next()
-            .unwrap_or_default();
-
-        assert!(source.contains("pub fn try_collect(&mut self)"));
-        assert!(!source.contains("readback_queue.poll_completed"));
-    }
-
-    #[test]
-    fn product_timer_constructor_does_not_receive_queue_authority() {
-        let source = include_str!("gpu_pass_timer.rs");
-        let product_constructor = source
-            .split("pub fn try_new_product(")
-            .nth(1)
-            .and_then(|source| source.split("pub fn begin_frame").next())
-            .expect("product timer constructor");
-
-        assert!(!product_constructor.contains("wgpu::Queue"));
-        assert!(!product_constructor.contains("get_timestamp_period"));
-    }
-}
+#[path = "tests/gpu_pass_timer.rs"]
+mod tests;

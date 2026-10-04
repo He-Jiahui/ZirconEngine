@@ -1,8 +1,6 @@
 ---
 related_code:
-  - tools/session_coordinator/control_plane/assets.py
 implementation_files:
-  - tools/session_coordinator/control_plane/assets.py
 plan_sources:
   - docs/superpowers/specs/2026-07-11-workflow-control-center-and-tray-design.md
   - docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md

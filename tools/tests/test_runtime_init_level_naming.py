@@ -155,6 +155,20 @@ class RuntimeInitLevelNamingTests(unittest.TestCase):
             ),
         )
         self.assertEqual(
+            "runtime-text-editor-host-contract",
+            _classify_editor_reference(
+                "zircon_runtime/src/text/module.rs",
+                ("EditorHost",),
+            ),
+        )
+        self.assertEqual(
+            "runtime-ui-editor-host-contract",
+            _classify_editor_reference(
+                "zircon_runtime/src/ui/surface/host_font_assets.rs",
+                ("Editor",),
+            ),
+        )
+        self.assertEqual(
             "unclassified-runtime-naming-reference",
             _classify_editor_reference(
                 "zircon_runtime/src/scene/components/scene_metadata.rs",

@@ -1,10 +1,10 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema import (
+from tools.audits.plugins.manifest_schema import (
     collect_manifest_schema_violations,
 )
 
-
+# 用插件清单夹具验证依赖：拒绝格式错误依赖行，并拒绝缺失依赖接口。
 class PluginStructureAuditManifestSchemaDependenciesTests(unittest.TestCase):
     def test_manifest_schema_rejects_malformed_dependency_row(self):
         violations: list[str] = []

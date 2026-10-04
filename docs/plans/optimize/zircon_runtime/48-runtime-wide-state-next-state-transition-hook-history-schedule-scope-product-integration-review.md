@@ -1,17 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/core/framework/state/mod.rs
-  - zircon_runtime/src/core/framework/state/hook.rs
-  - zircon_runtime/src/core/framework/state/hook_index.rs
-  - zircon_runtime/src/core/framework/state/machine.rs
-  - zircon_runtime/src/core/framework/state/next_state.rs
-  - zircon_runtime/src/core/framework/state/on_enter.rs
-  - zircon_runtime/src/core/framework/state/on_exit.rs
-  - zircon_runtime/src/core/framework/state/on_transition.rs
-  - zircon_runtime/src/core/framework/state/registry.rs
-  - zircon_runtime/src/core/framework/state/state.rs
-  - zircon_runtime/src/core/framework/state/state_spec.rs
-  - zircon_runtime/src/core/framework/state/state_transition_event.rs
   - zircon_runtime/src/core/runtime/handle/states.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
@@ -22,7 +10,7 @@ related_code:
   - zircon_runtime/src/tests/prelude.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/core_runtime/handle_accessors.rs
   - zircon_app/src/tests/prelude.rs
-  - docs/zircon_runtime/core/state.md
+  - docs/crates/zircon_runtime/core/state.md
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md
@@ -77,7 +65,7 @@ source_recheck_required: true
 
 更关键的是生命周期与正确性仍未闭合：每个类型只有一个 last-writer-wins `NextState<T>`；request 没有 owner、priority、sequence、cause 或 admission receipt；`insert_state` 覆盖已有 current 时仍记录伪造的 `None -> Some(new)`，跳过真实 exit/transition；history 是永久增长的 `Vec`，每次读取完整 clone；hook 只能注册不能撤销，闭包可永久强持 plugin/module 资源；callback panic 会发生在 current 和 history 已提交之后，后续 hook 被截断且没有结构化 terminal receipt；poisoned registry 被静默视为健康；`TypeId + Any + type_name` 既不可持久化，也不能跨 DLL、脚本、动态 API 或热重载代际稳定识别。
 
-当前测试与文档还存在已证实的 current-source 矛盾。`CoreHandle::init_state` 已在一个 registry guard 内调用 `states.state::<T>().map(State::into_inner)`；`zircon_runtime/src/tests/state.rs::state_handle_init_existing_state_uses_direct_projection` 却仍要求旧的 `match self.state::<T>()` 源文本并禁止另一条旧表达式，静态上必然失败。`docs/zircon_runtime/core/state.md` 同样把已不存在的“双锁 direct match”写成现状。测试数量因此不能被当作当前实现已经通过的证据。
+当前测试与文档还存在已证实的 current-source 矛盾。`CoreHandle::init_state` 已在一个 registry guard 内调用 `states.state::<T>().map(State::into_inner)`；`zircon_runtime/src/tests/state.rs::state_handle_init_existing_state_uses_direct_projection` 却仍要求旧的 `match self.state::<T>()` 源文本并禁止另一条旧表达式，静态上必然失败。`docs/crates/zircon_runtime/core/state.md` 同样把已不存在的“双锁 direct match”写成现状。测试数量因此不能被当作当前实现已经通过的证据。
 
 本报告登记 **0 个新增 P0、48 个 P1、12 个 P2**。Runtime48 拥有通用应用/运行时状态服务的 scope、request admission、transition receipt、schedule 接线、bounded journal、hook lifecycle 和产品资格；Runtime03 继续拥有阶段表与 executor，Runtime05/38 拥有 World/GameState 产品语义，Runtime07/46 与 Tooling35 拥有 module/plugin generation、callback lease 和 unload 通则，Runtime22/24/41 分别拥有 clock/replay identity、qualified identity 与 operation receipt 基础，PERF-MVP-320 继续拥有 state history/hook snapshot 性能预算。本文不把通用 application state 扩张成动画、AI 或 Gameplay StateTree，也不重复建立这些父 owner 的 P0。
 
@@ -363,7 +351,7 @@ pub enum StateRequestOutcome {
 
 ### M0 · Truth Freeze 与 stale evidence 清理
 
-- 修正 failing source-text test 和 `docs/zircon_runtime/core/state.md`；
+- 修正 failing source-text test 和 `docs/crates/zircon_runtime/core/state.md`；
 - 冻结真实 public caller、state type、scope、writer、history consumer 与 hook owner 清单；
 - 建立 current-source inventory/fingerprint，保持 production 行为不变。
 

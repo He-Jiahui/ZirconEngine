@@ -1,9 +1,10 @@
+# 核对资产树元数据的压力模型、对数查找、非法输入与结果路径。
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from tools.editor_asset_tree_metadata_pressure import run, write_result
+from tools.analysis.performance.editor.editor_asset_tree_metadata_pressure import run, write_result
 
 
 class EditorAssetTreeMetadataPressureTests(unittest.TestCase):
@@ -50,7 +51,7 @@ class EditorAssetTreeMetadataPressureTests(unittest.TestCase):
 
     def test_output_is_stable_json_on_external_storage(self) -> None:
         result = run(template_node_count=8, pane_paint_count=3)
-        with tempfile.TemporaryDirectory(dir=Path("E:/zircon-profiles")) as directory:
+        with tempfile.TemporaryDirectory(dir=Path(tempfile.gettempdir())) as directory:
             output = Path(directory) / "asset-tree-metadata-pressure.json"
             write_result(output, result)
             self.assertEqual(json.loads(output.read_text(encoding="utf-8")), result)

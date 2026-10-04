@@ -5,7 +5,8 @@ use crate::{
     core::framework::project::ExportProfile, core::framework::project::ProjectPluginManifest,
 };
 use zircon_runtime_interface::project::{
-    ProjectGuid, ProjectManifestSummary, RelPath, PROJECT_MANIFEST_FORMAT_VERSION,
+    ProjectGuid, ProjectManifestSummary, ProjectTemplateReceipt, RelPath,
+    PROJECT_MANIFEST_FORMAT_VERSION,
 };
 
 use super::export_profiles::deserialize_export_profiles;
@@ -22,6 +23,8 @@ pub struct ProjectManifest {
     pub project_guid: ProjectGuid,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub engine_version_req: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub template_receipt: Option<ProjectTemplateReceipt>,
     pub default_scene: AssetUri,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub ui_roots: Vec<AssetUri>,
@@ -51,6 +54,7 @@ impl ProjectManifest {
             format_version: PROJECT_MANIFEST_FORMAT_VERSION,
             project_guid: ProjectGuid::new(),
             engine_version_req: None,
+            template_receipt: None,
             default_scene,
             ui_roots: Vec::new(),
             asset_roots: default_asset_roots(),
@@ -67,6 +71,7 @@ impl ProjectManifest {
         ProjectManifestSummary {
             name: self.name.clone(),
             engine_version_req: self.engine_version_req.clone(),
+            template_receipt: self.template_receipt.clone(),
             default_scene: self.default_scene.to_string(),
             format_version: self.format_version,
             project_guid: Some(self.project_guid),

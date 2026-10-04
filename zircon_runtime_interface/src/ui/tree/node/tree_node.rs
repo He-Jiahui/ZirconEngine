@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::ui::event_ui::{UiNodeId, UiNodePath, UiStateFlags};
 use crate::ui::focus::UiFocusContract;
 use crate::ui::layout::{
-    Anchor, BoxConstraints, LayoutBoundary, Pivot, Position, UiContainerKind, UiFrame,
+    Anchor, BoxConstraints, LayoutBoundary, Pivot, Position, UiContainerKind, UiFrame, UiMargin,
     UiScrollState,
 };
 use crate::ui::navigation::UiNavigationContract;
@@ -32,6 +32,13 @@ pub struct UiTreeNode {
     pub position: Position,
     #[serde(default)]
     pub container: UiContainerKind,
+    /// Node-owned content inset from the authored layout contract.
+    ///
+    /// This is distinct from `UiSlot::padding`: slot padding belongs to one
+    /// parent/child edge, while node padding insets every child of this node
+    /// and contributes to intrinsic measurement.
+    #[serde(default)]
+    pub layout_padding: UiMargin,
     /// Preserves an explicitly-authored stretch axis in linear layout instead of treating
     /// a default-looking stretch constraint as a content-driven fixed fallback.
     #[serde(default)]
@@ -83,6 +90,7 @@ impl UiTreeNode {
             pivot: Pivot::default(),
             position: Position::default(),
             container: UiContainerKind::default(),
+            layout_padding: UiMargin::default(),
             layout_stretch_width: false,
             layout_stretch_height: false,
             scroll_state: None,
@@ -181,6 +189,11 @@ impl UiTreeNode {
 
     pub fn with_container(mut self, container: UiContainerKind) -> Self {
         self.container = container;
+        self
+    }
+
+    pub fn with_layout_padding(mut self, layout_padding: UiMargin) -> Self {
+        self.layout_padding = layout_padding;
         self
     }
 

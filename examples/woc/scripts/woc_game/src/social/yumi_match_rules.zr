@@ -76,6 +76,8 @@ pub yumiAppliedDamage(amount: int, hp: int, elapsedTicks: int): int {
 // Resolve source resolveYumiTiebreak() after the per-match RNG owner supplies
 // its `rng.next() < 0.5` result as `coinFavorsA`. dmgToYumiB is Team A's
 // damage to the enemy cat, and therefore wins the second comparison.
+// 对局核心已经持有本局私有随机位时再比较生命、对猫伤害
+// 和最终掷币；本规则不自行抽样，避免平局重放改变随机游标。
 pub yumiTiebreakWinner(
     hpA: int,
     hpB: int,

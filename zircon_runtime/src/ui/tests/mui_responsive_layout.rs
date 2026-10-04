@@ -281,7 +281,7 @@ fn grid_item_slot(
 ) -> &zircon_runtime_interface::ui::layout::UiSlot {
     surface
         .tree
-        .slots
+        .layout_slots()
         .iter()
         .find(|slot| slot.child_id == child_id)
         .expect("mui grid item should have a slot")

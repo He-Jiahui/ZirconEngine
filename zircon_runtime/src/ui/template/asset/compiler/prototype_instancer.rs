@@ -156,10 +156,10 @@ impl<'a> PrototypeInstancer<'a> {
             .clone();
 
         match node.kind {
-            UiNodeDefinitionKind::Native => self.push_native_frame(task, &node, frames),
-            UiNodeDefinitionKind::Component => self.push_local_component_frame(task, &node, frames),
+            UiNodeDefinitionKind::Native => self.push_native_frame(task, node, frames),
+            UiNodeDefinitionKind::Component => self.push_local_component_frame(task, node, frames),
             UiNodeDefinitionKind::Reference => {
-                self.push_reference_component_frame(task, &node, frames)
+                self.push_reference_component_frame(task, node, frames)
             }
             UiNodeDefinitionKind::Slot => {
                 let slot_name =
@@ -183,28 +183,20 @@ impl<'a> PrototypeInstancer<'a> {
 
     fn push_native_frame(
         &self,
-        task: PrototypeExpandTask,
-        node: &UiNodePrototype,
+        mut task: PrototypeExpandTask,
+        mut node: UiNodePrototype,
         frames: &mut Vec<PrototypeFrame>,
     ) -> Result<(), UiAssetError> {
         let component = node
             .widget_type
-            .as_ref()
+            .take()
             .ok_or_else(|| UiAssetError::InvalidDocument {
                 asset_id: task.asset.asset.id.clone(),
                 detail: format!("native node {} missing type", node.node_id),
-            })?
-            .clone();
-        let child_mounts = node.children.clone();
-
-        frames.push(PrototypeFrame::FinalizeNative(PrototypeNativeFrame {
-            task: task.clone_without_slot_fills(),
-            component,
-            node: node.clone(),
-            child_mounts: child_mounts.clone(),
-        }));
-        for child in child_mounts.iter().rev() {
-            frames.push(PrototypeFrame::Expand(PrototypeExpandTask {
+            })?;
+        let mut child_frames = Vec::with_capacity(node.children.len());
+        for child in node.children.iter().rev() {
+            child_frames.push(PrototypeFrame::Expand(PrototypeExpandTask {
                 asset: Arc::clone(&task.asset),
                 node: child.child,
                 tokens: task.tokens.clone(),
@@ -214,29 +206,38 @@ impl<'a> PrototypeInstancer<'a> {
                 control_scope: task.control_scope.clone(),
             }));
         }
+        task.slot_fills = None;
+
+        frames.push(PrototypeFrame::FinalizeNative(PrototypeNativeFrame {
+            task,
+            component,
+            node,
+        }));
+        frames.extend(child_frames);
         Ok(())
     }
 
     fn push_local_component_frame(
         &self,
         task: PrototypeExpandTask,
-        node: &UiNodePrototype,
+        node: UiNodePrototype,
         frames: &mut Vec<PrototypeFrame>,
     ) -> Result<(), UiAssetError> {
-        let component_name =
-            node.component
-                .as_deref()
-                .ok_or_else(|| UiAssetError::InvalidDocument {
-                    asset_id: task.asset.asset.id.clone(),
-                    detail: format!("component node {} missing component name", node.node_id),
-                })?;
+        let component_name = node
+            .component
+            .as_ref()
+            .ok_or_else(|| UiAssetError::InvalidDocument {
+                asset_id: task.asset.asset.id.clone(),
+                detail: format!("component node {} missing component name", node.node_id),
+            })?
+            .clone();
         let component = task
             .asset
             .components
-            .get(component_name)
+            .get(&component_name)
             .ok_or_else(|| UiAssetError::UnknownComponent {
                 asset_id: task.asset.asset.id.clone(),
-                component: component_name.to_string(),
+                component: component_name.clone(),
             })?
             .clone();
         let component_asset = Arc::clone(&task.asset);
@@ -254,7 +255,7 @@ impl<'a> PrototypeInstancer<'a> {
     fn push_reference_component_frame(
         &self,
         task: PrototypeExpandTask,
-        node: &UiNodePrototype,
+        node: UiNodePrototype,
         frames: &mut Vec<PrototypeFrame>,
     ) -> Result<(), UiAssetError> {
         let reference =
@@ -279,7 +280,7 @@ impl<'a> PrototypeInstancer<'a> {
             task,
             node,
             asset,
-            &component_name,
+            component_name,
             component,
             Some(tokens),
             frames,
@@ -289,20 +290,15 @@ impl<'a> PrototypeInstancer<'a> {
     fn push_component_frame(
         &self,
         task: PrototypeExpandTask,
-        node: &UiNodePrototype,
+        node: UiNodePrototype,
         component_asset: Arc<UiRawAssetPrototype>,
-        component_name: &str,
+        component_name: String,
         component: UiComponentPrototype,
         call_tokens: Option<BTreeMap<String, Value>>,
         frames: &mut Vec<PrototypeFrame>,
     ) -> Result<(), UiAssetError> {
-        validate_prototype_slot_mounts(&task.asset, component_name, &component, &node.children)?;
+        validate_prototype_slot_mounts(&task.asset, &component_name, &component, &node.children)?;
 
-        let child_mounts = node.children.clone();
-        let call_tokens = call_tokens.unwrap_or_else(|| task.tokens.clone());
-        let caller_tokens = task.tokens.clone();
-        let params = task.params.clone();
-        let binding_params = task.binding_params.clone();
         let component_root =
             component_asset
                 .node(component.root)
@@ -316,32 +312,35 @@ impl<'a> PrototypeInstancer<'a> {
             component_root.control_id.as_deref(),
             node.control_id.as_deref(),
         );
-        frames.push(PrototypeFrame::FinalizeComponentFills(
-            PrototypeComponentFillsFrame {
-                caller_asset_id: task.asset.asset.id.clone(),
-                component_asset,
-                component_name: component_name.to_string(),
-                component,
-                instance_node: node.clone(),
-                call_tokens,
-                params: params.clone(),
-                binding_params: binding_params.clone(),
-                child_mounts: child_mounts.clone(),
-                caller_scope: task.control_scope.clone(),
-                component_scope,
-            },
-        ));
-        for child in child_mounts.iter().rev() {
-            frames.push(PrototypeFrame::Expand(PrototypeExpandTask {
+        let mut child_frames = Vec::with_capacity(node.children.len());
+        for child in node.children.iter().rev() {
+            child_frames.push(PrototypeFrame::Expand(PrototypeExpandTask {
                 asset: Arc::clone(&task.asset),
                 node: child.child,
-                tokens: caller_tokens.clone(),
-                params: params.clone(),
-                binding_params: binding_params.clone(),
+                tokens: task.tokens.clone(),
+                params: task.params.clone(),
+                binding_params: task.binding_params.clone(),
                 slot_fills: None,
                 control_scope: task.control_scope.clone(),
             }));
         }
+        let caller_asset_id = task.asset.asset.id.clone();
+        let call_tokens = call_tokens.unwrap_or(task.tokens);
+        frames.push(PrototypeFrame::FinalizeComponentFills(
+            PrototypeComponentFillsFrame {
+                caller_asset_id,
+                component_asset,
+                component_name,
+                component,
+                instance_node: node,
+                call_tokens,
+                params: task.params,
+                binding_params: task.binding_params,
+                caller_scope: task.control_scope,
+                component_scope,
+            },
+        ));
+        frames.extend(child_frames);
         Ok(())
     }
 
@@ -350,9 +349,9 @@ impl<'a> PrototypeInstancer<'a> {
         frame: PrototypeNativeFrame,
         results: &mut Vec<Vec<UiTemplateNode>>,
     ) -> Result<(), UiAssetError> {
-        let mut children = pop_child_results(results, frame.child_mounts.len())?;
+        let mut children = pop_child_results(results, frame.node.children.len())?;
         let mut mounted = Vec::new();
-        for (nodes, mount) in children.drain(..).zip(&frame.child_mounts) {
+        for (nodes, mount) in children.drain(..).zip(&frame.node.children) {
             mounted.extend(apply_prototype_child_mount(
                 nodes,
                 mount,
@@ -416,9 +415,9 @@ impl<'a> PrototypeInstancer<'a> {
                 .record_widget_styles(&frame.component_asset, &frame.call_tokens);
         }
 
-        let mut child_results = pop_child_results(results, frame.child_mounts.len())?;
+        let mut child_results = pop_child_results(results, frame.instance_node.children.len())?;
         let mut fills = BTreeMap::<String, Vec<UiTemplateNode>>::new();
-        for (nodes, mount) in child_results.drain(..).zip(&frame.child_mounts) {
+        for (nodes, mount) in child_results.drain(..).zip(&frame.instance_node.children) {
             let mount_name = mount.mount.clone().unwrap_or_default();
             fills
                 .entry(mount_name)
@@ -500,7 +499,6 @@ impl<'a> PrototypeInstancer<'a> {
     }
 }
 
-#[derive(Clone)]
 struct PrototypeExpandTask {
     asset: Arc<UiRawAssetPrototype>,
     node: UiPrototypeNodeHandle,
@@ -509,20 +507,6 @@ struct PrototypeExpandTask {
     binding_params: BTreeMap<String, UiValue>,
     slot_fills: Option<Arc<BTreeMap<String, Vec<UiTemplateNode>>>>,
     control_scope: Option<UiComponentControlScope>,
-}
-
-impl PrototypeExpandTask {
-    fn clone_without_slot_fills(&self) -> Self {
-        Self {
-            asset: Arc::clone(&self.asset),
-            node: self.node,
-            tokens: self.tokens.clone(),
-            params: self.params.clone(),
-            binding_params: self.binding_params.clone(),
-            slot_fills: None,
-            control_scope: self.control_scope.clone(),
-        }
-    }
 }
 
 enum PrototypeFrame {
@@ -536,7 +520,6 @@ struct PrototypeNativeFrame {
     task: PrototypeExpandTask,
     component: String,
     node: UiNodePrototype,
-    child_mounts: Vec<UiPrototypeChildMount>,
 }
 
 struct PrototypeComponentFillsFrame {
@@ -548,7 +531,6 @@ struct PrototypeComponentFillsFrame {
     call_tokens: BTreeMap<String, Value>,
     params: BTreeMap<String, Value>,
     binding_params: BTreeMap<String, UiValue>,
-    child_mounts: Vec<UiPrototypeChildMount>,
     caller_scope: Option<UiComponentControlScope>,
     component_scope: UiComponentControlScope,
 }
@@ -862,3 +844,7 @@ fn apply_prototype_inline_styles_iterative(root: &mut UiTemplateNode) {
         stack.extend(node.children.iter_mut());
     }
 }
+
+#[cfg(test)]
+#[path = "prototype_instancer/tests/optimization_batch_hp_runtime597_tests.rs"]
+mod optimization_batch_hp_runtime597_tests;

@@ -1,8 +1,7 @@
 ---
 related_code:
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
-  - tools/zircon-session.ps1
-  - tools/session_coordinator
+  - tools/dev/zircon-session.ps1
   - .github/workflows/ci.yml
   - .github/workflows/profile-feature-contract.yml
   - zircon_app

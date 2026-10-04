@@ -24,6 +24,8 @@ pub class CardDuelQueueCandidate {
     }
 }
 
+// 候选下标写入队列槽位后保持稳定；不得压缩候选数组，
+// 否则已入队句柄所指的玩家索引会失去归属。
 pub class CardDuelQueueCoordinator {
     pri var candidates: container.Array<CardDuelQueueCandidate>;
     pri var queue: queueModule.CardDuelQueue;
@@ -50,6 +52,8 @@ pub class CardDuelQueueCoordinator {
         candidate.queueGeneration = <uint>0;
     }
 
+    // 世界同步存活状态时只登记待清退对象；pairNext 再排空脏列表，
+    // 从而让一次固定步配对看到同一批资格变更且保留其余 FIFO 顺序。
     pub upsert(pid: uint, queueable: bool): void {
         if (pid == <uint>0) throw "card duel candidate id is invalid";
         var index = this.candidateIndex(pid);

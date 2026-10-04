@@ -1,3 +1,5 @@
+/// 根据分发清单选出的 crate 名生成当前平台产物名，供候选路径探测。
+/// crate 名应由调用方验证，本函数只应用平台动态库命名约定。
 pub(super) fn dynamic_library_file_name(crate_name: &str) -> String {
     #[cfg(target_os = "windows")]
     {
@@ -23,23 +25,5 @@ fn exact_dynamic_library_name(prefix: &str, crate_name: &str, suffix: &str) -> S
 }
 
 #[cfg(test)]
-mod tests {
-    use super::exact_dynamic_library_name;
-
-    #[test]
-    fn exact_dynamic_library_names_preserve_platform_conventions() {
-        let crate_name = "zircon_plugin_weather";
-        assert_eq!(
-            exact_dynamic_library_name("", crate_name, ".dll"),
-            "zircon_plugin_weather.dll"
-        );
-        assert_eq!(
-            exact_dynamic_library_name("lib", crate_name, ".dylib"),
-            "libzircon_plugin_weather.dylib"
-        );
-        assert_eq!(
-            exact_dynamic_library_name("lib", crate_name, ".so"),
-            "libzircon_plugin_weather.so"
-        );
-    }
-}
+#[path = "tests/dynamic_library_name.rs"]
+mod tests;

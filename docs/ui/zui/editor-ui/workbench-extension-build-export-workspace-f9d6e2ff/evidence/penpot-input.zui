@@ -1,0 +1,1764 @@
+penpot_host_theme_source = "zircon_editor/assets/ui/editor/theme/editor_tokens.zui"
+stylesheets = []
+penpot_dependency_sources = [ "zircon_editor/assets/ui/editor/theme/editor_tokens.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_property_row.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui", "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui", "zircon_editor/assets/icons/zircon_editor_shell/controls/search.svg", "zircon_editor/assets/icons/ionicons/close-outline.svg", "zircon_editor/assets/icons/zircon_editor_shell/controls/field-stepper.svg" ]
+penpot_original_source = "[asset]\nkind = \"component\"\nid = \"res://ui/editor/components/workbench/modules/extensions/production/workbench_extension_build_export_workspace.zui\"\nversion = 2\ndisplay_name = \"Workbench Extension Build Export Workspace\"\n\n[imports]\nwidgets = [\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton\",\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown\",\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField\",\n  \"res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow\",\n  \"res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow\",\n  \"res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle\",\n  \"res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow\",\n  \"res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow\",\n]\nstyles = []\n\n[components.WorkbenchExtensionBuildExportWorkspace]\nroot = \"build_export_workspace\"\ndefault_classes = [\"workbench-module-body\", \"workbench-extension-module-body\"]\n\n[nodes.build_export_workspace]\ncomponent = \"Overlay\"\ncontrol_id = \"WorkbenchExtensionBuildExportWorkspace\"\nclasses = [\"workbench-module-body\", \"workbench-extension-module-body\"]\nprops = { visibility = \"collapsed\" }\nlayout = { clip = true, container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [\n  { node = \"build_export_workspace_main\" },\n  { node = \"build_export_right\", slot = { layout = { alignment = { horizontal = \"End\", vertical = \"Fill\" }, z_order = 20 } } },\n]\n\n[nodes.build_export_workspace_main]\ncomponent = \"HorizontalGroup\"\nclasses = [\"workbench-module-layout-main\"]\nlayout = { clip = true, container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.medium\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"build_export_rail_gap\" }, { node = \"build_export_left\" }, { node = \"build_export_center\" }, { node = \"build_export_right_reserve\" }]\n\n[nodes.build_export_right_reserve]\ncomponent = \"Container\"\nclasses = [\"workbench-module-details-reserve\"]\nprops = { responsive_min_tier = \"wide\" }\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n[nodes.build_export_rail_gap]\ncomponent = \"Container\"\ncontrol_id = \"WorkbenchExtensionBuildExportRailGap\"\nprops = { responsive_min_tier = \"narrow\" }\nlayout = { width = { min = \"$editor.chrome.activity_rail.width\", preferred = \"$editor.chrome.activity_rail.width\", max = \"$editor.chrome.activity_rail.width\", stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.build_export_left]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"WorkbenchExtensionBuildExportLeftPanel\"\nclasses = [\"workbench-panel\", \"workbench-module-side\"]\nprops = { responsive_min_tier = \"narrow\" }\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"build_export_title\" }, { node = \"build_export_left_content\" }]\n\n[nodes.build_export_left_content]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchExtensionBuildExportLeftContent\"\nprops = { input_hoverable = true }\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = \"$editor.density.gap.small\", scrollbar_visibility = \"Auto\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"build_export_shipping_row\" }, { node = \"build_export_development_row\" }, { node = \"build_export_patch_row\" }]\n\n[nodes.build_export_title]\ncomponent = \"WorkbenchSectionTitle\"\ncontrol_id = \"WorkbenchExtensionBuildExportTitle\"\nprops = { text = \"Build Export\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = \"Fixed\" } }\n\n[nodes.build_export_shipping_row]\ncomponent = \"WorkbenchListRow\"\ncontrol_id = \"WorkbenchExtensionBuildExportShippingRow\"\nclasses = [\"workbench-list-row\", \"workbench-row-selected\"]\nprops = { text = \"Shipping Win64\", icon = \"package\", selected = true }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/BuildExportShippingRow\", event = \"Click\", route = \"workbench.extension.build_export.profile.shipping\" }]\n\n[nodes.build_export_development_row]\ncomponent = \"WorkbenchListRow\"\ncontrol_id = \"WorkbenchExtensionBuildExportDevelopmentRow\"\nclasses = [\"workbench-list-row\"]\nprops = { text = \"Development QA\", icon = \"gear\", selected = false }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/BuildExportDevelopmentRow\", event = \"Click\", route = \"workbench.extension.build_export.profile.development\" }]\n\n[nodes.build_export_patch_row]\ncomponent = \"WorkbenchListRow\"\ncontrol_id = \"WorkbenchExtensionBuildExportPatchRow\"\nclasses = [\"workbench-list-row\"]\nprops = { text = \"Patch 1.2\", icon = \"file\", selected = false }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/BuildExportPatchRow\", event = \"Click\", route = \"workbench.extension.build_export.profile.patch\" }]\n\n[nodes.build_export_center]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"WorkbenchExtensionBuildExportCenterPanel\"\nclasses = [\"workbench-panel\", \"workbench-module-center\"]\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"build_export_center_header\" }, { node = \"build_export_queue\" }, { node = \"build_export_output\" }]\n\n[nodes.build_export_center_header]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchExtensionBuildExportCenterHeader\"\nclasses = [\"workbench-panel-toolbar\"]\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Horizontal\", gap = \"$editor.density.gap.medium\", scrollbar_visibility = \"Never\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"build_export_center_title\" }, { node = \"build_export_header_fill\" }, { node = \"build_export_validate_button\" }, { node = \"build_export_package_button\" }]\n\n[nodes.build_export_center_title]\ncomponent = \"WorkbenchSectionTitle\"\ncontrol_id = \"WorkbenchExtensionBuildExportCenterTitle\"\nprops = { text = \"Package Queue\" }\nlayout = { width = { min = 220.0, preferred = 220.0, max = 280.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.build_export_header_fill]\ncomponent = \"Container\"\ncontrol_id = \"WorkbenchExtensionBuildExportHeaderFill\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.build_export_validate_button]\ncomponent = \"WorkbenchButton\"\ncontrol_id = \"WorkbenchExtensionBuildExportValidateButton\"\nclasses = [\"workbench-control-button\", \"workbench-module-command\"]\nprops = { text = \"Validate\", button_variant = \"outlined\", button_color = \"secondary\" }\nlayout = { width = { min = 86, preferred = 86, max = 96, stretch = \"Fixed\" }, height = { min = 28, preferred = 28, max = 28, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/BuildExportValidate\", event = \"Click\", route = \"workbench.extension.build_export.validate\" }]\n\n[nodes.build_export_package_button]\ncomponent = \"WorkbenchButton\"\ncontrol_id = \"WorkbenchExtensionBuildExportPackageButton\"\nclasses = [\"workbench-control-button\", \"workbench-module-command\"]\nprops = { text = \"Package\", button_variant = \"filled\", button_color = \"accent\" }\nlayout = { width = { min = 88, preferred = 88, max = 98, stretch = \"Fixed\" }, height = { min = 28, preferred = 28, max = 28, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/BuildExportPackage\", event = \"Click\", route = \"workbench.extension.build_export.package\" }]\n\n[nodes.build_export_queue]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchExtensionBuildExportQueue\"\nclasses = [\"workbench-panel\", \"workbench-module-canvas\"]\nprops = { input_hoverable = true }\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = 0.0, scrollbar_visibility = \"Auto\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"build_export_cook_step_row\" }, { node = \"build_export_pak_step_row\" }, { node = \"build_export_sign_step_row\" }, { node = \"build_export_publish_step_row\" }]\n\n[nodes.build_export_cook_step_row]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionBuildExportCookStepRow\"\nclasses = [\"workbench-table-row\", \"workbench-row-selected\"]\nprops = { text = \"Cook Content\", value_text = \"Running   62%   Selected\", options = [\"Cook Content\",\"Running\",\"62%\",\"Selected\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/BuildExportCookStepRow\", event = \"Click\", route = \"workbench.extension.build_export.step.cook\" }]\n\n[nodes.build_export_pak_step_row]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionBuildExportPakStepRow\"\nclasses = [\"workbench-table-row\"]\nprops = { text = \"Package Paks\", value_text = \"Queued   0%   Waiting\", options = [\"Package Paks\",\"Queued\",\"0%\",\"Waiting\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/BuildExportPakStepRow\", event = \"Click\", route = \"workbench.extension.build_export.step.pak\" }]\n\n[nodes.build_export_sign_step_row]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionBuildExportSignStepRow\"\nclasses = [\"workbench-table-row\"]\nprops = { text = \"Sign Installer\", value_text = \"Ready   Cert OK   Waiting\", options = [\"Sign Installer\",\"Ready\",\"Cert OK\",\"Waiting\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/BuildExportSignStepRow\", event = \"Click\", route = \"workbench.extension.build_export.step.sign\" }]\n\n[nodes.build_export_publish_step_row]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionBuildExportPublishStepRow\"\nclasses = [\"workbench-table-row\"]\nprops = { text = \"Publish Build\", value_text = \"Waiting   CDN   Pending\", options = [\"Publish Build\",\"Waiting\",\"CDN\",\"Pending\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchExtension/BuildExportPublishStepRow\", event = \"Click\", route = \"workbench.extension.build_export.step.publish\" }]\n\n[nodes.build_export_output]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchExtensionBuildExportOutputRow\"\nclasses = [\"workbench-table-row\"]\nprops = { text = \"Export\", value_text = \"Win64 Shipping   62%   4 steps\", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false, options = [\"Export\",\"Win64 Shipping\",\"62%\",\"4 steps\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\n\n[nodes.build_export_right]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"WorkbenchExtensionBuildExportRightPanel\"\nclasses = [\"workbench-panel\", \"workbench-module-side\"]\nprops = { responsive_min_tier = \"wide\", responsive_compact_drawer = \"module_details\" }\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"build_export_details_title\" }, { node = \"build_export_right_content\" }]\n\n[nodes.build_export_right_content]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchExtensionBuildExportRightContent\"\nprops = { input_hoverable = true }\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = \"$editor.density.gap.small\", scrollbar_visibility = \"Auto\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"build_export_platform_dropdown_property_row\" }, { node = \"build_export_channel_field_property_row\" }, { node = \"build_export_compression_dropdown_property_row\" }]\n\n[nodes.build_export_details_title]\ncomponent = \"WorkbenchSectionTitle\"\ncontrol_id = \"WorkbenchExtensionBuildExportDetailsTitle\"\nprops = { text = \"Details\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = \"Fixed\" } }\n\n[nodes.build_export_platform_dropdown_property_row]\ncomponent = \"WorkbenchPropertyEditorRow\"\ncontrol_id = \"WorkbenchExtensionBuildExportPlatformDropdownPropertyRow\"\nprops = { text = \"Platform\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"build_export_platform_dropdown\", slot = { name = \"value\" } }]\n\n[nodes.build_export_platform_dropdown]\ncomponent = \"WorkbenchDropdown\"\ncontrol_id = \"WorkbenchExtensionBuildExportPlatformDropdown\"\nclasses = [\"workbench-dropdown\", \"workbench-component-dropdown\"]\nprops = { value_text = \"Win64\", value = \"Win64\", options = [\"Win64\", \"Linux\", \"Android\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\nevents = [\n  { id = \"WorkbenchExtension/BuildExportPlatformEdit\", event = \"Change\", route = \"workbench.extension.build_export.platform.edit\" },\n  { id = \"WorkbenchExtension/BuildExportPlatformCommit\", event = \"Submit\", route = \"workbench.extension.build_export.platform.commit\" },\n]\n\n[nodes.build_export_channel_field_property_row]\ncomponent = \"WorkbenchPropertyEditorRow\"\ncontrol_id = \"WorkbenchExtensionBuildExportChannelFieldPropertyRow\"\nprops = { text = \"Channel\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"build_export_channel_field\", slot = { name = \"value\" } }]\n\n[nodes.build_export_channel_field]\ncomponent = \"WorkbenchField\"\ncontrol_id = \"WorkbenchExtensionBuildExportChannelField\"\nclasses = [\"workbench-field\", \"workbench-component-field\"]\nprops = { value = \"ReleaseCandidate\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\nevents = [\n  { id = \"WorkbenchExtension/BuildExportChannelEdit\", event = \"Change\", route = \"workbench.extension.build_export.channel.edit\" },\n  { id = \"WorkbenchExtension/BuildExportChannelCommit\", event = \"Submit\", route = \"workbench.extension.build_export.channel.commit\" },\n]\n\n[nodes.build_export_compression_dropdown_property_row]\ncomponent = \"WorkbenchPropertyEditorRow\"\ncontrol_id = \"WorkbenchExtensionBuildExportCompressionDropdownPropertyRow\"\nprops = { text = \"Compression\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"build_export_compression_dropdown\", slot = { name = \"value\" } }]\n\n[nodes.build_export_compression_dropdown]\ncomponent = \"WorkbenchDropdown\"\ncontrol_id = \"WorkbenchExtensionBuildExportCompressionDropdown\"\nclasses = [\"workbench-dropdown\", \"workbench-component-dropdown\"]\nprops = { value_text = \"Oodle\", value = \"Oodle\", options = [\"Oodle\", \"Zstd\", \"None\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\nevents = [\n  { id = \"WorkbenchExtension/BuildExportCompressionEdit\", event = \"Change\", route = \"workbench.extension.build_export.compression.edit\" },\n  { id = \"WorkbenchExtension/BuildExportCompressionCommit\", event = \"Submit\", route = \"workbench.extension.build_export.compression.commit\" },\n]\n"
+
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/extensions/production/workbench_extension_build_export_workspace.zui"
+version = 2
+display_name = "Workbench Extension Build Export Workspace"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchExtensionBuildExportWorkspace]
+root = "build_export_workspace"
+default_classes = [ "workbench-module-body", "workbench-extension-module-body" ]
+
+[nodes.build_export_workspace]
+component = "Overlay"
+control_id = "WorkbenchExtensionBuildExportWorkspace"
+classes = [ "workbench-module-body", "workbench-extension-module-body" ]
+
+[nodes.build_export_workspace.props]
+visibility = "visible"
+
+[nodes.build_export_workspace.layout]
+clip = true
+
+[nodes.build_export_workspace.layout.container]
+kind = "Overlay"
+
+[nodes.build_export_workspace.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_workspace.layout.height]
+stretch = "Stretch"
+
+[[nodes.build_export_workspace.children]]
+node = "build_export_workspace_main"
+
+[[nodes.build_export_workspace.children]]
+node = "build_export_right"
+
+[nodes.build_export_workspace.children.slot.layout]
+z_order = 20
+
+[nodes.build_export_workspace.children.slot.layout.alignment]
+horizontal = "End"
+vertical = "Fill"
+
+[nodes.build_export_workspace_main]
+component = "HorizontalGroup"
+classes = [ "workbench-module-layout-main" ]
+
+[nodes.build_export_workspace_main.layout]
+clip = true
+
+[nodes.build_export_workspace_main.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.build_export_workspace_main.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_workspace_main.layout.height]
+stretch = "Stretch"
+
+[[nodes.build_export_workspace_main.children]]
+node = "build_export_rail_gap"
+
+[[nodes.build_export_workspace_main.children]]
+node = "build_export_left"
+
+[[nodes.build_export_workspace_main.children]]
+node = "build_export_center"
+
+[[nodes.build_export_workspace_main.children]]
+node = "build_export_right_reserve"
+
+[nodes.build_export_right_reserve]
+component = "Container"
+classes = [ "workbench-module-details-reserve" ]
+
+[nodes.build_export_right_reserve.props]
+responsive_min_tier = "wide"
+
+[nodes.build_export_right_reserve.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.build_export_right_reserve.layout.width]
+min = 320
+preferred = 320
+max = 340
+stretch = "Fixed"
+
+[nodes.build_export_right_reserve.layout.height]
+stretch = "Stretch"
+
+[nodes.build_export_rail_gap]
+component = "Container"
+control_id = "WorkbenchExtensionBuildExportRailGap"
+
+[nodes.build_export_rail_gap.props]
+responsive_min_tier = "narrow"
+
+[nodes.build_export_rail_gap.layout.width]
+min = "$editor.chrome.activity_rail.width"
+preferred = "$editor.chrome.activity_rail.width"
+max = "$editor.chrome.activity_rail.width"
+stretch = "Fixed"
+
+[nodes.build_export_rail_gap.layout.height]
+stretch = "Stretch"
+
+[nodes.build_export_left]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionBuildExportLeftPanel"
+classes = [ "workbench-panel", "workbench-module-side" ]
+
+[nodes.build_export_left.props]
+responsive_min_tier = "narrow"
+
+[nodes.build_export_left.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.build_export_left.layout.width]
+min = 270
+preferred = 270
+max = 290
+stretch = "Fixed"
+
+[nodes.build_export_left.layout.height]
+stretch = "Stretch"
+
+[[nodes.build_export_left.children]]
+node = "build_export_title"
+
+[[nodes.build_export_left.children]]
+node = "build_export_left_content"
+
+[nodes.build_export_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionBuildExportLeftContent"
+
+[nodes.build_export_left_content.props]
+input_hoverable = true
+
+[nodes.build_export_left_content.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.build_export_left_content.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = "$editor.density.gap.small"
+scrollbar_visibility = "Auto"
+
+[nodes.build_export_left_content.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_left_content.layout.height]
+stretch = "Stretch"
+
+[[nodes.build_export_left_content.children]]
+node = "build_export_shipping_row"
+
+[[nodes.build_export_left_content.children]]
+node = "build_export_development_row"
+
+[[nodes.build_export_left_content.children]]
+node = "build_export_patch_row"
+
+[nodes.build_export_title]
+component = "Label"
+control_id = "WorkbenchExtensionBuildExportTitle"
+classes = [ "workbench-section-title", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle"
+
+[nodes.build_export_title.props]
+text = "Build Export"
+text_overflow = "ellipsis"
+component_variant = "section-title"
+font_size = "$editor.typography.heading.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "primary"
+
+[nodes.build_export_title.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_title.layout.height]
+min = 28
+preferred = 28
+max = 30
+stretch = "Fixed"
+
+[nodes.build_export_title.state]
+[nodes.build_export_title.style.self]
+[nodes.build_export_title.style.slot]
+[nodes.build_export_title.slots]
+[nodes.build_export_shipping_row]
+component = "ListRow"
+control_id = "WorkbenchExtensionBuildExportShippingRow"
+classes = [ "workbench-list-row", "workbench-primitive", "workbench-row-selected" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow"
+
+[nodes.build_export_shipping_row.props]
+text = "Shipping Win64"
+text_overflow = "ellipsis"
+value = "item"
+selected = true
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+icon = "package"
+
+[nodes.build_export_shipping_row.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_shipping_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.build_export_shipping_row.events]]
+id = "WorkbenchExtension/BuildExportShippingRow"
+event = "Click"
+route = "workbench.extension.build_export.profile.shipping"
+
+[nodes.build_export_shipping_row.state]
+[nodes.build_export_shipping_row.style.self]
+[nodes.build_export_shipping_row.style.slot]
+[nodes.build_export_shipping_row.slots]
+[nodes.build_export_development_row]
+component = "ListRow"
+control_id = "WorkbenchExtensionBuildExportDevelopmentRow"
+classes = [ "workbench-list-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow"
+
+[nodes.build_export_development_row.props]
+text = "Development QA"
+text_overflow = "ellipsis"
+value = "item"
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+icon = "gear"
+
+[nodes.build_export_development_row.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_development_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.build_export_development_row.events]]
+id = "WorkbenchExtension/BuildExportDevelopmentRow"
+event = "Click"
+route = "workbench.extension.build_export.profile.development"
+
+[nodes.build_export_development_row.state]
+[nodes.build_export_development_row.style.self]
+[nodes.build_export_development_row.style.slot]
+[nodes.build_export_development_row.slots]
+[nodes.build_export_patch_row]
+component = "ListRow"
+control_id = "WorkbenchExtensionBuildExportPatchRow"
+classes = [ "workbench-list-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow"
+
+[nodes.build_export_patch_row.props]
+text = "Patch 1.2"
+text_overflow = "ellipsis"
+value = "item"
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+icon = "file"
+
+[nodes.build_export_patch_row.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_patch_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.build_export_patch_row.events]]
+id = "WorkbenchExtension/BuildExportPatchRow"
+event = "Click"
+route = "workbench.extension.build_export.profile.patch"
+
+[nodes.build_export_patch_row.state]
+[nodes.build_export_patch_row.style.self]
+[nodes.build_export_patch_row.style.slot]
+[nodes.build_export_patch_row.slots]
+[nodes.build_export_center]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionBuildExportCenterPanel"
+classes = [ "workbench-panel", "workbench-module-center" ]
+
+[nodes.build_export_center.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.build_export_center.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_center.layout.height]
+stretch = "Stretch"
+
+[[nodes.build_export_center.children]]
+node = "build_export_center_header"
+
+[[nodes.build_export_center.children]]
+node = "build_export_queue"
+
+[[nodes.build_export_center.children]]
+node = "build_export_output"
+
+[nodes.build_export_center_header]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionBuildExportCenterHeader"
+classes = [ "workbench-panel-toolbar" ]
+
+[nodes.build_export_center_header.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.build_export_center_header.layout.container]
+kind = "ScrollableBox"
+axis = "Horizontal"
+gap = "$editor.density.gap.medium"
+scrollbar_visibility = "Never"
+
+[nodes.build_export_center_header.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_center_header.layout.height]
+min = 34
+preferred = 34
+max = 36
+stretch = "Fixed"
+
+[[nodes.build_export_center_header.children]]
+node = "build_export_center_title"
+
+[[nodes.build_export_center_header.children]]
+node = "build_export_header_fill"
+
+[[nodes.build_export_center_header.children]]
+node = "build_export_validate_button"
+
+[[nodes.build_export_center_header.children]]
+node = "build_export_package_button"
+
+[nodes.build_export_center_title]
+component = "Label"
+control_id = "WorkbenchExtensionBuildExportCenterTitle"
+classes = [ "workbench-section-title", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle"
+
+[nodes.build_export_center_title.props]
+text = "Package Queue"
+text_overflow = "ellipsis"
+component_variant = "section-title"
+font_size = "$editor.typography.heading.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "primary"
+
+[nodes.build_export_center_title.layout.width]
+stretch = "Fixed"
+min = 220
+preferred = 220
+max = 280
+
+[nodes.build_export_center_title.layout.height]
+min = "$editor.control.height.dense"
+preferred = "$editor.control.height.dense"
+max = "$editor.control.height.compact"
+stretch = "Stretch"
+
+[nodes.build_export_center_title.state]
+[nodes.build_export_center_title.style.self]
+[nodes.build_export_center_title.style.slot]
+[nodes.build_export_center_title.slots]
+[nodes.build_export_header_fill]
+component = "Container"
+control_id = "WorkbenchExtensionBuildExportHeaderFill"
+
+[nodes.build_export_header_fill.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_header_fill.layout.height]
+stretch = "Stretch"
+
+[nodes.build_export_validate_button]
+component = "Button"
+control_id = "WorkbenchExtensionBuildExportValidateButton"
+classes = [ "workbench-control-button", "workbench-primitive", "workbench-module-command" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton"
+
+[nodes.build_export_validate_button.props]
+text = "Validate"
+text_overflow = "ellipsis"
+text_align = "center"
+button_variant = "outlined"
+button_color = "secondary"
+button_size = "small"
+button_interaction_state = "normal"
+validation_level = "normal"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font = "res://fonts/editor-ui.font.toml"
+font_family = "Fira Sans"
+font_weight = "$editor.typography.strong.weight"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.large"
+layout_padding_right = "$editor.density.gap.large"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.medium"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.build_export_validate_button.layout.width]
+stretch = "Fixed"
+min = 86
+preferred = 86
+max = 96
+
+[nodes.build_export_validate_button.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[[nodes.build_export_validate_button.events]]
+id = "WorkbenchExtension/BuildExportValidate"
+event = "Click"
+route = "workbench.extension.build_export.validate"
+
+[nodes.build_export_validate_button.state]
+[nodes.build_export_validate_button.style.self]
+[nodes.build_export_validate_button.style.slot]
+[nodes.build_export_validate_button.slots]
+[nodes.build_export_package_button]
+component = "Button"
+control_id = "WorkbenchExtensionBuildExportPackageButton"
+classes = [ "workbench-control-button", "workbench-primitive", "workbench-module-command" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton"
+
+[nodes.build_export_package_button.props]
+text = "Package"
+text_overflow = "ellipsis"
+text_align = "center"
+button_variant = "filled"
+button_color = "accent"
+button_size = "small"
+button_interaction_state = "normal"
+validation_level = "normal"
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+selected_background_color = "$editor.surface.selected"
+selected_border_color = "$editor.accent"
+selected_foreground_color = "$editor.text.primary"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font = "res://fonts/editor-ui.font.toml"
+font_family = "Fira Sans"
+font_weight = "$editor.typography.strong.weight"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.large"
+layout_padding_right = "$editor.density.gap.large"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.medium"
+layout_min_width = "$editor.control.height.default"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.build_export_package_button.layout.width]
+stretch = "Fixed"
+min = 88
+preferred = 88
+max = 98
+
+[nodes.build_export_package_button.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[[nodes.build_export_package_button.events]]
+id = "WorkbenchExtension/BuildExportPackage"
+event = "Click"
+route = "workbench.extension.build_export.package"
+
+[nodes.build_export_package_button.state]
+[nodes.build_export_package_button.style.self]
+[nodes.build_export_package_button.style.slot]
+[nodes.build_export_package_button.slots]
+[nodes.build_export_queue]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionBuildExportQueue"
+classes = [ "workbench-panel", "workbench-module-canvas" ]
+
+[nodes.build_export_queue.props]
+input_hoverable = true
+
+[nodes.build_export_queue.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.build_export_queue.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = 0
+scrollbar_visibility = "Auto"
+
+[nodes.build_export_queue.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_queue.layout.height]
+stretch = "Stretch"
+
+[[nodes.build_export_queue.children]]
+node = "build_export_cook_step_row"
+
+[[nodes.build_export_queue.children]]
+node = "build_export_pak_step_row"
+
+[[nodes.build_export_queue.children]]
+node = "build_export_sign_step_row"
+
+[[nodes.build_export_queue.children]]
+node = "build_export_publish_step_row"
+
+[nodes.build_export_cook_step_row]
+component = "Table"
+control_id = "WorkbenchExtensionBuildExportCookStepRow"
+classes = [ "workbench-table-row", "workbench-primitive", "workbench-row-selected" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.build_export_cook_step_row.props]
+text = "Cook Content"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Cook Content", "Running", "62%", "Selected" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+value_text = "Running   62%   Selected"
+
+[nodes.build_export_cook_step_row.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_cook_step_row.layout.height]
+min = 30
+preferred = 30
+max = 32
+stretch = "Fixed"
+
+[[nodes.build_export_cook_step_row.events]]
+id = "WorkbenchExtension/BuildExportCookStepRow"
+event = "Click"
+route = "workbench.extension.build_export.step.cook"
+
+[nodes.build_export_cook_step_row.state]
+[nodes.build_export_cook_step_row.style.self]
+[nodes.build_export_cook_step_row.style.slot]
+[nodes.build_export_cook_step_row.slots]
+[nodes.build_export_pak_step_row]
+component = "Table"
+control_id = "WorkbenchExtensionBuildExportPakStepRow"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.build_export_pak_step_row.props]
+text = "Package Paks"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Package Paks", "Queued", "0%", "Waiting" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+value_text = "Queued   0%   Waiting"
+
+[nodes.build_export_pak_step_row.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_pak_step_row.layout.height]
+min = 30
+preferred = 30
+max = 32
+stretch = "Fixed"
+
+[[nodes.build_export_pak_step_row.events]]
+id = "WorkbenchExtension/BuildExportPakStepRow"
+event = "Click"
+route = "workbench.extension.build_export.step.pak"
+
+[nodes.build_export_pak_step_row.state]
+[nodes.build_export_pak_step_row.style.self]
+[nodes.build_export_pak_step_row.style.slot]
+[nodes.build_export_pak_step_row.slots]
+[nodes.build_export_sign_step_row]
+component = "Table"
+control_id = "WorkbenchExtensionBuildExportSignStepRow"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.build_export_sign_step_row.props]
+text = "Sign Installer"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Sign Installer", "Ready", "Cert OK", "Waiting" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+value_text = "Ready   Cert OK   Waiting"
+
+[nodes.build_export_sign_step_row.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_sign_step_row.layout.height]
+min = 30
+preferred = 30
+max = 32
+stretch = "Fixed"
+
+[[nodes.build_export_sign_step_row.events]]
+id = "WorkbenchExtension/BuildExportSignStepRow"
+event = "Click"
+route = "workbench.extension.build_export.step.sign"
+
+[nodes.build_export_sign_step_row.state]
+[nodes.build_export_sign_step_row.style.self]
+[nodes.build_export_sign_step_row.style.slot]
+[nodes.build_export_sign_step_row.slots]
+[nodes.build_export_publish_step_row]
+component = "Table"
+control_id = "WorkbenchExtensionBuildExportPublishStepRow"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.build_export_publish_step_row.props]
+text = "Publish Build"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Publish Build", "Waiting", "CDN", "Pending" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+value_text = "Waiting   CDN   Pending"
+
+[nodes.build_export_publish_step_row.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_publish_step_row.layout.height]
+min = 30
+preferred = 30
+max = 32
+stretch = "Fixed"
+
+[[nodes.build_export_publish_step_row.events]]
+id = "WorkbenchExtension/BuildExportPublishStepRow"
+event = "Click"
+route = "workbench.extension.build_export.step.publish"
+
+[nodes.build_export_publish_step_row.state]
+[nodes.build_export_publish_step_row.style.self]
+[nodes.build_export_publish_step_row.style.slot]
+[nodes.build_export_publish_step_row.slots]
+[nodes.build_export_output]
+component = "Table"
+control_id = "WorkbenchExtensionBuildExportOutputRow"
+classes = [ "workbench-table-row", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
+
+[nodes.build_export_output.props]
+text = "Export"
+text_overflow = "ellipsis"
+value = "row"
+options = [ "Export", "Win64 Shipping", "62%", "4 steps" ]
+selected = false
+focused = false
+hovered = false
+pressed = false
+background_color = "$editor.surface.1"
+hover_background_color = "$editor.surface.hover"
+selected_background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.accent.soft"
+pressed_background_color = "$editor.surface.3"
+disabled_background_color = "$editor.surface.disabled"
+separator_color = "$editor.separator.soft"
+focus_border_color = "$editor.focus.ring"
+foreground_color = "$editor.text.primary"
+secondary_foreground_color = "$editor.text.secondary"
+selected_foreground_color = "$editor.text.primary"
+disabled_foreground_color = "$editor.text.disabled"
+icon_color = "$editor.text.secondary"
+selected_icon_color = "$editor.text.primary"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.small"
+font_size = "$editor.typography.caption.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_spacing = "$editor.density.gap.small"
+layout_icon_size = "$editor.density.gap.large"
+layout_action_gap = "$editor.density.gap.medium"
+layout_min_width = 360
+layout_min_height = 28
+layout_first_cell_offset_x = "$editor.density.gap.small"
+input_interactive = false
+input_clickable = false
+input_hoverable = false
+input_focusable = false
+value_text = "Win64 Shipping   62%   4 steps"
+
+[nodes.build_export_output.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_output.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[nodes.build_export_output.state]
+[nodes.build_export_output.style.self]
+[nodes.build_export_output.style.slot]
+[nodes.build_export_output.slots]
+[nodes.build_export_right]
+component = "VerticalGroup"
+control_id = "WorkbenchExtensionBuildExportRightPanel"
+classes = [ "workbench-panel", "workbench-module-side" ]
+
+[nodes.build_export_right.props]
+responsive_min_tier = "wide"
+responsive_compact_drawer = "module_details"
+
+[nodes.build_export_right.layout]
+z_order = 20
+
+[nodes.build_export_right.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.medium"
+
+[nodes.build_export_right.layout.width]
+min = 320
+preferred = 320
+max = 340
+stretch = "Fixed"
+
+[nodes.build_export_right.layout.height]
+stretch = "Stretch"
+
+[nodes.build_export_right.layout.alignment]
+horizontal = "End"
+vertical = "Fill"
+
+[nodes.build_export_right.layout.anchor]
+x = 1
+
+[nodes.build_export_right.layout.pivot]
+x = 1
+
+[[nodes.build_export_right.children]]
+node = "build_export_details_title"
+
+[[nodes.build_export_right.children]]
+node = "build_export_right_content"
+
+[nodes.build_export_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionBuildExportRightContent"
+
+[nodes.build_export_right_content.props]
+input_hoverable = true
+
+[nodes.build_export_right_content.layout]
+clip = true
+input_policy = "Receive"
+
+[nodes.build_export_right_content.layout.container]
+kind = "ScrollableBox"
+axis = "Vertical"
+gap = "$editor.density.gap.small"
+scrollbar_visibility = "Auto"
+
+[nodes.build_export_right_content.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_right_content.layout.height]
+stretch = "Stretch"
+
+[[nodes.build_export_right_content.children]]
+node = "build_export_platform_dropdown_property_row"
+
+[[nodes.build_export_right_content.children]]
+node = "build_export_channel_field_property_row"
+
+[[nodes.build_export_right_content.children]]
+node = "build_export_compression_dropdown_property_row"
+
+[nodes.build_export_details_title]
+component = "Label"
+control_id = "WorkbenchExtensionBuildExportDetailsTitle"
+classes = [ "workbench-section-title", "workbench-primitive" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle"
+
+[nodes.build_export_details_title.props]
+text = "Details"
+text_overflow = "ellipsis"
+component_variant = "section-title"
+font_size = "$editor.typography.heading.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "primary"
+
+[nodes.build_export_details_title.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_details_title.layout.height]
+min = 28
+preferred = 28
+max = 30
+stretch = "Fixed"
+
+[nodes.build_export_details_title.state]
+[nodes.build_export_details_title.style.self]
+[nodes.build_export_details_title.style.slot]
+[nodes.build_export_details_title.slots]
+[nodes.build_export_platform_dropdown_property_row]
+component = "PropertyRow"
+control_id = "WorkbenchExtensionBuildExportPlatformDropdownPropertyRow"
+classes = [ "workbench-property-editor-row", "workbench-composite" ]
+events = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow"
+
+[nodes.build_export_platform_dropdown_property_row.props]
+text = "Platform"
+
+[nodes.build_export_platform_dropdown_property_row.layout]
+clip = true
+
+[nodes.build_export_platform_dropdown_property_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.build_export_platform_dropdown_property_row.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_platform_dropdown_property_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.build_export_platform_dropdown_property_row.children]]
+node = "build_export_platform_dropdown_property_row__name_column"
+
+[[nodes.build_export_platform_dropdown_property_row.children]]
+node = "build_export_platform_dropdown"
+
+[nodes.build_export_platform_dropdown_property_row.children.slot]
+name = "value"
+
+[nodes.build_export_platform_dropdown_property_row.children.slot.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_platform_dropdown_property_row.children.slot.layout.height]
+stretch = "Stretch"
+
+[nodes.build_export_platform_dropdown_property_row.state]
+[nodes.build_export_platform_dropdown_property_row.style.self]
+[nodes.build_export_platform_dropdown_property_row.style.slot]
+[nodes.build_export_platform_dropdown_property_row.slots]
+[nodes.build_export_platform_dropdown]
+component = "Dropdown"
+control_id = "WorkbenchExtensionBuildExportPlatformDropdown"
+pixel_snapping = "disabled"
+classes = [ "workbench-field", "workbench-dropdown", "workbench-primitive", "workbench-component-dropdown" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown"
+
+[nodes.build_export_platform_dropdown.props]
+value = "Win64"
+value_text = "Win64"
+options = [ "Win64", "Linux", "Android" ]
+multiple = false
+popup_open = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+selection_state = "single"
+validation_level = "normal"
+background_color = "$editor.surface.recessed"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+open_background_color = "$editor.accent.soft"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+label_color = "$editor.text.secondary"
+icon_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+horizontal_inset = "$editor.density.gap.medium"
+caret_size = "$editor.typography.overlay.size"
+caret_right_inset = "$editor.density.gap.large"
+caret_gap = "$editor.density.gap.small"
+label_top = "$editor.control.border_width"
+label_font_size = "$editor.typography.caption.size"
+label_line_height_ratio = "$editor.typography.line_height"
+value_bottom_inset = "$editor.control.border_width"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.control.border_width"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.build_export_platform_dropdown.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_platform_dropdown.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Stretch"
+
+[[nodes.build_export_platform_dropdown.events]]
+id = "WorkbenchExtension/BuildExportPlatformEdit"
+event = "Change"
+route = "workbench.extension.build_export.platform.edit"
+
+[[nodes.build_export_platform_dropdown.events]]
+id = "WorkbenchExtension/BuildExportPlatformCommit"
+event = "Submit"
+route = "workbench.extension.build_export.platform.commit"
+
+[nodes.build_export_platform_dropdown.state]
+[nodes.build_export_platform_dropdown.style.self]
+[nodes.build_export_platform_dropdown.style.slot]
+[nodes.build_export_platform_dropdown.slots]
+[nodes.build_export_channel_field_property_row]
+component = "PropertyRow"
+control_id = "WorkbenchExtensionBuildExportChannelFieldPropertyRow"
+classes = [ "workbench-property-editor-row", "workbench-composite" ]
+events = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow"
+
+[nodes.build_export_channel_field_property_row.props]
+text = "Channel"
+
+[nodes.build_export_channel_field_property_row.layout]
+clip = true
+
+[nodes.build_export_channel_field_property_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.build_export_channel_field_property_row.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_channel_field_property_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.build_export_channel_field_property_row.children]]
+node = "build_export_channel_field_property_row__name_column"
+
+[[nodes.build_export_channel_field_property_row.children]]
+node = "build_export_channel_field"
+
+[nodes.build_export_channel_field_property_row.children.slot]
+name = "value"
+
+[nodes.build_export_channel_field_property_row.children.slot.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_channel_field_property_row.children.slot.layout.height]
+stretch = "Stretch"
+
+[nodes.build_export_channel_field_property_row.state]
+[nodes.build_export_channel_field_property_row.style.self]
+[nodes.build_export_channel_field_property_row.style.slot]
+[nodes.build_export_channel_field_property_row.slots]
+[nodes.build_export_channel_field]
+component = "InputField"
+control_id = "WorkbenchExtensionBuildExportChannelField"
+classes = [ "workbench-field", "workbench-primitive", "workbench-component-field" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField"
+
+[nodes.build_export_channel_field.props]
+value = "ReleaseCandidate"
+placeholder = ""
+validation_level = "normal"
+focused = false
+hovered = false
+disabled = false
+editable_text = true
+background_color = "$editor.surface.recessed"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+focused_background_color = "$editor.surface.recessed"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.separator.soft"
+hover_border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+placeholder_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.build_export_channel_field.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_channel_field.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Stretch"
+
+[[nodes.build_export_channel_field.events]]
+id = "WorkbenchExtension/BuildExportChannelEdit"
+event = "Change"
+route = "workbench.extension.build_export.channel.edit"
+
+[[nodes.build_export_channel_field.events]]
+id = "WorkbenchExtension/BuildExportChannelCommit"
+event = "Submit"
+route = "workbench.extension.build_export.channel.commit"
+
+[nodes.build_export_channel_field.state]
+[nodes.build_export_channel_field.style.self]
+[nodes.build_export_channel_field.style.slot]
+[nodes.build_export_channel_field.slots]
+[nodes.build_export_compression_dropdown_property_row]
+component = "PropertyRow"
+control_id = "WorkbenchExtensionBuildExportCompressionDropdownPropertyRow"
+classes = [ "workbench-property-editor-row", "workbench-composite" ]
+events = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow"
+
+[nodes.build_export_compression_dropdown_property_row.props]
+text = "Compression"
+
+[nodes.build_export_compression_dropdown_property_row.layout]
+clip = true
+
+[nodes.build_export_compression_dropdown_property_row.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.small"
+
+[nodes.build_export_compression_dropdown_property_row.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_compression_dropdown_property_row.layout.height]
+min = 32
+preferred = 32
+max = 34
+stretch = "Fixed"
+
+[[nodes.build_export_compression_dropdown_property_row.children]]
+node = "build_export_compression_dropdown_property_row__name_column"
+
+[[nodes.build_export_compression_dropdown_property_row.children]]
+node = "build_export_compression_dropdown"
+
+[nodes.build_export_compression_dropdown_property_row.children.slot]
+name = "value"
+
+[nodes.build_export_compression_dropdown_property_row.children.slot.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_compression_dropdown_property_row.children.slot.layout.height]
+stretch = "Stretch"
+
+[nodes.build_export_compression_dropdown_property_row.state]
+[nodes.build_export_compression_dropdown_property_row.style.self]
+[nodes.build_export_compression_dropdown_property_row.style.slot]
+[nodes.build_export_compression_dropdown_property_row.slots]
+[nodes.build_export_compression_dropdown]
+component = "Dropdown"
+control_id = "WorkbenchExtensionBuildExportCompressionDropdown"
+pixel_snapping = "disabled"
+classes = [ "workbench-field", "workbench-dropdown", "workbench-primitive", "workbench-component-dropdown" ]
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown"
+
+[nodes.build_export_compression_dropdown.props]
+value = "Oodle"
+value_text = "Oodle"
+options = [ "Oodle", "Zstd", "None" ]
+multiple = false
+popup_open = false
+selected = false
+focused = false
+hovered = false
+pressed = false
+disabled = false
+selection_state = "single"
+validation_level = "normal"
+background_color = "$editor.surface.recessed"
+hover_background_color = "$editor.surface.hover"
+pressed_background_color = "$editor.surface.3"
+open_background_color = "$editor.accent.soft"
+disabled_background_color = "$editor.surface.disabled"
+border_color = "$editor.border"
+focus_border_color = "$editor.focus.ring"
+disabled_border_color = "$editor.border.disabled"
+foreground_color = "$editor.text.primary"
+label_color = "$editor.text.secondary"
+icon_color = "$editor.text.secondary"
+disabled_foreground_color = "$editor.text.disabled"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.control"
+horizontal_inset = "$editor.density.gap.medium"
+caret_size = "$editor.typography.overlay.size"
+caret_right_inset = "$editor.density.gap.large"
+caret_gap = "$editor.density.gap.small"
+label_top = "$editor.control.border_width"
+label_font_size = "$editor.typography.caption.size"
+label_line_height_ratio = "$editor.typography.line_height"
+value_bottom_inset = "$editor.control.border_width"
+font_size = "$editor.typography.body.size"
+line_height_ratio = "$editor.typography.line_height"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.control.border_width"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_min_height = "$editor.control.height.dense"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.build_export_compression_dropdown.layout.width]
+stretch = "Stretch"
+
+[nodes.build_export_compression_dropdown.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Stretch"
+
+[[nodes.build_export_compression_dropdown.events]]
+id = "WorkbenchExtension/BuildExportCompressionEdit"
+event = "Change"
+route = "workbench.extension.build_export.compression.edit"
+
+[[nodes.build_export_compression_dropdown.events]]
+id = "WorkbenchExtension/BuildExportCompressionCommit"
+event = "Submit"
+route = "workbench.extension.build_export.compression.commit"
+
+[nodes.build_export_compression_dropdown.state]
+[nodes.build_export_compression_dropdown.style.self]
+[nodes.build_export_compression_dropdown.style.slot]
+[nodes.build_export_compression_dropdown.slots]
+[nodes.build_export_platform_dropdown_property_row__name_column]
+component = "Container"
+
+[nodes.build_export_platform_dropdown_property_row__name_column.layout.width]
+min = 60
+preferred = 105
+max = 105
+stretch = "Fixed"
+
+[nodes.build_export_platform_dropdown_property_row__name_column.layout.height]
+stretch = "Stretch"
+
+[nodes.build_export_channel_field_property_row__name_column]
+component = "Container"
+
+[nodes.build_export_channel_field_property_row__name_column.layout.width]
+min = 60
+preferred = 105
+max = 105
+stretch = "Fixed"
+
+[nodes.build_export_channel_field_property_row__name_column.layout.height]
+stretch = "Stretch"
+
+[nodes.build_export_compression_dropdown_property_row__name_column]
+component = "Container"
+
+[nodes.build_export_compression_dropdown_property_row__name_column.layout.width]
+min = 60
+preferred = 105
+max = 105
+stretch = "Fixed"
+
+[nodes.build_export_compression_dropdown_property_row__name_column.layout.height]
+stretch = "Stretch"
+
+[penpot_host_colors]
+primary = "#60aeff"
+accent = "#60aeff"
+"material.primary" = "#60aeff"
+material_color_primary = "#60aeff"
+on_primary = "#151515"
+"material.on_primary" = "#151515"
+material_color_on_primary = "#151515"
+surface = "#2f2f2f"
+"material.surface" = "#2f2f2f"
+surface_inset = "#0f0f0f"
+"material.surface_inset" = "#0f0f0f"
+surface_hover = "#454545"
+"material.surface_hover" = "#454545"
+surface_pressed = "#383838"
+"material.surface_pressed" = "#383838"
+surface_selected = "#243f5a"
+"material.surface_selected" = "#243f5a"
+disabled = "#2b2b2b"
+"material.disabled" = "#2b2b2b"
+border = "#484848"
+outline = "#484848"
+"material.outline" = "#484848"
+focus = "#66b2ff"
+focus_ring = "#66b2ff"
+"material.focus_ring" = "#66b2ff"
+text = "#e8e8e8"
+on_surface = "#e8e8e8"
+"material.text" = "#e8e8e8"
+"material.on_surface" = "#e8e8e8"
+text_muted = "#b3b3b3"
+muted = "#b3b3b3"
+"material.text_muted" = "#b3b3b3"
+text_disabled = "#737373"
+"material.text_disabled" = "#737373"
+warning = "#dcac50"
+"material.warning" = "#dcac50"
+error = "#eb605c"
+danger = "#eb605c"
+"material.error" = "#eb605c"
+success = "#55be78"
+"material.success" = "#55be78"
+info = "#5faae6"
+"material.info" = "#5faae6"
+
+[penpot_host_palette]
+surface = [ "#151515", "#242424", "#2f2f2f", "#383838" ]
+surface_recessed = "#0f0f0f"
+surface_hover = "#454545"
+surface_selected = "#243f5a"
+surface_disabled = "#2b2b2b"
+accent = "#60aeff"
+accent_soft = "#253f59"
+border = "#484848"
+border_disabled = "#363636"
+separator_strong = "#565656"
+separator_soft = "#333333"
+text_primary = "#e8e8e8"
+text_secondary = "#b3b3b3"
+text_disabled = "#737373"
+success = "#55be78"
+success_container = "#1d472f"
+info = "#5faae6"
+info_container = "#18395b"
+warning = "#dcac50"
+warning_container = "#463112"
+error = "#eb605c"
+error_container = "#4c2427"
+popup = "#242424"
+track = "#3b3b3b"
+focus_ring = "#66b2ff"
+shadow = "#00000073"
+
+[tokens]
+"theme.palette.surface.0" = "#151515"
+"theme.palette.surface.1" = "#242424"
+"theme.palette.surface.2" = "#2f2f2f"
+"theme.palette.surface.3" = "#383838"
+"theme.palette.text.primary" = "#e8e8e8"
+"theme.palette.text.secondary" = "#b3b3b3"
+"theme.palette.text.disabled" = "#737373"
+"theme.palette.accent" = "#60aeff"
+"theme.palette.success" = "#55be78"
+"theme.palette.info" = "#5faae6"
+"theme.palette.warning" = "#dcac50"
+"theme.palette.error" = "#eb605c"
+"theme.palette.separator" = "#484848"
+"editor.surface.0" = "#151515"
+"editor.surface.1" = "#242424"
+"editor.surface.2" = "#2f2f2f"
+"editor.surface.3" = "#383838"
+"editor.surface.recessed" = "#0f0f0f"
+"editor.surface.hover" = "#454545"
+"editor.surface.selected" = "#243f5a"
+"editor.surface.disabled" = "#2b2b2b"
+"editor.accent" = "#60aeff"
+"editor.accent.soft" = "#253f59"
+"editor.border" = "#484848"
+"editor.border.disabled" = "#363636"
+"editor.separator.strong" = "#565656"
+"editor.separator.soft" = "#333333"
+"editor.text.primary" = "#e8e8e8"
+"editor.text.secondary" = "#b3b3b3"
+"editor.text.disabled" = "#737373"
+"editor.semantic.success" = "#55be78"
+"editor.semantic.success.container" = "#1d472f"
+"editor.semantic.info" = "#5faae6"
+"editor.semantic.info.container" = "#18395b"
+"editor.semantic.warning" = "#dcac50"
+"editor.semantic.warning.container" = "#463112"
+"editor.semantic.error" = "#eb605c"
+"editor.semantic.error.container" = "#4c2427"
+"editor.popup" = "#242424"
+"editor.track" = "#3b3b3b"
+"editor.focus.ring" = "#66b2ff"
+"editor.shadow" = "#00000073"
+"editor.typography.ui.family" = "Fira Sans"
+"editor.typography.ui.strong.family" = "Fira Sans"
+"editor.typography.code.family" = "Fira Mono"
+"editor.typography.utility_tab.text_role" = "ui"
+"editor.typography.font_smoothing" = "grayscale"
+"editor.typography.body.size" = 14
+"editor.typography.caption.size" = 12
+"editor.typography.overlay.size" = 12
+"editor.typography.heading.size" = 16
+"editor.typography.title.size" = 20
+"editor.typography.body.weight" = 400
+"editor.typography.medium.weight" = 500
+"editor.typography.strong.weight" = 600
+"editor.typography.emphasis.weight" = 700
+"editor.typography.code.weight" = 400
+"editor.typography.line_height" = 1.4
+"editor.control.height.large" = 48
+"editor.control.height.default" = 32
+"editor.control.height.compact" = 32
+"editor.control.height.dense" = 28
+"editor.control.radius.small" = 4
+"editor.control.radius.control" = 4
+"editor.control.radius.large" = 8
+"editor.control.radius.panel" = 0
+"editor.control.radius.pill" = 999
+"editor.control.border_width" = 1
+"editor.chrome.top_bar.height" = 25
+"editor.chrome.host_bar.height" = 32
+"editor.chrome.workbench_toolbar.height" = 66
+"editor.chrome.workbench_toolbar.command_row.height" = 34
+"editor.chrome.workbench_toolbar.popup.command_offset_y" = 29
+"editor.chrome.workbench_toolbar.popup.module_offset_y" = -6
+"editor.chrome.status_bar.height" = 24
+"editor.chrome.panel_header.height" = 30
+"editor.chrome.document_header.height" = 31
+"editor.chrome.viewport_toolbar.height" = 28
+"editor.chrome.activity_rail.width" = 34
+"editor.chrome.separator.thickness" = 1
+"editor.chrome.splitter.hit_size" = 8
+"editor.density.gap.xsmall" = 2
+"editor.density.gap.tight" = 4
+"editor.density.gap.small" = 4
+"editor.density.gap.regular" = 8
+"editor.density.gap.medium" = 8
+"editor.density.gap.large" = 12
+"editor.density.gap.group" = 24
+"editor.density.drawer_padding" = 12
+"editor.density.panel_padding" = 16
+"editor.density.toolbar_action_width" = 76
+"editor.density.toolbar_wide_action_width" = 96
+"editor.density.ui_asset_action.min_width" = 40
+"editor.density.ui_asset_action.preferred_width" = 52
+"editor.density.ui_asset_action.max_width" = 64
+"editor.density.ui_asset.side.min_width" = 128
+"editor.density.ui_asset.side.preferred_width" = 220
+"editor.density.ui_asset.center.min_width" = 256
+"editor.density.ui_asset.center.preferred_width" = 420
+"editor.density.ui_asset.header_kind.min_width" = 64
+"editor.density.ui_asset.header_kind.preferred_width" = 70
+"editor.density.ui_asset.header_kind.max_width" = 84
+"editor.density.ui_asset.tool.min_width" = 56
+"editor.density.ui_asset.tool.preferred_width" = 64
+"editor.density.ui_asset.tool.max_width" = 80
+"editor.density.command_palette.min_width" = 520
+"editor.density.command_palette.preferred_width" = 560
+"editor.density.command_palette.max_width" = 640
+"editor.density.command_palette.min_height" = 180
+"editor.density.command_palette.preferred_height" = 220
+"editor.density.command_palette.max_height" = 280
+"editor.density.dialog.min_width" = 420
+"editor.density.dialog.preferred_width" = 480
+"editor.density.dialog.max_width" = 560
+"editor.density.dialog.min_height" = 180
+"editor.density.dialog.preferred_height" = 220
+"editor.density.dialog.max_height" = 320
+"editor.density.confirm_dialog.preferred_width" = 460
+"editor.density.confirm_dialog.max_width" = 540
+"editor.density.confirm_dialog.min_height" = 174
+"editor.density.confirm_dialog.preferred_height" = 210
+"editor.density.confirm_dialog.max_height" = 300
+"editor.density.notification_panel.min_width" = 280
+"editor.density.notification_panel.preferred_width" = 320
+"editor.density.notification_panel.max_width" = 380
+"editor.density.notification_panel.min_height" = 160
+"editor.density.notification_panel.preferred_height" = 220
+"editor.density.notification_panel.max_height" = 320
+"editor.density.caption.min_height" = 20
+"editor.density.caption.preferred_height" = 22
+"editor.density.caption.max_height" = 24
+"editor.density.label.min_height" = 22
+"editor.density.label.preferred_height" = 24
+"editor.density.label.max_height" = 32
+"editor.density.chip.min_width" = 40
+"editor.density.chip.preferred_width" = 80
+"editor.density.chip.max_width" = 160
+"editor.density.axis_value_field.min_width" = 54
+"editor.density.axis_value_field.preferred_width" = 62
+"editor.density.axis_value_field.max_width" = 72
+"editor.density.row_height" = 28
+"editor.density.left_drawer_width" = 332
+"editor.density.right_drawer_width" = 404
+"editor.density.bottom_output_height" = 228
+"editor.density.breakpoint_ultra_width" = 480
+"editor.density.breakpoint_narrow_width" = 640
+"editor.density.breakpoint_wide_width" = 1260
+"editor.density.compact_side_width" = 1100
+"editor.density.ultra_compact_side_width" = 760
+"editor.density.compact_left_drawer_max_width" = 340
+"editor.density.compact_right_drawer_max_width" = 220
+"editor.density.compact_side_min_width" = 196
+"editor.density.minimum_document_width_fraction" = 0.5
+"editor.density.ultra_compact_left_drawer_max_width" = 220
+"editor.density.ultra_compact_right_drawer_max_width" = 160
+"editor.density.compact_bottom_available_height" = 900
+"editor.density.compact_bottom_max_height" = 148
+"editor.density.compact_bottom_max_available_fraction" = 0.23
+"editor.density.compact_bottom_min_height" = 120
+"editor.density.ultra_compact_bottom_available_height" = 420
+"editor.density.ultra_compact_bottom_max_height" = 96
+"editor.density.ultra_compact_bottom_max_available_fraction" = 0.2
+"editor.density.ultra_compact_bottom_min_height" = 80
+"editor.density.minimum_window_width" = 640
+"editor.density.minimum_window_height" = 420
+"editor.density.ultra_minimum_window_width" = 420
+"editor.density.ultra_minimum_window_height" = 360
+"editor.state.default" = "surface_1"
+"editor.state.hovered" = "surface_2"
+"editor.state.pressed" = "surface_3"
+"editor.state.selected" = "surface_selected"
+"editor.state.focused" = "surface_1"
+"editor.state.disabled" = "text_disabled"
+"editor.state.loading" = "accent"
+
+[penpot_original_imports]
+widgets = [ "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton", "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown", "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField", "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow", "res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow", "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle", "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow", "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow" ]
+styles = []
+
+[penpot_field_icons]
+search = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Search\">\n  <circle cx=\"10.5\" cy=\"10.5\" r=\"5.4\" fill=\"none\" stroke=\"#cbd2dc\" stroke-width=\"1.8\"/>\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-width=\"1.9\" d=\"m14.5 14.5 4.5 4.5\"/>\n</svg>\n"
+clear = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"512\" height=\"512\" viewBox=\"0 0 512 512\"><line x1=\"368\" y1=\"368\" x2=\"144\" y2=\"144\" style=\"fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px\"/><line x1=\"368\" y1=\"144\" x2=\"144\" y2=\"368\" style=\"fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px\"/></svg>"
+stepper = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Field stepper\">\n  <path fill=\"none\" stroke=\"#cbd2dc\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\" d=\"m7 9 5-5 5 5M7 15l5 5 5-5\"/>\n</svg>\n"
+
+[penpot_dynamic_review_state]
+schema = "dev.zircon.zui.dynamic-review-state"
+version = 1
+sourcePath = "zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_build_export_workspace.zui"
+selectedNodeIds = [ "build_export_workspace" ]
+selectionPolicy = "authored-visible-root"

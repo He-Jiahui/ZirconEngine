@@ -20,9 +20,10 @@ class RuntimeUiLegacyScreenSpaceAnalyticCoverageContractTests(unittest.TestCase)
             "half_extent",
             "corner_radius",
             "border_width",
+            "fill_color",
         ):
             self.assertIn(f"pub(super) {field}:", source)
-        self.assertIn("const ATTRIBUTES: [wgpu::VertexAttribute; 6]", source)
+        self.assertIn("const ATTRIBUTES: [wgpu::VertexAttribute; 7]", source)
         self.assertIn("pub(super) fn coverage_frame", source)
 
     def test_batch_scissor_uses_the_same_coverage_frame_as_geometry(self):
@@ -39,8 +40,12 @@ class RuntimeUiLegacyScreenSpaceAnalyticCoverageContractTests(unittest.TestCase)
         self.assertIn("let sample_offsets = array<vec2<f32>, 16>", source)
         self.assertIn("let subpixel_filter_scale = 0.25", source)
         self.assertIn("sample_index < 16u", source)
-        self.assertIn("coverage += sample_coverage", source)
-        self.assertIn("return coverage * 0.0625", source)
+        self.assertIn("outer_coverage_sum += outer_coverage", source)
+        self.assertIn("inner_coverage_sum += inner_coverage", source)
+        self.assertIn(
+            "return vec2<f32>(outer_coverage_sum, inner_coverage_sum) * 0.0625",
+            source,
+        )
         self.assertIn("fwidth(outer_distance)", source)
         self.assertIn("fwidth(inner_distance)", source)
         self.assertIn("1.0 - smoothstep(", source)

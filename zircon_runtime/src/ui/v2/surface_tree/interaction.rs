@@ -1,5 +1,4 @@
 use std::collections::BTreeMap;
-use std::sync::OnceLock;
 
 use crate::ui::component::UiComponentDescriptorRegistry;
 use toml::Value;
@@ -8,6 +7,10 @@ use zircon_runtime_interface::ui::component::{UiComponentCategory, UiComponentEv
 use zircon_runtime_interface::ui::event_ui::UiStateFlags;
 use zircon_runtime_interface::ui::tree::UiInputPolicy;
 use zircon_runtime_interface::ui::v2::UiV2ArenaNode;
+
+#[cfg(test)]
+#[path = "interaction/tests/shared_catalog_tests.rs"]
+mod shared_catalog_tests;
 
 pub(super) fn infer_interaction(
     node: &UiV2ArenaNode,
@@ -159,8 +162,7 @@ fn catalog_component_capabilities(component: &str) -> InferredInputCapabilities 
 }
 
 fn component_descriptor_registry() -> &'static UiComponentDescriptorRegistry {
-    static REGISTRY: OnceLock<UiComponentDescriptorRegistry> = OnceLock::new();
-    REGISTRY.get_or_init(UiComponentDescriptorRegistry::editor_showcase)
+    UiComponentDescriptorRegistry::editor_showcase_shared()
 }
 
 fn category_default_capabilities(category: UiComponentCategory) -> InferredInputCapabilities {

@@ -20,6 +20,10 @@ use crate::ui::asset_editor::palette::{
     UiAssetPaletteInsertionPlacement,
 };
 
+mod title_case;
+
+use self::title_case::title_case_identifier;
+
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct UiAssetPaletteInsertPlan {
     pub node_id: String,
@@ -920,29 +924,6 @@ fn normalized_slot_name(value: &str) -> String {
         .collect()
 }
 
-fn title_case_identifier(value: &str) -> String {
-    let words = value
-        .split(|ch: char| !ch.is_ascii_alphanumeric())
-        .filter(|segment| !segment.is_empty())
-        .map(|segment| {
-            let mut chars = segment.chars();
-            let Some(first) = chars.next() else {
-                return String::new();
-            };
-            format!(
-                "{}{}",
-                first.to_ascii_uppercase(),
-                chars.as_str().to_ascii_lowercase()
-            )
-        })
-        .collect::<Vec<_>>();
-    if words.is_empty() {
-        value.to_string()
-    } else {
-        words.join(" ")
-    }
-}
-
 pub(crate) fn table_value(entries: &[(&str, Value)]) -> Value {
     Value::Table(
         entries
@@ -953,4 +934,5 @@ pub(crate) fn table_value(entries: &[(&str, Value)]) -> Value {
 }
 
 #[cfg(test)]
+#[path = "resolution/tests/hash_membership_tests.rs"]
 mod hash_membership_tests;

@@ -79,6 +79,8 @@ pub isBlockedAt(x: float, z: float, radius: float, required: bool): bool {
     );
 }
 
+/// 仅供已支持布局内的射线查询使用，检查内部采样点而非端点重叠；跨越不支持区域的射线可能在采样时抛错。
+/// 当前为独立叶子规则投影，不能作为开放世界或活动探险的通用视线入口。
 pub isClear(
     fromX: float,
     fromZ: float,

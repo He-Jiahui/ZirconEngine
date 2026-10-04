@@ -39,9 +39,23 @@ pub(super) fn builtin_modules_for_config_with_effective_manifest_and_runtime_plu
     effective_manifest: &ProjectPluginManifest,
     registrations: &[RuntimePluginRegistrationReport],
 ) -> Result<BuiltinModuleSelection, CoreError> {
+    builtin_modules_for_config_with_effective_manifest_and_runtime_plugin_and_feature_registrations(
+        config,
+        effective_manifest,
+        registrations,
+        std::iter::empty(),
+    )
+}
+
+pub(super) fn builtin_modules_for_config_with_effective_manifest_and_runtime_plugin_and_feature_registrations(
+    config: &ResolvedProductHostConfig,
+    effective_manifest: &ProjectPluginManifest,
+    registrations: &[RuntimePluginRegistrationReport],
+    feature_registrations: impl IntoIterator<Item = RuntimePluginFeatureRegistrationReport>,
+) -> Result<BuiltinModuleSelection, CoreError> {
     let catalog = RuntimePluginCatalog::from_registration_reports(
         registrations.iter().cloned(),
-        std::iter::empty(),
+        feature_registrations,
     );
     let plan = catalog.compiled_project_plan(effective_manifest, config.target_mode());
     builtin_modules_for_config_with_compiled_project_plugin_plan(

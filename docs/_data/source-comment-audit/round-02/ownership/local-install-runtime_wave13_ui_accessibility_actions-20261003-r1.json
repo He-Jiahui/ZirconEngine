@@ -1,0 +1,512 @@
+{
+  "schema": 1,
+  "owner": "runtime_wave13_ui_accessibility_actions",
+  "sid": "source-audit-20260930-01a0f168",
+  "prepared_at_utc": "2026-10-03T21:01:25.552554+00:00",
+  "files": [
+    {
+      "path": "zircon_runtime/src/ui/accessibility/accesskit.rs",
+      "before_sha256": "fd3194c2d730d8672f23bcc36bf8c7ad6d72e1bc3b65d541b618677f36185bfe",
+      "after_sha256": "fd3194c2d730d8672f23bcc36bf8c7ad6d72e1bc3b65d541b618677f36185bfe",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action.rs",
+      "before_sha256": "decccfb08d48a125636d6b87743a7e24f6d8dfb1a7aea5a792396c2b7b7655e3",
+      "after_sha256": "decccfb08d48a125636d6b87743a7e24f6d8dfb1a7aea5a792396c2b7b7655e3",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/activate.rs",
+      "before_sha256": "5e14a2f26e9c0a7b7d4a0e049d1bac22930f70e491fcf6bbd728e3853f818e16",
+      "after_sha256": "5e14a2f26e9c0a7b7d4a0e049d1bac22930f70e491fcf6bbd728e3853f818e16",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/activate/fallback.rs",
+      "before_sha256": "64c56bb6d4522b847db8b51be4c849a806043582d84d28f42e3420c5d85d663c",
+      "after_sha256": "64c56bb6d4522b847db8b51be4c849a806043582d84d28f42e3420c5d85d663c",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/expanded.rs",
+      "before_sha256": "d188fe2ef9642dcf7dda0d53487432f0ab22a8b43390b2bc04b785f083e7ee7d",
+      "after_sha256": "d188fe2ef9642dcf7dda0d53487432f0ab22a8b43390b2bc04b785f083e7ee7d",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/expanded/result.rs",
+      "before_sha256": "7089fc9e3a7c0e05bce03fb6bf3dbce50834045e5b33d66429824f7de94b5228",
+      "after_sha256": "7089fc9e3a7c0e05bce03fb6bf3dbce50834045e5b33d66429824f7de94b5228",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/expanded/target.rs",
+      "before_sha256": "d049843febb9c38b31655a730fdbc4649b31c4b2df48b23ee96234c7820df80a",
+      "after_sha256": "d049843febb9c38b31655a730fdbc4649b31c4b2df48b23ee96234c7820df80a",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/focus.rs",
+      "before_sha256": "23ee9d88c0af60f09ca85b575811c16ab772df60320e83eaf9a55e89293288cc",
+      "after_sha256": "23ee9d88c0af60f09ca85b575811c16ab772df60320e83eaf9a55e89293288cc",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/popup.rs",
+      "before_sha256": "525904cde172608b26ed2d2304f5c2b663a9317d94870ae1100af1955e2b192a",
+      "after_sha256": "525904cde172608b26ed2d2304f5c2b663a9317d94870ae1100af1955e2b192a",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/popup/result.rs",
+      "before_sha256": "0e05f20f985affe4c8741ee133027f3cc45c639c486f93954839bf88dd97a041",
+      "after_sha256": "0e05f20f985affe4c8741ee133027f3cc45c639c486f93954839bf88dd97a041",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/popup/tooltip.rs",
+      "before_sha256": "4eb8946c2c1fdb7dc14a8d62aca1feb0db92d42f02a5692ac558267fc3c158b1",
+      "after_sha256": "4eb8946c2c1fdb7dc14a8d62aca1feb0db92d42f02a5692ac558267fc3c158b1",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/range.rs",
+      "before_sha256": "c6f74be2e85df2114a2b7ae895c9054899485f2f3edc5f4f70df9191319bf211",
+      "after_sha256": "c6f74be2e85df2114a2b7ae895c9054899485f2f3edc5f4f70df9191319bf211",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/range/result.rs",
+      "before_sha256": "d0745bbda1d4028a8ec9630e0300d56bab19f6982ec5d6427c9b477d27e57ac1",
+      "after_sha256": "d0745bbda1d4028a8ec9630e0300d56bab19f6982ec5d6427c9b477d27e57ac1",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/result.rs",
+      "before_sha256": "4c30287f975f6a89e0e46c4fa5c2e48370e4e8033badf38c73e410c01dc557e7",
+      "after_sha256": "4c30287f975f6a89e0e46c4fa5c2e48370e4e8033badf38c73e410c01dc557e7",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/scroll.rs",
+      "before_sha256": "b9c393c888fbca5adcefe1e87cdc6039d148d1c228d5437d3b5c5f3d83e2f96f",
+      "after_sha256": "b9c393c888fbca5adcefe1e87cdc6039d148d1c228d5437d3b5c5f3d83e2f96f",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/scroll/binding.rs",
+      "before_sha256": "235e1f992780b8bf6ce9b1ab86aaabb1f0ef11d88aadb9d243402546f80101ce",
+      "after_sha256": "235e1f992780b8bf6ce9b1ab86aaabb1f0ef11d88aadb9d243402546f80101ce",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/scroll/payload.rs",
+      "before_sha256": "1619cb28be5900dd772831fdad9b1abb7ddc512aa29d123050603d47a10f0522",
+      "after_sha256": "1619cb28be5900dd772831fdad9b1abb7ddc512aa29d123050603d47a10f0522",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/scroll/result.rs",
+      "before_sha256": "b42bca3c40592f8697d868a413e0e0b2dd134a542c79b7fb1789842ff2a095e8",
+      "after_sha256": "b42bca3c40592f8697d868a413e0e0b2dd134a542c79b7fb1789842ff2a095e8",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/target.rs",
+      "before_sha256": "1b27c8d03649695490dff8daa7002b35ba19b81c1aa57c8e89464f0db46f5303",
+      "after_sha256": "1b27c8d03649695490dff8daa7002b35ba19b81c1aa57c8e89464f0db46f5303",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/text/replace/replacement.rs",
+      "before_sha256": "7b626093519b9267b29fd6f701200e83d16441341a3e28ba4d33b408a8926fb6",
+      "after_sha256": "7b626093519b9267b29fd6f701200e83d16441341a3e28ba4d33b408a8926fb6",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/text/replace/result.rs",
+      "before_sha256": "d6854bbea9bce23e64fae8c3e14904ba95aa37eb6940b8d6a41cfce6749bf7ba",
+      "after_sha256": "d6854bbea9bce23e64fae8c3e14904ba95aa37eb6940b8d6a41cfce6749bf7ba",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/text/selection.rs",
+      "before_sha256": "cac0afdb942bd58f4bb4ea60e982d9d8279325c793f59f4d56af6d5d3923822a",
+      "after_sha256": "cac0afdb942bd58f4bb4ea60e982d9d8279325c793f59f4d56af6d5d3923822a",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/text/selection/payload.rs",
+      "before_sha256": "d4449f60cbd0c132fc0afa085e3215f776cdd13691bb15f0783bff6d74486fb3",
+      "after_sha256": "d4449f60cbd0c132fc0afa085e3215f776cdd13691bb15f0783bff6d74486fb3",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/text/selection/result.rs",
+      "before_sha256": "c4d4de09f42df32f9d152688abb0bb8d347043e46984715c3f25231f61f623e9",
+      "after_sha256": "c4d4de09f42df32f9d152688abb0bb8d347043e46984715c3f25231f61f623e9",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/value/payload.rs",
+      "before_sha256": "7765977a9d7ae8decdaf1de2e4990473f7e06921d686b45d3800684018d404ad",
+      "after_sha256": "7765977a9d7ae8decdaf1de2e4990473f7e06921d686b45d3800684018d404ad",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/value/result.rs",
+      "before_sha256": "558bb6a5dfa54bda0f761dae36fee40b601a52ae14bdc958da784b36ba632a43",
+      "after_sha256": "558bb6a5dfa54bda0f761dae36fee40b601a52ae14bdc958da784b36ba632a43",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/action/value_target.rs",
+      "before_sha256": "cc6a0b138143635fdc0b89d2b5127c117fe12facaa381379c50da6413baf9cb1",
+      "after_sha256": "cc6a0b138143635fdc0b89d2b5127c117fe12facaa381379c50da6413baf9cb1",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/budget.rs",
+      "before_sha256": "fea85b342bfe795368878adf1a230acc5e5672549338e4141df7b7ace4ebe875",
+      "after_sha256": "fea85b342bfe795368878adf1a230acc5e5672549338e4141df7b7ace4ebe875",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/diagnostics.rs",
+      "before_sha256": "b87b9833b4ad109cfffc67070abca61fb5a78ba5c5d018d5876cdb9e51251a54",
+      "after_sha256": "b87b9833b4ad109cfffc67070abca61fb5a78ba5c5d018d5876cdb9e51251a54",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/extract.rs",
+      "before_sha256": "f87aa27d67184ee005c45b9db130d92e8faad44dca701ecd7d6404eca03f23b0",
+      "after_sha256": "c809160d7a09d6185f6b81649252e60e66dc7d4c041ba36e13cf37deb081fb33",
+      "changed": true,
+      "additions": [
+        {
+          "private_origin": "A11Y-HIDDEN-SOURCE-1",
+          "path": "zircon_runtime/src/ui/accessibility/extract.rs",
+          "before_line": 134,
+          "added_utf8": "    // 隐藏关系节点只提供朗读来源；名称与描述解析后清除动作和子项，避免作为独立交互分支发布。\n",
+          "added_sha256": "af0d4351cf71a87c3473ead67dc372f51d9061074ef9e463f686f8c090957598",
+          "added_raw_base64": "ICAgIC8vIOmakOiXj+WFs+ezu+iKgueCueWPquaPkOS+m+acl+ivu+adpea6kO+8m+WQjeensOS4juaPj+i/sOino+aekOWQjua4hemZpOWKqOS9nOWSjOWtkOmhue+8jOmBv+WFjeS9nOS4uueLrOeri+S6pOS6kuWIhuaUr+WPkeW4g+OAggo=",
+          "original_proposal": {
+            "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_ui_accessibility_actions\\comment-proposals-r2.json",
+            "sha256": "6832425bea2d27699e3f12d136bc1a0bd806d555cc307deff875555e8e1fdd75",
+            "proposal_id": "A11Y-HIDDEN-SOURCE-1"
+          },
+          "original_proposal_comment": "    // 隐藏关系节点只提供朗读来源；名称与描述解析后清除动作和子项，避免作为独立交互分支发布。",
+          "root_disposition": "accept_hidden_donor_purpose",
+          "issue_id": null,
+          "original_line": "    for hidden_target in &hidden_relation_targets {"
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 1,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/extract/resolution.rs",
+      "before_sha256": "48b9667e86e153b9e27fa91a301a268f7f67d426f8fa845c081c7e411126fb0f",
+      "after_sha256": "4050b98507eaa2c7eec46dd9978a57b182210188fed5cf1c16b3c8ebb984d126",
+      "changed": true,
+      "additions": [
+        {
+          "private_origin": "A11Y-BUG-OWN-1",
+          "path": "zircon_runtime/src/ui/accessibility/extract/resolution.rs",
+          "before_line": 64,
+          "added_utf8": "                // BUG: [CR-RUNTIME-WAVE13-UI-A11Y-0001] Plain 安全输入缺少显式名称及可用标签时，此回退仍读取元数据 text/label/value；状态值虽已隐去，原文仍进入快照名称。\n",
+          "added_sha256": "5199d868b2151b95db29b4c5377a54d9a4db65ed03af9b09d993f02280302b3d",
+          "added_raw_base64": "ICAgICAgICAgICAgICAgIC8vIEJVRzogW0NSLVJVTlRJTUUtV0FWRTEzLVVJLUExMVktMDAwMV0gUGxhaW4g5a6J5YWo6L6T5YWl57y65bCR5pi+5byP5ZCN56ew5Y+K5Y+v55So5qCH562+5pe277yM5q2k5Zue6YCA5LuN6K+75Y+W5YWD5pWw5o2uIHRleHQvbGFiZWwvdmFsdWXvvJvnirbmgIHlgLzomb3lt7LpmpDljrvvvIzljp/mlofku43ov5vlhaXlv6vnhaflkI3np7DjgIIK",
+          "original_proposal": {
+            "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_ui_accessibility_actions\\comment-proposals-r2.json",
+            "sha256": "6832425bea2d27699e3f12d136bc1a0bd806d555cc307deff875555e8e1fdd75",
+            "proposal_id": "A11Y-BUG-OWN-1"
+          },
+          "original_proposal_comment": "                // BUG: [CR-RUNTIME-WAVE13-UI-A11Y-0001] 安全输入虽已隐藏状态值，缺少显式名称及可用标签引用时仍从原始文本或值生成名称，完整快照会带出该内容。",
+          "root_disposition": "rewrite_to_exact_proven_Plain_trigger",
+          "issue_id": "CR-RUNTIME-WAVE13-UI-A11Y-0001",
+          "original_line": "                surface"
+        },
+        {
+          "private_origin": "A11Y-BUG-RELATION-1",
+          "path": "zircon_runtime/src/ui/accessibility/extract/resolution.rs",
+          "before_line": 244,
+          "added_utf8": "                // BUG: [CR-RUNTIME-WAVE13-UI-A11Y-0001] 引用缺少显式名称的 Plain 安全输入时，此回退仍读取元数据原文，可将其复制为引用方的名称或描述，绕过状态值遮蔽。\n",
+          "added_sha256": "bc3cfa68f20db40ea00068cd07993c72355d1578fa005ed5b6c54f1919525078",
+          "added_raw_base64": "ICAgICAgICAgICAgICAgIC8vIEJVRzogW0NSLVJVTlRJTUUtV0FWRTEzLVVJLUExMVktMDAwMV0g5byV55So57y65bCR5pi+5byP5ZCN56ew55qEIFBsYWluIOWuieWFqOi+k+WFpeaXtu+8jOatpOWbnumAgOS7jeivu+WPluWFg+aVsOaNruWOn+aWh++8jOWPr+WwhuWFtuWkjeWItuS4uuW8leeUqOaWueeahOWQjeensOaIluaPj+i/sO+8jOe7lei/h+eKtuaAgeWAvOmBruiUveOAggo=",
+          "original_proposal": {
+            "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\runtime_wave13_ui_accessibility_actions\\comment-proposals-r2.json",
+            "sha256": "6832425bea2d27699e3f12d136bc1a0bd806d555cc307deff875555e8e1fdd75",
+            "proposal_id": "A11Y-BUG-RELATION-1"
+          },
+          "original_proposal_comment": "                // BUG: [CR-RUNTIME-WAVE13-UI-A11Y-0001] 关系目标若是缺少显式名称的安全输入，这条原文回退会把文本或值复制到引用方的名称或描述，绕过状态值隐藏。",
+          "root_disposition": "rewrite_to_exact_proven_Plain_trigger",
+          "issue_id": "CR-RUNTIME-WAVE13-UI-A11Y-0001",
+          "original_line": "                .or_else(|| semantic_text::own_text(surface, node))"
+        }
+      ],
+      "comment_additions": 2,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/mod.rs",
+      "before_sha256": "a3226dafbfa4d7a446b2142019de620993bc12a33dbb49d9c5fc2afa8f327f7a",
+      "after_sha256": "a3226dafbfa4d7a446b2142019de620993bc12a33dbb49d9c5fc2afa8f327f7a",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/accessibility/name.rs",
+      "before_sha256": "306536f159396d20071140aed72905bd014923e3ea81f5056aa34cfc964b4b24",
+      "after_sha256": "306536f159396d20071140aed72905bd014923e3ea81f5056aa34cfc964b4b24",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    },
+    {
+      "path": "zircon_runtime/src/ui/tests/accesskit.rs",
+      "before_sha256": "5c505af054bc4c6a8c157716c1dcd2e60438e67d688f8331cfcb59264db87eaa",
+      "after_sha256": "5c505af054bc4c6a8c157716c1dcd2e60438e67d688f8331cfcb59264db87eaa",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false,
+      "frozen_attribution_provenance": null,
+      "original_source_commit_boundary": "Only newly approved exact comment bytes may later be audit work; all baseline deltas, unknown shared-index ownership and later product postimages remain excluded."
+    }
+  ],
+  "root_semantic_proof": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave13_ui_accessibility_actions-root-semantic-proof-20261003-r1.json",
+    "sha256": "446e45d70a9c33f551aedf48155bd70bf1c23b6d8e648a10e1aaf8e66bccdccf"
+  },
+  "spec": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave13_ui_accessibility_actions-root-insertions-20261003-r1.json",
+    "sha256": "2892438acdc50c2ec601c9247b30333051040a03becaa5b36ef90e0f3fe92211"
+  },
+  "terminal_children": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave13_ui_accessibility_actions-root-terminal-children-20261003-r1.json",
+    "sha256": "959a6a331d270f882c4bd27d70df1cf730c54172dbae289222a75c119a6e84a5"
+  },
+  "verified_inputs": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave13_ui_accessibility_actions-root-verified-inputs-20261003-r1.json",
+    "sha256": "c89f292ce57898ceb01b683de492d7e5dd5244e72be65c006f5e0370ad132f5f"
+  },
+  "audit_only_diff": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave13-ui-accessibility-root-candidates-20261003-r1\\owned.diff",
+    "sha256": "5728e304f352e9b790550a98d878dea325719810d4bf25eec98ff809bd450f9d"
+  },
+  "support_comment_lineage": [],
+  "source_manifest_files": 34,
+  "source_writes": 2,
+  "business_edits": 0,
+  "whole_file_business_adoption": false,
+  "product_consent": false,
+  "snapshot_scope": "exact added audit comment bytes only; original or unknown baseline authorship stays intact",
+  "status": "exact_comment_delta_installed",
+  "completed_at_utc": "2026-10-03T21:01:40.356674+00:00",
+  "intent": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-install-runtime_wave13_ui_accessibility_actions-20261003-r1\\intent.json",
+    "sha256": "0ed9acdb2798c750a699b9bf805d3d799a2d41aef4b2c24f74f858838e09dd09"
+  },
+  "comment_additions": 3,
+  "added_comment_lines": 3,
+  "new_source_labels": 1,
+  "new_source_label_occurrences": 2,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "existing_source_authorship_preserved": true,
+  "future_source_edit_pending": false,
+  "coverage_publication": "pending separate exact root publication"
+}

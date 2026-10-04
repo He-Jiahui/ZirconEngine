@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, ops::Range, sync::Arc};
+use std::{borrow::Cow, collections::BTreeMap, ops::Range, sync::Arc};
 
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiTreeId},
@@ -244,6 +244,70 @@ impl UiTextDocumentSession {
         self.histories.clear();
     }
 
+    pub(in crate::ui) fn committed_source_matches(
+        &self,
+        tree_id: &UiTreeId,
+        node_id: UiNodeId,
+        source_epoch: u64,
+        candidate: &str,
+    ) -> Result<bool, UiTextDocumentSessionError> {
+        let binding = self.binding(tree_id, node_id, source_epoch)?;
+        self.store
+            .source_equals(binding.document_id, binding.revision, candidate)
+            .map_err(Into::into)
+    }
+
+    pub(in crate::ui) fn synchronize_editable_source(
+        &mut self,
+        tree_id: &UiTreeId,
+        node_id: UiNodeId,
+        source_epoch: u64,
+        state: &UiEditableTextState,
+    ) {
+        self.activate_tree(tree_id);
+        let key = UiTextDocumentBindingKey {
+            tree_id: tree_id.clone(),
+            node_id,
+        };
+        if self
+            .bindings
+            .get(&key)
+            .is_some_and(|binding| binding.source_epoch == source_epoch)
+        {
+            self.synchronization_errors.remove(&key);
+            return;
+        }
+
+        // An active preedit is a visible projection. A new session must open its
+        // restored source, while an existing source lease avoids this materialization.
+        let source = match state.composition.as_ref().and_then(|composition| {
+            composition
+                .restore_text
+                .as_deref()
+                .map(|restore| (composition.range, restore))
+        }) {
+            Some((range, restore)) => {
+                let Some(replaced) = state.text.get(range.start..range.end) else {
+                    self.synchronization_errors
+                        .insert(key, UiTextDocumentSessionError::InvalidEditIntent);
+                    return;
+                };
+                if replaced == restore {
+                    Cow::Borrowed(state.text.as_str())
+                } else {
+                    let mut source =
+                        String::with_capacity(state.text.len() - replaced.len() + restore.len());
+                    source.push_str(&state.text[..range.start]);
+                    source.push_str(restore);
+                    source.push_str(&state.text[range.end..]);
+                    Cow::Owned(source)
+                }
+            }
+            None => Cow::Borrowed(state.text.as_str()),
+        };
+        self.synchronize_source(tree_id, node_id, source_epoch, source.as_ref());
+    }
+
     pub(in crate::ui) fn synchronize_source(
         &mut self,
         tree_id: &UiTreeId,
@@ -303,38 +367,31 @@ impl UiTextDocumentSession {
                 (public_receipt.document_id, public_receipt.revision)
             }
         };
-        self.bindings.insert(
-            UiTextDocumentBindingKey {
-                tree_id: tree_id.clone(),
-                node_id,
-            },
-            UiTextDocumentBinding {
-                document_id,
-                revision,
-                source_epoch,
-            },
-        );
-        self.synchronization_errors
-            .remove(&UiTextDocumentBindingKey {
-                tree_id: tree_id.clone(),
-                node_id,
-            });
+        let key = UiTextDocumentBindingKey {
+            tree_id: tree_id.clone(),
+            node_id,
+        };
+        self.synchronization_errors.remove(&key);
         if matches!(commit, TextDocumentStoreEditCommit::Changed { .. }) {
-            let key = UiTextDocumentBindingKey {
-                tree_id: tree_id.clone(),
-                node_id,
-            };
             match history_commit {
                 UiTextHistoryCommit::Barrier => {
                     self.histories.remove(&key);
                 }
                 history_commit => self
                     .histories
-                    .entry(key)
+                    .entry(key.clone())
                     .or_default()
                     .commit(history_commit),
             }
         }
+        self.bindings.insert(
+            key,
+            UiTextDocumentBinding {
+                document_id,
+                revision,
+                source_epoch,
+            },
+        );
     }
 
     fn binding(
@@ -421,4 +478,9 @@ fn public_selection(
 }
 
 #[cfg(test)]
+#[path = "session/tests/cases.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "session/tests/committed_source_tests.rs"]
+mod committed_source_tests;

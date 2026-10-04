@@ -6,8 +6,12 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use super::RenderShaderDefinitionValue;
 
 #[cfg(test)]
-#[path = "material_property_layout/option_lookup_tests.rs"]
+#[path = "material_property_layout/tests/option_lookup_tests.rs"]
 mod option_lookup_tests;
+
+#[cfg(test)]
+#[path = "material_property_layout/tests/enum_description_tests.rs"]
+mod enum_description_tests;
 
 const MATERIAL_OPTION_HASH_INDEX_MIN_OPTIONS: usize = 16;
 
@@ -145,6 +149,7 @@ pub struct MaterialTextureBindingRef {
     pub has_st_transform: bool,
 }
 
+/// 材质属性布局描述生成着色器所需的 f32/u32 槽位、纹理绑定、打包大小和哈希；资源流与 IDE 预览据此保持 CPU 属性和模板字段一致。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MaterialPropertyLayout {
     #[serde(default)]
@@ -180,6 +185,7 @@ pub struct MaterialOptionRef {
     pub default_bits: u32,
 }
 
+/// 选项表把布尔/枚举值压入固定 bit 区间并保留默认位；小表走线性查找、大表可用哈希索引，但位宽和偏移仍是序列化契约。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MaterialOptionTable {
     #[serde(default)]
@@ -263,7 +269,21 @@ impl MaterialOptionRef {
             MaterialOptionKind::Bool => "bool".to_string(),
             MaterialOptionKind::Enum if self.enum_values.is_empty() => "enum value".to_string(),
             MaterialOptionKind::Enum => {
-                format!("one of {}", self.enum_values.join(", "))
+                let capacity = self.enum_values.iter().fold(
+                    "one of "
+                        .len()
+                        .saturating_add(self.enum_values.len().saturating_sub(1).saturating_mul(2)),
+                    |capacity, value| capacity.saturating_add(value.len()),
+                );
+                let mut description = String::with_capacity(capacity);
+                description.push_str("one of ");
+                for (index, value) in self.enum_values.iter().enumerate() {
+                    if index > 0 {
+                        description.push_str(", ");
+                    }
+                    description.push_str(value);
+                }
+                description
             }
         }
     }

@@ -3,11 +3,12 @@ use std::path::Path;
 use crate::scene::LevelSystem;
 
 use super::super::super::super::super::super::{
-    RuntimeSessionArchive, RuntimeSessionArchiveCaptureRetentionReport, RuntimeSessionArchiveError,
-    RuntimeSessionArchiveRetentionPolicy, RuntimeSessionSlotSelector, io,
+    io, RuntimeSessionArchive, RuntimeSessionArchiveCaptureRetentionReport,
+    RuntimeSessionArchiveError, RuntimeSessionArchiveRetentionPolicy, RuntimeSessionSlotSelector,
 };
 
 impl RuntimeSessionArchive {
+    /// 从路径加载档案，捕获选择器命中的槽位并保留该槽位原有元数据，再计算指定标签桶保留结果后只返回报告，不写目标文件；后续提交会重新加载档案。
     pub fn preview_capture_level_selected_slot_preserving_metadata_with_tag_retention_to_path(
         path: impl AsRef<Path>,
         tag: &str,

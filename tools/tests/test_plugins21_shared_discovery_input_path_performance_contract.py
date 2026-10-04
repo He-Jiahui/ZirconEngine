@@ -23,7 +23,7 @@ def input_body() -> str:
         "/// Non-empty collector-owned identity", 1
     )[0]
 
-
+# 读取发现输入清单构造器，确认导出根路径共享且归属分配只发生一次。
 class Plugins21SharedDiscoveryInputPathContract(unittest.TestCase):
     def test_load_manifest_input_shares_its_export_root(self) -> None:
         body = compact(input_body())

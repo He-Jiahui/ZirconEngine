@@ -87,6 +87,28 @@ test("reports sync and async failures once and admits a retry after settlement",
   assert.equal(scheduler.inFlightCount(), 0);
 });
 
+test("a delayed window failure is delivered to its dispatch callback, not a newer state callback", async () => {
+  const pending = deferred();
+  const failures = [];
+  const scheduler = createWindowActionScheduler(() => failures.push("newer callback"));
+  let current = { backendEpoch: "epoch-a", stateRevision: "5", generation: 1 };
+  const dispatched = { ...current };
+  const attempt = scheduler.run("minimize", () => pending.promise, () => {
+    if (
+      current.backendEpoch === dispatched.backendEpoch &&
+      current.stateRevision === dispatched.stateRevision &&
+      current.generation === dispatched.generation
+    ) {
+      failures.push("old failure applied");
+    }
+  });
+
+  current = { backendEpoch: "epoch-b", stateRevision: "1", generation: 2 };
+  pending.reject(new Error("old window action failed"));
+  assert.equal(await attempt, false);
+  assert.deepEqual(failures, []);
+});
+
 test("reduces repeated native dispatches by 99 percent across burst groups", async () => {
   const scheduler = createWindowActionScheduler(() => {});
   const burstCount = 21;

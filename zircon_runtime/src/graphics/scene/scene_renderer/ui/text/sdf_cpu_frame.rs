@@ -3,11 +3,12 @@ use crate::graphics::scene::scene_renderer::ui::render::{
     ScreenSpaceUiGlyphArtifactCacheIdentity, ScreenSpaceUiGlyphArtifactLine,
     ScreenSpaceUiShapedGlyph, ScreenSpaceUiTextBatch,
 };
-use crate::text::TextRenderState;
 use crate::text::font::TextDecorationMetrics;
 use crate::text::sdf::SdfRunCpuPreparation;
+use crate::text::TextRenderState;
+use std::ops::Range;
 
-use super::ScreenSpaceUiTextFrameProductGeneration;
+use super::{ScreenSpaceUiTextFrameProduct, ScreenSpaceUiTextFrameProductGeneration};
 
 #[derive(Default)]
 pub(super) struct SdfTextCpuFrame {
@@ -15,6 +16,17 @@ pub(super) struct SdfTextCpuFrame {
     retained_frame_generation: Option<ScreenSpaceUiTextFrameProductGeneration>,
     prepared_sdf_texts: Vec<PreparedSdfCpuText>,
     prepared_native_texts: Vec<PreparedSdfCpuText>,
+    sdf_runs: Vec<SdfRunCpuPreparation>,
+    native_decoration_metrics: Vec<TextDecorationMetrics>,
+    segment_products: Vec<SdfTextCpuSegmentProduct>,
+    sdf_run_ranges: Vec<Range<usize>>,
+    native_metric_ranges: Vec<Range<usize>>,
+    last_segment_visit_count: usize,
+    last_sdf_run_visit_count: usize,
+    last_native_metric_visit_count: usize,
+}
+
+struct SdfTextCpuSegmentProduct {
     sdf_runs: Vec<SdfRunCpuPreparation>,
     native_decoration_metrics: Vec<TextDecorationMetrics>,
 }
@@ -88,6 +100,117 @@ impl SdfTextCpuFrame {
         )
     }
 
+    pub(super) fn prepare_retained_frame(
+        &mut self,
+        frame: &ScreenSpaceUiTextFrameProduct,
+        text_state: &mut TextRenderState,
+        asset_manager: &ProjectAssetManager,
+    ) -> bool {
+        if self.valid && self.retained_frame_generation == Some(frame.generation()) {
+            self.record_segment_profile(0, 0, 0);
+            return true;
+        }
+        let journal = frame.change_journal();
+        let local_topology_matches = self
+            .segment_products
+            .len()
+            .checked_sub(journal.truncated_segment_count())
+            .and_then(|retained| retained.checked_add(journal.appended_segment_count()))
+            .is_some_and(|current| current == frame.segment_products().len());
+        let local = !journal.is_full_rebuild()
+            && journal.base_generation() == self.retained_frame_generation
+            && journal.current_generation() == frame.generation()
+            && local_topology_matches
+            && self.sdf_run_ranges.len() == self.segment_products.len()
+            && self.native_metric_ranges.len() == self.segment_products.len();
+        if !local {
+            self.rebuild_retained_frame(frame, text_state, asset_manager);
+            return false;
+        }
+
+        let retained_segment_count = self
+            .segment_products
+            .len()
+            .saturating_sub(journal.truncated_segment_count());
+        if journal
+            .changed_segment_indices()
+            .iter()
+            .any(|&index| index >= retained_segment_count)
+        {
+            self.rebuild_retained_frame(frame, text_state, asset_manager);
+            return false;
+        }
+
+        let mut sdf_run_visit_count = 0_usize;
+        let mut native_metric_visit_count = 0_usize;
+        for &index in journal.changed_segment_indices() {
+            let replacement = build_cpu_segment_product(
+                &frame.segment_products()[index],
+                text_state,
+                asset_manager,
+            );
+            sdf_run_visit_count = sdf_run_visit_count.saturating_add(replacement.sdf_runs.len());
+            native_metric_visit_count = native_metric_visit_count
+                .saturating_add(replacement.native_decoration_metrics.len());
+            replace_segment_output(
+                &mut self.sdf_runs,
+                &mut self.sdf_run_ranges,
+                index,
+                &replacement.sdf_runs,
+            );
+            replace_segment_output(
+                &mut self.native_decoration_metrics,
+                &mut self.native_metric_ranges,
+                index,
+                &replacement.native_decoration_metrics,
+            );
+            self.segment_products[index] = replacement;
+        }
+
+        truncate_segment_outputs(
+            &mut self.sdf_runs,
+            &mut self.sdf_run_ranges,
+            retained_segment_count,
+        );
+        truncate_segment_outputs(
+            &mut self.native_decoration_metrics,
+            &mut self.native_metric_ranges,
+            retained_segment_count,
+        );
+        self.segment_products.truncate(retained_segment_count);
+        for segment in &frame.segment_products()[retained_segment_count..] {
+            let product = build_cpu_segment_product(segment, text_state, asset_manager);
+            sdf_run_visit_count = sdf_run_visit_count.saturating_add(product.sdf_runs.len());
+            native_metric_visit_count =
+                native_metric_visit_count.saturating_add(product.native_decoration_metrics.len());
+            append_segment_output(
+                &mut self.sdf_runs,
+                &mut self.sdf_run_ranges,
+                &product.sdf_runs,
+            );
+            append_segment_output(
+                &mut self.native_decoration_metrics,
+                &mut self.native_metric_ranges,
+                &product.native_decoration_metrics,
+            );
+            self.segment_products.push(product);
+        }
+        self.prepared_sdf_texts.clear();
+        self.prepared_native_texts.clear();
+        self.retained_frame_generation = Some(frame.generation());
+        self.valid = true;
+        self.record_segment_profile(
+            journal
+                .changed_segment_indices()
+                .len()
+                .saturating_add(journal.appended_segment_count())
+                .saturating_add(journal.truncated_segment_count()),
+            sdf_run_visit_count,
+            native_metric_visit_count,
+        );
+        false
+    }
+
     fn prepare_with_retained_generation(
         &mut self,
         sdf_texts: &[ScreenSpaceUiTextBatch],
@@ -140,6 +263,9 @@ impl SdfTextCpuFrame {
         );
         replace_prepared_texts_iter(&mut self.prepared_sdf_texts, sdf_texts);
         replace_prepared_texts_iter(&mut self.prepared_native_texts, native_texts);
+        self.segment_products.clear();
+        self.sdf_run_ranges.clear();
+        self.native_metric_ranges.clear();
         self.retained_frame_generation = retained_generation;
         self.valid = true;
         false
@@ -161,6 +287,9 @@ impl SdfTextCpuFrame {
     pub(super) fn invalidate(&mut self) {
         self.valid = false;
         self.retained_frame_generation = None;
+        self.segment_products.clear();
+        self.sdf_run_ranges.clear();
+        self.native_metric_ranges.clear();
     }
 
     fn matches_iter<'a, SdfTexts, NativeTexts>(
@@ -175,6 +304,153 @@ impl SdfTextCpuFrame {
         self.valid
             && text_cpu_inputs_match_iter(&self.prepared_sdf_texts, sdf_texts)
             && text_cpu_inputs_match_iter(&self.prepared_native_texts, native_texts)
+    }
+
+    fn rebuild_retained_frame(
+        &mut self,
+        frame: &ScreenSpaceUiTextFrameProduct,
+        text_state: &mut TextRenderState,
+        asset_manager: &ProjectAssetManager,
+    ) {
+        self.prepared_sdf_texts.clear();
+        self.prepared_native_texts.clear();
+        self.segment_products.clear();
+        self.sdf_runs.clear();
+        self.native_decoration_metrics.clear();
+        self.sdf_run_ranges.clear();
+        self.native_metric_ranges.clear();
+        for segment in frame.segment_products() {
+            let product = build_cpu_segment_product(segment, text_state, asset_manager);
+            append_segment_output(
+                &mut self.sdf_runs,
+                &mut self.sdf_run_ranges,
+                &product.sdf_runs,
+            );
+            append_segment_output(
+                &mut self.native_decoration_metrics,
+                &mut self.native_metric_ranges,
+                &product.native_decoration_metrics,
+            );
+            self.segment_products.push(product);
+        }
+        self.retained_frame_generation = Some(frame.generation());
+        self.valid = true;
+        self.record_segment_profile(
+            frame.segment_products().len(),
+            self.sdf_runs.len(),
+            self.native_decoration_metrics.len(),
+        );
+    }
+
+    fn record_segment_profile(
+        &mut self,
+        segment_visit_count: usize,
+        sdf_run_visit_count: usize,
+        native_metric_visit_count: usize,
+    ) {
+        self.last_segment_visit_count = segment_visit_count;
+        self.last_sdf_run_visit_count = sdf_run_visit_count;
+        self.last_native_metric_visit_count = native_metric_visit_count;
+        crate::core::diagnostics::profiling::record_counter_batch(
+            "runtime",
+            &[
+                (
+                    "ui_text.sdf_cpu.segment_visit_count",
+                    segment_visit_count as f64,
+                ),
+                (
+                    "ui_text.sdf_cpu.run_visit_count",
+                    sdf_run_visit_count as f64,
+                ),
+                (
+                    "ui_text.sdf_cpu.native_metric_visit_count",
+                    native_metric_visit_count as f64,
+                ),
+            ],
+        );
+    }
+
+    #[cfg(test)]
+    fn segment_visit_report(&self) -> (usize, usize, usize) {
+        (
+            self.last_segment_visit_count,
+            self.last_sdf_run_visit_count,
+            self.last_native_metric_visit_count,
+        )
+    }
+}
+
+fn build_cpu_segment_product(
+    segment: &super::ScreenSpaceUiTextSegmentProduct,
+    text_state: &mut TextRenderState,
+    asset_manager: &ProjectAssetManager,
+) -> SdfTextCpuSegmentProduct {
+    let mut sdf_runs = Vec::new();
+    text_state.prepare_sdf_runs_cpu_iter_into(
+        segment.sdf_texts().iter(),
+        asset_manager,
+        &mut sdf_runs,
+    );
+    let mut native_decoration_metrics = Vec::new();
+    text_state.prepare_sdf_decoration_metrics_iter_into(
+        segment.native_texts().iter(),
+        asset_manager,
+        &mut native_decoration_metrics,
+    );
+    SdfTextCpuSegmentProduct {
+        sdf_runs,
+        native_decoration_metrics,
+    }
+}
+
+fn replace_segment_output<T: Clone>(
+    output: &mut Vec<T>,
+    ranges: &mut [Range<usize>],
+    index: usize,
+    replacement: &[T],
+) {
+    let previous = ranges[index].clone();
+    let previous_len = previous.len();
+    output.splice(previous.clone(), replacement.iter().cloned());
+    ranges[index] = previous.start..previous.start.saturating_add(replacement.len());
+    shift_ranges(&mut ranges[index + 1..], previous_len, replacement.len());
+}
+
+fn append_segment_output<T: Clone>(
+    output: &mut Vec<T>,
+    ranges: &mut Vec<Range<usize>>,
+    segment: &[T],
+) {
+    let start = output.len();
+    output.extend_from_slice(segment);
+    ranges.push(start..output.len());
+}
+
+fn truncate_segment_outputs<T>(
+    output: &mut Vec<T>,
+    ranges: &mut Vec<Range<usize>>,
+    retained_segment_count: usize,
+) {
+    let truncate_start = ranges
+        .get(retained_segment_count)
+        .map_or(output.len(), |range| range.start);
+    output.truncate(truncate_start);
+    ranges.truncate(retained_segment_count);
+}
+
+fn shift_ranges(ranges: &mut [Range<usize>], old_len: usize, new_len: usize) {
+    if new_len >= old_len {
+        let delta = new_len - old_len;
+        for range in ranges {
+            range.start = range.start.saturating_add(delta);
+            range.end = range.end.saturating_add(delta);
+        }
+    } else {
+        let delta = old_len - new_len;
+        for range in ranges {
+            range.start = range.start.saturating_sub(delta);
+            range.end = range.end.saturating_sub(delta);
+        }
     }
 }
 
@@ -237,166 +513,5 @@ impl PreparedSdfCpuText {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-
-    use zircon_runtime_interface::ui::event_ui::UiNodeId;
-    use zircon_runtime_interface::ui::layout::UiFrame;
-    use zircon_runtime_interface::ui::surface::{
-        UiResolvedStyle, UiResolvedTextLine, UiTextAlign, UiTextDirection, UiTextRange, UiTextWrap,
-        UiTextWritingMode,
-    };
-
-    use super::{PreparedSdfCpuText, text_cpu_inputs_match_iter};
-    use crate::core::framework::text::{TextGlyph, TextGlyphFlags, TextGlyphRotation};
-    use crate::graphics::scene::scene_renderer::ui::render::{
-        ScreenSpaceUiGlyphArtifactLine, ScreenSpaceUiTextBatch, ScreenSpaceUiTextRouteIdentity,
-    };
-    use crate::text::sdf::SdfMode;
-    use crate::text::{ResolvedTextGlyphArtifact, ResolvedTextGlyphArtifactLine};
-
-    #[test]
-    fn cpu_snapshot_rejects_changed_text_owned_glyph_or_writing_mode() {
-        let horizontal = artifact_text_batch(0xfb01, UiTextWritingMode::HorizontalTb);
-        let prepared = PreparedSdfCpuText::from(&horizontal);
-
-        let replacement = artifact_text_batch(0xfb02, UiTextWritingMode::HorizontalTb);
-        assert!(!prepared.matches(&replacement));
-
-        let mut vertical = horizontal.clone();
-        vertical.writing_mode = UiTextWritingMode::VerticalRl;
-        assert!(!prepared.matches(&vertical));
-
-        let replacement = artifact_text_batch(0xfb02, UiTextWritingMode::HorizontalTb);
-        let mut republished = horizontal.clone();
-        let artifact_line = republished
-            .glyph_artifact_line
-            .as_mut()
-            .expect("original artifact line");
-        artifact_line.artifact = Arc::clone(
-            &replacement
-                .glyph_artifact_line
-                .as_ref()
-                .expect("replacement artifact line")
-                .artifact,
-        );
-        Arc::make_mut(&mut artifact_line.artifact).font_generation = 8;
-        artifact_line.font_generation = 8;
-        assert!(!prepared.matches(&republished));
-    }
-
-    #[test]
-    fn cpu_snapshot_segment_stream_preserves_flat_order_and_change_detection() {
-        let first = artifact_text_batch(0xfb01, UiTextWritingMode::HorizontalTb);
-        let second = artifact_text_batch(0xfb02, UiTextWritingMode::HorizontalTb);
-        let prepared = vec![
-            PreparedSdfCpuText::from(&first),
-            PreparedSdfCpuText::from(&second),
-        ];
-        let empty: &[ScreenSpaceUiTextBatch] = &[];
-        let segments = [
-            empty,
-            std::slice::from_ref(&first),
-            empty,
-            std::slice::from_ref(&second),
-        ];
-
-        assert!(text_cpu_inputs_match_iter(
-            &prepared,
-            segments.into_iter().flatten(),
-        ));
-
-        let changed = artifact_text_batch(0xfb03, UiTextWritingMode::HorizontalTb);
-        let changed_segments = [std::slice::from_ref(&first), std::slice::from_ref(&changed)];
-        assert!(!text_cpu_inputs_match_iter(
-            &prepared,
-            changed_segments.into_iter().flatten(),
-        ));
-    }
-
-    fn artifact_text_batch(
-        glyph_id: u32,
-        writing_mode: UiTextWritingMode,
-    ) -> ScreenSpaceUiTextBatch {
-        let frame = UiFrame::new(0.0, 0.0, 24.0, 24.0);
-        ScreenSpaceUiTextBatch {
-            route_identity: ScreenSpaceUiTextRouteIdentity::new(
-                "runtime.sdf-cpu-frame.artifact.test",
-                UiNodeId::new(1),
-                None,
-            ),
-            command_generation: 1,
-            raster_scale: 1.0,
-            text: "fi".to_string(),
-            frame,
-            clip_frame: None,
-            source_range: Some(UiTextRange { start: 0, end: 2 }),
-            is_source_isomorphic_layout_line: false,
-            glyph_advances: vec![24.0],
-            shaped_glyphs: Vec::new(),
-            preserve_shaped_glyphs: true,
-            glyph_artifact_line: Some(ScreenSpaceUiGlyphArtifactLine {
-                artifact: Arc::new(ResolvedTextGlyphArtifact {
-                    source_text: Arc::from("fi"),
-                    source_text_origin: 0,
-                    font_generation: 7,
-                    font_lease: crate::text::ResolvedTextGlyphArtifactFontLease::process_default(),
-                    style: UiResolvedStyle::default(),
-                    writing_mode,
-                    lines: vec![Some(ResolvedTextGlyphArtifactLine {
-                        glyphs: vec![TextGlyph {
-                            glyph_id,
-                            source_range: 0..2,
-                            visual_range: 0..1,
-                            advance: 24.0,
-                            position: [0.0, 0.0],
-                            offset: [0.0, 0.0],
-                            font_face: None,
-                            font_instance: None,
-                            rotation: TextGlyphRotation::None,
-                            bidi_level: 0,
-                            flags: TextGlyphFlags::default(),
-                            requires_rasterization: true,
-                        }],
-                        layout_line: UiResolvedTextLine {
-                            text: "fi".to_string(),
-                            placement_frame: UiFrame::default(),
-                            frame,
-                            source_range: UiTextRange { start: 0, end: 2 },
-                            visual_range: UiTextRange { start: 0, end: 1 },
-                            measured_width: 24.0,
-                            glyph_advances: vec![24.0],
-                            baseline: 16.0,
-                            direction: UiTextDirection::LeftToRight,
-                            runs: Vec::new(),
-                            ellipsized: false,
-                        },
-                    })],
-                    logical_virtual_line_sequences: None,
-                }),
-                line_index: 0,
-                font_generation: 7,
-                glyph_range: 0..1,
-            }),
-            layout_error: None,
-            color: [1.0, 1.0, 1.0, 1.0],
-            background_color: None,
-            font: None,
-            font_family: None,
-            language: None,
-            font_weight: UiResolvedStyle::DEFAULT_FONT_WEIGHT,
-            font_size: 16.0,
-            line_height: 20.0,
-            text_align: UiTextAlign::Left,
-            text_direction: UiTextDirection::LeftToRight,
-            writing_mode,
-            wrap: UiTextWrap::None,
-            style: Default::default(),
-            distance_field_mode: SdfMode::Sdf,
-            text_effects: Default::default(),
-            text_decorations: Default::default(),
-            text_decoration_baseline: None,
-            clip_transform: None,
-        }
-    }
-}
+#[path = "tests/sdf_cpu_frame.rs"]
+mod tests;

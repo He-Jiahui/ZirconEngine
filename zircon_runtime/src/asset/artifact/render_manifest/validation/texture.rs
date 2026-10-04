@@ -1,11 +1,12 @@
 use crate::core::resource::ResourceKind;
 
-use super::{RenderArtifactManifestError, block_at, validate_residency};
+use super::{block_at, validate_residency, RenderArtifactManifestError};
 use crate::asset::artifact::render_manifest::{
     RenderArtifactManifest, RenderArtifactResidencyClass, RenderArtifactTextureLayout,
     RenderSubresourceId,
 };
 
+// 按 mip 和 layer 的规范顺序核对各块的驻留类别及解码字节数，为后续子资源读取和上传提供一致的紧布局。
 pub(super) fn validate_texture_layout(
     manifest: &RenderArtifactManifest,
     layout: &RenderArtifactTextureLayout,

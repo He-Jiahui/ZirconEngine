@@ -82,3 +82,22 @@ pointer、raw device 与 gamepad 仍逐事件跨 ABI forwarding，缺少 motion/
 Open state: `gamepad bounded drain、rumble hard cap 与 keyboard nonalloc fallback 已静态实现；pointer/axis coalescing、gilrs producer wake、managed Cargo 与压力证据仍待 Runtime12 完成`。
 
 2026-07-23 current-source总复核：上述三项止损在`runtime_entry_app/**`74/74、3,673行、41 tests、组合指纹`bda129...b2c`中保持；PERF-MVP-426主表已删除“无预算/无界/分配”的过时现象描述。没有真实gilrs/force-feedback、125/500/1000Hz、queue age/peak或current-source Cargo证据，因此failure保持open且不得fixed return。
+
+2026-09-19 受管静态合同回执：
+
+- 原始校验票据 `f9876422590e417bb214a3e037d29082` 保留为失败证据；失败原因是校验命令把 `$Host` 自动变量当作文件变量，未触及源码。
+- 修正版票据 `979a67817ec8464587cf25c75d74e5a9`（job/run 同 ID）已通过，退出码 `0`；输出为 `RUNTIME12_APP_INPUT_STATIC_PARTIAL_PASS`、`CHECKED_PATHS=19`，source manifest `f759781e3c935e3b13bff967c32f6694982e77527ef0d20c9d51b593bd9c0cbd`。
+- 本回执只证明当前 256-event/2ms drain、32-effect rumble cap、keyboard nonalloc fallback 与桥接顺序的源码合同；pointer/axis coalescing、gilrs reactive wake、真实压力/Cargo、独立 0/0/0 复审、failure return 与 closeout 仍未完成，failure 继续保持 `open`。
+
+2026-09-26 current-source successor handoff (`failure-roll-01a084c8-runtime12-app-input-r2`)：
+
+- 本 successor 仅接管本 failure 文档；ownership transfer fingerprint 为
+  `8aa87b3c7b6c53302128ea9bc7800dd47ec0b5b42752c116e3206c05bca9543d`，未重复 claim Runtime12 生产路径，也未吸收其他会话的 dirty source edits。
+- 本轮受管文档边界冻结在预审 snapshot `3898`，manifest hash 为
+  `24157112da0b551d571de108283cabe5ecf642a98e859c04646b4182e969a237`；该快照是本次独立复核的权威输入，审查后措辞变更须重新封存 post-review snapshot。
+- 本次独立复核通过后的 post-review snapshot 为 `3899`，manifest hash 为
+  `a5b3c84260b9eb80601ee81639e85f2a50991c2863e044d69dbe15959d1d8399`；该快照绑定本回执复核的文档内容，后续回传记录若再写入仍须新建最终 snapshot。
+- 当前 `zircon_app/src/entry/runtime_entry_app/**` 只读索引为 94 个文件，按相对路径与单文件 SHA-256 组合 manifest 为
+  `dbd0cc5a2ed98f4a40f5ce528c2b174fdb209a9149a7bdbd5a7d3da842216bbf`；该哈希仅冻结动态验收前的 current-source 边界，不构成本 Session 的生产源码提交范围。
+- 静态 receipt 仍与现行源码核对一致：gamepad bounded drain 为 256 events/2 ms，rumble admission 为每 gamepad 32 active effects，普通 keyboard fallback 使用无中间 `String` 的 formatter sink；pointer/axis latest-or-accumulate、gilrs→reactive-loop wake、queue age/peak/drop/coalesce、125/500/1000 Hz 与 1k/10k burst 仍无动态证据。
+- 既有 partial validation ticket `979a67817ec8464587cf25c75d74e5a9` 只覆盖 19 路源码静态合同；不重复提交 Cargo。failure 继续 `open`，managed Cargo、真实设备/压力验收、独立 C/I/M=0/0/0 复核、failure return 与 closeout 均待完成。

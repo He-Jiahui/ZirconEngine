@@ -1,3 +1,4 @@
+# 核对所有权转移预览、应用和前置条件逐路径只投影一次键。
 from __future__ import annotations
 
 import inspect

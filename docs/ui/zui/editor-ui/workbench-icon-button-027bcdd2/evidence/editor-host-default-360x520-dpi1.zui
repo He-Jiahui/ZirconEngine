@@ -1,0 +1,15 @@
+[asset]
+id = "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#editor-review"
+kind = "view"
+version = 2
+
+[imports]
+widgets = ["res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui"]
+
+[nodes.review_mount]
+component = "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"
+
+[nodes.review_mount.props]
+
+[root]
+node = "review_mount"

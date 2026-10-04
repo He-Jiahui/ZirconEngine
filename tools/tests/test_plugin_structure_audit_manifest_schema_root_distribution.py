@@ -1,11 +1,27 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema import (
+from tools.audits.plugins.manifest_schema import (
     collect_manifest_schema_violations,
 )
 
 
 class PluginStructureAuditManifestSchemaRootDistributionTests(unittest.TestCase):
+    def test_manifest_schema_rejects_missing_root_default_packaging(self):
+        violations: list[str] = []
+        manifest = plugin_manifest()
+        del manifest["default_packaging"]
+
+        collect_manifest_schema_violations(
+            "zircon_plugins/sound/plugin.toml",
+            manifest,
+            violations,
+        )
+
+        self.assertEqual(
+            ["zircon_plugins/sound/plugin.toml: missing default_packaging"],
+            violations,
+        )
+
     def test_manifest_schema_rejects_root_distribution_non_table(self):
         violations: list[str] = []
         manifest = plugin_manifest()

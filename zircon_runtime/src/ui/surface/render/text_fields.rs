@@ -15,12 +15,13 @@ use zircon_runtime_interface::ui::{
     widget::UiWidgetBehavior,
 };
 
+use super::clipping::intersect_clip_frame;
 use super::extract::resolve_text_layout_with_cache;
 use super::painter_state::UiRenderPainterStateSource;
 use crate::ui::secure_text_policy::secure_text_policy;
 use crate::ui::text::{
-    UiPreeditSpan, UiSecureTextPresentation, UiTextLayoutRequest, UiTextMeasureCache,
-    apply_secure_text_presentation,
+    apply_secure_text_presentation, UiPreeditSpan, UiSecureTextPresentation, UiTextLayoutRequest,
+    UiTextMeasureCache,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -298,9 +299,7 @@ fn text_command(
     text_measure_cache: &mut UiTextMeasureCache,
 ) -> UiRenderCommand {
     let text_frame = text_frame(frame, visual);
-    let text_clip = clip_frame
-        .and_then(|clip| clip.intersection(text_frame))
-        .unwrap_or(text_frame);
+    let text_clip = intersect_clip_frame(clip_frame, text_frame).unwrap_or(text_frame);
     let source_is_placeholder = is_placeholder_text(metadata, visible_text);
     let secure_requested = !source_is_placeholder && secure_text_policy(metadata).is_secure();
     let secure_source = secure_requested

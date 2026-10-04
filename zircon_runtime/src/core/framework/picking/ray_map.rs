@@ -7,6 +7,7 @@ use crate::core::math::UVec2;
 use super::{ray_from_viewport_point, PointerId, PointerLocation, PointerRay};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+/// 相机、指针和视口三者共同标识一条射线；同一指针可在多个视口或相机下产生不同射线。
 pub struct RayId {
     pub camera: EntityId,
     pub pointer: PointerId,
@@ -55,6 +56,7 @@ impl CameraRaySource {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+/// 每帧由活跃相机与视口内指针位置构造的射线集合，供所有选取后端共享。
 pub struct RayMap {
     map: HashMap<RayId, PointerRay>,
 }
@@ -84,6 +86,7 @@ impl RayMap {
         self.map.iter()
     }
 
+    /// 重建当前帧射线；调用方须先提供匹配的视口句柄与局部坐标，旧帧射线不会保留。
     pub fn rebuild(&mut self, pointers: &[PointerLocation], cameras: &[CameraRaySource]) {
         self.map.clear();
         let active_camera_count = cameras.iter().filter(|camera| camera.active).count();
@@ -115,5 +118,5 @@ impl RayMap {
 }
 
 #[cfg(test)]
-#[path = "ray_map/rebuild_capacity_tests.rs"]
+#[path = "ray_map/tests/rebuild_capacity_tests.rs"]
 mod rebuild_capacity_tests;

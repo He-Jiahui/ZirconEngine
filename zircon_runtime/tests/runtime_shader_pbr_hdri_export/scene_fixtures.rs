@@ -518,6 +518,7 @@ pub(super) fn write_pbr_matrix_scene(path: PathBuf) {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                components: Vec::new(),
                 script_bindings: Vec::new(),
             });
             entity_id += 1;
@@ -597,6 +598,7 @@ pub(super) fn write_single_pbr_sphere_scene_with_camera_view_and_material(
             terrain: None,
             tilemap: None,
             prefab_instance: None,
+            components: Vec::new(),
             script_bindings: Vec::new(),
         },
         zero_intensity_key_light_entity(3, "Zero Intensity Key Light"),
@@ -698,6 +700,7 @@ fn camera_entity_with_view(
         terrain: None,
         tilemap: None,
         prefab_instance: None,
+        components: Vec::new(),
         script_bindings: Vec::new(),
     }
 }
@@ -722,6 +725,7 @@ fn zero_intensity_key_light_entity(entity: u64, name: &str) -> SceneEntityAsset 
             direction: [-0.35, -0.55, -0.76],
             color: [1.0, 0.96, 0.88],
             intensity: 0.0,
+            casts_shadow: false,
             volumetric: false,
         }),
         point_light: None,
@@ -739,6 +743,7 @@ fn zero_intensity_key_light_entity(entity: u64, name: &str) -> SceneEntityAsset 
         terrain: None,
         tilemap: None,
         prefab_instance: None,
+        components: Vec::new(),
         script_bindings: Vec::new(),
     }
 }

@@ -71,6 +71,9 @@ fn host_menu_chrome_uses_projected_toml_frames_and_rust_owned_data() {
         source("src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs");
     let chrome_projection =
         source("src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs");
+    let menu_chrome = source(
+        "src/ui/layouts/windows/workbench_host_window/chrome_template_projection/menu_chrome.rs",
+    );
     let scene_projection =
         source("src/ui/layouts/windows/workbench_host_window/scene_projection.rs");
     let menu_asset = source("assets/ui/editor/workbench_menu_chrome.zui");
@@ -79,18 +82,11 @@ fn host_menu_chrome_uses_projected_toml_frames_and_rust_owned_data() {
     assert!(host_components.contains("pub menu_frames: ModelRc<HostChromeControlFrameData>"));
     assert!(host_interaction.contains("pub menu_bar_scroll_px: f32"));
     assert!(host_interaction.contains("pub window_menu_scroll_px: f32"));
-    for required in [
-        "menu_button_frames_from_chrome_asset",
-        "SlotFilter::new(MENU_SLOT_PREFIX, MENU_SLOT_COUNT)",
-        "menu_control_frames(&template_nodes, menus.row_count().max(MENU_SLOT_COUNT))",
-    ] {
-        assert!(
-            pointer_builder.contains(required)
-                || chrome_projection.contains(required)
-                || scene_projection.contains(required),
-            "menu projection missing `{required}`"
-        );
-    }
+    assert!(pointer_builder.contains("menu_button_frames_from_chrome_asset"));
+    assert!(chrome_projection.contains("mod menu_chrome;"));
+    assert!(menu_chrome.contains("control_frames(nodes, MENU_SLOT_PREFIX, count)"));
+    assert!(scene_projection
+        .contains("menu_control_frames(&template_nodes, menus.row_count().max(MENU_SLOT_COUNT))"));
     for required in [
         "WorkbenchMenuBarRoot",
         "MenuSlot0",
@@ -118,6 +114,11 @@ fn host_menu_chrome_uses_projected_toml_frames_and_rust_owned_data() {
 fn menu_popup_projection_mutes_disabled_item_labels() {
     let chrome_projection =
         source("src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs");
+    let menu_chrome = source(
+        "src/ui/layouts/windows/workbench_host_window/chrome_template_projection/menu_chrome.rs",
+    );
+
+    assert!(chrome_projection.contains("mod menu_chrome;"));
 
     for required in [
         "if !item.enabled {",
@@ -125,7 +126,7 @@ fn menu_popup_projection_mutes_disabled_item_labels() {
         "shortcut_node.text_tone = \"muted\".into();",
     ] {
         assert!(
-            chrome_projection.contains(required),
+            menu_chrome.contains(required),
             "menu popup projection should make disabled item text visually muted `{required}`"
         );
     }
@@ -177,16 +178,37 @@ fn menu_pointer_reuses_the_committed_item_tree() {
 }
 
 #[test]
-fn menu_popup_route_indices_advance_linearly_within_each_layer() {
+fn menu_popup_routes_use_one_surface_per_layer_and_published_item_indices() {
     let rebuild =
         source("src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs");
+    let popup_items =
+        source("src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_popup_items.rs");
+    let route_projection =
+        source("src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_project_route.rs");
+    let item_tree = source("src/ui/retained_host/menu_pointer/menu_item_tree.rs");
+    let behavior = source("src/tests/host/retained_menu_pointer/pointer_bridge.rs");
 
     assert_eq!(
-        rebuild.matches("menu_item_route_index(").count(),
-        1,
-        "a popup layer may locate its start once, but must not rescan the root tree for every row"
+        rebuild
+            .matches("insert_popup_layer(PopupLayerInsert {")
+            .count(),
+        2,
+        "root and nested popup layers should each insert one surface node"
     );
-    assert!(rebuild.contains("menu_item_subtree_len(item)"));
+    assert!(rebuild.contains("visible_items = branch_item.children.as_slice()"));
+    assert!(rebuild.contains("HostMenuPointerRouteIntent::PopupSurface(args.menu_index)"));
+    assert!(!rebuild.contains("menu_item_route_index("));
+    assert!(popup_items
+        .contains("self.popup_route_indices = menu_item_route_indices(&self.popup_items)"));
+    assert!(item_tree.contains("indices.insert(path.clone(), *current)"));
+    assert!(route_projection
+        .contains("popup_item_index_at_point(args.grid, args.items.len(), args.point)"));
+    assert!(route_projection.contains("args.route_indices.get(args.item_path.as_slice()).copied()"));
+    assert!(behavior
+        .contains("fn shared_menu_pointer_bridge_keeps_large_popup_item_authority_virtual()"));
+    assert!(behavior.contains("logical menu items must not become retained hit-test nodes"));
+    assert!(behavior
+        .contains("fn shared_menu_pointer_bridge_opens_flipped_nested_popup_for_branch_hover()"));
 }
 
 #[test]

@@ -1,3 +1,4 @@
+//! 异步发现请求绑定插件运行时的 I/O lane 与取消令牌；排队数有上限，失去运行时所有者时请求必须报告失败。
 use std::fmt;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -7,7 +8,7 @@ use std::time::Instant;
 use crate::core::runtime::{
     BoundedKeyedIoCancelAuthority, BoundedKeyedIoCancelError, BoundedKeyedIoLane,
     BoundedKeyedIoLimits, BoundedKeyedIoTerminal, BoundedKeyedIoTicket, BoundedKeyedIoWaitResult,
-    BoundedKeyedIoWorkDeadline, JobScheduler, TaskPool,
+    BoundedKeyedIoWorkDeadline, TaskPool,
 };
 use crate::core::{CoreHandle, CoreWeak};
 use crate::script::VmError;
@@ -156,7 +157,9 @@ enum VmPluginDiscoveryBackend {
 impl VmPluginDiscoveryWorker {
     pub(crate) fn with_runtime(limits: VmPluginDiscoveryLimits, runtime: &CoreHandle) -> Self {
         let worker_pool = runtime.task_graph().worker_pool().clone();
-        let scheduler = JobScheduler::from_pool(worker_pool.clone());
+        let scheduler = runtime
+            .task_graph()
+            .scheduler(crate::core::TaskPoolKind::Compute);
         let retained_bytes_per_request = limits
             .max_total_manifest_bytes
             .saturating_add(limits.max_total_path_bytes);

@@ -1,3 +1,4 @@
+// 与 HZB cull shader 拼接的采样 helper；mip 选择应保持对球形包围体保守。
 fn zr_hzb_mip_for_radius(radius_pixels: f32, mip_count: u32) -> u32 {
     if (mip_count <= 1u) {
         return 0u;

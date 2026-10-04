@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
+use zircon_runtime::core::framework::foundation::FOUNDATION_MODULE_NAME;
 use zircon_runtime::core::framework::physics::PhysicsManager;
 use zircon_runtime::core::manager::RegisteredManagerService;
 use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{
-    DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode,
+    DriverDescriptor, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor, ServiceKind,
+    StartupMode,
 };
 use zircon_runtime::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 
@@ -33,6 +35,7 @@ pub(crate) fn module_descriptor_with_manager(
         PHYSICS_MODULE_NAME,
         "Physics world, queries, and backend selection",
     )
+    .with_module_dependency(ModuleDependencySpec::named(FOUNDATION_MODULE_NAME))
     .with_driver(DriverDescriptor::new(
         qualified_name(PHYSICS_MODULE_NAME, ServiceKind::Driver, "PhysicsDriver"),
         StartupMode::Immediate,
@@ -46,7 +49,11 @@ pub(crate) fn module_descriptor_with_manager(
             "DefaultPhysicsManager",
         ),
         StartupMode::Immediate,
-        Vec::new(),
+        vec![dependency_on(
+            FOUNDATION_MODULE_NAME,
+            ServiceKind::Manager,
+            "ConfigManager",
+        )],
         factory(move |core| {
             if let Some(manager) = shared_manager.as_ref() {
                 manager.attach_core(core);

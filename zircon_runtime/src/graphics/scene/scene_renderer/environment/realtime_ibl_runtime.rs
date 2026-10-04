@@ -33,6 +33,7 @@ const REALTIME_IBL_SOURCE_MIP_COUNT: u32 = SOURCE_CUBEMAP_PMREM_MIP_COUNT;
 const REALTIME_IBL_CAPTURE_FACES_PER_FRAME: u8 = 2;
 
 #[derive(Clone, Debug)]
+/// 本帧固定的烘焙快照、工作切片和采样槽；后续阶段沿用它，避免帧内重新解析天空。
 pub(in crate::graphics) struct RealtimeIblPreparedFrame {
     batch: Option<RealtimeIblFrameBatch>,
     request: IblBakeArtifactRequest,
@@ -64,6 +65,7 @@ impl RealtimeIblPreparedFrame {
 }
 
 #[derive(Clone, Debug)]
+/// 已编码但尚未被提交接收的切片；帧 owner 必须以成功或失败归还其调度 token。
 pub(in crate::graphics) struct RealtimeIblPendingSubmission {
     token: RealtimeIblBatchToken,
     pub report: RealtimeIblWgpuRecordReport,
@@ -73,6 +75,8 @@ pub(in crate::graphics) struct RealtimeIblPendingSubmission {
     timestamp_metadata: Option<RealtimeIblGpuTimingMetadata>,
 }
 
+/// 连接天空快照、分帧调度、GPU 资源与图回放的设备内 owner。
+/// 一代烘焙期间冻结天空，后续变化合并为最新待办；完整发布前继续采样上一代。
 pub(in crate::graphics) struct RealtimeIblRuntime {
     scheduler: RealtimeIblTimeSliceScheduler,
     resources: Option<RealtimeIblGpuResources>,
@@ -132,6 +136,7 @@ impl RealtimeIblRuntime {
         }
     }
 
+    // 进行中的一代必须使用同一源；这里只保留最新后继天空，当前一代成功发布后再启动它。
     fn resolve_bake_snapshot(
         &mut self,
         requested_sky: ProceduralSkyParams,
@@ -389,6 +394,8 @@ impl RealtimeIblRuntime {
         })
     }
 
+    /// bool 表示包含该切片的命令提交是否被接收；它不是 GPU 完成通知。
+    /// 只有终末 SH9 切片成功后调度器才翻转采样槽，GPU 耗时由独立诊断读回确认。
     pub(in crate::graphics) fn complete_submission(
         &mut self,
         submission: RealtimeIblPendingSubmission,
@@ -593,4 +600,5 @@ fn recipe_fingerprint(request: &IblBakeArtifactRequest) -> String {
 }
 
 #[cfg(test)]
+#[path = "realtime_ibl_runtime/tests/cases.rs"]
 mod tests;

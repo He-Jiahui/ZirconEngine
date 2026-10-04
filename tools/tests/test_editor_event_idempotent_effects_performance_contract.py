@@ -1,3 +1,4 @@
+# 核对重复交互、控制台清理和筛选只在实际变更后产生界面副作用。
 from pathlib import Path
 import unittest
 

@@ -9,8 +9,10 @@ use zircon_runtime::core::framework::animation::AnimationTrackPath;
 
 use super::{
     EditorHierarchyEvent, InspectorFieldChange, LayoutCommand, MenuAction, SelectionHostEvent,
+    ViewInstanceId,
 };
 
+// 事件身份与序号均为强类型包装，避免派发入口、日志和监听器把两个全局编号互换。
 macro_rules! define_id {
     ($name:ident) => {
         #[derive(
@@ -40,6 +42,7 @@ define_id!(EditorEventId);
 define_id!(EditorEventSequence);
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 派发来源写入日志供诊断与监听器筛选；Replay 是再次执行的来源，而非恢复旧执行状态。
 pub enum EditorEventSource {
     RetainedHost,
     Headless,
@@ -69,6 +72,7 @@ pub enum EditorAssetUtilityTab {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 资产面板与资产操作的语义请求；资产定位、删除和导入的权限与副作用由宿主执行层决定。
 pub enum EditorAssetEvent {
     OpenAsset {
         asset_locator: String,
@@ -127,6 +131,7 @@ pub enum EditorDraftEvent {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 操作系统结果进入统一事件流的投影；交易标识只在对应操作提交后提供给记录。
 pub enum EditorOperationEvent {
     ControlFailure {
         operation_id: String,
@@ -150,6 +155,7 @@ pub enum EditorOperationEvent {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 动画时间线、图和状态机的编辑意图；事件只携带目标标识，执行层负责定位与验证。
 pub enum EditorAnimationEvent {
     AddKey {
         track_path: AnimationTrackPath,
@@ -245,7 +251,19 @@ pub enum EditorAnimationEvent {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 视口交互及设置的语义输入；执行层转换为 ViewportCommand，并根据反馈决定渲染与界面刷新。
 pub enum EditorViewportEvent {
+    /// A viewport command bound to one committed Scene leaf.
+    ///
+    /// The ordinary variants remain the wire-compatible event form used by
+    /// keyboard and legacy command sources.  Retained toolbar input wraps the
+    /// command here only after resolving its surface to a live view instance;
+    /// execution must reject a retired target instead of falling back to the
+    /// active viewport session.
+    ForView {
+        view_id: crate::core::editor_event::ViewInstanceId,
+        event: Box<EditorViewportEvent>,
+    },
     PointerMoved {
         x: f32,
         y: f32,
@@ -320,7 +338,11 @@ pub enum EditorViewportEvent {
 }
 
 impl EditorViewportEvent {
+    // 标记只需视口控件投影更新的设置类输入，供执行层避免把每次设置都当成整个宿主展示重建。
     pub(crate) fn changes_chrome_projection(&self) -> bool {
+        if let Self::ForView { event, .. } = self {
+            return event.changes_chrome_projection();
+        }
         matches!(
             self,
             Self::ActivateSceneMode { .. }
@@ -341,7 +363,12 @@ impl EditorViewportEvent {
     }
 }
 
+#[cfg(test)]
+#[path = "tests/types_target_serialization_tests.rs"]
+mod target_serialization_tests;
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 短时 UI 交互意图；是否入保留日志由事件服务的记录策略决定，不能按变体名称推断持久性。
 pub enum EditorEventTransient {
     HoverNode { node_path: String, hovered: bool },
     FocusNode { node_path: String },
@@ -354,6 +381,7 @@ pub enum EditorEventTransient {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 所有入口共享的语义事件联合类型；绑定、回放与无界面调用先汇合到此类型，再由宿主执行。
 pub enum EditorEvent {
     WorkbenchMenu(MenuAction),
     Layout(LayoutCommand),
@@ -369,6 +397,7 @@ pub enum EditorEvent {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 语义事件及其来源；调用方应选择真实入口来源，以便监听器筛选和日志溯源。
 pub struct EditorEventEnvelope {
     pub source: EditorEventSource,
     pub event: EditorEvent,
@@ -381,6 +410,7 @@ impl EditorEventEnvelope {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 执行层交给宿主刷新的请求集合；效果表示需要采取的后续动作，不代表持久化或渲染已经完成。
 pub enum EditorEventEffect {
     PresentationChanged,
     LayoutChanged,
@@ -405,9 +435,15 @@ pub enum EditorEventEffect {
     SettingsWindowOpenRequested,
     OpenScenePickerRequested,
     CreateScenePickerRequested,
+    /// Explicitly opened view identity; the UI host decides whether its current
+    /// authored drawer is reachable without changing layout on mere resize.
+    OpenedViewVisibilityRequested {
+        instance_id: ViewInstanceId,
+    },
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+/// 派发可序列化结果；错误文本被回放用作失败预期，因此变更文案会影响已有失败日志的回放比较。
 pub struct EditorEventResult {
     pub value: Option<Value>,
     pub error: Option<String>,
@@ -430,6 +466,7 @@ impl EditorEventResult {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 记录对撤销责任的声明；实际交易与撤销由编辑事务引擎管理，事件日志本身不构成逆向操作。
 pub enum EditorEventUndoPolicy {
     NonUndoable,
     DelegatedToTransactionEngine,
@@ -437,6 +474,8 @@ pub enum EditorEventUndoPolicy {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 单次派发的诊断记录，串联来源、语义事件、操作元数据、效果与结果。
+/// 编号和修订在执行前分配；失败记录的修订范围不证明状态提交，回放也只按语义重新执行。
 pub struct EditorEventRecord {
     pub event_id: EditorEventId,
     pub sequence: EditorEventSequence,

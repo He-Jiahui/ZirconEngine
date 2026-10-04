@@ -51,7 +51,7 @@ where
             .map(|message| message.id.id())
             .unwrap_or_else(|| messages.next_id());
         self.generation = messages.generation();
-        MessageReadIter::tracked(messages.messages.iter(), start, self)
+        MessageReadIter::tracked(messages.messages.range(start..), self)
     }
 
     pub fn unread_count(&self, messages: Option<&Messages<T>>) -> usize {
@@ -94,13 +94,9 @@ where
     T: Message,
 {
     pub(crate) fn tracked(
-        mut inner: std::collections::vec_deque::Iter<'a, MessageInstance<T>>,
-        skip: usize,
+        inner: std::collections::vec_deque::Iter<'a, MessageInstance<T>>,
         cursor: &'a mut MessageCursor<T>,
     ) -> Self {
-        for _ in 0..skip {
-            let _ = inner.next();
-        }
         Self {
             inner: Some(inner),
             cursor: Some(cursor),
@@ -138,3 +134,7 @@ where
         Some((next.id, &next.message))
     }
 }
+
+#[cfg(test)]
+#[path = "tests/cursor_optimization_tests.rs"]
+mod optimization_tests;

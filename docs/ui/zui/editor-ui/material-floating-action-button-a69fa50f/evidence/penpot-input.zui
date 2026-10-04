@@ -1,0 +1,1163 @@
+penpot_host_theme_source = "zircon_editor/assets/ui/editor/theme/editor_tokens.zui"
+stylesheets = []
+penpot_dependency_sources = [ "zircon_editor/assets/ui/editor/theme/editor_tokens.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_label.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui" ]
+penpot_original_source = "[asset]\r\nkind = \"component\"\r\nid = \"res://ui/editor/material_components/inputs/material_floating_action_button.zui\"\r\nversion = 2\r\ndisplay_name = \"Material Floating Action Button Prototype\"\r\n\r\n[imports]\r\nwidgets = [\"res://ui/editor/components/workbench/primitives/data/workbench_label.zui#WorkbenchLabel\", \"res://ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption\"]\r\nstyles = [\"res://ui/editor/theme/editor_tokens.zui\"]\r\n\r\n[components.MaterialFloatingActionButtonPrototype]\r\nroot = \"root\"\r\ndefault_classes = [\"material-lab-prototype\", \"material-surface\"]\r\n\r\n[nodes.title]\r\ncomponent = \"WorkbenchLabel\"\r\ncontrol_id = \"floating-action-button_Title\"\r\nclasses = [\"material-lab-title\"]\r\nprops = { \"text\" = \"Floating Action Button\", \"text_tone\" = \"primary\", \"font_size\" = \"$editor.typography.title.size\", \"font_weight\" = \"$editor.typography.strong.weight\", \"wrap\" = \"word\", \"text_overflow\" = \"clip\" }\r\nlayout = { \"width\" = { \"stretch\" = \"Stretch\" }, \"height\" = { \"min\" = 56, \"preferred\" = 56, \"max\" = 56, \"stretch\" = \"Fixed\" } }\r\n\r\n[nodes.meta]\r\ncomponent = \"GridBox\"\r\ncontrol_id = \"floating_action_button_Meta\"\r\nclasses = [\"material-lab-meta-strip\", \"material-lab-meta\"]\r\nlayout = { \"width\" = { \"stretch\" = \"Stretch\" }, \"height\" = { \"min\" = 100, \"preferred\" = 100, \"max\" = 100, \"stretch\" = \"Fixed\" }, \"container\" = { \"kind\" = \"GridBox\", \"columns\" = 2, \"rows\" = 2, \"column_gap\" = \"$editor.density.gap.medium\", \"row_gap\" = \"$editor.density.gap.small\" } }\nchildren = [\r\n  { node = \"meta_group\" },\r\n  { node = \"meta_response\" },\r\n  { node = \"meta_variant\" },\r\n  { node = \"meta_layout\" },\r\n]\r\n\r\n[nodes.meta_group]\r\ncomponent = \"WorkbenchCaption\"\r\ncontrol_id = \"floating_action_button_MetaGroup\"\r\nclasses = [\"material-lab-meta-chip\", \"material-lab-meta-group\"]\r\nprops = { \"text\" = \"Inputs\", \"text_tone\" = \"secondary\", \"font_size\" = \"$editor.typography.caption.size\", \"surface_variant\" = \"frame_only\", \"corner_radius\" = 0, \"border_width\" = 0, \"font_weight\" = \"$editor.typography.body.weight\", \"text_align\" = \"left\", \"wrap\" = \"word\", \"text_overflow\" = \"clip\", \"background_color\" = \"transparent\" }\r\nlayout = { \"width\" = { \"stretch\" = \"Stretch\" }, \"height\" = { \"min\" = 48, \"preferred\" = 48, \"max\" = 48, \"stretch\" = \"Fixed\" } }\n\r\n[nodes.meta_response]\r\ncomponent = \"WorkbenchCaption\"\r\ncontrol_id = \"floating_action_button_MetaResponse\"\r\nclasses = [\"material-lab-meta-chip\", \"material-lab-meta-response\"]\r\nprops = { \"text\" = \"click / press\", \"text_tone\" = \"success\", \"font_size\" = \"$editor.typography.caption.size\", \"surface_variant\" = \"frame_only\", \"response_mechanism\" = \"click / press\", \"density\" = \"compact\", \"corner_radius\" = 0, \"border_width\" = 0, \"font_weight\" = \"$editor.typography.body.weight\", \"text_align\" = \"left\", \"wrap\" = \"word\", \"text_overflow\" = \"clip\", \"background_color\" = \"transparent\" }\r\nlayout = { \"width\" = { \"stretch\" = \"Stretch\" }, \"height\" = { \"min\" = 48, \"preferred\" = 48, \"max\" = 48, \"stretch\" = \"Fixed\" } }\n[nodes.meta_variant]\r\ncomponent = \"WorkbenchCaption\"\r\ncontrol_id = \"floating_action_button_MetaVariant\"\r\nclasses = [\"material-lab-meta-chip\", \"material-lab-meta-variant\"]\r\nprops = { \"text\" = \"small / standard / large\", \"text_tone\" = \"primary\", \"font_size\" = \"$editor.typography.caption.size\", \"surface_variant\" = \"frame_only\", \"variant\" = \"small / standard / large\", \"density\" = \"compact\", \"corner_radius\" = 0, \"border_width\" = 0, \"font_weight\" = \"$editor.typography.body.weight\", \"text_align\" = \"left\", \"wrap\" = \"word\", \"text_overflow\" = \"clip\", \"background_color\" = \"transparent\" }\r\nlayout = { \"width\" = { \"stretch\" = \"Stretch\" }, \"height\" = { \"min\" = 48, \"preferred\" = 48, \"max\" = 48, \"stretch\" = \"Fixed\" } }\n\r\n[nodes.meta_layout]\r\ncomponent = \"WorkbenchCaption\"\r\ncontrol_id = \"floating_action_button_MetaLayout\"\r\nclasses = [\"material-lab-meta-chip\", \"material-lab-meta-layout\"]\r\nprops = { \"text\" = \"inline controls\", \"text_tone\" = \"warning\", \"font_size\" = \"$editor.typography.caption.size\", \"surface_variant\" = \"frame_only\", \"layout_mode\" = \"inline controls\", \"density\" = \"compact\", \"corner_radius\" = 0, \"border_width\" = 0, \"font_weight\" = \"$editor.typography.body.weight\", \"text_align\" = \"left\", \"wrap\" = \"word\", \"text_overflow\" = \"clip\", \"background_color\" = \"transparent\" }\r\nlayout = { \"width\" = { \"stretch\" = \"Stretch\" }, \"height\" = { \"min\" = 48, \"preferred\" = 48, \"max\" = 48, \"stretch\" = \"Fixed\" } }\n[nodes.sample]\r\ncomponent = \"HorizontalBox\"\r\ncontrol_id = \"floating-action-button_Sample\"\r\nclasses = [\"material-control\", \"material-lab-sample\", \"material-fab-row\"]\r\nprops = { \"text\" = \"\", \"surface_variant\" = \"elevated\", \"button_variant\" = \"contained\", \"button_color\" = \"primary\", \"button_size\" = \"medium\", \"icon_placement\" = \"icon_only\", \"button_shape\" = \"circular\", \"text_tone\" = \"primary\", \"validation_level\" = \"normal\", \"hovered\" = true, \"pressed\" = false, \"focused\" = true, \"selected\" = true, \"checked\" = true, \"disabled\" = false, \"open\" = true, \"popup_open\" = true, \"corner_radius\" = 0, \"border_width\" = 0, \"elevation\" = 0, \"input_interactive\" = true, \"input_clickable\" = true, \"input_hoverable\" = true, \"input_focusable\" = true, \"background_color\" = \"transparent\" }\r\nlayout = { \"width\" = { \"stretch\" = \"Stretch\" }, \"height\" = { \"min\" = 56, \"preferred\" = 56, \"max\" = 56, \"stretch\" = \"Fixed\" }, \"container\" = { \"kind\" = \"HorizontalBox\", \"gap\" = \"$editor.density.gap.medium\" } }\r\nchildren = [\r\n  { node = \"fab_circular\" },\r\n  { node = \"fab_small\" },\r\n  { node = \"fab_extended\" },\r\n]\r\nevents = [\r\n  { id = \"MaterialLab/FloatingActionButton/Click\", event = \"Click\", route = \"material_lab.floating_action_button.click\" },\r\n]\r\n\r\n[nodes.fab_circular]\r\ncomponent = \"IconButton\"\r\ncontrol_id = \"floating-action-button_Circular\"\r\nclasses = [\"material-control\", \"material-fab\", \"material-fab-circular\"]\r\nprops = { text = \"Add\", icon = \"add\", surface_variant = \"elevated\", button_variant = \"contained\", button_color = \"primary\", button_size = \"medium\", icon_placement = \"icon_only\", button_shape = \"circular\", fab_style = \"standard\", text_tone = \"primary\", validation_level = \"normal\", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = false, popup_open = false, corner_radius = 16.0, border_width = 0.0, elevation = 3.0, hover_elevation = 4.0, button_horizontal_padding = 14.0, button_vertical_padding = 14.0, min_layout_width = 56.0, min_layout_height = 56.0, icon_size = 24.0, state_layer_enabled = true, ripple_enabled = true, clip_ripple = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }\r\nlayout = { width = { min = 56, preferred = 56, max = 56, stretch = \"Fixed\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\r\n\r\n[nodes.fab_small]\r\ncomponent = \"IconButton\"\r\ncontrol_id = \"floating-action-button_Small\"\r\nclasses = [\"material-control\", \"material-fab\", \"material-fab-small\", \"material-fab-circular\"]\r\nprops = { text = \"Edit\", icon = \"edit\", surface_variant = \"elevated\", button_variant = \"contained\", button_color = \"primary\", button_size = \"small\", icon_placement = \"icon_only\", button_shape = \"circular\", fab_style = \"small\", text_tone = \"primary\", validation_level = \"normal\", hovered = false, pressed = false, focused = false, selected = false, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 12.0, border_width = 0.0, elevation = 3.0, hover_elevation = 4.0, button_horizontal_padding = 10.0, button_vertical_padding = 10.0, min_layout_width = 40.0, min_layout_height = 40.0, icon_size = 24.0, state_layer_enabled = true, ripple_enabled = true, clip_ripple = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }\r\nlayout = { width = { min = 40, preferred = 40, max = 40, stretch = \"Fixed\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\r\n\r\n[nodes.fab_extended]\r\ncomponent = \"Button\"\r\ncontrol_id = \"floating-action-button_Extended\"\r\nclasses = [\"material-control\", \"material-fab\", \"material-fab-extended\"]\r\nprops = { \"text\" = \"Create\", \"icon\" = \"add\", \"surface_variant\" = \"elevated\", \"button_variant\" = \"contained\", \"button_color\" = \"primary\", \"button_size\" = \"medium\", \"icon_placement\" = \"leading\", \"button_shape\" = \"extended\", \"fab_style\" = \"standard\", \"text_tone\" = \"primary\", \"validation_level\" = \"normal\", \"hovered\" = true, \"pressed\" = false, \"focused\" = false, \"selected\" = false, \"checked\" = false, \"disabled\" = false, \"open\" = false, \"popup_open\" = false, \"corner_radius\" = \"$editor.control.radius.control\", \"border_width\" = 0, \"elevation\" = 3, \"hover_elevation\" = 4, \"button_horizontal_padding\" = 12, \"button_vertical_padding\" = 12, \"min_layout_width\" = 128, \"min_layout_height\" = 48, \"icon_size\" = 20, \"state_layer_enabled\" = true, \"ripple_enabled\" = true, \"clip_ripple\" = true, \"input_interactive\" = false, \"input_clickable\" = false, \"input_hoverable\" = false, \"input_focusable\" = false }\r\nlayout = { width = { min = 128, preferred = 128, max = 128, stretch = \"Fixed\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\r\n\r\n[nodes.state_strip]\r\ncomponent = \"GridBox\"\r\ncontrol_id = \"floating_action_button_StateStrip\"\r\nclasses = [\"material-lab-state-strip\"]\r\nlayout = { \"width\" = { \"stretch\" = \"Stretch\" }, \"height\" = { \"min\" = 108, \"preferred\" = 108, \"max\" = 108, \"stretch\" = \"Fixed\" }, \"container\" = { \"kind\" = \"GridBox\", \"columns\" = 2, \"rows\" = 4, \"column_gap\" = \"$editor.density.gap.medium\", \"row_gap\" = \"$editor.density.gap.small\" } }\r\nchildren = [\r\n  { node = \"state_default\" },\r\n  { node = \"state_hover\" },\r\n  { node = \"state_pressed\" },\r\n  { node = \"state_focus\" },\r\n  { node = \"state_disabled\" },\r\n  { node = \"state_selected\" },\r\n  { node = \"state_open\" },\r\n  { node = \"state_error\" },\r\n]\r\n[nodes.state_default]\r\ncomponent = \"WorkbenchCaption\"\r\ncontrol_id = \"floating_action_button_StateDefault\"\r\nclasses = [\"material-lab-state-pill\", \"material-lab-state-default\"]\r\nprops = { \"text\" = \"Default\", \"text_tone\" = \"secondary\", \"font_size\" = \"$editor.typography.caption.size\", \"surface_variant\" = \"frame_only\", \"button_variant\" = \"text\", \"validation_level\" = \"normal\", \"hovered\" = false, \"pressed\" = false, \"focused\" = false, \"selected\" = false, \"checked\" = false, \"disabled\" = false, \"open\" = false, \"popup_open\" = false, \"corner_radius\" = 0, \"border_width\" = 0, \"font_weight\" = \"$editor.typography.body.weight\", \"text_align\" = \"left\", \"wrap\" = \"word\", \"text_overflow\" = \"clip\", \"background_color\" = \"transparent\" }\r\nlayout = { \"width\" = { \"stretch\" = \"Stretch\" }, \"height\" = { \"min\" = 24, \"preferred\" = 24, \"max\" = 24, \"stretch\" = \"Fixed\" } }\r\n[nodes.state_hover]\r\ncomponent = \"WorkbenchCaption\"\r\ncontrol_id = \"floating_action_button_StateHover\"\r\nclasses = [\"material-lab-state-pill\", \"material-lab-state-hover\"]\r\nprops = { \"text\" = \"Hover\", \"text_tone\" = \"primary\", \"font_size\" = \"$editor.typography.caption.size\", \"surface_variant\" = \"frame_only\", \"button_variant\" = \"text\", \"validation_level\" = \"normal\", \"hovered\" = true, \"pressed\" = false, \"focused\" = false, \"selected\" = false, \"checked\" = false, \"disabled\" = false, \"open\" = false, \"popup_open\" = false, \"corner_radius\" = 0, \"border_width\" = 0, \"font_weight\" = \"$editor.typography.body.weight\", \"text_align\" = \"left\", \"wrap\" = \"word\", \"text_overflow\" = \"clip\", \"background_color\" = \"transparent\" }\r\nlayout = { \"width\" = { \"stretch\" = \"Stretch\" }, \"height\" = { \"min\" = 24, \"preferred\" = 24, \"max\" = 24, \"stretch\" = \"Fixed\" } }\r\n[nodes.state_pressed]\r\ncomponent = \"WorkbenchCaption\"\r\ncontrol_id = \"floating_action_button_StatePressed\"\r\nclasses = [\"material-lab-state-pill\", \"material-lab-state-pressed\"]\r\nprops = { \"text\" = \"Pressed\", \"text_tone\" = \"primary\", \"font_size\" = \"$editor.typography.caption.size\", \"surface_variant\" = \"frame_only\", \"button_variant\" = \"text\", \"validation_level\" = \"normal\", \"hovered\" = true, \"pressed\" = true, \"focused\" = false, \"selected\" = false, \"checked\" = false, \"disabled\" = false, \"open\" = false, \"popup_open\" = false, \"corner_radius\" = 0, \"border_width\" = 0, \"font_weight\" = \"$editor.typography.body.weight\", \"text_align\" = \"left\", \"wrap\" = \"word\", \"text_overflow\" = \"clip\", \"background_color\" = \"transparent\" }\r\nlayout = { \"width\" = { \"stretch\" = \"Stretch\" }, \"height\" = { \"min\" = 24, \"preferred\" = 24, \"max\" = 24, \"stretch\" = \"Fixed\" } }\r\n[nodes.state_focus]\r\ncomponent = \"WorkbenchCaption\"\r\ncontrol_id = \"floating_action_button_StateFocus\"\r\nclasses = [\"material-lab-state-pill\", \"material-lab-state-focus\"]\r\nprops = { \"text\" = \"Focus\", \"text_tone\" = \"primary\", \"font_size\" = \"$editor.typography.caption.size\", \"surface_variant\" = \"frame_only\", \"button_variant\" = \"text\", \"validation_level\" = \"normal\", \"hovered\" = false, \"pressed\" = false, \"focused\" = true, \"selected\" = false, \"checked\" = false, \"disabled\" = false, \"open\" = false, \"popup_open\" = false, \"corner_radius\" = 0, \"border_width\" = 0, \"font_weight\" = \"$editor.typography.body.weight\", \"text_align\" = \"left\", \"wrap\" = \"word\", \"text_overflow\" = \"clip\", \"background_color\" = \"transparent\" }\r\nlayout = { \"width\" = { \"stretch\" = \"Stretch\" }, \"height\" = { \"min\" = 24, \"preferred\" = 24, \"max\" = 24, \"stretch\" = \"Fixed\" } }\r\n[nodes.state_disabled]\r\ncomponent = \"WorkbenchCaption\"\r\ncontrol_id = \"floating_action_button_StateDisabled\"\r\nclasses = [\"material-lab-state-pill\", \"material-lab-state-disabled\"]\r\nprops = { \"text\" = \"Disabled\", \"text_tone\" = \"disabled\", \"font_size\" = \"$editor.typography.caption.size\", \"surface_variant\" = \"frame_only\", \"button_variant\" = \"text\", \"validation_level\" = \"normal\", \"hovered\" = false, \"pressed\" = false, \"focused\" = false, \"selected\" = false, \"checked\" = false, \"disabled\" = true, \"open\" = false, \"popup_open\" = false, \"corner_radius\" = 0, \"border_width\" = 0, \"font_weight\" = \"$editor.typography.body.weight\", \"text_align\" = \"left\", \"wrap\" = \"word\", \"text_overflow\" = \"clip\", \"background_color\" = \"transparent\" }\r\nlayout = { \"width\" = { \"stretch\" = \"Stretch\" }, \"height\" = { \"min\" = 24, \"preferred\" = 24, \"max\" = 24, \"stretch\" = \"Fixed\" } }\r\n[nodes.state_selected]\r\ncomponent = \"WorkbenchCaption\"\r\ncontrol_id = \"floating_action_button_StateSelected\"\r\nclasses = [\"material-lab-state-pill\", \"material-lab-state-selected\"]\r\nprops = { \"text\" = \"Selected\", \"text_tone\" = \"primary\", \"font_size\" = \"$editor.typography.caption.size\", \"surface_variant\" = \"frame_only\", \"button_variant\" = \"text\", \"validation_level\" = \"normal\", \"hovered\" = false, \"pressed\" = false, \"focused\" = false, \"selected\" = true, \"checked\" = true, \"disabled\" = false, \"open\" = false, \"popup_open\" = false, \"corner_radius\" = 0, \"border_width\" = 0, \"font_weight\" = \"$editor.typography.body.weight\", \"text_align\" = \"left\", \"wrap\" = \"word\", \"text_overflow\" = \"clip\", \"background_color\" = \"transparent\" }\r\nlayout = { \"width\" = { \"stretch\" = \"Stretch\" }, \"height\" = { \"min\" = 24, \"preferred\" = 24, \"max\" = 24, \"stretch\" = \"Fixed\" } }\r\n[nodes.state_open]\r\ncomponent = \"WorkbenchCaption\"\r\ncontrol_id = \"floating_action_button_StateOpen\"\r\nclasses = [\"material-lab-state-pill\", \"material-lab-state-open\"]\r\nprops = { \"text\" = \"Open\", \"text_tone\" = \"primary\", \"font_size\" = \"$editor.typography.caption.size\", \"surface_variant\" = \"frame_only\", \"button_variant\" = \"text\", \"validation_level\" = \"normal\", \"hovered\" = false, \"pressed\" = false, \"focused\" = false, \"selected\" = true, \"checked\" = false, \"disabled\" = false, \"open\" = true, \"popup_open\" = true, \"corner_radius\" = 0, \"border_width\" = 0, \"font_weight\" = \"$editor.typography.body.weight\", \"text_align\" = \"left\", \"wrap\" = \"word\", \"text_overflow\" = \"clip\", \"background_color\" = \"transparent\" }\r\nlayout = { \"width\" = { \"stretch\" = \"Stretch\" }, \"height\" = { \"min\" = 24, \"preferred\" = 24, \"max\" = 24, \"stretch\" = \"Fixed\" } }\r\n[nodes.state_error]\r\ncomponent = \"WorkbenchCaption\"\r\ncontrol_id = \"floating_action_button_StateError\"\r\nclasses = [\"material-lab-state-pill\", \"material-lab-state-error\"]\r\nprops = { \"text\" = \"Error\", \"text_tone\" = \"error\", \"font_size\" = \"$editor.typography.caption.size\", \"surface_variant\" = \"frame_only\", \"button_variant\" = \"text\", \"validation_level\" = \"error\", \"hovered\" = false, \"pressed\" = false, \"focused\" = false, \"selected\" = false, \"checked\" = false, \"disabled\" = false, \"open\" = false, \"popup_open\" = false, \"corner_radius\" = 0, \"border_width\" = 0, \"font_weight\" = \"$editor.typography.body.weight\", \"text_align\" = \"left\", \"wrap\" = \"word\", \"text_overflow\" = \"clip\", \"background_color\" = \"transparent\" }\r\nlayout = { \"width\" = { \"stretch\" = \"Stretch\" }, \"height\" = { \"min\" = 24, \"preferred\" = 24, \"max\" = 24, \"stretch\" = \"Fixed\" } }\r\n[nodes.root]\r\ncomponent = \"VerticalBox\"\r\ncontrol_id = \"floating-action-button_Root\"\r\nclasses = [\"material-lab-card\", \"material-surface\", \"material-floating_action_button\"]\r\nlayout = { \"width\" = { \"stretch\" = \"Stretch\" }, \"height\" = { \"min\" = 356, \"preferred\" = 356, \"max\" = 356, \"stretch\" = \"Fixed\" }, \"container\" = { \"kind\" = \"VerticalBox\", \"gap\" = \"$editor.density.gap.large\" } }\r\nchildren = [\r\n  { node = \"title\" },\r\n  { node = \"meta\" },\r\n  { node = \"sample\" },\r\n  { node = \"state_strip\" },\r\n]\r\n"
+
+[asset]
+kind = "component"
+id = "res://ui/editor/material_components/inputs/material_floating_action_button.zui"
+version = 2
+display_name = "Material Floating Action Button Prototype"
+
+[imports]
+widgets = []
+styles = []
+
+[components.MaterialFloatingActionButtonPrototype]
+root = "root"
+default_classes = [ "material-lab-prototype", "material-surface" ]
+
+[nodes.title]
+component = "Label"
+control_id = "floating-action-button_Title"
+classes = [ "workbench-label", "workbench-primitive", "material-lab-title" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_label.zui#WorkbenchLabel"
+
+[nodes.title.props]
+text = "Floating Action Button"
+text_overflow = "clip"
+font_size = "$editor.typography.title.size"
+font_weight = "$editor.typography.strong.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "primary"
+foreground_color = "$editor.text.primary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+wrap = "word"
+
+[nodes.title.layout.width]
+stretch = "Stretch"
+
+[nodes.title.layout.height]
+min = 56
+preferred = 56
+max = 56
+stretch = "Fixed"
+
+[nodes.title.state]
+[nodes.title.style.self]
+[nodes.title.style.slot]
+[nodes.title.slots]
+[nodes.meta]
+component = "GridBox"
+control_id = "floating_action_button_Meta"
+classes = [ "material-lab-meta-strip", "material-lab-meta" ]
+
+[nodes.meta.layout.width]
+stretch = "Stretch"
+
+[nodes.meta.layout.height]
+min = 100
+preferred = 100
+max = 100
+stretch = "Fixed"
+
+[nodes.meta.layout.container]
+kind = "GridBox"
+columns = 2
+rows = 2
+column_gap = "$editor.density.gap.medium"
+row_gap = "$editor.density.gap.small"
+
+[[nodes.meta.children]]
+node = "meta_group"
+
+[[nodes.meta.children]]
+node = "meta_response"
+
+[[nodes.meta.children]]
+node = "meta_variant"
+
+[[nodes.meta.children]]
+node = "meta_layout"
+
+[nodes.meta_group]
+component = "Label"
+control_id = "floating_action_button_MetaGroup"
+classes = [ "workbench-caption", "workbench-primitive", "material-lab-meta-chip", "material-lab-meta-group" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.meta_group.props]
+text = "Inputs"
+text_overflow = "clip"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.body.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "secondary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+surface_variant = "frame_only"
+corner_radius = 0
+border_width = 0
+text_align = "left"
+wrap = "word"
+background_color = "transparent"
+
+[nodes.meta_group.layout.width]
+stretch = "Stretch"
+
+[nodes.meta_group.layout.height]
+min = 48
+preferred = 48
+max = 48
+stretch = "Fixed"
+
+[nodes.meta_group.state]
+[nodes.meta_group.style.self]
+[nodes.meta_group.style.slot]
+[nodes.meta_group.slots]
+[nodes.meta_response]
+component = "Label"
+control_id = "floating_action_button_MetaResponse"
+classes = [ "workbench-caption", "workbench-primitive", "material-lab-meta-chip", "material-lab-meta-response" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.meta_response.props]
+text = "click / press"
+text_overflow = "clip"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.body.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "success"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+surface_variant = "frame_only"
+response_mechanism = "click / press"
+density = "compact"
+corner_radius = 0
+border_width = 0
+text_align = "left"
+wrap = "word"
+background_color = "transparent"
+
+[nodes.meta_response.layout.width]
+stretch = "Stretch"
+
+[nodes.meta_response.layout.height]
+min = 48
+preferred = 48
+max = 48
+stretch = "Fixed"
+
+[nodes.meta_response.state]
+[nodes.meta_response.style.self]
+[nodes.meta_response.style.slot]
+[nodes.meta_response.slots]
+[nodes.meta_variant]
+component = "Label"
+control_id = "floating_action_button_MetaVariant"
+classes = [ "workbench-caption", "workbench-primitive", "material-lab-meta-chip", "material-lab-meta-variant" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.meta_variant.props]
+text = "small / standard / large"
+text_overflow = "clip"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.body.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "primary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+surface_variant = "frame_only"
+variant = "small / standard / large"
+density = "compact"
+corner_radius = 0
+border_width = 0
+text_align = "left"
+wrap = "word"
+background_color = "transparent"
+
+[nodes.meta_variant.layout.width]
+stretch = "Stretch"
+
+[nodes.meta_variant.layout.height]
+min = 48
+preferred = 48
+max = 48
+stretch = "Fixed"
+
+[nodes.meta_variant.state]
+[nodes.meta_variant.style.self]
+[nodes.meta_variant.style.slot]
+[nodes.meta_variant.slots]
+[nodes.meta_layout]
+component = "Label"
+control_id = "floating_action_button_MetaLayout"
+classes = [ "workbench-caption", "workbench-primitive", "material-lab-meta-chip", "material-lab-meta-layout" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.meta_layout.props]
+text = "inline controls"
+text_overflow = "clip"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.body.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "warning"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+surface_variant = "frame_only"
+layout_mode = "inline controls"
+density = "compact"
+corner_radius = 0
+border_width = 0
+text_align = "left"
+wrap = "word"
+background_color = "transparent"
+
+[nodes.meta_layout.layout.width]
+stretch = "Stretch"
+
+[nodes.meta_layout.layout.height]
+min = 48
+preferred = 48
+max = 48
+stretch = "Fixed"
+
+[nodes.meta_layout.state]
+[nodes.meta_layout.style.self]
+[nodes.meta_layout.style.slot]
+[nodes.meta_layout.slots]
+[nodes.sample]
+component = "HorizontalBox"
+control_id = "floating-action-button_Sample"
+classes = [ "material-control", "material-lab-sample", "material-fab-row" ]
+
+[nodes.sample.props]
+text = ""
+surface_variant = "elevated"
+button_variant = "contained"
+button_color = "primary"
+button_size = "medium"
+icon_placement = "icon_only"
+button_shape = "circular"
+text_tone = "primary"
+validation_level = "normal"
+hovered = true
+pressed = false
+focused = true
+selected = true
+checked = true
+disabled = false
+open = true
+popup_open = true
+corner_radius = 0
+border_width = 0
+elevation = 0
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+background_color = "transparent"
+
+[nodes.sample.layout.width]
+stretch = "Stretch"
+
+[nodes.sample.layout.height]
+min = 56
+preferred = 56
+max = 56
+stretch = "Fixed"
+
+[nodes.sample.layout.container]
+kind = "HorizontalBox"
+gap = "$editor.density.gap.medium"
+
+[[nodes.sample.children]]
+node = "fab_circular"
+
+[[nodes.sample.children]]
+node = "fab_small"
+
+[[nodes.sample.children]]
+node = "fab_extended"
+
+[[nodes.sample.events]]
+id = "MaterialLab/FloatingActionButton/Click"
+event = "Click"
+route = "material_lab.floating_action_button.click"
+
+[nodes.fab_circular]
+component = "IconButton"
+control_id = "floating-action-button_Circular"
+classes = [ "material-control", "material-fab", "material-fab-circular" ]
+
+[nodes.fab_circular.props]
+text = "Add"
+icon = "add"
+surface_variant = "elevated"
+button_variant = "contained"
+button_color = "primary"
+button_size = "medium"
+icon_placement = "icon_only"
+button_shape = "circular"
+fab_style = "standard"
+text_tone = "primary"
+validation_level = "normal"
+hovered = true
+pressed = false
+focused = true
+selected = true
+checked = true
+disabled = false
+open = false
+popup_open = false
+corner_radius = 16
+border_width = 0
+elevation = 3
+hover_elevation = 4
+button_horizontal_padding = 14
+button_vertical_padding = 14
+min_layout_width = 56
+min_layout_height = 56
+icon_size = 24
+state_layer_enabled = true
+ripple_enabled = true
+clip_ripple = true
+input_interactive = false
+input_clickable = false
+input_hoverable = false
+input_focusable = false
+
+[nodes.fab_circular.layout.width]
+min = 56
+preferred = 56
+max = 56
+stretch = "Fixed"
+
+[nodes.fab_circular.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.fab_small]
+component = "IconButton"
+control_id = "floating-action-button_Small"
+classes = [ "material-control", "material-fab", "material-fab-small", "material-fab-circular" ]
+
+[nodes.fab_small.props]
+text = "Edit"
+icon = "edit"
+surface_variant = "elevated"
+button_variant = "contained"
+button_color = "primary"
+button_size = "small"
+icon_placement = "icon_only"
+button_shape = "circular"
+fab_style = "small"
+text_tone = "primary"
+validation_level = "normal"
+hovered = false
+pressed = false
+focused = false
+selected = false
+checked = false
+disabled = false
+open = false
+popup_open = false
+corner_radius = 12
+border_width = 0
+elevation = 3
+hover_elevation = 4
+button_horizontal_padding = 10
+button_vertical_padding = 10
+min_layout_width = 40
+min_layout_height = 40
+icon_size = 24
+state_layer_enabled = true
+ripple_enabled = true
+clip_ripple = true
+input_interactive = false
+input_clickable = false
+input_hoverable = false
+input_focusable = false
+
+[nodes.fab_small.layout.width]
+min = 40
+preferred = 40
+max = 40
+stretch = "Fixed"
+
+[nodes.fab_small.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.fab_extended]
+component = "Button"
+control_id = "floating-action-button_Extended"
+classes = [ "material-control", "material-fab", "material-fab-extended" ]
+
+[nodes.fab_extended.props]
+text = "Create"
+icon = "add"
+surface_variant = "elevated"
+button_variant = "contained"
+button_color = "primary"
+button_size = "medium"
+icon_placement = "leading"
+button_shape = "extended"
+fab_style = "standard"
+text_tone = "primary"
+validation_level = "normal"
+hovered = true
+pressed = false
+focused = false
+selected = false
+checked = false
+disabled = false
+open = false
+popup_open = false
+corner_radius = "$editor.control.radius.control"
+border_width = 0
+elevation = 3
+hover_elevation = 4
+button_horizontal_padding = 12
+button_vertical_padding = 12
+min_layout_width = 128
+min_layout_height = 48
+icon_size = 20
+state_layer_enabled = true
+ripple_enabled = true
+clip_ripple = true
+input_interactive = false
+input_clickable = false
+input_hoverable = false
+input_focusable = false
+
+[nodes.fab_extended.layout.width]
+min = 128
+preferred = 128
+max = 128
+stretch = "Fixed"
+
+[nodes.fab_extended.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.state_strip]
+component = "GridBox"
+control_id = "floating_action_button_StateStrip"
+classes = [ "material-lab-state-strip" ]
+
+[nodes.state_strip.layout.width]
+stretch = "Stretch"
+
+[nodes.state_strip.layout.height]
+min = 108
+preferred = 108
+max = 108
+stretch = "Fixed"
+
+[nodes.state_strip.layout.container]
+kind = "GridBox"
+columns = 2
+rows = 4
+column_gap = "$editor.density.gap.medium"
+row_gap = "$editor.density.gap.small"
+
+[[nodes.state_strip.children]]
+node = "state_default"
+
+[[nodes.state_strip.children]]
+node = "state_hover"
+
+[[nodes.state_strip.children]]
+node = "state_pressed"
+
+[[nodes.state_strip.children]]
+node = "state_focus"
+
+[[nodes.state_strip.children]]
+node = "state_disabled"
+
+[[nodes.state_strip.children]]
+node = "state_selected"
+
+[[nodes.state_strip.children]]
+node = "state_open"
+
+[[nodes.state_strip.children]]
+node = "state_error"
+
+[nodes.state_default]
+component = "Label"
+control_id = "floating_action_button_StateDefault"
+classes = [ "workbench-caption", "workbench-primitive", "material-lab-state-pill", "material-lab-state-default" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.state_default.props]
+text = "Default"
+text_overflow = "clip"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.body.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "secondary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+surface_variant = "frame_only"
+button_variant = "text"
+validation_level = "normal"
+hovered = false
+pressed = false
+focused = false
+selected = false
+checked = false
+disabled = false
+open = false
+popup_open = false
+corner_radius = 0
+border_width = 0
+text_align = "left"
+wrap = "word"
+background_color = "transparent"
+
+[nodes.state_default.layout.width]
+stretch = "Stretch"
+
+[nodes.state_default.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.state_default.state]
+[nodes.state_default.style.self]
+[nodes.state_default.style.slot]
+[nodes.state_default.slots]
+[nodes.state_hover]
+component = "Label"
+control_id = "floating_action_button_StateHover"
+classes = [ "workbench-caption", "workbench-primitive", "material-lab-state-pill", "material-lab-state-hover" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.state_hover.props]
+text = "Hover"
+text_overflow = "clip"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.body.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "primary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+surface_variant = "frame_only"
+button_variant = "text"
+validation_level = "normal"
+hovered = true
+pressed = false
+focused = false
+selected = false
+checked = false
+disabled = false
+open = false
+popup_open = false
+corner_radius = 0
+border_width = 0
+text_align = "left"
+wrap = "word"
+background_color = "transparent"
+
+[nodes.state_hover.layout.width]
+stretch = "Stretch"
+
+[nodes.state_hover.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.state_hover.state]
+[nodes.state_hover.style.self]
+[nodes.state_hover.style.slot]
+[nodes.state_hover.slots]
+[nodes.state_pressed]
+component = "Label"
+control_id = "floating_action_button_StatePressed"
+classes = [ "workbench-caption", "workbench-primitive", "material-lab-state-pill", "material-lab-state-pressed" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.state_pressed.props]
+text = "Pressed"
+text_overflow = "clip"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.body.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "primary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+surface_variant = "frame_only"
+button_variant = "text"
+validation_level = "normal"
+hovered = true
+pressed = true
+focused = false
+selected = false
+checked = false
+disabled = false
+open = false
+popup_open = false
+corner_radius = 0
+border_width = 0
+text_align = "left"
+wrap = "word"
+background_color = "transparent"
+
+[nodes.state_pressed.layout.width]
+stretch = "Stretch"
+
+[nodes.state_pressed.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.state_pressed.state]
+[nodes.state_pressed.style.self]
+[nodes.state_pressed.style.slot]
+[nodes.state_pressed.slots]
+[nodes.state_focus]
+component = "Label"
+control_id = "floating_action_button_StateFocus"
+classes = [ "workbench-caption", "workbench-primitive", "material-lab-state-pill", "material-lab-state-focus" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.state_focus.props]
+text = "Focus"
+text_overflow = "clip"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.body.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "primary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+surface_variant = "frame_only"
+button_variant = "text"
+validation_level = "normal"
+hovered = false
+pressed = false
+focused = true
+selected = false
+checked = false
+disabled = false
+open = false
+popup_open = false
+corner_radius = 0
+border_width = 0
+text_align = "left"
+wrap = "word"
+background_color = "transparent"
+
+[nodes.state_focus.layout.width]
+stretch = "Stretch"
+
+[nodes.state_focus.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.state_focus.state]
+[nodes.state_focus.style.self]
+[nodes.state_focus.style.slot]
+[nodes.state_focus.slots]
+[nodes.state_disabled]
+component = "Label"
+control_id = "floating_action_button_StateDisabled"
+classes = [ "workbench-caption", "workbench-primitive", "material-lab-state-pill", "material-lab-state-disabled" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.state_disabled.props]
+text = "Disabled"
+text_overflow = "clip"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.body.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "disabled"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+surface_variant = "frame_only"
+button_variant = "text"
+validation_level = "normal"
+hovered = false
+pressed = false
+focused = false
+selected = false
+checked = false
+disabled = true
+open = false
+popup_open = false
+corner_radius = 0
+border_width = 0
+text_align = "left"
+wrap = "word"
+background_color = "transparent"
+
+[nodes.state_disabled.layout.width]
+stretch = "Stretch"
+
+[nodes.state_disabled.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.state_disabled.state]
+[nodes.state_disabled.style.self]
+[nodes.state_disabled.style.slot]
+[nodes.state_disabled.slots]
+[nodes.state_selected]
+component = "Label"
+control_id = "floating_action_button_StateSelected"
+classes = [ "workbench-caption", "workbench-primitive", "material-lab-state-pill", "material-lab-state-selected" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.state_selected.props]
+text = "Selected"
+text_overflow = "clip"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.body.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "primary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+surface_variant = "frame_only"
+button_variant = "text"
+validation_level = "normal"
+hovered = false
+pressed = false
+focused = false
+selected = true
+checked = true
+disabled = false
+open = false
+popup_open = false
+corner_radius = 0
+border_width = 0
+text_align = "left"
+wrap = "word"
+background_color = "transparent"
+
+[nodes.state_selected.layout.width]
+stretch = "Stretch"
+
+[nodes.state_selected.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.state_selected.state]
+[nodes.state_selected.style.self]
+[nodes.state_selected.style.slot]
+[nodes.state_selected.slots]
+[nodes.state_open]
+component = "Label"
+control_id = "floating_action_button_StateOpen"
+classes = [ "workbench-caption", "workbench-primitive", "material-lab-state-pill", "material-lab-state-open" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.state_open.props]
+text = "Open"
+text_overflow = "clip"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.body.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "primary"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+surface_variant = "frame_only"
+button_variant = "text"
+validation_level = "normal"
+hovered = false
+pressed = false
+focused = false
+selected = true
+checked = false
+disabled = false
+open = true
+popup_open = true
+corner_radius = 0
+border_width = 0
+text_align = "left"
+wrap = "word"
+background_color = "transparent"
+
+[nodes.state_open.layout.width]
+stretch = "Stretch"
+
+[nodes.state_open.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.state_open.state]
+[nodes.state_open.style.self]
+[nodes.state_open.style.slot]
+[nodes.state_open.slots]
+[nodes.state_error]
+component = "Label"
+control_id = "floating_action_button_StateError"
+classes = [ "workbench-caption", "workbench-primitive", "material-lab-state-pill", "material-lab-state-error" ]
+events = []
+children = []
+penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"
+
+[nodes.state_error.props]
+text = "Error"
+text_overflow = "clip"
+font_size = "$editor.typography.caption.size"
+font_weight = "$editor.typography.body.weight"
+line_height_ratio = "$editor.typography.line_height"
+text_tone = "error"
+layout_padding_top = "$editor.density.gap.xsmall"
+layout_padding_bottom = "$editor.density.gap.xsmall"
+surface_variant = "frame_only"
+button_variant = "text"
+validation_level = "error"
+hovered = false
+pressed = false
+focused = false
+selected = false
+checked = false
+disabled = false
+open = false
+popup_open = false
+corner_radius = 0
+border_width = 0
+text_align = "left"
+wrap = "word"
+background_color = "transparent"
+
+[nodes.state_error.layout.width]
+stretch = "Stretch"
+
+[nodes.state_error.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.state_error.state]
+[nodes.state_error.style.self]
+[nodes.state_error.style.slot]
+[nodes.state_error.slots]
+[nodes.root]
+component = "VerticalBox"
+control_id = "floating-action-button_Root"
+classes = [ "material-lab-card", "material-surface", "material-floating_action_button" ]
+
+[nodes.root.layout.width]
+stretch = "Stretch"
+
+[nodes.root.layout.height]
+min = 356
+preferred = 356
+max = 356
+stretch = "Fixed"
+
+[nodes.root.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.large"
+
+[[nodes.root.children]]
+node = "title"
+
+[[nodes.root.children]]
+node = "meta"
+
+[[nodes.root.children]]
+node = "sample"
+
+[[nodes.root.children]]
+node = "state_strip"
+
+[penpot_host_colors]
+primary = "#60aeff"
+accent = "#60aeff"
+"material.primary" = "#60aeff"
+material_color_primary = "#60aeff"
+on_primary = "#151515"
+"material.on_primary" = "#151515"
+material_color_on_primary = "#151515"
+surface = "#2f2f2f"
+"material.surface" = "#2f2f2f"
+surface_inset = "#0f0f0f"
+"material.surface_inset" = "#0f0f0f"
+surface_hover = "#454545"
+"material.surface_hover" = "#454545"
+surface_pressed = "#383838"
+"material.surface_pressed" = "#383838"
+surface_selected = "#243f5a"
+"material.surface_selected" = "#243f5a"
+disabled = "#2b2b2b"
+"material.disabled" = "#2b2b2b"
+border = "#484848"
+outline = "#484848"
+"material.outline" = "#484848"
+focus = "#66b2ff"
+focus_ring = "#66b2ff"
+"material.focus_ring" = "#66b2ff"
+text = "#e8e8e8"
+on_surface = "#e8e8e8"
+"material.text" = "#e8e8e8"
+"material.on_surface" = "#e8e8e8"
+text_muted = "#b3b3b3"
+muted = "#b3b3b3"
+"material.text_muted" = "#b3b3b3"
+text_disabled = "#737373"
+"material.text_disabled" = "#737373"
+warning = "#dcac50"
+"material.warning" = "#dcac50"
+error = "#eb605c"
+danger = "#eb605c"
+"material.error" = "#eb605c"
+success = "#55be78"
+"material.success" = "#55be78"
+info = "#5faae6"
+"material.info" = "#5faae6"
+
+[penpot_host_palette]
+surface = [ "#151515", "#242424", "#2f2f2f", "#383838" ]
+surface_recessed = "#0f0f0f"
+surface_hover = "#454545"
+surface_selected = "#243f5a"
+surface_disabled = "#2b2b2b"
+accent = "#60aeff"
+accent_soft = "#253f59"
+border = "#484848"
+border_disabled = "#363636"
+separator_strong = "#565656"
+separator_soft = "#333333"
+text_primary = "#e8e8e8"
+text_secondary = "#b3b3b3"
+text_disabled = "#737373"
+success = "#55be78"
+success_container = "#1d472f"
+info = "#5faae6"
+info_container = "#18395b"
+warning = "#dcac50"
+warning_container = "#463112"
+error = "#eb605c"
+error_container = "#4c2427"
+popup = "#242424"
+track = "#3b3b3b"
+focus_ring = "#66b2ff"
+shadow = "#00000073"
+
+[tokens]
+"theme.palette.surface.0" = "#151515"
+"theme.palette.surface.1" = "#242424"
+"theme.palette.surface.2" = "#2f2f2f"
+"theme.palette.surface.3" = "#383838"
+"theme.palette.text.primary" = "#e8e8e8"
+"theme.palette.text.secondary" = "#b3b3b3"
+"theme.palette.text.disabled" = "#737373"
+"theme.palette.accent" = "#60aeff"
+"theme.palette.success" = "#55be78"
+"theme.palette.info" = "#5faae6"
+"theme.palette.warning" = "#dcac50"
+"theme.palette.error" = "#eb605c"
+"theme.palette.separator" = "#484848"
+"editor.surface.0" = "#151515"
+"editor.surface.1" = "#242424"
+"editor.surface.2" = "#2f2f2f"
+"editor.surface.3" = "#383838"
+"editor.surface.recessed" = "#0f0f0f"
+"editor.surface.hover" = "#454545"
+"editor.surface.selected" = "#243f5a"
+"editor.surface.disabled" = "#2b2b2b"
+"editor.accent" = "#60aeff"
+"editor.accent.soft" = "#253f59"
+"editor.border" = "#484848"
+"editor.border.disabled" = "#363636"
+"editor.separator.strong" = "#565656"
+"editor.separator.soft" = "#333333"
+"editor.text.primary" = "#e8e8e8"
+"editor.text.secondary" = "#b3b3b3"
+"editor.text.disabled" = "#737373"
+"editor.semantic.success" = "#55be78"
+"editor.semantic.success.container" = "#1d472f"
+"editor.semantic.info" = "#5faae6"
+"editor.semantic.info.container" = "#18395b"
+"editor.semantic.warning" = "#dcac50"
+"editor.semantic.warning.container" = "#463112"
+"editor.semantic.error" = "#eb605c"
+"editor.semantic.error.container" = "#4c2427"
+"editor.popup" = "#242424"
+"editor.track" = "#3b3b3b"
+"editor.focus.ring" = "#66b2ff"
+"editor.shadow" = "#00000073"
+"editor.typography.ui.family" = "Fira Sans"
+"editor.typography.ui.strong.family" = "Fira Sans"
+"editor.typography.code.family" = "Fira Mono"
+"editor.typography.utility_tab.text_role" = "ui"
+"editor.typography.font_smoothing" = "grayscale"
+"editor.typography.body.size" = 14
+"editor.typography.caption.size" = 12
+"editor.typography.overlay.size" = 12
+"editor.typography.heading.size" = 16
+"editor.typography.title.size" = 20
+"editor.typography.body.weight" = 400
+"editor.typography.medium.weight" = 500
+"editor.typography.strong.weight" = 600
+"editor.typography.emphasis.weight" = 700
+"editor.typography.code.weight" = 400
+"editor.typography.line_height" = 1.4
+"editor.control.height.large" = 48
+"editor.control.height.default" = 32
+"editor.control.height.compact" = 32
+"editor.control.height.dense" = 28
+"editor.control.radius.small" = 4
+"editor.control.radius.control" = 4
+"editor.control.radius.large" = 8
+"editor.control.radius.panel" = 0
+"editor.control.radius.pill" = 999
+"editor.control.border_width" = 1
+"editor.chrome.top_bar.height" = 25
+"editor.chrome.host_bar.height" = 32
+"editor.chrome.workbench_toolbar.height" = 66
+"editor.chrome.workbench_toolbar.command_row.height" = 34
+"editor.chrome.workbench_toolbar.popup.command_offset_y" = 29
+"editor.chrome.workbench_toolbar.popup.module_offset_y" = -6
+"editor.chrome.status_bar.height" = 24
+"editor.chrome.panel_header.height" = 30
+"editor.chrome.document_header.height" = 31
+"editor.chrome.viewport_toolbar.height" = 28
+"editor.chrome.activity_rail.width" = 34
+"editor.chrome.separator.thickness" = 1
+"editor.chrome.splitter.hit_size" = 8
+"editor.density.gap.xsmall" = 2
+"editor.density.gap.tight" = 4
+"editor.density.gap.small" = 4
+"editor.density.gap.regular" = 8
+"editor.density.gap.medium" = 8
+"editor.density.gap.large" = 12
+"editor.density.gap.group" = 24
+"editor.density.drawer_padding" = 12
+"editor.density.panel_padding" = 16
+"editor.density.toolbar_action_width" = 76
+"editor.density.toolbar_wide_action_width" = 96
+"editor.density.ui_asset_action.min_width" = 40
+"editor.density.ui_asset_action.preferred_width" = 52
+"editor.density.ui_asset_action.max_width" = 64
+"editor.density.ui_asset.side.min_width" = 128
+"editor.density.ui_asset.side.preferred_width" = 220
+"editor.density.ui_asset.center.min_width" = 256
+"editor.density.ui_asset.center.preferred_width" = 420
+"editor.density.ui_asset.header_kind.min_width" = 64
+"editor.density.ui_asset.header_kind.preferred_width" = 70
+"editor.density.ui_asset.header_kind.max_width" = 84
+"editor.density.ui_asset.tool.min_width" = 56
+"editor.density.ui_asset.tool.preferred_width" = 64
+"editor.density.ui_asset.tool.max_width" = 80
+"editor.density.command_palette.min_width" = 520
+"editor.density.command_palette.preferred_width" = 560
+"editor.density.command_palette.max_width" = 640
+"editor.density.command_palette.min_height" = 180
+"editor.density.command_palette.preferred_height" = 220
+"editor.density.command_palette.max_height" = 280
+"editor.density.dialog.min_width" = 420
+"editor.density.dialog.preferred_width" = 480
+"editor.density.dialog.max_width" = 560
+"editor.density.dialog.min_height" = 180
+"editor.density.dialog.preferred_height" = 220
+"editor.density.dialog.max_height" = 320
+"editor.density.confirm_dialog.preferred_width" = 460
+"editor.density.confirm_dialog.max_width" = 540
+"editor.density.confirm_dialog.min_height" = 174
+"editor.density.confirm_dialog.preferred_height" = 210
+"editor.density.confirm_dialog.max_height" = 300
+"editor.density.notification_panel.min_width" = 280
+"editor.density.notification_panel.preferred_width" = 320
+"editor.density.notification_panel.max_width" = 380
+"editor.density.notification_panel.min_height" = 160
+"editor.density.notification_panel.preferred_height" = 220
+"editor.density.notification_panel.max_height" = 320
+"editor.density.caption.min_height" = 20
+"editor.density.caption.preferred_height" = 22
+"editor.density.caption.max_height" = 24
+"editor.density.label.min_height" = 22
+"editor.density.label.preferred_height" = 24
+"editor.density.label.max_height" = 32
+"editor.density.chip.min_width" = 40
+"editor.density.chip.preferred_width" = 80
+"editor.density.chip.max_width" = 160
+"editor.density.axis_value_field.min_width" = 54
+"editor.density.axis_value_field.preferred_width" = 62
+"editor.density.axis_value_field.max_width" = 72
+"editor.density.row_height" = 28
+"editor.density.left_drawer_width" = 332
+"editor.density.right_drawer_width" = 404
+"editor.density.bottom_output_height" = 228
+"editor.density.breakpoint_ultra_width" = 480
+"editor.density.breakpoint_narrow_width" = 640
+"editor.density.breakpoint_wide_width" = 1260
+"editor.density.compact_side_width" = 1100
+"editor.density.ultra_compact_side_width" = 760
+"editor.density.compact_left_drawer_max_width" = 340
+"editor.density.compact_right_drawer_max_width" = 220
+"editor.density.compact_side_min_width" = 196
+"editor.density.minimum_document_width_fraction" = 0.5
+"editor.density.ultra_compact_left_drawer_max_width" = 220
+"editor.density.ultra_compact_right_drawer_max_width" = 160
+"editor.density.compact_bottom_available_height" = 900
+"editor.density.compact_bottom_max_height" = 148
+"editor.density.compact_bottom_max_available_fraction" = 0.23
+"editor.density.compact_bottom_min_height" = 120
+"editor.density.ultra_compact_bottom_available_height" = 420
+"editor.density.ultra_compact_bottom_max_height" = 96
+"editor.density.ultra_compact_bottom_max_available_fraction" = 0.2
+"editor.density.ultra_compact_bottom_min_height" = 80
+"editor.density.minimum_window_width" = 640
+"editor.density.minimum_window_height" = 420
+"editor.density.ultra_minimum_window_width" = 420
+"editor.density.ultra_minimum_window_height" = 360
+"editor.state.default" = "surface_1"
+"editor.state.hovered" = "surface_2"
+"editor.state.pressed" = "surface_3"
+"editor.state.selected" = "surface_selected"
+"editor.state.focused" = "surface_1"
+"editor.state.disabled" = "text_disabled"
+"editor.state.loading" = "accent"
+
+[penpot_original_imports]
+widgets = [ "res://ui/editor/components/workbench/primitives/data/workbench_label.zui#WorkbenchLabel", "res://ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption" ]
+styles = [ "res://ui/editor/theme/editor_tokens.zui" ]

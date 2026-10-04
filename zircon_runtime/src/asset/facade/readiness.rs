@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashSet, VecDeque};
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
@@ -126,38 +126,35 @@ fn collect_dependency_readiness(
     root_id: AssetId,
     dependency_ids: &[AssetId],
 ) -> Vec<AssetDependencyReadiness> {
+    if dependency_ids.is_empty() {
+        return Vec::new();
+    }
     let initial_capacity = dependency_ids.len();
     let mut rows = Vec::with_capacity(initial_capacity);
-    let mut row_by_id = HashMap::with_capacity(initial_capacity);
-    let mut expanded = HashSet::with_capacity(initial_capacity.saturating_add(1));
-    expanded.insert(root_id);
-
+    let mut discovered = HashSet::with_capacity(initial_capacity);
     let mut queue = VecDeque::with_capacity(initial_capacity);
     for dependency_id in dependency_ids {
-        queue.push_back((*dependency_id, 1_u32, true));
+        if discovered.insert(*dependency_id) {
+            queue.push_back((*dependency_id, 1_u32, true));
+        }
     }
 
+    // Breadth-first discovery already chooses minimum depth and direct-edge priority.
     while let Some((dependency_id, depth, direct)) = queue.pop_front() {
-        if let Some(index) = row_by_id.get(&dependency_id).copied() {
-            let existing: &mut AssetDependencyReadiness = &mut rows[index];
-            existing.depth = existing.depth.min(depth);
-            existing.direct |= direct;
-            continue;
-        }
-
         let readiness_row = generation.row(dependency_id);
         let row = dependency_readiness_row(dependency_id, readiness_row, depth, direct);
-        row_by_id.insert(dependency_id, rows.len());
         rows.push(row);
 
         let Some(readiness_row) = readiness_row else {
             continue;
         };
-        if !expanded.insert(dependency_id) {
+        if dependency_id == root_id {
             continue;
         }
         for nested in &readiness_row.record.dependency_ids {
-            queue.push_back((*nested, depth + 1, false));
+            if discovered.insert(*nested) {
+                queue.push_back((*nested, depth + 1, false));
+            }
         }
     }
 
@@ -199,5 +196,9 @@ fn dependency_readiness_row(
 }
 
 #[cfg(test)]
-#[path = "readiness/capacity_tests.rs"]
+#[path = "readiness/tests/capacity_tests.rs"]
 mod capacity_tests;
+
+#[cfg(test)]
+#[path = "readiness/tests/astra_traversal_tests.rs"]
+mod astra_traversal_tests;

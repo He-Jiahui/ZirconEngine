@@ -111,7 +111,7 @@ binding value。模型没有估算 allocator、TOML enum dispatch、String paylo
 operation、每 Move 一次 transaction，以及一次完整 compatibility flush。它只是算法工作量模型，
 不是 CPU、内存、帧率或 input-to-present 加速比。
 
-模型工具：`tools/ui_table_column_resize_scalar_pressure.py`
+模型工具：`tools/analysis/performance/ui/ui_table_column_resize_scalar_pressure.py`
 
 工件目标：`E:\zircon-profiles\runtime-ui-table-column-resize-scalar-20260828.json`
 

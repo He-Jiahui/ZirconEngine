@@ -302,6 +302,15 @@ pub(super) fn update_base_stats(
         ui_text_report.raster_upload.worker_pending_count;
     state.stats.last_ui_text_raster_worker_failed_count =
         ui_text_report.raster_upload.worker_failed_count;
+    state.stats.last_ui_text_raster_retry_queued_glyph_count =
+        ui_text_report.raster_upload.retry_queued_glyph_count;
+    state
+        .stats
+        .last_ui_text_raster_retry_queue_overflow_glyph_count = ui_text_report
+        .raster_upload
+        .retry_queue_overflow_glyph_count;
+    state.stats.last_ui_text_raster_retry_rejected_source_count =
+        ui_text_report.raster_upload.retry_rejected_source_count;
     state
         .stats
         .last_ui_text_raster_renderer_upload_requeued_count =
@@ -486,6 +495,10 @@ pub(super) fn update_base_stats(
         .stats
         .last_mesh_command_cache_invalidated_material_count =
         prepared_mesh_queue_stats.cache_invalidated_material_count;
+    state
+        .stats
+        .last_mesh_command_cache_invalidated_resolver_configuration_count =
+        prepared_mesh_queue_stats.cache_invalidated_resolver_configuration_count;
     state.stats.last_mesh_replay_state_change_count = prepared_mesh_queue_stats.state_change_count;
     state.stats.last_mesh_replay_bind_skip_count = prepared_mesh_queue_stats.bind_skip_count;
     state.stats.last_mesh_replay_material_bind_group_set_count =
@@ -783,4 +796,5 @@ fn graph_execution_coverage_report_from_names<'a>(
 }
 
 #[cfg(test)]
+#[path = "base_stats/tests/cases.rs"]
 mod tests;

@@ -1,7 +1,5 @@
 ---
 related_code:
-  - tools/session_coordinator/git_finalize.py
-  - tools/session_coordinator/tests/test_git_finalize.py
 plan_sources:
   - docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
   - docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md

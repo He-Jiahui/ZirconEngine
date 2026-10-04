@@ -1,3 +1,5 @@
+//! 验证脚本绑定的嵌套 JSON 属性经过场景缓存编码仍保持类型和值，供运行时绑定恢复。
+
 use super::*;
 
 #[test]
@@ -36,6 +38,7 @@ fn artifact_store_roundtrips_scene_assets_with_script_binding_json_values() {
             terrain: None,
             tilemap: None,
             prefab_instance: None,
+            components: Vec::new(),
             script_bindings: vec![SceneScriptBindingAsset {
                 package: "vampire_game".to_string(),
                 module: "main".to_string(),

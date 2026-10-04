@@ -38,8 +38,6 @@ related_code:
   - zircon_runtime/src/text/parallel/raster_pool.rs
   - zircon_runtime/src/text/parallel/tests.rs
   - zircon_runtime/src/text/native_bitmap_atlas.rs
-  - zircon_runtime/src/text/native_bitmap_atlas/raster_key.rs
-  - zircon_runtime/src/text/native_bitmap_atlas/raster_key/tests.rs
   - zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs
   - zircon_runtime/src/text/native_bitmap_atlas/tests/source_cache.rs
   - zircon_runtime/src/text/atlas/bitmap_run/tests/dirty_upload.rs

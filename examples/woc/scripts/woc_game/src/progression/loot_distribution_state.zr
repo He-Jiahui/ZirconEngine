@@ -4,6 +4,8 @@
 // keeps candidate order deterministic; only callers consume random draws.
 var container = %import("zr.container");
 
+// M5 固定三名候选人的情景状态，用于覆盖尸体金币、共享/个人物品与两次 Roll 的联动；
+// 世界状态并不导入此类，生产路径由 world/state.zr 的独立状态机负责。
 class LootState {
     pub var deadA: bool;
     pub var deadB: bool;
@@ -263,6 +265,8 @@ grantCopper(state: LootState, player: int, amount: int): void {
     if (amount > 0) { state.copperEvents = state.copperEvents + 1; }
 }
 
+// 共享拾取的金币在候选人之间分配，余数才消耗注入的随机流；
+// 情景测试依赖此顺序核对金币守恒与随机抽取次数。
 distributeCopper(state: LootState, looter: int): void {
     var copper = state.corpseCopper;
     if (copper <= 0) { return; }
@@ -412,6 +416,8 @@ resolveRoll(state: LootState, roll: int): void {
     addItem(state, winner, "greyjaw_hide_boots", true);
 }
 
+/// 情景调用者在已开启的 Roll 中为候选人提交一次选择；全部答复后才结算。
+/// 拒绝重复或无效答复不得额外消耗随机值。
 pub submitRoll(state: LootState, roll: int, player: int, choice: int): bool {
     state.lastError = 0;
     if (!rollOpen(state, roll) || player < 1 || player > state.candidateCount ||
@@ -426,6 +432,8 @@ pub submitRoll(state: LootState, roll: int, player: int, choice: int): bool {
     return true;
 }
 
+/// 情景入口按共享权、背包容量及个人掉落归属转移尸体物品；
+/// 高品质共享物品先开 Roll，背包不足时保留未转移的物品供后续拾取。
 pub lootCorpse(state: LootState, player: int): bool {
     state.lastError = 0;
     if (playerDead(state, player)) { state.lastError = -1; return false; }

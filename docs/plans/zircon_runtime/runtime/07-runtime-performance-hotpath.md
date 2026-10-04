@@ -51,7 +51,7 @@ related_code:
   - zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests.rs
   - zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests/combined_validation_tests.rs
   - tools/tests/test_runtime_shader_prewarm_test_structure.py
-  - docs/zircon_runtime/performance/hotspot_inventory.md
+  - docs/crates/zircon_runtime/performance/hotspot_inventory.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_query_state_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/large_file_ownership.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_boundary.py
@@ -132,7 +132,7 @@ last_refined: 2026-07-23
 
 #### 切片 0.1 权威 FPS 采集
 
-- 目标文件：无代码改动；产出写本计划状态节 + `docs/zircon_runtime/core/`（若 03 的 `frame_schedule.md` 已建则共用）。
+- 目标文件：无代码改动；产出写本计划状态节 + `docs/crates/zircon_runtime/core/`（若 03 的 `frame_schedule.md` 已建则共用）。
 - 改动形态：跑 `vampire_runtime_perf` 真实场景，采集 `runtime_diagnostics`/`time.fps`（`TIME_FPS_DIAGNOSTIC`，core/time.rs:12）日志；同命令二次采集验证偏差 < 20%。
 - 命令：`cargo test -p zircon_runtime --lib vampire_project_session_reports_runtime_fps_and_render_work --features backend-zr-vm --locked -- --nocapture --test-threads=1`（测试位：`dynamic_api/session/tests/frame_diagnostics.rs`，已核实存在）。
 - 验收：FPS 数值 ×2 次 + 偏差比记入状态节。
@@ -141,8 +141,8 @@ last_refined: 2026-07-23
 #### 切片 0.2 profiling 构建超时破解
 
 - 目标文件：无代码改动（构建配置实验）；结论写状态节。
-- 改动形态：用 `tools/dev-fast-build.ps1` 共享 target 目录 + 包内最小 feature 组合复现两次超时，记录瓶颈段（链接/重编译范围）；必要时为 `[profile.profiling]`（根 Cargo.toml:39）裁剪 feature 组合（裁剪项执行时定稿，落子计划 01 的选型文档若涉及依赖）。
-- 命令：`python tools/zircon_build.py --targets runtime` 或 `./tools/dev-fast-build.ps1 -Profile client -Action check`；profiling 特性组合执行时从 `zircon_runtime/Cargo.toml` 的 `profiling-tracy`/`profiling-chrome` 行核验。
+- 改动形态：用 `tools/dev/dev-fast-build.ps1` 共享 target 目录 + 包内最小 feature 组合复现两次超时，记录瓶颈段（链接/重编译范围）；必要时为 `[profile.profiling]`（根 Cargo.toml:39）裁剪 feature 组合（裁剪项执行时定稿，落子计划 01 的选型文档若涉及依赖）。
+- 命令：`python tools/build/zircon_build.py --targets runtime` 或 `./tools/dev/dev-fast-build.ps1 -Profile client -Action check`；profiling 特性组合执行时从 `zircon_runtime/Cargo.toml` 的 `profiling-tracy`/`profiling-chrome` 行核验。
 - 验收：profiling 构建在记录的配置下完成（耗时入状态节），或瓶颈定位报告（哪个 crate/链接段超时）。
 - DoD：可复现的 profiling 构建命令落状态节。
 
@@ -213,7 +213,7 @@ last_refined: 2026-07-23
 
 - 每片：聚焦计数测试 + `cargo test -p zircon_runtime --lib --locked` 全量无回归
 - 里程碑末：重跑 M0 基线命令对比 FPS/帧分解；基线对比表（优化项、计数变化、FPS 变化）写入状态节
-- 文档：受影响模块的 `docs/zircon_runtime/**` 镜像文档更新
+- 文档：受影响模块的 `docs/crates/zircon_runtime/**` 镜像文档更新
 
 ### M3 World hierarchy dirty-frontier repair
 

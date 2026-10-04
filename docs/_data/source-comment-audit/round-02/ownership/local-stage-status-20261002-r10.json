@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "path": "E:\\Git\\ZirconEngine\\docs\\plans\\zircon_tooling\\source_comment_audit\\02\\2026-09-30-stage-status.md",
+  "before_sha256": "5e7be68602c05a18c9374cd830c4a981c4752196fcf20aa7b0c3826d8d5a68b4",
+  "after_sha256": "3dd834f5b27fa868da1c41224ed2b05a0f709cf62fdb9006687d53d64c6d8cb9",
+  "authority": [
+    "6286c7f1a6379c0b56fd7e1d6c99880fd572665d56e32c10aff7a0c6492ebac9",
+    "41d28595246e58e841912808abbe3cdae4d9d34ad3db969e4f2c50e0a557a157"
+  ],
+  "verification": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-atlas-stage-20261002-r10\\verification.json",
+    "sha256": "213ab72192014e9d253d2ec21c804438cb9b82452b150a81306d23f65049a0f2"
+  },
+  "helper": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\update_atlas_stage_20261002_r10.py",
+    "sha256": "98c95740510bab796aab236f0cac6f04a5c7f10d6f4db5d8a30bbc4802c6510a"
+  },
+  "links_checked": true,
+  "whitespace_checked": true,
+  "source_writes": 0,
+  "canonical_writes": 0,
+  "status": "coarse_stage_status_updated",
+  "completed_at_utc": "2026-10-02T22:57:49.201032+00:00",
+  "plan_status_writes": 1,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "goal_status_changed": false,
+  "full_repository_scan_complete": false
+}

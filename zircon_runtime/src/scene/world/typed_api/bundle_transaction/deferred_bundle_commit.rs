@@ -4,8 +4,8 @@ use crate::scene::ecs::StorageType;
 use zircon_runtime_interface::world_sync::WorldFact;
 
 use super::{
-    BundleInsertionTransaction, MAX_BUNDLE_COMPONENT_TYPES, PendingBundleEffect,
-    PendingBundlePublication, PendingDeferredRemoval, TableBundlePublication,
+    BundleInsertionTransaction, PendingBundleEffect, PendingBundlePublication,
+    PendingDeferredRemoval, TableBundlePublication, MAX_BUNDLE_COMPONENT_TYPES,
 };
 
 impl BundleInsertionTransaction<'_> {
@@ -217,6 +217,7 @@ impl BundleInsertionTransaction<'_> {
                 .expect("bundle target must retain its archetype row")
                 .location;
             for publication in table_values.into_iter().take(table_value_count).flatten() {
+                // BUG: [CR-R02-runtime_ecs_commands_bundle_commit-0007] 旧组件返回的 Box 在本轮结束时析构若 panic，会跳过下方生命周期暂存标志恢复；调用方捕获后继续使用同一 World，后续观察者不分发。证据：begin_commit、下方恢复点与 observers.rs。
                 let replaced = self.world.archetype_index.replace(
                     location.archetype_id,
                     location.table_row,

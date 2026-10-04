@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from tools.ui_layout_order_authority_pressure import run
+from tools.analysis.performance.ui.ui_layout_order_authority_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -16,7 +16,7 @@ UI_TREE = ROOT / "zircon_runtime_interface/src/ui/tree/node/ui_tree.rs"
 TREE_BUILDER = ROOT / "zircon_runtime/src/ui/template/build/tree_builder.rs"
 NODE_POOL = ROOT / "zircon_runtime/src/ui/surface/node_pool.rs"
 
-
+# 验证布局遍历共享按拓扑代际持有的子节点顺序，只在真实拓扑变更时重新排序。
 class RuntimeUiLayoutOrderAuthorityPerformanceContractTests(unittest.TestCase):
     def test_layout_passes_share_generation_owned_child_order(self) -> None:
         measure = LAYOUT_MEASURE.read_text(encoding="utf-8")

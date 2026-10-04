@@ -1,3 +1,4 @@
+# 核对图标图集借用资源键查找，并限制发现与重写扫描次数。
 from pathlib import Path
 import unittest
 

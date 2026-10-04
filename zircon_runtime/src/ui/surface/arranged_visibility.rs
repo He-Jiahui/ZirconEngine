@@ -7,13 +7,39 @@ const VISIBILITY_VISITING: u8 = 1;
 const VISIBILITY_HIDDEN: u8 = 2;
 const VISIBILITY_VISIBLE: u8 = 3;
 const VISIBILITY_WORD_BITS: usize = u64::BITS as usize;
+const RESOLUTION_RETAINED_SCALE: usize = 2;
 
 /// Compact inherited render visibility published with the arranged-node index.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Debug, Default)]
 pub(crate) struct UiArrangedVisibilityIndex {
     node_ids: Vec<UiNodeId>,
     render_visible_words: Vec<u64>,
+    // Resolution storage is retained between arranged-tree rebuilds. It is not
+    // part of the published visibility authority and is bounded to a small
+    // multiple of the current node count before each rebuild.
+    resolution_states: Vec<u8>,
+    resolution_path: Vec<usize>,
 }
+
+impl Clone for UiArrangedVisibilityIndex {
+    fn clone(&self) -> Self {
+        Self {
+            node_ids: self.node_ids.clone(),
+            render_visible_words: self.render_visible_words.clone(),
+            // Resolver scratch is deliberately not copied into a cloned Surface.
+            resolution_states: Vec::new(),
+            resolution_path: Vec::new(),
+        }
+    }
+}
+
+impl PartialEq for UiArrangedVisibilityIndex {
+    fn eq(&self, other: &Self) -> bool {
+        self.node_ids == other.node_ids && self.render_visible_words == other.render_visible_words
+    }
+}
+
+impl Eq for UiArrangedVisibilityIndex {}
 
 impl UiArrangedVisibilityIndex {
     pub(crate) fn from_arranged(
@@ -30,8 +56,9 @@ impl UiArrangedVisibilityIndex {
         arranged_tree: &UiArrangedTree,
         node_indices: &BTreeMap<UiNodeId, usize>,
     ) {
-        let mut states = vec![VISIBILITY_UNKNOWN; arranged_tree.nodes.len()];
-        let mut path = Vec::new();
+        self.prepare_resolution_scratch(arranged_tree.nodes.len());
+        let states = &mut self.resolution_states;
+        let path = &mut self.resolution_path;
 
         for start_index in 0..arranged_tree.nodes.len() {
             if is_resolved(states[start_index]) {
@@ -93,21 +120,41 @@ impl UiArrangedVisibilityIndex {
         }
 
         self.node_ids.clear();
-        self.node_ids.extend(node_indices.keys().copied());
+        let node_count = node_indices.len();
+        self.node_ids.reserve(node_count);
         self.render_visible_words.clear();
         self.render_visible_words.resize(
-            self.node_ids.len().saturating_add(VISIBILITY_WORD_BITS - 1) / VISIBILITY_WORD_BITS,
+            node_count.saturating_add(VISIBILITY_WORD_BITS - 1) / VISIBILITY_WORD_BITS,
             0,
         );
-        for (sorted_index, node_id) in self.node_ids.iter().copied().enumerate() {
-            let visible = node_indices
-                .get(&node_id)
-                .and_then(|arranged_index| states.get(*arranged_index))
+        let resolution_states = &self.resolution_states;
+        let node_ids = &mut self.node_ids;
+        let render_visible_words = &mut self.render_visible_words;
+        for (sorted_index, (node_id, arranged_index)) in node_indices.iter().enumerate() {
+            node_ids.push(*node_id);
+            let visible = resolution_states
+                .get(*arranged_index)
                 .is_some_and(|state| *state == VISIBILITY_VISIBLE);
             if visible {
-                self.render_visible_words[sorted_index / VISIBILITY_WORD_BITS] |=
+                render_visible_words[sorted_index / VISIBILITY_WORD_BITS] |=
                     1_u64 << (sorted_index % VISIBILITY_WORD_BITS);
             }
+        }
+    }
+
+    fn prepare_resolution_scratch(&mut self, node_count: usize) {
+        let retained_capacity_budget = resolution_retained_capacity_budget(node_count);
+        if self.resolution_states.capacity() > retained_capacity_budget {
+            self.resolution_states = Vec::with_capacity(node_count);
+        }
+        self.resolution_states.clear();
+        self.resolution_states
+            .resize(node_count, VISIBILITY_UNKNOWN);
+
+        if self.resolution_path.capacity() > retained_capacity_budget {
+            self.resolution_path = Vec::with_capacity(node_count);
+        } else {
+            self.resolution_path.clear();
         }
     }
 
@@ -121,116 +168,14 @@ impl UiArrangedVisibilityIndex {
     }
 }
 
+fn resolution_retained_capacity_budget(node_count: usize) -> usize {
+    node_count.saturating_mul(RESOLUTION_RETAINED_SCALE)
+}
+
 fn is_resolved(state: u8) -> bool {
     matches!(state, VISIBILITY_HIDDEN | VISIBILITY_VISIBLE)
 }
 
 #[cfg(test)]
-mod tests {
-    use super::UiArrangedVisibilityIndex;
-    use crate::ui::surface::arranged_node_indices;
-    use zircon_runtime_interface::ui::{
-        event_ui::{UiNodeId, UiNodePath, UiTreeId},
-        layout::UiFrame,
-        surface::{UiArrangedNode, UiArrangedTree},
-        tree::{UiInputPolicy, UiVisibility},
-    };
-
-    #[test]
-    fn hidden_ancestor_hides_visible_descendants() {
-        let root = UiNodeId::new(10);
-        let child = UiNodeId::new(2);
-        let tree = arranged_tree(vec![
-            arranged_node(child, Some(root), UiVisibility::Visible),
-            arranged_node(root, None, UiVisibility::Hidden),
-        ]);
-        let index = visibility_index(&tree);
-
-        assert!(!index.is_render_visible(root));
-        assert!(!index.is_render_visible(child));
-    }
-
-    #[test]
-    fn self_hit_test_invisible_ancestor_remains_render_visible() {
-        let root = UiNodeId::new(1);
-        let child = UiNodeId::new(2);
-        let tree = arranged_tree(vec![
-            arranged_node(child, Some(root), UiVisibility::Visible),
-            arranged_node(root, None, UiVisibility::SelfHitTestInvisible),
-        ]);
-        let index = visibility_index(&tree);
-
-        assert!(index.is_render_visible(root));
-        assert!(index.is_render_visible(child));
-    }
-
-    #[test]
-    fn missing_parent_fails_closed() {
-        let node_id = UiNodeId::new(1);
-        let tree = arranged_tree(vec![arranged_node(
-            node_id,
-            Some(UiNodeId::new(99)),
-            UiVisibility::Visible,
-        )]);
-
-        assert!(!visibility_index(&tree).is_render_visible(node_id));
-    }
-
-    #[test]
-    fn parent_cycle_fails_closed() {
-        let first = UiNodeId::new(1);
-        let second = UiNodeId::new(2);
-        let tree = arranged_tree(vec![
-            arranged_node(first, Some(second), UiVisibility::Visible),
-            arranged_node(second, Some(first), UiVisibility::Visible),
-        ]);
-        let index = visibility_index(&tree);
-
-        assert!(!index.is_render_visible(first));
-        assert!(!index.is_render_visible(second));
-    }
-
-    fn visibility_index(tree: &UiArrangedTree) -> UiArrangedVisibilityIndex {
-        UiArrangedVisibilityIndex::from_arranged(tree, &arranged_node_indices(tree))
-    }
-
-    fn arranged_tree(nodes: Vec<UiArrangedNode>) -> UiArrangedTree {
-        UiArrangedTree {
-            tree_id: UiTreeId::new("arranged.visibility.index"),
-            draw_order: nodes
-                .iter()
-                .map(|node| node.node_id)
-                .collect::<Vec<_>>()
-                .into(),
-            nodes: nodes.into(),
-            ..UiArrangedTree::default()
-        }
-    }
-
-    fn arranged_node(
-        node_id: UiNodeId,
-        parent: Option<UiNodeId>,
-        visibility: UiVisibility,
-    ) -> UiArrangedNode {
-        UiArrangedNode {
-            node_id,
-            node_path: UiNodePath::new(format!("node/{}", node_id.0)),
-            parent,
-            children: Vec::new(),
-            frame: UiFrame::new(0.0, 0.0, 10.0, 10.0),
-            clip_frame: UiFrame::new(0.0, 0.0, 10.0, 10.0),
-            z_index: 0,
-            paint_order: node_id.0,
-            visibility,
-            input_policy: UiInputPolicy::Receive,
-            pointer_events: Default::default(),
-            enabled: true,
-            clickable: false,
-            hoverable: false,
-            focusable: false,
-            clip_to_bounds: false,
-            control_id: None,
-            slot: None,
-        }
-    }
-}
+#[path = "tests/arranged_visibility.rs"]
+mod tests;

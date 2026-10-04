@@ -9,6 +9,9 @@ origin_child_dir: docs/plans/zircon_editor/editor/10
 fixing_child_dir: docs/plans/zircon_runtime/runtime/04
 plan_link_mode: child_record_only
 related_code:
+  - zircon_runtime/src/asset/project/manager/load_or_create_meta.rs
+  - zircon_runtime/src/asset/project/manager/scan_and_import/targeted.rs
+  - zircon_runtime/src/asset/tests/project/manager/targeted_import/meta_preconditions.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/project_asset_manager.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
   - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
@@ -104,6 +107,67 @@ Open state：manager-owned source-path index 的首轮 `0C/4I/1M` 已整改并�
 - 新增 `targeted_generation_prepare_defers_disk_publication_until_commit`、`targeted_watch_removal_prepare_defers_registry_publication_until_commit` 与 facade epoch-supersession 回归：真实准备 target v2 或删除候选后，artifact、`.zmeta` 与 `asset-registry.json` 字节仍保持旧 generation；`import_asset` 的 epoch CAS 被 importer 推进后返回 superseded，活动 source hash 也保持旧值。既有 fault-injection rollback、compound membership typed rejection 与 reverse shader dependency tests 保持覆盖。
 - 已执行 scoped `rustfmt +1.94.1 --edition 2024` 与 `git diff --check`（仅工作树行尾提示）；二次独立复审已确认 `0 Critical / 0 Important / 0 Minor`。受管 Windows focused Cargo 尚未生成终态 receipt，本 failure 保持 `open`，不声明 GREEN、fixed 或 accepted。
 - 本候选的 coordinator `cargo acquire test --dry-run` 在创建 ticket 前被共享环境的“unregistered D/E/F artifacts”前置检查拒绝；没有 Cargo 进程、测试计数或 RED/GREEN 结论。该环境维护项不改变本 failure 的 owner、也不把本会话置为 waiting/blocked。
+
+### 2026-09-09 targeted metadata precondition repair
+
+Current single-source and batch targeted commits held the shared meta path
+authority only during commit, but did not compare candidate input documents
+with current sidecars. A preview CAS or independent-field writer completing
+after preparation could therefore be overwritten by the older candidate.
+Full-generation and relocation preconditions already existed; the uncovered
+path was `PreparedTargetedGeneration` and `PreparedProjectImportBatch`.
+
+Snapshot `3331` retains the original loaded document before URL/kind
+normalization, or an explicit absent-sidecar expectation. Both targeted commit
+paths acquire their existing shared path guards, validate every precondition,
+and only then enter the durable file transaction. Missing, newly created or
+changed documents reject the candidate before artifact/meta/registry
+publication. No new lock or retry loop was added. The importer input-digest
+changes already present in `targeted.rs` remain intact.
+
+The source hashes are:
+
+- `load_or_create_meta.rs`: `067e16f456b0aab6ba6fb8c05c630ab9ae21e9136de8b0034335a40a125c9072`.
+- `scan_and_import/targeted.rs`: `54a4ce64cc308ceb8b69176f58c7ef1388a542ef4e3e3d91dc7685ae884f568a`.
+- `tests/project/manager/targeted_import/meta_preconditions.rs`: `b2bb135f56eb8ada4cce1648ab26e98fb6f2b511039b9aa60d47cde729012e32`.
+
+Five regressions cover real preview CAS after preparation, batch-wide
+independent-field changes, sidecar creation and removal, and successful
+identity normalization against the original document. The CAS case also
+retries through the normal targeted source operation and checks the resulting
+artifact payload. Tests retain old artifact/registry bytes and active catalog
+identity on rejected publication. The new file and loading helper pass scoped
+rustfmt; `git diff --check` passes. Other touched files retain pre-existing
+formatting differences. These are source/static results; their managed dynamic
+gate and the broader original acceptance remain pending.
+
+The same source gap is linked to
+`failure-2026-07-23-asset-meta-preview-state-field-cas.md`; it is not a second
+implementation or a separate source commit. Scene consumers, performance
+matrices, independent review, canonical return and closeout remain open.
+
+Managed job `ee56cd17f18f41b1befda3ef0282ed84` attempted the complete
+`asset::tests::project::manager::targeted_import` filter on input
+`runtime04-targeted-meta-3331-20260909`, manifest
+`ad8d4b698f545c24ee19389ed6a463cad1916b1afe0e4ca2a9bd1e95540447d2`.
+Cargo check failed before any test ran because that derived input retained old
+importer/build-identity producers while `targeted.rs` already used their current
+interfaces. `results/runtime04-targeted-meta-3331-r1.json` and its sibling log
+retain all three compile diagnostics and the terminal receipt. Matching
+importer, build-script and Cargo dependencies must accompany the next input;
+neither this attempt nor the separate passing migration batch validates the
+new targeted metadata guards.
+
+The complete current-source retry reached managed job
+`353114f74d5a417b802942d4587a86f5`, manifest
+`a51d5734995d5d019fd18d3e3bc97adc2d6cd62ecefc04abd64075a0c283eb65`.
+Its test compilation stopped with E0716 in the native DLL dependency scanner,
+before any targeted-import test executed. The lower owner is recorded in
+[native dependency filename borrow](../06/failure-2026-09-09-native-dependency-filename-temporary-borrow.md).
+The current-source retry fixes the earlier input-closure mismatch but supplies
+no dynamic acceptance for the five metadata-precondition regressions. Their
+snapshot and the native-loader failure receipt are retained while independent
+Runtime04 validation continues.
 
 ### Retained-host model/default-scene consumers补充（2026-07-30）
 

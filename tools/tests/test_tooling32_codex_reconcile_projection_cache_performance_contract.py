@@ -1,3 +1,4 @@
+# 核对会话协调一次读取现有记录与绑定后再完成投影。
 from __future__ import annotations
 
 import inspect

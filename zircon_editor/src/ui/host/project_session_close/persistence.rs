@@ -9,7 +9,7 @@ use super::{ProjectCloseError, ProjectCloseOperation, ProjectCloseReceipt};
 
 impl EditorManager {
     /// Persists the non-ready close phase and returns the only capability accepted by teardown.
-    pub(super) fn begin_project_close_operation(
+    pub(in crate::ui::host) fn begin_project_close_operation(
         &self,
     ) -> Result<Option<ProjectCloseOperation>, ProjectCloseError> {
         let mut heartbeat = self
@@ -158,7 +158,7 @@ impl EditorManager {
         )
     }
 
-    pub(super) fn finish_project_close_ledger(
+    pub(in crate::ui::host) fn finish_project_close_ledger(
         &self,
         operation: &ProjectCloseOperation,
     ) -> Result<ProjectCloseReceipt, ProjectCloseError> {
@@ -181,7 +181,7 @@ impl EditorManager {
         ))
     }
 
-    pub(super) fn release_project_close_guard(
+    pub(in crate::ui::host) fn release_project_close_guard(
         &self,
         operation: &ProjectCloseOperation,
     ) -> Result<(), ProjectCloseError> {
@@ -228,7 +228,7 @@ impl EditorManager {
         Ok(())
     }
 
-    pub(super) fn cleanup_closed_project_session_ledger(
+    pub(in crate::ui::host) fn cleanup_closed_project_session_ledger(
         &self,
         operation: &ProjectCloseOperation,
     ) -> Result<bool, ProjectSessionEffectLedgerError> {

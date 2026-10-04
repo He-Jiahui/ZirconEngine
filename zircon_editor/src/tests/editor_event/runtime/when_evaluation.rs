@@ -101,8 +101,6 @@ fn workbench_position_commit_dispatches_a_typed_inspector_transaction() {
             .state
             .world
             .expect_with_world(|scene| scene.find_node(selected).unwrap().transform.translation.x)
-            .expect("default world gateway should succeed")
-            .expect("default world should remain loaded")
     };
     assert_eq!(committed_x, 4.25);
     assert!(runtime.runtime.editor_snapshot().can_undo);
@@ -139,8 +137,6 @@ fn workbench_scale_commit_dispatches_a_typed_inspector_transaction() {
             .state
             .world
             .expect_with_world(|scene| scene.find_node(selected).unwrap().transform.scale.x)
-            .expect("default world gateway should succeed")
-            .expect("default world should remain loaded")
     };
     assert_eq!(committed_x, 2.5);
     assert!(runtime.runtime.editor_snapshot().can_undo);
@@ -216,9 +212,7 @@ fn workbench_position_commit_publishes_only_inspection_generation_and_property_d
         let generation = shell
             .state
             .world
-            .expect_with_world(|scene| scene.world_generation())
-            .expect("default world gateway should succeed")
-            .expect("default world should remain loaded");
+            .expect_with_world(|scene| scene.world_generation());
         (selected, generation)
     };
     let bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0))

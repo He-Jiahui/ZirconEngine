@@ -6,11 +6,13 @@ import { Box, Typography } from "@mui/material";
 import { hubTokens } from "../../theme/tokens";
 import type { StatusTone } from "../../types/hub";
 
+// 状态标签与语义色调分别由投影或页面提供；翻译不能成为判断状态的依据。
 export interface StatusBadgeProps {
   label: string;
   tone: StatusTone;
 }
 
+// 全局状态共享同一视觉词汇；中性状态保留文字表达，不暗示成功或正在执行。
 const toneMap: Record<StatusTone, { color: string; background: string; border: string; Icon?: typeof PlayArrowIcon }> = {
   running: {
     color: hubTokens.colors.accent,
@@ -43,6 +45,7 @@ const toneMap: Record<StatusTone, { color: string; background: string; border: s
   },
 };
 
+// 作为标题栏及详情中的静态状态摘要；任务进度和动态播报由专用反馈区域承担。
 export function StatusBadge({ label, tone }: StatusBadgeProps) {
   const toneStyle = toneMap[tone];
   const Icon = toneStyle.Icon;

@@ -2,8 +2,10 @@ use std::sync::Arc;
 
 use crate::text::{InlineObjectRef, RichParseResult, StyledRun};
 
-use super::super::{INLINE_OBJECT_REPLACEMENT, RichTextParseError};
+use super::super::{RichTextParseError, INLINE_OBJECT_REPLACEMENT};
 
+/// 将可见文本中的内联占位符替换成可访问性使用的替代文本，并在构建阶段执行字节预算。
+/// 调用方按源顺序传入指向内联运行的索引；函数检查 UTF-8 范围、占位符及扩展后的字节预算。
 pub(super) fn semantic_text_for_inline_runs(
     parsed: &RichParseResult,
     inline_run_indices: &[u32],
@@ -73,6 +75,7 @@ pub(super) fn semantic_text_for_inline_runs(
 }
 
 fn inline_semantic_fallback(inline: &InlineObjectRef) -> &str {
+    // 显式空 alt 也优先于 tooltip；仅图片在 alt 缺失时使用提示，图标无 alt 和 Widget 均为空。
     match inline {
         InlineObjectRef::Image {
             alternative_text: Some(alternative_text),
@@ -134,34 +137,5 @@ fn invalid_inline_source_range(run: &StyledRun, source_bytes: usize) -> RichText
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::math::Vec2;
-    use crate::text::RichInlineWidgetSlotId;
-
-    #[test]
-    fn semantic_text_rejects_an_empty_inline_artifact_range() {
-        let parsed = RichParseResult {
-            text: "x".into(),
-            runs: vec![StyledRun {
-                byte_range: (0, 0),
-                inline: Some(InlineObjectRef::Widget {
-                    slot: RichInlineWidgetSlotId::new(1),
-                    size: Vec2::new(1.0, 1.0),
-                }),
-                ..StyledRun::default()
-            }],
-            ..RichParseResult::default()
-        };
-
-        assert!(matches!(
-            semantic_text_for_inline_runs(&parsed, &[0], 16),
-            Err(RichTextParseError::ArtifactSourceRangeInvalid {
-                range_kind: "inline semantic placeholder",
-                start: 0,
-                end: 0,
-                source_bytes: 1,
-            })
-        ));
-    }
-}
+#[path = "tests/semantic_text.rs"]
+mod tests;

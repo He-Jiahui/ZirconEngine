@@ -23,7 +23,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束预分配配置特性索引：特性 ID 类别应计数先于分配，并每个特性索引使用精确类别容量。
 class PreallocatedProfileFeatureIndexesPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

@@ -30,22 +30,21 @@ related_code:
   - zircon_editor/src/ui/layouts/views/asset_browser/table_nodes.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_nodes.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_layout.rs
-  - zircon_editor/src/ui/layouts/views/asset_browser/tests.rs
 design_references:
-  - docs/ui-and-layout/editor-workbench-designs/STYLE-NOTES.md
-  - docs/ui-and-layout/editor-workbench-designs/main-tabs-layout-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/tool-drawers-layout-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/scene-drawer-layout-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/inspector-drawer-content-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/material-drawer-layout-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/drawer-expanded-state-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/split-editor-state-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/command-palette-window-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/preferences-window-workbench.png
-  - docs/ui-and-layout/ai-workbench-style/ai-workbench-web-framework.png
-  - docs/ui-and-layout/ai-workbench-style/STYLE-NOTES.md
-  - docs/ui-and-layout/ai-workbench-style/prototype/README.md
-  - docs/ui-and-layout/ai-workbench-style/component-prototype/web-native-handoff-matrix.md
+  - docs/ui/editor-workbench-designs/STYLE-NOTES.md
+  - docs/ui/editor-workbench-designs/main-tabs-layout-spec.png
+  - docs/ui/editor-workbench-designs/tool-drawers-layout-spec.png
+  - docs/ui/editor-workbench-designs/scene-drawer-layout-spec.png
+  - docs/ui/editor-workbench-designs/inspector-drawer-content-spec.png
+  - docs/ui/editor-workbench-designs/material-drawer-layout-spec.png
+  - docs/ui/editor-workbench-designs/drawer-expanded-state-spec.png
+  - docs/ui/editor-workbench-designs/split-editor-state-spec.png
+  - docs/ui/editor-workbench-designs/command-palette-window-spec.png
+  - docs/ui/editor-workbench-designs/preferences-window-workbench.png
+  - docs/ui/ai-workbench-style/ai-workbench-web-framework.png
+  - docs/ui/ai-workbench-style/STYLE-NOTES.md
+  - docs/ui/ai-workbench-style/prototype/README.md
+  - docs/ui/ai-workbench-style/component-prototype/web-native-handoff-matrix.md
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/index.md
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md

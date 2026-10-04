@@ -1,3 +1,4 @@
+# 自动化场景规格测试把版本化请求 JSON 与 Stage 的预检入口连起来；先拒绝错误身份和扩展字段，再允许场景输入进入产品启动阶段。
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $modulePath = Join-Path $repoRoot 'tools\mvp\MvpAutomationScenarioSpec.psm1'
 $authoringPath = Join-Path $repoRoot 'tools\mvp\mvp-authoring-automation.json'

@@ -2,9 +2,10 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
-    surface::{UiArrangedNode, UiArrangedTree, UiPersistentSequenceCowStats},
+    surface::{UiArrangedNode, UiArrangedTree, UiHitRouteNode, UiPersistentSequenceCowStats},
 };
 
+use super::cell_membership_patch::{UiCellMembershipPatchStats, UiCellMembershipPatches};
 use super::route_index::route_node_index_for_node;
 use super::{
     bounded_cells_for_frame, entry_sort_key, frame_is_contained, stable_geometry_entry,
@@ -18,23 +19,102 @@ impl UiHitTestIndex {
         changed_node_ids: &BTreeSet<UiNodeId>,
         arranged_node_indices: &BTreeMap<UiNodeId, usize>,
     ) -> Result<bool, ()> {
+        self.patch_arranged_geometry_with_stats(
+            arranged_tree,
+            changed_node_ids,
+            arranged_node_indices,
+        )
+        .map(|(changed, _stats)| changed)
+    }
+
+    fn patch_arranged_geometry_with_stats(
+        &mut self,
+        arranged_tree: &UiArrangedTree,
+        changed_node_ids: &BTreeSet<UiNodeId>,
+        arranged_node_indices: &BTreeMap<UiNodeId, usize>,
+    ) -> Result<(bool, UiCellMembershipPatchStats), ()> {
+        let route_nodes = self.grid.route_nodes.clone();
+        self.patch_geometry_with_routes_and_stats(
+            arranged_tree,
+            changed_node_ids,
+            arranged_node_indices,
+            route_nodes.as_slice(),
+        )
+    }
+
+    pub(super) fn patch_arranged_geometry_with_routes(
+        &mut self,
+        arranged_tree: &UiArrangedTree,
+        changed_node_ids: &BTreeSet<UiNodeId>,
+        arranged_node_indices: &BTreeMap<UiNodeId, usize>,
+        route_nodes: &[UiHitRouteNode],
+    ) -> Result<bool, ()> {
+        self.patch_geometry_with_routes_and_stats(
+            arranged_tree,
+            changed_node_ids,
+            arranged_node_indices,
+            route_nodes,
+        )
+        .map(|(changed, _stats)| changed)
+    }
+
+    fn patch_geometry_with_routes_and_stats(
+        &mut self,
+        arranged_tree: &UiArrangedTree,
+        changed_node_ids: &BTreeSet<UiNodeId>,
+        arranged_node_indices: &BTreeMap<UiNodeId, usize>,
+        route_nodes: &[UiHitRouteNode],
+    ) -> Result<(bool, UiCellMembershipPatchStats), ()> {
         if changed_node_ids.is_empty() {
-            return Ok(false);
+            return Ok((false, UiCellMembershipPatchStats::default()));
         }
-        if (self.entry_cells.is_empty() || self.entry_indices.is_empty())
-            && !self.grid.entries.is_empty()
-        {
-            self.reindex_entry_cells();
+        let cold_lookup = (self.entry_cells.is_empty() || self.entry_indices.is_empty())
+            && !self.grid.entries.is_empty();
+        if !cold_lookup {
+            return self.patch_geometry_with_routes_and_stats_inner(
+                arranged_tree,
+                changed_node_ids,
+                arranged_node_indices,
+                route_nodes,
+            );
         }
 
+        // Reverse maps are serde-skipped and may be cold after deserialization.  Keep their
+        // preflight repair isolated so a later admission failure cannot become an observable
+        // mutation of the index.
+        let previous_entry_cells = self.entry_cells.clone();
+        let previous_entry_indices = self.entry_indices.clone();
+        self.reindex_entry_cells();
+        let result = self.patch_geometry_with_routes_and_stats_inner(
+            arranged_tree,
+            changed_node_ids,
+            arranged_node_indices,
+            route_nodes,
+        );
+        if result.is_err() {
+            self.entry_cells = previous_entry_cells;
+            self.entry_indices = previous_entry_indices;
+        }
+        result
+    }
+
+    fn patch_geometry_with_routes_and_stats_inner(
+        &mut self,
+        arranged_tree: &UiArrangedTree,
+        changed_node_ids: &BTreeSet<UiNodeId>,
+        arranged_node_indices: &BTreeMap<UiNodeId, usize>,
+        route_nodes: &[UiHitRouteNode],
+    ) -> Result<(bool, UiCellMembershipPatchStats), ()> {
+        if changed_node_ids.is_empty() {
+            return Ok((false, UiCellMembershipPatchStats::default()));
+        }
         let mut updates = Vec::with_capacity(changed_node_ids.len());
         for node_id in changed_node_ids {
             let node =
                 arranged_node_for_patch(arranged_tree, arranged_node_indices, *node_id).ok_or(())?;
             let route_node_index =
                 route_node_index_for_node(arranged_node_indices, *node_id).ok_or(())?;
-            let next_entry =
-                stable_geometry_entry(self.grid.route_nodes.as_slice(), node, route_node_index);
+            let next_entry = stable_geometry_entry(route_nodes, node, route_node_index);
             let entry_index = self.entry_index_by_node_id(*node_id);
             let (entry_index, next_entry) = match (entry_index, next_entry) {
                 (Some(entry_index), Some(next_entry)) => (entry_index, next_entry),
@@ -58,32 +138,52 @@ impl UiHitTestIndex {
                         self.grid.cell_size,
                         next_entry.clip_frame,
                     )
+                    .collect::<Vec<_>>()
                 } else {
                     Vec::new()
                 };
-            if next_cells
+            if previous_cells
                 .iter()
+                .chain(&next_cells)
                 .any(|cell_index| self.grid.cells.get(*cell_index).is_none())
             {
                 return Err(());
             }
             if previous_entry != &next_entry || previous_cells != next_cells {
-                updates.push((entry_index, next_entry, previous_cells, next_cells));
+                let reorder_membership =
+                    entry_sort_key(previous_entry) != entry_sort_key(&next_entry);
+                updates.push((
+                    entry_index,
+                    next_entry,
+                    previous_cells,
+                    next_cells,
+                    reorder_membership,
+                ));
             }
         }
 
         let changed = !updates.is_empty();
         let mut entry_cow_stats = UiPersistentSequenceCowStats::default();
-        let mut cell_cow_stats = UiPersistentSequenceCowStats::default();
-        let mut cell_membership_clone_count = 0_usize;
-        for (entry_index, entry, previous_cells, next_cells) in updates {
-            for cell_index in previous_cells {
-                if let Some((cell, stats)) = self.grid.cells.get_mut_with_stats(cell_index) {
-                    cell_cow_stats.accumulate(stats);
-                    cell_membership_clone_count = cell_membership_clone_count
-                        .saturating_add(cell.entries.retain(|candidate| *candidate != entry_index));
-                }
-            }
+        let mut membership_patches = UiCellMembershipPatches::default();
+        let mut staged_entries = BTreeMap::new();
+        for (entry_index, entry, previous_cells, next_cells, reorder_membership) in &updates {
+            membership_patches.stage(
+                *entry_index,
+                previous_cells,
+                next_cells,
+                *reorder_membership,
+            );
+            staged_entries.insert(*entry_index, entry.clone());
+        }
+        let entries = &self.grid.entries;
+        let membership_stats = membership_patches.apply(&mut self.grid.cells, |entry_index| {
+            staged_entries
+                .get(&entry_index)
+                .map(entry_sort_key)
+                .or_else(|| entries.get(entry_index).map(entry_sort_key))
+                .unwrap_or_default()
+        })?;
+        for (entry_index, entry, _previous_cells, next_cells, _reorder_membership) in updates {
             let entry_node_id = entry.node_id;
             let (current_entry, stats) = self
                 .grid
@@ -92,40 +192,18 @@ impl UiHitTestIndex {
                 .ok_or(())?;
             entry_cow_stats.accumulate(stats);
             *current_entry = entry;
-            self.entry_cells.insert(entry_node_id, next_cells.clone());
-            for cell_index in next_cells {
-                let key = entry_sort_key(&self.grid.entries[entry_index]);
-                let insertion_index =
-                    self.grid.cells[cell_index]
-                        .entries
-                        .partition_point(|candidate| {
-                            self.grid
-                                .entries
-                                .get(*candidate)
-                                .map(entry_sort_key)
-                                .unwrap_or_default()
-                                <= key
-                        });
-                let (cell, stats) = self.grid.cells.get_mut_with_stats(cell_index).ok_or(())?;
-                cell_cow_stats.accumulate(stats);
-                cell_membership_clone_count = cell_membership_clone_count
-                    .saturating_add(cell.entries.insert(insertion_index, entry_index));
-            }
+            self.entry_cells.insert(entry_node_id, next_cells);
         }
-        record_hit_grid_persistent_cow(
-            entry_cow_stats,
-            cell_cow_stats,
-            cell_membership_clone_count,
-        );
-        Ok(changed)
+        record_hit_grid_persistent_cow(entry_cow_stats, membership_stats);
+        Ok((changed, membership_stats))
     }
 }
 
 fn record_hit_grid_persistent_cow(
     entry_stats: UiPersistentSequenceCowStats,
-    cell_stats: UiPersistentSequenceCowStats,
-    cell_membership_clone_count: usize,
+    membership_stats: UiCellMembershipPatchStats,
 ) {
+    let cell_stats = membership_stats.cell_cow_stats;
     crate::profile_counter!(
         "runtime",
         "ui.hit_grid.persistent_entry_item_clone_count",
@@ -148,8 +226,8 @@ fn record_hit_grid_persistent_cow(
     );
     crate::profile_counter!(
         "runtime",
-        "ui.hit_grid.persistent_cell_membership_clone_count",
-        cell_membership_clone_count
+        "ui.hit_grid.persistent_cell_membership_arc_cow_clone_count",
+        0
     );
     crate::profile_counter!(
         "runtime",
@@ -157,6 +235,43 @@ fn record_hit_grid_persistent_cow(
         entry_stats
             .cloned_directory_node_count
             .saturating_add(cell_stats.cloned_directory_node_count)
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui.hit_grid.cell_patch_staged_count",
+        membership_stats.staged_cell_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui.hit_grid.cell_patch_published_count",
+        membership_stats.published_cell_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui.hit_grid.cell_patch_source_membership_count",
+        membership_stats.source_membership_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui.hit_grid.cell_patch_removal_count",
+        membership_stats.staged_removal_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui.hit_grid.cell_patch_addition_count",
+        membership_stats.staged_addition_count
+    );
+    // Counts replacement buffers and values materialized in them, excluding delta/set/Arc
+    // allocations and ordering comparisons that remain covered by elapsed time.
+    crate::profile_counter!(
+        "runtime",
+        "ui.hit_grid.cell_patch_materialized_membership_count",
+        membership_stats.materialized_membership_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui.hit_grid.cell_patch_replacement_buffer_count",
+        membership_stats.replacement_buffer_count
     );
 }
 
@@ -173,95 +288,5 @@ fn arranged_node_for_patch<'a>(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use zircon_runtime_interface::ui::{
-        event_ui::{UiNodePath, UiTreeId},
-        layout::{UiFrame, UiPoint},
-        tree::{UiInputPolicy, UiVisibility},
-    };
-
-    #[test]
-    fn geometry_patch_activates_and_deactivates_stable_entry_cells() {
-        let anchor_id = UiNodeId::new(1);
-        let moving_id = UiNodeId::new(2);
-        let anchor_frame = UiFrame::new(0.0, 0.0, 100.0, 100.0);
-        let mut arranged_tree = UiArrangedTree {
-            tree_id: UiTreeId::new("ui.hit.stable-clipped-entry"),
-            roots: vec![anchor_id, moving_id].into(),
-            nodes: vec![
-                pointer_node(anchor_id, 0, anchor_frame, anchor_frame),
-                pointer_node(
-                    moving_id,
-                    1,
-                    UiFrame::new(200.0, 0.0, 20.0, 20.0),
-                    anchor_frame,
-                ),
-            ]
-            .into(),
-            draw_order: vec![anchor_id, moving_id].into(),
-            canvas_layers: Vec::new().into(),
-        };
-        let node_indices = BTreeMap::from([(anchor_id, 0), (moving_id, 1)]);
-        let mut index = UiHitTestIndex::default();
-        index.rebuild_arranged_indexed(&arranged_tree, &node_indices);
-
-        assert_eq!(index.grid.entries.len(), 2);
-        assert_eq!(
-            index
-                .hit_test_arranged(&arranged_tree, UiPoint::new(10.0, 10.0))
-                .top_hit,
-            Some(anchor_id)
-        );
-
-        arranged_tree.nodes[1].frame = UiFrame::new(5.0, 5.0, 20.0, 20.0);
-        assert!(index
-            .patch_arranged_geometry(&arranged_tree, &BTreeSet::from([moving_id]), &node_indices,)
-            .unwrap());
-        assert_eq!(
-            index
-                .hit_test_arranged(&arranged_tree, UiPoint::new(10.0, 10.0))
-                .top_hit,
-            Some(moving_id)
-        );
-
-        arranged_tree.nodes[1].frame = UiFrame::new(200.0, 0.0, 20.0, 20.0);
-        assert!(index
-            .patch_arranged_geometry(&arranged_tree, &BTreeSet::from([moving_id]), &node_indices,)
-            .unwrap());
-        assert_eq!(
-            index
-                .hit_test_arranged(&arranged_tree, UiPoint::new(10.0, 10.0))
-                .top_hit,
-            Some(anchor_id)
-        );
-    }
-
-    fn pointer_node(
-        node_id: UiNodeId,
-        paint_order: u64,
-        frame: UiFrame,
-        clip_frame: UiFrame,
-    ) -> UiArrangedNode {
-        UiArrangedNode {
-            node_id,
-            node_path: UiNodePath::new(format!("root/{}", node_id.0)),
-            parent: None,
-            children: Vec::new(),
-            frame,
-            clip_frame,
-            z_index: 0,
-            paint_order,
-            visibility: UiVisibility::Visible,
-            input_policy: UiInputPolicy::Receive,
-            pointer_events: Default::default(),
-            enabled: true,
-            clickable: true,
-            hoverable: true,
-            focusable: false,
-            clip_to_bounds: false,
-            control_id: None,
-            slot: None,
-        }
-    }
-}
+#[path = "tests/geometry_patch.rs"]
+mod tests;

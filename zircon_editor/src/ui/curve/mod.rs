@@ -7,6 +7,7 @@ mod canvas;
 mod model;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 pub use canvas::CurveCanvasTransform;

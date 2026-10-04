@@ -11,7 +11,7 @@ plan_sources:
   - user: 2026-09-09 AssetUri、UUID、元数据与依赖公开接口详解
 tests:
   - zircon_runtime/src/asset/tests
-  - zircon_runtime/src/asset/project/manifest/save/borrowed_serialization_tests.rs
+  - zircon_runtime/src/asset/project/manifest/save/tests/borrowed_serialization_tests.rs
 doc_type: module-detail
 ---
 

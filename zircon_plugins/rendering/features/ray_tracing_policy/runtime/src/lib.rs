@@ -1,3 +1,4 @@
+//! 光线追踪策略的运行时公共契约；特性提供者将此处元数据提交到目录与图编译。
 use zircon_runtime::graphics::{RenderFeatureCapabilityRequirement, RenderFeatureDescriptor};
 
 mod capability;
@@ -12,6 +13,7 @@ pub use plugin::{
 pub const FEATURE_ID: &str = "rendering.ray_tracing_policy";
 pub const FEATURE_NAME: &str = "ray_tracing_policy";
 
+/// 后端能力的静态快照；路径选择需同时考虑图形宿主实际创建的设备与目标 profile。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct RayTracingBackendCapabilities {
     pub acceleration_structures: bool,
@@ -20,6 +22,7 @@ pub struct RayTracingBackendCapabilities {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 用户请求的射线执行方式；Disabled 不要求硬件能力，另两类具有不同能力门槛。
 pub enum RayTracingPath {
     Disabled,
     InlineQuery,
@@ -27,6 +30,7 @@ pub enum RayTracingPath {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 路径与后端能力的比对结果；仅是策略诊断，不创建加速结构或 shader 管线。
 pub struct RayTracingPolicyReport {
     pub requested_path: RayTracingPath,
     pub supported: bool,
@@ -34,6 +38,7 @@ pub struct RayTracingPolicyReport {
 }
 
 impl RayTracingPolicyReport {
+    /// 在选择渲染路径前列出该路径真正缺失的能力，供 profile 回退或诊断使用。
     pub fn from_backend(
         requested_path: RayTracingPath,
         backend: RayTracingBackendCapabilities,
@@ -56,6 +61,8 @@ impl RayTracingPolicyReport {
     }
 }
 
+/// 提供能力需求声明，不产生渲染通道；图形宿主会校验全部声明的硬件能力。
+// TODO: [CR-PLUGIN-RENDERING-0003] 确认图描述符为何同时要求 InlineRayQuery 与 RayTracingPipeline；from_backend 对两种请求路径只查各自门槛，图能力聚合却会要求全部三项；下一步以仅支持单一路径的后端验证 profile。
 pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
     RenderFeatureDescriptor::new(FEATURE_NAME, Vec::new(), Vec::new(), Vec::new())
         .with_capability_requirement(RenderFeatureCapabilityRequirement::AccelerationStructures)
@@ -63,41 +70,7 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
         .with_capability_requirement(RenderFeatureCapabilityRequirement::RayTracingPipeline)
 }
 
+// 此测试边界覆盖声明与注册约束；GPU 效果证据需由对应产品测试另行提供。
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn policy_report_lists_missing_gates() {
-        let report = RayTracingPolicyReport::from_backend(
-            RayTracingPath::Pipeline,
-            RayTracingBackendCapabilities {
-                acceleration_structures: true,
-                inline_ray_query: false,
-                ray_tracing_pipeline: false,
-            },
-        );
-
-        assert!(!report.supported);
-        assert_eq!(
-            report.missing_gates,
-            vec![RenderFeatureCapabilityRequirement::RayTracingPipeline]
-        );
-    }
-
-    #[test]
-    fn policy_feature_is_opt_in_and_capability_gated() {
-        let report = plugin_feature_registration();
-
-        assert!(report.is_success(), "{:?}", report.diagnostics);
-        assert!(!report.manifest.enabled_by_default);
-        assert_eq!(
-            report.extensions.render_features()[0].capability_requirements,
-            vec![
-                RenderFeatureCapabilityRequirement::AccelerationStructures,
-                RenderFeatureCapabilityRequirement::InlineRayQuery,
-                RenderFeatureCapabilityRequirement::RayTracingPipeline,
-            ]
-        );
-    }
-}
+#[path = "tests/lib.rs"]
+mod tests;

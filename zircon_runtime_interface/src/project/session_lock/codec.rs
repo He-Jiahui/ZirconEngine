@@ -12,11 +12,16 @@ use super::{
     ProjectSessionAdmissionRecordV1, ProjectSessionGenerationV1, ProjectSessionPrincipalV1,
 };
 
+// Hub 读取与 Editor 写入共享此固定版本；旧版本不会被解释成当前准入快照。
 const PROJECT_SESSION_ADMISSION_RECORD_WIRE_VERSION_V2: u32 = 2;
 
+/// Maximum encoded size accepted for one persisted project-session admission record.
+pub const MAX_PROJECT_SESSION_ADMISSION_RECORD_BYTES: usize = 1024;
+
+/// 将准入快照编码为 Editor 持久化、Hub 探测读取的共享 V2 文本记录。
 pub fn encode_project_session_admission_record(record: &ProjectSessionAdmissionRecordV1) -> String {
     format!(
-        "version={PROJECT_SESSION_ADMISSION_RECORD_WIRE_VERSION_V2}\\nprocess_id={}\\ninstance_id={}\\nprincipal={}\\nbuild_set_id={}\\noperation_origin_instance={}\\noperation_sequence={}\\noperation_nonce={}\\nlifecycle={}\\nchecked_epoch={}\\nsession_generation={}\\nheartbeat_unix_millis={}\\n",
+        "version={PROJECT_SESSION_ADMISSION_RECORD_WIRE_VERSION_V2}\nprocess_id={}\ninstance_id={}\nprincipal={}\nbuild_set_id={}\noperation_origin_instance={}\noperation_sequence={}\noperation_nonce={}\nlifecycle={}\nchecked_epoch={}\nsession_generation={}\nheartbeat_unix_millis={}\n",
         record.process_id(),
         record.instance_id(),
         record.principal().as_str(),
@@ -34,9 +39,16 @@ pub fn encode_project_session_admission_record(record: &ProjectSessionAdmissionR
     )
 }
 
+/// 严格读取有界 V2 记录：拒绝重复、缺失及未知字段，并重验记录不变量。
 pub fn decode_project_session_admission_record(
     source: &str,
 ) -> Result<ProjectSessionAdmissionRecordV1, ProjectSessionAdmissionRecordError> {
+    if source.len() > MAX_PROJECT_SESSION_ADMISSION_RECORD_BYTES {
+        return Err(ProjectSessionAdmissionRecordError::new(format!(
+            "project session admission record exceeds the {MAX_PROJECT_SESSION_ADMISSION_RECORD_BYTES}-byte limit"
+        )));
+    }
+
     let mut values = BTreeMap::new();
     for line in source.lines() {
         let (key, value) = line.split_once('=').ok_or_else(|| {
@@ -109,6 +121,7 @@ pub fn decode_project_session_admission_record(
         values.remove("heartbeat_unix_millis"),
         "heartbeat_unix_millis",
     )?;
+    // 所有已知键都必须被消费，避免静默忽略会改变跨进程解释的额外字段。
     if !values.is_empty() {
         return Err(ProjectSessionAdmissionRecordError::new("unknown field"));
     }

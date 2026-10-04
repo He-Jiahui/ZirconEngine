@@ -65,5 +65,5 @@ impl Default for SpriteAtlasBuildConfig {
 }
 
 #[cfg(test)]
-#[path = "config/borrowed_reserved_stem_tests.rs"]
+#[path = "config/tests/borrowed_reserved_stem_tests.rs"]
 mod borrowed_reserved_stem_tests;

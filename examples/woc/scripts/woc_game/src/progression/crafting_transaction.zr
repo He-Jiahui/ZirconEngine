@@ -54,6 +54,7 @@ pub class CraftRecipe {
     }
 }
 
+/// 这是制作规则的自含夹具状态：材料、技能、产物和诊断按同一事务维护。世界实体、真实库存与事件仍由上层命令拥有。
 pub class CraftingTransactionState {
     pub var atHub: bool;
     pub var nowSeconds: float;
@@ -388,6 +389,7 @@ pub outputCount(state: CraftingTransactionState, itemId: string, quality: string
 
 // A successful source craft always calls rng.next() once, before it determines
 // whether the rolled output is eligible for masterwork substitution.
+/// 事务先做配方、工坊、双专精、习得、材料和节流门槛；拒绝不消耗共享随机流，成功才扣材料并取一次随机数。调用方需持有配方和库存映射，并在接受结果后负责真实产物入库。
 pub craft(state: CraftingTransactionState, recipeId: string, stream: rng.Mulberry32): bool {
     state.lastReason = 0;
     state.lastResultOk = false;
@@ -438,6 +440,7 @@ pub craft(state: CraftingTransactionState, recipeId: string, stream: rng.Mulberr
         return false;
     }
 
+    // 前置门槛全部通过后再计算手续费、扣材料与抽签；保持失败尝试对材料和随机游标无副作用。
     var signedReagent = usesSignedReagent(state, recipe);
     state.lastSelfSignedBonus = usesSelfSignedReagent(state, recipe);
     state.lastCopperCharged = craftGoldFee(recipe);

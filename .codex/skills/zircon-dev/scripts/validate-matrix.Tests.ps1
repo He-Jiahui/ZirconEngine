@@ -2,7 +2,8 @@ $script:ValidateMatrixScript = Join-Path $PSScriptRoot "validate-matrix.ps1"
 $script:ValidateMatrixTestRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..\..")).Path
 $script:OriginalValidateMatrixTestMode = $env:VALIDATE_MATRIX_TEST_MODE
 $script:OriginalCargoTargetDir = $env:CARGO_TARGET_DIR
-$script:ManagedPoolRegex = '[D-F]:\\(?:cargo-targets|targets|ZirconBuilds)\\zircon-engine\\pool\\[0-9a-f]{64}'
+$script:ManagedPoolRegex = '[D-F]:\\cargo-targets\\zircon-engine\\pool\\[0-9a-f]{64}'
+$script:ManagedDynamicProfileRegex = [regex]::Escape("--config profile.dev.package.'*'.opt-level=3 --config profile.dev.package.zr_dev_deps_dylib.opt-level=1 --config profile.dev.package.zr_runtime_dev_dylib.opt-level=1 --config profile.test.package.'*'.opt-level=3 --config profile.test.package.zr_dev_deps_dylib.opt-level=1 --config profile.test.package.zr_runtime_dev_dylib.opt-level=1")
 
 $env:VALIDATE_MATRIX_TEST_MODE = "1"
 . $script:ValidateMatrixScript -DryRun -SkipBuild -SkipTest
@@ -159,9 +160,9 @@ function Invoke-ValidateMatrixCli {
         [switch]$PreserveCargoTargetDir
     )
 
-    $powershell = Get-Command pwsh -ErrorAction SilentlyContinue
+    $powershell = Get-Command powershell -ErrorAction SilentlyContinue
     if ($null -eq $powershell) {
-        $powershell = Get-Command powershell -ErrorAction Stop
+        $powershell = Get-Command pwsh -ErrorAction Stop
     }
 
     $commandArgs = @(
@@ -222,9 +223,9 @@ function Invoke-ValidateMatrixCliWithCargoTargetDir {
 function Invoke-ValidateMatrixCliWithoutCargo {
     param([string[]]$Arguments)
 
-    $powershell = Get-Command pwsh -ErrorAction SilentlyContinue
+    $powershell = Get-Command powershell -ErrorAction SilentlyContinue
     if ($null -eq $powershell) {
-        $powershell = Get-Command powershell -ErrorAction Stop
+        $powershell = Get-Command pwsh -ErrorAction Stop
     }
 
     $scriptDir = Split-Path $script:ValidateMatrixScript -Parent
@@ -410,7 +411,7 @@ Describe "Coordinator Cargo target hard cutover" {
 
     It "does not acquire a reusable pool when toolchain identity cannot be established" {
         $script:ToolchainFailureCoordinatorCalls = 0
-        Mock Get-RustCompatibilityIdentity { throw "rustc identity unavailable" }
+        Mock Get-ManagedBuildPolicy { throw "rustc identity unavailable" } -ParameterFilter { -not $DryRunMode }
         Mock Invoke-SessionCoordinatorJson {
             $script:ToolchainFailureCoordinatorCalls++
             throw "coordinator must not be called"
@@ -676,7 +677,7 @@ Describe "Coordinator pre-start failure cleanup" {
         ($script:TargetResolutionWarnings -join "`n") | Should Match "synthetic target release failure"
     }
 
-    It "preserves the primary error while releasing the current wrapper before cargo start" {
+    It "preserves the primary synchronization error while releasing the registered wrapper" {
         Mock Resolve-CoordinatorCargoTarget {
             return [pscustomobject]@{
                 SelectionMode     = "managed"
@@ -688,7 +689,8 @@ Describe "Coordinator pre-start failure cleanup" {
                 DryRun            = $false
             }
         }
-        Mock Push-ManagedCargoEnvironment {
+        Mock Start-CoordinatorCargoTarget { }
+        Mock Initialize-ManagedCompileWorkspace {
             throw "primary pre-start failure"
         }
         Mock Invoke-SessionCoordinatorJson {
@@ -783,6 +785,78 @@ Describe "Coordinator pre-start failure cleanup" {
     }
 }
 
+Describe "Cargo release request recovery" {
+    It "retries the same job only after the request journal proves no admission" {
+        $script:ReleaseAttempts = 0
+        $script:ReleaseQueries = 0
+        Mock Start-Sleep { }
+        Mock Invoke-SessionCoordinatorJson {
+            if ($Arguments[0] -eq 'cargo' -and $Arguments[1] -eq 'release') {
+                $script:ReleaseAttempts++
+                if ($script:ReleaseAttempts -eq 1) {
+                    $failure = [InvalidOperationException]::new('synthetic release lock')
+                    $failure.Data['CoordinatorResponse'] = [pscustomobject]@{
+                        error = [pscustomobject]@{
+                            code = 'internal_error'
+                            details = [pscustomobject]@{ requestId = ('a' * 32) }
+                        }
+                    }
+                    throw $failure
+                }
+                return [pscustomobject]@{}
+            }
+            if ($Arguments[0] -eq 'request-status') {
+                $script:ReleaseQueries++
+                $failure = [InvalidOperationException]::new('request not found')
+                $failure.Data['CoordinatorResponse'] = [pscustomobject]@{
+                    error = [pscustomobject]@{ code = 'command_request_not_found' }
+                }
+                throw $failure
+            }
+            return [pscustomobject]@{}
+        }
+        $target = [pscustomobject]@{ JobId = 'started-job'; OwnerId = 'validate-matrix:test'; DryRun = $false }
+
+        Complete-CoordinatorCargoTarget -RepoRoot $script:ValidateMatrixTestRepoRoot -ResolvedTarget $target -ExitCode 0 -StartAttempted
+
+        $script:ReleaseAttempts | Should Be 2
+        $script:ReleaseQueries | Should Be 1
+        Assert-MockCalled Start-Sleep -Times 1
+    }
+
+    It "does not replay a recorded release request" {
+        $script:ReleaseAttempts = 0
+        Mock Invoke-SessionCoordinatorJson {
+            if ($Arguments[0] -eq 'cargo' -and $Arguments[1] -eq 'release') {
+                $script:ReleaseAttempts++
+                $failure = [InvalidOperationException]::new('synthetic accepted release')
+                $failure.Data['CoordinatorResponse'] = [pscustomobject]@{
+                    error = [pscustomobject]@{
+                        code = 'internal_error'
+                        details = [pscustomobject]@{ requestId = ('b' * 32) }
+                    }
+                }
+                throw $failure
+            }
+            if ($Arguments[0] -eq 'request-status') {
+                return [pscustomobject]@{
+                    request = [pscustomobject]@{
+                        requestId = ('b' * 32)
+                        command = 'cargo.release'
+                        status = 'accepted'
+                    }
+                }
+            }
+            return [pscustomobject]@{}
+        }
+        $target = [pscustomobject]@{ JobId = 'started-job'; OwnerId = 'validate-matrix:test'; DryRun = $false }
+
+        { Invoke-CoordinatorCargoRelease -RepoRoot $script:ValidateMatrixTestRepoRoot -ResolvedTarget $target } |
+            Should Throw 'synthetic accepted release'
+        $script:ReleaseAttempts | Should Be 1
+    }
+}
+
 Describe "Cargo compatibility identity" {
     It "includes platform toolchain architecture workspace and canonical build configuration" {
         $previousToolchain = $env:RUSTUP_TOOLCHAIN
@@ -796,11 +870,11 @@ Describe "Cargo compatibility identity" {
                 -DryRunMode | ConvertFrom-Json
 
             $compatibility.platform | Should Be "windows"
-            $compatibility.toolchain | Should Be "stable-x86_64-pc-windows-msvc"
+            (($compatibility.toolchain | ConvertFrom-Json).runtime | ConvertFrom-Json).rustc.version | Should Match "host: x86_64-pc-windows-msvc"
             $compatibility.target_architecture | Should Be "x86_64-pc-windows-msvc"
             $compatibility.workspace | Should Be "Cargo.toml"
-            $compatibility.build_config | Should Match "rustflags"
-            $compatibility.build_config | Should Match "cargo_incremental"
+            $compatibility.build_config | Should Match "CARGO_ENCODED_RUSTFLAGS"
+            $compatibility.build_config | Should Match "CARGO_INCREMENTAL"
         } finally {
             $env:RUSTUP_TOOLCHAIN = $previousToolchain
             $env:CARGO_BUILD_TARGET = $previousTarget
@@ -815,13 +889,13 @@ Describe "Cargo compatibility identity" {
         $source | Should Not Match "--reuse-key"
     }
 
-    It "uses an explicit subworkspace manifest as the compatibility workspace" {
+    It "shares the repository compiler pool across subworkspace selectors" {
         $compatibility = New-CargoCompatibilityJson `
             -ResolvedRepoRoot $script:ValidateMatrixTestRepoRoot `
             -WorkspaceManifest "zircon_plugins/Cargo.toml" `
             -DryRunMode | ConvertFrom-Json
 
-        $compatibility.workspace | Should Be "zircon_plugins/Cargo.toml"
+        $compatibility.workspace | Should Be "Cargo.toml"
     }
 
     It "keeps default development release and profiling Cargo profiles in distinct compatibility identities" {
@@ -955,6 +1029,47 @@ Describe "Ignored test Cargo arguments" {
             $script:LibTests = $previousLibTests
             $script:TestFilter = $previousTestFilter
             $script:IgnoredTests = $previousIgnoredTests
+        }
+    }
+}
+
+Describe "Explicit test harness Cargo arguments" {
+    It "appends thread and no-capture controls after the Cargo argument boundary" {
+        $previousPackage = $script:Package
+        $previousLibTests = $script:LibTests
+        $previousTestFilter = $script:TestFilter
+        $previousIgnoredTests = $script:IgnoredTests
+        $previousTestThreads = if (Get-Variable -Name TestThreads -Scope Script -ErrorAction SilentlyContinue) {
+            (Get-Variable -Name TestThreads -Scope Script).Value
+        } else { $null }
+        $previousNoCapture = if (Get-Variable -Name NoCapture -Scope Script -ErrorAction SilentlyContinue) {
+            (Get-Variable -Name NoCapture -Scope Script).Value
+        } else { $false }
+        try {
+            $script:Package = "zircon_runtime"
+            $script:LibTests = $true
+            $script:TestFilter = "export_visual_evidence"
+            $script:IgnoredTests = $true
+            $script:TestThreads = 1
+            $script:NoCapture = $true
+
+            $arguments = @(Get-CargoArgs `
+                -Subcommand "test" `
+                -ResolvedTargetDir "D:\cargo-targets\zircon-engine\pool\test" `
+                -WorkspaceManifest "Cargo.toml")
+
+            ($arguments -join " ") | Should Be "test -p zircon_runtime --locked --lib export_visual_evidence --target-dir D:\cargo-targets\zircon-engine\pool\test -- --test-threads 1 --nocapture --ignored"
+            $boundary = [array]::IndexOf($arguments, "--")
+            $boundary | Should Be ($arguments.Length - 5)
+            $arguments[$boundary + 1] | Should Be "--test-threads"
+        }
+        finally {
+            $script:Package = $previousPackage
+            $script:LibTests = $previousLibTests
+            $script:TestFilter = $previousTestFilter
+            $script:IgnoredTests = $previousIgnoredTests
+            $script:TestThreads = $previousTestThreads
+            $script:NoCapture = $previousNoCapture
         }
     }
 }
@@ -1111,13 +1226,13 @@ Describe "Published artifact path resolution" {
     }
 
     It "allows the dedicated MVP product-input root only when explicitly requested" {
-        $requestedPath = "D:\ZirconBuilds\mvp-product-inputs-contract-$([guid]::NewGuid().ToString('N'))"
+        $requestedPath = "D:\cargo-targets\mvp-product-inputs-contract-$([guid]::NewGuid().ToString('N'))"
 
         $resolved = Assert-ArtifactOutputDirectory -Path $requestedPath -MvpProductInputArtifactOutput
         $resolution = Resolve-ZirconWindowsPath -Path $requestedPath
 
         $resolved | Should Be $resolution.OperationalPath
-        $resolution.DisplayPath | Should Match '^D:\\ZirconBuilds\\mvp-product-inputs-'
+        $resolution.DisplayPath | Should Match '^D:\\cargo-targets\\mvp-product-inputs-'
     }
 
     It "does not allow the MVP product-input exception outside its physical root" {
@@ -1229,10 +1344,44 @@ Describe "Cargo profile CLI validation" {
         )
 
         $result.ExitCode | Should Not Be 0
-        $result.Output | Should Match "CargoProfile"
+        # Windows PowerShell 5.1 may wrap the parameter name at the host width.
+        $result.Output | Should Match "Cargo\s*Profile"
         $result.Output | Should Match "development,release,profiling"
         $result.Output | Should Not Match "Target dir:"
         $result.Output | Should Not Match "cargo "
+    }
+}
+
+Describe "Runtime product DLL feature validation" {
+    It "rejects a core-only feature set that cannot export the versioned runtime ABI" {
+        $result = Invoke-ValidateMatrixCli `
+            -Arguments @(
+                "-Package", "zircon_runtime",
+                "-Features", "core-min",
+                "-NoDefaultFeatures",
+                "-RuntimeProductDll",
+                "-SkipTest",
+                "-DryRun"
+            )
+
+        $result.ExitCode | Should Not Be 0
+        $result.Output | Should Match "requires the runtime dynamic-api feature"
+    }
+
+    It "keeps the normal target-client product feature set eligible" {
+        $result = Invoke-ValidateMatrixCli `
+            -Arguments @(
+                "-Package", "zircon_runtime",
+                "-Features", "target-client",
+                "-NoDefaultFeatures",
+                "-RuntimeProductDll",
+                "-SkipTest",
+                "-DryRun"
+            )
+
+        $result.ExitCode | Should Be 0
+        $result.Output | Should Match "cargo rustc -p zircon_runtime"
+        $result.Output | Should Match "--crate-type cdylib"
     }
 }
 
@@ -1281,7 +1430,7 @@ Describe "Validate matrix CLI dry-run parsing" {
         $result.ExitCode | Should Be 0
         $result.Output | Should Match "Workspace manifest: zircon_plugins/Cargo.toml"
         $result.Output | Should Match "Cargo working directory: .*zircon_plugins"
-        $result.Output | Should Match "cargo build -p zircon_plugin_ai_editor --locked --target-dir $($script:ManagedPoolRegex)"
+        $result.Output | Should Match "cargo build -p zircon_plugin_ai_editor --locked $($script:ManagedDynamicProfileRegex) --target-dir $($script:ManagedPoolRegex)"
         $result.Output | Should Not Match "--manifest-path zircon_plugins/Cargo.toml"
     }
 
@@ -1298,7 +1447,56 @@ Describe "Validate matrix CLI dry-run parsing" {
         )
 
         $result.ExitCode | Should Be 0
-        $result.Output | Should Match "cargo test -p zircon_runtime --locked --lib export_render17_pfm1_render_graph_cold_warm_wgpu_png --target-dir $($script:ManagedPoolRegex) -- --ignored"
+        $result.Output | Should Match "cargo test -p zircon_runtime --locked --lib export_render17_pfm1_render_graph_cold_warm_wgpu_png --features zircon_runtime/dev-dynamic-linking $($script:ManagedDynamicProfileRegex) --target-dir $($script:ManagedPoolRegex) -- --ignored"
+    }
+
+    It "dry-runs explicit serial and visible-output harness controls" {
+        $result = Invoke-ValidateMatrixCliWithCargoTargetDir -Arguments @(
+            "-DryRun",
+            "-SkipBuild",
+            "-Package",
+            "zircon_runtime",
+            "-LibTests",
+            "-TestFilter",
+            "export_render17_pfm1_render_graph_cold_warm_wgpu_png",
+            "-TestThreads",
+            "1",
+            "-NoCapture"
+        )
+
+        $result.ExitCode | Should Be 0
+        $result.Output | Should Match "cargo test -p zircon_runtime --locked --lib export_render17_pfm1_render_graph_cold_warm_wgpu_png --features zircon_runtime/dev-dynamic-linking $($script:ManagedDynamicProfileRegex) --target-dir $($script:ManagedPoolRegex) -- --test-threads 1 --nocapture"
+    }
+
+    It "rejects a non-positive explicit test thread count" {
+        $result = Invoke-ValidateMatrixCliWithCargoTargetDir -Arguments @(
+            "-DryRun",
+            "-SkipBuild",
+            "-Package",
+            "zircon_runtime",
+            "-LibTests",
+            "-TestFilter",
+            "export_render17_pfm1_render_graph_cold_warm_wgpu_png",
+            "-TestThreads",
+            "0"
+        )
+
+        $result.ExitCode | Should Not Be 0
+        $result.Output | Should Match "-TestThreads must be a positive integer"
+    }
+
+    It "rejects harness controls when no test stage is selected" {
+        $result = Invoke-ValidateMatrixCliWithCargoTargetDir -Arguments @(
+            "-DryRun",
+            "-SkipBuild",
+            "-SkipTest",
+            "-Package",
+            "zircon_runtime",
+            "-NoCapture"
+        )
+
+        $result.ExitCode | Should Not Be 0
+        $result.Output | Should Match "-NoCapture and -TestThreads require a test stage"
     }
 
     It "dry-runs the convention clippy gate without an extra build or test" {
@@ -2035,13 +2233,15 @@ Describe "Default profile feature topology" {
         @(Get-CargoFeatureValues -CargoTomlPath $cargoTomlPath -FeatureName "target-client") |
             Should Be @(
                 "zircon_runtime/target-client", "ai-contracts", "net-contracts",
-                "physics-contracts", "sound-contracts", "animation", "diagnostic-log",
+                "physics-contracts", "sound-contracts", "animation",
+                "first-party-runtime-plugins", "diagnostic-log",
                 "dynamic-api", "graphics", "navigation", "script", "text", "ui",
                 "default-platform"
             )
         @(Get-CargoFeatureValues -CargoTomlPath $cargoTomlPath -FeatureName "target-editor-host") |
             Should Be @(
                 "zircon_runtime/target-editor-host",
+                "first-party-runtime-plugins",
                 "first-party-advanced-render-runtime-plugins",
                 "first-party-navigation-runtime-plugin",
                 "first-party-navigation-editor-plugin",
@@ -2087,7 +2287,7 @@ Describe "Default profile feature topology" {
             Should Be $expectedInteractiveFeatures
 
         $serverFeatures = @(Get-CargoFeatureValues -CargoTomlPath $cargoTomlPath -FeatureName "target-server")
-        $serverFeatures | Should Be @("core-min", "diagnostic-log", "platform-headless", "dep:naga")
+        $serverFeatures | Should Be @("core-min", "diagnostic-log", "platform-headless", "dep:naga", "zr_dev_deps_dylib?/naga")
         $forbiddenServerFeatures = @(
             "default-platform",
             "platform-window",
@@ -2308,7 +2508,7 @@ Describe "M5 contract documentation index" {
     }
 
     It "documents both low-interference validator selectors" {
-        $skillPath = Join-Path $script:ValidateMatrixTestRepoRoot ".codex\skills\zircon-dev\validation\SKILL.md"
+        $skillPath = Join-Path $script:ValidateMatrixTestRepoRoot ".codex\skills\zircon-dev\validation\guide.md"
         $manualPath = Join-Path $script:ValidateMatrixTestRepoRoot ".codex\skills\zircon-dev\validation\manual-commands.md"
         $planPath = Get-ChildItem `
             -LiteralPath (Join-Path $script:ValidateMatrixTestRepoRoot ".codex\plans") `
@@ -2330,7 +2530,7 @@ Describe "M5 contract documentation index" {
     }
 
     It "documents selector stage switch requirements" {
-        $skillPath = Join-Path $script:ValidateMatrixTestRepoRoot ".codex\skills\zircon-dev\validation\SKILL.md"
+        $skillPath = Join-Path $script:ValidateMatrixTestRepoRoot ".codex\skills\zircon-dev\validation\guide.md"
         $manualPath = Join-Path $script:ValidateMatrixTestRepoRoot ".codex\skills\zircon-dev\validation\manual-commands.md"
         $exportDocPath = Join-Path $script:ValidateMatrixTestRepoRoot "docs\zircon_runtime\platform\export_platform_contract.md"
         $profileDocPath = Join-Path $script:ValidateMatrixTestRepoRoot "docs\zircon_runtime\platform\profile_feature_contract.md"
@@ -2348,7 +2548,7 @@ Describe "M5 contract documentation index" {
     }
 
     It "documents dry-run command rendering without cargo discovery" {
-        $skillPath = Join-Path $script:ValidateMatrixTestRepoRoot ".codex\skills\zircon-dev\validation\SKILL.md"
+        $skillPath = Join-Path $script:ValidateMatrixTestRepoRoot ".codex\skills\zircon-dev\validation\guide.md"
         $manualPath = Join-Path $script:ValidateMatrixTestRepoRoot ".codex\skills\zircon-dev\validation\manual-commands.md"
         $exportDocPath = Join-Path $script:ValidateMatrixTestRepoRoot "docs\zircon_runtime\platform\export_platform_contract.md"
         $profileDocPath = Join-Path $script:ValidateMatrixTestRepoRoot "docs\zircon_runtime\platform\profile_feature_contract.md"
@@ -2367,4 +2567,45 @@ Describe "M5 contract documentation index" {
         $combinedDocs | Should Match "compatibility-keyed target"
         $combinedDocs | Should Match "cargo-targets"
     }
+}
+
+Describe "Compiler cache preparation bridge" {
+    It "prepares only the already started owned supervisor and never repeats the mutation" {
+        Mock Invoke-ManagedCompilerCachePython { return [pscustomobject]@{ status = 'ready' } }
+        $target = [pscustomobject]@{ JobId = 'owned-job'; OwnerId = 'owned-session'; TargetDir = 'D:\cargo-targets\zircon-engine\pool\owned'; DryRun = $false }
+        $binding = Invoke-CoordinatorCompilerCachePrepare -RepoRoot $script:ValidateMatrixTestRepoRoot -ResolvedTarget $target
+        $binding.status | Should Be 'ready'
+        Assert-MockCalled Invoke-ManagedCompilerCachePython -Times 1 -ParameterFilter { $Operation -eq 'prepare' -and $Payload.session_id -eq 'owned-session' -and $Payload.job_id -eq 'owned-job' -and $Payload.supervisor_pid -eq $PID -and $Payload.supervisor_creation_time -match '^[0-9]+$' }
+    }
+    It "propagates an uncertain preparation without another submit or start" {
+        Mock Invoke-ManagedCompilerCachePython { throw 'request remains pending; reconcile existing request only' }
+        Mock Start-CoordinatorCargoTarget { throw 'must not repeat start' }
+        $target = [pscustomobject]@{ JobId = 'owned-job'; OwnerId = 'owned-session'; TargetDir = 'D:\cargo-targets\zircon-engine\pool\owned'; DryRun = $false }
+        { Invoke-CoordinatorCompilerCachePrepare -RepoRoot $script:ValidateMatrixTestRepoRoot -ResolvedTarget $target } | Should Throw
+        Assert-MockCalled Invoke-ManagedCompilerCachePython -Times 1
+        Assert-MockCalled Start-CoordinatorCargoTarget -Times 0
+    }
+    It "finishes and releases the started job when cache preparation fails" {
+        $script:CachePrepareCleanupCalls = [System.Collections.Generic.List[string]]::new()
+        Mock Resolve-CoordinatorCargoTarget { return [pscustomobject]@{ JobId = 'prepare-failed-job'; OwnerId = 'owned-session'; TargetDir = 'D:\cargo-targets\zircon-engine\pool\owned'; AbsoluteTargetDir = 'D:\cargo-targets\zircon-engine\pool\owned'; DryRun = $false } }
+        Mock Start-CoordinatorCargoTarget { }
+        Mock Initialize-ManagedCompileWorkspace { return [pscustomobject]@{ sourceRoot = $script:ValidateMatrixTestRepoRoot } }
+        Mock Assert-ManagedCompilePolicy { }
+        Mock Test-ManagedCompileWorkspace { }
+        Mock Resolve-ManagedCompilerCacheExecutable { return 'C:\tools\sccache.exe' }
+        Mock Invoke-CoordinatorCompilerCachePrepare { throw 'primary compiler cache preparation failure' }
+        Mock Push-ManagedCargoEnvironment { throw 'must not create storage after failed preparation' }
+        Mock Write-ManagedValidationMetrics { }
+        Mock Invoke-SessionCoordinatorJson { $script:CachePrepareCleanupCalls.Add(($Arguments -join ' ')); return [pscustomobject]@{} }
+        $failure = $null
+        try { Invoke-ValidateMatrixMain | Out-Null } catch { $failure = $_ }
+        $failure.Exception.Message | Should Match 'primary compiler cache preparation failure'
+        Assert-MockCalled Start-CoordinatorCargoTarget -Times 1
+        Assert-MockCalled Invoke-CoordinatorCompilerCachePrepare -Times 1
+        Assert-MockCalled Push-ManagedCargoEnvironment -Times 0
+        $script:CachePrepareCleanupCalls.Count | Should Be 2
+        $script:CachePrepareCleanupCalls[0] | Should Match 'cargo finish prepare-failed-job'
+        $script:CachePrepareCleanupCalls[1] | Should Match 'cargo release prepare-failed-job'
+    }
+
 }

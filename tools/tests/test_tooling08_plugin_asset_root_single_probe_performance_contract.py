@@ -1,8 +1,9 @@
+# 核对插件资源根逐路径只进行一次目录探测。
 import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_build_plugin_assets import collect_plugin_asset_roots
+from tools.build.zircon_build_plugin_assets import collect_plugin_asset_roots
 
 
 class Tooling08PluginAssetRootSingleProbePerformanceContractTests(unittest.TestCase):
@@ -24,10 +25,10 @@ class Tooling08PluginAssetRootSingleProbePerformanceContractTests(unittest.TestC
 
         with (
             mock.patch(
-                "tools.zircon_build_plugin_assets.validate_plugin_distribution_assets_for_build"
+                "tools.build.zircon_build_plugin_assets.validate_plugin_distribution_assets_for_build"
             ),
             mock.patch(
-                "tools.zircon_build_plugin_assets.normalized_plugin_asset_root",
+                "tools.build.zircon_build_plugin_assets.normalized_plugin_asset_root",
                 side_effect=roots,
             ),
             mock.patch.object(Path, "exists", exists),

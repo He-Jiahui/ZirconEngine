@@ -1,6 +1,8 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use zircon_runtime_interface::resource::ResourceScheme;
+
 use crate::asset::project::{
     mint_meta_for_migration, AssetMetaDocument, AssetSourceUnit, ProjectPaths,
 };
@@ -12,6 +14,10 @@ use super::document::PendingDocument;
 use super::resolver_index::MigrationCompoundBinding;
 use super::scan::MigrationInventory;
 use super::{AssetMigrationIssue, AssetMigrationIssueKind};
+
+#[cfg(test)]
+#[path = "sidecar/tests/direct_uri_tests.rs"]
+mod direct_uri_tests;
 
 pub(super) struct SidecarPreflight {
     pub(super) index: AssetRegistryIndex,
@@ -99,6 +105,38 @@ pub(super) fn preflight_sidecars(
         if !paired_sidecar_source_is_safe(roots, &path, document.unit)? {
             continue;
         }
+        // Validate the inventory binding before publishing registry entries or staging writes.
+        let compound_binding = if document.unit == AssetSourceUnit::Compound {
+            if document.url.scheme() != ResourceScheme::Res || document.url.label().is_some() {
+                return Err(invalid(
+                    &path,
+                    "compound sidecar URL must be an unlabeled res:// locator",
+                ));
+            }
+            let physical_path = inventory.physical_path_for(&path).ok_or_else(|| {
+                invalid(
+                    &path,
+                    "sidecar is missing from the published migration inventory",
+                )
+            })?;
+            let binding = if retired && is_retired_name {
+                MigrationCompoundBinding::from_retired_meta_toml(
+                    document.url.clone(),
+                    physical_path.to_path_buf(),
+                )
+            } else {
+                MigrationCompoundBinding::new(document.url.clone(), physical_path.to_path_buf())
+            };
+            if !inventory.has_root_relative_projection(&path, binding.source_relative()) {
+                return Err(invalid(
+                    &path,
+                    "compound sidecar URL does not match its physical root-relative identity",
+                ));
+            }
+            Some(binding)
+        } else {
+            None
+        };
         if retired {
             let target = if is_retired_name {
                 current_sidecar_path(&path)?
@@ -133,22 +171,10 @@ pub(super) fn preflight_sidecars(
                 retired_path: (is_retired_name).then_some(path.clone()),
             });
         }
-        if document.unit == AssetSourceUnit::Compound && !matching_current_sidecar {
-            let physical_path = inventory.physical_path_for(&path).ok_or_else(|| {
-                invalid(
-                    &path,
-                    "sidecar is missing from the published migration inventory",
-                )
-            })?;
-            let binding = if retired && is_retired_name {
-                MigrationCompoundBinding::from_retired_meta_toml(
-                    document.url.clone(),
-                    physical_path.to_path_buf(),
-                )
-            } else {
-                MigrationCompoundBinding::new(document.url.clone(), physical_path.to_path_buf())
-            };
-            compound_bindings.push(binding);
+        if !matching_current_sidecar {
+            if let Some(binding) = compound_binding {
+                compound_bindings.push(binding);
+            }
         }
         if register_document {
             documents.push(document);
@@ -241,12 +267,7 @@ fn mint_missing_sidecars(
                 ));
             }
         };
-        let relative = relative
-            .components()
-            .map(|component| component.as_os_str().to_string_lossy())
-            .collect::<Vec<_>>()
-            .join("/");
-        let uri = AssetUri::parse(&format!("res://{relative}"))
+        let uri = AssetUri::parse(&sidecar_resource_uri(relative))
             .map_err(|error| invalid(&source.path, error.to_string()))?;
         let source_bytes =
             fs::read(&source.path).map_err(|error| invalid(&source.path, error.to_string()))?;
@@ -265,6 +286,19 @@ fn mint_missing_sidecars(
         });
     }
     Ok(())
+}
+
+fn sidecar_resource_uri(relative: &Path) -> String {
+    let mut output =
+        String::with_capacity("res://".len().saturating_add(relative.as_os_str().len()));
+    output.push_str("res://");
+    for (index, component) in relative.components().enumerate() {
+        if index > 0 {
+            output.push('/');
+        }
+        output.push_str(&component.as_os_str().to_string_lossy());
+    }
+    output
 }
 
 fn rejected_sidecar_path(path: &Path) -> AssetMigrationIssue {
@@ -362,5 +396,5 @@ fn invalid(path: &Path, message: impl Into<String>) -> AssetMigrationIssue {
 }
 
 #[cfg(test)]
-#[path = "sidecar/optimization_tests.rs"]
+#[path = "sidecar/tests/optimization_tests.rs"]
 mod optimization_tests;

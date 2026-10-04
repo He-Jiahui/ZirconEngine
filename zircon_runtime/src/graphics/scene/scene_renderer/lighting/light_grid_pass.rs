@@ -5,7 +5,7 @@ use crate::core::math::UVec2;
 use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
 
 use super::light_buffer::pack_lighting_extract_with_cookies;
-use super::light_grid_builder::{LightGridCpuOutput, LightGridViewInfo, build_light_grid};
+use super::light_grid_builder::{build_light_grid, LightGridCpuOutput, LightGridViewInfo};
 
 pub(crate) fn build_light_grid_for_frame(
     extract: &RenderFrameExtract,
@@ -21,6 +21,7 @@ pub(crate) fn build_light_grid_for_frame(
     build_light_grid(&packed_lights.lights, &view)
 }
 
+/// 返回的批次保有三个上传范围共用的不可变字节；目标写入沿用各 binding 的 offset，由调用方追加到帧提交队列。
 pub(crate) fn prepare_light_grid_buffer_uploads(
     light_grid_params_buffer: wgpu::BufferBinding<'_>,
     light_zbins_buffer: wgpu::BufferBinding<'_>,
@@ -63,22 +64,5 @@ pub(crate) fn prepare_light_grid_buffer_uploads(
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn light_grid_uses_one_packed_payload_and_no_direct_queue_write() {
-        let source = include_str!("light_grid_pass.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("light-grid production source");
-
-        assert!(!production.contains("queue.write_buffer"));
-        assert_eq!(production.matches("let payload: Arc<[u8]>").count(), 1);
-        assert_eq!(production.matches("WgpuBufferUpload::new(").count(), 1);
-        assert!(production.contains("light_grid_params_buffer"));
-        assert!(production.contains("light_zbins_buffer"));
-        assert!(production.contains("light_tile_masks_buffer"));
-        assert!(production.contains("binding.offset"));
-        assert!(production.contains("BufferBinding<'_>"));
-    }
-}
+#[path = "tests/light_grid_pass.rs"]
+mod tests;

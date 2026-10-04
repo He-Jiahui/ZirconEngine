@@ -1,3 +1,4 @@
+//! 怪物近战追击的局部状态转移：读取配置和世界运动投影，只产出挥击请求；世界调用方负责目标、伤害、仇恨及持久化。
 // Source-pinned melee pursuit arm from updateMobCombatProfile. It emits a
 // swing request but deliberately does not resolve damage, threat retargeting,
 // flee, leash, casts, or boss mechanics outside their future shared transaction.
@@ -6,6 +7,7 @@ var math = %import("zr.zircon.math");
 var profiles = %import("combat/mob_combat_state");
 var mobMotion = %import("world/mob_motion_world");
 
+/// 世界调用方每步从实体行重建此快照，并把位置、朝向、挥击计时与请求数写回。
 pub class MobMeleePursuitState {
     pub var initialized: bool;
     pub var templateId: string;
@@ -164,6 +166,7 @@ mobMovedThisTick(state: MobMeleePursuitState): bool {
     return distance(state.x, state.z, state.previousX, state.previousZ) > 0.05;
 }
 
+/// 只改变攻击姿态并计入挥击请求，世界调用方收到请求后才执行命中与伤害。
 pub requestMobMeleeSwingIfInRange(
     state: MobMeleePursuitState,
     target: MobMeleePursuitTarget,
@@ -223,6 +226,7 @@ moveTowardTarget(
 
 // Mirrors updatePursuitProfileCombat only. A caller owns target selection and
 // invokes damage when a recorded swing request enters the combat transaction.
+/// 先检查当前位置能否挥击，再移动并复查入距；返回姿态而非本步是否命中。
 pub stepMobMeleePursuit(
     state: MobMeleePursuitState,
     target: MobMeleePursuitTarget,

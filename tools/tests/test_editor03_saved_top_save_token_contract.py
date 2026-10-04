@@ -28,7 +28,9 @@ class Editor03SavedTopSaveTokenContractTests(unittest.TestCase):
 
     def test_token_binds_context_transaction_identity_and_branch_generation(self) -> None:
         history = read("zircon_editor/src/core/editing/engine/history.rs")
-        transaction = read("zircon_editor/src/core/editing/engine/transaction.rs")
+        engine_state = read(
+            "zircon_editor/src/core/editing/engine/transaction/engine_state.rs"
+        )
         save_token = read(
             "zircon_editor/src/core/editing/engine/transaction/save_token.rs"
         )
@@ -36,8 +38,8 @@ class Editor03SavedTopSaveTokenContractTests(unittest.TestCase):
         self.assertIn("history: HistoryContextId", history)
         self.assertIn("transaction: Option<TransactionId>", history)
         self.assertIn("generation: u64", history)
-        self.assertIn("history_generations", transaction)
-        self.assertIn("save_token_lineage", transaction)
+        self.assertIn("history_generations", engine_state)
+        self.assertIn("save_token_lineage", engine_state)
         self.assertIn("belongs_to", history)
         self.assertIn("HistoryChangedDuringSave", save_token)
         self.assertIn("SaveTokenHistoryMismatch", save_token)
@@ -50,18 +52,29 @@ class Editor03SavedTopSaveTokenContractTests(unittest.TestCase):
             mark_body.find("flush_operation_group"),
         )
 
+        token_impl = history.split("impl HistorySaveToken", 1)[1].split(
+            "impl fmt::Debug for HistorySaveToken", 1
+        )[0]
         for getter in ("history", "transaction", "generation"):
-            self.assertNotIn(f"pub const fn {getter}", history)
+            self.assertIn(f"pub(crate) const fn {getter}", token_impl)
+            self.assertNotIn(f"pub const fn {getter}", token_impl)
 
     def test_every_history_mutation_advances_generation(self) -> None:
-        transaction = read("zircon_editor/src/core/editing/engine/transaction.rs")
+        lifecycle = read(
+            "zircon_editor/src/core/editing/engine/transaction/lifecycle.rs"
+        )
+        replay = read("zircon_editor/src/core/editing/engine/transaction/replay.rs")
+        exclusive_transition = read(
+            "zircon_editor/src/core/editing/engine/transaction/exclusive_transition.rs"
+        )
         save_token = read(
             "zircon_editor/src/core/editing/engine/transaction/save_token.rs"
         )
 
         self.assertIn("next_history_generation", save_token)
-        for mutation in ("commit", "replay", "clear_history_and_context"):
-            self.assertIn(f"fn {mutation}", transaction)
+        self.assertIn("fn commit", lifecycle)
+        self.assertIn("fn replay", replay)
+        self.assertIn("fn clear_history_and_context", exclusive_transition)
 
     def test_dirty_batch_is_typed_generation_owned_and_delta_bounded(self) -> None:
         facade = read("zircon_editor/src/core/editing/engine/mod.rs")
@@ -144,7 +157,7 @@ class Editor03SavedTopSaveTokenContractTests(unittest.TestCase):
         operation_group = read(
             "zircon_editor/src/core/editing/engine/transaction/operation_group.rs"
         )
-        transaction = read("zircon_editor/src/core/editing/engine/transaction.rs")
+        scope = read("zircon_editor/src/core/editing/engine/transaction/scope.rs")
         for phase in ("Initializing", "Open", "Flushing"):
             self.assertIn(phase, operation_group)
         self.assertIn("OperationGroupPhase::Initializing", operation_group)
@@ -158,8 +171,8 @@ class Editor03SavedTopSaveTokenContractTests(unittest.TestCase):
         reserve_helper = operation_group.split("fn reserve_operation_group", 1)[1]
         self.assertIn("state.operation_group = Some", reserve_helper)
         self.assertIn("transaction: None", reserve_helper)
-        begin_body = transaction.split("fn begin_transaction", 1)[1].split(
-            "pub fn undo", 1
+        begin_body = scope.split("fn begin_transaction", 1)[1].split(
+            "pub(super) fn set_merge_mode", 1
         )[0]
         self.assertLess(begin_body.find("operation_group_allows_begin"), begin_body.find("state.active.push"))
         self.assertIn("active.allows_begin(history, operation_group_reservation)", begin_body)

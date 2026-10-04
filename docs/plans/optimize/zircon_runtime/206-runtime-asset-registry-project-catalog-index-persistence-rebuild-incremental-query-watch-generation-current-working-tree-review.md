@@ -350,3 +350,22 @@ ProjectCatalogProjection
 ## 13. 当前限制
 
 本篇是 review-only。没有运行 Cargo、真实项目导入、跨进程 recovery、GPU/Editor product loop、Windows reparse required-platform、large corpus benchmark 或参考引擎动态基准；任何“性能和表现优于 Unreal”的结论都必须留到正确性门禁与同内容 workload 证据之后。
+
+## 14. 2026-09-13 incremental implementation addendum
+
+Runtime743–746 now close four bounded implementation slices without changing
+the parent plan's unresolved query-service architecture: source-contract
+robustness for Runtime206/Runtime85, tag/package/path-prefix secondary
+postings, borrowed binary UUID referencer ordering, and lower-bound-reserved
+registry build with streamed dependency bootstrap. Existing ordering,
+unknown-entry, source-removal, and resolved/unresolved dependency semantics are
+covered by the child records and remain `implemented_pending_validation`.
+
+The one-process non-tooling Runtime/Editor performance-plus-pressure loader
+covering these slices and Editor742/743 now loads 556 modules and passes
+2068/2068 tests in 29.116s. This is local source/model evidence only; compiled query
+plans, cursor/visitor budgets, generation leases, managed Cargo/Release
+allocation, and product p50/p95/p99 gates remain open.
+
+The subsequent all-contract non-tooling discovery loaded 868 modules and ran
+3553 tests in 561.258s; only the deferred WOC dependency assertion failed.

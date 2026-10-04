@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 验证平台窗口能力的职责切分：窗口能力使用专属目录支撑归属方。
 class RuntimePlatformWindowCapabilityOwnerStructureTests(unittest.TestCase):
     def setUp(self) -> None:
         self.repo_root = Path(__file__).resolve().parents[2]

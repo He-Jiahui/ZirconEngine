@@ -10,9 +10,6 @@ origin_child_dir: docs/plans/zircon_editor/editor/08
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/client.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/supervision
 tests:
   - focused Coordinator01 client preflight timeout/no-submit regression
   - focused health endpoint latency regression while supervised Cargo is active

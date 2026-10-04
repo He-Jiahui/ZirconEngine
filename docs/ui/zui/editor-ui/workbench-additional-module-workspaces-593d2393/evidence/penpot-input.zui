@@ -1,0 +1,182 @@
+penpot_original_source = "[asset]\nkind = \"component\"\nid = \"res://ui/editor/components/workbench/modules/core/index/workbench_additional_module_workspaces.zui\"\nversion = 2\ndisplay_name = \"Workbench Additional Module Workspaces\"\n\n[imports]\nwidgets = [\n  \"res://ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui#WorkbenchAbilityWorkspace\",\n  \"res://ui/editor/components/workbench/modules/core/ui/workbench_hud_workspace.zui#WorkbenchHudWorkspace\",\n  \"res://ui/editor/components/workbench/modules/core/ai/workbench_perception_workspace.zui#WorkbenchPerceptionWorkspace\",\n  \"res://ui/editor/components/workbench/modules/core/rendering/workbench_render_workspace.zui#WorkbenchRenderWorkspace\",\n  \"res://ui/editor/components/workbench/modules/core/gameplay/workbench_tags_workspace.zui#WorkbenchTagsWorkspace\",\n]\nstyles = []\n[components.WorkbenchAdditionalModuleWorkspaces]\nroot = \"additional_module_workspaces\"\ndefault_classes = [\"workbench-module-workspace\"]\n\n[nodes.additional_module_workspaces]\ncomponent = \"Overlay\"\ncontrol_id = \"WorkbenchAdditionalModuleWorkspaces\"\nclasses = [\"workbench-module-workspace\"]\nlayout = { clip = true, container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [\n  { node = \"ability_workspace_host\" },\n  { node = \"tags_workspace_host\" },\n  { node = \"perception_workspace_host\" },\n  { node = \"render_workspace_host\" },\n  { node = \"hud_workspace_host\" },\n]\n\n[nodes.ability_workspace_host]\ncomponent = \"Overlay\"\ncontrol_id = \"WorkbenchAbilityWorkspaceHost\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"ability_workspace_body\" }]\n\n[nodes.ability_workspace_body]\ncomponent = \"WorkbenchAbilityWorkspace\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.tags_workspace_host]\ncomponent = \"Overlay\"\ncontrol_id = \"WorkbenchTagsWorkspaceHost\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"tags_workspace_body\" }]\n\n[nodes.tags_workspace_body]\ncomponent = \"WorkbenchTagsWorkspace\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.perception_workspace_host]\ncomponent = \"Overlay\"\ncontrol_id = \"WorkbenchPerceptionWorkspaceHost\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"perception_workspace_body\" }]\n\n[nodes.perception_workspace_body]\ncomponent = \"WorkbenchPerceptionWorkspace\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.render_workspace_host]\ncomponent = \"Overlay\"\ncontrol_id = \"WorkbenchRenderWorkspaceHost\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"render_workspace_body\" }]\n\n[nodes.render_workspace_body]\ncomponent = \"WorkbenchRenderWorkspace\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.hud_workspace_host]\ncomponent = \"Overlay\"\ncontrol_id = \"WorkbenchHudWorkspaceHost\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"hud_workspace_body\" }]\n\n[nodes.hud_workspace_body]\ncomponent = \"WorkbenchHudWorkspace\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n"
+
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/modules/core/index/workbench_additional_module_workspaces.zui"
+version = 2
+display_name = "Workbench Additional Module Workspaces"
+
+[imports]
+widgets = [ "res://ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui#WorkbenchAbilityWorkspace", "res://ui/editor/components/workbench/modules/core/ui/workbench_hud_workspace.zui#WorkbenchHudWorkspace", "res://ui/editor/components/workbench/modules/core/ai/workbench_perception_workspace.zui#WorkbenchPerceptionWorkspace", "res://ui/editor/components/workbench/modules/core/rendering/workbench_render_workspace.zui#WorkbenchRenderWorkspace", "res://ui/editor/components/workbench/modules/core/gameplay/workbench_tags_workspace.zui#WorkbenchTagsWorkspace" ]
+styles = []
+
+[components.WorkbenchAdditionalModuleWorkspaces]
+root = "additional_module_workspaces"
+default_classes = [ "workbench-module-workspace" ]
+
+[nodes.additional_module_workspaces]
+component = "Overlay"
+control_id = "WorkbenchAdditionalModuleWorkspaces"
+classes = [ "workbench-module-workspace" ]
+
+[nodes.additional_module_workspaces.layout]
+clip = true
+
+[nodes.additional_module_workspaces.layout.container]
+kind = "Overlay"
+
+[nodes.additional_module_workspaces.layout.width]
+stretch = "Stretch"
+
+[nodes.additional_module_workspaces.layout.height]
+stretch = "Stretch"
+
+[[nodes.additional_module_workspaces.children]]
+node = "ability_workspace_host"
+
+[[nodes.additional_module_workspaces.children]]
+node = "tags_workspace_host"
+
+[[nodes.additional_module_workspaces.children]]
+node = "perception_workspace_host"
+
+[[nodes.additional_module_workspaces.children]]
+node = "render_workspace_host"
+
+[[nodes.additional_module_workspaces.children]]
+node = "hud_workspace_host"
+
+[nodes.additional_module_workspaces.props]
+visibility = "visible"
+
+[nodes.ability_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchAbilityWorkspaceHost"
+
+[nodes.ability_workspace_host.layout.width]
+stretch = "Stretch"
+
+[nodes.ability_workspace_host.layout.height]
+stretch = "Stretch"
+
+[[nodes.ability_workspace_host.children]]
+node = "ability_workspace_body"
+
+[nodes.ability_workspace_body]
+component = "WorkbenchAbilityWorkspace"
+
+[nodes.ability_workspace_body.layout.width]
+stretch = "Stretch"
+
+[nodes.ability_workspace_body.layout.height]
+stretch = "Stretch"
+
+[nodes.ability_workspace_body.props]
+visibility = "visible"
+
+[nodes.tags_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchTagsWorkspaceHost"
+
+[nodes.tags_workspace_host.layout.width]
+stretch = "Stretch"
+
+[nodes.tags_workspace_host.layout.height]
+stretch = "Stretch"
+
+[[nodes.tags_workspace_host.children]]
+node = "tags_workspace_body"
+
+[nodes.tags_workspace_body]
+component = "WorkbenchTagsWorkspace"
+
+[nodes.tags_workspace_body.layout.width]
+stretch = "Stretch"
+
+[nodes.tags_workspace_body.layout.height]
+stretch = "Stretch"
+
+[nodes.tags_workspace_body.props]
+visibility = "collapsed"
+
+[nodes.perception_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchPerceptionWorkspaceHost"
+
+[nodes.perception_workspace_host.layout.width]
+stretch = "Stretch"
+
+[nodes.perception_workspace_host.layout.height]
+stretch = "Stretch"
+
+[[nodes.perception_workspace_host.children]]
+node = "perception_workspace_body"
+
+[nodes.perception_workspace_body]
+component = "WorkbenchPerceptionWorkspace"
+
+[nodes.perception_workspace_body.layout.width]
+stretch = "Stretch"
+
+[nodes.perception_workspace_body.layout.height]
+stretch = "Stretch"
+
+[nodes.perception_workspace_body.props]
+visibility = "collapsed"
+
+[nodes.render_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchRenderWorkspaceHost"
+
+[nodes.render_workspace_host.layout.width]
+stretch = "Stretch"
+
+[nodes.render_workspace_host.layout.height]
+stretch = "Stretch"
+
+[[nodes.render_workspace_host.children]]
+node = "render_workspace_body"
+
+[nodes.render_workspace_body]
+component = "WorkbenchRenderWorkspace"
+
+[nodes.render_workspace_body.layout.width]
+stretch = "Stretch"
+
+[nodes.render_workspace_body.layout.height]
+stretch = "Stretch"
+
+[nodes.render_workspace_body.props]
+visibility = "collapsed"
+
+[nodes.hud_workspace_host]
+component = "Overlay"
+control_id = "WorkbenchHudWorkspaceHost"
+
+[nodes.hud_workspace_host.layout.width]
+stretch = "Stretch"
+
+[nodes.hud_workspace_host.layout.height]
+stretch = "Stretch"
+
+[[nodes.hud_workspace_host.children]]
+node = "hud_workspace_body"
+
+[nodes.hud_workspace_body]
+component = "WorkbenchHudWorkspace"
+
+[nodes.hud_workspace_body.layout.width]
+stretch = "Stretch"
+
+[nodes.hud_workspace_body.layout.height]
+stretch = "Stretch"
+
+[nodes.hud_workspace_body.props]
+visibility = "collapsed"
+
+[penpot_dynamic_review_state]
+schema = "dev.zircon.zui.dynamic-review-state"
+version = 1
+sourcePath = "zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_additional_module_workspaces.zui"
+selectedNodeIds = [ "ability_workspace_body" ]
+selectionPolicy = "authored-first-visible-branch"

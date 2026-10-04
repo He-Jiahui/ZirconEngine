@@ -1,3 +1,4 @@
+//! 性能热点的结构守卫核对拥有者、文件预算和证据文档。通过源码文本核对父子路由、状态镜像和文件预算。
 pub(super) struct SplitLayoutSources {
     pub(super) parent: &'static str,
     pub(super) query_change: &'static str,
@@ -52,10 +53,10 @@ impl SplitLayoutSources {
                 "../../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
             ),
             module_doc: include_str!(
-                "../../../../../../../../docs/zircon_runtime/structure/module-convention.md"
+                "../../../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
             ),
             hotspot_doc: include_str!(
-                "../../../../../../../../docs/zircon_runtime/performance/hotspot_inventory.md"
+                "../../../../../../../../docs/crates/zircon_runtime/performance/hotspot_inventory.md"
             ),
         runtime_07_archive: include_str!(
             "../../../../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"

@@ -1,7 +1,7 @@
 # 03 · Physics 插件完善计划（Rigidbody / Collider / Constraint / Ragdoll / Query）
 
 > 状态：工程化细化版 v2 · 优先级：P1 · 前置：[01 插件架构核心](01-plugin-architecture-core.md) M1
-> 关联计划：`.codex/plans/Physics + Full Animation Support 新计划.md` · 现状文档：`docs/zircon_plugins/physics/runtime.md`
+> 关联计划：`.codex/plans/Physics + Full Animation Support 新计划.md` · 现状文档：`docs/crates/zircon_plugins/physics/runtime.md`
 > 参考实现：Godot `servers/physics_3d`（PhysicsServer3D body/shape/joint/area API 形态）、Jolt 官方 Samples（约束族与 ragdoll）
 > 最新进度（2026-07-12）：M1 已完成；M2-T1 形状五变体、共享 Runtime 消费者收敛、builtin typed Unsupported，以及 Jolt Cylinder/ConvexHull/Compound/资源型 TriangleMesh/HeightField 映射均已验收。Windows Jolt 插件库 21/21、Runtime collider 消费者 10/10、mesh DTO 1/1；M2-T2 MassProperties/CCD/SleepPolicy/BodyType 运行期切换为下一切片。
 - fixed 已修复：[collider-shape-consumer-exhaustiveness](../zircon_editor/editor/01/fixed-2026-07-12-collider-shape-consumer-exhaustiveness.md)

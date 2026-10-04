@@ -2,7 +2,9 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, OnceLock};
 
-use super::{UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_PATH, UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_PATH};
+use super::{
+    UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_PATH, UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_PATH,
+};
 use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::primitives::SharedString;
 use crate::ui::v2_design_tokens::prepare_editor_v2_document;
@@ -239,6 +241,11 @@ fn project_ui_asset_editor_nodes(
             let value_number = resolve_node_value_number(metadata);
             let value_percent = resolve_node_value_percent(metadata, component_role, value_number);
             let options = string_array_attribute(metadata, "options");
+            let collection_items = if metadata.component == "AgentChat" {
+                string_array_attribute(metadata, "messages")
+            } else {
+                string_array_attribute(metadata, "collection_items")
+            };
             let visual_assets = resolve_visual_assets(metadata);
             let button_style = resolve_button_style_from_values(&metadata.style_overrides);
             let popup_open = resolve_node_popup_open(metadata);
@@ -271,6 +278,12 @@ fn project_ui_asset_editor_nodes(
                 value_number,
                 value_percent,
                 options: model_rc(options.into_iter().map(SharedString::from).collect()),
+                collection_items: model_rc(
+                    collection_items
+                        .into_iter()
+                        .map(SharedString::from)
+                        .collect(),
+                ),
                 dispatch_kind: string_attribute(metadata, "dispatch_kind")
                     .unwrap_or_default()
                     .into(),
@@ -490,20 +503,5 @@ fn text_align_name(align: UiTextAlign) -> &'static str {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_PATH, UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_PATH,
-    };
-
-    #[test]
-    fn projection_cache_loads_the_bootstrap_asset_contract() {
-        assert_eq!(
-            UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_PATH,
-            "/assets/ui/editor/ui_asset_editor.zui"
-        );
-        assert_eq!(
-            UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_PATH,
-            "/assets/ui/editor/theme/editor_tokens.zui"
-        );
-    }
-}
+#[path = "tests/node_projection.rs"]
+mod tests;

@@ -1,3 +1,5 @@
+//! 验证MUI 文档目录、状态矩阵与本地 ZUI 原型覆盖关系。
+
 use std::{
     collections::BTreeSet,
     fs,
@@ -5,7 +7,7 @@ use std::{
 };
 
 const DESIGN_MATRIX: &str =
-    include_str!("../../../../../docs/ui-and-layout/material-ui-component-design-matrix.md");
+    include_str!("../../../../../docs/ui/zui/material-ui-component-design-matrix.md");
 
 const REQUIRED_INTERACTIVE_ROWS: &[&str] = &[
     "accordion",

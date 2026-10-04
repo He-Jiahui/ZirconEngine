@@ -78,6 +78,7 @@ pub shrineKind(index: int, required: bool): string {
 // Matches `new Rng((seed ^ 0xd20ed71a) >>> 0)` and the source's inclusive
 // `rng.int(0, RITE_SHRINE_KINDS.length - 1)`. This rules module creates a
 // local stream only; it never consumes the simulation's shared stream.
+/// 每次由run.seed派生独立本地流并重放到序号，整轮序列前缀稳定；不得以世界共享流接替或在每次提示改变seed。
 pub sequenceShrineIndex(seed: uint, sequenceIndex: int, required: bool): int {
     if (!required || sequenceIndex < 0) {
         throw "woc Drowned Reliquary rite sequence index is invalid";
@@ -177,6 +178,7 @@ pub baseTierForMistakes(mistakes: int, mistakesAllowed: int, required: bool): in
     return mistakes <= mistakesAllowed ? 1 : 0;
 }
 
+/// 先按失误得到基础战利品层，再以玩家选择强度封顶；intensityIndex与lootTierIndex分别有自己的编号顺序，调用方不可混用。
 pub completionTier(
     mistakes: int,
     mistakesAllowed: int,
@@ -213,6 +215,7 @@ pub baseCopper(copperMinimum: int, copperMaximum: int, required: bool): int {
     return roundPositive(<float>(copperMinimum + copperMaximum) / 2.0);
 }
 
+/// 只算每名成员的附加金额；Delve结算方从对应Normal/Heroic基础铜币区间算一次midpoint，分配时再按成员写账。
 pub riteBonusCopper(base: int, tier: int, required: bool): int {
     if (!required || base < 0) {
         throw "woc Drowned Reliquary rite base copper is invalid";

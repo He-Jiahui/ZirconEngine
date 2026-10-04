@@ -1,3 +1,4 @@
+//! 各注册入口先做家族约束与重复键检查，再把贡献挂到 owner 的可冻结槽位表。
 use crate::asset::{
     AssetImporterDescriptor, AssetImporterHandler, DiagnosticOnlyAssetImporter,
     NativeAssetImporterHandler,
@@ -29,6 +30,7 @@ pub(in crate::plugin::extension_registry) use resource_registration::ResourceReg
 pub(in crate::plugin::extension_registry) use runtime_scene_system_registration::RuntimeSceneSystemRegistration;
 pub(in crate::plugin::extension_registry) use system_registration::SystemRegistration;
 
+// 将包或功能标识映射到约定的运行时模块 owner；调用方须传裸 plugin id，不能重复附加后缀。
 fn runtime_owner_key(plugin_id: &str) -> String {
     let capacity = plugin_id.len() + ".runtime".len();
     let mut owner = String::with_capacity(capacity);
@@ -38,6 +40,7 @@ fn runtime_owner_key(plugin_id: &str) -> String {
 }
 
 impl RuntimeExtensionRegistry {
+    /// 收集仍在注册阶段的着色器源码；内容哈希用于证明本次包报告与实际源码一致。
     pub fn register_plugin_shader_module_source(
         &mut self,
         package_id: &str,
@@ -80,6 +83,7 @@ impl RuntimeExtensionRegistry {
         Ok(())
     }
 
+    /// 为 SDK 注册入口分配可复用 owner；返回值只属于当前注册表，不可跨独立目录复用。
     pub fn intern_plugin_module(
         &mut self,
         name: impl Into<String>,
@@ -263,6 +267,7 @@ impl RuntimeExtensionRegistry {
         self.intern_plugin_module(runtime_owner_key(plugin_id))
     }
 
+    // 选取名称首段作为包级 owner，供图形和选项类贡献随同一运行时模块撤销。
     pub(super) fn intern_owner_from_namespaced_key(
         &mut self,
         key: &str,
@@ -277,11 +282,5 @@ impl RuntimeExtensionRegistry {
 }
 
 #[cfg(test)]
-mod runtime_owner_key_tests {
-    use super::runtime_owner_key;
-
-    #[test]
-    fn exact_runtime_owner_key_preserves_identity() {
-        assert_eq!(runtime_owner_key("rendering"), "rendering.runtime");
-    }
-}
+#[path = "tests/register_runtime_owner_key_tests.rs"]
+mod runtime_owner_key_tests;

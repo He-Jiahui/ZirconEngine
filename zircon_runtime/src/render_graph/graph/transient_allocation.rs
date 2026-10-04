@@ -203,7 +203,8 @@ pub(crate) fn build_transient_allocation_plan(
     resource_lifetimes: &[RenderGraphResourceLifetime],
 ) -> Result<CompiledRenderGraphTransientAllocationPlan, RenderGraphError> {
     let mut next_allocation_id = 0_usize;
-    let mut allocations = allocate_transient_lifetimes_by_bucket(
+    let mut allocations = Vec::new();
+    allocate_transient_lifetimes_by_bucket(
         resource_lifetimes.iter().filter(|lifetime| {
             lifetime.kind == RenderGraphResourceKind::TransientTexture
                 && !lifetime.usage.persistent
@@ -212,6 +213,7 @@ pub(crate) fn build_transient_allocation_plan(
         }),
         transient_texture_bucket_key,
         &mut next_allocation_id,
+        &mut allocations,
     )?;
     let sparse_texture_lifetimes = resource_lifetimes
         .iter()
@@ -236,14 +238,14 @@ pub(crate) fn build_transient_allocation_plan(
                     },
                 )
             })?;
-    let mut buffer_allocations = allocate_transient_lifetimes_by_bucket(
+    allocate_transient_lifetimes_by_bucket(
         resource_lifetimes.iter().filter(|lifetime| {
             lifetime.kind == RenderGraphResourceKind::TransientBuffer && !lifetime.usage.persistent
         }),
         transient_buffer_bucket_key,
         &mut next_allocation_id,
+        &mut allocations,
     )?;
-    allocations.append(&mut buffer_allocations);
     allocations.sort_by(|left, right| left.resource_name.cmp(&right.resource_name));
     let slot_reservations = slot_reservations_for(&allocations);
     let texture_slot_count = slot_reservations
@@ -295,7 +297,7 @@ fn allocate_transient_lifetimes<'a>(
     let mut active_slots = BTreeSet::<(usize, usize)>::new();
     let mut free_slots = BTreeSet::<usize>::new();
     let mut next_slot = 0_usize;
-    let mut allocations = Vec::new();
+    let mut allocations = Vec::with_capacity(lifetimes.len());
     for lifetime in lifetimes {
         while active_slots
             .first()
@@ -337,15 +339,20 @@ fn allocate_transient_lifetimes_by_bucket<'a, F>(
     lifetimes: impl Iterator<Item = &'a RenderGraphResourceLifetime>,
     bucket_key_for: F,
     next_allocation_id: &mut usize,
-) -> Result<Vec<CompiledRenderGraphTransientAllocation>, RenderGraphError>
+    allocations: &mut Vec<CompiledRenderGraphTransientAllocation>,
+) -> Result<(), RenderGraphError>
 where
     F: Fn(&RenderGraphResourceLifetime) -> Option<TransientAllocationBucketKey>,
 {
     let mut lifetimes_by_bucket = HashMap::<TransientAllocationBucketKey, Vec<_>>::new();
+    let mut allocation_capacity = 0_usize;
     for lifetime in lifetimes {
         let Some(bucket_key) = bucket_key_for(lifetime) else {
             continue;
         };
+        if !lifetime.imported && !lifetime.usage.persistent {
+            allocation_capacity += 1;
+        }
         lifetimes_by_bucket
             .entry(bucket_key)
             .or_default()
@@ -359,7 +366,7 @@ where
             .then_with(|| left_key.cmp(right_key))
     });
 
-    let mut allocations = Vec::new();
+    allocations.reserve(allocation_capacity);
     for (bucket_key, lifetimes) in lifetimes_by_bucket {
         let mut allocation_ids_by_slot = BTreeMap::new();
         allocations.extend(allocate_transient_lifetimes(
@@ -369,7 +376,7 @@ where
             &mut allocation_ids_by_slot,
         )?);
     }
-    Ok(allocations)
+    Ok(())
 }
 
 pub(crate) fn validate_resource_lifetime_storage_sizes(
@@ -437,12 +444,14 @@ enum TransientAllocationBucketKey {
         width: u32,
         height: u32,
         depth: u32,
+        array_layers: u32,
         mip_levels: u32,
         sample_count: u32,
         format_key: u64,
         dimension_key: u64,
         residency_key: u64,
         usage_bits: u32,
+        view_formats_key: Vec<u64>,
     },
     Buffer {
         size_bytes: u64,
@@ -466,23 +475,30 @@ impl TransientAllocationBucketKey {
                 width,
                 height,
                 depth,
+                array_layers,
                 mip_levels,
                 sample_count,
                 format_key,
                 dimension_key,
                 residency_key,
                 usage_bits,
+                view_formats_key,
             } => {
                 mix(&mut hash, 1);
                 mix(&mut hash, u64::from(*width));
                 mix(&mut hash, u64::from(*height));
                 mix(&mut hash, u64::from(*depth));
+                mix(&mut hash, u64::from(*array_layers));
                 mix(&mut hash, u64::from(*mip_levels));
                 mix(&mut hash, u64::from(*sample_count));
                 mix(&mut hash, *format_key);
                 mix(&mut hash, *dimension_key);
                 mix(&mut hash, *residency_key);
                 mix(&mut hash, u64::from(*usage_bits));
+                mix(&mut hash, view_formats_key.len() as u64);
+                for format_key in view_formats_key {
+                    mix(&mut hash, *format_key);
+                }
             }
             Self::Buffer {
                 size_bytes,
@@ -507,12 +523,14 @@ fn transient_texture_bucket_key(
         width: desc.width,
         height: desc.height,
         depth: desc.depth,
+        array_layers: desc.array_layers,
         mip_levels: desc.mip_levels,
         sample_count: desc.sample_count,
         format_key: texture_format_key(desc.format),
         dimension_key: texture_dimension_key(desc.dimension),
         residency_key: texture_residency_key(desc.residency),
         usage_bits: desc.usage.bits(),
+        view_formats_key: texture_view_formats_key(desc),
     })
 }
 
@@ -542,6 +560,14 @@ fn resource_lifetime_size_bytes(
         RenderGraphResourceDesc::Buffer(desc) => Ok(desc.size_bytes),
         RenderGraphResourceDesc::External => Ok(0),
     }
+}
+
+fn texture_view_formats_key(desc: &crate::rhi::TextureDesc) -> Vec<u64> {
+    desc.view_formats
+        .iter()
+        .copied()
+        .map(texture_format_key)
+        .collect()
 }
 
 fn texture_format_key(format: TextureFormat) -> u64 {
@@ -579,6 +605,10 @@ fn texture_residency_key(residency: TextureResidency) -> u64 {
         TextureResidency::SparseReserved => 2,
     }
 }
+
+#[cfg(test)]
+#[path = "transient_allocation/tests/capacity_tests.rs"]
+mod capacity_tests;
 
 const fn resource_kind_sort_key(kind: RenderGraphResourceKind) -> u8 {
     match kind {

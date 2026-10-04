@@ -1,13 +1,12 @@
 use crate::ui::{
-    ecs::{
-        UiEcsDirtyDomainKind, UiEcsDirtyDomains, UiEcsNodeProjection, UiEcsProjectionSnapshot,
-    },
+    ecs::{UiEcsDirtyDomainKind, UiEcsDirtyDomains, UiEcsNodeProjection, UiEcsProjectionSnapshot},
     event_ui::{UiNodeId, UiTreeId},
     pipeline::UiPipelineStage,
 };
 
 #[test]
 fn ecs_projection_node_falls_back_for_unsorted_wire_input() {
+    // from_nodes 保留传入顺序；乱序节点覆盖外部构造/旧载荷绕过投影排序时的查找回退。
     let snapshot = UiEcsProjectionSnapshot::from_nodes(
         UiTreeId::new("ui.ecs"),
         Vec::new(),
@@ -180,11 +179,8 @@ fn ecs_projection_single_stage_impact_benchmark() {
 
 #[test]
 fn ecs_projection_single_stage_impact_matches_full_table_for_snapshot_and_delta() {
-    let previous = UiEcsProjectionSnapshot::from_nodes(
-        UiTreeId::new("ui.ecs"),
-        Vec::new(),
-        Vec::new(),
-    );
+    let previous =
+        UiEcsProjectionSnapshot::from_nodes(UiTreeId::new("ui.ecs"), Vec::new(), Vec::new());
     let current = UiEcsProjectionSnapshot::from_nodes(
         UiTreeId::new("ui.ecs"),
         Vec::new(),
@@ -211,16 +207,12 @@ fn ecs_projection_single_stage_impact_matches_full_table_for_snapshot_and_delta(
 
     assert_eq!(current.schedule_impact(stage), snapshot_expected);
     assert_eq!(delta.schedule_impact(stage), delta_expected);
-    assert!(
-        current
-            .schedule_impact(UiPipelineStage::Diagnostics)
-            .is_none()
-    );
-    assert!(
-        delta
-            .schedule_impact(UiPipelineStage::Diagnostics)
-            .is_none()
-    );
+    assert!(current
+        .schedule_impact(UiPipelineStage::Diagnostics)
+        .is_none());
+    assert!(delta
+        .schedule_impact(UiPipelineStage::Diagnostics)
+        .is_none());
 }
 
 #[test]
@@ -304,11 +296,8 @@ fn ecs_projection_single_domain_impact_benchmark() {
 
 #[test]
 fn ecs_projection_single_domain_impact_matches_full_table_for_snapshot_and_delta() {
-    let previous = UiEcsProjectionSnapshot::from_nodes(
-        UiTreeId::new("ui.ecs"),
-        Vec::new(),
-        Vec::new(),
-    );
+    let previous =
+        UiEcsProjectionSnapshot::from_nodes(UiTreeId::new("ui.ecs"), Vec::new(), Vec::new());
     let current = UiEcsProjectionSnapshot::from_nodes(
         UiTreeId::new("ui.ecs"),
         Vec::new(),
@@ -335,14 +324,10 @@ fn ecs_projection_single_domain_impact_matches_full_table_for_snapshot_and_delta
 
     assert_eq!(current.dirty_domain_impact(domain), snapshot_expected);
     assert_eq!(delta.dirty_domain_impact(domain), delta_expected);
-    assert!(
-        current
-            .dirty_domain_impact(UiEcsDirtyDomainKind::Input)
-            .is_none()
-    );
-    assert!(
-        delta
-            .dirty_domain_impact(UiEcsDirtyDomainKind::Input)
-            .is_none()
-    );
+    assert!(current
+        .dirty_domain_impact(UiEcsDirtyDomainKind::Input)
+        .is_none());
+    assert!(delta
+        .dirty_domain_impact(UiEcsDirtyDomainKind::Input)
+        .is_none());
 }

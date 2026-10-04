@@ -17,6 +17,7 @@ mod scene_renderer_pipeline_prewarm;
 mod scene_renderer_realtime_ibl_diagnostics;
 mod scene_renderer_render;
 mod scene_renderer_render_capture;
+mod scene_renderer_render_scene;
 mod scene_renderer_render_with_pipeline;
 mod scene_renderer_runtime_outputs;
 mod scene_renderer_submission_failure;

@@ -34,11 +34,9 @@ fn forward_clearcoat_attenuates_emission_with_the_existing_base_layer_weight() {
     ))
     .expect("clearcoat Standard-PBR Forward template assembly");
 
-    assert!(
-        basic
-            .wgsl_source
-            .contains("+ environment_lights\n        + surface.emissive;")
-    );
+    assert!(basic
+        .wgsl_source
+        .contains("+ environment_lights\n        + surface.emissive;"));
     assert!(!basic.wgsl_source.contains("clearcoat_base_energy"));
 
     for required in [
@@ -50,16 +48,12 @@ fn forward_clearcoat_attenuates_emission_with_the_existing_base_layer_weight() {
             "clearcoat Forward PBR must reuse its KHR base-layer weight for `{required}`"
         );
     }
-    assert!(
-        clearcoat
-            .wgsl_source
-            .contains("return surface.base_color.rgb + surface.emissive;")
-    );
-    assert!(
-        !clearcoat
-            .wgsl_source
-            .contains("+ transmitted_scene\n        + surface.emissive;")
-    );
+    assert!(clearcoat
+        .wgsl_source
+        .contains("return surface.base_color.rgb + surface.emissive;"));
+    assert!(!clearcoat
+        .wgsl_source
+        .contains("+ transmitted_scene\n        + surface.emissive;"));
 
     for required in [
         "let coat_fresnel = zr_pbr_fresnel_schlick(no_v, vec3<f32>(0.04));",
@@ -217,17 +211,13 @@ fn forward_pbr_uses_source_independent_metallic_diffuse_and_ggx_specular() {
         }
         if label == "advanced" {
             assert!(assembly.wgsl_source.contains("specular = zr_aniso_ggx("));
-            assert!(
-                assembly
-                    .wgsl_source
-                    .contains("let reflected_diffuse =\n        direct_diffuse_brdf")
-            );
+            assert!(assembly
+                .wgsl_source
+                .contains("let reflected_diffuse =\n        direct_diffuse_brdf"));
         } else {
-            assert!(
-                assembly
-                    .wgsl_source
-                    .contains("return (direct_diffuse_brdf + specular) * radiance * no_l;")
-            );
+            assert!(assembly
+                .wgsl_source
+                .contains("return (direct_diffuse_brdf + specular) * radiance * no_l;"));
         }
         for rejected in [
             "struct ZrPbrSpecularComponents",
@@ -267,10 +257,8 @@ fn forward_pbr_uses_source_independent_metallic_diffuse_and_ggx_specular() {
             .split("fn zr_environment_pbr_components_from_reflection(")
             .nth(1)
             .expect("Forward PBR must retain the environment PBR component owner");
-        assert!(
-            environment_owner
-                .contains("zr_surface_metallic_diffuse_energy_scale(clamped_metallic),")
-        );
+        assert!(environment_owner
+            .contains("zr_surface_metallic_diffuse_energy_scale(clamped_metallic),"));
     }
 }
 
@@ -466,11 +454,9 @@ fn anisotropic_forward_owns_an_explicit_environment_specular_normal() {
         );
     }
 
-    assert!(
-        anisotropic
-            .wgsl_source
-            .contains("zr_environment_pbr_components_from_reflection(\n        normal_normalized,")
-    );
+    assert!(anisotropic
+        .wgsl_source
+        .contains("zr_environment_pbr_components_from_reflection(\n        normal_normalized,"));
 
     let environment_owner = anisotropic
         .wgsl_source

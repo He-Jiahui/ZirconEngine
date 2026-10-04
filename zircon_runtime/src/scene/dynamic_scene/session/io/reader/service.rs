@@ -21,6 +21,8 @@ const ARCHIVE_READER_ENTRY_METADATA_BYTES: usize = 64 * 1024;
 const ARCHIVE_READER_METADATA_BYTES: usize = 256;
 const ARCHIVE_READ_FAILURE: &str = "runtime_session_archive_read_failed";
 
+/// 由 Runtime 任务图驱动的有界会话读取服务；同一规范路径的未完成请求共享票据与结果预算。
+/// 读取结果的内存保留期由返回的租约决定，关闭服务不强行撤销已交付的结果。
 pub struct RuntimeSessionArchiveReader {
     lane: BoundedKeyedIoLane,
     result_budget: RetainedByteBudget,
@@ -51,7 +53,9 @@ pub(super) struct RuntimeSessionArchiveReadRequest {
 
 impl RuntimeSessionArchiveReader {
     pub fn with_runtime(limits: RuntimeSessionArchiveReaderLimits, runtime: &CoreHandle) -> Self {
-        let scheduler = JobScheduler::from_pool(runtime.task_graph().worker_pool().clone());
+        let scheduler = runtime
+            .task_graph()
+            .scheduler(crate::core::TaskPoolKind::Compute);
         Self::with_owner(
             limits,
             scheduler,
@@ -94,6 +98,8 @@ impl RuntimeSessionArchiveReader {
         }
     }
 
+    /// 提交已解析的项目路径；路径身份用于去重，实际文件读取仅在获准的 I/O 任务中发生。
+    /// 同路径未完成请求会返回同一票据；调用方应理解共享取消和截止时间语义。
     pub fn try_submit(
         &self,
         path: ResolvedProjectPath,
@@ -114,6 +120,7 @@ impl RuntimeSessionArchiveReader {
         }
         let path_identity = ResolvedProjectPathIdentity::from(path.clone());
         if let Some(request) = state.requests.get(&path_identity).and_then(Weak::upgrade) {
+            // TODO: [CR-DYNAMIC-SESSION-FACADE-0002] 确认后续同路径调用所给更早 deadline 是否应影响共享请求；当前直接返回旧票据，缺少跨调用方截止时间契约和覆盖测试。
             if request.ticket.terminal().is_none() {
                 return Ok(RuntimeSessionArchiveReadSubmission { request });
             }

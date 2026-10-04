@@ -12,6 +12,7 @@ pub offerCount(delveId: string): int {
     return index < 0 ? 0 : content.offerCount(index, true);
 }
 
+/// 只判断目录报价的通关门槛；购买方仍须验证报价身份、印记余额和背包容量，再一次性提交扣费与入包。
 pub offerUnlocked(
     delveId: string,
     offerIndex: int,

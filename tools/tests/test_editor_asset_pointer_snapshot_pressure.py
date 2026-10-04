@@ -1,9 +1,10 @@
+# 核对资产指针窄快照的工作量模型、输入拒绝与外部路径结果序列化。
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from tools.editor_asset_pointer_snapshot_pressure import run, write_result
+from tools.analysis.performance.editor.editor_asset_pointer_snapshot_pressure import run, write_result
 
 
 class EditorAssetPointerSnapshotPressureTests(unittest.TestCase):
@@ -27,7 +28,7 @@ class EditorAssetPointerSnapshotPressureTests(unittest.TestCase):
 
     def test_output_is_stable_json_on_external_storage(self) -> None:
         result = run(folder_tree_rows=8, visible_folder_rows=2, stable_publications=3)
-        with tempfile.TemporaryDirectory(dir=Path("E:/zircon-profiles")) as directory:
+        with tempfile.TemporaryDirectory(dir=Path(tempfile.gettempdir())) as directory:
             output = Path(directory) / "asset-pointer-snapshot-pressure.json"
             write_result(output, result)
             self.assertEqual(json.loads(output.read_text(encoding="utf-8")), result)

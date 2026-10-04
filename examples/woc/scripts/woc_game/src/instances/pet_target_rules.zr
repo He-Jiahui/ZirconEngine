@@ -22,6 +22,7 @@ pub initialBestDistance(aggressiveMode: bool): float {
     return aggressiveMode ? aggressiveRange() : assistRange();
 }
 
+/// 调用方先给出当前实体、敌对关系、主人活动和仇恨状态；此叶子只决定候选资格，最终距离上界与平局顺序仍由外层扫描维护。
 pub candidateEligible(
     candidateIsSelf: bool,
     candidateDead: bool,
@@ -46,6 +47,7 @@ pub candidateEligible(
     return engagingUs || ownerOffense || aggressive;
 }
 
+/// 比较必须贯穿一次稳定的候选遍历；相等距离保留先见对象，不能改成覆盖相等项而改变确定性目标。
 pub shouldReplaceCandidate(candidateDistance: float, bestDistance: float): bool {
     return candidateDistance < bestDistance;
 }

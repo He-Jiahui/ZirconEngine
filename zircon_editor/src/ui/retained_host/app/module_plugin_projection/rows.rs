@@ -7,4 +7,5 @@ pub(super) use labels::{
 };
 
 #[cfg(test)]
+#[path = "rows/tests/cases.rs"]
 mod tests;

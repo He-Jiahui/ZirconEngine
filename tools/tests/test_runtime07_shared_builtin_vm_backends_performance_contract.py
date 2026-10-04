@@ -21,7 +21,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束共享内建 VM 后端：内建后端应共享延迟 Arc 实例，并解析克隆共享 arcs 不带分配后端。
 class SharedBuiltinVmBackendsPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

@@ -1,3 +1,6 @@
+//! 摄像机输出目标的两种终端执行路径：直导入或按计划写回。
+//! 写回仅消费已批准的目标计划；直导入只报告结果，避免对同一目标重复拷贝。
+
 use crate::core::framework::render::RenderCameraTargetWritebackStatus;
 use crate::core::math::UVec2;
 use crate::graphics::types::GraphicsError;
@@ -115,23 +118,5 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn direct_import_terminal_never_encodes_a_physical_writeback() {
-        let source = include_str!("output_target.rs")
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("output target executor test boundary");
-        let direct = source
-            .split_once(
-                "pub(in crate::graphics::scene::scene_renderer) fn record_output_target_writeback",
-            )
-            .map(|(direct, _)| direct)
-            .expect("direct import must precede writeback implementation");
-
-        assert!(direct.contains("record_output_target_direct_import("));
-        assert!(direct.contains("self.output_target_writeback_report = Some(plan);"));
-        assert!(!direct.contains("encode_planned_output_target_writeback("));
-        assert!(!direct.contains("copy_texture_to_texture("));
-    }
-}
+#[path = "tests/output_target.rs"]
+mod tests;

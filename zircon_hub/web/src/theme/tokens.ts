@@ -1,3 +1,4 @@
+// 主题、壳层及页面共享的视觉词汇；窗口数值是设计基准，实际窗口几何由原生窗口生命周期维护。
 export const hubTokens = {
   window: {
     width: 1568,
@@ -16,6 +17,7 @@ export const hubTokens = {
     brandMark: 6,
     pill: 999,
   },
+  // 语义颜色在不同表面保持同一信息层级；是否成功、危险或可执行由业务投影决定。
   colors: {
     background: "#111212",
     chrome: "#151515",

@@ -1,6 +1,6 @@
 use std::fmt;
 
-use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use zircon_runtime_interface::resource::ResourceKind;
 
 /// Stable, open identifier shared by runtime resource types and plugin-defined asset types.

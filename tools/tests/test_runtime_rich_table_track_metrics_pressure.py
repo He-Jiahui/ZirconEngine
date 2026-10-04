@@ -1,8 +1,8 @@
 import unittest
 
-from tools.runtime_rich_table_track_metrics_pressure import pressure_report
+from tools.analysis.performance.runtime.runtime_rich_table_track_metrics_pressure import pressure_report
 
-
+# 调用轨道指标压力模型，核对大型跨列表格的线性单元计数与非法跨度拒绝。
 class RuntimeRichTableTrackMetricsPressureTest(unittest.TestCase):
     def test_default_large_span_table_is_linear_in_cell_count(self) -> None:
         result = pressure_report()

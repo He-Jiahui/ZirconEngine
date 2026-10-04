@@ -1,6 +1,7 @@
-// Frost proc transition plans. WOS owns real aura writes, procSurge events and RNG.
+// 冰霜触发与施法后续的独立计划；当前仅叶子测试消费，接入世界时须由世界负责随机顺序、真实光环及触发事件。
 var contract = %import("generated/frost_proc_contract");
 
+/// 光环授予仅描述创建、刷新、层数和事件，实际记录与持续时间由消费方维护。
 pub class FrostGrantPlan {
     pub var applies: bool;
     pub var creates: bool;
@@ -64,6 +65,7 @@ pub class BrainFreezeOverridePlan {
     }
 }
 
+/// 寒冰指首次创建为一层，已有者最多叠至上限；达到上限不再产生授予事件。
 pub gainFingersOfFrost(hasExisting: bool, hasStacks: bool, stacks: int): FrostGrantPlan {
     if (!hasExisting) return new FrostGrantPlan(true, true, true, 1, true);
     var current = hasStacks ? stacks : 1;
@@ -76,6 +78,7 @@ pub gainBrainFreeze(hasExisting: bool): FrostGrantPlan {
     return new FrostGrantPlan(true, true, true, 0, true);
 }
 
+/// 冰刺达到上限仍可刷新持续时间；授予计划不发触发事件。
 pub gainIcicle(hasExisting: bool, hasStacks: bool, stacks: int): FrostGrantPlan {
     if (!hasExisting) return new FrostGrantPlan(true, true, true, 1, false);
     var current = hasStacks ? stacks : 1;
@@ -83,7 +86,7 @@ pub gainIcicle(hasExisting: bool, hasStacks: bool, stacks: int): FrostGrantPlan 
     return new FrostGrantPlan(true, false, true, current + 1, false);
 }
 
-// WOS must consume `drawCount` in this exact order before applying either plan.
+// 合格冰箭须先依次消耗寒冰指与冰冷智慧两次随机抽取，即使随后因已有或封顶效果舍弃结果。
 pub frostboltProcPlan(committedFrost: bool, fingersDraw: bool, brainDraw: bool): FrostboltProcPlan {
     if (!committedFrost) return new FrostboltProcPlan(0, false, false);
     return new FrostboltProcPlan(2, fingersDraw, brainDraw);
@@ -93,6 +96,7 @@ pub applyWintersChill(hasExisting: bool): WintersChillPlan {
     return new WintersChillPlan(true, hasExisting, contract.wintersChillCharges());
 }
 
+/// 仅玩家法师进入后续分派：冰箭在已承诺冰霜时触发抽取与冰刺，冰风暴对存活目标施加深冬之寒。
 pub frostMageAfterCast(playerIsPlayer: bool, abilityClassMage: bool, committedFrost: bool, abilityId: string, targetPresent: bool, targetDead: bool): FrostAfterCastPlan {
     if (!playerIsPlayer || !abilityClassMage) return new FrostAfterCastPlan(false, false, false);
     if (abilityId == "frostbolt") return new FrostAfterCastPlan(committedFrost, committedFrost, false);
@@ -100,8 +104,8 @@ pub frostMageAfterCast(playerIsPlayer: bool, abilityClassMage: bool, committedFr
     return new FrostAfterCastPlan(false, false, false);
 }
 
-// WOS consumes the first Brain Freeze aura only after every cast gate passed, then
-// uses this multiplier to round each directDamage effect exactly as the source does.
+// 施法资格全部通过后才可消费首个冰冷智慧光环；倍率应用于每项直接伤害效果的后续舍入。
+/// 只为携带冰冷智慧的冰风暴返回零施法时间、零冷却与伤害倍率；消费动作需由调用方提交。
 pub brainFreezeOverride(abilityId: string, hasBrainFreeze: bool): BrainFreezeOverridePlan {
     if (abilityId != "flurry" || !hasBrainFreeze) return new BrainFreezeOverridePlan(false, false, 0.0, 0.0, 1.0);
     return new BrainFreezeOverridePlan(true, true, 0.0, 0.0, contract.brainFreezeFlurryMult());

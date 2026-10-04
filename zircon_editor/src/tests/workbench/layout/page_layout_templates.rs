@@ -52,9 +52,12 @@ fn built_in_page_templates_keep_region_roles_and_state_profiles_valid() {
             assert_eq!(fill.role, expected_role(fill.region));
         }
 
-        match template.default_center_split {
+        match &template.default_center_split {
             CenterSplitLayout::SingleDocument => {}
-            CenterSplitLayout::Split { panes, .. } => assert!(panes >= 2),
+            CenterSplitLayout::Split { panes, .. } => assert!(*panes >= 2),
+            CenterSplitLayout::Exact { .. } => {
+                panic!("built-in templates do not capture user tabs")
+            }
         }
     }
 }
@@ -62,6 +65,20 @@ fn built_in_page_templates_keep_region_roles_and_state_profiles_valid() {
 #[test]
 fn page_templates_assign_focus_review_and_debug_state_profiles() {
     let templates = PageLayoutTemplate::builtin_templates();
+    let scene = templates
+        .iter()
+        .find(|template| template.page == MainPageId::new("scene"))
+        .expect("scene template");
+    assert_eq!(scene.default_preset, LayoutPresetName::Authoring);
+    assert_eq!(
+        drawer_mode(scene, ActivityDrawerSlot::LeftTop),
+        ActivityDrawerMode::Pinned
+    );
+    assert_eq!(
+        drawer_mode(scene, ActivityDrawerSlot::Bottom),
+        ActivityDrawerMode::Collapsed
+    );
+
     let game = templates
         .iter()
         .find(|template| template.page == MainPageId::new("game"))
@@ -71,6 +88,24 @@ fn page_templates_assign_focus_review_and_debug_state_profiles() {
         .default_drawer_states
         .iter()
         .all(|state| state.mode == ActivityDrawerMode::Collapsed));
+
+    let inspector = templates
+        .iter()
+        .find(|template| template.page == MainPageId::new("inspector"))
+        .expect("inspector template");
+    assert_eq!(inspector.default_preset, LayoutPresetName::Review);
+    assert_eq!(
+        drawer_mode(inspector, ActivityDrawerSlot::LeftTop),
+        ActivityDrawerMode::Collapsed
+    );
+    assert_eq!(
+        drawer_mode(inspector, ActivityDrawerSlot::RightBottom),
+        ActivityDrawerMode::Pinned
+    );
+    assert_eq!(
+        drawer_mode(inspector, ActivityDrawerSlot::Bottom),
+        ActivityDrawerMode::Collapsed
+    );
 
     let diagnostics = templates
         .iter()
@@ -89,6 +124,15 @@ fn page_templates_assign_focus_review_and_debug_state_profiles() {
         material.default_center_split,
         CenterSplitLayout::Split { panes: 2, .. }
     ));
+}
+
+fn drawer_mode(template: &PageLayoutTemplate, slot: ActivityDrawerSlot) -> ActivityDrawerMode {
+    template
+        .default_drawer_states
+        .iter()
+        .find(|state| state.slot == slot)
+        .map(|state| state.mode)
+        .expect("template must declare every drawer slot")
 }
 
 #[test]

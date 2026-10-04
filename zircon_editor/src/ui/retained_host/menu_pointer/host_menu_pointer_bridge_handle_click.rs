@@ -5,7 +5,7 @@ use zircon_runtime_interface::ui::{
 use super::host_menu_pointer_bridge::HostMenuPointerBridge;
 use super::host_menu_pointer_dispatch::HostMenuPointerDispatch;
 use super::host_menu_pointer_route_intent::HostMenuPointerRouteIntent;
-use super::menu_item_tree::parent_path;
+use super::menu_item_tree::reuse_parent_path;
 use super::route_conversion::to_public_route;
 
 impl HostMenuPointerBridge {
@@ -44,7 +44,7 @@ impl HostMenuPointerBridge {
                 item_path,
                 ..
             }) => {
-                self.state.open_submenu_path = parent_path(item_path);
+                reuse_parent_path(&mut self.state.open_submenu_path, item_path);
                 self.close_popup();
                 Some((action_id.clone(), *menu_index))
             }
@@ -78,5 +78,5 @@ fn reuse_menu_path(target: &mut Vec<usize>, source: &[usize]) {
 }
 
 #[cfg(test)]
-#[path = "host_menu_pointer_bridge_handle_click/reused_path_tests.rs"]
+#[path = "host_menu_pointer_bridge_handle_click/tests/reused_path_tests.rs"]
 mod reused_path_tests;

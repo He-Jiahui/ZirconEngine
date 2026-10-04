@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+
 use crate::asset::project::ProjectGenerationPhase;
 use crate::asset::project::{PreparedProjectSourceDeletion, PreparedProjectSourceRelocation};
 use crate::asset::{AssetUri, ImportedAsset, ProjectManager};
@@ -230,21 +232,23 @@ impl ProjectAssetManager {
         updated_records: Vec<ResourceRecord>,
     ) -> PreparedIncrementalProjectResourceSync {
         let _phase = ProjectGenerationPhase::ResourceProjection.enter();
-        let mut records_by_id = std::collections::HashMap::new();
+        let mut records_by_id = HashMap::with_capacity(updated_records.len());
         for record in updated_records {
             records_by_id.insert(record.id(), record);
         }
-        let removed_locators = previous_source_records
-            .iter()
-            .filter(|previous| {
-                project
-                    .registry()
-                    .get(previous.id())
-                    .is_none_or(|current| current.primary_locator != previous.primary_locator)
-            })
-            .map(|record| record.primary_locator.clone())
-            .collect::<Vec<_>>();
-        let mut source_path_updates = std::collections::HashMap::new();
+        let mut removed_locators = Vec::with_capacity(previous_source_records.len());
+        removed_locators.extend(
+            previous_source_records
+                .iter()
+                .filter(|previous| {
+                    project
+                        .registry()
+                        .get(previous.id())
+                        .is_none_or(|current| current.primary_locator != previous.primary_locator)
+                })
+                .map(|record| record.primary_locator.clone()),
+        );
+        let mut source_path_updates = HashMap::with_capacity(records_by_id.len());
         for record in records_by_id.values() {
             let source_uri = AssetUri::new(
                 record.primary_locator.scheme(),
@@ -256,7 +260,8 @@ impl ProjectAssetManager {
                 source_path_updates.insert(source_uri, source_path);
             }
         }
-        let source_path_removals = previous_source_records
+        let mut source_path_removals = HashSet::with_capacity(previous_source_records.len());
+        for source_uri in previous_source_records
             .iter()
             .map(|record| {
                 AssetUri::new(
@@ -267,9 +272,10 @@ impl ProjectAssetManager {
                 .expect("a parsed resource locator remains valid when its label is removed")
             })
             .filter(|source_uri| project.source_resource_records(source_uri).is_empty())
-            .collect::<std::collections::HashSet<_>>()
-            .into_iter()
-            .collect();
+        {
+            source_path_removals.insert(source_uri);
+        }
+        let source_path_removals = source_path_removals.into_iter().collect::<Vec<_>>();
         PreparedIncrementalProjectResourceSync {
             removed_locators,
             source_path_removals,
@@ -493,3 +499,7 @@ impl ProjectAssetManager {
         Ok(outcome)
     }
 }
+
+#[cfg(test)]
+#[path = "resource_publication/tests/incremental_capacity_tests.rs"]
+mod incremental_capacity_tests;

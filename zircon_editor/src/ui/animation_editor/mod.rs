@@ -7,8 +7,8 @@ pub(crate) use crate::core::editing::animation_document::{
 };
 pub(crate) use capabilities::resolve_animation_graph_node_kind;
 pub use capabilities::{
-    AnimationEditorCapabilityDescriptor, AnimationEditorCommandDiagnostic,
-    AnimationEditorCommandRejectionReason, animation_editor_capability_table,
+    animation_editor_capability_table, AnimationEditorCapabilityDescriptor,
+    AnimationEditorCommandDiagnostic, AnimationEditorCommandRejectionReason,
 };
 pub use presentation::AnimationEditorPanePresentation;
 pub use session::{

@@ -1,10 +1,10 @@
 from pathlib import Path
 import unittest
-
+# 缺失键诊断只在最终报告点构造一条消息字符串；发布证据应记录独立缺失键的分配数量。
 
 ROOT = Path(__file__).resolve().parents[2]
 RESOLVE = ROOT / "zircon_runtime/src/ui/template/asset/localization/resolve.rs"
-PERFORMANCE = ROOT / "zircon_runtime/src/ui/template/asset/localization/resolve/performance_tests.rs"
+PERFORMANCE = ROOT / "zircon_runtime/src/ui/template/asset/localization/resolve/tests/performance_tests.rs"
 
 
 def function_region(source: str, start: str, end: str) -> str:

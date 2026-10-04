@@ -1,22 +1,23 @@
+# 核对阶段交接策略规划及消费者导入的归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-STAGE_HANDOFF = REPO_ROOT / "tools/zircon_export/stage_handoff.py"
+STAGE_HANDOFF = REPO_ROOT / "tools/export/stage_handoff.py"
 STAGE_HANDOFF_STRATEGY = (
-    REPO_ROOT / "tools/zircon_export/stage_handoff_strategy.py"
+    REPO_ROOT / "tools/export/stage_handoff_strategy.py"
 )
-SOURCE_TEMPLATE_ORCHESTRATOR = REPO_ROOT / "tools/zircon_export/source_template.py"
+SOURCE_TEMPLATE_ORCHESTRATOR = REPO_ROOT / "tools/export/source_template.py"
 STRATEGY_CONSUMERS = (
-    REPO_ROOT / "tools/zircon_export/compile_host_plan.py",
-    REPO_ROOT / "tools/zircon_export/cook_assets.py",
-    REPO_ROOT / "tools/zircon_export/native_dynamic_plan.py",
-    REPO_ROOT / "tools/zircon_export/pack_stage.py",
-    REPO_ROOT / "tools/zircon_export/pipeline_report.py",
-    REPO_ROOT / "tools/zircon_export/pipeline_stages.py",
-    REPO_ROOT / "tools/zircon_export/platform_bundle_strategy_handoff.py",
-    REPO_ROOT / "tools/zircon_export/source_template_plan_command.py",
+    REPO_ROOT / "tools/export/compile_host_plan.py",
+    REPO_ROOT / "tools/export/cook_assets.py",
+    REPO_ROOT / "tools/export/native_dynamic_plan.py",
+    REPO_ROOT / "tools/export/pack_stage.py",
+    REPO_ROOT / "tools/export/pipeline_report.py",
+    REPO_ROOT / "tools/export/pipeline_stages.py",
+    REPO_ROOT / "tools/export/platform_bundle_strategy_handoff.py",
+    REPO_ROOT / "tools/export/source_template_plan_command.py",
 )
 
 

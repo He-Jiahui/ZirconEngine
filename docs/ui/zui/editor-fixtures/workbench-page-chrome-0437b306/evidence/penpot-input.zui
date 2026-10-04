@@ -1,0 +1,208 @@
+stylesheets = []
+penpot_dependency_sources = []
+penpot_original_source = "stylesheets = []\n\n[asset]\nkind = \"layout\"\nid = \"editor.host.workbench_page_chrome\"\nversion = 1\ndisplay_name = \"workbench page chrome\"\n\n[imports]\nwidgets = []\nstyles = []\n\n[root]\nnode_id = \"workbench_page_chrome_root\"\nkind = \"native\"\ntype = \"Overlay\"\ncontrol_id = \"WorkbenchPageChromeRoot\"\n\n[root.layout]\nclip = true\n\n[root.layout.container]\nkind = \"Overlay\"\n\n[root.layout.width]\nstretch = \"Stretch\"\n\n[root.layout.height]\nstretch = \"Stretch\"\n\n[[root.children]]\n[root.children.node]\nnode_id = \"workbench_page_bar\"\nkind = \"native\"\ntype = \"Container\"\ncontrol_id = \"WorkbenchPageBar\"\n\n[root.children.node.props]\nsurface_variant = \"panel\"\nradius = 0.0\nborder_width = 0.0\n\n[root.children.node.layout.position]\nx = 0.0\ny = 26.0\n\n[root.children.node.layout.width]\nstretch = \"Stretch\"\n\n[root.children.node.layout.height]\nmin = 32.0\npreferred = 32.0\nmax = 32.0\nstretch = \"Fixed\"\n\n[[root.children]]\n[root.children.node]\nnode_id = \"workbench_page_project_path\"\nkind = \"native\"\ntype = \"Label\"\ncontrol_id = \"PageProjectPath\"\n\n[root.children.node.props]\ntext = \"No project open\"\ntext_tone = \"muted\"\nfont_size = 9.0\ntext_align = \"right\"\noverflow = \"elide\"\n\n[root.children.node.layout.anchor]\nx = 1.0\ny = 0.0\n\n[root.children.node.layout.pivot]\nx = 1.0\ny = 0.0\n\n[root.children.node.layout.position]\nx = -12.0\ny = 35.0\n\n[root.children.node.layout.width]\nmin = 280.0\npreferred = 280.0\nmax = 280.0\nstretch = \"Fixed\"\n\n[root.children.node.layout.height]\nmin = 14.0\npreferred = 14.0\nmax = 14.0\nstretch = \"Fixed\"\n\n[[root.children]]\n[root.children.node]\nnode_id = \"workbench_page_tab_0\"\nkind = \"native\"\ntype = \"Label\"\ncontrol_id = \"PageTab0\"\n\n[root.children.node.props]\ntext = \"Workbench\"\ntext_tone = \"default\"\nfont_size = 11.0\ntext_align = \"center\"\noverflow = \"elide\"\n\n[root.children.node.layout.position]\nx = 8.0\ny = 27.0\n\n[root.children.node.layout.width]\nmin = 108.0\npreferred = 108.0\nmax = 108.0\nstretch = \"Fixed\"\n\n[root.children.node.layout.height]\nmin = 30.0\npreferred = 30.0\nmax = 30.0\nstretch = \"Fixed\"\n\n[[root.children]]\n[root.children.node]\nnode_id = \"workbench_page_tab_1\"\nkind = \"native\"\ntype = \"Label\"\ncontrol_id = \"PageTab1\"\n\n[root.children.node.props]\ntext = \"Asset\"\ntext_tone = \"subtle\"\nfont_size = 11.0\ntext_align = \"center\"\noverflow = \"elide\"\n\n[root.children.node.layout.position]\nx = 120.0\ny = 27.0\n\n[root.children.node.layout.width]\nmin = 108.0\npreferred = 108.0\nmax = 108.0\nstretch = \"Fixed\"\n\n[root.children.node.layout.height]\nmin = 30.0\npreferred = 30.0\nmax = 30.0\nstretch = \"Fixed\"\n\n[[root.children]]\n[root.children.node]\nnode_id = \"workbench_page_tab_2\"\nkind = \"native\"\ntype = \"Label\"\ncontrol_id = \"PageTab2\"\n\n[root.children.node.props]\ntext = \"UI\"\ntext_tone = \"subtle\"\nfont_size = 11.0\ntext_align = \"center\"\noverflow = \"elide\"\n\n[root.children.node.layout.position]\nx = 232.0\ny = 27.0\n\n[root.children.node.layout.width]\nmin = 108.0\npreferred = 108.0\nmax = 108.0\nstretch = \"Fixed\"\n\n[root.children.node.layout.height]\nmin = 30.0\npreferred = 30.0\nmax = 30.0\nstretch = \"Fixed\"\n"
+
+[imports]
+widgets = []
+styles = []
+
+[asset]
+kind = "view"
+id = "editor.host.workbench_page_chrome"
+version = 2
+display_name = "workbench page chrome"
+
+[root]
+node = "workbench_page_chrome_root"
+
+[nodes.workbench_page_chrome_root]
+component = "Overlay"
+control_id = "WorkbenchPageChromeRoot"
+legacy_kind = "native"
+legacy_type = "Overlay"
+
+[nodes.workbench_page_chrome_root.layout]
+clip = true
+
+[nodes.workbench_page_chrome_root.layout.container]
+kind = "Overlay"
+
+[nodes.workbench_page_chrome_root.layout.width]
+stretch = "Stretch"
+
+[nodes.workbench_page_chrome_root.layout.height]
+stretch = "Stretch"
+
+[[nodes.workbench_page_chrome_root.children]]
+node = "workbench_page_bar"
+
+[[nodes.workbench_page_chrome_root.children]]
+node = "workbench_page_project_path"
+
+[[nodes.workbench_page_chrome_root.children]]
+node = "workbench_page_tab_0"
+
+[[nodes.workbench_page_chrome_root.children]]
+node = "workbench_page_tab_1"
+
+[[nodes.workbench_page_chrome_root.children]]
+node = "workbench_page_tab_2"
+
+[nodes.workbench_page_bar]
+component = "Container"
+control_id = "WorkbenchPageBar"
+legacy_kind = "native"
+legacy_type = "Container"
+
+[nodes.workbench_page_bar.props]
+surface_variant = "panel"
+radius = 0
+border_width = 0
+
+[nodes.workbench_page_bar.layout.position]
+x = 0
+y = 26
+
+[nodes.workbench_page_bar.layout.width]
+stretch = "Stretch"
+
+[nodes.workbench_page_bar.layout.height]
+min = 32
+preferred = 32
+max = 32
+stretch = "Fixed"
+
+[nodes.workbench_page_project_path]
+component = "Label"
+control_id = "PageProjectPath"
+legacy_kind = "native"
+legacy_type = "Label"
+
+[nodes.workbench_page_project_path.props]
+text = "No project open"
+text_tone = "muted"
+font_size = 9
+text_align = "right"
+overflow = "elide"
+
+[nodes.workbench_page_project_path.layout.anchor]
+x = 1
+y = 0
+
+[nodes.workbench_page_project_path.layout.pivot]
+x = 1
+y = 0
+
+[nodes.workbench_page_project_path.layout.position]
+x = -12
+y = 35
+
+[nodes.workbench_page_project_path.layout.width]
+min = 280
+preferred = 280
+max = 280
+stretch = "Fixed"
+
+[nodes.workbench_page_project_path.layout.height]
+min = 14
+preferred = 14
+max = 14
+stretch = "Fixed"
+
+[nodes.workbench_page_tab_0]
+component = "Label"
+control_id = "PageTab0"
+legacy_kind = "native"
+legacy_type = "Label"
+
+[nodes.workbench_page_tab_0.props]
+text = "Workbench"
+text_tone = "default"
+font_size = 11
+text_align = "center"
+overflow = "elide"
+
+[nodes.workbench_page_tab_0.layout.position]
+x = 8
+y = 27
+
+[nodes.workbench_page_tab_0.layout.width]
+min = 108
+preferred = 108
+max = 108
+stretch = "Fixed"
+
+[nodes.workbench_page_tab_0.layout.height]
+min = 30
+preferred = 30
+max = 30
+stretch = "Fixed"
+
+[nodes.workbench_page_tab_1]
+component = "Label"
+control_id = "PageTab1"
+legacy_kind = "native"
+legacy_type = "Label"
+
+[nodes.workbench_page_tab_1.props]
+text = "Asset"
+text_tone = "subtle"
+font_size = 11
+text_align = "center"
+overflow = "elide"
+
+[nodes.workbench_page_tab_1.layout.position]
+x = 120
+y = 27
+
+[nodes.workbench_page_tab_1.layout.width]
+min = 108
+preferred = 108
+max = 108
+stretch = "Fixed"
+
+[nodes.workbench_page_tab_1.layout.height]
+min = 30
+preferred = 30
+max = 30
+stretch = "Fixed"
+
+[nodes.workbench_page_tab_2]
+component = "Label"
+control_id = "PageTab2"
+legacy_kind = "native"
+legacy_type = "Label"
+
+[nodes.workbench_page_tab_2.props]
+text = "UI"
+text_tone = "subtle"
+font_size = 11
+text_align = "center"
+overflow = "elide"
+
+[nodes.workbench_page_tab_2.layout.position]
+x = 232
+y = 27
+
+[nodes.workbench_page_tab_2.layout.width]
+min = 108
+preferred = 108
+max = 108
+stretch = "Fixed"
+
+[nodes.workbench_page_tab_2.layout.height]
+min = 30
+preferred = 30
+max = 30
+stretch = "Fixed"
+
+[legacy_migration]
+source_path = "zircon_editor/src/tests/fixtures/ui_zui/editor/host/workbench_page_chrome.zui"
+source_kind = "layout"
+source_version = 1
+source_component_ids = []
+
+[tokens]
+[penpot_original_imports]
+widgets = []
+styles = []

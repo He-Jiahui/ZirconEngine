@@ -1,3 +1,4 @@
+//! 动态场景会话、补丁预览和资产重载路径需保持现有只读与所有权约束。通过源码文本核对父子路由、状态镜像和文件预算。
 const PARENT_SOURCE: &str = include_str!("../dynamic_scene.rs");
 const SOURCES_SOURCE: &str = include_str!("sources.rs");
 const PATCH_PREVIEW_API_SOURCE: &str = include_str!("patch_preview_api.rs");
@@ -30,7 +31,7 @@ const NUMBERED_STATUS_RECORDS: &str = concat!(
     include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
 );
 const MODULE_CONVENTION_DOC: &str =
-    include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
+    include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 
 #[test]
 fn runtime_15_dynamic_scene_route_owner_is_folder_backed() {

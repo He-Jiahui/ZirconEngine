@@ -1,6 +1,6 @@
 import pathlib
 import unittest
-
+# 并行视锥裁剪直接把源索引写入最终可见列表；源码约束中间工作项不得为每个对象再分配一次。
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 SOURCE_PATH = REPO_ROOT / (

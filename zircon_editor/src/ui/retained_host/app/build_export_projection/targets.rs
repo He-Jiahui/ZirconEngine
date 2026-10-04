@@ -109,5 +109,5 @@ fn export_profiles_by_name(profiles: &[ExportProfile]) -> HashMap<&str, &ExportP
 }
 
 #[cfg(test)]
-#[path = "targets/profile_index_tests.rs"]
+#[path = "targets/tests/profile_index_tests.rs"]
 mod profile_index_tests;

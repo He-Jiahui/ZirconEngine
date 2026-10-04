@@ -8,10 +8,13 @@ use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use zircon_runtime::core::framework::channel::ChannelWakeCallback;
 use zircon_runtime::plugin::native::host::{NativePluginHostHandle, NativePluginHostWeakHandle};
 
+use super::types::ModulePluginLiveHostProject;
 use crate::core::jobs::{
     CancellationToken, EditorJob, EditorJobSpec, EditorJobSystem, JobCategory, JobContext,
     JobError, JobPriority, JobTicket, MutexGroup,
 };
+use crate::core::play::NativePluginArtifactAuthorityResolver;
+use crate::core::plugin::project_native_plugin_directory;
 
 const RELOAD_DEBOUNCE: Duration = Duration::from_millis(350);
 const RELOAD_JOB_MAX_PENDING_AGE: Duration = Duration::from_secs(30);
@@ -20,21 +23,21 @@ const NATIVE_PLUGIN_RELOAD_MUTEX_GROUP: &str = "native_plugin_reload";
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(super) struct DevelopmentPluginWatchKey {
-    project_root: PathBuf,
+    project: ModulePluginLiveHostProject,
     plugin_id: String,
     artifact_path: PathBuf,
 }
 
 impl DevelopmentPluginWatchKey {
     pub(super) fn new(
-        project_root: &Path,
+        project: ModulePluginLiveHostProject,
         plugin_id: &str,
         artifact_path: &Path,
     ) -> Result<Self, String> {
-        let project_root = std::fs::canonicalize(project_root).map_err(|error| {
+        let project_root = std::fs::canonicalize(project.root()).map_err(|error| {
             format!(
                 "cannot watch native plugin `{plugin_id}` under {}: {error}",
-                project_root.display()
+                project.root().display()
             )
         })?;
         let artifact_path = std::fs::canonicalize(artifact_path).map_err(|error| {
@@ -51,7 +54,7 @@ impl DevelopmentPluginWatchKey {
             ));
         }
         Ok(Self {
-            project_root,
+            project: project.with_root(project_root),
             plugin_id: plugin_id.to_string(),
             artifact_path,
         })
@@ -60,12 +63,17 @@ impl DevelopmentPluginWatchKey {
     pub(super) fn plugin_id(&self) -> &str {
         &self.plugin_id
     }
+
+    pub(super) fn project(&self) -> &ModulePluginLiveHostProject {
+        &self.project
+    }
 }
 
 pub(super) struct DevelopmentPluginWatch {
     watcher: Option<RecommendedWatcher>,
     editor_jobs: EditorJobSystem,
     live_host: NativePluginHostWeakHandle,
+    authority_resolver: Option<NativePluginArtifactAuthorityResolver>,
     key: DevelopmentPluginWatchKey,
     schedule: Arc<Mutex<DevelopmentPluginWatchSchedule>>,
     ticket: Option<JobTicket<String>>,
@@ -74,7 +82,7 @@ pub(super) struct DevelopmentPluginWatch {
 
 #[derive(Debug, Default)]
 pub(super) struct DevelopmentPluginWatchPoll {
-    pub(super) diagnostic: Option<String>,
+    pub(super) result: Option<Result<String, String>>,
     pub(super) next_deadline: Option<Instant>,
 }
 
@@ -106,6 +114,7 @@ impl DevelopmentPluginWatch {
         editor_jobs: EditorJobSystem,
         wake_host: ChannelWakeCallback,
         key: DevelopmentPluginWatchKey,
+        authority_resolver: Option<NativePluginArtifactAuthorityResolver>,
     ) -> Result<Self, String> {
         let schedule = Arc::new(Mutex::new(DevelopmentPluginWatchSchedule::default()));
         let callback_schedule = Arc::clone(&schedule);
@@ -152,6 +161,7 @@ impl DevelopmentPluginWatch {
             watcher: Some(watcher),
             editor_jobs,
             live_host: live_host.downgrade(),
+            authority_resolver,
             key,
             schedule,
             ticket: None,
@@ -164,13 +174,13 @@ impl DevelopmentPluginWatch {
         if let Some(result) = self.ticket.as_ref().and_then(JobTicket::try_take) {
             self.ticket.take();
             self.cancel.take();
-            poll.diagnostic = match result {
-                Ok(diagnostic) => Some(diagnostic),
+            poll.result = match result {
+                Ok(diagnostic) => Some(Ok(diagnostic)),
                 Err(JobError::Cancelled) => None,
-                Err(error) => Some(format!(
+                Err(error) => Some(Err(format!(
                     "native plugin `{}` development hot reload failed: {error}",
                     self.key.plugin_id
-                )),
+                ))),
             };
         }
         if self.ticket.is_some() {
@@ -209,6 +219,7 @@ impl DevelopmentPluginWatch {
         .with_max_pending_age(RELOAD_JOB_MAX_PENDING_AGE);
         let job = DevelopmentPluginReloadJob {
             live_host: self.live_host.clone(),
+            authority_resolver: self.authority_resolver.clone(),
             key: self.key.clone(),
         };
         match self.editor_jobs.submit(spec, job) {
@@ -222,10 +233,10 @@ impl DevelopmentPluginWatch {
                     .unwrap_or_else(|poisoned| poisoned.into_inner())
                     .record_change_at(now.max(changed_at));
                 poll.next_deadline = Some(now + RELOAD_DEBOUNCE);
-                poll.diagnostic = Some(format!(
+                poll.result = Some(Err(format!(
                     "native plugin `{}` development hot reload admission failed: {error}",
                     self.key.plugin_id
-                ));
+                )));
             }
         }
         poll
@@ -246,6 +257,7 @@ impl Drop for DevelopmentPluginWatch {
 
 struct DevelopmentPluginReloadJob {
     live_host: NativePluginHostWeakHandle,
+    authority_resolver: Option<NativePluginArtifactAuthorityResolver>,
     key: DevelopmentPluginWatchKey,
 }
 
@@ -254,21 +266,23 @@ impl EditorJob for DevelopmentPluginReloadJob {
 
     fn run(self, context: JobContext) -> Result<Self::Output, JobError> {
         context.check_cancelled()?;
-        let Some(live_host) = self.live_host.upgrade() else {
+        let Some(_live_host) = self.live_host.upgrade() else {
             return Err(JobError::Cancelled);
         };
         context.check_cancelled()?;
-        let outcome = live_host
-            .hot_reload_editor_plugin(&self.key.project_root, &self.key.plugin_id)
+        let native_plugin_root = project_native_plugin_directory(self.key.project.root());
+        if let Some(resolver) = self.authority_resolver.as_ref() {
+            let _authority = resolver(self.key.project.root())
+                .map_err(|error| JobError::failed(std::io::Error::other(error)))?;
+        }
+        context.check_cancelled()?;
+        std::fs::metadata(&self.key.artifact_path)
             .map_err(|error| JobError::failed(std::io::Error::other(error)))?;
-        let diagnostics = if outcome.diagnostics.is_empty() {
-            "no diagnostics".to_string()
-        } else {
-            outcome.diagnostics.join("; ")
-        };
+        context.check_cancelled()?;
         Ok(format!(
-            "native plugin `{}` hot reloaded after artifact change: {diagnostics}",
-            self.key.plugin_id
+            "native plugin `{}` artifact change is ready under {}",
+            self.key.plugin_id,
+            native_plugin_root.display()
         ))
     }
 }
@@ -284,87 +298,5 @@ fn development_event_requests_reload(event: &Event, artifact_path: &Path) -> boo
 }
 
 #[cfg(test)]
-mod tests {
-    use notify::event::ModifyKind;
-
-    use super::*;
-
-    #[test]
-    fn development_watch_uses_the_editor_job_owner_without_a_private_worker() {
-        let source = include_str!("development_watch.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("development watch production source");
-
-        assert!(production.contains("EditorJobSystem"));
-        assert!(production.contains("JobTicket<String>"));
-        assert!(production.contains("wake_host();"));
-        for retired_owner in [
-            "std::thread",
-            "JoinHandle",
-            "sync_channel",
-            "RecvTimeoutError",
-            ".join()",
-        ] {
-            assert!(
-                !production.contains(retired_owner),
-                "retired private worker owner remains: {retired_owner}"
-            );
-        }
-    }
-
-    #[test]
-    fn development_watch_schedule_coalesces_to_the_latest_change_time() {
-        let start = Instant::now();
-        let mut schedule = DevelopmentPluginWatchSchedule::default();
-        schedule.record_change_at(start);
-        schedule.record_change_at(start + Duration::from_millis(100));
-
-        assert_eq!(
-            schedule.take_due_at(start + Duration::from_millis(449)),
-            None
-        );
-        assert_eq!(
-            schedule.take_due_at(start + Duration::from_millis(450)),
-            Some(start + Duration::from_millis(100))
-        );
-        assert_eq!(schedule.take_due_at(start + Duration::from_secs(1)), None);
-    }
-
-    #[test]
-    fn development_watch_filters_for_the_exact_loaded_artifact() {
-        let artifact_path = PathBuf::from("project/native/plugin.dll");
-        assert!(development_event_requests_reload(
-            &Event {
-                kind: EventKind::Modify(ModifyKind::Any),
-                paths: vec![artifact_path.clone()],
-                attrs: Default::default(),
-            },
-            &artifact_path,
-        ));
-
-        for path in [
-            PathBuf::from("project/other/native/other.dll"),
-            PathBuf::from("project/plugin.toml"),
-            PathBuf::from("project/native/plugin.pdb"),
-        ] {
-            assert!(!development_event_requests_reload(
-                &Event {
-                    kind: EventKind::Modify(ModifyKind::Any),
-                    paths: vec![path],
-                    attrs: Default::default(),
-                },
-                &artifact_path,
-            ));
-        }
-        assert!(!development_event_requests_reload(
-            &Event {
-                kind: EventKind::Access(notify::event::AccessKind::Any),
-                paths: vec![artifact_path.clone()],
-                attrs: Default::default(),
-            },
-            &artifact_path,
-        ));
-    }
-}
+#[path = "tests/development_watch.rs"]
+mod tests;

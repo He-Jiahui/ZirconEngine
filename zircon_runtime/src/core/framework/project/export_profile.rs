@@ -46,6 +46,7 @@ pub enum ExportPlatformPluginStrategy {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 将目标平台映射为宿主类型、资源交付方式和插件加载能力，供导出构建规划阶段统一判定。
 pub struct ExportPlatformPolicy {
     pub target_platform: ExportTargetPlatform,
     pub host_kind: ExportPlatformHostKind,
@@ -83,11 +84,18 @@ impl ExportTargetPlatform {
     }
 
     pub fn policy(self) -> ExportPlatformPolicy {
+        // Immutable native-plugin admission is implemented only for Windows targets.
+        // Other targets must fail closed until they have an equivalent loader path.
         let (host_kind, resource_strategy, plugin_strategy) = match self {
-            Self::Windows | Self::Linux | Self::Macos => (
+            Self::Windows => (
                 ExportPlatformHostKind::Desktop,
                 ExportPlatformResourceStrategy::FilesystemBundle,
                 ExportPlatformPluginStrategy::NativeDynamicAllowed,
+            ),
+            Self::Linux | Self::Macos => (
+                ExportPlatformHostKind::Desktop,
+                ExportPlatformResourceStrategy::FilesystemBundle,
+                ExportPlatformPluginStrategy::StaticSourceOrVmOnly,
             ),
             Self::Android | Self::Ios => (
                 ExportPlatformHostKind::MobileApp,
@@ -102,7 +110,7 @@ impl ExportTargetPlatform {
             Self::Headless => (
                 ExportPlatformHostKind::Headless,
                 ExportPlatformResourceStrategy::FilesystemBundle,
-                ExportPlatformPluginStrategy::NativeDynamicAllowed,
+                ExportPlatformPluginStrategy::StaticSourceOrVmOnly,
             ),
         };
         ExportPlatformPolicy {
@@ -135,6 +143,7 @@ pub enum ExportBuildMode {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 可序列化的导出意图；它提供目标与打包选择，实际构建计划由消费此 DTO 的构建器生成。
 pub struct ExportProfile {
     #[serde(default)]
     pub name: String,
@@ -194,6 +203,7 @@ impl ExportProfile {
         }
     }
 
+    /// 添加一种打包策略；若已存在则先移除再追加，保证该策略在列表中只有一份。
     pub fn with_strategy(mut self, strategy: ExportPackagingStrategy) -> Self {
         self.strategies.retain(|existing| existing != &strategy);
         self.strategies.push(strategy);

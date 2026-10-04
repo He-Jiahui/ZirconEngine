@@ -59,6 +59,11 @@ P50 and P95 construction time.
 - TDD RED observed two eager-construction contract failures while the existing Rust behavior
   oracle check passed.
 - `tools.tests.test_runtime08c_lazy_missing_track_path_performance_contract` passes 3/3 locally.
+- 2026-09-18: after the Runtime170 owned-source/track-capacity hard cut, the source contract's
+  indentation and pre-ownership `compiled.missing_tracks` anchors became stale. The matcher now
+  extracts balanced Rust blocks and asserts the current local `missing_tracks` owner with
+  whitespace-tolerant expressions; the production lazy-path semantics are unchanged. The
+  adjacent combined Runtime/Editor probe passes `95/95` after this repair.
 - Exact production/model `rustfmt --check`, Python compilation, PowerShell parsing, three paired
   model runs, and scoped diff checks pass locally.
 - All compiled-sequence Rust tests, source contracts, formatting, the performance model, and scoped

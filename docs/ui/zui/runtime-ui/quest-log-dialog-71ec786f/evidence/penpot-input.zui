@@ -1,0 +1,308 @@
+stylesheets = []
+penpot_dependency_sources = []
+penpot_original_source = "[asset]\nkind = \"view\"\nid = \"res://ui/runtime/fixtures/quest_log_dialog.zui\"\nversion = 2\ndisplay_name = \"Runtime Quest Log Dialog\"\n\n[imports]\nwidgets = []\nstyles = []\n\n[root]\nnode = \"quest_root\"\n\n[nodes.quest_root]\ncomponent = \"Overlay\"\ncontrol_id = \"QuestLogRoot\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, container = { kind = \"Overlay\" } }\nchildren = [{ node = \"scrim\" }, { node = \"dialog\" }]\n\n[nodes.scrim]\ncomponent = \"Container\"\ncontrol_id = \"QuestLogScrim\"\nprops = { background = { color = \"#111722cc\" } }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.dialog]\ncomponent = \"VerticalBox\"\ncontrol_id = \"QuestLogDialog\"\nprops = { background = { color = \"#1f2634\" }, border = { color = \"#7aa3d0\", width = 2.0, radius = 16.0 } }\nlayout = { width = { min = 520.0, preferred = 560.0, max = 620.0, stretch = \"Fixed\" }, height = { min = 300.0, preferred = 360.0, max = 420.0, stretch = \"Fixed\" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = 0.0 }, container = { kind = \"VerticalBox\", gap = 12.0 } }\nchildren = [{ node = \"title\" }, { node = \"active_quest\" }, { node = \"quest_detail\" }, { node = \"objective\" }, { node = \"actions\" }]\n\n[nodes.title]\ncomponent = \"Label\"\ncontrol_id = \"QuestLogTitle\"\nprops = { text = \"Quest Log\", text_color = \"#f4f7ff\", font_size = 24.0 }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = \"Fixed\" }, margin = { left = 24.0, right = 24.0, top = 22.0, bottom = 0.0 } }\n\n[nodes.active_quest]\ncomponent = \"Label\"\ncontrol_id = \"QuestLogActiveQuest\"\nprops = { text = \"The First Light\", text_color = \"#f0c36a\", font_size = 18.0 }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = \"Fixed\" }, margin = { left = 24.0, right = 24.0, top = 0.0, bottom = 0.0 } }\n\n[nodes.quest_detail]\ncomponent = \"Label\"\ncontrol_id = \"QuestLogDetail\"\nprops = { text = \"Find the signal tower above the old quarry and restore power to the relay.\", text_color = \"#d7dfef\", font_size = 14.0 }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 64.0, preferred = 74.0, max = 96.0, stretch = \"Fixed\" }, margin = { left = 24.0, right = 24.0, top = 4.0, bottom = 0.0 } }\n\n[nodes.objective]\ncomponent = \"Container\"\ncontrol_id = \"QuestLogObjectiveCard\"\nprops = { background = { color = \"#2a3344\" }, border = { color = \"#455672\", width = 1.0, radius = 10.0 } }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 72.0, preferred = 82.0, max = 96.0, stretch = \"Fixed\" }, margin = { left = 24.0, right = 24.0, top = 0.0, bottom = 0.0 } }\nchildren = [{ node = \"objective_text\" }]\n\n[nodes.objective_text]\ncomponent = \"Label\"\ncontrol_id = \"QuestLogObjectiveText\"\nprops = { text = \"Objective: calibrate 3 relay nodes\", text_color = \"#b9c8df\", font_size = 14.0 }\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" }, margin = { left = 16.0, right = 16.0, top = 18.0, bottom = 12.0 } }\n\n[nodes.actions]\ncomponent = \"HorizontalBox\"\ncontrol_id = \"QuestLogActions\"\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = \"Fixed\" }, margin = { left = 24.0, right = 24.0, top = 8.0, bottom = 20.0 }, container = { kind = \"HorizontalBox\", gap = 10.0 } }\nchildren = [{ node = \"track_button\" }, { node = \"close_button\" }]\n\n[nodes.track_button]\ncomponent = \"Button\"\ncontrol_id = \"TrackQuestButton\"\nprops = { text = \"Track\" }\nlayout = { width = { min = 112.0, preferred = 112.0, max = 112.0, stretch = \"Fixed\" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = \"Fixed\" } }\nevents = [{ id = \"QuestLog/Track\", event = \"Click\", route = \"RuntimeAction.TrackQuest\" }]\n\n[nodes.close_button]\ncomponent = \"Button\"\ncontrol_id = \"CloseQuestLogButton\"\nprops = { text = \"Close\" }\nlayout = { width = { min = 112.0, preferred = 112.0, max = 112.0, stretch = \"Fixed\" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = \"Fixed\" } }\nevents = [{ id = \"QuestLog/Close\", event = \"Click\", route = \"RuntimeAction.CloseQuestLog\" }]\n"
+
+[asset]
+kind = "view"
+id = "res://ui/runtime/fixtures/quest_log_dialog.zui"
+version = 2
+display_name = "Runtime Quest Log Dialog"
+
+[imports]
+widgets = []
+styles = []
+
+[root]
+node = "quest_root"
+
+[nodes.quest_root]
+component = "Overlay"
+control_id = "QuestLogRoot"
+
+[nodes.quest_root.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_root.layout.height]
+stretch = "Stretch"
+
+[nodes.quest_root.layout.container]
+kind = "Overlay"
+
+[[nodes.quest_root.children]]
+node = "scrim"
+
+[[nodes.quest_root.children]]
+node = "dialog"
+
+[nodes.scrim]
+component = "Container"
+control_id = "QuestLogScrim"
+
+[nodes.scrim.props.background]
+color = "#111722cc"
+
+[nodes.scrim.layout.width]
+stretch = "Stretch"
+
+[nodes.scrim.layout.height]
+stretch = "Stretch"
+
+[nodes.dialog]
+component = "VerticalBox"
+control_id = "QuestLogDialog"
+
+[nodes.dialog.props.background]
+color = "#1f2634"
+
+[nodes.dialog.props.border]
+color = "#7aa3d0"
+width = 2
+radius = 16
+
+[nodes.dialog.layout.width]
+min = 520
+preferred = 560
+max = 620
+stretch = "Fixed"
+
+[nodes.dialog.layout.height]
+min = 300
+preferred = 360
+max = 420
+stretch = "Fixed"
+
+[nodes.dialog.layout.anchor]
+x = 0.5
+y = 0.5
+
+[nodes.dialog.layout.pivot]
+x = 0.5
+y = 0.5
+
+[nodes.dialog.layout.position]
+x = 0
+y = 0
+
+[nodes.dialog.layout.container]
+kind = "VerticalBox"
+gap = 12
+
+[[nodes.dialog.children]]
+node = "title"
+
+[[nodes.dialog.children]]
+node = "active_quest"
+
+[[nodes.dialog.children]]
+node = "quest_detail"
+
+[[nodes.dialog.children]]
+node = "objective"
+
+[[nodes.dialog.children]]
+node = "actions"
+
+[nodes.title]
+component = "Label"
+control_id = "QuestLogTitle"
+
+[nodes.title.props]
+text = "Quest Log"
+text_color = "#f4f7ff"
+font_size = 24
+
+[nodes.title.layout.width]
+stretch = "Stretch"
+
+[nodes.title.layout.height]
+min = 36
+preferred = 36
+max = 36
+stretch = "Fixed"
+
+[nodes.title.layout.margin]
+left = 24
+right = 24
+top = 22
+bottom = 0
+
+[nodes.active_quest]
+component = "Label"
+control_id = "QuestLogActiveQuest"
+
+[nodes.active_quest.props]
+text = "The First Light"
+text_color = "#f0c36a"
+font_size = 18
+
+[nodes.active_quest.layout.width]
+stretch = "Stretch"
+
+[nodes.active_quest.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[nodes.active_quest.layout.margin]
+left = 24
+right = 24
+top = 0
+bottom = 0
+
+[nodes.quest_detail]
+component = "Label"
+control_id = "QuestLogDetail"
+
+[nodes.quest_detail.props]
+text = "Find the signal tower above the old quarry and restore power to the relay."
+text_color = "#d7dfef"
+font_size = 14
+
+[nodes.quest_detail.layout.width]
+stretch = "Stretch"
+
+[nodes.quest_detail.layout.height]
+min = 64
+preferred = 74
+max = 96
+stretch = "Fixed"
+
+[nodes.quest_detail.layout.margin]
+left = 24
+right = 24
+top = 4
+bottom = 0
+
+[nodes.objective]
+component = "Container"
+control_id = "QuestLogObjectiveCard"
+
+[nodes.objective.props.background]
+color = "#2a3344"
+
+[nodes.objective.props.border]
+color = "#455672"
+width = 1
+radius = 10
+
+[nodes.objective.layout.width]
+stretch = "Stretch"
+
+[nodes.objective.layout.height]
+min = 72
+preferred = 82
+max = 96
+stretch = "Fixed"
+
+[nodes.objective.layout.margin]
+left = 24
+right = 24
+top = 0
+bottom = 0
+
+[[nodes.objective.children]]
+node = "objective_text"
+
+[nodes.objective_text]
+component = "Label"
+control_id = "QuestLogObjectiveText"
+
+[nodes.objective_text.props]
+text = "Objective: calibrate 3 relay nodes"
+text_color = "#b9c8df"
+font_size = 14
+
+[nodes.objective_text.layout.width]
+stretch = "Stretch"
+
+[nodes.objective_text.layout.height]
+stretch = "Stretch"
+
+[nodes.objective_text.layout.margin]
+left = 16
+right = 16
+top = 18
+bottom = 12
+
+[nodes.actions]
+component = "HorizontalBox"
+control_id = "QuestLogActions"
+
+[nodes.actions.layout.width]
+stretch = "Stretch"
+
+[nodes.actions.layout.height]
+min = 42
+preferred = 42
+max = 42
+stretch = "Fixed"
+
+[nodes.actions.layout.margin]
+left = 24
+right = 24
+top = 8
+bottom = 20
+
+[nodes.actions.layout.container]
+kind = "HorizontalBox"
+gap = 10
+
+[[nodes.actions.children]]
+node = "track_button"
+
+[[nodes.actions.children]]
+node = "close_button"
+
+[nodes.track_button]
+component = "Button"
+control_id = "TrackQuestButton"
+
+[nodes.track_button.props]
+text = "Track"
+
+[nodes.track_button.layout.width]
+min = 112
+preferred = 112
+max = 112
+stretch = "Fixed"
+
+[nodes.track_button.layout.height]
+min = 36
+preferred = 36
+max = 36
+stretch = "Fixed"
+
+[[nodes.track_button.events]]
+id = "QuestLog/Track"
+event = "Click"
+route = "RuntimeAction.TrackQuest"
+
+[nodes.close_button]
+component = "Button"
+control_id = "CloseQuestLogButton"
+
+[nodes.close_button.props]
+text = "Close"
+
+[nodes.close_button.layout.width]
+min = 112
+preferred = 112
+max = 112
+stretch = "Fixed"
+
+[nodes.close_button.layout.height]
+min = 36
+preferred = 36
+max = 36
+stretch = "Fixed"
+
+[[nodes.close_button.events]]
+id = "QuestLog/Close"
+event = "Click"
+route = "RuntimeAction.CloseQuestLog"
+
+[tokens]
+[penpot_original_imports]
+widgets = []
+styles = []

@@ -7,6 +7,7 @@ mod extension_registry_error;
 pub mod native;
 mod native_plugin_loader;
 mod package_manifest;
+pub mod package_service;
 mod plugin_maturity;
 mod runtime_plugin;
 mod runtime_profile;
@@ -19,11 +20,11 @@ pub use bridge::{
 pub use capability_status::{CapabilityStatus, CapabilityStatusManifest};
 pub use core_profiles::{EditorCoreProfile, RuntimeCoreProfile};
 pub use export_build_plan::{
-    ExportBuildPlan, ExportBuildPlanError, ExportGeneratedFile, ExportMaterializeReport,
-    ExportValidateGeneratedFileSummary, ExportValidatePlanSummary, ExportValidateProfileSummary,
-    ExportValidateReport, LibraryEmbedCompileHostPlan, LibraryEmbedCompileHostTarget,
-    LibraryEmbedLinkedRuntimeCrate, NativeDynamicPackageAbiV3Contract,
-    NativeDynamicPackageExportPlan,
+    ExportBuildPlan, ExportBuildPlanError, ExportGeneratedFile, ExportLinkedFeatureSourceReceipt,
+    ExportMaterializeReport, ExportPlanAdmissionProof, ExportValidateGeneratedFileSummary,
+    ExportValidatePlanSummary, ExportValidateProfileSummary, ExportValidateReport,
+    LibraryEmbedCompileHostPlan, LibraryEmbedCompileHostTarget, LibraryEmbedLinkedRuntimeCrate,
+    NativeDynamicPackageAbiV3Contract, NativeDynamicPackageExportPlan,
 };
 pub use extension_registry::{
     ExtensionKey, ExtensionOwnership, ExtensionSlot, FrozenExtensionTable, PluginModuleId,
@@ -35,7 +36,7 @@ pub use package_manifest::{
     PluginEventConsumerManifest, PluginEventManifest, PluginFeatureBundleManifest,
     PluginFeatureDependency, PluginInterfaceManifest, PluginInterfaceMethodManifest,
     PluginModuleKind, PluginModuleManifest, PluginOptionManifest, PluginPackageKind,
-    PluginPackageManifest, PluginShaderModuleManifest, PluginShaderModuleSource,
+    PluginPackageManifest, PluginPackageRole, PluginShaderModuleManifest, PluginShaderModuleSource,
     PluginShaderPermutationIdManifest, PluginShaderPermutationManifest, ShaderModuleSourceBinding,
 };
 pub use plugin_maturity::PluginMaturity;

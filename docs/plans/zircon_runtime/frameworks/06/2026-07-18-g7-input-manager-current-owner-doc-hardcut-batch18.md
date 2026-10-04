@@ -5,7 +5,7 @@ related_code:
   - zircon_runtime/src/input/runtime/event_buffer/frame.rs
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files/browser.rs
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files/mobile.rs
-  - tools/check_conventions.py
+  - tools/audits/check_conventions.py
 implementation_files:
   - docs/plans/zircon_plugins/09/failure-2026-07-17-export-host-high-frequency-input-dispatch.md
 plan_sources:
@@ -13,7 +13,7 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - python tools/check_conventions.py --only docs --json
+  - python tools/audits/check_conventions.py --only docs --json
   - git diff --check -- docs/plans/zircon_plugins/09/failure-2026-07-17-export-host-high-frequency-input-dispatch.md
 ---
 
@@ -32,7 +32,7 @@ Session: `frameworks06-g7-input-manager-current-owner-doc-hardcut-batch18-202607
 ## Fresh Testing Evidence
 
 - 修改前 fresh G7：所选文档 `1` 个 missing-path violation。
-- 修改后 fresh `python tools/check_conventions.py --only docs --json`：所选文档 `0` violations；共享 current-source 全局快照为 `471` violations / `124` documents，G7 继续保持 RED。
+- 修改后 fresh `python tools/audits/check_conventions.py --only docs --json`：所选文档 `0` violations；共享 current-source 全局快照为 `471` violations / `124` documents，G7 继续保持 RED。
 - 所选 failure 的 current owner 机器路径全部存在；退役 flat input-manager front-matter 路径为 `0`。
 - exact-scope `git diff --check` 通过，staged_total 为 `0`。
 

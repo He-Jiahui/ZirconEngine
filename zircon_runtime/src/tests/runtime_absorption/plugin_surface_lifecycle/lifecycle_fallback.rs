@@ -1,3 +1,4 @@
+//! 插件公开面、原生装载命名空间与生命周期回退保持分离。以结果断言检查当前接口或源码快照对应的边界。
 use std::fs;
 use std::path::Path;
 
@@ -6,7 +7,7 @@ use super::inventory::LIFECYCLE_FALLBACK_TESTS;
 #[test]
 fn runtime_06_vm_lifecycle_fallback_failure_tests_are_folder_backed() {
     let runtime_root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let vm_tests_source = include_str!("../../../script/vm/tests.rs");
+    let vm_tests_source = include_str!("../../../script/vm/tests/cases.rs");
     assert!(
         vm_tests_source.contains("mod lifecycle_failures;"),
         "Runtime 06 M1.2 fallback lifecycle test owner should be mounted by script/vm/tests.rs"

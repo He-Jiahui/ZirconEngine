@@ -6,14 +6,13 @@ use std::sync::{Arc, Mutex, OnceLock, RwLock};
 #[cfg(test)]
 use std::sync::{MutexGuard, RwLockReadGuard};
 
-use super::FontDatabase;
-#[cfg(all(test, target_os = "windows"))]
-use super::SystemFontPolicy;
 use super::handle_registry::FontHandleRegistryService;
 use super::runtime_asset::RuntimeFontAssetClaimRegistry;
 use super::source_manifest::cooked_font_asset_source_key;
+use super::{FontDatabase, SystemFontPolicy};
 use crate::asset::{AssetUri, FontAsset, FontAssetSourceFormat, FontBlobArtifact};
 use crate::core::framework::text::TextFontCollectionHandle;
+use crate::text::raster::GlyphRasterService;
 use crate::text::FontFamilyName;
 
 const PACKAGED_DEFAULT_FONT_OWNER: &str = "zircon.runtime.packaged-default-font";
@@ -60,6 +59,7 @@ pub(crate) struct FontCollectionService {
     generation: AtomicU64,
     database: RwLock<Arc<FontDatabase>>,
     handle_registry: FontHandleRegistryService,
+    glyph_raster: GlyphRasterService,
     pub(super) runtime_asset_claims: Mutex<RuntimeFontAssetClaimRegistry>,
 }
 
@@ -151,6 +151,12 @@ impl FontCollectionService {
         Self::from_database(runtime_default_font_database())
     }
 
+    pub(crate) fn new_with_system_font_policy(policy: SystemFontPolicy) -> (Arc<Self>, usize) {
+        let mut database = runtime_default_font_database();
+        let discovered_system_face_count = database.apply_system_font_policy(policy);
+        (Self::from_database(database), discovered_system_face_count)
+    }
+
     pub(crate) fn from_database(database: FontDatabase) -> Arc<Self> {
         let id = allocate_font_collection_handle();
         Arc::new(Self {
@@ -158,6 +164,7 @@ impl FontCollectionService {
             generation: AtomicU64::new(1),
             database: RwLock::new(Arc::new(database)),
             handle_registry: FontHandleRegistryService::new(id),
+            glyph_raster: GlyphRasterService::new(),
             runtime_asset_claims: Mutex::new(RuntimeFontAssetClaimRegistry::default()),
         })
     }
@@ -176,6 +183,10 @@ impl FontCollectionService {
 
     pub(crate) const fn handle_registry(&self) -> &FontHandleRegistryService {
         &self.handle_registry
+    }
+
+    pub(crate) const fn glyph_raster_service(&self) -> &GlyphRasterService {
+        &self.glyph_raster
     }
 
     pub(crate) fn collection_snapshot(self: &Arc<Self>) -> FontCollectionSnapshot {
@@ -450,4 +461,5 @@ pub(crate) fn shared_font_database_test_serial_guard() -> MutexGuard<'static, ()
 }
 
 #[cfg(test)]
+#[path = "shared/tests/cases.rs"]
 mod tests;

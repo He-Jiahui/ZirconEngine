@@ -1,3 +1,6 @@
+// 调用端：npm run generate:enchanting-contract (tools/package.json)；职责：合并附魔规则、附魔内容和物品类型，生成确定性的专业约定。
+// 输入边界：src/sim/professions/enchanting.ts, src/sim/content/enchants.ts, src/sim/types.ts；--check 比较生成结果，不改写目标文件。
+
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

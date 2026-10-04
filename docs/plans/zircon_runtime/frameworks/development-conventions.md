@@ -10,12 +10,12 @@ plan_sources:
   - docs/plans/zircon_runtime/frameworks/index.md
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md
-  - docs/engine-architecture/workspace-root-rules-and-hard-cutover.md
-  - docs/engine-architecture/large-file-ownership-m1.md
-  - docs/engine-architecture/hard-cutover-migration-smells-m1.md
-  - docs/engine-architecture/non-network-server-naming-m1.md
-  - docs/engine-architecture/generated-code-boundary.md
-  - docs/engine-architecture/plugin-optional-feature-bundles.md
+  - docs/architecture/workspace-root-rules-and-hard-cutover.md
+  - docs/architecture/large-file-ownership-m1.md
+  - docs/architecture/hard-cutover-migration-smells-m1.md
+  - docs/architecture/non-network-server-naming-m1.md
+  - docs/architecture/generated-code-boundary.md
+  - docs/architecture/plugin-optional-feature-bundles.md
   - docs/runtime-plugins/profile-selection.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 ---

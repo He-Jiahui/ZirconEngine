@@ -7,8 +7,8 @@ related_code:
   - zircon_runtime/src/ui/template/instance.rs
   - zircon_editor/src/core/editor_message/mod.rs
 design_references:
-  - docs/ui-and-layout/ai-workbench-style/component-prototype/web-native-handoff-matrix.md
-  - docs/ui-and-layout/editor-workbench-designs/STYLE-NOTES.md
+  - docs/ui/ai-workbench-style/component-prototype/web-native-handoff-matrix.md
+  - docs/ui/editor-workbench-designs/STYLE-NOTES.md
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/10-real-rendering-pipeline-and-contract.md
   - docs/plans/zircon_editor/editor_layout/11-data-binding-and-reactive-contract.md
@@ -122,4 +122,4 @@ status: planned
 
 ## 9. 状态与产出记录
 
-planned。后续项:把本文的设计原则 §4 抽为各子计划共享的验收前言,并在 `docs/ui-and-layout/` 落一份 `composition-thesis.md` 摘要。
+planned。后续项:把本文的设计原则 §4 抽为各子计划共享的验收前言,并在 `docs/ui/` 落一份 `composition-thesis.md` 摘要。

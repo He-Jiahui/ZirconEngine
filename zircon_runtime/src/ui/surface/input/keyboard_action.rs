@@ -3,6 +3,7 @@ use zircon_runtime_interface::ui::{
     dispatch::{UiKeyboardInputEvent, UiKeyboardInputState},
 };
 
+/// 将按键压下映射为通用组件语义动作，供默认交互复用；文本输入走独立路径。
 pub(super) fn keyboard_component_action(
     keyboard: &UiKeyboardInputEvent,
 ) -> Option<UiComponentKeyboardAction> {
@@ -63,6 +64,7 @@ pub(super) fn keyboard_component_action(
     }
 }
 
+/// TreeView 的左右键改变层级展开，而上下键移动行；与通用组件动作的轴含义不同。
 pub(super) fn tree_view_keyboard_component_action(
     keyboard: &UiKeyboardInputEvent,
 ) -> Option<UiComponentKeyboardAction> {
@@ -94,6 +96,8 @@ pub(super) fn tree_view_keyboard_component_action(
     }
 }
 
+/// 仅把无命令修饰键且可显示的键盘文本交给组件 typeahead/编辑入口。
+/// 控制字符及全空白不触发组件文本动作，IME/文本事件另由其专属入口处理。
 pub(super) fn keyboard_component_text(keyboard: &UiKeyboardInputEvent) -> Option<&str> {
     if !matches!(
         keyboard.state,
@@ -171,5 +175,5 @@ fn normalized_key_matches(key: &str, expected: &[&str]) -> bool {
 }
 
 #[cfg(test)]
-#[path = "keyboard_action/single_scan_text_tests.rs"]
+#[path = "keyboard_action/tests/single_scan_text_tests.rs"]
 mod single_scan_text_tests;

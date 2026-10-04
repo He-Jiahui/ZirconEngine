@@ -1,15 +1,17 @@
+//! 录制景深预处理 pass 并返回待提交的参数上传；禁用效果时先清空两个输出纹理。
 use crate::core::framework::render::{RenderDepthOfFieldSettings, ViewportCameraSnapshot};
 use crate::core::math::UVec2;
 use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
 
 use super::super::super::clear_render_target::clear_render_target;
 use super::super::super::depth_of_field_prepare_params::{
-    DepthOfFieldPrepareParams, depth_of_field_prepare_enabled,
+    depth_of_field_prepare_enabled, DepthOfFieldPrepareParams,
 };
 use super::super::super::resources::depth_sampling_mode::PostProcessDepthSamplingMode;
 use super::super::super::scene_post_process_resources::ScenePostProcessResources;
 
 impl ScenePostProcessResources {
+    /// 按当前设置清空或执行景深预处理，并将参数写入提交批次而不是直接操作队列。
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn execute_depth_of_field_prepare(
         &self,
@@ -107,17 +109,5 @@ impl ScenePostProcessResources {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn depth_of_field_prepare_params_are_returned_as_pre_submit_uploads() {
-        let source = include_str!("execute_depth_of_field_prepare.rs");
-        let production = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("depth-of-field prepare production source");
-
-        assert!(!production.contains("queue.write_buffer"));
-        assert!(production.contains("WgpuBufferUpload::from_bytes("));
-        assert!(production.contains("return WgpuBufferUploadBatch::new()"));
-    }
-}
+#[path = "tests/execute_depth_of_field_prepare.rs"]
+mod tests;

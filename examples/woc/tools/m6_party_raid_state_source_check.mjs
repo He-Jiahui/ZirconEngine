@@ -137,8 +137,12 @@ const fixtureImporters = zrFiles(wocSourceRoot)
   .sort();
 invariant(
   JSON.stringify(fixtureImporters) ===
-    JSON.stringify(['social/m6_scenario_matrix.zr', 'social/party_raid_state_test_main.zr']),
-  `party_raid_state escaped the M6 fixture boundary: ${fixtureImporters.join(', ')}`,
+    JSON.stringify([
+      'social/m6_scenario_matrix.zr',
+      'social/party_raid_state_test_main.zr',
+      'world/state.zr',
+    ]),
+  `party_raid_state importer set drifted: ${fixtureImporters.join(', ')}`,
 );
 
 process.stdout.write(`checked M6 party/raid state source: ${SOURCE_COMMIT.slice(0, 15)}\n`);

@@ -1,3 +1,4 @@
+//! 将准入拒绝、执行失败、取消及结果通道丢失分开交还调用者；克隆的类型化执行失败保留同一个源错误身份，不能仅凭展示文本比较失败。
 use std::error::Error as StdError;
 use std::fmt;
 use std::sync::Arc;
@@ -142,15 +143,5 @@ pub enum MutexGroupError {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn cloned_failure_keeps_source_identity_without_text_equality() {
-        let failure = JobError::failed(std::io::Error::other("typed source"));
-        let clone = failure.clone();
-
-        assert_eq!(failure, clone);
-        assert!(failure.downcast_ref::<std::io::Error>().is_some());
-    }
-}
+#[path = "tests/error.rs"]
+mod tests;

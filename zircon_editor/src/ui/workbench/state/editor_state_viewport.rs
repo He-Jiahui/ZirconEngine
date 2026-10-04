@@ -4,6 +4,7 @@ use crate::core::commands::CommandEvalCtx;
 use crate::core::editing::authoring_world::AuthoringWorldAccessError;
 use crate::core::editing::command::EditorCommand;
 use crate::core::editing::interactive_transform::InteractiveTransformSession;
+use crate::core::editor_event::ViewInstanceId;
 use crate::scene::viewport::{SceneViewportChromeSettings, SceneViewportSettings};
 use crate::scene::viewport::{ViewportCameraSnapshot, ViewportInput};
 use crate::scene::viewport::{ViewportFeedback, ViewportTransformRequest};
@@ -43,6 +44,7 @@ impl EditorState {
         self.viewport_controller.project_command_eval_ctx(context)
     }
 
+    /// 编辑模式的底层构图辅助；生产事件走画布命令入口，由该入口执行Play许可过滤。
     pub fn frame_selection(&mut self) -> Result<bool, EditorViewportStateError> {
         let Some(node_id) = self.viewport_controller.selection().active_primary() else {
             return Ok(false);
@@ -63,6 +65,7 @@ impl EditorState {
         Ok(true)
     }
 
+    /// 编辑world的底层输入入口；生产事件须先经过命令层的Play路由约束。
     pub fn handle_viewport_input(
         &mut self,
         input: ViewportInput,
@@ -166,6 +169,7 @@ impl EditorState {
         result
     }
 
+    /// drag开始时捕获选择和document基线；预览会话尚未创建历史事务。
     pub(crate) fn begin_interactive_transform(&mut self) -> Result<bool, GizmoTransactionError> {
         if self.interactive_transform.is_some() {
             return Ok(false);
@@ -205,6 +209,7 @@ impl EditorState {
         Ok(true)
     }
 
+    /// release把预览结果作为单次历史提交；提交失败时恢复捕获基线。
     pub(crate) fn finish_interactive_transform(&mut self) -> Result<bool, GizmoTransactionError> {
         let Some(session) = self.interactive_transform.as_ref() else {
             return Ok(false);
@@ -232,6 +237,7 @@ impl EditorState {
         self.cancel_interactive_transform().map(|_| ())
     }
 
+    /// 取消不保留预览写入，恢复scene并重同步viewport/selection；失败仍返回明确恢复错误。
     pub(crate) fn cancel_interactive_transform(&mut self) -> Result<bool, GizmoTransactionError> {
         let session = self.interactive_transform.take();
         let had_transaction = session.is_some() || self.viewport_controller.is_handle_drag_active();
@@ -294,6 +300,7 @@ impl EditorState {
         }
     }
 
+    /// 生产画布入口：Play仅路由导航，编辑交互按预览、提交、取消的事务边界执行。
     pub fn apply_viewport_command(
         &mut self,
         command: &ViewportCommand,
@@ -408,6 +415,42 @@ impl EditorState {
         }
     }
 
+    /// Applies a retained toolbar command to the already-live Scene leaf.
+    ///
+    /// This deliberately does not call `session`/`focus`: those helpers fork
+    /// missing sessions and can make a retired toolbar event mutate whichever
+    /// viewport happens to be active.  A missing ID is an explicit error.
+    pub(crate) fn apply_viewport_command_for_view(
+        &mut self,
+        view_id: &ViewInstanceId,
+        command: &ViewportCommand,
+    ) -> Result<ViewportFeedback, EditorViewportStateError> {
+        if self.viewport_controller.session_if_live(view_id).is_none() {
+            return Err(EditorViewportStateError::StaleViewportView {
+                view_id: view_id.clone(),
+            });
+        }
+
+        if matches!(command, ViewportCommand::FrameSelection) {
+            let Some(outcome) = self.world.with_world_mut(|scene| {
+                self.viewport_controller
+                    .apply_command_for_view(view_id, Some(scene), command)
+            })?
+            else {
+                return Ok(ViewportFeedback::default());
+            };
+            let (feedback, post_callback_error) = outcome.into_parts();
+            if let Some(error) = post_callback_error {
+                return Err(error.into());
+            }
+            return feedback.map_err(EditorViewportStateError::ViewportController);
+        }
+
+        self.viewport_controller
+            .apply_command_for_view(view_id, None, command)
+            .map_err(EditorViewportStateError::ViewportController)
+    }
+
     fn handle_play_viewport_navigation(
         &mut self,
         input: ViewportInput,
@@ -428,17 +471,5 @@ impl EditorState {
 }
 
 #[cfg(test)]
-mod play_viewport_route_contract_tests {
-    #[test]
-    fn play_pointer_commands_use_the_navigation_only_entry_and_block_authoring_frame_selection() {
-        let source = include_str!("editor_state_viewport.rs");
-        let production = source
-            .split_once("#[cfg(test)]")
-            .map_or(source, |(production, _)| production);
-
-        assert!(production.contains("handle_play_viewport_navigation"));
-        assert!(production.contains("ViewportCommand::FrameSelection if self.is_playing()"));
-        assert!(production.contains("ViewportCommand::LeftPressed { .. }"));
-        assert!(production.contains("ViewportCommand::LeftReleased"));
-    }
-}
+#[path = "tests/editor_state_viewport_play_viewport_route_contract_tests.rs"]
+mod play_viewport_route_contract_tests;

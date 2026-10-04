@@ -4,11 +4,11 @@ use crate::core::framework::text::{
     TextDirection, TextLayoutError, TextVerticalGlyphDecisionBasis,
 };
 use crate::text::language::{
-    TextLanguageFallbackKey, TextLanguageScriptSubtag, canonical_text_language,
+    canonical_text_language, TextLanguageFallbackKey, TextLanguageScriptSubtag,
 };
-use crate::text::unicode_data::{UnicodeDataSnapshotId, compiled_unicode_data_snapshot_id};
+use crate::text::unicode_data::{compiled_unicode_data_snapshot_id, UnicodeDataSnapshotId};
 use crate::text::{TextRange, TextStyle};
-use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Error as _};
+use serde::{de::Error as _, Deserialize, Deserializer, Serialize, Serializer};
 
 use super::font::{FontFaceId, InstancedFaceId};
 use super::shaping_receipt::TextHorizontalCompositionReceipt;
@@ -754,4 +754,5 @@ mod arc_str_serde {
 }
 
 #[cfg(test)]
+#[path = "shaped_run/tests/cases.rs"]
 mod tests;

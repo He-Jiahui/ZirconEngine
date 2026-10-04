@@ -19,6 +19,7 @@ use super::super::validation::{
 use super::super::RuntimeExtensionRegistry;
 
 impl RuntimeExtensionRegistry {
+    /// 由描述符包标识推导 owner；适合清单贡献，目录合并时仍需核对 owner。
     pub fn register_component(
         &mut self,
         descriptor: ComponentTypeDescriptor,
@@ -37,6 +38,7 @@ impl RuntimeExtensionRegistry {
         Ok(())
     }
 
+    /// 合并或宿主 API 带明确 owner 时使用，拒绝与组件声明的 plugin id 不一致的模块。
     pub fn register_component_for_owner(
         &mut self,
         owner: crate::plugin::PluginModuleId,
@@ -90,6 +92,7 @@ impl RuntimeExtensionRegistry {
         Ok(())
     }
 
+    /// 选项键决定包级 owner，以便热卸载时连同该包的配置投影一起撤销。
     pub fn register_plugin_option(
         &mut self,
         descriptor: PluginOptionManifest,
@@ -138,6 +141,7 @@ impl RuntimeExtensionRegistry {
     }
 
     #[cfg(feature = "graphics")]
+    // 目录合并保留来源 owner；token 规范化后才做全局重复键判定。
     pub(in crate::plugin) fn register_geometry_source_for_owner(
         &mut self,
         owner: crate::plugin::PluginModuleId,
@@ -165,6 +169,7 @@ impl RuntimeExtensionRegistry {
     }
 
     #[cfg(feature = "graphics")]
+    // 与几何来源使用同一 owner 策略，确保目标过滤和撤销的图形贡献范围一致。
     pub(in crate::plugin) fn register_shading_model_for_owner(
         &mut self,
         owner: crate::plugin::PluginModuleId,
@@ -277,6 +282,7 @@ fn validate_shading_model_descriptor(
 }
 
 #[cfg(feature = "graphics")]
+// 自定义渲染 token 在登记前归一，避免大小写或外侧空白导致同义键占用多个槽位。
 fn normalize_custom_extension_token(token: &mut String) -> bool {
     let trimmed = token.trim();
     let valid_prefix = trimmed
@@ -297,5 +303,5 @@ fn normalize_custom_extension_token(token: &mut String) -> bool {
 }
 
 #[cfg(all(test, feature = "graphics"))]
-#[path = "metadata/in_place_token_tests.rs"]
+#[path = "metadata/tests/in_place_token_tests.rs"]
 mod in_place_token_tests;

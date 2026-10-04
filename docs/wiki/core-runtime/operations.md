@@ -17,9 +17,9 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
   - docs/plans/mvp/index.md
-  - docs/zircon_runtime/operation.md
+  - docs/crates/zircon_runtime/operation.md
 tests:
-  - zircon_runtime/src/operation/tests.rs
+  - zircon_runtime/src/operation/tests/cases.rs
   - zircon_runtime/src/operation/tests/inflight_retention.rs
   - zircon_runtime/src/operation/tests/phase_indexes.rs
   - zircon_runtime/src/operation/tests/raw_admission.rs

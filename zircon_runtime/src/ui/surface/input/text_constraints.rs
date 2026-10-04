@@ -10,11 +10,15 @@ use super::super::surface::UiSurface;
 use crate::ui::text::clamp_grapheme_boundary;
 
 use self::preedit_mapping::{
-    TextInputBoundaryMap, remap_preedit_clauses, remap_preedit_cursor_range,
+    remap_preedit_clauses, remap_preedit_cursor_range, TextInputBoundaryMap,
 };
 
+#[cfg(test)]
+#[path = "text_constraints/tests/optimization_tests.rs"]
+mod optimization_tests;
 mod preedit_mapping;
 #[cfg(test)]
+#[path = "text_constraints/tests/cases.rs"]
 mod tests;
 
 const TEXT_INPUT_GRAPHEME_AUTHORITY_COUNTER_NAMES: [&str; 3] = [
@@ -158,6 +162,17 @@ impl TextInputConstraints {
         retained_graphemes: TextInputRetainedGraphemeCount,
         mut boundary_map: Option<&mut TextInputBoundaryMap>,
     ) -> SanitizedTextInputReplacement {
+        if self.max_graphemes.is_none()
+            && self.filter == TextInputFilter::Any
+            && self.multiline
+            && boundary_map.is_none()
+        {
+            // Without constraints or requested IME offsets, the owned result is byte-identical.
+            return SanitizedTextInputReplacement {
+                text: replacement.to_owned(),
+                receipt: UiTextInputConstraintReceipt::default(),
+            };
+        }
         let mut receipt = UiTextInputConstraintReceipt::default();
         let mut filtered = String::with_capacity(replacement.len());
         let mut characters = replacement.char_indices().peekable();

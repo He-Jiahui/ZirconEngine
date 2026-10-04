@@ -61,3 +61,57 @@ Open state: `实现已完成，待受管验证与独立审查`; Shader06 仅保�
 - 已有聚焦契约覆盖 serial/parallel 字节等价、PMREM 每 mip 调度和 cache-hit 零重算；尚未运行当前源码的受管 Cargo gate，故本 handoff 仍为 `open`，不得作为 Shader06 首次/二次 bake 性能结论。
 - 独立静态复审已闭合为 `Critical 0 / Important 0 / Minor 0`：已复核 equirect sampler 的 `Fn + Send + Sync` 边界、PMREM 直接调度契约、captured-face 并行 PMREM 路径和缓存短路；该结论不替代待 FIFO 的受管 Cargo 验证。
 - 查看器性能接线补充（2026-07-17）：parallel staging 新增 caller-decoded RGBA32F 入口，viewer 将同一份 HDR 像素用于曝光/尺寸和 equirect → source/PMREM staging，消除重复完整 decode；仍以原始 `AssetImportContext` bytes/settings 生成 request 与 cache key。现有 serial-versus-parallel staging contract 已改为通过该入口写 parallel bundle，仍需 fresh managed Cargo 证明当前源码。
+
+### 2026-09-19 rolling validation retry and external blocker
+
+- The existing primary Session `failure-roll-01a084c8-render13-ibl-staging-r2` was
+  resumed after its stale heartbeat and reclaimed the exact four-path scope (the
+  two implementation files, focused contract test, and this canonical record).
+  The previous supervisor-level failures remain explicitly non-reusable:
+  `f4e1e5abcda645669f5645b058480fe9` exited `1` after a health timeout with no
+  test-level receipt, while the later exact-filter job
+  `16476ed30ac342729a24621640ac99b6` also exited `1`; the only prior exact-filter
+  green evidence is job `564bcb1aef4a44abab6883abec2d2c38` from baseline 608.
+- A corrected direct structured Cargo request
+  `failure-roll-01a084c8-render13-ibl-staging-20260919-r5` was admitted to policy
+  evaluation with the exact command
+  `cargo +1.94.1 test -p zircon_runtime --locked --test runtime_environment_ibl_source_import_staging_contract hdr_equirect_parallel_staging_matches_serial_bundle_and_reuses_cache -- --nocapture --test-threads=1`,
+  but admission rejected it before ticket creation because external worktree
+  `E:\Git\zr_vm` is dirty (`validation_ticket_external_worktree_dirty`). No Cargo
+  process started and no dynamic acceptance is claimed. The lifecycle remains
+  open and waits for the external owner to restore a clean revision before a
+  non-duplicated managed retry.
+
+### 2026-09-21 current-source successor and static evidence
+
+- Stale-retention archived r2 without any validation ticket, so successor Session
+  `failure-roll-01a084c8-render13-ibl-staging-r3` reclaimed and attributed only the two
+  implementation files, the focused integration test, and this record. Preflight snapshot
+  `3708` binds `environment_ibl.rs`
+  (`d82d6d65dca2f3a0cbba52bc28dae491a95f0879781e87aacf61beb0a3618099`),
+  `ibl_source_cubemap_staging.rs`
+  (`5b04fd4101ae8ea2a252fc8ef17361ddbe8bac3617de863e54ff3707284a97a4`), and the contract test
+  (`5b9cacef97a5f9bcea386dffe906c2ae0e7b161f2a7ad0a70561e4a39dea7c3e`). No production or test
+  source changed in this successor.
+- The source-bound static preflight is GREEN with marker
+  `RENDER13_ENVIRONMENT_IBL_PARALLEL_STAGING_OWNED_STATIC_PASS`: it checks all parallel build
+  entry points, the pre-build complete-bundle cache short circuit, serial/parallel byte equality,
+  the positive executor call proof, the zero-call cache-hit proof, and pinned Rust 1.94.1
+  `rustfmt --check`.
+- The first managed static request (`...-20260921-static-r1`) was rejected before ticket creation
+  with `validation_copy_overlay_not_owned`; the successor then attributed the exact current hashes.
+  Corrected static-only ticket `befa8b6eccef47be88e6542316277240`
+  (`...-20260921-static-r2`) passed with exit code `0` (job
+  `f1a381c2d4824f17be5db711208ea909`, run `befa8b6eccef47be88e6542316277240`) and emitted the exact
+  marker `RENDER13_ENVIRONMENT_IBL_PARALLEL_STAGING_OWNED_STATIC_PASS`. Its immutable manifest is
+  `4b0d95730e507b12cd1d59d66995ad5c698dea65435d9fa41453dfa3e4fc82ef`. It remains explicitly
+  `fullCoverage: false` / `staticParseOnly: true` and is not dynamic acceptance.
+- The dynamic exact-filter Cargo gate remains blocked rather than resubmitted: the external
+  `E:\Git\zr_vm` worktree still contains 157 foreign changes. Shader06 first/second bake
+  measurement, fixed return, closeout, commit, and notification all remain pending.
+- Independent current-source review completed `Critical 0 / Important 0 / Moderate 0`. It
+  confirmed the runtime-owned executor reaches equirect projection, source mip, PMREM, and IEM;
+  the complete bundle probe returns before all build work; the test compares actual `.zcube` and
+  `.zribl` bytes from independent roots and proves a warm cache hit makes zero executor calls; and
+  the caller-decoded path retains request/cache identity from original context bytes and settings.
+  The reviewer made no edits and did not run Cargo.

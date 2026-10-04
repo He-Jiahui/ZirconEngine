@@ -86,6 +86,7 @@ impl PendingDelivery {
     }
 }
 
+/// 单个消费者待处理页的临时所有权；当前项的处分与未处理尾部的恢复分开记录。
 pub(super) struct PendingDeliveryBatch {
     deliveries: VecDeque<PendingDelivery>,
     current: Option<PendingDelivery>,
@@ -94,6 +95,7 @@ pub(super) struct PendingDeliveryBatch {
 }
 
 impl PendingDeliveryBatch {
+    /// 网关页转为有限的待处理批次，按编码字节上界分摊保留预算。
     pub(super) fn from_page(
         deliveries: Vec<ZrRuntimePluginEventDeliveryV1>,
         encoded_bytes_upper_bound: usize,
@@ -276,6 +278,7 @@ impl Drop for PendingDeliveryBatchRestoreGuard<'_> {
 }
 
 impl EditorRuntimeEventConsumerHost {
+    /// 页必须仍属于同一消费者代际与订阅；预算不足时整页丢弃并计入报告。
     pub(super) fn append_drained_deliveries(
         &self,
         snapshot: &ActiveConsumerSnapshot,
@@ -363,45 +366,5 @@ impl EditorRuntimeEventConsumerHost {
 }
 
 #[cfg(test)]
-mod tests {
-    use zircon_runtime_interface::{
-        ZrRuntimePluginEventDeliveryV1, ZrRuntimePluginEventSubscriptionHandle,
-    };
-
-    use super::{EditorRuntimeEventConsumerDeliveryDisposition, PendingDeliveryBatch};
-
-    #[test]
-    fn page_bytes_are_partitioned_across_pending_deliveries() {
-        let deliveries = (1..=3)
-            .map(|sequence| {
-                ZrRuntimePluginEventDeliveryV1::new(
-                    7,
-                    ZrRuntimePluginEventSubscriptionHandle::new(11),
-                    "tests.events.pending",
-                    "tests.events.pending.v1",
-                    sequence,
-                    serde_json::json!({ "value": sequence }),
-                )
-            })
-            .collect();
-        let mut batch = PendingDeliveryBatch::from_page(deliveries, 10);
-
-        assert_eq!(batch.retained_bytes_upper_bound(), 10);
-        assert_eq!(
-            batch.begin_current().unwrap().retained_bytes_upper_bound(),
-            4
-        );
-        batch.complete_current(EditorRuntimeEventConsumerDeliveryDisposition::Applied);
-        assert_eq!(batch.retained_bytes_upper_bound(), 6);
-        assert_eq!(batch.first_sequence(), Some(2));
-
-        batch.begin_current();
-        batch.retry_current();
-        let retrying = batch.begin_current().unwrap();
-        assert_eq!(
-            retrying.disposition(),
-            Some(EditorRuntimeEventConsumerDeliveryDisposition::Retryable)
-        );
-        assert_eq!(retrying.retry_count(), 1);
-    }
-}
+#[path = "tests/pending.rs"]
+mod tests;

@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 雾体积筛选按原顺序返回借用项，不克隆或物化向量；检查 Rust 用例对身份与耗尽边界的断言。
 
 ROOT = Path(__file__).resolve().parents[2]
 EXTRACT = (
@@ -8,8 +8,7 @@ EXTRACT = (
     / "zircon_runtime/src/core/framework/render/advanced_lighting/extract.rs"
 )
 EXTRACT_TESTS = (
-    ROOT
-    / "zircon_runtime/src/core/framework/render/advanced_lighting/extract/tests.rs"
+    ROOT / "zircon_runtime/src/core/framework/render/advanced_lighting/extract/tests/cases.rs"
 )
 
 

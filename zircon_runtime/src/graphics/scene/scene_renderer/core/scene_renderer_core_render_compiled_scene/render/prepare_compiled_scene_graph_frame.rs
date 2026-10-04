@@ -1,7 +1,6 @@
 use crate::core::framework::render::{
     AntiAliasMode, PostProcessGraphResourceNames, RenderPluginRendererOutputs,
 };
-use crate::graphics::CompiledRenderPipeline;
 use crate::graphics::backend::{
     GpuPassTimer, GpuPipelineStatisticsTimer, OffscreenTarget, ProductDiagnosticQueryFrameScope,
     ProductDiagnosticReadbackFrameScope, RenderBackend,
@@ -16,17 +15,18 @@ use crate::graphics::scene::scene_renderer::history::{
 };
 use crate::graphics::scene::scene_renderer::post_process::SceneRuntimeFeatureFlags;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
+use crate::graphics::CompiledRenderPipeline;
 use zr_rhi_wgpu::WgpuBufferUploadBatch;
 
 use super::super::super::scene_renderer_core::{
     SceneRendererAdvancedPluginReadbacks, SceneRendererCore,
 };
 use super::bind_compiled_scene_graph_resources::{
-    CompiledSceneGraphResourceBindingFlags, bind_compiled_scene_graph_resources,
+    bind_compiled_scene_graph_resources, CompiledSceneGraphResourceBindingFlags,
 };
 use super::final_target_output::FinalTargetOutputSelection;
 use super::frame_lifecycle::{
-    RenderGenerationIds, abort_compiled_scene_graph_resource_frame, abort_realtime_ibl_submission,
+    abort_compiled_scene_graph_resource_frame, abort_realtime_ibl_submission, RenderGenerationIds,
 };
 use super::pipeline_resource_usage::pipeline_writes_resource;
 
@@ -180,6 +180,7 @@ impl SceneRendererCore {
             target,
             &self.post_process,
             self.gpu_scene.light_buffer(),
+            self.gpu_scene.light_buffer_desc(),
             history_textures,
             CompiledSceneGraphResourceBindingFlags {
                 taa_history_enabled,

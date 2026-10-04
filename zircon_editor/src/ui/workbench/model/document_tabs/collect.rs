@@ -21,7 +21,9 @@ pub(super) fn collect_document_tabs(
             collect_document_tabs(second, target, path, chrome, output);
             path.pop();
         }
-        DocumentWorkspaceSnapshot::Tabs { tabs, active_tab } => {
+        DocumentWorkspaceSnapshot::Tabs {
+            tabs, active_tab, ..
+        } => {
             for tab in tabs {
                 output.push(DocumentTabModel {
                     workspace: target.clone(),

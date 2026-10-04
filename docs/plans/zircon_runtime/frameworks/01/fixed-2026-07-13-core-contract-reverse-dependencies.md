@@ -17,11 +17,10 @@ related_code:
   - zircon_runtime/src/core/runtime/module_lifecycle_observer.rs
   - zircon_runtime/src/plugin
   - zircon_runtime/src/scene/runtime_extension
-  - zircon_runtime/src/scene/runtime_hook
   - zircon_runtime/src/scene/navigation.rs
   - zircon_runtime/src/script/vm/host/bridge_host_module.rs
 tests:
-  - python tools/runtime_domain_dependency_audit.py --pretty --output docs/plans/zircon_runtime/frameworks/05/baselines/2026-07-13-runtime-domain-dependencies-production-only.json
+  - python tools/audits/runtime_domain_dependency_audit.py --pretty --output docs/plans/zircon_runtime/frameworks/05/baselines/2026-07-13-runtime-domain-dependencies-production-only.json
   - python -m unittest tools.tests.test_frameworks_05_layer_direction
   - python -m unittest tools.tests.test_frameworks_03_contract_feature_boundary tools.tests.test_frameworks_03_domain_feature_matrix tools.tests.test_frameworks_03_profile_feature_presets tools.tests.test_frameworks_03_server_feature_boundary tools.tests.test_runtime_domain_dependency_audit
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked

@@ -208,7 +208,7 @@ for batch in batches {
 - [x] **M1.1 协议 DTO 与 NotModified 契约.** `world_sync/` 四文件 + serde 往返测试 + `NotModified` 语义单测。
 - [x] **M1.2 世界世代与拆分 inspection 契约.** `World.world_generation` 三咽喉打点；`WorldInspectionHierarchyRow.subtree_hash`；`inspect_hierarchy/inspect_fields` 拆分（`from_world` 改为组合调用）；既有 inspection 消费方迁移。
 - [x] **M1.3 深层 hierarchy 与 malformed-edge 投影硬化.** hierarchy 构建改为显式后序栈，覆盖 5k 深链、cycle/visited edge identity、确定性 hash 与 `E0282/E0277` compile-sync；以 inspection 源码、测试、模块文档和编号产出记录组成精确清单，不把父 M1 其余 pending 范围并入本切片。
-- 测试阶段：`cargo test -p zircon_runtime_interface --locked`、`cargo test -p zircon_runtime --lib scene:: --locked`（世代号单调性/结构变更必递增/拆分入口与组合门面等价断言）；authoring 边界守卫不回归——watch DTO 属会话查询面不入场景序列化，守卫矩阵显式声明。更新 `docs/zircon_runtime/scene/inspection.md`。M1.3 还须以其六文件 exact manifest 复放 native slice lifecycle，且不得据此把整个 M1 标为 completed。
+- 测试阶段：`cargo test -p zircon_runtime_interface --locked`、`cargo test -p zircon_runtime --lib scene:: --locked`（世代号单调性/结构变更必递增/拆分入口与组合门面等价断言）；authoring 边界守卫不回归——watch DTO 属会话查询面不入场景序列化，守卫矩阵显式声明。更新 `docs/crates/zircon_runtime/scene/inspection.md`。M1.3 还须以其六文件 exact manifest 复放 native slice lifecycle，且不得据此把整个 M1 标为 completed。
 
 ### M2 订阅表与编辑器泵
 

@@ -1,15 +1,16 @@
+# 核对载荷操作审计摘要归属与模块行数。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PAYLOAD_SUMMARY = REPO_ROOT / "tools/zircon_export/native_dynamic_payload.py"
+PAYLOAD_SUMMARY = REPO_ROOT / "tools/export/native_dynamic_payload.py"
 PAYLOAD_STAGE_REPORT = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_payload_stage_report.py"
+    / "tools/export/pipeline_report_native_dynamic_payload_stage_report.py"
 )
 PAYLOAD_OPERATION_AUDIT = (
-    REPO_ROOT / "tools/zircon_export/native_dynamic_payload_operation_audit.py"
+    REPO_ROOT / "tools/export/native_dynamic_payload_operation_audit.py"
 )
 
 

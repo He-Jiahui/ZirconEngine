@@ -1,15 +1,16 @@
+# 核对界面绘制缓冲区按代际复用容量，同时保持上传所有权隔离。
 from pathlib import Path
 import unittest
 
-from tools.ui_draw_buffer_reuse_pressure import run
+from tools.analysis.performance.ui.ui_draw_buffer_reuse_pressure import run
 
 
 ROOT = Path(__file__).resolve().parents[2]
 RENDER_PASS = ROOT / (
     "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/render_pass.rs"
 )
-PROFILE_MANIFEST = ROOT / "tools/profile-capture-manifest.ps1"
-PROFILE_GATE = ROOT / "tools/ui-profile-counter-evidence.ps1"
+PROFILE_MANIFEST = ROOT / "tools/analysis/profiling/shared/profile-capture-manifest.ps1"
+PROFILE_GATE = ROOT / "tools/analysis/profiling/ui/ui-profile-counter-evidence.ps1"
 
 
 class UiDrawBufferReusePerformanceContractTests(unittest.TestCase):

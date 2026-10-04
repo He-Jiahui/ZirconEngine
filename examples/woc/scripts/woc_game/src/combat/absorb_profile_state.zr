@@ -22,6 +22,7 @@ closeEnough(actual: float, expected: float): bool {
     return difference <= 0.000001;
 }
 
+// 只重建生成合同的初始预算和时长；失败返回无效资料，不创建或修改世界护盾队列。
 pub resolveAbsorbProfile(abilityIndex: int, rank: int): AbsorbProfile {
     var profile = new AbsorbProfile();
     if (abilityIndex < 0 || abilityIndex >= abilities.count() || rank <= 0 ||
@@ -38,6 +39,7 @@ pub resolveAbsorbProfile(abilityIndex: int, rank: int): AbsorbProfile {
     return profile;
 }
 
+// 校验持久化的剩余状态：允许已耗预算和已过时长，但两者仍须在原始正值范围内。
 pub absorbProfileMatches(
     abilityIndex: int,
     rank: int,

@@ -2,13 +2,13 @@ use std::collections::{BTreeSet, HashMap};
 use std::sync::Arc;
 
 use crate::asset::ProjectAssetManager;
-use crate::text::font::{
-    DEFAULT_UI_FONT_ASSET as DEFAULT_FONT_ASSET, FontCollectionService, FontDatabase,
-    TextDecorationMetrics, TextDecorationMetricsCache, resolve_font_handle_batch_for_collection,
-    shared_font_collection_service,
-};
 #[cfg(test)]
-use crate::text::font::{LoadedTextFontSource, load_text_font_source};
+use crate::text::font::{load_text_font_source, LoadedTextFontSource};
+use crate::text::font::{
+    resolve_font_handle_batch_for_collection, shared_font_collection_service,
+    FontCollectionService, FontDatabase, TextDecorationMetrics, TextDecorationMetricsCache,
+    DEFAULT_UI_FONT_ASSET as DEFAULT_FONT_ASSET,
+};
 use crate::text::sdf::{SdfBakeParams, SdfGenerationScheduler, SdfGlyphGenerationError};
 use crate::text::{
     FontFaceId, FontFamilyName, FontQuery, FontStretch, FontStyle, FontWeight, InstancedFaceId,
@@ -664,5 +664,6 @@ fn glyph_index(
 }
 
 #[cfg(test)]
+#[path = "font_bake/tests/cases.rs"]
 mod tests;
 use async_batch::SdfAsyncGenerationState;

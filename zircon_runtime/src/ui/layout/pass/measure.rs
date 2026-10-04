@@ -36,16 +36,26 @@ fn measure_content_size(
     text_measure_cache: &mut UiTextMeasureCache,
     container_scratch: &mut UiContainerMeasureScratch,
 ) -> UiSize {
-    if !child_desired.is_empty() && metadata_has_inline_widget(metadata) {
-        return measure_leaf_content_size(
-            metadata,
-            tree.node(node_id).map(|node| node.constraints),
-            text_measure_cache,
+    let layout_padding = tree
+        .node(node_id)
+        .map(|node| node.layout_padding)
+        .unwrap_or_default();
+    if !child_desired.is_empty() && metadata_has_inline_widget(metadata, text_measure_cache) {
+        return add_layout_padding(
+            measure_leaf_content_size(
+                metadata,
+                tree.node(node_id).map(|node| node.constraints),
+                text_measure_cache,
+            ),
+            layout_padding,
         );
     }
     if child_desired.is_empty() {
         let constraints = tree.node(node_id).map(|node| node.constraints);
-        return measure_leaf_content_size(metadata, constraints, text_measure_cache);
+        return add_layout_padding(
+            measure_leaf_content_size(metadata, constraints, text_measure_cache),
+            layout_padding,
+        );
     }
 
     let content_size = match container {
@@ -90,9 +100,15 @@ fn measure_content_size(
         UiContainerKind::ScrollableBox(config) => {
             measure_plain_linear_content_size(config.axis, config.gap, child_desired)
         }
-        UiContainerKind::WrapBox(config) => {
-            measure_wrap_content_size(tree, node_id, container, config, child_desired, slot_index)
-        }
+        UiContainerKind::WrapBox(config) => measure_wrap_content_size(
+            tree,
+            node_id,
+            container,
+            config,
+            child_desired,
+            layout_padding,
+            slot_index,
+        ),
         UiContainerKind::GridBox(config) => measure_grid_content_size(
             tree,
             node_id,
@@ -111,7 +127,17 @@ fn measure_content_size(
         ),
     };
 
-    measure_material_content(metadata, content_size).unwrap_or(content_size)
+    add_layout_padding(
+        measure_material_content(metadata, content_size).unwrap_or(content_size),
+        layout_padding,
+    )
+}
+
+fn add_layout_padding(size: UiSize, padding: UiMargin) -> UiSize {
+    UiSize::new(
+        size.width + padding.horizontal().max(0.0),
+        size.height + padding.vertical().max(0.0),
+    )
 }
 
 fn measure_size_box_content_size(content_size: UiSize, aspect_ratio: f32) -> UiSize {
@@ -318,6 +344,7 @@ fn measure_wrap_content_size(
     container: UiContainerKind,
     config: zircon_runtime_interface::ui::layout::UiWrapBoxConfig,
     child_desired: &[(UiNodeId, DesiredSize)],
+    layout_padding: UiMargin,
     slot_index: &UiLayoutSlotIndex,
 ) -> UiSize {
     measure_wrap_content_size_for_width(
@@ -326,9 +353,18 @@ fn measure_wrap_content_size(
         container,
         config,
         child_desired,
-        wrap_measure_width(tree, parent_id),
+        inner_wrap_measure_width(tree, parent_id, layout_padding),
         slot_index,
     )
+}
+
+fn inner_wrap_measure_width(tree: &UiTree, parent_id: UiNodeId, padding: UiMargin) -> f32 {
+    let width = wrap_measure_width(tree, parent_id);
+    if width.is_finite() {
+        (width - padding.horizontal().max(0.0)).max(0.0)
+    } else {
+        width
+    }
 }
 
 fn measure_grid_content_size(
@@ -576,4 +612,5 @@ fn slot_padding_for(
 }
 
 #[cfg(test)]
+#[path = "measure/tests/cases.rs"]
 mod tests;

@@ -14,6 +14,10 @@ use super::change_journal::{
 };
 use super::primitive::RenderScenePrimitive;
 
+mod delta_transaction;
+
+pub(crate) use delta_transaction::RenderSceneDeltaTransactionError;
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct RenderSceneGeneration(u64);
 
@@ -228,140 +232,31 @@ impl RenderScene {
 
     pub(crate) fn apply_delta(
         &mut self,
-        mut delta: RenderSceneDelta,
+        delta: RenderSceneDelta,
     ) -> Result<RenderSceneChangeJournal, RenderSceneApplyError> {
-        delta
-            .upserts
-            .sort_by_key(RenderScenePrimitive::stable_instance_key);
-        delta.removals.sort_unstable();
-        validate_delta_keys(&delta)?;
-        let input_upsert_count = delta.upserts.len();
-        let input_removal_count = delta.removals.len();
+        delta_transaction::apply(self, delta)
+    }
 
-        let removals = delta
-            .removals
-            .iter()
-            .filter_map(|stable_instance_key| {
-                self.stable_key_to_handle
-                    .get(stable_instance_key)
-                    .copied()
-                    .map(|handle| (*stable_instance_key, handle))
-            })
-            .collect::<Vec<_>>();
-        for (stable_instance_key, handle) in &removals {
-            if self.primitive_for_handle(*handle).is_none() {
-                return Err(RenderSceneApplyError::InvalidLiveHandle {
-                    stable_instance_key: *stable_instance_key,
-                });
-            }
-        }
-        let mut updates = Vec::new();
-        let mut additions = Vec::new();
-        let mut primitive_comparison_count = 0;
-        let mut dirty_domain_counts = RenderSceneDirtyDomainCounts::default();
+    pub(crate) fn apply_delta_with_staging<StageOutput, StageError>(
+        &mut self,
+        delta: RenderSceneDelta,
+        stage: impl FnOnce(
+            &[super::resource_dependencies::RenderSceneResourceReferenceDelta],
+        ) -> Result<StageOutput, StageError>,
+    ) -> Result<(RenderSceneChangeJournal, StageOutput), RenderSceneDeltaTransactionError<StageError>>
+    {
+        delta_transaction::apply_with_staging(self, delta, stage)
+    }
 
-        for primitive in delta.upserts {
-            let stable_instance_key = primitive.stable_instance_key();
-            let Some(handle) = self.stable_key_to_handle.get(&stable_instance_key).copied() else {
-                additions.push(primitive);
-                continue;
-            };
-            let previous = self.primitive_for_handle(handle).ok_or(
-                RenderSceneApplyError::InvalidLiveHandle {
-                    stable_instance_key,
-                },
-            )?;
-            let previous_node_id = previous.descriptor().node_id;
-            let incoming_node_id = primitive.descriptor().node_id;
-            if previous_node_id != incoming_node_id {
-                return Err(RenderSceneApplyError::StableKeyOwnerChanged {
-                    stable_instance_key,
-                    previous_node_id,
-                    incoming_node_id,
-                });
-            }
-            primitive_comparison_count += 1;
-            let dirty = primitive.dirty_from(previous);
-            if !dirty.is_empty() {
-                dirty_domain_counts.record(dirty);
-                updates.push(PlannedUpdate {
-                    handle,
-                    dirty,
-                    primitive,
-                });
-            }
-        }
-
-        if removals.is_empty() && updates.is_empty() && additions.is_empty() {
-            return Ok(RenderSceneChangeJournal::empty(
-                self.world,
-                self.generation,
-                RenderSceneApplyStats::new(
-                    input_upsert_count,
-                    input_removal_count,
-                    input_upsert_count.saturating_add(input_removal_count),
-                    primitive_comparison_count,
-                    dirty_domain_counts,
-                    0,
-                    0,
-                    0,
-                )
-                .with_storage_stats(self.storage_stats()),
-            ));
-        }
-
-        let next_generation = self
-            .generation
-            .next()
-            .ok_or(RenderSceneApplyError::GenerationExhausted)?;
-        let addition_handles = self.plan_addition_handles(&removals, additions.len())?;
-        let reused_handle_slot_count = addition_handles
-            .iter()
-            .filter(|handle| (handle.slot as usize) < self.handle_slots.len())
-            .count();
-        let appended_handle_slot_count = addition_handles
-            .len()
-            .saturating_sub(reused_handle_slot_count);
-        let from_generation = self.generation;
-
-        let removed = removals
-            .into_iter()
-            .filter_map(|(_, handle)| self.remove_primitive(handle))
-            .collect::<Vec<_>>();
-        let updated = updates
-            .into_iter()
-            .filter_map(|update| self.install_update(update))
-            .collect::<Vec<_>>();
-        let added = additions
-            .into_iter()
-            .zip(addition_handles)
-            .map(|(primitive, handle)| self.install_addition(handle, primitive))
-            .collect::<Vec<_>>();
-        let dense_relocation_count = removed
-            .iter()
-            .filter(|removal| removal.relocation().is_some())
-            .count();
-
-        self.generation = next_generation;
-        Ok(RenderSceneChangeJournal::new(
-            self.world,
-            from_generation,
-            next_generation,
-            removed,
-            updated,
-            added,
-            RenderSceneApplyStats::new(
-                input_upsert_count,
-                input_removal_count,
-                input_upsert_count.saturating_add(input_removal_count),
-                primitive_comparison_count,
-                dirty_domain_counts,
-                reused_handle_slot_count,
-                appended_handle_slot_count,
-                dense_relocation_count,
-            )
-            .with_storage_stats(self.storage_stats()),
-        ))
+    pub(super) fn resource_release_deltas(
+        &self,
+    ) -> Vec<super::resource_dependencies::RenderSceneResourceReferenceDelta> {
+        super::resource_dependencies::build_resource_reference_deltas(
+            self.primitives.iter().map(Arc::as_ref),
+            std::iter::empty(),
+            std::iter::empty(),
+        )
+        .deltas
     }
 
     fn primitive_for_handle(
@@ -478,19 +373,21 @@ impl RenderScene {
         ))
     }
 
-    fn install_update(&mut self, update: PlannedUpdate) -> Option<RenderSceneUpdatedPrimitive> {
-        let dense_index = self
-            .handle_slots
-            .get(update.handle.slot as usize)?
-            .dense_index?;
+    fn install_update(
+        &mut self,
+        handle: RenderScenePrimitiveHandle,
+        dirty: RenderScenePrimitiveDirtyFlags,
+        primitive: RenderScenePrimitive,
+    ) -> Option<RenderSceneUpdatedPrimitive> {
+        let dense_index = self.handle_slots.get(handle.slot as usize)?.dense_index?;
         let destination = self.primitives.get_mut(dense_index as usize)?;
         let previous_primitive = Arc::clone(destination);
-        let primitive = Arc::new(update.primitive);
+        let primitive = Arc::new(primitive);
         *destination = Arc::clone(&primitive);
         Some(RenderSceneUpdatedPrimitive::new(
-            update.handle,
+            handle,
             dense_index,
-            update.dirty,
+            dirty,
             previous_primitive,
             primitive,
         ))
@@ -520,12 +417,6 @@ impl RenderScene {
             .insert(stable_instance_key, handle);
         RenderSceneAddedPrimitive::new(handle, dense_index, primitive)
     }
-}
-
-struct PlannedUpdate {
-    handle: RenderScenePrimitiveHandle,
-    dirty: RenderScenePrimitiveDirtyFlags,
-    primitive: RenderScenePrimitive,
 }
 
 pub(crate) struct RenderSceneReadView<'scene> {

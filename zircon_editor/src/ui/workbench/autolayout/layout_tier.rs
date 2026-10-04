@@ -160,7 +160,11 @@ pub(crate) fn window_min_width_limit_for_logical_width(logical_width: f32) -> f3
     let defaults = workbench_layout_defaults();
     match workbench_layout_tier_for_logical_width(logical_width) {
         WorkbenchLayoutTier::Ultra => defaults.window_minimums.ultra_min_width,
-        WorkbenchLayoutTier::Narrow | WorkbenchLayoutTier::Regular | WorkbenchLayoutTier::Wide => {
+        // Keep the Narrow floor at the Ultra entry point. A 640 logical-pixel
+        // native floor would otherwise trap the shell above the 480 breakpoint
+        // and make the compact 420 floor unreachable.
+        WorkbenchLayoutTier::Narrow => defaults.breakpoints.ultra_max_width,
+        WorkbenchLayoutTier::Regular | WorkbenchLayoutTier::Wide => {
             defaults.window_minimums.min_width
         }
     }

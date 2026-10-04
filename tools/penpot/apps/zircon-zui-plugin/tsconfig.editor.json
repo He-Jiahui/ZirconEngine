@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.spec.ts", "src/cli.ts"],
+  "compilerOptions": {
+    "outDir": "../../dist/out-tsc/zircon-zui-plugin-editor",
+    "types": []
+  }
+}

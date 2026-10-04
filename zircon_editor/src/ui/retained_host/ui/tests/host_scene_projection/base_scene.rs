@@ -2,7 +2,9 @@ use super::*;
 
 pub(super) fn host_scene() -> host_window::HostWindowSceneData {
     host_window::HostWindowSceneData {
+        document_leaves: Vec::new(),
         layout: host_window::HostWindowLayoutData {
+            authoritative: true,
             center_band_frame: host_frame_rect(0.0, 0.0, 1200.0, 700.0),
             status_bar_frame: host_frame_rect(0.0, 700.0, 1200.0, 24.0),
             left_region_frame: host_frame_rect(0.0, 0.0, 240.0, 700.0),

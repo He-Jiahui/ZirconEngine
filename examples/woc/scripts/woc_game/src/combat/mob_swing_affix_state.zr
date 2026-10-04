@@ -1,3 +1,4 @@
+//! 怪物挥击命中后词缀级联的独立测试投影，按源顺序消耗已配置样本；当前产品世界只接入基础挥击，尚未调用此级联。
 // Stateful M4 projection of the affix cascade after a base mob swing lands.
 // Base miss/dodge, weapon range, crit and damage remain the mob-swing shell's
 // owner; this module consumes only configured affix draws in source order.
@@ -254,6 +255,7 @@ targetIsDisarmed(state: MobSwingAffixState): bool {
     return false;
 }
 
+// 反复触发仍先消耗词缀随机样本，再检查已有缴械光环，维持后续词缀抽样位置。
 applyDisarm(state: MobSwingAffixState): void {
     if (!state.hasDisarm || !state.sourceHostile ||
         state.targetKind != "player" || state.targetDead) {
@@ -322,6 +324,7 @@ applyStun(state: MobSwingAffixState): void {
     );
 }
 
+/// 测试命中后按狂暴、毒、流血、沉默、缴械、治疗吸收、缠绕、眩晕顺序消费词缀。
 pub runLandedAffixes(state: MobSwingAffixState): void {
     // These calls retain their relative positions in the 918-line source cascade.
     applyRampage(state);

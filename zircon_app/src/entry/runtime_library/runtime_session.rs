@@ -12,13 +12,13 @@ use zircon_runtime_interface::project::RelPath;
 use zircon_runtime_interface::runtime_build_set::ZrRuntimeModuleCompositionReceiptV1;
 use zircon_runtime_interface::{
     validate_runtime_frame_rgba_shape, ProfileControlRequest, ProfileControlResponse, ZrByteSlice,
-    ZrOwnedResultV2, ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1,
-    ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
-    ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventDeliveryV1,
-    ZrRuntimePluginEventSubscribeRequestV1, ZrRuntimePluginEventSubscriptionHandle,
-    ZrRuntimeSessionConfigV3, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
-    ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
-    ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_ABI_VERSION_V3,
+    ZrOwnedResultV2, ZrRuntimeAppSessionConfigurationV2, ZrRuntimeBindViewportSurfaceRequestV1,
+    ZrRuntimeEventV1, ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2,
+    ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1, ZrRuntimePluginEventDeliveryBatchV1,
+    ZrRuntimePluginEventDeliveryV1, ZrRuntimePluginEventSubscribeRequestV1,
+    ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionConfigV3, ZrRuntimeSessionHandle,
+    ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_ABI_VERSION_V3,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1,
     ZR_RUNTIME_PLUGIN_EVENT_SUBSCRIBE_REQUEST_LIMIT_V1, ZR_RUNTIME_PROFILE_REQUEST_LIMIT_V1,
@@ -26,7 +26,8 @@ use zircon_runtime_interface::{
 };
 
 use super::{
-    LoadedRuntime, RuntimeLibraryError, RuntimeSessionTeardownFailureState, RuntimeWakeRegistration,
+    LoadedRuntime, RuntimeLibraryError, RuntimeSessionCreateFailure,
+    RuntimeSessionTeardownFailureState, RuntimeWakeRegistration,
 };
 
 mod foreign_output;
@@ -51,6 +52,7 @@ use request_encoding::encode_runtime_request;
 
 pub(crate) struct RuntimeSession {
     runtime: Option<LoadedRuntime>,
+    creator_thread: std::thread::ThreadId,
     handle: ZrRuntimeSessionHandle,
     module_composition_receipt: Option<ZrRuntimeModuleCompositionReceiptV1>,
     wake_registration: Option<RuntimeWakeRegistration>,
@@ -60,6 +62,9 @@ pub(crate) struct RuntimeSession {
 }
 
 impl RuntimeSession {
+    pub(in crate::entry) fn creator_thread(&self) -> std::thread::ThreadId {
+        self.creator_thread
+    }
     #[cfg(feature = "target-editor-host")]
     pub(crate) fn editor_gateway(
         self: &Arc<Self>,
@@ -90,7 +95,7 @@ impl RuntimeSession {
     pub(crate) fn create_with_profile(
         runtime: LoadedRuntime,
         profile: &'static [u8],
-    ) -> Result<Self, RuntimeLibraryError> {
+    ) -> Result<Self, RuntimeSessionCreateFailure> {
         Self::create_with_profile_and_project(runtime, profile, None, None, None, None)
     }
 
@@ -101,10 +106,12 @@ impl RuntimeSession {
         play_scene: Option<&RelPath>,
         play_report_pipe: Option<&str>,
         wake_registration: Option<RuntimeWakeRegistration>,
-    ) -> Result<Self, RuntimeLibraryError> {
+    ) -> Result<Self, RuntimeSessionCreateFailure> {
+        RuntimeSessionCreateFailure::ensure_available()?;
         let create_session = runtime.create_session();
         let mut handle = ZrRuntimeSessionHandle::invalid();
-        let project_root = project_root_for_abi(project_root)?;
+        let project_root =
+            project_root_for_abi(project_root).map_err(RuntimeSessionCreateFailure::from)?;
         let project_root = project_root
             .filter(|root| !root.is_empty())
             .map(|root| ZrByteSlice {
@@ -124,6 +131,7 @@ impl RuntimeSession {
                 len: pipe.len(),
             })
             .unwrap_or_else(ZrByteSlice::empty);
+        eprintln!("mvp_play_boundary app_runtime_create_ffi_entered");
         let status = unsafe {
             create_session(
                 ZrRuntimeSessionConfigV3 {
@@ -140,14 +148,16 @@ impl RuntimeSession {
                 &mut handle,
             )
         };
+        eprintln!("mvp_play_boundary app_runtime_create_ffi_returned");
         ensure_status(status, "create runtime session")?;
         if !handle.is_valid() {
-            return Err(RuntimeLibraryError::new(
-                "runtime returned an invalid session handle",
-            ));
+            return Err(
+                RuntimeLibraryError::new("runtime returned an invalid session handle").into(),
+            );
         }
         let mut session = Self {
             runtime: Some(runtime),
+            creator_thread: std::thread::current().id(),
             handle,
             module_composition_receipt: None,
             wake_registration,
@@ -155,7 +165,12 @@ impl RuntimeSession {
             teardown_failure_state: RuntimeSessionTeardownFailureState::default(),
             foreign_output: Arc::new(ForeignOutputState::default()),
         };
-        let receipt = module_composition_receipt::query(&session, profile)?;
+        eprintln!("mvp_play_boundary app_runtime_receipt_query_entered");
+        let receipt = match module_composition_receipt::query(&session, profile) {
+            Ok(receipt) => receipt,
+            Err(error) => return Err(RuntimeSessionCreateFailure::retained(error, session)),
+        };
+        eprintln!("mvp_play_boundary app_runtime_receipt_query_returned");
         session.module_composition_receipt = Some(receipt);
         Ok(session)
     }
@@ -183,9 +198,13 @@ impl RuntimeSession {
         if let Some(diagnostic) = self.foreign_output.diagnostic_line() {
             write_log("runtime_foreign_output", diagnostic);
         }
+        write_log("runtime_session", "teardown_surface_release_start");
         self.release_bound_viewport_surfaces_for_teardown();
+        write_log("runtime_session", "teardown_surface_release_done");
         let destroy_session = self.runtime().destroy_session();
+        write_log("runtime_session", "teardown_destroy_start");
         let destroy_status = unsafe { destroy_session(self.handle) };
+        write_log("runtime_session", "teardown_destroy_done");
         ensure_status(destroy_status, "destroy runtime session")?;
         if let Some(wake_registration) = &mut self.wake_registration {
             wake_registration.unregister();
@@ -195,6 +214,18 @@ impl RuntimeSession {
         Ok(())
     }
 
+    /// Releases a terminal session before its host drops a borrowed native resource.
+    ///
+    /// A failed destroy retains the handle and library; returning would let the host invalidate
+    /// resources still borrowed by that provider, so it uses the same fatal boundary as `Drop`.
+    pub(in crate::entry) fn destroy_for_host_resource_release(&mut self) {
+        if let Err(error) = self.try_destroy() {
+            let detail = error.to_string();
+            self.teardown_failure_state.record(error);
+            abort_after_runtime_session_teardown_failure(&detail);
+        }
+    }
+
     fn runtime(&self) -> &LoadedRuntime {
         self.runtime
             .as_ref()
@@ -202,10 +233,44 @@ impl RuntimeSession {
     }
 
     fn output_releaser(&self) -> RuntimeOwnedOutputReleaser {
-        RuntimeOwnedOutputReleaser::new(self.handle, self.runtime().release_allocation())
+        // RuntimeSession retains LoadedRuntime and the session handle for every releaser use.
+        unsafe { RuntimeOwnedOutputReleaser::new(self.handle, self.runtime().release_allocation()) }
+    }
+
+    /// Negotiates the public AppSession V2 descriptor before the first native state-10 event.
+    /// The loader owns the standalone symbol, so an older runtime fails explicitly instead of
+    /// inferring support from the preserved V8 table or V1 session ABI.
+    pub(crate) fn configure_app_session(
+        &self,
+        configuration: ZrRuntimeAppSessionConfigurationV2,
+    ) -> Result<(), RuntimeLibraryError> {
+        self.foreign_output
+            .ensure_session_available("configure runtime AppSession V2")?;
+        let Some(configure) = self.runtime().configure_app_session() else {
+            return Err(RuntimeLibraryError::new(
+                "runtime AppSession V2 configuration capability was requested but the versioned entry point is missing",
+            ));
+        };
+        ensure_status(
+            unsafe { configure(self.handle, configuration) },
+            "configure runtime AppSession V2",
+        )
+    }
+
+    /// Reports whether this loaded runtime exposes the optional AppSession V2 operation. The
+    /// absence of the standalone symbol leaves the existing Winit V1 text/cursor path available;
+    /// callers that explicitly request native V2 still use `configure_app_session` and receive a
+    /// hard error when the operation is unavailable.
+    pub(crate) fn supports_app_session_configuration(&self) -> bool {
+        self.runtime().configure_app_session().is_some()
     }
 
     pub(crate) fn handle_event(&self, event: ZrRuntimeEventV1) -> Result<(), RuntimeLibraryError> {
+        if !self.handle.is_valid() {
+            return Err(RuntimeLibraryError::new(
+                "cannot send runtime event after session destruction",
+            ));
+        }
         self.foreign_output
             .ensure_session_available("send runtime event")?;
         let handle_event = self.runtime().handle_event();
@@ -230,20 +295,25 @@ impl RuntimeSession {
                 &mut frame,
             )
         };
-        frame.rgba = self.foreign_output.ensure_call_succeeded(
-            status,
-            frame.rgba,
-            releaser,
-            ForeignOutputKind::SessionProtocol,
-            "capture runtime frame",
-            "free runtime frame output after failed capture",
-        )?;
-        frame.rgba = match validate_owned_result_releasing_on_error(
-            frame.rgba,
-            releaser,
-            "capture runtime frame",
-            "free runtime frame output after invalid capture",
-        ) {
+        // The frame and status were produced above by this session's retained runtime provider.
+        frame.rgba = unsafe {
+            self.foreign_output.ensure_call_succeeded(
+                status,
+                frame.rgba,
+                releaser,
+                ForeignOutputKind::SessionProtocol,
+                "capture runtime frame",
+                "free runtime frame output after failed capture",
+            )?
+        };
+        frame.rgba = match unsafe {
+            validate_owned_result_releasing_on_error(
+                frame.rgba,
+                releaser,
+                "capture runtime frame",
+                "free runtime frame output after invalid capture",
+            )
+        } {
             Ok(output) => output,
             Err(error) => {
                 return self
@@ -252,7 +322,9 @@ impl RuntimeSession {
                     .map_err(Into::into);
             }
         };
-        if let Err(error) = validate_runtime_frame_releasing_on_error(&mut frame, releaser) {
+        if let Err(error) =
+            unsafe { validate_runtime_frame_releasing_on_error(&mut frame, releaser) }
+        {
             return self
                 .foreign_output
                 .reject_protocol(ForeignOutputKind::SessionProtocol, error)
@@ -289,6 +361,9 @@ impl RuntimeSession {
         &self,
         viewport: ZrRuntimeViewportHandle,
     ) -> Result<bool, RuntimeLibraryError> {
+        if !self.handle.is_valid() {
+            return Ok(false);
+        }
         self.foreign_output
             .ensure_session_available("unbind runtime viewport surface")?;
         self.unbind_viewport_surface_for_teardown(viewport)
@@ -303,7 +378,9 @@ impl RuntimeSession {
         };
         let Some(unbind) = self.runtime().unbind_viewport_surface() else {
             self.finish_viewport_surface_release(operation, false);
-            return Ok(false);
+            return Err(RuntimeLibraryError::capability_unavailable(
+                "runtime cannot release its registered viewport surface: unbind export is missing",
+            ));
         };
         let result = ensure_status(
             unsafe { unbind(self.handle, viewport) },
@@ -378,32 +455,36 @@ impl RuntimeSession {
         let releaser = self.output_releaser();
         let mut output = ZrOwnedResultV2::empty();
         let status = unsafe { drain_host_requests(self.handle, &mut output) };
-        output = self.foreign_output.ensure_call_succeeded(
-            status,
-            output,
-            releaser,
-            ForeignOutputKind::HostRequests,
-            "drain runtime host requests",
-            "free runtime host requests",
-        )?;
-        let batch = self
-            .foreign_output
-            .decode_json::<ZrRuntimeHostRequestBatchV1, _>(
+        // The status and output were produced above by this session's retained runtime provider.
+        output = unsafe {
+            self.foreign_output.ensure_call_succeeded(
+                status,
                 output,
                 releaser,
                 ForeignOutputKind::HostRequests,
-                HOST_REQUEST_OUTPUT_BUDGET,
-                "decode runtime host requests",
+                "drain runtime host requests",
                 "free runtime host requests",
-                |batch| {
-                    if batch.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
-                        return Err(RuntimeLibraryError::new(
-                            "runtime host request batch used an unsupported ABI version",
-                        ));
-                    }
-                    Ok(batch.requests.len())
-                },
-            )?;
+            )?
+        };
+        let batch = unsafe {
+            self.foreign_output
+                .decode_json::<ZrRuntimeHostRequestBatchV1, _>(
+                    output,
+                    releaser,
+                    ForeignOutputKind::HostRequests,
+                    HOST_REQUEST_OUTPUT_BUDGET,
+                    "decode runtime host requests",
+                    "free runtime host requests",
+                    |batch| {
+                        if batch.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
+                            return Err(RuntimeLibraryError::new(
+                                "runtime host request batch used an unsupported ABI version",
+                            ));
+                        }
+                        Ok(batch.requests.len())
+                    },
+                )?
+        };
         Ok(batch.map(|batch| batch.requests).unwrap_or_default())
     }
 
@@ -434,25 +515,29 @@ impl RuntimeSession {
                 &mut output,
             )
         };
-        output = self.foreign_output.ensure_call_succeeded(
-            status,
-            output,
-            releaser,
-            ForeignOutputKind::ProfileResponse,
-            "control runtime profiling",
-            "free runtime profile response",
-        )?;
-        Ok(self
-            .foreign_output
-            .decode_json::<ProfileControlResponse, &'static str>(
+        // The status and output were produced above by this session's retained runtime provider.
+        output = unsafe {
+            self.foreign_output.ensure_call_succeeded(
+                status,
                 output,
                 releaser,
                 ForeignOutputKind::ProfileResponse,
-                PROFILE_RESPONSE_OUTPUT_BUDGET,
-                "decode runtime profile response",
+                "control runtime profiling",
                 "free runtime profile response",
-                |response| Ok(profile_control_response_item_count(response)),
-            )?)
+            )?
+        };
+        Ok(unsafe {
+            self.foreign_output
+                .decode_json::<ProfileControlResponse, &'static str>(
+                    output,
+                    releaser,
+                    ForeignOutputKind::ProfileResponse,
+                    PROFILE_RESPONSE_OUTPUT_BUDGET,
+                    "decode runtime profile response",
+                    "free runtime profile response",
+                    |response| Ok(profile_control_response_item_count(response)),
+                )?
+        })
     }
 
     pub(crate) fn supports_viewport_surface_present(&self) -> bool {
@@ -529,28 +614,32 @@ impl RuntimeSession {
         let releaser = self.output_releaser();
         let mut output = ZrOwnedResultV2::empty();
         let status = unsafe { drain(self.handle, subscription, &mut output) };
-        output = self.foreign_output.ensure_call_succeeded(
-            status,
-            output,
-            releaser,
-            ForeignOutputKind::PluginEvents,
-            "drain runtime plugin events",
-            "free runtime plugin events",
-        )?;
-        let batch = self
-            .foreign_output
-            .decode_json::<ZrRuntimePluginEventDeliveryBatchV1, RuntimeLibraryError>(
+        // The status and output were produced above by this session's retained runtime provider.
+        output = unsafe {
+            self.foreign_output.ensure_call_succeeded(
+                status,
                 output,
                 releaser,
                 ForeignOutputKind::PluginEvents,
-                PLUGIN_EVENT_OUTPUT_BUDGET,
-                "decode runtime plugin events",
+                "drain runtime plugin events",
                 "free runtime plugin events",
-                |batch| {
-                    validate_plugin_event_batch(&batch, subscription)?;
-                    Ok::<usize, RuntimeLibraryError>(batch.deliveries.len())
-                },
-            )?;
+            )?
+        };
+        let batch = unsafe {
+            self.foreign_output
+                .decode_json::<ZrRuntimePluginEventDeliveryBatchV1, RuntimeLibraryError>(
+                    output,
+                    releaser,
+                    ForeignOutputKind::PluginEvents,
+                    PLUGIN_EVENT_OUTPUT_BUDGET,
+                    "decode runtime plugin events",
+                    "free runtime plugin events",
+                    |batch| {
+                        validate_plugin_event_batch(&batch, subscription)?;
+                        Ok::<usize, RuntimeLibraryError>(batch.deliveries.len())
+                    },
+                )?
+        };
         Ok(batch.map(|batch| batch.deliveries).unwrap_or_default())
     }
 }
@@ -608,7 +697,9 @@ impl RuntimeFrame<'_> {
 impl Drop for RuntimeFrame<'_> {
     fn drop(&mut self) {
         let output = std::mem::replace(&mut self.frame.rgba, ZrOwnedResultV2::empty());
-        if let Err(error) = release_owned_result(output, self.releaser, "free runtime frame buffer")
+        // RuntimeFrame's session borrow keeps the provider and originating session alive.
+        if let Err(error) =
+            unsafe { release_owned_result(output, self.releaser, "free runtime frame buffer") }
         {
             if let Err(protocol_error) = self
                 .foreign_output
@@ -675,18 +766,23 @@ fn validate_runtime_frame(frame: &ZrRuntimeFrameV2) -> Result<(), RuntimeLibrary
         .map_err(|error| RuntimeLibraryError::new(error.to_string()))
 }
 
-fn validate_runtime_frame_releasing_on_error(
+/// # Safety
+///
+/// The frame output must originate from the live session bound to `releaser`.
+unsafe fn validate_runtime_frame_releasing_on_error(
     frame: &mut ZrRuntimeFrameV2,
     releaser: RuntimeOwnedOutputReleaser,
 ) -> Result<(), RuntimeLibraryError> {
     match validate_runtime_frame(frame) {
         Ok(()) => Ok(()),
-        Err(error) => release_owned_result_after_error(
-            std::mem::replace(&mut frame.rgba, ZrOwnedResultV2::empty()),
-            releaser,
-            error,
-            "free runtime frame output after invalid capture",
-        ),
+        Err(error) => unsafe {
+            release_owned_result_after_error(
+                std::mem::replace(&mut frame.rgba, ZrOwnedResultV2::empty()),
+                releaser,
+                error,
+                "free runtime frame output after invalid capture",
+            )
+        },
     }
 }
 
@@ -730,4 +826,5 @@ fn validate_plugin_event_encoded_len(encoded_len: usize) -> Result<(), RuntimeLi
 }
 
 #[cfg(test)]
+#[path = "runtime_session/tests/cases.rs"]
 mod tests;

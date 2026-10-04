@@ -1,3 +1,6 @@
+//! 将 UI 资源声明映射到运行时资源注册表；渲染消费还需另行取得实际资源内容。
+//! 热重载按主 URI 或回退 URI 驱逐缓存，同时保留已有诊断下标的有效性。
+
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::core::resource::{
@@ -9,6 +12,7 @@ use zircon_runtime_interface::ui::template::{
     UiResourceDiagnosticSeverity, UiResourceFallbackMode, UiResourceKind, UiResourceRef,
 };
 
+/// 供资源报告区分 URI 无效、注册缺失与种类不匹配，便于作者定位回退失败阶段。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UiResourceResolveDiagnosticCode {
     InvalidUri,
@@ -26,6 +30,7 @@ pub struct UiResourceResolveDiagnostic {
     pub message: String,
 }
 
+/// 一批热重载 URI 的缓存驱逐回执；诊断保留数反映历史记录，不表示剩余故障数。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct UiResourceResolverCacheInvalidationReport {
     pub requested_uris: Vec<String>,
@@ -33,6 +38,8 @@ pub struct UiResourceResolverCacheInvalidationReport {
     pub diagnostics_retained: usize,
 }
 
+/// 宿主将 UI 的 asset/project 命名空间接到运行时 scheme 或指定 package。
+/// 缺省不映射这两个命名空间，避免把作者资源路径猜成运行时已注册资源。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct UiResourceResolverSchemeMap {
     pub asset_scheme: Option<ResourceScheme>,
@@ -96,6 +103,7 @@ pub struct UiResourceResolver {
 }
 
 impl UiResourceResolver {
+    /// 与宿主共享已有资源管理器；此层只查注册记录，不触发资源加载。
     pub fn new(resource_manager: ResourceManager) -> Self {
         Self {
             resource_manager,
@@ -105,6 +113,8 @@ impl UiResourceResolver {
         }
     }
 
+    // TODO: [CR-UI-TEMPLATE-RSC-0001] 确认更换映射是否仅允许首次解析前调用；缓存键未含映射且此处不清缓存；下一步补充已缓存引用更换映射的契约测试。
+    /// 配置宿主命名空间映射；在已有解析结果时使用应先清理缓存。
     pub fn with_scheme_map(mut self, scheme_map: UiResourceResolverSchemeMap) -> Self {
         self.scheme_map = scheme_map;
         self
@@ -114,6 +124,8 @@ impl UiResourceResolver {
         &self.scheme_map
     }
 
+    /// 按包含类型与回退策略的完整引用缓存结果；注册表变化后须由宿主显式失效。
+    /// 失败返回可显示的占位项和诊断，不保证句柄背后的资源已加载。
     pub fn resolve(&mut self, reference: &UiResourceRef) -> UiResolvedUiResource {
         if let Some(resolved) = self.cache.get(reference) {
             return resolved.clone();
@@ -132,10 +144,13 @@ impl UiResourceResolver {
         self.cache.len()
     }
 
+    /// 清理解析结果但保留诊断历史，避免已发出的占位下标失效。
     pub fn clear_cache(&mut self) {
         self.cache.clear();
     }
 
+    /// 为热重载驱逐受主资源或回退资源影响的引用；接受作者 URI 或映射后的运行时 URI。
+    /// 请求 URI 会去空白并按首次出现去重，诊断历史继续由当前解析器持有。
     pub fn invalidate_uris<I, S>(&mut self, uris: I) -> UiResourceResolverCacheInvalidationReport
     where
         I: IntoIterator<Item = S>,
@@ -164,6 +179,7 @@ impl UiResourceResolver {
         }
     }
 
+    // 回退成功仍是占位结果：主资源缺失应持续对作者可见，而非被成功回退掩盖。
     fn resolve_uncached(&mut self, reference: &UiResourceRef) -> UiResolvedUiResource {
         match self.resolve_uri(&reference.uri, reference.kind) {
             Ok(handle) => UiResolvedUiResource::Handle {
@@ -279,6 +295,7 @@ impl UiResourceResolver {
         )
     }
 
+    // 诊断只追加；结果中保存的位置因此在后续解析与缓存驱逐后仍有效。
     fn push_diagnostic(
         &mut self,
         code: UiResourceResolveDiagnosticCode,
@@ -363,6 +380,7 @@ enum UiResourceLookupError {
     ResourceLocator(#[from] ResourceLocatorError),
 }
 
+// UI 专用命名空间只能通过显式映射进入运行时；其他 URI 交给资源定位器的统一校验。
 fn runtime_lookup_for_ui_uri(
     uri: &str,
     scheme_map: &UiResourceResolverSchemeMap,
@@ -435,5 +453,5 @@ impl Default for UiResourceResolver {
 }
 
 #[cfg(test)]
-#[path = "resolver/hash_invalidation_tests.rs"]
+#[path = "resolver/tests/hash_invalidation_tests.rs"]
 mod hash_invalidation_tests;

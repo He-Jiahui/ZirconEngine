@@ -24,6 +24,7 @@ fn scene_asset_toml_roundtrip_preserves_point_and_spot_lights() {
                     color: [0.4, 0.7, 1.0],
                     intensity: 5.5,
                     range: 11.0,
+                    casts_shadow: true,
                     volumetric: false,
                 }),
                 rect_light: None,
@@ -40,6 +41,7 @@ fn scene_asset_toml_roundtrip_preserves_point_and_spot_lights() {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                components: Vec::new(),
                 script_bindings: Vec::new(),
             },
             SceneEntityAsset {
@@ -67,6 +69,7 @@ fn scene_asset_toml_roundtrip_preserves_point_and_spot_lights() {
                     range: 14.0,
                     inner_angle_radians: 0.2,
                     outer_angle_radians: 0.45,
+                    casts_shadow: true,
                     volumetric: false,
                 }),
                 post_process_volume: None,
@@ -81,6 +84,7 @@ fn scene_asset_toml_roundtrip_preserves_point_and_spot_lights() {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                components: Vec::new(),
                 script_bindings: Vec::new(),
             },
         ],
@@ -92,6 +96,40 @@ fn scene_asset_toml_roundtrip_preserves_point_and_spot_lights() {
     assert_eq!(loaded, scene);
     assert!(document.contains("point_light"));
     assert!(document.contains("spot_light"));
+    assert_eq!(
+        loaded.entities[0]
+            .point_light
+            .as_ref()
+            .map(|light| light.casts_shadow),
+        Some(true)
+    );
+    assert_eq!(
+        loaded.entities[1]
+            .spot_light
+            .as_ref()
+            .map(|light| light.casts_shadow),
+        Some(true)
+    );
+    let legacy_document = document
+        .lines()
+        .filter(|line| !line.trim_start().starts_with("casts_shadow ="))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let legacy_loaded = SceneAsset::from_toml_str(&legacy_document).unwrap();
+    assert!(
+        !legacy_loaded.entities[0]
+            .point_light
+            .as_ref()
+            .unwrap()
+            .casts_shadow
+    );
+    assert!(
+        !legacy_loaded.entities[1]
+            .spot_light
+            .as_ref()
+            .unwrap()
+            .casts_shadow
+    );
 }
 
 #[test]
@@ -129,6 +167,7 @@ fn scene_asset_toml_roundtrip_preserves_ambient_and_rect_lights() {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                components: Vec::new(),
                 script_bindings: Vec::new(),
             },
             SceneEntityAsset {
@@ -149,6 +188,7 @@ fn scene_asset_toml_roundtrip_preserves_ambient_and_rect_lights() {
                     intensity: 80_000.0,
                     range: 16.0,
                     size: [4.0, 2.0],
+                    casts_shadow: false,
                     volumetric: false,
                 }),
                 spot_light: None,
@@ -164,6 +204,7 @@ fn scene_asset_toml_roundtrip_preserves_ambient_and_rect_lights() {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                components: Vec::new(),
                 script_bindings: Vec::new(),
             },
         ],

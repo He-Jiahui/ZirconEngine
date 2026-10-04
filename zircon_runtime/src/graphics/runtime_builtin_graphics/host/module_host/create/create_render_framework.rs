@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use crate::core::CoreHandle;
 use crate::core::framework::render::{
     GeometrySourceDescriptor, RenderFramework, ShadingModelDescriptor,
 };
+use crate::core::CoreHandle;
 use crate::graphics::{GraphicsError, WgpuRenderFramework};
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
@@ -11,9 +11,9 @@ use crate::graphics::{
     VirtualGeometryRuntimeProviderRegistration,
 };
 use crate::plugin::PluginShaderModuleSource;
-use crate::text::font_collection_service_for_core;
+use crate::text::text_runtime_context_for_core;
 
-use crate::asset::{ProjectAssetManagerAccess, project_asset_manager_handle};
+use crate::asset::{project_asset_manager_handle, ProjectAssetManagerAccess};
 
 pub fn create_render_framework_with_render_features(
     core: &CoreHandle,
@@ -34,8 +34,9 @@ pub fn create_render_framework_with_render_features(
         project_asset_manager_handle(core)
             .map_err(|error| GraphicsError::Asset(error.to_string()))?,
     );
-    let font_collection = font_collection_service_for_core(core)
+    let text_context = text_runtime_context_for_core(core)
         .map_err(|error| GraphicsError::RuntimeService(error.to_string()))?;
+    let font_collection = text_context.font_collection();
     Ok(Arc::new(
         WgpuRenderFramework::new_with_plugin_render_extensions_and_solari_and_compute_task_pool(
             asset_manager,

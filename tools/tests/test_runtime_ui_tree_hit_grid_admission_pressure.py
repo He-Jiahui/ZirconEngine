@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.runtime_ui_tree_hit_grid_admission_pressure import (
+from tools.analysis.performance.runtime.runtime_ui_tree_hit_grid_admission_pressure import (
     SourceContractError,
     pressure_report,
     source_binding_report,
@@ -11,8 +11,8 @@ from tools.runtime_ui_tree_hit_grid_admission_pressure import (
 
 
 ROOT = Path(__file__).resolve().parents[2]
-
-
+# 源码绑定验证读取实际 Rust 文件；工作树脏状态由 Git 返回，不能作为稳定的契约前提。
+# BUG: [CR-M15-RUNTIME-PLUGIN-0001] 干净 checkout 的 Git 状态为空，此测试却要求至少四个脏源码项。
 class RuntimeUiTreeHitGridAdmissionPressureTests(unittest.TestCase):
     def test_sequential_paint_order_cursor_removes_quadratic_rescans(self) -> None:
         report = pressure_report(node_count=10_000)
@@ -77,7 +77,7 @@ class RuntimeUiTreeHitGridAdmissionPressureTests(unittest.TestCase):
                 "zircon_runtime/src/ui/tree/hit_test/geometry_patch.rs",
                 "zircon_runtime/src/ui/tree/mod.rs",
                 "zircon_runtime/src/ui/surface/frame_hit_test.rs",
-                "tools/runtime_ui_tree_hit_grid_admission_pressure.py",
+                "tools/analysis/performance/runtime/runtime_ui_tree_hit_grid_admission_pressure.py",
             ):
                 source = ROOT / relative_path
                 target = root / relative_path

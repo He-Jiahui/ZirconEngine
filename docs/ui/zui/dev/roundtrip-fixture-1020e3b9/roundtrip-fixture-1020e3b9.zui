@@ -1,0 +1,66 @@
+[asset]
+kind = "view"
+id = "res://ui/tests/penpot_roundtrip.zui"
+version = 2
+display_name = "Penpot Roundtrip"
+
+[imports]
+widgets = ["res://ui/components/button.zui#RoundtripButton"]
+styles = ["res://ui/theme/editor.zui"]
+resources = [{ kind = "image", uri = "res://images/panel.webp", fallback = { mode = "optional" } }]
+
+[tokens]
+"surface.panel" = "#20242b"
+"space.medium" = 12.0
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalBox"
+control_id = "RoundtripRoot"
+classes = ["roundtrip", "panel"]
+layout = { clip = true, container = { kind = "VerticalBox", gap = 12.0 }, padding = { left = 20.0, right = 20.0, top = 16.0, bottom = 16.0 }, position = { x = 40.0, y = 60.0 }, width = { min = 320.0, preferred = 420.0, max = 560.0, stretch = "Fixed" }, height = { min = 240.0, preferred = 320.0, max = 480.0, stretch = "Fixed" } }
+props = { background_color = "#20242b", border_color = "#59616d", border_width = 1.0, corner_radius = 6.0 }
+events = [{ id = "Roundtrip/Changed", event = "Change", route = "tests.roundtrip.changed" }]
+children = [{ node = "title" }, { node = "actions", slot = { layout = { width = { stretch = "Stretch" } } } }, { node = "virtual_rows" }]
+zircon_extension = { owner = "roundtrip-test", payload = { enabled = true, revision = 7 } }
+
+[nodes.title]
+component = "Label"
+control_id = "RoundtripTitle"
+props = { text = "Roundtrip title", foreground_color = "#f3f5f7", font_size = 18.0, font_weight = 600, text_align = "center", runtime_only = { binding = "$session.title" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 32.0, max = 40.0, stretch = "Fixed" } }
+
+[nodes.actions]
+component = "HorizontalBox"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 36.0, preferred = 40.0, max = 44.0, stretch = "Fixed" } }
+children = [{ node = "cancel" }, { node = "submit" }]
+
+[nodes.cancel]
+component = "RoundtripButton"
+props = { text = "Cancel", button_variant = "outlined" }
+layout = { width = { min = 96.0, preferred = 112.0, max = 160.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "Roundtrip/Cancel", event = "Click", action = { action = "dialog.cancel" } }]
+
+[nodes.submit]
+component = "RoundtripButton"
+props = { text = "Apply", button_variant = "contained" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+events = [{ id = "Roundtrip/Submit", event = "Click", route = "tests.roundtrip.submit" }]
+
+[nodes.virtual_rows]
+component = "VerticalBox"
+repeat = { kind = "virtual_rows", prototype = "row_template", virtual_control_prefix = "RoundtripRow", authored_count = 1, node_path_namespace = "tests" }
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 32.0, max = 160.0, stretch = "Fixed" } }
+children = [{ node = "row_template" }]
+
+[nodes.row_template]
+component = "Label"
+props = { text = "Virtual row prototype" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.detached_template]
+component = "Label"
+props = { text = "Detached template", metadata_only = true }
+layout = { width = { min = 120.0, preferred = 160.0, max = 220.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 32.0, stretch = "Fixed" } }

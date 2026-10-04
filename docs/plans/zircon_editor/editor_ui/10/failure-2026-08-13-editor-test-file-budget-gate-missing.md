@@ -14,8 +14,8 @@ related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/editor_structure_audits/module_convention_boundary.py
   - zircon_editor/src/tests/structure_convention/mod.rs
   - zircon_editor/src/tests/host/retained_window
-  - zircon_editor/src/tests/editing/ui_asset_replay.rs
-  - zircon_editor/src/tests/ui/boundary/template_assets.rs
+  - zircon_editor/src/tests/editing/ui_asset_replay/mod.rs
+  - zircon_editor/src/tests/ui/boundary/template_assets/mod.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/core/editing/engine/transaction.rs
 tests:
@@ -95,7 +95,7 @@ EditorUI10 的 `EditorModuleConventionAudit` 以“`tests` 不属于 production�
 
 ## 功能 Owner 前向路由
 
-下表以当前 `audit_editor_structure.py` 的 48 项输出为准。它在 audit helper 修复前仍把大多数
+下表以 2026-08-13 `audit_editor_structure.py` 的 48 项输出为准。它在 audit helper 修复前仍把大多数
 `src/tests/**` 标为 `editor-tests`；此表按行为域消除该临时分类错误，**不构成完成声明**。每个目标计划
 必须先在自己的子目录建立/更新 `failure-*.md`，在维持功能语义的前提下完成 folder-backed 拆分并回传
 新的审计计数。
@@ -123,8 +123,9 @@ EditorUI10 的 `EditorModuleConventionAudit` 以“`tests` 不属于 production�
 
 ## 修复结果与回传
 
-Open state: `待修复`。本记录仅完成通用 gate 的 RED/GREEN 基础设施建立；48 个测试 owner 与两个生产 owner
-尚未全部拆分，未声明 EditorUI10 M3 或任何下游功能计划通过。
+Open state: `待修复`。本记录仅完成通用 gate 的 RED/GREEN 基础设施建立；2026-09-24 当前审计仍有
+11 个超限测试 owner、3 个超限生产 owner 和 2 组重复测试树。历史 48 项路由表不代表当前债务，
+未声明 EditorUI10 M3 或任何下游功能计划通过。
 
 ## 产出记录与时间
 
@@ -145,3 +146,52 @@ Open state: `待修复`。本记录仅完成通用 gate 的 RED/GREEN 基础设�
 | 2026-08-13 | EditorUI08 shell-window forward repair | `resolving_failure` | `shell_window.rs` 已从 1465 行 flat owner 硬切为窗口生命周期、场景快照、模板绘制、运行时渲染、指针回调 5 个行为模块与唯一 494 行 support；16 个测试逐项保留，定向 `rustfmt` 与 `diff --check` 通过，结构审计当前为 46 个超限测试、0 个豁免。 | 该项须经独立二审；EditorUI08 剩余 19 项，根 failure 仍为 `open`，不得以局部计数下降回传 fixed。 |
 | 2026-08-13 | shell-window independent second review | `completed` | 独立二审 `C/I/M = 0/0/0`：基线 16 个 `#[test]` 和迁移模块映射完整一致（4/2/5/4/1）；旧 flat 文件删除，support 只用 `pub(super)`，无 compatibility mount/re-export，全部新文件低于 800 行。 | 根 failure 仍为 `open`，当前总债务 46 项、0 豁免；EditorUI08 还有 19 项行为 owner 待处理。 |
 | 2026-08-13 | EditorUI08 native-workbench-reference forward repair | `resolving_failure` | `native_workbench_reference.rs` 已从 1204 行 flat owner 硬切为 reference surface、文本/模块输入、下拉指针、下拉键盘、菜单键盘 5 个行为模块与唯一 211 行 support。迁移前 current source 的预存 hit-index 测试被按 25-test 基线完整保留；定向 `rustfmt`/`diff --check` 通过，结构审计当前为 45 个超限测试、0 豁免。 | 独立二审；根 failure 保持 `open`，EditorUI08 剩余 18 项，不能把预存测试或局部计数下降归为全局 fixed。 |
+| 2026-09-24 | current-source gate/index reconciliation | `open / pending_product_gate` | 现行 `audit_editor_structure.py --json` 报告 11 个超限测试、3 个超限生产文件、2 组重复测试树及 0 个超限测试豁免；本地 Python gate 合同 5/5 GREEN。将 active `related_code` 的两个旧 flat 测试文件换为现行 folder-backed `mod.rs`，不修改历史拆分回执。 | 两个新 `mod.rs` 当前均属其他会话的 untracked 源码，不能纳入本 Session 的验收归属；Rust 零容忍断言仍要求计数为零，受管 Cargo 和功能 owner 的完整回归未执行，不能 fixed return。 |
+
+### 2026-09-24 当前剩余超限测试文件
+
+审计输出中的 11 个路径为以下精确后续队列；不以 2026-08-13 的 48 项历史路由表代替当前值，
+也不把其他 owner 的迁移视作本 Session 的已验收修复：
+
+- `zircon_editor/src/core/logging/tests.rs`、`zircon_editor/src/core/play/pending_edits/tests.rs`、`zircon_editor/src/core/play/tests.rs`、`zircon_editor/src/core/project/tests/template_creation.rs`、`zircon_editor/src/core/settings/tests/registry.rs`、`zircon_editor/src/core/sync/pump/tests.rs`；
+- `zircon_editor/src/tests/editing/state/viewport.rs`；
+- `zircon_editor/src/tests/editor_event/runtime/extensions_registration/ticketed_command_revoke.rs`、`zircon_editor/src/tests/editor_event/runtime/registry.rs`；
+- `zircon_editor/src/ui/layouts/views/view_projection/tests.rs`、`zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/tests.rs`。
+
+生产超限 owner 为 `zircon_editor/src/ui/host/project_access.rs`、
+`zircon_editor/src/ui/layouts/views/view_projection/projection_cache.rs` 与
+`zircon_editor/src/ui/retained_host/ui_perf.rs`；另外两组重复测试树涉及
+`zircon_editor/src/tests` 中的 UI performance 与 responsive layout。
+必须由各自功能 owner 维持现行测试语义后完成拆分，再运行受管 Rust 零容忍门。
+
+### 2026-09-27 test-owner 属性识别补充
+
+现行 `is_test_owner` 对专用 `tests.rs` / `*_tests.rs` 逐行匹配属性，仍把多行原始字符串、普通字符串及嵌套块注释中的 `#[test]` / `#[cfg(test)]` 当作真实属性。生产模块因此可能被错归为测试 owner，绕过 1000 行生产预算并进入 800 行测试预算。最低共享层复用现有 Rust 非代码文本屏蔽器，再匹配真实属性；屏蔽器由其他 owner 维护，本次只读依赖其基线版本，不吸收该文件的工作树改动。
+
+新增两项通过公开结构审计的回归：仅含示例属性的超限 `documented_tests.rs` 必须属于生产 owner；示例内容后确有 `#[cfg(test)]` 的 `behavior_tests.rs` 仍属于测试 owner。修复前 7 项 Python 合同中该生产归属回归实际失败 1 项，修复后本地 7/7 通过；技能适配器同步检查 `Drift: 0 file(s)`。现行全量结构审计退出码为 0，但报告仍有 **15 个超限测试 owner、3 个超限生产 owner、2 组重复测试树、0 个测试豁免**，零容忍 Rust gate 仍应保持 RED。15 项是 2026-09-27 工作树快照，不覆盖上方 2026-09-24 的 11 项历史快照。受管 Python 回归、各功能 owner 拆分、受管 Rust 及最终独立审查未完成，本 failure 保持 `open`。
+
+### 2026-09-27 managed classifier result and ui_perf test owner
+
+Stable Session `failure-roll-01a0df1a-editorui10-test-budget-r3` preserves the
+prior classifier snapshot `4193`. Managed Python ticket
+`d639b743583f468b98bf290efffa41ad` executed all seven classifier regressions and
+passed. This is evidence for that unchanged helper and test closure only.
+
+Audited transfer `12dc3d84b2f0052f1dc548c8512b140120010e313310e4677c8a9039d69031ca`
+added only `zircon_editor/src/ui/retained_host/ui_perf.rs` and its new
+`ui_perf/tests.rs` test owner. The parent was clean Git content before editing,
+SHA `fd0f04e4456a3078bc3c865cb8bd386fae9036e2d12e9f714eb8bdb86862399f`.
+Its 626-line production prefix remains byte-identical (SHA
+`40bb244a9c18c982836bae64e1740db1daf1e7aac93964072143b24eccd97efc`). The eight
+inline tests moved into the child with only indentation removed; their exact
+dedented body SHA is `a9797782f9f2c953a05d86b7655dbe6ac712a7f4c18737fe511c038072148637`.
+The same `cfg(all(test, feature = "profiling"))` mount and test identities remain.
+Parent and child now contain 628 and 450 lines respectively.
+
+Scoped rustfmt and diff checks passed; the existing Python classifier suite
+ran seven tests and passed locally. The current full structure audit reports
+15 oversized tests, 2 oversized production files, 2 duplicate test trees and
+zero exemptions. Production debt decreased from three to two; the Rust zero
+tolerance gate must remain red. Managed profiling-enabled execution of the
+eight moved Rust tests, all remaining functional-owner splits and final
+structure acceptance remain pending. This is not a fixed return or closeout.

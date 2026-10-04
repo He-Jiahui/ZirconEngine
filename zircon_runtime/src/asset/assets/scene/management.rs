@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 
 use crate::asset::AssetReference;
 use crate::core::resource::ResourceId;
@@ -169,6 +169,10 @@ pub struct SceneEntityManagementRecordSet {
     pub summary: SceneEntityManagementRecordSetSummary,
 }
 
+#[cfg(test)]
+#[path = "tests/management_optimization_batch_id_runtime614_tests.rs"]
+mod optimization_batch_id_runtime614_tests;
+
 impl SceneAssetManagementRecordSetSummary {
     pub fn from_records(records: &[SceneAssetManagementRecord]) -> Self {
         let mut summary = Self {
@@ -201,7 +205,7 @@ impl SceneAssetManagementRecordSetSummary {
 
 impl SceneEntityManagementRecordSetSummary {
     pub fn from_records(records: &[SceneEntityManagementRecord]) -> Self {
-        let mut scene_ids = BTreeSet::new();
+        let mut scene_ids = HashSet::with_capacity(records.len());
         let mut summary = Self {
             entity_count: records.len(),
             ..Self::default()
@@ -262,6 +266,14 @@ impl SceneAssetManagementRecord {
 }
 
 impl SceneEntityAsset {
+    /// Validates generic component reference markers before any dependency consumer reads
+    /// the row reference table.
+    pub fn validate_direct_references(&self) -> Result<(), String> {
+        self.components
+            .iter()
+            .try_for_each(|component| component.validate_references())
+    }
+
     pub fn direct_references(&self) -> Vec<AssetReference> {
         let mut references = Vec::with_capacity(self.direct_reference_count());
         self.append_direct_references(&mut references);
@@ -274,6 +286,15 @@ impl SceneEntityAsset {
         }
         if let Some(mesh) = &self.mesh {
             references.extend(mesh.direct_references());
+        }
+        for component in &self.components {
+            // This legacy infallible projection is retained for API compatibility.  Callers
+            // that can reject input use `validate_direct_references` first; invalid generic rows
+            // are never appended by this projection.
+            if component.validate_references().is_err() {
+                continue;
+            }
+            references.extend(component.references.iter().cloned());
         }
         if let Some(collider) = &self.collider {
             references.extend(collider.material.iter().cloned());
@@ -312,6 +333,12 @@ impl SceneEntityAsset {
                 .mesh
                 .as_ref()
                 .map_or(0, SceneMeshInstanceAsset::direct_reference_count)
+            + self
+                .components
+                .iter()
+                .filter(|component| component.validate_references().is_ok())
+                .map(|component| component.references.len())
+                .sum::<usize>()
             + usize::from(
                 self.collider
                     .as_ref()

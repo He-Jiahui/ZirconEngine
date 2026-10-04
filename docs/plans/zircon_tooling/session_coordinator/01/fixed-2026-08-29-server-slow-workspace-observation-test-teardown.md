@@ -10,7 +10,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/session_coordinator/tests/test_server.py
 tests:
   - python -u -B -m unittest -q tools.session_coordinator.tests.test_server
   - python -u -B -m unittest -v tools.session_coordinator.tests.test_server.ServerTests.test_foreground_mutation_is_not_blocked_by_slow_workspace_observation

@@ -34,6 +34,7 @@ projectCoordinate(x: float, z: float, coordinate: int, required: bool): float {
     return coordinate == 1 ? px : pz;
 }
 
+// camp 出生坐标的门口避让按 X/Z 成对查询；两次调用都必须传同一个入点以保持投影一致。
 pub projectOutsideDungeonDoorsX(x: float, z: float, required: bool): float {
     return projectCoordinate(x, z, 1, required);
 }

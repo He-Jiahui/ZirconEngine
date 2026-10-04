@@ -4,8 +4,9 @@ use std::sync::Arc;
 
 use crate::asset::{MeshAsset, ModelPrimitiveAsset};
 use crate::core::framework::render::{
-    CastShadowsMode, DisplayMode, RenderMaterialPropertyUniformPayload, RenderMeshLodSelection,
-    RenderMeshSnapshot, RenderMeshStaticState, RendererCommon, render_mesh_stable_instance_key,
+    render_mesh_stable_instance_key, CastShadowsMode, DisplayMode,
+    RenderMaterialPropertyUniformPayload, RenderMeshLodSelection, RenderMeshSnapshot,
+    RenderMeshStaticState, RendererCommon,
 };
 use crate::core::framework::scene::{EntityId, Mobility};
 use crate::core::math::{RenderMat4, Vec4};
@@ -16,8 +17,8 @@ use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPale
 use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::super::super::resources::{
-    GpuMeshResource, PipelineKey, PublishedMaterialDrawProxy, ResourceStreamer,
-    default_pipeline_key,
+    default_pipeline_key, GpuMeshResource, PipelineKey, PublishedMaterialDrawProxy,
+    ResourceStreamer,
 };
 use super::super::super::super::primitives::render_mat4_or;
 use super::super::super::mesh_draw::MeshCommandSortInput;
@@ -32,8 +33,8 @@ use super::morph_payload_upload::morph_payload_from_mesh_asset;
 use super::pending_material_draw::PendingMaterialDraw;
 use super::pending_mesh_draw::{PendingMeshDraw, PendingMeshGeometry, PendingSkinnedGpuSource};
 use super::skinning::{
-    SkinnedMeshPreparedPrimitive, prepare_skinned_mesh_asset_primitive,
-    prepare_skinned_model_primitive,
+    prepare_skinned_mesh_asset_primitive, prepare_skinned_model_primitive,
+    SkinnedMeshPreparedPrimitive,
 };
 
 mod material_inputs;
@@ -67,6 +68,7 @@ fn pipeline_key_with_raster_winding(
     pipeline_key
 }
 
+/// 沿用本视图选定的材质代理扩展一个实例；直接 mesh 不可用时仍可尝试 model，只有实际可构建的 primitive 进入列表。
 pub(super) fn extend_pending_draws_for_mesh_instance(
     pending_draws: &mut Vec<PendingMeshDraw>,
     streamer: &ResourceStreamer,
@@ -397,7 +399,11 @@ fn resource_revision_signature(resource_id: ResourceId, revision: u64) -> u64 {
 
 fn nonzero_hash(hasher: DefaultHasher) -> u64 {
     let signature = hasher.finish();
-    if signature == 0 { 1 } else { signature }
+    if signature == 0 {
+        1
+    } else {
+        signature
+    }
 }
 
 fn next_draw_ordinal(draw_ordinal: &mut u32) -> u32 {
@@ -702,6 +708,7 @@ fn push_dynamic_mesh_draws(
 }
 
 #[cfg(test)]
+#[path = "extend_pending_draws_for_mesh_instance/tests/cases.rs"]
 mod tests;
 
 fn push_prepared_mesh_draws(

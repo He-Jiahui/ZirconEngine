@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use crate::asset::{RGBA8_UNORM_FORMAT, TextureAsset, TexturePayload};
-use crate::core::framework::render::{RenderImageDescriptor, RenderImageDimension};
+use crate::asset::{TextureAsset, TexturePayload, RGBA8_UNORM_FORMAT};
+use crate::core::framework::render::{RenderImageDescriptor, TextureViewKind};
 use crate::core::resource::ResourceId;
 use crate::graphics::types::GraphicsError;
 use zr_rhi::TextureCopyRegion;
@@ -49,15 +49,23 @@ impl PostProcessLutTextureResource {
         }
 
         let descriptor = payload.render_image_descriptor();
+        let shape = descriptor.validated_shape().map_err(|error| {
+            GraphicsError::Asset(format!(
+                "post-process LUT texture {id} has invalid storage/view shape metadata: {error}"
+            ))
+        })?;
+        validate_lut_view_kind(shape.view_kind).map_err(|error| {
+            GraphicsError::Asset(format!("post-process LUT texture {id} {error}"))
+        })?;
         let upload_layout = rgba8_upload_layout(
-            payload.width,
-            payload.height,
-            descriptor.depth_or_array_layers,
+            shape.extent.width,
+            shape.extent.height,
+            shape.extent.depth_or_array_layers,
         )
         .ok_or_else(|| {
             GraphicsError::Asset(format!(
                 "post-process LUT texture {id} extent {}x{}x{} overflows",
-                payload.width, payload.height, descriptor.depth_or_array_layers
+                shape.extent.width, shape.extent.height, shape.extent.depth_or_array_layers
             ))
         })?;
         if payload.rgba.len() < upload_layout.byte_len {
@@ -77,7 +85,7 @@ impl PostProcessLutTextureResource {
             },
             mip_level_count: descriptor.mip_count.max(1),
             sample_count: 1,
-            dimension: wgpu_dimension(descriptor.dimension),
+            dimension: wgpu_dimension(shape.view_kind),
             format: rgba8_wgpu_format(&descriptor),
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
@@ -103,6 +111,18 @@ impl PostProcessLutTextureResource {
             },
             upload_batch: WgpuTextureUploadBatch::from(upload),
         })
+    }
+}
+
+fn validate_lut_view_kind(view_kind: TextureViewKind) -> Result<(), &'static str> {
+    match view_kind {
+        TextureViewKind::D2 | TextureViewKind::D3 => Ok(()),
+        TextureViewKind::D1
+        | TextureViewKind::D2Array
+        | TextureViewKind::Cube
+        | TextureViewKind::CubeArray => {
+            Err("post-process LUT textures must be a 2d strip or 3d volume")
+        }
     }
 }
 
@@ -140,12 +160,14 @@ fn rgba8_upload_layout(
     })
 }
 
-fn wgpu_dimension(dimension: RenderImageDimension) -> wgpu::TextureDimension {
-    match dimension {
-        RenderImageDimension::D1 => wgpu::TextureDimension::D1,
-        RenderImageDimension::D2 => wgpu::TextureDimension::D2,
-        RenderImageDimension::D3 => wgpu::TextureDimension::D3,
-        RenderImageDimension::Cube => wgpu::TextureDimension::D2,
+fn wgpu_dimension(view_kind: TextureViewKind) -> wgpu::TextureDimension {
+    match view_kind {
+        TextureViewKind::D1 => wgpu::TextureDimension::D1,
+        TextureViewKind::D3 => wgpu::TextureDimension::D3,
+        TextureViewKind::D2
+        | TextureViewKind::D2Array
+        | TextureViewKind::Cube
+        | TextureViewKind::CubeArray => wgpu::TextureDimension::D2,
     }
 }
 
@@ -162,36 +184,5 @@ fn rgba8_wgpu_format(descriptor: &RenderImageDescriptor) -> wgpu::TextureFormat 
 }
 
 #[cfg(test)]
-mod tests {
-    use super::rgba8_upload_layout;
-
-    #[test]
-    fn rgba8_upload_layout_describes_one_contiguous_volume_copy() {
-        let layout = rgba8_upload_layout(32, 32, 32).expect("valid LUT upload layout");
-
-        assert_eq!(layout.bytes_per_row, 128);
-        assert_eq!(layout.rows_per_image, 32);
-        assert_eq!(layout.depth_or_array_layers, 32);
-        assert_eq!(layout.byte_len, 131_072);
-    }
-
-    #[test]
-    fn rgba8_upload_layout_rejects_extent_overflow() {
-        assert!(rgba8_upload_layout(u32::MAX, 2, 2).is_none());
-    }
-
-    #[test]
-    fn lut_resource_preparation_has_no_private_queue_write() {
-        let production = include_str!("post_process_lut_texture_resource.rs")
-            .split_once("#[cfg(test)]")
-            .map(|(production, _)| production)
-            .expect("LUT resource test boundary");
-
-        assert!(production.contains("let rgba: Arc<[u8]> = Arc::from("));
-        assert!(production.contains("WgpuTextureUpload::new("));
-        assert!(production.contains(".with_depth_or_array_layers("));
-        assert!(production.contains("WgpuTextureUploadBatch::from(upload)"));
-        assert!(!production.contains("queue.write_texture"));
-        assert!(!production.contains("wgpu::Queue"));
-    }
-}
+#[path = "tests/post_process_lut_texture_resource.rs"]
+mod tests;

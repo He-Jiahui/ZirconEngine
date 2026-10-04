@@ -32,6 +32,7 @@ struct HzbOcclusionBindGroupEntry {
 }
 
 #[derive(Default)]
+/// 绑定组键同时包含采样 HZB 的物理身份和间接绘制资源版本；历史纹理或 compaction workspace 重建后必须产生新键，缓存最多保留 64 项并淘汰最久未用项。
 pub(super) struct HzbOcclusionBindGroupCache {
     entries: HashMap<HzbOcclusionBindGroupKey, HzbOcclusionBindGroupEntry>,
     access_generation: u64,
@@ -57,6 +58,8 @@ impl HzbOcclusionBindGroupCache {
         let key =
             HzbOcclusionBindGroupKey::new(sampled_resource_identity, execution.resource_identity());
         let access_generation = self.next_access_generation();
+        // Keep the cache-hit borrow separate from the eviction and insertion path.
+        // Returning the bind group reference extends that borrow to the caller.
         if self.entries.contains_key(&key) {
             let entry = self
                 .entries
@@ -171,30 +174,9 @@ fn create_bind_group(
 }
 
 #[cfg(test)]
+#[path = "bind_group_cache/tests/hash_lru_tests.rs"]
 mod hash_lru_tests;
 
 #[cfg(test)]
-mod tests {
-    use super::{HzbOcclusionBindGroupKey, MAX_HZB_OCCLUSION_BIND_GROUPS};
-    use crate::graphics::scene::scene_renderer::hzb::HzbSampledResourceIdentity;
-    use crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshIndirectResourceIdentity;
-
-    #[test]
-    fn hzb_bind_group_cache_is_bounded() {
-        assert_eq!(MAX_HZB_OCCLUSION_BIND_GROUPS, 64);
-    }
-
-    #[test]
-    fn hzb_bind_group_key_tracks_sampled_texture_and_indirect_resource_revision() {
-        let sampled_a = HzbSampledResourceIdentity::new();
-        let sampled_b = HzbSampledResourceIdentity::new();
-        let indirect_a = MeshIndirectResourceIdentity::new(7, 1);
-        let indirect_b = MeshIndirectResourceIdentity::new(7, 2);
-
-        let key = HzbOcclusionBindGroupKey::new(sampled_a, indirect_a);
-
-        assert_ne!(key, HzbOcclusionBindGroupKey::new(sampled_b, indirect_a));
-        assert_ne!(key, HzbOcclusionBindGroupKey::new(sampled_a, indirect_b));
-        assert_eq!(key, HzbOcclusionBindGroupKey::new(sampled_a, indirect_a));
-    }
-}
+#[path = "tests/bind_group_cache.rs"]
+mod tests;

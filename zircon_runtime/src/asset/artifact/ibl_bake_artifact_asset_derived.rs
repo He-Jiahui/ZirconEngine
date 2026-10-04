@@ -35,6 +35,7 @@ impl PreparedIblBakeArtifactAssetDerivedWrite {
     }
 }
 
+/// 保存由资产导入器 CPU 烘焙的 IBL 派生块；配对源存在时须通过源/派生/清单事务发布。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct IblBakeArtifactAssetDerivedStore {
     cache_root: PathBuf,
@@ -68,6 +69,7 @@ impl IblBakeArtifactAssetDerivedStore {
         self.asset_derived_path(&request_for_descriptor(descriptor))
     }
 
+    /// 仅允许无配对源的独立派生块写入；已有源文件时必须走 bundle 写入以维持一致性。
     pub fn write_asset_derived_blob(
         &self,
         blob: &IblBakeArtifactBlob,
@@ -136,6 +138,7 @@ impl IblBakeArtifactAssetDerivedStore {
             .map_err(|source| IblBakeArtifactAssetDerivedError::BundlePublication(Box::new(source)))
     }
 
+    /// 按请求解码独立派生块；调用方还需用 bundle 清单确认其与源立方图属同一代。
     pub fn read_asset_derived_artifact(
         &self,
         request: &IblBakeArtifactRequest,
@@ -409,22 +412,5 @@ fn request_for_descriptor(descriptor: IblBakeArtifactDescriptor) -> IblBakeArtif
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn asset_derived_writer_uses_runtime_atomic_publication() {
-        let source = include_str!("ibl_bake_artifact_asset_derived.rs");
-        let writer = source
-            .split("pub fn write_asset_derived_blob(")
-            .nth(1)
-            .and_then(|writer| {
-                writer
-                    .split("pub fn write_source_cubemap_asset_derived_artifact(")
-                    .next()
-            })
-            .expect("asset-derived store must retain its writer");
-
-        assert!(source.contains("core::resource::io::atomic_write"));
-        assert!(writer.contains("atomic_write("));
-        assert!(!writer.contains("fs::write("));
-    }
-}
+#[path = "tests/ibl_bake_artifact_asset_derived.rs"]
+mod tests;

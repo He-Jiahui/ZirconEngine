@@ -11,12 +11,14 @@ class AiEffortNarrowStreamPerformanceContractTests(unittest.TestCase):
         source = inspect.getsource(AiEffortService.report)
 
         self.assertIn(
-            "SELECT active_ai_hours, outcome, blocked_by_json, cost_class", source
+            "SELECT outcome, cost_class, COUNT(*) AS milestone_count,", source
         )
+        self.assertIn("SUM(active_ai_hours) AS active_ai_hours", source)
+        self.assertIn("SELECT active_ai_hours, blocked_by_json", source)
         self.assertIn("ORDER BY recorded_at, ledger_id", source)
         self.assertNotIn("SELECT * FROM ai_effort_milestones", source)
         self.assertNotIn("milestone_rows =", source)
-        self.assertIn("milestone_count += 1", source)
+        self.assertIn('milestone_count += int(row["milestone_count"])', source)
 
 
 if __name__ == "__main__":

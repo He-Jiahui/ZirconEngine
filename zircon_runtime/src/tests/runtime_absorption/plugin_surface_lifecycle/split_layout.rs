@@ -1,3 +1,4 @@
+//! 插件公开面、原生装载命名空间与生命周期回退保持分离。通过源码文本核对父子路由、状态镜像和文件预算。
 const SLICE: &str = "Runtime 15 M3 plugin surface lifecycle guard folder-backed split";
 const STATUS: &str =
     "runtime_15_plugin_surface_lifecycle_guard_folder_backed_static_passed_cargo_deferred";
@@ -111,7 +112,7 @@ fn runtime_15_plugin_surface_lifecycle_guard_is_folder_backed() {
         ),
         (
             "module convention doc",
-            include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md"),
+            include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md"),
         ),
     ] {
         assert_contains_all(label, source, &[SLICE, STATUS, GUARD, CHILD_PATHS[4]]);

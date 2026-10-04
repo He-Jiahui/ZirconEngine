@@ -8,7 +8,7 @@ SOURCE = (
     / "zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/runtime_plugin_descriptor_builder.rs"
 )
 
-
+# 读取实现源码约束精确运行时描述符元数据：元数据连接预分配借用部分，并构造器构建两侧元数据字符串不带格式器。
 class ExactRuntimeDescriptorMetadataPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

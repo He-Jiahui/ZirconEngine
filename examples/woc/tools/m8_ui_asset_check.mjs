@@ -1,3 +1,4 @@
+// 核查手工编写的 ZUI 资源图中的离线欢迎、角色、Realm 选择与认证界面图。
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
@@ -54,6 +55,7 @@ function expect(condition, message) {
   if (!condition) fail(message);
 }
 
+// 图结构与路由检查前，先用 Python tomllib 解析手工编写的 ZUI TOML。
 function parseAssets() {
   const result = spawnSync("python", ["-c", pythonLoader, ...assetPaths], {
     cwd: repoRoot,
@@ -78,6 +80,7 @@ function expectRoutes(node, expected, label) {
   expect(JSON.stringify(actual) === JSON.stringify(expected), `${label} routes ${JSON.stringify(actual)}`);
 }
 
+// 遍历可达节点，拒绝悬空子节点、非法组件和意外事件路由。
 function validateView(document, expectedId) {
   expect(document.asset.kind === "view", `${expectedId} must be a view`);
   expect(document.asset.id === expectedId, `${expectedId} asset id mismatch`);

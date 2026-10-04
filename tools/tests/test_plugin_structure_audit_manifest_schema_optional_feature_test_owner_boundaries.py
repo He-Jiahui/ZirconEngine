@@ -75,7 +75,7 @@ LINE_BUDGETS = {
     OPTIONAL_FEATURE_DISTRIBUTION_TEST: 180,
 }
 
-
+# 检查可选特性模式测试位于专属 owner，并以源码行数预算限制测试职责扩张。
 class PluginStructureAuditManifestSchemaOptionalFeatureTestOwnerBoundaryTests(
     unittest.TestCase
 ):

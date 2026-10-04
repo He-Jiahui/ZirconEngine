@@ -10,8 +10,6 @@ origin_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/tests/test_workspace_copy_terminal_status.py
-  - tools/session_coordinator/workspace_copy_terminal.py
 resolved_at: 2026-08-22
 ---
 

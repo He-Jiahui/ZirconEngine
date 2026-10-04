@@ -1,3 +1,4 @@
+# 核对可写扩展模块紧凑布局保留中心与共享间距。
 import tomllib
 import unittest
 from pathlib import Path

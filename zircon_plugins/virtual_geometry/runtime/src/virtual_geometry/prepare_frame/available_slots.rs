@@ -1,5 +1,6 @@
 use super::super::VirtualGeometryRuntimeState;
 
+/// 在预算剩余额度内先复用空槽，再列出尚未分配的槽位编号。
 pub(super) fn available_slots(state: &VirtualGeometryRuntimeState) -> Vec<u32> {
     let available_slot_capacity = state
         .page_budget()
@@ -13,4 +14,5 @@ pub(super) fn available_slots(state: &VirtualGeometryRuntimeState) -> Vec<u32> {
 }
 
 #[cfg(test)]
+#[path = "available_slots/tests/performance_tests.rs"]
 mod performance_tests;

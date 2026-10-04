@@ -23,23 +23,21 @@ fn autosave_adapter_materializes_a_bounded_fair_window_for_large_dirty_sets() {
     let save_mutex = MutexGroup::parse("save_scene_window").unwrap();
 
     let mut first_window = Vec::new();
-    assert!(
-        adapter
-            .schedule(
-                Duration::from_secs(10),
-                &dirty,
-                |_| 1,
-                |document| {
-                    first_window.push(document.as_str().to_string());
-                    Some(AutosaveDocumentRequest::new(
-                        document.clone(),
-                        AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
-                        source.clone(),
-                    ))
-                },
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule(
+            Duration::from_secs(10),
+            &dirty,
+            |_| 1,
+            |document| {
+                first_window.push(document.as_str().to_string());
+                Some(AutosaveDocumentRequest::new(
+                    document.clone(),
+                    AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
+                    source.clone(),
+                ))
+            },
+        )
+        .unwrap());
     assert_eq!(first_window, ["scene_00000", "scene_00001", "scene_00002"]);
     assert_eq!(
         wait_for_autosave_completion(&mut adapter, Duration::from_secs(11)).succeeded(),
@@ -47,23 +45,21 @@ fn autosave_adapter_materializes_a_bounded_fair_window_for_large_dirty_sets() {
     );
 
     let mut second_window = Vec::new();
-    assert!(
-        adapter
-            .schedule(
-                Duration::from_secs(21),
-                &dirty,
-                |_| 1,
-                |document| {
-                    second_window.push(document.as_str().to_string());
-                    Some(AutosaveDocumentRequest::new(
-                        document.clone(),
-                        AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
-                        source.clone(),
-                    ))
-                },
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule(
+            Duration::from_secs(21),
+            &dirty,
+            |_| 1,
+            |document| {
+                second_window.push(document.as_str().to_string());
+                Some(AutosaveDocumentRequest::new(
+                    document.clone(),
+                    AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
+                    source.clone(),
+                ))
+            },
+        )
+        .unwrap());
     assert_eq!(second_window, ["scene_00003", "scene_00004", "scene_00005"]);
     assert_eq!(
         wait_for_autosave_completion(&mut adapter, Duration::from_secs(22)).succeeded(),
@@ -100,23 +96,21 @@ fn autosave_adapter_applies_the_byte_window_before_request_materialization() {
     let save_mutex = MutexGroup::parse("save_scene_bytes").unwrap();
     let materialized_requests = AtomicUsize::new(0);
 
-    assert!(
-        adapter
-            .schedule(
-                Duration::from_secs(10),
-                &dirty,
-                |_| 2,
-                |document| {
-                    materialized_requests.fetch_add(1, Ordering::AcqRel);
-                    Some(AutosaveDocumentRequest::new(
-                        document.clone(),
-                        AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
-                        source.clone(),
-                    ))
-                },
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule(
+            Duration::from_secs(10),
+            &dirty,
+            |_| 2,
+            |document| {
+                materialized_requests.fetch_add(1, Ordering::AcqRel);
+                Some(AutosaveDocumentRequest::new(
+                    document.clone(),
+                    AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
+                    source.clone(),
+                ))
+            },
+        )
+        .unwrap());
     assert_eq!(materialized_requests.load(Ordering::Acquire), 1);
     assert_eq!(
         wait_for_autosave_completion(&mut adapter, Duration::from_secs(11)).succeeded(),
@@ -150,29 +144,27 @@ fn autosave_adapter_skips_an_oversized_document_without_starving_later_work() {
     let save_mutex = MutexGroup::parse("save_scene_bytes").unwrap();
     let mut materialized = Vec::new();
 
-    assert!(
-        adapter
-            .schedule(
-                Duration::from_secs(10),
-                &dirty,
-                |document| {
-                    if document.as_str() == "scene_oversized" {
-                        3
-                    } else {
-                        1
-                    }
-                },
-                |document| {
-                    materialized.push(document.as_str().to_string());
-                    Some(AutosaveDocumentRequest::new(
-                        document.clone(),
-                        AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
-                        source.clone(),
-                    ))
-                },
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule(
+            Duration::from_secs(10),
+            &dirty,
+            |document| {
+                if document.as_str() == "scene_oversized" {
+                    3
+                } else {
+                    1
+                }
+            },
+            |document| {
+                materialized.push(document.as_str().to_string());
+                Some(AutosaveDocumentRequest::new(
+                    document.clone(),
+                    AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
+                    source.clone(),
+                ))
+            },
+        )
+        .unwrap());
     assert_eq!(materialized, ["scene_small_a", "scene_small_b"]);
     assert_eq!(
         wait_for_autosave_completion(&mut adapter, Duration::from_secs(11)).succeeded(),
@@ -206,27 +198,25 @@ fn autosave_adapter_rotates_to_a_fitting_document_skipped_by_a_mixed_byte_window
     let mut materialized = Vec::new();
 
     for now in [Duration::from_secs(10), Duration::from_secs(21)] {
-        assert!(
-            adapter
-                .schedule(
-                    now,
-                    &dirty,
-                    |document| match document.as_str() {
-                        "scene_a" | "scene_b" => 2,
-                        "scene_c" => 1,
-                        _ => unreachable!(),
-                    },
-                    |document| {
-                        materialized.push(document.as_str().to_string());
-                        Some(AutosaveDocumentRequest::new(
-                            document.clone(),
-                            AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
-                            source.clone(),
-                        ))
-                    },
-                )
-                .unwrap()
-        );
+        assert!(adapter
+            .schedule(
+                now,
+                &dirty,
+                |document| match document.as_str() {
+                    "scene_a" | "scene_b" => 2,
+                    "scene_c" => 1,
+                    _ => unreachable!(),
+                },
+                |document| {
+                    materialized.push(document.as_str().to_string());
+                    Some(AutosaveDocumentRequest::new(
+                        document.clone(),
+                        AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
+                        source.clone(),
+                    ))
+                },
+            )
+            .unwrap());
         assert_eq!(
             wait_for_autosave_completion(&mut adapter, now).succeeded(),
             2
@@ -263,28 +253,26 @@ fn autosave_adapter_does_not_let_an_oversized_document_hide_a_temporary_skip() {
     let mut materialized = Vec::new();
 
     for now in [Duration::from_secs(10), Duration::from_secs(21)] {
-        assert!(
-            adapter
-                .schedule(
-                    now,
-                    &dirty,
-                    |document| match document.as_str() {
-                        "scene_a" => 4,
-                        "scene_b" | "scene_c" => 2,
-                        "scene_d" => 1,
-                        _ => unreachable!(),
-                    },
-                    |document| {
-                        materialized.push(document.as_str().to_string());
-                        Some(AutosaveDocumentRequest::new(
-                            document.clone(),
-                            AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
-                            source.clone(),
-                        ))
-                    },
-                )
-                .unwrap()
-        );
+        assert!(adapter
+            .schedule(
+                now,
+                &dirty,
+                |document| match document.as_str() {
+                    "scene_a" => 4,
+                    "scene_b" | "scene_c" => 2,
+                    "scene_d" => 1,
+                    _ => unreachable!(),
+                },
+                |document| {
+                    materialized.push(document.as_str().to_string());
+                    Some(AutosaveDocumentRequest::new(
+                        document.clone(),
+                        AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
+                        source.clone(),
+                    ))
+                },
+            )
+            .unwrap());
         assert_eq!(
             wait_for_autosave_completion(&mut adapter, now).succeeded(),
             2

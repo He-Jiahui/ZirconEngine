@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 场景绑定根失效沿唯一祖先链流式传播，重设父节点时仍合并重叠影响；本组约束代际一致性和避免中间全集。
 
 ROOT = Path(__file__).resolve().parents[2]
 TOPOLOGY = ROOT / (

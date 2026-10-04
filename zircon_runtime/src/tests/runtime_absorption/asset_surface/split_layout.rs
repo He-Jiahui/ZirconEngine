@@ -1,3 +1,4 @@
+//! 资产入口吸收后，注册、命名空间与查询边界保持由运行时资产模块拥有。通过源码文本核对父子路由、状态镜像和文件预算。
 const PARENT_SOURCE: &str = include_str!("../asset_surface.rs");
 const REGISTRATION_SOURCE: &str = include_str!("registration.rs");
 const NAMESPACE_SURFACE_SOURCE: &str = include_str!("namespace_surface.rs");
@@ -9,7 +10,7 @@ const RUNTIME_15_OUTPUT_RECORDS: &str = include_str!(
     "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
 );
 const MODULE_CONVENTION_DOC: &str =
-    include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
+    include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 const FRAMEWORKS_02_OUTPUT_RECORDS: &str = include_str!(
     "../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
 );

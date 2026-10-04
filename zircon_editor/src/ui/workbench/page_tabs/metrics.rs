@@ -1,3 +1,4 @@
+//! 主页面页签和次级项目路径的共享度量；逻辑宽度分层先限制数量，宿主再分配实际标题和溢出空间。
 use crate::ui::workbench::autolayout::{
     workbench_layout_tier_for_logical_width, WorkbenchLayoutTier,
 };
@@ -24,10 +25,12 @@ const PROJECT_PATH_MIN_WIDTH: f32 = 150.0;
 const PROJECT_PATH_MAX_WIDTH: f32 = 260.0;
 const NARROW_VISIBLE_TAB_CAP: usize = 2;
 
+// 不可关闭主页面沿用同一标题测量契约，供页签投影共享字体与宽度边界。
 pub(crate) fn main_page_tab_preferred_width_from_title_width(title_width: f32) -> f32 {
     main_page_tab_preferred_width_from_title_width_with_close(title_width, false)
 }
 
+// 可关闭页面另预留关闭命中区；输入是排版测得的逻辑宽度，显示截断由宿主处理。
 pub(crate) fn main_page_tab_preferred_width_from_title_width_with_close(
     title_width: f32,
     closeable: bool,
@@ -43,6 +46,7 @@ pub(crate) fn main_page_tab_preferred_width_from_title_width_with_close(
         .clamp(MAIN_PAGE_TAB_MIN_WIDTH, MAIN_PAGE_TAB_MAX_WIDTH)
 }
 
+// 从已解析页签框取得内部关闭命中框；调用方须沿用绘制的同一合法坐标系。
 pub(crate) fn main_page_tab_close_frame(tab: UiFrame) -> UiFrame {
     let extent = MAIN_PAGE_TAB_CLOSE_EXTENT
         .min(tab.width.max(0.0))
@@ -55,6 +59,7 @@ pub(crate) fn main_page_tab_close_frame(tab: UiFrame) -> UiFrame {
     )
 }
 
+// 项目路径是次级chrome信息；预算不足时先让位给主页面与溢出入口。
 pub(crate) fn main_page_project_path_width(shell_width: f32) -> f32 {
     let shell_width = if shell_width.is_finite() {
         shell_width.max(0.0)
@@ -76,6 +81,7 @@ pub(crate) fn main_page_project_path_width(shell_width: f32) -> f32 {
         .min(available_width)
 }
 
+// 按shell逻辑宽度层给出可见页签数量上限；宿主仍须完成宽度分配，并把余项放入溢出列表。
 pub(crate) fn main_page_tab_visible_cap_for_width(width: f32, page_count: usize) -> usize {
     if page_count == 0 {
         return 0;
@@ -89,60 +95,5 @@ pub(crate) fn main_page_tab_visible_cap_for_width(width: f32, page_count: usize)
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn main_page_tab_typography_uses_workbench_body_role() {
-        assert_eq!(
-            MAIN_PAGE_TAB_TITLE_FONT_SIZE,
-            EditorTypographyTokens::WORKBENCH_BODY_SIZE
-        );
-    }
-
-    #[test]
-    fn main_page_tab_width_clamps_measured_title_width() {
-        assert_eq!(
-            main_page_tab_preferred_width_from_title_width(1.0),
-            MAIN_PAGE_TAB_MIN_WIDTH
-        );
-        assert_eq!(
-            main_page_tab_preferred_width_from_title_width(10_000.0),
-            MAIN_PAGE_TAB_MAX_WIDTH
-        );
-        assert_eq!(
-            main_page_tab_preferred_width_from_title_width(f32::NAN),
-            MAIN_PAGE_TAB_MIN_WIDTH
-        );
-    }
-
-    #[test]
-    fn closeable_page_tabs_reserve_a_bounded_close_hit_target() {
-        let plain = main_page_tab_preferred_width_from_title_width_with_close(96.0, false);
-        let closeable = main_page_tab_preferred_width_from_title_width_with_close(96.0, true);
-        let tab = zircon_runtime_interface::ui::layout::UiFrame::new(
-            12.0,
-            25.0,
-            closeable,
-            MAIN_PAGE_TAB_HEIGHT,
-        );
-        let close = main_page_tab_close_frame(tab);
-
-        assert!(closeable > plain);
-        assert!(closeable <= MAIN_PAGE_TAB_MAX_WIDTH);
-        assert_eq!(close.width, MAIN_PAGE_TAB_CLOSE_EXTENT);
-        assert_eq!(close.height, MAIN_PAGE_TAB_CLOSE_EXTENT);
-        assert!(close.x >= tab.x);
-        assert!(close.x + close.width <= tab.x + tab.width);
-        assert!(close.y >= tab.y);
-        assert!(close.y + close.height <= tab.y + tab.height);
-    }
-
-    #[test]
-    fn project_path_collapses_before_it_competes_with_primary_tabs() {
-        assert_eq!(main_page_project_path_width(0.0), 0.0);
-        assert_eq!(main_page_project_path_width(280.0), 0.0);
-        assert_eq!(main_page_project_path_width(640.0), 150.0);
-        assert_eq!(main_page_project_path_width(1260.0), 260.0);
-    }
-}
+#[path = "tests/metrics.rs"]
+mod tests;

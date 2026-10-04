@@ -28,4 +28,5 @@ pub(super) fn evictable_slots_and_reclaimable_bytes(
 }
 
 #[cfg(test)]
+#[path = "frame_projections/tests/performance_tests.rs"]
 mod performance_tests;

@@ -9,8 +9,12 @@ mod task;
 
 pub use context::RuntimeOperationContext;
 pub use error::{RuntimeOperationHandlerError, RuntimeOperationServiceError};
-pub use handler::{RuntimeOperationHandler, RuntimeOperationPrepared};
+pub use handler::{
+    RuntimeOperationApply, RuntimeOperationHandler, RuntimeOperationPrepared,
+    RuntimeOperationSnapshot,
+};
 pub use service::RuntimeOperationService;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

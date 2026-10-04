@@ -16,6 +16,8 @@ pub(super) enum AnalogNavigationDecision {
     Inactive,
 }
 
+/// 在每个用户及控制轴上按方向限流；死区释放后清除该轴重复门。
+/// 调用方应先将非有限模拟量归零并传入 retained value，避免噪声改变导航状态。
 pub(super) fn analog_navigation_decision(
     input: &mut UiSurfaceInputState,
     analog: &UiAnalogInputEvent,
@@ -67,6 +69,8 @@ fn allow_analog_navigation_repeat(
     normalized_control: &str,
     kind: UiNavigationEventKind,
 ) -> bool {
+    // TODO: [CR-UI-SURFACE-0002] 确认无死区直接换向是否应重新触发导航；
+    // 左→右→左在首个重复间隔内会命中旧左向状态并被压制，当前测试只覆盖死区复位；需补换向契约用例。
     let key = analog_navigation_state_key(analog, normalized_control, kind);
     let now = analog.metadata.timestamp.monotonic_micros;
     match input.analog_navigation.get_mut(key.as_str()) {
@@ -173,5 +177,5 @@ fn normalized_control_name(control: &str) -> Cow<'_, str> {
 }
 
 #[cfg(test)]
-#[path = "analog_navigation/single_normalization_tests.rs"]
+#[path = "analog_navigation/tests/single_normalization_tests.rs"]
 mod single_normalization_tests;

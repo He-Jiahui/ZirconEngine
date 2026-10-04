@@ -3,7 +3,7 @@ use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use serde::Deserialize;
 
-use super::{EditorI18nError, EditorLocale, bundle::validate_translation_key};
+use super::{bundle::validate_translation_key, EditorI18nError, EditorLocale};
 
 const ENGLISH_BUNDLE: &str = include_str!("../../../assets/i18n/en.toml");
 const SIMPLIFIED_CHINESE_BUNDLE: &str = include_str!("../../../assets/i18n/zh-CN.toml");
@@ -76,7 +76,7 @@ impl EditorI18nCatalog {
     }
 
     pub fn translate(&self, key: &str) -> Arc<str> {
-        let active_locale = self.active_locale();
+        let active_locale = self.read_active_locale();
         self.translate_for_locale(&active_locale, key)
     }
 
@@ -93,6 +93,22 @@ impl EditorI18nCatalog {
             })
             .cloned()
             .unwrap_or_else(|| Arc::from(key))
+    }
+
+    pub(crate) fn translation_for_locale(
+        &self,
+        locale: &EditorLocale,
+        key: &str,
+    ) -> Option<Arc<str>> {
+        self.bundles
+            .get(locale)
+            .and_then(|translations| translations.get(key))
+            .or_else(|| {
+                self.bundles
+                    .get(EditorLocale::english_tag())
+                    .and_then(|translations| translations.get(key))
+            })
+            .cloned()
     }
 
     pub(super) fn english_fallback() -> Self {
@@ -117,3 +133,7 @@ impl EditorI18nCatalog {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 }
+
+#[cfg(test)]
+#[path = "tests/catalog_optimization_batch_ie_editor616_tests.rs"]
+mod optimization_batch_ie_editor616_tests;

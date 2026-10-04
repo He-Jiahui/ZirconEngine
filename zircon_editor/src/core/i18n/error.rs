@@ -14,6 +14,14 @@ pub enum EditorI18nError {
     DuplicateLocale(String),
     #[error("editor translation bundles must provide the English fallback")]
     MissingEnglishFallback,
+    #[error("UI localized text table `{0}` is not owned by the editor catalog")]
+    UnknownLocalizedTextTable(String),
+    #[error("UI localized text key `{key}` is missing from `{table}` for locale `{locale}` and its English fallback")]
+    MissingLocalizedTextKey {
+        table: String,
+        key: String,
+        locale: String,
+    },
     #[error("editor translation bundle for locale `{0}` is unavailable")]
     UnavailableLocale(String),
 }

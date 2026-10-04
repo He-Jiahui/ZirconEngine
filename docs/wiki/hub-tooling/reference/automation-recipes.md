@@ -2,16 +2,16 @@
 related_code:
   - zircon_hub/src/tauri_app/runtime_state
   - zircon_hub/src/build
-  - tools/cargo-zircon/src/main.rs
-  - tools/cargo-zircon/src/product_receipt_cli
+  - tools/cargo/src/main.rs
+  - tools/cargo/src/product_receipt_cli
 implementation_files:
   - zircon_hub/src/tauri_app/runtime_state
-  - tools/cargo-zircon/src
+  - tools/cargo/src
 plan_sources:
   - docs/plans/optimize/zircon_tooling/03-export-preset-build-cook-pack-platform-bundle-release-review.md
 tests:
   - zircon_hub/src/tauri_app/runtime_state
-  - tools/cargo-zircon/src
+  - tools/cargo/src
 doc_type: recipe-guide
 ---
 

@@ -11,6 +11,7 @@ const implementedIds = [
 ];
 const seedXor = 0x5a11c0de;
 const seeds = [0, 1, 2, 5, 42, 20061, 2147483647, seedXor];
+// 先固定地下探索定义顺序，再计算普通和英雄难度的种子选择向量。
 const definitions = [reliquary.COLLAPSED_RELIQUARY_DELVE, litany.DROWNED_LITANY_DELVE]
   .sort((left, right) => left.index - right.index);
 const entries = Object.values(affixes.DELVE_AFFIXES);

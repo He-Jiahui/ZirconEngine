@@ -1,3 +1,5 @@
+//! 作为常规 UI 源加载的版本接纳边界，将受支持的旧表示转换为当前作者树。
+
 use toml::Value;
 
 use super::flat_nodes;
@@ -8,10 +10,13 @@ use zircon_runtime_interface::ui::template::{
     UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
 };
 
+/// 无状态的源模式迁移入口；迁移报告用于 Editor 展示接纳来源及实际转换步骤。
 #[derive(Default)]
 pub struct UiAssetSchemaMigrator;
 
 impl UiAssetSchemaMigrator {
+    /// 先验证头部版本，再选择平面表或树表示；成功结果已具有当前版本和树权威性。
+    /// 平面表的转换错误携带资产身份，调用者可继续把原始文本留给作者修正。
     pub fn migrate_toml_str(input: &str) -> Result<UiAssetMigrationOutcome, UiAssetError> {
         let value: Value =
             toml::from_str(input).map_err(|error| UiAssetError::ParseToml(error.to_string()))?;
@@ -93,6 +98,7 @@ fn reject_unsupported_source_version(header: &UiAssetHeader) -> Result<(), UiAss
     Ok(())
 }
 
+// 入口已独占头部，版本拒绝时可把资产身份移交给错误；后续平面迁移仍需要该头部。
 fn validate_owned_source_header(header: UiAssetHeader) -> Result<UiAssetHeader, UiAssetError> {
     if !UiAssetSchemaVersionPolicy::is_supported_source_schema(header.version) {
         return Err(UiAssetError::UnsupportedSchemaVersion {
@@ -121,5 +127,5 @@ fn schema_migration_failed(asset_id: &str, error: UiAssetError) -> UiAssetError 
 }
 
 #[cfg(test)]
-#[path = "migrator/owned_header_tests.rs"]
+#[path = "migrator/tests/owned_header_tests.rs"]
 mod owned_header_tests;

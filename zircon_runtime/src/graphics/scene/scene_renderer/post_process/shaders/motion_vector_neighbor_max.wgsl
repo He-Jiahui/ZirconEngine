@@ -1,3 +1,5 @@
+// 把两次 tile-max 得到的四分之一尺寸速度扩展到全尺寸，供运动模糊与 SSR 历史重投影读取。
+// 选取邻 tile 的最快向量，以扩大快速物体对周围像素的取样支持；输出仍为归一化屏幕位移。
 @group(0) @binding(0) var motion_vector_tile_max_coarse_tex: texture_2d<f32>;
 
 struct VertexOutput {
@@ -45,6 +47,7 @@ fn choose_motion_vector_neighbor_max(current: vec2<f32>, candidate: vec2<f32>) -
     return current;
 }
 
+// 这里的除以四与上游两次 2×2 归约绑定；更改归约次数须同时调整此坐标协议。
 fn motion_vector_neighbor_max(full_res_coord: vec2<u32>, tile_size: vec2<u32>) -> vec2<f32> {
     let coord_i32 = vec2<i32>(full_res_coord / vec2<u32>(4u, 4u));
     var neighbor_max = load_motion_vector_neighbor_candidate(coord_i32, tile_size);

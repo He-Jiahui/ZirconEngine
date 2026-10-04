@@ -17,6 +17,7 @@ mod runtime;
 mod source_write_watch_echo;
 mod watch_diagnostics;
 mod watch_dispatch;
+mod watcher_lifecycle;
 
 pub use access::ProjectAssetManagerAccess;
 pub use generated_source::ProjectGeneratedSourceReceipt;

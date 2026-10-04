@@ -22,6 +22,6 @@ fn virtual_geometry_support_descriptor_matches_the_plugin_compute_workload() {
     assert_eq!(workload.workgroup_size, [64, 1, 1]);
     assert_eq!(
         workload.dispatch_extent,
-        RenderGraphComputeDispatchExtent::Fixed([1, 1, 1])
+        RenderGraphComputeDispatchExtent::Fixed([64, 1, 1])
     );
 }

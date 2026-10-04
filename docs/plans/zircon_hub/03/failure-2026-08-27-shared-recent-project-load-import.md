@@ -47,3 +47,66 @@ Hub03 的 focus-refresh regression 使用公开 projects re-export 回读共享 
 ## 修复结果与回传
 
 Open state: `managed compile RED and focused assertion RED captured; import plus identity-authority repair implemented; focused managed validation and fixed return pending`.
+
+### 2026-09-19 rolling successor source reconciliation
+
+- Successor Session `failure-roll-01a084c8-hub03-shared-recent-r1` reclaimed the
+  current Hub runtime-state test and this failure record at baseline epoch
+  `611`. Ownership transfer fingerprint:
+  `c813c3ebd5c146faf8e8009fade4070ccc37f8338a7daa572f2bcb0921d8f668`.
+- The current test keeps the required `load_shared_recent_projects` import and
+  validates both in-memory and shared-registry recents by the existing
+  `project_metadata_key(normalize_project_root(...))` authority. Later
+  unrelated publication-epoch tests are present in the working file and are
+  preserved; this slice does not revert or absorb them.
+- The original focused Hub Cargo gate remains pending a fresh managed run. The
+  external `E:\\Git\\zr_vm` clean-worktree prerequisite, independent review,
+  canonical return, and closeout also remain pending.
+
+### 2026-09-19 current-source static validation
+
+- Static request `failure-roll-01a084c8-hub03-shared-recent-20260919-r1`
+  admitted ticket `b0f5b877f9364d029ba9052c4b29d20b` with sealed manifest
+  `071c77b80193217830403a66da45294158153fd7caf1a2ca7223e533b5e54651`.
+  The checker verifies the existing public loader import, identity-key-based
+  assertions for both Hub and Editor entries, and absence of timestamp locking.
+  Status is `queued` pending terminal evidence.
+- This is static-only. Fresh managed Hub Cargo, review binding, canonical return,
+  closeout, and clean `E:\\Git\\zr_vm` remain pending.
+
+### 2026-09-19 static terminal result
+
+- Ticket `b0f5b877f9364d029ba9052c4b29d20b` passed at
+  `2026-09-19T07:30:00.748602Z` in job
+  `15f0db27a49548d5adc7cfda982c6cbb`, exit code `0`, with marker
+  `HUB03_SHARED_RECENT_PROJECT_IDENTITY_CURRENT_SOURCE_CONTRACT_PASS`.
+  Cleanup event `10932` completed.
+- This confirms the current source-contract region only. Fresh managed Hub
+  Cargo, independent review binding, fixed return, closeout, and clean
+  `E:\\Git\\zr_vm` remain pending; the failure stays open.
+
+### 2026-09-20 independent source review r1
+
+The independent reviewer inspected the focused refresh regression and its direct
+shared-registry helpers.  The test imports the existing public
+`load_shared_recent_projects` function, uses `normalize_project_root` plus
+`project_metadata_key` for both HubGame and EditorGame identity assertions, and
+retains the in-memory and on-disk checks.  It does not compare mutable
+`last_opened_unix_ms` values, rewrite the shared registry during refresh, add a
+parallel parser, or alter production reconciliation behavior.
+
+Read-only checks:
+
+- `rustfmt +1.94.1 --edition 2021 --config skip_children=true --check` on
+  `zircon_hub/src/tauri_app/runtime_state/tests.rs`:
+  `HUB03_RUSTFMT_PASS`.
+- `git diff --check` on the owned test path: pass.
+
+Current source hash inspected:
+
+```text
+zircon_hub/src/tauri_app/runtime_state/tests.rs fcb6afc1ef18c04d9a804e1e761294c525b24cefc7610bbe5e1a02d43ceea200
+```
+
+Independent review result: `Critical=0 Important=0 Moderate=0`.  No managed
+Hub Cargo, UI/product result, canonical fixed return, or closeout is inferred.

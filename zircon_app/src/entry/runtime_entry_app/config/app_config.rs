@@ -1,3 +1,6 @@
+//! EntryRunner 交给 Winit 应用的运行前宿主策略。
+//! 构造时消费并分发到窗口、帧调度与诊断所有者；运行中不重新解析路径。
+
 use std::num::NonZeroU64;
 
 use zircon_runtime::asset::project::ResolvedProjectPath;
@@ -5,6 +8,7 @@ use zircon_runtime::core::framework::window::{WindowDescriptor, WindowLifecycleP
 use zircon_runtime::platform::EventLoopPolicy;
 
 #[derive(Clone, Debug, PartialEq)]
+/// 由产品入口在创建事件循环应用前设定，供 RuntimeEntryApp 构造一次性消费。
 pub(in crate::entry) struct RuntimeEntryAppConfig {
     pub(in crate::entry::runtime_entry_app) window_descriptor: WindowDescriptor,
     pub(in crate::entry::runtime_entry_app) event_loop_policy: EventLoopPolicy,
@@ -13,6 +17,8 @@ pub(in crate::entry) struct RuntimeEntryAppConfig {
     pub(in crate::entry::runtime_entry_app) first_frame_capture_path: Option<ResolvedProjectPath>,
     pub(in crate::entry::runtime_entry_app) require_persisted_scene_diagnostics: bool,
     pub(in crate::entry::runtime_entry_app) reference_cpu_presenter: bool,
+    /// Native AppSession V2 is opt-in. False keeps the published Winit V1 text/cursor path.
+    pub(in crate::entry::runtime_entry_app) native_ime_composition_requested: bool,
 }
 
 impl RuntimeEntryAppConfig {
@@ -61,6 +67,7 @@ impl RuntimeEntryAppConfig {
         self
     }
 
+    /// 仅接受入口已解析的物理目标路径，避免在窗口回调中改变路径基准。
     pub(in crate::entry) fn with_first_frame_capture_path(
         mut self,
         path: Option<ResolvedProjectPath>,
@@ -76,6 +83,17 @@ impl RuntimeEntryAppConfig {
 
     pub(in crate::entry) fn with_reference_cpu_presenter(mut self, enabled: bool) -> Self {
         self.reference_cpu_presenter = enabled;
+        self
+    }
+
+    /// Requests the standalone AppSession V2 contract. The request is rejected before any
+    /// producer or state-10 callback is activated when the loaded runtime or native adapter is
+    /// unavailable; it never infers opt-in from a loaded symbol.
+    pub(in crate::entry) fn with_native_ime_composition_requested(
+        mut self,
+        requested: bool,
+    ) -> Self {
+        self.native_ime_composition_requested = requested;
         self
     }
 
@@ -118,6 +136,11 @@ impl RuntimeEntryAppConfig {
     pub(in crate::entry) fn reference_cpu_presenter(&self) -> bool {
         self.reference_cpu_presenter
     }
+
+    #[cfg(test)]
+    pub(in crate::entry) fn native_ime_composition_requested(&self) -> bool {
+        self.native_ime_composition_requested
+    }
 }
 
 impl Default for RuntimeEntryAppConfig {
@@ -130,103 +153,11 @@ impl Default for RuntimeEntryAppConfig {
             first_frame_capture_path: None,
             require_persisted_scene_diagnostics: false,
             reference_cpu_presenter: false,
+            native_ime_composition_requested: false,
         }
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use std::num::NonZeroU64;
-
-    use super::*;
-
-    #[test]
-    fn default_runtime_entry_app_config_uses_visible_game_window() {
-        let config = RuntimeEntryAppConfig::default();
-
-        assert!(config.window_descriptor.primary_window.is_some());
-        assert!(config.window_descriptor.visible);
-        assert_eq!(config.event_loop_policy, EventLoopPolicy::Game);
-        assert!(config.window_lifecycle_policy.should_close_on_request());
-        assert!(config
-            .window_lifecycle_policy
-            .should_exit_after_primary_close());
-        assert!(!config.exit_after_first_presented_frame());
-        assert!(!config.reference_cpu_presenter());
-    }
-
-    #[test]
-    fn runtime_entry_app_config_can_select_absent_primary_window_policy() {
-        let config = RuntimeEntryAppConfig::default()
-            .with_window_descriptor(WindowDescriptor::default().without_primary_window())
-            .with_event_loop_policy(EventLoopPolicy::Headless);
-
-        assert_eq!(config.window_descriptor.primary_window, None);
-        assert!(!config.window_descriptor.visible);
-        assert_eq!(config.event_loop_policy, EventLoopPolicy::Headless);
-    }
-
-    #[test]
-    fn runtime_entry_app_config_can_disable_close_when_requested_policy() {
-        let config = RuntimeEntryAppConfig::default().with_close_when_requested(false);
-
-        assert!(!config.window_lifecycle_policy.close_when_requested);
-        assert!(!config
-            .window_lifecycle_policy()
-            .should_exit_after_primary_close());
-    }
-
-    #[test]
-    fn runtime_entry_app_config_can_override_window_lifecycle_policy() {
-        let policy = WindowLifecyclePolicy::default().with_close_when_requested(false);
-        let config = RuntimeEntryAppConfig::default().with_window_lifecycle_policy(policy);
-
-        assert_eq!(config.window_lifecycle_policy(), policy);
-    }
-
-    #[test]
-    fn runtime_entry_app_config_can_exit_after_first_presented_frame() {
-        let config = RuntimeEntryAppConfig::default().with_exit_after_first_presented_frame(true);
-
-        assert!(config.exit_after_first_presented_frame());
-    }
-
-    #[test]
-    fn runtime_entry_app_config_can_exit_after_a_requested_presented_frame_count() {
-        let limit = NonZeroU64::new(120).unwrap();
-        let config = RuntimeEntryAppConfig::default().with_exit_after_presented_frames(limit);
-
-        assert_eq!(config.exit_after_presented_frames(), Some(limit));
-        assert!(!config.exit_after_first_presented_frame());
-    }
-
-    #[test]
-    fn runtime_entry_app_config_can_request_a_first_frame_capture() {
-        let path = std::path::PathBuf::from("E:/evidence/runtime-first-frame.png");
-        let resolved_path = zircon_runtime::asset::project::ProjectPaths::resolve_path(&path)
-            .expect("capture path should resolve");
-        let config = RuntimeEntryAppConfig::default()
-            .with_first_frame_capture_path(Some(resolved_path.clone()));
-
-        assert_eq!(config.first_frame_capture_path(), Some(&resolved_path));
-    }
-
-    #[test]
-    fn runtime_entry_app_config_requires_persisted_scene_diagnostics_only_when_enabled() {
-        assert!(
-            !RuntimeEntryAppConfig::default().require_persisted_scene_diagnostics(),
-            "the F0 no-project startup path must not require F2 scene diagnostics"
-        );
-
-        let config = RuntimeEntryAppConfig::default().with_persisted_scene_diagnostics(true);
-
-        assert!(config.require_persisted_scene_diagnostics());
-    }
-
-    #[test]
-    fn runtime_entry_app_config_requires_explicit_reference_cpu_presenter_opt_in() {
-        let config = RuntimeEntryAppConfig::default().with_reference_cpu_presenter(true);
-
-        assert!(config.reference_cpu_presenter());
-    }
-}
+#[path = "tests/app_config.rs"]
+mod tests;

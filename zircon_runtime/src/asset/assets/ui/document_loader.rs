@@ -1,3 +1,5 @@
+//! UI 文档加载把磁盘 schema 转为资产 DTO；导入器与编辑器共享此解析边界，使资源引用诊断在运行时加载前可见。
+
 use zircon_runtime_interface::ui::template::{
     UiAssetDocument, UiAssetError, UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
 };
@@ -147,5 +149,5 @@ fn validate_zui_style_profile(document: &UiV2AssetDocument) -> Result<(), UiV2As
 }
 
 #[cfg(test)]
-#[path = "document_loader/owned_schema_error_tests.rs"]
+#[path = "document_loader/tests/owned_schema_error_tests.rs"]
 mod owned_schema_error_tests;

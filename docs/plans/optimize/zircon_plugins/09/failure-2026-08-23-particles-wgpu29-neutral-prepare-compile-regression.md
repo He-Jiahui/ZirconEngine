@@ -90,3 +90,34 @@ Coordinator ownership matrix request `dd44fe631f61461095ccb0eb76ca3b13` 记录�
 
 - 当前状态保持 `open`：Plugins09 尚需完成 wgpu 29 mapped-write 修复、prepare borrow 收敛与受管验证。
 - 修复方只有在上述架构验收全部通过后，才可将本记录转为 `fixed` 并向 Frameworks05 来源计划回传终态证据。
+
+### 2026-09-21 independent source review (review-plugins09-particles-neutral-r2)
+
+- The sealed current-source manifest `bafe5396eddd34076ae056b459859ce059030daadb6589d3a0a53e2818324797`
+  was re-read and all three paths matched byte-for-byte: this failure record
+  `af5b2f7dad7db857186578f0db2d3d8b73457c8ad0645d87770ef8bfc4aa7f19`,
+  `zircon_plugins/particles/runtime/src/render/gpu/neutral_buffers.rs`
+  `43b3faec1a8123ec29b1e78ddaf073a215e0accbf10ce4113bb355304cce0b92`, and
+  `zircon_plugins/particles/runtime/src/render/runtime_prepare.rs`
+  `a02d6f10b1ff2a8600395fc1dbe7a89ccbb82a5081cbef23b7a5b3300a3f64cd`.
+- `neutral_buffers.rs` creates the seven bounded neutral resources through one helper, keeps
+  the device-generation owner as the lifetime authority, uses unmapped wgpu 29 creation with
+  no production `fill`, mapped view, staging upload, queue write, or encoder copy, and keeps the
+  test-only source guard that prevents those forbidden operations from returning. Resource sizes,
+  indirect usage, and empty-frame admission remain explicit and bounded.
+- `runtime_prepare.rs` activates/deactivates the persistent owner before the neutral early return,
+  takes only the frame extract needed for `prepare_neutral_frame`, obtains the GPU recording
+  context through the scoped recorder, materializes bounded readback outputs before mutating
+  external bindings, and publishes stable neutral backing identities. The focused source guard
+  rejects whole-context field borrows and verifies the output-before-registration ordering;
+  real-particle admission/readback transactions remain separate from the neutral path.
+- Independent probes passed for the single creation helper/seven-buffer bundle, lazy unmapped
+  contract, forbidden production staging operations, device-epoch activation, scoped GPU
+  recording, bounded output ordering, static backing IDs, and neutral emitter bounds. Rust 1.94.1
+  scoped `rustfmt --check` and `git diff --check` passed for the two production owners.
+- Independent review result: `Critical=0, Important=0, Moderate=0`. This is source-contract
+  evidence only; the actual Windows managed `zircon_plugin_particles_runtime` check/neutral test,
+  wgpu execution/content validation, Frameworks05 exact `zircon_app` upward gate, product
+  acceptance, canonical fixed return, and coordinator closeout remain pending. The external
+  `E:\Git\zr_vm` dirty-worktree admission blocker is retained and no historical Cargo result is
+  reused.

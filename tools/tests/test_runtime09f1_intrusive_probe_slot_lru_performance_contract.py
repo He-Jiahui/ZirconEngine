@@ -1,6 +1,6 @@
 from pathlib import Path
 import unittest
-
+# 探针槽淘汰沿侵入式最旧/最新链定位，不扫描全部槽；检查 Rust 用例是否包含反复触碰和槽复用的顺序语义。
 
 ROOT = Path(__file__).resolve().parents[2]
 ALLOCATOR = ROOT / (

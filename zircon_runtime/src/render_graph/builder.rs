@@ -653,10 +653,7 @@ fn texture_view_alias_desc(
     parent: &TextureDesc,
     range: RenderGraphTextureSubresourceRange,
 ) -> Result<TextureDesc, RenderGraphError> {
-    let array_layers = match parent.dimension {
-        TextureDimension::D2Array | TextureDimension::Cube => parent.depth,
-        TextureDimension::D1 | TextureDimension::D2 | TextureDimension::D3 => 1,
-    };
+    let array_layers = parent.array_layer_count();
     let mip_level_count = range
         .mip_level_count
         .unwrap_or_else(|| parent.mip_levels.saturating_sub(range.base_mip_level));
@@ -706,7 +703,7 @@ fn texture_view_alias_desc(
         parent.dimension,
         TextureDimension::D2Array | TextureDimension::Cube
     ) {
-        desc.depth = array_layer_count;
+        desc.array_layers = array_layer_count;
     }
     desc.mip_levels = mip_level_count;
     Ok(desc)

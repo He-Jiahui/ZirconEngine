@@ -39,7 +39,16 @@ class EditorHierarchyNativeAuthorityPerformanceContractTests(unittest.TestCase):
 
         self.assertIn("rows_by_entity", source)
         self.assertIn("pub(super) fn contains_entity", source)
-        self.assertIn("self.rows_by_entity = rows", source)
+        projection = source.split("pub(super) fn replace(", 1)[1].split(
+            "pub(super) const fn generation", 1
+        )[0]
+        normalized = "".join(projection.split())
+        self.assertIn("self.rows_by_entity", projection)
+        self.assertIn("for(row_index,row)inrows.iter().enumerate()", normalized)
+        self.assertIn(
+            "self.rows_by_entity.insert(row.entity,SceneHierarchyRowState::from_row(row_index,row))",
+            normalized,
+        )
         self.assertIn("controls_by_entity", source)
 
     def test_sparse_patch_treats_unmaterialized_rows_as_logical_rows(self) -> None:
@@ -62,23 +71,37 @@ class EditorHierarchyNativeAuthorityPerformanceContractTests(unittest.TestCase):
         row_patch = HIERARCHY_ROW_PATCH.read_text(encoding="utf-8")
 
         self.assertIn("logical_row_patches()", refresh)
-        self.assertIn("patch_presented_hierarchy_rows", refresh)
+        self.assertIn("build_presented_hierarchy_pane_patch", refresh)
         self.assertIn("with_row_patches", row_patch)
         self.assertIn("row_patches.is_empty()", row_patch)
+        self.assertIn("HostPanePresentationPatch", row_patch)
         self.assertIn("replace_presented_hierarchy_rows", refresh)
         self.assertIn("ModelRc::with_metadata", refresh)
         self.assertNotIn("hierarchy_nodes.iter().cloned().collect", row_patch)
 
     def test_sparse_patch_builds_one_shared_generation_for_all_hierarchy_panes(self) -> None:
         row_patch = HIERARCHY_ROW_PATCH.read_text(encoding="utf-8")
-        patch = row_patch.split("fn patch_presented_hierarchy_rows", 1)[1].split(
-            "fn replace_hierarchy_pane", 1
+        patch = row_patch.split("fn build_presented_hierarchy_pane_patch", 1)[1].split(
+            "fn append_hierarchy_pane_patch", 1
         )[0]
 
         self.assertIn("let patched_rows =", patch)
-        self.assertIn("shares_values_with", patch)
-        self.assertIn("replace_presented_hierarchy_rows(presentation, &patched_rows)", patch)
+        self.assertIn("presented_hierarchy_models_match", patch)
+        self.assertIn("next.hierarchy.hierarchy_nodes = rows.clone()", row_patch)
         self.assertEqual(patch.count("with_row_patches(materialized_patches)"), 1)
+
+    def test_sparse_publication_uses_one_atomic_host_patch_without_a_full_snapshot(self) -> None:
+        refresh = HIERARCHY_REFRESH.read_text(encoding="utf-8")
+        publish = refresh.split("fn publish_sparse_hierarchy_host_nodes", 1)[1].split(
+            "\n    }\n}", 1
+        )[0]
+
+        self.assertIn("build_presented_hierarchy_pane_patch", publish)
+        self.assertIn("HostPresentationPatch::new", publish)
+        self.assertIn(".with_workbench_nodes", publish)
+        self.assertIn(".patch_host_presentation", publish)
+        self.assertNotIn("get_host_presentation", publish)
+        self.assertNotIn("set_host_presentation", publish)
 
     def test_double_click_rename_resolves_the_current_name_by_entity(self) -> None:
         source = HIERARCHY_RENAME.read_text(encoding="utf-8")

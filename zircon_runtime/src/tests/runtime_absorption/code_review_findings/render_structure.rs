@@ -95,7 +95,7 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
         "../../../graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/submit_compiled_scene_frame/hzb_readback.rs"
     );
     let submit_tests = include_str!(
-        "../../../graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/submit_compiled_scene_frame/tests.rs"
+        "../../../graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/submit_compiled_scene_frame/tests/cases.rs"
     );
     let sprite_stage_selection = include_str!(
         "../../../graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/sprite_stage_selection.rs"
@@ -113,7 +113,7 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
     );
     let convention = include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
     let framework_doc =
-        include_str!("../../../../../docs/assets-and-rendering/render-framework-architecture.md");
+        include_str!("../../../../../docs/rendering/render-framework-architecture.md");
 
     assert_contains_all(
         "render module split",

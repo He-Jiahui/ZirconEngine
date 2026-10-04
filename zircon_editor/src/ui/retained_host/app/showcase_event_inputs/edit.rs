@@ -6,7 +6,7 @@ mod menu;
 mod values;
 
 #[cfg(test)]
-#[path = "edit_tests.rs"]
+#[path = "tests/edit_tests.rs"]
 mod tests;
 
 pub(in crate::ui::retained_host::app) fn demo_input_for_showcase_edit(

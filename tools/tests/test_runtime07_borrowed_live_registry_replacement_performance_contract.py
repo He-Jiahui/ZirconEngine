@@ -22,7 +22,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束借用实时注册表替换：现有插件 ID 应为借用先于持有插入，并替换更新值不带重建键。
 class BorrowedLiveRegistryReplacementPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

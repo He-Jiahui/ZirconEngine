@@ -293,7 +293,8 @@ impl UiSurfaceRenderCache {
             return Err(());
         }
 
-        let mut patches = Vec::new();
+        // At most one geometry patch can be staged for each changed owner.
+        let mut patches = Vec::with_capacity(changed_node_ids.len());
         for node_id in changed_node_ids {
             if !self.geometry_patchable_node_ids.contains(node_id) {
                 return Err(());
@@ -351,7 +352,9 @@ impl UiSurfaceRenderCache {
         }
 
         let mut stats = UiSurfaceRenderCacheStats::default();
-        let mut damage = HashSet::new();
+        // Geometry-patchable owners emit exactly one command, so this is also
+        // a strict upper bound for unique damage frames in this pass.
+        let mut damage = HashSet::with_capacity(patches.len());
         for (node_id, start, end, frame, clip_frame) in patches {
             let commands = extract.list.commands.get_mut(start..end).ok_or(())?;
             let bucket = self.entries.get_mut(&node_id).ok_or(())?;
@@ -406,7 +409,8 @@ impl UiSurfaceRenderCache {
             return Err(());
         }
 
-        let mut patches = Vec::new();
+        // A changed owner contributes at most one staged replacement range.
+        let mut patches = Vec::with_capacity(changed_node_ids.len());
         for node_id in changed_node_ids {
             let range = self.command_ranges.get(node_id).copied();
             let commands = next_commands.remove(node_id).unwrap_or_default();
@@ -440,6 +444,9 @@ impl UiSurfaceRenderCache {
         }
 
         let mut stats = UiSurfaceRenderCacheStats::default();
+        // A local re-extract can contain a dynamic number of commands per
+        // owner. Keep this lazily allocated because an unchanged patch has no
+        // damage frames at all.
         let mut damage = HashSet::new();
         for (node_id, start, end, commands) in patches {
             let current_commands = extract.list.commands.get_mut(start..end).ok_or(())?;

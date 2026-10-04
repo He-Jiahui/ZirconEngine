@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码中提取墓地坐标与共用灵魂医者标识，供 m3_spirit_healer_placement_codegen.mjs 消费。
 const graveyards = await import('wocgit:///src/sim/content/graveyards.ts');
 
 if (!Array.isArray(graveyards.OVERWORLD_GRAVEYARDS) ||
@@ -5,6 +6,7 @@ if (!Array.isArray(graveyards.OVERWORLD_GRAVEYARDS) ||
   throw new Error('spirit healer source shape drifted');
 }
 
+// 从源码内容读取墓地坐标与共用医者标识。
 const entries = graveyards.OVERWORLD_GRAVEYARDS.map((entry) => {
   if (typeof entry.id !== 'string' || typeof entry.name !== 'string' ||
       !Number.isFinite(entry.x) || !Number.isFinite(entry.z)) {

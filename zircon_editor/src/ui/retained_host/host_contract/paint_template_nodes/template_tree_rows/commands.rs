@@ -1,3 +1,6 @@
+//! 组织树行各层绘制，并在子区域放不下时逐步省略内容；身份命中与是否有可见命令是两个不同结果。
+//! 调用者提供变换后的行框、祖先裁剪和可留出局部层级偏移的基础 order。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_tree_row_geometry::{tree_disclosure_rect, tree_icon_rect};
@@ -45,15 +48,18 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tr
     if !tree_row_contains(rect, &disclosure) {
         return true;
     }
-    push_tree_disclosure_glyph(
-        commands,
-        node,
-        &disclosure,
-        clip,
-        disclosure_order(order),
-        tree_secondary_color(node),
-        opacity,
-    );
+    // Content rows expose the data and selection surface without action affordances.
+    if node.component_variant.as_str() != "content" {
+        push_tree_disclosure_glyph(
+            commands,
+            node,
+            &disclosure,
+            clip,
+            disclosure_order(order),
+            tree_secondary_color(node),
+            opacity,
+        );
+    }
 
     let icon = tree_icon_rect(&disclosure);
     if !tree_row_contains(rect, &icon) {
@@ -78,7 +84,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tr
         label_order(order),
         opacity,
     );
-    if tree_row_has_action_space(rect) {
+    if node.component_variant.as_str() != "content" && tree_row_has_action_space(rect) {
         push_tree_actions(
             commands,
             node,

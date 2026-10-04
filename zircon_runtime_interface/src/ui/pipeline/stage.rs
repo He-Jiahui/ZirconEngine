@@ -56,6 +56,27 @@ impl UiPipelineStage {
         &Self::ARCHIVED_DIAGNOSTIC_STAGES
     }
 
+    pub(crate) const fn runtime_index(self) -> Option<usize> {
+        match self {
+            Self::InputCollect => Some(0),
+            Self::Focus => Some(1),
+            Self::WidgetBehavior => Some(2),
+            Self::TextMeasure => Some(3),
+            Self::Layout => Some(4),
+            Self::PostLayout => Some(5),
+            Self::Picking => Some(6),
+            Self::A11yExtract => Some(7),
+            Self::RenderExtract => Some(8),
+            Self::BatchPrepare => Some(9),
+            Self::FocusInteraction
+            | Self::ContentMeasure
+            | Self::PostLayoutStack
+            | Self::HitGrid
+            | Self::PaintSubmit
+            | Self::Diagnostics => None,
+        }
+    }
+
     pub const fn is_runtime_schedule_stage(self) -> bool {
         match self {
             Self::InputCollect

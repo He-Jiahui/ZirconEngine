@@ -95,7 +95,7 @@ const L4_SHELL_TOPOLOGY_SNAPSHOTS: &[L4ShellTopologySnapshot] = &[
         root_node: "component_drawer",
         root_component: "VerticalGroup",
         root_control_id: "WorkbenchComponentDrawer",
-        node_count: 99,
+        node_count: 101,
         root_children: &["drawer_tabs", "component_drawer_content"],
     },
     L4ShellTopologySnapshot {
@@ -490,7 +490,7 @@ fn workbench_shell_uses_tokenized_viewport_first_region_constraints() {
 }
 
 #[test]
-fn workbench_toolbar_groups_use_content_sized_priority_constraints() {
+fn workbench_toolbar_groups_preserve_content_inside_horizontal_scroll() {
     let editor_root = editor_asset_root();
     let toolbar = super::support::load_zui_document(
         &editor_root.join("ui/editor/components/workbench/shell/workbench_top_toolbar.zui"),
@@ -521,7 +521,11 @@ fn workbench_toolbar_groups_use_content_sized_priority_constraints() {
         let slot = child_linear_slot(toolbar, "toolbar_command_row", node_id);
         assert_eq!(axis_string(slot, "rule"), "StretchContent");
         assert_eq!(axis_f64(slot, "value"), 1.0);
-        assert_eq!(axis_f64(slot, "shrink_value"), 1.0);
+        assert_eq!(
+            axis_f64(slot, "shrink_value"),
+            0.0,
+            "scrollable toolbar groups must keep their fixed child controls intact"
+        );
     }
 }
 

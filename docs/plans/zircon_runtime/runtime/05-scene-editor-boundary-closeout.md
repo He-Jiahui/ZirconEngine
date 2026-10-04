@@ -1,6 +1,5 @@
 ---
 related_code:
-  - tests/acceptance/runtime-plan-status-archive-ownership-sync.md
   - zircon_runtime/src/scene/inspection/mod.rs
   - zircon_runtime/src/scene/inspection/artifact/mod.rs
   - zircon_runtime/src/scene/inspection/artifact/cache.rs
@@ -371,9 +370,9 @@ related_code:
   - zircon_runtime/src/ui/surface/input/navigation.rs
   - zircon_editor/src/scene
   - zircon_hub/src/projects/metadata.rs
-  - docs/engine-architecture/non-network-server-naming-m1.md
-  - docs/engine-architecture/hard-cutover-migration-smells-m1.md
-  - docs/engine-architecture/runtime-architecture-review-m0.md
+  - docs/architecture/non-network-server-naming-m1.md
+  - docs/architecture/hard-cutover-migration-smells-m1.md
+  - docs/architecture/runtime-architecture-review-m0.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_naming_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_naming_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_scene_editor_surface.py
@@ -403,7 +402,7 @@ last_refined: 2026-08-01
 - **inspection 公共面（2026-08-01 修订）**：`scene/inspection/mod.rs` 当前拥有 `artifact/field/hierarchy/snapshot/subscription` 五个子模块。公共面除 `WorldInspectionField` / `WorldInspectionHierarchyRow` / `WorldInspection` 外，还包含 artifact/delta/summary 与 subscription table 族；这些新增类型是内存投影与订阅状态，不实现 `Serialize`，并未新增 scene 持久化出口。authoring-token 序列化守卫仍由 `inspection.rs::world_inspection_serialization_excludes_editor_authoring_tokens` 覆盖 `WorldInspection` 快照。
 - **剩余真实工作 1——"editor" 命名白名单**：runtime 内 "editor" 命中约 181 文件（执行时重核：Grep `-l editor`，path `zircon_runtime/src`），混杂三类：合法 editor-host 目标语义（`dynamic_api/session.rs` 的 editor 模式、`plugin/core_profiles.rs:10` `pub struct EditorCoreProfile`、native loader 的 editor_host 校验）、测试夹具、待裁决 authoring 残留。无白名单则无法机器化判定新增违规。
 - **剩余真实工作 2——"legacy" 命名裁决**："legacy" 403 处/84 文件。实仓抽样（`ui/surface/input/navigation.rs:22-54`）：`legacy` 是 `dispatch_navigation_event` 旧路由回复的本地变量名，承载真实运行语义（route/focus/diagnostics 全从它取值）——属"领域词化的迁移痕迹"，需逐类裁决是改名、文档化还是列债。
-- 命名审计文档锚点（2026-06-12 实测存在）：`docs/engine-architecture/non-network-server-naming-m1.md`、`hard-cutover-migration-smells-m1.md`、`runtime-root-surface-m1.md`、`runtime-architecture-review-m0.md`——白名单产出并入这些既有口径，不另起新文件。
+- 命名审计文档锚点（2026-06-12 实测存在）：`docs/architecture/non-network-server-naming-m1.md`、`hard-cutover-migration-smells-m1.md`、`runtime-root-surface-m1.md`、`runtime-architecture-review-m0.md`——白名单产出并入这些既有口径，不另起新文件。
 
 ## 目标
 
@@ -424,7 +423,7 @@ last_refined: 2026-08-01
 ## 执行前检查清单
 
 1. 活动会话对齐：serialization 守卫与 inspection 均在 `20260604-1232` 会话工作区延长线上——执行前确认该会话对应切片已完成或已交接，避免双写同一守卫。
-2. worktree 脏文件检查：`git status --porcelain -- zircon_runtime/src/scene/ docs/engine-architecture/`。
+2. worktree 脏文件检查：`git status --porcelain -- zircon_runtime/src/scene/ docs/architecture/`。
 3. 事实重核：
    - `Get-ChildItem zircon_runtime/src/scene/ | Where-Object Name -eq 'editor_projection'`（应无输出）
    - `Get-ChildItem zircon_runtime/src -Recurse -Filter '*.rs' | Select-String -Pattern 'editor_projection'`
@@ -446,7 +445,7 @@ last_refined: 2026-08-01
 
 #### 切片 1.2 "editor" 命中三分类白名单
 
-- 目标文件：`docs/engine-architecture/runtime-root-surface-m1.md` 或 `runtime-architecture-review-m0.md`（并入既有审计口径，执行时与 `20260604-1232` 会话定稿落点，禁止另起新文件）；本计划状态节（清单副本）。
+- 目标文件：`docs/architecture/runtime-root-surface-m1.md` 或 `runtime-architecture-review-m0.md`（并入既有审计口径，执行时与 `20260604-1232` 会话定稿落点，禁止另起新文件）；本计划状态节（清单副本）。
 - 改动形态：纯文档 + 裁决。分类规则（已核实锚点）：
   - **白名单（合法 editor-host 目标语义）**：`dynamic_api/session.rs` editor 会话模式、`plugin/core_profiles.rs` `EditorCoreProfile`（:10）/`RuntimeCoreProfile`（:4）双 profile、native loader 的 editor_host 校验行、`builtin` 的 target mode 词汇。
   - **测试夹具**：测试文件内的 editor 字样按文件粒度白名单。
@@ -497,7 +496,7 @@ last_refined: 2026-08-01
 
 #### 切片 2.1 覆盖矩阵成表
 
-- 目标文件：`docs/zircon_runtime/scene/inspection.md`（既有，刷新守卫说明；执行时核验：`ls docs/zircon_runtime/scene/`）。
+- 目标文件：`docs/crates/zircon_runtime/scene/inspection.md`（既有，刷新守卫说明；执行时核验：`ls docs/crates/zircon_runtime/scene/`）。
 - 改动形态：纯文档。矩阵分两类而不是错误的笛卡尔积：(a) 四个 serialized 出口（world project、dynamic scene、asset scene、inspection snapshot）分别落到 `world_basics.rs`/`dynamic_scene*`/`asset_scene.rs`/`inspection.rs:161` 的 `SERIALIZED_AUTHORING_TOKENS` 断言；(b) serialization owner 源码由 `component_structure/project_serialization.rs` 使用 `SOURCE_AUTHORING_TOKENS` 横切约束。`artifact.rs`/`subscription.rs` 是不实现 `Serialize` 的内存投影，不计为第五个持久化出口；其 neutral 形状由 inspection 单元测试与公共面审计覆盖。
 - 调用方迁移：无。
 - 验收：矩阵无空格，或空格有补测试切片。
@@ -505,7 +504,7 @@ last_refined: 2026-08-01
 
 #### 切片 2.2 token 清单维护公约
 
-- 目标文件：`scene/tests/authoring_boundary.rs`（注释公约）+ `docs/zircon_runtime/scene/inspection.md`（公约正文）。
+- 目标文件：`scene/tests/authoring_boundary.rs`（注释公约）+ `docs/crates/zircon_runtime/scene/inspection.md`（公约正文）。
 - 改动形态：定稿公约——editor 侧新增 authoring 状态类型（如新 overlay/gizmo extract 类型）时，`SOURCE_AUTHORING_TOKENS` 必须同 PR 追加该类型名；公约写明判定规则（出现在 `zircon_editor/src/scene` 的 extract/投影类型名默认入表）。补一条结构测试（签名草案）：`authoring_token_tables_stay_sorted_and_deduplicated`（防清单腐化）。
 - 调用方迁移：无。
 - 验收：公约 + 结构测试。
@@ -515,7 +514,7 @@ last_refined: 2026-08-01
 
 - `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -LibTests -TestFilter authoring`
 - `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter inspection`
-- 验收证据：覆盖矩阵 + 公约 + 守卫测试全绿；`docs/zircon_runtime/scene/inspection.md` 刷新。
+- 验收证据：覆盖矩阵 + 公约 + 守卫测试全绿；`docs/crates/zircon_runtime/scene/inspection.md` 刷新。
 
 ### M3 收尾闭环（2026-06-12 二次细化新增；M1/M2 全切片已完成后的关账步骤）
 

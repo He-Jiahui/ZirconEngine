@@ -9,9 +9,6 @@ origin_child_dir: docs/plans/zircon_runtime/render/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/baselines.py
-  - tools/session_coordinator/git_finalize.py
-  - tools/session_coordinator/tests/test_baselines.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_baselines.BaselineTests.test_accept_commit_updates_from_changed_git_paths_without_full_archive
 resolved_at: 2026-07-17

@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node wos146_master_loot_assignment_runtime_static_guard.mjs；缺少源码契约时脚本抛错退出。
+// 核对锁定的主拾取分配回退与团队人数上限，随后检查 JSON、Zr、Rust 中命令 ID 49 的载荷边界及世界状态的授权、状态转移、自测和合同文本。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -23,6 +27,7 @@ requireText(sourceLootRoll, /export function assignMasterLoot[\s\S]*?only the ma
 requireText(sourceLootRoll, /if \(!isPidResolvable\(ctx, targets\[0\]\)\)[\s\S]*?convertMasterRollToNeedGreed\(ctx, roll, roll\.candidates\)/,
   'source offline single-target fallback drifted');
 
+// JSON 载荷定义给出可机读长度边界；生成的 Zr 与 Rust 描述必须采用相同 ID 和字节范围。
 const payloads = JSON.parse(read('contracts', 'command_payloads.json'));
 const payload = payloads.entries.find((entry) => entry.name === 'masterAssign');
 if (payload?.id !== 49 || payload.kind !== 'master_loot_assignment' ||
@@ -49,6 +54,7 @@ requireText(nativePayload, /pub struct MasterLootAssignmentPayload[\s\S]*?roll_i
 requireText(nativePayload, /MAX_TARGET_PIDS: usize = 10[\s\S]*?pub fn encode[\s\S]*?pub fn decode[\s\S]*?validate_master_loot_assignment_payload/,
   'native master-assign codec or bound is missing');
 
+// 世界状态检查覆盖行为者授权、目标个数边界以及直接分配或回退的状态转移。
 const world = read('scripts', 'woc_game', 'src', 'world', 'state.zr');
 requireText(world, /masterAssignCommandId\(true\)[\s\S]*?applyMasterLootAssignmentCommand/,
   'master-assign reducer routing is missing');

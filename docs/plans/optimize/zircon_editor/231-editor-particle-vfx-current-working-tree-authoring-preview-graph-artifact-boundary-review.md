@@ -17,7 +17,7 @@ related_code:
 tests:
   - zircon_plugins/particles/editor/src/tests.rs
   - zircon_editor/src/tests/host/manager/minimal_host_contract/optional_features.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_module_navigation.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_module_navigation/
 plan_sources:
   - docs/plans/optimize/zircon_editor/15-material-shader-graph-instance-vfx-particle-preview-compiler-diagnostics-authoring-review.md
   - docs/plans/optimize/zircon_editor/230-editor-animation-current-working-tree-document-graph-timeline-preview-montage-ik-skinning-product-boundary-review.md

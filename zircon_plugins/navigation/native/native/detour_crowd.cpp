@@ -167,6 +167,7 @@ dtCrowdAgentParams detour_agent_params(const ZrNavCrowdAgentParams& source, int 
 
 } // namespace
 
+// Crowd 接管查询对象的生命周期；Rust 包装器成功创建后必须把查询所有权转交给这里。
 extern "C" void zr_nav_crowd_create(
     ZrNavDetourQuery* query_owner,
     std::uint32_t max_agents,

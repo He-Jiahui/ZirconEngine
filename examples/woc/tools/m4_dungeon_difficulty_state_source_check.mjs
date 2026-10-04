@@ -1,3 +1,4 @@
+// 静态核对固定版本 WOC 源码与本地 Zr 投影中的副本难度归属及按玩家解析的规则。
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -8,6 +9,7 @@ const workspaceRoot = resolve(fileURLToPath(new URL('../../..', import.meta.url)
 const sourceRoot = resolve(workspaceRoot, 'dev', 'world-of-claudecraft');
 const sim = gitShow('src/sim/sim.ts');
 const types = gitShow('src/sim/types.ts');
+// 只截取难度设置方法与按玩家解析方法，避免无关源码碰巧满足标记。
 const setDifficulty = methodBlock(sim, '  setDungeonDifficulty(difficulty: DungeonDifficulty');
 const resolveDifficulty = methodBlock(sim, '  private dungeonDifficultyForPid(pid: number)');
 const wocSourceRoot = resolve(workspaceRoot, 'examples', 'woc', 'scripts', 'woc_game');

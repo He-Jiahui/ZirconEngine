@@ -19,7 +19,7 @@ related_code:
 plan_sources:
   - docs/plans/zircon_hub/index.md
   - .codex/plans/Zircon Hub 本地闭环 v1 功能实现设计.md
-  - docs/zircon_hub/pages/actionable-pages.md
+  - docs/crates/zircon_hub/pages/actionable-pages.md
 status: in_progress
 ---
 

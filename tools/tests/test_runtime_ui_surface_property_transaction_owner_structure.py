@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 核对表面属性事务的子模块归属，且结构状态镜像与代码目录保持一致。
 class RuntimeUiSurfacePropertyTransactionOwnerStructureTests(unittest.TestCase):
     STATUS = (
         "runtime_09_15_ui_surface_property_transaction_owner_split_"
@@ -79,7 +79,7 @@ class RuntimeUiSurfacePropertyTransactionOwnerStructureTests(unittest.TestCase):
             / "docs/plans/optimize/zircon_runtime/11a-runtime-ui-architecture-tree-layout-input-accessibility-review.md",
             repo_root
             / "docs/plans/zircon_runtime/runtime/09/2026-08-07-runtime-ui-incremental-refresh.md",
-            repo_root / "docs/zircon_runtime/ui/architecture.md",
+            repo_root / "docs/crates/zircon_runtime/ui/architecture.md",
             repo_root / "docs/plans/engine-code-structure-convention.md",
             repo_root / "docs/plans/engine-code-review-findings-2026-06.md",
         )

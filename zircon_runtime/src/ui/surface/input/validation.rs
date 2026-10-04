@@ -14,6 +14,43 @@ pub(crate) fn require_valid_input_owner(
 }
 
 pub(crate) fn is_valid_input_owner(surface: &UiSurface, node_id: UiNodeId) -> bool {
+    visit_valid_input_owner_path(surface, node_id, |_| {})
+}
+
+const INLINE_INPUT_OWNER_ROUTE_DEPTH: usize = 64;
+
+pub(super) fn valid_input_owner_route(
+    surface: &UiSurface,
+    node_id: UiNodeId,
+) -> Option<Vec<UiNodeId>> {
+    let mut inline_route = [node_id; INLINE_INPUT_OWNER_ROUTE_DEPTH];
+    let mut inline_len = 0;
+    let mut overflow_route: Option<Vec<UiNodeId>> = None;
+    let valid = visit_valid_input_owner_path(surface, node_id, |id| {
+        if inline_len < INLINE_INPUT_OWNER_ROUTE_DEPTH {
+            inline_route[inline_len] = id;
+            inline_len += 1;
+        } else {
+            overflow_route
+                .get_or_insert_with(|| {
+                    let mut route = Vec::with_capacity(INLINE_INPUT_OWNER_ROUTE_DEPTH * 2);
+                    route.extend_from_slice(&inline_route);
+                    route
+                })
+                .push(id);
+        }
+    });
+    if !valid {
+        return None;
+    }
+    Some(overflow_route.unwrap_or_else(|| inline_route[..inline_len].to_vec()))
+}
+
+fn visit_valid_input_owner_path(
+    surface: &UiSurface,
+    node_id: UiNodeId,
+    mut visit: impl FnMut(UiNodeId),
+) -> bool {
     let mut current = Some(node_id);
     while let Some(id) = current {
         let Some(node) = surface.tree.nodes.get(&id) else {
@@ -22,6 +59,7 @@ pub(crate) fn is_valid_input_owner(surface: &UiSurface, node_id: UiNodeId) -> bo
         if !input_owner_node_is_valid(surface, id, node) {
             return false;
         }
+        visit(id);
         current = node.parent;
     }
     true
@@ -37,5 +75,5 @@ fn input_owner_node_is_valid(
 }
 
 #[cfg(test)]
-#[path = "validation/visibility_first_tests.rs"]
+#[path = "validation/tests/visibility_first_tests.rs"]
 mod visibility_first_tests;

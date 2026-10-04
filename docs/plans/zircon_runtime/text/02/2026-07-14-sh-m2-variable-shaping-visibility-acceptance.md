@@ -3,7 +3,7 @@
 Plan: docs/plans/zircon_runtime/text/02-shaping-unicode-and-bidi.md
 Milestone: M2
 Status: accepted
-Files: ["docs/plans/zircon_runtime/text/02/2026-07-09-shaping-unicode-and-bidi-output-records.md", "docs/plans/zircon_runtime/text/02/2026-07-14-sh-m2-variable-shaping-visibility-acceptance.md", "docs/zircon_runtime/graphics/text/font-variation-instances.md", "zircon_runtime/src/graphics/text/shaping/horizontal/backend.rs", "zircon_runtime/src/graphics/text/shaping/horizontal/projection.rs", "zircon_runtime/src/graphics/text/shaping/horizontal/tests.rs", "zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs"]
+Files: ["docs/plans/zircon_runtime/text/02/2026-07-09-shaping-unicode-and-bidi-output-records.md", "docs/plans/zircon_runtime/text/02/2026-07-14-sh-m2-variable-shaping-visibility-acceptance.md", "docs/crates/zircon_runtime/graphics/text/font-variation-instances.md", "zircon_runtime/src/graphics/text/shaping/horizontal/backend.rs", "zircon_runtime/src/graphics/text/shaping/horizontal/projection.rs", "zircon_runtime/src/graphics/text/shaping/horizontal/tests.rs", "zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs"]
 
 > Owner：[`../02-shaping-unicode-and-bidi.md`](../02-shaping-unicode-and-bidi.md) · 日期：2026-07-14 · Session：`runtime-text-mixed-script-segmentation-20260714`
 

@@ -1,3 +1,6 @@
+// 读取raw AO与同一相机的深度/法线，输出同一工作分辨率的去噪 AO。
+// feature descriptor 保证输入生产者顺序与尺寸；深度和法线均取自全分辨率几何目标。
+// 保持共享 SceneUniform 的完整 ABI，即使本阶段只读取投影逆矩阵。
 struct SceneUniform {
     view_proj: mat4x4<f32>,
     view_proj_unjittered: mat4x4<f32>,
@@ -11,6 +14,7 @@ struct SceneUniform {
     camera_view_direction: vec4<f32>,
 };
 
+// 与 evaluate 共用 CPU 参数；resolution_divisor 将工作网格映射回几何输入。
 struct SsaoParams {
     extent_and_sample_counts: vec4<u32>,
     input_extent_and_resolution: vec4<u32>,
@@ -51,6 +55,7 @@ fn decode_normal_or_zero(coord: vec2<i32>) -> vec3<f32> {
     return encoded / encoded_length;
 }
 
+// 工作网格的每个采样点以同一整倍数映射到几何输入，奇数边缘落到有效最后像素。
 fn work_to_input_coord(
     work_coord: vec2<i32>,
     input_extent: vec2<u32>,
@@ -120,6 +125,7 @@ fn cs_main(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
             if (dot(sample_normal, sample_normal) <= EPSILON) {
                 continue;
             }
+            // 以中心表面的世界平面距离和法线一致性拒绝跨轮廓混色；单用设备深度差会受投影影响。
             let plane_distance = abs(dot(sample_position - center_position, center_normal));
             let depth_weight = exp2(-plane_distance / depth_sigma);
             let normal_weight = pow(

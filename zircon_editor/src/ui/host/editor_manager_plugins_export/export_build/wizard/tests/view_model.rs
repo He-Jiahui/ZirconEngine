@@ -1,4 +1,4 @@
-use std::sync::mpsc::channel;
+use crossbeam_channel::unbounded;
 
 use zircon_runtime_interface::export::ExportStage;
 
@@ -34,10 +34,11 @@ fn export_wizard_view_model_projects_plan_stage_rows_and_controls() {
     assert_eq!(validate.stage_id, "validate");
     assert_eq!(validate.label, "Validate");
     assert_eq!(validate.progress_kind, ExportStageProgressKind::Pending);
-    assert_eq!(
-        validate.report_path.as_deref(),
-        Some("D:\\zircon-export\\stages\\validate\\report.json")
-    );
+    assert!(validate.report_path.is_none());
+    assert!(validate.planned_artifacts.iter().any(|artifact| {
+        artifact.key == "report"
+            && artifact.path == "D:\\zircon-export\\stages\\validate\\report.json"
+    }));
     assert!(validate.missing_inputs.is_empty());
 }
 
@@ -92,7 +93,7 @@ fn export_wizard_view_model_drains_job_events_into_terminal_rows() {
     assert_eq!(snapshot.status, ExportWizardJobStatus::Finished);
 
     let expected_event_count = emitted_events.len();
-    let (sender, receiver) = channel();
+    let (sender, receiver) = unbounded();
     for event in emitted_events {
         sender.send(event).expect("event should be queued");
     }
@@ -115,11 +116,7 @@ fn export_wizard_view_model_drains_job_events_into_terminal_rows() {
     assert!(rows
         .iter()
         .all(|row| row.progress_kind == ExportStageProgressKind::Passed));
-    assert!(rows.iter().all(|row| {
-        row.report_path
-            .as_deref()
-            .is_some_and(|path| path.ends_with("report.json"))
-    }));
+    assert!(rows.iter().all(|row| row.report_path.is_none()));
 }
 
 #[test]
@@ -177,9 +174,7 @@ fn export_wizard_panel_template_state_projects_template_slots() {
         .slot(ExportWizardPanelSlotKind::ArtifactPaths)
         .expect("artifact paths slot should exist")
         .entries
-        .iter()
-        .any(|entry| entry.key == "artifact.validate.report"
-            && entry.detail.ends_with("stages\\validate\\report.json")));
+        .is_empty());
     assert_eq!(
         state
             .slot(ExportWizardPanelSlotKind::ReportBody)

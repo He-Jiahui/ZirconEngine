@@ -1,3 +1,5 @@
+//! 滚动条头、轨道与拇指有不同命中和捕获语义；无障碍滚动最终仍应修改同一滚动容器偏移。
+
 use crate::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 use zircon_runtime_interface::ui::{
     accessibility::{
@@ -231,6 +233,41 @@ fn scrollbar_thumb_click_does_not_page_scroll_container() {
             .offset,
         0.0
     );
+}
+
+#[test]
+fn pointer_button_ownership_scrollbar_drag_survives_foreign_release() {
+    let mut surface =
+        scrollbar_surface_with_thumb_frame(true, UiFrame::new(120.0, 0.0, 12.0, 20.0));
+    press_primary(&mut surface, 126.0, 10.0);
+    for kind in [UiPointerEventKind::Down, UiPointerEventKind::Up] {
+        let foreign = surface
+            .dispatch_pointer_event(
+                &UiPointerDispatcher::default(),
+                UiPointerEvent::new(kind, UiPoint::new(126.0, 10.0))
+                    .with_button(UiPointerButton::Middle),
+            )
+            .unwrap();
+        assert!(!foreign.diagnostics.capture_released);
+        assert_eq!(surface.focus.captured, Some(id(4)));
+        assert!(surface.input.pointer_drags.contains_key(&id(4)));
+    }
+    let moved = move_pointer(&mut surface, 200.0, 160.0);
+    assert_eq!(moved.handled_by, Some(id(4)));
+    assert!(
+        surface
+            .tree
+            .node(id(2))
+            .unwrap()
+            .scroll_state
+            .unwrap()
+            .offset
+            > 0.0
+    );
+    let up = release_primary(&mut surface, 200.0, 160.0);
+    assert_eq!(up.released_capture, Some(id(4)));
+    assert_eq!(surface.focus.captured, None);
+    assert!(!surface.input.pointer_drags.contains_key(&id(4)));
 }
 
 #[test]

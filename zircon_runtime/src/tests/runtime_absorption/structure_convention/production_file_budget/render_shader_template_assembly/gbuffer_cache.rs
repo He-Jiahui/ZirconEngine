@@ -1,5 +1,6 @@
 use super::*;
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0075] 延迟几何缓冲变体缓存与目标写入的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_deferred_gbuffer_pipeline_template_cache_is_mesh_cache_owned() {
     let template_mod = read_runtime_src("graphics/shader/template/mod.rs");
@@ -21,7 +22,7 @@ fn runtime_15_deferred_gbuffer_pipeline_template_cache_is_mesh_cache_owned() {
     let shader_source =
         read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs");
     let shader_source_tests = read_runtime_src(
-        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests.rs",
+        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/cases.rs",
     );
     let ensure_gbuffer = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_gbuffer_pipeline.rs",

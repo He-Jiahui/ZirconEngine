@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::core::framework::render::{
-    SHADER_VARIANT_CACHE_NAGA_VERSION, SHADER_VARIANT_CACHE_WGPU_VERSION, ShaderVariantKey,
+    ShaderVariantKey, SHADER_VARIANT_CACHE_NAGA_VERSION, SHADER_VARIANT_CACHE_WGPU_VERSION,
 };
 use crate::graphics::pipeline::{
     PipelineAdmission, PipelineAdmissionReason, PipelineAsyncCompileError, PipelineAsyncQueueResult,
@@ -11,8 +11,8 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshPassPipelineKind, MeshPipelineVariantId,
 };
 use crate::graphics::shader::{
-    ShaderBindingStage, ShaderVariantCacheDiskKey, ShaderVariantCacheDiskLookup,
-    template::ShaderTemplateReflection,
+    template::ShaderTemplateReflection, ShaderBindingStage, ShaderVariantCacheDiskKey,
+    ShaderVariantCacheDiskLookup,
 };
 
 use super::mesh_pipeline_cache::{MeshPipelineCache, PipelineCreationTarget};
@@ -31,6 +31,7 @@ use super::shader_source_validation_states::{
 };
 
 #[derive(Clone)]
+/// 将模块与反射结果绑定，供复用模块时再次验证目标 pass 的入口、顶点、片元和资源 ABI。
 pub(in crate::graphics::scene::scene_renderer::mesh) struct CachedMeshShaderModule {
     module: wgpu::ShaderModule,
     reflection: Arc<ShaderTemplateReflection>,

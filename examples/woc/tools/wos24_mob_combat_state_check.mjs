@@ -52,7 +52,7 @@ for (const needle of [
   'this.entityInCombat = new container.Array<bool>();',
   'appendDefaultMobCombatStateColumns(this);',
   'appendDefaultMobCombatStateColumns(state);',
-  'writer.u16(<uint>38, 1, 1);',
+  'writer.u16(schemaVersion, 1, 1);',
   'schemaVersion != <uint>24',
   'if (schemaVersion >= <uint>24) {',
   'state.entityInCombat[entityIndex] = m8FreshPlayerStats.combatStateFlag',
@@ -69,8 +69,8 @@ invariant((state.match(/entityCombatTimers/g) ?? []).length >= 9,
   'WOS24 combat timer lacks persistence coverage');
 invariant((state.match(/entityAggroTargetIds/g) ?? []).length >= 9,
   'WOS24 aggro target lacks persistence coverage');
-invariant(main.includes('\\"world_state\\":\\"WOS38\\",'),
-  'package stateSchema must expose the WOS38 snapshot version');
+invariant(main.includes('\\"world_state\\":\\"WOS118\\",'),
+  'package stateSchema must expose the WOS118 snapshot version');
 
 process.stdout.write(`checked WOS24 mob combat-state source projection: ${SOURCE_COMMIT.slice(0, 15)}\n`);
 

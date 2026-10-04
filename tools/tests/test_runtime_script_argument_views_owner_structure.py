@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-
+# 验证脚本参数视图的职责切分：参数视图使用专属目录支撑归属方。
 class RuntimeScriptArgumentViewsOwnerStructureTests(unittest.TestCase):
     def setUp(self) -> None:
         self.repo_root = Path(__file__).resolve().parents[2]

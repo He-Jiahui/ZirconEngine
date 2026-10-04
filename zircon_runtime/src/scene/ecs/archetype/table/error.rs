@@ -1,8 +1,9 @@
 use thiserror::Error;
 
-use crate::scene::EntityId;
 use crate::scene::ecs::ComponentId;
+use crate::scene::EntityId;
 
+/// 表格行在列集合、类型或实体归属校验失败时携带的结构化错误。
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub(crate) enum ArchetypeTableError {
     #[error("archetype table row is missing component column {component_id:?}")]

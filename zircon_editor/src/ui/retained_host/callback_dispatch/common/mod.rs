@@ -1,4 +1,4 @@
-mod dispatch;
+pub(super) mod dispatch;
 mod effects;
 
 pub(crate) use dispatch::{

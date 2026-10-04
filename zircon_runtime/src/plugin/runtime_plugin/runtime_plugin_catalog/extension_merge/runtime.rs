@@ -45,6 +45,7 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn merge_runtime_e
     );
 }
 
+// 基础包按诊断、manager、模块贡献的顺序合并；目标模式筛选仅作用于最后一类模块化贡献。
 fn merge_runtime_extensions_with_module_filter(
     registration: &RuntimePluginRegistrationReport,
     selected_module_names: Option<&HashSet<&str>>,
@@ -52,6 +53,8 @@ fn merge_runtime_extensions_with_module_filter(
     diagnostics: &mut Vec<String>,
     fatal_diagnostics: &mut Vec<String>,
 ) {
+    let registry_before = registry.clone();
+    let fatal_diagnostic_start = fatal_diagnostics.len();
     for diagnostic in &registration.diagnostics {
         push_fatal_diagnostic(
             diagnostics,
@@ -83,5 +86,15 @@ fn merge_runtime_extensions_with_module_filter(
             diagnostics,
             fatal_diagnostics,
         );
+    }
+    if fatal_diagnostics.len() != fatal_diagnostic_start {
+        // A linked report is one owner transaction. Do not publish a partial descriptor, codec,
+        // listener, or manager set when a later row is rejected; the next catalog generation can
+        // retry from the unchanged prior registry.
+        *registry = registry_before;
+        diagnostics.push(format!(
+            "runtime plugin {} contribution transaction rolled back",
+            registration.package_manifest.id
+        ));
     }
 }

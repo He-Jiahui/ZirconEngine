@@ -1,5 +1,6 @@
 // Casting lifecycle scalar rules. Keeping the transition body self-contained
 // avoids the helper dispatch defect tracked by Plugins 08.
+/// 独立 M4 标量契约的编码规则入口，kind 由叶子测试按固定输入核对；参数意义随 kind 变化，调用者不可把其当成产品施法状态转换接口。
 pub metric(
     kind: int,
     first: float,
@@ -58,6 +59,7 @@ pub metric(
 
 // End-to-end state ordering for c4a_casting_lifecycle. Event counts are kept
 // scalar because the lossless event-array ABI remains a Plugins 08 dependency.
+/// 用固定场景标记串联施法、排队、打断、引导和钓鱼的标量预期；统计的是场景内状态，未接入 world/state 的实际实体和事件流。
 pub scenarioContract(seed: int, marker: int): float {
     if (seed != 1017 || marker != 1) {
         throw "casting scenario contract marker is invalid";

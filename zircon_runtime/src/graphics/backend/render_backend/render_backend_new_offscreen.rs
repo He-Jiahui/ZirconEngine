@@ -1,7 +1,7 @@
 use crate::graphics::types::GraphicsError;
 use std::sync::Arc;
 use zr_rhi::{AdapterSelectionPolicy, RenderDeviceRequestPolicy};
-use zr_rhi_wgpu::{WgpuRenderDevice, WgpuRenderDeviceContext, initial_wgpu_render_device_profile};
+use zr_rhi_wgpu::{initial_wgpu_render_device_profile, WgpuRenderDevice, WgpuRenderDeviceContext};
 
 use super::config::RenderBackendConfig;
 use super::render_backend::RenderBackend;

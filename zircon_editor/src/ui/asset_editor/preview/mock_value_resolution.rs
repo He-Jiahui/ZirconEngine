@@ -725,4 +725,5 @@ fn binding_graph_target(binding: &UiBindingRef) -> Option<String> {
 }
 
 #[cfg(test)]
+#[path = "mock_value_resolution/tests/hash_dependency_tests.rs"]
 mod hash_dependency_tests;

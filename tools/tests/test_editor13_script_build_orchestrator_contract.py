@@ -64,7 +64,7 @@ class Editor13ScriptBuildOrchestratorContractTests(unittest.TestCase):
 
         request = source("zircon_editor/src/core/script_build/request.rs")
         self.assertIn("promote_trigger", request)
-        self.assertIn("ScriptBuildOutcome::Cancelled", source("zircon_editor/src/core/script_build/tests.rs"))
+        self.assertIn("ScriptBuildOutcome::Cancelled", source("zircon_editor/src/core/script_build/tests/cases.rs"))
 
     def test_async_completion_is_bound_to_the_dispatched_step(self) -> None:
         orchestrator = source("zircon_editor/src/core/script_build/orchestrator.rs")
@@ -81,7 +81,7 @@ class Editor13ScriptBuildOrchestratorContractTests(unittest.TestCase):
         self.assertNotIn("Clone", dispatch_derives)
 
     def test_behavior_suite_covers_batching_ordering_and_failure_stop(self) -> None:
-        tests = source("zircon_editor/src/core/script_build/tests.rs")
+        tests = source("zircon_editor/src/core/script_build/tests/cases.rs")
 
         for test_name in [
             "watch_changes_slide_within_first_event_latency_and_deduplicate_paths",
@@ -108,7 +108,7 @@ class Editor13ScriptBuildOrchestratorContractTests(unittest.TestCase):
     def test_runtime_interface_exposes_typed_script_diagnostics(self) -> None:
         interface = source("zircon_runtime_interface/src/lib.rs")
         diagnostics = source(
-            "zircon_runtime_interface/src/script_diagnostics/mod.rs"
+            "zircon_runtime_interface/src/script_diagnostics/diagnostic.rs"
         )
 
         self.assertIn("pub mod script_diagnostics;", interface)
@@ -149,7 +149,7 @@ class Editor13ScriptBuildOrchestratorContractTests(unittest.TestCase):
         self.assertNotIn("HashSet", sink)
 
     def test_diagnostic_behavior_suite_covers_projection_and_boundedness(self) -> None:
-        tests = source("zircon_editor/src/core/script_build/tests.rs")
+        tests = source("zircon_editor/src/core/script_build/tests/cases.rs")
 
         for test_name in [
             "accepted_compile_diagnostics_project_severity_module_and_source_jump",

@@ -67,6 +67,15 @@ impl EditorState {
     }
 
     pub fn delete_selected(&mut self) -> Result<bool, EditorStateOperationError> {
+        if self
+            .viewport_controller
+            .selection()
+            .active_items()
+            .is_empty()
+        {
+            self.set_status_line("Nothing selected");
+            return Ok(false);
+        }
         let selected = self
             .viewport_controller
             .selection()
@@ -74,15 +83,25 @@ impl EditorState {
             .iter()
             .copied()
             .collect::<Vec<_>>();
-        if selected.is_empty() {
-            self.set_status_line("Nothing selected");
-            return Ok(false);
-        }
         self.apply_intent(EditorIntent::DeleteNodes(selected))
     }
 
     pub fn apply_inspector_changes(&mut self) -> Result<bool, EditorStateOperationError> {
         self.prepare_non_gizmo_scene_action()?;
+        if self
+            .viewport_controller
+            .selection()
+            .active_items()
+            .is_empty()
+        {
+            return Err(InspectorEditError::NoSelection.into());
+        }
+        if self.inspector_edited_fields.is_empty() && self.inspector_dynamic_fields.is_empty() {
+            return Ok(false);
+        }
+        if self.inspector_draft_context.is_some() && !self.inspector_draft_context_is_current() {
+            return Ok(false);
+        }
         let selected = self
             .viewport_controller
             .selection()
@@ -90,19 +109,41 @@ impl EditorState {
             .iter()
             .copied()
             .collect::<Vec<_>>();
-        if selected.is_empty() {
-            return Err(InspectorEditError::NoSelection.into());
-        }
 
-        let parent = parse_parent_field(&self.parent_field)?;
-        let translation =
-            parse_finite_vec3_fields(&self.transform_fields, InspectorTransformField::Translation)?;
-        let scale = parse_finite_vec3_fields(&self.scale_fields, InspectorTransformField::Scale)?;
+        let edited = self.inspector_edited_fields;
+        let name = if edited.name {
+            let name = self.name_field.trim().to_owned();
+            if name.is_empty() {
+                return Err(InspectorEditError::EmptyNodeName.into());
+            }
+            Some(name)
+        } else {
+            None
+        };
+        let parent = edited
+            .parent
+            .then(|| parse_parent_field(&self.parent_field))
+            .transpose()?;
+        let translation = parse_edited_axes(
+            &self.transform_fields,
+            edited.translation,
+            InspectorTransformField::Translation,
+        )?;
+        let scale = parse_edited_axes(
+            &self.scale_fields,
+            edited.scale,
+            InspectorTransformField::Scale,
+        )?;
         let mut commands = Vec::new();
 
         for node_id in &selected {
-            let mut reflected_updates =
-                self.prepare_reflected_node_updates(parent, translation, scale)?;
+            let mut reflected_updates = self.prepare_reflected_node_updates(
+                *node_id,
+                name.as_deref(),
+                parent,
+                translation,
+                scale,
+            )?;
             reflected_updates.extend(self.prepare_reflected_component_updates(*node_id)?);
             for update in reflected_updates {
                 let result = self.capture_scene_command(|scene| {
@@ -115,12 +156,16 @@ impl EditorState {
                     )
                 })?;
                 if let Some(command) = result {
+                    if commands.is_empty() {
+                        commands.reserve(selected.len().saturating_mul(4));
+                    }
                     commands.push(command);
                 }
             }
         }
 
         if commands.is_empty() {
+            self.clear_inspector_draft_edits();
             return Ok(false);
         }
         self.execute_scene_commands("Apply inspector changes", commands, MergeMode::Disable)?;
@@ -147,6 +192,21 @@ impl EditorState {
             return Err(EditorStateOperationError::PlayWorldNotActive);
         }
 
+        let draft_changes = if changes.is_empty() {
+            self.pending_play_inspector_changes()
+        } else {
+            Vec::new()
+        };
+        let changes = if changes.is_empty() {
+            draft_changes.as_slice()
+        } else {
+            changes
+        };
+        if changes.is_empty() {
+            self.set_status_line("Play Inspector values are unchanged");
+            return Ok(false);
+        }
+
         self.bind_transaction_context()?;
         let history_context = self.scene_history_context()?;
         debug_assert_eq!(
@@ -167,6 +227,7 @@ impl EditorState {
         let commands = capture?;
         if commands.is_empty() {
             scope.cancel()?;
+            self.clear_inspector_draft_edits();
             self.set_status_line("Play Inspector values are unchanged");
             return Ok(false);
         }
@@ -176,42 +237,65 @@ impl EditorState {
         scope.commit_after_apply(|selection_after| {
             self.sync_selection_from_transaction_snapshot(selection_after)
         })?;
+        self.clear_inspector_draft_edits();
         self.set_status_line("Applied Inspector changes to the play world");
         Ok(true)
     }
 
     fn prepare_reflected_node_updates(
         &self,
-        parent: Option<NodeId>,
-        translation: Vec3,
-        scale: Vec3,
-    ) -> Result<Vec<ReflectedInspectorUpdate>, InspectorEditError> {
-        let name = self.name_field.trim().to_string();
-        if name.is_empty() {
-            return Err(InspectorEditError::EmptyNodeName);
-        }
-        Ok(vec![
-            ReflectedInspectorUpdate {
+        node_id: NodeId,
+        name: Option<&str>,
+        parent: Option<Option<NodeId>>,
+        translation: [Option<f32>; 3],
+        scale: [Option<f32>; 3],
+    ) -> Result<Vec<ReflectedInspectorUpdate>, EditorStateOperationError> {
+        let mut updates = Vec::with_capacity(4);
+        if let Some(name) = name {
+            updates.push(ReflectedInspectorUpdate {
                 component_type_path: NAME_COMPONENT_TYPE_PATH.to_string(),
                 field_name: "value".to_string(),
-                value: ReflectedValue::String(name),
-            },
-            ReflectedInspectorUpdate {
+                value: ReflectedValue::String(name.to_owned()),
+            });
+        }
+        if let Some(parent) = parent {
+            updates.push(ReflectedInspectorUpdate {
                 component_type_path: HIERARCHY_COMPONENT_TYPE_PATH.to_string(),
                 field_name: "parent".to_string(),
                 value: ReflectedValue::Entity(parent),
-            },
-            ReflectedInspectorUpdate {
-                component_type_path: LOCAL_TRANSFORM_COMPONENT_TYPE_PATH.to_string(),
-                field_name: "translation".to_string(),
-                value: ReflectedValue::Vec3(translation.to_array()),
-            },
-            ReflectedInspectorUpdate {
-                component_type_path: LOCAL_TRANSFORM_COMPONENT_TYPE_PATH.to_string(),
-                field_name: "scale".to_string(),
-                value: ReflectedValue::Vec3(scale.to_array()),
-            },
-        ])
+            });
+        }
+        if translation.iter().any(Option::is_some) || scale.iter().any(Option::is_some) {
+            let transform_updates = self
+                .world
+                .with_world(|scene| {
+                    let mut transform_updates = BTreeMap::new();
+                    insert_play_vec3_update(
+                        scene,
+                        node_id,
+                        "translation",
+                        translation,
+                        &mut transform_updates,
+                    )?;
+                    insert_play_vec3_update(
+                        scene,
+                        node_id,
+                        "scale",
+                        scale,
+                        &mut transform_updates,
+                    )?;
+                    Ok::<_, InspectorEditError>(transform_updates)
+                })?
+                .ok_or_else(no_project_open)??;
+            updates.extend(transform_updates.into_iter().map(
+                |((component_type_path, field_name), value)| ReflectedInspectorUpdate {
+                    component_type_path,
+                    field_name,
+                    value,
+                },
+            ));
+        }
+        Ok(updates)
     }
 
     fn prepare_reflected_component_updates(
@@ -219,6 +303,9 @@ impl EditorState {
         node_id: NodeId,
     ) -> Result<Vec<ReflectedInspectorUpdate>, EditorStateOperationError> {
         let dynamic_fields = &self.inspector_dynamic_fields;
+        if dynamic_fields.is_empty() {
+            return Ok(Vec::new());
+        }
         let updates = self
             .world
             .with_world(|scene| {
@@ -266,6 +353,7 @@ impl EditorState {
     }
 
     pub(crate) fn sync_selection_state(&mut self) {
+        self.clear_inspector_draft_edits();
         let selected_state = self
             .viewport_controller
             .selection()
@@ -541,20 +629,18 @@ fn selected_inspector_state(scene: &Scene, selected: NodeId) -> Option<SelectedI
     })
 }
 
-fn parse_finite_vec3_fields(
+fn parse_edited_axes(
     fields: &[String; 3],
+    edited: [bool; 3],
     field: InspectorTransformField,
-) -> Result<Vec3, InspectorEditError> {
-    let parsed = fields.each_ref().map(|field| field.trim().parse::<f32>());
-    let [Ok(x), Ok(y), Ok(z)] = parsed else {
-        return Err(InspectorEditError::InvalidTransformFields { field });
-    };
-    let value = Vec3::new(x, y, z);
-    if value.is_finite() {
-        Ok(value)
-    } else {
-        Err(InspectorEditError::InvalidTransformFields { field })
+) -> Result<[Option<f32>; 3], InspectorEditError> {
+    let mut values = [None; 3];
+    for axis in 0..3 {
+        if edited[axis] {
+            values[axis] = Some(parse_play_inspector_axis(&fields[axis], field)?);
+        }
     }
+    Ok(values)
 }
 
 fn inspection_vec3_field(fields: &[WorldInspectionField], field_name: &str) -> Option<Vec3> {
@@ -706,12 +792,5 @@ fn parse_entity_value(value: &str) -> Result<Option<NodeId>, InspectorEditError>
 }
 
 #[cfg(test)]
-mod performance_tests {
-    #[test]
-    fn reflected_inspector_updates_borrow_the_draft_map() {
-        let source = include_str!("editor_state_selection.rs");
-        let implementation = source.split("#[cfg(test)]").next().expect("implementation");
-        assert!(!implementation.contains("self.inspector_dynamic_fields.clone()"));
-        assert!(implementation.contains("let updates = &self.inspector_dynamic_fields"));
-    }
-}
+#[path = "tests/editor_state_selection_performance_tests.rs"]
+mod performance_tests;

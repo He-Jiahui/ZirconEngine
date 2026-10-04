@@ -9,10 +9,6 @@ origin_child_dir: docs/plans/zircon_plugins/01
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/session_coordinator/workspace_copy.py
-  - tools/session_coordinator/server.py
-  - tools/session_coordinator/workspace_copy_terminal.py
-  - tools/session_coordinator/tests/test_workspace_copy.py
 tests:
   - validation_copy.run persists nonzero Cargo stdout/stderr or a bounded typed terminal diagnostic
   - cargo +1.94.1 test -p zircon_runtime --lib native_live_host_editor_hot_reload_keeps_same_id_runtime_plugin --locked --jobs 1 --color never -- --exact --nocapture --test-threads=1

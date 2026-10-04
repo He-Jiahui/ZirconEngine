@@ -19,9 +19,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_settings_window
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/popup_rows/settings.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/settings_window
-  - zircon_editor/src/workbench
-  - zircon_runtime/src/framework/preference
-  - zircon_runtime/src/platform/preference
   - zircon_app/src
 plan_sources:
   - docs/plans/optimize/zircon_editor/12-settings-preferences-scope-persistence-locale-i18n-appearance-plugin-extensibility-review.md

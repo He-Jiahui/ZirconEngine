@@ -1,3 +1,5 @@
+// 介质注入只写散射系数和消光；局部雾体的可见层已经由 CPU 按相机过滤。
+// 光照、历史重投影和沿视线积分分别由后续通道消费。
 struct MediaInjectParams {
     grid_and_volume_count: vec4<u32>,
     density_height_scattering: vec4<f32>,

@@ -21,7 +21,6 @@ related_code:
   - zircon_runtime/src/graphics/tests/render_product_post_process_full_chain/visual_export.rs
   - zircon_runtime/src/graphics/tests/render_product_post_process_volume.rs
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs
-  - docs/tests/runtime/render
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_runtime/09a-rhi-render-graph-gpu-lifetime-review.md

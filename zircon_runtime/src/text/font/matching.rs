@@ -1,3 +1,4 @@
+//! 字体查询中的家族身份与候选作用域；资产 owner 的私有家族不能被同名系统字体悄然替换。
 use std::collections::{HashMap, HashSet};
 
 use crate::text::{FontFamilyName, FontStretch, FontStyle, FontWeight};
@@ -7,6 +8,7 @@ const FONT_FAMILY_IDENTITY_HASH_DOMAIN: &[u8] = b"zircon-font-family-identity-v1
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(super) struct FontFamilyIdentity([u8; 16]);
 
+/// OwnerLocalOnly 限定资产私有查询；OwnerThenGlobal 允许显式回退到全局家族。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum FontFamilyCandidateScope {
     OwnerLocalOnly,
@@ -56,6 +58,7 @@ pub(super) fn dedupe_families(
     result
 }
 
+/// 保留首次出现的家族优先级；后续同名候选若允许全局查找，则放宽原候选的作用域。
 pub(super) fn dedupe_scoped_families(
     families: impl IntoIterator<Item = (FontFamilyName, FontFamilyCandidateScope)>,
 ) -> Vec<ScopedFontFamilyCandidate> {
@@ -101,5 +104,5 @@ pub(super) fn style_distance(candidate: FontStyle, requested: FontStyle) -> u8 {
 }
 
 #[cfg(test)]
-#[path = "matching/capacity_tests.rs"]
+#[path = "matching/tests/capacity_tests.rs"]
 mod capacity_tests;

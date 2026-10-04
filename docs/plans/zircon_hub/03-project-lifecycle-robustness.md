@@ -3,7 +3,6 @@ related_code:
   - zircon_hub/src/tauri_app/runtime_state/project_actions.rs
   - zircon_hub/src/tauri_app/runtime_state.rs
   - zircon_hub/src/tauri_app/view_model/localized.rs
-  - zircon_hub/src/projects/create_project.rs
   - zircon_hub/src/projects/validation.rs
   - zircon_hub/src/projects/recycle_bin.rs
   - zircon_hub/src/projects/metadata.rs
@@ -19,7 +18,7 @@ related_code:
 plan_sources:
   - docs/plans/zircon_hub/index.md
   - docs/plans/zircon_hub/02-background-task-framework-and-persistence.md
-  - docs/zircon_hub/projects/lifecycle-workflows.md
+  - docs/crates/zircon_hub/projects/lifecycle-workflows.md
 status: in_progress
 ---
 

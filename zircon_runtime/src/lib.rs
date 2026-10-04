@@ -2,6 +2,10 @@
 
 extern crate self as zircon_runtime;
 
+#[cfg(feature = "dev-dynamic-linking")]
+#[allow(unused_imports, clippy::single_component_path_imports)]
+use zr_dev_deps_dylib as _;
+
 pub mod core;
 #[cfg(feature = "diagnostic-log")]
 pub mod diagnostic_log;

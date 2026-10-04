@@ -1,3 +1,4 @@
+//! 环形冰霜的线段扫掠几何；世界侧还将内半径置零复用为猎人陷阱圆盘接触，实体筛选和光环结算由调用方负责。
 // Pure Ring of Frost annulus sweep geometry. The WOS ground-AoE owner handles
 // entity queries, per-ring trigger history, combat entry and root aura mutation.
 var contract = %import("generated/ring_of_frost_contract");
@@ -16,6 +17,7 @@ maximum(value: float, lower: float): float { return value > lower ? value : lowe
 
 // Exact projection test from segmentTouchesAnnulus. A segment that remains
 // entirely inside the inner radius cannot trigger the annular trap.
+/// 线段只要到达内半径之外且最近点不越过外半径即触发；内半径为零时可作圆盘接触测试。
 pub segmentTouchesAnnulus(
     start: PointXZ,
     end: PointXZ,

@@ -554,7 +554,7 @@ pub(super) fn normalized_promote_document_id(document_id: &str) -> Option<String
 }
 
 #[cfg(test)]
-#[path = "promotion_state/document_id_trim_tests.rs"]
+#[path = "promotion_state/tests/document_id_trim_tests.rs"]
 mod document_id_trim_tests;
 
 pub(super) fn normalized_promote_display_name(display_name: &str) -> Option<String> {

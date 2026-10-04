@@ -13,7 +13,7 @@ use crate::ui::{dispatch::UiTextDocumentSession, text::apply_text_edit_action_wi
 use super::super::surface::UiSurface;
 use super::{
     editable_text::{
-        TextComponentEventKind, apply_committed_text_payload, apply_editable_text_state,
+        apply_committed_text_payload, apply_editable_text_state, TextComponentEventKind,
     },
     effect::append_dispatch_effect_to_result,
     is_valid_input_owner,
@@ -26,6 +26,7 @@ use super::{
     },
 };
 
+// secure 文本禁用 Copy/Cut，只读文本禁用 Cut/Paste；Copy/Cut 还需非空选区。通过所有权与属性检查的异步请求携带 edit revision，供回执拒绝过期编辑。
 pub(super) fn dispatch_keyboard_clipboard(
     surface: &mut UiSurface,
     keyboard: UiKeyboardInputEvent,
@@ -135,6 +136,7 @@ pub(super) fn dispatch_keyboard_clipboard(
     }
 }
 
+// 宿主回执必须先取出一次性 pending transfer，并匹配 owner、焦点、属性、编辑 revision 与 secure 标志；任一快照过期都拒绝应用，成功的 Cut/Paste 才进入统一文本事务。
 pub(super) fn dispatch_clipboard_input(
     surface: &mut UiSurface,
     clipboard: UiClipboardInputEvent,

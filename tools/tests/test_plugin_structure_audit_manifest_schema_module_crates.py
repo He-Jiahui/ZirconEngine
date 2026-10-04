@@ -1,11 +1,11 @@
 import unittest
 from pathlib import Path
 
-from tools.plugin_structure_audits.manifest_schema_module_crates import (
+from tools.audits.plugins.manifest_schema_module_crates import (
     collect_module_workspace_crate_violations_from_index,
 )
 
-
+# 用插件清单夹具验证模块 crates：拒绝缺失模块工作区 crate，并拒绝模块工作区 crate 超出特性根。
 class PluginStructureAuditManifestSchemaModuleCratesTests(unittest.TestCase):
     def test_manifest_schema_rejects_missing_module_workspace_crate(self):
         violations: list[str] = []

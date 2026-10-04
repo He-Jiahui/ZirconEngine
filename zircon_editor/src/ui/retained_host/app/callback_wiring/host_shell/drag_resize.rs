@@ -3,6 +3,7 @@ use super::*;
 pub(super) fn wire_host_shell_drag_resize_callbacks(
     host_shell: &UiHostContext,
     host: &Rc<RefCell<RetainedEditorHost>>,
+    resize_source_window_id: Option<MainPageId>,
 ) {
     let weak = Rc::downgrade(host);
     host_shell.on_floating_window_header_pointer_clicked(move |x, y| {
@@ -12,17 +13,24 @@ pub(super) fn wire_host_shell_drag_resize_callbacks(
         }
     });
 
+    let drag_source_window_id = resize_source_window_id.clone();
     let weak = Rc::downgrade(host);
     host_shell.on_host_drag_pointer_event(move |kind, x, y| {
         if let Some(host) = weak.upgrade() {
-            host.borrow_mut().host_drag_pointer_event(kind, x, y);
+            host.borrow_mut()
+                .host_drag_pointer_event(drag_source_window_id.as_ref(), kind, x, y);
         }
     });
 
     let weak = Rc::downgrade(host);
     host_shell.on_host_resize_pointer_event(move |kind, x, y| {
         if let Some(host) = weak.upgrade() {
-            host.borrow_mut().host_resize_pointer_event(kind, x, y);
+            host.borrow_mut().host_resize_pointer_event(
+                resize_source_window_id.as_ref(),
+                kind,
+                x,
+                y,
+            );
         }
     });
 }

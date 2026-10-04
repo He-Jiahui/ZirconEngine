@@ -11,6 +11,7 @@ fn join_string_parts(parts: &[&str]) -> String {
     joined
 }
 
+// 生成 particles.<suffix> 清单，先登记基础包主依赖，再追加该行声明的物理、动画或渲染图依赖。
 pub(super) fn particles_feature(row: &ParticlesFeatureRow) -> PluginFeatureBundleManifest {
     let feature_id = join_string_parts(&["particles.", row.id_suffix]);
     let mut manifest = PluginFeatureBundleManifest::new(feature_id, row.display_name, "particles")
@@ -29,14 +30,5 @@ pub(super) fn particles_feature(row: &ParticlesFeatureRow) -> PluginFeatureBundl
 }
 
 #[cfg(test)]
-mod tests {
-    use super::join_string_parts;
-
-    #[test]
-    fn exact_particles_identifier_join_preserves_feature_id() {
-        assert_eq!(
-            join_string_parts(&["particles.", "animation_control"]),
-            "particles.animation_control"
-        );
-    }
-}
+#[path = "tests/manifest.rs"]
+mod tests;

@@ -11,6 +11,7 @@ const NAMED_CHANNEL_LAYOUT_NAMES: &[&str] = &[
     "surround_7_1",
 ];
 
+/// WAV 掩码、声音资产与设备描述符共用的扬声器语义；顺序必须由布局契约保留。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AudioSpeakerChannel {
@@ -126,6 +127,9 @@ fn speaker_bit(speaker: AudioSpeakerChannel) -> u8 {
     }
 }
 
+/// 声音资产、混音块与输出设备之间传递的通道布局契约。
+///
+/// 外部构造或反序列化后应校验名称、数量和扬声器顺序；离散布局只表达数量，不携带位置语义。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AudioChannelLayout {
     pub name: String,
@@ -251,6 +255,7 @@ impl AudioChannelLayout {
         }
     }
 
+    /// 无扬声器掩码时采用约定的标准布局；六声道默认后环绕，已知侧环绕需显式选择。
     pub fn for_channel_count(channel_count: u16) -> Self {
         match channel_count {
             1 => Self::mono(),
@@ -314,6 +319,9 @@ impl AudioChannelLayout {
             && canonical_discrete_name_matches(&self.name, self.channel_count)
     }
 
+    // TODO: [CR-FRAMEWORK-AUDIO-0001] 确认反序列化的设备或资产布局在进入后端前调用此校验；当前生产调用点未发现，测试仅验证校验器自身。
+    // 现行边界已覆盖此问题：SoundConfig::from_plugin_options 校验或回退包选项，输出设备与外部声源在插件描述符校验后才提交；WAV 由已核对的掩码构造布局。
+    /// 验证可交换布局的完整语义，供接受外部或自定义布局的边界使用。
     pub fn is_valid_contract_layout(&self) -> bool {
         if self.channel_count == 0 || self.name.trim() != self.name.as_str() || self.name.is_empty()
         {
@@ -333,5 +341,5 @@ impl AudioChannelLayout {
 }
 
 #[cfg(test)]
-#[path = "channel_layout/allocation_free_discrete_name_tests.rs"]
+#[path = "channel_layout/tests/allocation_free_discrete_name_tests.rs"]
 mod allocation_free_discrete_name_tests;

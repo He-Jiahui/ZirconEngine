@@ -199,3 +199,52 @@ remaining ownership blockers. The exact evidence and required Runtime90 re-claim
 validation, and coordinator commit were returned to task
 `01a04c62-01c7-7ea1-8328-87fa4eb2b125`. Frameworks01 did not edit, claim, transfer, or submit the
 RHI source; Runtime22's mixed `dynamic_api/session/state.rs` remains untouched as required.
+
+## 2026-09-02 state-machine current-source manifest refresh
+
+The historical 12-file state-machine move manifest is no longer current. A fresh path-sorted
+read-only capture of every Rust owner below `core/runtime/state_machine` contains 14 files, 776
+lines, and 24,050 bytes. The manifest SHA-256 is
+`ae61e6e0ef632775df2ffce313e754c8b50770bad0e52e6682ab03730195fa8e`.
+
+The additional owners are folder-backed optimization tests under `hook_index` and `registry`;
+they must travel with the physical owner or be reassigned explicitly in the atomic move. No
+`zr_kernel` move is admitted from the stale 12-file manifest. The prerequisite remains a completed
+`zr_contracts` lock/managed compile followed by fresh ownership and consumer manifests.
+
+The fresh tracked Rust consumer scan finds five qualified-path hits in four files:
+`core/runtime/handle/states.rs`, `prelude.rs`, `tests/state.rs`, and
+`tests/state/hook_index.rs`. Nonignored untracked Rust files add zero qualified-path consumers.
+Together with the preflight's local/sibling implementation consumers
+`core/runtime/state/core_runtime_state.rs` and `core/runtime/runtime.rs`, the current atomic
+consumer union is seven files. This union must be refreshed again immediately before the move;
+literal qualified-path scanning alone is not a substitute for the local-owner inventory.
+
+## 2026-09-02 epoch-587 ownership admission
+
+The refreshed coordinator ownership matrix request
+`14566cdb75884dbd9be64c35799b29c3` proves that the 14-file state-machine owner cannot yet move as
+one legal snapshot. Five current files belong to active Session
+`root-runtime-editor-optimize-20260901-r6`: `hook.rs`, `hook_index.rs`, its folder-backed
+Runtime603 test, `registry.rs`, and its folder-backed Runtime653 test. The remaining nine files are
+attributed to Frameworks01. Every row lacks a live lease; most rows also report stale attribution.
+The foreign union is semantic rather than import-only: it changes hook dispatch to one ordered
+buffer and removes a second registry lookup, with matching optimization tests. Frameworks01 will
+not copy, revert, reattribute, or partially move that union.
+
+The atomic hard cut is therefore admitted only after the Runtime02 owner either lands those exact
+five blobs or transfers their fresh hashes to Frameworks01, followed by a new complete move and
+consumer manifest and live exact leases. A new static invariant now rejects a dual physical owner:
+before `zr_kernel` exists, the current state-machine implementation directory must remain
+materialized; once `zr_kernel` exists, `core/runtime/state_machine` must be absent. This prevents an
+empty crate shell, forwarding wrapper, or compatibility-era duplicate from being counted as the
+physical migration. Status remains `physical_hard_cut_not_started / mixed_owner_rotation_pending`.
+
+The Frameworks01 session scope includes the guard and this child record, but does not authorize
+claiming the five Runtime editor-optimization blobs. Their exact current hashes at epoch 587 are:
+`hook.rs=5560d7bc7c6478968193b5f2d85f2a9e5b5bb3451fa09bbe30463d629d9db16f`,
+`hook_index.rs=27069dedfcf3e95bad5f6d11dc7b73ecd5b7e0788ee633bb2debbe69601faaec`,
+`hook_index/optimization_batch_hu_runtime603_tests.rs=b8363153737d2f137a9da6df4d515e2db3b71f0111f23b507458b939d0cf0cf2`,
+`registry.rs=148a8be28ff46ba60f109dea563ae9eedd067547510aea6106498bf97e3ed5e0`, and
+`registry/optimization_batch_jn_runtime653_tests.rs=f2837062ef272bd8e418bba85c96cdefd84a73ba82f96dd93c15be7e43dcd271`.
+These values are evidence for a future owner-side transfer, not attribution by Frameworks01.

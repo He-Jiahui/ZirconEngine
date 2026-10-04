@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0048] 纹理资源上传、格式和采样器缓存的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_gpu_texture_from_asset_tests_are_child_owner() {
     let parent =
@@ -20,7 +21,7 @@ fn runtime_15_gpu_texture_from_asset_tests_are_child_owner() {
         "graphics/scene/resources/resource_streamer/resource_streamer_ensure_texture.rs",
     );
     let tests = read_runtime_src(
-        "graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs",
+        "graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests/cases.rs",
     );
 
     let plan_13 = read_repo("docs/plans/zircon_runtime/render/13-texture-pipeline.md");
@@ -178,7 +179,7 @@ fn runtime_15_gpu_texture_from_asset_tests_are_child_owner() {
         ),
         ("gpu_texture/sampler_cache.rs", sampler_cache.as_str()),
         (
-            "gpu_texture/gpu_texture_resource_from_asset/tests.rs",
+            "gpu_texture/gpu_texture_resource_from_asset/tests/cases.rs",
             tests.as_str(),
         ),
     ] {
@@ -204,7 +205,7 @@ fn runtime_15_gpu_texture_from_asset_tests_are_child_owner() {
                 "GpuTextureResource from_asset tests owner split",
                 "render_plan13_gpu_texture_from_asset_tests_owner_split_static_passed_cargo_deferred_active_compile_lane",
                 "graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs",
-                "graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs",
+                "graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests/cases.rs",
                 "runtime_15_gpu_texture_from_asset_tests_are_child_owner",
             ],
         );

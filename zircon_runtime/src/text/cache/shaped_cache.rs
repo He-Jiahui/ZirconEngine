@@ -715,7 +715,9 @@ impl ShapedRunCacheKey {
             && self.features_hash == lookup.features_hash
             && self.features.as_ref() == lookup.features
             && self.language.as_deref() == lookup.language
+            && self.font_collection == lookup.font_collection
             && self.font_database_generation == lookup.font_database_generation
+            && self.unicode_data_snapshot == lookup.unicode_data_snapshot
     }
 }
 
@@ -763,4 +765,5 @@ fn normalized_f32_bits(value: f32) -> u32 {
 }
 
 #[cfg(test)]
+#[path = "shaped_cache/tests/cases.rs"]
 mod tests;

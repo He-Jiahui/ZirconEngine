@@ -1,25 +1,26 @@
+# 核对平台包载荷交接与阶段报告辅助函数归属。
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PAYLOAD = REPO_ROOT / "tools/zircon_export/pipeline_report_native_dynamic_payload.py"
+PAYLOAD = REPO_ROOT / "tools/export/pipeline_report_native_dynamic_payload.py"
 PAYLOAD_PLATFORM_BUNDLE = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_payload_platform_bundle.py"
+    / "tools/export/pipeline_report_native_dynamic_payload_platform_bundle.py"
 )
 PAYLOAD_PLATFORM_BUNDLE_STAGE = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_payload_platform_bundle_stage.py"
+    / "tools/export/pipeline_report_native_dynamic_payload_platform_bundle_stage.py"
 )
 PAYLOAD_PACKAGE_PATH = (
     REPO_ROOT
-    / "tools/zircon_export/pipeline_report_native_dynamic_payload_package_path.py"
+    / "tools/export/pipeline_report_native_dynamic_payload_package_path.py"
 )
-PLATFORM_BUNDLE = REPO_ROOT / "tools/zircon_export/pipeline_report_platform_bundle.py"
+PLATFORM_BUNDLE = REPO_ROOT / "tools/export/pipeline_report_platform_bundle.py"
 PATH_RESOLVE_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_pipeline_report_native_dynamic_payload_path_resolve_errors.py"
+    / "tools/export/tests/test_pipeline_report_native_dynamic_payload_path_resolve_errors.py"
 )
 
 
@@ -65,7 +66,7 @@ class ZirconExportNativeDynamicPayloadPlatformBundleHandoffOwnerBoundaryTests(
             "PlatformBundle final-report diagnostics must not borrow payload handoff helpers from the payload projection owner",
         )
         self.assertIn(
-            "from tools.zircon_export.pipeline_report_native_dynamic_payload_platform_bundle import",
+            "from tools.export.pipeline_report_native_dynamic_payload_platform_bundle import",
             path_resolve_test_text,
             "path-resolution tests should bind directly to the payload handoff owner",
         )
@@ -135,7 +136,7 @@ class ZirconExportNativeDynamicPayloadPlatformBundleHandoffOwnerBoundaryTests(
             "PlatformBundle final-report owner should import NativeDynamic stage report path from the stage owner",
         )
         self.assertIn(
-            "from tools.zircon_export.pipeline_report_native_dynamic_payload_platform_bundle_stage import",
+            "from tools.export.pipeline_report_native_dynamic_payload_platform_bundle_stage import",
             path_resolve_test_text,
             "path-resolution tests should bind stage path helpers directly to the stage owner",
         )

@@ -31,7 +31,7 @@ resolved_at: 2026-07-15
 
 ## 失败现象与复现证据
 
-Plugins12 会话在 2026-07-15 08:00 +08:00 的协调器状态中明确记录 “V1/V2 ABI ... implemented”。当前源码同时存在 `ZrRuntimeApiV1`、`ZrRuntimeApiV2`、两个导出符号以及 app loader 的 V2-to-V1 fallback；结构审计因此错误报告 function tables `11/11` 且 `risks = []`。这与用户批准的 V2-only hard cutover 及 `docs/zircon_runtime/operation.md` 的无 V1 table/export/fallback 合同冲突。
+Plugins12 会话在 2026-07-15 08:00 +08:00 的协调器状态中明确记录 “V1/V2 ABI ... implemented”。当前源码同时存在 `ZrRuntimeApiV1`、`ZrRuntimeApiV2`、两个导出符号以及 app loader 的 V2-to-V1 fallback；结构审计因此错误报告 function tables `11/11` 且 `risks = []`。这与用户批准的 V2-only hard cutover 及 `docs/crates/zircon_runtime/operation.md` 的无 V1 table/export/fallback 合同冲突。
 
 关联的 Runtime10 根 failure 为 `../../zircon_runtime/runtime/10/failure-2026-07-15-dynamic-runtime-v1-fallback-reintroduced.md`。Runtime10 负责唯一 ABI table；Plugins12 负责证明 mirror/linked runtime/PIE 路径不依赖旧 table。
 

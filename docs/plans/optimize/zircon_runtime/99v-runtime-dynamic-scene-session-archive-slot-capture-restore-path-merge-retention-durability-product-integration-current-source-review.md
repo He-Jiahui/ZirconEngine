@@ -13,8 +13,6 @@ related_code:
   - zircon_runtime/src/scene/dynamic_scene/document
   - zircon_runtime/src/scene/level_system
   - zircon_runtime/src/core/runtime/tasks/bounded_keyed_io
-  - zircon_runtime/src/core/resource/io/atomic_file
-  - zircon_runtime/src/core/resource/io/transaction
   - zircon_runtime/src/dynamic_api
   - zircon_runtime_interface/src
   - zircon_editor/src

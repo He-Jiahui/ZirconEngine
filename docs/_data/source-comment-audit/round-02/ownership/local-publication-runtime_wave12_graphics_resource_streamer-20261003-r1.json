@@ -1,0 +1,101 @@
+{
+  "schema": 1,
+  "owner": "runtime_wave12_graphics_resource_streamer",
+  "prepared_at_utc": "2026-10-03T02:14:47.955709+00:00",
+  "files": [
+    {
+      "path": "docs/_data/source-comment-audit/round-02/coverage/runtime_wave12_graphics_resource_streamer.jsonl",
+      "before_exists": false,
+      "before_sha256": null,
+      "after_sha256": "a6d6f9ef64632dc31b941269f1661c40bdaea0824955af4441d1fd8dd5f9676a"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/issues/runtime_wave12_graphics_resource_streamer.jsonl",
+      "before_exists": false,
+      "before_sha256": null,
+      "after_sha256": "e8fcb9ddbf024d3f055a72340a9ef1f62aedcf1c1b46f29dfa60d50885ba4912"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/inventory.jsonl",
+      "before_exists": true,
+      "before_sha256": "9e7dd2953f4a1446ce790efa257a1075a626b0595606f81237a2c64fd9359f4d",
+      "after_sha256": "d1e4331871ca4e940805fca8d348d24502b18f475b5d250864c84f7d41a7784c"
+    },
+    {
+      "path": "docs/_data/source-comment-audit/round-02/batches.jsonl",
+      "before_exists": true,
+      "before_sha256": "9a6a4963f35f074ce4afafec7624016108aba956af53bfb66c0006d4161a278d",
+      "after_sha256": "db3d81282bffca0dd266d671497cf73a16bb33d4739cc5c24a461060519d030a"
+    }
+  ],
+  "source_hashes": {
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/geometry_replay.rs": "0a6e6e95b0cb82a67c8aef468c55dbc399f62a6d66ef189189629e3853314f4f",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/geometry_replay/tests/bounded_target_selection.rs": "123662299b7397cf979495bca0e9f4a080e9d15e29189ce79426395b0284177f",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/mod.rs": "51deb71418bd6394b3d28f70a80802bb2d1c2953e4742a50702a65199fa947be",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/model_geometry_resolution.rs": "1728dee8fa9b453bebfa3ce89ff680a24d3d10bfd4c166ea1797a7a0b8d72efe",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/published_material_draw_proxy.rs": "048683901de9e06b209ad5ebdd96f596c07ed469fdcf2e6340e682a23ecafe31",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer.rs": "40c496882d5683cc833132d844a1418048312f547b479a9a56aac66fb32e2c55",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs": "4b47f3cf69d4f5eade4219a509a458af93cab55e970365e96b96b4b1d34cccec",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_capture.rs": "febbadbc8babcd2cbcfd83b5b37cbe8202d56a82cfbee7512f58fc7ed3716021",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_diagnostics.rs": "ccecdb2c9f9c3eb7b983355677b2f9b8f6c1234e860a364f79bf8a57cd4c5796",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_advanced_lighting.rs": "a45a48c6512f35d1c4d7a078e99b46f14bcb2e31b250ee8a46c0cc3c0b94989e",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_construction.rs": "41e930b3b3ffe7a5f40614567f08ddd03c1d46531fd3b3b0068ac1c5dbf8584f",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs": "fbb8e7f42abdea39f1e068ab45fe9086e8dd41990927c54f83a66c12726943e4",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material/cache_identity.rs": "8f2160d93e798979150b050ad7183dc6594b4390d2057a706fe95e06ea6937c8",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material/candidate_publication.rs": "b5edf7debb01b94a99b7543dcfb0cd84510076f2a387df42330dd963b4e9374c",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material/material_readiness.rs": "88b9853e94a567d72fb174137f165076200dd453bd81ca6fa788c3c636d5547e",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material/shader_contract_snapshot.rs": "c7c19991ad79fcc3b6a3333cb15143c2091e84bfef3c46c053ee31a9ecaba20b",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material/tests.rs": "a6dc84a92f9401fa402eafd8172800ef3f31e7f8d390467b282d2e46190cb143",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_mesh.rs": "305ce0ff7dd539b45df2113abe09df8774c3a97578426b690b933085dc0b0c53",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_model.rs": "97633f2ab3dd7d5066b836489c1429248e7c00025ce3d12e1e8e41f12d54623a",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_output_target_texture.rs": "adc828f4cdb3503a826460383762098070d84574c0a0a00e1c626d428cbe5b55",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_post_process_lut_texture.rs": "1c9bf30b10da96e92c0ed9e8aeda16cf5d4a2e0d745c471219222e95a83c4b0e",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs": "690a1f4e2d4af9a982b2720ed1286a0292e6949eea55192b492ba52075fbf17d",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_texture.rs": "0cbf2b929c3023a3ee3b89b48cfba18b9537714ec12ef634e0d1828d5de323ae",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_load_model_asset.rs": "0e432293d0a1e1f7a56e90ca45e2a95646a285db9f47dd9831ac6efe7cec31ac",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_mip_streaming.rs": "fe5662b32c14571509c4569234b965753051f87603048c9d305283d7293eaa81",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_residency.rs": "4fac52063237c6955f576f88a43d008c0c9e66526367b1b2ddf2a8f014a8f26a",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_resolve_texture_id.rs": "5afdadbd59f5c67f294b0c64cbe55cb7e6b7a8a03d0b0384a07fe84829044173",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_resource_revision.rs": "60712aefea6f8363802f4568947c261e20c6f18e42230e7166a1ae292da58b94",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_submission_failure.rs": "cdf204d0b1c14da681e9bf119ebc1ca1ec989e88de0bfedc32e1cf26aae98aa9",
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_validate_material_shader_layout.rs": "303b5bfa9329212586bb38248d8818041cc3c3477f856161de2ccadccfc025b2"
+  },
+  "deferred_source_hashes": {
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_shader_source.rs": "87457747a1af6f3f7bd54b227004aa7aac053939cb85b0b06891c55cb5804371"
+  },
+  "installation": {
+    "path": "E:\\Git\\ZirconEngine\\docs\\cli-and-tooling\\source-comment-audit\\round-02\\ownership\\local-install-runtime_wave12_graphics_resource_streamer-20261003-r1.json",
+    "sha256": "6265b29f5f07a4b0554122f696bd33199a55ffd09e291952fa5305131c87938c"
+  },
+  "root_semantic_proof": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_resource_streamer-root-semantic-proof-20261003-r1.json",
+    "sha256": "a280eda6afd8cfa41232c794033822efddf3f1fb6122b83a40f538a5b603b7e5"
+  },
+  "coverage_records": 30,
+  "reviewed_current_records": 30,
+  "new_issues": 3,
+  "new_bug_issues": 3,
+  "new_todo_issues": 0,
+  "historical_issue_references": 1,
+  "issue_anchors": 5,
+  "source_writes": 0,
+  "canonical_writes": 0,
+  "status": "accepted30_partial_coverage_published_deferred1",
+  "completed_at_utc": "2026-10-03T02:15:23.116950+00:00",
+  "intent": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-publish-runtime_wave12_graphics_resource_streamer-20261003-r1\\intent.json",
+    "sha256": "d52dd76d448b8f60bb83dedd437afde1163b6beee70eacd3efc3a955f03b8b51"
+  },
+  "inventory_reviewed_current_records": 4260,
+  "canonical_batch_records": 111,
+  "canonical_ledger_writes": 4,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "business_adoption": false,
+  "dynamic_acceptance": false,
+  "future_source_edit_pending_paths": [
+    "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_shader_source.rs"
+  ],
+  "submission": "pending_index_ownership_resolution"
+}

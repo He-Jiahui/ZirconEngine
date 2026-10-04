@@ -72,3 +72,91 @@ Resolving state：Render10 活跃 owner 已把 direct mesh 断言同步为
 `dynamic_row.common.layer_mask.to_scene_schema_v1_mask_lossy() == 0b0010`，没有恢复冗余字段，
 Rust `1.94.1` scoped rustfmt 与 `git diff --check` 已通过。当前仍待 Render10 focused extract
 测试与 Plugins01 原始 focused lib-test 向上门共同 GREEN；完成前本 failure 保持 `open`。
+
+## 2026-09-11 rolling repair continuation
+
+- Stable fixing Session `failure-roll-01a090ae-render10-direct-extract-field-r1` at
+  baseline epoch `608` attributed the exact current hashes for the Render10 facade,
+  `direct_sections.rs`, and this failure record before validation. The current
+  `RenderMeshSnapshot` declaration remains owned by `common: RendererCommon`; the direct mesh
+  assertion retains the scene-schema-v1 lossy projection and expected mask `0b0010`. The other
+  `direct_sections.rs` access to `visibility.renderables[*].render_layer_mask` is a separate
+  renderable-visibility contract and was intentionally preserved.
+- A local current-source structural check printed
+  `RENDER10_DIRECT_EXTRACT_FIELD_PASS`. Coordinator-managed static ticket
+  `713d872e83684e5b88becc687457fd11` sealed manifest
+  `4ff782582a8b60085377923e68552bcb8d2b9b019745db530396532d89a50b40` and remains
+  `queued`; this is durable admission evidence, not a passing result.
+- Managed Cargo request
+  `failure-roll-01a090ae-render10-cargo-20260911-r1` used the original Plugins01 focused
+  `zircon_runtime --lib` test with `core-min`, `--locked`, and no caller-owned `--jobs` flag.
+  Coordinator admission rejected it before ticket creation or Cargo execution with
+  `validation_ticket_external_worktree_dirty` for `E:\Git\zr_vm`. Consequently there is no
+  Cargo process, exit code, focused dynamic GREEN, fixed return, closeout commit, or notification
+  to claim. Resume only after the external repository owner supplies a clean pinned revision;
+  until then this failure remains `open` and the Session waits on managed validation.
+
+### 2026-09-18 static ticket terminal result
+
+The managed static ticket `713d872e83684e5b88becc687457fd11` reached terminal
+`passed` with job `49180189b51545018f8fec5916eb1a63`, run
+`713d872e83684e5b88becc687457fd11`, and exit code `0`. It emitted
+`RENDER10_DIRECT_EXTRACT_FIELD_PASS` with no coordinator blockers. This is
+static evidence only; the exact Render10 focused Cargo and Plugins01 upward
+
+### 2026-09-19 current-session admission reconciliation
+
+- A fresh current-source static submission was attempted from Session `failure-roll-01a084c8-render10-direct-extract-r2` after the prior manifest drifted. The coordinator rejected admission with `validation_copy_overlay_not_owned` because the successor Session write scope contains this failure record but does not own/attribute `zircon_runtime/src/core/framework/render/scene_extract.rs` or `zircon_runtime/src/scene/tests/render_extract/direct_sections.rs`.
+- No validation copy, job, run, or test result was created by the rejected request. The prior static ticket remains non-reusable as a whole because its manifest included the older failure-record hash; no dynamic GREEN is claimed.
+- Source ownership must be reconciled through the coordinator before a fresh static ticket can be submitted. Focused Render10 Cargo, Plugins01 upward acceptance, independent Critical/Important/Moderate review, canonical return, and closeout remain pending.
+
+## 2026-09-26 Render10 r3 current-source/static receipt
+
+- Successor Session `failure-roll-01a084c8-render10-direct-extract-r3` registered the
+  Render10 fixing plan with the plan, failure record, renderer facade, and direct-extract
+  fixture in its exact write scope. The audited ownership transfer fingerprint was
+  `67320efc12d413f0490c7ce1345af5cf60d7dbf8284b8a7872c3eae94ccfce08`; both previously
+  archived-owner source paths were eligible and transferred without edits.
+- Current-source snapshot `3877` (baseline epoch `611`) froze the following hashes:
+  `docs/plans/zircon_runtime/render/10-renderer-family.md`=`d6fcb4eb094555f53010335a4936654cfca44def480f8ba726caf2bad73d2663`;
+  this failure record before this receipt=`94b281de34f871609a8069efb82811f1eb7321569244e0327a4d4a9380ba4632`;
+  `zircon_runtime/src/core/framework/render/scene_extract.rs`=`3378b7c127f5c23e3c69cba6f7f015e897b9b95343ca2ab7ac528ee6c8ff6736`;
+  `zircon_runtime/src/scene/tests/render_extract/direct_sections.rs`=`4bb395b50479edbe5572ece164fc257e0a829c159f47158db27e0652bb682123`.
+- The exact current-source probe emitted `RENDER10_DIRECT_EXTRACT_FIELD_PASS`;
+  `rustfmt +1.94.1 --edition 2021 --check --config skip_children=true` for both
+  source paths exited `0`, and scoped `git diff --check` exited `0` (only the existing
+  CRLF normalization warning was printed). The probe confirms the mesh assertion reads
+  `dynamic_row.common.layer_mask.to_scene_schema_v1_mask_lossy() == 0b0010`, does not
+  reintroduce `dynamic_row.render_layer_mask`, and leaves the visibility renderable
+  contract separate.
+- Fresh coordinator static ticket `20e3e7c5e789451da7acf4080b59ddc8` for request
+  `render10-direct-extract-current-static-20260926-r3` ran as job
+  `eeb6b491d4004b99815148c3cd52cf87` / run equal to the ticket, exited `0`, and emitted
+  `RENDER10_DIRECT_EXTRACT_FIELD_PASS`. Its manifest is the four-path snapshot above;
+  `executionKind=executed`, `terminalStatus=passed`, and `failureCategory=coordinator`.
+- The first independent review correctly reported `Critical=0`, `Important=1`,
+  `Moderate=0` only because this receipt was not yet present in the failure record. The
+  reviewer also confirmed the semantic assertion and both source hashes. A post-receipt
+  review is required before this static handoff is considered review-clean.
+- This receipt is static/source evidence only. The exact Render10 focused extract gate and
+  the original Plugins01 upward `zircon_runtime --lib` gate remain pending; the prior
+  managed request was rejected at admission by dirty external `E:\Git\zr_vm`, with no
+  Cargo job or test-level result. Canonical `fixed-*` return, closeout, and WeCom remain
+  pending, so this failure stays `open`.
+
+## 2026-09-26 independent review receipt
+
+- Reviewer Session `review-editor03-gizmo-private` completed a read-only post-receipt
+  review against snapshot `3879`. The plan, failure record, and both source hashes matched
+  the frozen four-path manifest; the reviewer independently reconciled ticket
+  `20e3e7c5e789451da7acf4080b59ddc8`, job/run `eeb6b491d4004b99815148c3cd52cf87`, exit
+  code `0`, `executionKind=executed`, `terminalStatus=passed`, and the
+  `RENDER10_DIRECT_EXTRACT_FIELD_PASS` marker.
+- The review confirmed the direct mesh assertion uses the canonical
+  `dynamic_row.common.layer_mask.to_scene_schema_v1_mask_lossy() == 0b0010` projection,
+  does not restore a forbidden top-level `render_layer_mask`, and leaves the separate
+  visibility-renderable mask contract intact. Review result: `Critical=0`, `Important=0`,
+  `Moderate=0`.
+- This is an independent static review only. Focused Render10 Cargo, Plugins01 upward
+  acceptance, the external `E:\Git\zr_vm` clean-revision prerequisite, canonical fixed
+  return, closeout, and WeCom remain pending; the failure remains `open`.

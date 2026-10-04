@@ -40,6 +40,8 @@ pub(super) struct EngineState {
     pub(super) operation_group: Option<ActiveOperationGroup>,
     pub(super) next_transaction: u64,
     pub(super) current_frame: u64,
+    // Successful applies (including merged commands) and cancellations invalidate pending decisions.
+    pub(super) applied_command_revision: u64,
     pub(super) history_capacity: usize,
     pub(super) operation: Option<&'static str>,
     // A failed recovery freezes mutation while retaining the active/history recovery state.
@@ -95,6 +97,7 @@ impl EditorTransactionEngine {
                 operation_group: None,
                 next_transaction: 1,
                 current_frame: 0,
+                applied_command_revision: 0,
                 history_capacity,
                 operation: None,
                 faulted: false,
@@ -160,5 +163,5 @@ impl EditorTransactionEngine {
 }
 
 #[cfg(test)]
-#[path = "engine_state/hash_index_tests.rs"]
+#[path = "engine_state/tests/hash_index_tests.rs"]
 mod hash_index_tests;

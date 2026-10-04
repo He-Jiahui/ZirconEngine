@@ -1,3 +1,5 @@
+//! 恢复域汇集自动保存、文档日志、项目会话副作用台账和残留锁；宿主必须先取得项目会话权限再执行恢复计划。
+
 mod autosave;
 mod autosave_adapter;
 mod autosave_catalog;
@@ -62,4 +64,5 @@ pub use session_guard::{
 };
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

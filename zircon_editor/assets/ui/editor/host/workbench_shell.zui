@@ -18,6 +18,7 @@ styles = ["res://ui/theme/editor_workbench_spatial.zui"]
 [nodes.host]
 component = "UiHostWindow"
 control_id = "UiHostWindowRoot"
+pixel_snapping = "disabled"
 classes = ["editor-workbench", "workbench-shell-root"]
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "UiHostWindow/ActivateMainPage", event = "Change", route = "workbench.dock.activate_main_page" }]
@@ -69,7 +70,7 @@ control_id = "ResetLayout"
 classes = ["workbench-toolbar-button"]
 props = { icon = "editor_pages/workbench/dock/reset-layout.svg", label = "Reset Layout", selected = false, focused = false, hovered = false, pressed = false, disabled = false, surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control" }
 layout = { width = { min = "$editor.density.toolbar_wide_action_width", preferred = "$editor.density.toolbar_wide_action_width", max = "$editor.density.toolbar_wide_action_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "WorkbenchMenuBar/ResetLayout", event = "Click", route = "workbench.layout.reset" }]
+events = [{ id = "WorkbenchMenuBar/ResetLayout", event = "Click", action = { action = "window.layout.reset" } }]
 
 [nodes.host_page_strip]
 component = "Container"
@@ -93,6 +94,7 @@ children = [{ node = "activity_rail" }, { node = "document_host" }]
 component = "ActivityRail"
 control_id = "ActivityRailRoot"
 classes = ["workbench-rail"]
+props = { visibility = "collapsed" }
 layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "hierarchy_toggle" }, { node = "assets_toggle" }, { node = "console_toggle" }]
 

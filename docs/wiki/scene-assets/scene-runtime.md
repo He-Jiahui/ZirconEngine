@@ -10,7 +10,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 场景运行时说明
 tests:
-  - zircon_runtime/src/scene/level_system/subsystem_snapshot_tests.rs
+  - zircon_runtime/src/scene/level_system/tests/subsystem_snapshot_tests.rs
   - zircon_runtime/src/scene/tests
 doc_type: module-detail
 ---
@@ -60,4 +60,4 @@ assert_eq!(level.lifecycle(), LevelLifecycleState::Loaded);
 
 ## 源码与测试
 
-[level_system.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/scene/level_system.rs)、[module/mod.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/scene/module/mod.rs)、[world_time/mod.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/scene/world_time/mod.rs)；测试见 [subsystem_snapshot_tests.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/scene/level_system/subsystem_snapshot_tests.rs)。
+[level_system.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/scene/level_system.rs)、[module/mod.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/scene/module/mod.rs)、[world_time/mod.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/scene/world_time/mod.rs)；测试见 [subsystem_snapshot_tests.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_runtime/src/scene/level_system/tests/subsystem_snapshot_tests.rs)。

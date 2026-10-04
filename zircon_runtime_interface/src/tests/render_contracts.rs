@@ -14,7 +14,7 @@ use crate::ui::{
         UiTextCaretAffinity, UiTextComposition, UiTextDirection, UiTextDistanceFieldEffects,
         UiTextGlowEffect, UiTextOutlineEffect, UiTextOverflow, UiTextPaint, UiTextPaintDecoration,
         UiTextPaintDecorationKind, UiTextRange, UiTextRenderMode, UiTextRunKind, UiTextSelection,
-        UiTextShadowEffect, UiTextWritingMode, UiVisualAssetRef,
+        UiTextShadowEffect, UiTextShapeArtifact, UiTextWritingMode, UiVisualAssetRef,
     },
 };
 
@@ -446,7 +446,7 @@ fn ui_text_paint_carries_editable_caret_selection_and_composition() {
             source_range: UiTextRange { start: 0, end: 5 },
             visual_range: UiTextRange { start: 0, end: 5 },
             measured_width: 50.0,
-            glyph_advances: vec![],
+            glyph_advances: vec![10.0; 5],
             baseline: 8.0,
             direction: UiTextDirection::LeftToRight,
             runs: vec![UiResolvedTextRun {
@@ -1011,6 +1011,7 @@ fn ui_shaped_text_contract_preserves_runs_and_ranges() {
 
 #[test]
 fn ui_shaped_text_contract_preserves_explicit_grapheme_glyph_bounds() {
+    // 组合附加符与 ZWJ emoji 各占一个字形范围；范围端点仍按 UTF-8 字节偏移记录。
     let accent = "a\u{0301}";
     let emoji = "\u{1f469}\u{200d}\u{1f4bb}";
     let source = format!("{accent}{emoji}b");
@@ -1278,7 +1279,6 @@ fn ui_text_decorations_use_vertical_rl_geometry() {
         },
         editable: Some(UiEditableTextState {
             text: source.clone(),
-            placement_frame: UiFrame::default(),
             caret: UiTextCaret {
                 offset: 6,
                 affinity: UiTextCaretAffinity::Downstream,
@@ -1409,7 +1409,7 @@ fn ui_text_decorations_snap_to_grapheme_cluster_edges() {
                 end: source.len(),
             },
             measured_width: 30.0,
-            glyph_advances: vec![],
+            glyph_advances: vec![15.0; 2],
             baseline: 8.0,
             direction: UiTextDirection::LeftToRight,
             runs: vec![UiResolvedTextRun {
@@ -1562,14 +1562,9 @@ fn ui_text_decorations_use_run_visual_ranges_for_non_isomorphic_source_ranges() 
     assert!(text.decorations.iter().any(|decoration| decoration.kind
         == UiTextPaintDecorationKind::Caret
         && decoration.frame == UiFrame::new(40.0, 0.0, 1.0, 12.0)));
-    let shaped = text
-        .shaped
-        .as_ref()
-        .expect("text paint carries shaped data");
-    assert_eq!(
-        shaped.lines[0].glyphs[3].source_range,
-        UiTextRange { start: 3, end: 5 }
-    );
+    assert_eq!(text.shaped, UiTextShapeArtifact::Unavailable);
+    assert_eq!(text.runs[1].source_range, UiTextRange { start: 3, end: 5 });
+    assert_eq!(text.runs[1].frame, UiFrame::new(30.0, 0.0, 10.0, 12.0));
 }
 
 #[test]

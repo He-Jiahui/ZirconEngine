@@ -118,7 +118,7 @@ fn runtime_15_dynamic_scene_spawn_task_lock_poison_recovery_guard_covers_spawn_t
         &[
             "use super::task::{lock_spawn_result, DynamicSceneSpawnTask};",
             "let task = TaskHandle::schedule_detached",
-            "let task = scope.schedule",
+            "let task = scope.submit",
             "let mut result = lock_spawn_result(&result);",
         ],
     );

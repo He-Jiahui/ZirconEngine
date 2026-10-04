@@ -1,22 +1,20 @@
 use crate::core::framework::text::TextDirection;
 use crate::core::runtime::tasks::TaskPool;
+use crate::text::shaping::{TextLayoutOutcome, TextShapingOutcome};
 #[cfg(feature = "profiling")]
 use crate::text::CompiledRichTextCacheReport;
-use crate::text::shaping::{TextLayoutOutcome, TextShapingOutcome};
 use crate::text::{
-    EphemeralCacheHash, RichSemanticProjection, RichTextFormat, SharedTextLayoutSession,
-    TextDocumentKey, TextRange, TextStyle, VerticalMode,
     cache::{
-        DEFAULT_TEXT_LAYOUT_CACHE_CAPACITY, DEFAULT_TEXT_MEASURE_CACHE_CAPACITY,
         HardLineIndexCacheReport, ShapedRunCacheReport, TextFrameDedup, TextFrameDedupReport,
         TextLayoutCache, TextLayoutCacheReport, TextLayoutWidthValidity, TextMeasureCache,
-        TextMeasureCacheReport,
+        TextMeasureCacheReport, DEFAULT_TEXT_LAYOUT_CACHE_CAPACITY,
+        DEFAULT_TEXT_MEASURE_CACHE_CAPACITY,
     },
-    font::{FontCollectionService, shared_font_collection_service},
     from_compiled_rich_semantic_projection, has_multiple_hard_lines,
     layout::resolved_text_spans,
     parallel::shape_pool::{TextParallelShapeBatchReport, TextShapeParagraph},
-    text_style,
+    text_style, EphemeralCacheHash, RichSemanticProjection, RichTextFormat,
+    SharedTextLayoutSession, TextDocumentKey, TextRange, TextStyle, VerticalMode,
 };
 use std::{
     hash::{Hash, Hasher},
@@ -33,18 +31,19 @@ use super::layout_engine::{
     measure_text_size_with_provider_outcome, resolve_text_direction, text_layout_error_layout,
 };
 use super::resolved_layout::{
-    UiTextLayoutRequest, UiTextLayoutResolution, UiTextStyleKey, resolution_from_layout,
-    resolve_text_layout_with_provider_and_parsed_outcome,
-    resolve_text_layout_with_provider_outcome,
+    resolution_from_layout, resolve_text_layout_with_provider_and_parsed_outcome,
+    resolve_text_layout_with_provider_outcome, UiTextLayoutRequest, UiTextLayoutResolution,
+    UiTextStyleKey,
 };
-use super::rich_text::{UiParsedText, parse_source_text_with_provider};
+use super::rich_text::{parse_source_text_with_provider, UiParsedText};
 use super::shaper::measure_unwrapped_text_height_with_provider;
 
+mod context;
 mod retained_document;
 
+use retained_document::RetainedPlainTextDocumentCache;
 #[cfg(test)]
 use retained_document::RETAINED_PLAIN_DOCUMENT_MAX_BYTES;
-use retained_document::RetainedPlainTextDocumentCache;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct UiTextMeasureKey {
@@ -123,6 +122,7 @@ impl UiTextMeasureSizeKey {
 }
 
 #[cfg(test)]
+#[path = "measure_cache/tests/generation_key_tests.rs"]
 mod generation_key_tests;
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -259,6 +259,7 @@ fn layout_hard_line_shape_paragraphs(
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct UiTextMeasureCache {
+    text_runtime_context_id: Option<crate::text::TextRuntimeContextId>,
     measure_frame_dedup: TextFrameDedup<UiTextMeasureSizeKey, UiSize>,
     measure_cache: TextMeasureCache<UiTextMeasureSizeKey, UiSize>,
     text_layout_session: SharedTextLayoutSession,
@@ -270,32 +271,7 @@ pub(crate) struct UiTextMeasureCache {
     frame_index: u64,
 }
 
-impl Default for UiTextMeasureCache {
-    /// Creates a standalone cache backed by the process-owner font collection.
-    /// Retained surfaces construct this cache with their selected owner collection: the Editor
-    /// process collection or a Runtime Core-owned collection.
-    fn default() -> Self {
-        Self::new_with_font_collection(shared_font_collection_service())
-    }
-}
-
 impl UiTextMeasureCache {
-    pub(crate) fn new_with_font_collection(font_collection: Arc<FontCollectionService>) -> Self {
-        let text_layout_session =
-            SharedTextLayoutSession::new_with_font_collection(font_collection);
-        Self {
-            measure_frame_dedup: TextFrameDedup::default(),
-            measure_cache: TextMeasureCache::with_capacity(DEFAULT_TEXT_MEASURE_CACHE_CAPACITY),
-            text_layout_session,
-            layout_frame_dedup: TextFrameDedup::default(),
-            layout_cache: TextLayoutCache::with_capacity(DEFAULT_TEXT_LAYOUT_CACHE_CAPACITY),
-            retained_plain_documents: RetainedPlainTextDocumentCache::default(),
-            uncached_document_resolve_count: 0,
-            shape_prewarm_report: TextParallelShapeBatchReport::default(),
-            frame_index: 0,
-        }
-    }
-
     pub(crate) fn font_database_generation(&self) -> u64 {
         self.text_layout_session.font_database_generation()
     }
@@ -306,6 +282,14 @@ impl UiTextMeasureCache {
         style: UiResolvedStyle,
     ) -> Option<UiTextShapePrewarmRequest> {
         UiTextShapePrewarmRequest::from_layout_source(text, style, &self.text_layout_session)
+    }
+
+    pub(crate) fn parse_source_text(
+        &self,
+        source_markup: &str,
+        format: RichTextFormat,
+    ) -> Result<UiParsedText, crate::core::framework::text::TextLayoutError> {
+        parse_source_text_with_provider(source_markup, format, &self.text_layout_session)
     }
 
     pub(crate) fn compile_rich_semantic_projection(

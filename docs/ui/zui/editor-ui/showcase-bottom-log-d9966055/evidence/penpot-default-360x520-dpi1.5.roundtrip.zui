@@ -1,0 +1,44 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/showcase/showcase_bottom_log.zui"
+version = 2
+display_name = "Showcase Bottom Log"
+
+[imports]
+widgets = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
+
+[components.ShowcaseBottomLog]
+root = "bottom_log_root"
+default_classes = ["unreal-panel"]
+
+[nodes.log_scope]
+component = "Label"
+control_id = "ComponentShowcaseLogScope"
+classes = ["showcase-muted"]
+props = { text = "Output Log", font_size = "$editor.typography.caption.size" }
+layout = { width = { min = 86.0, preferred = 86.0, max = 86.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.log_message]
+component = "Label"
+control_id = "ComponentShowcaseLogMessage"
+classes = ["showcase-muted"]
+props = { text = "Ready: imported component prototypes are resident in the v2 prototype store.", font_size = "$editor.typography.caption.size" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.log_status]
+component = "Badge"
+control_id = "ComponentShowcaseLogStatus"
+classes = ["showcase-field", "unreal-command"]
+props = { text = "Live", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_padding_top = "$editor.density.gap.xsmall", layout_padding_bottom = "$editor.density.gap.xsmall" }
+layout = { width = { min = 54.0, preferred = 54.0, max = 54.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.bottom_log_root]
+component = "HorizontalBox"
+control_id = "ShowcaseBottomLogRoot"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" } }
+children = [
+  { node = "log_scope" },
+  { node = "log_message" },
+  { node = "log_status" },
+]

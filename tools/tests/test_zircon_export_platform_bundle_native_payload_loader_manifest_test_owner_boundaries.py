@@ -9,15 +9,15 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ROOT_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_platform_bundle_native_payload_loader_manifest.py"
+    / "tools/export/tests/test_platform_bundle_native_payload_loader_manifest.py"
 )
 ABI_SCHEMA_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_platform_bundle_native_payload_loader_manifest_abi_schema.py"
+    / "tools/export/tests/test_platform_bundle_native_payload_loader_manifest_abi_schema.py"
 )
 SUPPORT_FILE = (
     REPO_ROOT
-    / "tools/zircon_export/tests/platform_bundle_native_payload_loader_manifest_test_support.py"
+    / "tools/export/tests/platform_bundle_native_payload_loader_manifest_test_support.py"
 )
 
 ABI_SCHEMA_TESTS = (

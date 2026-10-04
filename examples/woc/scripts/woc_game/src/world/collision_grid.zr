@@ -63,6 +63,7 @@ pub isBuiltinOpenWorldPosition(x: float, required: bool): bool {
 // `axis` exposes the pair-valued resolver without a mutable output object.
 // Its cell is selected once from the input point, exactly as resolvePosition
 // selects `grid.cells.get(key)` before entering resolveAgainst.
+// 供 safe_position 的内建野外查询；单次按原始点锁定网格候选，再按静态记录和装饰候选的源顺序复演至多三轮。
 pub resolveBuiltinWorldCoordinate(
     seed: uint,
     x: float,

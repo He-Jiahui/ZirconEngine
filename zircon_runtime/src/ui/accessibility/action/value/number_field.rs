@@ -11,10 +11,10 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::surface::{
-    UiSurface, UiTextComponentEventKind,
     input::{
         editable_text_state_for_node, number_field_commit_decision, prepare_number_field_properties,
     },
+    UiSurface, UiTextComponentEventKind,
 };
 
 use super::super::result::{finish_handled, finish_unhandled};

@@ -22,7 +22,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束借用归属撤销插件 ID：撤销不分配持有插件 ID，并插件 ID 保留借用对着色器删除。
 class BorrowedOwnerRevocationPluginIdPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

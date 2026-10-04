@@ -8,7 +8,7 @@ use crate::text::layout::{
 };
 use crate::text::shaping::{TextLayoutOutcome, TextShapingOutcome};
 use crate::text::{
-    SharedTextLayoutSession, TextLayoutAxisConstraint, TextLayoutGeometryOwner, text_style,
+    text_style, SharedTextLayoutSession, TextLayoutAxisConstraint, TextLayoutGeometryOwner,
 };
 use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 use zircon_runtime_interface::ui::surface::{

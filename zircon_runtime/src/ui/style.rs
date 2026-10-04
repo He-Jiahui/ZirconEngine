@@ -720,5 +720,5 @@ fn parse_interaction_state(raw: &str) -> Option<ButtonInteractionState> {
 }
 
 #[cfg(test)]
-#[path = "style/direct_hex_color_tests.rs"]
+#[path = "style/tests/direct_hex_color_tests.rs"]
 mod direct_hex_color_tests;

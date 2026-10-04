@@ -3,16 +3,19 @@ related_code:
   - zircon_app/src/entry/product_shutdown/mod.rs
   - zircon_app/src/entry/product_shutdown/phase.rs
   - zircon_app/src/entry/product_shutdown/terminal.rs
+  - zircon_app/src/entry/product_shutdown/terminal_outcome.rs
   - zircon_app/src/entry/product_shutdown/failure.rs
   - zircon_app/src/entry/product_shutdown/failure_ledger.rs
   - zircon_app/src/entry/entry_runner/headless/controller.rs
+  - zircon_app/src/bin/editor.rs
+  - zircon_app/src/bin/runtime_preview.rs
 implementation_files:
   - zircon_app/src/entry/product_shutdown
   - zircon_app/src/entry/entry_runner/headless
 plan_sources:
   - user: 2026-09-09 扩展 zircon_app 公开接口、机制案例、教程和最佳实践
 tests:
-  - zircon_app/src/entry/product_shutdown/tests.rs
+  - zircon_app/src/entry/product_shutdown/tests/cases.rs
   - zircon_app/tests/diagnostic_log_process_lifecycle.rs
 doc_type: module-detail
 ---
@@ -54,7 +57,21 @@ stateDiagram-v2
 
 ## ProductExitClass
 
-`ProductExitClass` 是稳定语义分类：`Success`、`StartupFailure`、`RuntimeFailure`、`ShutdownFailure`、`ForcedTermination`。它不携带平台数字码，适合日志、遥测和跨平台测试。
+`ProductExitClass` 是宿主语义分类，其版本 1 可移植退出码由 `code()` 固定映射：
+
+| 类别 | 退出码 |
+| --- | ---: |
+| `Success` | 0 |
+| `UnclassifiedFailure` | 1 |
+| `UsageFailure` | 2 |
+| `CapabilityFailure` | 3 |
+| `ConfigFailure` | 4 |
+| `StartupFailure` | 5 |
+| `RuntimeFailure` | 6 |
+| `ShutdownFailure` | 7 |
+| `ForcedTermination` | 8 |
+
+这些是宿主类别的注册值。Editor commandlet 的 `u8` 结果属于独立数值域，即使与宿主码相同，也不能据数字反推来源。
 
 ## ProductProcessExitCode
 
@@ -63,7 +80,7 @@ use zircon_app::{ProductExitClass, ProductProcessExitCode};
 
 let code = ProductProcessExitCode::from_class(ProductExitClass::RuntimeFailure);
 assert!(code.is_failure());
-assert_eq!(code.code(), 1);
+assert_eq!(code.code(), 6);
 let explicit = ProductProcessExitCode::from_code(7);
 assert_eq!(explicit.code(), 7);
 ```
@@ -72,14 +89,14 @@ assert_eq!(explicit.code(), 7);
 
 | API | 语义 |
 | --- | --- |
-| `failure()` | 返回最小非零失败码 |
+| `failure()` | 返回未分类失败码 1 |
 | `from_code(u8)` | 0 映射 Success，非零保留显式码 |
-| `from_class(ProductExitClass)` | 除 Success 外均为默认失败 |
+| `from_class(ProductExitClass)` | 使用上表的宿主类别码 |
 | `code()` | 得到 `u8` |
 | `is_failure()` | 判断是否非零 |
 | `From<ProductProcessExitCode> for std::process::ExitCode` | 进程边界转换 |
 
-不要直接把内部错误字符串转换成退出码；先归类，再决定是否需要产品特定的显式码。
+`ProductTerminalOutcome` 保留 `ProductTerminalPrimary` 的宿主类别或 commandlet 原始码；已观测的 report、IPC、profiling、日志关闭等后续失败可记录为 `ProductTerminalSecondary`。已有非零 primary 不会被覆盖；成功 primary 遇到次要失败时，进程码变为 `ShutdownFailure`（7）。`receipt()` 给出带 schema version、可选 attempt/generation 和观测状态的可序列化 `ProductTerminalReceipt`；生成该值不等于已持久写出。不要从错误文本推断类别。
 
 ## Failure ledger
 
@@ -199,21 +216,9 @@ shutdown failure
 
 先看最早 phase/sequence，再看后续级联；后面的 cleanup failure 通常不是首因。
 
-## 14. 进程边界示例
+## 14. 进程边界现状
 
-```rust
-fn run_product() -> ProductProcessExitCode {
-    match EntryRunner::run_runtime() {
-        Ok(()) => ProductProcessExitCode::from_class(ProductExitClass::Success),
-        Err(error) => {
-            eprintln!("{error}");
-            ProductProcessExitCode::from_class(ProductExitClass::RuntimeFailure)
-        }
-    }
-}
-```
-
-示例只说明语义映射。真实 runner 可能已经根据 terminal reason 选择更准确的 class，应避免外层把所有错误都改写成 startup failure。
+`zircon_editor` 和 `runtime_preview` binary 已使用 `ProductTerminalOutcome` 投影退出码，并将进程日志关闭结果记为次要状态。当前 boxed runner `Err` 仍按 `UnclassifiedFailure`（1）处理；只有携带明确类别的结果才能映射到 usage/config/capability/startup/runtime 等专用码。Editor commandlet 的显式 `u8` 结果原样保留，包括成功码 0 的 commandlet 来源。
 
 ## 15. 验收断言
 
@@ -226,21 +231,9 @@ fn run_product() -> ProductProcessExitCode {
 - Success 映射码 0，失败映射非零。
 - cleanup 失败不会跳过 diagnostics flush。
 
-## 16. 产品边界实现模板
+## 16. 产品边界实现状态
 
-```rust
-fn finish_product(result: Result<(), Box<dyn std::error::Error>>) -> ProductProcessExitCode {
-    match result {
-        Ok(()) => ProductProcessExitCode::from_class(ProductExitClass::Success),
-        Err(error) => {
-            eprintln!("product failure: {error}");
-            ProductProcessExitCode::failure()
-        }
-    }
-}
-```
-
-模板只处理最终边界；内部 owner 仍必须先执行完整协调器。不要在 `Err` 分支直接调用 `std::process::exit`，否则 ledger 和 diagnostics 可能尚未 flush。
+调用方应先保留 runner 的 primary 结果，再记录已观测的 teardown、report 和日志结果，最后通过 `ProductTerminalOutcome::exit_code()` 投影进程码。不要在失败分支直接调用 `std::process::exit`，否则 owner 清理和 diagnostics 可能尚未完成。当前有界 terminal 源码切片仍待 managed validation 和产品级验收；typed failure stage、真实 receipt 持久交付及跨 binary 进程矩阵尚未完成。
 
 ## 17. 诊断与遥测
 

@@ -1,7 +1,7 @@
 from pathlib import Path
 import re
 import unittest
-
+# 内建 Volume 默认值以固定栈缓冲覆盖最大描述符，较长插件描述符退回拥有型存储；本组核对容量边界与 Rust 回归入口。
 
 ROOT = Path(__file__).resolve().parents[2]
 COMPONENT_RS = ROOT / (

@@ -1,0 +1,139 @@
+---
+related_code:
+  - zircon_editor/src/ui/host/resource_access.rs
+  - zircon_editor/src/ui/retained_host/app.rs
+  - zircon_editor/src/ui/retained_host/app/assets.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs
+  - zircon_editor/src/ui/workbench/state/editor_state.rs
+  - zircon_hub/src/projects/metadata.rs
+  - zircon_runtime/src/ui/component/state_reducer/table.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/table/mod.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/table/columns.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/capture_frame/capture_frame.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/create_viewport/create.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/destroy_viewport/destroy_viewport.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/query_stats/query_stats.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/query_virtual_geometry_debug_snapshot/query_virtual_geometry_debug_snapshot.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/register_pipeline_asset/register_pipeline_asset.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/reload_pipeline/reload_pipeline.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/set_pipeline_asset/set_pipeline_asset.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/set_quality_profile/set_quality_profile.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
+  - docs/architecture/runtime-reference-engine-evidence.md
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming_markdown.py
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary.rs
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/editor_workbench.rs
+implementation_files:
+  - zircon_editor/src/ui/host/resource_access.rs
+  - zircon_editor/src/ui/retained_host/app.rs
+  - zircon_editor/src/ui/retained_host/app/assets.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
+  - zircon_editor/src/tests/host/resource_access/mod.rs
+  - zircon_editor/src/ui/workbench/state/editor_state.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs
+  - docs/architecture/non-network-server-naming-m1.md
+  - docs/architecture/runtime-architecture-review-m0.md
+  - docs/architecture/runtime-interface-convergence.md
+  - docs/editor/crate-boundary-audit-round-2.md
+  - docs/architecture/index.md
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming_markdown.py
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/editor_workbench.rs
+plan_sources:
+  - user: 2026-06-04 optimize Zircon Engine runtime architecture with breaking changes allowed
+  - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
+  - docs/architecture/runtime-reference-engine-evidence.md
+tests:
+  - python -m py_compile .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming_markdown.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
+  - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json
+  - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
+  - non_network_server_references M1 gate status, explicit count fields, classification count, migration debt, and unclassified reference checks
+doc_type: milestone-detail
+---
+
+# Non-Network Server Naming M1 Gate
+
+> 规范权威：跨域通用规则已统一收敛至 [Zircon 开发规范总纲](../plans/zircon_runtime/frameworks/development-conventions.md)；本文保留非网络 server 命名 gate 的细节论证与执行上下文，不再作为并列规则源。
+
+## Purpose
+
+This document turns the non-network `server` naming rule into an auditable M1 gate. `server` stays valid for real network, target-runtime, service-host, dev-server, and external API contexts. It is not valid as a generic name for render-framework receivers or editor/workbench authority labels.
+
+The reference-engine evidence is in `docs/architecture/runtime-reference-engine-evidence.md`:
+
+- Bevy uses app, schedule, world, system, query, and resource terms for non-network runtime coordination.
+- Fyrox uses engine, plugin, scene, resource, editor, and viewer terms for non-network ownership.
+- Unreal uses Runtime, Editor, Programs, modules, plugins, and build targets rather than arbitrary non-network server owners.
+
+## Current Gate Output
+
+The structural audit now reports `non_network_server_references.m1_gate_status`. Current status is:
+
+`classified-and-clear`
+
+Current evidence:
+
+- `count = 0` suspect non-network references;
+- `sample_location_count = 0`;
+- `reference_decision_count = 0`;
+- `reference_decision_group_count = 0`;
+- `classification_count = 0`;
+- `observer_false_positive_count = 95`, because `observer` contains the letters `server` but is not server vocabulary;
+- `allowed_context_count = 94` for real network, target-runtime, dev-server, Hub UNC fixture, and external UI API contexts;
+- `non_network_server_migration_debt_count = 0`;
+- `unclassified_location_count = 0`;
+- `unclassified_locations = []`.
+
+Current classification:
+
+- none.
+
+The current gate has no suspect non-network `server` references. Future hits must either be allowed network/API contexts or become review blockers until renamed.
+
+`non_network_server_naming.py` owns token scanning, allowed-context filtering, classification, and risk aggregation at 304 lines. `non_network_server_naming_markdown.py` owns `render_non_network_server_naming_markdown(...)` at 41 lines so the audit owner no longer mixes gate logic with report formatting.
+
+## M1 Decision Rules
+
+`observer` and `Observer*` are not server naming. The audit ignores them so ECS observer work is not blocked by a substring false positive.
+
+Real target or network vocabulary remains allowed: `ServerRuntime`, `RuntimeProfileId::Server`, dedicated/listen server modes, network feature target rows, export target profiles, browser dev-server config, Windows UNC path fixtures, and third-party UI API values that literally use `"server"`.
+
+Runtime UI table/DataGrid code may preserve the third-party `sortingMode = "server"` literal. It describes client-versus-server sorting mode compatibility for the table API, not a Zircon runtime owner.
+
+The Hub project metadata test literals `\\?\UNC\server\share\Game` and `\\server\share\Game` are allowed fixture paths. Their `server` segment names the conventional UNC host component, not a Zircon runtime owner.
+
+The graphics render-framework debt is resolved. `graphics/runtime/render_framework/**` now names its local `WgpuRenderFramework` receiver/context as `framework`, and the Runtime 15 M2 guard rejects non-network `server` token regression in that owner.
+
+The editor workbench authority-label debt is resolved. The Workbench extension feedback fixture now says `Selected Condition_Night   editor authority`, and the Runtime 15 M2 guard rejects the retired `server authority` wording.
+
+Runtime 15 M2 editor workbench authority-label naming hard cutover is recorded as `runtime_15_editor_workbench_authority_label_naming_hard_cutover_static_passed_cargo_deferred`. The source owner is `zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs`, and `runtime_15_editor_workbench_authority_label_uses_editor_name` keeps the source text, this document, Runtime 15 status mirrors, and the audit script aligned.
+
+The previous stale editor scene comment debt is resolved. `EditorState` now describes the runtime scene inspection boundary directly.
+
+The editor asset/resource owner debt is resolved. `resolve_ready_handle`, retained-host app fields, retained-host startup locals, and the focused resource-access test fixture now use asset/editor-asset/resource manager terminology instead of `asset_server`, `editor_asset_server`, `resource_server`, or `FakeResourceServer`.
+
+Any future `unclassified-non-network-server` location is a review blocker. Classify it with an owner reason or remove the non-network `server` naming before accepting the boundary.
+
+## Required Follow-Up
+
+Before renaming production symbols, run the structural audit and inspect:
+
+- `non_network_server_references.count`
+- `non_network_server_references.sample_location_count`
+- `non_network_server_references.reference_decision_count`
+- `non_network_server_references.reference_decision_group_count`
+- `non_network_server_references.classification_counts`
+- `non_network_server_references.classification_count`
+- `non_network_server_references.non_network_server_migration_debt_count`
+- `non_network_server_references.unclassified_locations`
+- `non_network_server_references.unclassified_location_count`
+- `non_network_server_references.allowed_context_count`
+- `non_network_server_references.observer_false_positive_count`
+
+There is no active migration-debt owner in the current audit output. Do not create compatibility aliases for old `*_server` names. Each future rename should be a hard cut inside its owner slice, with call sites updated directly.

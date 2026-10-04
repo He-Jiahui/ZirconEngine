@@ -5,7 +5,7 @@ use zircon_runtime::ui::template::UiCompiledDocument;
 use crate::ui::template::EditorTemplateError;
 
 #[cfg(test)]
-#[path = "registry/hash_index_tests.rs"]
+#[path = "registry/tests/hash_index_tests.rs"]
 mod hash_index_tests;
 
 #[derive(Default)]

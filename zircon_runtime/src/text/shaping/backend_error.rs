@@ -1,5 +1,5 @@
-use crate::text::FontFaceId;
 use crate::text::font::FontDatabaseError;
+use crate::text::FontFaceId;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::text::shaping) enum BackendFontOperation {
@@ -9,6 +9,7 @@ pub(in crate::text::shaping) enum BackendFontOperation {
 }
 
 #[derive(Debug, thiserror::Error)]
+/// 这些错误只描述字体后端边界；上层把它们包装成带 source range 的 `DirectShapeError`，再决定是否尝试 alternate backend。
 pub(in crate::text::shaping) enum BackendShapeError {
     #[error("font backend {operation:?} failed for {face:?}: {source}")]
     FontDatabase {

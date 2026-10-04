@@ -1,0 +1,59 @@
+schema_version = 1
+default_target_triple = "x86_64-pc-windows-msvc"
+
+# These are build-only product compositions.  They intentionally do not map
+# to, or extend, the serialized RuntimeProfileId values used by projects.
+[profiles.runtime-windows-shipping]
+aliases = ["runtime-windows"]
+product_kind = "runtime"
+target_triple = "x86_64-pc-windows-msvc"
+cargo_profile = "shipping"
+app_package = "zircon_app"
+app_binary = "zircon_runtime"
+runtime_package = "zircon_runtime"
+runtime_library = "zircon_runtime.dll"
+runtime_features = ["shipping-runtime"]
+app_features = ["runtime-product"]
+plugin_carrier = "none"
+asset_scope = "runtime"
+include_project_pack = false
+symbols = "external"
+warning_bytes = 300000000
+hard_limit_bytes = 200000000
+hard_gate = true
+archive = true
+forbidden_path_tokens = [
+  "source",
+  "cache",
+  "pdb",
+  "zircon_hub",
+  "zircon_editor",
+  "editor-assets",
+]
+
+[profiles.editor-windows-shipping]
+aliases = ["editor-windows"]
+product_kind = "editor"
+target_triple = "x86_64-pc-windows-msvc"
+cargo_profile = "shipping"
+app_package = "zircon_app"
+app_binary = "zircon_editor"
+runtime_package = "zircon_runtime"
+runtime_library = "zircon_runtime.dll"
+runtime_features = ["shipping-editor"]
+app_features = ["shipping-editor"]
+plugin_carrier = "none"
+asset_scope = "editor"
+include_project_pack = false
+symbols = "external"
+warning_bytes = 500000000
+hard_limit_bytes = 400000000
+hard_gate = true
+archive = true
+forbidden_path_tokens = [
+  "source",
+  "cache",
+  "pdb",
+  "zircon_hub",
+  "editor-assets",
+]

@@ -2,7 +2,7 @@
 handoff_kind: failure
 status: open
 created_at: 2026-07-19
-updated_at: 2026-07-28
+updated_at: 2026-09-21
 summary_slug: cross-platform-preference-storage-service
 origin_plan: docs/plans/woc/01-woc-zrvm-one-to-one-replication.md
 fixing_plan: docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md
@@ -80,3 +80,36 @@ Current state: `engine_fix_implemented_pending_managed_validation_and_fixed_retu
 - Desktop atomic-file backend会在调用线程为每次操作重复构造namespace/key哈希与路径；read直接执行文件I/O，write包含staging同步、原子提交、提交文件与Unix父目录耐久化同步，remove也可能同步父目录。这些耐久化步骤不能在缺少崩溃合同证据时当作简单冗余删除。
 - 当前WOC仍使用项目内`preferences/storage.rs`合同，Editor未发现生产偏好读写consumer；因此`PERF-MVP-589`是M8/M13或Editor接线前门禁，不把尚未接入的代价误报为现行F0/F2/F4热点。
 - 接线验收必须把阻塞backend放入Runtime11统一bounded persistence lane，按key合并latest generation，提供read-your-write及显式flush/shutdown fence，并记录caller filesystem wall、hash/path构造、staged write/fsync、queue entries/bytes/age/coalesce与错误/取消时延。frame/UI caller filesystem wall必须为0；这项动态门不替代本failure原有Runtime/WOC managed gate。
+
+## 2026-09-21 current-source successor review
+
+- Successor Session `failure-roll-01a084c8-frameworks05-cross-platform-preference-r1`
+  reclaimed only this failure record and its eight declared related-code files. All eight source
+  paths were clean at intake; no production or WOC source bytes were changed.
+- The direct current-source chain remains intact: the neutral platform facade exports the typed
+  preference contract and error taxonomy; `PlatformManager` delegates through the bounded
+  persistence adapter; the atomic-file backend preserves explicit unavailable/denied/capacity/
+  corrupt/transient error kinds; the app host selects approved desktop roots and requires explicit
+  mobile/browser/headless injection; and WOC keybind/gamepad storage delegates through the engine
+  namespace contract without platform-specific branches.
+- Current focused structural validation
+  `python -m unittest tools.tests.test_frameworks_05_preference_storage_boundary -v` passed 7/7.
+  Rust 1.94.1 rustfmt over the eight declared Rust paths and scoped `git diff --check` also passed.
+  These are local/source checks only and are not substituted for the managed Runtime/WOC gates.
+- `zircon_app/src/entry/engine_entry.rs` is a read-only upward dependency with concurrent foreign
+  edits. It was inspected to confirm the host still registers a descriptor carrying the preference
+  backend before module activation, but it is not owned or absorbed by this successor.
+- Managed static ticket `39b73d0d159346cca8ad3c0c2c8fb763` sealed snapshot 3721 as
+  manifest `ad3b1fde77f737de85c79fdc261ad8f0dffad7cce9aa33fabbb902f0e49a534c`.
+  It remains queued without a process or passing result because the actual lower owners
+  Runtime11 `preference-storage-bounded-persistence-lane` and Runtime04
+  `shared-atomic-file-owner-reverse-dependencies` have not completed; downstream dependency
+  failures are retained rather than bypassed or resubmitted.
+- Independent read-only review against snapshot 3721 found
+  `Critical / Important / Moderate = 0 / 0 / 0`. It also confirmed that foreign
+  `zircon_app/src/entry/engine_entry.rs` installs the driver backend before activation without
+  absorbing that path. The review ran no Cargo and does not turn the queued static ticket into a
+  dynamic acceptance result.
+- Focused Runtime Cargo, the WOC upward input gate, real Windows/Linux/macOS/Android/iOS/browser
+  host evidence, canonical fixed return, closeout, and notification remain pending; external
+  `E:\Git\zr_vm` stays dirty.

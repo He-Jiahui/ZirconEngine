@@ -1,29 +1,225 @@
-use std::collections::HashSet;
-use std::sync::Arc;
+use std::collections::{BTreeMap, HashMap, HashSet};
+use std::sync::{Arc, Weak};
 
 use crate::asset::ProjectAssetManager;
 use crate::core::framework::render::{
     RenderImageDescriptor, RenderImageDimension, UiRenderSubmission,
 };
 use crate::core::resource::{ResourceId, ResourceLocator, ResourceScheme};
-use crate::text::{RichTextDependency, resolve_compiled_rich_text_artifact};
-use zircon_runtime_interface::ui::surface::UiVisualAssetRef;
+use crate::text::{resolve_compiled_rich_text_artifact, RichTextDependency};
+use zircon_runtime_interface::ui::surface::{UiRenderCommand, UiVisualAssetRef};
 
 use super::{GpuTextureResource, ResourceStreamer};
 
 mod prepare_receipt;
 
 pub(in crate::graphics::scene) use prepare_receipt::UiTexturePrepareReceipt;
-use prepare_receipt::{UiTexturePrepareOutcome, UiTexturePrepareRow, resolve_ui_texture_candidate};
+use prepare_receipt::{resolve_ui_texture_candidate, UiTexturePrepareOutcome, UiTexturePrepareRow};
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub(in crate::graphics::scene::resources) struct UiTextureDependencyChangeJournal {
+    base_generation: Option<u64>,
+    added_ids: Arc<[ResourceId]>,
+    removed_ids: Arc<[ResourceId]>,
+    full_rebuild: bool,
+}
+
+impl UiTextureDependencyChangeJournal {
+    pub(in crate::graphics::scene::resources) fn base_generation(&self) -> Option<u64> {
+        self.base_generation
+    }
+
+    pub(in crate::graphics::scene::resources) fn added_ids(&self) -> &[ResourceId] {
+        &self.added_ids
+    }
+
+    pub(in crate::graphics::scene::resources) fn removed_ids(&self) -> &[ResourceId] {
+        &self.removed_ids
+    }
+
+    pub(in crate::graphics::scene::resources) fn is_full_rebuild(&self) -> bool {
+        self.full_rebuild
+    }
+}
 
 #[derive(Debug)]
 pub(in crate::graphics::scene::resources) struct UiTextureDependencies {
-    ids: Vec<ResourceId>,
+    ids: Arc<[ResourceId]>,
+    generation: u64,
+    change_journal: UiTextureDependencyChangeJournal,
 }
 
 impl UiTextureDependencies {
     fn as_slice(&self) -> &[ResourceId] {
         &self.ids
+    }
+
+    pub(in crate::graphics::scene::resources) const fn generation(&self) -> u64 {
+        self.generation
+    }
+
+    pub(in crate::graphics::scene::resources) fn change_journal(
+        &self,
+    ) -> &UiTextureDependencyChangeJournal {
+        &self.change_journal
+    }
+}
+
+#[derive(Default)]
+pub(in crate::graphics::scene::resources) struct UiTextureDependencyCache {
+    submission: Option<Weak<UiRenderSubmission>>,
+    segment_entries: Vec<UiTextureDependencySegmentEntry>,
+    active_ref_counts: BTreeMap<ResourceId, usize>,
+    product: Option<Arc<UiTextureDependencies>>,
+    next_generation: u64,
+}
+
+struct UiTextureDependencySegmentEntry {
+    commands: Weak<[UiRenderCommand]>,
+    ids: Arc<[ResourceId]>,
+}
+
+impl UiTextureDependencyCache {
+    pub(in crate::graphics::scene::resources) fn prepare(
+        &mut self,
+        submission: &Arc<UiRenderSubmission>,
+    ) -> Arc<UiTextureDependencies> {
+        if self.submission.as_ref().is_some_and(|current| {
+            current
+                .upgrade()
+                .is_some_and(|current| Arc::ptr_eq(&current, submission))
+        }) {
+            record_ui_texture_dependency_profile(0, 0, 0, self.active_ref_counts.len());
+            return Arc::clone(
+                self.product
+                    .as_ref()
+                    .expect("a retained UI submission must retain its texture dependencies"),
+            );
+        }
+
+        let previous_generation = self.product.as_ref().map(|product| product.generation());
+        let previous_entries = std::mem::take(&mut self.segment_entries);
+        let mut previous_entries = previous_entries.into_iter();
+        let mut next_entries = Vec::new();
+        let mut touched_initial_presence = HashMap::new();
+        let mut segment_identity_visit_count = 0_usize;
+        let mut command_visit_count = 0_usize;
+        let mut changed_segment_count = 0_usize;
+
+        for commands in submission
+            .segments()
+            .iter()
+            .flat_map(|segment| segment.extract().command_segments())
+        {
+            segment_identity_visit_count = segment_identity_visit_count.saturating_add(1);
+            let mut previous = previous_entries.next();
+            if previous.as_ref().is_some_and(|entry| {
+                entry
+                    .commands
+                    .upgrade()
+                    .is_some_and(|current| Arc::ptr_eq(&current, commands))
+            }) {
+                next_entries.push(
+                    previous
+                        .take()
+                        .expect("a matching UI texture dependency entry must remain available"),
+                );
+                continue;
+            }
+
+            changed_segment_count = changed_segment_count.saturating_add(1);
+            if let Some(previous) = previous {
+                remove_ui_texture_dependency_ids(
+                    &mut self.active_ref_counts,
+                    &mut touched_initial_presence,
+                    &previous.ids,
+                );
+            }
+            let ids = collect_ui_texture_command_segment_dependencies(commands);
+            command_visit_count = command_visit_count.saturating_add(commands.len());
+            add_ui_texture_dependency_ids(
+                &mut self.active_ref_counts,
+                &mut touched_initial_presence,
+                &ids,
+            );
+            next_entries.push(UiTextureDependencySegmentEntry {
+                commands: Arc::downgrade(commands),
+                ids,
+            });
+        }
+        for previous in previous_entries {
+            changed_segment_count = changed_segment_count.saturating_add(1);
+            remove_ui_texture_dependency_ids(
+                &mut self.active_ref_counts,
+                &mut touched_initial_presence,
+                &previous.ids,
+            );
+        }
+        self.segment_entries = next_entries;
+        self.submission = Some(Arc::downgrade(submission));
+
+        let mut added_ids = Vec::new();
+        let mut removed_ids = Vec::new();
+        for (id, was_present) in touched_initial_presence {
+            match (was_present, self.active_ref_counts.contains_key(&id)) {
+                (false, true) => added_ids.push(id),
+                (true, false) => removed_ids.push(id),
+                _ => {}
+            }
+        }
+        added_ids.sort_unstable();
+        removed_ids.sort_unstable();
+        let dependency_set_changed =
+            previous_generation.is_none() || !added_ids.is_empty() || !removed_ids.is_empty();
+        if !dependency_set_changed {
+            record_ui_texture_dependency_profile(
+                segment_identity_visit_count,
+                command_visit_count,
+                changed_segment_count,
+                self.active_ref_counts.len(),
+            );
+            return Arc::clone(
+                self.product
+                    .as_ref()
+                    .expect("an unchanged dependency set must retain its prior product"),
+            );
+        }
+
+        self.next_generation = self.next_generation.wrapping_add(1).max(1);
+        let full_rebuild = previous_generation.is_none();
+        let product = Arc::new(UiTextureDependencies {
+            ids: Arc::from(self.active_ref_counts.keys().copied().collect::<Vec<_>>()),
+            generation: self.next_generation,
+            change_journal: UiTextureDependencyChangeJournal {
+                // `then_some` evaluates its argument eagerly, which would
+                // unwrap the absent generation on the first (full-rebuild)
+                // publication.  Keep the delta base absent for that initial
+                // product and only unwrap after the non-full-rebuild branch
+                // has been selected.
+                base_generation: (!full_rebuild).then(|| {
+                    previous_generation
+                        .expect("a local UI texture delta must retain its base generation")
+                }),
+                added_ids: Arc::from(added_ids),
+                removed_ids: Arc::from(removed_ids),
+                full_rebuild,
+            },
+        });
+        self.product = Some(Arc::clone(&product));
+        record_ui_texture_dependency_profile(
+            segment_identity_visit_count,
+            command_visit_count,
+            changed_segment_count,
+            self.active_ref_counts.len(),
+        );
+        product
+    }
+
+    pub(in crate::graphics::scene::resources) fn clear(&mut self) {
+        self.submission = None;
+        self.segment_entries.clear();
+        self.active_ref_counts.clear();
+        self.product = None;
     }
 }
 
@@ -39,11 +235,11 @@ pub(crate) fn ui_image_resource_id(source: &str) -> Option<ResourceId> {
     .then(|| ResourceId::from_locator(&locator))
 }
 
-pub(in crate::graphics::scene::resources) fn ui_texture_ids(
-    submission: &UiRenderSubmission,
-) -> UiTextureDependencies {
+fn collect_ui_texture_command_segment_dependencies(
+    commands: &[UiRenderCommand],
+) -> Arc<[ResourceId]> {
     let mut ids = HashSet::new();
-    for command in submission.commands() {
+    for command in commands {
         if let Some(UiVisualAssetRef::Image(source)) = command.image.as_ref() {
             if let Some(id) = ui_image_resource_id(source) {
                 ids.insert(id);
@@ -67,7 +263,69 @@ pub(in crate::graphics::scene::resources) fn ui_texture_ids(
     }
     let mut ids = ids.into_iter().collect::<Vec<_>>();
     ids.sort_unstable();
-    UiTextureDependencies { ids }
+    Arc::from(ids)
+}
+
+fn add_ui_texture_dependency_ids(
+    active_ref_counts: &mut BTreeMap<ResourceId, usize>,
+    touched_initial_presence: &mut HashMap<ResourceId, bool>,
+    ids: &[ResourceId],
+) {
+    for &id in ids {
+        touched_initial_presence
+            .entry(id)
+            .or_insert_with(|| active_ref_counts.contains_key(&id));
+        let count = active_ref_counts.entry(id).or_default();
+        *count = count.saturating_add(1);
+    }
+}
+
+fn remove_ui_texture_dependency_ids(
+    active_ref_counts: &mut BTreeMap<ResourceId, usize>,
+    touched_initial_presence: &mut HashMap<ResourceId, bool>,
+    ids: &[ResourceId],
+) {
+    for &id in ids {
+        touched_initial_presence
+            .entry(id)
+            .or_insert_with(|| active_ref_counts.contains_key(&id));
+        let Some(count) = active_ref_counts.get_mut(&id) else {
+            continue;
+        };
+        *count = count.saturating_sub(1);
+        if *count == 0 {
+            active_ref_counts.remove(&id);
+        }
+    }
+}
+
+fn record_ui_texture_dependency_profile(
+    segment_identity_visit_count: usize,
+    command_visit_count: usize,
+    changed_segment_count: usize,
+    dependency_count: usize,
+) {
+    crate::core::diagnostics::profiling::record_counter_batch(
+        "runtime",
+        &[
+            (
+                "ui.ui_texture_dependencies.segment_identity_visit_count",
+                segment_identity_visit_count as f64,
+            ),
+            (
+                "ui.ui_texture_dependencies.command_visit_count",
+                command_visit_count as f64,
+            ),
+            (
+                "ui.ui_texture_dependencies.changed_segment_count",
+                changed_segment_count as f64,
+            ),
+            (
+                "ui.ui_texture_dependencies.active_dependency_count",
+                dependency_count as f64,
+            ),
+        ],
+    );
 }
 
 pub(crate) fn resolve_ui_texture_id(
@@ -130,159 +388,5 @@ fn is_ui_texture_descriptor(descriptor: &RenderImageDescriptor) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-
-    use super::{
-        UiTexturePrepareOutcome, UiTexturePrepareReceipt, UiTexturePrepareRow,
-        resolve_ui_texture_candidate, resolve_ui_texture_id, ui_image_resource_id, ui_texture_ids,
-    };
-    use crate::asset::ProjectAssetManager;
-    use crate::core::framework::render::UiRenderSubmission;
-    use crate::core::resource::{
-        AssetUuid, ResourceId, ResourceKind, ResourceLocator, ResourceRecord,
-    };
-    use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiTreeId};
-    use zircon_runtime_interface::ui::layout::UiFrame;
-    use zircon_runtime_interface::ui::surface::{
-        UiRenderCommand, UiRenderCommandKind, UiRenderExtract, UiRenderList, UiResolvedStyle,
-        UiVisualAssetRef,
-    };
-
-    #[test]
-    fn ui_image_resource_id_accepts_engine_assets_and_rejects_network_urls() {
-        assert_eq!(
-            ui_image_resource_id("res://ui/checker.png"),
-            Some(ResourceId::from_stable_label("res://ui/checker.png"))
-        );
-        assert_eq!(
-            ui_image_resource_id("https://example.com/checker.png"),
-            None
-        );
-    }
-
-    #[test]
-    fn ui_texture_discovery_walks_all_submission_segments() {
-        let first_id = ui_image_resource_id("res://ui/first.png").unwrap();
-        let second_id = ui_image_resource_id("res://ui/second.png").unwrap();
-        let submission = UiRenderSubmission::from_segments(vec![
-            image_extract("first", &["res://ui/first.png"]),
-            image_extract("second", &["res://ui/second.png", "res://ui/first.png"]),
-        ]);
-
-        let ids = ui_texture_ids(submission.as_ref());
-
-        let mut expected = vec![first_id, second_id];
-        expected.sort_unstable();
-        assert_eq!(ids.as_slice(), expected);
-    }
-
-    #[test]
-    fn ui_texture_resolution_maps_locator_identity_to_imported_asset_identity() {
-        let manager = ProjectAssetManager::default();
-        let locator = ResourceLocator::parse("res://ui/checker.png").unwrap();
-        let requested = ResourceId::from_locator(&locator);
-        let imported = ResourceId::from_asset_uuid(AssetUuid::from_stable_label("ui/checker"));
-        manager
-            .resource_manager()
-            .register_record(ResourceRecord::new(
-                imported,
-                ResourceKind::Texture,
-                locator,
-            ))
-            .unwrap();
-
-        assert_ne!(requested, imported);
-        assert_eq!(resolve_ui_texture_id(&manager, requested), imported);
-    }
-
-    #[test]
-    fn ui_texture_candidate_rejects_unresolved_and_wrong_kind_resources() {
-        let manager = ProjectAssetManager::default();
-        let missing = ResourceId::from_stable_label("missing-ui-texture");
-        let projection = manager.resource_manager().projection_snapshot();
-        assert_eq!(
-            resolve_ui_texture_candidate(projection.management(), missing),
-            Err(UiTexturePrepareOutcome::UnresolvedIdentity)
-        );
-
-        let locator = ResourceLocator::parse("res://ui/not-a-texture.asset").unwrap();
-        let wrong_kind = ResourceId::from_locator(&locator);
-        manager
-            .resource_manager()
-            .register_record(ResourceRecord::new(
-                wrong_kind,
-                ResourceKind::Material,
-                locator,
-            ))
-            .unwrap();
-        let projection = manager.resource_manager().projection_snapshot();
-        assert_eq!(
-            resolve_ui_texture_candidate(projection.management(), wrong_kind),
-            Err(UiTexturePrepareOutcome::InvalidResourceKind)
-        );
-    }
-
-    #[test]
-    fn ui_texture_receipt_only_exposes_exact_ready_rows_to_binding() {
-        let manager = ProjectAssetManager::default();
-        let projection = manager.resource_manager().projection_snapshot();
-        let ready = ResourceId::from_stable_label("ready-ui-texture");
-        let failed = ResourceId::from_stable_label("failed-ui-texture");
-        let unqualified = ResourceId::from_stable_label("unqualified-ui-texture");
-        let receipt = UiTexturePrepareReceipt::new(
-            1,
-            projection.management_identity(),
-            projection.readiness_identity(),
-            vec![
-                UiTexturePrepareRow {
-                    requested: ready,
-                    resolved: Some(ready),
-                    outcome: UiTexturePrepareOutcome::Ready,
-                    prepared_revision: Some(7),
-                },
-                UiTexturePrepareRow {
-                    requested: failed,
-                    resolved: Some(failed),
-                    outcome: UiTexturePrepareOutcome::UploadFailed,
-                    prepared_revision: None,
-                },
-                UiTexturePrepareRow {
-                    requested: unqualified,
-                    resolved: Some(unqualified),
-                    outcome: UiTexturePrepareOutcome::Ready,
-                    prepared_revision: None,
-                },
-            ],
-        );
-
-        assert_eq!(receipt.ready_texture_id(ready), Some(ready));
-        assert_eq!(receipt.ready_texture_id(failed), None);
-        assert_eq!(receipt.ready_texture_id(unqualified), None);
-    }
-
-    fn image_extract(tree_id: &str, sources: &[&str]) -> Arc<UiRenderExtract> {
-        Arc::new(UiRenderExtract {
-            tree_id: UiTreeId::new(tree_id),
-            list: UiRenderList {
-                commands: sources
-                    .iter()
-                    .enumerate()
-                    .map(|(index, source)| UiRenderCommand {
-                        node_id: UiNodeId::new(index as u64 + 1),
-                        kind: UiRenderCommandKind::Image,
-                        frame: UiFrame::new(0.0, 0.0, 1.0, 1.0),
-                        clip_frame: None,
-                        z_index: index as i32,
-                        style: UiResolvedStyle::default(),
-                        text_layout: None,
-                        text: None,
-                        image: Some(UiVisualAssetRef::Image((*source).to_string())),
-                        opacity: 1.0,
-                    })
-                    .collect(),
-            },
-            raster_scale: 1.0,
-        })
-    }
-}
+#[path = "tests/ui_texture.rs"]
+mod tests;

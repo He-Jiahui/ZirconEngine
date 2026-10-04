@@ -1,3 +1,4 @@
+//! 资源基础层与高层运行时引用保持单向依赖和受限公开面。通过源码文本核对父子路由、状态镜像和文件预算。
 const PARENT_SOURCE: &str = include_str!("../resource_foundation.rs");
 const RUNTIME_SURFACE_SOURCE: &str = include_str!("runtime_surface.rs");
 const SPLIT_LAYOUT_SOURCE: &str = include_str!("split_layout.rs");
@@ -9,7 +10,7 @@ const RUNTIME_15_OUTPUT_RECORDS: &str = include_str!(
     "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
 );
 const MODULE_CONVENTION_DOC: &str =
-    include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
+    include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 
 #[test]
 fn runtime_15_resource_foundation_route_owner_is_folder_backed() {

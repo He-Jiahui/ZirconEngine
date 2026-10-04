@@ -1,4 +1,4 @@
-use std::collections::{HashMap, hash_map::Entry};
+use std::collections::{hash_map::Entry, HashMap};
 
 use crate::core::editor_authoring_extension::SceneModeDescriptor;
 use crate::core::editor_message::SceneModeId;
@@ -6,8 +6,8 @@ use crate::core::extension::ContributionTicket;
 use crate::core::plugin::run_editor_plugin_boundary;
 
 use super::{
-    EditorSceneMode, SceneModeRegistration, SceneModeRegistryError,
-    isolated_scene_mode::IsolatedSceneMode,
+    isolated_scene_mode::IsolatedSceneMode, EditorSceneMode, SceneModeRegistration,
+    SceneModeRegistryError,
 };
 
 #[derive(Clone, Debug, Default)]
@@ -123,9 +123,9 @@ impl SceneModeRegistry {
 }
 
 #[cfg(test)]
-#[path = "scene_mode_registry/entry_registration_tests.rs"]
+#[path = "scene_mode_registry/tests/entry_registration_tests.rs"]
 mod entry_registration_tests;
 
 #[cfg(test)]
-#[path = "scene_mode_registry/hash_lookup_tests.rs"]
+#[path = "scene_mode_registry/tests/hash_lookup_tests.rs"]
 mod hash_lookup_tests;

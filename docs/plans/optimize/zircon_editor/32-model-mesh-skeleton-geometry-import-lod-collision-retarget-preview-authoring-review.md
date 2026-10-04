@@ -4,8 +4,6 @@ related_code:
   - zircon_editor/src/core/editing/paths.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/preview_refresh/generate_preview_artifact.rs
   - zircon_editor/src/ui/retained_host/app/assets/workspace.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/model_staging.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/animation_assets.rs
   - zircon_editor/assets/ui/editor/asset_browser.zui
   - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_retarget_workspace.zui
   - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_collision_proxy_workspace.zui
@@ -74,7 +72,7 @@ Zircon的几何Runtime不是简陋空壳。`MeshAsset`已经表达拓扑、任�
 
 更严重的是，导入器保存的glTF inverse bind matrices没有进入生产skinning计算。Renderer从`AnimationSkeletonAsset`的local reference pose重新计算`bind_world.inverse()`，再按bone name匹配pose。Skeleton没有stable bone ID、层级/重复名/有限值验证、bind metadata、socket、retarget profile或compatibility signature。导入的glTF Scene又把`animation_skeleton`与所有player字段固定为`None`，Quick Import也只插入Model；因此“导入出Skeleton/Clip subasset”不等于Skinned Scene可以正确播放。
 
-Importer authority同时发生分叉。核心`zircon.builtin.model.gltf`为schema 2、priority 10，支持typed Skeleton/Clip、tangent/color、meshopt和更完整材质扩展；split `gltf_importer.gltf`为schema 1、priority 120，animation只是“not implemented”Data placeholder，skin/IBM还另存generic Data，且不读authored tangent/color。Registry先按availability、再按priority选择；所以该插件只要编译、启用并available，就会覆盖更完整的核心实现。默认`target-client`/`target-editor-host`没有启用base first-party runtime catalog，不能把此覆盖写成默认必现，但产品profile不同会产生不同资产语义，必须消除。
+Importer authority同时发生分叉。核心`zircon.builtin.model.gltf`与split `gltf_importer.gltf`当前均为schema 2级 typed Skeleton/Clip路径；split仍以priority 120覆盖核心priority 10，Skin/IBM仍另存generic Data，且 geometry/extension 语义可能不同。Registry先按availability、再按priority选择；所以该插件只要编译、启用并available，就会覆盖核心实现。默认`target-client`/`target-editor-host`没有启用base first-party runtime catalog，不能把此覆盖写成默认必现，但产品profile不同会产生不同资产语义，必须消除。
 
 工程化authoring基本缺失。Model、Mesh、AnimationSkeleton虽在ResourceKind和catalog中存在，却没有Asset Toolkit；除Texture外内建thumbnail全是placeholder。Virtual Geometry Editor plugin声明`plugins://virtual_geometry/editor/authoring.zui`，实际包中没有该文件。Retarget与Collision Proxy workspace有完整视觉控件，但动作只返回固定`SK_Mannequin -> SK_Robot`、4 chains、decimator/hull等反馈，没有Retarget asset、bone map、solver、collision cook、artifact或Runtime consumer。Scene LOD只有per-instance distance阈值且Inspector只读；没有asset-level LOD group、reduction、screen-size、hysteresis、crossfade、collision LOD或平台策略。
 
@@ -524,7 +522,7 @@ Native backend成立后支持layer、variant、payload/reference与material bind
 | Quick Import path | 无caller的host callback + empty chrome state | TextField不产生value | Geometry Import Source request |
 | Import button | host同步stage/import/scene insert | 无preview/recipe/transaction separation | Editor04 import publication + Editor03 insert command |
 | core glTF | 更完整schema 2 importer | 可被高priority split provider替换 | canonical normalized glTF implementation |
-| split glTF | schema 1 plugin importer | animation placeholder、channel/extension差异 | 同canonical implementation的package adapter |
+| split glTF | schema 2 plugin importer | typed clip/skeleton 已共享；generic skin/IBM、channel/extension与priority authority仍可能差异 | 同canonical implementation的package adapter |
 | Model root | Mesh references + empty inline primitives | overview/descriptor只读inline | resolved Model artifact |
 | Mesh skin | Mesh内一个IBM vector | 无Skeleton/joint mapping，多skinfirst-wins | independent Skin asset + node binding |
 | Renderer palette | Skeleton pose反推bind inverse | 不消费authored IBM | qualified Skin/Skeleton palette contract |

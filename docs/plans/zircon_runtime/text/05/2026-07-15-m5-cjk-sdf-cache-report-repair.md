@@ -3,7 +3,7 @@
 Plan: docs/plans/zircon_runtime/text/05-sdf-msdf-pipeline.md
 Milestone: M5
 Status: accepted
-Files: ["zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs", "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake/tests.rs", "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs", "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/prepare_report.rs", "docs/zircon_runtime/graphics/scene/scene_renderer/ui/sdf_font_bake.md", "docs/plans/zircon_runtime/text/05/2026-07-09-sdf-msdf-pipeline-output-records.md"]
+Files: ["zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs", "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake/tests.rs", "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs", "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/prepare_report.rs", "docs/crates/zircon_runtime/graphics/scene/scene_renderer/ui/sdf_font_bake.md", "docs/plans/zircon_runtime/text/05/2026-07-09-sdf-msdf-pipeline-output-records.md"]
 
 ## Scope delivered
 

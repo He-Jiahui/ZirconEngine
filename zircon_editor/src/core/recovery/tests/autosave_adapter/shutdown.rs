@@ -15,25 +15,23 @@ fn final_autosave_bypasses_the_periodic_deadline_and_fences_regular_admission() 
         AutosaveScheduler::new(AutosavePolicy::new(Duration::from_secs(10)).unwrap()),
     );
 
-    assert!(
-        adapter
-            .schedule_final(
-                Duration::ZERO,
-                &dirty,
-                |_| 1,
-                |requested| {
-                    assert_eq!(requested, &document);
-                    Some(AutosaveDocumentRequest::new(
-                        requested.clone(),
-                        AutosaveJobPolicy::for_save_mutex(
-                            MutexGroup::parse("save_final_autosave").unwrap(),
-                        ),
-                        source.clone(),
-                    ))
-                }
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule_final(
+            Duration::ZERO,
+            &dirty,
+            |_| 1,
+            |requested| {
+                assert_eq!(requested, &document);
+                Some(AutosaveDocumentRequest::new(
+                    requested.clone(),
+                    AutosaveJobPolicy::for_save_mutex(
+                        MutexGroup::parse("save_final_autosave").unwrap(),
+                    ),
+                    source.clone(),
+                ))
+            }
+        )
+        .unwrap());
     assert!(!adapter.is_accepting());
     assert!(matches!(
         adapter.schedule(Duration::from_secs(10), &dirty, |_| 1, |_| None),
@@ -148,12 +146,10 @@ fn service_drains_all_final_windows_when_admission_allows_one_document() {
     assert!(shutdown.unfinished_jobs().is_empty());
     assert!(shutdown.diagnostic_persistence_issues().is_empty());
     assert_eq!(shutdown.outcomes().len(), 2);
-    assert!(
-        shutdown
-            .outcomes()
-            .iter()
-            .all(|outcome| matches!(outcome.kind(), AutosaveDocumentOutcomeKind::Saved { .. }))
-    );
+    assert!(shutdown
+        .outcomes()
+        .iter()
+        .all(|outcome| matches!(outcome.kind(), AutosaveDocumentOutcomeKind::Saved { .. })));
     assert_eq!(source.capture_count(), 2);
     assert!(root.join(".zircon/autosave/scene_alpha/1.zscene").is_file());
     assert!(root.join(".zircon/autosave/scene_bravo/1.zscene").is_file());

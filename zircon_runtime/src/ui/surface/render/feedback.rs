@@ -13,14 +13,14 @@ mod commands;
 mod state;
 
 use self::colors::{
-    AlertTone, alert_action_color, alert_border_color, alert_mark_color, alert_surface_color,
+    alert_action_color, alert_border_color, alert_mark_color, alert_surface_color,
     alert_text_color, toast_action_color, toast_border_color, toast_mark_color,
     toast_surface_color, toast_text_color, tooltip_body_color, tooltip_border_color,
-    tooltip_icon_color, tooltip_surface_color, tooltip_title_color,
+    tooltip_icon_color, tooltip_surface_color, tooltip_title_color, AlertTone,
 };
 use self::commands::{icon_command, quad_command, text_command};
 use self::state::{FeedbackKind, FeedbackRenderState};
-use super::popup_position::{PopupPlacement, resolve_anchored_popup_geometry};
+use super::popup_position::{resolve_anchored_popup_geometry, PopupPlacement};
 
 const TOOLTIP_PADDING_X: f32 = 8.0;
 const TOOLTIP_TITLE_TOP: f32 = 7.0;
@@ -52,6 +52,9 @@ const TOAST_CLOSE_SIZE: f32 = 14.0;
 const TOAST_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_CAPTION_SIZE;
 const TOAST_LINE_HEIGHT: f32 =
     TOAST_FONT_SIZE * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO;
+const ALERT_COMMAND_CAPACITY: usize = 4;
+const TOOLTIP_COMMAND_CAPACITY: usize = 4;
+const TOAST_COMMAND_CAPACITY: usize = 4;
 
 pub(super) fn feedback_suppresses_owner_text(metadata: Option<&UiTemplateNodeMetadata>) -> bool {
     metadata.is_some_and(|metadata| feedback_kind(metadata).is_some())
@@ -150,7 +153,8 @@ fn alert_commands(
     opacity: f32,
 ) -> Vec<UiRenderCommand> {
     let tone = alert_tone(metadata);
-    let mut commands = vec![quad_command(
+    let mut commands = Vec::with_capacity(ALERT_COMMAND_CAPACITY);
+    commands.push(quad_command(
         node_id,
         frame,
         clip_frame,
@@ -161,7 +165,7 @@ fn alert_commands(
         corner_radius(metadata, 4.0),
         state,
         opacity,
-    )];
+    ));
 
     let icon_width = if alert_has_icon(metadata) {
         let icon_size = alert_icon_size(metadata);
@@ -278,7 +282,8 @@ fn tooltip_commands(
     z_index: i32,
     opacity: f32,
 ) -> Vec<UiRenderCommand> {
-    let mut commands = vec![quad_command(
+    let mut commands = Vec::with_capacity(TOOLTIP_COMMAND_CAPACITY);
+    commands.push(quad_command(
         node_id,
         frame,
         clip_frame,
@@ -289,7 +294,7 @@ fn tooltip_commands(
         corner_radius(metadata, 4.0),
         state,
         opacity,
-    )];
+    ));
 
     let icon = tooltip_icon(metadata);
     let icon_width = icon
@@ -365,7 +370,8 @@ fn toast_commands(
     z_index: i32,
     opacity: f32,
 ) -> Vec<UiRenderCommand> {
-    let mut commands = vec![quad_command(
+    let mut commands = Vec::with_capacity(TOAST_COMMAND_CAPACITY);
+    commands.push(quad_command(
         node_id,
         frame,
         clip_frame,
@@ -376,7 +382,7 @@ fn toast_commands(
         corner_radius(metadata, 5.0),
         state,
         opacity,
-    )];
+    ));
 
     let icon_size = toast_icon_size(metadata);
     let icon_frame = UiFrame::new(

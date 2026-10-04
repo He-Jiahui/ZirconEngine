@@ -1,3 +1,6 @@
+//! 插件按名称导出桥回调，包清单决定宿主最终接口与方法槽位。
+//! 安装时校验一一对应，调用时桥 scope 持有动态库代际与回调租约。
+
 use std::collections::BTreeMap;
 
 use zircon_runtime_interface::{ZrByteBufferRef, ZrByteSlice, ZrStatus};
@@ -7,8 +10,10 @@ use crate::plugin::{PluginInterfaceMethodManifest, PluginPackageManifest};
 use super::abi_declarations::{NativePluginBridgeMethodCallV3, NativePluginBridgeMethodFnV3};
 
 #[cfg(test)]
+#[path = "bridge_method_bindings/tests/capacity_tests.rs"]
 mod capacity_tests;
 
+/// 槽位已解析的单次桥调用；负载和输出缓冲不可跨回调保存。
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct NativeBridgeCall {
@@ -18,6 +23,7 @@ pub struct NativeBridgeCall {
     pub output: ZrByteBufferRef,
 }
 
+/// 区分进程内 Rust 回调与动态库 ABI 回调，后者需加载代际保活。
 #[derive(Clone, Copy)]
 pub struct NativeBridgeMethodFn {
     callable: NativeBridgeMethodCallable,
@@ -36,9 +42,12 @@ impl NativeBridgeMethodFn {
         }
     }
 
+    /// 桥 scope 在接口启用、槽位命中并取得动态库回调租约后调用。
     pub(super) fn call(self, call: NativeBridgeCall) -> ZrStatus {
         match self.callable {
             NativeBridgeMethodCallable::Rust(method) => method(call),
+            // SAFETY: 生产分派由桥 scope 取得加载代际租约；本模块测试使用静态回调。
+            // payload/output 在同步调用内有效，user_data 原样来自插件表。
             NativeBridgeMethodCallable::AbiV3 { method, user_data } => unsafe {
                 method(NativePluginBridgeMethodCallV3 {
                     interface_slot: call.interface_slot,
@@ -87,6 +96,7 @@ enum NativeBridgeMethodCallable {
     },
 }
 
+/// 已从包清单取得槽位的安装项，随后与冻结接口表组合。
 #[derive(Clone)]
 pub struct NativeBridgeMethodDescriptor {
     interface_id: String,
@@ -128,6 +138,7 @@ impl NativeBridgeMethodDescriptor {
     }
 }
 
+/// 插件提交的接口 ID 和方法名候选；此时尚未获清单槽位。
 #[derive(Clone, Debug)]
 pub struct NativeBridgeMethodBinding {
     pub(super) interface_id: String,
@@ -207,6 +218,8 @@ impl std::fmt::Display for NativeBridgeMethodManifestError {
 
 impl std::error::Error for NativeBridgeMethodManifestError {}
 
+/// 安装前按清单匹配每个绑定，拒绝重复、缺失和未声明方法。
+/// 返回顺序与槽位来自清单，避免插件表自行决定宿主分派编号。
 pub fn native_bridge_method_descriptors_from_manifest(
     manifest: &PluginPackageManifest,
     bindings: impl IntoIterator<Item = NativeBridgeMethodBinding>,

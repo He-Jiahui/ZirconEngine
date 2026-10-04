@@ -1,8 +1,11 @@
 #[cfg(test)]
+#[path = "tests/apply.rs"]
 mod apply;
 #[cfg(test)]
+#[path = "tests/delete_selected.rs"]
 mod delete_selected;
 #[cfg(test)]
+#[path = "tests/draft_field.rs"]
 mod draft_field;
 mod surface_control;
 

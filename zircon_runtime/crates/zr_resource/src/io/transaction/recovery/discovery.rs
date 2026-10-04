@@ -3,12 +3,12 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use super::super::error::DurableTransactionError;
-use super::super::journal::{MAX_JOURNAL_BYTES, decode_journal_with_valid_len};
+use super::super::journal::{decode_journal_with_valid_len, MAX_JOURNAL_BYTES};
 use super::super::schema::{FoldedTransactionJournal, JOURNAL_VERSION};
-use super::RecoveryPolicy;
 use super::validation::{
     ensure_regular_file, operation, validate_journals, validate_regular_directory,
 };
+use super::{RecoveryMode, RecoveryPolicy};
 use crate::io::is_atomic_write_transaction_path;
 
 pub(super) struct PendingTransactions {
@@ -20,6 +20,7 @@ pub(super) fn load_pending_transactions(
     directory: &Path,
     tag: &str,
     policy: &mut impl RecoveryPolicy,
+    mode: RecoveryMode,
 ) -> Result<PendingTransactions, DurableTransactionError> {
     match fs::symlink_metadata(directory) {
         Ok(_) => {}
@@ -80,7 +81,7 @@ pub(super) fn load_pending_transactions(
             .map_err(|reason| DurableTransactionError::invalid(&path, reason))?;
         journals.push((path, folded, valid_len));
     }
-    validate_journals(&journals, tag, policy)?;
+    validate_journals(&journals, tag, policy, mode)?;
     Ok(PendingTransactions {
         journals,
         atomic_intent_orphans,

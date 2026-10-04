@@ -37,5 +37,5 @@ fn badge_content_number(value: &toml::Value) -> Option<f64> {
 }
 
 #[cfg(test)]
-#[path = "badge/borrowed_variant_tests.rs"]
+#[path = "badge/tests/borrowed_variant_tests.rs"]
 mod borrowed_variant_tests;

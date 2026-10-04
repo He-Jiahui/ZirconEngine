@@ -2,6 +2,7 @@
 ///
 /// The macro is deliberately data-only: registration tables and callback behavior
 /// stay in the plugin crate, where their ownership remains visible to maintainers.
+/// 同一组声明输入会按目标投影为运行时元数据与 Native ABI 静态数据。
 #[macro_export]
 macro_rules! declare_plugin {
     (
@@ -10,6 +11,7 @@ macro_rules! declare_plugin {
             id: $id_constant:ident = $id:literal,
             display_name: $display_name:literal,
             category: $category:ident,
+            $(package_role: $package_role:ident,)?
             module: $module_constant:ident = $module_name:literal,
             crate_name: $crate_name_constant:ident = $crate_name:literal,
             module_description: $module_description:literal,
@@ -167,7 +169,7 @@ macro_rules! declare_plugin {
                 ],
                 $crate::declare_plugin!(@maturity $maturity),
                 &[$($crate::declare_plugin!(@packaging $packaging)),+],
-            );
+            )$(.with_package_role($crate::declare_plugin!(@package_role $package_role)))?;
         $crate::declare_plugin! {
             @native_projection
             [$visibility]
@@ -314,6 +316,7 @@ macro_rules! declare_plugin {
             $($native_projection_entry:tt)*
         }
     ) => {
+        // 编译期把包 ID 和请求能力编码为供 Native ABI 读取的 NUL 终止字节串。
         $visibility const $native_plugin_id: &[u8] = concat!($id, "\0").as_bytes();
         $visibility const $native_requested_capabilities: &[u8] = concat!(
             $first_capability
@@ -471,6 +474,7 @@ macro_rules! declare_plugin {
             ] $(,)?
         }
     ) => {
+        // 按声明顺序生成版本化 TOML；投影目标决定清单里采用哪组 capability 注册项。
         $visibility const $native_registration_manifest: &[u8] = concat!(
             "schema = \"zircon.native.registration-manifest/3\"\n",
             "capabilities = [\n",
@@ -495,10 +499,10 @@ macro_rules! declare_plugin {
                 "stage = \"", $native_system_stage, "\"\n",
                 "order = ", stringify!($native_system_order), "\n",
                 "sets = [\"", $native_system_first_set, "\"",
-                $(", \"", $native_system_set, "\"")*,
+                $(", \"", $native_system_set, "\"")*
                 "]\n",
                 "access = [\"", $native_system_first_access, "\"",
-                $(", \"", $native_system_access, "\"")*,
+                $(", \"", $native_system_access, "\"")*
                 "]\n",
                 "thread_affinity = \"", $native_system_thread_affinity, "\"\n",
                 "bridge_interface = \"", $native_system_bridge_interface, "\"\n",
@@ -620,4 +624,8 @@ macro_rules! declare_plugin {
     (@packaging native_dynamic) => {
         $crate::PluginPackaging::NativeDynamic
     };
+    (@package_role production) => { $crate::PluginPackageRole::Production };
+    (@package_role developer_tool) => { $crate::PluginPackageRole::DeveloperTool };
+    (@package_role sample) => { $crate::PluginPackageRole::Sample };
+    (@package_role test_fixture) => { $crate::PluginPackageRole::TestFixture };
 }

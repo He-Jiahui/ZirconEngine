@@ -1,3 +1,4 @@
+//! 字体数据库代际拥有的回退缓存；数据库发布新渲染输入时重建，防止相同 face ID 指向旧字形。
 #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
 use std::cell::Cell;
 use std::collections::{BTreeMap, HashMap};
@@ -94,6 +95,7 @@ struct CacheEntry<V> {
     approximate_bytes: usize,
 }
 
+// 每一类回退结果分别限制条数和估计字节，并用单独顺序索引避免淘汰时遍历热路径。
 struct BoundedCache<K, V> {
     entries: HashMap<K, CacheEntry<V>>,
     // One entry per live cache item: eviction reads the oldest tick without scanning `entries`.
@@ -243,6 +245,7 @@ struct FallbackCacheStats {
     state_lock_hold_nanos: AtomicU64,
 }
 
+/// 同一只读数据库快照可跨线程共享此锁；变异 clone 必须通过数据库的 detach 路径取得新缓存。
 #[derive(Clone, Default)]
 pub(super) struct FallbackCaches {
     state: Arc<Mutex<FallbackCacheState>>,
@@ -562,6 +565,7 @@ pub(super) fn fallback_query_identity_for_asset(
     fallback_query_identity_with_asset(query, composite, language, Some(font_asset_owner))
 }
 
+// 把字体 owner、语言及复合字体纳入查询身份，避免不同作用域共享一个回退结果。
 fn fallback_query_identity_with_asset(
     query: &FontQuery,
     composite: Option<CompositeFontIdentity>,
@@ -745,5 +749,5 @@ fn update_exact_text(hasher: &mut blake3::Hasher, value: &str) {
 }
 
 #[cfg(test)]
-#[path = "fallback_cache/tests.rs"]
+#[path = "fallback_cache/tests/cases.rs"]
 mod tests;

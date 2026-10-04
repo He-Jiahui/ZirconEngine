@@ -1,3 +1,6 @@
+// 调用端：node wtr1_encode.mjs --full <trace> --golden <golden> --out <wtr1>；职责：把已校验的完整对齐轨迹编码为 WTR1 二进制帧及字典 ID。
+// 轨迹字典指纹和 golden 形状共同限定对齐证据的线格式。
+
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -29,6 +32,7 @@ const golden = JSON.parse(fs.readFileSync(values.golden, "utf8"));
 assert.deepStrictEqual(projectGoldenShape(fullTrace, golden), golden);
 assert.equal(fullTrace.frames.length, golden.frames.length);
 
+// 完整轨迹与 golden 的形状核对后，写入 WTR1 头、字典指纹和带长度的帧。
 const bytes = [];
 
 raw(Buffer.from("WTR1", "ascii"));
@@ -123,6 +127,7 @@ function symbol(text, context) {
   u16(id);
 }
 
+// 用类型标签编码规范化的基本值、数组和键排序对象，递归深度上限为 64。
 function value(input, depth = 0) {
   assert.ok(depth <= 64, "WTR1 value nesting exceeds 64");
   if (input === null || input === undefined) {
@@ -194,6 +199,7 @@ function round6(number) {
   return Math.round(number * 1_000_000) / 1_000_000;
 }
 
+// 与对齐摘要的规范化规则一致：键排序、数字保留六位小数，并可省略无效默认字段。
 function canonical(input, omitDefaults = true) {
   if (input === null || input === undefined) return null;
   if (typeof input === "number") return round6(input);

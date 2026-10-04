@@ -77,17 +77,13 @@ fn render_product_anti_alias_compiles_fxaa_pass_for_default_3d() {
         .compile(&perspective_extract())
         .unwrap();
 
-    assert!(
-        compiled
-            .enabled_features()
-            .iter()
-            .any(|feature| feature.is_builtin(BuiltinRenderFeature::AntiAlias))
-    );
-    assert!(
-        compiled
-            .capability_requirements
-            .contains(&RenderFeatureCapabilityRequirement::ScreenSpaceAntiAlias)
-    );
+    assert!(compiled
+        .enabled_features()
+        .iter()
+        .any(|feature| feature.is_builtin(BuiltinRenderFeature::AntiAlias)));
+    assert!(compiled
+        .capability_requirements
+        .contains(&RenderFeatureCapabilityRequirement::ScreenSpaceAntiAlias));
 
     let post = compiled
         .graph()
@@ -111,7 +107,7 @@ fn render_product_anti_alias_compiles_fxaa_pass_for_default_3d() {
     assert!(post < fxaa && fxaa < runtime_ui);
     assert_eq!(
         compiled.pass_stage(FXAA_PASS_NAME),
-        RenderPassStage::PostProcess
+        Some(RenderPassStage::PostProcess)
     );
     let fxaa_pass = compiled
         .graph()
@@ -160,16 +156,12 @@ fn render_product_anti_alias_submit_records_fxaa_stats_and_graph_node() {
         Some(AntiAliasFallbackReason::AutoResolvedToFxaa)
     );
     assert_eq!(stats.last_anti_alias_graph_executed_pass_count, 1);
-    assert!(
-        stats
-            .last_graph_executed_executor_ids
-            .contains(&FXAA_EXECUTOR_ID.to_string())
-    );
-    assert!(
-        stats
-            .last_post_process_graph_executed_nodes
-            .contains(&FXAA_PASS_NAME.to_string())
-    );
+    assert!(stats
+        .last_graph_executed_executor_ids
+        .contains(&FXAA_EXECUTOR_ID.to_string()));
+    assert!(stats
+        .last_post_process_graph_executed_nodes
+        .contains(&FXAA_PASS_NAME.to_string()));
 }
 
 #[test]
@@ -221,16 +213,12 @@ fn render_product_temporal_off_matches_anti_alias_feature_disabled_product() {
         explicit_off_stats.last_anti_alias_graph_executed_pass_count,
         0
     );
-    assert!(
-        !explicit_off_stats
-            .last_graph_executed_executor_ids
-            .contains(&FXAA_EXECUTOR_ID.to_string())
-    );
-    assert!(
-        !explicit_off_stats
-            .last_post_process_graph_executed_nodes
-            .contains(&FXAA_PASS_NAME.to_string())
-    );
+    assert!(!explicit_off_stats
+        .last_graph_executed_executor_ids
+        .contains(&FXAA_EXECUTOR_ID.to_string()));
+    assert!(!explicit_off_stats
+        .last_post_process_graph_executed_nodes
+        .contains(&FXAA_PASS_NAME.to_string()));
 
     assert_eq!(
         feature_disabled_stats
@@ -536,16 +524,12 @@ fn assert_taa_resolve_product_stats(stats: &RenderStats) {
         TAA_RESOLVE_EXECUTOR_ID,
         stats.last_graph_executed_executor_ids
     );
-    assert!(
-        !stats
-            .last_graph_executed_executor_ids
-            .contains(&FXAA_EXECUTOR_ID.to_string())
-    );
-    assert!(
-        !stats
-            .last_post_process_graph_executed_nodes
-            .contains(&FXAA_PASS_NAME.to_string())
-    );
+    assert!(!stats
+        .last_graph_executed_executor_ids
+        .contains(&FXAA_EXECUTOR_ID.to_string()));
+    assert!(!stats
+        .last_post_process_graph_executed_nodes
+        .contains(&FXAA_PASS_NAME.to_string()));
 }
 
 fn assert_executor_order(stats: &RenderStats, before: &str, after: &str) {

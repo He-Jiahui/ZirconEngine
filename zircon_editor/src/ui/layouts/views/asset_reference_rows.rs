@@ -35,6 +35,8 @@ struct AssetReferenceListMetrics {
     kind_max_width_fraction: f32,
 }
 
+const REFERENCE_ROW_NODE_COUNT: usize = 4;
+
 fn asset_reference_list_metrics() -> AssetReferenceListMetrics {
     let density = EditorDensityTokens::workbench_dense();
     let controls = EditorControlTokens::workbench_dense();
@@ -147,6 +149,7 @@ fn sync_asset_reference_list(
     if let Some(empty) = find_node_mut(nodes, controls.empty_control_id) {
         empty.text = "".into();
     }
+    nodes.reserve(references.len().saturating_mul(REFERENCE_ROW_NODE_COUNT));
     for (index, reference) in references.iter().enumerate() {
         nodes.extend(prototypes.row_nodes(controls, index + 1, reference));
     }
@@ -251,11 +254,24 @@ impl AssetReferenceNodePrototypes {
         nodes: &[ViewTemplateNodeData],
         controls: AssetReferenceListControls,
     ) -> Option<Self> {
+        let mut panel = None;
+        let mut name = None;
+        let mut locator = None;
+        let mut kind = None;
+        for node in nodes {
+            capture_prototype(&mut panel, node, controls.row_panel_control_id);
+            capture_prototype(&mut name, node, controls.row_name_control_id);
+            capture_prototype(&mut locator, node, controls.row_locator_control_id);
+            capture_prototype(&mut kind, node, controls.row_kind_control_id);
+            if panel.is_some() && name.is_some() && locator.is_some() && kind.is_some() {
+                break;
+            }
+        }
         Some(Self {
-            panel: find_node(nodes, controls.row_panel_control_id)?.clone(),
-            name: find_node(nodes, controls.row_name_control_id)?.clone(),
-            locator: find_node(nodes, controls.row_locator_control_id)?.clone(),
-            kind: find_node(nodes, controls.row_kind_control_id)?.clone(),
+            panel: panel?,
+            name: name?,
+            locator: locator?,
+            kind: kind?,
         })
     }
 
@@ -290,6 +306,16 @@ impl AssetReferenceNodePrototypes {
         kind.text = reference_kind_label(reference).into();
 
         [panel, name, locator, kind]
+    }
+}
+
+fn capture_prototype(
+    slot: &mut Option<ViewTemplateNodeData>,
+    node: &ViewTemplateNodeData,
+    control_id: &str,
+) {
+    if slot.is_none() && node.control_id.as_str() == control_id {
+        *slot = Some(node.clone());
     }
 }
 
@@ -468,254 +494,5 @@ fn finite_coordinate(value: f32) -> f32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        apply_asset_reference_lists_layout, asset_reference_list_metrics,
-        reference_kind_slot_width, reference_kind_slot_widths, sync_asset_reference_lists,
-        AssetReferenceListControls,
-    };
-    use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
-    use crate::ui::workbench::snapshot::{
-        AssetReferenceSnapshot, AssetSelectionSnapshot, AssetWorkspaceSnapshot,
-    };
-    use zircon_runtime_interface::ui::design_tokens::{
-        EditorControlTokens, EditorDensityTokens, EditorTypographyTokens,
-    };
-
-    const LEFT: AssetReferenceListControls = AssetReferenceListControls {
-        title_control_id: "LeftTitleText",
-        empty_control_id: "LeftEmptyText",
-        panel_control_id: "LeftPanel",
-        scroll_body_control_id: "LeftScrollBody",
-        row_panel_control_id: "LeftRowPanel",
-        row_name_control_id: "LeftRowNameText",
-        row_locator_control_id: "LeftRowLocatorText",
-        row_kind_control_id: "LeftRowKindText",
-        node_id_scope: "test.references.left",
-        title: "References",
-        empty_text: "No direct references",
-    };
-    const RIGHT: AssetReferenceListControls = AssetReferenceListControls {
-        title_control_id: "RightTitleText",
-        empty_control_id: "RightEmptyText",
-        panel_control_id: "RightPanel",
-        scroll_body_control_id: "RightScrollBody",
-        row_panel_control_id: "RightRowPanel",
-        row_name_control_id: "RightRowNameText",
-        row_locator_control_id: "RightRowLocatorText",
-        row_kind_control_id: "RightRowKindText",
-        node_id_scope: "test.references.right",
-        title: "Used By",
-        empty_text: "No usages",
-    };
-
-    #[test]
-    fn reference_list_metrics_follow_shared_component_tokens() {
-        let metrics = asset_reference_list_metrics();
-        let density = EditorDensityTokens::workbench_dense();
-        let controls = EditorControlTokens::workbench_dense();
-        let typography = EditorTypographyTokens::workbench_default();
-
-        assert_eq!(metrics.panel_gap, density.gap_medium);
-        assert_eq!(metrics.min_column_width, controls.default_height * 5.0);
-        assert_eq!(
-            metrics.row_height,
-            density.row_height + density.gap_small + controls.border_width * 2.0
-        );
-        assert_eq!(
-            metrics.text_line_height,
-            typography.caption_size * typography.line_height
-        );
-    }
-
-    #[test]
-    fn dynamic_reference_rows_resync_from_retained_prototypes() {
-        let mut nodes = prototypes();
-        let initial = snapshot(
-            vec![reference("first", "First", "Content/First")],
-            vec![reference("used", "Used", "Content/Used")],
-        );
-        let refreshed = snapshot(
-            vec![
-                reference("second", "Second", "Content/Second"),
-                reference("third", "Third", "Content/Third"),
-            ],
-            Vec::new(),
-        );
-
-        sync_asset_reference_lists(&mut nodes, &initial, LEFT, RIGHT);
-        sync_asset_reference_lists(&mut nodes, &refreshed, LEFT, RIGHT);
-
-        assert_eq!(text(&nodes, "LeftTitleText"), "References (2)");
-        assert_eq!(text(&nodes, "LeftRowNameText02"), "Third");
-        assert!(node(&nodes, "RightRowPanel01").is_none());
-        assert_eq!(text(&nodes, "RightEmptyText"), "No usages");
-        let left_prototype = node(&nodes, "LeftRowPanel").expect("retained prototype");
-        assert_eq!(left_prototype.frame.width, 0.0);
-        assert_eq!(left_prototype.frame.height, 0.0);
-        assert!(left_prototype.text.is_empty());
-    }
-
-    #[test]
-    fn reference_lists_use_columns_then_stack_for_narrow_content() {
-        let mut nodes = prototypes();
-        nodes.push(frame_node("ReferenceContent", 20.0, 40.0, 520.0, 132.0));
-        sync_asset_reference_lists(
-            &mut nodes,
-            &snapshot(
-                vec![reference("left", "Left", "Content/Left")],
-                vec![reference("right", "Right", "Content/Right")],
-            ),
-            LEFT,
-            RIGHT,
-        );
-
-        apply_asset_reference_lists_layout(&mut nodes, "ReferenceContent", LEFT, RIGHT);
-        assert_eq!(node(&nodes, "LeftPanel").expect("left").frame.width, 256.0);
-        assert_eq!(node(&nodes, "RightPanel").expect("right").frame.x, 284.0);
-
-        node_mut(&mut nodes, "ReferenceContent").frame.width = 300.0;
-        apply_asset_reference_lists_layout(&mut nodes, "ReferenceContent", LEFT, RIGHT);
-        assert!(
-            node(&nodes, "RightPanel").expect("stacked right").frame.y
-                > node(&nodes, "LeftPanel").expect("stacked left").frame.y
-        );
-    }
-
-    #[test]
-    fn kind_slot_uses_runtime_text_width_with_a_relative_budget_cap() {
-        let metrics = asset_reference_list_metrics();
-        let label = "W".repeat(64);
-        let narrow_width = 80.0;
-        let wide_width = 320.0;
-        let narrow = reference_kind_slot_width(&label, narrow_width, metrics);
-        let wide = reference_kind_slot_width(&label, wide_width, metrics);
-        assert_eq!(
-            narrow,
-            (narrow_width - metrics.text_inset * 2.0) * metrics.kind_max_width_fraction
-        );
-        assert_eq!(
-            wide,
-            (wide_width - metrics.text_inset * 2.0) * metrics.kind_max_width_fraction
-        );
-        assert!(wide > narrow);
-    }
-
-    #[test]
-    fn kind_width_index_is_dense_and_rejects_sparse_control_suffixes() {
-        let metrics = asset_reference_list_metrics();
-        let mut nodes = prototypes();
-        sync_asset_reference_lists(
-            &mut nodes,
-            &snapshot(
-                vec![
-                    reference("first", "First", "Content/First"),
-                    reference("second", "Second", "Content/Second"),
-                ],
-                Vec::new(),
-            ),
-            LEFT,
-            RIGHT,
-        );
-
-        let widths = reference_kind_slot_widths(&nodes, LEFT, 320.0, metrics);
-        assert_eq!(widths.len(), 2);
-        assert!(widths.iter().all(Option::is_some));
-
-        nodes.push(ViewTemplateNodeData {
-            node_id: "test.references.left.sparse".into(),
-            control_id: "LeftRowKindText999999".into(),
-            text: "Sparse".into(),
-            ..ViewTemplateNodeData::default()
-        });
-        let sparse_widths = reference_kind_slot_widths(&nodes, LEFT, 320.0, metrics);
-        assert!(sparse_widths.len() <= nodes.len());
-    }
-
-    fn prototypes() -> Vec<ViewTemplateNodeData> {
-        [LEFT, RIGHT]
-            .into_iter()
-            .flat_map(|controls| {
-                [
-                    controls.title_control_id,
-                    controls.empty_control_id,
-                    controls.panel_control_id,
-                    controls.scroll_body_control_id,
-                    controls.row_panel_control_id,
-                    controls.row_name_control_id,
-                    controls.row_locator_control_id,
-                    controls.row_kind_control_id,
-                ]
-            })
-            .map(|control_id| ViewTemplateNodeData {
-                node_id: control_id.into(),
-                control_id: control_id.into(),
-                ..ViewTemplateNodeData::default()
-            })
-            .collect()
-    }
-
-    fn snapshot(
-        references: Vec<AssetReferenceSnapshot>,
-        used_by: Vec<AssetReferenceSnapshot>,
-    ) -> AssetWorkspaceSnapshot {
-        AssetWorkspaceSnapshot {
-            selection: AssetSelectionSnapshot {
-                references,
-                used_by,
-                ..AssetSelectionSnapshot::default()
-            },
-            ..AssetWorkspaceSnapshot::default()
-        }
-    }
-
-    fn reference(uuid: &str, display_name: &str, locator: &str) -> AssetReferenceSnapshot {
-        AssetReferenceSnapshot {
-            uuid: uuid.to_string(),
-            display_name: display_name.to_string(),
-            locator: locator.to_string(),
-            ..AssetReferenceSnapshot::default()
-        }
-    }
-
-    fn frame_node(
-        control_id: &str,
-        x: f32,
-        y: f32,
-        width: f32,
-        height: f32,
-    ) -> ViewTemplateNodeData {
-        ViewTemplateNodeData {
-            node_id: control_id.into(),
-            control_id: control_id.into(),
-            frame: ViewTemplateFrameData {
-                x,
-                y,
-                width,
-                height,
-            },
-            ..ViewTemplateNodeData::default()
-        }
-    }
-
-    fn node<'a>(
-        nodes: &'a [ViewTemplateNodeData],
-        control_id: &str,
-    ) -> Option<&'a ViewTemplateNodeData> {
-        nodes.iter().find(|node| node.control_id == control_id)
-    }
-
-    fn node_mut<'a>(
-        nodes: &'a mut [ViewTemplateNodeData],
-        control_id: &str,
-    ) -> &'a mut ViewTemplateNodeData {
-        nodes
-            .iter_mut()
-            .find(|node| node.control_id == control_id)
-            .expect("test node")
-    }
-
-    fn text<'a>(nodes: &'a [ViewTemplateNodeData], control_id: &str) -> &'a str {
-        node(nodes, control_id).expect("text node").text.as_str()
-    }
-}
+#[path = "tests/asset_reference_rows.rs"]
+mod tests;

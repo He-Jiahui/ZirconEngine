@@ -1,6 +1,6 @@
 import unittest
 from pathlib import Path
-
+# 主机导出注册只推进权威代际，调用表读取共用按代际缓存的构造者；本组关联 Rust 路径与发布延迟门禁。
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE = (

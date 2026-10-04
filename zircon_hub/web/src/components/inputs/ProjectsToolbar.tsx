@@ -23,6 +23,8 @@ export function ProjectsToolbar({ search, filter, sort, viewMode, text, onSearch
     <Box
       sx={{
         display: "grid",
+        width: "100%",
+        minWidth: 0,
         gridTemplateColumns: "minmax(260px, 307px) 1fr auto auto auto",
         alignItems: "center",
         gap: 1.2,
@@ -31,7 +33,8 @@ export function ProjectsToolbar({ search, filter, sort, viewMode, text, onSearch
           gridTemplateColumns: "minmax(240px, 1fr) auto auto",
         },
         "@media (max-width: 760px)": {
-          gridTemplateColumns: "1fr",
+          gridTemplateColumns: "minmax(0, 1fr)",
+          "& > *": { minWidth: 0, maxWidth: "100%" },
         },
       }}
     >
@@ -39,6 +42,7 @@ export function ProjectsToolbar({ search, filter, sort, viewMode, text, onSearch
       <Box sx={{ minWidth: 0 }} />
       <HubSelect
         value={filter}
+        label={text.filterLabel}
         minWidth={183}
         options={[
           { value: "all", label: text.filterAll },
@@ -49,6 +53,7 @@ export function ProjectsToolbar({ search, filter, sort, viewMode, text, onSearch
       />
       <HubSelect
         value={sort}
+        label={text.sortLabel}
         minWidth={190}
         options={[
           { value: "last-modified", label: text.sortLastModified },
@@ -57,6 +62,7 @@ export function ProjectsToolbar({ search, filter, sort, viewMode, text, onSearch
         onChange={onSort}
       />
       <HubToggle
+        ariaLabel={text.title}
         value={viewMode}
         onChange={onViewMode}
         options={[

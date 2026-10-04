@@ -14,6 +14,9 @@ mod ffi;
 mod highlight_set;
 mod host_requests;
 mod hud;
+mod ime_composition_configuration;
+mod ime_composition_generation;
+mod ime_composition_route;
 mod input_events;
 mod linked_plugins;
 mod linked_session;
@@ -26,6 +29,7 @@ mod registry;
 mod runtime_ui;
 mod scene_asset_reload_diagnostics;
 mod script_systems;
+mod shutdown;
 mod state;
 mod status;
 #[cfg(test)]
@@ -49,11 +53,12 @@ pub(in crate::dynamic_api) use event_mirror::{
 };
 pub(super) use ffi::cancel_viewport_pick;
 pub(super) use ffi::{
-    bind_viewport_surface, capture_accessibility_tree, capture_frame, create_session,
-    destroy_session, drain_host_requests, drain_plugin_events, drain_world_invalidations,
-    handle_event, poll_viewport_pick, present_viewport, profile_control, query_world,
-    release_allocation, request_viewport_pick, submit_highlight_set, subscribe_plugin_event,
-    tick_frame, unbind_viewport_surface, unsubscribe_plugin_event, unwatch_world, watch_world,
+    bind_viewport_surface, capture_accessibility_tree, capture_frame, configure_app_session,
+    create_session, destroy_session, drain_host_requests, drain_plugin_events,
+    drain_world_invalidations, handle_event, poll_viewport_pick, present_viewport, profile_control,
+    query_world, release_allocation, request_viewport_pick, submit_highlight_set,
+    subscribe_plugin_event, tick_frame, unbind_viewport_surface, unsubscribe_plugin_event,
+    unwatch_world, watch_world,
 };
 pub(super) use host_requests::{
     runtime_cursor_host_request, runtime_gamepad_rumble_request, runtime_ime_host_request,

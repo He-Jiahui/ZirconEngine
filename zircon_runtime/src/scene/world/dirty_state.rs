@@ -2,10 +2,10 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use crate::core::framework::render::RenderComponentChangeArtifact;
-use crate::scene::EntityId;
 use crate::scene::ecs::{
     ChangeTick, Component, ComponentMutationRecord, ComponentMutationRecorder, InternalSceneSystem,
 };
+use crate::scene::EntityId;
 
 use super::render_component_changes::RenderComponentChangeProjector;
 use super::render_dirty_journal::{RenderDirtyEntityJournal, RenderDirtyJournalState};
@@ -93,7 +93,6 @@ impl DerivedStateDirty {
         self.active.mark(entity);
         self.transforms.mark(entity);
         self.node_cache.mark(entity);
-        self.render_extract.mark(entity);
     }
 
     pub(super) fn mark_hierarchy_repaired(&mut self) {
@@ -137,6 +136,48 @@ impl DerivedStateDirty {
         self.render_extract.mark(entity);
     }
 
+    /// Marks only disjoint ordinary frontier leaves; a live recorder may cover the sink leaf.
+    ///
+    /// # Safety
+    /// The caller must exclusively own the hierarchy/frontier/pending fields and keep
+    /// this allocation fixed. Live references must not cover this struct or its render
+    /// state parent. The shared component-mutation sink may remain borrowed.
+    pub(super) unsafe fn mark_component_at_unchecked(
+        dirty: *mut Self,
+        entity: EntityId,
+        type_id: std::any::TypeId,
+        checked_hierarchy: bool,
+    ) {
+        let hierarchy = type_id == std::any::TypeId::of::<crate::scene::components::Hierarchy>();
+        let active = type_id == std::any::TypeId::of::<crate::scene::components::ActiveSelf>();
+        let transform =
+            type_id == std::any::TypeId::of::<crate::scene::components::LocalTransform>();
+        unsafe {
+            if hierarchy {
+                if !checked_hierarchy {
+                    std::ptr::addr_of_mut!((*dirty).hierarchy).write(true);
+                }
+                (&mut *std::ptr::addr_of_mut!((*dirty).active)).mark(entity);
+                (&mut *std::ptr::addr_of_mut!((*dirty).transforms)).mark(entity);
+                (&mut *std::ptr::addr_of_mut!((*dirty).node_cache)).mark(entity);
+            } else if active {
+                (&mut *std::ptr::addr_of_mut!((*dirty).active)).mark(entity);
+                (&mut *std::ptr::addr_of_mut!((*dirty).node_cache)).mark(entity);
+            } else if transform {
+                (&mut *std::ptr::addr_of_mut!((*dirty).transforms)).mark(entity);
+                (&mut *std::ptr::addr_of_mut!((*dirty).node_cache)).mark(entity);
+            } else {
+                (&mut *std::ptr::addr_of_mut!((*dirty).node_cache)).mark(entity);
+            }
+            if !hierarchy || !checked_hierarchy {
+                RenderDirtyJournalState::mark_unchecked(
+                    std::ptr::addr_of_mut!((*dirty).render_extract),
+                    entity,
+                );
+            }
+        }
+    }
+
     pub(super) fn should_run(&self, system: InternalSceneSystem) -> bool {
         match system {
             InternalSceneSystem::ApplyDeferred => false,
@@ -151,7 +192,7 @@ impl DerivedStateDirty {
             InternalSceneSystem::NodeCache => {
                 self.node_cache.all || !self.node_cache.entities.is_empty()
             }
-            InternalSceneSystem::RenderExtractPrepare => self.render_extract.has_pending(),
+            InternalSceneSystem::RenderExtractPrepare => self.has_pending(),
         }
     }
 
@@ -228,6 +269,24 @@ impl DerivedStateDirty {
         self.render_extract.component_mutation_recorder::<T>(entity)
     }
 
+    /// # Safety
+    /// The caller must keep the dirty-state allocation fixed for `'world` and
+    /// prevent parent/exclusive sink borrows while the returned sink recorder lives.
+    pub(super) unsafe fn component_mutation_recorder_unchecked<'world, T>(
+        dirty: *const Self,
+        entity: EntityId,
+    ) -> ComponentMutationRecorder<'world>
+    where
+        T: Component,
+    {
+        unsafe {
+            RenderDirtyJournalState::component_mutation_recorder_unchecked::<T>(
+                std::ptr::addr_of!((*dirty).render_extract),
+                entity,
+            )
+        }
+    }
+
     pub(super) fn take_component_mutations(&self) -> Vec<ComponentMutationRecord> {
         self.render_extract.take_component_mutations()
     }
@@ -268,3 +327,7 @@ impl DerivedStateDirty {
         self.render_component_changes.published()
     }
 }
+
+#[cfg(test)]
+#[path = "tests/dirty_state.rs"]
+mod tests;

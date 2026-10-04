@@ -1,3 +1,4 @@
+# 核对侧面板在固定标题与校验栏下保持明细和长列表可滚动。
 import tomllib
 import unittest
 from pathlib import Path

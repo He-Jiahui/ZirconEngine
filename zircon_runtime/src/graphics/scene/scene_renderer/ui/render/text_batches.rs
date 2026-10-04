@@ -12,18 +12,18 @@ use crate::core::framework::text::TextLayoutError;
 use crate::text::sdf::SdfMode;
 use crate::text::text_language_cache_identity;
 
-use super::background::{ScreenSpaceUiBackgroundTracker, text_batch_background_color};
+use super::background::{text_batch_background_color, ScreenSpaceUiBackgroundTracker};
 use super::resolved_layout;
 use super::rich_text;
 use super::text_decorations::{
-    ScreenSpaceUiTextDecorations, resolve_text_decorations, resolved_text_decoration_baseline,
+    resolve_text_decorations, resolved_text_decoration_baseline, ScreenSpaceUiTextDecorations,
 };
 use super::text_distance_field::resolved_text_distance_field_mode;
-use super::text_effects::{ScreenSpaceUiTextEffects, resolve_text_effects};
+use super::text_effects::{resolve_text_effects, ScreenSpaceUiTextEffects};
 use super::text_provenance::is_source_isomorphic_resolved_text_line;
 use super::{
-    PlannedScreenSpaceUi, ScreenSpaceUiGlyphArtifactLine, ScreenSpaceUiShapedGlyph,
-    ScreenSpaceUiTextRouteIdentity, text_paint,
+    text_paint, PlannedScreenSpaceUi, ScreenSpaceUiGlyphArtifactLine, ScreenSpaceUiShapedGlyph,
+    ScreenSpaceUiTextRouteIdentity,
 };
 
 #[derive(Clone)]
@@ -41,48 +41,95 @@ pub(super) enum TextPlanOutcome {
 }
 
 #[derive(Clone, Debug)]
-pub(super) struct ScreenSpaceUiTextBatch {
-    pub(super) route_identity: ScreenSpaceUiTextRouteIdentity,
-    pub(super) command_generation: u64,
-    pub(super) raster_scale: f32,
-    pub(super) text: String,
-    pub(super) frame: UiFrame,
-    pub(super) clip_frame: Option<UiFrame>,
-    pub(super) source_range: Option<UiTextRange>,
+pub(in crate::graphics::scene::scene_renderer::ui) struct ScreenSpaceUiTextBatch {
+    pub(in crate::graphics::scene::scene_renderer::ui) route_identity:
+        ScreenSpaceUiTextRouteIdentity,
+    pub(in crate::graphics::scene::scene_renderer::ui) command_generation: u64,
+    pub(in crate::graphics::scene::scene_renderer::ui) raster_scale: f32,
+    pub(in crate::graphics::scene::scene_renderer::ui) text: String,
+    pub(in crate::graphics::scene::scene_renderer::ui) frame: UiFrame,
+    pub(in crate::graphics::scene::scene_renderer::ui) clip_frame: Option<UiFrame>,
+    pub(in crate::graphics::scene::scene_renderer::ui) source_range: Option<UiTextRange>,
     // This is planner provenance, not a heuristic: only a source-isomorphic resolved visual
     // line can safely host a native fallback span after an SDF atlas failure.
-    pub(super) is_source_isomorphic_layout_line: bool,
-    pub(super) glyph_advances: Vec<f32>,
-    pub(super) shaped_glyphs: Vec<ScreenSpaceUiShapedGlyph>,
+    pub(in crate::graphics::scene::scene_renderer::ui) is_source_isomorphic_layout_line: bool,
+    pub(in crate::graphics::scene::scene_renderer::ui) glyph_advances: Vec<f32>,
+    pub(in crate::graphics::scene::scene_renderer::ui) shaped_glyphs: Vec<ScreenSpaceUiShapedGlyph>,
     // Runtime layout artifacts own these glyph identities. They must survive a font reload
     // without being replaced by a second, run-local shaping pass.
-    pub(super) preserve_shaped_glyphs: bool,
-    pub(super) glyph_artifact_line: Option<ScreenSpaceUiGlyphArtifactLine>,
-    pub(super) layout_error: Option<TextLayoutError>,
-    pub(super) color: [f32; 4],
-    pub(super) background_color: Option<[f32; 4]>,
-    pub(super) font: Option<String>,
-    pub(super) font_family: Option<String>,
-    pub(super) language: Option<String>,
-    pub(super) font_weight: u16,
-    pub(super) font_size: f32,
-    pub(super) line_height: f32,
-    pub(super) text_align: UiTextAlign,
-    pub(super) text_direction: UiTextDirection,
-    pub(super) writing_mode: UiTextWritingMode,
-    pub(super) wrap: UiTextWrap,
-    pub(super) style: UiTextRunPaintStyle,
-    pub(super) distance_field_mode: SdfMode,
-    pub(super) text_effects: ScreenSpaceUiTextEffects,
-    pub(super) text_decorations: ScreenSpaceUiTextDecorations,
-    pub(super) text_decoration_baseline: Option<f32>,
-    pub(super) clip_transform: Option<super::text_projection::ScreenSpaceUiTextClipTransform>,
+    pub(in crate::graphics::scene::scene_renderer::ui) preserve_shaped_glyphs: bool,
+    pub(in crate::graphics::scene::scene_renderer::ui) glyph_artifact_line:
+        Option<ScreenSpaceUiGlyphArtifactLine>,
+    pub(in crate::graphics::scene::scene_renderer::ui) layout_error: Option<TextLayoutError>,
+    pub(in crate::graphics::scene::scene_renderer::ui) color: [f32; 4],
+    pub(in crate::graphics::scene::scene_renderer::ui) background_color: Option<[f32; 4]>,
+    pub(in crate::graphics::scene::scene_renderer::ui) font: Option<String>,
+    pub(in crate::graphics::scene::scene_renderer::ui) font_family: Option<String>,
+    pub(in crate::graphics::scene::scene_renderer::ui) language: Option<String>,
+    pub(in crate::graphics::scene::scene_renderer::ui) font_weight: u16,
+    pub(in crate::graphics::scene::scene_renderer::ui) font_size: f32,
+    pub(in crate::graphics::scene::scene_renderer::ui) line_height: f32,
+    pub(in crate::graphics::scene::scene_renderer::ui) text_align: UiTextAlign,
+    pub(in crate::graphics::scene::scene_renderer::ui) text_direction: UiTextDirection,
+    pub(in crate::graphics::scene::scene_renderer::ui) writing_mode: UiTextWritingMode,
+    pub(in crate::graphics::scene::scene_renderer::ui) wrap: UiTextWrap,
+    pub(in crate::graphics::scene::scene_renderer::ui) style: UiTextRunPaintStyle,
+    pub(in crate::graphics::scene::scene_renderer::ui) distance_field_mode: SdfMode,
+    pub(in crate::graphics::scene::scene_renderer::ui) text_effects: ScreenSpaceUiTextEffects,
+    pub(in crate::graphics::scene::scene_renderer::ui) text_decorations:
+        ScreenSpaceUiTextDecorations,
+    pub(in crate::graphics::scene::scene_renderer::ui) text_decoration_baseline: Option<f32>,
+    pub(in crate::graphics::scene::scene_renderer::ui) clip_transform:
+        Option<super::text_projection::ScreenSpaceUiTextClipTransform>,
 }
 
 impl ScreenSpaceUiTextBatch {
+    pub(super) fn preparation_inputs_match(&self, next: &Self) -> bool {
+        self.route_identity == next.route_identity
+            && self.command_generation == next.command_generation
+            && self.raster_scale == next.raster_scale
+            && self.text == next.text
+            && self.frame == next.frame
+            && self.clip_frame == next.clip_frame
+            && self.source_range == next.source_range
+            && self.is_source_isomorphic_layout_line == next.is_source_isomorphic_layout_line
+            && self.glyph_advances == next.glyph_advances
+            && self.shaped_glyphs == next.shaped_glyphs
+            && self.preserve_shaped_glyphs == next.preserve_shaped_glyphs
+            && self
+                .glyph_artifact_line
+                .as_ref()
+                .map(ScreenSpaceUiGlyphArtifactLine::cache_identity)
+                == next
+                    .glyph_artifact_line
+                    .as_ref()
+                    .map(ScreenSpaceUiGlyphArtifactLine::cache_identity)
+            && self.layout_error == next.layout_error
+            && self.color == next.color
+            && self.background_color == next.background_color
+            && self.font == next.font
+            && self.font_family == next.font_family
+            && self.language == next.language
+            && self.font_weight == next.font_weight
+            && self.font_size == next.font_size
+            && self.line_height == next.line_height
+            && self.text_align == next.text_align
+            && self.text_direction == next.text_direction
+            && self.writing_mode == next.writing_mode
+            && self.wrap == next.wrap
+            && self.style == next.style
+            && self.distance_field_mode == next.distance_field_mode
+            && self.text_effects == next.text_effects
+            && self.text_decorations == next.text_decorations
+            && self.text_decoration_baseline == next.text_decoration_baseline
+            && self.clip_transform == next.clip_transform
+    }
+
     // A Text03 artifact retains the exact glyph sequence that native rasterization consumes.
     // Only visual fallback text without that artifact needs the SDF geometry owner.
-    pub(super) fn requires_sdf_layout_fidelity(&self) -> bool {
+    pub(in crate::graphics::scene::scene_renderer::ui) fn requires_sdf_layout_fidelity(
+        &self,
+    ) -> bool {
         self.glyph_artifact_line.is_none()
             && (!self.glyph_advances.is_empty()
                 && self
@@ -91,6 +138,8 @@ impl ScreenSpaceUiTextBatch {
     }
 }
 
+/// 先消费解析布局或富文本的准入结果，再规划普通文字；不可恢复的布局或来源失配返回 Rejected。
+/// 批次按布局保真、竖排、效果和显式模式分类；无距离场效果的 Auto 批次留到字体依赖加载后选路。
 pub(super) fn push_text_batches(
     command: &UiRenderCommand,
     paint_elements: &[UiPaintElement],

@@ -7,6 +7,7 @@ SURFACE = ROOT / "zircon_runtime/src/ui/surface/surface.rs"
 MATERIALIZATION = (
     ROOT / "zircon_runtime/src/ui/surface/virtual_list_materialization.rs"
 )
+SLOT_MAP = ROOT / "zircon_runtime/src/ui/layout/virtualization/materialization.rs"
 IDENTITY = (
     ROOT
     / "zircon_runtime/src/ui/surface/virtual_list_materialization/identity.rs"
@@ -54,6 +55,8 @@ class RuntimeUiVirtualListSurfaceMaterializationPerformanceContractTests(
         self.assertIn("rejects_a_non_virtualized_owner", source)
         self.assertIn("one_row_scroll_rebinds_only_one_surface_owned_slot", source)
         self.assertIn("identical_request_preserves_surface_owned_generation", source)
+        self.assertIn("warm_reconciliation_reuses_candidate_assignment_buffers", source)
+        self.assertIn("cloned_materialization_drops_candidate_scratch", source)
         self.assertIn("removed_owner_state_is_pruned_without_scanning_logical_rows", source)
         self.assertIn(
             "invalidated_owner_evicts_assignments_and_clears_reused_changes", source
@@ -63,11 +66,30 @@ class RuntimeUiVirtualListSurfaceMaterializationPerformanceContractTests(
 
     def test_physical_slot_registration_is_bounded_and_transactional(self) -> None:
         source = MATERIALIZATION.read_text(encoding="utf-8")
+        slot_map = SLOT_MAP.read_text(encoding="utf-8")
 
         self.assertIn("pub fn register_virtual_list_slots", source)
         self.assertIn("pub fn virtual_list_binding_for_node", source)
         self.assertIn("slot_node_ids: Vec<Vec<UiNodeId>>", source)
-        self.assertIn("let mut candidate = state.slots.clone();", source)
+        self.assertIn("candidate_slots: UiVirtualListSlotMap", source)
+        self.assertIn("candidate_item_keys: Vec<Option<UiVirtualListItemKey>>", source)
+        self.assertIn("candidate_assignment_generations: Vec<u64>", source)
+        self.assertIn("state.candidate_slots.clone_from(&state.slots);", source)
+        self.assertIn("std::mem::swap(&mut state.slots, &mut state.candidate_slots);", source)
+        self.assertIn("candidate_slots: UiVirtualListSlotMap::default()", source)
+        self.assertIn("candidate_item_keys: Vec::new()", source)
+        self.assertIn("candidate_assignment_generations: Vec::new()", source)
+        self.assertIn("planner_changes: Vec::new()", source)
+        self.assertIn("assert!(state.planner_changes.is_empty())", source)
+        self.assertNotIn("let mut candidate = state.slots.clone();", source)
+        self.assertIn("impl Clone for UiVirtualListSlotMap", slot_map)
+        self.assertIn("fn clone_from(&mut self, source: &Self)", slot_map)
+        clone_impl = slot_map.split("impl Clone for UiVirtualListSlotMap", 1)[1].split(
+            "impl UiVirtualListSlotMap", 1
+        )[0]
+        self.assertRegex(clone_impl, r"self\.slot_logical_indices\s*\.clone_from")
+        self.assertNotIn("*self = source.clone()", clone_impl)
+        self.assertIn("clone_from_reuses_slot_storage", slot_map)
         self.assertIn("ProtectedSlotRebind", source)
         self.assertNotIn("self.tree.nodes.iter()", source)
 

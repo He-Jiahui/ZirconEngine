@@ -8,7 +8,7 @@ use super::error::{DurableTransactionError, TransactionPhase};
 use super::journal::{record_phase, record_state};
 use super::observation::DurableCommitReport;
 use super::schema::{JournalDocument, JournalPhase, JournalState, TransactionFault};
-use super::stage::{StagedFile, copy_and_sync_hash, remove_reserved_if_exists};
+use super::stage::{copy_and_sync_hash, remove_reserved_if_exists, StagedFile};
 use crate::io::{publish_staged_file_for_transaction, replace_staged_file, sync_parent_directory};
 
 pub(super) fn commit_file(
@@ -89,7 +89,7 @@ pub(super) fn rollback_and_cleanup(
             } else {
                 record_state(journal, index, JournalState::RollingBack)
             };
-            #[cfg(not(test))]
+            #[cfg(not(any(test, feature = "test-support")))]
             let transition = record_state(journal, index, JournalState::RollingBack);
             if transition.is_err() {
                 // A failed append can leave a torn terminal frame. Never append behind an
@@ -372,44 +372,5 @@ pub(super) fn document_artifacts(document: &JournalDocument) -> impl Iterator<It
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::io::transaction::schema::JournalIntent;
-
-    #[test]
-    fn prepublication_conflict_preserves_external_target_and_skips_rollback() {
-        let root = std::env::temp_dir().join(format!(
-            "zircon-durable-prepublication-conflict-{}-{}",
-            std::process::id(),
-            crate::io::next_test_output_id()
-        ));
-        fs::create_dir_all(&root).unwrap();
-        let target = root.join("generation.zmeta");
-        let staging = root.join("generation.stage");
-        fs::write(&staging, b"transaction-generation").unwrap();
-
-        let mut staged = StagedFile {
-            intent: JournalIntent {
-                target: target.clone(),
-                staging,
-                backup: root.join("generation.backup"),
-                rollback_staging: root.join("generation.rollback"),
-                retirements: Vec::new(),
-            },
-            target_existed: false,
-            original_digest: None,
-            new_digest: String::new(),
-            retired_digests: Vec::new(),
-            committed: false,
-        };
-
-        // This write represents a non-cooperating creator after preparation but before publish.
-        fs::write(&target, b"external-generation").unwrap();
-        let error = commit_file(&mut staged, TransactionFault::None, 0).unwrap_err();
-
-        assert_eq!(error.kind(), io::ErrorKind::AlreadyExists);
-        assert!(!staged.committed);
-        assert_eq!(fs::read(&target).unwrap(), b"external-generation");
-        fs::remove_dir_all(root).unwrap();
-    }
-}
+#[path = "tests/commit.rs"]
+mod tests;

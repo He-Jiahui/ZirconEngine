@@ -1,7 +1,9 @@
+//! M3 移动场景的 WTR1 固定向量夹具；dump/test 入口不采样产品 WorldState。
 var container = %import("zr.container");
 var locomotion = %import("kernel/locomotion");
 var symbols = %import("generated/trace_symbols");
 
+// 私有写入器的宽度与布局参数由固定向量统一给出，用于保持各编码层的调用合同。
 class Writer {
     pri var bytes: container.Array<uint>;
 
@@ -58,6 +60,7 @@ key(writer: Writer, symbol: int, required: bool): void {
     writer.u16(<uint>symbol, 1, 1);
 }
 
+// 字段数量和键顺序属于 WTR1 向量合同，须与固定值和字典指纹一同核对。
 collection(writer: Writer, kind: int, length: uint, marker: int): void {
     if (marker != 1 || (kind != 10 && kind != 11)) {
         throw "locomotion trace collection is invalid";
@@ -546,6 +549,7 @@ frame(writer: Writer, stage: int, label: int, nextId: int, marker: int): void {
     writer.u32(eventDigest, 1, 1, 2);
 }
 
+// 先校验内核样例，再编码预置帧；这条调用链不会采样产品运行时状态。
 buildTrace(marker: int): container.Array<uint> {
     if (marker != 1) {
         throw "locomotion trace build marker is invalid";
@@ -647,6 +651,7 @@ pub byteMetric(kind: int, required: bool): uint {
     return byteDigest(bytes, 1, true);
 }
 
+// TODO: [CR-WOC-KP-0004] 确认 移动固定向量测试是否被接受门当成产品 actual trace；当前 selfTest 校验固定向量与样例合同，缺少产品世界状态采样；下一步核对 runner 与 golden 比较的实际接线。
 pub selfTest(): int {
     var first = buildTrace(1);
     var second = buildTrace(1);

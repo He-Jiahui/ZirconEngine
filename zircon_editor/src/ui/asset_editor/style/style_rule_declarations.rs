@@ -63,7 +63,8 @@ impl UiStyleRuleDeclarationPath {
 pub(crate) fn declaration_entries(
     block: &UiStyleDeclarationBlock,
 ) -> Vec<UiStyleRuleDeclarationEntry> {
-    let mut entries = Vec::new();
+    let entry_capacity = block.self_values.len().saturating_add(block.slot.len());
+    let mut entries = Vec::with_capacity(entry_capacity);
     collect_map_entries(&mut entries, "self", &block.self_values);
     collect_map_entries(&mut entries, "slot", &block.slot);
     entries
@@ -236,5 +237,9 @@ fn remove_from_table(values: &mut Map<String, Value>, segments: &[String]) -> bo
 }
 
 #[cfg(test)]
-#[path = "style_rule_declarations/path_buffer_tests.rs"]
+#[path = "style_rule_declarations/tests/path_buffer_tests.rs"]
 mod path_buffer_tests;
+
+#[cfg(test)]
+#[path = "style_rule_declarations/tests/optimization_batch_jc_editor642_tests.rs"]
+mod optimization_batch_jc_editor642_tests;

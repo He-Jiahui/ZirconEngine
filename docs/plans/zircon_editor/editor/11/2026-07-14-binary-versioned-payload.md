@@ -3,7 +3,7 @@ related_code:
   - zircon_runtime_interface/Cargo.toml
   - zircon_runtime_interface/src/serialization
   - zircon_runtime_interface/src/tests/boundary.rs
-  - docs/zircon_runtime_interface/serialization.md
+  - docs/crates/zircon_runtime_interface/serialization.md
 plan_sources:
   - docs/plans/zircon_editor/editor/11-serialization-and-versioning.md
   - docs/plans/zircon_editor/editor/00-editor-architecture-overview.md

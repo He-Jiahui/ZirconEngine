@@ -4,7 +4,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/model.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/dispatch/actions.rs
   - zircon_editor/src/tests/host/retained_window/host_page_overflow_keyboard.rs
-  - docs/zircon_editor/ui/retained_host/host_contract/host_page_overflow_menu.md
+  - docs/crates/zircon_editor/ui/retained_host/host_contract/host_page_overflow_menu.md
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/zircon_editor/editor_layout/15a-page-tab-strip-overflow.md

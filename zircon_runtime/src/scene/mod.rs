@@ -9,6 +9,7 @@ mod navigation;
 pub mod prelude;
 mod runtime_extension;
 mod runtime_level_traits;
+mod world_publication;
 mod world_time;
 
 pub use event_mirror::{
@@ -36,6 +37,7 @@ pub use runtime_extension::{
     WorldRuntimeExtensionError, WorldRuntimeExtensionPlan, WorldRuntimeExtensionRegistration,
 };
 pub use runtime_level_traits::{RuntimeObject, RuntimeSystem};
+pub use world_publication::{WorldPublicationError, WorldPublicationSource};
 pub use world_time::{
     FixedInterpolationContext, FixedInterpolationState, SimulationTickId, WorldTimeAdvanceError,
     WorldTimeControlError, WorldTimePolicyReceipt, WorldTimeState,
@@ -108,10 +110,9 @@ pub use reflect::{
 };
 pub use world::{
     ComponentTypeRegistry, DetachedEntityBatch, DetachedEntityBatchRestoreError,
-    DynamicComponentInstance, SceneError, SceneResult, World,
+    DynamicComponentInstance, PreparedEntitySubtrees, SceneError, SceneResult, World,
 };
 
-#[allow(unused_imports)]
 pub use components::{default_render_layer_mask, Mobility, NodeKind, NodeRecord};
 
 pub use ecs::{

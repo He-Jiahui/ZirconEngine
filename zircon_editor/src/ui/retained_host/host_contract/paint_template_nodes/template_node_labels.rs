@@ -36,5 +36,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn templat
 }
 
 #[cfg(test)]
-#[path = "template_node_labels_tests/mod.rs"]
+#[path = "template_node_labels_tests/tests/mod.rs"]
 mod tests;

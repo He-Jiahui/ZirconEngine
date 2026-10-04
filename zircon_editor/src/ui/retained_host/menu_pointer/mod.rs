@@ -11,6 +11,7 @@ mod host_menu_pointer_bridge_popup_items;
 mod host_menu_pointer_bridge_popup_state;
 mod host_menu_pointer_bridge_project_route;
 mod host_menu_pointer_bridge_rebuild_surface;
+mod host_menu_pointer_bridge_surface_delta;
 mod host_menu_pointer_bridge_sync;
 mod host_menu_pointer_dispatch;
 mod host_menu_pointer_layout;
@@ -26,7 +27,10 @@ mod register_handled_pointer_node;
 mod route_conversion;
 mod state_flags;
 
-pub(crate) use build_host_menu_pointer_layout::build_host_menu_pointer_layout;
+pub(crate) use build_host_menu_pointer_layout::{
+    build_host_menu_pointer_geometry_layout, build_host_menu_pointer_layout,
+    current_menu_label_slot_metrics, menu_label_slot_width, MenuLabelSlotMetrics,
+};
 pub(crate) use host_menu_pointer_bridge::HostMenuPointerBridge;
 pub(crate) use host_menu_pointer_dispatch::HostMenuPointerDispatch;
 pub(crate) use host_menu_pointer_layout::HostMenuPointerLayout;

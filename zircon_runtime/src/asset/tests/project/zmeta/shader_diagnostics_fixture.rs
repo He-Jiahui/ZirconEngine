@@ -1,3 +1,5 @@
+//! 将 shader 导入诊断、v2 选项及文档夹具接入项目元数据解析，确保编辑与运行时看到相同契约。
+
 use super::*;
 
 #[test]
@@ -53,6 +55,9 @@ kind = "texture2d"
         r#"
 @vertex
 fn vs_main(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4f {
+    // base_color and albedo are decoys; a comment must not satisfy capture admission.
+    let base_color_longer_identifier: vec4f = vec4f(0.0);
+    let _unrelated_local: vec4f = base_color_longer_identifier;
     return vec4f(f32(vertex_index), 0.0, 0.0, 1.0);
 }
 "#,
@@ -151,6 +156,7 @@ shader_defs = ["LEGACY_FLAG"]
 }
 
 #[test]
+// 文档夹具是作者可复制的跨文件示例，shader、material 与 sidecar 的引用必须被当前解析器共同接受。
 fn documented_zmeta_shader_material_fixture_parses() {
     let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()

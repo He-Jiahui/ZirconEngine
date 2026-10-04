@@ -60,9 +60,13 @@ pub(super) fn build_external_access_packet(
                     pass.name
                 )
             })?;
+            // Resource lifetimes are sorted by unique declaration name during
+            // compilation. Keep resource identity authoritative after the lookup.
             let lifetime = resource_lifetimes
-                .iter()
-                .find(|lifetime| lifetime.resource == key.resource)
+                .binary_search_by(|lifetime| lifetime.name.as_str().cmp(access.name.as_str()))
+                .ok()
+                .and_then(|index| resource_lifetimes.get(index))
+                .filter(|lifetime| lifetime.resource == key.resource)
                 .ok_or_else(|| {
                     format!(
                         "compiled external access packet cannot find lifetime for pass `{}` access `{}`",
@@ -88,43 +92,5 @@ pub(super) fn build_external_access_packet(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::render_graph::{
-        PassFlags, QueueLane, RenderGraphBuilder, RenderGraphExternalResourceBinding,
-        RenderGraphResource,
-    };
-    use crate::rhi::{BufferDesc, BufferUsage};
-
-    #[test]
-    fn external_access_packet_preserves_live_access_identity_and_typed_descriptor() {
-        let mut builder = RenderGraphBuilder::new("external-access-packet");
-        let buffer = builder.import_present_external_buffer_with_binding(
-            "external-buffer",
-            BufferDesc::new("external-buffer", 256, BufferUsage::STORAGE),
-            RenderGraphExternalResourceBinding::required_buffer(),
-        );
-        let pass = builder.add_pass("external-writer", QueueLane::AsyncCompute);
-        builder.write_storage_external(pass, buffer).unwrap();
-        builder
-            .set_pass_flags(
-                pass,
-                PassFlags {
-                    has_side_effects: true,
-                    ..PassFlags::default()
-                },
-            )
-            .unwrap();
-
-        let graph = builder.compile().unwrap();
-        let access_id = graph.access_id_at(pass, 0).unwrap();
-        let entry = graph
-            .external_access_packet()
-            .access(access_id)
-            .expect("live external access must be packetized");
-        assert_eq!(entry.key.resource, RenderGraphResource::External(buffer));
-        assert_eq!(entry.access_id, access_id);
-        assert!(matches!(&entry.desc, RenderGraphResourceDesc::Buffer(_)));
-        assert_eq!(graph.external_access_packet().accesses().len(), 1);
-    }
-}
+#[path = "tests/external_access_packet.rs"]
+mod tests;

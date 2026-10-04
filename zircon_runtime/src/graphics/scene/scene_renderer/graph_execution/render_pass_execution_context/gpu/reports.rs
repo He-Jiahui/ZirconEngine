@@ -6,10 +6,10 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
 };
 use crate::graphics::visibility::HzbOcclusionCullReport;
 
-use crate::graphics::FrameHistorySlot;
 use crate::graphics::scene::scene_renderer::history::{
     SceneHistoryDomain, SceneHistoryWriteIntent,
 };
+use crate::graphics::FrameHistorySlot;
 
 use super::RenderPassGpuExecutionContext;
 
@@ -178,26 +178,5 @@ const fn scene_history_domain_for_frame_slot(slot: FrameHistorySlot) -> SceneHis
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn public_frame_history_slots_map_to_scene_history_domains() {
-        assert_eq!(
-            scene_history_domain_for_frame_slot(FrameHistorySlot::AmbientOcclusion),
-            SceneHistoryDomain::AmbientOcclusion
-        );
-        assert_eq!(
-            scene_history_domain_for_frame_slot(FrameHistorySlot::GlobalIllumination),
-            SceneHistoryDomain::HybridGlobalIllumination
-        );
-        assert_eq!(
-            scene_history_domain_for_frame_slot(FrameHistorySlot::HzbFurthest),
-            SceneHistoryDomain::HzbFurthest
-        );
-        assert_eq!(
-            scene_history_domain_for_frame_slot(FrameHistorySlot::TaaSceneColor),
-            SceneHistoryDomain::TaaSceneColor
-        );
-    }
-}
+#[path = "tests/reports.rs"]
+mod tests;

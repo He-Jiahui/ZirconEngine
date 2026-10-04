@@ -1,3 +1,6 @@
+//! Inspector 专用入口位于 secondary 分派中，命中后接管整行并抑制后续 fallback；未匹配属性返回 false。
+//! handled 不表示有可见命令，窄行或祖先裁剪可令所有子命令被跳过。
+
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::render_commands::HostPaintCommand;
 use super::template_inspector_row_kind::{inspector_row_kind, InspectorRowKind};
@@ -38,5 +41,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_in
 }
 
 #[cfg(test)]
-#[path = "template_inspector_rows_tests/mod.rs"]
+#[path = "template_inspector_rows_tests/tests/mod.rs"]
 mod tests;

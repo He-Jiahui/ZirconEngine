@@ -80,7 +80,7 @@ for (const needle of [
   'if (partyId != <uint>0 && <uint>state.entityPartyLeaderIds[actorIndex] != actorId) {',
   'state.entityDungeonDifficultyPersonalHeroic[actorIndex] = heroic;',
   'partySetDungeonDifficulty(state, partyId, heroic);',
-  'writer.u16(<uint>21, 1, 1);',
+  'writer.u16(schemaVersion, 1, 1);',
   'schemaVersion != <uint>19',
   'if (schemaVersion >= <uint>19) {',
   'woc entity dungeon difficulty marker is invalid',
@@ -92,8 +92,8 @@ for (const needle of [
   invariant(state.includes(needle), `WOS19 dungeon-difficulty projection omitted: ${needle}`);
 }
 invariant(
-  main.includes('\\"world_state\\":\\"WOS21\\",'),
-  'package stateSchema must expose the WOS21 snapshot version',
+  main.includes('\\"world_state\\":\\"WOS118\\",'),
+  'package stateSchema must expose the WOS118 snapshot version',
 );
 
 for (const needle of [

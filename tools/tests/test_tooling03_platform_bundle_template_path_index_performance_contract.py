@@ -1,3 +1,4 @@
+# 核对平台包模板目录由模式索引逐目录解析一次。
 from __future__ import annotations
 
 import tempfile
@@ -5,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_export.pipeline_report_platform_bundle_template_resolution_schema import (
+from tools.export.pipeline_report_platform_bundle_template_resolution_schema import (
     platform_bundle_template_resolution_schema_diagnostics,
 )
 

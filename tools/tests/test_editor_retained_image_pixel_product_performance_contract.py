@@ -1,3 +1,4 @@
+# 核对保留式图像预先共享像素产物和视觉变体缓存。
 import unittest
 from pathlib import Path
 

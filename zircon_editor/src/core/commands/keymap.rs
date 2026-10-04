@@ -10,7 +10,12 @@ use crate::core::settings::EditorKeymapOverrides;
 use super::{EditorKeyChord, EditorKeyChordSignature, EditorKeyboardChordInput, WhenClause};
 
 #[cfg(test)]
+#[path = "keymap/tests/cases.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "keymap/tests/optimization_batch_jo_editor654_tests.rs"]
+mod optimization_batch_jo_editor654_tests;
 
 const DEFAULT_KEYMAP_TOML: &str =
     include_str!("../../../assets/ui/editor/keymap/default.keymap.toml");
@@ -156,7 +161,8 @@ impl EditorKeymap {
             .into_iter()
             .map(|(command_id, chord)| EditorKeyBinding { command_id, chord })
             .collect::<Vec<_>>();
-        let mut signature_index = HashMap::<EditorKeyChordSignature, Vec<usize>>::new();
+        let mut signature_index =
+            HashMap::<EditorKeyChordSignature, Vec<usize>>::with_capacity(bindings.len());
         for (index, binding) in bindings.iter().enumerate() {
             signature_index
                 .entry(binding.chord.signature())

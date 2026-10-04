@@ -1,0 +1,258 @@
+{
+  "batch": 21,
+  "root_qualification_sha256": "0973fe9af1c153ea17ad42fe1a7f3e7f2f0418a55a4a5bcfe95098dfcbe9430e",
+  "bounded_companion_sha256": "429d025a977a7035262478bc8906e1a3ee7bc4422124c0e8e3a182692d4c8ca0",
+  "gate_presence_erratum_sha256": "e263b3a85a1451234722b5d72bf5d9ac9a582730ebac11f5188651ee161b3394",
+  "canonical_artifacts": [
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch21-review.jsonl",
+      "sha256": "8e13709f5765b992767c4c7fa308a2f225b55784befb1aec7c520c1ef73e02fd",
+      "bytes": 198117
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch21-gates.jsonl",
+      "sha256": "296fe36b6146f28a5302e59f99877da4afd0be5fe5028443996a26af36600769",
+      "bytes": 102577
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch21-refresh.jsonl",
+      "sha256": "66e75753b308d2ea2ca75e62bb4dd868a184afc629078b602c3e538f7784d127",
+      "bytes": 4430
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch21-crosswalk.jsonl",
+      "sha256": "4829fd2ff0a5e4378cf7cdaf3bab39e9d3e14395e9393a9990a457e39f4d0f85",
+      "bytes": 58779
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-10-03-w0-batch21-summary.json",
+      "sha256": "5f4d99459abdaf7d0d620aa5e1fdc6f0260d808a185cc3b7b6d942586d1d13f7",
+      "bytes": 669
+    }
+  ],
+  "raw_author_artifacts": [
+    {
+      "batch": 21,
+      "role": "review_jsonl",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch21\\review.jsonl",
+      "sha256": "d70d0ee98e4f50bcbe1abe22ee60ab9afd65f819fcb2fd8cf11bc7b8720d04f2",
+      "bytes": 109118,
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-packets\\B21\\review_jsonl\\review.jsonl"
+    },
+    {
+      "batch": 21,
+      "role": "gates_jsonl",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch21\\gates.jsonl",
+      "sha256": "7f00baf1519f2a6b1ed7e9a7f33ca2e6c8fd90a4a9ac4b6383fd0500740d8dc6",
+      "bytes": 68449,
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-packets\\B21\\gates_jsonl\\gates.jsonl"
+    },
+    {
+      "batch": 21,
+      "role": "refresh_jsonl",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch21\\refresh.jsonl",
+      "sha256": "2528e3bc44d49fb2c2fd0d439278b41b1529d9680b64244b1e4aa757e4899149",
+      "bytes": 4047,
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-packets\\B21\\refresh_jsonl\\refresh.jsonl"
+    },
+    {
+      "batch": 21,
+      "role": "crosswalk_jsonl",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch21\\crosswalk.jsonl",
+      "sha256": "90434a3b4293ee43a31a4d56c71d18b93b1fa89a78532f1889db89538760fb9b",
+      "bytes": 3795,
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-packets\\B21\\crosswalk_jsonl\\crosswalk.jsonl"
+    },
+    {
+      "batch": 21,
+      "role": "manifest_json",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch21\\manifest.json",
+      "sha256": "0a24c8d9c8ad7b34f2a9b6f20e6e76b5503391155b5e73b5bb2ebe47ee05097f",
+      "bytes": 12788,
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-packets\\B21\\manifest_json\\manifest.json"
+    },
+    {
+      "batch": 21,
+      "role": "summary_json",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch21\\summary.json",
+      "sha256": "b38632579cdf9fed6cbbf896e3687b8afab52daabe8f7b6a0d64a74912b344ae",
+      "bytes": 1437,
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-packets\\B21\\summary_json\\summary.json"
+    },
+    {
+      "batch": 21,
+      "role": "packet_jsonl",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch21\\packet.jsonl",
+      "sha256": "c1ac58e2ddce0abdaec979911417659f13f067de87fe0a63d9ca0daf76f067a4",
+      "bytes": 191908,
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-packets\\B21\\packet_jsonl\\packet.jsonl"
+    },
+    {
+      "batch": 21,
+      "role": "raw_captures_jsonl",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch21\\raw-captures.jsonl",
+      "sha256": "fe41568c091f5fd195c472b04fdbbf56a85559eae16d6091cf82f922ff7ba466",
+      "bytes": 5010,
+      "root_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-packets\\B21\\raw_captures_jsonl\\raw-captures.jsonl"
+    }
+  ],
+  "source_captures": [
+    {
+      "path": "docs/plans/optimize/zircon_runtime/85-runtime-asset-import-source-discovery-importer-recipe-subasset-derived-data-artifact-cook-package-incremental-build-worker-determinism-product-integration-current-source-review.md",
+      "authored_sha256": "53bde8dd6f0fcefecfe7878df263c5a92d803216177d7db56173b0d848d26020",
+      "current_sha256": "53bde8dd6f0fcefecfe7878df263c5a92d803216177d7db56173b0d848d26020",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B21\\docs\\plans\\optimize\\zircon_runtime\\85-runtime-asset-import-source-discovery-importer-recipe-subasset-derived-data-artifact-cook-package-incremental-build-worker-determinism-product-integration-current-source-review.md",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B21\\docs\\plans\\optimize\\zircon_runtime\\85-runtime-asset-import-source-discovery-importer-recipe-subasset-derived-data-artifact-cook-package-incremental-build-worker-determinism-product-integration-current-source-review.md"
+    },
+    {
+      "path": "docs/plans/optimize/zircon_runtime/207-runtime-asset-import-source-discovery-importer-recipe-subasset-derived-data-cook-package-incremental-build-worker-determinism-current-working-tree-review.md",
+      "authored_sha256": "5a925b2c923d335a14f80fb1f786fe6385a18913e6c25a074dc73153f6362faa",
+      "current_sha256": "5a925b2c923d335a14f80fb1f786fe6385a18913e6c25a074dc73153f6362faa",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B21\\docs\\plans\\optimize\\zircon_runtime\\207-runtime-asset-import-source-discovery-importer-recipe-subasset-derived-data-cook-package-incremental-build-worker-determinism-current-working-tree-review.md",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B21\\docs\\plans\\optimize\\zircon_runtime\\207-runtime-asset-import-source-discovery-importer-recipe-subasset-derived-data-cook-package-incremental-build-worker-determinism-current-working-tree-review.md"
+    },
+    {
+      "path": "docs/plans/astra/optimize/01/2026-09-11-w0-current-source-baseline.md",
+      "authored_sha256": "af7f20b1dde397bf806acd44eb09ec5774b66b17d4e9519b58428c8077d10827",
+      "current_sha256": "af7f20b1dde397bf806acd44eb09ec5774b66b17d4e9519b58428c8077d10827",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B21\\docs\\plans\\astra\\optimize\\01\\2026-09-11-w0-current-source-baseline.md",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B21\\docs\\plans\\astra\\optimize\\01\\2026-09-11-w0-current-source-baseline.md"
+    },
+    {
+      "path": "zircon_runtime/src/asset/project/manager/collect_files.rs",
+      "authored_sha256": "4fa9cb467ad4b00111d80b4b08ebadac9b3e4d4b7ce72dd992964cfa2ea83ce1",
+      "current_sha256": "4fa9cb467ad4b00111d80b4b08ebadac9b3e4d4b7ce72dd992964cfa2ea83ce1",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B21\\zircon_runtime\\src\\asset\\project\\manager\\collect_files.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B21\\zircon_runtime\\src\\asset\\project\\manager\\collect_files.rs"
+    },
+    {
+      "path": "zircon_runtime/src/asset/project/manager/scan_and_import/sources.rs",
+      "authored_sha256": "e39bc9fe36fec1ca9330fe8ded30d1bc7107dc52028b373af4c361fd8a527b3f",
+      "current_sha256": "e39bc9fe36fec1ca9330fe8ded30d1bc7107dc52028b373af4c361fd8a527b3f",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B21\\zircon_runtime\\src\\asset\\project\\manager\\scan_and_import\\sources.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B21\\zircon_runtime\\src\\asset\\project\\manager\\scan_and_import\\sources.rs"
+    },
+    {
+      "path": "zircon_runtime/src/asset/project/manager/scan_and_import/full_generation.rs",
+      "authored_sha256": "041e90a0d7b740c555a52dad30382429c63f17ce7a3deeb025b2b4cce17df6f2",
+      "current_sha256": "041e90a0d7b740c555a52dad30382429c63f17ce7a3deeb025b2b4cce17df6f2",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B21\\zircon_runtime\\src\\asset\\project\\manager\\scan_and_import\\full_generation.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B21\\zircon_runtime\\src\\asset\\project\\manager\\scan_and_import\\full_generation.rs"
+    },
+    {
+      "path": "zircon_runtime/src/asset/project/manager/scan_and_import/targeted.rs",
+      "authored_sha256": "7205f9d83ecb2f7119ff90d6f960e5459bfad7e61266e8f6dd68af6f5dfb063e",
+      "current_sha256": "7205f9d83ecb2f7119ff90d6f960e5459bfad7e61266e8f6dd68af6f5dfb063e",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B21\\zircon_runtime\\src\\asset\\project\\manager\\scan_and_import\\targeted.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B21\\zircon_runtime\\src\\asset\\project\\manager\\scan_and_import\\targeted.rs"
+    },
+    {
+      "path": "zircon_runtime/src/asset/importer/ingest/gltf_decode/sources.rs",
+      "authored_sha256": "615fd64a71c3abd10027a7a29151abf23632e0c3144daf927b13236da7a12fbd",
+      "current_sha256": "615fd64a71c3abd10027a7a29151abf23632e0c3144daf927b13236da7a12fbd",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B21\\zircon_runtime\\src\\asset\\importer\\ingest\\gltf_decode\\sources.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B21\\zircon_runtime\\src\\asset\\importer\\ingest\\gltf_decode\\sources.rs"
+    },
+    {
+      "path": "zircon_runtime/src/asset/importer/ingest/gltf_decode/buffers.rs",
+      "authored_sha256": "2c03dec5107d063da3bab6df82f74a3c6532ba9c27bc4e93bf336489d95c7290",
+      "current_sha256": "2c03dec5107d063da3bab6df82f74a3c6532ba9c27bc4e93bf336489d95c7290",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B21\\zircon_runtime\\src\\asset\\importer\\ingest\\gltf_decode\\buffers.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B21\\zircon_runtime\\src\\asset\\importer\\ingest\\gltf_decode\\buffers.rs"
+    },
+    {
+      "path": "zircon_runtime/src/asset/importer/ingest/gltf_decode/images.rs",
+      "authored_sha256": "80412b2ee2de9e91d8b50192057a5eac6db0b58ec5407867b8cbb6d6ae9a515c",
+      "current_sha256": "80412b2ee2de9e91d8b50192057a5eac6db0b58ec5407867b8cbb6d6ae9a515c",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B21\\zircon_runtime\\src\\asset\\importer\\ingest\\gltf_decode\\images.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B21\\zircon_runtime\\src\\asset\\importer\\ingest\\gltf_decode\\images.rs"
+    },
+    {
+      "path": "zircon_runtime/src/asset/importer/ingest/import_font_asset/mod.rs",
+      "authored_sha256": "a45326017ad795a59d3d38c7fdee08487e179d89ebf3a0831be949e0b2e50c9b",
+      "current_sha256": "a45326017ad795a59d3d38c7fdee08487e179d89ebf3a0831be949e0b2e50c9b",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B21\\zircon_runtime\\src\\asset\\importer\\ingest\\import_font_asset\\mod.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B21\\zircon_runtime\\src\\asset\\importer\\ingest\\import_font_asset\\mod.rs"
+    },
+    {
+      "path": "zircon_runtime/src/asset/artifact/cache_key.rs",
+      "authored_sha256": "02209046dcd8dec2d4faa0384a3e56098525d2d60e9fc5b74da7286bbe063820",
+      "current_sha256": "02209046dcd8dec2d4faa0384a3e56098525d2d60e9fc5b74da7286bbe063820",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B21\\zircon_runtime\\src\\asset\\artifact\\cache_key.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B21\\zircon_runtime\\src\\asset\\artifact\\cache_key.rs"
+    },
+    {
+      "path": "zircon_runtime/src/asset/artifact/store.rs",
+      "authored_sha256": "a403afa5da499dd4701e9b80b00c9ead14e591aa73196247792de47e545a68a4",
+      "current_sha256": "a403afa5da499dd4701e9b80b00c9ead14e591aa73196247792de47e545a68a4",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B21\\zircon_runtime\\src\\asset\\artifact\\store.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B21\\zircon_runtime\\src\\asset\\artifact\\store.rs"
+    },
+    {
+      "path": "zircon_runtime/src/asset/pipeline/worker_pool.rs",
+      "authored_sha256": "1cf11505bcad8a01d2976f6cd4eec96a45706233003c4bdd666de1478347d22d",
+      "current_sha256": "1cf11505bcad8a01d2976f6cd4eec96a45706233003c4bdd666de1478347d22d",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B21\\zircon_runtime\\src\\asset\\pipeline\\worker_pool.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B21\\zircon_runtime\\src\\asset\\pipeline\\worker_pool.rs"
+    },
+    {
+      "path": "zircon_runtime/src/asset/pack/writer.rs",
+      "authored_sha256": "488e81321f8265f0e9927ff88b7834acca8aea973e594a40fb9b5b8afa30708e",
+      "current_sha256": "488e81321f8265f0e9927ff88b7834acca8aea973e594a40fb9b5b8afa30708e",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B21\\zircon_runtime\\src\\asset\\pack\\writer.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B21\\zircon_runtime\\src\\asset\\pack\\writer.rs"
+    },
+    {
+      "path": "zircon_runtime/src/bin/zircon_export_pack/run.rs",
+      "authored_sha256": "f2d71f0c65af7edbe392dabc0dc7d9d70709afef22a83c880ec2fe9cd17986c8",
+      "current_sha256": "f2d71f0c65af7edbe392dabc0dc7d9d70709afef22a83c880ec2fe9cd17986c8",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B21\\zircon_runtime\\src\\bin\\zircon_export_pack\\run.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B21\\zircon_runtime\\src\\bin\\zircon_export_pack\\run.rs"
+    },
+    {
+      "path": "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/plan.rs",
+      "authored_sha256": "13bd742d6fb054e5a2ce9b5eebd24dcdfa8241c8abdadc5d8ee7fed89f1cd079",
+      "current_sha256": "13bd742d6fb054e5a2ce9b5eebd24dcdfa8241c8abdadc5d8ee7fed89f1cd079",
+      "current_match": true,
+      "repo_source_current_comparison_applicable": true,
+      "authored_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\author-source-captures\\B21\\zircon_editor\\src\\ui\\host\\editor_manager_plugins_export\\export_build\\wizard\\plan.rs",
+      "current_raw_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches17-21-root-canonical-publication-r15\\current-source-observations\\B21\\zircon_editor\\src\\ui\\host\\editor_manager_plugins_export\\export_build\\wizard\\plan.rs"
+    }
+  ],
+  "all_original_and_product_gates": "open",
+  "coordinator_calls": 0,
+  "tests_run": 0,
+  "source_ready": false
+}

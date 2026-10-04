@@ -12,7 +12,6 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/ui/host/editor_host_event_controller.rs
   - zircon_editor/src/core/gateway/contract.rs
-  - zircon_editor/src/core/gateway/session.rs
   - zircon_editor/src/core/editing/authoring_world.rs
   - zircon_editor/src/ui/retained_host/app.rs
 tests:

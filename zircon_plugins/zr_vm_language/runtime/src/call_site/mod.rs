@@ -9,4 +9,5 @@ pub use param_layout::ParamLayout;
 pub use script_call_table::ScriptCallTable;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;

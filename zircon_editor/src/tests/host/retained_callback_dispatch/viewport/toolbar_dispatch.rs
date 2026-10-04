@@ -1,3 +1,4 @@
+// 由视口工具栏模板触发模式和播放动作，约束模板绑定与类型化命令等价。
 use super::super::support::*;
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 
@@ -14,6 +15,7 @@ fn builtin_viewport_toolbar_activates_scene_modes_from_template() {
         "ActivateSceneMode",
         UiEventKind::Change,
         vec![UiBindingValue::string("Transform.Scale")],
+        None,
     )
     .expect("viewport toolbar control should resolve through template bridge")
     .unwrap();
@@ -26,7 +28,9 @@ fn builtin_viewport_toolbar_activates_scene_modes_from_template() {
         })
     );
     assert!(effects.render_dirty);
-    assert!(effects.presentation_dirty);
+    assert!(effects.sync_viewport_chrome);
+    assert!(!effects.presentation_dirty);
+    assert!(!effects.layout_dirty);
 }
 
 #[test]
@@ -42,6 +46,7 @@ fn builtin_viewport_toolbar_frame_selection_dispatches_static_binding_from_templ
         "FrameSelection",
         UiEventKind::Click,
         Vec::new(),
+        None,
     )
     .expect("viewport toolbar frame selection should resolve through template bridge")
     .unwrap();
@@ -62,12 +67,26 @@ fn builtin_viewport_toolbar_play_buttons_dispatch_menu_play_mode_operations() {
     let harness = EventRuntimeHarness::new("zircon_retained_template_bridge_viewport_play_mode");
     let bridge = BuiltinViewportToolbarTemplateBridge::new().unwrap();
 
+    let disabled = dispatch_builtin_viewport_toolbar_control(
+        &harness.runtime,
+        &bridge,
+        "ExitPlayMode",
+        UiEventKind::Click,
+        Vec::new(),
+        None,
+    )
+    .expect("viewport stop binding should resolve")
+    .expect_err("stop must remain disabled without a live play session");
+    assert!(disabled.contains("runtime.play_mode.exit is disabled by its when clause"));
+
+    // Enter and Stop are consecutive callbacks, before a host chrome refresh.
     let enter_effects = dispatch_builtin_viewport_toolbar_control(
         &harness.runtime,
         &bridge,
         "EnterPlayMode",
         UiEventKind::Click,
         Vec::new(),
+        None,
     )
     .expect("viewport toolbar play control should resolve through template bridge")
     .unwrap();
@@ -99,6 +118,7 @@ fn builtin_viewport_toolbar_play_buttons_dispatch_menu_play_mode_operations() {
         "ExitPlayMode",
         UiEventKind::Click,
         Vec::new(),
+        None,
     )
     .expect("viewport toolbar stop control should resolve through template bridge")
     .unwrap();
@@ -123,6 +143,18 @@ fn builtin_viewport_toolbar_play_buttons_dispatch_menu_play_mode_operations() {
     );
     assert!(exit_effects.render_dirty);
     assert!(exit_effects.presentation_dirty);
+
+    let disabled = dispatch_builtin_viewport_toolbar_control(
+        &harness.runtime,
+        &bridge,
+        "ExitPlayMode",
+        UiEventKind::Click,
+        Vec::new(),
+        None,
+    )
+    .expect("viewport stop binding should resolve")
+    .expect_err("stop must remain disabled without a live play session");
+    assert!(disabled.contains("runtime.play_mode.exit is disabled by its when clause"));
 }
 
 #[test]
@@ -137,7 +169,7 @@ fn builtin_viewport_toolbar_mode_activation_matches_typed_command_dispatch() {
         )),
     )
     .unwrap();
-    let legacy_record = legacy_harness
+    let mut legacy_record = legacy_harness
         .runtime
         .journal()
         .records()
@@ -153,6 +185,7 @@ fn builtin_viewport_toolbar_mode_activation_matches_typed_command_dispatch() {
         "ActivateSceneMode",
         UiEventKind::Change,
         vec![UiBindingValue::string("Transform.Scale")],
+        None,
     )
     .expect("templated viewport tool control should resolve")
     .unwrap();
@@ -165,5 +198,8 @@ fn builtin_viewport_toolbar_mode_activation_matches_typed_command_dispatch() {
         .clone();
 
     assert_eq!(builtin_effects, legacy_effects);
+    // Both paths execute the same command, while the template retains its source binding.
+    assert_eq!(legacy_record.binding_path, None);
+    legacy_record.binding_path = Some("ViewportToolbar/ActivateSceneMode:onChange".to_string());
     assert_eq!(builtin_record, legacy_record);
 }

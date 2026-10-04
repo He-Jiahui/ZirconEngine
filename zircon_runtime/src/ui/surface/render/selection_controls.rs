@@ -16,7 +16,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use checkbox::checkbox_commands;
-use metadata::{SelectionControlKind, selection_control_kind};
+use metadata::{selection_control_kind, SelectionControlKind};
 use radio::radio_commands;
 use state::SelectionRenderState;
 use style::SelectionVisual;

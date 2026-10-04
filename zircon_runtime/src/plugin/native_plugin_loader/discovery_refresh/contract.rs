@@ -1,3 +1,5 @@
+//! 发现服务与权威收集器之间的预算契约和不可变发布载荷。
+//! 准入凭据在候选、诊断或读取内容形成之前取得；这些凭据约束本次工作，并非自动管理分配器。
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -13,6 +15,7 @@ use super::work::NativePluginDiscoveryRefreshWork;
 /// Constructing this identity performs no filesystem work, so UI and watcher callbacks can submit
 /// it without turning admission into a synchronous scan or stat operation.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+/// 身份由权威准备阶段建立；缺失或不可访问的路径可能保留词法形式，不能据此断言磁盘路径存在。
 pub struct NativePluginDiscoveryRoot {
     canonical_path: Arc<PathBuf>,
 }
@@ -50,37 +53,14 @@ impl NativePluginDiscoveryRefreshInput {
 }
 
 #[cfg(test)]
-mod refresh_input_tests {
-    use std::path::PathBuf;
-    use std::sync::Arc;
-
-    use super::NativePluginDiscoveryRefreshInput;
-
-    #[test]
-    fn load_manifest_input_clones_share_export_root() {
-        let input = NativePluginDiscoveryRefreshInput::load_manifest(PathBuf::from(
-            "export/plugins/native",
-        ));
-        let cloned = input.clone();
-
-        let (
-            NativePluginDiscoveryRefreshInput::LoadManifest {
-                export_root: original,
-            },
-            NativePluginDiscoveryRefreshInput::LoadManifest {
-                export_root: cloned,
-            },
-        ) = (&input, &cloned)
-        else {
-            panic!("load-manifest constructor preserves the input variant");
-        };
-
-        assert!(Arc::ptr_eq(original, cloned));
-    }
-}
+#[path = "tests/contract_refresh_input_tests.rs"]
+mod refresh_input_tests;
 
 /// Non-empty collector-owned identity for the exact inputs represented by one publication.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
+// TODO: [CR-PLUGIN-NATIVE-0204] 确认输入身份是否需要区分清单内容变化；当前权威只记录根、工作种类和计数，
+// 相同规模的内容修改可能产生相同身份；下一步明确公开消费者能否把它用于缓存或相等性判断。
+/// 当前权威提供来源描述，不提供清单字节指纹；内容版本应结合发布代际判断。
 pub struct NativePluginDiscoveryInputIdentity(Arc<str>);
 
 impl NativePluginDiscoveryInputIdentity {
@@ -101,6 +81,7 @@ impl NativePluginDiscoveryInputIdentity {
 /// A deadline that cannot be represented by the current platform `Instant` is rejected at
 /// admission instead of wrapping or becoming an implicit immediate cancellation.
 #[derive(Clone, Debug, Eq, PartialEq)]
+/// 根预算针对根与输入模式组合，资源预算针对单次收集；归一化后零配置会成为最小非零额度。
 pub struct NativePluginDiscoveryRefreshBudget {
     pub max_roots: usize,
     pub max_candidates: usize,
@@ -248,6 +229,7 @@ impl NativePluginDiscoveryRefreshSink {
         }
     }
 
+    /// 候选解析前取得一次性额度；后续解析失败或选择校验丢弃候选也会消耗本次尝试的额度。
     pub(crate) fn reserve_candidate(
         &mut self,
         request: &NativePluginDiscoveryRefreshRequest,
@@ -265,6 +247,7 @@ impl NativePluginDiscoveryRefreshSink {
         Ok(NativePluginDiscoveryRefreshCandidateReservation {})
     }
 
+    /// 在构造诊断字符串前准入；调用者应将延迟构造闭包留到取得额度之后。
     pub(crate) fn reserve_diagnostic(
         &mut self,
         request: &NativePluginDiscoveryRefreshRequest,
@@ -282,6 +265,7 @@ impl NativePluginDiscoveryRefreshSink {
         Ok(NativePluginDiscoveryRefreshDiagnosticReservation {})
     }
 
+    /// 每个读取单元预留上界，再用实际读取字节提交；失败路径也须归还该单元未使用的额度。
     pub(crate) fn reserve_read_bytes(
         &mut self,
         request: &NativePluginDiscoveryRefreshRequest,
@@ -314,6 +298,7 @@ impl NativePluginDiscoveryRefreshSink {
         self.budget.max_read_bytes.saturating_sub(self.read_bytes)
     }
 
+    /// 参数是本次工作需要的总暂存上界，不是额外增量；不会因令牌离开作用域而自动降低峰值。
     pub(crate) fn reserve_scratch_bytes(
         &mut self,
         request: &NativePluginDiscoveryRefreshRequest,
@@ -333,6 +318,7 @@ impl NativePluginDiscoveryRefreshSink {
         Ok(NativePluginDiscoveryRefreshScratchReservation {})
     }
 
+    /// 在既有准入峰值上累加估算，用于源缓冲和解析存储；保守额度会保留到本代际结束。
     pub(crate) fn reserve_additional_scratch_bytes(
         &mut self,
         request: &NativePluginDiscoveryRefreshRequest,
@@ -426,6 +412,7 @@ pub(crate) struct NativePluginDiscoveryRefreshReadReservation {
 }
 
 impl NativePluginDiscoveryRefreshReadReservation {
+    /// 凭据须提交给创建它的同一收集槽；令牌消费防止重复归还，但类型本身没有记录槽身份。
     pub(crate) fn commit(
         self,
         sink: &mut NativePluginDiscoveryRefreshSink,
@@ -449,6 +436,7 @@ pub(crate) struct NativePluginDiscoveryRefreshScratchReservation {}
 
 /// Immutable last-good publication consumed by editor and plugin-management code.
 #[derive(Clone, Debug)]
+/// 候选与诊断以共享切片对外只读；读取字节和暂存峰值描述生成此快照的工作，而非全树累计量。
 pub struct NativePluginDiscoverySnapshot {
     root: NativePluginDiscoveryRoot,
     input: NativePluginDiscoveryRefreshInput,
@@ -509,8 +497,12 @@ impl NativePluginDiscoverySnapshot {
             peak_scratch_bytes,
             metrics,
         } = payload;
+        // TODO: [CR-PLUGIN-NATIVE-0208] 明确暂存预算是否覆盖发布阶段的索引克隆与候选投影；
+        // 此处及后续投影在收集槽之外复制持久候选，现有预算测试只检查收集准入；下一步核算大基准快照。
         let mut index = base.manifest_index.clone();
         index.apply_incremental(work, &candidates, max_candidates)?;
+        // BUG: [CR-PLUGIN-NATIVE-0203] 全扫曾记录某清单解析失败后，即使该清单经增量刷新修复或删除，
+        // 旧收集诊断仍被整体继承并展示；证据：全扫访客转诊断，本处没有按通知路径失效旧诊断。
         let mut collector_diagnostics = base.collector_diagnostics.to_vec();
         collector_diagnostics.extend(diagnostics);
         Ok(Self::from_index(
@@ -567,10 +559,12 @@ impl NativePluginDiscoverySnapshot {
         self.generation
     }
 
+    /// 按清单路径确定性选择重复包的唯一赢家；这只是发现候选，尚未执行动态库。
     pub fn candidates(&self) -> &[NativePluginCandidate] {
         &self.candidates
     }
 
+    /// 包含收集诊断和当前索引重算的重复包诊断；消费者应与同一快照的候选一起投影。
     pub fn diagnostics(&self) -> &[String] {
         &self.diagnostics
     }
@@ -579,6 +573,7 @@ impl NativePluginDiscoverySnapshot {
         &self.input_identity
     }
 
+    /// 本代际实际读取量；删除增量可以为零，即便发布快照仍包含其他包。
     pub fn read_bytes(&self) -> u64 {
         self.read_bytes
     }
@@ -614,6 +609,7 @@ impl fmt::Display for NativePluginDiscoveryRefreshBudgetKind {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+/// 收集失败与预算/期限拒绝由票据发布；服务保留既有快照，调用端决定如何展示失败。
 pub enum NativePluginDiscoveryRefreshError {
     Collector {
         message: Arc<str>,

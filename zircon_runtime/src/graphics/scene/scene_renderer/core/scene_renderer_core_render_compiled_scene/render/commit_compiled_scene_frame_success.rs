@@ -12,7 +12,7 @@ use crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiPreparedUpload;
 use crate::rhi::SubmissionTicket;
 
 use super::super::super::scene_renderer_core::{
-    SceneRendererAdvancedPluginReadbacks, SceneRendererCore, merge_plugin_renderer_outputs,
+    merge_plugin_renderer_outputs, SceneRendererAdvancedPluginReadbacks, SceneRendererCore,
 };
 use super::super::SceneRendererCompiledSceneOutputs;
 use super::build_compiled_scene_draws::CompiledSceneDraws;

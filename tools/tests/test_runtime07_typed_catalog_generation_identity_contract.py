@@ -24,7 +24,7 @@ LINKED_PLUGINS = ROOT / "zircon_runtime/src/dynamic_api/session/linked_plugins.r
 SESSION_CONSTRUCTION = ROOT / "zircon_runtime/src/dynamic_api/session/construction.rs"
 SESSION_STATE = ROOT / "zircon_runtime/src/dynamic_api/session/state.rs"
 
-
+# 读取源码固定类型化目录代际标识的边界：代际应为不透明非零值，并目录有一个类型化代际归属不带克隆分支。
 class TypedCatalogGenerationIdentityContractTests(unittest.TestCase):
     def test_generation_is_an_opaque_non_zero_value(self) -> None:
         source = GENERATION.read_text(encoding="utf-8")

@@ -4,7 +4,7 @@ category: zircon_editor
 report_id: Editor01-ui-input-paint-style-static-candidates-2026-08-25
 date: 2026-08-25
 session_id: runtime09-ui-layout-validity-20260825
-implementation_status: static_candidate
+implementation_status: single_node_slice_static_implemented
 validation_status: managed_validation_pending
 ---
 
@@ -80,26 +80,24 @@ pressure over the existing one-vector concatenate, sort, and deduplicate impleme
 merge must use scratch that survives across input events, or publish generation-owned selector facts,
 and must win an allocator plus input-p95 comparison before integration.
 
-## Deferred Pointer-state Candidate
+## Pointer-state Candidate (single-node slice)
 
-The current hover/press state path still sends a one-node change through the generic batch routine.
-For one changed node it constructs a one-entry `BTreeSet`, a second descendant-affecting
-`BTreeSet`, a `Vec` of minimal roots, and a third root-membership `BTreeSet`. It also performs an
-ancestor walk while minimizing roots and another ancestor walk while deciding whether the changed
-node is covered. With tree height `H` and `K` changed nodes, the bookkeeping is bounded by roughly
-`O(K * H * log K)` before any required subtree restyle; ordinary single-node hover therefore pays
-allocator and parent-chain costs intended for batch mutations.
+The original hover/press state path sent a one-node change through the generic batch routine. For
+one changed node that routine constructed a one-entry `BTreeSet`, a second descendant-affecting
+`BTreeSet`, a `Vec` of minimal roots, and a third root-membership `BTreeSet`, plus two ancestor
+walks. With tree height `H` and `K` changed nodes, that bookkeeping was roughly `O(K * H * log K)`
+before any required subtree restyle.
 
-The target design is a specialized one-node path: validate and query the node once; when its state
-cannot affect descendants, apply only that node's runtime state style and mark it render-dirty with
-no ordered-set allocation or root minimization. When descendant selectors can match, reuse the
-existing subtree path. The batch entry point remains for genuinely multi-node changes. This should
-ultimately consume generation-owned selector facts so the descendant-affecting decision does not
-clone component, ID, or class data on every pointer event.
+The first implementation slice is now in
+`docs/plans/astra/features/runtime/728-runtime-pointer-state-single-node-accumulator.md`: a
+scalar-first accumulator keeps duplicate/single-node transitions allocation-free and promotes to
+the existing ordered set only when a second distinct node changes. The finalizer uses the existing
+specialized one-node path, which probes descendant impact once and applies either node-only or
+subtree style. Multi-node transitions retain the deterministic batch algorithm.
 
-The generic pointer-state batching path is externally modified and was not edited by this slice.
-The style probe it calls is owned by this slice and now performs its descendant-affecting test with
-borrowed tree metadata, including the non-empty ancestor-selector case. Acceptance still requires a 1,000-event
+Generation-owned selector facts remain a follow-up: the descendant-affecting decision still queries
+the current runtime-style index, and multi-node batches still pay their existing root-minimization
+walks. Acceptance still requires a 1,000-event
 alternating hover/press regression that records zero bookkeeping allocations in the no-descendant-
 selector case, constant node visits for a fixed-depth target as unrelated tree size grows, identical
 computed style/damage for descendant-selector cases, and an improved input-to-damage p95 on the
@@ -515,6 +513,12 @@ resize geometry-only publication above matcher micro-optimization in the P0 orde
   reconciliation, fused popup dependency analysis, indexed surface focus-path publication, hybrid
   hover membership, fixed-cost navigation dispatch/input ownership, and bounded routed-step
   allocation.
+- The follow-up Runtime728 pointer-state owner/accumulator contract passes `3/3`; the combined
+  route/visibility/activity/hit-grid/owner batch passes `32/32` in one invocation.
+- The adjacent Runtime662/664 grapheme/tab source guard now accepts rustfmt's multiline
+  const-generic formatting while retaining both geometry-only and tab-tracking assertions;
+  the final combined Runtime/Editor performance-plus-pressure loader passes `1338/1338` across
+  348 modules.
 - Full `test_*performance_contract.py` discovery: 553 tests, 551 pass, 2 foreign-owner failures,
   and 0 errors. The remaining failures are the existing Asset Content borrowed-identity assertion
   and bounded-damage counter file-split assertion; neither references this UI candidate set.

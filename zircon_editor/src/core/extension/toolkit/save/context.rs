@@ -11,7 +11,7 @@ pub struct SaveCtx {
 }
 
 impl SaveCtx {
-    pub(crate) const fn new(reason: SaveReason) -> Self {
+    pub(crate) fn new(reason: SaveReason) -> Self {
         Self {
             reason,
             written_bytes: 0,

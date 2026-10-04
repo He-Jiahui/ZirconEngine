@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[2]
 EVENTS = ROOT / "zircon_runtime/src/dynamic_api/session/events.rs"
 EVENTS_DIR = ROOT / "zircon_runtime/src/dynamic_api/session/events"
 
-
+# 读取会话 UI 输入早退，确认空表面时延迟构造事件与元数据。
 class RuntimeSessionEmptyUiInputM0PerformanceContract(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

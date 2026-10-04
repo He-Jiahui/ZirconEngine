@@ -67,12 +67,10 @@ fn render_volumetric_scene_local_profile_and_light_marker_feed_advanced_extract(
     assert_eq!(fog.bounds_max, Vec3::new(3.0, 5.0, 7.0));
     assert_near(fog.density, 0.1);
     assert_eq!(fog.albedo, Vec3::new(0.4, 0.6, 0.8));
-    assert!(
-        extract.post_process.volumes[0]
-            .overrides
-            .iter()
-            .all(|entry| entry.component_id != VOLUMETRIC_FOG_COMPONENT_ID)
-    );
+    assert!(extract.post_process.volumes[0]
+        .overrides
+        .iter()
+        .all(|entry| entry.component_id != VOLUMETRIC_FOG_COMPONENT_ID));
     assert_eq!(
         resolved_post_process_settings(&extract).volumetric_fog,
         VolumetricFogSettings::default()

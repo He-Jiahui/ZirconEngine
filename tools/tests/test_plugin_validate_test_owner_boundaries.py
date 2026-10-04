@@ -6,25 +6,25 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 PLUGIN_VALIDATE_OWNER_BOUNDARIES_TEST = (
     REPO_ROOT / "tools/tests/test_plugin_validate_owner_boundaries.py"
 )
-PLUGIN_VALIDATE_TEST = REPO_ROOT / "tools/zircon_export/tests/test_plugin_validate.py"
+PLUGIN_VALIDATE_TEST = REPO_ROOT / "tools/export/tests/test_plugin_validate.py"
 PLUGIN_VALIDATE_ALL_TARGETS_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_plugin_validate_all_targets.py"
+    REPO_ROOT / "tools/export/tests/test_plugin_validate_all_targets.py"
 )
 PLUGIN_VALIDATE_ASSET_IMPORTERS_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_plugin_validate_asset_importers.py"
+    REPO_ROOT / "tools/export/tests/test_plugin_validate_asset_importers.py"
 )
 PLUGIN_VALIDATE_ASSET_IMPORTER_CONTRACT_TEST = (
     REPO_ROOT
-    / "tools/zircon_export/tests/test_plugin_validate_asset_importer_contract.py"
+    / "tools/export/tests/test_plugin_validate_asset_importer_contract.py"
 )
 PLUGIN_VALIDATE_DIST_CRATE_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_plugin_validate_dist_crate.py"
+    REPO_ROOT / "tools/export/tests/test_plugin_validate_dist_crate.py"
 )
 PLUGIN_VALIDATE_OPTIONS_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_plugin_validate_options.py"
+    REPO_ROOT / "tools/export/tests/test_plugin_validate_options.py"
 )
 PLUGIN_VALIDATE_DEPENDENCIES_TEST = (
-    REPO_ROOT / "tools/zircon_export/tests/test_plugin_validate_dependencies.py"
+    REPO_ROOT / "tools/export/tests/test_plugin_validate_dependencies.py"
 )
 
 RECENT_TEST_OWNER_BOUNDARY_METHODS = (
@@ -36,7 +36,7 @@ RECENT_TEST_OWNER_BOUNDARY_METHODS = (
     "test_dependency_tests_live_in_dependency_test_owner",
 )
 
-
+# 验证校验测试归属边界的职责切分：recent 测试归属边界移出通用归属文件，并全部目标测试位于全部目标测试归属。
 class PluginValidateTestOwnerBoundaryTests(unittest.TestCase):
     def test_recent_test_owner_boundaries_leave_general_owner_file(self):
         general_owner_text = PLUGIN_VALIDATE_OWNER_BOUNDARIES_TEST.read_text(

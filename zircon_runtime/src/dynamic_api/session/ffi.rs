@@ -4,13 +4,15 @@ use zircon_runtime_interface::world_sync::{WatchRegistration, WatchToken, WorldQ
 use zircon_runtime_interface::{
     ProfileControlCommand, ProfileControlRequest, ZrByteSlice, ZrOwnedResultV2,
     ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeAllocationId,
+    ZrRuntimeAppSessionConfigurationError, ZrRuntimeAppSessionConfigurationV2,
     ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1,
     ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2, ZrRuntimeHighlightSetV1,
-    ZrRuntimePluginEventSubscribeRequestV1, ZrRuntimePluginEventSubscriptionHandle,
-    ZrRuntimeSessionConfigV3, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
-    ZrRuntimeViewportPickRequestV1, ZrRuntimeViewportPickResultV1, ZrRuntimeViewportPickTicket,
-    ZrStatus, ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2,
-    ZIRCON_RUNTIME_ABI_VERSION_V3, ZR_RUNTIME_FRAME_MAX_DIMENSION_V1,
+    ZrRuntimeImeCandidateRectV2, ZrRuntimePluginEventSubscribeRequestV1,
+    ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionConfigV3, ZrRuntimeSessionHandle,
+    ZrRuntimeViewportHandle, ZrRuntimeViewportPickRequestV1, ZrRuntimeViewportPickResultV1,
+    ZrRuntimeViewportPickTicket, ZrStatus, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_ABI_VERSION_V3,
+    ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1, ZR_RUNTIME_FRAME_MAX_DIMENSION_V1,
     ZR_RUNTIME_FRAME_MAX_RGBA_BYTES_V1, ZR_RUNTIME_PLUGIN_EVENT_SUBSCRIBE_REQUEST_LIMIT_V1,
     ZR_RUNTIME_PROFILE_REQUEST_LIMIT_V1, ZR_RUNTIME_PROJECT_PATH_MAX_ENCODED_BYTES_V1,
     ZR_RUNTIME_SESSION_PROFILE_MAX_ENCODED_BYTES_V1, ZR_RUNTIME_WORLD_QUERY_REQUEST_LIMIT_V1,
@@ -30,13 +32,13 @@ use super::profile::RuntimeDynamicSessionProfile;
 use super::project::RuntimeProjectConfig;
 use super::registry::{
     destroy_session_slot, register_runtime_allocation_in_action, release_runtime_allocation,
-    try_insert_session_with_wake, with_session, with_session_activity,
-    with_session_result_committed, with_session_result_finalized, RuntimeAllocationKind,
-    RuntimeWakeRegistration, SessionRegistryInsertError,
+    try_create_session_with_wake, with_session, with_session_activity,
+    with_session_activity_result_finalized, with_session_owned, with_session_result_committed,
+    with_session_result_finalized, RuntimeAllocationKind, RuntimeWakeRegistration,
 };
 use super::status::{
-    error_status, invalid_argument, invalid_or_limit_payload, limit_exceeded, not_found,
-    output_payload_status, unsupported_version,
+    capability_denied, error_status, invalid_argument, invalid_or_limit_payload, limit_exceeded,
+    not_found, output_payload_status, unsupported_version,
 };
 use super::viewport_pick::RuntimeViewportPickError;
 use super::RuntimeProjectError;
@@ -96,34 +98,56 @@ pub(in crate::dynamic_api) unsafe fn create_session(
         Err(error) => return invalid_runtime_startup_config(error),
     };
 
-    let mut dynamic_process_log =
-        crate::diagnostic_log::acquire_dynamic_unity_process_log("runtime-dynamic");
     crate::diagnostic_log::write_log("runtime_session", "dynamic_api_create_session_entered");
-
-    match RuntimeDynamicSession::new(profile, project_config) {
-        Ok(session) => {
-            let session = session.with_runtime_frame_wake(wake.channel_wake());
-            let handle = match try_insert_session_with_wake(
-                session.with_dynamic_process_log_lease(dynamic_process_log),
-                wake,
-            ) {
-                Ok(handle) => handle,
-                Err(SessionRegistryInsertError::HandleSpaceExhausted) => {
-                    return limit_exceeded(b"runtime session handle space exhausted");
-                }
-            };
+    match try_create_session_with_wake(profile, project_config, wake) {
+        Ok(handle) => {
             unsafe { ptr::write(out_session, handle) };
             ZrStatus::ok()
         }
-        Err(error) => {
-            if !dynamic_process_log.shutdown() {
-                eprintln!(
-                    "fatal dynamic runtime session bootstrap teardown failure; aborting before dynamic library unload"
-                );
-                std::process::abort();
-            }
-            error_status(error)
+        Err(status) => status,
+    }
+}
+
+/// Negotiates the bounded AppSession V2 descriptor and installs its candidate topology as one
+/// route transition. Validation is complete before `with_session`, so unsupported contracts never
+/// mutate session state or publish a state-10 callback.
+pub(in crate::dynamic_api) unsafe fn configure_app_session(
+    handle: ZrRuntimeSessionHandle,
+    configuration: ZrRuntimeAppSessionConfigurationV2,
+) -> ZrStatus {
+    let candidate_rect: ZrRuntimeImeCandidateRectV2 = configuration.candidate_rect;
+    if let Err(error) = configuration.validate() {
+        return app_session_configuration_status(error);
+    }
+    let negotiation = match configuration.negotiation() {
+        Ok(negotiation) => negotiation,
+        Err(error) => return app_session_configuration_status(error),
+    };
+    with_session(handle, |session| {
+        session.configure_app_session_v2(
+            negotiation,
+            configuration.window_generation,
+            candidate_rect,
+        );
+        ZrStatus::ok()
+    })
+}
+
+fn app_session_configuration_status(error: ZrRuntimeAppSessionConfigurationError) -> ZrStatus {
+    match error {
+        ZrRuntimeAppSessionConfigurationError::UnsupportedVersion
+        | ZrRuntimeAppSessionConfigurationError::UnsupportedPeerApiVersion
+        | ZrRuntimeAppSessionConfigurationError::UnsupportedCompositionSchema
+        | ZrRuntimeAppSessionConfigurationError::UnsupportedCandidateRectSchema => {
+            unsupported_version()
         }
+        ZrRuntimeAppSessionConfigurationError::UnknownCapability
+        | ZrRuntimeAppSessionConfigurationError::MissingRequiredCapability => {
+            capability_denied(b"runtime AppSession V2 capability was not negotiated")
+        }
+        _ => error_status(format!(
+            "invalid runtime AppSession V2 configuration: {error}"
+        )),
     }
 }
 
@@ -170,7 +194,53 @@ pub(in crate::dynamic_api) unsafe fn handle_event(
     event: ZrRuntimeEventV1,
 ) -> ZrStatus {
     crate::profile_scope!("runtime", "dynamic_api", "handle_event");
-    with_session(handle, |session| {
+    let payload = match unsafe {
+        event
+            .payload
+            .checked_slice(ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1)
+    } {
+        Ok(payload) => payload.to_vec(),
+        Err(error) if error.is_limit_exceeded() => {
+            return limit_exceeded(b"runtime event payload exceeds limit");
+        }
+        Err(_) => return invalid_argument(b"invalid runtime event payload slice"),
+    };
+    let ZrRuntimeEventV1 {
+        abi_version,
+        kind,
+        viewport,
+        size,
+        metrics,
+        x,
+        y,
+        delta,
+        button,
+        state,
+        pointer_id,
+        key_code,
+        scan_code,
+        payload: _,
+    } = event;
+    with_session_owned(handle, move |session| {
+        let event = ZrRuntimeEventV1 {
+            abi_version,
+            kind,
+            viewport,
+            size,
+            metrics,
+            x,
+            y,
+            delta,
+            button,
+            state,
+            pointer_id,
+            key_code,
+            scan_code,
+            payload: ZrByteSlice {
+                data: payload.as_ptr(),
+                len: payload.len(),
+            },
+        };
         if event.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
             return unsupported_version();
         }
@@ -340,7 +410,22 @@ pub(in crate::dynamic_api) unsafe fn submit_highlight_set(
     handle: ZrRuntimeSessionHandle,
     request: ZrRuntimeHighlightSetV1,
 ) -> ZrStatus {
-    with_session(handle, |session| {
+    let entities = match unsafe { request.entities.as_slice() } {
+        Some(entities) => entities.to_vec(),
+        None => return invalid_argument(b"invalid runtime highlight set"),
+    };
+    let abi_version = request.abi_version;
+    let viewport = request.viewport;
+    let generation = request.generation;
+    let attributes = request.attributes;
+    with_session(handle, move |session| {
+        let request = ZrRuntimeHighlightSetV1 {
+            abi_version,
+            viewport,
+            generation,
+            entities: zircon_runtime_interface::ZrRuntimeEntityIdSliceV1::from_slice(&entities),
+            attributes,
+        };
         if !unsafe { request.validate() } {
             return invalid_argument(b"invalid runtime highlight set");
         }
@@ -358,21 +443,27 @@ pub(in crate::dynamic_api) unsafe fn request_viewport_pick(
         return invalid_argument(b"missing runtime viewport-pick ticket output");
     }
     unsafe { ptr::write(out_ticket, ZrRuntimeViewportPickTicket::invalid()) };
-    with_session(handle, |session| {
-        if request.viewport != DEFAULT_VIEWPORT {
-            return not_found(b"runtime viewport not found");
-        }
-        match session
-            .viewport_picks
-            .request(request, session.render_bridge.as_ref())
-        {
-            Ok(ticket) => {
-                unsafe { ptr::write(out_ticket, ticket) };
-                ZrStatus::ok()
+    match with_session_result_finalized(
+        handle,
+        |session| {
+            if request.viewport != DEFAULT_VIEWPORT {
+                return Err(not_found(b"runtime viewport not found"));
             }
-            Err(error) => viewport_pick_error_status(error),
-        }
-    })
+            match session
+                .viewport_picks
+                .request(request, session.render_bridge.as_ref())
+            {
+                Ok(ticket) => Ok(ticket),
+                Err(error) => Err(viewport_pick_error_status(error)),
+            }
+        },
+        |_handle, ticket| {
+            unsafe { ptr::write(out_ticket, ticket) };
+            Ok(ZrStatus::ok())
+        },
+    ) {
+        Ok(status) | Err(status) => status,
+    }
 }
 
 pub(in crate::dynamic_api) unsafe fn poll_viewport_pick(
@@ -384,19 +475,25 @@ pub(in crate::dynamic_api) unsafe fn poll_viewport_pick(
         return invalid_argument(b"missing runtime viewport-pick result output");
     }
     unsafe { ptr::write(out_result, ZrRuntimeViewportPickResultV1::invalid()) };
-    with_session(handle, |session| {
-        match session
+    match with_session_result_finalized(
+        handle,
+        |session| match session
             .viewport_picks
             .poll(ticket, session.render_bridge.as_ref())
         {
-            Ok(result) if result.validate_viewport_pick() => {
-                unsafe { ptr::write(out_result, result) };
-                ZrStatus::ok()
-            }
-            Ok(_) => error_status("runtime produced an invalid viewport-pick result"),
-            Err(error) => viewport_pick_error_status(error),
-        }
-    })
+            Ok(result) if result.validate_viewport_pick() => Ok(result),
+            Ok(_) => Err(error_status(
+                "runtime produced an invalid viewport-pick result",
+            )),
+            Err(error) => Err(viewport_pick_error_status(error)),
+        },
+        |_handle, result| {
+            unsafe { ptr::write(out_result, result) };
+            Ok(ZrStatus::ok())
+        },
+    ) {
+        Ok(status) | Err(status) => status,
+    }
 }
 
 pub(in crate::dynamic_api) unsafe fn cancel_viewport_pick(
@@ -441,32 +538,38 @@ pub(in crate::dynamic_api) unsafe fn profile_control(
     if out_json.is_null() {
         return write_profile_response(out_json, ZrOwnedResultV2::empty());
     }
+    let request_bytes = match unsafe {
+        request_json.checked_slice(ZR_RUNTIME_PROFILE_REQUEST_LIMIT_V1.max_encoded_bytes)
+    } {
+        Ok(bytes) => bytes.to_vec(),
+        Err(error) if error.is_limit_exceeded() => {
+            return limit_exceeded(b"profile control request exceeds byte limit");
+        }
+        Err(_) => return invalid_argument(b"invalid profile control request byte slice"),
+    };
     match with_session_result_finalized(
         handle,
         |session| {
-            if request_json.is_empty() {
+            if request_bytes.is_empty() {
                 return Err(invalid_argument(b"missing profile control request"));
             }
+            let request_slice = ZrByteSlice {
+                data: request_bytes.as_ptr(),
+                len: request_bytes.len(),
+            };
             let request = match unsafe {
                 bounded_json::decode::<ProfileControlRequest>(
-                    request_json,
+                    request_slice,
                     ZR_RUNTIME_PROFILE_REQUEST_LIMIT_V1,
                     |_| 1,
                 )
             } {
                 Ok(request) => request,
-                Err(bounded_json::BoundedJsonError::Slice(error)) => {
-                    return Err(if error.is_limit_exceeded() {
-                        limit_exceeded(b"profile control request exceeds byte limit")
-                    } else {
-                        invalid_argument(b"invalid profile control request byte slice")
-                    });
-                }
                 Err(error) => {
                     return Err(invalid_or_limit_payload(
                         &error,
                         b"invalid profile control request",
-                        b"profile control request exceeds byte limit",
+                        b"profile control request exceeds limit",
                     ));
                 }
             };
@@ -499,25 +602,32 @@ pub(in crate::dynamic_api) unsafe fn tick_frame(
     out_demand: *mut ZrRuntimeFrameDemandV1,
 ) -> ZrStatus {
     crate::profile_scope!("runtime", "dynamic_api", "tick_frame");
-    with_session_activity(handle, |session, activity| {
-        if out_demand.is_null() {
-            return invalid_argument(b"missing runtime frame demand output");
-        }
-        activity.begin_tick();
-        match session.tick_frame() {
-            Ok(()) => {
-                activity.request_frame(session.frame_demand());
-                let demand = activity.consume_frame_demand().into_abi();
-                unsafe { ptr::write(out_demand, demand) };
-                ZrStatus::ok()
+    if out_demand.is_null() {
+        return invalid_argument(b"missing runtime frame demand output");
+    }
+    match with_session_activity_result_finalized(
+        handle,
+        |session, activity| {
+            activity.begin_tick();
+            match session.tick_frame() {
+                Ok(()) => {
+                    activity.request_frame(session.frame_demand());
+                    Ok(activity.consume_frame_demand().into_abi())
+                }
+                Err(error) => {
+                    session.reset_frame_demand_after_failed_tick();
+                    activity.consume_frame_demand();
+                    Err(error_status(error))
+                }
             }
-            Err(error) => {
-                session.reset_frame_demand_after_failed_tick();
-                activity.consume_frame_demand();
-                error_status(error)
-            }
-        }
-    })
+        },
+        |_handle, demand| {
+            unsafe { ptr::write(out_demand, demand) };
+            Ok(ZrStatus::ok())
+        },
+    ) {
+        Ok(status) | Err(status) => status,
+    }
 }
 
 pub(in crate::dynamic_api) unsafe fn drain_host_requests(
@@ -555,37 +665,54 @@ pub(in crate::dynamic_api) unsafe fn subscribe_plugin_event(
     request_json: ZrByteSlice,
     out_subscription: *mut ZrRuntimePluginEventSubscriptionHandle,
 ) -> ZrStatus {
-    with_session(handle, |session| {
-        if out_subscription.is_null() || request_json.is_empty() {
-            return invalid_argument(b"missing runtime plugin event subscription request");
-        }
-        let request = match unsafe {
-            bounded_json::decode::<ZrRuntimePluginEventSubscribeRequestV1>(
-                request_json,
-                ZR_RUNTIME_PLUGIN_EVENT_SUBSCRIBE_REQUEST_LIMIT_V1,
-                |_| 3,
-            )
-        } {
-            Ok(request) => request,
-            Err(error) => {
-                return invalid_or_limit_payload(
-                    &error,
-                    b"invalid runtime plugin event subscription request",
-                    b"runtime plugin event subscription request exceeds limit",
-                );
+    if out_subscription.is_null() || request_json.is_empty() {
+        return invalid_argument(b"missing runtime plugin event subscription request");
+    }
+    let request_bytes = match unsafe {
+        request_json
+            .checked_slice(ZR_RUNTIME_PLUGIN_EVENT_SUBSCRIBE_REQUEST_LIMIT_V1.max_encoded_bytes)
+    } {
+        Ok(bytes) => bytes.to_vec(),
+        Err(_) => return invalid_argument(b"invalid runtime plugin event subscription request"),
+    };
+    match with_session_result_finalized(
+        handle,
+        |session| {
+            let request_slice = ZrByteSlice {
+                data: request_bytes.as_ptr(),
+                len: request_bytes.len(),
+            };
+            let request = match unsafe {
+                bounded_json::decode::<ZrRuntimePluginEventSubscribeRequestV1>(
+                    request_slice,
+                    ZR_RUNTIME_PLUGIN_EVENT_SUBSCRIBE_REQUEST_LIMIT_V1,
+                    |_| 3,
+                )
+            } {
+                Ok(request) => request,
+                Err(error) => {
+                    return Err(invalid_or_limit_payload(
+                        &error,
+                        b"invalid runtime plugin event subscription request",
+                        b"runtime plugin event subscription request exceeds limit",
+                    ));
+                }
+            };
+            if request.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
+                return Err(unsupported_version());
             }
-        };
-        if request.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
-            return unsupported_version();
-        }
-        match session.subscribe_plugin_event(request) {
-            Ok(subscription) => {
-                unsafe { ptr::write(out_subscription, subscription) };
-                ZrStatus::ok()
+            match session.subscribe_plugin_event(request) {
+                Ok(subscription) => Ok(subscription),
+                Err(error) => Err(error_status(error)),
             }
-            Err(error) => error_status(error),
-        }
-    })
+        },
+        |_handle, subscription| {
+            unsafe { ptr::write(out_subscription, subscription) };
+            Ok(ZrStatus::ok())
+        },
+    ) {
+        Ok(status) | Err(status) => status,
+    }
 }
 
 pub(in crate::dynamic_api) unsafe fn unsubscribe_plugin_event(
@@ -649,25 +776,25 @@ pub(in crate::dynamic_api) unsafe fn query_world(
     if out_result.is_null() || request_json.is_empty() {
         return invalid_argument(b"missing runtime world query request or output");
     }
+    let query = match unsafe {
+        bounded_json::decode::<WorldQuery>(
+            request_json,
+            ZR_RUNTIME_WORLD_QUERY_REQUEST_LIMIT_V1,
+            WorldQuery::request_item_count,
+        )
+    } {
+        Ok(query) => query,
+        Err(error) => {
+            return invalid_or_limit_payload(
+                &error,
+                b"invalid runtime world query request",
+                b"runtime world query request exceeds limit",
+            );
+        }
+    };
     match with_session_result_finalized(
         handle,
-        |session| {
-            let query = match unsafe {
-                bounded_json::decode::<WorldQuery>(
-                    request_json,
-                    ZR_RUNTIME_WORLD_QUERY_REQUEST_LIMIT_V1,
-                    WorldQuery::request_item_count,
-                )
-            } {
-                Ok(query) => query,
-                Err(error) => {
-                    return Err(invalid_or_limit_payload(
-                        &error,
-                        b"invalid runtime world query request",
-                        b"runtime world query request exceeds limit",
-                    ));
-                }
-            };
+        move |session| {
             let result = session.query_world(query).map_err(|error| {
                 output_payload_status(error, b"runtime world query output exceeds limit")
             })?;
@@ -693,31 +820,35 @@ pub(in crate::dynamic_api) unsafe fn watch_world(
     registration_json: ZrByteSlice,
     out_token: *mut WatchToken,
 ) -> ZrStatus {
-    with_session(handle, |session| {
-        if out_token.is_null() || registration_json.is_empty() {
-            return invalid_argument(b"missing runtime world watch request or output");
+    if out_token.is_null() || registration_json.is_empty() {
+        return invalid_argument(b"missing runtime world watch request or output");
+    }
+    let registration = match unsafe {
+        bounded_json::decode::<WatchRegistration>(
+            registration_json,
+            ZR_RUNTIME_WORLD_WATCH_REQUEST_LIMIT_V1,
+            |_| 1,
+        )
+    } {
+        Ok(registration) => registration,
+        Err(error) => {
+            return invalid_or_limit_payload(
+                &error,
+                b"invalid runtime world watch request",
+                b"runtime world watch request exceeds limit",
+            );
         }
-        let registration = match unsafe {
-            bounded_json::decode::<WatchRegistration>(
-                registration_json,
-                ZR_RUNTIME_WORLD_WATCH_REQUEST_LIMIT_V1,
-                |_| 1,
-            )
-        } {
-            Ok(registration) => registration,
-            Err(error) => {
-                return invalid_or_limit_payload(
-                    &error,
-                    b"invalid runtime world watch request",
-                    b"runtime world watch request exceeds limit",
-                );
-            }
-        };
-        unsafe {
-            ptr::write(out_token, session.watch_world(registration));
-        }
-        ZrStatus::ok()
-    })
+    };
+    match with_session_result_finalized(
+        handle,
+        |session| Ok(session.watch_world(registration)),
+        |_handle, token| {
+            unsafe { ptr::write(out_token, token) };
+            Ok(ZrStatus::ok())
+        },
+    ) {
+        Ok(status) | Err(status) => status,
+    }
 }
 
 pub(in crate::dynamic_api) unsafe fn unwatch_world(
@@ -725,15 +856,19 @@ pub(in crate::dynamic_api) unsafe fn unwatch_world(
     token: WatchToken,
     out_removed: *mut u8,
 ) -> ZrStatus {
-    with_session(handle, |session| {
-        if out_removed.is_null() || !token.is_valid() {
-            return invalid_argument(b"invalid runtime world watch token or output");
-        }
-        unsafe {
-            ptr::write(out_removed, u8::from(session.unwatch_world(token)));
-        }
-        ZrStatus::ok()
-    })
+    if out_removed.is_null() || !token.is_valid() {
+        return invalid_argument(b"invalid runtime world watch token or output");
+    }
+    match with_session_result_finalized(
+        handle,
+        |session| Ok(u8::from(session.unwatch_world(token))),
+        |_handle, removed| {
+            unsafe { ptr::write(out_removed, removed) };
+            Ok(ZrStatus::ok())
+        },
+    ) {
+        Ok(status) | Err(status) => status,
+    }
 }
 
 pub(in crate::dynamic_api) unsafe fn drain_world_invalidations(

@@ -1,8 +1,8 @@
 use zircon_runtime_interface::ui::binding::{UiBindingDirtyDomain, UiBindingMutationReceipt};
 
 use super::{
-    UiSurface,
     mutation_snapshot::{UiSurfaceMutationDomains, UiSurfaceMutationSnapshot},
+    UiSurface,
 };
 
 pub(crate) struct UiBindingMutationTransaction {

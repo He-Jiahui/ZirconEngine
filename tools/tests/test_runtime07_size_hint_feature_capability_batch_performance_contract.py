@@ -19,7 +19,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束大小提示特性能力批次：批次追加使用迭代器大小提示通过 extend，并批次追加不重复进入单次项构建器。
 class SizeHintFeatureCapabilityBatchPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

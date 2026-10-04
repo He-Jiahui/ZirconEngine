@@ -55,5 +55,5 @@
 
 ## Remaining Plan Work
 
-- The canonical `docs/zircon_plugins/plugin-sdk.md` wording remains pending because another active coordinator session owns that exact path; this record does not overwrite the lease.
+- The canonical `docs/crates/zircon_plugins/plugin-sdk.md` wording remains pending because another active coordinator session owns that exact path; this record does not overwrite the lease.
 - `P0-02` owned-buffer double-free, `P0-03` unbound borrowed slice lifetime, `P0-04` host-ready panic containment, and pre-load trust admission remain separate Plugins01 milestones.

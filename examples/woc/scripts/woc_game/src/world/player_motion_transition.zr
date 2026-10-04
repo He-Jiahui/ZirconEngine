@@ -7,6 +7,7 @@ var motionWorld = %import("world/player_motion_world");
 var verticalWorld = %import("world/player_motion_vertical_world");
 var wallStandoff = %import("world/player_motion_wall_standoff");
 
+/// 单个实体一帧运动的临时输入和结果；世界先从权威行载入，完成步进后再回写，不能把此对象作为独立存档。
 pub class PlayerMotionState {
     pub var initialized: bool;
     pub var x: float;
@@ -59,6 +60,7 @@ requireState(state: PlayerMotionState, required: bool): void {
     }
 }
 
+/// 为一个实体建立完整的帧起点；默认构造的对象未初始化，必须经此入口后才能步进。
 pub initialize(
     state: PlayerMotionState,
     x: float,
@@ -96,6 +98,8 @@ pub initialize(
 // turn -> horizontal slope/collision -> vertical -> terrain-wall standoff.
 // `stunned` and `rooted` carry the cc predicates at this pure boundary. Cast
 // cancellation, stand-up and damage application stay with their owning systems.
+/// 消费本帧的持续输入，按转向、水平运动、垂直运动、贴墙修正的顺序生成可回写结果。
+/// 调用者负责先完成起立与施法取消，再在返回后结算落地伤害；同一对象每调用一次就推进一帧。
 pub step(
     state: PlayerMotionState,
     turnLeft: bool,
@@ -186,6 +190,7 @@ pub step(
         forward, back, strafeLeft, strafeRight, moveSpeedMultiplier, rooted, seed, 2, true
     );
 
+    // 各结果都从同一水平后像和垂直前像推导；先算齐所有字段，再回写，避免后续查询读到半更新状态。
     var nextY = verticalWorld.verticalField(
         nextX, nextZ, state.y, state.previousX, state.previousZ,
         horizontalVelocityX, state.velocityY, horizontalVelocityZ, state.fallStartY,

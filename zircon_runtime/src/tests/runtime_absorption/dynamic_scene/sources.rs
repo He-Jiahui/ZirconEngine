@@ -1,3 +1,4 @@
+//! 动态场景会话、补丁预览和资产重载路径需保持现有只读与所有权约束。集中保存路径、锚点或预期清单；消费方负责读取实际源码。
 pub(super) const PATCH_SOURCE: &str = include_str!("../../../scene/dynamic_scene/patch.rs");
 pub(super) const DYNAMIC_SCENE_MOD_SOURCE: &str =
     include_str!("../../../scene/dynamic_scene/mod.rs");
@@ -63,4 +64,4 @@ pub(super) const RUNTIME_INDEX: &str = concat!(
     )
 );
 pub(super) const DYNAMIC_SCENE_DOC: &str =
-    include_str!("../../../../../docs/zircon_runtime/scene/dynamic_scene.md");
+    include_str!("../../../../../docs/crates/zircon_runtime/scene/dynamic_scene.md");

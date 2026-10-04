@@ -6,8 +6,8 @@ use zircon_runtime_interface::ui::component::UiValue;
 use zircon_runtime_interface::ui::layout::UiPixelSnappingPolicy;
 use zircon_runtime_interface::ui::template::UiBindingRef;
 use zircon_runtime_interface::ui::v2::{
-    UiV2AssetDocument, UiV2AssetError, UiV2ChildMount, UiV2ComponentDefinition, UiV2NodeDefinition,
-    UiV2Repeat, UiV2Root, UiV2StyleDeclarationBlock,
+    UiTemplateNodeInstancePathStep, UiV2AssetDocument, UiV2AssetError, UiV2ChildMount,
+    UiV2ComponentDefinition, UiV2NodeDefinition, UiV2Repeat, UiV2Root, UiV2StyleDeclarationBlock,
 };
 
 use super::{
@@ -20,6 +20,7 @@ use crate::ui::template::{
     resolve_component_binding_params, resolve_component_param_value,
     resolve_component_param_value_map, validate_typed_component_params,
 };
+use zircon_runtime_interface::ui::widget::UiWidgetContract;
 
 #[derive(Clone, Debug, Default)]
 struct MountPatch {
@@ -33,12 +34,15 @@ struct MountPatch {
     style: UiV2StyleDeclarationBlock,
     slots: BTreeMap<String, Value>,
     events: Vec<UiBindingRef>,
+    widget: Option<UiWidgetContract>,
 }
 
 #[derive(Clone, Debug)]
 struct SlotContext {
     caller_document: Arc<UiV2AssetDocument>,
     caller_params: Arc<ComponentParamScope>,
+    caller_source_path: Option<String>,
+    caller_instance_path: Option<Vec<UiTemplateNodeInstancePathStep>>,
     children_by_slot: BTreeMap<String, Vec<UiV2ChildMount>>,
 }
 
@@ -58,6 +62,7 @@ struct ComponentPrototype {
 #[derive(Clone, Debug)]
 struct ExpandTask {
     document: Arc<UiV2AssetDocument>,
+    source_path: Option<String>,
     params: Arc<ComponentParamScope>,
     node_id: String,
     parent_output_id: Option<String>,
@@ -65,6 +70,7 @@ struct ExpandTask {
     patch: Option<MountPatch>,
     slot_context: Arc<SlotContext>,
     component_stack: Vec<String>,
+    instance_path: Option<Vec<UiTemplateNodeInstancePathStep>>,
 }
 
 #[derive(Clone, Debug)]
@@ -78,6 +84,24 @@ struct InsertedNode {
     params: Arc<ComponentParamScope>,
     slot_context: Arc<SlotContext>,
     component_stack: Vec<String>,
+    source_path: Option<String>,
+    source_node_id: String,
+    instance_path: Option<Vec<UiTemplateNodeInstancePathStep>>,
+}
+
+/// Expanded source identity is kept out of the authored document model. Keys
+/// are output ids and values retain the original owner plus invocation ancestry.
+#[derive(Clone, Debug, Default)]
+pub(super) struct UiV2ExpandedNodeSource {
+    pub source_path: Option<String>,
+    pub source_node_id: Option<String>,
+    pub instance_path: Option<Vec<UiTemplateNodeInstancePathStep>>,
+}
+
+#[derive(Clone, Debug)]
+pub(super) struct UiV2InstancedDocument {
+    pub document: UiV2AssetDocument,
+    pub node_sources: BTreeMap<String, UiV2ExpandedNodeSource>,
 }
 
 #[derive(Default)]
@@ -88,34 +112,70 @@ impl UiV2ComponentInstancer {
         document: &UiV2AssetDocument,
         store: &UiV2PrototypeStore,
     ) -> Result<UiV2AssetDocument, UiV2AssetError> {
-        let Some(root) = document.root_node_id() else {
-            return Ok(document.clone());
-        };
-        validate_source_graph(document, root)?;
+        Self::instantiate_owned(document.clone(), store).map(|expanded| expanded.document)
+    }
 
-        let source_document = Arc::new(document.clone());
+    pub(super) fn instantiate_document_with_sources(
+        document: &UiV2AssetDocument,
+        store: &UiV2PrototypeStore,
+    ) -> Result<UiV2InstancedDocument, UiV2AssetError> {
+        Self::instantiate_owned(document.clone(), store)
+    }
+
+    pub(super) fn instantiate_owned(
+        document: UiV2AssetDocument,
+        store: &UiV2PrototypeStore,
+    ) -> Result<UiV2InstancedDocument, UiV2AssetError> {
+        let Some(root) = document.root_node_id().map(str::to_owned) else {
+            return Ok(UiV2InstancedDocument {
+                document,
+                node_sources: BTreeMap::new(),
+            });
+        };
+        validate_source_graph(&document, &root)?;
+        // Keep source-owned detached nodes in the compiled document.  They are
+        // not mounted into the retained surface, but the Penpot bridge still
+        // needs their handles and metadata for source-addressable round trips
+        // (for example, a detached repeat prototype or an explicit metadata
+        // lane).  Only nodes outside the authored root graph are copied here;
+        // reachable component instances continue to use their expanded output
+        // identities below.
+        let reachable_source_nodes = reachable_node_ids(&document, &root);
+        let detached_source_nodes = document
+            .nodes
+            .iter()
+            .filter(|(node_id, _)| !reachable_source_nodes.contains(*node_id))
+            .map(|(node_id, node)| (node_id.clone(), node.clone()))
+            .collect::<BTreeMap<_, _>>();
+
+        let source_document = Arc::new(document);
         let params = Arc::new(ComponentParamScope::default());
         let slot_context = Arc::new(SlotContext {
             caller_document: Arc::clone(&source_document),
             caller_params: Arc::clone(&params),
+            caller_source_path: store
+                .source_path_for_asset_id(&source_document.asset.id)
+                .map(str::to_string),
+            caller_instance_path: Some(Vec::new()),
             children_by_slot: BTreeMap::new(),
         });
-        let mut output = UiV2AssetDocument {
-            root: None,
-            nodes: BTreeMap::new(),
-            components: BTreeMap::new(),
-            ..document.clone()
-        };
+        let mut output_root = None;
+        let mut output_nodes: BTreeMap<String, UiV2NodeDefinition> = BTreeMap::new();
+        let mut node_sources = BTreeMap::new();
         let mut next_id = 0usize;
         let mut stack = vec![ExpandTask {
-            document: source_document,
+            document: Arc::clone(&source_document),
             params,
-            node_id: root.to_string(),
+            node_id: root,
             parent_output_id: None,
             mount_slot: BTreeMap::new(),
             patch: None,
             slot_context,
             component_stack: Vec::new(),
+            instance_path: Some(Vec::new()),
+            source_path: store
+                .source_path_for_asset_id(&source_document.asset.id)
+                .map(str::to_string),
         }];
 
         while let Some(task) = stack.pop() {
@@ -156,13 +216,28 @@ impl UiV2ComponentInstancer {
                     &prototype.definition,
                     &component_slots,
                 )?;
+                let component_instance_path = task.instance_path.as_ref().and_then(|path| {
+                    let source_path = task.source_path.as_ref()?;
+                    let mut path = path.clone();
+                    path.push(UiTemplateNodeInstancePathStep {
+                        source_path: source_path.clone(),
+                        source_node_id: task.node_id.clone(),
+                    });
+                    Some(path)
+                });
                 let component_slot_context = Arc::new(SlotContext {
                     caller_document: Arc::clone(&task.document),
                     caller_params: Arc::clone(&task.params),
+                    caller_source_path: task.source_path.clone(),
+                    caller_instance_path: component_instance_path.clone(),
                     children_by_slot: component_slots,
                 });
+                let prototype_source_path = store
+                    .source_path_for_asset_id(&prototype.document.asset.id)
+                    .map(str::to_string);
                 stack.push(ExpandTask {
                     document: prototype.document,
+                    source_path: prototype_source_path,
                     params: component_params,
                     node_id: prototype.definition.root.clone(),
                     parent_output_id: task.parent_output_id,
@@ -175,6 +250,7 @@ impl UiV2ComponentInstancer {
                     )?),
                     slot_context: component_slot_context,
                     component_stack: stack_key,
+                    instance_path: component_instance_path,
                 });
                 continue;
             }
@@ -190,13 +266,13 @@ impl UiV2ComponentInstancer {
 
             let inserted = inserted_node(task, source_node, &mut next_id)?;
             if inserted.parent_output_id.is_none() {
-                output.root = Some(UiV2Root {
+                output_root = Some(UiV2Root {
                     node: inserted.output_id.clone(),
                 });
             } else if let Some(parent_id) = inserted.parent_output_id.as_deref() {
-                let Some(parent) = output.nodes.get_mut(parent_id) else {
+                let Some(parent) = output_nodes.get_mut(parent_id) else {
                     return Err(UiV2AssetError::MissingNode {
-                        asset_id: output.asset.id.clone(),
+                        asset_id: source_document.asset.id.clone(),
                         node_id: parent_id.to_string(),
                     });
                 };
@@ -209,6 +285,7 @@ impl UiV2ComponentInstancer {
             for child in inserted.source_children.iter().rev() {
                 stack.push(ExpandTask {
                     document: Arc::clone(&inserted.source_document),
+                    source_path: inserted.source_path.clone(),
                     params: Arc::clone(&inserted.params),
                     node_id: child.node.clone(),
                     parent_output_id: Some(inserted.output_id.clone()),
@@ -216,12 +293,49 @@ impl UiV2ComponentInstancer {
                     patch: None,
                     slot_context: Arc::clone(&inserted.slot_context),
                     component_stack: inserted.component_stack.clone(),
+                    instance_path: inserted.instance_path.clone(),
                 });
             }
-            output.nodes.insert(inserted.output_id, inserted.node);
+            let _ = node_sources.insert(
+                inserted.output_id.clone(),
+                UiV2ExpandedNodeSource {
+                    source_path: inserted.source_path.clone(),
+                    source_node_id: Some(inserted.source_node_id.clone()),
+                    instance_path: inserted.instance_path.clone(),
+                },
+            );
+            output_nodes.insert(inserted.output_id, inserted.node);
         }
 
-        Ok(output)
+        let mut output = Arc::try_unwrap(source_document)
+            .expect("component expansion must release source document owners");
+        output.root = output_root;
+        let detached_source_node_ids = detached_source_nodes.keys().cloned().collect::<Vec<_>>();
+        output.nodes = output_nodes;
+        // `output.nodes` currently contains only the expanded root graph. Add
+        // detached source nodes back without mounting them under the root.
+        // Their children are likewise left as authored source references; the
+        // surface builder traverses from `root` and therefore keeps them out of
+        // the runtime tree while the compiler/bridge retain their identities.
+        output.nodes.extend(detached_source_nodes);
+        output.components.clear();
+        let root_source_path = store
+            .source_path_for_asset_id(&output.asset.id)
+            .map(str::to_string);
+        for node_id in detached_source_node_ids {
+            let _ = node_sources.insert(
+                node_id.clone(),
+                UiV2ExpandedNodeSource {
+                    source_path: root_source_path.clone(),
+                    source_node_id: Some(node_id.clone()),
+                    instance_path: root_source_path.as_ref().map(|_| Vec::new()),
+                },
+            );
+        }
+        Ok(UiV2InstancedDocument {
+            document: output,
+            node_sources,
+        })
     }
 }
 
@@ -237,6 +351,8 @@ fn inserted_node(
     )?;
     let original_children = std::mem::take(&mut source_node.children);
     let preserve_source_id = task.patch.is_none() && task.component_stack.is_empty();
+    let source_path = task.source_path.clone();
+    let source_node_id = task.node_id.clone();
     if let Some(patch) = task.patch {
         apply_patch_to_node(&mut source_node, patch);
     }
@@ -258,6 +374,9 @@ fn inserted_node(
         params: task.params,
         slot_context: task.slot_context,
         component_stack: task.component_stack,
+        source_path,
+        source_node_id,
+        instance_path: task.instance_path,
     })
 }
 
@@ -352,6 +471,7 @@ fn patch_for_component_mount(
         style: node.style,
         slots: node.slots,
         events: node.events,
+        widget: node.widget,
     })
 }
 
@@ -492,6 +612,9 @@ fn apply_patch_to_node(node: &mut UiV2NodeDefinition, patch: MountPatch) {
     if patch.repeat.is_some() {
         node.repeat = patch.repeat;
     }
+    if patch.widget.is_some() {
+        node.widget = patch.widget;
+    }
     node.style.self_values.extend(patch.style.self_values);
     node.style.slot.extend(patch.style.slot);
     node.slots.extend(patch.slots);
@@ -512,6 +635,7 @@ fn push_slot_children(stack: &mut Vec<ExpandTask>, task: &ExpandTask, node: &UiV
         merge_mount_slot(&mut mount_slot, &child.slot);
         stack.push(ExpandTask {
             document: Arc::clone(&task.slot_context.caller_document),
+            source_path: task.slot_context.caller_source_path.clone(),
             params: Arc::clone(&task.slot_context.caller_params),
             node_id: child.node.clone(),
             parent_output_id: task.parent_output_id.clone(),
@@ -520,8 +644,11 @@ fn push_slot_children(stack: &mut Vec<ExpandTask>, task: &ExpandTask, node: &UiV
             slot_context: empty_slot_context(
                 Arc::clone(&task.slot_context.caller_document),
                 Arc::clone(&task.slot_context.caller_params),
+                task.slot_context.caller_source_path.clone(),
+                task.slot_context.caller_instance_path.clone(),
             ),
             component_stack: task.component_stack.clone(),
+            instance_path: task.slot_context.caller_instance_path.clone(),
         });
     }
 }
@@ -581,10 +708,14 @@ fn merge_toml_table(
 fn empty_slot_context(
     caller_document: Arc<UiV2AssetDocument>,
     caller_params: Arc<ComponentParamScope>,
+    caller_source_path: Option<String>,
+    caller_instance_path: Option<Vec<UiTemplateNodeInstancePathStep>>,
 ) -> Arc<SlotContext> {
     Arc::new(SlotContext {
         caller_document,
         caller_params,
+        caller_source_path,
+        caller_instance_path,
         children_by_slot: BTreeMap::new(),
     })
 }
@@ -659,6 +790,20 @@ fn validate_source_graph(document: &UiV2AssetDocument, root: &str) -> Result<(),
     Ok(())
 }
 
+fn reachable_node_ids(document: &UiV2AssetDocument, root: &str) -> BTreeSet<String> {
+    let mut reachable = BTreeSet::new();
+    let mut stack = vec![root.to_string()];
+    while let Some(node_id) = stack.pop() {
+        if !reachable.insert(node_id.clone()) {
+            continue;
+        }
+        if let Some(node) = document.nodes.get(&node_id) {
+            stack.extend(node.children.iter().map(|child| child.node.clone()));
+        }
+    }
+    reachable
+}
+
 fn validate_component_slots(
     document: &UiV2AssetDocument,
     component: &str,
@@ -722,6 +867,10 @@ fn validate_component_slots(
 
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "component_instancer/tests/optimization_batch_ho_runtime596_tests.rs"]
+mod optimization_batch_ho_runtime596_tests;
 
 enum VisitFrame {
     Enter(String),

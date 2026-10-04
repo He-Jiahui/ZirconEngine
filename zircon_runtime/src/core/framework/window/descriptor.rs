@@ -5,6 +5,8 @@ use super::{
     WindowResolution, DEFAULT_WINDOW_TITLE,
 };
 
+/// 启动时的可序列化主窗口意图，由产品配置传给 App，再转换为原生窗口属性。
+/// 创建后窗口命令和 OS 观测使用独立状态契约，不能把此描述符当作实时状态快照。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct WindowDescriptor {
     pub primary_window: Option<PrimaryWindowHandle>,
@@ -26,6 +28,7 @@ impl WindowDescriptor {
         self
     }
 
+    /// 用于无界面配置：App 据此跳过主窗口与表面创建，并清除不可实现的可见和焦点意图。
     pub fn without_primary_window(mut self) -> Self {
         self.primary_window = None;
         self.visible = false;
@@ -83,6 +86,7 @@ impl WindowDescriptor {
         self
     }
 
+    /// 输出供启动诊断和配置检查使用的稳定字段，调用方不应据此推断原生窗口已创建。
     pub fn diagnostic_lines(&self) -> Vec<String> {
         let physical_size = self.resolution.physical_size();
         let logical_size = self.resolution.logical_size();
@@ -164,5 +168,5 @@ impl Default for WindowDescriptor {
 }
 
 #[cfg(test)]
-#[path = "descriptor/optional_value_format_tests.rs"]
+#[path = "descriptor/tests/optional_value_format_tests.rs"]
 mod optional_value_format_tests;

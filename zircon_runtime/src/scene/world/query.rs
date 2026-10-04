@@ -6,14 +6,146 @@ use crate::scene::components::{
 };
 use std::any::TypeId;
 
-use crate::scene::EntityId;
 use crate::scene::ecs::{
     ArchetypeId, ArchetypeIndexPerformanceStats, ChangeTick, Component, ComponentId,
     ComponentStorageLocation, ComponentTicks, InternalEntity, QueryAccess, StableEntityLocation,
     StorageType,
 };
+use crate::scene::EntityId;
 
 impl World {
+    /// Borrows only the stable-order leaf; ordinary eager metadata is not retained.
+    ///
+    /// # Safety
+    /// The original shared loan or System query grant must keep this World and its
+    /// structural order fixed for `'world`. No overlapping structural write is allowed.
+    pub(crate) unsafe fn query_entity_ids<'world>(
+        world: *const Self,
+    ) -> super::StableWorldEntityIter<'world> {
+        unsafe { (&*std::ptr::addr_of!((*world).stable_query_order)).entities() }
+    }
+
+    /// Projects the existing stable-order merge cursor without borrowing its World parent.
+    ///
+    /// # Safety
+    /// The requirements of `query_entity_ids` apply to the complete cursor lifetime.
+    pub(crate) unsafe fn query_stable_location_iter<'world>(
+        world: *const Self,
+        archetypes: impl IntoIterator<Item = ArchetypeId>,
+    ) -> super::StableQueryLocationIter<'world> {
+        unsafe { (&*std::ptr::addr_of!((*world).stable_query_order)).iter_matching(archetypes) }
+    }
+
+    /// Fetches a shared component through its exact storage field.
+    ///
+    /// # Safety
+    /// `world` must remain valid for `'world`; its structure and storage allocations
+    /// must stay fixed. The selected payload must have declared shared access compatible
+    /// with every live item/Param. Only contracted, compatible validation may form a
+    /// scoped shared World; no World or ordinary metadata parent reference may escape.
+    pub(crate) unsafe fn query_component_ref<'world, T>(
+        world: *const Self,
+        entity: EntityId,
+    ) -> Option<&'world T>
+    where
+        T: Component,
+    {
+        unsafe {
+            let (component_id, internal) = {
+                let read = &*world;
+                (
+                    read.registered_component_id::<T>()?,
+                    read.internal_entity(entity)?,
+                )
+            };
+            match T::STORAGE_TYPE {
+                StorageType::Table => {
+                    let location = (&*std::ptr::addr_of!((*world).entity_registry))
+                        .location_for_internal(internal)
+                        .ok()?
+                        .location;
+                    (&*std::ptr::addr_of!((*world).archetype_index)).get::<T>(
+                        location.archetype_id,
+                        location.table_row,
+                        component_id,
+                    )
+                }
+                StorageType::SparseSet => (&*std::ptr::addr_of!((*world).component_storage))
+                    .get::<T>(component_id, internal),
+            }
+        }
+    }
+
+    /// Returns a shared row leaf and copied ticks under the same checked type semantics.
+    ///
+    /// # Safety
+    /// `query_component_ref`'s requirements also cover the selected tick read; the
+    /// returned component reference must not conflict with any current mutable item.
+    pub(crate) unsafe fn query_component_ref_with_ticks<'world, T>(
+        world: *const Self,
+        entity: EntityId,
+    ) -> Option<(&'world T, ComponentTicks)>
+    where
+        T: Component,
+    {
+        unsafe {
+            let value = Self::query_component_ref::<T>(world, entity)?;
+            let (component_id, internal) = {
+                let read = &*world;
+                (
+                    read.registered_component_id::<T>()?,
+                    read.internal_entity(entity)?,
+                )
+            };
+            let ticks = match T::STORAGE_TYPE {
+                StorageType::Table => {
+                    let location = (&*std::ptr::addr_of!((*world).entity_registry))
+                        .location_for_internal(internal)
+                        .ok()?
+                        .location;
+                    (&*std::ptr::addr_of!((*world).archetype_index)).component_ticks(
+                        location.archetype_id,
+                        location.table_row,
+                        component_id,
+                    )?
+                }
+                StorageType::SparseSet => (&*std::ptr::addr_of!((*world).component_storage))
+                    .ticks(component_id, internal)?,
+            };
+            Some((value, ticks))
+        }
+    }
+
+    /// Fetches shared leaves from a coherent compiled location with real row-type checks.
+    ///
+    /// # Safety
+    /// The grant/lifetime/compatible payload and tick requirements of
+    /// `query_component_ref_with_ticks` apply. The location must name the current row;
+    /// its public type identifier never replaces the lower owner's actual type check.
+    pub(crate) unsafe fn query_component_ref_with_ticks_at_location<'world, T>(
+        world: *const Self,
+        location: ComponentStorageLocation,
+    ) -> Option<(&'world T, ComponentTicks)>
+    where
+        T: Component,
+    {
+        unsafe {
+            match location.storage_type {
+                StorageType::Table => {
+                    let row = location.table_row?;
+                    let archetype = location.table_archetype?;
+                    let column_slot = location.table_column_slot?;
+                    let index = &*std::ptr::addr_of!((*world).archetype_index);
+                    let value = index.get_by_slot::<T>(archetype, row, column_slot)?;
+                    let ticks = index.component_ticks_by_slot(archetype, row, column_slot)?;
+                    Some((value, ticks))
+                }
+                StorageType::SparseSet => (&*std::ptr::addr_of!((*world).component_storage))
+                    .get_with_ticks_at_location::<T>(location),
+            }
+        }
+    }
+
     pub(crate) fn archetype_generation(&self) -> u64 {
         self.archetype_index.generation()
     }
@@ -148,59 +280,219 @@ impl World {
         }
     }
 
-    pub(crate) fn query_component_mut_at_location<T>(
-        &mut self,
-        entity: EntityId,
+    /// Copies ticks after checking the actual stored type, without borrowing a value as `&T`.
+    pub(crate) fn component_ticks_at_location<T>(
+        &self,
         location: ComponentStorageLocation,
-    ) -> Option<&mut T>
+    ) -> Option<ComponentTicks>
     where
         T: Component,
     {
-        let tick = self.mutation_change_tick();
-        self.mark_query_component_mutation::<T>(entity);
         match location.storage_type {
-            StorageType::Table => self.archetype_index.get_mut_at_tick_by_slot::<T>(
+            StorageType::Table => self.archetype_index.component_ticks_by_slot_for_type::<T>(
                 location.table_archetype?,
                 location.table_row?,
                 location.table_column_slot?,
-                tick,
             ),
-            StorageType::SparseSet => self.component_storage.get_mut_at_tick::<T>(
-                location.component_id,
-                location.entity,
-                tick,
-            ),
+            StorageType::SparseSet => self
+                .component_storage
+                .ticks_at_location_for_type::<T>(location),
         }
     }
 
-    pub(crate) fn query_component_mut_with_ticks_at_location<T>(
-        &mut self,
+    /// Fetches a plain mutable query row without borrowing its World or storage parents mutably.
+    ///
+    /// # Safety
+    /// The caller must own the exclusive World query loan for `'world`, keep entity and
+    /// storage allocations fixed, and grant unique value/tick access to this row. Every live
+    /// item must be disjoint from this row and from the ordinary metadata fields updated by
+    /// this fetch; an item may retain only its row leaves and the shared mutation-sink leaf.
+    /// Scoped validation and eager Name/ActiveSelf effects also require compatible Hierarchy
+    /// reads, including ancestors/subtrees outside the candidate row.
+    pub(crate) unsafe fn query_component_mut<'world, T>(
+        world: *mut Self,
         entity: EntityId,
-        location: ComponentStorageLocation,
+    ) -> Option<&'world mut T>
+    where
+        T: Component,
+    {
+        if Self::protected_derived_component_name::<T>().is_some()
+            || Self::protected_authored_component_name::<T>().is_some()
+        {
+            return None;
+        }
+        unsafe {
+            // Preserve get_mut's clock-before-registration/missing-component order.
+            let tick = Self::query_mutation_change_tick(world);
+            let (component_id, internal) = {
+                let read = &*world;
+                let component_id = read.registered_component_id::<T>()?;
+                let internal = read.internal_entity(entity)?;
+                if !read.contains_component_id(entity, component_id) {
+                    return None;
+                }
+                (component_id, internal)
+            };
+            Self::mark_query_component_mutation::<T>(world, entity);
+            match T::STORAGE_TYPE {
+                StorageType::Table => {
+                    let location = (&*std::ptr::addr_of!((*world).entity_registry))
+                        .location_for_internal(internal)
+                        .ok()?
+                        .location;
+                    let index = &*std::ptr::addr_of!((*world).archetype_index);
+                    let slot = index.column_slot(location.archetype_id, component_id)?;
+                    index.get_mut_at_tick_by_slot_unchecked::<T>(
+                        location.archetype_id,
+                        location.table_row,
+                        slot,
+                        tick,
+                    )
+                }
+                StorageType::SparseSet => (&*std::ptr::addr_of!((*world).component_storage))
+                    .get_mut_at_tick_unchecked::<T>(component_id, internal, tick),
+            }
+        }
+    }
+
+    /// Fetches a tracked row and its mutation-sink leaf with the ordinary Mut semantics.
+    ///
+    /// # Safety
+    /// The raw World grant, row-disjointness, structural stability, metadata exclusivity and
+    /// compatible readonly accesses required by `query_component_mut` apply here too.
+    /// The sink and selected row must remain valid for `'world`; no live item may retain a
+    /// World, storage container, DerivedStateDirty or RenderDirtyJournalState parent reference.
+    pub(crate) unsafe fn query_component_mut_with_ticks<'world, T>(
+        world: *mut Self,
+        entity: EntityId,
     ) -> Option<(
-        &mut T,
-        &mut ComponentTicks,
+        &'world mut T,
+        &'world mut ComponentTicks,
         ChangeTick,
-        crate::scene::ecs::ComponentMutationRecorder<'_>,
+        crate::scene::ecs::ComponentMutationRecorder<'world>,
     )>
     where
         T: Component,
     {
-        let tick = self.mutation_change_tick();
-        let mutation_recorder = self
-            .derived_state_dirty
-            .component_mutation_recorder::<T>(entity);
-        let (value, ticks) = match location.storage_type {
-            StorageType::Table => self.archetype_index.get_mut_with_ticks_by_slot::<T>(
-                location.table_archetype?,
-                location.table_row?,
-                location.table_column_slot?,
-            )?,
-            StorageType::SparseSet => self
-                .component_storage
-                .get_mut_with_ticks::<T>(location.component_id, location.entity)?,
-        };
-        Some((value, ticks, tick, mutation_recorder))
+        if Self::protected_derived_component_name::<T>().is_some()
+            || Self::protected_authored_component_name::<T>().is_some()
+        {
+            return None;
+        }
+        unsafe {
+            // Tracked fetch checks registration/entity before advancing the clock.
+            let (component_id, internal) = {
+                let read = &*world;
+                (
+                    read.registered_component_id::<T>()?,
+                    read.internal_entity(entity)?,
+                )
+            };
+            let tick = Self::query_mutation_change_tick(world);
+            let mutation_recorder =
+                super::dirty_state::DerivedStateDirty::component_mutation_recorder_unchecked::<T>(
+                    std::ptr::addr_of!((*world).derived_state_dirty),
+                    entity,
+                );
+            let (value, ticks) = match T::STORAGE_TYPE {
+                StorageType::Table => {
+                    let location = (&*std::ptr::addr_of!((*world).entity_registry))
+                        .location_for_internal(internal)
+                        .ok()?
+                        .location;
+                    let index = &*std::ptr::addr_of!((*world).archetype_index);
+                    let slot = index.column_slot(location.archetype_id, component_id)?;
+                    index.get_mut_with_ticks_by_slot_unchecked::<T>(
+                        location.archetype_id,
+                        location.table_row,
+                        slot,
+                    )?
+                }
+                StorageType::SparseSet => (&*std::ptr::addr_of!((*world).component_storage))
+                    .get_mut_with_ticks_unchecked::<T>(component_id, internal)?,
+            };
+            Some((value, ticks, tick, mutation_recorder))
+        }
+    }
+
+    /// Fetches a compiled plain row under the same grant as `query_component_mut`.
+    ///
+    /// # Safety
+    /// The caller must satisfy `query_component_mut`'s requirements and keep `location`
+    /// tied to the current entity/storage generation. The lower owner checks the actual
+    /// value type; the location's user-visible Rust type identifier is not an authority.
+    pub(crate) unsafe fn query_component_mut_at_location<'world, T>(
+        world: *mut Self,
+        entity: EntityId,
+        location: ComponentStorageLocation,
+    ) -> Option<&'world mut T>
+    where
+        T: Component,
+    {
+        if Self::protected_derived_component_name::<T>().is_some()
+            || Self::protected_authored_component_name::<T>().is_some()
+        {
+            return None;
+        }
+        unsafe {
+            let tick = Self::query_mutation_change_tick(world);
+            Self::mark_query_component_mutation::<T>(world, entity);
+            match location.storage_type {
+                StorageType::Table => (&*std::ptr::addr_of!((*world).archetype_index))
+                    .get_mut_at_tick_by_slot_unchecked::<T>(
+                        location.table_archetype?,
+                        location.table_row?,
+                        location.table_column_slot?,
+                        tick,
+                    ),
+                StorageType::SparseSet => (&*std::ptr::addr_of!((*world).component_storage))
+                    .get_mut_at_tick_unchecked::<T>(location.component_id, location.entity, tick),
+            }
+        }
+    }
+
+    /// Fetches a compiled tracked row under the same grant as `query_component_mut_with_ticks`.
+    ///
+    /// # Safety
+    /// The tracked raw fetch requirements apply, and `location` must remain tied to the
+    /// current entity/storage generation. Only row leaves and the sink leaf may escape.
+    pub(crate) unsafe fn query_component_mut_with_ticks_at_location<'world, T>(
+        world: *mut Self,
+        entity: EntityId,
+        location: ComponentStorageLocation,
+    ) -> Option<(
+        &'world mut T,
+        &'world mut ComponentTicks,
+        ChangeTick,
+        crate::scene::ecs::ComponentMutationRecorder<'world>,
+    )>
+    where
+        T: Component,
+    {
+        if Self::protected_derived_component_name::<T>().is_some()
+            || Self::protected_authored_component_name::<T>().is_some()
+        {
+            return None;
+        }
+        unsafe {
+            let tick = Self::query_mutation_change_tick(world);
+            let mutation_recorder =
+                super::dirty_state::DerivedStateDirty::component_mutation_recorder_unchecked::<T>(
+                    std::ptr::addr_of!((*world).derived_state_dirty),
+                    entity,
+                );
+            let (value, ticks) = match location.storage_type {
+                StorageType::Table => (&*std::ptr::addr_of!((*world).archetype_index))
+                    .get_mut_with_ticks_by_slot_unchecked::<T>(
+                        location.table_archetype?,
+                        location.table_row?,
+                        location.table_column_slot?,
+                    )?,
+                StorageType::SparseSet => (&*std::ptr::addr_of!((*world).component_storage))
+                    .get_mut_with_ticks_unchecked::<T>(location.component_id, location.entity)?,
+            };
+            Some((value, ticks, tick, mutation_recorder))
+        }
     }
 
     pub fn contains_entity(&self, entity: EntityId) -> bool {
@@ -351,7 +643,7 @@ impl World {
             return Ok(false);
         }
         self.validate_mobility_change(entity, mobility)?;
-        self.insert(entity, mobility)?;
+        self.insert_prevalidated_authored_component(entity, mobility)?;
         Ok(true)
     }
 }

@@ -1,3 +1,4 @@
+// 从固定版本 WOC 源码投影地下探索模块的怪物、交互物、谜题与危险区，生成可核对的 JSON 和 Zr 内容。
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -110,6 +111,7 @@ function gitShow(sourcePath) {
   });
 }
 
+// 展平模块出生点组、谜题索引和危险区，同时保持源码顺序。
 function renderZr(modules) {
   return [
     '// Generated fixed Delve spawn, interactable and hazard catalog.',

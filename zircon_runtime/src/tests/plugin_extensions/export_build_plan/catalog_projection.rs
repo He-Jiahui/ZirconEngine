@@ -115,7 +115,13 @@ fn source_template_links_rendering_default_owner_features() {
     .with_strategy(ExportPackagingStrategy::SourceTemplate)
     .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
 
-    let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
+    let plugin_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("runtime crate has workspace parent")
+        .join("zircon_plugins");
+    let plan =
+        ExportBuildPlan::from_project_manifest_with_plugin_root(&manifest, "client", plugin_root)
+            .unwrap();
     let plugin_source = generated_file(&plan, "src/zircon_plugins.rs");
     let cargo_manifest = generated_file(&plan, "Cargo.toml");
 

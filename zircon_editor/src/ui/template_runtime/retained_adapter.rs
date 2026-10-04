@@ -85,6 +85,12 @@ pub struct RetainedUiHostRouteProjection {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RetainedUiHostNodeModel {
+    pub source_path: Option<String>,
+    pub source_node_id: Option<String>,
+    pub instance_path:
+        Option<Vec<zircon_runtime_interface::ui::v2::UiTemplateNodeInstancePathStep>>,
+    pub source_surface_frame:
+        Option<std::sync::Arc<zircon_runtime_interface::ui::surface::UiSurfaceFrame>>,
     pub node_id: String,
     pub surface_node_id: Option<UiNodeId>,
     pub has_workbench_icon_tooltip: bool,
@@ -132,6 +138,9 @@ pub struct RetainedUiHostNodeModel {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RetainedUiHostProjection {
+    /// Exact immutable publication from which the live host projection was built.
+    pub source_surface_frame:
+        Option<std::sync::Arc<zircon_runtime_interface::ui::surface::UiSurfaceFrame>>,
     pub document_id: String,
     pub nodes: Vec<RetainedUiHostNodeModel>,
 }
@@ -151,6 +160,7 @@ impl RetainedUiHostAdapter {
     pub fn build_projection(host_model: &RetainedUiHostModel) -> RetainedUiHostProjection {
         let component_registry = retained_component_registry();
         RetainedUiHostProjection {
+            source_surface_frame: None,
             document_id: host_model.document_id.clone(),
             nodes: host_model
                 .nodes
@@ -184,6 +194,10 @@ impl RetainedUiHostAdapter {
             Some(options.join(", "))
         };
         RetainedUiHostNodeModel {
+            source_path: node.source_path.clone(),
+            source_node_id: node.source_node_id.clone(),
+            instance_path: node.instance_path.clone(),
+            source_surface_frame: None,
             node_id: node.node_id.clone(),
             surface_node_id: node.surface_node_id,
             has_workbench_icon_tooltip: node.has_workbench_icon_tooltip,
@@ -198,7 +212,14 @@ impl RetainedUiHostAdapter {
             icon: extract_string(&properties, "icon"),
             properties,
             style_tokens: node.style_tokens.clone(),
-            component_role: component_descriptor.map(|descriptor| descriptor.role.clone()),
+            // Unknown source-owned components may still declare a stable role
+            // in their ZUI attributes.  Descriptor roles remain authoritative
+            // for registered components; the attribute is a narrow fallback
+            // for reference fixtures and extension components that are not in
+            // the shared catalog yet.
+            component_role: component_descriptor
+                .map(|descriptor| descriptor.role.clone())
+                .or_else(|| string_attribute(&node.attributes, "component_role")),
             value_text: string_attribute(&node.attributes, "value_text").or_else(|| {
                 node.attributes
                     .get("value")
@@ -378,14 +399,9 @@ fn map_value(value: &Value) -> RetainedUiHostValue {
 }
 
 #[cfg(test)]
-mod performance_tests {
-    #[test]
-    fn retained_projection_maps_properties_once_and_reuses_parsed_options() {
-        let source = include_str!("retained_adapter.rs");
-        let cloned_attributes = ["node", ".attributes", ".clone()"].concat();
-        let duplicated_options = ["options_text_", "attribute(&node.attributes"].concat();
+#[path = "tests/retained_adapter_performance_tests.rs"]
+mod performance_tests;
 
-        assert!(!source.contains(&cloned_attributes));
-        assert!(!source.contains(&duplicated_options));
-    }
-}
+#[cfg(test)]
+#[path = "tests/retained_adapter.rs"]
+mod tests;

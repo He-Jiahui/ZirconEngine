@@ -1,3 +1,6 @@
+// 调用端：npm run generate:gathering-contract (tools/package.json)；职责：合并采集节点、专业上限和类型字段，生成采集约定。
+// 输入边界：src/sim/professions/gathering.ts, src/sim/content/gather_nodes.ts, src/sim/content/professions.ts, src/sim/types.ts；--check 比较生成结果，不改写目标文件。
+
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

@@ -7,7 +7,7 @@ use crate::core::runtime_event_consumer::{
     EditorRuntimeEventConsumerPendingDeliveryBudget,
 };
 
-use super::{
+use super::support::{
     budget, register_state, FakeGateway, RecordingState, ReentrantObservationState, CAPABILITY,
 };
 

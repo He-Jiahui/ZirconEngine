@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
-use crate::asset::{AssetUri, RGBA8_UNORM_SRGB_FORMAT, TextureAsset, TextureAssetDescriptor};
+use crate::asset::{AssetUri, TextureAsset, TextureAssetDescriptor, RGBA8_UNORM_SRGB_FORMAT};
 use crate::core::framework::render::{
     CapturedFrame, OverlayLineSegment, ProjectionMode, RenderCameraTarget,
     RenderCameraTargetGraphImportStatus, RenderCameraTargetKind, RenderCameraTargetWritebackStatus,
@@ -109,16 +109,12 @@ fn render_product_ui_submit_records_graph_pass_order_and_payload_stats() {
         stats.last_graph_executed_passes.last().map(String::as_str),
         Some("runtime-ui")
     );
-    assert!(
-        stats
-            .last_graph_executed_executor_ids
-            .contains(&"ui.screen-space".to_string())
-    );
-    assert!(
-        stats
-            .last_graph_executed_executor_ids
-            .contains(&"overlay.gizmo".to_string())
-    );
+    assert!(stats
+        .last_graph_executed_executor_ids
+        .contains(&"ui.screen-space".to_string()));
+    assert!(stats
+        .last_graph_executed_executor_ids
+        .contains(&"overlay.gizmo".to_string()));
 }
 
 #[test]
@@ -171,6 +167,58 @@ fn render_product_ui_submit_keeps_presentation_target_under_dynamic_resolution()
         stats.last_ui_graph_pass_order.as_deref(),
         Some("postprocess-overlay-ui")
     );
+}
+
+#[test]
+fn scene_gizmo_depth_reconstruction_matches_odd_output_and_scaled_render_size() {
+    for scale in [1.0, 0.5] {
+        let framework =
+            WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
+        let output_size = UVec2::new(934, 632);
+        let viewport = framework
+            .create_viewport(RenderViewportDescriptor::new(output_size))
+            .unwrap();
+        framework
+            .set_quality_profile(
+                viewport,
+                RenderQualityProfile::new("scene-gizmo-output-depth")
+                    .with_pipeline_asset(RenderPipelineHandle::new(1))
+                    .with_clustered_lighting(false)
+                    .with_screen_space_ambient_occlusion(false)
+                    .with_temporal_history(false)
+                    .with_bloom(false)
+                    .with_color_grading(false),
+            )
+            .unwrap();
+        let mut extract = perspective_extract_with_overlay_lattice();
+        assert!(!extract.debug.overlays.scene_gizmos.is_empty());
+        extract.view.camera.dynamic_resolution =
+            RenderDynamicResolutionSettings::fixed_scale(scale);
+        extract.view.sync_selected_descriptor_camera_payload();
+        framework
+            .submit_frame_extract_with_ui(viewport, extract, None)
+            .unwrap_or_else(|error| {
+                panic!("nonempty gizmo should render at scale {scale}: {error}")
+            });
+        let stats = framework.query_stats().unwrap();
+        assert_eq!(stats.last_frame_target_size, Some(output_size));
+        let reconstructed = stats
+            .last_graph_executed_passes
+            .iter()
+            .position(|pass| pass == "overlay-depth-reconstruct")
+            .expect("overlay depth reconstruction must execute");
+        let gizmo = stats
+            .last_graph_executed_passes
+            .iter()
+            .position(|pass| pass == "overlay-gizmo")
+            .expect("nonempty gizmo graph pass must execute");
+        assert!(reconstructed < gizmo);
+        let frame = framework
+            .capture_frame(viewport)
+            .unwrap()
+            .expect("gizmo frame should remain capturable");
+        assert_eq!((frame.width, frame.height), (output_size.x, output_size.y));
+    }
 }
 
 #[test]
@@ -321,16 +369,12 @@ fn render_product_ui_submit_keeps_ui_pixels_over_scene_overlay_product() {
         stats.last_ui_graph_pass_order.as_deref(),
         Some("postprocess-overlay-ui")
     );
-    assert!(
-        stats
-            .last_graph_executed_executor_ids
-            .contains(&"overlay.gizmo".to_string())
-    );
-    assert!(
-        stats
-            .last_graph_executed_executor_ids
-            .contains(&"ui.screen-space".to_string())
-    );
+    assert!(stats
+        .last_graph_executed_executor_ids
+        .contains(&"overlay.gizmo".to_string()));
+    assert!(stats
+        .last_graph_executed_executor_ids
+        .contains(&"ui.screen-space".to_string()));
 
     let inner_ui_origin = UVec2::new(104, 80);
     let inner_ui_size = UVec2::new(112, 80);

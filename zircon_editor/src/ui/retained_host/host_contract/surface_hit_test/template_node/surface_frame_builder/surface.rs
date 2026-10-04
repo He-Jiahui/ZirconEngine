@@ -23,12 +23,13 @@ thread_local! {
 pub(in crate::ui::retained_host::host_contract) fn build_template_surface_frame(
     nodes: &ModelRc<TemplatePaneNodeData>,
     surface_size: UiSize,
+    include_non_dispatchable: bool,
 ) -> Option<Arc<UiSurfaceFrame>> {
-    let mut dispatchable_nodes = nodes
+    let mut surface_nodes = nodes
         .iter()
         .enumerate()
-        .filter(|(_, node)| is_dispatchable(node));
-    let first_dispatchable = dispatchable_nodes.next()?;
+        .filter(|(_, node)| include_non_dispatchable || is_dispatchable(node));
+    let first_node = surface_nodes.next()?;
 
     #[cfg(test)]
     TEMPLATE_SURFACE_FRAME_BUILD_COUNT.with(|count| count.set(count.get().saturating_add(1)));
@@ -42,10 +43,11 @@ pub(in crate::ui::retained_host::host_contract) fn build_template_surface_frame(
     );
     surface.tree.insert_root(template_surface_root(root_frame));
 
-    for (row, node) in std::iter::once(first_dispatchable).chain(dispatchable_nodes) {
-        let _ = surface
-            .tree
-            .insert_child(UiNodeId::new(1), template_surface_tree_node(row, node));
+    for (row, node) in std::iter::once(first_node).chain(surface_nodes) {
+        let _ = surface.tree.insert_child(
+            UiNodeId::new(1),
+            template_surface_tree_node(row, node, is_dispatchable(node)),
+        );
     }
 
     surface.rebuild();

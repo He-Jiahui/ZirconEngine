@@ -9,8 +9,8 @@ use crate::core::math::Real;
 use crate::core::{CoreError, CoreRuntime, TimePolicy, TimePolicyTransaction};
 use crate::plugin::RuntimeExtensionRegistry;
 use crate::scene::{
-    FixedStepFailurePhase, SystemStage, SystemTickContext, World, create_default_level,
-    module_descriptor,
+    create_default_level, module_descriptor, FixedStepFailurePhase, SystemStage, SystemTickContext,
+    World,
 };
 
 #[test]
@@ -135,16 +135,12 @@ fn fixed_runtime_system_receives_each_committed_simulation_tick_context() {
 
     let observed = observed.lock().unwrap();
     assert_eq!(observed.len(), 2);
-    assert!(
-        observed
-            .iter()
-            .all(|tick| tick.stage() == SystemStage::FixedUpdate)
-    );
-    assert!(
-        observed
-            .iter()
-            .all(|tick| tick.clock_domain() == ClockDomainId::WorldFixed)
-    );
+    assert!(observed
+        .iter()
+        .all(|tick| tick.stage() == SystemStage::FixedUpdate));
+    assert!(observed
+        .iter()
+        .all(|tick| tick.clock_domain() == ClockDomainId::WorldFixed));
     assert_eq!(observed[0].outer_frame_index(), 1);
     assert_eq!(
         observed[0].simulation_tick().map(|tick| tick.tick_index()),

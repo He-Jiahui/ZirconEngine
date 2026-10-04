@@ -124,6 +124,7 @@ fn cs_build_global_sdf(@builtin(global_invocation_id) id: vec3<u32>) {
         }
     }
     page_atlas[page.atlas_slot * PAGE_VOXEL_COUNT + cell_index] = bitcast<u32>(distance);
+    // 每页仅由首个 invocation 写完成位；宿主在整次 dispatch 完成后才读回并提交页。
     if (cell_index == 0u) {
         page_completions[page_index] = 1u;
     }

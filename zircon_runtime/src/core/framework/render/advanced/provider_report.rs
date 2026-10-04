@@ -2,7 +2,7 @@ use super::super::{RenderCapabilityMismatchDetail, RenderCapabilitySummary};
 use super::AdvancedRenderFeature;
 
 #[cfg(test)]
-#[path = "provider_report/capacity_tests.rs"]
+#[path = "provider_report/tests/capacity_tests.rs"]
 mod capacity_tests;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -69,6 +69,7 @@ impl AdvancedRenderDegradation {
     }
 }
 
+/// 渲染器构建时发现的 provider 身份快照；仅有 profile 请求不代表 provider 可运行。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct AdvancedProviderAvailability {
     pub virtual_geometry_provider_id: Option<String>,
@@ -100,6 +101,7 @@ impl AdvancedProviderAvailability {
     }
 }
 
+/// 单个高级特性的资格及退化原因，供 viewport 提交和诊断共同读取。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AdvancedProviderReport {
     pub feature: AdvancedRenderFeature,
@@ -110,6 +112,7 @@ pub struct AdvancedProviderReport {
 }
 
 impl AdvancedProviderReport {
+    /// 合并 profile 请求、后端能力和 provider 注册状态；三者都满足才进入 Ready。
     pub fn from_inputs(
         feature: AdvancedRenderFeature,
         requested: bool,

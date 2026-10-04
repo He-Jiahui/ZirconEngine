@@ -12,17 +12,21 @@ pub(crate) fn resolve_document_workspace(
 ) -> DocumentWorkspaceSnapshot {
     match node {
         DocumentNode::SplitNode {
+            node_id,
             axis,
             ratio,
             first,
             second,
+            ..
         } => DocumentWorkspaceSnapshot::Split {
+            node_id: *node_id,
             axis: *axis,
             ratio: *ratio,
             first: Box::new(resolve_document_workspace(first, instances, descriptors)),
             second: Box::new(resolve_document_workspace(second, instances, descriptors)),
         },
         DocumentNode::Tabs(stack) => DocumentWorkspaceSnapshot::Tabs {
+            node_id: stack.node_id,
             tabs: stack
                 .tabs
                 .iter()

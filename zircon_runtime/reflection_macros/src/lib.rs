@@ -9,6 +9,7 @@ mod module;
 mod tokens;
 
 #[cfg(test)]
+#[path = "tests/cases.rs"]
 mod tests;
 
 #[proc_macro_derive(ZirconScriptType, attributes(zircon_script))]

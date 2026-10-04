@@ -1,3 +1,4 @@
+# 核对 PBR RenderDoc 重放的捕获身份、失败报告与临时副本清理。
 import hashlib
 import io
 import subprocess
@@ -7,7 +8,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_validate_shader_pbr_renderdoc_replay import (
+from tools.analysis.profiling.shader_pbr.zircon_validate_shader_pbr_renderdoc_replay import (
     _BoundedByteTail,
     _ReplayProcessResult,
     main,
@@ -27,7 +28,7 @@ class ZirconValidateShaderPbrRenderdocReplayTests(unittest.TestCase):
             completed = _ReplayProcessResult(0, "", "")
 
             with mock.patch(
-                "tools.zircon_validate_shader_pbr_renderdoc_replay._run_replay_process",
+                "tools.analysis.profiling.shader_pbr.zircon_validate_shader_pbr_renderdoc_replay._run_replay_process",
                 return_value=completed,
             ) as run:
                 evidence = validate_renderdoc_replay(capture_path, executable=executable)
@@ -70,7 +71,7 @@ class ZirconValidateShaderPbrRenderdocReplayTests(unittest.TestCase):
             completed = _ReplayProcessResult(3, "replay stdout tail", "replay stderr tail")
 
             with mock.patch(
-                "tools.zircon_validate_shader_pbr_renderdoc_replay._run_replay_process",
+                "tools.analysis.profiling.shader_pbr.zircon_validate_shader_pbr_renderdoc_replay._run_replay_process",
                 return_value=completed,
             ):
                 with self.assertRaisesRegex(
@@ -90,7 +91,7 @@ class ZirconValidateShaderPbrRenderdocReplayTests(unittest.TestCase):
                 return _ReplayProcessResult(0, "", "")
 
             with mock.patch(
-                "tools.zircon_validate_shader_pbr_renderdoc_replay._run_replay_process",
+                "tools.analysis.profiling.shader_pbr.zircon_validate_shader_pbr_renderdoc_replay._run_replay_process",
                 side_effect=replace_capture,
             ):
                 with self.assertRaisesRegex(RuntimeError, "changed during replay"):
@@ -106,7 +107,7 @@ class ZirconValidateShaderPbrRenderdocReplayTests(unittest.TestCase):
                 return _ReplayProcessResult(0, "", "")
 
             with mock.patch(
-                "tools.zircon_validate_shader_pbr_renderdoc_replay._run_replay_process",
+                "tools.analysis.profiling.shader_pbr.zircon_validate_shader_pbr_renderdoc_replay._run_replay_process",
                 side_effect=delete_capture,
             ):
                 with self.assertRaisesRegex(
@@ -122,7 +123,7 @@ class ZirconValidateShaderPbrRenderdocReplayTests(unittest.TestCase):
             timeout = subprocess.TimeoutExpired(["renderdoccmd"], 5)
 
             with mock.patch(
-                "tools.zircon_validate_shader_pbr_renderdoc_replay._run_replay_process",
+                "tools.analysis.profiling.shader_pbr.zircon_validate_shader_pbr_renderdoc_replay._run_replay_process",
                 side_effect=timeout,
             ):
                 with self.assertRaisesRegex(
@@ -132,7 +133,7 @@ class ZirconValidateShaderPbrRenderdocReplayTests(unittest.TestCase):
                     validate_renderdoc_replay(capture_path)
 
             with mock.patch(
-                "tools.zircon_validate_shader_pbr_renderdoc_replay._run_replay_process",
+                "tools.analysis.profiling.shader_pbr.zircon_validate_shader_pbr_renderdoc_replay._run_replay_process",
                 side_effect=FileNotFoundError(2, "missing command"),
             ):
                 with self.assertRaisesRegex(
@@ -179,7 +180,7 @@ class ZirconValidateShaderPbrRenderdocReplayTests(unittest.TestCase):
                 return _ReplayProcessResult(0, "", "")
 
             with mock.patch(
-                "tools.zircon_validate_shader_pbr_renderdoc_replay._run_replay_process",
+                "tools.analysis.profiling.shader_pbr.zircon_validate_shader_pbr_renderdoc_replay._run_replay_process",
                 side_effect=alter_snapshot,
             ):
                 with self.assertRaisesRegex(RuntimeError, "snapshot changed during replay"):
@@ -197,10 +198,10 @@ class ZirconValidateShaderPbrRenderdocReplayTests(unittest.TestCase):
 
             try:
                 with mock.patch(
-                    "tools.zircon_validate_shader_pbr_renderdoc_replay._run_replay_process",
+                    "tools.analysis.profiling.shader_pbr.zircon_validate_shader_pbr_renderdoc_replay._run_replay_process",
                     return_value=_ReplayProcessResult(0, "", ""),
                 ), mock.patch(
-                    "tools.zircon_validate_shader_pbr_renderdoc_replay._remove_snapshot",
+                    "tools.analysis.profiling.shader_pbr.zircon_validate_shader_pbr_renderdoc_replay._remove_snapshot",
                     side_effect=fail_snapshot_cleanup,
                 ):
                     with self.assertRaisesRegex(RuntimeError, "snapshot cleanup failed"):
@@ -222,10 +223,10 @@ class ZirconValidateShaderPbrRenderdocReplayTests(unittest.TestCase):
             timeout = subprocess.TimeoutExpired(["renderdoccmd"], 5)
             try:
                 with mock.patch(
-                    "tools.zircon_validate_shader_pbr_renderdoc_replay._run_replay_process",
+                    "tools.analysis.profiling.shader_pbr.zircon_validate_shader_pbr_renderdoc_replay._run_replay_process",
                     side_effect=timeout,
                 ), mock.patch(
-                    "tools.zircon_validate_shader_pbr_renderdoc_replay._remove_snapshot",
+                    "tools.analysis.profiling.shader_pbr.zircon_validate_shader_pbr_renderdoc_replay._remove_snapshot",
                     side_effect=fail_snapshot_cleanup,
                 ):
                     with self.assertRaisesRegex(

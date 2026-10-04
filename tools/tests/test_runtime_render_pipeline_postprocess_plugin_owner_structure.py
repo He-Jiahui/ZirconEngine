@@ -1,17 +1,15 @@
 import unittest
 from pathlib import Path
 
-
+# 验证渲染流水线后处理插件的职责切分：插件输入路由应子节点持有，并运行时预算守卫读取插件输入归属。
 class RuntimeRenderPipelinePostprocessPluginOwnerStructureTests(unittest.TestCase):
     def test_plugin_input_routes_are_child_owned(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
         routes_path = (
-            repo_root
-            / "zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes.rs"
+            repo_root / "zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/tests/postprocess_routes.rs"
         )
         plugin_inputs_path = (
-            repo_root
-            / "zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes/plugin_inputs.rs"
+            repo_root / "zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes/tests/plugin_inputs.rs"
         )
 
         routes = routes_path.read_text(encoding="utf-8")
@@ -55,14 +53,14 @@ class RuntimeRenderPipelinePostprocessPluginOwnerStructureTests(unittest.TestCas
         ).read_text(encoding="utf-8")
 
         self.assertIn(
-            "render_pipeline_asset/compile_tests/postprocess_routes/plugin_inputs.rs",
+            "render_pipeline_asset/compile_tests/postprocess_routes/tests/plugin_inputs.rs",
             budget_guard,
         )
         self.assertIn("plugin_inputs.as_str()", budget_guard)
 
     def test_plan_and_module_docs_record_plugin_input_owner(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
-        child_path = "postprocess_routes/plugin_inputs.rs"
+        child_path = "postprocess_routes/tests/plugin_inputs.rs"
         status = (
             "runtime_01_15_render_pipeline_postprocess_plugin_input_owner_split_"
             "static_passed_cargo_deferred"

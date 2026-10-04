@@ -5,7 +5,9 @@ from collections.abc import Mapping
 
 RENDER_SCOPED_MIGRATION_DEBT_PREFIXES = (
     "runtime-naming:legacy: legacy-runtime-graphics-debt:",
+    "runtime-naming:legacy: legacy-runtime-render-graph-access-debt:",
     "hard-cutover: legacy-runtime-graphics-debt:",
+    "hard-cutover: legacy-runtime-render-graph-access-debt:",
 )
 
 

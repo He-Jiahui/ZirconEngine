@@ -1,3 +1,6 @@
+//! 实现 ZRNN v1 小端编解码：张量记录固定宽度，算子记录按四字节对齐。
+//! 权重区起点按 `NN_WEIGHT_ALIGNMENT` 对齐。
+
 use std::fmt;
 use std::mem::size_of;
 
@@ -61,6 +64,8 @@ impl fmt::Display for NnModelFormatError {
 impl std::error::Error for NnModelFormatError {}
 
 impl NnModelAsset {
+    // BUG: [CR-neural_model_clean-0001] 通过 validate 的手工模型可写出超过 v1 解码器计数上限的文件；同一文件随后无法由 from_znn_bytes 解码。
+    /// 将结构有效的模型编码为 ZRNN v1 小端字节序列。
     pub fn to_znn_bytes(&self) -> Result<Vec<u8>, NnModelFormatError> {
         self.validate().map_err(NnModelFormatError::Validation)?;
 
@@ -115,6 +120,7 @@ impl NnModelAsset {
         Ok(bytes)
     }
 
+    /// 从 ZRNN 字节切片解码，并检查声明计数、section 范围和资源上限。
     pub fn from_znn_bytes(bytes: &[u8]) -> Result<Self, NnModelFormatError> {
         enforce_resource_limit("artifact_bytes", bytes.len(), ZNN_MAX_ARTIFACT_BYTES)?;
         let header = bytes
@@ -428,105 +434,5 @@ fn read_u64(bytes: &[u8], offset: usize) -> Result<u64, NnModelFormatError> {
 }
 
 #[cfg(test)]
-mod performance_tests {
-    use std::hint::black_box;
-    use std::mem::size_of;
-    use std::time::Instant;
-
-    use super::{decode_tensor_ids, read_u16};
-
-    const SAMPLE_PAIRS: usize = 21;
-    const ITERATIONS_PER_SAMPLE: usize = 2_048;
-    const INPUT_COUNT: usize = 192;
-    const OUTPUT_COUNT: usize = 63;
-
-    #[test]
-    #[ignore = "release performance evidence"]
-    fn znn_tensor_id_decode_release_gate() {
-        let encoded = encoded_tensor_ids(INPUT_COUNT + OUTPUT_COUNT);
-        for _ in 0..128 {
-            black_box(decode_tensor_ids(&encoded, INPUT_COUNT, OUTPUT_COUNT).unwrap());
-            black_box(decode_tensor_ids_legacy(&encoded, INPUT_COUNT));
-        }
-
-        let mut legacy_samples_ns = Vec::with_capacity(SAMPLE_PAIRS);
-        let mut optimized_samples_ns = Vec::with_capacity(SAMPLE_PAIRS);
-        for pair_index in 0..SAMPLE_PAIRS {
-            if pair_index % 2 == 0 {
-                legacy_samples_ns.push(measure_legacy(&encoded));
-                optimized_samples_ns.push(measure_optimized(&encoded));
-            } else {
-                optimized_samples_ns.push(measure_optimized(&encoded));
-                legacy_samples_ns.push(measure_legacy(&encoded));
-            }
-        }
-
-        let legacy_p95_ns = nearest_rank_percentile(&legacy_samples_ns, 95);
-        let optimized_p95_ns = nearest_rank_percentile(&optimized_samples_ns, 95);
-        assert!(
-            u128::from(optimized_p95_ns) * 100 <= u128::from(legacy_p95_ns) * 110,
-            "optimized P95 {optimized_p95_ns}ns exceeded the 10% regression ceiling over legacy P95 {legacy_p95_ns}ns"
-        );
-
-        println!(
-            "PERF-MVP-PLUGINS02-ZNN-BOUNDED-LOADER sample_pairs={SAMPLE_PAIRS} iterations_per_sample={ITERATIONS_PER_SAMPLE} tensor_ids_per_op={} legacy_allocations_per_op=3 optimized_allocations_per_op=2 allocation_reduction_pct=33 legacy_id_writes_per_op={} optimized_id_writes_per_op={} id_write_reduction_pct=50 legacy_samples_ns={} optimized_samples_ns={} legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} target_ratio_pct=110",
-            INPUT_COUNT + OUTPUT_COUNT,
-            (INPUT_COUNT + OUTPUT_COUNT) * 2,
-            INPUT_COUNT + OUTPUT_COUNT,
-            join_samples(&legacy_samples_ns),
-            join_samples(&optimized_samples_ns),
-        );
-    }
-
-    fn measure_legacy(encoded: &[u8]) -> u64 {
-        let started = Instant::now();
-        for _ in 0..ITERATIONS_PER_SAMPLE {
-            black_box(decode_tensor_ids_legacy(encoded, INPUT_COUNT));
-        }
-        u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX)
-    }
-
-    fn measure_optimized(encoded: &[u8]) -> u64 {
-        let started = Instant::now();
-        for _ in 0..ITERATIONS_PER_SAMPLE {
-            black_box(decode_tensor_ids(encoded, INPUT_COUNT, OUTPUT_COUNT).unwrap());
-        }
-        u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX)
-    }
-
-    fn decode_tensor_ids_legacy(encoded: &[u8], input_count: usize) -> (Vec<u16>, Vec<u16>) {
-        let tensor_ids = encoded
-            .chunks_exact(size_of::<u16>())
-            .map(|value| read_u16(value, 0).unwrap())
-            .collect::<Vec<_>>();
-        (
-            tensor_ids[..input_count].to_vec(),
-            tensor_ids[input_count..].to_vec(),
-        )
-    }
-
-    fn encoded_tensor_ids(count: usize) -> Vec<u8> {
-        (0..count)
-            .flat_map(|index| {
-                u16::try_from(index)
-                    .expect("benchmark tensor id should fit u16")
-                    .to_le_bytes()
-            })
-            .collect()
-    }
-
-    fn nearest_rank_percentile(samples: &[u64], percentile: usize) -> u64 {
-        let mut ordered = samples.to_vec();
-        ordered.sort_unstable();
-        let rank = ordered.len().saturating_mul(percentile).div_ceil(100);
-        ordered[rank.saturating_sub(1)]
-    }
-
-    fn join_samples(samples: &[u64]) -> String {
-        samples
-            .iter()
-            .map(u64::to_string)
-            .collect::<Vec<_>>()
-            .join(",")
-    }
-}
+#[path = "tests/format_performance_tests.rs"]
+mod performance_tests;

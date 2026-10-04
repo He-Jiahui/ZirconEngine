@@ -33,9 +33,10 @@ impl AssetDeletePreflight {
         write_policy: AssetSourceWritePolicy,
     ) -> Self {
         let topology = AssetMutationDeletePreflight::evaluate(registry, target_uuid);
-        let target = topology.target().cloned();
-        let referencers = topology.referencers().to_vec();
-        let disposition = match topology.disposition() {
+        let blocked_by_referencers =
+            topology.disposition() == AssetMutationDeleteDisposition::BlockedByReferencers;
+        let (topology_disposition, target, referencers) = topology.into_parts();
+        let disposition = match topology_disposition {
             AssetMutationDeleteDisposition::MissingAsset => AssetDeleteDisposition::MissingAsset,
             AssetMutationDeleteDisposition::UnsupportedSubasset => {
                 AssetDeleteDisposition::UnsupportedSubasset
@@ -47,9 +48,7 @@ impl AssetDeletePreflight {
                 });
                 if !writable {
                     AssetDeleteDisposition::ReadOnlySource
-                } else if topology.disposition()
-                    == AssetMutationDeleteDisposition::BlockedByReferencers
-                {
+                } else if blocked_by_referencers {
                     AssetDeleteDisposition::BlockedByReferencers
                 } else {
                     AssetDeleteDisposition::Allowed

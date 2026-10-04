@@ -1,3 +1,4 @@
+//! 串行化每张任务的事件生命周期，使逃逸的上下文不能在终态后复活进度；同一事件先更新权威进度，再进入有界日志等待主循环投递。
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use super::event_journal::EditorJobEventJournal;
@@ -70,22 +71,5 @@ impl JobEventSink {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-
-    use super::*;
-
-    #[test]
-    fn sink_reuses_the_spec_stable_label_allocation() {
-        let spec = super::super::EditorJobSpec::new("stable-job-label", JobCategory::Index);
-        let sink = JobEventSink::new(
-            JobId::new(1),
-            Arc::clone(&spec.label),
-            JobCategory::Index,
-            EditorJobEventJournal::default(),
-            EditorJobProgressSource::default(),
-        );
-
-        assert!(Arc::ptr_eq(&spec.label, &sink.label));
-    }
-}
+#[path = "tests/event_sink.rs"]
+mod tests;

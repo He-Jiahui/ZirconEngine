@@ -7,10 +7,10 @@ related_code:
   - zircon_plugins/texture/editor/src/plugin.rs
   - zircon_runtime/src/plugin/mod.rs
 design_references:
-  - docs/ui-and-layout/ai-workbench-style/component-prototype/web-native-handoff-matrix.md
+  - docs/ui/ai-workbench-style/component-prototype/web-native-handoff-matrix.md
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/07-windowing-chrome-tabs-and-dockable-drawers.md
-  - docs/zircon_app/plugins.md
+  - docs/crates/zircon_app/plugins.md
 status: planned
 ---
 # 08 插件页面接口与编辑器消息交互

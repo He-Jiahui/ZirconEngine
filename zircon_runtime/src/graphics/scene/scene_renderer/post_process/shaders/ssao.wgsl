@@ -1,3 +1,6 @@
+// AO evaluate 根据已验证的深度、世界法线和共享 HZB 计算可见度，之后由 spatial pass 去噪。
+// CPU 的 CompiledAoProfile 决定全/半分辨率与采样预算，并拒绝与运行时 allocation 不一致的输入。
+// 复用几何阶段的相机 uniform 完整布局；投影逆矩阵、世界位置与视线必须对应同一个视口。
 struct SceneUniform {
     view_proj: mat4x4<f32>,
     view_proj_unjittered: mat4x4<f32>,
@@ -11,6 +14,7 @@ struct SceneUniform {
     camera_view_direction: vec4<f32>,
 };
 
+// 与 feature descriptor 上传布局一致，世界半径/厚度/偏置使用米；输入与工作尺寸分开。
 struct SsaoParams {
     // xy = AO work extent, z = slice count, w = samples per slice side.
     extent_and_sample_counts: vec4<u32>,
@@ -71,6 +75,7 @@ fn pixel_noise(pixel: vec2<u32>) -> vec2<f32> {
     );
 }
 
+// HZB 的 r 为标准设备最远深度，在选定 mip 上读取后才用相机逆矩阵重建世界位置。
 fn load_hzb_world_position(uv: vec2<f32>, requested_mip: u32) -> vec3<f32> {
     let mip_count = max(textureNumLevels(hzb_furthest_tex), 1u);
     let maximum_mip = min(u32(params.intensity_and_limits.y), mip_count - 1u);
@@ -82,6 +87,7 @@ fn load_hzb_world_position(uv: vec2<f32>, requested_mip: u32) -> vec3<f32> {
     return reconstruct_world_position(safe_uv, depth);
 }
 
+// 每个 slice 的位掩码记录已遮挡的角扇区，重复命中只计一次；当前预算使扇区数不超过六。
 fn update_sectors(
     minimum_horizon: f32,
     maximum_horizon: f32,
@@ -103,6 +109,7 @@ fn update_sectors(
     return bitmask | sector_mask;
 }
 
+// 厚度近似为遮挡体提供角宽，并按世界距离渐退；超出半径的样本不能影响当前像素。
 fn process_sample(
     delta_position: vec3<f32>,
     view_vector: vec3<f32>,
@@ -157,6 +164,7 @@ fn cs_main(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
         input_extent - vec2<u32>(1u),
     );
     let input_coord = vec2<i32>(input_coord_u32);
+    // 背景或无法解码法线时发布完全可见，避免缺失几何证据变成黑色遮挡。
     let center_depth = textureLoad(depth_tex, input_coord, 0);
     if (center_depth >= 0.999999) {
         textureStore(ao_out, work_coord, vec4<f32>(1.0));
@@ -174,6 +182,7 @@ fn cs_main(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     let center_position = center_position_unbiased
         + world_normal * params.world_radius_thickness_bias_falloff.z;
 
+    // 透视视线来自相机到像素的位置，正交视线使用 CPU 发布的固定方向，二者不可互换。
     let perspective_view = normalize_or(
         scene.camera_world_position.xyz - center_position,
         vec3<f32>(0.0, 0.0, 1.0),

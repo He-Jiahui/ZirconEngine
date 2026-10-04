@@ -108,6 +108,7 @@ pub canEquipForClass(classIndex: int, itemIndex: int): bool {
     return catalog.itemAllowsClass(itemIndex, playerClass);
 }
 
+/// 与库存穿戴许可复用同一物品等级规则；调用方须先区分“索引有效”和“当前等级允许贡献”。
 pub itemContributesAtLevel(level: int, itemIndex: int): bool {
     if (level < 1 || itemIndex < 0 || itemIndex >= catalog.count("item")) {
         return false;
@@ -142,6 +143,7 @@ armorRank(armorType: string): int {
 // The baseline contains the source start weapon plus chest. Only a mainhand
 // override removes its corresponding starting contribution; the chest stays
 // part of the M5 baseline until its full source identity is materialized.
+/// 进入角色派生属性前先把装备索引映射到表单输入；覆盖主手时需移除默认武器贡献，等级门槛不满足的装备不会再贡献属性。
 pub applyToBaselineInput(
     input: formDerived.FormDerivedInput, classIndex: int, state: M5EquipmentState
 ): void {

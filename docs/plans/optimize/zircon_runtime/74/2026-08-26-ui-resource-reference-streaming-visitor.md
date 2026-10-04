@@ -31,10 +31,22 @@ an intermediate pointer array proportional to the total URI count.
 | URI string clones during traversal | 0 | 0 | unchanged |
 | Traversal complexity | O(U) plus temporary-vector growth | O(U) streaming callbacks | same linear bound, lower allocation traffic |
 
-The ignored release gate runs 17 alternating legacy/visitor sample pairs over
-4,096 resource URIs. Acceptance requires visitor nearest-rank P95 to be at most
-80% of legacy P95, a minimum 20% reduction. Exact Windows timing values remain
-pending the batched coordinator run.
+The ignored release gate runs 101 alternating legacy/visitor sample pairs over
+4,096 resource URIs. Its marker reports the derived `legacy_first_pairs=51` and
+`optimized_first_pairs=50` counts so the odd-sized alternating schedule is auditable.
+Acceptance requires visitor nearest-rank P95 to be at most 80% of legacy P95, a minimum 20%
+reduction. Exact Windows timing values remain pending the batched managed run. The current
+combined Runtime/Editor source
+contract loader separately passes `2002/2002` across `561` files in `12.503s`.
+That receipt does not replace the ignored Release marker or product timing gate.
+
+### 2026-09-18 evidence refresh
+
+The TDD source contract first failed against the old 17-pair marker (RED), then passed after the
+schedule was raised to 101 pairs and the marker exposed the derived 51/50 first-run split (GREEN).
+The combined Runtime/Editor benchmark-evidence batch passes `26/26` in `0.034s`; the all-surface
+performance-contract discovery passes `2438/2438` in `92.731s`. These are source-contract and
+benchmark-wiring receipts only; managed Cargo/Release and product percentile gates remain pending.
 
 ## Acceptance
 

@@ -19,7 +19,7 @@ def function_body(source: str, signature: str) -> str:
                 return source[opening + 1 : index]
     raise AssertionError(f"unterminated function: {signature}")
 
-
+# 读取实现源码约束独立能力视图存储：有查询提供与状态索引，并带状态移动一个持有键进入状态索引。
 class DisjointCapabilityViewStoragePerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

@@ -6,7 +6,7 @@ fn runtime_15_ssr_gpu_context_tests_are_child_owner_split() {
         "graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection.rs",
     );
     let tests = read_runtime_src(
-        "graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection/tests.rs",
+        "graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection/tests/cases.rs",
     );
 
     let plan_07 = read_repo(
@@ -67,7 +67,7 @@ fn runtime_15_ssr_gpu_context_tests_are_child_owner_split() {
             parent.as_str(),
         ),
         (
-            "render_pass_execution_context/gpu/post_process/screen_space_reflection/tests.rs",
+            "render_pass_execution_context/gpu/post_process/screen_space_reflection/tests/cases.rs",
             tests.as_str(),
         ),
     ] {
@@ -93,7 +93,7 @@ fn runtime_15_ssr_gpu_context_tests_are_child_owner_split() {
                 "SSR GPU context test owner split",
                 "render_plan07_ssr_gpu_context_test_owner_split_static_passed_cargo_deferred_active_compile_lane",
                 "graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection.rs",
-                "graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection/tests.rs",
+                "graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection/tests/cases.rs",
                 "runtime_15_ssr_gpu_context_tests_are_child_owner_split",
             ],
         );

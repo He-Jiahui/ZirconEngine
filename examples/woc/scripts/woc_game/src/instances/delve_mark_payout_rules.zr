@@ -1,6 +1,7 @@
 // Pure projection of delveMarkPayout. RNG has already produced the repeat-normal chance bit.
 var content = %import("instances/delve_mark_payout_content");
 
+/// 返回本次印记额度，不增加每日次数；调用方在完整结算后更新次数，重复普通难度的机会位须由同一结算随机链提供。
 pub marksForClear(
     dailyMarkClears: int,
     heroic: bool,

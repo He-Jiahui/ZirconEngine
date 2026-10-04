@@ -63,10 +63,10 @@ This 2026-07-22 manifest is historical read-only audit evidence. Its hashes pred
 | test | `zircon_runtime/src/scene/tests/dynamic_scene_asset_reload.rs` | `26fd4cb30aaf1d04af866140e439e69939c2ed6b8f78d99e02f9f1b786a03eee` |
 | test | `zircon_runtime/src/dynamic_api/session/tests/frame_demand.rs` | `385a09b96593bff2bf78dd40d135722d9972ab89f5466dddd269a0f9218c8419` |
 | test | `zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs` | `d5197adeb17dbd7ea5ac32075ce61c6cef9ad0c656952543938f37511b3cca73` |
-| docs | `docs/zircon_runtime/asset/facade.md` | `04c5a7b8bff2580858fb76e41708d7feb21dabd1ff9a06d1d1f4e85f8b65cf35` |
-| docs | `docs/zircon_runtime/asset/watcher.md` | `ac3e3a5e4af27c356e55081b4618d07e144b72621c13f811c75c71132faf2bfc` |
-| docs | `docs/zircon_runtime/scene/dynamic_scene.md` | `995c38bd99242898f68feb6307e940eb11788f7a200c8689a9ab38ababb78482` |
-| docs | `docs/zircon_runtime/dynamic_api/session.md` | `c33192246e57f7ce1e0ef79ac4f8cce5dd544191a8372470de62797716d51adf` |
+| docs | `docs/crates/zircon_runtime/asset/facade.md` | `04c5a7b8bff2580858fb76e41708d7feb21dabd1ff9a06d1d1f4e85f8b65cf35` |
+| docs | `docs/crates/zircon_runtime/asset/watcher.md` | `ac3e3a5e4af27c356e55081b4618d07e144b72621c13f811c75c71132faf2bfc` |
+| docs | `docs/crates/zircon_runtime/scene/dynamic_scene.md` | `995c38bd99242898f68feb6307e940eb11788f7a200c8689a9ab38ababb78482` |
+| docs | `docs/crates/zircon_runtime/dynamic_api/session.md` | `c33192246e57f7ce1e0ef79ac4f8cce5dd544191a8372470de62797716d51adf` |
 
 ## 2026-08-10 Current-Source Forward Repair
 

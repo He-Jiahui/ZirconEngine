@@ -40,7 +40,7 @@ plan_sources:
 | GEN-S1 | MUST | 公开形态固定为 `zircon_app` / `zircon_runtime` / `zircon_editor` / `zircon_runtime_interface`（+`zircon_hub` 启动器、`zircon_plugins` 独立 workspace）。新增顶层 crate 须先修订 frameworks/index 决策记录 | 评审 |
 | GEN-S2 | MUST | 依赖方向遵守 `architecture-overview.md` 图 2 分层：只准上层依赖下层；app/editor/插件禁止直连 `zr_*` 内部 crate | G1 |
 | GEN-S3 | MUST | 根文件（lib.rs/mod.rs/main.rs）只含子模块声明、curated re-export、最小入口接线；禁止行为逻辑与跨域编排 | G2 |
-| GEN-S4 | MUST | 生产 Rust 文件 <1000 行；超限按 owner 分组拆分，禁止按行数机械切块 | G2 |
+| GEN-S4 | SHOULD | 约 1000 行触发职责审查；新增混合职责按 owner 拆分，既有大文件中的局部修复不自动扩为整文件重构。实际结构守卫失败需报告并处理其适用范围，禁止绕过守卫或机械切块 | G2 / 评审 |
 | GEN-S5 | MUST | 重型依赖（wgpu/winit/naga/gltf/image 等）只允许出现在批准的宿主 crate（图 2）；新增外部依赖走 `[workspace.dependencies]` 单源并说明选型 | G6 |
 | GEN-S6 | SHOULD | 目录即架构：新子系统先画目录/文件角色再写代码，对照参考引擎目录形态（zr-reference-engine-routing） | 评审 |
 
@@ -78,7 +78,7 @@ plan_sources:
 
 | ID | 级别 | 规则 | 守卫 |
 |----|------|------|------|
-| GEN-D1 | MUST | 有意义的模块新建/重组必须创建或更新 `docs/` 源路径镜像文档，维护 `related_code/implementation_files/plan_sources/tests` 头部 | G7 |
+| GEN-D1 | MUST | 仅在公共契约、跨模块边界、操作流程或持久设计事实新增或失实时更新其现有文档 owner；无合适 owner 才新建。保留文档的路径头部必须真实，普通切片不强制镜像文档 | G7 |
 | GEN-D2 | MUST | 文档头部引用的路径必须真实存在 | G7 |
 | GEN-D3 | MUST | 权威计划集（frameworks/runtime/render/shader/text/editor_layout）之间的交叠先勾稽后动代码；规则修改只改本总纲并同步守卫 | 评审 |
 | GEN-D4 | SHOULD | 公共 API（门面 re-export 面、interface 全部、plugin_sdk 全部）有 rustdoc；示例优先于形容词 | 评审 |
@@ -143,9 +143,9 @@ plan_sources:
 | ID | 级别 | 规则 | 守卫 |
 |----|------|------|------|
 | WF-1 | MUST | 实质性工作先计划后代码：落在对应权威计划集（frameworks/runtime/render/...），里程碑分"实现切片 + 测试阶段"，测试阶段声明命令/验收证据/待更新文档 | 流程 |
-| WF-2 | MUST | 架构级改动先写架构注记（owner 边界/所需契约/参考引擎先例/深度理由/验证层），过架构深度测试再实现（zr-architecture-first-engineering） | 评审 |
-| WF-3 | MUST | 构建纪律：所有 Cargo 构建只允许写入 D/E/F 盘根目录下的 `cargo-targets`、`targets`、`ZirconBuilds`（共九个根及其 WSL 挂载等价路径）；必须由协调器按仓库、Windows/WSL、工具链、目标架构、工作区、构建配置组成兼容键并独占单一主池；无完整键或显式临时产物释放后立即删除；磁盘 ≤50GB 按 LRU 清理空闲池；禁止在其他位置构建或为忙碌兼容键另建目录 | 流程 |
-| WF-4 | MUST | 提交面完整：一个里程碑的提交含代码 + 测试 + docs 镜像 + 计划状态回写；禁止"代码先行文档后补"跨里程碑欠账 | 评审 |
+| WF-2 | MUST | 架构级改动先明确受影响的 owner、契约、生命周期和验证范围；按实际设计疑问查参考源码，不以抽象深度或未来模块倍数作为停工条件 | 评审 |
+| WF-3 | MUST | 构建通过 managed validator；目录、兼容键、35 GiB 准入余量及终态清理由 `../zircon-dev/references/cargo-target-disk-policy.md` 单源规定。禁止绕过租约、另建非授权池或删除活动产物 | 流程 |
+| WF-4 | MUST | 经授权提交时包含该里程碑实际需要的代码、测试及失实文档修正，并保留授权位置的验收证据；不为凑齐类别生成文档或改写只读计划定义。提交和通知权限按根 AGENTS.md | 评审 |
 | WF-5 | SHOULD | 本地合入前跑 `tools/check-conventions`（守卫聚合脚本，计划 06 M1）；CI 是兜底不是首道门 | 流程 |
 
 ---

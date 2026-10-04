@@ -1,3 +1,7 @@
+// 调用入口：在 examples/woc/tools 目录直接执行 node wos62_arcane_explosion_static_guard.mjs；缺少源码契约时脚本抛错退出。
+// 对照锁定的奥术爆炸即时范围效果，检查 M4 生成数据、共享范围目标判定与即时内核、世界施法入口和自测。
+// 这些断言只核对源码文本与元数据结构；通过并不证明运行时行为等价。
+
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -52,6 +56,7 @@ requireText(catalog, /if \(id == "arcane_explosion"\) \{ return 11; \}/, "M4 Arc
 requireText(generatedEffects, /pub typeAt[\s\S]*?if \(index == 11\)[\s\S]*?return "aoeDamage";/, "M4 Arcane Explosion effect type is missing");
 requireText(generatedEffects, /pub metric[\s\S]*?if \(index == 11\)[\s\S]*?if \(field == "max"\) \{ return 31\.0; \}[\s\S]*?if \(field == "min"\) \{ return 26\.0; \}[\s\S]*?if \(field == "radius"\) \{ return 10\.0; \}/, "M4 Arcane Explosion effect metrics are missing");
 
+// 即时范围内核须以同一个资格条件统计目标并决定哪些命中消耗随机数。
 const ground = read("scripts", "woc_game", "src", "combat", "ground_aoe_state.zr");
 requireText(
   ground,

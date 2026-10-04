@@ -1,3 +1,4 @@
+# 核对视口设置变更反馈为真实状态变化，重复输入不触发呈现失效。
 from pathlib import Path
 import unittest
 

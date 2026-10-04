@@ -4,10 +4,11 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::shared::{
-    CollectionRowVisual, RowRenderState, icon_command, quad_command, row_label, text_command,
+    icon_command, quad_command, row_label, text_command, CollectionRowVisual, RowRenderState,
 };
 
 #[cfg(test)]
+#[path = "list/tests/capacity_tests.rs"]
 mod capacity_tests;
 
 pub(super) fn list_row_commands(
@@ -20,6 +21,7 @@ pub(super) fn list_row_commands(
     opacity: f32,
 ) -> Vec<UiRenderCommand> {
     let visual = CollectionRowVisual::resolve(metadata);
+    // 标签需为尾部动作图标预留空间；三类命令始终归属于同一行节点。
     let mut commands = Vec::with_capacity(3);
     if let Some(background) = background(&visual, state) {
         commands.push(quad_command(

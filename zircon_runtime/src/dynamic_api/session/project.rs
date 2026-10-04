@@ -14,9 +14,10 @@ use crate::core::framework::project::ProjectPluginManifest;
 use crate::core::manager::{navigation_manager_handle, resolve_manager_service};
 use crate::core::CoreHandle;
 use crate::diagnostic_log::{write_log, write_log_lazy};
+use crate::plugin::RuntimeExtensionRegistry;
 use crate::scene::{DynamicScene, DynamicSceneAssetReloadQueue, LevelMetadata, LevelSystem, World};
 use crate::script::{VmPluginManager, VM_PLUGIN_MANAGER_NAME};
-use crate::text::font::FontCollectionService;
+use crate::text::TextRuntimeContext;
 
 use super::error::{RuntimeProjectError, RuntimeProjectResult};
 use super::runtime_ui::RuntimeUiSurfaceSet;
@@ -161,11 +162,12 @@ enum PreparedPlaySceneKind {
 
 pub(super) fn project_opened_log(info: &ProjectInfo) -> String {
     format!(
-        "runtime_project_opened root={} name={} default_scene={} library_version={} assets={} ready_assets={} failed_assets={} registry_diagnostics={}",
+        "runtime_project_opened root={} name={} default_scene={} library_version={} project_generation={} assets={} ready_assets={} failed_assets={} registry_diagnostics={}",
         ProjectPaths::display_path(Path::new(&info.root_path)).display(),
         info.name,
         info.default_scene_uri,
         info.library_version,
+        info.project_generation,
         info.asset_count,
         info.ready_asset_count,
         info.failed_asset_count,
@@ -195,6 +197,7 @@ impl RuntimePreparedProject {
     pub(super) fn open_project_assets(
         &mut self,
         core: &CoreHandle,
+        runtime_extensions: &mut RuntimeExtensionRegistry,
     ) -> RuntimeProjectResult<ProjectInfo> {
         let asset_manager = asset_manager_handle(core)
             .and_then(|handle| resolve_manager_service(core, handle))
@@ -202,17 +205,36 @@ impl RuntimePreparedProject {
                 root: self.root.clone(),
                 source,
             })?;
-        let project = self.project.take().ok_or_else(|| {
+        let project = self.project.as_ref().ok_or_else(|| {
             RuntimeProjectError::PreparedProjectManagerTransferred {
                 root: self.root.clone(),
             }
         })?;
-        asset_manager
-            .open_prepared_project(project)
-            .map_err(|source| RuntimeProjectError::OpenProjectAssets {
+        let previous_extensions = runtime_extensions.clone();
+        let previous_project_registry = project.scene_component_registry_snapshot();
+        runtime_extensions
+            .apply_scene_component_codecs_to_project_manager(project)
+            .map_err(|source| RuntimeProjectError::RegisterSceneComponentCodecs {
                 root: self.root.clone(),
                 source,
-            })
+            })?;
+        let project_for_activation = project.clone();
+        match asset_manager.open_prepared_project(project_for_activation) {
+            Ok(info) => {
+                // Commit the prepared manager only after the asset manager has published its
+                // generation. This leaves the original owner available for an ordinary retry.
+                self.project.take();
+                Ok(info)
+            }
+            Err(source) => {
+                project.restore_scene_component_registry(previous_project_registry);
+                *runtime_extensions = previous_extensions;
+                Err(RuntimeProjectError::OpenProjectAssets {
+                    root: self.root.clone(),
+                    source,
+                })
+            }
+        }
     }
 
     pub(super) fn load_default_level(
@@ -262,7 +284,9 @@ impl RuntimePreparedProject {
                 })?;
                 let level = crate::scene::create_level(
                     core,
-                    World::new(),
+                    // A Play snapshot restores authored state; it must not inherit the
+                    // Camera, DirectionalLight, and Cube from a new-scene template.
+                    World::empty(),
                     LevelMetadata {
                         project_root: Some(self.root_display()),
                         asset_uri: None,
@@ -323,8 +347,21 @@ impl RuntimePreparedProject {
     pub(super) fn load_runtime_ui_surfaces(
         &self,
         core: &CoreHandle,
-        font_collection: Arc<FontCollectionService>,
+        text_context: Arc<TextRuntimeContext>,
     ) -> RuntimeProjectResult<RuntimeUiSurfaceSet> {
+        if self.manifest.ui_roots.is_empty() {
+            return Ok(RuntimeUiSurfaceSet::default());
+        }
+        let driver = core
+            .resolve_driver_handle::<crate::ui::UiRuntimeDriver>(crate::ui::UI_RUNTIME_DRIVER_NAME)
+            .and_then(|handle| handle.enter())
+            .map_err(|source| RuntimeProjectError::AdmitRuntimeUi { source })?;
+        if !driver
+            .admit_project()
+            .map_err(|source| RuntimeProjectError::AdmitRuntimeUi { source })?
+        {
+            return Ok(RuntimeUiSurfaceSet::default());
+        }
         let asset_manager = project_asset_manager_handle(core)
             .and_then(|handle| resolve_manager_service(core, handle))
             .map_err(|source| RuntimeProjectError::ResolveProjectAssetManager {
@@ -340,7 +377,7 @@ impl RuntimePreparedProject {
             &project,
             asset_manager.as_ref(),
             &self.manifest.ui_roots,
-            font_collection,
+            text_context,
         )
     }
 
@@ -563,8 +600,11 @@ impl From<&ProjectManifest> for RuntimeLoadedProjectManifest {
 }
 
 #[cfg(test)]
-#[path = "project/runtime61_characterization.rs"]
+#[path = "project/tests/runtime61_characterization.rs"]
 mod runtime61_characterization;
 #[cfg(test)]
-#[path = "project/tests.rs"]
+#[path = "project/tests/cases.rs"]
 mod tests;
+#[cfg(test)]
+#[path = "project/tests/ui_admission_tests.rs"]
+mod ui_admission_tests;

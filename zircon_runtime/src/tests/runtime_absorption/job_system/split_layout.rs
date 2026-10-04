@@ -1,3 +1,4 @@
+//! 任务系统的执行模型、并行来源与文档门禁保持同一口径。通过源码文本核对父子路由、状态镜像和文件预算。
 const PARENT_SOURCE: &str = include_str!("../job_system.rs");
 const INVENTORY_SOURCE: &str = include_str!("inventory.rs");
 const INVENTORY_AUDIT_SOURCE: &str = include_str!("inventory/audit.rs");
@@ -19,7 +20,7 @@ const STRUCTURE_CONVENTION_PLAN: &str =
 const REVIEW_FINDINGS_PLAN: &str =
     include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md");
 const MODULE_CONVENTION_DOC: &str =
-    include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
+    include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 const FRAMEWORKS_02_PLAN: &str = include_str!(
     "../../../../../docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md"
 );

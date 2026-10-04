@@ -24,8 +24,8 @@ related_code:
   - zircon_hub/package.json
   - zircon_hub/web/src
   - zircon_hub/tests
-  - tools/ui-profile-scale-fixture.ps1
-  - tools/profile-capture-manifest.ps1
+  - tools/analysis/profiling/ui/ui-profile-scale-fixture.ps1
+  - tools/analysis/profiling/shared/profile-capture-manifest.ps1
 design_references:
   - dev/penpot/README.md
   - dev/penpot/HIGHLIGHTS.md
@@ -51,7 +51,7 @@ design_references:
   - dev/penpot/frontend/resources/styles/common/refactor/design-tokens.scss
   - dev/penpot/plugins/libs/plugin-types/index.d.ts
   - dev/penpot/plugins/apps/zircon-zui-plugin
-  - docs/ui-and-layout/editor-workbench-designs/STYLE-NOTES.md
+  - docs/ui/editor-workbench-designs/STYLE-NOTES.md
   - docs/plans/zircon_editor/editor_layout/index.md
   - docs/plans/zircon_editor/editor_ui/index.md
   - docs/plans/zircon_hub/index.md
@@ -126,7 +126,7 @@ tests:
   - tools/tests/ui-profile-capture-output-contract.Tests.ps1
 doc_type: milestone-detail
 status: design-ready
-last_refined: 2026-08-31
+last_refined: 2026-09-01
 ---
 
 # Penpot 参考的 ZirconEngine 完整界面设计计划
@@ -263,8 +263,12 @@ flowchart LR
 - 不可达 node 进入单独的 Detached lane，仍参与导出完整性检查，不会被静默删除。
 - `events`、bindings、repeat、imports、tokens、component contract、style scope 和未知表保存在 metadata 中；无显式映射时只读保留。
 - 导出先比较 baseline/current，只写回受支持且实际变化的字段；缺失、重复、循环或 metadata 不一致会阻止导出。
+- free 与 flex/grid 之间切换时，bridge 将 Penpot 派生的子项尺寸实体化为 `Fixed`；切回 free 时同时实体化当前位置。若 child mount 的 `slot.layout` 已覆盖同一轴，bridge 同步更新覆盖层并保留其他 slot 字段，避免再次导入或 Runtime 编译时回退到旧布局语义。
+- auto-layout 中由父级排布产生的 x/y 与 fill 尺寸不会伪装成作者编辑；不受 `.zui` profile 支持的 sizing、混合文本、复杂 paint 或非对称 gap 会阻止导出并要求恢复或重新导入。
+- 顶层 Penpot asset board 的 x/y 只表示 authoring canvas 摆放，不写成 Runtime surface 的屏幕偏移；A2-P parity harness 必须把 board 原点归一化为 `(0, 0)`，并以 board 的逻辑宽高作为 `UiSize` viewport 输入。根节点在产品中继续由 host viewport 定框，不能把设计画布坐标误当成运行时窗口坐标。
+- Penpot flex/grid 的容器 padding 当前可被 bridge 无损读取、编辑和写回 `nodes.<id>.layout.padding`，但 Runtime v2 retained surface 现阶段只消费 child mount 上的 `slot.layout.padding`。因此 A1 可声明 authoring round-trip 支持，A2 rendered parity 在 runtime/editor UI owner 选择并验证“确定性 lowering 到 parent-owned slots”或“新增原生 container content inset”之前必须保持未验收；禁止静默忽略 padding 或用截图掩盖差异。
 
-截至 2026-08-31，bridge 已对共享工作树中可读取的 303 个当前 v2 `.zui` 做解析、投影和再序列化审计，覆盖 5516 个语义节点；7 个 style、1 个 theme_tokens 的无 node profile 也可原样往返。15 个 v1/旧 kind 测试夹具按版本策略拒绝，1 个被其他会话从工作树删除的跟踪文件不计入兼容结论。A0/A1/A2 的实时证据和未闭合项由 [02 companion](./02-milestone-execution-and-evidence.md) 维护。
+截至 2026-09-01，bridge 已对共享工作树中 319 个受跟踪 `.zui` 做审计：304 个当前 v2 资产完成解析、投影和再序列化，覆盖 5524 个语义节点与 120 个可投影颜色；其中 7 个 style、1 个 theme_tokens 的无 node profile 可原样往返。其余 15 个均为 `zircon_editor/src/tests/fixtures/ui_zui` 下预期拒绝的 v1/旧 kind 测试夹具。A0、A1、A2-C/A2-P 的实时证据和未闭合项由 [02 companion](./02-milestone-execution-and-evidence.md) 维护。
 
 ## 2. 产品信息架构
 
@@ -380,7 +384,7 @@ var(--editor-surface-1) -> var(--editor-button-secondary-rest)
 
 ### 3.3 视觉基线
 
-- Editor 沿用 `docs/ui-and-layout/editor-workbench-designs/STYLE-NOTES.md` 的近黑表面、低圆角、1px 分隔和克制 teal；Penpot 的多主题思想用于组织 token，不覆盖现有品牌语言。
+- Editor 沿用 `docs/ui/editor-workbench-designs/STYLE-NOTES.md` 的近黑表面、低圆角、1px 分隔和克制 teal；Penpot 的多主题思想用于组织 token，不覆盖现有品牌语言。
 - Hub 保留 MUI 主题和既有品牌色，通过同名语义角色对齐 surface/content/status；不把 Editor 的暗色变量直接复制进 Hub。
 - 默认圆角只允许 token 中的 0/4/6/8/12 等离散值；工作台区域不使用渐变、发光、装饰性 orb 或嵌套卡片。
 - 字体、行高和数字字段必须固定在 token；数值输入使用等宽或 tabular numbers，避免 Inspector 读数跳动。

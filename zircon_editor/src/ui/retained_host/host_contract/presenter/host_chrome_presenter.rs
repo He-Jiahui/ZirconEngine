@@ -3,6 +3,7 @@ use super::super::diagnostics::{HostInvalidationDiagnostics, HostRefreshDiagnost
 use super::error::HostPresenterResult;
 
 #[cfg(test)]
+#[path = "host_chrome_presenter/tests/cases.rs"]
 mod tests;
 
 pub(in crate::ui::retained_host::host_contract) trait HostChromePresenter {
@@ -25,5 +26,8 @@ pub(in crate::ui::retained_host::host_contract) trait HostChromePresenter {
         self.present(presentation, presentation_cursor, None, invalidation)
     }
 
+    fn submitted_text_profile(&self) -> Option<serde_json::Value> {
+        None
+    }
     fn diagnostics_snapshot(&self) -> HostRefreshDiagnostics;
 }

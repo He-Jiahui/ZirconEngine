@@ -215,7 +215,7 @@ for (const needle of [
 }
 
 invariant(
-  state.includes('writer.u16(<uint>67, 1, 1);'),
+  state.includes('writer.u16(schemaVersion, 1, 1);'),
   'WOS queued-on-swing persistence must remain in the current WOS envelope',
 );
 

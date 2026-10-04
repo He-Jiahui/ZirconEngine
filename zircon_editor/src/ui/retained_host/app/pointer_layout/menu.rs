@@ -1,5 +1,7 @@
 use super::super::*;
-use crate::ui::retained_host::menu_pointer::build_host_menu_pointer_layout;
+use crate::ui::retained_host::menu_pointer::{
+    build_host_menu_pointer_geometry_layout, build_host_menu_pointer_layout,
+};
 use crate::ui::retained_host::{HostMenuStateData, UiHostContext};
 
 impl RetainedEditorHost {
@@ -8,16 +10,33 @@ impl RetainedEditorHost {
         model: &WorkbenchViewModel,
         chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
         preset_names: &[String],
+        window_metrics_target: bool,
     ) {
         let outer_shell_frames = self.template_bridge.outer_shell_frames();
-        let next_layout = build_host_menu_pointer_layout(
-            &model.menu_bar,
-            chrome,
-            self.shell_size,
-            preset_names,
-            self.active_layout_preset.as_deref(),
-            Some(&outer_shell_frames),
-        );
+        // WindowMetrics is geometry-only; the first publication still establishes semantics.
+        let next_layout =
+            if window_metrics_target && !self.menu_pointer_layout.button_frames.is_empty() {
+                build_host_menu_pointer_geometry_layout(
+                    &self.menu_pointer_layout,
+                    &model.menu_bar,
+                    self.shell_size,
+                    Some(&outer_shell_frames),
+                )
+            } else {
+                zircon_runtime::profile_counter!(
+                    "editor",
+                    "ui.menu_pointer.semantic_product_build_count",
+                    1,
+                );
+                build_host_menu_pointer_layout(
+                    &model.menu_bar,
+                    chrome,
+                    self.shell_size,
+                    preset_names,
+                    self.active_layout_preset.as_deref(),
+                    Some(&outer_shell_frames),
+                )
+            };
         if self.menu_pointer_layout.as_ref() != &next_layout {
             self.menu_pointer_layout = Arc::new(next_layout);
         }

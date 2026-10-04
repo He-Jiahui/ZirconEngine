@@ -83,7 +83,7 @@ class RuntimeUiPointerComponentStateOwnerStructureTests(unittest.TestCase):
             / "docs/plans/optimize/zircon_runtime/11a-runtime-ui-architecture-tree-layout-input-accessibility-review.md",
             repo_root
             / "docs/plans/zircon_runtime/runtime/09/2026-08-07-runtime-ui-incremental-refresh.md",
-            repo_root / "docs/zircon_runtime/ui/architecture.md",
+            repo_root / "docs/crates/zircon_runtime/ui/architecture.md",
             repo_root / "docs/plans/engine-code-structure-convention.md",
             repo_root / "docs/plans/engine-code-review-findings-2026-06.md",
         )
@@ -98,6 +98,36 @@ class RuntimeUiPointerComponentStateOwnerStructureTests(unittest.TestCase):
             "tools/tests/test_runtime_ui_pointer_component_state_owner_structure.py",
         ):
             self.assertIn(current_path, runtime_plan)
+
+    def test_single_pointer_state_change_stays_allocation_free_until_batching(self) -> None:
+        repo_root = Path(__file__).resolve().parents[2]
+        source = (
+            repo_root
+            / "zircon_runtime/src/ui/surface/surface/pointer_component_events/state_invalidation.rs"
+        ).read_text(encoding="utf-8")
+        implementation = source.split("#[cfg(test)]", 1)[0]
+        single_path = implementation.split(
+            "pub(in crate::ui::surface::surface) fn apply_pointer_component_state(",
+            1,
+        )[1].split(
+            "pub(in crate::ui::surface::surface) fn apply_pointer_transient_state_dirty(",
+            1,
+        )[0]
+
+        self.assertIn("ChangedNodeAccumulator", implementation)
+        self.assertIn("let mut changed_nodes = ChangedNodeAccumulator::default();", single_path)
+        self.assertIn("changed_nodes.insert", single_path)
+        self.assertIn("changed_nodes.finish(self)", single_path)
+        self.assertNotIn("let mut changed_node_ids = BTreeSet::new()", single_path)
+
+        batch_path = implementation.split(
+            "pub(crate) fn mark_component_states_render_dirty(",
+            1,
+        )[1]
+        self.assertIn("if changed_node_ids.len() == 1", batch_path)
+        self.assertIn("mark_component_state_render_dirty(node_id)", batch_path)
+        roots_path = implementation.split("fn minimal_changed_subtree_roots(", 1)[1]
+        self.assertIn("Vec::with_capacity(changed_node_ids.len())", roots_path)
 
 
 if __name__ == "__main__":

@@ -90,7 +90,7 @@ source_recheck_required: true
 
 插件内部也没有收敛成一条求值链。公开manager仍使用按`windows(2)`线性查找的legacy channel sampler与字符串骨骼绑定，较新的evaluation pipeline使用compiled evaluator，state machine/graph又各自维护缓存与采样入口。热路径会同步load skeleton/clip/graph/state-machine/sequence资产，克隆参数map、player组件和字符串骨骼名，把本可复用的dense `PoseBuffer`重新展开成`Vec<AnimationPoseBone>`。direct clip worker最多四片，但owner线程仍同步等待`sync_channel`，忽略schedule失败，worker不返回时生产代码会panic。当前测试所称“zero allocation”只覆盖PoseBuffer局部操作，不覆盖完整帧。
 
-产品输入与输出也未闭合。首方glTF importer明确把每条animation写成“channel import is not implemented”的Data placeholder，skin和inverse-bind matrices也是generic Data；Animation自己的GPU skinning palette没有renderer consumer，所谓GPU/CPU parity测试只计算CPU matrix。pose apply依赖字符串骨骼名并在world-transform系统之后改写通用Scene node，更新错误被丢弃；physics bridge再复制一份字符串骨骼DTO。这个路径无法证明import、cook、retarget、evaluate、IK、root motion、skin deformation、render、physics与network使用同一skeleton/pose generation。
+产品输入与输出也未闭合。历史基线中的 glTF animation placeholder 已在当前 importer 中被移除：`add_gltf_animation_and_skin_subassets` 现在生成带 target-id 映射的 typed `AnimationClip` 与 `AnimationSkeleton`；但 `SkinN` 和 inverse-bind payload 仍以 generic `Data` subasset 发布，尚未形成 versioned `SkinBindingArtifact`。Animation自己的GPU skinning palette没有renderer consumer，所谓GPU/CPU parity测试只计算CPU matrix。pose apply依赖字符串骨骼名并在world-transform系统之后改写通用Scene node，更新错误被丢弃；physics bridge再复制一份字符串骨骼DTO。这个路径仍无法证明import、cook、retarget、evaluate、IK、root motion、skin deformation、render、physics与network使用同一skeleton/pose generation。
 
 Editor与NativeDynamic同样是声明层。Animation Editor注册的四个`plugins://animation/editor/*.zui`全部不存在；Animation Graph的三个ZUI与Timeline Sequence的一个ZUI也不存在。Graph/Timeline注册open/validate/compile descriptor，却没有产品operation factory/compiler handler；first-party editor catalog只链接Navigation与Neural，不链接Animation。dist则明确声明animation evaluation仍由source runtime托管，并以`is_stateless`、空command/event、无save/restore/unload/bridge导出metadata shell。
 
@@ -147,7 +147,7 @@ explicit source-linked Animation provider
   -> newer evaluation pipeline exists beside legacy manager sampler
 
 source assets
-  -> first-party glTF importer emits AnimationN Data placeholder
+  -> first-party glTF importer emits typed AnimationClip/AnimationSkeleton subassets
   -> SkinN and inverse bind matrices remain generic Data assets
   -> runtime hot path synchronously loads raw animation contracts
   -> compiled evaluator emits string-bearing pose DTO
@@ -281,9 +281,15 @@ source链接时可注册system、manager和复杂evaluator，native只导出regi
 
 当前load report能选择linked package或fallback，却没有Animation专属receipt说明manager实现、program/artifact schema、worker mode、render/physics adapters和degraded reason。必须让diagnostics、Editor和export消费同一不可伪造的activation结果。
 
-### NANI-P1-014 · glTF animation仍被首方importer产出为placeholder
+### NANI-P1-014 · glTF animation placeholder（历史基线；当前源码已修复该半段）
 
-`add_gltf_animation_placeholders_and_skin_subassets`明确写出channel import未实现。Plugins07已拥有importer遮蔽与artifact P0，本篇要求Animation产品gate必须使用真实clip oracle，拒绝Data placeholder进入Ready evaluator。
+历史快照中的 `add_gltf_animation_placeholders_and_skin_subassets` 曾明确写出
+channel import未实现。当前源码已改由
+`add_gltf_animation_and_skin_subassets` 生成 typed `AnimationClip`、
+`AnimationSkeleton` 和稳定 target-id 映射；因此该 placeholder 命题不再描述
+当前 animation clip path。Plugins07/Runtime08C 仍需为 Skin、inverse-bind 和
+完整 `SkinBindingArtifact` 建立同代 artifact/qualification，产品 gate 仍必须
+拒绝残留 generic Data 进入 Ready evaluator。
 
 ### NANI-P1-015 · Skin与inverse-bind matrices没有typed Animation artifact
 
@@ -505,7 +511,7 @@ FrameReceipt + QualificationReceipt
 
 ### M2 · Source到Artifact闭环
 
-- 修复glTF animation placeholder和generic skin Data，生成typed Skeleton/Clip/SkinBinding；
+- 保留当前 glTF typed Skeleton/Clip 导入，并修复剩余 generic skin/inverse-bind Data，生成 versioned SkinBinding；
 - 分离source/editor curve与compressed runtime artifact；
 - graph/state/rig/mask/sequence编译为versioned program；
 - 建立dependency digest、platform/server strip、DDC、atomic publish和last-good。
@@ -553,7 +559,7 @@ FrameReceipt + QualificationReceipt
 | G02 | 任一产品generation最多一个Animation provider；core fallback与plugin不再维护两套manager/module实现 |
 | G03 | capability row可回溯package、carrier、BuildSet、artifact schema、provider generation和qualification |
 | G04 | server artifact具有明确track/curve/event/root-motion/deformation strip policy与测试 |
-| G05 | glTF真实clip、skeleton、inverse bind、skin mapping进入typed artifact；Data placeholder被产品拒绝 |
+| G05 | glTF typed clip/skeleton 已有当前源码路径；inverse bind、skin mapping 与 versioned SkinBindingArtifact 仍须闭合，残留 Data placeholder 必须被产品拒绝 |
 | G06 | source/editor数据不进入frame evaluator；runtime只消费admitted resident artifact lease |
 | G07 | Clip/Graph/State/Rig/Sequence只有一个compiled evaluator owner，legacy sampler已删除 |
 | G08 | parameter和target使用stable slot/ID，steady frame不按bone name解析或克隆String |
@@ -602,7 +608,7 @@ FrameReceipt + QualificationReceipt
 | 项目 | 状态 | 证据 |
 |---|---|---|
 | Animation主包逐文件审查 | review_complete | 170文件、18,172行、634,036 bytes、129项test attribute、fingerprint `9fb8c3491df494af7b883afef0c2836a4910a595ef2ee60a91566a24b7877f34` |
-| fallback/App/catalog/Graph/Timeline/importer/consumer追踪 | review_complete | core/plugin双实现、ordinary App fallback、8份缺失ZUI、glTF placeholder、未接入GPU palette与stateless dist均已定位 |
+| fallback/App/catalog/Graph/Timeline/importer/consumer追踪 | review_complete | core/plugin双实现、ordinary App fallback、8份缺失ZUI、历史 glTF placeholder（当前 typed clip/skeleton 已落地）、未接入GPU palette与stateless dist均已定位 |
 | 参考引擎E3对照 | review_complete | Unreal artifact/parallel/editor、Bevy stable target/graph、Fyrox pose/ABSM、Godot phase/editor/render skeleton、Unity Graphics GPU product boundary |
 | 新增finding | review_complete | 0 P0 / 48 P1 / 12 P2；32项qualification gate |
 | Production与tests修改 | pending | 本篇未修改任何production/tests/Cargo/manifest |

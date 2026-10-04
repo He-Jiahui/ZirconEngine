@@ -15,7 +15,7 @@ tests:
   - tools/tests/test_zircon_export_native_dynamic_payload_directory_owner_boundaries.py
   - tools/tests/test_zircon_export_native_dynamic_payload_bundle_evidence_owner_boundaries.py
   - tools/tests/test_zircon_export_native_dynamic_payload_platform_bundle_handoff_owner_boundaries.py
-  - tools/zircon_export/tests/test_platform_bundle_native_dynamic_pipeline_payload.py
+  - tools/export/tests/test_platform_bundle_native_dynamic_pipeline_payload.py
 resolved_at: 2026-08-31
 ---
 

@@ -1,3 +1,4 @@
+// 图片节点与纯色/圆角几何分管线：纹理负责像素，实例 tint 承载 UI 颜色和透明度。
 struct VertexInput {
     @location(0) position: vec2<f32>,
     @location(1) uv: vec2<f32>,

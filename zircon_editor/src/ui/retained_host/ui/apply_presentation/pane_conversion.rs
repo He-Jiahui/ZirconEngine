@@ -201,7 +201,7 @@ pub(super) fn to_host_contract_pane(
         )
     } else if has_project_overview_payload {
         zircon_runtime::profile_scope!("editor", "retained_host", "convert_pane_project");
-        to_host_contract_project_overview_pane(data.native_body.project_overview.clone())
+        to_host_contract_project_overview_pane(data.native_body.project_overview)
     } else {
         host_contract::ProjectOverviewPaneData::default()
     };
@@ -224,7 +224,7 @@ pub(super) fn to_host_contract_pane(
         secondary_hint: data.secondary_hint,
         show_toolbar: data.show_toolbar,
         welcome: welcome_pane,
-        viewport: to_host_contract_scene_viewport_chrome(&data.viewport),
+        viewport: to_host_contract_scene_viewport_chrome(data.viewport),
         hierarchy,
         inspector,
         console,

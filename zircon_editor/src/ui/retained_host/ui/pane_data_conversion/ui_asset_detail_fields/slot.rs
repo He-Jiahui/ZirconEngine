@@ -1,3 +1,4 @@
+//! 插槽明细保留源节点和槽位身份，编辑事件据此回到资产设计器的原始对象。
 use crate::ui::asset_editor;
 
 use super::row_model::{push_detail_row, semantic_label, UiAssetDetailFieldRow};
@@ -202,5 +203,5 @@ fn slot_detail_row_capacity(data: &asset_editor::UiAssetEditorPanePresentation) 
 }
 
 #[cfg(test)]
-#[path = "slot/capacity_tests.rs"]
+#[path = "slot/tests/capacity_tests.rs"]
 mod capacity_tests;

@@ -1,10 +1,10 @@
 import unittest
 
-from tools.plugin_structure_audits.manifest_schema import (
+from tools.audits.plugins.manifest_schema import (
     collect_manifest_schema_violations,
 )
 
-
+# 用声音插件清单夹具覆盖能力状态行的格式、重复、目标模式与退役引用诊断。
 class PluginStructureAuditManifestSchemaCapabilityStatusesTests(unittest.TestCase):
     def test_manifest_schema_rejects_malformed_capability_status_row(self):
         violations: list[str] = []

@@ -115,6 +115,28 @@ fn shared_render_frame_extract_cache_clone_does_not_scale_with_scene_cardinality
     assert!(large.requested_bytes_p50 < 64 * 1024);
 }
 
+#[test]
+#[ignore = "release performance evidence; run through the validation coordinator"]
+fn viewport_snapshot_construction_moves_scene_without_retaining_a_deep_copy() {
+    for item_count in [1, MID_SCENE_ITEM_COUNT, SCENE_ITEM_COUNT] {
+        let packet = large_scene_packet(item_count);
+        let logical_bytes = logical_snapshot_bytes(item_count);
+        let legacy = profile_legacy_retained_snapshot_construction(&packet, logical_bytes);
+        let moved = profile_moved_snapshot_construction(&packet);
+
+        print_snapshot_construction_profile("legacy_retained_snapshot", item_count, legacy);
+        print_snapshot_construction_profile("canonical_extract_move", item_count, moved);
+
+        assert_eq!(moved.copied_scene_bytes_p50, 0);
+        if item_count == SCENE_ITEM_COUNT {
+            assert!(legacy.copied_scene_bytes_p50 > 0);
+            assert!(legacy.allocation_count_p50 > moved.allocation_count_p50);
+            assert!(legacy.requested_bytes_p50 > moved.requested_bytes_p50);
+            assert!(moved.elapsed_p50_ns < legacy.elapsed_p50_ns);
+        }
+    }
+}
+
 fn assert_cardinality_invariant(baseline: CloneProfileSummary, candidate: CloneProfileSummary) {
     assert_eq!(
         candidate.allocation_count_p50, baseline.allocation_count_p50,
@@ -179,10 +201,108 @@ fn profile_clone(extract: &RenderFrameExtract, logical_scene_bytes: u64) -> Clon
     }
 }
 
+fn profile_legacy_retained_snapshot_construction(
+    source: &SceneViewportRenderPacket,
+    logical_snapshot_bytes: u64,
+) -> CloneProfileSummary {
+    for _ in 0..WARMUP_COUNT {
+        let retained = source.clone();
+        let extract =
+            RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), retained.clone());
+        black_box((&retained, &extract));
+    }
+
+    profile_snapshot_construction(logical_snapshot_bytes, || {
+        let retained = source.clone();
+        begin_profile();
+        let started = Instant::now();
+        let extract =
+            RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), retained.clone());
+        let elapsed = started.elapsed().as_nanos() as u64;
+        let allocations = finish_profile();
+        black_box((&retained, &extract));
+        (allocations, elapsed)
+    })
+}
+
+fn profile_moved_snapshot_construction(source: &SceneViewportRenderPacket) -> CloneProfileSummary {
+    for _ in 0..WARMUP_COUNT {
+        let owned = source.clone();
+        black_box(RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(1),
+            owned,
+        ));
+    }
+
+    profile_snapshot_construction(0, || {
+        let owned = source.clone();
+        begin_profile();
+        let started = Instant::now();
+        let extract = RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), owned);
+        let elapsed = started.elapsed().as_nanos() as u64;
+        let allocations = finish_profile();
+        black_box(&extract);
+        (allocations, elapsed)
+    })
+}
+
+fn profile_snapshot_construction(
+    copied_scene_bytes: u64,
+    mut sample: impl FnMut() -> (AllocationSnapshot, u64),
+) -> CloneProfileSummary {
+    let mut elapsed_samples = Vec::with_capacity(SAMPLE_COUNT);
+    let mut allocation_samples = Vec::with_capacity(SAMPLE_COUNT);
+    let mut requested_byte_samples = Vec::with_capacity(SAMPLE_COUNT);
+    let mut peak_live_byte_samples = Vec::with_capacity(SAMPLE_COUNT);
+    for _ in 0..SAMPLE_COUNT {
+        let (allocations, elapsed) = sample();
+        elapsed_samples.push(elapsed);
+        allocation_samples.push(allocations.allocation_count);
+        requested_byte_samples.push(allocations.requested_bytes);
+        peak_live_byte_samples.push(allocations.peak_live_bytes);
+    }
+
+    elapsed_samples.sort_unstable();
+    allocation_samples.sort_unstable();
+    requested_byte_samples.sort_unstable();
+    peak_live_byte_samples.sort_unstable();
+    let p50 = SAMPLE_COUNT / 2;
+    let p95 = SAMPLE_COUNT - 1;
+    CloneProfileSummary {
+        allocation_count_p50: allocation_samples[p50],
+        requested_bytes_p50: requested_byte_samples[p50],
+        copied_scene_bytes_p50: copied_scene_bytes,
+        peak_live_bytes_p50: peak_live_byte_samples[p50],
+        elapsed_p50_ns: elapsed_samples[p50],
+        elapsed_p95_ns: elapsed_samples[p95],
+    }
+}
+
 fn print_profile(item_count: usize, profile: CloneProfileSummary) {
     println!(
         "RUNTIME07_RENDER_FRAME_EXTRACT_SHARED_V3 cache_clone_operation=retain_or_return meshes={} lights={} sprites={} samples={} warmups={} allocation_count_p50={} requested_bytes_p50={} copied_scene_bytes_p50={} peak_live_bytes_p50={} elapsed_p50_ns={} elapsed_p95_ns={}",
         item_count,
+        item_count,
+        item_count,
+        SAMPLE_COUNT,
+        WARMUP_COUNT,
+        profile.allocation_count_p50,
+        profile.requested_bytes_p50,
+        profile.copied_scene_bytes_p50,
+        profile.peak_live_bytes_p50,
+        profile.elapsed_p50_ns,
+        profile.elapsed_p95_ns,
+    );
+}
+
+fn print_snapshot_construction_profile(
+    operation: &str,
+    item_count: usize,
+    profile: CloneProfileSummary,
+) {
+    println!(
+        "RUNTIME07_VIEWPORT_SNAPSHOT_CONSTRUCTION_V1 operation={} meshes={} lights={} samples={} warmups={} allocation_count_p50={} requested_bytes_p50={} copied_scene_bytes_p50={} peak_live_bytes_p50={} elapsed_p50_ns={} elapsed_p95_ns={}",
+        operation,
         item_count,
         item_count,
         SAMPLE_COUNT,
@@ -201,6 +321,13 @@ fn logical_scene_bytes(item_count: usize) -> u64 {
         std::mem::size_of::<RenderMeshSnapshot>()
             + std::mem::size_of::<RenderDirectionalLightSnapshot>()
             + std::mem::size_of::<RenderSpriteSnapshot>(),
+    ) as u64
+}
+
+fn logical_snapshot_bytes(item_count: usize) -> u64 {
+    item_count.saturating_mul(
+        std::mem::size_of::<RenderMeshSnapshot>()
+            + std::mem::size_of::<RenderDirectionalLightSnapshot>(),
     ) as u64
 }
 
@@ -261,7 +388,60 @@ fn large_render_frame_extract(item_count: usize) -> RenderFrameExtract {
         common,
         material_alpha_mode: RenderMaterialAlphaMode::Opaque,
     };
-    let packet = SceneViewportRenderPacket {
+    let mut extract = RenderFrameExtract::from_snapshot(
+        RenderWorldSnapshotHandle::new(1),
+        large_scene_packet_from_parts(item_count, mesh, light),
+    );
+    extract.sprites.sprites = vec![sprite; item_count];
+    extract
+}
+
+fn large_scene_packet(item_count: usize) -> SceneViewportRenderPacket {
+    let model = ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
+        "runtime07/profile/model",
+    ));
+    let material = ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+        "runtime07/profile/material",
+    ));
+    let layer_mask = RenderLayerSet::from_scene_schema_v1_mask(1);
+    let common = RendererCommon {
+        layer_mask: layer_mask.clone(),
+        ..RendererCommon::default()
+    };
+    let mesh = RenderMeshSnapshot {
+        node_id: 1,
+        stable_instance_key: 1 << 16,
+        transform_revision: 0,
+        transform: Transform::default(),
+        model,
+        mesh: None,
+        material,
+        mesh_lod: None,
+        morph_weights: Vec::new(),
+        tint: Vec4::ONE,
+        mobility: Mobility::Dynamic,
+        static_state: Default::default(),
+        common,
+    };
+    let light = RenderDirectionalLightSnapshot {
+        node_id: 2,
+        light_id: 2,
+        layer_mask,
+        direction: Vec3::new(0.0, -1.0, 0.0),
+        color: Vec3::ONE,
+        intensity: 1.0,
+        mobility: Mobility::Dynamic,
+        shadow: None,
+    };
+    large_scene_packet_from_parts(item_count, mesh, light)
+}
+
+fn large_scene_packet_from_parts(
+    item_count: usize,
+    mesh: RenderMeshSnapshot,
+    light: RenderDirectionalLightSnapshot,
+) -> SceneViewportRenderPacket {
+    SceneViewportRenderPacket {
         scene: RenderSceneGeometryExtract {
             camera: Default::default(),
             meshes: vec![mesh; item_count],
@@ -280,10 +460,7 @@ fn large_render_frame_extract(item_count: usize) -> RenderFrameExtract {
             clear_color: Vec4::ZERO,
         },
         virtual_geometry_debug: None,
-    };
-    let mut extract = RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), packet);
-    extract.sprites.sprites = vec![sprite; item_count];
-    extract
+    }
 }
 
 fn begin_profile() {

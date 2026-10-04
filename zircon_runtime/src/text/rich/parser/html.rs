@@ -5,7 +5,7 @@ use crate::text::{
 
 use super::super::html_subset::{self, HtmlToken};
 use super::super::{RichParseBudget, RichTextContentTrust, RichTextParseError};
-use super::active_tags::{ActiveTag, ActiveTagClose, ActiveTagStack, current_link, current_style};
+use super::active_tags::{current_link, current_style, ActiveTag, ActiveTagClose, ActiveTagStack};
 use super::bidi_diagnostics::{
     push_literal_bidi_control_diagnostic, push_source_bidi_control_diagnostics,
 };
@@ -16,10 +16,11 @@ use super::html_diagnostics::{
 };
 use super::run_alignment::align_runs_to_graphemes_bounded;
 use super::{
-    ClosingDelimiterFrontier, append_inline_object, append_source_text_with_metadata,
-    append_text_with_metadata, markup_source_range, next_char_len, repeated_opening_delimiter_skip,
+    append_inline_object, append_source_text_with_metadata, append_text_with_metadata,
+    markup_source_range, next_char_len, repeated_opening_delimiter_skip, ClosingDelimiterFrontier,
 };
 
+/// 解析受限 HTML 子集，保留合法文本和内联对象，并把不支持或不完整的标记记录为诊断。
 pub(super) fn parse_html(
     markup: &str,
     budget: RichParseBudget,
@@ -40,6 +41,7 @@ pub(super) fn parse_html(
         }
         if remaining.starts_with('<') && !close_frontier.has_close_at_or_after(index + 1) {
             if html_subset::looks_like_tag_candidate(remaining) {
+                // 没有后续闭合分隔符时，候选标记作为原文保留，避免丢失用户可见输入。
                 append_html_text(
                     &mut result,
                     &markup[text_start..index],
@@ -206,6 +208,7 @@ pub(super) fn parse_html(
             RichTextAuthoringRecovery::ClosedAtEndOfInput,
         );
     }
+    // 标记可把同一字素切成不同样式片段；最终范围整理由对齐 helper 统一处理。
     result.runs = align_runs_to_graphemes_bounded(&result.text, &result.runs, budget.max_runs)?;
     result.finish()
 }

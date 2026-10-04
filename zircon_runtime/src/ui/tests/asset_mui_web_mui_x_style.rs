@@ -237,6 +237,10 @@ set = { self = { text_tone = "chat-composer-streaming" } }
 [[stylesheets.rules]]
 selector = ".MuiChatComposer-root.MuiChatComposer-streaming.MuiChatComposer-hasText"
 set = { self = { validation_level = "chat-composer-active" } }
+
+[[stylesheets.rules]]
+selector = ".MuiChatComposer-root.MuiChatComposer-error"
+set = { self = { validation_level = "chat-composer-error" } }
 "##;
 
 const MUI_X_LAYOUT_TOML: &str = r##"
@@ -648,7 +652,7 @@ node_id = "chat_composer"
 kind = "native"
 type = "ChatComposer"
 control_id = "ChatComposerRoot"
-props = { composer_text = "Ask agent", streaming = true }
+props = { composer_text = "Ask agent", streaming = true, error = true }
 "##;
 
 fn find_node<'a>(node: &'a UiTemplateNode, control_id: &str) -> &'a UiTemplateNode {

@@ -44,21 +44,9 @@ impl UiAssetSourceBuffer {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::UiAssetSourceBuffer;
-
-    #[test]
-    fn revision_changes_only_when_source_text_changes() {
-        let mut buffer = UiAssetSourceBuffer::new("[nodes.root]");
-
-        buffer.replace("[nodes.root]");
-        assert_eq!(buffer.revision(), 0);
-
-        buffer.replace("[nodes.root]\nkind = \"native\"");
-        assert_eq!(buffer.revision(), 1);
-    }
-}
+#[path = "tests/source_buffer.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "source_buffer/shared_text_tests.rs"]
+#[path = "source_buffer/tests/shared_text_tests.rs"]
 mod shared_text_tests;

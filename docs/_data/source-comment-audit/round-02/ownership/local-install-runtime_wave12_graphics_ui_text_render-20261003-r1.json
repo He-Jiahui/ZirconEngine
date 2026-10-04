@@ -1,0 +1,658 @@
+{
+  "schema": 1,
+  "owner": "runtime_wave12_graphics_ui_text_render",
+  "prepared_at_utc": "2026-10-03T05:40:31.664319+00:00",
+  "files": [
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs",
+      "before_sha256": "7f78fa9abc48342c77f6303947b593d4a51bfe23e34487b93ae113af4be0e453",
+      "after_sha256": "7f78fa9abc48342c77f6303947b593d4a51bfe23e34487b93ae113af4be0e453",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset/tests.rs",
+      "before_sha256": "4cbd76eb12c392bd21b3c6d1b3c5fb7e3124cf79bca87d2edbda28da59cb030b",
+      "after_sha256": "4cbd76eb12c392bd21b3c6d1b3c5fb7e3124cf79bca87d2edbda28da59cb030b",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs",
+      "before_sha256": "1207627cd7b81975b77a835bb87fb10bb2feaa6cbfbd34e6f54db465fb02551f",
+      "after_sha256": "199d34355926adb238040ed9def9cdd0598945f35d125e01c756ca22088ff1cc",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "W12-UI-C001",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs",
+          "anchor_contains": "pub(super) fn append_screen_space_ui_command_batches<'a>(",
+          "comment_text": "/// 按命令顺序规划裁剪、paint 和背景观察，将文字装饰分别记入文字前后的绘制列表。\n/// 文字路由拒绝时只撤回本次文字前装饰，并省略文字后装饰；先前已规划的背景、边框和图像保留。",
+          "kind": "explanatory",
+          "issue_id": null,
+          "exact_anchor_line": "pub(super) fn append_screen_space_ui_command_batches<'a>(",
+          "before_line": 308,
+          "added_raw_base64": "Ly8vIOaMieWRveS7pOmhuuW6j+inhOWIkuijgeWJquOAgXBhaW50IOWSjOiDjOaZr+inguWvn++8jOWwhuaWh+Wtl+ijhemlsOWIhuWIq+iusOWFpeaWh+Wtl+WJjeWQjueahOe7mOWItuWIl+ihqOOAggovLy8g5paH5a2X6Lev55Sx5ouS57ud5pe25Y+q5pKk5Zue5pys5qyh5paH5a2X5YmN6KOF6aWw77yM5bm255yB55Wl5paH5a2X5ZCO6KOF6aWw77yb5YWI5YmN5bey6KeE5YiS55qE6IOM5pmv44CB6L655qGG5ZKM5Zu+5YOP5L+d55WZ44CCCg==",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/background.rs",
+      "before_sha256": "8c8927b1d391d5e8256db9e67947e9d2b12976c345f1e80127818e4494d28a03",
+      "after_sha256": "8c8927b1d391d5e8256db9e67947e9d2b12976c345f1e80127818e4494d28a03",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/color.rs",
+      "before_sha256": "4f4310b363ff7c65adcaf2ab926b25ed22386f6931eb28ac462decc1c89a359e",
+      "after_sha256": "4f4310b363ff7c65adcaf2ab926b25ed22386f6931eb28ac462decc1c89a359e",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/geometry.rs",
+      "before_sha256": "38f64bd8821edd3c9eb3dddba3da92f79c0f774ab25f357319b4cf73250329c5",
+      "after_sha256": "38f64bd8821edd3c9eb3dddba3da92f79c0f774ab25f357319b4cf73250329c5",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/glyph_artifact.rs",
+      "before_sha256": "64834727c5bc4e6ea6079f681a3931fcf43cf808ad856c4500a1d3041ef048a1",
+      "after_sha256": "64834727c5bc4e6ea6079f681a3931fcf43cf808ad856c4500a1d3041ef048a1",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/paint_projection.rs",
+      "before_sha256": "b2332f3c95b0a309fe9ac4bdbc895bd7c04b2c4da3547d5a99b267f82e16116e",
+      "after_sha256": "b2332f3c95b0a309fe9ac4bdbc895bd7c04b2c4da3547d5a99b267f82e16116e",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/resolved_layout/rich_artifact_routes.rs",
+      "before_sha256": "169670543a5a7e7b386c774dd32ab9e6e6e3a57deefd8938d65da387605313bf",
+      "after_sha256": "21a2343fb36f2100c42043a271ec1b0f1e375bd23213c85b28022a23872c8e7c",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "W12-UI-C004",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/resolved_layout/rich_artifact_routes.rs",
+          "anchor_contains": "pub(in crate::graphics::scene::scene_renderer::ui::render) fn rich_text_glyph_artifact_runs(",
+          "comment_text": "/// 核对每个非空 run 的 paint 文字及范围，并依据行快照和 typed artifact 目录确定 glyph 路由。\n/// paint 不匹配使整批返回 PaintLayoutMismatch；匹配后的不可用产物按 run 保留拒绝原因，VisualOnly 仅用于布局已声明的视觉回退。",
+          "kind": "explanatory",
+          "issue_id": null,
+          "exact_anchor_line": "pub(in crate::graphics::scene::scene_renderer::ui::render) fn rich_text_glyph_artifact_runs(",
+          "before_line": 31,
+          "added_raw_base64": "Ly8vIOaguOWvueavj+S4qumdnuepuiBydW4g55qEIHBhaW50IOaWh+Wtl+WPiuiMg+WbtO+8jOW5tuS+neaNruihjOW/q+eFp+WSjCB0eXBlZCBhcnRpZmFjdCDnm67lvZXnoa7lrpogZ2x5cGgg6Lev55Sx44CCCi8vLyBwYWludCDkuI3ljLnphY3kvb/mlbTmibnov5Tlm54gUGFpbnRMYXlvdXRNaXNtYXRjaO+8m+WMuemFjeWQjueahOS4jeWPr+eUqOS6p+eJqeaMiSBydW4g5L+d55WZ5ouS57ud5Y6f5Zug77yMVmlzdWFsT25seSDku4XnlKjkuo7luIPlsYDlt7Llo7DmmI7nmoTop4bop4nlm57pgIDjgIIK",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs",
+      "before_sha256": "1ad8a6ede730d729b5e22bcc84a0220c2b26a9a4984886e53a38ee5050f40e37",
+      "after_sha256": "99ac12c785abce588b545c5a0fd5990aab2bb417478bc6df360a8948db9995ba",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "W12-UI-C003",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs",
+          "anchor_contains": "pub(super) fn plan_rich_text_runs(",
+          "comment_text": "/// 在加入文字或 inline 资源前完成全部 run 的几何和 artifact 路由预检。\n/// 非 inline run 的 artifact 路由为 Rejected 且缺少已证明整行来源同构的回退时，拒绝本次文字规划。",
+          "kind": "explanatory",
+          "issue_id": null,
+          "exact_anchor_line": "pub(super) fn plan_rich_text_runs(",
+          "before_line": 246,
+          "added_raw_base64": "Ly8vIOWcqOWKoOWFpeaWh+Wtl+aIliBpbmxpbmUg6LWE5rqQ5YmN5a6M5oiQ5YWo6YOoIHJ1biDnmoTlh6DkvZXlkowgYXJ0aWZhY3Qg6Lev55Sx6aKE5qOA44CCCi8vLyDpnZ4gaW5saW5lIHJ1biDnmoQgYXJ0aWZhY3Qg6Lev55Sx5Li6IFJlamVjdGVkIOS4lOe8uuWwkeW3suivgeaYjuaVtOihjOadpea6kOWQjOaehOeahOWbnumAgOaXtu+8jOaLkue7neacrOasoeaWh+Wtl+inhOWIkuOAggo=",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs",
+      "before_sha256": "bbea33aeb3825db3fd3e5b285fcb63e227f4f45ea5f98eccc1e4140cc12b04da",
+      "after_sha256": "6a185f69d03b0c920f54fc61dc35d671b38bcbf995130e4cc604dcdbd51edefd",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "CR-W12-UI-TEXT-0001",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs",
+          "anchor_contains": "        (7, 11, 122, 38)",
+          "comment_text": "// BUG: [CR-W12-UI-TEXT-0001] 本 fixture 无 clip，裁剪函数返回完整 200×100 viewport；此处却断言局部框，执行到该断言必失败。\n// 证据：geometry::clipped_scissor 的 None 分支直接返回 full_scissor，未使用绘制框缩窄。",
+          "kind": "BUG",
+          "issue_id": "CR-W12-UI-TEXT-0001",
+          "exact_anchor_line": "        (7, 11, 122, 38)",
+          "before_line": 190,
+          "added_raw_base64": "ICAgICAgICAvLyBCVUc6IFtDUi1XMTItVUktVEVYVC0wMDAxXSDmnKwgZml4dHVyZSDml6AgY2xpcO+8jOijgeWJquWHveaVsOi/lOWbnuWujOaVtCAyMDDDlzEwMCB2aWV3cG9ydO+8m+atpOWkhOWNtOaWreiogOWxgOmDqOahhu+8jOaJp+ihjOWIsOivpeaWreiogOW/heWksei0peOAggogICAgICAgIC8vIOivgeaNru+8mmdlb21ldHJ5OjpjbGlwcGVkX3NjaXNzb3Ig55qEIE5vbmUg5YiG5pSv55u05o6l6L+U5ZueIGZ1bGxfc2Npc3Nvcu+8jOacquS9v+eUqOe7mOWItuahhue8qeeqhOOAggo=",
+          "added_comment_lines": 2
+        },
+        {
+          "proposal_id": "CR-W12-UI-TEXT-0002",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs",
+          "anchor_contains": "    assert!(source.contains(\"let paint_elements = command.to_transient_paint_elements(0);\"));",
+          "comment_text": "// BUG: [CR-W12-UI-TEXT-0002] 运行此 guard 时，两条旧表达式已不在被包含的 render 源码中，首个 contains 必失败。\n// 证据：瞬时 paint 投影由专用 helper 处理，命令 generation 由 text_batches 构造路由 context 时读取；当前断言仍检查旧入口。",
+          "kind": "BUG",
+          "issue_id": "CR-W12-UI-TEXT-0002",
+          "exact_anchor_line": "    assert!(source.contains(\"let paint_elements = command.to_transient_paint_elements(0);\"));",
+          "before_line": 860,
+          "added_raw_base64": "ICAgIC8vIEJVRzogW0NSLVcxMi1VSS1URVhULTAwMDJdIOi/kOihjOatpCBndWFyZCDml7bvvIzkuKTmnaHml6fooajovr7lvI/lt7LkuI3lnKjooqvljIXlkKvnmoQgcmVuZGVyIOa6kOeggeS4re+8jOmmluS4qiBjb250YWlucyDlv4XlpLHotKXjgIIKICAgIC8vIOivgeaNru+8mueerOaXtiBwYWludCDmipXlvbHnlLHkuJPnlKggaGVscGVyIOWkhOeQhu+8jOWRveS7pCBnZW5lcmF0aW9uIOeUsSB0ZXh0X2JhdGNoZXMg5p6E6YCg6Lev55SxIGNvbnRleHQg5pe26K+75Y+W77yb5b2T5YmN5pat6KiA5LuN5qOA5p+l5pen5YWl5Y+j44CCCg==",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 2,
+      "added_comment_lines": 4,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/distance_field_effects.rs",
+      "before_sha256": "23d4b8693c4609e54dfce1b89ee2f5e4e89eb38b72dd00e42e8afa1320a55c71",
+      "after_sha256": "23d4b8693c4609e54dfce1b89ee2f5e4e89eb38b72dd00e42e8afa1320a55c71",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/parity.rs",
+      "before_sha256": "a787d350c5afd02007af8dd8af54e31d1c718ff2e13f9e20aff71d48624e9702",
+      "after_sha256": "44506618d5add740e17a83b3272194f95c5dfa19f6cb3055d87cb11b0454dcb3",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "CR-W12-UI-TEXT-0003",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/parity.rs",
+          "anchor_contains": "            let native = batches_for_mode(text, frame, native_style.clone(), &native_layout);",
+          "comment_text": "// BUG: [CR-W12-UI-TEXT-0003] 前置多列布局断言成立时，竖排批次被规划进 SDF，helper 却只取 native 队列，后续批次数断言必失败。\n// 证据：text_batches 的 VerticalRl 分支先于显式模式选路，而 batches_for_mode 按请求模式取队列。",
+          "kind": "BUG",
+          "issue_id": "CR-W12-UI-TEXT-0003",
+          "exact_anchor_line": "            let native = batches_for_mode(text, frame, native_style.clone(), &native_layout);",
+          "before_line": 130,
+          "added_raw_base64": "ICAgICAgICAgICAgLy8gQlVHOiBbQ1ItVzEyLVVJLVRFWFQtMDAwM10g5YmN572u5aSa5YiX5biD5bGA5pat6KiA5oiQ56uL5pe277yM56uW5o6S5om55qyh6KKr6KeE5YiS6L+bIFNERu+8jGhlbHBlciDljbTlj6rlj5YgbmF0aXZlIOmYn+WIl++8jOWQjue7reaJueasoeaVsOaWreiogOW/heWksei0peOAggogICAgICAgICAgICAvLyDor4Hmja7vvJp0ZXh0X2JhdGNoZXMg55qEIFZlcnRpY2FsUmwg5YiG5pSv5YWI5LqO5pi+5byP5qih5byP6YCJ6Lev77yM6ICMIGJhdGNoZXNfZm9yX21vZGUg5oyJ6K+35rGC5qih5byP5Y+W6Zif5YiX44CCCg==",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/rich_artifact_routes.rs",
+      "before_sha256": "34a8226b36d1be6ee06cd4c2e2e3617512c5059b4fa928d5a61f761b8af10cbb",
+      "after_sha256": "34a8226b36d1be6ee06cd4c2e2e3617512c5059b4fa928d5a61f761b8af10cbb",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/rich_inline.rs",
+      "before_sha256": "68dc904af47ff020f54c795004a93942f533ae155ce7db60a02afeabc35b593b",
+      "after_sha256": "b3d8058c90960a054de6ece7ad68084ab50c477cfce423d762eff32c16ea7623",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "CR-W12-UI-TEXT-0005",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/rich_inline.rs",
+          "anchor_contains": "    assert_eq!(source.matches(&parse_call).count(), 1);",
+          "comment_text": "// BUG: [CR-W12-UI-TEXT-0005] 当前被包含的富文本规划源码已不含旧解析调用，字面量计数为 0；此处仍要求 1，执行到该断言必失败。\n// 证据：规划入口改为消费已编译的 rich artifact，当前源码全文与此精确拼接 needle 不匹配。",
+          "kind": "BUG",
+          "issue_id": "CR-W12-UI-TEXT-0005",
+          "exact_anchor_line": "    assert_eq!(source.matches(&parse_call).count(), 1);",
+          "before_line": 8,
+          "added_raw_base64": "ICAgIC8vIEJVRzogW0NSLVcxMi1VSS1URVhULTAwMDVdIOW9k+WJjeiiq+WMheWQq+eahOWvjOaWh+acrOinhOWIkua6kOeggeW3suS4jeWQq+aXp+ino+aekOiwg+eUqO+8jOWtl+mdoumHj+iuoeaVsOS4uiAw77yb5q2k5aSE5LuN6KaB5rGCIDHvvIzmiafooYzliLDor6Xmlq3oqIDlv4XlpLHotKXjgIIKICAgIC8vIOivgeaNru+8muinhOWIkuWFpeWPo+aUueS4uua2iOi0ueW3sue8luivkeeahCByaWNoIGFydGlmYWN077yM5b2T5YmN5rqQ56CB5YWo5paH5LiO5q2k57K+56Gu5ou85o6lIG5lZWRsZSDkuI3ljLnphY3jgIIK",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_advances.rs",
+      "before_sha256": "5b1fe1d3ed73baa035d003b090c0840b5959e666bcfa2796749a850d9ac88639",
+      "after_sha256": "5b1fe1d3ed73baa035d003b090c0840b5959e666bcfa2796749a850d9ac88639",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_batches.rs",
+      "before_sha256": "055890f24f55427b84fc0262c98d214d6f8863220152861139240b4faff10e30",
+      "after_sha256": "cc8f46ba21b86d12cad0ba2ae5ceb6ddb1a8e43e16f29455cb7f817160ac44c2",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "W12-UI-C002",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_batches.rs",
+          "anchor_contains": "pub(super) fn push_text_batches(",
+          "comment_text": "/// 先消费解析布局或富文本的准入结果，再规划普通文字；不可恢复的布局或来源失配返回 Rejected。\n/// 批次按布局保真、竖排、效果和显式模式分类；无距离场效果的 Auto 批次留到字体依赖加载后选路。",
+          "kind": "explanatory",
+          "issue_id": null,
+          "exact_anchor_line": "pub(super) fn push_text_batches(",
+          "before_line": 141,
+          "added_raw_base64": "Ly8vIOWFiOa2iOi0ueino+aekOW4g+WxgOaIluWvjOaWh+acrOeahOWHhuWFpee7k+aenO+8jOWGjeinhOWIkuaZrumAmuaWh+Wtl++8m+S4jeWPr+aBouWkjeeahOW4g+WxgOaIluadpea6kOWksemFjei/lOWbniBSZWplY3RlZOOAggovLy8g5om55qyh5oyJ5biD5bGA5L+d55yf44CB56uW5o6S44CB5pWI5p6c5ZKM5pi+5byP5qih5byP5YiG57G777yb5peg6Led56a75Zy65pWI5p6c55qEIEF1dG8g5om55qyh55WZ5Yiw5a2X5L2T5L6d6LWW5Yqg6L295ZCO6YCJ6Lev44CCCg==",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_decorations.rs",
+      "before_sha256": "383030cb92c3bc749e196ef641d1d0e81fbcdc7fcb45b6c7a3471d593a593067",
+      "after_sha256": "383030cb92c3bc749e196ef641d1d0e81fbcdc7fcb45b6c7a3471d593a593067",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_distance_field.rs",
+      "before_sha256": "9b3b378df28013c0893c98d5f3902ecd615f7a08aa899aabee12a99077694c53",
+      "after_sha256": "d078b64f179be31fb2686e5855b363567c80448f091c57e64fe4fa149ea71d97",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "W12-UI-C005",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_distance_field.rs",
+          "anchor_contains": "pub(super) fn resolved_text_distance_field_mode(",
+          "comment_text": "/// 把 UI 模式与效果转换为栅格策略的格式和 true-distance 需求。\n/// 策略选择 Bitmap 时仍为批次保存 Sdf 默认模式；此字段不表示图集像素已经生成。",
+          "kind": "explanatory",
+          "issue_id": null,
+          "exact_anchor_line": "pub(super) fn resolved_text_distance_field_mode(",
+          "before_line": 9,
+          "added_raw_base64": "Ly8vIOaKiiBVSSDmqKHlvI/kuI7mlYjmnpzovazmjaLkuLrmoIXmoLznrZbnlaXnmoTmoLzlvI/lkowgdHJ1ZS1kaXN0YW5jZSDpnIDmsYLjgIIKLy8vIOetlueVpemAieaLqSBCaXRtYXAg5pe25LuN5Li65om55qyh5L+d5a2YIFNkZiDpu5jorqTmqKHlvI/vvJvmraTlrZfmrrXkuI3ooajnpLrlm77pm4blg4/ntKDlt7Lnu4/nlJ/miJDjgIIK",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_effects.rs",
+      "before_sha256": "4f0d37df580ca4038b71b76757e05751831d06c8d265fac62a1e1cfb32705e82",
+      "after_sha256": "4f0d37df580ca4038b71b76757e05751831d06c8d265fac62a1e1cfb32705e82",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_projection.rs",
+      "before_sha256": "7fff430d3f3e1c9a93741d11c04faa10f020efc98fc94fa77b0c0542f9ffc564",
+      "after_sha256": "7fff430d3f3e1c9a93741d11c04faa10f020efc98fc94fa77b0c0542f9ffc564",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_provenance.rs",
+      "before_sha256": "28b1010d4a7da78012fc0475135a85dc010eaee7abd5b8263b79f8267aec00b5",
+      "after_sha256": "28b1010d4a7da78012fc0475135a85dc010eaee7abd5b8263b79f8267aec00b5",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_route_identity.rs",
+      "before_sha256": "0d86f63f8519be4c58e3c34b1c12c4600fc0f96f0f734da672fd0ab5bc5b1d39",
+      "after_sha256": "0d86f63f8519be4c58e3c34b1c12c4600fc0f96f0f734da672fd0ab5bc5b1d39",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs",
+      "before_sha256": "a27e6dea88ede868991bd2157884d493869572c40c18b089631341f03a087b96",
+      "after_sha256": "860e3631ffba56cec44912ed52208776f37a6e4f032e52ca193c52dbcc084389",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "W12-UI-C006",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs",
+          "anchor_contains": "pub(super) fn prepare(",
+          "comment_text": "/// 为当前帧刷新字体依赖，准备文字缓存、图集、CPU 绘制结果和回退，并保存待确认的上传状态。\n/// 上传准备失败会清空 pending 并标记恢复需求；调用方确认上传后再通过 commit_prepared_uploads 接受图集页和 bitmap 帧。",
+          "kind": "explanatory",
+          "issue_id": null,
+          "exact_anchor_line": "    pub(super) fn prepare(",
+          "before_line": 216,
+          "added_raw_base64": "ICAgIC8vLyDkuLrlvZPliY3luKfliLfmlrDlrZfkvZPkvp3otZbvvIzlh4blpIfmloflrZfnvJPlrZjjgIHlm77pm4bjgIFDUFUg57uY5Yi257uT5p6c5ZKM5Zue6YCA77yM5bm25L+d5a2Y5b6F56Gu6K6k55qE5LiK5Lyg54q25oCB44CCCiAgICAvLy8g5LiK5Lyg5YeG5aSH5aSx6LSl5Lya5riF56m6IHBlbmRpbmcg5bm25qCH6K6w5oGi5aSN6ZyA5rGC77yb6LCD55So5pa556Gu6K6k5LiK5Lyg5ZCO5YaN6YCa6L+HIGNvbW1pdF9wcmVwYXJlZF91cGxvYWRzIOaOpeWPl+WbvumbhumhteWSjCBiaXRtYXAg5bin44CCCg==",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/fallback_overlay.rs",
+      "before_sha256": "535e3e57c76dc8d51065bc859d12af390e62df2c83596656638724e71affbf20",
+      "after_sha256": "96c049578d1414e271f37aac7ca528e1cccd016f6e358363c568d77098f2f525",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "CR-W12-UI-TEXT-0004",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/fallback_overlay.rs",
+          "anchor_contains": "        Self {",
+          "comment_text": "// TODO: [CR-W12-UI-TEXT-0004] 此处清空 shape/artifact 后，下游 native_glyph_run 对空 glyph 输入返回 None；尚未找到局部回退后的重塑调用。\n// 证据缺口是有效字体、正 CPU advances 与局部 atlas 失败共同可达；下一步用该生产输入贯通 overlay 到 native glyph run 的生成路径。",
+          "kind": "TODO",
+          "issue_id": "CR-W12-UI-TEXT-0004",
+          "exact_anchor_line": "        Self {",
+          "before_line": 17,
+          "added_raw_base64": "ICAgICAgICAvLyBUT0RPOiBbQ1ItVzEyLVVJLVRFWFQtMDAwNF0g5q2k5aSE5riF56m6IHNoYXBlL2FydGlmYWN0IOWQju+8jOS4i+a4uCBuYXRpdmVfZ2x5cGhfcnVuIOWvueepuiBnbHlwaCDovpPlhaXov5Tlm54gTm9uZe+8m+WwmuacquaJvuWIsOWxgOmDqOWbnumAgOWQjueahOmHjeWhkeiwg+eUqOOAggogICAgICAgIC8vIOivgeaNrue8uuWPo+aYr+acieaViOWtl+S9k+OAgeatoyBDUFUgYWR2YW5jZXMg5LiO5bGA6YOoIGF0bGFzIOWksei0peWFseWQjOWPr+i+vu+8m+S4i+S4gOatpeeUqOivpeeUn+S6p+i+k+WFpei0r+mAmiBvdmVybGF5IOWIsCBuYXRpdmUgZ2x5cGggcnVuIOeahOeUn+aIkOi3r+W+hOOAggo=",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs",
+      "before_sha256": "b68adeb35a22c90bcfc1dca5516ff52ae18a35e285f9921a6046955a16bf318a",
+      "after_sha256": "2f55d4e935171b3da80bbd0943114f152419ea888b84b7d8db03372c261258fc",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "W12-UI-C007",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs",
+          "anchor_contains": "pub(super) fn refresh_font_asset_records(",
+          "comment_text": "/// 复用 identity 未变的字体缓存，为其余当前依赖准备 admission，并按 active 集合差分同步共享 claims。\n/// admission 结果写入 Ready/Missing/Error 后刷新字体集合；identity 变化本身不等于释放该资产的共享 claim。",
+          "kind": "explanatory",
+          "issue_id": null,
+          "exact_anchor_line": "pub(super) fn refresh_font_asset_records(",
+          "before_line": 236,
+          "added_raw_base64": "Ly8vIOWkjeeUqCBpZGVudGl0eSDmnKrlj5jnmoTlrZfkvZPnvJPlrZjvvIzkuLrlhbbkvZnlvZPliY3kvp3otZblh4blpIcgYWRtaXNzaW9u77yM5bm25oyJIGFjdGl2ZSDpm4blkIjlt67liIblkIzmraXlhbHkuqsgY2xhaW1z44CCCi8vLyBhZG1pc3Npb24g57uT5p6c5YaZ5YWlIFJlYWR5L01pc3NpbmcvRXJyb3Ig5ZCO5Yi35paw5a2X5L2T6ZuG5ZCI77ybaWRlbnRpdHkg5Y+Y5YyW5pys6Lqr5LiN562J5LqO6YeK5pS+6K+l6LWE5Lqn55qE5YWx5LqrIGNsYWlt44CCCg==",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_id_report.rs",
+      "before_sha256": "e426528e3dcc185021f53e143a19884e19249e0fd4c81af4b02f0e28581c647b",
+      "after_sha256": "e426528e3dcc185021f53e143a19884e19249e0fd4c81af4b02f0e28581c647b",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report.rs",
+      "before_sha256": "6367b2e1a9906aab74caabf4f166d518e9d5cff6adb200cf13a0153479a2cdf3",
+      "after_sha256": "b648d39b94be0b9d9e130b89ec288877ed805a31ab2fa5d3f18fe71a3f75b3b6",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "W12-UI-C009",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report.rs",
+          "anchor_contains": "pub(super) fn text_prepare_report(",
+          "comment_text": "/// 汇总当前帧文字准备的字体、布局回退、native/SDF 驻留、上传计划及待处理计数。\n/// 这是 prepare 结果快照，不表示上传已确认或 GPU 已提交。",
+          "kind": "explanatory",
+          "issue_id": null,
+          "exact_anchor_line": "pub(super) fn text_prepare_report(",
+          "before_line": 210,
+          "added_raw_base64": "Ly8vIOaxh+aAu+W9k+WJjeW4p+aWh+Wtl+WHhuWkh+eahOWtl+S9k+OAgeW4g+WxgOWbnumAgOOAgW5hdGl2ZS9TREYg6am755WZ44CB5LiK5Lyg6K6h5YiS5Y+K5b6F5aSE55CG6K6h5pWw44CCCi8vLyDov5nmmK8gcHJlcGFyZSDnu5Pmnpzlv6vnhafvvIzkuI3ooajnpLrkuIrkvKDlt7Lnoa7orqTmiJYgR1BVIOW3suaPkOS6pOOAggo=",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report/profile.rs",
+      "before_sha256": "0a25a37d4544b124c8bf679dff08a194707eb7185322f28efa69760d040e82d0",
+      "after_sha256": "0a25a37d4544b124c8bf679dff08a194707eb7185322f28efa69760d040e82d0",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report/profile/artifact_routes.rs",
+      "before_sha256": "a9a0e5954b10e368ca0125888b63b85ef9fad252db13c2467669e09eb0ab67d0",
+      "after_sha256": "a9a0e5954b10e368ca0125888b63b85ef9fad252db13c2467669e09eb0ab67d0",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report/profile/dto_residency.rs",
+      "before_sha256": "90f0b834ad728b1e5bdbda5ab30327ff547868a1c8cf1c312a82256f00b1f286",
+      "after_sha256": "90f0b834ad728b1e5bdbda5ab30327ff547868a1c8cf1c312a82256f00b1f286",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report/profile/runtime_budget.rs",
+      "before_sha256": "42d12be99386836c716e6f9ad6bcb7b2f767c8fe981087216761131d53c5cc73",
+      "after_sha256": "42d12be99386836c716e6f9ad6bcb7b2f767c8fe981087216761131d53c5cc73",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report/profile/sdf_residency.rs",
+      "before_sha256": "ea4612431d54074d8327861e35633b9632554a3f1a586133fea8aeb222eb57b3",
+      "after_sha256": "ea4612431d54074d8327861e35633b9632554a3f1a586133fea8aeb222eb57b3",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/resolved_batches.rs",
+      "before_sha256": "c958ac407abfc7c56fde9760472c6ce693f0fbc187abfbab1cd0b8433673b8d5",
+      "after_sha256": "bf17237527068fe7511395bd258cd310230e87a2d8eb0bf593f8a68b587e7d86",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "W12-UI-C008",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/resolved_batches.rs",
+          "anchor_contains": "pub(super) fn resolve_text_batches_after_font_dependencies(",
+          "comment_text": "/// 保留显式 native/SDF 批次并解析 Auto 路由后，按当前字体 revision 和 generation 淘汰陈旧 artifact 批次。\n/// 只有无 artifact 的回退批次会在字体变化或缺少 shaped glyphs 时使用当前字体集合重塑。",
+          "kind": "explanatory",
+          "issue_id": null,
+          "exact_anchor_line": "pub(super) fn resolve_text_batches_after_font_dependencies(",
+          "before_line": 170,
+          "added_raw_base64": "Ly8vIOS/neeVmeaYvuW8jyBuYXRpdmUvU0RGIOaJueasoeW5tuino+aekCBBdXRvIOi3r+eUseWQju+8jOaMieW9k+WJjeWtl+S9kyByZXZpc2lvbiDlkowgZ2VuZXJhdGlvbiDmt5jmsbDpmYjml6cgYXJ0aWZhY3Qg5om55qyh44CCCi8vLyDlj6rmnInml6AgYXJ0aWZhY3Qg55qE5Zue6YCA5om55qyh5Lya5Zyo5a2X5L2T5Y+Y5YyW5oiW57y65bCRIHNoYXBlZCBnbHlwaHMg5pe25L2/55So5b2T5YmN5a2X5L2T6ZuG5ZCI6YeN5aGR44CCCg==",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs",
+      "before_sha256": "81faa00aba7800f84f67a1e5b0df1237284f86e965c4bffea0ff752ae1ab937f",
+      "after_sha256": "81faa00aba7800f84f67a1e5b0df1237284f86e965c4bffea0ff752ae1ab937f",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback/tests.rs",
+      "before_sha256": "7911a717bcb1242f861563730f9492928b9cc69ada437b9f877b2c886bc6d0aa",
+      "after_sha256": "7911a717bcb1242f861563730f9492928b9cc69ada437b9f877b2c886bc6d0aa",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback/tests/overlay.rs",
+      "before_sha256": "3796f63844d97dbba4efb60a9b6eafa62780aaa01b5b6939ef6d676a14fd06c0",
+      "after_sha256": "3796f63844d97dbba4efb60a9b6eafa62780aaa01b5b6939ef6d676a14fd06c0",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/segment_cache/run_index.rs",
+      "before_sha256": "e04cfca06e079555ab2bf53bfdadc7ec3da2d1e0db74bc672b5974588013933d",
+      "after_sha256": "e04cfca06e079555ab2bf53bfdadc7ec3da2d1e0db74bc672b5974588013933d",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs",
+      "before_sha256": "f1103237163c52441c50c64885b9f419a5d67a388d7f880dfa825e88d3786d96",
+      "after_sha256": "f1103237163c52441c50c64885b9f419a5d67a388d7f880dfa825e88d3786d96",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests/font_assets.rs",
+      "before_sha256": "4c1af5c57e9509a52464e92952aae9c550e3d0d28c6ddbaef681310d0b034e11",
+      "after_sha256": "76f9de45e128384473c62d760aed20c48be0aeafd6543c5a0972edac9e77f185",
+      "changed": true,
+      "additions": [
+        {
+          "proposal_id": "CR-W12-UI-TEXT-0006",
+          "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests/font_assets.rs",
+          "anchor_contains": "    assert!(!source.contains(\"TextAtlas\"));",
+          "comment_text": "// BUG: [CR-W12-UI-TEXT-0006] 本 guard 禁止的 TextAtlas 子串在被包含的文字系统中出现 4 次，执行到此断言必失败。\n// 证据：四处均属于 ScreenSpaceUiTextAtlasRecoveryState 的定义与使用；该名称也触发 rendering 测试中的同类断言。",
+          "kind": "BUG",
+          "issue_id": "CR-W12-UI-TEXT-0006",
+          "exact_anchor_line": "    assert!(!source.contains(\"TextAtlas\"));",
+          "before_line": 143,
+          "added_raw_base64": "ICAgIC8vIEJVRzogW0NSLVcxMi1VSS1URVhULTAwMDZdIOacrCBndWFyZCDnpoHmraLnmoQgVGV4dEF0bGFzIOWtkOS4suWcqOiiq+WMheWQq+eahOaWh+Wtl+ezu+e7n+S4reWHuueOsCA0IOasoe+8jOaJp+ihjOWIsOatpOaWreiogOW/heWksei0peOAggogICAgLy8g6K+B5o2u77ya5Zub5aSE5Z2H5bGe5LqOIFNjcmVlblNwYWNlVWlUZXh0QXRsYXNSZWNvdmVyeVN0YXRlIOeahOWumuS5ieS4juS9v+eUqO+8m+ivpeWQjeensOS5n+inpuWPkSByZW5kZXJpbmcg5rWL6K+V5Lit55qE5ZCM57G75pat6KiA44CCCg==",
+          "added_comment_lines": 2
+        }
+      ],
+      "comment_additions": 1,
+      "added_comment_lines": 2,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests/prepare_report.rs",
+      "before_sha256": "8fcee6a388019ad0b20a7f33985e34bd23e0c4d3489b031f3efde8d4404d17a1",
+      "after_sha256": "8fcee6a388019ad0b20a7f33985e34bd23e0c4d3489b031f3efde8d4404d17a1",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    },
+    {
+      "path": "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests/support.rs",
+      "before_sha256": "a29402993933051827c5ccb5ce766493a22fa76af251185d0048fcd6e2452ab8",
+      "after_sha256": "a29402993933051827c5ccb5ce766493a22fa76af251185d0048fcd6e2452ab8",
+      "changed": false,
+      "additions": [],
+      "comment_additions": 0,
+      "added_comment_lines": 0,
+      "baseline_authorship_adopted": false
+    }
+  ],
+  "root_semantic_proof": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_ui_text_render-root-semantic-proof-20261003-r3.json",
+    "sha256": "5f328c41a6010f75b78c0f956e56fd13d7285ad9c5a62ae27ac02e9b4f00f51b"
+  },
+  "spec": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_ui_text_render-root-insertions-20261003-r5.json",
+    "sha256": "26affe2196d555a1783b74ccbed30521f8943f755d6e34725edc72fae75f7a62"
+  },
+  "terminal_children": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\runtime_wave12_graphics_ui_text_render-root-terminal-children-20261003-r1.json",
+    "sha256": "e14239ab7a7829aaaf6dfa15e72f74e1846e96ac90e9e650d73aa7229efa92fd"
+  },
+  "audit_only_diff": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\wave12-ui-root-candidates-20261003-r5\\audit-only.diff",
+    "sha256": "fccc6b1cc4f6efd36ad9679abfb1ea7e23c8b13a5cece1452fc315515139dc05"
+  },
+  "source_manifest_files": 42,
+  "source_writes": 14,
+  "business_edits": 0,
+  "whole_file_business_adoption": false,
+  "product_consent": false,
+  "snapshot_scope": "exact added audit comment bytes only; original or unknown baseline authorship stays intact",
+  "status": "exact_comment_delta_installed",
+  "completed_at_utc": "2026-10-03T05:40:48.036218+00:00",
+  "intent": {
+    "path": "E:\\Git\\ZirconEngine\\.codex\\tmp\\source-audit-20260930\\results\\local-install-runtime_wave12_graphics_ui_text_render-20261003-r1\\intent.json",
+    "sha256": "ea5058657dd12a5002512125125acd2fbab27d7ca21819ed5e9519c9fd1a845a"
+  },
+  "comment_additions": 15,
+  "added_comment_lines": 30,
+  "new_source_labels": 6,
+  "native_calls": 0,
+  "git_writes": 0,
+  "external_notifications": 0,
+  "existing_source_authorship_preserved": true,
+  "future_source_edit_pending": false,
+  "coverage_publication": "pending separate exact root publication"
+}

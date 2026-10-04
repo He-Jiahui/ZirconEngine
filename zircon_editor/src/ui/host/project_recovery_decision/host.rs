@@ -23,7 +23,7 @@ const UNKNOWN_RECOVERY_EXECUTION_FRAME: u64 = 0;
 
 impl EditorManager {
     /// Installs a captured residual recovery startup after the new project session reached Ready.
-    pub(super) fn begin_project_recovery_decisions(
+    pub(in crate::ui::host) fn begin_project_recovery_decisions(
         &self,
         project_root: &Path,
         startup: RestoreStartup,
@@ -59,7 +59,9 @@ impl EditorManager {
     /// A session with unresolved choices or a running restore job must retain its project
     /// ownership. Otherwise close could clear the only residual marker while a discard action is
     /// still pending.
-    pub(super) fn ensure_project_recovery_is_settled(&self) -> Result<(), EditorError> {
+    pub(in crate::ui::host) fn ensure_project_recovery_is_settled(
+        &self,
+    ) -> Result<(), EditorError> {
         if self.project_recovery.is_active() {
             return Err(EditorError::Project(
                 "project recovery choices or background restore work are still active; complete the recovery flow before closing the project"

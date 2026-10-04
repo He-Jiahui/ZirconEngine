@@ -30,14 +30,22 @@ class Editor06DocumentToolkitContractTests(unittest.TestCase):
 
     def test_single_document_save_uses_token_then_hook_then_compare_and_mark(self) -> None:
         source = HOST.read_text(encoding="utf-8")
-        token = source.index("capture_save_token(document)")
-        hook = source.index("document_toolkits.save(document, self, reason)", token)
-        mark = source.index("mark_saved_if_unchanged(document, save_token)", hook)
-        external = source.index("clear_saved_external_effects(&dirty_snapshot)", mark)
+        save_entry = source.split("pub(super) fn save_document_toolkit(", 1)[1].split(
+            "pub(super) fn write_document_toolkit(", 1
+        )[0]
+        write_entry = source.split("pub(super) fn write_document_toolkit(", 1)[1].split(
+            "pub(super) fn validate_document_toolkit_references(", 1
+        )[0]
+
+        token = save_entry.index("capture_save_token(document)")
+        hook = save_entry.index("write_document_toolkit(document, reason)?", token)
+        mark = save_entry.index("mark_saved_if_unchanged(document, save_token)", hook)
+        external = save_entry.index("clear_saved_external_effects(&dirty_snapshot)", mark)
 
         self.assertLess(token, hook)
         self.assertLess(hook, mark)
         self.assertLess(mark, external)
+        self.assertIn("document_toolkits.save(document, self, reason)", write_entry)
         self.assertIn("DocumentChangedDuringSave", source)
 
     def test_asset_and_animation_public_save_paths_dispatch_the_toolkit(self) -> None:

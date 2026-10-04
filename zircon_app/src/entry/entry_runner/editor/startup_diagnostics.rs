@@ -1,3 +1,6 @@
+//! 编辑器产品边界在 owner 清理正常返回后汇总宿主结果与共享账本。
+//! 会话 destroy 的进程终止诊断由 Drop 失败路径直接输出，不会返回本报告入口。
+
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 
@@ -39,9 +42,10 @@ pub(super) fn editor_startup_diagnostic_error(
     }
 }
 
-pub(super) fn record_editor_host_failure<T>(
+/// 在释放 Runtime 会话之前写入宿主失败，以保留它与随后销毁错误的先后顺序。
+pub(super) fn record_editor_host_failure<T, E: Display>(
     failures: &ProductFailureLedger,
-    host_result: &Result<T, Box<dyn Error>>,
+    host_result: &Result<T, E>,
 ) {
     if let Err(error) = host_result {
         failures.record(
@@ -53,6 +57,7 @@ pub(super) fn record_editor_host_failure<T>(
     }
 }
 
+/// 仅在宿主结果和传入账本都成功后返回成功；持有会话的调用方须在清理正常返回后传入最终快照。
 pub(super) fn finish_editor_host<T>(
     requested: &str,
     host_result: Result<T, Box<dyn Error>>,
@@ -83,42 +88,5 @@ pub(super) fn editor_host_startup_error(
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::entry::product_shutdown::{
-        ProductFailureLedger, ProductFailureSeverity, ProductHostPhase,
-    };
-
-    use super::{finish_editor_host, record_editor_host_failure};
-
-    #[test]
-    fn editor_finish_preserves_host_and_shutdown_failures_in_order() {
-        let failures = ProductFailureLedger::default();
-        let host_result = Err::<(), Box<dyn std::error::Error>>(
-            std::io::Error::other("editor host failed").into(),
-        );
-        record_editor_host_failure(&failures, &host_result);
-        failures.record(
-            ProductHostPhase::DestroyingRuntime,
-            ProductFailureSeverity::Terminal,
-            "runtime_session",
-            "session destroy failed",
-        );
-
-        let error = finish_editor_host("project=test", host_result, failures.snapshot())
-            .expect_err("the combined editor failure report must fail");
-        let diagnostic = error.to_string();
-        assert!(diagnostic.contains("recorded=2 suppressed=0"));
-        assert!(diagnostic.contains("owner=editor_host message=editor host failed"));
-        assert!(diagnostic.contains("owner=runtime_session message=session destroy failed"));
-    }
-
-    #[test]
-    fn editor_finish_preserves_success_when_the_failure_report_is_empty() {
-        let failures = ProductFailureLedger::default();
-
-        assert_eq!(
-            finish_editor_host("project=test", Ok(7_u8), failures.snapshot()).unwrap(),
-            7
-        );
-    }
-}
+#[path = "tests/startup_diagnostics.rs"]
+mod tests;

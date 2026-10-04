@@ -1,8 +1,8 @@
-$script:ProfileScript = Join-Path $PSScriptRoot "..\zircon_profile_shader_pbr_viewer.ps1"
+$script:ProfileScript = Join-Path $PSScriptRoot "..\profiling\shader_pbr\zircon_profile_shader_pbr_viewer.ps1"
 $script:ProfileSource = Get-Content -LiteralPath $script:ProfileScript -Raw
-$script:RuntimeEvidenceScript = Join-Path $PSScriptRoot "..\shader-pbr-profile-runtime-evidence.ps1"
+$script:RuntimeEvidenceScript = Join-Path $PSScriptRoot "..\profiling\shader_pbr\shader-pbr-profile-runtime-evidence.ps1"
 $script:RuntimeEvidenceSource = Get-Content -LiteralPath $script:RuntimeEvidenceScript -Raw
-$script:EvidenceIdentityScript = Join-Path $PSScriptRoot "..\shader-pbr-profile-evidence-identity.ps1"
+$script:EvidenceIdentityScript = Join-Path $PSScriptRoot "..\profiling\shader_pbr\shader-pbr-profile-evidence-identity.ps1"
 $script:EvidenceIdentitySource = Get-Content -LiteralPath $script:EvidenceIdentityScript -Raw
 . $script:ProfileScript -ViewerExe "E:\ZirconBuilds\fixture\zircon_shader_pbr_viewer.exe" -HdriPath "E:\fixtures\profile.hdr" -BuildProvenance "E:\ZirconBuilds\fixture\viewer-build-provenance.json" -CaptureToolchainManifest "E:\fixtures\capture-toolchain.json"
 $script:ProfileCoordinatorTicket = $null
@@ -265,22 +265,22 @@ Describe "zircon shader PBR viewer startup profile contract" {
     It "binds the exact profiling tool implementation into the profile manifest" {
         $profileTools = @(Get-ZirconShaderPbrProfileToolPaths)
         $expectedTools = @(
-            "tools/performance-machine-manifest.ps1",
-            "tools/profile-capture-manifest.ps1",
-            "tools/shader-pbr-profile-contract.ps1",
-            "tools/shader-pbr-profile-evidence-identity.ps1",
-            "tools/shader-pbr-profile-publication.ps1",
-            "tools/shader-pbr-profile-runtime-evidence.ps1",
-            "tools/shader-pbr-profile-toolchain.ps1",
-            "tools/write_zircon_shader_pbr_build_provenance.ps1",
-            "tools/zircon_pbr_visual_oracle.py",
-            "tools/zircon_profile_shader_pbr_viewer.ps1",
-            "tools/zircon_shader_pbr_evidence_identity.py",
-            "tools/zircon_shader_pbr_profile_tool_identity.py",
-            "tools/zircon_summarize_shader_pbr_profile.py",
-            "tools/zircon_validate_shader_pbr_gpu_timing_evidence.py",
-            "tools/zircon_validate_shader_pbr_renderdoc_replay.py",
-            "tools/zircon_validate_shader_pbr_viewer_evidence.py"
+            "tools/analysis/profiling/shared/performance-machine-manifest.ps1",
+            "tools/analysis/profiling/shared/profile-capture-manifest.ps1",
+            "tools/analysis/profiling/shader_pbr/shader-pbr-profile-contract.ps1",
+            "tools/analysis/profiling/shader_pbr/shader-pbr-profile-evidence-identity.ps1",
+            "tools/analysis/profiling/shader_pbr/shader-pbr-profile-publication.ps1",
+            "tools/analysis/profiling/shader_pbr/shader-pbr-profile-runtime-evidence.ps1",
+            "tools/analysis/profiling/shader_pbr/shader-pbr-profile-toolchain.ps1",
+            "tools/analysis/profiling/shader_pbr/write_zircon_shader_pbr_build_provenance.ps1",
+            "tools/analysis/visual/zircon_pbr_visual_oracle.py",
+            "tools/analysis/profiling/shader_pbr/zircon_profile_shader_pbr_viewer.ps1",
+            "tools/analysis/profiling/shader_pbr/zircon_shader_pbr_evidence_identity.py",
+            "tools/analysis/profiling/shader_pbr/zircon_shader_pbr_profile_tool_identity.py",
+            "tools/analysis/profiling/shader_pbr/zircon_summarize_shader_pbr_profile.py",
+            "tools/analysis/profiling/shader_pbr/zircon_validate_shader_pbr_gpu_timing_evidence.py",
+            "tools/analysis/profiling/shader_pbr/zircon_validate_shader_pbr_renderdoc_replay.py",
+            "tools/analysis/profiling/shader_pbr/zircon_validate_shader_pbr_viewer_evidence.py"
         )
 
         $profileTools.Count | Should Be $expectedTools.Count
@@ -398,6 +398,265 @@ Describe "zircon shader PBR viewer startup profile contract" {
         )) {
             @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
         }
+    }
+
+    It "binds reflection-probe project-output publication into viewer provenance" {
+        $criticalSources = @(Get-ZirconShaderPbrProfileCriticalSourcePaths)
+
+        foreach ($relativePath in @(
+            "zircon_plugins/rendering/features/reflection_probes/editor/src/capture/trigger.rs",
+            "zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/consume.rs",
+            "zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/request.rs"
+        )) {
+            @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
+        }
+    }
+
+    It "binds environment-capture scene identity and publication owners into viewer provenance" {
+        $criticalSources = @(Get-ZirconShaderPbrProfileCriticalSourcePaths)
+
+        foreach ($relativePath in @(
+            "zircon_editor/src/ui/workbench/state/editor_state_render.rs",
+            "zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/execute.rs",
+            "zircon_runtime/src/core/framework/render/environment_capture.rs",
+            "zircon_runtime/src/core/framework/render/frame_extract/world_snapshot_handle.rs",
+            "zircon_runtime/src/core/framework/render/scene_extract/snapshot/aliases.rs",
+            "zircon_runtime/src/core/framework/render/scene_extract/snapshot/viewport_packet.rs",
+            "zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler.rs",
+            "zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler/completion.rs",
+            "zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler/control_plane.rs",
+            "zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler/report.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/environment/environment_capture_scene_batch.rs"
+        )) {
+            @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
+        }
+    }
+
+    It "binds HDR display mapping, quantization, and output transfer owners into viewer provenance" {
+        $criticalSources = @(Get-ZirconShaderPbrProfileCriticalSourcePaths)
+
+        foreach ($relativePath in @(
+            "zircon_runtime/src/core/framework/render/frame_extract/post_process.rs",
+            "zircon_runtime/src/core/framework/render/post_process/color_space.rs",
+            "zircon_runtime/src/core/framework/render/post_process/effect_stack_settings.rs",
+            "zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/color_transform_settings.rs",
+            "zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/style_settings.rs",
+            "zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/post_process/constants/texture_formats.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_output_transfer/mod.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/output_transfer.wgsl",
+            "zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl"
+        )) {
+            @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
+        }
+    }
+
+    It "binds realtime IBL bootstrap scheduling and profile owners into viewer provenance" {
+        $criticalSources = @(Get-ZirconShaderPbrProfileCriticalSourcePaths)
+
+        foreach ($relativePath in @(
+            "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_profile_test_support.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime/compiled_graph_cache/cache.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime/compiled_graph_cache/mod.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime/compiled_graph_cache/variant.rs"
+        )) {
+            @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
+        }
+    }
+
+    It "binds the versioned environment BRDF LUT artifact into viewer provenance" {
+        $criticalSources = @(Get-ZirconShaderPbrProfileCriticalSourcePaths)
+
+        foreach ($relativePath in @(
+            "zircon_runtime/src/core/framework/render/environment/environment_pbr_recipe.rs",
+            "zircon_runtime/src/graphics/backend/render_backend/system_texture_generation_owner.rs",
+            "zircon_runtime/src/graphics/backend/render_backend/system_texture_generation_owner/environment_brdf_lut_rg16float.bin",
+            "zircon_runtime/src/graphics/backend/render_backend/system_texture_generation_owner/payloads.rs",
+            "zircon_runtime/src/graphics/backend/render_backend/system_texture_generation_owner/resources.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_brdf_lut.rs"
+        )) {
+            @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
+        }
+    }
+
+    It "binds reflection-probe selection slots and upload into viewer provenance" {
+        $criticalSources = @(Get-ZirconShaderPbrProfileCriticalSourcePaths)
+
+        foreach ($relativePath in @(
+            "zircon_runtime/src/core/framework/render/environment/reflection_probe.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_write_scene_uniform/write_scene_uniform.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/capacity.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/gpu_layout.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/mod.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/report.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/resources.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/selection.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/slot_allocator.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/upload.rs"
+        )) {
+            @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
+        }
+    }
+
+    It "binds reflection-probe clustered assignment and layer-identity consumers into viewer provenance" {
+        $criticalSources = @(Get-ZirconShaderPbrProfileCriticalSourcePaths)
+
+        foreach ($relativePath in @(
+            "zircon_runtime/src/graphics/scene/gpu_scene/layout.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass/shaders/scatter.wgsl",
+            "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass/shaders/setup.wgsl",
+            "zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl",
+            "zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_grid_builder.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_grid_pass.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/lighting/shaders/zr_light_grid.wgsl",
+            "zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl",
+            "zircon_runtime/src/graphics/shader/wgsl/zr_gbuffer_encode_standard_pbr.wgsl",
+            "zircon_runtime/src/graphics/shader/wgsl/zr_gbuffer_encode_subsurface.wgsl",
+            "zircon_runtime/src/graphics/shader/wgsl/zr_template_deferred_gbuffer.wgsl"
+        )) {
+            @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
+        }
+    }
+
+    It "binds scene atmosphere-light authority into viewer provenance" {
+        $criticalSources = @(Get-ZirconShaderPbrProfileCriticalSourcePaths)
+
+        foreach ($relativePath in @(
+            "zircon_runtime/src/asset/assets/scene/lighting.rs",
+            "zircon_runtime/src/core/framework/render/environment/extract.rs",
+            "zircon_runtime/src/scene/components/scene/lighting.rs",
+            "zircon_runtime/src/scene/world/project_io/scene_asset.rs",
+            "zircon_runtime/src/scene/world/render.rs",
+            "zircon_runtime/src/scene/world/render/lights.rs"
+        )) {
+            @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
+        }
+    }
+
+    It "binds environment artifact hydration and GPU publication owners into viewer provenance" {
+        $criticalSources = @(Get-ZirconShaderPbrProfileCriticalSourcePaths)
+
+        foreach ($relativePath in @(
+            "zircon_runtime/src/asset/artifact/ibl_bake_artifact_runtime_dispatch.rs",
+            "zircon_runtime/src/core/framework/render/environment/source_cubemap_upload/artifact.rs",
+            "zircon_runtime/src/core/framework/render/environment/source_cubemap_upload/build.rs",
+            "zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/environment_ibl_hydration_cache.rs",
+            "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs",
+            "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/environment_ibl_compile_options.rs",
+            "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_cubemap.rs",
+            "zircon_runtime/src/graphics/types/viewport_render_frame.rs"
+        )) {
+            @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
+        }
+    }
+
+    It "binds environment CPU payload, staging, and upload lifetime owners into viewer provenance" {
+        $criticalSources = @(Get-ZirconShaderPbrProfileCriticalSourcePaths)
+
+        foreach ($relativePath in @(
+            "zircon_runtime/crates/zr_rhi_wgpu/src/production/buffer_upload_batch.rs",
+            "zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/environment_capture_residency.rs",
+            "zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/render_framework_state.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_cubemap/upload_batch.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_texture_residency.rs"
+        )) {
+            @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
+        }
+    }
+
+    It "binds environment cubemap staging observation to the frame upload publication boundary" {
+        $repoRoot = "E:\Git\ZirconEngine"
+        $stagingPath = Join-Path $repoRoot "zircon_runtime\src\graphics\scene\scene_renderer\core\scene_renderer_core\environment_cubemap\upload_batch.rs"
+        $cubemapPath = Join-Path $repoRoot "zircon_runtime\src\graphics\scene\scene_renderer\core\scene_renderer_core\environment_cubemap.rs"
+        $queryPath = Join-Path $repoRoot "zircon_runtime\src\graphics\runtime\render_framework\query_environment_runtime_snapshot\query_environment_runtime_snapshot.rs"
+        $stagingSource = Get-Content -LiteralPath $stagingPath -Raw
+        $cubemapSource = Get-Content -LiteralPath $cubemapPath -Raw
+        $querySource = Get-Content -LiteralPath $queryPath -Raw
+
+        $stagingSource | Should Match "CubemapUploadStagingStatistics"
+        $stagingSource | Should Match "last_scheduled_upload_bytes"
+        $stagingSource | Should Match "peak_scheduled_upload_bytes"
+        $stagingSource | Should Match "host_staging_growth_batch_count"
+        $stagingSource | Should Match "gpu_staging_growth_batch_count"
+        $stagingSource | Should Match "resident_source_texture_bytes"
+        $stagingSource | Should Match "resident_specular_texture_bytes"
+        $stagingSource | Should Match "resident_irradiance_texture_bytes"
+        $stagingSource | Should Match "resident_texture_bytes"
+        $pushIndex = $stagingSource.IndexOf("frame_uploads.push(")
+        ($pushIndex -ge 0) | Should Be $true
+        $stagingSource.Substring($pushIndex) |
+            Should Match "self\.statistics\s*\.record_scheduled_batch\("
+        $cubemapSource | Should Match "self.upload_staging.begin_observation\(\)"
+        $querySource | Should Match "state.renderer.environment_cubemap_upload_report\(\)"
+        $querySource | Should Not Match "source_texels\(\)|pmrem_texels\(\)|prepared_upload_artifact\(\)"
+    }
+
+    It "projects bounded capture residency into the environment runtime snapshot" {
+        $repoRoot = "E:\Git\ZirconEngine"
+        $snapshotPath = Join-Path $repoRoot "zircon_runtime\src\core\framework\render\environment\runtime_snapshot.rs"
+        $queryPath = Join-Path $repoRoot "zircon_runtime\src\graphics\runtime\render_framework\query_environment_runtime_snapshot\query_environment_runtime_snapshot.rs"
+        $residencyPath = Join-Path $repoRoot "zircon_runtime\src\graphics\runtime\render_framework\render_framework_state\environment_capture_residency.rs"
+        $residentOutputPath = Join-Path $repoRoot "zircon_runtime\src\graphics\scene\scene_renderer\environment\environment_capture_source_submission.rs"
+        $snapshotSource = Get-Content -LiteralPath $snapshotPath -Raw
+        $querySource = Get-Content -LiteralPath $queryPath -Raw
+        $residencySource = Get-Content -LiteralPath $residencyPath -Raw
+        $residentOutputSource = Get-Content -LiteralPath $residentOutputPath -Raw
+
+        $snapshotSource | Should Match "EnvironmentCaptureResidencyReport"
+        $snapshotSource | Should Match "pub observation_epoch: u64"
+        $snapshotSource | Should Match "pub last_published_handle: Option<RenderEnvironmentCaptureHandle>"
+        $snapshotSource | Should Match "pub last_published_output_generation: Option<u64>"
+        $snapshotSource | Should Match "pub resident_count: u32"
+        $snapshotSource | Should Match "pub resident_gpu_bytes: u64"
+        $snapshotSource | Should Match "pub eviction_count: u64"
+        $querySource | Should Match "state\.environment_capture_residency\.len\(\)"
+        $querySource | Should Match "state\.environment_capture_residency\.resident_gpu_bytes\(\)"
+        $querySource | Should Match "state\.environment_capture_residency\.eviction_count\(\)"
+        $querySource | Should Match "state\.environment_capture_residency\.observation_epoch\(\)"
+        $querySource | Should Match "state\.environment_capture_residency\.last_published_handle\(\)"
+        $querySource | Should Match "state\.environment_capture_residency[\s\S]*?last_published_output_generation\(\)"
+        $epochIndex = $residencySource.IndexOf("self.observation_epoch = self.observation_epoch.saturating_add(1);")
+        $handleIndex = $residencySource.IndexOf("self.last_published_handle = Some(output.handle());")
+        $generationIndex = $residencySource.IndexOf("self.last_published_output_generation = Some(output.identity().output_generation());")
+        $captureIdIndex = $residencySource.IndexOf("let capture_id = output.identity().capture_id().to_string();")
+        ($epochIndex -ge 0) | Should Be $true
+        ($epochIndex -lt $handleIndex) | Should Be $true
+        ($handleIndex -lt $generationIndex) | Should Be $true
+        ($generationIndex -lt $captureIdIndex) | Should Be $true
+        $residentOutputSource | Should Match "handle: self\.handle"
+        $residentOutputSource | Should Match "fn handle\(&self\) -> RenderEnvironmentCaptureHandle"
+        $querySource | Should Not Match "environment_capture_residency[\s\S]*\.iter\(\)"
+    }
+
+    It "preaccounts persisted capture source payload bytes without scanning report payloads" {
+        $repoRoot = "E:\Git\ZirconEngine"
+        $contractPath = Join-Path $repoRoot "zircon_runtime\src\core\framework\render\environment_capture.rs"
+        $schedulerPath = Join-Path $repoRoot "zircon_runtime\src\graphics\runtime\render_framework\environment_capture_scheduler.rs"
+        $reportPath = Join-Path $repoRoot "zircon_runtime\src\graphics\runtime\render_framework\environment_capture_scheduler\report.rs"
+        $completionPath = Join-Path $repoRoot "zircon_runtime\src\graphics\runtime\render_framework\environment_capture_scheduler\completion.rs"
+        $controlPlanePath = Join-Path $repoRoot "zircon_runtime\src\graphics\runtime\render_framework\environment_capture_scheduler\control_plane.rs"
+        $contractSource = Get-Content -LiteralPath $contractPath -Raw
+        $schedulerSource = Get-Content -LiteralPath $schedulerPath -Raw
+        $reportSource = Get-Content -LiteralPath $reportPath -Raw
+        $completionSource = Get-Content -LiteralPath $completionPath -Raw
+        $controlPlaneSource = Get-Content -LiteralPath $controlPlanePath -Raw
+
+        $contractSource | Should Match "pub ready_source_payload_bytes: u64"
+        $contractSource | Should Match "pub peak_ready_source_payload_bytes: u64"
+        $contractSource | Should Match "pub cumulative_source_payload_bytes: u64"
+        $contractSource | Should Match "pub source_payload_publish_count: u64"
+        $schedulerSource | Should Match "struct ReadyEnvironmentCaptureSourcePayload"
+        $schedulerSource | Should Match "payload: RenderEnvironmentCaptureSourcePayload"
+        $schedulerSource | Should Match "bake_key: IblBakeKey"
+        $schedulerSource | Should Match "bytes: u64"
+        $schedulerSource | Should Match "payload\.source_rgba16f_bytes\(\)\.len\(\)"
+        $completionSource | Should Match "publish_source_payload\(source_payload, active\.bake_key\)"
+        $controlPlaneSource | Should Match "ReadyEnvironmentCaptureSourcePayload::into_payload"
+        $reportSource | Should Match "ready_source_payload_bake_key: ready_payload\.map\(\|ready\| ready\.bake_key\)"
+        $reportSource | Should Match "ready_source_payload_bytes: ready_payload\.map_or\(0, \|ready\| ready\.bytes\)"
+        $reportSource | Should Not Match "source_rgba16f_bytes|runtime_cache_artifact_request|\.clone\(\)|\.iter\(\)"
     }
 
     It "binds Standard-PBR material surface inputs into viewer provenance" {
@@ -598,7 +857,7 @@ Describe "zircon shader PBR viewer startup profile contract" {
     It "requires the coordinator response to match the requested ticket id" {
         $repoRoot = "E:\Git\ZirconEngine"
         $fixtureRoot = Join-Path $repoRoot ("docs\tests\runtime\shader\ticket-id-contract-" + [guid]::NewGuid().ToString("N"))
-        $sessionTool = Join-Path $fixtureRoot "tools\zircon-session.ps1"
+        $sessionTool = Join-Path $fixtureRoot "tools\dev\zircon-session.ps1"
         try {
             New-Item -ItemType Directory -Force -Path (Split-Path -Parent $sessionTool) | Out-Null
             @'
@@ -613,7 +872,7 @@ $global:LASTEXITCODE = 0
             $ticketFailure = $null
             try {
                 & {
-                    . (Join-Path $repoRoot "tools\shader-pbr-profile-contract.ps1")
+                    . (Join-Path $repoRoot "tools\analysis\profiling\shader_pbr\shader-pbr-profile-contract.ps1")
                     Get-ZirconShaderPbrCoordinatorValidationTicket `
                         -RepoRoot $fixtureRoot `
                         -ValidationTicketId ("a" * 32) | Out-Null
@@ -639,7 +898,7 @@ $global:LASTEXITCODE = 0
         $managedRoot = Join-Path $contractRoot "managed-artifacts\receipt"
         $viewerPath = Join-Path $managedRoot "zircon_shader_pbr_viewer.exe"
         $provenancePath = Join-Path $contractRoot "viewer-build-provenance.json"
-        $writer = Join-Path $repoRoot "tools\write_zircon_shader_pbr_build_provenance.ps1"
+        $writer = Join-Path $repoRoot "tools\analysis\profiling\shader_pbr\write_zircon_shader_pbr_build_provenance.ps1"
         try {
             New-Item -ItemType Directory -Force -Path $managedRoot | Out-Null
             [System.IO.File]::WriteAllBytes($viewerPath, [byte[]](1, 2, 3, 4))
@@ -907,7 +1166,7 @@ $global:LASTEXITCODE = 0
             @($manifest.repository.profile_tool_files).Count | Should Be 16
 
             $env:PYTHONDONTWRITEBYTECODE = "1"
-            $validator = 'import json,sys; from pathlib import Path; from tools.zircon_shader_pbr_profile_tool_identity import validate_profile_tool_files; p=Path(sys.argv[1]); m=json.loads(p.read_text(encoding="utf-8-sig")); validate_profile_tool_files(m["repository"], Path(m["repository"]["root"]).resolve(), p)'
+            $validator = 'import json,sys; from pathlib import Path; from tools.analysis.profiling.shader_pbr.zircon_shader_pbr_profile_tool_identity import validate_profile_tool_files; p=Path(sys.argv[1]); m=json.loads(p.read_text(encoding="utf-8-sig")); validate_profile_tool_files(m["repository"], Path(m["repository"]["root"]).resolve(), p)'
             $acceptOutput = @(& python -c $validator $manifestPath 2>&1)
             $acceptExitCode = $LASTEXITCODE
             $acceptExitCode | Should Be 0

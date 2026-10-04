@@ -107,7 +107,8 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         metrics: &WorkbenchChromeMetrics,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         let physical_shell_size = UiSize::new(mount_frame.width, mount_frame.height);
-        let shell_size = self.prepare_layout_at_mount_with_scale(mount_frame, scale_factor);
+        let (shell_size, mount_changed) =
+            self.prepare_layout_at_mount_with_scale(mount_frame, scale_factor);
         let logical_toolbar_width = shell_size.width;
         {
             zircon_runtime::profile_scope!(
@@ -147,6 +148,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 model,
                 metrics,
                 None,
+                mount_changed,
             )?;
         }
         {
@@ -168,6 +170,7 @@ fn apply_workbench_drawer_layout_to_surface(
     model: &WorkbenchViewModel,
     metrics: &WorkbenchChromeMetrics,
     anchors: Option<WorkbenchDrawerLayoutAnchors>,
+    invalidate_roots: bool,
 ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
     apply_workbench_drawer_layout(
         surface,
@@ -175,6 +178,7 @@ fn apply_workbench_drawer_layout_to_surface(
         WorkbenchDrawerLayoutInputs::from_workbench_model(model, metrics),
         *metrics,
         anchors,
+        invalidate_roots,
     )
 }
 
@@ -184,6 +188,7 @@ fn apply_workbench_drawer_layout(
     drawer_inputs: WorkbenchDrawerLayoutInputs,
     metrics: WorkbenchChromeMetrics,
     anchors: Option<WorkbenchDrawerLayoutAnchors>,
+    invalidate_roots: bool,
 ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
     let rail_width = metrics.rail_width.max(0.0);
     let left = compacted_side_region_input(
@@ -201,7 +206,7 @@ fn apply_workbench_drawer_layout(
     let bottom = compacted_bottom_region_input(drawer_inputs.bottom, shell_size, metrics, anchors);
     let (left, right) = reserve_document_width(left, right, shell_size, metrics);
 
-    mark_roots_layout_dirty(surface)?;
+    mark_roots_layout_dirty_if_needed(surface, invalidate_roots)?;
 
     apply_fixed_control_width(
         surface,
@@ -269,6 +274,16 @@ fn mark_roots_layout_dirty(
     for root_index in 0..surface.tree.roots.len() {
         let root_id = surface.tree.roots[root_index];
         surface.tree.mark_layout_dirty(root_id)?;
+    }
+    Ok(())
+}
+
+fn mark_roots_layout_dirty_if_needed(
+    surface: &mut UiSurface,
+    invalidate_roots: bool,
+) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+    if invalidate_roots {
+        mark_roots_layout_dirty(surface)?;
     }
     Ok(())
 }
@@ -414,6 +429,17 @@ fn apply_fixed_control_width(
         let Some(node) = surface.tree.node_mut(node_id) else {
             return Ok(());
         };
+        let width = if node
+            .template_metadata
+            .as_ref()
+            .and_then(|metadata| metadata.attributes.get("visibility"))
+            .and_then(toml::Value::as_str)
+            == Some("collapsed")
+        {
+            0.0
+        } else {
+            width
+        };
         let next_width = fixed_axis(width);
         let next_visibility = fixed_extent_visibility(width);
         let changed = node.constraints.width != next_width || node.visibility != next_visibility;
@@ -474,54 +500,9 @@ fn fixed_axis(size: f32) -> AxisConstraint {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ui::workbench::fixture::default_preview_fixture;
+#[path = "tests/drawer_layout.rs"]
+mod tests;
 
-    #[test]
-    fn collapsed_bottom_drawer_input_uses_the_callers_panel_header_metric() {
-        let fixture = default_preview_fixture();
-        let chrome = fixture.build_chrome();
-        let mut model = WorkbenchViewModel::build(
-            &crate::core::commands::EditorCommandRegistry::default_workbench(),
-            &chrome,
-        );
-        let bottom = model
-            .drawer_ring
-            .drawers
-            .get_mut(&ActivityDrawerSlot::Bottom)
-            .expect("preview fixture should expose a bottom drawer");
-        bottom.mode = ActivityDrawerMode::Collapsed;
-        bottom.visible = true;
-        assert!(!bottom.tabs.is_empty());
-
-        let metrics = WorkbenchChromeMetrics {
-            panel_header_height: 31.0,
-            ..WorkbenchChromeMetrics::default()
-        };
-        let inputs = WorkbenchDrawerLayoutInputs::from_workbench_model(&model, &metrics);
-
-        assert!(inputs.bottom.visible);
-        assert_eq!(inputs.bottom.extent, metrics.panel_header_height);
-    }
-
-    #[test]
-    fn narrow_width_collapses_a_visible_bottom_drawer_to_its_tab_strip() {
-        let pinned_drawer = WorkbenchDrawerRegionInput {
-            visible: true,
-            extent: 228.0,
-        };
-        let metrics = WorkbenchChromeMetrics {
-            panel_header_height: 31.0,
-            ..WorkbenchChromeMetrics::default()
-        };
-        let compacted = compacted_bottom_region_input(
-            pinned_drawer,
-            UiSize::new(640.0, 520.0),
-            metrics,
-            Some(WorkbenchDrawerLayoutAnchors { body_height: 420.0 }),
-        );
-
-        assert_eq!(compacted.extent, metrics.panel_header_height);
-    }
-}
+#[cfg(test)]
+#[path = "drawer_layout/tests/inspector_layout_tests.rs"]
+mod inspector_layout_tests;

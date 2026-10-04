@@ -70,7 +70,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_control_geometry/icons.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_glyphs/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_glyphs/icon_glyphs/target.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls_tests/icons.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls/checkbox/tick.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_control_geometry/metrics.rs
@@ -119,12 +118,11 @@ related_code:
   - zircon_editor/src/ui/layouts/views/asset_browser/labels.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/summary_nodes.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/summary_layout.rs
-  - zircon_editor/src/ui/layouts/views/asset_browser/tests.rs
   - zircon_runtime/src/core/framework/render/material/property_override_block.rs
 design_references:
-  - docs/ui-and-layout/editor-workbench-designs/asset-browser-workbench.png
-  - docs/ui-and-layout/editor-workbench-designs/inspector-drawer-content-spec.png
-  - docs/ui-and-layout/editor-workbench-designs/console-drawer-content-spec.png
+  - docs/ui/editor-workbench-designs/asset-browser-workbench.png
+  - docs/ui/editor-workbench-designs/inspector-drawer-content-spec.png
+  - docs/ui/editor-workbench-designs/console-drawer-content-spec.png
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/zircon_editor/editor_layout/15b-host-control-metrics-single-source.md

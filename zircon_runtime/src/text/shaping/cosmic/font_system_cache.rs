@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use glyphon::cosmic_text::{FontSystem, fontdb};
+use glyphon::cosmic_text::{fontdb, FontSystem};
 
 use crate::text::default_text_locale;
 use crate::text::font::{FontCollectionSnapshot, FontDatabase};
@@ -175,5 +175,5 @@ pub(super) fn with_font_system<R>(
 }
 
 #[cfg(test)]
-#[path = "font_system_cache/tests.rs"]
+#[path = "font_system_cache/tests/cases.rs"]
 mod tests;

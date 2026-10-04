@@ -1,4 +1,5 @@
 //! Runtime test fixture helpers for plugin integration tests.
+//! builder 在真实 CoreRuntime 上执行模块注册、扩展目录投影及可选激活，便于集成测试走生产路径。
 
 use std::any::Any;
 use std::error::Error;
@@ -22,6 +23,7 @@ const DEFAULT_MAX_FIXED_STEPS: u32 = 4;
 pub type Result<T> = std::result::Result<T, TestRuntimeError>;
 
 #[derive(Debug)]
+/// 测试运行时构建、模块操作、时间策略或关卡 tick 的错误边界。
 pub enum TestRuntimeError {
     RuntimeExtensionCatalog {
         diagnostics: Vec<String>,
@@ -31,6 +33,11 @@ pub enum TestRuntimeError {
         action: &'static str,
         target: String,
         source: CoreError,
+    },
+    LevelTick {
+        action: &'static str,
+        target: String,
+        source: scene::LevelTickError,
     },
     RuntimeExtensionRegistry {
         action: &'static str,
@@ -57,6 +64,11 @@ impl fmt::Display for TestRuntimeError {
                 target,
                 source,
             } => write!(f, "test runtime {action} failed for {target}: {source}"),
+            Self::LevelTick {
+                action,
+                target,
+                source,
+            } => write!(f, "test runtime {action} failed for {target}: {source}"),
             Self::RuntimeExtensionRegistry { action, source } => {
                 write!(f, "test runtime {action} failed: {source}")
             }
@@ -69,6 +81,7 @@ impl Error for TestRuntimeError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Core { source, .. } => Some(source),
+            Self::LevelTick { source, .. } => Some(source),
             Self::RuntimeExtensionRegistry { source, .. } => Some(source),
             Self::TimePolicy { source } => Some(source),
             Self::RuntimeExtensionCatalog { .. } => None,
@@ -77,6 +90,7 @@ impl Error for TestRuntimeError {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 测试夹具可选安装的基础运行时模块。
 pub enum TestRuntimeBaseModule {
     Foundation,
     Asset,
@@ -106,6 +120,7 @@ impl TestRuntimeBaseModule {
 }
 
 #[derive(Debug)]
+/// 已构建的 CoreRuntime、扩展目录报告和本次实际激活的模块名。
 pub struct TestRuntime {
     runtime: CoreRuntime,
     extension_report: RuntimeExtensionCatalogReport,
@@ -165,11 +180,12 @@ impl TestRuntime {
         self.advance_time_by(duration_from_seconds(seconds))
     }
 
+    /// 先推进运行时帧时间，再用该快照驱动指定关卡一次 tick。
     pub fn tick_level_seconds(&self, level: &scene::LevelSystem, seconds: f64) -> Result<()> {
         let advance = self.advance_time_by_seconds(seconds);
         level
             .tick(&self.handle(), advance)
-            .map_err(|source| TestRuntimeError::Core {
+            .map_err(|source| TestRuntimeError::LevelTick {
                 action: "tick level",
                 target: SCENE_MODULE_NAME.to_string(),
                 source,
@@ -178,6 +194,7 @@ impl TestRuntime {
 }
 
 #[derive(Debug)]
+/// 控制基础模块、插件注册报告、扩展计划安装、激活与固定步长的测试夹具 builder。
 pub struct TestRuntimeBuilder {
     fixed_timestep: Option<Duration>,
     max_fixed_steps: u32,
@@ -220,6 +237,7 @@ impl TestRuntimeBuilder {
         self
     }
 
+    /// 替换默认的 Foundation、Asset、Scene 模块栈。
     pub fn with_base_modules(
         mut self,
         modules: impl IntoIterator<Item = TestRuntimeBaseModule>,
@@ -233,6 +251,7 @@ impl TestRuntimeBuilder {
         self
     }
 
+    /// 立即从插件对象提取注册报告；builder 不保留该对象的借用。
     pub fn with_runtime_plugin(mut self, plugin: &dyn RuntimePlugin) -> Self {
         self.runtime_registrations
             .push(RuntimePluginRegistrationReport::from_plugin(plugin));
@@ -263,6 +282,7 @@ impl TestRuntimeBuilder {
         self
     }
 
+    /// 跳过 world runtime extension plan 的安装，不跳过扩展目录收集与模块注册。
     pub fn without_scene_runtime_extension_plan(mut self) -> Self {
         self.install_scene_runtime_extension_plan = false;
         self
@@ -273,11 +293,13 @@ impl TestRuntimeBuilder {
         self
     }
 
+    /// 仍收集、注册插件模块并安装扩展计划，只跳过最后的插件模块激活。
     pub fn without_plugin_module_activation(mut self) -> Self {
         self.activate_plugin_modules = false;
         self
     }
 
+    /// 按时间策略、基础模块注册、插件扩展目录、模块注册、计划安装、模块激活的顺序构建运行时。
     pub fn build(self) -> Result<TestRuntime> {
         let runtime = CoreRuntime::new();
         if let Some(fixed_timestep) = self.fixed_timestep {
@@ -380,117 +402,5 @@ fn duration_from_seconds(seconds: f64) -> Duration {
 }
 
 #[cfg(test)]
-mod tests {
-    use zircon_runtime::core::runtime::ServiceObject;
-    use zircon_runtime::core::{ManagerDescriptor, ServiceKind, StartupMode};
-    use zircon_runtime::engine_module::{factory, qualified_name};
-    use zircon_runtime::plugin::{RuntimeExtensionRegistry, RuntimePluginDescriptor};
-    use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
-
-    use super::*;
-
-    const TEST_PACKAGE_ID: &str = "prefab_tools";
-    const TEST_PLUGIN_MODULE_NAME: &str = "prefab_tools.runtime";
-    const TEST_RUNTIME_MODULE_NAME: &str = "SdkTestRuntimeModule";
-    const TEST_MANAGER_NAME: &str = "SdkTestRuntimeModule.Manager.SdkTestManager";
-
-    #[derive(Debug)]
-    struct SdkTestManager;
-
-    #[derive(Clone, Debug)]
-    struct SdkTestRuntimePlugin {
-        descriptor: RuntimePluginDescriptor,
-    }
-
-    impl SdkTestRuntimePlugin {
-        fn new() -> Self {
-            Self {
-                descriptor: RuntimePluginDescriptor::builder(
-                    TEST_PACKAGE_ID,
-                    "SDK Test Runtime",
-                    RuntimePluginId::PrefabTools,
-                    "zircon_plugin_sdk_test_runtime",
-                )
-                .with_category("runtime")
-                .with_target_modes([RuntimeTargetMode::ClientRuntime])
-                .with_capability("runtime.plugin.prefab_tools")
-                .build(),
-            }
-        }
-    }
-
-    impl RuntimePlugin for SdkTestRuntimePlugin {
-        fn descriptor(&self) -> &RuntimePluginDescriptor {
-            &self.descriptor
-        }
-
-        fn register(
-            &self,
-            registry: &mut RuntimeExtensionRegistry,
-        ) -> std::result::Result<(), RuntimeExtensionRegistryError> {
-            let owner = registry.intern_plugin_module(TEST_PLUGIN_MODULE_NAME)?;
-            assert_eq!(
-                registry.plugin_module_name(owner),
-                Some(TEST_PLUGIN_MODULE_NAME)
-            );
-            registry.register_module(test_runtime_module_descriptor())
-        }
-    }
-
-    fn test_runtime_module_descriptor() -> ModuleDescriptor {
-        ModuleDescriptor::new(TEST_RUNTIME_MODULE_NAME, "SDK test runtime module").with_manager(
-            ManagerDescriptor::new(
-                qualified_name(
-                    TEST_RUNTIME_MODULE_NAME,
-                    ServiceKind::Manager,
-                    "SdkTestManager",
-                ),
-                StartupMode::Immediate,
-                Vec::new(),
-                factory(|_| Ok(Arc::new(SdkTestManager) as ServiceObject)),
-            ),
-        )
-    }
-
-    #[test]
-    fn test_runtime_builder_registers_base_and_plugin_modules() {
-        let plugin = SdkTestRuntimePlugin::new();
-        let runtime = TestRuntime::builder()
-            .with_runtime_plugin(&plugin)
-            .build()
-            .expect("SDK test runtime should build");
-
-        assert!(runtime
-            .activated_modules()
-            .contains(&foundation::FOUNDATION_MODULE_NAME.to_string()));
-        assert!(runtime
-            .activated_modules()
-            .contains(&asset::ASSET_MODULE_NAME.to_string()));
-        assert!(runtime
-            .activated_modules()
-            .contains(&SCENE_MODULE_NAME.to_string()));
-        assert!(runtime
-            .activated_modules()
-            .contains(&TEST_RUNTIME_MODULE_NAME.to_string()));
-        runtime
-            .resolve_manager::<SdkTestManager>(TEST_MANAGER_NAME)
-            .expect("plugin manager should resolve after module activation");
-        assert!(runtime.extension_report().is_success());
-    }
-
-    #[test]
-    fn test_runtime_builder_can_build_scene_levels_with_extensions_installed() {
-        let plugin = SdkTestRuntimePlugin::new();
-        let runtime = TestRuntime::builder()
-            .with_runtime_plugin(&plugin)
-            .build()
-            .expect("SDK test runtime should build");
-
-        let level = runtime
-            .create_default_level()
-            .expect("default level should include runtime world extensions");
-        runtime
-            .tick_level_seconds(&level, 1.0 / 60.0)
-            .expect("level tick should use the SDK runtime clock");
-    }
-}
+#[path = "tests/test.rs"]
+mod tests;

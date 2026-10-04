@@ -1,3 +1,4 @@
+# 核对已跟踪测试不依赖临时会话目录且能区分物化副本。
 import subprocess
 import unittest
 from pathlib import Path

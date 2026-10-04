@@ -1,3 +1,4 @@
+# 在验收快照复制前约束清单预算与有效期，并核对收据字段；用显式时间和隔离清单夹具验证拒绝路径，避免将未准入快照视为可复制输入。
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 

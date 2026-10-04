@@ -24,15 +24,25 @@ pub(super) fn prompt_message(count: usize) -> String {
 }
 
 pub(super) fn dirty_details(views: &[DirtyCloseView], includes_project_scene: bool) -> String {
-    let mut names = includes_project_scene
+    let mut names = String::new();
+    for (index, name) in includes_project_scene
         .then_some("Active Scene")
         .into_iter()
         .chain(views.iter().map(|view| view.title.as_str()))
         .take(3)
-        .collect::<Vec<_>>()
-        .join(", ");
+        .enumerate()
+    {
+        if index > 0 {
+            names.push_str(", ");
+        }
+        names.push_str(name);
+    }
     if views.len() + usize::from(includes_project_scene) > 3 {
         names.push_str(", ...");
     }
     names
 }
+
+#[cfg(test)]
+#[path = "text/tests/direct_append_tests.rs"]
+mod direct_append_tests;

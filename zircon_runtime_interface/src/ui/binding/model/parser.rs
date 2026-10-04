@@ -17,6 +17,7 @@ impl<'a> BindingParser<'a> {
         Self { input, index: 0 }
     }
 
+    // 只有完整读完路径、可选动作和尾部空白后才构造结果，避免调用方接收部分匹配。
     pub(super) fn parse_binding(mut self) -> Result<UiEventBinding, UiBindingParseError> {
         let (view_id, control_id, event_kind, has_action) = self.parse_header()?;
         let action = if has_action {
@@ -121,6 +122,7 @@ impl<'a> BindingParser<'a> {
         Ok(value)
     }
 
+    // 各构造器在此统一分派；单个构造器负责校验参数数量、类型和领域对象不变量。
     fn parse_constructed_value(&mut self) -> Result<UiBindingValue, UiBindingParseError> {
         let constructor = self.parse_symbol()?;
         self.skip_ws();
@@ -175,6 +177,64 @@ impl<'a> BindingParser<'a> {
     ) -> Result<UiBindingValue, UiBindingParseError> {
         require_even_arity(constructor, &arguments)?;
         let mut fields = BTreeMap::new();
+        let mut arguments = arguments.into_iter();
+        while let Some(field) = arguments.next() {
+            let value = arguments
+                .next()
+                .expect("even record arity was validated before pair consumption");
+            let UiBindingValue::String(field) = field else {
+                return Err(invalid_constructor(
+                    constructor,
+                    "record field names must be strings",
+                ));
+            };
+            if fields.insert(field, value).is_some() {
+                return Err(invalid_constructor(
+                    constructor,
+                    "record field names must be unique",
+                ));
+            }
+        }
+        UiBindingValue::record(fields).map_err(Into::into)
+    }
+
+    fn construct_map(
+        &self,
+        constructor: &str,
+        arguments: Vec<UiBindingValue>,
+    ) -> Result<UiBindingValue, UiBindingParseError> {
+        require_even_arity(constructor, &arguments)?;
+        let mut entries = Vec::with_capacity(arguments.len() / 2);
+        let mut arguments = arguments.into_iter();
+        while let Some(key) = arguments.next() {
+            let value = arguments
+                .next()
+                .expect("even map arity was validated before pair consumption");
+            let key = match key {
+                UiBindingValue::String(value) => UiBindingMapKey::String(value),
+                UiBindingValue::Unsigned(value) => UiBindingMapKey::Unsigned(value),
+                UiBindingValue::Signed(value) => UiBindingMapKey::Signed(value),
+                UiBindingValue::Bool(value) => UiBindingMapKey::Bool(value),
+                _ => {
+                    return Err(invalid_constructor(
+                        constructor,
+                        "map keys must be string, unsigned, signed, or bool scalars",
+                    ));
+                }
+            };
+            entries.push((key, value));
+        }
+        UiBindingValue::map(entries).map_err(Into::into)
+    }
+
+    #[cfg(test)]
+    fn construct_record_cloning(
+        &self,
+        constructor: &str,
+        arguments: Vec<UiBindingValue>,
+    ) -> Result<UiBindingValue, UiBindingParseError> {
+        require_even_arity(constructor, &arguments)?;
+        let mut fields = BTreeMap::new();
         for pair in arguments.chunks_exact(2) {
             let UiBindingValue::String(field) = &pair[0] else {
                 return Err(invalid_constructor(
@@ -192,7 +252,8 @@ impl<'a> BindingParser<'a> {
         UiBindingValue::record(fields).map_err(Into::into)
     }
 
-    fn construct_map(
+    #[cfg(test)]
+    fn construct_map_cloning(
         &self,
         constructor: &str,
         arguments: Vec<UiBindingValue>,
@@ -280,7 +341,7 @@ impl<'a> BindingParser<'a> {
     fn construct_collection_view(
         &self,
         constructor: &str,
-        mut arguments: Vec<UiBindingValue>,
+        arguments: Vec<UiBindingValue>,
     ) -> Result<UiBindingValue, UiBindingParseError> {
         require_arity(constructor, &arguments, 8)?;
         let total_length = unsigned_argument(constructor, &arguments, 7)?;
@@ -292,11 +353,25 @@ impl<'a> BindingParser<'a> {
         let item_schema_version =
             UiModelSchemaVersion::try_new(unsigned_argument(constructor, &arguments, 3)?)
                 .map_err(|error| invalid_constructor(constructor, &error.to_string()))?;
-        let item_schema_id = take_string_argument(constructor, arguments.remove(2), 2)?;
+        if !matches!(arguments.get(2), Some(UiBindingValue::String(_))) {
+            return Err(invalid_constructor(
+                constructor,
+                "argument 2 must be a string",
+            ));
+        }
         let provider_version =
             UiModelProviderVersion::try_new(unsigned_argument(constructor, &arguments, 1)?)
                 .map_err(|error| invalid_constructor(constructor, &error.to_string()))?;
-        let provider_id = take_string_argument(constructor, arguments.remove(0), 0)?;
+        let mut arguments = arguments.into_iter();
+        let provider_id = arguments
+            .next()
+            .expect("collection-view arity was validated before argument consumption");
+        let _ = arguments.next();
+        let item_schema_id = arguments
+            .next()
+            .expect("collection-view arity was validated before argument consumption");
+        let item_schema_id = take_string_argument(constructor, item_schema_id, 2)?;
+        let provider_id = take_string_argument(constructor, provider_id, 0)?;
         let provider = UiModelProviderKey {
             id: UiModelProviderId::try_new(provider_id)
                 .map_err(|error| invalid_constructor(constructor, &error.to_string()))?,
@@ -349,12 +424,28 @@ impl<'a> BindingParser<'a> {
 
     fn parse_string(&mut self) -> Result<String, UiBindingParseError> {
         self.expect('"')?;
-        let mut output = String::new();
-        while let Some(ch) = self.peek_char() {
-            self.index += ch.len_utf8();
-            match ch {
-                '"' => return Ok(output),
-                '\\' => {
+        let value_start = self.index;
+        let remaining = self.remaining();
+        let Some(first_special_offset) = remaining.find(['"', '\\']) else {
+            self.index = self.input.len();
+            return Err(UiBindingParseError::UnterminatedString);
+        };
+        let first_special_index = value_start + first_special_offset;
+        if self.input.as_bytes()[first_special_index] == b'"' {
+            let value_end = first_special_index;
+            self.index = value_end + 1;
+            return Ok(self.input[value_start..value_end].to_string());
+        }
+
+        let mut output = String::with_capacity(first_special_offset.saturating_add(16));
+        let mut chunk_start = value_start;
+        let mut special_index = first_special_index;
+        loop {
+            output.push_str(&self.input[chunk_start..special_index]);
+            self.index = special_index + 1;
+            match self.input.as_bytes()[special_index] {
+                b'"' => return Ok(output),
+                b'\\' => {
                     let escaped = self.peek_char().ok_or(UiBindingParseError::InvalidEscape)?;
                     self.index += escaped.len_utf8();
                     output.push(match escaped {
@@ -365,11 +456,17 @@ impl<'a> BindingParser<'a> {
                         't' => '\t',
                         _ => return Err(UiBindingParseError::InvalidEscape),
                     });
+                    chunk_start = self.index;
                 }
-                other => output.push(other),
+                _ => unreachable!("binding string delimiter scan returns only quote or escape"),
             }
+
+            let Some(next_special_offset) = self.remaining().find(['"', '\\']) else {
+                self.index = self.input.len();
+                return Err(UiBindingParseError::UnterminatedString);
+            };
+            special_index = self.index + next_special_offset;
         }
-        Err(UiBindingParseError::UnterminatedString)
     }
 
     fn parse_number(&mut self) -> Result<UiBindingValue, UiBindingParseError> {
@@ -465,6 +562,10 @@ impl<'a> BindingParser<'a> {
     }
 }
 
+#[cfg(test)]
+#[path = "parser/tests/string_performance_tests.rs"]
+mod string_performance_tests;
+
 fn require_arity(
     constructor: &str,
     arguments: &[UiBindingValue],
@@ -524,6 +625,14 @@ fn unsigned_argument(
         )),
     }
 }
+
+#[cfg(test)]
+#[path = "parser/tests/constructed_entry_performance_tests.rs"]
+mod constructed_entry_performance_tests;
+
+#[cfg(test)]
+#[path = "parser/tests/collection_view_performance_tests.rs"]
+mod collection_view_performance_tests;
 
 fn invalid_constructor(constructor: &str, reason: &str) -> UiBindingParseError {
     UiBindingParseError::InvalidValueConstructor {

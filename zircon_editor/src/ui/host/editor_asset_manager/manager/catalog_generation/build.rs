@@ -19,35 +19,34 @@ pub(in crate::ui::host::editor_asset_manager::manager) fn build_catalog_generati
     catalog_by_uuid: &HashMap<AssetUuid, AssetCatalogRecord>,
     uuid_by_locator: &HashMap<AssetUri, AssetUuid>,
 ) -> Arc<EditorAssetCatalogGeneration> {
-    let mut records = catalog_by_uuid.values().collect::<Vec<_>>();
+    let mut records = Vec::with_capacity(catalog_by_uuid.len());
+    records.extend(catalog_by_uuid.values());
     records.sort_by(|left, right| left.locator.cmp(&right.locator));
-    let details = records
-        .iter()
-        .map(|record| {
-            Some(build_details_generation(
-                record,
-                catalog_by_uuid,
-                uuid_by_locator,
-                runtime_registry,
-            ))
-        })
-        .collect::<Vec<_>>();
-    let assets = details
-        .iter()
-        .map(|details| {
-            Arc::clone(
-                &details
-                    .as_ref()
-                    .expect("details are built for every asset")
-                    .asset,
-            )
-        })
-        .collect::<Vec<_>>();
+    let record_count = records.len();
+    let mut details = Vec::with_capacity(record_count);
+    for record in &records {
+        details.push(Some(build_details_generation(
+            record,
+            catalog_by_uuid,
+            uuid_by_locator,
+            runtime_registry,
+        )));
+    }
 
-    let catalog_records = records
-        .iter()
-        .map(|record| Some(Arc::new((*record).clone())))
-        .collect::<Vec<_>>();
+    let mut assets = Vec::with_capacity(record_count);
+    for details in &details {
+        assets.push(Arc::clone(
+            &details
+                .as_ref()
+                .expect("details are built for every asset")
+                .asset,
+        ));
+    }
+
+    let mut catalog_records = Vec::with_capacity(record_count);
+    for record in &records {
+        catalog_records.push(Some(Arc::new((*record).clone())));
+    }
 
     Arc::new(EditorAssetCatalogGeneration::from_parts(
         project.manifest().name.clone(),

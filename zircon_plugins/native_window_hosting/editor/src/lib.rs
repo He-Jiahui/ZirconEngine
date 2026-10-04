@@ -16,4 +16,5 @@ pub use plugin::{
 };
 
 #[cfg(all(test, feature = "editor"))]
+#[path = "tests/cases.rs"]
 mod tests;

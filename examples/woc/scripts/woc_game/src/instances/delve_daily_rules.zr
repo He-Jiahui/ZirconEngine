@@ -1,6 +1,7 @@
 // Pure projection of refreshDelveDaily. Collection clearing remains state-owned.
 var content = %import("instances/delve_daily_content");
 
+/// 日期字符串由上层提供统一UTC日标识；空值表示本轮无法刷新，不能用它清空计数或首次经验集合。
 pub shouldReset(storedDay: string, utcDay: string): bool {
     return utcDay != "" && storedDay != utcDay;
 }
@@ -12,6 +13,7 @@ pub nextMarkClearCount(storedMarkClears: int, storedDay: string, utcDay: string)
     return shouldReset(storedDay, utcDay) ? 0 : storedMarkClears;
 }
 
+/// 与每日印记计数共享重置判定；调用方应在同一日期迁移中清理两类进度，避免奖励资格跨天分歧。
 pub shouldClearFirstClearXp(storedDay: string, utcDay: string): bool {
     return shouldReset(storedDay, utcDay);
 }

@@ -2,7 +2,9 @@ use std::collections::BTreeMap;
 
 use crate::ui::binding::EditorUiBinding;
 use toml::Value;
-use zircon_runtime_interface::ui::{event_ui::UiRouteId, template::UiActionRef};
+use zircon_runtime_interface::ui::{
+    event_ui::UiRouteId, template::UiActionRef, v2::UiTemplateNodeInstancePathStep,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RetainedUiBindingProjection {
@@ -16,6 +18,9 @@ pub struct RetainedUiBindingProjection {
 pub struct RetainedUiNodeProjection {
     pub component: String,
     pub control_id: Option<String>,
+    pub source_path: Option<String>,
+    pub source_node_id: Option<String>,
+    pub instance_path: Option<Vec<UiTemplateNodeInstancePathStep>>,
     pub attributes: BTreeMap<String, Value>,
     pub style_tokens: BTreeMap<String, String>,
     pub binding_ids: Vec<String>,
@@ -81,12 +86,12 @@ impl RetainedUiProjectionSurfaceMetadataIndex {
         else {
             return;
         };
-        attributes.extend(
-            metadata
-                .attributes
-                .iter()
-                .map(|(key, value)| (key.clone(), value.clone())),
-        );
+        // Authored metadata supplements the live surface; it must not reset runtime values.
+        for (key, value) in &metadata.attributes {
+            attributes
+                .entry(key.clone())
+                .or_insert_with(|| value.clone());
+        }
         style_tokens.extend(
             metadata
                 .style_tokens
@@ -106,61 +111,9 @@ impl RetainedUiProjectionSurfaceMetadataIndex {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn surface_metadata_index_preserves_preorder_last_write_wins() {
-        let projection = RetainedUiProjection {
-            document_id: "test.index".to_string(),
-            bindings: Vec::new(),
-            root: RetainedUiNodeProjection {
-                component: "Root".to_string(),
-                control_id: None,
-                attributes: BTreeMap::new(),
-                style_tokens: BTreeMap::new(),
-                binding_ids: Vec::new(),
-                children: vec![
-                    RetainedUiNodeProjection {
-                        component: "Button".to_string(),
-                        control_id: Some("SharedControl".to_string()),
-                        attributes: BTreeMap::from([
-                            ("preserved".to_string(), Value::Boolean(true)),
-                            ("winner".to_string(), Value::String("first".to_string())),
-                        ]),
-                        style_tokens: BTreeMap::from([("accent".to_string(), "first".to_string())]),
-                        binding_ids: Vec::new(),
-                        children: Vec::new(),
-                    },
-                    RetainedUiNodeProjection {
-                        component: "Button".to_string(),
-                        control_id: Some("SharedControl".to_string()),
-                        attributes: BTreeMap::from([(
-                            "winner".to_string(),
-                            Value::String("second".to_string()),
-                        )]),
-                        style_tokens: BTreeMap::from([(
-                            "accent".to_string(),
-                            "second".to_string(),
-                        )]),
-                        binding_ids: Vec::new(),
-                        children: Vec::new(),
-                    },
-                ],
-            },
-        };
-
-        let index = projection.surface_metadata_index();
-        let (attributes, style_tokens) = index.metadata_for("SharedControl").unwrap();
-        assert_eq!(attributes.get("preserved"), Some(&Value::Boolean(true)));
-        assert_eq!(
-            attributes.get("winner"),
-            Some(&Value::String("second".to_string()))
-        );
-        assert_eq!(style_tokens.get("accent"), Some(&"second".to_string()));
-    }
-}
+#[path = "tests/model.rs"]
+mod tests;
 
 #[cfg(test)]
-#[path = "model/optimization_tests.rs"]
+#[path = "model/tests/optimization_tests.rs"]
 mod optimization_tests;

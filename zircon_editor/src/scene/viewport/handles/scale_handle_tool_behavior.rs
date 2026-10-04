@@ -2,6 +2,7 @@ use crate::scene::viewport::{GizmoAxis, HandleOverlayExtract, OverlayAxis};
 use zircon_runtime_interface::math::Transform;
 
 #[cfg(test)]
+#[path = "scale_handle_tool_behavior/tests/overlay_capacity_tests.rs"]
 mod overlay_capacity_tests;
 
 use crate::scene::viewport::handles::{

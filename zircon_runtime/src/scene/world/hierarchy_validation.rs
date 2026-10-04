@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 use super::World;
-use crate::scene::EntityId;
 use crate::scene::components::Hierarchy;
+use crate::scene::EntityId;
 
 impl World {
     pub(super) fn rebuild_hierarchy_validity(&mut self) {
@@ -81,12 +81,13 @@ impl World {
             }
         }
         for (entity, previous_parent, current_parent) in hierarchy_updates.iter().copied() {
-            let updated = if let Some(hierarchy) = self.get_mut::<Hierarchy>(entity) {
-                hierarchy.parent = current_parent;
-                true
-            } else {
-                false
-            };
+            let updated =
+                if let Some(hierarchy) = self.get_mut_prevalidated_authored::<Hierarchy>(entity) {
+                    hierarchy.parent = current_parent;
+                    true
+                } else {
+                    false
+                };
             if updated && hierarchy_index_was_current {
                 self.update_hierarchy_mutation_index(entity, previous_parent, current_parent);
             }

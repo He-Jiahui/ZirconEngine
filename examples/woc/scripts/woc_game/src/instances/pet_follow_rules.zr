@@ -39,6 +39,7 @@ pub shouldDropReachedWaypoint(pathLength: int, waypointDistance: float): bool {
 }
 
 // `freshPathLength` is the result after the required, unthrottled second path query.
+/// 路径不足时还需先执行不受节流的第二次寻路，再传入它的长度；不能只凭缓存为空或距离过远就传送。
 pub shouldWarpAfterFreshPath(
     distanceToOwner: float,
     cachedPathLength: int,
@@ -50,6 +51,7 @@ pub shouldWarpAfterFreshPath(
         freshPathLength <= 1;
 }
 
+/// 结果仍是速度，不是每步位移；世界调用方结合当前时间步推进，并负责地面高度与空间重分桶。
 pub followSpeed(petMoveSpeed: float, moveSpeedMultiplier: float): float {
     var baseSpeed = petMoveSpeed;
     if (baseSpeed < 7.7) {

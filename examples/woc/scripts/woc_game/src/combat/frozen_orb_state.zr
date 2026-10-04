@@ -1,7 +1,7 @@
-// Pure Frozen Orb movement/latch/pulse clock. WOS supplies contact truth and
-// commits damage, slow, Icicle and Fingers of Frost effects after a pulse.
+// 冰球移动、接触停驻与脉冲时钟的独立投影；当前仅叶子测试消费，接入世界时需外部提供碰撞事实并处理伤害及减速效果。
 var contract = %import("generated/frozen_orb_contract");
 
+/// 冰球局部时钟与水平位置由调用者保留；接触判定不存于此对象，而是逐步传入。
 pub class FrozenOrbState {
     pub var x: float;
     pub var z: float;
@@ -23,6 +23,7 @@ pub class FrozenOrbState {
     }
 }
 
+/// 单步事件标记供外部提交；同一步允许先脉冲再过期。
 pub class FrozenOrbAdvance {
     pub var transitioned: bool;
     pub var halted: bool;
@@ -36,8 +37,7 @@ pub class FrozenOrbAdvance {
     }
 }
 
-// Mirrors the order in tickFrozenOrbs: latch transition, optional movement,
-// lifetime decrement, pulse timer and then expiration.
+/// 单步先切换停驻，再按需移动、递减寿命和脉冲计时，最后标记过期；停驻仍推进寿命与脉冲，每步最多发一次脉冲。
 pub advanceFrozenOrb(state: FrozenOrbState, hasContact: bool): FrozenOrbAdvance {
     var result = new FrozenOrbAdvance();
     if (hasContact != state.halted) {

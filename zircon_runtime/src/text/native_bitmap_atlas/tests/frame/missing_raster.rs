@@ -11,17 +11,15 @@ fn native_bitmap_atlas_frame_reports_missing_visible_raster_without_replacement(
         background_color: [0.0, 0.0, 0.0, 1.0],
         source_byte_len: 64,
     };
-    let frame = NativeBitmapAtlasFrame {
-        missing_raster_image_count: 1,
-        visible_missing_raster_image_count: 1,
-        ..test_frame(
-            test_submission([source]),
-            vec![test_source_image(source, vec![255; 64])],
-            1,
-            0,
-            0,
-        )
-    };
+    let mut frame = test_frame(
+        test_submission([source]),
+        vec![test_source_image(source, vec![255; 64])],
+        1,
+        0,
+        0,
+    );
+    frame.missing_raster_image_count = 1;
+    frame.visible_missing_raster_image_count = 1;
     let report = frame.prepare_report();
 
     assert!(!frame.supports_native_submission());
@@ -51,11 +49,9 @@ fn native_bitmap_atlas_frame_uses_transparent_placeholder_for_pending_worker_ras
         }],
         test_clip_rect(),
     );
-    let frame = NativeBitmapAtlasFrame {
-        missing_raster_image_count: 1,
-        visible_missing_raster_image_count: 1,
-        ..test_frame(submission, Vec::new(), 0, 0, 0)
-    };
+    let mut frame = test_frame(submission, Vec::new(), 0, 0, 0);
+    frame.missing_raster_image_count = 1;
+    frame.visible_missing_raster_image_count = 1;
     let report = frame.prepare_report();
 
     assert!(!frame.supports_native_submission());
